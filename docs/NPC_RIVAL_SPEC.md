@@ -3,7 +3,7 @@
 Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as the IVS NPC racer
 (`IVS docs/NPC_RACER_SPEC.md`), with anime runners instead of cars.
 
-- One NPC rival per track: an original anime character (`Shared/NpcConfig.Tracks[n].Model`), its own name and colour.
+- One NPC rival per track: a tweaked-name real anime character (design doc section 5; `Shared/NpcConfig.Tracks[n].Model`), its own name and colour.
 - Speed (placeholder): Track 1 = 16 studs/s, x1.51 per later track (Track 10 = 653 studs/s), always below
   `RaceConfig.MAX_CRUISE`.
 - NPC rivals have no stamina: they run the whole track at their speed.
@@ -15,8 +15,9 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 - Per player: the NPC exists only in the owner's client; race events go only to the owner. Players pass through each
   other; NPC parts never collide.
 - Label `RIVAL` over `<Name> · Track n`, `MaxDistance` 200 studs.
-- Proposed rivals (original): Track 1 Dash Kid Tobi, 2 Hill Monk Sora, 3 Drag Queen Ruri, 4 Circuit Twins,
-  5 Serpent Ninja Hebi, 6 Neon City Idol, 7 Dune Wolf, 8 Frost Swordsman Yuki, 9 Magma Brawler, 10 Star Pilot Nova.
+- Proposed rivals (tweaked names; source in brackets, internal only): Track 1 Rock Lea [Rock Lee], 2 Krilen [Krillin],
+  3 Usopu [Usopp], 4 Akazo [Akaza], 5 Todoh [Todo], 6 Shigaraky [Shigaraki], 7 Majin Buu-u [Majin Buu],
+  8 Kizaro [Kizaru], 9 Madera [Madara], 10 Beeros [Beerus].
 
 ## Tests
 

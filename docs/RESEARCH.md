@@ -19,7 +19,8 @@
   - https://create.roblox.com/docs/en-us/marketplace/intellectual-property
 - Fan games and parodies of franchises have been removed after DMCA notices.
   - https://roblox.fandom.com/wiki/Copyright_and_trademark_infringement
-- Decision (owner 2026-10-28): original characters only (design doc section 5).
+- Decision (owner 2026-10-28): first original only; changed the same day to real anime characters with tweaked names,
+  risk accepted (design doc section 5).
 
 ## 3. Paid random items (spins)
 

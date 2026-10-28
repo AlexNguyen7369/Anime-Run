@@ -9,7 +9,7 @@ Created 2026-10-28 by the owner (Alex Nguyen), derived from Idle Vehicle Simulat
 
 ## 1. Concept
 
-An idle running simulator on Roblox. The player spins (gacha) for **original anime-style characters**, puts up to
+An idle running simulator on Roblox. The player spins (gacha) for **anime characters based on real anime, with tweaked names** (section 5), puts up to
 **3 of them on a team**, and the team auto-runs a chain of tracks against an NPC rival on every track. Each character
 has **stamina** that drains while it runs; when it is empty the next character on the team takes over. The run ends
 when all 3 are empty, or when the player loses a track to the NPC.
@@ -91,20 +91,28 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   by daily login and codes, like the IVS potions. Not a random item. Never pays Money.
 
 ### 4.8 Series and preset team bonus (owner 2026-10-28)
-- Every character belongs to one original **Series** (a fictional anime made for this game, section 5).
+- Every character belongs to one **Series** (a tweaked-name take on a real anime, section 5).
 - **Series bonus**: all 3 team slots from the same Series -> +20% stamina for the whole team (placeholder).
 - **Preset teams**: named trios defined in the catalog (e.g. a series' main squad). A team with exactly those 3
   characters, in any order, gets the preset bonus instead of the Series bonus: +40% stamina and x1.1 cruise
   (placeholders). The cruise part counts inside the IVS total cruise cap (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
-## 5. Intellectual property (fixed)
+## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
-- Every character, NPC rival, name and image is original. No names, silhouettes, outfits, colour schemes, catch-phrases
-  or signature moves copied from any anime, manga or game franchise. Generic archetypes (ninja, swordsman, mage) are
-  allowed.
-- Reason: Roblox's Terms of Use forbid infringing content and rightsholders can file DMCA takedowns that remove the
-  game (`docs/RESEARCH.md` section 2).
+- Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
+  "Narito" for a well-known ninja hero. Each Series is a tweaked-name take on a real anime, and its preset trio is
+  that anime's famous team.
+- Risk accepted by the owner: rightsholders can still file DMCA takedowns against derivative characters, which removes
+  the game (`docs/RESEARCH.md` section 2).
+- Safeguards (proposed, owner to confirm):
+  - Never use an official character name, series title, logo, sound, voice line or ripped model / texture. All art,
+    VFX and audio are made in-house.
+  - Real character or series names never appear in the game title, description, thumbnails, icons, badges or
+    developer product names.
+  - Keep one list of every parody and its source (`docs/CHARACTER_GACHA_SPEC.md`) so a takedown can be answered by
+    renaming / reskinning one character fast; character `Id`s never contain the real name, so a rename never touches
+    saves.
 
 ## 6. Monetization rules (fixed; Roblox paid random items policy, updated 2026-08-19)
 
@@ -128,6 +136,8 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was
+  original only); Series = tweaked real anime, preset trio = its famous team.
 - 2026-10-28: owner answered the open questions: Stamina stat point, Stamina potions, runner categories
   (Sprinter / Balanced / Marathoner), Series and preset team bonus (sections 4.5-4.8).
 - 2026-10-28: document created (owner decisions: new repo, original characters, full stamina refill per run,

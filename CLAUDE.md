@@ -1,6 +1,6 @@
 # Anime Run (Roblox)
 
-Idle running simulator: spin original anime characters, run a team of 3 with stamina against NPC rivals.
+Idle running simulator: spin tweaked-name anime characters, run a team of 3 with stamina against NPC rivals.
 Derived from Idle Vehicle Simulator (`~/Documents/RobloxGames`); its code is the source for the fork.
 
 ## Session handoff (required)
@@ -13,7 +13,7 @@ Read `handoff.md` at the start of every session. Update it before pausing or han
 - On a conflict: stop, report it, ask the owner. Never choose silently.
 - A new feature is written into the design doc (and its spec) before any code. Only the owner changes a rule; record
   the change with its date.
-- Every character and NPC is original (design doc section 5).
+- Characters are real anime characters with tweaked names; follow the safeguards in design doc section 5.
 
 ## Conventions
 - Rojo, `.luau`, tabs, `--!nonstrict`. Server decides every number; the client only displays.
