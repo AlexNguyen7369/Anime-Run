@@ -1,0 +1,112 @@
+# Anime Run — Game Design Requirements
+
+This document is the top rule for the game. Feature specs (`docs/*_SPEC.md`) must never contradict it. Values marked
+**placeholder**, **proposed** or **open question** are tunable; everything else is fixed. Only the owner changes a
+rule, and every change is recorded here with its date.
+
+Created 2026-10-28 by the owner (Alex Nguyen), derived from Idle Vehicle Simulator (IVS). Research notes:
+`docs/RESEARCH.md`.
+
+## 1. Concept
+
+An idle running simulator on Roblox. The player spins (gacha) for **original anime-style characters**, puts up to
+**3 of them on a team**, and the team auto-runs a chain of tracks against an NPC rival on every track. Each character
+has **stamina** that drains while it runs; when it is empty the next character on the team takes over. The run ends
+when all 3 are empty, or when the player loses a track to the NPC.
+
+The game is the same concept as IVS, with cars replaced by characters and the single equipped car replaced by a
+3-character team with stamina.
+
+## 2. Core loop
+
+1. Auto-spin characters (free, every `ROLL_INTERVAL` seconds) and discover them in the Index.
+2. Build a team of up to 3 characters (order matters).
+3. Start a run on the start pad: the team auto-runs Track 1, 2, 3 ... against each track's NPC rival.
+4. Each track won adds its pad value to the run's bank (UNBANKED).
+5. The run ends:
+   - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
+   - **Player stops** (Stop button, death, leave): the bank is cashed out.
+   - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
+6. While running, the Speed stat grows. A higher Speed stat makes every character faster.
+7. Money buys upgrades; rebirth resets Money and Speed for a permanent multiplier.
+
+## 3. Rules carried over from IVS unchanged (rename only: car -> character)
+
+| Rule | IVS source |
+|---|---|
+| Numbered, point-to-point track chain; each track starts on the previous finish; loops back to Track 1 after the last | `TrackBuilder`, `TrackValidator` |
+| Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
+| One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
+| Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
+| Speed stat (`leaderstats.Speed`) grows with actual speed while running; cruise = log curve of the stat, capped at `MAX_CRUISE` | `RaceConfig` |
+| The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
+| Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
+| Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
+| Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
+| Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
+| Rebirth resets Money AND Speed | `RebirthService` |
+| Session-locked saves through `UpdateAsync` | `PlayerData` |
+| Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
+
+## 4. What changes
+
+### 4.1 Characters replace cars
+- A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti`, `Stamina`
+  and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
+- Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
+- The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
+
+### 4.2 Team of 3
+- The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
+  1 character. Spec: `docs/TEAM_AND_STAMINA_SPEC.md`.
+- Slot 1 starts every run; slot 2, then slot 3, take over when the one before is empty.
+
+### 4.3 Stamina
+- Every character has a stamina bar (0-100%). It drains only while that character is running.
+- The drain rate depends on rarity: rarer characters last longer (placeholder seconds of running: Common 30,
+  Uncommon 40, Rare 55, Epic 75, Legendary 100, Mythic 130, Secret 180).
+- At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
+- Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
+
+### 4.4 Losing stays a speed comparison
+- Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
+  finish later, the player loses. A swap to a slower character mid-track can turn a win into a loss: team order is
+  part of the strategy.
+
+## 5. Intellectual property (fixed)
+
+- Every character, NPC rival, name and image is original. No names, silhouettes, outfits, colour schemes, catch-phrases
+  or signature moves copied from any anime, manga or game franchise. Generic archetypes (ninja, swordsman, mage) are
+  allowed.
+- Reason: Roblox's Terms of Use forbid infringing content and rightsholders can file DMCA takedowns that remove the
+  game (`docs/RESEARCH.md` section 2).
+
+## 6. Monetization rules (fixed; Roblox paid random items policy, updated 2026-08-19)
+
+- Free auto-spins stay the main source of characters.
+- Any spin bought with Robux, or with a currency bought with Robux, shows every outcome with its odds as a percentage
+  (summing to exactly 100%) before purchase, behind a button labelled "Info" or "Details" (not a bare icon).
+- Paid luck boosts and any pity system show the updated odds while active.
+- Users flagged by `PolicyService:GetPolicyInfoForPlayerAsync` (`ArePaidRandomItemsRestricted`) get a free earnable
+  path to every paid-random item, or see fixed disclosed outcomes; such items are not tradable.
+
+## 7. Technical and data requirements
+
+- Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
+- Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
+  `Rolls`, `StatAlloc`, `Rebirths`, `Showcase`, `WorkshopLevel`. Unknown ids are kept. Stamina is never saved.
+- The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
+
+## 8. Open questions (owner)
+
+1. Should a stat point "Endurance" slow stamina drain? (proposed: +5% stamina per point)
+2. Stamina potions in the shop (one-run +X% stamina)? Must follow section 6 if paid.
+3. Rarity now buys both speed and stamina. Should some characters trade one for the other (fast sprinters with low
+   stamina, slow marathoners with high stamina)?
+4. Should team synergy exist (e.g. 3 of one archetype = +10% stamina)? Not in v1 unless approved.
+
+## Change log
+
+- 2026-10-28: document created (owner decisions: new repo, original characters, full stamina refill per run,
+  exhaustion cashes out).
