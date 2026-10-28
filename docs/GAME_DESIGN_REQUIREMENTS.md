@@ -105,7 +105,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   that anime's famous team.
 - Risk accepted by the owner: rightsholders can still file DMCA takedowns against derivative characters, which removes
   the game (`docs/RESEARCH.md` section 2).
-- Safeguards (proposed, owner to confirm):
+- Safeguards (owner-approved 2026-10-28):
   - Never use an official character name, series title, logo, sound, voice line or ripped model / texture. All art,
     VFX and audio are made in-house.
   - Real character or series names never appear in the game title, description, thumbnails, icons, badges or
@@ -136,6 +136,7 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner approved the parody cast, the 6 preset trios, the 10 NPC rivals and the section 5 safeguards.
 - 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was
   original only); Series = tweaked real anime, preset trio = its famous team.
 - 2026-10-28: owner answered the open questions: Stamina stat point, Stamina potions, runner categories

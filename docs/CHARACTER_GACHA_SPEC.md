@@ -49,7 +49,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 permanent save-safe keys like character ids and never contain a real name. Every series has 5 characters spread
 over the rarities so a Series bonus is reachable early; each has one preset trio, its anime's famous team.
 
-## Launch cast (proposed, 30 characters in 6 series)
+## Launch cast (owner-approved 2026-10-28, 30 characters in 6 series)
 
 Tweaked names of real anime characters (design doc section 5). Ids never contain the real name. The "Based on" column
 is the internal source list; it never ships in the game. Category: S = Sprinter, B = Balanced, M = Marathoner.
