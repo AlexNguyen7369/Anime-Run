@@ -7,10 +7,13 @@
 - Owner 2026-10-28 (later): Stamina stat point, Stamina potions, runner categories, Series + preset team bonus.
   Written into design doc 4.5-4.8, `TEAM_AND_STAMINA_SPEC.md`, `CHARACTER_GACHA_SPEC.md` (6 tweaked-name real-anime series).
 
+- Orchestrator 2026-10-28: config `.claude/orchestrator.md`, goal `fork-ivs` (docs/ORCHESTRATOR_GOALS.md), integration
+  branch `feature/alex/fork-ivs`. f1 landed (IVS 29f3fab copied in; rojo build OK, stylua clean, selene 0 errors with 4
+  inherited warnings in CarTest test files; audit PASS). Repo moved to ~/Documents/Github/personal-projects/AnimeRun.
+
 ## Next
-1. Owner: approve the 30-character cast, 6 series, preset trios and the section 5 safeguards, and the placeholder numbers.
-2. Fork code from IVS: copy `default.project.json`, `src/` and the harness; rename car -> character
-   (`CarCatalog` -> `CharacterCatalog`, `EquippedCar` -> `Team`); drop `CarPhysics`/`CarFactory` for a rigged runner on
-   the `RaceService` rail.
-3. Tests first: `team`, `stamina` (see `TEAM_AND_STAMINA_SPEC.md`), then implement `Shared/StaminaConfig` and the
-   stamina tick + swap in `RaceService`.
+1. f2: car -> character rename + 30 placeholder characters (neutral ids, CHARACTER_GACHA_SPEC.md); neutralize the
+   Dragon Ball comments in src/shared/VehicleEffects.luau and context/ProjectContext.luau. Gameplay unchanged; harness green.
+2. f3: AnimeRun place file (copy IVS IdleVehicleSimulator.rbxl, git-ignored), full harness `[CARTEST] END fail=0` in
+   Studio (shared with IVS: one run at a time).
+3. Then team of 3 + stamina (TEAM_AND_STAMINA_SPEC.md), tests first.
