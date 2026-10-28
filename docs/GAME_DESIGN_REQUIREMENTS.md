@@ -51,8 +51,8 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 ## 4. What changes
 
 ### 4.1 Characters replace cars
-- A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti`, `Stamina`
-  and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
+- A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti`, `Stamina`,
+  `Category` (4.5), `Series` (4.8) and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
 - Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
 
@@ -73,6 +73,30 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
   finish later, the player loses. A swap to a slower character mid-track can turn a win into a loss: team order is
   part of the strategy.
+
+### 4.5 Runner categories (owner 2026-10-28)
+- Every character has one category that trades speed against stamina (multipliers placeholder):
+  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.7.
+  - **Balanced**: x1, x1.
+  - **Marathoner**: cruise SpeedMulti x0.85, stamina x1.4.
+- Rarity still sets the base speed and base stamina; the category scales them.
+
+### 4.6 Stamina stat point (owner 2026-10-28)
+- Index stat points can be put into a new stat **Stamina**: each point adds +5% stamina to every character
+  (placeholder), additive with other points like the IVS stats.
+
+### 4.7 Stamina potions (owner 2026-10-28)
+- A new potion category **Stamina** (IVS `BoostConfig` pattern): a timed boost, x1.5 stamina for every run started
+  while it is active, 15 minutes (placeholders). Sold in the Shop as potion packs (Robux developer products) and given
+  by daily login and codes, like the IVS potions. Not a random item. Never pays Money.
+
+### 4.8 Series and preset team bonus (owner 2026-10-28)
+- Every character belongs to one original **Series** (a fictional anime made for this game, section 5).
+- **Series bonus**: all 3 team slots from the same Series -> +20% stamina for the whole team (placeholder).
+- **Preset teams**: named trios defined in the catalog (e.g. a series' main squad). A team with exactly those 3
+  characters, in any order, gets the preset bonus instead of the Series bonus: +40% stamina and x1.1 cruise
+  (placeholders). The cruise part counts inside the IVS total cruise cap (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
+- Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
 ## 5. Intellectual property (fixed)
 
@@ -95,18 +119,16 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 - Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
 - Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
-  `Rolls`, `StatAlloc`, `Rebirths`, `Showcase`, `WorkshopLevel`. Unknown ids are kept. Stamina is never saved.
+  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`. Unknown ids are kept. Stamina is never saved.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
 
 ## 8. Open questions (owner)
 
-1. Should a stat point "Endurance" slow stamina drain? (proposed: +5% stamina per point)
-2. Stamina potions in the shop (one-run +X% stamina)? Must follow section 6 if paid.
-3. Rarity now buys both speed and stamina. Should some characters trade one for the other (fast sprinters with low
-   stamina, slow marathoners with high stamina)?
-4. Should team synergy exist (e.g. 3 of one archetype = +10% stamina)? Not in v1 unless approved.
+None open. The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
 
+- 2026-10-28: owner answered the open questions: Stamina stat point, Stamina potions, runner categories
+  (Sprinter / Balanced / Marathoner), Series and preset team bonus (sections 4.5-4.8).
 - 2026-10-28: document created (owner decisions: new repo, original characters, full stamina refill per run,
   exhaustion cashes out).
