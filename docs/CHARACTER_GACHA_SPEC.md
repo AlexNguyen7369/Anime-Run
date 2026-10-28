@@ -89,6 +89,28 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 
 Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
 
+Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
+
+| Id | Chance | SpeedMulti | Id | Chance | SpeedMulti |
+|---|---|---|---|---|---|
+| `sea_navigator` | nil (catch-all) | 1.1 | `db_tyrant` | 50,000 | 6 |
+| `leaf_medic` | 10 | 1.25 | `sea_flame` | 120,000 | 8 |
+| `db_green` | 20 | 1.4 | `ds_sister` | 300,000 | 10 |
+| `sea_cook` | 40 | 1.6 | `jk_vessel` | 700,000 | 12 |
+| `ds_boar` | 70 | 1.8 | `mha_blast` | 1,500,000 | 14.5 |
+| `jk_nails` | 120 | 2 | `leaf_avenger` | 2,500,000 | 16.5 |
+| `mha_float` | 200 | 2.2 | `leaf_hero` | 1e7 | 25 |
+| `leaf_copycat` | 500 | 2 | `db_prince` | 5e7 | 45 |
+| `db_scholar` | 1,000 | 2.6 | `sea_captain` | 1e8 | 60 |
+| `sea_swords` | 2,000 | 3.2 | `ds_hero` | 3e8 | 80 |
+| `ds_thunder` | 4,000 | 3.9 | `mha_hero` | 7.8e8 | 100 |
+| `jk_shadows` | 8,000 | 4.6 | `leaf_crow` | 5e9 | 150 |
+| `mha_icefire` | 13,000 | 5.25 | `ds_flame` | 1e11 | 250 |
+| | | | `jk_king` | 1e13 | 350 |
+| | | | `mha_symbol` | 1e15 | 425 |
+| | | | `db_hero` | 1.6e16 | 1,000 |
+| | | | `jk_strongest` | 5e18 | 2,800 |
+
 Preset trios (the anime's famous team):
 
 | Series | Preset | Members |
