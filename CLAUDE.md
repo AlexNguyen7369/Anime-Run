@@ -18,3 +18,11 @@ Read `handoff.md` at the start of every session. Update it before pausing or han
 ## Conventions
 - Rojo, `.luau`, tabs, `--!nonstrict`. Server decides every number; the client only displays.
 - `stylua src`, `selene src`.
+
+## Progress tracking (required after every commit or push)
+After making a commit or push in this repo, invoke the global
+`progress-tracker` skill before touching `current_progress.md` — it is
+the authoritative, strict spec for how that file is created (if
+missing) and updated (Completed appends, What's Next replacement,
+formatting, attribution). Do not improvise the update from memory or
+from this summary; invoke the skill every time this rule fires.
