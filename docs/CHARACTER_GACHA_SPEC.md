@@ -129,9 +129,9 @@ Preset trios (the anime's famous team):
 | Series | Preset | Members |
 |---|---|---|
 | Narito Shippudon | Team Seven | Narito, Saske, Sakara |
-| Dragon Bawl Z | Saiyan Pride | Gokku, Vegata, Gohon |
+| Dragon Bawl Z | Sayan Pride | Gokku, Vegata, Gohon |
 | One Peace | Straw Crew | Lufy, Zoru, Sanjy |
-| Demon Slicer | Kamado Squad | Tanjiru, Zenitsa, Inosuki |
+| Demon Slicer | Kamada Squad | Tanjiru, Zenitsa, Inosuki |
 | Jujitsu Kaisan | First Years | Yuuji, Megumo, Nobora |
 | My Hero Akademia | Class 1-A | Deko, Bakugoo, Todoroky |
 
@@ -146,5 +146,6 @@ Preset trios (the anime's famous team):
 ## Tests
 
 - `gacha`: rarest-first odds, turbo roll, duplicate adds `Copies`, Index points.
-- `catalog`: every id unique and never removed (compare to a committed id list), every field valid, every Series id
+- `catalog`: no real name in any id; the test keeps only hashes of the real names, never the names (owner 2026-10-28).
+- `catalog` (cont.): every id unique and never removed (compare to a committed id list), every field valid, every Series id
   exists, every preset has 3 distinct members of its own series.
