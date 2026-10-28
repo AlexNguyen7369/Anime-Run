@@ -56,6 +56,10 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
 
+- IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models,
+  gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Until a real running rig exists, each
+  character runs on the IVS procedural car body (`CarFactory`) labelled with the character's name (owner 2026-10-28).
+
 ### 4.2 Team of 3
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
   1 character. Spec: `docs/TEAM_AND_STAMINA_SPEC.md`.
@@ -136,6 +140,7 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner removed the IVS cars and car-only features; characters keep the car body as a placeholder (4.1).
 - 2026-10-28: owner approved the parody cast, the 6 preset trios, the 10 NPC rivals and the section 5 safeguards.
 - 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was
   original only); Series = tweaked real anime, preset trio = its famous team.
