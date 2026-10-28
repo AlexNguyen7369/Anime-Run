@@ -1,6 +1,8 @@
 # Owner questions
 
 ## oq1: Publish AnimeRun.rbxl as a new private experience (2026-10-28)
+- Status 2026-10-28: published (placeId 102957063656302, universe 10773557968); Rojo on port 34873.
+  OPEN: step 2 (API access off: DataStore probe says "Studio access to APIs is not allowed") and step 3 (MaxPlayers is 60).
 - Why: own DataStores, products, takedown isolation; f3 data tests need Studio API access.
 - Blocks: f3 (full harness on an AnimeRun place).
 - When: before f3.

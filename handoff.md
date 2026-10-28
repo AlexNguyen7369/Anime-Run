@@ -11,6 +11,9 @@
   branch `feature/alex/fork-ivs`. f1 landed (IVS 29f3fab copied in; rojo build OK, stylua clean, selene 0 errors with 4
   inherited warnings in CarTest test files; audit PASS). Repo moved to ~/Documents/Github/personal-projects/AnimeRun.
 
+- Studio: Anime Run experience placeId 102957063656302 (universe 10773557968). AnimeRun Rojo = `rojo serve --port 34873`
+  from this folder; IVS keeps 34872. Every Studio MCP call names the Anime Run studio id, never Racer RNG.
+
 ## Next
 1. f2: car -> character rename + 30 placeholder characters (neutral ids, CHARACTER_GACHA_SPEC.md); neutralize the
    Dragon Ball comments in src/shared/VehicleEffects.luau and context/ProjectContext.luau. Gameplay unchanged; harness green.
