@@ -33,7 +33,7 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 
 | Track | Biome (working name) | Inspired by | Look |
 |---|---|---|---|
-| 1 | Leafwind Village | Narito Shippudon | forest village, wooden rooftops, a carved cliff face with 4 generic stone faces, red bridges, training posts |
+| 1 | Leafwind Village | Narito Shippudon | forest village, wooden rooftops, a carved cliff face with 4 generic stone faces (owner-approved 2026-10-28), red bridges, training posts |
 | 2 | Tournament Wasteland | Dragon Bawl Z | rocky plateaus, craters, a stone tournament ring, floating boulders |
 | 3 | Pirate Harbor Isle | One Peace | sandy island, docks, a moored caravel with a plain sail, palm trees, open sea horizon |
 | 4 | Wisteria Night Mountain | Demon Slicer | night forest, purple wisteria trees, stone lanterns, a Taisho-style wooden town, full moon |

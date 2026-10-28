@@ -20,7 +20,7 @@ merging into `main` (owner's call).
 
 ## anime-maps: Longer tracks and anime biomes
 Status: active (after fork-ivs)
-Owner-confirmed: 2026-10-28 (request and numbers; deliverables below proposed, owner to confirm)
+Owner-confirmed: 2026-10-28 (request, numbers and deliverables)
 Branch: feature/alex/anime-maps (created on the first task)
 Deliverables:
 - m1 | Track tests for Tracks 1-10 (target length +-5%, validator rules, chain, 0 flips / 0 off-track) written red | tests exist and fail on the old layouts

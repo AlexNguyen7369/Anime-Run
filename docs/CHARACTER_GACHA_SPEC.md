@@ -112,7 +112,7 @@ Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; t
 | | | | `db_hero` | 1.6e16 | 1,000 |
 | | | | `jk_strongest` | 5e18 | 2,800 |
 
-Event-only characters (owner 2026-10-28: in scope; names proposed, owner to approve; odds and multis copied from
+Event-only characters (owner 2026-10-28: in scope; names owner-approved 2026-10-28; odds and multis copied from
 the IVS event cars). They belong to a series and count toward its Series bonus. Discovery and equipping persist after
 the event.
 

@@ -147,6 +147,7 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner approved the event-only names (Giyo, Toje, Rojer), the anime-maps deliverables and the Track 1 cliff faces.
 - 2026-10-28: owner asked for the map redesign: tracks x1.25 longer each (Track 1 = reference), anime biomes (4.9).
 - 2026-10-28: owner put event-only characters in scope (weather events carry over, 3 event-only characters).
 - 2026-10-28: owner removed the IVS cars and car-only features; characters keep the car body as a placeholder (4.1).
