@@ -44,6 +44,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
 | Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
+| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money AND Speed | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
 | Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
@@ -102,6 +103,12 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   (placeholders). The cruise part counts inside the IVS total cruise cap (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
+### 4.9 Map redesign: longer tracks and anime biomes (owner 2026-10-28)
+- Tracks start long and get longer: Track 1 keeps its length (about 984 studs) as the reference; Track n is
+  `984 x 1.25^(n-1)` studs (Track 10 about 7,300). NPC speeds are unchanged.
+- Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
+  (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -140,6 +147,8 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner asked for the map redesign: tracks x1.25 longer each (Track 1 = reference), anime biomes (4.9).
+- 2026-10-28: owner put event-only characters in scope (weather events carry over, 3 event-only characters).
 - 2026-10-28: owner removed the IVS cars and car-only features; characters keep the car body as a placeholder (4.1).
 - 2026-10-28: owner approved the parody cast, the 6 preset trios, the 10 NPC rivals and the section 5 safeguards.
 - 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was

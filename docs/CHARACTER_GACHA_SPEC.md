@@ -21,6 +21,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Archetype` | ninja, swordsman, mage, brawler, idol, mecha pilot, beast-kin, gunslinger, monk, spirit |
 | `Model` | name under `ReplicatedStorage.CharacterModels`; nil shows the "?" placeholder |
 | `RunStyle` | animation set: `Sprint`, `NinjaRun`, `Glide`, `Float` |
+| `Event` | optional: `rain`, `night` or `gold`; the character is rollable only during that weather event (IVS `WEATHER_EVENTS_SPEC.md`) |
 
 - `starter` is built in: not rollable, not in the Index, `Balanced`, no Series.
 
@@ -110,6 +111,18 @@ Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; t
 | | | | `mha_symbol` | 1e15 | 425 |
 | | | | `db_hero` | 1.6e16 | 1,000 |
 | | | | `jk_strongest` | 5e18 | 2,800 |
+
+Event-only characters (owner 2026-10-28: in scope; names proposed, owner to approve; odds and multis copied from
+the IVS event cars). They belong to a series and count toward its Series bonus. Discovery and equipping persist after
+the event.
+
+| Id | Character | Based on | Series | Rarity | Cat. | Event | Chance | SpeedMulti |
+|---|---|---|---|---|---|---|---|---|
+| `ds_water` | Giyo | Giyu Tomioka | Demon Slicer | Epic | M | `rain` | 160,000 | 6 |
+| `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
+| `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
+
+Catalog total: 30 regular + 3 event-only = 33 rollable characters, plus the starter.
 
 Preset trios (the anime's famous team):
 

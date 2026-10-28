@@ -17,3 +17,14 @@ Deliverables:
 - f3 | Full harness green on an AnimeRun place in Studio | `[CARTEST] END fail=0`; rules audit PASS
 Out of scope: new mechanics (team, stamina, bonuses, potions, stat point), final character art, Robux products,
 merging into `main` (owner's call).
+
+## anime-maps: Longer tracks and anime biomes
+Status: active (after fork-ivs)
+Owner-confirmed: 2026-10-28 (request and numbers; deliverables below proposed, owner to confirm)
+Branch: feature/alex/anime-maps (created on the first task)
+Deliverables:
+- m1 | Track tests for Tracks 1-10 (target length +-5%, validator rules, chain, 0 flips / 0 off-track) written red | tests exist and fail on the old layouts
+- m2 | Track layouts 2-10 at the new lengths, Track 1 unchanged | every track test green; full harness `[CARTEST] END fail=0`
+- m3 | Biome themes 1-10 (TRACKS_AND_BIOMES_SPEC.md table) | `environment` scenario green; prop clearance green; IP check (no logos / real names) PASS
+- m4 | Rules audit PASS on the integration branch | `RULES AUDIT: PASS`
+Out of scope: final character art, Robux products, merging into `main`.
