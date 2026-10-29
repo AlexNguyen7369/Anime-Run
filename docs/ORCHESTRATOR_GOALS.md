@@ -20,7 +20,7 @@ merging into `main` (owner's call).
 
 ## anime-world: World redesign, every car model scrapped (replaces anime-maps)
 Status: active (next after fork-ivs; before anything else, owner 2026-10-28)
-Owner-confirmed: 2026-10-28 (scope); deliverables proposed, owner to confirm
+Owner-confirmed: 2026-10-28 (scope); deliverables w1-w5 confirmed by owner 2026-10-28
 Branch: feature/alex/anime-world (created on the first task)
 Spec: docs/WORLD_REDESIGN_SPEC.md, docs/TRACKS_AND_BIOMES_SPEC.md
 Deliverables:

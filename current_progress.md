@@ -10,6 +10,6 @@
 7. 2026-10-28 — Alex Nguyen — Merged goal fork-ivs (f1-f3) into main via PR #1 after a fresh merge review approved it; goal closed.
 
 ## What's next
-**Goal anime-world w1: placeholder anime runner on the rail replaces the car body; car physics and car-physics scenarios retired (owner to confirm the w1-w5 deliverables first).**
+**Goal anime-world w1: placeholder anime runner on the rail replaces the car body; car physics and car-physics scenarios retired.**
 
 **Why this is next:** fork-ivs deliverables are all done, and the owner set anime-world to run next, before team of 3 + stamina; every later world task (w2-w5) builds on the runner.
