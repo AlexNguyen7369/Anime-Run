@@ -12,3 +12,12 @@
   2. Game Settings > Security: Enable Studio Access to API Services, Save.
   3. Game Settings > Places (or Permissions): Max Players 7, Save.
   4. File > Save (AnimeRun.rbxl), then tell Claude the new placeId.
+
+## oq2: f3 place file after "logic only, all visuals new" (2026-10-28)
+- Owner said 2026-10-28: Anime Run keeps only IVS gameplay logic and concepts; visuals and assets are all different.
+- Conflict: handoff/board f3 says "copy IVS IdleVehicleSimulator.rbxl" as the AnimeRun place.
+- Question: should f3 instead be "full harness green in the existing Anime Run place (placeId 102957063656302), no IVS
+  place contents copied"? Proposed: yes.
+- Also: the default `Workspace.SpawnLocation` was deleted in the Anime Run Studio (Edit mode). Save/publish the place
+  (File > Save to Roblox) so the deletion persists.
+- Blocks: f3.

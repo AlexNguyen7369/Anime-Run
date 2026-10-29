@@ -14,9 +14,21 @@
 - Studio: Anime Run experience placeId 102957063656302 (universe 10773557968). AnimeRun Rojo = `rojo serve --port 34873`
   from this folder; IVS keeps 34872. Every Studio MCP call names the Anime Run studio id, never Racer RNG.
 
+- f2 LANDED 2026-10-28 (merge 9a652dd on feature/alex/fork-ivs, pushed). Full harness in Anime Run Studio:
+  pass=47 fail=2; fixed: data.unknown_ids_preserved (test expected an unsorted id list, fixed by test-writer) and
+  spawn_area.spawn_only_spawn_location (default Workspace.SpawnLocation deleted in Edit; owner must save the place).
+  Re-run data,spawn_area pass=2 fail=0. Audit PASS. Worktree ../AnimeRun-orch/f2 and branch removed. Rojo 34873 now
+  serves this folder.
+- Owner 2026-10-28: Anime Run keeps only IVS gameplay logic and concepts; every visual and asset is new.
+- Dashboard: `/dashboard` -> http://127.0.0.1:8766 (tools/dashboard, uncommitted; 8765 is IVS).
+- 2026-10-28 17:15: Roblox_Studio MCP added to this project (local scope); needs a session restart to load. Resume:
+  restart `rojo serve --port 34873` from ../AnimeRun-orch/f2 if not listening, owner connects Anime Run Studio,
+  Studio MCP health check (list studios, pick Anime Run, never Racer RNG), run harness for f2.
+  Owner wants every relevant skill/plugin used for the redesign (anime-world goal, w1-w5 deliverables still
+  "proposed, owner to confirm"): roblox-game-development-lifecycle, roblox-game-skill, roblox-ui(-implementation),
+  roblox-vfx, world-builder agent. Blender MCP added (local scope).
+
 ## Next
-1. f2: car -> character rename + 30 placeholder characters (neutral ids, CHARACTER_GACHA_SPEC.md); neutralize the
-   Dragon Ball comments in src/shared/VehicleEffects.luau and context/ProjectContext.luau. Gameplay unchanged; harness green.
-2. f3: AnimeRun place file (copy IVS IdleVehicleSimulator.rbxl, git-ignored), full harness `[CARTEST] END fail=0` in
-   Studio (shared with IVS: one run at a time).
-3. Then team of 3 + stamina (TEAM_AND_STAMINA_SPEC.md), tests first.
+1. f3: blocked on docs/OWNER_QUESTIONS.md oq2 (proposed: full harness `[CARTEST] END fail=0` in the existing Anime Run
+   place, no IVS place copy). Owner must also save the place so the SpawnLocation deletion persists.
+2. Then team of 3 + stamina (TEAM_AND_STAMINA_SPEC.md), tests first.
