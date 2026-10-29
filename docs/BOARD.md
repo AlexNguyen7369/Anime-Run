@@ -1,7 +1,7 @@
 # Board
 
 ## Doing
-- f3 Full harness green on the Anime Run place (goal fork-ivs); blocked on owner question oq2 (place plan)
+- f3 Full harness `[CARTEST] END fail=0` in the Anime Run private experience, no IVS visual content copied (goal fork-ivs; oq2 answered 2026-10-28)
 
 ## Next
 

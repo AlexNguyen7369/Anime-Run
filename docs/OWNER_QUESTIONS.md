@@ -21,3 +21,7 @@
 - Also: the default `Workspace.SpawnLocation` was deleted in the Anime Run Studio (Edit mode). Save/publish the place
   (File > Save to Roblox) so the deletion persists.
 - Blocks: f3.
+- ANSWER 2026-10-28 (owner): yes. f3 runs in the Anime Run private experience (placeId 102957063656302); no visual
+  content is copied from IVS. Done the same day: default SpawnLocation and the leftover IVS `RedesignCarModels` folder
+  (unreferenced by code) deleted from the place. Remaining IVS-styled visuals (Rojo-managed RacingGarage,
+  RaceStartPavilion, SpawnMarketplace, StarterGui, CarModels placeholder body) are replaced by goal anime-world (w1, w2).
