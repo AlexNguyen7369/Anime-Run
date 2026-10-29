@@ -15,7 +15,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 - Per player: the NPC exists only in the owner's client; race events go only to the owner. Players pass through each
   other; NPC parts never collide.
 - Label `RIVAL` over `<Name> · Track n`, `MaxDistance` 200 studs.
-- Proposed rivals (tweaked names; source in brackets, internal only): Track 1 Rock Lea [Rock Lee], 2 Krilen [Krillin],
+- Rivals (owner-approved 2026-10-28; tweaked names; source in brackets, internal only): Track 1 Rock Lea [Rock Lee], 2 Krilen [Krillin],
   3 Usopu [Usopp], 4 Akazo [Akaza], 5 Todoh [Todo], 6 Shigaraky [Shigaraki], 7 Majin Buu-u [Majin Buu],
   8 Kizaro [Kizaru], 9 Madera [Madara], 10 Beeros [Beerus].
 

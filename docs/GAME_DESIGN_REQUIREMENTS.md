@@ -44,6 +44,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
 | Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
+| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money AND Speed | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
 | Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
@@ -55,6 +56,11 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   `Category` (4.5), `Series` (4.8) and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
 - Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
+
+- IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models,
+  gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Every car model, the car body included,
+  is scrapped; characters run as a placeholder anime runner rig on the race rail (owner 2026-10-28, section 4.10;
+  replaces the same day's "keep the car body" decision).
 
 ### 4.2 Team of 3
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
@@ -98,6 +104,18 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   (placeholders). The cruise part counts inside the IVS total cruise cap (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
+### 4.9 Map redesign: longer tracks and anime biomes (owner 2026-10-28)
+- Tracks start long and get longer: Track 1 keeps its length (about 984 studs) as the reference; Track n is
+  `984 x 1.25^(n-1)` studs (Track 10 about 7,300). NPC speeds are unchanged.
+- Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
+  (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
+
+### 4.10 World redesign (owner 2026-10-28)
+- The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
+  track chain spiralling out from the hub's start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
+- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the
+  racing Team train there and multiply idle Speed gain. A character is in the Team or the Dojo squad, never both.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -105,7 +123,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   that anime's famous team.
 - Risk accepted by the owner: rightsholders can still file DMCA takedowns against derivative characters, which removes
   the game (`docs/RESEARCH.md` section 2).
-- Safeguards (proposed, owner to confirm):
+- Safeguards (owner-approved 2026-10-28):
   - Never use an official character name, series title, logo, sound, voice line or ripped model / texture. All art,
     VFX and audio are made in-house.
   - Real character or series names never appear in the game title, description, thumbnails, icons, badges or
@@ -136,6 +154,15 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
+  car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
+- 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;
+  daily login's guaranteed rare stays "rarest unowned character" (IVS behaviour kept).
+- 2026-10-28: owner approved the event-only names (Giyo, Toje, Rojer), the anime-maps deliverables and the Track 1 cliff faces.
+- 2026-10-28: owner asked for the map redesign: tracks x1.25 longer each (Track 1 = reference), anime biomes (4.9).
+- 2026-10-28: owner put event-only characters in scope (weather events carry over, 3 event-only characters).
+- 2026-10-28: owner removed the IVS cars and car-only features; characters keep the car body as a placeholder (4.1).
+- 2026-10-28: owner approved the parody cast, the 6 preset trios, the 10 NPC rivals and the section 5 safeguards.
 - 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was
   original only); Series = tweaked real anime, preset trio = its famous team.
 - 2026-10-28: owner answered the open questions: Stamina stat point, Stamina potions, runner categories

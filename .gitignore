@@ -1,0 +1,5 @@
+.agents/
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+roblox.yml
