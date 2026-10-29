@@ -14,8 +14,9 @@
 --   * WorkshopMulti = Workshop points multi x ShowcaseMulti: in WorkshopService.Rate and the offline Speed credit.
 --   * Save: Snapshot/Apply carry Copies { [id] = n >= 1 } and Showcase { id, ... }; old saves load 0 / empty;
 --     PlayerData VERSION 12. A rebirth keeps both (checked in the rebirth scenario).
---   * World: the owner's Plot_N.Workshop has ShowcasePedestal_1..3 (anchored, non-colliding); k showcased cars with a
---     CarModels template = k pedestals holding a Model "Car"; labels have a finite MaxDistance.
+--   * World: the owner's Plot_N.Workshop has ShowcasePedestal_1..3 (anchored, non-colliding); k showcased characters
+--     = k pedestals holding that character's runner rig (H.isRig, child "Runner" or "Car"; CarModels is scrapped,
+--     docs/WORLD_REDESIGN_SPEC.md sections 1-2, orchestrator ruling 2026-10-28); labels have a finite MaxDistance.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -508,7 +509,7 @@ function Tests.showcase()
 		data.SetStore(nil)
 		data.SetClock(nil)
 
-		-- 8. World: pedestals on the owner's plot; showcased cars with a template stand on them
+		-- 8. World: pedestals on the owner's plot; every showcased character's runner rig stands on one
 		local w = fake("World")
 		for _, id in { "leaf_copycat", "db_tyrant", "leaf_hero" } do
 			gacha.Grant(w, id)
@@ -527,22 +528,11 @@ function Tests.showcase()
 			pedestals[i] = ped
 		end
 		flag("world_three_pedestals_anchored_non_colliding", pedOk)
-		local templates = ReplicatedStorage:FindFirstChild("CarModels")
-		local function withTemplate(ids)
-			local n = 0
-			for _, id in ids do
-				local spec = catalog.Get(id)
-				if templates and spec and spec.Model and templates:FindFirstChild(spec.Model) then
-					n += 1
-				end
-			end
-			return n
-		end
 		local function carsShown()
 			local n, labels, labelsOk, anchored = 0, 0, true, true
 			for _, ped in pedestals do
-				local car = ped and ped:FindFirstChild("Car")
-				if car and car:IsA("Model") then
+				local car = H.shown(ped)
+				if H.isRig(car) then
 					n += 1
 					for _, d in car:GetDescendants() do
 						if d:IsA("BasePart") and not d.Anchored then
@@ -571,13 +561,13 @@ function Tests.showcase()
 			return carsShown()
 		end
 		if pedOk then
-			local want2 = withTemplate({ "leaf_copycat", "db_tyrant" })
+			local want2 = 2
 			local n2, labels2, labelsOk2, anchored2 = waitShown(want2)
 			flag("world_showcase_on_assign", n2 == want2, n2, want2)
 			flag("world_showcase_labels_finite", labels2 >= n2 and labelsOk2, labels2, n2)
 			flag("world_showcase_cars_static", anchored2)
 			gacha.SetShowcase(w, { "leaf_copycat", "db_tyrant", "leaf_hero" })
-			local want3 = withTemplate({ "leaf_copycat", "db_tyrant", "leaf_hero" })
+			local want3 = 3
 			local n3 = waitShown(want3)
 			flag("world_showcase_follows_set", n3 == want3, n3, want3)
 			gacha.SetShowcase(w, {})

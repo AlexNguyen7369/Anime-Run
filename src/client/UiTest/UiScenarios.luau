@@ -109,6 +109,10 @@ UiScenarios.Names = {
 	"ui_hud",
 	-- docs/HUD_LAYOUT_SPEC.md sections 8-9 (owner 2026-10-27): speedometer, theme fonts and multis
 	"ui_speed_dial",
+	-- docs/WORLD_REDESIGN_SPEC.md section 2 (owner 2026-10-28): the visible runner moves smoothly (main run races)
+	"ui_runner_smooth",
+	-- orchestrator ruling 2026-10-28: the camera follows the visible runner while racing (main run races)
+	"ui_camera_follows_runner",
 	"ui_theme",
 	"ui_index",
 	"ui_stats",
@@ -132,9 +136,12 @@ UiScenarios.Names = {
 	"ui_daily_boosts",
 	"ui_shop",
 	"ui_market",
-	-- Backpack Cars tab and car model icons (UiContracts; owner 2026-10-20)
-	"ui_backpack_cars",
-	"ui_car_icons",
+	-- Backpack Characters tab and runner-rig icons (UiContracts; owner 2026-10-20, Cars -> Characters and car models
+	-- -> runner rigs per docs/WORLD_REDESIGN_SPEC.md section 1, orchestrator ruling 2026-10-28)
+	"ui_backpack_characters",
+	"ui_character_icons",
+	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
+	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
@@ -4110,8 +4117,8 @@ end
 
 -- The speedometer (docs/HUD_LAYOUT_SPEC.md section 9, owner 2026-10-27): RacerHud/Speed/SpeedDial with a Needle
 -- (attribute DialValue, studs/s) and DialSpeed, the speed icon as its hub, nothing clickable. On foot the needle rests
--- at 0 and DialSpeed reads "0"; while auto racing both follow the car's REAL speed (measured here from the seat's
--- displacement), never the Speed stat. The main run is auto_racing; the on_foot fixture runs it on foot.
+-- at 0 and DialSpeed reads "0"; while auto racing both follow the runner's REAL speed (measured here from the visible
+-- runner's displacement), never the Speed stat. The main run is auto_racing; the on_foot fixture runs it on foot.
 function S.ui_speed_dial(res)
 	waitGuis()
 	local H, cfg = UiSpec.Hud, UiSpec.SpeedDial
@@ -4171,21 +4178,24 @@ function S.ui_speed_dial(res)
 		check(res, "speed_dial_text_zero_on_foot", text.Text, "0", text.Text == "0")
 		return
 	end
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	-- The visible runner (contract in Server/CarTest/RunnerTests: tag VisibleRunner, Owner = this player's UserId)
 	local seat
-	local deadline = os.clock() + cfg.CarWait
+	local deadline = os.clock() + cfg.RunnerWait
 	repeat
-		seat = humanoid and humanoid.SeatPart
+		for _, m in CollectionService:GetTagged(UiSpec.RunnerSmooth.Tag) do
+			if m:IsA("Model") and m:IsDescendantOf(Workspace) and m:GetAttribute("Owner") == player.UserId then
+				seat = m.PrimaryPart
+			end
+		end
 		if not seat then
 			task.wait(0.1)
 		end
 	until seat or os.clock() > deadline
 	if not seat then
-		stateMissing(res, "speed_dial_follows_car", "auto_racing", "AutoRacing but the avatar is in no seat")
+		stateMissing(res, "speed_dial_follows_car", "auto_racing", "AutoRacing but no visible runner")
 		return
 	end
-	-- Real speed = path distance (sum of per-frame seat steps, so a curve does not read short as a chord would) / time
+	-- Real speed = path distance (sum of per-frame runner steps, so a curve does not read short as a chord would) / time
 	-- over SampleSeconds, skipping teleport steps (> TeleportStep: a restart / loop back to the start); DialValue and
 	-- DialSpeed averaged over the same frames
 	local last, t0 = seat.Position, os.clock()
@@ -4227,10 +4237,163 @@ function S.ui_speed_dial(res)
 	)
 end
 
+-- Smooth motion (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/CarTest/RunnerTests
+-- header): the server's rig is anchored and authoritative, and this client renders the visible runner (tag
+-- VisibleRunner, Owner = this player's UserId) by interpolating along the path. While auto racing, every frame's step
+-- must be about the runner's speed x dt: the IVS stutter (3.7, 0, 3.7, 0 studs per frame, a server pose replicated
+-- every other frame) fails. The speed is the runner's own mean over the window (the cruise is exact).
+function S.ui_runner_smooth(res)
+	local cfg = UiSpec.RunnerSmooth
+	if attr("AutoRacing") ~= true then
+		stateMissing(res, "runner_no_stutter", "auto_racing")
+		return
+	end
+	if not renderFrame() then
+		stateMissing(res, "runner_no_stutter", "rendering", "the client renders no frames")
+		return
+	end
+	local runner
+	local deadline = os.clock() + cfg.Wait
+	repeat
+		for _, m in CollectionService:GetTagged(cfg.Tag) do
+			if
+				m:IsA("Model")
+				and m:IsDescendantOf(Workspace)
+				and m:GetAttribute("Owner") == player.UserId
+				and m.PrimaryPart
+			then
+				runner = m
+			end
+		end
+		if not runner then
+			task.wait(0.1)
+		end
+	until runner or os.clock() > deadline
+	check(res, "visible_runner_found", runner ~= nil, true, runner ~= nil)
+	if not runner then
+		return
+	end
+	-- Sampled on Heartbeat, after this frame's render step placed the runner: one step and one dt per frame. A step
+	-- longer than TeleportStep is a restart / loop back to the start, which the contract snaps.
+	local steps, dts = {}, {}
+	local last = runner.PrimaryPart.Position
+	local t0 = os.clock()
+	repeat
+		local dt = RunService.Heartbeat:Wait()
+		local part = runner.PrimaryPart
+		if not part then
+			break
+		end
+		local step = (part.Position - last).Magnitude
+		last = part.Position
+		if step <= cfg.TeleportStep then
+			table.insert(steps, step)
+			table.insert(dts, dt)
+		end
+	until os.clock() - t0 >= cfg.SampleSeconds
+	local path, time = 0, 0
+	for i, step in steps do
+		path += step
+		time += dts[i]
+	end
+	local speed = time > 0 and path / time or 0
+	check(
+		res,
+		"runner_moves",
+		speed,
+		("> %s studs/s over >= %d frames"):format(cfg.MinSpeed, cfg.MinFrames),
+		speed > cfg.MinSpeed and #steps >= cfg.MinFrames
+	)
+	local bad = 0
+	for i, step in steps do
+		local want = speed * dts[i]
+		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
+			bad += 1
+		end
+	end
+	local share = #steps > 0 and bad / #steps or 1
+	check(
+		res,
+		"runner_no_stutter",
+		("%d of %d frames off speed x dt"):format(bad, #steps),
+		("<= %d%% of frames"):format(cfg.MaxBadShare * 100),
+		#steps >= cfg.MinFrames and share <= cfg.MaxBadShare
+	)
+end
+
 -- One theme (docs/HUD_LAYOUT_SPEC.md section 8, owner 2026-10-27): every TextLabel / TextButton in the game's
 -- ScreenGuis (UiSpec.Guis: never Roblox's or the UiTest's own), shown or not, is FredokaOne; every multiplier token in
 -- UiSpec.Theme.MultiLabels is HudFormat.Multi style ("x1.5": at most 2 decimals, no trailing zero) and no label
 -- writes the old "25x".
+-- No player-facing "car" wording (docs/WORLD_REDESIGN_SPEC.md section 1, orchestrator ruling 2026-10-28: "Characters",
+-- never "Cars"): no text of any declared GUI contains the word car or cars, in any case. Instance names are not text.
+function S.ui_no_car_wording(res)
+	waitGuis()
+	local bad = {}
+	for _, name in declaredGuis() do
+		local gui = playerGui:FindFirstChild(name)
+		for _, o in gui and gui:GetDescendants() or {} do
+			if
+				(o:IsA("TextLabel") or o:IsA("TextButton") or o:IsA("TextBox"))
+				and string.find(string.lower(o.Text), "%f[%a]cars?%f[%A]")
+			then
+				table.insert(bad, ("%s %q"):format(pathOf(o), o.Text))
+			end
+		end
+	end
+	checkList(res, "no_car_wording", bad)
+end
+
+-- Camera (orchestrator ruling 2026-10-28 on docs/WORLD_REDESIGN_SPEC.md section 2): while racing the camera follows
+-- the visible runner (tag VisibleRunner, Owner = this player): every frame of the window its focus is within
+-- UiSpec.RunnerSmooth.CameraMaxOffset studs of the runner.
+function S.ui_camera_follows_runner(res)
+	local cfg = UiSpec.RunnerSmooth
+	if attr("AutoRacing") ~= true then
+		stateMissing(res, "camera_follows_runner", "auto_racing")
+		return
+	end
+	local runner
+	local deadline = os.clock() + cfg.Wait
+	repeat
+		for _, m in CollectionService:GetTagged(cfg.Tag) do
+			if
+				m:IsA("Model")
+				and m:IsDescendantOf(Workspace)
+				and m:GetAttribute("Owner") == player.UserId
+				and m.PrimaryPart
+			then
+				runner = m
+			end
+		end
+		if not runner then
+			task.wait(0.1)
+		end
+	until runner or os.clock() > deadline
+	check(res, "visible_runner_found", runner ~= nil, true, runner ~= nil)
+	if not runner then
+		return
+	end
+	local worst, n = 0, 0
+	local t0 = os.clock()
+	repeat
+		RunService.Heartbeat:Wait()
+		local camera, part = Workspace.CurrentCamera, runner.PrimaryPart
+		if not (camera and part) then
+			break
+		end
+		worst = math.max(worst, (camera.Focus.Position - part.Position).Magnitude)
+		n += 1
+	until os.clock() - t0 >= cfg.CameraSeconds
+	check(
+		res,
+		"camera_follows_runner",
+		worst,
+		("<= %d studs over >= %d frames"):format(cfg.CameraMaxOffset, cfg.MinFrames),
+		n >= cfg.MinFrames and worst <= cfg.CameraMaxOffset
+	)
+end
+
 function S.ui_theme(res)
 	waitGuis()
 	local cfg = UiSpec.Theme

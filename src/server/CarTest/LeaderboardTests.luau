@@ -30,6 +30,7 @@ local BOARDS = {
 	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
 }
 local NO_DATA = "No data yet"
+local H = require(script.Parent.AcceptanceSupport)
 -- docs/SPAWN_AND_ROLLS_SPEC.md: the hub, local (x, z) of Track 1's Start (same literals as the spawn_area scenario)
 local HUB_MIN = Vector2.new(24, -100)
 local HUB_MAX = Vector2.new(184, 44)
@@ -504,7 +505,7 @@ function Tests.leaderboard()
 			Car = bestLabels and bestLabels.Car.Text or "<missing>",
 			Player = bestLabels and bestLabels.Player.Text or "<missing>",
 			CarId = bestRoll and bestRoll:GetAttribute("CarId"),
-			Model = bestRoll and bestRoll:FindFirstChild("Car") or nil,
+			Model = H.shown(bestRoll),
 		}
 	end
 
@@ -864,10 +865,8 @@ function Tests.leaderboard()
 		flag("leaderboard_names_cached", repeated == 0, repeated, 0)
 
 		-- Best Roll Ever pedestal (spec section 3a): it shows row 1 of the RarestCar board after every board read
-		local carModels = ReplicatedStorage:FindFirstChild("CarModels")
-		local function templateFor(spec)
-			return spec and type(spec.Model) == "string" and carModels and carModels:FindFirstChild(spec.Model) or nil
-		end
+		-- It shows that character's runner rig (CarModels is scrapped, docs/WORLD_REDESIGN_SPEC.md sections 1-2,
+		-- orchestrator ruling 2026-10-28); a score that is no catalog character's Chance shows no model.
 		local function expectRow(tag, userId, score, spec)
 			local s = pedestalShows()
 			flag("leaderboard_bestroll_odds_" .. tag, s.Odds == hud.Odds(score), s.Odds, hud.Odds(score))
@@ -882,12 +881,10 @@ function Tests.leaderboard()
 				tostring(s.CarId),
 				tostring(wantId)
 			)
-			-- "No template: no Car model"; with one, a Model whose every part is anchored and out of the physics
-			local template = templateFor(spec)
-			local isModel = s.Model ~= nil and s.Model:IsA("Model")
+			-- A character: its runner rig, every part anchored and out of the physics; no character: no model
 			flag(
 				"leaderboard_bestroll_car_model_" .. tag,
-				bestRoll ~= nil and (template ~= nil and isModel or (template == nil and s.Model == nil))
+				bestRoll ~= nil and (spec ~= nil and H.isRig(s.Model) or (spec == nil and s.Model == nil))
 			)
 			local parts, loose = partsOf(s.Model), 0
 			for _, part in parts do
@@ -897,7 +894,7 @@ function Tests.leaderboard()
 			end
 			flag(
 				"leaderboard_bestroll_car_parts_static_" .. tag,
-				bestRoll ~= nil and loose == 0 and (#parts > 0 or template == nil),
+				bestRoll ~= nil and loose == 0 and (#parts > 0 or spec == nil),
 				loose,
 				0
 			)
@@ -930,7 +927,7 @@ function Tests.leaderboard()
 		if twoCars then
 			-- Row 1 as seeded above: the rarest catalog car, held by user ID_BASE + 1
 			local firstCar = expectRow("row1", ID_BASE + 1, best.Chance, best)
-			local onPedestal = templateFor(best) == nil
+			local onPedestal = false
 			if firstCar and firstCar:IsA("Model") and pedestalOk and numbersOk then
 				local offset = firstCar:GetBoundingBox().Position - pedestal.Position
 				onPedestal = Vector2.new(offset.X, offset.Z).Magnitude <= B.RADIUS and offset.Y > 0
@@ -952,7 +949,7 @@ function Tests.leaderboard()
 				"leaderboard_bestroll_new_row_replaces_car",
 				bestRoll ~= nil
 					and (firstCar == nil or (second ~= firstCar and firstCar.Parent ~= bestRoll))
-					and (firstCar ~= nil or templateFor(best) == nil)
+					and firstCar ~= nil
 			)
 
 			-- A top score that is no catalog car's Chance: odds and player shown, no car

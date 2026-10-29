@@ -553,9 +553,34 @@ function Contracts.Build(h)
 		end
 		return ok, value
 	end
-	local function hasCar(art)
-		local car = art and art:FindFirstChild("Car")
-		return car ~= nil and car:IsA("Model")
+	-- The tile art holds that character's placeholder runner rig (orchestrator ruling 2026-10-28 on
+	-- docs/WORLD_REDESIGN_SPEC.md sections 1-2: RunnerFactory.build(id) in the ViewportFrame): a Model with Head,
+	-- Torso, 2 *Arm* and 2 *Leg* parts, attribute CharacterId = id (test seam), and nothing car-shaped.
+	local function hasRunner(art, id)
+		for _, model in art and art:GetChildren() or {} do
+			if model:IsA("Model") and model:GetAttribute("CharacterId") == id then
+				local arms, legs, car = 0, 0, 0
+				for _, d in model:GetDescendants() do
+					if d:IsA("VehicleSeat") or d:IsA("Seat") then
+						car += 1
+					elseif d:IsA("BasePart") then
+						local lower = string.lower(d.Name)
+						if string.find(lower, "wheel", 1, true) then
+							car += 1
+						elseif string.find(d.Name, "Arm", 1, true) then
+							arms += 1
+						elseif string.find(d.Name, "Leg", 1, true) then
+							legs += 1
+						end
+					end
+				end
+				local head, torso = model:FindFirstChild("Head", true), model:FindFirstChild("Torso", true)
+				if head and head:IsA("BasePart") and torso and torso:IsA("BasePart") and arms == 2 and legs == 2 then
+					return car == 0
+				end
+			end
+		end
+		return false
 	end
 	local function rank(rarity)
 		return table.find(B.RarityOrder, rarity) or math.huge
@@ -600,18 +625,18 @@ function Contracts.Build(h)
 	-- Problems of the Backpack grid as the Cars view, per check name (empty lists = all good)
 	local function carsGridProblems()
 		local p = {
-			backpack_cars_owned_only = {},
-			backpack_cars_order = {},
-			backpack_cars_model_art = {},
-			backpack_cars_name = {},
-			backpack_cars_multi = {},
-			backpack_cars_multi_no_float_noise = {},
-			backpack_cars_equipped_green = {},
-			backpack_cars_empty_label = {},
+			backpack_characters_owned_only = {},
+			backpack_characters_order = {},
+			backpack_characters_runner_art = {},
+			backpack_characters_name = {},
+			backpack_characters_multi = {},
+			backpack_characters_multi_no_float_noise = {},
+			backpack_characters_equipped_green = {},
+			backpack_characters_empty_label = {},
 		}
 		local grid = h.find(B.Items)
 		if not grid then
-			table.insert(p.backpack_cars_owned_only, B.Items .. " missing")
+			table.insert(p.backpack_characters_owned_only, B.Items .. " missing")
 			return p
 		end
 		local want = ownedInOrder()
@@ -624,7 +649,7 @@ function Contracts.Build(h)
 			if child:IsA("GuiObject") then
 				table.insert(tiles, child)
 				if not wanted[child.Name] then
-					table.insert(p.backpack_cars_owned_only, child.Name .. ": shown but not an owned car")
+					table.insert(p.backpack_characters_owned_only, child.Name .. ": shown but not an owned car")
 				end
 			end
 		end
@@ -634,7 +659,7 @@ function Contracts.Build(h)
 		end
 		for _, car in want do
 			if not shownIds[car.Id] then
-				table.insert(p.backpack_cars_owned_only, car.Id .. ": owned but no tile")
+				table.insert(p.backpack_characters_owned_only, car.Id .. ": owned but no tile")
 			end
 		end
 		-- Order: LayoutOrder sequence and the reading order on screen both equal the spec order
@@ -661,10 +686,13 @@ function Contracts.Build(h)
 		end
 		local wantText = table.concat(wantIds, ",")
 		if table.concat(layoutIds, ",") ~= wantText then
-			table.insert(p.backpack_cars_order, "LayoutOrder " .. table.concat(layoutIds, ",") .. " want " .. wantText)
+			table.insert(
+				p.backpack_characters_order,
+				"LayoutOrder " .. table.concat(layoutIds, ",") .. " want " .. wantText
+			)
 		end
 		if table.concat(screenIds, ",") ~= wantText then
-			table.insert(p.backpack_cars_order, "screen " .. table.concat(screenIds, ",") .. " want " .. wantText)
+			table.insert(p.backpack_characters_order, "screen " .. table.concat(screenIds, ",") .. " want " .. wantText)
 		end
 		local equipped = h.player:GetAttribute("EquippedCar")
 		for _, tile in tiles do
@@ -673,33 +701,33 @@ function Contracts.Build(h)
 				continue
 			end
 			local art = tile:FindFirstChild("Art")
-			if not (art and art:IsA("ViewportFrame") and hasCar(art)) then
+			if not (art and art:IsA("ViewportFrame") and hasRunner(art, tile.Name)) then
 				table.insert(
-					p.backpack_cars_model_art,
+					p.backpack_characters_runner_art,
 					tile.Name
 						.. ": Art is "
 						.. (art and art.ClassName or "missing")
-						.. (hasCar(art) and "" or ", no Car model")
+						.. (hasRunner(art, tile.Name) and "" or ", no runner rig of this character")
 				)
 			end
 			local name = tile:FindFirstChild("Name")
 			if not (name and name:IsA("TextLabel") and name.Text == car.Name) then
-				table.insert(p.backpack_cars_name, tile.Name .. ": " .. text(name) .. " want " .. car.Name)
+				table.insert(p.backpack_characters_name, tile.Name .. ": " .. text(name) .. " want " .. car.Name)
 			end
 			local multi = tile:FindFirstChild("Multi")
 			local wantMulti = Format.Multi(car.SpeedMulti) -- docs/HUD_LAYOUT_SPEC.md section 8
 			local got = multi and multi:IsA("TextLabel") and multi.Text or "missing"
 			if got ~= wantMulti then
-				table.insert(p.backpack_cars_multi, tile.Name .. ": " .. got .. " want " .. wantMulti)
+				table.insert(p.backpack_characters_multi, tile.Name .. ": " .. got .. " want " .. wantMulti)
 			end
 			if decimals(got) > B.MaxDecimals then
-				table.insert(p.backpack_cars_multi_no_float_noise, tile.Name .. ": " .. got)
+				table.insert(p.backpack_characters_multi_no_float_noise, tile.Name .. ": " .. got)
 			end
 			local stroke = tileStroke(tile)
 			local green = stroke ~= nil and B.Green(stroke.Color)
 			if (tile.Name == equipped) ~= green then
 				table.insert(
-					p.backpack_cars_equipped_green,
+					p.backpack_characters_equipped_green,
 					tile.Name
 						.. (
 							tile.Name == equipped and ": equipped but border not green"
@@ -712,7 +740,7 @@ function Contracts.Build(h)
 		local emptyShown = empty ~= nil and h.visible(empty)
 		if emptyShown ~= (#want == 0) then
 			table.insert(
-				p.backpack_cars_empty_label,
+				p.backpack_characters_empty_label,
 				("Empty shown=%s with %d owned cars"):format(tostring(emptyShown), #want)
 			)
 		end
@@ -738,7 +766,7 @@ function Contracts.Build(h)
 		end
 	end
 
-	function scenarios.ui_backpack_cars(res)
+	function scenarios.ui_backpack_characters(res)
 		local restore = h.setPanels({ B.Panel })
 		h.frames(2)
 		local panel = required(res, B.Panel, "Frame")
@@ -811,7 +839,7 @@ function Contracts.Build(h)
 		h.checkList(res, "backpack_tabs_inside_rail" .. variant, outside)
 		h.checkList(res, "backpack_tabs_no_overlap" .. variant, overlaps)
 		h.checkList(res, "backpack_tabs_topmost" .. variant, covered)
-		-- The Cars view itself is judged after the backpack_cars click (After backpack_cars_grid); when the grid
+		-- The Characters view itself is judged after the backpack_characters click (After backpack_characters_grid); when the grid
 		-- already shows cars (an earlier click) it is judged here too.
 		local showsCars = false
 		for _, child in grid:GetChildren() do
@@ -823,33 +851,26 @@ function Contracts.Build(h)
 		restore()
 	end
 
-	-- Every Index gallery tile shows its car's own model (ViewportFrame Art with a Car model, never the atlas);
+	-- Every Index gallery tile shows its character's runner rig (ViewportFrame Art, never the atlas);
 	-- an undiscovered car is a black silhouette, a discovered one is not.
-	function scenarios.ui_car_icons(res)
+	function scenarios.ui_character_icons(res)
 		local restore = h.setPanels({ "RacerIndex/Panel" })
 		h.frames(2)
-		local templates = ReplicatedStorage:FindFirstChild("CarModels")
-		local noTemplate = {}
-		for _, car in Catalog.All() do
-			local template = templates and templates:FindFirstChild(car.Model or car.Id)
-			if not (template and template:IsA("Model")) then
-				table.insert(noTemplate, car.Id)
-			end
-		end
-		h.checkList(res, "catalog_cars_have_model_template", noTemplate)
+		-- catalog_cars_have_model_template retired: the CarModels folder is scrapped (docs/WORLD_REDESIGN_SPEC.md
+		-- section 1); what the tile art shows instead is an open spec question.
 		local function problems()
-			local p = { index_tiles_model_art = {}, index_silhouette_state = {} }
+			local p = { index_tiles_runner_art = {}, index_silhouette_state = {} }
 			local data = h.player:FindFirstChild("GachaData")
 			for _, car in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. car.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				if not (art and art:IsA("ViewportFrame") and hasCar(art)) then
+				if not (art and art:IsA("ViewportFrame") and hasRunner(art, car.Id)) then
 					table.insert(
-						p.index_tiles_model_art,
+						p.index_tiles_runner_art,
 						car.Id
 							.. ": Art is "
 							.. (art and art.ClassName or "missing")
-							.. (hasCar(art) and "" or ", no Car model")
+							.. (hasRunner(art, car.Id) and "" or ", no runner rig of this character")
 					)
 				end
 				if art and art:IsA("ViewportFrame") then
@@ -866,15 +887,15 @@ function Contracts.Build(h)
 		end
 		local _, p = waitFor(B.ModelWait, function()
 			local now = problems()
-			return #now.index_tiles_model_art == 0 and #now.index_silhouette_state == 0, now
+			return #now.index_tiles_runner_art == 0 and #now.index_silhouette_state == 0, now
 		end)
-		h.checkList(res, "index_tiles_model_art", p.index_tiles_model_art)
+		h.checkList(res, "index_tiles_runner_art", p.index_tiles_runner_art)
 		h.checkList(res, "index_silhouette_state", p.index_silhouette_state)
 		restore()
 	end
 
 	-- Click post-conditions (UiSpec.Clicks Expect.After)
-	function after.backpack_cars_grid(res)
+	function after.backpack_characters_grid(res)
 		carsGridChecks(res)
 	end
 	function after.backpack_tile_shows_equipped(res, ctx)

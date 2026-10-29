@@ -24,6 +24,10 @@ Nothing car-shaped stays in the game:
   trim. A `BillboardGui` shows the character's name (finite `MaxDistance`).
 - The runner is anchored and moved by `RaceService` along the race path (the IVS rail already holds an exact speed
   everywhere): position on the right-hand lane, facing along the path, upright (up-vector Y = 1). No physics forces.
+- Smooth motion (owner 2026-10-28, replaces the IVS 2026-10-15 "rail steers with velocity, never snaps" rule): the
+  server's anchored rig is the exact authoritative pose; each client renders the visible runner smoothly by
+  interpolating along the path from the server's distance and speed, so players see no stutter. The IVS
+  `rail_never_snaps` check is replaced by a client-side smoothness check.
 - Run animation is procedural and client-side (limb swing and bob from speed); it never changes the server pose.
 - The player's avatar is hidden while racing, as before; the Humanoid stays for camera and respawn.
 - Auras and trails attach to the runner's Torso instead of the car.

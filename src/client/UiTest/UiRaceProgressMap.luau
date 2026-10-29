@@ -28,7 +28,6 @@ function Tests.Run()
 	local builder = require(shared.TrackBuilder)
 	local npc = require(shared.NpcRacer)
 	local config = require(shared.NpcConfig)
-	local carConfig = require(shared.CarConfig)
 	local registry = require(shared.TrackRegistry)
 	local look = require(script.Parent.UiSpec).RaceMapLook
 	local controllerModule = require(client.RaceProgressMap)
@@ -70,7 +69,9 @@ function Tests.Run()
 			return map.Build(path)
 		end
 		local center, playerRoute = route(first, 0), route(first, builder.LANE_OFFSET)
-		local up = Vector3.new(0, carConfig.RestHeight, 0)
+		-- the runner's pose a few studs above its path (CarConfig is scrapped, docs/WORLD_REDESIGN_SPEC.md section 1);
+		-- the map projects the pose onto the route, so the exact height does not matter
+		local up = Vector3.new(0, 3, 0)
 		local function event(entry, best)
 			return {
 				Type = "Start",

@@ -14,6 +14,5 @@ return {
 	MinTurns = 3,
 	MinPeakHeight = 20,
 	MaxGradeDeg = 20,
-	MinLapTime = 15,
-	MaxLapTime = 90,
+	-- MinLapTime / MaxLapTime retired with the car lap bots (docs/WORLD_REDESIGN_SPEC.md section 2)
 }

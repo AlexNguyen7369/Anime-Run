@@ -18,6 +18,5 @@ return {
 	MinWidth = 36,
 	MinRadius = 60, -- beginner friendly: no tight corners
 	MinTurns = 2, -- the 180 hairpin and the 90 turn
-	MinLapTime = 10, -- a run faster than this means the track is too short/trivial
-	MaxLapTime = 40,
+	-- MinLapTime / MaxLapTime retired with the car lap bots (docs/WORLD_REDESIGN_SPEC.md section 2)
 }

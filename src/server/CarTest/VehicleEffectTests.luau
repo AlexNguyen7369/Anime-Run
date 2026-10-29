@@ -4,6 +4,13 @@
 -- server-owned EquippedAura/EquippedTrail attributes". docs/GAME_DESIGN_REQUIREMENTS.md (~line 737): distinct
 -- cosmetic in-world profiles applied to the shared chassis without changing physics or equip authority.
 -- Runs on a fake player's real auto-racing car (CarService.Attach -> RaceService run), like auto_toggle.
+-- Anime Run (docs/WORLD_REDESIGN_SPEC.md section 2): the car is the anchored runner rig and "Auras and trails attach to
+-- the runner's Torso instead of the car", so every "chassis" check below reads the rig's Torso. The IVS skin
+-- replacement sub-check becomes a mid-race character switch (orchestrator ruling 2026-10-28: as the IVS mid-race
+-- equip did, the live runner is rebuilt / re-skinned as the new character at the same distance, keeps its aura and
+-- trail, and the new cruise applies at once). Test seams: CarService.ApplyCharacter(player) is the EquippedCar
+-- listener body (the listener itself is wired only for real Players); the runner model carries attribute
+-- CharacterId = the character it shows.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -21,7 +28,8 @@ local MIN_RIBBON_WIDTH = 0.05 -- studs between a trail's two attachments
 local MASS_TOLERANCE = 1e-6
 local TRACK_TOLERANCE = 1e-3 -- studs: attachment world position vs chassis-space position
 local SEAT_TIMEOUT = 10 -- seconds to wait for a run after a (re)start
-local SKIN_ID = "sea_flame" -- any catalog car: the skin replacement path (CarAppearance.Apply)
+local AURA_ID = "azure_aura" -- equipped with the trail before the character switch (6a)
+local SPEED_EXACT = 0.01 -- studs/s: the new character's cruise applies at once
 local EFFECT_CLASSES = { Attachment = true, Trail = true, Beam = true, ParticleEmitter = true, Folder = true }
 
 local Tests = {}
@@ -36,8 +44,6 @@ function Tests.make(helpers)
 		local PlayerData = H.module(Server, "PlayerData")
 		local Money = H.module(Server, "MoneyService")
 		local VehicleEffects = H.module(Shared, "VehicleEffects")
-		local CarAppearance = H.module(Shared, "CarAppearance")
-		local CarConfig = H.module(Shared, "CarConfig")
 		local Targets = H.module(Shared, "PhysicsTargets")
 		local strict = Targets and Targets.lap and Targets.lap.MinUpYStrict
 		local apiOk = CarService ~= nil
@@ -45,14 +51,13 @@ function Tests.make(helpers)
 			and PlayerData ~= nil
 			and Money ~= nil
 			and VehicleEffects ~= nil
-			and CarAppearance ~= nil
-			and CarConfig ~= nil
 			and type(strict) == "number"
 			and type(CarService.Attach) == "function"
 			and type(CarService.SetAutoRace) == "function"
 			and type(CarService.GetCar) == "function"
 			and type(CarService.GetRun) == "function"
 			and type(MarketService.Equip) == "function"
+			and type(CarService.ApplyCharacter) == "function"
 			and type(VehicleEffects.Apply) == "function"
 			and type(VehicleEffects.Profiles) == "table"
 			and VehicleEffects.Profiles[TRAIL_ID] ~= nil
@@ -128,7 +133,7 @@ function Tests.make(helpers)
 			local deadline = os.clock() + SEAT_TIMEOUT
 			while os.clock() < deadline do
 				local car, run = CarService.GetCar(player), CarService.GetRun(player)
-				if car and car.PrimaryPart and type(run) == "table" and run.Connection ~= nil then
+				if car and car:FindFirstChild("Torso", true) and type(run) == "table" and run.Connection ~= nil then
 					return car, run
 				end
 				RunService.Heartbeat:Wait()
@@ -154,9 +159,19 @@ function Tests.make(helpers)
 			end
 			return total
 		end
+		-- The anchored rig has no meaningful AssemblyMass: count its Massless parts instead (effects add no mass).
+		local function masslessParts(car)
+			local n = 0
+			for _, d in car:GetDescendants() do
+				if d:IsA("BasePart") and d.Massless then
+					n += 1
+				end
+			end
+			return n
+		end
 		-- Checks 1 and 2: folder, three ribbons and two emitters, all on the chassis. Returns the attachments.
 		local function checkProfile(pre, car)
-			local chassis = car.PrimaryPart
+			local chassis = car:FindFirstChild("Torso", true)
 			local folder = car:FindFirstChild("MarketEffects")
 			flag(pre .. "_folder_exists", folder ~= nil and folder:IsA("Folder"))
 			flag(pre .. "_folder_trail_attr", folder ~= nil and folder:GetAttribute("Trail") == TRAIL_ID)
@@ -216,17 +231,20 @@ function Tests.make(helpers)
 			player:SetAttribute("EquippedTrail", nil)
 			flag("effects_attach_no_error", (pcall(CarService.Attach, player, character)))
 			local car, run = waitRun()
-			local carOk = car ~= nil and car.PrimaryPart ~= nil and type(run) == "table" and run.Car == car
+			local carOk = car ~= nil
+				and car:FindFirstChild("Torso", true) ~= nil
+				and type(run) == "table"
+				and run.Car == car
 			flag("effects_racing_car", carOk)
 			if not carOk then
 				return
 			end
-			local chassis = car.PrimaryPart
+			local chassis = car:FindFirstChild("Torso", true)
 
 			-- Equip the way the Market does (server-side, ownership checked), then the CarService listener body
 			-- (VehicleEffects.Apply on the live car; the listener itself is wired only for real Players)
 			local before, partsBefore = snapshot(car)
-			local massBefore, assemblyBefore = partMass(car), chassis.AssemblyMass
+			local massBefore, masslessBefore = partMass(car), masslessParts(car)
 			player:SetAttribute("OwnTrail_" .. TRAIL_ID, true)
 			local okEquip, equipped = pcall(MarketService.Equip, player, "Trail", TRAIL_ID)
 			flag(
@@ -248,9 +266,9 @@ function Tests.make(helpers)
 			end
 			flag("equip_only_effect_instances", bad == 0, bad, 0)
 			local dMass = math.abs(partMass(car) - massBefore)
-			local dAssembly = math.abs(chassis.AssemblyMass - assemblyBefore)
+			local dMassless = masslessParts(car) - masslessBefore
 			flag("equip_part_mass_unchanged", dMass <= MASS_TOLERANCE, dMass, MASS_TOLERANCE)
-			flag("equip_assembly_mass_unchanged", dAssembly <= MASS_TOLERANCE, dAssembly, MASS_TOLERANCE)
+			flag("equip_massless_unchanged", dMassless == 0, dMassless, 0)
 			local sameRun = CarService.GetRun(player) == run
 				and run.Connection ~= nil
 				and CarService.GetCar(player) == car
@@ -292,21 +310,93 @@ function Tests.make(helpers)
 			flag("drive_min_up_y", minUpY >= strict, minUpY, strict)
 			checkProfile("drive", car)
 
-			-- 6a. Skin replacement (the EquippedCar listener body: CarAppearance.Apply then VehicleEffects.Apply)
-			local okSkin = pcall(function()
-				CarAppearance.Apply(car, SKIN_ID, CarConfig)
-				VehicleEffects.Apply(car, player)
+			-- 6a. Mid-race character switch: equip a second owned character with another SpeedMulti (GachaService.Equip,
+			-- the server path), then the EquippedCar listener body (CarService.ApplyCharacter)
+			local Gacha = H.module(Server, "GachaService")
+			local Catalog = H.module(Shared, "CharacterCatalog")
+			local RaceConfig = H.module(Shared, "RaceConfig")
+			local maxDev = Targets.race and Targets.race.MaxPathDeviation
+			local switchOk = Gacha ~= nil
+				and Catalog ~= nil
+				and RaceConfig ~= nil
+				and type(Gacha.Equip) == "function"
+				and type(Gacha.Grant) == "function"
+				and type(Gacha.CruiseMultis) == "function"
+				and type(maxDev) == "number"
+			flag("switch_api_exists", switchOk)
+			if not switchOk then
+				return
+			end
+			player:SetAttribute("OwnAura_" .. AURA_ID, true)
+			local okAura = pcall(MarketService.Equip, player, "Aura", AURA_ID)
+			flag("switch_aura_equipped", okAura and player:GetAttribute("EquippedAura") == AURA_ID)
+			pcall(VehicleEffects.Apply, car, player)
+			local from = Catalog.Get(player:GetAttribute("EquippedCar"))
+			local fromMulti = from and from.SpeedMulti or 1
+			local to = nil
+			for _, spec in Catalog.Rollable() do
+				if not to and spec.SpeedMulti ~= fromMulti then
+					to = spec
+				end
+			end
+			flag("switch_second_character", to ~= nil, to and to.Id or "none", "SpeedMulti ~= " .. fromMulti)
+			if not to then
+				return
+			end
+			pcall(Gacha.Grant, player, to.Id)
+			local feet0 = car:GetBoundingBox().Position
+			local speed0 = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
+			local t0 = os.clock()
+			local okSwitch = pcall(function()
+				assert(Gacha.Equip(player, to.Id) == true, "equip refused")
+				CarService.ApplyCharacter(player)
 			end)
-			flag("skin_apply_no_error", okSkin)
-			flag("skin_equipped_trail_kept", player:GetAttribute("EquippedTrail") == TRAIL_ID)
-			checkProfile("skin", car)
+			flag("switch_no_error", okSwitch)
+			local swCar, swRun = CarService.GetCar(player), CarService.GetRun(player)
+			local elapsed = os.clock() - t0
+			flag(
+				"switch_runner_is_new_character",
+				swCar ~= nil and H.isRig(swCar) and swCar:GetAttribute("CharacterId") == to.Id,
+				swCar and tostring(swCar:GetAttribute("CharacterId")) or "no runner",
+				to.Id
+			)
+			flag("switch_same_run", type(swRun) == "table" and swRun.Connection ~= nil and swRun.Car == swCar)
+			if not (swCar and type(swRun) == "table") then
+				return
+			end
+			-- same distance: the rig's bounding-box centre is where it was, plus what it ran since
+			local jump = (swCar:GetBoundingBox().Position - feet0).Magnitude
+			local allowed = maxDev + speed0 * elapsed + 1
+			flag("switch_same_distance", jump <= allowed, jump, allowed)
+			-- the new character's cruise at once (RaceService's own formula, read right after the switch)
+			local stat = PlayerData.SpeedStat(player)
+			local want = RaceConfig.SpeedFor(stat, Gacha.CruiseMultis(player))
+			local got = type(swRun.TargetSpeed) == "number" and swRun.TargetSpeed or -1
+			flag("switch_cruise_at_once", math.abs(got - want) <= SPEED_EXACT, got, want)
+			flag("switch_cruise_changed", math.abs(got - speed0) > SPEED_EXACT, got, speed0)
+			flag(
+				"switch_equipped_kept",
+				player:GetAttribute("EquippedTrail") == TRAIL_ID and player:GetAttribute("EquippedAura") == AURA_ID
+			)
+			checkProfile("switch", swCar)
+			local swTorso = swCar:FindFirstChild("Torso", true)
+			local auraOnTorso = 0
+			for _, d in swCar:GetDescendants() do
+				-- aura instances are named <id><layer> (VehicleEffects); the ones carrying it hang under the Torso
+				if string.sub(d.Name, 1, #AURA_ID) == AURA_ID and swTorso and d:IsDescendantOf(swTorso) then
+					auraOnTorso += 1
+				end
+			end
+			flag("switch_aura_on_torso", auraOnTorso > 0, auraOnTorso, 1)
+			car = swCar
+			player:SetAttribute("EquippedAura", nil)
 
 			-- 6b. Respawn: Stop then Start builds a new car through CarService.spawnCar
 			flag("respawn_stop_no_error", (pcall(CarService.SetAutoRace, player, false)))
 			RunService.Heartbeat:Wait()
 			flag("respawn_start_no_error", (pcall(CarService.SetAutoRace, player, true)))
 			local car2 = waitRun()
-			local car2Ok = car2 ~= nil and car2 ~= car and car2.PrimaryPart ~= nil
+			local car2Ok = car2 ~= nil and car2 ~= car and car2:FindFirstChild("Torso", true) ~= nil
 			flag("respawn_new_car", car2Ok)
 			flag("respawn_equipped_trail_kept", player:GetAttribute("EquippedTrail") == TRAIL_ID)
 			if not car2Ok then

@@ -20,6 +20,5 @@ return {
 	MinTurns = 1, -- the single 180 degree right turn
 	MinPeakHeight = 24, -- must genuinely climb: about 30 studs intended, so a flat track fails
 	MaxGradeDeg = 20, -- smooth hills the car can climb: about 16 degrees intended
-	MinLapTime = 15,
-	MaxLapTime = 60,
+	-- MinLapTime / MaxLapTime retired with the car lap bots (docs/WORLD_REDESIGN_SPEC.md section 2)
 }

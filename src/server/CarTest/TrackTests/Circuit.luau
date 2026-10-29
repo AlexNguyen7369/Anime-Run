@@ -18,6 +18,5 @@ return {
 	MinWidth = 36,
 	MinRadius = 60,
 	MinTurns = 8, -- four 90-degree corners plus two two-part S-bends
-	MinLapTime = 15,
-	MaxLapTime = 60,
+	-- MinLapTime / MaxLapTime retired with the car lap bots (docs/WORLD_REDESIGN_SPEC.md section 2)
 }

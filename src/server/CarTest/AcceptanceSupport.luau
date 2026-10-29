@@ -24,6 +24,41 @@ function Support.report(name)
 	return result, flag
 end
 
+-- The placeholder runner rig (docs/WORLD_REDESIGN_SPEC.md section 2): a Model with Head, Torso, 2 parts named *Arm*,
+-- 2 named *Leg*, no VehicleSeat / Seat and no part named *wheel*. Display models (pedestals, tiles) use the same rig.
+function Support.isRig(model)
+	if not (typeof(model) == "Instance" and model:IsA("Model")) then
+		return false
+	end
+	local arms, legs, carParts = 0, 0, 0
+	for _, d in model:GetDescendants() do
+		if d:IsA("Seat") or d:IsA("VehicleSeat") then
+			carParts += 1
+		elseif d:IsA("BasePart") then
+			if string.find(string.lower(d.Name), "wheel", 1, true) then
+				carParts += 1
+			elseif string.find(d.Name, "Arm", 1, true) then
+				arms += 1
+			elseif string.find(d.Name, "Leg", 1, true) then
+				legs += 1
+			end
+		end
+	end
+	local head, torso = model:FindFirstChild("Head", true), model:FindFirstChild("Torso", true)
+	return head ~= nil
+		and head:IsA("BasePart")
+		and torso ~= nil
+		and torso:IsA("BasePart")
+		and arms == 2
+		and legs == 2
+		and carParts == 0
+end
+
+-- The display model a pedestal / holder shows: child "Runner" (or the IVS name "Car", kept as a test seam).
+function Support.shown(holder)
+	return holder and (holder:FindFirstChild("Runner") or holder:FindFirstChild("Car")) or nil
+end
+
 function Support.copy(value)
 	if type(value) ~= "table" then
 		return value
