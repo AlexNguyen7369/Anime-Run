@@ -18,13 +18,15 @@ Deliverables:
 Out of scope: new mechanics (team, stamina, bonuses, potions, stat point), final character art, Robux products,
 merging into `main` (owner's call).
 
-## anime-maps: Longer tracks and anime biomes
-Status: active (after fork-ivs)
-Owner-confirmed: 2026-10-28 (request, numbers and deliverables)
-Branch: feature/alex/anime-maps (created on the first task)
+## anime-world: World redesign, every car model scrapped (replaces anime-maps)
+Status: active (next after fork-ivs; before anything else, owner 2026-10-28)
+Owner-confirmed: 2026-10-28 (scope); deliverables proposed, owner to confirm
+Branch: feature/alex/anime-world (created on the first task)
+Spec: docs/WORLD_REDESIGN_SPEC.md, docs/TRACKS_AND_BIOMES_SPEC.md
 Deliverables:
-- m1 | Track tests for Tracks 1-10 (target length +-5%, validator rules, chain, 0 flips / 0 off-track) written red | tests exist and fail on the old layouts
-- m2 | Track layouts 2-10 at the new lengths, Track 1 unchanged | every track test green; full harness `[CARTEST] END fail=0`
-- m3 | Biome themes 1-10 (TRACKS_AND_BIOMES_SPEC.md table) | `environment` scenario green; prop clearance green; IP check (no logos / real names) PASS
-- m4 | Rules audit PASS on the integration branch | `RULES AUDIT: PASS`
+- w1 | Placeholder anime runner on the rail replaces the car body; car physics and car-physics scenarios retired | `runner` + `scrap` scenarios green; full harness `[CARTEST] END fail=0`
+- w2 | World layout + anime town plaza hub + 7 Dojo plots (Dojo squad rule) | `world_layout` + `dojo` + `spawn_area` green
+- w3 | Track tests for Tracks 1-10, then layouts 2-10 at 984 x 1.25^(n-1) along the spiral, Track 1 unchanged | every track test + chain green
+- w4 | Biome themes 1-10 | `environment` + clearance green; IP check PASS
+- w5 | Rules audit PASS on the integration branch | `RULES AUDIT: PASS`
 Out of scope: final character art, Robux products, merging into `main`.

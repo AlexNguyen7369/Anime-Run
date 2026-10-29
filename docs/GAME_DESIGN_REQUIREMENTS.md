@@ -58,8 +58,9 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
 
 - IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models,
-  gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Until a real running rig exists, each
-  character runs on the IVS procedural car body (`CarFactory`) labelled with the character's name (owner 2026-10-28).
+  gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Every car model, the car body included,
+  is scrapped; characters run as a placeholder anime runner rig on the race rail (owner 2026-10-28, section 4.10;
+  replaces the same day's "keep the car body" decision).
 
 ### 4.2 Team of 3
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
@@ -109,6 +110,12 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
   (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
 
+### 4.10 World redesign (owner 2026-10-28)
+- The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
+  track chain spiralling out from the hub's start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
+- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the
+  racing Team train there and multiply idle Speed gain. A character is in the Team or the Dojo squad, never both.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -147,6 +154,8 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
+  car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
 - 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;
   daily login's guaranteed rare stays "rarest unowned character" (IVS behaviour kept).
 - 2026-10-28: owner approved the event-only names (Giyo, Toje, Rojer), the anime-maps deliverables and the Track 1 cliff faces.
