@@ -7,10 +7,7 @@
         "$path": "src/shared"
       },
       "CarModels": {
-        "$path": "assets/studio/CarModels.rbxm"
-      },
-      "RedesignCarModels": {
-        "$path": "assets/studio/RedesignCarModels"
+        "$className": "Folder"
       },
       "RacingGarage": {
         "$path": "assets/studio/RacingGarage.rbxmx"

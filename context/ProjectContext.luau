@@ -3,7 +3,15 @@
 PROJECT CONTEXT - Idle Vehicle Simulator (read me first)
 Shown in Studio at: ServerScriptService > ProjectContext   (source file: context/ProjectContext.luau)
 Do NOT edit this in Studio: edit the file on disk, Rojo syncs it. Claude updates it at the end of every loop.
-Last updated: 2026-10-28 (Claude: balance pass, cruise cap 800, money cap 1e30, Worlds plan)
+Last updated: 2026-10-28 (Claude: f2 car -> character catalog)
+CAR -> CHARACTER CATALOG (f2) - 2026-10-28 (Claude, branch orch/fork-ivs/f2; docs/CHARACTER_GACHA_SPEC.md):
+- Shared/Cars (111 cars) -> Shared/Characters (30 characters, 6 series, Model = nil); Shared/CarCatalog ->
+  Shared/CharacterCatalog (same API, Passes() always empty). New Shared/SeriesCatalog (data only).
+- Removed: gamepass cars (PassCarService, PassCarConfig, pedestals, shop Featured row), Ember Wyvern (WyvernMotion,
+  WyvernBreath, WyvernAnimator), Singularity orb (OrbMotion, OrbAnimator, orb welds), DraftCarModels,
+  CarExpansionManifest, CarModels.rbxm and RedesignCarModels. ReplicatedStorage.CarModels is an empty Folder;
+  every runner and NPC uses the CarFactory body. Older entries below describe the removed car features.
+- Unverified: harness not run (test files being rewritten in parallel).
 BALANCE PASS + CRUISE CAP + WORLDS PLAN - 2026-10-27/28 (Claude, uncommitted; owner decisions in the design doc):
 - Rebirth rev. 4 ("+1 Speed" genre table): TOTALS 1.5 .. 10 then x10 to 1e11, levels 15 .. 600, max 20 (Speed gain, XP, Luck).
 - XP/s = 1 x Speed gain multi; XPToNext = XP_LINEAR x level to XP_KNEE 225, then x10 per XP_DECADE levels (122 / 37.2,
@@ -275,8 +283,8 @@ ONE STEADY RACE SPEED - 2026-10-20 (Claude, uncommitted)
   track:Volcano never_tilted 0.811, bot lap not using RaceService, unexplained). Re-run pending (Studio closed).
 
 ASCENDED AURA DRAFT - 2026-10-26 (Claude, owner request; uncommitted)
-- A golden Super Saiyan style ki aura after Dragon Ball Z, as VehicleEffects profile `ascended_aura` (working name
-  "Ascended Aura"; Dragon Ball names stay out of the game). Design doc "Draft aura": showcase only, not sold; price,
+- A golden spiky energy aura, as VehicleEffects profile `ascended_aura` (working name
+  "Ascended Aura"; real anime names stay out of the game). Design doc "Draft aura": showcase only, not sold; price,
   Speed multi and Market entry are open questions. New texture KiFlame (looping 4x4 spiky ki flames, uploaded
   rbxassetid://118315939715440); VehicleEffects.ApplyProfile shows drafts without a Market item; VfxArea lane 7.
 - Layers: outer + inner KiFlame sheath (locked, rising fast), a crown over the roof, rising streaks, blue-white
@@ -297,7 +305,7 @@ MARKET VFX REDESIGN - 2026-10-26 (Claude, owner-approved look; all six committed
 - Shared/VehicleEffects: data-driven PROFILES (rainbow_trail, void_trail) from 16 drawn textures (uploaded, ids in
   vfx/trails/asset_ids.json; drawing script vfx/trails/textures.py, run with Blender's bundled python3.13 for numpy).
   Trails 2.0-2.3 s long with 5-10 particle layers. Auras are calm and close (owner: less flamboyant / eccentric):
-  azure glow + arcs, galaxy sigil + nebula, ember a Dragon Ball Z style ki sheath (short-lived rising flame tongues).
+  azure glow + arcs, galaxy sigil + nebula, ember a rising flame sheath (short-lived rising flame tongues).
 - Server adds Attachments / Trails / ParticleEmitters only (no parts, no mass). New Client/VehicleEffectMotion plays
   tagged (VehicleFxMotion) attachment motion locally: orbits, precessing rings, box / ring volume emission; held at
   rest under reduced motion. void_trail keeps Core / EdgeL / EdgeR and Emitter -> Motes + Smoke (vehicle_effects test).
@@ -1148,7 +1156,7 @@ CHANGE LOG (newest last)
 14. Tooling: Herdr 0.9.3 (brew) + Claude integration hook (~/.claude/hooks/herdr-agent-state.sh) for several repos in one terminal.
     Slack app "Racer RNG Claude" exists (workspace Racer RNG, channel #racer-dev C0C5LM8Q8F7, team T0C5AK11CNB). The `slack` MCP entry in the user
     config was added with the wrong token type (xoxp) and a bad team id: remove and re-add with an xoxb- bot token.
-17. DONE (2026-10-01): Car gacha, index and stat points. Shared/CarCatalog + Shared/Cars/* (7 placeholder cars from the design doc, Model = nil
+17. DONE (2026-10-01): Car gacha, index and stat points. Shared/CharacterCatalog + Shared/Cars/* (7 placeholder cars from the design doc, Model = nil
    shows a "?"), Shared/GachaConfig (roll every 3 s, rarest-first min(1, luck/N), 1 stat point per 3 unique cars, +0.1/+0.1/+0.05/+0.2 per
    point), Server/GachaService (GachaData folder + attributes, remotes EquipCar/AllocateStat/RollResult), Client IndexUi/StatsUi/RollToast.
    PlayerData VERSION 3 saves Cars (sorted array of owned ids; no duplicate counts), Equipped, Rolls, StatAlloc (earned points derived, never saved). Speed gain x SpeedMulti

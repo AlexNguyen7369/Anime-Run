@@ -1,7 +1,7 @@
 --!nonstrict
 -- Cosmetic skin only: retain the existing chassis, seat, wheels and race run.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local CarCatalog = require(script.Parent.CarCatalog)
+local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local CarAppearance = {}
 
 -- Showroom finish per part group (docs/CAR_REDESIGN_SPEC.md section 8, placeholders): Reflectance, Transparency
@@ -14,10 +14,6 @@ CarAppearance.FINISH = {
 	Glass = { Reflectance = 0.2, Transparency = 0.25, Shadow = false },
 	Light = { Shadow = false },
 }
-
--- Largest SkinScale a pedestal shows (docs/WYVERN_FLIGHT_SPEC.md section 1, placeholder): keeps big rides clear of
--- the other pedestals.
-CarAppearance.DISPLAY_SKIN_MAX = 1.6
 
 local function finish(part)
 	local f = CarAppearance.FINISH[(part.Name:gsub("%d+$", ""))]
@@ -32,17 +28,14 @@ function CarAppearance.Apply(car, id, config)
 	local chassis = car.PrimaryPart
 	assert(chassis, "Car appearance requires the existing chassis")
 	local templates = ReplicatedStorage:FindFirstChild("CarModels")
-	local spec = type(id) == "string" and CarCatalog.Get(id)
-	local visualId = spec and id ~= CarCatalog.STARTER_ID and (spec.Model or id) or "rusty_hatchback"
-	local template = templates and templates:FindFirstChild(visualId)
+	local spec = type(id) == "string" and CharacterCatalog.Get(id)
+	local visualId = spec and id ~= CharacterCatalog.STARTER_ID and (spec.Model or id) or nil
+	local template = visualId and templates and templates:FindFirstChild(visualId)
 	local skin
 	if template and template:IsA("Model") then
 		skin = template:Clone()
 		skin.Name = "EquippedVisual"
 		skin:SetAttribute("CarId", id)
-		if spec and spec.SkinScale then -- size exception (docs/WYVERN_FLIGHT_SPEC.md section 1), about the base pivot
-			skin:ScaleTo(skin:GetScale() * spec.SkinScale)
-		end
 		-- Imported templates have a base-centered pivot; place that base at tyre contact height.
 		skin:PivotTo(chassis.CFrame * CFrame.new(0, -config.RestHeight, 0))
 		for _, part in ipairs(skin:GetDescendants()) do
@@ -63,22 +56,11 @@ function CarAppearance.Apply(car, id, config)
 				part.Massless = true
 				part.RootPriority = -127
 				part.CollisionGroup = chassis.CollisionGroup
-				if part:GetAttribute("Orb") then
-					-- Singularity's orb (docs/CAR_REDESIGN_SPEC.md section 11): a Weld whose C0 Client/OrbAnimator moves.
-					local weld = Instance.new("Weld")
-					weld.Name = "SkinWeld"
-					weld.Part0 = chassis
-					weld.Part1 = part
-					weld.C0 = chassis.CFrame:ToObjectSpace(part.CFrame)
-					weld:SetAttribute("AnimatedOrb", true)
-					weld.Parent = part
-				else
-					local weld = Instance.new("WeldConstraint")
-					weld.Name = "SkinWeld"
-					weld.Part0 = chassis
-					weld.Part1 = part
-					weld.Parent = part
-				end
+				local weld = Instance.new("WeldConstraint")
+				weld.Name = "SkinWeld"
+				weld.Part0 = chassis
+				weld.Part1 = part
+				weld.Parent = part
 				part.Anchored = false
 			end
 		end
@@ -127,8 +109,8 @@ function CarAppearance.Apply(car, id, config)
 			end
 		end
 	end
-	car:SetAttribute("EquippedCar", spec and id or CarCatalog.STARTER_ID)
-	car:SetAttribute("VisualCarId", skin and visualId or CarCatalog.STARTER_ID)
+	car:SetAttribute("EquippedCar", spec and id or CharacterCatalog.STARTER_ID)
+	car:SetAttribute("VisualCarId", skin and visualId or CharacterCatalog.STARTER_ID)
 	return skin ~= nil
 end
 
@@ -154,8 +136,7 @@ function CarAppearance.Display(spec, cframe, scale)
 			part.CanQuery = false
 		end
 	end
-	local skinScale = spec.SkinScale and math.min(spec.SkinScale, CarAppearance.DISPLAY_SKIN_MAX) or 1
-	car:ScaleTo(car:GetScale() * scale * skinScale) -- imported templates do not sit at scale 1
+	car:ScaleTo(car:GetScale() * scale) -- imported templates do not sit at scale 1
 	car:PivotTo(cframe) -- templates have a base-centred pivot
 	return car
 end

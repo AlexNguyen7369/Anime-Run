@@ -147,7 +147,7 @@ UiSpec.Guis = {
 				Does = "remote",
 				Remote = "EquipCar",
 				Arg = "tile_id", -- THAT tile's car id
-				Count = "catalog", -- one per CarCatalog.All()
+				Count = "catalog", -- one per CharacterCatalog.All()
 				DisabledWhen = "equipped", -- the equipped tile shows "EQUIPPED" and fires nothing
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
 			},
@@ -615,7 +615,7 @@ UiSpec.Guis.ShopUi = {
 
 -- The Shop's parts (docs/GAMEPASS_SHOP_SPEC.md section 1). Sections are direct children of Items, top to bottom in
 -- this order. Cards: a Frame named by the item Id somewhere under its section, holding exactly one "Buy" TextButton:
--- Featured = CarCatalog.Passes(), Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
+-- Featured = CharacterCatalog.Passes(), Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
 -- "Potions" plus the Bundle banner (Frame "Bundle", the Section "Bundle" product), ServerLuck = Section "ServerLuck".
 UiSpec.Shop = {
 	Gui = "ShopUi",
@@ -1073,15 +1073,6 @@ UiSpec.Billboards = {
 		Labels = { Title = "BEST ROLL EVER", Odds = true, Car = true, Player = true }, -- true = must exist, any text
 		MaxDistance = "LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE", -- 150
 	},
-	-- Gamepass car pedestals (docs/GAMEPASS_CARS_SPEC.md section 5): one per PassCarConfig.Pedestals entry,
-	-- Workspace.SpawnArea.PassCars.Pass_<carId>.Pedestal.Stats; Title = the catalog car's Name, Tag = "GAMEPASS".
-	PassCarStats = {
-		Path = "SpawnArea/PassCars/Pass_<carId>/Pedestal/Stats",
-		Labels = { Title = "CarCatalog.Get(carId).Name", Tag = "GAMEPASS" },
-		MaxDistance = "PassCarConfig.TEXT_DISTANCE", -- 150
-		-- Pedestal.Buy ProximityPrompt: ObjectText = car Name; ActionText by the car's GamepassId
-		Prompt = { Name = "Buy", ActionTextNoPass = "Coming soon", ActionTextPass = "Unlock" },
-	},
 }
 
 -- Seconds to wait for live events the checks need.
@@ -1456,45 +1447,6 @@ UiSpec.Clicks = {
 	},
 	-- Id 0 price buttons ("Coming soon") do nothing: no remote, the Shop stays open (LabelHas refuses the click if
 	-- the item got a real id, so no real purchase prompt is ever opened by the suite)
-	{
-		-- Needs a player who never owned the Ember Wyvern: GAMEPASS_CARS_SPEC section 3 (owner 2026-10-20) makes a
-		-- Studio admin own every gamepass car, ownership is never revoked in a session (a fixture clearing Pass_<id>
-		-- is not a game state) and the Shop builds once. Studio runs check the owned button instead
-		-- (shop_featured_owned_equips); the gamepass and bundle "Coming soon" clicks below stay automatic.
-		Id = "shop_featured_coming_soon",
-		Gui = "ShopUi",
-		Path = "Backdrop/Panel/Items/Featured/**/ember_wyvern/Buy",
-		Manual = "needs a non-admin player who does not own ember_wyvern (a Studio admin owns every gamepass car)",
-		Prepare = (function()
-			local p = only("ShopUi/Backdrop")
-			p.AttrNot = { Pass_ember_wyvern = true }
-			p.LabelHas = "Coming soon"
-			p.ScrollIntoView = true
-			return p
-		end)(),
-		Expect = { Panels = { ["ShopUi/Backdrop"] = true }, Remote = false, After = { "shop_no_purchase_prompt" } },
-	},
-	{
-		-- GAMEPASS_CARS_SPEC section 3 (owner 2026-10-20): an owned gamepass car's Featured button shows "Equip" and
-		-- fires EquipCar with THAT car (the spy logs it; the real equip is put back by 'restore')
-		Id = "shop_featured_owned_equips",
-		Gui = "ShopUi",
-		Path = "Backdrop/Panel/Items/Featured/**/ember_wyvern/Buy",
-		Prepare = (function()
-			local p = only("ShopUi/Backdrop")
-			p.AttrIs = { Pass_ember_wyvern = true }
-			p.AttrNot = { EquippedCar = "ember_wyvern" }
-			p.LabelIs = "Equip"
-			p.ScrollIntoView = true
-			return p
-		end)(),
-		NeedSetup = { "spy" },
-		Expect = {
-			Panels = { ["ShopUi/Backdrop"] = true },
-			Remote = { Name = "EquipCar", Args = { "ember_wyvern" } },
-			After = { "shop_no_purchase_prompt" },
-		},
-	},
 	{
 		Id = "shop_gamepass_coming_soon",
 		Gui = "ShopUi",
@@ -2426,7 +2378,7 @@ for _, item in
 		{
 			Id = "showcase_owned",
 			What = "Snapshot required (GachaService.Snapshot keeps Cars, Copies, Showcase). Unsaved: the player owns "
-				.. "every car it owned plus the first 5 of CarCatalog.Rollable(); those 5 get Copies 0, 3, 7, 1, 12 in "
+				.. "every car it owned plus the first 5 of CharacterCatalog.Rollable(); those 5 get Copies 0, 3, 7, 1, 12 in "
 				.. "that order (slot bonuses differ, so BEST 3 is not just the rarest 3); Showcase '' and ShowcaseMulti "
 				.. "1 set through GachaService (no SetShowcase cooldown left).",
 		},
@@ -3153,13 +3105,12 @@ UiSpec.Backpack = {
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
-UiSpec.Expansion = {
-	Module = "CarExpansionManifest",
-	Count = 100,
-	Rarities = { Uncommon = 18, Rare = 24, Epic = 22, Legendary = 17, Mythic = 11, Secret = 8 },
-	Families = { "city_utility", "offroad_rally", "track_hyper", "futuristic_hover", "fantasy_novelty" },
-	PerFamily = 20,
-	Fields = { "Id", "Name", "Rarity", "Chance", "SpeedMulti", "Order", "Model" },
+-- docs/CHARACTER_GACHA_SPEC.md "Launch cast": 30 rollable characters (the starter is not in the Index)
+UiSpec.CharacterCast = {
+	Count = 30,
+	Rarities = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 },
+	-- spec "Event-only characters": also in the Index with their odds; not part of Count / Rarities
+	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }
 
 UiSpec.Guis.CheckpointUi = {
@@ -3370,7 +3321,7 @@ UiSpec.Gifts = {
 table.insert(UiSpec.Clicks, {
 	Id = "gift_account_bound_disabled",
 	Gui = "ShopUi",
-	Path = "Backdrop/Panel/Items/Featured/**/ember_wyvern/Gift",
+	Path = "Backdrop/Panel/Items/Gamepasses/**/vip/Gift",
 	Prepare = {
 		Open = { "ShopUi/Backdrop" },
 		Showcase = false,

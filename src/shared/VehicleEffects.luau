@@ -1,6 +1,6 @@
 --!nonstrict
 -- Authored cosmetic profiles; attachments follow the shared chassis, never the skin.
--- Redesign (owner 2026-10-26): long, layered trails and calm auras (Ember in a Dragon Ball Z style) from drawn textures
+-- Redesign (owner 2026-10-26): long, layered trails and calm auras (Ember a rising flame sheath) from drawn textures
 -- (vfx/trails/textures.py, ids in vfx/trails/asset_ids.json). The server only adds Attachments, Trails and
 -- ParticleEmitters (no parts, no mass); Client/VehicleEffectMotion moves the tagged attachments (orbits,
 -- precessing rings, volume emission) locally. Chassis space: x right, y up, z back.
@@ -30,7 +30,7 @@ local TEX = {
 local FLIPBOOKS = { Bolt = true, Flame = true, VoidWisp = true, KiFlame = true } -- 4 x 4 sheets
 local LOOPING = { KiFlame = 24 } -- flipbooks that loop (frames per second) from a random frame, to flicker
 Effects.MOTION_TAG = "VehicleFxMotion"
-Effects.TEXTURES = TEX -- uploaded VFX textures, shared with the Ember Wyvern breath (Shared/WyvernBreath)
+Effects.TEXTURES = TEX -- uploaded VFX textures
 Effects.FLIPBOOKS = FLIPBOOKS
 
 local rgb, V = Color3.fromRGB, Vector3.new
@@ -649,7 +649,7 @@ local PROFILES = {
 			},
 		},
 	},
-	-- A Dragon Ball Z style ki aura: short-lived flame tongues hug the body and shoot upward, a white-hot inner
+	-- A rising energy aura: short-lived flame tongues hug the body and shoot upward, a white-hot inner
 	-- sheath inside an orange one, fast streaks rising, a ground glow that pulses, a few embers.
 	ember_aura = {
 		emitters = {
@@ -829,7 +829,7 @@ local PROFILES = {
 			},
 		},
 	},
-	-- Draft (owner 2026-10-26, design doc "Draft aura"): a golden Super Saiyan style ki aura after Dragon Ball Z.
+	-- Draft (owner 2026-10-26, design doc "Draft aura"): a golden spiky energy aura.
 	-- Not sold: shown only in the VFX showcase area through ApplyProfile. Spiky looping ki flames hug the body
 	-- and shoot up (a crown over the roof), blue-white lightning crackles, a shockwave rolls out along the
 	-- ground, dust is blown out and small rocks float up.

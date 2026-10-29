@@ -44,7 +44,7 @@ end
 
 function Tests.showcase()
 	local r, flag = H.report("showcase")
-	local catalog = H.module(Shared, "CarCatalog")
+	local catalog = H.module(Shared, "CharacterCatalog")
 	local config = H.module(Shared, "GachaConfig")
 	local workshop = H.module(Shared, "Workshop")
 	local wconfig = H.module(Shared, "WorkshopConfig")
@@ -139,7 +139,7 @@ function Tests.showcase()
 			end
 		end
 		flag("slot_bonus_formula", tried > 0 and formulaBad == 0, formulaBad, 0)
-		local kart = catalog.Get("go_kart")
+		local kart = catalog.Get("leaf_copycat")
 		flag(
 			"slot_bonus_copies_capped_at_max",
 			kart ~= nil
@@ -151,7 +151,7 @@ function Tests.showcase()
 		local okFlat, flat = pcall(config.SlotBonus, { SpeedMulti = 1 }, 10)
 		flag("slot_bonus_multi_1_zero", okFlat and near(flat, 0))
 		flag("showcase_multi_empty_is_1", near(config.ShowcaseMulti({}), 1))
-		local street, rocket = catalog.Get("street_racer"), catalog.Get("rocket_car")
+		local street, rocket = catalog.Get("db_tyrant"), catalog.Get("leaf_hero")
 		local list = { { Spec = kart, Copies = 3 }, { Spec = street, Copies = 0 }, { Spec = rocket, Copies = 60 } }
 		local wantList = 1
 			+ oracleSlot(2, 3)
@@ -165,22 +165,22 @@ function Tests.showcase()
 		local money = p.leaderstats.Money
 		money.Value = 777
 		local earned0 = p:GetAttribute("MoneyEarned") or 0
-		flag("copies_new_grant_true", gacha.Grant(p, "go_kart") == true)
-		local entry = p.GachaData:FindFirstChild("go_kart")
+		flag("copies_new_grant_true", gacha.Grant(p, "leaf_copycat") == true)
+		local entry = p.GachaData:FindFirstChild("leaf_copycat")
 		flag(
 			"copies_fresh_car_zero",
-			gacha.Copies(p, "go_kart") == 0 and entry ~= nil and (entry:GetAttribute("Copies") or 0) == 0
+			gacha.Copies(p, "leaf_copycat") == 0 and entry ~= nil and (entry:GetAttribute("Copies") or 0) == 0
 		)
-		local dupe = gacha.Grant(p, "go_kart")
+		local dupe = gacha.Grant(p, "leaf_copycat")
 		flag(
 			"copies_duplicate_grant_false_plus_one",
-			dupe == false and gacha.Copies(p, "go_kart") == 1 and entry:GetAttribute("Copies") == 1,
-			gacha.Copies(p, "go_kart"),
+			dupe == false and gacha.Copies(p, "leaf_copycat") == 1 and entry:GetAttribute("Copies") == 1,
+			gacha.Copies(p, "leaf_copycat"),
 			1
 		)
-		gacha.Grant(p, "go_kart")
-		gacha.Grant(p, "go_kart")
-		flag("copies_count_each_duplicate", gacha.Copies(p, "go_kart") == 3, gacha.Copies(p, "go_kart"), 3)
+		gacha.Grant(p, "leaf_copycat")
+		gacha.Grant(p, "leaf_copycat")
+		flag("copies_count_each_duplicate", gacha.Copies(p, "leaf_copycat") == 3, gacha.Copies(p, "leaf_copycat"), 3)
 		flag("copies_one_entry_only", #p.GachaData:GetChildren() == 1)
 		flag(
 			"copies_duplicate_grant_no_money",
@@ -190,7 +190,7 @@ function Tests.showcase()
 		)
 		flag(
 			"copies_unowned_or_bad_id_zero",
-			gacha.Copies(p, "street_racer") == 0 and gacha.Copies(p, "no_such_car") == 0 and gacha.Copies(p, nil) == 0
+			gacha.Copies(p, "db_tyrant") == 0 and gacha.Copies(p, "no_such_car") == 0 and gacha.Copies(p, nil) == 0
 		)
 
 		-- 4. Rolls: an owner of every rollable car rolls only duplicates: copies +1 each, scrapMoney 0, Money unchanged
@@ -231,35 +231,26 @@ function Tests.showcase()
 
 		-- 5. SetShowcase: validation; a rejected request changes nothing
 		local s = fake("Set")
-		for _, id in { "go_kart", "wooden_car", "street_racer", "rocket_car" } do
+		for _, id in { "leaf_copycat", "leaf_medic", "db_tyrant", "leaf_hero" } do
 			gacha.Grant(s, id)
 		end
-		gacha.Grant(s, "go_kart") -- 1 copy
-		gacha.Grant(s, "go_kart") -- 2 copies
-		local okBase, reasonBase = gacha.SetShowcase(s, { "go_kart" })
-		flag("set_showcase_one_car", okBase == true and s:GetAttribute("Showcase") == "go_kart", reasonBase)
-		local pass = nil
-		for _, spec in catalog.Passes() do
-			if spec.GamepassId then
-				pass = spec.Id
-				s:SetAttribute("Pass_" .. spec.Id, true) -- even a pass the player owns can not be shown
-				break
-			end
-		end
+		gacha.Grant(s, "leaf_copycat") -- 1 copy
+		gacha.Grant(s, "leaf_copycat") -- 2 copies
+		local okBase, reasonBase = gacha.SetShowcase(s, { "leaf_copycat" })
+		flag("set_showcase_one_car", okBase == true and s:GetAttribute("Showcase") == "leaf_copycat", reasonBase)
 		local bad = {
 			{ "nil_ids", nil },
-			{ "string_ids", "go_kart" },
+			{ "string_ids", "leaf_copycat" },
 			{ "number_ids", 5 },
-			{ "four_cars", { "go_kart", "wooden_car", "street_racer", "rocket_car" } },
-			{ "duplicates", { "go_kart", "go_kart" } },
-			{ "non_string", { "go_kart", 5 } },
-			{ "unowned", { "rusty_hatchback" } },
+			{ "four_cars", { "leaf_copycat", "leaf_medic", "db_tyrant", "leaf_hero" } },
+			{ "duplicates", { "leaf_copycat", "leaf_copycat" } },
+			{ "non_string", { "leaf_copycat", 5 } },
+			{ "unowned", { "sea_navigator" } },
 			{ "unknown", { "no_such_car" } },
 			{ "starter", { "starter" } },
-			{ "sparse", { [1] = "go_kart", [3] = "wooden_car" } },
-			{ "dictionary", { a = "go_kart" } },
-			{ "mixed", { "wooden_car", x = "street_racer" } },
-			{ "gamepass", { pass or "pass_car_missing" } },
+			{ "sparse", { [1] = "leaf_copycat", [3] = "leaf_medic" } },
+			{ "dictionary", { a = "leaf_copycat" } },
+			{ "mixed", { "leaf_medic", x = "db_tyrant" } },
 		}
 		local rejectBad = {}
 		local multiBefore = s:GetAttribute("ShowcaseMulti")
@@ -268,21 +259,20 @@ function Tests.showcase()
 			if
 				not okC
 				or accepted ~= false
-				or s:GetAttribute("Showcase") ~= "go_kart"
+				or s:GetAttribute("Showcase") ~= "leaf_copycat"
 				or s:GetAttribute("ShowcaseMulti") ~= multiBefore
 			then
 				table.insert(rejectBad, case[1])
-				gacha.SetShowcase(s, { "go_kart" })
+				gacha.SetShowcase(s, { "leaf_copycat" })
 			end
 		end
 		flag("set_showcase_rejects_invalid", #rejectBad == 0, table.concat(rejectBad, ","), "")
-		flag("set_showcase_gamepass_fixture", pass ~= nil)
-		local three = { "go_kart", "street_racer", "rocket_car" }
+		local three = { "leaf_copycat", "db_tyrant", "leaf_hero" }
 		local okThree = gacha.SetShowcase(s, three)
 		local wantThree = oracleMulti(s, three)
 		flag(
 			"set_showcase_three_cars",
-			okThree == true and s:GetAttribute("Showcase") == "go_kart,street_racer,rocket_car"
+			okThree == true and s:GetAttribute("Showcase") == "leaf_copycat,db_tyrant,leaf_hero"
 		)
 		flag(
 			"showcase_multi_formula",
@@ -291,12 +281,15 @@ function Tests.showcase()
 			wantThree
 		)
 		local noCopies = 1
-			+ oracleSlot(specMulti("go_kart"), 0)
-			+ oracleSlot(specMulti("street_racer"), 0)
-			+ oracleSlot(specMulti("rocket_car"), 0)
-		flag("showcase_multi_uses_copies", gacha.Copies(s, "go_kart") == 2 and gacha.ShowcaseMulti(s) > noCopies + 1e-9)
+			+ oracleSlot(specMulti("leaf_copycat"), 0)
+			+ oracleSlot(specMulti("db_tyrant"), 0)
+			+ oracleSlot(specMulti("leaf_hero"), 0)
+		flag(
+			"showcase_multi_uses_copies",
+			gacha.Copies(s, "leaf_copycat") == 2 and gacha.ShowcaseMulti(s) > noCopies + 1e-9
+		)
 		-- a copy rolled while shown raises the multi, and the UI attribute mirrors it
-		gacha.Grant(s, "street_racer")
+		gacha.Grant(s, "db_tyrant")
 		task.wait()
 		local wantMore = oracleMulti(s, three)
 		flag(
@@ -333,69 +326,75 @@ function Tests.showcase()
 		)
 
 		-- 6. Snapshot / Apply cleaning
-		gacha.SetShowcase(s, { "rocket_car", "go_kart" })
+		gacha.SetShowcase(s, { "leaf_hero", "leaf_copycat" })
 		local snap = gacha.Snapshot(s)
 		flag(
 			"snapshot_copies_only_positive",
-			type(snap.Copies) == "table" and H.same(snap.Copies, { go_kart = 2, street_racer = 1 })
+			type(snap.Copies) == "table" and H.same(snap.Copies, { leaf_copycat = 2, db_tyrant = 1 })
 		)
 		flag(
 			"snapshot_showcase_in_order",
-			type(snap.Showcase) == "table" and H.same(snap.Showcase, { "rocket_car", "go_kart" })
+			type(snap.Showcase) == "table" and H.same(snap.Showcase, { "leaf_hero", "leaf_copycat" })
 		)
 		local a = fake("Apply")
-		if pass then
-			a:SetAttribute("Pass_" .. pass, true)
-		end
 		gacha.Apply(a, {
-			Cars = { "go_kart", "wooden_car", "street_racer" },
-			Copies = { go_kart = 3.9, wooden_car = -2, street_racer = 1e15, rocket_car = 7, starter = 4 },
-			Showcase = { "go_kart", "go_kart", "rocket_car", "starter", "no_such_car", 7, pass or "x", "wooden_car" },
+			Cars = { "leaf_copycat", "leaf_medic", "db_tyrant" },
+			Copies = { leaf_copycat = 3.9, leaf_medic = -2, db_tyrant = 1e15, leaf_hero = 7, starter = 4 },
+			Showcase = {
+				"leaf_copycat",
+				"leaf_copycat",
+				"leaf_hero",
+				"starter",
+				"no_such_car",
+				7,
+				"x",
+				"leaf_medic",
+			},
 		})
 		flag(
 			"apply_copies_cleaned",
-			gacha.Copies(a, "go_kart") == 3
-				and gacha.Copies(a, "wooden_car") == 0
-				and gacha.Copies(a, "street_racer") == config.MAX_SAVED_COPIES
-				and gacha.Copies(a, "rocket_car") == 0
-				and a.GachaData:FindFirstChild("rocket_car") == nil
+			gacha.Copies(a, "leaf_copycat") == 3
+				and gacha.Copies(a, "leaf_medic") == 0
+				and gacha.Copies(a, "db_tyrant") == config.MAX_SAVED_COPIES
+				and gacha.Copies(a, "leaf_hero") == 0
+				and a.GachaData:FindFirstChild("leaf_hero") == nil
 		)
 		local snapA = gacha.Snapshot(a)
 		flag(
 			"apply_snapshot_drops_unowned_copies",
 			type(snapA.Copies) == "table"
-				and snapA.Copies.rocket_car == nil
+				and snapA.Copies.leaf_hero == nil
 				and snapA.Copies.starter == nil
-				and snapA.Copies.wooden_car == nil
+				and snapA.Copies.leaf_medic == nil
 		)
 		local shown = string.split(a:GetAttribute("Showcase") or "", ",")
-		local seen, showOk = {}, #shown >= 1 and #shown <= SPEC.SLOTS and shown[1] == "go_kart"
+		local seen, showOk = {}, #shown >= 1 and #shown <= SPEC.SLOTS and shown[1] == "leaf_copycat"
 		for _, id in shown do
-			showOk = showOk and not seen[id] and (id == "go_kart" or id == "wooden_car")
+			showOk = showOk and not seen[id] and (id == "leaf_copycat" or id == "leaf_medic")
 			seen[id] = true
 		end
-		flag("apply_showcase_cleaned", showOk, a:GetAttribute("Showcase"), "go_kart[,wooden_car]")
+		flag("apply_showcase_cleaned", showOk, a:GetAttribute("Showcase"), "leaf_copycat[,leaf_medic]")
 		flag("apply_sets_showcase_multi", near(a:GetAttribute("ShowcaseMulti"), oracleMulti(a, shown)))
 		local b = fake("ApplyFour")
 		gacha.Apply(b, {
-			Cars = { "go_kart", "wooden_car", "street_racer", "rocket_car" },
-			Showcase = { "go_kart", "wooden_car", "street_racer", "rocket_car" },
+			Cars = { "leaf_copycat", "leaf_medic", "db_tyrant", "leaf_hero" },
+			Showcase = { "leaf_copycat", "leaf_medic", "db_tyrant", "leaf_hero" },
 		})
 		local four = string.split(b:GetAttribute("Showcase") or "", ",")
 		flag("apply_showcase_at_most_3", #four == SPEC.SLOTS, #four, SPEC.SLOTS)
 		local junkBad = 0
 		for _, junk in
 			{
-				{ Cars = { "go_kart" }, Copies = "junk", Showcase = "junk" },
-				{ Cars = { "go_kart" }, Copies = { go_kart = 0 / 0 }, Showcase = { go_kart = true } },
-				{ Cars = { "go_kart" }, Copies = { go_kart = "9" } },
+				{ Cars = { "leaf_copycat" }, Copies = "junk", Showcase = "junk" },
+				{ Cars = { "leaf_copycat" }, Copies = { leaf_copycat = 0 / 0 }, Showcase = { leaf_copycat = true } },
+				{ Cars = { "leaf_copycat" }, Copies = { leaf_copycat = "9" } },
 			}
 		do
 			local j = fake("Junk")
 			local okJ = pcall(gacha.Apply, j, junk)
 			if
 				not okJ
-				or gacha.Copies(j, "go_kart") ~= 0
+				or gacha.Copies(j, "leaf_copycat") ~= 0
 				or (j:GetAttribute("Showcase") or "") ~= ""
 				or not near(gacha.ShowcaseMulti(j), 1)
 			then
@@ -404,11 +403,11 @@ function Tests.showcase()
 		end
 		flag("apply_junk_fields_safe", junkBad == 0, junkBad, 0)
 		local old = fake("OldSave")
-		gacha.Apply(old, { Cars = { "go_kart", "street_racer" }, Equipped = "go_kart", Rolls = 4 })
+		gacha.Apply(old, { Cars = { "leaf_copycat", "db_tyrant" }, Equipped = "leaf_copycat", Rolls = 4 })
 		local snapOld = gacha.Snapshot(old)
 		flag(
 			"apply_old_save_zero_copies_empty_showcase",
-			gacha.Copies(old, "go_kart") == 0
+			gacha.Copies(old, "leaf_copycat") == 0
 				and (old:GetAttribute("Showcase") or "") == ""
 				and near(gacha.ShowcaseMulti(old), 1)
 				and type(snapOld.Copies) == "table"
@@ -426,16 +425,16 @@ function Tests.showcase()
 				Speed = 1000,
 				WorkshopLevel = 1,
 				OfflineAt = at - 3600,
-				Cars = { "go_kart", "street_racer" },
-				Copies = { go_kart = 4 },
+				Cars = { "leaf_copycat", "db_tyrant" },
+				Copies = { leaf_copycat = 4 },
 				Showcase = showcase,
 			}
 		end
 		local uidShown, uidBare, uidOld = UID + 101, UID + 102, UID + 103
 		local store = H.store({
-			[data.KeyFor(uidShown)] = record({ "go_kart", "street_racer" }),
+			[data.KeyFor(uidShown)] = record({ "leaf_copycat", "db_tyrant" }),
 			[data.KeyFor(uidBare)] = record({}),
-			[data.KeyFor(uidOld)] = { Version = 11, Money = 5, Speed = 1, Cars = { "go_kart" } },
+			[data.KeyFor(uidOld)] = { Version = 11, Money = 5, Speed = 1, Cars = { "leaf_copycat" } },
 		})
 		data.SetStore(store)
 		data.SetClock(function()
@@ -444,7 +443,7 @@ function Tests.showcase()
 		local pShown = H.player(cleanup, uidShown)
 		local pBare = H.player(cleanup, uidBare)
 		flag("data_load_showcase_save", data.Load(pShown, uidShown) == true and data.Load(pBare, uidBare) == true)
-		local wantShow = oracleMulti(pShown, { "go_kart", "street_racer" })
+		local wantShow = oracleMulti(pShown, { "leaf_copycat", "db_tyrant" })
 		local gShown, gBare = pShown:GetAttribute("OfflineSpeed"), pBare:GetAttribute("OfflineSpeed")
 		flag(
 			"offline_gain_includes_showcase",
@@ -461,11 +460,11 @@ function Tests.showcase()
 		flag("offline_gain_bare_rate_times_time", near(gBare, wantBare), gBare, wantBare)
 		flag(
 			"data_load_applies_copies_and_showcase",
-			gacha.Copies(pShown, "go_kart") == 4
-				and pShown:GetAttribute("Showcase") == "go_kart,street_racer"
+			gacha.Copies(pShown, "leaf_copycat") == 4
+				and pShown:GetAttribute("Showcase") == "leaf_copycat,db_tyrant"
 				and near(pShown:GetAttribute("ShowcaseMulti"), wantShow)
 		)
-		gacha.Grant(pShown, "go_kart") -- 5 copies
+		gacha.Grant(pShown, "leaf_copycat") -- 5 copies
 		flag("data_save_ok", data.Save(pShown, uidShown, true) == true)
 		local rec = store.data[data.KeyFor(uidShown)]
 		flag(
@@ -477,23 +476,23 @@ function Tests.showcase()
 		flag(
 			"data_saved_copies_and_showcase",
 			type(rec) == "table"
-				and H.same(rec.Copies, { go_kart = 5 })
-				and H.same(rec.Showcase, { "go_kart", "street_racer" })
+				and H.same(rec.Copies, { leaf_copycat = 5 })
+				and H.same(rec.Showcase, { "leaf_copycat", "db_tyrant" })
 		)
 		local back = H.player(cleanup, uidShown)
 		flag("data_reload", data.Load(back, uidShown) == true)
 		flag(
 			"data_round_trip_copies_and_showcase",
-			gacha.Copies(back, "go_kart") == 5
-				and gacha.Copies(back, "street_racer") == 0
-				and back:GetAttribute("Showcase") == "go_kart,street_racer"
-				and near(back:GetAttribute("ShowcaseMulti"), oracleMulti(back, { "go_kart", "street_racer" }))
+			gacha.Copies(back, "leaf_copycat") == 5
+				and gacha.Copies(back, "db_tyrant") == 0
+				and back:GetAttribute("Showcase") == "leaf_copycat,db_tyrant"
+				and near(back:GetAttribute("ShowcaseMulti"), oracleMulti(back, { "leaf_copycat", "db_tyrant" }))
 		)
 		local pOld = H.player(cleanup, uidOld)
 		flag("data_old_save_loads", data.Load(pOld, uidOld) == true)
 		flag(
 			"data_old_save_zero_copies_empty_showcase",
-			gacha.Copies(pOld, "go_kart") == 0
+			gacha.Copies(pOld, "leaf_copycat") == 0
 				and (pOld:GetAttribute("Showcase") or "") == ""
 				and near(gacha.ShowcaseMulti(pOld), 1)
 		)
@@ -511,10 +510,10 @@ function Tests.showcase()
 
 		-- 8. World: pedestals on the owner's plot; showcased cars with a template stand on them
 		local w = fake("World")
-		for _, id in { "go_kart", "street_racer", "rocket_car" } do
+		for _, id in { "leaf_copycat", "db_tyrant", "leaf_hero" } do
 			gacha.Grant(w, id)
 		end
-		gacha.SetShowcase(w, { "go_kart", "street_racer" }) -- set before the plot exists, as on join
+		gacha.SetShowcase(w, { "leaf_copycat", "db_tyrant" }) -- set before the plot exists, as on join
 		local index = wservice.Assign(w)
 		table.insert(assigned, w)
 		local folder = Workspace:FindFirstChild("Workshops")
@@ -572,13 +571,13 @@ function Tests.showcase()
 			return carsShown()
 		end
 		if pedOk then
-			local want2 = withTemplate({ "go_kart", "street_racer" })
+			local want2 = withTemplate({ "leaf_copycat", "db_tyrant" })
 			local n2, labels2, labelsOk2, anchored2 = waitShown(want2)
 			flag("world_showcase_on_assign", n2 == want2, n2, want2)
 			flag("world_showcase_labels_finite", labels2 >= n2 and labelsOk2, labels2, n2)
 			flag("world_showcase_cars_static", anchored2)
-			gacha.SetShowcase(w, { "go_kart", "street_racer", "rocket_car" })
-			local want3 = withTemplate({ "go_kart", "street_racer", "rocket_car" })
+			gacha.SetShowcase(w, { "leaf_copycat", "db_tyrant", "leaf_hero" })
+			local want3 = withTemplate({ "leaf_copycat", "db_tyrant", "leaf_hero" })
 			local n3 = waitShown(want3)
 			flag("world_showcase_follows_set", n3 == want3, n3, want3)
 			gacha.SetShowcase(w, {})

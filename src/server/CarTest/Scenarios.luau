@@ -2458,17 +2458,17 @@ function Scenarios.flip_recovery()
 	-- upright, never below the map. The stat is MAX_STAT. The raw car multi is logarithmically damped and capped
 	-- before entering the cruise formula so rare cars remain faster without runaway speed.
 	local GachaService = serverModule("GachaService")
-	local CarCatalog = sharedModule("CarCatalog")
+	local CharacterCatalog = sharedModule("CharacterCatalog")
 	local fastApiOk = GachaService ~= nil
-		and CarCatalog ~= nil
+		and CharacterCatalog ~= nil
 		and type(GachaService.Setup) == "function"
 		and type(GachaService.Grant) == "function"
 		and type(GachaService.Equip) == "function"
-		and type(CarCatalog.All) == "function"
+		and type(CharacterCatalog.All) == "function"
 	check(checks, "high_multi_api_exists", fastApiOk and 1 or 0, 1, fastApiOk)
 	if fastApiOk and fallApiOk then
 		local best = nil
-		for _, spec in CarCatalog.All() do
+		for _, spec in CharacterCatalog.All() do
 			if type(spec.SpeedMulti) == "number" and (best == nil or spec.SpeedMulti > best.SpeedMulti) then
 				best = spec
 			end
@@ -4534,8 +4534,8 @@ function Scenarios.data()
 	-- Owner 2026-10-21: leaderstats.Speed mirrors the base Speed and stays independent of EquippedCar;
 	-- ShownSpeedMulti affects cruise speed only; writing leaderstats.Speed never changes the saved base.
 	local GachaForData = serverModule("GachaService")
-	local CatalogForData = sharedModule("CarCatalog")
-	local kartSpec = CatalogForData and CatalogForData.Get("go_kart")
+	local CatalogForData = sharedModule("CharacterCatalog")
+	local kartSpec = CatalogForData and CatalogForData.Get("leaf_copycat")
 	local kartM = kartSpec and kartSpec.SpeedMulti or -1
 	local shownApiOk = GachaForData ~= nil and kartM > 1
 	check(checks, "shown_speed_api_exists", shownApiOk and 1 or 0, 1, shownApiOk)
@@ -4558,8 +4558,8 @@ function Scenarios.data()
 			100,
 			near(added, 100) and near(val(pm, "Speed"), 100) and shownIs(100)
 		)
-		GachaForData.Grant(pm, "go_kart")
-		GachaForData.Equip(pm, "go_kart")
+		GachaForData.Grant(pm, "leaf_copycat")
+		GachaForData.Equip(pm, "leaf_copycat")
 		task.wait()
 		check(
 			checks,
@@ -4970,25 +4970,25 @@ function Scenarios.data()
 			PlayerData.SetStore(gStore)
 			local g1 = newPlayer("CarTestDataGacha1")
 			PlayerData.Load(g1, 9501)
-			GachaService.Grant(g1, "wooden_car")
-			GachaService.Grant(g1, "go_kart")
-			GachaService.Grant(g1, "go_kart")
-			GachaService.Grant(g1, "street_racer")
+			GachaService.Grant(g1, "leaf_medic")
+			GachaService.Grant(g1, "leaf_copycat")
+			GachaService.Grant(g1, "leaf_copycat")
+			GachaService.Grant(g1, "db_tyrant")
 			GachaService.Roll(g1, Random.new(5))
 			GachaService.Roll(g1, Random.new(6))
-			GachaService.Equip(g1, "go_kart")
+			GachaService.Equip(g1, "leaf_copycat")
 			GachaService.Allocate(g1, "Speed")
 			local snap1 = GachaService.Snapshot(g1)
 			local snapOk = type(snap1) == "table"
 				and type(snap1.Cars) == "table"
-				and snap1.Equipped == "go_kart"
+				and snap1.Equipped == "leaf_copycat"
 				and snap1.Rolls == 2
 				and type(snap1.StatAlloc) == "table"
 				and sameMap(snap1.StatAlloc, { Speed = 1, Money = 0, Luck = 0, Workshop = 0 })
 				and isIdArray(snap1.Cars)
-				and hasId(snap1.Cars, "go_kart")
-				and hasId(snap1.Cars, "wooden_car")
-				and hasId(snap1.Cars, "street_racer")
+				and hasId(snap1.Cars, "leaf_copycat")
+				and hasId(snap1.Cars, "leaf_medic")
+				and hasId(snap1.Cars, "db_tyrant")
 				and not hasId(snap1.Cars, "starter")
 			check(checks, "gacha_snapshot_shape", snapOk and 1 or 0, 1, snapOk)
 			local savedG = PlayerData.Save(g1, 9501)
@@ -4999,7 +4999,7 @@ function Scenarios.data()
 				and type(snap1) == "table"
 				and isIdArray(recG.Cars)
 				and sameMap(recG.Cars, snap1.Cars)
-				and recG.Equipped == "go_kart"
+				and recG.Equipped == "leaf_copycat"
 				and recG.Rolls == 2
 				and sameMap(recG.StatAlloc, snap1.StatAlloc)
 			check(checks, "v3_save_has_gacha_fields", type(recG) == "table" and recG.Version or -1, DATA_VERSION, recOk)
@@ -5009,19 +5009,19 @@ function Scenarios.data()
 			local rtOk = type(snap1) == "table"
 				and type(snap2) == "table"
 				and sameMap(snap2.Cars, snap1.Cars)
-				and snap2.Equipped == "go_kart"
+				and snap2.Equipped == "leaf_copycat"
 				and snap2.Rolls == 2
 				and sameMap(snap2.StatAlloc, snap1.StatAlloc)
 			check(checks, "v3_roundtrip_snapshot", rtOk and 1 or 0, 1, rtOk)
-			local attrOk = g2:GetAttribute("EquippedCar") == "go_kart"
+			local attrOk = g2:GetAttribute("EquippedCar") == "leaf_copycat"
 				and g2:GetAttribute("Rolls") == 2
 				and g2:GetAttribute("Alloc_Speed") == 1
 				and g2:GetAttribute("StatPoints") == GachaService.FreePoints(g2)
 				and g2:FindFirstChild("GachaData") ~= nil
-				and g2.GachaData:FindFirstChild("go_kart") ~= nil
-				and g2.GachaData.go_kart:IsA("StringValue")
-				and g2.GachaData.go_kart.Value == "go_kart"
-				and g2.GachaData.go_kart:GetAttribute("Count") == nil
+				and g2.GachaData:FindFirstChild("leaf_copycat") ~= nil
+				and g2.GachaData.leaf_copycat:IsA("StringValue")
+				and g2.GachaData.leaf_copycat.Value == "leaf_copycat"
+				and g2.GachaData.leaf_copycat:GetAttribute("Count") == nil
 				and #g2.GachaData:GetChildren() == #snap1.Cars
 			check(checks, "v3_roundtrip_attributes", attrOk and 1 or 0, 1, attrOk)
 
@@ -5052,8 +5052,8 @@ function Scenarios.data()
 			end
 			-- 3 unique = 1 earned point, 4 allocated: trimmed Workshop first, then Money, Luck -> Speed 1 left
 			local pa, okA, sa = loadV3(9503, "CarTestDataGachaOver1", {
-				Cars = { "go_kart", "rusty_hatchback", "wooden_car" },
-				Equipped = "wooden_car",
+				Cars = { "leaf_copycat", "sea_navigator", "leaf_medic" },
+				Equipped = "leaf_medic",
 				Rolls = 4,
 				StatAlloc = { Speed = 1, Money = 1, Luck = 1, Workshop = 1 },
 			})
@@ -5066,7 +5066,7 @@ function Scenarios.data()
 			check(checks, "over_allocation_trimmed", overOk and 1 or 0, 1, overOk)
 			-- 6 unique = 2 earned, 3 allocated: only Workshop goes
 			local pb, okB, sb = loadV3(9504, "CarTestDataGachaOver2", {
-				Cars = { "go_kart", "hover_car", "rocket_car", "rusty_hatchback", "street_racer", "wooden_car" },
+				Cars = { "leaf_copycat", "leaf_crow", "leaf_hero", "sea_navigator", "db_tyrant", "leaf_medic" },
 				Equipped = "starter",
 				Rolls = 6,
 				StatAlloc = { Speed = 0, Money = 1, Luck = 1, Workshop = 1 },
@@ -5078,20 +5078,20 @@ function Scenarios.data()
 			check(checks, "over_allocation_trim_order", over2Ok and 1 or 0, 1, over2Ok)
 			-- Equipped not owned -> starter; owned kept
 			local _, _, sc = loadV3(9505, "CarTestDataGachaEq1", {
-				Cars = { "wooden_car" },
-				Equipped = "rocket_car",
+				Cars = { "leaf_medic" },
+				Equipped = "leaf_hero",
 				Rolls = 1,
 				StatAlloc = zeroAlloc,
 			})
 			local _, _, sd = loadV3(9506, "CarTestDataGachaEq2", {
-				Cars = { "wooden_car" },
+				Cars = { "leaf_medic" },
 				Equipped = "not_a_real_car",
 				Rolls = 1,
 				StatAlloc = zeroAlloc,
 			})
 			local pe, _, se = loadV3(9507, "CarTestDataGachaEq3", {
-				Cars = { "wooden_car" },
-				Equipped = "wooden_car",
+				Cars = { "leaf_medic" },
+				Equipped = "leaf_medic",
 				Rolls = 1,
 				StatAlloc = zeroAlloc,
 			})
@@ -5103,20 +5103,20 @@ function Scenarios.data()
 			check(
 				checks,
 				"owned_equipped_kept",
-				type(se) == "table" and se.Equipped == "wooden_car" and 1 or 0,
+				type(se) == "table" and se.Equipped == "leaf_medic" and 1 or 0,
 				1,
-				type(se) == "table" and se.Equipped == "wooden_car" and pe:GetAttribute("EquippedCar") == "wooden_car"
+				type(se) == "table" and se.Equipped == "leaf_medic" and pe:GetAttribute("EquippedCar") == "leaf_medic"
 			)
 			-- unknown ids are kept (a removed car is not wiped) but do not count
 			local pu, _, su = loadV3(9508, "CarTestDataGachaUnknown", {
-				Cars = { "retired_car", "wooden_car" },
+				Cars = { "retired_car", "leaf_medic" },
 				Equipped = "starter",
 				Rolls = 5,
 				StatAlloc = zeroAlloc,
 			})
 			local unkOk = type(su) == "table"
 				and type(su.Cars) == "table"
-				and sameMap(su.Cars, { "retired_car", "wooden_car" })
+				and sameMap(su.Cars, { "leaf_medic", "retired_car" })
 				and GachaService.UniqueCount(pu) == 1
 			check(checks, "unknown_ids_preserved", unkOk and 1 or 0, 1, unkOk)
 			local okUs = PlayerData.Save(pu, 9508)
@@ -5130,7 +5130,7 @@ function Scenarios.data()
 			)
 			-- legacy map form from earlier v3 saves: number > 0 or true = owned; 0, negative or false = not owned
 			local pl3, okL, sl = loadV3(9509, "CarTestDataGachaLegacyMap", {
-				Cars = { go_kart = 3, wooden_car = 0, rocket_car = true, hover_car = -1, street_racer = false },
+				Cars = { leaf_copycat = 3, leaf_medic = 0, leaf_hero = true, leaf_crow = -1, db_tyrant = false },
 				Equipped = "starter",
 				Rolls = 3,
 				StatAlloc = zeroAlloc,
@@ -5138,17 +5138,26 @@ function Scenarios.data()
 			local legacyOk = okL == true
 				and type(sl) == "table"
 				and isIdArray(sl.Cars)
-				and sameMap(sl.Cars, { "go_kart", "rocket_car" })
+				and sameMap(sl.Cars, { "leaf_copycat", "leaf_hero" })
 				and GachaService.UniqueCount(pl3) == 2
-				and owns(pl3, "go_kart")
-				and owns(pl3, "rocket_car")
-				and not owns(pl3, "wooden_car")
-				and not owns(pl3, "hover_car")
+				and owns(pl3, "leaf_copycat")
+				and owns(pl3, "leaf_hero")
+				and not owns(pl3, "leaf_medic")
+				and not owns(pl3, "leaf_crow")
 				and not anyCountAttribute(pl3)
 			check(checks, "legacy_map_cars_load", legacyOk and 1 or 0, 1, legacyOk)
 			-- array form is cleaned: duplicates, non-strings, ids over 64 chars and "starter" dropped
 			local pc, okC, sk = loadV3(9511, "CarTestDataGachaArray", {
-				Cars = { "wooden_car", "go_kart", "wooden_car", 5, true, "starter", string.rep("x", 65), "go_kart" },
+				Cars = {
+					"leaf_medic",
+					"leaf_copycat",
+					"leaf_medic",
+					5,
+					true,
+					"starter",
+					string.rep("x", 65),
+					"leaf_copycat",
+				},
 				Equipped = "starter",
 				Rolls = 3,
 				StatAlloc = zeroAlloc,
@@ -5156,9 +5165,9 @@ function Scenarios.data()
 			local arrayOk = okC == true
 				and type(sk) == "table"
 				and isIdArray(sk.Cars)
-				and sameMap(sk.Cars, { "go_kart", "wooden_car" })
+				and sameMap(sk.Cars, { "leaf_copycat", "leaf_medic" })
 				and GachaService.UniqueCount(pc) == 2
-				and entriesNamed(pc, "wooden_car") == 1
+				and entriesNamed(pc, "leaf_medic") == 1
 				and entriesNamed(pc, "starter") == 0
 				and ownedUnique(pc) == 2
 			check(checks, "array_cars_cleaned", arrayOk and 1 or 0, 1, arrayOk)
@@ -5190,16 +5199,16 @@ function Scenarios.data()
 			local pk = newPlayer("CarTestDataGachaApply")
 			GachaService.Setup(pk)
 			GachaService.Apply(pk, {
-				Cars = { "old_car_v1", "go_kart" },
-				Equipped = "go_kart",
+				Cars = { "old_car_v1", "leaf_copycat" },
+				Equipped = "leaf_copycat",
 				Rolls = 9,
 				StatAlloc = zeroAlloc,
 			})
 			local sp = GachaService.Snapshot(pk)
 			local applyKeepOk = type(sp) == "table"
 				and isIdArray(sp.Cars)
-				and sameMap(sp.Cars, { "go_kart", "old_car_v1" })
-				and sp.Equipped == "go_kart"
+				and sameMap(sp.Cars, { "leaf_copycat", "old_car_v1" })
+				and sp.Equipped == "leaf_copycat"
 				and sp.Rolls == 9
 			check(checks, "apply_snapshot_keeps_unknown_ids", applyKeepOk and 1 or 0, 1, applyKeepOk)
 
@@ -5208,8 +5217,8 @@ function Scenarios.data()
 				Money = 10,
 				Speed = 1,
 				Version = 3,
-				Cars = { "hover_car" },
-				Equipped = "hover_car",
+				Cars = { "leaf_crow" },
+				Equipped = "leaf_crow",
 				Rolls = 99,
 				StatAlloc = zeroAlloc,
 			}
@@ -5224,9 +5233,9 @@ function Scenarios.data()
 				and guard3.sets == 0
 				and type(r3) == "table"
 				and r3.Rolls == 99
-				and r3.Equipped == "hover_car"
+				and r3.Equipped == "leaf_crow"
 				and type(r3.Cars) == "table"
-				and r3.Cars[1] == "hover_car"
+				and r3.Cars[1] == "leaf_crow"
 			check(checks, "v3_save_before_load_keeps_record", keptOk and 1 or 0, 1, keptOk)
 		end)
 		if not okG then
@@ -5375,7 +5384,7 @@ function Scenarios.data()
 						Money = 40,
 						Speed = 2,
 						Version = 3,
-						Cars = { "wooden_car" },
+						Cars = { "leaf_medic" },
 						Equipped = "starter",
 						Rolls = c.rolls,
 						StatAlloc = { Speed = 0, Money = 0, Luck = 0, Workshop = 0 },
@@ -6304,95 +6313,39 @@ function Scenarios.hud()
 	return result("hud", checks, {})
 end
 
--- Car gacha + index + stat allocation (plan: car gacha, index and stat allocation). The expected catalog is the
--- design doc's seed contracts plus the approved expansion manifest. Keep the seven-car discovery fixtures fixed.
--- OldChance is the pre-2026-10-27 Chance: it only fixes each car's order inside its rarity for the odds rev. below.
+-- Character gacha + index + stat allocation. The expected catalog is docs/CHARACTER_GACHA_SPEC.md's launch cast
+-- (CatalogTests.CAST). GACHA_SEED is one character per rarity, the fixed discovery fixtures (spec Chance table).
 local GACHA_SEED = {
-	{ Id = "rusty_hatchback", Rarity = "Common", Chance = nil, SpeedMulti = 1.1 },
-	{ Id = "wooden_car", Rarity = "Uncommon", OldChance = 10, SpeedMulti = 1.25 },
-	{ Id = "go_kart", Rarity = "Rare", OldChance = 50, SpeedMulti = 2 },
-	{ Id = "street_racer", Rarity = "Epic", OldChance = 250, SpeedMulti = 6 },
-	{ Id = "rocket_car", Rarity = "Legendary", OldChance = 1000, SpeedMulti = 25 },
-	{ Id = "hover_car", Rarity = "Mythic", OldChance = 10000, SpeedMulti = 150 },
-	{ Id = "void_racer", Rarity = "Secret", OldChance = 100000, SpeedMulti = 1000 },
+	{ Id = "sea_navigator", Rarity = "Common", Chance = nil, SpeedMulti = 1.1 },
+	{ Id = "leaf_medic", Rarity = "Uncommon", Chance = 10, SpeedMulti = 1.25 },
+	{ Id = "leaf_copycat", Rarity = "Rare", Chance = 500, SpeedMulti = 2 },
+	{ Id = "db_tyrant", Rarity = "Epic", Chance = 50000, SpeedMulti = 6 },
+	{ Id = "leaf_hero", Rarity = "Legendary", Chance = 1e7, SpeedMulti = 25 },
+	{ Id = "leaf_crow", Rarity = "Mythic", Chance = 5e9, SpeedMulti = 150 },
+	{ Id = "db_hero", Rarity = "Secret", Chance = 1.6e16, SpeedMulti = 1000 },
 }
--- Approved weather variants extend the catalog; the original seven odds/multis
--- and seven-discovery stat-point fixtures remain unchanged.
+-- docs/CHARACTER_GACHA_SPEC.md "Event-only characters" (owner 2026-10-28): rollable only during their weather event.
 local GACHA_EVENT_SEED = {
-	-- Own models since the car art redesign (owner 2026-10-20, docs/CAR_REDESIGN_SPEC.md section 5).
-	{ Id = "rain_runner", Event = "rain", Model = "rain_runner", Rarity = "Epic", OldChance = 500, SpeedMulti = 6 },
-	{
-		Id = "midnight_kart",
-		Event = "night",
-		Model = "midnight_kart",
-		Rarity = "Legendary",
-		OldChance = 2500,
-		SpeedMulti = 8,
-	},
-	{
-		Id = "golden_racer",
-		Event = "gold",
-		Model = "golden_racer",
-		Rarity = "Legendary",
-		OldChance = 5000,
-		SpeedMulti = 10,
-	},
+	{ Id = "ds_water", Event = "rain", Rarity = "Epic", Chance = 160000, SpeedMulti = 6 },
+	{ Id = "jk_night", Event = "night", Rarity = "Legendary", Chance = 4.3e7, SpeedMulti = 8 },
+	{ Id = "sea_gold", Event = "gold", Rarity = "Legendary", Chance = 6.2e8, SpeedMulti = 10 },
 }
--- Owner 2026-10-27 (design doc "odds rev.", docs/CAR_EXPANSION_SPEC.md "Distribution"): every rollable car's
--- Chance is re-banded. Per rarity, the cars in their OLD order (old Chance ascending; seed, expansion and event
--- cars together) get lo x (hi / lo) ^ (i / (k - 1)), i = 0 .. k - 1, rounded to 2 significant figures.
+-- Chance band per rarity (docs/CHARACTER_GACHA_SPEC.md "Rolls"); values are 2 significant figures.
 local GACHA_ODDS_BANDS = {
 	Uncommon = { 10, 200 },
-	Rare = { 500, 25e3 },
+	Rare = { 500, 13000 },
 	Epic = { 5e4, 2.5e6 },
-	Legendary = { 1e7, 1e9 },
+	Legendary = { 1e7, 7.8e8 },
 	Mythic = { 5e9, 1e15 },
-	Secret = { 1e16, 5e18 }, -- under int64 (RarestCar leaderboard)
-}
--- the old CAR_EXPANSION bands (base + step x i, i from 1 per rarity in manifest order): old order only
-local GACHA_OLD_EXPANSION_BANDS = {
-	Uncommon = { 12, 2 },
-	Rare = { 60, 7 },
-	Epic = { 300, 30 },
-	Legendary = { 1200, 250 },
-	Mythic = { 15000, 3500 },
-	Secret = { 150000, 150000 },
+	Secret = { 1.6e16, 5e18 }, -- under int64 (RarestCar leaderboard)
 }
 local function gachaSig2(x)
 	local e = math.floor(math.log10(x)) - 1
 	return math.round(x / 10 ^ e) * 10 ^ e
 end
-local GACHA_CATALOG = table.clone(GACHA_SEED)
-do
-	local seen = {}
-	for _, spec in (sharedModule("CarExpansionManifest") or { Cars = {} }).Cars do
-		local c = table.clone(spec) -- never write into the shared manifest
-		seen[c.Rarity] = (seen[c.Rarity] or 0) + 1
-		local old = GACHA_OLD_EXPANSION_BANDS[c.Rarity]
-		c.OldChance = old and old[1] + old[2] * seen[c.Rarity] or nil
-		table.insert(GACHA_CATALOG, c)
-	end
-	for _, spec in GACHA_EVENT_SEED do
-		table.insert(GACHA_CATALOG, spec)
-	end
-	local byRarity = {}
-	for _, c in GACHA_CATALOG do
-		c.Chance = nil
-		if c.OldChance then
-			byRarity[c.Rarity] = byRarity[c.Rarity] or {}
-			table.insert(byRarity[c.Rarity], c)
-		end
-	end
-	for rarity, cars in byRarity do
-		local band = GACHA_ODDS_BANDS[rarity]
-		table.sort(cars, function(x, y)
-			return x.OldChance < y.OldChance
-		end)
-		for i, c in cars do
-			c.Chance = band and #cars > 1 and gachaSig2(band[1] * (band[2] / band[1]) ^ ((i - 1) / (#cars - 1)))
-				or (band and band[1])
-		end
-	end
+local GACHA_CATALOG = {}
+for _, row in require(script.Parent.CatalogTests).CAST do
+	table.insert(GACHA_CATALOG, table.clone(row))
 end
 local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 local GACHA_STATS = { "Speed", "Money", "Luck", "Workshop" }
@@ -6440,10 +6393,10 @@ local function gachaExpected(luck, event)
 end
 
 local function gachaModules()
-	local CarCatalog = sharedModule("CarCatalog")
+	local CharacterCatalog = sharedModule("CharacterCatalog")
 	local GachaConfig = sharedModule("GachaConfig")
 	local GachaService = serverModule("GachaService")
-	return CarCatalog, GachaConfig, GachaService
+	return CharacterCatalog, GachaConfig, GachaService
 end
 
 local function newTestPlayer(cleanup, name)
@@ -6461,11 +6414,11 @@ end
 -- Gacha: catalog, config, seeded roll odds, grant/duplicates, the auto-roll timer.
 function Scenarios.gacha()
 	local checks = {}
-	local CarCatalog, GachaConfig, GachaService = gachaModules()
-	local catalogOk = CarCatalog ~= nil
-		and type(CarCatalog.Get) == "function"
-		and type(CarCatalog.All) == "function"
-		and type(CarCatalog.Rollable) == "function"
+	local CharacterCatalog, GachaConfig, GachaService = gachaModules()
+	local catalogOk = CharacterCatalog ~= nil
+		and type(CharacterCatalog.Get) == "function"
+		and type(CharacterCatalog.All) == "function"
+		and type(CharacterCatalog.Rollable) == "function"
 	local configOk = GachaConfig ~= nil
 		and type(GachaConfig.Roll) == "function"
 		and type(GachaConfig.EarnedPoints) == "function"
@@ -6534,8 +6487,14 @@ function Scenarios.gacha()
 	check(checks, "rarity_colors", colorsOk and 1 or 0, 1, colorsOk)
 
 	-- Catalog
-	check(checks, "starter_id", CarCatalog.STARTER_ID == "starter" and 1 or 0, 1, CarCatalog.STARTER_ID == "starter")
-	local starter = CarCatalog.Get("starter")
+	check(
+		checks,
+		"starter_id",
+		CharacterCatalog.STARTER_ID == "starter" and 1 or 0,
+		1,
+		CharacterCatalog.STARTER_ID == "starter"
+	)
+	local starter = CharacterCatalog.Get("starter")
 	local starterOk = type(starter) == "table"
 		and starter.SpeedMulti == 1
 		and starter.Chance == nil
@@ -6544,12 +6503,12 @@ function Scenarios.gacha()
 	check(
 		checks,
 		"get_unknown_nil",
-		CarCatalog.Get("no_such_car") == nil and 1 or 0,
+		CharacterCatalog.Get("no_such_car") == nil and 1 or 0,
 		1,
-		CarCatalog.Get("no_such_car") == nil
+		CharacterCatalog.Get("no_such_car") == nil
 	)
-	local okAll, all = pcall(CarCatalog.All)
-	local okRoll, rollable = pcall(CarCatalog.Rollable)
+	local okAll, all = pcall(CharacterCatalog.All)
+	local okRoll, rollable = pcall(CharacterCatalog.Rollable)
 	all = okAll and type(all) == "table" and all or {}
 	rollable = okRoll and type(rollable) == "table" and rollable or {}
 	local baseCount, eventCount, baseRollCount, eventRollCount = 0, 0, 0, 0
@@ -6568,10 +6527,10 @@ function Scenarios.gacha()
 		end
 	end
 	local expectedBase = #GACHA_CATALOG - #GACHA_EVENT_SEED
-	check(checks, "catalog_seed_and_expansion_cars", baseCount, expectedBase, baseCount == expectedBase)
-	check(checks, "rollable_seed_and_expansion_cars", baseRollCount, expectedBase, baseRollCount == expectedBase)
-	check(checks, "catalog_three_event_cars", eventCount, #GACHA_EVENT_SEED, eventCount == #GACHA_EVENT_SEED)
-	check(checks, "rollable_three_event_cars", eventRollCount, #GACHA_EVENT_SEED, eventRollCount == #GACHA_EVENT_SEED)
+	check(checks, "catalog_launch_cast", baseCount, expectedBase, baseCount == expectedBase)
+	check(checks, "rollable_launch_cast", baseRollCount, expectedBase, baseRollCount == expectedBase)
+	check(checks, "catalog_event_characters", eventCount, #GACHA_EVENT_SEED, eventCount == #GACHA_EVENT_SEED)
+	check(checks, "rollable_event_characters", eventRollCount, #GACHA_EVENT_SEED, eventRollCount == #GACHA_EVENT_SEED)
 	check(checks, "catalog_base_and_event_cars", #all, #GACHA_CATALOG, #all == #GACHA_CATALOG)
 	check(checks, "rollable_base_and_event_cars", #rollable, #GACHA_CATALOG, #rollable == #GACHA_CATALOG)
 	local seen, idsOk, snakeOk, catchAlls, starterInAll = {}, true, true, 0, false
@@ -6621,7 +6580,7 @@ function Scenarios.gacha()
 	check(checks, "catalog_speed_multi_at_least_1", multiOk and 1 or 0, 1, multiOk and #all > 0)
 	local seedOk = true
 	for _, want in GACHA_SEED do
-		local got = CarCatalog.Get(want.Id)
+		local got = CharacterCatalog.Get(want.Id)
 		if
 			type(got) ~= "table"
 			or got.Id ~= want.Id
@@ -6634,9 +6593,9 @@ function Scenarios.gacha()
 			seedOk = false
 		elseif got.Model ~= nil then
 			-- Model is optional (nil = "?" placeholder). When set it must be a non-empty string that
-			-- resolves to ReplicatedStorage.CarModels[Model] (a Model) now. RollShowcase/Index look up
+			-- resolves to ReplicatedStorage.CharacterModels[Model] (a Model) now. RollShowcase/Index look up
 			-- Original cars retain Model == Id (event variants too, since 2026-10-20).
-			local folder = ReplicatedStorage:FindFirstChild("CarModels")
+			local folder = ReplicatedStorage:FindFirstChild("CharacterModels")
 			local template = type(got.Model) == "string" and folder and folder:FindFirstChild(got.Model)
 			if
 				type(got.Model) ~= "string"
@@ -6651,7 +6610,7 @@ function Scenarios.gacha()
 	check(checks, "catalog_matches_design_doc", seedOk and 1 or 0, 1, seedOk)
 	local eventOk, modelsOk = true, true
 	for _, want in GACHA_EVENT_SEED do
-		local got = CarCatalog.Get(want.Id)
+		local got = CharacterCatalog.Get(want.Id)
 		if
 			type(got) ~= "table"
 			or got.Event ~= want.Event
@@ -6667,7 +6626,7 @@ function Scenarios.gacha()
 	end
 	for _, got in all do
 		if got.Model ~= nil then
-			local folder = ReplicatedStorage:FindFirstChild("CarModels")
+			local folder = ReplicatedStorage:FindFirstChild("CharacterModels")
 			local template = type(got.Model) == "string" and folder and folder:FindFirstChild(got.Model)
 			-- Every car, event variants included, uses its own model (docs/CAR_REDESIGN_SPEC.md section 5).
 			local identityOk = got.Model == got.Id
@@ -6675,8 +6634,6 @@ function Scenarios.gacha()
 			if got.Model == "" or not identityOk or not (template and template:IsA("Model")) then
 				modelsOk = false
 			end
-		elseif got.Event ~= nil then
-			modelsOk = false
 		end
 	end
 	check(checks, "catalog_event_variants_match_contract", eventOk and 1 or 0, 1, eventOk)
@@ -6684,7 +6641,7 @@ function Scenarios.gacha()
 	-- rarity's band, and every car of a rarity is rarer than every car of the rarity below it.
 	local oddsBad, rarityMax, rarityMin = {}, {}, {}
 	for _, want in GACHA_CATALOG do
-		local got = CarCatalog.Get(want.Id)
+		local got = CharacterCatalog.Get(want.Id)
 		local band = GACHA_ODDS_BANDS[want.Rarity]
 		if want.Chance ~= nil then
 			local chance = type(got) == "table" and got.Chance or nil
@@ -6702,7 +6659,7 @@ function Scenarios.gacha()
 			end
 		end
 	end
-	check(checks, "catalog_odds_rev_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
+	check(checks, "catalog_spec_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
 	local tierOk = true
 	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret (Common is the catch-all)
 		local lower, higher = GACHA_RARITY_ORDER[i - 1], GACHA_RARITY_ORDER[i]
@@ -6804,7 +6761,7 @@ function Scenarios.gacha()
 		end
 		if case.luck == 10 then
 			-- 10/10: the Uncommon always hits, so the catch-all is never reached
-			local common = counts.rusty_hatchback or 0
+			local common = counts.sea_navigator or 0
 			check(checks, "luck10_catch_all_never", common, 0, ok and common == 0)
 		end
 	end
@@ -6870,20 +6827,20 @@ function Scenarios.gacha()
 		check(checks, "setup_no_cars_owned", #p.GachaData:GetChildren(), 0, #p.GachaData:GetChildren() == 0)
 
 		-- Grant: new, duplicate, unknown
-		local g1 = GachaService.Grant(p, "wooden_car")
-		local v = p.GachaData:FindFirstChild("wooden_car")
+		local g1 = GachaService.Grant(p, "leaf_medic")
+		local v = p.GachaData:FindFirstChild("leaf_medic")
 		check(checks, "grant_new_returns_true", g1 == true and 1 or 0, 1, g1 == true)
 		check(
 			checks,
 			"grant_new_adds_stringvalue",
-			owns(p, "wooden_car") and 1 or 0,
+			owns(p, "leaf_medic") and 1 or 0,
 			1,
-			v ~= nil and owns(p, "wooden_car") and v:GetAttribute("Count") == nil
+			v ~= nil and owns(p, "leaf_medic") and v:GetAttribute("Count") == nil
 		)
-		local g2 = GachaService.Grant(p, "wooden_car")
+		local g2 = GachaService.Grant(p, "leaf_medic")
 		check(checks, "grant_duplicate_returns_false", g2 == false and 1 or 0, 1, g2 == false)
-		local dupSame = owns(p, "wooden_car") and entriesNamed(p, "wooden_car") == 1 and not anyCountAttribute(p)
-		check(checks, "grant_duplicate_no_change", entriesNamed(p, "wooden_car"), 1, dupSame)
+		local dupSame = owns(p, "leaf_medic") and entriesNamed(p, "leaf_medic") == 1 and not anyCountAttribute(p)
+		check(checks, "grant_duplicate_no_change", entriesNamed(p, "leaf_medic"), 1, dupSame)
 		local dupNoExtra = #p.GachaData:GetChildren() == 1
 		check(checks, "grant_duplicate_no_new_entry", #p.GachaData:GetChildren(), 1, dupNoExtra)
 		local rejectOk = true
@@ -6901,7 +6858,7 @@ function Scenarios.gacha()
 			"grant_unknown_no_change",
 			#p.GachaData:GetChildren(),
 			1,
-			#p.GachaData:GetChildren() == 1 and owns(p, "wooden_car")
+			#p.GachaData:GetChildren() == 1 and owns(p, "leaf_medic")
 		)
 
 		-- Roll through the service: counts Rolls, grants the rolled car
@@ -7109,12 +7066,12 @@ end
 function Scenarios.index()
 	local INDEX_STAT = 10000 -- start Speed of both index racers (linear segment: cruise 17 studs/s with multi 1)
 	local checks = {}
-	local CarCatalog, GachaConfig, GachaService = gachaModules()
+	local CharacterCatalog, GachaConfig, GachaService = gachaModules()
 	local RaceService = serverModule("RaceService")
 	local RaceConfig = sharedModule("RaceConfig")
 	local Money = serverModule("MoneyService")
 	local PlayerData = serverModule("PlayerData")
-	local apiOk = CarCatalog ~= nil
+	local apiOk = CharacterCatalog ~= nil
 		and GachaConfig ~= nil
 		and GachaService ~= nil
 		and RaceService ~= nil
@@ -7203,17 +7160,17 @@ function Scenarios.index()
 			0,
 			p:GetAttribute("Alloc_Speed") == 0
 		)
-		GachaService.Grant(p, "rusty_hatchback")
-		GachaService.Grant(p, "wooden_car")
+		GachaService.Grant(p, "sea_navigator")
+		GachaService.Grant(p, "leaf_medic")
 		u, e = pts(p)
 		check(checks, "two_unique_zero_points", e, 0, u == 2 and e == 0)
 		for _ = 1, 5 do
-			GachaService.Grant(p, "wooden_car")
-			GachaService.Grant(p, "rusty_hatchback")
+			GachaService.Grant(p, "leaf_medic")
+			GachaService.Grant(p, "sea_navigator")
 		end
 		u, e = pts(p)
 		check(checks, "duplicates_never_count", u, 2, u == 2 and e == 0 and p:GetAttribute("StatPoints") == 0)
-		GachaService.Grant(p, "go_kart")
+		GachaService.Grant(p, "leaf_copycat")
 		u, e, f = pts(p)
 		check(checks, "three_unique_one_point", e, 1, u == 3 and e == 1 and f == 1)
 		check(
@@ -7312,7 +7269,7 @@ function Scenarios.index()
 		-- Equip
 		local eq = newTestPlayer(cleanup, "CarTestIndexEquip")
 		GachaService.Setup(eq)
-		local eqBadOk = GachaService.Equip(eq, "go_kart") == false
+		local eqBadOk = GachaService.Equip(eq, "leaf_copycat") == false
 			and GachaService.Equip(eq, "no_such_car") == false
 			and call(GachaService.Equip, eq, 5) ~= true
 			and call(GachaService.Equip, eq, nil) ~= true
@@ -7323,14 +7280,14 @@ function Scenarios.index()
 			1,
 			eqBadOk and eq:GetAttribute("EquippedCar") == "starter"
 		)
-		GachaService.Grant(eq, "go_kart")
-		local eqOk = GachaService.Equip(eq, "go_kart")
+		GachaService.Grant(eq, "leaf_copycat")
+		local eqOk = GachaService.Equip(eq, "leaf_copycat")
 		check(
 			checks,
 			"equip_owned_accepted",
 			eqOk == true and 1 or 0,
 			1,
-			eqOk == true and eq:GetAttribute("EquippedCar") == "go_kart"
+			eqOk == true and eq:GetAttribute("EquippedCar") == "leaf_copycat"
 		)
 		check(
 			checks,
@@ -7341,7 +7298,7 @@ function Scenarios.index()
 		)
 		-- Owner 2026-10-21 (design doc Core stat model, "multiplied Speed"): shown Speed multi = equipped car's full
 		-- SpeedMulti x the aura's, published as the ShownSpeedMulti attribute (the HUD Speed = base Speed x it)
-		local kart = CarCatalog.Get("go_kart")
+		local kart = CharacterCatalog.Get("leaf_copycat")
 		local kartMulti = kart and kart.SpeedMulti or -1
 		local MarketConfig = sharedModule("MarketConfig")
 		local aura = MarketConfig and MarketConfig.Get("Aura", "azure_aura")
@@ -7445,12 +7402,12 @@ function Scenarios.index()
 			gainBoth or -1,
 			nearly(gainStarter, gainBoth) and nearly(eq:GetAttribute("SpeedGainMulti"), gainBoth)
 		)
-		GachaService.Equip(eq, "go_kart")
+		GachaService.Equip(eq, "leaf_copycat")
 		eq:SetAttribute("EquippedTrail", nil)
 		eq:SetAttribute("EquippedAura", nil)
 		GachaService.Equip(eq, "starter")
 		task.wait()
-		local starter = CarCatalog.Get("starter")
+		local starter = CharacterCatalog.Get("starter")
 		local starterMulti = starter and starter.SpeedMulti or 1
 		local shownBack = eq:GetAttribute("ShownSpeedMulti")
 		check(
@@ -7460,9 +7417,9 @@ function Scenarios.index()
 			starterMulti,
 			type(shownBack) == "number" and nearly(shownBack, starterMulti)
 		)
-		GachaService.Equip(eq, "go_kart")
+		GachaService.Equip(eq, "leaf_copycat")
 		-- Car model affects cruise speed, not the Speed gain multiplier.
-		GachaService.Equip(p, "go_kart")
+		GachaService.Equip(p, "leaf_copycat")
 		check(
 			checks,
 			"speed_gain_uses_stat_only",
@@ -7470,7 +7427,7 @@ function Scenarios.index()
 			1.1,
 			nearly(GachaService.SpeedMulti(p), 1.1)
 		)
-		GachaService.Equip(p, "street_racer")
+		GachaService.Equip(p, "db_tyrant")
 		check(
 			checks,
 			"speed_multi_after_reequip",
@@ -7526,7 +7483,7 @@ function Scenarios.index()
 		local paidF = Money.Collect(pf, pad, 5000)
 		check(checks, "collect_fresh_player_pays_cash", paidF or -1, cash, paidF == cash)
 
-		-- Race gain scales with the equipped car: two identical drives, 1x vs a 2x go_kart.
+		-- Race gain scales with the equipped car: two identical drives, 1x vs a 2x leaf_copycat.
 		-- Measurement fix (not a loosening, every limit unchanged): building the tracks causes long frames, so wait
 		-- for the world to settle before the runs start, and integrate on PreSimulation with the same dt the run uses.
 		local settleStart, streak = os.clock(), 0
@@ -7552,8 +7509,8 @@ function Scenarios.index()
 			GachaService.Setup(player)
 			player.BaseSpeed.Value = INDEX_STAT -- non-zero, so the car's stat multi shows in the cruise speed
 			if k == 2 then
-				GachaService.Grant(player, "go_kart")
-				GachaService.Equip(player, "go_kart")
+				GachaService.Grant(player, "leaf_copycat")
+				GachaService.Equip(player, "leaf_copycat")
 			end
 			local run = RaceService.NewRun(car, route, player, nil)
 			table.insert(runs, run)
@@ -7596,7 +7553,7 @@ function Scenarios.index()
 		check(checks, "race_gain_ignores_car_multi", scale, "1 +- 15%", scale >= 0.85 and scale <= 1.15)
 		-- Owner 2026-10-27 (design doc "speed feel"): the car multi, damped to 1 + log10(multi) and capped at 4x
 		-- (owner 2026-10-28), multiplies the final cruise studs/s. The start stat moves by under 0.1 % while driving.
-		local kartSpec = CarCatalog.Get("go_kart")
+		local kartSpec = CharacterCatalog.Get("leaf_copycat")
 		local damped = math.clamp(1 + math.log10(kartSpec and kartSpec.SpeedMulti or 1), 0.1, 4)
 		local want1, want2 = RaceConfig.SpeedFor(INDEX_STAT), RaceConfig.SpeedFor(INDEX_STAT) * damped
 		check(
@@ -8389,17 +8346,6 @@ function Scenarios.npc()
 			metrics.npcSkinned = skinned
 			metrics.npcSkinBadTracks = table.concat(skinMissing, ",")
 			check(checks, "npc_model_catalog_skin", skinBad, 0, skinBad == 0)
-			-- every Track 1..10 NPC names a real catalog car (owner list, docs/NPC_RACER_SPEC.md)
-			local CarCatalog = sharedModule("CarCatalog")
-			local notCatalog = 0
-			for n = 1, 10 do
-				local okI, info = pcall(NpcConfig.For, n)
-				local id = okI and type(info) == "table" and info.Model or nil
-				if not (CarCatalog and type(id) == "string" and CarCatalog.Get(id) ~= nil) then
-					notCatalog += 1
-				end
-			end
-			check(checks, "npc_models_are_catalog_ids", notCatalog, 0, notCatalog == 0)
 		end
 
 		-- RaceService route with per-track NPC data, PathDriver.Chain start / finish indices
@@ -10163,7 +10109,7 @@ function Scenarios.admin()
 	local Money = serverModule("MoneyService")
 	local PlayerData = serverModule("PlayerData")
 	local RaceConfig = sharedModule("RaceConfig")
-	local CarCatalog, GachaConfig, GachaService = gachaModules()
+	local CharacterCatalog, GachaConfig, GachaService = gachaModules()
 	local apiOk = AdminService ~= nil
 		and AdminConfig ~= nil
 		and type(AdminService.IsAdmin) == "function"
@@ -10181,7 +10127,7 @@ function Scenarios.admin()
 		and Money ~= nil
 		and PlayerData ~= nil
 		and RaceConfig ~= nil
-		and CarCatalog ~= nil
+		and CharacterCatalog ~= nil
 		and GachaConfig ~= nil
 		and GachaService ~= nil
 		and type(RaceService.BuildRoute) == "function"
@@ -10189,7 +10135,7 @@ function Scenarios.admin()
 		and type(GachaService.Setup) == "function"
 		and type(GachaService.Allocate) == "function"
 		and type(GachaConfig.EarnedPoints) == "function"
-		and type(CarCatalog.Rollable) == "function"
+		and type(CharacterCatalog.Rollable) == "function"
 		and type(RaceConfig.MAX_STAT) == "number"
 	check(checks, "admin_dependencies_exist", depsOk and 1 or 0, 1, depsOk)
 	if not (apiOk and depsOk) then
@@ -10396,7 +10342,7 @@ function Scenarios.admin()
 		check(checks, "admin_run_of_stand_in_nil", (okDef and defRun == nil) and 1 or 0, 1, okDef and defRun == nil)
 
 		-- Non-admin: every command fails and nothing changes
-		local rollable = CarCatalog.Rollable()
+		local rollable = CharacterCatalog.Rollable()
 		local ids = {}
 		for _, c in rollable do
 			table.insert(ids, c.Id)
@@ -10782,7 +10728,7 @@ function Scenarios.admin()
 					and ownedCount() == 0
 					and allocSum() == 0
 					and rolls() == 0
-					and p:GetAttribute("EquippedCar") == CarCatalog.STARTER_ID
+					and p:GetAttribute("EquippedCar") == CharacterCatalog.STARTER_ID
 					and p:GetAttribute("StatPoints") == 0
 			end
 		)
@@ -11134,9 +11080,9 @@ end
 
 function Scenarios.roll_anim()
 	local checks, metrics = {}, {}
-	local CarCatalog, GachaConfig, GachaService = gachaModules()
+	local CharacterCatalog, GachaConfig, GachaService = gachaModules()
 	local RollAnimConfig = sharedModule("RollAnimConfig")
-	local baseOk = CarCatalog ~= nil
+	local baseOk = CharacterCatalog ~= nil
 		and GachaConfig ~= nil
 		and GachaService ~= nil
 		and type(GachaConfig.Roll) == "function"
@@ -11278,8 +11224,8 @@ function Scenarios.roll_anim()
 		check(checks, "reel_all_rollable", idBad, 0, idBad == 0)
 		local detBad, indepBad = 0, 0
 		for s = 1, 200 do
-			local a = reel(Random.new(s), "void_racer")
-			local b = reel(Random.new(s), "void_racer")
+			local a = reel(Random.new(s), "db_hero")
+			local b = reel(Random.new(s), "db_hero")
 			local c = reel(Random.new(s), catchAllId)
 			if not (a and b and #a == #b) then
 				detBad += 1
@@ -11341,11 +11287,11 @@ function Scenarios.roll_anim()
 		local nm = Random.new(ROLL_ANIM_NEAR_MISS_SEED)
 		local slots, nonCommon, rarePlus = 0, 0, 0
 		for i = 1, ROLL_ANIM_REELS do
-			local resultId = i % 2 == 0 and "void_racer" or "hover_car"
+			local resultId = i % 2 == 0 and "db_hero" or "leaf_crow"
 			local r = reel(nm, resultId)
 			if r and #r == n then
 				slots += 1
-				local spec = CarCatalog.Get(r[n - 1])
+				local spec = CharacterCatalog.Get(r[n - 1])
 				if spec and spec.Chance ~= nil then
 					nonCommon += 1
 					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
@@ -11405,10 +11351,10 @@ function Scenarios.roll_anim()
 		for _, c in GACHA_CATALOG do
 			table.insert(allIds, c.Id)
 		end
-		local rare5 = { "void_racer", "hover_car", "rocket_car", "street_racer", "go_kart" } -- 5th-rarest = go_kart (Rare)
-		local rare5w = { "void_racer", "hover_car", "rocket_car", "street_racer", "wooden_car" } -- 5th = wooden_car (Uncommon)
-		local common5 = { "rusty_hatchback", "wooden_car", "go_kart", "street_racer", "rocket_car" } -- 5th = catch-all
-		local six = { "void_racer", "hover_car", "rocket_car", "street_racer", "go_kart", "rusty_hatchback" }
+		local rare5 = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat" } -- 5th-rarest = leaf_copycat (Rare)
+		local rare5w = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } -- 5th = leaf_medic (Uncommon)
+		local common5 = { "sea_navigator", "leaf_medic", "leaf_copycat", "db_tyrant", "leaf_hero" } -- 5th = catch-all
+		local six = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat", "sea_navigator" }
 		local newCases = {}
 		for _, id in allIds do
 			table.insert(newCases, { id, {}, true })
@@ -11427,59 +11373,59 @@ function Scenarios.roll_anim()
 			{ nil, {}, false },
 			{ 5, {}, false },
 		})
-		local four = { "void_racer", "hover_car", "rocket_car", "street_racer" }
+		local four = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }
 		expectAll("emph_under_five_any_new_true", {
-			{ "rusty_hatchback", four, true },
-			{ "wooden_car", four, true },
-			{ "go_kart", four, true },
+			{ "sea_navigator", four, true },
+			{ "leaf_medic", four, true },
+			{ "leaf_copycat", four, true },
 		})
 		expectAll("emph_only_distinct_rollable_owned_count", {
-			{ "rusty_hatchback", { "void_racer", "hover_car", "rocket_car", "street_racer", "starter" }, true },
-			{ "rusty_hatchback", { "void_racer", "hover_car", "rocket_car", "street_racer", "no_such_car" }, true },
-			{ "wooden_car", { "void_racer", "void_racer", "hover_car", "rocket_car", "street_racer" }, true },
+			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "starter" }, true },
+			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "no_such_car" }, true },
+			{ "leaf_medic", { "db_hero", "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }, true },
 		})
 		expectAll("emph_five_owned_catch_all_is_least_rare", {
-			{ "hover_car", common5, true },
-			{ "void_racer", common5, true },
+			{ "leaf_crow", common5, true },
+			{ "db_hero", common5, true },
 		})
 		expectAll("emph_not_rarer_than_fifth_false", {
-			{ "wooden_car", rare5, false },
-			{ "rusty_hatchback", rare5, false },
-			{ "rusty_hatchback", rare5w, false },
+			{ "leaf_medic", rare5, false },
+			{ "sea_navigator", rare5, false },
+			{ "sea_navigator", rare5w, false },
 		})
 		expectAll("emph_rarer_than_fifth_true", {
-			{ "go_kart", rare5w, true },
+			{ "leaf_copycat", rare5w, true },
 		})
-		-- with 6 owned the 5th-rarest decides (go_kart here), not the least rare one
+		-- with 6 owned the 5th-rarest decides (leaf_copycat here), not the least rare one
 		expectAll("emph_uses_fifth_rarest_not_least", {
-			{ "wooden_car", six, false },
+			{ "leaf_medic", six, false },
 		})
 		local reversed = table.clone(rare5w)
 		for i = 1, #reversed // 2 do
 			reversed[i], reversed[#reversed + 1 - i] = reversed[#reversed + 1 - i], reversed[i]
 		end
 		expectAll("emph_owned_order_ignored", {
-			{ "go_kart", reversed, true },
-			{ "rusty_hatchback", reversed, false },
+			{ "leaf_copycat", reversed, true },
+			{ "sea_navigator", reversed, false },
 		})
 		-- Rarity names never matter: relabel cars (restored afterwards) so two cars share a rarity name but only
 		-- the one with the rarer odds passes, and a "Secret"-named common car never passes.
-		local relabel = { rusty_hatchback = "Rare", go_kart = "Common", wooden_car = "Secret" }
+		local relabel = { sea_navigator = "Rare", leaf_copycat = "Common", leaf_medic = "Secret" }
 		local saved = {}
 		local okRel, errRel = pcall(function()
 			for id, rarity in relabel do
-				local spec = CarCatalog.Get(id)
+				local spec = CharacterCatalog.Get(id)
 				saved[id] = spec.Rarity
 				spec.Rarity = rarity
 			end
 			expectAll("emph_rarity_names_ignored", {
-				{ "go_kart", rare5w, true }, -- now labelled Common, still passes on odds
-				{ "rusty_hatchback", rare5w, false }, -- now labelled Rare like the real go_kart, still fails
-				{ "wooden_car", rare5, false }, -- labelled Secret, odds of an Uncommon: fails
+				{ "leaf_copycat", rare5w, true }, -- now labelled Common, still passes on odds
+				{ "sea_navigator", rare5w, false }, -- now labelled Rare like the real leaf_copycat, still fails
+				{ "leaf_medic", rare5, false }, -- labelled Secret, odds of an Uncommon: fails
 			})
 		end)
 		for id, rarity in saved do
-			CarCatalog.Get(id).Rarity = rarity
+			CharacterCatalog.Get(id).Rarity = rarity
 		end
 		if not okRel then
 			check(checks, "emph_rarity_names_ignored", 0, tostring(errRel), false)
@@ -11511,7 +11457,11 @@ function Scenarios.roll_anim()
 		end
 		local rarestId = nil
 		for _, spec in GACHA_CATALOG do
-			if not spec.Event and spec.Chance and (not rarestId or spec.Chance > CarCatalog.Get(rarestId).Chance) then
+			if
+				not spec.Event
+				and spec.Chance
+				and (not rarestId or spec.Chance > CharacterCatalog.Get(rarestId).Chance)
+			then
 				rarestId = spec.Id
 			end
 		end
@@ -11536,15 +11486,15 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- 5 rarer cars owned (5th-rarest wooden_car, Uncommon): Go-Kart (Rare) is emphasized, the catch-all is not
+		-- 5 rarer cars owned (5th-rarest leaf_medic, Uncommon): Go-Kart (Rare) is emphasized, the catch-all is not
 		local r2 = newTestPlayer(cleanup, "CarTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "void_racer", "hover_car", "rocket_car", "street_racer", "wooden_car" } do
+		for _, id in { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
 		local kartDraws = {}
-		local kartChance = CarCatalog.Get("go_kart").Chance -- the least rare Rare (odds rev. 2026-10-27)
+		local kartChance = CharacterCatalog.Get("leaf_copycat").Chance -- the least rare Rare (odds rev. 2026-10-27)
 		for _, spec in GACHA_CATALOG do
 			if not spec.Event and spec.Chance and spec.Chance > kartChance then
 				table.insert(kartDraws, 0.99)
@@ -11552,11 +11502,11 @@ function Scenarios.roll_anim()
 		end
 		table.insert(kartDraws, 0)
 		local okK, idK, newK, _, emphK = pcall(GachaService.Roll, r2, seqRoller(kartDraws))
-		local kart = okK and idK == "go_kart" and newK == true and emphK == true
+		local kart = okK and idK == "leaf_copycat" and newK == true and emphK == true
 		check(checks, "service_roll_rarer_than_fifth_emphasized", kart and 1 or 0, 1, kart)
 		local annK = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "go_kart"
+			and calls[#calls].id == "leaf_copycat"
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
 		check(checks, "announce_rarer_than_fifth", #calls - before, 1, annK)
 		before = #calls
@@ -11870,7 +11820,7 @@ UPG.SERVICE_FNS = {
 	"SetTrackCount", -- design: Main hands in the real chain length (UpgradeService never requires RaceService)
 }
 UPG.RICH = 1e9
-UPG.SIX_CARS = { "rusty_hatchback", "wooden_car", "go_kart", "street_racer", "rocket_car", "hover_car" } -- 6 unique = 2 stat points
+UPG.SIX_CARS = { "sea_navigator", "leaf_medic", "leaf_copycat", "db_tyrant", "leaf_hero", "leaf_crow" } -- 6 unique = 2 stat points
 UPG.UID = 914300000
 UPG.AUTO_ROLL_WATCH = 4 -- s: a rollspeed_5 player's first auto-roll must come at 2 s, the old interval was 3 s
 
@@ -12303,7 +12253,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local _, mm = try("MoneyMulti", GachaService.MoneyMulti, pMoney)
 		check(checks, "upgrades_gacha_money_multi_added", tonumber(mm) or -1, 2.2, near(mm, 2.2)) -- 1 + 0.2 + 1.0
 		local pSpeed = withCars("GachaSpeed")
-		pcall(GachaService.Equip, pSpeed, "go_kart") -- SpeedMulti 2 (catalog)
+		pcall(GachaService.Equip, pSpeed, "leaf_copycat") -- SpeedMulti 2 (catalog)
 		pcall(GachaService.Allocate, pSpeed, "Speed")
 		apply(pSpeed, { Upgrades = { "speed_1" } })
 		local _, sm = try("SpeedMulti", GachaService.SpeedMulti, pSpeed)
@@ -12478,7 +12428,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local v3Bad = 0
 		for i, c in { { 23, 3 }, { 40, 0 }, { 9, 9 }, { 0, 0 } } do
 			local p3 = fake("ApplyV3_" .. i)
-			apply(p3, { Version = 3, Money = 5, Rolls = c[1], Cars = { "go_kart" }, Equipped = "starter" })
+			apply(p3, { Version = 3, Money = 5, Rolls = c[1], Cars = { "leaf_copycat" }, Equipped = "starter" })
 			local _, s3 = svc("Snapshot", p3)
 			if
 				type(s3) ~= "table"
@@ -13937,11 +13887,11 @@ function Scenarios.workshop()
 		local _, idx2 = svc("Assign", p2)
 		check(checks, "workshop_assign_next_lowest", tonumber(idx2) or -1, want2, want2 ~= 0 and idx2 == want2)
 
-		-- 6. Rate and Tick for p2: go_kart (x2), 1 Speed point, 1 Workshop point, Speed I tile, stat WSHOP.STAT
+		-- 6. Rate and Tick for p2: leaf_copycat (x2), 1 Speed point, 1 Workshop point, Speed I tile, stat WSHOP.STAT
 		for _, id in UPG.SIX_CARS do
 			pcall(GachaService.Grant, p2, id)
 		end
-		pcall(GachaService.Equip, p2, "go_kart")
+		pcall(GachaService.Equip, p2, "leaf_copycat")
 		pcall(GachaService.Allocate, p2, "Speed")
 		pcall(GachaService.Allocate, p2, "Workshop")
 		local treeOk = UpgradeService ~= nil
@@ -14195,23 +14145,16 @@ Scenarios.daily_login = Phase2Tests.daily_login
 -- docs/LEADERBOARD_SPEC.md section 4 (its own module: this file is near Luau's 200-local limit)
 Scenarios.leaderboard = require(script.Parent.LeaderboardTests).leaderboard
 Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md section 4
-Scenarios.pass_cars = require(script.Parent.PassCarTests).pass_cars -- docs/GAMEPASS_CARS_SPEC.md section 7
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md
 Scenarios.offline_double = require(script.Parent.OfflineDoubleTests).offline_double -- docs/OFFLINE_DOUBLE_SPEC.md
 Scenarios.environment = require(script.Parent.EnvironmentTests).environment -- docs/BIOME_DRESSING_SPEC.md
-Scenarios.car_expansion = require(script.Parent.ExpansionTests).car_expansion
-Scenarios.car_redesign = require(script.Parent.RedesignTests).car_redesign -- docs/CAR_REDESIGN_SPEC.md section 7
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
+-- docs/CHARACTER_GACHA_SPEC.md "Tests": the 30-character launch cast
+Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase
--- docs/WYVERN_FLIGHT_SPEC.md section 5: Ember Wyvern size exception, rig, flight motion, bounds and race stability
-Scenarios.wyvern_flight = require(script.Parent.WyvernFlightTests).wyvern_flight
--- docs/WYVERN_BREATH_SPEC.md section 3: blue fire breath strength, client-only emitters, palette and textures
-Scenarios.wyvern_breath = require(script.Parent.WyvernBreathTests).wyvern_breath
--- docs/CAR_REDESIGN_SPEC.md section 11: Singularity orb parts, OrbMotion, animated orb welds, bounds, race stability
-Scenarios.singularity_orb = require(script.Parent.SingularityOrbTests).singularity_orb
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the chassis, no mass/controls change, equip preserved

@@ -23,7 +23,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
 local RollAnimConfig = require(Shared.RollAnimConfig)
@@ -1076,7 +1076,7 @@ local function play(roll)
 	for _, b in bodies do
 		tiles[b] = {}
 		for i, id in reelIds do
-			local tile = carTile(CarCatalog.Get(id) or spec, b.Reel, b.Z + 4)
+			local tile = carTile(CharacterCatalog.Get(id) or spec, b.Reel, b.Z + 4)
 			tile.Position = UDim2.fromScale(0.5 + (i - 1) * 0.86, 0.5)
 			tiles[b][i] = tile
 		end
@@ -1263,7 +1263,7 @@ local function drainRollQueue()
 end
 
 rollRemote.OnClientEvent:Connect(function(id, isNew, turboMulti, emphasized, scrapMoney, luck)
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	if not spec then
 		return
 	end
@@ -1316,5 +1316,5 @@ autoButton.Font = Enum.Font.FredokaOne
 autoButton:FindFirstChildOfClass("UIStroke").Thickness = 3
 UiTheme.Apply(gui)
 UiTheme.Apply(showcase)
-fillResult(enlarged, { Spec = CarCatalog.Get("rusty_hatchback"), IsNew = false, Turbo = 1 })
-fillResult(compact, { Spec = CarCatalog.Get("rusty_hatchback"), IsNew = false, Turbo = 1 })
+fillResult(enlarged, { Spec = CharacterCatalog.Get("sea_navigator"), IsNew = false, Turbo = 1 })
+fillResult(compact, { Spec = CharacterCatalog.Get("sea_navigator"), IsNew = false, Turbo = 1 })

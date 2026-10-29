@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 
 local CarAppearance = require(script.Parent.CarAppearance)
-local CarCatalog = require(script.Parent.CarCatalog)
+local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local CarConfig = require(script.Parent.CarConfig)
 local CarFactory = require(script.Parent.CarFactory)
 local NpcConfig = require(script.Parent.NpcConfig)
@@ -164,7 +164,7 @@ function NpcRacer.BuildModel(info)
 	UiTheme.Stroke(title, 2)
 	title.Parent = billboard
 	-- Bottom line "track01_NPC · Car Name": two labels so `Text` stays exactly info.Label, centred as one line.
-	local spec = info.Model and CarCatalog.Get(info.Model)
+	local spec = info.Model and CharacterCatalog.Get(info.Model)
 	local function piece(name, text, font, x, width)
 		local l = Instance.new("TextLabel")
 		l.Name = name

@@ -21,7 +21,7 @@ local MIN_RIBBON_WIDTH = 0.05 -- studs between a trail's two attachments
 local MASS_TOLERANCE = 1e-6
 local TRACK_TOLERANCE = 1e-3 -- studs: attachment world position vs chassis-space position
 local SEAT_TIMEOUT = 10 -- seconds to wait for a run after a (re)start
-local SKIN_ID = "apex_arrow" -- any catalog car: the skin replacement path (CarAppearance.Apply)
+local SKIN_ID = "sea_flame" -- any catalog car: the skin replacement path (CarAppearance.Apply)
 local EFFECT_CLASSES = { Attachment = true, Trail = true, Beam = true, ParticleEmitter = true, Folder = true }
 
 local Tests = {}

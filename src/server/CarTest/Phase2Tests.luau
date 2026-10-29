@@ -500,7 +500,7 @@ function Tests.weather()
 	local data = module(Server, "PlayerData")
 	local gacha = module(Server, "GachaService")
 	local money = module(Server, "MoneyService")
-	local catalog = module(Shared, "CarCatalog")
+	local catalog = module(Shared, "CharacterCatalog")
 	local gachaConfig = module(Shared, "GachaConfig")
 	local api = weather
 		and config
@@ -730,14 +730,16 @@ function Tests.weather()
 					break
 				end
 			end
-			flag("weather_event_only_car_exists_" .. event, eventCar ~= nil)
+			-- docs/CHARACTER_GACHA_SPEC.md "Event-only characters": ds_water (rain), jk_night (night), sea_gold (gold)
+			flag("weather_event_only_character_exists_" .. event, eventCar ~= nil)
 			if eventCar then
-				-- Own model since the car art redesign (owner 2026-10-20, docs/CAR_REDESIGN_SPEC.md section 5).
+				-- Model is nil ("?") until character art exists; when set it is the character's own template.
 				local models = ReplicatedStorage:FindFirstChild("CarModels")
 				local template = models and models:FindFirstChild(eventCar.Id)
 				flag(
 					"weather_variant_own_model_" .. event,
-					eventCar.Model == eventCar.Id and template ~= nil and template:IsA("Model")
+					eventCar.Model == nil
+						or (eventCar.Model == eventCar.Id and template ~= nil and template:IsA("Model"))
 				)
 				for _, active in { "", "rain", "night", "gold", "clear", "aurora" } do
 					-- the state must really be `active`: a refused SetEvent would leave the previous weather on
@@ -1371,9 +1373,9 @@ function Tests.rebirth()
 			p:SetAttribute("DuelWins", 3)
 			p.leaderstats.Money.Value = 5000
 			p.BaseSpeed.Value = 321.5
-			gacha.Grant(p, "wooden_car")
-			gacha.Grant(p, "go_kart")
-			gacha.Equip(p, "go_kart")
+			gacha.Grant(p, "leaf_medic")
+			gacha.Grant(p, "leaf_copycat")
+			gacha.Equip(p, "leaf_copycat")
 			upgrades.Apply(p, { Upgrades = { "money_1", "rollspeed_1" }, BestTrack = 2, TurboCount = 7 })
 			return p
 		end
@@ -1425,15 +1427,16 @@ function Tests.rebirth()
 		local carsBefore = gacha.Snapshot(p)
 		local upgradesBefore = upgrades.Snapshot(p)
 		-- docs/WORKSHOP_SPEC.md 5b (owner 2026-10-22): a rebirth keeps cars, so it keeps copies and the showcase
-		gacha.Grant(p, "go_kart") -- a duplicate: 1 copy, no Money
-		local showcaseSet = type(gacha.SetShowcase) == "function" and gacha.SetShowcase(p, { "go_kart", "wooden_car" })
+		gacha.Grant(p, "leaf_copycat") -- a duplicate: 1 copy, no Money
+		local showcaseSet = type(gacha.SetShowcase) == "function"
+			and gacha.SetShowcase(p, { "leaf_copycat", "leaf_medic" })
 		local accepted, newLevel = service.Rebirth(p)
 		flag("rebirth_accepted_at_required_level", accepted == true and newLevel == 1)
 		flag("rebirth_level_raised", p:GetAttribute("RebirthLevel") == 1, p:GetAttribute("RebirthLevel"), 1)
 		flag("rebirth_resets_money", p.leaderstats.Money.Value == 0, p.leaderstats.Money.Value, 0)
 		flag("rebirth_resets_speed", p.BaseSpeed.Value == 0, p.BaseSpeed.Value, 0)
 		task.wait() -- the shown Speed follows BaseSpeed on its Changed signal (may be deferred)
-		-- Owner 2026-10-21: leaderstats.Speed shows base x ShownSpeedMulti, so it is 0 too (go_kart stays equipped)
+		-- Owner 2026-10-21: leaderstats.Speed shows base x ShownSpeedMulti, so it is 0 too (leaf_copycat stays equipped)
 		flag("rebirth_resets_shown_speed", p.leaderstats.Speed.Value == 0, p.leaderstats.Speed.Value, 0)
 		-- design doc "Rebirth system" (owner 2026-10-27 rev. 4): rebirth 1 = total x1.5 (no points, aura or trail here)
 		flag(
@@ -1447,17 +1450,17 @@ function Tests.rebirth()
 		flag(
 			"rebirth_keeps_cars",
 			#carsAfter.Cars == #carsBefore.Cars
-				and table.find(carsAfter.Cars, "wooden_car") ~= nil
-				and table.find(carsAfter.Cars, "go_kart") ~= nil
-				and carsAfter.Equipped == "go_kart"
-				and p:GetAttribute("EquippedCar") == "go_kart"
+				and table.find(carsAfter.Cars, "leaf_medic") ~= nil
+				and table.find(carsAfter.Cars, "leaf_copycat") ~= nil
+				and carsAfter.Equipped == "leaf_copycat"
+				and p:GetAttribute("EquippedCar") == "leaf_copycat"
 		)
 		flag(
 			"rebirth_keeps_copies_and_showcase",
 			showcaseSet == true
 				and type(gacha.Copies) == "function"
-				and gacha.Copies(p, "go_kart") == 1
-				and p:GetAttribute("Showcase") == "go_kart,wooden_car"
+				and gacha.Copies(p, "leaf_copycat") == 1
+				and p:GetAttribute("Showcase") == "leaf_copycat,leaf_medic"
 		)
 		local upgradesAfter = upgrades.Snapshot(p)
 		flag(
@@ -1556,7 +1559,7 @@ function Tests.rebirth()
 			table.insert(players, q)
 			q:SetAttribute("RebirthLevel", 0) -- not applied yet, as in PlayerData.Load
 			local save = {
-				Cars = { "go_kart", "rusty_hatchback", "wooden_car" },
+				Cars = { "leaf_copycat", "sea_navigator", "leaf_medic" },
 				StatAlloc = { Workshop = workshopAlloc, Speed = 1 },
 				RebirthLevel = 2,
 			}

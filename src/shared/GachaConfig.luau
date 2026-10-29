@@ -2,7 +2,7 @@
 -- Gacha, index and stat-point rules (placeholder numbers from the design doc). Pure functions, so the
 -- server and the tests share them. The server decides every roll; clients only display.
 
-local CarCatalog = require(script.Parent.CarCatalog)
+local CharacterCatalog = require(script.Parent.CharacterCatalog)
 
 local GachaConfig = {}
 
@@ -78,7 +78,7 @@ function GachaConfig.Roll(rng, luck, event)
 		luck = 1
 	end
 	local catchAll = nil
-	for _, spec in CarCatalog.Rollable() do
+	for _, spec in CharacterCatalog.Rollable() do
 		if spec.Event and spec.Event ~= event then
 			continue
 		elseif spec.Chance == nil then
@@ -107,7 +107,7 @@ end
 GachaConfig.EMPHASIS_RANK = 5
 
 function GachaConfig.IsEmphasized(id, ownedIds)
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	if not spec or not spec.Rollable then
 		return false
 	end
@@ -117,7 +117,7 @@ function GachaConfig.IsEmphasized(id, ownedIds)
 		if owned == id then
 			return false
 		end
-		local ownedSpec = CarCatalog.Get(owned)
+		local ownedSpec = CharacterCatalog.Get(owned)
 		if ownedSpec and ownedSpec.Rollable and not seen[owned] then
 			seen[owned] = true
 			table.insert(chances, ownedSpec.Chance or 0)

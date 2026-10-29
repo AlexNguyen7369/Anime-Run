@@ -12,7 +12,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local MarketConfig = require(Shared.MarketConfig)
 local RebirthConfig = require(Shared.RebirthConfig)
@@ -25,7 +25,7 @@ local QuestService = require(script.Parent.QuestService)
 GachaService.REMOTE_COOLDOWN = 0.15 -- seconds between accepted EquipCar / AllocateStat requests per player
 
 local MAX_COUNT = 1e9
-local STARTER = CarCatalog.STARTER_ID
+local STARTER = CharacterCatalog.STARTER_ID
 
 local rng = Random.new()
 local watched = setmetatable({}, { __mode = "k" }) -- players whose ShownSpeedMulti is kept current
@@ -95,7 +95,6 @@ function GachaService.Setup(player)
 				or name == "EquippedAura"
 				or name == "EquippedTrail"
 				or name == "RebirthLevel"
-				or string.sub(name, 1, 5) == "Pass_"
 				or string.sub(name, 1, 6) == "Alloc_"
 			then
 				refresh()
@@ -132,7 +131,7 @@ function GachaService.UniqueCount(player)
 	end
 	local n = 0
 	for _, entry in data:GetChildren() do
-		local spec = CarCatalog.Get(entry.Name)
+		local spec = CharacterCatalog.Get(entry.Name)
 		if spec and spec.Rollable then
 			n += 1
 		end
@@ -172,10 +171,6 @@ local function owns(player, id)
 	if id == STARTER then
 		return true
 	end
-	local spec = CarCatalog.Get(id)
-	if spec and spec.GamepassId then
-		return player:GetAttribute("Pass_" .. id) == true -- set by PassCarService from Roblox, never saved
-	end
 	local data = player:FindFirstChild("GachaData")
 	return data ~= nil and data:FindFirstChild(id) ~= nil
 end
@@ -186,7 +181,7 @@ function GachaService.Grant(player, id)
 	if type(id) ~= "string" then
 		return nil
 	end
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	if not spec or not spec.Rollable then
 		return nil
 	end
@@ -265,7 +260,7 @@ end
 
 -- Equips the starter or an owned car. Returns true if it is now equipped.
 function GachaService.Equip(player, id)
-	if type(id) ~= "string" or not CarCatalog.Get(id) or not owns(player, id) then
+	if type(id) ~= "string" or not CharacterCatalog.Get(id) or not owns(player, id) then
 		return false
 	end
 	GachaService.Setup(player)
@@ -290,7 +285,7 @@ end
 -- Cruise speed and Speed-gain are separate progression paths. The equipped car never enters
 -- the Speed-gain multiplier; the equipped aura and trail do (owner 2026-10-27).
 function GachaService.CarSpeedMulti(player)
-	local spec = CarCatalog.Get(player:GetAttribute("EquippedCar"))
+	local spec = CharacterCatalog.Get(player:GetAttribute("EquippedCar"))
 	local carMulti = spec and owns(player, spec.Id) and spec.SpeedMulti or 1
 	return carMulti
 end
@@ -376,7 +371,7 @@ end
 function GachaService.ShowcaseMulti(player)
 	local slots = {}
 	for _, id in GachaService.ShowcaseList(player) do
-		table.insert(slots, { Spec = CarCatalog.Get(id), Copies = GachaService.Copies(player, id) })
+		table.insert(slots, { Spec = CharacterCatalog.Get(id), Copies = GachaService.Copies(player, id) })
 	end
 	return GachaConfig.ShowcaseMulti(slots)
 end
@@ -386,13 +381,9 @@ function GachaService.RefreshShowcase(player)
 end
 
 local function showcaseable(player, id)
-	local spec = type(id) == "string" and CarCatalog.Get(id) or nil
+	local spec = type(id) == "string" and CharacterCatalog.Get(id) or nil
 	local data = player:FindFirstChild("GachaData")
-	return spec ~= nil
-		and spec.Rollable == true
-		and not spec.GamepassId
-		and data ~= nil
-		and data:FindFirstChild(id) ~= nil
+	return spec ~= nil and spec.Rollable == true and data ~= nil and data:FindFirstChild(id) ~= nil
 end
 
 -- Sets the showcased cars: an array of at most SHOWCASE_SLOTS distinct owned rollable car ids. Anything else changes
@@ -469,10 +460,6 @@ function GachaService.Apply(player, saved)
 			elseif value == true or (type(value) == "number" and value == value and value > 0) then
 				id = key
 			end
-			local spec = type(id) == "string" and CarCatalog.Get(id)
-			if spec and spec.GamepassId then
-				id = nil -- a gamepass car is owned through Roblox, never through the save
-			end
 			if type(id) == "string" and id ~= "" and id ~= STARTER and #id <= 64 and not data:FindFirstChild(id) then
 				addEntry(data, id)
 			end
@@ -520,9 +507,8 @@ function GachaService.Apply(player, saved)
 	end
 
 	local equipped = saved.Equipped
-	local spec = type(equipped) == "string" and CarCatalog.Get(equipped)
-	-- A saved gamepass car stays until PassCarService has asked Roblox; it resets the car when the pass is not owned
-	if not spec or not (spec.GamepassId or owns(player, equipped)) then
+	local spec = type(equipped) == "string" and CharacterCatalog.Get(equipped)
+	if not spec or not owns(player, equipped) then
 		equipped = STARTER
 	end
 	player:SetAttribute("EquippedCar", equipped)
@@ -541,7 +527,7 @@ end
 -- Seconds to wait after a roll before the next one: the player's roll interval, longer when that roll's animation is
 -- longer (RollAnimConfig.ExtraPause), so the next roll never covers one still playing.
 function GachaService.WaitAfter(id, emphasized, player)
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	return GachaService.RollInterval(player) + RollAnimConfig.ExtraPause(spec and spec.Rarity, emphasized == true)
 end
 

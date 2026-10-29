@@ -10,7 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CarAppearance = require(Shared.CarAppearance)
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local Workshop = require(Shared.Workshop)
 local WorkshopBuilder = require(Shared.WorkshopBuilder)
 local WorkshopConfig = require(Shared.WorkshopConfig)
@@ -129,7 +129,7 @@ local function placeShowcase(player, workshop)
 			for _, child in pedestal:GetChildren() do
 				child:Destroy()
 			end
-			local spec = ids[i] and CarCatalog.Get(ids[i])
+			local spec = ids[i] and CharacterCatalog.Get(ids[i])
 			local car = spec
 				and CarAppearance.Display(
 					spec,

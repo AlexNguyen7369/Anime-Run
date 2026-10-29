@@ -10,7 +10,7 @@ local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local RaceConfig = require(Shared.RaceConfig)
 local WeatherConfig = require(Shared.WeatherConfig)
 local VfxArea = require(Shared.VfxArea)
@@ -374,13 +374,13 @@ AdminService.Commands = {
 			if id == "all" then
 				return id
 			end
-			local spec = CarCatalog.Get(id)
+			local spec = CharacterCatalog.Get(id)
 			return spec and spec.Rollable and id or nil
 		end,
 		Apply = function(p, id)
 			GachaService.Setup(p)
 			if id == "all" then
-				for _, spec in CarCatalog.Rollable() do
+				for _, spec in CharacterCatalog.Rollable() do
 					GachaService.Grant(p, spec.Id)
 				end
 				return true, "gave every car"
@@ -396,7 +396,7 @@ AdminService.Commands = {
 		Max = 1,
 		Check = function(args)
 			local id = args[1]:lower()
-			return CarCatalog.Get(id) and id or nil
+			return CharacterCatalog.Get(id) and id or nil
 		end,
 		Apply = function(p, id)
 			if GachaService.Equip(p, id) then

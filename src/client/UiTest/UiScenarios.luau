@@ -28,7 +28,7 @@ local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
-local CarCatalog = require(Shared:WaitForChild("CarCatalog"))
+local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local NpcConfig = require(Shared:WaitForChild("NpcConfig"))
 local WeatherConfig = require(Shared:WaitForChild("WeatherConfig"))
@@ -36,7 +36,6 @@ local QuestConfig = require(Shared:WaitForChild("QuestConfig"))
 local TrackBuilder = require(Shared:WaitForChild("TrackBuilder"))
 local TrackRegistry = require(Shared:WaitForChild("TrackRegistry"))
 local LeaderboardConfig = require(Shared:WaitForChild("LeaderboardConfig"))
-local PassCarConfig = require(Shared:WaitForChild("PassCarConfig"))
 local UpgradeTree = require(Shared:WaitForChild("UpgradeTree"))
 local RaceProgressMap = require(Shared:WaitForChild("RaceProgressMap"))
 
@@ -283,7 +282,7 @@ local function splitPath(path)
 	return parts
 end
 
--- "Panel/Grid/*/Equip" matches "Panel/Grid/go_kart/Equip"; "{token}" segments in click paths count as "*".
+-- "Panel/Grid/*/Equip" matches "Panel/Grid/leaf_copycat/Equip"; "{token}" segments in click paths count as "*".
 -- "**" matches any number of segments (zero or more).
 local function matchFrom(a, i, b, j)
 	if i > #a then
@@ -1774,9 +1773,9 @@ local function cardProblems(card, ev, skipGeometry)
 	if not ev then
 		return { "no RollResult received yet" }
 	end
-	local spec = CarCatalog.Get(ev.id)
+	local spec = CharacterCatalog.Get(ev.id)
 	if not spec then
-		return { "roll id " .. tostring(ev.id) .. " not in CarCatalog" }
+		return { "roll id " .. tostring(ev.id) .. " not in CharacterCatalog" }
 	end
 	local function part(name)
 		return card:FindFirstChild(name, true)
@@ -2005,7 +2004,7 @@ end
 local SETTLED = { Hold = true, Idle = true }
 
 local function rarityOf(id)
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	return spec and spec.Rarity or "Common"
 end
 
@@ -2114,9 +2113,9 @@ local function compactProblems(toast, ev)
 	if not toast then
 		return { "no RollToast/Toast" }
 	end
-	local spec = ev and CarCatalog.Get(ev.id)
+	local spec = ev and CharacterCatalog.Get(ev.id)
 	if not spec then
-		return { "roll id " .. tostring(ev and ev.id) .. " not in CarCatalog" }
+		return { "roll id " .. tostring(ev and ev.id) .. " not in CharacterCatalog" }
 	end
 	local bad = {}
 	local tr = realRect(toast)
@@ -2390,7 +2389,7 @@ function UiScenarios.SampleRoll(ev)
 					}
 				elseif phase == "Hold" and not rec.hold[key] then
 					holdAt[key] = now
-					local spec = CarCatalog.Get(ev.id)
+					local spec = CharacterCatalog.Get(ev.id)
 					local toast = findPath("RollToast/Toast")
 					local reel = partOf(card, "Reel")
 					local grad = glowGradient(card)
@@ -2406,7 +2405,7 @@ function UiScenarios.SampleRoll(ev)
 						-- The enlarged card enters Hold still popped (LAND_POP settles early in Hold): its content-inside
 						-- -the-card geometry is added once the body is back at 1x (geomPending below)
 						problems = compact and compactProblems(card, ev)
-							or (spec and cardProblems(card, ev, true) or { "roll id not in CarCatalog" }),
+							or (spec and cardProblems(card, ev, true) or { "roll id not in CharacterCatalog" }),
 						geomPending = not compact and spec ~= nil,
 						styles = (not compact and spec) and styleProblems(card, spec) or {},
 						effects = (not compact and spec) and effectProblems(card, spec) or {},
@@ -2916,7 +2915,7 @@ function S.ui_inventory(res)
 		for i, spec in UiSpec.Guis[guiName].Buttons or {} do
 			local want = 1
 			if spec.Count == "catalog" then
-				want = #CarCatalog.All()
+				want = #CharacterCatalog.All()
 			elseif spec.Count == "stats" then
 				want = #GachaConfig.STATS
 			elseif spec.Count == "upgrades" then
@@ -3895,7 +3894,7 @@ function S.ui_buttons(res)
 	-- Equip buttons: hidden on undiscovered tiles, "Equip"+enabled on owned tiles, "Equipped"+disabled on the equipped one
 	local equipped = attr("EquippedCar")
 	local wrong = {}
-	for _, spec in CarCatalog.All() do
+	for _, spec in CharacterCatalog.All() do
 		local b = findPath("RacerIndex/Panel/Face/GridHost/Gallery/" .. spec.Id .. "/Equip")
 		local label = b and b:FindFirstChild("Label")
 		if not b then
@@ -4312,7 +4311,7 @@ function S.ui_index(res)
 		return
 	end
 	local restore = setPanels({ "RacerIndex/Panel" })
-	local all = CarCatalog.All()
+	local all = CharacterCatalog.All()
 	local tiles, missing = {}, {}
 	for _, spec in all do
 		local tile = findPath("RacerIndex/Panel/Face/GridHost/Gallery/" .. spec.Id)
@@ -4327,7 +4326,7 @@ function S.ui_index(res)
 	local extra = {}
 	if grid then
 		for _, c in grid:GetChildren() do
-			if c:IsA("GuiObject") and not CarCatalog.Get(c.Name) then
+			if c:IsA("GuiObject") and not CharacterCatalog.Get(c.Name) then
 				table.insert(extra, c.Name)
 			end
 		end
@@ -4554,7 +4553,7 @@ end
 
 local function bestOwnedCar()
 	local best = nil
-	for _, car in CarCatalog.All() do
+	for _, car in CharacterCatalog.All() do
 		if owned(car.Id) and (best == nil or (car.Chance or 0) > (best.Chance or 0)) then
 			best = car
 		end
@@ -4836,7 +4835,7 @@ function S.ui_toast(res)
 		end
 		local mine = events.rolls[#events.rolls]
 		local n = #events.rolls
-		local spec = CarCatalog.Get(mine.id)
+		local spec = CharacterCatalog.Get(mine.id)
 		local rarity = spec and spec.Rarity or "Common"
 		task.wait(math.max(0, UiSpec.Waits.ToastShown - (os.clock() - mine.t)))
 		renderFrame()
@@ -4886,8 +4885,8 @@ function S.ui_toast(res)
 		restore()
 		return
 	end
-	local spec = CarCatalog.Get(ev.id)
-	check(res, "roll_is_catalog_car", ev.id, "CarCatalog id", spec ~= nil)
+	local spec = CharacterCatalog.Get(ev.id)
+	check(res, "roll_is_catalog_car", ev.id, "CharacterCatalog id", spec ~= nil)
 	if not spec then
 		restore()
 		return
@@ -5161,7 +5160,7 @@ function S.ui_roll_anim(res)
 		return
 	end
 	local ev = rec.ev
-	local spec = CarCatalog.Get(ev.id)
+	local spec = CharacterCatalog.Get(ev.id)
 	phaseChecks(res, rec, "Compact", "")
 	local hold = rec.hold.Compact
 	if not hold then
@@ -5188,7 +5187,7 @@ function S.ui_roll_anim(res)
 	check(res, "reel_ids_end_with_result", tostring(ids[#ids]), ev.id, ids[#ids] == ev.id)
 	local notRollable = {}
 	for _, id in ids do
-		local s = CarCatalog.Get(id)
+		local s = CharacterCatalog.Get(id)
 		if not (s and s.Rollable) then
 			table.insert(notRollable, id)
 		end
@@ -5627,7 +5626,7 @@ function S.ui_loser(res)
 	loserRecapChecks(res, rec)
 end
 
--- ui_billboards on foot at the hub: the pedestal billboards (UiSpec.Billboards.BestRollStats / PassCarStats).
+-- ui_billboards on foot at the hub: the pedestal billboards (UiSpec.Billboards.BestRollStats).
 local function billboardsAtHub(res)
 	local spawnArea = Workspace:WaitForChild("SpawnArea", UiSpec.Waits.GuiAppear)
 	-- A GuiObject's rectangle lies inside its parent's, judged from UDim2 alone (a billboard's pixel size depends on
@@ -5714,32 +5713,6 @@ local function billboardsAtHub(res)
 		"Pedestal.CarMount",
 		mount ~= nil and bestStats ~= nil and bestStats:IsA("BillboardGui") and bestStats.Adornee == mount
 	)
-
-	local passCars = spawnArea and spawnArea:FindFirstChild("PassCars")
-	for _, entry in PassCarConfig.Pedestals do
-		local spec = CarCatalog.Get(entry.CarId)
-		local carName = spec and spec.Name or entry.CarId
-		local model = passCars and passCars:FindFirstChild("Pass_" .. entry.CarId)
-		streamNear(model)
-		local pedestal = waitIn(model, "Pedestal")
-		local prefix = "pass_" .. entry.CarId
-		pedestalStats(
-			prefix .. "_stats",
-			waitIn(pedestal, "Stats"),
-			PassCarConfig.TEXT_DISTANCE,
-			{ Title = carName, Tag = "GAMEPASS" }
-		)
-		local prompt = waitIn(pedestal, "Buy")
-		local isPrompt = prompt ~= nil and prompt:IsA("ProximityPrompt")
-		local wantAction = (spec and (spec.GamepassId or 0) > 0) and "Unlock" or "Coming soon"
-		check(
-			res,
-			prefix .. "_prompt_text",
-			isPrompt and (prompt.ObjectText .. " / " .. prompt.ActionText) or "no Buy ProximityPrompt",
-			carName .. " / " .. wantAction,
-			isPrompt and prompt.ObjectText == carName and prompt.ActionText == wantAction
-		)
-	end
 end
 
 function S.ui_billboards(res)
@@ -6185,7 +6158,7 @@ function S.ui_roll_emphasized(res)
 		return
 	end
 	local ev = rec.ev
-	local spec = CarCatalog.Get(ev.id)
+	local spec = CharacterCatalog.Get(ev.id)
 	local deadline = os.clock() + durationFor(rarityOf(ev.id), true) + 5
 	while not rec.done and os.clock() < deadline do
 		task.wait(0.1)
@@ -6355,7 +6328,7 @@ local function rollOddsJudge(res)
 		return
 	end
 	local want = cfg.Fixtures[fx.fixture]
-	local spec = CarCatalog.Get(fx.id)
+	local spec = CharacterCatalog.Get(fx.id)
 	check(
 		res,
 		"roll_odds_fixture_car",
@@ -7088,7 +7061,7 @@ function UiScenarios.RunClick(id)
 	local path = spec.Path
 	local equipped = attr("EquippedCar")
 	if string.find(path, "{discovered_unequipped}", 1, true) then
-		for _, car in CarCatalog.All() do
+		for _, car in CharacterCatalog.All() do
 			if not tileId and owned(car.Id) and car.Id ~= equipped then
 				tileId = car.Id
 			end
@@ -7099,7 +7072,7 @@ function UiScenarios.RunClick(id)
 		end
 		path = string.gsub(path, "{discovered_unequipped}", tileId)
 	elseif string.find(path, "{equipped}", 1, true) then
-		if not (CarCatalog.Get(equipped) and CarCatalog.Get(equipped).Rollable) then
+		if not (CharacterCatalog.Get(equipped) and CharacterCatalog.Get(equipped).Rollable) then
 			stateMissing(res, "target_tile", "index_states", "equipped car is " .. tostring(equipped))
 			return res
 		end

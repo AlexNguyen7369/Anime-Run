@@ -256,7 +256,7 @@ function Tests.leaderboard()
 	local config = module(Shared, "LeaderboardConfig")
 	local service = module(Server, "LeaderboardService")
 	local hud = module(Shared, "HudFormat")
-	local catalog = module(Shared, "CarCatalog")
+	local catalog = module(Shared, "CharacterCatalog")
 	local workshopConfig = module(Shared, "WorkshopConfig")
 	local registry = module(Shared, "TrackRegistry")
 	local data = module(Server, "PlayerData")
@@ -571,12 +571,12 @@ function Tests.leaderboard()
 		task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 		p:SetAttribute("MoneyEarned", 9000.7)
 		p:SetAttribute("Rolls", 40)
-		gacha.Grant(p, "wooden_car")
-		gacha.Grant(p, "go_kart")
+		gacha.Grant(p, "leaf_medic")
+		gacha.Grant(p, "leaf_copycat")
 		local unknown = Instance.new("StringValue") -- saves keep unknown ids; only catalog cars count
 		unknown.Name = "car_test_not_in_catalog"
 		unknown.Parent = p.GachaData
-		local rarest = math.max(catalog.Get("wooden_car").Chance, catalog.Get("go_kart").Chance)
+		local rarest = math.max(catalog.Get("leaf_medic").Chance, catalog.Get("leaf_copycat").Chance)
 		local scores = service.Scores(p)
 		local isTable = type(scores) == "table"
 		local S = isTable and scores or {}
@@ -652,10 +652,10 @@ function Tests.leaderboard()
 		-- Speed; the car's cruise multi never changes it
 		local shownP = player(7, true)
 		shownP.BaseSpeed.Value = 100
-		gacha.Grant(shownP, "go_kart")
-		gacha.Equip(shownP, "go_kart")
+		gacha.Grant(shownP, "leaf_copycat")
+		gacha.Equip(shownP, "leaf_copycat")
 		task.wait()
-		local kartMulti = catalog.Get("go_kart").SpeedMulti
+		local kartMulti = catalog.Get("leaf_copycat").SpeedMulti
 		local shownScores = service.Scores(shownP)
 		local shownScore = type(shownScores) == "table" and shownScores.Speed
 		flag(
@@ -672,7 +672,7 @@ function Tests.leaderboard()
 			task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 			q:SetAttribute("MoneyEarned", 77)
 			q:SetAttribute("Rolls", 77)
-			gacha.Grant(q, "wooden_car")
+			gacha.Grant(q, "leaf_medic")
 			return q, qid
 		end
 		local failed, failedId = loaded(3)

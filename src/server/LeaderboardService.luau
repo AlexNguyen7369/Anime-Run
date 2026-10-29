@@ -11,7 +11,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CarAppearance = require(Shared.CarAppearance)
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local Config = require(Shared.LeaderboardConfig)
 local HudFormat = require(Shared.HudFormat)
 local PlayerData = require(script.Parent.PlayerData)
@@ -74,7 +74,7 @@ function LeaderboardService.Scores(player)
 	local rarest = 0
 	local owned = player:FindFirstChild("GachaData")
 	for _, car in owned and owned:GetChildren() or {} do
-		local spec = CarCatalog.Get(car.Name)
+		local spec = CharacterCatalog.Get(car.Name)
 		if spec and type(spec.Chance) == "number" then
 			rarest = math.max(rarest, spec.Chance)
 		end
@@ -141,7 +141,7 @@ end
 
 -- The catalog car a RarestCar score stands for, or nil.
 local function carByChance(score)
-	for _, spec in CarCatalog.All() do
+	for _, spec in CharacterCatalog.All() do
 		if spec.Chance == score then
 			return spec
 		end

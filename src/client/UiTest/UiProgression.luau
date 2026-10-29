@@ -10,7 +10,7 @@ local Tracks = require(Shared.TrackRegistry)
 local WorkshopConfig = require(Shared.WorkshopConfig)
 local Format = require(Shared.HudFormat)
 local WeatherConfig = require(Shared.WeatherConfig)
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local MonetizationConfig = require(Shared.MonetizationConfig)
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -351,7 +351,7 @@ function Progression.Build(h)
 		return type(n) == "number" and n or 0
 	end
 	local function bonusOf(id)
-		local spec = CarCatalog.Get(id)
+		local spec = CharacterCatalog.Get(id)
 		return spec and GachaConfig.SlotBonus(spec, copiesOf(id)) or -math.huge
 	end
 	-- Owned rollable cars { Id, Spec, Bonus }, highest slot bonus first (ties by id)
@@ -359,7 +359,7 @@ function Progression.Build(h)
 		local list = {}
 		local data = h.player:FindFirstChild("GachaData")
 		for _, entry in data and data:GetChildren() or {} do
-			local spec = CarCatalog.Get(entry.Name)
+			local spec = CharacterCatalog.Get(entry.Name)
 			if spec and spec.Rollable then
 				table.insert(list, { Id = entry.Name, Spec = spec, Bonus = bonusOf(entry.Name) })
 			end
@@ -479,7 +479,7 @@ function Progression.Build(h)
 		h.check(res, "showcase_multi_replicated", multi or "missing", "number", type(multi) == "number")
 		local slots = {}
 		for _, id in ids do
-			local spec = CarCatalog.Get(id)
+			local spec = CharacterCatalog.Get(id)
 			if spec then
 				table.insert(slots, { Spec = spec, Copies = copiesOf(id) })
 			end
@@ -507,7 +507,7 @@ function Progression.Build(h)
 			local tag = "showcase_slot" .. i
 			if present(res, tag .. "_present", slot, "Frame") then
 				local nameLabel, clear = slot:FindFirstChild("Name"), slot:FindFirstChild("Clear")
-				local spec = ids[i] and CarCatalog.Get(ids[i])
+				local spec = ids[i] and CharacterCatalog.Get(ids[i])
 				local wantName = spec and spec.Name or SC.EmptyText
 				if present(res, tag .. "_name_present", nameLabel, "TextLabel") then
 					expect(res, tag .. "_name", nameLabel.Text, wantName)
@@ -526,7 +526,7 @@ function Progression.Build(h)
 		for _, row in list:GetChildren() do
 			if row:IsA("GuiObject") and string.sub(row.Name, 1, #SC.RowPrefix) == SC.RowPrefix then
 				local id = string.sub(row.Name, #SC.RowPrefix + 1)
-				local spec = CarCatalog.Get(id)
+				local spec = CharacterCatalog.Get(id)
 				local data = h.player:FindFirstChild("GachaData")
 				if not (spec and spec.Rollable and data and data:FindFirstChild(id)) then
 					table.insert(extra, row.Name)
@@ -1226,7 +1226,7 @@ function Progression.Build(h)
 			local restore = h.setPanels({ SC.Panel })
 			local ids = shownIds(h.player:GetAttribute("Showcase"))
 			local slot1 = h.find(SC.Root .. "/Slot1/Name")
-			local want = ids[1] and CarCatalog.Get(ids[1]) and CarCatalog.Get(ids[1]).Name or SC.EmptyText
+			local want = ids[1] and CharacterCatalog.Get(ids[1]) and CharacterCatalog.Get(ids[1]).Name or SC.EmptyText
 			local deadline = os.clock() + SC.AnswerWait
 			while slot1 and slot1.Text ~= want and os.clock() < deadline do
 				h.frames(1)

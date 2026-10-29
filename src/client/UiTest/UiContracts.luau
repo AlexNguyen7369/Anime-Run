@@ -3,7 +3,7 @@
 -- The main tester runs these at desktop AND real phone sizes; simulated geometry is additional evidence.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Catalog = require(Shared.CarCatalog)
+local Catalog = require(Shared.CharacterCatalog)
 local TrackRegistry = require(Shared.TrackRegistry)
 local TrackBuilder = require(Shared.TrackBuilder)
 local Format = require(Shared.HudFormat)
@@ -257,79 +257,61 @@ function Contracts.Build(h)
 		end
 	end
 
+	-- docs/CHARACTER_GACHA_SPEC.md "Launch cast": every catalog character has its Index tile with its public odds and
+	-- Order; Count / Rarities are for the 30 regular characters, the event-only ones (Event set) are checked apart.
 	function scenarios.ui_catalog_manifest(res)
-		local module = Shared:FindFirstChild(Spec.Expansion.Module)
-		check(res, "expansion_manifest_present", module ~= nil and module:IsA("ModuleScript"), true)
-		if not module then
-			return
-		end
-		local ok, manifest = pcall(require, module)
-		check(
-			res,
-			"expansion_manifest_readable",
-			ok and type(manifest) == "table" and type(manifest.Cars) == "table",
-			true
-		)
-		if not ok or type(manifest) ~= "table" or type(manifest.Cars) ~= "table" then
-			return
-		end
+		local cast = Catalog.All()
 		local restore = h.setPanels({ "RacerIndex/Panel" })
 		h.frames(2)
 		local root = "RacerIndex/Panel/Face/GridHost/Gallery/"
-		local ids, rarities, families, missing, mismatches = {}, {}, {}, {}, {}
-		check(res, "expansion_manifest_count", #manifest.Cars, Spec.Expansion.Count)
-		for _, entry in manifest.Cars do
-			check(res, "expansion_unique_" .. entry.Id, ids[entry.Id] == nil, true)
+		local ids, rarities, missing, regular, events = {}, {}, {}, 0, {}
+		for _, entry in cast do
+			check(res, "cast_unique_" .. entry.Id, ids[entry.Id] == nil, true)
 			ids[entry.Id] = true
-			rarities[entry.Rarity] = (rarities[entry.Rarity] or 0) + 1
-			families[entry.Family] = (families[entry.Family] or 0) + 1
-			local car = Catalog.Get(entry.Id)
+			if entry.Event == nil then
+				regular += 1
+				rarities[entry.Rarity] = (rarities[entry.Rarity] or 0) + 1
+			else
+				events[entry.Id] = entry.Event
+			end
 			local tile = h.find(root .. entry.Id)
-			if not (car and tile) then
+			if not tile then
 				table.insert(missing, entry.Id)
 			end
-			if car then
-				for _, field in Spec.Expansion.Fields do
-					if car[field] ~= entry[field] then
-						table.insert(mismatches, entry.Id .. "." .. field)
-					end
-				end
-				check(
-					res,
-					"expansion_base_rollable_" .. entry.Id,
-					car.Rollable == true and car.GamepassId == nil and car.Weather == nil,
-					true
-				)
-			end
+			check(
+				res,
+				"cast_base_rollable_" .. entry.Id,
+				entry.Rollable == true
+					and entry.GamepassId == nil
+					and (entry.Event == nil or Spec.CharacterCast.Events[entry.Id] == entry.Event),
+				true
+			)
 			if tile then
 				local odds = tile:FindFirstChild("Odds")
-				-- Public rarity stays visible even for undiscovered cars, and never changes with luck.
-				check(res, "expansion_odds_" .. entry.Id, text(odds), Format.Odds(entry.Chance))
-				check(res, "expansion_tile_order_" .. entry.Id, tile.LayoutOrder, entry.Order)
+				-- Public rarity stays visible even for undiscovered characters, and never changes with luck.
+				check(res, "cast_odds_" .. entry.Id, text(odds), Format.Odds(entry.Chance))
+				check(res, "cast_tile_order_" .. entry.Id, tile.LayoutOrder, entry.Order)
 			end
 		end
-		for rarity, amount in Spec.Expansion.Rarities do
-			check(res, "expansion_rarity_" .. rarity, rarities[rarity] or 0, amount)
+		check(res, "cast_count", regular, Spec.CharacterCast.Count)
+		for id, event in Spec.CharacterCast.Events do
+			check(res, "cast_event_character_" .. id, events[id], event)
+			events[id] = nil
+		end
+		check(res, "cast_no_other_event_characters", next(events) == nil, true)
+		for rarity, amount in Spec.CharacterCast.Rarities do
+			check(res, "cast_rarity_" .. rarity, rarities[rarity] or 0, amount)
 			rarities[rarity] = nil
 		end
-		check(res, "expansion_no_other_rarities", next(rarities) == nil, true)
-		for _, family in Spec.Expansion.Families do
-			check(res, "expansion_family_" .. family, families[family] or 0, Spec.Expansion.PerFamily)
-			families[family] = nil
-		end
-		check(res, "expansion_no_other_families", next(families) == nil, true)
-		h.checkList(res, "expansion_catalog_and_tiles_present", missing)
-		h.checkList(res, "expansion_catalog_matches_manifest", mismatches)
+		check(res, "cast_no_other_rarities", next(rarities) == nil, true)
+		h.checkList(res, "cast_tiles_present", missing)
 		local catchalls = {}
 		for _, car in Catalog.All() do
 			if car.Chance == nil then
 				table.insert(catchalls, car.Id)
 			end
 		end
-		check(res, "index_single_original_catchall", table.concat(catchalls, ","), "rusty_hatchback")
-		for _, car in Catalog.Passes() do
-			check(res, "index_excludes_pass_" .. car.Id, h.find(root .. car.Id) == nil, true)
-		end
+		check(res, "index_single_original_catchall", table.concat(catchalls, ","), "sea_navigator")
 		check(res, "index_excludes_starter", h.find(root .. Catalog.STARTER_ID) == nil, true)
 		restore()
 	end
@@ -437,9 +419,6 @@ function Contracts.Build(h)
 				end
 			end
 			check(res, prefix .. "_one_control", count, 1)
-		end
-		for _, car in Catalog.Passes() do
-			gift("Featured", car.Id, false, Spec.Gifts.Reasons.Account)
 		end
 		for _, pass in Monetization.Gamepasses do
 			gift("Gamepasses", pass.Id, false, Spec.Gifts.Reasons.Account)

@@ -13,8 +13,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RaceStartMeshAssets = require(script.Parent.RaceStartMeshAssets)
 local MarketplaceBuilder = require(script.Parent.MarketplaceBuilder)
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
-local PassCarConfig = require(script.Parent.PassCarConfig)
-local CarCatalog = require(script.Parent.CarCatalog)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local UiTheme = require(script.Parent.UiTheme)
 local Players = game:GetService("Players")
@@ -423,36 +421,6 @@ function SpawnArea.Build(startCFrame)
 	stat(bestStats, "Car", 0.62, 0.2, Color3.new(1, 1, 1), "")
 	stat(bestStats, "Player", 0.82, 0.18, Color3.fromRGB(200, 220, 255), "")
 	best.Parent = model
-
-	local passCars = Instance.new("Model")
-	passCars.Name = "PassCars"
-	for _, entry in PassCarConfig.Pedestals do
-		local spec = CarCatalog.Get(entry.CarId)
-		local stand = Instance.new("Model")
-		stand.Name = "Pass_" .. entry.CarId
-		local part, stats = pedestal(
-			stand,
-			entry.X,
-			entry.Z,
-			PassCarConfig.RADIUS,
-			UDim2.fromScale(14, 4),
-			8,
-			PassCarConfig.TEXT_DISTANCE
-		)
-		stat(stats, "Title", 0, 0.6, Color3.new(1, 1, 1), spec and spec.Name or entry.CarId)
-		stat(stats, "Tag", 0.6, 0.4, Color3.fromRGB(120, 255, 170), "GAMEPASS")
-		local buy = Instance.new("ProximityPrompt")
-		buy.Name = "Buy"
-		buy.ObjectText = spec and spec.Name or entry.CarId
-		buy.ActionText = (spec and (spec.GamepassId or 0) > 0) and "Unlock" or "Coming soon"
-		buy.KeyboardKeyCode = Enum.KeyCode.E
-		buy.HoldDuration = 0
-		buy.MaxActivationDistance = PassCarConfig.PROMPT_DISTANCE
-		buy.RequiresLineOfSight = false
-		buy.Parent = part
-		stand.Parent = passCars
-	end
-	passCars.Parent = model
 
 	-- Checkpoints NPC (docs/CHECKPOINT_SPEC.md): a rig on a purple ring; its prompt opens Client/CheckpointUi.
 	local npc = Instance.new("Model")
