@@ -28,7 +28,11 @@
   "proposed, owner to confirm"): roblox-game-development-lifecycle, roblox-game-skill, roblox-ui(-implementation),
   roblox-vfx, world-builder agent. Blender MCP added (local scope).
 
+- f3 DONE 2026-10-28: full harness `[CARTEST] END pass=49 fail=0` in Anime Run Studio on feature/alex/fork-ivs
+  (89c0e81), audit PASS. oq2 answered: Anime Run private experience, no IVS visual content copied. First f3 run was
+  lost to a Wi-Fi drop (Team Create disconnect 276); rerun green. All fork-ivs deliverables done.
+
 ## Next
-1. f3: blocked on docs/OWNER_QUESTIONS.md oq2 (proposed: full harness `[CARTEST] END fail=0` in the existing Anime Run
-   place, no IVS place copy). Owner must also save the place so the SpawnLocation deletion persists.
-2. Then team of 3 + stamina (TEAM_AND_STAMINA_SPEC.md), tests first.
+1. Owner: close goal fork-ivs (only the owner closes a goal); merging into `main` is the owner's call (out of scope).
+2. Owner: confirm anime-world deliverables w1-w5 (docs/ORCHESTRATOR_GOALS.md, "proposed, owner to confirm").
+3. Then anime-world w1 (placeholder runner replaces the car body) on feature/alex/anime-world, tests first.
