@@ -8,7 +8,7 @@ Game rules stay in `docs/GAME_DESIGN_REQUIREMENTS.md` and the specs.
   audit PASS (owner 2026-10-28).
 
 ## fork-ivs: Idle Vehicle Simulator code forked into AnimeRun
-Status: active
+Status: done (merged into main 2026-10-28, PR #1, 039ad28)
 Owner-confirmed: 2026-10-28
 Branch: feature/alex/fork-ivs (created on the first task)
 Deliverables:

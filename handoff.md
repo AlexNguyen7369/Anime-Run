@@ -33,6 +33,7 @@
   lost to a Wi-Fi drop (Team Create disconnect 276); rerun green. All fork-ivs deliverables done.
 
 ## Next
-1. Owner: close goal fork-ivs (only the owner closes a goal); merging into `main` is the owner's call (out of scope).
+1. DONE 2026-10-28: fork-ivs merged into main (PR #1, 039ad28), goal closed. Integration branch for anime-world:
+   feature/alex/anime-world.
 2. Owner: confirm anime-world deliverables w1-w5 (docs/ORCHESTRATOR_GOALS.md, "proposed, owner to confirm").
 3. Then anime-world w1 (placeholder runner replaces the car body) on feature/alex/anime-world, tests first.
