@@ -1,6 +1,6 @@
 --!nonstrict
--- Turns the cars on the spawn-area showcase pedestals (docs/LEADERBOARD_SPEC.md 3a, docs/GAMEPASS_CARS_SPEC.md 5),
--- bobs the ones marked Hover, flaps parts named Wing_L / Wing_R and spins / bobs Orb parts (Shared/OrbMotion). Display only: the servers pick the cars. The
+-- Turns the car on the spawn-area Best Roll pedestal (docs/LEADERBOARD_SPEC.md 3a), bobs it when marked Hover and
+-- flaps parts named Wing_L / Wing_R. Display only: the server picks the car. The
 -- motion is local, so nothing replicates per frame.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,9 +9,6 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("LeaderboardConfig"))
-local PassCarConfig = require(Shared:WaitForChild("PassCarConfig"))
-local OrbMotion = require(Shared:WaitForChild("OrbMotion"))
-local UiMotion = require(script.Parent.UiMotion)
 local area = Workspace:WaitForChild("SpawnArea")
 local best = area:WaitForChild("BestRoll")
 
@@ -35,28 +32,21 @@ local function animate(car, t)
 		parts = {}
 		states[car] = parts
 	end
-	local bob = car:GetAttribute("Hover") and (LIFT + math.sin(t * 2) * BOB) * PassCarConfig.CAR_SCALE or 0
+	local bob = car:GetAttribute("Hover") and (LIFT + math.sin(t * 2) * BOB) * Config.BEST_ROLL.CAR_SCALE or 0
 	local frame = mount.WorldCFrame * CFrame.new(0, bob, 0) * CFrame.Angles(0, math.rad(Config.BEST_ROLL.SPIN) * t, 0)
 	local flap = FLAP * math.sin(t * 5)
-	local orb = OrbMotion.Offset(t, UiMotion.Reduced())
 	for _, part in car:GetDescendants() do
 		if part:IsA("BasePart") then
 			local entry = parts[part]
 			if not entry then -- first sight (parts may stream in late): still where the server put it
 				entry = { Rel = mount.WorldCFrame:ToObjectSpace(part.CFrame) }
-				-- A rigged car flaps its wings through bones (Client/WyvernAnimator), not by turning the parts.
-				local rigged = car:GetAttribute("Rig") ~= nil
-				entry.Side = not rigged and ((part.Name == "Wing_L" and -1) or (part.Name == "Wing_R" and 1)) or nil
+				entry.Side = (part.Name == "Wing_L" and -1) or (part.Name == "Wing_R" and 1) or nil
 				entry.Hinge = entry.Side and part.PivotOffset
-				entry.Orb = part:GetAttribute("Orb") == true
 				parts[part] = entry
 			end
 			local cf = frame * entry.Rel
 			if entry.Side then -- turn about the wing's inner edge (its pivot)
 				cf = cf * entry.Hinge * CFrame.Angles(0, 0, entry.Side * flap) * entry.Hinge:Inverse()
-			end
-			if entry.Orb then -- Singularity's black hole (docs/CAR_REDESIGN_SPEC.md section 11)
-				cf = cf * orb
 			end
 			part.CFrame = cf
 		end
@@ -73,12 +63,5 @@ RunService.RenderStepped:Connect(function()
 	local car = best:FindFirstChild("Car")
 	if car then
 		animate(car, t)
-	end
-	local stands = area:FindFirstChild("PassCars")
-	for _, stand in stands and stands:GetChildren() or {} do
-		local passCar = stand:FindFirstChild("Car")
-		if passCar then
-			animate(passCar, t)
-		end
 	end
 end)

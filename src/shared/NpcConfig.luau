@@ -6,7 +6,7 @@
 --   Color  Color3 of the starter car body
 --   Speed  cruise speed, studs/s (the NPC slows only where corner grip requires it)
 --   Label  floating text above the NPC
---   Model  name of a Model under ReplicatedStorage.NpcModels, or a car catalog id (skinned like the player's car)
+--   Model  name of a Model under ReplicatedStorage.NpcModels, or a character catalog id (skinned like the player's car)
 
 local NpcConfig = {}
 
@@ -28,18 +28,9 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- Owner 2026-10-20: tracks 1-10 drive imported car models, rarer on every later track.
+-- Track 1 keeps its red; no NPC has a Model yet (car models removed, owner 2026-10-28), so all use the CarFactory body.
 NpcConfig.Tracks = {
-	[1] = { Color = Color3.fromRGB(230, 45, 45), Model = "rusty_hatchback" }, -- red
-	[2] = { Model = "wooden_car" },
-	[3] = { Model = "go_kart" },
-	[4] = { Model = "rain_runner" },
-	[5] = { Model = "street_racer" },
-	[6] = { Model = "midnight_kart" },
-	[7] = { Model = "golden_racer" },
-	[8] = { Model = "rocket_car" },
-	[9] = { Model = "hover_car" },
-	[10] = { Model = "void_racer" },
+	[1] = { Color = Color3.fromRGB(230, 45, 45) }, -- red
 }
 
 -- Everything about track `number`'s NPC: { Number, Speed, Color, Label, Model }.

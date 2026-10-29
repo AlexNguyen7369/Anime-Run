@@ -11,7 +11,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local RouteMath = require(Shared.RaceProgressMap)
 local TrackRegistry = require(Shared.TrackRegistry)
 local UiTheme = require(Shared.UiTheme)
@@ -178,7 +178,7 @@ end
 local function npcLabel(track)
 	local info = NpcConfig.For(track)
 	local o = NpcConfig.Tracks[info.Number]
-	local car = o and o.Model and CarCatalog.Get(o.Model)
+	local car = o and o.Model and CharacterCatalog.Get(o.Model)
 	local carName = car and car.Name or (o and o.Model)
 	return carName and ("%s · %s"):format(info.Label, carName) or info.Label
 end

@@ -15,7 +15,7 @@ local Ui = script.Parent:WaitForChild("RollToast"):WaitForChild("Ui")
 local Icons = require(Ui.HudIcons)
 local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
-local CarCatalog = require(shared.CarCatalog)
+local CharacterCatalog = require(shared.CharacterCatalog)
 local GachaConfig = require(shared.GachaConfig)
 local Components = require(Ui.RacerComponents)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
@@ -165,7 +165,7 @@ tab("Auras", 3, function(b)
 	swatch(b, Market.Items.Aura[1], "Aura", UDim2.fromOffset(48, 36), UDim2.fromOffset(48, 48))
 end)
 tab("Cars", 4, function(b)
-	local spec = CarCatalog.All()[1]
+	local spec = CharacterCatalog.All()[1]
 	local art = Components.CarModelArt(b, "Art", spec, UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
 	ReplicatedStorage:WaitForChild("CarModels").ChildAdded:Connect(function()
 		Components.FillCarModel(art, spec)
@@ -180,13 +180,8 @@ end
 local function ownedCars()
 	local data = player:FindFirstChild("GachaData")
 	local list = {}
-	for _, spec in CarCatalog.All() do
+	for _, spec in CharacterCatalog.All() do
 		if data and data:FindFirstChild(spec.Id) then
-			table.insert(list, spec)
-		end
-	end
-	for _, spec in CarCatalog.Passes() do -- gamepass cars are owned through Roblox (Pass_<id>), not GachaData
-		if player:GetAttribute("Pass_" .. spec.Id) == true then
 			table.insert(list, spec)
 		end
 	end
@@ -450,7 +445,7 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 end)
 player.AttributeChanged:Connect(function(attr)
 	local watched = attr:sub(1, 6) == "Boost_" or attr:sub(1, 3) == "Own" or attr:sub(1, 8) == "Equipped"
-	if panel.Visible and (watched or attr:sub(1, 5) == "Pass_") then
+	if panel.Visible and watched then
 		render()
 	end
 end)

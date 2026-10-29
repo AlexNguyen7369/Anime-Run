@@ -7,7 +7,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared:WaitForChild("CarCatalog"))
+local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
@@ -403,7 +403,7 @@ function ShopMarket.Build(h)
 				table.insert(cardBad, ("%s: %d Buy buttons, want %d"):format(name, buys, #entries + (extra or 0)))
 			end
 		end
-		sectionCards("Featured", CarCatalog.Passes(), function(car, c, buy)
+		sectionCards("Featured", CharacterCatalog.Passes(), function(car, c, buy)
 			local text = h.allText(c)
 			-- The car preview: a ViewportFrame, or the "?" placeholder when the car has no model yet
 			local preview = false

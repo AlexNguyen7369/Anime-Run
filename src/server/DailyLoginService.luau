@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.DailyLoginConfig)
 local GachaService = require(script.Parent.GachaService)
 local BoostService = require(script.Parent.BoostService)
-local CarCatalog = require(ReplicatedStorage.Shared.CarCatalog)
+local CharacterCatalog = require(ReplicatedStorage.Shared.CharacterCatalog)
 
 local Daily = { REMOTE_COOLDOWN = 0.5 }
 local lastRequest = setmetatable({}, { __mode = "k" })
@@ -61,7 +61,7 @@ local function grantRare(player)
 			owned[entry.Name] = true
 		end
 	end
-	for _, spec in CarCatalog.Rollable() do
+	for _, spec in CharacterCatalog.Rollable() do
 		if spec.Chance and not owned[spec.Id] then
 			return GachaService.Grant(player, spec.Id) == true and spec.Name or nil
 		end

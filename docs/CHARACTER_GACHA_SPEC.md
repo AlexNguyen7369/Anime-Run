@@ -21,6 +21,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Archetype` | ninja, swordsman, mage, brawler, idol, mecha pilot, beast-kin, gunslinger, monk, spirit |
 | `Model` | name under `ReplicatedStorage.CharacterModels`; nil shows the "?" placeholder |
 | `RunStyle` | animation set: `Sprint`, `NinjaRun`, `Glide`, `Float` |
+| `Event` | optional: `rain`, `night` or `gold`; the character is rollable only during that weather event (IVS `WEATHER_EVENTS_SPEC.md`) |
 
 - `starter` is built in: not rollable, not in the Index, `Balanced`, no Series.
 
@@ -89,14 +90,48 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 
 Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
 
+Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
+
+| Id | Chance | SpeedMulti | Id | Chance | SpeedMulti |
+|---|---|---|---|---|---|
+| `sea_navigator` | nil (catch-all) | 1.1 | `db_tyrant` | 50,000 | 6 |
+| `leaf_medic` | 10 | 1.25 | `sea_flame` | 120,000 | 8 |
+| `db_green` | 20 | 1.4 | `ds_sister` | 300,000 | 10 |
+| `sea_cook` | 40 | 1.6 | `jk_vessel` | 700,000 | 12 |
+| `ds_boar` | 70 | 1.8 | `mha_blast` | 1,500,000 | 14.5 |
+| `jk_nails` | 120 | 2 | `leaf_avenger` | 2,500,000 | 16.5 |
+| `mha_float` | 200 | 2.2 | `leaf_hero` | 1e7 | 25 |
+| `leaf_copycat` | 500 | 2 | `db_prince` | 5e7 | 45 |
+| `db_scholar` | 1,000 | 2.6 | `sea_captain` | 1e8 | 60 |
+| `sea_swords` | 2,000 | 3.2 | `ds_hero` | 3e8 | 80 |
+| `ds_thunder` | 4,000 | 3.9 | `mha_hero` | 7.8e8 | 100 |
+| `jk_shadows` | 8,000 | 4.6 | `leaf_crow` | 5e9 | 150 |
+| `mha_icefire` | 13,000 | 5.25 | `ds_flame` | 1e11 | 250 |
+| | | | `jk_king` | 1e13 | 350 |
+| | | | `mha_symbol` | 1e15 | 425 |
+| | | | `db_hero` | 1.6e16 | 1,000 |
+| | | | `jk_strongest` | 5e18 | 2,800 |
+
+Event-only characters (owner 2026-10-28: in scope; names owner-approved 2026-10-28; odds and multis copied from
+the IVS event cars). They belong to a series and count toward its Series bonus. Discovery and equipping persist after
+the event.
+
+| Id | Character | Based on | Series | Rarity | Cat. | Event | Chance | SpeedMulti |
+|---|---|---|---|---|---|---|---|---|
+| `ds_water` | Giyo | Giyu Tomioka | Demon Slicer | Epic | M | `rain` | 160,000 | 6 |
+| `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
+| `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
+
+Catalog total: 30 regular + 3 event-only = 33 rollable characters, plus the starter.
+
 Preset trios (the anime's famous team):
 
 | Series | Preset | Members |
 |---|---|---|
 | Narito Shippudon | Team Seven | Narito, Saske, Sakara |
-| Dragon Bawl Z | Saiyan Pride | Gokku, Vegata, Gohon |
+| Dragon Bawl Z | Sayan Pride | Gokku, Vegata, Gohon |
 | One Peace | Straw Crew | Lufy, Zoru, Sanjy |
-| Demon Slicer | Kamado Squad | Tanjiru, Zenitsa, Inosuki |
+| Demon Slicer | Kamada Squad | Tanjiru, Zenitsa, Inosuki |
 | Jujitsu Kaisan | First Years | Yuuji, Megumo, Nobora |
 | My Hero Akademia | Class 1-A | Deko, Bakugoo, Todoroky |
 
@@ -111,5 +146,6 @@ Preset trios (the anime's famous team):
 ## Tests
 
 - `gacha`: rarest-first odds, turbo roll, duplicate adds `Copies`, Index points.
-- `catalog`: every id unique and never removed (compare to a committed id list), every field valid, every Series id
+- `catalog`: no real name in any id; the test keeps only hashes of the real names, never the names (owner 2026-10-28).
+- `catalog` (cont.): every id unique and never removed (compare to a committed id list), every field valid, every Series id
   exists, every preset has 3 distinct members of its own series.

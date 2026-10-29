@@ -101,15 +101,15 @@ Stamina = Base(rarity or override)
 
 ## Balance check (placeholders)
 
-Track lengths copied from IVS World 1 (studs) and NPC speeds `16 x 1.51^(n-1)` give NPC times:
+Track lengths and NPC times from `docs/TRACKS_AND_BIOMES_SPEC.md` (owner 2026-10-28: Track n = 984 x 1.25^(n-1)
+studs, NPC speed 16 x 1.51^(n-1)):
 
 | Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Length | 984 | 1371 | 320 | 1277 | 977 | 1652 | 1807 | 1875 | 1868 | 1890 |
-| NPC time (s) | 61 | 57 | 9 | 23 | 12 | 13 | 10 | 7 | 4 | 3 |
+| NPC time (s) | 61.5 | 50.9 | 42.1 | 34.9 | 28.9 | 23.9 | 19.8 | 16.4 | 13.6 | 11.2 |
 
-- The whole chain at NPC pace takes about 199 s. A player who just beats each NPC needs about that much stamina.
-- 3 Commons (90 s) reach mid Track 2. 3 Rares (165 s) reach about Track 4. 3 Legendaries (300 s) clear the chain.
+- The whole chain at NPC pace takes about 303 s. A player who just beats each NPC needs about that much stamina.
+- 3 Commons (90 s) reach late Track 2. 3 Rares (165 s) reach about Track 4. 3 Legendaries (300 s) about clear it.
 - So stamina gates how far a run goes, and speed gates whether each track is won. Both rise with rarity.
 - Categories, stat points, potions and team bonus move these numbers: e.g. 3 Rare Marathoners in a Series team with
   a potion: 55 x 1.4 x 1.2 x 1.5 = 139 s each, 416 s total, but each runs at 0.85 cruise.

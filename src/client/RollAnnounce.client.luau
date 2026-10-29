@@ -6,7 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
 local announceRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RollAnnounce")
@@ -21,7 +21,7 @@ local function general()
 end
 
 announceRemote.OnClientEvent:Connect(function(_, displayName, id, rolls)
-	local spec = CarCatalog.Get(id)
+	local spec = CharacterCatalog.Get(id)
 	local channel = general()
 	if not spec or not channel then
 		return

@@ -6,7 +6,7 @@ if script.Parent:FindFirstChild("RollToast") then
 	return
 end
 
--- The car index: an INDEX button on the right opens a grid of every catalog car (Shared/CarCatalog) in
+-- The car index: an INDEX button on the right opens a grid of every catalog car (Shared/CharacterCatalog) in
 -- index order. Undiscovered cars are dark "?" tiles that show only their rarity and odds; discovered cars
 -- show a transparent "?" placeholder (no models yet) with name and multi, and can be equipped.
 -- Everything shown comes from the server (player.GachaData, player attributes); Equip only asks.
@@ -15,7 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarCatalog = require(Shared.CarCatalog)
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
 local RollAnimConfig = require(Shared.RollAnimConfig)
@@ -125,7 +125,7 @@ layout.Parent = grid
 
 local tiles = {} -- car Id -> { Frame, Icon, Name, Info, Equip }
 
-for _, spec in CarCatalog.All() do
+for _, spec in CharacterCatalog.All() do
 	local tile = Instance.new("Frame")
 	tile.Name = spec.Id
 	tile.LayoutOrder = spec.Order
@@ -198,9 +198,9 @@ local function refresh()
 	progress.Text = string.format(
 		"Discovered %d / %d  ·  next stat point in %d  ·  equipped: %s",
 		unique,
-		#CarCatalog.All(),
+		#CharacterCatalog.All(),
 		per - unique % per,
-		(CarCatalog.Get(equipped) or CarCatalog.Get(CarCatalog.STARTER_ID)).Name
+		(CharacterCatalog.Get(equipped) or CharacterCatalog.Get(CharacterCatalog.STARTER_ID)).Name
 	)
 end
 

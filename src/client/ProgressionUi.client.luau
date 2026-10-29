@@ -15,7 +15,7 @@ local Format = require(shared.HudFormat)
 local UiTheme = require(shared.UiTheme)
 local Weather = require(shared.WeatherConfig)
 local Boosts = require(shared.BoostConfig)
-local CarCatalog = require(shared.CarCatalog)
+local CharacterCatalog = require(shared.CharacterCatalog)
 local GachaConfig = require(shared.GachaConfig)
 local Switch = require(script.Parent.PanelSwitch)
 local UiMotion = require(script.Parent.UiMotion)
@@ -386,8 +386,8 @@ local function showcaseCandidates()
 	local list = {}
 	local data = player:FindFirstChild("GachaData")
 	for _, entry in data and data:GetChildren() or {} do
-		local spec = CarCatalog.Get(entry.Name)
-		if spec and spec.Rollable and not spec.GamepassId then
+		local spec = CharacterCatalog.Get(entry.Name)
+		if spec and spec.Rollable then
 			local copies = entry:GetAttribute("Copies") or 0
 			table.insert(list, { Spec = spec, Copies = copies, Bonus = GachaConfig.SlotBonus(spec, copies) })
 		end
@@ -422,7 +422,7 @@ local function refreshShowcase()
 	end
 	showcaseMulti.Text = "SHOWCASE  " .. Format.Multi(player:GetAttribute("ShowcaseMulti") or 1) .. " Speed gain"
 	for i, slot in slots do
-		local spec = ids[i] and CarCatalog.Get(ids[i])
+		local spec = ids[i] and CharacterCatalog.Get(ids[i])
 		slot.Name.Text = spec and spec.Name or "EMPTY"
 		slot.Info.Text = spec and string.format("x%d copies", copiesOf[spec.Id] or 0) or ""
 		slot.Clear.Visible = spec ~= nil

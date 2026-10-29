@@ -60,7 +60,7 @@ end
 -- Every catalog car but the rarest (stays "???"), the first equipped, all stat points freed (>= 1).
 local function indexStates(player)
 	local G = live("GachaService")
-	local C = require(Shared.CarCatalog)
+	local C = require(Shared.CharacterCatalog)
 	local GachaConfig = require(Shared.GachaConfig)
 	local rarest = C.Rollable()[1].Id
 	-- Reset the catalog portion first: a reused Studio player can already own every car,
@@ -643,7 +643,7 @@ end
 -- luck). They only fire Remotes.RollResult at the test client: nothing is rolled, granted or paid. AutoRoll goes off
 -- so no real roll covers the planted ones; 'restore' turns it back on and clears the attribute.
 do
-	local CarCatalog = require(Shared.CarCatalog)
+	local CharacterCatalog = require(Shared.CharacterCatalog)
 	local RollAnimConfig = require(Shared.RollAnimConfig)
 	local WeatherConfig = require(Shared.WeatherConfig)
 	local GAP = 1 -- seconds between two animations
@@ -651,7 +651,7 @@ do
 	-- The most common rollable car with a Chance >= 100 for `event` (nil = a car of no event), else any with a Chance
 	local function carWithChance(event)
 		local pick, fallback = nil, nil
-		for _, spec in CarCatalog.Rollable() do -- rarest first
+		for _, spec in CharacterCatalog.Rollable() do -- rarest first
 			if type(spec.Chance) == "number" and spec.Event == event then
 				fallback = fallback or spec
 				if spec.Chance >= 100 then
@@ -663,7 +663,7 @@ do
 	end
 
 	local function catchAll()
-		for _, spec in CarCatalog.Rollable() do
+		for _, spec in CharacterCatalog.Rollable() do
 			if spec.Chance == nil and spec.Event == nil then
 				return spec
 			end
@@ -797,9 +797,9 @@ end
 function setups.showcase_owned(player)
 	assert(snapshots[player], "snapshot required before showcase fixtures")
 	local G = live("GachaService")
-	local CarCatalog = require(Shared.CarCatalog)
+	local CharacterCatalog = require(Shared.CharacterCatalog)
 	local copies = { 0, 3, 7, 1, 12 }
-	for i, spec in CarCatalog.Rollable() do
+	for i, spec in CharacterCatalog.Rollable() do
 		if i > #copies then
 			break
 		end
@@ -813,11 +813,11 @@ end
 function setups.showcase_filled(player)
 	setups.showcase_owned(player)
 	local G = live("GachaService")
-	local CarCatalog = require(Shared.CarCatalog)
+	local CharacterCatalog = require(Shared.CharacterCatalog)
 	local GachaConfig = require(Shared.GachaConfig)
 	local owned = {}
 	for _, entry in player.GachaData:GetChildren() do
-		local spec = CarCatalog.Get(entry.Name)
+		local spec = CharacterCatalog.Get(entry.Name)
 		if spec and spec.Rollable and not spec.GamepassId then
 			table.insert(owned, { Id = spec.Id, Bonus = GachaConfig.SlotBonus(spec, G.Copies(player, spec.Id)) })
 		end
