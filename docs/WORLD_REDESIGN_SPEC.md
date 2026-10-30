@@ -61,6 +61,8 @@ Nothing car-shaped stays in the game:
   distance >= 0.75 and no gap between neighbouring plots wider than 135 degrees; baseplate margin 20 studs; the torii
   start gate is at least 16 studs tall; Track 1 starts within one road width (40 studs) of the start gate.
 - Owner 2026-10-30 (placeholder, tunable): each Dojo plot's front points within 45 degrees of the plaza centre.
+- Owner 2026-10-30 (placeholder, tunable): "spirals outward" means each track's mean centre-line distance from
+  the plaza centre (XZ) is greater than the previous track's; Track 1 has the smallest.
 
 ## 4. Spawn hub: anime town plaza
 

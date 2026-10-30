@@ -628,6 +628,8 @@ function Scenarios.track(trackName)
 	if expect.Closed ~= nil then
 		check(checks, "closed", layout.Closed and 1 or 0, expect.Closed and 1 or 0, layout.Closed == expect.Closed)
 	end
+	-- MinLength / MaxLength: kept for any test file that still states a band; Tracks 1-10 use TargetLength
+	-- (docs/TRACKS_AND_BIOMES_SPEC.md "Lengths", owner 2026-10-30), checked in TrackChainTests below
 	if expect.MinLength then
 		check(checks, "min_length", layout.Length, expect.MinLength, layout.Length >= expect.MinLength)
 	end
@@ -689,8 +691,19 @@ function Scenarios.track(trackName)
 	local validation = TrackValidator.Validate(spec, layout)
 	check(checks, "track_valid", #validation.Issues, 0, validation.Ok)
 
+	-- target length, chain / plaza / Dojo no-overlap, runner at normal and max stat speed (TrackChainTests.luau)
+	local metrics = validation.Ok and {} or { issues = validation.Issues }
+	local trackChain = Scenarios._trackChain
+	if trackChain then
+		trackChain.track(function(name, value, limit, ok)
+			check(checks, name, value, limit, ok)
+		end, spec, layout, expect, metrics)
+	else
+		check(checks, "track_chain_tests_loaded", 0, 1, false)
+	end
+
 	-- car lap bots retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2): no bot lap here any more
-	return result(label, checks, validation.Ok and {} or { issues = validation.Issues })
+	return result(label, checks, metrics)
 end
 
 -- Chain: tracks joined finish-to-start in Number order must connect and never overlap. Layout-only.
@@ -713,34 +726,16 @@ function Scenarios.chain()
 	end
 	check(checks, "unique_numbers", unique and 1 or 0, 1, unique)
 
-	local tracks = {}
-	local origin = CFrame.new(0, TrackBuilder.TRACK_LIFT or 0, 0)
-	local racePathsOk = type(TrackBuilder.RacePath) == "function"
-	for i, spec in specs do
-		local layout = TrackBuilder.Layout(spec)
-		local world = table.create(#layout.Waypoints)
-		for j, p in layout.Waypoints do
-			world[j] = origin:PointToWorldSpace(p)
-		end
-		local raceWorld = {}
-		if racePathsOk then
-			local okRP, rp = pcall(TrackBuilder.RacePath, layout)
-			if okRP and type(rp) == "table" and type(rp.Waypoints) == "table" and #rp.Waypoints >= 2 then
-				for j, p in rp.Waypoints do
-					raceWorld[j] = origin:PointToWorldSpace(p)
-				end
-			else
-				racePathsOk = false
-			end
-		end
-		tracks[i] = {
-			Layout = layout,
-			Points = world,
-			Race = raceWorld,
-			End = origin:PointToWorldSpace(layout.EndPosition),
-		}
-		origin = TrackBuilder.EndCFrame(layout, origin)
-	end
+	-- laid out from TrackBuilder.CHAIN_ORIGIN as Main.server builds it (owner 2026-10-30; was the world origin)
+	local TrackChain = require(script.Parent.TrackChainTests)
+	check(
+		checks,
+		"chain_origin_defined",
+		typeof(TrackBuilder.CHAIN_ORIGIN) == "CFrame" and 1 or 0,
+		1,
+		typeof(TrackBuilder.CHAIN_ORIGIN) == "CFrame"
+	)
+	local tracks, racePathsOk = TrackChain.world(TrackBuilder, specs)
 	check(checks, "chain_race_paths", racePathsOk and 1 or 0, 1, racePathsOk)
 
 	local worstJoint = 0
@@ -789,31 +784,15 @@ function Scenarios.chain()
 	check(checks, "joint_heading_continuous", worstTurn, 0.99, worstTurn >= 0.99)
 
 	-- Overlap: centre waypoints AND race-path waypoints of different tracks stay a road width + 8 apart
-	-- (except near the joint they share).
-	local minClear, clearOk = math.huge, true
-	for i = 1, #tracks do
-		for j = i + 1, #tracks do
-			local need = math.max(tracks[i].Layout.Width, tracks[j].Layout.Width) + 8
-			local pa, pb = table.clone(tracks[i].Points), table.clone(tracks[j].Points)
-			table.move(tracks[i].Race, 1, #tracks[i].Race, #pa + 1, pa)
-			table.move(tracks[j].Race, 1, #tracks[j].Race, #pb + 1, pb)
-			local joint = j == i + 1 and tracks[i].End or nil
-			for _, p in pa do
-				if not joint or (p - joint).Magnitude > 60 then
-					for _, q in pb do
-						if not joint or (q - joint).Magnitude > 60 then
-							local d = (p - q).Magnitude
-							minClear = math.min(minClear, d)
-							if d < need then
-								clearOk = false
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-	check(checks, "chain_no_overlap", minClear == math.huge and -1 or minClear, 44, clearOk)
+	-- (except near the joint they share). Same rule as before, grid-bucketed and yielding (long tracks).
+	-- value: nearest pair found within one grid cell (-1: none that close)
+	local clearOk, minClear, worstPair = TrackChain.overlap(tracks)
+	check(checks, "chain_no_overlap", minClear or -1, 44, clearOk)
+
+	-- Ten numbered tracks spiralling outward from the plaza (WORLD_REDESIGN_SPEC section 3, TRACKS_AND_BIOMES_SPEC)
+	local radii = TrackChain.chain(function(name, value, limit, ok)
+		check(checks, name, value, limit, ok)
+	end, tracks)
 
 	-- Apron clear: nothing else drives through a track's wide checkpoint area. Waypoints more than 100
 	-- studs of path from a finish point F (own track: before F; next track: after its start) must stay
@@ -850,7 +829,7 @@ function Scenarios.chain()
 		end
 	end
 	check(checks, "apron_clear", worstApron == math.huge and -1 or worstApron, 0, apronOk and worstApron >= 0)
-	return result("chain", checks, { tracks = #tracks })
+	return result("chain", checks, { tracks = #tracks, mean_radii = radii, nearest_pair = worstPair })
 end
 
 -- Money: MoneyService contract (cooldown, award validation, server-side pad payout).
@@ -13336,6 +13315,11 @@ do
 	})
 	Scenarios.world_layout = world.world_layout
 	Scenarios.dojo = world.dojo
+	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
+	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({
+		partPoly = spawnPartPoly,
+		polySeparation = spawnPolySeparation,
+	})
 end
 
 return Scenarios
