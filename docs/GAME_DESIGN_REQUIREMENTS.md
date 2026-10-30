@@ -134,9 +134,10 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - HUD (owner 2026-10-30): Speed keeps suffixes from `SPEED_SUFFIX_FROM = 1e6` (placeholder); the threshold does not scale.
 - Speed board (owner 2026-10-30): the Speed board stores a log-scaled integer score, so any finite Speed ranks
   (no tie at the int64 cap); the board shows the real Speed decoded from it. Encoding (proposed):
-  `score = floor(log10(1 + Speed) x 1e15)`, `Speed = 10^(score / 1e15) - 1`. Other boards are unchanged.
+  `score = floor(log10(1 + whole Speed) x 1e15)` (whole Speed = floored, as the board always used),
+  `Speed = 10^(score / 1e15) - 1`. Other boards are unchanged.
 - Test precision (owner 2026-10-30): above the new `MAX_STAT` a double cannot keep decimals, so
-  `admin_addspeed_past_max_stat_not_clamped` checks only "past MAX_STAT, not clamped".
+  `admin_addspeed_past_max_stat_not_clamped` proves only "past MAX_STAT, not clamped" (its decimal part rounds away).
 
 ### 4.10 World redesign (owner 2026-10-28)
 - The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
