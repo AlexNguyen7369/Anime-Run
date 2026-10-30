@@ -1,5 +1,7 @@
 --!nonstrict
--- Modular Blender marketplace; smooth box boundaries keep detailed displays from snagging players.
+-- Modular Blender marketplace; smooth box boundaries keep detailed displays from snagging players. The car-themed
+-- Workshop and Parts stall meshes are scrapped (docs/WORLD_REDESIGN_SPEC.md section 1): those two vendors are plain
+-- placeholder stalls (visible counter, posts and roof) until the anime hub.
 local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -38,6 +40,9 @@ MarketplaceBuilder.VENDORS = {
 	},
 	{ Name = "Parts", Kind = "Trail", Counter = Vector3.new(17, 0, -3), Width = 9, Npc = Vector3.new(17, 0, -7) },
 }
+local PLACEHOLDER = { Workshop = true, Parts = true } -- vendors without stall meshes
+local WOOD = Color3.fromRGB(160, 110, 70)
+local ROOF = Color3.fromRGB(190, 50, 50)
 
 local function box(parent, name, size, cf, collide)
 	local p = Instance.new("Part")
@@ -106,7 +111,23 @@ function MarketplaceBuilder.Build(placement)
 	for _, spec in MarketplaceBuilder.VENDORS do
 		local vendor = areas[spec.Name]
 		local c = spec.Counter
-		boundary(spec.Name .. "Counter", Vector3.new(spec.Width + 0.5, 4.2, 3), c + Vector3.new(0, 2.1, 0))
+		local counter =
+			boundary(spec.Name .. "Counter", Vector3.new(spec.Width + 0.5, 4.2, 3), c + Vector3.new(0, 2.1, 0))
+		if PLACEHOLDER[spec.Name] then
+			counter.Transparency = 0
+			counter.Color = WOOD
+			counter.Material = Enum.Material.WoodPlanks
+			local roof = box(
+				vendor,
+				"PlaceholderRoof",
+				Vector3.new(spec.Width + 4, 0.6, 10),
+				placement * CFrame.new(c + Vector3.new(0, 11.5, -3)),
+				false
+			)
+			roof.Transparency = 0
+			roof.Color = ROOF
+			roof.Material = Enum.Material.SmoothPlastic
+		end
 		local points = Instance.new("Folder")
 		points.Name = "InteractionPoints"
 		points.Parent = vendor
@@ -121,7 +142,7 @@ function MarketplaceBuilder.Build(placement)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "OpenMarket"
 		prompt.ActionText = "Browse Market"
-		prompt.ObjectText = spec.Name == "Parts" and "Trails & Parts" or spec.Name .. " Vendor"
+		prompt.ObjectText = spec.Kind == "Trail" and "Trail Vendor" or spec.Name .. " Vendor"
 		prompt.KeyboardKeyCode = Enum.KeyCode.E
 		prompt.HoldDuration = 0
 		prompt.MaxActivationDistance = 8
@@ -142,15 +163,19 @@ function MarketplaceBuilder.Build(placement)
 		vendor.PrimaryPart = anchor
 	end
 	boundary("AuraFrontDisplay", Vector3.new(5.2, 3.6, 3.2), Vector3.new(-19, 1.8, 5))
-	boundary("PartsFrontDisplay", Vector3.new(6, 4.5, 8), Vector3.new(18.5, 2.25, 4.5))
-	boundary("TyreStack", Vector3.new(3.2, 4.1, 3.2), Vector3.new(-8, 2.05, -7.5))
 	for _, x in { -22, -12, 12, 22 } do
 		for _, z in { -16, -2 } do
-			boundary("Post_" .. x .. "_" .. z, Vector3.new(1.5, 11.2, 1.5), Vector3.new(x, 5.8, z))
+			local post = boundary("Post_" .. x .. "_" .. z, Vector3.new(1.5, 11.2, 1.5), Vector3.new(x, 5.8, z))
+			if x > 0 then -- the Parts stall's posts, visible now its meshes are gone
+				post.Transparency = 0
+				post.Color = WOOD
+			end
 		end
 	end
 	for _, x in { -10, 10 } do
-		boundary("WorkshopPost_" .. x, Vector3.new(1.5, 13, 1.5), Vector3.new(x, 6.7, -10))
+		local post = boundary("WorkshopPost_" .. x, Vector3.new(1.5, 13, 1.5), Vector3.new(x, 6.7, -10))
+		post.Transparency = 0
+		post.Color = WOOD
 	end
 	local lights = Instance.new("Folder")
 	lights.Name = "Lighting"

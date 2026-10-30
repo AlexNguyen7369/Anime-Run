@@ -1,40 +1,18 @@
 --!nonstrict
 -- The spawn area (docs/SPAWN_AND_ROLLS_SPEC.md): a large purple floor beside the start of Track 1 with the game's only
--- SpawnLocation, and the StartPad pavilion within the hub. Players join and respawn here on foot, Stop sends them
+-- SpawnLocation, and the StartPad (placeholder canopy) within the hub. Players join and respawn here on foot, Stop sends them
 -- back here, and walking onto the StartPad starts auto racing (Server/CarService).
 -- Everything is placed in the local space of Track 1's Start part (forward -Z, right +X). Track 1's finish and
 -- Track 2 pass behind the start line, so the area sits to the RIGHT of the start straight.
 -- Workshop plots (docs/WORKSHOP_SPEC.md, owner 2026-10-06): the floor was grown outward (+X) and forward (-Z) to hold
 -- the 7 plots (Shared/WorkshopConfig) in an L around the HUB, the old 160 x 144 floor, which keeps the spawn.
 
-local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RaceStartMeshAssets = require(script.Parent.RaceStartMeshAssets)
 local MarketplaceBuilder = require(script.Parent.MarketplaceBuilder)
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local UiTheme = require(script.Parent.UiTheme)
 local Players = game:GetService("Players")
-
--- Match WorkshopBuilder's native-mesh safeguard before Main builds the area.
-local raceTemplate = ReplicatedStorage:WaitForChild("RaceStartPavilion"):Clone()
-for _, mesh in raceTemplate:GetDescendants() do
-	if mesh:IsA("MeshPart") then
-		local assetId = RaceStartMeshAssets[mesh.Name]
-		assert(assetId, "Missing race start mesh asset: " .. mesh.Name)
-		if mesh.MeshId ~= assetId or mesh.MeshSize.Magnitude == 0 then
-			local texture = mesh.TextureID
-			local loaded = AssetService:CreateMeshPartAsync(Content.fromUri(assetId), {
-				CollisionFidelity = Enum.CollisionFidelity.Box,
-			})
-			mesh:ApplyMesh(loaded)
-			mesh.TextureID = texture
-			loaded:Destroy()
-		end
-		assert(mesh.MeshId == assetId and mesh.MeshSize.Magnitude > 0, "Race start mesh failed to load: " .. mesh.Name)
-	end
-end
 
 local SpawnArea = {}
 
@@ -44,7 +22,7 @@ SpawnArea.AREA_MIN = Vector2.new(24, -188) -- local (x, z) corners of the floor:
 SpawnArea.AREA_MAX = Vector2.new(252, 44)
 SpawnArea.HUB_MIN = Vector2.new(24, -100) -- the part of the floor kept free of plots: spawn, StartPad side, Best Roll pedestal
 SpawnArea.HUB_MAX = Vector2.new(184, 44)
-SpawnArea.PAD_MIN = Vector2.new(-20, 2) -- authored pavilion coordinates; placement is controlled by PadBase
+SpawnArea.PAD_MIN = Vector2.new(-20, 2) -- the pad's own coordinates; placement is controlled by PadBase
 SpawnArea.PAD_MAX = Vector2.new(24, 38)
 SpawnArea.PAD_CENTER = Vector2.new(34.3031235, 28.4993916) -- owner's on-foot position in the hub
 SpawnArea.PAD_FRONT = Vector2.new(1, 0) -- square to the hub: sign faces +X, right entrance faces -Z
@@ -216,24 +194,33 @@ function SpawnArea.Build(startCFrame)
 	UiTheme.Stroke(text, 2)
 	text.Parent = billboard
 
-	-- Blender meshes are decorative; the original pad remains the touch trigger.
-	local canopy = raceTemplate:Clone()
+	-- Plain placeholder canopy (the car-themed race pavilion is scrapped, docs/WORLD_REDESIGN_SPEC.md section 1; the
+	-- anime start gate comes with the hub). Decorative only: the pad stays the touch trigger, RaceBoundaries collide.
+	local canopy = Instance.new("Model")
 	canopy.Name = "RaceOverhang"
-	local placement = padFrame * CFrame.new(0, top + PAD_RAISE, 0)
-	for _, mesh in canopy:GetDescendants() do
-		if mesh:IsA("BasePart") then
-			mesh.CFrame = placement * mesh.CFrame
-			mesh.Anchored = true
-			mesh.CanCollide = false
-			mesh.CanTouch = false
-			mesh.CanQuery = false
-			mesh.CastShadow = false
-			if mesh:IsA("MeshPart") then
-				mesh.DoubleSided = true
-			end
+	canopy.Parent = model
+	local function deco(name, min, max, topY, height, color)
+		local p = slab(canopy, name, padFrame, min, max, topY, height)
+		p.Color = color
+		p.Material = Enum.Material.SmoothPlastic
+		p.CanCollide = false
+		p.CanTouch = false
+		p.CanQuery = false
+		p.CastShadow = false
+	end
+	for _, x in { -20.5, 20.5 } do
+		for _, z in { 7, 33 } do
+			deco(
+				"Post_" .. x .. "_" .. z,
+				Vector2.new(x - 1, z - 1),
+				Vector2.new(x + 1, z + 1),
+				top + PAD_RAISE + 12.75,
+				12.75,
+				Color3.fromRGB(200, 40, 40)
+			)
 		end
 	end
-	canopy.Parent = model
+	deco("Roof", Vector2.new(-21.5, 4), Vector2.new(23.5, 36), top + PAD_RAISE + 13.75, 1, Color3.fromRGB(40, 30, 30))
 
 	-- Box boundaries cover rail gaps and column detail without snagging avatars.
 	-- The hub entrance stays open from z=10..30; both 18.5-stud lanes stay clear.
@@ -307,8 +294,6 @@ function SpawnArea.Build(startCFrame)
 			* CFrame.Angles(0, math.rad(MarketplaceBuilder.ROTATION), 0)
 	)
 	marketplace.Parent = model
-	-- Dimensional lettering replaces the pad label; cloned hub labels stay enabled.
-	billboard.Enabled = false
 
 	-- Global leaderboard signs (docs/LEADERBOARD_SPEC.md): along the hub's near edge, facing the spawn. The server
 	-- (LeaderboardService) writes the rows.
@@ -418,7 +403,7 @@ function SpawnArea.Build(startCFrame)
 	local _, bestStats = pedestal(best, cfg.X, cfg.Z, cfg.RADIUS, UDim2.fromScale(36, 11), 15, cfg.TEXT_DISTANCE)
 	stat(bestStats, "Title", 0, 0.4, Color3.new(1, 1, 1), "BEST ROLL EVER")
 	stat(bestStats, "Odds", 0.4, 0.22, Color3.fromRGB(255, 214, 90), LeaderboardConfig.NO_DATA)
-	stat(bestStats, "Car", 0.62, 0.2, Color3.new(1, 1, 1), "")
+	stat(bestStats, "Character", 0.62, 0.2, Color3.new(1, 1, 1), "")
 	stat(bestStats, "Player", 0.82, 0.18, Color3.fromRGB(200, 220, 255), "")
 	best.Parent = model
 

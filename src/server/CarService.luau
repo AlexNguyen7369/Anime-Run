@@ -1,10 +1,10 @@
 --!nonstrict
--- Replaces each player's avatar with their car. The Humanoid character still exists (Roblox needs it
--- for camera, respawn and input) but it is hidden and seated in the car's VehicleSeat, so the car
--- is the only thing anyone sees.
+-- Replaces each player's avatar with their runner (Shared/RunnerFactory, docs/WORLD_REDESIGN_SPEC.md section 2) while
+-- racing. The Humanoid character still exists (Roblox needs it for camera, respawn and input) but it is hidden and
+-- carried with the runner (welded to its Torso), so the runner is the only thing anyone sees.
 -- Players join and respawn ON FOOT in the spawn area (Shared/SpawnArea, docs/SPAWN_AND_ROLLS_SPEC.md). The
--- "Auto Race" button (Client/AutoRaceButton, Remotes.SetAutoRace) or walking onto the StartPad spawns a fresh car at
--- the start; "Stop Auto" ends the run, removes the car and puts the visible avatar back in
+-- "Auto Race" button (Client/AutoRaceButton, Remotes.SetAutoRace) or walking onto the StartPad spawns a fresh runner at
+-- the start; "Stop Auto" ends the run, removes the runner and puts the visible avatar back in
 -- the spawn area (WalkSpawnCFrame). The player attribute AutoRacing is the state the button shows. The Speed stat
 -- lives in leaderstats, so it is kept across both.
 
@@ -17,28 +17,25 @@ local StarterPlayer = game:GetService("StarterPlayer")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarConfig = require(Shared.CarConfig)
-local CarFactory = require(Shared.CarFactory)
-local CarAppearance = require(Shared.CarAppearance)
+local CharacterCatalog = require(Shared.CharacterCatalog)
+local RunnerFactory = require(Shared.RunnerFactory)
 local SpawnArea = require(Shared.SpawnArea)
 local PlayerData = require(script.Parent.PlayerData)
 local RaceService = require(script.Parent.RaceService)
 local UpgradeService = require(script.Parent.UpgradeService)
-local TrackBuilder = require(Shared.TrackBuilder)
 local VehicleEffects = require(Shared.VehicleEffects)
 
 local CarService = {}
 
 CarService.TOGGLE_COOLDOWN = 0.75 -- seconds between toggle requests from one player (remote only)
+CarService.RUNNER_TAG = "RunnerRig" -- every player's server runner (Client/RunnerView draws it smoothly)
 
 local HIDDEN_GROUP = "HiddenAvatar" -- the hidden avatar while it rides: collides with nothing
-local UNSEAT_TIMEOUT = 1 -- most seconds Stop waits for the Humanoid to leave the seat
-local SEAT_TIMEOUT = 3 -- most seconds a start waits for the avatar to be seated before it gives up (no race)
-local SEAT_SLACK = 6 -- studs the seated avatar's root may be from the seat to count as teleported in
 local PLACE_HOLD = 2 -- seconds the server keeps putting a real player's avatar back at the walk spawn after a teleport
 local PLACE_SLACK = 8 -- studs (horizontal) the avatar may be from the walk spawn before it is put back
 
-local cars = {} -- player -> car model
+local cars = {} -- player -> runner model
+local carryWelds = {} -- player -> Weld holding the hidden avatar to its runner
 local runs = {} -- player -> RaceService run
 local characters = {} -- player -> character the car belongs to
 local racing = {} -- player -> true / false (nil = never attached)
@@ -48,7 +45,7 @@ local watched = setmetatable({}, { __mode = "k" }) -- character -> true once its
 local lastToggle = {} -- player -> os.clock() of the last accepted remote request
 local lastPadStart = {} -- player -> os.clock() of the last stop or StartPad start (StartPad cooldown)
 
-local DUEL_SLOT_GAP = 8 -- studs between the two held duel cars (the road is 40 wide)
+local DUEL_SLOT_GAP = 8 -- studs between the two held duel runners (the road is 40 wide)
 
 local function userIdOf(player)
 	local ok, id = pcall(function()
@@ -150,15 +147,6 @@ local function showCharacter(character, player)
 	end
 end
 
-local function spawnCFrame(index)
-	local track = Workspace:FindFirstChild("Track")
-	local start = track and track:FindFirstChild("Start", true) -- first track in the chain
-	local base = start and start.CFrame or CFrame.new(0, 0, 0)
-	local row = math.floor((index - 1) / 2)
-	local col = (index - 1) % 2 == 0 and -1 or 1
-	return base * CFrame.new(TrackBuilder.LANE_OFFSET + col * 4, CarConfig.RestHeight + 1, row * 9)
-end
-
 -- Where an avatar stands on foot (join, respawn, after Stop): the middle of the spawn area beside Track 1.
 function CarService.WalkSpawnCFrame()
 	local track = Workspace:FindFirstChild("Track")
@@ -203,11 +191,22 @@ local function removeCar(player)
 	if run then
 		run:Destroy() -- commits the Speed gained since the last commit
 	end
+	local weld = carryWelds[player]
+	carryWelds[player] = nil
+	if weld then
+		weld:Destroy()
+	end
 	local car = cars[player]
 	cars[player] = nil
 	if car then
 		car:Destroy()
 	end
+end
+
+-- The character the player races as: the equipped one (attribute EquippedCar), else the starter.
+local function characterIdOf(player)
+	local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
+	return type(id) == "string" and CharacterCatalog.Get(id) and id or CharacterCatalog.STARTER_ID
 end
 
 local function setState(player, enabled)
@@ -222,142 +221,56 @@ end
 
 local standUp -- forward declaration (defined below)
 
--- Really seated: Humanoid.SeatPart alone can stay set after the weld is gone, so the seat must also name this
--- Humanoid as its Occupant and a live SeatWeld must join the seat to the character, with the root next to the seat.
-local function seatedIn(humanoid, character, seat)
-	local root = character:FindFirstChild("HumanoidRootPart")
-	local weld = seat:FindFirstChild("SeatWeld")
-	return humanoid.SeatPart == seat
-		and seat.Occupant == humanoid
-		and weld ~= nil
-		and weld:IsA("Weld")
-		and weld.Part1 ~= nil
-		and weld.Part1:IsDescendantOf(character)
-		and root ~= nil
-		and (root.Position - seat.Position).Magnitude <= SEAT_SLACK
-end
-
--- Takes the Humanoid out of its seat now: Sit = false alone can leave a stale SeatPart (even to a destroyed seat),
--- leaving the seated state clears it.
-local function unseat(humanoid)
-	humanoid.Sit = false
-	if humanoid.SeatPart then
-		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
-	end
-end
-
--- The race is an event in three steps, so nothing drives before the player is really in the car:
---   1. the car is built at the start line and held there (chassis anchored: nothing can drag it, not even a client
---      that still reports its avatar where it stood a moment ago);
---   2. the avatar is teleported into the seat until the server sees it seated, next to the seat;
---   3. only then the car is released and RaceService starts the race (driver, NPC race, Speed gain).
--- The player attribute RaceEvent shows the step: "Teleporting" during 1-2, "Racing" from 3, "Off" on foot.
--- If the avatar can not be seated within SEAT_TIMEOUT the race never starts and the player is put back on foot.
--- Gives up (leaving cleanup to whoever bumped the generation) as soon as a newer request arrives.
--- Duel mode (duel = { Track, Slot, OnSeated }, docs/DUEL_SPEC.md): the car waits at the picked track's start and
--- stays held after step 2; OnSeated() is called and CarService.ReleaseDuel starts the race. Slot 2 waits
--- DUEL_SLOT_GAP studs to the left: two cars held on one spot let each seat take the other player's avatar.
+-- A start is one step (the runner has no seat to wait for): the runner is built at the start line (held there for a
+-- duel), the hidden avatar is welded to its Torso, and RaceService starts the run. RaceEvent goes "Racing".
+-- Duel mode (duel = { Track, Slot, OnSeated }, docs/DUEL_SPEC.md): the runner waits at the picked track's start;
+-- OnSeated() is called and CarService.ReleaseDuel starts the race. Slot 2 waits DUEL_SLOT_GAP studs to the left.
 local function spawnCar(player, character, gen, duel)
 	removeCar(player)
-	local humanoid = character:WaitForChild("Humanoid")
-	character:WaitForChild("HumanoidRootPart")
+	character:WaitForChild("Humanoid")
+	local root = character:WaitForChild("HumanoidRootPart")
 	if generation[player] ~= gen then
 		return
 	end
-	player:SetAttribute("RaceEvent", "Teleporting")
 	hideCharacter(character)
 
-	local index = 1
-	for i, p in Players:GetPlayers() do
-		if p == player then
-			index = i
-		end
-	end
-
-	-- 1. The car waits at the start line, held in place
-	local start = spawnCFrame(index)
+	local start = RaceService.TrackStartCFrame(RaceService.StartTrackFor(player)) or CarService.WalkSpawnCFrame()
 	if duel then
 		start = RaceService.TrackStartCFrame(duel.Track) * CFrame.new(-DUEL_SLOT_GAP * ((duel.Slot or 1) - 1), 0, 0)
-	elseif RaceService.StartTrackFor(player) > 1 then
-		start = RaceService.TrackStartCFrame(RaceService.StartTrackFor(player)) or start -- checkpoint (CHECKPOINT_SPEC)
 	end
-	local car = CarFactory.build(CarConfig)
-	if duel then
-		RaceService.SetCarGroup(car) -- the release puts both cars on the same lane
-		-- Held through the countdown with its driver seated: without this the client's CarController takes the car
-		-- for a manual one until the release (its R key would lift the car on that client only)
-		car:SetAttribute("AutoRace", true)
-	end
-	CarAppearance.Apply(car, player:GetAttribute("EquippedCar"), CarConfig)
+	local car = RunnerFactory.build(characterIdOf(player))
+	car.Name = "Runner_" .. tostring(player.Name)
+	RaceService.SetCarGroup(car)
+	car:SetAttribute("AutoRace", true)
 	VehicleEffects.Apply(car, player)
 	car:PivotTo(start)
-	local chassis = car.PrimaryPart
-	chassis.Anchored = true
+	car:SetAttribute("Owner", userIdOf(player) or 0) -- 0: a test's fake player (no client draws it)
+	CollectionService:AddTag(car, CarService.RUNNER_TAG)
 	car.Parent = Workspace
 	cars[player] = car
-	car:SetAttribute("Owner", userIdOf(player))
-	local seat = car:FindFirstChild("DriverSeat")
 
-	-- 2. Teleport the avatar into the seat until the server sees it there
-	local deadline = os.clock() + SEAT_TIMEOUT
-	while not seatedIn(humanoid, character, seat) do
-		if generation[player] ~= gen or cars[player] ~= car then
-			return
-		end
-		if os.clock() > deadline or humanoid.Health <= 0 then
-			-- Never seated: no race; back on foot in the spawn area
-			setState(player, false)
-			standUp(player, generation[player])
-			return
-		end
-		character:PivotTo(seat.CFrame * CFrame.new(0, 2, 0))
-		-- Teleport first, sit a frame later: a Stop right after the start cancels before any Sit. Sit is only asked
-		-- of a Humanoid that is in no seat and of a seat that can take it: repeated Sit calls that never weld can
-		-- leave Humanoid.SeatPart stuck, which nothing clears.
-		RunService.Heartbeat:Wait()
-		if generation[player] ~= gen or cars[player] ~= car then
-			return
-		end
-		if humanoid.SeatPart == nil and not seat.Disabled then
-			seat:Sit(humanoid)
-		end
-		task.wait(0.1)
-	end
-	if generation[player] ~= gen or cars[player] ~= car then
-		return
-	end
+	-- The hidden avatar rides inside the Torso: the camera and respawn keep working, nothing can push it
+	character:PivotTo(car.PrimaryPart.CFrame)
+	local weld = Instance.new("Weld")
+	weld.Name = "RunnerCarry"
+	weld.Part0 = car.PrimaryPart
+	weld.Part1 = root
+	weld.Parent = root
+	carryWelds[player] = weld
 
 	if duel then
-		car:PivotTo(start)
+		player:SetAttribute("RaceEvent", "Teleporting")
 		duel.OnSeated()
 		return
 	end
-
-	-- 3. Release the car at the start line and start the race
-	car:PivotTo(start)
-	chassis.Anchored = false
 	local run = RaceService.Attach(player, car)
 	runs[player] = run
-	if not run then
-		chassis:SetNetworkOwner(player) -- no race route: manual driving, the client steps the physics
-	end
 	player:SetAttribute("RaceEvent", "Racing")
 end
 
 -- Puts the avatar back on its feet at the walk spawn, visible and able to walk.
 function standUp(player, gen)
 	local character = characters[player]
-	-- Unseat before the car goes: removing the SeatWeld clears SeatPart now, not a physics step later
-	local car = cars[player]
-	local seat = car and car:FindFirstChild("DriverSeat")
-	local weld = seat and seat:FindFirstChild("SeatWeld")
-	if weld then
-		weld:Destroy()
-	end
-	local humanoid0 = character and character:FindFirstChildOfClass("Humanoid")
-	if humanoid0 then
-		unseat(humanoid0)
-	end
 	removeCar(player)
 	if not character or not character.Parent then
 		return
@@ -365,17 +278,9 @@ function standUp(player, gen)
 	showCharacter(character, player)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		unseat(humanoid)
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp) -- it was carried, not standing: stand up at once
 	end
 	placeAtWalkSpawn(player, character, gen)
-	-- The Humanoid clears SeatPart on its own step, which can lag a few frames under load: Stop returns only once
-	-- the avatar is really on foot (unless a newer request arrived meanwhile)
-	if humanoid then
-		local deadline = os.clock() + UNSEAT_TIMEOUT
-		while humanoid.SeatPart and os.clock() < deadline and generation[player] == gen do
-			RunService.Heartbeat:Wait()
-		end
-	end
 end
 
 local function isAlive(character)
@@ -471,6 +376,21 @@ function CarService.Teleport(player, cf)
 	return true
 end
 
+-- The equipped character changed (attribute EquippedCar): the live runner is re-skinned as that character in place
+-- (same model and distance, aura and trail kept) and its run takes the new cruise speed at once.
+function CarService.ApplyCharacter(player)
+	local car = cars[player]
+	if not (car and car.Parent) then
+		return
+	end
+	RunnerFactory.Restyle(car, characterIdOf(player))
+	VehicleEffects.Apply(car, player)
+	local run = runs[player]
+	if run and run.Refresh then
+		run:Refresh()
+	end
+end
+
 -- Releases a held duel car and starts its duel run (duel = { Track, OnFinish }). Returns the run, or nil.
 function CarService.ReleaseDuel(player, duel)
 	local car = cars[player]
@@ -478,7 +398,6 @@ function CarService.ReleaseDuel(player, duel)
 	if not (car and car.PrimaryPart and route and racing[player] == true) or runs[player] then
 		return nil
 	end
-	car.PrimaryPart.Anchored = false
 	local run = RaceService.NewRun(car, route, player, { Duel = duel })
 	runs[player] = run
 	player:SetAttribute("RaceEvent", "Racing")
@@ -579,11 +498,7 @@ function CarService.Start()
 	end
 	local function onPlayer(player)
 		player:GetAttributeChangedSignal("EquippedCar"):Connect(function()
-			local car = cars[player]
-			if car and car.Parent then
-				CarAppearance.Apply(car, player:GetAttribute("EquippedCar"), CarConfig)
-				VehicleEffects.Apply(car, player)
-			end
+			CarService.ApplyCharacter(player)
 		end)
 		for _, attribute in { "EquippedAura", "EquippedTrail" } do
 			player:GetAttributeChangedSignal(attribute):Connect(function()

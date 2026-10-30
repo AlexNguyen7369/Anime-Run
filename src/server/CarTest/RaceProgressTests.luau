@@ -496,7 +496,8 @@ function Tests.race_progress_map()
 	section("race_events", function()
 		local runService = game:GetService("RunService")
 		local raceService = require(server.RaceService)
-		local carFactory, carConfig = require(shared.CarFactory), require(shared.CarConfig)
+		-- the runner body (docs/WORLD_REDESIGN_SPEC.md section 2)
+		local runnerFactory, characters = require(shared.RunnerFactory), require(shared.CharacterCatalog)
 		local npc, npcConfig = require(shared.NpcRacer), require(shared.NpcConfig)
 		local points = {}
 		for i = 0, 4 do
@@ -526,7 +527,7 @@ function Tests.race_progress_map()
 			caseId += 1
 			local player = support.player(cleanup, 990088100 + caseId)
 			times.Apply(player, { RaceBestTimes = records or {} })
-			local car = carFactory.build(carConfig)
+			local car = runnerFactory.build(characters.All()[1].Id)
 			car.Name, car.Parent = "RaceProgressTestCar", player
 			local events, run = {}, nil
 			options = options or { Npc = true }
@@ -535,7 +536,9 @@ function Tests.race_progress_map()
 				if event.Type == "Result" and run then
 					-- The callback fires in PreSimulation: prevent a second physics frame.
 					run.Connection:Disconnect()
-					run.RailConnection:Disconnect()
+					if run.RailConnection then -- the car rail's second connection; a runner may have only one
+						run.RailConnection:Disconnect()
+					end
 				end
 			end
 			run = raceService.NewRun(car, route, player, options)
@@ -651,7 +654,9 @@ function Tests.race_progress_map()
 				OnFinish = function()
 					duelFinishes += 1
 					duel.Connection:Disconnect()
-					duel.RailConnection:Disconnect()
+					if duel.RailConnection then -- the IVS car rail had a second connection; the runner rail may not
+						duel.RailConnection:Disconnect()
+					end
 				end,
 			},
 		})

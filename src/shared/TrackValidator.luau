@@ -11,7 +11,7 @@ local MIN_LENGTH = 300
 local CLOSE_TOLERANCE = 3 -- studs
 local HEADING_TOLERANCE = math.rad(1)
 local WALL_CLEARANCE_PAD = 8 -- road width plus both walls and a little air
-local MAX_GRADE_DEG = 25 -- steepest slope the car can climb
+local MAX_GRADE_DEG = 25 -- steepest slope the runner can climb
 local MIN_LOOP_RADIUS = 25 -- the car is 13 studs long
 local MIN_END_STRAIGHT = 40 -- first and last segment: straight, so tracks join straight-into-straight
 local MIN_END_STRAIGHT_MARGIN = 4 -- the last straight is the checkpoint plus this much wall
@@ -61,7 +61,7 @@ function TrackValidator.Validate(spec, layout)
 			if seg.Radius < MIN_RADIUS then
 				table.insert(
 					issues,
-					("segment %d: radius %.0f is tighter than the car can take (min %d)"):format(
+					("segment %d: radius %.0f is tighter than the runner can take (min %d)"):format(
 						i,
 						seg.Radius,
 						MIN_RADIUS
@@ -87,7 +87,7 @@ function TrackValidator.Validate(spec, layout)
 			if grade > MAX_GRADE_DEG then
 				table.insert(
 					issues,
-					("segment %d: slope reaches %.1f degrees, the car can climb %d at most"):format(
+					("segment %d: slope reaches %.1f degrees, the runner can climb %d at most"):format(
 						i,
 						grade,
 						MAX_GRADE_DEG

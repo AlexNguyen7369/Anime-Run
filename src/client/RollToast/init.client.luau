@@ -57,7 +57,7 @@ end)
 local Components = require(Ui.RacerComponents)
 local rollRefs = require(Ui.RollShowcase).Bind(playerGui)
 rollRefs.Gui.Enabled = false
-rollRefs.PreviewCar.Visible = false
+rollRefs.PreviewRunner.Visible = false
 
 local function autoRaceBottom()
 	local hud = playerGui:FindFirstChild("RacerHud")
@@ -115,8 +115,8 @@ local function label(name, pos, size, parent, font)
 	}, parent)
 end
 
-local ART_POS = rollRefs.PreviewCar.Position
-local ART_SIZE = rollRefs.PreviewCar.Size
+local ART_POS = rollRefs.PreviewRunner.Position
+local ART_SIZE = rollRefs.PreviewRunner.Size
 
 -- Transparent edge masks work over any world background, without colored covers.
 local edgeMasks = setmetatable({}, { __mode = "k" })
@@ -274,17 +274,17 @@ local function buildBody(_parent, z)
 
 	-- Text column
 	local odds = rollRefs.ResultOdds
-	local carName = rollRefs.ResultName
+	local characterName = rollRefs.ResultName
 	local speedMulti = rollRefs.ResultSpeed
 	local rarity = rollRefs.ResultRarity
-	for _, text in ipairs({ odds, carName, speedMulti, rarity }) do
+	for _, text in ipairs({ odds, characterName, speedMulti, rarity }) do
 		text.TextScaled = true
 	end
 	odds.FontFace = ITALIC
-	carName.FontFace = BOLD
-	local nameStroke = carName:FindFirstChildOfClass("UIStroke")
+	characterName.FontFace = BOLD
+	local nameStroke = characterName:FindFirstChildOfClass("UIStroke")
 	if not nameStroke then
-		nameStroke = make("UIStroke", {}, carName)
+		nameStroke = make("UIStroke", {}, characterName)
 	end
 	nameStroke.Color = BLACK
 	nameStroke.Thickness = 3
@@ -306,7 +306,7 @@ local function buildBody(_parent, z)
 		}, body)
 		return alias
 	end
-	local aliasName = aliasText("CarName", carName)
+	local aliasName = aliasText("CharacterName", characterName)
 	local aliasSpeed = aliasText("SpeedMulti", speedMulti)
 	local aliasRarity = aliasText("Rarity", rarity)
 	local aliasOdds = aliasText("Odds", odds)
@@ -362,7 +362,7 @@ local function buildBody(_parent, z)
 		Placeholder = placeholder,
 		Flare = flare,
 		Odds = odds,
-		CarName = carName,
+		CharacterName = characterName,
 		SpeedMulti = speedMulti,
 		Rarity = rarity,
 		NewBadge = newBadge,
@@ -474,10 +474,10 @@ local function buildBare(parent, z)
 	}
 end
 
--- A 2D car icon in the rarity colour (the spin uses icons; the result uses the ViewportFrame)
+-- The character's runner rig (docs/WORLD_REDESIGN_SPEC.md section 1: no car icons) for the reel and the fly icon
 local function carTile(spec, parent, z)
 	local tile =
-		Components.CarArt(parent, "Tile_" .. spec.Id, spec.Id, UDim2.fromScale(-0.6, 0.55), UDim2.fromScale(0.96, 0.96))
+		Components.RunnerArt(parent, "Tile_" .. spec.Id, spec, UDim2.fromScale(-0.6, 0.55), UDim2.fromScale(0.96, 0.96))
 	tile.AnchorPoint = Vector2.new(0.5, 0.5)
 	tile.ZIndex = z
 	if parent.Name == "Reel" then
@@ -733,8 +733,8 @@ local function showModel(b, spec)
 			child:Destroy()
 		end
 	end
-	-- ROLL_ANIMATION_CONTRACT: the landed result is the car's model (CarModels[spec.Model]); "?" without one.
-	local shown = spec.Model ~= nil and Components.FillCarModel(b.Viewport, spec, spec.Model)
+	-- ROLL_ANIMATION_CONTRACT: the landed result is the character's model (spec.Model); "?" without one.
+	local shown = spec.Model ~= nil and Components.FillRunner(b.Viewport, spec, spec.Model)
 	b.Model = shown and b.Viewport:FindFirstChild(spec.Model) or nil
 	b.Placeholder.Visible = not shown
 	return shown
@@ -760,8 +760,8 @@ local function resetBody(b, roll)
 		b.Ring.Visible = false
 		b.Burst.Visible = false
 		b.Flare.Visible = false
-		b.CarName.Text = ""
-		b.CarName.TextColor3 = Color3.fromRGB(170, 180, 200)
+		b.CharacterName.Text = ""
+		b.CharacterName.TextColor3 = Color3.fromRGB(170, 180, 200)
 		b.SpeedMulti.Text = ""
 		b.Rarity.Text = ""
 		b.Aliases.Name.Text = ""
@@ -804,8 +804,8 @@ local function fillResult(b, roll)
 		Components.Tint(rollRefs.RollHeader, color)
 		b.Glow.BackgroundColor3 = color
 		b.GlowGradient.Color = ColorSequence.new(CARD_BG:Lerp(color, 0.15), CARD_BG)
-		b.CarName.Text = spec.Name
-		b.CarName.TextColor3 = WHITE
+		b.CharacterName.Text = spec.Name
+		b.CharacterName.TextColor3 = WHITE
 		b.SpeedMulti.Text = HudFormat.Multi(spec.SpeedMulti or 1) .. " SPEED"
 		b.Rarity.Text = spec.Rarity
 		b.Rarity.TextColor3 = textColor(spec)
@@ -821,7 +821,7 @@ local function fillResult(b, roll)
 		b.Aliases.Speed.Text = "Speed " .. HudFormat.Multi(spec.SpeedMulti or 1)
 		b.Aliases.Rarity.Text = spec.Rarity
 		b.Aliases.Odds.Text = b.Odds.Text
-		b.Aliases.Name.TextColor3 = b.CarName.TextColor3
+		b.Aliases.Name.TextColor3 = b.CharacterName.TextColor3
 		b.Aliases.Speed.TextColor3 = b.SpeedMulti.TextColor3
 		b.Aliases.Rarity.TextColor3 = b.Rarity.TextColor3
 		b.Aliases.Odds.TextColor3 = b.Odds.TextColor3
@@ -1300,8 +1300,8 @@ PanelSwitch.OnChange(refreshToast)
 -- Match the saved responsive card and the same large artwork on each device.
 local function fitRollArt()
 	for _, object in ipairs({ enlarged.Glow, enlarged.Ring, enlarged.Reel, enlarged.Viewport }) do
-		object.Position = rollRefs.PreviewCar.Position
-		object.Size = rollRefs.PreviewCar.Size
+		object.Position = rollRefs.PreviewRunner.Position
+		object.Size = rollRefs.PreviewRunner.Size
 	end
 end
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
@@ -1309,8 +1309,8 @@ workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(functio
 end)
 -- The generated fit also re-runs on its own (a delayed first fit, ScreenGui size changes): follow every change, so
 -- the car art never keeps the other variant's rect and spills out of the card.
-rollRefs.PreviewCar:GetPropertyChangedSignal("Position"):Connect(fitRollArt)
-rollRefs.PreviewCar:GetPropertyChangedSignal("Size"):Connect(fitRollArt)
+rollRefs.PreviewRunner:GetPropertyChangedSignal("Position"):Connect(fitRollArt)
+rollRefs.PreviewRunner:GetPropertyChangedSignal("Size"):Connect(fitRollArt)
 fitRollArt()
 autoButton.Font = Enum.Font.FredokaOne
 autoButton:FindFirstChildOfClass("UIStroke").Thickness = 3

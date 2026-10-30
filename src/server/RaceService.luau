@@ -1,11 +1,13 @@
 --!nonstrict
--- Auto race. The server drives every player's car with the real CarPhysics, steered by PathDriver along
--- the chain of tracks, and the rail holds it at exactly its cruise speed everywhere (no acceleration, no corner
--- slowing; design doc, owner 2026-10-20). While it drives, the player's Speed stat grows at a flat base rate
--- multiplied only by permanent Speed Gain upgrades and rebirths; the equipped car and actual car speed do not affect gain.
--- The cruise speed follows the stat. When the car passes a
--- winnings pad the pad pays the player (MoneyService.Collect); the car never has to touch the pad. After
--- the last finish the car is put back at the start of Track 1 and keeps racing.
+-- Auto race. The server moves every player's runner (the anchored rig from Shared/RunnerFactory) along the chain of
+-- tracks on a rail: its arc distance grows by exactly the cruise speed every frame (no acceleration, no corner
+-- slowing; design doc, owner 2026-10-20), and the rig is put at that point of the path, upright and facing along it
+-- (docs/WORLD_REDESIGN_SPEC.md section 2). No physics forces. The rig is the authoritative pose; for smooth drawing
+-- the run publishes RunRoute / RunDistance / RunSpeed on the model and every client interpolates the visible runner
+-- (Client/RunnerView; contract in Server/CarTest/RunnerTests). While it runs, the player's Speed stat grows at a
+-- flat base rate multiplied only by permanent Speed Gain upgrades and rebirths. The cruise speed follows the stat.
+-- When the runner passes a winnings pad the pad pays the player (MoneyService.Collect); the rig never has to touch
+-- the pad. After the last finish the runner is put back at the start of Track 1 and keeps running.
 --
 -- NPC races (options.Npc, on for players): every track is a race against that track's NPC (Shared/NpcConfig,
 -- Shared/NpcRacer). If the NPC reaches a checkpoint first, the player loses at that checkpoint and is immediately
@@ -20,10 +22,9 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local QuestService = require(script.Parent.QuestService)
-local CarConfig = require(Shared.CarConfig)
-local CarPhysics = require(Shared.CarPhysics)
 local PathDriver = require(Shared.PathDriver)
 local RaceConfig = require(Shared.RaceConfig)
+local RunnerFactory = require(Shared.RunnerFactory)
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
 local CheckpointConfig = require(Shared.CheckpointConfig)
@@ -39,20 +40,12 @@ local RaceTimeService = require(script.Parent.RaceTimeService)
 local RaceService = {}
 
 RaceService.COMMIT_INTERVAL = 0.25 -- seconds between writes of the gained Speed stat (replication is not per frame)
-RaceService.FLIP_UP_Y = 0.5 -- body up-vector Y below this counts as flipped...
-RaceService.FLIP_SECONDS = 0.4 -- ...after this long, and the car is put back upright on the path
-RaceService.START_AHEAD = 5 -- studs along the path from the road's first edge: all four wheels start on the road
-RaceService.RAIL_POS_GAIN = 20 -- 1/s: the rail steers the car back onto the path with velocity, not a teleport
-RaceService.RAIL_ROT_GAIN = 20 -- 1/s: same for heading (a teleport replicates as a jump and the client sees a stutter)
-RaceService.RAIL_MAX_ANGULAR_SPEED = 12 -- rad/s: prevent a large correction from violently spinning the chassis/wheels
-RaceService.RAIL_SNAP_DISTANCE = 3 -- studs off the rail before it falls back to a teleport (counted in run.RailSnaps)
-RaceService.RAIL_FALL_HEIGHT = 8 -- studs above the road before the car is put back on it (fast cars can crest
--- hills and leave the rail; the low side uses the ride-height margin below)
-RaceService.RAIL_LOW_MARGIN = 0.45 -- the chassis may settle below ride height by this much before a safe resnap
-local DEVIATION_GRACE = 3 -- seconds after the start before path deviation is measured (the car starts on the centre line)
-local DEVIATION_GRACE_STUDS = 30 -- ...or this far along it: a MAX_STAT car finishes the route in under 3 s
+RaceService.START_AHEAD = 5 -- studs along the path from the road's first edge where a run starts
+RaceService.PUBLISH_INTERVAL = 0.1 -- s between RunDistance / RunSpeed updates (contract: at most 0.25 s)
+local DEVIATION_GRACE = 3 -- seconds after the start before path deviation is measured
+local DEVIATION_GRACE_STUDS = 30 -- ...or this far along it: a MAX_STAT runner finishes the route in under 3 s
 
-local CAR_GROUP = "Cars"
+local RUNNER_GROUP = "Runners"
 
 local route = nil
 local npcRemote = nil -- Remotes.NpcRace, created by Start
@@ -100,9 +93,57 @@ end
 local function setCarGroup(car)
 	for _, part in car:GetDescendants() do
 		if part:IsA("BasePart") then
-			part.CollisionGroup = CAR_GROUP
+			part.CollisionGroup = RUNNER_GROUP
 		end
 	end
+end
+
+local arcs = setmetatable({}, { __mode = "k" }) -- path -> PathDriver.Arc of its waypoints
+local routeNames = setmetatable({}, { __mode = "k" }) -- path -> its folder name in ReplicatedStorage.RunRoutes
+local routeCount = 0
+
+local function arcOf(path)
+	local arc = arcs[path]
+	if not arc then
+		arc = PathDriver.Arc(path.WorldWaypoints)
+		arcs[path] = arc
+	end
+	return arc
+end
+
+-- The route a client interpolates along (contract RunRoute): a Folder in ReplicatedStorage.RunRoutes holding one
+-- Vector3Value per waypoint, named "1".."n" (attribute Count = n), built once per route before any run names it.
+-- shortcut: folders are never removed (one per route built; tests build a handful), add cleanup if routes churn.
+local function routeName(path)
+	local name = routeNames[path]
+	if name then
+		return name
+	end
+	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
+	if not root then
+		root = Instance.new("Folder")
+		root.Name = "RunRoutes"
+		root.Parent = ReplicatedStorage
+	end
+	routeCount += 1
+	name = "Route" .. routeCount
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	folder:SetAttribute("Count", #path.WorldWaypoints)
+	for i, p in path.WorldWaypoints do
+		local v = Instance.new("Vector3Value")
+		v.Name = tostring(i)
+		v.Value = p
+		v.Parent = folder
+	end
+	folder.Parent = root
+	routeNames[path] = name
+	return name
+end
+
+-- The rig's pivot (its Torso) for the feet pose `feet` on the path.
+local function rigCFrame(feet)
+	return feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
 end
 
 -- Starts driving `car` along `raceRoute` for `player`. Returns a run object; call run:Destroy() to stop.
@@ -114,19 +155,17 @@ end
 --          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
 function RaceService.NewRun(car, raceRoute, player, options)
 	options = options or {}
-	local chassis = car.PrimaryPart
-	pcall(function()
-		chassis:SetNetworkOwner(nil) -- the server owns the car
-	end)
 	car:SetAttribute("AutoRace", true)
 
 	PlayerData.Setup(player)
 	local stat = PlayerData.SpeedStat(player)
-	local physics = CarPhysics.new(car, CarConfig)
-	local driver = PathDriver.new(raceRoute.Path, CarConfig, {
-		TargetSpeed = RaceConfig.SpeedFor(stat, GachaService.CruiseMultis(player)),
-		NoFinalSlow = options.Loop,
-	})
+	local wps = raceRoute.Path.WorldWaypoints
+	local n = #wps
+	local arc = arcOf(raceRoute.Path)
+	-- Index: the waypoint nearest the runner along the path (n once past the last one); Done past the end.
+	-- Tests may set Index; the rail then moves the runner to that waypoint.
+	local driver =
+		{ Index = 1, Done = false, TargetSpeed = RaceConfig.SpeedFor(stat, GachaService.CruiseMultis(player)) }
 	local run = {
 		Car = car,
 		TargetSpeed = driver.TargetSpeed,
@@ -138,12 +177,11 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		Gained = 0,
 		MinUpY = 1,
 		MaxPathDeviation = 0,
-		FlipRecoveries = 0,
-		RailSnaps = 0, -- frames the rail had to teleport the car (each one is a visible jump on the client)
+		FlipRecoveries = 0, -- a rail runner cannot flip; kept for old callers
+		RailSnaps = 0, -- kept for old callers: the rail places the anchored rig every frame
 		OffTrackSeconds = 0,
 		Laps = 0,
 		Driver = driver,
-		Physics = physics,
 		RaceTrack = nil, -- number of the track being raced against its NPC
 		Results = {}, -- every Result event
 		Wins = 0,
@@ -170,15 +208,38 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local alive = true
 	local paid = {} -- pad entry -> already paid this pass
 	local pending, sinceCommit = 0, 0
-	local flippedFor, runTime = 0, 0
+	local runTime = 0
+	local dist, lastIndex, sincePublish = 0, 1, 0 -- arc position of the rig, Index it was put at, publish clock
+	local routeId = routeName(raceRoute.Path)
 
-	-- Where every run starts and where the car goes after the last finish or a lost race: the start of Track 1,
-	-- in the lane, START_AHEAD studs onto the road (the first waypoint is the road's very edge), facing down it
-	local wps = raceRoute.Path.WorldWaypoints
-	local firstDir = (wps[2] - wps[1]).Unit
-	local startPos = wps[1] + firstDir * RaceService.START_AHEAD + Vector3.new(0, CarConfig.RestHeight + 0.5, 0)
-	local startCF = CFrame.lookAt(startPos, startPos + Vector3.new(firstDir.X, 0, firstDir.Z))
-	physics:Reset(startCF)
+	-- The nearer end of segment k to the runner (the IVS driver's nearest-waypoint Index)
+	local function nearestIndex(k)
+		return dist - arc[k] < arc[k + 1] - dist and k or k + 1
+	end
+	-- Puts the rig at its arc position, upright and facing along the path. Returns the segment index.
+	local function place()
+		local feet, k = PathDriver.PoseAt(wps, arc, dist, driver.Index)
+		car:PivotTo(rigCFrame(feet))
+		return k
+	end
+	-- What clients interpolate the visible runner from (contract in Server/CarTest/RunnerTests)
+	local function publish()
+		sincePublish = 0
+		car:SetAttribute("RunRoute", routeId)
+		car:SetAttribute("RunSpeed", run.Finished and 0 or run.TargetSpeed)
+		car:SetAttribute("RunDistance", dist)
+	end
+	-- Puts the runner `ahead` studs past waypoint `index` (a start, restart or jump; clients snap there).
+	local function moveTo(index, ahead)
+		dist = math.min(arc[math.clamp(index, 1, n)] + ahead, arc[n])
+		driver.Index = nearestIndex(PathDriver.SegmentAt(arc, dist, index))
+		driver.Done = false
+		lastIndex = driver.Index
+		place()
+		publish()
+	end
+	-- Every run starts START_AHEAD studs onto the road of Track 1 (the first waypoint is the road's very edge)
+	moveTo(1, RaceService.START_AHEAD)
 
 	local function setUnbanked(_amount)
 		run.Unbanked = 0
@@ -226,9 +287,8 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 
 	local function backToStart()
-		driver.Index, driver.Done = 1, false
 		paid = {}
-		physics:Reset(startCF)
+		moveTo(1, RaceService.START_AHEAD)
 	end
 
 	-- Starts the run's start track again (Track 1 in place, a checkpoint by a jump that also resets the car).
@@ -317,147 +377,17 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 
-	-- Distance from the car to the route: the nearer of the two segments around the driver's waypoint
+	-- Distance from the rig's feet to the route: the nearer of the two segments around its segment
 	local function pathDeviation()
-		local pos = chassis.Position
+		local pos = car.PrimaryPart.Position - Vector3.new(0, RunnerFactory.HIP_HEIGHT, 0)
 		local best = math.huge
-		for k = math.max(driver.Index - 1, 1), math.min(driver.Index, #wps - 1) do
+		for k = math.max(driver.Index - 1, 1), math.min(driver.Index, n - 1) do
 			local a, b = wps[k], wps[k + 1]
 			local ab = b - a
 			local t = math.clamp((pos - a):Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
 			best = math.min(best, (pos - (a + ab * t)).Magnitude)
 		end
 		return best
-	end
-
-	-- Auto-race is a server-authoritative rail. Steering/friction alone lets
-	-- lateral momentum leave the authored route at high speed, so project the
-	-- chassis onto the nearest path segment every step and cancel lateral speed.
-	-- The rail itself is a cubic Hermite curve through the waypoints (tangent at a
-	-- waypoint = direction between its neighbours): on the raw polyline the heading
-	-- would snap ~6 degrees at every waypoint of a corner.
-	local function tangentAt(k)
-		return (wps[math.min(k + 1, #wps)] - wps[math.max(k - 1, 1)]).Unit
-	end
-	-- The point `dist` studs further along the waypoint polyline from segment k at fraction t.
-	local function pointAhead(k, t, dist)
-		local p = wps[k] + (wps[k + 1] - wps[k]) * t
-		while k < #wps do
-			local step = wps[k + 1] - p
-			if step.Magnitude >= dist then
-				return p + step.Unit * dist
-			end
-			dist -= step.Magnitude
-			p = wps[k + 1]
-			k += 1
-		end
-		return p
-	end
-	local function constrainToPath(dt)
-		local index = math.clamp(driver.Index, 1, #wps - 1)
-		local first = math.max(1, index - 2)
-		local last = math.min(#wps - 1, index + 2)
-		local bestK, bestT, bestDistance = nil, 0, math.huge
-		for k = first, last do
-			local a, b = wps[k], wps[k + 1]
-			local ab = b - a
-			local t = math.clamp((chassis.Position - a):Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
-			local distance = (chassis.Position - (a + ab * t)).Magnitude
-			if distance < bestDistance then
-				bestK, bestT, bestDistance = k, t, distance
-			end
-		end
-		if not bestK then
-			return
-		end
-		local a, b, t = wps[bestK], wps[bestK + 1], bestT
-		local ta, tb = tangentAt(bestK) * (b - a).Magnitude, tangentAt(bestK + 1) * (b - a).Magnitude
-		local t2, t3 = t * t, t * t * t
-		local bestPoint = a * (2 * t3 - 3 * t2 + 1) + ta * (t3 - 2 * t2 + t) + b * (3 * t2 - 2 * t3) + tb * (t3 - t2)
-		local bestDir = (
-			a * (6 * t2 - 6 * t)
-			+ ta * (3 * t2 - 4 * t + 1)
-			+ b * (6 * t - 6 * t2)
-			+ tb * (3 * t2 - 2 * t)
-		).Unit
-		local height = chassis.Position.Y - bestPoint.Y
-		local railed = not physics.LoopAssist and not run.Finished
-		local fell = railed and (height < -2 or height > RaceService.RAIL_FALL_HEIGHT)
-		-- A shallow sink is lifted back to ride height with velocity (a teleport is a visible jump on the client)
-		local sunk = railed and not fell and height < CarConfig.RestHeight - RaceService.RAIL_LOW_MARGIN
-		local position = bestPoint
-			+ Vector3.new(0, fell and CarConfig.RestHeight + 0.5 or sunk and CarConfig.RestHeight or height, 0)
-		-- One steady speed (design doc, owner 2026-10-20): the rail holds the cruise speed everywhere, from the first
-		-- frame, with no acceleration or corner slowing. Past the last finish the car rolls out on its physics.
-		local forwardSpeed = run.Finished and math.max(0, chassis.AssemblyLinearVelocity:Dot(bestDir))
-			or run.TargetSpeed
-		-- Measured BEFORE the correction, or the rail would hide every tilt and flip from the stability rules.
-		local up = chassis.CFrame.UpVector.Y
-		if not physics.LoopAssist and not run.Finished then
-			run.MinUpY = math.min(run.MinUpY, up)
-			if up < RaceService.FLIP_UP_Y then
-				run.FlipRecoveries += 1 -- the rail rights a flipped car at once: still a recovery
-			end
-		end
-		local target = CFrame.lookAt(position, position + bestDir)
-		local offset = position - chassis.Position
-		-- Sideways only: an along-track part would be fed back as forward speed every frame and run away
-		offset -= bestDir * offset:Dot(bestDir)
-		if fell or offset.Magnitude > RaceService.RAIL_SNAP_DISTANCE or up < RaceService.FLIP_UP_Y then
-			car:PivotTo(target)
-			chassis.AssemblyLinearVelocity = bestDir * forwardSpeed
-			chassis.AssemblyAngularVelocity = Vector3.zero
-			run.RailSnaps += 1
-			return
-		end
-		-- Steer onto the rail with velocity: physics moves the car, so the client interpolates it smoothly
-		local axis, angle = (target.Rotation * chassis.CFrame.Rotation:Inverse()):ToAxisAngle()
-		-- Travel along the chord to where the path is one step ahead: a fast car moving along the tangent would
-		-- leave a corner by speed^2 * dt^2 / 2R every step and need a snap back (RailSnaps at MAX_STAT speed)
-		local moveDir = bestDir
-		local lead = forwardSpeed * (dt or 0)
-		if lead > 1 then
-			local chord = pointAhead(bestK, bestT, lead) - (a + (b - a) * bestT)
-			if chord.Magnitude > 1e-3 then
-				moveDir = chord.Unit
-			end
-		end
-		chassis.AssemblyLinearVelocity = moveDir * forwardSpeed + offset * RaceService.RAIL_POS_GAIN
-		-- Feed-forward: turn at the path's own rate (speed x curvature), so the capped correction only handles the
-		-- remaining heading error and a fast car never lags behind a corner
-		local ua, ub = tangentAt(bestK), tangentAt(bestK + 1)
-		local turnAxis = ua:Cross(ub)
-		local pathSpin = Vector3.zero
-		if turnAxis.Magnitude > 1e-6 then
-			pathSpin = turnAxis.Unit
-				* forwardSpeed
-				* math.acos(math.clamp(ua:Dot(ub), -1, 1))
-				/ math.max((b - a).Magnitude, 1e-3)
-		end
-		chassis.AssemblyAngularVelocity = pathSpin
-			+ axis * math.min(angle * RaceService.RAIL_ROT_GAIN, RaceService.RAIL_MAX_ANGULAR_SPEED)
-	end
-
-	-- A flipped car is put back upright on the path, facing along it
-	local function recoverIfFlipped(dt)
-		local up = chassis.CFrame.UpVector.Y
-		-- Stability is measured from the start to the last checkpoint: not while the car rolls out past the end
-		if not physics.LoopAssist and not run.Finished then
-			run.MinUpY = math.min(run.MinUpY, up)
-		end
-		if up < RaceService.FLIP_UP_Y and not physics.LoopAssist then
-			flippedFor += dt
-		else
-			flippedFor = 0
-		end
-		if flippedFor >= RaceService.FLIP_SECONDS then
-			flippedFor = 0
-			local i = math.clamp(driver.Index, 1, #wps - 1)
-			local pos = wps[i] + Vector3.new(0, CarConfig.RestHeight + 0.5, 0)
-			local ahead = wps[i + 1]
-			physics:Reset(CFrame.lookAt(pos, Vector3.new(ahead.X, pos.Y, ahead.Z)))
-			run.FlipRecoveries += 1
-		end
 	end
 
 	local function commitStat()
@@ -473,6 +403,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		stat = PlayerData.SpeedStat(player) -- the source of truth (also picks up a load finishing)
 		run.TargetSpeed = RaceConfig.SpeedFor(stat, GachaService.CruiseMultis(player))
 		driver.TargetSpeed = run.TargetSpeed
+	end
+
+	-- The equipped character changed mid-run (CarService.ApplyCharacter): its cruise applies at once, clients hear now
+	function run:Refresh()
+		commitStat()
+		publish()
 	end
 
 	if npcMode and startIndex == 1 then
@@ -496,19 +432,15 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		if not index then
 			return false
 		end
-		local s = math.clamp(raceRoute.Tracks[index].StartIndex, 1, #wps - 1)
-		local dir = (wps[s + 1] - wps[s]).Unit
-		local pos = wps[s] + dir * RaceService.START_AHEAD + Vector3.new(0, CarConfig.RestHeight + 0.5, 0)
-		physics:Reset(CFrame.lookAt(pos, pos + Vector3.new(dir.X, 0, dir.Z)))
-		driver.Index, driver.Done = s, false
+		local s = math.clamp(raceRoute.Tracks[index].StartIndex, 1, n - 1)
+		run.Finished = false
+		moveTo(s, RaceService.START_AHEAD)
 		paid = {}
 		for _, entry in raceRoute.Pads do
 			if entry.Index < s then
 				paid[entry] = true
 			end
 		end
-		flippedFor = 0
-		run.Finished = false
 		if npcMode then
 			race = nil
 			startRace(index)
@@ -528,19 +460,29 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
 	end
 
-	run.Connection = RunService.PreSimulation:Connect(function(dt)
+	local lastTick = os.clock()
+	run.Connection = RunService.PreSimulation:Connect(function()
 		if not car.Parent then
 			run:Destroy()
 			return
 		end
-		local control = driver:Control(chassis, dt)
-		if not run.Finished then
-			-- the rail sets the speed; the driver's corner braking would only fight it inside the step
-			control.Throttle, control.Brake, control.TargetSpeed = 1, 0, run.TargetSpeed
+		-- Rail, race clock and gain run on wall-clock time: after a server hitch the engine's step dt is capped
+		local now = os.clock()
+		local railDt = now - lastTick
+		lastTick = now
+		-- The rail: a test or admin that set driver.Index moves the runner there; then exactly cruise x time along it
+		if driver.Index ~= lastIndex then
+			dist = arc[math.clamp(driver.Index, 1, n)]
 		end
-		physics:Step(control, dt)
-		run.OffTrackSeconds = driver.OffTrackSeconds
-		runTime += dt
+		if not run.Finished then
+			dist = math.min(dist + run.TargetSpeed * railDt, arc[n])
+		end
+		local k = place()
+		driver.Done = dist >= arc[n]
+		driver.Index = driver.Done and n or nearestIndex(k)
+		lastIndex = driver.Index
+		run.MinUpY = math.min(run.MinUpY, car.PrimaryPart.CFrame.UpVector.Y)
+		runTime += railDt
 		if npcMode then
 			if race then
 				local track = raceRoute.Tracks[race.Index]
@@ -564,7 +506,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		else
 			payPads()
 		end
-		recoverIfFlipped(dt)
 		if (runTime > DEVIATION_GRACE or runTime * run.TargetSpeed > DEVIATION_GRACE_STUDS) and not run.Finished then -- past the last finish there is no path to follow
 			run.MaxPathDeviation = math.max(run.MaxPathDeviation, pathDeviation())
 		end
@@ -572,9 +513,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		-- Passive gain is a flat rate x permanent Speed-gain upgrades and rebirths; neither the car,
 		-- cruise speed, Speed stat, nor temporary boosts changes it.
 		local gainMulti = GachaService.SpeedMulti(player)
-		pending += RaceConfig.GainPerSecond(stat, chassis.AssemblyLinearVelocity.Magnitude) * gainMulti * dt
-		LevelService.Tick(player, dt, gainMulti)
-		sinceCommit += dt
+		pending += RaceConfig.GainPerSecond(stat, run.Finished and 0 or run.TargetSpeed) * gainMulti * railDt
+		LevelService.Tick(player, railDt, gainMulti)
+		sinceCommit += railDt
 		if sinceCommit >= RaceService.COMMIT_INTERVAL then
 			sinceCommit = 0
 			commitStat()
@@ -584,19 +525,14 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			run.Finished = true
 			run.Laps += 1
 			if options.Loop then
-				driver.Index, driver.Done = 1, false
-				paid = {}
-				physics:Reset(startCF)
 				run.Finished = false
+				backToStart()
 			end
 		end
-	end)
 
-	-- The rail is applied AFTER the physics step, so the pose that replicates is always on the rail (applied
-	-- before it, every frame would show one step of free steering/tyre yaw that the next frame snaps back).
-	run.RailConnection = RunService.PostSimulation:Connect(function(dt)
-		if car.Parent then
-			constrainToPath(dt)
+		sincePublish += railDt
+		if sincePublish >= RaceService.PUBLISH_INTERVAL or run.Finished ~= (car:GetAttribute("RunSpeed") == 0) then
+			publish()
 		end
 	end)
 
@@ -616,10 +552,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				emit({ Type = "Stop" })
 			end
 		end
-		if self.RailConnection then
-			self.RailConnection:Disconnect()
-			self.RailConnection = nil
-		end
 		if self.Connection then
 			self.Connection:Disconnect()
 			self.Connection = nil
@@ -631,15 +563,14 @@ end
 
 RaceService.SetCarGroup = setCarGroup
 
--- Where a car starts track `number` of the live route (START_AHEAD in, in the lane, facing along the path), or nil.
+-- Where a runner (its Torso) starts track `number` of the live route (START_AHEAD in, in the lane, facing along the path), or nil.
 function RaceService.TrackStartCFrame(number)
 	for _, track in route and route.Tracks or {} do
 		if track.Number == number then
 			local wps = route.Path.WorldWaypoints
+			local arc = arcOf(route.Path)
 			local s = math.clamp(track.StartIndex, 1, #wps - 1)
-			local dir = (wps[s + 1] - wps[s]).Unit
-			local pos = wps[s] + dir * RaceService.START_AHEAD + Vector3.new(0, CarConfig.RestHeight + 0.5, 0)
-			return CFrame.lookAt(pos, pos + Vector3.new(dir.X, 0, dir.Z))
+			return rigCFrame((PathDriver.PoseAt(wps, arc, arc[s] + RaceService.START_AHEAD, s)))
 		end
 	end
 	return nil
@@ -681,10 +612,10 @@ function RaceService.Start(newRoute)
 		npcRemote.Parent = remotes
 	end
 	pcall(function()
-		PhysicsService:RegisterCollisionGroup(CAR_GROUP)
+		PhysicsService:RegisterCollisionGroup(RUNNER_GROUP)
 	end)
 	pcall(function()
-		PhysicsService:CollisionGroupSetCollidable(CAR_GROUP, CAR_GROUP, false) -- overlapping spawns can not shove each other
+		PhysicsService:CollisionGroupSetCollidable(RUNNER_GROUP, RUNNER_GROUP, false) -- players pass through each other
 	end)
 end
 

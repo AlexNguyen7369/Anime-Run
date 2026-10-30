@@ -8,18 +8,19 @@ local TextService = game:GetService("TextService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcRacer = require(Shared.NpcRacer)
 local NpcConfig = require(Shared.NpcConfig)
-local CarConfig = require(Shared.CarConfig)
+local RunnerFactory = require(Shared.RunnerFactory)
 local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
 local RouteMath = require(Shared.RaceProgressMap)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent.UiMotion)
+local RunnerVisual = require(script.Parent.RunnerVisual)
 
 local Controller = {}
 local tracks = {}
 local entries
 local headshot
-local UP = Vector3.new(0, CarConfig.RestHeight, 0)
+local UP = Vector3.new(0, RunnerFactory.HIP_HEIGHT, 0)
 local FLAT = Vector3.new(1, 0, 1)
 local VIEW_SPAN = 260
 local VIEW_MARGIN = 0.15 -- route kept this far (view fraction) outside the canvas; the edge fade hides it
@@ -488,10 +489,7 @@ function Controller.Attach(hud, player, remote)
 		RunService.RenderStepped:Connect(function()
 			fit()
 			if state then
-				local character = player.Character
-				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-				local seat = humanoid and humanoid.SeatPart
-				local car = seat and seat:FindFirstAncestorOfClass("Model")
+				local car = RunnerVisual.LocalRunner()
 				local position = car and car:GetAttribute("AutoRace") and car:GetPivot().Position or nil
 				local heading = car and car:GetPivot().LookVector or nil
 				self.Update(math.max(0, workspace:GetServerTimeNow() - state.ServerStart), position, heading)

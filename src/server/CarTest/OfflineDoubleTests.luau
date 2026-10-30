@@ -22,6 +22,9 @@ local LATE_AMOUNT = 321
 local SHORT_WINDOW = 0.5
 local WINDOW_WAIT = 1.2
 local EPS = 1e-6
+-- Known Speed for the whole scenario: the tester's save can hold ~1e20, where adding AMOUNT is lost to float
+-- precision. The real value comes back in restore (plus anything racing added meanwhile).
+local BASELINE_SPEED = 1000
 
 local function module(parent, name)
 	local source = parent:FindFirstChild(name)
@@ -117,6 +120,12 @@ function Tests.offline_double()
 	local realShop = shop.Snapshot(rp)
 	local speed = playerData.Setup(rp)
 	local netAdded = 0 -- Speed this test added and kept; removed again in restore (racing may add Speed meanwhile)
+	local realSpeed = speed and speed.Value
+	-- a fake store while Speed holds the baseline, so no autosave can write it over the tester's real save
+	playerData.SetStore(require(script.Parent.AcceptanceSupport).store({}))
+	if speed then
+		speed.Value = BASELINE_SPEED
+	end
 
 	local function restore()
 		pcall(shop.SetSave, nil)
@@ -130,8 +139,9 @@ function Tests.offline_double()
 		rp:SetAttribute("OfflineDoubleOpen", realOpen)
 		rp:SetAttribute("OfflineDoubled", realDoubled)
 		if speed then
-			speed.Value = math.max(0, speed.Value - netAdded)
+			speed.Value = realSpeed + math.max(0, speed.Value - BASELINE_SPEED - netAdded)
 		end
+		playerData.SetStore(nil) -- back to the real DataStore (fetched again on the next save)
 	end
 
 	local ok, err = pcall(function()

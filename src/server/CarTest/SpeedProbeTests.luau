@@ -55,8 +55,9 @@ end
 local function speedProbe()
 	local report, flag = H.report("speed_probe")
 	local PT = require(Shared.PhysicsTargets)
-	local CarConfig = require(Shared.CarConfig)
-	local CarFactory = require(Shared.CarFactory)
+	-- the runner body (docs/WORLD_REDESIGN_SPEC.md section 2)
+	local RunnerFactory = require(Shared.RunnerFactory)
+	local CharacterCatalog = require(Shared.CharacterCatalog)
 	local TrackBuilder = require(Shared.TrackBuilder)
 	local TrackRegistry = require(Shared.TrackRegistry)
 	local RaceConfig = H.module(Shared, "RaceConfig")
@@ -115,14 +116,14 @@ local function speedProbe()
 			trackOf[i] = t
 		end
 	end
-	local startCF = models[1].Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+	local startCF = models[1].Start.CFrame + Vector3.new(0, 3, 0) -- start pose only: RaceService places the rig
 
 	local function drive(speed)
 		local st = { ok = false, flips = 0, minUpY = 1, maxDev = 0, finished = false, tracks = {} }
 		for t, track in route.Tracks do
 			st.tracks[t] = { number = track.Number, flips = 0, minUpY = 1, maxDev = 0, samples = 0 }
 		end
-		local car = CarFactory.build(CarConfig)
+		local car = RunnerFactory.build(CharacterCatalog.All()[1].Id)
 		car.Name = "CarTestProbeCar"
 		car:PivotTo(startCF)
 		car.Parent = Workspace
@@ -143,6 +144,7 @@ local function speedProbe()
 		st.initialTarget = run.TargetSpeed
 		st.ok = type(run.TargetSpeed) == "number" and math.abs(run.TargetSpeed - speed) <= 0.01
 		local chassis = car.PrimaryPart
+		local prev = chassis.Position -- the anchored rig has no velocity: distance is measured from its moves
 		local idx, best, dist, t, idle = 1, 1, 0, 0, 0
 		local flippedFor, wasFlipped = 0, false
 		local timeout = totalLen / speed + TIMEOUT_MARGIN
@@ -150,7 +152,8 @@ local function speedProbe()
 			local dt = RunService.Heartbeat:Wait()
 			t += dt
 			local pos = chassis.Position
-			dist += chassis.AssemblyLinearVelocity.Magnitude * dt
+			dist += (pos - prev).Magnitude
+			prev = pos
 			local d, seg = nearestOnPolyline(wps, pos, math.max(idx - 3, 1), math.min(idx + 25, n - 1))
 			if d > RESYNC then
 				d, seg = nearestOnPolyline(wps, pos, 1, n - 1)
@@ -163,11 +166,10 @@ local function speedProbe()
 			end
 			local tr = st.tracks[trackOf[idx]]
 			local up = chassis.CFrame.UpVector.Y
-			if not (run.Physics and run.Physics.LoopAssist) then -- upside down inside a loop is intended
-				st.minUpY = math.min(st.minUpY, up)
-				tr.minUpY = math.min(tr.minUpY, up)
-			end
-			if up < flipUp and not (run.Physics and run.Physics.LoopAssist) then
+			-- no loop exemption: the runner is upright on every track (docs/WORLD_REDESIGN_SPEC.md section 7)
+			st.minUpY = math.min(st.minUpY, up)
+			tr.minUpY = math.min(tr.minUpY, up)
+			if up < flipUp then
 				flippedFor += dt
 				if not wasFlipped and flippedFor > 1 then
 					st.flips += 1
@@ -191,7 +193,6 @@ local function speedProbe()
 		end
 		st.finished = run.Finished == true
 		st.elapsed = t
-		st.recoveries = run.FlipRecoveries
 		st.runMinUpY = run.MinUpY
 		st.runMaxDev = run.MaxPathDeviation
 		pcall(function()
@@ -252,7 +253,6 @@ local function speedProbe()
 			maxDev = round(st.maxDev),
 			finished = st.finished,
 			green = green,
-			recoveries = st.recoveries,
 			runMinUpY = type(st.runMinUpY) == "number" and round(st.runMinUpY) or nil,
 			runMaxDev = type(st.runMaxDev) == "number" and round(st.runMaxDev) or nil,
 			elapsed = st.elapsed and round(st.elapsed) or nil,

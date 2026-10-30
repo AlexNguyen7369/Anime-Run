@@ -8,18 +8,84 @@ local Workspace = game:GetService("Workspace")
 local CollectionService = game:GetService("CollectionService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarConfig = require(Shared.CarConfig)
-local CarFactory = require(Shared.CarFactory)
-local CarPhysics = require(Shared.CarPhysics)
+-- The runner body (docs/WORLD_REDESIGN_SPEC.md section 2): the anchored rig RaceService drives, as CarFactory.build
+-- was. Required lazily so a missing RunnerFactory fails only the scenarios that race, not the whole file.
+local Runner = {
+	LIFT = 3, -- studs above a Start part: the start pose only; RaceService puts the rig on the path
+	TELEPORT_STEP = 60, -- studs: a single-frame step longer than this is a restart / loop, not running
+	WINDOW = 0.2, -- s: the anchored rig has no velocity, so speed is distance moved over at least this long
+}
+function Runner.new()
+	return require(Shared.RunnerFactory).build(require(Shared.CharacterCatalog).All()[1].Id)
+end
+-- Speed meter for an anchored rig: feed it the rig position every frame; returns the speed over the last WINDOW s
+-- (a single-frame dt jitter can not fail a cap). Steps > TELEPORT_STEP are skipped when skipTeleports is set.
+function Runner.meter(pos0, skipTeleports)
+	local prev, hist = pos0, {}
+	return function(pos, dt)
+		local step = prev and (pos - prev).Magnitude or 0
+		prev = pos
+		if skipTeleports and step > Runner.TELEPORT_STEP then
+			step = 0
+		end
+		table.insert(hist, { step, dt })
+		local d, t = 0, 0
+		for i = #hist, 1, -1 do
+			d += hist[i][1]
+			t += hist[i][2]
+			if t >= Runner.WINDOW then
+				for _ = 1, i - 1 do
+					table.remove(hist, 1)
+				end
+				break
+			end
+		end
+		return t > 0 and d / t or 0, step
+	end
+end
+-- Every BasePart of the rig is Anchored (spec section 2: the server rig is anchored and authoritative).
+function Runner.anchored(model)
+	local any = false
+	for _, d in model and model:GetDescendants() or {} do
+		if d:IsA("BasePart") then
+			any = true
+			if not d.Anchored then
+				return false
+			end
+		end
+	end
+	return any
+end
+-- A player's runner in the world: a Model with the Owner attribute CarService sets and a Torso.
+function Runner.isRunner(m)
+	return m:IsA("Model") and m:GetAttribute("Owner") ~= nil and m:FindFirstChild("Torso", true) ~= nil
+end
+-- The hidden avatar keeps its Humanoid for camera and respawn (spec section 2) and, given `runner`, is carried with it:
+-- HumanoidRootPart within CARRIED studs of the runner's PrimaryPart (docs/WORLD_REDESIGN_SPEC.md section 2, owner
+-- 2026-10-29: the hidden avatar is welded inside the runner's Torso; the Humanoid stays).
+Runner.CARRIED = 10
+function Runner.humanoidKept(character, humanoid, runner)
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local carried = runner == nil
+		or (
+			root ~= nil
+			and runner.PrimaryPart ~= nil
+			and (root.Position - runner.PrimaryPart.Position).Magnitude <= Runner.CARRIED
+		)
+	return character ~= nil
+		and character.Parent ~= nil
+		and humanoid ~= nil
+		and humanoid.Parent == character
+		and humanoid.Health > 0
+		and carried
+end
 local PhysicsTargets = require(Shared.PhysicsTargets)
 local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
 local TrackValidator = require(Shared.TrackValidator)
-local Bot = require(script.Parent.Bot)
 
 local Scenarios = {}
 
-local TEST_ORIGIN = Vector3.new(20000, 0, 20000)
 local LAP_ORIGIN = Vector3.new(20000, 0, -20000)
 
 -- Payout and price curves (owner 2026-10-27, design doc "payout and price curves", Shared/PayoutCurve). Literal
@@ -56,51 +122,6 @@ local function check(list, name, value, limit, ok)
 	table.insert(list, { name = name, value = round(value), limit = limit, pass = ok })
 end
 
-local function tiltDeg(chassis)
-	return math.deg(math.acos(math.clamp(chassis.CFrame.UpVector.Y, -1, 1)))
-end
-
-local function newFlatGround()
-	local ground = Instance.new("Part")
-	ground.Name = "CarTestGround"
-	ground.Anchored = true
-	ground.Size = Vector3.new(6000, 2, 6000)
-	ground.CFrame = CFrame.new(TEST_ORIGIN + Vector3.new(0, -1, 0))
-	ground.Material = Enum.Material.Concrete
-	ground.Parent = Workspace
-	return ground
-end
-
--- A driven car: spawned, physics stepped every PreSimulation, input mutated by the scenario.
-local function newRig(cframe)
-	local model = CarFactory.build(CarConfig)
-	model:PivotTo(cframe)
-	model.Name = "CarTestRig"
-	model.Parent = Workspace
-	model.PrimaryPart:SetNetworkOwner(nil)
-	local physics = CarPhysics.new(model, CarConfig)
-	local rig = {
-		Model = model,
-		Chassis = model.PrimaryPart,
-		Physics = physics,
-		Input = { Throttle = 0, Steer = 0, Brake = 0, Handbrake = false },
-	}
-	rig.Connection = RunService.PreSimulation:Connect(function(dt)
-		if rig.Driver then
-			rig.Input = rig.Driver(dt)
-		end
-		physics:Step(rig.Input, dt)
-	end)
-	function rig:Destroy()
-		self.Connection:Disconnect()
-		self.Model:Destroy()
-	end
-	return rig
-end
-
-local MAX_NO_PROGRESS = 8 -- seconds without new waypoint progress before a lap is abandoned
-local NO_PROGRESS_GRACE = 3 -- seconds at the start of a lap where a slow launch is allowed
-
 local function frames(seconds, each)
 	local t = 0
 	while t < seconds do
@@ -119,319 +140,6 @@ local function result(name, checks, metrics)
 		pass = pass and c.pass
 	end
 	return { scenario = name, pass = pass, checks = checks, metrics = metrics }
-end
-
-local function spawnPose()
-	return CFrame.new(TEST_ORIGIN + Vector3.new(0, CarConfig.RestHeight + 0.5, 0))
-end
-
--- static_settle: a parked car must come to rest and STAY at rest. One instant sample at 3 s caught the
--- vertical jitter only ~1 in 3 cold starts, so every drop is now watched frame by frame for a long hold
--- window, from several fresh drops (new rig each time, different deterministic drop heights so the
--- contact phase differs), and the last drop runs with short server stalls like a busy cold start.
-local SETTLE_DROP_HEIGHTS = { 0, 0.25, 0.5, 1 } -- extra studs above the normal spawn pose, per drop
-local SETTLE_SECONDS = 3 -- the original settle time; the instant checks are taken here
-local SETTLE_HOLD_SECONDS = 6 -- then the parked car is sampled every frame for this long
-local SETTLE_HITCH_EVERY = 0.5 -- hitch drop: a server stall every this many seconds of the hold
-local SETTLE_HITCH_MS = 20 -- length of each stall (below CarPhysics' 1/30 s dt clamp)
-
-local function settleDrop(T, height, hitch)
-	local rig = newRig(spawnPose() + Vector3.new(0, height, 0))
-	frames(SETTLE_SECONDS)
-	local d = { height = height, hitch = hitch }
-	d.speed = rig.Chassis.AssemblyLinearVelocity.Magnitude
-	d.minC, d.maxC = math.huge, 0
-	for _, w in rig.Physics.Wheels do
-		local comp = (CarConfig.SuspensionRest - w.SpringLen) / CarConfig.SuspensionRest
-		d.minC, d.maxC = math.min(d.minC, comp), math.max(d.maxC, comp)
-	end
-	d.tilt = tiltDeg(rig.Chassis)
-	-- Hold: peak speed, peak |vy|, chassis Y range, worst tilt, every Heartbeat
-	local peakSpeed, peakVy, worstTilt = 0, 0, d.tilt
-	local minY, maxY = math.huge, -math.huge
-	local kicks, nextHitch, spin = 0, SETTLE_HITCH_EVERY, 0
-	frames(SETTLE_HOLD_SECONDS, function(t)
-		if hitch and t >= nextHitch then
-			nextHitch += SETTLE_HITCH_EVERY
-			local stop = os.clock() + SETTLE_HITCH_MS / 1000
-			-- deliberate busy wait: a deterministic server frame hitch
-			repeat
-				spin += 1
-			until os.clock() >= stop
-		end
-		local v = rig.Chassis.AssemblyLinearVelocity
-		local vy = math.abs(v.Y)
-		if vy > T.MaxRestVerticalSpeed then
-			kicks += 1
-		end
-		peakSpeed = math.max(peakSpeed, v.Magnitude)
-		peakVy = math.max(peakVy, vy)
-		local y = rig.Chassis.Position.Y
-		minY, maxY = math.min(minY, y), math.max(maxY, y)
-		worstTilt = math.max(worstTilt, tiltDeg(rig.Chassis))
-	end)
-	d.peakSpeed, d.peakVy, d.bob, d.holdTilt, d.kicks = peakSpeed, peakVy, maxY - minY, worstTilt, kicks
-	rig:Destroy()
-	return d
-end
-
-function Scenarios.static_settle()
-	local T = PhysicsTargets.static_settle
-	local ground = newFlatGround()
-	local drops = {}
-	for i, height in SETTLE_DROP_HEIGHTS do
-		table.insert(drops, settleDrop(T, height, i == #SETTLE_DROP_HEIGHTS))
-	end
-	-- Worst case over every drop (the instant checks used to see only one drop)
-	local speed, minC, maxC, tilt = 0, math.huge, 0, 0
-	local calm = { speed = 0, vy = 0, bob = 0, tilt = 0, kicks = 0 }
-	local hitch = { speed = 0, vy = 0, bob = 0, tilt = 0, kicks = 0 }
-	local perDrop = {}
-	for _, d in drops do
-		speed = math.max(speed, d.speed)
-		minC, maxC = math.min(minC, d.minC), math.max(maxC, d.maxC)
-		tilt = math.max(tilt, d.tilt)
-		local agg = d.hitch and hitch or calm
-		agg.speed = math.max(agg.speed, d.peakSpeed)
-		agg.vy = math.max(agg.vy, d.peakVy)
-		agg.bob = math.max(agg.bob, d.bob)
-		agg.tilt = math.max(agg.tilt, d.holdTilt)
-		agg.kicks += d.kicks
-		table.insert(perDrop, {
-			height = d.height,
-			hitch = d.hitch,
-			speedAt3s = round(d.speed),
-			peakSpeed = round(d.peakSpeed),
-			peakVy = round(d.peakVy),
-			bob = round(d.bob),
-			kicks = d.kicks,
-		})
-	end
-	local checks = {}
-	check(checks, "settle_speed", speed, T.MaxSettleSpeed, speed <= T.MaxSettleSpeed)
-	check(checks, "min_compression", minC, T.MinCompression, minC >= T.MinCompression)
-	check(checks, "max_compression", maxC, T.MaxCompression, maxC <= T.MaxCompression)
-	check(checks, "tilt_deg", tilt, T.MaxTiltDeg, tilt <= T.MaxTiltDeg)
-	-- Parked hold, normal frames
-	check(checks, "rest_peak_speed", calm.speed, T.MaxSettleSpeed, calm.speed <= T.MaxSettleSpeed)
-	check(checks, "rest_peak_vertical_speed", calm.vy, T.MaxRestVerticalSpeed, calm.vy <= T.MaxRestVerticalSpeed)
-	check(checks, "rest_bob_studs", calm.bob, T.MaxRestBobStuds, calm.bob <= T.MaxRestBobStuds)
-	check(checks, "rest_tilt_deg", calm.tilt, T.MaxTiltDeg, calm.tilt <= T.MaxTiltDeg)
-	-- Parked hold with server frame hitches (cold-start load)
-	check(checks, "hitch_peak_speed", hitch.speed, T.MaxSettleSpeed, hitch.speed <= T.MaxSettleSpeed)
-	check(checks, "hitch_peak_vertical_speed", hitch.vy, T.MaxRestVerticalSpeed, hitch.vy <= T.MaxRestVerticalSpeed)
-	check(checks, "hitch_bob_studs", hitch.bob, T.MaxRestBobStuds, hitch.bob <= T.MaxRestBobStuds)
-	local out = result("static_settle", checks, {
-		minCompression = round(minC),
-		maxCompression = round(maxC),
-		tiltDeg = round(tilt),
-		restKicks = calm.kicks,
-		hitchKicks = hitch.kicks,
-		holdSeconds = SETTLE_HOLD_SECONDS,
-		drops = perDrop,
-	})
-	ground:Destroy()
-	return out
-end
-
-function Scenarios.accel()
-	local T = PhysicsTargets.accel
-	local ground = newFlatGround()
-	local rig = newRig(spawnPose())
-	frames(1.5) -- settle
-	local startX = rig.Chassis.Position.X
-	rig.Input = { Throttle = 1, Steer = 0, Brake = 0, Handbrake = false }
-	local timeTo40, topSpeed, maxDrift = nil, 0, 0
-	frames(12, function(t)
-		local v = rig.Physics.ForwardSpeed
-		topSpeed = math.max(topSpeed, v)
-		if not timeTo40 and v >= 40 then
-			timeTo40 = t
-		end
-		maxDrift = math.max(maxDrift, math.abs(rig.Chassis.Position.X - startX))
-	end)
-	local checks = {}
-	local t40 = timeTo40 or math.huge
-	check(checks, "time_to_40", t40, T.MaxTimeTo40, t40 <= T.MaxTimeTo40)
-	local needTop = T.MinTopSpeedFrac * CarConfig.TopSpeed
-	check(checks, "top_speed", topSpeed, needTop, topSpeed >= needTop)
-	check(checks, "drift", maxDrift, T.MaxDrift, maxDrift <= T.MaxDrift)
-	local out = result(
-		"accel",
-		checks,
-		{ timeTo40 = t40 == math.huge and -1 or round(t40), topSpeed = round(topSpeed), drift = round(maxDrift) }
-	)
-	rig:Destroy()
-	ground:Destroy()
-	return out
-end
-
-function Scenarios.brake()
-	local T = PhysicsTargets.brake
-	local ground = newFlatGround()
-	local rig = newRig(spawnPose())
-	frames(1.5)
-	rig.Input = { Throttle = 1, Steer = 0, Brake = 0, Handbrake = false }
-	frames(12, function()
-		if rig.Physics.ForwardSpeed >= T.FromSpeed then
-			return "stop"
-		end
-	end)
-	local startPos = rig.Chassis.Position
-	local reached = rig.Physics.ForwardSpeed
-	rig.Input = { Throttle = 0, Steer = 0, Brake = 1, Handbrake = false }
-	frames(6, function()
-		if rig.Physics.Speed < 1 then
-			return "stop"
-		end
-	end)
-	local delta = rig.Chassis.Position - startPos
-	local dist = Vector3.new(delta.X, 0, delta.Z).Magnitude
-	local drift = math.abs(delta.X)
-	local checks = {}
-	check(checks, "reached_speed", reached, T.FromSpeed, reached >= T.FromSpeed - 2)
-	check(checks, "stop_distance", dist, T.MaxStopDistance, dist <= T.MaxStopDistance)
-	check(checks, "drift", drift, T.MaxDrift, drift <= T.MaxDrift)
-	local out =
-		result("brake", checks, { reachedSpeed = round(reached), stopDistance = round(dist), drift = round(drift) })
-	rig:Destroy()
-	ground:Destroy()
-	return out
-end
-
-function Scenarios.skidpad()
-	local T = PhysicsTargets.skidpad
-	local ground = newFlatGround()
-	local rig = newRig(spawnPose())
-	frames(1.5)
-	rig.Driver = function()
-		local err = T.Speed - rig.Physics.ForwardSpeed
-		return { Throttle = math.clamp(err * 0.2, -1, 1), Steer = 1, Brake = 0, Handbrake = false }
-	end
-	local radii, minUp = {}, 1
-	frames(7, function(t)
-		minUp = math.min(minUp, rig.Chassis.CFrame.UpVector.Y)
-		if t > 4 then
-			local yaw = math.abs(rig.Chassis.AssemblyAngularVelocity.Y)
-			if yaw > 0.01 then
-				table.insert(radii, rig.Physics.Speed / yaw)
-			end
-		end
-	end)
-	local sum = 0
-	for _, r in radii do
-		sum += r
-	end
-	local radius = #radii > 0 and sum / #radii or math.huge
-	local checks = {}
-	check(checks, "radius", radius, T.MaxRadius, radius <= T.MaxRadius)
-	check(checks, "min_up_y", minUp, T.MinUpY, minUp >= T.MinUpY)
-	local out =
-		result("skidpad", checks, { radius = radius == math.huge and -1 or round(radius), minUpY = round(minUp) })
-	rig:Destroy()
-	ground:Destroy()
-	return out
-end
-
--- expect (optional, from CarTest/TrackTests) may add MaxLapTime / MinLapTime on top of PhysicsTargets.lap.
--- label (optional) is the scenario name reported, so `track:<Name>` can reuse this.
-function Scenarios.lap(trackName, expect, label)
-	local T = PhysicsTargets.lap
-	expect = expect or {}
-	label = label or ("lap:" .. tostring(trackName))
-	local spec = TrackRegistry.Get(trackName)
-	if not spec then
-		return result(label, { { name = "track_exists", value = 0, limit = 1, pass = false } }, {})
-	end
-
-	local origin = CFrame.new(LAP_ORIGIN)
-	local model, layout = TrackBuilder.Build(spec, origin)
-	model.Name = "CarTestTrack"
-	model.Parent = Workspace
-
-	local validation = TrackValidator.Validate(spec, layout)
-	local checks = {}
-	check(checks, "track_valid", #validation.Issues, 0, validation.Ok)
-	if not validation.Ok then
-		model:Destroy()
-		return result(label, checks, { issues = validation.Issues })
-	end
-
-	local rig = newRig(model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0))
-	local bot = Bot.new(layout, CarConfig)
-	local flips, flippedTime, stuckTime = 0, 0, 0
-	local lapClock, bestProgress, idleTime, longestIdle = 0, 0, 0, 0
-	local wasFlipped = false
-	local minUp = 1
-	rig.Driver = function(dt)
-		lapClock += dt
-		local input = bot:Control(rig.Chassis, dt)
-		local up = rig.Chassis.CFrame.UpVector.Y
-		if not rig.Physics.LoopAssist then -- upside down inside a loop is intended
-			minUp = math.min(minUp, up)
-		end
-		if up < T.MinUpY and not rig.Physics.LoopAssist then
-			flippedTime += dt
-			if not wasFlipped and flippedTime > 1 then
-				flips += 1
-				wasFlipped = true
-			end
-		else
-			flippedTime, wasFlipped = 0, false
-		end
-		if rig.Physics.Speed < 1 and bot.Index > 1 then
-			stuckTime += dt
-		else
-			stuckTime = 0
-		end
-		-- waypoint high-water mark: rolling backwards or creeping in place is not progress
-		local progress = bot.Wraps * #layout.Waypoints + bot.Index
-		if progress > bestProgress or lapClock < NO_PROGRESS_GRACE then
-			bestProgress = math.max(bestProgress, progress)
-			idleTime = 0
-		else
-			idleTime += dt
-			longestIdle = math.max(longestIdle, idleTime)
-		end
-		return input
-	end
-
-	local timeout = layout.Length / (0.25 * CarConfig.TopSpeed) + 30
-	local elapsed = frames(timeout, function()
-		if bot.Done or stuckTime > 4 or idleTime > MAX_NO_PROGRESS or flips > 0 then
-			return "stop"
-		end
-	end)
-
-	check(checks, "completed", bot.Done and 1 or 0, 1, bot.Done)
-	check(
-		checks,
-		"off_track_seconds",
-		bot.OffTrackSeconds,
-		T.MaxOffTrackSeconds,
-		bot.OffTrackSeconds <= T.MaxOffTrackSeconds
-	)
-	check(checks, "flips", flips, T.MaxFlips, flips <= T.MaxFlips)
-	-- user: the car must not flip or tilt by any means (loops excluded, minUp is not sampled inside them)
-	local strict = T.MinUpYStrict
-	check(checks, "never_tilted", minUp, strict or -1, type(strict) == "number" and strict >= 0.9 and minUp >= strict)
-	check(checks, "stuck_seconds", stuckTime, 4, stuckTime <= 4)
-	check(checks, "no_progress_seconds", longestIdle, MAX_NO_PROGRESS, longestIdle <= MAX_NO_PROGRESS)
-	if expect.MaxLapTime then
-		check(checks, "max_lap_time", elapsed, expect.MaxLapTime, bot.Done and elapsed <= expect.MaxLapTime)
-	end
-	if expect.MinLapTime then
-		check(checks, "min_lap_time", elapsed, expect.MinLapTime, bot.Done and elapsed >= expect.MinLapTime)
-	end
-	local out = result(label, checks, {
-		lapTime = round(elapsed),
-		length = round(layout.Length),
-		progress = round(bot.Index / #layout.Waypoints),
-		minUpY = round(minUp),
-	})
-	rig:Destroy()
-	model:Destroy()
-	return out
 end
 
 local function flatV(v)
@@ -977,11 +685,12 @@ function Scenarios.track(trackName)
 	end
 	checkTrackCollision(checks, spec)
 
-	local lap = Scenarios.lap(trackName, expect, label)
-	for _, c in lap.checks do
-		table.insert(checks, c)
-	end
-	return result(label, checks, lap.metrics)
+	-- track geometry rules (min radius, max grade, closure, end straights); TrackBuilder.Build returns this same layout
+	local validation = TrackValidator.Validate(spec, layout)
+	check(checks, "track_valid", #validation.Issues, 0, validation.Ok)
+
+	-- car lap bots retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2): no bot lap here any more
+	return result(label, checks, validation.Ok and {} or { issues = validation.Issues })
 end
 
 -- Chain: tracks joined finish-to-start in Number order must connect and never overlap. Layout-only.
@@ -1537,18 +1246,9 @@ local function checkStability(checks, prefix, st)
 	local rm = type(st.runMinUpY) == "number" and st.runMinUpY or -1
 	check(checks, pre .. "never_tilted", rm, minUp, R.MinUpY ~= nil and rm >= minUp)
 	check(checks, pre .. "body_never_tilted", st.minUpOwn, minUp, R.MinUpY ~= nil and st.minUpOwn >= minUp)
-	local rec = type(st.recoveries) == "number" and st.recoveries or -1
-	check(checks, pre .. "no_flip_recoveries", rec, 0, rec == 0)
-	-- smooth motion (user 2026-10-15): a PivotTo every frame replicates as a stutter (3.7, 0, 3.7, 0 studs/frame),
-	-- so the rail must steer with velocity and teleport only as a fallback; run.RailSnaps counts those frames
-	local snaps = type(st.railSnaps) == "number" and st.railSnaps or math.huge
-	check(
-		checks,
-		pre .. "rail_never_snaps",
-		snaps == math.huge and -1 or snaps,
-		R.MaxRailSnaps or 0,
-		R.MaxRailSnaps ~= nil and snaps <= R.MaxRailSnaps
-	)
+	-- flip recovery retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2: a rail runner cannot flip).
+	-- rail_never_snaps (IVS 2026-10-15) is replaced by the interpolation contract checks runner_<normal|max>_publishes_*
+	-- in RunnerTests.luau and the client check ui_runner_smooth (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28).
 	check(checks, pre .. "flips_limit", st.flips, R.MaxFlips or 0, R.MaxFlips ~= nil and st.flips <= R.MaxFlips)
 	-- every route check needs RACE_MIN_SAMPLES measured frames, so an unmeasured drive can never pass
 	local function devOk(dev, nSamples)
@@ -1687,7 +1387,7 @@ function Scenarios.race()
 		flatAhead[i] = straight and level and acc >= RACE_LOOKAHEAD_STRAIGHT - 0.01
 	end
 	local joint = TrackBuilder.EndCFrame(entries[1].Layout, entries[1].Origin).Position
-	local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+	local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
 	local padPositions = {}
 	for _, m in models do
 		local pad = m:FindFirstChild("WinPad", true)
@@ -1724,7 +1424,7 @@ function Scenarios.race()
 	end
 
 	local function drive(startStat, seconds, untilFinished)
-		local car = CarFactory.build(CarConfig)
+		local car = Runner.new()
 		car.Name = "CarTestRaceCar"
 		car:PivotTo(startCF)
 		car.Parent = Workspace
@@ -1790,20 +1490,23 @@ function Scenarios.race()
 		st.initialTarget = run.TargetSpeed
 		local chassis = car.PrimaryPart
 		st.autoRace = car:GetAttribute("AutoRace") == true
-		local seatPart = car:FindFirstChild("DriverSeat")
-		st.seatDisabled = seatPart ~= nil and seatPart.Disabled == true
-		local okOwner, owner = pcall(function()
-			return chassis:GetNetworkOwner()
-		end)
-		st.serverOwned = okOwner and owner == nil
+		-- the anchored rig is the server's authoritative pose (spec section 2): anchored from the start of the run
+		st.serverOwned = Runner.anchored(car)
 		local idx, stuck, flippedFor, wasFlipped = 1, 0, 0, false
 		local cIdx = 1
-		local lastPos = nil
+		-- the rig's feet (bounding-box bottom) run on the road, as the car chassis did at ride height
+		local function feetOf()
+			local cf, size = car:GetBoundingBox()
+			return cf.Position - cf.UpVector * (size.Y / 2)
+		end
+		local lastPos = feetOf() -- after NewRun placed the rig: the start placement is not a speed spike
+		local meter = Runner.meter(lastPos, false)
 		local lastStat = speedValue.Value
 		local prevPos, prevLook = nil, nil
 		st.elapsed = frames(seconds, function(t, dt)
-			local pos = chassis.Position
-			local speed = chassis.AssemblyLinearVelocity.Magnitude
+			local pos = feetOf()
+			-- the rig is anchored: its speed is the distance it moved (no AssemblyLinearVelocity)
+			local speed, step = meter(pos, dt)
 			local bestD = math.huge
 			for i = idx, math.min(idx + 25, n) do
 				local d = (wps[i] - pos).Magnitude
@@ -1836,7 +1539,7 @@ function Scenarios.race()
 			st.maxTarget = math.max(st.maxTarget, target)
 			st.targetSum += target
 			st.targetN += 1
-			st.dist += speed * dt
+			st.dist += step
 			if t >= 8 and st.speedAt8 == nil then
 				st.speedAt8 = speed
 				st.gainAt8 = speedValue.Value - startStat
@@ -1877,10 +1580,7 @@ function Scenarios.race()
 				end
 			end
 			local upY = chassis.CFrame.UpVector.Y
-			local inLoop = run.Physics and run.Physics.LoopAssist
-			if not inLoop then
-				st.minUpOwn = math.min(st.minUpOwn, upY)
-			end
+			st.minUpOwn = math.min(st.minUpOwn, upY) -- spec section 2: upright everywhere, loops included
 			-- signed lateral position against the ROAD centre line: positive = right of centre. Tracked every
 			-- frame from t = 0 like idx, so the window keeps up at any speed (at MAX_STAT the car is past Track 1
 			-- by t = 3); if the window still loses the car (a frame hitch), resync with a full search.
@@ -1960,8 +1660,8 @@ function Scenarios.race()
 		st.finished = run.Finished == true
 		st.runMinUpY = run.MinUpY
 		st.runMaxDev = run.MaxPathDeviation
-		st.recoveries = run.FlipRecoveries
-		st.railSnaps = run.RailSnaps
+		st.serverOwned = st.serverOwned and Runner.anchored(car)
+		st.rigWhole = car:FindFirstChild("Head", true) ~= nil and car:FindFirstChild("Torso", true) ~= nil
 		st.payouts = run.Payouts
 		st.paidTotal = run.PaidTotal
 		st.offTrack = run.OffTrackSeconds
@@ -2040,10 +1740,10 @@ function Scenarios.race()
 			fast.jointMin ~= math.huge and fast.jointMin >= 0.5 * meanTarget
 		)
 		check(checks, "autorace_attr", fast.autoRace and 1 or 0, 1, fast.autoRace)
-		-- Disabling a VehicleSeat ejects whoever sits in it (the hidden character would fall off the car and
-		-- the camera would lose it). The server ignores seat input anyway, so the seat must stay enabled.
-		check(checks, "seat_not_disabled", fast.seatDisabled and 1 or 0, 0, fast.seatDisabled == false)
-		check(checks, "server_owned", fast.serverOwned and 1 or 0, 1, fast.serverOwned)
+		-- The runner rig stays whole through the run (VehicleSeat retired, docs/WORLD_REDESIGN_SPEC.md section 1),
+		-- and the server owns its pose: every part of the rig stays Anchored (spec section 2)
+		check(checks, "runner_rig_whole", fast.rigWhole and 1 or 0, 1, fast.rigWhole == true)
+		check(checks, "server_owned_anchored", fast.serverOwned and 1 or 0, 1, fast.serverOwned == true)
 
 		-- The pad is beside the racing line: the money comes from passing it, the car never drives over it.
 		local mp = fast.minPadDist == math.huge and -1 or fast.minPadDist
@@ -2213,426 +1913,6 @@ function Scenarios.race()
 	})
 end
 
--- Flip recovery: a car that ends up upside down or on its side during a race must be put upright back on the
--- path by RaceService within PhysicsTargets.race.FlipRecoverySeconds, and keep racing.
-local FLIP_RACE_ORIGIN = Vector3.new(-20000, 0, -20000)
-
-function Scenarios.flip_recovery()
-	local checks = {}
-	local RaceService = serverModule("RaceService")
-	local RaceConfig = sharedModule("RaceConfig")
-	local PathDriver = sharedModule("PathDriver")
-	local Money = serverModule("MoneyService")
-	local PlayerData = serverModule("PlayerData")
-	local R = PhysicsTargets.race
-	local apiOk = RaceService ~= nil
-		and RaceConfig ~= nil
-		and PathDriver ~= nil
-		and Money ~= nil
-		and PlayerData ~= nil
-		and R ~= nil
-		and type(R.FlipRecoverySeconds) == "number"
-		and type(R.MaxPathDeviation) == "number"
-		and type(RaceService.BuildRoute) == "function"
-		and type(RaceService.NewRun) == "function"
-		and type(PlayerData.Setup) == "function"
-	check(checks, "flip_api_exists", apiOk and 1 or 0, 1, apiOk)
-	local specs = type(TrackRegistry.Chain) == "function" and TrackRegistry.Chain() or {}
-	check(checks, "flip_chain_has_track", #specs, 1, #specs >= 1)
-	if not apiOk or #specs < 1 then
-		return result("flip_recovery", checks, {})
-	end
-
-	local origin = CFrame.new(FLIP_RACE_ORIGIN + Vector3.new(0, TrackBuilder.TRACK_LIFT or 0, 0))
-	local model, layout = TrackBuilder.Build(specs[1], origin) -- the first track (the Oval)
-	model.Name = "CarTestFlipTrack"
-	model.Parent = Workspace
-	local okRoute, route = pcall(RaceService.BuildRoute, {
-		{ Layout = layout, Origin = origin, Model = model, Number = specs[1].Number },
-	})
-	local routeOk = okRoute and type(route) == "table" and type(route.Path) == "table"
-	check(checks, "flip_route_built", routeOk and 1 or 0, 1, routeOk)
-	if not routeOk then
-		model:Destroy()
-		return result("flip_recovery", checks, {})
-	end
-	local wps = route.Path.WorldWaypoints
-	local startCF = model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
-	local RECOVER = R.FlipRecoverySeconds
-
-	-- roll: radians about the car's forward axis (pi = upside down, pi/2 = on its side)
-	local function flipTest(tag, roll)
-		local car = CarFactory.build(CarConfig)
-		car.Name = "CarTestFlipCar"
-		car:PivotTo(startCF)
-		car.Parent = Workspace
-		local player = Instance.new("Folder")
-		player.Name = "CarTestFlipPlayer"
-		player.Parent = Workspace
-		local okSetup = pcall(function()
-			Money.Setup(player)
-			PlayerData.Setup(player)
-			player.BaseSpeed.Value = RaceConfig.HALF_STAT
-		end)
-		local okRun, run = false, nil
-		if okSetup then
-			okRun, run = pcall(RaceService.NewRun, car, route, player, nil)
-		end
-		check(
-			checks,
-			tag .. "_run_started",
-			okSetup and okRun and type(run) == "table" and 1 or 0,
-			1,
-			okSetup and okRun and type(run) == "table"
-		)
-		if not (okSetup and okRun and type(run) == "table") then
-			car:Destroy()
-			player:Destroy()
-			return
-		end
-		local chassis = car.PrimaryPart
-		local target = RaceConfig.SpeedFor(RaceConfig.HALF_STAT)
-		frames(5)
-		local speedBefore = chassis.AssemblyLinearVelocity.Magnitude
-		check(checks, tag .. "_was_driving", speedBefore, 5, speedBefore > 5)
-		local before = type(run.FlipRecoveries) == "number" and run.FlipRecoveries or 0
-
-		local pivot = car:GetPivot()
-		car:PivotTo(CFrame.new(pivot.Position + Vector3.new(0, 3, 0)) * pivot.Rotation * CFrame.Angles(0, 0, roll))
-		chassis.AssemblyLinearVelocity = Vector3.zero
-		chassis.AssemblyAngularVelocity = Vector3.zero
-		local upAfter = chassis.CFrame.UpVector.Y
-		check(checks, tag .. "_flip_applied", upAfter, 0.5, upAfter < 0.5)
-
-		local tRecovery, tUpright, distAtUpright, idxAtUpright, tUprightAt = nil, nil, nil, nil, nil
-		local peakAfter, idxEnd = 0, nil
-		frames(RECOVER + 2 + 4 + 1, function(t)
-			local rec = type(run.FlipRecoveries) == "number" and run.FlipRecoveries or 0
-			if not tRecovery and rec > before then
-				tRecovery = t
-			end
-			local up = chassis.CFrame.UpVector.Y
-			if not tUpright and t > 0.05 and up >= 0.9 then
-				tUpright, tUprightAt = t, t
-				distAtUpright = nearestOnPolyline(wps, chassis.Position, 1, #wps - 1)
-				idxAtUpright = run.Driver and run.Driver.Index or 0
-			end
-			if tUpright then
-				if t - tUprightAt <= 4 then
-					peakAfter = math.max(peakAfter, chassis.AssemblyLinearVelocity.Magnitude)
-					idxEnd = run.Driver and run.Driver.Index or idxEnd
-				end
-			end
-		end)
-		local finalUp = chassis.CFrame.UpVector.Y
-		check(
-			checks,
-			tag .. "_recovery_counted",
-			tRecovery or -1,
-			RECOVER,
-			tRecovery ~= nil and tRecovery <= RECOVER + 0.05
-		)
-		check(checks, tag .. "_upright_again", tUpright or -1, RECOVER + 2, tUpright ~= nil and tUpright <= RECOVER + 2)
-		check(
-			checks,
-			tag .. "_back_on_path",
-			distAtUpright or -1,
-			R.MaxPathDeviation + 3,
-			distAtUpright ~= nil and distAtUpright <= R.MaxPathDeviation + 3
-		)
-		local progressed = (idxEnd or 0) - (idxAtUpright or 0)
-		check(checks, tag .. "_keeps_progressing", progressed, 5, tUpright ~= nil and progressed >= 5)
-		check(checks, tag .. "_keeps_driving", peakAfter, 0.5 * target, tUpright ~= nil and peakAfter > 0.5 * target)
-		check(checks, tag .. "_ends_upright", finalUp, 0.9, finalUp >= 0.9)
-		pcall(function()
-			run:Destroy()
-		end)
-		car:Destroy()
-		player:Destroy()
-	end
-
-	flipTest("upside_down", math.pi)
-	flipTest("on_side", math.pi / 2)
-
-	-- Fall guard (owner 2026-10-20, RaceService.RAIL_FALL_HEIGHT): a racing car far below or high above the road is
-	-- put back on the path within PhysicsTargets.race.RailFallRecoverySeconds, never drops below the map, and keeps
-	-- racing upright. Before this, fast cars fell out of the map.
-	local metrics = {}
-	local FALL_RECOVER = R.RailFallRecoverySeconds
-	local fallHeight = RaceService.RAIL_FALL_HEIGHT
-	local fallApiOk = type(FALL_RECOVER) == "number" and type(fallHeight) == "number" and fallHeight > 0
-	check(checks, "rail_fall_api_exists", fallApiOk and 1 or 0, 1, fallApiOk)
-	local minUpStrict = PhysicsTargets.lap and PhysicsTargets.lap.MinUpYStrict or 0.9
-	local lowestRoad = math.huge
-	for _, w in wps do
-		lowestRoad = math.min(lowestRoad, w.Y)
-	end
-	local railStart = CFrame.lookAt(
-		wps[1] + Vector3.new(0, CarConfig.RestHeight, 0),
-		Vector3.new(wps[2].X, wps[1].Y + CarConfig.RestHeight, wps[2].Z)
-	) -- on the race path (right-hand lane), so the run starts on its rail
-	local function heightAndDistance(p)
-		local d, _, q = nearestOnPolyline(wps, p, 1, #wps - 1)
-		return p.Y - q.Y, d
-	end
-
-	-- dy: studs the chassis is moved straight up (+) or down (-) from where it is racing
-	local function fallTest(tag, dy)
-		if not fallApiOk then
-			return
-		end
-		local car = CarFactory.build(CarConfig)
-		car.Name = "CarTestFallCar"
-		car:PivotTo(railStart)
-		car.Parent = Workspace
-		local player = Instance.new("Folder")
-		player.Name = "CarTestFallPlayer"
-		player.Parent = Workspace
-		local okSetup = pcall(function()
-			Money.Setup(player)
-			PlayerData.Setup(player)
-			player.BaseSpeed.Value = RaceConfig.HALF_STAT
-		end)
-		local okRun, run = false, nil
-		if okSetup then
-			okRun, run = pcall(RaceService.NewRun, car, route, player, nil)
-		end
-		local started = okSetup and okRun and type(run) == "table"
-		check(checks, tag .. "_run_started", started and 1 or 0, 1, started)
-		if not started then
-			car:Destroy()
-			player:Destroy()
-			return
-		end
-		local chassis = car.PrimaryPart
-		local target = RaceConfig.SpeedFor(RaceConfig.HALF_STAT)
-		frames(3)
-		local snapsBefore = type(run.RailSnaps) == "number" and run.RailSnaps or 0
-		local idxBefore = run.Driver and run.Driver.Index or 0
-		local pivot = car:GetPivot()
-		car:PivotTo(pivot + Vector3.new(0, dy, 0))
-		local movedY = chassis.Position.Y
-		local h0 = heightAndDistance(chassis.Position)
-		check(checks, tag .. "_moved_off_rail", h0, fallHeight, (dy > 0 and h0 > fallHeight) or (dy < 0 and h0 < -2))
-
-		local tBack, minY, offAfter, minUpAfter, peakAfter = nil, math.huge, 0, 1, 0
-		frames(FALL_RECOVER + 2, function(t)
-			if chassis.Parent == nil then
-				return "stop"
-			end
-			local p = chassis.Position
-			minY = math.min(minY, p.Y)
-			local h, d = heightAndDistance(p)
-			local onPath = d <= R.MaxPathDeviation + 3 and h >= -2 and h <= fallHeight
-			if not tBack and onPath then
-				tBack = t
-			end
-			if tBack then
-				offAfter += onPath and 0 or 1 -- frames off the path (or out of the height band) once it was back
-				minUpAfter = math.min(minUpAfter, chassis.CFrame.UpVector.Y)
-				peakAfter = math.max(peakAfter, chassis.AssemblyLinearVelocity.Magnitude)
-			end
-		end)
-		check(checks, tag .. "_car_kept", chassis.Parent ~= nil and 1 or 0, 1, chassis.Parent ~= nil)
-		check(checks, tag .. "_back_on_path_fast", tBack or -1, FALL_RECOVER, tBack ~= nil and tBack <= FALL_RECOVER)
-		check(checks, tag .. "_stays_on_path", offAfter, 0, tBack ~= nil and offAfter == 0)
-		-- never below the map: never lower than where it was put (below) or than the lowest road point (above)
-		local floorY = math.min(movedY, lowestRoad) - 2
-		check(checks, tag .. "_never_below_map", minY, floorY, minY >= floorY)
-		local snaps = (type(run.RailSnaps) == "number" and run.RailSnaps or 0) - snapsBefore
-		check(checks, tag .. "_snap_counted", snaps, 1, snaps >= 1)
-		check(checks, tag .. "_upright_after", minUpAfter, minUpStrict, tBack ~= nil and minUpAfter >= minUpStrict)
-		local progressed = (run.Driver and run.Driver.Index or 0) - idxBefore
-		check(checks, tag .. "_keeps_progressing", progressed, 5, progressed >= 5)
-		check(checks, tag .. "_keeps_driving", peakAfter, 0.5 * target, tBack ~= nil and peakAfter > 0.5 * target)
-		metrics[tag .. "BackSeconds"] = tBack and round(tBack) or -1
-		pcall(function()
-			run:Destroy()
-		end)
-		car:Destroy()
-		player:Destroy()
-	end
-
-	fallTest("fall_below", -30)
-	fallTest("launched_above", 40)
-
-	-- High car multi: the fastest catalog car (SpeedMulti 2800) at a high stat drives the whole track on its path,
-	-- upright, never below the map. The stat is MAX_STAT. The raw car multi is logarithmically damped and capped
-	-- before entering the cruise formula so rare cars remain faster without runaway speed.
-	local GachaService = serverModule("GachaService")
-	local CharacterCatalog = sharedModule("CharacterCatalog")
-	local fastApiOk = GachaService ~= nil
-		and CharacterCatalog ~= nil
-		and type(GachaService.Setup) == "function"
-		and type(GachaService.Grant) == "function"
-		and type(GachaService.Equip) == "function"
-		and type(CharacterCatalog.All) == "function"
-	check(checks, "high_multi_api_exists", fastApiOk and 1 or 0, 1, fastApiOk)
-	if fastApiOk and fallApiOk then
-		local best = nil
-		for _, spec in CharacterCatalog.All() do
-			if type(spec.SpeedMulti) == "number" and (best == nil or spec.SpeedMulti > best.SpeedMulti) then
-				best = spec
-			end
-		end
-		local multi = best and best.SpeedMulti or 0
-		check(checks, "high_multi_car_found", multi, 2800, multi >= 2800)
-		-- The raw multi is damped and capped at 4x (design doc "Core stat model", owner 2026-10-28), so the stat
-		-- itself must be MAX_STAT for this run to stay faster than the max-stat stability race.
-		local BIG_STAT = RaceConfig.MAX_STAT
-		local car = CarFactory.build(CarConfig)
-		car.Name = "CarTestHighMultiCar"
-		car:PivotTo(railStart)
-		car.Parent = Workspace
-		local player = Instance.new("Folder")
-		player.Name = "CarTestHighMultiPlayer"
-		player.Parent = Workspace
-		local okSetup = best ~= nil
-			and pcall(function()
-				Money.Setup(player)
-				PlayerData.Setup(player)
-				GachaService.Setup(player)
-				GachaService.Grant(player, best.Id)
-				GachaService.Equip(player, best.Id)
-				player.BaseSpeed.Value = BIG_STAT
-			end)
-		local okRun, run = false, nil
-		if okSetup then
-			okRun, run = pcall(RaceService.NewRun, car, route, player, nil)
-		end
-		local started = okSetup and okRun and type(run) == "table"
-		check(checks, "high_multi_run_started", started and 1 or 0, 1, started)
-		if started then
-			local chassis = car.PrimaryPart
-			local want = RaceConfig.SpeedFor(BIG_STAT, multi)
-			local ts = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			local okShown, shown = pcall(GachaService.ShownSpeedMulti, player)
-			shown = okShown and shown or nil
-			check(
-				checks,
-				"high_multi_shown_multi_is_car_multi",
-				type(shown) == "number" and shown or -1,
-				multi,
-				type(shown) == "number" and math.abs(shown - multi) <= 1e-9 * multi
-			)
-			-- Owner 2026-10-28: the multi, damped to 1 + log10(multi) and capped at 4x, scales the final studs/s;
-			-- the 2800x car is far past the cap, so its cruise is exactly SpeedFor(stat) x 4, then held to the hard
-			-- cruise cap of 800 studs/s (docs/WORLDS_SPEC.md section 1, owner 2026-10-27).
-			local capped = math.min(RaceConfig.SpeedFor(BIG_STAT) * 4, 800)
-			check(
-				checks,
-				"high_multi_target_is_shown_speed_cruise",
-				ts,
-				capped,
-				math.abs(ts - want) <= 1e-6 * want and math.abs(want - capped) <= 1e-6 * capped
-			)
-			-- SpeedFor(MAX_STAT) x the damped car multi (4, capped to 800) is above SpeedFor(MAX_STAT): faster than the max-stat race
-			local maxStatSpeed = RaceConfig.SpeedFor(RaceConfig.MAX_STAT)
-			check(checks, "high_multi_target_above_max_stat_speed", want, maxStatSpeed, want > maxStatSpeed)
-			local len = 0
-			for i = 2, #wps do
-				len += (wps[i] - wps[i - 1]).Magnitude
-			end
-			local cap = len / (0.5 * math.max(want, 1)) + 10
-			local worstDev, minY, minUp, t0 = 0, math.huge, 1, nil
-			local elapsed = frames(cap, function(t)
-				if chassis.Parent == nil or run.Finished then
-					return "stop"
-				end
-				local p = chassis.Position
-				minY = math.min(minY, p.Y)
-				local _, d = heightAndDistance(p)
-				if t >= 0.5 then -- the rail settles the lane in the first half second
-					t0 = t0 or t
-					worstDev = math.max(worstDev, d)
-					minUp = math.min(minUp, chassis.CFrame.UpVector.Y)
-				end
-			end)
-			check(checks, "high_multi_car_kept", chassis.Parent ~= nil and 1 or 0, 1, chassis.Parent ~= nil)
-			check(checks, "high_multi_finished", elapsed, cap, run.Finished == true)
-			check(
-				checks,
-				"high_multi_sticks_to_path",
-				worstDev,
-				R.MaxPathDeviation,
-				t0 ~= nil and worstDev <= R.MaxPathDeviation
-			)
-			local floorY = lowestRoad - fallHeight -- the rail's fall band, mirrored below the lowest road point
-			check(checks, "high_multi_never_below_map", minY, floorY, minY >= floorY)
-			check(checks, "high_multi_never_tilted", minUp, minUpStrict, t0 ~= nil and minUp >= minUpStrict)
-			local runUp = type(run.MinUpY) == "number" and run.MinUpY or -1
-			check(checks, "high_multi_run_never_tilted", runUp, minUpStrict, runUp >= minUpStrict)
-			local rec = type(run.FlipRecoveries) == "number" and run.FlipRecoveries or -1
-			check(checks, "high_multi_no_flip_recoveries", rec, 0, rec == 0)
-			metrics.highMultiTarget = round(want)
-			metrics.highMultiSeconds = round(elapsed)
-			metrics.highMultiRailSnaps = type(run.RailSnaps) == "number" and run.RailSnaps or -1
-			pcall(function()
-				run:Destroy()
-			end)
-		end
-		car:Destroy()
-		player:Destroy()
-	end
-
-	-- Live aura (owner 2026-10-28): equipping an aura mid-race raises the run's target cruise within 0.25 s
-	-- (RaceService.COMMIT_INTERVAL). Ember Aura (x2) -> item cruise multi 1 + 0.5 x log10 2 = 1.150515.
-	do
-		local car = CarFactory.build(CarConfig)
-		car.Name = "CarTestAuraCar"
-		car:PivotTo(railStart)
-		car.Parent = Workspace
-		local player = Instance.new("Folder")
-		player.Name = "CarTestAuraPlayer"
-		player.Parent = Workspace
-		local okSetup = pcall(function()
-			Money.Setup(player)
-			PlayerData.Setup(player)
-			player.BaseSpeed.Value = RaceConfig.HALF_STAT
-		end)
-		local okRun, run = false, nil
-		if okSetup then
-			okRun, run = pcall(RaceService.NewRun, car, route, player, nil)
-		end
-		local started = okSetup and okRun and type(run) == "table"
-		check(checks, "aura_live_run_started", started and 1 or 0, 1, started)
-		if started then
-			frames(0.5)
-			local before = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			player:SetAttribute("EquippedAura", "ember_aura")
-			local seen = nil
-			-- one Heartbeat of slack past 0.25 s: the commit can only land on a frame boundary
-			frames(0.25 + 1 / 30, function(t)
-				local ts = run.TargetSpeed
-				if type(ts) == "number" and before > 0 and ts > before * 1.1 then
-					seen = t
-					return "stop"
-				end
-			end)
-			local ts = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			local okStat, stat = pcall(PlayerData.SpeedStat, player)
-			local want = okStat and type(stat) == "number" and RaceConfig.SpeedFor(stat) * (1 + 0.5 * math.log10(2))
-				or -1
-			check(checks, "aura_live_raises_target_cruise", seen or -1, 0.25, seen ~= nil)
-			check(
-				checks,
-				"aura_live_target_is_damped_aura",
-				ts,
-				want,
-				seen ~= nil and want > 0 and math.abs(ts - want) <= 1e-9 * want
-			)
-			pcall(function()
-				run:Destroy()
-			end)
-		end
-		car:Destroy()
-		player:Destroy()
-	end
-
-	model:Destroy()
-	return result("flip_recovery", checks, metrics)
-end
-
 -- Auto race toggle (the "Stop Auto" / "Auto Race" button). BRIEF (user): "Implement a button that says 'Stop Auto'
 -- on the top center of the screen. This should stop the car auto pilot and return the user back in its avatar state
 -- outside of the track, able to walk around. The button while in avatar state is replaced with 'Auto Race' button
@@ -2649,7 +1929,7 @@ local AUTO_START_RADIUS = 25 -- studs: a resumed car spawns at the Track 1 start
 local AUTO_WALK_SPEED = 16 -- StarterPlayer defaults
 -- SPAWN_AND_ROLLS_SPEC section 2, "Start is an event" (owner, 2026-10-01: a fast Stop then Auto Race made the car
 -- path from the spawn area instead of starting at the start line)
-local AUTO_SEAT_TIMEOUT = 3 -- spec SEAT_TIMEOUT: not seated within this -> no race, back on foot
+local AUTO_SEAT_TIMEOUT = 3 -- s a start may take (was the IVS seat timeout; the runner has no seat)
 local AUTO_SPAWN_KEEP_OUT = 60 -- studs (horizontal): a fresh run's car never comes this close to the walk spawn
 local AUTO_EVENT_WATCH = 1 -- seconds of a fresh run watched for drifting towards the spawn area
 local AUTO_RAPID_CYCLES = 4 -- Stop -> Auto Race cycles with no wait between them
@@ -2682,12 +1962,12 @@ local function hPolyDist(pts, p)
 end
 
 -- Hidden-avatar collision: a part of an auto-racing (hidden) character must never collide with other players'
--- cars nor with the world: it is CanCollide == false, or in a collision group that collides with neither "Cars"
+-- cars nor with the world: it is CanCollide == false, or in a collision group that collides with neither "Runners"
 -- nor "Default" (a seated Humanoid keeps re-enabling torso CanCollide, so the group is what has to hold).
 local AVATAR_REENABLE_PARTS = { "Torso", "UpperTorso", "LowerTorso", "Head", "HumanoidRootPart" }
 local function groupCollidesWithCarsOrWorld(group)
 	local PhysicsService = game:GetService("PhysicsService")
-	for _, other in { "Cars", "Default" } do
+	for _, other in { "Runners", "Default" } do
 		local ok, collides = pcall(function()
 			return PhysicsService:CollisionGroupsAreCollidable(group, other)
 		end)
@@ -2782,7 +2062,7 @@ local function newFakeCharacter(cf)
 end
 
 -- Test isolation: keeps every REAL player's character (Players:GetPlayers(); the fake players are Folders) out of
--- the way while a scenario puts its fake avatars at the walk spawn. Any real, unseated character within `radius`
+-- the way while a scenario puts its fake avatars at the walk spawn. Any real, not racing character within `radius`
 -- studs (horizontal) of `center` is anchored and parked SPAWN_CLEAR_LIFT studs above it, now and on every frame
 -- until released (a respawn lands on the SpawnLocation right there). The returned release() restores each
 -- character's exact pivot and HumanoidRootPart.Anchored; it is idempotent, so call it from the cleanup path too.
@@ -2795,8 +2075,8 @@ local function clearSpawnOfRealPlayers(center, radius)
 		for _, plr in game:GetService("Players"):GetPlayers() do
 			local char = plr.Character
 			if char and char.Parent and not moved[char] then
-				local hum = char:FindFirstChildOfClass("Humanoid")
-				local seated = hum ~= nil and hum.SeatPart ~= nil
+				-- a racing player's hidden avatar goes with the runner (no seat since the car body was scrapped)
+				local seated = plr:GetAttribute("AutoRacing") == true
 				local okPivot, pivot = pcall(char.GetPivot, char)
 				if not seated and okPivot and hdist(pivot.Position, center) <= radius then
 					local rootPart = char:FindFirstChild("HumanoidRootPart")
@@ -2919,16 +2199,13 @@ function Scenarios.auto_toggle()
 		return nil
 	end
 
-	-- Every car model (a Model with a VehicleSeat called DriverSeat). Cars present before the scenario (the real
-	-- player's) are ignored; any car that appears during it belongs to the fake player.
+	-- Every runner model (Runner.isRunner: a Model with an Owner attribute and a Torso). Runners present before the
+	-- scenario (the real player's) are ignored; any runner that appears during it belongs to the fake player.
 	local function carModels()
 		local list = {}
 		for _, d in Workspace:GetDescendants() do
-			if d:IsA("Model") then
-				local seat = d:FindFirstChild("DriverSeat")
-				if seat and seat:IsA("VehicleSeat") then
-					table.insert(list, d)
-				end
+			if Runner.isRunner(d) then
+				table.insert(list, d)
 			end
 		end
 		return list
@@ -2962,7 +2239,7 @@ function Scenarios.auto_toggle()
 
 	-- Every run RaceService starts for this player (restored in cleanup)
 	local runs = {}
-	local seatlessPlayer = nil -- the second fake player of the seat-failure test (section 11b)
+	local seatlessPlayer = nil -- the second fake player (join / respawn on foot)
 	local seatlessRuns = {}
 	local origNewRun = RaceService.NewRun
 	RaceService.NewRun = function(car, route, p, options)
@@ -3020,11 +2297,12 @@ function Scenarios.auto_toggle()
 	local function attr()
 		return player:GetAttribute("AutoRacing")
 	end
+	-- No seat since the car body was scrapped (docs/WORLD_REDESIGN_SPEC.md section 2): racing keeps the hidden
+	-- avatar's Humanoid alive for camera and respawn while its runner is in the world
 	local function seatedIn(car)
-		local seat = car and car:FindFirstChild("DriverSeat")
-		return seat ~= nil and humanoid.SeatPart == seat
+		return car ~= nil and car.Parent ~= nil and Runner.humanoidKept(character, humanoid, car)
 	end
-	-- One car for this player, GetCar returns it, it is AutoRace, the character sits in it, one active run on it
+	-- One runner for this player, GetCar returns it, it is AutoRace, the Humanoid is kept, one active run on it
 	local function checkRacingState(pre, oldCar, oldRun)
 		local cars = ourCars()
 		local car = call(CarService.GetCar, player)
@@ -3036,7 +2314,7 @@ function Scenarios.auto_toggle()
 		check(checks, pre .. "_get_car_matches", carOk and 1 or 0, 1, carOk)
 		local autoOk = car ~= nil and car:GetAttribute("AutoRace") == true
 		check(checks, pre .. "_car_auto_race", autoOk and 1 or 0, 1, autoOk)
-		check(checks, pre .. "_seated", seatedIn(car) and 1 or 0, 1, seatedIn(car))
+		check(checks, pre .. "_humanoid_kept", seatedIn(car) and 1 or 0, 1, seatedIn(car))
 		local hiddenOk = head.Transparency == 1 and face.Transparency == 1
 		check(checks, pre .. "_avatar_hidden", hiddenOk and 1 or 0, 1, hiddenOk)
 		local bad, badNames = avatarCarCollidingParts(character)
@@ -3048,8 +2326,9 @@ function Scenarios.auto_toggle()
 		check(checks, pre .. "_run_active", runOk and 1 or 0, 1, runOk)
 		local ev = player:GetAttribute("RaceEvent")
 		check(checks, pre .. "_race_event_racing", ev == "Racing" and 1 or 0, 1, ev == "Racing")
-		local released = car ~= nil and car.PrimaryPart ~= nil and car.PrimaryPart.Anchored == false
-		check(checks, pre .. "_chassis_released", released and 1 or 0, 1, released)
+		-- the runner is anchored and moved by RaceService (spec section 2)
+		local anchored = Runner.anchored(car)
+		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
 		-- NPC spec: a real player's run races Track 1's NPC from the start (RaceService.Attach passes Npc = true)
 		local raceTrack = type(run) == "table" and run.RaceTrack or nil
 		local npcOn = raceTrack == 1 and type(run.Results) == "table"
@@ -3058,7 +2337,7 @@ function Scenarios.auto_toggle()
 		check(checks, pre .. "_one_active_run", n, 1, n == 1)
 		return car, run
 	end
-	-- Drives `seconds` and checks the car stayed upright, never needed a flip recovery and kept driving
+	-- Drives `seconds` and checks the runner stayed upright, on the path and kept running
 	local function checkDrive(pre, car, run, seconds, statFrom)
 		local chassis = car and car.PrimaryPart
 		if not chassis or type(run) ~= "table" then
@@ -3068,17 +2347,16 @@ function Scenarios.auto_toggle()
 		local minUp, peak = 1, 0
 		local idx0 = run.Driver and run.Driver.Index or 0
 		reenableAvatarCollision(character)
-		frames(seconds, function()
+		local meter = Runner.meter(chassis.Position, true) -- anchored rig: speed from distance moved
+		frames(seconds, function(_, dt)
 			if chassis.Parent then
 				minUp = math.min(minUp, chassis.CFrame.UpVector.Y)
-				peak = math.max(peak, chassis.AssemblyLinearVelocity.Magnitude)
+				peak = math.max(peak, (meter(chassis.Position, dt)))
 			end
 		end)
 		check(checks, pre .. "_never_tilted", minUp, strict, minUp >= strict)
 		local runUp = type(run.MinUpY) == "number" and run.MinUpY or -1
 		check(checks, pre .. "_run_never_tilted", runUp, strict, runUp >= strict)
-		local rec = type(run.FlipRecoveries) == "number" and run.FlipRecoveries or -1
-		check(checks, pre .. "_no_flip_recoveries", rec, 0, rec == 0)
 		local dev = type(run.MaxPathDeviation) == "number" and run.MaxPathDeviation or math.huge
 		check(checks, pre .. "_sticks_to_path", dev == math.huge and -1 or dev, maxDev, dev <= maxDev)
 		local target = RaceConfig.SpeedFor(statFrom)
@@ -3087,7 +2365,7 @@ function Scenarios.auto_toggle()
 		check(checks, pre .. "_progresses", progressed, 5, progressed >= 5)
 		local statNow = speedRaw()
 		check(checks, pre .. "_stat_grew", statNow, statFrom, statNow > statFrom)
-		check(checks, pre .. "_still_seated", seatedIn(car) and 1 or 0, 1, seatedIn(car))
+		check(checks, pre .. "_humanoid_kept_after_drive", seatedIn(car) and 1 or 0, 1, seatedIn(car))
 		local bad, badNames = avatarCarCollidingParts(character)
 		check(checks, pre .. "_avatar_no_collide_after_drive", bad, 0, bad == 0)
 		if bad > 0 then
@@ -3101,7 +2379,7 @@ function Scenarios.auto_toggle()
 		check(checks, "auto_fake_player_setup", okSetup and 1 or 0, 1, okSetup)
 		check(checks, "initial_not_racing", isRacing() and 0 or 1, 1, not isRacing())
 
-		-- 1. Attach: a car, the character hidden and seated in it, a run driving it
+		-- 1. Attach: a runner, the character hidden with its Humanoid kept, a run driving it
 		local okAttach = pcall(CarService.Attach, player, character)
 		check(checks, "attach_no_error", okAttach and 1 or 0, 1, okAttach)
 		RunService.Heartbeat:Wait()
@@ -3258,7 +2536,7 @@ function Scenarios.auto_toggle()
 		local okRes, resRet = pcall(CarService.SetAutoRace, player, true)
 		local statAtResume = speedRaw()
 		check(checks, "resume_returns_true", okRes and resRet == true and 1 or 0, 1, okRes and resRet == true)
-		local slack = RaceConfig.GainPerSecond(stoppedStat, CarConfig.TopSpeed or 200) * 1
+		local slack = RaceConfig.GainPerSecond(stoppedStat, RaceConfig.MAX_CRUISE or 200) * 1
 		check(
 			checks,
 			"resume_stat_kept",
@@ -3403,6 +2681,9 @@ function Scenarios.auto_toggle()
 		-- quickly made the car path from the spawn area instead of first being put at the start line).
 		-- The car waits at the start line with its chassis anchored, the avatar is teleported in until the server
 		-- sees it seated, only then the chassis is released and the run starts. RaceEvent: Teleporting/Racing/Off.
+		-- Anime Run (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29): instant start. With no seat to wait for,
+		-- a run starts at once: RaceEvent is never "Teleporting", SetAutoRace(true) has returned with a run within one
+		-- Heartbeat, and the runner is at the start line on the first frame.
 		local function raceEvent()
 			return player:GetAttribute("RaceEvent")
 		end
@@ -3448,28 +2729,13 @@ function Scenarios.auto_toggle()
 		local evFoot = raceEvent()
 		check(checks, "event_on_foot_race_event_off", evFoot == "Off" and 1 or 0, 1, evFoot == "Off")
 
-		-- The teleport phase, observed every frame from a parallel connection and right after the call yielded
+		-- Every frame from a parallel connection: never "Teleporting"; while "Racing" there is always a run
 		atWalkSpawnNow()
-		local tele = { Frames = 0, RunSeen = 0, Unanchored = 0, NoCar = 0, AwayFromStart = 0, Racing = 0, Bad = 0 }
+		local tele = { Frames = 0, Racing = 0, Bad = 0 }
 		local observer = RunService.Heartbeat:Connect(function()
 			local ev = raceEvent()
 			if ev == "Teleporting" then
 				tele.Frames += 1
-				if call(CarService.GetRun, player) ~= nil then
-					tele.RunSeen += 1
-				end
-				local c = call(CarService.GetCar, player)
-				local ch = c and c.PrimaryPart
-				if not ch then
-					tele.NoCar += 1
-				else
-					if not ch.Anchored then
-						tele.Unanchored += 1
-					end
-					if hdist(ch.Position, startPos) > AUTO_START_RADIUS then
-						tele.AwayFromStart += 1
-					end
-				end
 			elseif ev == "Racing" then
 				tele.Racing += 1
 				if type(call(CarService.GetRun, player)) ~= "table" then
@@ -3478,33 +2744,51 @@ function Scenarios.auto_toggle()
 			end
 		end)
 		local evDone, evRet = false, nil
+		local startEvent = nil
 		task.spawn(function()
 			local okE, rE = pcall(CarService.SetAutoRace, player, true)
 			evRet = okE and rE
+			startEvent = raceEvent()
 			evDone = true
 		end)
-		-- Right after the call yielded: still teleporting, no run, the car held at the start line
-		local snapEv = raceEvent()
-		local snapRun = call(CarService.GetRun, player)
-		local snapCar = call(CarService.GetCar, player)
-		local snapChassis = snapCar and snapCar.PrimaryPart
-		check(checks, "event_teleport_phase_observed", snapEv == "Teleporting" and 1 or 0, 1, snapEv == "Teleporting")
-		check(checks, "event_teleport_no_run_yet", snapRun == nil and 1 or 0, 1, snapRun == nil)
-		local snapHeld = snapChassis ~= nil and snapChassis.Anchored == true
-		check(checks, "event_teleport_chassis_anchored", snapHeld and 1 or 0, 1, snapHeld)
-		local snapFrom = snapChassis and hdist(snapChassis.Position, startPos) or math.huge
+		-- one step: the start has returned now, or after at most one Heartbeat
+		local evSteps = 0
+		if not evDone then
+			RunService.Heartbeat:Wait()
+			evSteps = 1
+		end
+		local instantDone = evDone
+		check(checks, "event_start_instant", instantDone and evSteps or -1, 1, instantDone)
+		local firstRun = call(CarService.GetRun, player)
+		local firstCar = call(CarService.GetCar, player)
+		local firstChassis = firstCar and firstCar.PrimaryPart
 		check(
 			checks,
-			"event_teleport_car_at_start",
-			snapFrom == math.huge and -1 or snapFrom,
-			AUTO_START_RADIUS,
-			snapFrom <= AUTO_START_RADIUS
+			"event_start_run_within_one_step",
+			type(firstRun) == "table" and 1 or 0,
+			1,
+			instantDone and type(firstRun) == "table"
 		)
-		local deadline = os.clock() + AUTO_SEAT_TIMEOUT + 1
+		local firstFrom = firstChassis and hdist(firstChassis.Position, startPos) or math.huge
+		check(
+			checks,
+			"event_start_runner_at_start_first_frame",
+			firstFrom == math.huge and -1 or firstFrom,
+			AUTO_START_RADIUS,
+			instantDone and firstFrom <= AUTO_START_RADIUS
+		)
+		check(
+			checks,
+			"event_start_returned_racing",
+			startEvent == "Racing" and 1 or 0,
+			1,
+			instantDone and startEvent == "Racing"
+		)
+		local deadline = os.clock() + AUTO_SEAT_TIMEOUT + 1 -- diagnostics only: let a slow start finish before checking
 		while not evDone and os.clock() < deadline do
 			RunService.Heartbeat:Wait()
 		end
-		-- After SetAutoRace(true) returned: racing, seated, a run, the chassis released, the car at the start line
+		-- After SetAutoRace(true) returned: racing, Humanoid kept, a run, the rig anchored, the runner at the start line
 		local evCar = call(CarService.GetCar, player)
 		local evChassis = evCar and evCar.PrimaryPart
 		local evRun = call(CarService.GetRun, player)
@@ -3512,11 +2796,11 @@ function Scenarios.auto_toggle()
 		check(checks, "event_start_returns_true", evRet == true and 1 or 0, 1, evRet == true)
 		local evNow = raceEvent()
 		check(checks, "event_start_race_event_racing", evNow == "Racing" and 1 or 0, 1, evNow == "Racing")
-		check(checks, "event_start_seated", seatedIn(evCar) and 1 or 0, 1, seatedIn(evCar))
+		check(checks, "event_start_humanoid_kept", seatedIn(evCar) and 1 or 0, 1, seatedIn(evCar))
 		local evRunOk = type(evRun) == "table" and evRun.Connection ~= nil and evRun.Car == evCar
 		check(checks, "event_start_run_exists", evRunOk and 1 or 0, 1, evRunOk)
-		local evReleased = evChassis ~= nil and evChassis.Anchored == false
-		check(checks, "event_start_chassis_released", evReleased and 1 or 0, 1, evReleased)
+		local evAnchored = Runner.anchored(evCar) -- the runner is anchored and moved by RaceService (spec section 2)
+		check(checks, "event_start_rig_anchored", evAnchored and 1 or 0, 1, evAnchored)
 		local evFrom = evChassis and hdist(evChassis.Position, startPos) or math.huge
 		check(
 			checks,
@@ -3527,11 +2811,7 @@ function Scenarios.auto_toggle()
 		)
 		local evClosest, evOver = watchFreshRun(evCar)
 		observer:Disconnect()
-		metrics.event_teleport_frames = tele.Frames
-		metrics.event_teleport_frames_without_car = tele.NoCar
-		check(checks, "event_teleport_never_has_run", tele.RunSeen, 0, tele.RunSeen == 0)
-		check(checks, "event_teleport_chassis_always_anchored", tele.Unanchored, 0, tele.Unanchored == 0)
-		check(checks, "event_teleport_car_always_at_start", tele.AwayFromStart, 0, tele.AwayFromStart == 0)
+		check(checks, "event_start_never_teleporting", tele.Frames, 0, tele.Frames == 0)
 		check(checks, "event_racing_always_has_run", tele.Bad, 0, tele.Racing > 0 and tele.Bad == 0)
 		check(
 			checks,
@@ -3558,6 +2838,9 @@ function Scenarios.auto_toggle()
 				RunService.Heartbeat:Wait() -- one frame between Stop and Auto Race
 			end
 			local okGo, rGo = pcall(CarService.SetAutoRace, player, true)
+			if raceEvent() == "Teleporting" then
+				rapidBad += 1 -- instant start: never a Teleporting phase
+			end
 			local c = call(CarService.GetCar, player)
 			local ch = c and c.PrimaryPart
 			local r = call(CarService.GetRun, player)
@@ -3565,7 +2848,7 @@ function Scenarios.auto_toggle()
 				and rGo == true
 				and raceEvent() == "Racing"
 				and ch ~= nil
-				and ch.Anchored == false
+				and Runner.anchored(c)
 				and type(r) == "table"
 				and r.Car == c
 				and seatedIn(c)
@@ -3597,7 +2880,8 @@ function Scenarios.auto_toggle()
 		check(checks, "event_rapid_one_car", #ourCars(), 1, #ourCars() == 1)
 		check(checks, "event_rapid_one_active_run", activeRuns(), 1, activeRuns() == 1)
 
-		-- Stop while teleporting cancels the start: on foot, no car, no run, and none created later
+		-- Stop right after an instant start (owner 2026-10-29: no Teleporting phase to cancel): the start already
+		-- returned true with exactly one run, and the Stop ends it: on foot, no car, no run, and none created later
 		pcall(CarService.SetAutoRace, player, false)
 		local runsBeforeCancel = #runs
 		local cancelDone, cancelRet = false, nil
@@ -3606,14 +2890,10 @@ function Scenarios.auto_toggle()
 			cancelRet = okC2 and rC2
 			cancelDone = true
 		end)
-		local cancelEv = raceEvent()
-		check(
-			checks,
-			"event_cancel_was_teleporting",
-			cancelEv == "Teleporting" and 1 or 0,
-			1,
-			cancelEv == "Teleporting"
-		)
+		local cancelEvent = raceEvent()
+		check(checks, "event_cancel_never_teleporting", cancelEvent == "Racing" and 1 or 0, 1, cancelEvent == "Racing")
+		local runsAtStop = #runs - runsBeforeCancel
+		check(checks, "event_cancel_start_already_racing", runsAtStop, 1, cancelDone and runsAtStop == 1)
 		local okCancel, rCancel = pcall(CarService.SetAutoRace, player, false)
 		check(
 			checks,
@@ -3663,17 +2943,17 @@ function Scenarios.auto_toggle()
 		recordOnFootParts("event_cancel_after_1s", player, humanoid, head, root, #runs, activeRuns())
 		check(checks, "event_cancel_still_on_foot_after_1s", cancelledOnFoot() and 1 or 0, 1, cancelledOnFoot())
 		local newRuns = #runs - runsBeforeCancel
-		check(checks, "event_cancel_no_run_ever", newRuns, 0, newRuns == 0)
+		check(checks, "event_cancel_no_run_after_stop", newRuns, 1, newRuns == 1)
 		check(
 			checks,
-			"event_cancel_start_returned_false",
-			cancelRet == false and 1 or 0,
+			"event_cancel_start_returned_true",
+			cancelRet == true and 1 or 0,
 			1,
-			cancelDone and cancelRet == false
+			cancelDone and cancelRet == true
 		)
 
-		-- Seat failure: a second fake player whose avatar can never be seated (the seat is disabled the moment the
-		-- car appears and any SeatWeld is removed every frame). After SEAT_TIMEOUT: no race, on foot, no car, no run.
+		-- A second fake player: joins and respawns on foot. (The seat-failure checks here were retired with the
+		-- VehicleSeat, docs/WORLD_REDESIGN_SPEC.md section 1: the runner has no seat to fail.)
 		local p2 = Instance.new("Folder")
 		p2.Name = "CarTestAutoSeatless"
 		p2.Parent = Workspace
@@ -3683,83 +2963,12 @@ function Scenarios.auto_toggle()
 			PlayerData.Setup(p2)
 		end)
 		check(checks, "event_seatless_setup", okSetup2 and 1 or 0, 1, okSetup2)
-		local char2, hum2, _, head2 = newFakeCharacter(CFrame.new(walkCF.Position + Vector3.new(6, 3, 0)))
+		local char2 = newFakeCharacter(CFrame.new(walkCF.Position + Vector3.new(6, 3, 0)))
 		local char2b = nil
 		local okJoin2 = pcall(CarService.OnCharacter, p2, char2)
 		RunService.Heartbeat:Wait()
 		local evJoin = p2:GetAttribute("RaceEvent")
 		check(checks, "event_join_race_event_off", evJoin == "Off" and 1 or 0, 1, okJoin2 and evJoin == "Off")
-		pcall(function()
-			hum2:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-		end)
-		local function blockSeat(seatCar)
-			local seat = seatCar and seatCar:FindFirstChild("DriverSeat")
-			if seat then
-				seat.Disabled = true
-				local weld = seat:FindFirstChild("SeatWeld")
-				if weld then
-					weld:Destroy()
-				end
-			end
-			hum2.Sit = false
-		end
-		local blockAdded = Workspace.ChildAdded:Connect(function(m)
-			if m:IsA("Model") and m:FindFirstChild("DriverSeat") and not baseline[m] then
-				blockSeat(m)
-			end
-		end)
-		local seatlessTeleporting = false
-		local blockBeat = RunService.Heartbeat:Connect(function()
-			if p2:GetAttribute("RaceEvent") == "Teleporting" then
-				seatlessTeleporting = true
-			end
-			blockSeat(call(CarService.GetCar, p2))
-		end)
-		local seatDone, seatRet = false, nil
-		local seatElapsed = -1 -- DIAGNOSTIC: seconds from the SetAutoRace(true) call to its return
-		local t0 = os.clock()
-		task.spawn(function()
-			local tCall = os.clock()
-			local okF, rF = pcall(CarService.SetAutoRace, p2, true)
-			seatElapsed = os.clock() - tCall
-			seatRet = okF and rF
-			seatDone = true
-		end)
-		while os.clock() < t0 + AUTO_SEAT_TIMEOUT + 0.5 do
-			RunService.Heartbeat:Wait()
-		end
-		blockAdded:Disconnect()
-		blockBeat:Disconnect()
-		metrics.event_seatless_was_teleporting = seatlessTeleporting
-		check(checks, "event_seat_fail_returned", seatDone and 1 or 0, 1, seatDone)
-		check(checks, "event_seat_fail_returns_false", seatRet == false and 1 or 0, 1, seatRet == false)
-		local p2Racing = call(CarService.IsAutoRacing, p2) == true or p2:GetAttribute("AutoRacing") ~= false
-		check(checks, "event_seat_fail_not_racing", p2Racing and 0 or 1, 1, not p2Racing)
-		local evFail = p2:GetAttribute("RaceEvent")
-		check(checks, "event_seat_fail_race_event_off", evFail == "Off" and 1 or 0, 1, evFail == "Off")
-		local p2NoCar = call(CarService.GetCar, p2) == nil and #ourCars() == 0
-		check(checks, "event_seat_fail_no_car", #ourCars(), 0, p2NoCar)
-		local p2NoRun = call(CarService.GetRun, p2) == nil and #seatlessRuns == 0
-		check(checks, "event_seat_fail_no_run", #seatlessRuns, 0, p2NoRun)
-		metrics.event_seat_fail_setautorace_elapsed = seatElapsed
-		local p2Active = 0
-		for _, r in seatlessRuns do
-			if r.Connection ~= nil then
-				p2Active += 1
-			end
-		end
-		recordOnFootParts(
-			"event_seat_fail",
-			p2,
-			hum2,
-			head2,
-			char2:FindFirstChild("HumanoidRootPart"),
-			#seatlessRuns,
-			p2Active
-		)
-		local p2Foot = hum2.SeatPart == nil and head2.Transparency == 0
-		check(checks, "event_seat_fail_on_foot", p2Foot and 1 or 0, 1, p2Foot)
-
 		-- Respawn: the new avatar is on foot, RaceEvent "Off"
 		char2b = newFakeCharacter(CFrame.new(walkCF.Position + Vector3.new(-6, 3, 0)))
 		local okResp = pcall(CarService.OnCharacter, p2, char2b)
@@ -3880,7 +3089,11 @@ function Scenarios.economy()
 		return ok and r or nil
 	end
 
-	check(checks, "race_config_below_top_speed", top, CarConfig.TopSpeed, top < CarConfig.TopSpeed)
+	-- CarConfig.TopSpeed is scrapped with the car (docs/WORLD_REDESIGN_SPEC.md section 1): the runner's ceiling is the
+	-- hard cruise cap RaceConfig.MAX_CRUISE; the cruise reference sits below it and MAX_STAT cruise never passes it
+	local cap = RaceConfig.MAX_CRUISE
+	local capBelowOk = num(cap) and top < cap and num(sf(maxStat)) and sf(maxStat) <= cap
+	check(checks, "race_config_below_cruise_cap", top, cap or -1, capBelowOk)
 	check(checks, "speed_for_zero_is_base", sf(0) or -1, base, sf(0) == base)
 	local mid = sf(half)
 	check(checks, "speed_for_threshold_is_max_reference", mid or -1, top, num(mid) and math.abs(mid - top) <= 0.01)
@@ -3903,13 +3116,14 @@ function Scenarios.economy()
 		if v <= prev then
 			increasing = false
 		end
-		if s == maxStat and v <= CarConfig.TopSpeed then
+		if s == maxStat and v <= top then
 			unbounded = false
 		end
 		prev = v
 	end
 	check(checks, "speed_for_strictly_increasing", increasing and 1 or 0, 1, increasing)
-	check(checks, "speed_for_high_stat_exceeds_car_baseline", unbounded and 1 or 0, 1, unbounded)
+	-- the old car baseline (TopSpeed) is gone: a high stat still runs past the MAX_SPEED cruise reference
+	check(checks, "speed_for_high_stat_exceeds_max_speed", unbounded and 1 or 0, 1, unbounded)
 	local atMax = sf(maxStat)
 	check(checks, "speed_for_max_stat_above_reference", atMax or -1, top, num(atMax) and atMax > top)
 	-- Owner 2026-10-22 / 2026-10-27 (design doc "Core stat model"): linear up to HALF_STAT (10K, every point adds
@@ -7501,9 +6715,9 @@ function Scenarios.index()
 		local results = {}
 		for k = 1, 2 do
 			local route = RaceService.BuildRoute({ entries[k] })
-			local car = CarFactory.build(CarConfig)
+			local car = Runner.new()
 			car.Name = "CarTestIndexCar" .. k
-			car:PivotTo(models[k].Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0))
+			car:PivotTo(models[k].Start.CFrame + Vector3.new(0, Runner.LIFT, 0))
 			car.Parent = Workspace
 			table.insert(models, car)
 			local player = newTestPlayer(cleanup, "CarTestIndexRacer" .. k)
@@ -7520,6 +6734,7 @@ function Scenarios.index()
 			results[k] = {
 				player = player,
 				chassis = car.PrimaryPart,
+				meter = Runner.meter(car.PrimaryPart.Position, false), -- anchored rig: speed from distance moved
 				speedValue = player.BaseSpeed, -- base Speed (owner 2026-10-21)
 				integral = 0,
 				target = run.TargetSpeed,
@@ -7529,7 +6744,7 @@ function Scenarios.index()
 		local integrate = RunService.PreSimulation:Connect(function(dt)
 			raceMaxDt = math.max(raceMaxDt, dt)
 			for _, r in results do
-				local g = RaceConfig.GainPerSecond(r.speedValue.Value, r.chassis.AssemblyLinearVelocity.Magnitude)
+				local g = RaceConfig.GainPerSecond(r.speedValue.Value, (r.meter(r.chassis.Position, dt)))
 				if type(g) == "number" and g == g then
 					r.integral += g * dt
 				end
@@ -7587,29 +6802,6 @@ function Scenarios.index()
 		inst:Destroy()
 	end
 	return result("index", checks, metrics)
-end
-
--- Car size: the car is about half of its original 13.2 stud length.
-local ORIGINAL_CAR_LENGTH = 13.2
-function Scenarios.car_size()
-	local checks = {}
-	local model = CarFactory.build(CarConfig)
-	local chassis = model.PrimaryPart
-	local cs = chassis and chassis.Size or Vector3.zero
-	check(checks, "chassis_length_max", cs.Z, 7.0, chassis ~= nil and cs.Z <= 7.0)
-	check(checks, "chassis_width_max", cs.X, 3.5, chassis ~= nil and cs.X <= 3.5)
-	local _, size = model:GetBoundingBox()
-	check(checks, "model_length_band", size.Z, 4, size.Z >= 4 and size.Z <= 8)
-	check(checks, "model_width_max", size.X, 5, size.X <= 5)
-	check(checks, "model_height_max", size.Y, 3.5, size.Y <= 3.5)
-	local wr = CarConfig.WheelRadius
-	check(checks, "wheel_radius_band", wr, 0.5, type(wr) == "number" and wr >= 0.5 and wr <= 0.9)
-	local rh = CarConfig.RestHeight
-	check(checks, "rest_height_band", rh, 2, type(rh) == "number" and rh > 0 and rh < 2)
-	local ratio = size.Z / ORIGINAL_CAR_LENGTH
-	check(checks, "length_ratio_max", ratio, 0.6, ratio <= 0.6)
-	model:Destroy()
-	return result("car_size", checks, { lengthRatio = round(ratio), length = round(size.Z) })
 end
 
 -- NPC racer + multiplayer pass-through (contract: docs/NPC_RACER_SPEC.md).
@@ -7700,7 +6892,7 @@ end
 -- One player's NPC-mode run: a real car, a fake player (Folder) at stat `stat`, every race event recorded with the
 -- test's clock, the car's position, up-vector and balance at arrival.
 local function newNpcRacer(api, route, startCF, tag, stat, speeds, carGroup)
-	local car = CarFactory.build(CarConfig)
+	local car = Runner.new()
 	car.Name = "CarTestNpcCar_" .. tag
 	car:PivotTo(startCF)
 	if carGroup then
@@ -7778,12 +6970,9 @@ local function stepNpcRacer(r, dt, wps)
 		return
 	end
 	local chassis = r.Chassis
-	local run = r.Run
 	local now = os.clock() - r.clock0
 	local up = chassis.CFrame.UpVector.Y
-	if not (run.Physics and run.Physics.LoopAssist) then
-		r.minUpOwn = math.min(r.minUpOwn, up)
-	end
+	r.minUpOwn = math.min(r.minUpOwn, up) -- spec section 2: upright everywhere, loops included
 	if up < PhysicsTargets.lap.MinUpY then
 		r.flippedFor += dt
 		if not r.wasFlipped and r.flippedFor > 1 then
@@ -7797,7 +6986,9 @@ local function stepNpcRacer(r, dt, wps)
 		r.devActive = false
 	end
 	if r.devActive then
-		local pos = chassis.Position
+		-- the rig's feet (bounding-box bottom) run on the path, as the car chassis did at ride height
+		local bcf, bsize = r.Car:GetBoundingBox()
+		local pos = bcf.Position - bcf.UpVector * (bsize.Y / 2)
 		local n = #wps
 		local bestD = math.huge
 		for i = r.idx, math.min(r.idx + 25, n) do
@@ -7829,7 +7020,6 @@ local function endNpcRacer(r)
 			Resets = run.Resets,
 			RaceTrack = run.RaceTrack,
 			Results = type(run.Results) == "table" and #run.Results or -1,
-			FlipRecoveries = run.FlipRecoveries,
 			-- compatibility payout fields, read before Destroy (NPC wins are already paid at each finish)
 			Unbanked = run.Unbanked,
 			BankedTotal = run.BankedTotal,
@@ -7856,8 +7046,8 @@ local function checkNpcStability(checks, pre, r)
 	local rm = isFiniteNumber(r.snap.MinUpY) and r.snap.MinUpY or -1
 	local worst = math.min(rm, r.minUpOwn)
 	check(checks, pre .. "_never_tilted", worst, strict, type(strict) == "number" and worst >= strict)
-	local rec = type(r.snap.FlipRecoveries) == "number" and r.snap.FlipRecoveries or -1
-	check(checks, pre .. "_no_flips", r.flips, 0, r.flips == 0 and rec == 0)
+	-- flip recovery retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2): the up-vector flip count stays
+	check(checks, pre .. "_no_flips", r.flips, 0, r.flips == 0)
 end
 
 -- Lost track `lost` (by racer r): nothing paid for it, an immediate Reset to Track 1 naming the lost checkpoint,
@@ -7957,9 +7147,16 @@ function Scenarios.npc()
 				end
 			end
 			check(checks, "npc_colours_distinct_1_to_5", same + notColor, 0, same == 0 and notColor == 0)
-			local asPlayer = 0
+			-- the player's body colour is now the default runner's Torso (series palette, WORLD_REDESIGN_SPEC section 2)
+			local okRig, rig = pcall(Runner.new)
+			local torso = okRig and typeof(rig) == "Instance" and rig:FindFirstChild("Torso", true) or nil
+			local bodyColor = torso and torso:IsA("BasePart") and torso.Color or nil
+			if okRig and typeof(rig) == "Instance" then
+				rig:Destroy()
+			end
+			local asPlayer = bodyColor and 0 or 5
 			for i = 1, 5 do
-				if colorClose(infos[i].Color, CarConfig.Colors.Body) then
+				if bodyColor and colorClose(infos[i].Color, bodyColor) then
 					asPlayer += 1
 				end
 			end
@@ -8187,9 +7384,19 @@ function Scenarios.npc()
 					NPC_POSE_TOLERANCE,
 					pEnd ~= nil and dEnd <= NPC_POSE_TOLERANCE
 				)
-				local h0 = p0 and p0.Position.Y - first.Y or -99
-				local hEnd = pEnd and pEnd.Position.Y - last.Y or -99
-				local herr = math.max(math.abs(h0 - CarConfig.RestHeight), math.abs(hEnd - CarConfig.RestHeight))
+				-- the NPC rig placed at PoseAt stands on the road: its feet (bounding-box bottom) within 1 stud of the
+				-- lane (CarConfig.RestHeight is scrapped with the car body, docs/WORLD_REDESIGN_SPEC.md section 1)
+				local function feetHeight(cf, road)
+					local okM, rig = pcall(NpcRacer.BuildModel, NpcConfig.For(1))
+					if not (cf and okM and typeof(rig) == "Instance" and rig:IsA("Model")) then
+						return -99
+					end
+					rig:PivotTo(cf)
+					local bcf, size = rig:GetBoundingBox()
+					rig:Destroy()
+					return bcf.Position.Y - size.Y / 2 - road.Y
+				end
+				local herr = math.max(math.abs(feetHeight(p0, first)), math.abs(feetHeight(pEnd, last)))
 				check(checks, "npc_pose_rest_height", herr, 1, herr <= 1)
 				local pBefore, pAfter = pose(-5), pose(prof.TotalTime + 100)
 				local clamped = pBefore ~= nil
@@ -8339,7 +7546,7 @@ function Scenarios.npc()
 					skinned += 1
 					local okB, m = pcall(NpcRacer.BuildModel, info)
 					local vis = okB and typeof(m) == "Instance" and m:FindFirstChild("EquippedVisual") or nil
-					if not (vis and vis:IsA("Model") and vis:GetAttribute("CarId") == id) then
+					if not (vis and vis:IsA("Model") and vis:GetAttribute("CharacterId") == id) then
 						skinBad += 1
 						table.insert(skinMissing, n)
 					end
@@ -8421,7 +7628,7 @@ function Scenarios.npc()
 		local tFast1 = laneOk and npcTime(lane, NPC_FAST) or nil
 		local tFast2 = npcTime(lane2, NPC_FAST)
 		local C1, C2 = TrackBuilder.CashFor(1), TrackBuilder.CashFor(2)
-		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
 		local track1Len, totalLen = 0, 0
 		for i = 2, #wps do
 			local seg = (wps[i] - wps[i - 1]).Magnitude
@@ -8702,7 +7909,7 @@ function Scenarios.npc()
 end
 
 -- Multiplayer: two players race at the same time from the SAME spot (cars overlapping). They pass through each
--- other (collision group "Cars" does not collide with itself), both stay on their path upright, and each player's
+-- other (collision group "Runners" does not collide with itself), both stay on their path upright, and each player's
 -- NPC race is their own (one wins Track 1, the other loses and is reset without touching the winner).
 function Scenarios.multiplayer()
 	local PhysicsService = game:GetService("PhysicsService")
@@ -8733,11 +7940,11 @@ function Scenarios.multiplayer()
 	local remoteOk = remote ~= nil and remote:IsA("RemoteEvent")
 	check(checks, "mp_npc_race_remote_exists", remoteOk and 1 or 0, 1, remoteOk)
 	local okGroup, collidable = pcall(function()
-		return PhysicsService:CollisionGroupsAreCollidable("Cars", "Cars")
+		return PhysicsService:CollisionGroupsAreCollidable("Runners", "Runners")
 	end)
 	check(
 		checks,
-		"mp_cars_group_not_self_collidable",
+		"mp_runners_group_not_self_collidable",
 		okGroup and (collidable and 1 or 0) or -1,
 		0,
 		okGroup and collidable == false
@@ -8770,12 +7977,12 @@ function Scenarios.multiplayer()
 		for i = 2, route.Tracks[1].FinishIndex do
 			track1Len += (wps[i] - wps[i - 1]).Magnitude
 		end
-		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
 		local C1 = TrackBuilder.CashFor(1)
 
 		-- Same start, same stat: A races a slow NPC (wins Track 1), B a fast one (loses Track 1)
-		local A = newNpcRacer(api, route, startCF, "A", 0, { [1] = NPC_SLOW, [2] = NPC_SLOW }, "Cars")
-		local B = newNpcRacer(api, route, startCF, "B", 0, { [1] = NPC_FAST, [2] = NPC_FAST }, "Cars")
+		local A = newNpcRacer(api, route, startCF, "A", 0, { [1] = NPC_SLOW, [2] = NPC_SLOW }, "Runners")
+		local B = newNpcRacer(api, route, startCF, "B", 0, { [1] = NPC_FAST, [2] = NPC_FAST }, "Runners")
 		check(checks, "mp_runs_started", (A.ok and 1 or 0) + (B.ok and 1 or 0), 2, A.ok and B.ok)
 		local startGap = (A.Chassis.Position - B.Chassis.Position).Magnitude
 		check(checks, "mp_cars_overlap_at_start", startGap, 1, startGap <= 1)
@@ -8791,7 +7998,7 @@ function Scenarios.multiplayer()
 					notInGroup = 0
 					for _, car in { A.Car, B.Car } do
 						for _, p in car:GetDescendants() do
-							if p:IsA("BasePart") and p.CollisionGroup ~= "Cars" then
+							if p:IsA("BasePart") and p.CollisionGroup ~= "Runners" then
 								notInGroup += 1
 							end
 						end
@@ -9469,14 +8676,12 @@ function Scenarios.spawn_area()
 		end
 		return nil
 	end
+	-- every runner model (Runner.isRunner: Owner attribute and a Torso; no DriverSeat since the car was scrapped)
 	local function carModels()
 		local list = {}
 		for _, d in Workspace:GetDescendants() do
-			if d:IsA("Model") then
-				local seat = d:FindFirstChild("DriverSeat")
-				if seat and seat:IsA("VehicleSeat") then
-					table.insert(list, d)
-				end
+			if Runner.isRunner(d) then
+				table.insert(list, d)
 			end
 		end
 		return list
@@ -9643,7 +8848,7 @@ function Scenarios.spawn_area()
 		local ev = player:GetAttribute("RaceEvent")
 		check(checks, pre .. "_race_event_off", ev == "Off" and 1 or 0, 1, ev == "Off")
 	end
-	-- Racing on a fresh car (not `oldCar`), seated in it, one car, one active run
+	-- Racing on a fresh runner (not `oldCar`), Humanoid kept, one runner, one active run
 	local function checkRacing(pre, c, oldCar)
 		local stateOk = racing() and player:GetAttribute("AutoRacing") == true
 		check(checks, pre .. "_racing", stateOk and 1 or 0, 1, stateOk)
@@ -9653,17 +8858,18 @@ function Scenarios.spawn_area()
 		check(checks, pre .. "_one_car", #cars, 1, carOk)
 		local auto = car ~= nil and car:GetAttribute("AutoRace") == true
 		check(checks, pre .. "_car_auto_race", auto and 1 or 0, 1, auto)
-		local seat = car and car:FindFirstChild("DriverSeat")
-		local seated = seat ~= nil and c.Humanoid.SeatPart == seat
-		check(checks, pre .. "_seated", seated and 1 or 0, 1, seated)
+		-- no seat any more: the hidden avatar keeps its Humanoid for camera and respawn (spec section 2)
+		local seated = car ~= nil and Runner.humanoidKept(c.Model, c.Humanoid, car)
+		check(checks, pre .. "_humanoid_kept", seated and 1 or 0, 1, seated)
 		local run = call(CarService.GetRun, player)
 		local runOk = type(run) == "table" and run.Connection ~= nil and run.Car == car and activeRuns() == 1
 		check(checks, pre .. "_one_active_run", activeRuns(), 1, runOk)
-		-- "Start is an event": racing means seated, released (chassis not anchored) and RaceEvent "Racing"
+		-- "Start is an event": racing means the Humanoid kept, the rig anchored on the rail and RaceEvent "Racing"
 		local ev = player:GetAttribute("RaceEvent")
 		check(checks, pre .. "_race_event_racing", ev == "Racing" and 1 or 0, 1, ev == "Racing")
-		local released = car ~= nil and car.PrimaryPart ~= nil and car.PrimaryPart.Anchored == false
-		check(checks, pre .. "_chassis_released", released and 1 or 0, 1, released)
+		-- the runner is anchored and moved by RaceService (spec section 2)
+		local anchored = Runner.anchored(car)
+		check(checks, pre .. "_rig_anchored", anchored and 1 or 0, 1, anchored)
 		return car, run
 	end
 	local function touch(part)
@@ -9752,7 +8958,7 @@ function Scenarios.spawn_area()
 		loose.Anchored = true
 		loose.CFrame = pad and pad.CFrame + Vector3.new(0, 2, 0) or walkCF
 		loose.Parent = Workspace
-		local strayCar = CarFactory.build(CarConfig)
+		local strayCar = Runner.new()
 		strayCar.Name = "CarTestSpawnStrayCar"
 		strayCar:PivotTo(CFrame.new(walkCF.Position + Vector3.new(0, 50, 0)))
 		for _, d in strayCar:GetDescendants() do
@@ -9922,7 +9128,7 @@ function Scenarios.bank()
 		for i = 2, #wps do
 			totalLen += (wps[i] - wps[i - 1]).Magnitude
 		end
-		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
 		local r =
 			newNpcRacer(api, route, startCF, "Bank", RaceConfig.HALF_STAT, { [n1] = NPC_SLOW, [n2] = NPC_SLOW }, nil)
 		racer = r
@@ -10803,13 +10009,13 @@ function Scenarios.admin()
 		local t2 = route.Tracks[2]
 		local s2, n1, n2 = t2.StartIndex, route.Tracks[1].Number, t2.Number
 		local C2 = TrackBuilder.CashFor(n2)
-		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, CarConfig.RestHeight, 0)
+		local startCF = entries[1].Model.Start.CFrame + Vector3.new(0, Runner.LIFT, 0)
 		local strict = PhysicsTargets.lap.MinUpYStrict
 		local maxDev = (PhysicsTargets.race or {}).MaxPathDeviation
 
 		local function tpRun(npcMode)
 			local pre = npcMode and "admin_tp_npc_" or "admin_tp_"
-			local car = CarFactory.build(CarConfig)
+			local car = Runner.new()
 			car.Name = "CarTestAdminCar"
 			car:PivotTo(startCF)
 			car.Parent = Workspace
@@ -10890,7 +10096,7 @@ function Scenarios.admin()
 			check(checks, pre .. "refused_jumps_move_nothing", moved, 0.01, unchanged)
 
 			-- The jump
-			local off0, flips0 = run.OffTrackSeconds or 0, run.FlipRecoveries or 0
+			local off0 = run.OffTrackSeconds or 0
 			local results0 = type(run.Results) == "table" and #run.Results or 0
 			local tJump = os.clock() - clock0
 			local okTp = admin(racer, "/tp " .. n2)
@@ -10926,7 +10132,9 @@ function Scenarios.admin()
 			-- Drive on from Track 2's start
 			local idx, minUp, dev = s2, 1, 0
 			frames(ADMIN_TP_DRIVE, function()
-				local pos = chassis.Position
+				-- the rig's feet (bounding-box bottom) run on the path, as the car chassis did at ride height
+				local bcf, bsize = car:GetBoundingBox()
+				local pos = bcf.Position - bcf.UpVector * (bsize.Y / 2)
 				local bestD = math.huge
 				for i = idx, math.min(idx + 25, n) do
 					local dd = (wps[i] - pos).Magnitude
@@ -10934,9 +10142,7 @@ function Scenarios.admin()
 						bestD, idx = dd, i
 					end
 				end
-				if not (run.Physics and run.Physics.LoopAssist) then
-					minUp = math.min(minUp, chassis.CFrame.UpVector.Y)
-				end
+				minUp = math.min(minUp, chassis.CFrame.UpVector.Y) -- upright everywhere, loops included (spec section 2)
 				dev = math.max(dev, (nearestOnPolyline(wps, pos, math.max(idx - 3, 1), math.min(idx + 3, n - 1))))
 			end)
 			local runMin = type(run.MinUpY) == "number" and run.MinUpY or -1
@@ -10945,8 +10151,7 @@ function Scenarios.admin()
 			check(checks, pre .. "sticks_to_path", dev, maxDev or -1, type(maxDev) == "number" and dev <= maxDev)
 			local offDelta = (run.OffTrackSeconds or 0) - off0
 			check(checks, pre .. "not_off_track", offDelta, 0, offDelta == 0)
-			local flipDelta = (run.FlipRecoveries or 0) - flips0
-			check(checks, pre .. "no_flip_recoveries", flipDelta, 0, flipDelta == 0)
+			-- no_flip_recoveries retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2): a rail runner cannot flip
 			local progressed = driver.Index - s2
 			check(checks, pre .. "drives_on", progressed, 3, progressed >= 3)
 			local passedPad2 = driver.Index >= (t2.PadIndex or math.huge)
@@ -14123,18 +13328,14 @@ function Scenarios.workshop()
 	return result("workshop", checks, metrics)
 end
 
--- name: "static_settle" | "accel" | "brake" | "skidpad" | "car_size" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "lap:<Track>" | "track:<Track>"
+-- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
 function Scenarios.Run(name)
-	local track = string.match(name, "^lap:(.+)$")
-	if track then
-		return Scenarios.lap(track)
-	end
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
 		return Scenarios.track(trackTest)
 	end
 	local fn = Scenarios[name]
-	if type(fn) ~= "function" or name == "Run" or name == "lap" then
+	if type(fn) ~= "function" or name == "Run" or name == "track" then
 		return result(name, { { name = "scenario_exists", value = 0, limit = 1, pass = false } }, {})
 	end
 	return fn()
@@ -14167,5 +13368,8 @@ Scenarios.vehicle_effects = require(script.Parent.VehicleEffectTests).make({
 	newFakeCharacter = newFakeCharacter,
 	clearSpawnOfRealPlayers = clearSpawnOfRealPlayers,
 })
+-- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
+Scenarios.runner = require(script.Parent.RunnerTests).runner
+Scenarios.scrap = require(script.Parent.RunnerTests).scrap
 
 return Scenarios

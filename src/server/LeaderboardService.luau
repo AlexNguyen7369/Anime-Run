@@ -10,11 +10,25 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarAppearance = require(Shared.CarAppearance)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Config = require(Shared.LeaderboardConfig)
 local HudFormat = require(Shared.HudFormat)
 local PlayerData = require(script.Parent.PlayerData)
+local RunnerFactory = require(Shared.RunnerFactory)
+
+-- A static runner rig of `spec` (docs/WORLD_REDESIGN_SPEC.md section 1: no car models), named "Runner", feet on
+-- `cframe`, at `scale`; every part anchored and out of the physics (RunnerFactory builds it that way).
+local function displayRunner(spec, cframe, scale)
+	local rig = RunnerFactory.build(spec.Id)
+	rig.Name = "Runner"
+	local label = rig:FindFirstChild("NameLabel")
+	if label then
+		label:Destroy() -- the pedestal has its own label
+	end
+	rig:ScaleTo(scale)
+	rig:PivotTo(cframe * CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0))
+	return rig
+end
 
 local LeaderboardService = {}
 
@@ -211,20 +225,19 @@ local function renderBestRoll()
 	local row = (tops.RarestCar or {})[1]
 	local spec = row and carByChance(row.Score)
 	stats.Odds.Text = row and HudFormat.Odds(row.Score) or Config.NO_DATA
-	stats.Car.Text = spec and spec.Name or ""
+	stats.Character.Text = spec and spec.Name or ""
 	stats.Player.Text = row and "by " .. row.Name or ""
 	local id = spec and spec.Id or nil
-	if best:GetAttribute("CarId") == id then
+	if best:GetAttribute("CharacterId") == id then
 		return -- same car: keep the model the clients are turning
 	end
-	best:SetAttribute("CarId", id)
-	local old = best:FindFirstChild("Car")
+	best:SetAttribute("CharacterId", id)
+	local old = best:FindFirstChild("Runner")
 	if old then
 		old:Destroy()
 	end
-	local car = CarAppearance.Display(spec, mount.WorldCFrame, Config.BEST_ROLL.CAR_SCALE)
-	if car then
-		car.Parent = best
+	if spec then
+		displayRunner(spec, mount.WorldCFrame, Config.BEST_ROLL.CAR_SCALE).Parent = best
 	end
 end
 

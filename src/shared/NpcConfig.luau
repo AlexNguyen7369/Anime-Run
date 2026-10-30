@@ -28,7 +28,7 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- Track 1 keeps its red; no NPC has a Model yet (car models removed, owner 2026-10-28), so all use the CarFactory body.
+-- Track 1 keeps its red; no NPC has a Model yet (car models removed, owner 2026-10-28), so all use the runner rig (Shared/RunnerFactory).
 NpcConfig.Tracks = {
 	[1] = { Color = Color3.fromRGB(230, 45, 45) }, -- red
 }

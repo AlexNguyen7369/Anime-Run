@@ -109,6 +109,10 @@ UiScenarios.Names = {
 	"ui_hud",
 	-- docs/HUD_LAYOUT_SPEC.md sections 8-9 (owner 2026-10-27): speedometer, theme fonts and multis
 	"ui_speed_dial",
+	-- docs/WORLD_REDESIGN_SPEC.md section 2 (owner 2026-10-28): the visible runner moves smoothly (main run races)
+	"ui_runner_smooth",
+	-- docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29: the camera follows the visible runner while racing (main run races)
+	"ui_camera_follows_runner",
 	"ui_theme",
 	"ui_index",
 	"ui_stats",
@@ -132,9 +136,12 @@ UiScenarios.Names = {
 	"ui_daily_boosts",
 	"ui_shop",
 	"ui_market",
-	-- Backpack Cars tab and car model icons (UiContracts; owner 2026-10-20)
-	"ui_backpack_cars",
-	"ui_car_icons",
+	-- Backpack Characters tab and runner-rig icons (UiContracts; owner 2026-10-20, Cars -> Characters and car models
+	-- -> runner rigs per docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29)
+	"ui_backpack_characters",
+	"ui_character_icons",
+	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
+	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
@@ -146,7 +153,9 @@ UiScenarios.Names = {
 }
 
 local TOL = UiSpec.Tolerance
-local STATES = {
+-- Constants live in one table: the chunk is at Luau's 200-local limit.
+local K = {}
+K.STATES = {
 	{ Name = "rest", Open = {} },
 	{ Name = "index_open", Open = { "RacerIndex/Panel" } },
 	{ Name = "stats_open", Open = { "RacerStats/Panel" } },
@@ -166,7 +175,7 @@ local STATES = {
 	-- If exclusivity ever breaks, ui_panels fails, and this state must be added back here.
 }
 -- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect).
-local UNSUPPORTED_LAYOUT = {
+K.UNSUPPORTED_LAYOUT = {
 	UIAspectRatioConstraint = true,
 	UIScale = true,
 	UIPageLayout = true,
@@ -385,7 +394,7 @@ end
 -- that does not render, e.g. a minimised window). Returns true if a frame was rendered. After one timeout the
 -- client is marked as not rendering and later waits only give it a short chance, so the run always finishes;
 -- the ui_client_rendering check reports it.
-local RENDER_TIMEOUT = 3
+K.RENDER_TIMEOUT = 3
 local notRendering = false
 
 local function renderFrame(timeout)
@@ -393,7 +402,7 @@ local function renderFrame(timeout)
 	local conn = RunService.RenderStepped:Connect(function()
 		fired = true
 	end)
-	local deadline = os.clock() + (timeout or (notRendering and 0.1 or RENDER_TIMEOUT))
+	local deadline = os.clock() + (timeout or (notRendering and 0.1 or K.RENDER_TIMEOUT))
 	while not fired and os.clock() < deadline do
 		RunService.Heartbeat:Wait()
 	end
@@ -839,7 +848,7 @@ end
 -- Client/ShopUi's ServerLuck Tiers (CellSize 1/3 - 8, padding 12) give (W + 12) / (cw + 12) = 2.99999991, where the
 -- engine lays out 3 columns; 1e-9 dropped server_luck_8x to a second row (layout_model_matches_engine_shop_open
 -- 546.9 px on 2026-10-28). 1e-4 is far above float32 error and far below any real fraction of a column.
-local GRID_FIT_EPS = 1e-4
+K.GRID_FIT_EPS = 1e-4
 
 local function gridCell(obj, parent, grid, base, ctx, scale)
 	if
@@ -869,8 +878,8 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 	if not idx then
 		return R(base.x, base.y, 0, 0)
 	end
-	-- (GRID_FIT_EPS: an exact fit, e.g. the phone Index 3 x 146 + 2 x 12 = 462, must not lose a column to float error)
-	local cols = math.max(1, math.floor((base.w + px) / (cw + px) + GRID_FIT_EPS))
+	-- (K.GRID_FIT_EPS: an exact fit, e.g. the phone Index 3 x 146 + 2 x 12 = 462, must not lose a column to float error)
+	local cols = math.max(1, math.floor((base.w + px) / (cw + px) + K.GRID_FIT_EPS))
 	if grid.FillDirectionMaxCells > 0 then
 		cols = math.min(cols, grid.FillDirectionMaxCells)
 	end
@@ -941,7 +950,7 @@ autoHeight = function(obj, w, h, ctx, c)
 			local ch = inner.h * grid.CellSize.Y.Scale + c * grid.CellSize.Y.Offset
 			local px = inner.w * grid.CellPadding.X.Scale + c * grid.CellPadding.X.Offset
 			local py = inner.h * grid.CellPadding.Y.Scale + c * grid.CellPadding.Y.Offset
-			local cols = math.max(1, math.floor((inner.w + px) / (cw + px) + GRID_FIT_EPS))
+			local cols = math.max(1, math.floor((inner.w + px) / (cw + px) + K.GRID_FIT_EPS))
 			if grid.FillDirectionMaxCells > 0 then
 				cols = math.min(cols, grid.FillDirectionMaxCells)
 			end
@@ -1090,7 +1099,7 @@ simRect = function(obj, ctx)
 		for _, sibling in parent:GetChildren() do
 			-- A UIScale under a GuiObject is solved (ownScale / inheritedScale); under a ScreenGui it is not
 			local solved = sibling:IsA("UIScale") and parent:IsA("GuiObject")
-			if UNSUPPORTED_LAYOUT[sibling.ClassName] and not solved then
+			if K.UNSUPPORTED_LAYOUT[sibling.ClassName] and not solved then
 				ctx.unsupported[pathOf(parent)] = sibling.ClassName
 			end
 			if
@@ -1781,9 +1790,9 @@ local function cardProblems(card, ev, skipGeometry)
 		return card:FindFirstChild(name, true)
 	end
 	local bad = skipGeometry and {} or contentOutside(card)
-	local name = part("CarName")
+	local name = part("CharacterName")
 	if not (name and name:IsA("TextLabel") and name.Text == spec.Name and effectivelyVisible(name)) then
-		table.insert(bad, ("CarName %q want %q"):format(name and name.Text or "nil", spec.Name))
+		table.insert(bad, ("CharacterName %q want %q"):format(name and name.Text or "nil", spec.Name))
 	end
 	local rarity = part("Rarity")
 	if not (rarity and rarity:IsA("TextLabel") and rarity.Text == spec.Rarity and effectivelyVisible(rarity)) then
@@ -2001,7 +2010,7 @@ end
 -- each Heartbeat until the card that plays the roll is Idle again (or a newer roll arrives), then the view
 -- SWITCH + SwitchGrace later.
 
-local SETTLED = { Hold = true, Idle = true }
+K.SETTLED = { Hold = true, Idle = true }
 
 local function rarityOf(id)
 	local spec = CharacterCatalog.Get(id)
@@ -2227,9 +2236,9 @@ local function styleProblems(card, spec)
 	if not (odds and odds:IsA("TextLabel") and odds.FontFace.Style == Enum.FontStyle.Italic) then
 		table.insert(bad, "Odds not italic")
 	end
-	local name = partOf(card, "CarName")
+	local name = partOf(card, "CharacterName")
 	if not (name and name:IsA("TextLabel") and name.FontFace.Weight.Value >= Enum.FontWeight.Bold.Value) then
-		table.insert(bad, "CarName not bold")
+		table.insert(bad, "CharacterName not bold")
 	end
 	local stroke = name and name:FindFirstChildWhichIsA("UIStroke")
 	if
@@ -2239,7 +2248,7 @@ local function styleProblems(card, spec)
 			and luminance(stroke.Color) <= UiSpec.Showcase.CarNameStrokeMaxLuminance
 		)
 	then
-		table.insert(bad, "CarName has no dark UIStroke outline")
+		table.insert(bad, "CharacterName has no dark UIStroke outline")
 	end
 	local glow = partOf(card, "Glow")
 	if not glowGradient(card) then
@@ -2811,7 +2820,7 @@ function S.ui_motion(res)
 	for _, descendant in playerGui:GetDescendants() do
 		local eligible = descendant:IsA("GuiButton") and descendant.Name ~= "Backdrop" and descendant.Name ~= "Toast"
 			or descendant:IsA("Frame")
-				and (descendant:GetAttribute("CarId") ~= nil or descendant:GetAttribute("RacerHover") == true)
+				and (descendant:GetAttribute("CharacterId") ~= nil or descendant:GetAttribute("RacerHover") == true)
 		if eligible then
 			table.insert(targets, descendant)
 		end
@@ -3256,7 +3265,7 @@ end
 
 function S.ui_layout(res)
 	waitGuis()
-	for _, state in STATES do
+	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
 		for _, vpSpec in UiSpec.Viewports do
 			local rectOf, vp, ctx = provider(vpSpec)
@@ -3736,7 +3745,7 @@ function S.ui_hitboxes(res)
 		restore()
 	end
 
-	for _, state in STATES do
+	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
 		local vp = viewport()
 		local spill, padded, hiddenHit, covered, invisible, clippedHit, looks = {}, {}, {}, {}, {}, {}, {}
@@ -4110,8 +4119,8 @@ end
 
 -- The speedometer (docs/HUD_LAYOUT_SPEC.md section 9, owner 2026-10-27): RacerHud/Speed/SpeedDial with a Needle
 -- (attribute DialValue, studs/s) and DialSpeed, the speed icon as its hub, nothing clickable. On foot the needle rests
--- at 0 and DialSpeed reads "0"; while auto racing both follow the car's REAL speed (measured here from the seat's
--- displacement), never the Speed stat. The main run is auto_racing; the on_foot fixture runs it on foot.
+-- at 0 and DialSpeed reads "0"; while auto racing both follow the runner's REAL speed (measured here from the visible
+-- runner's displacement), never the Speed stat. The main run is auto_racing; the on_foot fixture runs it on foot.
 function S.ui_speed_dial(res)
 	waitGuis()
 	local H, cfg = UiSpec.Hud, UiSpec.SpeedDial
@@ -4171,21 +4180,24 @@ function S.ui_speed_dial(res)
 		check(res, "speed_dial_text_zero_on_foot", text.Text, "0", text.Text == "0")
 		return
 	end
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	-- The visible runner (contract in Server/CarTest/RunnerTests: tag VisibleRunner, Owner = this player's UserId)
 	local seat
-	local deadline = os.clock() + cfg.CarWait
+	local deadline = os.clock() + cfg.RunnerWait
 	repeat
-		seat = humanoid and humanoid.SeatPart
+		for _, m in CollectionService:GetTagged(UiSpec.RunnerSmooth.Tag) do
+			if m:IsA("Model") and m:IsDescendantOf(Workspace) and m:GetAttribute("Owner") == player.UserId then
+				seat = m.PrimaryPart
+			end
+		end
 		if not seat then
 			task.wait(0.1)
 		end
 	until seat or os.clock() > deadline
 	if not seat then
-		stateMissing(res, "speed_dial_follows_car", "auto_racing", "AutoRacing but the avatar is in no seat")
+		stateMissing(res, "speed_dial_follows_car", "auto_racing", "AutoRacing but no visible runner")
 		return
 	end
-	-- Real speed = path distance (sum of per-frame seat steps, so a curve does not read short as a chord would) / time
+	-- Real speed = path distance (sum of per-frame runner steps, so a curve does not read short as a chord would) / time
 	-- over SampleSeconds, skipping teleport steps (> TeleportStep: a restart / loop back to the start); DialValue and
 	-- DialSpeed averaged over the same frames
 	local last, t0 = seat.Position, os.clock()
@@ -4227,10 +4239,163 @@ function S.ui_speed_dial(res)
 	)
 end
 
+-- Smooth motion (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/CarTest/RunnerTests
+-- header): the server's rig is anchored and authoritative, and this client renders the visible runner (tag
+-- VisibleRunner, Owner = this player's UserId) by interpolating along the path. While auto racing, every frame's step
+-- must be about the runner's speed x dt: the IVS stutter (3.7, 0, 3.7, 0 studs per frame, a server pose replicated
+-- every other frame) fails. The speed is the runner's own mean over the window (the cruise is exact).
+function S.ui_runner_smooth(res)
+	local cfg = UiSpec.RunnerSmooth
+	if attr("AutoRacing") ~= true then
+		stateMissing(res, "runner_no_stutter", "auto_racing")
+		return
+	end
+	if not renderFrame() then
+		stateMissing(res, "runner_no_stutter", "rendering", "the client renders no frames")
+		return
+	end
+	local runner
+	local deadline = os.clock() + cfg.Wait
+	repeat
+		for _, m in CollectionService:GetTagged(cfg.Tag) do
+			if
+				m:IsA("Model")
+				and m:IsDescendantOf(Workspace)
+				and m:GetAttribute("Owner") == player.UserId
+				and m.PrimaryPart
+			then
+				runner = m
+			end
+		end
+		if not runner then
+			task.wait(0.1)
+		end
+	until runner or os.clock() > deadline
+	check(res, "visible_runner_found", runner ~= nil, true, runner ~= nil)
+	if not runner then
+		return
+	end
+	-- Sampled on Heartbeat, after this frame's render step placed the runner: one step and one dt per frame. A step
+	-- longer than TeleportStep is a restart / loop back to the start, which the contract snaps.
+	local steps, dts = {}, {}
+	local last = runner.PrimaryPart.Position
+	local t0 = os.clock()
+	repeat
+		local dt = RunService.Heartbeat:Wait()
+		local part = runner.PrimaryPart
+		if not part then
+			break
+		end
+		local step = (part.Position - last).Magnitude
+		last = part.Position
+		if step <= cfg.TeleportStep then
+			table.insert(steps, step)
+			table.insert(dts, dt)
+		end
+	until os.clock() - t0 >= cfg.SampleSeconds
+	local path, time = 0, 0
+	for i, step in steps do
+		path += step
+		time += dts[i]
+	end
+	local speed = time > 0 and path / time or 0
+	check(
+		res,
+		"runner_moves",
+		speed,
+		("> %s studs/s over >= %d frames"):format(cfg.MinSpeed, cfg.MinFrames),
+		speed > cfg.MinSpeed and #steps >= cfg.MinFrames
+	)
+	local bad = 0
+	for i, step in steps do
+		local want = speed * dts[i]
+		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
+			bad += 1
+		end
+	end
+	local share = #steps > 0 and bad / #steps or 1
+	check(
+		res,
+		"runner_no_stutter",
+		("%d of %d frames off speed x dt"):format(bad, #steps),
+		("<= %d%% of frames"):format(cfg.MaxBadShare * 100),
+		#steps >= cfg.MinFrames and share <= cfg.MaxBadShare
+	)
+end
+
 -- One theme (docs/HUD_LAYOUT_SPEC.md section 8, owner 2026-10-27): every TextLabel / TextButton in the game's
 -- ScreenGuis (UiSpec.Guis: never Roblox's or the UiTest's own), shown or not, is FredokaOne; every multiplier token in
 -- UiSpec.Theme.MultiLabels is HudFormat.Multi style ("x1.5": at most 2 decimals, no trailing zero) and no label
 -- writes the old "25x".
+-- No player-facing "car" wording (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29: "Characters",
+-- never "Cars"): no text of any declared GUI contains the word car or cars, in any case. Instance names are not text.
+function S.ui_no_car_wording(res)
+	waitGuis()
+	local bad = {}
+	for _, name in declaredGuis() do
+		local gui = playerGui:FindFirstChild(name)
+		for _, o in gui and gui:GetDescendants() or {} do
+			if
+				(o:IsA("TextLabel") or o:IsA("TextButton") or o:IsA("TextBox"))
+				and string.find(string.lower(o.Text), "%f[%a]cars?%f[%A]")
+			then
+				table.insert(bad, ("%s %q"):format(pathOf(o), o.Text))
+			end
+		end
+	end
+	checkList(res, "no_car_wording", bad)
+end
+
+-- Camera (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29): while racing the camera follows
+-- the visible runner (tag VisibleRunner, Owner = this player): every frame of the window its focus is within
+-- UiSpec.RunnerSmooth.CameraMaxOffset studs of the runner.
+function S.ui_camera_follows_runner(res)
+	local cfg = UiSpec.RunnerSmooth
+	if attr("AutoRacing") ~= true then
+		stateMissing(res, "camera_follows_runner", "auto_racing")
+		return
+	end
+	local runner
+	local deadline = os.clock() + cfg.Wait
+	repeat
+		for _, m in CollectionService:GetTagged(cfg.Tag) do
+			if
+				m:IsA("Model")
+				and m:IsDescendantOf(Workspace)
+				and m:GetAttribute("Owner") == player.UserId
+				and m.PrimaryPart
+			then
+				runner = m
+			end
+		end
+		if not runner then
+			task.wait(0.1)
+		end
+	until runner or os.clock() > deadline
+	check(res, "visible_runner_found", runner ~= nil, true, runner ~= nil)
+	if not runner then
+		return
+	end
+	local worst, n = 0, 0
+	local t0 = os.clock()
+	repeat
+		RunService.Heartbeat:Wait()
+		local camera, part = Workspace.CurrentCamera, runner.PrimaryPart
+		if not (camera and part) then
+			break
+		end
+		worst = math.max(worst, (camera.Focus.Position - part.Position).Magnitude)
+		n += 1
+	until os.clock() - t0 >= cfg.CameraSeconds
+	check(
+		res,
+		"camera_follows_runner",
+		worst,
+		("<= %d studs over >= %d frames"):format(cfg.CameraMaxOffset, cfg.MinFrames),
+		n >= cfg.MinFrames and worst <= cfg.CameraMaxOffset
+	)
+end
+
 function S.ui_theme(res)
 	waitGuis()
 	local cfg = UiSpec.Theme
@@ -4363,7 +4528,7 @@ function S.ui_index(res)
 	for _, t in tiles do
 		local id, spec, tile = t.spec.Id, t.spec, t.tile
 		local name, art, locked, equip =
-			tile:FindFirstChild("CarName"),
+			tile:FindFirstChild("CharacterName"),
 			tile:FindFirstChild("Art"),
 			tile:FindFirstChild("Locked"),
 			tile:FindFirstChild("Equip")
@@ -4654,7 +4819,7 @@ function S.ui_settings_profile(res)
 	local expected = {
 		TotalRolls = HudFormat.SpeedText(attr("Rolls") or 0),
 		BestRoll = HudFormat.Odds(best and best.Chance),
-		CarsDiscovered = HudFormat.SpeedText(data and #data:GetChildren() or 0),
+		CharactersDiscovered = HudFormat.SpeedText(data and #data:GetChildren() or 0),
 		Level = HudFormat.SpeedText(attr("Level") or 1),
 		Speed = HudFormat.SpeedText(speedValue and speedValue.Value or 0),
 		Luck = string.format("%s · %d pts", HudFormat.Multi(GachaConfig.Multis(allocation).Luck), allocation.Luck),
@@ -6755,7 +6920,10 @@ end
 ---------------------------------------------------------------------------------------------------------------
 -- Click protocol (see UiSpec.Clicks)
 
-local function readSpy()
+-- The click protocol's helpers live in one table: the chunk is at Luau's 200-local limit.
+local Click = {}
+
+function Click.readSpy()
 	local folder = ReplicatedStorage:FindFirstChild("UiTestSpy")
 	if not folder then
 		return nil
@@ -6779,7 +6947,7 @@ local function readSpy()
 	return log
 end
 
-local function attrSnapshot()
+function Click.attrSnapshot()
 	local snap = {
 		AutoRacing = attr("AutoRacing") == true,
 		AutoRoll = attr("AutoRoll") == true,
@@ -6806,21 +6974,21 @@ local function attrSnapshot()
 end
 
 -- Shown to the player: visible and drawing something not faded out (the compact card has no text of its own).
-local function shownNow(obj)
+function Click.shownNow(obj)
 	return effectivelyVisible(obj) and drawsSomething(obj)
 end
 
 -- The compact card is fully popped in (its click point is on it) once it spins, lands or holds.
-local POPPED = { Spin = true, Land = true, Hold = true }
-local function poppedIn(obj)
+Click.POPPED = { Spin = true, Land = true, Hold = true }
+function Click.poppedIn(obj)
 	local phase = obj:GetAttribute("Phase")
-	return phase == nil or POPPED[phase] == true
+	return phase == nil or Click.POPPED[phase] == true
 end
 
 -- Remotes fired between two spy readings, in order.
-local function firedSince(preSpy)
+function Click.firedSince(preSpy)
 	local fired = {}
-	for name, list in readSpy() or {} do
+	for name, list in Click.readSpy() or {} do
 		local before = preSpy[name] and #preSpy[name] or 0
 		for i = before + 1, #list do
 			table.insert(fired, { name = name, args = list[i] })
@@ -6835,7 +7003,7 @@ end
 -- Closed panels are set); the harness records the REAL InputBegan for that key, then checks Expect exactly: every
 -- panel is as Expect.Panels says (the rest unchanged), the showcase is untouched unless Expect.Showcase says
 -- otherwise, and exactly the Expect.Remote call (or none) went to the server.
-local function runKey(spec, res)
+function Click.runKey(spec, res)
 	waitGuis()
 	local prep = spec.Prepare or {}
 	local index = table.find(UiSpec.Clicks, spec)
@@ -6881,7 +7049,7 @@ local function runKey(spec, res)
 		local o = findPath(p)
 		check(res, "prepared_open_" .. p, o and o.Visible, true, o ~= nil and o.Visible == true)
 	end
-	local preSpy = readSpy()
+	local preSpy = Click.readSpy()
 	if not preSpy then
 		stateMissing(res, "spy_installed", "spy", "ReplicatedStorage.UiTestSpy missing")
 		restore()
@@ -6942,7 +7110,7 @@ local function runKey(spec, res)
 	end
 	local nowShowcase = showcaseState()
 	check(res, "showcase_after_key", nowShowcase, wantShowcase, nowShowcase == wantShowcase)
-	local fired = firedSince(preSpy)
+	local fired = Click.firedSince(preSpy)
 	local names = {}
 	for _, f in fired do
 		table.insert(names, f.name)
@@ -6986,7 +7154,7 @@ function UiScenarios.RunClick(id)
 	-- A MANUAL check (UiSpec.Clicks Manual) run by hand: same checks; the result says it is the manual one
 	res.manual = spec.Manual
 	if spec.Key and spec.Expect.WorkshopOpen == nil then
-		return runKey(spec, res)
+		return Click.runKey(spec, res)
 	elseif spec.Key then
 		-- The workshop E prompt contracts (Expect.WorkshopOpen) keep their own fixture-checked runner
 		return Progression.RunInput(spec, res, {
@@ -7225,7 +7393,7 @@ function UiScenarios.RunClick(id)
 			return res
 		end
 	end
-	local preSpy = readSpy()
+	local preSpy = Click.readSpy()
 	if not preSpy then
 		stateMissing(res, "spy_installed", "spy", "ReplicatedStorage.UiTestSpy missing")
 		restore()
@@ -7319,7 +7487,7 @@ function UiScenarios.RunClick(id)
 				local deadline = os.clock() + UiSpec.Waits.ToastShown
 				repeat
 					renderFrame()
-					shown = shownNow(button) and poppedIn(button)
+					shown = Click.shownNow(button) and Click.poppedIn(button)
 				until shown or os.clock() > deadline
 			end
 			if not shown then
@@ -7335,12 +7503,12 @@ function UiScenarios.RunClick(id)
 			end
 		end
 
-		if prep.RequireShown and not shownNow(button) then
+		if prep.RequireShown and not Click.shownNow(button) then
 			stateMissing(res, "target_shown_before_click", previous, pathOf(button) .. " is not shown")
 			restore()
 			return res
 		end
-		pre = attrSnapshot()
+		pre = Click.attrSnapshot()
 		if prep.SoundProbe and not probe then
 			probe = Instance.new("Sound")
 			probe.Name = "UiTestSoundProbe"
@@ -7407,7 +7575,7 @@ function UiScenarios.RunClick(id)
 						hit = top
 					end
 				end
-				press = { x = px, y = py, hit = hit, targetShown = shownNow(button), t = os.clock() }
+				press = { x = px, y = py, hit = hit, targetShown = Click.shownNow(button), t = os.clock() }
 				press.target = button
 			end
 		end)
@@ -7449,7 +7617,7 @@ function UiScenarios.RunClick(id)
 		if spec.RetryLostPress and attempt < attempts and done and press ~= nil and not missedFade then
 			local onTarget = press.hit ~= nil and (press.hit == press.target or press.target:IsAncestorOf(press.hit))
 			local function firedAny()
-				for name, list in readSpy() or {} do
+				for name, list in Click.readSpy() or {} do
 					if #list > (preSpy[name] and #preSpy[name] or 0) then
 						return true
 					end
@@ -7530,7 +7698,7 @@ function UiScenarios.RunClick(id)
 	check(res, "showcase_after_click", nowShowcase, wantShowcase, nowShowcase == wantShowcase)
 
 	-- Remotes: exactly the promised call, or none
-	local postSpy = readSpy() or {}
+	local postSpy = Click.readSpy() or {}
 	local fired = {}
 	for name, list in postSpy do
 		local before = preSpy[name] and #preSpy[name] or 0
@@ -7611,7 +7779,7 @@ function UiScenarios.RunClick(id)
 	local toast = findPath("RollToast/Toast")
 	for _, cond in expect.After or {} do
 		if cond == "progression_not_optimistic" then
-			local now = attrSnapshot()
+			local now = Click.attrSnapshot()
 			for _, key in { "WorkshopLevel", "ProgressionMoney", "ProgressionOwned" } do
 				check(res, "unchanged_" .. string.lower(key), now[key], pre[key], now[key] == pre[key])
 			end
@@ -7797,7 +7965,7 @@ function UiScenarios.RunClick(id)
 			-- Opens on the latest roll (or a newer one that arrived during the settle: it updates live), checked
 			-- once the enlarged card has landed (Hold) or rests (Idle)
 			local _, _, card = showcaseParts()
-			local settled = waitCardPhase(card, SETTLED, UiSpec.Waits.CardSettle)
+			local settled = waitCardPhase(card, K.SETTLED, UiSpec.Waits.CardSettle)
 			check(res, "showcase_card_settled", settled, true, settled)
 			checkList(res, cond, showcaseCardProblems(events.rolls[#events.rolls]))
 		elseif cond == "showcase_blur_on" then
@@ -7809,7 +7977,7 @@ function UiScenarios.RunClick(id)
 		elseif cond == "showcase_layout" then
 			local gui, backdrop, card = showcaseParts()
 			-- The card animates (SWITCH, PopIn, LAND_POP): measure it landed (Hold) or resting (Idle)
-			waitCardPhase(card, SETTLED, UiSpec.Waits.CardSettle)
+			waitCardPhase(card, K.SETTLED, UiSpec.Waits.CardSettle)
 			local vp = viewport()
 			local full = R(0, 0, vp.X, vp.Y)
 			local br = backdrop and realRect(backdrop)
@@ -8012,7 +8180,7 @@ function UiScenarios.RunClick(id)
 				continue
 			end
 			frames(2)
-			local shown = toast ~= nil and shownNow(toast)
+			local shown = toast ~= nil and Click.shownNow(toast)
 			check(res, "toast_shown_while_auto_off", shown, true, shown)
 			local text = toast and allText(toast) or ""
 			local cap = UiSpec.RollAnim.AutoOffCaption
@@ -8047,7 +8215,7 @@ function UiScenarios.RunClick(id)
 			end
 			task.wait(GachaConfig.ROLL_INTERVAL + 0.5)
 			frames(2)
-			local still = toast ~= nil and shownNow(toast)
+			local still = toast ~= nil and Click.shownNow(toast)
 			check(res, "toast_stays_while_auto_off", still, true, still)
 		elseif cond == "hud_hidden_while_showcase_open" then
 			-- CLAUDE.md "UI tests": the HUD hides while the roll showcase is open. Pass when its ScreenGui is

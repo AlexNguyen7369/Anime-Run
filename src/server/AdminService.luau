@@ -366,7 +366,7 @@ AdminService.Commands = {
 	},
 	give = {
 		Usage = "/give <carId|all> [player]",
-		Help = "add a car (or every car) to the index",
+		Help = "add a character (or every character) to the index",
 		Min = 1,
 		Max = 1,
 		Check = function(args)
@@ -383,7 +383,7 @@ AdminService.Commands = {
 				for _, spec in CharacterCatalog.Rollable() do
 					GachaService.Grant(p, spec.Id)
 				end
-				return true, "gave every car"
+				return true, "gave every character"
 			end
 			local isNew = GachaService.Grant(p, id)
 			return true, isNew and ("gave " .. id) or (id .. " already owned")
@@ -391,7 +391,7 @@ AdminService.Commands = {
 	},
 	equip = {
 		Usage = "/equip <carId> [player]",
-		Help = "equip an owned car",
+		Help = "equip an owned character",
 		Min = 1,
 		Max = 1,
 		Check = function(args)
@@ -428,7 +428,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, Speed, cars, stat points and upgrades",
+		Help = "reset Money, Speed, characters, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -456,7 +456,7 @@ AdminService.Commands = {
 	},
 	tp = {
 		Usage = "/tp <track number | vfxarea | home> [player]",
-		Help = "move the racing car to a track, or walk to the VFX showcase area or back to spawn",
+		Help = "move the runner to a track, or walk to the VFX showcase area or back to spawn",
 		Min = 1,
 		Max = 1,
 		Check = function(args)
@@ -477,7 +477,7 @@ AdminService.Commands = {
 			end
 			local run = AdminService.RunOf(p)
 			if not run or type(run.JumpToTrack) ~= "function" then
-				return false, "no car is racing"
+				return false, "no runner is racing"
 			end
 			if run:JumpToTrack(n) then
 				return true, "at the start of Track " .. n

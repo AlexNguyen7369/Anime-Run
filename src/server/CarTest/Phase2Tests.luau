@@ -593,14 +593,15 @@ function Tests.weather()
 		local unchanged, unchangedEnds = weather.Current()
 		flag("weather_invalid_request_preserves_expiry", unchanged == id and unchangedEnds == ends)
 		local races = module(Server, "RaceService")
-		local factory = module(Shared, "CarFactory")
-		local carConfig = module(Shared, "CarConfig")
+		-- the runner body (docs/WORLD_REDESIGN_SPEC.md section 2)
+		local factory = module(Shared, "RunnerFactory")
+		local characters = module(Shared, "CharacterCatalog")
 		local route = races and races.GetRoute()
-		flag("weather_npc_live_route_available", route ~= nil and factory ~= nil and carConfig ~= nil)
-		if route and factory and carConfig then
+		flag("weather_npc_live_route_available", route ~= nil and factory ~= nil and characters ~= nil)
+		if route and factory and characters then
 			for _, event in { "", "night", "clear", "aurora" } do
 				weather.SetEvent(event, at)
-				local car = factory.build(carConfig)
+				local car = factory.build(characters.All()[1].Id)
 				car.Parent = Workspace
 				table.insert(resources, car)
 				local start

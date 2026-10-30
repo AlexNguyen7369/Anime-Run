@@ -334,7 +334,7 @@ UiSpec.Settings = {
 	SettingsTab = "RacerSettings/Panel/Face/Header/Face/CategoryTabs/SettingsTab",
 	ProfileTab = "RacerSettings/Panel/Face/Header/Face/CategoryTabs/ProfileTab",
 	ProfileHost = "RacerSettings/Panel/Face/PlayerProfile",
-	ProfileRows = { "TotalRolls", "BestRoll", "CarsDiscovered", "Level", "Speed", "Luck", "SessionTime" },
+	ProfileRows = { "TotalRolls", "BestRoll", "CharactersDiscovered", "Level", "Speed", "Luck", "SessionTime" },
 	SoundText = { [true] = "ON", [false] = "OFF" }, -- [sound on]
 	EffectsText = { [true] = "ON", [false] = "OFF" }, -- [ReduceEffects]
 	ProbeVolume = 0.5, -- the test's own Sound (created and destroyed by the sound clicks) must follow the toggle
@@ -573,8 +573,9 @@ UiSpec.Guis.RacerBackpack = {
 		{ Path = "Panel/Tabs/MiscTab", Does = "local", Effect = "backpack_category", Text = "Misc" },
 		{ Path = "Panel/Tabs/TrailsTab", Does = "local", Effect = "backpack_category", Text = "Trails" },
 		{ Path = "Panel/Tabs/AurasTab", Does = "local", Effect = "backpack_category", Text = "Auras" },
-		-- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 3): the Cars tab lists the owned cars (UiSpec.Backpack).
-		{ Path = "Panel/Tabs/CarsTab", Does = "local", Effect = "backpack_category", Text = "Cars" },
+		-- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 3): the Characters tab (was Cars, WORLD_REDESIGN_SPEC
+		-- section 1) lists the owned characters (UiSpec.Backpack).
+		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
 		{
 			-- Misc tiles invoke UseBoost(id); Trails / Auras tiles invoke MarketEquip(kind, id); Cars tiles fire
 			-- EquipCar(THAT tile's car id), the equipped car's tile fires nothing (clicks backpack_equip_car*).
@@ -938,7 +939,7 @@ UiSpec.Compact = {
 	Parts = { "Body", "Reel", "Streaks", "Smoke", "Viewport", "Placeholder", "Odds" },
 	Forbidden = { -- must not EXIST anywhere in RollToast/Toast (not just be hidden)
 		"Glow",
-		"CarName",
+		"CharacterName",
 		"ResultName",
 		"SpeedMulti",
 		"ResultSpeed",
@@ -2315,7 +2316,7 @@ table.insert(UiSpec.Clicks, {
 --     GachaConfig.SlotBonus(spec, copies) }), copies = attribute Copies on player.GachaData.<id> (missing = 0);
 --   Slot1..Slot3 (Frame): Name (TextLabel: the car's name, or EmptyText) and Clear (TextButton, shown only while the
 --     slot holds a car; invokes SetShowcase(the shown ids without that car));
---   List (ScrollingFrame): one row Car_<id> per owned rollable car (never the starter or gamepass cars), sorted by
+--   List (ScrollingFrame): one row Character_<id> per owned rollable car (never the starter or gamepass cars), sorted by
 --     slot bonus, highest first; each row has Name (TextLabel) and Show (TextButton: ShowText when not shown,
 --     ShownText when shown; a click invokes SetShowcase with the id added / removed; Active false and fires nothing
 --     when 3 cars are shown and this one is not one of them).
@@ -2332,7 +2333,7 @@ UiSpec.WorkshopShowcase = {
 	-- ShowcaseMulti as HudFormat.Multi ("x1.37", trailing zeros dropped; docs/HUD_LAYOUT_SPEC.md section 8, owner
 	-- 2026-10-27, was "x%.2f"), somewhere in the Multi text and not followed by another digit
 	MultiFormat = "HudFormat.Multi", -- label "SHOWCASE  " .. HudFormat.Multi(ShowcaseMulti) .. " Speed gain"
-	RowPrefix = "Car_",
+	RowPrefix = "Character_",
 	-- The old controls: in the left part of the panel (right edge <= LeftShare of its width; brief "~42%", bound
 	-- 45%) and never on the Showcase frame. Close keeps its own place but may not touch any showcase control.
 	LeftControls = { "Level", "Price", "Rate", "Result", "Buy" },
@@ -2755,8 +2756,8 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only("RacerBackpack/Panel"),
 	Expect = { Panels = { ["RacerBackpack/Panel"] = false }, Remote = false },
 })
--- Cars last: the Backpack keeps the Cars view for the backpack_equip_car* clicks below.
-for _, tab in { "Misc", "Trails", "Auras", "Cars" } do
+-- Characters last: the Backpack keeps the Characters view for the backpack_equip_car* clicks below.
+for _, tab in { "Misc", "Trails", "Auras", "Characters" } do
 	table.insert(UiSpec.Clicks, {
 		Id = "backpack_" .. string.lower(tab),
 		Gui = "RacerBackpack",
@@ -2765,7 +2766,7 @@ for _, tab in { "Misc", "Trails", "Auras", "Cars" } do
 		Expect = {
 			Panels = { ["RacerBackpack/Panel"] = true },
 			Remote = false,
-			After = tab == "Cars" and { "backpack_cars_grid" } or nil,
+			After = tab == "Characters" and { "backpack_characters_grid" } or nil,
 		},
 	})
 end
@@ -2784,7 +2785,7 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy", "index_states" },
 	Expect = {
 		Remote = { Name = "EquipCar", Arg = "tile_id" },
-		After = { "equipped_is_tile", "backpack_tile_shows_equipped", "backpack_cars_grid" },
+		After = { "equipped_is_tile", "backpack_tile_shows_equipped", "backpack_characters_grid" },
 	},
 })
 table.insert(UiSpec.Clicks, {
@@ -2798,7 +2799,7 @@ table.insert(UiSpec.Clicks, {
 		ScrollIntoView = true,
 	},
 	NeedSetup = { "spy", "index_states" },
-	Expect = { Remote = false, After = { "backpack_tile_shows_equipped", "backpack_cars_grid" } },
+	Expect = { Remote = false, After = { "backpack_tile_shows_equipped", "backpack_characters_grid" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "close_daily_modal",
@@ -3082,8 +3083,9 @@ for _, panel in { "PickPanel", "InvitePanel" } do
 end
 -- Owner-approved 2026-10-20 contracts. Existing limits and click contracts above stay intact.
 -- Backpack (docs/HUD_LAYOUT_SPEC.md section 3, owner 2026-10-20) and car icons (docs/CAR_EXPANSION_SPEC.md "Car icons
--- and model detail"). Checked by ui_backpack_cars and ui_car_icons (UiContracts) and the backpack_* clicks.
--- ui_backpack_cars measures the live engine rects and tags its geometry checks with the live variant (_desktop, or
+-- and model detail"). Checked by ui_backpack_characters and ui_character_icons (UiContracts) and the backpack_*
+-- clicks. Cars -> Characters, car models -> runner rigs (docs/WORLD_REDESIGN_SPEC.md section 1, ruling 2026-10-28).
+-- ui_backpack_characters measures the live engine rects and tags its geometry checks with the live variant (_desktop, or
 -- _phone at ViewportSize.Y <= PhoneMaxHeight): ui-tester runs it at a desktop size AND at phone landscape
 -- (UiSpec.LegacyControls.ResizeProtocol sizes); both sets of check names must appear and pass.
 UiSpec.Backpack = {
@@ -3091,13 +3093,13 @@ UiSpec.Backpack = {
 	Tabs = "RacerBackpack/Panel/Tabs",
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
-	TabOrder = { "Misc", "Trails", "Auras", "Cars" }, -- top to bottom; button <Name>Tab, label text <Name>
-	CarsTab = "RacerBackpack/Panel/Tabs/CarsTab",
+	TabOrder = { "Misc", "Trails", "Auras", "Characters" }, -- top to bottom; button <Name>Tab, label text <Name>
+	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
 	PhoneMaxHeight = 500,
 	MaxDecimals = 6, -- digits after the point in a tile's "x<SpeedMulti>" (no float noise)
-	ModelWait = 5, -- s for a tile's ViewportFrame to receive its Car model (CarModels replicate late)
+	ModelWait = 5, -- s for a tile's ViewportFrame to receive its runner rig
 	-- Tile border (the tile's UIStroke): green on the equipped car, never green on the others.
 	Green = function(c)
 		return c.G > c.R + 0.25 and c.G > c.B + 0.25
@@ -3335,23 +3337,23 @@ table.insert(UiSpec.Clicks, {
 
 -- Index header (reconcile 2026-10-27, Isaac's INVENTORY tabs, ccea607). docs/HUD_LAYOUT_SPEC.md sections 1 and 3:
 -- Index opens its existing panel and stays the discovery gallery of every car; consumables live in the Backpack's
--- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CarsTab, which shows the car gallery
+-- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the car gallery
 -- and asks the server nothing; the CONSUMABLES tab and its host stay hidden (ui_index index_no_consumables_view).
 UiSpec.IndexTabs = {
-	CarsTab = "RacerIndex/Panel/Face/Header/Face/CarsTab",
+	CarsTab = "RacerIndex/Panel/Face/Header/Face/CharactersTab",
 	ConsumablesTab = "RacerIndex/Panel/Face/Header/Face/ConsumablesTab",
 	GridHost = "RacerIndex/Panel/Face/GridHost",
 	ConsumablesHost = "RacerIndex/Panel/Face/ConsumablesHost",
 }
 table.insert(UiSpec.Guis.RacerIndex.Buttons, {
-	Path = "Panel/Face/Header/Face/CarsTab/Face",
+	Path = "Panel/Face/Header/Face/CharactersTab/Face",
 	Does = "local",
 	Effect = "index_gallery_shown",
 })
 table.insert(UiSpec.Clicks, {
 	Id = "index_cars_tab",
 	Gui = "RacerIndex",
-	Path = "Panel/Face/Header/Face/CarsTab/Face",
+	Path = "Panel/Face/Header/Face/CharactersTab/Face",
 	Prepare = only("RacerIndex/Panel"),
 	NeedSetup = { "spy" },
 	Expect = { Panels = { ["RacerIndex/Panel"] = true }, Remote = false, After = { "index_gallery_shown" } },
@@ -3434,11 +3436,25 @@ table.insert(UiSpec.Clicks, {
 -- UI visual pass (owner 2026-10-27): docs/HUD_LAYOUT_SPEC.md sections 8-10, docs/NPC_RACER_SPEC.md "Loser screen",
 -- docs/RACE_PROGRESS_MAP_SPEC.md "Look". Numbers are measurement tolerances, not layout values.
 UiSpec.SpeedDial = {
-	SampleSeconds = 0.6, -- ui_speed_dial measures the car's real speed (seat path distance / time) over this window
-	TeleportStep = 60, -- studs: a single-frame seat step longer than this is a teleport, not driving
+	SampleSeconds = 0.6, -- ui_speed_dial measures the runner's real speed (path distance / time) over this window
+	TeleportStep = 60, -- studs: a single-frame runner step longer than this is a teleport, not running
 	Tolerance = 3, -- studs/s: DialValue and DialSpeed vs the measured car speed ...
 	RelTolerance = 0.15, -- ... or this share of it, whichever is larger
-	CarWait = 5, -- s: while AutoRacing the avatar must sit in its car's seat within this
+	RunnerWait = 5, -- s: while AutoRacing the visible runner must exist within this
+}
+-- ui_runner_smooth (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28): measurement tolerances, not game values
+UiSpec.RunnerSmooth = {
+	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/CarTest/RunnerTests)
+	Wait = 5, -- s: while AutoRacing the visible runner must exist within this
+	SampleSeconds = 3, -- frames watched
+	MinFrames = 30, -- an unmeasured window never passes
+	MinSpeed = 1, -- studs/s: the runner really moves
+	TeleportStep = 60, -- studs: a single-frame step longer than this is a restart / loop (snapped by contract)
+	StepTolerance = 0.5, -- a frame's step may differ from speed x dt by this share...
+	MinStepError = 0.05, -- ...or this many studs, whichever is larger
+	MaxBadShare = 0.05, -- share of frames allowed off (frame hitches); the IVS stutter is 50 %
+	CameraSeconds = 2, -- ui_camera_follows_runner: frames watched
+	CameraMaxOffset = 8, -- studs between the camera focus and the visible runner ("within a few studs")
 }
 -- Every TextLabel / TextButton in the game's ScreenGuis (not UiSpec.IgnoreGuis, not the UiTest's own) uses this font
 -- family (section 8: FredokaOne everywhere; Enum.Font.FredokaOne's FontFace family is ".../FredokaOne.json").

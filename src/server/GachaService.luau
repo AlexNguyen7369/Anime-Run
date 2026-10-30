@@ -390,18 +390,18 @@ end
 -- nothing. Returns ok, reason.
 function GachaService.SetShowcase(player, ids)
 	if type(ids) ~= "table" or #ids > GachaConfig.SHOWCASE_SLOTS then
-		return false, "Pick up to " .. GachaConfig.SHOWCASE_SLOTS .. " cars"
+		return false, "Pick up to " .. GachaConfig.SHOWCASE_SLOTS .. " characters"
 	end
 	local seen, count = {}, 0
 	for key, id in ids do
 		count += 1
 		if type(key) ~= "number" or not showcaseable(player, id) or seen[id] then
-			return false, "Not a car you own"
+			return false, "Not a character you own"
 		end
 		seen[id] = true
 	end
 	if count ~= #ids then
-		return false, "Not a car you own"
+		return false, "Not a character you own"
 	end
 	player:SetAttribute("Showcase", table.concat(ids, ","))
 	GachaService.RefreshShowcase(player)

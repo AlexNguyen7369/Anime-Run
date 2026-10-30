@@ -187,8 +187,8 @@ local function clearSpawnOfRealPlayers(center)
 		for _, plr in Players:GetPlayers() do
 			local char = plr.Character
 			if char and char.Parent and not moved[char] then
-				local hum = char:FindFirstChildOfClass("Humanoid")
-				local seated = hum ~= nil and hum.SeatPart ~= nil
+				-- a racing player's hidden avatar rides with its runner (no seat any more): leave it alone
+				local seated = plr:GetAttribute("AutoRacing") == true
 				local okPivot, pivot = pcall(char.GetPivot, char)
 				if not seated and okPivot and hdist(pivot.Position, center) <= SPAWN_CLEAR_RADIUS then
 					local rootPart = char:FindFirstChild("HumanoidRootPart")
@@ -286,9 +286,10 @@ local function duelRunAlone(r, flag, M)
 		player:SetAttribute("Unbanked", 0) -- as CarService.OnCharacter leaves it
 		local earned0 = player:GetAttribute("MoneyEarned") or 0
 
-		car = M.CarFactory.build(M.CarConfig)
+		-- the runner body (docs/WORLD_REDESIGN_SPEC.md section 2); +3 is the start pose only, RaceService places the rig
+		car = M.RunnerFactory.build(M.CharacterCatalog.All()[1].Id)
 		car.Name = "CarTestDuelRunCar"
-		car:PivotTo(entries[1].Model.Start.CFrame + Vector3.new(0, M.CarConfig.RestHeight, 0))
+		car:PivotTo(entries[1].Model.Start.CFrame + Vector3.new(0, 3, 0))
 		car.Parent = Workspace
 		local chassis = car.PrimaryPart
 
@@ -370,12 +371,7 @@ local function duelRunAlone(r, flag, M)
 			round(worstUp),
 			strict
 		)
-		flag(
-			"duel_run_no_flip_recoveries",
-			started and finishedAt ~= nil and run.FlipRecoveries == 0,
-			tonumber(run.FlipRecoveries) or -1,
-			0
-		)
+		-- duel_run_no_flip_recoveries retired: a rail runner cannot flip (docs/WORLD_REDESIGN_SPEC.md section 2)
 		local maxDev = M.Targets.race.MaxPathDeviation
 		flag("duel_run_sticks_to_path", started and finishedAt ~= nil and dev <= maxDev, round(dev), maxDev)
 		run:Destroy()
@@ -421,8 +417,8 @@ function Tests.duel()
 		RaceConfig = module(Shared, "RaceConfig"),
 		TrackBuilder = module(Shared, "TrackBuilder"),
 		TrackRegistry = module(Shared, "TrackRegistry"),
-		CarFactory = module(Shared, "CarFactory"),
-		CarConfig = module(Shared, "CarConfig"),
+		RunnerFactory = module(Shared, "RunnerFactory"),
+		CharacterCatalog = module(Shared, "CharacterCatalog"),
 		Targets = module(Shared, "PhysicsTargets"),
 	}
 	local present = 0
@@ -998,7 +994,8 @@ function Tests.duel()
 			flag(pre .. "_accepted_and_countdown_sent_to_both", d.Ready, tostring(state(a)), "Countdown")
 			return d
 		end
-		-- COUNTDOWN later on the clock, one Tick releases both cars: runs exist, chassis free, state Racing.
+		-- COUNTDOWN later on the clock, one Tick releases both runners: a run drives each one, state Racing. The rig
+		-- stays anchored (docs/WORLD_REDESIGN_SPEC.md section 2), so "released" is its run, not an unanchored chassis.
 		local function release(pre, d)
 			now = d.T0 + NUMBERS.COUNTDOWN
 			service.Tick()
@@ -1006,7 +1003,8 @@ function Tests.duel()
 			d.CarA, d.CarB = CarService.GetCar(d.A.Player), CarService.GetCar(d.B.Player)
 			local free = 0
 			for _, car in { d.CarA, d.CarB } do
-				if car and car.PrimaryPart and car.PrimaryPart.Anchored == false then
+				local carRun = car and (car == d.CarA and d.RunA or d.RunB)
+				if car and car.PrimaryPart and type(carRun) == "table" and carRun.Car == car then
 					free += 1
 				end
 			end
@@ -1097,7 +1095,8 @@ function Tests.duel()
 				tostring(cd.Track),
 				1
 			)
-			-- held: both cars at the picked track's start, anchored, the avatar seated, no run before the release
+			-- held: both runners at the picked track's start, anchored, the avatar kept (Humanoid alive, hidden) with no
+			-- seat (docs/WORLD_REDESIGN_SPEC.md section 2), no run before the release
 			local function held()
 				local n = 0
 				for _, side in { { A, d1.CarA }, { B, d1.CarB } } do
@@ -1109,8 +1108,11 @@ function Tests.duel()
 						and hdist(chassis.Position, wps[track1.StartIndex]) <= START_RADIUS
 						and CarService.GetRun(f.Player) == nil
 						and CarService.IsAutoRacing(f.Player) == true
-						and f.Humanoid.SeatPart ~= nil
-						and f.Humanoid.SeatPart == car:FindFirstChild("DriverSeat")
+						and f.Character.Parent ~= nil
+						and f.Humanoid.Parent == f.Character
+						and f.Humanoid.Health > 0
+						and f.Character:FindFirstChild("Head") ~= nil
+						and f.Character.Head.Transparency == 1
 					then
 						n += 1
 					end
@@ -1136,12 +1138,12 @@ function Tests.duel()
 				local strays = 0
 				for _, car in { d1.CarA, d1.CarB } do
 					for _, part in car:GetDescendants() do
-						if part:IsA("BasePart") and part.CollisionGroup ~= "Cars" then
+						if part:IsA("BasePart") and part.CollisionGroup ~= "Runners" then
 							strays += 1
 						end
 					end
 				end
-				flag("duel_race_cars_in_cars_group", strays == 0, strays, 0)
+				flag("duel_race_cars_in_runners_group", strays == 0, strays, 0)
 				flag(
 					"duel_race_runs_have_no_npc",
 					runA.RaceTrack == nil and runB.RaceTrack == nil and runA.Car == d1.CarA and runB.Car == d1.CarB
@@ -1215,12 +1217,7 @@ function Tests.duel()
 					local tag = s.Fake == A and "a" or "b"
 					local worst = math.min(s.MinUp, tonumber(s.Run.MinUpY) or -1)
 					flag("duel_race_" .. tag .. "_never_tilted", worst >= strict, round(worst), strict)
-					flag(
-						"duel_race_" .. tag .. "_no_flip_recoveries",
-						s.Run.FlipRecoveries == 0,
-						tonumber(s.Run.FlipRecoveries) or -1,
-						0
-					)
+					-- _no_flip_recoveries retired: a rail runner cannot flip (docs/WORLD_REDESIGN_SPEC.md section 2)
 					flag("duel_race_" .. tag .. "_sticks_to_path", s.Dev <= maxDev, round(s.Dev), maxDev)
 				end
 			end

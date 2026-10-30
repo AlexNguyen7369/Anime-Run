@@ -23,7 +23,7 @@ function Motion.Attach(root)
 		end
 		if
 			not object:IsA("GuiButton")
-			and not (object:IsA("Frame") and (object:GetAttribute("CarId") or object:GetAttribute("RacerHover")))
+			and not (object:IsA("Frame") and (object:GetAttribute("CharacterId") or object:GetAttribute("RacerHover")))
 		then
 			return
 		end

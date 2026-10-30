@@ -187,12 +187,19 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 - 2026-10-30: owner on the Speed scale (4.11): wipe pre-scale test saves (v2 stores), HUD suffix threshold stays 1e6,
   Speed board stores a log-scaled score, weaker admin decimal check accepted; MAX_ADD scales.
+- 2026-10-30: owner confirmed the smooth-motion ruling of 2026-10-28 (WORLD_REDESIGN_SPEC section 2): the client
+  interpolates the anchored runner; it replaces the IVS "rail never snaps" rule (`rail_never_snaps`,
+  `PhysicsTargets.race.MaxRailSnaps` retired). Rail-fall recovery retired with the car. Instant start is solo only;
+  duels keep the countdown hold.
 - 2026-10-30: owner: category speed applies after damping (4.5); F = 3 confirmed (4.9); Speed stat x(1e15 / 3e5) so
   1 Qd = 300K old, same gameplay (4.11).
 - 2026-10-30: owner: speed matters more than stamina. Base stamina flattened (Legendary 30, Mythic 36, Secret 43);
   Legendary trio clears all 10 tracks in about 90 s; Marathoner cruise x0.8; big stamina only for Marathoners (4.3, 4.5).
 - 2026-10-30: owner: tracks very long (bigger base, same x1.25 growth; F proposed 3) and biomes researched from
   public info on each anime and matched closely, section 5 safeguards kept (4.9).
+- 2026-10-29: owner ruled on the runner rig (WORLD_REDESIGN_SPEC section 2): instant start with no Teleporting phase,
+  seat-failure checks retired, runner-rig tile and pedestal art, camera follows the runner, avatar welded in the
+  Torso, mid-race switch as in IVS, leaderboard title "RAREST CHARACTER".
 - 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
   car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
 - 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;

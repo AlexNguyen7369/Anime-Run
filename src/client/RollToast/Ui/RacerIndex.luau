@@ -169,7 +169,7 @@ function Ui.Build(playerGui)
 		},
 	})
 	local v3 = new("Frame", {
-		Name = "CarsTab",
+		Name = "CharactersTab",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(18, 8),
 		Size = UDim2.fromOffset(190, 48),
@@ -221,7 +221,7 @@ function Ui.Build(playerGui)
 		BorderSizePixel = 0,
 	}, v3f)
 	corner(v3l, 3)
-	refs["CarsTab"] = v3f
+	refs["CharactersTab"] = v3f
 	table.insert(layouts, {
 		v3,
 		{
@@ -238,13 +238,13 @@ function Ui.Build(playerGui)
 		},
 	})
 	local v4 = new("TextLabel", {
-		Name = "CarsTabLabel",
+		Name = "CharactersTabLabel",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromScale(1, 1),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Text = "CARS",
+		Text = "CHARACTERS",
 		TextSize = 25,
 		Font = Enum.Font.FredokaOne,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -257,7 +257,7 @@ function Ui.Build(playerGui)
 		{ Thickness = 3, Color = Color3.fromRGB(18, 22, 43), ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual },
 		v4
 	)
-	refs["CarsTabLabel"] = v4
+	refs["CharactersTabLabel"] = v4
 	table.insert(layouts, {
 		v4,
 		{
@@ -775,7 +775,7 @@ function Ui.Bind(playerGui)
 		},
 	})
 	local v3 = new("Frame", {
-		Name = "CarsTab",
+		Name = "CharactersTab",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(18, 8),
 		Size = UDim2.fromOffset(190, 48),
@@ -827,7 +827,7 @@ function Ui.Bind(playerGui)
 		BorderSizePixel = 0,
 	}, v3f)
 	corner(v3l, 3)
-	refs["CarsTab"] = v3f
+	refs["CharactersTab"] = v3f
 	table.insert(layouts, {
 		v3,
 		{
@@ -844,13 +844,13 @@ function Ui.Bind(playerGui)
 		},
 	})
 	local v4 = new("TextLabel", {
-		Name = "CarsTabLabel",
+		Name = "CharactersTabLabel",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromScale(1, 1),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Text = "CARS",
+		Text = "CHARACTERS",
 		TextSize = 25,
 		Font = Enum.Font.FredokaOne,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -863,7 +863,7 @@ function Ui.Bind(playerGui)
 		{ Thickness = 3, Color = Color3.fromRGB(18, 22, 43), ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual },
 		v4
 	)
-	refs["CarsTabLabel"] = v4
+	refs["CharactersTabLabel"] = v4
 	table.insert(layouts, {
 		v4,
 		{

@@ -9,8 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CarAppearance = require(Shared.CarAppearance)
 local CharacterCatalog = require(Shared.CharacterCatalog)
+local RunnerFactory = require(Shared.RunnerFactory)
 local Workshop = require(Shared.Workshop)
 local WorkshopBuilder = require(Shared.WorkshopBuilder)
 local WorkshopConfig = require(Shared.WorkshopConfig)
@@ -120,7 +120,21 @@ local function setRate(player, inZone, rate)
 	player:SetAttribute("WorkshopRate", rate)
 end
 
--- Puts a static copy of each showcased car on the workshop's pedestals, with a name / copies label.
+-- A static runner rig of `spec` (docs/WORLD_REDESIGN_SPEC.md section 1: no car models), named "Runner", feet on
+-- `cframe`, at `scale`; every part anchored and out of the physics (RunnerFactory builds it that way).
+local function displayRunner(spec, cframe, scale)
+	local rig = RunnerFactory.build(spec.Id)
+	rig.Name = "Runner"
+	local label = rig:FindFirstChild("NameLabel")
+	if label then
+		label:Destroy() -- the pedestal has its own label
+	end
+	rig:ScaleTo(scale)
+	rig:PivotTo(cframe * CFrame.new(0, RunnerFactory.HIP_HEIGHT * scale, 0))
+	return rig
+end
+
+-- Puts a static copy of each showcased character on the workshop's pedestals, with a name / copies label.
 local function placeShowcase(player, workshop)
 	local ids = GachaService.ShowcaseList(player)
 	for i = 1, 3 do
@@ -130,14 +144,13 @@ local function placeShowcase(player, workshop)
 				child:Destroy()
 			end
 			local spec = ids[i] and CharacterCatalog.Get(ids[i])
-			local car = spec
-				and CarAppearance.Display(
+			if spec then
+				displayRunner(
 					spec,
 					pedestal.CFrame * CFrame.new(0, pedestal.Size.Y / 2, 0),
 					WorkshopConfig.SHOWCASE_CAR_SCALE
-				)
-			if car then
-				car.Parent = pedestal
+				).Parent =
+					pedestal
 			end
 			if spec then
 				local gui = Instance.new("BillboardGui")

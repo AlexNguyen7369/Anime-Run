@@ -1,5 +1,5 @@
 --!nonstrict
--- Turns the car on the spawn-area Best Roll pedestal (docs/LEADERBOARD_SPEC.md 3a), bobs it when marked Hover and
+-- Turns the runner rig on the spawn-area Best Roll pedestal (docs/LEADERBOARD_SPEC.md 3a), bobs it when marked Hover and
 -- flaps parts named Wing_L / Wing_R. Display only: the server picks the car. The
 -- motion is local, so nothing replicates per frame.
 
@@ -60,7 +60,7 @@ RunService.RenderStepped:Connect(function()
 			states[car] = nil
 		end
 	end
-	local car = best:FindFirstChild("Car")
+	local car = best:FindFirstChild("Runner")
 	if car then
 		animate(car, t)
 	end

@@ -15,6 +15,5 @@ return {
 	MaxLength = 400, -- preserve a short drag-race rather than a full circuit
 	MinWidth = 36,
 	MinRadius = 60, -- the shared corner floor; a straight has no tighter turn
-	MinLapTime = 3,
-	MaxLapTime = 20,
+	-- MinLapTime / MaxLapTime retired with the car lap bots (docs/WORLD_REDESIGN_SPEC.md section 2)
 }

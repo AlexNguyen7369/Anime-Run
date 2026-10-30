@@ -231,19 +231,16 @@ function Ui.Build(playerGui)
 		},
 	})
 	local v5 = new("ImageLabel", {
-		Name = "PreviewCar",
+		Name = "PreviewRunner",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(18, 84),
 		Size = UDim2.fromOffset(300, 220),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Image = "rbxassetid://121915283083474",
 		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 3,
 	}, v2f)
-	v5.ImageRectOffset = Vector2.new(0, 256)
-	v5.ImageRectSize = Vector2.new(256, 256)
-	refs["PreviewCar"] = v5
+	refs["PreviewRunner"] = v5
 	table.insert(layouts, {
 		v5,
 		{
@@ -266,7 +263,7 @@ function Ui.Build(playerGui)
 		Size = UDim2.fromOffset(406, 46),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Text = "Rusty Hatchback",
+		Text = "???",
 		TextSize = 32,
 		Font = Enum.Font.FredokaOne,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
@@ -673,19 +670,16 @@ function Ui.Bind(playerGui)
 		},
 	})
 	local v5 = new("ImageLabel", {
-		Name = "PreviewCar",
+		Name = "PreviewRunner",
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(18, 84),
 		Size = UDim2.fromOffset(300, 220),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Image = "rbxassetid://121915283083474",
 		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 3,
 	}, v2f)
-	v5.ImageRectOffset = Vector2.new(0, 256)
-	v5.ImageRectSize = Vector2.new(256, 256)
-	refs["PreviewCar"] = v5
+	refs["PreviewRunner"] = v5
 	table.insert(layouts, {
 		v5,
 		{
@@ -708,7 +702,7 @@ function Ui.Bind(playerGui)
 		Size = UDim2.fromOffset(406, 46),
 		Visible = true,
 		BackgroundTransparency = 1,
-		Text = "Rusty Hatchback",
+		Text = "???",
 		TextSize = 32,
 		Font = Enum.Font.FredokaOne,
 		TextColor3 = Color3.fromRGB(255, 255, 255),
