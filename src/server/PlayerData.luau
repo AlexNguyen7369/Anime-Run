@@ -33,7 +33,7 @@ local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat s
 local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
-local MAX_ADD = 1e18 -- most a single AddSpeed call may add (rebirth x100b x aura x trail fits; owner 2026-10-27)
+local MAX_ADD = 1e18 * RaceConfig.STAT_SCALE -- most a single AddSpeed call may add (rebirth x100b x aura x trail fits; owner 2026-10-27); scaled per design doc 4.11
 local AUTOSAVE_SECONDS = 60
 local MAX_DUEL_WINS = 1e9
 
