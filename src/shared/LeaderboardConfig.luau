@@ -15,16 +15,16 @@ LeaderboardConfig.Boards = {
 	{ Id = "RarestCar", Title = "RAREST CHARACTER", Store = "LB_RarestCar_v1" },
 }
 
--- Signs: local (x, z) of each board's centre in the spawn area (along the hub's near edge, facing the spawn).
+-- Signs: local (x, z) of each board's centre on the plaza: a row along its west edge (x = SIGN_X), facing the spawn,
+-- read left to right from the spawn (z = SIGN_Z[i]).
 LeaderboardConfig.SIGN_SIZE = Vector3.new(32, 20, 1)
-LeaderboardConfig.SIGN_Z = 40
-LeaderboardConfig.SIGN_X = { 168, 136, 104, 72 } -- read left to right; edge-to-edge so RarestCar clears StartPad
+LeaderboardConfig.SIGN_X = 40
+LeaderboardConfig.SIGN_Z = { -32, -64, -96, -128 }
 
--- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, where the
--- spawn-area upgrade pad stood (owner, 2026-10-13).
+-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, south-east of the spawn.
 LeaderboardConfig.BEST_ROLL = {
-	X = 150,
-	Z = -70,
+	X = 148,
+	Z = -140,
 	RADIUS = 12,
 	HEIGHT = 2,
 	CAR_SCALE = 3.5, -- the car stands at this scale, so it reads from across the hub

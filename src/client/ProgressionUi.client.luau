@@ -387,7 +387,8 @@ local function showcaseCandidates()
 	local data = player:FindFirstChild("GachaData")
 	for _, entry in data and data:GetChildren() or {} do
 		local spec = CharacterCatalog.Get(entry.Name)
-		if spec and spec.Rollable then
+		-- the Team member can not join the Dojo squad (server rule, WORLD_REDESIGN_SPEC section 5)
+		if spec and spec.Rollable and spec.Id ~= player:GetAttribute("EquippedCar") then
 			local copies = entry:GetAttribute("Copies") or 0
 			table.insert(list, { Spec = spec, Copies = copies, Bonus = GachaConfig.SlotBonus(spec, copies) })
 		end

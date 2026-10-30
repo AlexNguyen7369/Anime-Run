@@ -5,8 +5,8 @@
 local CheckpointConfig = {}
 
 CheckpointConfig.PICK_COOLDOWN = 0.5 -- seconds between accepted SetCheckpoint calls per player
-CheckpointConfig.NPC_POS = Vector2.new(32, -6) -- hub-local (x, z): in front of the RACE START pavilion's -Z side
-CheckpointConfig.NPC_FACE = Vector2.new(104, -28) -- hub-local point the NPC faces (the hub centre)
+CheckpointConfig.NPC_POS = Vector2.new(76, -62) -- hub-local (x, z): the sensei, beside the path to the start gate
+CheckpointConfig.NPC_FACE = Vector2.new(118, -80) -- hub-local point the NPC faces (the plaza centre)
 CheckpointConfig.PROMPT_DISTANCE = 10
 CheckpointConfig.TEXT_DISTANCE = 80
 

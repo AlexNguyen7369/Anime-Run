@@ -1431,8 +1431,7 @@ function Tests.rebirth()
 		local upgradesBefore = upgrades.Snapshot(p)
 		-- docs/WORKSHOP_SPEC.md 5b (owner 2026-10-22): a rebirth keeps cars, so it keeps copies and the showcase
 		gacha.Grant(p, "leaf_copycat") -- a duplicate: 1 copy, no Money
-		local showcaseSet = type(gacha.SetShowcase) == "function"
-			and gacha.SetShowcase(p, { "leaf_copycat", "leaf_medic" })
+		local showcaseSet = type(gacha.SetShowcase) == "function" and gacha.SetShowcase(p, { "leaf_medic" }) -- not leaf_copycat: the Team member can not join the squad (owner 2026-10-30)
 		local accepted, newLevel = service.Rebirth(p)
 		flag("rebirth_accepted_at_required_level", accepted == true and newLevel == 1)
 		flag("rebirth_level_raised", p:GetAttribute("RebirthLevel") == 1, p:GetAttribute("RebirthLevel"), 1)
@@ -1463,7 +1462,7 @@ function Tests.rebirth()
 			showcaseSet == true
 				and type(gacha.Copies) == "function"
 				and gacha.Copies(p, "leaf_copycat") == 1
-				and p:GetAttribute("Showcase") == "leaf_copycat,leaf_medic"
+				and p:GetAttribute("Showcase") == "leaf_medic"
 		)
 		local upgradesAfter = upgrades.Snapshot(p)
 		flag(

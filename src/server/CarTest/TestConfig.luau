@@ -45,6 +45,8 @@ return {
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",
+		"world_layout",
+		"dojo",
 	},
 	-- Not in the full suite (each takes minutes). Run on demand during play:
 	--   ReplicatedStorage:SetAttribute("CarTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("CarTestRun", true)

@@ -2165,7 +2165,7 @@ function Scenarios.auto_toggle()
 	local trackFolder = Workspace:FindFirstChild("Track")
 	local specs = type(TrackRegistry.Chain) == "function" and TrackRegistry.Chain() or {}
 	local roads = {}
-	local chainOrigin = CFrame.new(0, TrackBuilder.TRACK_LIFT or 0, 0)
+	local chainOrigin = CFrame.new(-118, TrackBuilder.TRACK_LIFT or 0, 80) -- Track 1 start (owner 2026-10-30)
 	for _, spec in specs do
 		local okLayout, layout = pcall(TrackBuilder.Layout, spec)
 		if okLayout then
@@ -7432,7 +7432,7 @@ function Scenarios.npc()
 		local ceOk = okCE and type(ce) == "table" and #ce == #live
 		check(checks, "npc_chain_entries_count", okCE and type(ce) == "table" and #ce or -1, #live, ceOk)
 		if ceOk then
-			local origin = CFrame.new(0, TrackBuilder.TRACK_LIFT, 0)
+			local origin = CFrame.new(-118, TrackBuilder.TRACK_LIFT, 80) -- Track 1 start (owner 2026-10-30)
 			local worstPos, worstRot, numbersOk = 0, 0, true
 			for i, spec in live do
 				local e = ce[i]
@@ -8150,45 +8150,51 @@ end
 -- through the two server entry points: CarService.OnCharacter(player, character) (what CharacterAdded runs on join
 -- and on every respawn) and CarService.PadTouched(player, hitPart) (what StartPad.Touched runs once it has
 -- resolved the player).
-local SPAWN_COLOR = Color3.fromRGB(140, 70, 220)
--- Owner brief 2026-10-06 (docs/WORKSHOP_SPEC.md section 1, a requested layout change): the floor grew from
--- (24, -100)..(184, 44) (160 x 144) to hold the 7 workshop plots; the old floor is now the HUB (kept free of plots),
--- and the Spawn / walk spawn stay at its centre (same world spot as before).
-local SPAWN_AREA_MIN = Vector2.new(24, -188) -- local (x, z): the floor, 228 x 232
-local SPAWN_AREA_MAX = Vector2.new(252, 44)
-local SPAWN_LAYOUT = {} -- floor size and hub of the 2026-10-06 layout
-SPAWN_LAYOUT.FLOOR_SIZE = Vector2.new(228, 232)
-SPAWN_LAYOUT.HUB_MIN = Vector2.new(24, -100) -- local (x, z): the hub, 160 x 144
-SPAWN_LAYOUT.HUB_MAX = Vector2.new(184, 44)
-local SPAWN_PAD_MIN = Vector2.new(-20, 2) -- the platform as AUTHORED (44 x 36); still what PAD_MIN / PAD_MAX hold
-local SPAWN_PAD_MAX = Vector2.new(24, 38)
--- Owner request 2026-10-10 (handoff.md "race entrance reposition"): the whole race platform was moved to the owner's
--- on-foot position in the hub and turned a square quarter turn (sign outward +X, hub entrance outward -Z). Roads,
--- start line and waypoints did not move, so the pad no longer spans the road centre or touches Track 1's Start.
-local SPAWN_PAD = {}
-SPAWN_PAD.CENTER = Vector2.new(34.3031235, 28.4993916) -- local (x, z) of the platform centre
-SPAWN_PAD.FRONT = Vector2.new(1, 0)
-SPAWN_PAD.MIN = Vector2.new(34.3031235 - 18, 28.4993916 - 22) -- placed footprint: 36 (x) by 44 (z)
-SPAWN_PAD.MAX = Vector2.new(34.3031235 + 18, 28.4993916 + 22)
-SPAWN_PAD.CURB_GAP = 54.3031235 - 24 -- the only opening in the near (z max) curb: local x = 24 .. 54.303
-SPAWN_PAD.ENTRANCE = 20 -- studs: width of the hub entrance in the platform's side rail (authored z = 10 .. 30)
+-- The IVS layout constants (floor (24, -188)..(252, 44), hub (24, -100)..(184, 44), race platform at (34.3, 28.5) in
+-- Track 1's Start space) were retired 2026-10-30: docs/WORLD_REDESIGN_SPEC.md section 3 "Exact coordinates are chosen
+-- by the world build". The plaza is read from the live Workspace.SpawnArea instead.
 local SPAWN_TOP_Y = 1
 local SPAWN_PAD_TOP = 1.2 -- TOP_Y + 0.2
 local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
 local SPAWN_WALK_CLEARANCE = 75 -- CarService WALK_CLEARANCE
-local SPAWN_EDGE_HEIGHT = 2
 local SPAWN_LOCATION_SIZE = Vector3.new(12, 1, 12)
 local SPAWN_GEOM_TOL = 0.5 -- studs: footprints match the spec within this
 local SPAWN_TOP_TOL = 0.1 -- studs: tops match the spec within this
 local SPAWN_TOUCH_GAP = 1 -- studs: "touches" = horizontal gap at most this
 local SPAWN_OVERLAP_TOL = 0.05 -- studs of footprint overlap ignored (edges that only touch)
-local SPAWN_SIDE_REACH = 3 -- studs: an Edge part lies along a side when its centre is this close to the side line
-local SPAWN_SIDE_COVER = 0.9 -- share of each of the three outer sides the Edge parts must cover
 local SPAWN_MIDDLE = 8 -- studs (horizontal) the SpawnLocation may be from the area centre
 local SPAWN_AT_SPAWN = 4 -- studs (horizontal) the avatar may be from WalkSpawnCFrame
 local SPAWN_FACING = 0.9 -- walk spawn look . direction to the pad centre (flat)
 local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor top while standing
+-- Anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4, owner 2026-10-28). Names are the test contract:
+--   SpawnArea.StartGate (Model, the torii) over SpawnArea.StartPad; stalls SpawnArea.ShopStall / Marketplace /
+--   PotionsStall, SpawnArea.RebirthShrine, SpawnArea.IndexBoard, banners SpawnArea.Leaderboards, the sensei
+--   SpawnArea.CheckpointNpc. Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
+local SPAWN_PLAZA = {
+	STONE = {
+		[Enum.Material.Cobblestone] = true,
+		[Enum.Material.Slate] = true,
+		[Enum.Material.Pavement] = true,
+		[Enum.Material.Granite] = true,
+		[Enum.Material.Basalt] = true,
+		[Enum.Material.Limestone] = true,
+		[Enum.Material.Sandstone] = true,
+		[Enum.Material.Marble] = true,
+		[Enum.Material.Rock] = true,
+		[Enum.Material.Brick] = true,
+	},
+	GATE_MIN_HEIGHT = 16, -- studs: "a large torii-style gate" (test reading: about three avatars tall)
+	FEATURES = {
+		{ Name = "ShopStall", Prompt = "OpenShop" },
+		{ Name = "Marketplace", Prompt = "OpenMarket" }, -- the Market stall keeps MarketService's prompt
+		{ Name = "PotionsStall", Prompt = "OpenPotions" },
+		{ Name = "RebirthShrine", Prompt = "OpenRebirth" },
+		{ Name = "IndexBoard", Prompt = "OpenIndex" },
+		{ Name = "Leaderboards" }, -- the banners (LeaderboardTests checks their boards)
+		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
+	},
+}
 
 -- Horizontal footprint of a part as a convex polygon: its 8 corners projected on XZ and the projected axes.
 local function spawnPartPoly(part)
@@ -8280,11 +8286,6 @@ local function spawnV2Err(a, b)
 	return math.max(math.abs(a.X - b.X), math.abs(a.Y - b.Y))
 end
 
-local function spawnInsideLocal(base, pos, minV, maxV)
-	local l = base:PointToObjectSpace(pos)
-	return l.X >= minV.X and l.X <= maxV.X and l.Z >= minV.Y and l.Z <= maxV.Y
-end
-
 function Scenarios.spawn_area()
 	local checks = {}
 	local metrics = {}
@@ -8299,20 +8300,10 @@ function Scenarios.spawn_area()
 	local moduleOk = SpawnArea ~= nil
 	check(checks, "spawn_module_exists", moduleOk and 1 or 0, 1, moduleOk)
 	local A = SpawnArea or {}
-	local function v2is(v, want)
-		return typeof(v) == "Vector2" and spawnV2Err(v, want) <= 1e-6
-	end
-	check(checks, "spawn_color", colorClose(A.COLOR, SPAWN_COLOR) and 1 or 0, 1, colorClose(A.COLOR, SPAWN_COLOR))
-	local boundsConst = v2is(A.AREA_MIN, SPAWN_AREA_MIN) and v2is(A.AREA_MAX, SPAWN_AREA_MAX)
-	check(checks, "spawn_area_bounds_constants", boundsConst and 1 or 0, 1, boundsConst)
-	local hubConst = v2is(A.HUB_MIN, SPAWN_LAYOUT.HUB_MIN) and v2is(A.HUB_MAX, SPAWN_LAYOUT.HUB_MAX)
-	check(checks, "spawn_hub_bounds_constants", hubConst and 1 or 0, 1, hubConst)
-	local padConst = v2is(A.PAD_MIN, SPAWN_PAD_MIN) and v2is(A.PAD_MAX, SPAWN_PAD_MAX)
-	check(checks, "spawn_pad_bounds_constants", padConst and 1 or 0, 1, padConst)
-	local padPlaced = typeof(A.PAD_CENTER) == "Vector2"
-		and spawnV2Err(A.PAD_CENTER, SPAWN_PAD.CENTER) <= 1e-3
-		and v2is(A.PAD_FRONT, SPAWN_PAD.FRONT)
-	check(checks, "spawn_pad_placement_constants", padPlaced and 1 or 0, 1, padPlaced)
+	-- Retired 2026-10-30 (docs/WORLD_REDESIGN_SPEC.md section 3: "Exact coordinates are chosen by the world build";
+	-- section 4: "Look: lanterns, cherry trees, stone paving"): spawn_color, spawn_area_bounds_constants,
+	-- spawn_hub_bounds_constants, spawn_pad_bounds_constants, spawn_pad_placement_constants. The plaza is read from
+	-- the live world below instead.
 	check(checks, "spawn_top_y", num(A.TOP_Y), SPAWN_TOP_Y, A.TOP_Y == SPAWN_TOP_Y)
 	check(
 		checks,
@@ -8374,83 +8365,31 @@ function Scenarios.spawn_area()
 	check(checks, "spawn_location_exists", spawnOk and 1 or 0, 1, spawnOk)
 	check(checks, "spawn_start_pad_exists", padOk and 1 or 0, 1, padOk)
 
-	-- Floor: anchored, purple SmoothPlastic, covers AREA_MIN..AREA_MAX (228 x 232 since 2026-10-06), top at TOP_Y
+	-- Floor: the plaza, anchored, walkable, stone paving (spec section 4), top at TOP_Y. Its centre is the plaza centre.
+	-- Retired 2026-10-30 with the IVS purple floor (WORLD_REDESIGN_SPEC sections 3 and 4: coordinates chosen by the
+	-- world build, stone paving, the 7 plots in a ring around the hub): spawn_floor_covers_area,
+	-- spawn_floor_228_by_232, spawn_floor_purple, spawn_floor_smooth_plastic, and the floor edge walls
+	-- (spawn_edges_exist, spawn_edges_low_and_anchored, spawn_edges_cover_three_outer_sides,
+	-- spawn_near_curb_open_at_pad, spawn_no_edge_on_pad_side, spawn_no_edge_inside_floor), which walled the IVS floor
+	-- on the sides where the Dojos now stand.
+	local plazaCentre = floorOk and Vector3.new(floor.Position.X, 0, floor.Position.Z) or Vector3.zero
+	-- true if a world position lies over the plaza floor (in the floor's own space)
+	local function onPlaza(pos)
+		if not floorOk then
+			return false
+		end
+		local l = floor.CFrame:PointToObjectSpace(pos)
+		return math.abs(l.X) <= floor.Size.X / 2 and math.abs(l.Z) <= floor.Size.Z / 2
+	end
 	if floorOk then
-		local fMin, fMax, fTop = spawnLocalBounds(base, floor)
-		local err = math.max(spawnV2Err(fMin, SPAWN_AREA_MIN), spawnV2Err(fMax, SPAWN_AREA_MAX))
-		check(checks, "spawn_floor_covers_area", err, SPAWN_GEOM_TOL, err <= SPAWN_GEOM_TOL)
-		local size = fMax - fMin
-		metrics.floor_size = ("%.1f x %.1f"):format(size.X, size.Y)
-		local sizeOk = math.abs(size.X - SPAWN_LAYOUT.FLOOR_SIZE.X) <= SPAWN_GEOM_TOL
-			and math.abs(size.Y - SPAWN_LAYOUT.FLOOR_SIZE.Y) <= SPAWN_GEOM_TOL
-		check(checks, "spawn_floor_228_by_232", size.X, SPAWN_LAYOUT.FLOOR_SIZE.X, sizeOk)
+		local _, _, fTop = spawnLocalBounds(base, floor)
 		check(checks, "spawn_floor_top", fTop, SPAWN_TOP_Y, math.abs(fTop - SPAWN_TOP_Y) <= SPAWN_TOP_TOL)
 		check(checks, "spawn_floor_anchored", floor.Anchored and 1 or 0, 1, floor.Anchored)
-		local purple = colorClose(floor.Color, SPAWN_COLOR)
-		check(checks, "spawn_floor_purple", purple and 1 or 0, 1, purple)
-		local smooth = floor.Material == Enum.Material.SmoothPlastic
-		check(checks, "spawn_floor_smooth_plastic", smooth and 1 or 0, 1, smooth)
+		local stone = SPAWN_PLAZA.STONE[floor.Material] == true
+		check(checks, "spawn_floor_stone_paving", stone and 1 or 0, 1, stone)
 		local collide = floor.CanCollide
 		check(checks, "spawn_floor_walkable", collide and 1 or 0, 1, collide)
 	end
-
-	-- Edge walls: low (2 studs), anchored, on the three outer sides of the NEW floor, none on the side facing the
-	-- pad / road, and none left inside the floor (the old hub edges at x = 184 / z = -100 would wall the plots off)
-	local edges = {}
-	for _, d in area:GetChildren() do
-		if d:IsA("BasePart") and string.sub(d.Name, 1, 4) == "Edge" then
-			table.insert(edges, d)
-		end
-	end
-	check(checks, "spawn_edges_exist", #edges, 3, #edges >= 3)
-	local edgeBad = 0
-	local curbInGap = 0 -- studs of near curb left inside the opening the platform needs
-	local cover = { xMax = 0, zMin = 0, zMax = 0 }
-	local onPadSide = 0
-	local inside = 0
-	for _, e in edges do
-		local eMin, eMax, eTop = spawnLocalBounds(base, e)
-		if not e.Anchored or math.abs(eTop - (SPAWN_TOP_Y + SPAWN_EDGE_HEIGHT)) > 0.5 then
-			edgeBad += 1
-		end
-		local c = (eMin + eMax) / 2
-		local function spanZ()
-			return math.max(0, math.min(eMax.Y, SPAWN_AREA_MAX.Y) - math.max(eMin.Y, SPAWN_AREA_MIN.Y))
-		end
-		local function spanX()
-			return math.max(0, math.min(eMax.X, SPAWN_AREA_MAX.X) - math.max(eMin.X, SPAWN_AREA_MIN.X))
-		end
-		if math.abs(c.X - SPAWN_AREA_MAX.X) <= SPAWN_SIDE_REACH then
-			cover.xMax += spanZ()
-		end
-		if math.abs(c.Y - SPAWN_AREA_MIN.Y) <= SPAWN_SIDE_REACH then
-			cover.zMin += spanX()
-		end
-		if math.abs(c.Y - SPAWN_AREA_MAX.Y) <= SPAWN_SIDE_REACH then
-			cover.zMax += spanX()
-			local gapMin, gapMax = SPAWN_AREA_MIN.X, SPAWN_AREA_MIN.X + SPAWN_PAD.CURB_GAP
-			curbInGap += math.max(0, math.min(eMax.X, gapMax) - math.max(eMin.X, gapMin))
-		end
-		if math.abs(c.X - SPAWN_AREA_MIN.X) <= SPAWN_SIDE_REACH and spanZ() > SPAWN_SIDE_REACH then
-			onPadSide += 1
-		end
-		local nearOuter = math.abs(c.X - SPAWN_AREA_MAX.X) <= SPAWN_SIDE_REACH
-			or math.abs(c.Y - SPAWN_AREA_MIN.Y) <= SPAWN_SIDE_REACH
-			or math.abs(c.Y - SPAWN_AREA_MAX.Y) <= SPAWN_SIDE_REACH
-		if not nearOuter then
-			inside += 1
-		end
-	end
-	check(checks, "spawn_edges_low_and_anchored", edgeBad, 0, #edges > 0 and edgeBad == 0)
-	local sideX = SPAWN_AREA_MAX.X - SPAWN_AREA_MIN.X
-	local sideZ = SPAWN_AREA_MAX.Y - SPAWN_AREA_MIN.Y
-	-- the near side is whole except for the one opening the relocated platform crosses (owner, 2026-10-10)
-	local nearCover = (cover.zMax - curbInGap) / (sideX - SPAWN_PAD.CURB_GAP)
-	local worstCover = math.min(cover.xMax / sideZ, cover.zMin / sideX, nearCover)
-	check(checks, "spawn_edges_cover_three_outer_sides", worstCover, SPAWN_SIDE_COVER, worstCover >= SPAWN_SIDE_COVER)
-	check(checks, "spawn_near_curb_open_at_pad", curbInGap, SPAWN_GEOM_TOL, curbInGap <= SPAWN_GEOM_TOL)
-	check(checks, "spawn_no_edge_on_pad_side", onPadSide, 0, onPadSide == 0)
-	check(checks, "spawn_no_edge_inside_floor", inside, 0, inside == 0)
 
 	-- SpawnLocation: the game's only one, Neutral, Duration 0, 12 x 1 x 12, purple, in the middle of the HUB, top at TOP_Y
 	local spawnCount = 0
@@ -8465,110 +8404,151 @@ function Scenarios.spawn_area()
 		check(checks, "spawn_location_duration", spawn.Duration, 0, spawn.Duration == 0)
 		local sizeErr = (spawn.Size - SPAWN_LOCATION_SIZE).Magnitude
 		check(checks, "spawn_location_size", sizeErr, 0.01, sizeErr <= 0.01)
-		local sc = colorClose(spawn.Color, SPAWN_COLOR)
-		check(checks, "spawn_location_purple", sc and 1 or 0, 1, sc)
+		-- spawn_location_purple retired 2026-10-30 (spec section 4 look)
 		local _, _, sTop = spawnLocalBounds(base, spawn)
 		check(checks, "spawn_location_top", sTop, SPAWN_TOP_Y, math.abs(sTop - SPAWN_TOP_Y) <= SPAWN_TOP_TOL)
-		local centre = base:PointToWorldSpace(
-			Vector3.new(
-				(SPAWN_LAYOUT.HUB_MIN.X + SPAWN_LAYOUT.HUB_MAX.X) / 2,
-				0,
-				(SPAWN_LAYOUT.HUB_MIN.Y + SPAWN_LAYOUT.HUB_MAX.Y) / 2
-			)
-		)
-		local dMid = hdist(spawn.Position, centre)
-		check(checks, "spawn_location_in_middle", dMid, SPAWN_MIDDLE, dMid <= SPAWN_MIDDLE)
+		-- spec section 4: "One SpawnLocation at the plaza centre"
+		local dMid = hdist(spawn.Position, plazaCentre)
+		check(checks, "spawn_location_in_middle", dMid, SPAWN_MIDDLE, floorOk and dMid <= SPAWN_MIDDLE)
 	end
 
-	-- StartPad: anchored, bright green Neon, tagged StartPad, touchable, top TOP_Y + 0.2, with a "RACE" sign. It is
-	-- the authored 44 x 36 platform at PAD_CENTER, turned so its front faces +X (owner, 2026-10-10); it touches the
-	-- area, and its 20-stud hub entrance is not blocked by any of the platform's boundary colliders
+	-- StartPad: anchored, tagged StartPad, touchable, top TOP_Y + 0.2, touching the plaza, under the torii StartGate
+	-- (spec section 4: "walking through it starts the run (the IVS StartPad rules and cooldown, tag StartPad)").
+	-- Retired 2026-10-30 with the Race Start pavilion ("a large torii-style gate replaces the Race Start pavilion"):
+	-- spawn_pad_covers_bounds, spawn_pad_neon, spawn_pad_bright_green, spawn_pad_race_sign, spawn_pad_front_faces_hub,
+	-- spawn_pad_hub_entrance_open; and spawn_pad_clear_of_track1_start, contradicted by section 3 ("The track chain
+	-- starts at the hub's start gate"; world_layout checks world_track1_start_at_start_gate).
 	if padOk then
-		local pMin, pMax, pTop = spawnLocalBounds(base, pad)
-		local err = math.max(spawnV2Err(pMin, SPAWN_PAD.MIN), spawnV2Err(pMax, SPAWN_PAD.MAX))
-		check(checks, "spawn_pad_covers_bounds", err, SPAWN_GEOM_TOL, err <= SPAWN_GEOM_TOL)
+		local _, _, pTop = spawnLocalBounds(base, pad)
 		check(checks, "spawn_pad_top", pTop, SPAWN_PAD_TOP, math.abs(pTop - SPAWN_PAD_TOP) <= SPAWN_TOP_TOL)
 		check(checks, "spawn_pad_anchored", pad.Anchored and 1 or 0, 1, pad.Anchored)
 		local tagged = CollectionService:HasTag(pad, "StartPad")
 		check(checks, "spawn_pad_tagged", tagged and 1 or 0, 1, tagged)
 		check(checks, "spawn_pad_can_touch", pad.CanTouch and 1 or 0, 1, pad.CanTouch)
-		local neon = pad.Material == Enum.Material.Neon
-		check(checks, "spawn_pad_neon", neon and 1 or 0, 1, neon)
-		local c = pad.Color
-		local green = c.G >= 0.6 and c.G - c.R >= 0.2 and c.G - c.B >= 0.2
-		check(checks, "spawn_pad_bright_green", c.G * 255, 153, green)
-		local sign = false
-		for _, d in pad:GetDescendants() do
-			if d:IsA("TextLabel") and string.find(string.upper(d.Text), "RACE", 1, true) then
-				local gui = d:FindFirstAncestorWhichIsA("LayerCollector")
-				if gui and (gui:IsA("SurfaceGui") or gui:IsA("BillboardGui")) then
-					sign = true
-				end
-			end
-		end
-		check(checks, "spawn_pad_race_sign", sign and 1 or 0, 1, sign)
-		-- the platform's authored +Z (the sign side) points along FRONT: a footprint alone cannot tell a half turn
-		local frontLocal = base:VectorToObjectSpace(-pad.CFrame.LookVector)
-		local frontDot = frontLocal.X * SPAWN_PAD.FRONT.X + frontLocal.Z * SPAWN_PAD.FRONT.Y
-		check(checks, "spawn_pad_front_faces_hub", frontDot, 0.999, frontDot >= 0.999)
-		-- hub entrance: in the pad's own space (authored centre (2, 20)) the side rail at authored x = 22 .. 24 is
-		-- open for authored z = 10 .. 30; no colliding boundary may stand in that opening
-		local blocked = 0
-		local boundaries = area:FindFirstChild("RaceBoundaries")
-		for _, d in boundaries and boundaries:GetDescendants() or {} do
-			if d:IsA("BasePart") and d.CanCollide then
-				local bMin, bMax = spawnLocalBounds(pad.CFrame, d)
-				local half = SPAWN_PAD.ENTRANCE / 2 - SPAWN_OVERLAP_TOL
-				if bMax.X > 18 and bMin.X < 24 and bMax.Y > -half and bMin.Y < half then
-					blocked += 1
-				end
-			end
-		end
-		check(checks, "spawn_pad_hub_entrance_open", blocked, 0, blocked == 0)
 		local padPoly = spawnPartPoly(pad)
 		if floorOk then
 			local gapArea = spawnPolySeparation(padPoly, spawnPartPoly(floor))
 			check(checks, "spawn_pad_touches_area", gapArea, SPAWN_TOUCH_GAP, gapArea <= SPAWN_TOUCH_GAP)
 		end
-		-- moved off the road on purpose (owner, 2026-10-10): it no longer reaches the start line
-		local gapStart = spawnPolySeparation(padPoly, spawnPartPoly(startPart))
-		check(checks, "spawn_pad_clear_of_track1_start", gapStart, SPAWN_TOUCH_GAP, gapStart > SPAWN_TOUCH_GAP)
+	end
+	local gate = area:FindFirstChild("StartGate")
+	local gateOk = gate ~= nil and gate:IsA("Model") and #gate:GetDescendants() > 0
+	check(checks, "spawn_start_gate_exists", gateOk and 1 or 0, 1, gateOk)
+	if gateOk then
+		local gateCF, gateSize = gate:GetBoundingBox()
+		check(
+			checks,
+			"spawn_start_gate_large",
+			gateSize.Y,
+			SPAWN_PLAZA.GATE_MIN_HEIGHT,
+			gateSize.Y >= SPAWN_PLAZA.GATE_MIN_HEIGHT
+		)
+		local anchoredGate = true
+		for _, d in gate:GetDescendants() do
+			if d:IsA("BasePart") and not d.Anchored then
+				anchoredGate = false
+			end
+		end
+		check(checks, "spawn_start_gate_anchored", anchoredGate and 1 or 0, 1, anchoredGate)
+		if padOk then
+			-- the pad's centre is inside the gate's footprint: walking through the gate is walking onto the pad
+			local l = gateCF:PointToObjectSpace(pad.Position)
+			local under = math.abs(l.X) <= gateSize.X / 2 and math.abs(l.Z) <= gateSize.Z / 2
+			check(checks, "spawn_pad_under_start_gate", under and 1 or 0, 1, under)
+			-- and the opening is free: no colliding gate part in the avatar-sized box standing on the pad centre
+			local params = OverlapParams.new()
+			params.FilterType = Enum.RaycastFilterType.Include
+			params.FilterDescendantsInstances = { gate }
+			local blocked = 0
+			local box = CFrame.new(pad.Position + Vector3.new(0, pad.Size.Y / 2 + 3, 0))
+			for _, hit in Workspace:GetPartBoundsInBox(box, Vector3.new(4, 5, 4), params) do
+				if hit.CanCollide then
+					blocked += 1
+				end
+			end
+			check(checks, "spawn_start_gate_opening_walkable", blocked, 0, blocked == 0)
+		end
 	end
 
-	-- SpawnArea.Bounds(start): world corners of the area and the pad, Y = TOP_Y
-	if apiOk then
+	-- Plaza features (spec section 4): each a Model on the plaza, anchored, with its panel's ProximityPrompt
+	local spawnBlockers = {}
+	for _, p in { spawn, pad } do
+		if p and p:IsA("BasePart") then
+			table.insert(spawnBlockers, spawnPartPoly(p))
+		end
+	end
+	for _, f in SPAWN_PLAZA.FEATURES do
+		local model = area:FindFirstChild(f.Name)
+		local exists = model ~= nil and model:IsA("Model")
+		check(checks, "plaza_" .. f.Name .. "_exists", exists and 1 or 0, 1, exists)
+		if exists then
+			local promptOk = f.Prompt == nil
+			for _, d in model:GetDescendants() do
+				if d:IsA("ProximityPrompt") and d.Name == f.Prompt then
+					promptOk = true
+				end
+			end
+			check(checks, "plaza_" .. f.Name .. "_prompt", promptOk and 1 or 0, 1, promptOk)
+			local onFloor, clear, count = true, true, 0
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") then
+					count += 1
+					onFloor = onFloor and onPlaza(d.Position) and d.Anchored
+					for _, poly in spawnBlockers do
+						clear = clear and spawnPolySeparation(spawnPartPoly(d), poly) >= -SPAWN_OVERLAP_TOL
+					end
+				end
+			end
+			check(checks, "plaza_" .. f.Name .. "_on_plaza_anchored", count, 1, count > 0 and onFloor)
+			check(checks, "plaza_" .. f.Name .. "_clear_of_spawn_and_pad", clear and 1 or 0, 1, clear)
+		end
+	end
+	-- the sensei: the checkpoint NPC's own label says so (the look is free; the role must be readable)
+	local npc = area:FindFirstChild("CheckpointNpc")
+	local sensei = false
+	for _, d in npc and npc:GetDescendants() or {} do
+		if (d:IsA("TextLabel") or d:IsA("TextButton")) and string.find(string.upper(d.Text), "SENSEI", 1, true) then
+			sensei = true
+		end
+	end
+	check(checks, "plaza_checkpoint_npc_is_sensei", sensei and 1 or 0, 1, sensei)
+
+	-- SpawnArea.Bounds(start): world boxes of the plaza floor (Area) and the pad (Pad), Y = TOP_Y. Was compared with the
+	-- IVS constant rects; since 2026-10-30 (spec section 3, coordinates chosen by the world build) with the live parts.
+	if apiOk and floorOk and padOk then
 		local okB, bounds = pcall(A.Bounds, base)
-		local function worldBox(minV, maxV)
+		local function worldBox(part)
 			local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
-			for _, x in { minV.X, maxV.X } do
-				for _, z in { minV.Y, maxV.Y } do
-					local w = base:PointToWorldSpace(Vector3.new(x, 0, z))
+			local cf, h = part.CFrame, part.Size / 2
+			for _, x in { -h.X, h.X } do
+				for _, z in { -h.Z, h.Z } do
+					local w = cf:PointToWorldSpace(Vector3.new(x, 0, z))
 					lo = Vector3.new(math.min(lo.X, w.X), 0, math.min(lo.Z, w.Z))
 					hi = Vector3.new(math.max(hi.X, w.X), 0, math.max(hi.Z, w.Z))
 				end
 			end
 			return lo, hi
 		end
-		local function boxErr(b, minV, maxV)
+		local function boxErr(b, part)
 			if type(b) ~= "table" or typeof(b.Min) ~= "Vector3" or typeof(b.Max) ~= "Vector3" then
 				return math.huge
 			end
-			local lo, hi = worldBox(minV, maxV)
+			local lo, hi = worldBox(part)
 			local bLo = Vector3.new(math.min(b.Min.X, b.Max.X), 0, math.min(b.Min.Z, b.Max.Z))
 			local bHi = Vector3.new(math.max(b.Min.X, b.Max.X), 0, math.max(b.Min.Z, b.Max.Z))
 			local e =
 				math.max(math.abs(bLo.X - lo.X), math.abs(bLo.Z - lo.Z), math.abs(bHi.X - hi.X), math.abs(bHi.Z - hi.Z))
 			return math.max(e, math.abs(b.Min.Y - SPAWN_TOP_Y), math.abs(b.Max.Y - SPAWN_TOP_Y))
 		end
-		local eA = okB and type(bounds) == "table" and boxErr(bounds.Area, SPAWN_AREA_MIN, SPAWN_AREA_MAX) or math.huge
-		local eP = okB and type(bounds) == "table" and boxErr(bounds.Pad, SPAWN_PAD.MIN, SPAWN_PAD.MAX) or math.huge
+		local eA = okB and type(bounds) == "table" and boxErr(bounds.Area, floor) or math.huge
+		local eP = okB and type(bounds) == "table" and boxErr(bounds.Pad, pad) or math.huge
 		check(checks, "spawn_bounds_area", eA == math.huge and -1 or eA, 0.01, eA <= 0.01)
 		check(checks, "spawn_bounds_pad", eP == math.huge and -1 or eP, 0.01, eP <= 0.01)
 	end
 
-	-- Walk spawn: SpawnArea.WalkCFrame(start) == CarService.WalkSpawnCFrame(), at the HUB centre (local (104, -28),
-	-- the same spot as before the floor grew), root WALK_ROOT_HEIGHT above TOP_Y, facing the pad, inside the hub,
-	-- >= WALK_CLEARANCE from every race waypoint
+	-- Walk spawn: SpawnArea.WalkCFrame(start) == CarService.WalkSpawnCFrame(), at the plaza centre (the Floor's centre
+	-- since 2026-10-30; was the IVS hub rect's centre), root WALK_ROOT_HEIGHT above TOP_Y, facing the pad, on the
+	-- plaza, >= WALK_CLEARANCE from every race waypoint
 	local okW, walkCF = false, nil
 	if serviceOk then
 		okW, walkCF = pcall(CarService.WalkSpawnCFrame)
@@ -8586,19 +8566,13 @@ function Scenarios.spawn_area()
 			and areaCF.LookVector:Dot(walkCF.LookVector) >= 0.999
 		check(checks, "spawn_walk_spawn_is_area_walk_cframe", same and 1 or 0, 1, same)
 	end
-	local centreLocal = Vector3.new(
-		(SPAWN_LAYOUT.HUB_MIN.X + SPAWN_LAYOUT.HUB_MAX.X) / 2,
-		0,
-		(SPAWN_LAYOUT.HUB_MIN.Y + SPAWN_LAYOUT.HUB_MAX.Y) / 2
-	)
-	local centreWorld = base:PointToWorldSpace(centreLocal)
-	local dCentre = hdist(walkCF.Position, centreWorld)
-	check(checks, "spawn_walk_at_area_centre", dCentre, SPAWN_GEOM_TOL, dCentre <= SPAWN_GEOM_TOL)
+	local dCentre = hdist(walkCF.Position, plazaCentre)
+	check(checks, "spawn_walk_at_area_centre", dCentre, SPAWN_GEOM_TOL, floorOk and dCentre <= SPAWN_GEOM_TOL)
 	local wantY = SPAWN_TOP_Y + SPAWN_WALK_ROOT_HEIGHT
 	check(checks, "spawn_walk_root_height", walkCF.Position.Y, wantY, math.abs(walkCF.Position.Y - wantY) <= 0.05)
-	local insideHub = spawnInsideLocal(base, walkCF.Position, SPAWN_LAYOUT.HUB_MIN, SPAWN_LAYOUT.HUB_MAX)
+	local insideHub = onPlaza(walkCF.Position)
 	check(checks, "spawn_walk_inside_area", insideHub and 1 or 0, 1, insideHub)
-	local padCentre = base:PointToWorldSpace(Vector3.new(SPAWN_PAD.CENTER.X, 0, SPAWN_PAD.CENTER.Y))
+	local padCentre = padOk and pad.Position or walkCF.Position
 	local toPad = flatV(padCentre - walkCF.Position)
 	local look = flatV(walkCF.LookVector)
 	local facing = (toPad.Magnitude > 1e-6 and look.Magnitude > 1e-6) and look.Unit:Dot(toPad.Unit) or -1
@@ -8647,22 +8621,8 @@ function Scenarios.spawn_area()
 	end
 	metrics.closest_track_gap = worst == math.huge and -1 or round(worst)
 	check(checks, "spawn_area_no_track_overlap", overlaps, 0, #trackParts > 0 and overlaps == 0)
-	-- the spec rectangles themselves stay clear too (the area is not allowed to grow into a road later)
-	local rectOverlaps = 0
-	for _, rect in
-		{
-			spawnRectPoly(base, SPAWN_AREA_MIN, SPAWN_AREA_MAX),
-			spawnRectPoly(base, SPAWN_LAYOUT.HUB_MIN, SPAWN_LAYOUT.HUB_MAX),
-			spawnRectPoly(base, SPAWN_PAD.MIN, SPAWN_PAD.MAX),
-		}
-	do
-		for _, t in trackParts do
-			if spawnPolySeparation(rect, t.Poly) < -SPAWN_OVERLAP_TOL then
-				rectOverlaps += 1
-			end
-		end
-	end
-	check(checks, "spawn_bounds_no_track_overlap", rectOverlaps, 0, rectOverlaps == 0)
+	-- spawn_bounds_no_track_overlap retired 2026-10-30: it tested the IVS constant rects (spec section 3, coordinates
+	-- chosen by the world build); spawn_area_no_track_overlap above tests the live plaza parts.
 
 	if not serviceOk then
 		return result("spawn_area", checks, metrics)
@@ -8823,8 +8783,8 @@ function Scenarios.spawn_area()
 		check(checks, pre .. "_no_car", #ourCars(), 0, noCar)
 		local d = hdist(c.Root.Position, walkCF.Position)
 		check(checks, pre .. "_at_walk_spawn", d, SPAWN_AT_SPAWN, d <= SPAWN_AT_SPAWN)
-		-- the walk spawn is in the hub, so an avatar sent there stands in the hub (not just anywhere on the floor)
-		local inArea = spawnInsideLocal(base, c.Root.Position, SPAWN_LAYOUT.HUB_MIN, SPAWN_LAYOUT.HUB_MAX)
+		-- the walk spawn is on the plaza, so an avatar sent there stands on the plaza
+		local inArea = onPlaza(c.Root.Position)
 		check(checks, pre .. "_inside_area", inArea and 1 or 0, 1, inArea)
 		local h = c.Root.Position.Y - SPAWN_TOP_Y
 		check(
@@ -12303,7 +12263,9 @@ end
 -- Nothing here may change the live game: every fake player is released and destroyed, and the live plot owners are
 -- compared with the start of the test at the end.
 local WSHOP = {} -- workshop test constants and helpers (one local: the chunk has a 200-local limit)
-WSHOP.PLOTS = { -- spec section 1 table: local (x, z) of Track 1's flattened Start, Front = open side
+-- The IVS plot table (local (x, z) of Track 1's flattened Start). Since 2026-10-30 only a fallback when the config is
+-- malformed (WORLD_REDESIGN_SPEC section 3: plot coordinates are chosen by the world build).
+WSHOP.PLOTS = {
 	{ Min = Vector2.new(200, -12), Max = Vector2.new(248, 36), Front = Vector2.new(-1, 0) },
 	{ Min = Vector2.new(200, -68), Max = Vector2.new(248, -20), Front = Vector2.new(-1, 0) },
 	{ Min = Vector2.new(200, -124), Max = Vector2.new(248, -76), Front = Vector2.new(-1, 0) },
@@ -12315,7 +12277,7 @@ WSHOP.PLOTS = { -- spec section 1 table: local (x, z) of Track 1's flattened Sta
 WSHOP.PLOT_COUNT = 7
 WSHOP.PLOT_SIZE = 48
 WSHOP.GAP = 8 -- studs between neighbouring plots
-WSHOP.EDGE_MARGIN = 4 -- studs from the floor's outer sides
+WSHOP.FRONT_DOT = math.cos(math.rad(45)) -- open front within 45 degrees of the plaza centre (2026-10-30, ring layout)
 WSHOP.ZONE = Vector3.new(32, 12, 32)
 WSHOP.TICK = 0.5
 WSHOP.BASE_RATE = 0.2 * (1e15 / 3e5) -- design doc 4.11 stat scale; owner 2026-10-20 (much harsher progression, WORKSHOP_SPEC): was 1
@@ -12421,18 +12383,19 @@ function Scenarios.workshop()
 	local TOP_Y = SPAWN_TOP_Y
 
 	-- 1. Config holds the spec's numbers
+	-- 2026-10-30: the plot rects are chosen by the world build (docs/WORLD_REDESIGN_SPEC.md section 3), so the IVS
+	-- table (WSHOP.PLOTS, the L-shape beside the old hub) is no longer the oracle: the config must hold 7 well-formed
+	-- rects with a unit front, and the geometry below is checked against the config and the live plots.
 	local plotsOk = type(C.Plots) == "table" and #C.Plots == WSHOP.PLOT_COUNT
 	if plotsOk then
-		for i, want in WSHOP.PLOTS do
+		for i = 1, WSHOP.PLOT_COUNT do
 			local got = C.Plots[i]
 			plotsOk = plotsOk
 				and type(got) == "table"
 				and typeof(got.Min) == "Vector2"
 				and typeof(got.Max) == "Vector2"
 				and typeof(got.Front) == "Vector2"
-				and got.Min == want.Min
-				and got.Max == want.Max
-				and got.Front == want.Front
+				and math.abs(got.Front.Magnitude - 1) <= 1e-6
 		end
 	end
 	check(checks, "workshop_config_plots_match_spec", type(C.Plots) == "table" and #C.Plots or -1, 7, plotsOk)
@@ -12470,12 +12433,8 @@ function Scenarios.workshop()
 		end
 	end
 	check(checks, "workshop_level_prices_payout_curve", priceCurveBad, 0, priceCurveBad == 0)
-	local spawnConstOk = typeof(SpawnArea.HUB_MIN) == "Vector2"
-		and SpawnArea.HUB_MIN == SPAWN_LAYOUT.HUB_MIN
-		and SpawnArea.HUB_MAX == SPAWN_LAYOUT.HUB_MAX
-		and SpawnArea.AREA_MIN == SPAWN_AREA_MIN
-		and SpawnArea.AREA_MAX == SPAWN_AREA_MAX
-	flag("workshop_spawn_area_layout_constants", spawnConstOk)
+	-- workshop_spawn_area_layout_constants retired 2026-10-30 (WORLD_REDESIGN_SPEC section 3: coordinates chosen by the
+	-- world build; the same constants checks were retired from spawn_area).
 	local MAXL = type(C.MAX_LEVEL) == "number" and C.MAX_LEVEL or 1
 	local function levelMultiWant(level)
 		if type(level) ~= "number" or level ~= level then
@@ -12485,10 +12444,13 @@ function Scenarios.workshop()
 		return C.Levels and C.Levels[i] and C.Levels[i].Multi or 1
 	end
 
-	-- 2. Layout rules on the config's plots: 48 x 48, 8-stud gaps, inside the floor 4 studs from its outer sides, clear
-	-- of the hub and the StartPad, and the whole hub lies in front of each plot's open side
+	-- 2. Layout rules on the config's plots: 48 x 48 and 8-stud gaps. Clear of the hub and the StartPad, and open
+	-- toward the hub, are checked on the LIVE plots in section 4 (2026-10-30: were checked against the IVS hub / pad
+	-- rects). workshop_plots_inside_floor retired: the plots now ring the hub instead of sharing its floor
+	-- (WORLD_REDESIGN_SPEC section 3 "The 7 player plots form a ring around it"); the ground under them is
+	-- world_layout's world_baseplate_covers_everything.
 	local plots = plotsOk and C.Plots or WSHOP.PLOTS
-	local squareOk, gapOk, insideOk, hubOk, padOk, frontOk = plotsOk, plotsOk, plotsOk, plotsOk, plotsOk, plotsOk
+	local squareOk, gapOk = plotsOk, plotsOk
 	local minGap = math.huge
 	for i, p in plots do
 		local size = p.Max - p.Min
@@ -12497,34 +12459,10 @@ function Scenarios.workshop()
 			local g = WSHOP.workshopRectGap(p.Min, p.Max, plots[j].Min, plots[j].Max)
 			minGap = math.min(minGap, g)
 		end
-		insideOk = insideOk
-			and p.Min.X >= SPAWN_AREA_MIN.X
-			and p.Max.X <= SPAWN_AREA_MAX.X - WSHOP.EDGE_MARGIN
-			and p.Min.Y >= SPAWN_AREA_MIN.Y + WSHOP.EDGE_MARGIN
-			and p.Max.Y <= SPAWN_AREA_MAX.Y - WSHOP.EDGE_MARGIN
-		hubOk = hubOk and WSHOP.workshopRectGap(p.Min, p.Max, SPAWN_LAYOUT.HUB_MIN, SPAWN_LAYOUT.HUB_MAX) > 0
-		padOk = padOk and WSHOP.workshopRectGap(p.Min, p.Max, SPAWN_PAD.MIN, SPAWN_PAD.MAX) > 0
-		local f = p.Front
-		local axis = (math.abs(f.X) == 1 and f.Y == 0) or (f.X == 0 and math.abs(f.Y) == 1)
-		local hubInFront
-		if f.X == -1 then
-			hubInFront = SPAWN_LAYOUT.HUB_MAX.X <= p.Min.X
-		elseif f.X == 1 then
-			hubInFront = SPAWN_LAYOUT.HUB_MIN.X >= p.Max.X
-		elseif f.Y == 1 then
-			hubInFront = SPAWN_LAYOUT.HUB_MIN.Y >= p.Max.Y
-		else
-			hubInFront = SPAWN_LAYOUT.HUB_MAX.Y <= p.Min.Y
-		end
-		frontOk = frontOk and axis and hubInFront
 	end
 	gapOk = gapOk and minGap >= WSHOP.GAP
 	flag("workshop_plots_48_square", squareOk)
 	check(checks, "workshop_plots_no_overlap_gap_8", minGap == math.huge and -1 or minGap, WSHOP.GAP, gapOk)
-	flag("workshop_plots_inside_floor", insideOk)
-	flag("workshop_plots_clear_of_hub", hubOk)
-	flag("workshop_plots_clear_of_start_pad", padOk)
-	flag("workshop_plots_open_toward_hub", frontOk)
 
 	-- 3. Pure geometry (Shared/Workshop) at a yawed test start, a pitched copy of it and the live start
 	local trackFolder = Workspace:FindFirstChild("Track")
@@ -12545,7 +12483,7 @@ function Scenarios.workshop()
 		local cfBad, boundsBad, zoneBad = 0, 0, 0
 		for _, start in starts do
 			local base = WSHOP.workshopFlatBase(start)
-			for i, p in WSHOP.PLOTS do
+			for i, p in plots do
 				local c = WSHOP.workshopCentre(p)
 				local wantPos = worldAt(base, c.X, c.Y, TOP_Y)
 				local wantLook = base:VectorToWorldSpace(Vector3.new(p.Front.X, 0, p.Front.Y))
@@ -12584,7 +12522,7 @@ function Scenarios.workshop()
 					boundsBad += 1
 				end
 				-- InZone: inside / just inside / just outside / plot but not zone / above / below / another plot
-				local other = WSHOP.PLOTS[i % #WSHOP.PLOTS + 1]
+				local other = plots[i % #plots + 1]
 				local oc = WSHOP.workshopCentre(other)
 				local cases = {
 					{ worldAt(base, c.X, c.Y, TOP_Y + 3), true },
@@ -12754,7 +12692,7 @@ function Scenarios.workshop()
 			table.insert(bad, "base")
 		else
 			local bMin, bMax, bTop = spawnLocalBounds(base, baseP)
-			local p = WSHOP.PLOTS[i]
+			local p = plots[i]
 			if math.max(spawnV2Err(bMin, p.Min), spawnV2Err(bMax, p.Max)) > WSHOP.TOL then
 				table.insert(bad, "base_rect")
 			end
@@ -12813,8 +12751,10 @@ function Scenarios.workshop()
 		check(checks, "workshop_live_plot_shapes", shapeBad, 0, shapeBad == 0)
 		check(checks, "workshop_live_signs_match_owners", signBad, 0, signBad == 0)
 
-		-- no part of any plot overlaps a road / wall / checkpoint of any chained track, the Spawn, the StartPad or
-		-- the hub, and every part stays on the floor; the spec rects themselves stay clear of the tracks too
+		-- no part of any plot overlaps a road / wall / checkpoint of any chained track, the Spawn, the StartPad / torii
+		-- StartGate or the hub's buildings (every live SpawnArea part but its Floor; 2026-10-30: was the IVS hub rect,
+		-- WORLD_REDESIGN_SPEC section 3); the config rects themselves stay clear of the tracks too.
+		-- workshop_live_parts_on_floor retired: the plots ring the hub instead of standing on its floor (section 3).
 		local trackParts = {}
 		for _, d in trackFolder:GetDescendants() do
 			if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
@@ -12822,10 +12762,18 @@ function Scenarios.workshop()
 			end
 		end
 		local area = Workspace:FindFirstChild("SpawnArea")
+		local hubFloor = area and area:FindFirstChild("Floor")
 		local spawnPart = area and area:FindFirstChild("Spawn")
 		local padPart = area and area:FindFirstChild("StartPad")
-		local hubPoly = spawnRectPoly(base, SPAWN_LAYOUT.HUB_MIN, SPAWN_LAYOUT.HUB_MAX)
-		local trackHits, spawnHits, outside, worst, worstName = 0, 0, 0, math.huge, ""
+		local padPolys, hubPolys = {}, {}
+		for _, d in area and area:GetDescendants() or {} do
+			if d:IsA("BasePart") and d ~= hubFloor then
+				local gateModel = area:FindFirstChild("StartGate")
+				local inGate = d == padPart or (gateModel ~= nil and d:IsDescendantOf(gateModel))
+				table.insert(inGate and padPolys or hubPolys, spawnPartPoly(d))
+			end
+		end
+		local trackHits, padHits, hubHits, worst, worstName = 0, 0, 0, math.huge, ""
 		for _, d in folder:GetDescendants() do
 			if d:IsA("BasePart") then
 				local poly = spawnPartPoly(d)
@@ -12838,22 +12786,15 @@ function Scenarios.workshop()
 						trackHits += 1
 					end
 				end
-				for _, other in { spawnPart, padPart } do
-					if other and spawnPolySeparation(poly, spawnPartPoly(other)) < -SPAWN_OVERLAP_TOL then
-						spawnHits += 1
+				for _, other in padPolys do
+					if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
+						padHits += 1
 					end
 				end
-				if spawnPolySeparation(poly, hubPoly) < -SPAWN_OVERLAP_TOL then
-					spawnHits += 1
-				end
-				local lMin, lMax = spawnLocalBounds(base, d)
-				if
-					lMin.X < SPAWN_AREA_MIN.X - WSHOP.TOL
-					or lMin.Y < SPAWN_AREA_MIN.Y - WSHOP.TOL
-					or lMax.X > SPAWN_AREA_MAX.X + WSHOP.TOL
-					or lMax.Y > SPAWN_AREA_MAX.Y + WSHOP.TOL
-				then
-					outside += 1
+				for _, other in hubPolys do
+					if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
+						hubHits += 1
+					end
 				end
 			end
 		end
@@ -12865,13 +12806,28 @@ function Scenarios.workshop()
 		check(
 			checks,
 			"workshop_live_clear_of_spawn_pad_hub",
-			spawnHits,
+			padHits + hubHits,
 			0,
-			spawnPart ~= nil and padPart ~= nil and spawnHits == 0
+			spawnPart ~= nil and padPart ~= nil and padHits + hubHits == 0
 		)
-		check(checks, "workshop_live_parts_on_floor", outside, 0, outside == 0)
+		check(checks, "workshop_plots_clear_of_hub", hubHits, 0, hubFloor ~= nil and #hubPolys > 0 and hubHits == 0)
+		check(checks, "workshop_plots_clear_of_start_pad", padHits, 0, padPart ~= nil and padHits == 0)
+		-- open toward the hub: each plot's front (PlotCFrame LookVector at the live start) points at the plaza centre,
+		-- within 45 degrees (was: the whole IVS hub rect in front of an axis-aligned front)
+		local worstFront = 1
+		for i = 1, WSHOP.PLOT_COUNT do
+			local okc, cf = try("PlotCFrame", Workshop.PlotCFrame, startPart.CFrame, i)
+			local d = 0
+			if okc and typeof(cf) == "CFrame" and hubFloor then
+				local to = flatV(hubFloor.Position - cf.Position)
+				local look = flatV(cf.LookVector)
+				d = (to.Magnitude > 1e-6 and look.Magnitude > 1e-6) and look.Unit:Dot(to.Unit) or 0
+			end
+			worstFront = math.min(worstFront, d)
+		end
+		check(checks, "workshop_plots_open_toward_hub", worstFront, WSHOP.FRONT_DOT, worstFront >= WSHOP.FRONT_DOT)
 		local rectHits = 0
-		for _, p in WSHOP.PLOTS do
+		for _, p in plots do
 			local rp = spawnRectPoly(base, p.Min, p.Max)
 			for _, t in trackParts do
 				if spawnPolySeparation(rp, t.Poly) < -SPAWN_OVERLAP_TOL then
@@ -12967,7 +12923,7 @@ function Scenarios.workshop()
 		return model, humanoid, root
 	end
 	local function zoneCentre(i, h)
-		local c = WSHOP.workshopCentre(WSHOP.PLOTS[i])
+		local c = WSHOP.workshopCentre(plots[i])
 		return worldAt(base, c.X, c.Y, TOP_Y + h)
 	end
 
@@ -13028,7 +12984,7 @@ function Scenarios.workshop()
 		local zone = wsModel and wsModel:FindFirstChild("Zone", true)
 		local zoneOk = wsModel ~= nil and wsModel:IsA("Model") and zone ~= nil and zone:IsA("BasePart")
 		if zoneOk then
-			local c = WSHOP.workshopCentre(WSHOP.PLOTS[idx1])
+			local c = WSHOP.workshopCentre(plots[idx1])
 			local wantC = worldAt(base, c.X, c.Y, 0)
 			local sizeOk = math.abs(zone.Size.Y - WSHOP.ZONE.Y) <= 0.05
 				and math.abs(math.min(zone.Size.X, zone.Size.Z) - math.min(WSHOP.ZONE.X, WSHOP.ZONE.Z)) <= 0.05
@@ -13167,7 +13123,7 @@ function Scenarios.workshop()
 		local outOther = noGain("other_plot", p2, avatar)
 		avatar:PivotTo(CFrame.new(zoneCentre(own, WSHOP.ZONE.Y + 1)))
 		local outAbove = noGain("above", p2, avatar)
-		local c2 = WSHOP.workshopCentre(WSHOP.PLOTS[own])
+		local c2 = WSHOP.workshopCentre(plots[own])
 		avatar:PivotTo(CFrame.new(worldAt(base, c2.X + WSHOP.ZONE.X / 2 + 2, c2.Y, TOP_Y + 3)))
 		local outEdge = noGain("plot_outside_zone", p2, avatar)
 		flag("workshop_tick_outside_zone_no_gain", outHub and outOther and outAbove and outEdge)
@@ -13371,5 +13327,15 @@ Scenarios.vehicle_effects = require(script.Parent.VehicleEffectTests).make({
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap
+-- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout and the Dojo plots / Dojo squad
+do
+	local world = require(script.Parent.WorldTests).make({
+		newFakeCharacter = newFakeCharacter,
+		partPoly = spawnPartPoly,
+		polySeparation = spawnPolySeparation,
+	})
+	Scenarios.world_layout = world.world_layout
+	Scenarios.dojo = world.dojo
+end
 
 return Scenarios

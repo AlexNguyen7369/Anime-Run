@@ -36,9 +36,9 @@ local BOARDS = {
 }
 local NO_DATA = "No data yet"
 local H = require(script.Parent.AcceptanceSupport)
--- docs/SPAWN_AND_ROLLS_SPEC.md: the hub, local (x, z) of Track 1's Start (same literals as the spawn_area scenario)
-local HUB_MIN = Vector2.new(24, -100)
-local HUB_MAX = Vector2.new(184, 44)
+-- The hub is the live plaza floor, Workspace.SpawnArea.Floor (2026-10-30: the IVS hub rect (24, -100)..(184, 44) in
+-- Track 1's Start space is retired, docs/WORLD_REDESIGN_SPEC.md section 3 "Exact coordinates are chosen by the world
+-- build"; the spawn_area scenario reads the same live floor).
 local GEOM_TOL = 0.05 -- studs of footprint overlap ignored (parts that only touch)
 local ID_BASE = 990074100 -- fake user ids; names come from the injected lookup, never from the web
 
@@ -203,6 +203,15 @@ local function separation(a, b)
 	return best
 end
 
+-- true if world point (x, z) lies over the plaza floor part (in the floor's own space)
+local function onFloor(floor, x, z)
+	if not (floor and floor:IsA("BasePart")) then
+		return false
+	end
+	local l = floor.CFrame:PointToObjectSpace(Vector3.new(x, floor.Position.Y, z))
+	return math.abs(l.X) <= floor.Size.X / 2 + GEOM_TOL and math.abs(l.Z) <= floor.Size.Z / 2 + GEOM_TOL
+end
+
 local function partsOf(root)
 	local list = {}
 	if root and root:IsA("BasePart") then
@@ -330,20 +339,17 @@ function Tests.leaderboard()
 		local title = labels[b.Id] and labels[b.Id].Title.Text or "<missing>"
 		flag("leaderboard_sign_title_" .. b.Id, title == b.Title, title, b.Title)
 		local inside = false
+		local floor = area and area:FindFirstChild("Floor")
 		if partOk and worldOk then
 			inside = true
 			for _, p in signPolys[#signPolys].Poly.Points do
-				local l = startPart.CFrame:PointToObjectSpace(Vector3.new(p.X, 0, p.Y))
-				inside = inside
-					and l.X >= HUB_MIN.X - GEOM_TOL
-					and l.X <= HUB_MAX.X + GEOM_TOL
-					and l.Z >= HUB_MIN.Y - GEOM_TOL
-					and l.Z <= HUB_MAX.Y + GEOM_TOL
+				inside = inside and onFloor(floor, p.X, p.Y)
 			end
 		end
 		flag("leaderboard_sign_inside_hub_" .. b.Id, inside)
 	end
-	-- The signs overlap none of: plot, pad, Spawn, marketplace footprint, race platform, track part
+	-- The signs overlap none of: plot, pad, Spawn, marketplace footprint, start gate (StartPad + torii StartGate; was
+	-- the race platform, retired with the Race Start pavilion, WORLD_REDESIGN_SPEC section 4), track part
 	local allSigns = #signPolys == #BOARDS
 	local obstacleSets = {} -- the same lists again for the Best Roll pedestal
 	local function clear(label, obstacles)
@@ -384,12 +390,12 @@ function Tests.leaderboard()
 	local marketplace = area and area:FindFirstChild("Marketplace")
 	local footprint = marketplace and marketplace:IsA("Model") and marketplace.PrimaryPart
 	clear("marketplace", polys(partsOf(footprint or nil)))
-	local platform = partsOf(area and area:FindFirstChild("RaceBoundaries"))
+	local gate = partsOf(area and area:FindFirstChild("StartGate"))
 	local startPad = area and area:FindFirstChild("StartPad")
 	if startPad and startPad:IsA("BasePart") then
-		table.insert(platform, startPad)
+		table.insert(gate, startPad)
 	end
-	clear("race_platform", polys(platform))
+	clear("start_gate", polys(gate))
 	local trackParts = {}
 	for _, d in partsOf(trackFolder) do
 		if d.Name ~= "Ground" and d.Name ~= "Start" then -- as in spawn_area: neither is road
@@ -454,14 +460,16 @@ function Tests.leaderboard()
 		end
 		flag("leaderboard_bestroll_parts_inside_footprint", geomOk and worst <= cornerLimit, worst, cornerLimit)
 		local R = numbersOk and B.RADIUS or 0
-		flag(
-			"leaderboard_bestroll_inside_hub",
-			numbersOk
-				and B.X - R >= HUB_MIN.X - GEOM_TOL
-				and B.X + R <= HUB_MAX.X + GEOM_TOL
-				and B.Z - R >= HUB_MIN.Y - GEOM_TOL
-				and B.Z + R <= HUB_MAX.Y + GEOM_TOL
-		)
+		-- the platform's square footprint lies on the live plaza floor (was the IVS hub rect, see HUB note at the top)
+		local floor = area and area:FindFirstChild("Floor")
+		local onPlaza = numbersOk and geomOk
+		for _, dx in { -R, R } do
+			for _, dz in { -R, R } do
+				local w = onPlaza and startPart.CFrame:PointToWorldSpace(Vector3.new(B.X + dx, 0, B.Z + dz))
+				onPlaza = onPlaza and onFloor(floor, w.X, w.Z)
+			end
+		end
+		flag("leaderboard_bestroll_inside_hub", onPlaza == true)
 		-- It overlaps none of: plot, pad, Spawn, marketplace footprint, race platform, track part, leaderboard sign
 		local square = geomOk
 			and rectPoly(startPart.CFrame, Vector2.new(B.X - R, B.Z - R), Vector2.new(B.X + R, B.Z + R))
