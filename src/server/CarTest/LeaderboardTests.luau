@@ -11,6 +11,10 @@
 -- rarest-car board). The car turns slowly on a round platform; its odds, its name and the player's name are shown
 -- above it." The `leaderboard_bestroll_*` checks were written before LeaderboardConfig.BEST_ROLL, the pedestal and
 -- the service code exist: red by design.
+-- BRIEF (owner, 2026-10-30; design doc 4.11 "Speed board"): "the Speed board stores a log-scaled integer score, so
+-- any finite Speed ranks (no tie at the int64 cap); the board shows the real Speed decoded from it." The
+-- `leaderboard_speed_score_*` / `leaderboard_speed_decode_*` checks were written before
+-- LeaderboardService.SpeedScore / SpeedFromScore exist: red by design.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -24,7 +28,7 @@ local TOP_N = 10
 local REFRESH = 60
 local WRITE_INTERVAL = 300
 local BOARDS = {
-	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v2" },
+	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v3" },
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
 	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
@@ -59,6 +63,12 @@ end
 
 local function isInt(n)
 	return type(n) == "number" and n == n and math.floor(n) == n
+end
+
+-- Design doc 4.11 "Speed board" (owner 2026-10-30): the Speed board stores floor(log10(1 + Speed) x 1e15) of the
+-- whole Speed, so any finite Speed ranks; the sign shows the Speed decoded from it (10^(score / 1e15) - 1).
+local function speedScore(speed)
+	return math.floor(math.log10(1 + speed) * 1e15)
 end
 
 -- Fake OrderedDataStores, one per store name. `state.Throw` makes every method error.
@@ -526,6 +536,47 @@ function Tests.leaderboard()
 	if not api then
 		return r
 	end
+	local codec = type(service.SpeedScore) == "function" and type(service.SpeedFromScore) == "function"
+	flag("leaderboard_speed_score_api_exists", codec)
+	-- Design doc 4.11 "Speed board": exact encoded integers, never past the int64 cap, strictly ordered past it
+	local encode = codec and service.SpeedScore or function()
+		return nil
+	end
+	local decode = codec and service.SpeedFromScore or function()
+		return nil
+	end
+	do
+		local cases = { { "0", 0 }, { "321", 321 }, { "1e18", 1e18 }, { "1e25", 1e25 }, { "1e300", 1e300 } }
+		for _, case in cases do
+			local tag, v = case[1], case[2]
+			local okE, got = pcall(encode, v)
+			got = okE and got or nil
+			local want = speedScore(v)
+			flag(
+				"leaderboard_speed_score_" .. tag,
+				isInt(got) and got == want and got >= 0 and got <= 9e18,
+				tonumber(got) or -1,
+				want
+			)
+			if v > 0 then
+				local okD, back = pcall(decode, want)
+				back = okD and back or nil
+				local rel = type(back) == "number" and math.abs(back - v) / v or math.huge
+				flag("leaderboard_speed_decode_within_1e-12_" .. tag, rel <= 1e-12, rel, 1e-12)
+			end
+		end
+		local okZ, zeroBack = pcall(decode, 0)
+		flag("leaderboard_speed_decode_zero", okZ and zeroBack == 0, okZ and tonumber(zeroBack) or -1, 0)
+		-- these all tied at the old 9e18 cap
+		local ladder = { 9e18, 1e19, 1e20, 1e25, 1e100, 1e300 }
+		local increasing = codec
+		for i = 2, #ladder do
+			local okA, a = pcall(encode, ladder[i - 1])
+			local okB, b = pcall(encode, ladder[i])
+			increasing = increasing and okA and okB and type(a) == "number" and type(b) == "number" and b > a
+		end
+		flag("leaderboard_speed_score_strictly_increasing_past_cap", increasing == true)
+	end
 
 	local players = {}
 	local stores = newStores()
@@ -585,7 +636,7 @@ function Tests.leaderboard()
 			keys += 1
 		end
 		flag("leaderboard_scores_has_four_boards", isTable and keys == #BOARDS, keys, #BOARDS)
-		flag("leaderboard_scores_speed_floored", S.Speed == 321, tonumber(S.Speed) or -1, 321)
+		flag("leaderboard_scores_speed_floored", S.Speed == speedScore(321), tonumber(S.Speed) or -1, speedScore(321))
 		flag("leaderboard_scores_money_earned_floored", S.MoneyEarned == 9000, tonumber(S.MoneyEarned) or -1, 9000)
 		flag("leaderboard_scores_rolls", S.Rolls == 40, tonumber(S.Rolls) or -1, 40)
 		flag("leaderboard_scores_rarest_car", S.RarestCar == rarest, tonumber(S.RarestCar) or -1, rarest)
@@ -608,6 +659,36 @@ function Tests.leaderboard()
 				(stores.Data[b.Store] or {})[tostring(hid)] = nil
 			end
 		end
+		-- Design doc 4.11 "Speed board": a Speed past 9e18 is written as its log score, not the int64 cap
+		do
+			local sp, sid = player(21, true) -- index unused by any other check
+			sp.BaseSpeed.Value = 1e25
+			task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
+			local ss = service.Scores(sp)
+			local sv = type(ss) == "table" and ss.Speed
+			flag("leaderboard_scores_speed_1e25_encoded", sv == speedScore(1e25), tonumber(sv) or -1, speedScore(1e25))
+			local okW = pcall(service.Write, sp)
+			local got = stores.Value("LB_Speed_v3", sid)
+			flag(
+				"leaderboard_write_speed_1e25_encoded",
+				okW and isInt(got) and got == speedScore(1e25),
+				tonumber(got) or -1,
+				speedScore(1e25)
+			)
+			sp.BaseSpeed.Value = 1e20 -- lower, and tied with 1e25 at the old cap: never overwrites
+			task.wait()
+			pcall(service.Write, sp)
+			local kept = stores.Value("LB_Speed_v3", sid)
+			flag(
+				"leaderboard_speed_1e20_never_overwrites_1e25",
+				kept == speedScore(1e25),
+				tonumber(kept) or -1,
+				speedScore(1e25)
+			)
+			for _, b in BOARDS do -- keep this row out of the later board / row checks
+				(stores.Data[b.Store] or {})[tostring(sid)] = nil
+			end
+		end
 		local bare = player(2, true)
 		local bareScores = service.Scores(bare)
 		local bareRarest = type(bareScores) == "table" and bareScores.RarestCar
@@ -616,7 +697,7 @@ function Tests.leaderboard()
 		-- Write(player): integers, keyed by tostring(userId), into the four spec stores
 		local wrote = service.Write(p)
 		flag("leaderboard_write_returns_true", wrote == true)
-		local want = { Speed = 321, MoneyEarned = 9000, Rolls = 40, RarestCar = rarest }
+		local want = { Speed = speedScore(321), MoneyEarned = 9000, Rolls = 40, RarestCar = rarest }
 		for _, b in BOARDS do
 			local got = stores.Value(b.Store, id)
 			flag(
@@ -628,8 +709,8 @@ function Tests.leaderboard()
 		end
 		flag(
 			"leaderboard_speed_written_with_update_async",
-			(stores.Updates.LB_Speed_v2 or 0) >= 1 and (stores.Sets.LB_Speed_v2 or 0) == 0,
-			stores.Updates.LB_Speed_v2 or 0,
+			(stores.Updates.LB_Speed_v3 or 0) >= 1 and (stores.Sets.LB_Speed_v3 or 0) == 0,
+			stores.Updates.LB_Speed_v3 or 0,
 			1
 		)
 
@@ -638,16 +719,16 @@ function Tests.leaderboard()
 		task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 		p:SetAttribute("Rolls", 25)
 		service.Write(p)
-		local kept = stores.Value("LB_Speed_v2", id)
-		flag("leaderboard_lower_speed_never_overwrites", kept == 321, tonumber(kept) or -1, 321)
+		local kept = stores.Value("LB_Speed_v3", id)
+		flag("leaderboard_lower_speed_never_overwrites", kept == speedScore(321), tonumber(kept) or -1, speedScore(321))
 		-- "the others are set to the current value"
 		local rolls = stores.Value("LB_Rolls_v1", id)
 		flag("leaderboard_others_set_to_current_value", rolls == 25, tonumber(rolls) or -1, 25)
 		p.BaseSpeed.Value = 400.2
 		task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 		service.Write(p)
-		local raised = stores.Value("LB_Speed_v2", id)
-		flag("leaderboard_higher_speed_overwrites", raised == 400, tonumber(raised) or -1, 400)
+		local raised = stores.Value("LB_Speed_v3", id)
+		flag("leaderboard_higher_speed_overwrites", raised == speedScore(400), tonumber(raised) or -1, speedScore(400))
 		-- Owner 2026-10-21 (design doc Core stat model, "multiplied Speed"): the global Speed leaderboard shows BASE
 		-- Speed; the car's cruise multi never changes it
 		local shownP = player(7, true)
@@ -660,9 +741,9 @@ function Tests.leaderboard()
 		local shownScore = type(shownScores) == "table" and shownScores.Speed
 		flag(
 			"leaderboard_scores_speed_is_shown_speed",
-			shownScore == 100 and kartMulti > 1,
+			shownScore == speedScore(100) and kartMulti > 1,
 			tonumber(shownScore) or -1,
-			100
+			speedScore(100)
 		)
 
 		-- Never for a failed or unloaded save
@@ -691,7 +772,7 @@ function Tests.leaderboard()
 		flag("leaderboard_partial_write_returns_true", service.Write(partial) == true)
 		flag(
 			"leaderboard_zero_score_not_written",
-			stores.Value("LB_Speed_v2", partialId) == 5
+			stores.Value("LB_Speed_v3", partialId) == speedScore(5)
 				and stores.Value("LB_MoneyEarned_v1", partialId) == nil
 				and stores.Value("LB_Rolls_v1", partialId) == nil
 				and stores.Value("LB_RarestCar_v1", partialId) == nil
@@ -708,8 +789,10 @@ function Tests.leaderboard()
 			return a.Chance > b.Chance
 		end)
 		local seeds = { Speed = {}, MoneyEarned = {}, Rolls = {}, RarestCar = {} }
+		local speedOf = {} -- Speed board score -> the whole Speed it encodes (the sign shows the Speed)
 		for i = 1, TOP_N + 2 do -- more than TOP_N rows; i = 12 is the best
-			seeds.Speed[i] = i * 1111
+			seeds.Speed[i] = speedScore(i * 1111)
+			speedOf[seeds.Speed[i]] = i * 1111
 		end
 		for i = 1, TOP_N do
 			seeds.MoneyEarned[i] = i * 250000
@@ -828,8 +911,8 @@ function Tests.leaderboard()
 					then
 						return false
 					end
-				elseif text ~= head .. "  " .. hud.SpeedText(entry.Score) then
-					return false
+				elseif text ~= head .. "  " .. hud.SpeedText(speedOf[entry.Score]) then
+					return false -- Speed: the decoded Speed, never the raw log score
 				end
 			end
 			return true
@@ -847,6 +930,18 @@ function Tests.leaderboard()
 			end
 			flag("leaderboard_empty_rows_blank_" .. b.Id, blank)
 		end
+		local speedRow = labels.Speed and labels.Speed.Rows[1]
+		local topSpeed = tops.Speed[1]
+		flag(
+			"leaderboard_speed_row_shows_decoded_speed",
+			speedRow ~= nil
+				and topSpeed ~= nil
+				and speedOf[topSpeed.Score] ~= nil
+				and string.find(speedRow.Text, "  " .. hud.SpeedText(speedOf[topSpeed.Score]), 1, true) ~= nil
+				and string.find(speedRow.Text, hud.SpeedText(topSpeed.Score), 1, true) == nil,
+			speedRow and speedRow.Text or "<missing>",
+			topSpeed and hud.SpeedText(speedOf[topSpeed.Score]) or "<missing>"
+		)
 		local rollRows = labels.Rolls and labels.Rolls.Rows
 		flag(
 			"leaderboard_rolls_board_has_seven_blank_rows",

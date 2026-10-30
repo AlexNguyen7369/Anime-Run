@@ -9,7 +9,7 @@ LeaderboardConfig.NO_DATA = "No data yet"
 
 -- In sign order. A store name is permanent: a new one starts an empty board.
 LeaderboardConfig.Boards = {
-	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v2" }, -- v2: Speed stat scale (owner 2026-10-30)
+	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v3" }, -- v3: log-scaled score; v2 held raw scores (Speed stat scale, owner 2026-10-30)
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
 	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
