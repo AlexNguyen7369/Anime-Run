@@ -38,8 +38,12 @@ local function report(name)
 end
 
 local function near(a, b, tolerance)
-	-- default is relative past 1: Speed amounts are x STAT_SCALE (design doc 4.11), far past 1e-6 absolute precision
-	return type(a) == "number" and a == a and math.abs(a - b) <= (tolerance or 1e-6 * math.max(1, math.abs(b)))
+	return type(a) == "number" and a == a and math.abs(a - b) <= (tolerance or 1e-6)
+end
+
+-- Speed amounts are x STAT_SCALE (design doc 4.11), far past 1e-6 absolute precision; only those use this
+local function nearRel(a, b)
+	return near(a, b, 1e-6 * math.max(1, math.abs(b)))
 end
 
 -- Independent oracle (owner, 2026-10-13): 25% of the workshop rate x the time capped at eight hours. The stat does
@@ -96,7 +100,7 @@ function Tests.workshop_offline()
 	-- Owner, 2026-10-13: the rate x the capped time IS the rule (was: an integral that paid less).
 	local got = exact("offline_is_rate_times_capped_time", 0, 10, 1, 5, 8 * 3600)
 	local linear = 0.25 * config.BASE_RATE * 10 * 5 * 8 * 3600
-	flag("offline_no_diminishing_from_zero", near(got, linear), type(got) == "number" and got or -1, linear)
+	flag("offline_no_diminishing_from_zero", nearRel(got, linear), type(got) == "number" and got or -1, linear)
 	-- The public contract: OfflineGain = Rate x OFFLINE_FRACTION x clamp(seconds, 0, OFFLINE_CAP).
 	local contract = type(workshop.Rate) == "function"
 		and type(config.OFFLINE_FRACTION) == "number"
@@ -107,7 +111,7 @@ function Tests.workshop_offline()
 			return workshop.Rate(stat, 2, 1, 3) * config.OFFLINE_FRACTION * math.clamp(seconds, 0, config.OFFLINE_CAP)
 		end)
 		local okGot, gotGain = pcall(workshop.OfflineGain, stat, 2, 1, 3, seconds)
-		contract = contract and okWant and okGot and near(gotGain, wantGain) and wantGain > 0
+		contract = contract and okWant and okGot and nearRel(gotGain, wantGain) and wantGain > 0
 	end
 	flag("offline_equals_rate_times_fraction_times_time", contract)
 	local same = true
@@ -119,7 +123,7 @@ function Tests.workshop_offline()
 	local first = workshop.OfflineGain(500, 2, 1, 3, 1800)
 	local second = workshop.OfflineGain(500 + first, 2, 1, 3, 1800)
 	local whole = workshop.OfflineGain(500, 2, 1, 3, 3600)
-	flag("offline_gain_composes", near(first + second, whole))
+	flag("offline_gain_composes", nearRel(first + second, whole))
 	for level, entry in config.Levels do
 		exact("offline_configured_level_" .. level, 500, 2, level, 3, 3600)
 		flag("offline_level_multi_valid_" .. level, type(entry.Multi) == "number" and entry.Multi > 0)

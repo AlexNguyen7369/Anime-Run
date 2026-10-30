@@ -128,6 +128,15 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   `MAX_STAT` (test reference), `WorkshopConfig.BASE_RATE`, and every other flat Speed amount (rewards, codes, tests).
   Multipliers (rebirth, stat points, potions) do not change. `BASE_SPEED`, `MAX_SPEED` and `MAX_CRUISE` are studs/s
   and do not change.
+- Old saves (owner 2026-10-30): pre-scale test saves are wiped, not rescaled. The save store is `PlayerStats_v2` and
+  the Speed board store `LB_Speed_v2`; the v1 stores stay untouched.
+- `PlayerData.MAX_ADD` (most one AddSpeed call adds) is a flat Speed amount and scales: `1e18 x STAT_SCALE`.
+- HUD (owner 2026-10-30): Speed keeps suffixes from `SPEED_SUFFIX_FROM = 1e6` (placeholder); the threshold does not scale.
+- Speed board (owner 2026-10-30): the Speed board stores a log-scaled integer score, so any finite Speed ranks
+  (no tie at the int64 cap); the board shows the real Speed decoded from it. Encoding (proposed):
+  `score = floor(log10(1 + Speed) x 1e15)`, `Speed = 10^(score / 1e15) - 1`. Other boards are unchanged.
+- Test precision (owner 2026-10-30): above the new `MAX_STAT` a double cannot keep decimals, so
+  `admin_addspeed_past_max_stat_not_clamped` checks only "past MAX_STAT, not clamped".
 
 ### 4.10 World redesign (owner 2026-10-28)
 - The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
@@ -169,12 +178,14 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ## 8. Open questions (owner)
 
-- 2026-10-30: saves made before the Speed stat scale (4.11): rescale their `Speed` once on load, or wipe test saves.
+None open. The Speed-scale save question of 2026-10-30 was answered the same day (4.11: wipe).
 
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
 
+- 2026-10-30: owner on the Speed scale (4.11): wipe pre-scale test saves (v2 stores), HUD suffix threshold stays 1e6,
+  Speed board stores a log-scaled score, weaker admin decimal check accepted; MAX_ADD scales.
 - 2026-10-30: owner: category speed applies after damping (4.5); F = 3 confirmed (4.9); Speed stat x(1e15 / 3e5) so
   1 Qd = 300K old, same gameplay (4.11).
 - 2026-10-30: owner: speed matters more than stamina. Base stamina flattened (Legendary 30, Mythic 36, Secret 43);
