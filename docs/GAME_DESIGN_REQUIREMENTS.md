@@ -69,8 +69,11 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
-- The drain rate depends on rarity: rarer characters last longer (placeholder seconds of running: Common 30,
-  Uncommon 40, Rare 55, Epic 75, Legendary 100, Mythic 130, Secret 180).
+- The drain rate depends on rarity: rarer characters last a little longer (seconds of running: Common 20,
+  Uncommon 22, Rare 24, Epic 27, Legendary 30 (placeholders); Mythic 36, Secret 43 (owner 2026-10-30)).
+- Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small; only Marathoners get a
+  big stamina boost. A trio of Legendaries clears all 10 tracks with about 90 s of running, using about all their
+  stamina; Mythic and Secret trios clear all 10 tracks with stamina to spare.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
@@ -82,10 +85,12 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
-  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.7.
+  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.8 (proposed 2026-10-30, was x0.7).
   - **Balanced**: x1, x1.
-  - **Marathoner**: cruise SpeedMulti x0.85, stamina x1.4.
-- Rarity still sets the base speed and base stamina; the category scales them.
+  - **Marathoner**: cruise SpeedMulti x0.8 (owner 2026-10-30, was x0.85), stamina x2.0 (proposed 2026-10-30, was x1.4).
+- Rarity still sets the base speed and base stamina; the category scales them. The category speed multiplies the
+  damped cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it
+  counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
 
 ### 4.6 Stamina stat point (owner 2026-10-28)
 - Index stat points can be put into a new stat **Stamina**: each point adds +5% stamina to every character
@@ -105,10 +110,24 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
 ### 4.9 Map redesign: longer tracks and anime biomes (owner 2026-10-28)
-- Tracks start long and get longer: Track 1 keeps its length (about 984 studs) as the reference; Track n is
-  `984 x 1.25^(n-1)` studs (Track 10 about 7,300). NPC speeds are unchanged.
+- Tracks are very long and get longer (owner 2026-10-30): every track is the old length times a base factor, growth
+  per track stays x1.25. Track n is `984 x F x 1.25^(n-1)` studs, F = 3 (owner confirmed 2026-10-30; Track 1 about 2,950, Track 10
+  about 22,000). Track 1 gets a new, longer layout. NPC speeds are unchanged; stamina is retuned (4.3, owner
+  2026-10-30).
 - Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
   (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
+- Biomes are researched (owner 2026-10-30): before building a track layout or biome, research public information on
+  its anime (locations, layout, architecture, palette, landmarks) and match it closely in layout, assets and world
+  building. Section 5 safeguards still hold: no logos, symbols, real names, show kanji, ripped assets or exact copies
+  of an iconic design.
+
+### 4.11 Speed stat scale (owner 2026-10-30)
+- The Speed stat shows bigger numbers with the same gameplay: every Speed stat amount is the old amount x
+  `STAT_SCALE = 1e15 / 3e5` (about 3.33e9), so 1 Qd new = 300K old (about where a Legendary trio clears all 10 tracks).
+- Scaled together so cruise speed and time to reach it are unchanged: `RaceConfig.HALF_STAT`, `GAIN_PER_SECOND`,
+  `MAX_STAT` (test reference), `WorkshopConfig.BASE_RATE`, and every other flat Speed amount (rewards, codes, tests).
+  Multipliers (rebirth, stat points, potions) do not change. `BASE_SPEED`, `MAX_SPEED` and `MAX_CRUISE` are studs/s
+  and do not change.
 
 ### 4.10 World redesign (owner 2026-10-28)
 - The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
@@ -150,10 +169,18 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ## 8. Open questions (owner)
 
-None open. The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
+- 2026-10-30: saves made before the Speed stat scale (4.11): rescale their `Speed` once on load, or wipe test saves.
+
+The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
 
+- 2026-10-30: owner: category speed applies after damping (4.5); F = 3 confirmed (4.9); Speed stat x(1e15 / 3e5) so
+  1 Qd = 300K old, same gameplay (4.11).
+- 2026-10-30: owner: speed matters more than stamina. Base stamina flattened (Legendary 30, Mythic 36, Secret 43);
+  Legendary trio clears all 10 tracks in about 90 s; Marathoner cruise x0.8; big stamina only for Marathoners (4.3, 4.5).
+- 2026-10-30: owner: tracks very long (bigger base, same x1.25 growth; F proposed 3) and biomes researched from
+  public info on each anime and matched closely, section 5 safeguards kept (4.9).
 - 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
   car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
 - 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;

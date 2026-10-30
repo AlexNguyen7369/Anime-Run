@@ -38,7 +38,8 @@ local function report(name)
 end
 
 local function near(a, b, tolerance)
-	return type(a) == "number" and a == a and math.abs(a - b) <= (tolerance or 1e-6)
+	-- default is relative past 1: Speed amounts are x STAT_SCALE (design doc 4.11), far past 1e-6 absolute precision
+	return type(a) == "number" and a == a and math.abs(a - b) <= (tolerance or 1e-6 * math.max(1, math.abs(b)))
 end
 
 -- Independent oracle (owner, 2026-10-13): 25% of the workshop rate x the time capped at eight hours. The stat does

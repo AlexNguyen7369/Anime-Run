@@ -24,7 +24,7 @@ local TOP_N = 10
 local REFRESH = 60
 local WRITE_INTERVAL = 300
 local BOARDS = {
-	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v1" },
+	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v2" },
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
 	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
@@ -628,8 +628,8 @@ function Tests.leaderboard()
 		end
 		flag(
 			"leaderboard_speed_written_with_update_async",
-			(stores.Updates.LB_Speed_v1 or 0) >= 1 and (stores.Sets.LB_Speed_v1 or 0) == 0,
-			stores.Updates.LB_Speed_v1 or 0,
+			(stores.Updates.LB_Speed_v2 or 0) >= 1 and (stores.Sets.LB_Speed_v2 or 0) == 0,
+			stores.Updates.LB_Speed_v2 or 0,
 			1
 		)
 
@@ -638,7 +638,7 @@ function Tests.leaderboard()
 		task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 		p:SetAttribute("Rolls", 25)
 		service.Write(p)
-		local kept = stores.Value("LB_Speed_v1", id)
+		local kept = stores.Value("LB_Speed_v2", id)
 		flag("leaderboard_lower_speed_never_overwrites", kept == 321, tonumber(kept) or -1, 321)
 		-- "the others are set to the current value"
 		local rolls = stores.Value("LB_Rolls_v1", id)
@@ -646,7 +646,7 @@ function Tests.leaderboard()
 		p.BaseSpeed.Value = 400.2
 		task.wait() -- leaderstats.Speed (shown) follows BaseSpeed
 		service.Write(p)
-		local raised = stores.Value("LB_Speed_v1", id)
+		local raised = stores.Value("LB_Speed_v2", id)
 		flag("leaderboard_higher_speed_overwrites", raised == 400, tonumber(raised) or -1, 400)
 		-- Owner 2026-10-21 (design doc Core stat model, "multiplied Speed"): the global Speed leaderboard shows BASE
 		-- Speed; the car's cruise multi never changes it
@@ -691,7 +691,7 @@ function Tests.leaderboard()
 		flag("leaderboard_partial_write_returns_true", service.Write(partial) == true)
 		flag(
 			"leaderboard_zero_score_not_written",
-			stores.Value("LB_Speed_v1", partialId) == 5
+			stores.Value("LB_Speed_v2", partialId) == 5
 				and stores.Value("LB_MoneyEarned_v1", partialId) == nil
 				and stores.Value("LB_Rolls_v1", partialId) == nil
 				and stores.Value("LB_RarestCar_v1", partialId) == nil
