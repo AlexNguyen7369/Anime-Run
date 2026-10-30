@@ -55,5 +55,13 @@
 1. DONE 2026-10-28: fork-ivs merged into main (PR #1, 039ad28), goal closed. Integration branch for anime-world:
    feature/alex/anime-world.
 2. Owner: confirm anime-world deliverables w1-w5 (docs/ORCHESTRATOR_GOALS.md, "proposed, owner to confirm").
-3. DONE w1. Next: anime-world w2 (world layout + plaza hub + 7 Dojo plots), task branch orch/anime-world/w2, tests first
+3. DONE w1, DONE w2 (merge cca9d50, pushed). Next: anime-world w3 (track tests + layouts 1-10), then w4. Old w2 note: (world layout + plaza hub + 7 Dojo plots), task branch orch/anime-world/w2, tests first
    (`world_layout`, `dojo`, `spawn_area`), WORLD_REDESIGN_SPEC sections 3-5.
+
+- 2026-10-30 w2 LANDED (merge cca9d50 on feature/alex/anime-world, pushed): full harness `[CARTEST] END pass=47
+  fail=0`, spawn_area green at the restored tight tolerances. Owner 2026-10-30: plaza centre = world origin, track
+  chain moved to TrackBuilder.CHAIN_ORIGIN (-118, TRACK_LIFT, 80); WORLD_REDESIGN_SPEC 3 values are the owner's;
+  IVS hub-check retirements approved. Studio id is now 6ea5e972; harness attributes live on ReplicatedStorage and
+  the run starts only when CarTestRun changes to true. Startup warning rbxassetid://203785492 = "Pop Close Sound"
+  (audio), not referenced by the game; probably a Studio plugin. Rojo 34873 restarted from this folder (Studio
+  plugin needs Connect). Worktree ../AnimeRun-orch/w3-research holds 77151e7 (biome References) not yet merged.

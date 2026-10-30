@@ -10,8 +10,9 @@
 7. 2026-10-28 — Alex Nguyen — Merged goal fork-ivs (f1-f3) into main via PR #1 after a fresh merge review approved it; goal closed.
 8. 2026-10-30 — Alex Nguyen — Rescaled the Speed stat x1e15/3e5 (design doc 4.11, save and Speed leaderboard stores v2) and wrote the owner track-length and stamina updates into the docs; harness fixes re-run green.
 9. 2026-10-30 — Alex Nguyen — Landed anime-world w1: placeholder runner rig replaces the car body, car physics scrapped, log-scaled Speed board; full harness `[CARTEST] END pass=45 fail=0`, audit PASS.
+10. 2026-10-30 — Alex Nguyen — Landed anime-world w2: anime town plaza hub at the world origin, 7 Dojo plots and the Dojo squad rule, track chain moved to (-118, TRACK_LIFT, 80); full harness `[CARTEST] END pass=47 fail=0`.
 
 ## What's next
-**Anime-world w2: world layout, anime town plaza hub and 7 Dojo plots (Dojo squad rule), tests first (`world_layout`, `dojo`, `spawn_area`).**
+**Anime-world w3: track tests for Tracks 1-10, then layouts at 984 x F x 1.25^(n-1) (F = 3) along the spiral, each researched from its anime, tests first.**
 
-**Why this is next:** w1's runner is in place, and the tracks (w3) and biomes (w4) are laid out from the hub and spiral that w2 builds.
+**Why this is next:** the hub and chain origin from w2 fix where the spiral starts, and w4's biome themes are dressed onto the w3 track layouts.
