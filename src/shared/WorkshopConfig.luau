@@ -12,14 +12,18 @@ WorkshopConfig.PLOT_SIZE = 48 -- studs, square
 
 -- Assignment order: a joining player gets the lowest free index. `Front` = the local direction the open side faces
 -- (toward the hub), as a unit (x, z).
+-- The Dojos (docs/WORLD_REDESIGN_SPEC.md sections 3 and 5): an arc round the plaza centre (Shared/SpawnArea.CENTRE,
+-- local (118, -80)) from -115 to 115 degrees, one every 38.3 degrees at radius 110 (100 at the two ends, clear of the
+-- Track 1 / Track 2 biome gates), leaving the 130-degree side toward the start gate and Track 1 open. Each front is
+-- the axis closest to the plaza centre (all within 39 degrees of it).
 WorkshopConfig.Plots = {
-	{ Min = Vector2.new(200, -12), Max = Vector2.new(248, 36), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -68), Max = Vector2.new(248, -20), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -124), Max = Vector2.new(248, -76), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -180), Max = Vector2.new(248, -132), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(144, -180), Max = Vector2.new(192, -132), Front = Vector2.new(0, 1) },
-	{ Min = Vector2.new(88, -180), Max = Vector2.new(136, -132), Front = Vector2.new(0, 1) },
-	{ Min = Vector2.new(32, -180), Max = Vector2.new(80, -132), Front = Vector2.new(0, 1) },
+	{ Min = Vector2.new(52, -195), Max = Vector2.new(100, -147), Front = Vector2.new(0, 1) },
+	{ Min = Vector2.new(119, -211), Max = Vector2.new(167, -163), Front = Vector2.new(0, 1) },
+	{ Min = Vector2.new(180, -172), Max = Vector2.new(228, -124), Front = Vector2.new(-1, 0) },
+	{ Min = Vector2.new(204, -104), Max = Vector2.new(252, -56), Front = Vector2.new(-1, 0) },
+	{ Min = Vector2.new(180, -36), Max = Vector2.new(228, 12), Front = Vector2.new(-1, 0) },
+	{ Min = Vector2.new(119, 3), Max = Vector2.new(167, 51), Front = Vector2.new(0, -1) },
+	{ Min = Vector2.new(52, -13), Max = Vector2.new(100, 35), Front = Vector2.new(0, -1) },
 }
 
 -- The gain zone, centred in the plot: (x, height, z) studs. Standing anywhere in it (root above the floor and below

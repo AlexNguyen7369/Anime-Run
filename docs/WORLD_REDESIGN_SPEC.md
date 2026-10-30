@@ -57,6 +57,10 @@ Nothing car-shaped stays in the game:
   hub's start gate and spirals outward, one biome sector per track (Track 1 nearest the hub, Track 10 outermost).
 - Every track, plot and the hub keep the IVS no-overlap rules; the safety baseplate covers everything plus a margin.
 - Exact coordinates are chosen by the world build, inside these rules.
+- Owner 2026-10-30 (placeholders, tunable): world centre = origin (0, 0); plot ring has nearest / farthest plot
+  distance >= 0.75 and no gap between neighbouring plots wider than 135 degrees; baseplate margin 20 studs; the torii
+  start gate is at least 16 studs tall; Track 1 starts within one road width (40 studs) of the start gate.
+- Owner 2026-10-30 (placeholder, tunable): each Dojo plot's front points within 45 degrees of the plaza centre.
 
 ## 4. Spawn hub: anime town plaza
 
@@ -77,6 +81,8 @@ Nothing car-shaped stays in the game:
   character already in the other group.
 - Standing in the Dojo's training zone earns idle Speed, as the IVS workshop zone does (same rate rules).
 - Until stamina ships, the racing Team is the single equipped character, so the rule applies to that one character.
+- Owner 2026-10-30: an old save whose equipped character is also in the Showcase drops that character from the Dojo
+  squad on load (the slot is left empty, stored as an empty entry or removed; owner 2026-10-30); the Team is unchanged.
 
 ## 6. Tracks and biomes
 

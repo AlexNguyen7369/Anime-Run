@@ -263,6 +263,10 @@ function GachaService.Equip(player, id)
 	if type(id) ~= "string" or not CharacterCatalog.Get(id) or not owns(player, id) then
 		return false
 	end
+	-- Dojo squad rule (docs/WORLD_REDESIGN_SPEC.md section 5): a squad member can not join the Team
+	if GachaService.ShowcaseIds(player)[id] then
+		return false
+	end
 	GachaService.Setup(player)
 	player:SetAttribute("EquippedCar", id)
 	return true
@@ -398,6 +402,9 @@ function GachaService.SetShowcase(player, ids)
 		if type(key) ~= "number" or not showcaseable(player, id) or seen[id] then
 			return false, "Not a character you own"
 		end
+		if id == player:GetAttribute("EquippedCar") then -- spec section 5: the Team member can not join the squad
+			return false, "That character is in your Team"
+		end
 		seen[id] = true
 	end
 	if count ~= #ids then
@@ -473,6 +480,14 @@ function GachaService.Apply(player, saved)
 			end
 		end
 	end
+	local equipped = saved.Equipped
+	local spec = type(equipped) == "string" and CharacterCatalog.Get(equipped)
+	if not spec or not owns(player, equipped) then
+		equipped = STARTER
+	end
+	player:SetAttribute("EquippedCar", equipped)
+	-- Owner 2026-10-30 (WORLD_REDESIGN_SPEC section 5): an old save's equipped character also in the squad is dropped
+	-- from the squad (its slot left empty); the Team is unchanged
 	local showcase = {}
 	if type(saved.Showcase) == "table" then
 		for _, id in saved.Showcase do
@@ -480,6 +495,10 @@ function GachaService.Apply(player, saved)
 				table.insert(showcase, id)
 			end
 		end
+	end
+	local slot = table.find(showcase, equipped)
+	if slot then
+		table.remove(showcase, slot)
 	end
 	player:SetAttribute("Showcase", table.concat(showcase, ","))
 	GachaService.RefreshShowcase(player)
@@ -506,12 +525,6 @@ function GachaService.Apply(player, saved)
 		player:SetAttribute("Alloc_" .. stat, a[stat])
 	end
 
-	local equipped = saved.Equipped
-	local spec = type(equipped) == "string" and CharacterCatalog.Get(equipped)
-	if not spec or not owns(player, equipped) then
-		equipped = STARTER
-	end
-	player:SetAttribute("EquippedCar", equipped)
 	refreshPoints(player)
 end
 

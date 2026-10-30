@@ -26,7 +26,7 @@ local GRIP_FRACTION = 0.55 -- the share of that budget used in corners
 -- The chain of tracks as Main builds it, without instances: { { Layout, Origin, Number }, ... } in Number order.
 function NpcRacer.ChainEntries()
 	local entries = {}
-	local origin = CFrame.new(0, TrackBuilder.TRACK_LIFT, 0)
+	local origin = TrackBuilder.CHAIN_ORIGIN
 	for _, spec in TrackRegistry.Chain() do
 		local layout = TrackBuilder.Layout(spec)
 		table.insert(entries, { Layout = layout, Origin = origin, Number = spec.Number })

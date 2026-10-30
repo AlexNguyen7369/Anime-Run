@@ -26,8 +26,8 @@ for _, mesh in template:GetDescendants() do
 end
 
 local MarketplaceBuilder = {}
-MarketplaceBuilder.CENTER = Vector2.new(50, -70)
-MarketplaceBuilder.ROTATION = 90 -- additional half-turn from the owner's previous -90 orientation
+MarketplaceBuilder.CENTER = Vector2.new(163, -80) -- east side of the plaza
+MarketplaceBuilder.ROTATION = -90 -- entrance (+Z) faces west, toward the plaza centre
 MarketplaceBuilder.SIZE = Vector3.new(48, 0.2, 44)
 MarketplaceBuilder.VENDORS = {
 	{ Name = "Aura", Kind = "Aura", Counter = Vector3.new(-17, 0, -3), Width = 9, Npc = Vector3.new(-17, 0, -7) },
@@ -42,7 +42,7 @@ MarketplaceBuilder.VENDORS = {
 }
 local PLACEHOLDER = { Workshop = true, Parts = true } -- vendors without stall meshes
 local WOOD = Color3.fromRGB(160, 110, 70)
-local ROOF = Color3.fromRGB(190, 50, 50)
+local ROOF = Color3.fromRGB(58, 62, 72) -- dark roof tiles
 
 local function box(parent, name, size, cf, collide)
 	local p = Instance.new("Part")
@@ -126,7 +126,7 @@ function MarketplaceBuilder.Build(placement)
 			)
 			roof.Transparency = 0
 			roof.Color = ROOF
-			roof.Material = Enum.Material.SmoothPlastic
+			roof.Material = Enum.Material.Slate
 		end
 		local points = Instance.new("Folder")
 		points.Name = "InteractionPoints"
@@ -177,9 +177,6 @@ function MarketplaceBuilder.Build(placement)
 		post.Transparency = 0
 		post.Color = WOOD
 	end
-	local lights = Instance.new("Folder")
-	lights.Name = "Lighting"
-	lights.Parent = model
 	for index, pos in
 		{
 			Vector3.new(-17, 8, -4),
@@ -189,8 +186,10 @@ function MarketplaceBuilder.Build(placement)
 			Vector3.new(21, 4, 18),
 		}
 	do
-		local mount =
-			box(lights, "LanternMount_" .. index, Vector3.new(0.2, 0.2, 0.2), placement * CFrame.new(pos), false)
+		local mount = Instance.new("Attachment") -- an attachment, not a part: the plaza keeps few parts
+		mount.Name = "LanternMount_" .. index
+		mount.Parent = floor
+		mount.WorldCFrame = placement * CFrame.new(pos)
 		local light = Instance.new("PointLight")
 		light.Name = "WarmLantern"
 		light.Color = Color3.fromRGB(255, 201, 117)

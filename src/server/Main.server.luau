@@ -37,7 +37,7 @@ folder.Name = "Track"
 folder.Parent = Workspace
 
 local entries = {}
-local origin = CFrame.new(0, TrackBuilder.TRACK_LIFT, 0)
+local origin = TrackBuilder.CHAIN_ORIGIN
 for _, spec in chain do
 	local model, layout = TrackBuilder.Build(spec, origin)
 	model.Name = spec.Name
@@ -46,7 +46,7 @@ for _, spec in chain do
 	origin = TrackBuilder.EndCFrame(layout, origin)
 end
 
--- The spawn area beside Track 1's start: players join, respawn and stop here, and walk onto its StartPad to race
+-- The plaza hub beside Track 1's start: players join, respawn and stop here, and walk through its torii to race
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace
@@ -54,8 +54,6 @@ local trackModels = {}
 for _, entry in entries do
 	table.insert(trackModels, entry.Model)
 end
-BiomeDressing.Prune(trackModels, { spawnArea }) -- scenery keeps clear of every road and the spawn area
-require(Shared.TrackPreviews).Bake(trackModels) -- checkpoint card previews (docs/CHECKPOINT_SPEC.md section 4)
 VfxArea.Build().Parent = Workspace -- the admin-only VFX showcase floor (/tp vfxarea)
 
 -- The lighting baseline goes in before WeatherService snapshots it (docs/RENDERING_SPEC.md)
@@ -69,7 +67,51 @@ UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPG
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- 7 workshop plots in the spawn area, one per player, idle Speed in the zone
+WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Speed in the zone
+-- scenery keeps clear of every road, the plaza and the Dojos
+BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
+require(Shared.TrackPreviews).Bake(trackModels) -- checkpoint card previews (docs/CHECKPOINT_SPEC.md section 4)
+
+-- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
+-- tracks, the plaza and the Dojos plus a margin (a part can be at most 2048 studs wide).
+do
+	local MARGIN, TILE = 64, 2048
+	local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+	for _, root in { folder, spawnArea, Workspace.Workshops } do
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") then
+				local cf, size = d.CFrame, d.Size
+				local half = (cf.RightVector * size.X):Abs() / 2
+					+ (cf.UpVector * size.Y):Abs() / 2
+					+ (cf.LookVector * size.Z):Abs() / 2
+				lo = Vector2.new(math.min(lo.X, d.Position.X - half.X), math.min(lo.Y, d.Position.Z - half.Z))
+				hi = Vector2.new(math.max(hi.X, d.Position.X + half.X), math.max(hi.Y, d.Position.Z + half.Z))
+			end
+		end
+	end
+	lo -= Vector2.one * MARGIN
+	hi += Vector2.one * MARGIN
+	local authored = Workspace:FindFirstChild("Baseplate")
+	local template = authored and authored:IsA("BasePart") and authored or Instance.new("Part")
+	local plate = Instance.new("Model")
+	plate.Name = "Baseplate"
+	local nx, nz = math.ceil((hi.X - lo.X) / TILE), math.ceil((hi.Y - lo.Y) / TILE)
+	local sx, sz = (hi.X - lo.X) / nx, (hi.Y - lo.Y) / nz
+	for i = 0, nx - 1 do
+		for j = 0, nz - 1 do
+			local tile = template:Clone()
+			tile.Name = "Tile_" .. i .. "_" .. j
+			tile.Anchored = true
+			tile.Size = Vector3.new(sx, template.Size.Y, sz)
+			tile.CFrame = CFrame.new(lo.X + sx * (i + 0.5), template.Position.Y, lo.Y + sz * (j + 0.5))
+			tile.Parent = plate
+		end
+	end
+	if authored then
+		authored:Destroy()
+	end
+	plate.Parent = Workspace
+end
 MarketService.Start() -- the spawn-area aura and trail market (physical prompt + client button)
 RebirthService.Start()
 BoostService.Start()

@@ -28,6 +28,8 @@ local HudFormat = require(script.Parent.HudFormat)
 local TrackBuilder = {}
 
 TrackBuilder.TRACK_LIFT = 1 -- studs the chain sits above the baseplate so road never blends into it
+-- Track 1's start pose: the plaza (SpawnArea.CENTRE from here) lands on the world origin (owner 2026-10-30)
+TrackBuilder.CHAIN_ORIGIN = CFrame.new(-118, TrackBuilder.TRACK_LIFT, 80)
 TrackBuilder.WIN_TEXT_DISTANCE = 60 -- studs: the $ text only shows when the player is this close
 TrackBuilder.LANE_OFFSET = 10 -- studs to the RIGHT of the road centre the car drives (a right-hand lane)
 TrackBuilder.CHECKPOINT_LENGTH = 60 -- studs of the last straight that make up the checkpoint area
