@@ -1,5 +1,5 @@
 --!nonstrict
--- The Index header's tabs. Index is car discovery only (docs/HUD_LAYOUT_SPEC.md sections 1 and 3): consumables are
+-- The Index header's tabs. Index is character discovery only (docs/HUD_LAYOUT_SPEC.md sections 1 and 3): consumables are
 -- used from the Backpack's Misc tab, so the generated CONSUMABLES tab and its host are held hidden and stay empty.
 local Tabs = {}
 local Components = require(script.Parent.RacerComponents)
@@ -17,12 +17,12 @@ function Tabs.Attach(refs, _player, refreshCars)
 		end)
 	end
 	local function showCars()
-		refs.Gui:SetAttribute("InventoryTab", "Cars")
+		refs.Gui:SetAttribute("InventoryTab", "Characters")
 		refs.GridHost.Visible = true
-		Components.Tint(refs.CarsTab, CYAN)
+		Components.Tint(refs.CharactersTab, CYAN)
 		refreshCars()
 	end
-	refs.CarsTab.Activated:Connect(showCars)
+	refs.CharactersTab.Activated:Connect(showCars)
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(showCars)
 	end)

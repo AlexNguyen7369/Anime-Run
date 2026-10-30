@@ -27,7 +27,8 @@ local BOARDS = {
 	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v1" },
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
-	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
+	-- "RAREST CHARACTER": no car wording (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29)
+	{ Id = "RarestCar", Title = "RAREST CHARACTER", Store = "LB_RarestCar_v1" },
 }
 local NO_DATA = "No data yet"
 local H = require(script.Parent.AcceptanceSupport)
@@ -226,7 +227,7 @@ local function labelsOf(board)
 end
 
 -- The pedestal's four labels (spec section 3a), or nil when `Pedestal.Stats` is not built as the spec says.
-local BEST_ROLL_LABELS = { "Title", "Odds", "Car", "Player" }
+local BEST_ROLL_LABELS = { "Title", "Odds", "Character", "Player" }
 local BEST_ROLL_TITLE = "BEST ROLL EVER"
 local function bestRollLabels(pedestal)
 	local gui = pedestal and pedestal:FindFirstChild("Stats")
@@ -502,9 +503,9 @@ function Tests.leaderboard()
 	local function pedestalShows()
 		return {
 			Odds = bestLabels and bestLabels.Odds.Text or "<missing>",
-			Car = bestLabels and bestLabels.Car.Text or "<missing>",
+			Car = bestLabels and bestLabels.Character.Text or "<missing>",
 			Player = bestLabels and bestLabels.Player.Text or "<missing>",
-			CarId = bestRoll and bestRoll:GetAttribute("CarId"),
+			CarId = bestRoll and bestRoll:GetAttribute("CharacterId"),
 			Model = H.shown(bestRoll),
 		}
 	end
@@ -865,8 +866,8 @@ function Tests.leaderboard()
 		flag("leaderboard_names_cached", repeated == 0, repeated, 0)
 
 		-- Best Roll Ever pedestal (spec section 3a): it shows row 1 of the RarestCar board after every board read
-		-- It shows that character's runner rig (CarModels is scrapped, docs/WORLD_REDESIGN_SPEC.md sections 1-2,
-		-- orchestrator ruling 2026-10-28); a score that is no catalog character's Chance shows no model.
+		-- It shows that character's runner rig (CarModels is scrapped, docs/WORLD_REDESIGN_SPEC.md section 2,
+		-- owner 2026-10-29); a score that is no catalog character's Chance shows no model.
 		local function expectRow(tag, userId, score, spec)
 			local s = pedestalShows()
 			flag("leaderboard_bestroll_odds_" .. tag, s.Odds == hud.Odds(score), s.Odds, hud.Odds(score))

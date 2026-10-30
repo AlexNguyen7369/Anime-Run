@@ -573,7 +573,7 @@ local generated = {
 				Visible = true,
 			},
 		},
-		["RacerIndex/Panel/Face/Header/Face/CarsTab"] = {
+		["RacerIndex/Panel/Face/Header/Face/CharactersTab"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
 				Position = UDim2.fromOffset(18, 8),
@@ -587,7 +587,7 @@ local generated = {
 				Visible = true,
 			},
 		},
-		["RacerIndex/Panel/Face/Header/Face/CarsTab/Face/CarsTabLabel"] = {
+		["RacerIndex/Panel/Face/Header/Face/CharactersTab/Face/CharactersTabLabel"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
 				Position = UDim2.fromOffset(0, 0),
@@ -1495,7 +1495,7 @@ local generated = {
 				Visible = true,
 			},
 		},
-		["RollShowcase/Card/CardBody/Face/PreviewCar"] = {
+		["RollShowcase/Card/CardBody/Face/PreviewRunner"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
 				Position = UDim2.fromOffset(18, 84),
@@ -1792,13 +1792,13 @@ function Model.RacerPanelFit(viewport, band, size)
 		Band = { top = top, bottom = bottom, side = left },
 	}
 end
--- Client/RollToast copies PreviewCar's Position / Size into these enlarged-card parts (fitRollArt, on every viewport
+-- Client/RollToast copies PreviewRunner's Position / Size into these enlarged-card parts (fitRollArt, on every viewport
 -- change).
 Model.Follow = {
-	["RollShowcase/Card/CardBody/Face/Glow"] = "RollShowcase/Card/CardBody/Face/PreviewCar",
-	["RollShowcase/Card/CardBody/Face/Ring"] = "RollShowcase/Card/CardBody/Face/PreviewCar",
-	["RollShowcase/Card/CardBody/Face/Reel"] = "RollShowcase/Card/CardBody/Face/PreviewCar",
-	["RollShowcase/Card/CardBody/Face/Viewport"] = "RollShowcase/Card/CardBody/Face/PreviewCar",
+	["RollShowcase/Card/CardBody/Face/Glow"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
+	["RollShowcase/Card/CardBody/Face/Ring"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
+	["RollShowcase/Card/CardBody/Face/Reel"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
+	["RollShowcase/Card/CardBody/Face/Viewport"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 }
 -- Client/RollToast places the compact roll's top edge RollAnimConfig.COMPACT_GAP px under the Race button
 -- (fitCompact, on every viewport change): Y offset = Race Face bottom in screen pixels (AbsolutePosition.Y +

@@ -35,6 +35,21 @@ Nothing car-shaped stays in the game:
   `MaxPathDeviation` of the path, pad paid once per pass, NPC race and banked money unchanged.
 - Retired with the car: flip recovery (a rail runner cannot flip), car physics scenarios (`static_settle`, `accel`,
   `brake`, `skidpad`, `car_size`, `flip_recovery`, car lap bots). Replaced by `runner` scenarios (below).
+  The non-flip checks inside `flip_recovery` (live aura re-target, fastest character at max stat) move to `runner`.
+- Owner 2026-10-29:
+  - Instant start: a run starts at once, with no cancellable "Teleporting" phase (there is no seat to wait for).
+  - The seat-failure checks (`event_seat_fail_*`) are retired with the `VehicleSeat`.
+  - Index tiles and leaderboard pedestals show the character's placeholder runner rig.
+  - While racing, the camera follows the visible runner.
+  - The hidden avatar is welded inside the runner's Torso; the Humanoid stays.
+  - A mid-race character switch works as the IVS mid-race car switch.
+  - The rarest-character leaderboard is titled "RAREST CHARACTER".
+- Owner 2026-10-30:
+  - Rail-fall recovery is retired with the car: the anchored runner cannot leave the rail. Its checks
+    (`fall_below`, `launched_above`, `rail_fall_api_exists`, `back_on_path_fast`, `snap_counted`) and the
+    `RailFallRecoverySeconds` target (owner 2026-10-20) go.
+  - Instant start covers solo runs only. A duel keeps its "Teleporting" hold while both runners wait for the
+    countdown.
 
 ## 3. World layout
 

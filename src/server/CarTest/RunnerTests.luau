@@ -49,6 +49,7 @@ local WINDOW_SLACK = 36 -- studs of path searched past the reach of one frame
 local PUBLISH_INTERVAL = 0.25 -- s: longest gap between RunDistance updates (contract above)
 local DISTANCE_TOLERANCE = 2 -- studs between the published arc position and the rig's
 local FRAME_LAG = 0.05 -- s: the test may read the attributes up to ~3 frames before / after the rig moved
+local FALL_BAND = 8 -- studs: the IVS RaceService.RAIL_FALL_HEIGHT fall band, mirrored below the lowest road point
 local BODY_PARTS = { "Head", "Torso" }
 local FORBIDDEN_CLASSES = { "VehicleSeat", "Seat", "Constraint", "BodyMover" }
 
@@ -284,12 +285,15 @@ function Tests.runner()
 		return nil
 	end
 
-	local function drive(stat)
-		local st = { ok = false, minUp = 1, dev = 0, devN = 0, dist = 0, want = 0, perTrack = {} }
+	-- opts (optional): CharacterId (rig to build, default charId), Setup(player) before the stat is set,
+	-- Started(run, player, st) once the run exists
+	local function drive(stat, opts)
+		opts = opts or {}
+		local st = { ok = false, minUp = 1, minY = math.huge, dev = 0, devN = 0, dist = 0, want = 0, perTrack = {} }
 		-- smooth-motion contract samples (header): frames read, frames missing an attribute, worst errors
 		local pub = { n = 0, missing = 0, distErr = 0, speedErr = 0, age = 0, backward = 0 }
 		st.pub = pub
-		local model = RunnerFactory.build(charId)
+		local model = RunnerFactory.build(opts.CharacterId or charId)
 		model.Name = "CarTestRunner"
 		model.Parent = Workspace
 		local player = Instance.new("Folder")
@@ -298,6 +302,9 @@ function Tests.runner()
 		local okSetup = pcall(function()
 			Money.Setup(player)
 			PlayerData.Setup(player)
+			if opts.Setup then
+				opts.Setup(player)
+			end
 			player.BaseSpeed.Value = stat
 		end)
 		local okRun, run = false, nil
@@ -312,6 +319,9 @@ function Tests.runner()
 		end
 		st.ok = true
 		st.target0 = run.TargetSpeed
+		if opts.Started then
+			opts.Started(run, player, st)
+		end
 		local changedAt = os.clock()
 		local distConn = model:GetAttributeChangedSignal("RunDistance"):Connect(function()
 			changedAt = os.clock()
@@ -329,6 +339,7 @@ function Tests.runner()
 				break
 			end
 			local pos = primary.Position
+			st.minY = math.min(st.minY, pos.Y)
 			local moved = prev and (pos - prev).Magnitude or 0
 			prev = pos
 			local target = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
@@ -385,6 +396,8 @@ function Tests.runner()
 		end
 		distConn:Disconnect()
 		st.finished = run.Finished == true
+		st.runMinUp = type(run.MinUpY) == "number" and run.MinUpY or -1
+		st.kept = model.Parent ~= nil
 		st.firstDist = firstDist
 		st.unanchored = unanchored
 		task.wait(1) -- linger by the last pad: a second payout would show now
@@ -476,6 +489,141 @@ function Tests.runner()
 			metrics[label .. "_speed_ratio"] = math.round(ratio * 10000) / 10000
 		end
 	end
+
+	-- 5. High character multi (re-homed from the retired IVS flip_recovery scenario, its car-only seat / chassis /
+	-- flip checks stay retired): the fastest catalog character (SpeedMulti 2800) at MAX_STAT runs the whole route
+	-- on its path, upright, never below the map. The raw multi is damped to 1 + log10(multi), capped at 4x (design
+	-- doc "Core stat model", owner 2026-10-28), then held to the hard cruise cap of 800 studs/s (docs/WORLDS_SPEC.md
+	-- section 1, owner 2026-10-27), so it is still faster than the max-stat race.
+	local GachaService = H.module(Server, "GachaService")
+	local fastApiOk = GachaService ~= nil
+		and type(GachaService.Setup) == "function"
+		and type(GachaService.Grant) == "function"
+		and type(GachaService.Equip) == "function"
+		and type(GachaService.ShownSpeedMulti) == "function"
+	flag("high_multi_api_exists", fastApiOk)
+	if fastApiOk then
+		local best = nil
+		for _, spec in Catalog.All() do
+			if type(spec.SpeedMulti) == "number" and (best == nil or spec.SpeedMulti > best.SpeedMulti) then
+				best = spec
+			end
+		end
+		local multi = best and best.SpeedMulti or 0
+		flag("high_multi_character_found", multi >= 2800, multi, 2800)
+		if best then
+			local BIG_STAT = RaceConfig.MAX_STAT
+			local shown = nil
+			local st = drive(BIG_STAT, {
+				CharacterId = best.Id,
+				Setup = function(player)
+					GachaService.Setup(player)
+					GachaService.Grant(player, best.Id)
+					GachaService.Equip(player, best.Id)
+				end,
+				Started = function(_, player)
+					local okShown, value = pcall(GachaService.ShownSpeedMulti, player)
+					shown = okShown and value or nil
+				end,
+			})
+			flag("high_multi_run_started", st.ok)
+			if st.ok then
+				local want = RaceConfig.SpeedFor(BIG_STAT, multi)
+				local ts = type(st.target0) == "number" and st.target0 or -1
+				flag(
+					"high_multi_shown_multi_is_character_multi",
+					type(shown) == "number" and math.abs(shown - multi) <= 1e-9 * multi,
+					type(shown) == "number" and shown or -1,
+					multi
+				)
+				local capped = math.min(RaceConfig.SpeedFor(BIG_STAT) * 4, 800)
+				flag(
+					"high_multi_target_is_shown_speed_cruise",
+					math.abs(ts - want) <= 1e-6 * want and math.abs(want - capped) <= 1e-6 * capped,
+					ts,
+					capped
+				)
+				local maxStatSpeed = RaceConfig.SpeedFor(RaceConfig.MAX_STAT)
+				flag("high_multi_target_above_max_stat_speed", want > maxStatSpeed, want, maxStatSpeed)
+				local lowestRoad = math.huge
+				for _, w in wps do
+					lowestRoad = math.min(lowestRoad, w.Y)
+				end
+				local floorY = lowestRoad - FALL_BAND
+				local minUpStrict = Targets.lap and Targets.lap.MinUpYStrict or 0.9
+				flag("high_multi_runner_kept", st.kept == true)
+				flag("high_multi_finished", st.finished)
+				flag("high_multi_sticks_to_path", st.devN >= MIN_TRACK_SAMPLES and st.dev <= maxDev, st.dev, maxDev)
+				flag("high_multi_never_below_map", st.minY >= floorY, st.minY, floorY)
+				flag(
+					"high_multi_never_tilted",
+					st.devN >= MIN_TRACK_SAMPLES and st.minUp >= minUpStrict,
+					st.minUp,
+					minUpStrict
+				)
+				flag("high_multi_run_never_tilted", st.runMinUp >= minUpStrict, st.runMinUp, minUpStrict)
+				metrics.high_multi_target = math.round(want)
+			end
+		end
+	end
+
+	-- 6. Live aura (owner 2026-10-28, re-homed from flip_recovery): equipping an aura mid-race raises the run's
+	-- target cruise within 0.25 s (RaceService.COMMIT_INTERVAL). Ember Aura (x2) -> item cruise multi
+	-- 1 + 0.5 x log10 2 = 1.150515.
+	do
+		local model = RunnerFactory.build(charId)
+		model.Name = "CarTestAuraRunner"
+		model.Parent = Workspace
+		local player = Instance.new("Folder")
+		player.Name = "CarTestAuraPlayer"
+		player.Parent = Workspace
+		local okSetup = pcall(function()
+			Money.Setup(player)
+			PlayerData.Setup(player)
+			player.BaseSpeed.Value = RaceConfig.HALF_STAT
+		end)
+		local okRun, run = false, nil
+		if okSetup then
+			okRun, run = pcall(RaceService.NewRun, model, route, player, nil)
+		end
+		local started = okSetup and okRun and type(run) == "table"
+		flag("aura_live_run_started", started)
+		if started then
+			local t = 0
+			while t < 0.5 do
+				t += RunService.Heartbeat:Wait()
+			end
+			local before = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
+			player:SetAttribute("EquippedAura", "ember_aura")
+			local seen = nil
+			t = 0
+			-- one Heartbeat of slack past 0.25 s: the commit can only land on a frame boundary
+			while t < 0.25 + 1 / 30 do
+				t += RunService.Heartbeat:Wait()
+				local ts = run.TargetSpeed
+				if type(ts) == "number" and before > 0 and ts > before * 1.1 then
+					seen = t
+					break
+				end
+			end
+			local ts = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
+			local okStat, stat = pcall(PlayerData.SpeedStat, player)
+			local want = okStat and type(stat) == "number" and RaceConfig.SpeedFor(stat) * (1 + 0.5 * math.log10(2))
+				or -1
+			flag("aura_live_raises_target_cruise", seen ~= nil, seen or -1, 0.25)
+			flag(
+				"aura_live_target_is_damped_aura",
+				seen ~= nil and want > 0 and math.abs(ts - want) <= 1e-9 * want,
+				ts,
+				want
+			)
+			pcall(function()
+				run:Destroy()
+			end)
+		end
+		model:Destroy()
+		player:Destroy()
+	end
 	return r
 end
 
@@ -544,6 +692,97 @@ function Tests.scrap()
 	flag("runners_collision_group", registered("Runners"))
 	local okC, collide = pcall(PhysicsService.CollisionGroupsAreCollidable, PhysicsService, "Runners", "Runners")
 	flag("runners_pass_through_each_other", registered("Runners") and okC and collide == false)
+
+	-- IVS car leftovers in UI and data (docs/WORLD_REDESIGN_SPEC.md section 1: scrap all player-facing car
+	-- wording): the baked StarterGui, and every generated UI builder (Client/**/Ui/<Name>.Build) built into a
+	-- scratch folder, as a client's PlayerGui would hold it.
+	local IvsCars = require(script.Parent.IvsCarNames)
+	local scratch = Instance.new("Folder")
+	scratch.Name = "ScrapUiBuild"
+	local starterPlayer = game:GetService("StarterPlayer")
+	for _, m in starterPlayer:GetDescendants() do
+		if m:IsA("ModuleScript") and m.Parent and m.Parent.Name == "Ui" then
+			local okReq, ui = pcall(require, m)
+			if okReq and type(ui) == "table" and type(ui.SpecHash) == "string" and type(ui.Build) == "function" then
+				pcall(ui.Build, scratch)
+			end
+		end
+	end
+	local scanned = scratch:GetDescendants()
+	for _, d in placeDescendants() do
+		table.insert(scanned, d)
+	end
+	local guiNames, artKeys, displayNames, wording = {}, {}, {}, {}
+	local function add(list, d, what)
+		if #list < 20 then
+			table.insert(list, d:GetFullName() .. " " .. what)
+		end
+	end
+	-- every string an instance shows or stores: Text, PlaceholderText, StringValue, string attributes
+	local function strings(d)
+		local out = {}
+		if d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox") then
+			table.insert(out, d.Text)
+		end
+		if d:IsA("TextBox") then
+			table.insert(out, d.PlaceholderText)
+		end
+		if d:IsA("StringValue") then
+			table.insert(out, d.Value)
+		end
+		for _, v in d:GetAttributes() do
+			if type(v) == "string" then
+				table.insert(out, v)
+			end
+		end
+		return out
+	end
+	local inGui = function(d)
+		return d:IsA("GuiBase2d") or d:FindFirstAncestorWhichIsA("LayerCollector") ~= nil
+	end
+	for _, d in scanned do
+		local gui = inGui(d)
+		-- PreviewCar, CarsTab, CarId (attribute), Car, Car_x: "Car" as a CamelCase word, so Card / CardBody / Cards pass
+		if gui and string.find(d.Name, "Cars?%f[%L]") then
+			add(guiNames, d, "name")
+		end
+		if gui then
+			for key in d:GetAttributes() do
+				if string.find(key, "Cars?%f[%L]") then
+					add(guiNames, d, "attribute " .. key)
+				end
+			end
+		end
+		local texts = strings(d)
+		local lowName = string.lower(d.Name)
+		for _, car in IvsCars do
+			if string.find(lowName, car.Id, 1, true) then
+				add(artKeys, d, "name " .. car.Id)
+			end
+			local lowCar = string.lower(car.Name)
+			for _, text in texts do
+				local low = string.lower(text)
+				if string.find(low, car.Id, 1, true) then
+					add(artKeys, d, ("%q"):format(text))
+				end
+				if string.find(low, lowCar, 1, true) then
+					add(displayNames, d, ("%q"):format(text))
+				end
+			end
+		end
+		if gui then
+			for _, text in texts do
+				if string.find(string.lower(text), "%f[%a]cars?%f[%A]") then
+					add(wording, d, ("%q"):format(text))
+				end
+			end
+		end
+	end
+	scratch:Destroy()
+	flag("no_car_gui_names", #guiNames == 0, table.concat(guiNames, "; "), 0)
+	flag("no_car_art_keys", #artKeys == 0, table.concat(artKeys, "; "), 0)
+	flag("no_car_display_names", #displayNames == 0, table.concat(displayNames, "; "), 0)
+	flag("no_car_wording_in_gui", #wording == 0, table.concat(wording, "; "), 0)
 	return r
 end
 

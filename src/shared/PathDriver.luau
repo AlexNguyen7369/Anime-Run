@@ -1,146 +1,60 @@
 --!nonstrict
--- Pure-pursuit driver that follows a list of waypoints with the real car physics. Two users:
---   * the test harness (CarTest/Bot is this module), which drives a track's centreline to prove it is drivable;
---   * RaceService, which auto-races a player's car along the chain of tracks (PathDriver.Chain) at the
---     cruise speed from the player's saved Speed stat (options.TargetSpeed).
--- The driver holds TargetSpeed on straights and slopes and only slows down where corner grip requires it.
+-- The race rail (docs/WORLD_REDESIGN_SPEC.md section 2): the chain of tracks joined into one path, and the pose of
+-- an anchored runner at an arc distance along it. Server/RaceService moves the authoritative rig with PoseAt; every
+-- client draws the visible runner with the same function from the distance and speed the server publishes.
 
 local TrackBuilder = require(script.Parent.TrackBuilder)
 
 local PathDriver = {}
-PathDriver.__index = PathDriver
 
-local LOOKAHEAD_MIN = 14
-local LOOKAHEAD_TIME = 0.3
-local SEARCH_WINDOW = 25
-local BRAKE_PREVIEW = 70
-local BOT_GRIP_FRACTION = 0.55 -- bot only uses this share of the tyre budget in corners
-
--- path: { WorldWaypoints, Curvature, Closed, Width }. options: { TargetSpeed?, NoFinalSlow? }
-function PathDriver.new(layout, config, options)
-	options = options or {}
-	return setmetatable({
-		TargetSpeed = options.TargetSpeed,
-		NoFinalSlow = options.NoFinalSlow == true,
-		Waypoints = layout.WorldWaypoints,
-		Curvature = layout.Curvature,
-		Closed = layout.Closed,
-		Width = layout.Width,
-		Config = config,
-		Index = 1,
-		Wraps = 0,
-		Done = false,
-		OffTrackSeconds = 0,
-		DistanceToCenter = 0,
-	}, PathDriver)
+-- Cumulative arc length at every waypoint: arc[1] = 0, arc[i] = studs from waypoint 1 to waypoint i.
+function PathDriver.Arc(wps)
+	local arc = table.create(#wps)
+	arc[1] = 0
+	for i = 2, #wps do
+		arc[i] = arc[i - 1] + (wps[i] - wps[i - 1]).Magnitude
+	end
+	return arc
 end
 
--- Distances are 3D so that hills and loops (where the road overlaps itself in plan view) track correctly.
-local function flat(v)
-	return v
+-- Flat (XZ) path direction at waypoint k: between its neighbours, so the heading turns smoothly through a corner.
+local function tangentAt(wps, k)
+	local d = wps[math.min(k + 1, #wps)] - wps[math.max(k - 1, 1)]
+	return Vector3.new(d.X, 0, d.Z)
 end
 
-function PathDriver:Control(chassis, dt)
-	local wps, n, cfg = self.Waypoints, #self.Waypoints, self.Config
-	local cf = chassis.CFrame
-	local pos = chassis.Position
-	local vel = chassis.AssemblyLinearVelocity
-	local speed = vel.Magnitude
-	local fwdSpeed = vel:Dot(cf.LookVector)
+-- The segment k (1..n-1) holding arc distance `dist`, searched from `hint`.
+function PathDriver.SegmentAt(arc, dist, hint)
+	local n = #arc
+	local k = math.clamp(hint or 1, 1, math.max(n - 1, 1))
+	while k < n - 1 and arc[k + 1] <= dist do
+		k += 1
+	end
+	while k > 1 and arc[k] > dist do
+		k -= 1
+	end
+	return k
+end
 
-	-- Progress: nearest waypoint in a forward window
-	local bestI, bestD = self.Index, math.huge
-	for off = 0, SEARCH_WINDOW do
-		local i = self.Index + off
-		if i > n then
-			if self.Closed then
-				i -= n
-			else
-				break
-			end
-		end
-		local d = (flat(wps[i]) - flat(pos)).Magnitude
-		if d < bestD then
-			bestD, bestI = d, i
-		end
+-- The pose `dist` studs along the path: the point on the waypoint polyline (feet on the road, exact arc length) and
+-- an upright CFrame at that point facing along the path (heading blended between the waypoint tangents).
+-- Returns cframe (at the feet), segment index.
+function PathDriver.PoseAt(wps, arc, dist, hint)
+	local n = #wps
+	dist = math.clamp(dist, 0, arc[n])
+	local k = PathDriver.SegmentAt(arc, dist, hint)
+	local len = arc[k + 1] - arc[k]
+	local t = len > 1e-6 and (dist - arc[k]) / len or 0
+	local pos = wps[k]:Lerp(wps[k + 1], t)
+	local dir = tangentAt(wps, k):Lerp(tangentAt(wps, k + 1), t)
+	if dir.Magnitude < 1e-6 then
+		local d = wps[k + 1] - wps[k]
+		dir = Vector3.new(d.X, 0, d.Z)
 	end
-	if self.Closed and bestI < self.Index - n / 2 then
-		self.Wraps += 1
+	if dir.Magnitude < 1e-6 then
+		dir = Vector3.new(0, 0, -1)
 	end
-	self.Index = bestI
-	self.DistanceToCenter = bestD
-	if bestD > self.Width / 2 then
-		self.OffTrackSeconds += dt
-	end
-	if (self.Closed and self.Wraps >= 1) or (not self.Closed and self.Index >= n - 1) then
-		self.Done = true
-	end
-
-	-- Steering: pure pursuit towards a point ahead on the centreline
-	local lookahead = LOOKAHEAD_MIN + speed * LOOKAHEAD_TIME
-	local acc, j, prev = 0, self.Index, wps[self.Index]
-	while acc < lookahead do
-		local nj = j + 1
-		if nj > n then
-			if self.Closed then
-				nj = 1
-			else
-				break
-			end
-		end
-		acc += (wps[nj] - prev).Magnitude
-		prev, j = wps[nj], nj
-	end
-	local target = cf:PointToObjectSpace(wps[j])
-	local alpha = math.atan2(target.X, -target.Z) -- +ve = target is to the right
-	local ld = math.max(target.Magnitude, 1)
-	local wheelAngle = math.atan(2 * cfg.Wheelbase * math.sin(alpha) / ld)
-	local speedFactor = 1 / (1 + (math.abs(fwdSpeed) / cfg.SteerFalloffSpeed) ^ 2)
-	local maxWheel = cfg.MaxSteer * math.max(speedFactor, cfg.MinSteerFactor)
-	local steer = math.clamp(wheelAngle / maxWheel, -1, 1)
-
-	-- Speed: slow for the tightest corner in the next BRAKE_PREVIEW studs
-	local latAccel = cfg.Mu * workspace.Gravity * BOT_GRIP_FRACTION
-	-- A player's Speed stat is allowed to exceed the old fixed car ceiling. The
-	-- physics step receives this target and uses it for acceleration tapering;
-	-- cfg.TopSpeed remains the fallback for bots/manual drivers without a target.
-	local targetSpeed = self.TargetSpeed or cfg.TopSpeed
-	local ahead, k, p = 0, self.Index, wps[self.Index]
-	while ahead < BRAKE_PREVIEW do
-		local curv = self.Curvature[k]
-		if curv > 0 then
-			targetSpeed = math.min(targetSpeed, math.sqrt(latAccel / curv))
-		end
-		local nk = k + 1
-		if nk > n then
-			if self.Closed then
-				nk = 1
-			else
-				break
-			end
-		end
-		ahead += (wps[nk] - p).Magnitude
-		p, k = wps[nk], nk
-	end
-	if not self.Closed and not self.NoFinalSlow and self.Index > n - 8 then
-		targetSpeed = math.min(targetSpeed, 30)
-	end
-
-	local err = targetSpeed - fwdSpeed
-	local throttle, brake = 0, 0
-	if err > 0 then
-		throttle = math.clamp(err * 0.25, 0, 1)
-	else
-		brake = math.clamp(-err * 0.15, 0, 1)
-	end
-
-	return {
-		Throttle = throttle,
-		Steer = steer,
-		Brake = brake,
-		Handbrake = false,
-		TargetSpeed = targetSpeed,
-	}
+	return CFrame.lookAt(pos, pos + dir.Unit), k
 end
 
 -- Joins the tracks of the chain into one path. entries = { { Layout, Origin, Model?, Number? }, ... } in

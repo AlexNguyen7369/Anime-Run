@@ -12,7 +12,7 @@ LeaderboardConfig.Boards = {
 	{ Id = "Speed", Title = "TOP SPEED", Store = "LB_Speed_v1" },
 	{ Id = "MoneyEarned", Title = "MONEY EARNED", Store = "LB_MoneyEarned_v1" },
 	{ Id = "Rolls", Title = "MOST ROLLS", Store = "LB_Rolls_v1" },
-	{ Id = "RarestCar", Title = "RAREST CAR", Store = "LB_RarestCar_v1" },
+	{ Id = "RarestCar", Title = "RAREST CHARACTER", Store = "LB_RarestCar_v1" },
 }
 
 -- Signs: local (x, z) of each board's centre in the spawn area (along the hub's near edge, facing the spawn).

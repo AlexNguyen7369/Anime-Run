@@ -99,7 +99,7 @@ points.Size = UDim2.new(1, -28, 0, 22)
 local hint = label(panel, "Hint", "", 12, Enum.Font.Gotham, Color3.fromRGB(200, 210, 230))
 hint.Position = UDim2.fromOffset(14, 32)
 hint.Size = UDim2.new(1, -28, 0, 16)
-hint.Text = string.format("+1 point per %d new cars in the index", GachaConfig.DISCOVERIES_PER_POINT)
+hint.Text = string.format("+1 point per %d new characters in the index", GachaConfig.DISCOVERIES_PER_POINT)
 
 local rows = {}
 for i, stat in GachaConfig.STATS do

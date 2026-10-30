@@ -1,37 +1,14 @@
 --!nonstrict
--- Builds workshop plots with a Blender-authored garage and unchanged gameplay targets.
+-- Builds workshop plots with a plain placeholder shell (the car garage kit is scrapped, docs/WORLD_REDESIGN_SPEC.md
+-- section 1; the Dojo look comes later) and unchanged gameplay targets.
 -- Every part is anchored. A plot CFrame
 -- (Workshop.PlotCFrame) sits at the plot centre on the floor top, LookVector = the open front (toward the hub), so in
 -- plot space the front edge is at z = -PLOT_SIZE / 2 and the back at +PLOT_SIZE / 2.
 
-local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local WorkshopConfig = require(script.Parent.WorkshopConfig)
-local WorkshopMeshAssets = require(script.Parent.WorkshopMeshAssets)
 local UiTheme = require(script.Parent.UiTheme)
-
--- Prepare once during module loading, before assignment or a purchase can run.
--- Rojo hot updates can leave existing MeshParts with empty MeshContent. A mesh
--- id/size in XML alone does not guarantee the native geometry exists in Studio.
-local garageTemplate = ReplicatedStorage:WaitForChild("RacingGarage"):Clone()
-for _, mesh in garageTemplate:GetDescendants() do
-	if mesh:IsA("MeshPart") then
-		local assetId = WorkshopMeshAssets[mesh.Name]
-		assert(assetId, "Missing workshop mesh asset: " .. mesh.Name)
-		if mesh.MeshId ~= assetId or mesh.MeshSize.Magnitude == 0 then
-			local texture = mesh.TextureID
-			local loaded = AssetService:CreateMeshPartAsync(Content.fromUri(assetId), {
-				CollisionFidelity = Enum.CollisionFidelity.Box,
-			})
-			mesh:ApplyMesh(loaded)
-			mesh.TextureID = texture
-			loaded:Destroy()
-		end
-		assert(mesh.MeshId == assetId and mesh.MeshSize.Magnitude > 0, "Workshop mesh failed to load: " .. mesh.Name)
-	end
-end
 
 local WorkshopBuilder = {}
 
@@ -111,7 +88,7 @@ function WorkshopBuilder.SetSign(plotModel, ownerName)
 end
 
 -- The workshop of a level on a plot (level 1 = the starter workshop): a `Workshop` model with a concrete floor,
--- Blender garage (front open toward the hub), perimeter racing props, a neon outline around the
+-- three plain walls (front open toward the hub), a neon outline around the
 -- gain zone and the `Zone` part itself (invisible, no collision, touch or query).
 function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 	local model = Instance.new("Model")
@@ -125,33 +102,14 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 
 	local floor =
 		part(model, "Floor", Vector3.new(SHELL, 0.2, SHELL), at(0, 0.1, 0), FLOOR_COLOR, Enum.Material.Concrete)
-	-- The imported template faces +Z; turn it toward plot-local -Z.
-	-- Mesh groups are decorative only. The original Floor remains the walk surface.
-	local visual = garageTemplate:Clone()
-	visual.Name = "Visual"
-	local placement = at(0, 0.2, 0) * CFrame.Angles(0, math.pi, 0)
-	for _, mesh in visual:GetDescendants() do
-		if mesh:IsA("BasePart") then
-			mesh.CFrame = placement * mesh.CFrame
-			mesh.Anchored = true
-			mesh.CanCollide = false
-			mesh.CanTouch = false
-			mesh.CanQuery = false
-			if mesh:IsA("MeshPart") then
-				mesh.DoubleSided = true
-			end
-		end
-	end
-	visual.Parent = model
-	-- Preserve the original three wall collision boundaries beneath the mesh shell.
+	-- Three plain walls (front open toward the hub).
 	local walls = {
 		BackWall = { Vector3.new(SHELL, 12, 1), Vector3.new(0, 6.2, half - 0.5) },
 		LeftWall = { Vector3.new(1, 12, SHELL), Vector3.new(-half + 0.5, 6.2, 0) },
 		RightWall = { Vector3.new(1, 12, SHELL), Vector3.new(half - 0.5, 6.2, 0) },
 	}
 	for name, spec in walls do
-		local wall = part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), FLOOR_COLOR)
-		wall.Transparency = 1
+		part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), FLOOR_COLOR)
 	end
 	-- Three local, shadow-free lights; no changes to global Lighting/weather.
 	for _, x in { -10, 0, 10 } do
@@ -167,7 +125,7 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 		light.Parent = mount
 	end
 
-	-- Caged entrance lantern makes the garage mouth readable from the hub.
+	-- Entrance lantern makes the open front readable from the hub.
 	local lantern = Instance.new("Attachment")
 	lantern.Name = "EntranceLantern"
 	lantern.Position = Vector3.new(0, 10.7, -16.8)
@@ -209,7 +167,7 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 	upgradeSign.TextColor3 = UPGRADE_COLOR
 
 	-- Showcase pedestals (docs/WORKSHOP_SPEC.md "Showcase"): low, non-colliding, along the back of the zone, so the
-	-- player still walks and stands anywhere in it. WorkshopService puts the showcased cars on them.
+	-- player still walks and stands anywhere in it. WorkshopService puts the showcased characters on them.
 	for i, x in { -10, 0, 10 } do
 		local pedestal = part(
 			model,

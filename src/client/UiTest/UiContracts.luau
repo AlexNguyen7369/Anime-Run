@@ -553,8 +553,8 @@ function Contracts.Build(h)
 		end
 		return ok, value
 	end
-	-- The tile art holds that character's placeholder runner rig (orchestrator ruling 2026-10-28 on
-	-- docs/WORLD_REDESIGN_SPEC.md sections 1-2: RunnerFactory.build(id) in the ViewportFrame): a Model with Head,
+	-- The tile art holds that character's placeholder runner rig (docs/WORLD_REDESIGN_SPEC.md section 2,
+	-- owner 2026-10-29: RunnerFactory.build(id) in the ViewportFrame): a Model with Head,
 	-- Torso, 2 *Arm* and 2 *Leg* parts, attribute CharacterId = id (test seam), and nothing car-shaped.
 	local function hasRunner(art, id)
 		for _, model in art and art:GetChildren() or {} do
@@ -857,7 +857,8 @@ function Contracts.Build(h)
 		local restore = h.setPanels({ "RacerIndex/Panel" })
 		h.frames(2)
 		-- catalog_cars_have_model_template retired: the CarModels folder is scrapped (docs/WORLD_REDESIGN_SPEC.md
-		-- section 1); what the tile art shows instead is an open spec question.
+		-- section 1); the tile art shows the character's placeholder runner rig instead (docs/WORLD_REDESIGN_SPEC.md
+		-- section 2, owner 2026-10-29), checked by index_tiles_runner_art below.
 		local function problems()
 			local p = { index_tiles_runner_art = {}, index_silhouette_state = {} }
 			local data = h.player:FindFirstChild("GachaData")

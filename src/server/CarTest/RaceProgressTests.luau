@@ -654,7 +654,9 @@ function Tests.race_progress_map()
 				OnFinish = function()
 					duelFinishes += 1
 					duel.Connection:Disconnect()
-					duel.RailConnection:Disconnect()
+					if duel.RailConnection then -- the IVS car rail had a second connection; the runner rail may not
+						duel.RailConnection:Disconnect()
+					end
 				end,
 			},
 		})

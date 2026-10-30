@@ -61,8 +61,8 @@ function Runner.isRunner(m)
 	return m:IsA("Model") and m:GetAttribute("Owner") ~= nil and m:FindFirstChild("Torso", true) ~= nil
 end
 -- The hidden avatar keeps its Humanoid for camera and respawn (spec section 2) and, given `runner`, is carried with it:
--- HumanoidRootPart within CARRIED studs of the runner's PrimaryPart (orchestrator ruling 2026-10-28: the hidden
--- Humanoid is carried with the runner as before).
+-- HumanoidRootPart within CARRIED studs of the runner's PrimaryPart (docs/WORLD_REDESIGN_SPEC.md section 2, owner
+-- 2026-10-29: the hidden avatar is welded inside the runner's Torso; the Humanoid stays).
 Runner.CARRIED = 10
 function Runner.humanoidKept(character, humanoid, runner)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -82,6 +82,7 @@ end
 local PhysicsTargets = require(Shared.PhysicsTargets)
 local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
+local TrackValidator = require(Shared.TrackValidator)
 
 local Scenarios = {}
 
@@ -684,8 +685,12 @@ function Scenarios.track(trackName)
 	end
 	checkTrackCollision(checks, spec)
 
+	-- track geometry rules (min radius, max grade, closure, end straights); TrackBuilder.Build returns this same layout
+	local validation = TrackValidator.Validate(spec, layout)
+	check(checks, "track_valid", #validation.Issues, 0, validation.Ok)
+
 	-- car lap bots retired with the car (docs/WORLD_REDESIGN_SPEC.md section 2): no bot lap here any more
-	return result(label, checks, {})
+	return result(label, checks, validation.Ok and {} or { issues = validation.Issues })
 end
 
 -- Chain: tracks joined finish-to-start in Number order must connect and never overlap. Layout-only.
@@ -2674,8 +2679,9 @@ function Scenarios.auto_toggle()
 		-- quickly made the car path from the spawn area instead of first being put at the start line).
 		-- The car waits at the start line with its chassis anchored, the avatar is teleported in until the server
 		-- sees it seated, only then the chassis is released and the run starts. RaceEvent: Teleporting/Racing/Off.
-		-- Orchestrator ruling 2026-10-28: with no seat to wait for, a "Teleporting" phase is allowed but not required;
-		-- its checks apply only when it occurs, and every start must reach "Racing" within AUTO_SEAT_TIMEOUT + 1 s.
+		-- Anime Run (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29): instant start. With no seat to wait for,
+		-- a run starts at once: RaceEvent is never "Teleporting", SetAutoRace(true) has returned with a run within one
+		-- Heartbeat, and the runner is at the start line on the first frame.
 		local function raceEvent()
 			return player:GetAttribute("RaceEvent")
 		end
@@ -2721,28 +2727,13 @@ function Scenarios.auto_toggle()
 		local evFoot = raceEvent()
 		check(checks, "event_on_foot_race_event_off", evFoot == "Off" and 1 or 0, 1, evFoot == "Off")
 
-		-- The teleport phase, observed every frame from a parallel connection and right after the call yielded
+		-- Every frame from a parallel connection: never "Teleporting"; while "Racing" there is always a run
 		atWalkSpawnNow()
-		local tele = { Frames = 0, RunSeen = 0, Unanchored = 0, NoCar = 0, AwayFromStart = 0, Racing = 0, Bad = 0 }
+		local tele = { Frames = 0, Racing = 0, Bad = 0 }
 		local observer = RunService.Heartbeat:Connect(function()
 			local ev = raceEvent()
 			if ev == "Teleporting" then
 				tele.Frames += 1
-				if call(CarService.GetRun, player) ~= nil then
-					tele.RunSeen += 1
-				end
-				local c = call(CarService.GetCar, player)
-				local ch = c and c.PrimaryPart
-				if not ch then
-					tele.NoCar += 1
-				else
-					if not ch.Anchored then
-						tele.Unanchored += 1
-					end
-					if hdist(ch.Position, startPos) > AUTO_START_RADIUS then
-						tele.AwayFromStart += 1
-					end
-				end
 			elseif ev == "Racing" then
 				tele.Racing += 1
 				if type(call(CarService.GetRun, player)) ~= "table" then
@@ -2751,30 +2742,47 @@ function Scenarios.auto_toggle()
 			end
 		end)
 		local evDone, evRet = false, nil
+		local startEvent = nil
 		task.spawn(function()
 			local okE, rE = pcall(CarService.SetAutoRace, player, true)
 			evRet = okE and rE
+			startEvent = raceEvent()
 			evDone = true
 		end)
-		-- Right after the call yielded: still teleporting, no run, the car held at the start line
-		local snapEv = raceEvent()
-		local snapRun = call(CarService.GetRun, player)
-		local snapCar = call(CarService.GetCar, player)
-		local snapChassis = snapCar and snapCar.PrimaryPart
-		local inPhase = snapEv == "Teleporting"
-		metrics.event_teleport_phase_seen = inPhase
-		check(checks, "event_teleport_no_run_yet", snapRun == nil and 1 or 0, 1, not inPhase or snapRun == nil)
-		local snapHeld = snapChassis ~= nil and snapChassis.Anchored == true
-		check(checks, "event_teleport_chassis_anchored", snapHeld and 1 or 0, 1, not inPhase or snapHeld)
-		local snapFrom = snapChassis and hdist(snapChassis.Position, startPos) or math.huge
+		-- one step: the start has returned now, or after at most one Heartbeat
+		local evSteps = 0
+		if not evDone then
+			RunService.Heartbeat:Wait()
+			evSteps = 1
+		end
+		local instantDone = evDone
+		check(checks, "event_start_instant", instantDone and evSteps or -1, 1, instantDone)
+		local firstRun = call(CarService.GetRun, player)
+		local firstCar = call(CarService.GetCar, player)
+		local firstChassis = firstCar and firstCar.PrimaryPart
 		check(
 			checks,
-			"event_teleport_car_at_start",
-			snapFrom == math.huge and -1 or snapFrom,
-			AUTO_START_RADIUS,
-			not inPhase or snapFrom <= AUTO_START_RADIUS
+			"event_start_run_within_one_step",
+			type(firstRun) == "table" and 1 or 0,
+			1,
+			instantDone and type(firstRun) == "table"
 		)
-		local deadline = os.clock() + AUTO_SEAT_TIMEOUT + 1 -- how long a start may take
+		local firstFrom = firstChassis and hdist(firstChassis.Position, startPos) or math.huge
+		check(
+			checks,
+			"event_start_runner_at_start_first_frame",
+			firstFrom == math.huge and -1 or firstFrom,
+			AUTO_START_RADIUS,
+			instantDone and firstFrom <= AUTO_START_RADIUS
+		)
+		check(
+			checks,
+			"event_start_returned_racing",
+			startEvent == "Racing" and 1 or 0,
+			1,
+			instantDone and startEvent == "Racing"
+		)
+		local deadline = os.clock() + AUTO_SEAT_TIMEOUT + 1 -- diagnostics only: let a slow start finish before checking
 		while not evDone and os.clock() < deadline do
 			RunService.Heartbeat:Wait()
 		end
@@ -2801,11 +2809,7 @@ function Scenarios.auto_toggle()
 		)
 		local evClosest, evOver = watchFreshRun(evCar)
 		observer:Disconnect()
-		metrics.event_teleport_frames = tele.Frames
-		metrics.event_teleport_frames_without_car = tele.NoCar
-		check(checks, "event_teleport_never_has_run", tele.RunSeen, 0, tele.RunSeen == 0)
-		check(checks, "event_teleport_chassis_always_anchored", tele.Unanchored, 0, tele.Unanchored == 0)
-		check(checks, "event_teleport_car_always_at_start", tele.AwayFromStart, 0, tele.AwayFromStart == 0)
+		check(checks, "event_start_never_teleporting", tele.Frames, 0, tele.Frames == 0)
 		check(checks, "event_racing_always_has_run", tele.Bad, 0, tele.Racing > 0 and tele.Bad == 0)
 		check(
 			checks,
@@ -2832,6 +2836,9 @@ function Scenarios.auto_toggle()
 				RunService.Heartbeat:Wait() -- one frame between Stop and Auto Race
 			end
 			local okGo, rGo = pcall(CarService.SetAutoRace, player, true)
+			if raceEvent() == "Teleporting" then
+				rapidBad += 1 -- instant start: never a Teleporting phase
+			end
 			local c = call(CarService.GetCar, player)
 			local ch = c and c.PrimaryPart
 			local r = call(CarService.GetRun, player)
@@ -2871,7 +2878,8 @@ function Scenarios.auto_toggle()
 		check(checks, "event_rapid_one_car", #ourCars(), 1, #ourCars() == 1)
 		check(checks, "event_rapid_one_active_run", activeRuns(), 1, activeRuns() == 1)
 
-		-- Stop while teleporting cancels the start: on foot, no car, no run, and none created later
+		-- Stop right after an instant start (owner 2026-10-29: no Teleporting phase to cancel): the start already
+		-- returned true with exactly one run, and the Stop ends it: on foot, no car, no run, and none created later
 		pcall(CarService.SetAutoRace, player, false)
 		local runsBeforeCancel = #runs
 		local cancelDone, cancelRet = false, nil
@@ -2880,9 +2888,10 @@ function Scenarios.auto_toggle()
 			cancelRet = okC2 and rC2
 			cancelDone = true
 		end)
-		-- Only a start still in its (optional) Teleporting phase can be cancelled; otherwise this Stop ends a run
-		local cancelPhase = raceEvent() == "Teleporting"
-		metrics.event_cancel_was_teleporting = cancelPhase
+		local cancelEvent = raceEvent()
+		check(checks, "event_cancel_never_teleporting", cancelEvent == "Racing" and 1 or 0, 1, cancelEvent == "Racing")
+		local runsAtStop = #runs - runsBeforeCancel
+		check(checks, "event_cancel_start_already_racing", runsAtStop, 1, cancelDone and runsAtStop == 1)
 		local okCancel, rCancel = pcall(CarService.SetAutoRace, player, false)
 		check(
 			checks,
@@ -2932,13 +2941,13 @@ function Scenarios.auto_toggle()
 		recordOnFootParts("event_cancel_after_1s", player, humanoid, head, root, #runs, activeRuns())
 		check(checks, "event_cancel_still_on_foot_after_1s", cancelledOnFoot() and 1 or 0, 1, cancelledOnFoot())
 		local newRuns = #runs - runsBeforeCancel
-		check(checks, "event_cancel_no_run_ever", newRuns, 0, not cancelPhase or newRuns == 0)
+		check(checks, "event_cancel_no_run_after_stop", newRuns, 1, newRuns == 1)
 		check(
 			checks,
-			"event_cancel_start_returned_false",
-			cancelRet == false and 1 or 0,
+			"event_cancel_start_returned_true",
+			cancelRet == true and 1 or 0,
 			1,
-			cancelDone and (not cancelPhase or cancelRet == false)
+			cancelDone and cancelRet == true
 		)
 
 		-- A second fake player: joins and respawns on foot. (The seat-failure checks here were retired with the
@@ -7532,7 +7541,7 @@ function Scenarios.npc()
 					skinned += 1
 					local okB, m = pcall(NpcRacer.BuildModel, info)
 					local vis = okB and typeof(m) == "Instance" and m:FindFirstChild("EquippedVisual") or nil
-					if not (vis and vis:IsA("Model") and vis:GetAttribute("CarId") == id) then
+					if not (vis and vis:IsA("Model") and vis:GetAttribute("CharacterId") == id) then
 						skinBad += 1
 						table.insert(skinMissing, n)
 					end

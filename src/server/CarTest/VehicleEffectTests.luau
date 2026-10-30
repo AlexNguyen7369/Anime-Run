@@ -6,7 +6,7 @@
 -- Runs on a fake player's real auto-racing car (CarService.Attach -> RaceService run), like auto_toggle.
 -- Anime Run (docs/WORLD_REDESIGN_SPEC.md section 2): the car is the anchored runner rig and "Auras and trails attach to
 -- the runner's Torso instead of the car", so every "chassis" check below reads the rig's Torso. The IVS skin
--- replacement sub-check becomes a mid-race character switch (orchestrator ruling 2026-10-28: as the IVS mid-race
+-- replacement sub-check becomes a mid-race character switch (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29: as the IVS mid-race
 -- equip did, the live runner is rebuilt / re-skinned as the new character at the same distance, keeps its aura and
 -- trail, and the new cruise applies at once). Test seams: CarService.ApplyCharacter(player) is the EquippedCar
 -- listener body (the listener itself is wired only for real Players); the runner model carries attribute

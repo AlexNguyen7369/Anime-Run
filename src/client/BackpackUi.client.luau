@@ -1,7 +1,7 @@
 --!nonstrict
--- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Cars tabs with item tiles.
--- Clicking a potion asks the server to use one; clicking a trail, aura or car asks it to equip it; the server
--- decides all of them. Cars are listed least rare first (owner, 2026-10-20).
+-- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Characters tabs with item tiles.
+-- Clicking a potion asks the server to use one; clicking a trail, aura or character asks it to equip it; the server
+-- decides all of them. Characters are listed least rare first (owner, 2026-10-20).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -134,13 +134,15 @@ local function tab(name, order, art)
 	UiTheme.Gradient(b, Color3.fromRGB(58, 68, 80), Color3.fromRGB(34, 40, 48))
 	local edge = stroke(b, OUTLINE, 4)
 	art(b)
-	caption("Label", b, {
+	local label = caption("Label", b, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.new(1, 0, 0, 24),
+		Size = UDim2.new(1, -6, 0, 24),
 		Text = name,
 		TextSize = 20,
+		TextScaled = true, -- "Characters" is wider than the tab at 20 px
 	})
+	make("UITextSizeConstraint", "MaxSize", label, { MaxTextSize = 20 })
 	-- Per-tab scale: a UIScale on the rail would shrink the rail with the tabs and never make them fit.
 	tabs[name] = { Button = b, Edge = edge, Scale = make("UIScale", "Scale", b, {}) }
 	return b
@@ -164,12 +166,8 @@ end)
 tab("Auras", 3, function(b)
 	swatch(b, Market.Items.Aura[1], "Aura", UDim2.fromOffset(48, 36), UDim2.fromOffset(48, 48))
 end)
-tab("Cars", 4, function(b)
-	local spec = CharacterCatalog.All()[1]
-	local art = Components.CarModelArt(b, "Art", spec, UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
-	ReplicatedStorage:WaitForChild("CarModels").ChildAdded:Connect(function()
-		Components.FillCarModel(art, spec)
-	end)
+tab("Characters", 4, function(b)
+	Components.RunnerArt(b, "Art", CharacterCatalog.All()[1], UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
 end)
 
 -- Owned cars, least rare first, then catalog order.
@@ -295,12 +293,12 @@ function render()
 	end
 	local shown = 0
 	table.clear(shownTiles)
-	if current == "Cars" then
+	if current == "Characters" then
 		local equipped = player:GetAttribute("EquippedCar")
 		for order, spec in ownedCars() do
 			shown += 1
 			local b = tile(spec.Id, order, spec.Id == equipped)
-			Components.CarModelArt(b, "Art", spec, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 1, -46))
+			Components.RunnerArt(b, "Art", spec, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 1, -46))
 			caption("Name", b, {
 				AnchorPoint = Vector2.new(0.5, 1),
 				Position = UDim2.new(0.5, 0, 1, -20),
@@ -334,7 +332,7 @@ function render()
 				end
 			end)
 		end
-		empty.Text = "No cars yet. Keep rolling!"
+		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
 		local equipped = player:GetAttribute("Equipped" .. kind)
@@ -452,7 +450,7 @@ end)
 task.spawn(function()
 	local data = player:WaitForChild("GachaData")
 	local function changed()
-		if panel.Visible and current == "Cars" then
+		if panel.Visible and current == "Characters" then
 			render()
 		end
 	end

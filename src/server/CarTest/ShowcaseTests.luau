@@ -16,7 +16,7 @@
 --     PlayerData VERSION 12. A rebirth keeps both (checked in the rebirth scenario).
 --   * World: the owner's Plot_N.Workshop has ShowcasePedestal_1..3 (anchored, non-colliding); k showcased characters
 --     = k pedestals holding that character's runner rig (H.isRig, child "Runner" or "Car"; CarModels is scrapped,
---     docs/WORLD_REDESIGN_SPEC.md sections 1-2, orchestrator ruling 2026-10-28); labels have a finite MaxDistance.
+--     docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29); labels have a finite MaxDistance.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")

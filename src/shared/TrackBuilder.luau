@@ -15,7 +15,7 @@
 --                                                  goes upside down and comes back down, drifting sideways by
 --                                                  Shift (default width + 10) toward Direction ("Left" default,
 --                                                  or "Right") so the two lanes miss each other. Loop pieces are
---                                                  tagged LoopAssist, which CarPhysics uses to cancel gravity.
+--                                                  tagged LoopAssist (kept from IVS; the rail runner ignores it).
 --
 -- Heading convention: 0 = facing -Z (Roblox forward), positive = turning left. Height is Y.
 
@@ -376,7 +376,7 @@ function TrackBuilder.Build(spec, origin)
 			)
 		end
 		if piece.Loop then
-			-- CarPhysics cancels gravity while a wheel touches a LoopAssist part
+			-- LoopAssist marks loop road (kept from IVS)
 			road:SetAttribute("LoopAssist", true)
 			for _, w in pieceWalls do
 				w:SetAttribute("LoopAssist", true)

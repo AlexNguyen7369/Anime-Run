@@ -141,7 +141,7 @@ for _, spec in CharacterCatalog.All() do
 	local icon = text(tile, "Icon", "?", 64, Enum.Font.GothamBlack, WHITE)
 	icon.Size = UDim2.new(1, 0, 0, 80)
 	icon.Position = UDim2.fromOffset(0, 4)
-	local name = text(tile, "CarName", "", 14, Enum.Font.GothamBold, WHITE)
+	local name = text(tile, "CharacterName", "", 14, Enum.Font.GothamBold, WHITE)
 	name.Position = UDim2.fromOffset(4, 86)
 	local info = text(tile, "Info", "", 12, Enum.Font.Gotham, Color3.fromRGB(200, 210, 230))
 	info.Position = UDim2.fromOffset(4, 104)

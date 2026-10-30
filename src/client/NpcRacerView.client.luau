@@ -1,6 +1,6 @@
 --!nonstrict
 -- Draws this player's NPC racer and the loser screen. The server decides the race (Server/RaceService) and sends
--- the events to this player only; the NPC car is created here, in this client's Workspace, so no other player
+-- the events to this player only; the NPC runner is created here, in this client's Workspace, so no other player
 -- ever sees it. Its position is pure maths (Shared/NpcRacer), driven by the server clock.
 
 local Players = game:GetService("Players")
@@ -16,6 +16,7 @@ local RouteMath = require(Shared.RaceProgressMap)
 local TrackRegistry = require(Shared.TrackRegistry)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
 local player = Players.LocalPlayer
@@ -290,9 +291,17 @@ remote.OnClientEvent:Connect(function(event)
 	end
 end)
 
-RunService.RenderStepped:Connect(function()
+local npcPhase = 0
+RunService.RenderStepped:Connect(function(dt)
 	if current and current.Model.Parent then
 		local t = Workspace:GetServerTimeNow() - current.ServerStart
-		current.Model:PivotTo(NpcRacer.PoseAt(current.Path, current.Profile, t))
+		local running = t < current.Profile.TotalTime
+		npcPhase = RunnerVisual.Advance(npcPhase, running and current.Profile.Speed or 0, dt)
+		RunnerVisual.Pose(
+			current.Model,
+			NpcRacer.PoseAt(current.Path, current.Profile, t),
+			npcPhase,
+			running and 1 or 0
+		)
 	end
 end)

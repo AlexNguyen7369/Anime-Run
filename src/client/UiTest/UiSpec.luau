@@ -334,7 +334,7 @@ UiSpec.Settings = {
 	SettingsTab = "RacerSettings/Panel/Face/Header/Face/CategoryTabs/SettingsTab",
 	ProfileTab = "RacerSettings/Panel/Face/Header/Face/CategoryTabs/ProfileTab",
 	ProfileHost = "RacerSettings/Panel/Face/PlayerProfile",
-	ProfileRows = { "TotalRolls", "BestRoll", "CarsDiscovered", "Level", "Speed", "Luck", "SessionTime" },
+	ProfileRows = { "TotalRolls", "BestRoll", "CharactersDiscovered", "Level", "Speed", "Luck", "SessionTime" },
 	SoundText = { [true] = "ON", [false] = "OFF" }, -- [sound on]
 	EffectsText = { [true] = "ON", [false] = "OFF" }, -- [ReduceEffects]
 	ProbeVolume = 0.5, -- the test's own Sound (created and destroyed by the sound clicks) must follow the toggle
@@ -939,7 +939,7 @@ UiSpec.Compact = {
 	Parts = { "Body", "Reel", "Streaks", "Smoke", "Viewport", "Placeholder", "Odds" },
 	Forbidden = { -- must not EXIST anywhere in RollToast/Toast (not just be hidden)
 		"Glow",
-		"CarName",
+		"CharacterName",
 		"ResultName",
 		"SpeedMulti",
 		"ResultSpeed",
@@ -2316,7 +2316,7 @@ table.insert(UiSpec.Clicks, {
 --     GachaConfig.SlotBonus(spec, copies) }), copies = attribute Copies on player.GachaData.<id> (missing = 0);
 --   Slot1..Slot3 (Frame): Name (TextLabel: the car's name, or EmptyText) and Clear (TextButton, shown only while the
 --     slot holds a car; invokes SetShowcase(the shown ids without that car));
---   List (ScrollingFrame): one row Car_<id> per owned rollable car (never the starter or gamepass cars), sorted by
+--   List (ScrollingFrame): one row Character_<id> per owned rollable car (never the starter or gamepass cars), sorted by
 --     slot bonus, highest first; each row has Name (TextLabel) and Show (TextButton: ShowText when not shown,
 --     ShownText when shown; a click invokes SetShowcase with the id added / removed; Active false and fires nothing
 --     when 3 cars are shown and this one is not one of them).
@@ -2333,7 +2333,7 @@ UiSpec.WorkshopShowcase = {
 	-- ShowcaseMulti as HudFormat.Multi ("x1.37", trailing zeros dropped; docs/HUD_LAYOUT_SPEC.md section 8, owner
 	-- 2026-10-27, was "x%.2f"), somewhere in the Multi text and not followed by another digit
 	MultiFormat = "HudFormat.Multi", -- label "SHOWCASE  " .. HudFormat.Multi(ShowcaseMulti) .. " Speed gain"
-	RowPrefix = "Car_",
+	RowPrefix = "Character_",
 	-- The old controls: in the left part of the panel (right edge <= LeftShare of its width; brief "~42%", bound
 	-- 45%) and never on the Showcase frame. Close keeps its own place but may not touch any showcase control.
 	LeftControls = { "Level", "Price", "Rate", "Result", "Buy" },
@@ -3337,23 +3337,23 @@ table.insert(UiSpec.Clicks, {
 
 -- Index header (reconcile 2026-10-27, Isaac's INVENTORY tabs, ccea607). docs/HUD_LAYOUT_SPEC.md sections 1 and 3:
 -- Index opens its existing panel and stays the discovery gallery of every car; consumables live in the Backpack's
--- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CarsTab, which shows the car gallery
+-- Misc tab (the old Bag is gone). The generated header keeps one visible tab, CharactersTab, which shows the car gallery
 -- and asks the server nothing; the CONSUMABLES tab and its host stay hidden (ui_index index_no_consumables_view).
 UiSpec.IndexTabs = {
-	CarsTab = "RacerIndex/Panel/Face/Header/Face/CarsTab",
+	CarsTab = "RacerIndex/Panel/Face/Header/Face/CharactersTab",
 	ConsumablesTab = "RacerIndex/Panel/Face/Header/Face/ConsumablesTab",
 	GridHost = "RacerIndex/Panel/Face/GridHost",
 	ConsumablesHost = "RacerIndex/Panel/Face/ConsumablesHost",
 }
 table.insert(UiSpec.Guis.RacerIndex.Buttons, {
-	Path = "Panel/Face/Header/Face/CarsTab/Face",
+	Path = "Panel/Face/Header/Face/CharactersTab/Face",
 	Does = "local",
 	Effect = "index_gallery_shown",
 })
 table.insert(UiSpec.Clicks, {
 	Id = "index_cars_tab",
 	Gui = "RacerIndex",
-	Path = "Panel/Face/Header/Face/CarsTab/Face",
+	Path = "Panel/Face/Header/Face/CharactersTab/Face",
 	Prepare = only("RacerIndex/Panel"),
 	NeedSetup = { "spy" },
 	Expect = { Panels = { ["RacerIndex/Panel"] = true }, Remote = false, After = { "index_gallery_shown" } },

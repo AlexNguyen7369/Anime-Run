@@ -434,7 +434,7 @@ local function refreshShowcase()
 	end
 	local full = #ids >= GachaConfig.SHOWCASE_SLOTS
 	for order, c in candidates do
-		local row = make("Frame", "Car_" .. c.Spec.Id, showcaseList, {
+		local row = make("Frame", "Character_" .. c.Spec.Id, showcaseList, {
 			Size = UDim2.new(1, -6, 0, 26),
 			BackgroundTransparency = 1,
 			LayoutOrder = order,

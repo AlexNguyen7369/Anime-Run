@@ -36,6 +36,7 @@ local client = script.Parent:IsA("LocalScript") and script.Parent.Parent or scri
 local PanelSwitch = require(client.PanelSwitch)
 local UiMotion = require(client.UiMotion)
 local PanelBand = require(client.PanelBand)
+local RunnerVisual = require(client.RunnerVisual)
 local hud = require(Ui.RacerHud).Bind(playerGui)
 require(client.RaceProgressMap).Attach(hud)
 -- The saved HUD asset predates the session-local free-points badge. Bake the
@@ -292,8 +293,8 @@ profileLayout.Parent = profileHost
 
 local profileRows = {
 	{ "TotalRolls", "TOTAL ROLLS", "0" },
-	{ "BestRoll", "BEST CAR ROLLED", "1 in ?" },
-	{ "CarsDiscovered", "CARS DISCOVERED", "0" },
+	{ "BestRoll", "BEST ROLL", "1 in ?" },
+	{ "CharactersDiscovered", "DISCOVERED", "0" },
 	{ "Level", "LEVEL", "1" },
 	{ "Speed", "SPEED", "0" },
 	{ "Luck", "LUCK STAT", "x1.00" },
@@ -376,7 +377,7 @@ local function refreshProfile()
 	local best = bestRolledCar()
 	profileValues.TotalRolls.Text = format.SpeedText(player:GetAttribute("Rolls") or 0)
 	profileValues.BestRoll.Text = format.Odds(best and best.Chance)
-	profileValues.CarsDiscovered.Text = format.SpeedText(#data:GetChildren())
+	profileValues.CharactersDiscovered.Text = format.SpeedText(#data:GetChildren())
 	profileValues.Level.Text = format.SpeedText(player:GetAttribute("Level") or 1)
 	profileValues.Speed.Text = format.SpeedText(speed.Value)
 	profileValues.Luck.Text = format.Multi(multis.Luck) .. string.format(" · %d pts", allocations.Luck)
@@ -487,15 +488,10 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- The local player's visible runner while auto racing (Client/RunnerView), or nil.
 local function autoRaceCar()
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local seat = humanoid and humanoid.SeatPart
-	local model = seat and seat.Parent
-	if model and model:IsA("Model") and model:GetAttribute("IsCar") and model:GetAttribute("AutoRace") then
-		return model
-	end
-	return nil
+	local model = RunnerVisual.LocalRunner()
+	return model and model:GetAttribute("AutoRace") and model or nil
 end
 
 RunService.RenderStepped:Connect(function(dt)
@@ -906,10 +902,11 @@ task.spawn(function()
 	end
 end)
 
+-- The visible runner's real speed: the server's RunSpeed it is drawn at (studs/s), 0 on foot.
 local function carSpeed()
 	local car = autoRaceCar()
-	local chassis = car and car.PrimaryPart
-	return chassis and chassis.AssemblyLinearVelocity.Magnitude or 0
+	local runSpeed = car and car:GetAttribute("RunSpeed")
+	return type(runSpeed) == "number" and runSpeed or 0
 end
 
 RunService.Heartbeat:Connect(function(dt)

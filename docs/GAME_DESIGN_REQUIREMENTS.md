@@ -154,6 +154,13 @@ None open. The four questions of 2026-10-28 were answered the same day (sections
 
 ## Change log
 
+- 2026-10-30: owner confirmed the smooth-motion ruling of 2026-10-28 (WORLD_REDESIGN_SPEC section 2): the client
+  interpolates the anchored runner; it replaces the IVS "rail never snaps" rule (`rail_never_snaps`,
+  `PhysicsTargets.race.MaxRailSnaps` retired). Rail-fall recovery retired with the car. Instant start is solo only;
+  duels keep the countdown hold.
+- 2026-10-29: owner ruled on the runner rig (WORLD_REDESIGN_SPEC section 2): instant start with no Teleporting phase,
+  seat-failure checks retired, runner-rig tile and pedestal art, camera follows the runner, avatar welded in the
+  Torso, mid-race switch as in IVS, leaderboard title "RAREST CHARACTER".
 - 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
   car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
 - 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;

@@ -8,7 +8,7 @@ local WORLD, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP = 1800, 0.15, 1.6, 0.16
 local NODE_WIDTH, NODE_HEIGHT, STEP_X, STEP_Y = 100, 106, 122, 106
 local CYAN, DARK, WHITE = Color3.fromRGB(30, 216, 255), Color3.fromRGB(27, 33, 46), Color3.new(1, 1, 1)
 local ICONS =
-	{ money = "cash", luck = "luck", speed = "speed", rollspeed = "go_kart", turbo = "rocket_car", walkspeed = "speed" }
+	{ money = "cash", luck = "luck", speed = "speed", rollspeed = "luck", turbo = "luck", walkspeed = "speed" }
 local function make(class, name, props, parent)
 	local object = Instance.new(class)
 	object.Name = name
@@ -136,7 +136,7 @@ function View.Create(gui, Tree, Format)
 		hex(button, "Shadow", NODE_WIDTH + 5, Color3.fromRGB(10, 19, 38), 3, 5)
 		local outline = hex(button, "HexEdge", NODE_WIDTH + 3, WHITE, 4)
 		local fills = hex(button, "HexFace", NODE_WIDTH - 3, CYAN, 5)
-		local art = Components.CarArt(button, "Art", icon, UDim2.new(0.5, -32, 0.5, -36), UDim2.fromOffset(64, 64))
+		local art = Components.IconArt(button, "Art", icon, UDim2.new(0.5, -32, 0.5, -36), UDim2.fromOffset(64, 64))
 		art.ZIndex = 6
 		local title = label(button, "Text", name, UDim2.fromOffset(2, 12), UDim2.new(1, -4, 0, 46), 19)
 		local price = label(button, "Price", "", UDim2.new(0, 2, 1, -36), UDim2.new(1, -4, 0, 28), 16)
