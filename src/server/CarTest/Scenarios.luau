@@ -1858,9 +1858,11 @@ function Scenarios.race()
 	-- 0.25 s commit is ~10 x MAX_ADD. RaceConfig.SpeedFor is stubbed to BASE_SPEED for that run only, so a stat
 	-- past 1e18 does not rail the car at thousands of studs/s off the end of the route; this check is about commits.
 	local maxAdd = PlayerData.MAX_ADD
-	check(checks, "player_data_max_add_is_1e18", maxAdd or -1, 1e18, maxAdd == 1e18)
+	-- design doc 4.11 (owner 2026-10-30): MAX_ADD is a flat Speed amount and scales with STAT_SCALE
+	local expectedMaxAdd = 1e18 * RaceConfig.STAT_SCALE
+	check(checks, "player_data_max_add_is_1e18_scaled", maxAdd or -1, expectedMaxAdd, maxAdd == expectedMaxAdd)
 	local Gacha = serverModule("GachaService")
-	local addCap = type(maxAdd) == "number" and maxAdd or 1e18
+	local addCap = type(maxAdd) == "number" and maxAdd or expectedMaxAdd
 	local stubMulti = 20 * addCap
 	local hugeCommit = RaceConfig.GAIN_PER_SECOND * stubMulti * RaceService.COMMIT_INTERVAL
 	check(checks, "huge_multi_commit_exceeds_max_add", hugeCommit, addCap, hugeCommit > addCap)

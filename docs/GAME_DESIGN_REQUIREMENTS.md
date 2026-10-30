@@ -129,7 +129,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   Multipliers (rebirth, stat points, potions) do not change. `BASE_SPEED`, `MAX_SPEED` and `MAX_CRUISE` are studs/s
   and do not change.
 - Old saves (owner 2026-10-30): pre-scale test saves are wiped, not rescaled. The save store is `PlayerStats_v2` and
-  the Speed board store `LB_Speed_v2`; the v1 stores stay untouched.
+  the Speed board store `LB_Speed_v3` (v2 held raw scores before the log-scaled score); older stores stay untouched.
 - `PlayerData.MAX_ADD` (most one AddSpeed call adds) is a flat Speed amount and scales: `1e18 x STAT_SCALE`.
 - HUD (owner 2026-10-30): Speed keeps suffixes from `SPEED_SUFFIX_FROM = 1e6` (placeholder); the threshold does not scale.
 - Speed board (owner 2026-10-30): the Speed board stores a log-scaled integer score, so any finite Speed ranks
