@@ -9,8 +9,9 @@
 6. 2026-10-28 — Alex Nguyen — Full harness green in the Anime Run private experience (f3): `[CARTEST] END pass=49 fail=0`, audit PASS, IVS leftover visuals removed from the place.
 7. 2026-10-28 — Alex Nguyen — Merged goal fork-ivs (f1-f3) into main via PR #1 after a fresh merge review approved it; goal closed.
 8. 2026-10-30 — Alex Nguyen — Rescaled the Speed stat x1e15/3e5 (design doc 4.11, save and Speed leaderboard stores v2) and wrote the owner track-length and stamina updates into the docs; harness fixes re-run green.
+9. 2026-10-30 — Alex Nguyen — Landed anime-world w1: placeholder runner rig replaces the car body, car physics scrapped, log-scaled Speed board; full harness `[CARTEST] END pass=45 fail=0`, audit PASS.
 
 ## What's next
-**Land anime-world w1: merge the integration branch into the w1 task branch, run the full harness on it, re-audit, then merge into feature/alex/anime-world.**
+**Anime-world w2: world layout, anime town plaza hub and 7 Dojo plots (Dojo squad rule), tests first (`world_layout`, `dojo`, `spawn_area`).**
 
-**Why this is next:** w1 must carry the Speed rescale before it lands, and w2-w5 build on the runner it adds.
+**Why this is next:** w1's runner is in place, and the tracks (w3) and biomes (w4) are laid out from the hub and spiral that w2 builds.

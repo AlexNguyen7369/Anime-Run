@@ -42,8 +42,18 @@
   after damping, F = 3 confirmed, Speed stat x(1e15 / 3e5) so 1 Qd = 300K old (design doc 4.11; code not done:
   RaceConfig HALF_STAT / GAIN_PER_SECOND / MAX_STAT, WorkshopConfig.BASE_RATE, 4 CarTest files). Open: old saves.
 
+- 2026-10-30 w1 LANDED (merge d5e851b on feature/alex/anime-world, pushed): full harness pass=45 fail=0, audit PASS.
+  Also landed: Speed rescale 4.11 (5bcad37, 97bc576, 9d6ce42, 3344c99) and log-scaled Speed board LB_Speed_v3
+  (b92e777). Owner rulings 2026-10-30 in WORLD_REDESIGN_SPEC 2 and design doc 4.11 / change log.
+  Studio: 3 IVS leftovers (ReplicatedStorage.RacingGarage, RaceStartPavilion, CarModels) deleted in Edit; OWNER
+  MUST SAVE THE PLACE. Owner's /givespeed 1e22 reverted (it lives in Players.<name>.BaseSpeed, not leaderstats).
+  Rojo 34873 serves this folder again; the Studio plugin needs Connect after each Rojo restart.
+  Harness polling: execute_luau waits of >~2 min time out; poll in <=115 s calls. Play must restart to pick up
+  Rojo-synced code.
+
 ## Next
 1. DONE 2026-10-28: fork-ivs merged into main (PR #1, 039ad28), goal closed. Integration branch for anime-world:
    feature/alex/anime-world.
 2. Owner: confirm anime-world deliverables w1-w5 (docs/ORCHESTRATOR_GOALS.md, "proposed, owner to confirm").
-3. Then anime-world w1 (placeholder runner replaces the car body) on feature/alex/anime-world, tests first.
+3. DONE w1. Next: anime-world w2 (world layout + plaza hub + 7 Dojo plots), task branch orch/anime-world/w2, tests first
+   (`world_layout`, `dojo`, `spawn_area`), WORLD_REDESIGN_SPEC sections 3-5.
