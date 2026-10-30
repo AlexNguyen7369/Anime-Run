@@ -3,6 +3,7 @@
 -- Shared/Workshop. Plot rects are local (x, z) of Track 1's flattened Start, like Shared/SpawnArea.
 
 local PayoutCurve = require(script.Parent.PayoutCurve)
+local RaceConfig = require(script.Parent.RaceConfig)
 
 local WorkshopConfig = {}
 
@@ -26,7 +27,7 @@ WorkshopConfig.Plots = {
 WorkshopConfig.ZONE_SIZE = Vector3.new(32, 12, 32)
 
 WorkshopConfig.TICK = 0.5 -- seconds between server zone checks
-WorkshopConfig.BASE_RATE = 0.2 -- (owner 2026-10-20: 5x slower, was 1) Speed per second at level 1, stat 0, no multis (placeholder, design doc "B")
+WorkshopConfig.BASE_RATE = 0.2 * RaceConfig.STAT_SCALE -- (owner 2026-10-20: 5x slower, was 1) Speed per second at level 1, stat 0, no multis (placeholder, design doc "B")
 WorkshopConfig.LUCK_PER_LEVEL = 0.10 -- Workshop luck while standing in the zone; level 1 is 1x.
 
 -- Configurable progression defaults: each level doubles W; prices follow PayoutCurve.Cost from $500 (owner 2026-10-27).

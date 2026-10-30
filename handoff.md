@@ -32,6 +32,16 @@
   (89c0e81), audit PASS. oq2 answered: Anime Run private experience, no IVS visual content copied. First f3 run was
   lost to a Wi-Fi drop (Team Create disconnect 276); rerun green. All fork-ivs deliverables done.
 
+- Owner 2026-10-30: tracks very long (984 x F x 1.25^(n-1), F proposed 3, Track 1 gets a new layout) and biomes
+  researched from public info on each anime, matched closely, section 5 safeguards kept. Written into design doc
+  4.9 / section 8, TRACKS_AND_BIOMES_SPEC (References section), TEAM_AND_STAMINA_SPEC, goals w3/w4. Open: F (stamina retune done below).
+
+- Owner 2026-10-30 (later): speed over stamina. Base stamina 20/22/24/27/30 (placeholder), Mythic 36, Secret 43;
+  Legendary trio clears 10 tracks in ~90 s using its stamina; Marathoner cruise x0.8, stamina x2.0 (proposed),
+  Sprinter stamina x0.8 (proposed). NPC speeds unchanged. Owner same day: category speed
+  after damping, F = 3 confirmed, Speed stat x(1e15 / 3e5) so 1 Qd = 300K old (design doc 4.11; code not done:
+  RaceConfig HALF_STAT / GAIN_PER_SECOND / MAX_STAT, WorkshopConfig.BASE_RATE, 4 CarTest files). Open: old saves.
+
 ## Next
 1. DONE 2026-10-28: fork-ivs merged into main (PR #1, 039ad28), goal closed. Integration branch for anime-world:
    feature/alex/anime-world.

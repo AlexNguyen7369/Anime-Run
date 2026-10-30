@@ -754,7 +754,8 @@ function Tests.environment()
 		-- and Track 1 does not need ~10M Speed: below 10,000
 		flag(("gate_sign_rec_finite_%d"):format(n), rec > 0 and rec < math.huge, rec < math.huge and rec or -1, 1)
 		if n == 1 then
-			flag("gate_sign_rec_track1_below_10k", rec > 0 and rec < 10000, rec, 10000)
+			-- 10K old Speed x the design doc 4.11 stat scale
+			flag("gate_sign_rec_track1_below_10k", rec > 0 and rec < 10000 * (1e15 / 3e5), rec, 10000 * (1e15 / 3e5))
 		end
 		-- Faces the oncoming car: the GUI face normal points back along the drive direction
 		local facing = -1

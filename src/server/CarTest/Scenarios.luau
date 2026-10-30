@@ -3056,12 +3056,12 @@ function Scenarios.economy()
 	local consts = {
 		BASE_SPEED = 10, -- owner 2026-10-21: lowered from 12
 		MAX_SPEED = 88, -- owner 2026-10-26: confirmed 88 (commit 8e0a20f), +39 studs/s per high-speed doubling
-		HALF_STAT = 10000, -- owner 2026-10-27 (was 100K): linear start, diminishing tail after 10K
+		HALF_STAT = 10000 * (1e15 / 3e5), -- design doc 4.11 stat scale; owner 2026-10-27 (was 100K): linear start, diminishing tail after 10K
 		MAX_CRUISE_CAR_MULTI = 4, -- owner 2026-10-28 (was 1.5)
 		ITEM_CRUISE_DAMP = 0.5, -- owner 2026-10-28: aura / trail cruise multi = 1 + 0.5 x log10(multi)
 		MAX_CRUISE_TOTAL_MULTI = 4, -- owner 2026-10-28: car x aura x trail cruise multi cap
-		GAIN_PER_SECOND = 2, -- owner 2026-10-22: friendlier early Speed progression
-		MAX_STAT = 1e9,
+		GAIN_PER_SECOND = 2 * (1e15 / 3e5), -- owner 2026-10-22: friendlier early Speed progression
+		MAX_STAT = 1e9 * (1e15 / 3e5),
 	}
 	for name, want in consts do
 		check(checks, "const_" .. string.lower(name), RaceConfig[name] or -1, want, RaceConfig[name] == want)
@@ -3077,6 +3077,7 @@ function Scenarios.economy()
 		check(checks, "economy_constants_numbers", 0, 1, false)
 		return result("economy", checks, {})
 	end
+	local K = 1e15 / 3e5 -- design doc 4.11: stat amounts below are old amounts x K
 	local function sf(x)
 		local ok, v = pcall(RaceConfig.SpeedFor, x)
 		return ok and v or nil
@@ -3102,7 +3103,7 @@ function Scenarios.economy()
 		end
 	end
 	check(checks, "speed_for_bad_input_is_base", badOk and 1 or 0, 1, badOk)
-	local samples = { 0, 1, 10, 100, 500, 1000, 2000, 5000, 1e5, 1e6, maxStat }
+	local samples = { 0, K, 10 * K, 100 * K, 500 * K, 1000 * K, 2000 * K, 5000 * K, 1e5 * K, 1e6 * K, maxStat }
 	local increasing, unbounded, prev = true, true, -1
 	for _, s in samples do
 		local v = sf(s)
@@ -3125,10 +3126,10 @@ function Scenarios.economy()
 	check(checks, "speed_for_max_stat_above_reference", atMax or -1, top, num(atMax) and atMax > top)
 	-- Owner 2026-10-22 / 2026-10-27 (design doc "Core stat model"): linear up to HALF_STAT (10K, every point adds
 	-- the same), then every later point adds less. The join at HALF_STAT is a kink, so no comparison crosses it.
-	local d2 = (sf(1000) or 0) - (sf(0) or 0)
-	local d2Late = (sf(half - 1000) or 0) - (sf(half - 2000) or 0)
-	local d1 = (sf(half + 1000) or 0) - (sf(half) or 0)
-	local dMid = (sf(2 * half + 1000) or 0) - (sf(2 * half) or 0)
+	local d2 = (sf(1000 * K) or 0) - (sf(0) or 0)
+	local d2Late = (sf(half - 1000 * K) or 0) - (sf(half - 2000 * K) or 0)
+	local d1 = (sf(half + 1000 * K) or 0) - (sf(half) or 0)
+	local dMid = (sf(2 * half + 1000 * K) or 0) - (sf(2 * half) or 0)
 	check(
 		checks,
 		"speed_for_diminishing",
@@ -3137,14 +3138,14 @@ function Scenarios.economy()
 		d2 > 0 and math.abs(d2Late - d2) <= 1e-9 * math.max(1, d2) and dMid > 0 and dMid < d1
 	)
 	-- +1000 at a high stat still adds speed (never flat), but less than +1000 just above HALF_STAT.
-	local dHigh = (sf(1e6 + 1000) or 0) - (sf(1e6) or 0)
+	local dHigh = (sf(1e6 * K + 1000 * K) or 0) - (sf(1e6 * K) or 0)
 	check(checks, "speed_for_diminishing_at_high_stat", dHigh, d1, dHigh > 0 and dHigh < dMid and dMid < d1)
 	-- Owner 2026-10-22 (design doc "Core stat model"): above HALF_STAT cruise = MAX_SPEED + (MAX_SPEED - BASE_SPEED)
 	-- / 2 x log2(1 + (Speed - HALF_STAT) / HALF_STAT) = MAX_SPEED + range / 2 x log2(Speed / HALF_STAT), so every
 	-- doubling above HALF_STAT adds exactly half the range, and always more than 1 stud/s ("can tell it apart").
 	local step = (top - base) / 2
 	local doubleOk, tellOk, worst, least = true, true, 0, math.huge
-	for _, s in { 100 * half, 1e7, maxStat / 2 } do
+	for _, s in { 100 * half, 1e7 * K, maxStat / 2 } do
 		local a, b = sf(s), sf(2 * s)
 		if not (num(a) and num(b)) then
 			doubleOk, tellOk = false, false
@@ -3255,7 +3256,7 @@ function Scenarios.economy()
 	end
 	local shownOk, shownWorst = true, 0
 	local multiFormulaOk = true
-	for _, x in { 0, 1, half, 1e6, maxStat } do
+	for _, x in { 0, K, half, 1e6 * K, maxStat } do
 		for _, m in { 0.25, 0.5, 0.9, 1, 1.01, 1.5, 2, 3, 10, 100, 2400, 2800, 1e6 } do
 			local v = sfm(x, m)
 			if not rel(v, formula(x, m)) then
@@ -3320,18 +3321,18 @@ function Scenarios.economy()
 	-- 86000: curve 88 + 39 x log2(8.6) = 209.07; car 5.7 -> 1 + log10 5.7 = 1.7559 -> 367.10
 	local okCm, cm57 = pcall(RaceConfig.CruiseMulti, 5.7, 1, 1)
 	check(checks, "cruise_multi_car_5_7", okCm and cm57 or -1, 1.7559, okCm and near(cm57, 1.7559, 5e-5))
-	check(checks, "speed_for_86000_car_5_7", sf4(86000, 5.7) or -1, 367.10, near(sf4(86000, 5.7), 367.10, 5e-3))
+	check(checks, "speed_for_86000_car_5_7", sf4(86000 * K, 5.7) or -1, 367.10, near(sf4(86000 * K, 5.7), 367.10, 5e-3))
 	local okC1k, c1k = pcall(RaceConfig.CruiseStatMulti, 1000)
 	check(checks, "cruise_stat_multi_1000_is_4", okC1k and c1k or -1, 4, okC1k and near(c1k, 4, 1e-12))
 	-- aura 3 -> 1.23856, trail 5 -> 1.34949: x1.67142 -> 349.44
-	local v135 = sf4(86000, 1, 3, 5)
+	local v135 = sf4(86000 * K, 1, 3, 5)
 	check(checks, "speed_for_86000_aura_3_trail_5", v135 or -1, 349.44, near(v135, 349.44, 5e-3))
 	-- car 1000 (4) x aura 3 x trail 5 = 6.69 -> total cap 4; studs never past 800
 	local okTot, tot = pcall(RaceConfig.CruiseMulti, 1000, 3, 5)
-	local studs = sf4(86000, 1000, 3, 5)
+	local studs = sf4(86000 * K, 1000, 3, 5)
 	local totOk = okTot and near(tot, 4, 1e-12) and num(studs) and studs <= 800 and near(studs, 800, 1e-9)
 	check(checks, "cruise_total_multi_capped_at_4", okTot and tot or -1, 4, totOk)
-	local studsBig = sf4(1e9, 1000, 3, 5)
+	local studsBig = sf4(1e9 * K, 1000, 3, 5)
 	check(checks, "cruise_total_studs_capped_800", studsBig or -1, 800, num(studsBig) and studsBig <= 800)
 	-- Speed 0: 10 x 1.75587 x 1.67142 = 29.35 (total 2.93, under the cap)
 	local v0 = sf4(0, 5.7, 3, 5)
@@ -3340,7 +3341,7 @@ function Scenarios.economy()
 	check(checks, "item_cruise_multi_below_one_is_1", okI and i05 or -1, 1, okI and i05 == 1)
 	-- A multi below 1 slows the car (at these stats it stays above BASE_SPEED)
 	local lowOk = true
-	for _, x in { half, 1e6 } do
+	for _, x in { half, 1e6 * K } do
 		for _, m in { 0.25, 0.5, 0.9 } do
 			local v = sfm(x, m)
 			if not (num(v) and v < (sf(x) or -1) and v > base) then
@@ -3366,7 +3367,7 @@ function Scenarios.economy()
 	-- ever drives faster; every NPC stays below it (NpcConfig.SPEED_GROWTH 1.51, Track 10 = 653).
 	check(checks, "cruise_cap_is_800", RaceConfig.MAX_CRUISE or -1, CRUISE_CAP, RaceConfig.MAX_CRUISE == CRUISE_CAP)
 	local capWorst, cruiseCapOk = 0, true
-	for _, x in { 0, half, 1e6, maxStat, 1e12, 1e15, 1e100, 1e308, math.huge } do
+	for _, x in { 0, half, 1e6 * K, maxStat, 1e12 * K, 1e15 * K, 1e100, 1e308, math.huge } do
 		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e100, 1e300 } do
 			local v = sfm(x, m)
 			if not (num(v) and v <= CRUISE_CAP) then
@@ -3376,7 +3377,7 @@ function Scenarios.economy()
 		end
 	end
 	-- the cap is reached, not just respected: MAX_STAT x the 4x cap is past 800
-	cruiseCapOk = cruiseCapOk and sfm(maxStat, 2800) == CRUISE_CAP and sfm(1e15) == CRUISE_CAP
+	cruiseCapOk = cruiseCapOk and sfm(maxStat, 2800) == CRUISE_CAP and sfm(1e15 * K) == CRUISE_CAP
 	check(checks, "speed_for_never_above_cap", capWorst, CRUISE_CAP, cruiseCapOk)
 	local NpcConfig = sharedModule("NpcConfig")
 	local trackCount = type(TrackRegistry.Chain) == "function" and #TrackRegistry.Chain() or 0
@@ -3407,7 +3408,7 @@ function Scenarios.economy()
 		-- below the cruise cap StatFor inverts SpeedFor; a stat whose curve is past the cap drives exactly 800
 		-- (docs/WORLDS_SPEC.md section 1), so no inverse exists there
 		local tripOk = true
-		for _, x in { 0, 1, 100, half, 1e6, maxStat, 1e12, 1e15 } do
+		for _, x in { 0, K, 100 * K, half, 1e6 * K, maxStat, 1e12 * K, 1e15 * K } do
 			local v = sf(x)
 			if num(v) and v < CRUISE_CAP then
 				if not close(stf(v), x) then
@@ -3434,7 +3435,7 @@ function Scenarios.economy()
 			half,
 			close(stf(top), half) and close(stf((base + top) / 2), half / 2)
 		)
-		local at1K, at10K = sf(1000), sf(10000)
+		local at1K, at10K = sf(1000 * K), sf(10000 * K)
 		check(checks, "speed_for_1k_is_17_8", at1K or -1, 17.8, num(at1K) and math.abs(at1K - 17.8) <= 0.05)
 		check(checks, "speed_for_10k_is_88", at10K or -1, 88, num(at10K) and math.abs(at10K - 88) <= 0.05)
 		local lowStatOk = stf(base) == 0 and stf(base - 5) == 0 and stf(0) == 0
@@ -7184,7 +7185,9 @@ function Scenarios.npc()
 			local growthOk = isFiniteNumber(cfgGrowth) and cfgGrowth > 1 and math.abs(growth - cfgGrowth) <= 1e-6
 			check(checks, "npc_speed_growth_is_config", growth, isFiniteNumber(cfgGrowth) and cfgGrowth or -1, growthOk)
 			local rec1 = type(RaceConfig.StatFor) == "function" and RaceConfig.StatFor(s1) or math.huge
-			check(checks, "npc_track1_rec_speed_below_10k", rec1, 10000, rec1 > 0 and rec1 < 10000)
+			-- design doc 4.11: 10,000 is an old-scale stat amount, rescaled by K = 1e15 / 3e5
+			local recLimit = 10000 * (1e15 / 3e5)
+			check(checks, "npc_track1_rec_speed_below_10k", rec1, recLimit, rec1 > 0 and rec1 < recLimit)
 			check(
 				checks,
 				"npc_label_track1",
@@ -9741,16 +9744,16 @@ function Scenarios.admin()
 				return math.abs(base.Value - 12.345) <= 1e-6
 			end
 		)
-		-- owner 2026-10-20: the Speed stat has no cap; MAX_STAT (1e9) is only a test reference, never a clamp
+		-- owner 2026-10-20: the Speed stat has no cap; MAX_STAT (1e9 x STAT_SCALE) is only a test reference, never a clamp
 		accepted(
 			"admin_speed_above_max_stat_kept",
-			"/speed 1e12",
+			"/speed 1e20",
 			function()
 				return base.Value
 			end,
-			1e12,
+			1e20,
 			function()
-				return base.Value == 1e12 and base.Value > MAX_STAT
+				return base.Value == 1e20 and base.Value > MAX_STAT
 			end
 		)
 		accepted(
@@ -9811,18 +9814,18 @@ function Scenarios.admin()
 		)
 		accepted(
 			"admin_addspeed_past_max_stat_not_clamped",
-			"/addspeed 2e9",
+			"/addspeed 5e18",
 			function()
 				return base.Value
 			end,
-			2e9 + 12.501,
+			5e18 + 12.501,
 			function()
-				return math.abs(base.Value - (2e9 + 12.501)) <= 1e-3 and base.Value > MAX_STAT
+				return math.abs(base.Value - (5e18 + 12.501)) <= 1e-3 and base.Value > MAX_STAT
 			end
 		)
 		accepted(
 			"admin_addspeed_clamp_zero",
-			"/addspeed -5e9",
+			"/addspeed -1e19",
 			function()
 				return base.Value
 			end,
@@ -12313,7 +12316,7 @@ WSHOP.GAP = 8 -- studs between neighbouring plots
 WSHOP.EDGE_MARGIN = 4 -- studs from the floor's outer sides
 WSHOP.ZONE = Vector3.new(32, 12, 32)
 WSHOP.TICK = 0.5
-WSHOP.BASE_RATE = 0.2 -- owner 2026-10-20 (much harsher progression, WORKSHOP_SPEC): was 1
+WSHOP.BASE_RATE = 0.2 * (1e15 / 3e5) -- design doc 4.11 stat scale; owner 2026-10-20 (much harsher progression, WORKSHOP_SPEC): was 1
 WSHOP.EMPTY = "EMPTY PLOT"
 WSHOP.TAG = "WorkshopPlot"
 WSHOP.BASE_RAISE = 0.5 -- the plot Base top is "a hair above the floor": (TOP_Y, TOP_Y + this]

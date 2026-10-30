@@ -22,19 +22,19 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 
 | Rarity | Stamina (s, placeholder) |
 |---|---|
-| Common | 30 |
-| Uncommon | 40 |
-| Rare | 55 |
-| Epic | 75 |
-| Legendary | 100 |
-| Mythic | 130 |
-| Secret | 180 |
+| Common | 20 |
+| Uncommon | 22 |
+| Rare | 24 |
+| Epic | 27 |
+| Legendary | 30 |
+| Mythic | 36 (owner 2026-10-30) |
+| Secret | 43 (owner 2026-10-30) |
 
 - Effective stamina, fixed for the whole run when it starts (all multipliers placeholders, in `Shared/StaminaConfig`):
 
 ```
 Stamina = Base(rarity or override)
-        x Category      (Sprinter 0.7, Balanced 1, Marathoner 1.4)
+        x Category      (Sprinter 0.8, Balanced 1, Marathoner 2.0)
         x (1 + 0.05 x Alloc_Stamina)
         x Potion        (1.5 if a Stamina potion is active at run start, else 1)
         x TeamBonus     (preset 1.4, else Series 1.2, else 1)
@@ -48,8 +48,9 @@ Stamina = Base(rarity or override)
 
 ## Runner categories
 
-- Cruise speed uses `SpeedMulti x CategorySpeed` (Sprinter 1.25, Balanced 1, Marathoner 0.85) as the character's raw
-  cruise multi, then the IVS damping and caps.
+- Cruise multi = `CruiseStatMulti(SpeedMulti) x CategorySpeed` (Sprinter 1.25, Balanced 1, Marathoner 0.8): the
+  category applies after the IVS damping (owner 2026-10-30), then aura / trail and the total caps
+  (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
 - Category is fixed per character (catalog `Category`). The HUD card shows its icon.
 
 ## Stamina stat point
@@ -101,18 +102,19 @@ Stamina = Base(rarity or override)
 
 ## Balance check (placeholders)
 
-Track lengths and NPC times from `docs/TRACKS_AND_BIOMES_SPEC.md` (owner 2026-10-28: Track n = 984 x 1.25^(n-1)
-studs, NPC speed 16 x 1.51^(n-1)):
+Owner 2026-10-30: speed matters more than stamina. Track lengths `984 x F x 1.25^(n-1)` (F = 3, chain about
+66,000 studs) from `docs/TRACKS_AND_BIOMES_SPEC.md`; NPC speeds unchanged (`16 x 1.51^(n-1)`, Track 10 = 653 studs/s). F = 3 confirmed 2026-10-30. Speed stat amounts use the
+design doc 4.11 scale (1 Qd = 300K old).
 
-| Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| NPC time (s) | 61.5 | 50.9 | 42.1 | 34.9 | 28.9 | 23.9 | 19.8 | 16.4 | 13.6 | 11.2 |
-
-- The whole chain at NPC pace takes about 303 s. A player who just beats each NPC needs about that much stamina.
-- 3 Commons (90 s) reach late Track 2. 3 Rares (165 s) reach about Track 4. 3 Legendaries (300 s) about clear it.
-- So stamina gates how far a run goes, and speed gates whether each track is won. Both rise with rarity.
-- Categories, stat points, potions and team bonus move these numbers: e.g. 3 Rare Marathoners in a Series team with
-  a potion: 55 x 1.4 x 1.2 x 1.5 = 139 s each, 416 s total, but each runs at 0.85 cruise.
+- Cruise speed is fixed for a runner during a run, so a team that wins Track 10 runs every track above 653 studs/s:
+  the whole chain takes at most about 101 s, at least 83 s (`MAX_CRUISE` 800).
+- Legendary trio (Balanced, no bonus): 3 x 30 = 90 s of stamina; at about 730 studs/s the chain takes about 90 s, so
+  they just clear it (owner target). That speed needs a Speed stat of about 1 Qd (300K old) at a mid Legendary
+  SpeedMulti; check on a playtest.
+- Mythic trio: 108 s; Secret trio: 129 s; both near the 800 cap (about 83 s), so both clear with stamina to spare.
+- Slower teams lose a track before stamina runs out: speed gates how far a run goes; stamina only ends runs of slow
+  teams on long tracks (e.g. a 50 studs/s runner needs about 59 s for Track 1).
+- Marathoners (x2.0 stamina, x0.8 cruise) are the stamina-heavy option: e.g. a Legendary Marathoner lasts 60 s.
 - Owner must confirm or retune after a playtest; numbers live in `Shared/StaminaConfig`.
 
 ## HUD
