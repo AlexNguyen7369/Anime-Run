@@ -67,3 +67,136 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 ## References
 
 One entry per track: the researched sources and what each one informed. Filled in as each biome is built.
+
+Research pass 2026-10-30. Every URL was checked to exist on that date (fandom pages via the wiki API, because the
+site blocks scripted fetches). Real show names appear here only. Build notes follow design doc 5: no logos, crests,
+village symbols, flags, school emblems, show kanji or real place names; signs use made-up text.
+
+### Track 1: Leafwind Village (Naruto Shippuden, Hidden Leaf Village)
+- https://naruto.fandom.com/wiki/Konohagakure (layout: walled village in a forest, big main gate, mountain behind)
+- https://naruto.fandom.com/wiki/Hokage_Rock (the carved cliff; reference for scale only)
+- https://naruto.fandom.com/wiki/Valley_of_the_End (waterfall cliffs, for a late-route gorge)
+- https://en.wikipedia.org/wiki/Naruto (series context)
+- Route: start in the forest, through a tall wooden village gate, down a main street of shops, along the cliff base,
+  over 2-3 red arched bridges on a river, then back into forest and a waterfall gorge for long tracks.
+- Architecture: wood plank walls, cream plaster, red/green tiled roofs, round water tanks on rooftops, stone walls.
+- Palette: #3E7D3A forest green, #C9A36B wood, #E8DCC0 plaster, #B23A2E bridge red, #7C8C99 cliff stone, #87CEEB sky.
+- Props: training posts (3 wooden logs), ramen-style food stall with made-up sign, paper lanterns, round rooftop tanks,
+  tall pine trees, wooden fences, red bridge rails, cliff with 4 generic stone faces.
+- IP flag: the cliff must not copy the real carved faces; use 4 generic, unnamed faces (owner-approved 2026-10-28).
+  No leaf-spiral symbol on the gate, flags or headbands; gate text is made-up.
+- Sky/ground: clear daytime blue, warm green grass, dirt road #A07B52.
+
+### Track 2: Tournament Wasteland (Dragon Ball Z, World Martial Arts Tournament and wastelands)
+- https://dragonball.fandom.com/wiki/World_Martial_Arts_Tournament (stone tiled ring, temple-like arena)
+- https://dragonball.fandom.com/wiki/Papaya_Island (tropical island venue)
+- https://dragonball.fandom.com/wiki/Wasteland (rocky plateau fighting grounds)
+- https://en.wikipedia.org/wiki/Dragon_Ball_Z (series context)
+- Route: weave between tall mesa pillars, dip through craters, pass the open stone ring at mid-track, then cliffs.
+- Architecture: square stone ring of pale tiles, low arena walls, tan rock mesas with layered strata.
+- Palette: #D9B98A sand, #B8834F rock, #8A5A3B dark strata, #E6E1D3 ring tile, #F2A23A sunset accent, #7FB8E0 sky.
+- Props: square tile ring, craters with cracked edges, floating boulders, broken rock spires, scorched marks,
+  small domed capsule-style huts (plain, no brand), dead shrubs.
+- IP flag: the ring stays a generic tiled square; no arena banner text or real tournament name.
+- Sky/ground: hot pale-blue sky, tan ground.
+
+### Track 3: Pirate Harbor Isle (One Piece, island harbor)
+- https://onepiece.fandom.com/wiki/Foosha_Village (small harbor village, windmill, docks)
+- https://onepiece.fandom.com/wiki/Syrup_Village (seaside cliffs and slopes)
+- https://onepiece.fandom.com/wiki/Water_7 (canals and harbor architecture)
+- https://onepiece.fandom.com/wiki/Going_Merry (iconic ship; reference only, do not copy)
+- https://en.wikipedia.org/wiki/Caravel (generic historic ship shape to build from)
+- Route: beach start, along wooden docks, through a small harbor town, up a cliff road with sea views, around palms.
+- Architecture: white plaster houses with blue/red roofs, plank docks, rope rails, a windmill.
+- Palette: #F3E2B3 sand, #2E8BC0 sea, #FFFFFF plaster, #C0392B roof red, #8B5A2B dock wood, #4CAF50 palm.
+- Props: moored caravel with a plain sail, barrels and crates, rope coils, palm trees, windmill, buoys, fishing nets.
+- IP flag: no skull flag of any kind and no animal-head figurehead (too close to the iconic ship). Plain sail only.
+- Sky/ground: bright tropical blue, open sea horizon, sand ground.
+
+### Track 4: Wisteria Night Mountain (Demon Slayer, wisteria mountain and Taisho town)
+- https://kimetsu-no-yaiba.fandom.com/wiki/Wisteria (wisteria groves as a ward)
+- https://kimetsu-no-yaiba.fandom.com/wiki/Mount_Fujikasane (mountain covered in wisteria)
+- https://kimetsu-no-yaiba.fandom.com/wiki/Mount_Natagumo (dark forest mountain)
+- https://kimetsu-no-yaiba.fandom.com/wiki/Asakusa (Taisho-era city night street)
+- https://en.wikipedia.org/wiki/Taish%C5%8D_era (period architecture)
+- Route: through a wooden Taisho-style town street, then a stone stair path up into wisteria groves and dark forest.
+- Architecture: dark wood two-storey shops, tile roofs, sliding paper doors, stone lanterns.
+- Palette: #1B1A33 night ground, #8E6BBF wisteria, #C9A9E8 light blossom, #3B2A1E dark wood, #F5E6A8 lantern glow,
+  #E8E8F0 moon.
+- Props: wisteria trees and arches, stone lanterns (lit), full moon disk, paper lanterns, wooden fences, a shrine gate
+  in plain wood, falling purple petals.
+- IP flag: no checkered haori patterns or show kanji on signs.
+- Night biome: tint only this biome's props, ground and a local moon prop. Never change global Lighting.
+
+### Track 5: Neon Cursed City (Jujutsu Kaisen, Shibuya at night and the school)
+- https://jujutsu-kaisen.fandom.com/wiki/Shibuya_Incident_Arc (night Shibuya streets, station)
+- https://en.wikipedia.org/wiki/Shibuya_Crossing (scramble crossing layout)
+- https://en.wikipedia.org/wiki/Jujutsu_Kaisen (series context, temple-style school on a hill)
+- Route: down a neon avenue, across a big scramble crossing, under a rail overpass, then up a hill to a temple school.
+- Architecture: tall concrete blocks with signboards, glass storefronts, a wooden temple complex with curved roofs.
+- Palette: #120F1F night ground, #3A1F5C purple fog, #FF2E88 neon pink, #2EE6FF neon cyan, #F2D64B sign yellow,
+  #6B6B78 concrete.
+- Props: neon signs with made-up text, zebra crossings, traffic lights, big video screens (abstract shapes),
+  overpass, vending machines, temple gate and stairs.
+- IP flag: no real store or station names, no real Shibuya landmarks (e.g. no dog statue copy, no real building logos).
+- Night biome: tint only this biome's props and ground; fog via local parts or particles. Never change global Lighting.
+
+### Track 6: Hero Academy City (My Hero Academia, U.A. High and city)
+- https://myheroacademia.fandom.com/wiki/U.A._High_School (tall glass building, campus layout)
+- https://myheroacademia.fandom.com/wiki/Ground_Beta (mock-city training ground)
+- https://en.wikipedia.org/wiki/My_Hero_Academia (series context, giant robot test)
+- Route: city boulevard, past the academy campus gates, through a mock-city training ground, past toppled robots.
+- Architecture: clean modern towers, glass curtain walls, wide plazas, concrete training-ground blocks.
+- Palette: #4A90D9 glass blue, #E6E9EE concrete, #D63A3A accent red, #F2C12E accent yellow, #2F3542 asphalt,
+  #8FD18F park green.
+- Props: tall glass academy tower, campus gate walls, giant robot props, billboards with made-up text,
+  street lamps, crash barriers, park trees.
+- IP flag: the real academy is a distinctive H-shaped tower; use a single plain glass tower instead.
+  No school emblem on the gate. Robots stay generic boxy designs.
+- Sky/ground: bright day, asphalt road, grass verges.
+
+### Track 7: Sakura Shrine Path (classic anime)
+- https://en.wikipedia.org/wiki/Fushimi_Inari-taisha (torii tunnels on a hillside)
+- https://en.wikipedia.org/wiki/Torii (gate structure)
+- https://en.wikipedia.org/wiki/Cherry_blossom (tree look)
+- https://en.wikipedia.org/wiki/T%C5%8Dr%C5%8D (stone lanterns)
+- Route: cherry blossom avenue, through a long tunnel of red gates, up switchback stone stairs to a hilltop shrine.
+- Architecture: vermilion gate posts, stone steps, wooden shrine halls with copper-green roofs.
+- Palette: #F7C6D9 blossom, #E14B3B gate vermilion, #9E9E9E stone, #4F8F6F roof green, #6B4A2E wood, #CDE7F7 sky.
+- Props: rows of gates, stone lanterns, cherry trees, falling petal particles, stone foxes (generic), wash basin.
+- IP flag: none; generic Japanese architecture. Gate plaques use made-up text, not real shrine names.
+- Sky/ground: soft spring blue, pale stone path.
+
+### Track 8: Sky Islands (classic anime)
+- https://en.wikipedia.org/wiki/Castle_in_the_Sky (floating ruins look)
+- https://en.wikipedia.org/wiki/Zhangjiajie_National_Forest_Park (tall stone pillars)
+- https://en.wikipedia.org/wiki/Floating_island (concept)
+- Route: hop across floating islands on vine and plank bridges, under waterfalls, past stone ruins.
+- Architecture: grassy islands with rocky undersides, mossy stone ruins, rope bridges.
+- Palette: #7CC36A grass, #8C7A66 rock, #BFB7A8 ruin stone, #FFFFFF cloud, #6FC3F0 sky, #3F8FD2 waterfall.
+- Props: floating islands, waterfalls into clouds, vine bridges, broken columns, hanging roots, large trees.
+- IP flag: do not copy the film's castle or robot; ruins stay generic columns and arches.
+- Sky/ground: bright sky, cloud sea below.
+
+### Track 9: Spirit Realm Desert (Bleach, Hueco Mundo and Las Noches)
+- https://bleach.fandom.com/wiki/Hueco_Mundo (white sand desert, dead trees, black sky, crescent moon)
+- https://bleach.fandom.com/wiki/Las_Noches (giant white dome fortress)
+- https://en.wikipedia.org/wiki/Bleach_(manga) (series context)
+- Route: across white dunes, through a grove of dead white crystal trees, toward a dome palace on the horizon.
+- Architecture: smooth white walls, giant domes, square towers far away.
+- Palette: #F2F2EE white sand, #DADAD2 tree white, #0A0A12 black sky, #E9EEF5 moon, #8892A6 shadow, #2E2E3A rock.
+- Props: dead white trees, white rock outcrops, distant dome palace, crescent moon, broken pillars, bone-like arches.
+- IP flag: the palace is a plain dome with a few towers, not the real layout. No mask designs.
+- Night biome: tint only this biome's props, ground and a local sky backdrop. Never change global Lighting.
+
+### Track 10: Green Alien Planet (Dragon Ball Z, Planet Namek)
+- https://dragonball.fandom.com/wiki/Planet_Namek (green sky, blue-green grass, islands, ball-top trees)
+- https://dragonball.fandom.com/wiki/Ajisa (the ball-top trees)
+- https://dragonball.fandom.com/wiki/Namekian (dome houses and villages)
+- https://en.wikipedia.org/wiki/Dragon_Ball_Z (series context)
+- Route: across small grassy islands linked by land bridges over blue-green water, through dome villages.
+- Architecture: round white domed houses with round windows, tall rock pillars.
+- Palette: #8FD18A sky green, #3FB59A grass, #2E8B8B water, #F0F0E6 dome white, #6E7F5A rock, #B9E4A6 haze.
+- Props: ball-top tall trees, dome houses, small islands, rock pillars, crater pools, distant suns.
+- IP flag: no orb items with stars; no copy of a specific house design; houses are plain domes.
+- Sky/ground: green sky tint applies to a local backdrop only, not global Lighting.
