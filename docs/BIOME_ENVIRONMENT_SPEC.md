@@ -144,7 +144,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   footprint: it slides or is deleted. A hero that would touch a road's clearance stays at its base.
 - Owner 2026-10-31 (fw2): house-like props (defs with `Pad = true`: every `Kit.house`) get a small levelled pad
   instead of the downhill float. It uses the same pad as a pinned hero, at the natural height at the prop's centre,
-  covering its footprint plus 2 studs (placeholder). Pads never touch corridors or clear boxes. Padded props snap
+  covering its footprint plus 4 studs (placeholder; was 2, fw4 2026-10-31). Pads never touch corridors or clear boxes. Padded props snap
   first, so every other prop snaps onto ground that already has their pads. Pads are looked up through 64-stud
   buckets (placeholder).
 - fw3 (2026-10-31, orchestrator fix of the owner rules above; values placeholders):
@@ -162,6 +162,19 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
     per try up to 24 (SNAP_SLIDE_STEP / SNAP_SLIDE_MAX, placeholders), to the first spot where it is clear. If none is
     clear it stays put and is reported as an error.
   - `TerrainShape.CorridorLow(cf, size)` samples the oriented footprint every 4 studs, edges included.
+- fw4 (2026-10-31, orchestrator fix; values placeholders): padded props floated on the drawn terrain (Track 4 halls
+  up to 4.8 studs in Studio) although `Height` was flat under them. TerrainBuilder writes one column per 4-stud voxel
+  and the mesher interpolates between column centres, so a footprint edge less than a voxel from where the pad ends
+  shows the slope beyond it. Where the pad meets a corridor that slope is the full drop to corridor ground.
+  - The pad margin (PAD_MARGIN) is 4 studs (one voxel), so every column next to the footprint is flat pad. The
+    no-overlap rule for padded props uses the same grown footprints.
+  - The corridor seat uses the pad, not the bare footprint: a padded prop whose footprint plus PAD_MARGIN reaches a
+    corridor or clear box sits on the lowest corridor ground under that grown footprint.
+  - Before that, a padded prop whose footprint is outside every corridor but whose pad reaches one is pushed outward,
+    away from its road, SNAP_SLIDE_STEP studs per try up to SNAP_SLIDE_MAX, to the first spot where its pad is clear
+    of the corridor, it stays in its zone, and it overlaps no pad or prop. With no such spot it takes the corridor seat.
+  - Corridor ground, road clearance and pinned heroes do not change. Check: `lune run tools/lune/biome_harness.luau`
+    (all tracks; reports gaps on `Height` and on the drawn voxel surface).
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
