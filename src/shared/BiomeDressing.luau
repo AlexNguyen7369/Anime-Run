@@ -2,6 +2,10 @@
 -- Deterministic, non-colliding drive-by scenery for every track (docs/BIOME_DRESSING_SPEC.md).
 -- Build(model, layout, spec, origin) dresses one track from Shared/BiomeThemes[spec.Biome].
 -- Prune(trackModels, extra) runs after the whole chain is built and removes props too close to any road.
+-- SnapToTerrain(trackModels) drops every prop onto Shared/TerrainShape's height (docs/BIOME_ENVIRONMENT_SPEC.md 3.2).
+-- A prop def with Mesh = "<AssetKey>" is one uploaded MeshPart from BiomeDressing.Assets (Server/BiomeAssets, set by
+-- Main.server) when its ledger row is usable, and its Parts otherwise (spec 4.2). Hero = true marks a hero landmark
+-- (Atomic streaming, SLIM level of detail, spec 4.3).
 
 local CollectionService = game:GetService("CollectionService")
 local Themes = require(script.Parent.BiomeThemes)
@@ -11,6 +15,7 @@ local NpcConfig = require(script.Parent.NpcConfig)
 local RaceConfig = require(script.Parent.RaceConfig)
 
 local BiomeDressing = {}
+BiomeDressing.Assets = nil -- the mesh registry ({ Clone(biome, key, size) }); nil builds every prop from parts
 BiomeDressing.CLEARANCE = 8 -- studs every prop keeps from any road, wall, checkpoint, pad or spawn-area part
 BiomeDressing.BUDGET = 1200 -- BaseParts per BUDGET_STUDS of track (owner 2026-10-27; length-scaled 2026-10-30)
 BiomeDressing.BUDGET_STUDS = 3000 -- placeholder: a track's budget is BUDGET per this many studs, never below BUDGET
@@ -112,7 +117,22 @@ end
 local function place(folder, biome, def, base, name, glow, particles)
 	local model = Instance.new("Model")
 	model.Name = name
-	for i, p in def.Parts do
+	local mesh = def.Mesh and BiomeDressing.Assets and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size)
+	if mesh then
+		mesh.Name = def.Name
+		mesh.CFrame = base * CFrame.new(0, def.Size.Y / 2, 0)
+		mesh.Parent = model
+	end
+	if def.Hero then
+		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		-- SLIM where the engine has it, StreamingMesh otherwise
+		if not pcall(function()
+			model.LevelOfDetail = Enum.ModelLevelOfDetail.SLIM
+		end) then
+			model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+		end
+	end
+	for i, p in mesh and {} or def.Parts do
 		local part = Instance.new("Part")
 		part.Name = def.Name .. i
 		part.Size = p.Size
@@ -724,6 +744,36 @@ function BiomeDressing.Prune(trackModels, extra)
 		end
 	end
 	return removed
+end
+
+-- Drops every Environment prop of every track onto the terrain: the lowest TerrainShape height of 5 samples
+-- (its centre and 4 footprint corners), so it never floats. Corridor props stay (corridor height is GROUND_Y).
+-- Call after TerrainShape.Prepare. Returns how many props moved.
+function BiomeDressing.SnapToTerrain(trackModels)
+	local TerrainShape = require(script.Parent.TerrainShape)
+	if not TerrainShape.Ready() then
+		return 0
+	end
+	local moved = 0
+	for _, model in trackModels do
+		local folder = model:FindFirstChild("Environment")
+		for _, prop in folder and folder:GetChildren() or {} do
+			if prop:IsA("Model") then
+				local cf, size = prop:GetBoundingBox()
+				local low = math.huge
+				for _, c in { { 0, 0 }, { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
+					local p = cf:PointToWorldSpace(Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2))
+					low = math.min(low, TerrainShape.Height(p.X, p.Z))
+				end
+				local dy = low - GROUND_Y
+				if math.abs(dy) > 0.05 then
+					prop:PivotTo(prop:GetPivot() + Vector3.new(0, dy, 0))
+					moved += 1
+				end
+			end
+		end
+	end
+	return moved
 end
 
 return BiomeDressing

@@ -8,6 +8,8 @@ local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
 local SpawnArea = require(Shared.SpawnArea)
 local VfxArea = require(Shared.VfxArea)
+local TerrainShape = require(Shared.TerrainShape)
+local TerrainBuilder = require(script.Parent.TerrainBuilder)
 local AdminService = require(script.Parent.AdminService)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
@@ -28,6 +30,9 @@ local CheckpointService = require(script.Parent.CheckpointService)
 local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 
+-- Props with a Mesh def load it from the asset ledger, or fall back to parts (docs/BIOME_ENVIRONMENT_SPEC.md 4.2)
+BiomeDressing.Assets = require(script.Parent.BiomeAssets)
+
 -- Tracks are chained in Number order: each one starts where the previous one's finish checkpoint is.
 local chain = TrackRegistry.Chain()
 assert(#chain > 0, "no numbered tracks found")
@@ -42,7 +47,7 @@ for _, spec in chain do
 	local model, layout = TrackBuilder.Build(spec, origin)
 	model.Name = spec.Name
 	model.Parent = folder
-	table.insert(entries, { Layout = layout, Origin = origin, Model = model, Number = spec.Number })
+	table.insert(entries, { Layout = layout, Origin = origin, Model = model, Number = spec.Number, Biome = spec.Biome })
 	origin = TrackBuilder.EndCFrame(layout, origin)
 	task.wait() -- ~98k studs of road: one track per frame keeps Studio under its unyielding-script limit
 end
@@ -55,7 +60,8 @@ local trackModels = {}
 for _, entry in entries do
 	table.insert(trackModels, entry.Model)
 end
-VfxArea.Build().Parent = Workspace -- the admin-only VFX showcase floor (/tp vfxarea)
+local vfxArea = VfxArea.Build()
+vfxArea.Parent = Workspace -- the admin-only VFX showcase floor (/tp vfxarea)
 
 -- The lighting baseline goes in before WeatherService snapshots it (docs/RENDERING_SPEC.md)
 require(Shared.LightingConfig).Apply()
@@ -71,8 +77,23 @@ CarService.Start()
 WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Speed in the zone
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
+-- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
+do
+	local clear = { vfxArea }
+	for _, model in trackModels do
+		table.insert(clear, model:FindFirstChild("Checkpoint"))
+		table.insert(clear, model:FindFirstChild("WinPad", true))
+	end
+	TerrainShape.Prepare(entries, clear, { spawnArea, Workspace.Workshops })
+	for _, entry in entries do
+		ReplicatedStorage:SetAttribute("BiomeZone_" .. entry.Number, TerrainShape.ZonePolyline(entry.Number))
+	end
+	ReplicatedStorage:SetAttribute("PlazaRadius", TerrainShape.PlazaRadius())
+end
+BiomeDressing.SnapToTerrain(trackModels)
 require(Shared.TrackPreviews).Bake(trackModels) -- checkpoint card previews (docs/CHECKPOINT_SPEC.md section 4)
 
+local plate
 -- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
 -- tracks, the plaza and the Dojos plus a margin (a part can be at most 2048 studs wide).
 do
@@ -94,7 +115,7 @@ do
 	hi += Vector2.one * MARGIN
 	local authored = Workspace:FindFirstChild("Baseplate")
 	local template = authored and authored:IsA("BasePart") and authored or Instance.new("Part")
-	local plate = Instance.new("Model")
+	plate = Instance.new("Model")
 	plate.Name = "Baseplate"
 	local nx, nz = math.ceil((hi.X - lo.X) / TILE), math.ceil((hi.Y - lo.Y) / TILE)
 	local sx, sz = (hi.X - lo.X) / nx, (hi.Y - lo.Y) / nz
@@ -113,6 +134,8 @@ do
 	end
 	plate.Parent = Workspace
 end
+-- The services start while the terrain writes; it then lowers and hides the baseplate (spec 2.4)
+task.spawn(TerrainBuilder.Build, trackModels, plate)
 MarketService.Start() -- the spawn-area aura and trail market (physical prompt + client button)
 RebirthService.Start()
 BoostService.Start()

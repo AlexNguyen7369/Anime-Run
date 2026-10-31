@@ -65,6 +65,7 @@ local function show(model, entry)
 	part.Size = bounds.Size
 	part.CFrame = bounds.CFrame
 	part.CastShadow = bounds.Size.Magnitude > 30
+	CollectionService:AddTag(part, "BiomeAsset") -- Client/BiomeEnvironment turns its shadow off under REDUCED EFFECTS
 	setFallback(model, false)
 	part.Parent = model
 end

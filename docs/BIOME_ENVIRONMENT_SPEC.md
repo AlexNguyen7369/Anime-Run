@@ -141,8 +141,11 @@ Terrain = {
 	Materials = { Corridor = M.Ground, Ridge = M.Grass, Cliff = M.Rock, Bed = M.Sand },
 	CliffSlope = 0.9,                                            -- slope (rise/run) above which Cliff material is used
 	Embank = true,
+	Craters = { Count = 12, Radius = 40, Depth = 8 },             -- optional; noise pits in the ridge band (placeholders)
 }
 ```
+- `Craters` (owner 2026-10-30): optional on any biome. `Count` round pits per track, placed deterministically in the
+  ridge band outside the corridor, each `Radius` studs across with a smooth bowl `Depth` studs deep. Track 2 uses it.
 Shapes:
 - `Hills`: cosine bump plus noise.
 - `Cliff`: a near-vertical face, 70% of the way across the ridge band.
@@ -237,6 +240,8 @@ Assets = {
 	--         Prompt = "...", Creator = "<Lane D only>", Tris = N, Reviewed = "2026-10-30 auditor", Notes = "..." }
 }
 ```
+- Skybox rows (owner 2026-10-30): either one `Id` used on all 6 faces, or `Faces = { Bk, Dn, Ft, Lf, Rt, Up }`
+  (6 ids) with `Id` set to the first face so every row has an `Id` for the checks.
 - Only ids in a ledger are used. b2's final summary lists every ledger row (key, kind, id) for all 10 biomes
   (owner 2026-10-30).
 

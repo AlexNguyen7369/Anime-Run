@@ -53,5 +53,11 @@ return {
 	-- CarTestOnly (comma-separated names) runs only those scenarios; clear it (nil) for the full suite again.
 	OnDemand = {
 		"speed_probe", -- docs/WORLDS_SPEC.md section 1: highest green cruise speed for RaceConfig.MAX_CRUISE
+		-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (dev tool, no full-harness gate; each waits for TerrainReady):
+		--   CarTestOnly = "terrain_built,zone_switch,server_lighting_unchanged,assets_ip"
+		"terrain_built",
+		"zone_switch",
+		"server_lighting_unchanged",
+		"assets_ip",
 	},
 }

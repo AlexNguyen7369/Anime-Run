@@ -13294,6 +13294,14 @@ Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md sect
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md
 Scenarios.offline_double = require(script.Parent.OfflineDoubleTests).offline_double -- docs/OFFLINE_DOUBLE_SPEC.md
 Scenarios.environment = require(script.Parent.EnvironmentTests).environment -- docs/BIOME_DRESSING_SPEC.md
+-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (on demand, TestConfig.OnDemand)
+do
+	local env = require(script.Parent.EnvironmentTests)
+	Scenarios.terrain_built = env.terrain_built
+	Scenarios.zone_switch = env.zone_switch
+	Scenarios.server_lighting_unchanged = env.server_lighting_unchanged
+	Scenarios.assets_ip = env.assets_ip
+end
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map

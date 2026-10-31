@@ -190,6 +190,7 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-30: owner: skybox ledger rows take one Id or 6 Faces; optional terrain `Craters` profile field (Track 2) (BIOME_ENVIRONMENT_SPEC 3.3, 4.4).
 - 2026-10-30: owner: free Roblox Creator Store assets allowed for world art, VFX and audio (section 5), with the IP
   check, scripts stripped and the id + creator in the ledger. Biomes are built one track at a time, with screenshots
   after each track. b0 spec approved.
