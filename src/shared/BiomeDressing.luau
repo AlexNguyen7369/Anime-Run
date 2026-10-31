@@ -38,7 +38,9 @@ local SNAP_SINK = 1 -- placeholder: a snapped prop's base sits at most this far 
 local SNAP_OVERHANG = 6 -- placeholder: a landmark's footprint corner may sit at most this far below its snapped base
 local SNAP_SLIDE_STEP = 4 -- placeholder: studs per try when a prop slides toward its road to fit
 local SNAP_SLIDE_MAX = 24 -- placeholder: the farthest a prop slides before it is dropped
-local PAD_MARGIN = 2 -- placeholder: a padded prop's (house's) pad reaches this far past its footprint (spec 3.2)
+-- placeholder: a padded prop's (house's) pad reaches this far past its footprint (spec 3.2); at least one terrain
+-- voxel (4 studs), so the drawn surface under the footprint edge interpolates only flat pad columns
+local PAD_MARGIN = 4
 local HERO_FLOOR = 2 -- spec 3.2 (owner 2026-10-31): hero landmarks are never deleted below this many per biome
 -- Shares of the budget left after the gate, landmarks and horizon (owner 2026-10-30: every layer gets built).
 -- Each layer may use its share; what it leaves rolls on to the next one.
@@ -980,8 +982,9 @@ function BiomeDressing.SnapToTerrain(trackModels)
 				end
 				if prop:GetAttribute("Pad") then
 					-- a padded prop sits on its own pad at the centre height, or at the lowest corridor ground under
-					-- its footprint when it reaches a corridor (pads never change corridor ground, spec 3.2)
-					base = TerrainShape.CorridorLow(cf + shift, size) or centre
+					-- its pad (footprint plus PAD_MARGIN) when that reaches a corridor (pads never change corridor
+					-- ground, spec 3.2)
+					base = TerrainShape.CorridorLow(cf + shift, size + Vector3.new(2, 0, 2) * PAD_MARGIN) or centre
 				end
 				return base - GROUND_Y, centre
 			end
@@ -1020,27 +1023,56 @@ function BiomeDressing.SnapToTerrain(trackModels)
 				then
 					local cf, size = prop:GetBoundingBox()
 					n = trackN or (TerrainShape.Owner(cf.Position.X, cf.Position.Z, nil))
-					local dy, centre = fit(prop, cf, size, Vector3.zero)
+					local x, z = cf.Position.X, cf.Position.Z
+					local function dist(px, pz)
+						return n and select(2, TerrainShape.Owner(px, pz, n)) or math.huge
+					end
+					-- toward the road: down the gradient of this track's distance
+					local g = Vector3.new(dist(x - 4, z) - dist(x + 4, z), 0, dist(x, z - 4) - dist(x, z + 4))
+					-- spec 3.2 (fw4): a padded prop outside the corridor but within PAD_MARGIN of it is pushed outward
+					-- until its pad clears the corridor, so the drawn voxel step down to the corridor stays off its
+					-- footprint; with no clear spot it sits at the corridor seat (fit)
+					local push = Vector3.zero
+					local grown = size + Vector3.new(2, 0, 2) * PAD_MARGIN
+					if
+						prop:GetAttribute("Pad")
+						and g.Magnitude > 1e-3
+						and g.Magnitude < math.huge
+						and not TerrainShape.CorridorLow(cf, size)
+						and TerrainShape.CorridorLow(cf, grown)
+					then
+						for step = SNAP_SLIDE_STEP, SNAP_SLIDE_MAX, SNAP_SLIDE_STEP do
+							local shift = -g.Unit * step
+							if
+								not TerrainShape.CorridorLow(cf + shift, grown)
+								and fit(prop, cf, size, shift)
+								and not onProp(prop, cf + shift, size)
+							then
+								push = shift
+								break
+							end
+						end
+					end
+					local dy, centre = fit(prop, cf, size, push)
 					if dy then
 						local lift = 0
-						if math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05 then
+						if push ~= Vector3.zero or (math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05) then
 							local pivot = prop:GetPivot()
-							prop:PivotTo(pivot + Vector3.new(0, dy, 0))
+							prop:PivotTo(pivot + push + Vector3.new(0, dy, 0))
 							if touches(prop) then
 								prop:PivotTo(pivot)
+								push = Vector3.zero
 							else
 								lift = dy
 								moved += 1
+								if boxes and boxes[prop] then
+									boxes[prop].CFrame = cf + push
+								end
 							end
 						end
-						padOn(prop, cf, size, GROUND_Y + lift)
+						padOn(prop, cf + push, size, GROUND_Y + lift)
 					else
-						-- slide toward the road: down the gradient of this track's distance
-						local x, z = cf.Position.X, cf.Position.Z
-						local function dist(px, pz)
-							return n and select(2, TerrainShape.Owner(px, pz, n)) or math.huge
-						end
-						local g = Vector3.new(dist(x - 4, z) - dist(x + 4, z), 0, dist(x, z - 4) - dist(x, z + 4))
+						-- slide toward the road
 						local reach = Vector2.new(size.X, size.Z).Magnitude / 2
 						local pivot, done = prop:GetPivot(), false
 						if g.Magnitude > 1e-3 and g.Magnitude < math.huge then

@@ -146,6 +146,62 @@ for _, retired in { hud.RollControls, hud.Gui:FindFirstChild("Navigation"), hud.
 end
 settings.AutoRow.Visible = true
 
+-- TRACK CAMERA row (docs/CAMERA_SPEC.md): a copy of the generated AutoRow one row lower, with the panel one row taller.
+-- shortcut: built at runtime because the generated RacerSettings has no spec in this repo; move it into the UI spec when one exists.
+local trackCameraRow = settings.AutoRow.Parent:Clone()
+local twins = {} -- AutoRow GuiObject -> its copy
+local function pair(original, copy)
+	for _, child in original:GetChildren() do
+		local twin = copy:FindFirstChild(child.Name)
+		if twin then
+			if child:IsA("GuiObject") then
+				twins[child] = twin
+			end
+			pair(child, twin)
+		end
+	end
+end
+pair(settings.AutoRow.Parent, trackCameraRow)
+trackCameraRow.Name = "TrackCameraRow"
+for _, d in trackCameraRow:GetDescendants() do
+	d.Name = string.gsub(d.Name, "^Auto", "TrackCamera")
+end
+trackCameraRow.Parent = settings.AutoRow.Parent.Parent
+settings.TrackCameraRow = trackCameraRow.Face
+settings.TrackCameraName = settings.TrackCameraRow.TrackCameraName
+settings.TrackCameraToggle = settings.TrackCameraRow.TrackCameraToggle.Face
+do
+	-- the generated fit re-applies authored sizes per viewport; follow it so the copy matches AutoRow on desktop and phone
+	local autoRow, effectsRow, panel = settings.AutoRow.Parent, settings.EffectsRow.Parent, settings.Panel.Parent
+	local authored, grown, queued = panel.Size, nil, false
+	local function relayout()
+		queued = false
+		local step = autoRow.Position.Y.Offset - effectsRow.Position.Y.Offset
+		for d, twin in twins do
+			twin.Position, twin.Size = d.Position, d.Size
+			if d:IsA("TextLabel") or d:IsA("TextButton") then
+				twin.TextSize = d.TextSize
+			end
+		end
+		trackCameraRow.Size = autoRow.Size
+		trackCameraRow.Position = autoRow.Position + UDim2.fromOffset(0, step)
+		if panel.Size ~= grown then
+			authored = panel.Size
+		end
+		grown = authored + UDim2.fromOffset(0, step)
+		panel.Size = grown
+	end
+	local function queue()
+		if not queued then
+			queued = true
+			task.defer(relayout)
+		end
+	end
+	panel:GetPropertyChangedSignal("Size"):Connect(queue)
+	autoRow:GetPropertyChangedSignal("Position"):Connect(queue)
+	relayout()
+end
+
 hud.Gui.DisplayOrder = 1
 local racerPanels = { Index = index, Stats = stats, Settings = settings, Rebirth = rebirth }
 for name, refs in pairs(racerPanels) do
@@ -350,6 +406,7 @@ local function setSettingsCategory(category)
 	settings.SoundRow.Parent.Visible = showSettings
 	settings.EffectsRow.Parent.Visible = showSettings
 	settings.AutoRow.Parent.Visible = showSettings
+	settings.TrackCameraRow.Parent.Visible = showSettings
 	profileHost.Visible = not showSettings
 	settingsTab.BackgroundColor3 = showSettings and Color3.fromRGB(172, 99, 238) or Color3.fromRGB(34, 39, 57)
 	profileTab.BackgroundColor3 = showSettings and Color3.fromRGB(34, 39, 57) or Color3.fromRGB(172, 99, 238)
@@ -458,6 +515,17 @@ settings.AutoToggle.Activated:Connect(function()
 	refreshTopDown()
 end)
 refreshTopDown()
+
+-- Track camera (docs/CAMERA_SPEC.md): LocalPlayer attribute TrackCamera, session-local like TopDownView; unset = ON.
+local function refreshTrackCamera()
+	label(settings.TrackCameraName, "TRACK CAMERA")
+	switch(settings.TrackCameraToggle, player:GetAttribute("TrackCamera") ~= false)
+end
+settings.TrackCameraToggle.Activated:Connect(function()
+	player:SetAttribute("TrackCamera", player:GetAttribute("TrackCamera") == false)
+	refreshTrackCamera()
+end)
+refreshTrackCamera()
 
 -- Optional bird's-eye camera for auto racing. Mouse-wheel zoom changes the
 -- camera height, keeping the car visible from above instead of using a chase

@@ -45,10 +45,10 @@ per-biome sky and light change is written on the client only and never replicate
 | 2 | Hill | Forest | Tournament Wasteland |
 | 3 | DragRace | Docks | Pirate Harbor Isle |
 | 4 | Circuit | Suburb | Wisteria Night Mountain |
-| 5 | Serpentine | PirateCoast | Neon Cursed City |
+| 5 | Serpentine | PirateCoast | Burning Cursed City |
 | 6 | City | City | Hero Academy City |
-| 7 | Desert | Desert | Blossom Shrine Path |
-| 8 | Snow | Snow | Sky Islands |
+| 7 | Desert | Desert | Shibuyo Underground |
+| 8 | Snow | Snow | Skypeia |
 | 9 | Volcano | Volcano | Spirit Realm Desert |
 | 10 | Space | Space | Green Alien Planet |
 
@@ -144,7 +144,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   footprint: it slides or is deleted. A hero that would touch a road's clearance stays at its base.
 - Owner 2026-10-31 (fw2): house-like props (defs with `Pad = true`: every `Kit.house`) get a small levelled pad
   instead of the downhill float. It uses the same pad as a pinned hero, at the natural height at the prop's centre,
-  covering its footprint plus 2 studs (placeholder). Pads never touch corridors or clear boxes. Padded props snap
+  covering its footprint plus 4 studs (placeholder; was 2, fw4 2026-10-31). Pads never touch corridors or clear boxes. Padded props snap
   first, so every other prop snaps onto ground that already has their pads. Pads are looked up through 64-stud
   buckets (placeholder).
 - fw3 (2026-10-31, orchestrator fix of the owner rules above; values placeholders):
@@ -162,6 +162,19 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
     per try up to 24 (SNAP_SLIDE_STEP / SNAP_SLIDE_MAX, placeholders), to the first spot where it is clear. If none is
     clear it stays put and is reported as an error.
   - `TerrainShape.CorridorLow(cf, size)` samples the oriented footprint every 4 studs, edges included.
+- fw4 (2026-10-31, orchestrator fix; values placeholders): padded props floated on the drawn terrain (Track 4 halls
+  up to 4.8 studs in Studio) although `Height` was flat under them. TerrainBuilder writes one column per 4-stud voxel
+  and the mesher interpolates between column centres, so a footprint edge less than a voxel from where the pad ends
+  shows the slope beyond it. Where the pad meets a corridor that slope is the full drop to corridor ground.
+  - The pad margin (PAD_MARGIN) is 4 studs (one voxel), so every column next to the footprint is flat pad. The
+    no-overlap rule for padded props uses the same grown footprints.
+  - The corridor seat uses the pad, not the bare footprint: a padded prop whose footprint plus PAD_MARGIN reaches a
+    corridor or clear box sits on the lowest corridor ground under that grown footprint.
+  - Before that, a padded prop whose footprint is outside every corridor but whose pad reaches one is pushed outward,
+    away from its road, SNAP_SLIDE_STEP studs per try up to SNAP_SLIDE_MAX, to the first spot where its pad is clear
+    of the corridor, it stays in its zone, and it overlaps no pad or prop. With no such spot it takes the corridor seat.
+  - Corridor ground, road clearance and pinned heroes do not change. Check: `lune run tools/lune/biome_harness.luau`
+    (all tracks; reports gaps on `Height` and on the drawn voxel surface).
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
@@ -202,23 +215,64 @@ placeholders.
 
 | Material | Colour | Used by |
 |---|---|---|
-| Grass | #5DA04A | 1, 6 park, 7, 8 island tops |
+| Grass | #5DA04A | 1, 6 park, 8 jungle island |
 | LeafyGrass | #3FB59A | 10 blue-green grass |
-| Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland |
+| Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland, 7 earth over the tunnel (option A), 8 jungle floor |
 | Mud | #2A2440 | 4 night forest floor |
-| Slate | #2E2A3E | 4 mountain rock, 5 hill |
-| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
-| Sandstone | #B8834F | 2 mesas and strata |
+| Slate | #2E2A3E | 4 mountain rock |
+| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 earth over the tunnel (option A), 8 island undersides |
+| Sandstone | #B8834F | 2 mesas and strata, 8 sunken ruins bowl |
 | Sand | #F3E2B3 | 3 beach and sea bed |
 | Salt | #F2F2EE | 9 white sand |
 | Limestone | #DADAD2 | 9 white outcrops |
-| Basalt | #2E2E3A | 9 dark rock |
-| Cobblestone | #9E9E9E | 7 stair paths, 1 village square |
-| Asphalt | #1C1828 | 5 night streets |
+| Basalt | #2E2E3A | 9 dark rock, 5 scorched rubble |
+| Cobblestone | #9E9E9E | 1 village square |
+| Asphalt | #1C1828 | 5 burnt night streets |
+| CrackedLava | #FF6A1A (placeholder, 2026-10-31) | 5 lava cracks, pools and the meteor crater |
 | Concrete | #6B6B78 | 5 lots, 6 training ground |
 | Pavement | #E6E9EE | 6 plazas |
-| Snow | #FFFFFF | 8 cloud deck (with fog) |
-| Water | client `WaterColor` per zone (section 5) | 1 river, 3 sea, 8 pools, 10 lakes and outer sea |
+| Snow | #FFFFFF | 8 cloud deck (with fog), cloud town ground and island clouds |
+| Water | client `WaterColor` per zone (section 5) | 1 river, 3 sea, 8 jungle swamp, 10 lakes and outer sea |
+
+### 3.5 Enclosed tunnel corridor (proposed; framework task, not a biome task)
+Owner 2026-10-31: Track 7 runs inside a tunnel for its whole length. No biome can build that from data today, so it is
+a framework task for the b1 owner. The Track 7 biome module only supplies the data below. All values are
+placeholders.
+- **Profile field** (optional on any biome, used by Track 7 only):
+  ```
+  Tunnel = {
+  	Width = 60, Height = 20,                       -- inner clear size, centred on the road centre line
+  	Wall = { Material = Enum.Material.Ceramic, Color = "#E9E4D6", Stripe = "#3FA7A0" },
+  	Ceiling = { Material = Enum.Material.Concrete, Color = "#8C8A84" },
+  	LightEvery = 24,                               -- one ceiling light strip every N studs
+  	Bays = { { From = 0.12, To = 0.17, Side = "Left"|"Right"|"Both", Depth = 40, Height = 30 }, ... },
+  	Portals = true,                                -- stair-entrance facades at the start and finish
+  }
+  ```
+- **Builder**: a server step after `TrackBuilder` and before dressing. It walks the centre line and places anchored wall
+  and ceiling pieces per segment (corners as short chords), following road Y on slopes. The ceiling sits at road Y +
+  `Height`. Walls clear every checkpoint, pad and WinPad footprint by `CLEARANCE`. Inside a bay (`From` / `To` are
+  fractions of track length, like `Sections`) the wall on `Side` steps out by `Depth` and the ceiling rises to the bay
+  `Height`; the bay holds a raised platform floor and the dressing's platform props. Portals at both ends join the
+  open-air Tracks 6 and 8.
+- **Lights**: one `SurfaceLight` or neon strip per `LightEvery` studs, `Shadows = false`. REDUCED EFFECTS halves
+  the count (client hides every second light).
+- **Zone lighting, underground (no sky)**: an Atmosphere profile flag `Underground = true`. The client then sets
+  `CelestialBodiesShown = false`, `StarCount = 0`, a plain dark Skybox, `Brightness = 0`, `ClockTime = 0`, a low
+  `OutdoorAmbient`, an interior `Ambient`, `EnvironmentDiffuseScale` and `EnvironmentSpecularScale` low, Clouds
+  `Cover = 0`, so only the tunnel lights and `Ambient` light the scene. Weather events do not mix in while
+  underground (orchestrator default 2026-10-31).
+- **Terrain interaction** (owner 2026-10-31: A):
+  - A (recommended): the ridge stays solid ground and covers the tunnel. A new corridor mode fills terrain above the
+    ceiling, so neighbouring laps and the plaza see a hill, and the tunnel reads as dug into earth. The corridor rule
+    "never above road Y - 1" holds only inside the tunnel box.
+  - B: the ridge stays flat (`Blocks`), and the tunnel stands as a long box structure, seen from other laps. Cheaper;
+    looks less buried.
+- **Camera** (owner 2026-10-31): the camera is clamped below the ceiling inside the tunnel; the track camera (design doc 4.12) must stay under the ceiling. `Height` must leave
+  the camera room, or the ceiling must not block camera pop-in. Check in Studio.
+- **Tests**: test 1 (`terrain_built`) also checks no terrain voxel inside the tunnel box. New `tunnel_clear`: every
+  20 studs a ray up from the road hits the ceiling no lower than road Y + 12, and no wall is within `CLEARANCE` of a
+  checkpoint, pad or WinPad. The track tests (0 flips, 0 off-track) still pass with the tunnel in place.
 
 ## 4. Meshes
 
@@ -361,6 +415,10 @@ Atmosphere = {
 The palettes, routes and IP flags come from `TRACKS_AND_BIOMES_SPEC.md` References. Values are placeholders except
 the IP flags.
 
+Owner 2026-10-31: Tracks 5, 7 and 8 redesigned (design doc change log): Burning Cursed City, Shibuyo Underground
+(a full tunnel, needs 3.5) and Skypeia. Their sections below were rewritten that day; all their values are
+placeholders.
+
 ### Track 1: Leafwind Village (`Speedway`)
 - **Terrain**: Ridge `Hills` 24 with `Cliff` 60 on the inner side facing the plaza at one long straight (the carved
   cliff). A river (`Water`, Level -3) runs in the gap along the red-bridge section. Grass, Ground paths,
@@ -423,20 +481,27 @@ the IP flags.
 - **Audio**: night insects and soft wind in leaves (loop); an owl and a wooden clapper (one-shots). Reverb `Forest`.
 - **IP**: no checkered haori pattern and no show kanji on signs.
 
-### Track 5: Neon Cursed City (`PirateCoast`)
-- **Terrain**: Ridge `Blocks` with Asphalt streets and Concrete lots. One `Hills` 40 hill (Slate) for the temple
-  school. `Embank = false`.
+### Track 5: Burning Cursed City (`PirateCoast`)
+Owner redesign 2026-10-31 (the Jogo vs Sukuna fire fight). Every value below is a placeholder except the IP line.
+- **Terrain**: Ridge `Blocks` (Asphalt streets, Concrete lots) with `Craters = { Count = 10, Radius = 36, Depth = 10 }`
+  (placeholder) and one big meteor crater by a `Sections` entry at `From = 0.47, To = 0.53` (Ridge `Hills` -12,
+  CrackedLava). Glowing CrackedLava cracks and pools in the lots, Basalt rubble mounds. `Embank = false`.
 - **Hero landmarks**:
-  1. A tall neon signboard tower (made-up text).
-  2. A rail overpass segment.
-  3. A wooden temple school with curved roofs on the hill.
-  4. A big video screen with abstract shapes.
-- **Mid props**: neon signs, vending machines, traffic lights, zebra crossings (decals), glass storefronts.
-- **Palette**: #120F1F, #3A1F5C, #FF2E88, #2EE6FF, #F2D64B.
-- **Sky**: night city. ClockTime 22, Atmosphere Color #3A1F5C, Density 0.5, Haze 1. Bloom 1.6, Threshold 0.9.
-  Contrast +0.2. Particles: drifting dark-purple motes.
-- **Audio**: city hum and distant traffic (loop); a crossing chime and a train pass (one-shots). Reverb `City`.
-- **IP**: no real store or station names, no real Shibuya landmarks, no dog statue, no real logos.
+  1. A high-rise with its upper floors blown open and burning (fire in the gaps, a smoke column).
+  2. The smouldering meteor: a huge glowing boulder half-sunk in the crossroads crater, `At = 0.5`.
+  3. A collapsed elevated rail viaduct over a side street.
+  4. A tower cut through on a diagonal, its top half slid down (plain cut, no symbol).
+- **Mid props**: burning cars (generic), fire columns (part plus particles), lava cracks (neon decals), rubble piles,
+  steel girders, toppled traffic lights, bent lamps, blank burnt billboards, broken glass storefronts.
+- **Palette**: #0E0B12, #2A1E1E, #FF6A1A, #FFC23D, #C2261B, #4A4448, #DCE2F0.
+- **Sky**: night on fire. ClockTime 0, Brightness 0.5, Ambient #3A1A10, OutdoorAmbient #5A2A18. Atmosphere Color
+  #3A2420, Decay #FF6A1A, Density 0.45, Haze 2, Glare 0.3. Grade TintColor #FFD9B8, Contrast +0.2, Saturation +0.1.
+  Bloom 1.4, Threshold 0.85. Clouds Cover 0.8, Color #2A1E1E. Skybox: smoke clouds lit orange from below, a moon in a
+  gap. Particles: rising orange embers (LightEmission 1) and drifting ash.
+- **Audio**: crackling fire, a low roar and distant collapses (loop); a flame whoosh and a falling-debris crash
+  (one-shots). Reverb `City`.
+- **IP**: no Sukuna or Jogo likeness, no domain shrine copy (skulls, fanged gate), no cursed-technique symbol, hand
+  sign or bow-shaped flame; no real store or station names or signs, no real Shibuya landmarks, no real logos.
 
 ### Track 6: Hero Academy City (`City`)
 - **Terrain**: Ridge `Blocks` (Pavement plazas, Concrete training ground) with Grass park patches. `Embank = false`.
@@ -453,36 +518,56 @@ the IP flags.
   Reverb `City`.
 - **IP**: no H-shaped tower, no school emblem, generic robots only.
 
-### Track 7: Blossom Shrine Path (`Desert`)
-- **Terrain**: Ridge `Hills` 34, terraced, with switchback stone-stair hillsides (Cobblestone, Rock). Grass.
-  `Embank = true`.
-- **Hero landmarks**:
-  1. A hilltop shrine hall with a copper-green roof.
-  2. A tunnel of red gates on the hillside (one mesh run).
-  3. A giant cherry tree.
-- **Mid props**: cherry trees, stone lanterns, generic stone foxes, wash basin, vermilion gates.
-- **Palette**: #F7C6D9, #E14B3B, #9E9E9E, #4F8F6F, #6B4A2E.
-- **Sky**: soft spring afternoon. ClockTime 15.5, Atmosphere Color #F5DCE6, Haze 0.8. Pink tint #FFF0F5. Bloom 0.9.
-  Particles: falling pink petals.
-- **Audio**: a breeze and soft birdsong (loop); a shrine bell and a water-basin drip (one-shots). Reverb `Plain`.
-- **IP**: gate plaques carry made-up text, never real shrine names.
+### Track 7: Shibuyo Underground (`Desert`)
+Owner redesign 2026-10-31 (the Shibuya Incident subway); replaces Blossom Shrine Path. Every value below is a
+placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
+- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 60, Height 20, Ceramic tile walls, Concrete
+  ceiling and floor. Above it, the ridge covers the tunnel as earth (Ground, Rock; option A, owner
+  2026-10-31). `Embank = false`.
+- **Tunnel bays** (`Bays`): 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Both, Depth 60,
+  Height 40: ticket gates, escalators, an atrium void); 0.58-0.63 second platform (Right, Depth 40); 0.82-0.90 the
+  deep main platform hall (Both, Depth 50, Height 30). Portals at the start and finish.
+- **Hero landmarks** (each inside a bay):
+  1. A multi-level concourse void with criss-cross escalators (a box atrium, never the real oval one), `At = 0.36`.
+  2. A stalled train of 3 generic cars on the far track, `At = 0.6`.
+  3. The deep main platform hall: a long island platform, rows of columns, platform screen doors, `At = 0.86`.
+- **Mid props**: tiled wall panels with a stripe band, ceiling light strips, platform screen doors, columns,
+  benches, blank vending machines, ticket gates, wall maps with abstract shapes, made-up signs, overhead wire gantries,
+  emergency lights, fallen ceiling panels, rubble.
+- **Palette**: #E9E4D6, #8C8A84, #2B2E33, #F2D23A, #3FA7A0, #CFE8FF, #B5281F.
+- **Sky**: underground (3.5): `Underground = true`, no sky. ClockTime 0, Brightness 0, Ambient #3A4A48,
+  OutdoorAmbient #1A2224, EnvironmentDiffuseScale 0.2. Atmosphere Color #2A3532, Density 0.3, Haze 1 (dust).
+  Grade TintColor #E6FFF4, Saturation -0.2, Contrast +0.15. Bloom 1.0, Threshold 0.9 (light strips glow). Clouds
+  Cover 0. Particles: dust motes. Flickering lights: owner 2026-10-31 yes, a few lights flicker (client effect, off under REDUCED EFFECTS).
+- **Audio**: tunnel hum, ventilation drone and a distant train rumble (loop); a made-up chime (never a real station
+  melody or announcement) and an echoing water drip (one-shots). Reverb `StoneCorridor`.
+- **IP**: no real station, line or company names, letters, numbers, colours or logos; no real oval atrium; no
+  sealing-cube artifact; no character figures. Signs use made-up text.
 
-### Track 8: Sky Islands (`Snow`)
+### Track 8: Skypeia (`Snow`)
+Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a placeholder except the IP line.
 - **Terrain**:
-  - Corridor islands (Grass top, Rock sides). The ridge is a `Drop` to the cloud deck (Snow at Y -40, with fog).
-  - Small pools (Water) on the islands, with waterfalls (part plus particle columns) off their edges.
+  - Default ridge `Drop` to the cloud deck (Snow at Y -40, with fog); the baseplate is hidden under the deck (2.4).
+  - `Sections`: 0-0.28 cloud town and beach (corridor and ridge Snow, Ridge `Hills` 10, soft cloud mounds);
+    0.30-0.80 the jungle island (Ridge `Hills` 40, Grass and Ground, a Water swamp at 0.40-0.46); 0.50-0.60 sunken
+    ruins (Ridge `Hills` -10 bowl, Sandstone); 0.82-1.0 high island clouds (back to `Drop`, Snow islands).
   - `Embank = true`.
-  - The baseplate is hidden under the deck (section 2.4).
 - **Hero landmarks**:
-  1. A floating ruin island of generic columns and arches.
-  2. A large tree on a floating rock.
-  3. A tall stone pillar with a waterfall.
-- **Mid props**: floating rocks (BiomeBob), vine and plank bridges (visual), broken columns, hanging roots.
-- **Palette**: #7CC36A, #8C7A66, #BFB7A8, #FFFFFF, #6FC3F0, #3F8FD2.
-- **Sky**: bright high sky. ClockTime 13, Atmosphere Density 0.35, Offset 0.5, Color #E8F4FF. Clouds Cover 0.6,
-  Density 0.5. Bloom 0.8. Particles: cloud wisps below the road and mist at the waterfalls.
-- **Audio**: high wind and a far waterfall roar (loop); a bird call and wind gusts (one-shots). Reverb `Mountains`.
-- **IP**: no copy of the film's castle or robot.
+  1. The giant beanstalk: twin twisted green stems rising 220 into a cloud, `At = 0.6`.
+  2. Sunken golden ruins: stepped Maya-like temple tiers, vine-covered, a few gold-clad walls, at its root, `At = 0.55`.
+  3. A giant golden bell in a broken stone belfry on a high island cloud (BiomeBob), `At = 0.92`.
+  4. A cloud town of round white domed houses on the cloud beach, `At = 0.1`.
+- **Mid props**: giant jungle trees with buttress roots, hanging vines, giant ferns, round cloud houses, cloud puffs
+  (BiomeBob), cloud-river ribbons beside the road (translucent white), sky palms, broken stone and gold pillars.
+- **Palette**: #FFFFFF, #E6EEF8, #6EC6FF, #2F7D3B, #6B4A2E, #9DBF5A, #E3B341, #B9A88A.
+- **Sky**: bright high noon. ClockTime 12, Atmosphere Density 0.3, Offset 0.5, Color #EAF6FF, Haze 0.5. Clouds Cover
+  0.55, Density 0.4, Color #FFFFFF. Bloom 0.8. SunRays 0.15. Saturation +0.15. Skybox: deep blue sky over a cloud sea
+  to the horizon, towering cumulus (a far dark thundercloud: open question). Particles: cloud wisps below the road and
+  drifting jungle motes.
+- **Audio**: high wind over the cloud sea with far jungle birds (loop); a deep distant bell toll (in-house tone, never
+  the show's music) and a far thunder roll (one-shots). Reverb `Mountains`.
+- **IP**: no Straw Hat or Jolly Roger symbol, no God's Shrine nameplate or gate sign text, no Enel likeness (no drum
+  ring), no golden ark copy, no ancient-script blocks, no ordeal-gate idol head; the bell carries no inscription.
 
 ### Track 9: Spirit Realm Desert (`Volcano`)
 - **Terrain**: Ridge `Dunes` 22 (Salt) with Limestone outcrops and a few Basalt rocks. `Embank = true`.
