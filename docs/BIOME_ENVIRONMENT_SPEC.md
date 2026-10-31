@@ -145,7 +145,12 @@ Terrain = {
 }
 ```
 - `Craters` (owner 2026-10-30): optional on any biome. `Count` round pits per track, placed deterministically in the
-  ridge band outside the corridor, each `Radius` studs across with a smooth bowl `Depth` studs deep. Track 2 uses it.
+  ridge band outside the corridor, each a smooth bowl of radius `Radius` studs and `Depth` studs deep. Track 2 uses it.
+- `Sections` (owner 2026-10-30): optional on any biome. `Sections = { { From = 0.2, To = 0.35, Side = "Inner"|"Outer"|"Both",
+  Ridge = { ... }, Water = { Level = -3 }, Material = M.Cobblestone }, ... }`. `From` / `To` are fractions of the track
+  length (0-1). Inside a section the given fields override the biome's `Ridge`, `Water` and corridor/ridge `Material`
+  on that side; the edges blend over `SEAM` studs (placeholder). Fields left out keep the biome values. Track 1 uses it
+  for the carved cliff, the river and the cobblestone square.
 Shapes:
 - `Hills`: cosine bump plus noise.
 - `Cliff`: a near-vertical face, 70% of the way across the ridge band.
@@ -221,6 +226,8 @@ placeholders.
   - Tall rather than wide, to fit the gap: footprint at most 60 x 60 studs, height 60-220 studs (placeholders).
   - One model each, at points along the track where the route faces them (corner exits and straights 200+ studs
     long).
+  - Optional `At = 0.8` on a hero def (owner 2026-10-30) pins it to that fraction of the track length, snapped to the
+    nearest corner exit or 200+ stud straight. Hero defs without `At` keep cycling by index.
   - `ModelStreamingMode = Atomic`, `LevelOfDetail = SLIM` (falls back to `StreamingMesh` if SLIM is not available),
     so they stay visible past the streaming radius.
   - Up to 20k triangles each (the per-mesh import cap; placeholder until b1 checks it in Studio), one texture at
