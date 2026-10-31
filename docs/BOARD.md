@@ -1,15 +1,13 @@
 # Board
 
 ## Doing
-- b2 Track 3 Pirate Harbor Isle (orch/biomes/t3 in ../AnimeRun-orch/studio)
-- fw2 framework fixes: embank on ramps, bob pivot, midline clamp, hero overhang (orch/biomes/fw2)
-- t1-review: auditor close-up review + Reviewed signatures for Track 1 ledger (gate, waterfall, towers, stall close-ups); rock colour retune
 
 ## Paused
+- b2 implementation PAUSED by owner 2026-10-31 after Track 3; resume on owner's "continue". Open fw2 items: 25 Docks houses + Track 1 VillageHouse (3.6) / ElderHouse (7.0) still float on slopes with Pad; TileRing max gap 11.4 (not ~0); 4 pinned heroes warn "reaches into a road corridor" (Landmark_259, _263, _315, _49); final screenshot set not retaken after fw2 rounds 5-6
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
-- b2 Biomes 1-10, one track at a time, screenshots per track
+- b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
@@ -18,6 +16,8 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-10-31 b2 Track 3 Pirate Harbor Isle + fw2 (merge d6b1402, pushed): OWNER APPROVED visuals; terrain_built, assets_ip, server_lighting_unchanged pass=3 fail=0 (terrain 27.1 s); 25-row ledger auditor-signed; fw2: embank on ramps, BasePivot bob, midline clamp slide/delete, 2-hero floor, pinned heroes never deleted + natural-height pads, house pads, Rock 8A6E52; Track 2 sand road, Embank + BiomeBob back on; Track 3 dock-wood road
+- 2026-10-31 t1-review: rules auditor signed Reviewed after close-up IP re-review, PASS (merge d058e8f, pushed)
 - 2026-10-31 b2 Track 2 Tournament Wasteland (merge cdf69e3): pass=3 fail=0, auditor-signed ledger (18 rows), screenshots shown to owner
 - 2026-10-31 b2 Track 1 Leafwind Village (merge 23a0ffc, OWNER APPROVED 2026-10-31 from screenshots): terrain_built, assets_ip, server_lighting_unchanged pass=3 fail=0; framework: craters, sections, At pin, road z-fight, snap; audit FAIL (builder-signed Reviewed, 4 meshes need close-ups) -> t1-review
 - 2026-10-30 b1 Biome environment framework (merge b289cb8): terrain_built, zone_switch, server_lighting_unchanged, assets_ip all pass; terrain 27.0 s / 1600 chunks; audit FAIL fixed (ledger bypass in client); owner: skybox Faces rows, Craters field

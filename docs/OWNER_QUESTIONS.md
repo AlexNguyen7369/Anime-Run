@@ -25,3 +25,13 @@
   content is copied from IVS. Done the same day: default SpawnLocation and the leftover IVS `RedesignCarModels` folder
   (unreferenced by code) deleted from the place. Remaining IVS-styled visuals (Rojo-managed RacingGarage,
   RaceStartPavilion, SpawnMarketplace, StarterGui, CarModels placeholder body) are replaced by goal anime-world (w1, w2).
+
+## oq3: SnapToTerrain may slide or delete props (fw2, 2026-10-31)
+- Audit NEEDS OWNER on fw2 (ef501b3 on orch/biomes/fw2). BIOME_ENVIRONMENT_SPEC 3.2 only says props drop onto the
+  lowest sample. fw2 also slides a prop toward its road (4 studs per try, up to 24) when it crosses the gap midline
+  or a landmark overhangs more than 6 studs, and deletes it if no slide fits. This can delete hero landmarks
+  (4.3 fixes 2-4 per biome) with no floor.
+- Question: allow slide/delete? Record it in 3.2 with placeholders first? Keep a floor of 2 landmarks per biome?
+- Blocks: land Track 2 (fw2).
+- ANSWER 2026-10-31 (owner): slide and delete allowed; never delete hero landmarks below 2 per biome (a hero that
+  cannot fit stays and is reported as an error); record in spec 3.2 as placeholders. Done on orch/biomes/fw2.

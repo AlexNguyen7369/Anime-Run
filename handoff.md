@@ -121,3 +121,18 @@
   Running: Track 3 builder (studio, orch/biomes/t3, holds Studio), fw2 framework fixes (../AnimeRun-orch/fw2),
   Track 1 re-review sign-off (../AnimeRun-orch/t1review). Open: rock colour #7C8C99 reads blue (retune), Track 2
   shots awaiting owner review.
+- 2026-10-31 (session resumed after /clear): Track 1 fully landed and pushed (d058e8f). Owner: Track 2 road
+  palette sand/stone (Hill.luau, committed 120b023 on orch/biomes/fw2, with fw2 embank WIP); land Track 2 once fully
+  finished (fw2 fixes + Embank/BiomeBob back on), push; continue Track 3, then Tracks 4-10 one at a time.
+  Agents afdb62cd8fe80c98a / ad4b45bd5034895b3 still running fw2 (../AnimeRun-orch/fw2) and t3 (studio worktree,
+  holds Studio fc533734; Rojo 34873 serves studio). Open: rock colour #7C8C99 (Rock material, global) still blue.
+- 2026-10-31 LANDED d6b1402 (pushed): Track 3 Pirate Harbor Isle (owner approved visuals) + fw2 framework fixes +
+  Track 2 finish (sand road, Embank, BiomeBob). Owner rulings 2026-10-31 in BIOME_ENVIRONMENT_SPEC 3.2/3.4: props
+  slide/delete past the gap midline, 2-hero floor, pinned (At) heroes never deleted and sit on a natural-height pad,
+  house-like props (Pad = true) get small pads, Rock 8A6E52. Scenarios pass=3 fail=0, terrain 27.1 s.
+  PAUSED by owner after Track 3; resume only on "continue". On resume, fw2 follow-ups first:
+  (1) 25 Docks houses + Track 1 VillageHouse 3.6 / ElderHouse 7.0 still float >1 stud with Pad;
+  (2) TileRing max gap 11.4; (3) warnings "pinned hero reaches into a road corridor" for Landmark_259/_263/_315/_49;
+  (4) retake final Track 1-3 shots; then Track 4 (Wisteria Night Mountain, Suburb).
+  Worktrees ../AnimeRun-orch/fw2 (orch/biomes/fw2) and studio (orch/biomes/t3) kept; Rojo 34873 serves studio.
+  Studio fc533734 in Edit, clean.
