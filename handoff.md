@@ -153,3 +153,4 @@
   Lune harness tools/lune/biome_harness.luau) merged into t6/t9/t10, lands with t6. Phase 1 committed on branches
   t7 53d4f64, t8 714b8fc, t9 f61e03b, t10 5e3bb17 (worktrees ../AnimeRun-orch/t7..t10). Studio queue t6 (verifying)
   -> t7 -> t8 -> t9 -> t10; loop per resume_step in .agents/orchestrator.json. Morning list: docs/OWNER_QUESTIONS.md.
+- LANDED 9858032: Track 6 + fw4. Studio -> Track 7.
