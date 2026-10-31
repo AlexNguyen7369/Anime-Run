@@ -270,6 +270,28 @@ placeholders.
     looks less buried.
 - **Camera** (owner 2026-10-31): the camera is clamped below the ceiling inside the tunnel; the track camera (design doc 4.12) must stay under the ceiling. `Height` must leave
   the camera room, or the ceiling must not block camera pop-in. Check in Studio.
+- **Dressing** (fw6, orchestrator default 2026-10-31; values placeholders): on a track whose biome has a `Tunnel`,
+  `BiomeDressing` places every prop inside the tunnel, never at edge + `Offset` in the earth outside the walls.
+  - A prop stands at road Y inside the walls (between the road wall and `Width / 2`), or on a bay platform at road Y +
+    `Tunnel.PLATFORM` (4) where a bay on its side covers its whole length. It keeps `TUNNEL_INSET` (1 stud) from the
+    tunnel wall and the platform edge, plus 0.1 stud per stud of its half-length (`TUNNEL_TURN`: the walls are chords).
+    Its box includes every fallback part's corners. Its top (plus half the road rise under it on a slope) stays under
+    the ceiling. `Offset` is clamped into that room. A prop that does not fit, or lies outside the tunnel span, is not
+    built. Ground patches are not built inside a tunnel.
+  - Such props carry attribute `Tunnel = true`; `SnapToTerrain` leaves them where they are (no snap, no pad).
+  - A layer with `Surface = true` (Rhythm, Landmarks, Horizon, Scatter or Blocks) opts out: its props are placed as on
+    an open track and snap onto the earth over the tunnel. Use it only for sparse surface dressing such as vents and
+    station entrances.
+  - Side: side -1 is the tunnel's `Left` and 1 its `Right` (both from the same road tangent).
+  - A pinned hero (`At`) stands at the waypoint nearest `At` (XZ length, like `Bays`), in the bay covering `At`, on
+    that bay's side (`Both`: the side the hero rule gives). With no bay at `At` the server warns. A pinned hero that
+    does not fit inside the tunnel is not built and the server warns (the 3.2 "never deleted" rule cannot put it in
+    the earth; the builder moves or resizes it).
+  - Gate: on a tunnel track without `Gate.Index` the gate moves back to the last waypoint whose posts end before the
+    start portal (at least waypoint 2), so the 28-stud gate never stands under a 20-stud ceiling. A gate that would
+    still stand inside the tunnel is not built and is reported. `Gate.Skip` still removes it.
+  - Check: `TUNNEL=1 lune run tools/lune/biome_harness.luau` prints every tunnel prop inside / not inside, pinned
+    heroes in their bay, and the gate distance before the portal. Non-tunnel biomes build identically (identity hash).
 - **Tests**: test 1 (`terrain_built`) also checks no terrain voxel inside the tunnel box. New `tunnel_clear`: every
   20 studs a ray up from the road hits the ceiling no lower than road Y + 12, and no wall is within `CLEARANCE` of a
   checkpoint, pad or WinPad. The track tests (0 flips, 0 off-track) still pass with the tunnel in place.
@@ -612,7 +634,8 @@ Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a 
 - **Quality hook (owner 2026-10-30)**: the existing setting is Settings > REDUCED EFFECTS, the player attribute
   `ReduceEffects = true` set by `RacerUiController`. Today it only cuts UI motion via `UiMotion.Reduced`.
   `BiomeEnvironment` reads `player:GetAttribute("ReduceEffects") == true` and listens for changes. While it is on:
-  - zone particles off, one-shots off (the loop stays);
+  - zone particles off, one-shots off (the loop stays); landmark particle emitters (`BiomeDressing`, tag
+    `BiomeEmitter`) off too (fw6, orchestrator default 2026-10-31);
   - Bloom, SunRays and Grade at the baseline (no per-zone post-FX); Atmosphere and Sky still switch;
   - `Lighting.GlobalShadows = false` client-local, and `CastShadow = false` on mesh landmarks and props;
   - far landmark detail: SLIM / LOD stays on, but the client hides each hero landmark's detail meshes (tag

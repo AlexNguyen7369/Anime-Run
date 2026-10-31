@@ -3,7 +3,9 @@
 -- TerrainShape.Prepare and BiomeDressing.SnapToTerrain on the track chain in Lune, Instances from @lune/roblox.
 -- Run from the repo root: `lune run tools/lune/biome_harness.luau`. Env: ROOT (repo root, default cwd), N (tracks,
 -- default 10), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
--- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and check it: no terrain in the box, ceiling >= 12 studs).
+-- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and four pinned test heroes, and check it: no terrain in the
+-- box, ceiling >= 12 studs, every prop inside the walls or on a bay platform, pinned heroes in their bays, the gate
+-- before the start portal).
 -- Reports per track: padded / pinned props, gap > 1 stud against TerrainShape.Height and against the drawn voxel
 -- surface (TerrainBuilder columns every 4 studs, bilinear between column centres), pinned heroes, and corridor cells
 -- changed by the pads.
@@ -156,6 +158,18 @@ local game = {
 	end,
 }
 WARNS = {}
+-- Lune's CFrame.lookAt mirrors Z, so a prop beside a diagonal road is turned wrong offline. TUNNEL=1 uses Roblox's
+-- lookAt (the tunnel fit checks need the real yaw); without it the identity hash stays comparable with older runs.
+local CF = R.CFrame
+if process.env.TUNNEL then
+	CF = setmetatable({
+		lookAt = function(at, target, up)
+			local look = (target - at).Unit
+			local right = look:Cross(up or R.Vector3.new(0, 1, 0)).Unit
+			return R.CFrame.fromMatrix(at, right, right:Cross(look))
+		end,
+	}, { __index = R.CFrame })
+end
 local function req(node)
 	if type(node) == "string" then
 		return require(node)
@@ -199,7 +213,7 @@ local function req(node)
 		Instance = R.Instance,
 		Vector3 = R.Vector3,
 		Vector2 = R.Vector2,
-		CFrame = R.CFrame,
+		CFrame = CF,
 		Color3 = R.Color3,
 		ColorSequence = R.ColorSequence,
 		ColorSequenceKeypoint = R.ColorSequenceKeypoint,
@@ -280,12 +294,23 @@ if process.env.TUNNEL then
 		LightEvery = 24,
 		Bays = {
 			{ From = 0.12, To = 0.17, Side = "Left", Depth = 40, Height = 30 },
-			{ From = 0.33, To = 0.40, Side = "Both", Depth = 60, Height = 40 },
+			{ From = 0.33, To = 0.40, Side = "Left", Depth = 60, Height = 40 },
 			{ From = 0.58, To = 0.63, Side = "Right", Depth = 40, Height = 30 },
 			{ From = 0.82, To = 0.90, Side = "Both", Depth = 50, Height = 30 },
 		},
 		Portals = true,
 	}
+	-- pinned test heroes (fw6): three in bays (Left, Right, Both) and one where no bay is (a warning, not built)
+	local lm = req(Shared.BiomeThemes).Desert.Landmarks
+	local base = {}
+	for _, def in lm.Props do
+		base[def.Name] = def
+	end
+	for _, pin in { { "WashBasin", 0.145 }, { "ShrineHall", 0.6 }, { "StoneFox", 0.86 }, { "WashBasin", 0.5 } } do
+		local def = table.clone(base[pin[1]])
+		def.Hero, def.At, def.Name = true, pin[2], "Pin" .. pin[1] -- own name: scatter looks landmarks up by name
+		table.insert(lm.Props, def)
+	end
 end
 
 -- Measure
@@ -385,7 +410,11 @@ for _, m in models do
 	local env = m:FindFirstChild("Environment")
 	local n, overH, overV, worstH, worstV, wname, seated, inCorr = 0, 0, 0, 0, 0, "", 0, 0
 	for _, prop in env:GetChildren() do
-		if prop:IsA("Model") and (prop:GetAttribute("Pad") or prop:GetAttribute("Pinned")) then
+		if
+			prop:IsA("Model")
+			and (prop:GetAttribute("Pad") or prop:GetAttribute("Pinned"))
+			and not prop:GetAttribute("Tunnel") -- on the tunnel floor, not the terrain (fw6 checks below)
+		then
 			local g = gapOf(prop, TS.Height)
 			local gv, x, z, cf, size = gapOf(prop, drawn)
 			local pinned = prop:GetAttribute("Pinned")
@@ -676,6 +705,107 @@ do
 					)
 				)
 			end
+			-- fw6 1(a): every prop of a non-Surface layer (attribute Tunnel) has all 8 box corners inside the walls
+			-- under the ceiling, at road level within Width / 2 or on a bay platform (road + PLATFORM) past it; any
+			-- other prop but the gate must come from a Surface layer. 1(b): each pinned hero stands in a bay, on the
+			-- side of that bay. The gate stands before the start portal.
+			-- a box corner (or the base centre, `floor`: it stands on the road or the platform) is inside: across
+			-- the walls, under the ceiling, on a bay side past Width / 2. A prop on a slope is flat, so only its base
+			-- centre is held to the floor. A segment reaches past its ends by the bend's wedge (as Tunnel parts do).
+			local half = (def.Width or 60) / 2
+			local function inside(p, floor, reach)
+				local eps = 0.05 + Tunnel.CHORD_Y
+				for _, seg in segs do
+					local l = seg.CFrame:PointToObjectSpace(p)
+					local x, y = l.X, l.Y
+					if math.abs(l.Z) <= seg.Length / 2 + 1 + math.abs(x) * math.max(seg.TanStart, seg.TanEnd) then
+						local bay = if x < 0 then seg.BayLeft else seg.BayRight
+						local floorY = math.abs(x) > half + eps and Tunnel.PLATFORM or 0
+						if
+							x >= -seg.Left - eps
+							and x <= seg.Right + eps
+							and y <= seg.Height + eps
+							-- a flat base on a pitched segment: off by up to sin(pitch) x its reach
+							and (not floor or math.abs(y - floorY) <= eps + math.sqrt(1 - seg.Flat ^ 2) * reach)
+							and (math.abs(x) <= half + eps or bay)
+						then
+							return true, x
+						end
+					end
+				end
+				return false
+			end
+			local nIn, nBay, nOut, nOther, pins, pinsOk = 0, 0, 0, 0, 0, 0
+			for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
+				if prop:GetAttribute("Tunnel") then
+					-- every part's 8 corners (the model box here is oriented like its first part, which may be turned)
+					local ok, lowY, cx, cz, n, pts = true, math.huge, 0, 0, 0, {}
+					for _, part in prop:GetDescendants() do
+						if not part:IsA("BasePart") then
+							continue
+						end
+						for _, c in { -1, 1 } do
+							for _, d in { -1, 1 } do
+								for _, f in { -1, 1 } do
+									local p = part.CFrame:PointToWorldSpace(R.Vector3.new(c, d, f) * part.Size / 2)
+									ok = ok and inside(p)
+									lowY = math.min(lowY, p.Y)
+									table.insert(pts, p)
+								end
+							end
+						end
+						cx, cz, n = cx + part.Position.X, cz + part.Position.Z, n + 1
+					end
+					local reach = 0
+					for _, p in pts do
+						reach = math.max(reach, R.Vector2.new(p.X - cx / n, p.Z - cz / n).Magnitude)
+					end
+					local okBase, x = inside(R.Vector3.new(cx / n, lowY, cz / n), true, reach)
+					ok = ok and okBase
+					local size = select(2, prop:GetBoundingBox())
+					local onBay = x ~= nil and math.abs(x) > half
+					nIn += ok and 1 or 0
+					nOut += ok and 0 or 1
+					nBay += (ok and onBay) and 1 or 0
+					if not ok and nOut <= 5 then
+						print(string.format("  prop %s not inside the tunnel (size %s)", prop.Name, tostring(size)))
+					end
+					if prop:GetAttribute("Pinned") then
+						pins += 1
+						pinsOk += (ok and onBay) and 1 or 0
+						print(
+							string.format(
+								"  pinned %s inside=%s side x %.1f on bay=%s",
+								prop.Name,
+								tostring(ok),
+								x or 0,
+								tostring(onBay)
+							)
+						)
+					end
+				elseif prop.Name ~= "Gate" then
+					nOther += 1
+				end
+			end
+			local gateAt = "none"
+			local g = e.Model:FindFirstChild("Environment"):FindFirstChild("Gate")
+			if g and #segs > 0 then
+				local l = segs[1].CFrame:PointToObjectSpace(g:FindFirstChild("GateBeam").Position)
+				gateAt = string.format("%.1f studs before the portal face", l.Z - segs[1].Length / 2)
+			end
+			print(
+				string.format(
+					"TUNNEL %s props: inside %d (on bays %d), not inside %d, not tunnel (Surface) %d; pinned in their bay %d/%d; gate %s",
+					e.Model.Name,
+					nIn,
+					nBay,
+					nOut,
+					nOther,
+					pinsOk,
+					pins,
+					gateAt
+				)
+			)
 		end
 	end
 end

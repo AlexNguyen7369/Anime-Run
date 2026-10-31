@@ -71,6 +71,7 @@ local function section(def, s, total)
 	end
 	return left, right, h, bayL, bayR
 end
+Tunnel.Section = section -- BiomeDressing places props inside the walls and on the bay platforms from it
 
 -- The road centre line as long straight chords: consecutive waypoints merge while every one in between stays within
 -- CHORD_XZ studs (sideways) and CHORD_Y studs (up) of the chord, so a bend or a ramp costs a few parts, not one per
