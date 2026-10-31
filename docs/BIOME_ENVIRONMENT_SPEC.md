@@ -133,8 +133,9 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   or inside its corridor). A `Landmark_` model must also overhang by no more than 6 studs (placeholder): no
   footprint corner may sit more than that below the snapped base. A prop that fails slides toward its road 4 studs per
   try, up to 24 studs (both placeholders). It must keep its road clearance and must not overlap another prop. A prop
-  that no slide fits is deleted. Exception: hero landmarks (4.3) are never deleted below 2 per biome. A hero that cannot
-  fit stays put and is reported as an error for the builder to move.
+  that no slide fits is deleted. Exception: hero landmarks (4.3) are never deleted below 2 per biome, and a hero pinned
+  to a route spot (`At`) is never deleted (owner 2026-10-31). A hero that cannot fit stays put and is reported as an
+  error for the builder to move.
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
@@ -180,7 +181,7 @@ placeholders.
 | Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland |
 | Mud | #2A2440 | 4 night forest floor |
 | Slate | #2E2A3E | 4 mountain rock, 5 hill |
-| Rock | #7C8C99 | 1 cliff, 7 stone, 8 island undersides |
+| Rock | #9C8F7E (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
 | Sandstone | #B8834F | 2 mesas and strata |
 | Sand | #F3E2B3 | 3 beach and sea bed |
 | Salt | #F2F2EE | 9 white sand |
@@ -345,7 +346,7 @@ the IP flags.
   4. Waterfall gorge cliff (late route).
 - **Mid props**: tiled-roof houses (red / green roofs), training posts, food stall with a made-up sign, paper
   lanterns, tall pines, red arched bridge rails.
-- **Palette**: #3E7D3A, #C9A36B, #E8DCC0, #B23A2E, #7C8C99.
+- **Palette**: #3E7D3A, #C9A36B, #E8DCC0, #B23A2E, #9C8F7E.
 - **Sky**: clear day. ClockTime 14, Atmosphere Density 0.25, Haze 0.4, Color #BFD8F0. Grade saturation +0.15. Light
   bloom. Particles: drifting green leaves.
 - **Audio**: forest birds, light wind, distant river (loop); a woodpecker knock and a wind chime (one-shots).
