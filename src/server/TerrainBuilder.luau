@@ -13,6 +13,11 @@ local TerrainBuilder = {}
 TerrainBuilder.CHUNK = 256 -- placeholder: studs per chunk side
 TerrainBuilder.BASEPLATE_TOP = -60 -- placeholder: below the deepest terrain floor
 local RES = 4 -- voxel resolution (studs)
+-- Studs the smooth-terrain mesher draws a column's surface above `voxel bottom + occupancy * RES` (placeholder,
+-- calibrated in Studio 2026-10-30: corridor Height -1 written that way rendered at y 1.00, flush with the road top).
+-- Occupancy is written LIFT lower so the drawn surface sits at TerrainShape.Height: the corridor shows 2 studs under
+-- the road top (road top 1, corridor -1) and props snapped to Height stand on the drawn ground. Set 0 to undo.
+TerrainBuilder.LIFT = RES / 2
 local M = Enum.Material
 
 -- Spec 3.4 palette (global per material; colours are placeholders). Water colour is set per zone on the client.
@@ -55,6 +60,7 @@ local function writeChunk(terrain, cx, cz)
 	local y0 = math.floor(lo / RES) * RES - RES -- one full voxel below the lowest surface
 	local y1 = math.ceil(hi / RES) * RES
 	local ny = (y1 - y0) // RES
+	local lift = TerrainBuilder.LIFT
 	local mats, occ = table.create(n), table.create(n)
 	for i = 1, n do
 		local mi, oi = table.create(ny), table.create(ny)
@@ -78,11 +84,11 @@ local function writeChunk(terrain, cx, cz)
 			end
 			for j = 1, ny do
 				local yb = y0 + (j - 1) * RES
-				local o = math.clamp((y - yb) / RES, 0, 1)
+				local o = math.clamp((y - lift - yb) / RES, 0, 1)
 				if o > 0 then
 					mi[j][k], oi[j][k] = m, o
-				elseif w and yb < w then
-					mi[j][k], oi[j][k] = M.Water, math.clamp((w - yb) / RES, 0, 1)
+				elseif w and yb < w - lift then
+					mi[j][k], oi[j][k] = M.Water, math.clamp((w - lift - yb) / RES, 0, 1)
 				else
 					mi[j][k], oi[j][k] = M.Air, 0
 				end

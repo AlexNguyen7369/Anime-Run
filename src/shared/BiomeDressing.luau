@@ -33,6 +33,8 @@ local HORIZON_FIT = { 1, 0.75, 0.5, 1 / 3 } -- fractions of the horizon Offset t
 local PATCH_THICKNESS = 0.2 -- studs: ground patches are flat slabs
 local SCATTER_PASSES = 4 -- scatter spots are visited in interleaved passes so a full budget still covers the whole track
 local GRID = 64 -- studs per broad-phase cell in Prune
+local HERO_STRAIGHT = 200 -- studs: a straight this long is a hero spot (spec 4.3)
+local SNAP_SINK = 1 -- placeholder: a snapped prop's base sits at most this far below the ground at its centre
 -- Shares of the budget left after the gate, landmarks and horizon (owner 2026-10-30: every layer gets built).
 -- Each layer may use its share; what it leaves rolls on to the next one.
 local SHARE = { Rhythm = 0.35, Blocks = 0.35 } -- scatter gets the rest
@@ -113,11 +115,22 @@ local function emitter(parent, cfg)
 	e.Parent = parent
 end
 
+local meshOk = {} -- "<biome>/<key>" -> true once that uploaded mesh has been placed
+
+-- Budget parts a def will take: 1 for an uploaded mesh known to load (spec 4.5), else its Parts plus `extra`.
+-- A mesh's first placement is costed as its parts, since the load can still fail and fall back to them.
+local function cost(biome, def, extra)
+	return def.Mesh and meshOk[biome .. "/" .. def.Mesh] and 1 or #def.Parts + extra
+end
+
 -- One prop as a Model whose base centre is `base` and whose -Z faces the road.
 local function place(folder, biome, def, base, name, glow, particles)
 	local model = Instance.new("Model")
 	model.Name = name
 	local mesh = def.Mesh and BiomeDressing.Assets and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size)
+	if mesh then
+		meshOk[biome .. "/" .. def.Mesh] = true
+	end
 	if mesh then
 		mesh.Name = def.Name
 		mesh.CFrame = base * CFrame.new(0, def.Size.Y / 2, 0)
@@ -150,7 +163,7 @@ local function place(folder, biome, def, base, name, glow, particles)
 		visual(part)
 		part.Parent = model
 	end
-	if BiomeDressing.MeshFor(biome, def.Name) then
+	if not mesh and BiomeDressing.MeshFor(biome, def.Name) then
 		-- Invisible box at the mesh's real size: Prune checks it, and Client/BiomeMeshes puts the mesh there
 		-- and hides the fallback parts (EditableMesh content does not replicate, so each client builds it).
 		local size = footprint(biome, def)
@@ -216,7 +229,7 @@ local function features(layout)
 			local t1 = flat(wps[s] - wps[s - 1])
 			local t2 = flat(wps[math.min(#wps, i + 1)] - wps[i])
 			local cross = t1.Z * t2.X - t1.X * t2.Z -- > 0 for a left turn, whose outside is the right
-			table.insert(corners, { Index = (s + i) // 2, Side = cross > 0 and 1 or -1 })
+			table.insert(corners, { Index = (s + i) // 2, Exit = math.min(#wps, i + 1), Side = cross > 0 and 1 or -1 })
 		end
 		i += 1
 	end
@@ -229,6 +242,46 @@ local function features(layout)
 		end
 	end
 	return corners, crests
+end
+
+-- Hero spot for At (fraction of track length, spec 4.3): the waypoint nearest that length among corner exits and
+-- straights of HERO_STRAIGHT+ studs (any waypoint along one); the target waypoint itself when there is neither.
+-- Returns the waypoint and the side (a corner's outside; straights alternate by `n`).
+local function heroSpot(layout, corners, at, n)
+	local wps, curv = layout.Waypoints, layout.Curvature
+	local cum = { 0 }
+	for i = 2, #wps do
+		cum[i] = cum[i - 1] + (wps[i] - wps[i - 1]).Magnitude
+	end
+	local target = math.clamp(at, 0, 1) * cum[#wps]
+	local best, bestGap, side = 1, math.huge, n % 2 == 0 and 1 or -1
+	for i = 1, #wps do
+		if math.abs(cum[i] - target) < math.abs(cum[best] - target) then
+			best = i
+		end
+	end
+	local function offer(i, s)
+		if math.abs(cum[i] - target) < bestGap then
+			best, bestGap, side = i, math.abs(cum[i] - target), s
+		end
+	end
+	for _, c in corners do
+		offer(c.Exit, c.Side)
+	end
+	local i = 1
+	while i < #wps do
+		local s = i
+		while i < #wps and (curv[i + 1] or 0) == 0 do
+			i += 1
+		end
+		if cum[i] - cum[s] >= HERO_STRAIGHT then
+			for j = s, i do
+				offer(j, n % 2 == 0 and 1 or -1)
+			end
+		end
+		i += 1
+	end
+	return best, side
 end
 
 local function near(list, index, gap)
@@ -398,7 +451,7 @@ local function scatter(folder, layout, origin, theme, biome, ground, edge, count
 						count += 1
 					end
 				end
-				if count + #def.Parts + 1 <= budget and onGround(base, reach) then
+				if count + cost(biome, def, 1) <= budget and onGround(base, reach) then
 					count += place(folder, biome, def, base, "Scatter_" .. tag, false)
 				end
 			end
@@ -451,7 +504,7 @@ local function blocks(folder, layout, origin, theme, biome, edge, count, onGroun
 					local distance = edge + b.Near + (row - 1) * b.RowDepth + def.Size.Z / 2
 					local base = beside(layout, origin, i - 1, side, distance, t)
 					local box = { CFrame = base, Half = Vector2.new(def.Size.X / 2, def.Size.Z / 2) }
-					local clear = count + #def.Parts <= budget
+					local clear = count + cost(biome, def, 0) <= budget
 						and onGround(base, Vector2.new(def.Size.X, def.Size.Z).Magnitude / 2)
 					for _, other in placed do
 						if not clear then
@@ -518,8 +571,27 @@ function BiomeDressing.Build(model, layout, spec, origin)
 		local l = ground.CFrame:PointToObjectSpace(base.Position)
 		return l.X - reach >= lo.X and l.X + reach <= hi.X and l.Z - reach >= lo.Z and l.Z + reach <= hi.Z
 	end
+	-- Hero defs with At are pinned (below); the rest keep cycling by index
+	local landmarks, pinned = theme.Landmarks, {}
+	for _, def in landmarks.Props do
+		if def.At then
+			table.insert(pinned, def)
+		end
+	end
+	if #pinned > 0 then
+		landmarks = table.clone(landmarks)
+		landmarks.Props, landmarks.Landmark = {}, true
+		for _, def in theme.Landmarks.Props do
+			if not def.At then
+				table.insert(landmarks.Props, def)
+			end
+		end
+	end
 	local function add(layer, n, i, side, glow, name, fits)
-		local k = layer == theme.Landmarks and BiomeDressing.SCALE.Landmarks
+		if #layer.Props == 0 then
+			return
+		end
+		local k = (layer == theme.Landmarks or layer.Landmark) and BiomeDressing.SCALE.Landmarks
 			or layer == theme.Horizon and BiomeDressing.SCALE.Horizon
 		local raw = layer.Props[n % #layer.Props + 1]
 		-- A horizon piece that fits nowhere at its scale shrinks toward x1 (spec Rules, Scale)
@@ -532,7 +604,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 		for _, s in steps do
 			local def = scaled(raw, s)
 			local size = footprint(biome, def)
-			if count + #def.Parts + 1 > budget then
+			if count + cost(biome, def, 1) > budget then
 				return
 			end
 			for _, f in fits or { 1 } do
@@ -555,9 +627,16 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	local every = theme.Landmarks.Every
 	local corners, crests = features(layout)
 	local spots, n = {}, 0
+	for p, def in pinned do
+		local i, side = heroSpot(layout, corners, def.At, p)
+		local one = table.clone(theme.Landmarks)
+		one.Props, one.Landmark = { def }, true
+		add(one, 0, i, side, true, "Landmark_" .. i)
+		table.insert(spots, i)
+	end
 	for _, c in corners do
 		if not near(spots, c.Index, every // 2) then
-			add(theme.Landmarks, n, c.Index, c.Side, true, "Landmark_" .. c.Index)
+			add(landmarks, n, c.Index, c.Side, true, "Landmark_" .. c.Index)
 			add(theme.Horizon, n, c.Index, -c.Side, false, "Horizon_" .. c.Index, HORIZON_FIT)
 			table.insert(spots, c.Index)
 			n += 1
@@ -565,7 +644,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	end
 	for _, i in crests do
 		if not near(spots, i, 6) then
-			add(theme.Landmarks, n, i, alternate(n), true, "Landmark_" .. i)
+			add(landmarks, n, i, alternate(n), true, "Landmark_" .. i)
 			table.insert(spots, i)
 			n += 1
 		end
@@ -573,7 +652,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	local first = math.min(every, #wps // 2) -- a short straight track still gets one
 	for i = first, #wps - first, every do
 		if not near(spots, i, every // 2) then
-			add(theme.Landmarks, n, i, alternate(n), true, "Landmark_" .. i)
+			add(landmarks, n, i, alternate(n), true, "Landmark_" .. i)
 			table.insert(spots, i)
 			n += 1
 		end
@@ -592,7 +671,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	local rhythmCap = count + math.floor((budget - count) * (theme.Blocks and share.Rhythm or 0.5))
 	local perProp = 0
 	for _, def in rhythm.Props do
-		perProp += #def.Parts / #rhythm.Props
+		perProp += cost(biome, def, 0) / #rhythm.Props
 	end
 	-- Spread the rhythm out (larger step) when its share cannot fill every slot
 	local slots = 2 * (#wps - 2) / rhythm.Every
@@ -690,18 +769,17 @@ local function blockers(trackModels, extra)
 	return list, columns
 end
 
--- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
--- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
--- tree's canopy above the floor or a workshop plot): its parts block as vertical columns.
-function BiomeDressing.Prune(trackModels, extra)
-	local grid = {}
-	local function cells(lo, hi, fn)
-		for cx = math.floor(lo.X / GRID), math.floor(hi.X / GRID) do
-			for cz = math.floor(lo.Z / GRID), math.floor(hi.Z / GRID) do
-				fn(cx .. "," .. cz)
-			end
+local function cells(lo, hi, fn)
+	for cx = math.floor(lo.X / GRID), math.floor(hi.X / GRID) do
+		for cz = math.floor(lo.Z / GRID), math.floor(hi.Z / GRID) do
+			fn(cx .. "," .. cz)
 		end
 	end
+end
+
+-- Broad-phase grid of the blockers, and a test: does `prop`, grown by CLEARANCE, touch any of them?
+local function clearance(trackModels, extra)
+	local grid = {}
 	local list, columns = blockers(trackModels, extra)
 	for k, part in list do
 		local lo, hi = bounds(part.CFrame, part.Size)
@@ -712,35 +790,45 @@ function BiomeDressing.Prune(trackModels, extra)
 		end)
 	end
 	local grow = Vector3.one * BiomeDressing.CLEARANCE
+	return function(prop)
+		local hit = false
+		-- Each part on its own: a gate's posts and beam are clear even though their joint box spans the road.
+		for _, part in prop:IsA("BasePart") and { prop } or prop:GetDescendants() do
+			if part:IsA("BasePart") and not hit then
+				local half = part.Size / 2 + grow -- grown in the part's own axes
+				local lo, hi = bounds(part.CFrame, half * 2)
+				cells(lo, hi, function(key)
+					for _, box in grid[key] or {} do
+						-- a column: test the part as if it stood at the blocker's height (yaw-only parts: a 2D test)
+						local cf = box[5] and part.CFrame + Vector3.new(0, box[3].Position.Y - part.Position.Y, 0)
+							or part.CFrame
+						hit = hit
+							or (
+								lo.X < box[2].X
+								and hi.X > box[1].X
+								and (box[5] or lo.Y < box[2].Y and hi.Y > box[1].Y)
+								and lo.Z < box[2].Z
+								and hi.Z > box[1].Z
+								and overlaps(cf, half, box[3], box[4])
+							)
+					end
+				end)
+			end
+		end
+		return hit
+	end
+end
+
+-- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
+-- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
+-- tree's canopy above the floor or a workshop plot): its parts block as vertical columns.
+function BiomeDressing.Prune(trackModels, extra)
+	local touches = clearance(trackModels, extra)
 	local removed = 0
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
-			local hit = false
-			-- Each part on its own: a gate's posts and beam are clear even though their joint box spans the road.
-			for _, part in prop:IsA("BasePart") and { prop } or prop:GetDescendants() do
-				if part:IsA("BasePart") and not hit then
-					local half = part.Size / 2 + grow -- grown in the part's own axes
-					local lo, hi = bounds(part.CFrame, half * 2)
-					cells(lo, hi, function(key)
-						for _, box in grid[key] or {} do
-							-- a column: test the part as if it stood at the blocker's height (yaw-only parts: a 2D test)
-							local cf = box[5] and part.CFrame + Vector3.new(0, box[3].Position.Y - part.Position.Y, 0)
-								or part.CFrame
-							hit = hit
-								or (
-									lo.X < box[2].X
-									and hi.X > box[1].X
-									and (box[5] or lo.Y < box[2].Y and hi.Y > box[1].Y)
-									and lo.Z < box[2].Z
-									and hi.Z > box[1].Z
-									and overlaps(cf, half, box[3], box[4])
-								)
-						end
-					end)
-				end
-			end
-			if hit then
+			if touches(prop) then
 				prop:Destroy()
 				removed += 1
 			end
@@ -749,29 +837,38 @@ function BiomeDressing.Prune(trackModels, extra)
 	return removed
 end
 
--- Drops every Environment prop of every track onto the terrain: the lowest TerrainShape height of 5 samples
--- (its centre and 4 footprint corners), so it never floats. Corridor props stay (corridor height is GROUND_Y).
--- Call after TerrainShape.Prepare. Returns how many props moved.
+-- Drops every Environment prop of every track onto the terrain (placeholder rule): its base goes to the lowest
+-- TerrainShape height of 5 samples (centre and 4 footprint corners), but never more than SNAP_SINK below the height at
+-- its centre, so a prop on a slope is not buried in the hill (its downhill side may float a little instead).
+-- Corridor props (centre at GROUND_Y) stay, and a move that would bring a prop into a road's CLEARANCE (an elevated
+-- road above a hill) is undone. Call after TerrainShape.Prepare and Prune. Returns how many props moved.
 function BiomeDressing.SnapToTerrain(trackModels)
 	local TerrainShape = require(script.Parent.TerrainShape)
 	if not TerrainShape.Ready() then
 		return 0
 	end
+	local touches = clearance(trackModels)
 	local moved = 0
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
 			if prop:IsA("Model") then
 				local cf, size = prop:GetBoundingBox()
-				local low = math.huge
-				for _, c in { { 0, 0 }, { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
+				local centre = TerrainShape.Height(cf.Position.X, cf.Position.Z)
+				local low = centre
+				for _, c in { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
 					local p = cf:PointToWorldSpace(Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2))
 					low = math.min(low, TerrainShape.Height(p.X, p.Z))
 				end
-				local dy = low - GROUND_Y
-				if math.abs(dy) > 0.05 then
-					prop:PivotTo(prop:GetPivot() + Vector3.new(0, dy, 0))
-					moved += 1
+				local dy = math.max(low, centre - SNAP_SINK) - GROUND_Y
+				if math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05 then
+					local pivot = prop:GetPivot()
+					prop:PivotTo(pivot + Vector3.new(0, dy, 0))
+					if touches(prop) then
+						prop:PivotTo(pivot)
+					else
+						moved += 1
+					end
 				end
 			end
 		end
