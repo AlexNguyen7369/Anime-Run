@@ -13,8 +13,9 @@
 10. 2026-10-30 — Alex Nguyen — Landed anime-world w2: anime town plaza hub at the world origin, 7 Dojo plots and the Dojo squad rule, track chain moved to (-118, TRACK_LIFT, 80); full harness `[CARTEST] END pass=47 fail=0`.
 11. 2026-10-30 — Alex Nguyen — Committed anime-world w3 work in progress on orch/anime-world/w3 (spiral layouts for Tracks 1-10, TARGET_LENGTH check, wide bends on Tracks 7-10, faster overlap tests), not yet verified in Studio; added the dashboard tool and /dashboard command.
 12. 2026-10-30 — Alex Nguyen — Landed anime-world w3 (spiral track layouts 1-10 at target lengths, wide bends on Tracks 7-10) and w4 (anime biome themes 1-10, IVS mesh assets removed); environment pass=450 fail=0.
+13. 2026-10-30 — Alex Nguyen — Landed biomes b0: BIOME_ENVIRONMENT_SPEC approved with owner rulings (free Creator Store assets as Lane D, biomes built one track at a time); core c1 paused for biomes.
 
 ## What's next
-**Core c1: team of 3, stamina, swap, run end by exhaustion, restored run bank and HUD (tests f947f51 / 31a4ff7 on orch/core/c1).**
+**Biomes b1: environment framework (code-generated terrain and water, per-zone client atmosphere, ambient audio, asset registry) on orch/biomes/b1.**
 
-**Why this is next:** stamina and the team are the core run loop in the design doc; c2's categories, stat point, potion and team bonus all build on them.
+**Why this is next:** every b2 biome (Track 1 first, then 2-10) is built on this framework, and the owner's per-track screenshots depend on it.
