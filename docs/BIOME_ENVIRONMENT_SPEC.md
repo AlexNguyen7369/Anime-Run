@@ -187,7 +187,7 @@ placeholders.
 | Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland |
 | Mud | #2A2440 | 4 night forest floor |
 | Slate | #2E2A3E | 4 mountain rock, 5 hill |
-| Rock | #9C8F7E (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
+| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
 | Sandstone | #B8834F | 2 mesas and strata |
 | Sand | #F3E2B3 | 3 beach and sea bed |
 | Salt | #F2F2EE | 9 white sand |
