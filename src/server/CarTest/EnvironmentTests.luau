@@ -112,6 +112,12 @@ local PATCH_THICKNESS = 0.2
 local PATCH_GROUND_TOL = 0.05
 -- Scale and detail (owner 2026-10-27, design doc Track environments; spec Rules "Budget", "Scale", "City skyscrapers")
 local BUDGET = 1200 -- spec placeholder: BaseParts per track Environment
+-- Owner 2026-10-30 (spec Biomes): the budget grows with track length, BUDGET parts per ~BUDGET_STUDS of track
+-- (placeholder). Test reading: never below BUDGET.
+local BUDGET_STUDS = 3000
+-- Owner 2026-10-30 (spec Biomes): Track 1's gate is the plaza torii StartGate, next to its start. Test-side bound,
+-- from the SpawnArea contract "walk spawn within 150 studs of that start".
+local TORII_NEAR = 150
 local WANT_SCALE = { Landmarks = 1.75, Horizon = 2, Scatter = 1.5 } -- spec placeholders; Rhythm and gate unscaled
 local LAYER_OF_PREFIX = { Landmark_ = "Landmarks", Horizon_ = "Horizon", Scatter_ = "Scatter" }
 local CITY = 6
@@ -119,7 +125,6 @@ local CITY_TOWER_PROPS = { Skyscraper = true, SkyscraperPink = true, Block = tru
 local CITY_TOWER_MIN_PARTS = 25
 local CITY_TOWER_MIN_HEIGHT = 100 -- studs, model bounding box of the tallest City landmark
 -- Populated city (owner 2026-10-27, design doc Track environments; spec Layers 9 Blocks, Rules "Theme budget")
-local CITY_BUDGET = 2600 -- spec placeholder: City theme Budget
 local CITY_MIN_BLOCKS = 60
 local BLOCK_SHRINK = 0.5 -- studs each footprint is shrunk by before the overlap test
 local BLOCK_PROBE_STEP = 24 -- studs between coverage probes along straight road
@@ -876,18 +881,12 @@ function Tests.environment()
 		end
 		flag(("environment_no_real_names_%d"):format(n), env ~= nil and named == nil)
 		flag(("environment_no_ivs_assets_%d"):format(n), env ~= nil and ivsBuilt == 0, ivsBuilt, 0)
-		-- Spec Rules "Theme budget" (owner 2026-10-27): a theme Budget replaces BUDGET for its track. Only the City's
-		-- value (2600) is in the doc, so every other track stays capped at BUDGET and the City at CITY_BUDGET.
+		-- Length-scaled budget (owner 2026-10-30, replaces the fixed BUDGET / CITY_BUDGET caps): BUDGET parts per
+		-- BUDGET_STUDS of the track's Length attribute, never below BUDGET
 		local theme = Themes and BIOMES[n] and Themes[BIOMES[n]]
-		local cap = n == CITY and CITY_BUDGET or BUDGET
-		local limit = theme and type(theme.Budget) == "number" and theme.Budget
-			or (type(budget) == "number" and budget or BUDGET)
-		limit = math.min(limit, cap)
+		local length = model:GetAttribute("Length")
+		local limit = math.floor(BUDGET * math.max(1, (type(length) == "number" and length or 0) / BUDGET_STUDS))
 		flag(("environment_budget_%d"):format(n), #parts <= limit, #parts, limit)
-		if n == CITY then
-			local got = theme and theme.Budget
-			flag("city_budget_value", got == CITY_BUDGET, type(got) == "number" and got or -1, CITY_BUDGET)
-		end
 
 		-- Gate (spec Layers 4): a Gate* part on the FIRST STRAIGHT, after Prune: its horizontal distance from Start along
 		-- the start direction is within 0..spec.Segments[1].Length
@@ -906,12 +905,23 @@ function Tests.environment()
 				end
 			end
 		end
-		flag(
-			("gate_at_start_%d"):format(n),
-			gateAlong ~= nil,
-			gateAlong == nil and -1 or math.round(gateAlong * 100) / 100,
-			firstLength
-		)
+		if n == 1 then
+			-- Owner 2026-10-30: Track 1 builds no biome gate; the plaza torii StartGate near its start is its gate
+			local torii = spawnModel and spawnModel:FindFirstChild("StartGate")
+			local dist = torii
+					and torii:IsA("Model")
+					and ((torii:GetPivot().Position - startCF.Position) * Vector3.new(1, 0, 1)).Magnitude
+				or -1
+			flag("gate_at_start_1", dist >= 0 and dist <= TORII_NEAR, math.round(dist * 100) / 100, TORII_NEAR)
+			flag("gate_none_in_biome_1", env ~= nil and env:FindFirstChild("Gate") == nil)
+		else
+			flag(
+				("gate_at_start_%d"):format(n),
+				gateAlong ~= nil,
+				gateAlong == nil and -1 or math.round(gateAlong * 100) / 100,
+				firstLength
+			)
+		end
 
 		-- Gate sign (owner 2026-10-21, design doc Track environments "gate signs"; spec Layers 4 "Sign"): Part GateSign
 		-- in Environment/Gate, SurfaceGui GateSignGui on the face toward the oncoming car, TextLabel Biome (upper-case
@@ -921,21 +931,30 @@ function Tests.environment()
 		local sign = gateModel and gateModel:FindFirstChild("GateSign")
 		local gui = sign and sign:IsA("BasePart") and sign:FindFirstChild("GateSignGui")
 		gui = gui and gui:IsA("SurfaceGui") and gui or nil
-		flag(("gate_sign_gui_%d"):format(n), gui ~= nil)
+		local signed = n ~= 1 -- the torii has no biome sign (plaque only), so Track 1 has no sign checks
+		if signed then
+			flag(("gate_sign_gui_%d"):format(n), gui ~= nil)
+		end
 		local biomeLabel = gui and gui:FindFirstChild("Biome")
 		local recLabel = gui and gui:FindFirstChild("RecSpeed")
 		biomeLabel = biomeLabel and biomeLabel:IsA("TextLabel") and biomeLabel or nil
 		recLabel = recLabel and recLabel:IsA("TextLabel") and recLabel or nil
 		-- w4: the sign shows the biome's working name (theme DisplayName), upper-case
 		local wantBiome = BIOME_NAMES[n] and string.upper(BIOME_NAMES[n]) or "?"
-		flag(("gate_sign_biome_%d"):format(n), biomeLabel ~= nil and biomeLabel.Text == wantBiome)
+		if signed then
+			flag(("gate_sign_biome_%d"):format(n), biomeLabel ~= nil and biomeLabel.Text == wantBiome)
+		end
 		local npcSpeed = NpcConfig.For(n).Speed
 		local rec = RaceConfig.StatFor(npcSpeed)
 		local recText = rec == math.huge and HudFormat.Short(rec) or HudFormat.SpeedText(rec)
-		flag(("gate_sign_rec_speed_%d"):format(n), recLabel ~= nil and recLabel.Text == "REC. SPEED " .. recText)
+		if signed then
+			flag(("gate_sign_rec_speed_%d"):format(n), recLabel ~= nil and recLabel.Text == "REC. SPEED " .. recText)
+		end
 		-- owner 2026-10-27: the number uses the lowercase suffixes (k m b t qd ...), never "10K" / "1Qd"
 		local recNum = recLabel and string.sub(recLabel.Text, #"REC. SPEED " + 1) or "?"
-		flag(("gate_sign_rec_lowercase_%d"):format(n), recLabel ~= nil and not string.find(recNum, "%u"))
+		if signed then
+			flag(("gate_sign_rec_lowercase_%d"):format(n), recLabel ~= nil and not string.find(recNum, "%u"))
+		end
 		-- The recommended shown Speed really cruises at the NPC's speed (finite cases)
 		local cruise = rec < math.huge and RaceConfig.SpeedFor(rec) or npcSpeed
 		flag(
@@ -957,7 +976,9 @@ function Tests.environment()
 			local normal = sign.CFrame:VectorToWorldSpace(Vector3.FromNormalId(gui.Face))
 			facing = -(normal * Vector3.new(1, 0, 1)):Dot(ahead)
 		end
-		flag(("gate_sign_faces_car_%d"):format(n), facing >= 0.9, math.round(facing * 100) / 100, 0.9)
+		if signed then
+			flag(("gate_sign_faces_car_%d"):format(n), facing >= 0.9, math.round(facing * 100) / 100, 0.9)
+		end
 
 		local flagsBad, hits, firstBad = 0, 0, nil
 		for _, part in parts do
