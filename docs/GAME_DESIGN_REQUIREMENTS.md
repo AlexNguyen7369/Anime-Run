@@ -196,6 +196,11 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-31 (later): owner: Track 7 gets one fight scene the player passes: Gojio [Gojo] mid domain expansion against
+  Joggo [Jogo], Hanamy [Hanami], Mahitto [Mahito] and Chosu [Choso] (Shibuya Incident, station platform). Parody
+  look-alike figures (section 5: tweaked names, in-house art, no official names, logos or ripped assets; names are
+  internal only, never displayed). Overrides the Track 7 "no character likenesses" scenery flag for this scene only.
+  Researched from public information; scene spec in BIOME_ENVIRONMENT_SPEC section 7 Track 7.
 - 2026-10-31: owner redesign of three tracks (tweaked names, section 5 safeguards kept):
   Track 5 becomes the burning city of the Jogo vs Sukuna fight (Jujutsu Kaisen), night, fire-lit: smoky sky lit orange,
   embers, craters, scorched streets, fire everywhere. Track 7 becomes the Shibuya Incident subway (Jujutsu Kaisen):

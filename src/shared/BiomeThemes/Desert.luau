@@ -25,14 +25,17 @@ local STEEL = hex("6E747C")
 local DARK = hex("3A3F46")
 local GLASS = hex("9FC7D0")
 
--- A mesh prop (spec 4.2): `def`'s parts, scaled to `size`'s height, are the fallback when the ledger row is unusable.
--- `size` is the generate_mesh target until the real mesh size is known (phase 2 sets the mesh's own proportions).
+-- A mesh prop (spec 4.2): `def`'s parts, stretched to `size` per axis, are the fallback when the ledger row is
+-- unusable. Stretched, not scaled by height, because the tunnel fit (BiomeDressing tunnelBox) also reads the fallback
+-- parts' corners. `size` keeps the generated mesh's own proportions unless a comment says it is stretched.
 local function meshed(def, key, size, extra)
-	local k = size.Y / def.Size.Y
+	local k = size / def.Size
 	local parts = {}
 	for i, p in def.Parts do
 		local q = table.clone(p)
-		q.Size = p.Size * k
+		-- an upright cylinder (Kit.post) stretches along its own axes
+		local kl = p.Shape == Kit.CYL and p.Rot and p.Rot:VectorToObjectSpace(k) or k
+		q.Size = p.Size * Vector3.new(math.abs(kl.X), math.abs(kl.Y), math.abs(kl.Z))
 		q.Pos = p.Pos * k
 		parts[i] = q
 	end
@@ -74,22 +77,16 @@ local function concourseAtrium()
 	return prop("ConcourseAtrium", v(30, 19, 16), parts, { Glow = FLUO })
 end
 
--- Hero 2: a stalled train of 3 generic boxy cars (cream body, one teal band, dark windows), no numbers or logos.
+-- Hero 2: a stalled subway car derailed across the platform, its plain end toward the road (the generator makes long
+-- shapes along Z and the registry cannot turn a mesh): cream body, one teal band, dark windows, no numbers or logos.
 local function stalledTrain()
-	local parts = {}
-	for i, x in { -11.5, 0, 11.5 } do
-		table.insert(parts, part(v(11, 5.2, 5.4), v(x, 3.4, 0), hex("DCD8CC"), M.Metal)) -- body
-		table.insert(parts, part(v(11.05, 0.6, 5.5), v(x, 2.4, 0), TEAL, M.SmoothPlastic)) -- band
-		table.insert(parts, part(v(9, 1.6, 5.5), v(x, 4.4, 0), hex("2A3138"), M.Glass)) -- windows
-		table.insert(parts, part(v(10.6, 0.5, 5), v(x, 6.25, 0), STEEL, M.Metal)) -- roof
-		table.insert(parts, part(v(9, 0.8, 4.6), v(x, 0.4, 0), BED, M.Metal)) -- bogies
-		if i == 2 then
-			table.insert(parts, part(v(1.6, 3.6, 5.6), v(x, 3, 0), hex("3A4048"), M.Metal)) -- open door gap
-		end
-	end
-	table.insert(parts, part(v(0.6, 3, 0.6), v(-17, 3.5, -2), FLUO, M.Neon)) -- headlights
-	table.insert(parts, part(v(0.6, 3, 0.6), v(17, 3.5, -2), RED, M.Neon)) -- tail lights
-	return prop("StalledTrain", v(34, 7, 6), parts, { Glow = FLUO })
+	return prop("StalledTrain", v(6.3, 8, 13.2), {
+		part(v(6, 5.6, 13), v(0, 4.4, 0), hex("DCD8CC"), M.Metal), -- body
+		part(v(6.1, 1.6, 13.1), v(0, 2.6, 0), TEAL, M.SmoothPlastic), -- band
+		part(v(6.1, 1.6, 10), v(0, 5.4, 0), hex("2A3138"), M.Glass), -- side windows
+		part(v(6.3, 0.8, 13.2), v(0, 7.6, 0), STEEL, M.Metal), -- roof
+		part(v(5, 1.2, 11), v(0, 0.6, 0), BED, M.Metal), -- bogies
+	}, { Glow = FLUO })
 end
 
 -- Hero 3: the deep main platform hall: a long island platform piece with rows of grey columns, half-height platform
@@ -123,10 +120,10 @@ local function collapsedEscalator()
 		part(v(16, 1.6, 4), v(0, 6, 0), DARK, M.DiamondPlate, nil, CFrame.Angles(0, 0, math.rad(-35))), -- truss
 		part(v(16, 2, 0.4), v(0, 7.4, -2.1), STEEL, M.Metal, nil, CFrame.Angles(0.15, 0, math.rad(-35))), -- rail
 		part(v(16, 2, 0.4), v(0, 7.4, 2.1), STEEL, M.Metal, nil, CFrame.Angles(-0.2, 0, math.rad(-38))),
-		part(v(6, 0.6, 5), v(-6, 1, -3), CONCRETE, M.Concrete, nil, CFrame.Angles(0.3, 0.4, 0.2)), -- fallen panels
-		part(v(5, 0.6, 4), v(5, 0.8, 3), hex("A8A49A"), M.Concrete, nil, CFrame.Angles(-0.2, 0.9, 0.3)),
-		part(v(3, 2, 3), v(8, 1, -4), CONCRETE, M.Slate, nil, CFrame.Angles(0, 0.5, 0.2)), -- rubble
-		part(v(2.4, 1.6, 2), v(-8.5, 0.8, 4), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0.2, 0.3, 0)),
+		part(v(6, 0.6, 5), v(-6, 1.8, -3), CONCRETE, M.Concrete, nil, CFrame.Angles(0.3, 0.4, 0.2)), -- fallen panels
+		part(v(5, 0.6, 4), v(5, 1.6, 3), hex("A8A49A"), M.Concrete, nil, CFrame.Angles(-0.2, 0.9, 0.3)),
+		part(v(3, 2, 3), v(8, 1.8, -4), CONCRETE, M.Slate, nil, CFrame.Angles(0, 0.5, 0.2)), -- rubble
+		part(v(2.4, 1.6, 2), v(-8.5, 1.2, 4), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0.2, 0.3, 0)),
 		part(v(8, 3, 0.8), v(0, 10, 6.5), TILE, M.CeramicTiles), -- tile wall chunk
 		part(v(8, 0.6, 0.85), v(0, 9.6, 6.5), TEAL, M.SmoothPlastic),
 		part(v(1.2, 0.6, 3), v(-4, 11.8, -2), RED, M.Neon), -- emergency light
@@ -173,6 +170,8 @@ local ticketGate = prop("TicketGates", v(10, 4, 3), {
 })
 -- Wall map: a board of abstract coloured lines and dots on the tiles (no text, no real line colours or map)
 local wallMap = prop("WallMap", v(8, 10, 1), {
+	part(v(0.4, 5, 0.4), v(-3.5, 2.5, 0.3), STEEL, M.Metal), -- legs (the board stands on the floor)
+	part(v(0.4, 5, 0.4), v(3.5, 2.5, 0.3), STEEL, M.Metal),
 	part(v(8, 5, 0.4), v(0, 7.5, 0.3), hex("F4F2EC"), M.SmoothPlastic),
 	part(v(8.2, 0.3, 0.5), v(0, 10.1, 0.3), STEEL, M.Metal),
 	part(v(6, 0.3, 0.1), v(0, 8.4, 0.05), TEAL, M.Neon),
@@ -181,10 +180,10 @@ local wallMap = prop("WallMap", v(8, 10, 1), {
 	part(v(0.8, 0.8, 0.1), v(2.5, 8.4, 0), RED, M.SmoothPlastic, BALL),
 })
 local rubble = prop("Rubble", v(8, 2, 6), {
-	part(v(4, 0.6, 3), v(-1.5, 0.3, -0.5), CONCRETE, M.Concrete, nil, CFrame.Angles(0.15, 0.4, 0.1)),
-	part(v(3, 1.4, 2.4), v(2, 0.7, 1), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0, 0.7, 0.2)),
-	part(v(2.4, 0.3, 2), v(-2.5, 0.6, 2), TILE, M.CeramicTiles, nil, CFrame.Angles(0.3, 0.2, 0)), -- broken tiles
-	part(v(2, 1.2, 1.6), v(3, 0.6, -2), hex("74706A"), M.Slate, nil, CFrame.Angles(0.2, 1.1, 0)),
+	part(v(4, 0.6, 3), v(-1.5, 0.6, -0.5), CONCRETE, M.Concrete, nil, CFrame.Angles(0, 0.4, 0)),
+	part(v(3, 1.4, 2.4), v(2, 1.1, 1), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0, 0.7, 0)),
+	part(v(2.4, 0.3, 2), v(-2.5, 0.8, 2), TILE, M.CeramicTiles, nil, CFrame.Angles(0, 0.2, 0)), -- broken tiles
+	part(v(2, 1.2, 1.6), v(3, 1, -2), hex("74706A"), M.Slate, nil, CFrame.Angles(0, 1.1, 0)),
 })
 -- Surface: a street stair entrance down to the subway, a glass canopy over the steps, a plain colour band, no sign
 local stairEntrance = prop("StairEntrance", v(12, 8, 8), {
@@ -222,21 +221,25 @@ local streetPost = prop("StreetPost", v(3, 12, 3), { -- surface street lamp
 	part(v(1.6, 0.3, 0.8), v(-1.2, 11.5, 0), FLUO, M.Neon),
 })
 
--- Mesh props (Lane A, generated in phase 2; sizes are the generate_mesh targets)
-local columnMesh = meshed(column, "PlatformColumnMesh", v(2, 16, 2))
-local screenDoorMesh = meshed(screenDoor, "ScreenDoorMesh", v(10, 5, 1))
-local benchMesh = meshed(bench, "PlatformBenchMesh", v(6, 2.5, 2))
-local vendingMesh = meshed(vending, "VendingMachineMesh", v(4, 7, 3))
-local ticketGateMesh = meshed(ticketGate, "TicketGatesMesh", v(10, 4, 3))
-local wallMapMesh = meshed(wallMap, "WallMapMesh", v(8, 10, 1))
-local rubbleMesh = meshed(rubble, "RubbleMesh", v(8, 2, 6))
-local entranceMesh = meshed(stairEntrance, "StairEntranceMesh", v(12, 8, 8))
+-- Mesh props (Lane A); sizes keep each mesh's own proportions unless a comment says it is stretched. Benches,
+-- vending machines and ticket gates face +Z (away from the road), so they are scatter props only (random yaw).
+local columnMesh = meshed(column, "PlatformColumnMesh", v(2, 11.5, 2)) -- mesh 2 x 3.83 x 2, stretched x3 up
+local screenDoorMesh = meshed(screenDoor, "ScreenDoorMesh", v(5.8, 3.9, 1)) -- mesh 3.88 x 3.92 x 1, stretched x1.5 wide
+local benchMesh = meshed(bench, "PlatformBenchMesh", v(3.74, 2.5, 1.79))
+local vendingMesh = meshed(vending, "VendingMachineMesh", v(4, 6.25, 2.78))
+local ticketGateMesh = meshed(ticketGate, "TicketGatesMesh", v(5.26, 4, 1.97))
+local wallMapMesh = meshed(wallMap, "WallMapMesh", v(6.4, 6.08, 1))
+local rubbleMesh = meshed(rubble, "RubbleMesh", v(3.82, 3.2, 3.88)) -- mesh 2.39 x 2 x 2.43, x1.6
+local entranceMesh = meshed(stairEntrance, "StairEntranceMesh", v(8.19, 8, 5.14))
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row
--- (added with its id in phase 2). Ids are filled in phase 2; Reviewed is left for the rules auditor (spec 4.1 step 3).
--- Notes give the generate_mesh call: size (studs) and segmentation; Tris is its maxTriangles.
-local function meshRow(prompt, tris, notes)
-	return { Kind = "Mesh", Lane = "A", Prompt = prompt, Tris = tris, Notes = notes }
+-- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups are in assets/biomes/Desert/review/.
+-- Notes give the generate_mesh call: size (studs) and segmentation, and the mesh's own size; Tris is its maxTriangles.
+local function meshRow(id, texture, prompt, tris, notes)
+	return { Kind = "Mesh", Id = id, Lane = "A", Prompt = prompt, Texture = texture, Tris = tris, Notes = notes }
+end
+local function textureRow(id, mesh)
+	return { Kind = "Texture", Id = id, Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
 end
 
 -- Tunnel bays (spec 7, Track 7; fractions of the 11,245-stud track)
@@ -283,16 +286,15 @@ return {
 		Offset = 10,
 		Every = 60,
 		Props = {
-			-- x1.75: 35 x 22.75 x 24.5
-			meshed(collapsedEscalator(), "CollapsedEscalatorMesh", v(20, 13, 14), { Hero = true, At = 0.16 }),
-			-- x1.75: 52.5 x 33.25 x 28
-			meshed(concourseAtrium(), "ConcourseAtriumMesh", v(30, 19, 16), { Hero = true, At = 0.36 }),
-			-- x1.75: 59.5 x 12.25 x 10.5
-			meshed(stalledTrain(), "StalledTrainMesh", v(34, 7, 6), { Hero = true, At = 0.6 }),
-			-- x1.75: 59.5 x 22.75 x 28
-			meshed(platformHall(), "PlatformHallMesh", v(34, 13, 16), { Hero = true, At = 0.83 }),
-			ticketGateMesh,
-			vendingMesh,
+			-- mesh 5.9 x 10.76 x 14, x1.1 (x1.75: 11.4 x 20.7 x 27); runs down toward the road. x1.3 did not fit: the first
+			-- platform sits on the ramp, which eats headroom
+			meshed(collapsedEscalator(), "CollapsedEscalatorMesh", v(6.5, 11.8, 15.4), { Hero = true, At = 0.16 }),
+			-- mesh 24.85 x 19 x 9.49, own size (x1.75: 43.5 x 33.25 x 16.6)
+			meshed(concourseAtrium(), "ConcourseAtriumMesh", v(24.85, 19, 9.49), { Hero = true, At = 0.36 }),
+			-- mesh 6.31 x 8 x 13.2, x1.5 (x1.75: 16.6 x 21 x 34.7)
+			meshed(stalledTrain(), "StalledTrainMesh", v(9.47, 12, 19.8), { Hero = true, At = 0.6 }),
+			-- mesh 17.07 x 13 x 9.98, x1.1 (x1.75: 32.9 x 25 x 19.2)
+			meshed(platformHall(), "PlatformHallMesh", v(18.8, 14.3, 11), { Hero = true, At = 0.83 }),
 		},
 	},
 	-- Surface (earth over the roof): sparse stair entrances, air shafts and street lamps
@@ -306,7 +308,7 @@ return {
 		Every = 3,
 		Near = 8,
 		Far = 40,
-		Props = { columnMesh, benchMesh, screenDoorMesh, rubbleMesh, "VendingMachine", "TicketGates" },
+		Props = { columnMesh, benchMesh, screenDoorMesh, rubbleMesh, vendingMesh, ticketGateMesh },
 		Patches = {
 			patch("TactileStrip", 12, 1.2, TACTILE, M.SmoothPlastic),
 			patch("BrokenTiles", 8, 6, TILE, M.CeramicTiles),
@@ -367,76 +369,122 @@ return {
 	-- checked on economy.roblox.com asset details 2026-10-31.
 	Assets = {
 		CollapsedEscalatorMesh = meshRow(
-			"collapsed escalator in an underground hall, a long dark metal escalator truss tilted down from a broken concrete ceiling slab, bent steel handrails, fallen grey ceiling panels and concrete rubble at its foot, a chunk of cream tiled wall with one teal stripe, a small red emergency lamp, no signs, no text, stylized cartoon style",
+			"rbxassetid://95717321326261",
+			"CollapsedEscalatorTex",
+			"broken escalator lying diagonally from a high concrete landing down to the floor, metal steps visible, black rubber handrails on grey metal side panels, the landing slab cracked and tilted, grey concrete chunks and broken cream tiles piled around its foot, plain surfaces with no markings, no signs, no text, stylized cartoon style",
 			15000,
-			"hero 4 (At 0.16, first platform): generate_mesh size 20 x 13 x 14, segmentation none; front faces -Z"
+			"hero 4 (At 0.16, first platform): generate_mesh size 20 x 13 x 14, segmentation none; second try (the first had odd marks under a slab); mesh 5.9 x 10.76 x 14"
 		),
 		ConcourseAtriumMesh = meshRow(
+			"rbxassetid://117670017289451",
+			"ConcourseAtriumTex",
 			"box shaped multi level underground concourse hall, two straight concrete balcony levels on grey steel columns, two escalators crossing each other in an X between the levels, glass balcony rails, fluorescent light strips under each level, cream tiled back wall with one teal stripe, a row of plain grey ticket gates in front, rectangular not round, no signs, no text, no logo, stylized cartoon style",
 			15000,
-			"hero 1 (At 0.36, concourse): generate_mesh size 30 x 19 x 16, segmentation none; open side faces -Z; box void only, never an oval atrium"
+			"hero 1 (At 0.36, concourse): generate_mesh size 30 x 19 x 16, segmentation none; open side faces -Z; box void only, never an oval atrium; mesh 24.85 x 19 x 9.49"
 		),
 		StalledTrainMesh = meshRow(
-			"three generic boxy subway train cars coupled in a row, plain cream metal bodies with one teal band along the side, dark window strip, flat grey roofs, sliding doors, one door open, dark wheel bogies, white headlights at one end, no numbers, no letters, no logo, stylized cartoon style",
+			"rbxassetid://114093523046760",
+			"StalledTrainTex",
+			"one generic boxy subway train car, long body running front to back, plain cream metal sides with one teal band and a row of dark side windows and sliding doors, flat grey roof, dark wheel bogies, both ends are flat plain cream walls with a single narrow closed grey door in the middle and no windows and no lights, no numbers, no letters, no logo, stylized cartoon style",
 			12000,
-			"hero 2 (At 0.6, second platform): generate_mesh size 34 x 7 x 6, segmentation none; cars run along X"
+			"hero 2 (At 0.6, second platform): generate_mesh size 7 x 8 x 16, segmentation none; fourth try (the generator makes long shapes along Z; earlier cab ends had a big window under two lamps, a face risk); plain end faces -Z; mesh 6.31 x 8 x 13.2"
 		),
 		PlatformHallMesh = meshRow(
+			"rbxassetid://72257775317628",
+			"PlatformHallTex",
 			"long island subway platform section, grey concrete platform floor with a yellow tactile strip along the front edge, two rows of slim grey steel columns, half height glass platform screen doors along the edge, two wooden benches, a concrete ceiling beam with fluorescent light strips, no signs, no text, stylized cartoon style",
 			15000,
-			"hero 3 (At 0.83, main hall): generate_mesh size 34 x 13 x 16, segmentation none; screen doors face -Z"
+			"hero 3 (At 0.83, main hall): generate_mesh size 34 x 13 x 16, segmentation none; screen doors face -Z; mesh 17.07 x 13 x 9.98"
 		),
 		PlatformColumnMesh = meshRow(
+			"rbxassetid://74635002549927",
+			"PlatformColumnTex",
 			"slim grey steel subway platform column, round shaft on a square cream tiled foot, one teal painted band, stylized low poly cartoon style",
 			600,
-			"mid: generate_mesh size 2 x 16 x 2, segmentation none"
+			"mid: generate_mesh size 2 x 16 x 2, segmentation none; mesh 2 x 3.83 x 2"
 		),
 		ScreenDoorMesh = meshRow(
+			"rbxassetid://85305644705712",
+			"ScreenDoorTex",
 			"half height subway platform screen door section, two glass sliding panels in a grey steel frame with a steel head rail, no text, stylized low poly cartoon style",
 			1000,
-			"mid: generate_mesh size 10 x 5 x 1, segmentation none; glass faces -Z"
+			"mid: generate_mesh size 10 x 5 x 1, segmentation none; faces -Z; mesh 3.88 x 3.92 x 1"
 		),
 		PlatformBenchMesh = meshRow(
+			"rbxassetid://95311727005276",
+			"PlatformBenchTex",
 			"simple subway platform bench, wooden slat seat and backrest on two grey steel legs, stylized low poly cartoon style",
 			800,
-			"mid: generate_mesh size 6 x 2.5 x 2, segmentation none; seat faces -Z"
+			"mid: generate_mesh size 6 x 2.5 x 2, segmentation none; seat faces +Z (scatter only); mesh 3.74 x 2.5 x 1.79"
 		),
 		VendingMachineMesh = meshRow(
-			"plain blank drinks vending machine, light grey box, a glass front showing rows of simple coloured bottles, a teal light strip at the top, no logo, no letters, no text, stylized low poly cartoon style",
+			"rbxassetid://86163788454964",
+			"VendingMachineTex",
+			"plain blank vending machine, light grey metal cabinet, a glass front window showing rows of small colourful boxes, a teal light strip at the top, a dark slot at the bottom, no logo, no letters, no text, stylized low poly cartoon style",
 			1200,
-			"mid: generate_mesh size 4 x 7 x 3, segmentation none; front faces -Z"
+			"mid: generate_mesh size 4 x 7 x 3, segmentation none; second prompt (the first failed moderation); front faces +Z (scatter only), blank labels; mesh 4 x 6.25 x 2.78"
 		),
 		TicketGatesMesh = meshRow(
-			"row of four grey automatic ticket gate cabinets with small red swing flaps between them and small teal lights on top, plain with no signs and no text, stylized low poly cartoon style",
+			"rbxassetid://136019329692135",
+			"TicketGatesTex",
+			"four waist high long grey station ticket gate cabinets standing in a parallel row with narrow walkways between them, short flat red paddle barriers sticking sideways into each walkway, a small flat teal light panel on top of each cabinet, plain with no signs and no text, stylized low poly cartoon style",
 			1500,
-			"mid: generate_mesh size 10 x 4 x 3, segmentation none; entry faces -Z"
+			"mid: generate_mesh size 10 x 4 x 5, segmentation none; second try (the first read as phone handsets); paddles face +Z (scatter only); mesh 5.26 x 4 x 1.97"
 		),
 		WallMapMesh = meshRow(
-			"flat wall mounted information board, white panel showing only abstract coloured lines and dots, a teal line, a yellow line, a blue diagonal line and a red dot, thin steel frame on top, no letters, no words, no numbers, no logo, stylized low poly cartoon style",
+			"rbxassetid://117284770195643",
+			"WallMapTex",
+			"standing information board on two short grey metal legs, a solid flat white rectangular panel in a thin grey frame, the panel face printed with a few smooth abstract coloured stripes and round dots only, teal, yellow and blue stripes, no letters, no words, no numbers, no logo, stylized low poly cartoon style",
 			600,
-			"mid: generate_mesh size 8 x 10 x 1, segmentation none; board in the top half, face -Z (abstract shapes only, never a real line map)"
+			"mid: generate_mesh size 8 x 8 x 1, segmentation none; second try (the first was an open frame with no panel); abstract swooshes only, never a real line map; faces -Z; mesh 6.4 x 6.08 x 1"
 		),
 		RubbleMesh = meshRow(
+			"rbxassetid://129012579914034",
+			"RubbleTex",
 			"small pile of broken grey concrete chunks, a fallen ceiling panel and broken cream tiles, stylized low poly cartoon style",
 			800,
-			"mid: generate_mesh size 8 x 2 x 6, segmentation none"
+			"mid: generate_mesh size 8 x 2 x 6, segmentation none; mesh 2.39 x 2 x 2.43"
 		),
 		StairEntranceMesh = meshRow(
+			"rbxassetid://95781847098590",
+			"StairEntranceTex",
 			"street level stair entrance down to an underground railway, concrete base, steps going down between grey steel side walls, a flat glass canopy on four thin posts, one plain teal colour band, no sign, no letters, no logo, stylized low poly cartoon style",
 			3000,
-			"surface: generate_mesh size 12 x 8 x 8, segmentation none; stair opening faces -Z"
+			"surface: generate_mesh size 12 x 8 x 8, segmentation none; reads as a glass canopy kiosk; mesh 8.19 x 8 x 5.14"
 		),
+		CollapsedEscalatorTex = textureRow("rbxassetid://75156016092304", "CollapsedEscalatorMesh"),
+		ConcourseAtriumTex = textureRow("rbxassetid://130300687469660", "ConcourseAtriumMesh"),
+		StalledTrainTex = textureRow("rbxassetid://70667078539368", "StalledTrainMesh"),
+		PlatformHallTex = textureRow("rbxassetid://98442300433706", "PlatformHallMesh"),
+		PlatformColumnTex = textureRow("rbxassetid://134730479076036", "PlatformColumnMesh"),
+		ScreenDoorTex = textureRow("rbxassetid://109098640807472", "ScreenDoorMesh"),
+		PlatformBenchTex = textureRow("rbxassetid://115541908054893", "PlatformBenchMesh"),
+		VendingMachineTex = textureRow("rbxassetid://74284002497401", "VendingMachineMesh"),
+		TicketGatesTex = textureRow("rbxassetid://90339791416430", "TicketGatesMesh"),
+		WallMapTex = textureRow("rbxassetid://77806575378984", "WallMapMesh"),
+		RubbleTex = textureRow("rbxassetid://77033815446802", "RubbleMesh"),
+		StairEntranceTex = textureRow("rbxassetid://97946062884952", "StairEntranceMesh"),
 		DustParticle = {
 			Kind = "Texture",
+			Id = "rbxassetid://77443196483447",
 			Lane = "A",
 			Prompt = "in-house 128 px soft irregular dust speck with a slightly brighter core, white on transparent, tinted pale grey by the emitter",
-			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py, dust_particle.png); upload in phase 2",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py, dust_particle.png), uploaded from Studio 2026-10-31",
 		},
 		-- Faces drawn in-house with numpy (assets/biomes/Desert/sky/SkyUnderground<Face>.png): plain near-black
-		-- blue-grey, no shapes or text. No Creator Store skybox (docs/BUGS.md creator-store-backdoor-skybox). Id and
-		-- Faces are filled in phase 2 after upload (Id = the Bk face).
+		-- blue-grey, no shapes or text. No Creator Store skybox (docs/BUGS.md creator-store-backdoor-skybox). Uploaded
+		-- from Studio 2026-10-31; Id is the Bk face.
 		SkyUnderground = {
 			Kind = "Skybox",
+			Id = "rbxassetid://126814177699454",
+			Faces = {
+				Bk = "rbxassetid://126814177699454",
+				Dn = "rbxassetid://90423288718397",
+				Ft = "rbxassetid://91385232590200",
+				Lf = "rbxassetid://119320290687932",
+				Rt = "rbxassetid://98579734251070",
+				Up = "rbxassetid://89593505205012",
+			},
 			Lane = "A",
 			Prompt = "in-house plain dark underground skybox, 6 faces 1024 px, near-black blue-grey with a faint lighter band low on the sides",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py)",
