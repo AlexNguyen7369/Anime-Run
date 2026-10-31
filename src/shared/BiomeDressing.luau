@@ -23,6 +23,12 @@ BiomeDressing.BUDGET_STUDS = 3000 -- placeholder: a track's budget is BUDGET per
 BiomeDressing.SCALE = { Landmarks = 1.75, Horizon = 2, Scatter = 1.5 }
 BiomeDressing.GATE_HEIGHT = 28 -- studs from the road to the gate beam
 BiomeDressing.PARTICLE_MAX_RATE = 8 -- particles per second per landmark emitter
+BiomeDressing.EMITTER_TAG = "BiomeEmitter" -- on each landmark emitter: Client/BiomeEnvironment turns it off under
+-- REDUCED EFFECTS
+BiomeDressing.TUNNEL_INSET = 1 -- placeholder: studs a tunnel prop keeps from the tunnel wall and the platform edge
+-- placeholder: extra wall gap per stud of a tunnel prop's half-length. The prop is square to its waypoint's tangent,
+-- the wall is a chord (Tunnel.CHORD_XZ), up to ~4.5 degrees apart on a 320-stud bend
+BiomeDressing.TUNNEL_TURN = 0.1
 
 local GROUND_Y = -1 -- TrackBuilder GROUND_TOP: props stand on the grass
 local GROUND_STEP = 0.02 -- studs each later track's ground sits below the previous one
@@ -61,6 +67,26 @@ end
 local function footprint(biome, def)
 	local mesh = BiomeDressing.MeshFor(biome, def.Name)
 	return mesh and mesh.Size * (def.Size.Y / mesh.Size.Y) or def.Size
+end
+
+local boxCache = setmetatable({}, { __mode = "k" })
+-- The prop's box for the tunnel fit (spec 3.5): its footprint grown to every fallback part's corners (eaves and
+-- roofs may reach past def.Size), symmetric across its centre in X and Z, from its base to its top in Y.
+local function tunnelBox(biome, def)
+	if not boxCache[def] then
+		local box = footprint(biome, def)
+		for _, p in def.Parts do
+			local cf = CFrame.new(p.Pos) * (p.Rot or CFrame.identity)
+			for _, c in { Vector3.new(1, 1, 1), Vector3.new(1, 1, -1), Vector3.new(1, -1, 1), Vector3.new(-1, 1, 1) } do
+				for _, k in { 1, -1 } do
+					local q = cf:PointToWorldSpace(c * k * p.Size / 2)
+					box = box:Max(Vector3.new(2 * math.abs(q.X), q.Y, 2 * math.abs(q.Z)))
+				end
+			end
+		end
+		boxCache[def] = box
+	end
+	return boxCache[def]
 end
 
 local scaledCache = setmetatable({}, { __mode = "k" })
@@ -119,6 +145,7 @@ local function emitter(parent, cfg)
 	e.RotSpeed = NumberRange.new(-40, 40)
 	e.Shape = Enum.ParticleEmitterShape.Box
 	e.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	CollectionService:AddTag(e, BiomeDressing.EMITTER_TAG)
 	e.Parent = parent
 end
 
@@ -130,10 +157,14 @@ local function cost(biome, def, extra)
 	return def.Mesh and meshOk[biome .. "/" .. def.Mesh] and 1 or #def.Parts + extra
 end
 
--- One prop as a Model whose base centre is `base` and whose -Z faces the road.
-local function place(folder, biome, def, base, name, glow, particles)
+-- One prop as a Model whose base centre is `base` and whose -Z faces the road. `inTunnel`: it stands inside a
+-- Tunnel (spec 3.5), so SnapToTerrain leaves it where it is.
+local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 	local model = Instance.new("Model")
 	model.Name = name
+	if inTunnel then
+		model:SetAttribute("Tunnel", true)
+	end
 	local mesh = def.Mesh and BiomeDressing.Assets and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size)
 	if mesh then
 		meshOk[biome .. "/" .. def.Mesh] = true
@@ -228,6 +259,86 @@ local function beside(layout, origin, i, side, distance, t)
 	local toRoad = flat(origin:VectorToWorldSpace(-right * side))
 	local base = Vector3.new(point.X, GROUND_Y, point.Z)
 	return CFrame.lookAt(base, base + toRoad)
+end
+
+-- Where props stand on a Tunnel track (spec 3.5, fw6). `right` above is the Tunnel's piece-local +X for the same
+-- tangent ((-f.Z, 0, f.X) in both), so side -1 is the Tunnel's Left and 1 its Right. Returns:
+--   Spot(i, side, distance, t, size): the base CFrame (as beside, `distance` clamped into the room) of a prop of
+--     `size` (X along the road, Z across) inside the walls at road Y, or on the bay platform at road Y +
+--     Tunnel.PLATFORM where a bay on `side` covers its whole length; nil outside the span or where it does not fit
+--     (width, or the ceiling over it)
+--   Bay(at): the bay covering fraction `at` of the track (nil if none) and the waypoint nearest that point
+--   Cum (XZ studs from the start per waypoint) and S0 (where the tunnel starts)
+local function tunnelSpots(layout, origin, def, edge)
+	local Tunnel = require(script.Parent.Tunnel) -- here, not at the top: Tunnel requires this module
+	local wps = layout.Waypoints
+	local s0, s1, total = Tunnel.Span(layout)
+	local cum = { 0 }
+	for k = 2, #wps do
+		cum[k] = cum[k - 1] + Vector2.new(wps[k].X - wps[k - 1].X, wps[k].Z - wps[k - 1].Z).Magnitude
+	end
+	local half, inset = (def.Width or 60) / 2, BiomeDressing.TUNNEL_INSET
+	local spots = { Cum = cum, S0 = s0 }
+	-- road Y (world) at track position s, searching from waypoint k
+	local function roadY(s, k)
+		while k > 1 and cum[k] > s do
+			k -= 1
+		end
+		while k < #wps - 1 and cum[k + 1] < s do
+			k += 1
+		end
+		local u = math.clamp((s - cum[k]) / math.max(1e-6, cum[k + 1] - cum[k]), 0, 1)
+		return origin:PointToWorldSpace(wps[k]:Lerp(wps[k + 1], u)).Y
+	end
+	function spots.Spot(i, side, distance, t, size)
+		local j = math.min(#wps, i + 1)
+		local s = cum[i] + (cum[j] - cum[i]) * (t or 0)
+		local a = size.X / 2
+		-- on the inside of a bend the prop's far corners reach farther along the track than its centre line
+		local l0, r0 = Tunnel.Section(def, s, total)
+		local curv = math.max(layout.Curvature[i] or 0, layout.Curvature[j] or 0)
+		local reach = a / math.max(0.25, 1 - (side < 0 and l0 or r0) * curv)
+		if s - reach < s0 or s + reach > s1 then
+			return nil
+		end
+		local inner, height, bay = math.huge, math.huge, nil
+		for _, at in { s - reach, s, s + reach } do
+			local l, r, h, bayL, bayR = Tunnel.Section(def, at, total)
+			local b = side < 0 and bayL or bayR
+			if bay ~= nil and b ~= bay then
+				return nil -- straddles a bay end
+			end
+			bay, inner, height = b, math.min(inner, side < 0 and l or r), math.min(height, h)
+		end
+		local lift = bay and Tunnel.PLATFORM or 0
+		local lo = (bay and half or edge) + inset
+		local hi = (bay and inner or half) - inset - a * BiomeDressing.TUNNEL_TURN
+		-- on a slope the flat prop's base sits at the road Y under its centre, so its downhill end has half the rise
+		-- less headroom (and its uphill end sinks that much into the floor)
+		local rise = math.abs(roadY(s + a, i) - roadY(s - a, i)) / 2
+		if hi - lo < size.Z or lift + size.Y + rise > height then
+			return nil
+		end
+		local d = math.clamp(distance, lo + size.Z / 2, hi - size.Z / 2)
+		local road = origin:PointToWorldSpace(t and wps[i]:Lerp(wps[j], t) or wps[i]).Y
+		return beside(layout, origin, i, side, d, t) + Vector3.new(0, road + lift - GROUND_Y, 0)
+	end
+	function spots.Bay(at)
+		local target = math.clamp(at, 0, 1) * total
+		local best = 1
+		for k = 2, #wps do
+			if math.abs(cum[k] - target) < math.abs(cum[best] - target) then
+				best = k
+			end
+		end
+		for _, bay in def.Bays or {} do
+			if target >= (bay.From or 0) * total and target < (bay.To or 1) * total then
+				return bay, best
+			end
+		end
+		return nil, best
+	end
+	return spots
 end
 
 -- Corners (runs of curvature) with their middle waypoint and outside side, and the tops of climbs.
@@ -353,11 +464,31 @@ local function signText(sign, spec)
 	line("RecSpeed", "REC. SPEED " .. recText, 0.6, 0.34, Color3.fromRGB(255, 220, 60))
 end
 
-local function gate(folder, layout, origin, theme, spec)
+local function gate(folder, layout, origin, theme, spec, tunnel)
 	local wps = layout.Waypoints
 	local at = theme.Gate.Index or GATE_INDEX
 	if #wps <= at + 1 then
 		return 0
+	end
+	if tunnel then
+		-- spec 3.5 (fw6): on a Tunnel track the gate stands in front of the start portal, never under the ceiling.
+		-- Without Gate.Index it moves back to the last waypoint whose posts (4 deep) end before the portal.
+		local post = 2
+		if not theme.Gate.Index then
+			while at > 2 and tunnel.Cum[at] + post > tunnel.S0 do
+				at -= 1
+			end
+		end
+		if tunnel.Cum[at] + post > tunnel.S0 then
+			warn(
+				string.format(
+					"[BiomeDressing] gate of track %s at waypoint %d is inside its tunnel: not built",
+					tostring(spec.Number),
+					at
+				)
+			)
+			return 0
+		end
 	end
 	local road = origin:PointToWorldSpace(wps[at])
 	local tangent = flat(origin:VectorToWorldSpace(wps[at + 1] - wps[at - 1]))
@@ -420,8 +551,8 @@ local function hash(i, side, salt)
 end
 
 -- Scatter layer (spec Layers 7): props and flat ground patches between Near and Far studs from the road edge,
--- built last into whatever budget is left. Returns the new part count.
-local function scatter(folder, layout, origin, theme, biome, ground, edge, count, onGround, budget)
+-- built last into whatever budget is left. Returns the new part count. `spot` is Build's (spec 3.5 on a Tunnel track).
+local function scatter(folder, layout, origin, theme, biome, ground, edge, count, onGround, budget, spot)
 	local s, wps = theme.Scatter, layout.Waypoints
 	local named = {}
 	for _, layer in { theme.Rhythm, theme.Landmarks } do
@@ -440,10 +571,13 @@ local function scatter(folder, layout, origin, theme, biome, ground, edge, count
 				local size = footprint(biome, def)
 				local reach = Vector2.new(size.X, size.Z).Magnitude / 2
 				local distance = edge + s.Near + (s.Far - s.Near) * hash(i, side, 2) + reach
-				local base = beside(layout, origin, i, side, distance)
-					* CFrame.Angles(0, hash(i, side, 3) * 2 * math.pi, 0)
-				-- The patch (one part) goes first, so a tight budget still covers the ground.
-				if (i // s.Every) % 2 == 0 and count + 1 <= budget then
+				local box = tunnelBox(biome, def)
+				local turned = Vector2.new(box.X, box.Z).Magnitude -- turned freely: its diagonal both ways
+				local base, inTunnel = spot(s, i, side, distance, nil, Vector3.new(turned, box.Y, turned))
+				base = base and base * CFrame.Angles(0, hash(i, side, 3) * 2 * math.pi, 0)
+				-- The patch (one part) goes first, so a tight budget still covers the ground. No ground patches
+				-- inside a tunnel.
+				if (i // s.Every) % 2 == 0 and count + 1 <= budget and not inTunnel then
 					local p = s.Patches[math.floor(hash(i, side, 4) * 1000) % #s.Patches + 1]
 					local patchReach = Vector2.new(p.Size.X, p.Size.Z).Magnitude / 2
 					local at = edge + s.Near + (s.Far - s.Near) * hash(i, side, 5) + patchReach
@@ -466,8 +600,8 @@ local function scatter(folder, layout, origin, theme, biome, ground, edge, count
 						count += 1
 					end
 				end
-				if count + cost(biome, def, 1) <= budget and onGround(base, reach) then
-					count += place(folder, biome, def, base, "Scatter_" .. tag, false)
+				if base and count + cost(biome, def, 1) <= budget and onGround(base, reach) then
+					count += place(folder, biome, def, base, "Scatter_" .. tag, false, nil, inTunnel)
 				end
 			end
 		end
@@ -494,7 +628,7 @@ end
 
 -- Blocks layer (spec Layers 9): street-wall rows of low-rise buildings, a slot every `Spacing` studs along the road
 -- on each side, `Rows` deep. A building overlapping one already placed (inside corners) is skipped.
-local function blocks(folder, layout, origin, theme, biome, edge, count, onGround, budget)
+local function blocks(folder, layout, theme, biome, edge, count, onGround, budget, spot)
 	local b, wps = theme.Blocks, layout.Waypoints
 	local placed = {}
 	for _, m in folder:GetChildren() do -- landmarks and horizon pieces keep their ground
@@ -517,9 +651,10 @@ local function blocks(folder, layout, origin, theme, biome, edge, count, onGroun
 				for _, side in { -1, 1 } do
 					local def = b.Props[math.floor(hash(slot, side, row + 10) * 1000) % #b.Props + 1]
 					local distance = edge + b.Near + (row - 1) * b.RowDepth + def.Size.Z / 2
-					local base = beside(layout, origin, i - 1, side, distance, t)
-					local box = { CFrame = base, Half = Vector2.new(def.Size.X / 2, def.Size.Z / 2) }
-					local clear = count + cost(biome, def, 0) <= budget
+					local base, inTunnel = spot(b, i - 1, side, distance, t, tunnelBox(biome, def))
+					local box = base and { CFrame = base, Half = Vector2.new(def.Size.X / 2, def.Size.Z / 2) }
+					local clear = base ~= nil
+						and count + cost(biome, def, 0) <= budget
 						and onGround(base, Vector2.new(def.Size.X, def.Size.Z).Magnitude / 2)
 					for _, other in placed do
 						if not clear then
@@ -535,7 +670,9 @@ local function blocks(folder, layout, origin, theme, biome, edge, count, onGroun
 							def,
 							base,
 							"Block_" .. slot .. (side < 0 and "L" or "R") .. row,
-							false
+							false,
+							nil,
+							inTunnel
 						)
 					end
 				end
@@ -575,8 +712,19 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	local wps = layout.Waypoints
 	local edge = layout.Width / 2 + WALL
 	local budget = math.floor(BiomeDressing.BUDGET * math.max(1, (layout.Length or 0) / BiomeDressing.BUDGET_STUDS))
+	-- spec 3.5 (fw6): on a Tunnel track every prop stands inside the walls or on a bay platform, except layers with
+	-- Surface = true (sparse dressing on the earth over the tunnel: vents, station entrances)
+	local tunnel = theme.Tunnel and tunnelSpots(layout, origin, theme.Tunnel, edge)
+	-- A prop's base CFrame (nil where it does not fit) and whether it stands inside the tunnel. `size`: its box, X along
+	-- the road
+	local function spot(layer, i, side, distance, t, size)
+		if tunnel and not layer.Surface then
+			return tunnel.Spot(i, side, distance, t, size), true
+		end
+		return beside(layout, origin, i, side, distance, t), false
+	end
 	-- Track 1 has no biome gate: the plaza torii is its gate (owner 2026-10-30)
-	local count = theme.Gate.Skip and 0 or gate(folder, layout, origin, theme, spec)
+	local count = theme.Gate.Skip and 0 or gate(folder, layout, origin, theme, spec, tunnel)
 	-- A prop whose footprint leaves this track's ground would hang over the void (or the Baseplate below it).
 	-- `reach` is the prop's half-width on the ground (its half-diagonal when it is turned).
 	local function onGround(base, reach)
@@ -624,10 +772,10 @@ function BiomeDressing.Build(model, layout, spec, origin)
 			end
 			for _, f in fits or { 1 } do
 				local offset = fits and math.max(layer.Offset * f, theme.Landmarks.Offset) or layer.Offset
-				local base = beside(layout, origin, i, side, edge + offset + size.Z / 2)
-				if onGround(base, math.max(size.X, size.Z) / 2) then
-					count += place(folder, biome, def, base, name, glow, glow and theme.Particles)
-					return
+				local base, inTunnel = spot(layer, i, side, edge + offset + size.Z / 2, nil, tunnelBox(biome, def))
+				if base and onGround(base, math.max(size.X, size.Z) / 2) then
+					count += place(folder, biome, def, base, name, glow, glow and theme.Particles, inTunnel)
+					return true
 				end
 			end
 		end
@@ -644,9 +792,37 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	local spots, n = {}, 0
 	for p, def in pinned do
 		local i, side = heroSpot(layout, corners, def.At, p)
+		local inside = tunnel and not theme.Landmarks.Surface
+		if inside then
+			-- spec 3.5 (fw6): a pinned hero on a Tunnel track stands in the bay covering its At, on that bay's side
+			-- (Both: the side heroSpot gives)
+			local bay
+			bay, i = tunnel.Bay(def.At)
+			if bay then
+				side = bay.Side == "Left" and -1 or bay.Side == "Right" and 1 or side
+			else
+				warn(
+					string.format(
+						"[BiomeDressing] pinned hero %s (track %s, At %.2f): no tunnel bay covers it",
+						def.Name,
+						tostring(spec.Number),
+						def.At
+					)
+				)
+			end
+		end
 		local one = table.clone(theme.Landmarks)
 		one.Props, one.Landmark = { def }, true
-		add(one, 0, i, side, true, "Landmark_" .. i)
+		if not add(one, 0, i, side, true, "Landmark_" .. i) and inside then
+			warn(
+				string.format(
+					"[BiomeDressing] pinned hero %s (track %s, At %.2f) does not fit inside the tunnel: not built",
+					def.Name,
+					tostring(spec.Number),
+					def.At
+				)
+			)
+		end
 		table.insert(spots, i)
 	end
 	for _, c in corners do
@@ -702,10 +878,10 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	end
 	if theme.Blocks then
 		local cap = count + math.floor((budget - count) * share.Blocks / (1 - share.Rhythm))
-		count = blocks(folder, layout, origin, theme, biome, edge, count, onGround, cap)
+		count = blocks(folder, layout, theme, biome, edge, count, onGround, cap, spot)
 	end
 	if theme.Scatter then
-		count = scatter(folder, layout, origin, theme, biome, ground, edge, count, onGround, budget)
+		count = scatter(folder, layout, origin, theme, biome, ground, edge, count, onGround, budget, spot)
 	end
 end
 
@@ -862,7 +1038,7 @@ end
 -- than SNAP_OVERHANG under its snapped base. A prop that fails slides toward its road in SNAP_SLIDE_STEP steps (up to
 -- SNAP_SLIDE_MAX, never within the track's Width / 2 + CLEARANCE of the road, never onto another prop) or is dropped.
 -- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome, and a pinned hero (At) is never dropped: it stays put
--- and is warned about instead.
+-- and is warned about instead. Props inside a tunnel (attribute Tunnel, spec 3.5) are left where Build put them.
 -- Returns how many props moved, how many were dropped, and heroes dropped per biome ({ [biome] = count }).
 function BiomeDressing.SnapToTerrain(trackModels)
 	local TerrainShape = require(script.Parent.TerrainShape)
@@ -879,7 +1055,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
-			if prop:IsA("Model") and prop:GetAttribute("Pinned") then
+			if prop:IsA("Model") and prop:GetAttribute("Pinned") and not prop:GetAttribute("Tunnel") then
 				local cf, size = prop:GetBoundingBox()
 				local pivot = prop:GetPivot()
 				-- spec 3.2: a footprint that reaches a corridor is pushed outward, away from its road, until it is clear
@@ -1000,7 +1176,11 @@ function BiomeDressing.SnapToTerrain(trackModels)
 				if not boxes then
 					boxes = {}
 					for _, other in folder:GetChildren() do
-						if other:IsA("Model") and not string.match(other.Name, "^Patch_") then
+						if
+							other:IsA("Model")
+							and not string.match(other.Name, "^Patch_")
+							and not other:GetAttribute("Tunnel")
+						then
 							local ocf, osize = other:GetBoundingBox()
 							boxes[other] = { CFrame = ocf, Half = Vector2.new(osize.X / 2, osize.Z / 2) }
 						end
@@ -1015,10 +1195,11 @@ function BiomeDressing.SnapToTerrain(trackModels)
 				return false
 			end
 			for _, prop in folder and folder:GetChildren() or {} do
-				-- pinned heroes are already on their pads (above)
+				-- pinned heroes are already on their pads (above); tunnel props stay on the tunnel floor (spec 3.5)
 				if
 					prop:IsA("Model")
 					and not prop:GetAttribute("Pinned")
+					and not prop:GetAttribute("Tunnel")
 					and (prop:GetAttribute("Pad") == true) == padPass
 				then
 					local cf, size = prop:GetBoundingBox()

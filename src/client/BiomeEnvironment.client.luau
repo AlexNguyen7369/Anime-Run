@@ -4,8 +4,8 @@
 -- value to the zone's profile over BLEND_SECONDS (sine ease); swaps (sky textures, reverb, particles) happen at the
 -- blend midpoint under a haze peak. Values the profile leaves out stay at the server's replicated value, and a
 -- server write (only WeatherService writes these) is kept as that value and re-applied over. REDUCED EFFECTS
--- (player attribute ReduceEffects) drops particles, one-shots, per-zone post-FX, shadows and far landmark detail,
--- and halves the tunnel lights (spec 3.5). An Underground profile has no sky and no weather mix.
+-- (player attribute ReduceEffects) drops particles (zone and landmark emitters), one-shots, per-zone post-FX,
+-- shadows and far landmark detail, and halves the tunnel lights (spec 3.5). An Underground profile has no sky and no weather mix.
 -- Client/BiomeAmbience (prop motion) and Client/BiomeMeshes (Lane C meshes) write no Lighting.
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -429,6 +429,16 @@ local function applyShadow(part)
 end
 CollectionService:GetInstanceAddedSignal("BiomeAsset"):Connect(applyShadow)
 
+-- Landmark particle emitters (tag BiomeEmitter = Shared/BiomeDressing.EMITTER_TAG): off under REDUCED EFFECTS, like
+-- the zone particles
+local EMITTER_TAG = "BiomeEmitter"
+local function applyEmitter(e)
+	if e:IsA("ParticleEmitter") then
+		e.Enabled = not reduced()
+	end
+end
+CollectionService:GetInstanceAddedSignal(EMITTER_TAG):Connect(applyEmitter)
+
 -- Tunnel light strips (spec 3.5; tag TunnelLight = Shared/Tunnel.LIGHT_TAG, attribute Index): REDUCED EFFECTS hides
 -- every second strip and stops the flicker; otherwise one strip in FLICKER_EVERY flickers while near the camera
 local LIGHT_TAG = "TunnelLight"
@@ -478,6 +488,9 @@ local function applyQuality()
 	end
 	for _, strip in CollectionService:GetTagged(LIGHT_TAG) do
 		applyLight(strip)
+	end
+	for _, e in CollectionService:GetTagged(EMITTER_TAG) do
+		applyEmitter(e)
 	end
 	dirty = true
 end
