@@ -547,6 +547,7 @@ function TrackBuilder.Build(spec, origin)
 
 	model:SetAttribute("TrackName", spec.Name)
 	model:SetAttribute("Number", spec.Number)
+	model:SetAttribute("Width", layout.Width)
 	model:SetAttribute("Length", layout.Length)
 	return model, layout
 end

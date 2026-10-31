@@ -38,7 +38,7 @@ local SNAP_SINK = 1 -- placeholder: a snapped prop's base sits at most this far 
 local SNAP_OVERHANG = 6 -- placeholder: a landmark's footprint corner may sit at most this far below its snapped base
 local SNAP_SLIDE_STEP = 4 -- placeholder: studs per try when a prop slides toward its road to fit
 local SNAP_SLIDE_MAX = 24 -- placeholder: the farthest a prop slides before it is dropped
-local ROAD_HALF = 20 -- W/2 (docs/BIOME_ENVIRONMENT_SPEC.md 2.2): a slid prop keeps ROAD_HALF + CLEARANCE from its road
+local HERO_FLOOR = 2 -- spec 3.2 (owner 2026-10-31): hero landmarks are never deleted below this many per biome
 -- Shares of the budget left after the gate, landmarks and horizon (owner 2026-10-30: every layer gets built).
 -- Each layer may use its share; what it leaves rolls on to the next one.
 local SHARE = { Rhythm = 0.35, Blocks = 0.35 } -- scatter gets the rest
@@ -141,6 +141,7 @@ local function place(folder, biome, def, base, name, glow, particles)
 		mesh.Parent = model
 	end
 	if def.Hero then
+		model:SetAttribute("Hero", true) -- SnapToTerrain's hero floor
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		-- SLIM where the engine has it, StreamingMesh otherwise. Game scripts lack the PluginOrOpenCloud capability
 		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies.
@@ -850,19 +851,33 @@ end
 -- A prop must also fit its own zone (spec 2.2 / 2.3): every one of the 5 samples is nearest to its own track (the
 -- gap midline is the seam), or within that track's corridor. A landmark must not overhang a drop: no corner more
 -- than SNAP_OVERHANG under its snapped base. A prop that fails slides toward its road in SNAP_SLIDE_STEP steps (up to
--- SNAP_SLIDE_MAX, never within ROAD_HALF + CLEARANCE of the road, never onto another prop) or is dropped.
--- Returns how many props moved and how many were dropped.
+-- SNAP_SLIDE_MAX, never within the track's Width / 2 + CLEARANCE of the road, never onto another prop) or is dropped.
+-- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome: it stays put and is warned about instead.
+-- Returns how many props moved, how many were dropped, and heroes dropped per biome ({ [biome] = count }).
 function BiomeDressing.SnapToTerrain(trackModels)
 	local TerrainShape = require(script.Parent.TerrainShape)
 	if not TerrainShape.Ready() then
-		return 0, 0
+		return 0, 0, {}
 	end
 	local touches = clearance(trackModels)
 	local moved, dropped = 0, 0
+	local heroes, heroDropped = {}, {} -- biome -> heroes left, heroes dropped
+	for _, model in trackModels do
+		local folder = model:FindFirstChild("Environment")
+		local biome = model:GetAttribute("Biome")
+		for _, prop in folder and biome and folder:GetChildren() or {} do
+			if prop:GetAttribute("Hero") then
+				heroes[biome] = (heroes[biome] or 0) + 1
+			end
+		end
+	end
 	local CORNERS = { { 0, 0 }, { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } }
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
-		local n = model:GetAttribute("Number")
+		local trackN = model:GetAttribute("Number")
+		local roadHalf = (model:GetAttribute("Width") or 0) / 2
+		local biome = model:GetAttribute("Biome")
+		local n -- this prop's track: the model's Number, else the nearest track at the prop's centre
 		local boxes = nil -- other props' footprints, built on the first slide in this folder
 		-- Ground height change dy for the prop's box (cf, size) moved by `shift`, or nil when it leaves its zone or
 		-- (a landmark) overhangs a drop; also the centre height
@@ -907,6 +922,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 		for _, prop in folder and folder:GetChildren() or {} do
 			if prop:IsA("Model") then
 				local cf, size = prop:GetBoundingBox()
+				n = trackN or (TerrainShape.Owner(cf.Position.X, cf.Position.Z, nil))
 				local dy, centre = fit(prop, cf, size, Vector3.zero)
 				if dy then
 					if math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05 then
@@ -935,7 +951,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 							local sdy, scentre = fit(prop, cf, size, shift)
 							if
 								sdy
-								and dist(p.X, p.Z) - reach >= ROAD_HALF + BiomeDressing.CLEARANCE
+								and dist(p.X, p.Z) - reach >= roadHalf + BiomeDressing.CLEARANCE
 								and not onProp(prop, cf + shift, size)
 							then
 								local lift = math.abs(scentre - GROUND_Y) > 0.05 and sdy or 0
@@ -953,7 +969,20 @@ function BiomeDressing.SnapToTerrain(trackModels)
 							end
 						end
 					end
-					if not done then
+					if not done and prop:GetAttribute("Hero") and (heroes[biome] or 0) <= HERO_FLOOR then
+						warn(
+							string.format(
+								"[BiomeDressing] hero %s (biome %s, track %s) does not fit its zone: left in place",
+								prop.Name,
+								tostring(biome),
+								tostring(trackN)
+							)
+						)
+					elseif not done then
+						if prop:GetAttribute("Hero") then
+							heroes[biome] -= 1
+							heroDropped[biome] = (heroDropped[biome] or 0) + 1
+						end
 						prop:Destroy()
 						dropped += 1
 					end
@@ -964,7 +993,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 			end
 		end
 	end
-	return moved, dropped
+	return moved, dropped, heroDropped
 end
 
 return BiomeDressing

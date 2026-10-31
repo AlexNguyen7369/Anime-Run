@@ -129,6 +129,14 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   same world.
 - `BiomeDressing.SnapToTerrain` uses `Height`: each dressing model drops onto the lowest of 5 samples (centre and 4
   footprint corners), so it is never left floating. Corridor props do not move, because corridor height is 0.
+- Owner 2026-10-31 (fw2): every footprint point of a dressing prop must lie in its own track's zone (nearest track,
+  or inside its corridor). A `Landmark_` model must also overhang by no more than 6 studs (placeholder): no
+  footprint corner may sit more than that below the snapped base. A prop that fails slides toward its road 4 studs per
+  try, up to 24 studs (both placeholders). It must keep its road clearance and must not overlap another prop. A prop
+  that no slide fits is deleted. Exception: hero landmarks (4.3) are never deleted below 2 per biome. A hero that cannot
+  fit stays put and is reported as an error for the builder to move.
+- Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
+  (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
   attribute `BiomeZone_<n>` on `ReplicatedStorage`, a string `"x,z;x,z;..."` (about 18 KB in total).
 
