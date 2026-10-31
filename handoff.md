@@ -65,3 +65,24 @@
   the run starts only when CarTestRun changes to true. Startup warning rbxassetid://203785492 = "Pop Close Sound"
   (audio), not referenced by the game; probably a Studio plugin. Rojo 34873 restarted from this folder (Studio
   plugin needs Connect). Worktree ../AnimeRun-orch/w3-research holds 77151e7 (biome References) not yet merged.
+
+- 2026-10-30 w3 PAUSED by owner (tests paused). Worktree ../AnimeRun-orch/w3 (orch/anime-world/w3): tests committed
+  49b1ca0; implementer code UNCOMMITTED (10 spiral layouts, TrackValidator TARGET_LENGTH, Ground tiling in
+  TrackBuilder/BiomeDressing, per-track yield in Main, VfxArea x=2800). Owner 2026-10-30: track ids kept, full drives
+  in full harness, spiral = mean distance, sector = ring band (all in specs, uncommitted in w3 doc edit for ring band).
+  Partial harness (Studio af833537): chain PASS, npc PASS (~12 min now), auto_toggle PASS; track:Oval FAIL
+  race_path_curvature_shifted=-1 (no sample, Scenarios.luau:391-397, not diagnosed); track:Hill FAIL
+  race_path_spacing=17.075>15 (TrackBuilder.Layout 6 deg per turn waypoint; fix: step = max(ceil(|a|/6),
+  ceil(arc/12))); world_layout + spawn_area TIME OUT (non-yielding overlap loops WorldTests.luau:129-253, 279-310,
+  Scenarios.luau:8577-8597; test-writer fix: broad phase + yields). Not run: track:DragRace..Space, environment.
+  Rojo 34873 serves the w3 worktree. Owner wants w4 started after w3 lands.
+- 2026-10-30 later: w3 fixes done (uncommitted in ../AnimeRun-orch/w3): TrackBuilder turn step by arc (<=12 studs) +
+  S-bend inflection curvature 0 (fixes Hill spacing, Oval -1); test-writer broad-phase + yields in overlap loops
+  (TrackChainTests.footprintOverlaps); owner 2026-10-30 ruling: wider bends on Tracks 7-10 so NPC times match the
+  spec table (sim within +0.7%); world now spans about +-4150 studs; VfxArea x=5000. Audit: NEEDS OWNER on NPC
+  times, answered (wider bends); otherwise clean. Full harness started on the PRE-widening code, then PAUSED by owner.
+  Next on resume: full harness on current w3 code, re-audit Tracks 7-10 diff, land w3, start w4 (owner asked).
+- Paused full-harness attempt (Studio id now 67a61451-caee-40ec-ada9-80adcbcec7c9): no scenario finished. Only
+  START + WARMUP printed; Play stopped by itself ~17 min in (cause unknown; Team Create collaborator present). First
+  scenario `runner` drives the whole ~98k-stud route at normal (~88 studs/s, ~18.5 min) and max speed, so it may be slow,
+  not hung. On resume: run CarTestOnly="runner" alone and time it; consider a local (non-Team-Create) place copy.
