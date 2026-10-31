@@ -435,18 +435,26 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 end
 
--- Levels a pad at height y under the oriented box (cf, size), grown by CLEARANCE and blended out over the shoulder
--- width (spec 3.2: a pinned hero). The pad fades to nothing at the corridor edge, so it never moves road or clear-box
--- ground. Call after Prepare and before the terrain is built.
+-- Levels a pad at height y under the oriented box (cf, size) (spec 3.2: a pinned hero). The footprint grown by
+-- CLEARANCE is flat at y over every track's ridge and seam; outside it the pad blends out over the shoulder width.
+-- It never moves road or clear-box ground: inside any corridor the pad does nothing (a step at the corridor edge),
+-- and its outer blend fades to nothing at the corridor edge. Returns true when part of the footprint itself lies in
+-- a corridor or clear box (that part stays corridor). Call after Prepare and before the terrain is built.
 function TerrainShape.AddPad(cf, size, y)
 	local half = (cf.RightVector * size.X):Abs() / 2 + (cf.LookVector * size.Z):Abs() / 2
 	local g = Vector2.one * TerrainShape.CLEARANCE
 	local c = Vector2.new(cf.Position.X, cf.Position.Z)
+	local lo, hi = c - Vector2.new(half.X, half.Z), c + Vector2.new(half.X, half.Z)
+	local inCorridor = false
+	for px = lo.X, hi.X, TerrainShape.CELL / 2 do
+		for pz = lo.Y, hi.Y, TerrainShape.CELL / 2 do
+			local _, dA, _, _, _, dc = sample(px, pz)
+			inCorridor = inCorridor or math.min(dA, (dc or math.huge) + TerrainShape.CORRIDOR) <= TerrainShape.CORRIDOR
+		end
+	end
 	state.Pads = state.Pads or {}
-	table.insert(
-		state.Pads,
-		{ Min = c - Vector2.new(half.X, half.Z) - g, Max = c + Vector2.new(half.X, half.Z) + g, Y = y }
-	)
+	table.insert(state.Pads, { Min = lo - g, Max = hi + g, Y = y })
+	return inCorridor
 end
 
 function TerrainShape.Ready()
@@ -671,7 +679,9 @@ function TerrainShape.Column(x, z)
 	for _, pad in state.Pads or {} do
 		local ex = math.max(pad.Min.X - x, 0, x - pad.Max.X)
 		local ez = math.max(pad.Min.Y - z, 0, z - pad.Max.Y)
-		local w = (1 - smooth(math.sqrt(ex * ex + ez * ez) / (S - C))) * smooth((deA - C) / (S - C))
+		local e = math.sqrt(ex * ex + ez * ez)
+		-- deA: the nearest road (any track) or clear box
+		local w = deA <= C and 0 or e == 0 and 1 or (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
 		y += (pad.Y - y) * w
 	end
 	local prof = state.Profiles[n] or {}
