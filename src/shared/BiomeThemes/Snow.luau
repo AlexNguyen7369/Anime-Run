@@ -302,7 +302,7 @@ return {
 	Blocks = blocks,
 	-- Landmark particles (Kit format): spray mist drifting off every landmark (the waterfalls)
 	Particles = particles(SMOKE, MIST, { Size = 4, Lifetime = 5, Rate = 4, Speed = 1, Transparency = 0.55 }),
-	-- Spec 3.3 / 7: grassy islands (corridor) with Rock sides; the ridge is a Drop to the Snow cloud deck at -40. Two
+	-- Spec 3.3 / 7: island ground (corridor, Ground) with Rock sides; the ridge is a Drop to the Snow cloud deck at -40. Two
 	-- pools (Water sections: basin at -9, water at -3) beside the waterfall bends (0.314-0.385 and 0.715-0.785), one
 	-- on each side. Every number is a placeholder.
 	Terrain = {
@@ -311,7 +311,9 @@ return {
 			{ From = 0.33, To = 0.36, Side = "Inner", Water = { Level = -3 } },
 			{ From = 0.735, To = 0.765, Side = "Outer", Water = { Level = -3 } },
 		},
-		Materials = { Corridor = M.Grass, Ridge = M.Grass, Cliff = M.Rock, Bed = M.Snow },
+		-- Corridor Ground, not Grass: terrain Grass grows blades up through the road (Track 6 in Studio, orchestrator
+		-- 2026-10-31). Ridge Grass only shows at the pool shores, never under the road; the Drop itself is Bed (Snow).
+		Materials = { Corridor = M.Ground, Ridge = M.Grass, Cliff = M.Rock, Bed = M.Snow },
 		CliffSlope = 0.6, -- placeholder: the island flanks read as Rock all the way down
 		Embank = true,
 	},
