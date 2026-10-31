@@ -242,7 +242,7 @@ placeholders.
   ```
   Tunnel = {
   	Width = 60, Height = 20,                       -- inner clear size, centred on the road centre line
-  	Wall = { Material = Enum.Material.Ceramic, Color = "#E9E4D6", Stripe = "#3FA7A0" },
+  	Wall = { Material = Enum.Material.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
   	Ceiling = { Material = Enum.Material.Concrete, Color = "#8C8A84" },
   	LightEvery = 24,                               -- one ceiling light strip every N studs
   	Bays = { { From = 0.12, To = 0.17, Side = "Left"|"Right"|"Both", Depth = 40, Height = 30 }, ... },
