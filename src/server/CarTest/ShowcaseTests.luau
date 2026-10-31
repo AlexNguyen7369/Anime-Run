@@ -25,7 +25,7 @@ local H = require(script.Parent.AcceptanceSupport)
 local Tests = {}
 
 -- The spec's numbers (docs/WORKSHOP_SPEC.md 5b). Independent oracle: never read from GachaConfig.
-local SPEC = { SLOTS = 3, SCALE = 0.25, COPY_BONUS = 0.1, MAX_COPIES = 50, VERSION = 12, OFFLINE_FRACTION = 0.25 }
+local SPEC = { SLOTS = 3, SCALE = 0.25, COPY_BONUS = 0.1, MAX_COPIES = 50, VERSION = 13, OFFLINE_FRACTION = 0.25 }
 local UID = 990122000
 
 local function near(a, b)

@@ -384,7 +384,7 @@ function Tests.workshop_phase2()
 		flag("offline_save_succeeds", data.Save(p, 74002) == true)
 		flag(
 			"offline_at_saved_unix_timestamp",
-			saved ~= nil and type(saved.OfflineAt) == "number" and saved.OfflineAt == clock and saved.Version == 12
+			saved ~= nil and type(saved.OfflineAt) == "number" and saved.OfflineAt == clock and saved.Version == 13
 		)
 		local afterSave = player("ReconnectAfterSave")
 		data.Load(afterSave, 74002)

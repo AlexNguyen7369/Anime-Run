@@ -3479,7 +3479,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 12 -- docs/SAVE_SPEC.md: VERSION 12 adds Copies and Showcase; 11 added RaceBestTimes
+	local DATA_VERSION = 13 -- docs/SAVE_SPEC.md: VERSION 13 adds Team; 12 adds Copies and Showcase; 11 added RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local RaceConfig = sharedModule("RaceConfig")
