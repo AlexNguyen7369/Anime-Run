@@ -139,3 +139,12 @@
 - RESUME PLAN (owner 2026-10-31): fw3 framework follow-ups are remembered and go first (docs/BOARD.md Next, state
   file resume_step). Track 4 non-Studio prep may run asynchronously alongside fw3, but t4 merges fw3 before any Studio
   verification. Studio + Rojo 34873 = one agent at a time (serves ../AnimeRun-orch/studio; switch its branch per task).
+- 2026-10-31 night (owner, asleep until morning): CONTINUE without approval, finish Tracks 4-10 end to end. Any
+  question: take the recommended / most optimal option, record it as "orchestrator default 2026-10-31 (owner
+  delegated)" in the spec, and list every such decision in docs/OWNER_QUESTIONS.md for the morning review. Running:
+  fw3 in ../AnimeRun-orch/fw3 (orch/biomes/fw3, code only); t4 builder in ../AnimeRun-orch/studio (orch/biomes/t4,
+  holds Studio). Loop per track: build -> auditor signs ledger -> merge fw3/framework -> Studio verify + shots ->
+  land + push -> next track (Track 5 PirateCoast = Neon Cursed City ... Track 10).
+- 2026-10-31 LANDED 4d1b112 (pushed): Track 4 + fw3. Next: t5 Studio phase (switch ../AnimeRun-orch/studio to
+  orch/biomes/t5), cam feature in ../AnimeRun-orch/cam (needs one Studio check), fw4 shoulder-band hall floats.
+  Studio id 5846836b-1bf9-487a-9411-11346220b296. CarTestOnly left set in Edit (harmless).
