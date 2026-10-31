@@ -190,6 +190,7 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-31: owner: Track 1 gate plaque may stay blank (BIOME_ENVIRONMENT_SPEC 7).
 - 2026-10-30: owner: skybox ledger rows take one Id or 6 Faces; optional terrain `Craters` profile field (Track 2) (BIOME_ENVIRONMENT_SPEC 3.3, 4.4).
 - 2026-10-30: owner: optional terrain `Sections` field (per-stretch ridge / water / material) and hero landmark `At` pin
   (BIOME_ENVIRONMENT_SPEC 3.3, 4.3).

@@ -332,7 +332,7 @@ the IP flags.
   Cobblestone square, Rock cliff. `Embank = true`.
 - **Hero landmarks**:
   1. Carved cliff with 4 generic stone faces (owner-approved 2026-10-28, never the real faces).
-  2. Tall wooden village gate with made-up plaque text.
+  2. Tall wooden village gate with a blank or made-up plaque (owner 2026-10-31: blank accepted).
   3. Round rooftop water tower cluster.
   4. Waterfall gorge cliff (late route).
 - **Mid props**: tiled-roof houses (red / green roofs), training posts, food stall with a made-up sign, paper
@@ -342,7 +342,7 @@ the IP flags.
   bloom. Particles: drifting green leaves.
 - **Audio**: forest birds, light wind, distant river (loop); a woodpecker knock and a wind chime (one-shots).
   Reverb `Forest`.
-- **IP**: no leaf-spiral symbol anywhere; no real carved faces; gate text is made up.
+- **IP**: no leaf-spiral symbol anywhere; no real carved faces; gate plaque blank or made up.
 
 ### Track 2: Tournament Wasteland (`Forest`)
 - **Terrain**: Ridge `Mesa` 40 (layered steps, Sandstone) with craters (noise pits, 8 deep) on the Ground floor.
