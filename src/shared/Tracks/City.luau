@@ -10,16 +10,16 @@ return {
 	Biome = "City",
 	Width = 40,
 	Closed = false,
-	Palette = {
-		Road = Color3.fromRGB(45, 48, 68),
-		Support = Color3.fromRGB(28, 30, 48),
-		Wall = Color3.fromRGB(70, 220, 255),
-		Ground = Color3.fromRGB(28, 35, 52),
-		Line = Color3.fromRGB(255, 80, 190),
-		Checkpoint = Color3.fromRGB(50, 60, 92),
-		WinPad = Color3.fromRGB(255, 218, 42),
+	Palette = { -- bright modern city road from the Track 6 palette (docs/TRACKS_AND_BIOMES_SPEC.md Track 6)
+		Road = Color3.fromRGB(47, 53, 66), -- #2F3542 asphalt
+		Support = Color3.fromRGB(184, 192, 204), -- light concrete
+		Wall = Color3.fromRGB(230, 233, 238), -- #E6E9EE concrete barrier
+		Ground = Color3.fromRGB(143, 209, 143), -- #8FD18F grass verge
+		Line = Color3.fromRGB(242, 193, 46), -- #F2C12E accent yellow
+		Checkpoint = Color3.fromRGB(74, 144, 217), -- #4A90D9 glass blue
+		WinPad = Color3.fromRGB(214, 58, 58), -- #D63A3A accent red
 		Checkered = true,
-		CheckerDark = Color3.fromRGB(20, 22, 35),
+		CheckerDark = Color3.fromRGB(47, 53, 66),
 	},
 	Segments = {
 		{ Type = "Straight", Length = 180 },
