@@ -171,3 +171,8 @@
   - Track 7 rebuild "Shibuyo Underground": orch/biomes/t7r in ../AnimeRun-orch/t7r (has fw5), phase 1 uncommitted.
   - Tracks 8-10 paused until 2026-11-03 (t8 Skypeia redo; t9 mesh ids above; t10 phase 1 done).
   Resume order: t5r (Studio) -> audit -> verify -> land (replaces old Track 5); t7r phase 2 -> land with fw5; then Nov 3.
+- t7r pause report: phase 1 not started (reading only). Framework gaps found, to fix before/with t7r (fw6):
+  (1) src/shared/Tracks/Desert.luau header + Description still say Blossom Shrine; (2) BiomeDressing ignores the tunnel:
+  props sit at edge+Offset on both sides, never lifted onto bay platforms (road +4); pinned heroes choose their side by
+  corners/alternation, not by the bay's Side; (3) gate: use Gate.Index on a waypoint before s=16 (in front of the start
+  portal) or Gate.Skip. Unchecked: beside() side sign vs Tunnel Left.
