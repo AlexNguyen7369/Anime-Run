@@ -66,6 +66,8 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
   patches, city blocks) gets built.
 - Owner 2026-10-30: horizon pieces sit about 100 studs from the road (placeholder) so they fit between spiral laps;
   they act as large props.
+  Built 2026-10-30 as Horizon Offset 55 with 20-22-stud-deep pieces, so their far edge is about 100 studs out
+  (placeholder; laps are only ~110 studs apart edge to edge).
 
 ## Build order and tests
 
