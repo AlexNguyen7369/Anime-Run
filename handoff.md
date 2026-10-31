@@ -86,3 +86,10 @@
   START + WARMUP printed; Play stopped by itself ~17 min in (cause unknown; Team Create collaborator present). First
   scenario `runner` drives the whole ~98k-stud route at normal (~88 studs/s, ~18.5 min) and max speed, so it may be slow,
   not hung. On resume: run CarTestOnly="runner" alone and time it; consider a local (non-Team-Create) place copy.
+
+- 2026-10-30 w3 LANDED (2751d36) and w4 LANDED (1de11ce) on feature/alex/anime-world, pushed. Owner 2026-10-30: test
+  only as a dev tool; one full compatibility check (c3) at the end. New goal `core` (c1-c3) in ORCHESTRATOR_GOALS.
+  c1 in progress in ../AnimeRun-orch/c1 (orch/core/c1): tests f947f51 + 31a4ff7, owner rulings ab3fccc (run bank
+  restored; loss reset refills stamina). Rojo 34873 now serves the c1 worktree. Open: w4 horizon built at offset 55
+  (far edge ~100); IVS textures still uploaded on Roblox (owner may delete); Track 10 ~8.8k dressing parts, client perf
+  unmeasured; ShowcaseTests SPEC.VERSION 12 -> 13 needs the test-writer when c1 bumps PlayerData.
