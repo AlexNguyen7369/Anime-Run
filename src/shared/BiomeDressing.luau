@@ -142,6 +142,9 @@ local function place(folder, biome, def, base, name, glow, particles)
 	end
 	if def.Hero then
 		model:SetAttribute("Hero", true) -- SnapToTerrain's hero floor
+		if def.At then
+			model:SetAttribute("Pinned", true) -- spec 3.2 (owner 2026-10-31): a pinned hero is never deleted
+		end
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		-- SLIM where the engine has it, StreamingMesh otherwise. Game scripts lack the PluginOrOpenCloud capability
 		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies.
@@ -852,7 +855,8 @@ end
 -- gap midline is the seam), or within that track's corridor. A landmark must not overhang a drop: no corner more
 -- than SNAP_OVERHANG under its snapped base. A prop that fails slides toward its road in SNAP_SLIDE_STEP steps (up to
 -- SNAP_SLIDE_MAX, never within the track's Width / 2 + CLEARANCE of the road, never onto another prop) or is dropped.
--- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome: it stays put and is warned about instead.
+-- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome, and a pinned hero (At) is never dropped: it stays put
+-- and is warned about instead.
 -- Returns how many props moved, how many were dropped, and heroes dropped per biome ({ [biome] = count }).
 function BiomeDressing.SnapToTerrain(trackModels)
 	local TerrainShape = require(script.Parent.TerrainShape)
@@ -969,7 +973,11 @@ function BiomeDressing.SnapToTerrain(trackModels)
 							end
 						end
 					end
-					if not done and prop:GetAttribute("Hero") and (heroes[biome] or 0) <= HERO_FLOOR then
+					if
+						not done
+						and prop:GetAttribute("Hero")
+						and (prop:GetAttribute("Pinned") or (heroes[biome] or 0) <= HERO_FLOOR)
+					then
 						warn(
 							string.format(
 								"[BiomeDressing] hero %s (biome %s, track %s) does not fit its zone: left in place",

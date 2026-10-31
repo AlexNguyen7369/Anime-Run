@@ -93,7 +93,7 @@ village symbols, flags, school emblems, show kanji or real place names; signs us
 - Route: start in the forest, through a tall wooden village gate, down a main street of shops, along the cliff base,
   over 2-3 red arched bridges on a river, then back into forest and a waterfall gorge for long tracks.
 - Architecture: wood plank walls, cream plaster, red/green tiled roofs, round water tanks on rooftops, stone walls.
-- Palette: #3E7D3A forest green, #C9A36B wood, #E8DCC0 plaster, #B23A2E bridge red, #7C8C99 cliff stone, #87CEEB sky.
+- Palette: #3E7D3A forest green, #C9A36B wood, #E8DCC0 plaster, #B23A2E bridge red, #9C8F7E cliff stone (owner 2026-10-31, was #7C8C99), #87CEEB sky.
 - Props: training posts (3 wooden logs), ramen-style food stall with made-up sign, paper lanterns, round rooftop tanks,
   tall pine trees, wooden fences, red bridge rails, cliff with 4 generic stone faces.
 - IP flag: the cliff must not copy the real carved faces; use 4 generic, unnamed faces (owner-approved 2026-10-28).

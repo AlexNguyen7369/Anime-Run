@@ -267,7 +267,7 @@ end
 
 -- Palettes (spec References, hex codes per track)
 local LEAF_GREEN, WOOD1, PLASTER1 = hex("3E7D3A"), hex("C9A36B"), hex("E8DCC0")
-local BRIDGE_RED, CLIFF1, DIRT1 = hex("B23A2E"), hex("7C8C99"), hex("A07B52")
+local BRIDGE_RED, CLIFF1, DIRT1 = hex("B23A2E"), hex("9C8F7E"), hex("A07B52")
 local SAND2, ROCK2, STRATA2, TILE2, SUNSET2 = hex("D9B98A"), hex("B8834F"), hex("8A5A3B"), hex("E6E1D3"), hex("F2A23A")
 local SAND3, SEA3, WHITE3, ROOF3, DOCK3, PALM3 =
 	hex("F3E2B3"), hex("2E8BC0"), hex("FFFFFF"), hex("C0392B"), hex("8B5A2B"), hex("4CAF50")
