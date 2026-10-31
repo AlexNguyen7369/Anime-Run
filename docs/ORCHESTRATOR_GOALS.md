@@ -51,10 +51,10 @@ Owner-confirmed: 2026-10-30 ("re-engineer the full biomes and environments of al
 Branch: feature/alex/anime-world
 Spec: docs/BIOME_ENVIRONMENT_SPEC.md (to be written first), docs/TRACKS_AND_BIOMES_SPEC.md
 Target: each track is a full world, not props along a road: shaped Terrain + water, custom in-house 3D meshes (Blender /
-Studio generation), per-zone client atmosphere (sky, lighting, fog, colour grade, particles), ambient audio. Inspiration
+Studio generation) and free Creator Store assets (owner 2026-10-30), per-zone client atmosphere (sky, lighting, fog, colour grade, particles), ambient audio. Inspiration
 from public anime Roblox games (general style only, nothing copied); section 5 safeguards hold.
 Deliverables:
-- b0 | BIOME_ENVIRONMENT_SPEC written (layers, budgets, pipeline, per-biome art direction) | owner reads it
+- b0 | BIOME_ENVIRONMENT_SPEC written (layers, budgets, pipeline, per-biome art direction) | owner reads it (DONE 2026-10-30, approved, merge 19ad0bf)
 - b1 | Environment framework: terrain + water builder, zone atmosphere client, ambient audio, mesh asset pipeline | its targeted scenarios green
-- b2 | Biomes 1-10 built end to end on the framework | `environment` green; owner visual review in Studio
+- b2 | Biomes 1-10 built end to end on the framework, one track at a time (owner 2026-10-30) | `environment` green; screenshots per track; owner visual review in Studio
 Out of scope: gameplay changes, track layout changes (w3 layouts stay).

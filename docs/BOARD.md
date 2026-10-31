@@ -1,9 +1,13 @@
 # Board
 
 ## Doing
-- c1 Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
+- b1 Biome environment framework: terrain + water, zone atmosphere, ambient audio, asset registry (BIOME_ENVIRONMENT_SPEC 9.1)
+
+## Paused
+- c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
+- b2 Biomes 1-10, one track at a time, screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
@@ -12,6 +16,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-10-30 b0 BIOME_ENVIRONMENT_SPEC approved (merge 19ad0bf); owner: free Creator Store assets (Lane D), one track at a time
 - 2026-10-30 w4 Anime biome themes 1-10 (merge 1de11ce): environment pass=450 fail=0, IVS mesh assets removed; owner rulings: Blossom Shrine Path, Track 1 gate = plaza torii, length-scaled budget, closer horizon
 - 2026-10-30 w3 Spiral track layouts 1-10 at 984 x 3 x 1.25^(n-1) (merge 2751d36): chain, world_layout, spawn_area green; wide bends on 7-10 for NPC times
 - 2026-10-30 w2 Anime town plaza hub at the world origin, 7 Dojo plots, Dojo squad rule (merge cca9d50): full harness `[CARTEST] END pass=47 fail=0`, spawn_area green after 3 loosened tolerances restored, audit violations fixed; owner 2026-10-30: track chain moved to (-118, TRACK_LIFT, 80), spec section 3 values confirmed, IVS hub-check retirements approved
