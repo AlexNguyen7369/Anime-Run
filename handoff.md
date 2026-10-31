@@ -162,3 +162,28 @@
   124094406088392 / 119854563443296 (squat); DeadWhiteTree 105854949421877 / 109452863592933; CrystalTree
   130960597807577 / 78285130678274; WhiteOutcrop 115443145387024 / 120675993065195; BrokenPillar 92998731248487 /
   75950047585759. No close-ups yet; nothing uploaded.
+- 2026-10-31 PAUSED by owner. State:
+  - Landed + pushed: Tracks 1-6, fw2-fw4, track camera, redesign specs (e8728f3).
+  - orch/biomes/fw5 (../AnimeRun-orch/fw5): Tunnel framework 3181c1c + 26ecc52 + tests eb49bff, NOT landed (Studio check
+    comes with Track 7).
+  - Track 5 rebuild "Burning Cursed City": orch/biomes/t5r in ../AnimeRun-orch/studio (Rojo-served), uncommitted, mid
+    step A; see the t5r pause report below for mesh ids.
+  - Track 7 rebuild "Shibuyo Underground": orch/biomes/t7r in ../AnimeRun-orch/t7r (has fw5), phase 1 uncommitted.
+  - Tracks 8-10 paused until 2026-11-03 (t8 Skypeia redo; t9 mesh ids above; t10 phase 1 done).
+  Resume order: t5r (Studio) -> audit -> verify -> land (replaces old Track 5); t7r phase 2 -> land with fw5; then Nov 3.
+- t7r pause report: phase 1 not started (reading only). Framework gaps found, to fix before/with t7r (fw6):
+  (1) src/shared/Tracks/Desert.luau header + Description still say Blossom Shrine; (2) BiomeDressing ignores the tunnel:
+  props sit at edge+Offset on both sides, never lifted onto bay platforms (road +4); pinned heroes choose their side by
+  corners/alternation, not by the bay's Side; (3) gate: use Gate.Index on a waypoint before s=16 (in front of the start
+  portal) or Gate.Skip. Unchecked: beside() side sign vs Tunnel Left.
+- t5r pause report (branch orch/biomes/t5r, close-ups committed): meshes generated, NOT yet in PirateCoast.luau
+  (mesh / texture, size): BurningTower 110026199515917 / 111995406996497 (15.9x35.9x16); Meteor 129629428349458 /
+  127234806169781 (16x6.4x16); CollapsedViaduct 104055839246591 / 105638459114043 (22.2x15.3x10); SlicedTower
+  118384879998435 / 79499249668457 (16x31.7x15.6, top half floats above the cut - auditor to judge); BurningCar
+  75112982054894 / 137060689993765 (nose -Z); RubblePile 90775659169182 / 135149187378761; BurntBillboard
+  99613692659503 / 124515013244308 (blank); BrokenStorefront 90903812309143 / 122708716943483 (front -Z). Keep signed
+  TrafficLight, RailOverpass, ConcreteBlock (11 unique). Left: module rewrite, ember/smoke PNGs, sounds, palette,
+  harness, step B. Also for fw6: EnvironmentTests:35 expects "Neon Cursed City" (test-writer), Serpentine header text,
+  landmark ParticleEmitters ignore REDUCED EFFECTS.
+- LANDED Track 5 rebuild (Burning Cursed City). Next: fw6 -> t7r Studio; then t8 (Skypeia), t9, t10. Open: T5 live floats LavaCrack patch 6.5, debris 2.2.
+- LANDED Track 8 Skypeia. Next: t7r Studio (move ../AnimeRun-orch/t7r into studio), land with fw5+fw6; then t9, t10.

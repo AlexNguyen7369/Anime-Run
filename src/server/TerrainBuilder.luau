@@ -38,6 +38,7 @@ TerrainBuilder.PALETTE = {
 	[M.Concrete] = "6B6B78",
 	[M.Pavement] = "E6E9EE",
 	[M.Snow] = "FFFFFF",
+	[M.CrackedLava] = "FF6A1A", -- owner redesign 2026-10-31, spec 3.4 (placeholder)
 }
 
 -- One chunk: heights first (for min / max and slope), then the shaped layer with WriteVoxels and the floor below
