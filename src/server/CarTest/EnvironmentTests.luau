@@ -267,8 +267,9 @@ local function obstacleGrid(trackModels, extra)
 			add(pad)
 		end
 	end
-	if extra then
-		for _, part in baseParts(extra) do
+	-- extra: one root Instance or a list of roots (spawn area, Dojos)
+	for _, root in (typeof(extra) == "Instance" and { extra } or extra or {}) do
+		for _, part in baseParts(root) do
 			add(part)
 		end
 	end
@@ -1208,6 +1209,557 @@ function Tests.environment()
 	if spawnModel then
 		spawnModel:Destroy()
 	end
+	return r
+end
+
+-- ===================================================================================================================
+-- docs/BIOME_ENVIRONMENT_SPEC.md section 10 (goal `biomes`, b1): four minimal dev-tool scenarios, on demand
+-- (TestConfig.OnDemand, CarTestOnly). Written by test-writer BEFORE the b1 framework; red until it lands.
+-- They read the LIVE world built by Main.server and wait for ReplicatedStorage attribute TerrainReady (spec 3.1).
+-- Contract used (spec 2.4, 3.1-3.3, 4.4, 5.1-5.3, 9.1):
+--   * ReplicatedStorage attributes TerrainReady (true at the end), BiomeZone_<n> ("x,z;x,z;..."), PlazaRadius;
+--   * Shared.BiomeDressing.CLEARANCE and .SnapToTerrain;
+--   * Shared.BiomeEnvironment (pure, server-requirable; the client BiomeEnvironment.client.luau uses it):
+--     ZoneAt(p: Vector3) -> zone number (0 = plaza), BLEND_SECONDS;
+--   * Shared.BiomeThemes/<Key> ModuleScripts with Terrain, Atmosphere (Atmosphere.Lighting.ClockTime), Audio
+--     ({ Loop, OneShots, Volume, Reverb }) and Assets (ledger rows { Kind, Id, Lane, Prompt, Creator, Reviewed }).
+-- ===================================================================================================================
+local TERRAIN_WAIT = 120 -- s; spec 3.1 budget is 45 s on the Studio server (placeholder), test-side slack
+local CORRIDOR_STEP = 20 -- studs between centre-line samples (spec 10 placeholder)
+local CORRIDOR_BELOW = 0.5 -- spec 10: from road Y - 0.5 ...
+local CORRIDOR_ABOVE = 12 -- ... to road Y + 12
+local VOXEL = 4 -- ReadVoxels resolution (spec 3.1)
+local GAP_POINTS = 3 -- spec 10: solid terrain at 3 sampled gap points per zone
+local GAP_OFFSETS = { 66, 58 } -- studs from the centre line: the ridge band (60 to ~77) and the shoulder (44-60)
+local GAP_MIN_DIST = 50 -- test-side: a gap point is at least this far from EVERY centre line (past the corridor 44)
+local COLUMN_LO, COLUMN_HI = -64, 256 -- studs: below the Drop deck (-40) to above the highest ridge
+local POLY_TOL = 1 -- studs (XZ): a BiomeZone_<n> point lies on track n's centre line
+local PLAZA_CENTRE_TOL = 8 -- WorldTests CENTRE_TOL: the hub centre is within 8 studs of the world origin
+
+local Terrain = Workspace.Terrain
+
+local function waitTerrainReady()
+	local t0 = os.clock()
+	while ReplicatedStorage:GetAttribute("TerrainReady") ~= true and os.clock() - t0 < TERRAIN_WAIT do
+		task.wait(0.5)
+	end
+	return ReplicatedStorage:GetAttribute("TerrainReady") == true, math.round((os.clock() - t0) * 10) / 10
+end
+
+-- Live centre lines (world space, as Main.server chains them) resampled every `step` studs: { Number, Width, Pts }
+local function centreLines(step)
+	local chain = require(script.Parent.TrackChainTests)
+	local out = {}
+	for _, t in chain.world(TrackBuilder, TrackRegistry.Chain()) do
+		local pts, wps = {}, t.Points
+		local carry = 0
+		if wps[1] then
+			table.insert(pts, wps[1])
+		end
+		for i = 2, #wps do
+			local a, b = wps[i - 1], wps[i]
+			local len = (b - a).Magnitude
+			local at = step - carry
+			while at < len do
+				table.insert(pts, a:Lerp(b, at / len))
+				at += step
+			end
+			-- every waypoint is kept too, so corners are never chord-cut; spacing restarts at it (always <= step)
+			table.insert(pts, b)
+			carry = 0
+		end
+		table.insert(out, { Number = t.Number, Width = t.Layout.Width, Pts = pts })
+	end
+	return out
+end
+
+local function segDistXZ(px, pz, a, b)
+	local dx, dz = b.X - a.X, b.Z - a.Z
+	local len2 = dx * dx + dz * dz
+	local u = len2 > 1e-9 and math.clamp(((px - a.X) * dx + (pz - a.Z) * dz) / len2, 0, 1) or 0
+	local qx, qz = a.X + dx * u - px, a.Z + dz * u - pz
+	return math.sqrt(qx * qx + qz * qz)
+end
+
+local function isSolid(material)
+	return material ~= Enum.Material.Air and material ~= Enum.Material.Water
+end
+
+-- 1. terrain_built (spec 10.1, 2.2, 3.1)
+function Tests.terrain_built()
+	local r, flag = report("terrain_built")
+	local ready, waited = waitTerrainReady()
+	flag("terrain_ready", ready)
+	r.metrics.waited_s = waited
+	r.metrics.terrain_progress = ReplicatedStorage:GetAttribute("TerrainProgress")
+	if not ready then
+		return r
+	end
+	local Dressing = module(Shared, "BiomeDressing")
+	local clearance = Dressing and type(Dressing.CLEARANCE) == "number" and Dressing.CLEARANCE or nil
+	flag("clearance_value", clearance ~= nil)
+	clearance = clearance or 8
+	local lines = centreLines(CORRIDOR_STEP)
+	flag("centre_lines", #lines == #BIOMES, #lines, #BIOMES)
+
+	-- Corridor: no solid or water voxel within road half-width + CLEARANCE of the centre line, from road Y - 0.5 to
+	-- road Y + 12. A voxel's filled top is read as bottom + occupancy * VOXEL (smooth terrain fills from below).
+	local corridor = {}
+	for _, line in lines do
+		local pts, reach = line.Pts, line.Width / 2 + clearance
+		local hits, samples, first = 0, 0, nil
+		for i, p in pts do
+			if i % 25 == 0 then
+				task.wait() -- yield per chunk of samples
+			end
+			samples += 1
+			local a, b = pts[math.max(1, i - 1)], pts[math.min(#pts, i + 1)]
+			local lo, hi = p.Y - CORRIDOR_BELOW, p.Y + CORRIDOR_ABOVE
+			local region =
+				Region3.new(Vector3.new(p.X - reach, lo, p.Z - reach), Vector3.new(p.X + reach, hi, p.Z + reach))
+			region = region:ExpandToGrid(VOXEL)
+			local mats, occ = Terrain:ReadVoxels(region, VOXEL)
+			local size = mats.Size
+			local min = region.CFrame.Position - region.Size / 2
+			local bad = false
+			for x = 1, size.X do
+				local cx = min.X + (x - 0.5) * VOXEL
+				for z = 1, size.Z do
+					local cz = min.Z + (z - 0.5) * VOXEL
+					if segDistXZ(cx, cz, a, b) <= reach then
+						for y = 1, size.Y do
+							local o = occ[x][y][z]
+							local yb = min.Y + (y - 1) * VOXEL
+							if mats[x][y][z] ~= Enum.Material.Air and o > 0 and yb + o * VOXEL > lo and yb < hi then
+								bad = true
+								first = first
+									or ("%s at %.0f,%.0f,%.0f road %.1f"):format(
+										mats[x][y][z].Name,
+										cx,
+										yb + o * VOXEL,
+										cz,
+										p.Y
+									)
+							end
+						end
+					end
+				end
+			end
+			if bad then
+				hits += 1
+			end
+		end
+		flag(("corridor_clear_%d"):format(line.Number), samples > 0 and hits == 0, hits, 0)
+		corridor[tostring(line.Number)] = { samples = samples, hits = hits, first = first }
+	end
+	r.metrics.corridor = corridor
+
+	-- Gaps: each zone has solid terrain at 3 points in its own gap (nearest centre line is track n, >= 50 away)
+	local plazaRadius = ReplicatedStorage:GetAttribute("PlazaRadius")
+	plazaRadius = type(plazaRadius) == "number" and plazaRadius or 0
+	local function nearestTrack(x, z)
+		local best, bestN = math.huge, nil
+		for _, line in lines do
+			for _, q in line.Pts do
+				local dx, dz = q.X - x, q.Z - z
+				local d = dx * dx + dz * dz
+				if d < best then
+					best, bestN = d, line.Number
+				end
+			end
+		end
+		return bestN, math.sqrt(best)
+	end
+	local gaps = {}
+	for _, line in lines do
+		local pts, found, solid, tried = line.Pts, 0, 0, 0
+		for k = 1, 9 do
+			local i = math.clamp(math.floor(#pts * k / 10), 2, math.max(2, #pts - 1))
+			local p, a, b = pts[i], pts[i - 1], pts[i + 1]
+			if found >= GAP_POINTS or not (p and a and b) then
+				break
+			end
+			local dir = Vector2.new(b.X - a.X, b.Z - a.Z)
+			dir = dir.Magnitude > 1e-6 and dir.Unit or Vector2.new(1, 0)
+			for _, side in { 1, -1 } do
+				for _, off in GAP_OFFSETS do
+					if found < GAP_POINTS then
+						local x, z = p.X - dir.Y * side * off, p.Z + dir.X * side * off
+						tried += 1
+						task.wait() -- yield per candidate (each scans every centre line)
+						local n, d = nearestTrack(x, z)
+						if n == line.Number and d >= GAP_MIN_DIST and Vector2.new(x, z).Magnitude > plazaRadius then
+							found += 1
+							local region =
+								Region3.new(Vector3.new(x - 2, COLUMN_LO, z - 2), Vector3.new(x + 2, COLUMN_HI, z + 2))
+									:ExpandToGrid(VOXEL)
+							local mats, occ = Terrain:ReadVoxels(region, VOXEL)
+							local any = false
+							for xi = 1, mats.Size.X do
+								for yi = 1, mats.Size.Y do
+									for zi = 1, mats.Size.Z do
+										any = any or (isSolid(mats[xi][yi][zi]) and occ[xi][yi][zi] > 0)
+									end
+								end
+							end
+							if any then
+								solid += 1
+							end
+						end
+					end
+				end
+			end
+		end
+		flag(("gap_points_found_%d"):format(line.Number), found >= GAP_POINTS, found, GAP_POINTS)
+		flag(("gap_terrain_solid_%d"):format(line.Number), solid >= GAP_POINTS, solid, GAP_POINTS)
+		gaps[tostring(line.Number)] = { tried = tried, found = found, solid = solid }
+	end
+	r.metrics.gaps = gaps
+	return r
+end
+
+-- Parses a BiomeZone_<n> attribute "x,z;x,z;..." into a Vector2 list (nil when missing or malformed)
+local function parsePolyline(text)
+	if type(text) ~= "string" or text == "" then
+		return nil
+	end
+	local out = {}
+	for _, pair in string.split(text, ";") do
+		if pair ~= "" then
+			local x, z = string.match(pair, "^%s*(%-?[%d%.e%-]+)%s*,%s*(%-?[%d%.e%-]+)%s*$")
+			x, z = tonumber(x), tonumber(z)
+			if not (x and z) then
+				return nil
+			end
+			table.insert(out, Vector2.new(x, z))
+		end
+	end
+	return #out >= 2 and out or nil
+end
+
+-- 2. zone_switch (spec 10.2, 3.2, 5.1, 5.3). The harness runs on the server, and the client-local
+-- Lighting.ClockTime after forcing a zone cannot be read from here: that half is the client's (UiTest / manual).
+-- This scenario tests the pure part: the published polylines, Shared.BiomeEnvironment.ZoneAt and the profiles.
+function Tests.zone_switch()
+	local r, flag = report("zone_switch")
+	local ready, waited = waitTerrainReady()
+	flag("terrain_ready", ready)
+	r.metrics.waited_s = waited
+	r.metrics.client_blend_checked = false -- limitation: needs a client probe (see header)
+	local Env = module(Shared, "BiomeEnvironment")
+	local zoneAt = Env and type(Env.ZoneAt) == "function" and Env.ZoneAt or nil
+	flag("biome_environment_module", Env ~= nil)
+	flag("zone_at_api", zoneAt ~= nil)
+	local blend = Env and Env.BLEND_SECONDS
+	flag("blend_seconds", type(blend) == "number" and blend > 0, type(blend) == "number" and blend or -1, 0)
+	local plazaRadius = ReplicatedStorage:GetAttribute("PlazaRadius")
+	flag("plaza_radius_attr", type(plazaRadius) == "number" and plazaRadius > 0)
+	plazaRadius = type(plazaRadius) == "number" and plazaRadius or 0
+
+	local function zone(p)
+		if not zoneAt then
+			return nil
+		end
+		local ok, z = pcall(zoneAt, p)
+		return ok and z or nil
+	end
+	local lift = TrackBuilder.TRACK_LIFT or 1
+	flag("zone_at_plaza_is_0", zone(Vector3.new(0, lift, 0)) == 0, zone(Vector3.new(0, lift, 0)) or -1, 0)
+
+	local lines = {}
+	for _, line in centreLines(8) do
+		lines[line.Number] = line
+	end
+	local Themes = module(Shared, "BiomeThemes")
+	local zones = {}
+	for n, biome in BIOMES do
+		local poly = parsePolyline(ReplicatedStorage:GetAttribute("BiomeZone_" .. n))
+		flag(("zone_polyline_%d"):format(n), poly ~= nil, poly and #poly or 0, 2)
+		-- every published point lies on track n's centre line (XZ)
+		local off, worst = 0, 0
+		local line = lines[n]
+		for i, q in poly or {} do
+			if i % 20 == 0 then
+				task.wait()
+			end
+			local best = math.huge
+			for j = 2, #(line and line.Pts or {}) do
+				best = math.min(best, segDistXZ(q.X, q.Y, line.Pts[j - 1], line.Pts[j]))
+			end
+			worst = math.max(worst, best)
+			if best > POLY_TOL then
+				off += 1
+			end
+		end
+		flag(("zone_polyline_on_track_%d"):format(n), poly ~= nil and off == 0, off, 0)
+		-- ZoneAt is n for every interior polyline point outside the plaza (ends are shared with the neighbours)
+		local checked, wrong, firstWrong = 0, 0, nil
+		for i = 2, (poly and #poly or 0) - 1 do
+			local q = poly[i]
+			if q.Magnitude > plazaRadius + PLAZA_CENTRE_TOL then
+				checked += 1
+				local got = zone(Vector3.new(q.X, lift, q.Y))
+				if got ~= n then
+					wrong += 1
+					firstWrong = firstWrong or ("%.0f,%.0f -> %s"):format(q.X, q.Y, tostring(got))
+				end
+			end
+		end
+		flag(("zone_at_track_%d"):format(n), checked > 0 and wrong == 0, wrong, 0)
+		-- the profile the client blends to has a ClockTime (spec 5.2)
+		local theme = Themes and Themes[biome]
+		local atmo = type(theme) == "table" and type(theme.Atmosphere) == "table" and theme.Atmosphere or {}
+		local light = type(atmo.Lighting) == "table" and atmo.Lighting or {}
+		local clock = light.ClockTime
+		flag(
+			("profile_clock_time_%d"):format(n),
+			type(clock) == "number" and clock >= 0 and clock < 24,
+			type(clock) == "number" and clock or -1,
+			24
+		)
+		zones[tostring(n)] =
+			{ points = poly and #poly or 0, worst_off = math.round(worst * 100) / 100, first_wrong = firstWrong }
+	end
+	r.metrics.zones = zones
+	return r
+end
+
+-- 3. server_lighting_unchanged (spec 10.3, 1, 8): the environment Lighting snapshot, taken again after
+-- TerrainReady, equals the one at scenario start and the LightingConfig baseline (weather-owned ClockTime,
+-- Brightness and OutdoorAmbient only while ReplicatedStorage.WeatherEvent is empty).
+function Tests.server_lighting_unchanged()
+	local r, flag = report("server_lighting_unchanged")
+	local before = lightingSnapshot()
+	local ready, waited = waitTerrainReady()
+	flag("terrain_ready", ready)
+	r.metrics.waited_s = waited
+	task.wait(1) -- a frame or more after the build, so any late write shows
+	local after = lightingSnapshot()
+	local function same(a, b)
+		if typeof(a) == "Color3" and typeof(b) == "Color3" then
+			return colorDiff(a, b) <= LIGHT_TOL
+		elseif type(a) == "number" and type(b) == "number" then
+			return math.abs(a - b) <= LIGHT_TOL
+		end
+		return a == b
+	end
+	local changed = {}
+	for k, v in before do
+		if not same(v, after[k]) then
+			table.insert(changed, k)
+		end
+	end
+	table.sort(changed)
+	flag("snapshot_unchanged", #changed == 0, #changed, 0)
+	r.metrics.changed = table.concat(changed, ",")
+
+	local Config = module(Shared, "LightingConfig")
+	flag("lighting_config", Config ~= nil)
+	local event = ReplicatedStorage:GetAttribute("WeatherEvent")
+	local weatherOn = type(event) == "string" and event ~= ""
+	r.metrics.weather_event = weatherOn and event or ""
+	local WEATHER_PROPS = { ClockTime = true, Brightness = true, OutdoorAmbient = true }
+	local off = {}
+	for prop, want in Config and Config.Lighting or {} do
+		if not (weatherOn and WEATHER_PROPS[prop]) and not same(Lighting[prop], want) then
+			table.insert(off, prop)
+		end
+	end
+	for _, effect in Config and Config.Effects or {} do
+		local inst = Lighting:FindFirstChild(effect[2])
+		if not (inst and inst:IsA(effect[1])) then
+			table.insert(off, effect[2])
+		else
+			for prop, want in effect[3] do
+				if not same(inst[prop], want) then
+					table.insert(off, effect[2] .. "." .. prop)
+				end
+			end
+		end
+	end
+	table.sort(off)
+	flag("lighting_at_baseline", Config ~= nil and #off == 0, #off, 0)
+	r.metrics.off_baseline = table.concat(off, ",")
+	flag(
+		"no_new_sky_atmosphere_clouds",
+		after.Sky == before.Sky and after.Atmosphere == before.Atmosphere and after.Clouds == before.Clouds
+	)
+	return r
+end
+
+local ASSET_KINDS = { Mesh = true, Texture = true, Skybox = true, Sound = true }
+local ASSET_LANES = { A = true, B = true, C = true, D = true }
+local ASSET_ID = "^rbxassetid://%d+$"
+local REVIEWED = "^%d%d%d%d%-%d%d%-%d%d %S" -- spec 4.1 step 3: "<date> <who>"
+
+local function nonEmpty(v)
+	return type(v) == "string" and string.match(v, "%S") ~= nil
+end
+
+-- Spec 4.4 ledger row shape. Returns a problem string or nil.
+local function ledgerRowProblem(row)
+	if type(row) ~= "table" then
+		return "shape"
+	elseif not ASSET_KINDS[row.Kind] then
+		return "kind"
+	elseif not ASSET_LANES[row.Lane] then
+		return "lane"
+	elseif row.Id ~= nil and not (type(row.Id) == "string" and string.match(row.Id, ASSET_ID)) then
+		return "id"
+	elseif (row.Lane == "A" or row.Lane == "B") and not nonEmpty(row.Prompt) then
+		return "prompt" -- spec 4.1 step 2: the generation prompt is stored in the ledger
+	elseif row.Lane == "D" and not (nonEmpty(row.Creator) and row.Id ~= nil) then
+		return "creator" -- spec 4.1 Lane D: Creator and the Creator Store asset id
+	elseif row.Reviewed ~= nil and not (type(row.Reviewed) == "string" and string.match(row.Reviewed, REVIEWED)) then
+		return "reviewed"
+	end
+	return nil
+end
+
+-- Every asset key a biome def uses: { Kind, Key } for Mesh = / Skybox = / Sound = strings anywhere (ledger excluded)
+-- and the Audio Loop / OneShots keys (spec 6, 9.1)
+local function usedAssetKeys(def)
+	local out, seen = {}, {}
+	local function walk(t)
+		if type(t) ~= "table" or seen[t] then
+			return
+		end
+		seen[t] = true
+		for k, v in t do
+			if (k == "Mesh" or k == "Skybox" or k == "Sound") and type(v) == "string" then
+				table.insert(out, { Kind = k, Key = v })
+			end
+			if k ~= "Assets" then
+				walk(v)
+			end
+		end
+	end
+	walk(def)
+	local audio = type(def.Audio) == "table" and def.Audio or {}
+	if type(audio.Loop) == "string" then
+		table.insert(out, { Kind = "Sound", Key = audio.Loop })
+	end
+	for _, key in type(audio.OneShots) == "table" and audio.OneShots or {} do
+		if type(key) == "string" then
+			table.insert(out, { Kind = "Sound", Key = key })
+		end
+	end
+	return out
+end
+
+-- 4. assets_ip (spec 10.4, 4.1-4.4, 9.1; design doc 5)
+function Tests.assets_ip()
+	local r, flag = report("assets_ip")
+	local realNameIn = require(script.Parent.CatalogTests).realNameIn
+	local folder = Shared:FindFirstChild("BiomeThemes")
+	local problems = {}
+	for _, biome in BIOMES do
+		local def = folder and module(folder, biome)
+		flag(("biome_module_%s"):format(biome), def ~= nil)
+		local d = def or {}
+		flag(
+			("biome_module_sections_%s"):format(biome),
+			def ~= nil
+				and type(d.Terrain) == "table"
+				and type(d.Atmosphere) == "table"
+				and type(d.Audio) == "table"
+				and type(d.Assets) == "table"
+		)
+		-- IP (design doc 5): no real names anywhere in the module, ledger prompts and creators included
+		local hit = nil
+		for _, text in themeStrings(def) do
+			if realNameIn(nameKey(text)) then
+				hit = hit or text
+			end
+		end
+		flag(("biome_module_no_real_names_%s"):format(biome), def ~= nil and hit == nil)
+		r.metrics[("real_name_%s"):format(biome)] = hit and realNameIn(nameKey(hit)) -- hash only, never the name
+		local ivs = 0
+		for _, id in themeAssetIds(def) do
+			if IVS_ASSET_IDS[id] then
+				ivs += 1
+			end
+		end
+		flag(("biome_module_no_ivs_assets_%s"):format(biome), def ~= nil and ivs == 0, ivs, 0)
+		-- Ledger rows (spec 4.4)
+		local ledger = type(d.Assets) == "table" and d.Assets or {}
+		local badRows, firstRow = 0, nil
+		for key, row in ledger do
+			local problem = ledgerRowProblem(row)
+			if problem then
+				badRows += 1
+				firstRow = firstRow or (tostring(key) .. ":" .. problem)
+			end
+		end
+		flag(("ledger_rows_valid_%s"):format(biome), def ~= nil and badRows == 0, badRows, 0)
+		-- Every Mesh / Skybox / Sound key used resolves to a ledger row of that Kind with an Id and Reviewed
+		local unresolved, firstKey = 0, nil
+		for _, use in usedAssetKeys(d) do
+			local row = ledger[use.Key]
+			local ok = type(row) == "table"
+				and row.Kind == use.Kind
+				and type(row.Id) == "string"
+				and string.match(row.Id, ASSET_ID) ~= nil
+				and type(row.Reviewed) == "string"
+				and string.match(row.Reviewed, REVIEWED) ~= nil
+			if not ok then
+				unresolved += 1
+				firstKey = firstKey or (use.Kind .. ":" .. use.Key)
+			end
+		end
+		flag(("assets_used_resolve_%s"):format(biome), def ~= nil and unresolved == 0, unresolved, 0)
+		if firstRow or firstKey then
+			problems[biome] = firstRow or firstKey
+		end
+	end
+	r.metrics.problems = problems
+
+	-- The environment prop clearance check, on the LIVE world after SnapToTerrain (Main.server step 5)
+	local Dressing = module(Shared, "BiomeDressing")
+	flag("snap_to_terrain_api", Dressing ~= nil and type(Dressing.SnapToTerrain) == "function")
+	local ready, waited = waitTerrainReady()
+	flag("terrain_ready", ready)
+	r.metrics.waited_s = waited
+	local trackFolder = Workspace:FindFirstChild("Track")
+	local numberOf, models = {}, {}
+	for _, spec in TrackRegistry.Chain() do
+		local m = trackFolder and trackFolder:FindFirstChild(spec.Name)
+		if m then
+			numberOf[m] = spec.Number
+			table.insert(models, m)
+		end
+	end
+	flag("live_tracks", #models == #BIOMES, #models, #BIOMES)
+	local extra = {}
+	for _, name in { "SpawnArea", "Workshops" } do
+		local root = Workspace:FindFirstChild(name)
+		flag(("live_%s"):format(string.lower(name)), root ~= nil)
+		table.insert(extra, root)
+	end
+	local grid, obstacles = obstacleGrid(models, extra)
+	r.metrics.obstacles = obstacles
+	local clearance = Dressing and type(Dressing.CLEARANCE) == "number" and Dressing.CLEARANCE or 8
+	local grow = clearance - GEOM_TOL
+	local live = {}
+	for _, m in models do
+		local n = numberOf[m]
+		local env = m:FindFirstChild("Environment")
+		local parts = baseParts(env)
+		local hits, firstBad = 0, nil
+		for i, part in parts do
+			if i % 300 == 0 then
+				task.wait() -- yield only: tens of thousands of live props
+			end
+			local o = firstHit(grid, part, grow)
+			if o then
+				hits += 1
+				firstBad = firstBad or (part:GetFullName() .. " -> " .. o.Name)
+			end
+		end
+		flag(("live_props_clear_of_road_%d"):format(n), env ~= nil and #parts > 0 and hits == 0, hits, 0)
+		live[tostring(n)] = { parts = #parts, hits = hits, first = firstBad }
+	end
+	r.metrics.live = live
 	return r
 end
 
