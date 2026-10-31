@@ -1,9 +1,12 @@
 # Board
 
 ## Doing
+- Owner redesign 2026-10-31: research + specs (../AnimeRun-orch/redesign), then tunnel framework (Track 7), Track 5 rebuild (burning city), Track 7 rebuild (Shibuya subway). Pause after T5 + T7.
 - b2 Track 6 Hero Academy City (Studio), Track 7 + Track 8 prep in own worktrees; then 9, 10
 
 ## Paused
+- b2 Tracks 8-10 PAUSED by owner until 2026-11-03 (branches: t8 714b8fc+f6b0ac1 phase 1 Sky Islands -> to be redone as Skypeia; t9 Volcano phase 2 partial; t10 5e3bb17+da0852d phase 1)
+- t7 Blossom Shrine Path SUPERSEDED (05cc80e on orch/biomes/t7, reference only)
 - b2 implementation PAUSED by owner 2026-10-31 after Track 3; resume on owner's "continue". Open fw2 items: 25 Docks houses + Track 1 VillageHouse (3.6) / ElderHouse (7.0) still float on slopes with Pad; TileRing max gap 11.4 (not ~0); 4 pinned heroes warn "reaches into a road corridor" (Landmark_259, _263, _315, _49); final screenshot set not retaken after fw2 rounds 5-6
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 

@@ -154,3 +154,6 @@
   t7 53d4f64, t8 714b8fc, t9 f61e03b, t10 5e3bb17 (worktrees ../AnimeRun-orch/t7..t10). Studio queue t6 (verifying)
   -> t7 -> t8 -> t9 -> t10; loop per resume_step in .agents/orchestrator.json. Morning list: docs/OWNER_QUESTIONS.md.
 - LANDED 9858032: Track 6 + fw4. Studio -> Track 7.
+- 2026-10-31 OWNER: finish Track 5 redesign (Jogo vs Sukuna burning city, night) and Track 7 (Shibuya Incident subway,
+  full tunnel + platforms), then PAUSE. Tracks 8-10 resume 2026-11-03 (Track 8 = Skypeia, rival Enelu [Enel]).
+  Doc rulings on orch/biomes/redesign (uncommitted until the research agent finishes the spec rewrite).
