@@ -162,3 +162,12 @@
   124094406088392 / 119854563443296 (squat); DeadWhiteTree 105854949421877 / 109452863592933; CrystalTree
   130960597807577 / 78285130678274; WhiteOutcrop 115443145387024 / 120675993065195; BrokenPillar 92998731248487 /
   75950047585759. No close-ups yet; nothing uploaded.
+- 2026-10-31 PAUSED by owner. State:
+  - Landed + pushed: Tracks 1-6, fw2-fw4, track camera, redesign specs (e8728f3).
+  - orch/biomes/fw5 (../AnimeRun-orch/fw5): Tunnel framework 3181c1c + 26ecc52 + tests eb49bff, NOT landed (Studio check
+    comes with Track 7).
+  - Track 5 rebuild "Burning Cursed City": orch/biomes/t5r in ../AnimeRun-orch/studio (Rojo-served), uncommitted, mid
+    step A; see the t5r pause report below for mesh ids.
+  - Track 7 rebuild "Shibuyo Underground": orch/biomes/t7r in ../AnimeRun-orch/t7r (has fw5), phase 1 uncommitted.
+  - Tracks 8-10 paused until 2026-11-03 (t8 Skypeia redo; t9 mesh ids above; t10 phase 1 done).
+  Resume order: t5r (Studio) -> audit -> verify -> land (replaces old Track 5); t7r phase 2 -> land with fw5; then Nov 3.
