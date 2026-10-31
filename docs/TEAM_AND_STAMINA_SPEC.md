@@ -93,6 +93,10 @@ Stamina = Base(rarity or override)
   amount banked.
 - Exhaustion is not a loss: the bank is paid, and no loser screen shows.
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
+- Owner 2026-10-30: the run bank is restored, as design doc sections 2-4.3 say. Each track win adds its payout to the
+  run's unbanked pot (not paid at once, unlike the IVS fork); exhaustion cashes it out once; a loss empties it.
+- Owner 2026-10-30: a loss reset back to Track 1 starts a new run: stamina refills to 100% and the team restarts at
+  slot 1.
 
 ## Speed
 

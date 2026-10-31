@@ -184,6 +184,8 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-30: owner c1 rulings (TEAM_AND_STAMINA_SPEC Run end): run bank restored (wins bank, exhaustion cashes out,
+  loss empties); a loss reset refills stamina and restarts at slot 1.
 
 - 2026-10-30: owner on the Speed scale (4.11): wipe pre-scale test saves (v2 stores), HUD suffix threshold stays 1e6,
   Speed board stores a log-scaled score, weaker admin decimal check accepted; MAX_ADD scales.
