@@ -12,7 +12,8 @@ local RaceConfig = require(script.Parent.RaceConfig)
 
 local BiomeDressing = {}
 BiomeDressing.CLEARANCE = 8 -- studs every prop keeps from any road, wall, checkpoint, pad or spawn-area part
-BiomeDressing.BUDGET = 1200 -- BaseParts per track Environment (owner 2026-10-27)
+BiomeDressing.BUDGET = 1200 -- BaseParts per BUDGET_STUDS of track (owner 2026-10-27; length-scaled 2026-10-30)
+BiomeDressing.BUDGET_STUDS = 3000 -- placeholder: a track's budget is BUDGET per this many studs, never below BUDGET
 -- Size factor per layer (owner 2026-10-27, placeholders); Rhythm and the gate keep their theme sizes
 BiomeDressing.SCALE = { Landmarks = 1.75, Horizon = 2, Scatter = 1.5 }
 BiomeDressing.GATE_HEIGHT = 28 -- studs from the road to the gate beam
@@ -27,6 +28,9 @@ local HORIZON_FIT = { 1, 0.75, 0.5, 1 / 3 } -- fractions of the horizon Offset t
 local PATCH_THICKNESS = 0.2 -- studs: ground patches are flat slabs
 local SCATTER_PASSES = 4 -- scatter spots are visited in interleaved passes so a full budget still covers the whole track
 local GRID = 64 -- studs per broad-phase cell in Prune
+-- Shares of the budget left after the gate, landmarks and horizon (owner 2026-10-30: every layer gets built).
+-- Each layer may use its share; what it leaves rolls on to the next one.
+local SHARE = { Rhythm = 0.35, Blocks = 0.35 } -- scatter gets the rest
 
 local MeshData = script.Parent:WaitForChild("BiomeMeshData")
 local dataCache = {}
@@ -112,7 +116,7 @@ local function place(folder, biome, def, base, name, glow, particles)
 		local part = Instance.new("Part")
 		part.Name = def.Name .. i
 		part.Size = p.Size
-		part.CFrame = base * CFrame.new(p.Pos)
+		part.CFrame = base * CFrame.new(p.Pos) * (p.Rot or CFrame.identity)
 		part.Color = p.Color
 		part.Material = p.Material or Enum.Material.SmoothPlastic
 		if p.Shape then
@@ -216,9 +220,11 @@ end
 -- Arch over the road at the track start: posts outside the clearance, beam GATE_HEIGHT above the road.
 local SIGN_HEIGHT = 8 -- studs the gate sign hangs below the beam
 
--- "PirateCoast" -> "PIRATE COAST"
+-- The biome's working name in upper case ("LEAFWIND VILLAGE"); a key without a theme splits its words
 local function biomeTitle(biome)
-	return string.upper((string.gsub(biome, "(%l)(%u)", "%1 %2")))
+	local theme = Themes[biome]
+	local name = theme and theme.DisplayName or string.gsub(biome, "(%l)(%u)", "%1 %2")
+	return string.upper(name)
 end
 BiomeDressing.Title = biomeTitle
 
@@ -408,15 +414,16 @@ local function blocks(folder, layout, origin, theme, biome, edge, count, onGroun
 	end
 	-- Slots sit exactly `Spacing` studs apart along the road (between waypoints too), so equal-width buildings
 	-- never land closer than `Spacing` and the street wall has no waypoint-rounding gaps or overlaps.
-	local travelled, nextSlot, slot = 0, 0, 0
-	for i = 2, #wps - 1 do
-		local len = (Vector3.new(wps[i].X, 0, wps[i].Z) - Vector3.new(wps[i - 1].X, 0, wps[i - 1].Z)).Magnitude
-		while len > 0 and nextSlot <= travelled + len do
-			local t = (nextSlot - travelled) / len
-			slot += 1
-			nextSlot += b.Spacing
-			for _, side in { -1, 1 } do
-				for row = 1, b.Rows do
+	-- Row 1 runs the whole track before row 2, so a tight budget still lines every street
+	for row = 1, b.Rows do
+		local travelled, nextSlot, slot = 0, 0, 0
+		for i = 2, #wps - 1 do
+			local len = (Vector3.new(wps[i].X, 0, wps[i].Z) - Vector3.new(wps[i - 1].X, 0, wps[i - 1].Z)).Magnitude
+			while len > 0 and nextSlot <= travelled + len do
+				local t = (nextSlot - travelled) / len
+				slot += 1
+				nextSlot += b.Spacing
+				for _, side in { -1, 1 } do
 					local def = b.Props[math.floor(hash(slot, side, row + 10) * 1000) % #b.Props + 1]
 					local distance = edge + b.Near + (row - 1) * b.RowDepth + def.Size.Z / 2
 					local base = beside(layout, origin, i - 1, side, distance, t)
@@ -442,8 +449,8 @@ local function blocks(folder, layout, origin, theme, biome, edge, count, onGroun
 					end
 				end
 			end
+			travelled += len
 		end
-		travelled += len
 	end
 	return count
 end
@@ -476,8 +483,9 @@ function BiomeDressing.Build(model, layout, spec, origin)
 
 	local wps = layout.Waypoints
 	local edge = layout.Width / 2 + WALL
-	local budget = theme.Budget or BiomeDressing.BUDGET
-	local count = gate(folder, layout, origin, theme, spec)
+	local budget = math.floor(BiomeDressing.BUDGET * math.max(1, (layout.Length or 0) / BiomeDressing.BUDGET_STUDS))
+	-- Track 1 has no biome gate: the plaza torii is its gate (owner 2026-10-30)
+	local count = theme.Gate.Skip and 0 or gate(folder, layout, origin, theme, spec)
 	-- A prop whose footprint leaves this track's ground would hang over the void (or the Baseplate below it).
 	-- `reach` is the prop's half-width on the ground (its half-diagonal when it is turned).
 	local function onGround(base, reach)
@@ -501,6 +509,9 @@ function BiomeDressing.Build(model, layout, spec, origin)
 		for _, s in steps do
 			local def = scaled(raw, s)
 			local size = footprint(biome, def)
+			if count + #def.Parts + 1 > budget then
+				return
+			end
 			for _, f in fits or { 1 } do
 				local offset = fits and math.max(layer.Offset * f, theme.Landmarks.Offset) or layer.Offset
 				local base = beside(layout, origin, i, side, edge + offset + size.Z / 2)
@@ -516,13 +527,18 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	end
 
 	-- Landmarks and horizon first, so the rhythm layer is what the budget trims.
+	-- A spiral has a corner every few hundred studs: corners closer than Every / 2 to a placed landmark are skipped,
+	-- so landmarks keep their spacing. The horizon piece goes on the inside, the landmark on the outside.
+	local every = theme.Landmarks.Every
 	local corners, crests = features(layout)
 	local spots, n = {}, 0
 	for _, c in corners do
-		add(theme.Landmarks, n, c.Index, c.Side, true, "Landmark_" .. c.Index)
-		add(theme.Horizon, n, c.Index, c.Side, false, "Horizon_" .. c.Index, HORIZON_FIT)
-		table.insert(spots, c.Index)
-		n += 1
+		if not near(spots, c.Index, every // 2) then
+			add(theme.Landmarks, n, c.Index, c.Side, true, "Landmark_" .. c.Index)
+			add(theme.Horizon, n, c.Index, -c.Side, false, "Horizon_" .. c.Index, HORIZON_FIT)
+			table.insert(spots, c.Index)
+			n += 1
+		end
 	end
 	for _, i in crests do
 		if not near(spots, i, 6) then
@@ -531,7 +547,6 @@ function BiomeDressing.Build(model, layout, spec, origin)
 			n += 1
 		end
 	end
-	local every = theme.Landmarks.Every
 	local first = math.min(every, #wps // 2) -- a short straight track still gets one
 	for i = first, #wps - first, every do
 		if not near(spots, i, every // 2) then
@@ -548,18 +563,29 @@ function BiomeDressing.Build(model, layout, spec, origin)
 		end
 	end
 
+	-- Rhythm, blocks and scatter share what is left, so each layer is built along the whole track
 	local rhythm, k = theme.Rhythm, 0
-	for i = 2, #wps - 1, rhythm.Every do
+	local share = theme.Shares or SHARE
+	local rhythmCap = count + math.floor((budget - count) * (theme.Blocks and share.Rhythm or 0.5))
+	local perProp = 0
+	for _, def in rhythm.Props do
+		perProp += #def.Parts / #rhythm.Props
+	end
+	-- Spread the rhythm out (larger step) when its share cannot fill every slot
+	local slots = 2 * (#wps - 2) / rhythm.Every
+	local step = rhythm.Every * math.max(1, math.ceil(slots * perProp / math.max(1, rhythmCap - count)))
+	for i = 2, #wps - 1, step do
 		for _, side in { -1, 1 } do
-			if count + 4 > budget then
-				return
+			if count + perProp > rhythmCap then
+				break
 			end
 			add(rhythm, k, i, side, false, "Rhythm_" .. i .. (side < 0 and "L" or "R"))
 			k += 1
 		end
 	end
 	if theme.Blocks then
-		count = blocks(folder, layout, origin, theme, biome, edge, count, onGround, budget)
+		local cap = count + math.floor((budget - count) * share.Blocks / (1 - share.Rhythm))
+		count = blocks(folder, layout, origin, theme, biome, edge, count, onGround, cap)
 	end
 	if theme.Scatter then
 		count = scatter(folder, layout, origin, theme, biome, ground, edge, count, onGround, budget)

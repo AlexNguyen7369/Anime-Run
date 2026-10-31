@@ -110,6 +110,19 @@ local REAL_NAME_HASHES = {
 	{ 11, 1307652066 },
 	{ 11, 1795170271 },
 	{ 12, 429441481 },
+	-- Real place names from docs/TRACKS_AND_BIOMES_SPEC.md "References" (w4, design doc section 5 "no real place names")
+	{ 6, 160293963 },
+	{ 6, 42764698 },
+	{ 5, 268211667 },
+	{ 5, 261806107 },
+	{ 6, 277297131 },
+	{ 7, 308729511 },
+	{ 6, 2112140938 },
+	{ 10, 1514019198 },
+	{ 8, 1085260683 },
+	{ 7, 1105951376 },
+	{ 7, 758389615 },
+	{ 5, 253114223 },
 }
 
 -- djb2 mod 2^31 - 1 (stays exact in a double); tools: the same loop in any language gives the stored values.

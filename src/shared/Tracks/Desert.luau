@@ -1,5 +1,5 @@
 --!nonstrict
--- Track 7 (w3, owner 2026-10-30): Sakura Shrine Path: cherry blossom avenues, stone stairs up to the hilltop shrine and switchback bends on the shrine hill.
+-- Track 7 (w3, owner 2026-10-30): Blossom Shrine Path: cherry blossom avenues, stone stairs up to the hilltop shrine and switchback bends on the shrine hill.
 -- About 984 x 3 x 1.25^6 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
 -- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
 -- corners grow with each lap, so this track sits one lap band outside the previous one.
@@ -7,7 +7,7 @@
 -- its cruise speed and its time matches the TRACKS_AND_BIOMES_SPEC table.
 return {
 	Name = "Desert",
-	Description = "Sakura Shrine Path run: blossom avenues, gate tunnels, shrine stairs and switchback bends.",
+	Description = "Blossom Shrine Path run: blossom avenues, gate tunnels, shrine stairs and switchback bends.",
 	Number = 7,
 	Biome = "Desert",
 	Width = 40,

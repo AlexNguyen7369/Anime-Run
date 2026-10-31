@@ -48,7 +48,7 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 | 4 | Wisteria Night Mountain | Demon Slicer | night forest, purple wisteria trees, stone lanterns, a Taisho-style wooden town, full moon |
 | 5 | Neon Cursed City | Jujitsu Kaisan | night city crossing, neon signs with made-up text, a temple school on a hill, dark purple fog |
 | 6 | Hero Academy City | My Hero Akademia | bright modern city, a tall glass academy tower, training grounds, giant robot props |
-| 7 | Sakura Shrine Path | classic anime | cherry blossom avenue, torii gates, stone stairs, falling petals |
+| 7 | Blossom Shrine Path | classic anime | cherry blossom avenue, torii gates, stone stairs, falling petals |
 | 8 | Sky Islands | classic anime | floating grassy islands, waterfalls into clouds, vine bridges, old stone ruins |
 | 9 | Spirit Realm Desert | Bleach-like | white sand, dead white trees, a giant dome palace on the horizon, crescent moon in a black sky |
 | 10 | Green Alien Planet | Dragon Bawl Z | green sky, blue-green grass, round domed houses, tall thin trees with ball tops |
@@ -58,6 +58,16 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
   made-up text.
 - Each biome keeps the IVS budgets (prop budget, scale rules, EditableMesh near the camera, part fallback elsewhere).
 - Night biomes (4, 5, 9) tint only their own props and ground; they never change global `Lighting` (IVS rule).
+- Owner 2026-10-30: Track 7 is named "Blossom Shrine Path" ("Sakura" is a blocked real name).
+- Owner 2026-10-30: Track 1 builds no biome start gate; the plaza torii StartGate is its gate (its first straight
+  runs beside the plaza floor).
+- Owner 2026-10-30 (replaces the fixed 1200-part budget for these tracks): the dressing part budget grows with track
+  length, 1200 parts per ~3,000 studs of track (placeholder), so every layer (landmarks, horizon, rhythm, scatter,
+  patches, city blocks) gets built.
+- Owner 2026-10-30: horizon pieces sit about 100 studs from the road (placeholder) so they fit between spiral laps;
+  they act as large props.
+  Built 2026-10-30 as Horizon Offset 55 with 20-22-stud-deep pieces, so their far edge is about 100 studs out
+  (placeholder; laps are only ~110 studs apart edge to edge).
 
 ## Build order and tests
 
@@ -158,7 +168,7 @@ village symbols, flags, school emblems, show kanji or real place names; signs us
   No school emblem on the gate. Robots stay generic boxy designs.
 - Sky/ground: bright day, asphalt road, grass verges.
 
-### Track 7: Sakura Shrine Path (classic anime)
+### Track 7: Blossom Shrine Path (classic anime)
 - https://en.wikipedia.org/wiki/Fushimi_Inari-taisha (torii tunnels on a hillside)
 - https://en.wikipedia.org/wiki/Torii (gate structure)
 - https://en.wikipedia.org/wiki/Cherry_blossom (tree look)
