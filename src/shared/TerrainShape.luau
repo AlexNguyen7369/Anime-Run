@@ -436,37 +436,59 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 end
 
--- Levels a pad at height y under the oriented box (cf, size) (spec 3.2: a pinned hero). The footprint grown by
--- CLEARANCE is flat at y over every track's ridge and seam; outside it the pad blends out over the shoulder width.
--- It never moves road or clear-box ground: inside any corridor the pad does nothing (a step at the corridor edge),
--- and its outer blend fades to nothing at the corridor edge. Returns true when part of the footprint itself lies in
--- a corridor or clear box (that part stays corridor). `margin` (default CLEARANCE) replaces the CLEARANCE growth:
--- a house's pad (spec 3.2) is smaller. Call after Prepare and before the terrain is built.
-function TerrainShape.AddPad(cf, size, y, margin)
-	local half = (cf.RightVector * size.X):Abs() / 2 + (cf.LookVector * size.Z):Abs() / 2
-	local g = Vector2.one * (margin or TerrainShape.CLEARANCE)
-	local c = Vector2.new(cf.Position.X, cf.Position.Z)
-	local lo, hi = c - Vector2.new(half.X, half.Z), c + Vector2.new(half.X, half.Z)
-	local inCorridor = false
-	for px = lo.X, hi.X, TerrainShape.CELL / 2 do
-		for pz = lo.Y, hi.Y, TerrainShape.CELL / 2 do
-			local _, dA, _, _, _, dc = sample(px, pz)
-			inCorridor = inCorridor or math.min(dA, (dc or math.huge) + TerrainShape.CORRIDOR) <= TerrainShape.CORRIDOR
+-- The footprint of the oriented box (cf, size) in XZ: centre, unit right and look axes, half extents
+local function footprintOf(cf, size)
+	local r, l = Vector2.new(cf.RightVector.X, cf.RightVector.Z), Vector2.new(cf.LookVector.X, cf.LookVector.Z)
+	r = r.Magnitude > 1e-4 and r.Unit or Vector2.new(1, 0)
+	l = l.Magnitude > 1e-4 and l.Unit or Vector2.new(-r.Y, r.X)
+	return Vector2.new(cf.Position.X, cf.Position.Z), r, l, size.X / 2, size.Z / 2
+end
+
+-- The lowest corridor (or clear-box) ground under the oriented footprint of (cf, size), or nil when no part of the
+-- footprint lies in a corridor or clear box. Sampled every CELL / 2 studs, edges included. Pads never change it.
+function TerrainShape.CorridorLow(cf, size)
+	local c, r, l, hx, hz = footprintOf(cf, size)
+	local step = TerrainShape.CELL / 2
+	local low = nil
+	local nx, nz = math.max(1, math.ceil(2 * hx / step)), math.max(1, math.ceil(2 * hz / step))
+	for a = 0, nx do
+		for b = 0, nz do
+			local p = c + r * (-hx + 2 * hx * a / nx) + l * (-hz + 2 * hz * b / nz)
+			local _, dA, _, _, _, dc = sample(p.X, p.Y)
+			if math.min(dA, (dc or math.huge) + TerrainShape.CORRIDOR) <= TerrainShape.CORRIDOR then
+				local h = TerrainShape.Height(p.X, p.Y)
+				low = low and math.min(low, h) or h
+			end
 		end
 	end
+	return low
+end
+
+-- Levels a pad at height y under the oriented box (cf, size) (spec 3.2: a pinned hero, a house). The footprint grown
+-- by `margin` (default CLEARANCE) is flat at y over every track's ridge and seam; outside it the pad blends out over
+-- the shoulder width. It never moves road or clear-box ground: inside any corridor the pad does nothing, and its
+-- blend fades to nothing at the corridor edge. A pad added earlier keeps its flat area: later pads never change it.
+-- Returns true when part of the footprint itself lies in a corridor or clear box (that part stays corridor).
+-- Call after Prepare and before the terrain is built.
+function TerrainShape.AddPad(cf, size, y, margin)
+	local c, r, l, hx, hz = footprintOf(cf, size)
+	local g = margin or TerrainShape.CLEARANCE
+	-- the grown footprint, and its world box for the buckets
+	local pad = { C = c, R = r, L = l, HX = hx + g, HZ = hz + g, Y = y }
+	local e =
+		Vector2.new(math.abs(r.X) * pad.HX + math.abs(l.X) * pad.HZ, math.abs(r.Y) * pad.HX + math.abs(l.Y) * pad.HZ)
 	-- bucket it into every PAD_BUCKET cell its blend reaches, so Column only scans the pads near it
-	local pad = { Min = lo - g, Max = hi + g, Y = y }
 	local reach = TerrainShape.SHOULDER - TerrainShape.CORRIDOR
 	state.Pads = state.Pads or {}
 	local B = TerrainShape.PAD_BUCKET
-	for i = math.floor((pad.Min.X - reach) / B), math.floor((pad.Max.X + reach) / B) do
-		for j = math.floor((pad.Min.Y - reach) / B), math.floor((pad.Max.Y + reach) / B) do
+	for i = math.floor((c.X - e.X - reach) / B), math.floor((c.X + e.X + reach) / B) do
+		for j = math.floor((c.Y - e.Y - reach) / B), math.floor((c.Y + e.Y + reach) / B) do
 			local key = i * 65536 + j
 			state.Pads[key] = state.Pads[key] or {}
 			table.insert(state.Pads[key], pad)
 		end
 	end
-	return inCorridor
+	return TerrainShape.CorridorLow(cf, size) ~= nil
 end
 
 function TerrainShape.Ready()
@@ -690,12 +712,16 @@ function TerrainShape.Column(x, z)
 	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
 	local bk = TerrainShape.PAD_BUCKET
 	for _, pad in state.Pads and state.Pads[math.floor(x / bk) * 65536 + math.floor(z / bk)] or {} do
-		local ex = math.max(pad.Min.X - x, 0, x - pad.Max.X)
-		local ez = math.max(pad.Min.Y - z, 0, z - pad.Max.Y)
+		local dx, dz = x - pad.C.X, z - pad.C.Y
+		local ex = math.max(math.abs(dx * pad.R.X + dz * pad.R.Y) - pad.HX, 0)
+		local ez = math.max(math.abs(dx * pad.L.X + dz * pad.L.Y) - pad.HZ, 0)
 		if ex < S - C and ez < S - C and deA > C then -- deA: the nearest road (any track) or clear box
+			if ex == 0 and ez == 0 then
+				y = pad.Y -- the first pad whose flat area holds this point rules it; no later blend moves it
+				break
+			end
 			local e = math.sqrt(ex * ex + ez * ez)
-			local w = e == 0 and 1 or (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
-			y += (pad.Y - y) * w
+			y += (pad.Y - y) * (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
 		end
 	end
 	local prof = state.Profiles[n] or {}

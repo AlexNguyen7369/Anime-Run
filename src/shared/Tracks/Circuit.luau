@@ -10,6 +10,16 @@ return {
 	Biome = "Suburb",
 	Width = 36,
 	Closed = false,
+	-- owner 2026-10-31 no-approval, builder choice: pale moonlit flagstone road, dark wood rails (Track 4 spec palette)
+	Palette = {
+		Road = Color3.fromHex("E8E8F0"),
+		Support = Color3.fromHex("3B2A1E"),
+		Wall = Color3.fromHex("3B2A1E"),
+		Ground = Color3.fromHex("1B1A33"),
+		Line = Color3.fromHex("F5E6A8"),
+		Checkpoint = Color3.fromHex("8E6BBF"),
+		WinPad = Color3.fromRGB(255, 205, 70),
+	},
 	Segments = {
 		{ Type = "Straight", Length = 150 },
 		{ Type = "Slope", Length = 150, Rise = 20 }, -- stone stair path up and down
