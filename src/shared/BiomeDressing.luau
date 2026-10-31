@@ -884,7 +884,15 @@ function BiomeDressing.SnapToTerrain(trackModels)
 						string.format("[BiomeDressing] pinned hero %s would touch a road: left at its base", prop.Name)
 					)
 				end
-				TerrainShape.AddPad(cf, size, y)
+				if TerrainShape.AddPad(cf, size, y) then
+					warn(
+						string.format(
+							"[BiomeDressing] pinned hero %s (track %s) reaches into a road corridor: that part is not levelled",
+							prop.Name,
+							tostring(model:GetAttribute("Number"))
+						)
+					)
+				end
 				if prop:GetAttribute("BasePivot") then
 					prop:SetAttribute("BasePivot", prop:GetPivot())
 				end
