@@ -17,7 +17,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 - Label `RIVAL` over `<Name> · Track n`, `MaxDistance` 200 studs.
 - Rivals (owner-approved 2026-10-28; tweaked names; source in brackets, internal only): Track 1 Rock Lea [Rock Lee], 2 Krilen [Krillin],
   3 Usopu [Usopp], 4 Akazo [Akaza], 5 Todoh [Todo], 6 Shigaraky [Shigaraki], 7 Majin Buu-u [Majin Buu],
-  8 Kizaro [Kizaru], 9 Madera [Madara], 10 Beeros [Beerus].
+  8 Enelu [Enel] (owner 2026-10-31, was Kizaro [Kizaru]), 9 Madera [Madara], 10 Beeros [Beerus].
 
 ## Tests
 
