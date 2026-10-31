@@ -35,6 +35,11 @@ local SCATTER_PASSES = 4 -- scatter spots are visited in interleaved passes so a
 local GRID = 64 -- studs per broad-phase cell in Prune
 local HERO_STRAIGHT = 200 -- studs: a straight this long is a hero spot (spec 4.3)
 local SNAP_SINK = 1 -- placeholder: a snapped prop's base sits at most this far below the ground at its centre
+local SNAP_OVERHANG = 6 -- placeholder: a landmark's footprint corner may sit at most this far below its snapped base
+local SNAP_SLIDE_STEP = 4 -- placeholder: studs per try when a prop slides toward its road to fit
+local SNAP_SLIDE_MAX = 24 -- placeholder: the farthest a prop slides before it is dropped
+local PAD_MARGIN = 2 -- placeholder: a padded prop's (house's) pad reaches this far past its footprint (spec 3.2)
+local HERO_FLOOR = 2 -- spec 3.2 (owner 2026-10-31): hero landmarks are never deleted below this many per biome
 -- Shares of the budget left after the gate, landmarks and horizon (owner 2026-10-30: every layer gets built).
 -- Each layer may use its share; what it leaves rolls on to the next one.
 local SHARE = { Rhythm = 0.35, Blocks = 0.35 } -- scatter gets the rest
@@ -136,7 +141,14 @@ local function place(folder, biome, def, base, name, glow, particles)
 		mesh.CFrame = base * CFrame.new(0, def.Size.Y / 2, 0)
 		mesh.Parent = model
 	end
+	if def.Pad then
+		model:SetAttribute("Pad", true) -- SnapToTerrain levels a small pad under it (spec 3.2)
+	end
 	if def.Hero then
+		model:SetAttribute("Hero", true) -- SnapToTerrain's hero floor
+		if def.At then
+			model:SetAttribute("Pinned", true) -- spec 3.2 (owner 2026-10-31): a pinned hero is never deleted
+		end
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		-- SLIM where the engine has it, StreamingMesh otherwise. Game scripts lack the PluginOrOpenCloud capability
 		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies.
@@ -191,6 +203,7 @@ local function place(folder, biome, def, base, name, glow, particles)
 		emitter(model:GetChildren()[1], particles)
 	end
 	if def.Tag then
+		model:SetAttribute("BasePivot", model:GetPivot()) -- Client/BiomeAmbience's rest pose (it streams in late)
 		CollectionService:AddTag(model, def.Tag)
 	end
 	model.Parent = folder
@@ -841,39 +854,219 @@ end
 -- TerrainShape height of 5 samples (centre and 4 footprint corners), but never more than SNAP_SINK below the height at
 -- its centre, so a prop on a slope is not buried in the hill (its downhill side may float a little instead).
 -- Corridor props (centre at GROUND_Y) stay, and a move that would bring a prop into a road's CLEARANCE (an elevated
--- road above a hill) is undone. Call after TerrainShape.Prepare and Prune. Returns how many props moved.
+-- road above a hill) is undone. Call after TerrainShape.Prepare and Prune.
+-- A prop must also fit its own zone (spec 2.2 / 2.3): every one of the 5 samples is nearest to its own track (the
+-- gap midline is the seam), or within that track's corridor. A landmark must not overhang a drop: no corner more
+-- than SNAP_OVERHANG under its snapped base. A prop that fails slides toward its road in SNAP_SLIDE_STEP steps (up to
+-- SNAP_SLIDE_MAX, never within the track's Width / 2 + CLEARANCE of the road, never onto another prop) or is dropped.
+-- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome, and a pinned hero (At) is never dropped: it stays put
+-- and is warned about instead.
+-- Returns how many props moved, how many were dropped, and heroes dropped per biome ({ [biome] = count }).
 function BiomeDressing.SnapToTerrain(trackModels)
 	local TerrainShape = require(script.Parent.TerrainShape)
 	if not TerrainShape.Ready() then
-		return 0
+		return 0, 0, {}
 	end
 	local touches = clearance(trackModels)
-	local moved = 0
+	local moved, dropped = 0, 0
+	local heroes, heroDropped = {}, {} -- biome -> heroes left, heroes dropped
+	-- Pinned heroes first (spec 3.2): each is raised onto a pad levelled to the natural height at its centre, before
+	-- any other prop samples the ground near it
+	local pinned = {} -- their footprints grown by CLEARANCE, kept clear of every other prop
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
-			if prop:IsA("Model") then
+			if prop:IsA("Model") and prop:GetAttribute("Pinned") then
 				local cf, size = prop:GetBoundingBox()
-				local centre = TerrainShape.Height(cf.Position.X, cf.Position.Z)
-				local low = centre
-				for _, c in { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
-					local p = cf:PointToWorldSpace(Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2))
-					low = math.min(low, TerrainShape.Height(p.X, p.Z))
+				local y = TerrainShape.Height(cf.Position.X, cf.Position.Z)
+				local pivot = prop:GetPivot()
+				prop:PivotTo(pivot + Vector3.new(0, y - GROUND_Y, 0))
+				if touches(prop) then -- raised into a road's clearance: keep it and its pad at the base
+					prop:PivotTo(pivot)
+					y = GROUND_Y
+					warn(
+						string.format("[BiomeDressing] pinned hero %s would touch a road: left at its base", prop.Name)
+					)
 				end
-				local dy = math.max(low, centre - SNAP_SINK) - GROUND_Y
-				if math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05 then
-					local pivot = prop:GetPivot()
-					prop:PivotTo(pivot + Vector3.new(0, dy, 0))
-					if touches(prop) then
-						prop:PivotTo(pivot)
+				if TerrainShape.AddPad(cf, size, y) then
+					warn(
+						string.format(
+							"[BiomeDressing] pinned hero %s (track %s) reaches into a road corridor: that part is not levelled",
+							prop.Name,
+							tostring(model:GetAttribute("Number"))
+						)
+					)
+				end
+				if prop:GetAttribute("BasePivot") then
+					prop:SetAttribute("BasePivot", prop:GetPivot())
+				end
+				local grow = Vector2.one * BiomeDressing.CLEARANCE
+				table.insert(pinned, { CFrame = cf, Half = Vector2.new(size.X / 2, size.Z / 2) + grow })
+			end
+		end
+	end
+	for _, model in trackModels do
+		local folder = model:FindFirstChild("Environment")
+		local biome = model:GetAttribute("Biome")
+		for _, prop in folder and biome and folder:GetChildren() or {} do
+			if prop:GetAttribute("Hero") then
+				heroes[biome] = (heroes[biome] or 0) + 1
+			end
+		end
+	end
+	local CORNERS = { { 0, 0 }, { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } }
+	-- Two passes: padded props (houses, spec 3.2) first, so every other prop snaps onto ground that already has
+	-- their pads
+	for _, padPass in { true, false } do
+		for _, model in trackModels do
+			local folder = model:FindFirstChild("Environment")
+			local trackN = model:GetAttribute("Number")
+			local roadHalf = (model:GetAttribute("Width") or 0) / 2
+			local biome = model:GetAttribute("Biome")
+			local n -- this prop's track: the model's Number, else the nearest track at the prop's centre
+			local boxes = nil -- other props' footprints, built on the first slide in this folder
+			-- Ground height change dy for the prop's box (cf, size) moved by `shift`, or nil when it leaves its zone or
+			-- (a landmark) overhangs a drop; also the centre height
+			local function fit(prop, cf, size, shift)
+				local box = { CFrame = cf + shift, Half = Vector2.new(size.X / 2, size.Z / 2) }
+				for _, pin in pinned do
+					if footprintsOverlap(box, pin) then
+						return nil -- off every pinned hero's pad, whatever its track
+					end
+				end
+				local centre, low = nil, math.huge
+				for _, c in CORNERS do
+					local p = cf:PointToWorldSpace(Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2)) + shift
+					if n then
+						local owner, d = TerrainShape.Owner(p.X, p.Z, n)
+						if owner ~= n and d > TerrainShape.CORRIDOR then
+							return nil
+						end
+					end
+					local h = TerrainShape.Height(p.X, p.Z)
+					centre = centre or h
+					low = math.min(low, h)
+				end
+				local base = math.max(low, centre - SNAP_SINK)
+				if low < base - SNAP_OVERHANG and string.match(prop.Name, "^Landmark_") then
+					return nil
+				end
+				-- a padded prop sits on its own pad at the centre height (padOn adds the pad once it has moved)
+				return (prop:GetAttribute("Pad") and centre or base) - GROUND_Y, centre
+			end
+			-- Levels a padded prop's pad under its new box (natural height at its centre, spec 3.2)
+			local function padOn(prop, cf, size, centre)
+				if prop:GetAttribute("Pad") then
+					TerrainShape.AddPad(cf, size, centre, PAD_MARGIN)
+				end
+			end
+			local function onProp(prop, cf, size)
+				if not boxes then
+					boxes = {}
+					for _, other in folder:GetChildren() do
+						if other:IsA("Model") and not string.match(other.Name, "^Patch_") then
+							local ocf, osize = other:GetBoundingBox()
+							boxes[other] = { CFrame = ocf, Half = Vector2.new(osize.X / 2, osize.Z / 2) }
+						end
+					end
+				end
+				local box = { CFrame = cf, Half = Vector2.new(size.X / 2, size.Z / 2) }
+				for other, b in boxes do
+					if other ~= prop and other.Parent and footprintsOverlap(box, b) then
+						return true
+					end
+				end
+				return false
+			end
+			for _, prop in folder and folder:GetChildren() or {} do
+				-- pinned heroes are already on their pads (above)
+				if
+					prop:IsA("Model")
+					and not prop:GetAttribute("Pinned")
+					and (prop:GetAttribute("Pad") == true) == padPass
+				then
+					local cf, size = prop:GetBoundingBox()
+					n = trackN or (TerrainShape.Owner(cf.Position.X, cf.Position.Z, nil))
+					local dy, centre = fit(prop, cf, size, Vector3.zero)
+					if dy then
+						if math.abs(centre - GROUND_Y) > 0.05 and math.abs(dy) > 0.05 then
+							local pivot = prop:GetPivot()
+							prop:PivotTo(pivot + Vector3.new(0, dy, 0))
+							if touches(prop) then
+								prop:PivotTo(pivot)
+							else
+								padOn(prop, cf, size, centre)
+								moved += 1
+							end
+						end
 					else
-						moved += 1
+						-- slide toward the road: down the gradient of this track's distance
+						local x, z = cf.Position.X, cf.Position.Z
+						local function dist(px, pz)
+							return n and select(2, TerrainShape.Owner(px, pz, n)) or math.huge
+						end
+						local g = Vector3.new(dist(x - 4, z) - dist(x + 4, z), 0, dist(x, z - 4) - dist(x, z + 4))
+						local reach = Vector2.new(size.X, size.Z).Magnitude / 2
+						local pivot, done = prop:GetPivot(), false
+						if g.Magnitude > 1e-3 and g.Magnitude < math.huge then
+							local dir = g.Unit
+							for step = SNAP_SLIDE_STEP, SNAP_SLIDE_MAX, SNAP_SLIDE_STEP do
+								local shift = dir * step
+								local p = cf.Position + shift
+								local sdy, scentre = fit(prop, cf, size, shift)
+								if
+									sdy
+									and dist(p.X, p.Z) - reach >= roadHalf + BiomeDressing.CLEARANCE
+									and not onProp(prop, cf + shift, size)
+								then
+									local lift = math.abs(scentre - GROUND_Y) > 0.05 and sdy or 0
+									prop:PivotTo(pivot + shift + Vector3.new(0, lift, 0))
+									if touches(prop) then
+										prop:PivotTo(pivot)
+									else
+										if boxes[prop] then
+											boxes[prop].CFrame = cf + shift
+										end
+										if lift ~= 0 then
+											padOn(prop, cf + shift, size, scentre)
+										end
+										moved += 1
+										done = true
+										break
+									end
+								end
+							end
+						end
+						if
+							not done
+							and prop:GetAttribute("Hero")
+							and (prop:GetAttribute("Pinned") or (heroes[biome] or 0) <= HERO_FLOOR)
+						then
+							warn(
+								string.format(
+									"[BiomeDressing] hero %s (biome %s, track %s) does not fit its zone: left in place",
+									prop.Name,
+									tostring(biome),
+									tostring(trackN)
+								)
+							)
+						elseif not done then
+							if prop:GetAttribute("Hero") then
+								heroes[biome] -= 1
+								heroDropped[biome] = (heroDropped[biome] or 0) + 1
+							end
+							prop:Destroy()
+							dropped += 1
+						end
+					end
+					if prop.Parent and prop:GetAttribute("BasePivot") then
+						prop:SetAttribute("BasePivot", prop:GetPivot())
 					end
 				end
 			end
 		end
 	end
-	return moved
+	return moved, dropped, heroDropped
 end
 
 return BiomeDressing

@@ -19,7 +19,11 @@ TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radiu
 TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + Dojos + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
+TerrainShape.PAD_BUCKET = 64 -- studs per bucket cell of the pad lookup (AddPad)
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
+-- placeholder: an Embank corridor sits EMBANK_BELOW under the lowest road Y within this many studs (grid nodes of the
+-- same track), so on a ramp it stays under the road at every point beside it, not only at the cell's own road point
+TerrainShape.EMBANK_REACH = 24
 TerrainShape.CRATER_TRIES = 4 -- placeholder: candidate spots per pit before a track gives up on it
 TerrainShape.CLEARANCE = require(script.Parent.BiomeDressing).CLEARANCE -- clear boxes grow by this
 
@@ -301,6 +305,52 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 		end
 	end
 
+	-- 2b. Embank road Y (only when a biome embanks): each node's lowest road Y over the nodes of its own track within
+	-- EMBANK_REACH, as two separable min passes (along x, then along z)
+	local low = nil
+	for _, prof in profiles do
+		if prof.Embank then
+			low = buffer.create(nx * nz * 2)
+			break
+		end
+	end
+	if low then
+		local r = math.ceil(TerrainShape.EMBANK_REACH / CELL)
+		local pass = buffer.create(nx * nz * 2)
+		for j = 0, nz - 1 do
+			for i = 0, nx - 1 do
+				local k = node(i, j)
+				local t, m = buffer.readu8(buf, k * REC), buffer.readi16(buf, k * REC + 6)
+				for ii = math.max(0, i - r), math.min(nx - 1, i + r) do
+					local o = node(ii, j) * REC
+					if buffer.readu8(buf, o) == t then
+						m = math.min(m, buffer.readi16(buf, o + 6))
+					end
+				end
+				buffer.writei16(pass, k * 2, m)
+			end
+			if j % 64 == 0 then
+				task.wait()
+			end
+		end
+		for j = 0, nz - 1 do
+			for i = 0, nx - 1 do
+				local k = node(i, j)
+				local t, m = buffer.readu8(buf, k * REC), buffer.readi16(pass, k * 2)
+				for jj = math.max(0, j - r), math.min(nz - 1, j + r) do
+					local kk = node(i, jj)
+					if buffer.readu8(buf, kk * REC) == t then
+						m = math.min(m, buffer.readi16(pass, kk * 2))
+					end
+				end
+				buffer.writei16(low, k * 2, m)
+			end
+			if j % 64 == 0 then
+				task.wait()
+			end
+		end
+	end
+
 	-- 3. Clear boxes: distance to the nearest grown box, out to the shoulder width
 	local plaza = boxesOf(plazaRoots)
 	local clear = boxesOf(clearRoots)
@@ -341,6 +391,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 	state = {
 		Buf = buf,
+		Low = low,
 		Sec = sec,
 		Sections = sections,
 		Pits = {},
@@ -385,6 +436,39 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 end
 
+-- Levels a pad at height y under the oriented box (cf, size) (spec 3.2: a pinned hero). The footprint grown by
+-- CLEARANCE is flat at y over every track's ridge and seam; outside it the pad blends out over the shoulder width.
+-- It never moves road or clear-box ground: inside any corridor the pad does nothing (a step at the corridor edge),
+-- and its outer blend fades to nothing at the corridor edge. Returns true when part of the footprint itself lies in
+-- a corridor or clear box (that part stays corridor). `margin` (default CLEARANCE) replaces the CLEARANCE growth:
+-- a house's pad (spec 3.2) is smaller. Call after Prepare and before the terrain is built.
+function TerrainShape.AddPad(cf, size, y, margin)
+	local half = (cf.RightVector * size.X):Abs() / 2 + (cf.LookVector * size.Z):Abs() / 2
+	local g = Vector2.one * (margin or TerrainShape.CLEARANCE)
+	local c = Vector2.new(cf.Position.X, cf.Position.Z)
+	local lo, hi = c - Vector2.new(half.X, half.Z), c + Vector2.new(half.X, half.Z)
+	local inCorridor = false
+	for px = lo.X, hi.X, TerrainShape.CELL / 2 do
+		for pz = lo.Y, hi.Y, TerrainShape.CELL / 2 do
+			local _, dA, _, _, _, dc = sample(px, pz)
+			inCorridor = inCorridor or math.min(dA, (dc or math.huge) + TerrainShape.CORRIDOR) <= TerrainShape.CORRIDOR
+		end
+	end
+	-- bucket it into every PAD_BUCKET cell its blend reaches, so Column only scans the pads near it
+	local pad = { Min = lo - g, Max = hi + g, Y = y }
+	local reach = TerrainShape.SHOULDER - TerrainShape.CORRIDOR
+	state.Pads = state.Pads or {}
+	local B = TerrainShape.PAD_BUCKET
+	for i = math.floor((pad.Min.X - reach) / B), math.floor((pad.Max.X + reach) / B) do
+		for j = math.floor((pad.Min.Y - reach) / B), math.floor((pad.Max.Y + reach) / B) do
+			local key = i * 65536 + j
+			state.Pads[key] = state.Pads[key] or {}
+			table.insert(state.Pads[key], pad)
+		end
+	end
+	return inCorridor
+end
+
 function TerrainShape.Ready()
 	return state ~= nil
 end
@@ -425,12 +509,18 @@ local function distOf(buf, o, n)
 	return nil
 end
 
+-- m, lowered to the embank road Y of the node at byte offset o when that node's nearest track is A
+local function lowAt(buf, low, o, A, m)
+	return buffer.readu8(buf, o) == A and math.min(m, buffer.readi16(low, o // REC * 2)) or m
+end
+
 local function bilinear(a, b, c, d, u, v)
 	return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v
 end
 
 -- Nearest track A, its distance, second track B (or nil), its distance, road Y and clear-box distance at (x, z),
--- bilinear between nodes where all four corners know the track (the nearest node's values otherwise)
+-- bilinear between nodes where all four corners know the track (the nearest node's values otherwise). When a biome
+-- embanks, road Y is the embank road Y instead (the low over EMBANK_REACH; road Y is only read by Embank).
 function sample(x, z)
 	local CELL, buf = TerrainShape.CELL, state.Buf
 	local fx, fz = (x - state.X0) / CELL, (z - state.Z0) / CELL
@@ -457,7 +547,13 @@ function sample(x, z)
 		dB = (a and b and c and d) and bilinear(a, b, c, d, u, v) or buffer.readu16(buf, near + 4) / 4
 	end
 	local roadY = buffer.readi16(buf, near + 6) / 8
-	if
+	if state.Low then
+		-- Embank: the lowest of the cell's corner nodes of track A (each already the low over EMBANK_REACH)
+		local low = state.Low
+		local m = buffer.readi16(low, near // REC * 2)
+		m = lowAt(buf, low, o00, A, lowAt(buf, low, o10, A, lowAt(buf, low, o01, A, lowAt(buf, low, o11, A, m))))
+		roadY = m / 8
+	elseif
 		buffer.readu8(buf, o00) == A
 		and buffer.readu8(buf, o10) == A
 		and buffer.readu8(buf, o01) == A
@@ -581,7 +677,7 @@ end
 -- corridor). Materials dither across the seam (spec 2.3).
 function TerrainShape.Column(x, z)
 	local A, dA, B, dB, roadY, dc, pA, pB = sample(x, z)
-	local yA, bandA, shapeA, _, secA = biomeY(A, dA, x, z, roadY, dc, pA)
+	local yA, bandA, shapeA, deA, secA = biomeY(A, dA, x, z, roadY, dc, pA)
 	local y, n, band, shape, sec = yA, A, bandA, shapeA, secA
 	if B and dB - dA < TerrainShape.SEAM / 2 then
 		local w = clamp01(0.5 + (dB - dA) / TerrainShape.SEAM)
@@ -589,6 +685,17 @@ function TerrainShape.Column(x, z)
 		y = yA * w + yB * (1 - w)
 		if hash(x, z) >= w then
 			n, band, shape, sec = B, bandB, shapeB, secB
+		end
+	end
+	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
+	local bk = TerrainShape.PAD_BUCKET
+	for _, pad in state.Pads and state.Pads[math.floor(x / bk) * 65536 + math.floor(z / bk)] or {} do
+		local ex = math.max(pad.Min.X - x, 0, x - pad.Max.X)
+		local ez = math.max(pad.Min.Y - z, 0, z - pad.Max.Y)
+		if ex < S - C and ez < S - C and deA > C then -- deA: the nearest road (any track) or clear box
+			local e = math.sqrt(ex * ex + ez * ez)
+			local w = e == 0 and 1 or (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
+			y += (pad.Y - y) * w
 		end
 	end
 	local prof = state.Profiles[n] or {}
@@ -620,6 +727,13 @@ function TerrainShape.Zone(x, z)
 		return 0
 	end
 	return (sample(x, z))
+end
+
+-- Zone ownership for the dressing (gap midline, spec 2.2 / 2.3): the nearest track at (x, z), plaza or not, and
+-- track n's distance there (math.huge when the grid keeps neither of its two tracks as n)
+function TerrainShape.Owner(x, z, n)
+	local A, dA, B, dB = sample(x, z)
+	return A, A == n and dA or B == n and dB or math.huge
 end
 
 -- Material of the voxel at (x, y, z); slope (rise / run) is sampled from Height when not given

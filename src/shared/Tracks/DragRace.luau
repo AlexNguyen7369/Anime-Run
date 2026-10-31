@@ -10,13 +10,13 @@ return {
 	Biome = "Docks",
 	Width = 40,
 	Closed = false,
-	Palette = {
-		Road = Color3.fromRGB(72, 48, 88),
-		Support = Color3.fromRGB(45, 30, 62),
-		Wall = Color3.fromRGB(255, 119, 58),
-		Ground = Color3.fromRGB(112, 67, 74),
+	Palette = { -- owner 2026-10-31: weathered dock-plank road, pale stone walls (Track 3 spec palette)
+		Road = Color3.fromHex("8B5A2B"),
+		Support = Color3.fromHex("6B4423"),
+		Wall = Color3.fromHex("E6E1D3"),
+		Ground = Color3.fromHex("F3E2B3"),
 		Line = Color3.fromRGB(255, 235, 174),
-		Checkpoint = Color3.fromRGB(94, 49, 76),
+		Checkpoint = Color3.fromHex("6B4423"),
 		WinPad = Color3.fromRGB(255, 194, 54),
 	},
 	Segments = {

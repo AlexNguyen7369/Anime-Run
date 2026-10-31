@@ -139,7 +139,7 @@ local function house(name, w, h, d, wall, roof, o)
 		table.insert(parts, post(w * 0.22, w * 0.22, v(w * 0.3, top + w * 0.11, d * 0.2), o.Tank, M.Wood))
 		top += w * 0.22
 	end
-	return prop(name, v(w + 3, top, d + 3), parts, { Glow = o.Glow })
+	return prop(name, v(w + 3, top, d + 3), parts, { Glow = o.Glow, Pad = true }) -- levelled pad on slopes (spec 3.2)
 end
 
 -- Dome: a ball sunk to its equator, two round windows and a door on the road face
@@ -267,7 +267,7 @@ end
 
 -- Palettes (spec References, hex codes per track)
 local LEAF_GREEN, WOOD1, PLASTER1 = hex("3E7D3A"), hex("C9A36B"), hex("E8DCC0")
-local BRIDGE_RED, CLIFF1, DIRT1 = hex("B23A2E"), hex("7C8C99"), hex("A07B52")
+local BRIDGE_RED, CLIFF1, DIRT1 = hex("B23A2E"), hex("9C8F7E"), hex("A07B52")
 local SAND2, ROCK2, STRATA2, TILE2, SUNSET2 = hex("D9B98A"), hex("B8834F"), hex("8A5A3B"), hex("E6E1D3"), hex("F2A23A")
 local SAND3, SEA3, WHITE3, ROOF3, DOCK3, PALM3 =
 	hex("F3E2B3"), hex("2E8BC0"), hex("FFFFFF"), hex("C0392B"), hex("8B5A2B"), hex("4CAF50")

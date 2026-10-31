@@ -43,7 +43,7 @@ local function meshed(def, key, size, extra)
 		q.Pos = p.Pos * k
 		parts[i] = q
 	end
-	local out = prop(def.Name, size, parts, { Mesh = key, Glow = def.Glow })
+	local out = prop(def.Name, size, parts, { Mesh = key, Glow = def.Glow, Pad = def.Pad })
 	for name, value in extra or {} do
 		out[name] = value
 	end

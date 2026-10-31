@@ -37,7 +37,7 @@ local function meshed(def, key, size, extra)
 		q.Pos = p.Pos * k
 		parts[i] = q
 	end
-	local out = prop(def.Name, size, parts, { Mesh = key, Glow = def.Glow, Tag = def.Tag })
+	local out = prop(def.Name, size, parts, { Mesh = key, Glow = def.Glow, Tag = def.Tag, Pad = def.Pad })
 	for name, value in extra or {} do
 		out[name] = value
 	end
@@ -53,10 +53,7 @@ local floating = prop("FloatingBoulders", v(36, 34, 36), {
 	part(v(9, 12, 8), v(-9, 18, 2), ROCK2, M.Rock, nil, CFrame.Angles(0.2, 0.4, 0.1)),
 	part(v(9, 11, 8), v(0, 27, -2), SAND2, M.Rock, nil, CFrame.Angles(-0.1, 0.8, 0.2)),
 	part(v(8, 11, 7), v(9, 20, 3), ROCK2, M.Rock, nil, CFrame.Angles(0.1, -0.3, -0.2)),
-})
--- No BiomeBob tag (placeholder): Client/BiomeAmbience keeps the pivot it reads when the tag streams in, before the
--- MeshPart arrives, and its bob then sank this mesh ~29 studs into the terrain (framework fix reported 2026-10-31).
--- The mesh's rocks already hover over their base.
+}, { Tag = "BiomeBob" }) -- Client/BiomeAmbience bobs it from the server's BasePivot (mesh streams in late)
 local hut = prop("CapsuleHut", v(14, 8, 14), {
 	part(v(14, 8, 14), v(0, 3, 0), hex("F2EFE6"), M.SmoothPlastic, Kit.BALL),
 	part(v(4, 5, 0.6), v(0, 2.5, -6.6), hex("5A6878"), M.SmoothPlastic),
@@ -158,9 +155,9 @@ return {
 		Craters = { Count = 14, Radius = 30, Depth = 8 },
 		Materials = { Corridor = M.Ground, Ridge = M.Sandstone, Cliff = M.Sandstone, Bed = M.Ground },
 		CliffSlope = 0.9,
-		-- placeholder: false. Embank = true fails terrain_built on the Hill ramps (road Y 2.6 at -438, 54: the grid's
-		-- road Y on the 8-stud cells runs past the 3-stud EMBANK_BELOW margin; framework fix reported 2026-10-31).
-		Embank = false,
+		-- placeholder: the corridor rises under the Hill ramps (to EMBANK_BELOW under the lowest road Y within
+		-- TerrainShape.EMBANK_REACH, framework fix 2026-10-31)
+		Embank = true,
 	},
 	-- Spec 5.2 / 7: hot afternoon. Values are placeholders except where section 7 gives them.
 	Atmosphere = Kit.Atmosphere({
