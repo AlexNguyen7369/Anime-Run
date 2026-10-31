@@ -186,6 +186,11 @@ placeholders.
    - Lane B: a Blender MCP model (low-poly, flat or 512 px colour textures), published from Studio as the owner's
      asset.
    - Lane C (small props only, no upload): the existing `BiomeMeshCodec` / EditableMesh path near the camera.
+   - Lane D (owner 2026-10-30): a free Roblox Creator Store asset (mesh, model, texture, decal, sound, particle
+     texture). Free only; no paid or limited items. Inserted in Edit mode, every Script / LocalScript /
+     ModuleScript removed, then the meshes are read for their ids. Its ledger row records `Creator` and the
+     Creator Store asset id. It passes the same IP review (step 3); character-shaped or fan-made anime assets are
+     rejected.
 2. **Prompt rule**: a generation prompt never names a show, a character, a real place or a brand. It uses generic
    words ("wooden village gate, red tiled roof, low poly anime style"). The prompt is stored in the ledger, and the
    real-name check scans it.
@@ -228,8 +233,8 @@ placeholders.
 ### 4.4 Asset ledger (in each biome module)
 ```
 Assets = {
-	-- key = { Kind = "Mesh"|"Texture"|"Skybox"|"Sound", Id = "rbxassetid://N", Lane = "A"|"B"|"C",
-	--         Prompt = "...", Tris = N, Reviewed = "2026-10-30 auditor", Notes = "..." }
+	-- key = { Kind = "Mesh"|"Texture"|"Skybox"|"Sound", Id = "rbxassetid://N", Lane = "A"|"B"|"C"|"D",
+	--         Prompt = "...", Creator = "<Lane D only>", Tris = N, Reviewed = "2026-10-30 auditor", Notes = "..." }
 }
 ```
 - Only ids in a ledger are used. b2's final summary lists every ledger row (key, kind, id) for all 10 biomes
@@ -292,8 +297,8 @@ Atmosphere = {
 ## 6. Audio (client only)
 - Source: in-house loops and one-shots. Agents make them with python3 (numpy filtered noise, tones, layered and
   looped seamlessly, 30-60 s, OGG) in `assets/audio/<BiomeKey>/` and upload them under the owner's account (owner
-  2026-10-30). Ids go in the ledger. This keeps design doc section 5 ("audio made in-house"); no Creator Store
-  library sounds.
+  2026-10-30). Ids go in the ledger. Free Creator Store sounds (Lane D, owner 2026-10-30) are allowed too, with
+  the same ledger row (id + creator) and no official show audio.
 - Per biome: 1 loop and at most 2 one-shots. One-shots play at random every 10-25 s (placeholder), at random
   positions 30-80 studs from the camera, volume 0.15-0.25.
 - Loop volume is 0.3 (placeholder, per-biome override 0.2-0.45). The sounds live in a client-made `SoundGroup`
@@ -504,12 +509,10 @@ the IP flags.
 - **b1, framework (one agent)**: everything in 9.1, with every biome module carrying only stub profiles: the
   current w4 data plus `Terrain = { Ridge = { Shape = "Hills", Height = 12 } }` and an Atmosphere copied from the
   baseline. Result: terrain everywhere, a corridor that is clear, zones that switch, no assets yet. Lands before b2.
-- **b2, biomes on the framework**: three batches run in parallel. Each agent owns only its own
-  `src/shared/BiomeThemes/<Key>.luau` and `assets/biomes/<Key>/` plus `assets/audio/<Key>/`. Shared files are not
-  touched; framework bugs go back to the b1 owner as a fix task.
-  - Batch A: Tracks 1, 2, 3 (`Speedway`, `Forest`, `Docks`): day, river and sea.
-  - Batch B: Tracks 4, 5, 6 (`Suburb`, `PirateCoast`, `City`): two nights and the city.
-  - Batch C: Tracks 7-10 (`Desert`, `Snow`, `Volcano`, `Space`): shrine, sky, white desert, green planet.
+- **b2, biomes on the framework**: one track at a time, in order Track 1 to Track 10 (owner 2026-10-30; one Studio).
+  Each agent owns only its own `src/shared/BiomeThemes/<Key>.luau` and `assets/biomes/<Key>/` plus
+  `assets/audio/<Key>/`. Shared files are not touched; framework bugs go back to the b1 owner as a fix task. Each
+  track ends with its screenshot set shown to the owner before the next starts.
 - Per biome, in order:
   1. Terrain profile.
   2. Atmosphere and audio.
