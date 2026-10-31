@@ -35,7 +35,7 @@ local BIOME_NAMES = {
 	"Burning Cursed City",
 	"Hero Academy City",
 	"Blossom Shrine Path",
-	"Sky Islands",
+	"Skypeia",
 	"Spirit Realm Desert",
 	"Green Alien Planet",
 }

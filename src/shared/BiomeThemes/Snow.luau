@@ -197,7 +197,15 @@ local function cloudTown()
 end
 
 -- Mid props
-local cloudHouseProp = prop("CloudHouse", v(10, 10.5, 10), cloudHouse(10, TRIM_PINK), { Pad = true })
+-- A row of small round white dome cottages on a flat cloud base (the CloudHouseMesh shape): a building, so Pad
+local cloudCottages = prop("CloudCottages", v(13, 4.1, 12), {
+	part(v(13, 1, 12), v(0, 0.5, 0), CLOUD, M.SmoothPlastic),
+	part(v(3.6, 3.6, 3.6), v(-4.5, 2, 0), CLOUD, M.SmoothPlastic, BALL),
+	part(v(3.6, 3.6, 3.6), v(-1.5, 2, 2), CLOUD_SHADE, M.SmoothPlastic, BALL),
+	part(v(3.6, 3.6, 3.6), v(1.5, 2, -1), CLOUD, M.SmoothPlastic, BALL),
+	part(v(3.6, 3.6, 3.6), v(4.5, 2, 1.5), CLOUD_SHADE, M.SmoothPlastic, BALL),
+	part(v(13.2, 0.3, 0.3), v(0, 3.2, -2), TRIM_BLUE, M.SmoothPlastic),
+}, { Pad = true })
 local skyPalm = prop("SkyPalm", v(7, 12.2, 7), {
 	post(11, 0.9, v(0, 5.5, 0), BARK, M.Wood),
 	part(v(7, 0.4, 2), v(0, 11.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, 0, 0.3)),
@@ -247,37 +255,49 @@ local cloudPuffs = prop("CloudPuffs", v(16, 56, 10), {
 	part(v(5, 5, 5), v(5, 12, 0), CLOUD_SHADE, M.SmoothPlastic, BALL),
 }, { Tag = "BiomeBob" })
 
--- Mesh props (Lane A). Sizes are the generation boxes; phase 2 sets each to the generated mesh's own proportions.
--- Lesson (a): short sides stay at or under 16 studs (the generator caps them near 16).
-local cloudHouseMesh = meshed(cloudHouseProp, "CloudHouseMesh", cloudHouseProp.Size)
-local skyPalmMesh = meshed(skyPalm, "SkyPalmMesh", skyPalm.Size)
-local brokenPillarMesh = meshed(brokenPillar, "BrokenPillarMesh", brokenPillar.Size)
-local giantFernMesh = meshed(giantFern, "GiantFernMesh", giantFern.Size)
-local jungleTreeMesh = meshed(jungleTree, "JungleTreeMesh", jungleTree.Size)
+-- Mesh props (Lane A). Each size is the generated mesh's own proportions (Studio 2026-10-31).
+-- Lesson (a): the generator keeps every mesh within about 2:1 and short sides near 16 or under, so tall shapes
+-- (the 220-stud beanstalk) stay part-built.
+local cloudHouseMesh = meshed(cloudCottages, "CloudHouseMesh", v(13.05, 4.11, 12))
+local skyPalmMesh = meshed(skyPalm, "SkyPalmMesh", v(6.64, 8.07, 7))
+local brokenPillarMesh = meshed(brokenPillar, "BrokenPillarMesh", v(3.4, 7.92, 3.39))
+local giantFernMesh = meshed(giantFern, "GiantFernMesh", v(6.4, 5, 6.26))
+-- The jungle tree mesh came out squat (9.9 x 10.8 x 10): a bushy scatter tree, not the giant
+local jungleBush = table.clone(jungleTree)
+jungleBush.Name = "JungleBush"
+local jungleBushMesh = meshed(jungleBush, "JungleTreeMesh", v(9.9, 10.8, 10))
 
 -- Mesh rows: generated in Studio (Lane A) with `generate_mesh` (textPrompt = Prompt, size = Gen, maxTriangles = Tris,
 -- segmentation "none"); each mesh's own generated texture is a Texture row. Id comes with the phase 2 upload.
 -- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in assets/biomes/Snow/review/.
 -- Lesson (c): prompts use generic words only and are checked with realNameIn.
-local function meshRow(texture, prompt, size, tris, notes)
+local function meshRow(id, texture, prompt, size, tris, notes)
 	return {
 		Kind = "Mesh",
+		Id = id,
 		Lane = "A",
 		Prompt = prompt,
 		Texture = texture,
 		Gen = string.format("size %g x %g x %g, maxTriangles %d, segmentation none", size.X, size.Y, size.Z, tris),
 		Tris = tris,
+		Reviewed = "2026-10-31 rules-auditor",
 		Notes = notes,
 	}
 end
-local function textureRow(mesh)
-	return { Kind = "Texture", Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
+local function textureRow(id, mesh)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = "2026-10-31 rules-auditor",
+	}
 end
 
 -- Blocks: one row of giants. Near 40 puts each road-side face 60 studs out, past the 44-60 shoulder; at most 13 deep,
 -- so they end inside the ~77 midline. Orchestrator default 2026-10-31.
 local blocks = giants({
-	meshed(jungleTree, "JungleTreeMesh", v(20.8, 66.3, 13)), -- x1.3
+	jungleTree,
 	cloudPuffs,
 	prop("BeanSprout", v(10, 70, 10), {
 		post(60, 3, v(0, 30, 0), STALK, M.Grass),
@@ -311,11 +331,16 @@ return {
 		Offset = 40,
 		Every = 20,
 		Props = {
-			meshed(cloudTown(), "CloudTownMesh", v(24, 34, 12), { Hero = true, At = 0.1 }),
-			meshed(sunkenRuins(), "SunkenRuinsMesh", v(24, 36, 12), { Hero = true, At = 0.55 }),
-			meshed(beanstalk(), "GiantBeanstalkMesh", v(16, 126, 12), { Hero = true, At = 0.6 }),
-			meshed(goldenBell(), "GoldenBellMesh", v(14, 48, 12), { Hero = true, At = 0.92 }),
-			jungleTreeMesh,
+			-- part-built: the generated town read as a face (two windows over a pink nub), rejected 2026-10-31
+			prop("CloudTown", cloudTown().Size, cloudTown().Parts, { Pad = true, Hero = true, At = 0.1 }),
+			-- x1.667 of the mesh: 20 deep (x1.75 = 35, about 60-95 out; pinned, its pad stops short of the
+			-- neighbour's corridor at about 111). Orchestrator default 2026-10-31.
+			meshed(sunkenRuins(), "SunkenRuinsMesh", v(15.1, 16.5, 20), { Hero = true, At = 0.55 }),
+			-- part-built: the generator caps a mesh near 2:1, so a 220-stud stalk cannot come out of it
+			prop("GiantBeanstalk", beanstalk().Size, beanstalk().Parts, { Hero = true, At = 0.6 }),
+			-- x1.333 of the mesh: 16 deep (x1.75 = 28, about 60-88 out)
+			meshed(goldenBell(), "GoldenBellMesh", v(18, 21.4, 16), { Hero = true, At = 0.92, Tag = "BiomeBob" }),
+			jungleTree,
 			cloudPuffs,
 		},
 	},
@@ -348,6 +373,7 @@ return {
 		Far = 16,
 		Props = {
 			giantFernMesh,
+			jungleBushMesh,
 			"BrokenPillar",
 			"SkyPalm",
 			ball("CloudPuff", 5, CLOUD, M.SmoothPlastic),
@@ -393,7 +419,18 @@ return {
 				Material = M.Snow,
 			},
 			{ From = 0.3, To = 0.8, Side = "Both", Ridge = { Shape = "Hills", Height = 40, Noise = 0.04, Amp = 8 } },
-			{ From = 0.82, To = 1, Side = "Both", Material = M.Snow }, -- high island clouds: Drop, Snow islands
+			-- high island clouds. Inner (the side the bell's pin lands on, checked in the Lune harness): heaped Snow
+			-- cloud mounds, so the bell (its mesh has no cloud column down to the deck) stands in view. Outer stays the
+			-- open Drop.
+			-- Orchestrator default 2026-10-31.
+			{
+				From = 0.82,
+				To = 1,
+				Side = "Inner",
+				Ridge = { Shape = "Hills", Height = 30, Noise = 0.05, Amp = 8 },
+				Material = M.Snow,
+			},
+			{ From = 0.82, To = 1, Side = "Outer", Material = M.Snow },
 		},
 		Materials = { Corridor = M.Ground, Ridge = M.Grass, Cliff = M.Rock, Bed = M.Snow },
 		CliffSlope = 0.8,
@@ -468,87 +505,84 @@ return {
 	-- Creator Store sounds are used by id (no insert, nothing to strip; BUGS creator-store-backdoor-skybox); creator,
 	-- type and length checked on the Roblox economy API 2026-10-31.
 	Assets = {
-		CloudTownMesh = meshRow(
-			"CloudTownTex",
-			"small cluster of round white houses made of soft solid cloud, each house a smooth rounded dome shape with pastel pink and pale blue trim bands, round windows and small arched doors, one taller round white tower with a domed top in the middle, all standing on a flat white cloud base, no signs and no writing, stylized cartoon style",
-			v(24, 34, 12),
-			15000,
-			"hero 4 (Pad): front faces -Z"
-		),
 		SunkenRuinsMesh = meshRow(
+			"rbxassetid://126469436535700",
 			"SunkenRuinsTex",
 			"ancient stepped stone temple ruin, four weathered sandy grey stone tiers like a stepped pyramid, a steep central stair, green vines and moss hanging down the tiers, a few walls still clad in gold panels, two broken gold pillars at the front corners, plain stone faces with no carvings, no faces and no writing, stylized cartoon style",
 			v(24, 36, 12),
 			15000,
-			"hero 2: stair faces -Z"
-		),
-		GiantBeanstalkMesh = meshRow(
-			"GiantBeanstalkTex",
-			"enormous giant beanstalk, two thick twisted light green and darker green stems spiraling around each other straight up, broad green leaves along the stems, the top disappearing into a round white cloud, stylized cartoon style",
-			v(16, 126, 12),
-			15000,
-			"hero 1: x1.75 is about 220 tall"
+			"hero 2: came out 9.07 x 9.89 x 12, stair faces -Z; GiantBeanstalk and CloudTown heroes are part-built (rejected tries in review/)"
 		),
 		GoldenBellMesh = meshRow(
+			"rbxassetid://126293817674763",
 			"GoldenBellTex",
-			"giant plain golden bell hanging from a cracked stone beam between two broken weathered stone posts, a small belfry ruin overgrown with green vines, standing on top of a small floating white cloud that narrows downward, plain smooth bell with no inscription, no symbols and no writing, stylized cartoon style",
-			v(14, 48, 12),
+			"a large shiny plain gold church bell hanging under a simple stone archway made of two stone pillars and a stone beam, green vines growing on the stone, the whole archway standing on a soft round white cloud base, smooth bell with no pattern, no symbols and no writing, stylized cartoon style",
+			v(14, 24, 12),
 			15000,
-			"hero 3 (BiomeBob): plain bell, no inscription"
+			"hero 3 (BiomeBob): came out 13.55 x 16.12 x 12; plain bell, no inscription; try 1 (tan bell under a stone disk) rejected"
 		),
 		CloudHouseMesh = meshRow(
+			"rbxassetid://131403200281516",
 			"CloudHouseTex",
-			"single small round white house made of soft solid cloud, smooth dome roof, a pastel pink trim band, one round window and a small arched door, no signs and no writing, stylized low poly cartoon style",
-			cloudHouseProp.Size,
-			2500,
-			"rhythm building (Pad = true), footprint inside 44; door faces -Z"
+			"a row of four small round white dome-shaped cottages side by side on a flat white cloud base, smooth white walls with thin pastel blue roof rims, each cottage with one small arched door at ground level only, no windows, no faces, no signs and no writing, stylized cartoon style",
+			v(24, 12, 12),
+			15000,
+			"rhythm building (Pad = true): came out 13.05 x 4.11 x 12, spans 30-42; doors face -Z"
 		),
 		SkyPalmMesh = meshRow(
+			"rbxassetid://137901134436781",
 			"SkyPalmTex",
 			"slender tropical palm tree with a gently curved trunk and a crown of bright green fronds, a small white cloud puff at its foot, stylized low poly cartoon style",
-			skyPalm.Size,
-			1500
+			v(7, 12.2, 7),
+			1500,
+			"came out 6.64 x 8.07 x 7"
 		),
 		BrokenPillarMesh = meshRow(
+			"rbxassetid://74813000226989",
 			"BrokenPillarTex",
 			"broken ancient pillar, lower half weathered sandy stone and upper half clad in worn gold, jagged broken top, one green vine wrapped around it, plain with no carvings or writing, stylized low poly cartoon style",
-			brokenPillar.Size,
-			1500
+			v(3.4, 10, 3.4),
+			1500,
+			"came out 3.4 x 7.92 x 3.39"
 		),
 		GiantFernMesh = meshRow(
+			"rbxassetid://140631904053033",
 			"GiantFernTex",
 			"large jungle fern plant, long arching bright green fronds spreading out from a low center, stylized low poly cartoon style",
-			giantFern.Size,
+			v(8, 5, 8),
 			1500,
-			"scatter (turns freely)"
+			"scatter (turns freely); came out 6.4 x 5 x 6.26"
 		),
 		JungleTreeMesh = meshRow(
+			"rbxassetid://123217431765070",
 			"JungleTreeTex",
 			"giant tropical jungle tree, tall straight brown trunk with wide buttress roots at the base, a broad flat dense green crown, long vines hanging from the branches, stylized low poly cartoon style",
-			jungleTree.Size,
+			v(16, 30, 10),
 			3000,
-			"landmark and Blocks giant"
+			"came out squat (9.9 x 10.8 x 10): used as the scatter JungleBush; the giant jungle tree is part-built"
 		),
-		CloudTownTex = textureRow("CloudTownMesh"),
-		SunkenRuinsTex = textureRow("SunkenRuinsMesh"),
-		GiantBeanstalkTex = textureRow("GiantBeanstalkMesh"),
-		GoldenBellTex = textureRow("GoldenBellMesh"),
-		CloudHouseTex = textureRow("CloudHouseMesh"),
-		SkyPalmTex = textureRow("SkyPalmMesh"),
-		BrokenPillarTex = textureRow("BrokenPillarMesh"),
-		GiantFernTex = textureRow("GiantFernMesh"),
-		JungleTreeTex = textureRow("JungleTreeMesh"),
+		SunkenRuinsTex = textureRow("rbxassetid://137501926790557", "SunkenRuinsMesh"),
+		GoldenBellTex = textureRow("rbxassetid://70665510604030", "GoldenBellMesh"),
+		CloudHouseTex = textureRow("rbxassetid://75903342491127", "CloudHouseMesh"),
+		SkyPalmTex = textureRow("rbxassetid://127128116797158", "SkyPalmMesh"),
+		BrokenPillarTex = textureRow("rbxassetid://90830005002524", "BrokenPillarMesh"),
+		GiantFernTex = textureRow("rbxassetid://125168368959366", "GiantFernMesh"),
+		JungleTreeTex = textureRow("rbxassetid://85055805672566", "JungleTreeMesh"),
 		CloudWispParticle = {
 			Kind = "Texture",
 			Lane = "A",
+			Id = "rbxassetid://94569224375165",
 			Prompt = "in-house 128 px soft stretched cloud puff with lumpy noise inside, white on transparent",
-			Notes = "drawn with python3 + numpy (assets/biomes/Snow/cloud_wisp_particle.png); Id comes with the phase 2 upload",
+			Notes = "drawn with python3 + numpy (assets/biomes/Snow/cloud_wisp_particle.png), uploaded from Studio",
+			Reviewed = "2026-10-31 rules-auditor",
 		},
 		MoteParticle = {
 			Kind = "Texture",
 			Lane = "A",
+			Id = "rbxassetid://98654695655274",
 			Prompt = "in-house 128 px round soft glow with faint grain, white on transparent, tinted pale gold by the emitter",
-			Notes = "drawn with python3 + numpy (assets/biomes/Snow/mote_particle.png); Id comes with the phase 2 upload",
+			Notes = "drawn with python3 + numpy (assets/biomes/Snow/mote_particle.png), uploaded from Studio",
+			Reviewed = "2026-10-31 rules-auditor",
 		},
 		AmbSkyJungle = {
 			Kind = "Sound",
@@ -556,12 +590,17 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9112748018: Birds And Cicadas 2, distant birds, insects, light wind, loop, 46.3 s",
+			Reviewed = "2026-10-31 rules-auditor",
 		},
+		-- The in-house toll (assets/audio/Snow/bell_toll.ogg / .wav) has no upload path from the Studio tools (image upload
+		-- only), so the one-shot is a Creator Store bell. Orchestrator default 2026-10-31.
 		SfxBellToll = {
 			Kind = "Sound",
-			Lane = "A",
-			Prompt = "in-house deep distant bell toll: synthesized inharmonic bell partials on G2 with long decays, low-passed, sparse echo, 9 s",
-			Notes = "made with python3 + numpy (assets/audio/Snow/bell_toll.ogg, Opus; bell_toll.wav as a fallback); Id comes with the phase 2 upload; original synthesis, no show music",
+			Id = "rbxassetid://9113804175",
+			Lane = "D",
+			Creator = "ProSoundEffects",
+			Notes = "Creator Store 9113804175: Church Bell Single Hits Double At Head 2, one hit, long ringing decay, 8.8 s",
+			Reviewed = "2026-10-31 rules-auditor",
 		},
 		SfxThunderRoll = {
 			Kind = "Sound",
@@ -569,6 +608,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9120021237: Thunder Rumbling 1, rumbling, booming, long decays, 24.3 s",
+			Reviewed = "2026-10-31 rules-auditor",
 		},
 	},
 }
