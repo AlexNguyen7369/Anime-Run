@@ -55,7 +55,7 @@ local HERO = { Hero = true }
 -- where the seam and grid smoothing keep it under ~15 studs (measured 2026-10-31). Hills 60 instead makes the
 -- shoulder (44-60) a steep Rock face rising to ~55 at the fold.
 local CLIFF_RIDGE = { Shape = "Hills", Height = 60, Noise = 0.03, Amp = 3 }
-local LEDGER_REVIEW = "2026-10-30 t1-builder"
+local LEDGER_REVIEW = "2026-10-31 rules-auditor"
 
 local trainingPosts = meshed(
 	prop("TrainingPosts", v(8, 6, 3), {
