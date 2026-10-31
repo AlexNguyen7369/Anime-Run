@@ -459,11 +459,19 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	folder.Parent = model
 	model:SetAttribute("Biome", biome)
 	local ground = model:FindFirstChild("Ground")
-	if ground then
-		ground.Color = theme.Ground.Color
-		ground.Material = theme.Ground.Material
-		-- Neighbouring tracks' grounds overlap; a per-track step keeps their different colours from z-fighting.
-		ground.Position -= Vector3.new(0, GROUND_STEP * (spec.Number or 0), 0)
+	-- A long track's grass is several equal Ground tiles (TrackBuilder); `lo` / `hi` bound them all in the first
+	-- tile's space (they share its rotation)
+	local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
+	for _, tile in model:GetChildren() do
+		if tile.Name == "Ground" and tile:IsA("BasePart") then
+			tile.Color = theme.Ground.Color
+			tile.Material = theme.Ground.Material
+			-- Neighbouring tracks' grounds overlap; a per-track step keeps their different colours from z-fighting.
+			tile.Position -= Vector3.new(0, GROUND_STEP * (spec.Number or 0), 0)
+			local c = ground.CFrame:PointToObjectSpace(tile.Position)
+			lo = lo:Min(c - tile.Size / 2)
+			hi = hi:Max(c + tile.Size / 2)
+		end
 	end
 
 	local wps = layout.Waypoints
@@ -477,7 +485,7 @@ function BiomeDressing.Build(model, layout, spec, origin)
 			return true
 		end
 		local l = ground.CFrame:PointToObjectSpace(base.Position)
-		return math.abs(l.X) + reach <= ground.Size.X / 2 and math.abs(l.Z) + reach <= ground.Size.Z / 2
+		return l.X - reach >= lo.X and l.X + reach <= hi.X and l.Z - reach >= lo.Z and l.Z + reach <= hi.Z
 	end
 	local function add(layer, n, i, side, glow, name, fits)
 		local k = layer == theme.Landmarks and BiomeDressing.SCALE.Landmarks

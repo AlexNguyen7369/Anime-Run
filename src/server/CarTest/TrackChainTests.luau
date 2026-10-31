@@ -199,38 +199,87 @@ local function probeSpec(n, total)
 	}
 end
 
--- Live parts of a track model (its Ground and invisible Start marker are not road, as in spawn_area) against every
--- part under `roots`; broad phase on bounding circles. Returns hits, worst separation, worst pair name.
-local function liveOverlap(model, roots, partPoly, separation)
-	local others = {}
-	for _, root in roots do
-		for _, d in root:GetDescendants() do
-			if d:IsA("BasePart") then
-				table.insert(others, { Part = d, R = d.Size.Magnitude / 2, Poly = partPoly(d) })
+-- Footprint overlap of every part in list `a` against every part in list `b` (BaseParts), the separating-axis
+-- test of Scenarios' partPoly / polySeparation, with a broad phase: `b` is bucketed in an XZ grid by bounding circle
+-- (Size.Magnitude / 2 always contains the footprint) and a pair is tested only when the circles come within
+-- BROAD_MARGIN studs. An overlapping pair always has intersecting circles, so the overlap count is exact; the
+-- closest separation is exact for every pair within the margin (math.huge when no pair comes that close).
+-- Yields between chunks. Returns hits (separation < -tol), closest separation, its parts (a, b).
+M.BROAD_CELL, M.BROAD_MARGIN = 64, 100
+function M.footprintOverlaps(a, b, partPoly, separation, tol)
+	local cell, margin = M.BROAD_CELL, M.BROAD_MARGIN
+	local grid = {}
+	for _, q in b do
+		local r, c = q.Size.Magnitude / 2 + margin, q.Position
+		for cx = math.floor((c.X - r) / cell), math.floor((c.X + r) / cell) do
+			for cz = math.floor((c.Z - r) / cell), math.floor((c.Z + r) / cell) do
+				local k = cx * 65536 + cz
+				local bucket = grid[k]
+				if not bucket then
+					bucket = {}
+					grid[k] = bucket
+				end
+				table.insert(bucket, q)
+				tick(1)
 			end
 		end
 	end
-	local hits, worst, worstName = 0, math.huge, nil
-	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
-			local r, poly = d.Size.Magnitude / 2, nil
-			for _, o in others do
-				local gap = Vector2.new(d.Position.X - o.Part.Position.X, d.Position.Z - o.Part.Position.Z).Magnitude
-				if gap <= r + o.R + 1 then
-					poly = poly or partPoly(d)
-					local sep = separation(poly, o.Poly)
-					if sep < worst then
-						worst, worstName = sep, d:GetFullName() .. "/" .. o.Part:GetFullName()
-					end
-					if sep < -OVERLAP_TOL then
-						hits += 1
+	local polys = {}
+	local function polyOf(part)
+		local poly = polys[part]
+		if not poly then
+			poly = partPoly(part)
+			polys[part] = poly
+		end
+		return poly
+	end
+	local hits, worst, worstA, worstB = 0, math.huge, nil, nil
+	for _, p in a do
+		local r, c = p.Size.Magnitude / 2, p.Position
+		local seen = {}
+		for cx = math.floor((c.X - r) / cell), math.floor((c.X + r) / cell) do
+			for cz = math.floor((c.Z - r) / cell), math.floor((c.Z + r) / cell) do
+				for _, q in grid[cx * 65536 + cz] or {} do
+					if not seen[q] then
+						seen[q] = true
+						local gap = Vector2.new(c.X - q.Position.X, c.Z - q.Position.Z).Magnitude
+						if gap <= r + q.Size.Magnitude / 2 + margin then
+							local sep = separation(polyOf(p), polyOf(q))
+							if sep < worst then
+								worst, worstA, worstB = sep, p, q
+							end
+							if sep < -tol then
+								hits += 1
+							end
+						end
+						tick(1)
 					end
 				end
 				tick(1)
 			end
 		end
 	end
-	return hits, worst, worstName
+	return hits, worst, worstA, worstB
+end
+
+-- Live parts of a track model (its Ground and invisible Start marker are not road, as in spawn_area) against every
+-- part under `roots`. Returns hits, worst separation, worst pair name.
+local function liveOverlap(model, roots, partPoly, separation)
+	local others, mine = {}, {}
+	for _, root in roots do
+		for _, d in root:GetDescendants() do
+			if d:IsA("BasePart") then
+				table.insert(others, d)
+			end
+		end
+	end
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
+			table.insert(mine, d)
+		end
+	end
+	local hits, worst, pa, pb = M.footprintOverlaps(mine, others, partPoly, separation, OVERLAP_TOL)
+	return hits, worst, pa and (pa:GetFullName() .. "/" .. pb:GetFullName()) or nil
 end
 
 -- Distance from p to the polyline pts over segments lo..hi: distance, segment index (RunnerTests.nearest)

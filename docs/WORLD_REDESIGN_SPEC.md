@@ -63,6 +63,8 @@ Nothing car-shaped stays in the game:
 - Owner 2026-10-30 (placeholder, tunable): each Dojo plot's front points within 45 degrees of the plaza centre.
 - Owner 2026-10-30 (placeholder, tunable): "spirals outward" means each track's mean centre-line distance from
   the plaza centre (XZ) is greater than the previous track's; Track 1 has the smallest.
+- Owner 2026-10-30: a track's "biome sector" may be a ring band of the spiral (about 1.5 laps around the plaza),
+  not an angular wedge.
 
 ## 4. Spawn hub: anime town plaza
 

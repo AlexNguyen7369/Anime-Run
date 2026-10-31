@@ -1,30 +1,52 @@
 --!nonstrict
--- Technical point-to-point circuit with repeated gentle S-bends. It always makes
--- forward progress, so the numbered route cannot fold back across its neighbours.
+-- Track 4 (w3, owner 2026-10-30): Wisteria Night Mountain: town street, stone stair climbs and wisteria grove bends into the dark forest.
+-- About 984 x 3 x 1.25^3 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
+-- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
+-- corners grow with each lap, so this track sits one lap band outside the previous one.
 return {
 	Name = "Circuit",
-	Description = "Eight gentle direction changes on a point-to-point route. Tests turn-in without folding back across the chain.",
+	Description = "Wisteria Night Mountain run: a lantern-lit town street, stone stair climbs and wisteria grove bends.",
 	Number = 4,
 	Biome = "Suburb",
 	Width = 36,
 	Closed = false,
 	Segments = {
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = 45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = 45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = 45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = 45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -45, Radius = 60 },
-		{ Type = "Straight", Length = 100 },
+		{ Type = "Straight", Length = 150 },
+		{ Type = "Slope", Length = 150, Rise = 20 }, -- stone stair path up and down
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Slope", Length = 150, Rise = -20 },
+		{ Type = "Straight", Length = 274.458 },
+		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
+		{ Type = "Straight", Length = 130 },
+		{ Type = "Turn", Angle = 30, Radius = 120 }, -- wisteria grove bends
+		{ Type = "Turn", Angle = -60, Radius = 120 },
+		{ Type = "Turn", Angle = 30, Radius = 120 },
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Turn", Angle = -30, Radius = 120 },
+		{ Type = "Turn", Angle = 60, Radius = 120 },
+		{ Type = "Turn", Angle = -30, Radius = 120 },
+		{ Type = "Straight", Length = 335 },
+		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
+		{ Type = "Straight", Length = 180 },
+		{ Type = "Turn", Angle = 26, Radius = 140 }, -- dark forest bend
+		{ Type = "Turn", Angle = -52, Radius = 140 },
+		{ Type = "Turn", Angle = 26, Radius = 140 },
+		{ Type = "Straight", Length = 120 },
+		{ Type = "Slope", Length = 150, Rise = 20 }, -- stone stair path up and down
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Slope", Length = 150, Rise = -20 },
+		{ Type = "Straight", Length = 122.512 },
+		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
+		{ Type = "Straight", Length = 150 },
+		{ Type = "Turn", Angle = 30, Radius = 120 }, -- wisteria grove bends
+		{ Type = "Turn", Angle = -60, Radius = 120 },
+		{ Type = "Turn", Angle = 30, Radius = 120 },
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Turn", Angle = -30, Radius = 120 },
+		{ Type = "Turn", Angle = 60, Radius = 120 },
+		{ Type = "Turn", Angle = -30, Radius = 120 },
+		{ Type = "Straight", Length = 420 },
+		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner
+		{ Type = "Straight", Length = 295.974 }, -- finish straight
 	},
 }

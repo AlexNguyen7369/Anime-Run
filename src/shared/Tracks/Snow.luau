@@ -1,8 +1,13 @@
 --!nonstrict
--- Track 8: a frozen pass with rolling slopes and a mountain hairpin.
+-- Track 8 (w3, owner 2026-10-30): Sky Islands: hops onto floating islands, vine bridges between them and bends under the waterfalls.
+-- About 984 x 3 x 1.25^7 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
+-- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
+-- corners grow with each lap, so this track sits one lap band outside the previous one.
+-- Owner 2026-10-30: every bend is at least 638 studs in radius, so the NPC rival (Shared/NpcRacer grip limit) holds
+-- its cruise speed and its time matches the TRACKS_AND_BIOMES_SPEC table.
 return {
 	Name = "Snow",
-	Description = "A frozen mountain pass between snowbanks, pines, and blue ice cliffs.",
+	Description = "Sky Islands run: island hops, vine bridges and waterfall bends above the clouds.",
 	Number = 8,
 	Biome = "Snow",
 	Width = 40,
@@ -17,16 +22,56 @@ return {
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {
+		{ Type = "Straight", Length = 560.197 },
+		{ Type = "Turn", Angle = -90, Radius = 638.395 }, -- corner
 		{ Type = "Straight", Length = 180 },
-		{ Type = "Turn", Angle = 90, Radius = 78 },
-		{ Type = "Straight", Length = 160 },
-		{ Type = "Slope", Length = 220, Rise = 28 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -180, Radius = 86 },
-		{ Type = "Straight", Length = 160 },
-		{ Type = "Slope", Length = 220, Rise = -28 },
-		{ Type = "Turn", Angle = 90, Radius = 78 },
-		{ Type = "Straight", Length = 180 },
-		{ Type = "Straight", Length = 140 },
+		{ Type = "Slope", Length = 160, Rise = 28 }, -- hop onto a floating island
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Slope", Length = 160, Rise = -28 },
+		{ Type = "Straight", Length = 120 },
+		{ Type = "Turn", Angle = 12, Radius = 680 }, -- vine bridge between islands
+		{ Type = "Turn", Angle = -24, Radius = 680 },
+		{ Type = "Turn", Angle = 12, Radius = 680 },
+		{ Type = "Straight", Length = 474.48 },
+		{ Type = "Turn", Angle = -90, Radius = 638.395 }, -- corner
+		{ Type = "Straight", Length = 150 },
+		{ Type = "Turn", Angle = 10, Radius = 680 }, -- under the waterfalls
+		{ Type = "Turn", Angle = -20, Radius = 680 },
+		{ Type = "Turn", Angle = 10, Radius = 680 },
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Turn", Angle = -10, Radius = 680 },
+		{ Type = "Turn", Angle = 20, Radius = 680 },
+		{ Type = "Turn", Angle = -10, Radius = 680 },
+		{ Type = "Straight", Length = 582.571 },
+		{ Type = "Turn", Angle = -90, Radius = 638.395 }, -- corner
+		{ Type = "Straight", Length = 130 },
+		{ Type = "Slope", Length = 160, Rise = 28 }, -- hop onto a floating island
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Slope", Length = 160, Rise = -28 },
+		{ Type = "Straight", Length = 260 },
+		{ Type = "Turn", Angle = 12, Radius = 680 }, -- vine bridge between islands
+		{ Type = "Turn", Angle = -24, Radius = 680 },
+		{ Type = "Turn", Angle = 12, Radius = 680 },
+		{ Type = "Straight", Length = 611.33 },
+		{ Type = "Turn", Angle = -90, Radius = 638.395 }, -- corner
+		{ Type = "Straight", Length = 120 },
+		{ Type = "Turn", Angle = 10, Radius = 680 }, -- under the waterfalls
+		{ Type = "Turn", Angle = -20, Radius = 680 },
+		{ Type = "Turn", Angle = 10, Radius = 680 },
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Turn", Angle = -10, Radius = 680 },
+		{ Type = "Turn", Angle = 20, Radius = 680 },
+		{ Type = "Turn", Angle = -10, Radius = 680 },
+		{ Type = "Straight", Length = 240 },
+		{ Type = "Slope", Length = 160, Rise = 28 }, -- hop onto a floating island
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Slope", Length = 160, Rise = -28 },
+		{ Type = "Straight", Length = 150 },
+		{ Type = "Turn", Angle = 12, Radius = 680 }, -- vine bridge between islands
+		{ Type = "Turn", Angle = -24, Radius = 680 },
+		{ Type = "Turn", Angle = 12, Radius = 680 },
+		{ Type = "Straight", Length = 107.86 },
+		{ Type = "Turn", Angle = -90, Radius = 638.395 }, -- corner
+		{ Type = "Straight", Length = 593.322 }, -- finish straight
 	},
 }

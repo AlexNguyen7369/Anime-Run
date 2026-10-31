@@ -1,8 +1,11 @@
 --!nonstrict
--- Beginner track: an oval with a smooth hill on each long straight.
+-- Track 2 (w3, owner 2026-10-30): Tournament Wasteland: crater rims to climb and drop, weaving between mesa pillars, past the open stone ring and along the cliffs.
+-- About 984 x 3 x 1.25^1 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
+-- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
+-- corners grow with each lap, so this track sits one lap band outside the previous one.
 return {
 	Name = "Hill",
-	Description = "Point-to-point hill run: a hill on each straight joined by a wide right hairpin, ending on a short level straight with a wide checkpoint area that leads to the next track. Tests climbing, cresting and descending at speed without stalling or leaving the road.",
+	Description = "Tournament Wasteland run: crater rims, mesa weaves and cliff sweeps around the open stone ring.",
 	Width = 40,
 	Closed = false,
 	Number = 2,
@@ -17,16 +20,20 @@ return {
 		WinPad = Color3.fromRGB(255, 187, 44),
 	},
 	Segments = {
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Slope", Length = 160, Rise = 30 },
+		{ Type = "Straight", Length = 83.456 },
+		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
+		{ Type = "Straight", Length = 528 },
+		{ Type = "Turn", Angle = -90, Radius = 125 }, -- corner
+		{ Type = "Straight", Length = 130 },
+		{ Type = "Slope", Length = 150, Rise = 26 }, -- crater rim climb and drop
 		{ Type = "Straight", Length = 40 },
-		{ Type = "Slope", Length = 160, Rise = -30 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Turn", Angle = -180, Radius = 80 },
-		{ Type = "Straight", Length = 100 },
-		{ Type = "Slope", Length = 160, Rise = 30 },
-		{ Type = "Straight", Length = 40 },
-		{ Type = "Slope", Length = 160, Rise = -30 },
-		{ Type = "Straight", Length = 100 },
+		{ Type = "Slope", Length = 150, Rise = -26 },
+		{ Type = "Straight", Length = 95 },
+		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
+		{ Type = "Straight", Length = 588 },
+		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
+		{ Type = "Straight", Length = 670 },
+		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
+		{ Type = "Straight", Length = 64 }, -- finish straight
 	},
 }

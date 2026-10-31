@@ -17,6 +17,16 @@ local MIN_END_STRAIGHT = 40 -- first and last segment: straight, so tracks join 
 local MIN_END_STRAIGHT_MARGIN = 4 -- the last straight is the checkpoint plus this much wall
 local MIN_START_FINISH_WIDTHS = 2 -- start and finish are at least this many road widths apart
 
+-- docs/TRACKS_AND_BIOMES_SPEC.md "Lengths" (owner 2026-10-30): Track n = 984 x F x 1.25^(n-1) studs, F = 3, +-5 %
+TrackValidator.BASE_LENGTH = 984
+TrackValidator.LENGTH_FACTOR = 3
+TrackValidator.LENGTH_GROWTH = 1.25
+TrackValidator.LENGTH_TOLERANCE = 0.05
+
+function TrackValidator.TargetLength(n)
+	return TrackValidator.BASE_LENGTH * TrackValidator.LENGTH_FACTOR * TrackValidator.LENGTH_GROWTH ^ (n - 1)
+end
+
 function TrackValidator.Validate(spec, layout)
 	local issues = {}
 	local width = layout.Width
@@ -117,6 +127,22 @@ function TrackValidator.Validate(spec, layout)
 		if p.Y < -0.01 then
 			table.insert(issues, ("waypoint %d is %.1f studs below the ground"):format(i, -p.Y))
 			break
+		end
+	end
+
+	-- TARGET_LENGTH: every numbered track is its target length along the centre line, within the tolerance
+	if type(spec.Number) == "number" and spec.Number >= 1 then
+		local target = TrackValidator.TargetLength(spec.Number)
+		local err = math.abs(layout.Length - target) / target
+		if err > TrackValidator.LENGTH_TOLERANCE then
+			table.insert(
+				issues,
+				("TARGET_LENGTH: track is %.0f studs, target %.0f +-%d%%"):format(
+					layout.Length,
+					target,
+					TrackValidator.LENGTH_TOLERANCE * 100
+				)
+			)
 		end
 	end
 

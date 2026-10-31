@@ -8573,28 +8573,28 @@ function Scenarios.spawn_area()
 
 	-- No part of the area (floor, edges, spawn, pad) overlaps any road / wall / checkpoint part of ANY chained
 	-- track horizontally (each track's Ground and its invisible Start marker are not road)
-	local trackParts = {}
+	-- Broad-phased and yielding (TrackChainTests.footprintOverlaps): the overlap count is exact; the closest gap is
+	-- exact whenever some pair lies within BROAD_MARGIN studs (-1 when none does)
+	local trackParts, areaParts = {}, {}
 	for _, d in trackFolder:GetDescendants() do
 		if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
-			table.insert(trackParts, { Part = d, Poly = spawnPartPoly(d) })
+			table.insert(trackParts, d)
+		end
+	end
+	for _, d in area:GetDescendants() do
+		if d:IsA("BasePart") then
+			table.insert(areaParts, d)
 		end
 	end
 	metrics.track_parts_checked = #trackParts
-	local overlaps, worst, worstName = 0, math.huge, ""
-	for _, d in area:GetDescendants() do
-		if d:IsA("BasePart") then
-			local poly = spawnPartPoly(d)
-			for _, t in trackParts do
-				local sep = spawnPolySeparation(poly, t.Poly)
-				if sep < worst then
-					worst, worstName = sep, d.Name .. "/" .. t.Part:GetFullName()
-				end
-				if sep < -SPAWN_OVERLAP_TOL then
-					overlaps += 1
-				end
-			end
-		end
-	end
+	local overlaps, worst, worstA, worstB = require(script.Parent.TrackChainTests).footprintOverlaps(
+		areaParts,
+		trackParts,
+		spawnPartPoly,
+		spawnPolySeparation,
+		SPAWN_OVERLAP_TOL
+	)
+	local worstName = worstA and (worstA.Name .. "/" .. worstB:GetFullName()) or ""
 	if overlaps > 0 then
 		metrics.worst_overlap = worstName
 	end
@@ -12737,7 +12737,7 @@ function Scenarios.workshop()
 		local trackParts = {}
 		for _, d in trackFolder:GetDescendants() do
 			if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
-				table.insert(trackParts, { Part = d, Poly = spawnPartPoly(d) })
+				table.insert(trackParts, d)
 			end
 		end
 		local area = Workspace:FindFirstChild("SpawnArea")
@@ -12752,28 +12752,33 @@ function Scenarios.workshop()
 				table.insert(inGate and padPolys or hubPolys, spawnPartPoly(d))
 			end
 		end
-		local trackHits, padHits, hubHits, worst, worstName = 0, 0, 0, math.huge, ""
+		-- plots x tracks: broad-phased and yielding (TrackChainTests.footprintOverlaps); the hit count is exact, the
+		-- closest gap exact whenever some pair lies within BROAD_MARGIN studs (-1 when none does)
+		local plotParts = {}
 		for _, d in folder:GetDescendants() do
 			if d:IsA("BasePart") then
-				local poly = spawnPartPoly(d)
-				for _, t in trackParts do
-					local sep = spawnPolySeparation(poly, t.Poly)
-					if sep < worst then
-						worst, worstName = sep, d:GetFullName() .. "/" .. t.Part:GetFullName()
-					end
-					if sep < -SPAWN_OVERLAP_TOL then
-						trackHits += 1
-					end
+				table.insert(plotParts, d)
+			end
+		end
+		local trackHits, worst, worstA, worstB = require(script.Parent.TrackChainTests).footprintOverlaps(
+			plotParts,
+			trackParts,
+			spawnPartPoly,
+			spawnPolySeparation,
+			SPAWN_OVERLAP_TOL
+		)
+		local worstName = worstA and (worstA:GetFullName() .. "/" .. worstB:GetFullName()) or ""
+		local padHits, hubHits = 0, 0
+		for _, d in plotParts do
+			local poly = spawnPartPoly(d)
+			for _, other in padPolys do
+				if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
+					padHits += 1
 				end
-				for _, other in padPolys do
-					if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
-						padHits += 1
-					end
-				end
-				for _, other in hubPolys do
-					if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
-						hubHits += 1
-					end
+			end
+			for _, other in hubPolys do
+				if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
+					hubHits += 1
 				end
 			end
 		end
