@@ -276,7 +276,9 @@ return {
 				Ridge = { Shape = "Hills", Height = 8, Noise = 0.03, Amp = 3 },
 			},
 		},
-		Materials = { Corridor = M.LeafyGrass, Ridge = M.LeafyGrass, Cliff = M.Rock, Bed = M.Sand },
+		-- Corridor Ground, not grass: terrain grass grows blades up through the road (Track 6 Studio finding,
+		-- orchestrator 2026-10-31). Sections set no Material, so the corridor stays Ground under them too.
+		Materials = { Corridor = M.Ground, Ridge = M.LeafyGrass, Cliff = M.Rock, Bed = M.Sand },
 		CliffSlope = 0.9,
 		Embank = true,
 	},
