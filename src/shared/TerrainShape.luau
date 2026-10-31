@@ -20,6 +20,9 @@ TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + Dojos + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
+-- placeholder: an Embank corridor sits EMBANK_BELOW under the lowest road Y within this many studs (grid nodes of the
+-- same track), so on a ramp it stays under the road at every point beside it, not only at the cell's own road point
+TerrainShape.EMBANK_REACH = 24
 TerrainShape.CRATER_TRIES = 4 -- placeholder: candidate spots per pit before a track gives up on it
 TerrainShape.CLEARANCE = require(script.Parent.BiomeDressing).CLEARANCE -- clear boxes grow by this
 
@@ -301,6 +304,52 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 		end
 	end
 
+	-- 2b. Embank road Y (only when a biome embanks): each node's lowest road Y over the nodes of its own track within
+	-- EMBANK_REACH, as two separable min passes (along x, then along z)
+	local low = nil
+	for _, prof in profiles do
+		if prof.Embank then
+			low = buffer.create(nx * nz * 2)
+			break
+		end
+	end
+	if low then
+		local r = math.ceil(TerrainShape.EMBANK_REACH / CELL)
+		local pass = buffer.create(nx * nz * 2)
+		for j = 0, nz - 1 do
+			for i = 0, nx - 1 do
+				local k = node(i, j)
+				local t, m = buffer.readu8(buf, k * REC), buffer.readi16(buf, k * REC + 6)
+				for ii = math.max(0, i - r), math.min(nx - 1, i + r) do
+					local o = node(ii, j) * REC
+					if buffer.readu8(buf, o) == t then
+						m = math.min(m, buffer.readi16(buf, o + 6))
+					end
+				end
+				buffer.writei16(pass, k * 2, m)
+			end
+			if j % 64 == 0 then
+				task.wait()
+			end
+		end
+		for j = 0, nz - 1 do
+			for i = 0, nx - 1 do
+				local k = node(i, j)
+				local t, m = buffer.readu8(buf, k * REC), buffer.readi16(pass, k * 2)
+				for jj = math.max(0, j - r), math.min(nz - 1, j + r) do
+					local kk = node(i, jj)
+					if buffer.readu8(buf, kk * REC) == t then
+						m = math.min(m, buffer.readi16(pass, kk * 2))
+					end
+				end
+				buffer.writei16(low, k * 2, m)
+			end
+			if j % 64 == 0 then
+				task.wait()
+			end
+		end
+	end
+
 	-- 3. Clear boxes: distance to the nearest grown box, out to the shoulder width
 	local plaza = boxesOf(plazaRoots)
 	local clear = boxesOf(clearRoots)
@@ -341,6 +390,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 	state = {
 		Buf = buf,
+		Low = low,
 		Sec = sec,
 		Sections = sections,
 		Pits = {},
@@ -425,12 +475,18 @@ local function distOf(buf, o, n)
 	return nil
 end
 
+-- m, lowered to the embank road Y of the node at byte offset o when that node's nearest track is A
+local function lowAt(buf, low, o, A, m)
+	return buffer.readu8(buf, o) == A and math.min(m, buffer.readi16(low, o // REC * 2)) or m
+end
+
 local function bilinear(a, b, c, d, u, v)
 	return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v
 end
 
 -- Nearest track A, its distance, second track B (or nil), its distance, road Y and clear-box distance at (x, z),
--- bilinear between nodes where all four corners know the track (the nearest node's values otherwise)
+-- bilinear between nodes where all four corners know the track (the nearest node's values otherwise). When a biome
+-- embanks, road Y is the embank road Y instead (the low over EMBANK_REACH; road Y is only read by Embank).
 function sample(x, z)
 	local CELL, buf = TerrainShape.CELL, state.Buf
 	local fx, fz = (x - state.X0) / CELL, (z - state.Z0) / CELL
@@ -457,7 +513,13 @@ function sample(x, z)
 		dB = (a and b and c and d) and bilinear(a, b, c, d, u, v) or buffer.readu16(buf, near + 4) / 4
 	end
 	local roadY = buffer.readi16(buf, near + 6) / 8
-	if
+	if state.Low then
+		-- Embank: the lowest of the cell's corner nodes of track A (each already the low over EMBANK_REACH)
+		local low = state.Low
+		local m = buffer.readi16(low, near // REC * 2)
+		m = lowAt(buf, low, o00, A, lowAt(buf, low, o10, A, lowAt(buf, low, o01, A, lowAt(buf, low, o11, A, m))))
+		roadY = m / 8
+	elseif
 		buffer.readu8(buf, o00) == A
 		and buffer.readu8(buf, o10) == A
 		and buffer.readu8(buf, o01) == A
@@ -620,6 +682,13 @@ function TerrainShape.Zone(x, z)
 		return 0
 	end
 	return (sample(x, z))
+end
+
+-- Zone ownership for the dressing (gap midline, spec 2.2 / 2.3): the nearest track at (x, z), plaza or not, and
+-- track n's distance there (math.huge when the grid keeps neither of its two tracks as n)
+function TerrainShape.Owner(x, z, n)
+	local A, dA, B, dB = sample(x, z)
+	return A, A == n and dA or B == n and dB or math.huge
 end
 
 -- Material of the voxel at (x, y, z); slope (rise / run) is sampled from Height when not given
