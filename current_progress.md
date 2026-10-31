@@ -14,8 +14,9 @@
 11. 2026-10-30 — Alex Nguyen — Committed anime-world w3 work in progress on orch/anime-world/w3 (spiral layouts for Tracks 1-10, TARGET_LENGTH check, wide bends on Tracks 7-10, faster overlap tests), not yet verified in Studio; added the dashboard tool and /dashboard command.
 12. 2026-10-30 — Alex Nguyen — Landed anime-world w3 (spiral track layouts 1-10 at target lengths, wide bends on Tracks 7-10) and w4 (anime biome themes 1-10, IVS mesh assets removed); environment pass=450 fail=0.
 13. 2026-10-30 — Alex Nguyen — Landed biomes b0: BIOME_ENVIRONMENT_SPEC approved with owner rulings (free Creator Store assets as Lane D, biomes built one track at a time); core c1 paused for biomes.
+14. 2026-10-30 — Alex Nguyen — Landed biomes b1: environment framework (code-generated terrain and water, per-zone client atmosphere and audio, reviewed-only asset registry); its 4 scenarios pass in Studio.
 
 ## What's next
-**Biomes b1: environment framework (code-generated terrain and water, per-zone client atmosphere, ambient audio, asset registry) on orch/biomes/b1.**
+**Biomes b2 Track 1 (Leafwind Village): terrain profile, atmosphere, audio, hero landmarks, mesh props and skybox, then screenshots to the owner.**
 
-**Why this is next:** every b2 biome (Track 1 first, then 2-10) is built on this framework, and the owner's per-track screenshots depend on it.
+**Why this is next:** it is the first biome on the new framework; Tracks 2-10 follow the same steps one at a time, and the owner reviews each track's screenshots.
