@@ -129,7 +129,6 @@ end
 
 -- One prop as a Model whose base centre is `base` and whose -Z faces the road.
 local function place(folder, biome, def, base, name, glow, particles)
-	base *= CFrame.Angles(0, def.Yaw or 0, 0) -- optional def.Yaw: a mesh whose front is not -Z turns to face the road
 	local model = Instance.new("Model")
 	model.Name = name
 	local mesh = def.Mesh and BiomeDressing.Assets and BiomeDressing.Assets.Clone(biome, def.Mesh, def.Size)
