@@ -176,3 +176,12 @@
   props sit at edge+Offset on both sides, never lifted onto bay platforms (road +4); pinned heroes choose their side by
   corners/alternation, not by the bay's Side; (3) gate: use Gate.Index on a waypoint before s=16 (in front of the start
   portal) or Gate.Skip. Unchecked: beside() side sign vs Tunnel Left.
+- t5r pause report (branch orch/biomes/t5r, close-ups committed): meshes generated, NOT yet in PirateCoast.luau
+  (mesh / texture, size): BurningTower 110026199515917 / 111995406996497 (15.9x35.9x16); Meteor 129629428349458 /
+  127234806169781 (16x6.4x16); CollapsedViaduct 104055839246591 / 105638459114043 (22.2x15.3x10); SlicedTower
+  118384879998435 / 79499249668457 (16x31.7x15.6, top half floats above the cut - auditor to judge); BurningCar
+  75112982054894 / 137060689993765 (nose -Z); RubblePile 90775659169182 / 135149187378761; BurntBillboard
+  99613692659503 / 124515013244308 (blank); BrokenStorefront 90903812309143 / 122708716943483 (front -Z). Keep signed
+  TrafficLight, RailOverpass, ConcreteBlock (11 unique). Left: module rewrite, ember/smoke PNGs, sounds, palette,
+  harness, step B. Also for fw6: EnvironmentTests:35 expects "Neon Cursed City" (test-writer), Serpentine header text,
+  landmark ParticleEmitters ignore REDUCED EFFECTS.
