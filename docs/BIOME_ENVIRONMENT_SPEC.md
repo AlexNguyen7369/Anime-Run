@@ -137,7 +137,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   to a route spot (`At`) is never deleted (owner 2026-10-31). A hero that cannot fit stays put and is reported as an
   error for the builder to move.
 - Owner 2026-10-31 (fw2): the ground under a pinned (`At`) hero is levelled to the natural terrain height at its
-  centre (`TerrainShape.AddPad`), and the hero is raised onto it; it is not slid. The pad covers its footprint grown
+  centre (`TerrainShape.AddPad`), and the hero is raised onto it; it is not slid (except the fw3 outward push below). The pad covers its footprint grown
   by CLEARANCE (8 studs, placeholder) and is flat at that height over every track's ridge and seam, also across the
   gap midline. Outside that it blends out over 16 studs (SHOULDER - CORRIDOR). Road and clear-box ground never change:
   the pad stops at any corridor edge, and a hero whose footprint reaches into a corridor is reported as an error. No other prop, of any track, may overlap the grown
@@ -147,6 +147,21 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   covering its footprint plus 2 studs (placeholder). Pads never touch corridors or clear boxes. Padded props snap
   first, so every other prop snaps onto ground that already has their pads. Pads are looked up through 64-stud
   buckets (placeholder).
+- fw3 (2026-10-31, orchestrator fix of the owner rules above; values placeholders):
+  - A pad is the prop's oriented footprint (its own yaw), not the world box around it, so a turned house no longer
+    levels ground under its neighbours.
+  - A pad added earlier keeps its flat area: where flat areas meet, the first pad rules and no later pad's blend
+    changes it. Pinned heroes pad first, then houses in snap order.
+  - Every padded prop gets its pad, also when it does not move (centre already at corridor height).
+  - A padded prop whose footprint reaches a corridor or clear box sits on the lowest corridor ground under its
+    footprint instead of its centre height; its pad levels the rest of the footprint to that height. Corridor ground
+    never changes.
+  - A padded prop may not overlap another padded prop's pad (both footprints grown by the 2-stud margin): it slides
+    or is deleted.
+  - A pinned hero whose footprint reaches a corridor or clear box is pushed outward, away from its own road, 4 studs
+    per try up to 24 (SNAP_SLIDE_STEP / SNAP_SLIDE_MAX, placeholders), to the first spot where it is clear. If none is
+    clear it stays put and is reported as an error.
+  - `TerrainShape.CorridorLow(cf, size)` samples the oriented footprint every 4 studs, edges included.
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
