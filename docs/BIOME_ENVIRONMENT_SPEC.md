@@ -142,6 +142,11 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   gap midline. Outside that it blends out over 16 studs (SHOULDER - CORRIDOR). Road and clear-box ground never change:
   the pad stops at any corridor edge, and a hero whose footprint reaches into a corridor is reported as an error. No other prop, of any track, may overlap the grown
   footprint: it slides or is deleted. A hero that would touch a road's clearance stays at its base.
+- Owner 2026-10-31 (fw2): house-like props (defs with `Pad = true`: every `Kit.house`) get a small levelled pad
+  instead of the downhill float. It uses the same pad as a pinned hero, at the natural height at the prop's centre,
+  covering its footprint plus 2 studs (placeholder). Pads never touch corridors or clear boxes. Padded props snap
+  first, so every other prop snaps onto ground that already has their pads. Pads are looked up through 64-stud
+  buckets (placeholder).
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
@@ -187,7 +192,7 @@ placeholders.
 | Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland |
 | Mud | #2A2440 | 4 night forest floor |
 | Slate | #2E2A3E | 4 mountain rock, 5 hill |
-| Rock | #9C8F7E (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
+| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
 | Sandstone | #B8834F | 2 mesas and strata |
 | Sand | #F3E2B3 | 3 beach and sea bed |
 | Salt | #F2F2EE | 9 white sand |

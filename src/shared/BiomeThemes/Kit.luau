@@ -139,7 +139,7 @@ local function house(name, w, h, d, wall, roof, o)
 		table.insert(parts, post(w * 0.22, w * 0.22, v(w * 0.3, top + w * 0.11, d * 0.2), o.Tank, M.Wood))
 		top += w * 0.22
 	end
-	return prop(name, v(w + 3, top, d + 3), parts, { Glow = o.Glow })
+	return prop(name, v(w + 3, top, d + 3), parts, { Glow = o.Glow, Pad = true }) -- levelled pad on slopes (spec 3.2)
 end
 
 -- Dome: a ball sunk to its equator, two round windows and a door on the road face
