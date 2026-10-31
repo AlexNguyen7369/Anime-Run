@@ -12,13 +12,13 @@ return {
 	Biome = "Desert",
 	Width = 40,
 	Closed = false,
-	Palette = {
-		Road = Color3.fromRGB(112, 82, 66),
-		Support = Color3.fromRGB(90, 55, 40),
-		Wall = Color3.fromRGB(218, 157, 82),
-		Ground = Color3.fromRGB(210, 157, 78),
-		Line = Color3.fromRGB(255, 238, 172),
-		Checkpoint = Color3.fromRGB(164, 108, 56),
+	Palette = { -- b2 (spec References Track 7): pale stone path, vermilion walls, wood supports, spring grass
+		Road = Color3.fromHex("C4C0B8"), -- pale stone path (Track 7 stone #9E9E9E lightened)
+		Support = Color3.fromHex("6B4A2E"),
+		Wall = Color3.fromHex("E14B3B"),
+		Ground = Color3.fromHex("A9C98E"),
+		Line = Color3.fromHex("F7C6D9"),
+		Checkpoint = Color3.fromHex("4F8F6F"),
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {
