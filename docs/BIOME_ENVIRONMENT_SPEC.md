@@ -145,7 +145,7 @@ Terrain = {
 }
 ```
 - `Craters` (owner 2026-10-30): optional on any biome. `Count` round pits per track, placed deterministically in the
-  ridge band outside the corridor, each `Radius` studs across with a smooth bowl `Depth` studs deep. Track 2 uses it.
+  ridge band outside the corridor, each a smooth bowl of radius `Radius` studs and `Depth` studs deep. Track 2 uses it.
 Shapes:
 - `Hills`: cosine bump plus noise.
 - `Cliff`: a near-vertical face, 70% of the way across the ridge band.

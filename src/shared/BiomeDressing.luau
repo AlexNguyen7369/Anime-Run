@@ -125,11 +125,14 @@ local function place(folder, biome, def, base, name, glow, particles)
 	end
 	if def.Hero then
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-		-- SLIM where the engine has it, StreamingMesh otherwise
+		-- SLIM where the engine has it, StreamingMesh otherwise. Game scripts lack the PluginOrOpenCloud capability
+		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies.
 		if not pcall(function()
 			model.LevelOfDetail = Enum.ModelLevelOfDetail.SLIM
 		end) then
-			model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+			pcall(function()
+				model.LevelOfDetail = Enum.ModelLevelOfDetail.StreamingMesh
+			end)
 		end
 	end
 	for i, p in mesh and {} or def.Parts do
