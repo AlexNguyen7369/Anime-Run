@@ -41,8 +41,7 @@ local PAPER = rgb(255, 196, 130)
 local SCREEN = hex("3C2A7A")
 
 -- A mesh prop (spec 4.2): `def`'s parts, scaled to `size`'s height, are the fallback when the ledger row is unusable.
--- `size` keeps the mesh's own proportions (the registry stretches the mesh to it). Phase 1: sizes are the fallback's
--- own; step A replaces them with each generated mesh's measured size.
+-- `size` keeps the mesh's own proportions (the registry stretches the mesh to it), measured in Studio after generation.
 local function meshed(def, key, size, extra)
 	local k = size.Y / def.Size.Y
 	local parts = {}
@@ -189,22 +188,37 @@ for i = -3, 3 do
 end
 local zebra = prop("ZebraCrossing", v(20, 0.2, 10), zebraParts)
 
--- Mesh props (Lane A). Sizes are the fallback's until step A measures each mesh.
-local trafficLightMesh = meshed(trafficLight, "TrafficLightMesh", v(5, 14, 2))
-local neonSignMesh = meshed(neonSign, "NeonSignMesh", v(6, 12, 1))
-local vendingMesh = meshed(vending, "VendingMachineMesh", v(3, 6, 2.4))
-local storefrontMesh = meshed(storefront, "StorefrontMesh", v(16.4, 15, 12.4))
-local concreteBlockMesh = meshed(concreteBlock, "ConcreteBlockMesh", v(36.3, 50, 30.6))
-local templeGateMesh = meshed(templeGate, "TempleGateMesh", v(20, 15, 9))
+-- Mesh props (Lane A); sizes keep each mesh's own proportions
+local trafficLightMesh = meshed(trafficLight, "TrafficLightMesh", v(7.7, 10.5, 3.2))
+local neonSignMesh = meshed(neonSign, "NeonSignMesh", v(6.9, 10.4, 1.8))
+local vendingMesh = meshed(vending, "VendingMachineMesh", v(3.75, 6, 2.9))
+local storefrontMesh = meshed(storefront, "StorefrontMesh", v(16.4, 15.1, 13.2))
+local concreteBlockMesh = meshed(concreteBlock, "ConcreteBlockMesh", v(29.5, 47.8, 30))
+local templeGateMesh = meshed(templeGate, "TempleGateMesh", v(14, 15, 8.4))
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row.
--- Id is filled in step A. Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in
+-- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in
 -- assets/biomes/PirateCoast/review/.
-local function meshRow(texture, prompt, tris, notes)
-	return { Kind = "Mesh", Lane = "A", Prompt = prompt, Texture = texture, Tris = tris, Notes = notes }
+local function meshRow(id, texture, prompt, tris, notes)
+	return {
+		Kind = "Mesh",
+		Id = id,
+		Lane = "A",
+		Prompt = prompt,
+		Texture = texture,
+		Tris = tris,
+		Reviewed = "2026-10-31 rules-auditor",
+		Notes = notes,
+	}
 end
-local function textureRow(mesh)
-	return { Kind = "Texture", Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
+local function textureRow(id, mesh)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = "2026-10-31 rules-auditor",
+	}
 end
 
 return {
@@ -222,17 +236,18 @@ return {
 	-- 0.277-0.344 the straight after the scramble crossing, 0.411-0.580 the overpass straight (crest 0.467-0.478),
 	-- 0.647-0.827 the hill straight (crest 0.702-0.711).
 	Landmarks = {
-		Offset = 20, -- placeholder: x1.75 heroes are at most 31.5 deep, so they span about 40-72 studs from the centre
+		Offset = 20, -- placeholder: x1.75 heroes are at most 37.8 deep, so they span about 40-78 studs from the centre
 		Every = 18,
 		Props = {
 			-- p 1, outer: the neon avenue
-			meshed(neonSignTower(), "NeonSignTowerMesh", v(20, 54, 18), { Hero = true, At = 0.06 }), -- x1.75: 35 x 94.5
+			meshed(neonSignTower(), "NeonSignTowerMesh", v(14.5, 54, 13.1), { Hero = true, At = 0.06 }), -- x1.75: 25 x 94.5
 			-- p 2, inner: just past the scramble crossing
-			meshed(videoScreen(), "VideoScreenMesh", v(24.4, 38.5, 15), { Hero = true, At = 0.3 }), -- x1.75: 42.7 x 67.4
-			-- p 3, outer: beside the road's overpass crest
-			meshed(railOverpass(), "RailOverpassMesh", v(34, 26, 10.2), { Hero = true, At = 0.472 }), -- 59.5 x 45.5
-			-- p 4, inner: on the temple hill (Terrain Sections below)
-			meshed(templeSchool(), "TempleSchoolMesh", v(30, 23.6, 18), { Hero = true, At = 0.706 }), -- 52.5 x 41.3
+			meshed(videoScreen(), "VideoScreenMesh", v(30.5, 32.1, 19.5), { Hero = true, At = 0.3 }), -- x1.75: 53 x 56
+			-- p 3, outer: on the temple hill (Terrain Sections below). Outer, because on the inner side Track 4's road is
+			-- only ~129 studs away there and the 38-deep hall cannot clear both corridors (Play 2026-10-31).
+			meshed(templeSchool(), "TempleSchoolMesh", v(26.9, 19.9, 21.6), { Hero = true, At = 0.706 }), -- 47 x 34.8
+			-- p 4, inner: beside the road's overpass crest (17.5 deep, fits the narrower inner gap)
+			meshed(railOverpass(), "RailOverpassMesh", v(31.7, 21.5, 10), { Hero = true, At = 0.472 }), -- 55.5 x 37.6
 			storefrontMesh,
 			templeGateMesh,
 			storefrontMesh,
@@ -289,7 +304,7 @@ return {
 			part(v(30.4, 1, 30.4), v(0, 80, 0), PINK5, M.Neon),
 		}, { Pad = true }),
 		concreteBlockMesh,
-		meshed(railOverpass(), "RailOverpassMesh", v(40, 30.6, 12)), -- rail piers between the blocks (no pad)
+		meshed(railOverpass(), "RailOverpassMesh", v(39.6, 26.9, 12.5)), -- rail piers between the blocks (no pad)
 	}),
 	-- Landmark emitters (BiomeDressing): slow purple fog wisps
 	Particles = particles(
@@ -298,15 +313,15 @@ return {
 		{ Size = 4, Lifetime = 5, Rate = 4, Speed = 1, Transparency = 0.4, LightEmission = 0.2 }
 	),
 	-- Spec 3.3 / 7: flat Blocks city, Asphalt streets and Concrete lots, no embank (the overpass and hill ramps ride on
-	-- the road's supports). One Hills 40 Slate hill on the inner side of the hill straight (slopes 0.674-0.738) for the
-	-- temple school (hero p 4). Every number is a placeholder.
+	-- the road's supports). One Hills 40 Slate hill on the outer side of the hill straight (slopes 0.674-0.738) for the
+	-- temple school (hero p 3). Every number is a placeholder.
 	Terrain = {
 		Ridge = { Shape = "Blocks" },
 		Sections = {
 			{
 				From = 0.66,
 				To = 0.75,
-				Side = "Inner",
+				Side = "Outer",
 				Ridge = { Shape = "Hills", Height = 40, Noise = 0.04, Amp = 4 },
 				Material = M.Slate,
 			},
@@ -321,11 +336,13 @@ return {
 	Atmosphere = Kit.Atmosphere({
 		Lighting = {
 			ClockTime = 22,
-			Brightness = 1,
-			Ambient = hex("2A2040"),
-			OutdoorAmbient = hex("4A3A6A"),
+			-- placeholders, raised after the Play check 2026-10-31 (1 / 2A2040 / 4A3A6A left the night-dark road unreadable)
+			Brightness = 2,
+			Ambient = hex("4A3E6A"),
+			OutdoorAmbient = hex("7A6AA8"),
+			ExposureCompensation = 0.3,
 		},
-		Atmosphere = { Density = 0.5, Offset = 0.1, Color = FOG5, Decay = NIGHT5, Glare = 0, Haze = 1 },
+		Atmosphere = { Density = 0.5, Offset = 0.1, Color = FOG5, Decay = hex("2A1F45"), Glare = 0, Haze = 1 },
 		Grade = { Contrast = 0.35, TintColor = hex("EDE4FF") }, -- baseline Contrast 0.15 + 0.2
 		Bloom = { Intensity = 1.6, Threshold = 0.9 }, -- neon glows
 		SunRays = { Intensity = 0 },
@@ -358,6 +375,7 @@ return {
 	Assets = {
 		-- generate_mesh size 20 x 54 x 18
 		NeonSignTowerMesh = meshRow(
+			"rbxassetid://120499111306704",
 			"NeonSignTowerTex",
 			"tall narrow dark concrete city building at night, many glowing neon signboards stacked up the front in pink, cyan and yellow showing only simple abstract shapes like bars, rings and squares with no letters and no writing, vertical blade signs on the corners, a blank glowing billboard frame on the roof, stylized cartoon style",
 			15000,
@@ -365,6 +383,7 @@ return {
 		),
 		-- generate_mesh size 24 x 38 x 15
 		VideoScreenMesh = meshRow(
+			"rbxassetid://140148300449755",
 			"VideoScreenTex",
 			"mid rise dark concrete city building with one huge glowing video screen on its front wall, the screen shows only colorful abstract shapes, a pink circle, cyan bars and a yellow square, on a purple background, no letters, no logos and no faces, thin neon trim on the roof edge, stylized cartoon style",
 			15000,
@@ -372,6 +391,7 @@ return {
 		),
 		-- generate_mesh size 34 x 26 x 10
 		RailOverpassMesh = meshRow(
+			"rbxassetid://117805018716612",
 			"RailOverpassTex",
 			"short segment of an elevated concrete railway overpass, a straight concrete deck carrying two steel rails, resting on two thick rectangular concrete piers, low side walls along the deck, a few thin metal overhead wire masts, a yellow light strip under the deck, no train, no signs and no writing, stylized cartoon style",
 			10000,
@@ -379,6 +399,7 @@ return {
 		),
 		-- generate_mesh size 30 x 24 x 18
 		TempleSchoolMesh = meshRow(
+			"rbxassetid://100597043992238",
 			"TempleSchoolTex",
 			"traditional wooden temple hall used as a school, dark brown timber walls on a grey stone base, two tiers of dark grey tiled roofs with gently curved upturned eaves, a wooden veranda with posts, paper windows glowing warm orange, plain with no plaque, no crest and no writing, stylized cartoon style",
 			15000,
@@ -386,12 +407,14 @@ return {
 		),
 		-- generate_mesh size 5 x 14 x 2
 		TrafficLightMesh = meshRow(
+			"rbxassetid://113808741498152",
 			"TrafficLightTex",
 			"city traffic light on a thin dark grey metal pole with a side arm holding a horizontal three lamp signal box, green, yellow and red round lamps, plain with no signs, stylized cartoon style",
 			1500
 		),
 		-- generate_mesh size 6 x 12 x 1
 		NeonSignMesh = meshRow(
+			"rbxassetid://117615702117239",
 			"NeonSignTex",
 			"standing street neon sign on a thin metal pole, a glowing pink rectangular sign box above a smaller cyan glowing bar, only abstract shapes with no letters and no writing, stylized cartoon style",
 			1500,
@@ -399,6 +422,7 @@ return {
 		),
 		-- generate_mesh size 3 x 6 x 2.4
 		VendingMachineMesh = meshRow(
+			"rbxassetid://87103846862019",
 			"VendingMachineTex",
 			"white drink vending machine with a glowing cyan front panel showing rows of plain unlabeled bottles, buttons and a pickup slot at the bottom, no brand, no logo and no writing, stylized cartoon style",
 			2000,
@@ -406,6 +430,7 @@ return {
 		),
 		-- generate_mesh size 16 x 15 x 12
 		StorefrontMesh = meshRow(
+			"rbxassetid://134870150666084",
 			"StorefrontTex",
 			"small two storey city shop building at night, grey concrete walls, a wide glass shop window on the ground floor lit from inside, a pink neon strip awning and a blank glowing cyan sign box with no writing, flat roof, stylized cartoon style",
 			3000,
@@ -413,6 +438,7 @@ return {
 		),
 		-- generate_mesh size 36 x 50 x 30
 		ConcreteBlockMesh = meshRow(
+			"rbxassetid://134508562216971",
 			"ConcreteBlockTex",
 			"tall plain grey concrete office block, two bands of dark tinted glass windows wrapping around, one blank glowing yellow sign panel on the front with no writing, flat roof with small rooftop units, stylized low poly cartoon style",
 			3000,
@@ -420,30 +446,34 @@ return {
 		),
 		-- generate_mesh size 20 x 15 x 9
 		TempleGateMesh = meshRow(
+			"rbxassetid://88053027429353",
 			"TempleGateTex",
 			"traditional wooden temple gate with two round dark brown wooden pillars, a wide dark grey tiled roof with gently curved upturned ends on top, plain with no plaque and no writing, stylized cartoon style",
 			3000,
 			"no plaque"
 		),
-		NeonSignTowerTex = textureRow("NeonSignTowerMesh"),
-		VideoScreenTex = textureRow("VideoScreenMesh"),
-		RailOverpassTex = textureRow("RailOverpassMesh"),
-		TempleSchoolTex = textureRow("TempleSchoolMesh"),
-		TrafficLightTex = textureRow("TrafficLightMesh"),
-		NeonSignTex = textureRow("NeonSignMesh"),
-		VendingMachineTex = textureRow("VendingMachineMesh"),
-		StorefrontTex = textureRow("StorefrontMesh"),
-		ConcreteBlockTex = textureRow("ConcreteBlockMesh"),
-		TempleGateTex = textureRow("TempleGateMesh"),
+		NeonSignTowerTex = textureRow("rbxassetid://116565961697932", "NeonSignTowerMesh"),
+		VideoScreenTex = textureRow("rbxassetid://78936140837641", "VideoScreenMesh"),
+		RailOverpassTex = textureRow("rbxassetid://132514294558613", "RailOverpassMesh"),
+		TempleSchoolTex = textureRow("rbxassetid://95707675178705", "TempleSchoolMesh"),
+		TrafficLightTex = textureRow("rbxassetid://93198540892928", "TrafficLightMesh"),
+		NeonSignTex = textureRow("rbxassetid://104319058819582", "NeonSignMesh"),
+		VendingMachineTex = textureRow("rbxassetid://81906251196742", "VendingMachineMesh"),
+		StorefrontTex = textureRow("rbxassetid://95646774897657", "StorefrontMesh"),
+		ConcreteBlockTex = textureRow("rbxassetid://135390520256208", "ConcreteBlockMesh"),
+		TempleGateTex = textureRow("rbxassetid://139459388880794", "TempleGateMesh"),
 		MoteParticle = {
 			Kind = "Texture",
+			Id = "rbxassetid://135658908014790",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "A",
 			Prompt = "in-house 128 px soft round mote with a slightly lumpy edge and a brighter core, white on transparent, tinted dark purple by the emitter",
-			Notes = "drawn with python3 + numpy (assets/biomes/PirateCoast/mote_particle.png); Id after upload in step A",
+			Notes = "drawn with python3 + numpy (assets/biomes/PirateCoast/mote_particle.png), uploaded from Studio",
 		},
 		AmbCityNight = {
 			Kind = "Sound",
 			Id = "rbxassetid://9112759663",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9112759663: City Night Ambience 2, distant traffic wash and pass bys, loop, 36 s",
@@ -451,6 +481,7 @@ return {
 		SfxCrossingChime = {
 			Kind = "Sound",
 			Id = "rbxassetid://9114133612",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9114133612: Door Chime Single Dings 1, one resonant ding, 12 s (stands in for a crossing chime)",
@@ -458,6 +489,7 @@ return {
 		SfxTrainPass = {
 			Kind = "Sound",
 			Id = "rbxassetid://9117151457",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9117151457: elevated train pass by, track clack and metal rattle, 22 s",
