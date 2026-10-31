@@ -13301,6 +13301,9 @@ Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_prog
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase
+-- docs/TEAM_AND_STAMINA_SPEC.md "Tests" (c1): team of 3, stamina, swap, run end by exhaustion
+Scenarios.team = require(script.Parent.StaminaTests).team
+Scenarios.stamina = require(script.Parent.StaminaTests).stamina
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the chassis, no mass/controls change, equip preserved

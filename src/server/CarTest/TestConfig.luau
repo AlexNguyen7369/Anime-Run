@@ -47,6 +47,8 @@ return {
 		"showcase",
 		"world_layout",
 		"dojo",
+		"team",
+		"stamina",
 	},
 	-- Not in the full suite (each takes minutes). Run on demand during play:
 	--   ReplicatedStorage:SetAttribute("CarTestOnly", "speed_probe"); ReplicatedStorage:SetAttribute("CarTestRun", true)
