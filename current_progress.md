@@ -15,8 +15,11 @@
 12. 2026-10-30 — Alex Nguyen — Landed anime-world w3 (spiral track layouts 1-10 at target lengths, wide bends on Tracks 7-10) and w4 (anime biome themes 1-10, IVS mesh assets removed); environment pass=450 fail=0.
 13. 2026-10-30 — Alex Nguyen — Landed biomes b0: BIOME_ENVIRONMENT_SPEC approved with owner rulings (free Creator Store assets as Lane D, biomes built one track at a time); core c1 paused for biomes.
 14. 2026-10-30 — Alex Nguyen — Landed biomes b1: environment framework (code-generated terrain and water, per-zone client atmosphere and audio, reviewed-only asset registry); its 4 scenarios pass in Studio.
+15. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 1 Leafwind Village (owner approved from screenshots) and its rules-auditor close-up IP sign-off.
+16. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 2 Tournament Wasteland (mesa, craters, arid atmosphere, auditor-signed ledger).
+17. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 3 Pirate Harbor Isle (owner approved visuals) with framework fixes (natural-height pads under pinned landmarks and houses, prop slide/delete at the zone midline, 2-hero floor), Track 2 sand road and Rock colour 8A6E52; scenarios pass=3 fail=0.
 
 ## What's next
-**Biomes b2 Track 1 (Leafwind Village): terrain profile, atmosphere, audio, hero landmarks, mesh props and skybox, then screenshots to the owner.**
+**On the owner's "continue": finish the framework follow-ups (houses still floating on slopes, Track 2 tile ring gap 11.4, 4 pinned landmarks reaching a road corridor), retake the Track 1-3 shots, then build Track 4 Wisteria Night Mountain.**
 
-**Why this is next:** it is the first biome on the new framework; Tracks 2-10 follow the same steps one at a time, and the owner reviews each track's screenshots.
+**Why this is next:** the owner paused biome work after Track 3; Tracks 4-10 use the same pad and snap framework, so its open float and gap issues should be fixed before more tracks are built on it.
