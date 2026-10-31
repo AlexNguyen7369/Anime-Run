@@ -924,7 +924,8 @@ function BiomeDressing.SnapToTerrain(trackModels)
 			return false
 		end
 		for _, prop in folder and folder:GetChildren() or {} do
-			if prop:IsA("Model") then
+			-- a pinned hero stays where it is: Main.server levels the ground under it (clear box, spec 3.2)
+			if prop:IsA("Model") and not prop:GetAttribute("Pinned") then
 				local cf, size = prop:GetBoundingBox()
 				n = trackN or (TerrainShape.Owner(cf.Position.X, cf.Position.Z, nil))
 				local dy, centre = fit(prop, cf, size, Vector3.zero)
