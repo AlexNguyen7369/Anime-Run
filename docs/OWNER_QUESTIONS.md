@@ -64,3 +64,8 @@
 - Track 6: billboards show abstract shapes, not made-up text (spec 7 wording; avoids the generator writing real words).
   ToppledRobot hero ~31 x 25 x 31 placed (under the placeholder 60-220 hero height; the mesh generator caps short sides
   at ~16 studs). AcademyTower stretched 2.6x vertically to ~200 placed.
+- Track 7: HilltopShrine gable has a tiny gold roof ornament (auditor: not legible, passed); close shot T7_ShrineGable.jpg for review. StoneFox is a scatter prop only (mesh faces away from road).
+- 2026-10-31 owner: continue; finish T5 + T7, then Tracks 8-10 this session (Nov 3 pause lifted); orchestrator takes recommended decisions (logged here).
+- NPC rival names (spec: label RIVAL over <Name>) are not implemented in code: NpcConfig has no Name field (label shows track08_NPC). Enelu [Enel] is in the spec only; implementing rival names/models is a separate task (not in biome scope).
+- Track 7: heroes sized to fit under the 20-40 stud tunnel ceilings (~23-33 tall), below the placeholder 60-220 hero height; the stalled train stands on a bay platform (framework builds bays as platforms).
+- Track 5: BrokenStorefront has a weak 'face' reading (two red upper windows over a blank sign band; auditor passed) - see T5_Storefront.jpg. SlicedTower top floats above the cut; viaduct deck stays level (quality, not IP).
