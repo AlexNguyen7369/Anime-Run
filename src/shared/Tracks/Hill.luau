@@ -10,13 +10,13 @@ return {
 	Closed = false,
 	Number = 2,
 	Biome = "Forest",
-	Palette = {
-		Road = Color3.fromRGB(36, 111, 122),
-		Support = Color3.fromRGB(24, 69, 82),
-		Wall = Color3.fromRGB(102, 222, 210),
-		Ground = Color3.fromRGB(58, 126, 105),
+	Palette = { -- owner 2026-10-31: sand / stone tones from the Track 2 spec palette (was teal)
+		Road = Color3.fromHex("D9B98A"),
+		Support = Color3.fromHex("8A5A3B"),
+		Wall = Color3.fromHex("E6E1D3"),
+		Ground = Color3.fromHex("B8834F"),
 		Line = Color3.fromRGB(226, 255, 248),
-		Checkpoint = Color3.fromRGB(33, 92, 102),
+		Checkpoint = Color3.fromHex("8A5A3B"),
 		WinPad = Color3.fromRGB(255, 187, 44),
 	},
 	Segments = {
