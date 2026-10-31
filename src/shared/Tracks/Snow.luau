@@ -13,12 +13,14 @@ return {
 	Width = 40,
 	Closed = false,
 	Palette = {
-		Road = Color3.fromRGB(116, 145, 170),
-		Support = Color3.fromRGB(75, 105, 132),
-		Wall = Color3.fromRGB(195, 235, 255),
-		Ground = Color3.fromRGB(190, 220, 235),
-		Line = Color3.fromRGB(255, 255, 255),
-		Checkpoint = Color3.fromRGB(110, 164, 198),
+		-- b2 (orchestrator default 2026-10-31): a warm weathered-stone road with dark rock supports, so it reads
+		-- against the white cloud deck and the green island tops; ruin-stone walls, sky-blue checkpoints.
+		Road = Color3.fromRGB(168, 140, 104),
+		Support = Color3.fromRGB(110, 94, 76),
+		Wall = Color3.fromRGB(214, 206, 190),
+		Ground = Color3.fromRGB(124, 195, 106),
+		Line = Color3.fromRGB(250, 246, 232),
+		Checkpoint = Color3.fromRGB(63, 143, 210),
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {
