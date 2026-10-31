@@ -5,7 +5,7 @@ local UiTheme = require(script.Parent.UiTheme)
 
 local VfxArea = {}
 
-VfxArea.CENTER = Vector3.new(1600, 0, 0) -- the world's parts end near x = 700
+VfxArea.CENTER = Vector3.new(5000, 0, 0) -- east of the spiral chain, whose grass ends near x = 4500 (w3)
 VfxArea.FLOOR_SIZE = Vector3.new(360, 1, 140)
 VfxArea.SHOW_RADIUS = 400 -- the client builds the showcase while its avatar is this close to CENTER
 VfxArea.LANE_GAP = 38 -- studs between showcase loops, along x

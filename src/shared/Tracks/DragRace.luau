@@ -1,8 +1,11 @@
 --!nonstrict
--- Short straight sprint: Track 3 continues from Track 2's checkpoint.
+-- Track 3 (w3, owner 2026-10-30): Pirate Harbor Isle: beach start, along the docks, through the harbor town lanes, over the cliff road and round the palms.
+-- About 984 x 3 x 1.25^2 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
+-- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
+-- corners grow with each lap, so this track sits one lap band outside the previous one.
 return {
 	Name = "DragRace",
-	Description = "Short straight drag race with a bold sunset palette, built as the next leg after Hill.",
+	Description = "Pirate Harbor Isle run: docks, harbor town lanes, a cliff road over the sea and palm-lined bends.",
 	Number = 3,
 	Biome = "Docks",
 	Width = 40,
@@ -17,8 +20,30 @@ return {
 		WinPad = Color3.fromRGB(255, 194, 54),
 	},
 	Segments = {
-		-- Keep the sprint visually short while satisfying the shared point-to-point
-		-- minimum and leaving a real finish gap from the start.
-		{ Type = "Straight", Length = 320 },
+		{ Type = "Straight", Length = 240 },
+		{ Type = "Turn", Angle = -16, Radius = 200 }, -- along the wooden docks
+		{ Type = "Turn", Angle = 32, Radius = 200 },
+		{ Type = "Turn", Angle = -16, Radius = 200 },
+		{ Type = "Straight", Length = 213.49 },
+		{ Type = "Turn", Angle = -90, Radius = 170 }, -- corner
+		{ Type = "Straight", Length = 775 },
+		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
+		{ Type = "Straight", Length = 130 },
+		{ Type = "Turn", Angle = 26, Radius = 130 }, -- harbor town lanes
+		{ Type = "Turn", Angle = -52, Radius = 130 },
+		{ Type = "Turn", Angle = 26, Radius = 130 },
+		{ Type = "Straight", Length = 40 },
+		{ Type = "Turn", Angle = -26, Radius = 130 },
+		{ Type = "Turn", Angle = 52, Radius = 130 },
+		{ Type = "Turn", Angle = -26, Radius = 130 },
+		{ Type = "Straight", Length = 172.094 },
+		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
+		{ Type = "Straight", Length = 180 },
+		{ Type = "Slope", Length = 170, Rise = 22 }, -- cliff road with sea views
+		{ Type = "Straight", Length = 60 },
+		{ Type = "Slope", Length = 170, Rise = -22 },
+		{ Type = "Straight", Length = 300 },
+		{ Type = "Turn", Angle = -90, Radius = 215 }, -- corner
+		{ Type = "Straight", Length = 183.542 }, -- finish straight
 	},
 }

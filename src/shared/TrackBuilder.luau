@@ -46,6 +46,7 @@ local WALL_HEIGHT = 5
 local WALL_THICKNESS = 2
 local WALL_GAP = 0.5 -- clear space between the last wall and the checkpoint apron
 local GROUND_TOP = -1
+local MAX_PART = 2048 -- Roblox's largest part size, studs per axis
 local SUPPORT_CLEARANCE = 0.05 -- keep a horizontal support just below the lowest sloped road underside
 
 local COLORS = {
@@ -169,7 +170,11 @@ function TrackBuilder.Layout(spec)
 	local maxGrade = 0
 	local loopCount = 0
 
+	local lastTurnSign = nil -- sign of the previous segment when it was a Turn
 	for _, seg in spec.Segments do
+		if seg.Type ~= "Turn" then
+			lastTurnSign = nil
+		end
 		if seg.Type == "Straight" then
 			local len = seg.Length
 			local dir = fwdVec(heading)
@@ -186,7 +191,17 @@ function TrackBuilder.Layout(spec)
 			local radius = seg.Radius
 			local s = theta >= 0 and 1 or -1
 			local center = pos + leftVec(heading) * radius * s
-			local n = math.max(1, math.ceil(math.abs(seg.Angle) / TURN_STEP_DEG))
+			-- at most TURN_STEP_DEG per piece and WAYPOINT_SPACING of arc per waypoint (wide turns get more steps)
+			local n = math.max(
+				1,
+				math.ceil(math.abs(seg.Angle) / TURN_STEP_DEG),
+				math.ceil(math.abs(theta) * radius / WAYPOINT_SPACING)
+			)
+			-- An S-bend's inflection (this turn reverses the previous one) has no curvature: the polyline does not
+			-- turn there, so the race path cannot tell which way to shift it
+			if lastTurnSign and lastTurnSign ~= s then
+				curvature[#curvature] = 0
+			end
 			local dTheta = theta / n
 			local prev = pos
 			for i = 1, n do
@@ -200,6 +215,7 @@ function TrackBuilder.Layout(spec)
 			pos = prev
 			heading += theta
 			length += math.abs(theta) * radius
+			lastTurnSign = s
 		elseif seg.Type == "Slope" then
 			local run, rise = seg.Length, seg.Rise
 			local dir = fwdVec(heading)
@@ -495,16 +511,24 @@ function TrackBuilder.Build(spec, origin)
 		maxP = Vector3.new(math.max(maxP.X, p.X), 0, math.max(maxP.Z, p.Z))
 	end
 	local pad = width * 3 + 200
-	local size = maxP - minP
-	local ground = newPart(
-		model,
-		"Ground",
-		Vector3.new(size.X + pad * 2, 1, size.Z + pad * 2),
-		origin * CFrame.new((minP + maxP) / 2),
-		colors.Ground,
-		Enum.Material.Grass
-	)
-	ground.Position = Vector3.new(ground.Position.X, GROUND_TOP - 0.5, ground.Position.Z)
+	local size = maxP - minP + Vector3.new(pad * 2, 0, pad * 2)
+	-- A part is at most MAX_PART studs wide, so a long track's grass is a grid of equal tiles, all named Ground
+	local nx, nz = math.ceil(size.X / MAX_PART), math.ceil(size.Z / MAX_PART)
+	local tileSize = Vector3.new(size.X / nx, 1, size.Z / nz)
+	local centre = origin * CFrame.new((minP + maxP) / 2)
+	for i = 0, nx - 1 do
+		for j = 0, nz - 1 do
+			local ground = newPart(
+				model,
+				"Ground",
+				tileSize,
+				centre * CFrame.new(tileSize.X * (i - (nx - 1) / 2), 0, tileSize.Z * (j - (nz - 1) / 2)),
+				colors.Ground,
+				Enum.Material.Grass
+			)
+			ground.Position = Vector3.new(ground.Position.X, GROUND_TOP - 0.5, ground.Position.Z)
+		end
+	end
 	BiomeDressing.Build(model, layout, spec, origin)
 
 	-- Invisible spawn marker: facing along the first straight, a little above the road

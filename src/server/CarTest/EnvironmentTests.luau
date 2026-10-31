@@ -239,6 +239,7 @@ local function buildChain(specs)
 		local model, layout = TrackBuilder.Build(spec, origin)
 		table.insert(tracks, { Spec = spec, Model = model, Layout = layout, Origin = origin })
 		origin = TrackBuilder.EndCFrame(layout, origin)
+		task.wait() -- yield only: each long track is one big unyielding Build
 	end
 	return tracks
 end
@@ -265,6 +266,9 @@ local function sameSignature(a, b)
 	end
 	local worst = 0
 	for i = 1, #a do
+		if i % 2000 == 0 then
+			task.wait() -- yield only
+		end
 		if a[i].Name ~= b[i].Name then
 			return false, -1
 		end

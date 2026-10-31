@@ -26,6 +26,9 @@ gets an anime-inspired biome. Owner 2026-10-30: tracks very long (base factor F)
 - Longer tracks wind (switchbacks, spirals, S-bends) to fit; the chain may spread past the IVS baseplate, so the safety
   baseplate grows to cover every track plus a margin.
 
+- Owner 2026-10-30: track ids stay the IVS ids (Oval ... Space) so saves stay valid; players see only the biome
+  display names. Track tests drive every track at normal and max stat speed in the full harness (~21 min).
+
 ## Biomes
 
 Research first (owner 2026-10-30): before building a track or its biome, research public information on the anime

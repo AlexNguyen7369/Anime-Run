@@ -44,6 +44,7 @@ for _, spec in chain do
 	model.Parent = folder
 	table.insert(entries, { Layout = layout, Origin = origin, Model = model, Number = spec.Number })
 	origin = TrackBuilder.EndCFrame(layout, origin)
+	task.wait() -- ~98k studs of road: one track per frame keeps Studio under its unyielding-script limit
 end
 
 -- The plaza hub beside Track 1's start: players join, respawn and stop here, and walk through its torii to race

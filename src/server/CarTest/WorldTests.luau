@@ -20,6 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local CollectionService = game:GetService("CollectionService")
 local H = require(script.Parent.AcceptanceSupport)
+local TrackChain = require(script.Parent.TrackChainTests)
 local Server = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
@@ -106,25 +107,11 @@ function Tests.make(helpers)
 	local partPoly, separation = helpers.partPoly, helpers.polySeparation
 
 	-- Worst separation between any part of `a` and any part of `b` (parts lists); count of overlaps.
+	-- Broad-phased and yielding (TrackChainTests.footprintOverlaps): the count is exact; the worst separation is
+	-- exact whenever some pair lies within BROAD_MARGIN studs (math.huge, shown as -1, when none does).
 	local function overlaps(a, b)
-		local hits, worst, worstName = 0, math.huge, ""
-		local bp = {}
-		for _, p in b do
-			table.insert(bp, { Part = p, Poly = partPoly(p) })
-		end
-		for _, p in a do
-			local poly = partPoly(p)
-			for _, q in bp do
-				local sep = separation(poly, q.Poly)
-				if sep < worst then
-					worst, worstName = sep, p:GetFullName() .. "/" .. q.Part:GetFullName()
-				end
-				if sep < -OVERLAP_TOL then
-					hits += 1
-				end
-			end
-		end
-		return hits, worst, worstName
+		local hits, worst, pa, pb = TrackChain.footprintOverlaps(a, b, partPoly, separation, OVERLAP_TOL)
+		return hits, worst, pa and (pa:GetFullName() .. "/" .. pb:GetFullName()) or ""
 	end
 
 	local function roadParts()
@@ -288,7 +275,10 @@ function Tests.make(helpers)
 		-- convex tiles a baseplate is made of, upgrade if tiles leave holes between sample points
 		local uncovered, checked, firstMiss = 0, 0, nil
 		for _, root in { area, plotFolder, Workspace:FindFirstChild("Track") } do
-			for _, p in parts(root) do
+			for i, p in parts(root) do
+				if i % 500 == 0 then
+					task.wait() -- yield only: tens of thousands of parts x 5 points x every tile
+				end
 				local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
 				for _, c in corners(p) do
 					lo = Vector2.new(math.min(lo.X, c.X), math.min(lo.Y, c.Z))
