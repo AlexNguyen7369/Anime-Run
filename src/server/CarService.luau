@@ -355,7 +355,7 @@ function CarService.SetAutoRace(player, enabled, duel)
 	if enabled then
 		spawnCar(player, character, gen, duel)
 	else
-		standUp(player, gen) -- removing the car destroys its run; NPC wins were already paid at each finish
+		standUp(player, gen) -- removing the car destroys its run; the run cashes its bank out
 	end
 	return CarService.IsAutoRacing(player)
 end

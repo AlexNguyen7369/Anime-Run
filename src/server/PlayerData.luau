@@ -30,7 +30,7 @@ local RaceTimeService = require(script.Parent.RaceTimeService)
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 13 -- 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local MAX_ADD = 1e18 * RaceConfig.STAT_SCALE -- most a single AddSpeed call may add (rebirth x100b x aura x trail fits; owner 2026-10-27); scaled per design doc 4.11
@@ -328,6 +328,7 @@ local function save(player, userId, release)
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
 		Showcase = gacha.Showcase,
+		Team = gacha.Team,
 		Equipped = gacha.Equipped,
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
