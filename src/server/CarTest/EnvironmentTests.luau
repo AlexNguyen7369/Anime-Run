@@ -34,7 +34,7 @@ local BIOME_NAMES = {
 	"Wisteria Night Mountain",
 	"Neon Cursed City",
 	"Hero Academy City",
-	"Sakura Shrine Path",
+	"Blossom Shrine Path",
 	"Sky Islands",
 	"Spirit Realm Desert",
 	"Green Alien Planet",
