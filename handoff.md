@@ -93,3 +93,12 @@
   restored; loss reset refills stamina). Rojo 34873 now serves the c1 worktree. Open: w4 horizon built at offset 55
   (far edge ~100); IVS textures still uploaded on Roblox (owner may delete); Track 10 ~8.8k dressing parts, client perf
   unmeasured; ShowcaseTests SPEC.VERSION 12 -> 13 needs the test-writer when c1 bumps PlayerData.
+
+- 2026-10-30 (orchestrator, biomes priority 1): owner rulings: free Creator Store assets of every kind allowed (Lane
+  D: free only, no anime IP, scripts stripped, id + creator in ledger; design doc 5 + BIOME_ENVIRONMENT_SPEC 4.1/4.4/6
+  amended); b0 approved and merged (19ad0bf, pushed); b2 built one track at a time with a 3-view screenshot set shown
+  to the owner after each track; c1 PAUSED (committed on orch/core/c1, unverified). b1 started in
+  ../AnimeRun-orch/b1 (orch/biomes/b1): test-writer (src/server/CarTest only) + implementer (rest of src) running in
+  parallel, uncommitted. Rojo 34873 serves the b1 worktree. Studio id fc533734-a2a5-4b22-baf0-f95aad5edbb6.
+  Next: verify b1 (stylua, selene, scenarios terrain_built, zone_switch, server_lighting_unchanged, assets_ip),
+  audit, land; then b2 Track 1 (Speedway, Leafwind Village) -> screenshots to owner.
