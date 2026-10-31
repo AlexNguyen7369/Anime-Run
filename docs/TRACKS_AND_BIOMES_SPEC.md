@@ -46,10 +46,10 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 | 2 | Tournament Wasteland | Dragon Bawl Z | rocky plateaus, craters, a stone tournament ring, floating boulders |
 | 3 | Pirate Harbor Isle | One Peace | sandy island, docks, a moored caravel with a plain sail, palm trees, open sea horizon |
 | 4 | Wisteria Night Mountain | Demon Slicer | night forest, purple wisteria trees, stone lanterns, a Taisho-style wooden town, full moon |
-| 5 | Neon Cursed City | Jujitsu Kaisan | night city crossing, neon signs with made-up text, a temple school on a hill, dark purple fog |
+| 5 | Burning Cursed City | Jujitsu Kaisan | night city on fire (owner 2026-10-31): smoke-black sky lit orange, embers, craters, a smouldering meteor, lava-scorched streets, burning high-rises |
 | 6 | Hero Academy City | My Hero Akademia | bright modern city, a tall glass academy tower, training grounds, giant robot props |
-| 7 | Blossom Shrine Path | classic anime | cherry blossom avenue, torii gates, stone stairs, falling petals |
-| 8 | Sky Islands | classic anime | floating grassy islands, waterfalls into clouds, vine bridges, old stone ruins |
+| 7 | Shibuyo Underground | Jujitsu Kaisan | the whole route in an enclosed subway tunnel (owner 2026-10-31): tiled walls, ceiling light strips, rails, opening into a few station platforms and concourses |
+| 8 | Skypeia | One Peace | sky island on a white cloud sea (owner 2026-10-31): a cloud town, a cloud river, a giant jungle, a giant beanstalk, sunken golden ruins, a giant golden bell |
 | 9 | Spirit Realm Desert | Bleach-like | white sand, dead white trees, a giant dome palace on the horizon, crescent moon in a black sky |
 | 10 | Green Alien Planet | Dragon Bawl Z | green sky, blue-green grass, round domed houses, tall thin trees with ball tops |
 
@@ -57,8 +57,11 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
   emblems, kanji from the shows or real place names on props. All meshes and textures are made in-house. Signs use
   made-up text.
 - Each biome keeps the IVS budgets (prop budget, scale rules, EditableMesh near the camera, part fallback elsewhere).
-- Night biomes (4, 5, 9) tint only their own props and ground; they never change global `Lighting` (IVS rule).
-- Owner 2026-10-30: Track 7 is named "Blossom Shrine Path" ("Sakura" is a blocked real name).
+- Night biomes (4, 5, 9) and the underground Track 7 tint only their own props and ground; they never change global
+  `Lighting` (IVS rule).
+- Owner 2026-10-30: Track 7 is named "Blossom Shrine Path" ("Sakura" is a blocked real name). Replaced 2026-10-31:
+  owner redesign of Tracks 5, 7 and 8 (design doc change log); every track is based on an anime, none original.
+  Track 8's NPC rival is Enelu [Enel] (`NPC_RIVAL_SPEC.md`).
 - Owner 2026-10-30: Track 1 builds no biome start gate; the plaza torii StartGate is its gate (its first straight
   runs beside the plaza floor).
 - Owner 2026-10-30 (replaces the fixed 1200-part budget for these tracks): the dressing part budget grows with track
@@ -141,18 +144,42 @@ village symbols, flags, school emblems, show kanji or real place names; signs us
 - IP flag: no checkered haori patterns or show kanji on signs.
 - Night biome: tint only this biome's props, ground and a local moon prop. Never change global Lighting.
 
-### Track 5: Neon Cursed City (Jujutsu Kaisen, Shibuya at night and the school)
-- https://jujutsu-kaisen.fandom.com/wiki/Shibuya_Incident_Arc (night Shibuya streets, station)
-- https://en.wikipedia.org/wiki/Shibuya_Crossing (scramble crossing layout)
-- https://en.wikipedia.org/wiki/Jujutsu_Kaisen (series context, temple-style school on a hill)
-- Route: down a neon avenue, across a big scramble crossing, under a rail overpass, then up a hill to a temple school.
-- Architecture: tall concrete blocks with signboards, glass storefronts, a wooden temple complex with curved roofs.
-- Palette: #120F1F night ground, #3A1F5C purple fog, #FF2E88 neon pink, #2EE6FF neon cyan, #F2D64B sign yellow,
-  #6B6B78 concrete.
-- Props: neon signs with made-up text, zebra crossings, traffic lights, big video screens (abstract shapes),
-  overpass, vending machines, temple gate and stairs.
-- IP flag: no real store or station names, no real Shibuya landmarks (e.g. no dog statue copy, no real building logos).
-- Night biome: tint only this biome's props and ground; fog via local parts or particles. Never change global Lighting.
+### Track 5: Burning Cursed City (Jujutsu Kaisen, Shibuya Incident, the Jogo vs Sukuna fire fight)
+Owner redesign 2026-10-31. Research pass 2026-10-31 (fandom pages checked via the wiki API; sportskeeda found by
+search but blocks scripted fetches).
+- https://jujutsu-kaisen.fandom.com/wiki/Sukuna_vs._Jogo (the fight starts inside the station and spreads across the
+  city at night: a building's upper floors burst into flames as one fighter crashes out of them; lava thrown at street
+  level; a slam through several storeys of a building, moonlight through the hole; every opening of that building
+  explodes with fire; a giant flaming meteor flattens the area and lies smouldering; a closing exchange of fire)
+- https://jujutsu-kaisen.fandom.com/wiki/Shibuya_Incident_Arc (Halloween night, the city under a dark barrier,
+  ruined streets around the station)
+- https://jujutsu-kaisen.fandom.com/wiki/Jogo (the fire curse: flames from any surface, small volcanoes, lava;
+  reference for effects only, never his likeness)
+- https://myanimethoughts.com/sukuna-vs-jogo-the-firepower-battle ("a hellscape of molten rock": flames, small
+  volcanoes, a meteor that can flatten city blocks)
+- https://www.sportskeeda.com/anime/jujutsu-kaisen-season-2-episode-16-megumi-witnesses-toji-s-end-sukuna-destroys-jogo
+  (anime season 2 episode 16, where the fight is animated)
+- https://en.wikipedia.org/wiki/Jujutsu_Kaisen (series context)
+- Route (7,207 studs): start on a dark avenue of high-rises with fire in the windows; past a tower whose top floors are
+  blown open and burning; down a lava-scorched boulevard with glowing cracks and burning cars; into a cratered
+  crossroads where the meteor lies smouldering (mid-track); under a collapsed rail viaduct; past a tower sliced open
+  and fallen; finish across a flattened rubble field ringed by fire.
+- Architecture: tall concrete office and retail blocks with shattered glass fronts, exposed steel frames, burnt blank
+  signboards, an elevated rail viaduct, bent street lamps, cracked asphalt.
+- Palette: #0E0B12 char ground, #2A1E1E smoke, #FF6A1A fire orange, #FFC23D flame yellow, #C2261B ember red,
+  #4A4448 burnt concrete, #DCE2F0 moon (placeholders).
+- Props: burning cars (generic), fire columns, lava cracks and pools, the smouldering meteor (a plain boulder),
+  craters with scorched rims, rubble piles, steel girders, toppled traffic lights, bent lamps, blank burnt billboards,
+  smoke columns, rising embers.
+- IP flag: no Sukuna or Jogo likeness (no volcano-headed figure, no four-armed or face-marked figure, no tattoo
+  patterns on props); no copy of the domain shrine (no shrine of skulls, no fanged-mouth gate); no cursed-technique
+  symbol, hand sign or bow-shaped flame prop. No real store or station names or signs (no Tokyo Metro, no
+  Fukutoshin line, no Shibuya 109 cylinder tower, no dog statue, no scramble-crossing copy, no real logos). Signs are
+  blank, burnt or made-up text.
+- Night biome: tint only this biome's props and ground; fire light from local parts and particles. Never change
+  global Lighting.
+- Sky/ground: night; smoke-black sky lit orange from below, the moon showing through a gap; asphalt with glowing
+  cracks.
 
 ### Track 6: Hero Academy City (My Hero Academia, U.A. High and city)
 - https://myheroacademia.fandom.com/wiki/U.A._High_School (tall glass building, campus layout)
@@ -168,28 +195,74 @@ village symbols, flags, school emblems, show kanji or real place names; signs us
   No school emblem on the gate. Robots stay generic boxy designs.
 - Sky/ground: bright day, asphalt road, grass verges.
 
-### Track 7: Blossom Shrine Path (classic anime)
-- https://en.wikipedia.org/wiki/Fushimi_Inari-taisha (torii tunnels on a hillside)
-- https://en.wikipedia.org/wiki/Torii (gate structure)
-- https://en.wikipedia.org/wiki/Cherry_blossom (tree look)
-- https://en.wikipedia.org/wiki/T%C5%8Dr%C5%8D (stone lanterns)
-- Route: cherry blossom avenue, through a long tunnel of red gates, up switchback stone stairs to a hilltop shrine.
-- Architecture: vermilion gate posts, stone steps, wooden shrine halls with copper-green roofs.
-- Palette: #F7C6D9 blossom, #E14B3B gate vermilion, #9E9E9E stone, #4F8F6F roof green, #6B4A2E wood, #CDE7F7 sky.
-- Props: rows of gates, stone lanterns, cherry trees, falling petal particles, stone foxes (generic), wash basin.
-- IP flag: none; generic Japanese architecture. Gate plaques use made-up text, not real shrine names.
-- Sky/ground: soft spring blue, pale stone path.
+### Track 7: Shibuyo Underground (Jujutsu Kaisen, Shibuya Incident subway)
+Owner redesign 2026-10-31; replaces the original Blossom Shrine Path. Research pass 2026-10-31.
+- https://jujutsu-kaisen.fandom.com/wiki/Shibuya/Tokyo_Metro (stations have five basement floors, B1F to B5F; the
+  subway platforms sit on B5F; four neighbouring stations link to the main station by the B5F line; one sorcerer walks
+  the tracks between two stations; teams come down from street level floor by floor; a shopping atrium sits four
+  floors above the B5F platform)
+- https://jujutsu-kaisen.fandom.com/wiki/Shibuya_Incident_Arc (Halloween night crowds trapped underground, the B5F
+  platform fight, the station as the arc's main setting)
+- https://www.sportskeeda.com/anime/jujutsu-kaisen-season-2-episode-8-yuji-enters-shibuya-gojo-s-first-battle-begins
+  (anime: a sorcerer drops down to the B5F platform, packed with people)
+- https://en.wikipedia.org/wiki/Shibuya_Station (real structure: deep B5F through-line platforms; reference for depth
+  and scale only)
+- https://www.pakutaso.com/en/20240528143b5f.html (photos of the real B5F platform: grey columns, a row of fluorescent
+  ceiling lights, dim even light, yellow tactile strip at the edge; look reference only)
+- https://en.wikipedia.org/wiki/Platform_screen_doors (generic platform door shape)
+- Route (11,261 studs): the whole route runs inside a tunnel. Start at a stair entrance from the street, down into a
+  twin-track tunnel; a first side platform; a large multi-level concourse with ticket gates, escalators and an open
+  atrium void; long tunnel stretches with service lights, crossovers and a stalled train; a second platform; the deep
+  main platform hall (the B5F-style island platform with rows of columns); finish at a last platform with stairs up.
+- Architecture: box-section cut-and-cover tunnels and a few round bored stretches; cream wall tiles with one colour
+  stripe band; concrete ceilings with fluorescent light strips; rows of steel columns on platforms; half-height
+  platform screen doors; yellow tactile strips; rails on sleepers with overhead wire gantries.
+- Palette: #E9E4D6 tile cream, #8C8A84 concrete, #2B2E33 track bed, #F2D23A tactile yellow, #3FA7A0 stripe teal,
+  #CFE8FF fluorescent white, #B5281F emergency red (placeholders).
+- Props: platform screen doors, columns, benches, blank vending machines, ticket gates, escalators and stairs, wall
+  maps with abstract shapes, made-up signs, stalled generic train cars, overhead wire gantries, emergency lights,
+  fallen ceiling panels, broken tiles, scattered rubble.
+- IP flag: no real station, line or company names, letters, numbers or logos (no Tokyo Metro roundel, no Fukutoshin
+  line name, letter or brown line colour, no station numbering, no real department store names); no copy of the real
+  oval station atrium; no sealing-cube artifact; no character likenesses (no figures on the platforms). Signs use
+  made-up text.
+- Underground biome: no sky, lit by its own ceiling lights (BIOME_ENVIRONMENT_SPEC 3.5, proposed framework task).
+  Never change global Lighting.
+- Sky/ground: none; enclosed. Ceiling overhead, tiled walls, a concrete floor beside the track bed.
 
-### Track 8: Sky Islands (classic anime)
-- https://en.wikipedia.org/wiki/Castle_in_the_Sky (floating ruins look)
-- https://en.wikipedia.org/wiki/Zhangjiajie_National_Forest_Park (tall stone pillars)
-- https://en.wikipedia.org/wiki/Floating_island (concept)
-- Route: hop across floating islands on vine and plank bridges, under waterfalls, past stone ruins.
-- Architecture: grassy islands with rocky undersides, mossy stone ruins, rope bridges.
-- Palette: #7CC36A grass, #8C7A66 rock, #BFB7A8 ruin stone, #FFFFFF cloud, #6FC3F0 sky, #3F8FD2 waterfall.
-- Props: floating islands, waterfalls into clouds, vine bridges, broken columns, hanging roots, large trees.
-- IP flag: do not copy the film's castle or robot; ruins stay generic columns and arches.
-- Sky/ground: bright sky, cloud sea below.
+### Track 8: Skypeia (One Piece, Skypiea)
+Owner redesign 2026-10-31; NPC rival Enelu [Enel]. Research pass 2026-10-31 (fandom pages checked via the wiki API).
+- https://onepiece.fandom.com/wiki/Skypiea (a sky nation on a huge dense cloud mass; Angel Island, the residential
+  district made of island clouds, cut by a market street of shops; a beach; a gate into the sky nation)
+- https://onepiece.fandom.com/wiki/Upper_Yard (the only solid-land island: giant forest, giant trees and animals; a
+  gate of four ordeals under an idol head; the beanstalk at its centre)
+- https://onepiece.fandom.com/wiki/Giant_Jack (a giant beanstalk towering over the whole nation, through the ruins and
+  up to island clouds near its top; later cut down to form a bridge)
+- https://onepiece.fandom.com/wiki/Shandora (the ancient golden city, ruins under ground level at the beanstalk's
+  base; buildings once covered in gold, shaped like Maya architecture)
+- https://onepiece.fandom.com/wiki/Golden_Bell (an enormous golden bell in a belfry on a small island cloud near the
+  beanstalk's top; overgrown with vines)
+- https://onepiece.fandom.com/wiki/Sea_Clouds (the white cloud seas, two layers, no sea floor) and
+  https://onepiece.fandom.com/wiki/Island_Clouds (solid clouds you can walk on)
+- https://onepiece.fandom.com/wiki/Milky_Road (artificial cloud rivers, one links the cloud town to the forest island)
+- https://en.wikipedia.org/wiki/Maya_architecture (generic stepped-temple shapes for the ruins)
+- https://en.wikipedia.org/wiki/One_Piece (series context)
+- Route (14,076 studs): start on a white cloud beach by the cloud sea; through a cloud town of round white houses and a
+  market street; along a cloud river; through a stone gate into the giant jungle (huge trees, roots, vines, a swamp);
+  down to the beanstalk's root among sunken golden ruins; climb past the beanstalk; finish on high island clouds with
+  the giant golden bell in its belfry.
+- Architecture: round, soft white cloud houses with domes and pastel trims; giant jungle trees with buttress roots;
+  stepped Maya-like stone temples stripped of most gold, a few gold-clad walls left, vine-covered; a broken stone
+  belfry.
+- Palette: #FFFFFF cloud, #E6EEF8 cloud shade, #6EC6FF sky, #2F7D3B jungle green, #6B4A2E giant bark, #9DBF5A
+  beanstalk green, #E3B341 gold, #B9A88A ruin stone (placeholders).
+- Props: round cloud houses, cloud puffs, cloud-river ribbons, sky palms, giant jungle trees, hanging vines, giant ferns,
+  beanstalk stems, stepped ruins, broken gold pillars, the giant golden bell.
+- IP flag: no Straw Hat or Jolly Roger symbol; no God's Shrine nameplate or gate sign text ("Heaven's Gate"); no Enel
+  likeness in scenery (no drum ring); no copy of the golden ark ship; no ancient-script stone blocks; no copy of the
+  ordeal gate's idol head; the bell is a plain bell without inscription.
+- Sky/ground: bright high noon, deep blue above, the cloud sea below and to the horizon; white cloud ground in the town,
+  jungle ground on the forest island.
 
 ### Track 9: Spirit Realm Desert (Bleach, Hueco Mundo and Las Noches)
 - https://bleach.fandom.com/wiki/Hueco_Mundo (white sand desert, dead trees, black sky, crescent moon)
