@@ -107,3 +107,11 @@
   optional `Craters` terrain field (spec 3.3). Running: Track 1 builder in ../AnimeRun-orch/t1 (orch/biomes/t1,
   holds Studio; Rojo 34873 serves t1); Craters framework in ../AnimeRun-orch/craters (no Studio). Next: IP review
   of Track 1 screenshots, land t1, show owner 3 screenshots, then Track 2 (needs craters landed).
+- 2026-10-30 Track 1 (t1): Speedway data done (11 Lane A meshes + textures, Lane D skybox + 3 sounds, leaf particle);
+  terrain_built, assets_ip, server_lighting_unchanged pass=3 fail=0 after a framework fix (runtime cannot write
+  LevelOfDetail; pcalled, b41053d on orch/biomes/craters, merged into t1). Play screenshot recipe: on Client set
+  settings().Rendering.QualityLevel = Level21 (Automatic draws only a few hundred studs; atmosphere paints the void
+  blue), anchor the character at the shot (streaming), RenderStep "Shot" forcing Scriptable camera + ScreenGuis off,
+  screen_capture with no camera args. Rojo: after a rojo restart the owner must click Connect; sync can land after
+  Play starts - check Source in Edit before Play. Framework fixes running on orch/biomes/craters: Sections, hero At
+  pin, mesh = 1 budget part, road z-fight (terrain top == road top), SnapToTerrain buries props (lowest of 5).
