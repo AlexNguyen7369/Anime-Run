@@ -32,7 +32,7 @@ local BIOME_NAMES = {
 	"Tournament Wasteland",
 	"Pirate Harbor Isle",
 	"Wisteria Night Mountain",
-	"Neon Cursed City",
+	"Burning Cursed City",
 	"Hero Academy City",
 	"Blossom Shrine Path",
 	"Sky Islands",
