@@ -202,3 +202,6 @@
   animehunch Unlimited Void explainer. Fandom wiki returns HTTP 402 (not bypassed) - figure looks unconfirmed.
   Plan: scene in the deep main platform hall bay 0.82-0.90 (At ~0.84, Left), concourse 0.37 fallback; stylised blood
   only; every prompt through realNameIn.
+- t7r WIP committed 14abf92 (12 mesh ids in Desert.luau, dust 77443196483447, sky faces Bk 126814177699454 Dn
+  90423288718397 Ft 91385232590200 Lf 119320290687932 Rt 98579734251070 Up 89593505205012). All work branches pushed
+  to origin (orch/biomes/fw5, fw6, t7r, t9, t10, t7 superseded) for safety; only feature/alex/anime-world is integrated.
