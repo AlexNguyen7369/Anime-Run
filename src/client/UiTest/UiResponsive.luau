@@ -815,13 +815,13 @@ local generated = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.55, 0.52),
-				Size = UDim2.fromOffset(600, 362),
+				Size = UDim2.fromOffset(600, 440), -- +1 row (78) for TrackCameraRow
 				Visible = true,
 			},
 			Phone = {
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.fromScale(0.62, 0.56),
-				Size = UDim2.fromOffset(500, 280),
+				Size = UDim2.fromOffset(500, 348), -- +1 row (68) for TrackCameraRow
 				Visible = true,
 			},
 		},

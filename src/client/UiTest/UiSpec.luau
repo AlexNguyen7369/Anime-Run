@@ -223,6 +223,13 @@ UiSpec.Guis = {
 				Effect = "attr:TopDownView",
 				Label = "TOP-DOWN VIEW [TopDownView]",
 			},
+			{
+				-- LocalPlayer attribute TrackCamera (docs/CAMERA_SPEC.md), session-local; unset = ON
+				Path = "Panel/Face/TrackCameraRow/Face/TrackCameraToggle/Face",
+				Does = "local",
+				Effect = "attr:TrackCamera",
+				Label = "TRACK CAMERA [TrackCamera]",
+			},
 		},
 	},
 	-- REBIRTH modal, rebuilt (owner 2026-10-15, docs/REBIRTH_SPEC.md "Panel"): every node comes from
