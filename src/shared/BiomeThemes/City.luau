@@ -164,23 +164,41 @@ local glassTower =
 local office = padded(lowrise("Office", 30, 38, 26, { Glass = GLASS6, Neon = RED6, Body = hex("C8D0DA") }))
 local shops = padded(lowrise("Shops", 30, 16, 24, { Glass = GLASS6, Neon = RED6, Body = hex("DDE2E8") }))
 
--- Mesh props (Lane A). Phase 1 sizes are the intended ones; step A resets each to its mesh's own proportions.
-local streetLampMesh = meshed(streetLamp, "StreetLampMesh", v(4, 16.5, 3))
-local crashBarrierMesh = meshed(crashBarrier, "CrashBarrierMesh", v(10, 3, 1.5))
-local billboardMesh = meshed(billboard, "BillboardMesh", v(16, 16, 1.5))
-local parkTreeMesh = meshed(parkTree, "ParkTreeMesh", parkTree.Size)
-local robotMesh = meshed(trainingRobot(), "TrainingRobotMesh", v(20, 25, 8))
-local campusGateMesh = meshed(campusGate, "CampusGateMesh", v(30, 12, 6))
-local glassTowerMesh = meshed(glassTower, "GlassTowerMesh", glassTower.Size)
-local officeMesh = meshed(office, "OfficeBlockMesh", office.Size)
-local shopsMesh = meshed(shops, "ShopFrontMesh", shops.Size)
+-- Mesh props (Lane A); sizes keep each mesh's own proportions unless a comment says it is stretched
+local streetLampMesh = meshed(streetLamp, "StreetLampMesh", v(5.1, 16.5, 5.1))
+local crashBarrierMesh = meshed(crashBarrier, "CrashBarrierMesh", v(10, 3, 2)) -- one panel, stretched x1.8 along the road
+local billboardMesh = meshed(billboard, "BillboardMesh", v(12.6, 16, 4.3))
+local parkTreeMesh = meshed(parkTree, "ParkTreeMesh", v(12.8, 14, 12.5))
+local robotMesh = meshed(trainingRobot(), "TrainingRobotMesh", v(15.5, 25, 6.9))
+local campusGateMesh = meshed(campusGate, "CampusGateMesh", v(17.9, 12, 3.7))
+local glassTowerMesh = meshed(glassTower, "GlassTowerMesh", v(16, 40, 16)) -- mesh 16 x 27 x 16, stretched x1.5 up
+local officeMesh = meshed(office, "OfficeBlockMesh", v(26.6, 34.1, 26.4))
+local shopsMesh = meshed(shops, "ShopFrontMesh", v(28.7, 25.6, 19.5))
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row.
--- Phase 1 skeleton: no Id yet (an id-less row is never used, the parts fallback builds). Reviewed is left for the
--- rules auditor (spec 4.1 step 3); close-ups go in assets/biomes/City/review/.
--- Notes give the generate_mesh call: size (studs) and segmentation; Tris is its maxTriangles.
-local function meshRow(texture, prompt, tris, notes)
-	return { Kind = "Mesh", Lane = "A", Prompt = prompt, Texture = texture, Tris = tris, Notes = notes }
+-- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups are in assets/biomes/City/review/.
+-- Notes give the generate_mesh call: size (studs) and segmentation; Tris is its maxTriangles. Generated meshes come
+-- out at most about 16 studs on their short sides, so Notes also give the mesh's own size.
+local function textureRow(id, mesh)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = "2026-10-31 rules-auditor",
+	}
+end
+local function meshRow(id, texture, prompt, tris, notes)
+	return {
+		Kind = "Mesh",
+		Id = id,
+		Lane = "A",
+		Prompt = prompt,
+		Texture = texture,
+		Tris = tris,
+		Reviewed = "2026-10-31 rules-auditor",
+		Notes = notes,
+	}
 end
 
 return {
@@ -195,19 +213,25 @@ return {
 		Offset = 10,
 		Props = { streetLampMesh, crashBarrierMesh, robotMesh, parkTreeMesh },
 	},
-	-- Pinned heroes (At, spec 4.3) snap to the nearest corner exit or 200+ stud straight. Fractions of the 8720-stud
-	-- track: 0.27 = the 235-stud straight after the first toppled robots (0.262-0.289), 0.5 = the 244-stud straight
-	-- out of the second training ground (0.491-0.519), 0.72 = the 616-stud straight past the third campus gates
-	-- (0.686-0.757).
+	-- Pinned heroes (At, spec 4.3) snap to the nearest corner exit or 200+ stud straight; on a straight odd p stands on
+	-- the outer side, even p on the inner side. Fractions of the 8720-stud track: 0.27 = the 235-stud straight after
+	-- the first toppled robots (0.262-0.289), 0.5 = the 244-stud straight out of the second training ground
+	-- (0.491-0.519), 0.72 = the 616-stud straight past the third campus gates (0.686-0.757).
 	Landmarks = {
 		-- placeholder: 28. Heroes are <= 16.5 deep (x1.75 = 29), so they span about 48-77 studs from the centre line,
 		-- outside the 44 corridor and inside this zone's half of the gap (midline about 77).
 		Offset = 28,
 		Every = 60,
 		Props = {
-			meshed(toppledRobot(), "ToppledRobotMesh", v(34, 34.3, 16), { Hero = true, At = 0.27 }),
-			meshed(trainingBlocks(), "TrainingBlocksMesh", v(34, 61.2, 16), { Hero = true, At = 0.5 }),
-			meshed(academyTower(), "AcademyTowerMesh", v(24.5, 114.3, 16.8), { Hero = true, At = 0.72 }),
+			-- p 1, outer: the 244-stud straight out of the second training ground. Mesh 16.4 x 20.5 x 16, stretched
+			-- x1.5 up (x1.75: 30 x 56 x 29)
+			meshed(trainingBlocks(), "TrainingBlocksMesh", v(16.8, 32, 16.4), { Hero = true, At = 0.5 }),
+			-- p 2, inner (smallest hero, Track 5's inner strip was only 41 studs wide): the straight after the first
+			-- toppled robots (x1.75: 31.5 x 25 x 31)
+			meshed(toppledRobot(), "ToppledRobotMesh", v(18, 14.15, 17.7), { Hero = true, At = 0.27 }),
+			-- p 3, outer: the 616-stud straight past the third campus gates. Mesh 16.6 x 43.8 x 16.5, stretched x2.6 up so
+			-- it stands 200 tall (x1.75: 29 x 200 x 29)
+			meshed(academyTower(), "AcademyTowerMesh", v(16.6, 114.3, 16.5), { Hero = true, At = 0.72 }),
 			glassTowerMesh,
 			campusGateMesh,
 		},
@@ -257,17 +281,16 @@ return {
 		},
 	},
 	-- No Particles (spec 7, Track 6: none, which keeps the city crisp), so the landmarks carry no emitter either.
-	-- Spec 3.3 / 7: Blocks (flat) with Pavement plazas, Concrete on the three mock-city training grounds and Grass park
-	-- verges along the campus-gate stretches. Embank off. Every number is a placeholder.
+	-- Spec 3.3 / 7: Blocks (flat) with Pavement plazas and Concrete on the three mock-city training grounds. Embank off.
+	-- Every number is a placeholder. orchestrator default 2026-10-31: no Grass sections. A section's Material also
+	-- covers the corridor under the road, and terrain grass blades grew through the road there (seen in Play); the park
+	-- green is the Lawn patches and the park trees instead.
 	Terrain = {
 		Ridge = { Shape = "Blocks", Height = 0 },
 		Sections = {
 			{ From = 0.15, To = 0.22, Side = "Both", Material = M.Concrete }, -- training ground 1 (0.152-0.214)
 			{ From = 0.425, To = 0.495, Side = "Both", Material = M.Concrete }, -- training ground 2 (0.429-0.491)
 			{ From = 0.84, To = 0.91, Side = "Both", Material = M.Concrete }, -- training ground 3 (0.843-0.905)
-			{ From = 0.015, To = 0.06, Side = "Both", Material = M.Grass }, -- campus gates 1 (0.021-0.053)
-			{ From = 0.36, To = 0.405, Side = "Both", Material = M.Grass }, -- campus gates 2 (0.367-0.399)
-			{ From = 0.65, To = 0.76, Side = "Both", Material = M.Grass }, -- campus gates 3 and the tower park
 		},
 		Materials = { Corridor = M.Pavement, Ridge = M.Pavement, Cliff = M.Concrete, Bed = M.Concrete },
 		Embank = false,
@@ -291,80 +314,105 @@ return {
 	-- on economy.roblox.com asset details 2026-10-31.
 	Assets = {
 		AcademyTowerMesh = meshRow(
+			"rbxassetid://115906473849228",
 			"AcademyTowerTex",
-			"single tall plain modern glass skyscraper, one simple rectangular slab shape, blue reflective glass curtain walls with thin light grey horizontal floor bands and vertical mullions, flat roof with a small rooftop box and a thin mast, on a low white concrete podium with a glass lobby, no logo, no emblem, no text, clean stylized cartoon style",
+			"extremely tall and slender plain modern glass skyscraper, height about seven times its width, one simple thin rectangular slab shape, blue reflective glass curtain walls with thin light grey horizontal floor bands, flat roof with a small rooftop box and a thin mast, on a low white concrete podium with a glass lobby, no logo, no emblem, no text, clean stylized cartoon style",
 			15000,
-			"hero 1: generate_mesh size 24 x 114 x 16.5, segmentation none; one slab only (never an H shape); lobby faces -Z"
+			"hero 1: generate_mesh size 24 x 114 x 16.5, segmentation none; one slab only (never an H shape); second try (the first came out squat); mesh 16.6 x 43.8 x 16.5"
 		),
 		ToppledRobotMesh = meshRow(
+			"rbxassetid://107829558622518",
 			"ToppledRobotTex",
 			"giant boxy generic robot lying fallen on its back on the ground, simple blocky grey metal body, square head with a glowing yellow visor slit, thick rectangular arms and legs, one arm raised straight up, yellow hazard stripe across the chest, dented panels, no logo, no numbers, no text, stylized cartoon style",
 			15000,
-			"hero 2: generate_mesh size 34 x 34 x 16, segmentation none; lies along X, raised arm up"
+			"hero 2: generate_mesh size 34 x 34 x 16, segmentation none; lies along X, raised arm up; mesh 16.3 x 12.8 x 16"
 		),
 		TrainingBlocksMesh = meshRow(
+			"rbxassetid://95762712647378",
 			"TrainingBlocksTex",
 			"cluster of three plain grey concrete city buildings of different heights side by side, bare mock city training ground blocks, rows of dark empty windows, a small skybridge between two of them, one broken tilted roof slab, a rooftop water tank, concrete rubble at the base, no signs, no text, stylized cartoon style",
 			15000,
-			"hero 3: generate_mesh size 34 x 61 x 16, segmentation none; blank windows, no signs"
+			"hero 3: generate_mesh size 34 x 61 x 16, segmentation none; blank windows, no signs; mesh 16.4 x 20.5 x 16"
 		),
 		GlassTowerMesh = meshRow(
+			"rbxassetid://101065735651917",
 			"GlassTowerTex",
 			"modern office tower with two stepped tiers, light grey concrete frame, blue glass window bands, corner fins, a thin yellow light ring at the top of each tier, rooftop unit and antenna, no logo, no text, stylized low poly cartoon style",
 			3000,
-			"mid: generate_mesh size 22 x 72 x 16, segmentation none"
+			"mid: generate_mesh size 22 x 72 x 16, segmentation none; mesh 16 x 27.1 x 16"
 		),
 		CampusGateMesh = meshRow(
+			"rbxassetid://105470061579170",
 			"CampusGateTex",
 			"low modern white concrete campus boundary wall with a wide plain open gateway in the middle, two tall blue glass gate pillars and a flat concrete lintel, light grey metal coping, a red sliding gate bar, no emblem, no crest, no name plate, no text, stylized low poly cartoon style",
 			3000,
-			"mid: generate_mesh size 30 x 12 x 6, segmentation none; no emblem"
+			"mid: generate_mesh size 30 x 12 x 6, segmentation none; no emblem; mesh 17.9 x 12 x 3.7"
 		),
 		BillboardMesh = meshRow(
+			"rbxassetid://108952157700875",
 			"BillboardTex",
 			"roadside billboard on a single dark metal pole, white panel showing only abstract colourful shapes, a blue rectangle and a yellow circle, red light strip along the bottom edge, no letters, no words, no logo, stylized low poly cartoon style",
 			1500,
-			"mid: generate_mesh size 16 x 16 x 1.5, segmentation none; abstract shapes only (orchestrator default 2026-10-31: no made-up text, so no real word can appear)"
+			"mid: generate_mesh size 16 x 16 x 1.5, segmentation none; abstract shapes only (orchestrator default 2026-10-31: no made-up text, so no real word can appear); mesh 4.4 x 5.6 x 1.5"
 		),
 		StreetLampMesh = meshRow(
+			"rbxassetid://94727249964228",
 			"StreetLampTex",
 			"modern city street lamp, slim dark grey metal pole with a short horizontal arm and a flat rectangular light head glowing warm white, stylized low poly cartoon style",
 			1000,
-			"mid: generate_mesh size 4 x 16.5 x 3, segmentation none; arm points -X"
+			"mid: generate_mesh size 4 x 16.5 x 3, segmentation none; arm points -X; mesh 3 x 9.7 x 3"
 		),
 		CrashBarrierMesh = meshRow(
+			"rbxassetid://130708295107186",
 			"CrashBarrierTex",
 			"short concrete road crash barrier section, light grey jersey barrier shape with a red painted stripe along the top, stylized low poly cartoon style",
 			800,
-			"mid: generate_mesh size 10 x 3 x 1.5, segmentation none"
+			"mid: generate_mesh size 10 x 3 x 1.5, segmentation none; mesh 4.2 x 2.25 x 1.5"
 		),
 		ParkTreeMesh = meshRow(
+			"rbxassetid://124310464862317",
 			"ParkTreeTex",
 			"round leafy city park tree, straight brown trunk, full rounded bright green canopy, stylized low poly cartoon style",
 			2000,
-			"mid: generate_mesh size 10 x 14 x 10, segmentation none"
+			"mid: generate_mesh size 10 x 14 x 10, segmentation none; mesh 10 x 11 x 9.8"
 		),
 		TrainingRobotMesh = meshRow(
+			"rbxassetid://109641504583713",
 			"TrainingRobotTex",
 			"boxy generic training robot standing upright, simple blocky grey and dark grey metal body, square head with a glowing yellow visor slit, thick rectangular arms and legs, no logo, no numbers, no text, stylized low poly cartoon style",
 			3000,
-			"mid: generate_mesh size 20 x 25 x 8, segmentation none; front faces -Z"
+			"mid: generate_mesh size 20 x 25 x 8, segmentation none; front faces -Z; mesh 15.5 x 25 x 6.9"
 		),
 		OfficeBlockMesh = meshRow(
+			"rbxassetid://129314330036877",
 			"OfficeBlockTex",
 			"mid rise modern office building, light grey concrete walls, a wide blue glass window band around the middle floors, a red light strip over the entrance, flat roof, no signs, no text, stylized low poly cartoon style",
 			2500,
-			"mid: generate_mesh size 30.3 x 38 x 26.4, segmentation none; street wall"
+			"mid: generate_mesh size 30.3 x 38 x 26.4, segmentation none; street wall; mesh 26.6 x 34.1 x 26.4"
 		),
 		ShopFrontMesh = meshRow(
+			"rbxassetid://89166092929166",
 			"ShopFrontTex",
 			"low modern two storey shop building, white walls, large blue glass shop windows along the front, a red light strip over the doors, flat roof, blank sign panel with no text, stylized low poly cartoon style",
 			2500,
-			"mid: generate_mesh size 30.3 x 16 x 24.4, segmentation none; street wall"
+			"mid: generate_mesh size 30.3 x 16 x 24.4, segmentation none; street wall; mesh 17.9 x 16 x 12.2"
 		),
+		AcademyTowerTex = textureRow("rbxassetid://72923541546453", "AcademyTowerMesh"),
+		ToppledRobotTex = textureRow("rbxassetid://133080757052345", "ToppledRobotMesh"),
+		TrainingBlocksTex = textureRow("rbxassetid://80867302590910", "TrainingBlocksMesh"),
+		GlassTowerTex = textureRow("rbxassetid://88055764586714", "GlassTowerMesh"),
+		CampusGateTex = textureRow("rbxassetid://121794812559876", "CampusGateMesh"),
+		BillboardTex = textureRow("rbxassetid://124232272433553", "BillboardMesh"),
+		StreetLampTex = textureRow("rbxassetid://127861520643749", "StreetLampMesh"),
+		CrashBarrierTex = textureRow("rbxassetid://113079048658485", "CrashBarrierMesh"),
+		ParkTreeTex = textureRow("rbxassetid://75079500553265", "ParkTreeMesh"),
+		TrainingRobotTex = textureRow("rbxassetid://115408430161884", "TrainingRobotMesh"),
+		OfficeBlockTex = textureRow("rbxassetid://78990773065293", "OfficeBlockMesh"),
+		ShopFrontTex = textureRow("rbxassetid://78923597411725", "ShopFrontMesh"),
 		AmbCityPark = {
 			Kind = "Sound",
 			Id = "rbxassetid://9112841159",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9112841159: Parking Lot Ambience 1, distant freeway, light wind, birds and voices, loop, 36 s (orchestrator default 2026-10-31: birds plus far voices over a city bed)",
@@ -372,6 +420,7 @@ return {
 		SfxRobotServo = {
 			Kind = "Sound",
 			Id = "rbxassetid://9118331528",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9118331528: Robot Servo 1, big low end clunks and switches, slow, strained, 6.5 s",
@@ -379,6 +428,7 @@ return {
 		SfxSchoolChime = {
 			Kind = "Sound",
 			Id = "rbxassetid://9125491820",
+			Reviewed = "2026-10-31 rules-auditor",
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9125491820: Door Chimes Various Tone Sequences Door Bell 12, tone sequence, 4.9 s (stands in for a school chime)",
