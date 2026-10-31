@@ -6999,7 +6999,7 @@ local function endNpcRacer(r)
 			Resets = run.Resets,
 			RaceTrack = run.RaceTrack,
 			Results = type(run.Results) == "table" and #run.Results or -1,
-			-- compatibility payout fields, read before Destroy (NPC wins are already paid at each finish)
+			-- banked winnings (SPAWN_AND_ROLLS_SPEC section 3), read before Destroy cashes the bank out
 			Unbanked = run.Unbanked,
 			BankedTotal = run.BankedTotal,
 			UnbankedAttr = r.Player:GetAttribute("Unbanked"),
@@ -7710,28 +7710,30 @@ function Scenarios.npc()
 				r1 and starts[1] and r1.T - starts[1].T or -1,
 				timeMatches(r1, starts[1])
 			)
-			-- NPC wins pay the current track immediately; there is no growing bank.
-			local paidEach = r1 ~= nil
+			-- SPAWN_AND_ROLLS_SPEC section 3: a win banks the pad's cash (no payout at the finish); Destroy cashes out
+			local bankedEach = r1 ~= nil
 				and r2 ~= nil
-				and r1.Event.Paid == C1
-				and r2.Event.Paid == C2
-				and r1.Event.Unbanked == 0
-				and r2.Event.Unbanked == 0
-			check(checks, "npc_win_paid_each_track_once", paidEach and 1 or 0, 1, paidEach)
-			local paidAtFinish = r1 ~= nil
+				and r1.Event.Banked == C1
+				and r2.Event.Banked == C2
+				and r1.Event.Unbanked == C1
+				and r2.Event.Unbanked == C1 + C2
+			check(checks, "npc_win_banked_each_track_once", bankedEach and 1 or 0, 1, bankedEach)
+			local notPaid = r1 ~= nil
 				and r2 ~= nil
-				and r1.Money == C1
-				and r2.Money == C1 + C2
-				and a.snap.BalanceBeforeDestroy == C1 + C2
-				and a.snap.PaidTotal == C1 + C2
-				and a.snap.Payouts == 2
-			check(checks, "npc_win_paid_at_finish", num(a.snap.BalanceBeforeDestroy), C1 + C2, paidAtFinish)
-			local noBank = a.snap.Unbanked == 0 and a.snap.BankedTotal == 0 and a.snap.UnbankedAttr == 0
-			check(checks, "npc_win_no_bank", num(a.snap.Unbanked), 0, noBank)
+				and r1.Money == 0
+				and r2.Money == 0
+				and a.snap.BalanceBeforeDestroy == 0
+				and a.snap.PaidTotal == 0
+				and a.snap.Payouts == 0
+			check(checks, "npc_win_not_paid_at_finish", num(a.snap.BalanceBeforeDestroy), 0, notPaid)
+			local bankOk = a.snap.Unbanked == C1 + C2
+				and a.snap.BankedTotal == C1 + C2
+				and a.snap.UnbankedAttr == C1 + C2
+			check(checks, "npc_win_bank_before_stop", num(a.snap.Unbanked), C1 + C2, bankOk)
 			local pt = a.snap.PaidTotalAfter
 			local totalOk = pt == C1 + C2
 				and a.balance == C1 + C2
-				and a.snap.PayoutsAfter == 2
+				and a.snap.PayoutsAfter == 1
 				and a.snap.UnbankedAttrAfter == 0
 			check(checks, "npc_win_paid_total", type(pt) == "number" and pt or -1, C1 + C2, totalOk)
 			local noLoss = a.snap.Losses == 0 and a.snap.Resets == 0 and #npcAll(a, "Reset") == 0
@@ -7818,7 +7820,8 @@ function Scenarios.npc()
 			check(checks, "npc_lose_not_in_server_workspace", b.npcSeen and 1 or 0, 0, not b.npcSeen)
 		end
 
-		-- (c) WIN THEN LOSE: Track 1 is paid immediately; Track 2 loses and pays nothing.
+		-- (c) WIN THEN LOSE: stat 0 player, slow NPC on Track 1, fast NPC on Track 2: Track 1's win is banked, and
+		-- the loss on Track 2 clears the bank (SPAWN_AND_ROLLS_SPEC section 3; replaces "Track 1's money is kept")
 		local c = race(
 			"WinLose",
 			0,
@@ -7858,18 +7861,18 @@ function Scenarios.npc()
 				isFiniteNumber(nT) and nT or -1,
 				slower
 			)
-			local paidWin = r1 ~= nil and r1.Event.Paid == C1 and r1.Event.Unbanked == 0 and r1.Money == C1
-			check(checks, "npc_win_lose_track1_paid", num(r1 and r1.Event.Paid), C1, paidWin)
+			local bankedWin = r1 ~= nil and r1.Event.Banked == C1 and r1.Event.Unbanked == C1 and r1.Money == 0
+			check(checks, "npc_win_lose_track1_banked", num(r1 and r1.Event.Unbanked), C1, bankedWin)
 			local cleared = r2 ~= nil
-				and r2.Event.Paid == 0
+				and r2.Event.Banked == 0
 				and r2.Event.Unbanked == 0
 				and r2.RunUnbanked == 0
-				and r2.Money == C1
+				and r2.Money == 0
 				and c.snap.Unbanked == 0
 				and c.snap.UnbankedAttr == 0
-			check(checks, "npc_win_lose_loss_no_payout", num(r2 and r2.Event.Paid), 0, cleared)
-			local nothing = c.balance == C1 and c.snap.PaidTotalAfter == C1 and c.snap.BankedTotal == 0
-			check(checks, "npc_win_lose_keeps_prior_payout", c.balance, C1, nothing)
+			check(checks, "npc_win_lose_loss_clears_bank", num(r2 and r2.Event.Unbanked), 0, cleared)
+			local nothing = c.balance == 0 and c.snap.PaidTotalAfter == 0 and c.snap.BankedTotal == C1
+			check(checks, "npc_win_lose_pays_nothing_on_stop", c.balance, 0, nothing)
 			local counts = c.snap.Wins == 1 and c.snap.Losses == 1
 			check(checks, "npc_win_lose_counted", type(c.snap.Wins) == "number" and c.snap.Wins or -1, 1, counts)
 			checkNpcLoseReset(checks, "npc_win_lose", c, 2, wps)
@@ -8098,10 +8101,10 @@ function Scenarios.multiplayer()
 			NPC_RESET_RADIUS,
 			resetPose ~= nil and dB <= NPC_RESET_RADIUS
 		)
-		-- Each player's current-track win is paid immediately; no bank is shared or cashed out on stop.
+		-- banked (SPAWN_AND_ROLLS_SPEC section 3): A's Track 1 win is in A's bank only, paid when A's run ends
 		local money = A.balance == C1
-			and A.snap.BankedTotal == 0
-			and A.snap.PaidTotal == C1
+			and A.snap.BankedTotal == C1
+			and A.snap.PaidTotal == 0
 			and A.snap.PaidTotalAfter == C1
 			and B.balance == 0
 			and B.snap.BankedTotal == 0
@@ -8980,9 +8983,13 @@ function Scenarios.spawn_area()
 	return result("spawn_area", checks, metrics)
 end
 
--- Current/last-track payout (contract: docs/SPAWN_AND_ROLLS_SPEC.md, section 3).
--- NPC mode awards MoneyService.Quote(player, pad) immediately on a win. There is no bank; CashOut is a deprecated
--- no-op and Destroy never adds a second payout. Non-NPC runs still pay pads directly in `race`.
+-- Banked winnings (contract: docs/SPAWN_AND_ROLLS_SPEC.md, section 3).
+-- BRIEF (owner, 2026-10-01): "Stopping pays the winnings of the checkpoints cleared in this run (banked)." Owner's
+-- answer: stop payout = "bank, pay on stop".
+-- NPC mode: a win adds MoneyService.Quote(player, pad) to run.Unbanked (mirrored in the player attribute
+-- Unbanked) and pays NOTHING at the finish; run:CashOut() pays the bank once and zeroes it; run:Destroy() cashes
+-- out. Losses clearing the bank are checked in `npc` (lose and win-then-lose runs); non-NPC runs paying pads
+-- directly in `race`.
 local BANK_ORIGIN = Vector3.new(0, 0, 40000)
 local BANK_ATTR_WAIT = 0.2 -- s after a Result before the mirrored attribute is read
 
@@ -9102,34 +9109,34 @@ function Scenarios.bank()
 			return
 		end
 		local e1 = res1.Event
-		check(checks, "bank_result_paid_field", num(e1.Paid), C1, e1.Paid == C1)
-		check(checks, "bank_result_banked_field_zero", num(e1.Banked), 0, e1.Banked == 0)
-		check(checks, "bank_result_unbanked_field_zero", num(e1.Unbanked), 0, e1.Unbanked == 0)
-		check(checks, "bank_win_paid_at_finish", res1.Money, C1, res1.Money == C1)
+		check(checks, "bank_result_banked_field", num(e1.Banked), C1, e1.Banked == C1)
+		check(checks, "bank_result_unbanked_field", num(e1.Unbanked), C1, e1.Unbanked == C1)
+		check(checks, "bank_result_has_no_paid_field", e1.Paid == nil and 0 or 1, 0, e1.Paid == nil)
+		check(checks, "bank_win_not_paid_at_finish", res1.Money, 0, res1.Money == 0)
 		frames(BANK_ATTR_WAIT)
-		check(checks, "bank_run_unbanked_after_win", num(run.Unbanked), 0, run.Unbanked == 0)
-		check(checks, "bank_attribute_after_win", num(attr()), 0, attr() == 0)
-		check(checks, "bank_money_paid_after_win", money.Value, C1, money.Value == C1)
-		check(checks, "bank_banked_total_after_win", num(run.BankedTotal), 0, run.BankedTotal == 0)
-		local paid = run.Payouts == 1 and run.PaidTotal == C1
-		check(checks, "bank_payout_at_finish", num(run.Payouts), 1, paid)
+		check(checks, "bank_run_unbanked_after_win", num(run.Unbanked), C1, run.Unbanked == C1)
+		check(checks, "bank_attribute_after_win", num(attr()), C1, attr() == C1)
+		check(checks, "bank_money_unchanged_after_win", money.Value, 0, money.Value == 0)
+		check(checks, "bank_banked_total_after_win", num(run.BankedTotal), C1, run.BankedTotal == C1)
+		local unpaid = run.Payouts == 0 and run.PaidTotal == 0
+		check(checks, "bank_no_payout_before_cash_out", num(run.Payouts), 0, unpaid)
 
-		-- CashOut is retained for compatibility but cannot pay a second time.
+		-- CashOut pays exactly the bank, once, and zeroes it
 		if hasCashOut then
 			local okC, amount = pcall(run.CashOut, run)
-			check(checks, "cash_out_returns_zero", okC and num(amount) or -1, 0, okC and amount == 0)
-			check(checks, "cash_out_does_not_pay_again", money.Value, C1, money.Value == C1)
+			check(checks, "cash_out_returns_bank", okC and num(amount) or -1, C1, okC and amount == C1)
+			check(checks, "cash_out_pays_money", money.Value, C1, money.Value == C1)
 			check(checks, "cash_out_zeroes_bank", num(run.Unbanked), 0, run.Unbanked == 0)
 			RunService.Heartbeat:Wait()
 			check(checks, "cash_out_zeroes_attribute", num(attr()), 0, attr() == 0)
-			local counted = run.Payouts == 1 and run.PaidTotal == C1 and run.BankedTotal == 0
+			local counted = run.Payouts == 1 and run.PaidTotal == C1 and run.BankedTotal == C1
 			check(checks, "cash_out_counted", num(run.PaidTotal), C1, counted)
 			local okC2, again = pcall(run.CashOut, run)
 			local once = okC2 and again == 0 and money.Value == C1 and run.Payouts == 1 and run.PaidTotal == C1
 			check(checks, "cash_out_twice_pays_once", money.Value, C1, once)
 		end
 
-		-- Win Track 2: the current-track reward is paid immediately.
+		-- Win Track 2: the bank fills again from 0, money untouched at the finish
 		local money2 = money.Value
 		driveUntil(n2, cap)
 		local res2 = npcFind(r, "Result", n2)
@@ -9139,13 +9146,12 @@ function Scenarios.bank()
 			return
 		end
 		local e2 = res2.Event
-		check(checks, "bank_track2_paid", num(e2.Paid), C2, e2.Paid == C2)
-		check(checks, "bank_track2_banked_zero", num(e2.Banked), 0, e2.Banked == 0)
-		check(checks, "bank_track2_unbanked_zero", num(e2.Unbanked), 0, e2.Unbanked == 0)
-		check(checks, "bank_track2_paid_at_finish", res2.Money, money2 + C2, res2.Money == money2 + C2)
+		check(checks, "bank_track2_banked", num(e2.Banked), C2, e2.Banked == C2)
+		check(checks, "bank_track2_unbanked_after_cash_out", num(e2.Unbanked), C2, e2.Unbanked == C2)
+		check(checks, "bank_track2_not_paid_at_finish", res2.Money, money2, res2.Money == money2)
 		frames(BANK_ATTR_WAIT)
-		check(checks, "bank_attribute_after_track2", num(attr()), 0, attr() == 0)
-		check(checks, "bank_banked_total_zero", num(run.BankedTotal), 0, run.BankedTotal == 0)
+		check(checks, "bank_attribute_after_track2", num(attr()), C2, attr() == C2)
+		check(checks, "bank_banked_total_sums_wins", num(run.BankedTotal), C1 + C2, run.BankedTotal == C1 + C2)
 
 		-- Destroy cashes out (Stop, death and leaving all go through it), and only once
 		local before = money.Value
@@ -9154,11 +9160,11 @@ function Scenarios.bank()
 			run:Destroy()
 		end)
 		check(checks, "destroy_no_error", okD and 1 or 0, 1, okD)
-		check(checks, "destroy_does_not_cash_out", money.Value - before, 0, money.Value - before == 0)
+		check(checks, "destroy_cashes_out", money.Value - before, C2, money.Value - before == C2)
 		check(checks, "destroy_zeroes_bank", num(run.Unbanked), 0, run.Unbanked == 0)
 		check(checks, "destroy_zeroes_attribute", num(attr()), 0, attr() == 0)
-		local counted = run.Payouts == payoutsBefore
-		check(checks, "destroy_payout_not_counted", num(run.Payouts), payoutsBefore, counted)
+		local counted = run.Payouts == payoutsBefore + 1
+		check(checks, "destroy_payout_counted", num(run.Payouts), payoutsBefore + 1, counted)
 		local afterOnce = money.Value
 		pcall(function()
 			run:Destroy()

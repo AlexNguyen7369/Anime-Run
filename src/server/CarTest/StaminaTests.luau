@@ -17,6 +17,9 @@
 --     options.OnRunEvent(event) (seam, like OnRaceEvent): every RunEvent payload, called after the server applied
 --       it (new slot and cruise speed already set, bank already paid).
 --     Tests may set run.Stamina[slot] (as they may set Driver.Index); the next tick drains from that value.
+--   Run bank (owner 2026-10-30, spec "Run end by exhaustion"): a win adds its payout to run.Unbanked (not paid);
+--     exhaustion cashes it out once; a loss empties it. A loss reset is a new run: by the time the "Reset" race
+--     event is emitted, run.Slot = 1, RunSlot = 1 and every slot's stamina is 100.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -325,6 +328,9 @@ function Tests.stamina()
 					Money = moneyOf(p),
 					TargetSpeed = run and run.TargetSpeed,
 					Stat = data.SpeedStat(p),
+					Slot = run and run.Slot,
+					Stamina = run and type(run.Stamina) == "table" and table.clone(run.Stamina) or nil,
+					RunSlot = p:GetAttribute("RunSlot"),
 				})
 			end
 		end
@@ -391,6 +397,11 @@ function Tests.stamina()
 		local duo = start("Duo", { trio[1], trio[2] }, { Seconds = { 0.4, 0.4 } })
 		local solo = start("Solo", { trio[1] }, { Seconds = { 0.4 } })
 		local tie = start("Tie", { trio[1] }, { Seconds = { 30 }, NpcSpeeds = { [track2.Number] = FAST_NPC } })
+		local refill = start(
+			"Refill",
+			{ trio[1], trio[2] },
+			{ Seconds = { 0.3, 30 }, NpcSpeeds = { [track1.Number] = FAST_NPC } }
+		)
 
 		-- drive: drain samples, a track-1 win for Swap (so a bank may exist), the same-tick loss for Tie
 		local drainA, drainB = 0.3, 2.8
@@ -430,6 +441,10 @@ function Tests.stamina()
 				swap.Jumped = true
 				swap.Run.Driver.Index = track1.FinishIndex
 			end
+			if refill.Run and not refill.Jumped and refill.Run.Slot == 2 then
+				refill.Jumped = true
+				refill.Run.Driver.Index = track1.FinishIndex -- fast NPC: a loss while slot 2 runs
+			end
 			local tr = tie.Run
 			if tr then
 				if tieStep == 0 and now - tie.T0 >= 0.15 then
@@ -438,6 +453,7 @@ function Tests.stamina()
 				elseif tieStep == 1 and tr.RaceTrack == track2.Number then
 					tieStep = 2
 					tie.MoneyAtTie = moneyOf(tie.Player)
+					tie.PotAtTie = tr.Unbanked
 					tie.TieAt = #tie.Log
 					tr.Stamina[1] = 1e-9 -- empties on the same tick the runner reaches Track 2's finish
 					tr.Driver.Index = track2.FinishIndex
@@ -491,14 +507,14 @@ function Tests.stamina()
 			swap.Run ~= nil and swap.Run.Losses == 0 and swap.Run.Resets == 0 and swap.Run.Wins >= 1
 		)
 
-		-- 5. Exhaustion: once, pays the bank once, not a loss, the run stops
+		-- 5. Exhaustion: once, pays the bank (filled by the Track 1 win, so > 0) once, not a loss, the run stops
 		local ex = runEvents(swap, "Exhausted")
 		flag("stamina_exhausted_once", #ex == 1, #ex, 1)
 		local banked = ex[1] and ex[1].Event.Banked
 		local paid = moneyOf(swap.Player) - (swap.MoneyBefore or 0)
 		flag(
 			"stamina_exhaustion_cashes_out_bank_once",
-			type(banked) == "number" and banked == (swap.UnbankedBefore or 0) and paid == banked,
+			type(banked) == "number" and banked > 0 and banked == (swap.UnbankedBefore or 0) and paid == banked,
 			paid,
 			banked or -1
 		)
@@ -543,10 +559,31 @@ function Tests.stamina()
 		end
 		flag(
 			"stamina_same_tick_loss_empties_bank",
-			tieStep == 2 and moneyOf(tie.Player) == tie.MoneyAtTie and not cashed and (tie.Run.Unbanked or 0) == 0,
+			tieStep == 2
+				and type(tie.PotAtTie) == "number"
+				and tie.PotAtTie > 0
+				and moneyOf(tie.Player) == tie.MoneyAtTie
+				and not cashed
+				and (tie.Run.Unbanked or 0) == 0,
 			moneyOf(tie.Player) - (tie.MoneyAtTie or 0),
 			0
 		)
+
+		-- 8. A loss reset starts a new run (owner 2026-10-30): slot 1, every slot back to 100
+		local reset = nil
+		for _, e in refill.Log do
+			if not reset and e.Kind == "Race" and e.Event.Type == "Reset" then
+				reset = e
+			end
+		end
+		local refilled = refill.Jumped == true
+			and reset ~= nil
+			and reset.Slot == 1
+			and reset.RunSlot == 1
+			and type(reset.Stamina) == "table"
+			and reset.Stamina[1] == 100
+			and reset.Stamina[2] == 100
+		flag("stamina_loss_reset_refills", refilled, reset and reset.Stamina and reset.Stamina[1] or -1, 100)
 
 		-- 3b. A second run after the exhaustion starts full again
 		if swap.Run then
