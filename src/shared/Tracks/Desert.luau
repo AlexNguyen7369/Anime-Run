@@ -12,14 +12,14 @@ return {
 	Biome = "Desert",
 	Width = 40,
 	Closed = false,
-	Palette = {
-		Road = Color3.fromRGB(112, 82, 66),
-		Support = Color3.fromRGB(90, 55, 40),
-		Wall = Color3.fromRGB(218, 157, 82),
-		Ground = Color3.fromRGB(210, 157, 78),
-		Line = Color3.fromRGB(255, 238, 172),
-		Checkpoint = Color3.fromRGB(164, 108, 56),
-		WinPad = Color3.fromRGB(255, 218, 42),
+	Palette = { -- Track 7 subway (TRACKS_AND_BIOMES_SPEC Track 7 palette, placeholders)
+		Road = Color3.fromRGB(43, 46, 51), -- #2B2E33 track bed
+		Support = Color3.fromRGB(140, 138, 132), -- #8C8A84 concrete
+		Wall = Color3.fromRGB(233, 228, 214), -- #E9E4D6 tile cream
+		Ground = Color3.fromRGB(140, 138, 132),
+		Line = Color3.fromRGB(242, 210, 58), -- #F2D23A tactile yellow
+		Checkpoint = Color3.fromRGB(63, 167, 160), -- #3FA7A0 stripe teal
+		WinPad = Color3.fromRGB(242, 210, 58),
 	},
 	Segments = {
 		{ Type = "Straight", Length = 40 }, -- start straight
