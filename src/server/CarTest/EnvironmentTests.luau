@@ -25,6 +25,75 @@ local Tests = {}
 
 -- Spec "Themes": track number -> Biome
 local BIOMES = { "Speedway", "Forest", "Docks", "Suburb", "PirateCoast", "City", "Desert", "Snow", "Volcano", "Space" }
+-- Anime biomes (w4, docs/TRACKS_AND_BIOMES_SPEC.md "Biomes" table): track number -> working biome name, shown as the
+-- theme's DisplayName. Theme keys (BIOMES) and track ids stay (owner 2026-10-30).
+local BIOME_NAMES = {
+	"Leafwind Village",
+	"Tournament Wasteland",
+	"Pirate Harbor Isle",
+	"Wisteria Night Mountain",
+	"Neon Cursed City",
+	"Hero Academy City",
+	"Sakura Shrine Path",
+	"Sky Islands",
+	"Spirit Realm Desert",
+	"Green Alien Planet",
+}
+local NIGHT_TRACKS = { 4, 5, 9 } -- spec "Night biomes (4, 5, 9) ... never change global Lighting"
+-- Texture ids the fork inherited from IVS (BiomeMeshAssets before w4). Logic-only fork (design doc 5 "no ripped
+-- model / texture"): no anime theme prop may resolve to one, and no theme or built instance may carry one.
+local IVS_ASSET_IDS = {}
+for _, id in
+	{
+		"92423737416544",
+		"128394726145519",
+		"85846093929544",
+		"72274392470670",
+		"91606076532126",
+		"113770468212081",
+		"95508523642574",
+		"76676257187222",
+		"85521508755919",
+		"75698100170016",
+		"103373710817708",
+		"89929750979816",
+		"124766458868838",
+		"103593247926248",
+		"135230145762047",
+		"108440050975370",
+		"127961462840313",
+		"132366709821625",
+		"79761841457379",
+		"130180280383767",
+		"87067139590673",
+		"77211822777880",
+		"115437395308843",
+		"74620414108710",
+		"128293532540657",
+		"71357970279693",
+		"140690212753632",
+		"138118073743869",
+		"93867391692488",
+		"113366033365449",
+		"103964466413530",
+		"79033882912159",
+		"135244581594694",
+		"79454986937479",
+		"83506704181258",
+		"75606138619397",
+		"93817877871959",
+		"121949863588548",
+		"123258403810822",
+		"105771940584993",
+		"113271510794732",
+		"79832470988304",
+		"119293630858724",
+		"98025384367368",
+		"81189885999508",
+	}
+do
+	IVS_ASSET_IDS[id] = true
+end
 local CHAIN_ORIGIN = Vector3.new(-20000, 0, 20000) -- far from the play area and the other scenario origins
 local GEOM_TOL = 0.05 -- studs of overlap ignored (boxes that only touch)
 local CFRAME_TOL = 1e-3
@@ -298,6 +367,11 @@ local function lightingSnapshot()
 		Atmosphere = count(Lighting, "Atmosphere"),
 		Sky = count(Lighting, "Sky"),
 		Clouds = count(Workspace.Terrain, "Clouds"),
+		FogEnd = Lighting.FogEnd,
+		FogColor = Lighting.FogColor,
+		ColorShift = Lighting.ColorShift_Top,
+		Exposure = Lighting.ExposureCompensation,
+		Children = #Lighting:GetChildren(), -- catches post effects (ColorCorrection, Bloom ...)
 	}
 end
 
@@ -325,6 +399,48 @@ local function themeProps(theme)
 end
 
 -- Baked mesh entry rules: { Size = Vector3, Data = base64 } decoding to u16 vc, u16 ic, vc*10 bytes, ic u16 indices
+-- Every rbxassetid number in a theme's strings, as a list
+local function themeAssetIds(theme)
+	local out, seen = {}, {}
+	local function walk(t)
+		if type(t) == "string" then
+			for id in string.gmatch(t, "rbxassetid://(%d+)") do
+				table.insert(out, id)
+			end
+		elseif type(t) == "table" and not seen[t] then
+			seen[t] = true
+			for k, v in t do
+				walk(k)
+				walk(v)
+			end
+		end
+	end
+	walk(theme)
+	return out
+end
+
+-- Every string in a theme (keys and values), for the real-name check
+local function themeStrings(theme)
+	local out, seen = {}, {}
+	local function walk(t)
+		if type(t) == "string" then
+			table.insert(out, t)
+		elseif type(t) == "table" and not seen[t] then
+			seen[t] = true
+			for k, v in t do
+				walk(k)
+				walk(v)
+			end
+		end
+	end
+	walk(theme)
+	return out
+end
+
+local function nameKey(text)
+	return (string.gsub(string.lower(text), "[^%w]+", "_"))
+end
+
 local function meshEntryProblem(codec, entry)
 	if type(entry) ~= "table" or typeof(entry.Size) ~= "Vector3" or type(entry.Data) ~= "string" then
 		return "shape"
@@ -401,6 +517,60 @@ function Tests.environment()
 			("biome_theme_%d"):format(spec.Number),
 			Themes ~= nil and type(spec.Biome) == "string" and Themes[spec.Biome] ~= nil
 		)
+	end
+
+	-- w4 anime themes (spec "Biomes": "rhythm props along the road, corner / crest landmarks, ... a start `Gate`,
+	-- themed ground and sky tint"): DisplayName is the working name; core pieces present (structure, not art)
+	local realNameIn = require(script.Parent.CatalogTests).realNameIn
+	local AssetsIp = module(Shared, "BiomeMeshAssets") or {}
+	for n, biome in BIOMES do
+		local theme = Themes and Themes[biome]
+		local t = type(theme) == "table" and theme or {}
+		flag(("theme_display_name_%d"):format(n), t.DisplayName == BIOME_NAMES[n], t.DisplayName, BIOME_NAMES[n])
+		local ground = type(t.Ground) == "table" and t.Ground or {}
+		flag(("theme_ground_%d"):format(n), typeof(ground.Color) == "Color3" and typeof(ground.Material) == "EnumItem")
+		local sky = type(t.Sky) == "table" and t.Sky or {}
+		flag(("theme_sky_tint_%d"):format(n), typeof(sky.Color) == "Color3")
+		local gateDef = type(t.Gate) == "table" and t.Gate or {}
+		flag(("theme_gate_%d"):format(n), typeof(gateDef.Color) == "Color3")
+		local function propsOk(layer)
+			local props = type(layer) == "table" and layer.Props
+			if type(props) ~= "table" or #props == 0 then
+				return false
+			end
+			for _, p in props do
+				if type(p) ~= "table" or type(p.Name) ~= "string" or typeof(p.Size) ~= "Vector3" then
+					return false
+				end
+			end
+			return true
+		end
+		flag(("theme_rhythm_props_%d"):format(n), propsOk(t.Rhythm))
+		flag(("theme_landmark_%d"):format(n), propsOk(t.Landmarks))
+
+		-- IP (design doc 5): no real character, series or place names anywhere in the theme data
+		local hit = nil
+		for _, text in themeStrings(theme) do
+			if realNameIn(nameKey(text)) then
+				hit = hit or text
+			end
+		end
+		flag(("theme_no_real_names_%d"):format(n), theme ~= nil and hit == nil)
+		r.metrics[("theme_real_name_%d"):format(n)] = hit and realNameIn(nameKey(hit)) -- hash only, never the name
+		-- IP: no IVS asset in the theme, and no theme prop resolves to an IVS-uploaded mesh texture
+		local ivs = 0
+		for _, id in themeAssetIds(theme) do
+			if IVS_ASSET_IDS[id] then
+				ivs += 1
+			end
+		end
+		for name in themeProps(theme) do
+			local id = AssetsIp[biome .. "_" .. name]
+			if type(id) == "string" and IVS_ASSET_IDS[string.match(id, "%d+") or ""] then
+				ivs += 1
+			end
+		end
+		flag(("theme_no_ivs_assets_%d"):format(n), theme ~= nil and ivs == 0, ivs, 0)
 	end
 
 	local before = lightingSnapshot()
@@ -687,6 +857,25 @@ function Tests.environment()
 		local parts = baseParts(env)
 		counts[tostring(n)] = { built = prePrune[n] or 0, kept = #parts }
 		flag(("environment_nonempty_%d"):format(n), #parts > 0, #parts, 1)
+		-- w4 IP (design doc 5): no real names in built instance names or text; no IVS asset on any built instance
+		local named, ivsBuilt = nil, 0
+		for _, d in env and env:GetDescendants() or {} do
+			local text = d:IsA("TextLabel") and d.Text or d.Name
+			if realNameIn(nameKey(text)) or realNameIn(nameKey(d.Name)) then
+				named = named or d:GetFullName()
+			end
+			local ids = d:IsA("MeshPart") and { d.MeshId, d.TextureID }
+				or d:IsA("FileMesh") and { d.MeshId, d.TextureId }
+				or d:IsA("Decal") and { d.Texture }
+				or {}
+			for _, value in ids do
+				if IVS_ASSET_IDS[string.match(value, "%d+") or ""] then
+					ivsBuilt += 1
+				end
+			end
+		end
+		flag(("environment_no_real_names_%d"):format(n), env ~= nil and named == nil)
+		flag(("environment_no_ivs_assets_%d"):format(n), env ~= nil and ivsBuilt == 0, ivsBuilt, 0)
 		-- Spec Rules "Theme budget" (owner 2026-10-27): a theme Budget replaces BUDGET for its track. Only the City's
 		-- value (2600) is in the doc, so every other track stays capped at BUDGET and the City at CITY_BUDGET.
 		local theme = Themes and BIOMES[n] and Themes[BIOMES[n]]
@@ -737,7 +926,8 @@ function Tests.environment()
 		local recLabel = gui and gui:FindFirstChild("RecSpeed")
 		biomeLabel = biomeLabel and biomeLabel:IsA("TextLabel") and biomeLabel or nil
 		recLabel = recLabel and recLabel:IsA("TextLabel") and recLabel or nil
-		local wantBiome = BIOMES[n] and string.upper((string.gsub(BIOMES[n], "(%l)(%u)", "%1 %2"))) or "?"
+		-- w4: the sign shows the biome's working name (theme DisplayName), upper-case
+		local wantBiome = BIOME_NAMES[n] and string.upper(BIOME_NAMES[n]) or "?"
 		flag(("gate_sign_biome_%d"):format(n), biomeLabel ~= nil and biomeLabel.Text == wantBiome)
 		local npcSpeed = NpcConfig.For(n).Speed
 		local rec = RaceConfig.StatFor(npcSpeed)
@@ -970,6 +1160,22 @@ function Tests.environment()
 		and colorDiff(after.OutdoorAmbient, before.OutdoorAmbient) <= LIGHT_TOL
 		and colorDiff(after.Ambient, before.Ambient) <= LIGHT_TOL
 	flag("lighting_unchanged", lightOk)
+	-- w4 night biomes (spec "Night biomes (4, 5, 9) ... never change global `Lighting`"): the chain built them, and
+	-- fog, colour shift, exposure and Lighting's children are unchanged too
+	local nightBuilt = true
+	for _, n in NIGHT_TRACKS do
+		nightBuilt = nightBuilt and chainA[n] ~= nil and chainA[n].Model:FindFirstChild("Environment") ~= nil
+	end
+	flag(
+		"night_biomes_lighting_unchanged",
+		nightBuilt
+			and lightOk
+			and math.abs(after.FogEnd - before.FogEnd) <= LIGHT_TOL
+			and colorDiff(after.FogColor, before.FogColor) <= LIGHT_TOL
+			and colorDiff(after.ColorShift, before.ColorShift) <= LIGHT_TOL
+			and math.abs(after.Exposure - before.Exposure) <= LIGHT_TOL
+			and after.Children == before.Children
+	)
 	flag(
 		"no_new_sky_atmosphere_clouds",
 		after.Atmosphere == before.Atmosphere and after.Sky == before.Sky and after.Clouds == before.Clouds
