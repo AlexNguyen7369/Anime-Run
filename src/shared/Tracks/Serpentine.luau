@@ -10,6 +10,16 @@ return {
 	Biome = "PirateCoast",
 	Width = 36,
 	Closed = false,
+	-- orchestrator default 2026-10-31, builder choice: dark asphalt road, purple walls, neon cyan lines (Track 5 palette)
+	Palette = {
+		Road = Color3.fromHex("120F1F"),
+		Support = Color3.fromHex("6B6B78"),
+		Wall = Color3.fromHex("3A1F5C"),
+		Ground = Color3.fromHex("120F1F"),
+		Line = Color3.fromHex("2EE6FF"),
+		Checkpoint = Color3.fromHex("FF2E88"),
+		WinPad = Color3.fromHex("F2D64B"),
+	},
 	Segments = {
 		{ Type = "Straight", Length = 862.026 },
 		{ Type = "Turn", Angle = -90, Radius = 260 }, -- corner

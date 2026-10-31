@@ -19,6 +19,7 @@ local SERVER_TAG = "RunnerRig" -- Server/CarService.RUNNER_TAG
 local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the published one (no visible jump)
 local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at once
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
+local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns to the runner's travel (docs/CAMERA_SPEC.md)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
@@ -177,6 +178,7 @@ local function step(view, now)
 	if not (route and type(rd) == "number" and type(rs) == "number") then
 		-- not running (a held duel start): show it where the server holds it
 		view.Dist = nil
+		view.Moving = false
 		RunnerVisual.Pose(copy, rig:GetPivot(), 0, 0)
 		return
 	end
@@ -191,6 +193,7 @@ local function step(view, now)
 	end
 	dist = math.clamp(dist, 0, arcEnd)
 	view.Dist = dist
+	view.Moving = rs > 0
 	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint)
 	view.Hint = k
 	view.Phase = RunnerVisual.Advance(view.Phase, rs, dt)
@@ -204,9 +207,41 @@ local function stepAll()
 	end
 end
 
+-- Track camera (docs/CAMERA_SPEC.md): turns the camera yaw toward the runner's travel, keeping the player's pitch and
+-- zoom. Runs before the default camera, which builds its next frame from this look direction.
+local function alignYaw(camera, torso, dt)
+	local dir = torso.CFrame.LookVector
+	if Vector2.new(dir.X, dir.Z).Magnitude < 1e-3 then
+		return
+	end
+	local focus = camera.Focus.Position
+	local offset = camera.CFrame.Position - focus
+	local look = camera.CFrame.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	local turn = (math.atan2(-dir.X, -dir.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
+	yaw += turn * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
+	local pitch = math.asin(math.clamp(look.Y, -1, 1))
+	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, offset.Magnitude)
+end
+
+local function trackCameraOn(camera, mine)
+	if player:GetAttribute("TrackCamera") == false or player:GetAttribute("TopDownView") == true then
+		return false -- default ON (attribute unset); top-down view takes the camera when both are on
+	end
+	if camera.CameraType ~= Enum.CameraType.Custom then
+		return false
+	end
+	for _, view in views do
+		if view.Copy == mine then
+			return view.Moving == true
+		end
+	end
+	return false
+end
+
 local cameraOnRunner = false
 local followed = nil -- { Part, Position }: where the camera last framed the local runner
-RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function()
+RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function(dt)
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
 	local camera = Workspace.CurrentCamera
@@ -218,6 +253,9 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 			camera.CameraSubject = torso
 		end
 		cameraOnRunner = true
+		if trackCameraOn(camera, mine) then
+			alignYaw(camera, torso, dt)
+		end
 		followed = { Part = torso, Position = torso.Position }
 	elseif camera and cameraOnRunner then
 		cameraOnRunner = false

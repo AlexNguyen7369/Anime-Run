@@ -148,3 +148,4 @@
 - 2026-10-31 LANDED 4d1b112 (pushed): Track 4 + fw3. Next: t5 Studio phase (switch ../AnimeRun-orch/studio to
   orch/biomes/t5), cam feature in ../AnimeRun-orch/cam (needs one Studio check), fw4 shoulder-band hall floats.
   Studio id 5846836b-1bf9-487a-9411-11346220b296. CarTestOnly left set in Edit (harmless).
+- 2026-10-31 LANDED 0962287: Track 5 + track camera. Studio -> Track 6 next.
