@@ -196,3 +196,9 @@
   Resume: commit t7r WIP; finish the fight-scene spec; t7r step A + fight figures/VFX; audit; verify incl tunnel_clear,
   camera clamp, flicker; land t7r with fw5/fw6. Then t9 (mesh ids in this file), t10 (phase 1 on orch/biomes/t10).
   Morning/owner review list: docs/OWNER_QUESTIONS.md.
+- Fight-scene research (stopped, nothing written to specs): refs sportskeeda S2 ep8 (Gojo lands on B5F Fukutoshin
+  platform; Hanami's branches seal the entrance), animecorner ep8 preview, animehunch "how did Gojo kill Hanami"
+  (blindfold off, horns torn out, crushed into a wall), bamsmackpow ep9 review (train of transfigured humans),
+  animehunch Unlimited Void explainer. Fandom wiki returns HTTP 402 (not bypassed) - figure looks unconfirmed.
+  Plan: scene in the deep main platform hall bay 0.82-0.90 (At ~0.84, Left), concourse 0.37 fallback; stylised blood
+  only; every prompt through realNameIn.
