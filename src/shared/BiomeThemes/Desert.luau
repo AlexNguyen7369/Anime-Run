@@ -201,6 +201,7 @@ local stairEntrance = prop("StairEntrance", v(12, 8, 8), {
 
 -- Parts-only props
 local emergencyLight = prop("EmergencyLight", v(2, 9, 1), {
+	part(v(0.3, 7.5, 0.3), v(0, 3.75, 0.3), DARK, M.Metal), -- conduit down to the floor (the prop stands on it)
 	part(v(1.6, 1, 0.8), v(0, 8, 0.1), DARK, M.Metal),
 	part(v(1.2, 0.6, 0.3), v(0, 7.8, -0.35), RED, M.Neon),
 })
