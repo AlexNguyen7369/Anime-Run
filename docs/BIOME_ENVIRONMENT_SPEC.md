@@ -136,8 +136,11 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   that no slide fits is deleted. Exception: hero landmarks (4.3) are never deleted below 2 per biome, and a hero pinned
   to a route spot (`At`) is never deleted (owner 2026-10-31). A hero that cannot fit stays put and is reported as an
   error for the builder to move.
-- Owner 2026-10-31 (fw2): the ground under a pinned (`At`) hero is levelled to its base Y. Its footprint, grown by
-  CLEARANCE (8 studs, placeholder), is a clear box, like a checkpoint. The hero is not snapped or slid.
+- Owner 2026-10-31 (fw2): the ground under a pinned (`At`) hero is levelled to the natural terrain height at its
+  centre (`TerrainShape.AddPad`), and the hero is raised onto it; it is not slid. The pad covers its footprint grown
+  by CLEARANCE (8 studs, placeholder) and blends out over 16 studs (SHOULDER - CORRIDOR). It fades to nothing at the
+  corridor edge, so road and clear-box ground never change. No other prop, of any track, may overlap the grown
+  footprint: it slides or is deleted. A hero that would touch a road's clearance stays at its base.
 - Embank (fw2, 2026-10-31): the corridor sits 3 studs below the lowest road Y of its own track within 24 studs
   (`EMBANK_REACH`, placeholder), so it stays under the road on ramps.
 - `ZonePolyline(n)`: one point per 64 studs (placeholder) of track n's centre line. The server publishes it as
