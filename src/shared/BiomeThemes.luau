@@ -280,7 +280,7 @@ return {
 			Offset = 280,
 			Props = { peak("TreeHill", v(160, 70, 120), rgb(50, 96, 52), rgb(34, 80, 46), M.Grass) },
 		},
-		Gate = gate(rgb(110, 75, 45), M.Wood, nil, 9), -- past the race-start pavilion
+		Gate = gate(rgb(110, 75, 45), M.Wood), -- default index: Track 2's first straight is only 83 studs (w3)
 		Scatter = {
 			Every = 2,
 			Near = 25,
