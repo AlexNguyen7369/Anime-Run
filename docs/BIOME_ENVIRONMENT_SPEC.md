@@ -544,7 +544,8 @@ the IP flags.
 - **b2, biomes on the framework**: one track at a time, in order Track 1 to Track 10 (owner 2026-10-30; one Studio).
   Each agent owns only its own `src/shared/BiomeThemes/<Key>.luau` and `assets/biomes/<Key>/` plus
   `assets/audio/<Key>/`. Shared files are not touched; framework bugs go back to the b1 owner as a fix task. Each
-  track ends with its screenshot set shown to the owner before the next starts.
+  track ends with its screenshot set shown to the owner before the next starts. Owner 2026-10-31: Tracks 4-10 go on
+  without waiting for per-track approval; each track's set is saved and the owner reviews them together at the end.
 - Per biome, in order:
   1. Terrain profile.
   2. Atmosphere and audio.

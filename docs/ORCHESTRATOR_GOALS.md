@@ -56,5 +56,5 @@ from public anime Roblox games (general style only, nothing copied); section 5 s
 Deliverables:
 - b0 | BIOME_ENVIRONMENT_SPEC written (layers, budgets, pipeline, per-biome art direction) | owner reads it (DONE 2026-10-30, approved, merge 19ad0bf)
 - b1 | Environment framework: terrain + water builder, zone atmosphere client, ambient audio, mesh asset pipeline | its targeted scenarios green
-- b2 | Biomes 1-10 built end to end on the framework, one track at a time (owner 2026-10-30) | `environment` green; screenshots per track; owner visual review in Studio
+- b2 | Biomes 1-10 built end to end on the framework, one track at a time (owner 2026-10-30) | `environment` green; screenshots per track; owner visual review in Studio (owner 2026-10-31: Tracks 4-10 without per-track approval, reviewed together at the end)
 Out of scope: gameplay changes, track layout changes (w3 layouts stay).
