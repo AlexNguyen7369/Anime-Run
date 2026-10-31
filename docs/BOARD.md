@@ -1,19 +1,15 @@
 # Board
 
 ## Doing
+- b2 Track 5 Neon Cursed City (PirateCoast): ../AnimeRun-orch/t5 -> studio worktree; then Tracks 6-10
+- cam: track-aligned camera setting (owner 2026-10-31), ../AnimeRun-orch/cam (orch/core/cam), code only until Studio free
+- fw4: Blocks halls float in the 44-60 shoulder band (T4 15/34, worst 4.8 studs)
 
 ## Paused
 - b2 implementation PAUSED by owner 2026-10-31 after Track 3; resume on owner's "continue". Open fw2 items: 25 Docks houses + Track 1 VillageHouse (3.6) / ElderHouse (7.0) still float on slopes with Pad; TileRing max gap 11.4 (not ~0); 4 pinned heroes warn "reaches into a road corridor" (Landmark_259, _263, _315, _49); final screenshot set not retaken after fw2 rounds 5-6
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
-- fw3 framework follow-ups (FIRST on "continue"; code-only, no Studio until verify; branch orch/biomes/fw3 from feature/alex/anime-world):
-  (1) Pad houses still float >1 stud: 25 Docks houses (worst Warehouse/BigHarborHouse x~718, ~5 studs), Track 1
-  VillageHouse 3.6, ElderHouse 7.0; (2) TileRing (Track 2 Landmark_171) max gap 11.4, want ~0; (3) "pinned hero reaches
-  into a road corridor" for Landmark_259, _263, _315, _49 (decide: shrink/nudge pin or accept); (4) retake final
-  Track 1-3 shots (T1_Cliff, T1_StoneFace, T2_*, T3_*). Files: TerrainShape, BiomeDressing, theme modules.
-- b2 Track 4 Wisteria Night Mountain (Suburb): may run in parallel with fw3 for non-Studio work (research, meshes,
-  ledger, Suburb.luau) but must merge fw3 before its Studio verification; Studio one agent at a time.
 - b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
@@ -23,6 +19,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-10-31 b2 Track 4 Wisteria Night Mountain + fw3 (merge 4d1b112): pass=3 fail=0, 23 rows auditor-signed, no per-track approval (owner); fw3 houses gap 0 on T2, TileRing 0.7, 0 hero warnings; Creator Store backdoor skybox caught and removed (BUGS)
 - 2026-10-31 b2 Track 3 Pirate Harbor Isle + fw2 (merge d6b1402, pushed): OWNER APPROVED visuals; terrain_built, assets_ip, server_lighting_unchanged pass=3 fail=0 (terrain 27.1 s); 25-row ledger auditor-signed; fw2: embank on ramps, BasePivot bob, midline clamp slide/delete, 2-hero floor, pinned heroes never deleted + natural-height pads, house pads, Rock 8A6E52; Track 2 sand road, Embank + BiomeBob back on; Track 3 dock-wood road
 - 2026-10-31 t1-review: rules auditor signed Reviewed after close-up IP re-review, PASS (merge d058e8f, pushed)
 - 2026-10-31 b2 Track 2 Tournament Wasteland (merge cdf69e3): pass=3 fail=0, auditor-signed ledger (18 rows), screenshots shown to owner
