@@ -19,6 +19,7 @@ TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radiu
 TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + Dojos + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
+TerrainShape.PAD_BUCKET = 64 -- studs per bucket cell of the pad lookup (AddPad)
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
 -- placeholder: an Embank corridor sits EMBANK_BELOW under the lowest road Y within this many studs (grid nodes of the
 -- same track), so on a ramp it stays under the road at every point beside it, not only at the cell's own road point
@@ -439,10 +440,11 @@ end
 -- CLEARANCE is flat at y over every track's ridge and seam; outside it the pad blends out over the shoulder width.
 -- It never moves road or clear-box ground: inside any corridor the pad does nothing (a step at the corridor edge),
 -- and its outer blend fades to nothing at the corridor edge. Returns true when part of the footprint itself lies in
--- a corridor or clear box (that part stays corridor). Call after Prepare and before the terrain is built.
-function TerrainShape.AddPad(cf, size, y)
+-- a corridor or clear box (that part stays corridor). `margin` (default CLEARANCE) replaces the CLEARANCE growth:
+-- a house's pad (spec 3.2) is smaller. Call after Prepare and before the terrain is built.
+function TerrainShape.AddPad(cf, size, y, margin)
 	local half = (cf.RightVector * size.X):Abs() / 2 + (cf.LookVector * size.Z):Abs() / 2
-	local g = Vector2.one * TerrainShape.CLEARANCE
+	local g = Vector2.one * (margin or TerrainShape.CLEARANCE)
 	local c = Vector2.new(cf.Position.X, cf.Position.Z)
 	local lo, hi = c - Vector2.new(half.X, half.Z), c + Vector2.new(half.X, half.Z)
 	local inCorridor = false
@@ -452,8 +454,18 @@ function TerrainShape.AddPad(cf, size, y)
 			inCorridor = inCorridor or math.min(dA, (dc or math.huge) + TerrainShape.CORRIDOR) <= TerrainShape.CORRIDOR
 		end
 	end
+	-- bucket it into every PAD_BUCKET cell its blend reaches, so Column only scans the pads near it
+	local pad = { Min = lo - g, Max = hi + g, Y = y }
+	local reach = TerrainShape.SHOULDER - TerrainShape.CORRIDOR
 	state.Pads = state.Pads or {}
-	table.insert(state.Pads, { Min = lo - g, Max = hi + g, Y = y })
+	local B = TerrainShape.PAD_BUCKET
+	for i = math.floor((pad.Min.X - reach) / B), math.floor((pad.Max.X + reach) / B) do
+		for j = math.floor((pad.Min.Y - reach) / B), math.floor((pad.Max.Y + reach) / B) do
+			local key = i * 65536 + j
+			state.Pads[key] = state.Pads[key] or {}
+			table.insert(state.Pads[key], pad)
+		end
+	end
 	return inCorridor
 end
 
@@ -676,13 +688,15 @@ function TerrainShape.Column(x, z)
 		end
 	end
 	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
-	for _, pad in state.Pads or {} do
+	local bk = TerrainShape.PAD_BUCKET
+	for _, pad in state.Pads and state.Pads[math.floor(x / bk) * 65536 + math.floor(z / bk)] or {} do
 		local ex = math.max(pad.Min.X - x, 0, x - pad.Max.X)
 		local ez = math.max(pad.Min.Y - z, 0, z - pad.Max.Y)
-		local e = math.sqrt(ex * ex + ez * ez)
-		-- deA: the nearest road (any track) or clear box
-		local w = deA <= C and 0 or e == 0 and 1 or (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
-		y += (pad.Y - y) * w
+		if ex < S - C and ez < S - C and deA > C then -- deA: the nearest road (any track) or clear box
+			local e = math.sqrt(ex * ex + ez * ez)
+			local w = e == 0 and 1 or (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
+			y += (pad.Y - y) * w
+		end
 	end
 	local prof = state.Profiles[n] or {}
 	local mats = prof.Materials or DEFAULT_MATERIALS
