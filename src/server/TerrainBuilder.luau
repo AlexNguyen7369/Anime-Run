@@ -45,14 +45,16 @@ TerrainBuilder.PALETTE = {
 local function writeChunk(terrain, cx, cz)
 	local n = TerrainBuilder.CHUNK // RES
 	local h, water, mat, cliff, limit = table.create(n * n), {}, table.create(n * n), {}, {}
+	local holeLo, holeHi = {}, {} -- tunnel hollows (spec 3.5): no voxel from lo up to hi
 	local lo, hi = math.huge, -math.huge
 	for i = 1, n do
 		local x = cx + (i - 0.5) * RES
 		for k = 1, n do
 			local z = cz + (k - 0.5) * RES
 			local idx = (i - 1) * n + k
-			local y, w, m, c, l = TerrainShape.Column(x, z)
+			local y, w, m, c, l, tlo, thi = TerrainShape.Column(x, z)
 			h[idx], water[idx], mat[idx], cliff[idx], limit[idx] = y, w, m, c, l
+			holeLo[idx], holeHi[idx] = tlo, thi
 			lo = math.min(lo, y)
 			hi = math.max(hi, w or y)
 		end
@@ -82,12 +84,15 @@ local function writeChunk(terrain, cx, cz)
 					m = cliff[idx]
 				end
 			end
+			local tlo, thi = holeLo[idx], holeHi[idx]
 			for j = 1, ny do
 				local yb = y0 + (j - 1) * RES
-				local o = math.clamp((y - lift - yb) / RES, 0, 1)
+				-- under a tunnel's earth the column stops at the tunnel floor; the voxel at the hollow top stays air
+				local inHole = tlo and yb < thi
+				local o = math.clamp(((inHole and tlo or y) - lift - yb) / RES, 0, 1)
 				if o > 0 then
 					mi[j][k], oi[j][k] = m, o
-				elseif w and yb < w - lift then
+				elseif w and not inHole and yb < w - lift then
 					mi[j][k], oi[j][k] = M.Water, math.clamp((w - lift - yb) / RES, 0, 1)
 				else
 					mi[j][k], oi[j][k] = M.Air, 0

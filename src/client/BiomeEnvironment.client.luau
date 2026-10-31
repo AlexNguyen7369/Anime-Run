@@ -4,7 +4,8 @@
 -- value to the zone's profile over BLEND_SECONDS (sine ease); swaps (sky textures, reverb, particles) happen at the
 -- blend midpoint under a haze peak. Values the profile leaves out stay at the server's replicated value, and a
 -- server write (only WeatherService writes these) is kept as that value and re-applied over. REDUCED EFFECTS
--- (player attribute ReduceEffects) drops particles, one-shots, per-zone post-FX, shadows and far landmark detail.
+-- (player attribute ReduceEffects) drops particles, one-shots, per-zone post-FX, shadows and far landmark detail,
+-- and halves the tunnel lights (spec 3.5). An Underground profile has no sky and no weather mix.
 -- Client/BiomeAmbience (prop motion) and Client/BiomeMeshes (Lane C meshes) write no Lighting.
 local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
@@ -121,6 +122,14 @@ local reverbEntry = {
 }
 table.insert(entries, reverbEntry)
 
+-- Underground profiles (Atmosphere.Underground = true, spec 3.5): no sky, no sun, no clouds, so only the tunnel lights
+-- and Ambient light the scene. These win over the profile; its Ambient, OutdoorAmbient and Environment scales stay.
+local UNDERGROUND = {
+	Lighting = { ClockTime = 0, Brightness = 0 },
+	Sky = { StarCount = 0, CelestialBodiesShown = false },
+	Clouds = { Cover = 0 },
+}
+
 local zone, profile, audio = nil, Env.Profile(0), {}
 local blendStart = -math.huge
 local dirty = false
@@ -188,13 +197,15 @@ local function target(e)
 		v = row and row.Id
 	elseif e.Group == "Skybox" then
 		v = skyboxFace(e.Key)
+	elseif profile.Underground and UNDERGROUND[e.Group] and UNDERGROUND[e.Group][e.Key] ~= nil then
+		v = UNDERGROUND[e.Group][e.Key]
 	elseif not (e.Reduce and reduced()) then
 		local group = profile[e.Group]
 		v = group and group[e.Key]
 	end
 	if v == nil then
 		return e.Server
-	elseif e.Mix and weatherActive() then
+	elseif e.Mix and weatherActive() and not profile.Underground then -- no weather underground (spec 3.5)
 		return lerp(v, e.Server, Env.WEATHER_MIX)
 	end
 	return v
@@ -417,9 +428,56 @@ local function applyShadow(part)
 	end
 end
 CollectionService:GetInstanceAddedSignal("BiomeAsset"):Connect(applyShadow)
+
+-- Tunnel light strips (spec 3.5; tag TunnelLight = Shared/Tunnel.LIGHT_TAG, attribute Index): REDUCED EFFECTS hides
+-- every second strip and stops the flicker; otherwise one strip in FLICKER_EVERY flickers while near the camera
+local LIGHT_TAG = "TunnelLight"
+local FLICKER_EVERY = 11 -- placeholder: "a few lights flicker"
+local FLICKER_DISTANCE = 300 -- placeholder: studs from the camera
+local flickers = {} -- strip -> its SurfaceLight's server Brightness
+local function applyLight(strip)
+	local index = strip:GetAttribute("Index")
+	local light = strip:FindFirstChildOfClass("SurfaceLight")
+	if type(index) ~= "number" then
+		return
+	end
+	if light and index % FLICKER_EVERY == 0 and not flickers[strip] then
+		flickers[strip] = light.Brightness
+	end
+	local off = reduced() and index % 2 == 0
+	strip.LocalTransparencyModifier = off and 1 or 0
+	if light then
+		light.Enabled = not off
+		light.Brightness = flickers[strip] or light.Brightness
+	end
+end
+CollectionService:GetInstanceAddedSignal(LIGHT_TAG):Connect(applyLight)
+CollectionService:GetInstanceRemovedSignal(LIGHT_TAG):Connect(function(strip)
+	flickers[strip] = nil
+end)
+RunService.Heartbeat:Connect(function()
+	local camera = Workspace.CurrentCamera
+	if reduced() or not camera or next(flickers) == nil then
+		return
+	end
+	local eye, t = camera.CFrame.Position, os.clock()
+	for strip, brightness in flickers do
+		local light = strip:FindFirstChildOfClass("SurfaceLight")
+		if light and (strip.Position - eye).Magnitude < FLICKER_DISTANCE then
+			-- short dark stutters: noise below the threshold blanks the strip
+			local dark = math.noise(t * 7, strip:GetAttribute("Index") * 0.37) < -0.25
+			light.Brightness = dark and brightness * 0.1 or brightness
+			strip.LocalTransparencyModifier = dark and 0.6 or 0
+		end
+	end
+end)
+
 local function applyQuality()
 	for _, part in CollectionService:GetTagged("BiomeAsset") do
 		applyShadow(part)
+	end
+	for _, strip in CollectionService:GetTagged(LIGHT_TAG) do
+		applyLight(strip)
 	end
 	dirty = true
 end

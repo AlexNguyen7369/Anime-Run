@@ -521,10 +521,10 @@ Owner redesign 2026-10-31 (the Jogo vs Sukuna fire fight). Every value below is 
 ### Track 7: Shibuyo Underground (`Desert`)
 Owner redesign 2026-10-31 (the Shibuya Incident subway); replaces Blossom Shrine Path. Every value below is a
 placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
-- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 60, Height 20, Ceramic tile walls, Concrete
-  ceiling and floor. Above it, the ridge covers the tunnel as earth (Ground, Rock; option A, owner
+- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 60, Height 20, CeramicTiles walls, Concrete
+  ceiling and Floor (the `Floor` field, fw5 2026-10-31). Above it, the ridge covers the tunnel as earth (Ground, Rock; option A, owner
   2026-10-31). `Embank = false`.
-- **Tunnel bays** (`Bays`): 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Both, Depth 60,
+- **Tunnel bays** (`Bays`): 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Left, orchestrator default 2026-10-31: Both reached Track 6's corridor; Depth 60,
   Height 40: ticket gates, escalators, an atrium void); 0.58-0.63 second platform (Right, Depth 40); 0.82-0.90 the
   deep main platform hall (Both, Depth 50, Height 30). Portals at the start and finish.
 - **Hero landmarks** (each inside a bay):

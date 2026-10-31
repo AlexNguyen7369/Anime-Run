@@ -26,6 +26,7 @@ TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far b
 TerrainShape.EMBANK_REACH = 24
 TerrainShape.CRATER_TRIES = 4 -- placeholder: candidate spots per pit before a track gives up on it
 TerrainShape.CLEARANCE = require(script.Parent.BiomeDressing).CLEARANCE -- clear boxes grow by this
+local Tunnel = require(script.Parent.Tunnel)
 
 local G = TerrainShape.GROUND_TOP
 local M = Enum.Material
@@ -410,7 +411,60 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			Max = hi + Vector2.one * (20 + TerrainShape.SKIRT),
 		},
 	}
-	-- 4. Craters (spec 3.3): pit centres on random polyline points, pushed sideways into the ridge band. A spot is
+	-- 4. Tunnels (spec 3.5, option A): each tunnel segment as a flat box in XZ, bucketed like the pads. Column keeps
+	-- the box (walls, ceiling and a voxel of margin) clear of voxels and heaps earth over it.
+	for _, e in entries do
+		local theme = Themes[e.Biome]
+		if theme and theme.Tunnel then
+			state.Tunnels = state.Tunnels or {}
+			local segs, s0, s1 = Tunnel.Segments(e.Layout, e.Origin, theme.Tunnel)
+			local B = TerrainShape.PAD_BUCKET
+			for _, seg in segs do
+				local cf, look = seg.CFrame, seg.CFrame.LookVector
+				local f = Vector2.new(look.X, look.Z).Unit
+				local box = {
+					N = e.Number,
+					C = Vector2.new(cf.Position.X, cf.Position.Z),
+					F = f,
+					R = Vector2.new(-f.Y, f.X),
+					HZ = seg.Length * seg.Flat / 2 + Tunnel.MARGIN,
+					Y = cf.Position.Y,
+					Slope = look.Y / seg.Flat,
+					Left = seg.Left + Tunnel.WALL + Tunnel.MARGIN,
+					Right = seg.Right + Tunnel.WALL + Tunnel.MARGIN,
+					Top = seg.Height + Tunnel.CEILING + Tunnel.MARGIN,
+					Mid = (seg.From + seg.To) / 2,
+					-- the earth starts PORTAL / 2 inside each portal facade, so its cut face never shows
+					M0 = s0 + Tunnel.PORTAL / 2,
+					M1 = s1 - Tunnel.PORTAL / 2,
+				}
+				-- a box must stay out of every other track's corridor (spec 2.2): warn about a bay that reaches one
+				for _, side in { -box.Left, box.Right } do
+					local p = box.C + box.R * side
+					local near, d = sample(p.X, p.Y)
+					if near ~= e.Number and d <= TerrainShape.CORRIDOR then
+						warn(
+							string.format(
+								"[TUNNEL] track %d at %.0f studs: the tunnel reaches track %d's corridor",
+								e.Number,
+								box.Mid,
+								near
+							)
+						)
+					end
+				end
+				local span = math.max(box.Left, box.Right) + Tunnel.BLEND + box.HZ
+				for i = math.floor((box.C.X - span) / B), math.floor((box.C.X + span) / B) do
+					for j = math.floor((box.C.Y - span) / B), math.floor((box.C.Y + span) / B) do
+						local key = i * 65536 + j
+						state.Tunnels[key] = state.Tunnels[key] or {}
+						table.insert(state.Tunnels[key], box)
+					end
+				end
+			end
+		end
+	end
+	-- 5. Craters (spec 3.3): pit centres on random polyline points, pushed sideways into the ridge band. A spot is
 	-- kept only when the grid says it is track n's own ridge, so a hairpin or a neighbour's road never gets one.
 	for n, prof in profiles do
 		local cr = prof.Craters
@@ -695,8 +749,44 @@ local function biomeY(n, d, x, z, roadY, dc, p)
 	return base + (y - base) * smooth((de - C) / (S - C)), band, shape, de, rules
 end
 
+-- Tunnels at (x, z) (spec 3.5): top y raised to the earth over any tunnel box near it, and the hollow (lo, hi) when
+-- (x, z) is inside a box: no voxel between road Y - 2 (the corridor ground under the road) and the ceiling top plus
+-- MARGIN. The earth slopes off over BLEND studs, fades out before another track's corridor and never covers a clear
+-- box; along the road it starts and ends inside the portal facades.
+local function tunnelAt(list, x, z, y, A, dA, dc)
+	local lo, hi, top = nil, nil, y
+	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
+	local covered = false
+	for _, b in list do
+		local dx, dz = x - b.C.X, z - b.C.Y
+		local lz = dx * b.F.X + dz * b.F.Y
+		if math.abs(lz) <= b.HZ then
+			local lx = dx * b.R.X + dz * b.R.Y
+			local road = b.Y + b.Slope * lz
+			local e = math.abs(lx) - (lx < 0 and b.Left or b.Right)
+			if e <= 0 then
+				lo = math.min(lo or math.huge, road - Tunnel.ROAD)
+				hi = math.max(hi or -math.huge, road + b.Top)
+			end
+			local s = b.Mid + lz
+			if e < Tunnel.BLEND and s >= b.M0 and s <= b.M1 and dc > 0 then
+				local w = e <= 0 and 1 or 1 - smooth(e / Tunnel.BLEND)
+				if A ~= b.N then
+					w *= smooth((dA - C) / (S - C))
+				end
+				local roof = road + b.Top + Tunnel.COVER
+				if roof > y then
+					top = math.max(top, y + (roof - y) * w)
+				end
+				covered = covered or e <= 0
+			end
+		end
+	end
+	return top, lo, hi, covered
+end
+
 -- The column at (x, z): top Y, water top (or nil), its material, the cliff material and slope limit (nil in the
--- corridor). Materials dither across the seam (spec 2.3).
+-- corridor), and the tunnel hollow (bottom, top) or nil. Materials dither across the seam (spec 2.3).
 function TerrainShape.Column(x, z)
 	local A, dA, B, dB, roadY, dc, pA, pB = sample(x, z)
 	local yA, bandA, shapeA, deA, secA = biomeY(A, dA, x, z, roadY, dc, pA)
@@ -711,6 +801,12 @@ function TerrainShape.Column(x, z)
 	end
 	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
 	local bk = TerrainShape.PAD_BUCKET
+	-- tunnel earth before the pads, so a pad levels at the height Height gives it
+	local lo, hi, covered
+	local tunnels = state.Tunnels and state.Tunnels[math.floor(x / bk) * 65536 + math.floor(z / bk)]
+	if tunnels then
+		y, lo, hi, covered = tunnelAt(tunnels, x, z, y, A, dA, dc)
+	end
 	for _, pad in state.Pads and state.Pads[math.floor(x / bk) * 65536 + math.floor(z / bk)] or {} do
 		local dx, dz = x - pad.C.X, z - pad.C.Y
 		local ex = math.max(math.abs(dx * pad.R.X + dz * pad.R.Y) - pad.HX, 0)
@@ -724,11 +820,14 @@ function TerrainShape.Column(x, z)
 			y += (pad.Y - y) * (1 - smooth(e / (S - C))) * smooth((deA - C) / (S - C))
 		end
 	end
+	if covered then
+		y = math.max(y, hi + Tunnel.MARGIN) -- at least one voxel of earth over the hollow, pads or not
+	end
 	local prof = state.Profiles[n] or {}
 	local mats = prof.Materials or DEFAULT_MATERIALS
 	local own = sec and sec.Material -- a section's Material is its corridor and ridge material
 	if band == "Corridor" then
-		return y, nil, own or mats.Corridor or DEFAULT_MATERIALS.Corridor, nil, nil
+		return y, nil, own or mats.Corridor or DEFAULT_MATERIALS.Corridor, nil, nil, lo, hi
 	end
 	local water = sec and sec.Water or prof.Water
 	local wet = shape == "Water" or (water and water.Where == band)
@@ -740,11 +839,13 @@ function TerrainShape.Column(x, z)
 		or own
 		or mats.Ridge
 		or DEFAULT_MATERIALS.Ridge
-	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9
+	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9, lo, hi
 end
 
+-- The ground a prop stands on: the top, or the tunnel floor inside a tunnel box
 function TerrainShape.Height(x, z)
-	return (TerrainShape.Column(x, z))
+	local y, _, _, _, _, lo = TerrainShape.Column(x, z)
+	return lo or y
 end
 
 -- Zone of (x, z) from the grid: 0 inside the plaza radius, else the nearest track
