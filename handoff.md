@@ -102,3 +102,8 @@
   parallel, uncommitted. Rojo 34873 serves the b1 worktree. Studio id fc533734-a2a5-4b22-baf0-f95aad5edbb6.
   Next: verify b1 (stylua, selene, scenarios terrain_built, zone_switch, server_lighting_unchanged, assets_ip),
   audit, land; then b2 Track 1 (Speedway, Leafwind Village) -> screenshots to owner.
+- 2026-10-30 b1 LANDED (merge b289cb8, pushed): 4 b1 scenarios pass in Studio fc533734 (terrain 27.0 s, 1600 chunks);
+  audit FAIL (2 ledger bypasses in BiomeEnvironment.client) fixed. Owner: skybox ledger rows one Id or 6 Faces;
+  optional `Craters` terrain field (spec 3.3). Running: Track 1 builder in ../AnimeRun-orch/t1 (orch/biomes/t1,
+  holds Studio; Rojo 34873 serves t1); Craters framework in ../AnimeRun-orch/craters (no Studio). Next: IP review
+  of Track 1 screenshots, land t1, show owner 3 screenshots, then Track 2 (needs craters landed).
