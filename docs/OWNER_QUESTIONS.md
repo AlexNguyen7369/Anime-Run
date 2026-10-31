@@ -54,3 +54,13 @@
   so it never floats; pads never overlap (9 Docks houses removed by that rule).
 - Chosen as the recommended fix (houses gap 0, TileRing gap 0, 0 warnings in the Lune harness). Spec 3.2 fw3 bullet.
   Review in the morning; revert = commit on orch/biomes/fw3.
+
+## Morning review list (overnight run, 2026-10-31)
+- Track 5 Neon Cursed City still reads very dark in T5_Road / T5_Landmark even after the builder raised the placeholder
+  lighting; proposed: raise Ambient/OutdoorAmbient further or lower Atmosphere Density 0.5 -> 0.35 (spec 7 value).
+- Track 4 night was brightened after its scenario run (client atmosphere only).
+- Track camera: session-only setting (TrackCamera attribute), not saved across sessions, like the other toggles.
+- fw4 (orchestrator default): halls in narrow gaps sit at road level (Track 4: 22 of 35) instead of being dropped; 7 fewer padded props kept overall.
+- Track 6: billboards show abstract shapes, not made-up text (spec 7 wording; avoids the generator writing real words).
+  ToppledRobot hero ~31 x 25 x 31 placed (under the placeholder 60-220 hero height; the mesh generator caps short sides
+  at ~16 studs). AcademyTower stretched 2.6x vertically to ~200 placed.
