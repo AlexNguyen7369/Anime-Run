@@ -157,3 +157,8 @@
 - 2026-10-31 OWNER: finish Track 5 redesign (Jogo vs Sukuna burning city, night) and Track 7 (Shibuya Incident subway,
   full tunnel + platforms), then PAUSE. Tracks 8-10 resume 2026-11-03 (Track 8 = Skypeia, rival Enelu [Enel]).
   Doc rulings on orch/biomes/redesign (uncommitted until the research agent finishes the spec rewrite).
+- t9 mesh ids generated before the pause (not yet in Volcano.luau; mesh / texture): PalaceTower 119149403207359 /
+  76635598272222; BoneArch 110904618566239 / 75741383222967; CrystalGrove 130820802100278 / 92159538463265; DomePalace
+  124094406088392 / 119854563443296 (squat); DeadWhiteTree 105854949421877 / 109452863592933; CrystalTree
+  130960597807577 / 78285130678274; WhiteOutcrop 115443145387024 / 120675993065195; BrokenPillar 92998731248487 /
+  75950047585759. No close-ups yet; nothing uploaded.
