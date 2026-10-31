@@ -20,6 +20,7 @@ TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
 TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + Dojos + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
+TerrainShape.CRATER_TRIES = 4 -- placeholder: candidate spots per pit before a track gives up on it
 TerrainShape.CLEARANCE = require(script.Parent.BiomeDressing).CLEARANCE -- clear boxes grow by this
 
 local G = TerrainShape.GROUND_TOP
@@ -31,6 +32,7 @@ local NONE = 255 -- u8 sentinel: no track
 local REC = 10 -- bytes per node: u8 t1, u8 t2, u16 d1*4, u16 d2*4, i16 roadY*8, u16 dc*4
 
 local state = nil -- set by Prepare
+local sample -- grid lookup, defined below Prepare (which places craters with it)
 
 local function clamp01(x)
 	return x < 0 and 0 or x > 1 and 1 or x
@@ -39,6 +41,11 @@ end
 local function smooth(x)
 	x = clamp01(x)
 	return x * x * (3 - 2 * x)
+end
+
+local function hash(x, z)
+	local h = math.sin(x * 12.9898 + z * 78.233) * 43758.5453
+	return h - math.floor(h)
 end
 
 local function q16(d)
@@ -279,6 +286,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 	state = {
 		Buf = buf,
+		Pits = {},
 		X0 = x0,
 		Z0 = z0,
 		NX = nx,
@@ -293,6 +301,30 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			Max = hi + Vector2.one * (20 + TerrainShape.SKIRT),
 		},
 	}
+	-- 4. Craters (spec 3.3): pit centres on random polyline points, pushed sideways into the ridge band. A spot is
+	-- kept only when the grid says it is track n's own ridge, so a hairpin or a neighbour's road never gets one.
+	for n, prof in profiles do
+		local cr = prof.Craters
+		local poly = polys[n]
+		if cr and poly and #poly >= 2 then
+			local S, MID = TerrainShape.SHOULDER, TerrainShape.MIDLINE
+			local pits = {}
+			local tries = 0
+			while #pits < (cr.Count or 12) and tries < (cr.Count or 12) * TerrainShape.CRATER_TRIES do
+				tries += 1
+				local k = math.clamp(1 + math.floor(hash(n * 7.31, tries * 1.17) * #poly), 1, #poly)
+				local a, b = poly[math.max(1, k - 1)], poly[math.min(#poly, k + 1)]
+				local dir = (b - a).Unit
+				local side = hash(tries * 3.7, n * 0.53) < 0.5 and -1 or 1
+				local c = poly[k] + Vector2.new(-dir.Y, dir.X) * side * (S + hash(n * 1.9, tries * 5.3) * (MID - S))
+				local A, dA = sample(c.X, c.Y)
+				if A == n and dA >= S then
+					table.insert(pits, c)
+				end
+			end
+			state.Pits[n] = { Centres = pits, Radius = cr.Radius or 40, Depth = cr.Depth or 8 }
+		end
+	end
 end
 
 function TerrainShape.Ready()
@@ -341,7 +373,7 @@ end
 
 -- Nearest track A, its distance, second track B (or nil), its distance, road Y and clear-box distance at (x, z),
 -- bilinear between nodes where all four corners know the track (the nearest node's values otherwise)
-local function sample(x, z)
+function sample(x, z)
 	local CELL, buf = TerrainShape.CELL, state.Buf
 	local fx, fz = (x - state.X0) / CELL, (z - state.Z0) / CELL
 	if fx < 0 or fz < 0 or fx > state.NX - 1 or fz > state.NZ - 1 then
@@ -443,12 +475,20 @@ local function biomeY(n, d, x, z, roadY, dc)
 			band, shape = "Far", prof.Far.Shape or "Hills"
 		end
 	end
+	local pits = state.Pits[n]
+	if pits then
+		-- smooth bowl, zero slope at its rim; it only lowers, and the shoulder blend below zeroes it at the corridor
+		local rad, dip = pits.Radius, 0
+		for _, c in pits.Centres do
+			local dx, dz = x - c.X, z - c.Y
+			local r2 = (dx * dx + dz * dz) / (rad * rad)
+			if r2 < 1 then
+				dip = math.max(dip, pits.Depth * (1 - r2) * (1 - r2)) -- overlapping pits never dig past Depth
+			end
+		end
+		y -= dip
+	end
 	return base + (y - base) * smooth((de - C) / (S - C)), band, shape, de
-end
-
-local function hash(x, z)
-	local h = math.sin(x * 12.9898 + z * 78.233) * 43758.5453
-	return h - math.floor(h)
 end
 
 -- The column at (x, z): top Y, water top (or nil), its material, the cliff material and slope limit (nil in the
