@@ -30,6 +30,10 @@ local DEFAULT_RIDGE = { Shape = "Hills", Height = 12 }
 local FAR = 65535 -- u16 sentinel: not stamped
 local NONE = 255 -- u8 sentinel: no track
 local REC = 10 -- bytes per node: u8 t1, u8 t2, u16 d1*4, u16 d2*4, i16 roadY*8, u16 dc*4
+-- Sections grid (only built when some biome has Sections), 4 bytes per node: u16 p1, u16 p2 for tracks t1, t2.
+-- p = q * 2 + inner, q = the nearest centre-line point's length fraction * POS_Q; FAR when unknown (coarse nodes).
+local POS_Q = 32766
+local WATER_RIDGE = { Shape = "Water" } -- a section with Water but no Ridge dips into a basin, so the water shows
 
 local state = nil -- set by Prepare
 local sample -- grid lookup, defined below Prepare (which places craters with it)
@@ -62,7 +66,8 @@ local function segment(px, pz, ax, az, bx, bz)
 end
 
 -- Offers distance d of track n (road Y y) to node k: keeps the nearest and the nearest other track
-local function offer(buf, k, n, d, y)
+-- (and its section position p into sec, when given)
+local function offer(buf, k, n, d, y, sec, p)
 	local o = k * REC
 	local qd = q16(d)
 	local d1 = buffer.readu16(buf, o + 2)
@@ -70,6 +75,9 @@ local function offer(buf, k, n, d, y)
 		buffer.writeu8(buf, o, n)
 		buffer.writeu16(buf, o + 2, qd)
 		buffer.writei16(buf, o + 6, math.clamp(math.floor(y * 8 + 0.5), -32768, 32767))
+		if sec then
+			buffer.writeu16(sec, k * 4, p)
+		end
 	end
 	if buffer.readu8(buf, o) == n then
 		if qd < d1 then
@@ -78,10 +86,16 @@ local function offer(buf, k, n, d, y)
 	elseif qd < d1 then
 		buffer.writeu8(buf, o + 1, buffer.readu8(buf, o)) -- the old nearest becomes the second
 		buffer.writeu16(buf, o + 4, d1)
+		if sec then
+			buffer.writeu16(sec, k * 4 + 2, buffer.readu16(sec, k * 4))
+		end
 		setFirst()
 	elseif qd < buffer.readu16(buf, o + 4) then
 		buffer.writeu8(buf, o + 1, n)
 		buffer.writeu16(buf, o + 4, qd)
+		if sec then
+			buffer.writeu16(sec, k * 4 + 2, p)
+		end
 	end
 end
 
@@ -165,6 +179,45 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	local function node(i, j)
 		return j * nx + i
 	end
+	local profiles = {}
+	for n, key in biomes do
+		local theme = Themes[key]
+		profiles[n] = theme and theme.Terrain or {}
+	end
+
+	-- Sections (spec 3.3): per track its XZ length, and which side of the centre line is Inner (toward the plaza at
+	-- the world origin). Inner is fixed per track by its winding around the origin: the sum of cross(a, b) over its
+	-- segments is twice the signed area it sweeps, and the origin lies on the side of travel that sign points to,
+	-- so a point is Inner when cross(b - a, p - a) has the same sign. One rule per track never flips on a radial
+	-- or wiggly stretch, as a per-segment "direction to origin" test would.
+	local sec, sections, lengths, cum, wind = nil, {}, {}, {}, {}
+	for n, prof in profiles do
+		if prof.Sections and tracks[n] then
+			local pts, c, area = tracks[n], { 0 }, 0
+			for k = 2, #pts do
+				local a, b = pts[k - 1], pts[k]
+				c[k] = c[k - 1] + Vector2.new(b.X - a.X, b.Z - a.Z).Magnitude
+				area += a.X * b.Z - a.Z * b.X
+			end
+			cum[n], lengths[n], wind[n] = c, math.max(c[#pts], 1), area >= 0 and 1 or -1
+			sections[n] = {}
+			for _, def in prof.Sections do
+				table.insert(sections[n], {
+					From = (def.From or 0) * lengths[n],
+					To = (def.To or 1) * lengths[n],
+					Side = def.Side or "Both",
+					Ridge = def.Ridge or (def.Water and WATER_RIDGE) or nil,
+					Water = def.Water,
+					Material = def.Material,
+					Prof = { Water = def.Water or prof.Water }, -- what shapeY reads for the water level
+				})
+			end
+			if not sec then
+				sec = buffer.create(nx * nz * 4)
+				buffer.fill(sec, 0, 255)
+			end
+		end
+	end
 
 	-- 1. Stamp every segment within STAMP studs
 	local work = 0
@@ -181,7 +234,14 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 					local px = x0 + i * CELL
 					local d, t = segment(px, pz, a.X, a.Z, b.X, b.Z)
 					if d <= STAMP then
-						offer(buf, node(i, j), n, d, a.Y + (b.Y - a.Y) * t)
+						local p = FAR
+						if cum[n] then
+							local c = cum[n]
+							local q = math.floor((c[k - 1] + (c[k] - c[k - 1]) * t) / lengths[n] * POS_Q + 0.5)
+							local cross = (b.X - a.X) * (pz - a.Z) - (b.Z - a.Z) * (px - a.X)
+							p = q * 2 + (cross * wind[n] > 0 and 1 or 0)
+						end
+						offer(buf, node(i, j), n, d, a.Y + (b.Y - a.Y) * t, sec, p)
 					end
 				end
 			end
@@ -279,13 +339,10 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			radius = math.max(radius, p.Magnitude)
 		end
 	end
-	local profiles = {}
-	for n, key in biomes do
-		local theme = Themes[key]
-		profiles[n] = theme and theme.Terrain or {}
-	end
 	state = {
 		Buf = buf,
+		Sec = sec,
+		Sections = sections,
 		Pits = {},
 		X0 = x0,
 		Z0 = z0,
@@ -293,6 +350,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 		NZ = nz,
 		Last = last,
 		Polys = polys,
+		Lengths = lengths,
 		Profiles = profiles,
 		PlazaRadius = #plaza > 0 and radius + TerrainShape.PLAZA_MARGIN or 0,
 		-- the world box: every centre line plus the road half-width and the skirt
@@ -422,7 +480,12 @@ function sample(x, z)
 		u,
 		v
 	)
-	return A, dA, B ~= NONE and B or nil, dB, roadY, dc
+	local pA, pB
+	if state.Sec then
+		local k = near // REC * 4
+		pA, pB = buffer.readu16(state.Sec, k), buffer.readu16(state.Sec, k + 2)
+	end
+	return A, dA, B ~= NONE and B or nil, dB, roadY, dc, pA, pB
 end
 
 local function noise(R, x, z, seed)
@@ -453,21 +516,44 @@ local function shapeY(R, r, x, z, seed, prof)
 end
 
 -- One biome's top at distance d from its track: corridor, shoulder rise, ridge, and Far for the last track.
--- Also returns the band ("Corridor", "Ridge" or "Far") and that band's shape.
-local function biomeY(n, d, x, z, roadY, dc)
+-- Also returns the band ("Corridor", "Ridge" or "Far"), that band's shape, de, and the section that rules here (its
+-- blend weight >= 0.5) or nil. p is the node's section position of track n (see the Sections grid).
+local function biomeY(n, d, x, z, roadY, dc, p)
 	local prof = state.Profiles[n] or {}
 	local C, S, MID = TerrainShape.CORRIDOR, TerrainShape.SHOULDER, TerrainShape.MIDLINE
+	local sec, sw = nil, 0
+	if state.Sections[n] and p and p ~= FAR then
+		local at = (p // 2) / POS_Q * state.Lengths[n]
+		local inner = p % 2 == 1
+		for _, s in state.Sections[n] do
+			if s.Side == "Both" or (s.Side == "Inner") == inner then
+				-- 0.5 on the From / To line, blended over SEAM studs of track length
+				local w = clamp01(0.5 + math.min(at - s.From, s.To - at) / TerrainShape.SEAM)
+				if w > sw then
+					sec, sw = s, w
+				end
+			end
+		end
+	end
+	local rules = sw >= 0.5 and sec or nil
 	local de = math.min(d, (dc or math.huge) + C) -- clear boxes are corridor too
 	local base = G
 	if prof.Embank and d <= S and dc + C > d then
 		base = math.max(G, roadY - TerrainShape.EMBANK_BELOW)
 	end
 	if de <= C then
-		return base, "Corridor", nil, de
+		return base, "Corridor", nil, de, rules
 	end
 	local R = prof.Ridge or DEFAULT_RIDGE
-	local y = shapeY(R, clamp01((de - S) / (MID - S)), x, z, n, prof)
+	local r = clamp01((de - S) / (MID - S))
+	local y = shapeY(R, r, x, z, n, prof)
 	local band, shape = "Ridge", R.Shape or "Hills"
+	if sec and sec.Ridge then
+		y += (shapeY(sec.Ridge, r, x, z, n, sec.Prof) - y) * sw
+		if rules then
+			shape = sec.Ridge.Shape or "Hills"
+		end
+	end
 	if prof.Far and n == state.Last and de > MID then
 		local f = smooth((de - MID) / TerrainShape.FAR_BLEND)
 		y += (shapeY(prof.Far, 1, x, z, n + 100, prof) - y) * f
@@ -488,35 +574,37 @@ local function biomeY(n, d, x, z, roadY, dc)
 		end
 		y -= dip
 	end
-	return base + (y - base) * smooth((de - C) / (S - C)), band, shape, de
+	return base + (y - base) * smooth((de - C) / (S - C)), band, shape, de, rules
 end
 
 -- The column at (x, z): top Y, water top (or nil), its material, the cliff material and slope limit (nil in the
 -- corridor). Materials dither across the seam (spec 2.3).
 function TerrainShape.Column(x, z)
-	local A, dA, B, dB, roadY, dc = sample(x, z)
-	local yA, bandA, shapeA = biomeY(A, dA, x, z, roadY, dc)
-	local y, n, band, shape = yA, A, bandA, shapeA
+	local A, dA, B, dB, roadY, dc, pA, pB = sample(x, z)
+	local yA, bandA, shapeA, _, secA = biomeY(A, dA, x, z, roadY, dc, pA)
+	local y, n, band, shape, sec = yA, A, bandA, shapeA, secA
 	if B and dB - dA < TerrainShape.SEAM / 2 then
 		local w = clamp01(0.5 + (dB - dA) / TerrainShape.SEAM)
-		local yB, bandB, shapeB = biomeY(B, dB, x, z, roadY, dc)
+		local yB, bandB, shapeB, _, secB = biomeY(B, dB, x, z, roadY, dc, pB)
 		y = yA * w + yB * (1 - w)
 		if hash(x, z) >= w then
-			n, band, shape = B, bandB, shapeB
+			n, band, shape, sec = B, bandB, shapeB, secB
 		end
 	end
 	local prof = state.Profiles[n] or {}
 	local mats = prof.Materials or DEFAULT_MATERIALS
+	local own = sec and sec.Material -- a section's Material is its corridor and ridge material
 	if band == "Corridor" then
-		return y, nil, mats.Corridor or DEFAULT_MATERIALS.Corridor, nil, nil
+		return y, nil, own or mats.Corridor or DEFAULT_MATERIALS.Corridor, nil, nil
 	end
-	local water = prof.Water
+	local water = sec and sec.Water or prof.Water
 	local wet = shape == "Water" or (water and water.Where == band)
 	local waterY = wet and (water and water.Level or -3) or nil
 	if waterY and y >= waterY then
 		waterY = nil
 	end
 	local surface = (waterY or shape == "Drop") and (mats.Bed or DEFAULT_MATERIALS.Bed)
+		or own
 		or mats.Ridge
 		or DEFAULT_MATERIALS.Ridge
 	return y, waterY, surface, mats.Cliff or DEFAULT_MATERIALS.Cliff, prof.CliffSlope or 0.9
