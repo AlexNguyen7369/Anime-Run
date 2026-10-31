@@ -59,5 +59,6 @@ return {
 		"zone_switch",
 		"server_lighting_unchanged",
 		"assets_ip",
+		"tunnel_clear", -- spec 3.5: tunnel roof >= 12 over the road, clear of checkpoints
 	},
 }
