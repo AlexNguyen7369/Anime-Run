@@ -1,7 +1,8 @@
 # Board
 
 ## Doing
-- b2 Track 2 Tournament Wasteland (orch/biomes/t2 in ../AnimeRun-orch/studio)
+- b2 Track 3 Pirate Harbor Isle (orch/biomes/t3 in ../AnimeRun-orch/studio)
+- fw2 framework fixes: embank on ramps, bob pivot, midline clamp, hero overhang (orch/biomes/fw2)
 - t1-review: auditor close-up review + Reviewed signatures for Track 1 ledger (gate, waterfall, towers, stall close-ups); rock colour retune
 
 ## Paused
@@ -17,6 +18,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-10-31 b2 Track 2 Tournament Wasteland (merge cdf69e3): pass=3 fail=0, auditor-signed ledger (18 rows), screenshots shown to owner
 - 2026-10-31 b2 Track 1 Leafwind Village (merge 23a0ffc, OWNER APPROVED 2026-10-31 from screenshots): terrain_built, assets_ip, server_lighting_unchanged pass=3 fail=0; framework: craters, sections, At pin, road z-fight, snap; audit FAIL (builder-signed Reviewed, 4 meshes need close-ups) -> t1-review
 - 2026-10-30 b1 Biome environment framework (merge b289cb8): terrain_built, zone_switch, server_lighting_unchanged, assets_ip all pass; terrain 27.0 s / 1600 chunks; audit FAIL fixed (ledger bypass in client); owner: skybox Faces rows, Craters field
 - 2026-10-30 b0 BIOME_ENVIRONMENT_SPEC approved (merge 19ad0bf); owner: free Creator Store assets (Lane D), one track at a time

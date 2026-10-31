@@ -115,3 +115,9 @@
   screen_capture with no camera args. Rojo: after a rojo restart the owner must click Connect; sync can land after
   Play starts - check Source in Edit before Play. Framework fixes running on orch/biomes/craters: Sections, hero At
   pin, mesh = 1 budget part, road z-fight (terrain top == road top), SnapToTerrain buries props (lowest of 5).
+- 2026-10-31: Track 1 OWNER APPROVED (screenshots). Track 2 LANDED (cdf69e3): pass=3 fail=0, 18 ledger rows signed by
+  the rules auditor (new rule: builder saves close-ups to assets/biomes/<Key>/review/, auditor signs Reviewed, then
+  Play + shots). Rojo serves the FIXED worktree ../AnimeRun-orch/studio (switch its branch per track; no reconnect).
+  Running: Track 3 builder (studio, orch/biomes/t3, holds Studio), fw2 framework fixes (../AnimeRun-orch/fw2),
+  Track 1 re-review sign-off (../AnimeRun-orch/t1review). Open: rock colour #7C8C99 reads blue (retune), Track 2
+  shots awaiting owner review.
