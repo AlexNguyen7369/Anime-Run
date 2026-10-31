@@ -149,6 +149,12 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the
   racing Team train there and multiply idle Speed gain. A character is in the Team or the Dojo squad, never both.
 
+### 4.12 Track camera (owner 2026-10-31)
+- While the local player's runner is racing, the camera yaw follows the runner's direction of travel along the track,
+  like shift-lock. The player still pitches and zooms; turns are smoothed, never snapped.
+- A Settings toggle, TRACK CAMERA, switches it. Off = the regular camera, as before. Default ON (placeholder).
+- Client-only display; no server number changes. Spec: `docs/CAMERA_SPEC.md`.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -190,6 +196,8 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-31: owner request: track camera, yaw aligned with the runner's travel while racing, Settings toggle
+  TRACK CAMERA, off = regular camera (4.12, `docs/CAMERA_SPEC.md`).
 - 2026-10-31: owner: Track 1 gate plaque may stay blank (BIOME_ENVIRONMENT_SPEC 7).
 - 2026-10-30: owner: skybox ledger rows take one Id or 6 Faces; optional terrain `Craters` profile field (Track 2) (BIOME_ENVIRONMENT_SPEC 3.3, 4.4).
 - 2026-10-30: owner: optional terrain `Sections` field (per-stretch ridge / water / material) and hero landmark `At` pin

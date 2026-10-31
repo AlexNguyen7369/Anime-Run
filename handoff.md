@@ -148,3 +148,9 @@
 - 2026-10-31 LANDED 4d1b112 (pushed): Track 4 + fw3. Next: t5 Studio phase (switch ../AnimeRun-orch/studio to
   orch/biomes/t5), cam feature in ../AnimeRun-orch/cam (needs one Studio check), fw4 shoulder-band hall floats.
   Studio id 5846836b-1bf9-487a-9411-11346220b296. CarTestOnly left set in Edit (harmless).
+- 2026-10-31 LANDED 0962287: Track 5 + track camera. Studio -> Track 6 next.
+- 2026-10-31 night progress: landed Tracks 4, 5 + fw3 + track camera (pushed a5d9a32). fw4 99171b3 (pad margin 4,
+  Lune harness tools/lune/biome_harness.luau) merged into t6/t9/t10, lands with t6. Phase 1 committed on branches
+  t7 53d4f64, t8 714b8fc, t9 f61e03b, t10 5e3bb17 (worktrees ../AnimeRun-orch/t7..t10). Studio queue t6 (verifying)
+  -> t7 -> t8 -> t9 -> t10; loop per resume_step in .agents/orchestrator.json. Morning list: docs/OWNER_QUESTIONS.md.
+- LANDED 9858032: Track 6 + fw4. Studio -> Track 7.
