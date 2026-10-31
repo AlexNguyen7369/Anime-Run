@@ -1,5 +1,8 @@
 --!nonstrict
--- Track 8 (w3, owner 2026-10-30): Sky Islands: hops onto floating islands, vine bridges between them and bends under the waterfalls.
+-- Track 8 (w3, owner 2026-10-30; redesigned as Skypeia, owner 2026-10-31): a sky nation on a white cloud sea. The route
+-- leaves a cloud beach and town, follows a cloud river into a giant jungle island, dips past sunken stone ruins at a
+-- giant beanstalk's root and finishes on high island clouds by a giant plain golden bell (BiomeThemes/Snow). The
+-- segment comments below are the w3 layout notes; the scenery is the biome's.
 -- About 984 x 3 x 1.25^7 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
 -- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
 -- corners grow with each lap, so this track sits one lap band outside the previous one.
@@ -7,20 +10,20 @@
 -- its cruise speed and its time matches the TRACKS_AND_BIOMES_SPEC table.
 return {
 	Name = "Snow",
-	Description = "Sky Islands run: island hops, vine bridges and waterfall bends above the clouds.",
+	Description = "Skypeia run: a cloud town and cloud river, a giant jungle, sunken ruins and a golden bell above the clouds.",
 	Number = 8,
 	Biome = "Snow",
 	Width = 40,
 	Closed = false,
 	Palette = {
-		-- b2 (orchestrator default 2026-10-31): a warm weathered-stone road with dark rock supports, so it reads
-		-- against the white cloud deck and the green island tops; ruin-stone walls, sky-blue checkpoints.
-		Road = Color3.fromRGB(168, 140, 104),
-		Support = Color3.fromRGB(110, 94, 76),
-		Wall = Color3.fromRGB(214, 206, 190),
-		Ground = Color3.fromRGB(124, 195, 106),
-		Line = Color3.fromRGB(250, 246, 232),
-		Checkpoint = Color3.fromRGB(63, 143, 210),
+		-- b2 (orchestrator default 2026-10-31): a warm sand-stone road with dark bark supports, so it reads against the
+		-- white cloud deck, the cloud town and the jungle green; cloud-white walls, gold trim lines, sky-blue checkpoints.
+		Road = Color3.fromRGB(176, 150, 112),
+		Support = Color3.fromRGB(107, 74, 46),
+		Wall = Color3.fromRGB(230, 238, 248),
+		Ground = Color3.fromRGB(230, 238, 248),
+		Line = Color3.fromRGB(227, 179, 65),
+		Checkpoint = Color3.fromRGB(110, 198, 255),
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {

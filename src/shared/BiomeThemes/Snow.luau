@@ -1,50 +1,56 @@
 --!nonstrict
--- Track 8: floating grassy islands, waterfalls into clouds, vine bridges, generic stone columns and arches
--- Data only (format in Kit). b2 (docs/BIOME_ENVIRONMENT_SPEC.md section 7, Track 8): the road runs on grassy
--- islands with Rock sides; the ridge is a `Drop` to the Snow cloud deck at Y -40 under a bright, hazy high sky. Two
--- pools sit beside the waterfall bends. Mesh props keep their part fallback (spec 4.2), scaled to the mesh's size.
--- IP (spec 7): no copy of the film's castle or robot. Ruins stay low, generic columns and arches: no round tiered
--- castle, no towers, no domes, no tree-crowned citadel, no figures. No text anywhere.
+-- Track 8: Skypeia (owner redesign 2026-10-31; the key `Snow` is historical). A sky nation on a white cloud sea: a cloud
+-- beach and a town of round white domed houses, a cloud river, a giant jungle island, sunken stepped stone ruins at the
+-- root of a giant beanstalk, and high island clouds with a giant plain golden bell in a broken belfry.
+-- Data only (format in Kit). b2 (docs/BIOME_ENVIRONMENT_SPEC.md section 7, Track 8). Mesh props keep their part
+-- fallback (spec 4.2), scaled to the mesh's size. Every shape here is generic and original.
+-- IP (spec 7, hard rules): no hat or skull-and-crossbones symbol, no character likeness anywhere in the scenery (no
+-- drum ring), no shrine nameplate or gate sign text, no ark ship copy, no ancient-script stone blocks, no idol head on
+-- any gate; the bell is plain, without inscription. No legible text anywhere.
 --
--- Placement on a Drop biome (orchestrator default 2026-10-31):
--- - Only the corridor (0-44 studs from the centre line) is island ground. Past the 44-60 shoulder every prop snaps
---   down to the cloud deck at -40, so props there are tall or floating and rise out of the clouds.
--- - Small props (Rhythm, Scatter, the padded ruin hut) stay inside 44 so they stand on the island.
--- - Big props (Landmarks, Horizon, Blocks) start 60 studs out and are at most about 17 studs deep, so they stay inside
---   this zone's half of the gap (midline about 77) and none sits in the 44-60 band where padded footprints can float.
+-- Placement (orchestrator default 2026-10-31):
+-- - Dressing layers are per biome, not per section, so cloud-town and jungle props mix along the whole route; the
+--   terrain sections carry the change of scene.
+-- - Small props (Rhythm, Scatter, the padded cloud house) stay inside 44 studs of the centre line, on corridor ground.
+-- - Big props (Landmarks, Horizon, Blocks) start 60 studs out (past the 44-60 shoulder, where padded footprints can
+--   float) and are at most about 21 studs deep, so they stay near this zone's half of the gap (midline about 77) and
+--   well clear of the neighbours' corridors (Track 7's tunnel starts about 111 out).
+-- - On the Drop stretches (0.28-0.30, 0.80-1.0) the ground past 60 is the cloud deck at -40: props there rise out of
+--   the clouds.
 local Kit = require(script.Parent.Kit)
 
-local M, hex, v, BALL, part, post, prop, block, ball, roundTree, house, gate, patch, giants, SMOKE, particles, DIRT1, GRASS8, ROCK8, RUIN8, CLOUD8, SKY8, FALL8 =
+local M, hex, v, BALL, CYL, part, post, prop, block, ball, gate, patch, giants, particles =
 	Kit.M,
 	Kit.hex,
 	Kit.v,
 	Kit.BALL,
+	Kit.CYL,
 	Kit.part,
 	Kit.post,
 	Kit.prop,
 	Kit.block,
 	Kit.ball,
-	Kit.roundTree,
-	Kit.house,
 	Kit.gate,
 	Kit.patch,
 	Kit.giants,
-	Kit.SMOKE,
-	Kit.particles,
-	Kit.DIRT1,
-	Kit.GRASS8,
-	Kit.ROCK8,
-	Kit.RUIN8,
-	Kit.CLOUD8,
-	Kit.SKY8,
-	Kit.FALL8
+	Kit.particles
 
-local LEAF = hex("5FAE52")
-local MOSS = hex("5E7A3C")
-local ROOT = hex("6B5A3E")
-local DARK_ROCK = hex("7A6A58")
+-- Palette (spec 7, placeholders)
+local CLOUD = hex("FFFFFF")
+local CLOUD_SHADE = hex("E6EEF8")
+local SKY = hex("6EC6FF")
+local JUNGLE = hex("2F7D3B")
 local BARK = hex("6B4A2E")
-local MIST = hex("E6F3FF")
+local STALK = hex("9DBF5A")
+local GOLD = hex("E3B341")
+local RUIN = hex("B9A88A")
+local DARK_STALK = hex("6F9440")
+local VINE = hex("3E6B2E")
+local TRIM_PINK = hex("F4B8C8")
+local TRIM_BLUE = hex("9CCFF0")
+local DARK_RUIN = hex("8E7F66")
+local MOTE = hex("F2E8A8")
+local BAND = CFrame.Angles(0, 0, math.pi / 2) -- a Cylinder's axis is X; this lays a disk flat
 
 -- A mesh prop (spec 4.2): `def`'s parts, scaled to `size`'s height, are the fallback when the ledger row is unusable.
 -- `size` keeps the mesh's own proportions (the registry stretches the mesh to it).
@@ -64,21 +70,6 @@ local function meshed(def, key, size, extra)
 	return out
 end
 
--- An upside-down rock island under a grass top at `top`, `w` wide and `d` deep: tiers that narrow downward, roots
--- and a vine hanging below. Returns its parts (callers add what stands on top).
-local function islandBody(top, w, d)
-	return {
-		part(v(w, 2, d), v(0, top - 1, 0), GRASS8, M.Grass),
-		part(v(w * 0.92, 7, d * 0.92), v(0, top - 5.5, 0), ROCK8, M.Rock),
-		part(v(w * 0.65, 6, d * 0.7), v(0, top - 12, 0), ROCK8, M.Rock),
-		part(v(w * 0.4, 6, d * 0.45), v(0, top - 18, 0), DARK_ROCK, M.Rock),
-		part(v(w * 0.18, 6, d * 0.22), v(0, top - 24, 0), DARK_ROCK, M.Rock),
-		part(v(0.5, 12, 0.5), v(-w * 0.25, top - 15, -d * 0.2), ROOT, M.Wood), -- hanging roots
-		part(v(0.5, 9, 0.5), v(w * 0.2, top - 13, d * 0.25), ROOT, M.Wood),
-		part(v(0.4, 14, 0.4), v(w * 0.05, top - 19, -d * 0.3), MOSS, M.Grass), -- vine
-	}
-end
-
 local function add(parts, more)
 	for _, p in more do
 		table.insert(parts, p)
@@ -86,113 +77,188 @@ local function add(parts, more)
 	return parts
 end
 
--- Hero 1: a floating ruin island. Low generic ruins on its grass top: a short colonnade (one column whole, one
--- broken, one stump) and one plain arch; a thin waterfall spills off the road-facing edge into the clouds.
-local function ruinIsland()
-	local parts = islandBody(40, 20, 10)
-	for i, x in { -8, -4.5, -1 } do
-		local h = ({ 8, 5, 3 })[i]
-		table.insert(parts, part(v(2.2, 0.6, 2.2), v(x, 40.3, 2), RUIN8, M.Rock)) -- plinth
-		table.insert(parts, post(h, 1.5, v(x, 40.6 + h / 2, 2), RUIN8, M.Rock))
+-- A round white cloud house `d` across at `o`: a ball body, a domed cap, a pastel trim band, a door and a round window
+-- on the road face (-Z)
+local function cloudHouse(d, trim, o)
+	o = o or v(0, 0, 0)
+	return {
+		part(v(d, d, d), o + v(0, d * 0.4, 0), CLOUD, M.SmoothPlastic, BALL),
+		part(v(d * 0.55, d * 0.55, d * 0.55), o + v(0, d * 0.82, 0), CLOUD_SHADE, M.SmoothPlastic, BALL), -- dome cap
+		part(v(d * 0.08, d * 1.02, d * 1.02), o + v(0, d * 0.5, 0), trim, M.SmoothPlastic, CYL, BAND), -- trim band
+		part(v(d * 0.22, d * 0.32, 0.4), o + v(0, d * 0.16, -d * 0.47), trim, M.SmoothPlastic), -- door
+		part(v(d * 0.14, d * 0.14, d * 0.14), o + v(d * 0.26, d * 0.45, -d * 0.4), SKY, M.Glass, BALL), -- round window
+	}
+end
+
+-- Hero 1: the giant beanstalk. Two twisted green stems wind round each other up into a cloud, broad leaves on the way.
+local function beanstalk()
+	local h, steps = 126, 9
+	local seg = (h - 14) / steps
+	local parts = { part(v(5, 3, 5), v(0, 1.5, 0), DARK_STALK, M.Grass) } -- root knot
+	for i = 0, steps - 1 do
+		local y, a = (i + 0.5) * seg, i * 0.9
+		local w, r = 4.2 - i * 0.2, 2.4 - i * 0.12
+		for s = 0, 1 do
+			local ang = a + s * math.pi
+			table.insert(
+				parts,
+				part(
+					v(w, seg + 2, w),
+					v(math.cos(ang) * r, y, math.sin(ang) * r),
+					s == 0 and STALK or DARK_STALK,
+					M.Grass,
+					nil,
+					CFrame.Angles(math.sin(ang) * 0.18, 0, math.cos(ang) * 0.18)
+				)
+			)
+		end
+		if i % 2 == 1 then -- a broad leaf
+			table.insert(
+				parts,
+				part(
+					v(7, 0.6, 4),
+					v(math.cos(a) * 5, y + 2, math.sin(a) * 4),
+					STALK,
+					M.Grass,
+					nil,
+					CFrame.Angles(0, -a, 0.35)
+				)
+			)
+		end
 	end
 	return prop(
-		"RuinIsland",
-		v(20, 50, 10),
+		"GiantBeanstalk",
+		v(16, h, 12),
 		add(parts, {
-			part(v(2.4, 0.8, 2.4), v(-8, 49, 2), RUIN8, M.Rock), -- capital on the whole column
-			post(9, 1.6, v(3, 44.5, -1), RUIN8, M.Rock), -- arch legs
-			post(9, 1.6, v(8.5, 44.5, -1), RUIN8, M.Rock),
-			part(v(7.5, 1.4, 2), v(5.75, 49.3, -1), RUIN8, M.Rock), -- lintel
-			part(v(3, 1.2, 2), v(5.75, 47.9, -1), RUIN8, M.Rock),
-			part(v(4, 0.8, 2.4), v(-3, 40.4, -2.5), RUIN8, M.Slate), -- fallen block
-			part(v(3, 26, 0.6), v(7.5, 26, -5.2), FALL8, M.Glass), -- waterfall off the edge
-		}),
-		{ Tag = "BiomeBob" }
+			part(v(12, 12, 12), v(0, h - 6, 0), CLOUD, M.SmoothPlastic, BALL), -- the cloud it grows into
+			part(v(9, 9, 9), v(-3.5, h - 10, 1), CLOUD_SHADE, M.SmoothPlastic, BALL),
+			part(v(9, 9, 9), v(3.5, h - 9, -1), CLOUD, M.SmoothPlastic, BALL),
+		})
 	)
 end
 
--- Hero 2: a large broad tree on a floating rock, roots hanging below
-local function skyTree()
-	local parts = add(islandBody(30, 16, 10), {
-		post(16, 2.6, v(0, 37, 0), BARK, M.Wood),
-		part(v(3.5, 1.4, 3.5), v(0, 29.7, 0), BARK, M.Wood), -- root flare
+-- Hero 2: sunken golden ruins. Stepped stone temple tiers (a generic stepped-pyramid shape), a central stair, vines,
+-- a few gold-clad wall panels and two broken gold pillars. Plain faces: no script blocks, no idol head.
+local function sunkenRuins()
+	return prop("SunkenRuins", v(24, 36, 12), {
+		part(v(24, 6, 12), v(0, 3, 0), RUIN, M.Sandstone),
+		part(v(19, 6, 10), v(0, 9, 0.5), RUIN, M.Sandstone),
+		part(v(14, 6, 8), v(0, 15, 1), DARK_RUIN, M.Sandstone),
+		part(v(9, 6, 6), v(0, 21, 1.5), RUIN, M.Sandstone),
+		part(v(6, 5, 5), v(0, 26.5, 1.5), RUIN, M.Sandstone), -- shrine block on top
+		part(v(6.2, 0.8, 5.2), v(0, 29.4, 1.5), GOLD, M.Metal), -- gold roof slab
+		part(v(5, 26, 0.6), v(0, 12, -3.5), DARK_RUIN, M.Slate, nil, CFrame.Angles(-0.45, 0, 0)), -- central stair
+		part(v(6, 4, 0.4), v(-8, 3, -6.2), GOLD, M.Metal), -- gold-clad wall panels
+		part(v(5, 4, 0.4), v(6.5, 9, -4.7), GOLD, M.Metal),
+		part(v(3, 3, 0.4), v(-4.5, 15, -3.2), GOLD, M.Metal),
+		post(10, 1.8, v(-10.5, 11, -4), GOLD, M.Metal), -- broken gold pillars
+		post(6, 1.8, v(10.5, 9, -4), GOLD, M.Metal),
+		part(v(0.5, 10, 0.5), v(-5, 7, -6.3), VINE, M.Grass), -- vines down the tiers
+		part(v(0.5, 8, 0.5), v(8, 13, -4.6), VINE, M.Grass),
+		part(v(0.5, 7, 0.5), v(3, 18, -3.2), VINE, M.Grass),
+		part(v(24.4, 1, 12.4), v(0, 6, 0), JUNGLE, M.Grass), -- moss on the first ledge
+		post(4, 1.6, v(0, 33.8, 1.5), GOLD, M.Metal), -- a plain gold spire stump
 	})
-	for _, c in { v(-4.5, 46, 0), v(4.5, 47, 0), v(0, 50.5, 0), v(0, 45, 0) } do
-		table.insert(parts, part(v(10, 10, 10), c, LEAF, M.Grass, BALL))
-	end
-	return prop("SkyTree", v(18, 56, 10), parts, { Tag = "BiomeBob" })
 end
 
--- Hero 3: a tall stone pillar rising out of the clouds, grass on top, a waterfall down its road face into the clouds
-local function waterfallPillar()
-	return prop("WaterfallPillar", v(12, 64.5, 10), {
-		part(v(12, 30, 10), v(0, 15, 0), ROCK8, M.Rock),
-		part(v(10, 22, 8.5), v(0, 41, 0.5), DARK_ROCK, M.Rock),
-		part(v(11, 8, 9), v(0, 56, 0), ROCK8, M.Rock),
-		part(v(12.2, 1.5, 10.2), v(0, 30, 0), MOSS, M.Grass), -- moss band
-		part(v(12, 2, 10), v(0, 61, 0), GRASS8, M.Grass),
-		part(v(5, 5, 5), v(-2, 62, 1), LEAF, M.Grass, BALL),
-		part(v(4, 58, 0.6), v(2, 31, -5.3), FALL8, M.Glass), -- waterfall
-		part(v(6, 6, 6), v(2, 3, -4.5), CLOUD8, M.SmoothPlastic, BALL), -- spray where it meets the clouds
-	})
+-- Hero 3: a giant plain golden bell in a broken stone belfry, on a small island cloud high over the cloud sea
+-- (BiomeBob). The cloud body reaches down into the deck; the bell hangs from a cracked beam. No inscription.
+local function goldenBell()
+	return prop("GoldenBell", v(14, 48, 12), {
+		part(v(8, 8, 8), v(0, 4, 0), CLOUD_SHADE, M.SmoothPlastic, BALL), -- cloud body, narrowing downward
+		part(v(10, 10, 10), v(0, 11, 0), CLOUD, M.SmoothPlastic, BALL),
+		part(v(12, 12, 12), v(0, 18, 0), CLOUD, M.SmoothPlastic, BALL),
+		part(v(14, 3, 12), v(0, 26.5, 0), CLOUD, M.SmoothPlastic), -- flat top to stand the belfry on
+		part(v(12, 1.2, 9), v(0, 28.6, 0), RUIN, M.Sandstone), -- belfry floor
+		part(v(2, 16, 2), v(-5, 37, 0), RUIN, M.Sandstone), -- two stone posts, one broken lower
+		part(v(2, 12, 2), v(5, 35, 0), DARK_RUIN, M.Sandstone),
+		part(v(13, 1.6, 2.4), v(0, 45.8, 0), RUIN, M.Sandstone, nil, CFrame.Angles(0, 0, -0.06)), -- cracked beam
+		part(v(0.5, 3, 0.5), v(0, 43.5, 0), BARK, M.Wood), -- hanger
+		part(v(4, 2, 4), v(0, 41, 0), GOLD, M.Metal, BALL), -- bell crown
+		part(v(7, 7, 7), v(0, 37.5, 0), GOLD, M.Metal, BALL), -- plain bell body
+		part(v(1.2, 8, 8), v(0, 34.4, 0), GOLD, M.Metal, CYL, BAND), -- flared lip
+		part(v(0.5, 10, 0.5), v(-5.6, 38, -1.1), VINE, M.Grass), -- vines over the belfry
+		part(v(0.5, 6, 0.5), v(4, 42, 1.1), VINE, M.Grass),
+	}, { Tag = "BiomeBob", Glow = GOLD })
+end
+
+-- Hero 4: the cloud town. A cluster of round white domed houses with pastel trims round a taller round tower.
+local function cloudTown()
+	local parts = {
+		part(v(24, 2, 12), v(0, 1, 0), CLOUD, M.SmoothPlastic), -- cloud ground
+		post(22, 8, v(0, 13, 2), CLOUD, M.SmoothPlastic), -- round tower
+		part(v(9, 9, 9), v(0, 25, 2), CLOUD_SHADE, M.SmoothPlastic, BALL), -- its dome
+		part(v(1.2, 4, 1.2), v(0, 31, 2), TRIM_BLUE, M.SmoothPlastic), -- plain finial
+	}
+	add(parts, cloudHouse(9, TRIM_PINK, v(-7.5, 2, -1)))
+	add(parts, cloudHouse(8, TRIM_BLUE, v(7.5, 2, -1.5)))
+	add(parts, cloudHouse(6, TRIM_PINK, v(-2, 2, -3)))
+	return prop("CloudTown", v(24, 34, 12), parts, { Pad = true })
 end
 
 -- Mid props
-local floatingRock = prop(
-	"FloatingRock",
-	v(10, 36, 8),
-	add(islandBody(34, 10, 8), { part(v(4, 4, 4), v(-2, 35, 1), LEAF, M.Grass, BALL) }),
-	{ Tag = "BiomeBob" }
-)
-local brokenColumn = prop("BrokenColumn", v(3.4, 10.4, 3.4), {
-	part(v(3.4, 1, 3.4), v(0, 0.5, 0), RUIN8, M.Rock),
-	post(8, 2.4, v(0, 5, 0), RUIN8, M.Rock),
-	part(v(2.4, 1.6, 2.4), v(0.4, 9.6, 0), RUIN8, M.Rock, nil, CFrame.Angles(0.3, 0, 0.2)),
-	part(v(2.5, 0.4, 2.5), v(0, 1.2, 0), MOSS, M.Grass), -- moss ring
+local cloudHouseProp = prop("CloudHouse", v(10, 10.5, 10), cloudHouse(10, TRIM_PINK), { Pad = true })
+local skyPalm = prop("SkyPalm", v(7, 12.2, 7), {
+	post(11, 0.9, v(0, 5.5, 0), BARK, M.Wood),
+	part(v(7, 0.4, 2), v(0, 11.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, 0, 0.3)),
+	part(v(7, 0.4, 2), v(0, 11.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, math.pi / 2, 0.3)),
+	part(v(7, 0.4, 2), v(0, 11.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, math.pi, 0.3)),
+	part(v(7, 0.4, 2), v(0, 11.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, -math.pi / 2, 0.3)),
+	part(v(3, 3, 3), v(0.6, 0.6, 0), CLOUD, M.SmoothPlastic, BALL), -- a cloud puff at its foot
 })
-local ruinArch = prop("RuinArch", v(12, 12.4, 3), {
-	part(v(3, 1, 3), v(-4.5, 0.5, 0), RUIN8, M.Rock),
-	part(v(3, 1, 3), v(4.5, 0.5, 0), RUIN8, M.Rock),
-	post(10, 2, v(-4.5, 6, 0), RUIN8, M.Rock),
-	post(10, 2, v(4.5, 6, 0), RUIN8, M.Rock),
-	part(v(12, 1.4, 2.6), v(0, 11.7, 0), RUIN8, M.Rock),
-	part(v(4, 1, 2.8), v(-3, 12.4, 0), GRASS8, M.Grass), -- grass grown on the lintel
-	part(v(0.4, 5, 0.4), v(2, 9, -1.1), MOSS, M.Grass), -- hanging vine
+local brokenPillar = prop("BrokenPillar", v(3.4, 10, 3.4), {
+	part(v(3.4, 1, 3.4), v(0, 0.5, 0), RUIN, M.Sandstone),
+	post(5, 2.4, v(0, 3.5, 0), RUIN, M.Sandstone),
+	post(3.5, 2.4, v(0, 7.75, 0), GOLD, M.Metal), -- the gold-clad upper half
+	part(v(2.2, 1.4, 2.2), v(0.3, 9.3, 0), GOLD, M.Metal, nil, CFrame.Angles(0.3, 0, 0.2)), -- broken top
+	part(v(0.4, 6, 0.4), v(1.1, 5, -1.1), VINE, M.Grass),
 })
-local islandTree = roundTree("IslandTree", 14, BARK, LEAF, M.Grass, GRASS8)
--- A plank and vine bridge from the island edge out over the clouds (visual only). Its length runs along Z, away from
--- the road: at Rhythm Offset 10 it spans about 30-60 studs off the centre line.
-local vineBridge = prop("VineBridge", v(7, 7, 30), {
-	part(v(6, 0.6, 30), v(0, 3, 0), DIRT1, M.WoodPlanks),
-	part(v(0.3, 0.3, 30), v(-3, 5.5, 0), MOSS, M.Fabric), -- vine hand ropes
-	part(v(0.3, 0.3, 30), v(3, 5.5, 0), MOSS, M.Fabric),
-	post(7, 0.8, v(-3, 3.5, -14), BARK, M.Wood),
-	post(7, 0.8, v(3, 3.5, -14), BARK, M.Wood),
-	post(5, 0.6, v(-3, 4.5, 14), BARK, M.Wood),
-	post(5, 0.6, v(3, 4.5, 14), BARK, M.Wood),
-	part(v(0.3, 4, 0.3), v(-3, 1.5, 6), MOSS, M.Grass), -- vines hanging under it
-	part(v(0.3, 5, 0.3), v(3, 1, 10), MOSS, M.Grass),
+local giantFern = prop("GiantFern", v(8, 5, 8), {
+	part(v(7, 0.4, 2), v(0, 2.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, 0, 0.5)),
+	part(v(7, 0.4, 2), v(0, 2.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, math.pi / 3, 0.5)),
+	part(v(7, 0.4, 2), v(0, 2.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, 2 * math.pi / 3, 0.5)),
+	part(v(7, 0.4, 2), v(0, 2.6, 0), JUNGLE, M.Grass, nil, CFrame.Angles(0, math.pi, 0.5)),
+	part(v(2, 1.6, 2), v(0, 0.8, 0), VINE, M.Grass),
 })
--- A small ruined stone hut with a mossy roof: a building, so it gets a levelled pad (Kit.house sets Pad = true)
-local ruinHut = house("RuinHut", 9, 7, 8, RUIN8, MOSS, {
-	WallMaterial = M.Cobblestone,
-	RoofMaterial = M.Grass,
-	Trim = ROOT,
-	Window = hex("3A3F3A"),
-	WindowMaterial = M.Slate,
+-- A giant jungle tree: buttress roots, a tall trunk, a broad flat crown, hanging vines
+local jungleTree = prop("JungleTree", v(16, 51, 10), {
+	post(34, 3.6, v(0, 17, 0), BARK, M.Wood),
+	part(v(7, 6, 1.2), v(-3, 3, 0), BARK, M.Wood, nil, CFrame.Angles(0, 0, 0.5)), -- buttress roots
+	part(v(7, 6, 1.2), v(3, 3, 0), BARK, M.Wood, nil, CFrame.Angles(0, 0, -0.5)),
+	part(v(1.2, 6, 7), v(0, 3, -2.5), BARK, M.Wood, nil, CFrame.Angles(0.5, 0, 0)),
+	part(v(16, 8, 10), v(0, 40, 0), JUNGLE, M.Grass),
+	part(v(10, 10, 10), v(-3, 46, 0), JUNGLE, M.Grass, BALL),
+	part(v(9, 9, 9), v(4, 45, 0), hex("3A8F45"), M.Grass, BALL),
+	part(v(0.5, 14, 0.5), v(-6, 31, -3), VINE, M.Grass),
+	part(v(0.5, 10, 0.5), v(5, 33, 3), VINE, M.Grass),
 })
+-- A cloud-river ribbon beside the road: a long, low translucent white band along the road (X), visual only
+local cloudRiver = prop("CloudRiver", v(24, 1.6, 5), {
+	part(v(24, 0.8, 5), v(0, 0.4, 0), CLOUD_SHADE, M.Glass),
+	part(v(8, 1.6, 3), v(-6, 0.8, 0.5), CLOUD, M.SmoothPlastic, BALL),
+	part(v(6, 1.4, 3), v(7, 0.7, -0.5), CLOUD, M.SmoothPlastic, BALL),
+})
+-- Cloud puffs hanging in the air (BiomeBob): over the jungle they float above the hills, on the Drop over the deck
+local cloudPuffs = prop("CloudPuffs", v(16, 56, 10), {
+	part(v(10, 10, 10), v(-3, 47, 0), CLOUD, M.SmoothPlastic, BALL),
+	part(v(9, 9, 9), v(4, 49, 0), CLOUD, M.SmoothPlastic, BALL),
+	part(v(8, 8, 8), v(0, 52, 0), CLOUD_SHADE, M.SmoothPlastic, BALL),
+	part(v(6, 6, 6), v(-6, 22, 0), CLOUD, M.SmoothPlastic, BALL),
+	part(v(5, 5, 5), v(5, 12, 0), CLOUD_SHADE, M.SmoothPlastic, BALL),
+}, { Tag = "BiomeBob" })
 
 -- Mesh props (Lane A). Sizes are the generation boxes; phase 2 sets each to the generated mesh's own proportions.
-local floatingRockMesh = meshed(floatingRock, "FloatingRockMesh", floatingRock.Size)
-local brokenColumnMesh = meshed(brokenColumn, "BrokenColumnMesh", brokenColumn.Size)
-local ruinArchMesh = meshed(ruinArch, "RuinArchMesh", ruinArch.Size)
-local islandTreeMesh = meshed(islandTree, "IslandTreeMesh", islandTree.Size)
-local vineBridgeMesh = meshed(vineBridge, "VineBridgeMesh", vineBridge.Size)
-local ruinHutMesh = meshed(ruinHut, "RuinHutMesh", ruinHut.Size)
+-- Lesson (a): short sides stay at or under 16 studs (the generator caps them near 16).
+local cloudHouseMesh = meshed(cloudHouseProp, "CloudHouseMesh", cloudHouseProp.Size)
+local skyPalmMesh = meshed(skyPalm, "SkyPalmMesh", skyPalm.Size)
+local brokenPillarMesh = meshed(brokenPillar, "BrokenPillarMesh", brokenPillar.Size)
+local giantFernMesh = meshed(giantFern, "GiantFernMesh", giantFern.Size)
+local jungleTreeMesh = meshed(jungleTree, "JungleTreeMesh", jungleTree.Size)
 
 -- Mesh rows: generated in Studio (Lane A) with `generate_mesh` (textPrompt = Prompt, size = Gen, maxTriangles = Tris,
 -- segmentation "none"); each mesh's own generated texture is a Texture row. Id comes with the phase 2 upload.
 -- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in assets/biomes/Snow/review/.
+-- Lesson (c): prompts use generic words only and are checked with realNameIn.
 local function meshRow(texture, prompt, size, tris, notes)
 	return {
 		Kind = "Mesh",
@@ -208,55 +274,49 @@ local function textureRow(mesh)
 	return { Kind = "Texture", Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
 end
 
--- Blocks: one row of giants that rise out of the clouds. Near 40 puts each road-side face 60 studs out, past the
--- 44-60 shoulder; at most 13 deep, so they end inside the ~77 midline. Orchestrator default 2026-10-31.
+-- Blocks: one row of giants. Near 40 puts each road-side face 60 studs out, past the 44-60 shoulder; at most 13 deep,
+-- so they end inside the ~77 midline. Orchestrator default 2026-10-31.
 local blocks = giants({
-	prop("GiantPillar", v(14, 92, 12), {
-		part(v(14, 50, 12), v(0, 25, 0), ROCK8, M.Rock),
-		part(v(11, 30, 10), v(0, 65, 0), DARK_ROCK, M.Rock),
-		part(v(12, 3, 11), v(0, 81.5, 0), GRASS8, M.Grass),
-		part(v(10, 10, 10), v(-1, 87, 0), LEAF, M.Grass, BALL),
-		part(v(0.5, 30, 0.5), v(4, 64, -5.1), MOSS, M.Grass), -- vine
+	meshed(jungleTree, "JungleTreeMesh", v(20.8, 66.3, 13)), -- x1.3
+	cloudPuffs,
+	prop("BeanSprout", v(10, 70, 10), {
+		post(60, 3, v(0, 30, 0), STALK, M.Grass),
+		post(40, 2, v(2.5, 20, 1), DARK_STALK, M.Grass),
+		part(v(7, 0.6, 4), v(3, 45, 0), STALK, M.Grass, nil, CFrame.Angles(0, 0.4, 0.35)),
+		part(v(7, 0.6, 4), v(-3, 30, 0), STALK, M.Grass, nil, CFrame.Angles(0, -0.4, -0.35)),
+		part(v(10, 10, 10), v(0, 65, 0), CLOUD, M.SmoothPlastic, BALL),
 	}),
-	meshed(skyTree(), "SkyTreeMesh", v(23.4, 72.8, 13)), -- x1.3: its grass top sits at road height
-	meshed(floatingRock, "FloatingRockMesh", v(16, 57.6, 12.8)), -- x1.6
 }, 90)
 blocks.Near = 40
 blocks.Rows = 1 -- a second row would sit across the midline
 
 return {
-	DisplayName = "Sky Islands",
-	Ground = { Color = GRASS8, Material = M.Grass },
-	Sky = { Color = SKY8 },
-	Gate = gate(RUIN8, M.Rock),
-	-- Offset 10: road-side faces 30 studs out; every rhythm prop but the bridge ends inside 44 (on the island). The
-	-- hut (Pad) spans 30-41.
+	DisplayName = "Skypeia",
+	Ground = { Color = CLOUD_SHADE, Material = M.SmoothPlastic },
+	Sky = { Color = SKY },
+	Gate = gate(RUIN, M.Sandstone, GOLD),
+	-- Offset 10: road-side faces 30 studs out; every rhythm prop ends inside 44 (the cloud house, Pad, spans 30-40)
 	Rhythm = {
 		Every = 3,
 		Offset = 10,
-		Props = { brokenColumnMesh, islandTreeMesh, ruinArchMesh, vineBridgeMesh, ruinHutMesh, islandTreeMesh },
+		Props = { cloudHouseMesh, skyPalmMesh, brokenPillarMesh, cloudRiver, skyPalmMesh, cloudRiver },
 	},
 	-- Pinned heroes (At, spec 4.3) snap to the nearest corner exit or 200+ stud straight. Fractions of the 14076-stud
-	-- track: 0.21 = the 474-stud straight after the first vine bridge (0.199-0.232), 0.40 = the 583-stud straight
-	-- after the first waterfall bends (0.385-0.426), 0.61 = the 611-stud straight after the second vine bridge
-	-- (0.591-0.635).
+	-- track (spec 7 values): 0.1 snaps to the first corner's exit (0.111, the cloud beach); 0.55 = the 260-stud
+	-- straight (0.532-0.551) in the ruins bowl; 0.6 = the 611-stud straight (0.591-0.635) by the ruins; 0.92 lies inside
+	-- the last corner and snaps to its exit (0.958), on the high island clouds.
 	Landmarks = {
-		-- placeholder: edge 20 + 40 puts every landmark's road-side face 60 studs out, over the cloud deck past the
-		-- shoulder; x1.75 props at most 10 deep reach about 77 (the midline).
+		-- placeholder: edge 20 + 40 puts every landmark's road-side face 60 studs out; x1.75 heroes 12 deep reach about
+		-- 81 (pinned, so never slid) and the others, at most 10 deep, about 77.
 		Offset = 40,
 		Every = 20,
 		Props = {
-			meshed(ruinIsland(), "RuinIslandMesh", v(20, 50, 10), { Hero = true, At = 0.21 }),
-			meshed(waterfallPillar(), "WaterfallPillarMesh", v(12, 64.5, 10), { Hero = true, At = 0.4 }),
-			meshed(skyTree(), "SkyTreeMesh", v(18, 56, 10), { Hero = true, At = 0.61 }),
-			floatingRockMesh,
-			prop("RockSpire", v(8, 52, 8), {
-				part(v(8, 26, 8), v(0, 13, 0), ROCK8, M.Rock),
-				part(v(6, 18, 6), v(0, 35, 0), DARK_ROCK, M.Rock),
-				part(v(6.5, 1.5, 6.5), v(0, 44.75, 0), GRASS8, M.Grass),
-				part(v(5, 5, 5), v(0, 48, 0), LEAF, M.Grass, BALL),
-				part(v(0.4, 16, 0.4), v(2.5, 36, -3.2), MOSS, M.Grass),
-			}),
+			meshed(cloudTown(), "CloudTownMesh", v(24, 34, 12), { Hero = true, At = 0.1 }),
+			meshed(sunkenRuins(), "SunkenRuinsMesh", v(24, 36, 12), { Hero = true, At = 0.55 }),
+			meshed(beanstalk(), "GiantBeanstalkMesh", v(16, 126, 12), { Hero = true, At = 0.6 }),
+			meshed(goldenBell(), "GoldenBellMesh", v(14, 48, 12), { Hero = true, At = 0.92 }),
+			jungleTreeMesh,
+			cloudPuffs,
 		},
 	},
 	Horizon = {
@@ -264,92 +324,116 @@ return {
 		-- 60-76 and stay in this zone's half of the gap.
 		Offset = 40,
 		Props = {
-			prop(
-				"DistantIsland",
-				v(18, 47, 8),
-				add(islandBody(44, 18, 8), {
-					part(v(6, 6, 6), v(-4, 44, 0), LEAF, M.Grass, BALL),
-					part(v(2, 24, 0.4), v(6, 30, -4.2), FALL8, M.Glass), -- waterfall into the clouds
-				}),
-				{ Tag = "BiomeBob" }
-			),
-			prop("CloudColumn", v(16, 34, 8), {
-				part(v(8, 8, 8), v(-4, 30, 0), CLOUD8, M.SmoothPlastic, BALL),
-				part(v(8, 8, 8), v(3, 27, 0), CLOUD8, M.SmoothPlastic, BALL),
-				part(v(7, 7, 7), v(-1, 23, 0), MIST, M.SmoothPlastic, BALL),
-				part(v(6, 18, 6), v(0, 11, 0), ROCK8, M.Rock), -- a stone stack poking through the cloud
+			prop("CloudTower", v(18, 38, 8), {
+				part(v(8, 8, 8), v(-5, 34, 0), CLOUD, M.SmoothPlastic, BALL),
+				part(v(8, 8, 8), v(4, 32, 0), CLOUD, M.SmoothPlastic, BALL),
+				part(v(8, 8, 8), v(0, 26, 0), CLOUD_SHADE, M.SmoothPlastic, BALL),
+				part(v(8, 8, 8), v(-3, 18, 0), CLOUD, M.SmoothPlastic, BALL),
+				part(v(7, 7, 7), v(2, 10, 0), CLOUD_SHADE, M.SmoothPlastic, BALL),
+				part(v(6, 6, 6), v(0, 3, 0), CLOUD, M.SmoothPlastic, BALL),
+			}, { Tag = "BiomeBob" }),
+			prop("FarStalk", v(10, 48, 8), {
+				post(40, 2.4, v(0, 20, 0), STALK, M.Grass),
+				post(30, 1.6, v(2, 15, 1), DARK_STALK, M.Grass),
+				part(v(6, 0.5, 3), v(2.5, 30, 0), STALK, M.Grass, nil, CFrame.Angles(0, 0, 0.4)),
+				part(v(8, 8, 8), v(0, 44, 0), CLOUD, M.SmoothPlastic, BALL),
 			}),
 		},
 	},
-	-- Scatter on the island: x1.5 props start 28 studs out (the road's clearance) and mostly end inside 44
+	-- Scatter on corridor ground: x1.5 props start 28 studs out (the road's clearance) and mostly end inside 44.
+	-- Lesson (e): a mesh that comes out facing away from the road moves here (scatter turns freely).
 	Scatter = {
 		Every = 2,
 		Near = 8,
 		Far = 16,
 		Props = {
-			"BrokenColumn",
-			"IslandTree",
-			ball("CloudPuff", 6, CLOUD8, M.SmoothPlastic),
-			block("MossRock", v(5, 3.6, 4), ROCK8, M.Rock, { part(v(4, 0.8, 3), v(0, 3.2, 0), GRASS8, M.Grass) }),
-			block("FallenColumn", v(8, 2.2, 2.2), RUIN8, M.Rock),
+			giantFernMesh,
+			"BrokenPillar",
+			"SkyPalm",
+			ball("CloudPuff", 5, CLOUD, M.SmoothPlastic),
+			block(
+				"FallenStone",
+				v(7, 2.2, 3),
+				RUIN,
+				M.Sandstone,
+				{ part(v(2.5, 0.3, 3.1), v(1.5, 2.3, 0), GOLD, M.Metal) }
+			),
 		},
 		Patches = {
-			patch("Meadow", 18, 12, hex("9AD47F"), M.Grass),
-			patch("StoneTiles", 14, 10, RUIN8, M.Slate),
-			patch("Wildflowers", 12, 8, hex("F2E6A0"), M.Grass),
+			patch("CloudDrift", 18, 10, CLOUD, M.SmoothPlastic),
+			patch("Moss", 14, 10, JUNGLE, M.Ground),
+			patch("RuinTiles", 12, 8, RUIN, M.Sandstone),
 		},
 	},
 	Blocks = blocks,
-	-- Landmark particles (Kit format): spray mist drifting off every landmark (the waterfalls)
-	Particles = particles(SMOKE, MIST, { Size = 4, Lifetime = 5, Rate = 4, Speed = 1, Transparency = 0.55 }),
-	-- Spec 3.3 / 7: island ground (corridor, Ground) with Rock sides; the ridge is a Drop to the Snow cloud deck at -40. Two
-	-- pools (Water sections: basin at -9, water at -3) beside the waterfall bends (0.314-0.385 and 0.715-0.785), one
-	-- on each side. Every number is a placeholder.
+	-- Landmark particles (Kit format): soft cloud mist drifting off every landmark
+	Particles = particles(Kit.SMOKE, CLOUD_SHADE, { Size = 4, Lifetime = 5, Rate = 4, Speed = 1, Transparency = 0.55 }),
+	-- Spec 3.3 / 7: default ridge Drop to the Snow cloud deck at -40. Sections (fractions of the track length): the
+	-- cloud town and beach in Snow with soft mounds; the jungle island (Hills 40; Ground corridor and Grass ridge from
+	-- the biome Materials); a swamp; the sunken ruins bowl in Sandstone; the high island clouds (Drop, Snow).
+	-- Overlaps resolve to the first listed at equal weight, so the swamp and the ruins come before the jungle.
+	-- Lesson (b): Grass is never under the road (the biome Corridor is Ground; sections set Snow or Sandstone).
+	-- Every number is a placeholder.
 	Terrain = {
 		Ridge = { Shape = "Drop" },
 		Sections = {
-			{ From = 0.33, To = 0.36, Side = "Inner", Water = { Level = -3 } },
-			{ From = 0.735, To = 0.765, Side = "Outer", Water = { Level = -3 } },
+			{ From = 0.4, To = 0.46, Side = "Both", Ridge = { Shape = "Water" }, Water = { Level = -3 } }, -- swamp
+			{
+				From = 0.5,
+				To = 0.6,
+				Side = "Both",
+				Ridge = { Shape = "Hills", Height = -10, Noise = 0.04, Amp = 3 }, -- the sunken bowl
+				Material = M.Sandstone,
+			},
+			{
+				From = 0,
+				To = 0.28,
+				Side = "Both",
+				Ridge = { Shape = "Hills", Height = 10, Noise = 0.03, Amp = 3 }, -- soft cloud mounds
+				Material = M.Snow,
+			},
+			{ From = 0.3, To = 0.8, Side = "Both", Ridge = { Shape = "Hills", Height = 40, Noise = 0.04, Amp = 8 } },
+			{ From = 0.82, To = 1, Side = "Both", Material = M.Snow }, -- high island clouds: Drop, Snow islands
 		},
-		-- Corridor Ground, not Grass: terrain Grass grows blades up through the road (Track 6 in Studio, orchestrator
-		-- 2026-10-31). Ridge Grass only shows at the pool shores, never under the road; the Drop itself is Bed (Snow).
 		Materials = { Corridor = M.Ground, Ridge = M.Grass, Cliff = M.Rock, Bed = M.Snow },
-		CliffSlope = 0.6, -- placeholder: the island flanks read as Rock all the way down
+		CliffSlope = 0.8,
 		Embank = true,
 	},
-	-- Spec 5.2 / 7: bright high sky. ClockTime, Atmosphere Density / Offset / Color, Clouds and Bloom are section 7's;
-	-- the rest are placeholders. No skybox row: the engine sky and Terrain clouds over the cloud deck.
+	-- Spec 5.2 / 7: bright high noon. ClockTime, Atmosphere Density / Offset / Color / Haze, Clouds, Bloom, SunRays and
+	-- Saturation are section 7's; the rest are placeholders. No skybox row yet: the engine sky with Terrain clouds over
+	-- the cloud deck (a generated cloud-sea skybox is optional in phase 2; the far thundercloud stays an open question).
 	Atmosphere = Kit.Atmosphere({
 		Lighting = {
-			ClockTime = 13,
+			ClockTime = 12,
 			Brightness = 3,
 			Ambient = hex("5A6878"),
-			OutdoorAmbient = hex("A2B4C8"),
+			OutdoorAmbient = hex("A8BCD0"),
 			ExposureCompensation = 0.1,
 		},
 		Atmosphere = {
-			Density = 0.35,
+			Density = 0.3,
 			Offset = 0.5,
-			Color = hex("E8F4FF"),
-			Decay = hex("B8DCF5"),
+			Color = hex("EAF6FF"),
+			Decay = hex("BFE4FA"),
 			Glare = 0.2,
-			Haze = 1.2, -- the far cloud sea fades to white
+			Haze = 0.5,
 		},
-		Grade = { TintColor = hex("F4FAFF"), Saturation = 0.12 },
+		Grade = { TintColor = hex("F6FBFF"), Saturation = 0.15 },
 		Bloom = { Intensity = 0.8 },
-		SunRays = { Intensity = 0.1, Spread = 0.6 },
+		SunRays = { Intensity = 0.15, Spread = 0.6 },
 		Sky = {
 			SunAngularSize = 21,
 			MoonAngularSize = 11,
 			StarCount = 3000,
 			CelestialBodiesShown = true,
 		},
-		Clouds = { Cover = 0.6, Density = 0.5, Color = CLOUD8 },
-		Water = { Color = FALL8, Transparency = 0.35, Reflectance = 0.2, WaveSize = 0.05, WaveSpeed = 6 },
+		Clouds = { Cover = 0.55, Density = 0.4, Color = CLOUD },
+		-- the swamp is the only water: murky green and nearly opaque, so the Snow bed under it does not show
+		Water = { Color = hex("4A6B3A"), Transparency = 0.15, Reflectance = 0.1, WaveSize = 0.05, WaveSpeed = 4 },
 		Particles = {
 			{
 				Texture = "CloudWispParticle", -- slow cloud wisps; the tall box puts many below the road
-				Color = CLOUD8,
+				Color = CLOUD,
 				Size = 9,
 				Rate = 6,
 				Lifetime = 10,
@@ -359,129 +443,132 @@ return {
 				Area = v(160, 50, 160),
 			},
 			{
-				Texture = "MistParticle", -- fine spray mist
-				Color = MIST,
-				Size = 0.8,
+				Texture = "MoteParticle", -- drifting jungle motes
+				Color = MOTE,
+				Size = 0.4,
 				Rate = 10,
-				Lifetime = 5,
-				Speed = 0.6,
+				Lifetime = 6,
+				Speed = 0.5,
 				SpreadAngle = 180,
-				LightEmission = 0.3,
+				LightEmission = 0.4,
 				Area = v(160, 50, 160),
 			},
 		},
 	}),
-	-- One loop per biome (spec 6): high wind (the waterfall roar alternative is in its Notes). One-shots: a bird call
-	-- and a wind gust.
-	Audio = { Loop = "AmbHighWind", OneShots = { "SfxHawkCall", "SfxWindGust" }, Volume = 0.35, Reverb = "Mountains" },
+	-- Spec 6 / 7: wind with far jungle birds (loop); a deep distant bell toll (in-house) and a far thunder roll
+	Audio = {
+		Loop = "AmbSkyJungle",
+		OneShots = { "SfxBellToll", "SfxThunderRoll" },
+		Volume = 0.35,
+		Reverb = "Mountains",
+	},
 	-- Asset ledger (spec 4.4): key = { Kind = "Mesh"|"Texture"|"Skybox"|"Sound", Id = "rbxassetid://N",
 	-- Lane = "A"|"B"|"C"|"D", Prompt = "...", Creator = "<Lane D only>", Tris = N, Reviewed = "<date> <who>",
 	-- Notes = "..." }. Only reviewed rows with an Id are used. Reviewed is left for the rules auditor (spec 4.1).
-	-- Sound rows: Creator Store ids used directly (no insert, nothing to strip; BUGS creator-store-backdoor-skybox);
-	-- creator, type and length checked on the Roblox economy API 2026-10-31.
+	-- Creator Store sounds are used by id (no insert, nothing to strip; BUGS creator-store-backdoor-skybox); creator,
+	-- type and length checked on the Roblox economy API 2026-10-31.
 	Assets = {
-		RuinIslandMesh = meshRow(
-			"RuinIslandTex",
-			"small floating island of rock in the sky, flat grassy top, rocky underside tapering to a point with hanging roots and vines, a few weathered pale stone columns on top with two of them broken, one simple stone arch, a thin waterfall pouring off one edge, no buildings and no towers, stylized cartoon style",
-			v(20, 50, 10),
+		CloudTownMesh = meshRow(
+			"CloudTownTex",
+			"small cluster of round white houses made of soft solid cloud, each house a smooth rounded dome shape with pastel pink and pale blue trim bands, round windows and small arched doors, one taller round white tower with a domed top in the middle, all standing on a flat white cloud base, no signs and no writing, stylized cartoon style",
+			v(24, 34, 12),
 			15000,
-			"hero 1 (BiomeBob): low generic ruins only, never a castle silhouette; waterfall faces -Z"
+			"hero 4 (Pad): front faces -Z"
 		),
-		SkyTreeMesh = meshRow(
-			"SkyTreeTex",
-			"one large broad leafy green tree growing on a small floating rock island, thick brown trunk, round puffy canopy, grassy top, rocky underside tapering to a point with long roots hanging below, stylized cartoon style",
-			v(18, 56, 10),
+		SunkenRuinsMesh = meshRow(
+			"SunkenRuinsTex",
+			"ancient stepped stone temple ruin, four weathered sandy grey stone tiers like a stepped pyramid, a steep central stair, green vines and moss hanging down the tiers, a few walls still clad in gold panels, two broken gold pillars at the front corners, plain stone faces with no carvings, no faces and no writing, stylized cartoon style",
+			v(24, 36, 12),
 			15000,
-			"hero 2 (BiomeBob); also a Blocks giant"
+			"hero 2: stair faces -Z"
 		),
-		WaterfallPillarMesh = meshRow(
-			"WaterfallPillarTex",
-			"very tall narrow natural stone pillar of brown rock with mossy ledges, grass and a small bush on its flat top, a long thin blue waterfall pouring down one face from the top to the bottom, white spray at the base, stylized cartoon style",
-			v(12, 64.5, 10),
+		GiantBeanstalkMesh = meshRow(
+			"GiantBeanstalkTex",
+			"enormous giant beanstalk, two thick twisted light green and darker green stems spiraling around each other straight up, broad green leaves along the stems, the top disappearing into a round white cloud, stylized cartoon style",
+			v(16, 126, 12),
 			15000,
-			"hero 3: waterfall face toward -Z (the road)"
+			"hero 1: x1.75 is about 220 tall"
 		),
-		FloatingRockMesh = meshRow(
-			"FloatingRockTex",
-			"small floating rock island, grassy top with one round bush, rocky brown underside tapering to a point, short roots and vines hanging below, stylized low poly cartoon style",
-			floatingRock.Size,
-			3000,
-			"landmark and Blocks giant (BiomeBob)"
+		GoldenBellMesh = meshRow(
+			"GoldenBellTex",
+			"giant plain golden bell hanging from a cracked stone beam between two broken weathered stone posts, a small belfry ruin overgrown with green vines, standing on top of a small floating white cloud that narrows downward, plain smooth bell with no inscription, no symbols and no writing, stylized cartoon style",
+			v(14, 48, 12),
+			15000,
+			"hero 3 (BiomeBob): plain bell, no inscription"
 		),
-		BrokenColumnMesh = meshRow(
-			"BrokenColumnTex",
-			"single weathered pale grey stone column, broken off with a jagged top, square base, a ring of moss near the bottom, plain with no carvings or writing, stylized low poly cartoon style",
-			brokenColumn.Size,
-			1500
-		),
-		RuinArchMesh = meshRow(
-			"RuinArchTex",
-			"simple ancient stone arch ruin, two plain round pale grey stone columns joined by a flat stone lintel, grass growing on top and one vine hanging down, plain with no carvings or writing, stylized low poly cartoon style",
-			ruinArch.Size,
-			2000
-		),
-		IslandTreeMesh = meshRow(
-			"IslandTreeTex",
-			"small round leafy green tree, short brown trunk, two puffy round canopies, stylized low poly cartoon style",
-			islandTree.Size,
-			1500
-		),
-		VineBridgeMesh = meshRow(
-			"VineBridgeTex",
-			"short straight wooden plank footbridge with green vine hand ropes on both sides and wooden posts at each end, vines hanging underneath, stylized low poly cartoon style",
-			vineBridge.Size,
-			2000,
-			"rhythm: long axis along Z, away from the road"
-		),
-		RuinHutMesh = meshRow(
-			"RuinHutTex",
-			"small ruined pale grey stone hut, one storey, cracked stone block walls, a broken roof covered in green moss and grass, an empty doorway and one empty window, plain with no carvings or writing, stylized low poly cartoon style",
-			ruinHut.Size,
+		CloudHouseMesh = meshRow(
+			"CloudHouseTex",
+			"single small round white house made of soft solid cloud, smooth dome roof, a pastel pink trim band, one round window and a small arched door, no signs and no writing, stylized low poly cartoon style",
+			cloudHouseProp.Size,
 			2500,
-			"rhythm building (Pad = true), footprint inside 44"
+			"rhythm building (Pad = true), footprint inside 44; door faces -Z"
 		),
-		RuinIslandTex = textureRow("RuinIslandMesh"),
-		SkyTreeTex = textureRow("SkyTreeMesh"),
-		WaterfallPillarTex = textureRow("WaterfallPillarMesh"),
-		FloatingRockTex = textureRow("FloatingRockMesh"),
-		BrokenColumnTex = textureRow("BrokenColumnMesh"),
-		RuinArchTex = textureRow("RuinArchMesh"),
-		IslandTreeTex = textureRow("IslandTreeMesh"),
-		VineBridgeTex = textureRow("VineBridgeMesh"),
-		RuinHutTex = textureRow("RuinHutMesh"),
+		SkyPalmMesh = meshRow(
+			"SkyPalmTex",
+			"slender tropical palm tree with a gently curved trunk and a crown of bright green fronds, a small white cloud puff at its foot, stylized low poly cartoon style",
+			skyPalm.Size,
+			1500
+		),
+		BrokenPillarMesh = meshRow(
+			"BrokenPillarTex",
+			"broken ancient pillar, lower half weathered sandy stone and upper half clad in worn gold, jagged broken top, one green vine wrapped around it, plain with no carvings or writing, stylized low poly cartoon style",
+			brokenPillar.Size,
+			1500
+		),
+		GiantFernMesh = meshRow(
+			"GiantFernTex",
+			"large jungle fern plant, long arching bright green fronds spreading out from a low center, stylized low poly cartoon style",
+			giantFern.Size,
+			1500,
+			"scatter (turns freely)"
+		),
+		JungleTreeMesh = meshRow(
+			"JungleTreeTex",
+			"giant tropical jungle tree, tall straight brown trunk with wide buttress roots at the base, a broad flat dense green crown, long vines hanging from the branches, stylized low poly cartoon style",
+			jungleTree.Size,
+			3000,
+			"landmark and Blocks giant"
+		),
+		CloudTownTex = textureRow("CloudTownMesh"),
+		SunkenRuinsTex = textureRow("SunkenRuinsMesh"),
+		GiantBeanstalkTex = textureRow("GiantBeanstalkMesh"),
+		GoldenBellTex = textureRow("GoldenBellMesh"),
+		CloudHouseTex = textureRow("CloudHouseMesh"),
+		SkyPalmTex = textureRow("SkyPalmMesh"),
+		BrokenPillarTex = textureRow("BrokenPillarMesh"),
+		GiantFernTex = textureRow("GiantFernMesh"),
+		JungleTreeTex = textureRow("JungleTreeMesh"),
 		CloudWispParticle = {
 			Kind = "Texture",
 			Lane = "A",
 			Prompt = "in-house 128 px soft stretched cloud puff with lumpy noise inside, white on transparent",
 			Notes = "drawn with python3 + numpy (assets/biomes/Snow/cloud_wisp_particle.png); Id comes with the phase 2 upload",
 		},
-		MistParticle = {
+		MoteParticle = {
 			Kind = "Texture",
 			Lane = "A",
-			Prompt = "in-house 128 px round soft glow with faint grain, white on transparent, tinted pale blue by the emitter",
-			Notes = "drawn with python3 + numpy (assets/biomes/Snow/mist_particle.png); Id comes with the phase 2 upload",
+			Prompt = "in-house 128 px round soft glow with faint grain, white on transparent, tinted pale gold by the emitter",
+			Notes = "drawn with python3 + numpy (assets/biomes/Snow/mote_particle.png); Id comes with the phase 2 upload",
 		},
-		AmbHighWind = {
+		AmbSkyJungle = {
 			Kind = "Sound",
-			Id = "rbxassetid://9114057104",
+			Id = "rbxassetid://9112748018",
 			Lane = "D",
 			Creator = "ProSoundEffects",
-			Notes = "Creator Store 9114057104: Desert Wind Whistley Light Gusts 1, whistling wind, loop, 37.4 s. "
-				.. "Waterfall roar alternative: 9120549564 (Waterfall Background Water Roar 1, 56 s)",
+			Notes = "Creator Store 9112748018: Birds And Cicadas 2, distant birds, insects, light wind, loop, 46.3 s",
 		},
-		SfxHawkCall = {
+		SfxBellToll = {
 			Kind = "Sound",
-			Id = "rbxassetid://9125598512",
+			Lane = "A",
+			Prompt = "in-house deep distant bell toll: synthesized inharmonic bell partials on G2 with long decays, low-passed, sparse echo, 9 s",
+			Notes = "made with python3 + numpy (assets/audio/Snow/bell_toll.ogg, Opus; bell_toll.wav as a fallback); Id comes with the phase 2 upload; original synthesis, no show music",
+		},
+		SfxThunderRoll = {
+			Kind = "Sound",
+			Id = "rbxassetid://9120021237",
 			Lane = "D",
 			Creator = "ProSoundEffects",
-			Notes = "Creator Store 9125598512: hawk screeching call, 2.4 s",
-		},
-		SfxWindGust = {
-			Kind = "Sound",
-			Id = "rbxassetid://9113840280",
-			Lane = "D",
-			Creator = "ProSoundEffects",
-			Notes = "Creator Store 9113840280: Cloth Whooshes Pass Bys Light And Air Wind 2, a passing air gust, 4.4 s",
+			Notes = "Creator Store 9120021237: Thunder Rumbling 1, rumbling, booming, long decays, 24.3 s",
 		},
 	},
 }
