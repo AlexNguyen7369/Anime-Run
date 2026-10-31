@@ -77,19 +77,12 @@ CarService.Start()
 WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Speed in the zone
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
--- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads, the VFX floor
--- and pinned heroes
+-- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
 do
 	local clear = { vfxArea }
 	for _, model in trackModels do
 		table.insert(clear, model:FindFirstChild("Checkpoint"))
 		table.insert(clear, model:FindFirstChild("WinPad", true))
-		local env = model:FindFirstChild("Environment")
-		for _, prop in env and env:GetChildren() or {} do
-			if prop:GetAttribute("Pinned") then
-				table.insert(clear, prop) -- level ground under a pinned hero (spec 3.2)
-			end
-		end
 	end
 	TerrainShape.Prepare(entries, clear, { spawnArea, Workspace.Workshops })
 	for _, entry in entries do

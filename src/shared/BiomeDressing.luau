@@ -866,6 +866,33 @@ function BiomeDressing.SnapToTerrain(trackModels)
 	local touches = clearance(trackModels)
 	local moved, dropped = 0, 0
 	local heroes, heroDropped = {}, {} -- biome -> heroes left, heroes dropped
+	-- Pinned heroes first (spec 3.2): each is raised onto a pad levelled to the natural height at its centre, before
+	-- any other prop samples the ground near it
+	local pinned = {} -- their footprints grown by CLEARANCE, kept clear of every other prop
+	for _, model in trackModels do
+		local folder = model:FindFirstChild("Environment")
+		for _, prop in folder and folder:GetChildren() or {} do
+			if prop:IsA("Model") and prop:GetAttribute("Pinned") then
+				local cf, size = prop:GetBoundingBox()
+				local y = TerrainShape.Height(cf.Position.X, cf.Position.Z)
+				local pivot = prop:GetPivot()
+				prop:PivotTo(pivot + Vector3.new(0, y - GROUND_Y, 0))
+				if touches(prop) then -- raised into a road's clearance: keep it and its pad at the base
+					prop:PivotTo(pivot)
+					y = GROUND_Y
+					warn(
+						string.format("[BiomeDressing] pinned hero %s would touch a road: left at its base", prop.Name)
+					)
+				end
+				TerrainShape.AddPad(cf, size, y)
+				if prop:GetAttribute("BasePivot") then
+					prop:SetAttribute("BasePivot", prop:GetPivot())
+				end
+				local grow = Vector2.one * BiomeDressing.CLEARANCE
+				table.insert(pinned, { CFrame = cf, Half = Vector2.new(size.X / 2, size.Z / 2) + grow })
+			end
+		end
+	end
 	for _, model in trackModels do
 		local folder = model:FindFirstChild("Environment")
 		local biome = model:GetAttribute("Biome")
@@ -886,6 +913,12 @@ function BiomeDressing.SnapToTerrain(trackModels)
 		-- Ground height change dy for the prop's box (cf, size) moved by `shift`, or nil when it leaves its zone or
 		-- (a landmark) overhangs a drop; also the centre height
 		local function fit(prop, cf, size, shift)
+			local box = { CFrame = cf + shift, Half = Vector2.new(size.X / 2, size.Z / 2) }
+			for _, pin in pinned do
+				if footprintsOverlap(box, pin) then
+					return nil -- off every pinned hero's pad, whatever its track
+				end
+			end
 			local centre, low = nil, math.huge
 			for _, c in CORNERS do
 				local p = cf:PointToWorldSpace(Vector3.new(c[1] * size.X / 2, 0, c[2] * size.Z / 2)) + shift
@@ -924,7 +957,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 			return false
 		end
 		for _, prop in folder and folder:GetChildren() or {} do
-			-- a pinned hero stays where it is: Main.server levels the ground under it (clear box, spec 3.2)
+			-- pinned heroes are already on their pads (above)
 			if prop:IsA("Model") and not prop:GetAttribute("Pinned") then
 				local cf, size = prop:GetBoundingBox()
 				n = trackN or (TerrainShape.Owner(cf.Position.X, cf.Position.Z, nil))

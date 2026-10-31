@@ -435,6 +435,20 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	end
 end
 
+-- Levels a pad at height y under the oriented box (cf, size), grown by CLEARANCE and blended out over the shoulder
+-- width (spec 3.2: a pinned hero). The pad fades to nothing at the corridor edge, so it never moves road or clear-box
+-- ground. Call after Prepare and before the terrain is built.
+function TerrainShape.AddPad(cf, size, y)
+	local half = (cf.RightVector * size.X):Abs() / 2 + (cf.LookVector * size.Z):Abs() / 2
+	local g = Vector2.one * TerrainShape.CLEARANCE
+	local c = Vector2.new(cf.Position.X, cf.Position.Z)
+	state.Pads = state.Pads or {}
+	table.insert(
+		state.Pads,
+		{ Min = c - Vector2.new(half.X, half.Z) - g, Max = c + Vector2.new(half.X, half.Z) + g, Y = y }
+	)
+end
+
 function TerrainShape.Ready()
 	return state ~= nil
 end
@@ -643,7 +657,7 @@ end
 -- corridor). Materials dither across the seam (spec 2.3).
 function TerrainShape.Column(x, z)
 	local A, dA, B, dB, roadY, dc, pA, pB = sample(x, z)
-	local yA, bandA, shapeA, _, secA = biomeY(A, dA, x, z, roadY, dc, pA)
+	local yA, bandA, shapeA, deA, secA = biomeY(A, dA, x, z, roadY, dc, pA)
 	local y, n, band, shape, sec = yA, A, bandA, shapeA, secA
 	if B and dB - dA < TerrainShape.SEAM / 2 then
 		local w = clamp01(0.5 + (dB - dA) / TerrainShape.SEAM)
@@ -652,6 +666,13 @@ function TerrainShape.Column(x, z)
 		if hash(x, z) >= w then
 			n, band, shape, sec = B, bandB, shapeB, secB
 		end
+	end
+	local C, S = TerrainShape.CORRIDOR, TerrainShape.SHOULDER
+	for _, pad in state.Pads or {} do
+		local ex = math.max(pad.Min.X - x, 0, x - pad.Max.X)
+		local ez = math.max(pad.Min.Y - z, 0, z - pad.Max.Y)
+		local w = (1 - smooth(math.sqrt(ex * ex + ez * ez) / (S - C))) * smooth((deA - C) / (S - C))
+		y += (pad.Y - y) * w
 	end
 	local prof = state.Profiles[n] or {}
 	local mats = prof.Materials or DEFAULT_MATERIALS
