@@ -35,3 +35,22 @@
 - Blocks: land Track 2 (fw2).
 - ANSWER 2026-10-31 (owner): slide and delete allowed; never delete hero landmarks below 2 per biome (a hero that
   cannot fit stays and is reported as an error); record in spec 3.2 as placeholders. Done on orch/biomes/fw2.
+
+## oq4: Studio generation tools denied overnight (2026-10-31)
+- The auto-mode permission classifier denied `mcp__Roblox_Studio__generate_mesh` ("Modify Shared Resources") for the
+  Track 4 builder; `insert_asset` / `upload_image` likely the same. Agents may not work around a denial.
+- Orchestrator default (owner delegated): Tracks 4-10 are built with terrain, atmosphere, audio, palettes and
+  part-built landmarks/props (no Lane A meshes, no new Lane D inserts); each hero def carries a TODO with its intended
+  mesh prompt.
+- To do on waking: allow those tools (e.g. `/permissions` or settings allow-list for mcp__Roblox_Studio__generate_mesh,
+  insert_asset, upload_image), then run a mesh pass per track.
+- ANSWER 2026-10-31 (owner): allow all 3. Standing allow rules added to .claude/settings.local.json (local, gitignored)
+  for generate_mesh, insert_asset, upload_image; Tracks 4-10 use Lane A meshes + Lane D again.
+
+## oq5: fw3 rule refinements, orchestrator default (2026-10-31, owner delegated)
+- A pinned (At) hero whose footprint reaches a road corridor is pushed outward 4 studs per try (max 24) instead of
+  warning; measured pushes 4-8 studs (Landmark_259, _263, _315, _49).
+- A padded prop (house) whose footprint reaches a corridor sits at the corridor's lowest ground under it (CorridorLow)
+  so it never floats; pads never overlap (9 Docks houses removed by that rule).
+- Chosen as the recommended fix (houses gap 0, TileRing gap 0, 0 warnings in the Lune harness). Spec 3.2 fw3 bullet.
+  Review in the morning; revert = commit on orch/biomes/fw3.
