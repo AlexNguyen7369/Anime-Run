@@ -187,3 +187,12 @@
   landmark ParticleEmitters ignore REDUCED EFFECTS.
 - LANDED Track 5 rebuild (Burning Cursed City). Next: fw6 -> t7r Studio; then t8 (Skypeia), t9, t10. Open: T5 live floats LavaCrack patch 6.5, debris 2.2.
 - LANDED Track 8 Skypeia. Next: t7r Studio (move ../AnimeRun-orch/t7r into studio), land with fw5+fw6; then t9, t10.
+- 2026-10-31 STOPPED by owner ("will continue later"). Landed + pushed: Tracks 1-6, Track 5 rebuild (Burning Cursed
+  City), Track 8 Skypeia, fw2-fw4, track camera, redesign specs.
+  In progress (NOT landed), Rojo-served ../AnimeRun-orch/studio on orch/biomes/t7r (includes fw5 tunnel + fw6 +
+  tests): Track 7 Shibuyo Underground step A partly done (14 close-ups, some mesh ids in Desert.luau; see the t7r
+  stop report). Uncommitted docs: owner fight-scene ruling (Gojio vs Joggo/Hanamy/Mahitto/Chosu, Gojio mid domain
+  expansion) in the design doc change log; research agent was writing the scene spec into BIOME_ENVIRONMENT_SPEC 7.
+  Resume: commit t7r WIP; finish the fight-scene spec; t7r step A + fight figures/VFX; audit; verify incl tunnel_clear,
+  camera clamp, flicker; land t7r with fw5/fw6. Then t9 (mesh ids in this file), t10 (phase 1 on orch/biomes/t10).
+  Morning/owner review list: docs/OWNER_QUESTIONS.md.
