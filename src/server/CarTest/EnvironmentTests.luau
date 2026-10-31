@@ -1285,6 +1285,23 @@ local function isSolid(material)
 	return material ~= Enum.Material.Air and material ~= Enum.Material.Water
 end
 
+-- Chain tracks whose biome has a Tunnel (spec 3.5), with the origin Main.server builds each at: { Spec, Layout,
+-- Origin, Def }
+local function tunnelTracks()
+	local Themes = module(Shared, "BiomeThemes") or {}
+	local out = {}
+	local origin = TrackBuilder.CHAIN_ORIGIN or CFrame.new(0, TrackBuilder.TRACK_LIFT or 0, 0)
+	for _, spec in TrackRegistry.Chain() do
+		local layout = TrackBuilder.Layout(spec)
+		local theme = Themes[spec.Biome]
+		if type(theme) == "table" and theme.Tunnel then
+			table.insert(out, { Spec = spec, Layout = layout, Origin = origin, Def = theme.Tunnel })
+		end
+		origin = TrackBuilder.EndCFrame(layout, origin)
+	end
+	return out
+end
+
 -- 1. terrain_built (spec 10.1, 2.2, 3.1)
 function Tests.terrain_built()
 	local r, flag = report("terrain_built")
@@ -1415,6 +1432,125 @@ function Tests.terrain_built()
 		gaps[tostring(line.Number)] = { tried = tried, found = found, solid = solid }
 	end
 	r.metrics.gaps = gaps
+
+	-- Tunnels (spec 3.5): every 4 studs inside each segment's inner box the ground (Height) is at most road Y - 1
+	-- and earth, if any, starts at road Y + Height + CEILING (2) or higher. No tunnel biome: nothing to check.
+	local tracks = tunnelTracks()
+	r.metrics.tunnel_tracks = #tracks
+	if #tracks > 0 then
+		local Tunnel = require(Shared.Tunnel)
+		local TS = require(Shared.TerrainShape)
+		local tunnels = {}
+		for _, t in tracks do
+			local bad, samples, first = 0, 0, nil
+			for _, seg in Tunnel.Segments(t.Layout, t.Origin, t.Def) do
+				local half = seg.Length / 2
+				for z = -half, half, 4 do
+					task.wait()
+					for x = -seg.Left + 1, seg.Right - 1, 4 do
+						local p = (seg.CFrame * CFrame.new(x, 0, -z)).Position
+						local road = p.Y
+						local y, _, _, _, _, _, hi = TS.Column(p.X, p.Z)
+						local ground = TS.Height(p.X, p.Z)
+						samples += 1
+						local ok = ground <= road - 1
+							and (y <= road - 1 or (hi ~= nil and hi >= road + seg.Height + Tunnel.CEILING))
+						if not ok then
+							bad += 1
+							first = first
+								or ("(%.0f,%.0f) road %.1f ground %.1f top %.1f hi %s"):format(
+									p.X,
+									p.Z,
+									road,
+									ground,
+									y,
+									tostring(hi)
+								)
+						end
+					end
+				end
+			end
+			flag(("tunnel_box_%d"):format(t.Spec.Number), samples > 0 and bad == 0, bad, 0)
+			tunnels[tostring(t.Spec.Number)] = { samples = samples, bad = bad, first = first }
+		end
+		r.metrics.tunnels = tunnels
+	end
+	return r
+end
+
+-- tunnel_clear (spec 3.5): every 20 studs between the Tunnel folder's From and To a ray up from 0.5 above the road
+-- hits a tunnel part no lower than road Y + 12; no tunnel part within CLEARANCE of any CheckpointArea or WinPad.
+-- Passes with a "no tunnel" note when no biome has a Tunnel.
+function Tests.tunnel_clear()
+	local r, flag = report("tunnel_clear")
+	local Dressing = module(Shared, "BiomeDressing")
+	local clearance = Dressing and type(Dressing.CLEARANCE) == "number" and Dressing.CLEARANCE or 8
+	local folders = CollectionService:GetTagged("Tunnel")
+	local tracks = tunnelTracks()
+	if #tracks == 0 and #folders == 0 then
+		r.metrics.note = "no tunnel"
+		flag("no_tunnel", true)
+		return r
+	end
+	local Tunnel = require(Shared.Tunnel)
+	-- every CheckpointArea and WinPad of the live tracks
+	local pads = {}
+	for _, d in Workspace:GetDescendants() do
+		if d:IsA("BasePart") and (d.Name == "CheckpointArea" or d.Name == "WinPad") then
+			table.insert(pads, d)
+		end
+	end
+	local out = {}
+	for _, t in tracks do
+		local n = t.Spec.Number
+		local folder
+		for _, f in folders do
+			if f.Parent and f.Parent.Name == t.Spec.Name then
+				folder = f
+			end
+		end
+		flag(("tunnel_folder_%d"):format(n), folder ~= nil)
+		if folder then
+			local from, to = folder:GetAttribute("From"), folder:GetAttribute("To")
+			flag(("tunnel_span_%d"):format(n), type(from) == "number" and type(to) == "number")
+			from, to = from or 0, to or 0
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Include
+			params.FilterDescendantsInstances = { folder }
+			local rays, low, open = 0, math.huge, 0
+			for _, seg in Tunnel.Segments(t.Layout, t.Origin, t.Def) do
+				local s = math.ceil(math.max(seg.From, from) / 20) * 20
+				while s < math.min(seg.To, to) do
+					local p = (seg.CFrame * CFrame.new(0, 0.5, -(s - (seg.From + seg.To) / 2) / seg.Flat)).Position
+					local hit = Workspace:Raycast(p, Vector3.new(0, 200, 0), params)
+					rays += 1
+					if hit then
+						low = math.min(low, hit.Position.Y - (p.Y - 0.5))
+					else
+						open += 1
+					end
+					s += 20
+				end
+			end
+			flag(("tunnel_rays_%d"):format(n), rays > 0)
+			flag(("tunnel_roof_%d"):format(n), open == 0, open, 0)
+			flag(("tunnel_ceiling_%d"):format(n), low >= 12, low, 12)
+			-- no tunnel part within CLEARANCE of a pad (oriented boxes, pad grown by CLEARANCE)
+			local near, firstNear = 0, nil
+			for _, part in baseParts(folder) do
+				for _, pad in pads do
+					local grown = pad.Size / 2 + Vector3.one * clearance
+					if boxesOverlap(part.CFrame, part.Size / 2, pad.CFrame, grown) then
+						near += 1
+						firstNear = firstNear or (part.Name .. " near " .. pad:GetFullName())
+					end
+				end
+			end
+			flag(("tunnel_pad_clearance_%d"):format(n), near == 0, near, 0)
+			out[tostring(n)] = { rays = rays, open = open, lowest = low, near = near, first_near = firstNear }
+		end
+	end
+	r.metrics.tunnels = out
 	return r
 end
 

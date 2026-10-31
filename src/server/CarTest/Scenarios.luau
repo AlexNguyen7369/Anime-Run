@@ -13301,6 +13301,7 @@ do
 	Scenarios.zone_switch = env.zone_switch
 	Scenarios.server_lighting_unchanged = env.server_lighting_unchanged
 	Scenarios.assets_ip = env.assets_ip
+	Scenarios.tunnel_clear = env.tunnel_clear
 end
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
