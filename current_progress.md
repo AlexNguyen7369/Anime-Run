@@ -11,8 +11,9 @@
 8. 2026-10-30 — Alex Nguyen — Rescaled the Speed stat x1e15/3e5 (design doc 4.11, save and Speed leaderboard stores v2) and wrote the owner track-length and stamina updates into the docs; harness fixes re-run green.
 9. 2026-10-30 — Alex Nguyen — Landed anime-world w1: placeholder runner rig replaces the car body, car physics scrapped, log-scaled Speed board; full harness `[CARTEST] END pass=45 fail=0`, audit PASS.
 10. 2026-10-30 — Alex Nguyen — Landed anime-world w2: anime town plaza hub at the world origin, 7 Dojo plots and the Dojo squad rule, track chain moved to (-118, TRACK_LIFT, 80); full harness `[CARTEST] END pass=47 fail=0`.
+11. 2026-10-30 — Alex Nguyen — Committed anime-world w3 work in progress on orch/anime-world/w3 (spiral layouts for Tracks 1-10, TARGET_LENGTH check, wide bends on Tracks 7-10, faster overlap tests), not yet verified in Studio; added the dashboard tool and /dashboard command.
 
 ## What's next
-**Anime-world w3: track tests for Tracks 1-10, then layouts at 984 x F x 1.25^(n-1) (F = 3) along the spiral, each researched from its anime, tests first.**
+**Verify anime-world w3 in Studio: run `runner` alone and time it, then the full harness on orch/anime-world/w3, re-audit the Tracks 7-10 change, and land w3.**
 
-**Why this is next:** the hub and chain origin from w2 fix where the spiral starts, and w4's biome themes are dressed onto the w3 track layouts.
+**Why this is next:** w3 cannot merge into feature/alex/anime-world until its tests are green, and w4's biome themes are dressed onto the w3 track layouts.

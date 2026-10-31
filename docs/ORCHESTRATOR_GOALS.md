@@ -6,6 +6,9 @@ Game rules stay in `docs/GAME_DESIGN_REQUIREMENTS.md` and the specs.
 ## Global
 - Definition of done (every deliverable): its harness scenarios green, the full harness `[CARTEST] END fail=0`, rules
   audit PASS (owner 2026-10-28).
+- Owner 2026-10-30 (replaces the per-deliverable full harness): during development each deliverable needs only its
+  own targeted scenarios green plus `stylua` / `selene`; tests are a development tool, not a gate that delays work.
+  One full compatibility check (full harness `[CARTEST] END fail=0` + rules audit) runs once all features are built.
 
 ## fork-ivs: Idle Vehicle Simulator code forked into AnimeRun
 Status: done (merged into main 2026-10-28, PR #1, 039ad28)
@@ -29,4 +32,15 @@ Deliverables:
 - w3 | Track tests for Tracks 1-10, then layouts 1-10 at 984 x F x 1.25^(n-1) (F = 3) along the spiral, each researched from its anime (spec References) | every track test + chain green
 - w4 | Biome themes 1-10, researched from public info on each anime and matched closely within section 5 | `environment` + clearance green; IP check PASS
 - w5 | Rules audit PASS on the integration branch | `RULES AUDIT: PASS`
+Out of scope: final character art, Robux products, merging into `main`.
+
+## core: Core Anime Run gameplay from the design docs
+Status: active (after anime-world w3-w4)
+Owner-confirmed: 2026-10-30 ("develop core features explained in design docs")
+Branch: feature/alex/anime-world (same integration branch)
+Spec: docs/TEAM_AND_STAMINA_SPEC.md, docs/CHARACTER_GACHA_SPEC.md, docs/NPC_RIVAL_SPEC.md
+Deliverables:
+- c1 | Team of 3 + stamina + swap + run end by exhaustion + HUD (TEAM_AND_STAMINA_SPEC Team, Stamina, Swap, Run end, HUD) | its spec tests green
+- c2 | Runner categories, Stamina stat point, Stamina potion, team bonus (series / preset) (TEAM_AND_STAMINA_SPEC, CHARACTER_GACHA_SPEC Series and preset teams) | its spec tests green
+- c3 | Full compatibility check across all features | full harness `[CARTEST] END fail=0`; RULES AUDIT: PASS
 Out of scope: final character art, Robux products, merging into `main`.
