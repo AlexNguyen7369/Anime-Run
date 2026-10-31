@@ -136,3 +136,6 @@
   (4) retake final Track 1-3 shots; then Track 4 (Wisteria Night Mountain, Suburb).
   Worktrees ../AnimeRun-orch/fw2 (orch/biomes/fw2) and studio (orch/biomes/t3) kept; Rojo 34873 serves studio.
   Studio fc533734 in Edit, clean.
+- RESUME PLAN (owner 2026-10-31): fw3 framework follow-ups are remembered and go first (docs/BOARD.md Next, state
+  file resume_step). Track 4 non-Studio prep may run asynchronously alongside fw3, but t4 merges fw3 before any Studio
+  verification. Studio + Rojo 34873 = one agent at a time (serves ../AnimeRun-orch/studio; switch its branch per task).

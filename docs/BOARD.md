@@ -7,6 +7,13 @@
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
+- fw3 framework follow-ups (FIRST on "continue"; code-only, no Studio until verify; branch orch/biomes/fw3 from feature/alex/anime-world):
+  (1) Pad houses still float >1 stud: 25 Docks houses (worst Warehouse/BigHarborHouse x~718, ~5 studs), Track 1
+  VillageHouse 3.6, ElderHouse 7.0; (2) TileRing (Track 2 Landmark_171) max gap 11.4, want ~0; (3) "pinned hero reaches
+  into a road corridor" for Landmark_259, _263, _315, _49 (decide: shrink/nudge pin or accept); (4) retake final
+  Track 1-3 shots (T1_Cliff, T1_StoneFace, T2_*, T3_*). Files: TerrainShape, BiomeDressing, theme modules.
+- b2 Track 4 Wisteria Night Mountain (Suburb): may run in parallel with fw3 for non-Studio work (research, meshes,
+  ledger, Suburb.luau) but must merge fw3 before its Studio verification; Studio one agent at a time.
 - b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
