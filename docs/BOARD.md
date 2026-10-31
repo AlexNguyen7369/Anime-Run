@@ -20,6 +20,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-10-31 b2 Track 8 Skypeia (owner redesign): pass=3 fail=0, 18 rows signed, live floats max 1.05
 - 2026-10-31 b2 Track 5 rebuild Burning Cursed City (owner redesign): pass=3 fail=0, 21 rows signed; storefront mesh swapped to parts (face reading)
 - 2026-10-31 b2 Track 6 Hero Academy City + fw4 (merge 9858032): pass=3 fail=0, 27 rows auditor-signed; live padded floats T1 0 / T6 0 / T4 2 (1.55)
 - 2026-10-31 b2 Track 5 Neon Cursed City + track camera setting (merge 0962287): pass=3 fail=0, 24 rows auditor-signed; camera max yaw step 2.4 deg, OFF regular

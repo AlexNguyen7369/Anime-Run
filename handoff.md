@@ -186,3 +186,4 @@
   harness, step B. Also for fw6: EnvironmentTests:35 expects "Neon Cursed City" (test-writer), Serpentine header text,
   landmark ParticleEmitters ignore REDUCED EFFECTS.
 - LANDED Track 5 rebuild (Burning Cursed City). Next: fw6 -> t7r Studio; then t8 (Skypeia), t9, t10. Open: T5 live floats LavaCrack patch 6.5, debris 2.2.
+- LANDED Track 8 Skypeia. Next: t7r Studio (move ../AnimeRun-orch/t7r into studio), land with fw5+fw6; then t9, t10.
