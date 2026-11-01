@@ -23,8 +23,9 @@
 20. 2026-10-31 — Alex Nguyen — Rebuilt Track 5 as Burning Cursed City and Track 8 as Skypeia after the owner's redesign, both auditor-signed with Studio checks passing.
 21. 2026-11-01 — Alex Nguyen — Landed Track 9 Spirit Realm Desert and Track 7 Shibuyo Underground (wide subway tunnel framework, fight scene), Studio checks passing.
 22. 2026-11-01 — Alex Nguyen — Landed Track 10 Green Alien Planet and the Track 4 twilight neon update without scenario runs (owner test pause); all 10 biomes landed.
+23. 2026-11-01 — Alex Nguyen — Wrote the owner's urgent rulings into the design doc (fixed character speed, rebirth, info-only sensei, leaderboards removed, biome popup, high-speed loading).
 
 ## What's next
-**Run c3, the full compatibility check (full harness + rules audit across all 10 tracks), when the owner says so.**
+**Build u1: fixed cruise speed per rarity x category with no Speed stat, rebirth as luck/XP/stat point, and the info-only sensei (design doc 4.13-4.15).**
 
-**Why this is next:** Tracks 10 and the Track 4 twilight update landed without scenario runs, so c3 is the gate that proves the whole game still passes before anything goes toward main.
+**Why this is next:** the owner marked it urgent, and the per-slot aura/trail work and all speed balancing build on the new fixed-speed model.
