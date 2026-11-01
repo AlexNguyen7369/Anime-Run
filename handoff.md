@@ -205,3 +205,7 @@
 - t7r WIP committed 14abf92 (12 mesh ids in Desert.luau, dust 77443196483447, sky faces Bk 126814177699454 Dn
   90423288718397 Ft 91385232590200 Lf 119320290687932 Rt 98579734251070 Up 89593505205012). All work branches pushed
   to origin (orch/biomes/fw5, fw6, t7r, t9, t10, t7 superseded) for safety; only feature/alex/anime-world is integrated.
+- 2026-11-01 RESUMED (owner): Tracks 9-10 + Track 7 completion. Owner asks: Track 7 brighter (not pure darkness);
+  Track 4 more neon purple lights + ambient air particles (twilight). Running: t9 in Studio (b78475e0), t7r
+  brightness + NOMESH in ../AnimeRun-orch/t7r, fight-scene spec in t7r docs, t4 tweak in ../AnimeRun-orch/t4b.
+  Studio queue: t9 -> t7r (fight figures + verify) -> t10 -> t4b check + shots.
