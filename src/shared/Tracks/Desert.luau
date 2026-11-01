@@ -1,6 +1,6 @@
 --!nonstrict
 -- Track 7 (owner redesign 2026-10-31, docs/BIOME_ENVIRONMENT_SPEC.md section 7): Shibuyo Underground, a made-up
--- subway after the Shibuya Incident (tweaked; no real station, line or company names). The whole run is inside the
+-- subway after the cursed-subway incident arc (tweaked; no real station, line or company names). The whole run is inside the
 -- biome's Tunnel (spec 3.5): tiled corridors, side platforms, a concourse and the deep main platform hall. The
 -- segment comments below still name the earlier Blossom Shrine Path layout, which the tunnel keeps.
 -- About 984 x 3 x 1.25^6 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).

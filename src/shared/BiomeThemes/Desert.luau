@@ -233,14 +233,30 @@ local rubbleMesh = meshed(rubble, "RubbleMesh", v(3.82, 3.2, 3.88)) -- mesh 2.39
 local entranceMesh = meshed(stairEntrance, "StairEntranceMesh", v(8.19, 8, 5.14))
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row
--- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups are in assets/biomes/Desert/review/.
+-- Every row is signed by the rules auditor (spec 4.1 step 3); close-ups are in assets/biomes/Desert/review/.
 -- Notes give the generate_mesh call: size (studs) and segmentation, and the mesh's own size; Tris is its maxTriangles.
-local function meshRow(id, texture, prompt, tris, notes)
-	return { Kind = "Mesh", Id = id, Lane = "A", Prompt = prompt, Texture = texture, Tris = tris, Notes = notes }
+local function meshRow(id, texture, prompt, tris, notes, reviewed)
+	return {
+		Kind = "Mesh",
+		Id = id,
+		Lane = "A",
+		Prompt = prompt,
+		Texture = texture,
+		Tris = tris,
+		Reviewed = reviewed,
+		Notes = notes,
+	}
 end
-local function textureRow(id, mesh)
-	return { Kind = "Texture", Id = id, Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
+local function textureRow(id, mesh, reviewed)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = reviewed,
+	}
 end
+local SIGNED = "2026-11-01 rules-auditor" -- close-up IP review of every ledger row (fight scene included)
 
 -- Fight scene (spec 7, Track 7 "Fight scene", owner 2026-10-31, resumed 2026-11-01): a still tableau in the deep main
 -- platform hall. Five parody look-alike figures (internal names only in the spec; asset keys T7FigureA-E here, no
@@ -677,159 +693,179 @@ return {
 			"CollapsedEscalatorTex",
 			"broken escalator lying diagonally from a high concrete landing down to the floor, metal steps visible, black rubber handrails on grey metal side panels, the landing slab cracked and tilted, grey concrete chunks and broken cream tiles piled around its foot, plain surfaces with no markings, no signs, no text, stylized cartoon style",
 			15000,
-			"hero 4 (At 0.16, first platform): generate_mesh size 20 x 13 x 14, segmentation none; second try (the first had odd marks under a slab); mesh 5.9 x 10.76 x 14"
+			"hero 4 (At 0.16, first platform): generate_mesh size 20 x 13 x 14, segmentation none; second try (the first had odd marks under a slab); mesh 5.9 x 10.76 x 14",
+			SIGNED
 		),
 		ConcourseAtriumMesh = meshRow(
 			"rbxassetid://117670017289451",
 			"ConcourseAtriumTex",
 			"box shaped multi level underground concourse hall, two straight concrete balcony levels on grey steel columns, two escalators crossing each other in an X between the levels, glass balcony rails, fluorescent light strips under each level, cream tiled back wall with one teal stripe, a row of plain grey ticket gates in front, rectangular not round, no signs, no text, no logo, stylized cartoon style",
 			15000,
-			"hero 1 (At 0.36, concourse): generate_mesh size 30 x 19 x 16, segmentation none; open side faces -Z; box void only, never an oval atrium; mesh 24.85 x 19 x 9.49"
+			"hero 1 (At 0.36, concourse): generate_mesh size 30 x 19 x 16, segmentation none; open side faces -Z; box void only, never an oval atrium; mesh 24.85 x 19 x 9.49",
+			SIGNED
 		),
 		StalledTrainMesh = meshRow(
 			"rbxassetid://114093523046760",
 			"StalledTrainTex",
 			"one generic boxy subway train car, long body running front to back, plain cream metal sides with one teal band and a row of dark side windows and sliding doors, flat grey roof, dark wheel bogies, both ends are flat plain cream walls with a single narrow closed grey door in the middle and no windows and no lights, no numbers, no letters, no logo, stylized cartoon style",
 			12000,
-			"hero 2 (At 0.6, second platform): generate_mesh size 7 x 8 x 16, segmentation none; fourth try (the generator makes long shapes along Z; earlier cab ends had a big window under two lamps, a face risk); plain end faces -Z; mesh 6.31 x 8 x 13.2"
+			"hero 2 (At 0.6, second platform): generate_mesh size 7 x 8 x 16, segmentation none; fourth try (the generator makes long shapes along Z; earlier cab ends had a big window under two lamps, a face risk); plain end faces -Z; mesh 6.31 x 8 x 13.2",
+			SIGNED
 		),
 		PlatformHallMesh = meshRow(
 			"rbxassetid://72257775317628",
 			"PlatformHallTex",
 			"long island subway platform section, grey concrete platform floor with a yellow tactile strip along the front edge, two rows of slim grey steel columns, half height glass platform screen doors along the edge, two wooden benches, a concrete ceiling beam with fluorescent light strips, no signs, no text, stylized cartoon style",
 			15000,
-			"hero 3 (At 0.83, main hall): generate_mesh size 34 x 13 x 16, segmentation none; screen doors face -Z; mesh 17.07 x 13 x 9.98"
+			"hero 3 (At 0.83, main hall): generate_mesh size 34 x 13 x 16, segmentation none; screen doors face -Z; mesh 17.07 x 13 x 9.98",
+			SIGNED
 		),
 		PlatformColumnMesh = meshRow(
 			"rbxassetid://74635002549927",
 			"PlatformColumnTex",
 			"slim grey steel subway platform column, round shaft on a square cream tiled foot, one teal painted band, stylized low poly cartoon style",
 			600,
-			"mid: generate_mesh size 2 x 16 x 2, segmentation none; mesh 2 x 3.83 x 2"
+			"mid: generate_mesh size 2 x 16 x 2, segmentation none; mesh 2 x 3.83 x 2",
+			SIGNED
 		),
 		ScreenDoorMesh = meshRow(
 			"rbxassetid://85305644705712",
 			"ScreenDoorTex",
 			"half height subway platform screen door section, two glass sliding panels in a grey steel frame with a steel head rail, no text, stylized low poly cartoon style",
 			1000,
-			"mid: generate_mesh size 10 x 5 x 1, segmentation none; faces -Z; mesh 3.88 x 3.92 x 1"
+			"mid: generate_mesh size 10 x 5 x 1, segmentation none; faces -Z; mesh 3.88 x 3.92 x 1",
+			SIGNED
 		),
 		PlatformBenchMesh = meshRow(
 			"rbxassetid://95311727005276",
 			"PlatformBenchTex",
 			"simple subway platform bench, wooden slat seat and backrest on two grey steel legs, stylized low poly cartoon style",
 			800,
-			"mid: generate_mesh size 6 x 2.5 x 2, segmentation none; seat faces +Z (scatter only); mesh 3.74 x 2.5 x 1.79"
+			"mid: generate_mesh size 6 x 2.5 x 2, segmentation none; seat faces +Z (scatter only); mesh 3.74 x 2.5 x 1.79",
+			SIGNED
 		),
 		VendingMachineMesh = meshRow(
 			"rbxassetid://86163788454964",
 			"VendingMachineTex",
 			"plain blank vending machine, light grey metal cabinet, a glass front window showing rows of small colourful boxes, a teal light strip at the top, a dark slot at the bottom, no logo, no letters, no text, stylized low poly cartoon style",
 			1200,
-			"mid: generate_mesh size 4 x 7 x 3, segmentation none; second prompt (the first failed moderation); front faces +Z (scatter only), blank labels; mesh 4 x 6.25 x 2.78"
+			"mid: generate_mesh size 4 x 7 x 3, segmentation none; second prompt (the first failed moderation); front faces +Z (scatter only), blank labels; mesh 4 x 6.25 x 2.78",
+			SIGNED
 		),
 		TicketGatesMesh = meshRow(
 			"rbxassetid://136019329692135",
 			"TicketGatesTex",
 			"four waist high long grey station ticket gate cabinets standing in a parallel row with narrow walkways between them, short flat red paddle barriers sticking sideways into each walkway, a small flat teal light panel on top of each cabinet, plain with no signs and no text, stylized low poly cartoon style",
 			1500,
-			"mid: generate_mesh size 10 x 4 x 5, segmentation none; second try (the first read as phone handsets); paddles face +Z (scatter only); mesh 5.26 x 4 x 1.97"
+			"mid: generate_mesh size 10 x 4 x 5, segmentation none; second try (the first read as phone handsets); paddles face +Z (scatter only); mesh 5.26 x 4 x 1.97",
+			SIGNED
 		),
 		WallMapMesh = meshRow(
 			"rbxassetid://117284770195643",
 			"WallMapTex",
 			"standing information board on two short grey metal legs, a solid flat white rectangular panel in a thin grey frame, the panel face printed with a few smooth abstract coloured stripes and round dots only, teal, yellow and blue stripes, no letters, no words, no numbers, no logo, stylized low poly cartoon style",
 			600,
-			"mid: generate_mesh size 8 x 8 x 1, segmentation none; second try (the first was an open frame with no panel); abstract swooshes only, never a real line map; faces -Z; mesh 6.4 x 6.08 x 1"
+			"mid: generate_mesh size 8 x 8 x 1, segmentation none; second try (the first was an open frame with no panel); abstract swooshes only, never a real line map; faces -Z; mesh 6.4 x 6.08 x 1",
+			SIGNED
 		),
 		RubbleMesh = meshRow(
 			"rbxassetid://129012579914034",
 			"RubbleTex",
 			"small pile of broken grey concrete chunks, a fallen ceiling panel and broken cream tiles, stylized low poly cartoon style",
 			800,
-			"mid: generate_mesh size 8 x 2 x 6, segmentation none; mesh 2.39 x 2 x 2.43"
+			"mid: generate_mesh size 8 x 2 x 6, segmentation none; mesh 2.39 x 2 x 2.43",
+			SIGNED
 		),
 		StairEntranceMesh = meshRow(
 			"rbxassetid://95781847098590",
 			"StairEntranceTex",
 			"street level stair entrance down to an underground railway, concrete base, steps going down between grey steel side walls, a flat glass canopy on four thin posts, one plain teal colour band, no sign, no letters, no logo, stylized low poly cartoon style",
 			3000,
-			"surface: generate_mesh size 12 x 8 x 8, segmentation none; reads as a glass canopy kiosk; mesh 8.19 x 8 x 5.14"
+			"surface: generate_mesh size 12 x 8 x 8, segmentation none; reads as a glass canopy kiosk; mesh 8.19 x 8 x 5.14",
+			SIGNED
 		),
-		CollapsedEscalatorTex = textureRow("rbxassetid://75156016092304", "CollapsedEscalatorMesh"),
-		ConcourseAtriumTex = textureRow("rbxassetid://130300687469660", "ConcourseAtriumMesh"),
-		StalledTrainTex = textureRow("rbxassetid://70667078539368", "StalledTrainMesh"),
-		PlatformHallTex = textureRow("rbxassetid://98442300433706", "PlatformHallMesh"),
-		PlatformColumnTex = textureRow("rbxassetid://134730479076036", "PlatformColumnMesh"),
-		ScreenDoorTex = textureRow("rbxassetid://109098640807472", "ScreenDoorMesh"),
-		PlatformBenchTex = textureRow("rbxassetid://115541908054893", "PlatformBenchMesh"),
-		VendingMachineTex = textureRow("rbxassetid://74284002497401", "VendingMachineMesh"),
-		TicketGatesTex = textureRow("rbxassetid://90339791416430", "TicketGatesMesh"),
-		WallMapTex = textureRow("rbxassetid://77806575378984", "WallMapMesh"),
-		RubbleTex = textureRow("rbxassetid://77033815446802", "RubbleMesh"),
-		StairEntranceTex = textureRow("rbxassetid://97946062884952", "StairEntranceMesh"),
+		CollapsedEscalatorTex = textureRow("rbxassetid://75156016092304", "CollapsedEscalatorMesh", SIGNED),
+		ConcourseAtriumTex = textureRow("rbxassetid://130300687469660", "ConcourseAtriumMesh", SIGNED),
+		StalledTrainTex = textureRow("rbxassetid://70667078539368", "StalledTrainMesh", SIGNED),
+		PlatformHallTex = textureRow("rbxassetid://98442300433706", "PlatformHallMesh", SIGNED),
+		PlatformColumnTex = textureRow("rbxassetid://134730479076036", "PlatformColumnMesh", SIGNED),
+		ScreenDoorTex = textureRow("rbxassetid://109098640807472", "ScreenDoorMesh", SIGNED),
+		PlatformBenchTex = textureRow("rbxassetid://115541908054893", "PlatformBenchMesh", SIGNED),
+		VendingMachineTex = textureRow("rbxassetid://74284002497401", "VendingMachineMesh", SIGNED),
+		TicketGatesTex = textureRow("rbxassetid://90339791416430", "TicketGatesMesh", SIGNED),
+		WallMapTex = textureRow("rbxassetid://77806575378984", "WallMapMesh", SIGNED),
+		RubbleTex = textureRow("rbxassetid://77033815446802", "RubbleMesh", SIGNED),
+		StairEntranceTex = textureRow("rbxassetid://97946062884952", "StairEntranceMesh", SIGNED),
 		T7FigureA = meshRow(
 			"rbxassetid://131400531247454",
 			"T7FigureATex",
 			"tall slim man, spiky white hair swept upward, black cloth blindfold over the eyes, black high-collar long-sleeve jacket and black trousers, standing calm, right hand raised in front of the chest, left hand in a pocket, low poly anime style figure, plain colours, no symbols",
 			8000,
-			"fight figure A: generate_mesh size 5 x 10.5 x 4, segmentation none; front faces +Z; plain jacket, no emblem; stands on a small round base; mesh 3.97 x 9.01 x 4"
+			"fight figure A: generate_mesh size 5 x 10.5 x 4, segmentation none; front faces +Z; plain jacket, no emblem; stands on a small round base; mesh 3.97 x 9.01 x 4",
+			SIGNED
 		),
 		T7FigureB = meshRow(
 			"rbxassetid://89275972338861",
 			"T7FigureBTex",
 			"short stocky creature, grey-beige skin, head shaped like a small volcano cone with a glowing crater on top, one large round eye, wide lipless grin of square teeth, loose pale robe tied with a dark sash, both arms thrust forward, low poly anime style figure, plain colours, no symbols",
 			8000,
-			"fight figure B: generate_mesh size 5 x 6 x 5, segmentation none; front faces +Z; arms half forward, not fully thrust; mesh 5 x 5.95 x 2.92"
+			"fight figure B: generate_mesh size 5 x 6 x 5, segmentation none; front faces +Z; arms half forward, not fully thrust; mesh 5 x 5.95 x 2.92",
+			SIGNED
 		),
 		T7FigureC = meshRow(
 			"rbxassetid://101707994372214",
 			"T7FigureCTex",
 			"tall broad humanoid tree spirit, pale grey-white skin with thin black line markings, two wooden branch horns growing from the eye sockets, bare chest, white cloth wrapped around the waist and legs, left arm raised, a cluster of pale flowers on the left shoulder, low poly anime style figure, plain colours, no symbols",
 			8000,
-			"fight figure C: generate_mesh size 7 x 12 x 5, segmentation none; front faces +Z; blocky, arms down (not raised), horns above the eyes; mesh 6.48 x 12 x 3.33"
+			"fight figure C: generate_mesh size 7 x 12 x 5, segmentation none; front faces +Z; blocky, arms down (not raised), horns above the eyes; mesh 6.48 x 12 x 3.33",
+			SIGNED
 		),
 		T7FigureD = meshRow(
 			"rbxassetid://71241235386544",
 			"T7FigureDTex",
 			"tall lean young man, black hair tied in two short spiky tufts on top of the head, a dark horizontal band across the nose, tired eyes, cream wrap-front robe under a dark plum sleeveless vest, dark wide trousers, palms pressed together in front of the chest, low poly anime style figure, plain colours, no symbols",
 			8000,
-			"fight figure D: generate_mesh size 5 x 9.5 x 4, segmentation none; front faces +Z; palms together (the specced pose, not a hand sign); mesh 3.87 x 9.5 x 3.54"
+			"fight figure D: generate_mesh size 5 x 9.5 x 4, segmentation none; front faces +Z; palms together (the specced pose, not a hand sign); mesh 3.87 x 9.5 x 3.54",
+			SIGNED
 		),
 		T7FigureE = meshRow(
 			"rbxassetid://128388977265139",
 			"T7FigureETex",
 			"slim young man, long messy grey-blue hair, stitched patchwork scars across the face and arms, mismatched eyes, wide grin, loose pale shirt, dark baggy trousers, barefoot, arms spread wide, low poly anime style figure, plain colours, no symbols",
 			8000,
-			"fight figure E: generate_mesh size 7 x 9 x 4, segmentation none; front faces +Z; stitches faint; mesh 7 x 8.79 x 3.22"
+			"fight figure E: generate_mesh size 7 x 9 x 4, segmentation none; front faces +Z; stitches faint; mesh 7 x 8.79 x 3.22",
+			SIGNED
 		),
 		T7CrowdMesh = meshRow(
 			"rbxassetid://108061257980500",
 			"T7CrowdMeshTex",
 			"misshapen lumpy humanoid silhouette, hunched, one extra arm, smooth grey-violet surface, no face detail, no blood, low poly",
 			3000,
-			"fight crowd, 5 placements: generate_mesh size 5 x 8 x 4, segmentation none; faceless, came out plain violet with two arms; mesh 5 x 7.56 x 2.65"
+			"fight crowd, 5 placements: generate_mesh size 5 x 8 x 4, segmentation none; faceless, came out plain violet with two arms; mesh 5 x 7.56 x 2.65",
+			SIGNED
 		),
 		T7RootsMesh = meshRow(
 			"rbxassetid://105356170299752",
 			"T7RootsMeshTex",
 			"thick twisted wooden roots bursting up from a cracked tiled floor, arching forward, a few pale flowers on the tips, low poly",
 			4000,
-			"fight roots, 3 placements: generate_mesh size 6 x 16 x 8, segmentation none; reads as a rooted sapling with pink flowers; mesh 6 x 6.46 x 6.02"
+			"fight roots, 3 placements: generate_mesh size 6 x 16 x 8, segmentation none; reads as a rooted sapling with pink flowers; mesh 6 x 6.46 x 6.02",
+			SIGNED
 		),
-		T7FigureATex = textureRow("rbxassetid://124599499588670", "T7FigureA"),
-		T7FigureBTex = textureRow("rbxassetid://101776963970684", "T7FigureB"),
-		T7FigureCTex = textureRow("rbxassetid://95484652528598", "T7FigureC"),
-		T7FigureDTex = textureRow("rbxassetid://107249129899808", "T7FigureD"),
-		T7FigureETex = textureRow("rbxassetid://95122329596093", "T7FigureE"),
-		T7CrowdMeshTex = textureRow("rbxassetid://119409941552847", "T7CrowdMesh"),
-		T7RootsMeshTex = textureRow("rbxassetid://95455970672090", "T7RootsMesh"),
+		T7FigureATex = textureRow("rbxassetid://124599499588670", "T7FigureA", SIGNED),
+		T7FigureBTex = textureRow("rbxassetid://101776963970684", "T7FigureB", SIGNED),
+		T7FigureCTex = textureRow("rbxassetid://95484652528598", "T7FigureC", SIGNED),
+		T7FigureDTex = textureRow("rbxassetid://107249129899808", "T7FigureD", SIGNED),
+		T7FigureETex = textureRow("rbxassetid://95122329596093", "T7FigureE", SIGNED),
+		T7CrowdMeshTex = textureRow("rbxassetid://119409941552847", "T7CrowdMesh", SIGNED),
+		T7RootsMeshTex = textureRow("rbxassetid://95455970672090", "T7RootsMesh", SIGNED),
 		FightStar = {
 			Kind = "Texture",
 			Id = "rbxassetid://81407938517541",
 			Lane = "A",
 			Prompt = "in-house 64 px tiny soft white star dot with a faint four-point glint on transparent, particle texture",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_star.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
 		},
 		FightGalaxy = {
 			Kind = "Texture",
@@ -837,6 +873,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house 256 px smeared spiral band of tiny white stars on transparent, tinted blue to violet by the emitter, particle texture",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_galaxy.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
 		},
 		FightBeam = {
 			Kind = "Texture",
@@ -844,6 +881,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house 256 x 64 soft white light streak fading at both ends on transparent, beam texture",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_beam.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
 		},
 		FightPetal = {
 			Kind = "Texture",
@@ -851,6 +889,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house 128 px five-petal pale flower on transparent, tinted pale pink by the emitter, particle texture",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_petal.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
 		},
 		FightDroplet = {
 			Kind = "Texture",
@@ -858,6 +897,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house 128 px round droplet with a white highlight on transparent, stylised, tinted deep red by the emitter, particle texture",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_droplet.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
 		},
 		-- Track 5's in-house ember and smoke particles, reused by id (PirateCoast ledger EmberParticle / SmokeParticle,
 		-- signed there 2026-10-31 by the rules auditor)
@@ -866,12 +906,14 @@ return {
 			Id = "rbxassetid://123619002889840",
 			Lane = "A",
 			Prompt = "reused: Track 5 EmberParticle (in-house 128 px ember, white on transparent)",
+			Reviewed = SIGNED,
 		},
 		Track5Smoke = {
 			Kind = "Texture",
 			Id = "rbxassetid://108000399126683",
 			Lane = "A",
 			Prompt = "reused: Track 5 SmokeParticle (in-house 128 px lumpy smoke puff, light grey on transparent)",
+			Reviewed = SIGNED,
 		},
 		DustParticle = {
 			Kind = "Texture",
@@ -879,6 +921,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house 128 px soft irregular dust speck with a slightly brighter core, white on transparent, tinted pale grey by the emitter",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py, dust_particle.png), uploaded from Studio 2026-10-31",
+			Reviewed = SIGNED,
 		},
 		-- Faces drawn in-house with numpy (assets/biomes/Desert/sky/SkyUnderground<Face>.png): plain near-black
 		-- blue-grey, no shapes or text. No Creator Store skybox (docs/BUGS.md creator-store-backdoor-skybox). Uploaded
@@ -897,6 +940,7 @@ return {
 			Lane = "A",
 			Prompt = "in-house plain dark underground skybox, 6 faces 1024 px, near-black blue-grey with a faint lighter band low on the sides",
 			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py)",
+			Reviewed = SIGNED,
 		},
 		AmbTunnelHum = {
 			Kind = "Sound",
@@ -904,6 +948,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9112795463: Hollow Rumble 1, deep steady drone, dark, loop, 106 s (tunnel hum and ventilation drone)",
+			Reviewed = SIGNED,
 		},
 		SfxTrainRumble = {
 			Kind = "Sound",
@@ -911,6 +956,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9117150616: old elevated train pass-by, track clack, metal rattle, brake squeal, 30 s (a distant train rumble; no announcement)",
+			Reviewed = SIGNED,
 		},
 		SfxChime = {
 			Kind = "Sound",
@@ -918,6 +964,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9125491593: Door Chimes Various Tone Sequences Door Bell, generic tone sequence, 5 s (a made-up chime; never a real station melody)",
+			Reviewed = SIGNED,
 		},
 	},
 }
