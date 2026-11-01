@@ -196,6 +196,9 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01: owner: Track 7's subway must feel very wide along the whole route, not cramped, with assets placed
+  throughout (not only in bays). Orchestrator default (owner delegated): target inner width 120 studs and ceiling 26,
+  narrowed only where a neighbouring track's corridor would be crossed; props line both sides along the whole tunnel.
 - 2026-10-31 (later): owner: Track 7 gets one fight scene the player passes: Gojio [Gojo] mid domain expansion against
   Joggo [Jogo], Hanamy [Hanami], Mahitto [Mahito] and Chosu [Choso] (Shibuya Incident, station platform). Parody
   look-alike figures (section 5: tweaked names, in-house art, no official names, logos or ripped assets; names are
