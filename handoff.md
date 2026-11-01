@@ -227,3 +227,4 @@
   9bf594a) and the Track 4 twilight tweak (t4b 020dfa9) without scenario runs (screenshots only). Full compatibility
   check c3 (full harness + rules audit) runs ONLY when the owner says so.
 - LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.
+- LANDED Track 10 (dbb84e1, no scenarios - owner pause). Track 4 twilight shots in progress on orch/biomes/t4b-shots (studio worktree). Then: all 10 tracks done; c3 full compatibility check waits for the owner.
