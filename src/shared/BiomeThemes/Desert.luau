@@ -601,8 +601,10 @@ return {
 	-- at 16) and reads as the portal's frame, in its concrete colour
 	Gate = gate(CONCRETE, M.Concrete, FLUO, { Index = 2 }),
 	Tunnel = {
-		Width = 60,
-		Height = 20,
+		-- owner 2026-11-01 (very wide throughout): target width 120, ceiling 26; the framework narrows each side only
+		-- where a neighbouring track's corridor is near (spec 3.5, fw8)
+		Width = 120,
+		Height = 26,
 		Wall = { Material = M.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
 		Ceiling = { Material = M.Concrete, Color = "#8C8A84" },
 		Floor = { Material = M.Concrete, Color = "#8C8A84" },
@@ -612,10 +614,10 @@ return {
 		Bays = BAYS,
 		Portals = true,
 	},
-	-- Wall-hugging props between the road clearance and the tunnel wall (28-30 studs from the centre line)
+	-- Wall-hugging props against the tunnel wall: an Offset past the widest wall is clamped onto it (fw8)
 	Rhythm = {
 		Every = 6,
-		Offset = 6,
+		Offset = 60,
 		Props = { wallMapMesh, emergencyLight, fireCabinet, ventGrille },
 	},
 	-- Pinned heroes (At, spec 4.3), each inside its bay (fw6: a pinned hero takes the covering bay's side). Offset 10

@@ -264,7 +264,8 @@ end
 -- Where props stand on a Tunnel track (spec 3.5, fw6). `right` above is the Tunnel's piece-local +X for the same
 -- tangent ((-f.Z, 0, f.X) in both), so side -1 is the Tunnel's Left and 1 its Right. Returns:
 --   Spot(i, side, distance, t, size): the base CFrame (as beside, `distance` clamped into the room) of a prop of
---     `size` (X along the road, Z across) inside the walls at road Y, or on the bay platform at road Y +
+--     `size` (X along the road, Z across) inside the walls at road Y (fw8: from the road edge + CLEARANCE out to the
+--     wall at the tunnel's width there), or on the bay platform at road Y +
 --     Tunnel.PLATFORM where a bay on `side` covers its whole length; nil outside the span or where it does not fit
 --     (width, or the ceiling over it)
 --   Bay(at): the bay covering fraction `at` of the track (nil if none) and the waypoint nearest that point
@@ -277,8 +278,10 @@ local function tunnelSpots(layout, origin, def, edge)
 	for k = 2, #wps do
 		cum[k] = cum[k - 1] + Vector2.new(wps[k].X - wps[k - 1].X, wps[k].Z - wps[k - 1].Z).Magnitude
 	end
-	local half, inset = (def.Width or 60) / 2, BiomeDressing.TUNNEL_INSET
-	local spots = { Cum = cum, S0 = s0 }
+	-- fw8: the per-side width follows Tunnel.Profile; a bay platform starts at Tunnel.Edge (half)
+	local prof = Tunnel.Profile(layout, origin, def)
+	local half, inset = Tunnel.Edge(def, prof), BiomeDressing.TUNNEL_INSET
+	local spots = { Cum = cum, S0 = s0, Profile = prof }
 	-- road Y (world) at track position s, searching from waypoint k
 	local function roadY(s, k)
 		while k > 1 and cum[k] > s do
@@ -295,24 +298,31 @@ local function tunnelSpots(layout, origin, def, edge)
 		local s = cum[i] + (cum[j] - cum[i]) * (t or 0)
 		local a = size.X / 2
 		-- on the inside of a bend the prop's far corners reach farther along the track than its centre line
-		local l0, r0 = Tunnel.Section(def, s, total)
+		local l0, r0 = Tunnel.Section(def, s, total, prof)
 		local curv = math.max(layout.Curvature[i] or 0, layout.Curvature[j] or 0)
 		local reach = a / math.max(0.25, 1 - (side < 0 and l0 or r0) * curv)
 		if s - reach < s0 or s + reach > s1 then
 			return nil
 		end
 		local inner, height, bay = math.huge, math.huge, nil
-		for _, at in { s - reach, s, s + reach } do
-			local l, r, h, bayL, bayR = Tunnel.Section(def, at, total)
-			local b = side < 0 and bayL or bayR
+		-- both ends, the centre and every half width-station between (the walls taper, fw8)
+		local samples = { s, s + reach }
+		for x = s - reach, s + reach, Tunnel.STEP / 2 do
+			table.insert(samples, x)
+		end
+		for _, at in samples do
+			local l, r, h, bayL, bayR = Tunnel.Section(def, at, total, prof)
+			local b = if side < 0 then bayL else bayR -- (fw8) not `and/or`: bayL false fell through to bayR
 			if bay ~= nil and b ~= bay then
 				return nil -- straddles a bay end
 			end
 			bay, inner, height = b, math.min(inner, side < 0 and l or r), math.min(height, h)
 		end
 		local lift = bay and Tunnel.PLATFORM or 0
-		local lo = (bay and half or edge) + inset
-		local hi = (bay and inner or half) - inset - a * BiomeDressing.TUNNEL_TURN
+		-- fw8: at road level the prop keeps the road clearance (Prune would remove it), out to the wall at its width
+		local lo = (bay and half or edge + BiomeDressing.CLEARANCE) + inset
+		-- (fw8) less CHORD_XZ: the walls follow the chords, which the waypoints miss by up to that much on a bend
+		local hi = inner - inset - Tunnel.CHORD_XZ - a * BiomeDressing.TUNNEL_TURN
 		-- on a slope the flat prop's base sits at the road Y under its centre, so its downhill end has half the rise
 		-- less headroom (and its uphill end sinks that much into the floor)
 		local rise = math.abs(roadY(s + a, i) - roadY(s - a, i)) / 2
@@ -343,7 +353,7 @@ local function tunnelSpots(layout, origin, def, edge)
 				end
 			end
 		end
-		local l, r, h, bayL, bayR = Tunnel.Section(def, s, total)
+		local l, r, h, bayL, bayR = Tunnel.Section(def, s, total, prof)
 		local across = x * side
 		return (side < 0 and bayL or side > 0 and bayR)
 			and across >= half - 0.05
@@ -1121,7 +1131,7 @@ function fightScene(folder, model, layout, origin, theme, biome, spec, tunnel)
 	if not bay or (bay.Side ~= "Both" and bay.Side ~= scene.Side) then
 		return skip("no bay on its side")
 	end
-	local size, half = scene.Size, (theme.Tunnel.Width or 60) / 2
+	local size, half = scene.Size, require(script.Parent.Tunnel).Edge(theme.Tunnel, tunnel.Profile)
 	local fit = tunnel.Spot(i, side, half + scene.Size.Z / 2, nil, size)
 	if not fit then
 		return skip("its footprint does not fit the bay")

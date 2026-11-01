@@ -241,7 +241,7 @@ placeholders.
 - **Profile field** (optional on any biome, used by Track 7 only):
   ```
   Tunnel = {
-  	Width = 60, Height = 20,                       -- inner clear size, centred on the road centre line
+  	Width = 120, Height = 26,                      -- target inner width (narrowed per side, below) and height
   	Wall = { Material = Enum.Material.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
   	Ceiling = { Material = Enum.Material.Concrete, Color = "#8C8A84" },
   	LightEvery = 24,                               -- one ceiling light strip every N studs
@@ -255,8 +255,35 @@ placeholders.
   fractions of track length, like `Sections`) the wall on `Side` steps out by `Depth` and the ceiling rises to the bay
   `Height`; the bay holds a raised platform floor and the dressing's platform props. Portals at both ends join the
   open-air Tracks 6 and 8.
+- **Adaptive width** (owner 2026-11-01: very wide along the whole route, not cramped; orchestrator default
+  2026-11-01, fw8; values placeholders): `Width` is a target. `Tunnel.Profile` works out each side's inner half-width
+  every `STEP` (8) studs. It is `min(Width / 2, room)`. `room` keeps the tunnel box (wall + `MARGIN`) `ROOM_MARGIN`
+  (4) studs off every other track's corridor (`CORRIDOR`, 44, from its centre line). It also keeps the box off this
+  track's own far laps (more than `SELF_GAP`, 400 studs, along the road), each counted as a whole tunnel wide. The room
+  changes by at most `TAPER` (0.25) studs per stud along the road, as the lower envelope of the raw room. The walls
+  slope between width stations and never step, except at a bay end. The width never drops below road half-width + 2 +
+  `CLEARANCE` (30 on Track 7). A station with less raw room is reported (a crossing to fix).
+  - Bays: a bay platform's road-side edge is `PLATFORM_EDGE` (30, the old `Width / 2`). A bay wall stands at
+    `PLATFORM_EDGE + Depth` where the room allows, never inside the main wall. Bay `Height` is unchanged.
+  - Every station where a wall changes is a segment cut, so a segment's ends differ by at most `TAPER x STEP` (2) studs.
+    Walls and stripes run straight between the ends' widths. Ceiling, floor and platforms span the wider end and
+    reach at most 2 studs into the wall. Caps close only real steps (bay ends). Portals take the end widths.
+  - The terrain box and the earth over the roof (option A) follow the segments; other tracks' corridors never change.
+  - Dressing: at road level a tunnel prop stands between the road edge + `CLEARANCE` (Prune's road clearance) and
+    the wall at the width there. So the wall-side strips along the whole route are prop space, not only the bays. Its
+    wall gap also loses `CHORD_XZ` (the walls follow the chords) and samples the width every 4 studs along its length.
+    An `Offset` past the widest wall puts a layer's props against the wall (Track 7 Rhythm). Bay platforms and the
+    fight scene work as before, from `PLATFORM_EDGE`. Fixed with it: a prop on the side without a bay, inside a
+    one-sided bay's span, was lifted onto a platform that is not there.
+  - Check: `TUNNEL=1 lune run tools/lune/biome_harness.luau` prints the per-side width (min / avg / max outside
+    bays), the ceiling, stations short of room, corridor crossings (box and parts, by TerrainShape's zone rule), tunnel
+    props per 100 studs, the longest stretch without one per side, and props in the running lane or its clearance.
+    `NOTUNNEL=1` must give the IDENTITY hash from before any tunnel change. `IDENTITY no-tunnel tracks` and the
+    per-track line show what a tunnel change moves elsewhere: the earth over a wider roof may re-snap a neighbour's
+    props (Y only) beyond its corridor; corridor columns never change.
 - **Lights**: one `SurfaceLight` or neon strip per `LightEvery` studs, `Shadows = false`. REDUCED EFFECTS halves
-  the count (client hides every second light).
+  the count (client hides every second light). fw8 (orchestrator default 2026-11-01): every `SIDE_LIGHTS`-th (3rd)
+  strip also gets one strip over the middle of each side whose half-width is at least `SIDE_LIGHT_HALF` (40).
 - **Zone lighting, underground (no sky)**: an Atmosphere profile flag `Underground = true`. The client then sets
   `CelestialBodiesShown = false`, `StarCount = 0`, a plain dark Skybox, `Brightness = 0`, `ClockTime = 0`, a low
   `OutdoorAmbient`, an interior `Ambient`, `EnvironmentDiffuseScale` and `EnvironmentSpecularScale` low, Clouds
@@ -272,7 +299,8 @@ placeholders.
   the camera room, or the ceiling must not block camera pop-in. Check in Studio.
 - **Dressing** (fw6, orchestrator default 2026-10-31; values placeholders): on a track whose biome has a `Tunnel`,
   `BiomeDressing` places every prop inside the tunnel, never at edge + `Offset` in the earth outside the walls.
-  - A prop stands at road Y inside the walls (between the road wall and `Width / 2`), or on a bay platform at road Y +
+  - A prop stands at road Y inside the walls (between the road wall and `Width / 2`; fw8: between the road edge +
+    `CLEARANCE` and the wall at the adaptive width), or on a bay platform at road Y +
     `Tunnel.PLATFORM` (4) where a bay on its side covers its whole length. It keeps `TUNNEL_INSET` (1 stud) from the
     tunnel wall and the platform edge, plus 0.1 stud per stud of its half-length (`TUNNEL_TURN`: the walls are chords).
     Its box includes every fallback part's corners. Its top (plus half the road rise under it on a slope) stays under
@@ -292,6 +320,13 @@ placeholders.
     still stand inside the tunnel is not built and is reported. `Gate.Skip` still removes it.
   - Check: `TUNNEL=1 lune run tools/lune/biome_harness.luau` prints every tunnel prop inside / not inside, pinned
     heroes in their bay, and the gate distance before the portal. Non-tunnel biomes build identically (identity hash).
+- **Ramps** (fw8, orchestrator fix 2026-11-01): Studio failed `corridor_clear_7` with 109 hits where the road climbs
+  in the tunnel. Root cause: the hollow's floor followed the road Y at each column (road - 2, drawn `LIFT` 2 lower).
+  The test reads columns up to the sample spacing (20) + road half-width + `CLEARANCE` along the road from a sample.
+  On a ramp such a column's road is several studs above the sample's, so its floor rose over road Y - 0.5. The floor
+  now sits under the lowest road within `FLOOR_REACH` (40) studs. It lies lower by the steepest slope of the segments
+  within that reach (crests and sags too) times `FLOOR_REACH`. The `Floor` slab covers it. Check:
+  `lune run tools/lune/biome_harness.luau` prints `corridor_clear` per tunnel track (106 hits before, 0 after).
 - **Tests**: test 1 (`terrain_built`) also checks no terrain voxel inside the tunnel box. New `tunnel_clear`: every
   20 studs a ray up from the road hits the ceiling no lower than road Y + 12, and no wall is within `CLEARANCE` of a
   checkpoint, pad or WinPad. The track tests (0 flips, 0 off-track) still pass with the tunnel in place.
@@ -543,10 +578,16 @@ Owner redesign 2026-10-31 (the Jogo vs Sukuna fire fight). Every value below is 
 ### Track 7: Shibuyo Underground (`Desert`)
 Owner redesign 2026-10-31 (the Shibuya Incident subway); replaces Blossom Shrine Path. Every value below is a
 placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
-- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 60, Height 20, CeramicTiles walls, Concrete
+- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 120 (owner 2026-11-01: very wide along the
+  whole route; narrowed per side only near another track's corridor, fw8), Height 26, CeramicTiles walls, Concrete
   ceiling and Floor (the `Floor` field, fw5 2026-10-31). Above it, the ridge covers the tunnel as earth (Ground, Rock; option A, owner
   2026-10-31). `Embank = false`.
-- **Tunnel bays** (`Bays`): 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Left, orchestrator default 2026-10-31: Both reached Track 6's corridor; Depth 60,
+- **Assets throughout** (owner 2026-11-01; orchestrator default 2026-11-01, fw8): props line both sides along the
+  whole tunnel, not only the bays. Scatter (columns, benches, screen doors, rubble, vending machines, ticket gates)
+  stands on the wall-side strips between the road clearance and the wall. Rhythm (wall maps, emergency lights, fire
+  cabinets, vent grilles) hugs the wall (`Offset` 60, clamped onto it). Side light rows light the wide floor.
+- **Tunnel bays** (`Bays`): each bay platform starts 30 studs from the centre line (`PLATFORM_EDGE`, fw8) and its wall
+  stands at 30 + Depth where the room allows. 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Left, orchestrator default 2026-10-31: Both reached Track 6's corridor; Depth 60,
   Height 40: ticket gates, escalators, an atrium void); 0.58-0.63 second platform (Right, Depth 40); 0.82-0.90 the
   deep main platform hall (Both, Depth 50, Height 30). Portals at the start and finish.
 - **Hero landmarks** (each inside a bay):
