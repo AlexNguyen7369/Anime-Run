@@ -196,6 +196,13 @@ None open. The Speed-scale save question of 2026-10-30 was answered the same day
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-10-31: owner redesign of three tracks (tweaked names, section 5 safeguards kept):
+  Track 5 becomes the burning city of the Jogo vs Sukuna fight (Jujutsu Kaisen), night, fire-lit: smoky sky lit orange,
+  embers, craters, scorched streets, fire everywhere. Track 7 becomes the Shibuya Incident subway (Jujutsu Kaisen):
+  the whole route is an enclosed tunnel (tiled walls, ceiling, rails, lights) opening into a few station platforms and
+  concourses; replaces the original "Blossom Shrine Path" (owner: every track is based on an anime, none original).
+  Track 8 becomes Skypeia from One Piece (tweaked); its NPC rival is Enelu [Enel], replacing Kizaro. Research first;
+  references go in TRACKS_AND_BIOMES_SPEC.
 - 2026-10-31: owner request: track camera, yaw aligned with the runner's travel while racing, Settings toggle
   TRACK CAMERA, off = regular camera (4.12, `docs/CAMERA_SPEC.md`).
 - 2026-10-31: owner: Track 1 gate plaque may stay blank (BIOME_ENVIRONMENT_SPEC 7).
