@@ -179,11 +179,11 @@ local wallMap = prop("WallMap", v(8, 10, 1), {
 	part(v(4, 0.3, 0.1), v(1, 6.5, 0.05), hex("6A7FD0"), M.SmoothPlastic, nil, CFrame.Angles(0, 0, 0.5)),
 	part(v(0.8, 0.8, 0.1), v(2.5, 8.4, 0), RED, M.SmoothPlastic, BALL),
 })
-local rubble = prop("Rubble", v(8, 2, 6), {
-	part(v(4, 0.6, 3), v(-1.5, 0.6, -0.5), CONCRETE, M.Concrete, nil, CFrame.Angles(0, 0.4, 0)),
-	part(v(3, 1.4, 2.4), v(2, 1.1, 1), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0, 0.7, 0)),
-	part(v(2.4, 0.3, 2), v(-2.5, 0.8, 2), TILE, M.CeramicTiles, nil, CFrame.Angles(0, 0.2, 0)), -- broken tiles
-	part(v(2, 1.2, 1.6), v(3, 1, -2), hex("74706A"), M.Slate, nil, CFrame.Angles(0, 1.1, 0)),
+local rubble = prop("Rubble", v(8, 2, 6), { -- yaw-only chunks resting on the floor (the tunnel fit holds the base)
+	part(v(4, 0.6, 3), v(-1.5, 0.3, -0.5), CONCRETE, M.Concrete, nil, CFrame.Angles(0, 0.4, 0)),
+	part(v(3, 1.4, 2.4), v(2, 0.7, 1), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0, 0.7, 0)),
+	part(v(2.4, 0.3, 2), v(-2.5, 0.75, 2), TILE, M.CeramicTiles, nil, CFrame.Angles(0, 0.2, 0)), -- broken tiles
+	part(v(2, 1.2, 1.6), v(3, 0.6, -2), hex("74706A"), M.Slate, nil, CFrame.Angles(0, 1.1, 0)),
 })
 -- Surface: a street stair entrance down to the subway, a glass canopy over the steps, a plain colour band, no sign
 local stairEntrance = prop("StairEntrance", v(12, 8, 8), {
