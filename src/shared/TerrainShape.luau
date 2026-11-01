@@ -419,6 +419,28 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 			state.Tunnels = state.Tunnels or {}
 			local segs, s0, s1 = Tunnel.Segments(e.Layout, e.Origin, theme.Tunnel)
 			local B = TerrainShape.PAD_BUCKET
+			local slopes = {}
+			for k, seg in segs do
+				local look = seg.CFrame.LookVector
+				slopes[k] = math.abs(look.Y / seg.Flat)
+			end
+			for k, seg in segs do
+				-- the steepest slope within FLOOR_REACH (a crest or a sag too) times FLOOR_REACH
+				local steep, R = slopes[k], Tunnel.FLOOR_REACH
+				for j = k - 1, 1, -1 do
+					if segs[j].To < seg.From - R then
+						break
+					end
+					steep = math.max(steep, slopes[j])
+				end
+				for j = k + 1, #segs do
+					if segs[j].From > seg.To + R then
+						break
+					end
+					steep = math.max(steep, slopes[j])
+				end
+				seg.Drop = steep * R
+			end
 			for _, seg in segs do
 				local cf, look = seg.CFrame, seg.CFrame.LookVector
 				local f = Vector2.new(look.X, look.Z).Unit
@@ -430,6 +452,7 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 					HZ = seg.Length * seg.Flat / 2 + Tunnel.MARGIN,
 					Y = cf.Position.Y,
 					Slope = look.Y / seg.Flat,
+					Drop = seg.Drop,
 					Left = seg.Left + Tunnel.WALL + Tunnel.MARGIN,
 					Right = seg.Right + Tunnel.WALL + Tunnel.MARGIN,
 					Top = seg.Height + Tunnel.CEILING + Tunnel.MARGIN,
@@ -750,8 +773,8 @@ local function biomeY(n, d, x, z, roadY, dc, p)
 end
 
 -- Tunnels at (x, z) (spec 3.5): top y raised to the earth over any tunnel box near it, and the hollow (lo, hi) when
--- (x, z) is inside a box: no voxel between road Y - 2 (the corridor ground under the road) and the ceiling top plus
--- MARGIN. The earth slopes off over BLEND studs, fades out before another track's corridor and never covers a clear
+-- (x, z) is inside a box: no voxel between road Y - 2 (the corridor ground under the road; on a ramp the lowest road
+-- Y within Tunnel.FLOOR_REACH, fw8) and the ceiling top plus MARGIN. The earth slopes off over BLEND studs, fades out before another track's corridor and never covers a clear
 -- box; along the road it starts and ends inside the portal facades.
 local function tunnelAt(list, x, z, y, A, dA, dc)
 	local lo, hi, top = nil, nil, y
@@ -765,7 +788,9 @@ local function tunnelAt(list, x, z, y, A, dA, dc)
 			local road = b.Y + b.Slope * lz
 			local e = math.abs(lx) - (lx < 0 and b.Left or b.Right)
 			if e <= 0 then
-				lo = math.min(lo or math.huge, road - Tunnel.ROAD)
+				-- fw8 (root cause of corridor_clear_7 on ramps): the floor under the lowest road within FLOOR_REACH
+				-- along it, not the road at this column, so no voxel tops the road Y of a point up the ramp
+				lo = math.min(lo or math.huge, road - Tunnel.ROAD - b.Drop)
 				hi = math.max(hi or -math.huge, road + b.Top)
 			end
 			local s = b.Mid + lz

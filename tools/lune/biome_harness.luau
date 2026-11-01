@@ -2,8 +2,9 @@
 -- Biome harness (docs/BIOME_ENVIRONMENT_SPEC.md 3.2): runs the real TrackBuilder, BiomeThemes, BiomeDressing.Prune,
 -- TerrainShape.Prepare and BiomeDressing.SnapToTerrain on the track chain in Lune, Instances from @lune/roblox.
 -- Run from the repo root: `lune run tools/lune/biome_harness.luau`. Env: ROOT (repo root, default cwd), N (tracks,
--- default 10), NOFIGHT=1 (no fight scenes, fw7), SIGNED=1 (every ledger row counts as reviewed), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
--- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and four pinned test heroes, and check it: no terrain in the
+-- default 10), NOFIGHT=1 (no fight scenes, fw7), NOTUNNEL=1 (no biome has a Tunnel, fw8: the framework's identity
+-- check), SIGNED=1 (every ledger row counts as reviewed), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
+-- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and a pinned test hero outside the bays, and check it: no terrain in the
 -- box, ceiling >= 12 studs, every prop inside the walls or on a bay platform, pinned heroes in their bays, the gate
 -- before the start portal).
 -- Reports per track: padded / pinned props, gap > 1 stud against TerrainShape.Height and against the drawn voxel
@@ -286,8 +287,8 @@ end
 -- The spec 3.5 example (Track 7, section 7 values) for TUNNEL=1; the biome module owns the real one
 if process.env.TUNNEL then
 	req(Shared.BiomeThemes).Desert.Tunnel = {
-		Width = 60,
-		Height = 20,
+		Width = 120, -- fw8 (owner 2026-11-01): the target width, narrowed per side near other tracks
+		Height = 26,
 		Wall = { Material = R.Enum.Material.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
 		Ceiling = { Material = R.Enum.Material.Concrete, Color = "#8C8A84" },
 		Floor = { Material = R.Enum.Material.Concrete, Color = "#8C8A84" },
@@ -300,17 +301,12 @@ if process.env.TUNNEL then
 		},
 		Portals = true,
 	}
-	-- pinned test heroes (fw6): three in bays (Left, Right, Both) and one where no bay is (a warning, not built)
+	-- pinned test hero (fw6): one where no bay is (a warning, not built). fw8: the Track 7 redesign pins its own
+	-- heroes in all four bays (Left, Right, Both), so the old Blossom Shrine test pins are gone
 	local lm = req(Shared.BiomeThemes).Desert.Landmarks
-	local base = {}
-	for _, def in lm.Props do
-		base[def.Name] = def
-	end
-	for _, pin in { { "WashBasin", 0.145 }, { "ShrineHall", 0.6 }, { "StoneFox", 0.86 }, { "WashBasin", 0.5 } } do
-		local def = table.clone(base[pin[1]])
-		def.Hero, def.At, def.Name = true, pin[2], "Pin" .. pin[1] -- own name: scatter looks landmarks up by name
-		table.insert(lm.Props, def)
-	end
+	local def = table.clone(lm.Props[1])
+	def.Hero, def.At, def.Name = true, 0.5, "Pin" .. def.Name -- own name: scatter looks landmarks up by name
+	table.insert(lm.Props, def)
 end
 
 -- NOFIGHT=1: no biome builds its fight scene (fw7), so the IDENTITY hash must match the one from before fw7
@@ -318,6 +314,14 @@ if process.env.NOFIGHT then
 	for _, theme in req(Shared.BiomeThemes) do
 		if type(theme) == "table" then
 			theme.FightScene = nil
+		end
+	end
+end
+-- NOTUNNEL=1 (fw8): no biome has a Tunnel, so the IDENTITY hash must match the one from before any tunnel change
+if process.env.NOTUNNEL then
+	for _, theme in req(Shared.BiomeThemes) do
+		if type(theme) == "table" then
+			theme.Tunnel = nil
 		end
 	end
 end
@@ -517,6 +521,70 @@ do
 		end
 	end
 	print(string.format("IDENTITY hash %d props %d", h, props))
+	-- fw8: the same over the tracks whose biome has no Tunnel only (their props, and the columns in their corridors),
+	-- so a tunnel change can show it leaves every other biome alone
+	local Themes = req(Shared.BiomeThemes)
+	local own, nOwn = {}, 0
+	for _, e in entries do
+		own[e.Number] = Themes[e.Biome] and Themes[e.Biome].Tunnel ~= nil
+	end
+	h = 0
+	for x = box.Min.X + 900, box.Max.X - 900, 8 do
+		for z = box.Min.Y + 900, box.Max.Y - 900, 8 do
+			local A, dA = TS._sample(x, z)
+			if A and own[A] == false and dA <= TS.CORRIDOR then
+				local y, w, m = TS.Column(x, z)
+				mix(math.floor(y * 1000 + 0.5))
+				mix(w and math.floor(w * 1000 + 0.5) or 7)
+				mix(m.Value)
+			end
+		end
+	end
+	for _, e in entries do
+		if own[e.Number] == false then
+			for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
+				local p = prop:IsA("Model") and prop:GetPivot().Position or prop.Position
+				mix(math.floor(p.X * 100 + 0.5) % 1000003)
+				mix(math.floor(p.Y * 100 + 0.5) % 1000003)
+				mix(math.floor(p.Z * 100 + 0.5) % 1000003)
+				nOwn += 1
+			end
+		end
+	end
+	print(string.format("IDENTITY no-tunnel tracks hash %d props %d", h, nOwn))
+	-- per track: its corridor columns, then its props (to find what a change moved)
+	local per = {}
+	for x = box.Min.X + 900, box.Max.X - 900, 8 do
+		for z = box.Min.Y + 900, box.Max.Y - 900, 8 do
+			local A, dA = TS._sample(x, z)
+			if A and dA <= TS.CORRIDOR then
+				local y = TS.Column(x, z)
+				per[A] = ((per[A] or 0) * 31 + math.floor(y * 1000 + 0.5)) % 2147483647
+			end
+		end
+	end
+	local line = {}
+	for _, e in entries do
+		local ph = 0
+		for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
+			local p = prop:IsA("Model") and prop:GetPivot().Position or prop.Position
+			ph = (ph * 31 + math.floor(p.X * 100 + 0.5) % 1000003) % 2147483647
+			ph = (ph * 31 + math.floor(p.Y * 100 + 0.5) % 1000003) % 2147483647
+			ph = (ph * 31 + math.floor(p.Z * 100 + 0.5) % 1000003) % 2147483647
+		end
+		table.insert(line, string.format("%d:%d/%d", e.Number, per[e.Number] or 0, ph))
+	end
+	print("IDENTITY per track (corridor/props) " .. table.concat(line, " "))
+	if process.env.DUMP then -- DUMP=<file>: every prop's pivot, to diff two runs
+		local out = {}
+		for _, e in entries do
+			for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
+				local p = prop:IsA("Model") and prop:GetPivot().Position or prop.Position
+				table.insert(out, string.format("%d %s %.2f %.2f %.2f", e.Number, prop.Name, p.X, p.Y, p.Z))
+			end
+		end
+		fs.writeFile(process.env.DUMP, table.concat(out, "\n"))
+	end
 end
 
 -- Tunnel checks (spec 3.5, TUNNEL=1): every 4 studs inside each tunnel segment's inner box the terrain column has
@@ -530,7 +598,13 @@ do
 		local def = Themes[e.Biome].Tunnel
 		local folder = e.Model:FindFirstChild("Tunnel")
 		if def and folder then
-			local segs, s0, s1, total = Tunnel.Segments(e.Layout, e.Origin, def)
+			local segs, s0, s1, total, prof = Tunnel.Segments(e.Layout, e.Origin, def)
+			-- fw8: a segment's inner half-width on `sgn`'s side at piece-local z (From at +Length / 2, To at -)
+			local function wallAt(seg, sgn, z)
+				local a, b = sgn < 0 and seg.LeftA or seg.RightA, sgn < 0 and seg.LeftB or seg.RightB
+				local u = math.clamp(0.5 - z / seg.Length, 0, 1)
+				return a + (b - a) * u
+			end
 			local bad, worst, samples = 0, math.huge, 0
 			for _, seg in segs do
 				local half = seg.Length / 2
@@ -690,6 +764,82 @@ do
 				end
 			end
 			print(string.format("TUNNEL %s parts within CLEARANCE of a checkpoint or WinPad: %d", e.Model.Name, near))
+			-- fw8: Studio test 1's corridor_clear on this track, offline. Centre line resampled every 20 studs (and every
+			-- waypoint); each voxel column (centres at 2 mod 4) within road half-width + CLEARANCE of the segment to the
+			-- neighbouring samples, filled as TerrainBuilder writes it (occupancy LIFT lower, the hollow from lo to hi);
+			-- a hit is any filled voxel whose top is above the sample's road Y - 0.5 and whose bottom is below road Y + 12.
+			do
+				local lift = 2 -- TerrainBuilder.LIFT (server module, not loaded here)
+				local wps, pts = e.Layout.WorldWaypoints, {}
+				table.insert(pts, wps[1])
+				for i = 2, #wps do
+					local a, b = wps[i - 1], wps[i]
+					local len = (b - a).Magnitude
+					local at = 20
+					while at < len do
+						table.insert(pts, a:Lerp(b, at / len))
+						at += 20
+					end
+					table.insert(pts, b)
+				end
+				local reach = e.Layout.Width / 2 + BD.CLEARANCE
+				local hits, first, colMemo = 0, nil, {}
+				local function column(x, z)
+					local k = x .. "," .. z
+					if not colMemo[k] then
+						colMemo[k] = table.pack(TS.Column(x, z))
+					end
+					return colMemo[k]
+				end
+				for i, p in pts do
+					local a, b = pts[math.max(1, i - 1)], pts[math.min(#pts, i + 1)]
+					local lo, hi = p.Y - 0.5, p.Y + 12
+					local bad = false
+					for cx = math.floor((p.X - reach) / 4) * 4 + 2, p.X + reach, 4 do
+						for cz = math.floor((p.Z - reach) / 4) * 4 + 2, p.Z + reach, 4 do
+							local dx, dz = b.X - a.X, b.Z - a.Z
+							local len2 = dx * dx + dz * dz
+							local u = len2 > 1e-9 and math.clamp(((cx - a.X) * dx + (cz - a.Z) * dz) / len2, 0, 1) or 0
+							if R.Vector2.new(a.X + dx * u - cx, a.Z + dz * u - cz).Magnitude <= reach then
+								local c = column(cx, cz)
+								local y, w, tlo, thi = c[1], c[2], c[6], c[7]
+								for yb = math.floor(lo / 4) * 4 - 4, hi, 4 do
+									local inHole = tlo and yb < thi
+									local o = math.clamp(((inHole and tlo or y) - lift - yb) / 4, 0, 1)
+									local top = o > 0 and yb + o * 4
+									if not top and w and not inHole and yb < w - lift then
+										top = yb + math.clamp((w - lift - yb) / 4, 0, 1) * 4
+									end
+									if top and top > lo and yb < hi then
+										bad = true
+										first = first
+											or string.format(
+												"%.0f,%.1f,%.0f road %.1f (column top %.1f hollow %s-%s)",
+												cx,
+												top,
+												cz,
+												p.Y,
+												y,
+												tostring(tlo),
+												tostring(thi)
+											)
+									end
+								end
+							end
+						end
+					end
+					hits += bad and 1 or 0
+				end
+				print(
+					string.format(
+						"TUNNEL %s corridor_clear: %d samples, %d hits (first %s)",
+						e.Model.Name,
+						#pts,
+						hits,
+						tostring(first)
+					)
+				)
+			end
 			-- room beside each bay, per side: the nearest other track's centre line from the bay's outer wall
 			for _, bay in def.Bays or {} do
 				local room = { L = math.huge, R = math.huge }
@@ -729,7 +879,7 @@ do
 			-- a box corner (or the base centre, `floor`: it stands on the road or the platform) is inside: across
 			-- the walls, under the ceiling, on a bay side past Width / 2. A prop on a slope is flat, so only its base
 			-- centre is held to the floor. A segment reaches past its ends by the bend's wedge (as Tunnel parts do).
-			local half = (def.Width or 60) / 2
+			local half = Tunnel.Edge(def, prof) -- fw8: the bay platform's road-side edge
 			local function inside(p, floor, reach)
 				local eps = 0.05 + Tunnel.CHORD_Y
 				for _, seg in segs do
@@ -737,16 +887,16 @@ do
 					local x, y = l.X, l.Y
 					if math.abs(l.Z) <= seg.Length / 2 + 1 + math.abs(x) * math.max(seg.TanStart, seg.TanEnd) then
 						local bay = if x < 0 then seg.BayLeft else seg.BayRight
-						local floorY = math.abs(x) > half + eps and Tunnel.PLATFORM or 0
+						-- fw8: past the platform edge only a bay has a platform; elsewhere the floor runs to the wall
+						local floorY = bay and math.abs(x) > half + eps and Tunnel.PLATFORM or 0
 						if
-							x >= -seg.Left - eps
-							and x <= seg.Right + eps
+							x >= -wallAt(seg, -1, l.Z) - eps
+							and x <= wallAt(seg, 1, l.Z) + eps
 							and y <= seg.Height + eps
 							-- a flat base on a pitched segment: off by up to sin(pitch) x its reach
 							and (not floor or math.abs(y - floorY) <= eps + math.sqrt(1 - seg.Flat ^ 2) * reach)
-							and (math.abs(x) <= half + eps or bay)
 						then
-							return true, x
+							return true, x, floorY
 						end
 					end
 				end
@@ -779,15 +929,76 @@ do
 					for _, p in pts do
 						reach = math.max(reach, R.Vector2.new(p.X - cx / n, p.Z - cz / n).Magnitude)
 					end
-					local okBase, x = inside(R.Vector3.new(cx / n, lowY, cz / n), true, reach)
+					local okBase, x, floorY = inside(R.Vector3.new(cx / n, lowY, cz / n), true, reach)
 					ok = ok and okBase
 					local size = select(2, prop:GetBoundingBox())
-					local onBay = x ~= nil and math.abs(x) > half
+					local onBay = floorY == Tunnel.PLATFORM -- fw8: raised onto a bay platform
 					nIn += ok and 1 or 0
 					nOut += ok and 0 or 1
 					nBay += (ok and onBay) and 1 or 0
 					if not ok and nOut <= 5 then
-						print(string.format("  prop %s not inside the tunnel (size %s)", prop.Name, tostring(size)))
+						-- the first corner outside, in the piece-local frame of the nearest segment along it
+						local why = ""
+						for _, p in pts do
+							if not inside(p) then
+								local best, bl
+								for _, seg in segs do
+									local l = seg.CFrame:PointToObjectSpace(p)
+									if
+										math.abs(l.Z) <= seg.Length / 2 + 1
+										and (not best or math.abs(l.X) < math.abs(bl.X))
+									then
+										best, bl = seg, l
+									end
+								end
+								why = best
+										and string.format(
+											"corner x %.2f y %.2f z %.1f of %.1f; wall %.2f / %.2f, height %.1f, s %.0f-%.0f",
+											bl.X,
+											bl.Y,
+											bl.Z,
+											best.Length,
+											-wallAt(best, -1, bl.Z),
+											wallAt(best, 1, bl.Z),
+											best.Height,
+											best.From,
+											best.To
+										)
+									or "no segment"
+								break
+							end
+						end
+						if why == "" then
+							local b = R.Vector3.new(cx / n, lowY, cz / n)
+							local best, bl
+							for _, seg in segs do
+								local l = seg.CFrame:PointToObjectSpace(b)
+								if
+									math.abs(l.Z) <= seg.Length / 2 + 1 and (not best or math.abs(l.X) < math.abs(bl.X))
+								then
+									best, bl = seg, l
+								end
+							end
+							why = best
+									and string.format(
+										"base not on the floor: x %.2f y %.2f, bay %s, s %.0f-%.0f, flat %.3f",
+										bl.X,
+										bl.Y,
+										tostring(if bl.X < 0 then best.BayLeft else best.BayRight),
+										best.From,
+										best.To,
+										best.Flat
+									)
+								or "base not on the floor"
+						end
+						print(
+							string.format(
+								"  prop %s not inside the tunnel (size %s): %s",
+								prop.Name,
+								tostring(size),
+								why
+							)
+						)
 					end
 					if prop:GetAttribute("Pinned") then
 						pins += 1
@@ -825,6 +1036,201 @@ do
 					gateAt
 				)
 			)
+			-- fw8 (owner 2026-11-01, very wide throughout): the per-side inner width outside bays (by length), the
+			-- ceiling outside bays, the terrain box (walls + MARGIN) and every tunnel part's footprint against other
+			-- tracks' corridors (CORRIDOR from their centre lines), and the props: per 100 studs, the longest stretch
+			-- without one per side, and corners in the running lane (road half-width) or its clearance (+ wall +
+			-- CLEARANCE)
+			do
+				local W, MG = Tunnel.WALL, Tunnel.MARGIN
+				local st = {}
+				for _, key in { "L", "R" } do
+					st[key] = { lo = math.huge, hi = -math.huge, sum = 0, len = 0 }
+				end
+				local cLo, cHi, mainLen = math.huge, -math.huge, 0
+				for _, seg in segs do
+					local len = seg.To - seg.From
+					for key, w in
+						{ L = { seg.BayLeft, seg.LeftA, seg.LeftB }, R = { seg.BayRight, seg.RightA, seg.RightB } }
+					do
+						if not w[1] then
+							local t = st[key]
+							t.lo, t.hi = math.min(t.lo, w[2], w[3]), math.max(t.hi, w[2], w[3])
+							t.sum += (w[2] + w[3]) / 2 * len
+							t.len += len
+						end
+					end
+					if not (seg.BayLeft or seg.BayRight) then
+						cLo, cHi = math.min(cLo, seg.Height), math.max(cHi, seg.Height)
+						mainLen += len
+					end
+				end
+				for _, key in { "L", "R" } do
+					local t = st[key]
+					print(
+						string.format(
+							"TUNNEL %s width %s (half, outside bays): min %.1f avg %.1f max %.1f (target %.0f)",
+							e.Model.Name,
+							key == "L" and "left" or "right",
+							t.lo,
+							t.sum / math.max(1, t.len),
+							t.hi,
+							(def.Width or 60) / 2
+						)
+					)
+				end
+				local short = 0 -- stations whose raw room is below the width built (clamped to the road's minimum)
+				for _, key in { "L", "R" } do
+					for i, v in prof.Raw[key] do
+						short += v < prof.Main[key][i] - 0.01 and 1 or 0
+					end
+				end
+				print(
+					string.format(
+						"TUNNEL %s ceiling outside bays %.1f-%.1f; %d segments; stations short of room %d",
+						e.Model.Name,
+						cLo,
+						cHi,
+						#segs,
+						short
+					)
+				)
+				-- a point in another track's corridor, as TerrainShape decides it: that track is the nearest and within
+				-- CORRIDOR (the junction with the previous and next track is this track's own ground)
+				local function crosses(p)
+					local A, dA = TS._sample(p.X, p.Y)
+					if A and A ~= e.Number and dA <= TS.CORRIDOR then
+						return "track " .. A
+					end
+					return nil
+				end
+				local boxHits, boxFirst = 0, nil
+				for _, seg in segs do
+					local cf = seg.CFrame
+					local f = R.Vector2.new(cf.LookVector.X, cf.LookVector.Z).Unit
+					local rv = R.Vector2.new(-f.Y, f.X)
+					local c = R.Vector2.new(cf.Position.X, cf.Position.Z)
+					local hz = seg.Length * seg.Flat / 2 + MG
+					for z = -hz, hz + 0.01, 4 do
+						for _, x in { -(seg.Left + W + MG), seg.Right + W + MG } do
+							local who = crosses(c + f * math.min(z, hz) + rv * x)
+							if who then
+								boxHits += 1
+								boxFirst = boxFirst or string.format("%s at s %.0f x %.0f", who, seg.From, x)
+							end
+						end
+					end
+				end
+				local partHits, portalHits, partFirst = 0, 0, nil
+				for _, part in folder:GetDescendants() do
+					if part:IsA("BasePart") then
+						local hx, hz = part.Size.X / 2, part.Size.Z / 2
+						local hit
+						-- the footprint's outline every 4 studs or less
+						local function probe(x, z)
+							local w = part.CFrame:PointToWorldSpace(R.Vector3.new(x, 0, z))
+							hit = hit or crosses(R.Vector2.new(w.X, w.Z))
+						end
+						local nx, nz = math.ceil(hx / 2), math.ceil(hz / 2)
+						for k = 0, nx do
+							probe(-hx + 2 * hx * k / nx, -hz)
+							probe(-hx + 2 * hx * k / nx, hz)
+						end
+						for k = 0, nz do
+							probe(-hx, -hz + 2 * hz * k / nz)
+							probe(hx, -hz + 2 * hz * k / nz)
+						end
+						if hit then
+							if part.Name:match("^Portal") then
+								portalHits += 1
+							else
+								partHits += 1
+							end
+							partFirst = partFirst or (part.Name .. " in " .. hit)
+						end
+					end
+				end
+				print(
+					string.format(
+						"TUNNEL %s corridor crossings: box samples %d (%s), parts %d, portal parts %d (%s)",
+						e.Model.Name,
+						boxHits,
+						tostring(boxFirst),
+						partHits,
+						portalHits,
+						tostring(partFirst)
+					)
+				)
+				-- props: track position and side of each tunnel prop's pivot, and its part corners against the lane
+				local function locate(p, from, to)
+					local best, bi, bl
+					for k = from or 1, to or #segs do
+						local seg = segs[k]
+						local l = seg.CFrame:PointToObjectSpace(p)
+						if math.abs(l.Z) <= seg.Length / 2 + 2 and math.abs(l.Y) < 60 then
+							if not best or math.abs(l.X) < best then
+								best, bi, bl = math.abs(l.X), k, l
+							end
+						end
+					end
+					return bi, bl
+				end
+				local roadHalf = e.Layout.Width / 2
+				local at = { L = {}, R = {} }
+				local nMain, nAll, inLane, inClear = 0, 0, 0, 0
+				for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
+					if prop:GetAttribute("Tunnel") and not prop:GetAttribute("FightScene") then
+						local k, l = locate(prop:GetPivot().Position)
+						if k then
+							local seg = segs[k]
+							local sAt = (seg.From + seg.To) / 2 - l.Z * seg.Flat
+							local key = l.X < 0 and "L" or "R"
+							table.insert(at[key], sAt)
+							nAll += 1
+							nMain += ((key == "L" and seg.BayLeft) or (key == "R" and seg.BayRight)) and 0 or 1
+							local lane, clear = false, false
+							for _, part in prop:GetDescendants() do
+								if part:IsA("BasePart") then
+									for _, c in { { -1, -1 }, { -1, 1 }, { 1, -1 }, { 1, 1 } } do
+										local w = part.CFrame:PointToWorldSpace(
+											R.Vector3.new(c[1] * part.Size.X / 2, 0, c[2] * part.Size.Z / 2)
+										)
+										local _, q = locate(w, math.max(1, k - 3), math.min(#segs, k + 3))
+										local x = q and math.abs(q.X) or math.huge
+										lane = lane or x < roadHalf
+										clear = clear or x < roadHalf + 2 + BD.CLEARANCE
+									end
+								end
+							end
+							inLane += lane and 1 or 0
+							inClear += clear and 1 or 0
+						end
+					end
+				end
+				local gaps = {}
+				for key, list in at do
+					table.sort(list)
+					local prev, worst = s0, 0
+					for _, v in list do
+						worst, prev = math.max(worst, v - prev), v
+					end
+					gaps[key] = math.max(worst, s1 - prev)
+				end
+				print(
+					string.format(
+						"TUNNEL %s tunnel props %d (outside bays %d): %.2f per 100 studs (outside bays %.2f per 100 studs of main tunnel); longest stretch without a prop: left %.0f, right %.0f; in the running lane %d, within the road clearance %d",
+						e.Model.Name,
+						nAll,
+						nMain,
+						nAll / (s1 - s0) * 100,
+						nMain / math.max(1, mainLen) * 100,
+						gaps.L,
+						gaps.R,
+						inLane,
+						inClear
+					)
+				)
+			end
 			-- fw7: the fight scene is built (and survived Prune), and every part corner at or above the platform top
 			-- is inside the bay box on its side: past Width / 2 on a bay segment, under the ceiling, inside the wall
 			local scene = Themes[e.Biome].FightScene
@@ -856,7 +1262,7 @@ do
 										local seg, l = found[1], found[2]
 										corners += 1
 										local bay = if sgn < 0 then seg.BayLeft else seg.BayRight
-										local inner = if sgn < 0 then seg.Left else seg.Right
+										local inner = wallAt(seg, sgn, l.Z)
 										if l.Y > seg.Height + 0.05 then
 											ceil += 1
 										end

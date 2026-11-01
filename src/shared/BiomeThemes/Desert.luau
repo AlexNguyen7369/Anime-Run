@@ -263,10 +263,12 @@ local SIGNED = "2026-11-01 rules-auditor" -- close-up IP review of every ledger 
 -- name is shown anywhere), a domain dome, roots, stylised blood, fire and a silhouette crowd.
 -- Data only: placing it needs a framework builder (fw7, reported to main 2026-11-01): one pinned group model at `At`
 -- on `Side`, on the bay platform, every item at Pos = (u along the track from the group centre, y up from the platform
--- top, d from the platform edge into the bay) and Yaw degrees (0 = the mesh's +Z front faces the road, -d). Every item
+-- top, d from the platform edge into the bay) and Yaw degrees about Y (the frame's -Z faces the road and a generated
+-- mesh faces +Z, so 0 faces away from the road and 180 faces it; fw7 BiomeDressing). Every item
 -- is anchored, CanCollide / CanTouch / CanQuery off. `Effects` are client-side: emitters tagged BiomeEmitter, beams
 -- and the `Reduce` lights hidden or dimmed under REDUCED EFFECTS (section 8).
--- Every generated figure faces +Z; Yaw +-135 turns each three-quarters toward the road, facing its opponent.
+-- Every generated figure faces +Z; Yaw -135 turns it toward -u and the road, +135 toward +u and the road (three-quarters
+-- toward the road, facing its opponent).
 local function figure(name, h, hair, top, legs, skin)
 	return prop(name, v(4, h, 3), {
 		part(v(1.6, h * 0.45, 1.4), v(-0.9, h * 0.225, 0), legs, M.SmoothPlastic),
@@ -276,6 +278,25 @@ local function figure(name, h, hair, top, legs, skin)
 		part(v(2, h * 0.06, 2), v(0, h * 0.97, 0), hair, M.SmoothPlastic),
 	})
 end
+local crowdDef = meshed(
+	prop("T7Crowd", v(5, 7.56, 2.65), { -- faceless grey-violet silhouette (fallback)
+		part(v(1.4, 3.4, 1.2), v(-0.8, 1.7, 0), hex("6E5C70"), M.SmoothPlastic),
+		part(v(1.4, 3.4, 1.2), v(0.8, 1.7, 0), hex("6E5C70"), M.SmoothPlastic),
+		part(v(3.4, 2.6, 2), v(0, 4.7, 0), hex("8C7E8F"), M.SmoothPlastic),
+		part(v(1.6, 1.6, 1.6), v(0, 6.76, 0), hex("8C7E8F"), M.SmoothPlastic),
+	}),
+	"T7CrowdMesh",
+	v(5, 7.56, 2.65)
+)
+local rootsDef = meshed(
+	prop("T7Roots", v(6, 6.46, 6.02), { -- a rooted trunk with pale flowers (fallback)
+		part(v(5.6, 0.8, 5.6), v(0, 0.4, 0), hex("5A3E2B"), M.Wood),
+		part(v(1.4, 4.6, 1.4), v(0, 3.1, 0), hex("5A3E2B"), M.Wood),
+		part(v(3.6, 1.6, 3.6), v(0, 5.6, 0), hex("F4C6D2"), M.SmoothPlastic, BALL),
+	}),
+	"T7RootsMesh",
+	v(6, 6.46, 6.02)
+)
 local DOMAIN = hex("05060C")
 local BLOOD = hex("A3121C")
 local FIRE = hex("FF6A1A")
@@ -336,16 +357,23 @@ local FIGHT = {
 			),
 		},
 		-- transfigured crowd silhouettes along the back wall, u -20 to +4 (one mesh, 5 placements, 7-9 studs)
-		{ Key = "T7CrowdMesh", Pos = v(-20, 0, 38), Yaw = 160, Scale = 1 },
-		{ Key = "T7CrowdMesh", Pos = v(-14, 0, 39), Yaw = 200, Scale = 0.9 },
-		{ Key = "T7CrowdMesh", Pos = v(-8, 0, 38.5), Yaw = 175, Scale = 1.1 },
-		{ Key = "T7CrowdMesh", Pos = v(-2, 0, 39), Yaw = 190, Scale = 0.95 },
-		{ Key = "T7CrowdMesh", Pos = v(4, 0, 38), Yaw = 170, Scale = 1.05 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-20, 0, 38), Yaw = 160, Scale = 1 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-14, 0, 39), Yaw = 200, Scale = 0.9 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-8, 0, 38.5), Yaw = 175, Scale = 1.1 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-2, 0, 39), Yaw = 190, Scale = 0.95 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(4, 0, 38), Yaw = 170, Scale = 1.05 },
 		-- roots from the plant figure toward the dome edge (they stop at the shell), and one spread sealing the bay's
 		-- far stair opening
-		{ Key = "T7RootsMesh", Pos = v(-3, 0, 24), Yaw = 100, Scale = 1 },
-		{ Key = "T7RootsMesh", Pos = v(-2, 0, 30), Yaw = 70, Scale = 0.85 },
-		{ Key = "T7RootsMesh", Pos = v(18, 0, 36), Yaw = 0, Scale = 1.3, Note = "seals the far stair opening" },
+		{ Key = "T7RootsMesh", Def = rootsDef, Pos = v(-3, 0, 24), Yaw = 100, Scale = 1 },
+		{ Key = "T7RootsMesh", Def = rootsDef, Pos = v(-2, 0, 30), Yaw = 70, Scale = 0.85 },
+		{
+			Key = "T7RootsMesh",
+			Def = rootsDef,
+			Pos = v(18, 0, 36),
+			Yaw = 0,
+			Scale = 1.3,
+			Note = "seals the far stair opening",
+		},
 		-- domain dome: a Ball shell cut by the platform, radius 12, around the first figure
 		{
 			Def = prop("DomainDome", v(24, 24, 24), {
@@ -573,8 +601,10 @@ return {
 	-- at 16) and reads as the portal's frame, in its concrete colour
 	Gate = gate(CONCRETE, M.Concrete, FLUO, { Index = 2 }),
 	Tunnel = {
-		Width = 60,
-		Height = 20,
+		-- owner 2026-11-01 (very wide throughout): target width 120, ceiling 26; the framework narrows each side only
+		-- where a neighbouring track's corridor is near (spec 3.5, fw8)
+		Width = 120,
+		Height = 26,
 		Wall = { Material = M.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
 		Ceiling = { Material = M.Concrete, Color = "#8C8A84" },
 		Floor = { Material = M.Concrete, Color = "#8C8A84" },
@@ -584,10 +614,10 @@ return {
 		Bays = BAYS,
 		Portals = true,
 	},
-	-- Wall-hugging props between the road clearance and the tunnel wall (28-30 studs from the centre line)
+	-- Wall-hugging props against the tunnel wall: an Offset past the widest wall is clamped onto it (fw8)
 	Rhythm = {
 		Every = 6,
-		Offset = 6,
+		Offset = 60,
 		Props = { wallMapMesh, emergencyLight, fireCabinet, ventGrille },
 	},
 	-- Pinned heroes (At, spec 4.3), each inside its bay (fw6: a pinned hero takes the covering bay's side). Offset 10
