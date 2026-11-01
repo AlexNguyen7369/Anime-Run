@@ -12,13 +12,15 @@ return {
 	Biome = "Volcano",
 	Width = 40,
 	Closed = false,
+	-- owner 2026-10-31 no-approval, orchestrator default 2026-10-31: pale moonlit blue-grey stone road with dark
+	-- basalt lines and rails, so it reads on the white sand at night (Track 9 spec palette)
 	Palette = {
-		Road = Color3.fromRGB(58, 52, 62),
-		Support = Color3.fromRGB(35, 32, 42),
-		Wall = Color3.fromRGB(255, 92, 30),
-		Ground = Color3.fromRGB(55, 38, 40),
-		Line = Color3.fromRGB(255, 196, 70),
-		Checkpoint = Color3.fromRGB(108, 50, 44),
+		Road = Color3.fromHex("B4BCCB"),
+		Support = Color3.fromHex("2E2E3A"),
+		Wall = Color3.fromHex("8892A6"),
+		Ground = Color3.fromHex("F2F2EE"),
+		Line = Color3.fromHex("2E2E3A"),
+		Checkpoint = Color3.fromHex("8892A6"),
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {

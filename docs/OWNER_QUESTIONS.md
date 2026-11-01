@@ -54,3 +54,22 @@
   so it never floats; pads never overlap (9 Docks houses removed by that rule).
 - Chosen as the recommended fix (houses gap 0, TileRing gap 0, 0 warnings in the Lune harness). Spec 3.2 fw3 bullet.
   Review in the morning; revert = commit on orch/biomes/fw3.
+
+## Morning review list (overnight run, 2026-10-31)
+- Track 5 Neon Cursed City still reads very dark in T5_Road / T5_Landmark even after the builder raised the placeholder
+  lighting; proposed: raise Ambient/OutdoorAmbient further or lower Atmosphere Density 0.5 -> 0.35 (spec 7 value).
+- Track 4 night was brightened after its scenario run (client atmosphere only).
+- Track camera: session-only setting (TrackCamera attribute), not saved across sessions, like the other toggles.
+- fw4 (orchestrator default): halls in narrow gaps sit at road level (Track 4: 22 of 35) instead of being dropped; 7 fewer padded props kept overall.
+- Track 6: billboards show abstract shapes, not made-up text (spec 7 wording; avoids the generator writing real words).
+  ToppledRobot hero ~31 x 25 x 31 placed (under the placeholder 60-220 hero height; the mesh generator caps short sides
+  at ~16 studs). AcademyTower stretched 2.6x vertically to ~200 placed.
+- Track 7: HilltopShrine gable has a tiny gold roof ornament (auditor: not legible, passed); close shot T7_ShrineGable.jpg for review. StoneFox is a scatter prop only (mesh faces away from road).
+- 2026-10-31 owner: continue; finish T5 + T7, then Tracks 8-10 this session (Nov 3 pause lifted); orchestrator takes recommended decisions (logged here).
+- NPC rival names (spec: label RIVAL over <Name>) are not implemented in code: NpcConfig has no Name field (label shows track08_NPC). Enelu [Enel] is in the spec only; implementing rival names/models is a separate task (not in biome scope).
+- Track 7: heroes sized to fit under the 20-40 stud tunnel ceilings (~23-33 tall), below the placeholder 60-220 hero height; the stalled train stands on a bay platform (framework builds bays as platforms).
+- Track 5: BrokenStorefront has a weak 'face' reading (two red upper windows over a blank sign band; auditor passed) - see T5_Storefront.jpg. SlicedTower top floats above the cut; viaduct deck stays level (quality, not IP).
+- fw6: on tunnel tracks a pinned hero that cannot fit in its bay is not built (warns) - the 'never deleted' rule cannot place it in the earth.
+- Track 7: plain tunnel stretches between bays carry no dressing props (Prune keeps props 8 studs from the road, leaving <1 stud to the wall); only tiles, stripe and light strips. Kept as is (orchestrator default).
+- INCIDENT 2026-10-31: the Track 8 builder killed PID 94879 (the IVS dashboard, ~/Documents/RobloxGames tools/dashboard/server.py on :8765) while freeing a port, then restarted it as `server.py --port 8765`; it answers 200. Check it runs with your usual flags.
+- Track 8: GiantBeanstalk and CloudTown heroes are part-built (generator caps ~2:1; CloudTown try read as a face). Bell toll is ProSoundEffects 9113804175 (Studio cannot upload audio; in-house bell_toll.wav unused). 0.82-1.0 Inner is now cloud mounds so the bell is visible.

@@ -45,10 +45,10 @@ per-biome sky and light change is written on the client only and never replicate
 | 2 | Hill | Forest | Tournament Wasteland |
 | 3 | DragRace | Docks | Pirate Harbor Isle |
 | 4 | Circuit | Suburb | Wisteria Night Mountain |
-| 5 | Serpentine | PirateCoast | Neon Cursed City |
+| 5 | Serpentine | PirateCoast | Burning Cursed City |
 | 6 | City | City | Hero Academy City |
-| 7 | Desert | Desert | Blossom Shrine Path |
-| 8 | Snow | Snow | Sky Islands |
+| 7 | Desert | Desert | Shibuyo Underground |
+| 8 | Snow | Snow | Skypeia |
 | 9 | Volcano | Volcano | Spirit Realm Desert |
 | 10 | Space | Space | Green Alien Planet |
 
@@ -108,6 +108,8 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   (0-1) and `TerrainReady = true` at the end. The harness waits for `TerrainReady`.
 - Chunks are 256 x 256 studs (placeholder) in XZ, written with `Terrain:WriteVoxels` at resolution 4, with one
   `task.wait()` per chunk. Water goes in the same call (material `Water`, occupancy 1 below the biome's water level).
+  Each chunk's shaped layer starts below both its lowest column top and any tunnel hollow floor in it, so the floor
+  fill never closes a tunnel (fw9, orchestrator default 2026-11-01).
 - Vertical range: floor Y = -24 (placeholder) to the top of the highest ridge. Under the corridor the terrain is only
   6 voxels deep.
 - Budget: the whole world written in at most 45 s on the Studio server (placeholder target). b1 measures it and
@@ -215,23 +217,121 @@ placeholders.
 
 | Material | Colour | Used by |
 |---|---|---|
-| Grass | #5DA04A | 1, 6 park, 7, 8 island tops |
+| Grass | #5DA04A | 1, 6 park, 8 jungle island |
 | LeafyGrass | #3FB59A | 10 blue-green grass |
-| Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland |
+| Ground | #A07B52 | 1 dirt paths, 2 floor, 3 inland, 7 earth over the tunnel (option A), 8 jungle floor |
 | Mud | #2A2440 | 4 night forest floor |
-| Slate | #2E2A3E | 4 mountain rock, 5 hill |
-| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 stone, 8 island undersides |
-| Sandstone | #B8834F | 2 mesas and strata |
+| Slate | #2E2A3E | 4 mountain rock |
+| Rock | #8A6E52 (owner 2026-10-31, was #7C8C99) | 1 cliff, 7 earth over the tunnel (option A), 8 island undersides |
+| Sandstone | #B8834F | 2 mesas and strata, 8 sunken ruins bowl |
 | Sand | #F3E2B3 | 3 beach and sea bed |
 | Salt | #F2F2EE | 9 white sand |
 | Limestone | #DADAD2 | 9 white outcrops |
-| Basalt | #2E2E3A | 9 dark rock |
-| Cobblestone | #9E9E9E | 7 stair paths, 1 village square |
-| Asphalt | #1C1828 | 5 night streets |
+| Basalt | #2E2E3A | 9 dark rock, 5 scorched rubble |
+| Cobblestone | #9E9E9E | 1 village square |
+| Asphalt | #1C1828 | 5 burnt night streets |
+| CrackedLava | #FF6A1A (placeholder, 2026-10-31) | 5 lava cracks, pools and the meteor crater |
 | Concrete | #6B6B78 | 5 lots, 6 training ground |
 | Pavement | #E6E9EE | 6 plazas |
-| Snow | #FFFFFF | 8 cloud deck (with fog) |
-| Water | client `WaterColor` per zone (section 5) | 1 river, 3 sea, 8 pools, 10 lakes and outer sea |
+| Snow | #FFFFFF | 8 cloud deck (with fog), cloud town ground and island clouds |
+| Water | client `WaterColor` per zone (section 5) | 1 river, 3 sea, 8 jungle swamp, 10 lakes and outer sea |
+
+### 3.5 Enclosed tunnel corridor (proposed; framework task, not a biome task)
+Owner 2026-10-31: Track 7 runs inside a tunnel for its whole length. No biome can build that from data today, so it is
+a framework task for the b1 owner. The Track 7 biome module only supplies the data below. All values are
+placeholders.
+- **Profile field** (optional on any biome, used by Track 7 only):
+  ```
+  Tunnel = {
+  	Width = 120, Height = 26,                      -- target inner width (narrowed per side, below) and height
+  	Wall = { Material = Enum.Material.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
+  	Ceiling = { Material = Enum.Material.Concrete, Color = "#8C8A84" },
+  	LightEvery = 24,                               -- one ceiling light strip every N studs
+  	Bays = { { From = 0.12, To = 0.17, Side = "Left"|"Right"|"Both", Depth = 40, Height = 30 }, ... },
+  	Portals = true,                                -- stair-entrance facades at the start and finish
+  }
+  ```
+- **Builder**: a server step after `TrackBuilder` and before dressing. It walks the centre line and places anchored wall
+  and ceiling pieces per segment (corners as short chords), following road Y on slopes. The ceiling sits at road Y +
+  `Height`. Walls clear every checkpoint, pad and WinPad footprint by `CLEARANCE`. Inside a bay (`From` / `To` are
+  fractions of track length, like `Sections`) the wall on `Side` steps out by `Depth` and the ceiling rises to the bay
+  `Height`; the bay holds a raised platform floor and the dressing's platform props. Portals at both ends join the
+  open-air Tracks 6 and 8.
+- **Adaptive width** (owner 2026-11-01: very wide along the whole route, not cramped; orchestrator default
+  2026-11-01, fw8; values placeholders): `Width` is a target. `Tunnel.Profile` works out each side's inner half-width
+  every `STEP` (8) studs. It is `min(Width / 2, room)`. `room` keeps the tunnel box (wall + `MARGIN`) `ROOM_MARGIN`
+  (4) studs off every other track's corridor (`CORRIDOR`, 44, from its centre line). It also keeps the box off this
+  track's own far laps (more than `SELF_GAP`, 400 studs, along the road), each counted as a whole tunnel wide. The room
+  changes by at most `TAPER` (0.25) studs per stud along the road, as the lower envelope of the raw room. The walls
+  slope between width stations and never step, except at a bay end. The width never drops below road half-width + 2 +
+  `CLEARANCE` (30 on Track 7). A station with less raw room is reported (a crossing to fix).
+  - Bays: a bay platform's road-side edge is `PLATFORM_EDGE` (30, the old `Width / 2`). A bay wall stands at
+    `PLATFORM_EDGE + Depth` where the room allows, never inside the main wall. Bay `Height` is unchanged.
+  - Every station where a wall changes is a segment cut, so a segment's ends differ by at most `TAPER x STEP` (2) studs.
+    Walls and stripes run straight between the ends' widths. Ceiling, floor and platforms span the wider end and
+    reach at most 2 studs into the wall. Caps close only real steps (bay ends). Portals take the end widths.
+  - The terrain box and the earth over the roof (option A) follow the segments; other tracks' corridors never change.
+  - Dressing: at road level a tunnel prop stands between the road edge + `CLEARANCE` (Prune's road clearance) and
+    the wall at the width there. So the wall-side strips along the whole route are prop space, not only the bays. Its
+    wall gap also loses `CHORD_XZ` (the walls follow the chords) and samples the width every 4 studs along its length.
+    An `Offset` past the widest wall puts a layer's props against the wall (Track 7 Rhythm). Bay platforms and the
+    fight scene work as before, from `PLATFORM_EDGE`. Fixed with it: a prop on the side without a bay, inside a
+    one-sided bay's span, was lifted onto a platform that is not there.
+  - Check: `TUNNEL=1 lune run tools/lune/biome_harness.luau` prints the per-side width (min / avg / max outside
+    bays), the ceiling, stations short of room, corridor crossings (box and parts, by TerrainShape's zone rule), tunnel
+    props per 100 studs, the longest stretch without one per side, and props in the running lane or its clearance.
+    `NOTUNNEL=1` must give the IDENTITY hash from before any tunnel change. `IDENTITY no-tunnel tracks` and the
+    per-track line show what a tunnel change moves elsewhere: the earth over a wider roof may re-snap a neighbour's
+    props (Y only) beyond its corridor; corridor columns never change.
+- **Lights**: one `SurfaceLight` or neon strip per `LightEvery` studs, `Shadows = false`. REDUCED EFFECTS halves
+  the count (client hides every second light). fw8 (orchestrator default 2026-11-01): every `SIDE_LIGHTS`-th (3rd)
+  strip also gets one strip over the middle of each side whose half-width is at least `SIDE_LIGHT_HALF` (40).
+- **Zone lighting, underground (no sky)**: an Atmosphere profile flag `Underground = true`. The client then sets
+  `CelestialBodiesShown = false`, `StarCount = 0`, a plain dark Skybox, `Brightness = 0`, `ClockTime = 0`, a low
+  `OutdoorAmbient`, an interior `Ambient`, `EnvironmentDiffuseScale` and `EnvironmentSpecularScale` low, Clouds
+  `Cover = 0`, so only the tunnel lights and `Ambient` light the scene. Weather events do not mix in while
+  underground (orchestrator default 2026-10-31).
+- **Terrain interaction** (owner 2026-10-31: A):
+  - A (recommended): the ridge stays solid ground and covers the tunnel. A new corridor mode fills terrain above the
+    ceiling, so neighbouring laps and the plaza see a hill, and the tunnel reads as dug into earth. The corridor rule
+    "never above road Y - 1" holds only inside the tunnel box.
+  - B: the ridge stays flat (`Blocks`), and the tunnel stands as a long box structure, seen from other laps. Cheaper;
+    looks less buried.
+- **Camera** (owner 2026-10-31): the camera is clamped below the ceiling inside the tunnel; the track camera (design doc 4.12) must stay under the ceiling. `Height` must leave
+  the camera room, or the ceiling must not block camera pop-in. Check in Studio.
+- **Dressing** (fw6, orchestrator default 2026-10-31; values placeholders): on a track whose biome has a `Tunnel`,
+  `BiomeDressing` places every prop inside the tunnel, never at edge + `Offset` in the earth outside the walls.
+  - A prop stands at road Y inside the walls (between the road wall and `Width / 2`; fw8: between the road edge +
+    `CLEARANCE` and the wall at the adaptive width), or on a bay platform at road Y +
+    `Tunnel.PLATFORM` (4) where a bay on its side covers its whole length. It keeps `TUNNEL_INSET` (1 stud) from the
+    tunnel wall and the platform edge, plus 0.1 stud per stud of its half-length (`TUNNEL_TURN`: the walls are chords).
+    Its box includes every fallback part's corners. Its top (plus half the road rise under it on a slope) stays under
+    the ceiling. `Offset` is clamped into that room. A prop that does not fit, or lies outside the tunnel span, is not
+    built. Ground patches are not built inside a tunnel.
+  - Such props carry attribute `Tunnel = true`; `SnapToTerrain` leaves them where they are (no snap, no pad).
+  - A layer with `Surface = true` (Rhythm, Landmarks, Horizon, Scatter or Blocks) opts out: its props are placed as on
+    an open track and snap onto the earth over the tunnel. Use it only for sparse surface dressing such as vents and
+    station entrances.
+  - Side: side -1 is the tunnel's `Left` and 1 its `Right` (both from the same road tangent).
+  - A pinned hero (`At`) stands at the waypoint nearest `At` (XZ length, like `Bays`), in the bay covering `At`, on
+    that bay's side (`Both`: the side the hero rule gives). With no bay at `At` the server warns. A pinned hero that
+    does not fit inside the tunnel is not built and the server warns (the 3.2 "never deleted" rule cannot put it in
+    the earth; the builder moves or resizes it).
+  - Gate: on a tunnel track without `Gate.Index` the gate moves back to the last waypoint whose posts end before the
+    start portal (at least waypoint 2), so the 28-stud gate never stands under a 20-stud ceiling. A gate that would
+    still stand inside the tunnel is not built and is reported. `Gate.Skip` still removes it.
+  - Check: `TUNNEL=1 lune run tools/lune/biome_harness.luau` prints every tunnel prop inside / not inside, pinned
+    heroes in their bay, and the gate distance before the portal. Non-tunnel biomes build identically (identity hash).
+- **Ramps** (fw8, orchestrator fix 2026-11-01): Studio failed `corridor_clear_7` with 109 hits where the road climbs
+  in the tunnel. Root cause: the hollow's floor followed the road Y at each column (road - 2, drawn `LIFT` 2 lower).
+  The test reads columns up to the sample spacing (20) + road half-width + `CLEARANCE` along the road from a sample.
+  On a ramp such a column's road is several studs above the sample's, so its floor rose over road Y - 0.5. The floor
+  now sits under the lowest road within `FLOOR_REACH` (40) studs. It lies lower by the steepest slope of the segments
+  within that reach (crests and sags too) times `FLOOR_REACH`. The `Floor` slab covers it. Check:
+  `lune run tools/lune/biome_harness.luau` prints `corridor_clear` per tunnel track (106 hits before, 0 after).
+- **Tests**: test 1 (`terrain_built`) also checks no terrain voxel inside the tunnel box. New `tunnel_clear`: every
+  20 studs a ray up from the road hits the ceiling no lower than road Y + 12, and no wall is within `CLEARANCE` of a
+  checkpoint, pad or WinPad. The track tests (0 flips, 0 off-track) still pass with the tunnel in place.
 
 ## 4. Meshes
 
@@ -374,6 +474,10 @@ Atmosphere = {
 The palettes, routes and IP flags come from `TRACKS_AND_BIOMES_SPEC.md` References. Values are placeholders except
 the IP flags.
 
+Owner 2026-10-31: Tracks 5, 7 and 8 redesigned (design doc change log): Burning Cursed City, Shibuyo Underground
+(a full tunnel, needs 3.5) and Skypeia. Their sections below were rewritten that day; all their values are
+placeholders.
+
 ### Track 1: Leafwind Village (`Speedway`)
 - **Terrain**: Ridge `Hills` 24 with `Cliff` 60 on the inner side facing the plaza at one long straight (the carved
   cliff). A river (`Water`, Level -3) runs in the gap along the red-bridge section. Grass, Ground paths,
@@ -436,20 +540,27 @@ the IP flags.
 - **Audio**: night insects and soft wind in leaves (loop); an owl and a wooden clapper (one-shots). Reverb `Forest`.
 - **IP**: no checkered haori pattern and no show kanji on signs.
 
-### Track 5: Neon Cursed City (`PirateCoast`)
-- **Terrain**: Ridge `Blocks` with Asphalt streets and Concrete lots. One `Hills` 40 hill (Slate) for the temple
-  school. `Embank = false`.
+### Track 5: Burning Cursed City (`PirateCoast`)
+Owner redesign 2026-10-31 (the Jogo vs Sukuna fire fight). Every value below is a placeholder except the IP line.
+- **Terrain**: Ridge `Blocks` (Asphalt streets, Concrete lots) with `Craters = { Count = 10, Radius = 36, Depth = 10 }`
+  (placeholder) and one big meteor crater by a `Sections` entry at `From = 0.47, To = 0.53` (Ridge `Hills` -12,
+  CrackedLava). Glowing CrackedLava cracks and pools in the lots, Basalt rubble mounds. `Embank = false`.
 - **Hero landmarks**:
-  1. A tall neon signboard tower (made-up text).
-  2. A rail overpass segment.
-  3. A wooden temple school with curved roofs on the hill.
-  4. A big video screen with abstract shapes.
-- **Mid props**: neon signs, vending machines, traffic lights, zebra crossings (decals), glass storefronts.
-- **Palette**: #120F1F, #3A1F5C, #FF2E88, #2EE6FF, #F2D64B.
-- **Sky**: night city. ClockTime 22, Atmosphere Color #3A1F5C, Density 0.5, Haze 1. Bloom 1.6, Threshold 0.9.
-  Contrast +0.2. Particles: drifting dark-purple motes.
-- **Audio**: city hum and distant traffic (loop); a crossing chime and a train pass (one-shots). Reverb `City`.
-- **IP**: no real store or station names, no real Shibuya landmarks, no dog statue, no real logos.
+  1. A high-rise with its upper floors blown open and burning (fire in the gaps, a smoke column).
+  2. The smouldering meteor: a huge glowing boulder half-sunk in the crossroads crater, `At = 0.5`.
+  3. A collapsed elevated rail viaduct over a side street.
+  4. A tower cut through on a diagonal, its top half slid down (plain cut, no symbol).
+- **Mid props**: burning cars (generic), fire columns (part plus particles), lava cracks (neon decals), rubble piles,
+  steel girders, toppled traffic lights, bent lamps, blank burnt billboards, broken glass storefronts.
+- **Palette**: #0E0B12, #2A1E1E, #FF6A1A, #FFC23D, #C2261B, #4A4448, #DCE2F0.
+- **Sky**: night on fire. ClockTime 0, Brightness 0.5, Ambient #3A1A10, OutdoorAmbient #5A2A18. Atmosphere Color
+  #3A2420, Decay #FF6A1A, Density 0.45, Haze 2, Glare 0.3. Grade TintColor #FFD9B8, Contrast +0.2, Saturation +0.1.
+  Bloom 1.4, Threshold 0.85. Clouds Cover 0.8, Color #2A1E1E. Skybox: smoke clouds lit orange from below, a moon in a
+  gap. Particles: rising orange embers (LightEmission 1) and drifting ash.
+- **Audio**: crackling fire, a low roar and distant collapses (loop); a flame whoosh and a falling-debris crash
+  (one-shots). Reverb `City`.
+- **IP**: no Sukuna or Jogo likeness, no domain shrine copy (skulls, fanged gate), no cursed-technique symbol, hand
+  sign or bow-shaped flame; no real store or station names or signs, no real Shibuya landmarks, no real logos.
 
 ### Track 6: Hero Academy City (`City`)
 - **Terrain**: Ridge `Blocks` (Pavement plazas, Concrete training ground) with Grass park patches. `Embank = false`.
@@ -466,36 +577,172 @@ the IP flags.
   Reverb `City`.
 - **IP**: no H-shaped tower, no school emblem, generic robots only.
 
-### Track 7: Blossom Shrine Path (`Desert`)
-- **Terrain**: Ridge `Hills` 34, terraced, with switchback stone-stair hillsides (Cobblestone, Rock). Grass.
-  `Embank = true`.
-- **Hero landmarks**:
-  1. A hilltop shrine hall with a copper-green roof.
-  2. A tunnel of red gates on the hillside (one mesh run).
-  3. A giant cherry tree.
-- **Mid props**: cherry trees, stone lanterns, generic stone foxes, wash basin, vermilion gates.
-- **Palette**: #F7C6D9, #E14B3B, #9E9E9E, #4F8F6F, #6B4A2E.
-- **Sky**: soft spring afternoon. ClockTime 15.5, Atmosphere Color #F5DCE6, Haze 0.8. Pink tint #FFF0F5. Bloom 0.9.
-  Particles: falling pink petals.
-- **Audio**: a breeze and soft birdsong (loop); a shrine bell and a water-basin drip (one-shots). Reverb `Plain`.
-- **IP**: gate plaques carry made-up text, never real shrine names.
+### Track 7: Shibuyo Underground (`Desert`)
+Owner redesign 2026-10-31 (the Shibuya Incident subway); replaces Blossom Shrine Path. Every value below is a
+placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
+- **Terrain**: the whole corridor is inside the `Tunnel` (3.5): Width 120 (owner 2026-11-01: very wide along the
+  whole route; narrowed per side only near another track's corridor, fw8), Height 26, CeramicTiles walls, Concrete
+  ceiling and Floor (the `Floor` field, fw5 2026-10-31). Above it, the ridge covers the tunnel as earth (Ground, Rock; option A, owner
+  2026-10-31). `Embank = false`.
+- **Assets throughout** (owner 2026-11-01; orchestrator default 2026-11-01, fw8): props line both sides along the
+  whole tunnel, not only the bays. Scatter (columns, benches, screen doors, rubble, vending machines, ticket gates)
+  stands on the wall-side strips between the road clearance and the wall. Rhythm (wall maps, emergency lights, fire
+  cabinets, vent grilles) hugs the wall (`Offset` 60, clamped onto it). Side light rows light the wide floor.
+- **Tunnel bays** (`Bays`): each bay platform starts 30 studs from the centre line (`PLATFORM_EDGE`, fw8) and its wall
+  stands at 30 + Depth where the room allows. 0.12-0.17 first side platform (Left, Depth 40); 0.33-0.40 concourse (Left, orchestrator default 2026-10-31: Both reached Track 6's corridor; Depth 60,
+  Height 40: ticket gates, escalators, an atrium void); 0.58-0.63 second platform (Right, Depth 40); 0.82-0.90 the
+  deep main platform hall (Both, Depth 50, Height 30). Portals at the start and finish.
+- **Hero landmarks** (each inside a bay):
+  1. A multi-level concourse void with criss-cross escalators (a box atrium, never the real oval one), `At = 0.36`.
+  2. A stalled train of 3 generic cars on the far track, `At = 0.6`.
+  3. The deep main platform hall: a long island platform, rows of columns, platform screen doors, `At = 0.86`.
+- **Mid props**: tiled wall panels with a stripe band, ceiling light strips, platform screen doors, columns,
+  benches, blank vending machines, ticket gates, wall maps with abstract shapes, made-up signs, overhead wire gantries,
+  emergency lights, fallen ceiling panels, rubble.
+- **Palette**: #E9E4D6, #8C8A84, #2B2E33, #F2D23A, #3FA7A0, #CFE8FF, #B5281F.
+- **Sky**: underground (3.5): `Underground = true`, no sky. Owner 2026-11-01: "a bit more bright so player can see
+  through the dimness, and not pure darkness". ClockTime 0, Brightness 0, Ambient #6A7470, OutdoorAmbient #3A4442,
+  ExposureCompensation 0.35, EnvironmentDiffuseScale 0.4. Atmosphere Color #4A5652, Density 0.2, Haze 0.5 (dust).
+  Grade TintColor #FFF6EA (warm white), Brightness +0.04, Saturation -0.16, Contrast -0.03 (no black crush). Bloom
+  1.0, Threshold 0.9 (light strips glow). LightEvery 16 (was 24). Clouds Cover 0. Particles: dust motes. Flickering lights: owner 2026-10-31 yes, a few lights flicker (client effect, off under REDUCED EFFECTS).
+- **Audio**: tunnel hum, ventilation drone and a distant train rumble (loop); a made-up chime (never a real station
+  melody or announcement) and an echoing water drip (one-shots). Reverb `StoneCorridor`.
+- **IP**: no real station, line or company names, letters, numbers, colours or logos; no real oval atrium; no
+  sealing-cube artifact; no character figures. Signs use made-up text.
 
-### Track 8: Sky Islands (`Snow`)
+#### Fight scene (owner 2026-10-31, resumed 2026-11-01)
+A still tableau beside the road: Gojio stands mid domain expansion against Joggo, Hanamy, Mahitto and Chosu. It is
+the Shibuya Incident fight on the deepest platform, which was packed with trapped people. This scene alone overrides
+the IP line's "no character figures" (design doc change log 2026-10-31 (later)); the rest of that line still holds.
+Every number here is a placeholder. Looks marked "unconfirmed" come from widely known generic descriptions that no
+public source in References confirmed; the builder and the rules auditor judge them against the screenshot.
+- **Research** (public sources; the fandom wiki returns HTTP 402 to fetches and was not bypassed):
+  - https://www.sportskeeda.com/anime/jujutsu-kaisen-season-2-episode-8-yuji-enters-shibuya-gojo-s-first-battle-begins
+    (he drops to the deepest-level through-line platform; the three curses wait there; roots seal the platform
+    entrance)
+  - https://animecorner.me/gojo-confronts-special-grades-alone-in-jujutsu-kaisen-season-2-episode-8-preview and
+    https://animecorner.me/jujutsu-kaisen-season-2-episode-8-its-time-for-the-gojo-show (he goes down alone to limit
+    the damage; Halloween night, 7 PM)
+  - https://bamsmackpow.com/2023/09/15/jujutsu-kaisen-season-2-episode-8-review-the-shibuya-incident and
+    https://bamsmackpow.com/2023/09/21/jujutsu-kaisen-season-2-episode-9-review-the-shibuya-incident-gate-open (a
+    crowd of costumed bystanders; a train arrives full of transfigured humans who attack the crowd; the plant curse is
+    pressed against a wall and blown apart)
+  - https://animehunch.com/how-did-gojo-kill-hanami-in-jujutsu-kaisen (the blindfold comes off for the serious fight;
+    the horns are torn out; the fire curse survives by domain amplification; the blood user tries to distract him)
+  - https://animehunch.com/unlimited-or-infinite-void-gojos-domain-expansion-explained (the void floods every victim
+    with infinite information and leaves them frozen; an open, wall-less infinite space)
+  - https://en.wikipedia.org/wiki/List_of_Jujutsu_Kaisen_characters (a flower on the plant curse's left shoulder and
+    a charged left arm; eruptions and fire; blood manipulation; the blood user looks fully human; soul reshaping)
+  - Search summaries (not first-hand): the domain lasted 0.2 seconds so the crowd would survive; about a thousand
+    transfigured humans died within minutes after it. One review's "299 seconds" is an outlier and is not used.
+- **Bay**: the deep main platform hall, 0.82-0.90 (Both, Depth 50, Height 30), a pinned group `At = 0.84` on the
+  `Left` side. Footprint 40 long x 40 deep, on the bay platform at road Y + `Tunnel.PLATFORM`; 26 studs of headroom.
+  It must not overlap hero 3 (`At = 0.86`): if hero 3 takes `Left`, move it to `Right` or move the scene to 0.83.
+  Fallback: the concourse bay, `At = 0.37` (Left, Depth 60, Height 40).
+- **Staging** (side-on to the road so the player sees every figure; u = along the track from the group centre,
+  d = depth from the platform edge): Gojio at u +12, d 18, facing -u. Joggo at u -6, d 12, and Hanamy at u -8,
+  d 26, both lunging at him. Chosu at u -16, d 18, a step behind them. Mahitto at u -18, d 34, at the back wall, in
+  front of the transfigured silhouettes. Crowd silhouettes along the back wall from u -20 to u +4. All figures are
+  static, anchored, `CanCollide`, `CanTouch` and `CanQuery` off, with no animation.
+- **Figures** (human scale 7 studs x 1.5 for readability; mesh prompts passed `realNameIn`, 2026-11-01):
+
+| Internal name | Pose | Height | Colours | Mesh prompt |
+|---|---|---|---|---|
+| Gojio | upright and calm, right hand raised in front of the chest, left hand in a pocket | 10.5 | hair #F2F4F8, blindfold #111111, outfit #1A1C24, skin #F1D9C6 | tall slim man, spiky white hair swept upward, black cloth blindfold over the eyes, black high-collar long-sleeve jacket and black trousers, standing calm, right hand raised in front of the chest, left hand in a pocket, low poly anime style figure, plain colours, no symbols |
+| Joggo (unconfirmed) | crouched forward, both arms thrust out throwing fire | 6 | skin #B9AE9A, robe #EDE6D6, sash #2A2A2A, eye #F4F1E8, crater glow #FF6A1A | short stocky creature, grey-beige skin, head shaped like a small volcano cone with a glowing crater on top, one large round eye, wide lipless grin of square teeth, loose pale robe tied with a dark sash, both arms thrust forward, low poly anime style figure, plain colours, no symbols |
+| Hanamy | striding forward, left arm raised high | 12 | skin #D8D3C8, markings #1A1A1A, horns #5A3E2B, cloth #EFEDE6, flowers #F4C6D2 | tall broad humanoid tree spirit, pale grey-white skin with thin black line markings, two wooden branch horns growing from the eye sockets, bare chest, white cloth wrapped around the waist and legs, left arm raised, a cluster of pale flowers on the left shoulder, low poly anime style figure, plain colours, no symbols |
+| Chosu | feet planted, palms pressed together in front of the chest, aimed at Gojio | 9.5 | hair #141414, nose band #2B2B2B, robe #E6DCC8, vest #4B2E4F, trousers #2A2630 | tall lean young man, black hair tied in two short spiky tufts on top of the head, a dark horizontal band across the nose, tired eyes, cream wrap-front robe under a dark plum sleeveless vest, dark wide trousers, palms pressed together in front of the chest, low poly anime style figure, plain colours, no symbols |
+| Mahitto (unconfirmed) | arms spread wide, grinning, leaning back | 9 | hair #8EA3B5, skin #E9DCCF, stitches #3A2F35, shirt #E3E1DC, trousers #2C2F38 | slim young man, long messy grey-blue hair, stitched patchwork scars across the face and arms, mismatched eyes, wide grin, loose pale shirt, dark baggy trousers, barefoot, arms spread wide, low poly anime style figure, plain colours, no symbols |
+
+  - Gojio's colours are unconfirmed too (no public source above describes them); his blindfold stays on (choice for
+    a readable silhouette).
+  - Each figure is one Lane A or B mesh, at most 8k triangles, with a parts fallback (coloured blocks of the same
+    silhouette) per 4.2. Asset keys: `T7FigureA` to `T7FigureE`, never the internal names.
+- **Supporting meshes**: transfigured crowd silhouettes, 1 mesh x 5 placements, 7-9 studs, #8C7E8F / #6E5C70
+  (prompt: "misshapen lumpy humanoid silhouette, hunched, one extra arm, smooth grey-violet surface, no face detail,
+  no blood, low poly"). Roots, 2 placements, 4 x 16 x 6 (prompt: "thick twisted wooden roots bursting up from a
+  cracked tiled floor, arching forward, a few pale flowers on the tips, low poly"), Wood #5A3E2B; one more spread of
+  roots seals the bay's far stair opening. Optional: 6 plain grey mannequins (#9A9A9A, no costumes, no faces) as the
+  trapped crowd, frozen.
+- **Budget** (orchestrator default 2026-11-01): the fight scene's 7 meshes (5 figures, the crowd silhouette, the
+  roots) are one "scene set" exception to the 4.5 cap of 12 unique meshes per biome, so Track 7 has 19. Its 5 particle
+  and beam textures are in-house numpy drawings (Lane A), not `generate_texture`; Track 5 has no fire flipbook, so the
+  flames reuse its ember and smoke textures by id.
+- **Builder** (framework task fw7, 2026-11-01): the biome module carries the scene as data (`FightScene`: `At`,
+  `Side`, items at (u, y, d) with a yaw, and the client effects). Placing a multi-item pinned group and its beams and
+  lights needs a framework builder; until it lands the scene is not built.
+  - Builder note (orchestrator default 2026-11-01): `BiomeDressing.Build` places `FightScene` once, after the pinned
+    heroes, as one Model `FightScene` (Atomic, attributes `Tunnel`, `Pinned`) in the bay covering `At` on `Side`, on
+    the platform at road Y + `Tunnel.PLATFORM`. Frame: the bay prop frame (-Z faces the road, centre `Size.Z / 2`
+    past the platform edge); `Pos` = (u along its X, y, d from the platform edge); `Yaw` in degrees about Y, so a
+    +Z-facing mesh faces the road at 180. Each item's `Def` goes through the mesh registry (4.2: an unsigned row uses
+    the parts), grown by `Scale`; an item without a `Def` is skipped with a warning. Emitters are tagged
+    `BiomeEmitter`; beams and the `Reduce` / `ReducedBrightness` lights are tagged `BiomeEffect` (the client hides the
+    beams and turns those lights off or down under REDUCED EFFECTS); an effect whose texture row is unsigned is not
+    built. The scene is not built (a warning) if any part corner above the platform top leaves the bay (walls,
+    ceiling, platform edge), it overlaps a pinned hero, or it is within CLEARANCE of the road or a checkpoint; later
+    tunnel props keep off its footprint. The scene's parts count against the track budget.
+- **VFX** (client only, in `BiomeEnvironment` or the dressing's `BiomeEmitter` tag; in-house textures, Lane A
+  `generate_texture`; every texture prompt passed `realNameIn`):
+  1. Domain dome around Gojio: a hemisphere shell (Ball part cut by the platform), radius 12, #05060C, Transparency
+     0.45, `Neon` off, `CastShadow` off. It covers Gojio and the front halves of Joggo and Hanamy.
+  2. Starfield: a ParticleEmitter in the dome, Shape Sphere (Volume), Rate 30, Lifetime 3-5, Speed 0, Size 0.15-0.3,
+     LightEmission 1, #FFFFFF (texture "tiny soft white star dot on black, particle texture").
+  3. Galaxy streaks: a ParticleEmitter, Rate 3, Lifetime 6, Size 4-6, Rotation random, #7FA8FF to #9A7CFF,
+     LightEmission 0.8 (texture "smeared spiral band of blue and violet stars on black, particle texture").
+  4. White information beams: 8 Beams from Gojio's chest to points on the dome shell, Width 0.4 to 0.05, #FFFFFF,
+     LightEmission 1, TextureSpeed 2 (texture "soft white light streak fading at both ends on black, particle
+     texture"). Texture scroll is the only motion.
+  5. Light: a PointLight at Gojio, #CFE4FF, Brightness 2, Range 20, `Shadows` off; a thin floor ring at the dome edge,
+     Neon #E8F0FF, 0.2 thick.
+  6. Fire (Joggo): flames from the crater and a fireball at his hands, reusing Track 5's in-house fire flipbook and
+     ember textures; Rate 15, #FFC23D to #FF6A1A to #3A1A10; crater smoke Rate 4; a PointLight #FF6A1A, Range 14;
+     3 static floating lava rocks (Basalt, Neon #FF6A1A cracks) and a small glowing floor vent at his feet.
+  7. Roots and flowers (Hanamy): the root meshes above, which stop at the dome edge (the invisible barrier); petals,
+     Rate 4, Lifetime 4, #F4C6D2 (texture "five-petal pale pink flower petal on transparent, particle texture").
+  8. Blood (Chosu), stylised only: one Beam from his palms that stops at the dome edge, Width 0.6, #A3121C to
+     #5E0A10, LightEmission 0.2; 3 static floating orbs (Ball, Glass #8E0F18, Transparency 0.2); droplets, Rate 5
+     (texture "round deep red droplet with a white highlight on transparent, stylised, particle texture"). No pools,
+     splatter, wounds or blood on any other figure. The owner checks the experience maturity questionnaire.
+  9. Transfigured crowd: silhouettes only (the supporting mesh); no effect, no gore.
+- **REDUCED EFFECTS** (section 8): every emitter above is off (tag `BiomeEmitter`), the beams are hidden, and the
+  fire, crater and floor-ring PointLights are off. The dome shell, the floor ring part, the orbs, the rocks, the roots
+  and all figures stay. Gojio's PointLight stays at Brightness 1. With every effect on, the scene uses at most 12
+  emitters and 9 beams.
+- **IP safeguards**:
+  - No official or tweaked name is shown anywhere: no sign, label, BillboardGui or tooltip. Internal names live only
+    in this spec and in `docs/CHARACTER_GACHA_SPEC.md` if they become characters.
+  - No logos or emblems: no school crest, no uniform buttons with symbols, no seals or talismans, no hand-sign pose,
+    no sealing cube, no domain shrine or iconic domain interior copy, no show kanji.
+  - Figures are in-house look-alikes (Lane A or B) only, never Lane D or fan-made models. Each figure passes the 4.1
+    IP review with a screenshot signed by the auditor. Any figure that reads as a copy of official art is regenerated.
+  - Every prompt and asset key is stored in the `Assets` ledger and passes `realNameIn`; no prompt contains a real
+    character, series or place name, even inside another word.
+
+### Track 8: Skypeia (`Snow`)
+Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a placeholder except the IP line.
 - **Terrain**:
-  - Corridor islands (Grass top, Rock sides). The ridge is a `Drop` to the cloud deck (Snow at Y -40, with fog).
-  - Small pools (Water) on the islands, with waterfalls (part plus particle columns) off their edges.
+  - Default ridge `Drop` to the cloud deck (Snow at Y -40, with fog); the baseplate is hidden under the deck (2.4).
+  - `Sections`: 0-0.28 cloud town and beach (corridor and ridge Snow, Ridge `Hills` 10, soft cloud mounds);
+    0.30-0.80 the jungle island (Ridge `Hills` 40, Grass and Ground, a Water swamp at 0.40-0.46); 0.50-0.60 sunken
+    ruins (Ridge `Hills` -10 bowl, Sandstone); 0.82-1.0 high island clouds (back to `Drop`, Snow islands).
   - `Embank = true`.
-  - The baseplate is hidden under the deck (section 2.4).
 - **Hero landmarks**:
-  1. A floating ruin island of generic columns and arches.
-  2. A large tree on a floating rock.
-  3. A tall stone pillar with a waterfall.
-- **Mid props**: floating rocks (BiomeBob), vine and plank bridges (visual), broken columns, hanging roots.
-- **Palette**: #7CC36A, #8C7A66, #BFB7A8, #FFFFFF, #6FC3F0, #3F8FD2.
-- **Sky**: bright high sky. ClockTime 13, Atmosphere Density 0.35, Offset 0.5, Color #E8F4FF. Clouds Cover 0.6,
-  Density 0.5. Bloom 0.8. Particles: cloud wisps below the road and mist at the waterfalls.
-- **Audio**: high wind and a far waterfall roar (loop); a bird call and wind gusts (one-shots). Reverb `Mountains`.
-- **IP**: no copy of the film's castle or robot.
+  1. The giant beanstalk: twin twisted green stems rising 220 into a cloud, `At = 0.6`.
+  2. Sunken golden ruins: stepped Maya-like temple tiers, vine-covered, a few gold-clad walls, at its root, `At = 0.55`.
+  3. A giant golden bell in a broken stone belfry on a high island cloud (BiomeBob), `At = 0.92`.
+  4. A cloud town of round white domed houses on the cloud beach, `At = 0.1`.
+- **Mid props**: giant jungle trees with buttress roots, hanging vines, giant ferns, round cloud houses, cloud puffs
+  (BiomeBob), cloud-river ribbons beside the road (translucent white), sky palms, broken stone and gold pillars.
+- **Palette**: #FFFFFF, #E6EEF8, #6EC6FF, #2F7D3B, #6B4A2E, #9DBF5A, #E3B341, #B9A88A.
+- **Sky**: bright high noon. ClockTime 12, Atmosphere Density 0.3, Offset 0.5, Color #EAF6FF, Haze 0.5. Clouds Cover
+  0.55, Density 0.4, Color #FFFFFF. Bloom 0.8. SunRays 0.15. Saturation +0.15. Skybox: deep blue sky over a cloud sea
+  to the horizon, towering cumulus (a far dark thundercloud: open question). Particles: cloud wisps below the road and
+  drifting jungle motes.
+- **Audio**: high wind over the cloud sea with far jungle birds (loop); a deep distant bell toll (in-house tone, never
+  the show's music) and a far thunder roll (one-shots). Reverb `Mountains`.
+- **IP**: no Straw Hat or Jolly Roger symbol, no God's Shrine nameplate or gate sign text, no Enel likeness (no drum
+  ring), no golden ark copy, no ancient-script blocks, no ordeal-gate idol head; the bell carries no inscription.
 
 ### Track 9: Spirit Realm Desert (`Volcano`)
 - **Terrain**: Ridge `Dunes` 22 (Salt) with Limestone outcrops and a few Basalt rocks. `Embank = true`.
@@ -540,7 +787,10 @@ the IP flags.
 - **Quality hook (owner 2026-10-30)**: the existing setting is Settings > REDUCED EFFECTS, the player attribute
   `ReduceEffects = true` set by `RacerUiController`. Today it only cuts UI motion via `UiMotion.Reduced`.
   `BiomeEnvironment` reads `player:GetAttribute("ReduceEffects") == true` and listens for changes. While it is on:
-  - zone particles off, one-shots off (the loop stays);
+  - zone particles off, one-shots off (the loop stays); landmark particle emitters (`BiomeDressing`, tag
+    `BiomeEmitter`) off too (fw6, orchestrator default 2026-10-31);
+  - beams and lights tagged `BiomeEffect` (fight scene, fw7) hidden or dimmed per their `Reduce` / `ReducedBrightness`
+    attributes; tunnel light strips: every second one hidden (fw5);
   - Bloom, SunRays and Grade at the baseline (no per-zone post-FX); Atmosphere and Sky still switch;
   - `Lighting.GlobalShadows = false` client-local, and `CastShadow = false` on mesh landmarks and props;
   - far landmark detail: SLIM / LOD stays on, but the client hides each hero landmark's detail meshes (tag

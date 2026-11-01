@@ -149,3 +149,81 @@
   orch/biomes/t5), cam feature in ../AnimeRun-orch/cam (needs one Studio check), fw4 shoulder-band hall floats.
   Studio id 5846836b-1bf9-487a-9411-11346220b296. CarTestOnly left set in Edit (harmless).
 - 2026-10-31 LANDED 0962287: Track 5 + track camera. Studio -> Track 6 next.
+- 2026-10-31 night progress: landed Tracks 4, 5 + fw3 + track camera (pushed a5d9a32). fw4 99171b3 (pad margin 4,
+  Lune harness tools/lune/biome_harness.luau) merged into t6/t9/t10, lands with t6. Phase 1 committed on branches
+  t7 53d4f64, t8 714b8fc, t9 f61e03b, t10 5e3bb17 (worktrees ../AnimeRun-orch/t7..t10). Studio queue t6 (verifying)
+  -> t7 -> t8 -> t9 -> t10; loop per resume_step in .agents/orchestrator.json. Morning list: docs/OWNER_QUESTIONS.md.
+- LANDED 9858032: Track 6 + fw4. Studio -> Track 7.
+- 2026-10-31 OWNER: finish Track 5 redesign (Jogo vs Sukuna burning city, night) and Track 7 (Shibuya Incident subway,
+  full tunnel + platforms), then PAUSE. Tracks 8-10 resume 2026-11-03 (Track 8 = Skypeia, rival Enelu [Enel]).
+  Doc rulings on orch/biomes/redesign (uncommitted until the research agent finishes the spec rewrite).
+- t9 mesh ids generated before the pause (not yet in Volcano.luau; mesh / texture): PalaceTower 119149403207359 /
+  76635598272222; BoneArch 110904618566239 / 75741383222967; CrystalGrove 130820802100278 / 92159538463265; DomePalace
+  124094406088392 / 119854563443296 (squat); DeadWhiteTree 105854949421877 / 109452863592933; CrystalTree
+  130960597807577 / 78285130678274; WhiteOutcrop 115443145387024 / 120675993065195; BrokenPillar 92998731248487 /
+  75950047585759. No close-ups yet; nothing uploaded.
+- 2026-10-31 PAUSED by owner. State:
+  - Landed + pushed: Tracks 1-6, fw2-fw4, track camera, redesign specs (e8728f3).
+  - orch/biomes/fw5 (../AnimeRun-orch/fw5): Tunnel framework 3181c1c + 26ecc52 + tests eb49bff, NOT landed (Studio check
+    comes with Track 7).
+  - Track 5 rebuild "Burning Cursed City": orch/biomes/t5r in ../AnimeRun-orch/studio (Rojo-served), uncommitted, mid
+    step A; see the t5r pause report below for mesh ids.
+  - Track 7 rebuild "Shibuyo Underground": orch/biomes/t7r in ../AnimeRun-orch/t7r (has fw5), phase 1 uncommitted.
+  - Tracks 8-10 paused until 2026-11-03 (t8 Skypeia redo; t9 mesh ids above; t10 phase 1 done).
+  Resume order: t5r (Studio) -> audit -> verify -> land (replaces old Track 5); t7r phase 2 -> land with fw5; then Nov 3.
+- t7r pause report: phase 1 not started (reading only). Framework gaps found, to fix before/with t7r (fw6):
+  (1) src/shared/Tracks/Desert.luau header + Description still say Blossom Shrine; (2) BiomeDressing ignores the tunnel:
+  props sit at edge+Offset on both sides, never lifted onto bay platforms (road +4); pinned heroes choose their side by
+  corners/alternation, not by the bay's Side; (3) gate: use Gate.Index on a waypoint before s=16 (in front of the start
+  portal) or Gate.Skip. Unchecked: beside() side sign vs Tunnel Left.
+- t5r pause report (branch orch/biomes/t5r, close-ups committed): meshes generated, NOT yet in PirateCoast.luau
+  (mesh / texture, size): BurningTower 110026199515917 / 111995406996497 (15.9x35.9x16); Meteor 129629428349458 /
+  127234806169781 (16x6.4x16); CollapsedViaduct 104055839246591 / 105638459114043 (22.2x15.3x10); SlicedTower
+  118384879998435 / 79499249668457 (16x31.7x15.6, top half floats above the cut - auditor to judge); BurningCar
+  75112982054894 / 137060689993765 (nose -Z); RubblePile 90775659169182 / 135149187378761; BurntBillboard
+  99613692659503 / 124515013244308 (blank); BrokenStorefront 90903812309143 / 122708716943483 (front -Z). Keep signed
+  TrafficLight, RailOverpass, ConcreteBlock (11 unique). Left: module rewrite, ember/smoke PNGs, sounds, palette,
+  harness, step B. Also for fw6: EnvironmentTests:35 expects "Neon Cursed City" (test-writer), Serpentine header text,
+  landmark ParticleEmitters ignore REDUCED EFFECTS.
+- LANDED Track 5 rebuild (Burning Cursed City). Next: fw6 -> t7r Studio; then t8 (Skypeia), t9, t10. Open: T5 live floats LavaCrack patch 6.5, debris 2.2.
+- LANDED Track 8 Skypeia. Next: t7r Studio (move ../AnimeRun-orch/t7r into studio), land with fw5+fw6; then t9, t10.
+- 2026-10-31 STOPPED by owner ("will continue later"). Landed + pushed: Tracks 1-6, Track 5 rebuild (Burning Cursed
+  City), Track 8 Skypeia, fw2-fw4, track camera, redesign specs.
+  In progress (NOT landed), Rojo-served ../AnimeRun-orch/studio on orch/biomes/t7r (includes fw5 tunnel + fw6 +
+  tests): Track 7 Shibuyo Underground step A partly done (14 close-ups, some mesh ids in Desert.luau; see the t7r
+  stop report). Uncommitted docs: owner fight-scene ruling (Gojio vs Joggo/Hanamy/Mahitto/Chosu, Gojio mid domain
+  expansion) in the design doc change log; research agent was writing the scene spec into BIOME_ENVIRONMENT_SPEC 7.
+  Resume: commit t7r WIP; finish the fight-scene spec; t7r step A + fight figures/VFX; audit; verify incl tunnel_clear,
+  camera clamp, flicker; land t7r with fw5/fw6. Then t9 (mesh ids in this file), t10 (phase 1 on orch/biomes/t10).
+  Morning/owner review list: docs/OWNER_QUESTIONS.md.
+- Fight-scene research (stopped, nothing written to specs): refs sportskeeda S2 ep8 (Gojo lands on B5F Fukutoshin
+  platform; Hanami's branches seal the entrance), animecorner ep8 preview, animehunch "how did Gojo kill Hanami"
+  (blindfold off, horns torn out, crushed into a wall), bamsmackpow ep9 review (train of transfigured humans),
+  animehunch Unlimited Void explainer. Fandom wiki returns HTTP 402 (not bypassed) - figure looks unconfirmed.
+  Plan: scene in the deep main platform hall bay 0.82-0.90 (At ~0.84, Left), concourse 0.37 fallback; stylised blood
+  only; every prompt through realNameIn.
+- t7r WIP committed 14abf92 (12 mesh ids in Desert.luau, dust 77443196483447, sky faces Bk 126814177699454 Dn
+  90423288718397 Ft 91385232590200 Lf 119320290687932 Rt 98579734251070 Up 89593505205012). All work branches pushed
+  to origin (orch/biomes/fw5, fw6, t7r, t9, t10, t7 superseded) for safety; only feature/alex/anime-world is integrated.
+- 2026-11-01 RESUMED (owner): Tracks 9-10 + Track 7 completion. Owner asks: Track 7 brighter (not pure darkness);
+  Track 4 more neon purple lights + ambient air particles (twilight). Running: t9 in Studio (b78475e0), t7r
+  brightness + NOMESH in ../AnimeRun-orch/t7r, fight-scene spec in t7r docs, t4 tweak in ../AnimeRun-orch/t4b.
+  Studio queue: t9 -> t7r (fight figures + verify) -> t10 -> t4b check + shots.
+- t4b (Track 4 twilight tweak) paused before any edit. Spec 5.2 caps zone emitters at 2 per profile, Rate <= 40;
+  Track 4 uses both (petals 14, fireflies 8). Plan: retune those two (no new textures) + neon purple accents/Glow +
+  twilight atmosphere nudge + spec 7 update.
+- t7r WIP pushed: brighter tunnel (Ambient #6A7470, OutdoorAmbient #3A4442, Exposure 0.35, EnvDiffuse 0.4, Density
+  0.2, Haze 0.5, tint #FFF6EA, Contrast 0.12, LightEvery 16; Tunnel.LIGHT brightness is framework). Harness not rerun;
+  NOMESH 23 props outside (Scatter fallbacks ~7.2x3.6x5.2, untraced).
+- Fight-scene spec: nothing written. Extra source: en.wikipedia.org/wiki/List_of_Jujutsu_Kaisen_characters (Hanami's
+  shoulder flower, Jogo fire, Choso blood, Mahito reshaping); animecorner + bamsmackpow ep8. Gojo/Jogo/Mahito looks
+  not confirmed by a public source. Write as a new Track 7 subsection; note the owner override of the IP line there.
+- t9 paused: no uploads, no ledger ids, files unchanged (f61e03b + merge d446f36, studio worktree on orch/biomes/t9).
+  Left: close-ups (DomePalace squat -> regenerate), uploads (sand, moon, 6 sky faces), ids, harness/lint, verify.
+- 2026-11-01 PAUSED by owner. Studio b78475e0 clean in Edit. Resume order: t9 (Studio) -> t7r (NOMESH + fight spec +
+  figures + verify, land with fw5/fw6) -> t10 -> t4b twilight tweak (retune 2 emitters, neon purple) + shots.
+- LANDED Track 9 Spirit Realm Desert. Next: t7r Studio (fight figures + verify), then t10, then t4b check.
+- 2026-11-01 OWNER: after Track 7 lands (fw9 -> 4 checks green), PAUSE ALL TESTS. Then land Track 10 (audit PASS,
+  9bf594a) and the Track 4 twilight tweak (t4b 020dfa9) without scenario runs (screenshots only). Full compatibility
+  check c3 (full harness + rules audit) runs ONLY when the owner says so.
+- LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.
