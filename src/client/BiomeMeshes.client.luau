@@ -4,19 +4,88 @@
 -- EditableMesh content does not replicate and the client has a strict EditableMesh memory budget, so this builds
 -- a mesh only while a prop using it is within LOAD_DISTANCE (nearest first), destroys it when none is, and
 -- shows the fallback parts everywhere else (and whenever the budget is full).
+-- Loading at high speed (design doc 4.18, BIOME_ENVIRONMENT_SPEC section 8): the uploaded ledger meshes, textures
+-- and skyboxes of the camera's zone and of the next track are preloaded once each, and the area the runner reaches
+-- in STREAM_LEAD seconds is requested from the server, so props are cached and streamed in before arrival.
 
 local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
+local ContentProvider = game:GetService("ContentProvider")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BiomeDressing = require(Shared.BiomeDressing)
+local BiomeEnvironment = require(Shared.BiomeEnvironment)
 local BiomeMeshAssets = require(Shared.BiomeMeshAssets)
 local BiomeMeshCodec = require(Shared.BiomeMeshCodec)
+local BiomeThemes = require(Shared.BiomeThemes)
+local RaceConfig = require(Shared.RaceConfig)
 
-local LOAD_DISTANCE = 450 -- studs from the camera
-local REFRESH = 1 -- seconds between range checks
+local LOAD_DISTANCE = 1024 -- studs from the camera (was 450: under 0.6 s of warning at MAX_CRUISE)
+local REFRESH = 0.25 -- seconds between range checks (was 1: a runner at MAX_CRUISE covered 800 studs per check)
+local PRELOAD_POLL = 1 -- placeholder: seconds between zone checks for the preload
+local PRELOAD_KINDS = { Mesh = true, Texture = true, Skybox = true }
+local STREAM_LEAD = 1.5 -- placeholder: seconds ahead of the camera focus the stream request is centred
+local STREAM_POLL = 0.25 -- placeholder: seconds between stream requests
+local STREAM_MIN_SPEED = 150 -- placeholder: studs/s; below this the streaming radius keeps up on its own
+
+local preloaded = {} -- asset id -> true; an id shared by several biomes is fetched once
+
+-- Fetches every usable Mesh / Texture / Skybox id of a biome's ledger not fetched yet (yields)
+local function preloadBiome(biome)
+	local theme = biome and BiomeThemes[biome]
+	local ids = {}
+	for key, row in theme and theme.Assets or {} do
+		if PRELOAD_KINDS[row.Kind] and BiomeEnvironment.Row(biome, key) then
+			for _, id in row.Faces or { row.Id } do
+				if not preloaded[id] then
+					preloaded[id] = true
+					table.insert(ids, id)
+				end
+			end
+		end
+	end
+	if #ids > 0 then
+		pcall(ContentProvider.PreloadAsync, ContentProvider, ids)
+	end
+end
+
+-- Zone n is track n (0 the plaza) and track n + 1 starts at track n's finish, so on entering a zone the next
+-- track's assets download while this one is run.
+task.spawn(function()
+	local lastZone
+	while true do
+		local camera = Workspace.CurrentCamera
+		local zone = camera and BiomeEnvironment.ZoneAt(camera.Focus.Position)
+		if zone and zone ~= lastZone then
+			lastZone = zone
+			preloadBiome(BiomeEnvironment.BiomeOf(zone))
+			preloadBiome(BiomeEnvironment.BiomeOf(zone + 1))
+		end
+		task.wait(PRELOAD_POLL)
+	end
+end)
+
+-- The streaming radius alone gives about 1.3 s of warning at MAX_CRUISE, so also ask for the area ahead.
+task.spawn(function()
+	local player = Players.LocalPlayer
+	local last, lastT
+	while true do
+		local camera = Workspace.CurrentCamera
+		if camera and Workspace.StreamingEnabled then
+			local p, t = camera.Focus.Position, os.clock()
+			local v = last and (p - last) / math.max(t - lastT, 1e-3)
+			last, lastT = p, t
+			-- faster than 1.5 x MAX_CRUISE is a teleport, not a run
+			if v and v.Magnitude > STREAM_MIN_SPEED and v.Magnitude < RaceConfig.MAX_CRUISE * 1.5 then
+				pcall(player.RequestStreamAroundAsync, player, p + v * STREAM_LEAD, 1)
+			end
+		end
+		task.wait(STREAM_POLL)
+	end
+end)
 
 local built = {} -- key -> { Mesh = EditableMesh, Part = MeshPart }
 

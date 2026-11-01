@@ -793,6 +793,11 @@ Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a 
 ## 8. Performance (PC-first, owner 2026-10-30)
 - Streaming: `Workspace.StreamingEnabled` stays on (place setting; it is already on). Proposed StreamingTargetRadius
   1024 and StreamingMinRadius 256. Dressing models default to `Nonatomic`; hero landmarks are `Atomic` + SLIM.
+  - Loading at high speed (design doc 4.18, 2026-11-01): the radii are set in `default.project.json`.
+    `Client/BiomeMeshes` preloads (`ContentProvider:PreloadAsync`, each id once) every usable Mesh, Texture and
+    Skybox row of the camera's zone and of the next track when the zone changes. While the camera focus moves
+    faster than 150 studs/s it calls `RequestStreamAroundAsync` 1.5 s ahead every 0.25 s (placeholders). The
+    lane C range is 1024 studs, checked every 0.25 s (placeholders).
 - Totals (proposed):
   - Workspace BaseParts at most 60k, counting road, dressing and meshes.
   - 120 unique uploaded assets across all biomes.
