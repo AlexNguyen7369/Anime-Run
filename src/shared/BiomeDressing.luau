@@ -160,7 +160,9 @@ end
 -- One prop as a Model whose base centre is `base` and whose -Z faces the road. `inTunnel`: it stands inside a
 -- Tunnel (spec 3.5), so SnapToTerrain leaves it where it is.
 local function place(folder, biome, def, base, name, glow, particles, inTunnel)
-	local model = Instance.new("Model")
+	-- Heroes clone a template whose LevelOfDetail was set ahead of time (owner 2026-11-01): runtime scripts can not write it.
+	local template = def.Hero and game:GetService("ReplicatedStorage"):FindFirstChild("HeroLodTemplate")
+	local model = template and template:Clone() or Instance.new("Model")
 	model.Name = name
 	if inTunnel then
 		model:SetAttribute("Tunnel", true)
@@ -184,7 +186,7 @@ local function place(folder, biome, def, base, name, glow, particles, inTunnel)
 		end
 		model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		-- SLIM where the engine has it, StreamingMesh otherwise. Game scripts lack the PluginOrOpenCloud capability
-		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies.
+		-- to write LevelOfDetail at runtime, so both are pcalled; Atomic still applies. A template's SLIM survives: the failed writes leave it.
 		if not pcall(function()
 			model.LevelOfDetail = Enum.ModelLevelOfDetail.SLIM
 		end) then

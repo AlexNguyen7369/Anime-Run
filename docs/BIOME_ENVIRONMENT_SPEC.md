@@ -377,6 +377,8 @@ placeholders.
   - Optional `At = 0.8` on a hero def (owner 2026-10-30) pins it to that fraction of the track length, snapped to the
     nearest corner exit or 200+ stud straight. Hero defs without `At` keep cycling by index.
   - `ModelStreamingMode = Atomic`, `LevelOfDetail = SLIM` (falls back to `StreamingMesh` if SLIM is not available),
+    set ahead of time (owner 2026-11-01): heroes clone `ReplicatedStorage.HeroLodTemplate`, a Model Rojo syncs with
+    SLIM + Atomic, because runtime scripts cannot write LevelOfDetail.
     so they stay visible past the streaming radius.
   - Up to 20k triangles each (the per-mesh import cap; placeholder until b1 checks it in Studio), one texture at
     1024 px.

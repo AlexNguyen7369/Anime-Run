@@ -172,7 +172,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Rebirth adds speed only through its +1 stat point per level (4.14).
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
-- Open (owner): what the workshop / Dojo idle gain and the `Workshop` stat point give now that idle Speed is gone.
+- Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
+  `Workshop` stat point still multiply it. Rate is a placeholder.
 
 ### 4.14 Rebirth (owner 2026-11-01)
 - Rebirth gives no speed gain. Each rebirth level gives: luck multi, XP multi and +1 stat point (the "stat boost").
@@ -230,12 +231,14 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 
 ## 8. Open questions (owner)
 
-- 2026-11-01: workshop / Dojo idle gain and the `Workshop` stat point after the Speed stat retired (4.13).
+None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
  The Speed-scale save question of 2026-10-30 was answered the same day (4.11: wipe).
 
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: workshop idle gain gives Money for now (4.13); hero landmark LevelOfDetail is set ahead of
+  time, not at runtime (BIOME_ENVIRONMENT_SPEC 4.3).
 - 2026-11-01: owner: no Speed stat or speed gain; fixed cruise per rarity x category; speed multi from stat points,
   Speed potions, preset bonus, per-slot auras / trails (4.13). Rebirth = luck, XP multi, +1 stat point (4.14).
   Sensei informational only, no checkpoints (4.15). Leaderboards removed (4.16). Biome welcome popup (4.17). Faster

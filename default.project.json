@@ -8,6 +8,13 @@
       },
       "SpawnMarketplace": {
         "$path": "assets/studio/SpawnMarketplace.rbxmx"
+      },
+      "HeroLodTemplate": {
+        "$className": "Model",
+        "$properties": {
+          "ModelStreamingMode": "Atomic",
+          "LevelOfDetail": "SLIM"
+        }
       }
     },
     "ServerScriptService": {
