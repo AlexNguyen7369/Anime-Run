@@ -567,6 +567,97 @@ placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
 - **IP**: no real station, line or company names, letters, numbers, colours or logos; no real oval atrium; no
   sealing-cube artifact; no character figures. Signs use made-up text.
 
+#### Fight scene (owner 2026-10-31, resumed 2026-11-01)
+A still tableau beside the road: Gojio stands mid domain expansion against Joggo, Hanamy, Mahitto and Chosu. It is
+the Shibuya Incident fight on the deepest platform, which was packed with trapped people. This scene alone overrides
+the IP line's "no character figures" (design doc change log 2026-10-31 (later)); the rest of that line still holds.
+Every number here is a placeholder. Looks marked "unconfirmed" come from widely known generic descriptions that no
+public source in References confirmed; the builder and the rules auditor judge them against the screenshot.
+- **Research** (public sources; the fandom wiki returns HTTP 402 to fetches and was not bypassed):
+  - https://www.sportskeeda.com/anime/jujutsu-kaisen-season-2-episode-8-yuji-enters-shibuya-gojo-s-first-battle-begins
+    (he drops to the deepest-level through-line platform; the three curses wait there; roots seal the platform
+    entrance)
+  - https://animecorner.me/gojo-confronts-special-grades-alone-in-jujutsu-kaisen-season-2-episode-8-preview and
+    https://animecorner.me/jujutsu-kaisen-season-2-episode-8-its-time-for-the-gojo-show (he goes down alone to limit
+    the damage; Halloween night, 7 PM)
+  - https://bamsmackpow.com/2023/09/15/jujutsu-kaisen-season-2-episode-8-review-the-shibuya-incident and
+    https://bamsmackpow.com/2023/09/21/jujutsu-kaisen-season-2-episode-9-review-the-shibuya-incident-gate-open (a
+    crowd of costumed bystanders; a train arrives full of transfigured humans who attack the crowd; the plant curse is
+    pressed against a wall and blown apart)
+  - https://animehunch.com/how-did-gojo-kill-hanami-in-jujutsu-kaisen (the blindfold comes off for the serious fight;
+    the horns are torn out; the fire curse survives by domain amplification; the blood user tries to distract him)
+  - https://animehunch.com/unlimited-or-infinite-void-gojos-domain-expansion-explained (the void floods every victim
+    with infinite information and leaves them frozen; an open, wall-less infinite space)
+  - https://en.wikipedia.org/wiki/List_of_Jujutsu_Kaisen_characters (a flower on the plant curse's left shoulder and
+    a charged left arm; eruptions and fire; blood manipulation; the blood user looks fully human; soul reshaping)
+  - Search summaries (not first-hand): the domain lasted 0.2 seconds so the crowd would survive; about a thousand
+    transfigured humans died within minutes after it. One review's "299 seconds" is an outlier and is not used.
+- **Bay**: the deep main platform hall, 0.82-0.90 (Both, Depth 50, Height 30), a pinned group `At = 0.84` on the
+  `Left` side. Footprint 40 long x 40 deep, on the bay platform at road Y + `Tunnel.PLATFORM`; 26 studs of headroom.
+  It must not overlap hero 3 (`At = 0.86`): if hero 3 takes `Left`, move it to `Right` or move the scene to 0.83.
+  Fallback: the concourse bay, `At = 0.37` (Left, Depth 60, Height 40).
+- **Staging** (side-on to the road so the player sees every figure; u = along the track from the group centre,
+  d = depth from the platform edge): Gojio at u +12, d 18, facing -u. Joggo at u -6, d 12, and Hanamy at u -8,
+  d 26, both lunging at him. Chosu at u -16, d 18, a step behind them. Mahitto at u -18, d 34, at the back wall, in
+  front of the transfigured silhouettes. Crowd silhouettes along the back wall from u -20 to u +4. All figures are
+  static, anchored, `CanCollide`, `CanTouch` and `CanQuery` off, with no animation.
+- **Figures** (human scale 7 studs x 1.5 for readability; mesh prompts passed `realNameIn`, 2026-11-01):
+
+| Internal name | Pose | Height | Colours | Mesh prompt |
+|---|---|---|---|---|
+| Gojio | upright and calm, right hand raised in front of the chest, left hand in a pocket | 10.5 | hair #F2F4F8, blindfold #111111, outfit #1A1C24, skin #F1D9C6 | tall slim man, spiky white hair swept upward, black cloth blindfold over the eyes, black high-collar long-sleeve jacket and black trousers, standing calm, right hand raised in front of the chest, left hand in a pocket, low poly anime style figure, plain colours, no symbols |
+| Joggo (unconfirmed) | crouched forward, both arms thrust out throwing fire | 6 | skin #B9AE9A, robe #EDE6D6, sash #2A2A2A, eye #F4F1E8, crater glow #FF6A1A | short stocky creature, grey-beige skin, head shaped like a small volcano cone with a glowing crater on top, one large round eye, wide lipless grin of square teeth, loose pale robe tied with a dark sash, both arms thrust forward, low poly anime style figure, plain colours, no symbols |
+| Hanamy | striding forward, left arm raised high | 12 | skin #D8D3C8, markings #1A1A1A, horns #5A3E2B, cloth #EFEDE6, flowers #F4C6D2 | tall broad humanoid tree spirit, pale grey-white skin with thin black line markings, two wooden branch horns growing from the eye sockets, bare chest, white cloth wrapped around the waist and legs, left arm raised, a cluster of pale flowers on the left shoulder, low poly anime style figure, plain colours, no symbols |
+| Chosu | feet planted, palms pressed together in front of the chest, aimed at Gojio | 9.5 | hair #141414, nose band #2B2B2B, robe #E6DCC8, vest #4B2E4F, trousers #2A2630 | tall lean young man, black hair tied in two short spiky tufts on top of the head, a dark horizontal band across the nose, tired eyes, cream wrap-front robe under a dark plum sleeveless vest, dark wide trousers, palms pressed together in front of the chest, low poly anime style figure, plain colours, no symbols |
+| Mahitto (unconfirmed) | arms spread wide, grinning, leaning back | 9 | hair #8EA3B5, skin #E9DCCF, stitches #3A2F35, shirt #E3E1DC, trousers #2C2F38 | slim young man, long messy grey-blue hair, stitched patchwork scars across the face and arms, mismatched eyes, wide grin, loose pale shirt, dark baggy trousers, barefoot, arms spread wide, low poly anime style figure, plain colours, no symbols |
+
+  - Gojio's colours are unconfirmed too (no public source above describes them); his blindfold stays on (choice for
+    a readable silhouette).
+  - Each figure is one Lane A or B mesh, at most 8k triangles, with a parts fallback (coloured blocks of the same
+    silhouette) per 4.2. Asset keys: `T7FigureA` to `T7FigureE`, never the internal names.
+- **Supporting meshes**: transfigured crowd silhouettes, 1 mesh x 5 placements, 7-9 studs, #8C7E8F / #6E5C70
+  (prompt: "misshapen lumpy humanoid silhouette, hunched, one extra arm, smooth grey-violet surface, no face detail,
+  no blood, low poly"). Roots, 2 placements, 4 x 16 x 6 (prompt: "thick twisted wooden roots bursting up from a
+  cracked tiled floor, arching forward, a few pale flowers on the tips, low poly"), Wood #5A3E2B; one more spread of
+  roots seals the bay's far stair opening. Optional: 6 plain grey mannequins (#9A9A9A, no costumes, no faces) as the
+  trapped crowd, frozen.
+- **VFX** (client only, in `BiomeEnvironment` or the dressing's `BiomeEmitter` tag; in-house textures, Lane A
+  `generate_texture`; every texture prompt passed `realNameIn`):
+  1. Domain dome around Gojio: a hemisphere shell (Ball part cut by the platform), radius 12, #05060C, Transparency
+     0.45, `Neon` off, `CastShadow` off. It covers Gojio and the front halves of Joggo and Hanamy.
+  2. Starfield: a ParticleEmitter in the dome, Shape Sphere (Volume), Rate 30, Lifetime 3-5, Speed 0, Size 0.15-0.3,
+     LightEmission 1, #FFFFFF (texture "tiny soft white star dot on black, particle texture").
+  3. Galaxy streaks: a ParticleEmitter, Rate 3, Lifetime 6, Size 4-6, Rotation random, #7FA8FF to #9A7CFF,
+     LightEmission 0.8 (texture "smeared spiral band of blue and violet stars on black, particle texture").
+  4. White information beams: 8 Beams from Gojio's chest to points on the dome shell, Width 0.4 to 0.05, #FFFFFF,
+     LightEmission 1, TextureSpeed 2 (texture "soft white light streak fading at both ends on black, particle
+     texture"). Texture scroll is the only motion.
+  5. Light: a PointLight at Gojio, #CFE4FF, Brightness 2, Range 20, `Shadows` off; a thin floor ring at the dome edge,
+     Neon #E8F0FF, 0.2 thick.
+  6. Fire (Joggo): flames from the crater and a fireball at his hands, reusing Track 5's in-house fire flipbook and
+     ember textures; Rate 15, #FFC23D to #FF6A1A to #3A1A10; crater smoke Rate 4; a PointLight #FF6A1A, Range 14;
+     3 static floating lava rocks (Basalt, Neon #FF6A1A cracks) and a small glowing floor vent at his feet.
+  7. Roots and flowers (Hanamy): the root meshes above, which stop at the dome edge (the invisible barrier); petals,
+     Rate 4, Lifetime 4, #F4C6D2 (texture "five-petal pale pink flower petal on transparent, particle texture").
+  8. Blood (Chosu), stylised only: one Beam from his palms that stops at the dome edge, Width 0.6, #A3121C to
+     #5E0A10, LightEmission 0.2; 3 static floating orbs (Ball, Glass #8E0F18, Transparency 0.2); droplets, Rate 5
+     (texture "round deep red droplet with a white highlight on transparent, stylised, particle texture"). No pools,
+     splatter, wounds or blood on any other figure. The owner checks the experience maturity questionnaire.
+  9. Transfigured crowd: silhouettes only (the supporting mesh); no effect, no gore.
+- **REDUCED EFFECTS** (section 8): every emitter above is off (tag `BiomeEmitter`), the beams are hidden, and the
+  fire, crater and floor-ring PointLights are off. The dome shell, the floor ring part, the orbs, the rocks, the roots
+  and all figures stay. Gojio's PointLight stays at Brightness 1. With every effect on, the scene uses at most 12
+  emitters and 9 beams.
+- **IP safeguards**:
+  - No official or tweaked name is shown anywhere: no sign, label, BillboardGui or tooltip. Internal names live only
+    in this spec and in `docs/CHARACTER_GACHA_SPEC.md` if they become characters.
+  - No logos or emblems: no school crest, no uniform buttons with symbols, no seals or talismans, no hand-sign pose,
+    no sealing cube, no domain shrine or iconic domain interior copy, no show kanji.
+  - Figures are in-house look-alikes (Lane A or B) only, never Lane D or fan-made models. Each figure passes the 4.1
+    IP review with a screenshot signed by the auditor. Any figure that reads as a copy of official art is regenerated.
+  - Every prompt and asset key is stored in the `Assets` ledger and passes `realNameIn`; no prompt contains a real
+    character, series or place name, even inside another word.
+
 ### Track 8: Skypeia (`Snow`)
 Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a placeholder except the IP line.
 - **Terrain**:
