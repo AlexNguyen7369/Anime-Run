@@ -242,6 +242,302 @@ local function textureRow(id, mesh)
 	return { Kind = "Texture", Id = id, Lane = "A", Prompt = "generated with " .. mesh .. " (same prompt)" }
 end
 
+-- Fight scene (spec 7, Track 7 "Fight scene", owner 2026-10-31, resumed 2026-11-01): a still tableau in the deep main
+-- platform hall. Five parody look-alike figures (internal names only in the spec; asset keys T7FigureA-E here, no
+-- name is shown anywhere), a domain dome, roots, stylised blood, fire and a silhouette crowd.
+-- Data only: placing it needs a framework builder (fw7, reported to main 2026-11-01): one pinned group model at `At`
+-- on `Side`, on the bay platform, every item at Pos = (u along the track from the group centre, y up from the platform
+-- top, d from the platform edge into the bay) and Yaw degrees (0 = the mesh's +Z front faces the road, -d). Every item
+-- is anchored, CanCollide / CanTouch / CanQuery off. `Effects` are client-side: emitters tagged BiomeEmitter, beams
+-- and the `Reduce` lights hidden or dimmed under REDUCED EFFECTS (section 8).
+-- Every generated figure faces +Z; Yaw +-135 turns each three-quarters toward the road, facing its opponent.
+local function figure(name, h, hair, top, legs, skin)
+	return prop(name, v(4, h, 3), {
+		part(v(1.6, h * 0.45, 1.4), v(-0.9, h * 0.225, 0), legs, M.SmoothPlastic),
+		part(v(1.6, h * 0.45, 1.4), v(0.9, h * 0.225, 0), legs, M.SmoothPlastic),
+		part(v(3.6, h * 0.33, 2), v(0, h * 0.615, 0), top, M.SmoothPlastic),
+		part(v(1.8, h * 0.16, 1.8), v(0, h * 0.86, 0), skin, M.SmoothPlastic),
+		part(v(2, h * 0.06, 2), v(0, h * 0.97, 0), hair, M.SmoothPlastic),
+	})
+end
+local DOMAIN = hex("05060C")
+local BLOOD = hex("A3121C")
+local FIRE = hex("FF6A1A")
+local FIGHT = {
+	At = 0.84,
+	Side = "Left",
+	Size = v(40, 26, 40), -- footprint along the track x headroom x depth (spec: 40 x 26 x 40)
+	Items = {
+		-- figures (Lane A meshes; heights from the spec; sizes keep each mesh's proportions)
+		{
+			Key = "T7FigureA",
+			Pos = v(12, 0, 18),
+			Yaw = -135,
+			Def = meshed(
+				figure("T7FigureA", 10.5, hex("F2F4F8"), hex("1A1C24"), hex("1A1C24"), hex("F1D9C6")),
+				"T7FigureA",
+				v(4.63, 10.5, 4.66)
+			),
+		},
+		{
+			Key = "T7FigureB",
+			Pos = v(-6, 0, 12),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureB", 6, hex("FF6A1A"), hex("EDE6D6"), hex("EDE6D6"), hex("B9AE9A")),
+				"T7FigureB",
+				v(5.04, 6, 2.94)
+			),
+		},
+		{
+			Key = "T7FigureC",
+			Pos = v(-8, 0, 26),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureC", 12, hex("5A3E2B"), hex("D8D3C8"), hex("EFEDE6"), hex("D8D3C8")),
+				"T7FigureC",
+				v(6.48, 12, 3.33)
+			),
+		},
+		{
+			Key = "T7FigureD",
+			Pos = v(-16, 0, 18),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureD", 9.5, hex("141414"), hex("4B2E4F"), hex("2A2630"), hex("F1D9C6")),
+				"T7FigureD",
+				v(3.87, 9.5, 3.54)
+			),
+		},
+		{
+			Key = "T7FigureE",
+			Pos = v(-18, 0, 34),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureE", 9, hex("8EA3B5"), hex("E3E1DC"), hex("2C2F38"), hex("E9DCCF")),
+				"T7FigureE",
+				v(7.17, 9, 3.3)
+			),
+		},
+		-- transfigured crowd silhouettes along the back wall, u -20 to +4 (one mesh, 5 placements, 7-9 studs)
+		{ Key = "T7CrowdMesh", Pos = v(-20, 0, 38), Yaw = 160, Scale = 1 },
+		{ Key = "T7CrowdMesh", Pos = v(-14, 0, 39), Yaw = 200, Scale = 0.9 },
+		{ Key = "T7CrowdMesh", Pos = v(-8, 0, 38.5), Yaw = 175, Scale = 1.1 },
+		{ Key = "T7CrowdMesh", Pos = v(-2, 0, 39), Yaw = 190, Scale = 0.95 },
+		{ Key = "T7CrowdMesh", Pos = v(4, 0, 38), Yaw = 170, Scale = 1.05 },
+		-- roots from the plant figure toward the dome edge (they stop at the shell), and one spread sealing the bay's
+		-- far stair opening
+		{ Key = "T7RootsMesh", Pos = v(-3, 0, 24), Yaw = 100, Scale = 1 },
+		{ Key = "T7RootsMesh", Pos = v(-2, 0, 30), Yaw = 70, Scale = 0.85 },
+		{ Key = "T7RootsMesh", Pos = v(18, 0, 36), Yaw = 0, Scale = 1.3, Note = "seals the far stair opening" },
+		-- domain dome: a Ball shell cut by the platform, radius 12, around the first figure
+		{
+			Def = prop("DomainDome", v(24, 24, 24), {
+				part(v(24, 24, 24), v(0, 0, 0), DOMAIN, M.SmoothPlastic, BALL),
+			}),
+			Pos = v(12, 0, 18),
+			Transparency = 0.45,
+			CastShadow = false,
+			Name = "DomainDome",
+		},
+		{
+			Def = prop("DomainRing", v(24, 0.2, 24), {
+				part(v(0.2, 24, 24), v(0, 0.1, 0), hex("E8F0FF"), M.Neon, Kit.CYL, Kit.UP),
+			}),
+			Pos = v(12, 0, 18),
+			Transparency = 0.6,
+			CastShadow = false,
+			Name = "DomainRing",
+		},
+		-- stylised blood orbs (static, floating) between the fourth figure and the dome edge
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-12, 5.5, 17),
+			Transparency = 0.2,
+			Name = "BloodOrb1",
+		},
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-11, 6.5, 19.5),
+			Transparency = 0.2,
+			Name = "BloodOrb2",
+		},
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-13, 7, 18.5),
+			Transparency = 0.2,
+			Name = "BloodOrb3",
+		},
+		-- three static floating lava rocks and a glowing floor vent at the fire figure
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-3, 5, 11),
+			Yaw = 30,
+			Name = "LavaRock1",
+		},
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-5, 7.5, 9.5),
+			Yaw = 70,
+			Name = "LavaRock2",
+		},
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-8, 6, 10.5),
+			Yaw = 120,
+			Name = "LavaRock3",
+		},
+		{
+			Def = prop("FloorVent", v(3, 0.2, 3), { part(v(3, 0.2, 3), v(0, 0.1, 0), FIRE, M.Neon) }),
+			Pos = v(-6, 0, 12.5),
+			Name = "FloorVent",
+		},
+	},
+	-- client effects (spec VFX 1-8): at most 12 emitters and 9 beams with everything on. Texture keys are ledger rows;
+	-- Track 5's ember and smoke textures are reused by id (no fire flipbook exists in Track 5, so flames use the ember).
+	Effects = {
+		{
+			Kind = "Emitter",
+			At = "DomainDome",
+			Texture = "FightStar",
+			Color = { hex("FFFFFF") },
+			Shape = "Sphere",
+			Rate = 30,
+			Lifetime = { 3, 5 },
+			Speed = 0,
+			Size = { 0.15, 0.3 },
+			LightEmission = 1,
+		},
+		{
+			Kind = "Emitter",
+			At = "DomainDome",
+			Texture = "FightGalaxy",
+			Color = { hex("7FA8FF"), hex("9A7CFF") },
+			Shape = "Sphere",
+			Rate = 3,
+			Lifetime = { 6, 6 },
+			Speed = 0,
+			Size = { 4, 6 },
+			Rotation = { 0, 360 },
+			LightEmission = 0.8,
+		},
+		{
+			Kind = "Beams",
+			From = "T7FigureA",
+			FromY = 6.5,
+			To = "DomainDome",
+			Count = 8,
+			Texture = "FightBeam",
+			Width = { 0.4, 0.05 },
+			Color = hex("FFFFFF"),
+			LightEmission = 1,
+			TextureSpeed = 2,
+		},
+		{ Kind = "Light", At = "T7FigureA", Color = hex("CFE4FF"), Brightness = 2, Range = 20, ReducedBrightness = 1 },
+		{ Kind = "Light", At = "DomainRing", Color = hex("E8F0FF"), Brightness = 1, Range = 8, Reduce = true },
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 6,
+			Texture = "Track5Ember",
+			Color = { hex("FFC23D"), FIRE, hex("3A1A10") },
+			Rate = 15,
+			Lifetime = { 0.8, 1.4 },
+			Speed = 4,
+			Size = { 0.6, 1.4 },
+			LightEmission = 1,
+			Note = "crater flames",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 3.5,
+			Forward = 2,
+			Texture = "Track5Ember",
+			Color = { hex("FFC23D"), FIRE, hex("3A1A10") },
+			Rate = 15,
+			Lifetime = { 0.5, 1 },
+			Speed = 1,
+			Size = { 1, 2 },
+			LightEmission = 1,
+			Note = "fireball at the hands",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 6.5,
+			Texture = "Track5Smoke",
+			Color = { hex("4A4040") },
+			Rate = 4,
+			Lifetime = { 3, 4 },
+			Speed = 2,
+			Size = { 1.5, 3 },
+			LightEmission = 0,
+			Note = "crater smoke",
+		},
+		{ Kind = "Light", At = "T7FigureB", Color = FIRE, Brightness = 2, Range = 14, Reduce = true },
+		{ Kind = "Light", At = "FloorVent", Color = FIRE, Brightness = 1, Range = 6, Reduce = true },
+		{
+			Kind = "Emitter",
+			At = "T7FigureC",
+			Y = 9,
+			Texture = "FightPetal",
+			Color = { hex("F4C6D2") },
+			Rate = 4,
+			Lifetime = { 4, 4 },
+			Speed = 0.5,
+			Size = { 0.3, 0.5 },
+			LightEmission = 0.1,
+		},
+		{
+			Kind = "Beam",
+			From = "T7FigureD",
+			FromY = 5,
+			To = "DomainDome",
+			ToEdge = true,
+			Texture = "FightBeam",
+			Width = { 0.6, 0.6 },
+			Color = { BLOOD, hex("5E0A10") },
+			LightEmission = 0.2,
+			Note = "stops at the dome edge",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureD",
+			Y = 5,
+			Forward = 1.5,
+			Texture = "FightDroplet",
+			Color = { BLOOD },
+			Rate = 5,
+			Lifetime = { 1, 1.5 },
+			Speed = 2,
+			Size = { 0.2, 0.35 },
+			LightEmission = 0,
+		},
+	},
+}
+
 -- Tunnel bays (spec 7, Track 7; fractions of the 11,245-stud track)
 -- orchestrator default 2026-10-31: the concourse bay is Left (Both reached Track 6's corridor, fw5)
 local BAYS = {
@@ -253,6 +549,7 @@ local BAYS = {
 
 return {
 	DisplayName = "Shibuyo Underground",
+	FightScene = FIGHT, -- built by the fw7 scene builder (data above)
 	Ground = { Color = CONCRETE, Material = M.Concrete },
 	Sky = { Color = hex("1A2224") },
 	-- orchestrator default 2026-10-31: the framework gate (beam 28 high) cannot fit under the 20-stud ceiling, so it
@@ -471,6 +768,111 @@ return {
 		WallMapTex = textureRow("rbxassetid://77806575378984", "WallMapMesh"),
 		RubbleTex = textureRow("rbxassetid://77033815446802", "RubbleMesh"),
 		StairEntranceTex = textureRow("rbxassetid://97946062884952", "StairEntranceMesh"),
+		T7FigureA = meshRow(
+			"rbxassetid://131400531247454",
+			"T7FigureATex",
+			"tall slim man, spiky white hair swept upward, black cloth blindfold over the eyes, black high-collar long-sleeve jacket and black trousers, standing calm, right hand raised in front of the chest, left hand in a pocket, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure A: generate_mesh size 5 x 10.5 x 4, segmentation none; front faces +Z; plain jacket, no emblem; stands on a small round base; mesh 3.97 x 9.01 x 4"
+		),
+		T7FigureB = meshRow(
+			"rbxassetid://89275972338861",
+			"T7FigureBTex",
+			"short stocky creature, grey-beige skin, head shaped like a small volcano cone with a glowing crater on top, one large round eye, wide lipless grin of square teeth, loose pale robe tied with a dark sash, both arms thrust forward, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure B: generate_mesh size 5 x 6 x 5, segmentation none; front faces +Z; arms half forward, not fully thrust; mesh 5 x 5.95 x 2.92"
+		),
+		T7FigureC = meshRow(
+			"rbxassetid://101707994372214",
+			"T7FigureCTex",
+			"tall broad humanoid tree spirit, pale grey-white skin with thin black line markings, two wooden branch horns growing from the eye sockets, bare chest, white cloth wrapped around the waist and legs, left arm raised, a cluster of pale flowers on the left shoulder, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure C: generate_mesh size 7 x 12 x 5, segmentation none; front faces +Z; blocky, arms down (not raised), horns above the eyes; mesh 6.48 x 12 x 3.33"
+		),
+		T7FigureD = meshRow(
+			"rbxassetid://71241235386544",
+			"T7FigureDTex",
+			"tall lean young man, black hair tied in two short spiky tufts on top of the head, a dark horizontal band across the nose, tired eyes, cream wrap-front robe under a dark plum sleeveless vest, dark wide trousers, palms pressed together in front of the chest, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure D: generate_mesh size 5 x 9.5 x 4, segmentation none; front faces +Z; palms together (the specced pose, not a hand sign); mesh 3.87 x 9.5 x 3.54"
+		),
+		T7FigureE = meshRow(
+			"rbxassetid://128388977265139",
+			"T7FigureETex",
+			"slim young man, long messy grey-blue hair, stitched patchwork scars across the face and arms, mismatched eyes, wide grin, loose pale shirt, dark baggy trousers, barefoot, arms spread wide, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure E: generate_mesh size 7 x 9 x 4, segmentation none; front faces +Z; stitches faint; mesh 7 x 8.79 x 3.22"
+		),
+		T7CrowdMesh = meshRow(
+			"rbxassetid://108061257980500",
+			"T7CrowdMeshTex",
+			"misshapen lumpy humanoid silhouette, hunched, one extra arm, smooth grey-violet surface, no face detail, no blood, low poly",
+			3000,
+			"fight crowd, 5 placements: generate_mesh size 5 x 8 x 4, segmentation none; faceless, came out plain violet with two arms; mesh 5 x 7.56 x 2.65"
+		),
+		T7RootsMesh = meshRow(
+			"rbxassetid://105356170299752",
+			"T7RootsMeshTex",
+			"thick twisted wooden roots bursting up from a cracked tiled floor, arching forward, a few pale flowers on the tips, low poly",
+			4000,
+			"fight roots, 3 placements: generate_mesh size 6 x 16 x 8, segmentation none; reads as a rooted sapling with pink flowers; mesh 6 x 6.46 x 6.02"
+		),
+		T7FigureATex = textureRow("rbxassetid://124599499588670", "T7FigureA"),
+		T7FigureBTex = textureRow("rbxassetid://101776963970684", "T7FigureB"),
+		T7FigureCTex = textureRow("rbxassetid://95484652528598", "T7FigureC"),
+		T7FigureDTex = textureRow("rbxassetid://107249129899808", "T7FigureD"),
+		T7FigureETex = textureRow("rbxassetid://95122329596093", "T7FigureE"),
+		T7CrowdMeshTex = textureRow("rbxassetid://119409941552847", "T7CrowdMesh"),
+		T7RootsMeshTex = textureRow("rbxassetid://95455970672090", "T7RootsMesh"),
+		FightStar = {
+			Kind = "Texture",
+			Id = "rbxassetid://81407938517541",
+			Lane = "A",
+			Prompt = "in-house 64 px tiny soft white star dot with a faint four-point glint on transparent, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_star.png), uploaded from Studio 2026-11-01",
+		},
+		FightGalaxy = {
+			Kind = "Texture",
+			Id = "rbxassetid://138847119083596",
+			Lane = "A",
+			Prompt = "in-house 256 px smeared spiral band of tiny white stars on transparent, tinted blue to violet by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_galaxy.png), uploaded from Studio 2026-11-01",
+		},
+		FightBeam = {
+			Kind = "Texture",
+			Id = "rbxassetid://121262044712528",
+			Lane = "A",
+			Prompt = "in-house 256 x 64 soft white light streak fading at both ends on transparent, beam texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_beam.png), uploaded from Studio 2026-11-01",
+		},
+		FightPetal = {
+			Kind = "Texture",
+			Id = "rbxassetid://75971654214750",
+			Lane = "A",
+			Prompt = "in-house 128 px five-petal pale flower on transparent, tinted pale pink by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_petal.png), uploaded from Studio 2026-11-01",
+		},
+		FightDroplet = {
+			Kind = "Texture",
+			Id = "rbxassetid://88602390235484",
+			Lane = "A",
+			Prompt = "in-house 128 px round droplet with a white highlight on transparent, stylised, tinted deep red by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_droplet.png), uploaded from Studio 2026-11-01",
+		},
+		-- Track 5's in-house ember and smoke particles, reused by id (PirateCoast ledger EmberParticle / SmokeParticle,
+		-- signed there 2026-10-31 by the rules auditor)
+		Track5Ember = {
+			Kind = "Texture",
+			Id = "rbxassetid://123619002889840",
+			Lane = "A",
+			Prompt = "reused: Track 5 EmberParticle (in-house 128 px ember, white on transparent)",
+		},
+		Track5Smoke = {
+			Kind = "Texture",
+			Id = "rbxassetid://108000399126683",
+			Lane = "A",
+			Prompt = "reused: Track 5 SmokeParticle (in-house 128 px lumpy smoke puff, light grey on transparent)",
+		},
 		DustParticle = {
 			Kind = "Texture",
 			Id = "rbxassetid://77443196483447",

@@ -621,6 +621,13 @@ public source in References confirmed; the builder and the rules auditor judge t
   cracked tiled floor, arching forward, a few pale flowers on the tips, low poly"), Wood #5A3E2B; one more spread of
   roots seals the bay's far stair opening. Optional: 6 plain grey mannequins (#9A9A9A, no costumes, no faces) as the
   trapped crowd, frozen.
+- **Budget** (orchestrator default 2026-11-01): the fight scene's 7 meshes (5 figures, the crowd silhouette, the
+  roots) are one "scene set" exception to the 4.5 cap of 12 unique meshes per biome, so Track 7 has 19. Its 5 particle
+  and beam textures are in-house numpy drawings (Lane A), not `generate_texture`; Track 5 has no fire flipbook, so the
+  flames reuse its ember and smoke textures by id.
+- **Builder** (framework task fw7, 2026-11-01): the biome module carries the scene as data (`FightScene`: `At`,
+  `Side`, items at (u, y, d) with a yaw, and the client effects). Placing a multi-item pinned group and its beams and
+  lights needs a framework builder; until it lands the scene is not built.
 - **VFX** (client only, in `BiomeEnvironment` or the dressing's `BiomeEmitter` tag; in-house textures, Lane A
   `generate_texture`; every texture prompt passed `realNameIn`):
   1. Domain dome around Gojio: a hemisphere shell (Ball part cut by the platform), radius 12, #05060C, Transparency
