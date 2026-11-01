@@ -175,6 +175,7 @@ local function meshRow(id, texture, prompt, tris, notes)
 		Prompt = prompt,
 		Texture = texture,
 		Tris = tris,
+		Reviewed = "2026-11-01 rules-auditor",
 		Notes = notes,
 	}
 end
@@ -184,6 +185,7 @@ local function textureRow(id, mesh)
 		Id = id,
 		Lane = "A",
 		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = "2026-11-01 rules-auditor",
 	}
 end
 
@@ -413,6 +415,7 @@ return {
 			Id = "rbxassetid://132561909164909",
 			Lane = "A",
 			Prompt = "in-house 128 px pollen grain: soft round body with a short spiky fuzz rim and a faint halo, white on transparent, tinted pale yellow-green by the emitter",
+			Reviewed = "2026-11-01 rules-auditor",
 			Notes = "drawn with python3 + numpy (assets/biomes/Space/pollen_particle.png), uploaded from Studio",
 		},
 		-- Hero 4: the three suns. Faces = { Bk, Dn, Ft, Lf, Rt, Up } ids, Id = the first face (spec 4.4)
@@ -429,6 +432,7 @@ return {
 			},
 			Lane = "A",
 			Prompt = "in-house 6-face 1024 px green day sky: colour by elevation only (pale green horizon to deeper green zenith, teal below the horizon), three pale cream suns of different sizes (two on Ft, one on Rt), no clouds",
+			Reviewed = "2026-11-01 rules-auditor",
 			Notes = "drawn with python3 + numpy (assets/biomes/Space/skybox/sky_<Face>.png), uploaded from Studio",
 		},
 		AmbAlienBreeze = {
@@ -436,6 +440,7 @@ return {
 			Id = "rbxassetid://9119392572",
 			Lane = "D",
 			Creator = "ProSoundEffects",
+			Reviewed = "2026-11-01 rules-auditor",
 			Notes = "Creator Store 9119392572: Space Presence 1, low airy hollow wind-like ambience (breeze and low hum), 41 s",
 		},
 		SfxPoolBubbles = {
@@ -443,6 +448,7 @@ return {
 			Id = "rbxassetid://9112752575",
 			Lane = "D",
 			Creator = "ProSoundEffects",
+			Reviewed = "2026-11-01 rules-auditor",
 			Notes = "Creator Store 9112752575: Bubbles Dribble Small Bloops 3, small bubbles in streams (a bubbling pool), 13.9 s",
 		},
 		SfxFarWindTone = {
@@ -450,6 +456,7 @@ return {
 			Id = "rbxassetid://9125438342",
 			Lane = "D",
 			Creator = "ProSoundEffects",
+			Reviewed = "2026-11-01 rules-auditor",
 			Notes = "Creator Store 9125438342: Chimney Wind Airy Hiss Swirling Tone Humming, a far wind tone, 27 s",
 		},
 	},
