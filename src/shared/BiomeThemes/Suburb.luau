@@ -40,6 +40,9 @@ local STONE = rgb(110, 108, 120)
 local PLAIN_WOOD = hex("6B4A2E") -- unpainted shrine gate wood
 local PAPER = hex("F2B66B")
 local DARK_TRIM = hex("1E140C")
+-- owner 2026-11-01: more neon purple light to sell the twilight (placeholder colours)
+local NEON_VIOLET = hex("9B5CFF")
+local NEON_PURPLE = hex("C77DFF")
 
 -- A mesh prop (spec 4.2): `def`'s parts, scaled to `size`'s height, are the fallback when the ledger row is unusable.
 -- `size` keeps the mesh's own proportions (the registry stretches the mesh to it).
@@ -88,7 +91,7 @@ local function wisteriaArch()
 		table.insert(parts, part(v(1.4, long, 1.4), v(x, 20 - long / 2, -5), color, M.Grass))
 		table.insert(parts, part(v(1.4, long, 1.4), v(x + 1.4, 20.5 - long / 2, 5), color, M.Grass))
 	end
-	return prop("WisteriaArch", v(30, 31.5, 14), parts, { Glow = BLOSSOM4 })
+	return prop("WisteriaArch", v(30, 31.5, 14), parts, { Glow = NEON_PURPLE }) -- owner 2026-11-01: purple glow
 end
 
 -- Hero 2: a two-storey Taisho-style wooden street front: three shop bays with glowing sliding paper doors,
@@ -136,7 +139,7 @@ local function shrineGate()
 			table.insert(parts, p)
 		end
 	end
-	return prop("ShrineGate", v(18, 18.6, 14), parts, { Glow = LANTERN4 })
+	return prop("ShrineGate", v(18, 18.6, 14), parts, { Glow = NEON_VIOLET }) -- owner 2026-11-01: violet glow
 end
 
 local stoneLanternProp = stoneLantern("StoneLantern", 7, STONE, LANTERN4)
@@ -156,9 +159,30 @@ local floorLantern = prop("FloorLantern", v(2.4, 4.1, 2.4), {
 	part(v(2.4, 3.3, 2.4), v(0, 2, 0), PAPER, M.Neon, BALL), -- plain paper, no writing
 	part(v(1.8, 0.4, 1.8), v(0, 3.9, 0), DARK_TRIM, M.Wood),
 }, { Glow = LANTERN4 })
+-- owner 2026-11-01: part-built neon accents (no mesh, so the neon always shows; no PointLight off the landmark layer,
+-- so nothing washes the road out)
+local violetLantern = prop("VioletLantern", v(4, 8, 2.4), {
+	post(8, 0.4, v(-1.4, 4, 0), DARKWOOD4, M.Wood),
+	part(v(3, 0.3, 0.3), v(0, 7.6, 0), DARKWOOD4, M.Wood),
+	part(v(0.1, 1, 0.1), v(1.2, 7, 0), hex("2A1E15"), M.Fabric),
+	part(v(1.8, 2.4, 1.8), v(1.2, 5.4, 0), NEON_VIOLET, M.Neon, BALL), -- plain paper, no writing
+})
+local neonVerge = prop("NeonVerge", v(12, 0.9, 0.8), { -- low stone curb with a violet light strip along the verge
+	part(v(12, 0.7, 0.8), v(0, 0.35, 0), STONE, M.Slate),
+	part(v(12, 0.2, 0.25), v(0, 0.8, -0.2), NEON_VIOLET, M.Neon),
+})
+local glowWisteria = prop("GlowWisteria", v(14, 18, 14), { -- wisteria with glowing hanging clusters
+	post(10, 1.4, v(0, 5, 0), DARKWOOD4, M.Wood),
+	part(v(14, 8, 14), v(0, 13, 0), WISTERIA4, M.Grass, BALL),
+	part(v(1.2, 6, 1.2), v(-4, 8, -4), NEON_PURPLE, M.Neon),
+	part(v(1.2, 5, 1.2), v(4, 8.5, -3), NEON_VIOLET, M.Neon),
+	part(v(1.2, 6, 1.2), v(3, 8, 4), NEON_PURPLE, M.Neon),
+})
 
 -- Mesh props (Lane A); sizes keep each mesh's own proportions
 local wisteriaTreeMesh = meshed(wisteriaTree, "WisteriaTreeMesh", v(14, 17.8, 8.4))
+-- owner 2026-11-01: the landmark-layer copy carries a purple PointLight (Glow lights only landmarks)
+local glowWisteriaMesh = meshed(wisteriaTree, "WisteriaTreeMesh", v(14, 17.8, 8.4), { Glow = NEON_PURPLE })
 local stoneLanternMesh = meshed(stoneLanternProp, "StoneLanternMesh", v(3.3, 7, 3.3))
 local floorLanternMesh = meshed(floorLantern, "PaperLanternMesh", v(2.4, 4.1, 2.4))
 local fenceMesh = meshed(fence, "WoodFenceMesh", v(6.6, 3.4, 0.7)) -- one panel, stretched x2 along the road
@@ -208,7 +232,16 @@ return {
 	Rhythm = {
 		Every = 3,
 		Offset = 10,
-		Props = { stoneLanternMesh, wisteriaTreeMesh, fenceMesh, hangingLantern, wisteriaTreeMesh },
+		-- owner 2026-11-01: a violet lantern and a neon verge strip join the cycle
+		Props = {
+			stoneLanternMesh,
+			wisteriaTreeMesh,
+			neonVerge,
+			fenceMesh,
+			violetLantern,
+			hangingLantern,
+			glowWisteria,
+		},
 	},
 	-- Pinned heroes (At, spec 4.3) snap to the nearest corner exit or 200+ stud straight. Fractions of the 5760-stud
 	-- track: 0.2 = exit of the first corner (0.191, into the wisteria grove), 0.55 = the second stone-stair climb
@@ -229,8 +262,11 @@ return {
 				part(v(14, 2, 12), v(0, 3, 2), STONE, M.Slate),
 				part(v(14, 2, 8), v(0, 5, 4), STONE, M.Slate),
 				part(v(14, 2, 4), v(0, 7, 6), STONE, M.Slate),
-			}),
-			wisteriaTreeMesh,
+				part(v(14, 0.2, 0.3), v(0, 2.1, -6.85), NEON_VIOLET, M.Neon), -- owner 2026-11-01: violet step-nose light
+				part(v(14, 0.2, 0.3), v(0, 4.1, -1.85), NEON_VIOLET, M.Neon),
+				part(v(14, 0.2, 0.3), v(0, 6.1, 0.15), NEON_VIOLET, M.Neon),
+			}, { Glow = NEON_VIOLET }),
+			glowWisteriaMesh,
 		},
 	},
 	Horizon = {
@@ -259,6 +295,8 @@ return {
 			"StoneLantern",
 			cedarMesh,
 			"HangingLantern",
+			"VioletLantern", -- owner 2026-11-01
+			"GlowWisteria",
 			floorLanternMesh,
 			block("Bush", v(6, 4, 6), hex("2A2848"), M.Grass),
 		},
@@ -287,12 +325,12 @@ return {
 			v(30, 25.9, 25)
 		),
 	}),
-	Particles = particles(SPARKLE, BLOSSOM4, {
+	Particles = particles(SPARKLE, NEON_PURPLE, { -- owner 2026-11-01: purple, brighter (placeholders)
 		Size = 0.7,
 		Lifetime = 6,
 		Speed = 1,
 		Acceleration = v(0.4, -1.2, 0),
-		LightEmission = 0.5,
+		LightEmission = 0.8,
 	}),
 	-- Spec 3.3 / 7: Hills 36 rising to Slate cliffs over a Mud forest floor; Cobblestone and a higher ridge on the two
 	-- stone-stair climbs (slopes 0.026-0.085 and 0.533-0.592). Every number is a placeholder.
@@ -326,20 +364,23 @@ return {
 			ClockTime = 0,
 			-- placeholders, brighter than section 7 (Brightness 1, OutdoorAmbient 3A3560): those read near black in Play
 			Brightness = 2.5,
-			Ambient = hex("5A5088"),
-			OutdoorAmbient = hex("6E64A8"),
+			-- owner 2026-11-01: purple-blue twilight ambient (placeholders; was 5A5088 / 6E64A8, no ColorShift_Top)
+			Ambient = hex("5A4E98"),
+			OutdoorAmbient = hex("6A5EB8"),
+			ColorShift_Top = hex("8A6CFF"),
 			ExposureCompensation = 0.6,
 		},
 		Atmosphere = {
 			Density = 0.32,
 			Offset = 0.1,
-			Color = hex("2B2550"),
+			Color = hex("33286A"), -- owner 2026-11-01: violet twilight haze (placeholders; was 2B2550, Haze 0.6)
 			Decay = hex("1B1A33"),
 			Glare = 0,
-			Haze = 0.6,
+			Haze = 0.9,
 		},
-		Grade = { TintColor = hex("E6E0FF") },
-		Bloom = { Intensity = 1.2 }, -- lanterns glow
+		Grade = { TintColor = hex("E2DAFF") }, -- owner 2026-11-01: a touch more violet (placeholder; was E6E0FF)
+		-- owner 2026-11-01: slight bloom on the neon (placeholders; was Intensity 1.2 over the baseline Threshold 1.4)
+		Bloom = { Intensity = 1.4, Threshold = 1.15 },
 		SunRays = { Intensity = 0 },
 		Sky = {
 			SunAngularSize = 21,
@@ -350,26 +391,34 @@ return {
 		Clouds = { Cover = 0.3, Density = 0.3, Color = hex("3A3560") },
 		Particles = {
 			{
-				Texture = "PetalParticle", -- falling purple petals
-				Color = BLOSSOM4,
-				Size = 0.35,
-				Rate = 14,
-				Lifetime = 6,
-				Speed = 1.5,
+				-- owner 2026-11-01: glowing wisteria petals drifting in the air (placeholders; was BLOSSOM4, Size 0.35,
+				-- Rate 14, LightEmission 0.2). Spec 5.2 allows 2 emitters at Rate 40 or less, so the two are retuned.
+				Texture = "PetalParticle",
+				Color = ColorSequence.new(BLOSSOM4, NEON_PURPLE),
+				Size = 0.4,
+				Rate = 26,
+				Lifetime = 7,
+				Speed = 1.2,
 				SpreadAngle = 180,
-				LightEmission = 0.2,
-				Area = v(90, 20, 90),
+				LightEmission = 0.6,
+				Area = v(90, 24, 90),
 			},
 			{
+				-- owner 2026-11-01: purple light motes mixed with lantern-yellow fireflies (placeholders; was LANTERN4,
+				-- Rate 8, Lifetime 3, Area height 10)
 				Texture = "FireflyParticle",
-				Color = LANTERN4,
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, NEON_VIOLET),
+					ColorSequenceKeypoint.new(0.6, NEON_PURPLE),
+					ColorSequenceKeypoint.new(1, LANTERN4),
+				}),
 				Size = 0.35,
-				Rate = 8,
-				Lifetime = 3,
+				Rate = 20,
+				Lifetime = 4,
 				Speed = 0.3,
 				SpreadAngle = 180,
 				LightEmission = 1,
-				Area = v(90, 10, 90),
+				Area = v(90, 16, 90),
 			},
 		},
 	}),
