@@ -226,3 +226,4 @@
 - 2026-11-01 OWNER: after Track 7 lands (fw9 -> 4 checks green), PAUSE ALL TESTS. Then land Track 10 (audit PASS,
   9bf594a) and the Track 4 twilight tweak (t4b 020dfa9) without scenario runs (screenshots only). Full compatibility
   check c3 (full harness + rules audit) runs ONLY when the owner says so.
+- LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.
