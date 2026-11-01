@@ -1447,7 +1447,11 @@ function Tests.terrain_built()
 				local half = seg.Length / 2
 				for z = -half, half, 4 do
 					task.wait()
-					for x = -seg.Left + 1, seg.Right - 1, 4 do
+					-- fw8: the walls taper from LeftA/RightA at From (z = +Length / 2) to LeftB/RightB at To
+					local u = math.clamp(0.5 + z / seg.Length, 0, 1) -- the sample sits at piece-local -z
+					local wl = (seg.LeftA or seg.Left) + ((seg.LeftB or seg.Left) - (seg.LeftA or seg.Left)) * u
+					local wr = (seg.RightA or seg.Right) + ((seg.RightB or seg.Right) - (seg.RightA or seg.Right)) * u
+					for x = -wl + 1, wr - 1, 4 do
 						local p = (seg.CFrame * CFrame.new(x, 0, -z)).Position
 						local road = p.Y
 						local y, _, _, _, _, _, hi = TS.Column(p.X, p.Z)
