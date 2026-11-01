@@ -222,3 +222,4 @@
   Left: close-ups (DomePalace squat -> regenerate), uploads (sand, moon, 6 sky faces), ids, harness/lint, verify.
 - 2026-11-01 PAUSED by owner. Studio b78475e0 clean in Edit. Resume order: t9 (Studio) -> t7r (NOMESH + fight spec +
   figures + verify, land with fw5/fw6) -> t10 -> t4b twilight tweak (retune 2 emitters, neon purple) + shots.
+- LANDED Track 9 Spirit Realm Desert. Next: t7r Studio (fight figures + verify), then t10, then t4b check.
