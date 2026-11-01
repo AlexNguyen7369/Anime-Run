@@ -108,6 +108,8 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   (0-1) and `TerrainReady = true` at the end. The harness waits for `TerrainReady`.
 - Chunks are 256 x 256 studs (placeholder) in XZ, written with `Terrain:WriteVoxels` at resolution 4, with one
   `task.wait()` per chunk. Water goes in the same call (material `Water`, occupancy 1 below the biome's water level).
+  Each chunk's shaped layer starts below both its lowest column top and any tunnel hollow floor in it, so the floor
+  fill never closes a tunnel (fw9, orchestrator default 2026-11-01).
 - Vertical range: floor Y = -24 (placeholder) to the top of the highest ridge. Under the corridor the terrain is only
   6 voxels deep.
 - Budget: the whole world written in at most 45 s on the Studio server (placeholder target). b1 measures it and
@@ -787,6 +789,8 @@ Owner redesign 2026-10-31 (Skypiea; rival Enelu [Enel]). Every value below is a 
   `BiomeEnvironment` reads `player:GetAttribute("ReduceEffects") == true` and listens for changes. While it is on:
   - zone particles off, one-shots off (the loop stays); landmark particle emitters (`BiomeDressing`, tag
     `BiomeEmitter`) off too (fw6, orchestrator default 2026-10-31);
+  - beams and lights tagged `BiomeEffect` (fight scene, fw7) hidden or dimmed per their `Reduce` / `ReducedBrightness`
+    attributes; tunnel light strips: every second one hidden (fw5);
   - Bloom, SunRays and Grade at the baseline (no per-zone post-FX); Atmosphere and Sky still switch;
   - `Lighting.GlobalShadows = false` client-local, and `CastShadow = false` on mesh landmarks and props;
   - far landmark detail: SLIM / LOD stays on, but the client hides each hero landmark's detail meshes (tag
