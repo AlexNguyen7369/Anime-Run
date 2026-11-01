@@ -36,7 +36,10 @@
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "Gravity": 196.2
+        "Gravity": 196.2,
+        "StreamingEnabled": true,
+        "StreamingTargetRadius": 1024,
+        "StreamingMinRadius": 256
       },
       "Baseplate": {
         "$className": "Part",
