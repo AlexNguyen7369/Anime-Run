@@ -154,17 +154,18 @@ local craterPool = prop("CraterPool", v(14, 1.6, 14), {
 
 local HERO = { Hero = true }
 
--- Mesh props (Lane A). Phase 1 sizes are the generation targets; phase 2 sets each to its mesh's own proportions.
-local ballTreeMesh = meshed(ballTree, "BallTreeMesh", v(7, 20.5, 7))
-local shrubMesh = meshed(block("Shrub", v(5, 3, 5), LEAF, M.Grass), "ShrubMesh", v(5, 3, 5))
-local rockStackMesh = meshed(rockStack, "RockStackMesh", v(4, 9, 4))
-local craterPoolMesh = meshed(craterPool, "CraterPoolMesh", v(14, 1.6, 14))
-local domeHouseMesh = meshed(domeHome("DomeHouse", 9), "DomeHouseMesh", v(9, 7.2, 9))
-local isletMesh = meshed(islet, "IsletMesh", v(18, 26, 16))
-local rockSpireMesh = meshed(rockSpire, "RockSpireMesh", v(8, 32, 8))
+-- Mesh props (Lane A). Sizes keep each mesh's own proportions (measured in Studio 2026-11-01), except where a
+-- comment says the mesh is stretched along Y (generation caps shapes at about 2:1; orchestrator default 2026-11-01).
+local ballTreeMesh = meshed(ballTree, "BallTreeMesh", v(7, 21, 6.8)) -- mesh 7 x 15 x 6.8, Y x1.4
+local shrubMesh = meshed(block("Shrub", v(5, 3, 5), LEAF, M.Grass), "ShrubMesh", v(4.2, 3, 4.2))
+local rockStackMesh = meshed(rockStack, "RockStackMesh", v(6, 7, 6)) -- mesh 4 x 4.7 x 4, scaled x1.5
+local craterPoolMesh = meshed(craterPool, "CraterPoolMesh", v(14, 3.8, 14)) -- mesh 5.9 x 1.6 x 5.9, scaled x2.4
+local domeHouseMesh = meshed(domeHome("DomeHouse", 9), "DomeHouseMesh", v(8.9, 7.2, 8.9))
+local isletMesh = meshed(islet, "IsletMesh", v(15.5, 21, 16))
+local rockSpireMesh = meshed(rockSpire, "RockSpireMesh", v(8, 26, 7.9)) -- mesh 8 x 13 x 7.9, Y x2
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row.
--- Id is filled in phase 2. Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in
+-- Reviewed is left for the rules auditor (spec 4.1 step 3); close-ups go in
 -- assets/biomes/Space/review/. Tris is the generation cap (maxTriangles).
 local function meshRow(id, texture, prompt, tris, notes)
 	return {
@@ -205,11 +206,13 @@ return {
 		Every = 22,
 		Props = {
 			-- p 1: exit of the first long bend, the dome village bend (land section 0.29-0.325)
-			meshed(domeVillage(), "DomeVillageMesh", v(32, 30, 22), { Hero = true, At = 0.305 }), -- x1.75: 56 x 38.5
+			meshed(domeVillage(), "DomeVillageMesh", v(22.1, 20.5, 22), { Hero = true, At = 0.305 }), -- x1.75: 38.7 x 38.5
 			-- p 2: exit of the second bend, pillars rising from the outer sea
-			meshed(rockPillars(), "RockPillarsMesh", v(22, 48, 18), { Hero = true, At = 0.618 }), -- x1.75: 38.5 x 31.5
+			-- mesh 17.9 x 24.2 x 18, Y x1.8; x1.75: 31.3 x 76 x 31.5
+			meshed(rockPillars(), "RockPillarsMesh", v(17.9, 43.5, 18), { Hero = true, At = 0.618 }),
 			-- p 3: exit of the third bend, onto the finish straights (land section 0.918-0.95)
-			meshed(treeGrove(), "TreeGroveMesh", v(24, 38, 18), { Hero = true, At = 0.931 }), -- x1.75: 42 x 31.5
+			-- mesh 16.2 x 30.4 x 18, Y x1.2; x1.75: 28.4 x 64 x 31.5
+			meshed(treeGrove(), "TreeGroveMesh", v(16.2, 36.4, 18), { Hero = true, At = 0.931 }),
 			isletMesh,
 			rockSpireMesh,
 			isletMesh,
@@ -222,8 +225,8 @@ return {
 		-- and keep inside this zone's half of the gap on the inner side; on the outer side they stand in the sea.
 		Offset = 20,
 		Props = {
-			meshed(rockPillars(), "RockPillarsMesh", v(22, 48, 18), HERO), -- x2: 44 x 96 x 36
-			meshed(treeGrove(), "TreeGroveMesh", v(24, 38, 18), HERO), -- x2: 48 x 76 x 36
+			meshed(rockPillars(), "RockPillarsMesh", v(17.9, 43.5, 18), HERO), -- x2: 35.8 x 87 x 36
+			meshed(treeGrove(), "TreeGroveMesh", v(16.2, 36.4, 18), HERO), -- x2: 32.4 x 73 x 36
 		},
 	},
 	Scatter = {
@@ -242,9 +245,9 @@ return {
 	-- Giant rows reach the outer sea: rock pillars up to 80 tall (spec 7) and big islets. No houses: their pads would
 	-- level the lake bed. Spacing 120 (placeholder; default 70): scattered, not a wall of pillars.
 	Blocks = giants({
-		meshed(rockSpire, "RockSpireMesh", v(20, 80, 20)),
-		meshed(islet, "IsletMesh", v(40, 58, 36)),
-		meshed(rockPillars(), "RockPillarsMesh", v(36, 78, 29)),
+		meshed(rockSpire, "RockSpireMesh", v(16, 52, 15.8)), -- Y x2
+		meshed(islet, "IsletMesh", v(40, 54, 41)),
+		meshed(rockPillars(), "RockPillarsMesh", v(33, 80, 33)), -- Y x1.8
 	}, 120),
 	-- Landmark emitters (BiomeDressing): pale and dim, so bloom does not light them into sparks
 	Particles = particles(SPARKLE, HAZE10, { Size = 0.5, Lifetime = 4, Rate = 3, Speed = 1, LightEmission = 0 }),
@@ -331,82 +334,83 @@ return {
 	-- Sound rows: Creator Store audio ids used directly (no insert, nothing to strip).
 	Assets = {
 		DomeVillageMesh = meshRow(
-			nil,
+			"rbxassetid://108593349617864",
 			"DomeVillageTex",
 			"small cluster of three plain round white dome houses of different sizes on a patch of blue-green grass, each a smooth white dome on a short round base with a simple dark doorway and a few small round windows, one tall thin tree with a bare straight trunk and a single round blue-green ball of leaves on top behind them, stylized cartoon style",
 			15000,
-			"hero 1: plain domes, no other details; doors face -Z (the road)"
+			"hero 1: plain domes with round windows; the front door faces -Z (the road)"
 		),
 		RockPillarsMesh = meshRow(
-			nil,
+			"rbxassetid://119118020647216",
 			"RockPillarsTex",
 			"three tall narrow grey-green rock pillars of different heights standing close together, rough layered rock sides, flat tops covered with blue-green grass, stylized cartoon style",
 			15000,
-			"hero 2"
+			"hero 2: three pillars (two in front, one behind), no crossbar"
 		),
 		TreeGroveMesh = meshRow(
-			nil,
+			"rbxassetid://99221431529338",
 			"TreeGroveTex",
 			"grove of five very tall thin trees of different heights on a low round grassy mound, each with a bare straight thin brown trunk and a single round ball of blue-green leaves at the very top, stylized cartoon style",
 			15000,
-			"hero 3"
+			"hero 3: five ball-top trees, no mound"
 		),
 		DomeHouseMesh = meshRow(
-			nil,
+			"rbxassetid://104717154994870",
 			"DomeHouseTex",
 			"small plain round white dome house, smooth white dome on a short round wall, simple dark doorway and three small round windows on the front, stylized cartoon style",
 			3000,
-			"plain dome, no other details; front faces -Z"
+			"plain dome, no windows came out; the door faces +Z (away from the road; the framework has no yaw)"
 		),
 		BallTreeMesh = meshRow(
-			nil,
+			"rbxassetid://75286668511814",
 			"BallTreeTex",
 			"very tall thin tree, bare straight thin brown trunk with one short side branch, single round ball of blue-green leaves at the very top and a small leaf ball on the branch, stylized low poly cartoon style",
 			2000
 		),
 		IsletMesh = meshRow(
-			nil,
+			"rbxassetid://90306793212949",
 			"IsletTex",
-			"small round grassy island mound, rocky grey-green sides, blue-green grass on top with one tall thin tree with a round ball of leaves on top and one small plain round white dome house, stylized cartoon style",
+			"small round grassy island, rough layered grey-green rock sides, flat blue-green grassy top with one tall thin tree with a bare thin trunk and a round ball of blue-green leaves on top, stylized cartoon style",
 			3000,
-			"base sits on the lake bed; the top stands above the water"
+			"second try: the first (with a dome) had two dots on the rock side under two white domes, which could read as a face; rejected and not used. Base sits on the lake bed"
 		),
 		RockSpireMesh = meshRow(
-			nil,
+			"rbxassetid://85808225348709",
 			"RockSpireTex",
 			"single tall narrow grey-green rock spire, rough layered rock sides, a small flat top covered with blue-green grass, stylized cartoon style",
 			2000
 		),
 		ShrubMesh = meshRow(
-			nil,
+			"rbxassetid://112771347396634",
 			"ShrubTex",
 			"low round bush of blue-green leaves, a few round leaf clumps, stylized low poly cartoon style",
 			1500
 		),
 		RockStackMesh = meshRow(
-			nil,
+			"rbxassetid://86063166208006",
 			"RockStackTex",
 			"small stack of three rounded grey-green rocks balanced on top of each other, the top one mossy, stylized cartoon style",
 			1500
 		),
 		CraterPoolMesh = meshRow(
-			nil,
+			"rbxassetid://98640718387800",
 			"CraterPoolTex",
 			"small shallow round crater pool, a low ring of grey-green rocks round still teal blue-green water, flat and wide, stylized cartoon style",
 			2000
 		),
-		DomeVillageTex = textureRow(nil, "DomeVillageMesh"),
-		RockPillarsTex = textureRow(nil, "RockPillarsMesh"),
-		TreeGroveTex = textureRow(nil, "TreeGroveMesh"),
-		DomeHouseTex = textureRow(nil, "DomeHouseMesh"),
-		BallTreeTex = textureRow(nil, "BallTreeMesh"),
-		IsletTex = textureRow(nil, "IsletMesh"),
-		RockSpireTex = textureRow(nil, "RockSpireMesh"),
-		ShrubTex = textureRow(nil, "ShrubMesh"),
-		RockStackTex = textureRow(nil, "RockStackMesh"),
-		CraterPoolTex = textureRow(nil, "CraterPoolMesh"),
+		DomeVillageTex = textureRow("rbxassetid://113183928468825", "DomeVillageMesh"),
+		RockPillarsTex = textureRow("rbxassetid://110530643206030", "RockPillarsMesh"),
+		TreeGroveTex = textureRow("rbxassetid://71650950848098", "TreeGroveMesh"),
+		DomeHouseTex = textureRow("rbxassetid://81820891524252", "DomeHouseMesh"),
+		BallTreeTex = textureRow("rbxassetid://70863593347118", "BallTreeMesh"),
+		IsletTex = textureRow("rbxassetid://134876892886207", "IsletMesh"),
+		RockSpireTex = textureRow("rbxassetid://92082712625091", "RockSpireMesh"),
+		ShrubTex = textureRow("rbxassetid://139873225694302", "ShrubMesh"),
+		RockStackTex = textureRow("rbxassetid://90044833214753", "RockStackMesh"),
+		CraterPoolTex = textureRow("rbxassetid://125162650061454", "CraterPoolMesh"),
 		PollenParticle = {
 			Kind = "Texture",
+			Id = "rbxassetid://132561909164909",
 			Lane = "A",
 			Prompt = "in-house 128 px pollen grain: soft round body with a short spiky fuzz rim and a faint halo, white on transparent, tinted pale yellow-green by the emitter",
 			Notes = "drawn with python3 + numpy (assets/biomes/Space/pollen_particle.png), uploaded from Studio",
@@ -414,6 +418,15 @@ return {
 		-- Hero 4: the three suns. Faces = { Bk, Dn, Ft, Lf, Rt, Up } ids, Id = the first face (spec 4.4)
 		SkyGreenSuns = {
 			Kind = "Skybox",
+			Id = "rbxassetid://137096882572723",
+			Faces = {
+				Bk = "rbxassetid://137096882572723",
+				Dn = "rbxassetid://112815833974904",
+				Ft = "rbxassetid://114016333579090",
+				Lf = "rbxassetid://110414506239322",
+				Rt = "rbxassetid://140005733844828",
+				Up = "rbxassetid://92618700679988",
+			},
 			Lane = "A",
 			Prompt = "in-house 6-face 1024 px green day sky: colour by elevation only (pale green horizon to deeper green zenith, teal below the horizon), three pale cream suns of different sizes (two on Ft, one on Rt), no clouds",
 			Notes = "drawn with python3 + numpy (assets/biomes/Space/skybox/sky_<Face>.png), uploaded from Studio",
