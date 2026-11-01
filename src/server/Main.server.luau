@@ -9,6 +9,8 @@ local TrackRegistry = require(Shared.TrackRegistry)
 local SpawnArea = require(Shared.SpawnArea)
 local VfxArea = require(Shared.VfxArea)
 local TerrainShape = require(Shared.TerrainShape)
+local Tunnel = require(Shared.Tunnel)
+local BiomeThemes = require(Shared.BiomeThemes)
 local TerrainBuilder = require(script.Parent.TerrainBuilder)
 local AdminService = require(script.Parent.AdminService)
 local CarService = require(script.Parent.CarService)
@@ -46,6 +48,11 @@ local origin = TrackBuilder.CHAIN_ORIGIN
 for _, spec in chain do
 	local model, layout = TrackBuilder.Build(spec, origin)
 	model.Name = spec.Name
+	-- an enclosed tunnel over the road when the biome has one (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), before Prune
+	local tunnel, tunnelParts = Tunnel.Build(model, layout, BiomeThemes[spec.Biome], origin)
+	if tunnel then
+		print(string.format("[TUNNEL] %s: %d parts", spec.Name, tunnelParts))
+	end
 	model.Parent = folder
 	table.insert(entries, { Layout = layout, Origin = origin, Model = model, Number = spec.Number, Biome = spec.Biome })
 	origin = TrackBuilder.EndCFrame(layout, origin)

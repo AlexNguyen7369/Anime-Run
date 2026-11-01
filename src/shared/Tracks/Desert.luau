@@ -1,5 +1,8 @@
 --!nonstrict
--- Track 7 (w3, owner 2026-10-30): Blossom Shrine Path: cherry blossom avenues, stone stairs up to the hilltop shrine and switchback bends on the shrine hill.
+-- Track 7 (owner redesign 2026-10-31, docs/BIOME_ENVIRONMENT_SPEC.md section 7): Shibuyo Underground, a made-up
+-- subway after the cursed-subway incident arc (tweaked; no real station, line or company names). The whole run is inside the
+-- biome's Tunnel (spec 3.5): tiled corridors, side platforms, a concourse and the deep main platform hall. The
+-- segment comments below still name the earlier Blossom Shrine Path layout, which the tunnel keeps.
 -- About 984 x 3 x 1.25^6 studs along the centre line (docs/TRACKS_AND_BIOMES_SPEC.md Lengths and References).
 -- Laid out on the outward square spiral round the plaza (docs/WORLD_REDESIGN_SPEC.md section 3): right-hand
 -- corners grow with each lap, so this track sits one lap band outside the previous one.
@@ -7,19 +10,19 @@
 -- its cruise speed and its time matches the TRACKS_AND_BIOMES_SPEC table.
 return {
 	Name = "Desert",
-	Description = "Blossom Shrine Path run: blossom avenues, gate tunnels, shrine stairs and switchback bends.",
+	Description = "Shibuyo Underground run: tiled subway tunnels, side platforms, a concourse and the deep platform hall.",
 	Number = 7,
 	Biome = "Desert",
 	Width = 40,
 	Closed = false,
-	Palette = {
-		Road = Color3.fromRGB(112, 82, 66),
-		Support = Color3.fromRGB(90, 55, 40),
-		Wall = Color3.fromRGB(218, 157, 82),
-		Ground = Color3.fromRGB(210, 157, 78),
-		Line = Color3.fromRGB(255, 238, 172),
-		Checkpoint = Color3.fromRGB(164, 108, 56),
-		WinPad = Color3.fromRGB(255, 218, 42),
+	Palette = { -- Track 7 subway (TRACKS_AND_BIOMES_SPEC Track 7 palette, placeholders)
+		Road = Color3.fromRGB(43, 46, 51), -- #2B2E33 track bed
+		Support = Color3.fromRGB(140, 138, 132), -- #8C8A84 concrete
+		Wall = Color3.fromRGB(233, 228, 214), -- #E9E4D6 tile cream
+		Ground = Color3.fromRGB(140, 138, 132),
+		Line = Color3.fromRGB(242, 210, 58), -- #F2D23A tactile yellow
+		Checkpoint = Color3.fromRGB(63, 167, 160), -- #3FA7A0 stripe teal
+		WinPad = Color3.fromRGB(242, 210, 58),
 	},
 	Segments = {
 		{ Type = "Straight", Length = 40 }, -- start straight
