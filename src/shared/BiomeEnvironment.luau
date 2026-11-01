@@ -11,9 +11,13 @@ local Kit = require(script.Parent.BiomeThemes:WaitForChild("Kit"))
 local TrackRegistry = require(script.Parent.TrackRegistry)
 
 local BiomeEnvironment = {}
-BiomeEnvironment.BLEND_SECONDS = 3 -- placeholder (spec 5.3)
-BiomeEnvironment.POLL = 0.25 -- placeholder: seconds between zone checks (5.1)
+BiomeEnvironment.BLEND_SECONDS = 3 -- placeholder (spec 5.3): the longest blend, at walking / low speed
+-- High speed (design doc 4.18): blend and hold are measured in studs of travel, so a fast runner switches sooner
+BiomeEnvironment.BLEND_MIN = 0.4 -- placeholder: shortest blend in seconds (sky swaps at its midpoint)
+BiomeEnvironment.BLEND_STUDS = 240 -- placeholder: studs of travel one blend spans, clamped to BLEND_MIN..BLEND_SECONDS
+BiomeEnvironment.POLL = 0.1 -- placeholder: seconds between zone checks (5.1; was 0.25)
 BiomeEnvironment.HOLD = 0.5 -- placeholder: a new zone holds this long before the blend starts (5.1)
+BiomeEnvironment.HOLD_STUDS = 40 -- placeholder: or this many studs of travel, whichever is shorter
 BiomeEnvironment.WEATHER_MIX = 0.5 -- placeholder: lerp(biome, weather, this) while a weather with a Sky runs (5.2)
 BiomeEnvironment.HAZE_PEAK = 1.5 -- placeholder: Atmosphere Haze added at the blend midpoint (5.3)
 BiomeEnvironment.DENSITY_PEAK = 0.15 -- placeholder: Atmosphere Density added at the blend midpoint

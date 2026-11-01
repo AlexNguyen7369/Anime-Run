@@ -1,13 +1,14 @@
 --!nonstrict
 -- Per-zone sky, light, water, particles and ambient audio, client-local only (docs/BIOME_ENVIRONMENT_SPEC.md 5, 6, 8).
 -- The zone comes from Shared/BiomeEnvironment.ZoneAt at the camera focus. Every property lerps from its current
--- value to the zone's profile over BLEND_SECONDS (sine ease); swaps (sky textures, reverb, particles) happen at the
+-- value to the zone's profile over BLEND_SECONDS, shorter at high speed (sine ease); swaps (sky textures, reverb, particles) happen at the
 -- blend midpoint under a haze peak. Values the profile leaves out stay at the server's replicated value, and a
 -- server write (only WeatherService writes these) is kept as that value and re-applied over. REDUCED EFFECTS
 -- (player attribute ReduceEffects) drops particles (zone and landmark emitters), one-shots, per-zone post-FX,
 -- shadows and far landmark detail, and halves the tunnel lights (spec 3.5). An Underground profile has no sky and no weather mix.
 -- Client/BiomeAmbience (prop motion) and Client/BiomeMeshes (Lane C meshes) write no Lighting.
 local CollectionService = game:GetService("CollectionService")
+local ContentProvider = game:GetService("ContentProvider")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,7 +22,7 @@ local WeatherConfig = require(Shared.WeatherConfig)
 
 local player = Players.LocalPlayer
 local terrain = Workspace.Terrain
-local BLEND = Env.BLEND_SECONDS
+local blendSeconds = Env.BLEND_SECONDS -- of the current blend; shorter at high speed (design doc 4.18)
 
 local function reduced()
 	return player:GetAttribute("ReduceEffects") == true
@@ -308,12 +309,38 @@ local function startLoop()
 	end
 end
 
+-- Sky textures of zone z (skybox faces, sun, moon), downloaded once ahead of the boundary so the midpoint swap
+-- shows the new sky at once instead of waiting on the asset (design doc 4.18)
+local preloaded = {}
+local function preloadSky(z)
+	if preloaded[z] or Env.BiomeOf(z) == nil then
+		return
+	end
+	preloaded[z] = true
+	local look, ids = Env.Profile(z).Sky or {}, {}
+	local row = Env.Asset(z, look.Skybox, "Skybox")
+	for _, face in row and FACES or {} do
+		table.insert(ids, row.Faces and row.Faces[face] or row.Id)
+	end
+	for _, key in { "SunTextureId", "MoonTextureId" } do
+		local tex = Env.Asset(z, look[key], "Texture")
+		if tex then
+			table.insert(ids, tex.Id)
+		end
+	end
+	if #ids > 0 then
+		task.spawn(pcall, ContentProvider.PreloadAsync, ContentProvider, ids)
+	end
+end
+
 local swapped = true
-local function startBlend(z)
+local function startBlend(z, seconds)
 	zone = z
 	Env.CurrentZone = z
 	profile, audio = Env.Profile(z), Env.Audio(z)
 	blendStart = os.clock()
+	blendSeconds = seconds
+	preloadSky(z + 1) -- the run goes through the tracks in Number order
 	swapped = false
 	for _, e in entries do
 		if bind(e) then
@@ -328,7 +355,7 @@ RunService.RenderStepped:Connect(function()
 	if camera then
 		box.CFrame = camera.CFrame * CFrame.new(0, 0, -Env.PARTICLE_AHEAD)
 	end
-	local t = (os.clock() - blendStart) / BLEND
+	local t = (os.clock() - blendStart) / blendSeconds
 	local blending = t < 1
 	if not (blending or dirty) then
 		return
@@ -364,21 +391,42 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Zone check every POLL at the camera focus; a new zone must hold for HOLD (Env.ForcedZone overrides, for tests)
+-- Zone check every POLL at the camera focus; a new zone must hold for HOLD (Env.ForcedZone overrides, for tests).
+-- High speed (design doc 4.18): hold and blend shrink with the focus speed (HOLD_STUDS, BLEND_STUDS), and the check
+-- looks ahead by the time until the sky swap, so the swap lands at the boundary. The look-ahead only ever picks the
+-- next track in Number order (the run's next zone), never a neighbouring lap across a gap.
 task.spawn(function()
 	local pending, since = nil, 0
+	local last, lastAt = nil, os.clock()
+	preloadSky(1) -- the first track, from the plaza
 	while true do
 		local camera = Workspace.CurrentCamera
-		local z = Env.ForcedZone
+		local now = os.clock()
+		local z, speed, velocity = Env.ForcedZone, 0, Vector3.zero
+		local hold, blend = Env.HOLD, Env.BLEND_SECONDS
 		if z == nil and camera then
-			z = Env.ZoneAt(camera.Focus.Position)
+			local focus = camera.Focus.Position
+			if last and now > lastAt then
+				velocity = (focus - last) * Vector3.new(1, 0, 1) / (now - lastAt)
+				speed = velocity.Magnitude
+			end
+			last, lastAt = focus, now
+			if speed > 0 then
+				hold = math.min(Env.HOLD, Env.HOLD_STUDS / speed)
+				blend = math.clamp(Env.BLEND_STUDS / speed, Env.BLEND_MIN, Env.BLEND_SECONDS)
+			end
+			z = Env.ZoneAt(focus)
+			local ahead = z ~= nil and Env.ZoneAt(focus + velocity * (hold + Env.POLL + blend / 2))
+			if ahead ~= nil and ahead == z + 1 then
+				z = ahead
+			end
 		end
 		if z ~= nil and z ~= zone then
-			if zone == nil or Env.ForcedZone ~= nil or (pending == z and os.clock() - since >= Env.HOLD) then
-				startBlend(z)
+			if zone == nil or Env.ForcedZone ~= nil or (pending == z and now - since >= hold) then
+				startBlend(z, blend)
 				pending = nil
 			elseif pending ~= z then
-				pending, since = z, os.clock()
+				pending, since = z, now
 			end
 		else
 			pending = nil

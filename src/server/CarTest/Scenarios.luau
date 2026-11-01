@@ -8148,7 +8148,7 @@ local SPAWN_FACING = 0.9 -- walk spawn look . direction to the pad centre (flat)
 local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor top while standing
 -- Anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4, owner 2026-10-28). Names are the test contract:
 --   SpawnArea.StartGate (Model, the torii) over SpawnArea.StartPad; stalls SpawnArea.ShopStall / Marketplace /
---   PotionsStall, SpawnArea.RebirthShrine, SpawnArea.IndexBoard, banners SpawnArea.Leaderboards, the sensei
+--   PotionsStall, SpawnArea.RebirthShrine, SpawnArea.IndexBoard, the sensei
 --   SpawnArea.CheckpointNpc. Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
 local SPAWN_PLAZA = {
 	STONE = {
@@ -8170,7 +8170,6 @@ local SPAWN_PLAZA = {
 		{ Name = "PotionsStall", Prompt = "OpenPotions" },
 		{ Name = "RebirthShrine", Prompt = "OpenRebirth" },
 		{ Name = "IndexBoard", Prompt = "OpenIndex" },
-		{ Name = "Leaderboards" }, -- the banners (LeaderboardTests checks their boards)
 		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
 	},
 }
@@ -13288,8 +13287,7 @@ Scenarios.workshop_phase2 = Phase2Tests.workshop_phase2
 Scenarios.weather = Phase2Tests.weather
 Scenarios.rebirth = Phase2Tests.rebirth
 Scenarios.daily_login = Phase2Tests.daily_login
--- docs/LEADERBOARD_SPEC.md section 4 (its own module: this file is near Luau's 200-local limit)
-Scenarios.leaderboard = require(script.Parent.LeaderboardTests).leaderboard
+-- docs/LEADERBOARD_SPEC.md section 4 retired: leaderboards removed from the plaza (design doc 4.16, owner 2026-11-01)
 Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md section 4
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md
 Scenarios.offline_double = require(script.Parent.OfflineDoubleTests).offline_double -- docs/OFFLINE_DOUBLE_SPEC.md
