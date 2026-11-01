@@ -228,3 +228,4 @@
   check c3 (full harness + rules audit) runs ONLY when the owner says so.
 - LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.
 - LANDED Track 10 (dbb84e1, no scenarios - owner pause). Track 4 twilight shots in progress on orch/biomes/t4b-shots (studio worktree). Then: all 10 tracks done; c3 full compatibility check waits for the owner.
+- LANDED Track 4 twilight tweak. ALL 10 TRACKS LANDED on feature/alex/anime-world. Waiting for owner to start c3 (full compatibility check). Open review list: docs/OWNER_QUESTIONS.md (+ T4 MoonPeak backdrop reads as a flat pale box).

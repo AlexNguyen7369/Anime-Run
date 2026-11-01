@@ -20,6 +20,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 Track 4 twilight neon + particles (owner): screenshots only (test pause)
 - 2026-11-01 b2 Track 10 Green Alien Planet (merge dbb84e1): 25 rows signed; no scenarios (owner test pause); visual pass (haze, teal sea, islets out)
 - 2026-11-01 b2 Track 7 Shibuyo Underground (owner redesign; wide tunnel, fight scene) + tunnel framework fw5-fw9 (merge a96717a): Studio pass=4 fail=0, 50 rows signed, rules audit PASS
 - 2026-11-01 b2 Track 9 Spirit Realm Desert: pass=3 fail=0, 22 rows signed, live floats max 0.86
