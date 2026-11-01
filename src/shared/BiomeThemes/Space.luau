@@ -120,16 +120,6 @@ local function treeGrove()
 	return prop("TreeGrove", v(24, 38, 18), parts)
 end
 
--- Small grassy islet with a ball-top tree and a little dome: its base sits on the lake bed, its top above the water
-local islet = prop("Islet", v(18, 26, 16), {
-	part(v(18, 4, 16), v(0, 2, 0), ROCK10, M.Rock),
-	part(v(16, 16, 14), v(0, 6, 0), GRASS10, M.Grass, BALL),
-	post(10, 0.6, v(-3, 18, 1), TRUNK, M.Wood),
-	part(v(5, 5, 5), v(-3, 23.5, 1), GRASS10, M.Grass, BALL),
-	part(v(6, 6, 6), v(4, 13, -2), DOME10, M.SmoothPlastic, BALL),
-	part(v(0.8, 0.8, 0.8), v(4, 14.5, -4.9), WINDOW, M.Glass, BALL),
-})
-
 -- Single tall rock spire with a grassy cap, rising from the water
 local rockSpire = prop("RockSpire", v(8, 32, 8), {
 	part(v(8, 20, 8), v(0, 10, 0), ROCK10, M.Rock),
@@ -161,7 +151,8 @@ local shrubMesh = meshed(block("Shrub", v(5, 3, 5), LEAF, M.Grass), "ShrubMesh",
 local rockStackMesh = meshed(rockStack, "RockStackMesh", v(6, 7, 6)) -- mesh 4 x 4.7 x 4, scaled x1.5
 local craterPoolMesh = meshed(craterPool, "CraterPoolMesh", v(14, 3.8, 14)) -- mesh 5.9 x 1.6 x 5.9, scaled x2.4
 local domeHouseMesh = meshed(domeHome("DomeHouse", 9), "DomeHouseMesh", v(8.9, 7.2, 8.9))
-local isletMesh = meshed(islet, "IsletMesh", v(15.5, 21, 16))
+-- IsletMesh (ledger row kept) is not placed: its rock underside is a hanging bowl, so it read as floating in Play
+-- (orchestrator default 2026-11-01)
 local rockSpireMesh = meshed(rockSpire, "RockSpireMesh", v(8, 26, 7.9)) -- mesh 8 x 13 x 7.9, Y x2
 
 -- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row.
@@ -215,9 +206,7 @@ return {
 			-- p 3: exit of the third bend, onto the finish straights (land section 0.918-0.95)
 			-- mesh 16.2 x 30.4 x 18, Y x1.2; x1.75: 28.4 x 64 x 31.5
 			meshed(treeGrove(), "TreeGroveMesh", v(16.2, 36.4, 18), { Hero = true, At = 0.931 }),
-			isletMesh,
 			rockSpireMesh,
-			isletMesh,
 			ballTreeMesh,
 		},
 	},
@@ -236,7 +225,7 @@ return {
 		Near = 25,
 		Far = 160,
 		-- Water-friendly only (the ridge band is mostly lake): no shrubs, pebbles or houses, which would drown
-		Props = { "BallTree", "RockStack", isletMesh, rockSpireMesh },
+		Props = { "BallTree", "RockStack", rockSpireMesh },
 		-- Most patches land on the lake bed (harness: about 9 in 10), so they read as weed beds and sand bars
 		Patches = {
 			patch("WeedBed", 20, 14, hex("2F8F72"), M.Grass),
@@ -244,11 +233,11 @@ return {
 			patch("SandBar", 14, 10, hex("D8E6B8"), M.Sand),
 		},
 	},
-	-- Giant rows reach the outer sea: rock pillars up to 80 tall (spec 7) and big islets. No houses: their pads would
+	-- Giant rows reach the outer sea: rock pillars up to 80 tall (spec 7) and big tree groves. No houses: their pads would
 	-- level the lake bed. Spacing 120 (placeholder; default 70): scattered, not a wall of pillars.
 	Blocks = giants({
 		meshed(rockSpire, "RockSpireMesh", v(16, 52, 15.8)), -- Y x2
-		meshed(islet, "IsletMesh", v(40, 54, 41)),
+		meshed(treeGrove(), "TreeGroveMesh", v(32, 72, 36)), -- Y x1.2
 		meshed(rockPillars(), "RockPillarsMesh", v(33, 80, 33)), -- Y x1.8
 	}, 120),
 	-- Landmark emitters (BiomeDressing): pale and dim, so bloom does not light them into sparks
@@ -287,19 +276,21 @@ return {
 		CliffSlope = 0.9,
 		Embank = true,
 	},
-	-- Spec 5.2 / 7: green day. Values are placeholders except where section 7 gives them (ClockTime 13, Atmosphere
-	-- Color / Decay / Haze, Tint, Water colour and transparency). The engine sun is hidden: the skybox paints three.
+	-- Spec 5.2 / 7: green day. Values are placeholders. The engine sun is hidden: the skybox paints three.
+	-- Orchestrator default 2026-11-01: in Play the section 7 haze (Color 9FD99A, Decay 6FB58A, Haze 1, Density 0.3) and
+	-- the reflective water read as one flat lime green past ~450 studs (far terrain); with Haze 0, a grey-green haze,
+	-- a less green OutdoorAmbient and a bluer water it reads as deep teal fading into the distance.
 	Atmosphere = Kit.Atmosphere({
-		Lighting = { ClockTime = 13, OutdoorAmbient = hex("7E9C88") },
+		Lighting = { ClockTime = 13, OutdoorAmbient = hex("7A8696") },
 		Atmosphere = {
-			Density = 0.3,
-			Offset = 0.15,
-			Color = hex("9FD99A"),
-			Decay = hex("6FB58A"),
-			Glare = 0.2,
-			Haze = 1,
+			Density = 0.28,
+			Offset = 0.25,
+			Color = hex("C8D8CC"),
+			Decay = hex("7A9A96"),
+			Glare = 0.1,
+			Haze = 0,
 		},
-		Grade = { TintColor = hex("E8FFE8"), Saturation = 0.25 },
+		Grade = { TintColor = hex("EEFAEE"), Saturation = 0.1 },
 		SunRays = { Intensity = 0.08 },
 		Sky = {
 			Skybox = "SkyGreenSuns",
@@ -309,7 +300,7 @@ return {
 			CelestialBodiesShown = false,
 		},
 		Clouds = { Cover = 0.35, Density = 0.3, Color = hex("E6F5DC") },
-		Water = { Color = WATER10, Transparency = 0.3, Reflectance = 0.25, WaveSize = 0.2, WaveSpeed = 8 },
+		Water = { Color = hex("1F6390"), Transparency = 0.3, Reflectance = 0.05, WaveSize = 0.2, WaveSpeed = 8 },
 		Particles = {
 			{
 				Texture = "PollenParticle", -- light pollen
