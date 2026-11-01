@@ -537,6 +537,20 @@ placeholders.
 - **Palette**: #1B1A33, #8E6BBF, #C9A9E8, #3B2A1E, #F5E6A8.
 - **Sky**: night. ClockTime 0, Brightness 1, OutdoorAmbient #3A3560, Atmosphere Color #2B2550, Density 0.4. Bloom
   1.2 (lanterns glow). Particles: falling purple petals and fireflies.
+- **Twilight neon (owner 2026-11-01)**: more neon purple light and ambient air particles to sell the twilight. All
+  values placeholders.
+  - Neon colours: violet #9B5CFF, purple #C77DFF.
+  - PointLight `Glow` (landmark layer only, Range 24, no shadows): wisteria arch and landmark wisteria trees purple,
+    shrine gate and stone stair violet; the Taisho street and shops stay lantern yellow.
+  - Part-built neon accents: a violet paper lantern and a low stone verge curb with a violet neon strip (rhythm),
+    violet neon step noses on the stone stair, a wisteria with neon hanging clusters (rhythm and scatter). They carry
+    no PointLight, so the road is not washed out.
+  - Zone particles (still 2 emitters, Rate at most 40, existing textures, no new upload): glowing wisteria petals
+    (colour #C9A9E8 to #C77DFF, Size 0.4, Rate 26, Lifetime 7, LightEmission 0.6, Area 90 x 24 x 90) and light motes
+    (violet to purple to lantern yellow, Rate 20, Lifetime 4, Area 90 x 16 x 90). Off under REDUCED EFFECTS (section 8).
+  - Landmark sparkles purple #C77DFF, LightEmission 0.8.
+  - Atmosphere: Ambient #5A4E98, OutdoorAmbient #6A5EB8, ColorShift_Top #8A6CFF, Atmosphere Color #33286A, Haze 0.9,
+    Grade TintColor #E2DAFF, Bloom Intensity 1.4 and Threshold 1.15 (a slight bloom on the neon).
 - **Audio**: night insects and soft wind in leaves (loop); an owl and a wooden clapper (one-shots). Reverb `Forest`.
 - **IP**: no checkered haori pattern and no show kanji on signs.
 
