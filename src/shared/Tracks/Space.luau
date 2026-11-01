@@ -12,13 +12,14 @@ return {
 	Biome = "Space",
 	Width = 40,
 	Closed = false,
+	-- b2 (orchestrator default 2026-10-31): pale sandy path, rock supports, dome-white walls, Track 10 spec palette
 	Palette = {
-		Road = Color3.fromRGB(42, 55, 88),
-		Support = Color3.fromRGB(24, 30, 60),
-		Wall = Color3.fromRGB(84, 245, 255),
-		Ground = Color3.fromRGB(10, 14, 35),
-		Line = Color3.fromRGB(180, 120, 255),
-		Checkpoint = Color3.fromRGB(48, 72, 130),
+		Road = Color3.fromHex("CFC79E"),
+		Support = Color3.fromHex("6E7F5A"),
+		Wall = Color3.fromHex("F0F0E6"),
+		Ground = Color3.fromHex("3FB59A"),
+		Line = Color3.fromHex("2E8B8B"),
+		Checkpoint = Color3.fromHex("6E7F5A"),
 		WinPad = Color3.fromRGB(255, 218, 42),
 	},
 	Segments = {

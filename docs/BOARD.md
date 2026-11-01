@@ -20,6 +20,8 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 b2 Track 7 Shibuyo Underground (owner redesign; wide tunnel, fight scene) + tunnel framework fw5-fw9 (merge a96717a): Studio pass=4 fail=0, 50 rows signed, rules audit PASS
+- 2026-11-01 b2 Track 9 Spirit Realm Desert: pass=3 fail=0, 22 rows signed, live floats max 0.86
 - 2026-10-31 b2 Track 8 Skypeia (owner redesign): pass=3 fail=0, 18 rows signed, live floats max 1.05
 - 2026-10-31 b2 Track 5 rebuild Burning Cursed City (owner redesign): pass=3 fail=0, 21 rows signed; storefront mesh swapped to parts (face reading)
 - 2026-10-31 b2 Track 6 Hero Academy City + fw4 (merge 9858032): pass=3 fail=0, 27 rows auditor-signed; live padded floats T1 0 / T6 0 / T4 2 (1.55)

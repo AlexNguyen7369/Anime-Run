@@ -277,3 +277,49 @@ RunService.PreSimulation:Connect(function()
 		camera.Focus += delta
 	end
 end)
+
+-- Tunnel camera clamp (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), after the default camera: while a tunnel part is straight
+-- above the camera focus, the camera pops in front of any tunnel wall or ceiling between it and the focus and stays
+-- CAMERA_GAP under that ceiling. Moves the camera along its own view line only, so the yaw (track camera or the
+-- regular one) and the player's zoom setting are left alone.
+local TUNNEL_TAG = "Tunnel" -- Shared/Tunnel.TAG
+local CEILING_PROBE = 80 -- studs, placeholder: highest tunnel ceiling looked for above the focus
+local CAMERA_GAP = 1 -- studs, placeholder
+local tunnelRay = RaycastParams.new()
+tunnelRay.FilterType = Enum.RaycastFilterType.Include
+local tunnelCount = 0
+RunService:BindToRenderStep("TunnelCamera", Enum.RenderPriority.Camera.Value + 1, function()
+	local camera = Workspace.CurrentCamera
+	if not camera or camera.CameraType ~= Enum.CameraType.Custom then
+		return
+	end
+	local tunnels = CollectionService:GetTagged(TUNNEL_TAG)
+	if #tunnels == 0 then
+		return
+	end
+	if #tunnels ~= tunnelCount then
+		tunnelCount = #tunnels
+		tunnelRay.FilterDescendantsInstances = tunnels
+	end
+	local focus = camera.Focus.Position
+	local up = Workspace:Raycast(focus, Vector3.new(0, CEILING_PROBE, 0), tunnelRay)
+	if not up then
+		return -- not under a tunnel
+	end
+	local eye = camera.CFrame.Position
+	local back = eye - focus
+	if back.Magnitude < 1e-3 then
+		return
+	end
+	local hit = Workspace:Raycast(focus, back, tunnelRay)
+	if hit then
+		eye = hit.Position - back.Unit * CAMERA_GAP
+	end
+	local limit = up.Position.Y - CAMERA_GAP
+	if eye.Y > limit and limit > focus.Y then
+		eye = focus + (eye - focus) * ((limit - focus.Y) / (eye.Y - focus.Y))
+	end
+	if (eye - camera.CFrame.Position).Magnitude > 1e-3 then
+		camera.CFrame = camera.CFrame.Rotation + eye
+	end
+end)

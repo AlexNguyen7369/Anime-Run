@@ -205,3 +205,25 @@
 - t7r WIP committed 14abf92 (12 mesh ids in Desert.luau, dust 77443196483447, sky faces Bk 126814177699454 Dn
   90423288718397 Ft 91385232590200 Lf 119320290687932 Rt 98579734251070 Up 89593505205012). All work branches pushed
   to origin (orch/biomes/fw5, fw6, t7r, t9, t10, t7 superseded) for safety; only feature/alex/anime-world is integrated.
+- 2026-11-01 RESUMED (owner): Tracks 9-10 + Track 7 completion. Owner asks: Track 7 brighter (not pure darkness);
+  Track 4 more neon purple lights + ambient air particles (twilight). Running: t9 in Studio (b78475e0), t7r
+  brightness + NOMESH in ../AnimeRun-orch/t7r, fight-scene spec in t7r docs, t4 tweak in ../AnimeRun-orch/t4b.
+  Studio queue: t9 -> t7r (fight figures + verify) -> t10 -> t4b check + shots.
+- t4b (Track 4 twilight tweak) paused before any edit. Spec 5.2 caps zone emitters at 2 per profile, Rate <= 40;
+  Track 4 uses both (petals 14, fireflies 8). Plan: retune those two (no new textures) + neon purple accents/Glow +
+  twilight atmosphere nudge + spec 7 update.
+- t7r WIP pushed: brighter tunnel (Ambient #6A7470, OutdoorAmbient #3A4442, Exposure 0.35, EnvDiffuse 0.4, Density
+  0.2, Haze 0.5, tint #FFF6EA, Contrast 0.12, LightEvery 16; Tunnel.LIGHT brightness is framework). Harness not rerun;
+  NOMESH 23 props outside (Scatter fallbacks ~7.2x3.6x5.2, untraced).
+- Fight-scene spec: nothing written. Extra source: en.wikipedia.org/wiki/List_of_Jujutsu_Kaisen_characters (Hanami's
+  shoulder flower, Jogo fire, Choso blood, Mahito reshaping); animecorner + bamsmackpow ep8. Gojo/Jogo/Mahito looks
+  not confirmed by a public source. Write as a new Track 7 subsection; note the owner override of the IP line there.
+- t9 paused: no uploads, no ledger ids, files unchanged (f61e03b + merge d446f36, studio worktree on orch/biomes/t9).
+  Left: close-ups (DomePalace squat -> regenerate), uploads (sand, moon, 6 sky faces), ids, harness/lint, verify.
+- 2026-11-01 PAUSED by owner. Studio b78475e0 clean in Edit. Resume order: t9 (Studio) -> t7r (NOMESH + fight spec +
+  figures + verify, land with fw5/fw6) -> t10 -> t4b twilight tweak (retune 2 emitters, neon purple) + shots.
+- LANDED Track 9 Spirit Realm Desert. Next: t7r Studio (fight figures + verify), then t10, then t4b check.
+- 2026-11-01 OWNER: after Track 7 lands (fw9 -> 4 checks green), PAUSE ALL TESTS. Then land Track 10 (audit PASS,
+  9bf594a) and the Track 4 twilight tweak (t4b 020dfa9) without scenario runs (screenshots only). Full compatibility
+  check c3 (full harness + rules audit) runs ONLY when the owner says so.
+- LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.

@@ -226,6 +226,9 @@ Owner redesign 2026-10-31; replaces the original Blossom Shrine Path. Research p
   line name, letter or brown line colour, no station numbering, no real department store names); no copy of the real
   oval station atrium; no sealing-cube artifact; no character likenesses (no figures on the platforms). Signs use
   made-up text.
+- Fight scene (owner 2026-10-31, resumed 2026-11-01): one still tableau in the deep platform hall (`At = 0.84`), Gojio
+  [Gojo] mid domain expansion against Joggo [Jogo], Hanamy [Hanami], Mahitto [Mahito] and Chosu [Choso]. The owner
+  overrides "no character likenesses" for this scene only. Spec: BIOME_ENVIRONMENT_SPEC section 7 Track 7.
 - Underground biome: no sky, lit by its own ceiling lights (BIOME_ENVIRONMENT_SPEC 3.5, proposed framework task).
   Never change global Lighting.
 - Sky/ground: none; enclosed. Ceiling overhead, tiled walls, a concrete floor beside the track bed.

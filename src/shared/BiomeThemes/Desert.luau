@@ -1,136 +1,1000 @@
 --!nonstrict
--- Track 7: cherry blossom avenue, rows and tunnels of red gates, stone stairs, a hilltop shrine; plaques carry
--- no text
--- Data only (format in Kit). b1 stubs: Terrain, Atmosphere, Audio and Assets; b2 fills them in for this biome.
+-- Track 7 (owner redesign 2026-10-31): Shibuyo Underground, a deep subway. The whole route runs inside an enclosed
+-- tunnel (docs/BIOME_ENVIRONMENT_SPEC.md 3.5) of cream tiles with one teal band, a concrete ceiling with fluorescent
+-- strips, opening into side platforms, a multi-level concourse and the deep main platform hall.
+-- Data only (format in Kit). b2 (spec section 7, Track 7): Tunnel, earth over the roof, an Underground atmosphere,
+-- audio and the asset ledger. Mesh props keep their part fallback (spec 4.2), scaled to the mesh's size.
+-- Dressing inside the tunnel stands between the walls or on the bay platforms; only layers marked Surface = true go on
+-- the earth over the roof (fw6, orchestrator default 2026-10-31), and those stay sparse (vents, stair entrances).
+-- IP (spec 7): no real station, line or company names, letters, numbers, colours or logos; no real oval atrium; no
+-- sealing-cube artifact; no character figures. Signs and maps carry abstract shapes and colour bands only, no text.
 local Kit = require(script.Parent.Kit)
 
-local M, hex, rgb, v, BALL, part, post, prop, block, roundTree, frameGate, stoneLantern, house, gate, patch, giants, SPARKLE, particles, BLOSSOM7, VERMILION7, STONE7, ROOF7, WOOD7, SKY7, gateTunnel, stoneStairs =
-	Kit.M,
-	Kit.hex,
-	Kit.rgb,
-	Kit.v,
-	Kit.BALL,
-	Kit.part,
-	Kit.post,
-	Kit.prop,
-	Kit.block,
-	Kit.roundTree,
-	Kit.frameGate,
-	Kit.stoneLantern,
-	Kit.house,
-	Kit.gate,
-	Kit.patch,
-	Kit.giants,
-	Kit.SPARKLE,
-	Kit.particles,
-	Kit.BLOSSOM7,
-	Kit.VERMILION7,
-	Kit.STONE7,
-	Kit.ROOF7,
-	Kit.WOOD7,
-	Kit.SKY7,
-	Kit.gateTunnel,
-	Kit.stoneStairs
+local M, hex, v, BALL, part, post, prop, block, gate, patch =
+	Kit.M, Kit.hex, Kit.v, Kit.BALL, Kit.part, Kit.post, Kit.prop, Kit.block, Kit.gate, Kit.patch
+
+-- Palette (TRACKS_AND_BIOMES_SPEC Track 7, placeholders)
+local TILE = hex("E9E4D6") -- tile cream
+local CONCRETE = hex("8C8A84")
+local BED = hex("2B2E33") -- track bed
+local TACTILE = hex("F2D23A") -- tactile yellow
+local TEAL = hex("3FA7A0") -- stripe band
+local FLUO = hex("CFE8FF") -- fluorescent white
+local RED = hex("B5281F") -- emergency red
+local STEEL = hex("6E747C")
+local DARK = hex("3A3F46")
+local GLASS = hex("9FC7D0")
+
+-- A mesh prop (spec 4.2): `def`'s parts, stretched to `size` per axis, are the fallback when the ledger row is
+-- unusable. Stretched, not scaled by height, because the tunnel fit (BiomeDressing tunnelBox) also reads the fallback
+-- parts' corners. `size` keeps the generated mesh's own proportions unless a comment says it is stretched.
+local function meshed(def, key, size, extra)
+	local k = size / def.Size
+	local parts = {}
+	for i, p in def.Parts do
+		local q = table.clone(p)
+		-- an upright cylinder (Kit.post) stretches along its own axes
+		local kl = p.Shape == Kit.CYL and p.Rot and p.Rot:VectorToObjectSpace(k) or k
+		q.Size = p.Size * Vector3.new(math.abs(kl.X), math.abs(kl.Y), math.abs(kl.Z))
+		q.Pos = p.Pos * k
+		parts[i] = q
+	end
+	local out = prop(def.Name, size, parts, { Mesh = key, Glow = def.Glow, Tag = def.Tag, Pad = def.Pad })
+	for name, value in extra or {} do
+		out[name] = value
+	end
+	return out
+end
+
+-- Hero 1: a box-shaped multi-level concourse void (never the real oval atrium): two balcony levels on grey columns,
+-- criss-cross escalators between them, glass rails, a row of ticket gates in front and light strips under each level.
+local function concourseAtrium()
+	local parts = {
+		part(v(30, 19, 1), v(0, 9.5, 7.5), TILE, M.CeramicTiles), -- back wall
+		part(v(30, 1.2, 1.1), v(0, 4, 7), TEAL, M.SmoothPlastic), -- stripe band
+		part(v(30, 1, 6), v(0, 7, 4.5), CONCRETE, M.Concrete), -- level 1 balcony
+		part(v(30, 1, 6), v(0, 13.5, 4.5), CONCRETE, M.Concrete), -- level 2 balcony
+		part(v(30, 0.8, 16), v(0, 18.6, 0), CONCRETE, M.Concrete), -- roof slab
+		part(v(30, 1.6, 0.2), v(0, 8.3, 1.4), GLASS, M.Glass), -- glass rails
+		part(v(30, 1.6, 0.2), v(0, 14.8, 1.4), GLASS, M.Glass),
+		part(v(24, 0.2, 1), v(0, 6.4, 3), FLUO, M.Neon), -- light strips under the levels
+		part(v(24, 0.2, 1), v(0, 12.9, 3), FLUO, M.Neon),
+		part(v(24, 0.2, 1), v(0, 18.1, 0), FLUO, M.Neon),
+		-- criss-cross escalators (slanted runs with dark steps and steel sides)
+		part(v(12, 0.8, 2.6), v(-6, 3.5, -1), DARK, M.DiamondPlate, nil, CFrame.Angles(0, 0, math.rad(30))),
+		part(v(12, 0.8, 2.6), v(6, 10, -1), DARK, M.DiamondPlate, nil, CFrame.Angles(0, 0, math.rad(-30))),
+		part(v(12, 1.6, 0.4), v(-6, 4.3, -2.4), STEEL, M.Metal, nil, CFrame.Angles(0, 0, math.rad(30))),
+		part(v(12, 1.6, 0.4), v(6, 10.8, -2.4), STEEL, M.Metal, nil, CFrame.Angles(0, 0, math.rad(-30))),
+		part(v(16, 0.4, 3), v(0, 0.2, -6), TACTILE, M.SmoothPlastic), -- tactile strip in front of the gates
+	}
+	for _, x in { -14, -4.7, 4.7, 14 } do -- columns
+		table.insert(parts, post(18, 1.4, v(x, 9, 2), STEEL, M.Metal))
+	end
+	for _, x in { -6, -2, 2, 6 } do -- ticket gate row (blank panels)
+		table.insert(parts, part(v(0.8, 3, 3), v(x, 1.5, -4), hex("C9CCD0"), M.SmoothPlastic))
+		table.insert(parts, part(v(0.9, 0.3, 0.6), v(x, 3.1, -5), TEAL, M.Neon))
+	end
+	return prop("ConcourseAtrium", v(30, 19, 16), parts, { Glow = FLUO })
+end
+
+-- Hero 2: a stalled subway car derailed across the platform, its plain end toward the road (the generator makes long
+-- shapes along Z and the registry cannot turn a mesh): cream body, one teal band, dark windows, no numbers or logos.
+local function stalledTrain()
+	return prop("StalledTrain", v(6.3, 8, 13.2), {
+		part(v(6, 5.6, 13), v(0, 4.4, 0), hex("DCD8CC"), M.Metal), -- body
+		part(v(6.1, 1.6, 13.1), v(0, 2.6, 0), TEAL, M.SmoothPlastic), -- band
+		part(v(6.1, 1.6, 10), v(0, 5.4, 0), hex("2A3138"), M.Glass), -- side windows
+		part(v(6.3, 0.8, 13.2), v(0, 7.6, 0), STEEL, M.Metal), -- roof
+		part(v(5, 1.2, 11), v(0, 0.6, 0), BED, M.Metal), -- bogies
+	}, { Glow = FLUO })
+end
+
+-- Hero 3: the deep main platform hall: a long island platform piece with rows of grey columns, half-height platform
+-- screen doors along the edge, a yellow tactile strip, benches, and a ceiling beam with fluorescent strips.
+local function platformHall()
+	local parts = {
+		part(v(34, 1, 16), v(0, 0.5, 0), CONCRETE, M.Concrete), -- platform slab
+		part(v(34, 0.1, 1.2), v(0, 1.05, -6.6), TACTILE, M.SmoothPlastic), -- tactile strip
+		part(v(34, 1.2, 14), v(0, 12.4, 0), CONCRETE, M.Concrete), -- ceiling beam
+		part(v(30, 0.2, 1), v(0, 11.7, -3), FLUO, M.Neon),
+		part(v(30, 0.2, 1), v(0, 11.7, 3), FLUO, M.Neon),
+		part(v(34, 0.6, 0.6), v(0, 4.7, -7.6), STEEL, M.Metal), -- screen door head rail
+	}
+	for _, x in { -14, -7, 0, 7, 14 } do
+		table.insert(parts, post(10.8, 1.6, v(x, 6.4, -3), STEEL, M.Metal)) -- column rows
+		table.insert(parts, post(10.8, 1.6, v(x, 6.4, 3), STEEL, M.Metal))
+		table.insert(parts, part(v(5, 3.2, 0.2), v(x + 3.5, 2.6, -7.6), GLASS, M.Glass)) -- screen door panels
+		table.insert(parts, part(v(0.5, 3.6, 0.5), v(x, 2.8, -7.6), STEEL, M.Metal))
+	end
+	for _, x in { -10.5, 3.5 } do
+		table.insert(parts, part(v(4, 1.4, 1.4), v(x, 1.7, 0), hex("8A6E52"), M.WoodPlanks)) -- benches
+	end
+	return prop("PlatformHall", v(34, 13, 16), parts, { Glow = FLUO })
+end
+
+-- Hero 4: a collapsed escalator hall: an escalator truss tilted down from a broken ceiling, fallen ceiling panels,
+-- a bent handrail and rubble at its foot.
+local function collapsedEscalator()
+	return prop("CollapsedEscalator", v(20, 13, 14), {
+		part(v(20, 1, 14), v(0, 12.5, 2), CONCRETE, M.Concrete), -- broken ceiling slab
+		part(v(16, 1.6, 4), v(0, 6, 0), DARK, M.DiamondPlate, nil, CFrame.Angles(0, 0, math.rad(-35))), -- truss
+		part(v(16, 2, 0.4), v(0, 7.4, -2.1), STEEL, M.Metal, nil, CFrame.Angles(0.15, 0, math.rad(-35))), -- rail
+		part(v(16, 2, 0.4), v(0, 7.4, 2.1), STEEL, M.Metal, nil, CFrame.Angles(-0.2, 0, math.rad(-38))),
+		part(v(6, 0.6, 5), v(-6, 1.8, -3), CONCRETE, M.Concrete, nil, CFrame.Angles(0.3, 0.4, 0.2)), -- fallen panels
+		part(v(5, 0.6, 4), v(5, 1.6, 3), hex("A8A49A"), M.Concrete, nil, CFrame.Angles(-0.2, 0.9, 0.3)),
+		part(v(3, 2, 3), v(8, 1.8, -4), CONCRETE, M.Slate, nil, CFrame.Angles(0, 0.5, 0.2)), -- rubble
+		part(v(2.4, 1.6, 2), v(-8.5, 1.2, 4), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0.2, 0.3, 0)),
+		part(v(8, 3, 0.8), v(0, 10, 6.5), TILE, M.CeramicTiles), -- tile wall chunk
+		part(v(8, 0.6, 0.85), v(0, 9.6, 6.5), TEAL, M.SmoothPlastic),
+		part(v(1.2, 0.6, 3), v(-4, 11.8, -2), RED, M.Neon), -- emergency light
+	}, { Glow = RED })
+end
+
+-- Mid props (parts are the mesh fallbacks)
+local column = prop("PlatformColumn", v(2, 16, 2), {
+	post(16, 1.6, v(0, 8, 0), STEEL, M.Metal),
+	part(v(2, 2, 2), v(0, 1, 0), TILE, M.CeramicTiles), -- tiled foot
+	part(v(1.8, 0.6, 1.8), v(0, 5, 0), TEAL, M.SmoothPlastic), -- band
+})
+local screenDoor = prop("ScreenDoor", v(10, 5, 1), {
+	part(v(10, 0.5, 1), v(0, 4.75, 0), STEEL, M.Metal), -- head rail
+	part(v(4.4, 4.2, 0.2), v(-2.5, 2.3, 0), GLASS, M.Glass),
+	part(v(4.4, 4.2, 0.2), v(2.5, 2.3, 0), GLASS, M.Glass),
+	part(v(0.5, 4.5, 1), v(0, 2.25, 0), STEEL, M.Metal),
+	part(v(0.5, 4.5, 1), v(-4.75, 2.25, 0), STEEL, M.Metal),
+	part(v(0.5, 4.5, 1), v(4.75, 2.25, 0), STEEL, M.Metal),
+})
+local bench = prop("PlatformBench", v(6, 2.5, 2), {
+	part(v(6, 0.4, 1.8), v(0, 1.4, 0), hex("8A6E52"), M.WoodPlanks),
+	part(v(6, 1, 0.3), v(0, 2, 0.8), hex("8A6E52"), M.WoodPlanks),
+	part(v(0.4, 1.2, 1.6), v(-2.4, 0.6, 0), STEEL, M.Metal),
+	part(v(0.4, 1.2, 1.6), v(2.4, 0.6, 0), STEEL, M.Metal),
+})
+local vending = prop("VendingMachine", v(4, 7, 3), { -- blank: colour blocks only, no text or logo
+	part(v(4, 7, 3), v(0, 3.5, 0), hex("D8DCE0"), M.SmoothPlastic),
+	part(v(3, 3.4, 0.2), v(0, 4.6, -1.5), GLASS, M.Glass),
+	part(v(3, 0.6, 0.2), v(0, 6.5, -1.5), TEAL, M.Neon),
+	part(v(1, 1.6, 0.2), v(1, 1.8, -1.5), DARK, M.SmoothPlastic),
+}, { Glow = FLUO })
+local ticketGate = prop("TicketGates", v(10, 4, 3), {
+	part(v(1, 3, 3), v(-4.5, 1.5, 0), hex("C9CCD0"), M.SmoothPlastic),
+	part(v(1, 3, 3), v(-1.5, 1.5, 0), hex("C9CCD0"), M.SmoothPlastic),
+	part(v(1, 3, 3), v(1.5, 1.5, 0), hex("C9CCD0"), M.SmoothPlastic),
+	part(v(1, 3, 3), v(4.5, 1.5, 0), hex("C9CCD0"), M.SmoothPlastic),
+	part(v(1.2, 0.3, 0.8), v(-4.5, 3.15, -1), TEAL, M.Neon),
+	part(v(1.2, 0.3, 0.8), v(-1.5, 3.15, -1), TEAL, M.Neon),
+	part(v(1.2, 0.3, 0.8), v(1.5, 3.15, -1), RED, M.Neon),
+	part(v(1.2, 0.3, 0.8), v(4.5, 3.15, -1), TEAL, M.Neon),
+	part(v(2, 1, 0.2), v(-3, 2, 0), hex("E05A3A"), M.SmoothPlastic), -- swing flaps
+	part(v(2, 1, 0.2), v(3, 2, 0), hex("E05A3A"), M.SmoothPlastic),
+})
+-- Wall map: a board of abstract coloured lines and dots on the tiles (no text, no real line colours or map)
+local wallMap = prop("WallMap", v(8, 10, 1), {
+	part(v(0.4, 5, 0.4), v(-3.5, 2.5, 0.3), STEEL, M.Metal), -- legs (the board stands on the floor)
+	part(v(0.4, 5, 0.4), v(3.5, 2.5, 0.3), STEEL, M.Metal),
+	part(v(8, 5, 0.4), v(0, 7.5, 0.3), hex("F4F2EC"), M.SmoothPlastic),
+	part(v(8.2, 0.3, 0.5), v(0, 10.1, 0.3), STEEL, M.Metal),
+	part(v(6, 0.3, 0.1), v(0, 8.4, 0.05), TEAL, M.Neon),
+	part(v(0.3, 3.6, 0.1), v(-1.5, 7.5, 0.05), TACTILE, M.SmoothPlastic),
+	part(v(4, 0.3, 0.1), v(1, 6.5, 0.05), hex("6A7FD0"), M.SmoothPlastic, nil, CFrame.Angles(0, 0, 0.5)),
+	part(v(0.8, 0.8, 0.1), v(2.5, 8.4, 0), RED, M.SmoothPlastic, BALL),
+})
+local rubble = prop("Rubble", v(8, 2, 6), { -- yaw-only chunks resting on the floor (the tunnel fit holds the base)
+	part(v(4, 0.6, 3), v(-1.5, 0.3, -0.5), CONCRETE, M.Concrete, nil, CFrame.Angles(0, 0.4, 0)),
+	part(v(3, 1.4, 2.4), v(2, 0.7, 1), hex("A8A49A"), M.Slate, nil, CFrame.Angles(0, 0.7, 0)),
+	part(v(2.4, 0.3, 2), v(-2.5, 0.75, 2), TILE, M.CeramicTiles, nil, CFrame.Angles(0, 0.2, 0)), -- broken tiles
+	part(v(2, 1.2, 1.6), v(3, 0.6, -2), hex("74706A"), M.Slate, nil, CFrame.Angles(0, 1.1, 0)),
+})
+-- Surface: a street stair entrance down to the subway, a glass canopy over the steps, a plain colour band, no sign
+local stairEntrance = prop("StairEntrance", v(12, 8, 8), {
+	part(v(12, 1, 8), v(0, 0.5, 0), CONCRETE, M.Concrete),
+	part(v(8, 0.6, 6), v(0, 0.6, 0.5), BED, M.Concrete), -- the stair well
+	part(v(0.6, 3, 7), v(-4.5, 2.5, 0.5), STEEL, M.Metal), -- side walls
+	part(v(0.6, 3, 7), v(4.5, 2.5, 0.5), STEEL, M.Metal),
+	part(v(9.6, 0.4, 7.6), v(0, 7.6, 0.5), GLASS, M.Glass), -- canopy
+	part(v(10, 0.6, 0.6), v(0, 7.1, -3.5), TEAL, M.SmoothPlastic), -- colour band, no text
+	post(7, 0.5, v(-4.6, 3.5, -3.4), STEEL, M.Metal),
+	post(7, 0.5, v(4.6, 3.5, -3.4), STEEL, M.Metal),
+	part(v(2, 0.3, 0.2), v(0, 6.4, -3.6), FLUO, M.Neon),
+}, { Glow = FLUO })
+
+-- Parts-only props
+local emergencyLight = prop("EmergencyLight", v(2, 9, 1), {
+	part(v(0.3, 7.5, 0.3), v(0, 3.75, 0.3), DARK, M.Metal), -- conduit down to the floor (the prop stands on it)
+	part(v(1.6, 1, 0.8), v(0, 8, 0.1), DARK, M.Metal),
+	part(v(1.2, 0.6, 0.3), v(0, 7.8, -0.35), RED, M.Neon),
+})
+local fireCabinet = block("FireCabinet", v(3, 5, 1), RED, M.Metal, {
+	part(v(2.4, 3, 0.1), v(0, 3, -0.5), hex("D8443A"), M.Glass),
+})
+local ventGrille = block("VentGrille", v(6, 3, 1), DARK, M.DiamondPlate, {
+	part(v(6.2, 0.3, 1.1), v(0, 3, 0), STEEL, M.Metal),
+})
+local ventStack = prop("VentStack", v(8, 7, 8), { -- surface air shaft
+	part(v(8, 5, 8), v(0, 2.5, 0), CONCRETE, M.Concrete),
+	part(v(7, 1.6, 7), v(0, 5.8, 0), DARK, M.DiamondPlate),
+	part(v(8.4, 0.4, 8.4), v(0, 6.8, 0), STEEL, M.Metal),
+})
+local streetPost = prop("StreetPost", v(3, 12, 3), { -- surface street lamp
+	post(12, 0.6, v(0, 6, 0), DARK, M.Metal),
+	part(v(2.4, 0.5, 1), v(-0.8, 11.8, 0), DARK, M.Metal),
+	part(v(1.6, 0.3, 0.8), v(-1.2, 11.5, 0), FLUO, M.Neon),
+})
+
+-- Mesh props (Lane A); sizes keep each mesh's own proportions unless a comment says it is stretched. Benches,
+-- vending machines and ticket gates face +Z (away from the road), so they are scatter props only (random yaw).
+local columnMesh = meshed(column, "PlatformColumnMesh", v(2, 11.5, 2)) -- mesh 2 x 3.83 x 2, stretched x3 up
+local screenDoorMesh = meshed(screenDoor, "ScreenDoorMesh", v(5.8, 3.9, 1)) -- mesh 3.88 x 3.92 x 1, stretched x1.5 wide
+local benchMesh = meshed(bench, "PlatformBenchMesh", v(3.74, 2.5, 1.79))
+local vendingMesh = meshed(vending, "VendingMachineMesh", v(4, 6.25, 2.78))
+local ticketGateMesh = meshed(ticketGate, "TicketGatesMesh", v(5.26, 4, 1.97))
+local wallMapMesh = meshed(wallMap, "WallMapMesh", v(6.4, 6.08, 1))
+local rubbleMesh = meshed(rubble, "RubbleMesh", v(3.82, 3.2, 3.88)) -- mesh 2.39 x 2 x 2.43, x1.6
+local entranceMesh = meshed(stairEntrance, "StairEntranceMesh", v(8.19, 8, 5.14))
+
+-- Mesh rows: generated in Studio (Lane A) with the stored prompt; each mesh's own generated texture is a Texture row
+-- Every row is signed by the rules auditor (spec 4.1 step 3); close-ups are in assets/biomes/Desert/review/.
+-- Notes give the generate_mesh call: size (studs) and segmentation, and the mesh's own size; Tris is its maxTriangles.
+local function meshRow(id, texture, prompt, tris, notes, reviewed)
+	return {
+		Kind = "Mesh",
+		Id = id,
+		Lane = "A",
+		Prompt = prompt,
+		Texture = texture,
+		Tris = tris,
+		Reviewed = reviewed,
+		Notes = notes,
+	}
+end
+local function textureRow(id, mesh, reviewed)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = reviewed,
+	}
+end
+local SIGNED = "2026-11-01 rules-auditor" -- close-up IP review of every ledger row (fight scene included)
+
+-- Fight scene (spec 7, Track 7 "Fight scene", owner 2026-10-31, resumed 2026-11-01): a still tableau in the deep main
+-- platform hall. Five parody look-alike figures (internal names only in the spec; asset keys T7FigureA-E here, no
+-- name is shown anywhere), a domain dome, roots, stylised blood, fire and a silhouette crowd.
+-- Data only: placing it needs a framework builder (fw7, reported to main 2026-11-01): one pinned group model at `At`
+-- on `Side`, on the bay platform, every item at Pos = (u along the track from the group centre, y up from the platform
+-- top, d from the platform edge into the bay) and Yaw degrees about Y (the frame's -Z faces the road and a generated
+-- mesh faces +Z, so 0 faces away from the road and 180 faces it; fw7 BiomeDressing). Every item
+-- is anchored, CanCollide / CanTouch / CanQuery off. `Effects` are client-side: emitters tagged BiomeEmitter, beams
+-- and the `Reduce` lights hidden or dimmed under REDUCED EFFECTS (section 8).
+-- Every generated figure faces +Z; Yaw -135 turns it toward -u and the road, +135 toward +u and the road (three-quarters
+-- toward the road, facing its opponent).
+local function figure(name, h, hair, top, legs, skin)
+	return prop(name, v(4, h, 3), {
+		part(v(1.6, h * 0.45, 1.4), v(-0.9, h * 0.225, 0), legs, M.SmoothPlastic),
+		part(v(1.6, h * 0.45, 1.4), v(0.9, h * 0.225, 0), legs, M.SmoothPlastic),
+		part(v(3.6, h * 0.33, 2), v(0, h * 0.615, 0), top, M.SmoothPlastic),
+		part(v(1.8, h * 0.16, 1.8), v(0, h * 0.86, 0), skin, M.SmoothPlastic),
+		part(v(2, h * 0.06, 2), v(0, h * 0.97, 0), hair, M.SmoothPlastic),
+	})
+end
+local crowdDef = meshed(
+	prop("T7Crowd", v(5, 7.56, 2.65), { -- faceless grey-violet silhouette (fallback)
+		part(v(1.4, 3.4, 1.2), v(-0.8, 1.7, 0), hex("6E5C70"), M.SmoothPlastic),
+		part(v(1.4, 3.4, 1.2), v(0.8, 1.7, 0), hex("6E5C70"), M.SmoothPlastic),
+		part(v(3.4, 2.6, 2), v(0, 4.7, 0), hex("8C7E8F"), M.SmoothPlastic),
+		part(v(1.6, 1.6, 1.6), v(0, 6.76, 0), hex("8C7E8F"), M.SmoothPlastic),
+	}),
+	"T7CrowdMesh",
+	v(5, 7.56, 2.65)
+)
+local rootsDef = meshed(
+	prop("T7Roots", v(6, 6.46, 6.02), { -- a rooted trunk with pale flowers (fallback)
+		part(v(5.6, 0.8, 5.6), v(0, 0.4, 0), hex("5A3E2B"), M.Wood),
+		part(v(1.4, 4.6, 1.4), v(0, 3.1, 0), hex("5A3E2B"), M.Wood),
+		part(v(3.6, 1.6, 3.6), v(0, 5.6, 0), hex("F4C6D2"), M.SmoothPlastic, BALL),
+	}),
+	"T7RootsMesh",
+	v(6, 6.46, 6.02)
+)
+local DOMAIN = hex("05060C")
+local BLOOD = hex("A3121C")
+local FIRE = hex("FF6A1A")
+local FIGHT = {
+	At = 0.84,
+	Side = "Left",
+	Size = v(40, 26, 40), -- footprint along the track x headroom x depth (spec: 40 x 26 x 40)
+	Items = {
+		-- figures (Lane A meshes; heights from the spec; sizes keep each mesh's proportions)
+		{
+			Key = "T7FigureA",
+			Pos = v(12, 0, 18),
+			Yaw = -135,
+			Def = meshed(
+				figure("T7FigureA", 10.5, hex("F2F4F8"), hex("1A1C24"), hex("1A1C24"), hex("F1D9C6")),
+				"T7FigureA",
+				v(4.63, 10.5, 4.66)
+			),
+		},
+		{
+			Key = "T7FigureB",
+			Pos = v(-6, 0, 12),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureB", 6, hex("FF6A1A"), hex("EDE6D6"), hex("EDE6D6"), hex("B9AE9A")),
+				"T7FigureB",
+				v(5.04, 6, 2.94)
+			),
+		},
+		{
+			Key = "T7FigureC",
+			Pos = v(-8, 0, 26),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureC", 12, hex("5A3E2B"), hex("D8D3C8"), hex("EFEDE6"), hex("D8D3C8")),
+				"T7FigureC",
+				v(6.48, 12, 3.33)
+			),
+		},
+		{
+			Key = "T7FigureD",
+			Pos = v(-16, 0, 18),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureD", 9.5, hex("141414"), hex("4B2E4F"), hex("2A2630"), hex("F1D9C6")),
+				"T7FigureD",
+				v(3.87, 9.5, 3.54)
+			),
+		},
+		{
+			Key = "T7FigureE",
+			Pos = v(-18, 0, 34),
+			Yaw = 135,
+			Def = meshed(
+				figure("T7FigureE", 9, hex("8EA3B5"), hex("E3E1DC"), hex("2C2F38"), hex("E9DCCF")),
+				"T7FigureE",
+				v(7.17, 9, 3.3)
+			),
+		},
+		-- transfigured crowd silhouettes along the back wall, u -20 to +4 (one mesh, 5 placements, 7-9 studs)
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-20, 0, 38), Yaw = 160, Scale = 1 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-14, 0, 39), Yaw = 200, Scale = 0.9 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-8, 0, 38.5), Yaw = 175, Scale = 1.1 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(-2, 0, 39), Yaw = 190, Scale = 0.95 },
+		{ Key = "T7CrowdMesh", Def = crowdDef, Pos = v(4, 0, 38), Yaw = 170, Scale = 1.05 },
+		-- roots from the plant figure toward the dome edge (they stop at the shell), and one spread sealing the bay's
+		-- far stair opening
+		{ Key = "T7RootsMesh", Def = rootsDef, Pos = v(-3, 0, 24), Yaw = 100, Scale = 1 },
+		{ Key = "T7RootsMesh", Def = rootsDef, Pos = v(-2, 0, 30), Yaw = 70, Scale = 0.85 },
+		{
+			Key = "T7RootsMesh",
+			Def = rootsDef,
+			Pos = v(18, 0, 36),
+			Yaw = 0,
+			Scale = 1.3,
+			Note = "seals the far stair opening",
+		},
+		-- domain dome: a Ball shell cut by the platform, radius 12, around the first figure
+		{
+			Def = prop("DomainDome", v(24, 24, 24), {
+				part(v(24, 24, 24), v(0, 0, 0), DOMAIN, M.SmoothPlastic, BALL),
+			}),
+			Pos = v(12, 0, 18),
+			Transparency = 0.45,
+			CastShadow = false,
+			Name = "DomainDome",
+		},
+		{
+			Def = prop("DomainRing", v(24, 0.2, 24), {
+				part(v(0.2, 24, 24), v(0, 0.1, 0), hex("E8F0FF"), M.Neon, Kit.CYL, Kit.UP),
+			}),
+			Pos = v(12, 0, 18),
+			Transparency = 0.6,
+			CastShadow = false,
+			Name = "DomainRing",
+		},
+		-- stylised blood orbs (static, floating) between the fourth figure and the dome edge
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-12, 5.5, 17),
+			Transparency = 0.2,
+			Name = "BloodOrb1",
+		},
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-11, 6.5, 19.5),
+			Transparency = 0.2,
+			Name = "BloodOrb2",
+		},
+		{
+			Def = prop(
+				"BloodOrb",
+				v(1.2, 1.2, 1.2),
+				{ part(v(1.2, 1.2, 1.2), v(0, 0.6, 0), hex("8E0F18"), M.Glass, BALL) }
+			),
+			Pos = v(-13, 7, 18.5),
+			Transparency = 0.2,
+			Name = "BloodOrb3",
+		},
+		-- three static floating lava rocks and a glowing floor vent at the fire figure
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-3, 5, 11),
+			Yaw = 30,
+			Name = "LavaRock1",
+		},
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-5, 7.5, 9.5),
+			Yaw = 70,
+			Name = "LavaRock2",
+		},
+		{
+			Def = prop("LavaRock", v(1.6, 1.4, 1.6), {
+				part(v(1.6, 1.4, 1.6), v(0, 0.7, 0), hex("2E2E3A"), M.Basalt),
+				part(v(1.7, 0.2, 0.3), v(0, 0.8, 0), FIRE, M.Neon),
+			}),
+			Pos = v(-8, 6, 10.5),
+			Yaw = 120,
+			Name = "LavaRock3",
+		},
+		{
+			Def = prop("FloorVent", v(3, 0.2, 3), { part(v(3, 0.2, 3), v(0, 0.1, 0), FIRE, M.Neon) }),
+			Pos = v(-6, 0, 12.5),
+			Name = "FloorVent",
+		},
+	},
+	-- client effects (spec VFX 1-8): at most 12 emitters and 9 beams with everything on. Texture keys are ledger rows;
+	-- Track 5's ember and smoke textures are reused by id (no fire flipbook exists in Track 5, so flames use the ember).
+	Effects = {
+		{
+			Kind = "Emitter",
+			At = "DomainDome",
+			Texture = "FightStar",
+			Color = { hex("FFFFFF") },
+			Shape = "Sphere",
+			Rate = 30,
+			Lifetime = { 3, 5 },
+			Speed = 0,
+			Size = { 0.15, 0.3 },
+			LightEmission = 1,
+		},
+		{
+			Kind = "Emitter",
+			At = "DomainDome",
+			Texture = "FightGalaxy",
+			Color = { hex("7FA8FF"), hex("9A7CFF") },
+			Shape = "Sphere",
+			Rate = 3,
+			Lifetime = { 6, 6 },
+			Speed = 0,
+			Size = { 4, 6 },
+			Rotation = { 0, 360 },
+			LightEmission = 0.8,
+		},
+		{
+			Kind = "Beams",
+			From = "T7FigureA",
+			FromY = 6.5,
+			To = "DomainDome",
+			Count = 8,
+			Texture = "FightBeam",
+			Width = { 0.4, 0.05 },
+			Color = hex("FFFFFF"),
+			LightEmission = 1,
+			TextureSpeed = 2,
+		},
+		{ Kind = "Light", At = "T7FigureA", Color = hex("CFE4FF"), Brightness = 2, Range = 20, ReducedBrightness = 1 },
+		{ Kind = "Light", At = "DomainRing", Color = hex("E8F0FF"), Brightness = 1, Range = 8, Reduce = true },
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 6,
+			Texture = "Track5Ember",
+			Color = { hex("FFC23D"), FIRE, hex("3A1A10") },
+			Rate = 15,
+			Lifetime = { 0.8, 1.4 },
+			Speed = 4,
+			Size = { 0.6, 1.4 },
+			LightEmission = 1,
+			Note = "crater flames",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 3.5,
+			Forward = 2,
+			Texture = "Track5Ember",
+			Color = { hex("FFC23D"), FIRE, hex("3A1A10") },
+			Rate = 15,
+			Lifetime = { 0.5, 1 },
+			Speed = 1,
+			Size = { 1, 2 },
+			LightEmission = 1,
+			Note = "fireball at the hands",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureB",
+			Y = 6.5,
+			Texture = "Track5Smoke",
+			Color = { hex("4A4040") },
+			Rate = 4,
+			Lifetime = { 3, 4 },
+			Speed = 2,
+			Size = { 1.5, 3 },
+			LightEmission = 0,
+			Note = "crater smoke",
+		},
+		{ Kind = "Light", At = "T7FigureB", Color = FIRE, Brightness = 2, Range = 14, Reduce = true },
+		{ Kind = "Light", At = "FloorVent", Color = FIRE, Brightness = 1, Range = 6, Reduce = true },
+		{
+			Kind = "Emitter",
+			At = "T7FigureC",
+			Y = 9,
+			Texture = "FightPetal",
+			Color = { hex("F4C6D2") },
+			Rate = 4,
+			Lifetime = { 4, 4 },
+			Speed = 0.5,
+			Size = { 0.3, 0.5 },
+			LightEmission = 0.1,
+		},
+		{
+			Kind = "Beam",
+			From = "T7FigureD",
+			FromY = 5,
+			To = "DomainDome",
+			ToEdge = true,
+			Texture = "FightBeam",
+			Width = { 0.6, 0.6 },
+			Color = { BLOOD, hex("5E0A10") },
+			LightEmission = 0.2,
+			Note = "stops at the dome edge",
+		},
+		{
+			Kind = "Emitter",
+			At = "T7FigureD",
+			Y = 5,
+			Forward = 1.5,
+			Texture = "FightDroplet",
+			Color = { BLOOD },
+			Rate = 5,
+			Lifetime = { 1, 1.5 },
+			Speed = 2,
+			Size = { 0.2, 0.35 },
+			LightEmission = 0,
+		},
+	},
+}
+
+-- Tunnel bays (spec 7, Track 7; fractions of the 11,245-stud track)
+-- orchestrator default 2026-10-31: the concourse bay is Left (Both reached Track 6's corridor, fw5)
+local BAYS = {
+	{ From = 0.12, To = 0.17, Side = "Left", Depth = 40, Height = 30 }, -- first side platform
+	{ From = 0.33, To = 0.40, Side = "Left", Depth = 60, Height = 40 }, -- concourse and atrium void
+	{ From = 0.58, To = 0.63, Side = "Right", Depth = 40, Height = 30 }, -- second platform, stalled train
+	{ From = 0.82, To = 0.90, Side = "Both", Depth = 50, Height = 30 }, -- deep main platform hall
+}
 
 return {
-	DisplayName = "Blossom Shrine Path",
-	Ground = { Color = hex("A9C98E"), Material = M.Grass },
-	Sky = { Color = SKY7 },
-	Gate = gate(VERMILION7, M.Wood),
+	DisplayName = "Shibuyo Underground",
+	FightScene = FIGHT, -- built by the fw7 scene builder (data above)
+	Ground = { Color = CONCRETE, Material = M.Concrete },
+	Sky = { Color = hex("1A2224") },
+	-- orchestrator default 2026-10-31: the framework gate (beam 28 high) cannot fit under the 20-stud ceiling, so it
+	-- stands in the open in front of the start portal (waypoint 2, about 10 studs from the start; the portal face is
+	-- at 16) and reads as the portal's frame, in its concrete colour
+	Gate = gate(CONCRETE, M.Concrete, FLUO, { Index = 2 }),
+	Tunnel = {
+		-- owner 2026-11-01 (very wide throughout): target width 120, ceiling 26; the framework narrows each side only
+		-- where a neighbouring track's corridor is near (spec 3.5, fw8)
+		Width = 120,
+		Height = 26,
+		Wall = { Material = M.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
+		Ceiling = { Material = M.Concrete, Color = "#8C8A84" },
+		Floor = { Material = M.Concrete, Color = "#8C8A84" },
+		-- owner 2026-11-01 (brighter, not pure darkness): a strip every 16 studs (was 24); the strip Brightness itself is
+		-- the framework's Tunnel.LIGHT
+		LightEvery = 16,
+		Bays = BAYS,
+		Portals = true,
+	},
+	-- Wall-hugging props against the tunnel wall: an Offset past the widest wall is clamped onto it (fw8)
 	Rhythm = {
-		Every = 3,
-		Offset = 10,
-		Props = {
-			frameGate("RedGate", 10, 12, VERMILION7, M.Wood, rgb(40, 34, 32)),
-			roundTree("CherryTree", 18, WOOD7, BLOSSOM7, M.Grass, hex("F2A9C4")),
-			stoneLantern("StoneLantern", 7, STONE7, rgb(255, 220, 150)),
-		},
+		Every = 6,
+		Offset = 60,
+		Props = { wallMapMesh, emergencyLight, fireCabinet, ventGrille },
 	},
+	-- Pinned heroes (At, spec 4.3), each inside its bay (fw6: a pinned hero takes the covering bay's side). Offset 10
+	-- puts a hero's road face 32 studs from the centre line, on the bay platform (30 out to the bay wall).
+	-- At values: 0.16 = the 462-stud straight in the first platform (0.155-0.196); 0.36 = the 572-stud concourse
+	-- straight (0.348-0.399); 0.6 = the 496-stud straight in the second platform (0.565-0.609); 0.83 = the 330-stud
+	-- straight in the main hall (0.811-0.840).
+	-- Heights at x1.75 stay under each bay's ceiling less its 4-stud platform (26 in platforms and the hall, 36 in the
+	-- concourse); depths stay inside the bay.
 	Landmarks = {
-		Offset = 40,
-		Every = 20,
+		Offset = 10,
+		Every = 60,
 		Props = {
-			house("ShrineHall", 20, 9, 16, WOOD7, ROOF7, {
-				WallMaterial = M.WoodPlanks,
-				Trim = VERMILION7,
-				Window = hex("F2E6C8"),
-				Glow = rgb(255, 210, 150),
-			}),
-			gateTunnel(),
-			stoneStairs(),
-			prop("StoneFox", v(4, 7.3, 5), { -- generic sitting fox on a plinth
-				part(v(4, 2, 5), v(0, 1, 0), STONE7, M.Slate),
-				part(v(2.4, 3, 2.4), v(0, 3.5, 0.4), hex("E8E8E4"), M.Marble),
-				part(v(1.8, 1.6, 2), v(0, 5.6, -0.2), hex("E8E8E4"), M.Marble),
-				part(v(0.5, 1, 0.5), v(-0.6, 6.8, 0), hex("E8E8E4"), M.Marble),
-				part(v(0.5, 1, 0.5), v(0.6, 6.8, 0), hex("E8E8E4"), M.Marble),
-				part(v(1.6, 0.8, 0.2), v(0, 4.6, -0.9), VERMILION7, M.Fabric), -- bib
-			}),
-			prop("WashBasin", v(8, 6.8, 5), {
-				part(v(6, 2, 3), v(0, 1, 0), STONE7, M.Slate),
-				part(v(5, 0.3, 2), v(0, 2.1, 0), hex("8CC8E8"), M.Glass),
-				post(6, 0.5, v(-3.5, 3, 1.5), WOOD7, M.Wood),
-				post(6, 0.5, v(3.5, 3, 1.5), WOOD7, M.Wood),
-				part(v(8, 0.8, 5), v(0, 6.4, 0), ROOF7, M.Slate),
-			}),
+			-- mesh 5.9 x 10.76 x 14, x1.1 (x1.75: 11.4 x 20.7 x 27); runs down toward the road. x1.3 did not fit: the first
+			-- platform sits on the ramp, which eats headroom
+			meshed(collapsedEscalator(), "CollapsedEscalatorMesh", v(6.5, 11.8, 15.4), { Hero = true, At = 0.16 }),
+			-- mesh 24.85 x 19 x 9.49, own size (x1.75: 43.5 x 33.25 x 16.6)
+			meshed(concourseAtrium(), "ConcourseAtriumMesh", v(24.85, 19, 9.49), { Hero = true, At = 0.36 }),
+			-- mesh 6.31 x 8 x 13.2, x1.5 (x1.75: 16.6 x 21 x 34.7)
+			meshed(stalledTrain(), "StalledTrainMesh", v(9.47, 12, 19.8), { Hero = true, At = 0.6 }),
+			-- mesh 17.07 x 13 x 9.98, x1.1 (x1.75: 32.9 x 25 x 19.2)
+			meshed(platformHall(), "PlatformHallMesh", v(18.8, 14.3, 11), { Hero = true, At = 0.83 }),
 		},
 	},
+	-- Surface (earth over the roof): sparse stair entrances, air shafts and street lamps
 	Horizon = {
-		Offset = 55, -- placeholder: x2 pieces span ~55-100 studs from the road, inside the ~110-stud gap between laps
-		Props = {
-			prop("HilltopShrine", v(60, 37, 22), {
-				part(v(60, 24, 22), v(0, 12, 0), hex("7FA36A"), M.Grass),
-				part(v(20, 8, 12), v(0, 28, 0), WOOD7, M.WoodPlanks),
-				part(v(26, 2, 16), v(0, 33, 0), ROOF7, M.Slate),
-				part(v(16, 2, 12), v(0, 35, 0), ROOF7, M.Slate),
-				part(v(14, 14, 14), v(-20, 30, 3), BLOSSOM7, M.Grass, BALL),
-				part(v(14, 14, 14), v(20, 30, 3), BLOSSOM7, M.Grass, BALL),
-			}),
-			prop("Pagoda", v(20, 45.5, 20), {
-				part(v(14, 10, 14), v(0, 5, 0), WOOD7, M.WoodPlanks),
-				part(v(20, 1.5, 20), v(0, 10.75, 0), ROOF7, M.Slate),
-				part(v(11, 9, 11), v(0, 16, 0), WOOD7, M.WoodPlanks),
-				part(v(17, 1.5, 17), v(0, 21.25, 0), ROOF7, M.Slate),
-				part(v(8, 8, 8), v(0, 26, 0), WOOD7, M.WoodPlanks),
-				part(v(14, 1.5, 14), v(0, 30.75, 0), ROOF7, M.Slate),
-				post(14, 0.8, v(0, 38.5, 0), hex("B8A060"), M.Metal),
-			}),
-		},
+		Surface = true,
+		Offset = 18,
+		Props = { entranceMesh, ventStack, streetPost },
 	},
+	-- Platform clutter in the bays
 	Scatter = {
-		Every = 2,
-		Near = 25,
-		Far = 160,
-		Props = {
-			"CherryTree",
-			"StoneLantern",
-			"StoneFox",
-			block("Bush", v(6, 4, 6), hex("6E9A5A"), M.Grass),
-			"RedGate",
-		},
+		Every = 3,
+		Near = 8,
+		Far = 40,
+		Props = { columnMesh, benchMesh, screenDoorMesh, rubbleMesh, vendingMesh, ticketGateMesh },
 		Patches = {
-			patch("PetalCarpet", 24, 16, BLOSSOM7, M.Grass),
-			patch("StoneSlabs", 20, 8, hex("C2C2BE"), M.Slate),
-			patch("Moss", 16, 12, hex("6E9A5A"), M.Grass),
+			patch("TactileStrip", 12, 1.2, TACTILE, M.SmoothPlastic),
+			patch("BrokenTiles", 8, 6, TILE, M.CeramicTiles),
+			patch("Puddle", 6, 4, hex("3A4A50"), M.Glass),
 		},
 	},
-	Blocks = giants({
-		roundTree("GiantCherry", 50, WOOD7, BLOSSOM7, M.Grass, hex("F2A9C4")),
-		frameGate("GiantGate", 30, 40, VERMILION7, M.Wood, rgb(40, 34, 32)),
-		house("TempleHall", 30, 14, 24, WOOD7, ROOF7, { WallMaterial = M.WoodPlanks, Trim = VERMILION7, Floors = 2 }),
+	-- No landmark emitters (the zone dust below is enough in the enclosed tunnel)
+	-- Spec 3.5 option A / 7: the ridge stays solid earth over the tunnel (Ground, Rock cliffs). No Grass under the road
+	-- (lesson b). Embank off. Every number is a placeholder.
+	Terrain = {
+		Ridge = { Shape = "Hills", Height = 14, Noise = 0.03, Amp = 4 },
+		Materials = { Corridor = M.Ground, Ridge = M.Ground, Cliff = M.Rock, Bed = M.Rock },
+		CliffSlope = 0.9,
+		Embank = false,
+	},
+	-- Spec 3.5 / 5.2 / 7: underground, lit only by the tunnel strips and Ambient. Values from section 7; the rest are
+	-- placeholders. The plain dark skybox (in-house, 6 faces) only shows through the portals.
+	Atmosphere = Kit.Atmosphere({
+		Underground = true,
+		-- owner 2026-11-01: "a bit more bright so player can see through the dimness, and not pure darkness". Lifted
+		-- Ambient / OutdoorAmbient and exposure, thinner dust haze, a warm-white interior tint and softer contrast (no
+		-- black crush). Was Ambient 3A4A48, OutdoorAmbient 1A2224, Diffuse 0.2, Density 0.3, Haze 1, Contrast 0.3,
+		-- TintColor E6FFF4. Placeholders.
+		Lighting = {
+			ClockTime = 0,
+			Brightness = 0,
+			Ambient = hex("6A7470"),
+			OutdoorAmbient = hex("3A4442"),
+			ExposureCompensation = 0.35,
+			EnvironmentDiffuseScale = 0.4,
+			EnvironmentSpecularScale = 0.25,
+		},
+		Atmosphere = { Density = 0.2, Offset = 0, Color = hex("4A5652"), Decay = hex("2A3230"), Glare = 0, Haze = 0.5 },
+		Grade = { Brightness = 0.04, Saturation = 0.02, Contrast = 0.12, TintColor = hex("FFF6EA") },
+		Bloom = { Intensity = 1.0, Threshold = 0.9 }, -- the light strips glow
+		SunRays = { Intensity = 0 },
+		Sky = { Skybox = "SkyUnderground", StarCount = 0, CelestialBodiesShown = false },
+		Clouds = { Cover = 0, Density = 0, Color = hex("1A2224") },
+		Particles = {
+			{
+				Texture = "DustParticle", -- slow dust motes in the light strips
+				Color = hex("D8D2C0"),
+				Size = 0.35,
+				Rate = 10,
+				Lifetime = 8,
+				Speed = 0.3,
+				SpreadAngle = 180,
+				LightEmission = 0.15,
+				Area = v(80, 16, 80),
+			},
+		},
 	}),
-	Particles = particles(SPARKLE, BLOSSOM7, {
-		Size = 0.8,
-		Lifetime = 6,
-		Speed = 1,
-		Acceleration = v(0.6, -1, 0.2),
-		LightEmission = 0.2,
-	}),
-	Terrain = { Ridge = { Shape = "Hills", Height = 12 } }, -- stub (placeholder)
-	Atmosphere = Kit.Atmosphere(), -- stub: the LightingConfig baseline
-	Audio = { OneShots = {}, Volume = 0.3, Reverb = "NoReverb" }, -- stub: Loop = "<AssetKey>", OneShots = { "<AssetKey>" }
+	Audio = {
+		Loop = "AmbTunnelHum",
+		OneShots = { "SfxTrainRumble", "SfxChime" },
+		Volume = 0.3,
+		Reverb = "StoneCorridor",
+	},
 	-- Asset ledger (spec 4.4): key = { Kind = "Mesh"|"Texture"|"Skybox"|"Sound", Id = "rbxassetid://N",
 	-- Lane = "A"|"B"|"C"|"D", Prompt = "...", Creator = "<Lane D only>", Tris = N, Reviewed = "<date> <who>",
-	-- Notes = "..." }. Only reviewed rows with an Id are used.
-	Assets = {},
+	-- Notes = "..." }. Only reviewed rows with an Id are used. Reviewed is left for the rules auditor (spec 4.1).
+	-- Sound rows: Creator Store audio ids used directly (no insert, nothing to strip); creator, free and public-domain
+	-- checked on economy.roblox.com asset details 2026-10-31.
+	Assets = {
+		CollapsedEscalatorMesh = meshRow(
+			"rbxassetid://95717321326261",
+			"CollapsedEscalatorTex",
+			"broken escalator lying diagonally from a high concrete landing down to the floor, metal steps visible, black rubber handrails on grey metal side panels, the landing slab cracked and tilted, grey concrete chunks and broken cream tiles piled around its foot, plain surfaces with no markings, no signs, no text, stylized cartoon style",
+			15000,
+			"hero 4 (At 0.16, first platform): generate_mesh size 20 x 13 x 14, segmentation none; second try (the first had odd marks under a slab); mesh 5.9 x 10.76 x 14",
+			SIGNED
+		),
+		ConcourseAtriumMesh = meshRow(
+			"rbxassetid://117670017289451",
+			"ConcourseAtriumTex",
+			"box shaped multi level underground concourse hall, two straight concrete balcony levels on grey steel columns, two escalators crossing each other in an X between the levels, glass balcony rails, fluorescent light strips under each level, cream tiled back wall with one teal stripe, a row of plain grey ticket gates in front, rectangular not round, no signs, no text, no logo, stylized cartoon style",
+			15000,
+			"hero 1 (At 0.36, concourse): generate_mesh size 30 x 19 x 16, segmentation none; open side faces -Z; box void only, never an oval atrium; mesh 24.85 x 19 x 9.49",
+			SIGNED
+		),
+		StalledTrainMesh = meshRow(
+			"rbxassetid://114093523046760",
+			"StalledTrainTex",
+			"one generic boxy subway train car, long body running front to back, plain cream metal sides with one teal band and a row of dark side windows and sliding doors, flat grey roof, dark wheel bogies, both ends are flat plain cream walls with a single narrow closed grey door in the middle and no windows and no lights, no numbers, no letters, no logo, stylized cartoon style",
+			12000,
+			"hero 2 (At 0.6, second platform): generate_mesh size 7 x 8 x 16, segmentation none; fourth try (the generator makes long shapes along Z; earlier cab ends had a big window under two lamps, a face risk); plain end faces -Z; mesh 6.31 x 8 x 13.2",
+			SIGNED
+		),
+		PlatformHallMesh = meshRow(
+			"rbxassetid://72257775317628",
+			"PlatformHallTex",
+			"long island subway platform section, grey concrete platform floor with a yellow tactile strip along the front edge, two rows of slim grey steel columns, half height glass platform screen doors along the edge, two wooden benches, a concrete ceiling beam with fluorescent light strips, no signs, no text, stylized cartoon style",
+			15000,
+			"hero 3 (At 0.83, main hall): generate_mesh size 34 x 13 x 16, segmentation none; screen doors face -Z; mesh 17.07 x 13 x 9.98",
+			SIGNED
+		),
+		PlatformColumnMesh = meshRow(
+			"rbxassetid://74635002549927",
+			"PlatformColumnTex",
+			"slim grey steel subway platform column, round shaft on a square cream tiled foot, one teal painted band, stylized low poly cartoon style",
+			600,
+			"mid: generate_mesh size 2 x 16 x 2, segmentation none; mesh 2 x 3.83 x 2",
+			SIGNED
+		),
+		ScreenDoorMesh = meshRow(
+			"rbxassetid://85305644705712",
+			"ScreenDoorTex",
+			"half height subway platform screen door section, two glass sliding panels in a grey steel frame with a steel head rail, no text, stylized low poly cartoon style",
+			1000,
+			"mid: generate_mesh size 10 x 5 x 1, segmentation none; faces -Z; mesh 3.88 x 3.92 x 1",
+			SIGNED
+		),
+		PlatformBenchMesh = meshRow(
+			"rbxassetid://95311727005276",
+			"PlatformBenchTex",
+			"simple subway platform bench, wooden slat seat and backrest on two grey steel legs, stylized low poly cartoon style",
+			800,
+			"mid: generate_mesh size 6 x 2.5 x 2, segmentation none; seat faces +Z (scatter only); mesh 3.74 x 2.5 x 1.79",
+			SIGNED
+		),
+		VendingMachineMesh = meshRow(
+			"rbxassetid://86163788454964",
+			"VendingMachineTex",
+			"plain blank vending machine, light grey metal cabinet, a glass front window showing rows of small colourful boxes, a teal light strip at the top, a dark slot at the bottom, no logo, no letters, no text, stylized low poly cartoon style",
+			1200,
+			"mid: generate_mesh size 4 x 7 x 3, segmentation none; second prompt (the first failed moderation); front faces +Z (scatter only), blank labels; mesh 4 x 6.25 x 2.78",
+			SIGNED
+		),
+		TicketGatesMesh = meshRow(
+			"rbxassetid://136019329692135",
+			"TicketGatesTex",
+			"four waist high long grey station ticket gate cabinets standing in a parallel row with narrow walkways between them, short flat red paddle barriers sticking sideways into each walkway, a small flat teal light panel on top of each cabinet, plain with no signs and no text, stylized low poly cartoon style",
+			1500,
+			"mid: generate_mesh size 10 x 4 x 5, segmentation none; second try (the first read as phone handsets); paddles face +Z (scatter only); mesh 5.26 x 4 x 1.97",
+			SIGNED
+		),
+		WallMapMesh = meshRow(
+			"rbxassetid://117284770195643",
+			"WallMapTex",
+			"standing information board on two short grey metal legs, a solid flat white rectangular panel in a thin grey frame, the panel face printed with a few smooth abstract coloured stripes and round dots only, teal, yellow and blue stripes, no letters, no words, no numbers, no logo, stylized low poly cartoon style",
+			600,
+			"mid: generate_mesh size 8 x 8 x 1, segmentation none; second try (the first was an open frame with no panel); abstract swooshes only, never a real line map; faces -Z; mesh 6.4 x 6.08 x 1",
+			SIGNED
+		),
+		RubbleMesh = meshRow(
+			"rbxassetid://129012579914034",
+			"RubbleTex",
+			"small pile of broken grey concrete chunks, a fallen ceiling panel and broken cream tiles, stylized low poly cartoon style",
+			800,
+			"mid: generate_mesh size 8 x 2 x 6, segmentation none; mesh 2.39 x 2 x 2.43",
+			SIGNED
+		),
+		StairEntranceMesh = meshRow(
+			"rbxassetid://95781847098590",
+			"StairEntranceTex",
+			"street level stair entrance down to an underground railway, concrete base, steps going down between grey steel side walls, a flat glass canopy on four thin posts, one plain teal colour band, no sign, no letters, no logo, stylized low poly cartoon style",
+			3000,
+			"surface: generate_mesh size 12 x 8 x 8, segmentation none; reads as a glass canopy kiosk; mesh 8.19 x 8 x 5.14",
+			SIGNED
+		),
+		CollapsedEscalatorTex = textureRow("rbxassetid://75156016092304", "CollapsedEscalatorMesh", SIGNED),
+		ConcourseAtriumTex = textureRow("rbxassetid://130300687469660", "ConcourseAtriumMesh", SIGNED),
+		StalledTrainTex = textureRow("rbxassetid://70667078539368", "StalledTrainMesh", SIGNED),
+		PlatformHallTex = textureRow("rbxassetid://98442300433706", "PlatformHallMesh", SIGNED),
+		PlatformColumnTex = textureRow("rbxassetid://134730479076036", "PlatformColumnMesh", SIGNED),
+		ScreenDoorTex = textureRow("rbxassetid://109098640807472", "ScreenDoorMesh", SIGNED),
+		PlatformBenchTex = textureRow("rbxassetid://115541908054893", "PlatformBenchMesh", SIGNED),
+		VendingMachineTex = textureRow("rbxassetid://74284002497401", "VendingMachineMesh", SIGNED),
+		TicketGatesTex = textureRow("rbxassetid://90339791416430", "TicketGatesMesh", SIGNED),
+		WallMapTex = textureRow("rbxassetid://77806575378984", "WallMapMesh", SIGNED),
+		RubbleTex = textureRow("rbxassetid://77033815446802", "RubbleMesh", SIGNED),
+		StairEntranceTex = textureRow("rbxassetid://97946062884952", "StairEntranceMesh", SIGNED),
+		T7FigureA = meshRow(
+			"rbxassetid://131400531247454",
+			"T7FigureATex",
+			"tall slim man, spiky white hair swept upward, black cloth blindfold over the eyes, black high-collar long-sleeve jacket and black trousers, standing calm, right hand raised in front of the chest, left hand in a pocket, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure A: generate_mesh size 5 x 10.5 x 4, segmentation none; front faces +Z; plain jacket, no emblem; stands on a small round base; mesh 3.97 x 9.01 x 4",
+			SIGNED
+		),
+		T7FigureB = meshRow(
+			"rbxassetid://89275972338861",
+			"T7FigureBTex",
+			"short stocky creature, grey-beige skin, head shaped like a small volcano cone with a glowing crater on top, one large round eye, wide lipless grin of square teeth, loose pale robe tied with a dark sash, both arms thrust forward, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure B: generate_mesh size 5 x 6 x 5, segmentation none; front faces +Z; arms half forward, not fully thrust; mesh 5 x 5.95 x 2.92",
+			SIGNED
+		),
+		T7FigureC = meshRow(
+			"rbxassetid://101707994372214",
+			"T7FigureCTex",
+			"tall broad humanoid tree spirit, pale grey-white skin with thin black line markings, two wooden branch horns growing from the eye sockets, bare chest, white cloth wrapped around the waist and legs, left arm raised, a cluster of pale flowers on the left shoulder, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure C: generate_mesh size 7 x 12 x 5, segmentation none; front faces +Z; blocky, arms down (not raised), horns above the eyes; mesh 6.48 x 12 x 3.33",
+			SIGNED
+		),
+		T7FigureD = meshRow(
+			"rbxassetid://71241235386544",
+			"T7FigureDTex",
+			"tall lean young man, black hair tied in two short spiky tufts on top of the head, a dark horizontal band across the nose, tired eyes, cream wrap-front robe under a dark plum sleeveless vest, dark wide trousers, palms pressed together in front of the chest, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure D: generate_mesh size 5 x 9.5 x 4, segmentation none; front faces +Z; palms together (the specced pose, not a hand sign); mesh 3.87 x 9.5 x 3.54",
+			SIGNED
+		),
+		T7FigureE = meshRow(
+			"rbxassetid://128388977265139",
+			"T7FigureETex",
+			"slim young man, long messy grey-blue hair, stitched patchwork scars across the face and arms, mismatched eyes, wide grin, loose pale shirt, dark baggy trousers, barefoot, arms spread wide, low poly anime style figure, plain colours, no symbols",
+			8000,
+			"fight figure E: generate_mesh size 7 x 9 x 4, segmentation none; front faces +Z; stitches faint; mesh 7 x 8.79 x 3.22",
+			SIGNED
+		),
+		T7CrowdMesh = meshRow(
+			"rbxassetid://108061257980500",
+			"T7CrowdMeshTex",
+			"misshapen lumpy humanoid silhouette, hunched, one extra arm, smooth grey-violet surface, no face detail, no blood, low poly",
+			3000,
+			"fight crowd, 5 placements: generate_mesh size 5 x 8 x 4, segmentation none; faceless, came out plain violet with two arms; mesh 5 x 7.56 x 2.65",
+			SIGNED
+		),
+		T7RootsMesh = meshRow(
+			"rbxassetid://105356170299752",
+			"T7RootsMeshTex",
+			"thick twisted wooden roots bursting up from a cracked tiled floor, arching forward, a few pale flowers on the tips, low poly",
+			4000,
+			"fight roots, 3 placements: generate_mesh size 6 x 16 x 8, segmentation none; reads as a rooted sapling with pink flowers; mesh 6 x 6.46 x 6.02",
+			SIGNED
+		),
+		T7FigureATex = textureRow("rbxassetid://124599499588670", "T7FigureA", SIGNED),
+		T7FigureBTex = textureRow("rbxassetid://101776963970684", "T7FigureB", SIGNED),
+		T7FigureCTex = textureRow("rbxassetid://95484652528598", "T7FigureC", SIGNED),
+		T7FigureDTex = textureRow("rbxassetid://107249129899808", "T7FigureD", SIGNED),
+		T7FigureETex = textureRow("rbxassetid://95122329596093", "T7FigureE", SIGNED),
+		T7CrowdMeshTex = textureRow("rbxassetid://119409941552847", "T7CrowdMesh", SIGNED),
+		T7RootsMeshTex = textureRow("rbxassetid://95455970672090", "T7RootsMesh", SIGNED),
+		FightStar = {
+			Kind = "Texture",
+			Id = "rbxassetid://81407938517541",
+			Lane = "A",
+			Prompt = "in-house 64 px tiny soft white star dot with a faint four-point glint on transparent, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_star.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
+		},
+		FightGalaxy = {
+			Kind = "Texture",
+			Id = "rbxassetid://138847119083596",
+			Lane = "A",
+			Prompt = "in-house 256 px smeared spiral band of tiny white stars on transparent, tinted blue to violet by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_galaxy.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
+		},
+		FightBeam = {
+			Kind = "Texture",
+			Id = "rbxassetid://121262044712528",
+			Lane = "A",
+			Prompt = "in-house 256 x 64 soft white light streak fading at both ends on transparent, beam texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_beam.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
+		},
+		FightPetal = {
+			Kind = "Texture",
+			Id = "rbxassetid://75971654214750",
+			Lane = "A",
+			Prompt = "in-house 128 px five-petal pale flower on transparent, tinted pale pink by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_petal.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
+		},
+		FightDroplet = {
+			Kind = "Texture",
+			Id = "rbxassetid://88602390235484",
+			Lane = "A",
+			Prompt = "in-house 128 px round droplet with a white highlight on transparent, stylised, tinted deep red by the emitter, particle texture",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_fight_textures.py, fight/fight_droplet.png), uploaded from Studio 2026-11-01",
+			Reviewed = SIGNED,
+		},
+		-- Track 5's in-house ember and smoke particles, reused by id (PirateCoast ledger EmberParticle / SmokeParticle,
+		-- signed there 2026-10-31 by the rules auditor)
+		Track5Ember = {
+			Kind = "Texture",
+			Id = "rbxassetid://123619002889840",
+			Lane = "A",
+			Prompt = "reused: Track 5 EmberParticle (in-house 128 px ember, white on transparent)",
+			Reviewed = SIGNED,
+		},
+		Track5Smoke = {
+			Kind = "Texture",
+			Id = "rbxassetid://108000399126683",
+			Lane = "A",
+			Prompt = "reused: Track 5 SmokeParticle (in-house 128 px lumpy smoke puff, light grey on transparent)",
+			Reviewed = SIGNED,
+		},
+		DustParticle = {
+			Kind = "Texture",
+			Id = "rbxassetid://77443196483447",
+			Lane = "A",
+			Prompt = "in-house 128 px soft irregular dust speck with a slightly brighter core, white on transparent, tinted pale grey by the emitter",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py, dust_particle.png), uploaded from Studio 2026-10-31",
+			Reviewed = SIGNED,
+		},
+		-- Faces drawn in-house with numpy (assets/biomes/Desert/sky/SkyUnderground<Face>.png): plain near-black
+		-- blue-grey, no shapes or text. No Creator Store skybox (docs/BUGS.md creator-store-backdoor-skybox). Uploaded
+		-- from Studio 2026-10-31; Id is the Bk face.
+		SkyUnderground = {
+			Kind = "Skybox",
+			Id = "rbxassetid://126814177699454",
+			Faces = {
+				Bk = "rbxassetid://126814177699454",
+				Dn = "rbxassetid://90423288718397",
+				Ft = "rbxassetid://91385232590200",
+				Lf = "rbxassetid://119320290687932",
+				Rt = "rbxassetid://98579734251070",
+				Up = "rbxassetid://89593505205012",
+			},
+			Lane = "A",
+			Prompt = "in-house plain dark underground skybox, 6 faces 1024 px, near-black blue-grey with a faint lighter band low on the sides",
+			Notes = "drawn with python3 + numpy (assets/biomes/Desert/draw_textures.py)",
+			Reviewed = SIGNED,
+		},
+		AmbTunnelHum = {
+			Kind = "Sound",
+			Id = "rbxassetid://9112795463",
+			Lane = "D",
+			Creator = "ProSoundEffects",
+			Notes = "Creator Store 9112795463: Hollow Rumble 1, deep steady drone, dark, loop, 106 s (tunnel hum and ventilation drone)",
+			Reviewed = SIGNED,
+		},
+		SfxTrainRumble = {
+			Kind = "Sound",
+			Id = "rbxassetid://9117150616",
+			Lane = "D",
+			Creator = "ProSoundEffects",
+			Notes = "Creator Store 9117150616: old elevated train pass-by, track clack, metal rattle, brake squeal, 30 s (a distant train rumble; no announcement)",
+			Reviewed = SIGNED,
+		},
+		SfxChime = {
+			Kind = "Sound",
+			Id = "rbxassetid://9125491593",
+			Lane = "D",
+			Creator = "ProSoundEffects",
+			Notes = "Creator Store 9125491593: Door Chimes Various Tone Sequences Door Bell, generic tone sequence, 5 s (a made-up chime; never a real station melody)",
+			Reviewed = SIGNED,
+		},
+	},
 }
