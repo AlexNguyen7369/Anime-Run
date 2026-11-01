@@ -439,6 +439,21 @@ local function applyEmitter(e)
 end
 CollectionService:GetInstanceAddedSignal(EMITTER_TAG):Connect(applyEmitter)
 
+-- Fight scene beams and lights (tag BiomeEffect = Shared/BiomeDressing.EFFECT_TAG, spec 7 Track 7): REDUCED EFFECTS
+-- hides each beam and turns each light off, or down to its ReducedBrightness attribute
+local EFFECT_TAG = "BiomeEffect"
+local function applyEffect(inst)
+	local off = reduced()
+	if inst:IsA("Beam") then
+		inst.Enabled = not off
+	elseif inst:IsA("Light") then
+		local dim = inst:GetAttribute("ReducedBrightness")
+		inst.Enabled = not (off and dim == nil)
+		inst.Brightness = off and dim or inst:GetAttribute("Brightness") or inst.Brightness
+	end
+end
+CollectionService:GetInstanceAddedSignal(EFFECT_TAG):Connect(applyEffect)
+
 -- Tunnel light strips (spec 3.5; tag TunnelLight = Shared/Tunnel.LIGHT_TAG, attribute Index): REDUCED EFFECTS hides
 -- every second strip and stops the flicker; otherwise one strip in FLICKER_EVERY flickers while near the camera
 local LIGHT_TAG = "TunnelLight"
@@ -491,6 +506,9 @@ local function applyQuality()
 	end
 	for _, e in CollectionService:GetTagged(EMITTER_TAG) do
 		applyEmitter(e)
+	end
+	for _, e in CollectionService:GetTagged(EFFECT_TAG) do
+		applyEffect(e)
 	end
 	dirty = true
 end
