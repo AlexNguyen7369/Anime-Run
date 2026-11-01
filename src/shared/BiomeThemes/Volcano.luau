@@ -126,23 +126,35 @@ local brokenPillar = prop("BrokenPillar", v(3, 8, 3), {
 	part(v(2.4, 2, 2.4), v(0.3, 7, 0), TREE9, M.Marble, nil, CFrame.Angles(0.2, 0, 0.3)),
 })
 
--- Mesh props (Lane A). Sizes are the planned ones; phase 2 sets each to its mesh's own proportions.
-local deadTreeMesh = meshed(deadWhiteTree, "DeadWhiteTreeMesh", v(8.4, 14, 8.4))
-local whiteRockMesh = meshed(whiteRock, "WhiteOutcropMesh", v(5, 3, 4))
-local pillarMesh = meshed(brokenPillar, "BrokenPillarMesh", v(3, 8, 3))
-local crystalTreeMesh = meshed(deadTree("CrystalTree", 30, CRYSTAL9, M.Glass), "CrystalTreeMesh", v(18, 30, 18))
+-- Mesh props (Lane A). Sizes keep each mesh's own proportions (the trees came out as flat cards, about 4 deep).
+local deadTreeMesh = meshed(deadWhiteTree, "DeadWhiteTreeMesh", v(8.4, 12.3, 4.3))
+local whiteRockMesh = meshed(whiteRock, "WhiteOutcropMesh", v(5.1, 3, 5.1))
+local pillarMesh = meshed(brokenPillar, "BrokenPillarMesh", v(3.7, 8, 3.7))
+local crystalTreeMesh = meshed(deadTree("CrystalTree", 30, CRYSTAL9, M.Glass), "CrystalTreeMesh", v(18, 26.1, 4.1))
 
--- Mesh rows: generated in Studio (Lane A) with the stored prompt, at the planned Size and under MaxTris; each mesh's
--- own generated texture becomes a Texture row. Id is filled in phase 2. Reviewed is left for the rules auditor
--- (spec 4.1 step 3); close-ups go in assets/biomes/Volcano/review/.
-local function meshRow(prompt, size, maxTris, notes)
+-- Mesh rows: generated in Studio (Lane A) with the stored prompt, at the Size asked and under Tris (the cap); each
+-- mesh's own generated texture is a Texture row. Reviewed is left for the rules auditor (spec 4.1 step 3);
+-- close-ups are in assets/biomes/Volcano/review/.
+local function meshRow(id, texture, prompt, size, maxTris, notes)
 	return {
 		Kind = "Mesh",
+		Id = id,
 		Lane = "A",
 		Prompt = prompt,
-		Size = size,
-		MaxTris = maxTris,
+		Texture = texture,
+		Size = size, -- the size asked of the generator
+		Tris = maxTris, -- the generation cap (maxTriangles)
+		Reviewed = "2026-11-01 rules-auditor",
 		Notes = notes,
+	}
+end
+local function textureRow(id, mesh)
+	return {
+		Kind = "Texture",
+		Id = id,
+		Lane = "A",
+		Prompt = "generated with " .. mesh .. " (same prompt)",
+		Reviewed = "2026-11-01 rules-auditor",
 	}
 end
 
@@ -166,11 +178,11 @@ return {
 		Every = 22,
 		Props = {
 			-- p 1: on the long straights, bone arches over the dunes
-			meshed(boneArch(), "BoneArchMesh", v(28, 28.5, 4.4), { Hero = true, At = 0.25 }), -- x1.75: 49 x 50
+			meshed(boneArch(), "BoneArchMesh", v(27.9, 25.3, 7.5), { Hero = true, At = 0.25 }), -- x1.75: 49 x 44, 13 deep
 			-- p 2: out of the grove bends
-			meshed(crystalGrove(), "CrystalGroveMesh", v(28, 35, 16), { Hero = true, At = 0.755 }), -- 49 x 61
+			meshed(crystalGrove(), "CrystalGroveMesh", v(27.5, 35, 4.6), { Hero = true, At = 0.755 }), -- 48 x 61, 8 deep
 			-- p 3: the near palace tower on the straight toward the finish
-			meshed(palaceTower(), "PalaceTowerMesh", v(12, 40, 12), { Hero = true, At = 0.84 }), -- 21 x 70
+			meshed(palaceTower(), "PalaceTowerMesh", v(15.3, 35, 15.1), { Hero = true, At = 0.84 }), -- 27 x 61, 26 deep
 			crystalTreeMesh,
 			block("ShadowOutcrop", v(20, 19, 14), ROCK9, M.Rock, {
 				part(v(10, 8, 8), v(4, 15, 2), ROCK9, M.Rock),
@@ -189,7 +201,9 @@ return {
 		Offset = 18,
 		Props = {
 			-- the dome palace is also on the skybox horizon (SpiritSkybox); this piece repeats it nearer
-			meshed(domePalace(), "DomePalaceMesh", v(60, 30, 16)),
+			-- the mesh is 18.4 x 11.3 x 16: x1.6 in width and height, depth kept at 16 so the x2 piece stays in the gap
+			-- (orchestrator default 2026-11-01)
+			meshed(domePalace(), "DomePalaceMesh", v(29.4, 18, 16)),
 			prop("PillarRow", v(56, 22, 10), {
 				part(v(56, 2, 10), v(0, 1, 0), TREE9, M.Marble),
 				part(v(4, 20, 4), v(-22, 12, 0), TREE9, M.Marble),
@@ -222,10 +236,10 @@ return {
 		},
 	},
 	Blocks = giants({
-		meshed(deadTree("GiantDeadTree", 60, TREE9, M.Marble), "DeadWhiteTreeMesh", v(36, 60, 36)),
+		meshed(deadTree("GiantDeadTree", 60, TREE9, M.Marble), "DeadWhiteTreeMesh", v(41, 60, 21)),
 		-- the palace stays rare (hero, horizon, skybox): the giant rows are crystal trees, not towers
 		-- (orchestrator default 2026-10-31)
-		meshed(deadTree("GiantCrystalTree", 60, CRYSTAL9, M.Glass), "CrystalTreeMesh", v(36, 60, 36)),
+		meshed(deadTree("GiantCrystalTree", 60, CRYSTAL9, M.Glass), "CrystalTreeMesh", v(41.3, 60, 9.4)),
 		block("WhiteMonolith", v(16, 70, 10), hex("E4E4DE"), M.Marble, {
 			part(v(16.4, 2, 10.4), v(0, 50, 0), SHADOW9, M.Slate),
 		}),
@@ -318,67 +332,104 @@ return {
 	-- API 2026-10-31 (creator ProSoundEffects, free audio).
 	Assets = {
 		BoneArchMesh = meshRow(
+			"rbxassetid://110904618566239",
+			"BoneArchTex",
 			"tall smooth white arch made of two curved ribbed bone-like legs leaning together and joined by a plain span at the top, a few short ribs hanging below the span, pale ivory white, no skull, no face, no mask, stylized low poly cartoon style",
 			v(28, 28.5, 4.4),
 			10000,
 			"hero 3: the arch opening faces -Z (the road)"
 		),
 		CrystalGroveMesh = meshRow(
+			"rbxassetid://130820802100278",
+			"CrystalGroveTex",
 			"small grove of three dead leafless trees made of pale white translucent crystal, thin twisted branching trunks of different heights standing on a low mound of white sand, stylized low poly cartoon style",
 			v(28, 35, 16),
 			15000,
 			"hero 2"
 		),
 		PalaceTowerMesh = meshRow(
+			"rbxassetid://119149403207359",
+			"PalaceTowerTex",
 			"tall plain square white stone tower with smooth walls, a wide base plinth, a simple cornice and a small round white dome on top, a few narrow dark slit windows, no emblems and no writing, stylized low poly cartoon style",
 			v(12, 40, 12),
 			10000,
 			"hero 1 (the near tower)"
 		),
 		DomePalaceMesh = meshRow(
-			"distant plain white desert palace, one very large smooth white dome on a low round drum above a long low white wall, four plain square white towers of different heights around it, no emblems and no writing, stylized low poly cartoon style",
-			v(60, 30, 16),
+			"rbxassetid://87281275116862",
+			"DomePalaceTex",
+			"tall plain white desert palace seen from the front, one very large tall smooth white dome rising high above a low white wall, four tall plain square white towers taller than the wall, no emblems and no writing, stylized low poly cartoon style",
+			v(32, 24, 16),
 			15000,
-			"horizon piece; IP: a plain dome with a few towers, never a real layout"
+			"horizon piece, second generation (the first, 124094406088392, came out 16 x 6.6 x 16, too squat); IP: a plain dome with square towers, never a real layout"
 		),
 		DeadWhiteTreeMesh = meshRow(
+			"rbxassetid://105854949421877",
+			"DeadWhiteTreeTex",
 			"dead leafless tree with a pale bone white trunk and a few bare twisted branches, smooth surface, stylized low poly cartoon style",
 			v(8.4, 14, 8.4),
 			3000
 		),
 		CrystalTreeMesh = meshRow(
+			"rbxassetid://130960597807577",
+			"CrystalTreeTex",
 			"single dead leafless tree made of pale white translucent crystal, thin twisted trunk splitting into a few bare angular branches, stylized low poly cartoon style",
 			v(18, 30, 18),
 			3000
 		),
 		WhiteOutcropMesh = meshRow(
+			"rbxassetid://115443145387024",
+			"WhiteOutcropTex",
 			"low weathered white limestone rock outcrop, smooth rounded pale grey white stone with a few cracks, stylized low poly cartoon style",
 			v(5, 3, 4),
 			2000
 		),
 		BrokenPillarMesh = meshRow(
+			"rbxassetid://92998731248487",
+			"BrokenPillarTex",
 			"broken plain white stone column, a short round smooth shaft snapped off at the top with a fallen chunk leaning on it, square base, no carvings, stylized low poly cartoon style",
 			v(3, 8, 3),
 			2000
 		),
+		BoneArchTex = textureRow("rbxassetid://75741383222967", "BoneArchMesh"),
+		CrystalGroveTex = textureRow("rbxassetid://92159538463265", "CrystalGroveMesh"),
+		PalaceTowerTex = textureRow("rbxassetid://76635598272222", "PalaceTowerMesh"),
+		DomePalaceTex = textureRow("rbxassetid://124970167468266", "DomePalaceMesh"),
+		DeadWhiteTreeTex = textureRow("rbxassetid://109452863592933", "DeadWhiteTreeMesh"),
+		CrystalTreeTex = textureRow("rbxassetid://78285130678274", "CrystalTreeMesh"),
+		WhiteOutcropTex = textureRow("rbxassetid://120675993065195", "WhiteOutcropMesh"),
+		BrokenPillarTex = textureRow("rbxassetid://75950047585759", "BrokenPillarMesh"),
 		SandParticle = {
 			Kind = "Texture",
+			Id = "rbxassetid://89884699179993",
 			Lane = "A",
 			Prompt = "in-house 128 px cluster of fine soft grains with a faint haze, white on transparent, tinted sand white by the emitter",
-			Notes = "drawn with python3 + numpy (assets/biomes/Volcano/sand_particle.png); uploaded in phase 2",
+			Notes = "drawn with python3 + numpy (assets/biomes/Volcano/sand_particle.png)",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 		CrescentMoonTex = {
 			Kind = "Texture",
+			Id = "rbxassetid://127677944644862",
 			Lane = "A",
 			Prompt = "in-house 512 px pale moon-white crescent (a disc minus an offset disc) with a soft rim glow, on transparent",
 			Notes = "hero 4: Sky.MoonTextureId; drawn with python3 + numpy (assets/biomes/Volcano/crescent_moon.png)",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 		SpiritSkybox = {
 			Kind = "Skybox",
 			Lane = "A",
 			Prompt = "in-house 1024 px faces: black night sky with no stars, pale dune silhouettes at the horizon, a plain dome palace silhouette (one dome, four square towers) on Ft and a smaller far one on Lf",
-			-- Faces = { Bk, Dn, Ft, Lf, Rt, Up } ids are filled in phase 2, with Id = the first face
+			Id = "rbxassetid://116294677492962", -- the first face (Bk)
+			Faces = {
+				Bk = "rbxassetid://116294677492962",
+				Dn = "rbxassetid://97767190666668",
+				Ft = "rbxassetid://120696277121496",
+				Lf = "rbxassetid://136574544957539",
+				Rt = "rbxassetid://84136878609122",
+				Up = "rbxassetid://96048088775849",
+			},
 			Notes = "drawn with python3 + numpy (assets/biomes/Volcano/sky_<face>.png)",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 		AmbDesertWind = {
 			Kind = "Sound",
@@ -386,6 +437,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9119392572: Space Presence 1, low airy steady wind-like ambience with a drone, loop, 41 s",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 		SfxFarHowl = {
 			Kind = "Sound",
@@ -393,6 +445,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9113957077: Coyote Yowl 4, a distant howl, 6 s",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 		SfxSandHiss = {
 			Kind = "Sound",
@@ -400,6 +453,7 @@ return {
 			Lane = "D",
 			Creator = "ProSoundEffects",
 			Notes = "Creator Store 9118771237: Sand Slide 5, long hissing sand skid, 9 s",
+			Reviewed = "2026-11-01 rules-auditor",
 		},
 	},
 }
