@@ -18,8 +18,13 @@
 15. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 1 Leafwind Village (owner approved from screenshots) and its rules-auditor close-up IP sign-off.
 16. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 2 Tournament Wasteland (mesa, craters, arid atmosphere, auditor-signed ledger).
 17. 2026-10-31 — Alex Nguyen — Landed biomes b2 Track 3 Pirate Harbor Isle (owner approved visuals) with framework fixes (natural-height pads under pinned landmarks and houses, prop slide/delete at the zone midline, 2-hero floor), Track 2 sand road and Rock colour 8A6E52; scenarios pass=3 fail=0.
+18. 2026-10-31 — Alex Nguyen — Landed biomes Tracks 4 (Wisteria Night Mountain) and 6 (Hero Academy City) plus framework fixes for floating houses and pads, with a reusable offline biome harness.
+19. 2026-10-31 — Alex Nguyen — Added the owner's track camera setting (camera yaw follows the runner while racing, TRACK CAMERA toggle).
+20. 2026-10-31 — Alex Nguyen — Rebuilt Track 5 as Burning Cursed City and Track 8 as Skypeia after the owner's redesign, both auditor-signed with Studio checks passing.
+21. 2026-11-01 — Alex Nguyen — Landed Track 9 Spirit Realm Desert and Track 7 Shibuyo Underground (wide subway tunnel framework, fight scene), Studio checks passing.
+22. 2026-11-01 — Alex Nguyen — Landed Track 10 Green Alien Planet and the Track 4 twilight neon update without scenario runs (owner test pause); all 10 biomes landed.
 
 ## What's next
-**On the owner's "continue": finish the framework follow-ups (houses still floating on slopes, Track 2 tile ring gap 11.4, 4 pinned landmarks reaching a road corridor), retake the Track 1-3 shots, then build Track 4 Wisteria Night Mountain.**
+**Run c3, the full compatibility check (full harness + rules audit across all 10 tracks), when the owner says so.**
 
-**Why this is next:** the owner paused biome work after Track 3; Tracks 4-10 use the same pad and snap framework, so its open float and gap issues should be fixed before more tracks are built on it.
+**Why this is next:** Tracks 10 and the Track 4 twilight update landed without scenario runs, so c3 is the gate that proves the whole game still passes before anything goes toward main.
