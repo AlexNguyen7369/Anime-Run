@@ -323,6 +323,33 @@ local function tunnelSpots(layout, origin, def, edge)
 		local road = origin:PointToWorldSpace(t and wps[i]:Lerp(wps[j], t) or wps[i]).Y
 		return beside(layout, origin, i, side, d, t) + Vector3.new(0, road + lift - GROUND_Y, 0)
 	end
+	-- Is world point `p` in the room on `side` (fw7, the fight scene's fit)? Across the walls by TUNNEL_INSET, under
+	-- the ceiling, past Width / 2 and where a bay on that side covers its track position. `near`: a waypoint near it.
+	function spots.Inside(p, side, near)
+		local q = origin:PointToObjectSpace(p)
+		local best, s, x, y = math.huge, 0, 0, 0
+		for k = math.max(1, near - 40), math.min(#wps - 1, near + 40) do
+			local a, b = wps[k], wps[k + 1]
+			local ab, aq = Vector2.new(b.X - a.X, b.Z - a.Z), Vector2.new(q.X - a.X, q.Z - a.Z)
+			local len = ab.Magnitude
+			if len > 1e-6 then
+				local u = math.clamp(aq:Dot(ab) / len, 0, len)
+				local dist = (aq - ab * (u / len)).Magnitude
+				if dist < best then
+					-- the road's right is (-t.Z, t.X), as in beside
+					best, s = dist, cum[k] + u
+					x = (aq.Y * ab.X - aq.X * ab.Y) / len
+					y = q.Y - (a.Y + (b.Y - a.Y) * (u / len))
+				end
+			end
+		end
+		local l, r, h, bayL, bayR = Tunnel.Section(def, s, total)
+		local across = x * side
+		return (side < 0 and bayL or side > 0 and bayR)
+			and across >= half - 0.05
+			and across <= (side < 0 and l or r) - inset
+			and y <= h - 0.05
+	end
 	function spots.Bay(at)
 		local target = math.clamp(at, 0, 1) * total
 		local best = 1
@@ -683,6 +710,8 @@ local function blocks(folder, layout, theme, biome, edge, count, onGround, budge
 	return count
 end
 
+local fightScene -- below Prune's clearance test, which it reuses
+
 function BiomeDressing.Build(model, layout, spec, origin)
 	local biome = spec.Biome
 	local theme = type(biome) == "string" and Themes[biome]
@@ -715,11 +744,20 @@ function BiomeDressing.Build(model, layout, spec, origin)
 	-- spec 3.5 (fw6): on a Tunnel track every prop stands inside the walls or on a bay platform, except layers with
 	-- Surface = true (sparse dressing on the earth over the tunnel: vents, station entrances)
 	local tunnel = theme.Tunnel and tunnelSpots(layout, origin, theme.Tunnel, edge)
+	local sceneBox -- the fight scene's footprint once built (fw7): later tunnel props keep off it
 	-- A prop's base CFrame (nil where it does not fit) and whether it stands inside the tunnel. `size`: its box, X along
 	-- the road
 	local function spot(layer, i, side, distance, t, size)
 		if tunnel and not layer.Surface then
-			return tunnel.Spot(i, side, distance, t, size), true
+			local base = tunnel.Spot(i, side, distance, t, size)
+			if
+				base
+				and sceneBox
+				and footprintsOverlap(sceneBox, { CFrame = base, Half = Vector2.new(size.X / 2, size.Z / 2) })
+			then
+				return nil, true
+			end
+			return base, true
 		end
 		return beside(layout, origin, i, side, distance, t), false
 	end
@@ -824,6 +862,12 @@ function BiomeDressing.Build(model, layout, spec, origin)
 			)
 		end
 		table.insert(spots, i)
+	end
+	-- The fight scene (spec 7, Track 7 "Fight scene", fw7): after the pinned heroes, so it never displaces one
+	if theme.FightScene then
+		local parts
+		parts, sceneBox = fightScene(folder, model, layout, origin, theme, biome, spec, tunnel)
+		count += parts
 	end
 	for _, c in corners do
 		if not near(spots, c.Index, every // 2) then
@@ -1020,12 +1064,249 @@ function BiomeDressing.Prune(trackModels, extra)
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
 			if touches(prop) then
+				if prop:GetAttribute("FightScene") then
+					warn("[BiomeDressing] fight scene of " .. model.Name .. " is within CLEARANCE of a road: removed")
+				end
 				prop:Destroy()
 				removed += 1
 			end
 		end
 	end
 	return removed
+end
+
+-- Fight scene (spec 7, Track 7 "Fight scene", fw7): theme.FightScene = { At, Side, Size (along the track x headroom x
+-- depth), Items, Effects } is one pinned group Model in the tunnel bay covering At on Side, on its platform. The frame
+-- is the bay prop frame (-Z faces the road): an item's Pos = (u along X, y up from the platform top, d from the
+-- platform edge), Yaw in degrees about Y (a generated mesh faces +Z, so 180 faces the road). Each item's Def is a prop
+-- (a Mesh key goes through the registry, its parts are the fallback), grown by Scale; an item without a Def is
+-- skipped. Effects (server-built, the client follows REDUCED EFFECTS, spec 8): emitters tagged EMITTER_TAG; beams and
+-- the Reduce / ReducedBrightness lights tagged EFFECT_TAG; an effect whose texture row is unusable (4.2) is skipped.
+-- Every part corner must be inside the bay (walls, ceiling, platform edge) and the group clear of the road and the
+-- checkpoint by CLEARANCE, and off any pinned hero, else it warns and builds nothing. Returns its parts and footprint.
+BiomeDressing.EFFECT_TAG = "BiomeEffect"
+local function sequence(c)
+	if typeof(c) == "Color3" or #c == 1 then
+		return ColorSequence.new(typeof(c) == "Color3" and c or c[1])
+	end
+	local keys = {}
+	for k, colour in c do
+		keys[k] = ColorSequenceKeypoint.new((k - 1) / (#c - 1), colour)
+	end
+	return ColorSequence.new(keys)
+end
+local function range(r, default)
+	r = r or { default, default }
+	return (r[1] + r[2]) / 2, (r[2] - r[1]) / 2
+end
+
+function fightScene(folder, model, layout, origin, theme, biome, spec, tunnel)
+	local scene = theme.FightScene
+	local function skip(why)
+		warn(
+			string.format(
+				"[BiomeDressing] fight scene of track %s (At %.2f): %s: not built",
+				tostring(spec.Number),
+				scene.At,
+				why
+			)
+		)
+		return 0, nil
+	end
+	if not tunnel then
+		return skip("no tunnel")
+	end
+	local side = scene.Side == "Right" and 1 or -1
+	local bay, i = tunnel.Bay(scene.At)
+	if not bay or (bay.Side ~= "Both" and bay.Side ~= scene.Side) then
+		return skip("no bay on its side")
+	end
+	local size, half = scene.Size, (theme.Tunnel.Width or 60) / 2
+	local fit = tunnel.Spot(i, side, half + scene.Size.Z / 2, nil, size)
+	if not fit then
+		return skip("its footprint does not fit the bay")
+	end
+	-- from the axes, not lookAt (Lune's mirrors Z): -Z faces the road, the centre Size.Z / 2 past the platform edge
+	local wps = layout.Waypoints
+	local tangent = flat(origin:VectorToWorldSpace(wps[math.min(#wps, i + 1)] - wps[math.max(1, i - 1)]))
+	local look = Vector3.new(tangent.Z, 0, -tangent.X) * side -- toward the road (beside's toRoad)
+	local at = beside(layout, origin, i, side, half + size.Z / 2).Position
+	local base = CFrame.fromMatrix(Vector3.new(at.X, fit.Y, at.Z), look:Cross(Vector3.yAxis), Vector3.yAxis)
+
+	local group = Instance.new("Model")
+	group.Name = "FightScene"
+	group:SetAttribute("Tunnel", true)
+	group:SetAttribute("Pinned", true)
+	group:SetAttribute("FightScene", true)
+	group.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	local byName, missing = {}, 0
+	for n, item in scene.Items do
+		local name = item.Name or item.Key or ("Item" .. n)
+		if not item.Def then
+			missing += 1
+		else
+			local def = scaled(item.Def, item.Scale)
+			local p = item.Pos
+			local cf = base * CFrame.new(p.X, p.Y, p.Z - size.Z / 2) * CFrame.Angles(0, math.rad(item.Yaw or 0), 0)
+			place(group, biome, def, cf, name .. "_" .. n, false, nil, true)
+			local m = group:GetChildren()[#group:GetChildren()]
+			for _, part in m:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Transparency = item.Transparency or part.Transparency
+					if item.CastShadow ~= nil then
+						part.CastShadow = item.CastShadow
+					end
+				end
+			end
+			byName[name] = byName[name] or { Model = m, CFrame = cf, Def = def }
+		end
+	end
+	if missing > 0 then
+		warn(string.format("[BiomeDressing] fight scene: %d items have no Def (no fallback parts): skipped", missing))
+	end
+
+	-- fit: every part corner in the bay, the footprint off every pinned hero, the group clear of road and checkpoint
+	local lo, hi, parts = Vector3.one * math.huge, -Vector3.one * math.huge, 0
+	for _, part in group:GetDescendants() do
+		if part:IsA("BasePart") then
+			parts += 1
+			for _, c in { Vector3.new(1, 1, 1), Vector3.new(1, 1, -1), Vector3.new(1, -1, 1), Vector3.new(-1, 1, 1) } do
+				for _, k in { 1, -1 } do
+					local q = part.CFrame:PointToWorldSpace(c * k * part.Size / 2)
+					local l = base:PointToObjectSpace(q)
+					lo, hi = lo:Min(l), hi:Max(l)
+					if l.Y > -0.05 and not tunnel.Inside(q, side, i) then -- below the platform top is inside it
+						group:Destroy()
+						return skip(part.Name .. " reaches through the bay's walls or ceiling")
+					end
+				end
+			end
+		end
+	end
+	local box = { CFrame = base, Half = Vector2.new(math.max(-lo.X, hi.X), math.max(-lo.Z, hi.Z)) }
+	for _, other in folder:GetChildren() do
+		if other:IsA("Model") and other:GetAttribute("Pinned") then
+			local cf, s = other:GetBoundingBox()
+			if footprintsOverlap(box, { CFrame = cf, Half = Vector2.new(s.X / 2, s.Z / 2) }) then
+				group:Destroy()
+				return skip("it overlaps the pinned " .. other.Name)
+			end
+		end
+	end
+	if clearance({ model })(group) then
+		group:Destroy()
+		return skip("it is within CLEARANCE of the road or the checkpoint")
+	end
+
+	-- effects
+	local Row = require(script.Parent.BiomeEnvironment).Row
+	local made = { Emitter = 0, Beam = 0, Light = 0, Skipped = 0 }
+	local function anchor(it, offset)
+		local part = it.Model:FindFirstChildWhichIsA("BasePart")
+		local a = Instance.new("Attachment")
+		a.CFrame = part.CFrame:ToObjectSpace(it.CFrame * offset)
+		a.Parent = part
+		return a
+	end
+	local function beam(a0, a1, e, row)
+		local b = Instance.new("Beam")
+		b.Attachment0, b.Attachment1 = a0, a1
+		b.Texture = row.Id
+		b.TextureSpeed = e.TextureSpeed or 0
+		b.Width0, b.Width1 = e.Width[1], e.Width[2]
+		b.Color = sequence(e.Color)
+		b.LightEmission = e.LightEmission or 0
+		b.FaceCamera = true
+		b.Segments = 1
+		CollectionService:AddTag(b, BiomeDressing.EFFECT_TAG)
+		b.Parent = a0.Parent
+		made.Beam += 1
+	end
+	for _, e in scene.Effects or {} do
+		local it = byName[e.At or e.From]
+		local row = e.Kind ~= "Light" and Row(biome, e.Texture, "Texture")
+		if not it or (e.Kind ~= "Light" and not row) then
+			made.Skipped += 1
+		elseif e.Kind == "Emitter" then
+			local pe = Instance.new("ParticleEmitter")
+			pe.Name = "FightParticles"
+			pe.Texture = row.Id
+			pe.Color = sequence(e.Color)
+			pe.Rate = e.Rate -- the scene's own rates (spec: at most 12 emitters), not the landmark cap
+			pe.Lifetime = NumberRange.new(e.Lifetime[1], e.Lifetime[2])
+			pe.Speed = NumberRange.new(e.Speed or 0)
+			local mid, env = range(e.Size, 1)
+			pe.Size = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, mid, env),
+				NumberSequenceKeypoint.new(1, mid, env),
+			})
+			pe.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.2, 0),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			if e.Rotation then
+				pe.Rotation = NumberRange.new(e.Rotation[1], e.Rotation[2])
+			end
+			pe.LightEmission = e.LightEmission or 0
+			pe.SpreadAngle = Vector2.new(20, 20)
+			pe.Shape = e.Shape == "Sphere" and Enum.ParticleEmitterShape.Sphere or Enum.ParticleEmitterShape.Box
+			pe.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+			CollectionService:AddTag(pe, BiomeDressing.EMITTER_TAG)
+			-- no offset: the item's own volume (the dome's starfield); else a point at Y up and Forward ahead of it
+			pe.Parent = (e.Y or e.Forward) and anchor(it, CFrame.new(0, e.Y or 0, e.Forward or 0))
+				or it.Model:FindFirstChildWhichIsA("BasePart")
+			made.Emitter += 1
+		elseif e.Kind == "Beams" or e.Kind == "Beam" then
+			local to = byName[e.To]
+			if not to then
+				made.Skipped += 1
+				continue
+			end
+			local a0 = anchor(it, CFrame.new(0, e.FromY or 0, 0))
+			local r = to.Def.Size.X / 2
+			if e.Kind == "Beams" then
+				-- fanned to points on the shell: even azimuths, alternating 20 / 50 degrees up
+				for k = 0, (e.Count or 1) - 1 do
+					local az, el = 2 * math.pi * k / e.Count, math.rad(k % 2 == 0 and 20 or 50)
+					local dir = Vector3.new(math.cos(el) * math.cos(az), math.sin(el), math.cos(el) * math.sin(az))
+					beam(a0, anchor(to, CFrame.new(dir * r)), e, row)
+				end
+			else
+				-- ToEdge: level toward the shell's centre line, ending where it meets the shell
+				local p, c = (it.CFrame * CFrame.new(0, e.FromY or 0, 0)).Position, to.CFrame.Position
+				local flatDir = Vector3.new(c.X - p.X, 0, c.Z - p.Z).Unit
+				local m = p - c
+				local b, cc = m:Dot(flatDir), m:Dot(m) - r * r
+				if cc <= 0 or b * b - cc < 0 then
+					made.Skipped += 1
+					continue
+				end
+				local hit = p + flatDir * (-b - math.sqrt(b * b - cc))
+				beam(a0, anchor(to, to.CFrame:ToObjectSpace(CFrame.new(hit))), e, row)
+			end
+		elseif e.Kind == "Light" then
+			local light = Instance.new("PointLight")
+			light.Color = e.Color
+			light.Brightness = e.Brightness
+			light.Range = e.Range
+			light.Shadows = false
+			if e.Reduce or e.ReducedBrightness then
+				light:SetAttribute("Brightness", e.Brightness)
+				light:SetAttribute("ReducedBrightness", e.ReducedBrightness) -- nil: off under REDUCED EFFECTS
+				CollectionService:AddTag(light, BiomeDressing.EFFECT_TAG)
+			end
+			light.Parent = anchor(it, CFrame.new(0, e.Y or it.Def.Size.Y / 2, 0))
+			made.Light += 1
+		end
+	end
+	for k, n in made do
+		group:SetAttribute(k, n)
+	end
+	group:SetAttribute("Items", #scene.Items - missing)
+	group:SetAttribute("MissingItems", missing)
+	group.Parent = folder
+	return parts, box
 end
 
 -- Drops every Environment prop of every track onto the terrain (placeholder rule): its base goes to the lowest

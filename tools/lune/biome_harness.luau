@@ -2,7 +2,7 @@
 -- Biome harness (docs/BIOME_ENVIRONMENT_SPEC.md 3.2): runs the real TrackBuilder, BiomeThemes, BiomeDressing.Prune,
 -- TerrainShape.Prepare and BiomeDressing.SnapToTerrain on the track chain in Lune, Instances from @lune/roblox.
 -- Run from the repo root: `lune run tools/lune/biome_harness.luau`. Env: ROOT (repo root, default cwd), N (tracks,
--- default 10), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
+-- default 10), NOFIGHT=1 (no fight scenes, fw7), SIGNED=1 (every ledger row counts as reviewed), ONLY=1 (print every padded prop over 1 stud), NOMESH=1 (fallback parts instead of one part per mesh),
 -- TUNNEL=1 (give Track 7 the spec 3.5 example Tunnel and four pinned test heroes, and check it: no terrain in the
 -- box, ceiling >= 12 studs, every prop inside the walls or on a bay platform, pinned heroes in their bays, the gate
 -- before the start portal).
@@ -310,6 +310,23 @@ if process.env.TUNNEL then
 		local def = table.clone(base[pin[1]])
 		def.Hero, def.At, def.Name = true, pin[2], "Pin" .. pin[1] -- own name: scatter looks landmarks up by name
 		table.insert(lm.Props, def)
+	end
+end
+
+-- NOFIGHT=1: no biome builds its fight scene (fw7), so the IDENTITY hash must match the one from before fw7
+if process.env.NOFIGHT then
+	for _, theme in req(Shared.BiomeThemes) do
+		if type(theme) == "table" then
+			theme.FightScene = nil
+		end
+	end
+end
+-- SIGNED=1: treat every ledger row as reviewed (exercises the fight scene's meshes and textured effects offline)
+if process.env.SIGNED then
+	for _, theme in req(Shared.BiomeThemes) do
+		for _, row in type(theme) == "table" and theme.Assets or {} do
+			row.Reviewed = row.Reviewed or "harness"
+		end
 	end
 end
 
@@ -737,7 +754,9 @@ do
 			end
 			local nIn, nBay, nOut, nOther, pins, pinsOk = 0, 0, 0, 0, 0, 0
 			for _, prop in e.Model:FindFirstChild("Environment"):GetChildren() do
-				if prop:GetAttribute("Tunnel") then
+				if prop:GetAttribute("FightScene") then
+					continue -- its dome is sunk into the platform; checked below
+				elseif prop:GetAttribute("Tunnel") then
 					-- every part's 8 corners (the model box here is oriented like its first part, which may be turned)
 					local ok, lowY, cx, cz, n, pts = true, math.huge, 0, 0, 0, {}
 					for _, part in prop:GetDescendants() do
@@ -806,6 +825,74 @@ do
 					gateAt
 				)
 			)
+			-- fw7: the fight scene is built (and survived Prune), and every part corner at or above the platform top
+			-- is inside the bay box on its side: past Width / 2 on a bay segment, under the ceiling, inside the wall
+			local scene = Themes[e.Biome].FightScene
+			local group = e.Model:FindFirstChild("Environment"):FindFirstChild("FightScene")
+			if scene then
+				local sgn = scene.Side == "Right" and 1 or -1
+				local corners, outBay, ceil, wall, nParts = 0, 0, 0, 0, 0
+				for _, part in group and group:GetDescendants() or {} do
+					if part:IsA("BasePart") then
+						nParts += 1
+						for _, c in { -1, 1 } do
+							for _, d in { -1, 1 } do
+								for _, f in { -1, 1 } do
+									local p = part.CFrame:PointToWorldSpace(R.Vector3.new(c, d, f) * part.Size / 2)
+									-- the nearest segment across whose length the corner lies (other turns of the track
+									-- may line up along Z too)
+									local found
+									for _, seg in segs do
+										local l = seg.CFrame:PointToObjectSpace(p)
+										if
+											math.abs(l.Z) <= seg.Length / 2 + 1
+											and math.abs(l.Y) < 60
+											and (not found or math.abs(l.X) < math.abs(found[2].X))
+										then
+											found = { seg, l }
+										end
+									end
+									if found and found[2].Y >= Tunnel.PLATFORM - 0.05 then
+										local seg, l = found[1], found[2]
+										corners += 1
+										local bay = if sgn < 0 then seg.BayLeft else seg.BayRight
+										local inner = if sgn < 0 then seg.Left else seg.Right
+										if l.Y > seg.Height + 0.05 then
+											ceil += 1
+										end
+										if l.X * sgn > inner + 0.05 then
+											wall += 1
+										end
+										if not bay or l.X * sgn < half - 0.05 or l.X * sgn > inner + 0.05 then
+											outBay += 1
+										end
+									elseif not found then
+										outBay += 1
+									end
+								end
+							end
+						end
+					end
+				end
+				print(
+					string.format(
+						"FIGHT %s built %s: items %s (no Def %s), parts %d, emitters %s, beams %s, lights %s, effects skipped %s; corners checked %d, outside the bay box %d, ceiling clip %d, wall clip %d",
+						e.Model.Name,
+						tostring(group ~= nil),
+						tostring(group and group:GetAttribute("Items")),
+						tostring(group and group:GetAttribute("MissingItems")),
+						nParts,
+						tostring(group and group:GetAttribute("Emitter")),
+						tostring(group and group:GetAttribute("Beam")),
+						tostring(group and group:GetAttribute("Light")),
+						tostring(group and group:GetAttribute("Skipped")),
+						corners,
+						outBay,
+						ceil,
+						wall
+					)
+				)
+			end
 		end
 	end
 end

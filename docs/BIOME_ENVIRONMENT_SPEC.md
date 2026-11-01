@@ -628,6 +628,17 @@ public source in References confirmed; the builder and the rules auditor judge t
 - **Builder** (framework task fw7, 2026-11-01): the biome module carries the scene as data (`FightScene`: `At`,
   `Side`, items at (u, y, d) with a yaw, and the client effects). Placing a multi-item pinned group and its beams and
   lights needs a framework builder; until it lands the scene is not built.
+  - Builder note (orchestrator default 2026-11-01): `BiomeDressing.Build` places `FightScene` once, after the pinned
+    heroes, as one Model `FightScene` (Atomic, attributes `Tunnel`, `Pinned`) in the bay covering `At` on `Side`, on
+    the platform at road Y + `Tunnel.PLATFORM`. Frame: the bay prop frame (-Z faces the road, centre `Size.Z / 2`
+    past the platform edge); `Pos` = (u along its X, y, d from the platform edge); `Yaw` in degrees about Y, so a
+    +Z-facing mesh faces the road at 180. Each item's `Def` goes through the mesh registry (4.2: an unsigned row uses
+    the parts), grown by `Scale`; an item without a `Def` is skipped with a warning. Emitters are tagged
+    `BiomeEmitter`; beams and the `Reduce` / `ReducedBrightness` lights are tagged `BiomeEffect` (the client hides the
+    beams and turns those lights off or down under REDUCED EFFECTS); an effect whose texture row is unsigned is not
+    built. The scene is not built (a warning) if any part corner above the platform top leaves the bay (walls,
+    ceiling, platform edge), it overlaps a pinned hero, or it is within CLEARANCE of the road or a checkpoint; later
+    tunnel props keep off its footprint. The scene's parts count against the track budget.
 - **VFX** (client only, in `BiomeEnvironment` or the dressing's `BiomeEmitter` tag; in-house textures, Lane A
   `generate_texture`; every texture prompt passed `realNameIn`):
   1. Domain dome around Gojio: a hemisphere shell (Ball part cut by the platform), radius 12, #05060C, Transparency
