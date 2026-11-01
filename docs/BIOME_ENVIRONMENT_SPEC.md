@@ -557,10 +557,11 @@ placeholder except the IP line. Needs the tunnel framework (3.5, proposed).
   benches, blank vending machines, ticket gates, wall maps with abstract shapes, made-up signs, overhead wire gantries,
   emergency lights, fallen ceiling panels, rubble.
 - **Palette**: #E9E4D6, #8C8A84, #2B2E33, #F2D23A, #3FA7A0, #CFE8FF, #B5281F.
-- **Sky**: underground (3.5): `Underground = true`, no sky. ClockTime 0, Brightness 0, Ambient #3A4A48,
-  OutdoorAmbient #1A2224, EnvironmentDiffuseScale 0.2. Atmosphere Color #2A3532, Density 0.3, Haze 1 (dust).
-  Grade TintColor #E6FFF4, Saturation -0.2, Contrast +0.15. Bloom 1.0, Threshold 0.9 (light strips glow). Clouds
-  Cover 0. Particles: dust motes. Flickering lights: owner 2026-10-31 yes, a few lights flicker (client effect, off under REDUCED EFFECTS).
+- **Sky**: underground (3.5): `Underground = true`, no sky. Owner 2026-11-01: "a bit more bright so player can see
+  through the dimness, and not pure darkness". ClockTime 0, Brightness 0, Ambient #6A7470, OutdoorAmbient #3A4442,
+  ExposureCompensation 0.35, EnvironmentDiffuseScale 0.4. Atmosphere Color #4A5652, Density 0.2, Haze 0.5 (dust).
+  Grade TintColor #FFF6EA (warm white), Brightness +0.04, Saturation -0.16, Contrast -0.03 (no black crush). Bloom
+  1.0, Threshold 0.9 (light strips glow). LightEvery 16 (was 24). Clouds Cover 0. Particles: dust motes. Flickering lights: owner 2026-10-31 yes, a few lights flicker (client effect, off under REDUCED EFFECTS).
 - **Audio**: tunnel hum, ventilation drone and a distant train rumble (loop); a made-up chime (never a real station
   melody or announcement) and an echoing water drip (one-shots). Reverb `StoneCorridor`.
 - **IP**: no real station, line or company names, letters, numbers, colours or logos; no real oval atrium; no

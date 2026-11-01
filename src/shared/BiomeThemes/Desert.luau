@@ -265,7 +265,9 @@ return {
 		Wall = { Material = M.CeramicTiles, Color = "#E9E4D6", Stripe = "#3FA7A0" },
 		Ceiling = { Material = M.Concrete, Color = "#8C8A84" },
 		Floor = { Material = M.Concrete, Color = "#8C8A84" },
-		LightEvery = 24,
+		-- owner 2026-11-01 (brighter, not pure darkness): a strip every 16 studs (was 24); the strip Brightness itself is
+		-- the framework's Tunnel.LIGHT
+		LightEvery = 16,
 		Bays = BAYS,
 		Portals = true,
 	},
@@ -328,16 +330,21 @@ return {
 	-- placeholders. The plain dark skybox (in-house, 6 faces) only shows through the portals.
 	Atmosphere = Kit.Atmosphere({
 		Underground = true,
+		-- owner 2026-11-01: "a bit more bright so player can see through the dimness, and not pure darkness". Lifted
+		-- Ambient / OutdoorAmbient and exposure, thinner dust haze, a warm-white interior tint and softer contrast (no
+		-- black crush). Was Ambient 3A4A48, OutdoorAmbient 1A2224, Diffuse 0.2, Density 0.3, Haze 1, Contrast 0.3,
+		-- TintColor E6FFF4. Placeholders.
 		Lighting = {
 			ClockTime = 0,
 			Brightness = 0,
-			Ambient = hex("3A4A48"),
-			OutdoorAmbient = hex("1A2224"),
-			EnvironmentDiffuseScale = 0.2,
-			EnvironmentSpecularScale = 0.2,
+			Ambient = hex("6A7470"),
+			OutdoorAmbient = hex("3A4442"),
+			ExposureCompensation = 0.35,
+			EnvironmentDiffuseScale = 0.4,
+			EnvironmentSpecularScale = 0.25,
 		},
-		Atmosphere = { Density = 0.3, Offset = 0, Color = hex("2A3532"), Decay = hex("1A2224"), Glare = 0, Haze = 1 },
-		Grade = { Saturation = -0.02, Contrast = 0.3, TintColor = hex("E6FFF4") }, -- baseline 0.18 - 0.2, 0.15 + 0.15
+		Atmosphere = { Density = 0.2, Offset = 0, Color = hex("4A5652"), Decay = hex("2A3230"), Glare = 0, Haze = 0.5 },
+		Grade = { Brightness = 0.04, Saturation = 0.02, Contrast = 0.12, TintColor = hex("FFF6EA") },
 		Bloom = { Intensity = 1.0, Threshold = 0.9 }, -- the light strips glow
 		SunRays = { Intensity = 0 },
 		Sky = { Skybox = "SkyUnderground", StarCount = 0, CelestialBodiesShown = false },
