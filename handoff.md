@@ -229,3 +229,9 @@
 - LANDED Track 7 + fw5-fw9 (a96717a). TESTS PAUSED (owner). Now: land t10 + t4b with screenshots only; c3 on owner's word.
 - LANDED Track 10 (dbb84e1, no scenarios - owner pause). Track 4 twilight shots in progress on orch/biomes/t4b-shots (studio worktree). Then: all 10 tracks done; c3 full compatibility check waits for the owner.
 - LANDED Track 4 twilight tweak. ALL 10 TRACKS LANDED on feature/alex/anime-world. Waiting for owner to start c3 (full compatibility check). Open review list: docs/OWNER_QUESTIONS.md (+ T4 MoonPeak backdrop reads as a flat pale box).
+- 2026-11-01 OWNER URGENT list, written into design doc 4.13-4.18 + TEAM_AND_STAMINA_SPEC Speed/Balance:
+  fixed cruise per rarity x category (proposed Common 20 .. Secret 700), no Speed stat/gain; speed multi = Speed
+  stat points, Speed potions, preset x1.1, per-slot aura + trail; rebirth = luck, XP, +1 stat point; sensei is an
+  info-only track overview (no checkpoints, runs start on Track 1); leaderboards removed; biome welcome popup;
+  faster mesh/texture/sky loading at high speed. Open (owner): workshop/Dojo idle gain after Speed retired.
+  Tasks u1 (speed/rebirth/sensei), u2 (leaderboards/popup/sky), u3 (mesh/texture loading). Tests still paused.

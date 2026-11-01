@@ -27,8 +27,8 @@ The game is the same concept as IVS, with cars replaced by characters and the si
    - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
    - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
-6. While running, the Speed stat grows. A higher Speed stat makes every character faster.
-7. Money buys upgrades; rebirth resets Money and Speed for a permanent multiplier.
+6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat (owner 2026-11-01).
+7. Money buys upgrades; rebirth resets Money for luck, XP multi and a stat point (4.14).
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -38,14 +38,14 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
 | Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
-| Speed stat (`leaderstats.Speed`) grows with actual speed while running; cruise = log curve of the stat, capped at `MAX_CRUISE` | `RaceConfig` |
+| RETIRED 2026-11-01 (4.13): Speed stat (`leaderstats.Speed`) grows with actual speed while running; cruise = log curve of the stat, capped at `MAX_CRUISE` | `RaceConfig` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
 | Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
-| Rebirth resets Money AND Speed | `RebirthService` |
+| Rebirth resets Money (Speed retired 2026-11-01, 4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
 | Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
 
@@ -55,6 +55,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti`, `Stamina`,
   `Category` (4.5), `Series` (4.8) and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
 - Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
+  RETIRED 2026-11-01: cruise is fixed by rarity x category (4.13).
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
 
 - IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models,
@@ -125,7 +126,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   particles) and ambient audio. Biome sky and light changes are client-local only; the server's `Lighting` stays
   untouched. Heavy layers follow the REDUCED EFFECTS setting. Spec: `docs/BIOME_ENVIRONMENT_SPEC.md`.
 
-### 4.11 Speed stat scale (owner 2026-10-30)
+### 4.11 Speed stat scale (owner 2026-10-30) - RETIRED 2026-11-01 with the Speed stat (4.13)
 - The Speed stat shows bigger numbers with the same gameplay: every Speed stat amount is the old amount x
   `STAT_SCALE = 1e15 / 3e5` (about 3.33e9), so 1 Qd new = 300K old (about where a Legendary trio clears all 10 tracks).
 - Scaled together so cruise speed and time to reach it are unchanged: `RaceConfig.HALF_STAT`, `GAIN_PER_SECOND`,
@@ -154,6 +155,44 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   like shift-lock. The player still pitches and zooms; turns are smoothed, never snapped.
 - A Settings toggle, TRACK CAMERA, switches it. Off = the regular camera, as before. Default ON (placeholder).
 - Client-only display; no server number changes. Spec: `docs/CAMERA_SPEC.md`.
+
+### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
+Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the per-character `SpeedMulti`.
+- There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
+  and its category (4.5). New players run slow.
+- Base cruise by rarity, Balanced (proposed 2026-11-01, tuned so each rarity tops out about one NPC band; NPC formula
+  unchanged, `16 x 1.51^(n-1)`): Common 20, Uncommon 30, Rare 45, Epic 90, Legendary 200, Mythic 450, Secret 700.
+  Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
+- Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
+  - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
+  - Speed potions: timed x cruise (IVS potion pattern; placeholder x1.25).
+  - Preset team bonus x1.1 (4.8).
+  - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
+    slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
+  - Rebirth adds speed only through its +1 stat point per level (4.14).
+- Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
+  showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
+- Open (owner): what the workshop / Dojo idle gain and the `Workshop` stat point give now that idle Speed is gone.
+
+### 4.14 Rebirth (owner 2026-11-01)
+- Rebirth gives no speed gain. Each rebirth level gives: luck multi, XP multi and +1 stat point (the "stat boost").
+- Rebirth resets Money (there is no Speed to reset). Requirements unchanged (player level).
+
+### 4.15 Sensei is informational (owner 2026-11-01)
+- The plaza sensei (was the checkpoint NPC) no longer picks a start track. It shows an overview of each track (name,
+  biome, length, NPC rival). No checkpoint logic: every run starts on Track 1. `CheckpointService` pick rules retire.
+
+### 4.16 Leaderboards removed (owner 2026-11-01)
+- All leaderboards are removed from the plaza for now (clutter at the spawn). Board data stores are left untouched.
+
+### 4.17 Biome welcome popup (owner 2026-11-01)
+- When the local player's runner enters a new biome, a small popup fades in with the biome's display name (e.g.
+  "Shibuyo Underground") and fades out (placeholder: 0.4 s in, 2 s hold, 0.6 s out). Client-only display.
+
+### 4.18 Loading at high speed (owner 2026-11-01)
+- Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
+  a biome boundary at any speed. Audit mesh / texture loading and pick the cheapest approach that keeps up at
+  `MAX_CRUISE`. Client display only.
 
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
@@ -191,11 +230,16 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ## 8. Open questions (owner)
 
-None open. The Speed-scale save question of 2026-10-30 was answered the same day (4.11: wipe).
+- 2026-11-01: workshop / Dojo idle gain and the `Workshop` stat point after the Speed stat retired (4.13).
+ The Speed-scale save question of 2026-10-30 was answered the same day (4.11: wipe).
 
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01: owner: no Speed stat or speed gain; fixed cruise per rarity x category; speed multi from stat points,
+  Speed potions, preset bonus, per-slot auras / trails (4.13). Rebirth = luck, XP multi, +1 stat point (4.14).
+  Sensei informational only, no checkpoints (4.15). Leaderboards removed (4.16). Biome welcome popup (4.17). Faster
+  mesh / texture / sky loading at high speed (4.18). Base speed table proposed by the orchestrator.
 - 2026-11-01: owner: Track 7's subway must feel very wide along the whole route, not cramped, with assets placed
   throughout (not only in bays). Orchestrator default (owner delegated): target inner width 120 studs and ceiling 26,
   narrowed only where a neighbouring track's corridor would be crossed; props line both sides along the whole tunnel.

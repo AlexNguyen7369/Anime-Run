@@ -94,28 +94,20 @@ Stamina = Base(rarity or override)
 - Exhaustion is not a loss: the bank is paid, and no loser screen shows.
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
 
-## Speed
+## Speed (owner 2026-11-01, design doc 4.13; replaces the Speed-stat formula)
 
-- Cruise speed of the active runner = `RaceConfig.SpeedFor(stat, character.SpeedMulti x CategorySpeed, aura, trail)`
-  (IVS formula), with the preset x1.1 inside the total cruise cap (Team bonus above).
-- Speed-stat gain uses the actual speed, as in IVS. Gain multipliers never come from the character (IVS rule).
+- Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
+  RarityBase (proposed): Common 20, Uncommon 30, Rare 45, Epic 90, Legendary 200, Mythic 450, Secret 700.
+- SpeedMulti = (1 + 0.02 x Alloc_Speed) x SpeedPotion x Preset(1.1) x slot aura x slot trail (damped
+  `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
+- Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
 
-## Balance check (placeholders)
+## Balance check (placeholders, owner 2026-11-01)
 
-Owner 2026-10-30: speed matters more than stamina. Track lengths `984 x F x 1.25^(n-1)` (F = 3, chain about
-66,000 studs) from `docs/TRACKS_AND_BIOMES_SPEC.md`; NPC speeds unchanged (`16 x 1.51^(n-1)`, Track 10 = 653 studs/s). F = 3 confirmed 2026-10-30. Speed stat amounts use the
-design doc 4.11 scale (1 Qd = 300K old).
-
-- Cruise speed is fixed for a runner during a run, so a team that wins Track 10 runs every track above 653 studs/s:
-  the whole chain takes at most about 101 s, at least 83 s (`MAX_CRUISE` 800).
-- Legendary trio (Balanced, no bonus): 3 x 30 = 90 s of stamina; at about 730 studs/s the chain takes about 90 s, so
-  they just clear it (owner target). That speed needs a Speed stat of about 1 Qd (300K old) at a mid Legendary
-  SpeedMulti; check on a playtest.
-- Mythic trio: 108 s; Secret trio: 129 s; both near the 800 cap (about 83 s), so both clear with stamina to spare.
-- Slower teams lose a track before stamina runs out: speed gates how far a run goes; stamina only ends runs of slow
-  teams on long tracks (e.g. a 50 studs/s runner needs about 59 s for Track 1).
-- Marathoners (x2.0 stamina, x0.8 cruise) are the stamina-heavy option: e.g. a Legendary Marathoner lasts 60 s.
-- Owner must confirm or retune after a playtest; numbers live in `Shared/StaminaConfig`.
+NPC speeds unchanged (`16 x 1.51^(n-1)`: 16, 24, 37, 55, 83, 126, 190, 287, 433, 653). With no multis a Balanced
+runner wins up to: Common Track 1, Uncommon Track 2, Rare Track 3, Epic Track 5, Legendary Track 7 (200 > 190),
+Mythic Track 9, Secret Track 10 (700 > 653). Sprinters reach about one band further; multis push teams the rest of
+the way. Stamina numbers unchanged. Owner retunes after a playtest.
 
 ## HUD
 

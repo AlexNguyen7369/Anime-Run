@@ -11,6 +11,7 @@
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
+- URGENT owner 2026-11-01 (design doc 4.13-4.18): u1 fixed character speed + rebirth (no Speed stat) + sensei info-only (no checkpoints); u2 remove leaderboards + biome welcome popup + faster sky switch; u3 mesh/texture loading at high speed
 - b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
