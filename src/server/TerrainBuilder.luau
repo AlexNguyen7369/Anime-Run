@@ -56,7 +56,9 @@ local function writeChunk(terrain, cx, cz)
 			local y, w, m, c, l, tlo, thi = TerrainShape.Column(x, z)
 			h[idx], water[idx], mat[idx], cliff[idx], limit[idx] = y, w, m, c, l
 			holeLo[idx], holeHi[idx] = tlo, thi
-			lo = math.min(lo, y)
+			-- fw9 (root cause of corridor_clear_7 in the first bend): the hollow floor too, or a chunk whose every
+			-- column lies under the tunnel earth starts its voxels above the hollow and the Rock FillBlock below fills it
+			lo = math.min(lo, tlo or y)
 			hi = math.max(hi, w or y)
 		end
 	end

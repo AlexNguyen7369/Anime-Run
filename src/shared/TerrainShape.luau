@@ -457,6 +457,10 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 					Right = seg.Right + Tunnel.WALL + Tunnel.MARGIN,
 					Top = seg.Height + Tunnel.CEILING + Tunnel.MARGIN,
 					Mid = (seg.From + seg.To) / 2,
+					-- fw9: the box reaches past each end by the bend's wedge (|x| tan of half the bend), as the walls do,
+					-- so the outside of a bend is hollow too (a gap there let earth and daylight into the concourse)
+					TanStart = seg.TanStart,
+					TanEnd = seg.TanEnd,
 					-- the earth starts PORTAL / 2 inside each portal facade, so its cut face never shows
 					M0 = s0 + Tunnel.PORTAL / 2,
 					M1 = s1 - Tunnel.PORTAL / 2,
@@ -476,7 +480,9 @@ function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 						)
 					end
 				end
-				local span = math.max(box.Left, box.Right) + Tunnel.BLEND + box.HZ
+				local span = math.max(box.Left, box.Right) * (1 + math.max(box.TanStart, box.TanEnd))
+					+ Tunnel.BLEND
+					+ box.HZ
 				for i = math.floor((box.C.X - span) / B), math.floor((box.C.X + span) / B) do
 					for j = math.floor((box.C.Y - span) / B), math.floor((box.C.Y + span) / B) do
 						local key = i * 65536 + j
@@ -783,17 +789,23 @@ local function tunnelAt(list, x, z, y, A, dA, dc)
 	for _, b in list do
 		local dx, dz = x - b.C.X, z - b.C.Y
 		local lz = dx * b.F.X + dz * b.F.Y
-		if math.abs(lz) <= b.HZ then
-			local lx = dx * b.R.X + dz * b.R.Y
+		local lx = dx * b.R.X + dz * b.R.Y
+		-- fw9: past the box end along the road (beyond the bend's wedge) the earth slopes off over BLEND too, so a bay
+		-- end's cap is buried like the side walls (a hole in the mound by the start portal showed one)
+		local ez = math.abs(lz) - b.HZ - math.abs(lx) * (lz > 0 and b.TanEnd or b.TanStart)
+		if ez < Tunnel.BLEND then
 			local road = b.Y + b.Slope * lz
 			local e = math.abs(lx) - (lx < 0 and b.Left or b.Right)
-			if e <= 0 then
+			if e <= 0 and ez <= 0 then
 				-- fw8 (root cause of corridor_clear_7 on ramps): the floor under the lowest road within FLOOR_REACH
 				-- along it, not the road at this column, so no voxel tops the road Y of a point up the ramp
 				lo = math.min(lo or math.huge, road - Tunnel.ROAD - b.Drop)
 				hi = math.max(hi or -math.huge, road + b.Top)
 			end
 			local s = b.Mid + lz
+			if ez > 0 then
+				e = e > 0 and math.sqrt(e * e + ez * ez) or ez
+			end
 			if e < Tunnel.BLEND and s >= b.M0 and s <= b.M1 and dc > 0 then
 				local w = e <= 0 and 1 or 1 - smooth(e / Tunnel.BLEND)
 				if A ~= b.N then

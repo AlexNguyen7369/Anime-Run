@@ -159,10 +159,12 @@ local game = {
 	end,
 }
 WARNS = {}
--- Lune's CFrame.lookAt mirrors Z, so a prop beside a diagonal road is turned wrong offline. TUNNEL=1 uses Roblox's
--- lookAt (the tunnel fit checks need the real yaw); without it the identity hash stays comparable with older runs.
+-- Lune's CFrame.lookAt mirrors Z, so a prop beside a diagonal road is turned wrong offline. Every run but NOTUNNEL=1
+-- uses Roblox's lookAt (fw9: the tunnel fit checks need the real yaw; the mirrored one turned 7 of Track 7's
+-- wall-hugging Rhythm props through its wall offline only); NOTUNNEL=1 keeps the mirror, so its IDENTITY hash stays
+-- comparable with older runs.
 local CF = R.CFrame
-if process.env.TUNNEL then
+if not process.env.NOTUNNEL then
 	CF = setmetatable({
 		lookAt = function(at, target, up)
 			local look = (target - at).Unit
@@ -791,6 +793,24 @@ do
 					end
 					return colMemo[k]
 				end
+				-- fw9: TerrainBuilder.writeChunk writes voxels only from its chunk's y0 (a voxel under the lowest column)
+				-- and FillBlocks Rock below; y0 must come from the hollow floors too, or the hollow under earth fills
+				local chunkMemo = {}
+				local function chunkY0(x, z)
+					local cx, cz = math.floor(x / 256) * 256, math.floor(z / 256) * 256
+					local k = cx .. "," .. cz
+					if not chunkMemo[k] then
+						local low = math.huge
+						for ix = cx + 2, cx + 256, 4 do
+							for iz = cz + 2, cz + 256, 4 do
+								local c = column(ix, iz)
+								low = math.min(low, c[6] or c[1]) -- the top, or the hollow floor (fw9)
+							end
+						end
+						chunkMemo[k] = math.floor(low / 4) * 4 - 4
+					end
+					return chunkMemo[k]
+				end
 				for i, p in pts do
 					local a, b = pts[math.max(1, i - 1)], pts[math.min(#pts, i + 1)]
 					local lo, hi = p.Y - 0.5, p.Y + 12
@@ -806,6 +826,9 @@ do
 								for yb = math.floor(lo / 4) * 4 - 4, hi, 4 do
 									local inHole = tlo and yb < thi
 									local o = math.clamp(((inHole and tlo or y) - lift - yb) / 4, 0, 1)
+									if yb < chunkY0(cx, cz) then
+										o = 1 -- the chunk's Rock FillBlock
+									end
 									local top = o > 0 and yb + o * 4
 									if not top and w and not inHole and yb < w - lift then
 										top = yb + math.clamp((w - lift - yb) / 4, 0, 1) * 4
