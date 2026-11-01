@@ -21,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 u3 high-speed loading: preload zone + next-track mesh/texture/sky ids, stream-ahead 1.5 s, streaming radius 1024/256 (no Studio; owner open: hero landmark SLIM pop-in)
 - 2026-11-01 Track 4 twilight neon + particles (owner): screenshots only (test pause)
 - 2026-11-01 b2 Track 10 Green Alien Planet (merge dbb84e1): 25 rows signed; no scenarios (owner test pause); visual pass (haze, teal sea, islets out)
 - 2026-11-01 b2 Track 7 Shibuyo Underground (owner redesign; wide tunnel, fight scene) + tunnel framework fw5-fw9 (merge a96717a): Studio pass=4 fail=0, 50 rows signed, rules audit PASS

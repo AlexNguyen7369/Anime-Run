@@ -24,6 +24,7 @@
 21. 2026-11-01 — Alex Nguyen — Landed Track 9 Spirit Realm Desert and Track 7 Shibuyo Underground (wide subway tunnel framework, fight scene), Studio checks passing.
 22. 2026-11-01 — Alex Nguyen — Landed Track 10 Green Alien Planet and the Track 4 twilight neon update without scenario runs (owner test pause); all 10 biomes landed.
 23. 2026-11-01 — Alex Nguyen — Wrote the owner's urgent rulings into the design doc (fixed character speed, rebirth, info-only sensei, leaderboards removed, biome popup, high-speed loading).
+24. 2026-11-01 — Alex Nguyen — Landed u3: biome meshes, textures and skies preload for the current and next track, with stream-ahead at high speed (no Studio check yet).
 
 ## What's next
 **Build u1: fixed cruise speed per rarity x category with no Speed stat, rebirth as luck/XP/stat point, and the info-only sensei (design doc 4.13-4.15).**
