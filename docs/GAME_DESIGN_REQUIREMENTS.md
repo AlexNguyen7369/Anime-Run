@@ -188,6 +188,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 
 ### 4.16 Leaderboards removed (owner 2026-11-01)
 - All leaderboards are removed from the plaza for now (clutter at the spawn). Board data stores are left untouched.
+- The Best Roll pedestal stays and keeps showing the server's best roll (owner 2026-11-01).
+- Speed Doubler game passes are removed for now (owner 2026-11-01); nothing else in the shop changes.
 
 ### 4.17 Biome welcome popup (owner 2026-11-01)
 - When the local player's runner enters a new biome, a small popup fades in with the biome's display name (e.g.
@@ -240,6 +242,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: Speed Doubler passes removed; Best Roll pedestal kept and fed; u4 per-slot aura/trail with UI.
 - 2026-11-01 (later): owner: exhaustion pays a per-distance share of the current track's pad cash (4.3); Track 1
   not shortened, no map shift; Common / Uncommon / Rare base cruise 24 / 33 / 48 (4.13).
 - 2026-11-01 (later): owner: workshop idle gain gives Money for now (4.13); hero landmark LevelOfDetail is set ahead of
