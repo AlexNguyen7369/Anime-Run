@@ -35,6 +35,7 @@
 32. 2026-11-01 — Alex Nguyen — Removed player levels and XP so rebirth now needs Money ($100K, x10 each), and fixed the biome showing the neighbouring track at high speed by taking it from the server's RunTrack while racing (no Studio check yet).
 33. 2026-11-02 — Alex Nguyen — Brought back sensei checkpoints (tracks lock until the one before is beaten, loss restarts at the checkpoint), added a bonus with a placeholder popup for tracks won past the checkpoint in one run, and made the Tracks panel more detailed with accurate biome previews (no Studio check yet).
 34. 2026-11-02 — Alex Nguyen — Implemented stamina and the team of 3 (Backpack slot picker, per-run drain with swaps, exhaustion share and cash-out, run bank restored, vertical blue stamina bar beside the runner, Commons ~13.5 s to Secrets 30 s), fixed a track-preview crash, and smoke-checked it in Studio.
+35. 2026-11-02 — Alex Nguyen — Replaced the retired Level bar with a team row of 3 circle portraits (slot 1-3 left to right, current runner enlarged with a gold ring, exhausted runners greyed out), checked in Studio and synced to the Rojo studio worktree.
 
 ## What's next
 **Retune Track 1 progression for the new stamina (a Common covers ~324 of Track 1's ~2,950 studs before tiring, so it can never win Track 1), with the owner's choice of faster commons, longer stamina or a shorter Track 1; then c2 (Stamina stat point, Stamina potion, Series / preset team bonus).**
