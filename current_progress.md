@@ -29,6 +29,7 @@
 26. 2026-11-01 — Alex Nguyen — Landed u2: removed the plaza leaderboards, added the biome welcome popup and made the biome sky switch fast at high speed (no Studio check yet).
 27. 2026-11-01 — Alex Nguyen — Landed u1 (fixed cruise per rarity and category, Speed stat removed, rebirth luck/XP/stat point, info-only sensei, workshop pays Money) and checked the biome welcome popup in Studio, fixing a sky crash and moving the popup under AUTO RACE.
 28. 2026-11-01 — Alex Nguyen — Raised Common / Uncommon / Rare cruise to 24 / 33 / 48 and recorded the owner's rule that exhaustion pays a per-distance share of the current track's cash (Track 1 length kept).
+29. 2026-11-01 — Alex Nguyen — Recorded the owner's rulings (Speed Doubler passes removed, Best Roll pedestal kept, upgrade tree Speed branch gives +% cruise) and pushed feature/alex/anime-world with all urgent fixes.
 
 ## What's next
 **Build u4: one aura and one trail per team slot, each scaling only that slot's cruise (design doc 4.13).**
