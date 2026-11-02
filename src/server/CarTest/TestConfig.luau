@@ -35,7 +35,6 @@ return {
 		"weather",
 		"rebirth",
 		"daily_login",
-		"leaderboard",
 		"duel",
 		"shop_purchases",
 		"offline_double",
