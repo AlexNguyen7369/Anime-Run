@@ -268,3 +268,13 @@
   roof. UiContracts / UiSpec checkpoint checks retargeted; new pure test `checkpoints` (Phase2Tests). stylua clean,
   selene 0 errors, rojo build OK, config logic checked in lune. Nothing run in Studio (tests paused by owner).
   Bonus popup: Client/CheckpointBonusPopup (placeholder, y 0.3). Exhaustion share gets no bonus (c1).
+- 2026-11-02 (UNCOMMITTED): owner "stamina still not implemented": c1 ported onto current code (orch/core/c1 was
+  never merged). Team of 3 (save VERSION 13 `Team`), SetTeam remote, Backpack Characters tab picks a character then
+  slot 1-3 (SlotPicker kind "Character", swaps / removes), single equip puts on slot 1. Stamina per run (RunSlot,
+  Stamina1..3), swap at 0 with RunEvent toast, exhaustion banks the per-distance share then cashes out and stops the
+  run; run bank restored (wins bank, loss empties, stop cashes out); loss refills at the checkpoint. Owner stamina
+  13.5 .. 30 s (Common 12-15, Secret 30), category stamina x0.9 / x1.1 proposed. Vertical blue bar right of every
+  visible runner (Client/StaminaBar). Runner aura / trail and cruise follow the active slot. StaminaTests ported.
+  Studio smoke (studio worktree detached at 8b681de + this patch): drain, bar, swap 1-2-3, exhaustion cash-out OK.
+  Fixed a TrackPreviews crash (SurfaceLight .Position). Balance: a Common (24 studs/s, 13.5 s) covers ~324 of
+  Track 1's ~2,950 studs, so it can never win Track 1; owner must retune. c2 (stat point, potion, team bonus) open.

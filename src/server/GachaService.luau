@@ -2,7 +2,8 @@
 -- Car gacha, index and stat allocation. The server owns all of it; clients only see:
 --   player.GachaData: one StringValue per owned car Id (discovering a car = owning it); attribute Copies = the
 --   duplicates rolled since (docs/WORKSHOP_SPEC.md "Showcase": never sold, they power the workshop Showcase)
---   player attributes: EquippedCar, Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
+--   player attributes: Team (up to 3 character ids joined by ",", docs/TEAM_AND_STAMINA_SPEC.md), EquippedCar (the
+--   active runner: Team[1] on foot, the runner in play during a run), Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
 --   AutoRoll (the AUTO toggle of the roll view, true on join, not saved), Showcase (shown car ids joined by ","),
 --   ShowcaseMulti, LuckMulti (live permanent multiplier snapshots), Cruise (the equipped character's cruise, studs/s)
 -- Every unique car in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
@@ -24,9 +25,11 @@ local GachaService = {}
 local QuestService = require(script.Parent.QuestService)
 
 GachaService.REMOTE_COOLDOWN = 0.15 -- seconds between accepted EquipCar / AllocateStat requests per player
+GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (TEAM_AND_STAMINA_SPEC "Team")
 
 local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
+local TEAM_SIZE = 3
 
 local rng = Random.new()
 local watched = setmetatable({}, { __mode = "k" }) -- players whose Cruise is kept current
@@ -64,6 +67,9 @@ function GachaService.Setup(player)
 	local data = folder(player)
 	if player:GetAttribute("EquippedCar") == nil then
 		player:SetAttribute("EquippedCar", STARTER)
+	end
+	if player:GetAttribute("Team") == nil then
+		player:SetAttribute("Team", STARTER)
 	end
 	if player:GetAttribute("Rolls") == nil then
 		player:SetAttribute("Rolls", 0)
@@ -275,8 +281,66 @@ function GachaService.Equip(player, id)
 		return false
 	end
 	GachaService.Setup(player)
+	if player:GetAttribute("AutoRacing") ~= true then
+		-- the single equip on foot (Index, roll toast, /kami) puts the character on slot 1; if it was on another slot
+		-- the two swap places
+		local team = GachaService.TeamList(player)
+		local from = table.find(team, id)
+		if from then
+			team[from] = team[1]
+		end
+		team[1] = id
+		player:SetAttribute("Team", table.concat(team, ","))
+	end
 	player:SetAttribute("EquippedCar", id)
 	return true
+end
+
+-- The Team ids in slot order, read from the Team attribute (never empty: the starter).
+function GachaService.TeamList(player)
+	local list = {}
+	local value = player:GetAttribute("Team")
+	if type(value) == "string" then
+		for id in string.gmatch(value, "[^,]+") do
+			table.insert(list, id)
+		end
+	end
+	if #list == 0 then
+		list[1] = STARTER
+	end
+	return list
+end
+
+-- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-3 distinct owned string ids, on foot only, none in the
+-- Dojo squad (WORLD_REDESIGN_SPEC section 5). Anything else changes nothing. Returns ok, reason.
+function GachaService.SetTeam(player, ids)
+	if player:GetAttribute("AutoRacing") == true then
+		return false, "Stop running to change your Team"
+	end
+	if type(ids) ~= "table" or #ids < 1 or #ids > TEAM_SIZE then
+		return false, "Pick 1 to " .. TEAM_SIZE .. " characters"
+	end
+	local squad, seen, count = GachaService.ShowcaseIds(player), {}, 0
+	for key, id in ids do
+		count += 1
+		if type(key) ~= "number" or type(id) ~= "string" or not CharacterCatalog.Get(id) or not owns(player, id) then
+			return false, "Not a character you own"
+		end
+		if seen[id] then
+			return false, "A character can only be in the Team once"
+		end
+		if squad[id] then
+			return false, "That character is in your Dojo squad"
+		end
+		seen[id] = true
+	end
+	if count ~= #ids then
+		return false, "Not a character you own"
+	end
+	GachaService.Setup(player)
+	player:SetAttribute("Team", table.concat(ids, ","))
+	player:SetAttribute("EquippedCar", ids[1])
+	return true, "Team updated"
 end
 
 -- Spends one free stat point on a stat in GachaConfig.STATS. Returns true if spent.
@@ -295,8 +359,8 @@ end
 
 -- Cruise of the equipped character, studs/s (design doc 4.13): fixed by rarity x category, times the speed multi
 -- (Speed points + upgrade tree Speed tiers, active Speed potion, team slot `slot`'s damped aura and trail), capped
--- at MAX_CRUISE. The character's SpeedMulti never enters it. shortcut: until the team of 3 (c1) lands the runner is
--- the equipped character on slot 1 (`slot` defaults to 1); c1 passes each slot's character and the preset bonus.
+-- at MAX_CRUISE. The character's SpeedMulti never enters it. The runner is EquippedCar (RaceService sets it to the
+-- active Team slot's character); `slot` (default 1) picks that slot's aura and trail. Preset bonus: c2.
 function GachaService.Cruise(player, slot)
 	slot = slot or 1
 	local id = player:GetAttribute("EquippedCar")
@@ -390,13 +454,16 @@ function GachaService.SetShowcase(player, ids)
 	if type(ids) ~= "table" or #ids > GachaConfig.SHOWCASE_SLOTS then
 		return false, "Pick up to " .. GachaConfig.SHOWCASE_SLOTS .. " characters"
 	end
-	local seen, count = {}, 0
+	local seen, count, team = {}, 0, {}
+	for _, id in GachaService.TeamList(player) do
+		team[id] = true
+	end
 	for key, id in ids do
 		count += 1
 		if type(key) ~= "number" or not showcaseable(player, id) or seen[id] then
 			return false, "Not a character you own"
 		end
-		if id == player:GetAttribute("EquippedCar") then -- spec section 5: the Team member can not join the squad
+		if team[id] or id == player:GetAttribute("EquippedCar") then -- spec section 5: the Team member can not join the squad
 			return false, "That character is in your Team"
 		end
 		seen[id] = true
@@ -415,7 +482,8 @@ function GachaService.WorkshopMulti(player)
 	return GachaConfig.Multis(alloc(player)).Workshop * GachaService.ShowcaseMulti(player)
 end
 
--- The save format: { Cars = { id, ... } (sorted), Copies = { [id] = n }, Showcase = { id, ... }, Equipped = id,
+-- The save format: { Cars = { id, ... } (sorted), Copies = { [id] = n }, Showcase = { id, ... }, Team = { id, ... },
+-- Equipped = id (Team[1], kept for old readers),
 -- Rolls = n, StatAlloc = { [stat] = n } }.
 function GachaService.Snapshot(player)
 	local cars = {}
@@ -433,12 +501,21 @@ function GachaService.Snapshot(player)
 			copies[id] = n
 		end
 	end
-	local equipped = player:GetAttribute("EquippedCar")
+	local team = {}
+	for _, id in GachaService.TeamList(player) do
+		if id ~= CharacterCatalog.KAMI_ID then -- Kami is session-only
+			table.insert(team, id)
+		end
+	end
+	if #team == 0 then
+		team[1] = STARTER
+	end
 	return {
 		Cars = cars,
 		Copies = copies,
 		Showcase = GachaService.ShowcaseList(player),
-		Equipped = type(equipped) == "string" and equipped ~= CharacterCatalog.KAMI_ID and equipped or STARTER, -- Kami is session-only
+		Team = team,
+		Equipped = team[1],
 		Rolls = cleanCount(player:GetAttribute("Rolls")),
 		StatAlloc = alloc(player),
 	}
@@ -474,13 +551,27 @@ function GachaService.Apply(player, saved)
 			end
 		end
 	end
-	local equipped = saved.Equipped
-	local spec = type(equipped) == "string" and CharacterCatalog.Get(equipped)
-	if not spec or not owns(player, equipped) then
-		equipped = STARTER
+	-- Team: unowned or unknown ids removed, duplicates dropped, an empty Team is the starter; saves before VERSION 13
+	-- had one Equipped id, which becomes a Team of one
+	local team = {}
+	local savedTeam = type(saved.Team) == "table" and saved.Team or { saved.Equipped }
+	for _, id in savedTeam do
+		if
+			#team < TEAM_SIZE
+			and type(id) == "string"
+			and CharacterCatalog.Get(id)
+			and owns(player, id)
+			and not table.find(team, id)
+		then
+			table.insert(team, id)
+		end
 	end
-	player:SetAttribute("EquippedCar", equipped)
-	-- Owner 2026-10-30 (WORLD_REDESIGN_SPEC section 5): an old save's equipped character also in the squad is dropped
+	if #team == 0 then
+		team[1] = STARTER
+	end
+	player:SetAttribute("Team", table.concat(team, ","))
+	player:SetAttribute("EquippedCar", team[1])
+	-- Owner 2026-10-30 (WORLD_REDESIGN_SPEC section 5): an old save's Team member also in the squad is dropped
 	-- from the squad (its slot left empty); the Team is unchanged
 	local showcase = {}
 	if type(saved.Showcase) == "table" then
@@ -490,9 +581,11 @@ function GachaService.Apply(player, saved)
 			end
 		end
 	end
-	local slot = table.find(showcase, equipped)
-	if slot then
-		table.remove(showcase, slot)
+	for _, id in team do
+		local slot = table.find(showcase, id)
+		if slot then
+			table.remove(showcase, slot)
+		end
 	end
 	player:SetAttribute("Showcase", table.concat(showcase, ","))
 	GachaService.RefreshShowcase(player)
@@ -609,6 +702,19 @@ function GachaService.Start()
 			GachaService.Allocate(player, stat)
 		end
 	end)
+
+	local teamRemote = remotes:FindFirstChild("SetTeam") or Instance.new("RemoteFunction")
+	teamRemote.Name = "SetTeam"
+	teamRemote.Parent = remotes
+	local lastTeam = setmetatable({}, { __mode = "k" })
+	teamRemote.OnServerInvoke = function(player, ids)
+		local now = os.clock()
+		if lastTeam[player] and now - lastTeam[player] < GachaService.TEAM_COOLDOWN then
+			return false, "Please wait"
+		end
+		lastTeam[player] = now
+		return GachaService.SetTeam(player, ids)
+	end
 
 	local showcaseRemote = remotes:FindFirstChild("SetShowcase") or Instance.new("RemoteFunction")
 	showcaseRemote.Name = "SetShowcase"

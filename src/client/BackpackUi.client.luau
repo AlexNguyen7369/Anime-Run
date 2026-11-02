@@ -1,7 +1,8 @@
 --!nonstrict
 -- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Characters tabs with item tiles.
--- Clicking a potion asks the server to use one; clicking a character asks it to equip it; clicking a trail or aura
--- picks it, and the team slot buttons below the grid (SlotPicker) put it on a slot or take it off. The server
+-- Clicking a potion asks the server to use one; clicking a character, trail or aura picks it, and the team slot
+-- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
+-- doc 4.2). The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -254,6 +255,7 @@ end
 
 local current = "Misc"
 local chosen = nil -- the trail / aura id the slot buttons equip
+local chosenCharacter = nil -- the character id the slot buttons put on the Team
 local busy = false
 local entering = false -- the next render is the panel opening: cascade its tiles
 local shownTiles = {}
@@ -277,7 +279,25 @@ function pickSlot(slot, id, picked)
 		return
 	end
 	if not picked then
-		notify(current == "Trails" and "Pick a trail first" or "Pick an aura first")
+		notify(
+			current == "Trails" and "Pick a trail first"
+				or (current == "Auras" and "Pick an aura first" or "Pick a character first")
+		)
+		return
+	end
+	if current == "Characters" then
+		local team = SlotPicker.TeamWith(slot, id)
+		if not team then
+			notify("Your Team needs at least 1 character")
+			return
+		end
+		busy = true
+		local ok, done, message = pcall(function()
+			return remotes:WaitForChild("SetTeam"):InvokeServer(team)
+		end)
+		busy = false
+		notify(ok and tostring(message or (done and "Team updated" or "Try again")) or "Connection error")
+		render()
 		return
 	end
 	busy = true
@@ -312,14 +332,22 @@ function render()
 	end
 	local shown = 0
 	table.clear(shownTiles)
-	local cosmetic = current == "Trails" or current == "Auras"
+	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
 	slots.Frame.Visible = cosmetic
 	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 52)) or GRID_SIZE
 	if current == "Characters" then
-		local equipped = player:GetAttribute("EquippedCar")
-		for order, spec in ownedCars() do
+		local owned = ownedCars()
+		local still = false
+		for _, spec in owned do
+			still = still or spec.Id == chosenCharacter
+		end
+		chosenCharacter = still and chosenCharacter or (owned[1] and owned[1].Id)
+		for order, spec in owned do
 			shown += 1
-			local b = tile(spec.Id, order, spec.Id == equipped)
+			local b = tile(spec.Id, order, SlotPicker.Equipped("Character", spec.Id))
+			if spec.Id == chosenCharacter then
+				b.Stroke.Color = Color3.new(1, 1, 1)
+			end
 			Components.RunnerArt(b, "Art", spec, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 1, -46))
 			caption("Name", b, {
 				AnchorPoint = Vector2.new(0.5, 1),
@@ -341,19 +369,18 @@ function render()
 			})
 			b.MouseEnter:Connect(function()
 				hint.Text = string.format(
-					"%s (%s) %s cruise. Click to equip.",
+					"%s (%s) %s cruise. Pick a team slot below.",
 					spec.Name,
 					spec.Rarity,
 					HudFormat.RateText(RaceConfig.Cruise(spec))
 				)
 			end)
 			b.Activated:Connect(function()
-				if spec.Id ~= player:GetAttribute("EquippedCar") then
-					remotes.EquipCar:FireServer(spec.Id)
-					notify("Equipping " .. spec.Name)
-				end
+				chosenCharacter = spec.Id
+				render()
 			end)
 		end
+		slots:Update("Character", chosenCharacter)
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
@@ -474,6 +501,7 @@ player.AttributeChanged:Connect(function(attr)
 		or attr:sub(1, 3) == "Own"
 		or attr:sub(1, 8) == "Equipped"
 		or attr:match("^Slot%d") ~= nil
+		or attr == "Team"
 	if panel.Visible and watched then
 		render()
 	end

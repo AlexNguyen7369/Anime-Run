@@ -67,14 +67,19 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
   1 character. Spec: `docs/TEAM_AND_STAMINA_SPEC.md`.
 - Slot 1 starts every run; slot 2, then slot 3, take over when the one before is empty.
+- The player fills and swaps the 3 slots on foot (owner 2026-11-02): pick a character in the Backpack, then tap slot
+  1, 2 or 3 to put it there (a character already on another slot swaps places; tapping its own slot takes it off).
+  The single equip (Index, roll toast) puts a character on slot 1.
 
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
-- The drain rate depends on rarity: rarer characters last a little longer (seconds of running: Common 20,
-  Uncommon 22, Rare 24, Epic 27, Legendary 30 (placeholders); Mythic 36, Secret 43 (owner 2026-10-30)).
-- Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small; only Marathoners get a
-  big stamina boost. A trio of Legendaries clears all 10 tracks with about 90 s of running, using about all their
-  stamina; Mythic and Secret trios clear all 10 tracks with stamina to spare.
+- The drain rate depends on rarity (owner 2026-11-02, track-by-track progression; replaces the 2026-10-30 values
+  Common 20 .. Secret 43): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of running (in-between values
+  proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
+- Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small. A team clears a few
+  tracks per run and progresses track by track through checkpoints (4.15), not the whole chain in one run.
+- While a runner runs, a vertical blue stamina bar is fixed to the right of its visible character (owner 2026-11-02),
+  showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
@@ -89,9 +94,9 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
-  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.8 (proposed 2026-10-30, was x0.7).
+  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.9 (proposed 2026-11-02, was x0.8, so Commons stay in 12-15 s).
   - **Balanced**: x1, x1.
-  - **Marathoner**: cruise SpeedMulti x0.8 (owner 2026-10-30, was x0.85), stamina x2.0 (proposed 2026-10-30, was x1.4).
+  - **Marathoner**: cruise SpeedMulti x0.8 (owner 2026-10-30, was x0.85), stamina x1.1 (proposed 2026-11-02, was x2.0).
 - Rarity still sets the base speed and base stamina; the category scales them. The category speed multiplies the
   damped cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it
   counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
@@ -266,6 +271,12 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-02: owner: stamina implemented (c1 ported onto the fixed-speed code). Stamina lowered for track-by-track
+  progression (Commons about 12-15 s, Secrets 30 s; 4.3), 3 swappable Team slots in the Backpack (4.2), a vertical blue
+  stamina bar right of the running character (4.3). Category stamina retuned to x0.9 / x1.1 (proposed, 4.5).
+- 2026-10-30: owner c1 rulings (TEAM_AND_STAMINA_SPEC Run end, recorded here 2026-11-02): run bank restored (wins
+  bank, exhaustion cashes out, loss empties); a loss reset refills stamina and restarts at slot 1 (at the checkpoint
+  track since 2026-11-02, 4.15).
 - 2026-11-02: owner: the sensei picks checkpoints again; tracks lock until the one before is beaten (BestTrack + 1
   open); a loss restarts at the checkpoint; tracks won past the checkpoint in the same run pay a bonus (+10% per
   track, cap x2, placeholders) (4.15, replaces the 2026-11-01 informational sensei).

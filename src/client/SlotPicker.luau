@@ -1,14 +1,16 @@
 --!nonstrict
--- Team slot picker for auras and trails (design doc 4.13: one aura and one trail per team slot). Three slot buttons,
--- each showing that slot's aura and trail; tapping one puts the shown item on that slot, or takes it off when it is
--- already there (Remotes.MarketEquip(kind, id or nil, slot)). The server decides; this only shows Slot<n>Aura /
--- Slot<n>Trail. Shared by the Market detail pane and the Backpack.
+-- Team slot picker (design doc 4.13: one aura and one trail per team slot; 4.2: 3 character slots). Three slot
+-- buttons; tapping one puts the shown item on that slot, or takes it off when it is already there. Kind "Aura" /
+-- "Trail" shows each slot's Slot<n>Aura / Slot<n>Trail (Remotes.MarketEquip(kind, id or nil, slot)); kind
+-- "Character" shows each slot's Team member (the caller sends Remotes.SetTeam). The server decides. Shared by the
+-- Market detail pane and the Backpack.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Market = require(shared:WaitForChild("MarketConfig"))
+local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 
 local OUTLINE = UiTheme.Outline
@@ -35,6 +37,19 @@ local function caption(name, parent, props)
 	local label = make("TextLabel", name, parent, props)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
 	return label
+end
+
+-- The Team ids in slot order (the player attribute Team).
+function SlotPicker.Team()
+	return string.split(player:GetAttribute("Team") or "", ",")
+end
+
+-- True when `id` sits on team slot `slot` for `kind`.
+local function isHere(kind, slot, id)
+	if kind == "Character" then
+		return SlotPicker.Team()[slot] == id
+	end
+	return player:GetAttribute(Market.SlotAttribute(slot, kind)) == id
 end
 
 -- Short item name for the slot line ("Azure Aura" -> "Azure"), "-" for an empty slot.
@@ -86,13 +101,21 @@ function SlotPicker.new(name, parent, props, onPick)
 				onPick(slot, nil, false)
 				return
 			end
-			local here = player:GetAttribute(Market.SlotAttribute(slot, picker.Kind)) == picker.Id
+			local here = isHere(picker.Kind, slot, picker.Id)
 			onPick(slot, if here then nil else picker.Id, true)
 		end)
 	end
 	function picker:Update(kind, id)
 		self.Kind, self.Id = kind, id
 		for slot, refs in self.Buttons do
+			if kind == "Character" then
+				local here = id ~= nil and isHere(kind, slot, id)
+				local spec = CharacterCatalog.Get(SlotPicker.Team()[slot])
+				refs.Items.Text = spec and spec.Name or "-"
+				refs.Title.Text = (here and "REMOVE " or "SLOT ") .. slot
+				refs.Button.BackgroundColor3 = here and HERE or FREE
+				continue
+			end
 			local aura = player:GetAttribute(Market.SlotAttribute(slot, "Aura"))
 			local trail = player:GetAttribute(Market.SlotAttribute(slot, "Trail"))
 			local here = id ~= nil and player:GetAttribute(Market.SlotAttribute(slot, kind)) == id
@@ -107,11 +130,38 @@ end
 -- True when `id` is on any team slot.
 function SlotPicker.Equipped(kind, id)
 	for slot = 1, Market.SLOTS do
-		if player:GetAttribute(Market.SlotAttribute(slot, kind)) == id then
+		if isHere(kind, slot, id) then
 			return true
 		end
 	end
 	return false
+end
+
+-- The Team after putting character `id` on `slot` (nil id: take that slot's character off). A character already on
+-- another slot swaps places with the one there; gaps close up; an empty Team gives nil (nothing to send).
+function SlotPicker.TeamWith(slot, id)
+	local team = SlotPicker.Team()
+	local list = {}
+	for i = 1, Market.SLOTS do
+		list[i] = team[i] ~= "" and team[i] or nil
+	end
+	if id == nil then
+		list[slot] = nil
+	else
+		for i = 1, Market.SLOTS do -- not table.find: list may have holes
+			if list[i] == id then
+				list[i] = list[slot]
+			end
+		end
+		list[slot] = id
+	end
+	local out = {}
+	for i = 1, Market.SLOTS do
+		if list[i] then
+			table.insert(out, list[i])
+		end
+	end
+	return #out > 0 and out or nil
 end
 
 return SlotPicker

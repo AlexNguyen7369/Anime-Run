@@ -208,6 +208,12 @@ local function characterIdOf(player)
 	return type(id) == "string" and CharacterCatalog.Get(id) and id or CharacterCatalog.STARTER_ID
 end
 
+-- The Team slot whose character is running (RaceService sets RunSlot), else slot 1.
+local function activeSlot(player)
+	local slot = player:GetAttribute("RunSlot")
+	return player:GetAttribute("AutoRacing") == true and type(slot) == "number" and slot or 1
+end
+
 local function setState(player, enabled)
 	racing[player] = enabled
 	generation[player] = (generation[player] or 0) + 1
@@ -241,7 +247,7 @@ local function spawnCar(player, character, gen, duel)
 	car.Name = "Runner_" .. tostring(player.Name)
 	RaceService.SetCarGroup(car)
 	car:SetAttribute("AutoRace", true)
-	VehicleEffects.Apply(car, player)
+	VehicleEffects.Apply(car, player, activeSlot(player))
 	car:PivotTo(start)
 	car:SetAttribute("Owner", userIdOf(player) or 0) -- 0: a test's fake player (no client draws it)
 	CollectionService:AddTag(car, CarService.RUNNER_TAG)
@@ -383,7 +389,7 @@ function CarService.ApplyCharacter(player)
 		return
 	end
 	RunnerFactory.Restyle(car, characterIdOf(player))
-	VehicleEffects.Apply(car, player)
+	VehicleEffects.Apply(car, player, activeSlot(player))
 	local run = runs[player]
 	if run and run.Refresh then
 		run:Refresh()
@@ -499,14 +505,16 @@ function CarService.Start()
 		player:GetAttributeChangedSignal("EquippedCar"):Connect(function()
 			CarService.ApplyCharacter(player)
 		end)
-		-- shortcut: the runner wears slot 1's aura / trail until the team of 3 (c1) picks the active slot.
-		for _, kind in { "Aura", "Trail" } do
-			player:GetAttributeChangedSignal("Slot1" .. kind):Connect(function()
-				local car = cars[player]
-				if car and car.Parent then
-					VehicleEffects.Apply(car, player, 1)
-				end
-			end)
+		-- the runner wears the active Team slot's aura / trail (RunSlot while running, else slot 1)
+		for slot = 1, 3 do
+			for _, kind in { "Aura", "Trail" } do
+				player:GetAttributeChangedSignal("Slot" .. slot .. kind):Connect(function()
+					local car = cars[player]
+					if car and car.Parent and slot == activeSlot(player) then
+						VehicleEffects.Apply(car, player, slot)
+					end
+				end)
+			end
 		end
 		player.CameraMinZoomDistance = 10
 		player.CameraMaxZoomDistance = 40

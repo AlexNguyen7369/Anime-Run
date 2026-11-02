@@ -3479,7 +3479,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 12 -- docs/SAVE_SPEC.md: VERSION 12 adds Copies and Showcase; 11 added RaceBestTimes
+	local DATA_VERSION = 13 -- docs/SAVE_SPEC.md: VERSION 13 adds Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local RaceConfig = sharedModule("RaceConfig")
@@ -13288,6 +13288,9 @@ Scenarios.weather = Phase2Tests.weather
 Scenarios.rebirth = Phase2Tests.rebirth
 Scenarios.daily_login = Phase2Tests.daily_login
 Scenarios.checkpoints = Phase2Tests.checkpoints
+-- docs/TEAM_AND_STAMINA_SPEC.md "Tests" (c1): team of 3, stamina, swap, run end by exhaustion
+Scenarios.team = require(script.Parent.StaminaTests).team
+Scenarios.stamina = require(script.Parent.StaminaTests).stamina
 -- docs/LEADERBOARD_SPEC.md section 4 retired: leaderboards removed from the plaza (design doc 4.16, owner 2026-11-01)
 Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md section 4
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md

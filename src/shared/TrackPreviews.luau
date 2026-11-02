@@ -39,7 +39,10 @@ function TrackPreviews.Bake(trackModels)
 			local tunnel = model:FindFirstChild("Tunnel")
 			local near = {}
 			for _, part in model:GetDescendants() do
-				local roof = tunnel and part:IsDescendantOf(tunnel) and part.Position.Y > focus.Position.Y + 10
+				local roof = tunnel
+					and part:IsA("BasePart")
+					and part:IsDescendantOf(tunnel)
+					and part.Position.Y > focus.Position.Y + 10
 				if part:IsA("BasePart") and part.Transparency < 1 and not roof then
 					local reach = (part.Position - focus.Position).Magnitude - part.Size.Magnitude / 2
 					if reach <= TrackPreviews.RADIUS then

@@ -36,6 +36,8 @@ return {
 		"rebirth",
 		"daily_login",
 		"checkpoints",
+		"team",
+		"stamina",
 		"duel",
 		"shop_purchases",
 		"offline_double",

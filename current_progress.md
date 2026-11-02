@@ -34,8 +34,9 @@
 31. 2026-11-01 — Alex Nguyen — Added the admin-only, session-only /kami test runner at 800 studs/s (equal to MAX_CRUISE) and removed the HUD speedometer and cruise read-out; rojo studio worktree moved to the commit.
 32. 2026-11-01 — Alex Nguyen — Removed player levels and XP so rebirth now needs Money ($100K, x10 each), and fixed the biome showing the neighbouring track at high speed by taking it from the server's RunTrack while racing (no Studio check yet).
 33. 2026-11-02 — Alex Nguyen — Brought back sensei checkpoints (tracks lock until the one before is beaten, loss restarts at the checkpoint), added a bonus with a placeholder popup for tracks won past the checkpoint in one run, and made the Tracks panel more detailed with accurate biome previews (no Studio check yet).
+34. 2026-11-02 — Alex Nguyen — Implemented stamina and the team of 3 (Backpack slot picker, per-run drain with swaps, exhaustion share and cash-out, run bank restored, vertical blue stamina bar beside the runner, Commons ~13.5 s to Secrets 30 s), fixed a track-preview crash, and smoke-checked it in Studio.
 
 ## What's next
-**Studio-check the Tracks panel (previews, lock, START HERE), a checkpoint run with the bonus popup, the Money rebirth panel and the RunTrack biome switch with the /kami runner, then resume c1 (team of 3, stamina, run bank).**
+**Retune Track 1 progression for the new stamina (a Common covers ~324 of Track 1's ~2,950 studs before tiring, so it can never win Track 1), with the owner's choice of faster commons, longer stamina or a shorter Track 1; then c2 (Stamina stat point, Stamina potion, Series / preset team bonus).**
 
-**Why this is next:** all of these are pushed unverified in Studio, and c1's team slots and exhaustion payout build on the checkpoint run, the rebirth economy and correct per-track biomes.
+**Why this is next:** new players cannot beat Track 1 or unlock a checkpoint until this is fixed, and c2's stamina multipliers are tuned on top of the base values.

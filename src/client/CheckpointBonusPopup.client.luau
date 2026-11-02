@@ -71,7 +71,7 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace").OnClientEvent:
 				string.format(
 					"CHECKPOINT BONUS %s · %s",
 					HudFormat.Multi(bonus),
-					HudFormat.MoneyText(tonumber(event.Paid) or 0)
+					HudFormat.MoneyText(tonumber(event.Banked) or 0)
 				)
 			)
 		end
