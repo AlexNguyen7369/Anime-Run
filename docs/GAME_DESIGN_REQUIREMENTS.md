@@ -78,6 +78,9 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
+  Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
+  `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
+  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01).
 
 ### 4.4 Losing stays a speed comparison
 - Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
@@ -161,7 +164,7 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
   and its category (4.5). New players run slow.
 - Base cruise by rarity, Balanced (proposed 2026-11-01, tuned so each rarity tops out about one NPC band; NPC formula
-  unchanged, `16 x 1.51^(n-1)`): Common 20, Uncommon 30, Rare 45, Epic 90, Legendary 200, Mythic 450, Secret 700.
+  unchanged, `16 x 1.51^(n-1)`): Common 24, Uncommon 33, Rare 48, Epic 90 (low rarities raised slightly, owner 2026-11-01; was 20 / 30 / 45), Legendary 200, Mythic 450, Secret 700.
   Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
 - Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
   - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
@@ -237,6 +240,8 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: exhaustion pays a per-distance share of the current track's pad cash (4.3); Track 1
+  not shortened, no map shift; Common / Uncommon / Rare base cruise 24 / 33 / 48 (4.13).
 - 2026-11-01 (later): owner: workshop idle gain gives Money for now (4.13); hero landmark LevelOfDetail is set ahead of
   time, not at runtime (BIOME_ENVIRONMENT_SPEC 4.3).
 - 2026-11-01: owner: no Speed stat or speed gain; fixed cruise per rarity x category; speed multi from stat points,

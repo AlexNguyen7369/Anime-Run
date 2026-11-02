@@ -92,12 +92,14 @@ Stamina = Base(rarity or override)
 - `RunEvent { Kind = "Exhausted", Banked = n }` to the owner; the client shows a short "TEAM EXHAUSTED" result with the
   amount banked.
 - Exhaustion is not a loss: the bank is paid, and no loser screen shows.
+- Per-distance share (owner 2026-11-01): before the cash-out, the bank gains `PayoutCurve.Cash(n) x covered / length`
+  of the track being run (share placeholder 1.0; `covered` clamped 0..length). Builds into c1.
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
 
 ## Speed (owner 2026-11-01, design doc 4.13; replaces the Speed-stat formula)
 
 - Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
-  RarityBase (proposed): Common 20, Uncommon 30, Rare 45, Epic 90, Legendary 200, Mythic 450, Secret 700.
+  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed) x SpeedPotion x Preset(1.1) x slot aura x slot trail (damped
   `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
@@ -116,7 +118,7 @@ Stamina = Base(rarity or override)
 ## Balance check (placeholders, owner 2026-11-01)
 
 NPC speeds unchanged (`16 x 1.51^(n-1)`: 16, 24, 37, 55, 83, 126, 190, 287, 433, 653). With no multis a Balanced
-runner wins up to: Common Track 1, Uncommon Track 2, Rare Track 3, Epic Track 5, Legendary Track 7 (200 > 190),
+runner wins up to: Common Track 1 (24 > 16), Uncommon Track 2, Rare Track 3, Epic Track 5, Legendary Track 7 (200 > 190),
 Mythic Track 9, Secret Track 10 (700 > 653). Sprinters reach about one band further; multis push teams the rest of
 the way. Stamina numbers unchanged. Owner retunes after a playtest.
 

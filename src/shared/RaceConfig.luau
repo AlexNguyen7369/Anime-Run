@@ -10,9 +10,9 @@ RaceConfig.MAX_CRUISE = 800 -- hard cruise cap, studs/s (owner 2026-10-27; speed
 RaceConfig.ITEM_CRUISE_DAMP = 0.5 -- aura / trail cruise multi = 1 + this x log10(item multi) (owner 2026-10-28, placeholder)
 -- Base cruise of a Balanced runner by rarity, studs/s (proposed 2026-11-01, design doc 4.13)
 RaceConfig.RARITY_BASE = {
-	Common = 20,
-	Uncommon = 30,
-	Rare = 45,
+	Common = 24,
+	Uncommon = 33,
+	Rare = 48,
 	Epic = 90,
 	Legendary = 200,
 	Mythic = 450,
