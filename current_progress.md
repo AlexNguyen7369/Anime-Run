@@ -31,6 +31,7 @@
 28. 2026-11-01 — Alex Nguyen — Raised Common / Uncommon / Rare cruise to 24 / 33 / 48 and recorded the owner's rule that exhaustion pays a per-distance share of the current track's cash (Track 1 length kept).
 29. 2026-11-01 — Alex Nguyen — Recorded the owner's rulings (Speed Doubler passes removed, Best Roll pedestal kept, upgrade tree Speed branch gives +% cruise) and pushed feature/alex/anime-world with all urgent fixes.
 30. 2026-11-01 — Alex Nguyen — Landed u4: one aura and one trail per team slot with slot-picker UI, Speed Doubler passes removed, Best Roll pedestal fed again, and the upgrade tree Speed branch adding cruise %, checked in Studio.
+31. 2026-11-01 — Alex Nguyen — Added the admin-only, session-only /kami test runner at 800 studs/s (equal to MAX_CRUISE) and removed the HUD speedometer and cruise read-out; rojo studio worktree moved to the commit.
 
 ## What's next
 **Resume c1: team of 3, stamina, slot swap and run bank, rebased on the new fixed-speed model, plus the per-distance exhaustion payout.**
