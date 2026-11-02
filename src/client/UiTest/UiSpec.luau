@@ -3146,15 +3146,14 @@ UiSpec.Checkpoints = {
 	LockTransparency = 0.4,
 	Prompt = "OpenCheckpoints",
 	PanelTheme = "Checkpoints", -- PanelFrame.Attach theme (owner 2026-10-20)
-	-- Detail pane (CHECKPOINT_SPEC section 4, owner 2026-10-27): Preview (ViewportFrame), Title "TRACK n · NAME",
-	-- Biome (upper case), RecSpeed, YourSpeed, Status, Cash, Start (TextButton)
+	-- Detail pane (design doc 4.15, owner 2026-11-02): Preview (ViewportFrame), Title "TRACK n · BIOME DISPLAY NAME",
+	-- Status chip, Length, Rival, You, Cash, Bonus, Start (TextButton)
 	Detail = "CheckpointUi/Panel/Detail",
-	RecPrefix = "REC. SPEED ", -- .. HudFormat.SpeedText(RaceConfig.StatFor(NpcConfig.For(n).Speed))
-	YourPrefix = "YOUR SPEED ", -- .. HudFormat.SpeedText(leaderstats.Speed)
-	-- CHECKPOINT_SPEC section 4 "the payout": labelled like REC. SPEED / YOUR SPEED (Client/CheckpointUi)
 	CashPrefix = "PAYOUT ", -- .. HudFormat.MoneyText(TrackBuilder.CashFor(n))
-	Ready = "READY",
-	NeedFormat = "NEED %s MORE", -- %s = HudFormat.SpeedText(rec - speed)
+	StatusCheckpoint = "YOUR CHECKPOINT",
+	StatusBeaten = "BEATEN",
+	StatusNext = "NEXT TO BEAT",
+	LockedFormat = "LOCKED · BEAT TRACK %d",
 	StartOpen = "START HERE",
 	StartSelected = "SELECTED",
 	StartLocked = "LOCKED",

@@ -13287,6 +13287,7 @@ Scenarios.workshop_phase2 = Phase2Tests.workshop_phase2
 Scenarios.weather = Phase2Tests.weather
 Scenarios.rebirth = Phase2Tests.rebirth
 Scenarios.daily_login = Phase2Tests.daily_login
+Scenarios.checkpoints = Phase2Tests.checkpoints
 -- docs/LEADERBOARD_SPEC.md section 4 retired: leaderboards removed from the plaza (design doc 4.16, owner 2026-11-01)
 Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md section 4
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md

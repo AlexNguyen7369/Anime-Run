@@ -11,8 +11,8 @@
 --
 -- NPC races (options.Npc, on for players): every track is a race against that track's NPC (Shared/NpcConfig,
 -- Shared/NpcRacer). If the NPC reaches a checkpoint first, the player loses at that checkpoint and is immediately
--- teleported back to the start of Track 1 (every run starts on Track 1, design doc 4.15); the client is told which
--- track was lost.
+-- teleported back to the start of the run's checkpoint track (design doc 4.15); the client is told which track was
+-- lost. Tracks won past the checkpoint track in the same run pay the checkpoint bonus (CheckpointConfig.Bonus).
 -- NPC winnings use the current/last-track payout model: a won track pays immediately and a loss pays nothing for
 -- that track. There is no growing bank or continue-risk contract; Unbanked remains a zero compatibility attribute.
 -- Race events go to the owning player only (Remotes.NpcRace:FireClient), whose client draws the NPC.
@@ -27,6 +27,7 @@ local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
+local CheckpointConfig = require(Shared.CheckpointConfig)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local GachaService = require(script.Parent.GachaService)
@@ -147,6 +148,7 @@ end
 -- options: { Loop = true } puts the car back at the start of the route after the last finish.
 --          { Npc = true } races every track against its NPC. Test hooks: NpcSpeeds = { [number] = speed },
 --          LoseScreenSeconds, OnRaceEvent(event).
+--          { StartTrack = n } (NPC mode) starts on track n, and a loss or the loop goes back to it (checkpoints).
 --          { Duel = { Track = n, OnFinish = fn(run, seconds) } } is a duel run (docs/DUEL_SPEC.md): no NPC, starts
 --          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
 function RaceService.NewRun(car, raceRoute, player, options)
@@ -190,6 +192,13 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 	local npcMode = options.Npc == true and type(raceRoute.Tracks) == "table" and #raceRoute.Tracks > 0
 	local duel = not npcMode and type(options.Duel) == "table" and options.Duel or nil
+	-- options.StartTrack (design doc 4.15): the NPC run starts here, restarts here after a loss and loops here
+	local startIndex = 1
+	for i, track in npcMode and raceRoute.Tracks or {} do
+		if track.Number == options.StartTrack then
+			startIndex = i
+		end
+	end
 	local duelIndex = nil -- index in raceRoute.Tracks of the duel's track
 	local race = nil -- { Index, Number, Started, NpcTime }
 	local alive = true
@@ -290,17 +299,27 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		moveTo(1, RaceService.START_AHEAD)
 	end
 
+	-- Starts the run's start track again (Track 1 in place, a checkpoint by a jump that also resets the runner).
+	local function startAgain()
+		if startIndex > 1 then
+			run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
+		else
+			startRace(1)
+		end
+	end
+
 	-- The player's car reached the finish of the track it is racing on: decide, pay a win, move on.
 	local function finishRace()
 		local track = raceRoute.Tracks[race.Index]
 		local playerTime = runTime - race.Started
 		local win = playerTime < race.NpcTime
-		local amount = 0
+		local amount, bonus = 0, 1
 		local bestTime, newBest = RaceTimeService.Best(player, track.Number), false
 		if win then
 			bestTime, newBest = RaceTimeService.Record(player, track.Number, playerTime)
 			QuestService.Progress(player, "Races")
-			local quote = track.Pad and MoneyService.Quote(player, track.Pad) or 0
+			bonus = CheckpointConfig.Bonus(race.Index - startIndex) -- tracks past the checkpoint (design doc 4.15)
+			local quote = track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0
 			amount = 0
 			if quote > 0 and MoneyService.Award(player, quote) ~= nil then
 				amount = quote
@@ -320,6 +339,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			PlayerTime = playerTime,
 			NpcTime = race.NpcTime,
 			Paid = amount,
+			Bonus = bonus,
 			Banked = 0,
 			Unbanked = 0,
 			BestTime = bestTime,
@@ -336,7 +356,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			elseif options.Loop then
 				run.Laps += 1
 				backToStart()
-				startRace(1)
+				startAgain()
 			else
 				run.Laps += 1
 				run.Finished = true
@@ -347,8 +367,8 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			-- immediate and names the checkpoint that was lost.
 			backToStart()
 			run.Resets += 1
-			emit({ Type = "Reset", Track = raceRoute.Tracks[1].Number, LostAt = track.Number })
-			startRace(1)
+			emit({ Type = "Reset", Track = raceRoute.Tracks[startIndex].Number, LostAt = track.Number })
+			startAgain()
 		end
 	end
 
@@ -396,7 +416,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		publish()
 	end
 
-	if npcMode then
+	if npcMode and startIndex == 1 then
 		startRace(1)
 	end
 
@@ -440,6 +460,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			end
 		end
 		run:JumpToTrack(duel.Track)
+	end
+	if npcMode and startIndex > 1 then
+		run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
 	end
 
 	local lastTick = os.clock()
@@ -553,7 +576,18 @@ function RaceService.Attach(player, car)
 		return nil
 	end
 	setCarGroup(car)
-	return RaceService.NewRun(car, route, player, { Loop = true, Npc = true }) -- always Track 1 (design doc 4.15)
+	return RaceService.NewRun(
+		car,
+		route,
+		player,
+		{ Loop = true, Npc = true, StartTrack = RaceService.StartTrackFor(player) }
+	)
+end
+
+-- The track `player`'s next NPC run starts on: the saved Checkpoint, clamped to the open tracks (design doc 4.15).
+function RaceService.StartTrackFor(player)
+	local count = route and route.Tracks and #route.Tracks or 0
+	return CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), player:GetAttribute("BestTrack"), count)
 end
 
 function RaceService.Start(newRoute)

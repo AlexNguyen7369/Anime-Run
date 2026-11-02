@@ -1,5 +1,5 @@
 --!nonstrict
--- A small live 3D preview of a track's biome in a ViewportFrame (docs/CHECKPOINT_SPEC.md section 4): its ground, a
+-- A small live 3D preview of a track's biome in a ViewportFrame (Tracks panel, design doc 4.15): its ground, a
 -- strip of road under its gate colours and 2-3 of its own props from Shared/BiomeThemes. Presentation only.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Themes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BiomeThemes"))
@@ -11,19 +11,10 @@ local FOCUS = Vector3.new(0, 5, 0)
 local ORBIT_RADIUS, ORBIT_HEIGHT = 46, 24
 local TRACK_LEAD, TRACK_ORBIT, TRACK_HEIGHT = 25, 70, 38 -- studs: real-track shot (placeholders)
 
--- Sky behind each biome (placeholders); anything unknown gets the day sky.
-local SKY = {
-	Speedway = Color3.fromRGB(120, 190, 255),
-	Forest = Color3.fromRGB(140, 200, 235),
-	Docks = Color3.fromRGB(150, 185, 215),
-	Suburb = Color3.fromRGB(135, 205, 255),
-	PirateCoast = Color3.fromRGB(110, 205, 240),
-	City = Color3.fromRGB(70, 60, 120),
-	Desert = Color3.fromRGB(250, 205, 140),
-	Snow = Color3.fromRGB(200, 225, 245),
-	Volcano = Color3.fromRGB(90, 35, 40),
-	Space = Color3.fromRGB(14, 12, 40),
-}
+-- Sky behind a biome: its theme's sky colour (BiomeThemes <Biome>.Sky, the in-world sky), else a day blue.
+local function skyOf(theme)
+	return theme and theme.Sky and theme.Sky.Color or Color3.fromRGB(135, 205, 255)
+end
 
 local function block(parent, size, cframe, color, material)
 	local part = Instance.new("Part")
@@ -59,7 +50,7 @@ end
 function BiomePreview.Build(viewport, biome)
 	viewport:ClearAllChildren()
 	local theme = Themes[biome] or {}
-	viewport.BackgroundColor3 = SKY[biome] or SKY.Speedway
+	viewport.BackgroundColor3 = skyOf(theme)
 	viewport.Ambient = Color3.fromRGB(170, 170, 180)
 	viewport.LightColor = Color3.fromRGB(255, 248, 235)
 	viewport.LightDirection = Vector3.new(-1, -2, -0.6)
@@ -116,11 +107,19 @@ function BiomePreview.FromTrack(viewport, name, biome)
 		return BiomePreview.Build(viewport, biome)
 	end
 	viewport:ClearAllChildren()
-	viewport.BackgroundColor3 = SKY[biome] or SKY.Speedway
+	local theme = Themes[biome]
+	viewport.BackgroundColor3 = skyOf(theme)
 	viewport.Ambient = Color3.fromRGB(170, 170, 180)
 	viewport.LightColor = Color3.fromRGB(255, 248, 235)
 	viewport.LightDirection = Vector3.new(-1, -2, -0.6)
-	source:Clone().Parent = viewport
+	local scene = source:Clone()
+	local groundY = source:GetAttribute("GroundY")
+	if groundY then -- Terrain is not in the bake: a plate of the biome's ground under the road
+		local ground = theme and theme.Ground or { Color = Color3.fromRGB(74, 112, 72), Material = Enum.Material.Grass }
+		local at = Vector3.new(focus.Position.X, groundY - 0.5, focus.Position.Z)
+		block(scene, Vector3.new(400, 1, 400), focus.Rotation + at, ground.Color, ground.Material)
+	end
+	scene.Parent = viewport
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = 50
 	camera.Parent = viewport

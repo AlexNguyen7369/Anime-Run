@@ -528,7 +528,7 @@ function SpawnArea.Build(startCFrame)
 	stat(bestStats, "Player", 0.82, 0.18, Color3.fromRGB(200, 220, 255), "")
 	best.Parent = model
 
-	-- The sensei (design doc 4.15, informational): a rig on a stone dais; its prompt opens the track overview
+	-- The sensei (design doc 4.15, checkpoints): a rig on a stone dais; its prompt opens the Tracks panel
 	-- (Client/CheckpointUi).
 	local npc = Instance.new("Model")
 	npc.Name = "CheckpointNpc"

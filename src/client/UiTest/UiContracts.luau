@@ -7,8 +7,6 @@ local Catalog = require(Shared.CharacterCatalog)
 local TrackRegistry = require(Shared.TrackRegistry)
 local TrackBuilder = require(Shared.TrackBuilder)
 local Format = require(Shared.HudFormat)
-local RaceConfig = require(Shared.RaceConfig)
-local NpcConfig = require(Shared.NpcConfig)
 local Market = require(Shared.MarketConfig)
 local Monetization = require(Shared.MonetizationConfig)
 local Daily = require(Shared.DailyLoginConfig)
@@ -46,22 +44,18 @@ function Contracts.Build(h)
 		return math.abs(a.AbsolutePosition.Y - b.AbsolutePosition.Y) <= Spec.Tolerance
 	end
 
-	-- Independent oracle from CHECKPOINT_SPEC (never the UI's own IsOpen / Effective helpers): Track 1 and every track
-	-- up to BestTrack are open; the current checkpoint is the saved one clamped into that range.
+	-- Independent oracle from design doc 4.15 (never the UI's own IsOpen / Effective helpers): Track 1 and every track
+	-- up to BestTrack + 1 are open; the current checkpoint is the saved one clamped into that range.
 	local function checkpointState()
 		local tracks = TrackRegistry.Chain()
-		local best = math.clamp(math.floor(h.player:GetAttribute("BestTrack") or 0), 1, #tracks)
+		local best = math.clamp(math.floor(h.player:GetAttribute("BestTrack") or 0) + 1, 1, #tracks)
 		local current = math.clamp(math.floor(h.player:GetAttribute("Checkpoint") or 1), 1, best)
 		return tracks, best, current
 	end
-	local function speedNow()
-		local stats = h.player:FindFirstChild("leaderstats")
-		local speed = stats and stats:FindFirstChild("Speed")
-		return speed and speed.Value or 0
-	end
-	-- "PirateCoast" -> "PIRATE COAST" (CHECKPOINT_SPEC section 4: the biome name, upper case)
+	-- The biome's in-game name (BiomeThemes <Biome>.DisplayName, the welcome popup's), e.g. "Shibuyo Underground"
 	local function biomeTitle(biome)
-		return string.upper((string.gsub(biome or "", "(%l)(%u)", "%1 %2")))
+		local theme = require(ReplicatedStorage.Shared.BiomeThemes)[biome or ""]
+		return theme and theme.DisplayName or ""
 	end
 	local function startText(n, best, current)
 		local C = Spec.Checkpoints
@@ -73,9 +67,8 @@ function Contracts.Build(h)
 		return C.StartOpen, true
 	end
 
-	-- The detail pane (CHECKPOINT_SPEC section 4) showing track n. `speedFrom` is the player's Speed when the pane
-	-- was drawn: YOUR SPEED and the status may show any Speed between then and now (the stat grows while racing).
-	local function detailChecks(res, prefix, n, speedFrom)
+	-- The detail pane (design doc 4.15) showing track n: title, status chip, payout and START HERE.
+	local function detailChecks(res, prefix, n)
 		local C = Spec.Checkpoints
 		local tracks, best, current = checkpointState()
 		local spec = tracks[n]
@@ -89,34 +82,24 @@ function Contracts.Build(h)
 			local l = detail:FindFirstChild(name)
 			return l and l:IsA("TextLabel") and l.Text or "missing"
 		end
-		check(res, prefix .. "_title", label("Title"), ("TRACK %d · %s"):format(n, string.upper(spec.Name)))
-		check(res, prefix .. "_biome", label("Biome"), biomeTitle(spec.Biome))
-		local rec = RaceConfig.StatFor(NpcConfig.For(n).Speed)
-		check(res, prefix .. "_rec_speed", label("RecSpeed"), C.RecPrefix .. Format.SpeedText(rec))
-		check(res, prefix .. "_cash", label("Cash"), C.CashPrefix .. Format.MoneyText(TrackBuilder.CashFor(n)))
-		-- YOUR SPEED and the status chip, from one Speed value between speedFrom and now
-		local lo, hi = speedFrom or speedNow(), speedNow()
-		local your, status = label("YourSpeed"), label("Status")
-		local matched = false
-		for k = 0, 100 do
-			local s = lo + (hi - lo) * k / 100
-			local wantStatus = s >= rec and C.Ready or C.NeedFormat:format(Format.SpeedText(rec - s))
-			if your == C.YourPrefix .. Format.SpeedText(s) and status == wantStatus then
-				matched = true
-				break
-			end
-		end
-		local s = speedNow()
-		h.check(
+		check(
 			res,
-			prefix .. "_your_speed_and_status",
-			("%q / %q"):format(your, status),
-			("%q / %q"):format(
-				C.YourPrefix .. Format.SpeedText(s),
-				s >= rec and C.Ready or C.NeedFormat:format(Format.SpeedText(rec - s))
-			),
-			matched
+			prefix .. "_title",
+			label("Title"),
+			("TRACK %d · %s"):format(n, string.upper(biomeTitle(spec.Biome)))
 		)
+		check(res, prefix .. "_cash", label("Cash"), C.CashPrefix .. Format.MoneyText(TrackBuilder.CashFor(n)))
+		local wantStatus = n == current and C.StatusCheckpoint
+			or (n < best and C.StatusBeaten or (n == best and C.StatusNext or C.LockedFormat:format(n - 1)))
+		check(res, prefix .. "_status", label("Status"), wantStatus)
+		for _, name in { "Length", "Rival", "You", "Bonus" } do
+			check(
+				res,
+				prefix .. "_" .. string.lower(name) .. "_filled",
+				label(name) ~= "missing" and label(name) ~= "",
+				true
+			)
+		end
 		local start = detail:FindFirstChild("Start")
 		local wantText, wantActive = startText(n, best, current)
 		h.check(
@@ -133,7 +116,6 @@ function Contracts.Build(h)
 	end
 
 	function scenarios.ui_checkpoints(res)
-		local speedAtOpen = speedNow()
 		local restore = h.setPanels({ Spec.Checkpoints.Panel })
 		h.frames(2)
 		local panel = required(res, Spec.Checkpoints.Panel, "Frame")
@@ -187,7 +169,7 @@ function Contracts.Build(h)
 					Spec.Checkpoints.LockTransparency,
 					math.abs(lock.BackgroundTransparency - Spec.Checkpoints.LockTransparency) <= 1e-6
 				)
-				check(res, prefix .. "_lock_reason", text(lock:FindFirstChild("Need")), "Beat Track " .. n)
+				check(res, prefix .. "_lock_reason", text(lock:FindFirstChild("Need")), "Beat Track " .. (n - 1))
 				local icon = required(res, h.pathOf(lock) .. "/Icon", "TextLabel")
 				check(res, prefix .. "_lock_icon", icon ~= nil and icon.Text ~= "", true)
 				-- The lock must not take the click from its card (locked cards are clickable now)
@@ -213,7 +195,7 @@ function Contracts.Build(h)
 		check(res, "checkpoint_exact_card_count", shown, #tracks)
 		h.checkList(res, "checkpoint_no_extra_cards", extras)
 		-- On open the detail pane shows the current checkpoint (section 4)
-		detailChecks(res, "checkpoint_detail_on_open", current, speedAtOpen)
+		detailChecks(res, "checkpoint_detail_on_open", current)
 		h.geometry.Panel(res, "checkpoint", panel)
 		h.geometry.Topmost(res, "checkpoint", panel, cards)
 		local header = required(res, Spec.Checkpoints.Panel .. "/Header", "Frame")
@@ -253,7 +235,7 @@ function Contracts.Build(h)
 		local n = tonumber(string.match(ctx.path or "", "Track_(%d+)$"))
 		check(res, "checkpoint_card_click_target", n ~= nil, true)
 		if n then
-			detailChecks(res, "checkpoint_detail_after_card", n, ctx.pre and ctx.pre.Speed)
+			detailChecks(res, "checkpoint_detail_after_card", n)
 		end
 	end
 

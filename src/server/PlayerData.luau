@@ -1,7 +1,7 @@
 --!nonstrict
 -- Saved player stats: Money, the car gacha (inventory, equipped car, rolls, stat allocation), the upgrade tree
 -- (owned tiles, BestTrack, TurboCount) and the workshop level. There is no Speed stat (owner 2026-11-01, design doc
--- 4.13): an old save's Speed (and Checkpoint, 4.15) is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
+-- 4.13): an old save's Speed is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
 -- kept in a DataStore; if the store cannot be read (Studio without API access, outage) the player is
 -- flagged DataFailed and their stats are never written, so a failed load can not wipe a save.
 
@@ -32,8 +32,8 @@ local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 1
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
--- design doc 4.13 / 4.15 (owner 2026-11-01); EquippedAura / EquippedTrail: replaced by SlotItems (u4)
-local RETIRED_KEYS = { "Speed", "Checkpoint", "EquippedAura", "EquippedTrail", "Level", "XP" }
+-- design doc 4.13 (owner 2026-11-01); EquippedAura / EquippedTrail: replaced by SlotItems (u4)
+local RETIRED_KEYS = { "Speed", "EquippedAura", "EquippedTrail", "Level", "XP" }
 local MAX_DUEL_WINS = 1e9
 
 -- Session lock (docs/SAVE_SPEC.md): the saved record names the server that holds it, so two servers never
@@ -150,6 +150,7 @@ function PlayerData.Load(player, userId)
 		giftReceipts[player] = type(data.GiftReceipts) == "table" and table.clone(data.GiftReceipts) or {}
 		player:SetAttribute("MoneyEarned", cleanInt(data.MoneyEarned, 0, MAX_MONEY, 0))
 		player:SetAttribute("DuelWins", cleanInt(data.DuelWins, 0, MAX_DUEL_WINS, 0))
+		player:SetAttribute("Checkpoint", cleanInt(data.Checkpoint, 1, MAX_DUEL_WINS, 1)) -- design doc 4.15
 	end
 
 	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields.
@@ -281,6 +282,7 @@ local function save(player, userId, release)
 		DuelWins = cleanInt(player:GetAttribute("DuelWins"), 0, MAX_DUEL_WINS, 0),
 		Receipts = shop.Receipts,
 		Codes = shop.Codes,
+		Checkpoint = cleanInt(player:GetAttribute("Checkpoint"), 1, MAX_DUEL_WINS, 1),
 		RaceBestTimes = RaceTimeService.Snapshot(player),
 		OfflineAt = clock(),
 		Version = VERSION,

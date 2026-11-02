@@ -258,3 +258,13 @@
   run:Destroy); client BiomeEnvironment uses it with no hold, ZoneAt only while walking; look-ahead removed (switched
   ~280 studs early at 800 studs/s). Design doc 4.18. New checks runner_*_publishes_track / track_cleared_on_stop
   (RunnerTests). Nothing run in Studio yet.
+- 2026-11-02 (UNCOMMITTED on feature/alex/anime-world): owner brought sensei checkpoints back (design doc 4.15
+  rewritten + change log). Track 1 always open, track n opens at BestTrack >= n-1; saved `Checkpoint` (no longer a
+  RETIRED_KEY); run starts / loss restarts / loop returns to the checkpoint track. Checkpoint bonus: tracks won past
+  the checkpoint in one run pay pad cash x min(2, 1 + 0.1 k) (placeholders, CheckpointConfig). CheckpointService
+  restored (SetCheckpoint). Owner also asked for a more detailed, accurate Tracks panel: biome DisplayName on cards and
+  title, status chip, length, NPC rival speed + time, your runner speed + time (green / red), payout, bonus line,
+  START HERE; previews use theme Sky colour, a theme ground plate (Terrain is not baked) and drop the Track 7 tunnel
+  roof. UiContracts / UiSpec checkpoint checks retargeted; new pure test `checkpoints` (Phase2Tests). stylua clean,
+  selene 0 errors, rojo build OK, config logic checked in lune. Nothing run in Studio (tests paused by owner).
+  Bonus popup: Client/CheckpointBonusPopup (placeholder, y 0.3). Exhaustion share gets no bonus (c1).

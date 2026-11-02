@@ -192,9 +192,19 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
   unread. The rebirth XP multi is gone; the luck totals table is unchanged.
 
-### 4.15 Sensei is informational (owner 2026-11-01)
-- The plaza sensei (was the checkpoint NPC) no longer picks a start track. It shows an overview of each track (name,
-  biome, length, NPC rival). No checkpoint logic: every run starts on Track 1. `CheckpointService` pick rules retire.
+### 4.15 Sensei checkpoints (owner 2026-11-02; replaces the informational sensei of 2026-11-01)
+- The plaza sensei opens the Tracks panel: an overview of each track (name, biome, length, NPC rival, payout) where
+  the player also picks a **checkpoint**, the track their runs start on (`Remotes.SetCheckpoint`, server-validated).
+- Track 1 is always open. Track n opens once Track n-1 is beaten (`BestTrack >= n - 1`): the player can pick up to
+  the track they are stuck on; every later track stays locked until they pass it.
+- The pick is saved (`Checkpoint`) and clamped to what is open. A run starts on the checkpoint track; a loss sends the
+  runner back to the start of the checkpoint track; after the last track the run loops back to it.
+- **Checkpoint bonus**: in one run, each track won after the checkpoint track pays its pad cash x
+  `min(BONUS_CAP, 1 + BONUS_PER_TRACK x k)`, k = tracks past the checkpoint track (placeholders +10% per track, cap
+  x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
+  checkpoint (loss, loop) or the run ends (stop, team exhausted).
+- A won track that paid the bonus shows a popup "CHECKPOINT BONUS x1.2 · $paid" (placeholder art and timing:
+  0.25 s in, 1.5 s hold, 0.5 s out; client-only display, owner 2026-11-02).
 
 ### 4.16 Leaderboards removed (owner 2026-11-01)
 - All leaderboards are removed from the plaza for now (clutter at the spawn). Board data stores are left untouched.
@@ -256,6 +266,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-02: owner: the sensei picks checkpoints again; tracks lock until the one before is beaten (BestTrack + 1
+  open); a loss restarts at the checkpoint; tracks won past the checkpoint in the same run pay a bonus (+10% per
+  track, cap x2, placeholders) (4.15, replaces the 2026-11-01 informational sensei).
 - 2026-11-01 (later): owner: biome while racing comes from the server's `RunTrack`, look-ahead removed (4.18).
 - 2026-11-01 (later): owner: player Level / XP removed; rebirth needs Money ($100K, x10 each, placeholder), no XP
   multi (4.14).
@@ -270,7 +283,7 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
   time, not at runtime (BIOME_ENVIRONMENT_SPEC 4.3).
 - 2026-11-01: owner: no Speed stat or speed gain; fixed cruise per rarity x category; speed multi from stat points,
   Speed potions, preset bonus, per-slot auras / trails (4.13). Rebirth = luck, XP multi, +1 stat point (4.14).
-  Sensei informational only, no checkpoints (4.15). Leaderboards removed (4.16). Biome welcome popup (4.17). Faster
+  Sensei informational only, no checkpoints (4.15; replaced 2026-11-02). Leaderboards removed (4.16). Biome welcome popup (4.17). Faster
   mesh / texture / sky loading at high speed (4.18). Base speed table proposed by the orchestrator.
 - 2026-11-01: owner: Track 7's subway must feel very wide along the whole route, not cramped, with assets placed
   throughout (not only in bays). Orchestrator default (owner delegated): target inner width 120 studs and ceiling 26,

@@ -1677,4 +1677,29 @@ function Tests.daily_login()
 	return r
 end
 
+-- Checkpoints (design doc 4.15, owner 2026-11-02): open up to BestTrack + 1, saved pick clamped, bonus +10% per
+-- track past the checkpoint, cap x2 (placeholders read from the config, not hard-coded).
+function Tests.checkpoints()
+	local r, flag = report("checkpoints")
+	local C = module(Shared, "CheckpointConfig")
+	flag("checkpoint_config_exists", C ~= nil)
+	if not C then
+		return r
+	end
+	flag("checkpoint_max_new_player", C.Max(0, 10) == 1, C.Max(0, 10), 1)
+	flag("checkpoint_max_next_unbeaten", C.Max(3, 10) == 4, C.Max(3, 10), 4)
+	flag("checkpoint_max_capped_at_last", C.Max(10, 10) == 10, C.Max(10, 10), 10)
+	flag("checkpoint_locked_past_next", not C.IsOpen(5, 3, 10) and C.IsOpen(4, 3, 10))
+	flag(
+		"checkpoint_rejects_bad_numbers",
+		not C.IsOpen(1.5, 5, 10) and not C.IsOpen(0, 5, 10) and not C.IsOpen("2", 5, 10)
+	)
+	flag("checkpoint_effective_clamped", C.Effective(7, 3, 10) == 4 and C.Effective(nil, 3, 10) == 1)
+	flag("checkpoint_bonus_none_on_checkpoint", C.Bonus(0) == 1, C.Bonus(0), 1)
+	local want = 1 + 3 * C.BONUS_PER_TRACK
+	flag("checkpoint_bonus_per_track", near(C.Bonus(3), math.min(C.BONUS_CAP, want), 1e-9), C.Bonus(3), want)
+	flag("checkpoint_bonus_capped", C.Bonus(1000) == C.BONUS_CAP, C.Bonus(1000), C.BONUS_CAP)
+	return r
+end
+
 return Tests
