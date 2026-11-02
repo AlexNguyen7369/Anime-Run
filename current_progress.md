@@ -33,8 +33,9 @@
 30. 2026-11-01 — Alex Nguyen — Landed u4: one aura and one trail per team slot with slot-picker UI, Speed Doubler passes removed, Best Roll pedestal fed again, and the upgrade tree Speed branch adding cruise %, checked in Studio.
 31. 2026-11-01 — Alex Nguyen — Added the admin-only, session-only /kami test runner at 800 studs/s (equal to MAX_CRUISE) and removed the HUD speedometer and cruise read-out; rojo studio worktree moved to the commit.
 32. 2026-11-01 — Alex Nguyen — Removed player levels and XP so rebirth now needs Money ($100K, x10 each), and fixed the biome showing the neighbouring track at high speed by taking it from the server's RunTrack while racing (no Studio check yet).
+33. 2026-11-02 — Alex Nguyen — Brought back sensei checkpoints (tracks lock until the one before is beaten, loss restarts at the checkpoint), added a bonus with a placeholder popup for tracks won past the checkpoint in one run, and made the Tracks panel more detailed with accurate biome previews (no Studio check yet).
 
 ## What's next
-**Studio-check the Money rebirth panel and the RunTrack biome switch with the /kami runner, then resume c1 (team of 3, stamina, run bank).**
+**Studio-check the Tracks panel (previews, lock, START HERE), a checkpoint run with the bonus popup, the Money rebirth panel and the RunTrack biome switch with the /kami runner, then resume c1 (team of 3, stamina, run bank).**
 
-**Why this is next:** both changes are pushed unverified in Studio, and c1's team slots and exhaustion payout build on a working rebirth economy and correct per-track biomes.
+**Why this is next:** all of these are pushed unverified in Studio, and c1's team slots and exhaustion payout build on the checkpoint run, the rebirth economy and correct per-track biomes.
