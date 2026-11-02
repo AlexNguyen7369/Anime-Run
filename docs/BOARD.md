@@ -21,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 u2 leaderboards off the plaza (stores untouched), biome welcome popup, speed-scaled sky switch + sky preload (no Studio; open: Best Roll pedestal)
 - 2026-11-01 u3 high-speed loading: preload zone + next-track mesh/texture/sky ids, stream-ahead 1.5 s, streaming radius 1024/256 (no Studio; owner open: hero landmark SLIM pop-in)
 - 2026-11-01 Track 4 twilight neon + particles (owner): screenshots only (test pause)
 - 2026-11-01 b2 Track 10 Green Alien Planet (merge dbb84e1): 25 rows signed; no scenarios (owner test pause); visual pass (haze, teal sea, islets out)

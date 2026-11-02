@@ -26,6 +26,7 @@
 23. 2026-11-01 — Alex Nguyen — Wrote the owner's urgent rulings into the design doc (fixed character speed, rebirth, info-only sensei, leaderboards removed, biome popup, high-speed loading).
 24. 2026-11-01 — Alex Nguyen — Landed u3: biome meshes, textures and skies preload for the current and next track, with stream-ahead at high speed (no Studio check yet).
 25. 2026-11-01 — Alex Nguyen — Hero landmarks now get their far-view SLIM detail ahead of time from a Rojo-built template; recorded the owner's ruling that workshop idle gain gives Money.
+26. 2026-11-01 — Alex Nguyen — Landed u2: removed the plaza leaderboards, added the biome welcome popup and made the biome sky switch fast at high speed (no Studio check yet).
 
 ## What's next
 **Build u1: fixed cruise speed per rarity x category with no Speed stat, rebirth as luck/XP/stat point, and the info-only sensei (design doc 4.13-4.15).**

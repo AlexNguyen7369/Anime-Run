@@ -417,6 +417,10 @@ Assets = {
 - Every 0.25 s (placeholder) it finds the nearest point to the camera focus (the runner while racing, the character
   otherwise). Zone 0 applies inside the plaza radius (attribute `PlazaRadius`, set by `TerrainShape`).
 - A new zone must hold for 0.5 s (placeholder hysteresis) before the blend starts.
+- High speed (owner 2026-11-01, design doc 4.18; placeholders): poll 0.1 s; hold `min(0.5, 40 / speed)`; blend
+  `clamp(240 / speed, 0.4, 3)` s; the zone is looked up ahead along the focus velocity by `hold + poll + blend / 2`
+  (only zone current + 1 accepted), so the midpoint sky swap lands near the boundary. Sky faces of the next zone are
+  preloaded. At low speed the 0.5 s hold and 3 s blend are unchanged. Biome welcome popup (4.17) fires on blend start.
 - The runner sits on its own track's centre line, so racing always gives the right zone.
 
 ### 5.2 Profile (data in the biome module; zone 0 = the `LightingConfig` baseline)
