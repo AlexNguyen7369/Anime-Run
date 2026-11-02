@@ -1158,13 +1158,14 @@ local function build(folder, chassis, kind, id)
 		emitter(chassis, item, e, hosts)
 	end
 end
-function Effects.Apply(car, player)
+-- Effects of team slot `slot`'s (default 1, the runner until the team of 3 lands) aura and trail.
+function Effects.Apply(car, player, slot)
 	local folder = reset(car)
 	if not folder then
 		return
 	end
 	for _, kind in { "Aura", "Trail" } do
-		local item = MarketConfig.Get(kind, player and player:GetAttribute("Equipped" .. kind))
+		local item = MarketConfig.Get(kind, player and player:GetAttribute(MarketConfig.SlotAttribute(slot or 1, kind)))
 		if item then
 			build(folder, car.PrimaryPart, kind, item.Id)
 		end

@@ -594,7 +594,7 @@ function Tests.runner()
 				t += RunService.Heartbeat:Wait()
 			end
 			local before = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			player:SetAttribute("EquippedAura", "ember_aura")
+			player:SetAttribute("Slot1Aura", "ember_aura")
 			local seen = nil
 			t = 0
 			-- one Heartbeat of slack past 0.25 s: the commit can only land on a frame boundary

@@ -41,6 +41,7 @@ return {
 		"environment",
 		"gifting",
 		"gift_mailbox",
+		"slot_items",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

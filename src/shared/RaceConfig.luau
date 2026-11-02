@@ -35,11 +35,12 @@ function RaceConfig.ItemCruiseMulti(itemMulti)
 	return 1 + RaceConfig.ITEM_CRUISE_DAMP * math.log10(itemMulti)
 end
 
--- Speed multi (design doc 4.13): (1 + SPEED_PER_POINT x Speed points) x Speed potion x preset bonus x damped aura
--- x damped trail. `potion` is the active Speed potion multi (1 = none); `preset` true for a preset team.
-function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMulti)
+-- Speed multi (design doc 4.13): (1 + SPEED_PER_POINT x Speed points + upgrade tree Speed bonus) x Speed potion
+-- x preset bonus x damped aura x damped trail. `potion` is the active Speed potion multi (1 = none); `preset` true
+-- for a preset team; `treeBonus` the owned Speed tiers' summed Bonus (UpgradeTree.Bonuses(owned).Speed, 0 = none).
+function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMulti, treeBonus)
 	local points = positive(speedPoints) and math.floor(speedPoints) or 0
-	return (1 + RaceConfig.SPEED_PER_POINT * points)
+	return (1 + RaceConfig.SPEED_PER_POINT * points + (positive(treeBonus) and treeBonus or 0))
 		* (positive(potion) and math.max(potion, 1) or 1)
 		* (preset == true and RaceConfig.PRESET_CRUISE or 1)
 		* RaceConfig.ItemCruiseMulti(auraMulti)

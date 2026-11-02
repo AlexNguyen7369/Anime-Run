@@ -31,7 +31,7 @@ UpgradeConfig.Branches = {
 		Parent = "start",
 		Origin = { 0, 0 },
 		Direction = { -1, 0 },
-		Bonus = { 0.50, 0.50, 0.50, 0.50, 0.50 },
+		Bonus = { 0.10, 0.10, 0.10, 0.10, 0.10 },
 	},
 	{
 		Id = "luck",
@@ -71,13 +71,15 @@ UpgradeConfig.Branches = {
 	},
 	{
 		Id = "speed",
-		Name = "Speed Gain",
-		Effect = "Speed", -- added to the Speed-stat GAIN multi; never cruise speed or car physics
+		Name = "Speed",
+		-- +% cruise per owned tier, added to the Speed stat points' part of the speed multi (design doc 4.13, owner
+		-- 2026-11-01): 1 + 0.02 x Alloc_Speed + tree bonus. Bonus per tier is a placeholder.
+		Effect = "Speed",
 		Weight = 1,
 		Parent = "start",
 		Origin = { 0, 0 },
 		Direction = { 0, 1 },
-		Bonus = { 0.50, 0.50, 0.50, 0.50, 0.50 },
+		Bonus = { 0.10, 0.10, 0.10, 0.10, 0.10 },
 	},
 	{
 		Id = "walkspeed",

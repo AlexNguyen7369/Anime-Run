@@ -94,8 +94,8 @@ function GachaService.Setup(player)
 		player.AttributeChanged:Connect(function(name)
 			if
 				name == "EquippedCar"
-				or name == "EquippedAura"
-				or name == "EquippedTrail"
+				or string.match(name, "^Slot%d+Aura$")
+				or string.match(name, "^Slot%d+Trail$")
 				or name == "RebirthLevel"
 				or name == "AutoRacing"
 				or string.sub(name, 1, 6) == "Alloc_"
@@ -291,18 +291,20 @@ function GachaService.Allocate(player, stat)
 end
 
 -- Cruise of the equipped character, studs/s (design doc 4.13): fixed by rarity x category, times the speed multi
--- (Speed points, active Speed potion, damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti
--- never enters it. shortcut: one equipped character and the per-player aura / trail; per-slot items and the
--- preset team bonus come with the team of 3 (TEAM_AND_STAMINA_SPEC, u4).
-function GachaService.Cruise(player)
+-- (Speed points + upgrade tree Speed tiers, active Speed potion, team slot `slot`'s damped aura and trail), capped
+-- at MAX_CRUISE. The character's SpeedMulti never enters it. shortcut: until the team of 3 (c1) lands the runner is
+-- the equipped character on slot 1 (`slot` defaults to 1); c1 passes each slot's character and the preset bonus.
+function GachaService.Cruise(player, slot)
+	slot = slot or 1
 	local id = player:GetAttribute("EquippedCar")
 	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
 	local multi = RaceConfig.SpeedMulti(
 		alloc(player).Speed,
 		require(script.Parent.BoostService).Multiplier(player, "Speed"),
 		false,
-		MarketConfig.SpeedMulti(player),
-		MarketConfig.TrailMulti(player)
+		MarketConfig.SpeedMulti(player, slot),
+		MarketConfig.TrailMulti(player, slot),
+		UpgradeService.Bonuses(player).Speed
 	)
 	return RaceConfig.Cruise(spec, multi)
 end
@@ -585,6 +587,11 @@ local function remote(remotes, name)
 end
 
 function GachaService.Start()
+	UpgradeService.OnChanged(function(player) -- a bought Speed tier changes cruise (design doc 4.13)
+		if player:GetAttribute("AutoRacing") ~= true then
+			player:SetAttribute("Cruise", GachaService.Cruise(player))
+		end
+	end)
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	if not remotes then
 		remotes = Instance.new("Folder")

@@ -1,6 +1,7 @@
 --!nonstrict
 -- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Characters tabs with item tiles.
--- Clicking a potion asks the server to use one; clicking a trail, aura or character asks it to equip it; the server
+-- Clicking a potion asks the server to use one; clicking a character asks it to equip it; clicking a trail or aura
+-- picks it, and the team slot buttons below the grid (SlotPicker) put it on a slot or take it off. The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -22,6 +23,7 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -232,6 +234,17 @@ local hint = caption("Hint", panel, {
 	ZIndex = 5,
 })
 local hintHome = hint.Position
+local GRID_SIZE = grid.Size
+local pickSlot -- set below
+local slots = SlotPicker.new("Slots", panel, {
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 120, 1, -32),
+	Size = UDim2.new(1, -132, 0, 44),
+	Visible = false,
+}, function(...)
+	pickSlot(...)
+end)
+make("UISizeConstraint", "Width", slots.Frame, { MaxSize = Vector2.new(480, 44) })
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -240,6 +253,7 @@ local function notify(text)
 end
 
 local current = "Misc"
+local chosen = nil -- the trail / aura id the slot buttons equip
 local busy = false
 local entering = false -- the next render is the panel opening: cascade its tiles
 local shownTiles = {}
@@ -258,16 +272,20 @@ local function tile(id, order, highlighted)
 end
 
 local render
-local function equip(kind, item)
+function pickSlot(slot, id, picked)
 	if busy then
+		return
+	end
+	if not picked then
+		notify(current == "Trails" and "Pick a trail first" or "Pick an aura first")
 		return
 	end
 	busy = true
 	local ok, done, message = pcall(function()
-		return remotes:WaitForChild("MarketEquip"):InvokeServer(kind, item.Id)
+		return remotes:WaitForChild("MarketEquip"):InvokeServer(current == "Trails" and "Trail" or "Aura", id, slot)
 	end)
 	busy = false
-	notify(ok and (done and ("Equipped " .. item.Name) or tostring(message)) or "Connection error")
+	notify(ok and tostring(message or (done and "Done" or "Try again")) or "Connection error")
 	render()
 end
 local function use(item)
@@ -294,6 +312,9 @@ function render()
 	end
 	local shown = 0
 	table.clear(shownTiles)
+	local cosmetic = current == "Trails" or current == "Auras"
+	slots.Frame.Visible = cosmetic
+	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 52)) or GRID_SIZE
 	if current == "Characters" then
 		local equipped = player:GetAttribute("EquippedCar")
 		for order, spec in ownedCars() do
@@ -336,11 +357,17 @@ function render()
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
-		local equipped = player:GetAttribute("Equipped" .. kind)
+		if not (Market.Get(kind, chosen) and player:GetAttribute("Own" .. kind .. "_" .. chosen) == true) then
+			chosen = nil
+		end
 		for order, item in Market.Items[kind] do
 			if player:GetAttribute("Own" .. kind .. "_" .. item.Id) == true then
 				shown += 1
-				local b = tile(item.Id, order, item.Id == equipped)
+				chosen = chosen or item.Id
+				local b = tile(item.Id, order, SlotPicker.Equipped(kind, item.Id))
+				if item.Id == chosen then
+					b.Stroke.Color = Color3.new(1, 1, 1)
+				end
 				swatch(
 					b,
 					item,
@@ -358,15 +385,15 @@ function render()
 					ZIndex = 5,
 				})
 				b.MouseEnter:Connect(function()
-					hint.Text = item.Description or item.Name
+					hint.Text = (item.Description or item.Name) .. " Pick a team slot below."
 				end)
 				b.Activated:Connect(function()
-					if item.Id ~= player:GetAttribute("Equipped" .. kind) then
-						equip(kind, item)
-					end
+					chosen = item.Id
+					render()
 				end)
 			end
 		end
+		slots:Update(kind, chosen)
 		empty.Text = "None owned yet. Buy them in the Market!"
 	else
 		local order = 0
@@ -443,7 +470,10 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	end
 end)
 player.AttributeChanged:Connect(function(attr)
-	local watched = attr:sub(1, 6) == "Boost_" or attr:sub(1, 3) == "Own" or attr:sub(1, 8) == "Equipped"
+	local watched = attr:sub(1, 6) == "Boost_"
+		or attr:sub(1, 3) == "Own"
+		or attr:sub(1, 8) == "Equipped"
+		or attr:match("^Slot%d") ~= nil
 	if panel.Visible and watched then
 		render()
 	end

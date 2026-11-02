@@ -1,6 +1,7 @@
 --!nonstrict
 -- Market (docs/HUD_LAYOUT_SPEC.md, Market pill): the Backpack look with side tabs, a tile grid and a detail pane.
--- Buying and equipping go to the server (MarketPurchase / MarketEquip); the client only shows.
+-- Buying and equipping go to the server (MarketPurchase / MarketEquip); the client only shows. An owned aura or
+-- trail shows the team slot buttons (SlotPicker) in place of the action button: each team slot has its own.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,6 +19,7 @@ local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -264,6 +266,15 @@ corner(action, 8)
 stroke(action, OUTLINE, 3)
 UiTheme.Gradient(action, Color3.new(1, 1, 1), Color3.fromRGB(185, 185, 185)) -- depth on whatever colour it shows
 local actionLabel = caption("Label", action, { Size = UDim2.fromScale(1, 1), Text = "BUY", TextSize = 22 })
+local pickSlot -- set below: equips the shown item on a team slot
+local slots = SlotPicker.new("Slots", detail, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -10),
+	Size = UDim2.new(1, -24, 0, 44),
+	Visible = false,
+}, function(...)
+	pickSlot(...)
+end)
 local status = caption("Status", panel, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 120, 1, -4),
@@ -363,7 +374,7 @@ local DESKTOP = {
 	[grid] = { Position = grid.Position, Size = grid.Size },
 	[detail] = { AnchorPoint = detail.AnchorPoint, Position = detail.Position, Size = detail.Size },
 }
-for _, part in { rarity, nameLabel, viewport, priceRow, description, action } do
+for _, part in { rarity, nameLabel, viewport, priceRow, description, action, slots.Frame } do
 	DESKTOP[part] = { AnchorPoint = part.AnchorPoint, Position = part.Position, Size = part.Size }
 end
 -- Phone detail: the preview on the left, the text rows and BACK / action on the right, in fractions of the pane so
@@ -381,18 +392,22 @@ local PHONE = {
 	[priceRow] = column(0.37, 0.15),
 	[description] = column(0.54, 0.2),
 	[action] = { AnchorPoint = Vector2.zero, Position = UDim2.fromScale(0.7, 0.77), Size = UDim2.new(0.3, -6, 0.2, 0) },
+	[slots.Frame] = column(0.54, 0.21), -- over the description, which an owned aura / trail hides on phones
 	[back] = { AnchorPoint = Vector2.zero, Position = UDim2.new(0.4, 6, 0.77, 0), Size = UDim2.new(0.3, -12, 0.2, 0) },
 }
 local showingDetail = false
+local phoneLayout = false
 local function applyLayout()
 	local camera = workspace.CurrentCamera
 	local phone = camera ~= nil and camera.ViewportSize.Y <= 500
+	phoneLayout = phone
 	for part, props in phone and PHONE or DESKTOP do
 		for key, value in props do
 			part[key] = value
 		end
 	end
 	description.TextScaled = phone
+	description.Visible = not (phone and slots.Frame.Visible)
 	grid.Visible = not (phone and showingDetail)
 	detail.Visible = not phone or showingDetail
 	back.Visible = phone
@@ -421,11 +436,10 @@ end
 
 local function showDetail(item)
 	local kind = selectedKind
-	local equipped = kind ~= "Potion" and player:GetAttribute("Equipped" .. kind) == item.Id
 	local isOwned = owned(kind, item.Id)
+	local cosmetic = kind ~= "Potion" and isOwned -- owned aura / trail: pick its team slot
 	rarity.Text = kind == "Potion" and (item.Category .. " Potion")
-		or kind == "Aura" and string.format("Aura  •  x%.2f cruise", RaceConfig.ItemCruiseMulti(item.SpeedMulti))
-		or string.format("Trail  •  x%.2f cruise", RaceConfig.ItemCruiseMulti(item.SpeedMulti))
+		or string.format("%s  •  x%.2f cruise for its slot", kind, RaceConfig.ItemCruiseMulti(item.SpeedMulti))
 	nameLabel.Text = item.Name
 	priceText.Text = kind == "Potion"
 			and string.format(
@@ -435,8 +449,13 @@ local function showDetail(item)
 			)
 		or (isOwned and "Owned" or Format.MoneyText(item.Price))
 	description.Text = item.Description
-	actionLabel.Text = kind == "Potion" and "BUY" or (equipped and "EQUIPPED" or isOwned and "EQUIP" or "BUY")
-	action.BackgroundColor3 = equipped and Color3.fromRGB(55, 110, 180) or TILE_GREEN
+	actionLabel.Text = "BUY"
+	action.Visible = not cosmetic
+	slots.Frame.Visible = cosmetic
+	description.Visible = not (phoneLayout and cosmetic)
+	if cosmetic then
+		slots:Update(kind, item.Id)
+	end
 	preview(item, kind)
 end
 
@@ -446,13 +465,12 @@ action.Activated:Connect(function()
 		return
 	end
 	local kind = selectedKind
-	if kind ~= "Potion" and player:GetAttribute("Equipped" .. kind) == item.Id then
-		return
+	if kind ~= "Potion" and owned(kind, item.Id) then
+		return -- owned auras / trails equip through the slot buttons
 	end
 	busy = true
-	local remote = (kind ~= "Potion" and owned(kind, item.Id)) and "MarketEquip" or "MarketPurchase"
 	local ok, done, message = pcall(function()
-		return remotes:WaitForChild(remote):InvokeServer(kind, item.Id)
+		return remotes:WaitForChild("MarketPurchase"):InvokeServer(kind, item.Id)
 	end)
 	busy = false
 	notify(
@@ -461,6 +479,23 @@ action.Activated:Connect(function()
 	)
 	render()
 end)
+
+function pickSlot(slot, id)
+	local kind = selectedKind
+	if busy or kind == "Potion" or not selected then
+		return
+	end
+	busy = true
+	local ok, done, message = pcall(function()
+		return remotes:WaitForChild("MarketEquip"):InvokeServer(kind, id, slot)
+	end)
+	busy = false
+	notify(
+		ok and tostring(message or (done and "Done" or "Try again")) or "Connection error",
+		(ok and done) and TILE_GREEN or Color3.fromRGB(255, 100, 120)
+	)
+	render()
+end
 
 function render()
 	for _, child in grid:GetChildren() do
@@ -475,7 +510,6 @@ function render()
 	if not (selected and Market.Get(selectedKind, selected)) then
 		selected = items[1] and items[1].Id
 	end
-	local equippedId = player:GetAttribute("Equipped" .. selectedKind)
 	local shownTiles = {}
 	for order, item in items do
 		local b = make("TextButton", selectedKind .. "_" .. item.Id, grid, {
@@ -487,7 +521,8 @@ function render()
 		table.insert(shownTiles, b)
 		corner(b, 12)
 		UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
-		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or item.Id == equippedId and TILE_GREEN or TILE_BLUE, 4)
+		local onSlot = selectedKind ~= "Potion" and SlotPicker.Equipped(selectedKind, item.Id)
+		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or onSlot and TILE_GREEN or TILE_BLUE, 4)
 		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -8), UDim2.fromOffset(60, 60))
 		local badge = owned(selectedKind, item.Id)
 				and (selectedKind == "Potion" and ("x" .. Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0)) or "Owned")
@@ -551,7 +586,7 @@ close.Activated:Connect(closeMarket)
 require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(backdrop, closeMarket)
 remotes:WaitForChild("MarketOpen").OnClientEvent:Connect(open)
 player.AttributeChanged:Connect(function(attr)
-	if backdrop.Visible and (attr:sub(1, 6) == "Boost_" or attr:sub(1, 3) == "Own" or attr:sub(1, 8) == "Equipped") then
+	if backdrop.Visible and (attr:sub(1, 6) == "Boost_" or attr:sub(1, 3) == "Own" or attr:match("^Slot%d")) then
 		render()
 	end
 end)

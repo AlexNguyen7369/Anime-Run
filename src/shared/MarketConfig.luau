@@ -117,18 +117,52 @@ function MarketConfig.Get(kind, id)
 	return item and item.Kind == kind and item or nil
 end
 
--- The equipped aura's raw multi (damped into cruise by RaceConfig.ItemCruiseMulti).
-function MarketConfig.SpeedMulti(player)
-	local id = typeof(player) == "Instance" and player:GetAttribute("EquippedAura") or nil
-	local item = MarketConfig.Get("Aura", id)
+-- Per team slot aura and trail (design doc 4.13): one of each per slot, server attributes Slot<n>Aura / Slot<n>Trail.
+MarketConfig.SLOTS = 3
+MarketConfig.SLOT_KINDS = { "Aura", "Trail" }
+
+function MarketConfig.SlotAttribute(slot: number, kind: string): string
+	return "Slot" .. slot .. kind
+end
+
+-- Validated per-slot items from a save: { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }. A save with no
+-- SlotItems migrates its old single EquippedAura / EquippedTrail to slot 1. An item is kept only if it exists and
+-- `owns(kind, id)`; each id sits on one slot at most (one owned copy each), the lowest slot wins.
+function MarketConfig.CleanSlotItems(saved: any, owns: (string, string) -> boolean): { [number]: { [string]: string } }
+	local source = type(saved) == "table" and saved or {}
+	local slots = source.SlotItems
+	if type(slots) ~= "table" then
+		slots = { { Aura = source.EquippedAura, Trail = source.EquippedTrail } }
+	end
+	local clean, used = {}, {}
+	for slot = 1, MarketConfig.SLOTS do
+		local entry = type(slots[slot]) == "table" and slots[slot] or {}
+		clean[slot] = {}
+		for _, kind in MarketConfig.SLOT_KINDS do
+			local id = entry[kind]
+			if type(id) == "string" and MarketConfig.Get(kind, id) and owns(kind, id) and not used[id] then
+				used[id] = true
+				clean[slot][kind] = id
+			end
+		end
+	end
+	return clean
+end
+
+local function slotMulti(player: any, slot: number?, kind: string): number
+	local id = typeof(player) == "Instance" and player:GetAttribute(MarketConfig.SlotAttribute(slot or 1, kind)) or nil
+	local item = MarketConfig.Get(kind, id)
 	return item and item.SpeedMulti or 1
 end
 
--- The equipped trail's raw multi (damped into cruise by RaceConfig.ItemCruiseMulti; owner 2026-10-28).
-function MarketConfig.TrailMulti(player)
-	local id = typeof(player) == "Instance" and player:GetAttribute("EquippedTrail") or nil
-	local trail = MarketConfig.Get("Trail", id)
-	return trail and trail.SpeedMulti or 1
+-- Slot `slot`'s (default 1) aura raw multi (damped into cruise by RaceConfig.ItemCruiseMulti).
+function MarketConfig.SpeedMulti(player, slot)
+	return slotMulti(player, slot, "Aura")
+end
+
+-- Slot `slot`'s (default 1) trail raw multi (damped into cruise by RaceConfig.ItemCruiseMulti; owner 2026-10-28).
+function MarketConfig.TrailMulti(player, slot)
+	return slotMulti(player, slot, "Trail")
 end
 
 return MarketConfig

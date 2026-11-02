@@ -37,6 +37,10 @@ local nameLookup = nil
 local names = {} -- userId -> name (successful lookups only)
 local tops = {} -- board id -> rows of the last successful read
 local started = false
+-- `only`: board id -> true to limit a Write / Refresh to those boards; nil = every board.
+local function active(board, only)
+	return only == nil or only[board.Id] == true
+end
 
 -- Tests: fn(storeName) returns an OrderedDataStore-like object. false = no store, nil = the real DataStore.
 function LeaderboardService.SetStore(fn)
@@ -99,7 +103,7 @@ function LeaderboardService.Scores(player)
 end
 
 -- Writes the player's scores. Returns true when at least one board was written.
-function LeaderboardService.Write(player)
+function LeaderboardService.Write(player, only)
 	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") == true then
 		return false -- never from a save that did not load
 	end
@@ -112,7 +116,7 @@ function LeaderboardService.Write(player)
 	local wrote = false
 	for _, board in Config.Boards do
 		local score = scores[board.Id]
-		local store = score > 0 and storeFor(board)
+		local store = active(board, only) and score > 0 and storeFor(board)
 		if store then
 			local ok = pcall(function()
 				store:SetAsync(key, score)
@@ -212,9 +216,9 @@ local function renderBestRoll()
 end
 
 -- Reads every board and writes the signs. Yields (DataStore, name lookups).
-function LeaderboardService.Refresh()
+function LeaderboardService.Refresh(only)
 	for _, board in Config.Boards do
-		local store = storeFor(board)
+		local store = active(board, only) and storeFor(board)
 		if store then
 			local ok, page = pcall(function()
 				return store:GetSortedAsync(false, Config.TOP_N):GetCurrentPage()
@@ -240,13 +244,22 @@ function LeaderboardService.Top(id)
 	return table.clone(tops[id] or {})
 end
 
-function LeaderboardService.Start()
+-- `boardIds` (optional): only these boards are written and read, e.g. { "RarestCar" } for the Best Roll pedestal
+-- alone (design doc 4.16: boards removed, pedestal kept). Omitted: every board.
+function LeaderboardService.Start(boardIds)
 	if started then
 		return
 	end
 	started = true
+	local only = nil
+	if type(boardIds) == "table" then
+		only = {}
+		for _, id in boardIds do
+			only[id] = true
+		end
+	end
 	PlayerData.OnLeaving(function(player)
-		LeaderboardService.Write(player)
+		LeaderboardService.Write(player, only)
 	end)
 	local function quiet()
 		return ReplicatedStorage:GetAttribute("CarTestRunning") ~= true -- the harness drives it with a fake store
@@ -254,7 +267,7 @@ function LeaderboardService.Start()
 	task.spawn(function()
 		while true do
 			if quiet() then
-				LeaderboardService.Refresh()
+				LeaderboardService.Refresh(only)
 			end
 			task.wait(Config.REFRESH)
 		end
@@ -264,7 +277,7 @@ function LeaderboardService.Start()
 			task.wait(Config.WRITE_INTERVAL)
 			if quiet() then
 				for _, player in Players:GetPlayers() do
-					LeaderboardService.Write(player)
+					LeaderboardService.Write(player, only)
 				end
 			end
 		end
