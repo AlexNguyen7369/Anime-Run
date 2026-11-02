@@ -11,6 +11,8 @@
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
+- OWNER: balance clash once c1 stamina lands: Common 20 s stamina x 20 studs/s = 400 studs vs Track 1 ~2950 studs
+- Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds (before c3)
 - URGENT owner 2026-11-01 (design doc 4.13-4.18): u1 fixed character speed + rebirth (no Speed stat) + sensei info-only (no checkpoints); u2 remove leaderboards + biome welcome popup + faster sky switch; u3 mesh/texture loading at high speed; u4 per-slot aura + trail (after u1, save shape change)
 - b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
@@ -21,6 +23,8 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 u1 fixed cruise (rarity x category), Speed stat removed, rebirth luck/XP/point, info-only sensei, workshop pays Money (merge c448a79): Studio smoke: Cruise=20 Common, leaderstats Money only, 0 errors; CarTest/UiTest still reference removed Speed APIs
+- 2026-11-01 welcome popup Studio-checked ("Tournament Wasteland" 0.4/2/0.6 s), moved to y 0.22 under AUTO RACE; fixed sky look-ahead nil crash (58190ae)
 - 2026-11-01 u2 leaderboards off the plaza (stores untouched), biome welcome popup, speed-scaled sky switch + sky preload (no Studio; open: Best Roll pedestal)
 - 2026-11-01 u3 high-speed loading: preload zone + next-track mesh/texture/sky ids, stream-ahead 1.5 s, streaming radius 1024/256 (no Studio; owner open: hero landmark SLIM pop-in)
 - 2026-11-01 Track 4 twilight neon + particles (owner): screenshots only (test pause)

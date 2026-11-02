@@ -27,8 +27,9 @@
 24. 2026-11-01 — Alex Nguyen — Landed u3: biome meshes, textures and skies preload for the current and next track, with stream-ahead at high speed (no Studio check yet).
 25. 2026-11-01 — Alex Nguyen — Hero landmarks now get their far-view SLIM detail ahead of time from a Rojo-built template; recorded the owner's ruling that workshop idle gain gives Money.
 26. 2026-11-01 — Alex Nguyen — Landed u2: removed the plaza leaderboards, added the biome welcome popup and made the biome sky switch fast at high speed (no Studio check yet).
+27. 2026-11-01 — Alex Nguyen — Landed u1 (fixed cruise per rarity and category, Speed stat removed, rebirth luck/XP/stat point, info-only sensei, workshop pays Money) and checked the biome welcome popup in Studio, fixing a sky crash and moving the popup under AUTO RACE.
 
 ## What's next
-**Build u1: fixed cruise speed per rarity x category with no Speed stat, rebirth as luck/XP/stat point, and the info-only sensei (design doc 4.13-4.15).**
+**Build u4: one aura and one trail per team slot, each scaling only that slot's cruise (design doc 4.13).**
 
-**Why this is next:** the owner marked it urgent, and the per-slot aura/trail work and all speed balancing build on the new fixed-speed model.
+**Why this is next:** it is the last piece of the owner's new speed-multi model, and it changes the save shape, so it should land before c1 team/stamina is merged and c3 runs.

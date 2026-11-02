@@ -235,3 +235,9 @@
   info-only track overview (no checkpoints, runs start on Track 1); leaderboards removed; biome welcome popup;
   faster mesh/texture/sky loading at high speed. Open (owner): workshop/Dojo idle gain after Speed retired.
   Tasks u1 (speed/rebirth/sensei), u2 (leaderboards/popup/sky), u3 (mesh/texture loading). Tests still paused.
+- 2026-11-01 LANDED u1 (c448a79), u2 (4d50953), u3 (936d266), hero SLIM template (f197432), popup/sky fix (58190ae);
+  not pushed. Studio 9db12bba: popup works at y 0.22, HeroLodTemplate syncs as SLIM, Cruise=20 for a Common, 0 errors.
+  Workspace.StreamingTargetRadius/MinRadius are not valid members in this Studio (Rojo may skip them; radius unset).
+  Studio worktree ../AnimeRun-orch/studio is DETACHED at feature/alex/anime-world (Rojo 34873 serves it).
+  Open (owner): Best Roll pedestal keep/remove; Speed Doubler passes + upgrade "Speed Gain" branch now do nothing;
+  stamina vs fixed-speed balance (Common can't finish Track 1 on 20 s stamina once c1 lands). Next: u4 per-slot aura/trail.
