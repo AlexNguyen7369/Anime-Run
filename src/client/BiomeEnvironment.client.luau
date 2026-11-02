@@ -417,7 +417,7 @@ task.spawn(function()
 			end
 			z = Env.ZoneAt(focus)
 			local ahead = z ~= nil and Env.ZoneAt(focus + velocity * (hold + Env.POLL + blend / 2))
-			if ahead ~= nil and ahead == z + 1 then
+			if ahead and ahead == z + 1 then
 				z = ahead
 			end
 		end

@@ -26,7 +26,7 @@ local RaceConfig = require(Shared.RaceConfig)
 local LOAD_DISTANCE = 1024 -- studs from the camera (was 450: under 0.6 s of warning at MAX_CRUISE)
 local REFRESH = 0.25 -- seconds between range checks (was 1: a runner at MAX_CRUISE covered 800 studs per check)
 local PRELOAD_POLL = 1 -- placeholder: seconds between zone checks for the preload
-local PRELOAD_KINDS = { Mesh = true, Texture = true, Skybox = true }
+local PRELOAD_KINDS = { Texture = true, Skybox = true } -- not Mesh: PreloadAsync loads an id string as an image ("Asset type does not match")
 local STREAM_LEAD = 1.5 -- placeholder: seconds ahead of the camera focus the stream request is centred
 local STREAM_POLL = 0.25 -- placeholder: seconds between stream requests
 local STREAM_MIN_SPEED = 150 -- placeholder: studs/s; below this the streaming radius keeps up on its own
