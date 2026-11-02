@@ -169,6 +169,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
   - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
   - Speed potions: timed x cruise (IVS potion pattern; placeholder x1.25).
+  - Upgrade tree **Speed** branch (replaces "Speed Gain", owner 2026-11-01): each owned tier adds +% cruise to the
+    character, additive with the Speed stat points (placeholder +10% per tier, 5 tiers, +50% max).
   - Preset team bonus x1.1 (4.8).
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
     slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
@@ -242,6 +244,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: upgrade tree "Speed Gain" branch becomes "Speed": +% cruise per tier (4.13).
 - 2026-11-01 (later): owner: Speed Doubler passes removed; Best Roll pedestal kept and fed; u4 per-slot aura/trail with UI.
 - 2026-11-01 (later): owner: exhaustion pays a per-distance share of the current track's pad cash (4.3); Track 1
   not shortened, no map shift; Common / Uncommon / Rare base cruise 24 / 33 / 48 (4.13).
