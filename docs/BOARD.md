@@ -1,8 +1,7 @@
 # Board
 
 ## Doing
-- Owner redesign 2026-10-31: research + specs (../AnimeRun-orch/redesign), then tunnel framework (Track 7), Track 5 rebuild (burning city), Track 7 rebuild (Shibuya subway). Pause after T5 + T7.
-- b2 Track 6 Hero Academy City (Studio), Track 7 + Track 8 prep in own worktrees; then 9, 10
+- (none)
 
 ## Paused
 - b2 Tracks 8-10 PAUSED by owner until 2026-11-03 (branches: t8 714b8fc+f6b0ac1 phase 1 Sky Islands -> to be redone as Skypeia; t9 Volcano phase 2 partial; t10 5e3bb17+da0852d phase 1)
@@ -13,8 +12,7 @@
 ## Next
 - c1 must add: exhaustion pays per-distance share of the current track's pad cash (owner 2026-11-01; Track 1 not shortened)
 - Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds (before c3)
-- URGENT owner 2026-11-01 (design doc 4.13-4.18): u1 fixed character speed + rebirth (no Speed stat) + sensei info-only (no checkpoints); u2 remove leaderboards + biome welcome popup + faster sky switch; u3 mesh/texture loading at high speed; u4 per-slot aura + trail (after u1, save shape change)
-- b2 Tracks 4-10, one track at a time (after owner says continue), screenshots per track
+- u4 per-slot aura + trail (design doc 4.13; save shape change)
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
