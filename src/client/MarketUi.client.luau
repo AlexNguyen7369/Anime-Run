@@ -9,6 +9,7 @@ local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Market = require(shared:WaitForChild("MarketConfig"))
 local Format = require(shared:WaitForChild("HudFormat"))
+local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local Ui = script.Parent:WaitForChild("RollToast"):WaitForChild("Ui")
@@ -423,8 +424,8 @@ local function showDetail(item)
 	local equipped = kind ~= "Potion" and player:GetAttribute("Equipped" .. kind) == item.Id
 	local isOwned = owned(kind, item.Id)
 	rarity.Text = kind == "Potion" and (item.Category .. " Potion")
-		or kind == "Aura" and string.format("Aura  •  x%s Speed Gain + cruise", tostring(item.SpeedMulti))
-		or string.format("Trail  •  x%s Speed Gain", tostring(item.SpeedMulti))
+		or kind == "Aura" and string.format("Aura  •  x%.2f cruise", RaceConfig.ItemCruiseMulti(item.SpeedMulti))
+		or string.format("Trail  •  x%.2f cruise", RaceConfig.ItemCruiseMulti(item.SpeedMulti))
 	nameLabel.Text = item.Name
 	priceText.Text = kind == "Potion"
 			and string.format(

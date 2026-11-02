@@ -1,5 +1,6 @@
 --!nonstrict
--- Chat admin commands (/money, /speed, /give, /tp, ...; /help lists them). The server decides everything:
+-- Chat admin commands (/money, /give, /tp, ...; /help lists them). No Speed commands: there is no Speed stat
+-- (owner 2026-11-01, design doc 4.13). The server decides everything:
 -- a command runs only if AdminService.IsAdmin(sender) (Server/AdminConfig), and the only remote is the
 -- reply to the sender (Remotes.AdminMessage, shown in chat by Client/AdminChat). Spec: docs/ADMIN_COMMANDS_SPEC.md.
 -- From Studio's command bar (server): require(game.ServerScriptService.Server.AdminService).Run(player, "/money 1m")
@@ -11,7 +12,6 @@ local TextChatService = game:GetService("TextChatService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
-local RaceConfig = require(Shared.RaceConfig)
 local WeatherConfig = require(Shared.WeatherConfig)
 local VfxArea = require(Shared.VfxArea)
 local AdminConfig = require(script.Parent.AdminConfig)
@@ -20,7 +20,6 @@ local GachaService = require(script.Parent.GachaService)
 local LevelService = require(script.Parent.LevelService)
 local MoneyService = require(script.Parent.MoneyService)
 local RebirthConfig = require(Shared.RebirthConfig)
-local PlayerData = require(script.Parent.PlayerData)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
 
@@ -148,14 +147,6 @@ local function moneyValue(player)
 	return MoneyService.Setup(player)
 end
 
-local function speedValue(player)
-	return PlayerData.Setup(player)
-end
-
-local function cleanSpeed(n)
-	return RaceConfig.CleanStat(math.max(n, 0)) or 0
-end
-
 local function amount(args)
 	return AdminService.ParseNumber(args[1])
 end
@@ -204,59 +195,6 @@ AdminService.Commands = {
 			return true, "Money = " .. money.Value
 		end,
 	},
-	speed = {
-		Usage = "/speed <amount> [player]",
-		Help = "set the Speed stat",
-		Min = 1,
-		Max = 1,
-		Check = function(args)
-			local n = amount(args)
-			return n and cleanSpeed(n)
-		end,
-		Apply = function(p, n)
-			speedValue(p).Value = n
-			return true, "Speed = " .. n
-		end,
-	},
-	addspeed = {
-		Usage = "/addspeed <amount> [player]",
-		Help = "add (or with a minus, take) Speed stat",
-		Min = 1,
-		Max = 1,
-		Check = function(args)
-			return amount(args)
-		end,
-		Apply = function(p, n)
-			local speed = speedValue(p)
-			speed.Value = cleanSpeed(speed.Value + n)
-			return true, "Speed = " .. speed.Value
-		end,
-	},
-	resetspeed = {
-		Usage = "/resetspeed [player]",
-		Help = "reset the Speed stat to zero",
-		Min = 0,
-		Max = 0,
-		Check = function()
-			return true
-		end,
-		Apply = function(p)
-			speedValue(p).Value = 0
-			return true, "Speed = 0"
-		end,
-	},
-	givespeed = {
-		Usage = "/givespeed <amount> [player]",
-		Help = "add positive Speed",
-		Min = 1,
-		Max = 1,
-		Check = positiveAmount,
-		Apply = function(p, n)
-			local speed = speedValue(p)
-			speed.Value = cleanSpeed(speed.Value + n)
-			return true, "Speed = " .. speed.Value
-		end,
-	},
 	givemoney = {
 		Usage = "/givemoney <amount> [player]",
 		Help = "add positive Money",
@@ -288,7 +226,7 @@ AdminService.Commands = {
 	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
-		Help = "set the rebirth level (Money, Speed and Level are not reset)",
+		Help = "set the rebirth level (Money and Level are not reset)",
 		Min = 1,
 		Max = 1,
 		Check = function(args)
@@ -300,7 +238,7 @@ AdminService.Commands = {
 			GachaService.RefreshPoints(p)
 			GachaService.RefreshMultipliers(p)
 			require(script.Parent.WorkshopService).RefreshRate(p)
-			return true, string.format("Rebirth %d (x%s Speed Gain)", n, tostring(RebirthConfig.SpeedGainMulti(n)))
+			return true, string.format("Rebirth %d (x%s Luck / XP)", n, tostring(RebirthConfig.XpMulti(n)))
 		end,
 	},
 	luck = {
@@ -428,7 +366,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, Speed, characters, stat points and upgrades",
+		Help = "reset Money, characters, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -436,7 +374,6 @@ AdminService.Commands = {
 		end,
 		Apply = function(p)
 			moneyValue(p).Value = 0
-			speedValue(p).Value = 0
 			p:SetAttribute("RebirthLevel", 0)
 			local stats = p:FindFirstChild("leaderstats")
 			local rebirth = stats and stats:FindFirstChild("Rebirth")
@@ -492,10 +429,6 @@ local ORDER = {
 	"money",
 	"addmoney",
 	"givemoney",
-	"speed",
-	"addspeed",
-	"givespeed",
-	"resetspeed",
 	"givexp",
 	"setrebirth",
 	"luck",

@@ -27,7 +27,6 @@ local BoostService = require(script.Parent.BoostService)
 local DailyLoginService = require(script.Parent.DailyLoginService)
 local LevelService = require(script.Parent.LevelService)
 local DuelService = require(script.Parent.DuelService)
-local CheckpointService = require(script.Parent.CheckpointService)
 local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 
@@ -80,7 +79,7 @@ UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPG
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Speed in the zone
+WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Money in the zone
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
@@ -148,7 +147,6 @@ BoostService.Start()
 DailyLoginService.Start()
 LevelService.Start()
 DuelService.Start() -- player vs player duels, no stake (docs/DUEL_SPEC.md)
-CheckpointService.Start() -- pick the starting track at the hub's Checkpoints NPC (docs/CHECKPOINT_SPEC.md)
 QuestService.Start() -- UTC daily and weekly quest tracking (docs/QUESTS_SPEC.md)
 ShopService.Start() -- Robux potion receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)

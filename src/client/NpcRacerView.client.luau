@@ -204,7 +204,7 @@ local function showLoser(event)
 	npcTime.Text = "NPC TIME " .. (theirs and RouteMath.FormatTime(theirs) or "--")
 	gap.Text = (mine and theirs) and ("+%.2fs"):format(math.max(0, mine - theirs)) or ""
 	pb.Text = best and "PB " .. RouteMath.FormatTime(best) or "PB --"
-	backTo.Text = backToText(runStart or player:GetAttribute("Checkpoint"))
+	backTo.Text = backToText(runStart or 1)
 
 	for gui_, home in homes do
 		gui_.Position = home

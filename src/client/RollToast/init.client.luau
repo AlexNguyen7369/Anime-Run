@@ -26,6 +26,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
+local RaceConfig = require(Shared.RaceConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
 local UiTheme = require(Shared.UiTheme)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -806,7 +807,7 @@ local function fillResult(b, roll)
 		b.GlowGradient.Color = ColorSequence.new(CARD_BG:Lerp(color, 0.15), CARD_BG)
 		b.CharacterName.Text = spec.Name
 		b.CharacterName.TextColor3 = WHITE
-		b.SpeedMulti.Text = HudFormat.Multi(spec.SpeedMulti or 1) .. " SPEED"
+		b.SpeedMulti.Text = HudFormat.RateText(RaceConfig.Cruise(spec))
 		b.Rarity.Text = spec.Rarity
 		b.Rarity.TextColor3 = textColor(spec)
 		b.Rarity.TextStrokeColor3 = spec.Rarity == "Secret" and color or BLACK
@@ -818,7 +819,7 @@ local function fillResult(b, roll)
 			b.ScrapBadge.Text = "+1 COPY"
 		end
 		b.Aliases.Name.Text = spec.Name
-		b.Aliases.Speed.Text = "Speed " .. HudFormat.Multi(spec.SpeedMulti or 1)
+		b.Aliases.Speed.Text = "Cruise " .. HudFormat.RateText(RaceConfig.Cruise(spec))
 		b.Aliases.Rarity.Text = spec.Rarity
 		b.Aliases.Odds.Text = b.Odds.Text
 		b.Aliases.Name.TextColor3 = b.CharacterName.TextColor3

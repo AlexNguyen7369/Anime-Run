@@ -1,6 +1,6 @@
 --!nonstrict
 -- The HUD speedometer (docs/HUD_LAYOUT_SPEC.md section 9), drawn into the generated `SpeedDial` spacer. The needle
--- and arc show the car's real speed in studs/s; presentation only, the Speed stat beside it stays the number.
+-- and arc show the runner's real speed in studs/s; presentation only, the cruise read-out beside it stays the number.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RaceConfig = require(Shared.RaceConfig)
@@ -16,9 +16,9 @@ local REDRAW_STEP = 0.005 -- redraw the arc fill only when it moved this much
 
 local LOW, MID, HIGH = Color3.fromRGB(80, 230, 255), UiTheme.Palette.Speed, UiTheme.Palette.SpeedDeep
 
--- Full scale in studs/s for this stat (section 9; placeholder): a little above the current cruise speed.
-function SpeedDial.Scale(stat)
-	return math.max(RaceConfig.SpeedFor(stat) * 1.25, RaceConfig.BASE_SPEED * 2)
+-- Full scale in studs/s (section 9; placeholder): a little above the current cruise speed.
+function SpeedDial.Scale(cruise)
+	return math.clamp((tonumber(cruise) or 0) * 1.25, 40, RaceConfig.MAX_CRUISE * 1.25)
 end
 
 local function point(fraction)
@@ -128,7 +128,7 @@ function SpeedDial.Attach(frame)
 	local shown, drawn = 0, -1
 	local dial = { Frame = frame, Needle = needle, Rim = rim }
 
-	-- `speed` is the car's real speed (0 on foot), `stat` the Speed stat for the scale.
+	-- `speed` is the runner's real speed (0 on foot), `stat` the current cruise for the scale.
 	function dial.Update(dt, speed, stat)
 		speed = (type(speed) == "number" and speed == speed and speed > 0) and speed or 0
 		shown += (speed - shown) * (1 - math.exp(-NEEDLE_RATE * math.max(dt, 0)))

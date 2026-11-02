@@ -6,8 +6,8 @@ local RebirthConfig = {}
 local LevelConfig = require(script.Parent.LevelConfig)
 
 RebirthConfig.DEFAULT_LEVEL = 0
--- Total Speed Gain / XP / Luck multi per rebirth level (owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md):
--- the "+1 Speed" genre table; rebirth 20 is the last one.
+-- Total XP / Luck multi per rebirth level (owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md); rebirth 20 is the last
+-- one. Rebirth gives no speed gain (owner 2026-11-01, design doc 4.14): speed only through its +1 stat point.
 RebirthConfig.TOTALS = { 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7.5, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11 }
 RebirthConfig.MAX_LEVEL = #RebirthConfig.TOTALS
 RebirthConfig.POINTS_PER_REBIRTH = 1 -- stat points per rebirth (placeholder, owner 2026-10-15; docs/REBIRTH_SPEC.md)
@@ -19,7 +19,7 @@ function RebirthConfig.CleanLevel(level)
 	return math.max(RebirthConfig.DEFAULT_LEVEL, math.floor(level))
 end
 
-function RebirthConfig.SpeedGainMulti(level)
+function RebirthConfig.XpMulti(level)
 	level = RebirthConfig.CleanLevel(level)
 	if level == 0 then
 		return 1
@@ -32,12 +32,12 @@ function RebirthConfig.MoneyMulti(_level)
 end
 
 function RebirthConfig.LuckMulti(level)
-	return RebirthConfig.SpeedGainMulti(level)
+	return RebirthConfig.XpMulti(level)
 end
 
 -- Total multi after the next rebirth, shown on the Rebirth panel so the UI never hard-codes it.
 function RebirthConfig.NextMultiplier(level)
-	return RebirthConfig.SpeedGainMulti(RebirthConfig.CleanLevel(level) + 1)
+	return RebirthConfig.XpMulti(RebirthConfig.CleanLevel(level) + 1)
 end
 
 -- Stat points earned from rebirths, added to the car-index points (never saved: derived from the rebirth count)

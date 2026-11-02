@@ -13,7 +13,7 @@ MarketConfig.Items = {
 			SpeedMulti = 1.2,
 			Color = Color3.fromRGB(80, 190, 255),
 			Accent = Color3.fromRGB(180, 245, 255),
-			Description = "A cool, charged glow that lifts your Speed gain and cruise speed.",
+			Description = "A cool, charged glow that lifts your cruise speed.",
 		},
 		{
 			Id = "ember_aura",
@@ -117,23 +117,18 @@ function MarketConfig.Get(kind, id)
 	return item and item.Kind == kind and item or nil
 end
 
--- The equipped aura's raw multi (gain, and damped cruise via RaceConfig.CruiseMulti).
+-- The equipped aura's raw multi (damped into cruise by RaceConfig.ItemCruiseMulti).
 function MarketConfig.SpeedMulti(player)
 	local id = typeof(player) == "Instance" and player:GetAttribute("EquippedAura") or nil
 	local item = MarketConfig.Get("Aura", id)
 	return item and item.SpeedMulti or 1
 end
 
--- The equipped trail's raw multi (gain, and damped cruise via RaceConfig.CruiseMulti; owner 2026-10-28).
+-- The equipped trail's raw multi (damped into cruise by RaceConfig.ItemCruiseMulti; owner 2026-10-28).
 function MarketConfig.TrailMulti(player)
 	local id = typeof(player) == "Instance" and player:GetAttribute("EquippedTrail") or nil
 	local trail = MarketConfig.Get("Trail", id)
 	return trail and trail.SpeedMulti or 1
-end
-
--- Speed-gain multi (owner 2026-10-27): equipped aura x equipped trail.
-function MarketConfig.GainMulti(player)
-	return MarketConfig.SpeedMulti(player) * MarketConfig.TrailMulti(player)
 end
 
 return MarketConfig

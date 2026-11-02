@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
--- Speed amounts and gain rates show the saved base Speed. Equipped cars affect cruise movement only.
+-- The workshop / Dojo idle gain pays Money (owner 2026-11-01; there is no Speed stat).
 local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Tree = require(shared.UpgradeTree)
@@ -421,7 +421,7 @@ local function refreshShowcase()
 	for _, c in candidates do
 		copiesOf[c.Spec.Id] = c.Copies
 	end
-	showcaseMulti.Text = "SHOWCASE  " .. Format.Multi(player:GetAttribute("ShowcaseMulti") or 1) .. " Speed gain"
+	showcaseMulti.Text = "SHOWCASE  " .. Format.Multi(player:GetAttribute("ShowcaseMulti") or 1) .. " Money gain"
 	for i, slot in slots do
 		local spec = ids[i] and CharacterCatalog.Get(ids[i])
 		slot.Name.Text = spec and spec.Name or "EMPTY"
@@ -544,7 +544,7 @@ local function refresh()
 	treeView.Balance(balance)
 	local level = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel"))
 	local nextLevel = Workshop.Config.Levels[level + 1]
-	levelLabel.Text = "Level " .. level .. " • " .. Format.Multi(Workshop.LevelMulti(level)) .. " Speed gain"
+	levelLabel.Text = "Level " .. level .. " • " .. Format.Multi(Workshop.LevelMulti(level)) .. " Money gain"
 	priceLabel.Text = nextLevel
 			and ("Level " .. (level + 1) .. " • " .. Format.Multi(nextLevel.Multi) .. " • " .. Format.MoneyText(
 				nextLevel.Price
@@ -556,8 +556,8 @@ local function refresh()
 	local inWorkshop = player:GetAttribute("InWorkshop") == true
 	local rate = player:GetAttribute("WorkshopRate") or 0
 	workshopRate.Text = string.format(
-		"Current gain  +%s Speed/s%s",
-		rate >= 1000 and Format.SpeedText(rate) or string.format("%.1f", rate),
+		"Current gain  +%s/s%s",
+		rate >= 1000 and Format.MoneyText(rate) or string.format("$%.1f", rate),
 		inWorkshop and "  •  ACTIVE" or ""
 	)
 	workshopRate.TextColor3 = inWorkshop and GREEN or Color3.fromRGB(160, 174, 195)

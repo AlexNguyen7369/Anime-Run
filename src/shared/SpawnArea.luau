@@ -528,7 +528,8 @@ function SpawnArea.Build(startCFrame)
 	stat(bestStats, "Player", 0.82, 0.18, Color3.fromRGB(200, 220, 255), "")
 	best.Parent = model
 
-	-- The Checkpoints sensei (docs/CHECKPOINT_SPEC.md): a rig on a stone dais; its prompt opens Client/CheckpointUi.
+	-- The sensei (design doc 4.15, informational): a rig on a stone dais; its prompt opens the track overview
+	-- (Client/CheckpointUi).
 	local npc = Instance.new("Model")
 	npc.Name = "CheckpointNpc"
 	local spot = CheckpointConfig.NPC_POS
@@ -573,13 +574,13 @@ function SpawnArea.Build(startCFrame)
 		npc,
 		stand * CFrame.new(0, 3, 0),
 		"OpenCheckpoints",
-		"Checkpoints",
-		"Choose your start",
+		"Tracks",
+		"Track overview",
 		CheckpointConfig.PROMPT_DISTANCE
 	)
 	billboard(anchor, "Title", {
 		{ "Name", "SENSEI", Color3.new(1, 1, 1) },
-		{ "Sub", "Checkpoints: choose your start", Color3.fromRGB(255, 190, 140) },
+		{ "Sub", "Track overview", Color3.fromRGB(255, 190, 140) },
 	}, UDim2.fromScale(10, 2.4), 4.2, CheckpointConfig.TEXT_DISTANCE)
 	npc.PrimaryPart = anchor
 	npc.Parent = model

@@ -105,39 +105,16 @@ function Workshop.LevelMulti(level)
 	return WorkshopConfig.Levels[Workshop.CleanLevel(level)].Multi
 end
 
--- Speed per second in the zone: BASE_RATE * speedMulti * LevelMulti(level) * workshopMulti. The stat never reduces
--- it (docs/WORKSHOP_SPEC.md section 4, owner 2026-10-13); it is still validated.
--- Bad inputs give 0.
-function Workshop.Rate(stat, speedMulti, level, workshopMulti)
-	if not finite(stat) or stat < 0 or not finite(speedMulti) or speedMulti < 0 then
-		return 0
-	end
+-- Money per second in the zone (owner 2026-11-01): BASE_RATE * LevelMulti(level) * workshopMulti (the Workshop stat
+-- point x the Dojo squad). Bad inputs give 0.
+function Workshop.Rate(level, workshopMulti)
 	if not finite(workshopMulti) or workshopMulti < 0 then
 		return 0
 	end
 	if level ~= nil and not finite(level) then
 		return 0
 	end
-	return WorkshopConfig.BASE_RATE * speedMulti * Workshop.LevelMulti(level) * workshopMulti
-end
-
--- Offline Speed: the workshop rate x OFFLINE_FRACTION x the capped time (the stat has no cap).
-function Workshop.OfflineGain(stat, speedMulti, level, workshopMulti, seconds)
-	if
-		not finite(stat)
-		or stat < 0
-		or not finite(speedMulti)
-		or speedMulti < 0
-		or not finite(workshopMulti)
-		or workshopMulti < 0
-		or not finite(seconds)
-		or (level ~= nil and not finite(level))
-	then
-		return 0
-	end
-	local duration = math.clamp(seconds, 0, WorkshopConfig.OFFLINE_CAP)
-	local gain = Workshop.Rate(stat, speedMulti, level, workshopMulti) * WorkshopConfig.OFFLINE_FRACTION * duration
-	return gain
+	return WorkshopConfig.BASE_RATE * Workshop.LevelMulti(level) * workshopMulti
 end
 
 return Workshop
