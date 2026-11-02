@@ -138,15 +138,17 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 
 ## HUD
 
-- 3 portrait cards beside the Speed number (bottom centre), in slot order. Each card: portrait, rarity border,
-  category icon, stamina bar. A Series / Preset badge sits above the cards when a bonus is active. Active card is larger and outlined; empty cards are greyed out.
+- Team row (owner 2026-11-02, replaces the portrait cards beside the Speed number): 3 circle portraits in the retired
+  Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Rarity-colour
+  ring. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose
+  `Stamina<n>` is 0 is greyed out. On foot all three show normally; an empty slot is a dim empty circle. Display only.
+  Not built yet (placeholders): category icon, per-card stamina bar, Series / Preset badge.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
 - Runner stamina bar (owner 2026-11-02): a vertical blue bar fixed to the right of every visible running character
   (BillboardGui, camera-relative offset), filled to the owner's `Stamina<RunSlot>`. Shown only while running.
 - Toasts: "<Name> TAG IN!" on a swap, "TEAM EXHAUSTED +$X" on exhaustion (plain text placeholder).
-- shortcut (u: c1 port 2026-11-02): no portrait cards beside the HUD yet; the bar on the runner is the stamina read-out.
 
 ## Tests (to write first)
 
