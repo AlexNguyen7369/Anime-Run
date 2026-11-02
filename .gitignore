@@ -3,3 +3,4 @@
 *.rbxlx
 *.rbxl.lock
 roblox.yml
+.claude/worktrees/
