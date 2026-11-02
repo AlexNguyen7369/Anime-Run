@@ -21,6 +21,22 @@ local STARTER = {
 	Rollable = false,
 }
 
+-- Admin-only test runner (owner 2026-11-01, docs/GAME_DESIGN_REQUIREMENTS.md 4.13): granted for the session by /kami,
+-- never saved, never rolled, not in the index. Its AdminCruise is used as-is (no cap applied).
+CharacterCatalog.KAMI_ID = "kami"
+local KAMI = {
+	Id = CharacterCatalog.KAMI_ID,
+	Name = "Kami",
+	Rarity = "Secret",
+	Chance = nil,
+	SpeedMulti = 1,
+	AdminCruise = 800, -- studs/s, equal to RaceConfig.MAX_CRUISE (owner 2026-11-01)
+	Order = 0,
+	Category = "Balanced",
+	Model = nil,
+	Rollable = false,
+}
+
 local specs = {} -- Id -> spec
 for _, module in Characters:GetChildren() do
 	if module:IsA("ModuleScript") then
@@ -28,6 +44,7 @@ for _, module in Characters:GetChildren() do
 		spec.Id = spec.Id or module.Name
 		spec.Rollable = true
 		assert(spec.Id ~= CharacterCatalog.STARTER_ID, "character id 'starter' is reserved")
+		assert(spec.Id ~= CharacterCatalog.KAMI_ID, "character id 'kami' is reserved")
 		assert(specs[spec.Id] == nil, "duplicate character id " .. spec.Id)
 		specs[spec.Id] = spec
 	end
@@ -47,10 +64,13 @@ table.sort(rarestFirst, function(a, b)
 	return (a.Chance or 0) > (b.Chance or 0)
 end)
 
--- The spec for an Id (the starter included), or nil.
+-- The spec for an Id (the starter and Kami included), or nil.
 function CharacterCatalog.Get(id)
 	if id == CharacterCatalog.STARTER_ID then
 		return STARTER
+	end
+	if id == CharacterCatalog.KAMI_ID then
+		return KAMI
 	end
 	return specs[id]
 end

@@ -327,6 +327,23 @@ AdminService.Commands = {
 			return true, isNew and ("gave " .. id) or (id .. " already owned")
 		end,
 	},
+	kami = {
+		Usage = "/kami [player]",
+		Help = "give and equip Kami, the admin test runner (800 studs/s, this session only)",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			GachaService.Setup(p)
+			p:SetAttribute("AdminKami", true)
+			if GachaService.Equip(p, CharacterCatalog.KAMI_ID) then
+				return true, "equipped Kami (800 studs/s)"
+			end
+			return false, "could not equip Kami"
+		end,
+	},
 	equip = {
 		Usage = "/equip <carId> [player]",
 		Help = "equip an owned character",
@@ -436,6 +453,7 @@ local ORDER = {
 	"resetluck",
 	"weather",
 	"give",
+	"kami",
 	"equip",
 	"roll",
 	"wipe",

@@ -50,22 +50,18 @@ end
 -- Uploaded HUD art shares an atlas; keep the individual icon crops when binding.
 hud.MoneyIcon.ImageRectOffset = Vector2.new(0, 0)
 hud.MoneyIcon.ImageRectSize = Vector2.new(256, 256)
-hud.SpeedIcon.ImageRectOffset = Vector2.new(256, 0)
-hud.SpeedIcon.ImageRectSize = Vector2.new(256, 256)
 hud.MoneyValue.TextXAlignment = Enum.TextXAlignment.Left
 hud.Unbanked.TextXAlignment = Enum.TextXAlignment.Left
-hud.SpeedValue.TextXAlignment = Enum.TextXAlignment.Left
--- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): Money plate, gradient numbers, the speedometer.
+-- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): Money plate, gradient numbers.
 local UiTheme = require(Shared.UiTheme)
 local palette = UiTheme.Palette
 UiTheme.Plate(hud.MoneyPlate, palette.MoneyDeep)
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
-UiTheme.Gradient(hud.SpeedValue, Color3.fromRGB(255, 250, 170), palette.SpeedDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
 hud.Unbanked.TextColor3 = Color3.new(1, 1, 1)
-hud.SpeedValue.TextColor3 = Color3.new(1, 1, 1)
-local speedDial = require(Ui.SpeedDial).Attach(hud.SpeedDial)
+-- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
+hud.Speed:Destroy()
 local index = require(Ui.RacerIndex).Bind(playerGui)
 local stats = require(Ui.RacerStats).Bind(playerGui)
 local settings = require(Ui.RacerSettings).Bind(playerGui)
@@ -836,7 +832,7 @@ for _, attr in { "Level", "XP", "XPToNext" } do
 end
 refreshLevel()
 
-local shownSpeed, shownMoney, shownBank = cruise(), money.Value, player:GetAttribute("Unbanked") or 0
+local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
 local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
@@ -872,37 +868,10 @@ local function fitPanels()
 	end
 end
 
--- On short screens the centred Speed group would reach up into the compact roll (Race bottom + COMPACT_GAP +
--- its height): move it down into the gap above the TURBO bar, never closer than SPEED_TURBO_GAP to the bar.
-local SPEED_TOAST_GAP, SPEED_TURBO_GAP = 4, 2
-local speedShift, speedSetOffset = 0, nil
-local function clearSpeedOfToast(group)
-	local position = group.Position
-	if speedSetOffset == nil or position.Y.Offset ~= speedSetOffset then
-		speedShift = 0 -- the generated fit put the group back at its authored place
-	end
-	local baseOffset = position.Y.Offset - speedShift
-	local toastGui = playerGui:FindFirstChild("RollToast")
-	local toast = toastGui and toastGui:FindFirstChild("Toast")
-	local turbo = hud.Gui:FindFirstChild("Turbo")
-	local shift = 0
-	if toast and turbo then
-		local groupTop = group.AbsolutePosition.Y - speedShift
-		local need = toast.AbsolutePosition.Y + toast.AbsoluteSize.Y + SPEED_TOAST_GAP - groupTop
-		local room = turbo.AbsolutePosition.Y - SPEED_TURBO_GAP - (groupTop + group.AbsoluteSize.Y)
-		shift = math.max(0, math.min(need, room))
-	end
-	speedShift = shift
-	speedSetOffset = baseOffset + shift
-	group.Position = UDim2.new(position.X.Scale, position.X.Offset, position.Y.Scale, speedSetOffset)
-end
-
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
 local function refreshReadouts(dt)
-	shownSpeed = format.Approach(shownSpeed, cruise(), dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
 	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
-	hud.SpeedValue.Text = format.RateText(shownSpeed)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 end
@@ -918,10 +887,6 @@ money.Changed:Connect(function(value)
 		)
 	end
 	lastMoney = value
-end)
--- The cruise is fixed per run (design doc 4.13): pop the read-out when it changes (a new character, item or potion).
-player:GetAttributeChangedSignal("Cruise"):Connect(function()
-	UiMotion.Pop(hud.SpeedValue, 0.06)
 end)
 local function refreshBank()
 	local banked = (player:GetAttribute("Unbanked") or 0) > 0
@@ -944,31 +909,12 @@ task.spawn(function()
 	end
 end)
 
--- The visible runner's real speed: the server's RunSpeed it is drawn at (studs/s), 0 on foot.
-local function carSpeed()
-	local car = autoRaceCar()
-	local runSpeed = car and car:GetAttribute("RunSpeed")
-	return type(runSpeed) == "number" and runSpeed or 0
-end
-
 RunService.Heartbeat:Connect(function(dt)
 	fitPanels()
 	refreshReadouts(dt)
-	speedDial.Update(dt, carSpeed(), cruise())
-	-- Align to the visible dial + left-aligned text, not the label's unused width.
-	local icon = hud.SpeedDial
-	local right = hud.SpeedValue.AbsolutePosition.X + hud.SpeedValue.TextBounds.X
-	if hud.SpeedValue.TextBounds.X > 0 then
-		local group = icon.Parent
-		local visibleWidth = right - icon.AbsolutePosition.X
-		local groupPosition = group.Position
-		group.Position =
-			UDim2.new(0.5, (group.AbsoluteSize.X - visibleWidth) / 2, groupPosition.Y.Scale, groupPosition.Y.Offset)
-		clearSpeedOfToast(group)
-		local wrapper = hud.Turbo.Parent
-		local position = wrapper.Position
-		wrapper.Position = UDim2.new(0.5, 0, position.Y.Scale, position.Y.Offset)
-	end
+	local wrapper = hud.Turbo.Parent
+	local position = wrapper.Position
+	wrapper.Position = UDim2.new(0.5, 0, position.Y.Scale, position.Y.Offset)
 end)
 -- Session-local audio preference: preserve authored volumes and mute new sounds too.
 local muted = false
@@ -1002,7 +948,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.SpeedValue, hud.MoneyValue, hud.Unbanked, index.IndexProgress, stats.Points }) do
+for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, index.IndexProgress, stats.Points }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14

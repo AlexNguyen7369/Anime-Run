@@ -48,8 +48,11 @@ function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMult
 end
 
 -- Cruise (studs/s) of a character spec at a speed multi: RARITY_BASE x CATEGORY_SPEED x multi, capped at MAX_CRUISE.
--- An unknown rarity runs as Common, an unknown category as Balanced.
+-- An unknown rarity runs as Common, an unknown category as Balanced. An admin test spec's AdminCruise wins, uncapped.
 function RaceConfig.Cruise(spec, speedMulti)
+	if spec and positive(spec.AdminCruise) then
+		return spec.AdminCruise
+	end
 	local base = RaceConfig.RARITY_BASE[spec and spec.Rarity] or RaceConfig.RARITY_BASE.Common
 	local category = RaceConfig.CATEGORY_SPEED[spec and spec.Category] or 1
 	local multi = positive(speedMulti) and speedMulti or 1

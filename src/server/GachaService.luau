@@ -175,6 +175,9 @@ local function owns(player, id)
 	if id == STARTER then
 		return true
 	end
+	if id == CharacterCatalog.KAMI_ID then
+		return player:GetAttribute("AdminKami") == true -- session-only, set by /kami (AdminService)
+	end
 	local data = player:FindFirstChild("GachaData")
 	return data ~= nil and data:FindFirstChild(id) ~= nil
 end
@@ -440,7 +443,7 @@ function GachaService.Snapshot(player)
 		Cars = cars,
 		Copies = copies,
 		Showcase = GachaService.ShowcaseList(player),
-		Equipped = type(equipped) == "string" and equipped or STARTER,
+		Equipped = type(equipped) == "string" and equipped ~= CharacterCatalog.KAMI_ID and equipped or STARTER, -- Kami is session-only
 		Rolls = cleanCount(player:GetAttribute("Rolls")),
 		StatAlloc = alloc(player),
 	}

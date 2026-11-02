@@ -179,6 +179,11 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
   `Workshop` stat point still multiply it. Rate is a placeholder.
+- Admin test runner Kami (owner 2026-11-01): admin command `/kami [player]` gives and equips Kami for the session
+  only (never saved, never rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`
+  (owner 2026-11-01, was 1 Sp).
+- HUD (owner 2026-11-01): the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's
+  CRUISE row and the character cards still show cruise.
 
 ### 4.14 Rebirth (owner 2026-11-01)
 - Rebirth gives no speed gain. Each rebirth level gives: luck multi, XP multi and +1 stat point (the "stat boost").
@@ -244,6 +249,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: Kami cruise lowered from 1 Sp to 800 studs/s (equal to `MAX_CRUISE`) (4.13).
+- 2026-11-01 (later): owner: admin-only Kami runner at 1 Sp studs/s, the one `MAX_CRUISE` exception; HUD
+  speedometer and cruise read-out removed (4.13).
 - 2026-11-01 (later): owner: upgrade tree "Speed Gain" branch becomes "Speed": +% cruise per tier (4.13).
 - 2026-11-01 (later): owner: Speed Doubler passes removed; Best Roll pedestal kept and fed; u4 per-slot aura/trail with UI.
 - 2026-11-01 (later): owner: exhaustion pays a per-distance share of the current track's pad cash (4.3); Track 1
