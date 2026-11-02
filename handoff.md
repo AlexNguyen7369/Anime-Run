@@ -241,3 +241,9 @@
   Studio worktree ../AnimeRun-orch/studio is DETACHED at feature/alex/anime-world (Rojo 34873 serves it).
   Open (owner): Best Roll pedestal keep/remove; Speed Doubler passes + upgrade "Speed Gain" branch now do nothing;
   stamina vs fixed-speed balance (Common can't finish Track 1 on 20 s stamina once c1 lands). Next: u4 per-slot aura/trail.
+- 2026-11-01 LANDED u4 (98fdad5): SlotItems save (3 slots, old EquippedAura/Trail -> slot 1), Slot<n>Aura/Trail attrs,
+  SlotPicker UI, Speed Doubler passes gone, Best Roll fed (LeaderboardService.Start({"RarestCar"})), upgrade Speed
+  branch +10%/tier cruise. Studio id now 942e6c51 (Anime Run). Owner's Studio test save (PlayerStats_v2,
+  Player_232682736) was reset between 11-01 20:01 and 11-02 00:39 UTC by pre-u1 code (Money 3.68b -> 0, Cars 10 -> 5,
+  BestTrack 9 -> 0); version 11-01 20:01 still exists if the owner wants it restored. Next: c1 (team/stamina +
+  per-distance exhaustion pay), test retarget, then c3 on owner's word.

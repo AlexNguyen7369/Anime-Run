@@ -11,8 +11,7 @@
 
 ## Next
 - c1 must add: exhaustion pays per-distance share of the current track's pad cash (owner 2026-11-01; Track 1 not shortened)
-- Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds (before c3)
-- u4 per-slot aura + trail (design doc 4.13; save shape change)
+- Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds, EQUIP labels / MarketEquip (slot buttons), GachaService.SpeedMulti (before c3)
 - c2 Runner categories, Stamina stat point, Stamina potion, team bonus
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
@@ -21,6 +20,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-01 u4 per-slot aura/trail + slot UI, Speed Doubler passes removed, Best Roll fed, upgrade Speed branch +% cruise (merge 98fdad5): Studio: equip slot 1 -> Cruise 24.95, move to slot 2, remove, slot 4 refused, Backpack slot buttons OK, no Speed Doubler in Shop, 0 errors
 - 2026-11-01 u1 fixed cruise (rarity x category), Speed stat removed, rebirth luck/XP/point, info-only sensei, workshop pays Money (merge c448a79): Studio smoke: Cruise=20 Common, leaderstats Money only, 0 errors; CarTest/UiTest still reference removed Speed APIs
 - 2026-11-01 welcome popup Studio-checked ("Tournament Wasteland" 0.4/2/0.6 s), moved to y 0.22 under AUTO RACE; fixed sky look-ahead nil crash (58190ae)
 - 2026-11-01 u2 leaderboards off the plaza (stores untouched), biome welcome popup, speed-scaled sky switch + sky preload (no Studio; open: Best Roll pedestal)

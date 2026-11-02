@@ -30,8 +30,9 @@
 27. 2026-11-01 — Alex Nguyen — Landed u1 (fixed cruise per rarity and category, Speed stat removed, rebirth luck/XP/stat point, info-only sensei, workshop pays Money) and checked the biome welcome popup in Studio, fixing a sky crash and moving the popup under AUTO RACE.
 28. 2026-11-01 — Alex Nguyen — Raised Common / Uncommon / Rare cruise to 24 / 33 / 48 and recorded the owner's rule that exhaustion pays a per-distance share of the current track's cash (Track 1 length kept).
 29. 2026-11-01 — Alex Nguyen — Recorded the owner's rulings (Speed Doubler passes removed, Best Roll pedestal kept, upgrade tree Speed branch gives +% cruise) and pushed feature/alex/anime-world with all urgent fixes.
+30. 2026-11-01 — Alex Nguyen — Landed u4: one aura and one trail per team slot with slot-picker UI, Speed Doubler passes removed, Best Roll pedestal fed again, and the upgrade tree Speed branch adding cruise %, checked in Studio.
 
 ## What's next
-**Build u4: one aura and one trail per team slot, each scaling only that slot's cruise (design doc 4.13).**
+**Resume c1: team of 3, stamina, slot swap and run bank, rebased on the new fixed-speed model, plus the per-distance exhaustion payout.**
 
-**Why this is next:** it is the last piece of the owner's new speed-multi model, and it changes the save shape, so it should land before c1 team/stamina is merged and c3 runs.
+**Why this is next:** the per-slot items, preset bonus and the exhaustion payout all wait on real team slots, and c3 needs c1 in place before the full compatibility check.
