@@ -28,7 +28,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
    - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat (owner 2026-11-01).
-7. Money buys upgrades; rebirth resets Money for luck, XP multi and a stat point (4.14).
+7. Money buys upgrades; rebirth needs and resets Money for luck and a stat point (4.14). There is no player level or XP.
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -186,8 +186,11 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   CRUISE row and the character cards still show cruise.
 
 ### 4.14 Rebirth (owner 2026-11-01)
-- Rebirth gives no speed gain. Each rebirth level gives: luck multi, XP multi and +1 stat point (the "stat boost").
-- Rebirth resets Money (there is no Speed to reset). Requirements unchanged (player level).
+- Rebirth gives no speed gain. Each rebirth level gives: luck multi and +1 stat point (the "stat boost").
+- Rebirth resets Money (there is no Speed to reset).
+- Player levels and XP are removed (owner 2026-11-01, later). Rebirth n+1 needs Money >= `BASE_MONEY` x
+  `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
+  unread. The rebirth XP multi is gone; the luck totals table is unchanged.
 
 ### 4.15 Sensei is informational (owner 2026-11-01)
 - The plaza sensei (was the checkpoint NPC) no longer picks a start track. It shows an overview of each track (name,
@@ -206,6 +209,10 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Audit mesh / texture loading and pick the cheapest approach that keeps up at
   `MAX_CRUISE`. Client display only.
+- Biome while racing (owner 2026-11-01, later): the server publishes `RunTrack` (the track whose finish pad is still
+  ahead) on the runner rig; the client takes the biome from it and switches at once at the finish pad. The nearest
+  centre line (`ZoneAt`) is used only while walking. The speed look-ahead is removed (it switched ~280 studs early at
+  800 studs/s and could pick a neighbouring track).
 
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
@@ -249,6 +256,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-01 (later): owner: biome while racing comes from the server's `RunTrack`, look-ahead removed (4.18).
+- 2026-11-01 (later): owner: player Level / XP removed; rebirth needs Money ($100K, x10 each, placeholder), no XP
+  multi (4.14).
 - 2026-11-01 (later): owner: Kami cruise lowered from 1 Sp to 800 studs/s (equal to `MAX_CRUISE`) (4.13).
 - 2026-11-01 (later): owner: admin-only Kami runner at 1 Sp studs/s, the one `MAX_CRUISE` exception; HUD
   speedometer and cruise read-out removed (4.13).

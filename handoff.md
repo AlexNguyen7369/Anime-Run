@@ -247,3 +247,14 @@
   Player_232682736) was reset between 11-01 20:01 and 11-02 00:39 UTC by pre-u1 code (Money 3.68b -> 0, Cars 10 -> 5,
   BestTrack 9 -> 0); version 11-01 20:01 still exists if the owner wants it restored. Next: c1 (team/stamina +
   per-distance exhaustion pay), test retarget, then c3 on owner's word.
+
+- 2026-11-01 (UNCOMMITTED on feature/alex/anime-world): owner removed player Level / XP; rebirth needs Money
+  (RebirthConfig.BASE_MONEY 1e5 x MONEY_GROWTH 10 ^ level, placeholder; design doc 4.14). LevelService / LevelConfig
+  deleted, /givexp gone, saves keep old Level / XP via RETIRED_KEYS. HUD Level bar hidden (not deleted: HudChrome
+  positions Items / Upgrade from it; needs a HUD layout pass). Tests updated (Phase2 rebirth, UiTestSetup,
+  ShopPurchase, UiBoostsRebirth, UiSpec, UiScenarios). Pre-existing: Phase2 Tests.rebirth calls removed
+  RebirthConfig.SpeedGainMulti outside pcall (whole suite may error).
+- Same day: biome while racing comes from server `RunTrack` on the runner rig (RaceService.publish, cleared on
+  run:Destroy); client BiomeEnvironment uses it with no hold, ZoneAt only while walking; look-ahead removed (switched
+  ~280 studs early at 800 studs/s). Design doc 4.18. New checks runner_*_publishes_track / track_cleared_on_stop
+  (RunnerTests). Nothing run in Studio yet.

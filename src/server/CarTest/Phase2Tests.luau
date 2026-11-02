@@ -1255,8 +1255,8 @@ function Tests.weather()
 end
 
 -- BRIEF (owner, 2026-10-12; docs/GAME_DESIGN_REQUIREMENTS.md "Rebirth system", docs/SAVE_SPEC.md sections 2 and 3):
--- "Rebirthing resets Money, Speed, Level and XP." RebirthService.Rebirth(player) sets both leaderstats values to 0,
--- Level to 1 and XP to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
+-- "Rebirthing resets Money and Speed." RebirthService.Rebirth(player) needs the Money requirement (owner 2026-11-01:
+-- Level/XP removed) and sets both leaderstats values to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
 -- MoneyEarned and DuelWins survive.
 function Tests.rebirth()
 	local r, flag = report("rebirth")
@@ -1322,25 +1322,24 @@ function Tests.rebirth()
 		config.LATE_STEP == nil and config.MAX_EFFECTIVE_MULTIPLIER == nil
 	)
 	flag("rebirth_rev3_step_removed", config.EARLY_STEP == nil and config.ADD_UNTIL == nil)
-	-- docs/REBIRTH_SPEC.md "Requirement" rev. 4: level needed for the next rebirth, by current rebirth level 0..19
-	local levelConfigReq = module(Shared, "LevelConfig")
-	local REQ = { 15, 25, 40, 60, 75, 100, 125, 150, 175, 200, 225, 260, 300, 340, 380, 420, 465, 510, 560, 600 }
-	local reqOk = levelConfigReq ~= nil and type(levelConfigReq.RebirthLevelRequirement) == "function"
-	for n, want in REQ do
-		reqOk = reqOk
-			and levelConfigReq.RebirthLevelRequirement(n - 1) == want
-			and config.Requirements(n - 1).Level == want
-	end
-	flag("rebirth_requirement_table_rev4", reqOk)
-	local past = reqOk
-		and levelConfigReq.RebirthLevelRequirement(19) == 600
-		and levelConfigReq.RebirthLevelRequirement(50)
-	flag("rebirth_requirement_past_last_is_600", past == 600, past, 600)
+	-- Owner 2026-11-01 (Level/XP removed): Money needed for the next rebirth = $100K x 10^RebirthLevel, flat past
+	-- the last rebirth. Pinned as literals.
+	flag(
+		"rebirth_money_requirement",
+		config.Requirements(0).Money == 1e5
+			and config.Requirements(1).Money == 1e6
+			and config.Requirements(19).Money == 1e24
+			and config.Requirements(25).Money == 1e24
+			and config.Requirements(0).Level == nil,
+		config.Requirements(0).Money,
+		1e5
+	)
 	flag(
 		"rebirth_cannot_rebirth_at_max",
-		config.CanRebirth(20, 1e9) == false
-			and config.CanRebirth(25, 1e9) == false
-			and config.CanRebirth(19, 600) == true
+		config.CanRebirth(20, math.huge) == false
+			and config.CanRebirth(25, math.huge) == false
+			and config.CanRebirth(19, 1e24) == true
+			and config.CanRebirth(19, 1e24 - 1e9) == false
 	)
 	flag("rebirth_old_x10_totals_removed", config.REBIRTH_TOTALS == nil and config.REPEAT_FACTOR == nil)
 	local luckSame = true
@@ -1364,17 +1363,15 @@ function Tests.rebirth()
 	local oldCooldown = service.REMOTE_COOLDOWN
 	local ok, err = pcall(function()
 		service.REMOTE_COOLDOWN = 0 -- the remote's rate limit is tested on its own below
-		local need = config.Requirements(0).Level
-		local function ready(name, level)
+		local need = config.Requirements(0).Money
+		local function ready(name, money)
 			local p = fake("Rebirth" .. name, data, gacha)
 			table.insert(players, p)
 			p:SetAttribute("DataLoaded", true)
-			p:SetAttribute("Level", level)
-			p:SetAttribute("XP", 37)
 			p:SetAttribute("WorkshopLevel", 1)
 			p:SetAttribute("MoneyEarned", 9000)
 			p:SetAttribute("DuelWins", 3)
-			p.leaderstats.Money.Value = 5000
+			p.leaderstats.Money.Value = money
 			p.BaseSpeed.Value = 321.5
 			gacha.Grant(p, "leaf_medic")
 			gacha.Grant(p, "leaf_copycat")
@@ -1389,19 +1386,20 @@ function Tests.rebirth()
 		end
 		-- every refusal leaves Money, Speed and the rebirth level alone
 		local function refused(label, p, change, restore)
+			local money = p.leaderstats.Money.Value
 			change()
 			local accepted = service.Rebirth(p)
 			flag("rebirth_refused_" .. label, accepted == false)
 			flag(
 				"rebirth_refused_" .. label .. "_keeps_money_and_speed",
-				untouched(p, 5000, 321.5, 0),
+				untouched(p, money, 321.5, 0),
 				p.BaseSpeed.Value,
 				321.5
 			)
 			restore()
 		end
 		local low = ready("Low", need - 1)
-		refused("below_level", low, function() end, function() end)
+		refused("below_money", low, function() end, function() end)
 		local p = ready("Main", need)
 		refused("unloaded", p, function()
 			p:SetAttribute("DataLoaded", false)
@@ -1433,7 +1431,7 @@ function Tests.rebirth()
 		gacha.Grant(p, "leaf_copycat") -- a duplicate: 1 copy, no Money
 		local showcaseSet = type(gacha.SetShowcase) == "function" and gacha.SetShowcase(p, { "leaf_medic" }) -- not leaf_copycat: the Team member can not join the squad (owner 2026-10-30)
 		local accepted, newLevel = service.Rebirth(p)
-		flag("rebirth_accepted_at_required_level", accepted == true and newLevel == 1)
+		flag("rebirth_accepted_at_required_money", accepted == true and newLevel == 1)
 		flag("rebirth_level_raised", p:GetAttribute("RebirthLevel") == 1, p:GetAttribute("RebirthLevel"), 1)
 		flag("rebirth_resets_money", p.leaderstats.Money.Value == 0, p.leaderstats.Money.Value, 0)
 		flag("rebirth_resets_speed", p.BaseSpeed.Value == 0, p.BaseSpeed.Value, 0)
@@ -1474,15 +1472,6 @@ function Tests.rebirth()
 				and upgradesAfter.TurboCount == 7
 		)
 		flag("rebirth_keeps_workshop_level", p:GetAttribute("WorkshopLevel") == 1)
-		flag("rebirth_resets_level", p:GetAttribute("Level") == 1, p:GetAttribute("Level"), 1)
-		flag("rebirth_resets_xp", p:GetAttribute("XP") == 0, p:GetAttribute("XP"), 0)
-		local levelConfig = module(Shared, "LevelConfig")
-		flag(
-			"rebirth_resets_xp_to_next",
-			levelConfig ~= nil and p:GetAttribute("XPToNext") == levelConfig.XPToNext(1),
-			p:GetAttribute("XPToNext"),
-			levelConfig and levelConfig.XPToNext(1) or "missing"
-		)
 		flag("rebirth_keeps_money_earned", p:GetAttribute("MoneyEarned") == 9000, p:GetAttribute("MoneyEarned"), 9000)
 		flag("rebirth_keeps_duel_wins", p:GetAttribute("DuelWins") == 3, p:GetAttribute("DuelWins"), 3)
 
@@ -1504,20 +1493,21 @@ function Tests.rebirth()
 			gacha.EarnedPoints(p),
 			wantEarned
 		)
-		-- Rev. 4 requirement table (docs/REBIRTH_SPEC.md "Requirement"): rebirth level 5 requires level 100.
-		local high = ready("Level100", 100)
+		-- Owner 2026-11-01: rebirth level 5 requires $10B.
+		local high = ready("Money1e10", 1e10)
 		high:SetAttribute("RebirthLevel", 5)
 		local highOk, highNext = service.Rebirth(high)
-		flag("rebirth_level_100_requirement", config.Requirements(5).Level == 100, config.Requirements(5).Level, 100)
-		flag("rebirth_level_100_accepted", highOk == true and highNext == 6, highNext, 6)
+		flag("rebirth_money_1e10_requirement", config.Requirements(5).Money == 1e10, config.Requirements(5).Money, 1e10)
+		flag("rebirth_money_1e10_accepted", highOk == true and highNext == 6, highNext, 6)
+		flag("rebirth_money_1e10_zeroes_money", high.leaderstats.Money.Value == 0, high.leaderstats.Money.Value, 0)
 		-- rebirth 20 is the last: refused with "Max rebirth" at any level, Money and Speed untouched
-		local maxed = ready("Max", 1e6)
+		local maxed = ready("Max", 1e30)
 		maxed:SetAttribute("RebirthLevel", 20)
 		local maxOk, maxMsg = service.Rebirth(maxed)
 		flag("rebirth_refused_at_max_rebirth", maxOk == false and maxMsg == "Max rebirth", maxMsg, "Max rebirth")
 		flag(
 			"rebirth_refused_at_max_keeps_money_and_speed",
-			untouched(maxed, 5000, 321.5, 20),
+			untouched(maxed, 1e30, 321.5, 20),
 			maxed.BaseSpeed.Value,
 			321.5
 		)
@@ -1549,10 +1539,10 @@ function Tests.rebirth()
 		-- rate limit: a second request inside REMOTE_COOLDOWN is refused and changes nothing
 		service.REMOTE_COOLDOWN = 60
 		local spam = ready("Spam", need - 1)
-		service.Rebirth(spam) -- refused (level), starts the cooldown
-		spam:SetAttribute("Level", need)
+		service.Rebirth(spam) -- refused (money), starts the cooldown
+		spam.leaderstats.Money.Value = need
 		local spammed = service.Rebirth(spam)
-		flag("rebirth_refused_cooldown_keeps_money_and_speed", spammed == false and untouched(spam, 5000, 321.5, 0))
+		flag("rebirth_refused_cooldown_keeps_money_and_speed", spammed == false and untouched(spam, need, 321.5, 0))
 
 		-- Load trim: PlayerData.Load runs GachaService.Apply BEFORE RebirthService.Apply, so the trim must count the
 		-- SAVED RebirthLevel; rebirth-funded allocations survive, anything beyond index + rebirth points is cut.
@@ -1588,77 +1578,6 @@ function Tests.rebirth()
 		)
 		local _, _, cut = loaded("LoadOver", 2 * per + 3)
 		flag("rebirth_load_trims_over_allocation", cut.Workshop == 2 * per and cut.Speed == 1, cut.Workshop, 2 * per)
-
-		-- BRIEF (owner 2026-10-27, docs/GAME_DESIGN_REQUIREMENTS.md "Level system"): XP per second =
-		-- LevelConfig.XP_PER_SECOND (1) x GachaService.SpeedMulti (Speed Gain x rebirth x aura x trail), not sqrt(Speed).
-		local levels = module(Server, "LevelService")
-		-- XP curve (owner 2026-10-27, LevelConfig): XPToNext(L) = XP_LINEAR x L up to level 225, then x10 every XP_DECADE
-		-- levels; CleanXP keeps up to 1e300 (late rebirths need far more than 1e15 XP).
-		-- Owner 2026-10-28: XP_LINEAR 122 (was 10), XP_DECADE 37.2 (was 40), so XPToNext(225) = 27,450. The numbers are
-		-- pinned here as literals, never read from LevelConfig. 225 + 5 x 37.2 = 411 is exactly x10^5.
-		local function xpCurve(level)
-			return 27450 * 10 ^ ((level - 225) / 37.2)
-		end
-		local lc = module(Shared, "LevelConfig")
-		local function xpNear(a, b)
-			return type(a) == "number" and math.abs(a - b) <= 1e-9 * b
-		end
-		flag(
-			"level_xp_curve_rev4",
-			lc ~= nil
-				and lc.XPToNext(1) == 122
-				and lc.XPToNext(100) == 12200
-				and lc.XPToNext(225) == 27450
-				and xpNear(lc.XPToNext(226), xpCurve(226))
-				and xpNear(lc.XPToNext(300), xpCurve(300))
-				and xpNear(lc.XPToNext(411), 2745000000)
-				and lc.XP_BASE == nil
-				and lc.XP_GROWTH == nil,
-			lc and lc.XPToNext(300),
-			xpCurve(300)
-		)
-		flag(
-			"level_clean_xp_caps_at_1e300",
-			lc ~= nil and lc.CleanXP(1e200) == 1e200 and lc.CleanXP(1e301) == 1e300 and lc.CleanXP(-1) == 0,
-			lc and lc.CleanXP(1e301),
-			1e300
-		)
-		flag("level_xp_tick_exists", levels ~= nil and type(levels.Tick) == "function")
-		if levels and type(levels.Tick) == "function" then
-			local xpP = fake("LevelXp", data, gacha)
-			table.insert(players, xpP)
-			xpP:SetAttribute("DataLoaded", true)
-			-- XP gained by one Tick from level XP_KNEE (225) / 0 XP. Owner 2026-10-28: XPToNext(L) = 122 x L, so level 1
-			-- needs 122 XP; at 225 it needs 27,450, far above every probe below, so no tick levels up.
-			local probeLevel = 225
-			local function gain(dt, m)
-				xpP:SetAttribute("Level", probeLevel)
-				xpP:SetAttribute("XP", 0)
-				levels.Tick(xpP, dt, m)
-				return (xpP:GetAttribute("Level") == probeLevel) and xpP:GetAttribute("XP") or -1
-			end
-			local function near(a, b)
-				return type(a) == "number" and math.abs(a - b) < 1e-6
-			end
-			local one = gain(1, 1)
-			flag("level_xp_tick_base_is_1_per_second", near(one, 1), one, 1)
-			local m25 = gain(1, 25)
-			flag("level_xp_tick_scales_with_gain_multi", near(m25, 25 * one), m25, 25 * one)
-			xpP.leaderstats.Speed.Value = 0
-			xpP.BaseSpeed.Value = 0
-			local low = gain(1, 3)
-			xpP.leaderstats.Speed.Value = 1e6
-			xpP.BaseSpeed.Value = 1e6
-			local high = gain(1, 3)
-			flag("level_xp_ignores_speed_stat", near(low, 3) and near(high, low), high, low)
-			xpP:SetAttribute("RebirthLevel", 1)
-			xpP:SetAttribute("Slot1Aura", "azure_aura")
-			xpP:SetAttribute("Slot1Trail", "rainbow_trail")
-			local multi = gacha.SpeedMulti(xpP)
-			flag("level_xp_speed_multi_above_1", type(multi) == "number" and multi > 1, multi, ">1")
-			local viaMulti = gain(2, multi)
-			flag("level_xp_tick_uses_speed_multi", near(viaMulti, multi * 2), viaMulti, multi * 2)
-		end
 	end)
 	service.REMOTE_COOLDOWN = oldCooldown
 	for _, p in players do

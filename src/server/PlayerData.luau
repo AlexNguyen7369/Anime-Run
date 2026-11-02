@@ -20,7 +20,6 @@ local MarketService = require(script.Parent.MarketService)
 local RebirthService = require(script.Parent.RebirthService)
 local BoostService = require(script.Parent.BoostService)
 local DailyLoginService = require(script.Parent.DailyLoginService)
-local LevelService = require(script.Parent.LevelService)
 local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 local GiftMailbox = require(script.Parent.GiftMailbox)
@@ -34,7 +33,7 @@ local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 1
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
 -- design doc 4.13 / 4.15 (owner 2026-11-01); EquippedAura / EquippedTrail: replaced by SlotItems (u4)
-local RETIRED_KEYS = { "Speed", "Checkpoint", "EquippedAura", "EquippedTrail" }
+local RETIRED_KEYS = { "Speed", "Checkpoint", "EquippedAura", "EquippedTrail", "Level", "XP" }
 local MAX_DUEL_WINS = 1e9
 
 -- Session lock (docs/SAVE_SPEC.md): the saved record names the server that holds it, so two servers never
@@ -113,7 +112,6 @@ end
 -- Creates leaderstats with Money (idempotent). Works on any Instance.
 function PlayerData.Setup(player)
 	RaceTimeService.Setup(player)
-	LevelService.Setup(player)
 	MoneyService.Setup(player)
 	RebirthService.Setup(player)
 	BoostService.Setup(player)
@@ -148,7 +146,6 @@ function PlayerData.Load(player, userId)
 		DailyLoginService.Apply(player, data)
 		QuestService.Apply(player, data)
 		RaceTimeService.Apply(player, data)
-		LevelService.Apply(player, data)
 		ShopService.Apply(player, data) -- version 8 and older: no receipts, no codes
 		giftReceipts[player] = type(data.GiftReceipts) == "table" and table.clone(data.GiftReceipts) or {}
 		player:SetAttribute("MoneyEarned", cleanInt(data.MoneyEarned, 0, MAX_MONEY, 0))
@@ -253,7 +250,6 @@ local function save(player, userId, release)
 	local boosts = BoostService.Snapshot(player)
 	local daily = DailyLoginService.Snapshot(player)
 	local quests = QuestService.Snapshot(player)
-	local level = LevelService.Snapshot(player)
 	local shop = ShopService.Snapshot(player)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
@@ -278,8 +274,6 @@ local function save(player, userId, release)
 		QuestWeekly = quests.QuestWeekly,
 		QuestDailyClaimed = quests.QuestDailyClaimed,
 		QuestWeeklyClaimed = quests.QuestWeeklyClaimed,
-		Level = level.Level,
-		XP = level.XP,
 		OwnedAuras = market.OwnedAuras,
 		OwnedTrails = market.OwnedTrails,
 		SlotItems = market.SlotItems, -- replaces EquippedAura / EquippedTrail (migrated to slot 1 on load)

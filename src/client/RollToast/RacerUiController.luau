@@ -352,7 +352,6 @@ local profileRows = {
 	{ "TotalRolls", "TOTAL ROLLS", "0" },
 	{ "BestRoll", "BEST ROLL", "1 in ?" },
 	{ "CharactersDiscovered", "DISCOVERED", "0" },
-	{ "Level", "LEVEL", "1" },
 	{ "Speed", "CRUISE", "0 studs/s" },
 	{ "Luck", "LUCK STAT", "x1.00" },
 	{ "SessionTime", "TIME THIS SESSION", "0m 00s" },
@@ -436,12 +435,11 @@ local function refreshProfile()
 	profileValues.TotalRolls.Text = format.SpeedText(player:GetAttribute("Rolls") or 0)
 	profileValues.BestRoll.Text = format.Odds(best and best.Chance)
 	profileValues.CharactersDiscovered.Text = format.SpeedText(#data:GetChildren())
-	profileValues.Level.Text = format.SpeedText(player:GetAttribute("Level") or 1)
 	profileValues.Speed.Text = format.RateText(cruise())
 	profileValues.Luck.Text = format.Multi(multis.Luck) .. string.format(" · %d pts", allocations.Luck)
 	profileValues.SessionTime.Text = formatDuration(os.time() - sessionStartedAt)
 end
-for _, attr in { "Rolls", "Level", "Alloc_Luck" } do
+for _, attr in { "Rolls", "Alloc_Luck" } do
 	player:GetAttributeChangedSignal(attr):Connect(refreshProfile)
 end
 data.ChildAdded:Connect(refreshProfile)
@@ -456,7 +454,7 @@ task.spawn(function()
 end)
 
 -- Rebirth panel (docs/REBIRTH_SPEC.md): the generated layout shows the reset warning, the next rebirth's rewards
--- and the level requirement; the server decides the rebirth, this only displays its numbers and replies.
+-- and the Money requirement (design doc 4.14); the server decides the rebirth, this only displays its numbers and replies.
 local function multiplierText(value)
 	return format.Multi(value)
 end
@@ -469,13 +467,13 @@ local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
 	local nextMultiplier = rebirthConfig.NextMultiplier(level)
 	rebirth.LuckRewardCaption.Text = multiplierText(nextMultiplier) .. " Luck"
-	rebirth.SpeedRewardCaption.Text = multiplierText(nextMultiplier) .. " XP" -- no speed gain (design doc 4.14)
-	local required = rebirthConfig.Requirements(level).Level
-	local playerLevel = player:GetAttribute("Level") or 1
+	rebirth.SpeedReward.Visible = false -- no speed gain and no XP (design doc 4.14)
+	local required = rebirthConfig.Requirements(level).Money
 	local maxed = level >= rebirthConfig.MAX_LEVEL
-	local eligible = not maxed and playerLevel >= required
-	rebirth.BarText.Text = maxed and "MAX REBIRTH" or string.format("%d / %d Level", playerLevel, required)
-	rebirth.Fill.Size = UDim2.fromScale(maxed and 1 or math.clamp(playerLevel / required, 0, 1), 1)
+	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)
+	rebirth.BarText.Text = maxed and "MAX REBIRTH"
+		or string.format("%s / %s", format.MoneyText(money.Value), format.MoneyText(required))
+	rebirth.Fill.Size = UDim2.fromScale(maxed and 1 or math.clamp(money.Value / required, 0, 1), 1)
 	local active = eligible and not rebirthBusy
 	rebirth.RebirthButton.Active = active
 	label(rebirth.RebirthButton, rebirthReply or (maxed and "MAX" or "REBIRTH"))
@@ -502,7 +500,7 @@ rebirth.RebirthButton.Activated:Connect(function()
 	end)
 end)
 player:GetAttributeChangedSignal("RebirthLevel"):Connect(refreshRebirth)
-player:GetAttributeChangedSignal("Level"):Connect(refreshRebirth)
+money.Changed:Connect(refreshRebirth)
 refreshRebirth()
 
 -- The former Settings auto-roll row is now the local top-down camera toggle.
@@ -807,30 +805,9 @@ remotes.RollResult.OnClientEvent:Connect(function(_, _, turbo)
 	end
 end)
 
-local levelTween
-local function refreshLevel()
-	local level = math.max(1, math.floor(tonumber(player:GetAttribute("Level")) or 1))
-	local xp = math.max(0, tonumber(player:GetAttribute("XP")) or 0)
-	local nextXp = math.max(1, tonumber(player:GetAttribute("XPToNext")) or 100)
-	local progress = math.clamp(xp / nextXp, 0, 1)
-	hud.LevelLabel.Text = string.format("LEVEL %d  %d/%d XP", level, math.floor(xp), math.floor(nextXp))
-	if levelTween then
-		levelTween:Cancel()
-	end
-	local size = UDim2.fromScale(progress, 1)
-	levelTween = UiMotion.Create(hud.LevelFill, TweenInfo.new(0.2), { Size = size })
-	levelTween:Play()
-	local tweenRef = levelTween
-	task.delay(0.25, function()
-		if levelTween == tweenRef then
-			hud.LevelFill.Size = size
-		end
-	end)
-end
-for _, attr in { "Level", "XP", "XPToNext" } do
-	player:GetAttributeChangedSignal(attr):Connect(refreshLevel)
-end
-refreshLevel()
+-- Levels removed (owner 2026-11-01, design doc 4.14). shortcut: the bar is hidden, not deleted, because HudChrome
+-- places the Items / Upgrade pair from its position; delete it with a HUD layout pass.
+hud.Level.Visible = false
 
 local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
 local stopBankPulse

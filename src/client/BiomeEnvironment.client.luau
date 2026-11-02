@@ -392,9 +392,17 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- Zone check every POLL at the camera focus; a new zone must hold for HOLD (Env.ForcedZone overrides, for tests).
--- High speed (design doc 4.18): hold and blend shrink with the focus speed (HOLD_STUDS, BLEND_STUDS), and the check
--- looks ahead by the time until the sky swap, so the swap lands at the boundary. The look-ahead only ever picks the
--- next track in Number order (the run's next zone), never a neighbouring lap across a gap.
+-- High speed (design doc 4.18): hold and blend shrink with the focus speed (HOLD_STUDS, BLEND_STUDS). While racing
+-- the zone is the server's RunTrack on this player's runner rig (switches at the finish pad, no hold); ZoneAt (nearest
+-- centre line) only while walking, where a neighbouring track can be nearer.
+local function runTrack()
+	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/CarService.RUNNER_TAG
+		if rig:GetAttribute("Owner") == player.UserId then
+			return rig:GetAttribute("RunTrack")
+		end
+	end
+	return nil
+end
 task.spawn(function()
 	local pending, since = nil, 0
 	local last, lastAt = nil, os.clock()
@@ -404,6 +412,7 @@ task.spawn(function()
 		local now = os.clock()
 		local z, speed, velocity = Env.ForcedZone, 0, Vector3.zero
 		local hold, blend = Env.HOLD, Env.BLEND_SECONDS
+		local racing = false
 		if z == nil and camera then
 			local focus = camera.Focus.Position
 			if last and now > lastAt then
@@ -415,14 +424,12 @@ task.spawn(function()
 				hold = math.min(Env.HOLD, Env.HOLD_STUDS / speed)
 				blend = math.clamp(Env.BLEND_STUDS / speed, Env.BLEND_MIN, Env.BLEND_SECONDS)
 			end
-			z = Env.ZoneAt(focus)
-			local ahead = z ~= nil and Env.ZoneAt(focus + velocity * (hold + Env.POLL + blend / 2))
-			if ahead and ahead == z + 1 then
-				z = ahead
-			end
+			z = runTrack()
+			racing = z ~= nil
+			z = z or Env.ZoneAt(focus)
 		end
 		if z ~= nil and z ~= zone then
-			if zone == nil or Env.ForcedZone ~= nil or (pending == z and now - since >= hold) then
+			if zone == nil or racing or Env.ForcedZone ~= nil or (pending == z and now - since >= hold) then
 				startBlend(z, blend)
 				pending = nil
 			elseif pending ~= z then

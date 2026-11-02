@@ -312,11 +312,6 @@ function GachaService.Cruise(player, slot)
 	return RaceConfig.Cruise(spec, multi)
 end
 
--- XP multi (design doc 4.14): the rebirth level's XP multi.
-function GachaService.XpMulti(player)
-	return RebirthConfig.XpMulti(player:GetAttribute("RebirthLevel"))
-end
-
 -- Refresh the replicated permanent multiplier snapshots immediately after a rebirth or allocation change.
 -- Gameplay callers still calculate from source attributes, so these are observability/UI values rather than a cache.
 function GachaService.RefreshMultipliers(player)

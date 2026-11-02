@@ -17,7 +17,6 @@ local VfxArea = require(Shared.VfxArea)
 local AdminConfig = require(script.Parent.AdminConfig)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
-local LevelService = require(script.Parent.LevelService)
 local MoneyService = require(script.Parent.MoneyService)
 local RebirthConfig = require(Shared.RebirthConfig)
 local UpgradeService = require(script.Parent.UpgradeService)
@@ -210,23 +209,9 @@ AdminService.Commands = {
 			return true, "Money = " .. money.Value
 		end,
 	},
-	givexp = {
-		Usage = "/givexp <amount> [player]",
-		Help = "add positive XP (levels up as usual)",
-		Min = 1,
-		Max = 1,
-		Check = function(args)
-			local n = positiveAmount(args)
-			return n and n <= MAX_MONEY and n or nil
-		end,
-		Apply = function(p, n)
-			LevelService.AddXP(p, n)
-			return true, string.format("Level %d, XP %d", p:GetAttribute("Level") or 1, p:GetAttribute("XP") or 0)
-		end,
-	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
-		Help = "set the rebirth level (Money and Level are not reset)",
+		Help = "set the rebirth level (Money is not reset)",
 		Min = 1,
 		Max = 1,
 		Check = function(args)
@@ -238,7 +223,7 @@ AdminService.Commands = {
 			GachaService.RefreshPoints(p)
 			GachaService.RefreshMultipliers(p)
 			require(script.Parent.WorkshopService).RefreshRate(p)
-			return true, string.format("Rebirth %d (x%s Luck / XP)", n, tostring(RebirthConfig.XpMulti(n)))
+			return true, string.format("Rebirth %d (x%s Luck)", n, tostring(RebirthConfig.LuckMulti(n)))
 		end,
 	},
 	luck = {
@@ -446,7 +431,6 @@ local ORDER = {
 	"money",
 	"addmoney",
 	"givemoney",
-	"givexp",
 	"setrebirth",
 	"luck",
 	"giveluck",

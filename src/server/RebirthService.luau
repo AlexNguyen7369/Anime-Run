@@ -7,7 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.RebirthConfig)
-local LevelService = require(script.Parent.LevelService)
+local HudFormat = require(Shared.HudFormat)
 
 local RebirthService = {}
 local lastRequest = setmetatable({}, { __mode = "k" })
@@ -72,17 +72,14 @@ function RebirthService.Rebirth(player)
 		return false, "Stats not ready"
 	end
 	local level = Config.CleanLevel(player:GetAttribute("RebirthLevel"))
-	local playerLevel = math.max(1, math.floor(tonumber(player:GetAttribute("Level")) or 1))
 	if level >= Config.MAX_LEVEL then
 		return false, "Max rebirth"
 	end
-	if not Config.CanRebirth(level, playerLevel) then
-		local required = Config.Requirements(level)
-		return false, string.format("Reach Level %d", required.Level)
+	if not Config.CanRebirth(level, money.Value) then
+		return false, "Reach " .. HudFormat.MoneyText(Config.Requirements(level).Money)
 	end
 	local nextLevel = level + 1
 	money.Value = 0
-	LevelService.Reset(player)
 	player:SetAttribute("RebirthLevel", nextLevel)
 	refreshStatPoints(player) -- each rebirth adds RebirthConfig.POINTS_PER_REBIRTH free stat points
 	local gacha = require(script.Parent.GachaService)

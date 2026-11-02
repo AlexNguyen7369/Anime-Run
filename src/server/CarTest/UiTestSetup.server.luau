@@ -332,30 +332,25 @@ local function progressionSnapshot(player)
 		{ upgrades = live("UpgradeService").Snapshot(player), attributes = attributes, root = root and root.CFrame }
 end
 
--- The Rebirth panel's button state (UiSpec.ServerSetup rebirth_*): the player's Level attribute set to the rebirth
--- requirement (eligible) or one below it (not eligible). Level / XP / XPToNext come back on 'restore'.
+-- The Rebirth panel's button state (UiSpec.ServerSetup rebirth_*): leaderstats.Money set to the rebirth Money
+-- requirement (eligible) or one below it (not eligible). Money comes back on 'restore' (the 'snapshot' value).
 -- Auto-roll goes off so no duplicate-car sale (MoneyService.Award) moves Money during the click
 -- (rebirth_money_not_reset is exact); 'restore' turns it back to the 'snapshot' value (snap.autoRoll).
-local function rebirthLevelFixture(player, offset)
+local function rebirthMoneyFixture(player, offset)
+	setups.snapshot(player) -- no-op when taken already; it holds the Money 'restore' puts back
 	progressionSnapshot(player)
 	setAutoRoll(player, false)
-	local attributes = progressionSnapshots[player].attributes
-	for _, name in { "Level", "XP", "XPToNext" } do
-		if attributes[name] == nil then
-			attributes[name] = { value = player:GetAttribute(name) }
-		end
-	end
-	local LevelConfig = require(Shared.LevelConfig)
-	local need = LevelConfig.RebirthLevelRequirement(player:GetAttribute("RebirthLevel") or 0)
-	player:SetAttribute("Level", need + offset)
+	local RebirthConfig = require(Shared.RebirthConfig)
+	local need = RebirthConfig.Requirements(player:GetAttribute("RebirthLevel") or 0).Money
+	assert(stat(player, "Money"), "Money required").Value = need + offset
 end
 
 function setups.rebirth_eligible(player)
-	rebirthLevelFixture(player, 0)
+	rebirthMoneyFixture(player, 0)
 end
 
 function setups.rebirth_not_eligible(player)
-	rebirthLevelFixture(player, -1)
+	rebirthMoneyFixture(player, -1)
 end
 
 function setups.progression_buyable(player)

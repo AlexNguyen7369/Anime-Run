@@ -8,7 +8,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local BoostConfig = require(Shared:WaitForChild("BoostConfig"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local DailyLoginConfig = require(Shared:WaitForChild("DailyLoginConfig"))
-local LevelConfig = require(Shared:WaitForChild("LevelConfig"))
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
 local Spec = require(script.Parent.UiSpec)
 local UiResponsive = require(script.Parent.UiResponsive)
@@ -81,7 +80,7 @@ function Extras.Build(h)
 	end
 
 	local function required()
-		return LevelConfig.RebirthLevelRequirement(attr("RebirthLevel") or 0)
+		return RebirthConfig.Requirements(attr("RebirthLevel") or 0).Money
 	end
 
 	-- What the panel shows that follows the server and the config modules: reward captions, the requirement bar and
@@ -116,10 +115,14 @@ function Extras.Build(h)
 		end
 		h.checkList(res, "rebirth_reward_captions_match_config", captions)
 
-		-- Requirement bar: "<Level> / <required> Level", fill = Level / required
-		local level, need = attr("Level"), required()
+		-- Requirement bar: "<MoneyText(Money)> / <MoneyText(required)>", fill = Money / required (owner 2026-11-01)
+		local stats = h.player:FindFirstChild("leaderstats")
+		local moneyValue = stats and stats:FindFirstChild("Money")
+		local level, need = moneyValue and moneyValue.Value, required()
 		local barText = nodes.BarText and nodes.BarText.Text or "missing"
-		local wantText = type(level) == "number" and RB.BarFormat:format(level, need) or "Level attribute missing"
+		local wantText = type(level) == "number"
+				and RB.BarFormat:format(HudFormat.MoneyText(level), HudFormat.MoneyText(need))
+			or "leaderstats.Money missing"
 		h.check(res, "rebirth_bar_text_matches_server", barText, wantText, barText == wantText)
 		local fill = nodes.Fill
 		local ratio = type(level) == "number" and math.clamp(level / need, 0, 1) or nil
@@ -130,9 +133,9 @@ function Extras.Build(h)
 		end
 		h.check(
 			res,
-			"rebirth_bar_fill_matches_level",
+			"rebirth_bar_fill_matches_money",
 			shown,
-			ratio and ("%.3f +- %.2f"):format(ratio, RB.FillTolerance) or "Level attribute missing",
+			ratio and ("%.3f +- %.2f"):format(ratio, RB.FillTolerance) or "leaderstats.Money missing",
 			shown ~= nil and ratio ~= nil and math.abs(shown - ratio) <= RB.FillTolerance
 		)
 		local met = type(level) == "number" and level >= need
@@ -159,7 +162,7 @@ function Extras.Build(h)
 			end
 			local allowed = text == RB.ButtonText or string.sub(text, 1, 16) == "REBIRTH COMPLETE"
 			for _, reply in RB.ButtonReplies do
-				allowed = allowed or text == reply:format(need)
+				allowed = allowed or text == reply:format(HudFormat.MoneyText(need))
 			end
 			h.check(res, "rebirth_button_label", text, RB.ButtonText .. " or a server reply", allowed)
 		end
@@ -239,7 +242,7 @@ function Extras.Build(h)
 		for _, spec in RB.Nodes do
 			local o = nodes[spec.Name]
 			if o then
-				if not h.visible(o) then
+				if h.visible(o) == (spec.Hidden == true) then
 					table.insert(hidden, spec.Name)
 				end
 				-- A node without a model row is only fine when it is scale-only (the same at every variant)

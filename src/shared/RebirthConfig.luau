@@ -3,13 +3,15 @@
 -- the server and presentation can describe the same progression.
 
 local RebirthConfig = {}
-local LevelConfig = require(script.Parent.LevelConfig)
 
 RebirthConfig.DEFAULT_LEVEL = 0
--- Total XP / Luck multi per rebirth level (owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md); rebirth 20 is the last
--- one. Rebirth gives no speed gain (owner 2026-11-01, design doc 4.14): speed only through its +1 stat point.
+-- Total Luck multi per rebirth level (owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md); rebirth 20 is the last
+-- one. Rebirth gives no speed gain and no XP (owner 2026-11-01, design doc 4.14): speed only through its +1 stat point.
 RebirthConfig.TOTALS = { 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7.5, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11 }
 RebirthConfig.MAX_LEVEL = #RebirthConfig.TOTALS
+-- Money needed for the next rebirth (owner 2026-11-01, placeholder): $100K for rebirth 1, x10 each after.
+RebirthConfig.BASE_MONEY = 1e5
+RebirthConfig.MONEY_GROWTH = 10
 RebirthConfig.POINTS_PER_REBIRTH = 1 -- stat points per rebirth (placeholder, owner 2026-10-15; docs/REBIRTH_SPEC.md)
 
 function RebirthConfig.CleanLevel(level)
@@ -19,7 +21,7 @@ function RebirthConfig.CleanLevel(level)
 	return math.max(RebirthConfig.DEFAULT_LEVEL, math.floor(level))
 end
 
-function RebirthConfig.XpMulti(level)
+function RebirthConfig.LuckMulti(level)
 	level = RebirthConfig.CleanLevel(level)
 	if level == 0 then
 		return 1
@@ -31,13 +33,9 @@ function RebirthConfig.MoneyMulti(_level)
 	return 1
 end
 
-function RebirthConfig.LuckMulti(level)
-	return RebirthConfig.XpMulti(level)
-end
-
 -- Total multi after the next rebirth, shown on the Rebirth panel so the UI never hard-codes it.
 function RebirthConfig.NextMultiplier(level)
-	return RebirthConfig.XpMulti(RebirthConfig.CleanLevel(level) + 1)
+	return RebirthConfig.LuckMulti(RebirthConfig.CleanLevel(level) + 1)
 end
 
 -- Stat points earned from rebirths, added to the car-index points (never saved: derived from the rebirth count)
@@ -46,18 +44,17 @@ function RebirthConfig.Points(level)
 end
 
 function RebirthConfig.Requirements(level)
-	level = RebirthConfig.CleanLevel(level)
+	level = math.min(RebirthConfig.CleanLevel(level), RebirthConfig.MAX_LEVEL - 1) -- past the last: the final value
 	return {
-		Level = LevelConfig.RebirthLevelRequirement(level),
+		Money = RebirthConfig.BASE_MONEY * RebirthConfig.MONEY_GROWTH ^ level,
 	}
 end
 
-function RebirthConfig.CanRebirth(level, playerLevel)
+function RebirthConfig.CanRebirth(level, money)
 	if RebirthConfig.CleanLevel(level) >= RebirthConfig.MAX_LEVEL then
 		return false
 	end
-	local required = RebirthConfig.Requirements(level)
-	return type(playerLevel) == "number" and playerLevel >= required.Level
+	return type(money) == "number" and money >= RebirthConfig.Requirements(level).Money
 end
 
 return RebirthConfig

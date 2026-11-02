@@ -33,7 +33,6 @@ local GachaService = require(script.Parent.GachaService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local BoostConfig = require(Shared.BoostConfig)
 local BoostService = require(script.Parent.BoostService)
-local LevelService = require(script.Parent.LevelService)
 local RaceTimeService = require(script.Parent.RaceTimeService)
 
 local RaceService = {}
@@ -209,12 +208,25 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		car:PivotTo(rigCFrame(feet))
 		return k
 	end
+	-- Track the runner is on: the first track whose finish pad is still ahead (the last past the end). Clients pick the
+	-- biome from it while racing (design doc 4.18), never from the nearest centre line.
+	local function trackAt()
+		local number, best = nil, math.huge
+		for _, entry in raceRoute.Pads do
+			local at = arc[entry.Index] or 0
+			if at > dist and at < best then
+				number, best = entry.Number, at
+			end
+		end
+		return number or raceRoute.Pads[#raceRoute.Pads].Number
+	end
 	-- What clients interpolate the visible runner from (contract in Server/CarTest/RunnerTests)
 	local function publish()
 		sincePublish = 0
 		car:SetAttribute("RunRoute", routeId)
 		car:SetAttribute("RunSpeed", run.Finished and 0 or run.TargetSpeed)
 		car:SetAttribute("RunDistance", dist)
+		car:SetAttribute("RunTrack", trackAt())
 	end
 	-- Puts the runner `ahead` studs past waypoint `index` (a start, restart or jump; clients snap there).
 	local function moveTo(index, ahead)
@@ -480,8 +492,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			run.MaxPathDeviation = math.max(run.MaxPathDeviation, pathDeviation())
 		end
 
-		LevelService.Tick(player, railDt, GachaService.XpMulti(player))
-
 		if not npcMode and not duel and driver.Done and not run.Finished then
 			run.Finished = true
 			run.Laps += 1
@@ -507,6 +517,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	function run:Destroy()
 		if alive then
 			alive = false
+			car:SetAttribute("RunTrack", nil) -- walking again: clients go back to ZoneAt
 			setUnbanked(0)
 			if npcMode then
 				emit({ Type = "Stop" })

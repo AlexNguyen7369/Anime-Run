@@ -18,7 +18,6 @@ local WorkshopConfig = require(Shared.WorkshopConfig)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
-local LevelService = require(script.Parent.LevelService)
 
 local WorkshopService = {}
 
@@ -351,7 +350,6 @@ function WorkshopService.Tick(player, dt, character)
 	end
 	setRate(player, true, rate)
 	local gain = rate * dt
-	LevelService.Tick(player, dt, GachaService.XpMulti(player))
 	-- Money is whole dollars: carry the fraction to the next tick
 	local total = (owed[player] or 0) + gain
 	local whole = math.floor(total)

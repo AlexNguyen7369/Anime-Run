@@ -4820,7 +4820,6 @@ function S.ui_settings_profile(res)
 		TotalRolls = HudFormat.SpeedText(attr("Rolls") or 0),
 		BestRoll = HudFormat.Odds(best and best.Chance),
 		CharactersDiscovered = HudFormat.SpeedText(data and #data:GetChildren() or 0),
-		Level = HudFormat.SpeedText(attr("Level") or 1),
 		Speed = HudFormat.SpeedText(speedValue and speedValue.Value or 0),
 		Luck = string.format("%s · %d pts", HudFormat.Multi(GachaConfig.Multis(allocation).Luck), allocation.Luck),
 	}

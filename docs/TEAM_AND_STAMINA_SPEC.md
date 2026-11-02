@@ -110,7 +110,7 @@ Stamina = Base(rarity or override)
     Preset factor wired as `RaceConfig.PRESET_CRUISE` but always off (no team code yet).
   - The Speed Doubler game passes are removed (design doc 4.16). The upgrade tree's `speed` branch is "Speed"
     (owner 2026-11-01): each owned tier adds +10% cruise (placeholder, 5 tiers), added to the stat points' part.
-  - XP multi = the rebirth level's multi only (stat points, aura and trail no longer scale XP).
+  - No XP (player levels removed owner 2026-11-01, design doc 4.14).
   - Offline Speed credit and its Robux double are off (nothing to credit); the product stays unsold (ProductId 0).
   - The Speed board is removed from the plaza (4.13); its store `LB_Speed_v3` is untouched.
   - The HUD shows the player attribute `Cruise` (studs/s): the run's fixed cruise while racing, else the equipped

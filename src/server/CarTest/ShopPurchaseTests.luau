@@ -588,7 +588,7 @@ function Tests.shop_purchases()
 		-- A rebirth keeps both
 		if rebirth and type(rebirth.Rebirth) == "function" then
 			local pr = newPlayer("CarTestShop_Rebirth", true)
-			pr:SetAttribute("Level", 1000000)
+			pr.leaderstats.Money.Value = 1e30 -- above any rebirth Money requirement
 			pr:SetAttribute("RebirthLevel", 0)
 			pcall(shop.Apply, pr, { Receipts = { "cartest_rb" }, Codes = { CODE } })
 			local okR, didRebirth = pcall(rebirth.Rebirth, pr)

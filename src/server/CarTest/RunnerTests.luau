@@ -291,7 +291,7 @@ function Tests.runner()
 		opts = opts or {}
 		local st = { ok = false, minUp = 1, minY = math.huge, dev = 0, devN = 0, dist = 0, want = 0, perTrack = {} }
 		-- smooth-motion contract samples (header): frames read, frames missing an attribute, worst errors
-		local pub = { n = 0, missing = 0, distErr = 0, speedErr = 0, age = 0, backward = 0 }
+		local pub = { n = 0, missing = 0, distErr = 0, speedErr = 0, age = 0, backward = 0, wrongTrack = 0 }
 		st.pub = pub
 		local model = RunnerFactory.build(opts.CharacterId or charId)
 		model.Name = "CarTestRunner"
@@ -389,6 +389,21 @@ function Tests.runner()
 					end
 					lastPub = rd
 					pub.route = rr
+					-- RunTrack (design doc 4.18) names the track the rig is on, away from its edges (publish lag)
+					local k2 = trackAt(seg)
+					local t2 = k2 and route.Tracks[k2]
+					if t2 then
+						local lo = arc[t2.StartIndex] or 0
+						local hi2 = math.min(arc[t2.FinishIndex] or math.huge, arc[route.Pads[k2].Index] or math.huge)
+						local slack = rs * (age + FRAME_LAG) + 5
+						if
+							rigArc > lo + slack
+							and rigArc < hi2 - slack
+							and model:GetAttribute("RunTrack") ~= t2.Number
+						then
+							pub.wrongTrack += 1
+						end
+					end
 				else
 					pub.missing += 1
 				end
@@ -407,6 +422,7 @@ function Tests.runner()
 		pcall(function()
 			run:Destroy()
 		end)
+		st.trackCleared = model:GetAttribute("RunTrack") == nil
 		model:Destroy()
 		player:Destroy()
 		return st
@@ -485,6 +501,8 @@ function Tests.runner()
 				wrong = math.abs(n - count) + math.abs(#folder:GetChildren() - n)
 			end
 			flag(pre .. "publishes_route", wrong == 0, wrong, 0)
+			flag(pre .. "publishes_track", pub.n >= MIN_TRACK_SAMPLES and pub.wrongTrack == 0, pub.wrongTrack, 0)
+			flag(pre .. "track_cleared_on_stop", st.trackCleared == true)
 			metrics[label .. "_dev"] = math.round(st.dev * 1000) / 1000
 			metrics[label .. "_speed_ratio"] = math.round(ratio * 10000) / 10000
 		end
