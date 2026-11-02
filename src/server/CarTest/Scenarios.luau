@@ -6514,7 +6514,7 @@ function Scenarios.index()
 				and shownFnOk
 				and nearly(call(GachaService.ShownSpeedMulti, eq), kartMulti)
 		)
-		eq:SetAttribute("EquippedAura", "azure_aura")
+		eq:SetAttribute("Slot1Aura", "azure_aura")
 		task.wait()
 		local shownAura = eq:GetAttribute("ShownSpeedMulti")
 		check(
@@ -6527,8 +6527,8 @@ function Scenarios.index()
 		-- Design doc "Speed gain rebalance" + "Aura and trail ladders" (owner 2026-10-27): the equipped aura and the
 		-- equipped trail multiply ALL Speed gain (SpeedGainMulti = SpeedMulti); the equipped car never does. The
 		-- aura keeps its cruise multi; trails never change cruise (ShownSpeedMulti = car x aura).
-		eq:SetAttribute("EquippedAura", nil)
-		eq:SetAttribute("EquippedTrail", nil)
+		eq:SetAttribute("Slot1Aura", nil)
+		eq:SetAttribute("Slot1Trail", nil)
 		task.wait()
 		local gainFnOk = type(GachaService.SpeedGainMulti) == "function"
 		local gainBase = gainFnOk and call(GachaService.SpeedGainMulti, eq) or -1
@@ -6548,7 +6548,7 @@ function Scenarios.index()
 			call(GachaService.SpeedMulti, eq) or -1,
 			nearly(gainBase, call(GachaService.SpeedMulti, eq))
 		)
-		eq:SetAttribute("EquippedAura", "galaxy_aura")
+		eq:SetAttribute("Slot1Aura", "galaxy_aura")
 		task.wait()
 		local gainAura = call(GachaService.SpeedGainMulti, eq)
 		check(
@@ -6558,7 +6558,7 @@ function Scenarios.index()
 			gainBase * 3,
 			galaxy ~= nil and nearly(gainAura, gainBase * galaxy.SpeedMulti) and nearly(gainAura, gainBase * 3)
 		)
-		eq:SetAttribute("EquippedTrail", "void_trail") -- the attribute must refresh on EquippedTrail alone
+		eq:SetAttribute("Slot1Trail", "void_trail") -- the attribute must refresh on EquippedTrail alone
 		task.wait()
 		local gainBoth = call(GachaService.SpeedGainMulti, eq)
 		local gainAttr = eq:GetAttribute("SpeedGainMulti")
@@ -6599,8 +6599,8 @@ function Scenarios.index()
 			nearly(gainStarter, gainBoth) and nearly(eq:GetAttribute("SpeedGainMulti"), gainBoth)
 		)
 		GachaService.Equip(eq, "leaf_copycat")
-		eq:SetAttribute("EquippedTrail", nil)
-		eq:SetAttribute("EquippedAura", nil)
+		eq:SetAttribute("Slot1Trail", nil)
+		eq:SetAttribute("Slot1Aura", nil)
 		GachaService.Equip(eq, "starter")
 		task.wait()
 		local starter = CharacterCatalog.Get("starter")
@@ -13303,6 +13303,7 @@ do
 end
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
+Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 30-character launch cast
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

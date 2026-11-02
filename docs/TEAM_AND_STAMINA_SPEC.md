@@ -100,20 +100,29 @@ Stamina = Base(rarity or override)
 
 - Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
-- SpeedMulti = (1 + 0.02 x Alloc_Speed) x SpeedPotion x Preset(1.1) x slot aura x slot trail (damped
-  `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
+- SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
+  trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
 - Orchestrator defaults 2026-11-01 (u1, gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
-  - Until the team of 3 lands, the equipped character is the runner, and per-player aura / trail apply (u4 makes them
-    per slot). Preset factor wired as `RaceConfig.PRESET_CRUISE` but always off (no team code yet).
-  - The upgrade tree's Speed Gain branch and the Speed Doubler game passes (shop entries only) give nothing now.
+  - Until the team of 3 lands, the equipped character is the runner (slot 1: it wears slot 1's aura / trail, u4).
+    Preset factor wired as `RaceConfig.PRESET_CRUISE` but always off (no team code yet).
+  - The Speed Doubler game passes are removed (design doc 4.16). The upgrade tree's `speed` branch is "Speed"
+    (owner 2026-11-01): each owned tier adds +10% cruise (placeholder, 5 tiers), added to the stat points' part.
   - XP multi = the rebirth level's multi only (stat points, aura and trail no longer scale XP).
   - Offline Speed credit and its Robux double are off (nothing to credit); the product stays unsold (ProductId 0).
   - The Speed board is removed from the plaza (4.13); its store `LB_Speed_v3` is untouched.
   - The HUD shows the player attribute `Cruise` (studs/s): the run's fixed cruise while racing, else the equipped
     character's cruise now.
+- u4 per-slot aura / trail. Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
+  - Save `SlotItems = { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }` (no store or VERSION bump). A
+    save without `SlotItems` moves its old `EquippedAura` / `EquippedTrail` to slot 1; the old keys are kept in the
+    record, never read again.
+  - Each aura / trail is owned once, so an id sits on one slot at most: equipping it on another slot moves it there.
+  - Until the team of 3 lands the runner is slot 1: cruise and the runner's aura / trail effect use slot 1's items.
+  - UI: an owned aura / trail shows three slot buttons (each with that slot's aura / trail); tapping a slot equips the
+    item there, tapping the slot that already has it takes it off (Market detail pane and Backpack).
 
 ## Balance check (placeholders, owner 2026-11-01)
 

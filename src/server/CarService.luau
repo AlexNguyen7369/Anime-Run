@@ -499,11 +499,12 @@ function CarService.Start()
 		player:GetAttributeChangedSignal("EquippedCar"):Connect(function()
 			CarService.ApplyCharacter(player)
 		end)
-		for _, attribute in { "EquippedAura", "EquippedTrail" } do
-			player:GetAttributeChangedSignal(attribute):Connect(function()
+		-- shortcut: the runner wears slot 1's aura / trail until the team of 3 (c1) picks the active slot.
+		for _, kind in { "Aura", "Trail" } do
+			player:GetAttributeChangedSignal("Slot1" .. kind):Connect(function()
 				local car = cars[player]
 				if car and car.Parent then
-					VehicleEffects.Apply(car, player)
+					VehicleEffects.Apply(car, player, 1)
 				end
 			end)
 		end

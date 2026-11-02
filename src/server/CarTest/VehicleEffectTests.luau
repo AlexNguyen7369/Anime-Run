@@ -123,7 +123,7 @@ function Tests.make(helpers)
 		local player = Instance.new("Folder")
 		player.Name = "CarTestEffectsPlayer"
 		player.Parent = Workspace
-		local origTrail, origAura = player:GetAttribute("EquippedTrail"), player:GetAttribute("EquippedAura")
+		local origTrail, origAura = player:GetAttribute("Slot1Trail"), player:GetAttribute("Slot1Aura")
 		local okWalk, walkCF = pcall(CarService.WalkSpawnCFrame)
 		walkCF = okWalk and typeof(walkCF) == "CFrame" and walkCF or CFrame.new(0, 3, 0)
 		local releaseSpawn = helpers.clearSpawnOfRealPlayers(walkCF.Position)
@@ -227,8 +227,8 @@ function Tests.make(helpers)
 				PlayerData.Setup(player)
 			end)
 			flag("effects_fake_player_setup", okSetup)
-			player:SetAttribute("EquippedAura", nil)
-			player:SetAttribute("EquippedTrail", nil)
+			player:SetAttribute("Slot1Aura", nil)
+			player:SetAttribute("Slot1Trail", nil)
 			flag("effects_attach_no_error", (pcall(CarService.Attach, player, character)))
 			local car, run = waitRun()
 			local carOk = car ~= nil
@@ -247,10 +247,7 @@ function Tests.make(helpers)
 			local massBefore, masslessBefore = partMass(car), masslessParts(car)
 			player:SetAttribute("OwnTrail_" .. TRAIL_ID, true)
 			local okEquip, equipped = pcall(MarketService.Equip, player, "Trail", TRAIL_ID)
-			flag(
-				"effects_market_equip",
-				okEquip and equipped == true and player:GetAttribute("EquippedTrail") == TRAIL_ID
-			)
+			flag("effects_market_equip", okEquip and equipped == true and player:GetAttribute("Slot1Trail") == TRAIL_ID)
 			flag("effects_apply_no_error", (pcall(VehicleEffects.Apply, car, player)))
 			local atts = checkProfile("equip", car)
 
@@ -329,7 +326,7 @@ function Tests.make(helpers)
 			end
 			player:SetAttribute("OwnAura_" .. AURA_ID, true)
 			local okAura = pcall(MarketService.Equip, player, "Aura", AURA_ID)
-			flag("switch_aura_equipped", okAura and player:GetAttribute("EquippedAura") == AURA_ID)
+			flag("switch_aura_equipped", okAura and player:GetAttribute("Slot1Aura") == AURA_ID)
 			pcall(VehicleEffects.Apply, car, player)
 			local from = Catalog.Get(player:GetAttribute("EquippedCar"))
 			local fromMulti = from and from.SpeedMulti or 1
@@ -376,7 +373,7 @@ function Tests.make(helpers)
 			flag("switch_cruise_changed", math.abs(got - speed0) > SPEED_EXACT, got, speed0)
 			flag(
 				"switch_equipped_kept",
-				player:GetAttribute("EquippedTrail") == TRAIL_ID and player:GetAttribute("EquippedAura") == AURA_ID
+				player:GetAttribute("Slot1Trail") == TRAIL_ID and player:GetAttribute("Slot1Aura") == AURA_ID
 			)
 			checkProfile("switch", swCar)
 			local swTorso = swCar:FindFirstChild("Torso", true)
@@ -389,7 +386,7 @@ function Tests.make(helpers)
 			end
 			flag("switch_aura_on_torso", auraOnTorso > 0, auraOnTorso, 1)
 			car = swCar
-			player:SetAttribute("EquippedAura", nil)
+			player:SetAttribute("Slot1Aura", nil)
 
 			-- 6b. Respawn: Stop then Start builds a new car through CarService.spawnCar
 			flag("respawn_stop_no_error", (pcall(CarService.SetAutoRace, player, false)))
@@ -398,14 +395,14 @@ function Tests.make(helpers)
 			local car2 = waitRun()
 			local car2Ok = car2 ~= nil and car2 ~= car and car2:FindFirstChild("Torso", true) ~= nil
 			flag("respawn_new_car", car2Ok)
-			flag("respawn_equipped_trail_kept", player:GetAttribute("EquippedTrail") == TRAIL_ID)
+			flag("respawn_equipped_trail_kept", player:GetAttribute("Slot1Trail") == TRAIL_ID)
 			if not car2Ok then
 				return
 			end
 			checkProfile("respawn", car2)
 
 			-- 7. Unequip: attribute nil (listener body) clears the folder and every MarketEffect attachment
-			player:SetAttribute("EquippedTrail", nil)
+			player:SetAttribute("Slot1Trail", nil)
 			flag("unequip_apply_no_error", (pcall(VehicleEffects.Apply, car2, player)))
 			local folder = car2:FindFirstChild("MarketEffects")
 			local emptyOk = folder == nil or (#folder:GetChildren() == 0 and folder:GetAttribute("Trail") == nil)
@@ -420,8 +417,8 @@ function Tests.make(helpers)
 			metrics.error = tostring(err)
 		end
 		pcall(CarService.SetAutoRace, player, false)
-		player:SetAttribute("EquippedTrail", origTrail)
-		player:SetAttribute("EquippedAura", origAura)
+		player:SetAttribute("Slot1Trail", origTrail)
+		player:SetAttribute("Slot1Aura", origAura)
 		local leftover = CarService.GetCar(player)
 		if leftover then
 			leftover:Destroy()

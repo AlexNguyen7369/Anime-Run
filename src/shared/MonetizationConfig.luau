@@ -19,7 +19,6 @@ local GOLD = Color3.fromRGB(255, 196, 70)
 local MINT = Color3.fromRGB(110, 230, 160)
 local SKY = Color3.fromRGB(110, 205, 255)
 local VIOLET = Color3.fromRGB(175, 120, 255)
-local ROSE = Color3.fromRGB(255, 130, 190)
 local LIME = Color3.fromRGB(200, 240, 110)
 
 MonetizationConfig.Gamepasses = {
@@ -27,11 +26,6 @@ MonetizationConfig.Gamepasses = {
 	pass("auto_roll_2x", "2x Auto-Roll", 199, "Roll twice as fast!", MINT, "Index"),
 	pass("extra_roll_1", "Extra Roll I", 299, "+1 auto-roll at once (2 total)!", SKY, "Index"),
 	pass("extra_roll_2", "Extra Roll II", 599, "+1 more auto-roll (3 total)!", VIOLET, "Index"),
-	pass("speed_doubler_1", "Speed Doubler I", 99, "Doubles Speed gain!", SKY, "Upgrade"),
-	pass("speed_doubler_2", "Speed Doubler II", 199, "Doubles it again (4x)!", SKY, "Upgrade"),
-	pass("speed_doubler_3", "Speed Doubler III", 399, "Doubles it again (8x)!", VIOLET, "Upgrade"),
-	pass("speed_doubler_4", "Speed Doubler IV", 799, "Doubles it again (16x)!", VIOLET, "Upgrade"),
-	pass("speed_doubler_5", "Speed Doubler V", 1599, "Doubles it again (32x)!", ROSE, "Upgrade"),
 	pass("money_2x", "2x Money", 249, "Doubles race payouts!", GOLD, "Shop"),
 	pass("luck_1", "Lucky", 149, "Permanent +1 Luck!", LIME, "Stats"),
 	pass("luck_2", "ULTRA Lucky", 299, "Permanent +2 Luck!", VIOLET, "Stats"),

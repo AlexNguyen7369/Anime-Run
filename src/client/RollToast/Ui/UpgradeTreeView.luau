@@ -104,7 +104,8 @@ function View.Create(gui, Tree, Format)
 		for _, branch in Tree.Config.Branches do
 			if branch.Id == tile.Branch then
 				if branch.Bonus then
-					return "+" .. math.floor(branch.Bonus[tile.Tier] * 100 + 0.5) .. "% " .. branch.Effect
+					local effect = branch.Effect == "Speed" and "cruise speed" or branch.Effect
+					return "+" .. math.floor(branch.Bonus[tile.Tier] * 100 + 0.5) .. "% " .. effect
 				end
 				if branch.WalkSpeed then
 					return branch.WalkSpeed[tile.Tier] .. " WalkSpeed"

@@ -33,11 +33,17 @@ function MarketService.Snapshot(player)
 			table.insert(ownedTrails, item.Id)
 		end
 	end
+	local slotItems = {}
+	for slot = 1, MarketConfig.SLOTS do
+		slotItems[slot] = {
+			Aura = player:GetAttribute(MarketConfig.SlotAttribute(slot, "Aura")),
+			Trail = player:GetAttribute(MarketConfig.SlotAttribute(slot, "Trail")),
+		}
+	end
 	return {
 		OwnedAuras = ownedAuras,
 		OwnedTrails = ownedTrails,
-		EquippedAura = player:GetAttribute("EquippedAura"),
-		EquippedTrail = player:GetAttribute("EquippedTrail"),
+		SlotItems = slotItems,
 	}
 end
 
@@ -59,13 +65,14 @@ function MarketService.Apply(player, saved)
 			setOwned(player, "Trail", id, true)
 		end
 	end
-	local aura = saved.EquippedAura
-	local trail = saved.EquippedTrail
-	player:SetAttribute("EquippedAura", MarketConfig.Get("Aura", aura) and owns(player, "Aura", aura) and aura or nil)
-	player:SetAttribute(
-		"EquippedTrail",
-		MarketConfig.Get("Trail", trail) and owns(player, "Trail", trail) and trail or nil
-	)
+	local slotItems = MarketConfig.CleanSlotItems(saved, function(kind, id)
+		return owns(player, kind, id)
+	end)
+	for slot, entry in slotItems do
+		for _, kind in MarketConfig.SLOT_KINDS do
+			player:SetAttribute(MarketConfig.SlotAttribute(slot, kind), entry[kind])
+		end
+	end
 end
 
 function MarketService.Purchase(player, kind, id)
@@ -89,13 +96,35 @@ function MarketService.Purchase(player, kind, id)
 	return true, "Purchased " .. item.Name
 end
 
-function MarketService.Equip(player, kind, id)
+-- Puts aura / trail `id` on team slot `slot` (1..SLOTS, default 1); `id` nil takes that slot's one off. One owned
+-- copy each: equipping an item already on another slot moves it here.
+function MarketService.Equip(player, kind, id, slot)
+	slot = slot or 1
+	if
+		(kind ~= "Aura" and kind ~= "Trail")
+		or type(slot) ~= "number"
+		or slot % 1 ~= 0
+		or slot < 1
+		or slot > MarketConfig.SLOTS
+	then
+		return false, "Pick a slot"
+	end
+	local attribute = MarketConfig.SlotAttribute(slot, kind)
+	if id == nil then
+		player:SetAttribute(attribute, nil)
+		return true, string.format("Slot %d %s removed", slot, string.lower(kind))
+	end
 	local item = MarketConfig.Get(kind, id)
 	if not item or not owns(player, kind, id) then
 		return false, "Buy it first"
 	end
-	player:SetAttribute("Equipped" .. kind, id)
-	return true, "Equipped " .. item.Name
+	for other = 1, MarketConfig.SLOTS do
+		if player:GetAttribute(MarketConfig.SlotAttribute(other, kind)) == id then
+			player:SetAttribute(MarketConfig.SlotAttribute(other, kind), nil)
+		end
+	end
+	player:SetAttribute(attribute, id)
+	return true, string.format("Equipped %s on slot %d", item.Name, slot)
 end
 
 local function allowed(player)
@@ -126,11 +155,14 @@ function MarketService.Start()
 	local equip = remotes:FindFirstChild("MarketEquip") or Instance.new("RemoteFunction")
 	equip.Name = "MarketEquip"
 	equip.Parent = remotes
-	equip.OnServerInvoke = function(player, kind, id)
+	equip.OnServerInvoke = function(player, kind, id, slot)
 		if not allowed(player) then
 			return false, "Please wait"
 		end
-		return MarketService.Equip(player, kind, id)
+		if slot == nil then
+			return false, "Pick a slot" -- clients always name the slot
+		end
+		return MarketService.Equip(player, kind, id, slot)
 	end
 	local function watch(part)
 		local prompt = part:FindFirstChildOfClass("ProximityPrompt")

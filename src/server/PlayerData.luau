@@ -33,7 +33,8 @@ local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 1
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
-local RETIRED_KEYS = { "Speed", "Checkpoint" } -- design doc 4.13 / 4.15 (owner 2026-11-01)
+-- design doc 4.13 / 4.15 (owner 2026-11-01); EquippedAura / EquippedTrail: replaced by SlotItems (u4)
+local RETIRED_KEYS = { "Speed", "Checkpoint", "EquippedAura", "EquippedTrail" }
 local MAX_DUEL_WINS = 1e9
 
 -- Session lock (docs/SAVE_SPEC.md): the saved record names the server that holds it, so two servers never
@@ -281,8 +282,7 @@ local function save(player, userId, release)
 		XP = level.XP,
 		OwnedAuras = market.OwnedAuras,
 		OwnedTrails = market.OwnedTrails,
-		EquippedAura = market.EquippedAura,
-		EquippedTrail = market.EquippedTrail,
+		SlotItems = market.SlotItems, -- replaces EquippedAura / EquippedTrail (migrated to slot 1 on load)
 		MoneyEarned = cleanInt(player:GetAttribute("MoneyEarned"), 0, MAX_MONEY, 0),
 		DuelWins = cleanInt(player:GetAttribute("DuelWins"), 0, MAX_DUEL_WINS, 0),
 		Receipts = shop.Receipts,
