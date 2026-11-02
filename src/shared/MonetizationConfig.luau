@@ -69,7 +69,7 @@ MonetizationConfig.Products = {
 	{
 		Id = "potion_speed_pack",
 		Name = "x5 Speed Potion III",
-		Description = "x2 Speed gain",
+		Description = "x2 cruise speed",
 		Section = "Potions",
 		ProductId = 0,
 		RobuxPrice = 49,

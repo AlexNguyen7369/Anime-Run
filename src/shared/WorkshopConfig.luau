@@ -3,7 +3,6 @@
 -- Shared/Workshop. Plot rects are local (x, z) of Track 1's flattened Start, like Shared/SpawnArea.
 
 local PayoutCurve = require(script.Parent.PayoutCurve)
-local RaceConfig = require(script.Parent.RaceConfig)
 
 local WorkshopConfig = {}
 
@@ -27,11 +26,13 @@ WorkshopConfig.Plots = {
 }
 
 -- The gain zone, centred in the plot: (x, height, z) studs. Standing anywhere in it (root above the floor and below
--- the height) earns Speed.
+-- the height) earns Money.
 WorkshopConfig.ZONE_SIZE = Vector3.new(32, 12, 32)
 
 WorkshopConfig.TICK = 0.5 -- seconds between server zone checks
-WorkshopConfig.BASE_RATE = 0.2 * RaceConfig.STAT_SCALE -- (owner 2026-10-20: 5x slower, was 1) Speed per second at level 1, stat 0, no multis (placeholder, design doc "B")
+-- Money per second at level 1, no multis (owner 2026-11-01: idle gain pays Money, no Speed stat; placeholder 0.5 = the
+-- Track 1 pad's $100 every ~200 s, so it never beats racing)
+WorkshopConfig.BASE_RATE = 0.5
 WorkshopConfig.LUCK_PER_LEVEL = 0.10 -- Workshop luck while standing in the zone; level 1 is 1x.
 
 -- Configurable progression defaults: each level doubles W; prices follow PayoutCurve.Cost from $500 (owner 2026-10-27).

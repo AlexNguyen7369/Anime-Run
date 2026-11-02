@@ -1,8 +1,6 @@
 --!nonstrict
 -- Pure helpers for the HUD (Client/SpeedHud, Client/AutoRaceButton), kept here so they can be tested.
 
-local RaceConfig = require(script.Parent.RaceConfig)
-
 local HudFormat = {}
 
 local SMOOTH_RATE = 8 -- 1/s: how fast the shown number chases the real stat
@@ -97,10 +95,9 @@ function HudFormat.AutoButtonText(isRacing)
 	return isRacing == true and "Stop Auto" or "Auto Race"
 end
 
--- The cruise speed the stat currently gives, e.g. "42 studs/s". The optional multi is the equipped
--- car/aura cruise multi; it never changes the Speed stat or its gain rate.
-function HudFormat.RateText(stat, speedMulti)
-	return string.format("%d studs/s", math.floor(RaceConfig.SpeedFor(stat, speedMulti) + 0.5))
+-- A cruise speed as shown, e.g. "42 studs/s" (anything that is not a finite number >= 0 shows 0).
+function HudFormat.RateText(cruise)
+	return HudFormat.SpeedText(math.floor((tonumber(cruise) or 0) + 0.5)) .. " studs/s"
 end
 
 -- Moves the number on screen towards the real stat: smooth, never overshoots, never counts down while the

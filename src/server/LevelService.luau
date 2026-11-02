@@ -1,5 +1,5 @@
 --!nonstrict
--- Server-owned Level/XP progression. XP is earned over time at the Speed gain multi (owner 2026-10-27).
+-- Server-owned Level/XP progression. XP is earned over time at the rebirth XP multi (design doc 4.14).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -70,7 +70,7 @@ function LevelService.AddXP(player, amount)
 	return true
 end
 
--- gainMulti: the player's Speed gain multi (GachaService.SpeedMulti), so rebirth, aura and trail scale XP the same.
+-- gainMulti: the player's XP multi (GachaService.XpMulti, the rebirth level).
 function LevelService.Tick(player, dt, gainMulti)
 	if type(dt) ~= "number" or dt ~= dt or dt == math.huge or dt == -math.huge or dt <= 0 then
 		return false

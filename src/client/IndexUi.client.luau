@@ -18,6 +18,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
+local RaceConfig = require(Shared.RaceConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
 local equipRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("EquipCar")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
@@ -179,7 +180,7 @@ local function refresh()
 			t.Frame.BackgroundColor3 = TILE_BG
 			t.Icon.TextTransparency = 0.7 -- transparent placeholder until the car has a model
 			t.Name.Text = spec.Name
-			t.Info.Text = string.format("%s · x%s Speed\n%s", spec.Rarity, tostring(spec.SpeedMulti), odds)
+			t.Info.Text = string.format("%s · %s\n%s", spec.Rarity, HudFormat.RateText(RaceConfig.Cruise(spec)), odds)
 			t.Equip.Visible = true
 			local isOn = equipped == id
 			t.Equip.Text = isOn and "Equipped" or "Equip"

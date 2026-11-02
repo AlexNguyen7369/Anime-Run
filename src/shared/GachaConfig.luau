@@ -16,7 +16,7 @@ GachaConfig.TURBO_LUCK = 10
 
 GachaConfig.STATS = { "Speed", "Money", "Luck", "Workshop" }
 GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier to tune)
-	Speed = 0.1, -- all Speed gain
+	Speed = 0.02, -- +2 % cruise per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
 	Money = 0.1, -- race payouts
 	Luck = 0.05, -- car roll odds
 	Workshop = 0.2, -- workshop gain (no workshop yet)

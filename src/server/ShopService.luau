@@ -1,7 +1,7 @@
 --!nonstrict
 -- Robux developer-product receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md). Both grant potions only, through
--- BoostService; neither ever touches Money or Speed. The one exception is the offline-reward double
--- (docs/OFFLINE_DOUBLE_SPEC.md): it adds the player's last offline Speed reward once more, never Money.
+-- BoostService; neither ever touches Money. The offline-reward double (docs/OFFLINE_DOUBLE_SPEC.md) doubled offline
+-- Speed; there is no Speed stat since 2026-11-01 (design doc 4.13), so it never grants anything.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -146,25 +146,12 @@ function ShopService.SetOfflineReward(player, amount)
 	end)
 end
 
--- Offline double receipt: grants the remembered amount once, even if the panel window closed while Roblox's
--- prompt was open. No undoubled reward this session: NotProcessedYet (Roblox retries; a later reward takes it).
+-- Offline double receipt: there is no offline Speed to double since 2026-11-01 (design doc 4.13) and PlayerData never
+-- opens a reward, so the grant always refuses (NotProcessedYet). The product is not on sale (ProductId 0).
 local function processOfflineDouble(player, purchaseId)
-	local reward = offline[player]
 	return commit(player, purchaseId, function()
-		if not reward or reward.Doubled or not playerData().AddSpeed(player, reward.Amount) then
-			return false
-		end
-		reward.Doubled = true
-		player:SetAttribute("OfflineDoubleOpen", false)
-		player:SetAttribute("OfflineDoubled", reward.Amount)
-		return true
-	end, function()
-		reward.Doubled = false
-		player:SetAttribute("OfflineDoubled", nil)
-		local speed = playerData().Setup(player)
-		speed.Value = math.max(0, speed.Value - reward.Amount)
-		player:SetAttribute("OfflineDoubleOpen", offline[player] == reward and not reward.Closed)
-	end)
+		return false
+	end, function() end)
 end
 
 function ShopService.ProcessReceipt(info)

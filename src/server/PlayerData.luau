@@ -1,7 +1,7 @@
 --!nonstrict
--- Saved player stats: Money, Speed, the car gacha (inventory, equipped car, rolls, stat allocation), the upgrade tree
--- (owned tiles, BestTrack, TurboCount) and the workshop level. Speed is a continuous stat that grows while the car drives and sets the
--- auto-race cruise speed, see RaceConfig). The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
+-- Saved player stats: Money, the car gacha (inventory, equipped car, rolls, stat allocation), the upgrade tree
+-- (owned tiles, BestTrack, TurboCount) and the workshop level. There is no Speed stat (owner 2026-11-01, design doc
+-- 4.13): an old save's Speed (and Checkpoint, 4.15) is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
 -- kept in a DataStore; if the store cannot be read (Studio without API access, outage) the player is
 -- flagged DataFailed and their stats are never written, so a failed load can not wipe a save.
 
@@ -11,7 +11,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
 local Workshop = require(Shared:WaitForChild("Workshop"))
 local MoneyService = require(script.Parent.MoneyService)
@@ -33,8 +32,8 @@ local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat s
 local VERSION = 12 -- 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
-local MAX_ADD = 1e18 * RaceConfig.STAT_SCALE -- most a single AddSpeed call may add (rebirth x100b x aura x trail fits; owner 2026-10-27); scaled per design doc 4.11
 local AUTOSAVE_SECONDS = 60
+local RETIRED_KEYS = { "Speed", "Checkpoint" } -- design doc 4.13 / 4.15 (owner 2026-11-01)
 local MAX_DUEL_WINS = 1e9
 
 -- Session lock (docs/SAVE_SPEC.md): the saved record names the server that holds it, so two servers never
@@ -110,47 +109,7 @@ local function cleanInt(value, lo, hi, default)
 	return math.floor(math.clamp(value, lo, hi))
 end
 
--- The Speed stat: any finite number >= 0 (no cap) rounded to 3 decimals; anything else becomes 0.
-local function cleanStat(value)
-	return RaceConfig.CleanStat(value) or 0
-end
-
-local speedWired = setmetatable({}, { __mode = "k" }) -- players whose leaderstats.Speed follows BaseSpeed
-
--- The base Speed (earned, saved, reset by rebirth) is player.BaseSpeed. leaderstats.Speed mirrors it so the
--- visible stat and its gain rate stay independent of the equipped car. ShownSpeedMulti is used only for cruise speed.
-local function speedValue(player)
-	local base = player:FindFirstChild("BaseSpeed")
-	if not base then
-		base = Instance.new("NumberValue")
-		base.Name = "BaseSpeed"
-		base.Value = 0
-		base.Parent = player
-	end
-	local stats = player:FindFirstChild("leaderstats")
-	if not stats then
-		stats = Instance.new("Folder")
-		stats.Name = "leaderstats"
-		stats.Parent = player
-	end
-	local shown = stats:FindFirstChild("Speed")
-	if not shown then
-		shown = Instance.new("NumberValue")
-		shown.Name = "Speed"
-		shown.Parent = stats
-	end
-	if not speedWired[player] then
-		speedWired[player] = true
-		local function refresh()
-			shown.Value = base.Value
-		end
-		base.Changed:Connect(refresh)
-		refresh()
-	end
-	return base
-end
-
--- Creates leaderstats with Money and Speed plus BaseSpeed (idempotent); returns BaseSpeed. Works on any Instance.
+-- Creates leaderstats with Money (idempotent). Works on any Instance.
 function PlayerData.Setup(player)
 	RaceTimeService.Setup(player)
 	LevelService.Setup(player)
@@ -162,9 +121,6 @@ function PlayerData.Setup(player)
 	if player:GetAttribute("RebirthLevel") == nil then
 		player:SetAttribute("RebirthLevel", RebirthConfig.DEFAULT_LEVEL)
 	end
-	local base = speedValue(player)
-	RebirthService.Setup(player) -- again, now that Speed exists, to add leaderstats.Rebirth after it
-	return base
 end
 
 -- Returns true if the stats were loaded (or newly created). Yields.
@@ -174,7 +130,6 @@ function PlayerData.Load(player, userId)
 	end
 	userId = userId or player.UserId
 	local money = MoneyService.Setup(player)
-	local speed = speedValue(player)
 	local dataStore = getStore()
 	if not dataStore then
 		player:SetAttribute("DataFailed", true)
@@ -183,7 +138,6 @@ function PlayerData.Load(player, userId)
 
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
-		speed.Value = cleanStat(data.Speed)
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
 		MarketService.Apply(player, data)
@@ -198,12 +152,9 @@ function PlayerData.Load(player, userId)
 		giftReceipts[player] = type(data.GiftReceipts) == "table" and table.clone(data.GiftReceipts) or {}
 		player:SetAttribute("MoneyEarned", cleanInt(data.MoneyEarned, 0, MAX_MONEY, 0))
 		player:SetAttribute("DuelWins", cleanInt(data.DuelWins, 0, MAX_DUEL_WINS, 0))
-		player:SetAttribute("Checkpoint", cleanInt(data.Checkpoint, 1, MAX_DUEL_WINS, 1)) -- docs/CHECKPOINT_SPEC.md
 	end
 
-	-- One UpdateAsync per attempt takes the lock and claims the offline Speed together, so a retried or competing
-	-- load can never pay the same absence twice. Nothing in the transform yields.
-	local gain, seconds = 0, 0
+	-- One UpdateAsync per attempt takes the lock. Nothing in the transform yields.
 	local updated = nil
 	for attempt = 1, PlayerData.LOAD_RETRIES do
 		local refused = false
@@ -215,25 +166,6 @@ function PlayerData.Load(player, userId)
 					return nil
 				end
 				local record = type(current) == "table" and table.clone(current) or {}
-				apply(record) -- the multis below read the player's loaded cars, points and upgrades
-				local offlineAt = record.OfflineAt
-				seconds = type(offlineAt) == "number"
-						and offlineAt == offlineAt
-						and offlineAt >= 0
-						and offlineAt <= at
-						and math.min(at - offlineAt, Workshop.Config.OFFLINE_CAP)
-					or 0
-				gain = Workshop.OfflineGain(
-					speed.Value,
-					GachaService.SpeedMulti(player),
-					record.WorkshopLevel,
-					GachaService.WorkshopMulti(player),
-					seconds
-				)
-				if gain > 0 then
-					record.Speed = cleanStat(speed.Value + gain)
-					record.OfflineAt = at
-				end
 				record.Lock = { Id = PlayerData.SessionId(), At = at }
 				return record
 			end)
@@ -254,9 +186,10 @@ function PlayerData.Load(player, userId)
 		return false
 	end
 	apply(updated)
-	player:SetAttribute("OfflineSpeed", gain)
-	player:SetAttribute("OfflineSeconds", seconds)
-	ShopService.SetOfflineReward(player, gain) -- docs/OFFLINE_DOUBLE_SPEC.md: the amount a double would add
+	-- No offline Speed credit since the Speed stat retired (design doc 4.13): nothing to show or double
+	player:SetAttribute("OfflineSpeed", 0)
+	player:SetAttribute("OfflineSeconds", 0)
+	ShopService.SetOfflineReward(player, 0)
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -313,7 +246,6 @@ local function save(player, userId, release)
 		return false
 	end
 	local money = MoneyService.Setup(player)
-	local speed = speedValue(player)
 	local gacha = GachaService.Snapshot(player)
 	local upgrades = UpgradeService.Snapshot(player)
 	local market = MarketService.Snapshot(player)
@@ -324,7 +256,6 @@ local function save(player, userId, release)
 	local shop = ShopService.Snapshot(player)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
-		Speed = cleanStat(speed.Value),
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
 		Showcase = gacha.Showcase,
@@ -356,7 +287,6 @@ local function save(player, userId, release)
 		DuelWins = cleanInt(player:GetAttribute("DuelWins"), 0, MAX_DUEL_WINS, 0),
 		Receipts = shop.Receipts,
 		Codes = shop.Codes,
-		Checkpoint = cleanInt(player:GetAttribute("Checkpoint"), 1, MAX_DUEL_WINS, 1),
 		RaceBestTimes = RaceTimeService.Snapshot(player),
 		OfflineAt = clock(),
 		Version = VERSION,
@@ -371,6 +301,9 @@ local function save(player, userId, release)
 				return nil -- this server lost the session: never overwrite the other server's save
 			end
 			local merged = GiftMailbox.Merge(table.clone(payload), type(current) == "table" and current or {}, known)
+			for _, key in RETIRED_KEYS do
+				merged[key] = type(current) == "table" and current[key] or nil -- kept in old saves, never read
+			end
 			merged.Lock = if release then nil else { Id = PlayerData.SessionId(), At = at }
 			return merged
 		end)
@@ -402,29 +335,6 @@ function PlayerData.Save(player, userId, release)
 		return false
 	end
 	return result
-end
-
--- The player's Speed stat, a finite number >= 0 (0 if they have none).
-function PlayerData.SpeedStat(player)
-	local speed = player:FindFirstChild("BaseSpeed")
-	return cleanStat(speed and speed.Value)
-end
-
-PlayerData.MAX_ADD = MAX_ADD
-
--- Adds to the Speed stat. Only the server calls this. The amount must be a finite number in (0, MAX_ADD];
--- returns the new stat, or nil (and changes nothing) for anything else.
-function PlayerData.AddSpeed(player, amount)
-	if type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount > MAX_ADD then
-		return nil
-	end
-	local speed = PlayerData.Setup(player)
-	local new = speed.Value + amount
-	if new == math.huge then
-		return nil
-	end
-	speed.Value = new
-	return speed.Value
 end
 
 -- Waits until the player's stats finished loading (or failed). Returns true if loaded.
@@ -462,7 +372,7 @@ function PlayerData.Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		for _, hook in leaveHooks do
-			pcall(hook, player) -- e.g. CarService stops the run, committing its last Speed gain
+			pcall(hook, player) -- e.g. CarService stops the run
 		end
 		PlayerData.Save(player, nil, true)
 	end)

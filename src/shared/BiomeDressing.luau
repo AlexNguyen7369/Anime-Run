@@ -9,10 +9,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Themes = require(script.Parent.BiomeThemes)
-local HudFormat = require(script.Parent.HudFormat)
 local UiTheme = require(script.Parent.UiTheme)
-local NpcConfig = require(script.Parent.NpcConfig)
-local RaceConfig = require(script.Parent.RaceConfig)
 
 local BiomeDressing = {}
 BiomeDressing.Assets = nil -- the mesh registry ({ Clone(biome, key, size) }); nil builds every prop from parts
@@ -467,12 +464,8 @@ local function biomeTitle(biome)
 end
 BiomeDressing.Title = biomeTitle
 
--- The recommended Speed for track n: the stat whose cruise speed matches its NPC (gate sign, checkpoint panel).
-function BiomeDressing.RecSpeed(n)
-	return RaceConfig.StatFor(NpcConfig.For(n or 1).Speed)
-end
-
--- Text on the sign's face toward the oncoming car: the biome and the recommended Speed (owner 2026-10-21).
+-- Text on the sign's face toward the oncoming car: the biome (owner 2026-10-21; the recommended-Speed line is gone
+-- with the Speed stat, owner 2026-11-01, design doc 4.13).
 local function signText(sign, spec)
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "GateSignGui"
@@ -494,11 +487,7 @@ local function signText(sign, spec)
 		UiTheme.Stroke(label, 2)
 		label.Parent = gui
 	end
-	local rec = BiomeDressing.RecSpeed(spec.Number)
-	-- SpeedText shows a non-finite number as 0; Short shows "inf"
-	local recText = rec == math.huge and HudFormat.Short(rec) or HudFormat.SpeedText(rec)
-	line("Biome", biomeTitle(spec.Biome), 0.06, 0.52, Color3.new(1, 1, 1))
-	line("RecSpeed", "REC. SPEED " .. recText, 0.6, 0.34, Color3.fromRGB(255, 220, 60))
+	line("Biome", biomeTitle(spec.Biome), 0.2, 0.6, Color3.new(1, 1, 1))
 end
 
 local function gate(folder, layout, origin, theme, spec, tunnel)

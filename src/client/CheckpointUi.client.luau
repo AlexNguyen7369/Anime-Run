@@ -1,18 +1,17 @@
 --!nonstrict
--- Checkpoints panel (docs/CHECKPOINT_SPEC.md section 3): opened by the hub NPC's OpenCheckpoints prompt. One card
--- per track; Track 1 and beaten tracks can be picked, the others are dimmed with a lock. The server decides
--- (Remotes.SetCheckpoint); the cards only show the player attributes Checkpoint and BestTrack.
+-- Track overview (design doc 4.15, owner 2026-11-01): opened by the plaza sensei's OpenCheckpoints prompt. One card
+-- per track (number, biome); the detail pane shows the clicked track's number, biome, length (studs) and NPC rival
+-- speed. Informational only: nothing is picked, every run starts on Track 1.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
-local CheckpointConfig = require(shared.CheckpointConfig)
 local TrackRegistry = require(shared.TrackRegistry)
 local TrackBuilder = require(shared.TrackBuilder)
 local HudFormat = require(shared.HudFormat)
+local NpcConfig = require(shared.NpcConfig)
 local UiTheme = require(shared.UiTheme)
-local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local RunService = game:GetService("RunService")
 local BiomeDressing = require(shared.BiomeDressing)
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
@@ -27,7 +26,6 @@ local OUTLINE = UiTheme.Outline
 local BODY = Color3.fromRGB(32, 27, 36)
 local CARD = Color3.fromRGB(14, 24, 52)
 local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local SELECTED = Color3.fromRGB(60, 220, 90)
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -69,14 +67,13 @@ corner(panel, 16)
 make("UIStroke", "Stroke", panel, { Color = OUTLINE, Thickness = 4 })
 PanelSwitch.Register("Checkpoints", panel)
 
-local close = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Checkpoints", MaxWidth = 760 }).Close
--- No HudIcons art for checkpoints: a finish flag glyph fills the header's icon slot.
+local close = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Tracks", MaxWidth = 760 }).Close
+-- No HudIcons art for tracks: a finish flag glyph fills the header's icon slot.
 caption("Flag", panel.Header.Icon, { Size = UDim2.fromScale(1, 1), Text = "🏁", ZIndex = 4 })
-local HINT = "Click a track to see it; START HERE makes your auto race start there."
-local hint = caption("Hint", panel, {
+caption("Hint", panel, {
 	Position = UDim2.fromOffset(16, 70),
 	Size = UDim2.new(1, -32, 0, 24),
-	Text = HINT,
+	Text = "Every run starts on Track 1. Click a track to see it.",
 	TextColor3 = Color3.fromRGB(210, 200, 230),
 })
 
@@ -127,31 +124,9 @@ local function row(name, y, h, color)
 end
 local title = row("Title", 0.41, 0.08)
 local biomeLabel = row("Biome", 0.49, 0.06, Color3.fromRGB(170, 190, 255))
-local recSpeed = row("RecSpeed", 0.57, 0.07, UiTheme.Palette.Speed)
-local yourSpeed = row("YourSpeed", 0.645, 0.06)
-local status = caption("Status", detail, {
-	Position = UDim2.new(0, 12, 0.715, 0),
-	Size = UDim2.fromScale(0.62, 0.065),
-	Text = "",
-})
-status.BackgroundTransparency = 0 -- caption() makes labels transparent; this one is a chip
-corner(status, 999)
-make("UIPadding", "Pad", status, { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) })
+local lengthLabel = row("Length", 0.59, 0.07)
+local rival = row("Rival", 0.68, 0.07, UiTheme.Palette.Speed)
 local cash = row("Cash", 0.79, 0.06, Color3.fromRGB(120, 255, 140))
-local start = make("TextButton", "Start", detail, {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.new(1, -24, 0.11, 0),
-	Text = "START HERE",
-	Font = UiTheme.Font,
-	TextScaled = true,
-	TextColor3 = Color3.new(1, 1, 1),
-	BackgroundColor3 = SELECTED,
-	AutoButtonColor = true,
-})
-corner(start, UiTheme.Radius.S)
-UiTheme.Stroke(start, 2)
-make("UIPadding", "Pad", start, { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) })
 
 local chain = TrackRegistry.Chain()
 local cards = {}
@@ -192,28 +167,10 @@ for _, spec in chain do
 		Text = BiomeDressing.Title(spec.Biome or ""),
 		TextColor3 = Color3.fromRGB(170, 190, 255),
 	})
-	local lock = make("Frame", "Lock", card, {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.4,
-		ZIndex = 3,
-	})
-	corner(lock, UiTheme.Radius.M)
-	caption(
-		"Icon",
-		lock,
-		{ Position = UDim2.fromScale(0.3, 0.1), Size = UDim2.fromScale(0.4, 0.4), Text = "🔒", ZIndex = 4 }
-	)
-	caption("Need", lock, {
-		Position = UDim2.fromScale(0.05, 0.5),
-		Size = UDim2.fromScale(0.9, 0.15),
-		Text = "Beat Track " .. n,
-		ZIndex = 4,
-	})
 	card.Activated:Connect(function()
 		showTrack(n)
 	end)
-	cards[n] = { Card = card, Edge = edge, Lock = lock, Preview = preview, Spec = spec }
+	cards[n] = { Card = card, Edge = edge, Preview = preview, Spec = spec, Length = TrackBuilder.Layout(spec).Length }
 end
 
 -- Previews are built on the first open, once the server's TrackPreviews bake has replicated.
@@ -225,40 +182,20 @@ local function buildPreviews()
 	end
 end
 
-local function speedStat()
-	local stats = player:FindFirstChild("leaderstats")
-	local speed = stats and stats:FindFirstChild("Speed")
-	return speed and speed.Value or 0
-end
-
 local function render()
-	local best = player:GetAttribute("BestTrack")
-	local current = CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), best, #chain)
 	for n, refs in cards do
-		local open = CheckpointConfig.IsOpen(n, best, #chain)
-		refs.Lock.Visible = not open
 		refs.Card.AutoButtonColor = n ~= shown
-		refs.Edge.Color = n == current and SELECTED or (n == shown and Color3.new(1, 1, 1) or TILE_BLUE)
+		refs.Edge.Color = n == shown and Color3.new(1, 1, 1) or TILE_BLUE
 	end
 	local refs = shown and cards[shown]
 	if not refs then
 		return
 	end
-	local open = CheckpointConfig.IsOpen(shown, best, #chain)
-	local rec, speed = BiomeDressing.RecSpeed(shown), speedStat()
 	title.Text = string.format("TRACK %d · %s", shown, string.upper(refs.Spec.Name or ""))
 	biomeLabel.Text = BiomeDressing.Title(refs.Spec.Biome or "")
-	recSpeed.Text = "REC. SPEED " .. HudFormat.SpeedText(rec)
-	yourSpeed.Text = "YOUR SPEED " .. HudFormat.SpeedText(speed)
-	local ready = speed >= rec
-	status.Text = ready and "READY" or ("NEED " .. HudFormat.SpeedText(rec - speed) .. " MORE")
-	status.BackgroundColor3 = ready and UiTheme.Palette.MoneyDeep or UiTheme.Palette.DangerDeep
+	lengthLabel.Text = "LENGTH " .. HudFormat.SpeedText(math.floor(refs.Length + 0.5)) .. " studs"
+	rival.Text = string.format("NPC RIVAL %d studs/s", math.floor(NpcConfig.For(shown).Speed + 0.5))
 	cash.Text = "PAYOUT " .. HudFormat.MoneyText(TrackBuilder.CashFor(shown))
-	local selected = shown == current
-	start.Text = selected and "SELECTED" or (open and "START HERE" or "LOCKED")
-	start.Active = open and not selected
-	start.AutoButtonColor = start.Active
-	start.BackgroundColor3 = start.Active and SELECTED or UiTheme.Palette.Muted
 end
 
 function showTrack(n)
@@ -271,16 +208,6 @@ function showTrack(n)
 	end
 	render()
 end
-
-start.Activated:Connect(function()
-	if not start.Active or not shown then
-		return
-	end
-	local ok, reason = remotes:WaitForChild("SetCheckpoint"):InvokeServer(shown)
-	if not ok then
-		hint.Text = tostring(reason or "Try again")
-	end
-end)
 
 -- The shown track's previews turn slowly while the panel is open (not while motion is reduced).
 local angle = math.rad(35)
@@ -301,25 +228,9 @@ end)
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		buildPreviews()
-		showTrack(
-			CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), player:GetAttribute("BestTrack"), #chain)
-		)
+		showTrack(shown or 1)
 	end
 end)
-task.spawn(function()
-	player:WaitForChild("leaderstats"):WaitForChild("Speed").Changed:Connect(function()
-		if panel.Visible then
-			render()
-		end
-	end)
-end)
-player.AttributeChanged:Connect(function(attr)
-	if attr == "Checkpoint" or attr == "BestTrack" then
-		hint.Text = HINT
-		render()
-	end
-end)
-
 -- The hub NPC's prompt (built by Shared/SpawnArea on the server) toggles the panel.
 game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt)
 	if prompt.Name == "OpenCheckpoints" then

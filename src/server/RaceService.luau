@@ -4,14 +4,15 @@
 -- slowing; design doc, owner 2026-10-20), and the rig is put at that point of the path, upright and facing along it
 -- (docs/WORLD_REDESIGN_SPEC.md section 2). No physics forces. The rig is the authoritative pose; for smooth drawing
 -- the run publishes RunRoute / RunDistance / RunSpeed on the model and every client interpolates the visible runner
--- (Client/RunnerView; contract in Server/CarTest/RunnerTests). While it runs, the player's Speed stat grows at a
--- flat base rate multiplied only by permanent Speed Gain upgrades and rebirths. The cruise speed follows the stat.
+-- (Client/RunnerView; contract in Server/CarTest/RunnerTests). The cruise speed is the character's fixed cruise
+-- (GachaService.Cruise, design doc 4.13), set at run start and when the character changes; there is no Speed stat.
 -- When the runner passes a winnings pad the pad pays the player (MoneyService.Collect); the rig never has to touch
 -- the pad. After the last finish the runner is put back at the start of Track 1 and keeps running.
 --
 -- NPC races (options.Npc, on for players): every track is a race against that track's NPC (Shared/NpcConfig,
 -- Shared/NpcRacer). If the NPC reaches a checkpoint first, the player loses at that checkpoint and is immediately
--- teleported back to the start of Track 1; the client is told which checkpoint was lost.
+-- teleported back to the start of Track 1 (every run starts on Track 1, design doc 4.15); the client is told which
+-- track was lost.
 -- NPC winnings use the current/last-track payout model: a won track pays immediately and a loss pays nothing for
 -- that track. There is no growing bank or continue-risk contract; Unbanked remains a zero compatibility attribute.
 -- Race events go to the owning player only (Remotes.NpcRace:FireClient), whose client draws the NPC.
@@ -23,11 +24,9 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local QuestService = require(script.Parent.QuestService)
 local PathDriver = require(Shared.PathDriver)
-local RaceConfig = require(Shared.RaceConfig)
 local RunnerFactory = require(Shared.RunnerFactory)
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
-local CheckpointConfig = require(Shared.CheckpointConfig)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local GachaService = require(script.Parent.GachaService)
@@ -39,11 +38,10 @@ local RaceTimeService = require(script.Parent.RaceTimeService)
 
 local RaceService = {}
 
-RaceService.COMMIT_INTERVAL = 0.25 -- seconds between writes of the gained Speed stat (replication is not per frame)
 RaceService.START_AHEAD = 5 -- studs along the path from the road's first edge where a run starts
 RaceService.PUBLISH_INTERVAL = 0.1 -- s between RunDistance / RunSpeed updates (contract: at most 0.25 s)
 local DEVIATION_GRACE = 3 -- seconds after the start before path deviation is measured
-local DEVIATION_GRACE_STUDS = 30 -- ...or this far along it: a MAX_STAT runner finishes the route in under 3 s
+local DEVIATION_GRACE_STUDS = 30 -- ...or this far along it: a MAX_CRUISE runner covers that in a frame or two
 
 local RUNNER_GROUP = "Runners"
 
@@ -150,7 +148,6 @@ end
 -- options: { Loop = true } puts the car back at the start of the route after the last finish.
 --          { Npc = true } races every track against its NPC. Test hooks: NpcSpeeds = { [number] = speed },
 --          LoseScreenSeconds, OnRaceEvent(event).
---          { StartTrack = n } (NPC mode) starts on track n, and a loss or the loop goes back to it (checkpoints).
 --          { Duel = { Track = n, OnFinish = fn(run, seconds) } } is a duel run (docs/DUEL_SPEC.md): no NPC, starts
 --          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
 function RaceService.NewRun(car, raceRoute, player, options)
@@ -158,14 +155,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	car:SetAttribute("AutoRace", true)
 
 	PlayerData.Setup(player)
-	local stat = PlayerData.SpeedStat(player)
 	local wps = raceRoute.Path.WorldWaypoints
 	local n = #wps
 	local arc = arcOf(raceRoute.Path)
 	-- Index: the waypoint nearest the runner along the path (n once past the last one); Done past the end.
 	-- Tests may set Index; the rail then moves the runner to that waypoint.
-	local driver =
-		{ Index = 1, Done = false, TargetSpeed = RaceConfig.SpeedFor(stat, GachaService.CruiseMultis(player)) }
+	local driver = { Index = 1, Done = false, TargetSpeed = GachaService.Cruise(player) }
 	local run = {
 		Car = car,
 		TargetSpeed = driver.TargetSpeed,
@@ -174,7 +169,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		PaidTotal = 0,
 		Unbanked = 0, -- deprecated compatibility field; NPC mode never banks winnings
 		BankedTotal = 0, -- deprecated compatibility field; retained for old callers and always zero
-		Gained = 0,
+		Gained = 0, -- kept for old callers: there is no Speed stat to gain
 		MinUpY = 1,
 		MaxPathDeviation = 0,
 		FlipRecoveries = 0, -- a rail runner cannot flip; kept for old callers
@@ -196,18 +191,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 	local npcMode = options.Npc == true and type(raceRoute.Tracks) == "table" and #raceRoute.Tracks > 0
 	local duel = not npcMode and type(options.Duel) == "table" and options.Duel or nil
-	-- options.StartTrack (docs/CHECKPOINT_SPEC.md): the NPC run starts here, restarts here after a loss and loops here
-	local startIndex = 1
-	for i, track in npcMode and raceRoute.Tracks or {} do
-		if track.Number == options.StartTrack then
-			startIndex = i
-		end
-	end
 	local duelIndex = nil -- index in raceRoute.Tracks of the duel's track
 	local race = nil -- { Index, Number, Started, NpcTime }
 	local alive = true
 	local paid = {} -- pad entry -> already paid this pass
-	local pending, sinceCommit = 0, 0
 	local runTime = 0
 	local dist, lastIndex, sincePublish = 0, 1, 0 -- arc position of the rig, Index it was put at, publish clock
 	local routeId = routeName(raceRoute.Path)
@@ -291,15 +278,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		moveTo(1, RaceService.START_AHEAD)
 	end
 
-	-- Starts the run's start track again (Track 1 in place, a checkpoint by a jump that also resets the car).
-	local function startAgain()
-		if startIndex > 1 then
-			run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
-		else
-			startRace(1)
-		end
-	end
-
 	-- The player's car reached the finish of the track it is racing on: decide, pay a win, move on.
 	local function finishRace()
 		local track = raceRoute.Tracks[race.Index]
@@ -346,7 +324,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			elseif options.Loop then
 				run.Laps += 1
 				backToStart()
-				startAgain()
+				startRace(1)
 			else
 				run.Laps += 1
 				run.Finished = true
@@ -357,8 +335,8 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			-- immediate and names the checkpoint that was lost.
 			backToStart()
 			run.Resets += 1
-			emit({ Type = "Reset", Track = raceRoute.Tracks[startIndex].Number, LostAt = track.Number })
-			startAgain()
+			emit({ Type = "Reset", Track = raceRoute.Tracks[1].Number, LostAt = track.Number })
+			startRace(1)
 		end
 	end
 
@@ -390,28 +368,23 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		return best
 	end
 
-	local function commitStat()
-		if pending > 0 then
-			-- AddSpeed rejects anything above MAX_ADD; carry the rest so a big multi is never lost
-			local added = math.min(pending, PlayerData.MAX_ADD)
-			pending -= added
-			local newStat = PlayerData.AddSpeed(player, added)
-			if newStat then
-				run.Gained += added
-			end
-		end
-		stat = PlayerData.SpeedStat(player) -- the source of truth (also picks up a load finishing)
-		run.TargetSpeed = RaceConfig.SpeedFor(stat, GachaService.CruiseMultis(player))
+	-- The run's fixed cruise (design doc 4.13), shown on the HUD as the player attribute Cruise
+	local function setCruise()
+		run.TargetSpeed = GachaService.Cruise(player)
 		driver.TargetSpeed = run.TargetSpeed
+		if typeof(player) == "Instance" then
+			player:SetAttribute("Cruise", run.TargetSpeed)
+		end
 	end
+	setCruise()
 
 	-- The equipped character changed mid-run (CarService.ApplyCharacter): its cruise applies at once, clients hear now
 	function run:Refresh()
-		commitStat()
+		setCruise()
 		publish()
 	end
 
-	if npcMode and startIndex == 1 then
+	if npcMode then
 		startRace(1)
 	end
 
@@ -456,9 +429,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		run:JumpToTrack(duel.Track)
 	end
-	if npcMode and startIndex > 1 then
-		run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
-	end
 
 	local lastTick = os.clock()
 	run.Connection = RunService.PreSimulation:Connect(function()
@@ -466,7 +436,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			run:Destroy()
 			return
 		end
-		-- Rail, race clock and gain run on wall-clock time: after a server hitch the engine's step dt is capped
+		-- Rail and race clock run on wall-clock time: after a server hitch the engine's step dt is capped
 		local now = os.clock()
 		local railDt = now - lastTick
 		lastTick = now
@@ -510,16 +480,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			run.MaxPathDeviation = math.max(run.MaxPathDeviation, pathDeviation())
 		end
 
-		-- Passive gain is a flat rate x permanent Speed-gain upgrades and rebirths; neither the car,
-		-- cruise speed, Speed stat, nor temporary boosts changes it.
-		local gainMulti = GachaService.SpeedMulti(player)
-		pending += RaceConfig.GainPerSecond(stat, run.Finished and 0 or run.TargetSpeed) * gainMulti * railDt
-		LevelService.Tick(player, railDt, gainMulti)
-		sinceCommit += railDt
-		if sinceCommit >= RaceService.COMMIT_INTERVAL then
-			sinceCommit = 0
-			commitStat()
-		end
+		LevelService.Tick(player, railDt, GachaService.XpMulti(player))
 
 		if not npcMode and not duel and driver.Done and not run.Finished then
 			run.Finished = true
@@ -542,8 +503,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		return 0
 	end
 
-	-- Stops the run. The Speed gained since the last commit is committed first, so stopping never loses stat, and
-	-- NPC wins have already been paid at each track finish; stopping never creates an additional payout.
+	-- Stops the run. NPC wins have already been paid at each track finish; stopping never creates an additional payout.
 	function run:Destroy()
 		if alive then
 			alive = false
@@ -555,7 +515,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		if self.Connection then
 			self.Connection:Disconnect()
 			self.Connection = nil
-			commitStat()
 		end
 	end
 	return run
@@ -583,18 +542,7 @@ function RaceService.Attach(player, car)
 		return nil
 	end
 	setCarGroup(car)
-	return RaceService.NewRun(
-		car,
-		route,
-		player,
-		{ Loop = true, Npc = true, StartTrack = RaceService.StartTrackFor(player) }
-	)
-end
-
--- The track `player`'s next NPC run starts on: the saved Checkpoint, clamped to the beaten tracks.
-function RaceService.StartTrackFor(player)
-	local count = route and route.Tracks and #route.Tracks or 0
-	return CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), player:GetAttribute("BestTrack"), count)
+	return RaceService.NewRun(car, route, player, { Loop = true, Npc = true }) -- always Track 1 (design doc 4.15)
 end
 
 function RaceService.Start(newRoute)

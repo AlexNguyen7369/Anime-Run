@@ -1,6 +1,6 @@
 --!nonstrict
 -- Server-owned prestige reset. Cars, upgrades and workshop ownership survive;
--- Money and Speed reset (design doc, "Rebirth system"), and the permanent rebirth level increases.
+-- Money resets (design doc 4.14; there is no Speed stat), and the permanent rebirth level increases.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,7 +15,7 @@ RebirthService.REMOTE_COOLDOWN = 0.5
 
 local function stats(player)
 	local folder = player:FindFirstChild("leaderstats")
-	return folder, folder and folder:FindFirstChild("Money"), player:FindFirstChild("BaseSpeed") -- base, not the shown leaderstats.Speed
+	return folder, folder and folder:FindFirstChild("Money")
 end
 
 -- GachaService owns StatPoints; required lazily because it is loaded after this module in some start orders
@@ -27,10 +27,10 @@ function RebirthService.Setup(player)
 	if player:GetAttribute("RebirthLevel") == nil then
 		player:SetAttribute("RebirthLevel", Config.DEFAULT_LEVEL)
 	end
-	-- Player list shows leaderstats.Rebirth after Money and Speed (REBIRTH_SPEC "Player list"); wait for Speed so
-	-- the order holds. It follows the attribute, so admin commands and loads update it too.
+	-- Player list shows leaderstats.Rebirth after Money (REBIRTH_SPEC "Player list"); wait for Money so the order
+	-- holds. It follows the attribute, so admin commands and loads update it too.
 	local folder = player:FindFirstChild("leaderstats")
-	if not folder or not folder:FindFirstChild("Speed") or folder:FindFirstChild("Rebirth") then
+	if not folder or not folder:FindFirstChild("Money") or folder:FindFirstChild("Rebirth") then
 		return
 	end
 	local shown = Instance.new("IntValue")
@@ -67,7 +67,7 @@ function RebirthService.Rebirth(player)
 	if player:GetAttribute("AutoRacing") == true then
 		return false, "Stop Auto before rebirthing"
 	end
-	local folder, money, speed = stats(player)
+	local folder, money = stats(player)
 	if not folder or not money then
 		return false, "Stats not ready"
 	end
@@ -82,9 +82,6 @@ function RebirthService.Rebirth(player)
 	end
 	local nextLevel = level + 1
 	money.Value = 0
-	if speed then
-		speed.Value = 0
-	end
 	LevelService.Reset(player)
 	player:SetAttribute("RebirthLevel", nextLevel)
 	refreshStatPoints(player) -- each rebirth adds RebirthConfig.POINTS_PER_REBIRTH free stat points

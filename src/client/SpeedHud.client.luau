@@ -6,8 +6,8 @@ if script.Parent:FindFirstChild("RollToast") then
 	return
 end
 
--- Stats panel on the left of the screen. It shows the Speed stat (leaderstats.Speed, grown by the server
--- while the car drives) with Money (leaderstats.Money) under it and the legacy zero-valued Unbanked row under that;
+-- Stats panel on the left of the screen. It shows the current cruise in studs/s (player attribute Cruise, set by the
+-- server; there is no Speed stat, design doc 4.13) with Money (leaderstats.Money) under it and the legacy zero-valued Unbanked row under that;
 -- NPC race wins are paid immediately at each track finish.
 
 local Players = game:GetService("Players")
@@ -54,8 +54,7 @@ end
 
 label("Title", "SPEED", 14, UDim2.fromOffset(12, 8), Color3.fromRGB(137, 207, 240), Enum.Font.GothamBold)
 local value = label("Value", "0", 36, UDim2.fromOffset(12, 24), Color3.fromRGB(255, 255, 255), Enum.Font.GothamBlack)
-local rate =
-	label("Rate", HudFormat.RateText(0), 14, UDim2.fromOffset(12, 68), Color3.fromRGB(200, 210, 230), Enum.Font.Gotham)
+label("Rate", "studs/s", 14, UDim2.fromOffset(12, 68), Color3.fromRGB(200, 210, 230), Enum.Font.Gotham)
 
 label("MoneyTitle", "MONEY", 14, UDim2.fromOffset(12, 92), Color3.fromRGB(255, 214, 64), Enum.Font.GothamBold)
 local moneyValue =
@@ -66,14 +65,12 @@ local unbankedValue =
 	label("UnbankedValue", "$0", 22, UDim2.fromOffset(12, 154), Color3.fromRGB(255, 255, 255), Enum.Font.GothamBlack)
 
 local stats = player:WaitForChild("leaderstats")
-local speedStat = stats:WaitForChild("Speed")
 local moneyStat = stats:WaitForChild("Money")
-local function cruiseMulti()
-	local multi = player:GetAttribute("ShownSpeedMulti")
-	return type(multi) == "number" and multi > 0 and multi < math.huge and multi or 1
+local function cruise()
+	local v = player:GetAttribute("Cruise")
+	return type(v) == "number" and v or 0
 end
 
-local shown = speedStat.Value
 local shownMoney = moneyStat.Value
 local function unbanked()
 	local v = player:GetAttribute("Unbanked")
@@ -82,9 +79,7 @@ end
 local shownUnbanked = unbanked()
 -- Heartbeat, not RenderStepped: the numbers stay current even on frames that do not render
 RunService.Heartbeat:Connect(function(dt)
-	shown = HudFormat.Approach(shown, speedStat.Value, dt)
-	value.Text = HudFormat.SpeedText(shown)
-	rate.Text = HudFormat.RateText(shown, cruiseMulti())
+	value.Text = HudFormat.SpeedText(math.floor(cruise() + 0.5))
 	shownMoney = HudFormat.Approach(shownMoney, moneyStat.Value, dt)
 	moneyValue.Text = HudFormat.MoneyText(shownMoney)
 	shownUnbanked = HudFormat.Approach(shownUnbanked, unbanked(), dt)

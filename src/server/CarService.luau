@@ -5,8 +5,7 @@
 -- Players join and respawn ON FOOT in the spawn area (Shared/SpawnArea, docs/SPAWN_AND_ROLLS_SPEC.md). The
 -- "Auto Race" button (Client/AutoRaceButton, Remotes.SetAutoRace) or walking onto the StartPad spawns a fresh runner at
 -- the start; "Stop Auto" ends the run, removes the runner and puts the visible avatar back in
--- the spawn area (WalkSpawnCFrame). The player attribute AutoRacing is the state the button shows. The Speed stat
--- lives in leaderstats, so it is kept across both.
+-- the spawn area (WalkSpawnCFrame). The player attribute AutoRacing is the state the button shows.
 
 local CollectionService = game:GetService("CollectionService")
 local PhysicsService = game:GetService("PhysicsService")
@@ -189,7 +188,7 @@ local function removeCar(player)
 	local run = runs[player]
 	runs[player] = nil
 	if run then
-		run:Destroy() -- commits the Speed gained since the last commit
+		run:Destroy()
 	end
 	local weld = carryWelds[player]
 	carryWelds[player] = nil
@@ -234,7 +233,7 @@ local function spawnCar(player, character, gen, duel)
 	end
 	hideCharacter(character)
 
-	local start = RaceService.TrackStartCFrame(RaceService.StartTrackFor(player)) or CarService.WalkSpawnCFrame()
+	local start = RaceService.TrackStartCFrame(1) or CarService.WalkSpawnCFrame()
 	if duel then
 		start = RaceService.TrackStartCFrame(duel.Track) * CFrame.new(-DUEL_SLOT_GAP * ((duel.Slot or 1) - 1), 0, 0)
 	end
@@ -529,7 +528,7 @@ function CarService.Start()
 			humanoid.WalkSpeed = walkSpeedOf(player)
 		end
 	end)
-	PlayerData.OnLeaving(forget) -- before the leave save, so the run's last Speed gain is saved
+	PlayerData.OnLeaving(forget) -- before the leave save
 	Players.PlayerRemoving:Connect(forget)
 end
 

@@ -20,6 +20,7 @@ local GachaConfig = require(shared.GachaConfig)
 local Components = require(Ui.RacerComponents)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
+local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local OUTLINE = UiTheme.Outline
@@ -312,17 +313,17 @@ function render()
 				AnchorPoint = Vector2.new(0.5, 1),
 				Position = UDim2.new(0.5, 0, 1, -2),
 				Size = UDim2.new(1, -8, 0, 18),
-				Text = HudFormat.Multi(spec.SpeedMulti),
+				Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
 				TextSize = 14,
 				TextColor3 = GachaConfig.RARITY_COLORS[spec.Rarity] or Color3.new(1, 1, 1),
 				ZIndex = 5,
 			})
 			b.MouseEnter:Connect(function()
 				hint.Text = string.format(
-					"%s (%s) %s speed. Click to equip.",
+					"%s (%s) %s cruise. Click to equip.",
 					spec.Name,
 					spec.Rarity,
-					HudFormat.Multi(spec.SpeedMulti)
+					HudFormat.RateText(RaceConfig.Cruise(spec))
 				)
 			end)
 			b.Activated:Connect(function()

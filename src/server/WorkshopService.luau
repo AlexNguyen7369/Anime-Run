@@ -1,6 +1,7 @@
 --!nonstrict
 -- Mechanical Workshop, server side (docs/WORKSHOP_SPEC.md). Owns the 7 plots in the spawn area: assigns one to each
--- joining player, builds their workshop, frees it when they leave, and pays idle Speed while they stand in its zone.
+-- joining player, builds their workshop, frees it when they leave, and pays idle Money while they stand in its zone
+-- (owner 2026-11-01; there is no Speed stat).
 -- Clients only see: Workspace.Workshops.Plot_N (Owner attribute, signs) and player attributes Plot, WorkshopLevel,
 -- InWorkshop, WorkshopRate. The zone check is the server's maths on the character's position, never a touch event.
 
@@ -16,7 +17,7 @@ local WorkshopBuilder = require(Shared.WorkshopBuilder)
 local WorkshopConfig = require(Shared.WorkshopConfig)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
-local PlayerData = require(script.Parent.PlayerData)
+local MoneyService = require(script.Parent.MoneyService)
 local LevelService = require(script.Parent.LevelService)
 
 local WorkshopService = {}
@@ -304,15 +305,12 @@ function WorkshopService.BuyUpgrade(player)
 	return true, "Upgraded to level " .. (level + 1)
 end
 
--- Speed per second the player earns while in their zone right now.
+-- Money per second the player earns while in their zone right now.
 function WorkshopService.Rate(player)
-	return Workshop.Rate(
-		PlayerData.SpeedStat(player),
-		GachaService.SpeedMulti(player),
-		Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")),
-		GachaService.WorkshopMulti(player)
-	)
+	return Workshop.Rate(Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")), GachaService.WorkshopMulti(player))
 end
+
+local owed = setmetatable({}, { __mode = "k" }) -- player -> Money earned in the zone but under a whole dollar
 
 -- Rebirth changes the live gain multiplier while the player may still be standing in the zone.
 -- Refresh the replicated rate immediately instead of waiting for the next zone tick.
@@ -336,7 +334,7 @@ local function inZone(player, index, character)
 	return Workshop.InZone(startCFrame, index, root.Position)
 end
 
--- One zone check for one player over `dt` seconds: adds the gain if they are in the zone. Returns the Speed added.
+-- One zone check for one player over `dt` seconds: adds the gain if they are in the zone. Returns the Money earned.
 -- `character` (optional) defaults to the player's avatar (CarService.GetCharacter / player.Character).
 function WorkshopService.Tick(player, dt, character)
 	local index = plotOf[player]
@@ -353,8 +351,15 @@ function WorkshopService.Tick(player, dt, character)
 	end
 	setRate(player, true, rate)
 	local gain = rate * dt
-	LevelService.Tick(player, dt, GachaService.SpeedMulti(player))
-	return PlayerData.AddSpeed(player, gain) and gain or 0
+	LevelService.Tick(player, dt, GachaService.XpMulti(player))
+	-- Money is whole dollars: carry the fraction to the next tick
+	local total = (owed[player] or 0) + gain
+	local whole = math.floor(total)
+	owed[player] = total - whole
+	if whole >= 1 then
+		MoneyService.Award(player, whole)
+	end
+	return gain
 end
 
 -- Save fields (PlayerData VERSION 4 saves WorkshopLevel itself): { WorkshopLevel = n }.

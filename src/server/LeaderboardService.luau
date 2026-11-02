@@ -81,23 +81,8 @@ local function whole(value)
 	return math.min(math.floor(value), 9e18)
 end
 
--- Design doc 4.11 "Speed board": the whole Speed, log-scaled so any finite Speed ranks under the int64 cap.
-function LeaderboardService.SpeedScore(speed)
-	if type(speed) ~= "number" or speed ~= speed or speed < 0 or speed == math.huge then
-		return 0
-	end
-	return math.floor(math.log10(1 + math.floor(speed)) * 1e15)
-end
-
--- The Speed a Speed board score stands for.
-function LeaderboardService.SpeedFromScore(score)
-	return 10 ^ (score / 1e15) - 1
-end
-
 -- The player's score on every board, as integers.
 function LeaderboardService.Scores(player)
-	local stats = player:FindFirstChild("leaderstats")
-	local speed = stats and stats:FindFirstChild("Speed")
 	local rarest = 0
 	local owned = player:FindFirstChild("GachaData")
 	for _, car in owned and owned:GetChildren() or {} do
@@ -107,7 +92,6 @@ function LeaderboardService.Scores(player)
 		end
 	end
 	return {
-		Speed = LeaderboardService.SpeedScore(speed and speed.Value),
 		MoneyEarned = whole(player:GetAttribute("MoneyEarned")),
 		Rolls = whole(player:GetAttribute("Rolls")),
 		RarestCar = whole(rarest),
@@ -131,17 +115,7 @@ function LeaderboardService.Write(player)
 		local store = score > 0 and storeFor(board)
 		if store then
 			local ok = pcall(function()
-				if board.Id == "Speed" then
-					-- A rebirth resets Speed: the board keeps the best value ever reached
-					store:UpdateAsync(key, function(old)
-						if type(old) == "number" and old >= score then
-							return nil
-						end
-						return score
-					end)
-				else
-					store:SetAsync(key, score)
-				end
+				store:SetAsync(key, score)
 			end)
 			wrote = wrote or ok
 		end
@@ -184,11 +158,7 @@ local function rowText(board, rank, entry)
 	elseif board.Id == "MoneyEarned" then
 		return head .. "  " .. HudFormat.MoneyText(entry.Score)
 	end
-	local speed = LeaderboardService.SpeedFromScore(entry.Score)
-	if speed < 2 ^ 53 then
-		speed = math.floor(speed + 0.5) -- the decode lands a hair off the whole Speed it encodes
-	end
-	return head .. "  " .. HudFormat.SpeedText(speed)
+	return head .. "  " .. HudFormat.SpeedText(entry.Score)
 end
 
 local function render(board)

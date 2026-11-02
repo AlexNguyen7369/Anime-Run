@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local catalog = require(Shared.CharacterCatalog)
 local config = require(Shared.GachaConfig)
 local format = require(Shared.HudFormat)
+local RaceConfig = require(Shared.RaceConfig)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -106,7 +107,11 @@ local tiles = Components.BindIndex(index, catalog)
 local rows = Components.BindStats(stats, config)
 local data = player:WaitForChild("GachaData")
 local leaderstats = player:WaitForChild("leaderstats")
-local speed = leaderstats:WaitForChild("Speed") -- base Speed, set by the server; car multis affect cruise only
+-- The current cruise, studs/s (player attribute Cruise, set by the server; there is no Speed stat, design doc 4.13)
+local function cruise()
+	local v = player:GetAttribute("Cruise")
+	return type(v) == "number" and v == v and v or 0
+end
 local money = leaderstats:WaitForChild("Money")
 local GREEN = Color3.fromRGB(60, 255, 60)
 local RED = Color3.fromRGB(255, 77, 94)
@@ -352,7 +357,7 @@ local profileRows = {
 	{ "BestRoll", "BEST ROLL", "1 in ?" },
 	{ "CharactersDiscovered", "DISCOVERED", "0" },
 	{ "Level", "LEVEL", "1" },
-	{ "Speed", "SPEED", "0" },
+	{ "Speed", "CRUISE", "0 studs/s" },
 	{ "Luck", "LUCK STAT", "x1.00" },
 	{ "SessionTime", "TIME THIS SESSION", "0m 00s" },
 }
@@ -436,7 +441,7 @@ local function refreshProfile()
 	profileValues.BestRoll.Text = format.Odds(best and best.Chance)
 	profileValues.CharactersDiscovered.Text = format.SpeedText(#data:GetChildren())
 	profileValues.Level.Text = format.SpeedText(player:GetAttribute("Level") or 1)
-	profileValues.Speed.Text = format.SpeedText(speed.Value)
+	profileValues.Speed.Text = format.RateText(cruise())
 	profileValues.Luck.Text = format.Multi(multis.Luck) .. string.format(" · %d pts", allocations.Luck)
 	profileValues.SessionTime.Text = formatDuration(os.time() - sessionStartedAt)
 end
@@ -445,7 +450,7 @@ for _, attr in { "Rolls", "Level", "Alloc_Luck" } do
 end
 data.ChildAdded:Connect(refreshProfile)
 data.ChildRemoved:Connect(refreshProfile)
-speed.Changed:Connect(refreshProfile)
+player:GetAttributeChangedSignal("Cruise"):Connect(refreshProfile)
 refreshProfile()
 task.spawn(function()
 	while player.Parent do
@@ -468,7 +473,7 @@ local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
 	local nextMultiplier = rebirthConfig.NextMultiplier(level)
 	rebirth.LuckRewardCaption.Text = multiplierText(nextMultiplier) .. " Luck"
-	rebirth.SpeedRewardCaption.Text = multiplierText(nextMultiplier) .. " Speed Gain"
+	rebirth.SpeedRewardCaption.Text = multiplierText(nextMultiplier) .. " XP" -- no speed gain (design doc 4.14)
 	local required = rebirthConfig.Requirements(level).Level
 	local playerLevel = player:GetAttribute("Level") or 1
 	local maxed = level >= rebirthConfig.MAX_LEVEL
@@ -620,7 +625,8 @@ local function refreshIndex()
 		tile.Name.Text = owned and tile.Spec.Name or "???"
 		tile.Art.ImageColor3 = owned and Color3.new(1, 1, 1) or Color3.new(0, 0, 0)
 		tile.Locked.Visible = not owned
-		tile.Info.Text = owned and string.format("%s · x%s", tile.Spec.Rarity, tostring(tile.Spec.SpeedMulti))
+		tile.Info.Text = owned
+				and string.format("%s · %s", tile.Spec.Rarity, format.RateText(RaceConfig.Cruise(tile.Spec)))
 			or tile.Spec.Rarity
 		tile.Equip.Visible = owned
 		local on = id == equipped
@@ -830,8 +836,7 @@ for _, attr in { "Level", "XP", "XPToNext" } do
 end
 refreshLevel()
 
-local shownSpeed, shownMoney, shownBank = speed.Value, money.Value, player:GetAttribute("Unbanked") or 0
-local lastSpeedPop, speedTier = 0, nil
+local shownSpeed, shownMoney, shownBank = cruise(), money.Value, player:GetAttribute("Unbanked") or 0
 local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
@@ -894,10 +899,10 @@ end
 
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
 local function refreshReadouts(dt)
-	shownSpeed = format.Approach(shownSpeed, speed.Value, dt)
+	shownSpeed = format.Approach(shownSpeed, cruise(), dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
 	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
-	hud.SpeedValue.Text = readable(shownSpeed, false) .. " SPEED"
+	hud.SpeedValue.Text = format.RateText(shownSpeed)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 end
@@ -914,40 +919,9 @@ money.Changed:Connect(function(value)
 	end
 	lastMoney = value
 end)
--- Speed gain floats like the +$ payout: the gain of each quarter second, summed (HUD_LAYOUT_SPEC section 10).
-local SPEED_FLOAT_EVERY = 0.25
-local lastSpeed, speedGain = speed.Value, 0
-speed.Changed:Connect(function(value)
-	if value > lastSpeed then
-		speedGain += value - lastSpeed
-	end
-	lastSpeed = value
-end)
-task.spawn(function()
-	while true do
-		task.wait(SPEED_FLOAT_EVERY)
-		if speedGain > 0 then
-			UiMotion.Float(
-				hud.SpeedValue.Parent,
-				"+" .. format.GainText(speedGain),
-				palette.Speed,
-				UDim2.fromOffset(hud.SpeedValue.Position.X.Offset, hud.SpeedValue.Position.Y.Offset)
-			)
-			speedGain = 0
-		end
-	end
-end)
-speed.Changed:Connect(function(value)
-	-- Speed grows all the time while racing: pop at most every 1.5 s, glow the dial on a new suffix tier.
-	local tier = value >= format.SPEED_SUFFIX_FROM and math.floor(math.log10(value) / 3) or 0
-	if speedTier and tier > speedTier then
-		UiMotion.Pop(hud.SpeedDial, 0.18)
-		UiMotion.Shine(hud.MoneyPlate)
-	elseif os.clock() - lastSpeedPop > 1.5 then
-		lastSpeedPop = os.clock()
-		UiMotion.Pop(hud.SpeedValue, 0.06)
-	end
-	speedTier = tier
+-- The cruise is fixed per run (design doc 4.13): pop the read-out when it changes (a new character, item or potion).
+player:GetAttributeChangedSignal("Cruise"):Connect(function()
+	UiMotion.Pop(hud.SpeedValue, 0.06)
 end)
 local function refreshBank()
 	local banked = (player:GetAttribute("Unbanked") or 0) > 0
@@ -980,7 +954,7 @@ end
 RunService.Heartbeat:Connect(function(dt)
 	fitPanels()
 	refreshReadouts(dt)
-	speedDial.Update(dt, carSpeed(), speed.Value)
+	speedDial.Update(dt, carSpeed(), cruise())
 	-- Align to the visible dial + left-aligned text, not the label's unused width.
 	local icon = hud.SpeedDial
 	local right = hud.SpeedValue.AbsolutePosition.X + hud.SpeedValue.TextBounds.X

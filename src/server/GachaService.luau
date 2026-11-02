@@ -4,7 +4,7 @@
 --   duplicates rolled since (docs/WORKSHOP_SPEC.md "Showcase": never sold, they power the workshop Showcase)
 --   player attributes: EquippedCar, Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
 --   AutoRoll (the AUTO toggle of the roll view, true on join, not saved), Showcase (shown car ids joined by ","),
---   ShowcaseMulti, SpeedGainMulti, LuckMulti (live permanent multiplier snapshots)
+--   ShowcaseMulti, LuckMulti (live permanent multiplier snapshots), Cruise (the equipped character's cruise, studs/s)
 -- Every unique car in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
 -- never stored, only what was allocated, so the two can not drift apart. Saved by PlayerData (Snapshot/Apply).
 
@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local GachaConfig = require(Shared.GachaConfig)
 local MarketConfig = require(Shared.MarketConfig)
+local RaceConfig = require(Shared.RaceConfig)
 local RebirthConfig = require(Shared.RebirthConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
 local UpgradeService = require(script.Parent.UpgradeService)
@@ -28,7 +29,7 @@ local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
 
 local rng = Random.new()
-local watched = setmetatable({}, { __mode = "k" }) -- players whose ShownSpeedMulti is kept current
+local watched = setmetatable({}, { __mode = "k" }) -- players whose Cruise is kept current
 local lastRequest = setmetatable({}, { __mode = "k" }) -- player -> os.clock()
 local autoRolls = setmetatable({}, { __mode = "k" }) -- player -> handle
 local rollRemote = nil -- Remotes.RollResult, made by Start(): tells the player what they rolled
@@ -85,8 +86,9 @@ function GachaService.Setup(player)
 	if not watched[player] then
 		watched[player] = true
 		local function refresh()
-			player:SetAttribute("ShownSpeedMulti", GachaService.ShownSpeedMulti(player))
-			player:SetAttribute("SpeedGainMulti", GachaService.SpeedGainMulti(player))
+			if player:GetAttribute("AutoRacing") ~= true then
+				player:SetAttribute("Cruise", GachaService.Cruise(player)) -- a run sets its own fixed cruise
+			end
 			player:SetAttribute("LuckMulti", RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel")))
 		end
 		player.AttributeChanged:Connect(function(name)
@@ -95,7 +97,9 @@ function GachaService.Setup(player)
 				or name == "EquippedAura"
 				or name == "EquippedTrail"
 				or name == "RebirthLevel"
+				or name == "AutoRacing"
 				or string.sub(name, 1, 6) == "Alloc_"
+				or string.sub(name, 1, 16) == "BoostUntil_Speed"
 			then
 				refresh()
 			end
@@ -286,42 +290,32 @@ function GachaService.Allocate(player, stat)
 	return true
 end
 
--- Cruise speed and Speed-gain are separate progression paths. The equipped car never enters
--- the Speed-gain multiplier; the equipped aura and trail do (owner 2026-10-27).
-function GachaService.CarSpeedMulti(player)
-	local spec = CharacterCatalog.Get(player:GetAttribute("EquippedCar"))
-	local carMulti = spec and owns(player, spec.Id) and spec.SpeedMulti or 1
-	return carMulti
+-- Cruise of the equipped character, studs/s (design doc 4.13): fixed by rarity x category, times the speed multi
+-- (Speed points, active Speed potion, damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti
+-- never enters it. shortcut: one equipped character and the per-player aura / trail; per-slot items and the
+-- preset team bonus come with the team of 3 (TEAM_AND_STAMINA_SPEC, u4).
+function GachaService.Cruise(player)
+	local id = player:GetAttribute("EquippedCar")
+	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
+	local multi = RaceConfig.SpeedMulti(
+		alloc(player).Speed,
+		require(script.Parent.BoostService).Multiplier(player, "Speed"),
+		false,
+		MarketConfig.SpeedMulti(player),
+		MarketConfig.TrailMulti(player)
+	)
+	return RaceConfig.Cruise(spec, multi)
 end
 
--- Cruise-only multiplier: equipped car x aura. Published as the player attribute ShownSpeedMulti;
--- it never changes the saved/displayed Speed stat or its gain rate.
-function GachaService.ShownSpeedMulti(player)
-	return GachaService.CarSpeedMulti(player) * MarketConfig.SpeedMulti(player)
-end
-
--- Raw cruise inputs for RaceConfig.SpeedFor: car, aura, trail (owner 2026-10-28; damped and capped there).
-function GachaService.CruiseMultis(player)
-	return GachaService.CarSpeedMulti(player), MarketConfig.SpeedMulti(player), MarketConfig.TrailMulti(player)
-end
-
-function GachaService.SpeedGainMulti(player)
-	local multis = GachaConfig.Multis(alloc(player), UpgradeService.Bonuses(player))
-	-- Speed-gain stat/tree upgrade x rebirth x equipped aura and trail (never the car).
-	return multis.Speed
-		* RebirthConfig.SpeedGainMulti(player:GetAttribute("RebirthLevel"))
-		* MarketConfig.GainMulti(player)
+-- XP multi (design doc 4.14): the rebirth level's XP multi.
+function GachaService.XpMulti(player)
+	return RebirthConfig.XpMulti(player:GetAttribute("RebirthLevel"))
 end
 
 -- Refresh the replicated permanent multiplier snapshots immediately after a rebirth or allocation change.
 -- Gameplay callers still calculate from source attributes, so these are observability/UI values rather than a cache.
 function GachaService.RefreshMultipliers(player)
-	player:SetAttribute("SpeedGainMulti", GachaService.SpeedGainMulti(player))
 	player:SetAttribute("LuckMulti", RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel")))
-end
-
-function GachaService.SpeedMulti(player)
-	return GachaService.SpeedGainMulti(player)
 end
 
 function GachaService.MoneyMulti(player)
