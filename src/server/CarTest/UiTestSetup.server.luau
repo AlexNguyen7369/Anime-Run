@@ -922,3 +922,49 @@ local function onRequest()
 end
 
 ReplicatedStorage:GetAttributeChangedSignal("UiTestSetup"):Connect(onRequest)
+
+-- Full UI run (UiTestRun): the client harness asks for the states its scenarios need (UiScenarios.Needs) through
+-- this Studio-only RemoteFunction, for its own player only, and restores them after the run ("restore:<id>").
+-- Only these ids; everything else stays driven from the server datamodel as before.
+local CLIENT_SETUPS = { auto_racing = true, auto_roll_on = true, lose_event = true, emphasized_next = true }
+local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
+local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+if not setupRequest then
+	setupRequest = Instance.new("RemoteFunction")
+	setupRequest.Name = "UiTestSetupRequest"
+	setupRequest.Parent = ReplicatedStorage
+end
+setupRequest.OnServerInvoke = function(player, request)
+	if type(request) ~= "string" then
+		return false, "bad request"
+	end
+	local restoreId = string.match(request, "^restore:(.+)$")
+	local ok, err = pcall(function()
+		local before = clientBefore[player] or {}
+		clientBefore[player] = before
+		if restoreId == "auto_racing" then
+			longStamina[player] = nil
+			if before.auto_racing == false then
+				live("CarService").SetAutoRace(player, false)
+			end
+			before.auto_racing = nil
+		elseif restoreId == "auto_roll_on" then
+			if before.auto_roll_on ~= nil then
+				setAutoRoll(player, before.auto_roll_on)
+			end
+			before.auto_roll_on = nil
+		elseif restoreId then
+			return -- lose_event and emphasized_next put themselves back
+		elseif CLIENT_SETUPS[request] then
+			if request == "auto_racing" and before.auto_racing == nil then
+				before.auto_racing = live("CarService").IsAutoRacing(player) == true
+			elseif request == "auto_roll_on" and before.auto_roll_on == nil then
+				before.auto_roll_on = player:GetAttribute("AutoRoll") == true
+			end
+			setups[request](player)
+		else
+			error("not a client setup id: " .. request)
+		end
+	end)
+	return ok, ok and nil or tostring(err)
+end

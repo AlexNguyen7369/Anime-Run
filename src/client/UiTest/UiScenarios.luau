@@ -223,6 +223,54 @@ local function checkList(res, name, offenders)
 	check(res, name, value, "none", #offenders == 0)
 end
 
+-- Server states a full run sets up itself (BUGS.md ui-full-run-missing-states, fixed): UiScenarios.Run asks
+-- UiTestSetup (RemoteFunction ReplicatedStorage.UiTestSetupRequest, Studio only) for these before the scenario;
+-- UiScenarios.RestoreSetups puts them back after the run. lose_event and emphasized_next are asked for inside
+-- ui_loser / ui_roll_emphasized, at the moment they wait for the event.
+UiScenarios.Needs = {
+	ui_reduced_motion = { "auto_roll_on" },
+	ui_runner_smooth = { "auto_racing" },
+	ui_camera_follows_runner = { "auto_racing" },
+	ui_toast = { "auto_racing", "auto_roll_on" },
+	ui_rolls = { "auto_roll_on" },
+	ui_roll_anim = { "auto_roll_on" },
+	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
+	ui_roll_emphasized = { "auto_roll_on" },
+}
+UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
+-- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
+UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll" }
+UiScenarios.SETUP_WAIT = 10 -- s for a requested state to replicate
+
+-- Asks the server for setup `id` for this player. Returns ok, error.
+function UiScenarios.RequestSetup(id)
+	local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+	if not (rf and rf:IsA("RemoteFunction")) then
+		return false, "no ReplicatedStorage.UiTestSetupRequest"
+	end
+	local okCall, ok, err = pcall(rf.InvokeServer, rf, id)
+	if not (okCall and ok) then
+		return false, tostring(okCall and err or ok)
+	end
+	UiScenarios.Applied[id] = true
+	local name = UiScenarios.SetupAttr[id]
+	local deadline = os.clock() + UiScenarios.SETUP_WAIT
+	while name and player:GetAttribute(name) ~= true and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	return true
+end
+
+function UiScenarios.RestoreSetups()
+	for id in UiScenarios.Applied do
+		local rf = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		if rf and rf:IsA("RemoteFunction") then
+			pcall(rf.InvokeServer, rf, "restore:" .. id)
+		end
+	end
+	table.clear(UiScenarios.Applied)
+end
+
 local function stateMissing(res, name, setupId, why)
 	check(res, name, "state_missing:" .. setupId .. (why and (" (" .. why .. ")") or ""), "present", false)
 end
@@ -5571,6 +5619,9 @@ function S.ui_loser(res)
 	check(res, "loser_screen_on_top", gui.DisplayOrder, ("> %d (%s)"):format(highest, who), gui.DisplayOrder > highest)
 
 	-- A real Result Lose (ServerSetup lose_event): shown, on top of everything, hidden again after Reset/Start
+	if #events.loses == 0 then
+		UiScenarios.RequestSetup("lose_event") -- after the at-rest checks, so they still judge the screen at rest
+	end
 	local deadline = os.clock() + UiSpec.Waits.LoseEvent
 	while #events.loses == 0 and os.clock() < deadline do
 		task.wait(0.1)
@@ -6114,6 +6165,7 @@ function S.ui_roll_emphasized(res)
 	local rec = find()
 	if not rec then
 		player:SetAttribute("UiTestWaiting", "emphasized_roll")
+		task.spawn(UiScenarios.RequestSetup, "emphasized_next")
 		print(
 			("[UITEST] WAIT emphasized_roll up to %d s (run ServerSetup emphasized_next now)"):format(
 				UiSpec.Waits.EmphasizedRoll
@@ -6716,6 +6768,12 @@ function UiScenarios.Run(name)
 	if not fn then
 		check(res, "scenario_exists", name, "known", false)
 		return res
+	end
+	for _, id in UiScenarios.Needs[name] or {} do
+		local ok, err = UiScenarios.RequestSetup(id)
+		if not ok then
+			res.setup_error = id .. ": " .. tostring(err) -- the scenario then reports state_missing:<id> itself
+		end
 	end
 	fn(res)
 	for _, m in UiScenarios.ManualScenarios() do
