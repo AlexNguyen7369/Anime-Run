@@ -94,7 +94,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestClick"):Connect(function()
 	end
 end)
 
--- Short fixture-driven checks for world-pad transitions, weather states and zero offline credit.
+-- Short fixture-driven checks for world-pad transitions and weather states.
 ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 	local name = ReplicatedStorage:GetAttribute("UiTestScenario")
 	if type(name) ~= "string" or name == "" then

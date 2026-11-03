@@ -6,8 +6,8 @@
 --
 -- speed_probe is a MEASUREMENT, run on demand (not in TestConfig.Scenarios: it drives the whole chain once per probe speed).
 -- For each probe speed the whole track chain (TrackRegistry.Chain, every track, so every lap:<Track> route plus the
--- joints) is auto-raced by RaceService with RaceConfig.SpeedFor stubbed to return that speed (restored afterwards,
--- as the race scenario's huge_multi run does). Per speed it records flips, the minimum body up-vector Y outside
+-- joints) is auto-raced by RaceService with RaceConfig.Cruise stubbed to return that speed (restored afterwards;
+-- RaceService reads it through GachaService.Cruise, design doc 4.13). Per speed it records flips, the minimum body up-vector Y outside
 -- loops, the max distance to the route (start to the last finish) and whether the car reached the end, overall and
 -- per track. highest_green = the highest probe speed that finished with 0 flips, minUpY >= lap.MinUpYStrict and
 -- maxDev <= race.MaxPathDeviation on every track. Only speed_probe_ran and speed_probe_600_green can fail;
@@ -70,7 +70,7 @@ local function speedProbe()
 		and RaceService ~= nil
 		and Money ~= nil
 		and PlayerData ~= nil
-		and type(RaceConfig.SpeedFor) == "function"
+		and type(RaceConfig.Cruise) == "function"
 		and type(RaceService.BuildRoute) == "function"
 		and type(RaceService.NewRun) == "function"
 		and #specs >= 1
@@ -203,7 +203,7 @@ local function speedProbe()
 		return st
 	end
 
-	local realSpeedFor = RaceConfig.SpeedFor
+	local realCruise = RaceConfig.Cruise
 	local metrics = {
 		speeds = {},
 		highest_green = 0,
@@ -213,11 +213,11 @@ local function speedProbe()
 	}
 	local ran, green600, allGreenSoFar = 0, false, true
 	for _, speed in SPEEDS do
-		RaceConfig.SpeedFor = function()
+		RaceConfig.Cruise = function()
 			return speed
 		end
 		local okDrive, st = pcall(drive, speed)
-		RaceConfig.SpeedFor = realSpeedFor
+		RaceConfig.Cruise = realCruise
 		if not okDrive then
 			st = { ok = false, err = tostring(st), flips = 0, minUpY = 1, maxDev = 0, finished = false, tracks = {} }
 		end
@@ -264,7 +264,7 @@ local function speedProbe()
 	cleanup()
 
 	flag("speed_probe_ran", ran == #SPEEDS, ran, #SPEEDS)
-	flag("speed_probe_speedfor_restored", RaceConfig.SpeedFor == realSpeedFor)
+	flag("speed_probe_cruise_restored", RaceConfig.Cruise == realCruise)
 	flag("speed_probe_600_green", green600, green600 and 1 or 0, 1)
 	report.metrics = metrics
 	return report

@@ -12,10 +12,9 @@
 --     * safety baseplate = Workspace.Baseplate (a BasePart, or a Model / Folder of tiles), below the plaza floor,
 --       covering every part of the hub, the plots and the track chain plus BASEPLATE_MARGIN studs.
 -- `dojo` (section 5 + 7): Dojos are the 7 workshop plots (48 x 48, lowest free plot on join, freed on leave); the Dojo
---   squad is the IVS Showcase (GachaService.SetShowcase, 3 slots, unchanged formula); a character is in the Team or
---   the squad, never both. Until stamina ships the Team is the single equipped character (EquippedCar), so the
---   Team setter is GachaService.Equip (and GachaService.SetTeam too, once it exists). Standing in the Dojo's zone
---   (Plot_N.Workshop.Zone) earns idle Speed at WorkshopService.Rate, which scales with the squad multiplier.
+--   squad is the IVS Showcase (GachaService.SetShowcase, 3 slots); a character is in the Team or the squad, never
+--   both. Team setters: GachaService.Equip and GachaService.SetTeam. The Dojo's zone (Plot_N.Workshop.Zone) stays;
+--   retired: the squad multiplier and idle gain in the zone (design doc 4.19, owner 2026-11-03: no passive gain).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local CollectionService = game:GetService("CollectionService")
@@ -28,7 +27,6 @@ local PLOT_COUNT = 7 -- design doc 3 / spec 5: 7 plots
 local PLOT_SIZE = 48 -- spec 5: Dojos 48 x 48
 local PLOT_GAP = 8 -- IVS no-overlap rule for plots (workshop scenario: 8-stud gaps)
 local SQUAD = 3 -- spec 5: the player picks 3
-local SPEC = { SCALE = 0.25, COPY_BONUS = 0.1, MAX_COPIES = 50 } -- IVS Showcase numbers, unchanged (spec 5)
 local CENTRE_TOL = 8 -- studs: hub centre from the world origin, SpawnLocation from the plaza centre (IVS SPAWN_MIDDLE)
 local RING_RADIUS_RATIO = 0.75 -- test reading of "ring": nearest plot centre >= 0.75 x farthest, from the hub centre
 local RING_MAX_GAP_DEG = 135 -- test reading of "around it": no side of the hub is left without a plot
@@ -38,13 +36,6 @@ local OVERLAP_TOL = 0.05
 local UID = 991300000
 
 local Tests = {}
-
-local function near(a, b, rel)
-	return type(a) == "number"
-		and type(b) == "number"
-		and a == a
-		and math.abs(a - b) <= (rel or 1e-9) * math.max(1, math.abs(b))
-end
 
 local function flatDist(a, b)
 	return Vector2.new(a.X - b.X, a.Z - b.Z).Magnitude
@@ -336,13 +327,10 @@ function Tests.make(helpers)
 			and type(gacha.Grant) == "function"
 			and type(gacha.Equip) == "function"
 			and type(gacha.SetShowcase) == "function"
-			and type(gacha.ShowcaseMulti) == "function"
 			and type(gacha.Copies) == "function"
 			and type(wservice.Assign) == "function"
 			and type(wservice.Release) == "function"
 			and type(wservice.PlotOf) == "function"
-			and type(wservice.Rate) == "function"
-			and type(wservice.Tick) == "function"
 			and type(data.SetStore) == "function"
 			and type(data.Load) == "function"
 			and type(data.KeyFor) == "function"
@@ -420,7 +408,6 @@ function Tests.make(helpers)
 			for _, id in ids do
 				gacha.Grant(s, id)
 			end
-			gacha.Grant(s, ids[2]) -- one copy, so the multiplier depends on copies too
 			flag("dojo_team_equip_ok", gacha.Equip(s, ids[1]) == true and s:GetAttribute("EquippedCar") == ids[1])
 			local team = s:GetAttribute("EquippedCar")
 			local okSet = gacha.SetShowcase(s, { ids[2], ids[3], ids[4] })
@@ -428,14 +415,11 @@ function Tests.make(helpers)
 				"dojo_squad_of_three_accepted",
 				okSet == true and s:GetAttribute("Showcase") == table.concat({ ids[2], ids[3], ids[4] }, ",")
 			)
-			local shown, multi = s:GetAttribute("Showcase"), s:GetAttribute("ShowcaseMulti")
+			local shown = s:GetAttribute("Showcase")
 			local okFour = gacha.SetShowcase(s, { ids[2], ids[3], ids[4], ids[5] })
 			flag("dojo_squad_of_four_rejected", okFour == false and s:GetAttribute("Showcase") == shown)
 			local okTeamIn = gacha.SetShowcase(s, { ids[2], team })
-			flag(
-				"dojo_squad_with_team_member_rejected",
-				okTeamIn == false and s:GetAttribute("Showcase") == shown and s:GetAttribute("ShowcaseMulti") == multi
-			)
+			flag("dojo_squad_with_team_member_rejected", okTeamIn == false and s:GetAttribute("Showcase") == shown)
 			local okEquipSquad = gacha.Equip(s, ids[3])
 			flag(
 				"dojo_team_with_squad_member_rejected",
@@ -456,23 +440,7 @@ function Tests.make(helpers)
 			flag("dojo_new_team_member_rejected_from_squad", okNew == false)
 			gacha.SetShowcase(s, { ids[2], ids[3], ids[4] })
 
-			-- 3. Multiplier: the IVS Showcase formula with unchanged numbers
-			local want = 1
-			for _, id in { ids[2], ids[3], ids[4] } do
-				local spec = catalog.Get(id)
-				local mult = spec and spec.SpeedMulti or 1
-				if mult > 1 then
-					local copies = math.min(gacha.Copies(s, id), SPEC.MAX_COPIES)
-					want += SPEC.SCALE * math.log10(mult) * (1 + SPEC.COPY_BONUS * copies)
-				end
-			end
-			local got = gacha.ShowcaseMulti(s)
-			flag(
-				"dojo_squad_multiplier_unchanged",
-				near(got, want) and near(s:GetAttribute("ShowcaseMulti"), want),
-				got,
-				want
-			)
+			-- 3. retired: the squad multiplier (design doc 4.19, owner 2026-11-03)
 
 			-- 3b. Old save (owner 2026-10-30, spec section 5): an equipped character also in the Showcase is dropped from
 			-- the squad on load, its slot left empty; the other members keep their order; the Team is unchanged.
@@ -511,14 +479,6 @@ function Tests.make(helpers)
 				p.Name = "CarTestDojoOldSave_" .. case.Name
 				local loaded = data.Load(p, case.Uid) == true
 				local squad = squadOf(p)
-				local wantMulti = 1
-				for _, id in case.Keep do
-					local spec = catalog.Get(id)
-					local mult = spec and spec.SpeedMulti or 1
-					if mult > 1 then
-						wantMulti += SPEC.SCALE * math.log10(mult)
-					end
-				end
 				flag("dojo_old_save_loads_" .. case.Name, loaded)
 				flag(
 					"dojo_old_save_drops_team_member_from_squad_" .. case.Name,
@@ -533,58 +493,18 @@ function Tests.make(helpers)
 					table.concat(case.Keep, ",")
 				)
 				flag("dojo_old_save_team_unchanged_" .. case.Name, p:GetAttribute("EquippedCar") == ids[1])
-				flag(
-					"dojo_old_save_multiplier_without_dropped_" .. case.Name,
-					near(p:GetAttribute("ShowcaseMulti"), wantMulti),
-					p:GetAttribute("ShowcaseMulti"),
-					wantMulti
-				)
+				-- retired: dojo_old_save_multiplier_without_dropped (design doc 4.19, owner 2026-11-03)
 			end
 			data.SetStore(nil)
 
-			-- 4. Idle Speed in the Dojo's training zone, multiplied by the squad
+			-- 4. The Dojo's zone stays; it earns nothing (design doc 4.19, owner 2026-11-03: no passive gain)
 			local iS = assign(s)
-			local withSquad = wservice.Rate(s)
-			gacha.SetShowcase(s, {})
-			local noSquad = wservice.Rate(s)
-			gacha.SetShowcase(s, { ids[2], ids[3], ids[4] })
-			flag(
-				"dojo_rate_scales_with_squad",
-				noSquad > 0 and near(withSquad / noSquad, want, 1e-6),
-				noSquad > 0 and withSquad / noSquad or -1,
-				want
-			)
 			local plot = iS > 0 and plots[iS]
 			local zone = plot
 				and plot.Model:FindFirstChild("Workshop")
 				and plot.Model.Workshop:FindFirstChild("Zone", true)
 			flag("dojo_zone_exists", zone ~= nil and zone:IsA("BasePart"))
-			if zone then
-				local area = Workspace:FindFirstChild("SpawnArea")
-				local floor = area and area:FindFirstChild("Floor")
-				local function avatarAt(pos)
-					local model = helpers.newFakeCharacter(CFrame.new(pos))
-					model.Name = "CarTestDojoCharacter"
-					for _, d in model:GetDescendants() do
-						if d:IsA("BasePart") then
-							d.Anchored = true
-						end
-					end
-					model:PivotTo(CFrame.new(pos))
-					table.insert(cleanup, model)
-					return model
-				end
-				local floorY = zone.Position.Y - zone.Size.Y / 2
-				local inside = avatarAt(Vector3.new(zone.Position.X, floorY + 3, zone.Position.Z))
-				local rate = wservice.Rate(s)
-				local gain = wservice.Tick(s, 1, inside)
-				flag("dojo_zone_earns_idle_speed", gain > 0 and near(gain, rate, 1e-6), gain, rate)
-				local plaza = floor and floor.Position + Vector3.new(0, floor.Size.Y / 2 + 3, 0)
-					or zone.Position + Vector3.new(500, 0, 500)
-				local outside = avatarAt(plaza)
-				local none = wservice.Tick(s, 1, outside)
-				flag("dojo_outside_zone_earns_nothing", none == 0, none, 0)
-			end
+			flag("dojo_no_passive_gain", wservice.Rate == nil and wservice.Tick == nil)
 			m.plots = ("%d/%d/%d/%d"):format(ia, ib, ic, iS)
 		end)
 		flag("dojo_no_error", ok)

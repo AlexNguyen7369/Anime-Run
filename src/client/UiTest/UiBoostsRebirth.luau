@@ -89,7 +89,7 @@ function Extras.Build(h)
 	local function rebirthTruth(res, nodes, skipLabel)
 		nodes = nodes or {}
 		-- Reward captions: the NEXT rebirth's gains from RebirthConfig. Multiplier tiles show the NEXT TOTAL multi,
-		-- RebirthConfig.NextMultiplier(RebirthLevel) = SpeedGainMulti(RebirthLevel + 1) (docs/REBIRTH_SPEC.md "Panel").
+		-- RebirthConfig.NextMultiplier(RebirthLevel) = the luck multi of RebirthLevel + 1 (design doc 4.14).
 		local captions = {}
 		local rebirthLevel = attr("RebirthLevel") or 0
 		for _, tile in RB.Tiles do
@@ -312,8 +312,8 @@ function Extras.Build(h)
 		local level = attr("RebirthLevel") or 0
 		h.check(res, "rebirth_level_unchanged", level, ctx.pre.RebirthLevel, level == ctx.pre.RebirthLevel)
 		local stats = h.player:FindFirstChild("leaderstats")
-		local money, speed = stats and stats:FindFirstChild("Money"), stats and stats:FindFirstChild("Speed")
-		local moneyNow, speedNow = money and money.Value, speed and speed.Value
+		local money = stats and stats:FindFirstChild("Money")
+		local moneyNow = money and money.Value
 		h.check(
 			res,
 			"rebirth_money_not_reset",
@@ -321,8 +321,7 @@ function Extras.Build(h)
 			ctx.pre.ProgressionMoney,
 			moneyNow == ctx.pre.ProgressionMoney
 		)
-		local kept = speedNow ~= nil and ctx.pre.Speed ~= nil and speedNow >= ctx.pre.Speed
-		h.check(res, "rebirth_speed_not_reset", speedNow, ">= " .. tostring(ctx.pre.Speed), kept)
+		-- retired: rebirth_speed_not_reset (no Speed stat; rebirth resets Money only, design doc 4.13 / 4.14)
 		rebirthTruth(res, (rebirthNodes()), true)
 	end
 
@@ -498,9 +497,6 @@ function Extras.Build(h)
 
 	-- Extra values the click protocol remembers before a click (merged into its attribute snapshot).
 	local function snapshot(into)
-		local stats = h.player:FindFirstChild("leaderstats")
-		local speed = stats and stats:FindFirstChild("Speed")
-		into.Speed = speed and speed.Value
 		into.RebirthLevel = attr("RebirthLevel") or 0
 		for _, key in { "DailyLast", "DailyStreak", "Boost_" .. DB.FixtureBoost, "BoostUntil_" .. DB.FixtureBoost } do
 			into[key] = attr(key)

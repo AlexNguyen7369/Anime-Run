@@ -11,9 +11,7 @@ local WorkshopConfig = require(Shared.WorkshopConfig)
 local Format = require(Shared.HudFormat)
 local WeatherConfig = require(Shared.WeatherConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
-local GachaConfig = require(Shared.GachaConfig)
-local MonetizationConfig = require(Shared.MonetizationConfig)
-local MarketplaceService = game:GetService("MarketplaceService")
+local Workshop = require(Shared.Workshop)
 local Spec = require(script.Parent.UiSpec)
 local Responsive = require(script.Parent.UiResponsive)
 local Progression = {}
@@ -216,6 +214,32 @@ function Progression.Build(h)
 		local want = nextLevel and Format.MoneyText(nextLevel.Price) or "MAX"
 		h.check(res, "workshop_next_money_price", price, want, string.find(price, want, 1, true) ~= nil)
 		label(res, "RacerWorkshop/Panel/Result")
+		-- The boosted stat picker (design doc 4.19): one TextButton per WorkshopConfig.STATS under Panel/Stats, labelled
+		-- with the stat; only the server's WorkshopStat is highlighted (its colour differs from all the others').
+		local chosen = Workshop.CleanStat(h.player:GetAttribute("WorkshopStat"))
+		local picker, bad = h.find("RacerWorkshop/Panel/Stats"), {}
+		local chosenColour, others = nil, {}
+		for _, stat in WorkshopConfig.STATS do
+			local b = picker and picker:FindFirstChild(stat)
+			if not (b and b:IsA("TextButton")) then
+				table.insert(bad, stat .. ": no TextButton")
+			else
+				if string.upper(h.text(b)) ~= string.upper(stat) then
+					table.insert(bad, ("%s: label %q"):format(stat, h.text(b)))
+				end
+				if stat == chosen then
+					chosenColour = b.BackgroundColor3
+				else
+					table.insert(others, { stat, b.BackgroundColor3 })
+				end
+			end
+		end
+		for _, o in others do
+			if chosenColour == nil or o[2] == chosenColour or o[2] ~= others[1][2] then
+				table.insert(bad, o[1] .. ": highlighted like the chosen " .. chosen)
+			end
+		end
+		h.check(res, "workshop_stat_buttons", #bad > 0 and table.concat(bad, "; ") or "none", "none", #bad == 0)
 		local plots = workspace:FindFirstChild("Workshops")
 		local plot = plots and plots:FindFirstChild("Plot_" .. tostring(h.player:GetAttribute("Plot")))
 		h.check(
@@ -242,7 +266,7 @@ function Progression.Build(h)
 	function scenarios.ui_progression_layout(res)
 		for _, vpSpec in Spec.Viewports do
 			local rect, vp = h.provider(vpSpec)
-			for _, name in { "Upgrades", "Workshop", "Welcome" } do
+			for _, name in { "Upgrades", "Workshop" } do
 				local panel = h.find("Racer" .. name .. "/Panel")
 				local race, turbo = h.find(Spec.Hud.Race), h.find(Spec.Hud.Turbo)
 				local lower = string.lower(name) .. "_" .. vpSpec.Name
@@ -302,32 +326,35 @@ function Progression.Build(h)
 		end
 	end
 	function scenarios.ui_progression_hud(res)
-		-- The workshop rate is intentionally shown only inside the Workshop upgrade panel.
+		-- The workshop stat boost (design doc 4.19, replaces the idle rate label Rate and its in-zone ACTIVE state):
+		-- shown only inside the Workshop upgrade panel, as the server's WorkshopBoost on its WorkshopStat.
 		local restore = h.setPanels({ "RacerWorkshop/Panel" })
-		local rateLabel = h.find("RacerWorkshop/Panel/Rate")
+		local boostLabel = h.find("RacerWorkshop/Panel/Boost")
 		local deadline = os.clock() + Spec.HiddenWhilePanelOpenWait
-		while rateLabel and not h.visible(rateLabel) and os.clock() < deadline do
+		while boostLabel and not h.visible(boostLabel) and os.clock() < deadline do
 			h.frames(1)
 		end
 		h.check(
 			res,
-			"workshop_rate_shown_in_upgrade_panel",
-			rateLabel ~= nil and h.visible(rateLabel),
+			"workshop_boost_shown_in_upgrade_panel",
+			boostLabel ~= nil and h.visible(boostLabel),
 			true,
-			rateLabel ~= nil and h.visible(rateLabel)
+			boostLabel ~= nil and h.visible(boostLabel)
 		)
-		local rate = h.player:GetAttribute("WorkshopRate")
-		local text = label(res, "RacerWorkshop/Panel/Rate")
-		local shown = tonumber(string.match(text, "%+([%d%.]+)"))
+		local boost = h.player:GetAttribute("WorkshopBoost")
+		local stat = Workshop.CleanStat(h.player:GetAttribute("WorkshopStat"))
+		local text = label(res, "RacerWorkshop/Panel/Boost")
+		local shown = tonumber(string.match(text, "%+([%d%.]+)%%"))
 		h.check(
 			res,
-			"workshop_panel_server_rate",
+			"workshop_panel_server_boost",
 			shown or "missing",
-			rate or "missing",
-			type(rate) == "number" and shown ~= nil and math.abs(shown - rate) <= Spec.Progression.WorkshopRateStep
+			type(boost) == "number" and boost * 100 or "missing",
+			type(boost) == "number"
+				and shown ~= nil
+				and math.abs(shown - boost * 100) <= Spec.Progression.WorkshopBoostStep + 1e-6
 		)
-		local inside = h.player:GetAttribute("InWorkshop") == true
-		expect(res, "workshop_panel_active_state", string.find(text, "ACTIVE", 1, true) ~= nil, inside)
+		h.check(res, "workshop_panel_boost_stat", text, stat, string.find(text, stat, 1, true) ~= nil)
 		local button = h.find("RacerProgression/UpgradeButton")
 		if button then
 			expect(res, "upgrade_button_width", button.Size.X.Offset, 110)
@@ -341,26 +368,24 @@ function Progression.Build(h)
 		end
 		restore()
 	end
-	-- Workshop Showcase (UiSpec.WorkshopShowcase; docs/WORKSHOP_SPEC.md "5b. Showcase"). Truth: player attributes
-	-- Showcase / ShowcaseMulti and player.GachaData (Copies attribute per car); bonuses from GachaConfig.SlotBonus.
+	-- Workshop Showcase = the Dojo squad (UiSpec.WorkshopShowcase; docs/WORLD_REDESIGN_SPEC.md section 5). Truth: the
+	-- player attributes Showcase / Team / EquippedCar and player.GachaData; a character's weight is its rarity points
+	-- Workshop.Points({ spec }). Retired: ShowcaseMulti and the copy bonus (GachaConfig.SlotBonus) (design doc 4.19, owner 2026-11-03).
 	local SC = Spec.WorkshopShowcase
-	local function copiesOf(id)
-		local data = h.player:FindFirstChild("GachaData")
-		local entry = data and data:FindFirstChild(id)
-		local n = entry and entry:GetAttribute("Copies")
-		return type(n) == "number" and n or 0
-	end
 	local function bonusOf(id)
 		local spec = CharacterCatalog.Get(id)
-		return spec and GachaConfig.SlotBonus(spec, copiesOf(id)) or -math.huge
+		return spec and Workshop.Points({ spec }) or -math.huge
 	end
-	-- Owned rollable cars { Id, Spec, Bonus }, highest slot bonus first (ties by id)
+	-- Owned rollable characters not in the Team { Id, Spec, Bonus }, most rarity points first (ties by id). A Team
+	-- member can not join the squad (WORLD_REDESIGN_SPEC section 5).
 	local function ownedRollable()
 		local list = {}
 		local data = h.player:FindFirstChild("GachaData")
+		local team = string.split(h.player:GetAttribute("Team") or "", ",")
 		for _, entry in data and data:GetChildren() or {} do
 			local spec = CharacterCatalog.Get(entry.Name)
-			if spec and spec.Rollable then
+			local inTeam = table.find(team, entry.Name) ~= nil or entry.Name == h.player:GetAttribute("EquippedCar")
+			if spec and spec.Rollable and not inTeam then
 				table.insert(list, { Id = entry.Name, Spec = spec, Bonus = bonusOf(entry.Name) })
 			end
 		end
@@ -419,8 +444,8 @@ function Progression.Build(h)
 		end
 		return want
 	end
-	-- Whether `got` (the ids sent or now shown) is `want`: the same set, no duplicates. BEST 3 accepts any equal-bonus
-	-- swap: as many distinct owned rollable ids, none with a lower bonus than the weakest wanted one.
+	-- Whether `got` (the ids sent or now shown) is `want`: the same set, no duplicates. BEST 3 accepts any equal-points
+	-- swap: as many distinct owned rollable ids, none with fewer rarity points than the weakest wanted one.
 	function Progression.SameShowcase(argSpec, got, want)
 		if type(got) ~= "table" or #got ~= #want then
 			return false
@@ -450,7 +475,7 @@ function Progression.Build(h)
 		end
 		return true
 	end
-	-- RunClick row tokens: the first shown id, or the highest-bonus owned rollable car not shown
+	-- RunClick row tokens: the first shown id, or the most-rarity-points owned rollable car not shown
 	function Progression.ShowcaseTarget(shown)
 		local ids = shownIds(h.player:GetAttribute("Showcase"))
 		if shown then
@@ -475,32 +500,8 @@ function Progression.Build(h)
 			return
 		end
 		local ids = shownIds(h.player:GetAttribute("Showcase"))
-		local multi = h.player:GetAttribute("ShowcaseMulti")
-		h.check(res, "showcase_multi_replicated", multi or "missing", "number", type(multi) == "number")
-		local slots = {}
-		for _, id in ids do
-			local spec = CharacterCatalog.Get(id)
-			if spec then
-				table.insert(slots, { Spec = spec, Copies = copiesOf(id) })
-			end
-		end
-		local formula = GachaConfig.ShowcaseMulti(slots)
-		h.check(
-			res,
-			"showcase_multi_matches_formula",
-			multi or "missing",
-			formula,
-			type(multi) == "number" and math.abs(multi - formula) <= SC.MultiTolerance
-		)
+		-- retired: showcase_multi_* (ShowcaseMulti of idle gain, design doc 4.19, owner 2026-11-03)
 		h.check(res, "showcase_at_most_slots", #ids, "<= " .. SC.Slots, #ids <= SC.Slots)
-		local multiLabel = root:FindFirstChild("Multi")
-		if present(res, "showcase_multi_label_present", multiLabel, "TextLabel") then
-			local want = Format.Multi(type(multi) == "number" and multi or 1)
-			local text = h.text(multiLabel)
-			local at = string.find(text, want, 1, true)
-			local after = at and string.sub(text, at + #want, at + #want) or ""
-			h.check(res, "showcase_multi_text", text, want, at ~= nil and not string.match(after, "[%d%.]"))
-		end
 		present(res, "showcase_best3_present", root:FindFirstChild("Best3"), "TextButton")
 		for i = 1, SC.Slots do
 			local slot = root:FindFirstChild("Slot" .. i)
@@ -580,7 +581,7 @@ function Progression.Build(h)
 			"none",
 			#problems == 0
 		)
-		-- Sorted by slot bonus, highest first (screen order of the rows)
+		-- Sorted by rarity points, most first (screen order of the rows)
 		table.sort(rows, function(a, b)
 			if math.abs(a.AbsolutePosition.Y - b.AbsolutePosition.Y) > Spec.Tolerance then
 				return a.AbsolutePosition.Y < b.AbsolutePosition.Y
@@ -646,7 +647,8 @@ function Progression.Build(h)
 			end
 			-- Each control inside its parent
 			local parented = {
-				{ "multi", child(root, "Multi"), S },
+				-- the squad Points label took the retired Multi label's place (4.19)
+				{ "points", child(root, "Points"), S },
 				{ "best3", best3, S },
 				{ "list", list, S },
 			}
@@ -791,172 +793,7 @@ function Progression.Build(h)
 		end
 		return ids
 	end
-	function scenarios.ui_offline_welcome(res)
-		local speed, seconds = h.player:GetAttribute("OfflineSpeed"), h.player:GetAttribute("OfflineSeconds")
-		h.check(
-			res,
-			"offline_fixture_present",
-			{ speed, seconds },
-			"offline_welcome setup: positive Speed and Seconds",
-			type(speed) == "number" and speed > 0 and type(seconds) == "number" and seconds > 0
-		)
-		local earnings = label(res, "RacerWelcome/Panel/Earnings")
-		local away = label(res, "RacerWelcome/Panel/Away")
-		local want = Format.SpeedText(speed)
-		h.check(res, "offline_speed_matches_credit", earnings, want, string.find(earnings, want, 1, true) ~= nil)
-		-- Seconds are displayed as a human duration; test exact 3661 fixture as 1h 1m 1s.
-		if seconds == 3661 then
-			for _, unit in { "1h", "1m", "1s" } do
-				h.check(res, "offline_duration_" .. unit, away, unit, string.find(away, unit, 1, true) ~= nil)
-			end
-		end
-		local panel = h.find("RacerWelcome/Panel")
-		h.check(
-			res,
-			"offline_positive_shows_welcome",
-			panel and h.visible(panel),
-			true,
-			panel ~= nil and h.visible(panel)
-		)
-	end
-	-- Offline reward double (UiSpec.OfflineDouble; docs/OFFLINE_DOUBLE_SPEC.md section 5). The player attributes are
-	-- set on the client only (they do not replicate), standing in for the server's replicated changes, and restored.
-	local OD = Spec.OfflineDouble
-	local productPrompts = 0
-	pcall(function()
-		MarketplaceService.PromptProductPurchaseFinished:Connect(function()
-			productPrompts += 1
-		end)
-	end)
-	local function doubleShown(want)
-		local button = h.find(OD.Button)
-		local deadline = os.clock() + Spec.Waits.ClickSettle
-		while button and h.visible(button) ~= want and os.clock() < deadline do
-			h.frames(1)
-		end
-		h.frames(2)
-		return button
-	end
-	local function priceChecks(res, suffix)
-		local product = MonetizationConfig.OfflineDouble
-		local configured = product ~= nil and product.ProductId > 0
-		local button, price = h.find(OD.Button), h.find(OD.Price)
-		h.check(
-			res,
-			"offline_double_price_label_present" .. suffix,
-			price and price.ClassName or "missing",
-			"TextLabel",
-			price ~= nil and price:IsA("TextLabel")
-		)
-		local want = configured and string.format(OD.PriceFormat, product.RobuxPrice) or OD.ComingSoon
-		expect(res, "offline_double_price_text" .. suffix, price and price:IsA("TextLabel") and price.Text, want)
-		expect(res, "offline_double_active_iff_product" .. suffix, button and button.Active, configured)
-		expect(
-			res,
-			"offline_double_purchase_configured_attr" .. suffix,
-			button and button:GetAttribute("PurchaseConfigured"),
-			configured
-		)
-		return configured
-	end
-	function scenarios.ui_offline_double(res)
-		local p = h.player
-		local saved = {}
-		for _, name in { "OfflineDoubleOpen", "OfflineDoubled" } do
-			saved[name] = p:GetAttribute(name)
-		end
-		local speed = p:GetAttribute("OfflineSpeed")
-		h.check(
-			res,
-			"offline_double_fixture_present",
-			speed,
-			"offline_welcome setup: positive OfflineSpeed",
-			type(speed) == "number" and speed > 0
-		)
-		speed = type(speed) == "number" and speed or 0
-		local restore = h.setPanels({ OD.Panel })
-		local button = h.find(OD.Button)
-		h.check(
-			res,
-			"offline_double_button_present",
-			button and button.ClassName or "missing",
-			"GuiButton",
-			button ~= nil and button:IsA("GuiButton")
-		)
-
-		-- Closed window: hidden and not clickable at its own centre
-		p:SetAttribute("OfflineDoubleOpen", false)
-		doubleShown(false)
-		expect(res, "offline_double_hidden_when_closed", button and h.visible(button), false)
-		if button then
-			local top = h.top(h.centre(h.rect(button)))
-			expect(
-				res,
-				"offline_double_not_clickable_when_closed",
-				top ~= nil and (top == button or top:IsDescendantOf(button)),
-				false
-			)
-		end
-		p:SetAttribute("OfflineDoubleOpen", nil)
-		doubleShown(false)
-		expect(res, "offline_double_hidden_when_attr_missing", button and h.visible(button), false)
-
-		-- Open window: visible, price per ProductId, inside the panel, clear of Claim / Away / Earnings
-		p:SetAttribute("OfflineDoubleOpen", true)
-		doubleShown(true)
-		expect(res, "offline_double_visible_when_open", button and h.visible(button), true)
-		priceChecks(res, "")
-		local panel = h.find(OD.Panel)
-		if button and panel and h.visible(button) then
-			local b = h.rect(button)
-			h.check(res, "offline_double_inside_panel", b, "inside RacerWelcome/Panel", h.contains(h.rect(panel), b))
-			for _, path in OD.NoOverlap do
-				local other = h.find(path)
-				local name = "offline_double_no_overlap_" .. string.lower(string.match(path, "[^/]+$"))
-				if other and h.visible(other) then
-					local o = h.rect(other)
-					h.check(res, name, { b, o }, "no intersection", not h.intersects(b, o))
-				else
-					h.check(res, name, other and "hidden" or "missing", "visible element", false)
-				end
-			end
-			local top = h.top(h.centre(b))
-			h.check(
-				res,
-				"offline_double_topmost_at_centre",
-				top and top:GetFullName() or "nothing",
-				OD.Button,
-				top ~= nil and (top == button or top:IsDescendantOf(button))
-			)
-		end
-
-		-- Granted double: Earnings shows OfflineSpeed + OfflineDoubled; ungranted it shows OfflineSpeed alone
-		local earnings = h.find(OD.Earnings)
-		p:SetAttribute("OfflineDoubled", nil)
-		h.frames(2)
-		expect(
-			res,
-			"offline_double_earnings_before_grant",
-			earnings and earnings.Text,
-			string.format(OD.EarningsFormat, Format.SpeedText(speed))
-		)
-		p:SetAttribute("OfflineDoubleOpen", false)
-		p:SetAttribute("OfflineDoubled", speed)
-		h.frames(2)
-		expect(
-			res,
-			"offline_double_earnings_after_grant",
-			earnings and earnings.Text,
-			string.format(OD.EarningsFormat, Format.SpeedText(speed * 2))
-		)
-		doubleShown(false)
-		expect(res, "offline_double_hidden_after_grant", button and h.visible(button), false)
-
-		p:SetAttribute("OfflineDoubleOpen", saved.OfflineDoubleOpen)
-		p:SetAttribute("OfflineDoubled", saved.OfflineDoubled)
-		h.frames(2)
-		restore()
-	end
+	-- retired: ui_offline_welcome and ui_offline_double (no offline credit, no Robux double: design doc 4.19, owner 2026-11-03)
 	-- Weather icon (UiSpec.Weather; docs/WEATHER_EVENTS_SPEC.md "Weather icon"). The weather the UI must show now:
 	-- the replicated id, its WeatherConfig entry (the Clear entry when no weather is active) and whether one runs.
 	local W = Spec.Weather
@@ -1139,12 +976,7 @@ function Progression.Build(h)
 			h.rollOdds(res)
 		end
 	end
-	function scenarios.ui_offline_zero(res)
-		expect(res, "offline_zero_fixture_speed", h.player:GetAttribute("OfflineSpeed"), 0)
-		expect(res, "offline_zero_fixture_seconds", h.player:GetAttribute("OfflineSeconds"), 0)
-		local panel = h.find("RacerWelcome/Panel")
-		expect(res, "offline_zero_hides_welcome", panel and panel.Visible, false)
-	end
+	-- retired: ui_offline_zero (design doc 4.19, owner 2026-11-03)
 	-- Click post-conditions (UiSpec.Clicks Expect.After), run by UiScenarios.RunClick.
 	local function cardVisible(res, name, want)
 		local card = h.find(W.Card)
@@ -1156,18 +988,7 @@ function Progression.Build(h)
 		return card
 	end
 	Progression.After = {
-		-- offline_double_click (UiSpec.Clicks): ProductId 0 = nothing changed and no product prompt; ProductId > 0 =
-		-- still open and active (the prompt itself is Roblox's, confirmed on screen by ui-tester)
-		offline_double_click_result = function(res)
-			local before = productPrompts
-			task.wait(Spec.Waits.ClickSettle)
-			local configured = priceChecks(res, "_after_click")
-			local button = h.find(OD.Button)
-			expect(res, "offline_double_still_visible_after_click", button and h.visible(button), true)
-			if not configured then
-				expect(res, "offline_double_coming_soon_no_prompt", productPrompts - before, 0)
-			end
-		end,
+		-- retired: offline_double_click_result (design doc 4.19, owner 2026-11-03)
 		weather_card_shown = function(res)
 			local card = cardVisible(res, "weather_card_shown_after_click", true)
 			weatherCardContent(res)

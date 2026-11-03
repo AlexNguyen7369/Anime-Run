@@ -26,17 +26,15 @@ local function live(name)
 	return require(Server:WaitForChild(name))
 end
 
-local snapshots = {} -- [Player] = { gacha, money, speed, autoRacing, autoRoll, upgrades }
+local snapshots = {} -- [Player] = { gacha, money, autoRacing, autoRoll, upgrades }
 local spied = {} -- [RemoteEvent] = connection (never connect twice)
 local functionSpies = {} -- original RemoteFunction -> { name, proxy }; original callback is untouched.
 local progressionSnapshots = {}
 local weatherSnapshot = nil
 local questSnapshots = {} -- [Player] = QuestService.Snapshot before a quest_* fixture
 
+-- No Speed stat to snapshot: there is no leaderstats.Speed / BaseSpeed (design doc 4.13, owner 2026-11-01).
 local function stat(player, name)
-	if name == "Speed" then
-		return player:FindFirstChild("BaseSpeed") -- the base Speed; leaderstats.Speed is display only (owner 2026-10-21)
-	end
 	local stats = player:FindFirstChild("leaderstats")
 	return stats and stats:FindFirstChild(name)
 end
@@ -134,11 +132,10 @@ function setups.snapshot(player)
 		return
 	end
 	local G = live("GachaService")
-	local money, speed = stat(player, "Money"), stat(player, "Speed")
+	local money = stat(player, "Money")
 	snapshots[player] = {
 		gacha = G.Snapshot(player),
 		money = money and money.Value or nil,
-		speed = speed and speed.Value or nil,
 		autoRacing = player:GetAttribute("AutoRacing"),
 		autoRoll = player:GetAttribute("AutoRoll"),
 		-- Upgrade tree state (owned upgrades, BestTrack, TurboCount): turbo_next and the progression fixtures change it
@@ -182,12 +179,9 @@ function setups.restore(player)
 		end
 		weatherSnapshot = nil
 	end
-	local money, speed = stat(player, "Money"), stat(player, "Speed")
+	local money = stat(player, "Money")
 	if money and snap.money ~= nil then
 		money.Value = snap.money
-	end
-	if speed and snap.speed ~= nil then
-		speed.Value = snap.speed
 	end
 	live("CarService").SetAutoRace(player, snap.autoRacing == true)
 	if snap.autoRoll ~= nil then
@@ -324,7 +318,7 @@ local function progressionSnapshot(player)
 		return
 	end
 	local attributes = {}
-	for _, name in { "WorkshopLevel", "OfflineSpeed", "OfflineSeconds", "UiTestProgressionFixture" } do
+	for _, name in { "WorkshopLevel", "UiTestProgressionFixture" } do
 		attributes[name] = { value = player:GetAttribute(name) }
 	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -446,17 +440,7 @@ function setups.quest_complete(player)
 	questFixture(player, true)
 end
 
-function setups.offline_welcome(player)
-	progressionSnapshot(player)
-	player:SetAttribute("OfflineSeconds", 3661)
-	player:SetAttribute("OfflineSpeed", 1234)
-end
-
-function setups.offline_zero(player)
-	progressionSnapshot(player)
-	player:SetAttribute("OfflineSpeed", 0)
-	player:SetAttribute("OfflineSeconds", 0)
-end
+-- retired: offline_welcome / offline_zero fixtures, no offline credit or its welcome (design doc 4.19, owner 2026-11-03)
 
 -- World fixtures must END with the avatar at the spot, not just teleport once: a Stop (CarService.SetAutoRace false,
 -- e.g. from 'restore') keeps pulling a real player's avatar back to the walk spawn for CarService PLACE_HOLD (2 s), and
@@ -737,7 +721,7 @@ end
 local function progressionSpy()
 	local folder = assert(ReplicatedStorage:FindFirstChild("UiTestSpy"), "spy setup required first")
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	-- Rebirth too: the rebirth_* clicks must never really reset Money / Speed (UiSpec rebirth clicks, Intercept)
+	-- Rebirth too: the rebirth_* clicks must never really reset Money (UiSpec rebirth clicks, Intercept)
 	-- UiSpec.RemoteFunctions: the rest must never really buy, equip, use a potion, claim or redeem (market_action_buy and
 	-- the other Intercept clicks). Missing ones are skipped here; the client's Intercept check then reports them.
 	local required = { BuyUpgrade = true, WorkshopUpgrade = true, Rebirth = true }
@@ -793,28 +777,29 @@ function setups.showcase_owned(player)
 	assert(snapshots[player], "snapshot required before showcase fixtures")
 	local G = live("GachaService")
 	local CharacterCatalog = require(Shared.CharacterCatalog)
-	local copies = { 0, 3, 7, 1, 12 }
+	-- Copies no longer matter: the copy bonus is retired (design doc 4.19, owner 2026-11-03)
 	for i, spec in CharacterCatalog.Rollable() do
-		if i > #copies then
+		if i > 5 then
 			break
 		end
 		G.Grant(player, spec.Id)
-		player.GachaData[spec.Id]:SetAttribute("Copies", copies[i])
 	end
-	player:SetAttribute("Showcase", "")
-	G.RefreshShowcase(player)
+	player:SetAttribute("Showcase", "") -- GachaService refreshes WorkshopBoost on the Showcase attribute
 end
 
 function setups.showcase_filled(player)
 	setups.showcase_owned(player)
 	local G = live("GachaService")
 	local CharacterCatalog = require(Shared.CharacterCatalog)
-	local GachaConfig = require(Shared.GachaConfig)
+	local Workshop = require(Shared.Workshop)
 	local owned = {}
 	for _, entry in player.GachaData:GetChildren() do
 		local spec = CharacterCatalog.Get(entry.Name)
-		if spec and spec.Rollable and not spec.GamepassId then
-			table.insert(owned, { Id = spec.Id, Bonus = GachaConfig.SlotBonus(spec, G.Copies(player, spec.Id)) })
+		-- Team members can not join the squad (WORLD_REDESIGN_SPEC section 5)
+		local inTeam = table.find(G.TeamList(player), entry.Name) or entry.Name == player:GetAttribute("EquippedCar")
+		if spec and spec.Rollable and not spec.GamepassId and not inTeam then
+			-- copy bonus retired (design doc 4.19): a character's squad weight is its rarity points
+			table.insert(owned, { Id = spec.Id, Bonus = Workshop.Points({ spec }) })
 		end
 	end
 	table.sort(owned, function(a, b)
@@ -828,7 +813,6 @@ function setups.showcase_filled(player)
 		ids[i] = owned[i].Id
 	end
 	player:SetAttribute("Showcase", table.concat(ids, ","))
-	G.RefreshShowcase(player)
 end
 
 -- A same-name proxy for Remotes.SetShowcase that logs every call and then runs the REAL GachaService.SetShowcase.
