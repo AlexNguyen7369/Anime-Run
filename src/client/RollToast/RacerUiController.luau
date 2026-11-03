@@ -73,15 +73,16 @@ for _, refs in { hud, index, stats, settings, rebirth } do
 end
 -- Catalog additions extend the saved gallery without waiting forever for an old seven-car bake.
 local gallery = index.GridHost:FindFirstChild("Gallery")
+local rebuildGallery = gallery == nil or gallery:GetAttribute("DesignVersion") ~= 2
 for _, spec in catalog.All() do
 	local baked = gallery and gallery:FindFirstChild(spec.Id)
-	if not (baked and baked:FindFirstChild("Art") and baked.Art:IsA("ViewportFrame")) then
-		if gallery then
-			gallery:Destroy()
-		end
-		Components.BakeIndex(index, catalog, config)
-		break
+	rebuildGallery = rebuildGallery or not (baked and baked:FindFirstChild("Art") and baked.Art:IsA("ViewportFrame"))
+end
+if rebuildGallery then
+	if gallery then
+		gallery:Destroy()
 	end
+	Components.BakeIndex(index, catalog, config)
 end
 local statsRows = stats.StatsHost:FindFirstChild("Rows")
 local rebuildStats = statsRows == nil or statsRows:GetAttribute("DesignVersion") ~= 2
@@ -622,11 +623,15 @@ local function refreshIndex()
 		tile.Name.Text = owned and tile.Spec.Name or "???"
 		tile.Art.ImageColor3 = owned and Color3.new(1, 1, 1) or Color3.new(0, 0, 0)
 		tile.Locked.Visible = not owned
-		tile.Info.Text = owned
-				and string.format("%s · %s", tile.Spec.Rarity, format.RateText(RaceConfig.Cruise(tile.Spec)))
-			or tile.Spec.Rarity
+		tile.Info.Text = owned and format.RateText(RaceConfig.Cruise(tile.Spec)) or tile.Spec.Rarity
+		-- No Equip row on an undiscovered card: its rarity and name drop to the bottom edge.
+		tile.Info.Position = UDim2.new(0, 8, 1, owned and -78 or -48)
+		tile.Name.Position = UDim2.new(0, 8, 1, owned and -62 or -32)
+		tile.Category.Visible = owned
+		Components.TintCard(tile.Frame, tile.Spec, config, owned)
 		tile.Equip.Visible = owned
 		local on = id == equipped
+		tile.Stroke.Color = on and GREEN or UiTheme.Outline
 		tile.Equip.Active = owned and not on
 		tile.Equip.Selectable = owned and not on
 		Components.Tint(tile.Equip, on and GRAY or GREEN)

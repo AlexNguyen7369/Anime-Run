@@ -53,15 +53,14 @@ function GachaConfig.Roll(rng, luck)
 	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
 		luck = 1
 	end
-	local catchAll = nil
-	for _, spec in CharacterCatalog.Rollable() do
-		if spec.Chance == nil then
-			catchAll = spec
-		elseif rng:NextNumber() < math.min(1, luck / spec.Chance) then
+	local rollable = CharacterCatalog.Rollable()
+	for i, spec in rollable do
+		-- The last one is the catch-all (Chance = 1): it takes every roll the others miss, no draw needed.
+		if i == #rollable or rng:NextNumber() < math.min(1, luck / spec.Chance) then
 			return spec.Id
 		end
 	end
-	return catchAll.Id
+	return nil
 end
 
 -- True if roll number `rollNumber` (1 = the first roll ever) is a turbo roll.
@@ -76,7 +75,7 @@ end
 
 -- An emphasized roll plays in the enlarged view and is announced to the server (owner, 2026-10-02): the car is
 -- undiscovered (not in `ownedIds`, the player's cars before this roll) and rarer than the player's 5th-rarest
--- discovered car; with fewer than 5 discovered, any undiscovered car. Rarer = larger Chance (the catch-all has none).
+-- discovered car; with fewer than 5 discovered, any undiscovered car. Rarer = larger Chance (the catch-all is 1).
 -- Rarity names never matter.
 GachaConfig.EMPHASIS_RANK = 5
 

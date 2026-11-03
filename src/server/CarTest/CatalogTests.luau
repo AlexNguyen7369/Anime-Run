@@ -8,7 +8,7 @@ local H = require(script.Parent.AcceptanceSupport)
 
 local Tests = {}
 
--- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (nil = catch-all), SpeedMulti, Event }
+-- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (1 = catch-all), SpeedMulti, Event }
 -- (Event = nil for the 30 regular characters; spec "Event-only characters" for the last 3).
 -- (spec "Launch cast" and placeholder Chance / SpeedMulti tables).
 local CAST = {
@@ -22,7 +22,7 @@ local CAST = {
 	{ "db_tyrant", "Freezo", "Epic", "Sprinter", "Dragon Bawl Z", 50000, 6 },
 	{ "db_prince", "Vegata", "Legendary", "Sprinter", "Dragon Bawl Z", 5e7, 45 },
 	{ "db_hero", "Gokku", "Secret", "Balanced", "Dragon Bawl Z", 1.6e16, 1000 },
-	{ "sea_navigator", "Nammi", "Common", "Balanced", "One Peace", nil, 1.1 },
+	{ "sea_navigator", "Nammi", "Common", "Balanced", "One Peace", 1, 1.1 },
 	{ "sea_cook", "Sanjy", "Uncommon", "Sprinter", "One Peace", 40, 1.6 },
 	{ "sea_swords", "Zoru", "Rare", "Marathoner", "One Peace", 2000, 3.2 },
 	{ "sea_flame", "Aice", "Epic", "Sprinter", "One Peace", 120000, 8 },
@@ -241,7 +241,7 @@ function Tests.catalog()
 		if event == nil then
 			counts[c.Rarity] = (counts[c.Rarity] or 0) + 1
 		end
-		if c.Chance == nil then
+		if c.Chance == 1 then
 			catchAll = id
 		end
 		local s = type(c.Series) == "string" and series.Get(c.Series) or nil

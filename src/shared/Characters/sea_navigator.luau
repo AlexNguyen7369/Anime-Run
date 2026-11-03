@@ -4,7 +4,7 @@ return {
 	Id = "sea_navigator",
 	Name = "Nammi",
 	Rarity = "Common",
-	Chance = nil,
+	Chance = 1,
 	SpeedMulti = 1.1,
 	Order = 1,
 	Category = "Balanced",

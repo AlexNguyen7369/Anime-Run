@@ -549,14 +549,14 @@ function Tests.weather()
 		-- state, including variants beyond the first car of each event.
 		local catchAll
 		for _, spec in catalog.All() do
-			if spec.Chance == nil then
+			if spec.Chance == 1 then
 				catchAll = spec.Id
 			end
 		end
 		for _, active in { "", "rain", "night", "gold", "clear", "aurora" } do
 			local eligible = {}
 			for _, spec in catalog.Rollable() do
-				if spec.Chance and (spec.Event == nil or spec.Event == active) then
+				if spec.Chance ~= 1 and (spec.Event == nil or spec.Event == active) then
 					table.insert(eligible, spec)
 				end
 			end
@@ -575,7 +575,7 @@ function Tests.weather()
 			)
 			for _, candidate in catalog.All() do
 				local allowed = candidate.Event == nil -- owner 2026-11-03: event characters are never rolled
-				if candidate.Chance then
+				if candidate.Chance ~= 1 then
 					for _, boundary in { "below", "equal" } do
 						local index = 0
 						local rng = {

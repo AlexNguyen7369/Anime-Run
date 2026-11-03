@@ -678,7 +678,7 @@ do
 
 	local function catchAll()
 		for _, spec in CharacterCatalog.Rollable() do
-			if spec.Chance == nil and spec.Event == nil then
+			if spec.Chance == 1 and spec.Event == nil then
 				return spec
 			end
 		end

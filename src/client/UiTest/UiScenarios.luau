@@ -6359,8 +6359,8 @@ local function rollOddsJudge(res)
 		res,
 		"roll_odds_fixture_car",
 		("%s Chance=%s"):format(tostring(fx.id), tostring(spec and spec.Chance)),
-		want.CatchAll and "a catalog car without a Chance" or "a catalog car with a Chance",
-		spec ~= nil and (type(spec.Chance) == "number") == (want.CatchAll ~= true)
+		want.CatchAll and "the catch-all (Chance 1)" or "a catalog car with a Chance above 1",
+		spec ~= nil and type(spec.Chance) == "number" and (spec.Chance == 1) == (want.CatchAll == true)
 	)
 	if not spec then
 		return

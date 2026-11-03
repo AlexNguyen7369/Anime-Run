@@ -3,7 +3,8 @@
 -- Clicking a potion asks the server to use one; clicking a character, trail or aura picks it, and the team slot
 -- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
 -- doc 4.2). The server
--- decides all of them. Characters are listed least rare first (owner, 2026-10-20).
+-- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
+-- sort; their cards are the shared collection card (design doc 4.22).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -25,12 +26,21 @@ local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
+local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
 local BODY = Color3.fromRGB(32, 27, 36)
 local TILE_BLUE = Color3.fromRGB(47, 107, 255)
 local TILE_GREEN = Color3.fromRGB(60, 220, 90)
+local GOLD = PALETTE.Unbanked
+-- Characters grid (design doc 4.22; placeholders): as many columns as fit cells at least this wide.
+local CARD_MIN_WIDTH = 112
+local CARD_HEIGHT = 128
+local CARD_GAP = 10
+local TILE_SIZE = UDim2.fromOffset(104, 104)
+local TILE_GAP = UDim2.fromOffset(12, 12)
+local SORTS = { "Rarity", "Speed", "Stamina" }
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -179,6 +189,7 @@ local rarityRank = {}
 for i, rarity in GachaConfig.RARITY_ORDER do
 	rarityRank[rarity] = i
 end
+local sortMode = SORTS[1]
 local function ownedCars()
 	local data = player:FindFirstChild("GachaData")
 	local list = {}
@@ -188,6 +199,16 @@ local function ownedCars()
 		end
 	end
 	table.sort(list, function(a, b)
+		-- Highest first; a tie falls through to the default order.
+		local va = sortMode == "Speed" and RaceConfig.Cruise(a)
+			or sortMode == "Stamina" and StaminaConfig.Seconds(a)
+			or 0
+		local vb = sortMode == "Speed" and RaceConfig.Cruise(b)
+			or sortMode == "Stamina" and StaminaConfig.Seconds(b)
+			or 0
+		if va ~= vb then
+			return va > vb
+		end
 		local ra, rb = rarityRank[a.Rarity] or 99, rarityRank[b.Rarity] or 99
 		if ra ~= rb then
 			return ra < rb
@@ -212,11 +233,60 @@ make("UIPadding", "Padding", grid, {
 	PaddingLeft = UDim.new(0, 4),
 	PaddingRight = UDim.new(0, 10),
 })
-make("UIGridLayout", "Layout", grid, {
-	CellSize = UDim2.fromOffset(104, 104),
-	CellPadding = UDim2.fromOffset(12, 12),
+local gridLayout = make("UIGridLayout", "Layout", grid, {
+	CellSize = TILE_SIZE,
+	CellPadding = TILE_GAP,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
+
+-- Sort and search live in the header band, Characters tab only: the grid keeps its height on short screens.
+local toolbar = make("Frame", "Toolbar", header, {
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -76, 0.5, 0),
+	Size = UDim2.new(0.5, 0, 0, 40),
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = 5,
+})
+make("UIListLayout", "Layout", toolbar, {
+	FillDirection = Enum.FillDirection.Horizontal,
+	HorizontalAlignment = Enum.HorizontalAlignment.Right,
+	VerticalAlignment = Enum.VerticalAlignment.Center,
+	Padding = UDim.new(0, 8),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local sortButton = make("TextButton", "Sort", toolbar, {
+	LayoutOrder = 1,
+	Size = UDim2.new(0, 140, 1, 0),
+	BackgroundColor3 = Color3.new(1, 1, 1),
+	Text = "",
+	AutoButtonColor = true,
+})
+corner(sortButton, 10)
+UiTheme.Gradient(sortButton, TILE_GREEN, PALETTE.MoneyDeep)
+stroke(sortButton, OUTLINE, 3)
+local sortLabel = caption("Label", sortButton, {
+	Size = UDim2.fromScale(1, 1),
+	Text = "Sort: " .. sortMode,
+	TextSize = 18,
+})
+local search = make("TextBox", "Search", toolbar, {
+	LayoutOrder = 2,
+	Size = UDim2.new(1, -148, 1, 0),
+	BackgroundColor3 = OUTLINE,
+	BackgroundTransparency = 0.25,
+	ClearTextOnFocus = false,
+	Font = Enum.Font.FredokaOne,
+	PlaceholderText = "Search",
+	PlaceholderColor3 = Color3.fromRGB(190, 195, 215),
+	Text = "",
+	TextColor3 = Color3.new(1, 1, 1),
+	TextSize = 18,
+	TextTruncate = Enum.TextTruncate.AtEnd,
+})
+corner(search, 10)
+stroke(search, OUTLINE, 3)
+make("UIPadding", "Padding", search, { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) })
 local empty = caption("Empty", panel, {
 	Position = UDim2.fromOffset(120, 140),
 	Size = UDim2.new(1, -132, 0, 40),
@@ -272,6 +342,88 @@ local function tile(id, order, highlighted)
 	table.insert(shownTiles, b)
 	return b
 end
+
+-- A character's collection card; the generic tile's gradient gives way to the rarity tint.
+local function characterTile(spec, order)
+	local b = make("TextButton", spec.Id, grid, {
+		LayoutOrder = order,
+		Text = "",
+		AutoButtonColor = true,
+	})
+	Components.CardFace(b, spec, GachaConfig)
+	local slot = table.find(SlotPicker.Team(), spec.Id)
+	stroke(b, slot and TILE_GREEN or OUTLINE, 3)
+	if spec.Id == chosenCharacter then
+		b.Stroke.Color = Color3.new(1, 1, 1)
+	end
+	table.insert(shownTiles, b)
+	Components.RunnerArt(b, "Art", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and data:FindFirstChild(spec.Id)
+	local copies = entry and entry:GetAttribute("Copies") or 1
+	caption("Badge", b, {
+		Position = UDim2.fromOffset(9, 7),
+		Size = UDim2.new(1, -42, 0, 22),
+		Text = slot and ("TEAM " .. slot) or (copies > 1 and count(copies) or ""),
+		TextSize = 16,
+		TextColor3 = slot and TILE_GREEN or GOLD,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 7,
+	})
+	caption("Multi", b, {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -8, 1, -28),
+		Size = UDim2.new(1, -16, 0, 16),
+		Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
+		TextSize = 14,
+		TextColor3 = GOLD,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 7,
+	})
+	local nameLabel = caption("Name", b, {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -8, 1, -6),
+		Size = UDim2.new(1, -16, 0, 22),
+		Text = spec.Name,
+		TextScaled = true,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 7,
+	})
+	make("UITextSizeConstraint", "MaxSize", nameLabel, { MaxTextSize = 19 })
+	return b
+end
+
+local function characterFacts(spec)
+	return string.format(
+		"%s (%s, %s): %s, %.1f s stamina. Pick a team slot below.",
+		spec.Name,
+		spec.Rarity,
+		spec.Category or "Balanced",
+		HudFormat.RateText(RaceConfig.Cruise(spec)),
+		StaminaConfig.Seconds(spec)
+	)
+end
+
+-- Hides the cards the search box rules out (no rebuild per keystroke: each card holds a live model).
+local function applySearch()
+	local query = string.lower(search.Text)
+	for _, b in shownTiles do
+		local spec = CharacterCatalog.Get(b.Name)
+		b.Visible = query == "" or (spec ~= nil and string.find(string.lower(spec.Name), query, 1, true) ~= nil)
+	end
+end
+
+local function fitCards()
+	if current ~= "Characters" then
+		gridLayout.CellSize, gridLayout.CellPadding = TILE_SIZE, TILE_GAP
+		return
+	end
+	local width = grid.AbsoluteSize.X - 14 - grid.ScrollBarThickness
+	local columns = math.max(2, math.floor((width + CARD_GAP) / (CARD_MIN_WIDTH + CARD_GAP)))
+	gridLayout.CellSize = UDim2.fromOffset(math.floor((width - (columns - 1) * CARD_GAP) / columns), CARD_HEIGHT)
+	gridLayout.CellPadding = UDim2.fromOffset(CARD_GAP, CARD_GAP)
+end
+grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCards)
 
 local render
 function pickSlot(slot, id, picked)
@@ -334,7 +486,9 @@ function render()
 	table.clear(shownTiles)
 	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
 	slots.Frame.Visible = cosmetic
-	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 52)) or GRID_SIZE
+	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 64)) or GRID_SIZE -- ends above the Slots row
+	toolbar.Visible = current == "Characters"
+	fitCards()
 	if current == "Characters" then
 		local owned = ownedCars()
 		local still = false
@@ -344,42 +498,21 @@ function render()
 		chosenCharacter = still and chosenCharacter or (owned[1] and owned[1].Id)
 		for order, spec in owned do
 			shown += 1
-			local b = tile(spec.Id, order, SlotPicker.Equipped("Character", spec.Id))
-			if spec.Id == chosenCharacter then
-				b.Stroke.Color = Color3.new(1, 1, 1)
-			end
-			Components.RunnerArt(b, "Art", spec, UDim2.fromOffset(6, 4), UDim2.new(1, -12, 1, -46))
-			caption("Name", b, {
-				AnchorPoint = Vector2.new(0.5, 1),
-				Position = UDim2.new(0.5, 0, 1, -20),
-				Size = UDim2.new(1, -8, 0, 20),
-				Text = spec.Name,
-				TextSize = 15,
-				TextScaled = true,
-				ZIndex = 5,
-			})
-			caption("Multi", b, {
-				AnchorPoint = Vector2.new(0.5, 1),
-				Position = UDim2.new(0.5, 0, 1, -2),
-				Size = UDim2.new(1, -8, 0, 18),
-				Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
-				TextSize = 14,
-				TextColor3 = GachaConfig.RARITY_COLORS[spec.Rarity] or Color3.new(1, 1, 1),
-				ZIndex = 5,
-			})
+			local b = characterTile(spec, order)
 			b.MouseEnter:Connect(function()
-				hint.Text = string.format(
-					"%s (%s) %s cruise. Pick a team slot below.",
-					spec.Name,
-					spec.Rarity,
-					HudFormat.RateText(RaceConfig.Cruise(spec))
-				)
+				hint.Text = characterFacts(spec)
 			end)
 			b.Activated:Connect(function()
 				chosenCharacter = spec.Id
+				hint.Text = characterFacts(spec) -- touch has no hover
 				render()
+				local picked = grid:FindFirstChild(spec.Id)
+				if picked then
+					UiMotion.Pop(picked, 0.06)
+				end
 			end)
 		end
+		applySearch()
 		slots:Update("Character", chosenCharacter)
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
@@ -489,6 +622,12 @@ end
 close.Activated:Connect(function()
 	PanelSwitch.Close("Backpack")
 end)
+sortButton.Activated:Connect(function()
+	sortMode = SORTS[table.find(SORTS, sortMode) % #SORTS + 1]
+	sortLabel.Text = "Sort: " .. sortMode
+	render()
+end)
+search:GetPropertyChangedSignal("Text"):Connect(applySearch)
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		hint.Text = ""
@@ -515,6 +654,12 @@ task.spawn(function()
 	end
 	data.ChildAdded:Connect(changed)
 	data.ChildRemoved:Connect(changed)
+	-- The models load in the background: redraw an open grid once they arrive.
+	local models = ReplicatedStorage:WaitForChild("CharacterModels")
+	if models:GetAttribute("Ready") ~= true then
+		models:GetAttributeChangedSignal("Ready"):Wait()
+	end
+	changed()
 end)
 -- Same band as the other panels; short panels (phones) shrink the four tabs to fit.
 require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {

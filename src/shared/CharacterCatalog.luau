@@ -86,7 +86,7 @@ end
 table.sort(byOrder, function(a, b)
 	return a.Order < b.Order
 end)
--- Largest "1 in N" first; the catch-all (Chance = nil) last
+-- Largest "1 in N" first; the catch-all (Chance = 1) last
 table.sort(rarestFirst, function(a, b)
 	return (a.Chance or 0) > (b.Chance or 0)
 end)

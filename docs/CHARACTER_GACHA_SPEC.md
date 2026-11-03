@@ -13,7 +13,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Id` | permanent key (`"kaze_ninja"`) |
 | `Name` | display name, tweaked from the source character (design doc section 5) |
 | `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret |
-| `Chance` | 1 in N (nil for the catch-all Common) |
+| `Chance` | 1 in N; every rollable character has a number (owner 2026-11-03); the catch-all Common is 1 |
 | `SpeedMulti` | raw cruise multi, damped by `RaceConfig.CruiseStatMulti` |
 | `Stamina` | optional override of the rarity base, seconds (`TEAM_AND_STAMINA_SPEC.md`) |
 | `Category` | `Sprinter`, `Balanced` or `Marathoner` (design doc 4.5) |
@@ -37,7 +37,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 
 | Rarity | Chance band | SpeedMulti band | Count at launch |
 |---|---|---|---|
-| Common | catch-all | 1.1 | 1 |
+| Common | 1 (catch-all) | 1.1 | 1 |
 | Uncommon | 10 - 200 | 1.25 - 2.2 | 6 |
 | Rare | 500 - 13,000 | 2 - 5.25 | 6 |
 | Epic | 50,000 - 2.5M | 6 - 16.5 | 6 |
@@ -98,7 +98,7 @@ Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; t
 
 | Id | Chance | SpeedMulti | Id | Chance | SpeedMulti |
 |---|---|---|---|---|---|
-| `sea_navigator` | nil (catch-all) | 1.1 | `db_tyrant` | 50,000 | 6 |
+| `sea_navigator` | 1 (catch-all) | 1.1 | `db_tyrant` | 50,000 | 6 |
 | `leaf_medic` | 10 | 1.25 | `sea_flame` | 120,000 | 8 |
 | `db_green` | 20 | 1.4 | `ds_sister` | 300,000 | 10 |
 | `sea_cook` | 40 | 1.6 | `jk_vessel` | 700,000 | 12 |

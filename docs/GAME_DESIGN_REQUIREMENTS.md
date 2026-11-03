@@ -288,6 +288,19 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   Karate Kid = Narito, Sayan = Gokku).
 - Auto-roll waits until the player has picked. The roster in play is these 30 models plus the 3 starters that reuse them.
 
+### 4.22 Collection cards: Index and Backpack Characters (owner 2026-11-03)
+
+- Inspired by the owner's reference screenshot of a collection screen; layout ideas only, no copied art. Index tiles and
+  Backpack Characters tiles share one card (`Components.CardFace`): rarity-tinted background, rarity inner border (Secret
+  rainbow), the character's upper body filling the card, cruise in gold above a bold name, category badge top right.
+  Outer border: green = on the Team, white = picked (Backpack), dark otherwise. Sizes, colours and cell counts are
+  **proposed** placeholders.
+- Index: undiscovered cards stay a black silhouette with "?", rarity and public odds; discovered cards add name, cruise,
+  category and Equip. Catalog order is unchanged.
+- Backpack Characters: a Sort button (Rarity, Speed, Stamina; **proposed**) and a name search in the header. The default
+  stays Rarity, least rare first (owner 2026-10-20). Top left of a card: `TEAM <slot>` on the Team, otherwise copies when
+  more than 1. Display only: the server still decides every number and every Team change.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -340,6 +353,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value
+  **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.
+- 2026-11-03: owner: Index and Backpack Characters use one collection card; Backpack gets Sort and Search (4.22).
 - 2026-11-03: owner: team row rebuilt after the owner's reference image: stamina arc replaces the liquid level, head
   breaks out of a dark circle (4.3, TEAM_AND_STAMINA_SPEC HUD).
 - 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed

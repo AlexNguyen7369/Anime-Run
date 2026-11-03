@@ -1748,7 +1748,7 @@ Model.Grids = {
 		Host = "RacerIndex/Panel/Face/GridHost",
 		Inset = 14,
 		Gap = 12,
-		CellHeight = 208,
+		CellHeight = 168,
 		Columns = { Desktop = 4, Phone = 3 },
 	},
 }

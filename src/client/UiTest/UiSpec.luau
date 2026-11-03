@@ -602,6 +602,13 @@ UiSpec.Guis.RacerBackpack = {
 		-- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 3): the Characters tab (was Cars, WORLD_REDESIGN_SPEC
 		-- section 1) lists the owned characters (UiSpec.Backpack).
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
+		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
+		{
+			Path = "Panel/Header/Toolbar/Sort",
+			Does = "local",
+			Effect = "backpack_sort",
+			ClickCoverage = "ui_backpack_characters",
+		},
 		{
 			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); the
 			-- team slot buttons below put it on a slot (u4 / c1, Client/SlotPicker; click backpack_pick_character).
@@ -2529,7 +2536,7 @@ for _, item in
 		{ Id = "roll_odds_clamp", What = "Same car at extreme luck; display remains base rarity; run ui_roll_odds." },
 		{ Id = "roll_odds_luck1", What = "Same car at luck 1 (base odds); run ui_roll_odds." },
 		{ Id = "roll_odds_no_luck", What = "Same car with NO 6th argument (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance nil) at luck 2 ('1 in ?'); run ui_roll_odds." },
+		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds." },
 		{
 			Id = "weather_rain_roll",
 			What = "weather_rain, then plants the Rain car (else a car with a Chance) at the luck the server gives this "
@@ -2595,8 +2602,8 @@ UiSpec.Progression.FixtureChecks = {
 --[[
 Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_CONTRACT.md). RollResult's 6th
 argument is the roll's server luck for compatibility, but both Odds labels (RollToast/Toast `Odds`; RollShowcase/Card
-`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. A catch-all car (Chance nil)
-keeps "1 in ?". The Index and the roll announcement keep the base odds.
+`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all car (Chance 1)
+shows "1 in 1". The Index and the roll announcement keep the base odds.
 
 Each fixture sets the player attribute Attr = JSON { fixture, id, luck (absent when not sent), nonce }, waits for a
 roll that may still be playing, then fires RollResult(id, false, 1, false, 0, luck) (compact) and, one animation

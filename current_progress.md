@@ -42,6 +42,7 @@
 39. 2026-11-03 — Alex Nguyen — Replaced the chibi drafts with 30 Roblox-avatar character models (inked outlines, cel shading, close to the source designs), uploaded and drawn in game, added the new-player starter choice popup and made the 3 event characters non-rollable Index tiles.
 40. 2026-11-03 — Alex Nguyen — Added the owner's rebirth speed reward (+5% cruise per level, placeholder) with a speed tile on the Rebirth panel, and fixed the stamina bar trail and team row info card, checked in Studio on desktop.
 41. 2026-11-03 — Alex Nguyen — Rebuilt the team row after the owner's reference image (real character heads in dark circles, curved stamina arc, seconds left, per-frame easing, fixed slots), checked in Studio on desktop.
+42. 2026-11-03 — Alex Nguyen — Rebuilt Index and Backpack Characters around one rarity card with Backpack sort and search, fixed Index cards showing placeholder rigs, and gave the catch-all Common a numerical drop chance (Chance 1, roll results unchanged), checked in Studio on desktop; harness not run.
 
 ## What's next
 **Finish the full compatibility check (c3): fix the 2 open UI harness failures (`ui_layout` phone HUD-pair overlaps, `ui_reduced_motion` roll viewport), rerun the server and UI harnesses to `fail=0` with the new models and starter popup, then run the rules audit.**

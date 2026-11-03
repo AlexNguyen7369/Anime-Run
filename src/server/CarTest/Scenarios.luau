@@ -4822,7 +4822,7 @@ end
 -- Character gacha + index + stat allocation. The expected catalog is docs/CHARACTER_GACHA_SPEC.md's launch cast
 -- (CatalogTests.CAST). GACHA_SEED is one character per rarity, the fixed discovery fixtures (spec Chance table).
 local GACHA_SEED = {
-	{ Id = "sea_navigator", Rarity = "Common", Chance = nil, SpeedMulti = 1.1 },
+	{ Id = "sea_navigator", Rarity = "Common", Chance = 1, SpeedMulti = 1.1 },
 	{ Id = "leaf_medic", Rarity = "Uncommon", Chance = 10, SpeedMulti = 1.25 },
 	{ Id = "leaf_copycat", Rarity = "Rare", Chance = 500, SpeedMulti = 2 },
 	{ Id = "db_tyrant", Rarity = "Epic", Chance = 50000, SpeedMulti = 6 },
@@ -4879,7 +4879,7 @@ local function gachaExpected(luck, event)
 		expected[c.Id] = 0
 		if c.Event then -- owner 2026-11-03: never rolled, whatever the weather
 			continue
-		elseif c.Chance then
+		elseif c.Chance ~= 1 then
 			table.insert(rollable, c)
 		else
 			catchAll = c
@@ -5064,7 +5064,7 @@ function Scenarios.gacha()
 			starterInAll = true
 		end
 		if type(c) == "table" then
-			if c.Chance == nil then
+			if c.Chance == 1 then
 				catchAlls += 1
 			elseif type(c.Chance) ~= "number" or c.Chance ~= math.floor(c.Chance) or c.Chance < 2 then
 				chanceOk = false
@@ -5149,7 +5149,7 @@ function Scenarios.gacha()
 	for _, want in GACHA_CATALOG do
 		local got = CharacterCatalog.Get(want.Id)
 		local band = GACHA_ODDS_BANDS[want.Rarity]
-		if want.Chance ~= nil then
+		if want.Chance ~= 1 then
 			local chance = type(got) == "table" and got.Chance or nil
 			if
 				not band
@@ -5196,10 +5196,10 @@ function Scenarios.gacha()
 			break
 		end
 		if last then
-			if c.Chance ~= nil then
+			if c.Chance ~= 1 then
 				rarestOk = false
 			end
-		elseif c.Chance == nil or (i > 1 and c.Chance >= rollable[i - 1].Chance) then
+		elseif c.Chance == 1 or (i > 1 and c.Chance >= rollable[i - 1].Chance) then
 			rarestOk = false
 		end
 	end
@@ -9369,7 +9369,7 @@ function Scenarios.roll_anim()
 	local validIds, catchAllId = {}, nil
 	for _, c in GACHA_CATALOG do
 		validIds[c.Id] = true
-		if c.Chance == nil then
+		if c.Chance == 1 then
 			catchAllId = c.Id
 		end
 	end
@@ -9566,7 +9566,7 @@ function Scenarios.roll_anim()
 			if r and #r == n then
 				slots += 1
 				local spec = CharacterCatalog.Get(r[n - 1])
-				if spec and spec.Chance ~= nil then
+				if spec and spec.Chance ~= 1 then
 					nonCommon += 1
 					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
 						rarePlus += 1
