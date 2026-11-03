@@ -301,3 +301,11 @@
   all 30 by the rules auditor, PASS after 1 doc-sync round). Contact sheet assets/characters/contact_sheet.png.
   1,248-2,444 tris each. Reference facts are unverified (wiki 402). Next: owner visual review of the contact sheet;
   then a later deliverable: FBX export, Studio import + R15 rig, `Model` field (needs a new goal deliverable).
+- 2026-11-03 LANDED on feature/alex/anime-world (pushed b860845): c2 (stamina stat / tree / potions / team bonus, team
+  row + bar polish), c4 workshop stat boost (design doc 4.19; audit PASS after cruise-snapshot fix), UI animations
+  4.20 (audit PASS) + panel close motion (fc8b099), tests retargeted to current rules + team_bonus / stamina multi /
+  workshop_boost checks. Owner rulings 2026-11-03: workshop stats Money/Luck/Speed/Stamina, rarity points x 5%, always
+  active, levels scale the boost (Workshop stat refunded); upgrade tree Money +10%/tier. c3 (owner asked 2026-11-03,
+  "loop fixes"): full harness started in Studio 684395a0 (Rojo 34873 serves ../AnimeRun-orch/studio, detached at
+  b860845; its old copy stashed). First scenario `runner` ~18 min. Then UI harness (UiTestRun). Known expected reds:
+  Market subtitle format, HudPair.Stacked rects. Poll in <=112 s execute_luau calls.
