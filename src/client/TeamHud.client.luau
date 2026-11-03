@@ -27,6 +27,7 @@ local ARC_THICK = 8 -- px (placeholder)
 local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right
 local ARC_DOTS = 24 -- overlapping circles; shortcut: no ring image asset, upload one if the edge ever looks scalloped
 local EASE = 10 -- per second, arc and number easing (placeholder)
+local HEAD_FIT = 0.62 -- camera distance factor for the head (placeholder)
 local ITALIC = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 local CARD_WIDTH = 240 -- px (placeholder)
 local ACTIVE_SCALE = 1.18 -- placeholders
@@ -372,7 +373,9 @@ local function headArt(circle, spec)
 	if art.CurrentCamera then
 		art.CurrentCamera.FieldOfView = 30
 		local focus = head.Position
-		art.CurrentCamera.CFrame = CFrame.lookAt(focus + Vector3.new(-0.3, 0.1, -1).Unit * 5.4, focus)
+		-- Fitted to the head's size: a character model's head (with its hair) is larger than the placeholder's
+		local distance = 0.5 * head.Size.Magnitude / math.sin(math.rad(15)) * HEAD_FIT
+		art.CurrentCamera.CFrame = CFrame.lookAt(focus + Vector3.new(-0.45, 0.1, -1).Unit * distance, focus)
 	end
 	return art
 end
@@ -514,3 +517,19 @@ player.AttributeChanged:Connect(function(name)
 	end
 end)
 render()
+
+-- The character models load in the background: redraw the heads once they arrive.
+task.spawn(function()
+	local models = ReplicatedStorage:WaitForChild("CharacterModels")
+	if models:GetAttribute("Ready") ~= true then
+		models:GetAttributeChangedSignal("Ready"):Wait()
+	end
+	for _, circle in circles do
+		if circle.Art then
+			circle.Art:Destroy()
+			circle.Art = nil
+		end
+		circle.Id = nil
+	end
+	render()
+end)
