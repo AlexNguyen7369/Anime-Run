@@ -1101,8 +1101,8 @@ function Tests.environment()
 				end
 			end
 			flag("city_blocks_count", #blocks >= CITY_MIN_BLOCKS, #blocks, CITY_MIN_BLOCKS)
-			-- retired: city_blocks_both_rows (the IVS "two rows deep" city). The Track 6 redesign builds one street-wall row
-			-- (City.luau Blocks.Rows = 1, t6 2026-10-31); no current doc asks for a second row. Count and coverage still hold.
+			-- retired: city_blocks_both_rows (the IVS "two rows deep" city). Owner 2026-11-03 (BIOME_ENVIRONMENT_SPEC, above
+			-- section 3): Track 6 keeps one street-wall row (City.luau Blocks.Rows = 1). Count and coverage still hold.
 			r.metrics.city_block_rows = { rows[1] == true, rows[2] == true }
 			flag("city_blocks_both_sides", sides.L == true and sides.R == true)
 

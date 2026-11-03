@@ -520,9 +520,8 @@ local function checkCheckpoint(checks, spec, layout, expect)
 	)
 	if pad and pad:IsA("BasePart") then
 		check(checks, "pad_neon", pad.Material == Enum.Material.Neon and 1 or 0, 1, pad.Material == Enum.Material.Neon)
-		local c = pad.Color
-		local r, g, b = c.R * 255, c.G * 255, c.B * 255
-		check(checks, "pad_yellow", r, 200, r >= 200 and g >= 170 and b <= 120)
+		-- retired: pad_yellow. Owner 2026-11-03 (BIOME_ENVIRONMENT_SPEC, above section 3): a track's finish pad may take
+		-- its biome's palette colour; it need not be yellow.
 		check(checks, "pad_no_collide", pad.CanCollide and 1 or 0, 0, pad.CanCollide == false)
 		local biggest = math.max(pad.Size.X, pad.Size.Y, pad.Size.Z)
 		check(checks, "pad_small", biggest, 16, biggest <= 16)
