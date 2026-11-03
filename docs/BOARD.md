@@ -10,6 +10,7 @@
 - c1 (paused by owner 2026-10-30 for biomes; committed on orch/core/c1, unverified) Team of 3 + stamina + swap + exhaustion + run bank + HUD (tests first, f947f51 / 31a4ff7)
 
 ## Next
+- char-art: owner reviews assets/characters/contact_sheet.png; then Studio import + R15 rig + `Model` field (new deliverable, owner to confirm)
 - c1 must add: exhaustion pays per-distance share of the current track's pad cash (owner 2026-11-01; Track 1 not shortened)
 - Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds, EQUIP labels / MarketEquip (slot buttons), GachaService.SpeedMulti (before c3)
 - c2 Stamina stat point, upgrade tree Stamina branch, Stamina potion, team bonus, category info card, team row + stamina bar polish: BUILT 2026-11-03, uncommitted, needs Studio check
@@ -20,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-03 char-art a1-a3: 30 draft character models (shared chibi Blender base, headless build), art reference sheet, contact sheet (merge 4ae6d23, push failing): rules audit PASS, all 30 Reviewed; owner visual review open
 - 2026-11-01 u4 per-slot aura/trail + slot UI, Speed Doubler passes removed, Best Roll fed, upgrade Speed branch +% cruise (merge 98fdad5): Studio: equip slot 1 -> Cruise 24.95, move to slot 2, remove, slot 4 refused, Backpack slot buttons OK, no Speed Doubler in Shop, 0 errors
 - 2026-11-01 u1 fixed cruise (rarity x category), Speed stat removed, rebirth luck/XP/point, info-only sensei, workshop pays Money (merge c448a79): Studio smoke: Cruise=20 Common, leaderstats Money only, 0 errors; CarTest/UiTest still reference removed Speed APIs
 - 2026-11-01 welcome popup Studio-checked ("Tournament Wasteland" 0.4/2/0.6 s), moved to y 0.22 under AUTO RACE; fixed sky look-ahead nil crash (58190ae)

@@ -291,3 +291,13 @@
   selene 0 errors, rojo build OK, lune check of TeamBonus / Multi / Seconds OK. NOT checked in Studio (no Studio
   connected); changed files copied into ../AnimeRun-orch/studio/src. Placeholders: Stamina bottle + stat/tree icons
   reuse Speed art; Shop potion packs now 4 per row. Tests (StaminaTests team_bonus etc.) not written (tests paused).
+
+- 2026-11-03 char-art a1-a3 LANDED locally (merge 4ae6d23 on feature/alex/anime-world), NOT PUSHED: `git push` fails
+  3x with "remote unpack failed: index-pack failed / inflate returned -5" (local objects check clean, 242 objects,
+  37 MB incl. 30 .blend + 121 PNG). Retry the push; if it keeps failing, consider Git LFS for assets/characters.
+  Owner 2026-11-03: draft + renders only, shared chibi base, ALTERED signature marks (design doc 5 + change log).
+  Build: `/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python tools/blender/build_character.py -- [<id>...|--sheet]`
+  (headless, no Blender MCP; the MCP addon was not running). Data tools/blender/characters.json (Reviewed signed for
+  all 30 by the rules auditor, PASS after 1 doc-sync round). Contact sheet assets/characters/contact_sheet.png.
+  1,248-2,444 tris each. Reference facts are unverified (wiki 402). Next: owner visual review of the contact sheet;
+  then a later deliverable: FBX export, Studio import + R15 rig, `Model` field (needs a new goal deliverable).
