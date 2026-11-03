@@ -357,7 +357,7 @@ end
 -- Head only: the body (and its rarity belt) never shows, so rarity is not evident on the row.
 local function headArt(circle, spec)
 	-- Larger than the circle and not clipped: the head breaks out of the top
-	local art = Components.RunnerArt(circle.Frame, "Art", spec, UDim2.new(-0.2, 0, -0.34, 0), UDim2.fromScale(1.4, 1.4))
+	local art = Components.RunnerArt(circle.Frame, "Art", spec, UDim2.fromScale(-0.2, -0.34), UDim2.fromScale(1.4, 1.4))
 	art.ZIndex = 7
 	local rig = art:FindFirstChildWhichIsA("Model")
 	local head = rig and rig:FindFirstChild("Head")
