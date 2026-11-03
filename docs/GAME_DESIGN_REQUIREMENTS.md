@@ -260,6 +260,19 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   part (4.6). Speed and Stamina are fixed at run start, like every other run multi.
 - The `Workshop` stat point is retired (owner 2026-11-03): allocated Workshop points are refunded as free points.
 
+### 4.20 UI animations across the board (owner 2026-11-03)
+- Every player-facing UI animates (owner 2026-11-03). Display only; every animation goes through `Client/UiMotion`, so
+  Roblox Reduced Motion and the in-game REDUCED EFFECTS land it at once. Timings below are proposed placeholders.
+  - Panels (every PanelSwitch panel): open = scale 0.9 -> 1 with Back easing + fade in, ~0.2 s; close = scale to 0.95
+    + fade out, ~0.12 s. List / grid items stagger in on open (~0.03 s apart, at most ~0.3 s total).
+  - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
+    1.035 / 0.97, orchestrator default 2026-11-03); disabled buttons do not move.
+  - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
+  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+    is ever shown wrong (orchestrator default 2026-11-03).
+  - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
+  - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -302,6 +315,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: UI animations across the board (4.20): panels, buttons, tabs, numbers, toasts, badges.
 - 2026-11-03: owner: workshop passive gain removed; the player picks one stat (Money, Luck, Speed, Stamina) and the
   Dojo squad's combined rarity (points x 5%, scaled by workshop level) boosts it everywhere; Workshop stat point
   retired and refunded; in-zone luck and offline workshop credit removed (4.19).

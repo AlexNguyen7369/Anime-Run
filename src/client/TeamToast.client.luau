@@ -9,6 +9,7 @@ local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
 local HudFormat = require(shared.HudFormat)
 local UiTheme = require(shared.UiTheme)
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "TeamToast"
@@ -17,7 +18,8 @@ gui.DisplayOrder = 4
 local toast = Instance.new("TextLabel")
 toast.Name = "Toast"
 toast.AnchorPoint = Vector2.new(0.5, 0.5)
-toast.Position = UDim2.fromScale(0.5, 0.38) -- below the biome and bonus popups (0.22, 0.3)
+local HOME = UDim2.fromScale(0.5, 0.38) -- below the biome and bonus popups (0.22, 0.3)
+toast.Position = HOME
 toast.Size = UDim2.fromOffset(520, 48)
 toast.BackgroundTransparency = 1
 toast.Font = UiTheme.Font
@@ -33,10 +35,13 @@ local function show(text, seconds)
 	shown += 1
 	local mine = shown
 	toast.Text = text
-	toast.Visible = true
+	toast.Position = HOME
+	-- Design doc 4.20: slides and fades in, holds, fades out.
+	UiMotion.Fade(toast, true)
+	UiMotion.SlideIn(toast, Vector2.new(0, 12), 0.2)
 	task.delay(seconds, function()
 		if shown == mine then
-			toast.Visible = false
+			UiMotion.Fade(toast, false)
 		end
 	end)
 end
