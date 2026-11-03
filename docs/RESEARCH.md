@@ -11,6 +11,12 @@
 - Takeaways: team building is expected by the audience; keep the free auto-spin as the main source so the game does
   not read as pay-to-win.
 
+- Art style survey (2026-11-03, goal `char-art`; full notes in `docs/CHARACTER_ART_REFERENCES.md` Part 1): Anime
+  Adventures, Anime Last Stand, Anime Defenders, Anime Champions Simulator and Anime Fighters Simulator use
+  Roblox-style bodies with oversized hair meshes, flat or lightly textured shading and VFX for rarity. Takeaways: hair
+  is the identity cue, one main colour plus one accent, one big accessory, flat toon shading, rarity shown with aura VFX
+  rather than mesh detail. Fandom pages returned HTTP 402, so these are general observations, not measurements.
+
 ## 2. Intellectual property
 
 - Roblox: infringing someone's IP violates the Terms of Use and the law; only the rightsholder (or their agent) files
