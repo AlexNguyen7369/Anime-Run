@@ -87,7 +87,8 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   refills with a flash when the next runner tags in. Display only.
 - Team row (owner 2026-11-03, replaces the rarity-colour ring of 2026-11-02): each portrait is only the character's
   avatar head; rarity is not shown on the row. The current runner gets a clear animated indicator (enlarged, glowing
-  ring, a bobbing marker, and every portrait fills like a liquid level to its stamina); tired runners grey out with an animation; the tag-in
+  ring, a bobbing marker, and every portrait shows its stamina on a thick arc, owner 2026-11-03 later the same day, replaces the liquid level,
+  with its stamina seconds left as a number, orchestrator default); tired runners grey out with an animation; the tag-in
   plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
@@ -339,6 +340,8 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: team row rebuilt after the owner's reference image: stamina arc replaces the liquid level, head
+  breaks out of a dark circle (4.3, TEAM_AND_STAMINA_SPEC HUD).
 - 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed
   icon on the Rebirth panel (4.13, 4.14).
 - 2026-11-03: owner (c3 rulings): finish pads may use their biome's palette colour (not always yellow); Track 6 keeps

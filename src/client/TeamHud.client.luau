@@ -91,7 +91,7 @@ local row = make("Frame", {
 	ZIndex = 5,
 }, level)
 
--- Overlay for the badge, marker and card: outside the list layout so it can sit anywhere over the row.
+-- Overlay for the badge, marker and card, so they can sit anywhere over the row.
 local overlay = make("Frame", {
 	Name = "TeamOverlay",
 	BackgroundTransparency = 1,
@@ -481,7 +481,9 @@ RunService.RenderStepped:Connect(function(dt)
 				circle.Color = gap < 0.01 and goal or color
 				paintArc(circle, circle.Color)
 			end
-			local total = tonumber(player:GetAttribute("TeamStamina" .. slot))
+			-- The run's own fixed seconds while running: TeamStamina moves if a potion is used mid-run
+			local total =
+				tonumber(player:GetAttribute("RunSeconds" .. slot) or player:GetAttribute("TeamStamina" .. slot))
 			local seconds = total and math.ceil(total * shown) or nil
 			if seconds ~= circle.Seconds then
 				circle.Seconds = seconds

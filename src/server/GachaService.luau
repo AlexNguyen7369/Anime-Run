@@ -115,6 +115,17 @@ function GachaService.Setup(player)
 			then
 				refresh()
 			end
+			-- A potion ending changes no attribute: refresh once when it runs out (the team row shows these numbers)
+			if string.sub(name, 1, 11) == "BoostUntil_" then
+				local untilAt = player:GetAttribute(name)
+				if type(untilAt) == "number" and untilAt > os.time() then
+					task.delay(untilAt - os.time() + 1, function()
+						if player.Parent then
+							refresh()
+						end
+					end)
+				end
+			end
 		end)
 		data.ChildAdded:Connect(refresh)
 		data.ChildRemoved:Connect(refresh)
@@ -447,7 +458,6 @@ end
 
 -- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
 -- ""), TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Cruise while on foot (a run sets its own).
--- shortcut: a potion expiring on foot does not refresh TeamStamina until the next change; poll if that matters.
 function GachaService.RefreshTeam(player)
 	local team = GachaService.TeamList(player)
 	local kind, series = GachaService.TeamBonus(player)
