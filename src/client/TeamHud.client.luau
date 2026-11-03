@@ -261,24 +261,21 @@ for slot = 1, SLOTS do
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, c)
 	local scale = make("UIScale", { Scale = 1 }, c)
-	local hit = make("TextButton", {
-		Name = "Hit",
-		BackgroundTransparency = 1,
-		Text = "",
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 9,
-	}, c)
-	hit.MouseEnter:Connect(function()
+	-- Hover / tap on the circle itself (no invisible button: the row is display-only, not a control)
+	c.MouseEnter:Connect(function()
 		showCard(slot)
 	end)
-	hit.MouseLeave:Connect(function()
+	c.MouseLeave:Connect(function()
 		if shownSlot == slot then
 			card.Visible = false
 			shownSlot = nil
 		end
 	end)
-	hit.Activated:Connect(function() -- touch: tap toggles
-		if shownSlot == slot and card.Visible then
+	c.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		if shownSlot == slot and card.Visible then -- touch: tap toggles
 			card.Visible = false
 			shownSlot = nil
 		else
