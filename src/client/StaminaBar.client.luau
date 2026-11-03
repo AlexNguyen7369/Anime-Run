@@ -167,6 +167,10 @@ local function attach(copy)
 		end
 		shown, slot = pct, s
 		setLow(pct * 100 <= StaminaConfig.LOW and pct > 0)
+		if stopPulse and UiMotion.Reduced() then -- switched on mid-pulse: the loop stops, the low colour stays
+			stopPulse()
+			stopPulse = function() end
+		end
 	end
 	local conn = owner.AttributeChanged:Connect(function(name)
 		if name == "RunSlot" or string.sub(name, 1, 7) == "Stamina" then

@@ -209,7 +209,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 ### 4.14 Rebirth (owner 2026-11-01)
 - Each rebirth level gives: luck multi, +5% cruise (owner 2026-11-03, replaces "no speed gain"; placeholder,
   `RebirthConfig.SPEED_PER_REBIRTH`, +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost").
-  The Rebirth panel shows all three rewards, with the speed icon on the speed tile; each shows the total after the next rebirth.
+  The Rebirth panel shows all three rewards, with the speed icon on the speed tile. Luck and speed show the total after the
+  next rebirth; the stat point tile shows the points that rebirth gives.
 - Rebirth resets Money (there is no Speed to reset).
 - Player levels and XP are removed (owner 2026-11-01, later). Rebirth n+1 needs Money >= `BASE_MONEY` x
   `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
@@ -322,6 +323,8 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed
+  icon on the Rebirth panel (4.13, 4.14).
 - 2026-11-03: owner (c3 rulings): finish pads may use their biome's palette colour (not always yellow); Track 6 keeps
   one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance
   share paid), not a loss: a loss is decided only at the runner's finish.
@@ -345,8 +348,6 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
   open); a loss restarts at the checkpoint; tracks won past the checkpoint in the same run pay a bonus (+10% per
   track, cap x2, placeholders) (4.15, replaces the 2026-11-01 informational sensei).
 - 2026-11-01 (later): owner: biome while racing comes from the server's `RunTrack`, look-ahead removed (4.18).
-- 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed
-  icon on the Rebirth panel (4.13, 4.14).
 - 2026-11-01 (later): owner: player Level / XP removed; rebirth needs Money ($100K, x10 each, placeholder), no XP
   multi (4.14).
 - 2026-11-01 (later): owner: Kami cruise lowered from 1 Sp to 800 studs/s (equal to `MAX_CRUISE`) (4.13).
