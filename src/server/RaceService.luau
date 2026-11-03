@@ -315,7 +315,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			runRemote:FireClient(player, event)
 		end
 	end
-	local setCruise, bankShare -- forward declarations (defined below)
+	local setCruise, bankShare, snapshotCruise -- forward declarations (defined below)
 	-- Makes `slot` the active runner: EquippedCar follows (CarService re-skins the runner) and its cruise applies at once
 	local function setSlot(slot)
 		run.Slot = slot
@@ -331,6 +331,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 	local function refill()
+		if snapshotCruise then
+			snapshotCruise() -- a loss reset starts a new run
+		end
 		for slot in team do
 			run.Stamina[slot] = 100
 		end
@@ -464,9 +467,24 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		return best
 	end
 
+	-- Each team slot's cruise is fixed when the run starts (design doc 4.13 / 4.19): swaps read this snapshot, so a
+	-- workshop stat, potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
+	local fixedCruise = {}
+	function snapshotCruise()
+		table.clear(fixedCruise)
+		if staminaMode and isPlayer(player) then
+			for slot, id in team do
+				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot)
+			end
+		end
+	end
+	snapshotCruise()
+
 	-- The run's fixed cruise (design doc 4.13), shown on the HUD as the player attribute Cruise
 	function setCruise()
-		run.TargetSpeed = GachaService.Cruise(player, run.Slot)
+		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
+		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
+		run.TargetSpeed = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
 			player:SetAttribute("Cruise", run.TargetSpeed)
