@@ -39,8 +39,9 @@
 36. 2026-11-03 — Alex Nguyen — Landed c2 and c4: Stamina stat point, upgrade tree Stamina branch, Stamina potions and Series / preset team bonus; head-only team row with category info card and animated runner marker; animated stamina bar; workshop now boosts one chosen stat by the Dojo squad's rarity (passive gain, offline credit and the Workshop stat point retired); run cruise and stamina fixed at run start (audit PASS, Studio smoke OK).
 37. 2026-11-03 — Alex Nguyen — Landed UI animations across the board (design doc 4.20): panels scale in with a staggered list, every button gets hover / press feedback, tab markers tween, toasts and popups slide and fade, claimable badges pulse, all respecting Reduced Motion (audit PASS; panel close motion pending a harness change).
 38. 2026-11-03 — Alex Nguyen — Drafted 30 launch-character models from a shared headless Blender chibi base with an art reference sheet and contact sheet (rules audit PASS; push to origin failing, merge local).
+39. 2026-11-03 — Alex Nguyen — Replaced the chibi drafts with 30 Roblox-avatar character models (inked outlines, cel shading, close to the source designs), uploaded and drawn in game, added the new-player starter choice popup and made the 3 event characters non-rollable Index tiles.
 
 ## What's next
-**Run the full compatibility check (c3: full Studio harness to `[CARTEST] END fail=0` plus rules audit) and loop fixes until green, after the stale tests are retargeted.**
+**Finish the full compatibility check (c3): fix the 2 open UI harness failures (`ui_layout` phone HUD-pair overlaps, `ui_reduced_motion` roll viewport), rerun the server and UI harnesses to `fail=0` with the new models and starter popup, then run the rules audit.**
 
-**Why this is next:** the owner asked for c3 on 2026-11-03; it is the last core deliverable and gates the PR into main. The char-art drafts wait on the owner's visual review, and the failing push must be retried first so c3 runs on what is on origin.
+**Why this is next:** the owner asked for c3 on 2026-11-03 and it gates the PR from feature/alex/anime-world into main; the character and starter changes landed after its last rounds, so they still need that full run.
