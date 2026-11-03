@@ -569,7 +569,7 @@ function GachaService.Snapshot(player)
 	}
 end
 
-local TRIM_ORDER = { "Money", "Luck", "Speed" } -- over-allocation is removed in this order
+local TRIM_ORDER = { "Stamina", "Money", "Luck", "Speed" } -- over-allocation is removed in this order
 
 -- Loads a saved table (anything else gives a fresh player). Unknown car ids are kept so a car taken out of
 -- the catalog is not wiped from saves, but they never count for points or multis.

@@ -191,6 +191,7 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Upgrade tree **Speed** branch (replaces "Speed Gain", owner 2026-11-01): each owned tier adds +% cruise to the
     character, additive with the Speed stat points (placeholder +10% per tier, 5 tiers, +50% max).
   - Preset team bonus x1.1 (4.8).
+  - Upgrade tree **Money** branch (owner 2026-11-03, replaces the IVS +50%): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
     slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
   - Rebirth adds speed only through its +1 stat point per level (4.14).
@@ -318,6 +319,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: upgrade tree Money branch is +10% per tier (code since u4; IVS had +50%).
 - 2026-11-03: owner: character art drafting starts (goal `char-art`): 30 regular-cast draft models in Blender
   from one shared chibi base, renders only, no Studio import yet; signature marks use clearly altered versions (section 5).
 - 2026-11-03: owner: UI animations across the board (4.20): panels, buttons, tabs, numbers, toasts, badges.

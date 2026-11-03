@@ -285,7 +285,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local seconds = {}
 	-- fixed for the whole run (a potion that expires mid-run changes nothing); a loss reset (new run) reads it again
 	local function snapshotStamina()
-		local staminaMulti = isPlayer(player) and GachaService.StaminaMulti(player) or 1
+		local staminaMulti = typeof(player) == "Instance" and GachaService.StaminaMulti(player) or 1
 		for slot, id in team do
 			local given = options.StaminaSeconds and options.StaminaSeconds[slot]
 			seconds[slot] = type(given) == "number" and given > 0 and given
@@ -476,7 +476,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local fixedCruise = {}
 	function snapshotCruise()
 		table.clear(fixedCruise)
-		if staminaMode and isPlayer(player) then
+		if staminaMode and typeof(player) == "Instance" then
 			for slot, id in team do
 				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot)
 			end

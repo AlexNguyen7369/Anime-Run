@@ -26,7 +26,7 @@ UpgradeConfig.Branches = {
 	{
 		Id = "money",
 		Name = "Money",
-		Effect = "Money", -- added to the Money multi (track winnings)
+		Effect = "Money", -- added to the Money multi (track winnings); +10% per tier (owner 2026-11-03)
 		Weight = 1,
 		Parent = "start",
 		Origin = { 0, 0 },
