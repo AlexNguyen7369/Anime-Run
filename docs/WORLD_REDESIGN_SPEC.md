@@ -20,7 +20,7 @@ Nothing car-shaped stays in the game:
 ## 2. Placeholder anime runner (replaces the car body)
 
 - Every player's active character and every NPC rival is a blocky humanoid rig: Head, Torso, 2 arms, 2 legs
-  (R15-style proportions, chibi head 1:3, placeholder), coloured from the character's series palette with a rarity
+  (R15-style proportions, placeholder; final art follows design doc 5), coloured from the character's series palette with a rarity
   trim. A `BillboardGui` shows the character's name (finite `MaxDistance`).
 - The runner is anchored and moved by `RaceService` along the race path (the IVS rail already holds an exact speed
   everywhere): position on the right-hand lane, facing along the path, upright (up-vector Y = 1). No physics forces.

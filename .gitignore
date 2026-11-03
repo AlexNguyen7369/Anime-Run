@@ -5,3 +5,6 @@
 roblox.yml
 .claude/worktrees/
 *.blend1
+__pycache__/
+build/
+assets/characters_avatar/**/*.blend

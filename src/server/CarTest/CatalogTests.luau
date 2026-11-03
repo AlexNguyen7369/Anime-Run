@@ -193,7 +193,7 @@ function Tests.catalog()
 
 	local all, rollable = catalog.All(), catalog.Rollable()
 	flag("all_33_characters", #all == #CAST, #all, #CAST)
-	flag("rollable_33_characters", #rollable == #CAST, #rollable, #CAST)
+	flag("rollable_30_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
 	-- ids exactly the committed list, unique, starter excluded
 	local want, seen, dupes, extra = {}, {}, {}, {}

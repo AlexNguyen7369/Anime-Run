@@ -3,8 +3,18 @@
 Goal `char-art` deliverable a1 (docs/ORCHESTRATOR_GOALS.md). Real names appear here only, like the "Based on" column in
 `docs/CHARACTER_GACHA_SPEC.md`. The build data (`tools/blender/characters.json`) is keyed by `Id` and has no real names.
 
-Owner ruling 2026-11-03 (design doc section 5): signature marks use a clearly altered version (a different shape
-class), never the official mark.
+Owner ruling 2026-11-03, later (design doc section 5), overrides every "altered version" line and the chibi
+takeaways below: Roblox avatar style, distinct resemblance, marks may closely resemble the original (modelled in-house,
+never the official logo file). Avatar pilot marks: `leaf_hero` swirl on headband plate and red swirl on jacket back;
+`leaf_avenger` red-over-white fan on upper back; `leaf_medic` swirl plate and white ring on back. Other near-copy
+marks (a5): `leaf_copycat` swirl plate + red sleeve and vest spirals; `leaf_crow` red-and-white cloak clouds + slashed
+swirl plate; `db_hero` white disc with a black kanji-like glyph; `mha_blast` orange X chest strap; `mha_symbol` V chest
+band; `sea_captain` X chest scar; `sea_flame` back tattoo (cross, skull, moustache), hat faces, crossed arm bars;
+`sea_navigator` pinwheel + tangerine arm tattoo; `ds_hero` green/black checks + hanafuda earrings; `ds_flame` flame
+hems; `ds_sister` hemp-leaf stars + checks; `ds_thunder` triangle scales; `jk_king` face and chest lines.
+
+Earlier ruling 2026-11-03 (superseded): signature marks use a clearly altered version (a different shape class), never
+the official mark.
 
 Verification status (2026-11-03): written by two research agents. Fandom wiki pages returned HTTP 402 to the agents
 and most search hits were SEO copies, so the per-character facts and hex colours come from model knowledge, and the

@@ -138,6 +138,7 @@ function PlayerData.Load(player, userId)
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
+		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
 		MarketService.Apply(player, data)
 		player:SetAttribute("WorkshopLevel", Workshop.CleanLevel(data.WorkshopLevel)) -- missing = the starter workshop

@@ -4877,7 +4877,7 @@ local function gachaExpected(luck, event)
 	local expected = {}
 	for _, c in GACHA_CATALOG do
 		expected[c.Id] = 0
-		if c.Event and c.Event ~= event then
+		if c.Event then -- owner 2026-11-03: never rolled, whatever the weather
 			continue
 		elseif c.Chance then
 			table.insert(rollable, c)
@@ -5036,9 +5036,9 @@ function Scenarios.gacha()
 	check(checks, "catalog_launch_cast", baseCount, expectedBase, baseCount == expectedBase)
 	check(checks, "rollable_launch_cast", baseRollCount, expectedBase, baseRollCount == expectedBase)
 	check(checks, "catalog_event_characters", eventCount, #GACHA_EVENT_SEED, eventCount == #GACHA_EVENT_SEED)
-	check(checks, "rollable_event_characters", eventRollCount, #GACHA_EVENT_SEED, eventRollCount == #GACHA_EVENT_SEED)
+	check(checks, "event_characters_not_rollable", eventRollCount, 0, eventRollCount == 0) -- owner 2026-11-03
 	check(checks, "catalog_base_and_event_cars", #all, #GACHA_CATALOG, #all == #GACHA_CATALOG)
-	check(checks, "rollable_base_and_event_cars", #rollable, #GACHA_CATALOG, #rollable == #GACHA_CATALOG)
+	check(checks, "rollable_is_base_cast", #rollable, expectedBase, #rollable == expectedBase)
 	local seen, idsOk, snakeOk, catchAlls, starterInAll = {}, true, true, 0, false
 	local rarityValid, multiOk, chanceOk = true, true, true
 	local validRarity = {}
@@ -5212,11 +5212,11 @@ function Scenarios.gacha()
 		rollSeen[c.Id] = true
 	end
 	for id in seen do
-		if not rollSeen[id] then
+		if not rollSeen[id] and not CharacterCatalog.Get(id).Event then
 			membershipOk = false
 		end
 	end
-	check(checks, "rollable_matches_entire_catalog_once", membershipOk and 1 or 0, 1, membershipOk)
+	check(checks, "rollable_matches_base_cast_once", membershipOk and 1 or 0, 1, membershipOk)
 
 	-- Seeded roll odds at luck 1 and luck 10
 	local validIds = {}
