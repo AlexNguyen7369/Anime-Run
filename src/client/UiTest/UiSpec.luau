@@ -650,7 +650,7 @@ UiSpec.Guis.ShopUi = {
 
 -- The Shop's parts (docs/GAMEPASS_SHOP_SPEC.md section 1). Sections are direct children of Items, top to bottom in
 -- this order. Cards: a Frame named by the item Id somewhere under its section, holding exactly one "Buy" TextButton:
--- Featured = CharacterCatalog.Passes(), Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
+-- Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
 -- "Potions" plus the Bundle banner (Frame "Bundle", the Section "Bundle" product), ServerLuck = Section "ServerLuck".
 UiSpec.Shop = {
 	Gui = "ShopUi",
@@ -658,7 +658,9 @@ UiSpec.Shop = {
 	Close = "ShopUi/Backdrop/Panel/Close",
 	CloseText = "X",
 	Items = "ShopUi/Backdrop/Panel/Items",
-	Sections = { "Featured", "Gamepasses", "Potions", "ServerLuck", "Codes", "Thanks" },
+	-- No Featured section: gamepass cars are removed and there are no gamepass characters (design doc section 4.1,
+	-- owner 2026-10-28; CharacterCatalog.Passes() is always empty).
+	Sections = { "Gamepasses", "Potions", "ServerLuck", "Codes", "Thanks" },
 	SectionTitles = { Gamepasses = "Gamepasses", Potions = "Potions", Codes = "Codes" },
 	Bundle = "Bundle",
 	BuyName = "Buy",
@@ -1108,7 +1110,8 @@ UiSpec.Billboards = {
 	BestRollStats = {
 		Path = "SpawnArea/BestRoll/Pedestal/Stats", -- under Workspace
 		Adornee = "CarMount", -- Pedestal.CarMount
-		Labels = { Title = "BEST ROLL EVER", Odds = true, Car = true, Player = true }, -- true = must exist, any text
+		-- true = must exist, any text; "Character" (was Car: characters, not cars, WORLD_REDESIGN_SPEC, w1)
+		Labels = { Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true },
 		MaxDistance = "LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE", -- 150
 	},
 }
@@ -1754,7 +1757,8 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy", "index_states" },
 		Expect = { Remote = false, After = { "tile_shows_equipped" } },
 	},
-	-- Stats: "+" fires AllocateStat with THAT row's stat, including Workshop; no points fires nothing.
+	-- Stats: "+" fires AllocateStat with THAT row's stat; no points fires nothing. The Workshop point is retired and
+	-- Stamina is the fourth stat (design doc 4.19 / 4.6, owner 2026-11-03), so allocate_workshop* became allocate_stamina*.
 	{
 		Id = "allocate_speed",
 		Gui = "RacerStats",
@@ -1789,9 +1793,9 @@ UiSpec.Clicks = {
 		},
 	},
 	{
-		Id = "allocate_workshop",
+		Id = "allocate_stamina",
 		Gui = "RacerStats",
-		Path = "Panel/Face/StatsHost/Rows/Workshop/Plus",
+		Path = "Panel/Face/StatsHost/Rows/Stamina/Plus",
 		Prepare = only("RacerStats/Panel"),
 		NeedSetup = { "spy", "stat_points" },
 		Expect = {
@@ -1800,9 +1804,9 @@ UiSpec.Clicks = {
 		},
 	},
 	{
-		Id = "allocate_workshop_no_points",
+		Id = "allocate_stamina_no_points",
 		Gui = "RacerStats",
-		Path = "Panel/Face/StatsHost/Rows/Workshop/Plus",
+		Path = "Panel/Face/StatsHost/Rows/Stamina/Plus",
 		Prepare = only("RacerStats/Panel"),
 		NeedSetup = { "spy", "no_stat_points" },
 		Expect = { Remote = false, After = { "alloc_unchanged", "points_unchanged", "row_shows_alloc" } },
@@ -1873,6 +1877,33 @@ UiSpec.Clicks = {
 		},
 		NeedSetup = { "spy" },
 		Expect = { Remote = false, After = { "top_down_flipped", "top_down_label_follows_attr" } },
+	},
+	-- Track camera (design doc 4.12, docs/CAMERA_SPEC.md): LocalPlayer attribute TrackCamera, unset = ON
+	{
+		Id = "track_camera_off",
+		Gui = "RacerSettings",
+		Path = "Panel/Face/TrackCameraRow/Face/TrackCameraToggle/Face",
+		Prepare = {
+			Open = { "RacerSettings/Panel" },
+			Showcase = false,
+			AttrNot = { TrackCamera = false },
+			LabelIs = "ON",
+		},
+		NeedSetup = { "spy" },
+		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
+	},
+	{
+		Id = "track_camera_on",
+		Gui = "RacerSettings",
+		Path = "Panel/Face/TrackCameraRow/Face/TrackCameraToggle/Face",
+		Prepare = {
+			Open = { "RacerSettings/Panel" },
+			Showcase = false,
+			AttrIs = { TrackCamera = false },
+			LabelIs = "OFF",
+		},
+		NeedSetup = { "spy" },
+		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
 	},
 	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_CONTRACT.md). Run these eleven in this order, with
 	-- auto_racing active and AutoRoll on; 'restore' afterwards puts AutoRoll back too.

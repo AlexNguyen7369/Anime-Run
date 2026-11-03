@@ -1451,12 +1451,10 @@ function UiScenarios.Init()
 		end)
 	end)
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-		if not remotes then
-			return
-		end
+		-- no timeout: on a fresh Play the server builds every track before RaceService / GachaService make Remotes
+		local remotes = ReplicatedStorage:WaitForChild("Remotes")
 		task.spawn(function()
-			local roll = remotes:WaitForChild("RollResult", 30)
+			local roll = remotes:WaitForChild("RollResult")
 			if roll then
 				roll.OnClientEvent:Connect(function(id, isNew, turboMulti, emphasized, scrapMoney, luck)
 					local ev = {
@@ -1486,7 +1484,7 @@ function UiScenarios.Init()
 			end
 		end)
 		task.spawn(function()
-			local ann = remotes:WaitForChild(UiSpec.Announce.Remote, 30)
+			local ann = remotes:WaitForChild(UiSpec.Announce.Remote)
 			if ann and ann:IsA("RemoteEvent") then
 				ann.OnClientEvent:Connect(function(userId, displayName, id, rolls)
 					table.insert(events.announces, {
@@ -1500,7 +1498,7 @@ function UiScenarios.Init()
 			end
 		end)
 		task.spawn(function()
-			local npc = remotes:WaitForChild("NpcRace", 30)
+			local npc = remotes:WaitForChild("NpcRace")
 			if npc then
 				npc.OnClientEvent:Connect(function(event)
 					if type(event) ~= "table" then
@@ -3894,14 +3892,8 @@ function S.ui_buttons(res)
 		end
 	end
 	checkList(res, "plus_buttons_match_server", plusWrong)
-	local ws = findPath("RacerStats/Panel/Face/StatsHost/Rows/Workshop/Plus")
-	check(
-		res,
-		"workshop_plus_matches_free_points",
-		ws and ws.Active,
-		points > 0,
-		ws ~= nil and ws.Active == (points > 0) and (points > 0 or ws.AutoButtonColor == false)
-	)
+	-- retired: workshop_plus_matches_free_points (the Workshop stat point is retired, design doc 4.19, owner
+	-- 2026-11-03); plus_buttons_match_server covers every GachaConfig.STATS row, Stamina included.
 end
 
 function S.ui_hud(res)
@@ -5680,7 +5672,8 @@ local function billboardsAtHub(res)
 		"best_roll_stats",
 		bestStats,
 		LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE,
-		{ Title = "BEST ROLL EVER", Odds = true, Car = true, Player = true }
+		-- the label is "Character" (WORLD_REDESIGN_SPEC: characters, not cars; SpawnArea / LeaderboardService, w1)
+		{ Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true }
 	)
 	local mount = waitIn(bestPedestal, "CarMount")
 	check(
@@ -6769,6 +6762,7 @@ function Click.attrSnapshot()
 		AutoRoll = attr("AutoRoll") == true,
 		ReduceEffects = attr("ReduceEffects") == true,
 		TopDownView = attr("TopDownView") == true,
+		TrackCamera = attr("TrackCamera") ~= false, -- unset = ON (docs/CAMERA_SPEC.md)
 		EquippedCar = attr("EquippedCar"),
 		StatPoints = attr("StatPoints") or 0,
 		WorkshopLevel = attr("WorkshopLevel"),
@@ -7633,6 +7627,14 @@ function UiScenarios.RunClick(id)
 			check(res, cond, attr("TopDownView"), want, attr("TopDownView") == want)
 		elseif cond == "top_down_label_follows_attr" then
 			local want = attr("TopDownView") == true and "ON" or "OFF"
+			local actual = allText(button)
+			check(res, cond, actual, want, actual == want)
+		elseif cond == "track_camera_flipped" then
+			local want = not pre.TrackCamera
+			local now = attr("TrackCamera") ~= false
+			check(res, cond, attr("TrackCamera"), want, now == want)
+		elseif cond == "track_camera_label_follows_attr" then
+			local want = attr("TrackCamera") ~= false and "ON" or "OFF"
 			local actual = allText(button)
 			check(res, cond, actual, want, actual == want)
 		elseif cond == "settings_profile_category" then
