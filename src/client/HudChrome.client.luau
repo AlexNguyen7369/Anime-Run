@@ -260,6 +260,20 @@ local function pulse(b)
 		pulses[b] = nil
 	end
 end
+-- Reduced Motion / REDUCED EFFECTS can flip while a badge shows: restart every pulse so it stops or starts at once.
+local function restartPulses()
+	local shown = {}
+	for b, stop in pulses do
+		stop()
+		table.insert(shown, b)
+	end
+	table.clear(pulses)
+	for _, b in shown do
+		pulse(b)
+	end
+end
+game:GetService("GuiService"):GetPropertyChangedSignal("ReducedMotionEnabled"):Connect(restartPulses)
+player:GetAttributeChangedSignal("ReduceEffects"):Connect(restartPulses)
 
 -- Section 10: a red badge pops when its count changes (never every refresh).
 local function setBadge(b, count)
