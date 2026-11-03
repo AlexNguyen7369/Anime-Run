@@ -10635,7 +10635,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 			"upgrades_buyable_attribute_follows_money",
 			tonumber(pBadge:GetAttribute("UpgradesBuyable")) or -1,
 			want1,
-			a0 and a1 and want1 == 3
+			a0 and a1 and want1 == 4 -- walkspeed_1, money_1, speed_1, stamina_1 (design doc 4.6, owner 2026-11-03)
 		)
 		svc("Buy", pBadge, "money_1")
 		local a2 = badgeIs(pBadge)
@@ -11207,12 +11207,13 @@ function Scenarios.upgrades()
 		return okc and n == want
 	end
 	flag("upgrades_buyable_count_broke_is_0", buyable(state({}, 0, 0, 2), 0))
-	flag("upgrades_buyable_count_rich_is_5", buyable(state({}, RICH, 0, 2), 5))
-	flag("upgrades_buyable_count_turbo_unlocks", buyable(state({ "rollspeed_1" }, RICH, 0, 2), 6))
+	-- design doc 4.6 (owner 2026-11-03): Stamina I ($150) is a 6th tier-I tile off Start (the name keeps "_is_5")
+	flag("upgrades_buyable_count_rich_is_5", buyable(state({}, RICH, 0, 2), 6))
+	flag("upgrades_buyable_count_turbo_unlocks", buyable(state({ "rollspeed_1" }, RICH, 0, 2), 7))
 	local partialOk = buyable(state({}, 100, 0, 2), 1) -- walkspeed_1 ($75) only
-		and buyable(state({}, 150, 0, 2), 3) -- + money_1, speed_1
-		and buyable(state({ "money_1", "money_2" }, RICH, 0, 2), 4) -- money_3 gated
-		and buyable(state({ "money_1", "money_2" }, RICH, 2, 2), 5)
+		and buyable(state({}, 150, 0, 2), 4) -- + money_1, speed_1, stamina_1
+		and buyable(state({ "money_1", "money_2" }, RICH, 0, 2), 5) -- money_3 gated
+		and buyable(state({ "money_1", "money_2" }, RICH, 2, 2), 6)
 	flag("upgrades_buyable_count_money_and_gate", partialOk)
 
 	-- Bonuses: added percentages, pure sum of what is owned.

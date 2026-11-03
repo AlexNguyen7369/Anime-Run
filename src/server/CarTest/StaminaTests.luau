@@ -504,6 +504,21 @@ function Tests.stamina()
 		return r
 	end
 	local track1, track2 = route.Tracks[1], route.Tracks[2]
+	-- Test route: the live route with the NPC lanes' Curvature dropped. NpcRacer.Profile caps the NPC at grip speed in
+	-- corners whatever NpcSpeeds says, so FAST_NPC alone still takes seconds and a jump to the finish won. Without the
+	-- cap FAST_NPC finishes at once, so the Tie and Refill jumps are real losses. Runner path and indices unchanged.
+	local liveRoute = route
+	route = table.clone(liveRoute)
+	route.Tracks = {}
+	for i, t in liveRoute.Tracks do
+		local copy = table.clone(t)
+		if type(t.Npc) == "table" and type(t.Npc.Path) == "table" then
+			copy.Npc = table.clone(t.Npc)
+			copy.Npc.Path = table.clone(t.Npc.Path)
+			copy.Npc.Path.Curvature = {}
+		end
+		route.Tracks[i] = copy
+	end
 
 	local cleanup, ctxs = {}, {}
 	local function moneyOf(p)

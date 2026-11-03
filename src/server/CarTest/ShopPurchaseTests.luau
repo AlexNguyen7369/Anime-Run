@@ -23,8 +23,9 @@ local PACKS = {
 }
 local PACK_COUNT = 5
 local BUNDLE_ID = "potion_bundle"
-local BUNDLE_COUNT = 10 -- of every one of the 9 potions
-local BUNDLE_POTIONS = 9
+local BUNDLE_COUNT = 10 -- of every one of the 12 potions
+-- 12 = 4 categories x 3 tiers: the bundle includes Stamina I-III (TEAM_AND_STAMINA_SPEC "Stamina potion", 2026-11-03)
+local BUNDLE_POTIONS = 12
 local SERVER_LUCK_IDS = { "server_luck_2x", "server_luck_4x", "server_luck_8x" }
 local SECTIONS = { Potions = true, Bundle = true, ServerLuck = true }
 local MAX_RECEIPTS = 100
