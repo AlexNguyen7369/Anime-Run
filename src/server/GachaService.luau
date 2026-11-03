@@ -404,7 +404,7 @@ function GachaService.StaminaMulti(player)
 end
 
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
--- times the speed multi (Speed points + upgrade tree Speed tiers + workshop boost, active Speed potion, preset team bonus, that slot's
+-- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level + workshop boost, active Speed potion, preset team bonus, that slot's
 -- damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
 -- not own runs as the starter.
 function GachaService.CruiseFor(player, id, slot)
@@ -416,7 +416,7 @@ function GachaService.CruiseFor(player, id, slot)
 		GachaService.TeamBonus(player) == "Preset",
 		MarketConfig.SpeedMulti(player, slot),
 		MarketConfig.TrailMulti(player, slot),
-		bonuses(player).Speed
+		(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
 	)
 	return RaceConfig.Cruise(spec, multi)
 end

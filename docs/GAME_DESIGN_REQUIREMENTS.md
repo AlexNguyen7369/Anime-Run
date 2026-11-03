@@ -28,7 +28,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
    - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat (owner 2026-11-01).
-7. Money buys upgrades; rebirth needs and resets Money for luck and a stat point (4.14). There is no player level or XP.
+7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -194,7 +194,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Upgrade tree **Money** branch (owner 2026-11-03, replaces the IVS +50%): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
     slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
-  - Rebirth adds speed only through its +1 stat point per level (4.14).
+  - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
+    and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
@@ -206,7 +207,9 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   CRUISE row and the character cards still show cruise.
 
 ### 4.14 Rebirth (owner 2026-11-01)
-- Rebirth gives no speed gain. Each rebirth level gives: luck multi and +1 stat point (the "stat boost").
+- Each rebirth level gives: luck multi, +5% cruise (owner 2026-11-03, replaces "no speed gain"; placeholder,
+  `RebirthConfig.SPEED_PER_REBIRTH`, +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost").
+  The Rebirth panel shows all three rewards, with the speed icon on the speed tile; each shows the total after the next rebirth.
 - Rebirth resets Money (there is no Speed to reset).
 - Player levels and XP are removed (owner 2026-11-01, later). Rebirth n+1 needs Money >= `BASE_MONEY` x
   `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
@@ -342,6 +345,8 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
   open); a loss restarts at the checkpoint; tracks won past the checkpoint in the same run pay a bonus (+10% per
   track, cap x2, placeholders) (4.15, replaces the 2026-11-01 informational sensei).
 - 2026-11-01 (later): owner: biome while racing comes from the server's `RunTrack`, look-ahead removed (4.18).
+- 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed
+  icon on the Rebirth panel (4.13, 4.14).
 - 2026-11-01 (later): owner: player Level / XP removed; rebirth needs Money ($100K, x10 each, placeholder), no XP
   multi (4.14).
 - 2026-11-01 (later): owner: Kami cruise lowered from 1 Sp to 800 studs/s (equal to `MAX_CRUISE`) (4.13).

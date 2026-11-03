@@ -166,7 +166,9 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   (BillboardGui, camera-relative offset), filled to the owner's `Stamina<RunSlot>`. Shown only while running.
   Owner 2026-11-03: the fill tweens between server updates (no steps), a pale "just lost" trail follows it down
   after a short delay, colour blue > 50% > amber > 25% > red (placeholders), pulses below 25%, refills with a white
-  flash on a tag-in.
+  flash on a tag-in. Orchestrator default 2026-11-03 (owner asked for UI fixes): drawn on top of the scenery, a
+  minimum on-screen size so it stays readable from far away; low pulse, active pulse and marker bob stop under reduced
+  motion (design doc 4.20); the bonus badge sits on a dark pill and the info card stays on screen.
 - Toasts: "<Name> TAG IN!" on a swap, "TEAM EXHAUSTED +$X" on exhaustion (plain text placeholder).
 
 ## Tests (to write first)

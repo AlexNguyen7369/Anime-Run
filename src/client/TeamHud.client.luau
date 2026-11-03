@@ -4,11 +4,11 @@
 -- running, each portrait's background fills like a liquid level to Stamina<n>; the active slot (RunSlot) is enlarged
 -- with a pulsing gold glow and a bobbing marker, pops on a tag-in; a slot at 0 fades grey and shrinks. A badge above
 -- the row names the team bonus (TeamBonus). Hover (tap on touch) opens an info card: name, category and its effect,
--- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). Display only.
+-- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). Display only. Motion goes through UiMotion
+-- (design doc 4.20): tweens land at once and the active pulse + bob stop while motion is reduced.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
@@ -17,9 +17,11 @@ local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local SLOTS = 3
 local CIRCLE = 48 -- px (placeholder)
+local CARD_WIDTH = 240 -- px (placeholder)
 local ACTIVE_SCALE = 1.25 -- placeholders
 local TIRED_SCALE = 0.88
 local GOLD = Color3.fromRGB(255, 214, 80)
@@ -64,7 +66,7 @@ local function text(parent, name, props)
 	return label
 end
 local function tween(inst, seconds, goal, style, dir)
-	local t = TweenService:Create(
+	local t = UiMotion.Create(
 		inst,
 		TweenInfo.new(seconds, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out),
 		goal
@@ -99,12 +101,17 @@ local overlay = make("Frame", {
 local badge = text(overlay, "Bonus", {
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 0, -30),
-	Size = UDim2.fromOffset(260, 18),
-	TextSize = 14,
+	AutomaticSize = Enum.AutomaticSize.X, -- preset lines run longer than the row
+	Size = UDim2.fromOffset(0, 20),
+	TextSize = 13,
 	TextColor3 = GOLD,
+	BackgroundTransparency = 0.3,
+	BackgroundColor3 = Color3.fromRGB(18, 24, 44), -- stays readable over every biome
 	Visible = false,
 	ZIndex = 8,
 })
+make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, badge)
+make("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }, badge)
 
 local marker = text(overlay, "Marker", {
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -119,7 +126,7 @@ local marker = text(overlay, "Marker", {
 local card = make("Frame", {
 	Name = "InfoCard",
 	AnchorPoint = Vector2.new(0.5, 1),
-	Size = UDim2.fromOffset(210, 96),
+	Size = UDim2.fromOffset(CARD_WIDTH, 96),
 	BackgroundColor3 = Color3.fromRGB(18, 24, 44),
 	BackgroundTransparency = 0.08,
 	Visible = false,
@@ -147,25 +154,24 @@ local chip = make("Frame", {
 }, card)
 make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, chip)
 local chipText = text(chip, "Text", { Size = UDim2.fromScale(1, 1), TextSize = 13 })
-local effect = text(card, "Effect", {
-	Position = UDim2.fromOffset(98, 26),
-	Size = UDim2.new(1, -98, 0, 20),
+local hint = text(card, "Hint", {
+	Position = UDim2.fromOffset(100, 26),
+	Size = UDim2.new(1, -100, 0, 20),
 	TextSize = 12,
 	TextColor3 = Color3.fromRGB(190, 200, 225),
 	TextXAlignment = Enum.TextXAlignment.Left,
-	TextWrapped = true,
 })
-local stats = text(card, "Stats", {
+local effect = text(card, "Effect", { -- own line: beside the chip it wrapped into the stats below
 	Position = UDim2.fromOffset(0, 50),
-	Size = UDim2.new(1, 0, 0, 18),
-	TextSize = 14,
+	Size = UDim2.new(1, 0, 0, 16),
+	TextSize = 13,
+	TextColor3 = Color3.fromRGB(190, 200, 225),
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
-local hint = text(card, "Hint", {
+local stats = text(card, "Stats", {
 	Position = UDim2.fromOffset(0, 68),
-	Size = UDim2.new(1, 0, 0, 16),
-	TextSize = 12,
-	TextColor3 = Color3.fromRGB(150, 160, 185),
+	Size = UDim2.new(1, 0, 0, 18),
+	TextSize = 14,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
 
@@ -178,6 +184,12 @@ end
 
 local function factor(x)
 	return (x == math.floor(x) and string.format("x%d", x) or string.format("x%.2g", x))
+end
+
+-- Screen px per Offset px of the overlay (the HUD's layout UIScale), to turn Absolute positions into offsets.
+local function hudScale()
+	local width = level.Size.X.Offset
+	return width > 0 and overlay.AbsoluteSize.X / width or 1
 end
 
 local function showCard(slot)
@@ -202,9 +214,13 @@ local function showCard(slot)
 	stats.Text = (cruise and string.format("%d studs/s", math.floor(cruise + 0.5)) or "-")
 		.. "  ·  "
 		.. (seconds and string.format("%.1f s stamina", seconds) or "-")
-	hint.Text = "Slot " .. slot .. " · " .. (CATEGORY_HINT[category] or "")
-	local x = circle.Frame.AbsolutePosition.X + circle.Frame.AbsoluteSize.X / 2 - overlay.AbsolutePosition.X
-	card.Position = UDim2.fromOffset(x, -40)
+	hint.Text = CATEGORY_HINT[category] or ""
+	-- Centred on the portrait, but kept on screen (the row sits mid-screen on desktop, near the edges on a phone)
+	local half = card.AbsoluteSize.X / 2 + 8
+	local screen = hud.AbsoluteSize.X
+	local center = circle.Frame.AbsolutePosition.X + circle.Frame.AbsoluteSize.X / 2
+	center = math.clamp(center, half, math.max(half, screen - half))
+	card.Position = UDim2.fromOffset((center - overlay.AbsolutePosition.X) / hudScale(), -40)
 	if not card.Visible or shownSlot ~= slot then
 		cardScale.Scale = 0.85
 		tween(cardScale, 0.15, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -340,8 +356,10 @@ local function render()
 		local state = active and "active" or tired and "tired" or "idle"
 		-- liquid level: only while running
 		local pct = running ~= nil and spec and stamina and math.clamp(stamina / 100, 0, 1) or 0
-		tween(circle.Liquid, 0.12, { Size = UDim2.fromScale(1, pct) }, Enum.EasingStyle.Linear)
-		circle.Liquid.BackgroundColor3 = StaminaConfig.Color(stamina or 100)
+		tween(circle.Liquid, 0.12, {
+			Size = UDim2.fromScale(1, pct),
+			BackgroundColor3 = StaminaConfig.Color(stamina or 100),
+		}, Enum.EasingStyle.Linear)
 		circle.Frame.BackgroundTransparency = spec and 0 or 0.45
 		if circle.State ~= state then
 			circle.State = state
@@ -400,12 +418,14 @@ RunService.RenderStepped:Connect(function(dt)
 		marker.Visible = false
 		return
 	end
-	circle.Glow.BackgroundTransparency = 0.55 + 0.25 * math.sin(clock * 5)
+	local reduced = UiMotion.Reduced()
+	circle.Glow.BackgroundTransparency = 0.55 + (reduced and 0 or 0.25 * math.sin(clock * 5))
 	local f = circle.Frame
+	local scale = hudScale()
 	marker.Visible = true
 	marker.Position = UDim2.fromOffset(
-		f.AbsolutePosition.X + f.AbsoluteSize.X / 2 - overlay.AbsolutePosition.X,
-		f.AbsolutePosition.Y - overlay.AbsolutePosition.Y - 4 + 3 * math.sin(clock * 6)
+		(f.AbsolutePosition.X + f.AbsoluteSize.X / 2 - overlay.AbsolutePosition.X) / scale,
+		(f.AbsolutePosition.Y - overlay.AbsolutePosition.Y) / scale - 4 + (reduced and 0 or 3 * math.sin(clock * 6))
 	)
 end)
 
