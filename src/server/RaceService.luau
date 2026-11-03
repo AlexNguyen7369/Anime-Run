@@ -291,7 +291,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			local given = options.StaminaSeconds and options.StaminaSeconds[slot]
 			seconds[slot] = type(given) == "number" and given > 0 and given
 				or StaminaConfig.Seconds(CharacterCatalog.Get(id), staminaMulti)
-			if typeof(player) == "Instance" then
+			if staminaMode and typeof(player) == "Instance" then -- cleared with the other stamina attributes at run end
 				player:SetAttribute("RunSeconds" .. slot, seconds[slot]) -- the team row's seconds left
 			end
 		end
