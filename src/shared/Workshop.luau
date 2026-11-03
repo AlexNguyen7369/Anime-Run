@@ -100,21 +100,28 @@ function Workshop.CleanLevel(level)
 	return math.clamp(math.floor(level), 1, WorkshopConfig.MAX_LEVEL)
 end
 
--- W of a workshop level (level 1 = 1). Bad or out-of-range levels are clamped to 1 .. MAX_LEVEL.
-function Workshop.LevelMulti(level)
-	return WorkshopConfig.Levels[Workshop.CleanLevel(level)].Multi
+-- A saved / attribute workshop stat: one of WorkshopConfig.STATS, anything else = the first ("Money").
+function Workshop.CleanStat(stat)
+	return table.find(WorkshopConfig.STATS, stat) and stat or WorkshopConfig.STATS[1]
 end
 
--- Money per second in the zone (owner 2026-11-01): BASE_RATE * LevelMulti(level) * workshopMulti (the Workshop stat
--- point x the Dojo squad). Bad inputs give 0.
-function Workshop.Rate(level, workshopMulti)
-	if not finite(workshopMulti) or workshopMulti < 0 then
-		return 0
+-- The level's boost scale: 1 + LEVEL_SCALE x (level - 1) (level clamped like CleanLevel; level 10 = x1.9).
+function Workshop.LevelScale(level)
+	return 1 + WorkshopConfig.LEVEL_SCALE * (Workshop.CleanLevel(level) - 1)
+end
+
+-- Rarity points of the squad (`squadSpecs`: character specs, empty slots nil or missing; an unknown rarity gives 0).
+function Workshop.Points(squadSpecs)
+	local points = 0
+	for _, spec in type(squadSpecs) == "table" and squadSpecs or {} do
+		points += type(spec) == "table" and WorkshopConfig.RARITY_POINTS[spec.Rarity] or 0
 	end
-	if level ~= nil and not finite(level) then
-		return 0
-	end
-	return WorkshopConfig.BASE_RATE * Workshop.LevelMulti(level) * workshopMulti
+	return points
+end
+
+-- The fraction added to the chosen stat (design doc 4.19): Points x POINT_BONUS x LevelScale(level), e.g. 0.35.
+function Workshop.Boost(squadSpecs, level)
+	return Workshop.Points(squadSpecs) * WorkshopConfig.POINT_BONUS * Workshop.LevelScale(level)
 end
 
 return Workshop

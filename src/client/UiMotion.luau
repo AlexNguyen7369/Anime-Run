@@ -19,7 +19,8 @@ function UiMotion.Create(instance, info, goal)
 	return TweenService:Create(instance, UiMotion.Reduced() and INSTANT or info, goal)
 end
 
--- Motion presets (section 10): Pop, SlideIn, Shine, Pulse, Shake, Float; each lands at once while reduced.
+-- Motion presets (section 10): Pop, SlideIn, Shine, Pulse, Shake, Float (and Cascade, Mark, Fade, design doc
+-- 4.20); each lands at once while reduced.
 
 -- The UIScale the presets animate. A layout UIScale (any other name) is never touched: nil then.
 local function motionScale(gui)
@@ -163,6 +164,15 @@ end
 -- Lights up the first 12 `items` one after another (background and their `edgeName` stroke fade in to the values
 -- they had): for tiles a grid or list layout positions, where a slide would not show.
 local CASCADE = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local resting = setmetatable({}, { __mode = "k" }) -- instance -> its transparency at rest while a cascade runs
+local function restOf(instance, property)
+	local rest = resting[instance]
+	if rest == nil then
+		rest = instance[property]
+		resting[instance] = rest
+	end
+	return rest
+end
 function UiMotion.Cascade(items, edgeName)
 	if UiMotion.Reduced() then
 		return
@@ -170,15 +180,88 @@ function UiMotion.Cascade(items, edgeName)
 	for i = 1, math.min(#items, 12) do
 		local item = items[i]
 		local edge = edgeName and item:FindFirstChild(edgeName)
-		local fill, line = item.BackgroundTransparency, edge and edge.Transparency
+		-- A cascade restarted mid-way (a quick reopen) still ends on the rest values, never on a faded one.
+		local fill, line = restOf(item, "BackgroundTransparency"), edge and restOf(edge, "Transparency")
 		item.BackgroundTransparency = 1
 		if edge then
 			edge.Transparency = 1
 		end
 		task.delay((i - 1) * 0.03, function()
-			TweenService:Create(item, CASCADE, { BackgroundTransparency = fill }):Play()
+			local tween = TweenService:Create(item, CASCADE, { BackgroundTransparency = fill })
+			tween.Completed:Connect(function(state)
+				if state == Enum.PlaybackState.Completed then
+					resting[item] = nil
+				end
+			end)
+			tween:Play()
 			if edge then
-				TweenService:Create(edge, CASCADE, { Transparency = line }):Play()
+				local edgeTween = TweenService:Create(edge, CASCADE, { Transparency = line })
+				edgeTween.Completed:Connect(function(state)
+					if state == Enum.PlaybackState.Completed then
+						resting[edge] = nil
+					end
+				end)
+				edgeTween:Play()
+			end
+		end)
+	end
+end
+
+-- Tweens a selection marker (a tab's or tile's edge / fill colour) to its new state in 0.15 s (design doc 4.20).
+local MARK = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+function UiMotion.Mark(instance, goal)
+	UiMotion.Create(instance, MARK, goal):Play()
+end
+
+-- Toasts (design doc 4.20): fades a plain gui (its fill, text and UIStroke children) in from clear, or out and
+-- then hides it. Rest transparencies are read on the first call and put back, so it always ends at rest; a new
+-- call cancels the running fade. While reduced it shows / hides at once.
+local fades = setmetatable({}, { __mode = "k" })
+function UiMotion.Fade(gui, shown, duration)
+	local fade = fades[gui]
+	if not fade then
+		fade = { Parts = { { gui, "BackgroundTransparency", gui.BackgroundTransparency } } }
+		if gui:IsA("TextLabel") or gui:IsA("TextButton") then
+			table.insert(fade.Parts, { gui, "TextTransparency", gui.TextTransparency })
+		end
+		for _, child in gui:GetChildren() do
+			if child:IsA("UIStroke") then
+				table.insert(fade.Parts, { child, "Transparency", child.Transparency })
+			end
+		end
+		fades[gui] = fade
+	end
+	for _, tween in fade.Tweens or {} do
+		tween:Cancel()
+	end
+	local tweens = {}
+	fade.Tweens = tweens
+	local reduced = UiMotion.Reduced()
+	for _, part in fade.Parts do
+		part[1][part[2]] = (shown and not reduced) and 1 or part[3]
+	end
+	if shown then
+		gui.Visible = true
+	end
+	if reduced then
+		if not shown then
+			gui.Visible = false
+		end
+		return
+	end
+	local info = TweenInfo.new(duration or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	for _, part in fade.Parts do
+		local tween = TweenService:Create(part[1], info, { [part[2]] = shown and part[3] or 1 })
+		table.insert(tweens, tween)
+		tween:Play()
+	end
+	if not shown then
+		tweens[1].Completed:Connect(function(state)
+			if state == Enum.PlaybackState.Completed and fade.Tweens == tweens then
+				gui.Visible = false
+				for _, part in fade.Parts do
+					part[1][part[2]] = part[3]
+				end
 			end
 		end)
 	end

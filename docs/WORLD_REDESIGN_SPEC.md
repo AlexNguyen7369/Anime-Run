@@ -81,9 +81,25 @@ Nothing car-shaped stays in the game:
 - The 7 workshop plots become **Dojos** (48 x 48, same assignment rules: lowest free plot on join, freed on leave).
 - The **Dojo squad** is the IVS Showcase: the player picks 3 owned characters who are **not in the racing Team**;
   they stand and train in the Dojo and multiply idle Speed gain with the IVS Showcase formula (unchanged numbers).
+  Owner 2026-11-03 (design doc 4.19, replaces the idle gain): the squad's combined rarity sets the workshop stat
+  boost instead; the Showcase formula, copies and idle gain are retired.
 - New rule: a character is either in the Team or in the Dojo squad, never both. `SetTeam` and `SetShowcase` reject a
   character already in the other group.
-- Standing in the Dojo's training zone earns idle Speed, as the IVS workshop zone does (same rate rules).
+- Standing in the Dojo's training zone earns idle Speed, as the IVS workshop zone does (same rate rules). RETIRED
+  2026-11-03: no passive gain (design doc 4.19).
+- Workshop stat boost (owner 2026-11-03, design doc 4.19). Numbers placeholders, in `Shared/WorkshopConfig`:
+  - `RARITY_POINTS` Common 1 .. Secret 7; `POINT_BONUS = 0.05`; `LEVEL_SCALE = 0.1`.
+  - `Workshop.Boost(squadSpecs, level)` = sum(points) x POINT_BONUS x (1 + LEVEL_SCALE x (level - 1)).
+  - Saved `WorkshopStat` (one of `Money`, `Luck`, `Speed`, `Stamina`; anything else -> `Money`); player attributes
+    `WorkshopStat` and `WorkshopBoost` (the added fraction, e.g. 0.35).
+  - Remote `SetWorkshopStat(stat)`: rejects any other value; rate limit 1 per 0.5 s; allowed at any time (a run in
+    progress keeps its fixed Speed / Stamina).
+  - The boost is added inside the chosen stat's additive part (Money, Luck: `GachaConfig.Multis` bonuses; Speed:
+    `RaceConfig.SpeedMulti` tree-bonus part; Stamina: `StaminaConfig.Multi` tree-bonus part).
+  - Workshop panel: 4 stat buttons (the chosen one highlighted), the boost "+35% Luck", the squad's rarity points and
+    the level scale; the level upgrade button stays.
+  - Retired: idle Money gain, offline workshop credit (and its Robux double), workshop in-zone luck, the `Workshop`
+    stat point (refunded: `Workshop` leaves `GachaConfig.STATS`), Showcase copy bonus.
 - Until stamina ships, the racing Team is the single equipped character, so the rule applies to that one character.
 - Owner 2026-10-30: an old save whose equipped character is also in the Showcase drops that character from the Dojo
   squad on load (the slot is left empty, stored as an empty entry or removed; owner 2026-10-30); the Team is unchanged.

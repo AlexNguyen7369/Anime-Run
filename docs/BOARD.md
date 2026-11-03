@@ -1,7 +1,7 @@
 # Board
 
 ## Doing
-- (none)
+- c4 Workshop stat boost (owner 2026-11-03, design doc 4.19): orch/core/c4 in ../AnimeRun-orch/c4, implementer running
 
 ## Paused
 - b2 Tracks 8-10 PAUSED by owner until 2026-11-03 (branches: t8 714b8fc+f6b0ac1 phase 1 Sky Islands -> to be redone as Skypeia; t9 Volcano phase 2 partial; t10 5e3bb17+da0852d phase 1)
@@ -12,7 +12,7 @@
 ## Next
 - c1 must add: exhaustion pays per-distance share of the current track's pad cash (owner 2026-11-01; Track 1 not shortened)
 - Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds, EQUIP labels / MarketEquip (slot buttons), GachaService.SpeedMulti (before c3)
-- c2 Runner categories, Stamina stat point, Stamina potion, team bonus
+- c2 Stamina stat point, upgrade tree Stamina branch, Stamina potion, team bonus, category info card, team row + stamina bar polish: BUILT 2026-11-03, uncommitted, needs Studio check
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
 ## Backlog

@@ -43,7 +43,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
-| Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
+| Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); passive gain replaced by a chosen stat boost (4.19, owner 2026-11-03) | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (Speed retired 2026-11-01, 4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
@@ -82,10 +82,18 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
+  turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
+  refills with a flash when the next runner tags in. Display only.
+- Team row (owner 2026-11-03, replaces the rarity-colour ring of 2026-11-02): each portrait is only the character's
+  avatar head; rarity is not shown on the row. The current runner gets a clear animated indicator (enlarged, glowing
+  ring, a bobbing marker, and every portrait fills like a liquid level to its stamina); tired runners grey out with an animation; the tag-in
+  plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
-  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01).
+  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Owner 2026-11-03: Track 1 balance is fine
+  as is (no retune of Common speed, stamina or Track 1 length).
 
 ### 4.4 Losing stays a speed comparison
 - Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
@@ -100,10 +108,16 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Rarity still sets the base speed and base stamina; the category scales them. The category speed multiplies the
   damped cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it
   counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
+- Shown to the player (owner 2026-11-03): hovering a team row portrait (tap on touch) opens an info card with the
+  character's name, its category with the category's speed and stamina effect, its cruise (studs/s) and its stamina
+  (seconds). The card does not show rarity.
 
 ### 4.6 Stamina stat point (owner 2026-10-28)
 - Index stat points can be put into a new stat **Stamina**: each point adds +5% stamina to every character
   (placeholder), additive with other points like the IVS stats.
+- Upgrade tree **Stamina** branch (owner 2026-11-03): each owned tier adds +% stamina to every character, added to the
+  Stamina stat points' part: `1 + 0.05 x Alloc_Stamina + tree bonus` (placeholder +10% per tier, 5 tiers, +50% max).
+  Priced like the Speed branch (weight 1, placeholder). It sits on the free hex direction off Start.
 
 ### 4.7 Stamina potions (owner 2026-10-28)
 - A new potion category **Stamina** (IVS `BoostConfig` pattern): a timed boost, x1.5 stamina for every run started
@@ -183,7 +197,7 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
-  `Workshop` stat point still multiply it. Rate is a placeholder.
+  `Workshop` stat point still multiply it. Rate is a placeholder. RETIRED 2026-11-03: no passive gain (4.19).
 - Admin test runner Kami (owner 2026-11-01): admin command `/kami [player]` gives and equips Kami for the session
   only (never saved, never rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`
   (owner 2026-11-01, was 1 Sp).
@@ -228,6 +242,36 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   ahead) on the runner rig; the client takes the biome from it and switches at once at the finish pad. The nearest
   centre line (`ZoneAt`) is used only while walking. The speed look-ahead is removed (it switched ~280 studs early at
   800 studs/s and could pick a neighbouring track).
+
+### 4.19 Workshop stat boost (owner 2026-11-03; replaces the workshop / Dojo idle gain)
+- There is no passive gain: standing in the Dojo earns nothing, there is no offline workshop credit and no extra luck
+  while standing in the zone.
+- The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina (owner 2026-11-03). The
+  choice is saved (`WorkshopStat`, default Money) and can be changed at any time.
+- The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
+  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
+  sum x 5% (placeholders, owner 2026-11-03) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
+  Copies no longer count (proposed 2026-11-03).
+- Workshop levels stay (bought with Money, same prices) and scale the boost (owner 2026-11-03): boost x
+  (1 + 0.1 x (level - 1)) (proposed placeholder; level 10 = x1.9).
+- The boost applies always, everywhere, runs included (owner 2026-11-03). It is added to the chosen stat like the
+  upgrade tree bonus (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's
+  `1 + points + tree` part (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree`
+  part (4.6). Speed and Stamina are fixed at run start, like every other run multi.
+- The `Workshop` stat point is retired (owner 2026-11-03): allocated Workshop points are refunded as free points.
+
+### 4.20 UI animations across the board (owner 2026-11-03)
+- Every player-facing UI animates (owner 2026-11-03). Display only; every animation goes through `Client/UiMotion`, so
+  Roblox Reduced Motion and the in-game REDUCED EFFECTS land it at once. Timings below are proposed placeholders.
+  - Panels (every PanelSwitch panel): open = scale 0.9 -> 1 with Back easing + fade in, ~0.2 s; close = scale to 0.95
+    + fade out, ~0.12 s. List / grid items stagger in on open (~0.03 s apart, at most ~0.3 s total).
+  - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
+    1.035 / 0.97, orchestrator default 2026-11-03); disabled buttons do not move.
+  - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
+  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+    is ever shown wrong (orchestrator default 2026-11-03).
+  - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
+  - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
 
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
@@ -276,6 +320,13 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 ## Change log
 - 2026-11-03: owner: character art drafting starts (goal `char-art`): 30 regular-cast draft models in Blender
   from one shared chibi base, renders only, no Studio import yet; signature marks use clearly altered versions (section 5).
+- 2026-11-03: owner: UI animations across the board (4.20): panels, buttons, tabs, numbers, toasts, badges.
+- 2026-11-03: owner: workshop passive gain removed; the player picks one stat (Money, Luck, Speed, Stamina) and the
+  Dojo squad's combined rarity (points x 5%, scaled by workshop level) boosts it everywhere; Workshop stat point
+  retired and refunded; in-zone luck and offline workshop credit removed (4.19).
+- 2026-11-03: owner: Track 1 balance kept as is; runner categories shown on a hover info card of the team row (4.5);
+  team row shows only avatar heads, no rarity, with an animated current-runner indicator (4.3); upgrade tree gets a
+  Stamina branch (4.6, new); stamina bar drain / low / refill animation (4.3); stamina features (4.6-4.8) built.
 - 2026-11-02: owner: stamina implemented (c1 ported onto the fixed-speed code). Stamina lowered for track-by-track
   progression (Commons about 12-15 s, Secrets 30 s; 4.3), 3 swappable Team slots in the Backpack (4.2), a vertical blue
   stamina bar right of the running character (4.3). Category stamina retuned to x0.9 / x1.1 (proposed, 4.5).

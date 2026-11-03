@@ -278,3 +278,16 @@
   Studio smoke (studio worktree detached at 8b681de + this patch): drain, bar, swap 1-2-3, exhaustion cash-out OK.
   Fixed a TrackPreviews crash (SurfaceLight .Position). Balance: a Common (24 studs/s, 13.5 s) covers ~324 of
   Track 1's ~2,950 studs, so it can never win Track 1; owner must retune. c2 (stat point, potion, team bonus) open.
+- 2026-11-03 (UNCOMMITTED on feature/alex/anime-world, owner request): Track 1 balance kept (owner). c2 built: Stamina
+  stat point (GachaConfig.STATS + PER_POINT 0.05), upgrade tree Stamina branch (new, owner; stamina_1..5, +10%/tier,
+  hex {1,0}), Stamina potions StaminaI-III (orchestrator default: same tier pattern as the other potions; Robux pack
+  potion_stamina_pack ProductId 0, bundle, daily day 3, code RELEASE), Series / Preset team bonus
+  (SeriesCatalog.TeamBonus, StaminaConfig.Multi, preset cruise x1.1 now on). Stamina multi fixed at run start
+  (RaceService). Server publishes TeamBonus, TeamCruise1..3, TeamStamina1..3 (GachaService.RefreshTeam). TeamHud
+  rewritten: head-only portraits (body + rarity belt removed), neutral ring, stamina liquid level, active gold pulse +
+  bobbing marker, tag-in pop, tired grey + shrink, team bonus badge, hover / tap info card (name, category + effect,
+  cruise, stamina; no rarity). StaminaBar: tweened drain, "just lost" trail, blue/amber/red (StaminaConfig.Color),
+  low pulse, refill flash on swap. Docs: design doc 4.3/4.5/4.6 + change log, TEAM_AND_STAMINA_SPEC. stylua clean,
+  selene 0 errors, rojo build OK, lune check of TeamBonus / Multi / Seconds OK. NOT checked in Studio (no Studio
+  connected); changed files copied into ../AnimeRun-orch/studio/src. Placeholders: Stamina bottle + stat/tree icons
+  reuse Speed art; Shop potion packs now 4 per row. Tests (StaminaTests team_bonus etc.) not written (tests paused).

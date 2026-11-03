@@ -80,7 +80,7 @@ UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPG
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Money in the zone
+WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor

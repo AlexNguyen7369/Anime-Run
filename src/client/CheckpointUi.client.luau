@@ -252,7 +252,10 @@ local function render()
 	for n, refs in cards do
 		refs.Lock.Visible = not CheckpointConfig.IsOpen(n, best, #chain)
 		refs.Card.AutoButtonColor = n ~= shown
-		refs.Edge.Color = n == current and SELECTED or (n == shown and Color3.new(1, 1, 1) or TILE_BLUE)
+		UiMotion.Mark(
+			refs.Edge,
+			{ Color = n == current and SELECTED or (n == shown and Color3.new(1, 1, 1) or TILE_BLUE) }
+		)
 	end
 	local refs = shown and cards[shown]
 	if not refs then

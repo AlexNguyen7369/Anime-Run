@@ -42,6 +42,7 @@ Spec: docs/TEAM_AND_STAMINA_SPEC.md, docs/CHARACTER_GACHA_SPEC.md, docs/NPC_RIVA
 Deliverables:
 - c1 | Team of 3 + stamina + swap + run end by exhaustion + HUD (TEAM_AND_STAMINA_SPEC Team, Stamina, Swap, Run end, HUD) | its spec tests green
 - c2 | Runner categories, Stamina stat point, Stamina potion, team bonus (series / preset) (TEAM_AND_STAMINA_SPEC, CHARACTER_GACHA_SPEC Series and preset teams) | its spec tests green
+- c4 | Workshop stat boost (owner 2026-11-03, design doc 4.19, WORLD_REDESIGN_SPEC 5): chosen stat, squad rarity %, level scale, passive gain removed | stylua / selene clean, lune check of Workshop.Boost, Studio smoke when a Studio is connected (tests paused, owner 2026-11-01)
 - c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task
 Out of scope: final character art, Robux products, merging into `main`.
 

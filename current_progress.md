@@ -36,8 +36,10 @@
 33. 2026-11-02 — Alex Nguyen — Brought back sensei checkpoints (tracks lock until the one before is beaten, loss restarts at the checkpoint), added a bonus with a placeholder popup for tracks won past the checkpoint in one run, and made the Tracks panel more detailed with accurate biome previews (no Studio check yet).
 34. 2026-11-02 — Alex Nguyen — Implemented stamina and the team of 3 (Backpack slot picker, per-run drain with swaps, exhaustion share and cash-out, run bank restored, vertical blue stamina bar beside the runner, Commons ~13.5 s to Secrets 30 s), fixed a track-preview crash, and smoke-checked it in Studio.
 35. 2026-11-02 — Alex Nguyen — Replaced the retired Level bar with a team row of 3 circle portraits (slot 1-3 left to right, current runner enlarged with a gold ring, exhausted runners greyed out), checked in Studio and synced to the Rojo studio worktree.
+36. 2026-11-03 — Alex Nguyen — Landed c2 and c4: Stamina stat point, upgrade tree Stamina branch, Stamina potions and Series / preset team bonus; head-only team row with category info card and animated runner marker; animated stamina bar; workshop now boosts one chosen stat by the Dojo squad's rarity (passive gain, offline credit and the Workshop stat point retired); run cruise and stamina fixed at run start (audit PASS, Studio smoke OK).
+37. 2026-11-03 — Alex Nguyen — Landed UI animations across the board (design doc 4.20): panels scale in with a staggered list, every button gets hover / press feedback, tab markers tween, toasts and popups slide and fade, claimable badges pulse, all respecting Reduced Motion (audit PASS; panel close motion pending a harness change).
 
 ## What's next
-**Retune Track 1 progression for the new stamina (a Common covers ~324 of Track 1's ~2,950 studs before tiring, so it can never win Track 1), with the owner's choice of faster commons, longer stamina or a shorter Track 1; then c2 (Stamina stat point, Stamina potion, Series / preset team bonus).**
+**Run the full compatibility check (c3: full Studio harness to `[CARTEST] END fail=0` plus rules audit) and loop fixes until green, after the stale tests are retargeted and the UI animations (4.20) land.**
 
-**Why this is next:** new players cannot beat Track 1 or unlock a checkpoint until this is fixed, and c2's stamina multipliers are tuned on top of the base values.
+**Why this is next:** the owner asked for c3 on 2026-11-03; it is the last core deliverable and gates the PR into main.
