@@ -106,6 +106,8 @@ Stamina = Base(rarity or override)
 - Per-distance share (owner 2026-11-01): before the cash-out, the bank gains `PayoutCurve.Cash(n) x covered / length`
   of the track being run (share placeholder 1.0; `covered` clamped 0..length). Builds into c1.
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
+- Owner 2026-11-03: a loss is decided only when the runner reaches the finish. A team that tires partway down a track
+  the NPC has already finished ends by exhaustion (bank + per-distance share paid), not a loss.
 - Owner 2026-10-30: the run bank is restored, as design doc sections 2-4.3 say. Each track win adds its payout (x the
   checkpoint bonus, design doc 4.15) to the run's unbanked pot (not paid at once); exhaustion cashes it out once; a
   loss empties it; Stop, death and leaving cash it out.

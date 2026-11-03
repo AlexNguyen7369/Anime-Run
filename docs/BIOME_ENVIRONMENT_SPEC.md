@@ -85,6 +85,9 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 - The track `Ground` tiles stay as the dressing placement reference. Once the terrain is built they become
   `Transparency = 1`, `CanCollide = false`, `CanQuery = false`, which stops z-fighting with the terrain.
 
+- Owner 2026-11-03: a track's finish pad may take its biome's palette colour (it need not be yellow). Track 6 keeps one
+  street-wall block row.
+
 ## 3. Terrain
 
 ### 3.1 Generated at server start (decided)
