@@ -291,6 +291,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			local given = options.StaminaSeconds and options.StaminaSeconds[slot]
 			seconds[slot] = type(given) == "number" and given > 0 and given
 				or StaminaConfig.Seconds(CharacterCatalog.Get(id), staminaMulti)
+			if staminaMode and typeof(player) == "Instance" then -- cleared with the other stamina attributes at run end
+				player:SetAttribute("RunSeconds" .. slot, seconds[slot]) -- the team row's seconds left
+			end
 		end
 	end
 	snapshotStamina()
@@ -695,6 +698,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)
+					player:SetAttribute("RunSeconds" .. slot, nil)
 				end
 			end
 			if npcMode then

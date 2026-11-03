@@ -154,7 +154,10 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 - Team row (owner 2026-11-02, replaces the portrait cards beside the Speed number): 3 circle portraits in the retired
   Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Owner
   2026-11-03: avatar head only (body and rarity belt removed), no rarity colour (neutral ring); while running each
-  portrait's background fills like a liquid level to its `Stamina<n>` (bar colours); active runner: enlarged, pulsing
+  portrait shows its `Stamina<n>` on a thick curved arc along the lower right of the circle (bar colours, replaces the
+  liquid level, owner 2026-11-03: smoother row after the owner's reference image; the head breaks out of the top of a
+  dark circle). Orchestrator default 2026-11-03: a slanted number at the lower left shows that runner's stamina seconds
+  left (the run's fixed `RunSeconds<n>` while running, `TeamStamina<n>` on foot); the arc eases per frame and the slots do not shift. Active runner: enlarged, pulsing
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). Display only. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose
@@ -166,7 +169,9 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   (BillboardGui, camera-relative offset), filled to the owner's `Stamina<RunSlot>`. Shown only while running.
   Owner 2026-11-03: the fill tweens between server updates (no steps), a pale "just lost" trail follows it down
   after a short delay, colour blue > 50% > amber > 25% > red (placeholders), pulses below 25%, refills with a white
-  flash on a tag-in.
+  flash on a tag-in. Orchestrator default 2026-11-03 (owner asked for UI fixes): a
+  minimum on-screen size so it stays readable from far away; low pulse, active pulse and marker bob stop under reduced
+  motion (design doc 4.20); the bonus badge sits on a dark pill and the info card stays on screen.
 - Toasts: "<Name> TAG IN!" on a swap, "TEAM EXHAUSTED +$X" on exhaustion (plain text placeholder).
 
 ## Tests (to write first)

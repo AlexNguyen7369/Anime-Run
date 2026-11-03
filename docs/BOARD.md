@@ -21,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- uipolish 2026-11-03: rebirth +5% cruise and speed tile, stamina bar fixes, team row rebuilt with a stamina arc
 - 2026-11-03 char-art a1-a3: 30 draft character models (shared chibi Blender base, headless build), art reference sheet, contact sheet (merge 4ae6d23, push failing): rules audit PASS, all 30 Reviewed; owner visual review open
 - 2026-11-01 u4 per-slot aura/trail + slot UI, Speed Doubler passes removed, Best Roll fed, upgrade Speed branch +% cruise (merge 98fdad5): Studio: equip slot 1 -> Cruise 24.95, move to slot 2, remove, slot 4 refused, Backpack slot buttons OK, no Speed Doubler in Shop, 0 errors
 - 2026-11-01 u1 fixed cruise (rarity x category), Speed stat removed, rebirth luck/XP/point, info-only sensei, workshop pays Money (merge c448a79): Studio smoke: Cruise=20 Common, leaderstats Money only, 0 errors; CarTest/UiTest still reference removed Speed APIs

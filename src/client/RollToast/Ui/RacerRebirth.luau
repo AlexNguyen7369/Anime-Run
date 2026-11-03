@@ -614,7 +614,7 @@ function Ui.Build(playerGui)
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(200, 34),
 		Size = UDim2.fromOffset(176, 112),
-		Visible = false, -- no speed gain (design doc 4.14)
+		Visible = true,
 		BackgroundTransparency = 1,
 	}, v9)
 	local v14s = new("Frame", {
@@ -667,13 +667,13 @@ function Ui.Build(playerGui)
 			AnchorPoint = Vector2.new(0, 0),
 			Position = UDim2.fromOffset(200, 34),
 			Size = UDim2.fromOffset(176, 112),
-			Visible = false,
+			Visible = true,
 		},
 		{
 			AnchorPoint = Vector2.new(0, 0),
 			Position = UDim2.fromOffset(167, 22),
 			Size = UDim2.fromOffset(150, 76),
-			Visible = false,
+			Visible = true,
 		},
 	})
 	local v15 = new("ImageLabel", {
@@ -1806,7 +1806,7 @@ function Ui.Bind(playerGui)
 		AnchorPoint = Vector2.new(0, 0),
 		Position = UDim2.fromOffset(200, 34),
 		Size = UDim2.fromOffset(176, 112),
-		Visible = false, -- no speed gain (design doc 4.14)
+		Visible = true,
 		BackgroundTransparency = 1,
 	}, v9)
 	local v14s = new("Frame", {
@@ -1859,13 +1859,13 @@ function Ui.Bind(playerGui)
 			AnchorPoint = Vector2.new(0, 0),
 			Position = UDim2.fromOffset(200, 34),
 			Size = UDim2.fromOffset(176, 112),
-			Visible = false,
+			Visible = true,
 		},
 		{
 			AnchorPoint = Vector2.new(0, 0),
 			Position = UDim2.fromOffset(167, 22),
 			Size = UDim2.fromOffset(150, 76),
-			Visible = false,
+			Visible = true,
 		},
 	})
 	local v15 = new("ImageLabel", {

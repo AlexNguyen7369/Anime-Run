@@ -28,7 +28,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
    - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat (owner 2026-11-01).
-7. Money buys upgrades; rebirth needs and resets Money for luck and a stat point (4.14). There is no player level or XP.
+7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -87,7 +87,8 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   refills with a flash when the next runner tags in. Display only.
 - Team row (owner 2026-11-03, replaces the rarity-colour ring of 2026-11-02): each portrait is only the character's
   avatar head; rarity is not shown on the row. The current runner gets a clear animated indicator (enlarged, glowing
-  ring, a bobbing marker, and every portrait fills like a liquid level to its stamina); tired runners grey out with an animation; the tag-in
+  ring, a bobbing marker, and every portrait shows its stamina on a thick arc, owner 2026-11-03 later the same day, replaces the liquid level,
+  with its stamina seconds left as a number, orchestrator default); tired runners grey out with an animation; the tag-in
   plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
@@ -194,7 +195,8 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Upgrade tree **Money** branch (owner 2026-11-03, replaces the IVS +50%): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
     slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
-  - Rebirth adds speed only through its +1 stat point per level (4.14).
+  - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
+    and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
@@ -206,7 +208,10 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   CRUISE row and the character cards still show cruise.
 
 ### 4.14 Rebirth (owner 2026-11-01)
-- Rebirth gives no speed gain. Each rebirth level gives: luck multi and +1 stat point (the "stat boost").
+- Each rebirth level gives: luck multi, +5% cruise (owner 2026-11-03, replaces "no speed gain"; placeholder,
+  `RebirthConfig.SPEED_PER_REBIRTH`, +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost").
+  The Rebirth panel shows all three rewards, with the speed icon on the speed tile. Luck and speed show the total after the
+  next rebirth; the stat point tile shows the points that rebirth gives.
 - Rebirth resets Money (there is no Speed to reset).
 - Player levels and XP are removed (owner 2026-11-01, later). Rebirth n+1 needs Money >= `BASE_MONEY` x
   `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
@@ -335,6 +340,10 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: team row rebuilt after the owner's reference image: stamina arc replaces the liquid level, head
+  breaks out of a dark circle (4.3, TEAM_AND_STAMINA_SPEC HUD).
+- 2026-11-03: owner: rebirth gives real speed again: +5% cruise per rebirth level (placeholder), shown with a speed
+  icon on the Rebirth panel (4.13, 4.14).
 - 2026-11-03: owner (c3 rulings): finish pads may use their biome's palette colour (not always yellow); Track 6 keeps
   one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance
   share paid), not a loss: a loss is decided only at the runner's finish.

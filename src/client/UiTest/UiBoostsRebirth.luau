@@ -95,11 +95,15 @@ function Extras.Build(h)
 		for _, tile in RB.Tiles do
 			local value = if tile.Multiplier
 				then RebirthConfig.NextMultiplier(rebirthLevel)
+				elseif tile.Next then RebirthConfig[tile.Next](rebirthLevel + 1)
 				else RebirthConfig[tile.Config]
 			local _, caption = tileParts(nodes, tile.Name)
 			local text = caption and caption:IsA("TextLabel") and caption.Text or nil
 			if type(value) ~= "number" then
-				table.insert(captions, ("%s: RebirthConfig.%s is %s"):format(tile.Name, tile.Config, typeof(value)))
+				table.insert(
+					captions,
+					("%s: RebirthConfig.%s is %s"):format(tile.Name, tile.Next or tile.Config, typeof(value))
+				)
 			else
 				local want
 				if tile.Multiplier then

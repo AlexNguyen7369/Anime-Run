@@ -1039,7 +1039,7 @@ function Tests.weather()
 end
 
 -- BRIEF (owner, 2026-10-12; docs/GAME_DESIGN_REQUIREMENTS.md "Rebirth system", docs/SAVE_SPEC.md sections 2 and 3):
--- "Rebirthing resets Money" (design doc 4.14: there is no Speed). RebirthService.Rebirth(player) needs the Money
+-- "Rebirthing resets Money" (design doc 4.14: there is no Speed stat). RebirthService.Rebirth(player) needs the Money
 -- requirement (owner 2026-11-01: Level/XP removed) and sets leaderstats.Money to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
 -- MoneyEarned and DuelWins survive.
 function Tests.rebirth()
@@ -1126,8 +1126,20 @@ function Tests.rebirth()
 			and config.CanRebirth(19, 1e24 - 1e9) == false
 	)
 	flag("rebirth_old_x10_totals_removed", config.REBIRTH_TOTALS == nil and config.REPEAT_FACTOR == nil)
-	-- design doc 4.14 (owner 2026-11-01): rebirth gives no speed gain multi
+	-- design doc 4.14: the old SpeedGainMulti stays gone; the cruise gain is SpeedBonus (owner 2026-11-03)
 	flag("rebirth_speed_gain_multi_removed", config.SpeedGainMulti == nil)
+	local speedBonus, perLevel = config.SpeedBonus, config.SPEED_PER_REBIRTH
+	flag(
+		"rebirth_speed_bonus",
+		type(speedBonus) == "function"
+			and type(perLevel) == "number"
+			and near(speedBonus(0), 0)
+			and near(speedBonus(1), perLevel)
+			and near(speedBonus(20), 20 * perLevel)
+			and near(speedBonus(25), speedBonus(20)) -- capped at MAX_LEVEL
+			and near(speedBonus(nil), 0)
+			and near(speedBonus(0 / 0), 0)
+	)
 	local nextOk = type(config.NextMultiplier) == "function"
 	for _, level in { 0, 1, 9, 10, 18, 19, 20, 21 } do
 		nextOk = nextOk and config.NextMultiplier(level) == config.LuckMulti(level + 1)
