@@ -74,3 +74,6 @@
 - INCIDENT 2026-10-31: the Track 8 builder killed PID 94879 (the IVS dashboard, ~/Documents/RobloxGames tools/dashboard/server.py on :8765) while freeing a port, then restarted it as `server.py --port 8765`; it answers 200. Check it runs with your usual flags.
 - Track 8: GiantBeanstalk and CloudTown heroes are part-built (generator caps ~2:1; CloudTown try read as a face). Bell toll is ProSoundEffects 9113804175 (Studio cannot upload audio; in-house bell_toll.wav unused). 0.82-1.0 Inner is now cloud mounds so the bell is visible.
 - Track 4: MoonPeak horizon backdrop reads as a flat pale box (T4_Landmark). Track 10: hard near/far water edge in the aerial; dome-house doors face away from the road.
+
+## 2026-11-03 uipolish: active runner animation (rules audit)
+Design doc 4.20 says every animation goes through `Client/UiMotion`. The team row's active glow and marker bob are a RenderStepped loop in `TeamHud.client.luau`, not a UiMotion preset; they do stop under reduced motion, and `CheckpointUi` uses the same pattern. Question: does that gate satisfy 4.20, or must the loop move into UiMotion? Blocks nothing.

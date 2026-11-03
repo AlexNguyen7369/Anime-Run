@@ -1,6 +1,7 @@
 # Board
 
 ## Doing
+- uipolish (owner 2026-11-03): rebirth +5% cruise and speed tile, stamina bar and team row fixes. Audit PASS, Studio desktop check OK, on orch/core/uipolish in ../AnimeRun-orch/uipolish; merge waits for the main checkout's uncommitted character-art work
 - c4 Workshop stat boost (owner 2026-11-03, design doc 4.19): orch/core/c4 in ../AnimeRun-orch/c4, implementer running
 
 ## Paused
