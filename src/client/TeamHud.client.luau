@@ -22,12 +22,12 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local SLOTS = 3
 local CIRCLE = 52 -- px (placeholder)
-local SPACING = 72 -- px between slot centres (placeholder)
+local SPACING = 78 -- px between slot centres (placeholder)
 local ARC_THICK = 8 -- px (placeholder)
 local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right
 local ARC_DOTS = 24 -- overlapping circles; shortcut: no ring image asset, upload one if the edge ever looks scalloped
 local EASE = 10 -- per second, arc and number easing (placeholder)
-local HEAD_FIT = 0.62 -- camera distance factor for the head (placeholder)
+local HEAD_FIT = 0.95 -- camera distance factor for the head (placeholder)
 local ITALIC = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 local CARD_WIDTH = 240 -- px (placeholder)
 local ACTIVE_SCALE = 1.18 -- placeholders
