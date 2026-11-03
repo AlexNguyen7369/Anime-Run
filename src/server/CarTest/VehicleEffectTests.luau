@@ -23,7 +23,11 @@ local TRAILS = { "void_trailCore", "void_trailEdgeL", "void_trailEdgeR" }
 local EMITTERS = { "void_trailMotes", "void_trailSmoke" }
 local EMITTER_ATTACHMENT = "void_trailEmitter"
 local DRIVE_SECONDS = 3
-local MIN_DRIVE_DISTANCE = 20 -- studs the chassis must cover in DRIVE_SECONDS
+local MIN_DRIVE_DISTANCE = 20 -- studs the chassis must cover in DRIVE_SECONDS (floor)
+-- Fixed cruise (design doc 4.13): the runner covers run.TargetSpeed x time along the rail. The chassis and every
+-- effect attachment must travel at least this share of that, summed frame to frame (a spiral road brings the runner
+-- back near where it started, so a straight start-to-end distance says nothing about travel).
+local DRIVE_SHARE = 0.5
 local MIN_RIBBON_WIDTH = 0.05 -- studs between a trail's two attachments
 local MASS_TOLERANCE = 1e-6
 local TRACK_TOLERANCE = 1e-3 -- studs: attachment world position vs chassis-space position
@@ -272,10 +276,12 @@ function Tests.make(helpers)
 			flag("equip_controls_unchanged", sameRun and car:GetAttribute("AutoRace") == true)
 
 			-- 4 + 5. The car drives on: the chassis travels, every effect attachment rides on it, no tilt
-			local start = chassis.Position
-			local attStart = {}
+			local last = chassis.Position
+			local travelled = 0
+			local attLast, attTravel = {}, {}
 			for i, a in atts do
-				attStart[i] = a.WorldPosition
+				attLast[i] = a.WorldPosition
+				attTravel[i] = 0
 			end
 			local minUpY, maxTrackErr, detached = 1, 0, 0
 			local t = 0
@@ -283,6 +289,12 @@ function Tests.make(helpers)
 				t += RunService.Heartbeat:Wait()
 				if not chassis.Parent then
 					break
+				end
+				travelled += (chassis.Position - last).Magnitude
+				last = chassis.Position
+				for i, a in atts do
+					attTravel[i] += (a.WorldPosition - attLast[i]).Magnitude
+					attLast[i] = a.WorldPosition
 				end
 				minUpY = math.min(minUpY, chassis.CFrame.UpVector.Y)
 				for _, a in atts do
@@ -294,14 +306,16 @@ function Tests.make(helpers)
 					end
 				end
 			end
-			local moved = (chassis.Position - start).Magnitude
-			flag("drive_chassis_moved", moved > MIN_DRIVE_DISTANCE, moved, MIN_DRIVE_DISTANCE)
+			local speed = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
+			local wantTravel = math.max(MIN_DRIVE_DISTANCE, DRIVE_SHARE * speed * t)
+			r.metrics.drive = { seconds = t, target_speed = speed, finished = run.Finished == true, want = wantTravel }
+			flag("drive_chassis_moved", travelled > wantTravel, travelled, wantTravel)
 			local minAttMoved = math.huge
-			for i, a in atts do
-				minAttMoved = math.min(minAttMoved, (a.WorldPosition - attStart[i]).Magnitude)
+			for i in atts do
+				minAttMoved = math.min(minAttMoved, attTravel[i])
 			end
 			minAttMoved = #atts > 0 and minAttMoved or 0
-			flag("drive_trail_laid", minAttMoved > MIN_DRIVE_DISTANCE, minAttMoved, MIN_DRIVE_DISTANCE)
+			flag("drive_trail_laid", minAttMoved > wantTravel, minAttMoved, wantTravel)
 			flag("drive_attachments_stay_on_chassis", detached == 0, detached, 0)
 			flag("drive_attachments_track_chassis", maxTrackErr <= TRACK_TOLERANCE, maxTrackErr, TRACK_TOLERANCE)
 			flag("drive_min_up_y", minUpY >= strict, minUpY, strict)

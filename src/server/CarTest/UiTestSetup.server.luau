@@ -97,6 +97,27 @@ end
 
 local setups = {}
 
+-- Team-of-3 stamina (design doc 4.3) ends an auto race by exhaustion in ~13.5 s (a Common team), which would end the
+-- auto_racing fixture mid-run. From auto_racing until 'restore', this player's runs get untiring stamina through
+-- RaceService's StaminaSeconds test seam (a run that passes its own keeps it). Real play is never affected.
+local longStamina = {} -- [Player] = true
+local wrappedNewRun = false
+local function wrapNewRun()
+	if wrappedNewRun then
+		return
+	end
+	wrappedNewRun = true
+	local RaceService = live("RaceService")
+	local orig = RaceService.NewRun
+	RaceService.NewRun = function(car, raceRoute, p, options)
+		if longStamina[p] then
+			options = table.clone(options or {})
+			options.StaminaSeconds = options.StaminaSeconds or { 1e6, 1e6, 1e6 }
+		end
+		return orig(car, raceRoute, p, options)
+	end
+end
+
 -- Global (not per player): logs every RemoteEvent call into ReplicatedStorage.UiTestSpy attributes,
 -- one JSON array per remote name: [{ user = UserId, args = {...} }, ...]. The real handlers still run.
 local function spy()
@@ -144,6 +165,7 @@ function setups.snapshot(player)
 end
 
 function setups.restore(player)
+	longStamina[player] = nil
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -206,10 +228,23 @@ function setups.no_stat_points(player)
 	player:SetAttribute("StatPoints", G.FreePoints(player))
 end
 
+local AUTO_RACING_TIMEOUT = 10 -- seconds for a stop / start to land
 function setups.auto_racing(player)
 	local CarService = live("CarService")
-	if CarService.IsAutoRacing(player) ~= true then
+	wrapNewRun()
+	local fresh = not longStamina[player]
+	longStamina[player] = true
+	-- a run started before the seam was on still tires: start a new one (stop, then start)
+	if fresh and CarService.IsAutoRacing(player) == true then
+		CarService.SetAutoRace(player, false)
+	end
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) ~= true do
 		CarService.SetAutoRace(player, true)
+		if player.Parent ~= Players or os.clock() - start > AUTO_RACING_TIMEOUT then
+			error("auto_racing: not auto racing after " .. AUTO_RACING_TIMEOUT .. " s")
+		end
+		task.wait(0.25)
 	end
 end
 

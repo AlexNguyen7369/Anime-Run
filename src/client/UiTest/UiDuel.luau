@@ -147,8 +147,9 @@ function Duel.Observe(helpers)
 		end
 	end)
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-		local remote = remotes and remotes:WaitForChild(D.Remote, 30)
+		-- no timeout: on a fresh Play the server builds every track before it makes Remotes
+		local remotes = ReplicatedStorage:WaitForChild("Remotes")
+		local remote = remotes:WaitForChild(D.Remote)
 		if not (remote and remote:IsA("RemoteEvent")) then
 			return
 		end

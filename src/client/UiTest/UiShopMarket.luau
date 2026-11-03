@@ -7,7 +7,6 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
@@ -404,30 +403,7 @@ function ShopMarket.Build(h)
 				table.insert(cardBad, ("%s: %d Buy buttons, want %d"):format(name, buys, #entries + (extra or 0)))
 			end
 		end
-		sectionCards("Featured", CharacterCatalog.Passes(), function(car, c, buy)
-			local text = h.allText(c)
-			-- The car preview: a ViewportFrame, or the "?" placeholder when the car has no model yet
-			local preview = false
-			for _, d in c:GetDescendants() do
-				preview = preview or d:IsA("ViewportFrame") or (d:IsA("TextLabel") and d.Text == "?")
-			end
-			if not preview then
-				table.insert(cardBad, "Featured/" .. car.Id .. ': no ViewportFrame car preview (or "?")')
-			end
-			for _, piece in { car.Name, car.Rarity, HudFormat.Multi(car.SpeedMulti) } do
-				if not has(text, piece) then
-					table.insert(cardBad, ("Featured/%s: text has no %q"):format(car.Id, piece))
-				end
-			end
-			priceProblems(
-				priceBad,
-				"Featured/" .. car.Id,
-				buy,
-				car.RobuxPrice or 0,
-				car.GamepassId or 0,
-				attr("Pass_" .. car.Id) == true and car.Id
-			)
-		end)
+		-- retired: the Featured gamepass-car cards (gamepass cars removed, design doc 4.1, owner 2026-10-28)
 		sectionCards("Gamepasses", MonetizationConfig.Gamepasses, function(pass, c, buy)
 			if not has(h.allText(c), pass.Name) then
 				table.insert(cardBad, ("Gamepasses/%s: text has no %q"):format(pass.Id, pass.Name))
