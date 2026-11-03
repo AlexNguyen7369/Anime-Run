@@ -38,8 +38,9 @@
 35. 2026-11-02 — Alex Nguyen — Replaced the retired Level bar with a team row of 3 circle portraits (slot 1-3 left to right, current runner enlarged with a gold ring, exhausted runners greyed out), checked in Studio and synced to the Rojo studio worktree.
 36. 2026-11-03 — Alex Nguyen — Landed c2 and c4: Stamina stat point, upgrade tree Stamina branch, Stamina potions and Series / preset team bonus; head-only team row with category info card and animated runner marker; animated stamina bar; workshop now boosts one chosen stat by the Dojo squad's rarity (passive gain, offline credit and the Workshop stat point retired); run cruise and stamina fixed at run start (audit PASS, Studio smoke OK).
 37. 2026-11-03 — Alex Nguyen — Landed UI animations across the board (design doc 4.20): panels scale in with a staggered list, every button gets hover / press feedback, tab markers tween, toasts and popups slide and fade, claimable badges pulse, all respecting Reduced Motion (audit PASS; panel close motion pending a harness change).
+38. 2026-11-03 — Alex Nguyen — Drafted 30 launch-character models from a shared headless Blender chibi base with an art reference sheet and contact sheet (rules audit PASS; push to origin failing, merge local).
 
 ## What's next
-**Run the full compatibility check (c3: full Studio harness to `[CARTEST] END fail=0` plus rules audit) and loop fixes until green, after the stale tests are retargeted and the UI animations (4.20) land.**
+**Run the full compatibility check (c3: full Studio harness to `[CARTEST] END fail=0` plus rules audit) and loop fixes until green, after the stale tests are retargeted.**
 
-**Why this is next:** the owner asked for c3 on 2026-11-03; it is the last core deliverable and gates the PR into main.
+**Why this is next:** the owner asked for c3 on 2026-11-03; it is the last core deliverable and gates the PR into main. The char-art drafts wait on the owner's visual review, and the failing push must be retried first so c3 runs on what is on origin.
