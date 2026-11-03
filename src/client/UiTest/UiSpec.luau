@@ -1155,7 +1155,10 @@ ui-tester on the SERVER datamodel (a client cannot: client attribute changes do 
   1. ReplicatedStorage:SetAttribute("UiTestSetup", "<id>:<nonce>")   (a fresh nonce every time)
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
   3. ReplicatedStorage:GetAttribute("UiTestSetupError") must be nil/empty, otherwise the step failed
-The client harness never changes saved state and never triggers setup; it reads the replicated state. Checks
+The client harness never changes saved state. In a full run (UiTestRun) it asks for the states its scenarios need
+itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next) through the Studio-only
+RemoteFunction ReplicatedStorage.UiTestSetupRequest, and puts them back after the run; every other setup is still
+triggered from the server datamodel as above. Checks
 whose state is missing fail with value "state_missing:<Id>".
 ]]
 UiSpec.ServerSetup = {
