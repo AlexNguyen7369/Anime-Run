@@ -143,6 +143,22 @@ Preset trios (the anime's famous team):
 - Each rarity adds detail: Common plain; Epic+ gets an aura particle; Mythic+ a trail and unique run style.
 - Pipeline: Blender (Blender MCP) -> FBX -> Studio import -> `CharacterModels`.
 
+### Draft pipeline (owner 2026-11-03, goal `char-art`)
+
+- Visual sources per character: `docs/CHARACTER_ART_REFERENCES.md` (internal, real names allowed, never ships).
+- One shared chibi base built by Python (`tools/blender/chibi_base.py`), run headless:
+  `Blender -b --python tools/blender/build_character.py -- <id>`. Parts are named after the 15 R15 parts (Head,
+  UpperTorso, LowerTorso, Left/Right UpperArm, LowerArm, Hand, UpperLeg, LowerLeg, Foot) so a later import can map
+  them onto an R15 rig.
+- Per-character look comes from data only: `tools/blender/characters.json`, keyed by `Id` (hair preset + colours,
+  eyes, skin, outfit pieces, accessories, altered mark). Object and file names use the `Id`, never a real name.
+- Budget: at most 4,000 triangles per character (proposed).
+- Output: `assets/characters/<id>/<id>.blend` and `assets/characters/<id>/review/{front,side,back,three_quarter}.png`;
+  `assets/characters/contact_sheet.png` with all 30.
+- Review: the rules auditor checks the renders and json (altered marks clearly differ, no real names in files, no
+  ripped assets) and signs `Reviewed` per id in `characters.json`; then the owner reviews the contact sheet.
+- Drafts only: Studio import, R15 rigging, animation and the `Model` field come after the owner approves the looks.
+
 ## Tests
 
 - `gacha`: rarest-first odds, turbo roll, duplicate adds `Copies`, Index points.

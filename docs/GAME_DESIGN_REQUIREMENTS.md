@@ -287,6 +287,9 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
     assets), every script stripped, each id and its creator logged in the biome asset ledger.
   - Real character or series names never appear in the game title, description, thumbnails, icons, badges or
     developer product names.
+  - Signature marks (owner 2026-11-03): a character's headband plate, crest, cloak pattern or emblem uses a clearly
+    altered version of the mark (different shape, not a near copy), never the official one. Each alteration is
+    listed in `docs/CHARACTER_ART_REFERENCES.md` and checked by the rules auditor.
   - Keep one list of every parody and its source (`docs/CHARACTER_GACHA_SPEC.md`) so a takedown can be answered by
     renaming / reskinning one character fast; character `Id`s never contain the real name, so a rename never touches
     saves.
@@ -315,6 +318,8 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: character art drafting starts (goal `char-art`): 30 regular-cast draft models in Blender
+  from one shared chibi base, renders only, no Studio import yet; signature marks use clearly altered versions (section 5).
 - 2026-11-03: owner: UI animations across the board (4.20): panels, buttons, tabs, numbers, toasts, badges.
 - 2026-11-03: owner: workshop passive gain removed; the player picks one stat (Money, Luck, Speed, Stamina) and the
   Dojo squad's combined rarity (points x 5%, scaled by workshop level) boosts it everywhere; Workshop stat point
