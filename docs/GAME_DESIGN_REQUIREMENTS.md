@@ -82,10 +82,18 @@ The game is the same concept as IVS, with cars replaced by characters and the si
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
+  turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
+  refills with a flash when the next runner tags in. Display only.
+- Team row (owner 2026-11-03, replaces the rarity-colour ring of 2026-11-02): each portrait is only the character's
+  avatar head; rarity is not shown on the row. The current runner gets a clear animated indicator (enlarged, glowing
+  ring, a bobbing marker, and every portrait fills like a liquid level to its stamina); tired runners grey out with an animation; the tag-in
+  plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
-  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01).
+  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Owner 2026-11-03: Track 1 balance is fine
+  as is (no retune of Common speed, stamina or Track 1 length).
 
 ### 4.4 Losing stays a speed comparison
 - Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
@@ -100,10 +108,16 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Rarity still sets the base speed and base stamina; the category scales them. The category speed multiplies the
   damped cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it
   counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
+- Shown to the player (owner 2026-11-03): hovering a team row portrait (tap on touch) opens an info card with the
+  character's name, its category with the category's speed and stamina effect, its cruise (studs/s) and its stamina
+  (seconds). The card does not show rarity.
 
 ### 4.6 Stamina stat point (owner 2026-10-28)
 - Index stat points can be put into a new stat **Stamina**: each point adds +5% stamina to every character
   (placeholder), additive with other points like the IVS stats.
+- Upgrade tree **Stamina** branch (owner 2026-11-03): each owned tier adds +% stamina to every character, added to the
+  Stamina stat points' part: `1 + 0.05 x Alloc_Stamina + tree bonus` (placeholder +10% per tier, 5 tiers, +50% max).
+  Priced like the Speed branch (weight 1, placeholder). It sits on the free hex direction off Start.
 
 ### 4.7 Stamina potions (owner 2026-10-28)
 - A new potion category **Stamina** (IVS `BoostConfig` pattern): a timed boost, x1.5 stamina for every run started
@@ -271,6 +285,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: Track 1 balance kept as is; runner categories shown on a hover info card of the team row (4.5);
+  team row shows only avatar heads, no rarity, with an animated current-runner indicator (4.3); upgrade tree gets a
+  Stamina branch (4.6, new); stamina bar drain / low / refill animation (4.3); stamina features (4.6-4.8) built.
 - 2026-11-02: owner: stamina implemented (c1 ported onto the fixed-speed code). Stamina lowered for track-by-track
   progression (Commons about 12-15 s, Secrets 30 s; 4.3), 3 swappable Team slots in the Backpack (4.2), a vertical blue
   stamina bar right of the running character (4.3). Category stamina retuned to x0.9 / x1.1 (proposed, 4.5).

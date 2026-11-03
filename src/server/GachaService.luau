@@ -19,6 +19,8 @@ local MarketConfig = require(Shared.MarketConfig)
 local RaceConfig = require(Shared.RaceConfig)
 local RebirthConfig = require(Shared.RebirthConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
+local SeriesCatalog = require(Shared.SeriesCatalog)
+local StaminaConfig = require(Shared.StaminaConfig)
 local UpgradeService = require(script.Parent.UpgradeService)
 
 local GachaService = {}
@@ -92,14 +94,14 @@ function GachaService.Setup(player)
 	if not watched[player] then
 		watched[player] = true
 		local function refresh()
-			if player:GetAttribute("AutoRacing") ~= true then
-				player:SetAttribute("Cruise", GachaService.Cruise(player)) -- a run sets its own fixed cruise
-			end
+			GachaService.RefreshTeam(player)
 			player:SetAttribute("LuckMulti", RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel")))
 		end
 		player.AttributeChanged:Connect(function(name)
 			if
 				name == "EquippedCar"
+				or name == "Team"
+				or string.sub(name, 1, 18) == "BoostUntil_Stamina"
 				or string.match(name, "^Slot%d+Aura$")
 				or string.match(name, "^Slot%d+Trail$")
 				or name == "RebirthLevel"
@@ -116,6 +118,12 @@ function GachaService.Setup(player)
 	end
 	return data
 end
+
+UpgradeService.OnChanged(function(player)
+	if watched[player] then
+		GachaService.RefreshTeam(player)
+	end
+end)
 
 local function alloc(player)
 	local a = {}
@@ -357,23 +365,67 @@ function GachaService.Allocate(player, stat)
 	return true
 end
 
--- Cruise of the equipped character, studs/s (design doc 4.13): fixed by rarity x category, times the speed multi
--- (Speed points + upgrade tree Speed tiers, active Speed potion, team slot `slot`'s damped aura and trail), capped
--- at MAX_CRUISE. The character's SpeedMulti never enters it. The runner is EquippedCar (RaceService sets it to the
--- active Team slot's character); `slot` (default 1) picks that slot's aura and trail. Preset bonus: c2.
-function GachaService.Cruise(player, slot)
+-- Team bonus of the player's Team (design doc 4.8): "Preset" / "Series" / nil, and the series.
+function GachaService.TeamBonus(player)
+	return SeriesCatalog.TeamBonus(GachaService.TeamList(player), function(id)
+		local spec = CharacterCatalog.Get(id)
+		return spec and spec.Series
+	end)
+end
+
+-- Player stamina multi (design doc 4.6-4.8): Stamina points + upgrade tree Stamina tiers, active Stamina potion,
+-- team bonus. Read once at run start (RaceService).
+function GachaService.StaminaMulti(player)
+	return StaminaConfig.Multi(
+		alloc(player).Stamina,
+		UpgradeService.Bonuses(player).Stamina,
+		require(script.Parent.BoostService).Multiplier(player, "Stamina"),
+		(GachaService.TeamBonus(player))
+	)
+end
+
+-- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
+-- times the speed multi (Speed points + upgrade tree Speed tiers, active Speed potion, preset team bonus, that slot's
+-- damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
+-- not own runs as the starter.
+function GachaService.CruiseFor(player, id, slot)
 	slot = slot or 1
-	local id = player:GetAttribute("EquippedCar")
 	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
 	local multi = RaceConfig.SpeedMulti(
 		alloc(player).Speed,
 		require(script.Parent.BoostService).Multiplier(player, "Speed"),
-		false,
+		GachaService.TeamBonus(player) == "Preset",
 		MarketConfig.SpeedMulti(player, slot),
 		MarketConfig.TrailMulti(player, slot),
 		UpgradeService.Bonuses(player).Speed
 	)
 	return RaceConfig.Cruise(spec, multi)
+end
+
+-- Cruise of the equipped character (EquippedCar: RaceService sets it to the active Team slot's character).
+function GachaService.Cruise(player, slot)
+	return GachaService.CruiseFor(player, player:GetAttribute("EquippedCar"), slot)
+end
+
+-- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
+-- ""), TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Cruise while on foot (a run sets its own).
+-- shortcut: a potion expiring on foot does not refresh TeamStamina until the next change; poll if that matters.
+function GachaService.RefreshTeam(player)
+	local team = GachaService.TeamList(player)
+	local kind, series = GachaService.TeamBonus(player)
+	player:SetAttribute("TeamBonus", kind and (kind .. ":" .. series.Id) or "")
+	local staminaMulti = GachaService.StaminaMulti(player)
+	for slot = 1, TEAM_SIZE do
+		local spec = team[slot] and CharacterCatalog.Get(team[slot])
+		player:SetAttribute("TeamCruise" .. slot, spec and GachaService.CruiseFor(player, team[slot], slot) or nil)
+		player:SetAttribute(
+			"TeamStamina" .. slot,
+			spec and math.round(StaminaConfig.Seconds(spec, staminaMulti) * 10) / 10 or nil
+		)
+	end
+	if player:GetAttribute("AutoRacing") ~= true then
+		player:SetAttribute("Cruise", GachaService.Cruise(player))
+	end
 end
 
 -- Refresh the replicated permanent multiplier snapshots immediately after a rebirth or allocation change.

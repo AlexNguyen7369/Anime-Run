@@ -14,12 +14,13 @@ GachaConfig.DISCOVERIES_PER_POINT = 3 -- every 3 unique cars in the index grant 
 GachaConfig.TURBO_EVERY = 10
 GachaConfig.TURBO_LUCK = 10
 
-GachaConfig.STATS = { "Speed", "Money", "Luck", "Workshop" }
+GachaConfig.STATS = { "Speed", "Money", "Luck", "Workshop", "Stamina" }
 GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier to tune)
 	Speed = 0.02, -- +2 % cruise per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
 	Money = 0.1, -- race payouts
 	Luck = 0.05, -- car roll odds
 	Workshop = 0.2, -- workshop gain (no workshop yet)
+	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)
 }
 
 GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
@@ -137,7 +138,7 @@ function GachaConfig.EarnedPoints(uniqueCount)
 	return math.floor(count(uniqueCount) / GachaConfig.DISCOVERIES_PER_POINT)
 end
 
--- Multis from allocated points: { Speed, Money, Luck, Workshop }, each 1 + points * PER_POINT. `bonuses` (optional,
+-- Multis from allocated points: { Speed, Money, Luck, Workshop, Stamina }, each 1 + points * PER_POINT. `bonuses` (optional,
 -- the upgrade tree's UpgradeTree.Bonuses) is ADDED on top: 1 + points * PER_POINT + bonuses[stat].
 function GachaConfig.Multis(alloc, bonuses)
 	alloc = type(alloc) == "table" and alloc or {}

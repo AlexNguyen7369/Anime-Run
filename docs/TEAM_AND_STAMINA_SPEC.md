@@ -35,8 +35,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 ```
 Stamina = Base(rarity or override)
         x Category      (Sprinter 0.9, Balanced 1, Marathoner 1.1; proposed 2026-11-02)
-        x (1 + 0.05 x Alloc_Stamina)
-        x Potion        (1.5 if a Stamina potion is active at run start, else 1)
+        x (1 + 0.05 x Alloc_Stamina + upgrade tree Stamina bonus)   (tree: +0.10 per tier, owner 2026-11-03)
+        x Potion        (the active Stamina potion tier's multi at run start, else 1)
         x TeamBonus     (preset 1.4, else Series 1.2, else 1)
 ```
 
@@ -58,9 +58,20 @@ Stamina = Base(rarity or override)
 - `GachaConfig.STATS` gains `"Stamina"`; `PER_POINT.Stamina = 0.05` (placeholder). Same `AllocateStat` remote,
   validation and save (`StatAlloc.Stamina`) as the other stats.
 
+## Upgrade tree Stamina branch (owner 2026-11-03)
+
+- `UpgradeConfig.Branches` entry `stamina` (tile ids `stamina_1..5`, permanent save keys), Effect `Stamina`, Weight 1,
+  Parent `start`, Direction `{ 1, 0 }` (the free hex), Bonus `0.10` per tier (placeholders). `UpgradeTree.Bonuses`
+  returns `Stamina`; it is added inside the stat point part of the formula above.
+
 ## Stamina potion
 
-- `BoostConfig` category `Stamina`, item `stamina_potion`: Multiplier 1.5, Duration 900 s (placeholders).
+- Orchestrator default 2026-11-03 (owner may change): the Stamina potion follows the other potions' tier pattern
+  instead of the single `stamina_potion` below: `BoostConfig` category `Stamina`, items `StaminaI/II/III` (x1.25 /
+  x1.5 / x2, 60 s, Money prices like the other potions; ids are save keys). Robux pack `potion_stamina_pack`
+  (x5 Stamina Potion III, ProductId 0 until the owner creates it) and the potion bundle include it; daily login day 3
+  gives a Stamina potion; code RELEASE adds StaminaII x2. Bottle icon: the Speed bottle until new art exists.
+- Original placeholder: `BoostConfig` category `Stamina`, item `stamina_potion`: Multiplier 1.5, Duration 900 s.
 - Active = `BoostUntil_stamina_potion > server time` when a run starts. A potion that expires mid-run does not change
   that run.
 - Sources: Shop potion packs (developer products, `ProcessReceipt` idempotent, IVS pattern), daily login, codes.
@@ -139,15 +150,21 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 ## HUD
 
 - Team row (owner 2026-11-02, replaces the portrait cards beside the Speed number): 3 circle portraits in the retired
-  Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Rarity-colour
-  ring. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose
+  Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Owner
+  2026-11-03: avatar head only (body and rarity belt removed), no rarity colour (neutral ring); while running each
+  portrait's background fills like a liquid level to its `Stamina<n>` (bar colours); active runner: enlarged, pulsing
+  gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
+  pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
+  (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). Display only. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose
   `Stamina<n>` is 0 is greyed out. On foot all three show normally; an empty slot is a dim empty circle. Display only.
-  Not built yet (placeholders): category icon, per-card stamina bar, Series / Preset badge.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
 - Runner stamina bar (owner 2026-11-02): a vertical blue bar fixed to the right of every visible running character
   (BillboardGui, camera-relative offset), filled to the owner's `Stamina<RunSlot>`. Shown only while running.
+  Owner 2026-11-03: the fill tweens between server updates (no steps), a pale "just lost" trail follows it down
+  after a short delay, colour blue > 50% > amber > 25% > red (placeholders), pulses below 25%, refills with a white
+  flash on a tag-in.
 - Toasts: "<Name> TAG IN!" on a swap, "TEAM EXHAUSTED +$X" on exhaustion (plain text placeholder).
 
 ## Tests (to write first)

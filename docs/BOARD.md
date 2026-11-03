@@ -12,7 +12,7 @@
 ## Next
 - c1 must add: exhaustion pays per-distance share of the current track's pad cash (owner 2026-11-01; Track 1 not shortened)
 - Tests: retarget CarTest/UiTest off leaderstats.Speed, SetCheckpoint, StatFor, speed admin cmds, EQUIP labels / MarketEquip (slot buttons), GachaService.SpeedMulti (before c3)
-- c2 Runner categories, Stamina stat point, Stamina potion, team bonus
+- c2 Stamina stat point, upgrade tree Stamina branch, Stamina potion, team bonus, category info card, team row + stamina bar polish: BUILT 2026-11-03, uncommitted, needs Studio check
 - c3 Full compatibility check (full harness + rules audit, includes anime-world w5)
 
 ## Backlog
