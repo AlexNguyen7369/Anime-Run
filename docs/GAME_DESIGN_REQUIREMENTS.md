@@ -43,7 +43,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
-| Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
+| Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); passive gain replaced by a chosen stat boost (4.19, owner 2026-11-03) | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (Speed retired 2026-11-01, 4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
@@ -197,7 +197,7 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
-  `Workshop` stat point still multiply it. Rate is a placeholder.
+  `Workshop` stat point still multiply it. Rate is a placeholder. RETIRED 2026-11-03: no passive gain (4.19).
 - Admin test runner Kami (owner 2026-11-01): admin command `/kami [player]` gives and equips Kami for the session
   only (never saved, never rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`
   (owner 2026-11-01, was 1 Sp).
@@ -243,6 +243,23 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   centre line (`ZoneAt`) is used only while walking. The speed look-ahead is removed (it switched ~280 studs early at
   800 studs/s and could pick a neighbouring track).
 
+### 4.19 Workshop stat boost (owner 2026-11-03; replaces the workshop / Dojo idle gain)
+- There is no passive gain: standing in the Dojo earns nothing, there is no offline workshop credit and no extra luck
+  while standing in the zone.
+- The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina (owner 2026-11-03). The
+  choice is saved (`WorkshopStat`, default Money) and can be changed at any time.
+- The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
+  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
+  sum x 5% (placeholders, owner 2026-11-03) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
+  Copies no longer count (proposed 2026-11-03).
+- Workshop levels stay (bought with Money, same prices) and scale the boost (owner 2026-11-03): boost x
+  (1 + 0.1 x (level - 1)) (proposed placeholder; level 10 = x1.9).
+- The boost applies always, everywhere, runs included (owner 2026-11-03). It is added to the chosen stat like the
+  upgrade tree bonus (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's
+  `1 + points + tree` part (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree`
+  part (4.6). Speed and Stamina are fixed at run start, like every other run multi.
+- The `Workshop` stat point is retired (owner 2026-11-03): allocated Workshop points are refunded as free points.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -285,6 +302,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: workshop passive gain removed; the player picks one stat (Money, Luck, Speed, Stamina) and the
+  Dojo squad's combined rarity (points x 5%, scaled by workshop level) boosts it everywhere; Workshop stat point
+  retired and refunded; in-zone luck and offline workshop credit removed (4.19).
 - 2026-11-03: owner: Track 1 balance kept as is; runner categories shown on a hover info card of the team row (4.5);
   team row shows only avatar heads, no rarity, with an animated current-runner indicator (4.3); upgrade tree gets a
   Stamina branch (4.6, new); stamina bar drain / low / refill animation (4.3); stamina features (4.6-4.8) built.
