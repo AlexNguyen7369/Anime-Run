@@ -58,3 +58,14 @@ Deliverables:
 - b1 | Environment framework: terrain + water builder, zone atmosphere client, ambient audio, mesh asset pipeline | its targeted scenarios green
 - b2 | Biomes 1-10 built end to end on the framework, one track at a time (owner 2026-10-30) | `environment` green; screenshots per track; owner visual review in Studio (owner 2026-10-31: Tracks 4-10 without per-track approval, reviewed together at the end)
 Out of scope: gameplay changes, track layout changes (w3 layouts stay).
+
+## char-art: Draft models for the 30 launch characters
+Status: active (owner 2026-11-03)
+Owner-confirmed: 2026-11-03 (draft + renders only; shared chibi base; altered signature marks)
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md (Art, Draft pipeline), design doc section 5
+Deliverables:
+- a1 | Art reference sheet `docs/CHARACTER_ART_REFERENCES.md` (public anime Roblox game style survey + 30 per-character entries) | 30 entries, each with sources and an altered-mark line
+- a2 | Shared chibi base + build script (`tools/blender/`) | base builds headless with the 15 R15 part names; tri budget met
+- a3 | 30 draft models + renders (`assets/characters/`) | every id has a .blend and 4 renders; rules-auditor sign-off; owner visual review of the contact sheet
+Out of scope: Studio import, R15 rigging and animation, the `Model` field, the 3 event characters and the starter, in-game wiring.
