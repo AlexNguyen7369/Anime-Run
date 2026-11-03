@@ -38,6 +38,7 @@ local TrackRegistry = require(Shared:WaitForChild("TrackRegistry"))
 local LeaderboardConfig = require(Shared:WaitForChild("LeaderboardConfig"))
 local UpgradeTree = require(Shared:WaitForChild("UpgradeTree"))
 local RaceProgressMap = require(Shared:WaitForChild("RaceProgressMap"))
+local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -102,13 +103,11 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
-	-- (ui_speed_float, HUD_LAYOUT_SPEC section 10, runs only through UiSpec.Progression.FixtureChecks on_foot: the
-	-- main run races, and live Speed gains would mix into its planted floats)
+	-- retired: ui_speed_float (no Speed stat, design doc 4.13, owner 2026-11-01)
 	"ui_safe_insets",
 	"ui_panel_focus",
 	"ui_hud",
-	-- docs/HUD_LAYOUT_SPEC.md sections 8-9 (owner 2026-10-27): speedometer, theme fonts and multis
-	"ui_speed_dial",
+	-- retired: ui_speed_dial, the speedometer (design doc 4.13, owner 2026-11-01)
 	-- docs/WORLD_REDESIGN_SPEC.md section 2 (owner 2026-10-28): the visible runner moves smoothly (main run races)
 	"ui_runner_smooth",
 	-- docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29: the camera follows the visible runner while racing (main run races)
@@ -145,8 +144,7 @@ UiScenarios.Names = {
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
-	-- ui_offline_welcome needs its offline_welcome server fixture, so it runs only through
-	-- UiSpec.Progression.FixtureChecks (UiTestScenario), like ui_offline_zero.
+	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
 	"ui_roll_emphasized",
@@ -163,7 +161,6 @@ K.STATES = {
 	{ Name = "rebirth_open", Open = { "RacerRebirth/Panel" } },
 	{ Name = "upgrades_open", Open = { "RacerUpgrades/Panel" } },
 	{ Name = "workshop_open", Open = { "RacerWorkshop/Panel" } },
-	{ Name = "welcome_open", Open = { "RacerWelcome/Panel" } },
 	{ Name = "backpack_open", Open = { "RacerBackpack/Panel" } },
 	{ Name = "shop_open", Open = { "ShopUi/Backdrop" } },
 	{ Name = "market_open", Open = { "MarketUi/Backdrop" } },
@@ -428,8 +425,25 @@ local function panelSwitch()
 	return ok and switch or nil
 end
 
+-- Waits up to UiSpec.Waits.PanelClose for every object to be Visible = false (a panel's close motion, design doc
+-- 4.20). Returns at once when none is visible; the caller still asserts.
+local function waitHidden(objects)
+	local deadline = os.clock() + UiSpec.Waits.PanelClose
+	while os.clock() < deadline do
+		local any = false
+		for _, o in objects do
+			any = any or o.Visible
+		end
+		if not any then
+			return
+		end
+		task.wait()
+	end
+end
+
 local function applyPanelState(open)
 	local switch = panelSwitch()
+	local closed = {}
 	for _, path in allPanels() do
 		local object = findPath(path)
 		local name = UiSpec.PanelSwitch.Names[path]
@@ -439,8 +453,10 @@ local function applyPanelState(open)
 			else
 				object.Visible = false
 			end
+			table.insert(closed, object)
 		end
 	end
+	waitHidden(closed)
 	for _, path in open do
 		local object = findPath(path)
 		local name = UiSpec.PanelSwitch.Names[path]
@@ -649,7 +665,7 @@ local function marketTabScale(obj, child, ctx)
 	return math.clamp((rr.h / railScale - (n - 1) * fit.Gap) / (n * fit.TabSize), min, fit.Max)
 end
 
--- The visible HudChrome bottom-pair blockers (Money, Speed) at ctx.vp: { [path] = rect }.
+-- The visible HudChrome bottom-pair blockers (Money) at ctx.vp: { [path] = rect }.
 local function hudPairShown(ctx)
 	local shown = {}
 	for _, path in UiResponsive.HudChrome.Blockers do
@@ -979,32 +995,6 @@ autoHeight = function(obj, w, h, ctx, c)
 	return total
 end
 
--- The Speed group's visible dial + number width at a viewport (RacerUiController centres exactly that, from SpeedDial's
--- left edge to the end of SpeedValue's text; docs/HUD_LAYOUT_SPEC.md section 9): the number's live TextBounds in design
--- pixels (live UIScale and TextSize divided out, the variant's TextSize and UIScale applied), or nil while the number
--- draws nothing or the dial is missing (the controller then does not move the group). Second result: the dial's x.
-local function speedVisibleWidth(vp)
-	local group, dial, value =
-		findPath(UiSpec.Hud.Speed), findPath(UiSpec.Hud.SpeedDial), findPath(UiSpec.Hud.SpeedValue)
-	if not (group and dial and value) or value.TextBounds.X <= 0 then
-		return nil
-	end
-	local liveScale = group:FindFirstChild("UIScale")
-	liveScale = liveScale and liveScale:IsA("UIScale") and liveScale.Scale or 1
-	local nodes = UiResponsive.Nodes
-	local liveVariant, variant = UiResponsive.VariantOf(viewport()), UiResponsive.VariantOf(vp)
-	local valueNode = nodes[UiSpec.Hud.SpeedValue]
-	local dialNode = nodes[UiSpec.Hud.SpeedDial]
-	local textDesign = value.TextBounds.X / liveScale
-	if valueNode and valueNode[liveVariant].TextSize and valueNode[variant].TextSize then
-		textDesign *= valueNode[variant].TextSize / valueNode[liveVariant].TextSize
-	end
-	local valueX = valueNode and valueNode[variant].Position.X.Offset or value.Position.X.Offset
-	local dialX = dialNode and dialNode[variant].Position.X.Offset or dial.Position.X.Offset
-	local s = UiResponsive.ScaleAt(UiSpec.Hud.Speed, vp) or 1
-	return s * (valueX + textDesign - dialX), s * dialX
-end
-
 -- The two roll cards animate (PopIn grows from 0, LAND_POP, Exit shrink, the 0.3 s SWITCH), so their live Size /
 -- Position are only meaningful while settled. The solver places them at their CONTRACT rect
 -- (docs/ROLL_ANIMATION_CONTRACT.md, numbers from Shared/RollAnimConfig) unless ctx.live; liveVsNominal proves the
@@ -1044,7 +1034,7 @@ end
 
 -- Layout solver for a hypothetical viewport: UDim2 Position/Size, AnchorPoint, UISizeConstraint, UIScale, UIPadding,
 -- UIListLayout, UIGridLayout, ScrollingFrame CanvasPosition, the top-bar inset, and the runtime rules of the UI
--- scripts mirrored in UiResponsive (Speed centring + R3, Racer panel band R2, compact roll BelowRace, ProgressionUi
+-- scripts mirrored in UiResponsive (Racer panel band R2, compact roll BelowRace, ProgressionUi
 -- fits incl. R4). Anything else is recorded in ctx.unsupported (the layout_model_supported check fails, so the solver
 -- must be extended, never ignored). UIGradient, UICorner, UIStroke and GuiObject.Rotation do not move or size
 -- anything (visual only).
@@ -1061,26 +1051,6 @@ simRect = function(obj, ctx)
 		r = UiResponsive.RaceFaceRect(ctx.vp)
 	elseif pathOf(obj) == UiSpec.Hud.Turbo then
 		r = UiResponsive.ScaledHudRect(UiSpec.Hud.Turbo, ctx.vp)
-	elseif pathOf(obj) == UiSpec.Hud.Speed then
-		if liveVp then
-			-- The live viewport: where RacerUiController put it (X centring and the R3 shift are live properties)
-			r = UiResponsive.ScaledHudRect(UiSpec.Hud.Speed, ctx.vp, obj.Position.X)
-			r.y += obj.Position.Y.Offset - UiResponsive.Nodes[UiSpec.Hud.Speed][UiResponsive.VariantOf(ctx.vp)].Position.Y.Offset
-		else
-			r = UiResponsive.ScaledHudRect(UiSpec.Hud.Speed, ctx.vp)
-			local visible, iconX = speedVisibleWidth(ctx.vp)
-			if visible then
-				local toast, turbo = findPath("RollToast/Toast"), findPath(UiSpec.Hud.Turbo)
-				r = UiResponsive.SpeedGroup(
-					ctx.vp,
-					r,
-					visible,
-					toast and simRect(toast, ctx),
-					turbo and simRect(turbo, ctx)
-				)
-				r.x -= iconX
-			end
-		end
 	elseif kind then
 		local base = simRect(obj.Parent, ctx)
 		if kind == "compact" then
@@ -1123,9 +1093,9 @@ simRect = function(obj, ctx)
 		else
 			local path = pathOf(obj)
 			local dependencies = {}
-			-- RacerWorkshop / RacerWelcome panels are Band.Fit panels (UiSpec.BandPanels); RacerUpgrades/Panel is the
+			-- RacerWorkshop panels are Band.Fit panels (UiSpec.BandPanels); RacerUpgrades/Panel is the
 			-- full-screen hex tree (UpgradeTreeView: Size (1, 0, 1, 0), no runtime fit), solved like any node.
-			local isRate = path == "RacerProgression/WorkshopRate"
+			-- (The workshop rate label RacerProgression/WorkshopRate is retired: no idle gain, design doc 4.19, owner 2026-11-03.)
 			local isRacerPanel = UiResponsive.IsRacerPanel(path)
 			local bandMax = UiSpec.BandPanels[path] -- Client/PanelBand.Fit panels (Shop, Market)
 			local wanted = {}
@@ -1138,8 +1108,6 @@ simRect = function(obj, ctx)
 					ShopColumn = UiSpec.Band.ShopColumn,
 					Money = UiSpec.Band.Money,
 				}
-			elseif isRate then
-				wanted = { Speed = UiSpec.Hud.Speed, Toast = "RollToast/Toast" }
 			end
 			local missing = false
 			for key, dependencyPath in wanted do
@@ -1174,7 +1142,7 @@ simRect = function(obj, ctx)
 					fitted = UiResponsive.RacerPanelFit(ctx.vp, { UiShopMarket.Band(ctx.vp, dependencies) }, size)
 					ctx.scaleOverride[obj] = fitted.Scale
 				end
-			elseif isRate or path == UiSpec.Weather.Icon then
+			elseif path == UiSpec.Weather.Icon then
 				fitted = UiResponsive.Progression(path, ctx.vp, dependencies)
 			end
 			local vSize, vPosition, vAnchor = variantProps(obj, ctx)
@@ -1814,10 +1782,11 @@ local function cardProblems(card, ev, skipGeometry)
 		end
 	end
 	local multi = part("SpeedMulti")
-	local m = spec.SpeedMulti or 1
-	-- The card's SpeedMulti ("x25 SPEED") or its contract alias ("Speed x25"), both HudFormat.Multi (section 8)
-	local wantMulti = UiSpec.Showcase.SpeedText:format(HudFormat.Multi(m))
-	local wantAlias = UiSpec.Showcase.SpeedAliasText:format(HudFormat.Multi(m))
+	-- The card's SpeedMulti label shows the character's cruise ("90 studs/s") or its contract alias ("Cruise 90
+	-- studs/s"), HudFormat.RateText(RaceConfig.Cruise(spec)): cruise is fixed by rarity x category (design doc 4.13)
+	local cruiseText = HudFormat.RateText(RaceConfig.Cruise(spec))
+	local wantMulti = UiSpec.Showcase.SpeedText:format(cruiseText)
+	local wantAlias = UiSpec.Showcase.SpeedAliasText:format(cruiseText)
 	if not (multi and multi:IsA("TextLabel") and (multi.Text == wantMulti or multi.Text == wantAlias)) then
 		table.insert(bad, ("SpeedMulti %q want %q"):format(multi and multi.Text or "nil", wantMulti))
 	end
@@ -3137,7 +3106,7 @@ local function hudPairChecks(res)
 	local function rectsAt(vpSpec, prefix)
 		local rectOf = provider(vpSpec)
 		local out = {}
-		for _, key in { "Items", "Upgrade", "Level", "Turbo", "Money", "Speed" } do
+		for _, key in { "Items", "Upgrade", "Level", "Turbo", "Money" } do
 			local o = findPath(spec[key])
 			if not (o and o:IsA("GuiObject")) then
 				check(res, prefix .. "_present", spec[key], "GuiObject", false)
@@ -3394,36 +3363,7 @@ function S.ui_layout(res)
 				else
 					check(res, "settings_top_right_" .. vpSpec.Name, "missing", "present", false)
 				end
-				-- The VISIBLE dial + number are centred (not the Speed frame, whose number label is wider than its text):
-				-- live from the engine (SpeedDial's left edge .. number's left edge + TextBounds.X, HUD spec section 9),
-				-- simulated from the model
-				local hud = findPath(UiSpec.Hud.Speed)
-				local dial, value = findPath(UiSpec.Hud.SpeedDial), findPath(UiSpec.Hud.SpeedValue)
-				if hud and dial and value then
-					local root = rootOf(UiSpec.Hud.Speed)
-					local left, right = nil, nil
-					if not vpSpec.Size then
-						left = realRect(dial).x
-						right = value.TextBounds.X > 0 and realRect(value).x + value.TextBounds.X or nil
-					else
-						local visible, iconX = speedVisibleWidth(vp)
-						if visible then
-							left = rectOf(hud).x + iconX
-							right = left + visible
-						end
-					end
-					local midX = root.x + root.w / 2
-					local cx = right and (left + right) / 2
-					check(
-						res,
-						"speed_group_centred_" .. vpSpec.Name,
-						cx or "number draws nothing",
-						midX,
-						cx ~= nil and math.abs(cx - midX) <= UiSpec.Hud.SpeedCentreTolerance
-					)
-				else
-					check(res, "speed_group_centred_" .. vpSpec.Name, "missing", "present", false)
-				end
+				-- retired: speed_group_centred_* (no Speed read-out, design doc 4.13, owner 2026-11-01)
 				local toggle = findPath(UiSpec.Hud.Race)
 				if toggle then
 					local r, root = rectOf(toggle), rootOf(UiSpec.Hud.Race)
@@ -3967,11 +3907,15 @@ end
 function S.ui_hud(res)
 	waitGuis()
 	local stats = player:WaitForChild("leaderstats", 10)
-	local speed = stats and stats:FindFirstChild("Speed")
 	local money = stats and stats:FindFirstChild("Money")
-	local value, moneyValue = findPath(UiSpec.Hud.SpeedValue), findPath(UiSpec.Hud.MoneyValue)
-	check(res, "leaderstats_present", speed ~= nil and money ~= nil, true, speed ~= nil and money ~= nil)
-	check(res, "hud_labels_present", value ~= nil and moneyValue ~= nil, true, value ~= nil and moneyValue ~= nil)
+	local moneyValue = findPath(UiSpec.Hud.MoneyValue)
+	check(res, "leaderstats_present", money ~= nil, true, money ~= nil)
+	-- No Speed stat and no Speed read-out (design doc 4.13, owner 2026-11-01)
+	local speedStat = stats and stats:FindFirstChild("Speed")
+	check(res, "leaderstats_no_speed", speedStat ~= nil, false, speedStat == nil)
+	local speedHud = findPath("RacerHud/Speed")
+	check(res, "hud_no_speed_readout", speedHud and pathOf(speedHud) or "absent", "absent", speedHud == nil)
+	check(res, "hud_labels_present", moneyValue ~= nil, true, moneyValue ~= nil)
 	-- Unbanked row (spec section 5): title "UNBANKED" and the smoothed player attribute Unbanked, under Money
 	local unbankedValue = findPath(UiSpec.Hud.Unbanked)
 	check(
@@ -3996,7 +3940,7 @@ function S.ui_hud(res)
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
 	end
-	if not (speed and money and value and moneyValue) then
+	if not (money and moneyValue) then
 		return
 	end
 	task.wait(UiSpec.Waits.HudSettle)
@@ -4036,21 +3980,10 @@ function S.ui_hud(res)
 		end, HudFormat.MoneyText, UiSpec.Hud.UnbankedPrefix, "")
 		check(res, "hud_unbanked_matches_server", shownText, want, ok)
 	end
-	local okSpeed, speedText, wantSpeed = followsServer(value, function()
-		return speed.Value
-	end, HudFormat.SpeedText, "", UiSpec.Hud.SpeedSuffix)
-	check(res, "hud_speed_matches_server", speedText, wantSpeed, okSpeed)
 	local okMoney, moneyText, wantMoney = followsServer(moneyValue, function()
 		return money.Value
 	end, HudFormat.MoneyText, "", "")
 	check(res, "hud_money_matches_server", moneyText, wantMoney, okMoney)
-	check(
-		res,
-		"hud_speed_suffix",
-		value.Text,
-		UiSpec.Hud.SpeedSuffix,
-		string.find(value.Text, UiSpec.Hud.SpeedSuffix, 1, true) ~= nil
-	)
 	-- Money plate (docs/HUD_LAYOUT_SPEC.md section 9): behind both labels, holds both, never takes a click
 	local plate = findPath(UiSpec.Hud.MoneyPlate)
 	check(
@@ -4117,127 +4050,7 @@ function S.ui_hud(res)
 	)
 end
 
--- The speedometer (docs/HUD_LAYOUT_SPEC.md section 9, owner 2026-10-27): RacerHud/Speed/SpeedDial with a Needle
--- (attribute DialValue, studs/s) and DialSpeed, the speed icon as its hub, nothing clickable. On foot the needle rests
--- at 0 and DialSpeed reads "0"; while auto racing both follow the runner's REAL speed (measured here from the visible
--- runner's displacement), never the Speed stat. The main run is auto_racing; the on_foot fixture runs it on foot.
-function S.ui_speed_dial(res)
-	waitGuis()
-	local H, cfg = UiSpec.Hud, UiSpec.SpeedDial
-	local dial = findPath(H.SpeedDial)
-	local isDial = dial ~= nil and (dial:IsA("Frame") or dial:IsA("CanvasGroup"))
-	check(res, "speed_dial_present", dial and dial.ClassName or "missing", "Frame", isDial)
-	if not isDial then
-		return
-	end
-	local needle = dial:FindFirstChild(H.DialNeedle, true)
-	local text = dial:FindFirstChild(H.DialText, true)
-	check(
-		res,
-		"speed_dial_needle_present",
-		needle and needle.ClassName or "missing",
-		"GuiObject Needle",
-		needle ~= nil and needle:IsA("GuiObject")
-	)
-	check(
-		res,
-		"speed_dial_text_present",
-		text and text.ClassName or "missing",
-		"TextLabel DialSpeed",
-		text ~= nil and text:IsA("TextLabel")
-	)
-	local clickable = {}
-	for _, o in { dial, table.unpack(dial:GetDescendants()) } do
-		if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
-			table.insert(clickable, pathOf(o))
-		end
-	end
-	checkList(res, "speed_dial_non_interactive", clickable)
-	-- The icon is the hub: a child of Speed, drawn above the dial, its centre inside the dial
-	local icon = findPath(H.SpeedIcon)
-	renderFrame()
-	local hubOk = icon ~= nil
-		and icon:IsA("GuiObject")
-		and icon.ZIndex > dial.ZIndex
-		and (function()
-			local cx, cy = centre(realRect(icon))
-			return contains(realRect(dial), R(cx, cy, 0, 0))
-		end)()
-	check(
-		res,
-		"speed_icon_is_dial_hub",
-		icon and ("ZIndex %d vs dial %d"):format(icon.ZIndex, dial.ZIndex) or "missing",
-		"child of Speed, ZIndex above the dial, centre inside it",
-		hubOk
-	)
-	if not (needle and text and text:IsA("TextLabel")) then
-		return
-	end
-	if attr("AutoRacing") ~= true then
-		frames(3)
-		local v = needle:GetAttribute(H.DialValueAttr)
-		check(res, "speed_dial_zero_on_foot", v, 0, v == 0)
-		check(res, "speed_dial_text_zero_on_foot", text.Text, "0", text.Text == "0")
-		return
-	end
-	-- The visible runner (contract in Server/CarTest/RunnerTests: tag VisibleRunner, Owner = this player's UserId)
-	local seat
-	local deadline = os.clock() + cfg.RunnerWait
-	repeat
-		for _, m in CollectionService:GetTagged(UiSpec.RunnerSmooth.Tag) do
-			if m:IsA("Model") and m:IsDescendantOf(Workspace) and m:GetAttribute("Owner") == player.UserId then
-				seat = m.PrimaryPart
-			end
-		end
-		if not seat then
-			task.wait(0.1)
-		end
-	until seat or os.clock() > deadline
-	if not seat then
-		stateMissing(res, "speed_dial_follows_car", "auto_racing", "AutoRacing but no visible runner")
-		return
-	end
-	-- Real speed = path distance (sum of per-frame runner steps, so a curve does not read short as a chord would) / time
-	-- over SampleSeconds, skipping teleport steps (> TeleportStep: a restart / loop back to the start); DialValue and
-	-- DialSpeed averaged over the same frames
-	local last, t0 = seat.Position, os.clock()
-	local path = 0
-	local sum, textSum, n, textBad = 0, 0, 0, nil
-	repeat
-		renderFrame()
-		local step = (seat.Position - last).Magnitude
-		last = seat.Position
-		if step <= cfg.TeleportStep then
-			path += step
-		end
-		local v = needle:GetAttribute(H.DialValueAttr)
-		local shown = tonumber(text.Text)
-		sum += type(v) == "number" and v or 0
-		if shown and string.match(text.Text, "^%d+$") then
-			textSum += shown
-		else
-			textBad = text.Text
-		end
-		n += 1
-	until os.clock() - t0 >= cfg.SampleSeconds
-	local real = path / (os.clock() - t0)
-	local dialAvg, textAvg = sum / n, textSum / n
-	local tol = math.max(cfg.Tolerance, cfg.RelTolerance * real)
-	check(
-		res,
-		"speed_dial_follows_car",
-		("%.1f"):format(dialAvg),
-		("> 0 and %.1f +- %.1f studs/s"):format(real, tol),
-		dialAvg > 0 and math.abs(dialAvg - real) <= tol
-	)
-	check(
-		res,
-		"speed_dial_text_follows_car",
-		textBad and ("%q"):format(textBad) or ("%.1f"):format(textAvg),
-		("whole number, %.1f +- %.1f"):format(real, tol + 1),
-		textBad == nil and textAvg > 0 and math.abs(textAvg - real) <= tol + 1
-	)
-end
+-- retired: ui_speed_dial, the speedometer (design doc 4.13, owner 2026-11-01)
 
 -- Smooth motion (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28; contract in Server/CarTest/RunnerTests
 -- header): the server's rig is anchored and authoritative, and this client renders the visible runner (tag
@@ -4809,8 +4622,8 @@ function S.ui_settings_profile(res)
 	checkList(res, "profile_rows_present", profileMissing)
 
 	local data = player:FindFirstChild("GachaData")
-	local leaderstats = player:FindFirstChild("leaderstats")
-	local speedValue = leaderstats and leaderstats:FindFirstChild("Speed")
+	-- The Speed row is the CRUISE row: the server's Cruise attribute in studs/s (no Speed stat, design doc 4.13)
+	local cruise = attr("Cruise")
 	local allocation = {}
 	for _, stat in GachaConfig.STATS do
 		allocation[stat] = attr("Alloc_" .. stat) or 0
@@ -4820,7 +4633,7 @@ function S.ui_settings_profile(res)
 		TotalRolls = HudFormat.SpeedText(attr("Rolls") or 0),
 		BestRoll = HudFormat.Odds(best and best.Chance),
 		CharactersDiscovered = HudFormat.SpeedText(data and #data:GetChildren() or 0),
-		Speed = HudFormat.SpeedText(speedValue and speedValue.Value or 0),
+		Speed = HudFormat.RateText(type(cruise) == "number" and cruise == cruise and cruise or 0),
 		Luck = string.format("%s · %d pts", HudFormat.Multi(GachaConfig.Multis(allocation).Luck), allocation.Luck),
 	}
 	local mismatches = {}
@@ -6016,9 +5829,11 @@ function S.ui_panels(res)
 				local afterA = openSet()
 				check(res, "open_" .. a .. "_alone", afterA, a, afterA == a)
 				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				waitHidden({ findPath(a) }) -- a's close motion (design doc 4.20)
 				local afterB = openSet()
 				check(res, "open_" .. b .. "_closes_" .. a, afterB, b, afterB == b)
 				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				waitHidden({ findPath(b) })
 				local afterToggle = openSet()
 				check(res, "toggle_" .. b .. "_closes_it", afterToggle, "", afterToggle == "")
 			end
@@ -6029,6 +5844,8 @@ function S.ui_panels(res)
 			setPanels({})
 			Switch.Toggle(UiSpec.PanelSwitch.Names[p])
 			Switch.Close(UiSpec.PanelSwitch.Names[p])
+			local closing = findPath(p)
+			waitHidden(closing and { closing } or {})
 			local after = openSet()
 			check(res, "close_" .. p, after, "", after == "")
 		end
@@ -6957,9 +6774,6 @@ function Click.attrSnapshot()
 		WorkshopLevel = attr("WorkshopLevel"),
 		Showcase = attr("Showcase"), -- Workshop Showcase ids joined by "," (showcase_* clicks)
 		Checkpoint = attr("Checkpoint"), -- checkpoint_not_optimistic (was never captured: the check compared to nil)
-		Speed = player:FindFirstChild("leaderstats")
-			and player.leaderstats:FindFirstChild("Speed")
-			and player.leaderstats.Speed.Value,
 		ProgressionMoney = player:FindFirstChild("leaderstats") and player.leaderstats.Money.Value,
 		ProgressionOwned = player:FindFirstChild("Upgrades") and #player.Upgrades:GetChildren() or 0,
 		-- The hex tree's zoom (UpgradeTreeView sets the RacerUpgrades attribute TreeZoom; tree_zoom_* clicks)

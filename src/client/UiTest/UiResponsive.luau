@@ -32,7 +32,6 @@ local generated = {
 		["RacerHud/Race"] = { Desktop = 1, Phone = 1 },
 		["RacerHud/RaceMap"] = { Desktop = 1, Phone = 1 },
 		["RacerHud/Navigation"] = { Desktop = 1, Phone = 1 },
-		["RacerHud/Speed"] = { Desktop = 1, Phone = 1 },
 		["RacerHud/Money"] = { Desktop = 1, Phone = 1 },
 		["RacerHud/Level"] = { Desktop = 1, Phone = 1 },
 		["RacerHud/Turbo"] = { Desktop = 1, Phone = 1 },
@@ -276,66 +275,7 @@ local generated = {
 				Visible = true,
 			},
 		},
-		["RacerHud/Speed"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5, 26, 0.78, 0),
-				Size = UDim2.fromOffset(306, 108),
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0.5, 0.5),
-				Position = UDim2.new(0.5, 22, 0.73, 0),
-				Size = UDim2.fromOffset(250, 90),
-				Visible = true,
-			},
-		},
-		-- Speedometer layout (owner brief 2026-10-27, docs/HUD_LAYOUT_SPEC.md section 9): dial on the left, the icon is
-		-- its hub (ZIndex above the dial), the Speed stat on the right; the group keeps its authored place and size.
-		["RacerHud/Speed/SpeedDial"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(0, 0),
-				Size = UDim2.fromOffset(108, 108),
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(0, 0),
-				Size = UDim2.fromOffset(90, 90),
-				Visible = true,
-			},
-		},
-		["RacerHud/Speed/SpeedIcon"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(34, 30),
-				Size = UDim2.fromOffset(40, 40),
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(28, 25),
-				Size = UDim2.fromOffset(34, 34),
-				Visible = true,
-			},
-		},
-		["RacerHud/Speed/SpeedValue"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(116, 33),
-				Size = UDim2.fromOffset(190, 42),
-				TextSize = 34,
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(96, 23),
-				Size = UDim2.fromOffset(154, 34),
-				TextSize = 28,
-				Visible = true,
-			},
-		},
+		-- retired: RacerHud/Speed and its SpeedDial / SpeedIcon / SpeedValue (RacerUiController destroys it, design doc 4.13, owner 2026-11-01)
 		["RacerHud/Money"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 1),
@@ -1720,33 +1660,12 @@ Model.Scales = generated.Scales
 Model.Nodes = generated.Nodes
 
 -- Runtime changes the scripts make on top of the generated layout:
--- RacerUiController moves the Speed group horizontally every frame to centre its visible dial + text (SpeedDial's left
--- edge to SpeedValue's text end, HUD spec section 9) (X is live on the
--- live viewport; Model.SpeedGroup applies the same rule at a simulated one).
-Model.DynamicX = { ["RacerHud/Speed"] = true }
+-- retired: the Speed group centring (DynamicX) and Model.SpeedRule / SpeedGroup (design doc 4.13, owner 2026-11-01)
 
 -- The generated per-height k of a zoom-1 node (the generated fit(), also used by RacerUiController.fitPanels).
 function Model.K(viewport)
 	local fit = viewport.Y <= Model.PHONE_MAX_HEIGHT and Model.Phone or Model.Desktop
 	return math.clamp(viewport.Y / fit.Ref, fit.Min, fit.Max)
-end
-
--- RacerUiController (owner decision 2026-10-08, R3 clearSpeedOfToast + the centring above), every Heartbeat:
---  X: Position = UDim2(0.5, (group width - visible width) / 2, ...), so the visible dial + left-aligned number are
---     centred on the screen (AnchorPoint 0.5: the dial's left edge is screen centre - visible width / 2).
---  Y: after centring the group moves DOWN by max(0, min(need, room)), need = Toast bottom + SPEED_TOAST_GAP - group
---     top, room = Turbo top - SPEED_TURBO_GAP - group bottom. The Toast keeps its rect while hidden.
-Model.SpeedRule = { ToastGap = 4, TurboGap = 2 }
--- `group` is the generated rect (ScaledHudRect), `visibleWidth` the dial + number width at that viewport, `toast` and
--- `turbo` the screen rects the rule reads. Returns the group's screen rect.
-function Model.SpeedGroup(viewport, group, visibleWidth, toast, turbo)
-	local r = { x = viewport.X / 2 - visibleWidth / 2, y = group.y, w = group.w, h = group.h }
-	if toast and turbo then
-		local need = toast.y + toast.h + Model.SpeedRule.ToastGap - r.y
-		local room = turbo.y - Model.SpeedRule.TurboGap - (r.y + r.h)
-		r.y += math.max(0, math.min(need, room))
-	end
-	return r
 end
 
 -- RacerUiController.fitPanels, every Heartbeat, for each Racer panel's outer Frame. Since the PanelBand merge it reads
@@ -1888,8 +1807,8 @@ end
 --   outer edges of RacerHud/Level and RacerHud/Turbo together and gap = (Level bottom + Turbo top) / 2, in screen
 --   pixels (HudChrome ignores the inset). The pair is Visible only when Level and Turbo exist.
 --   Owner 2026-10-28 (section 6): at viewport height <= StackMaxHeight the pair stacks ABOVE the bars instead:
---   AnchorPoint (1, 1) / (0, 1), bottom y = min(Level top, Money top) - StackGap, ItemsSlot x = min(left, Speed
---   left) - StackGap, UpgradeSlot x = max(right, Speed right) + StackGap (Money / Speed only when visible).
+--   AnchorPoint (1, 1) / (0, 1), bottom y = min(Level top, Money top) - StackGap, ItemsSlot x = left - StackGap,
+--   UpgradeSlot x = right + StackGap (Money only when visible; the Speed read-out is gone, design doc 4.13, owner 2026-11-01).
 Model.HudChrome = {
 	Phone = 0.68,
 	BottomScale = 0.75,
@@ -1910,11 +1829,10 @@ Model.HudChrome = {
 	IconMid = 36 / 94, -- ICON_MID = TILE / 2 / (TILE + LABEL)
 	Step = 0.02,
 	Floor = 0.3,
-	Blockers = { "RacerHud/Money", "RacerHud/Speed" },
+	Blockers = { "RacerHud/Money" },
 	StackMaxHeight = 400, -- HudChrome STACK_MAX_HEIGHT (phone_small, owner 2026-10-28)
 	StackGap = 6,
 	Money = "RacerHud/Money",
-	Speed = "RacerHud/Speed",
 }
 -- HudChrome's UIScale "Scale" factor of the node at `path` at a viewport, or nil when it is not a HudChrome holder.
 function Model.HudChromeScale(path, viewport)
@@ -1929,24 +1847,24 @@ function Model.HudChromeScale(path, viewport)
 	return nil
 end
 -- The bottom pair's unshrunk placement: { [slot path] = { Position = Vector2 (screen offsets), Anchor = Vector2 } }
--- from the Level / Turbo screen rects and `shown` = { [path] = rect } of the visible Blockers (Money, Speed).
+-- from the Level / Turbo screen rects and `shown` = { [path] = rect } of the visible Blockers (Money).
 function Model.HudChromePair(viewport, level, turbo, shown)
 	local cfg = Model.HudChrome
 	local left = math.min(level.x, turbo.x)
 	local right = math.max(level.x + level.w, turbo.x + turbo.w)
 	local out = {}
 	if viewport.Y <= cfg.StackMaxHeight then
-		local speed, money = shown[cfg.Speed], shown[cfg.Money]
+		local money = shown[cfg.Money]
 		local y = math.min(level.y, money and money.y or math.huge) - cfg.StackGap
 		for path, side in cfg.Slots do
 			if side == "left" then
 				out[path] = {
-					Position = Vector2.new(math.min(left, speed and speed.x or left) - cfg.StackGap, y),
+					Position = Vector2.new(left - cfg.StackGap, y),
 					Anchor = Vector2.new(1, 1),
 				}
 			else
 				out[path] = {
-					Position = Vector2.new(math.max(right, speed and speed.x + speed.w or right) + cfg.StackGap, y),
+					Position = Vector2.new(right + cfg.StackGap, y),
 					Anchor = Vector2.new(0, 1),
 				}
 			end
@@ -2005,33 +1923,9 @@ Model.LiveAutoSize = { "HudChrome/TopRight", "HudChrome/TopRight/*", "HudChrome/
 Model.LiveScales = { TreeZoom = true }
 
 -- ProgressionUi's Heartbeat fit rules. Model input only: panel clearance and overlap limits remain in UiSpec.
-function Model.Progression(path, viewport, dependencies)
-	if path == "RacerProgression/WorkshopRate" then
-		-- R4 (owner decision 2026-10-08): centred 28 px above the Speed group's top; when that top would be above
-		-- Toast bottom + 4 (inside the compact roll) it sits right of the Speed group instead: x = Speed right + 8,
-		-- width max(60, viewport X - x - 12), height 24, vertically centred on Speed (TextSize 12, left aligned).
-		local speed = assert(dependencies and dependencies.Speed, "virtual Speed rectangle required")
-		local width = math.min(300, viewport.X - 24)
-		local top = speed.y - 28
-		local toast = dependencies.Toast
-		if toast and top < toast.y + toast.h + 4 then
-			local left = speed.x + speed.w + 8
-			return {
-				AnchorPoint = Vector2.zero,
-				Position = UDim2.fromOffset(left, speed.y + speed.h / 2 - 12),
-				Size = UDim2.fromOffset(math.max(60, viewport.X - left - 12), 24),
-				TextSize = 12,
-				TextXAlignment = Enum.TextXAlignment.Left,
-			}
-		end
-		return {
-			AnchorPoint = Vector2.zero,
-			Position = UDim2.new(0.5, -width / 2, 0, top),
-			Size = UDim2.fromOffset(width, 24),
-			TextSize = 16,
-			TextXAlignment = Enum.TextXAlignment.Center,
-		}
-	elseif path == "RacerProgression/WeatherIcon" then
+function Model.Progression(path, viewport, _dependencies)
+	-- retired: R4 RacerProgression/WorkshopRate (no idle gain, design doc 4.19, owner 2026-11-03)
+	if path == "RacerProgression/WeatherIcon" then
 		-- It replaced WeatherBanner (owner 2026-10-13, docs/WEATHER_EVENTS_SPEC.md "Weather icon"): 44 x 44, 8 px
 		-- from the right and bottom edges; on phones its right edge is 140 px in, left of the Market button.
 		local phone = viewport.Y <= Model.PHONE_MAX_HEIGHT

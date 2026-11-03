@@ -17,9 +17,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
-local RaceConfig = require(Shared.RaceConfig)
-local NpcConfig = require(Shared.NpcConfig)
-local HudFormat = require(Shared.HudFormat)
 
 local Tests = {}
 
@@ -926,8 +923,8 @@ function Tests.environment()
 
 		-- Gate sign (owner 2026-10-21, design doc Track environments "gate signs"; spec Layers 4 "Sign"): Part GateSign
 		-- in Environment/Gate, SurfaceGui GateSignGui on the face toward the oncoming car, TextLabel Biome (upper-case
-		-- biome, words split) and TextLabel RecSpeed = "REC. SPEED " .. the shown Speed whose cruise speed is the
-		-- track's NPC speed (RaceConfig.StatFor), formatted like the HUD Speed (Short when infinite).
+		-- biome, words split). retired: the RecSpeed label and its gate_sign_rec_* checks (design doc 4.13, owner
+		-- 2026-11-01: no Speed stat, gate signs show no Speed requirement).
 		local gateModel = env and env:FindFirstChild("Gate")
 		local sign = gateModel and gateModel:FindFirstChild("GateSign")
 		local gui = sign and sign:IsA("BasePart") and sign:FindFirstChild("GateSignGui")
@@ -945,31 +942,8 @@ function Tests.environment()
 		if signed then
 			flag(("gate_sign_biome_%d"):format(n), biomeLabel ~= nil and biomeLabel.Text == wantBiome)
 		end
-		local npcSpeed = NpcConfig.For(n).Speed
-		local rec = RaceConfig.StatFor(npcSpeed)
-		local recText = rec == math.huge and HudFormat.Short(rec) or HudFormat.SpeedText(rec)
 		if signed then
-			flag(("gate_sign_rec_speed_%d"):format(n), recLabel ~= nil and recLabel.Text == "REC. SPEED " .. recText)
-		end
-		-- owner 2026-10-27: the number uses the lowercase suffixes (k m b t qd ...), never "10K" / "1Qd"
-		local recNum = recLabel and string.sub(recLabel.Text, #"REC. SPEED " + 1) or "?"
-		if signed then
-			flag(("gate_sign_rec_lowercase_%d"):format(n), recLabel ~= nil and not string.find(recNum, "%u"))
-		end
-		-- The recommended shown Speed really cruises at the NPC's speed (finite cases)
-		local cruise = rec < math.huge and RaceConfig.SpeedFor(rec) or npcSpeed
-		flag(
-			("gate_sign_rec_matches_npc_%d"):format(n),
-			rec > 0 and math.abs(cruise - npcSpeed) <= 1e-6 * npcSpeed,
-			cruise,
-			npcSpeed
-		)
-		-- Owner 2026-10-21 ("lower track requirements"): every track's recommended Speed is a real (finite) number,
-		-- and Track 1 does not need ~10M Speed: below 10,000
-		flag(("gate_sign_rec_finite_%d"):format(n), rec > 0 and rec < math.huge, rec < math.huge and rec or -1, 1)
-		if n == 1 then
-			-- 10K old Speed x the design doc 4.11 stat scale
-			flag("gate_sign_rec_track1_below_10k", rec > 0 and rec < 10000 * (1e15 / 3e5), rec, 10000 * (1e15 / 3e5))
+			flag(("gate_sign_no_rec_speed_%d"):format(n), recLabel == nil)
 		end
 		-- Faces the oncoming car: the GUI face normal points back along the drive direction
 		local facing = -1

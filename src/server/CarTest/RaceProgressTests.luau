@@ -461,12 +461,13 @@ function Tests.race_progress_map()
 		local old = support.player(cleanup, oldId)
 		flag("v10_loads", data.Load(old, oldId))
 		flag("v10_pb_defaults_empty", next(times.Snapshot(old)) == nil)
-		flag("v10_existing_stats_preserved", old.leaderstats.Money.Value == 123 and data.SpeedStat(old) == 456)
+		-- the Speed half is retired: saved Speed is never read (design doc 4.13, owner 2026-11-01)
+		flag("v10_existing_stats_preserved", old.leaderstats.Money.Value == 123)
 		flag("v10_upgrades_on_save", data.Save(old, oldId, true))
 		local upgraded = fake.data[data.KeyFor(oldId)]
 		flag(
 			"v10_saved_as_version11_empty_pb",
-			upgraded.Version == 12 and type(upgraded.RaceBestTimes) == "table" and next(upgraded.RaceBestTimes) == nil
+			upgraded.Version == 13 and type(upgraded.RaceBestTimes) == "table" and next(upgraded.RaceBestTimes) == nil
 		)
 		local player = support.player(cleanup, id)
 		flag("v11_loads", data.Load(player, id))
@@ -476,7 +477,7 @@ function Tests.race_progress_map()
 		local saved = fake.data[data.KeyFor(id)]
 		flag(
 			"v11_payload_and_release",
-			saved.Version == 12 and saved.Lock == nil and same(saved.RaceBestTimes, { ["1"] = 75.125, ["2"] = 90 })
+			saved.Version == 13 and saved.Lock == nil and same(saved.RaceBestTimes, { ["1"] = 75.125, ["2"] = 90 })
 		)
 		local rejoined = support.player(cleanup, id)
 		flag("v11_rejoin_loads", data.Load(rejoined, id))

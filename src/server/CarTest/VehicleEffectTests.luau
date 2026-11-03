@@ -307,8 +307,9 @@ function Tests.make(helpers)
 			flag("drive_min_up_y", minUpY >= strict, minUpY, strict)
 			checkProfile("drive", car)
 
-			-- 6a. Mid-race character switch: equip a second owned character with another SpeedMulti (GachaService.Equip,
-			-- the server path), then the EquippedCar listener body (CarService.ApplyCharacter)
+			-- 6a. Mid-race character switch: equip a second owned character with another fixed cruise (design doc 4.13:
+			-- rarity x category; GachaService.Equip, the server path), then the EquippedCar listener body
+			-- (CarService.ApplyCharacter)
 			local Gacha = H.module(Server, "GachaService")
 			local Catalog = H.module(Shared, "CharacterCatalog")
 			local RaceConfig = H.module(Shared, "RaceConfig")
@@ -318,7 +319,8 @@ function Tests.make(helpers)
 				and RaceConfig ~= nil
 				and type(Gacha.Equip) == "function"
 				and type(Gacha.Grant) == "function"
-				and type(Gacha.CruiseMultis) == "function"
+				and type(Gacha.Cruise) == "function"
+				and type(RaceConfig.Cruise) == "function"
 				and type(maxDev) == "number"
 			flag("switch_api_exists", switchOk)
 			if not switchOk then
@@ -329,14 +331,14 @@ function Tests.make(helpers)
 			flag("switch_aura_equipped", okAura and player:GetAttribute("Slot1Aura") == AURA_ID)
 			pcall(VehicleEffects.Apply, car, player)
 			local from = Catalog.Get(player:GetAttribute("EquippedCar"))
-			local fromMulti = from and from.SpeedMulti or 1
+			local fromCruise = RaceConfig.Cruise(from)
 			local to = nil
 			for _, spec in Catalog.Rollable() do
-				if not to and spec.SpeedMulti ~= fromMulti then
+				if not to and RaceConfig.Cruise(spec) ~= fromCruise then
 					to = spec
 				end
 			end
-			flag("switch_second_character", to ~= nil, to and to.Id or "none", "SpeedMulti ~= " .. fromMulti)
+			flag("switch_second_character", to ~= nil, to and to.Id or "none", "Cruise ~= " .. fromCruise)
 			if not to then
 				return
 			end
@@ -366,8 +368,7 @@ function Tests.make(helpers)
 			local allowed = maxDev + speed0 * elapsed + 1
 			flag("switch_same_distance", jump <= allowed, jump, allowed)
 			-- the new character's cruise at once (RaceService's own formula, read right after the switch)
-			local stat = PlayerData.SpeedStat(player)
-			local want = RaceConfig.SpeedFor(stat, Gacha.CruiseMultis(player))
+			local want = Gacha.Cruise(player, swRun.Slot)
 			local got = type(swRun.TargetSpeed) == "number" and swRun.TargetSpeed or -1
 			flag("switch_cruise_at_once", math.abs(got - want) <= SPEED_EXACT, got, want)
 			flag("switch_cruise_changed", math.abs(got - speed0) > SPEED_EXACT, got, speed0)

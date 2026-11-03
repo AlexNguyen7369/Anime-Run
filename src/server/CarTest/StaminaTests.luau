@@ -1,8 +1,10 @@
 --!nonstrict
 -- BRIEF: docs/TEAM_AND_STAMINA_SPEC.md "Tests (to write first)", the c1 part (goal core): `team` and `stamina`.
 -- Design doc sections 2, 4.2, 4.3, 7. Written by test-writer BEFORE the feature; never loosen a limit to make it pass.
--- Not here (c2): runner categories, the Stamina stat point, the potion, the team bonus (`team_bonus`). The drain
--- check therefore uses Balanced characters only, in a team of 1 (no bonus), with no stat points and no potion.
+-- The plain drain check uses Balanced characters only, in a team of 1 (no bonus), with no stat points and no potion.
+-- c2 (design doc 4.5-4.8): `stamina_multis_applied_once` runs a preset team with 2 Stamina stat points, a tree tier
+-- and a potion (category, points, tier, potion, preset each applied once; the potion expires mid-run and changes
+-- nothing). `team_bonus` checks the bonus rules (SeriesCatalog.TeamBonus, GachaService.TeamBonus / CruiseFor).
 --
 -- API the tests read (test seams marked "seam" are not named by the spec):
 --   GachaService.SetTeam(player, ids) -> ok, reason       spec "Team": 1-3 distinct owned string ids, on foot only
@@ -225,6 +227,202 @@ function Tests.team()
 	return r
 end
 
+-- docs/TEAM_AND_STAMINA_SPEC.md "Team bonus" / "Tests": `team_bonus` (design doc 4.8). Preset in any order beats
+-- Series; teams of 1 or 2 get nothing; the preset cruise x PRESET_CRUISE stays under MAX_CRUISE. The bonus never
+-- stacks: a preset team gets the preset stamina factor alone.
+function Tests.team_bonus()
+	local r, flag = H.report("team_bonus")
+	local mods = {
+		catalog = H.module(Shared, "CharacterCatalog"),
+		series = H.module(Shared, "SeriesCatalog"),
+		stamina = H.module(Shared, "StaminaConfig"),
+		raceConfig = H.module(Shared, "RaceConfig"),
+		gacha = H.module(Server, "GachaService"),
+		data = H.module(Server, "PlayerData"),
+		money = H.module(Server, "MoneyService"),
+	}
+	local api = mods.catalog
+		and mods.series
+		and mods.stamina
+		and mods.raceConfig
+		and mods.gacha
+		and mods.data
+		and mods.money
+		and type(mods.series.List) == "table"
+		and type(mods.series.TeamBonus) == "function"
+		and type(mods.stamina.TEAM_BONUS) == "table"
+		and type(mods.raceConfig.Cruise) == "function"
+		and type(mods.raceConfig.SpeedMulti) == "function"
+		and type(mods.raceConfig.PRESET_CRUISE) == "number"
+		and type(mods.raceConfig.MAX_CRUISE) == "number"
+		and type(mods.gacha.SetTeam) == "function"
+		and type(mods.gacha.TeamBonus) == "function"
+		and type(mods.gacha.StaminaMulti) == "function"
+		and type(mods.gacha.CruiseFor) == "function"
+	flag("team_bonus_api_exists", api == true)
+	if not api then
+		return r
+	end
+	local catalog, series, gacha, rc = mods.catalog, mods.series, mods.gacha, mods.raceConfig
+	local BONUS = mods.stamina.TEAM_BONUS
+	local function seriesOf(id)
+		local spec = catalog.Get(id)
+		return spec and spec.Series
+	end
+	local function bonus(ids)
+		local kind, s = series.TeamBonus(ids, seriesOf)
+		return kind, s and s.Id
+	end
+	flag(
+		"team_bonus_values",
+		type(BONUS.Preset) == "number"
+			and type(BONUS.Series) == "number"
+			and BONUS.Preset > BONUS.Series
+			and BONUS.Series > 1
+	)
+	flag("team_bonus_preset_cruise_boosts", rc.PRESET_CRUISE > 1)
+
+	-- 1. Every preset trio, in all 6 orders, is a Preset team of its series (its members share the Series, so the
+	-- Series bonus would also match: the preset wins)
+	local PERMS = { { 1, 2, 3 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 3, 2, 1 } }
+	local presets, anyOrder, sameSeries = 0, true, true
+	for _, s in series.List do
+		local members = s.Preset and s.Preset.Members
+		if members then
+			presets += 1
+			for _, id in members do
+				sameSeries = sameSeries and seriesOf(id) == s.Id
+			end
+			for _, perm in PERMS do
+				local kind, sid = bonus({ members[perm[1]], members[perm[2]], members[perm[3]] })
+				anyOrder = anyOrder and kind == "Preset" and sid == s.Id
+			end
+		end
+	end
+	flag("team_bonus_presets_exist", presets > 0, presets, 1)
+	flag("team_bonus_preset_members_share_series", sameSeries)
+	flag("team_bonus_preset_any_order_beats_series", presets > 0 and anyOrder)
+
+	-- 2. A same-series trio that is not the preset: Series; a mixed trio: none
+	local first = series.List[1]
+	local others = {}
+	for _, spec in catalog.All() do
+		if spec.Series == first.Id and not table.find(first.Preset.Members, spec.Id) then
+			table.insert(others, spec.Id)
+		end
+	end
+	local seriesTeam = { first.Preset.Members[1], first.Preset.Members[2], others[1] }
+	local sk, ss = bonus(seriesTeam)
+	flag("team_bonus_series_trio", others[1] ~= nil and sk == "Series" and ss == first.Id)
+	local second = series.List[2]
+	local mixed = { first.Preset.Members[1], first.Preset.Members[2], second.Preset.Members[1] }
+	flag("team_bonus_mixed_trio_none", bonus(mixed) == nil)
+
+	-- 3. Teams of 1 or 2 never get a bonus (even 2 preset members), nor do duplicates or junk
+	local m = first.Preset.Members
+	local small = bonus({ m[1], m[2] }) == nil
+		and bonus({ m[1] }) == nil
+		and bonus({}) == nil
+		and bonus({ m[1], m[1], m[2] }) == nil
+		and bonus({ m[1], m[2], m[3], others[1] }) == nil
+		and bonus(nil) == nil
+	flag("team_bonus_needs_3_members", small)
+
+	-- 4. Server: a real player's Team. Fresh players have no multis, so the stamina multi is the bonus alone and the
+	-- cruise is RaceConfig.Cruise(spec) (x PRESET_CRUISE for a preset team).
+	local cleanup = {}
+	local ok, err = pcall(function()
+		local p = fakePlayer(cleanup, mods, "Bonus")
+		for _, id in m do
+			gacha.Grant(p, id)
+		end
+		if others[1] then
+			gacha.Grant(p, others[1])
+		end
+		local function teamState(ids)
+			local okSet = gacha.SetTeam(p, ids) == true
+			task.wait() -- the Team attribute change refreshes TeamBonus (deferred signals)
+			local kind = gacha.TeamBonus(p)
+			return okSet, kind, gacha.StaminaMulti(p), p:GetAttribute("TeamBonus")
+		end
+		local pOk, pKind, pMulti, pAttr = teamState({ m[3], m[1], m[2] })
+		flag(
+			"team_bonus_server_preset",
+			pOk and pKind == "Preset" and near(pMulti, BONUS.Preset, 1e-9) and pAttr == "Preset:" .. first.Id,
+			pMulti,
+			BONUS.Preset
+		)
+		local presetCruise = true
+		for slot, id in { m[3], m[1], m[2] } do
+			local spec = catalog.Get(id)
+			local want = math.min(rc.Cruise(spec) * rc.PRESET_CRUISE, rc.MAX_CRUISE)
+			presetCruise = presetCruise
+				and near(gacha.CruiseFor(p, id, slot), want, 1e-9)
+				and near(p:GetAttribute("TeamCruise" .. slot), want, 1e-9)
+		end
+		flag("team_bonus_preset_cruise_x_preset", presetCruise)
+		if others[1] then
+			local sOk, sKind, sMulti, sAttr = teamState(seriesTeam)
+			flag(
+				"team_bonus_server_series",
+				sOk and sKind == "Series" and near(sMulti, BONUS.Series, 1e-9) and sAttr == "Series:" .. first.Id,
+				sMulti,
+				BONUS.Series
+			)
+			flag("team_bonus_series_no_cruise", near(gacha.CruiseFor(p, m[1], 1), rc.Cruise(catalog.Get(m[1])), 1e-9))
+		end
+		local dOk, dKind, dMulti, dAttr = teamState({ m[1], m[2] })
+		flag(
+			"team_bonus_server_duo_none",
+			dOk
+				and dKind == nil
+				and near(dMulti, 1, 1e-9)
+				and dAttr == ""
+				and near(gacha.CruiseFor(p, m[1], 1), rc.Cruise(catalog.Get(m[1])), 1e-9),
+			dMulti,
+			1
+		)
+	end)
+	flag("team_bonus_no_error", ok)
+	if not ok then
+		r.metrics.error = tostring(err)
+	end
+	for _, x in cleanup do
+		x:Destroy()
+	end
+
+	-- 5. The preset cruise counts inside MAX_CRUISE: every preset member at the largest multis (Speed points, potion
+	-- x2, preset, strong aura and trail, full Speed tree) never cruises above the cap, and a Secret preset member
+	-- that would pass it is clamped to exactly MAX_CRUISE
+	local huge = rc.SpeedMulti(1e6, 2, true, 1e9, 1e9, 0.5)
+	local under, clamped = true, false
+	for _, s in series.List do
+		for _, id in s.Preset and s.Preset.Members or {} do
+			local spec = catalog.Get(id)
+			local c = spec and rc.Cruise(spec, huge) or math.huge
+			under = under and c <= rc.MAX_CRUISE
+			clamped = clamped or (spec ~= nil and c == rc.MAX_CRUISE)
+		end
+	end
+	flag("team_bonus_preset_cruise_under_cap", under and clamped)
+	local secret
+	for _, s in series.List do
+		for _, id in s.Preset and s.Preset.Members or {} do
+			local spec = catalog.Get(id)
+			if spec and spec.Rarity == "Secret" then
+				secret = spec
+			end
+		end
+	end
+	flag(
+		"team_bonus_secret_preset_capped",
+		secret ~= nil and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) == rc.MAX_CRUISE,
+		secret and rc.Cruise(secret, rc.SpeedMulti(0, 2, true)) or -1,
+		rc.MAX_CRUISE
+	)
+	return r
+end
+
 function Tests.stamina()
 	local r, flag = H.report("stamina")
 	local m = r.metrics
@@ -237,10 +435,23 @@ function Tests.stamina()
 		data = H.module(Server, "PlayerData"),
 		money = H.module(Server, "MoneyService"),
 		race = H.module(Server, "RaceService"),
+		upgrade = H.module(Server, "UpgradeService"),
+		boost = H.module(Server, "BoostService"),
+		series = H.module(Shared, "SeriesCatalog"),
 	}
 	local api = mods.catalog
 		and mods.config
 		and mods.raceConfig
+		and mods.upgrade
+		and mods.boost
+		and mods.series
+		and type(mods.config.CATEGORY) == "table"
+		and type(mods.config.TEAM_BONUS) == "table"
+		and type(mods.gacha.Allocate) == "function"
+		and type(mods.gacha.StaminaMulti) == "function"
+		and type(mods.upgrade.Setup) == "function"
+		and type(mods.upgrade.Bonuses) == "function"
+		and type(mods.boost.Multiplier) == "function"
 		and mods.factory
 		and mods.gacha
 		and mods.data
@@ -311,6 +522,9 @@ function Tests.stamina()
 		end
 		local ctx = { Name = name, Player = p, Team = team, Log = {}, Samples = {} }
 		ctx.TeamOk = gacha.SetTeam(p, team) == true
+		if opts.Prepare then
+			opts.Prepare(ctx)
+		end
 		local car = mods.factory.build(team[1])
 		car.Name = "CarTestStamina_" .. name
 		car.Parent = Workspace
@@ -386,6 +600,10 @@ function Tests.stamina()
 		end
 	end
 	local trio = rollableIds(catalog, 3)
+	-- the multis run: the first preset trio (slot 1 is a Marathoner, so the category counts too)
+	local preset = mods.series.List[1].Preset.Members
+	local POTION = "StaminaIII"
+	local POTION_OFF_AT = 1.5 -- s into the run: the potion expires between the two drain samples
 
 	local ok, err = pcall(function()
 		local drains = {}
@@ -403,6 +621,23 @@ function Tests.stamina()
 			{ trio[1], trio[2] },
 			{ Seconds = { 0.3, 30 }, NpcSpeeds = { [track1.Number] = FAST_NPC } }
 		)
+
+		local multi = start("Multi", preset, {
+			Prepare = function(ctx)
+				local p = ctx.Player
+				p:SetAttribute("RebirthLevel", 2) -- 2 free stat points (design doc 4.14), both spent on Stamina
+				ctx.Alloc = (gacha.Allocate(p, "Stamina") and 1 or 0) + (gacha.Allocate(p, "Stamina") and 1 or 0)
+				mods.upgrade.Setup(p)
+				local tile = Instance.new("StringValue") -- an owned tree tile, as the save stores it
+				tile.Name, tile.Value = "stamina_1", "stamina_1"
+				tile.Parent = p:FindFirstChild("Upgrades")
+				ctx.Tree = mods.upgrade.Bonuses(p).Stamina
+				p:SetAttribute("BoostUntil_" .. POTION, os.time() + 600)
+				ctx.Potion = mods.boost.Multiplier(p, "Stamina")
+				ctx.MultiAtStart = gacha.StaminaMulti(p)
+			end,
+		})
+		drains.Multi = multi
 
 		-- drive: drain samples, a track-1 win for Swap (so a bank may exist), the same-tick loss for Tie
 		local drainA, drainB = 0.3, 2.8
@@ -438,6 +673,11 @@ function Tests.stamina()
 					end
 				end
 			end
+			if multi.Run and not multi.PotionOff and now - multi.T0 >= POTION_OFF_AT then
+				multi.PotionOff = true
+				multi.Player:SetAttribute("BoostUntil_" .. POTION, 0)
+				multi.PotionAfter = mods.boost.Multiplier(multi.Player, "Stamina")
+			end
 			if swap.Run and not swap.Jumped and now - swap.T0 >= 0.15 then
 				swap.Jumped = true
 				swap.Run.Driver.Index = track1.FinishIndex
@@ -463,6 +703,7 @@ function Tests.stamina()
 		end
 
 		-- 2. Drain rate per rarity (Balanced, team of 1: Stamina = Base): 100 / Base percent per second
+		drains.Multi = nil
 		local worst, measured = 0, {}
 		for rarity, ctx in drains do
 			local want = 100 / config.Base(catalog.Get(balanced[rarity]))
@@ -473,6 +714,35 @@ function Tests.stamina()
 		end
 		m.drain = table.concat(measured, " ")
 		flag("stamina_drain_rate_per_rarity", next(drains) ~= nil and worst <= DRAIN_TOL, worst, DRAIN_TOL)
+
+		-- 2b. Player multis (design doc 4.5-4.8, spec "Stamina"): Base x Category x (1 + PER_POINT x points + tree)
+		-- x potion x preset bonus, each factor once, fixed at run start: the potion expiring at POTION_OFF_AT (between
+		-- the two samples) leaves the drain at the run-start rate.
+		local spec1 = catalog.Get(preset[1])
+		local wantMulti = (1 + config.PER_POINT * 2 + (multi.Tree or 0))
+			* (multi.Potion or 0)
+			* config.TEAM_BONUS.Preset
+		local wantDrain = 100 / (config.Base(spec1) * config.CATEGORY[spec1.Category] * wantMulti)
+		local gotDrain = multi.A and multi.B and (multi.A.S - multi.B.S) / (multi.B.T - multi.A.T) or -1
+		local drainErr = gotDrain > 0 and math.abs(gotDrain - wantDrain) / wantDrain or math.huge
+		m.multi_drain = ("%.4f/%.4f"):format(gotDrain, wantDrain)
+		flag(
+			"stamina_multis_setup",
+			multi.TeamOk
+				and multi.Alloc == 2
+				and spec1.Category ~= "Balanced"
+				and type(multi.Tree) == "number"
+				and multi.Tree > 0
+				and type(multi.Potion) == "number"
+				and multi.Potion > 1
+				and multi.PotionOff == true
+				and multi.PotionAfter == 1
+				and multi.B ~= nil
+				and multi.B.T - multi.T0 > POTION_OFF_AT
+		)
+		flag("stamina_multi_formula", near(multi.MultiAtStart, wantMulti, 1e-9), multi.MultiAtStart or -1, wantMulti)
+		-- the run reads that multi once at its start (RaceService.NewRun) and keeps it after the potion expires
+		flag("stamina_multis_applied_once", drainErr <= DRAIN_TOL, drainErr, DRAIN_TOL)
 
 		-- 3. 100% on every run start (all fresh runs above, and a second run after an exhaustion)
 		local allFull = true

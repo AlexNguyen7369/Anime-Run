@@ -11,6 +11,7 @@ local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local MarketConfig = require(Shared:WaitForChild("MarketConfig"))
 local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
+local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local Spec = require(script.Parent.UiSpec)
 
 local ShopMarket = {}
@@ -560,7 +561,8 @@ function ShopMarket.Build(h)
 	end
 
 	-- What the Detail pane must show for (kind, item): Name, Price (HudFormat.MoneyText), Description, a Rarity,
-	-- and the Action label the server's attributes give (potions BUY; owned + equipped EQUIPPED; owned EQUIP; BUY).
+	-- and the Action label BUY (potions, not-owned items). An owned trail / aura hides Action and shows the team slot
+	-- buttons (u4, Client/SlotPicker): Slot<n> titled "REMOVE n" when slot n holds it, else "SLOT n".
 	local function detailProblems(kind, item)
 		local detail = h.find(MK.Detail)
 		local bad = {}
@@ -598,35 +600,45 @@ function ShopMarket.Build(h)
 		if rarity == "" or rarity == "missing" or (item.Rarity and not has(rarity, item.Rarity)) then
 			table.insert(bad, ("Rarity shows %q, want %s"):format(rarity, item.Rarity or "a rarity"))
 		end
-		-- Trail / aura subtitle names its Speed Gain multi (owner 2026-10-27, docs/GAME_DESIGN_REQUIREMENTS.md "Aura and
-		-- trail ladders"): "Trail  •  x<SpeedMulti> Speed Gain", auras add "+ cruise". MarketConfig decides the number.
+		-- Trail / aura subtitle names its damped cruise multi for its team slot (no Speed Gain: design doc 4.13, owner
+		-- 2026-11-01): "<Kind>  •  <HudFormat.Multi(RaceConfig.ItemCruiseMulti(SpeedMulti))> cruise for its slot" (every
+		-- multi token is HudFormat.Multi style, HUD_LAYOUT_SPEC section 8).
 		if kind == "Trail" or kind == "Aura" then
-			local wantMulti = "x" .. tostring(item.SpeedMulti)
-			if
-				type(item.SpeedMulti) ~= "number"
-				or not has(rarity, kind)
-				or not has(rarity, wantMulti .. " Speed Gain")
-				or (kind == "Aura") ~= (has(rarity, "cruise") == true)
-			then
-				table.insert(
-					bad,
-					("Subtitle shows %q, want %s %s Speed Gain%s"):format(
-						rarity,
-						kind,
-						wantMulti,
-						kind == "Aura" and " + cruise" or ""
-					)
-				)
+			local wantMulti = type(item.SpeedMulti) == "number"
+				and (HudFormat.Multi(RaceConfig.ItemCruiseMulti(item.SpeedMulti)) .. " cruise")
+			if not wantMulti or not has(rarity, kind) or not has(rarity, wantMulti) then
+				table.insert(bad, ("Subtitle shows %q, want %s %s"):format(rarity, kind, tostring(wantMulti)))
 			end
 		end
-		local want = MK.ActionText.Buy
-		if kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) == true then
-			want = attr("Equipped" .. kind) == item.Id and MK.ActionText.Equipped or MK.ActionText.Equip
-		end
-		-- The text the Action button shows (its own Text, else its Label child's: Client/MarketUi actionLabel)
-		local shown = shownText(part("Action"))
-		if shown ~= want then
-			table.insert(bad, ("Action shows %q, want %q"):format(shown, want))
+		local cosmetic = kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) == true
+		local action, slots = part("Action"), part(MK.Slots)
+		if not cosmetic then
+			-- The text the Action button shows (its own Text, else its Label child's: Client/MarketUi actionLabel)
+			local shown = shownText(action)
+			if not (action and h.visible(action)) or shown ~= MK.ActionText.Buy then
+				table.insert(bad, ("Action shows %q, want %q"):format(shown, MK.ActionText.Buy))
+			end
+			if slots and h.visible(slots) then
+				table.insert(bad, "Slots shown for an item that is not an owned trail / aura")
+			end
+		else
+			if action and h.visible(action) then
+				table.insert(bad, "Action shown for an owned " .. kind .. " (the slot buttons equip it)")
+			end
+			if not (slots and h.visible(slots)) then
+				table.insert(bad, "Slots hidden for an owned " .. kind)
+			end
+			for n = 1, MarketConfig.SLOTS do
+				local b = slots and slots:FindFirstChild("Slot" .. n)
+				local title = b and b:FindFirstChild("Title")
+				local here = attr(MarketConfig.SlotAttribute(n, kind)) == item.Id
+				local want = (here and MK.SlotRemoveTitle or MK.SlotTitle):format(n)
+				if not (b and b:IsA("TextButton")) then
+					table.insert(bad, "Slots/Slot" .. n .. " missing (TextButton)")
+				elseif textOf(title) ~= want then
+					table.insert(bad, ("Slot%d shows %q, want %q"):format(n, textOf(title), want))
+				end
+			end
 		end
 		return bad
 	end
