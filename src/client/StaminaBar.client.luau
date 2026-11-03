@@ -17,7 +17,7 @@ local EMPTY = Color3.fromRGB(20, 26, 48)
 local TRAIL = Color3.fromRGB(235, 240, 255)
 -- Scale = studs (placeholder): thin and about as tall as the rig; the offset keeps it readable from far away
 local SIZE = UDim2.new(0.6, 5, 4, 24)
-local OFFSET = Vector3.new(2.4, 0, 0) -- studs right of the Torso, in camera space (placeholder)
+local OFFSET = Vector3.new(2.8, 0, 0) -- studs right of the Torso, in camera space (placeholder)
 local MAX_DISTANCE = 200 -- studs (placeholder)
 local STEP = 0.12 -- s, fill tween per server update (updates come at most every 0.1 s)
 local TRAIL_DELAY = 0.35 -- s before the "just lost" trail catches up (placeholder)
@@ -44,7 +44,6 @@ local function attach(copy)
 		StudsOffset = OFFSET,
 		MaxDistance = MAX_DISTANCE,
 		LightInfluence = 0,
-		AlwaysOnTop = true,
 		ResetOnSpawn = false,
 	}, nil)
 	local back = make("Frame", {
@@ -175,7 +174,7 @@ local function attach(copy)
 		end
 	end)
 	render()
-	-- PlayerGui keeps it out of the world; AlwaysOnTop keeps it over the rig and the scenery; it follows the Adornee
+	-- PlayerGui keeps it out of the world; it follows the Adornee. No AlwaysOnTop: with it the bar did not draw (Studio 2026-11-03)
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 	copy.Destroying:Connect(function()
 		conn:Disconnect()

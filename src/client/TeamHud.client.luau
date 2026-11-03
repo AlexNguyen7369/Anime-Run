@@ -360,7 +360,7 @@ local function render()
 			Size = UDim2.fromScale(1, pct),
 			BackgroundColor3 = StaminaConfig.Color(stamina or 100),
 		}, Enum.EasingStyle.Linear)
-		circle.Frame.BackgroundTransparency = spec and 0 or 0.45
+		circle.Frame.BackgroundTransparency = spec and 0 or 0.25
 		if circle.State ~= state then
 			circle.State = state
 			tween(circle.Ring, 0.2, {
