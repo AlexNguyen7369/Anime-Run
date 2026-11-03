@@ -309,3 +309,11 @@
   "loop fixes"): full harness started in Studio 684395a0 (Rojo 34873 serves ../AnimeRun-orch/studio, detached at
   b860845; its old copy stashed). First scenario `runner` ~18 min. Then UI harness (UiTestRun). Known expected reds:
   Market subtitle format, HudPair.Stacked rects. Poll in <=112 s execute_luau calls.
+- 2026-11-03 c3 loop (owner: run full compat check, loop fixes). Integration f4c2db7 (pushed). Results so far:
+  server round 1 `[CARTEST] END pass=38 fail=12`, round 2 pass=46 fail=4 (all 4 fixed since in 37725fd, not yet
+  re-run); UI round 1 pass=25 fail=14, round 2 pass=32 fail=7, round 3 pass=37 fail=2 (ui_layout phone HUD-pair
+  overlaps = BUGS ui-layout-phone-overlaps; ui_reduced_motion roll viewport). UI agent fixing both live in
+  ../AnimeRun-orch/studio on branch orch/core/c3ui (Rojo-served, holds Studio 684395a0). Owner rulings 2026-11-03:
+  palette finish pads, Track 6 one row, late tire = exhaustion, Money tree +10%. Next: land c3ui, final full server
+  harness + UI harness to fail=0, rules audit, then PR feature/alex/anime-world -> main (fresh reviewer).
+  Test-writer worktree ../AnimeRun-orch/c3fix (orch/core/c3fix, merged).
