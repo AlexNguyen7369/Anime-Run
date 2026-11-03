@@ -12187,6 +12187,8 @@ function Scenarios.workshop()
 end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
+-- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
+local STAMINA_SCENARIOS = { team = true, stamina = true, team_bonus = true }
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
@@ -12196,7 +12198,24 @@ function Scenarios.Run(name)
 	if type(fn) ~= "function" or name == "Run" or name == "track" then
 		return result(name, { { name = "scenario_exists", value = 0, limit = 1, pass = false } }, {})
 	end
-	return fn()
+	-- Team-of-3 stamina (design doc 4.3) ends every NPC run by exhaustion (a Common tires in ~13.5 s). Scenarios
+	-- not about stamina get untiring stamina through the StaminaSeconds seam; a run that passes its own keeps it.
+	local race = not STAMINA_SCENARIOS[name] and serverModule("RaceService")
+	if not race or type(race.NewRun) ~= "function" then
+		return fn()
+	end
+	local origNewRun = race.NewRun
+	race.NewRun = function(car, raceRoute, p, options)
+		options = table.clone(options or {})
+		options.StaminaSeconds = options.StaminaSeconds or { 1e6, 1e6, 1e6 }
+		return origNewRun(car, raceRoute, p, options)
+	end
+	local ok, res = pcall(fn)
+	race.NewRun = origNewRun
+	if not ok then
+		error(res, 0)
+	end
+	return res
 end
 
 -- Phase-two tests stay in their own module so existing collaborator checks remain intact.
