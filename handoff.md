@@ -317,4 +317,21 @@
   palette finish pads, Track 6 one row, late tire = exhaustion, Money tree +10%. Next: land c3ui, final full server
   harness + UI harness to fail=0, rules audit, then PR feature/alex/anime-world -> main (fresh reviewer).
   Test-writer worktree ../AnimeRun-orch/c3fix (orch/core/c3fix, merged).
+- 2026-11-03 char-art a4 pilot (UNCOMMITTED, owner): chibi retired for Roblox avatar proportions + rendering (Anime
+  Adventures-style inspiration, no copied art), distinct resemblance; marks may closely resemble the original (owner
+  chose this over "altered", accepts the risk; official logos / ripped art stay banned). Docs updated: design doc 5 +
+  change log, CHARACTER_GACHA_SPEC Avatar pipeline, goals a4/a5, CHARACTER_ART_REFERENCES, WORLD_REDESIGN_SPEC 2.
+  New: tools/blender/avatar_base.py, build_avatar.py, avatar_characters.json; pilot leaf_hero, leaf_avenger, leaf_medic
+  in assets/characters_avatar/ (2,219-2,638 tris). Next: owner approves the look, rules auditor signs, then a5 (other
+  27, remove chibi_base + assets/characters). c3 is still open (see c3 loop above).
+- 2026-11-03 char-art a5/a6 LANDED on feature/alex/anime-world (owner): all 30 avatar models in game. Data
+  tools/blender/avatar_chars/, merge + look tools/blender/avatar_merge.py (ink hull, cel bands), auto folds and small
+  sharp faces in avatar_base.py (owner reference shots: close to the source design, DMCA risk accepted). Uploaded under
+  the owner's account (tools/blender/avatar_assets.json, generated Shared/CharacterModelAssets; the two earlier upload
+  rounds are orphaned on the account). Server/CharacterModelService loads them, RunnerFactory clones / swaps. Rollable =
+  30; 3 event-only stay as Index tiles. Starter popup Client/StarterPick + PickStarter (design doc 4.21; stats + name
+  mapping PROPOSED, ask owner). Studio: run + mid-run Restyle OK, popup OK, previews OK; scenarios catalog, gacha,
+  weather pass. Not done: rules-auditor sign-off, c3 rerun, other UiSpec contracts for the new gui, TeamHud portraits
+  still placeholder heads (animerun-b7 is rebuilding the team row). Owner's Studio test save now has starter_leaf
+  (a popup forced for the check was clicked). Studio worktree ../AnimeRun-orch/studio detached with these files copied in.
 - 2026-11-03 uipolish (owner): rebirth now gives +5% cruise per level (placeholder, design doc 4.13 / 4.14, reverses "no speed gain"), speed tile shown on the Rebirth panel. Stamina bar: trail fix, rounded fills with no CanvasGroup, minimum size, `AlwaysOnTop` must stay off (bar does not draw with it). Team row: UiMotion, info card layout + screen clamp, badge pill. Commits on orch/core/uipolish (../AnimeRun-orch/uipolish), audit PASS, Studio desktop check OK; phone, reduced motion, badge pill, harness not run. NOT MERGED: the main checkout holds another session's uncommitted character-art work (overlap: GachaService, Phase2Tests, design doc). The place's saved StarterGui RacerRebirth has stale text; `RacerRebirth.luau` is generated (spec in ~/Documents/RobloxGames/ui) and hand-edited, so regenerating may undo the tile. Test runs banked money into the owner's Studio save (at least $66.5m, was $30.3m). Next: merge when clear, then c3.

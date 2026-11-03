@@ -1,8 +1,12 @@
 --!nonstrict
--- The placeholder anime runner (docs/WORLD_REDESIGN_SPEC.md section 2): a blocky humanoid rig (Head, Torso, 2 arms,
--- 2 legs, chibi head 1:3) coloured from the character's series palette with a rarity trim and a name label. Every
--- part is anchored and non-colliding: RaceService moves the rig along the race path, clients only redraw it.
--- The Torso is the PrimaryPart (auras and trails attach to it). Sizes and colours are placeholders.
+-- The anime runner (docs/WORLD_REDESIGN_SPEC.md section 2): a 6-part rig (Head, Torso, 2 arms, 2 legs) with a name
+-- label. A character with an uploaded model (ReplicatedStorage.CharacterModels, docs/CHARACTER_GACHA_SPEC.md "Avatar
+-- pipeline") wears its MeshParts; anything else is the placeholder block rig in its series palette with a rarity trim.
+-- Every part is anchored and non-colliding: RaceService moves the rig along the race path, clients only redraw it.
+-- The Torso is the PrimaryPart (auras and trails attach to it). Meshes are centred on the PARTS offsets by the export.
+
+local CollectionService = game:GetService("CollectionService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local GachaConfig = require(script.Parent.GachaConfig)
@@ -10,6 +14,7 @@ local GachaConfig = require(script.Parent.GachaConfig)
 local RunnerFactory = {}
 
 RunnerFactory.HIP_HEIGHT = 3 -- studs from the feet (rig bottom) up to the Torso centre, the rig's pivot
+RunnerFactory.RIG_TAG = "RunnerBody" -- every built rig: CharacterModelService re-skins them when the models arrive
 RunnerFactory.NAME_DISTANCE = 120 -- studs: the name label shows within this distance (placeholder)
 
 -- Series palettes (placeholder): Body = Torso, Legs, Skin = Head and arms
@@ -66,6 +71,54 @@ local function part(model, name, size, color)
 	return p
 end
 
+-- The character's folder of MeshPart templates, or nil (no model, or not loaded yet).
+local function templates(characterId)
+	local spec = CharacterCatalog.Get(characterId)
+	local root = ReplicatedStorage:FindFirstChild("CharacterModels")
+	return root and root:FindFirstChild(spec and spec.Model or tostring(characterId))
+end
+
+-- True if the character has a loaded model.
+function RunnerFactory.HasModel(characterId)
+	return templates(characterId) ~= nil
+end
+
+local function addFace(head)
+	local face = Instance.new("Decal")
+	face.Name = "Face"
+	face.Face = Enum.NormalId.Front
+	face.Texture = "rbxasset://textures/face.png"
+	face.Parent = head
+end
+
+-- Puts `new` in the rig in place of its part `old`: effects, joints, the name label and PrimaryPart move across.
+local function swap(model, old, new)
+	new.CFrame = old.CFrame
+	new.CollisionGroup = old.CollisionGroup
+	new.Parent = model
+	for _, child in old:GetChildren() do
+		child.Parent = new
+	end
+	for _, joint in old:GetJoints() do
+		if joint:IsA("JointInstance") or joint:IsA("WeldConstraint") then
+			if joint.Part0 == old then
+				joint.Part0 = new
+			end
+			if joint.Part1 == old then
+				joint.Part1 = new
+			end
+		end
+	end
+	if model.PrimaryPart == old then
+		model.PrimaryPart = new
+	end
+	local label = model:FindFirstChild("NameLabel")
+	if label and label.Adornee == old then
+		label.Adornee = new
+	end
+	old:Destroy()
+end
+
 -- Builds the rig for `characterId` (any string; unknown ids get the default palette), standing with its feet at the
 -- origin, facing -Z. options: { Color = Color3 (body), Label = string (name text) }. Not parented.
 function RunnerFactory.build(characterId, options)
@@ -74,6 +127,7 @@ function RunnerFactory.build(characterId, options)
 	local model = Instance.new("Model")
 	model.Name = "Runner"
 	model:SetAttribute("CharacterId", characterId)
+	CollectionService:AddTag(model, RunnerFactory.RIG_TAG)
 	local byPart = {
 		Torso = colors.Body,
 		Head = colors.Skin,
@@ -84,18 +138,25 @@ function RunnerFactory.build(characterId, options)
 		Trim = colors.Trim,
 	}
 	local root = CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
+	local meshes = templates(characterId)
 	for _, p in PARTS do
-		local inst = part(model, p[1], p[2], byPart[p[1]])
+		local template = meshes and meshes:FindFirstChild(p[1])
+		local inst
+		if template then
+			inst = template:Clone()
+			inst.Parent = model
+		else
+			inst = part(model, p[1], p[2], byPart[p[1]])
+		end
 		inst.CFrame = root * CFrame.new(p[3])
 	end
 	local torso = model.Torso
 	model.PrimaryPart = torso
+	model.Trim.Transparency = meshes and 1 or 0 -- the model replaces the placeholder's rarity belt
 
-	local face = Instance.new("Decal")
-	face.Name = "Face"
-	face.Face = Enum.NormalId.Front
-	face.Texture = "rbxasset://textures/face.png"
-	face.Parent = model.Head
+	if not meshes then
+		addFace(model.Head)
+	end
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "NameLabel"
@@ -119,7 +180,7 @@ function RunnerFactory.build(characterId, options)
 	return model
 end
 
--- Re-colours an existing rig as `characterId` in place (same parts, so attachments and effects on the Torso stay).
+-- Re-skins an existing rig as `characterId` in place (attachments and effects on the Torso stay).
 function RunnerFactory.Restyle(model, characterId)
 	local spec = CharacterCatalog.Get(characterId)
 	local colors = RunnerFactory.Colors(characterId)
@@ -132,11 +193,33 @@ function RunnerFactory.Restyle(model, characterId)
 		RightLeg = colors.Legs,
 		Trim = colors.Trim,
 	}
-	for name, color in byPart do
+	local meshes = templates(characterId)
+	for _, row in PARTS do
+		local name = row[1]
 		local p = model:FindFirstChild(name)
 		if p and p:IsA("BasePart") then
-			p.Color = color
+			local template = meshes and meshes:FindFirstChild(name)
+			if template then
+				swap(model, p, template:Clone())
+			elseif p:IsA("MeshPart") then
+				local plain = part(model, name, row[2], byPart[name])
+				plain.Parent = nil
+				swap(model, p, plain)
+			else
+				p.Color = byPart[name]
+			end
 		end
+	end
+	local trim = model:FindFirstChild("Trim")
+	if trim then
+		trim.Transparency = meshes and 1 or 0
+	end
+	local head = model:FindFirstChild("Head")
+	local face = head and head:FindFirstChild("Face")
+	if meshes and face then
+		face:Destroy()
+	elseif head and not meshes and not face then
+		addFace(head)
 	end
 	local label = model:FindFirstChild("NameLabel")
 	label = label and label:FindFirstChild("Name")

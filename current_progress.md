@@ -39,9 +39,10 @@
 36. 2026-11-03 — Alex Nguyen — Landed c2 and c4: Stamina stat point, upgrade tree Stamina branch, Stamina potions and Series / preset team bonus; head-only team row with category info card and animated runner marker; animated stamina bar; workshop now boosts one chosen stat by the Dojo squad's rarity (passive gain, offline credit and the Workshop stat point retired); run cruise and stamina fixed at run start (audit PASS, Studio smoke OK).
 37. 2026-11-03 — Alex Nguyen — Landed UI animations across the board (design doc 4.20): panels scale in with a staggered list, every button gets hover / press feedback, tab markers tween, toasts and popups slide and fade, claimable badges pulse, all respecting Reduced Motion (audit PASS; panel close motion pending a harness change).
 38. 2026-11-03 — Alex Nguyen — Drafted 30 launch-character models from a shared headless Blender chibi base with an art reference sheet and contact sheet (rules audit PASS; push to origin failing, merge local).
-39. 2026-11-03 — Alex Nguyen — Added the owner's rebirth speed reward (+5% cruise per level, placeholder) with a speed tile on the Rebirth panel, and fixed the stamina bar trail and team row info card, checked in Studio on desktop (on task branch orch/core/uipolish).
+39. 2026-11-03 — Alex Nguyen — Replaced the chibi drafts with 30 Roblox-avatar character models (inked outlines, cel shading, close to the source designs), uploaded and drawn in game, added the new-player starter choice popup and made the 3 event characters non-rollable Index tiles.
+40. 2026-11-03 — Alex Nguyen — Added the owner's rebirth speed reward (+5% cruise per level, placeholder) with a speed tile on the Rebirth panel, and fixed the stamina bar trail and team row info card, checked in Studio on desktop.
 
 ## What's next
-**Merge orch/core/uipolish into feature/alex/anime-world once the uncommitted character-art work in the main checkout is committed, resolving the small overlap in GachaService, Phase2Tests and the design doc.**
+**Finish the full compatibility check (c3): fix the 2 open UI harness failures (`ui_layout` phone HUD-pair overlaps, `ui_reduced_motion` roll viewport), rerun the server and UI harnesses to `fail=0` with the new models and starter popup, then run the rules audit.**
 
-**Why this is next:** the rebirth speed reward and UI fixes reach the integration branch only through this merge, and the c3 full compatibility check and the PR into main must run on code that includes them.
+**Why this is next:** the owner asked for c3 on 2026-11-03 and it gates the PR from feature/alex/anime-world into main; the character and starter changes landed after its last rounds, so they still need that full run.

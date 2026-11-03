@@ -250,9 +250,8 @@ function GachaService.Roll(player, roller)
 	GachaService.Setup(player)
 	local rollNumber = math.min(cleanCount(player:GetAttribute("Rolls")) + 1, MAX_COUNT)
 	local turboMulti = UpgradeService.AdvanceTurbo(player)
-	local event = require(script.Parent.WeatherService).Current()
 	local luck = GachaService.Luck(player)
-	local id = GachaConfig.Roll(roller or rng, luck * turboMulti, event)
+	local id = GachaConfig.Roll(roller or rng, luck * turboMulti)
 	local emphasized = GachaConfig.IsEmphasized(id, ownedIds(player))
 	player:SetAttribute("Rolls", rollNumber)
 	local isNew = GachaService.Grant(player, id)
@@ -318,6 +317,26 @@ function GachaService.TeamList(player)
 		list[1] = STARTER
 	end
 	return list
+end
+
+-- Opens the starter popup for a brand new save (design doc 4.21). Called once a real save has loaded.
+function GachaService.CheckStarter(player)
+	local data = folder(player)
+	if #data:GetChildren() == 0 and cleanCount(player:GetAttribute("Rolls")) == 0 then
+		player:SetAttribute("NeedsStarter", true)
+	end
+end
+
+-- The player's starter choice: accepted once, only from CharacterCatalog.STARTER_PICKS. Returns true if taken.
+function GachaService.PickStarter(player, id)
+	if player:GetAttribute("NeedsStarter") ~= true or not table.find(CharacterCatalog.STARTER_PICKS, id) then
+		return false
+	end
+	addEntry(folder(player), id)
+	player:SetAttribute("NeedsStarter", false)
+	player:SetAttribute("Team", id)
+	player:SetAttribute("EquippedCar", id)
+	return true
 end
 
 -- Sets the Team (docs/TEAM_AND_STAMINA_SPEC.md "Team"): 1-3 distinct owned string ids, on foot only, none in the
@@ -690,7 +709,12 @@ function GachaService.StartAutoRoll(player, roller)
 		while handle.Running and player.Parent do
 			task.wait(wait)
 			wait = GachaService.RollInterval(player) -- read every roll: a Roll Speed purchase applies at once
-			if handle.Running and player.Parent and player:GetAttribute("AutoRoll") ~= false then
+			if
+				handle.Running
+				and player.Parent
+				and player:GetAttribute("AutoRoll") ~= false
+				and player:GetAttribute("NeedsStarter") ~= true
+			then
 				local id, _, _, emphasized = GachaService.Roll(player, roller)
 				handle.Rolls += 1
 				wait = GachaService.WaitAfter(id, emphasized, player)
@@ -749,6 +773,11 @@ function GachaService.Start()
 			GachaService.Allocate(player, stat)
 		end
 	end)
+
+	local pickRemote = remotes:FindFirstChild("PickStarter") or Instance.new("RemoteFunction")
+	pickRemote.Name = "PickStarter"
+	pickRemote.Parent = remotes
+	pickRemote.OnServerInvoke = GachaService.PickStarter
 
 	local teamRemote = remotes:FindFirstChild("SetTeam") or Instance.new("RemoteFunction")
 	teamRemote.Name = "SetTeam"

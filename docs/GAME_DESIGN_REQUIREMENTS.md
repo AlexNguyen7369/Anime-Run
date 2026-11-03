@@ -44,7 +44,7 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
 | Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); passive gain replaced by a chosen stat boost (4.19, owner 2026-11-03) | `WorkshopService` |
-| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
+| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) ; 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03, replaces rollable during their event) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (Speed retired 2026-11-01, 4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
 | Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
@@ -278,6 +278,15 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
 
+### 4.21 Starter choice (owner 2026-11-03)
+
+- A new player gets a popup and chooses one of 3 starter characters: Ruffy, Karate Kid, Sayan. The pick is their first
+  Team member; they roll the next two to fill the Team. Saves that already have rolls or characters get no popup.
+- Starters are not rollable and not in the Index, like the old `starter`. Stats are **proposed**: Common, cruise as the
+  old starter, Balanced, no Series. Look: same model as Lufy, Narito, Gokku (mapping **proposed**: Ruffy = Lufy,
+  Karate Kid = Narito, Sayan = Gokku).
+- Auto-roll waits until the player has picked. The roster in play is these 30 models plus the 3 starters that reuse them.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -292,9 +301,16 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
     assets), every script stripped, each id and its creator logged in the biome asset ledger.
   - Real character or series names never appear in the game title, description, thumbnails, icons, badges or
     developer product names.
-  - Signature marks (owner 2026-11-03): a character's headband plate, crest, cloak pattern or emblem uses a clearly
-    altered version of the mark (different shape, not a near copy), never the official one. Each alteration is
-    listed in `docs/CHARACTER_ART_REFERENCES.md` and checked by the rules auditor.
+  - Signature marks (owner 2026-11-03, later the same day; replaces "clearly altered"): a character's headband plate,
+    crest, cloak pattern or emblem may closely resemble the original, modelled in-house. Official logos and ripped
+    art stay banned (first safeguard). Each mark is listed in `docs/CHARACTER_ART_REFERENCES.md` and checked by the
+    rules auditor. The owner accepts the higher takedown risk.
+- Art style (owner 2026-11-03, replaces the shared chibi base): characters use Roblox avatar proportions and rendering
+  (blocky R15 body, flat face, big mesh hair), inspired by anime Roblox games such as Anime Adventures, with no art
+  copied from those games. Every character must be distinctly recognisable as its source character.
+- Art direction (owner 2026-11-03, later, from reference screenshots of anime Roblox games): close to the original
+  character design, not cute: small sharp faces, inked outlines, painted cel shading, drawn clothing and muscle lines.
+  The owner accepts the takedown risk of the closer likeness. Models stay in-house; no ripped art.
   - Keep one list of every parody and its source (`docs/CHARACTER_GACHA_SPEC.md`) so a takedown can be answered by
     renaming / reskinning one character fast; character `Id`s never contain the real name, so a rename never touches
     saves.
@@ -329,6 +345,13 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
   one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance
   share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: owner: upgrade tree Money branch is +10% per tier (code since u4; IVS had +50%).
+- 2026-11-03: owner: art direction closer to the original designs (section 5), from reference screenshots.
+- 2026-11-03: owner: the 30 avatar models are the only rollable cast for now and go in the game; the 3 event-only
+  characters stop being rollable but stay in the Index as undiscovered tiles; new players pick a starter in a popup
+  (4.21).
+- 2026-11-03: owner: character art style changed: chibi retired, Roblox avatar proportions and rendering, distinct
+  resemblance to the source character; signature marks may closely resemble the original (section 5). Pilot of 3
+  (Team Seven) first, then the other 27 after owner approval.
 - 2026-11-03: owner: character art drafting starts (goal `char-art`): 30 regular-cast draft models in Blender
   from one shared chibi base, renders only, no Studio import yet; signature marks use clearly altered versions (section 5).
 - 2026-11-03: owner: UI animations across the board (4.20): panels, buttons, tabs, numbers, toasts, badges.

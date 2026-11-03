@@ -540,7 +540,7 @@ function Tests.weather()
 					local rolled = gacha.Roll(p, rng)
 					flag(
 						"weather_event_car_eligibility_" .. event .. "_" .. label(active),
-						set and (active == event and rolled == eventCar.Id or active ~= event and rolled ~= eventCar.Id)
+						set and rolled ~= eventCar.Id -- owner 2026-11-03: not rollable in any weather
 					)
 				end
 			end
@@ -574,7 +574,7 @@ function Tests.weather()
 				#eligible
 			)
 			for _, candidate in catalog.All() do
-				local allowed = candidate.Event == nil or candidate.Event == active
+				local allowed = candidate.Event == nil -- owner 2026-11-03: event characters are never rolled
 				if candidate.Chance then
 					for _, boundary in { "below", "equal" } do
 						local index = 0
@@ -609,6 +609,21 @@ function Tests.weather()
 		-- Event restrictions affect acquisition only. Every current car remains
 		-- owned, equippable, indexed and serializable after its event ends.
 		weather.SetEvent("", at)
+		-- Starter choice (design doc 4.21): only from the list, only once, only while the popup is owed.
+		do
+			local fresh = fake("StarterPick", data, gacha)
+			table.insert(extraPlayers, fresh)
+			flag("starter_pick_refused_without_popup", gacha.PickStarter(fresh, "starter_sea") == false)
+			fresh:SetAttribute("NeedsStarter", true)
+			flag("starter_pick_refuses_other_ids", gacha.PickStarter(fresh, "leaf_hero") == false)
+			flag("starter_pick_accepted", gacha.PickStarter(fresh, "starter_sea") == true)
+			flag("starter_pick_is_team", fresh:GetAttribute("Team") == "starter_sea")
+			flag(
+				"starter_pick_owned",
+				gacha.Copies(fresh, "starter_sea") >= 0 and gacha.Equip(fresh, "starter_sea") == true
+			)
+			flag("starter_pick_only_once", gacha.PickStarter(fresh, "starter_db") == false)
+		end
 		local inventory = fake("EntireCatalog", data, gacha)
 		table.insert(extraPlayers, inventory)
 		-- retired: the CarSpeedMulti / SpeedMulti part (design doc 4.13, owner 2026-11-01: no Speed stat, the

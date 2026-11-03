@@ -23,7 +23,11 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `RunStyle` | animation set: `Sprint`, `NinjaRun`, `Glide`, `Float` |
 | `Event` | optional: `rain`, `night` or `gold`; the character is rollable only during that weather event (IVS `WEATHER_EVENTS_SPEC.md`) |
 
-- `starter` is built in: not rollable, not in the Index, `Balanced`, no Series.
+- `starter` is built in: not rollable, not in the Index, `Balanced`, no Series. Kept for old saves.
+- Starter choice (design doc 4.21): built-in `starter_sea` (Ruffy, model `sea_captain`), `starter_leaf` (Karate Kid,
+  model `leaf_hero`), `starter_db` (Sayan, model `db_hero`): same rules as `starter`, owned as a `GachaData` entry
+  once picked. Player attribute `NeedsStarter` opens the popup; remote `PickStarter` (RemoteFunction, id) is accepted
+  once, only from that list.
 
 ## Rolls
 
@@ -112,7 +116,7 @@ Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; t
 | | | | `db_hero` | 1.6e16 | 1,000 |
 | | | | `jk_strongest` | 5e18 | 2,800 |
 
-Event-only characters (owner 2026-10-28: in scope; names owner-approved 2026-10-28; odds and multis copied from
+Event-only characters (owner 2026-11-03: not rollable for now, undiscovered Index tiles; owner 2026-10-28: in scope; names owner-approved 2026-10-28; odds and multis copied from
 the IVS event cars). They belong to a series and count toward its Series bonus. Discovery and equipping persist after
 the event.
 
@@ -139,25 +143,27 @@ Preset trios (the anime's famous team):
 
 ## Art
 
-- R15-compatible rig, anime toon shading, oversized head (chibi 1:3 proportion, placeholder) for readability at speed.
+- R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, flat face,
+  big mesh hair; each character distinctly recognisable as its source.
 - Each rarity adds detail: Common plain; Epic+ gets an aura particle; Mythic+ a trail and unique run style.
 - Pipeline: Blender (Blender MCP) -> FBX -> Studio import -> `CharacterModels`.
 
-### Draft pipeline (owner 2026-11-03, goal `char-art`)
+### Avatar pipeline (owner 2026-11-03, goal `char-art` a4-a5; replaced the chibi draft pipeline)
 
-- Visual sources per character: `docs/CHARACTER_ART_REFERENCES.md` (internal, real names allowed, never ships).
-- One shared chibi base built by Python (`tools/blender/chibi_base.py`), run headless:
-  `Blender -b --python tools/blender/build_character.py -- <id>`. Parts are named after the 15 R15 parts (Head,
-  UpperTorso, LowerTorso, Left/Right UpperArm, LowerArm, Hand, UpperLeg, LowerLeg, Foot) so a later import can map
-  them onto an R15 rig.
-- Per-character look comes from data only: `tools/blender/characters.json`, keyed by `Id` (hair preset + colours,
-  eyes, skin, outfit pieces, accessories, altered mark). Object and file names use the `Id`, never a real name.
-- Budget: at most 4,000 triangles per character (proposed).
-- Output: `assets/characters/<id>/<id>.blend` and `assets/characters/<id>/review/{front,side,back,three_quarter}.png`;
-  `assets/characters/contact_sheet.png` with all 30.
-- Review: the rules auditor checks the renders and json (altered marks clearly differ, no real names in files, no
-  ripped assets) and signs `Reviewed` per id in `characters.json`; then the owner reviews the contact sheet.
-- Drafts only: Studio import, R15 rigging, animation and the `Model` field come after the owner approves the looks.
+- `tools/blender/avatar_base.py` + `build_avatar.py`, run headless:
+  `Blender -b --factory-startup --python tools/blender/build_avatar.py -- [<id>...|--sheet]`.
+- Body: R15 block proportions (legs 2, torso 2, head 1.3 units; proposed). Same 15 part names.
+- Per-character look comes from `tools/blender/avatar_chars/<series>.json`, keyed by `Id`: part colours, eye and mouth
+  presets, individually placed hair locks, flat clothing panels, marks, props.
+- Budget: at most 12,000 triangles per character including the outline shell (proposed).
+- Look (design doc 5): inverted-hull ink outline, cel bands painted into the palette texture, auto-drawn fold lines.
+- Output: `assets/characters_avatar/<id>/review/{front,side,back,three_quarter}.png` and `contact_sheet.png`; the
+  `<id>.blend` files are rebuilt on demand and not committed.
+- In game: `export_avatar.py` merges the parts into the 6 `RunnerFactory` parts on one palette texture
+  (`build/avatar_glb/<id>.glb`); `upload_avatar.py` uploads them as Model assets under the owner's account (ids in
+  `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
+  them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
+  the placeholder block rig for anything without a model (NPC rivals, `starter`, event-only characters).
 
 ## Tests
 

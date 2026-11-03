@@ -74,6 +74,7 @@ require(Shared.LightingConfig).Apply()
 -- The player's car auto-races the whole chain at the speed from their saved stats
 RaceService.Start(RaceService.BuildRoute(entries))
 WeatherService.Start()
+require(script.Parent.CharacterModelService).Start() -- loads the uploaded runner models in the background
 PlayerData.Start()
 UpgradeService.SetTrackCount(#chain) -- the tree's tier gate (docs/UPGRADE_TREE_DESIGN.md)
 UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPGRADES badge
