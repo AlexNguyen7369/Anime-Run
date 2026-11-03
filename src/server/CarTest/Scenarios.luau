@@ -11860,10 +11860,14 @@ function Scenarios.workshop()
 		end
 		check(checks, "workshop_plots_open_toward_hub", worstFront, WSHOP.FRONT_DOT, worstFront >= WSHOP.FRONT_DOT)
 		local rectHits = 0
+		local trackPolys = {} -- trackParts holds BaseParts (for footprintOverlaps), not { Poly } records
+		for i, t in trackParts do
+			trackPolys[i] = spawnPartPoly(t)
+		end
 		for _, p in plots do
 			local rp = spawnRectPoly(base, p.Min, p.Max)
-			for _, t in trackParts do
-				if spawnPolySeparation(rp, t.Poly) < -SPAWN_OVERLAP_TOL then
+			for _, tp in trackPolys do
+				if spawnPolySeparation(rp, tp) < -SPAWN_OVERLAP_TOL then
 					rectHits += 1
 				end
 			end
