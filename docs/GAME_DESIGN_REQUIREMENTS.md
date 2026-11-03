@@ -265,9 +265,11 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   Roblox Reduced Motion and the in-game REDUCED EFFECTS land it at once. Timings below are proposed placeholders.
   - Panels (every PanelSwitch panel): open = scale 0.9 -> 1 with Back easing + fade in, ~0.2 s; close = scale to 0.95
     + fade out, ~0.12 s. List / grid items stagger in on open (~0.03 s apart, at most ~0.3 s total).
-  - Buttons (HUD, panels, tabs): hover grows ~5%, press shrinks ~5%, release pops back; disabled buttons do not move.
+  - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
+    1.035 / 0.97, orchestrator default 2026-11-03); disabled buttons do not move.
   - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
-  - Numbers (Money, counts, multis on the HUD and in panels): count up / down over ~0.3 s instead of jumping.
+  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+    is ever shown wrong (orchestrator default 2026-11-03).
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
 

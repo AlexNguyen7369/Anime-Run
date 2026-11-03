@@ -518,8 +518,8 @@ local function showQuests()
 	questRows = {}
 	for _, tab in { dailyQuestTab, weeklyQuestTab } do
 		local selected = tab.Name == questCategory
-		tab.BackgroundColor3 = selected and TILE_BLUE or TAB
-		tab.Edge.Color = selected and Color3.new(1, 1, 1) or OUTLINE
+		UiMotion.Mark(tab, { BackgroundColor3 = selected and TILE_BLUE or TAB })
+		UiMotion.Mark(tab.Edge, { Color = selected and Color3.new(1, 1, 1) or OUTLINE })
 	end
 	local weekly = questCategory == "Weekly"
 	local quests = weekly and questConfig.Weekly or questConfig.Daily

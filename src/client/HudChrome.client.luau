@@ -250,6 +250,17 @@ pill("Market", 3, "Market")
 pill("Settings", 4)
 
 -- Live state -----------------------------------------------------------------------------------------------------
+-- Design doc 4.20: a shown badge (something claimable) pulses its ring until it hides.
+local pulses = {}
+local function pulse(b)
+	if b.Visible and not pulses[b] then
+		pulses[b] = UiMotion.Pulse(b.Ring, { Transparency = 0.75 }, 0.7)
+	elseif not b.Visible and pulses[b] then
+		pulses[b]()
+		pulses[b] = nil
+	end
+end
+
 -- Section 10: a red badge pops when its count changes (never every refresh).
 local function setBadge(b, count)
 	local text = tostring(count)
@@ -258,6 +269,7 @@ local function setBadge(b, count)
 	end
 	b.Visible = count > 0
 	b.Text = text
+	pulse(b)
 end
 
 local function refresh()
@@ -270,6 +282,7 @@ local function refresh()
 		UiMotion.Pop(dailyBadge)
 	end
 	dailyBadge.Visible = not claimed
+	pulse(dailyBadge)
 	if claimed then
 		local left = 86400 - now % 86400
 		dailyText.Text = string.format("%d:%02d:%02d", left // 3600, left // 60 % 60, left % 60)

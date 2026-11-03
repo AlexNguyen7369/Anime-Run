@@ -118,8 +118,9 @@ local function takeFocus(panel)
 	end)
 end
 
--- Open motion (docs/HUD_LAYOUT_SPEC.md section 10): scale from 92% to 100%; a panel with a layout UIScale (Racer
+-- Open motion (docs/HUD_LAYOUT_SPEC.md section 10): scale from 90% to 100%; a panel with a layout UIScale (Racer
 -- panels) slides 12 px up instead. Closing is instant: a hide cancels the motion and puts the panel back home.
+-- shortcut: no 4.20 close motion; it needs Visible to stay true after Close, which callers read at once.
 local OPEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local motions = {} -- target -> { Tween, Home (position or nil) }
 
@@ -150,6 +151,28 @@ local function stopMotion(target)
 	end
 end
 
+-- Design doc 4.20: the panel's main list / grid (the layout with the most items) staggers in on open.
+local function cascadeList(target)
+	local items = {}
+	for _, layout in target:GetDescendants() do
+		if layout:IsA("UIGridLayout") or layout:IsA("UIListLayout") then
+			local found = {}
+			for _, item in layout.Parent:GetChildren() do
+				if item:IsA("GuiObject") and item.Visible and item.BackgroundTransparency < 1 then
+					table.insert(found, item)
+				end
+			end
+			if #found > #items then
+				items = found
+			end
+		end
+	end
+	table.sort(items, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	UiMotion.Cascade(items)
+end
+
 local function openMotion(panel)
 	local target = motionTarget(panel)
 	stopMotion(target)
@@ -168,9 +191,10 @@ local function openMotion(panel)
 			scale.Name = "MotionScale"
 			scale.Parent = target
 		end
-		scale.Scale = 0.92
+		scale.Scale = 0.9 -- design doc 4.20 (proposed)
 		motion = { Tween = UiMotion.Create(scale, OPEN_INFO, { Scale = 1 }), Scale = scale }
 	end
+	cascadeList(target)
 	motions[target] = motion
 	motion.Tween.Completed:Connect(function()
 		if motions[target] == motion then

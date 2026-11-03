@@ -328,7 +328,7 @@ function render()
 		end
 	end
 	for name, refs in tabs do
-		refs.Edge.Color = name == current and Color3.new(1, 1, 1) or OUTLINE
+		UiMotion.Mark(refs.Edge, { Color = name == current and Color3.new(1, 1, 1) or OUTLINE })
 	end
 	local shown = 0
 	table.clear(shownTiles)

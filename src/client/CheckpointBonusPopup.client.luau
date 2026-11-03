@@ -19,7 +19,8 @@ root.DisplayOrder = 2
 local group = Instance.new("CanvasGroup") -- one GroupTransparency fades the text and its stroke together
 group.Name = "Popup"
 group.AnchorPoint = Vector2.new(0.5, 0)
-group.Position = UDim2.fromScale(0.5, 0.3) -- below BiomeWelcome (y 0.22)
+local HOME = UDim2.fromScale(0.5, 0.3) -- below BiomeWelcome (y 0.22)
+group.Position = HOME
 group.Size = UDim2.fromOffset(640, 44)
 group.BackgroundTransparency = 1
 group.GroupTransparency = 1
@@ -46,6 +47,11 @@ local function show(text)
 	group.Visible = true
 	UiMotion.Create(group, TweenInfo.new(FADE_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		GroupTransparency = 0,
+	}):Play()
+	-- Design doc 4.20: it also slides down into place while it fades in.
+	group.Position = HOME - UDim2.fromOffset(0, 12)
+	UiMotion.Create(group, TweenInfo.new(FADE_IN, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = HOME,
 	}):Play()
 	task.delay(FADE_IN + HOLD, function()
 		if shown ~= mine then

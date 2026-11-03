@@ -285,11 +285,12 @@ local function showToast(text)
 	toast.BackgroundColor3 = TOAST_COLOR[text] or Palette.Panel
 	toast.Position = TOAST_HOME
 	toast.Visible = true
+	UiMotion.Fade(toast, true)
 	UiMotion.SlideIn(toast, Vector2.new(48, 0))
 	UiMotion.Pop(toast)
 	task.delay(3, function()
 		if token == messageToken then
-			toast.Visible = false
+			UiMotion.Fade(toast, false)
 		end
 	end)
 end
