@@ -462,6 +462,8 @@ rebirth.PointRewardCaption.Text = string.format(
 	rebirthConfig.POINTS_PER_REBIRTH == 1 and "+%d Stat Point" or "+%d Stat Points",
 	rebirthConfig.POINTS_PER_REBIRTH
 )
+-- The place's saved StarterGui copy still says "Money and Speed"; Rebirth resets only Money (design doc 4.14)
+rebirth.WarningText.Text = "Rebirth resets your Money\n(Robux purchases stay)"
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0

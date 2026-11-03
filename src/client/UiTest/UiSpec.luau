@@ -367,8 +367,8 @@ UiSpec.Settings = {
 -- The Rebirth panel (ui_rebirth, clicks rebirth_*), rebuilt from the owner's reference image (2026-10-15,
 -- docs/REBIRTH_SPEC.md "Panel"). Numbers come from Shared/RebirthConfig (NextMultiplier,
 -- POINTS_PER_REBIRTH, Requirements(RebirthLevel).Money), leaderstats.Money and the RebirthLevel attribute, never
--- from the panel's pixels. Hidden = true: the node must NOT be shown (SpeedReward: no speed gain and no XP, owner
--- 2026-11-01, design doc 4.14).
+-- from the panel's pixels. Hidden = true: the node must NOT be shown (no node uses it now: SpeedReward is back, each
+-- rebirth level gives +5% cruise, owner 2026-11-03, design doc 4.14).
 -- Nodes are found BY NAME under the panel (the generator decides where the Face frames go): each must exist exactly
 -- once below its Parent node (Parent "Panel" = RacerRebirth/Panel), be shown while the panel is open, lie inside its
 -- Parent's rect and inside the panel at every UiSpec.Viewports entry, and have a row in UiResponsive.Nodes (so the
@@ -400,12 +400,12 @@ UiSpec.Rebirth = {
 			Colour = "yellow",
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
-		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame", Hidden = true },
+		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "PointReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "LuckRewardIcon", Parent = "LuckReward", Class = "ImageLabel" },
 		{ Name = "LuckRewardCaption", Parent = "LuckReward", Class = "TextLabel" },
-		{ Name = "SpeedRewardIcon", Parent = "SpeedReward", Class = "ImageLabel", Hidden = true },
-		{ Name = "SpeedRewardCaption", Parent = "SpeedReward", Class = "TextLabel", Hidden = true },
+		{ Name = "SpeedRewardIcon", Parent = "SpeedReward", Class = "ImageLabel" },
+		{ Name = "SpeedRewardCaption", Parent = "SpeedReward", Class = "TextLabel" },
 		{ Name = "PointRewardIcon", Parent = "PointReward", Class = "ImageLabel" },
 		{ Name = "PointRewardCaption", Parent = "PointReward", Class = "TextLabel" },
 		{ Name = "Requirements", Parent = "Panel", Class = "Frame" },
@@ -425,10 +425,12 @@ UiSpec.Rebirth = {
 	-- overlapping (node ids are unique in the generator, so the tile name is the prefix; both are listed in Nodes).
 	-- Caption = Format with the NEXT rebirth's gain: Multiplier tiles use RebirthConfig.NextMultiplier(RebirthLevel)
 	-- = the luck multi of RebirthLevel + 1 (design doc 4.14), the NEXT TOTAL (x1.5 at level 0, x2 at level 1 ... x10, then x10 per
-	-- rebirth to x100b at 20, the last; owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md "Panel"), others RebirthConfig[Config].
+	-- rebirth to x100b at 20, the last; owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md "Panel"), Next tiles call
+	-- RebirthConfig[Next](RebirthLevel + 1), others read RebirthConfig[Config]. Percent: the value is shown x100, rounded.
 	Tiles = {
 		-- %s = HudFormat.Multi(next multiplier) ("x7.5", HUD spec section 8, owner 2026-10-27; was "x%.2f")
 		{ Name = "LuckReward", Multiplier = true, Format = "%s Luck" },
+		{ Name = "SpeedReward", Next = "SpeedBonus", Percent = true, Format = "+%d%% Speed" }, -- owner 2026-11-03
 		{ Name = "PointReward", Config = "POINTS_PER_REBIRTH", Format = "+%d Stat Point", Plural = "+%d Stat Points" },
 	},
 	-- The panel's sections, shown together: no two may overlap (at every viewport).
