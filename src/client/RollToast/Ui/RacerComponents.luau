@@ -244,15 +244,13 @@ function Components.BakeStats(refs, config)
 		Speed = "CRUISE MULTIPLIER",
 		Money = "MONEY MULTIPLIER",
 		Luck = "LUCK MULTIPLIER",
-		Workshop = "WORKSHOP MULTIPLIER",
 		Stamina = "STAMINA MULTIPLIER",
 	}
-	local arts = { Speed = "speed", Money = "cash", Luck = "luck", Workshop = "workshop", Stamina = "speed" } -- shortcut: no stamina atlas art yet
+	local arts = { Speed = "speed", Money = "cash", Luck = "luck", Stamina = "speed" } -- shortcut: no stamina atlas art yet
 	local colours = {
 		Speed = Color3.fromRGB(24, 202, 239),
 		Money = Color3.fromRGB(255, 194, 18),
 		Luck = Color3.fromRGB(88, 225, 80),
-		Workshop = Color3.fromRGB(198, 62, 229),
 		Stamina = Color3.fromRGB(70, 120, 255),
 	}
 	for i, stat in ipairs(config.STATS) do

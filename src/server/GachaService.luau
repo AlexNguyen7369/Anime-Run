@@ -5,7 +5,8 @@
 --   player attributes: Team (up to 3 character ids joined by ",", docs/TEAM_AND_STAMINA_SPEC.md), EquippedCar (the
 --   active runner: Team[1] on foot, the runner in play during a run), Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
 --   AutoRoll (the AUTO toggle of the roll view, true on join, not saved), Showcase (shown car ids joined by ","),
---   ShowcaseMulti, LuckMulti (live permanent multiplier snapshots), Cruise (the equipped character's cruise, studs/s)
+--   LuckMulti (live permanent multiplier snapshot), Cruise (the equipped character's cruise, studs/s), WorkshopBoost
+--   (the workshop stat boost fraction, design doc 4.19; the stat is the saved WorkshopStat attribute)
 -- Every unique car in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
 -- never stored, only what was allocated, so the two can not drift apart. Saved by PlayerData (Snapshot/Apply).
 
@@ -21,6 +22,7 @@ local RebirthConfig = require(Shared.RebirthConfig)
 local RollAnimConfig = require(Shared.RollAnimConfig)
 local SeriesCatalog = require(Shared.SeriesCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
+local Workshop = require(Shared.Workshop)
 local UpgradeService = require(script.Parent.UpgradeService)
 
 local GachaService = {}
@@ -89,7 +91,6 @@ function GachaService.Setup(player)
 	end
 	if player:GetAttribute("Showcase") == nil then
 		player:SetAttribute("Showcase", "")
-		player:SetAttribute("ShowcaseMulti", 1)
 	end
 	if not watched[player] then
 		watched[player] = true
@@ -105,6 +106,9 @@ function GachaService.Setup(player)
 				or string.match(name, "^Slot%d+Aura$")
 				or string.match(name, "^Slot%d+Trail$")
 				or name == "RebirthLevel"
+				or name == "Showcase"
+				or name == "WorkshopLevel"
+				or name == "WorkshopStat"
 				or name == "AutoRacing"
 				or string.sub(name, 1, 6) == "Alloc_"
 				or string.sub(name, 1, 16) == "BoostUntil_Speed"
@@ -210,9 +214,6 @@ function GachaService.Grant(player, id)
 	local entry = data:FindFirstChild(id)
 	if entry then
 		entry:SetAttribute("Copies", cleanCopies(cleanCopies(entry:GetAttribute("Copies")) + 1))
-		if GachaService.ShowcaseIds(player)[id] then
-			GachaService.RefreshShowcase(player)
-		end
 		return false
 	end
 	addEntry(data, id)
@@ -373,19 +374,37 @@ function GachaService.TeamBonus(player)
 	end)
 end
 
--- Player stamina multi (design doc 4.6-4.8): Stamina points + upgrade tree Stamina tiers, active Stamina potion,
+-- The workshop stat boost (design doc 4.19): the Dojo squad's rarity points scaled by the workshop level.
+function GachaService.WorkshopBoost(player)
+	local specs = {}
+	for _, id in GachaService.ShowcaseList(player) do
+		table.insert(specs, CharacterCatalog.Get(id))
+	end
+	return Workshop.Boost(specs, player:GetAttribute("WorkshopLevel"))
+end
+
+-- The upgrade tree bonuses plus the workshop boost on the chosen stat: both sit in the additive `1 + points + tree`
+-- part (design doc 4.19).
+local function bonuses(player)
+	local b = UpgradeService.Bonuses(player)
+	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
+	b[stat] = (b[stat] or 0) + GachaService.WorkshopBoost(player)
+	return b
+end
+
+-- Player stamina multi (design doc 4.6-4.8): Stamina points + upgrade tree Stamina tiers + workshop boost, active Stamina potion,
 -- team bonus. Read once at run start (RaceService).
 function GachaService.StaminaMulti(player)
 	return StaminaConfig.Multi(
 		alloc(player).Stamina,
-		UpgradeService.Bonuses(player).Stamina,
+		bonuses(player).Stamina,
 		require(script.Parent.BoostService).Multiplier(player, "Stamina"),
 		(GachaService.TeamBonus(player))
 	)
 end
 
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
--- times the speed multi (Speed points + upgrade tree Speed tiers, active Speed potion, preset team bonus, that slot's
+-- times the speed multi (Speed points + upgrade tree Speed tiers + workshop boost, active Speed potion, preset team bonus, that slot's
 -- damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
 -- not own runs as the starter.
 function GachaService.CruiseFor(player, id, slot)
@@ -397,7 +416,7 @@ function GachaService.CruiseFor(player, id, slot)
 		GachaService.TeamBonus(player) == "Preset",
 		MarketConfig.SpeedMulti(player, slot),
 		MarketConfig.TrailMulti(player, slot),
-		UpgradeService.Bonuses(player).Speed
+		bonuses(player).Speed
 	)
 	return RaceConfig.Cruise(spec, multi)
 end
@@ -414,6 +433,7 @@ function GachaService.RefreshTeam(player)
 	local team = GachaService.TeamList(player)
 	local kind, series = GachaService.TeamBonus(player)
 	player:SetAttribute("TeamBonus", kind and (kind .. ":" .. series.Id) or "")
+	player:SetAttribute("WorkshopBoost", GachaService.WorkshopBoost(player))
 	local staminaMulti = GachaService.StaminaMulti(player)
 	for slot = 1, TEAM_SIZE do
 		local spec = team[slot] and CharacterCatalog.Get(team[slot])
@@ -435,21 +455,17 @@ function GachaService.RefreshMultipliers(player)
 end
 
 function GachaService.MoneyMulti(player)
-	return GachaConfig.Multis(alloc(player), UpgradeService.Bonuses(player)).Money
+	return GachaConfig.Multis(alloc(player), bonuses(player)).Money
 		* RebirthConfig.MoneyMulti(player:GetAttribute("RebirthLevel"))
 		* require(script.Parent.BoostService).Multiplier(player, "Money")
 		* require(script.Parent.WeatherService).Multipliers().Money
 end
 
 function GachaService.Luck(player)
-	local luck = GachaConfig.Multis(alloc(player), UpgradeService.Bonuses(player)).Luck
+	local luck = GachaConfig.Multis(alloc(player), bonuses(player)).Luck
 		* RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel"))
 		* require(script.Parent.BoostService).Multiplier(player, "Luck")
 		* require(script.Parent.WeatherService).Multipliers().Luck
-	if player:GetAttribute("InWorkshop") == true then
-		local WorkshopConfig = require(Shared.WorkshopConfig)
-		luck *= WorkshopConfig.LuckMulti(player:GetAttribute("WorkshopLevel"))
-	end
 	local adminLuck = player:GetAttribute("AdminLuck")
 	if type(adminLuck) == "number" and adminLuck >= 1 and adminLuck == adminLuck then
 		luck *= adminLuck
@@ -479,19 +495,6 @@ function GachaService.ShowcaseList(player)
 		end
 	end
 	return list
-end
-
--- 1 + the slot bonuses of the showcased cars (GachaConfig.SlotBonus).
-function GachaService.ShowcaseMulti(player)
-	local slots = {}
-	for _, id in GachaService.ShowcaseList(player) do
-		table.insert(slots, { Spec = CharacterCatalog.Get(id), Copies = GachaService.Copies(player, id) })
-	end
-	return GachaConfig.ShowcaseMulti(slots)
-end
-
-function GachaService.RefreshShowcase(player)
-	player:SetAttribute("ShowcaseMulti", GachaService.ShowcaseMulti(player))
 end
 
 local function showcaseable(player, id)
@@ -524,14 +527,7 @@ function GachaService.SetShowcase(player, ids)
 		return false, "Not a character you own"
 	end
 	player:SetAttribute("Showcase", table.concat(ids, ","))
-	GachaService.RefreshShowcase(player)
 	return true, "Showcase updated"
-end
-
--- The Workshop multi: Workshop stat points (the tree has no Workshop branch) x the Showcase multi. Used by
--- WorkshopService and the offline Speed credit.
-function GachaService.WorkshopMulti(player)
-	return GachaConfig.Multis(alloc(player)).Workshop * GachaService.ShowcaseMulti(player)
 end
 
 -- The save format: { Cars = { id, ... } (sorted), Copies = { [id] = n }, Showcase = { id, ... }, Team = { id, ... },
@@ -573,7 +569,7 @@ function GachaService.Snapshot(player)
 	}
 end
 
-local TRIM_ORDER = { "Workshop", "Money", "Luck", "Speed" } -- over-allocation is removed in this order
+local TRIM_ORDER = { "Money", "Luck", "Speed" } -- over-allocation is removed in this order
 
 -- Loads a saved table (anything else gives a fresh player). Unknown car ids are kept so a car taken out of
 -- the catalog is not wiped from saves, but they never count for points or multis.
@@ -640,7 +636,6 @@ function GachaService.Apply(player, saved)
 		end
 	end
 	player:SetAttribute("Showcase", table.concat(showcase, ","))
-	GachaService.RefreshShowcase(player)
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))
 
 	local a = {}
