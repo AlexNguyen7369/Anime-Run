@@ -520,9 +520,8 @@ local function checkCheckpoint(checks, spec, layout, expect)
 	)
 	if pad and pad:IsA("BasePart") then
 		check(checks, "pad_neon", pad.Material == Enum.Material.Neon and 1 or 0, 1, pad.Material == Enum.Material.Neon)
-		local c = pad.Color
-		local r, g, b = c.R * 255, c.G * 255, c.B * 255
-		check(checks, "pad_yellow", r, 200, r >= 200 and g >= 170 and b <= 120)
+		-- retired: pad_yellow. Owner 2026-11-03 (BIOME_ENVIRONMENT_SPEC, above section 3): a track's finish pad may take
+		-- its biome's palette colour; it need not be yellow.
 		check(checks, "pad_no_collide", pad.CanCollide and 1 or 0, 0, pad.CanCollide == false)
 		local biggest = math.max(pad.Size.X, pad.Size.Y, pad.Size.Z)
 		check(checks, "pad_small", biggest, 16, biggest <= 16)
@@ -10635,7 +10634,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 			"upgrades_buyable_attribute_follows_money",
 			tonumber(pBadge:GetAttribute("UpgradesBuyable")) or -1,
 			want1,
-			a0 and a1 and want1 == 3
+			a0 and a1 and want1 == 4 -- walkspeed_1, money_1, speed_1, stamina_1 (design doc 4.6, owner 2026-11-03)
 		)
 		svc("Buy", pBadge, "money_1")
 		local a2 = badgeIs(pBadge)
@@ -11207,12 +11206,13 @@ function Scenarios.upgrades()
 		return okc and n == want
 	end
 	flag("upgrades_buyable_count_broke_is_0", buyable(state({}, 0, 0, 2), 0))
-	flag("upgrades_buyable_count_rich_is_5", buyable(state({}, RICH, 0, 2), 5))
-	flag("upgrades_buyable_count_turbo_unlocks", buyable(state({ "rollspeed_1" }, RICH, 0, 2), 6))
+	-- design doc 4.6 (owner 2026-11-03): Stamina I ($150) is a 6th tier-I tile off Start (the name keeps "_is_5")
+	flag("upgrades_buyable_count_rich_is_5", buyable(state({}, RICH, 0, 2), 6))
+	flag("upgrades_buyable_count_turbo_unlocks", buyable(state({ "rollspeed_1" }, RICH, 0, 2), 7))
 	local partialOk = buyable(state({}, 100, 0, 2), 1) -- walkspeed_1 ($75) only
-		and buyable(state({}, 150, 0, 2), 3) -- + money_1, speed_1
-		and buyable(state({ "money_1", "money_2" }, RICH, 0, 2), 4) -- money_3 gated
-		and buyable(state({ "money_1", "money_2" }, RICH, 2, 2), 5)
+		and buyable(state({}, 150, 0, 2), 4) -- + money_1, speed_1, stamina_1
+		and buyable(state({ "money_1", "money_2" }, RICH, 0, 2), 5) -- money_3 gated
+		and buyable(state({ "money_1", "money_2" }, RICH, 2, 2), 6)
 	flag("upgrades_buyable_count_money_and_gate", partialOk)
 
 	-- Bonuses: added percentages, pure sum of what is owned.
@@ -11860,10 +11860,14 @@ function Scenarios.workshop()
 		end
 		check(checks, "workshop_plots_open_toward_hub", worstFront, WSHOP.FRONT_DOT, worstFront >= WSHOP.FRONT_DOT)
 		local rectHits = 0
+		local trackPolys = {} -- trackParts holds BaseParts (for footprintOverlaps), not { Poly } records
+		for i, t in trackParts do
+			trackPolys[i] = spawnPartPoly(t)
+		end
 		for _, p in plots do
 			local rp = spawnRectPoly(base, p.Min, p.Max)
-			for _, t in trackParts do
-				if spawnPolySeparation(rp, t.Poly) < -SPAWN_OVERLAP_TOL then
+			for _, tp in trackPolys do
+				if spawnPolySeparation(rp, tp) < -SPAWN_OVERLAP_TOL then
 					rectHits += 1
 				end
 			end
@@ -12187,6 +12191,8 @@ function Scenarios.workshop()
 end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
+-- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
+local STAMINA_SCENARIOS = { team = true, stamina = true, team_bonus = true }
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
@@ -12196,7 +12202,24 @@ function Scenarios.Run(name)
 	if type(fn) ~= "function" or name == "Run" or name == "track" then
 		return result(name, { { name = "scenario_exists", value = 0, limit = 1, pass = false } }, {})
 	end
-	return fn()
+	-- Team-of-3 stamina (design doc 4.3) ends every NPC run by exhaustion (a Common tires in ~13.5 s). Scenarios
+	-- not about stamina get untiring stamina through the StaminaSeconds seam; a run that passes its own keeps it.
+	local race = not STAMINA_SCENARIOS[name] and serverModule("RaceService")
+	if not race or type(race.NewRun) ~= "function" then
+		return fn()
+	end
+	local origNewRun = race.NewRun
+	race.NewRun = function(car, raceRoute, p, options)
+		options = table.clone(options or {})
+		options.StaminaSeconds = options.StaminaSeconds or { 1e6, 1e6, 1e6 }
+		return origNewRun(car, raceRoute, p, options)
+	end
+	local ok, res = pcall(fn)
+	race.NewRun = origNewRun
+	if not ok then
+		error(res, 0)
+	end
+	return res
 end
 
 -- Phase-two tests stay in their own module so existing collaborator checks remain intact.

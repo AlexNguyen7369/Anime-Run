@@ -319,6 +319,9 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner (c3 rulings): finish pads may use their biome's palette colour (not always yellow); Track 6 keeps
+  one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance
+  share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: owner: upgrade tree Money branch is +10% per tier (code since u4; IVS had +50%).
 - 2026-11-03: owner: character art drafting starts (goal `char-art`): 30 regular-cast draft models in Blender
   from one shared chibi base, renders only, no Studio import yet; signature marks use clearly altered versions (section 5).
