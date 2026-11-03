@@ -463,11 +463,17 @@ rebirth.PointRewardCaption.Text = string.format(
 	rebirthConfig.POINTS_PER_REBIRTH
 )
 local rebirthBusy, rebirthReply = false, nil
+-- No speed gain and no XP (design doc 4.14): the generated fit re-applies the authored Visible = true, so keep it hidden
+rebirth.SpeedReward.Visible = false
+rebirth.SpeedReward:GetPropertyChangedSignal("Visible"):Connect(function()
+	if rebirth.SpeedReward.Visible then
+		rebirth.SpeedReward.Visible = false
+	end
+end)
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
 	local nextMultiplier = rebirthConfig.NextMultiplier(level)
 	rebirth.LuckRewardCaption.Text = multiplierText(nextMultiplier) .. " Luck"
-	rebirth.SpeedReward.Visible = false -- no speed gain and no XP (design doc 4.14)
 	local required = rebirthConfig.Requirements(level).Money
 	local maxed = level >= rebirthConfig.MAX_LEVEL
 	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)
