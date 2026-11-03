@@ -229,13 +229,14 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	-- biome from it while racing (design doc 4.18), never from the nearest centre line.
 	local function trackAt()
 		local number, best = nil, math.huge
-		for _, entry in raceRoute.Pads do
+		local pads = raceRoute.Pads or {}
+		for _, entry in pads do
 			local at = arc[entry.Index] or 0
 			if at > dist and at < best then
 				number, best = entry.Number, at
 			end
 		end
-		return number or raceRoute.Pads[#raceRoute.Pads].Number
+		return number or (pads[#pads] and pads[#pads].Number) -- a route without pads (test fixtures) has no track
 	end
 	-- What clients interpolate the visible runner from (contract in Server/CarTest/RunnerTests)
 	local function publish()
