@@ -91,7 +91,18 @@ UpgradeConfig.Branches = {
 		Direction = { -1, 1 },
 		WalkSpeed = { 20, 25, 31, 39, 49 },
 	},
-	-- Direction { 1, 0 } from Start is free for a future branch.
+	{
+		Id = "stamina",
+		Name = "Stamina",
+		-- +% stamina per owned tier, added to the Stamina stat points' part (design doc 4.6, owner 2026-11-03):
+		-- 1 + 0.05 x Alloc_Stamina + tree bonus. Bonus per tier and Weight are placeholders.
+		Effect = "Stamina",
+		Weight = 1,
+		Parent = "start",
+		Origin = { 0, 0 },
+		Direction = { 1, 0 },
+		Bonus = { 0.10, 0.10, 0.10, 0.10, 0.10 },
+	},
 }
 
 return UpgradeConfig

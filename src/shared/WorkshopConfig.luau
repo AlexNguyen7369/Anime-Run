@@ -25,41 +25,32 @@ WorkshopConfig.Plots = {
 	{ Min = Vector2.new(52, -13), Max = Vector2.new(100, 35), Front = Vector2.new(0, -1) },
 }
 
--- The gain zone, centred in the plot: (x, height, z) studs. Standing anywhere in it (root above the floor and below
--- the height) earns Money.
+-- The training zone, centred in the plot: (x, height, z) studs. Shown on the plot only: it earns nothing since
+-- 2026-11-03 (design doc 4.19, no passive gain).
 WorkshopConfig.ZONE_SIZE = Vector3.new(32, 12, 32)
 
-WorkshopConfig.TICK = 0.5 -- seconds between server zone checks
--- Money per second at level 1, no multis (owner 2026-11-01: idle gain pays Money, no Speed stat; placeholder 0.5 = the
--- Track 1 pad's $100 every ~200 s, so it never beats racing)
-WorkshopConfig.BASE_RATE = 0.5
-WorkshopConfig.LUCK_PER_LEVEL = 0.10 -- Workshop luck while standing in the zone; level 1 is 1x.
+-- Workshop stat boost (design doc 4.19, WORLD_REDESIGN_SPEC section 5; numbers placeholders, owner 2026-11-03):
+-- boost = sum of the Dojo squad's RARITY_POINTS x POINT_BONUS x (1 + LEVEL_SCALE x (level - 1)), added to STATS' pick.
+WorkshopConfig.STATS = { "Money", "Luck", "Speed", "Stamina" } -- the first one is the default
+WorkshopConfig.RARITY_POINTS = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7 }
+WorkshopConfig.POINT_BONUS = 0.05
+WorkshopConfig.LEVEL_SCALE = 0.1
 
--- Configurable progression defaults: each level doubles W; prices follow PayoutCurve.Cost from $500 (owner 2026-10-27).
+-- Configurable progression defaults: prices follow PayoutCurve.Cost from $500 (owner 2026-10-27).
 WorkshopConfig.Levels = {
-	{ Multi = 1, Price = 0 }, -- the starter workshop
+	{ Price = 0 }, -- the starter workshop
 }
 for level = 2, 10 do
-	WorkshopConfig.Levels[level] = { Multi = 2 ^ (level - 1), Price = PayoutCurve.Cost(500, level - 1) }
+	WorkshopConfig.Levels[level] = { Price = PayoutCurve.Cost(500, level - 1) }
 end
 WorkshopConfig.MAX_LEVEL = #WorkshopConfig.Levels
-WorkshopConfig.OFFLINE_FRACTION = 0.25
-WorkshopConfig.OFFLINE_CAP = 8 * 60 * 60
 WorkshopConfig.UPGRADE_DISTANCE = 12
-WorkshopConfig.REMOTE_COOLDOWN = 0.5
-
-function WorkshopConfig.LuckMulti(level)
-	if type(level) ~= "number" or level ~= level or level == math.huge or level == -math.huge then
-		level = 1
-	end
-	level = math.clamp(math.floor(level), 1, WorkshopConfig.MAX_LEVEL)
-	return 1 + (level - 1) * WorkshopConfig.LUCK_PER_LEVEL
-end
+WorkshopConfig.REMOTE_COOLDOWN = 0.5 -- seconds between accepted WorkshopUpgrade / SetWorkshopStat requests
 
 -- Showcase pedestals (docs/WORKSHOP_SPEC.md "Showcase"): plot-local z of their centres and the display car scale.
 WorkshopConfig.SHOWCASE_Z = 11
 WorkshopConfig.SHOWCASE_CAR_SCALE = 1
-WorkshopConfig.SHOWCASE_LABEL_DISTANCE = 60 -- MaxDistance of the name / copies label over each showcased car
+WorkshopConfig.SHOWCASE_LABEL_DISTANCE = 60 -- MaxDistance of the name / rarity label over each showcased car
 
 WorkshopConfig.SIGN_DISTANCE = 120 -- MaxDistance of the plot signs
 WorkshopConfig.EMPTY_TEXT = "EMPTY PLOT"

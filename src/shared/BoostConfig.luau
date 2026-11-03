@@ -3,7 +3,7 @@
 
 local BoostConfig = {}
 
-BoostConfig.Order = { "Luck", "Money", "Speed" }
+BoostConfig.Order = { "Luck", "Money", "Speed", "Stamina" } -- Stamina: orchestrator default 2026-11-03 (tiers like the rest)
 BoostConfig.Roman = { "I", "II", "III" }
 BoostConfig.Items = {}
 BoostConfig.ByCategory = {}

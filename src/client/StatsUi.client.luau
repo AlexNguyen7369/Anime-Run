@@ -28,9 +28,7 @@ local LABELS = {
 	Speed = "Cruise Multi",
 	Money = "Base Money Multi",
 	Luck = "Luck Multi",
-	Workshop = "Workshop Multi",
 }
-local DISABLED = { Workshop = "Workshop coming soon" } -- no workshop yet
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "StatsUi"
@@ -147,15 +145,9 @@ local function refresh()
 	local multis = GachaConfig.Multis(alloc)
 	for _, stat in GachaConfig.STATS do
 		local r = rows[stat]
-		local disabled = DISABLED[stat]
-		r.Value.Text = disabled
-			or string.format(
-				"%d pts · x%.2f (+%.2f per point)",
-				alloc[stat],
-				multis[stat],
-				GachaConfig.PER_POINT[stat]
-			)
-		local can = free > 0 and not disabled
+		r.Value.Text =
+			string.format("%d pts · x%.2f (+%.2f per point)", alloc[stat], multis[stat], GachaConfig.PER_POINT[stat])
+		local can = free > 0
 		r.Plus.Active = can
 		r.Plus.AutoButtonColor = can
 		r.Plus.BackgroundColor3 = can and Color3.fromRGB(60, 180, 90) or Color3.fromRGB(90, 90, 110)

@@ -7,7 +7,7 @@ local DailyLoginConfig = {}
 DailyLoginConfig.Rewards = {
 	{ Boost = "Luck" },
 	{ Boost = "Money" },
-	{ Boost = "Luck" },
+	{ Boost = "Stamina" }, -- owner 2026-10-28: daily login gives Stamina potions (design doc 4.7)
 	{ Boost = "Money" },
 	{ Boost = "Speed" },
 	{ Boost = "Luck", BoostCount = 2 },

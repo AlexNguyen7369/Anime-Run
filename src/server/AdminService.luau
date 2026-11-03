@@ -222,7 +222,6 @@ AdminService.Commands = {
 			p:SetAttribute("RebirthLevel", RebirthConfig.CleanLevel(n))
 			GachaService.RefreshPoints(p)
 			GachaService.RefreshMultipliers(p)
-			require(script.Parent.WorkshopService).RefreshRate(p)
 			return true, string.format("Rebirth %d (x%s Luck)", n, tostring(RebirthConfig.LuckMulti(n)))
 		end,
 	},

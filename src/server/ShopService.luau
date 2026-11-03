@@ -18,7 +18,6 @@ ShopService.MAX_CODE_LENGTH = 32
 local state = {} -- [player] = { Receipts = { id, ... }, Codes = { [CODE] = true } }
 local processing = {} -- [purchaseId] = true while a receipt is being granted
 local lastRedeem = {}
-local offline = {} -- [player] = { Amount, Doubled, Closed }: this session's offline reward (Closed = window over)
 local saveFn = nil
 
 local function stateFor(player)
@@ -127,27 +126,8 @@ local function commit(player, purchaseId, give, undo)
 	return Enum.ProductPurchaseDecision.NotProcessedYet
 end
 
--- Called by PlayerData once the save is loaded, with the offline Speed it just credited (0 = none).
-function ShopService.SetOfflineReward(player, amount)
-	if type(amount) ~= "number" or amount ~= amount or amount <= 0 or amount == math.huge then
-		offline[player] = nil
-		player:SetAttribute("OfflineDoubleOpen", false)
-		return
-	end
-	local reward = { Amount = amount, Doubled = false, Closed = false }
-	offline[player] = reward
-	player:SetAttribute("OfflineDoubled", nil)
-	player:SetAttribute("OfflineDoubleOpen", true)
-	task.delay(Monetization.OfflineDouble.WINDOW_SECONDS, function()
-		reward.Closed = true
-		if offline[player] == reward then
-			player:SetAttribute("OfflineDoubleOpen", false)
-		end
-	end)
-end
-
--- Offline double receipt: there is no offline Speed to double since 2026-11-01 (design doc 4.13) and PlayerData never
--- opens a reward, so the grant always refuses (NotProcessedYet). The product is not on sale (ProductId 0).
+-- Offline double receipt: there is no offline Speed to double since 2026-11-01 (design doc 4.13) and no offline
+-- workshop credit since 2026-11-03 (4.19), so the grant always refuses (NotProcessedYet). The product is not on sale (ProductId 0).
 local function processOfflineDouble(player, purchaseId)
 	return commit(player, purchaseId, function()
 		return false
@@ -227,7 +207,6 @@ function ShopService.Start()
 	require(script.Parent.GiftService).Start(remotes)
 	Players.PlayerRemoving:Connect(function(player)
 		lastRedeem[player] = nil
-		offline[player] = nil
 		-- shortcut: the leave save reads this state, so drop it later instead of racing PlayerData's handler.
 		task.delay(60, function()
 			if not player.Parent then
