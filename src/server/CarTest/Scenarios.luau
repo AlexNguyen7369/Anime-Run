@@ -6018,8 +6018,8 @@ end
 -- money is paid only when the player WINS that track; money from checkpoints already won is kept. Floating text
 -- above each NPC, proximity based, editable, default track01_NPC, track02_NPC, ... Players pass through each other."
 -- OWNER CHANGE 2026-10-20 (docs/NPC_RACER_SPEC.md): every NPC is much harder, Track 1 included: Track 1's NPC is
--- faster than RaceConfig.BASE_SPEED (a stat-0 starter car loses; that speed is gone with the stat, design doc 4.13,
--- see npc_track1_beats_beginner). NPCs are skinned as catalog cars
+-- faster than RaceConfig.BASE_SPEED (a stat-0 starter car loses; retired: design doc 4.13, a Common wins
+-- Track 1; owner 2026-11-03 keeps Track 1 balance, so npc_track1_beats_beginner is retired). NPCs are skinned as catalog cars
 -- (NpcConfig.Tracks[n].Model -> EquippedVisual with CarId) and the label has a "NPC RIVAL" Title above the name.
 local NPC_ORIGIN = Vector3.new(40000, 0, 0)
 local MULTI_ORIGIN = Vector3.new(-40000, 0, 0)
@@ -6378,8 +6378,8 @@ function Scenarios.npc()
 			end
 			check(checks, "npc_speed_increasing_1_to_5", increasing and 1 or 0, 1, increasing)
 			local s1 = isFiniteNumber(infos[1].Speed) and infos[1].Speed or math.huge
-			-- open question: npc_track1_beats_beginner (Track 1 NPC faster than a fresh player, NPC_RACER_SPEC owner
-			-- 2026-10-20) is not asserted: design doc 4.13 gives the Common starter 24 studs/s vs Track 1's NPC 16.
+			-- retired: npc_track1_beats_beginner (Track 1 NPC faster than a fresh player, NPC_RACER_SPEC 2026-10-20).
+			-- Design doc 4.13: a Common wins Track 1 (24 > 16 studs/s); owner 2026-11-03: Track 1 balance kept as is.
 			-- Owner 2026-10-21 ("lower track requirements", replaces "substantially harder" >= 3x BASE_SPEED and the
 			-- fixed x2.5 growth): Track 1 = NpcConfig.BASE_SPEED, x SPEED_GROWTH per track (placeholders, read live),
 			-- and Track 1 must not need ~10M Speed: its recommended shown Speed is below 10,000.
@@ -9979,7 +9979,7 @@ UPG.BRANCH_NAMES = {
 }
 UPG.BRANCH_WEIGHTS = { money = 1, luck = 1.2, rollspeed = 1.5, turbo = 2, speed = 1, walkspeed = 0.5, stamina = 1 }
 UPG.BONUS = {
-	money = { 0.50, 0.50, 0.50, 0.50, 0.50 },
+	money = { 0.10, 0.10, 0.10, 0.10, 0.10 }, -- owner 2026-11-03: +10 % per Money tier (was +50 %)
 	luck = { 0.50, 0.50, 0.50, 0.50, 0.50 },
 	rollspeed = { 0.15, 0.15, 0.15, 0.15, 0.15 },
 	speed = { 0.10, 0.10, 0.10, 0.10, 0.10 },
@@ -10428,7 +10428,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		local specOk = near(ri5, 2.0, 0.01)
 			and type(b3s) == "table"
 			and near(b3s.Luck, 1.00) -- spec table: +50 % per tier
-			and near(b3s.Money, 0.50)
+			and near(b3s.Money, 0.10) -- owner 2026-11-03: Money +10 % per tier
 			and type(tu3) == "table"
 			and tu3.Multi == 500
 			and tu3.Every == 500
@@ -10513,7 +10513,7 @@ function UPG.upgradesServerChecks(checks, metrics, UpgradeTree)
 		pcall(GachaService.Allocate, pMoney, "Money")
 		apply(pMoney, { Upgrades = { "money_1", "money_2" } })
 		local _, mm = try("MoneyMulti", GachaService.MoneyMulti, pMoney)
-		check(checks, "upgrades_gacha_money_multi_added", tonumber(mm) or -1, 2.2, near(mm, 2.2)) -- 1 + 0.2 + 1.0
+		check(checks, "upgrades_gacha_money_multi_added", tonumber(mm) or -1, 1.4, near(mm, 1.4)) -- 1 + 0.2 + 0.2 (owner 2026-11-03)
 		local pSpeed = withCars("GachaSpeed")
 		pcall(GachaService.Equip, pSpeed, "leaf_copycat") -- SpeedMulti 2 (catalog), never in cruise
 		pcall(GachaService.Allocate, pSpeed, "Speed")
@@ -11233,13 +11233,14 @@ function Scenarios.upgrades()
 	end
 	flag("upgrades_bonuses_empty_zero", bonusIs(bonuses({}), {}) and bonusIs(bonuses({ "start" }), {}))
 	flag("upgrades_bonuses_luck_1_2_is_1_00", bonusIs(bonuses({ "luck_1", "luck_2" }), { Luck = 1.00 }))
-	local fullOk = bonusIs(bonuses(UPG.tierIds("money", 5)), { Money = 2.50 })
+	-- Money +10 % per tier (owner 2026-11-03), Speed +10 % per tier (design doc 4.13)
+	local fullOk = bonusIs(bonuses(UPG.tierIds("money", 5)), { Money = 0.50 })
 		and bonusIs(bonuses(UPG.tierIds("luck", 5)), { Luck = 2.50 })
-		and bonusIs(bonuses(UPG.tierIds("speed", 5)), { Speed = 2.50 })
+		and bonusIs(bonuses(UPG.tierIds("speed", 5)), { Speed = 0.50 })
 		and bonusIs(bonuses(UPG.tierIds("rollspeed", 5)), { RollSpeed = 0.75 })
 	flag("upgrades_bonuses_added_full_branches", fullOk)
 	local sumOk = bonusIs(bonuses({ "luck_3" }), { Luck = 0.50 })
-		and bonusIs(bonuses({ "money_2", "money_5", "speed_4" }), { Money = 1.00, Speed = 0.50 })
+		and bonusIs(bonuses({ "money_2", "money_5", "speed_4" }), { Money = 0.20, Speed = 0.10 })
 	flag("upgrades_bonuses_pure_sum_of_owned", sumOk)
 	local otherOk = bonusIs(bonuses({ "walkspeed_1", "walkspeed_2", "turbo_1", "nope" }), {})
 	flag("upgrades_bonuses_ignore_walkspeed_turbo_unknown", otherOk)

@@ -304,6 +304,24 @@ UiSpec.Guis = {
 		Buttons = {},
 		NonInteractive = true,
 	},
+	-- "<Name> TAG IN!" / "TEAM EXHAUSTED +$X" toast (TEAM_AND_STAMINA_SPEC "HUD"): TextLabel Toast, hidden at rest.
+	TeamToast = {
+		Source = "Client/TeamToast",
+		Buttons = {},
+		NonInteractive = true,
+	},
+	-- "CHECKPOINT BONUS x1.2 · $paid" (design doc 4.15): CanvasGroup Popup > TextLabel Bonus, hidden at rest.
+	CheckpointBonusPopup = {
+		Source = "Client/CheckpointBonusPopup",
+		Buttons = {},
+		NonInteractive = true,
+	},
+	-- Biome name on entering a new biome (design doc 4.17): CanvasGroup Popup > TextLabel BiomeName, hidden at rest.
+	BiomeWelcome = {
+		Source = "Client/BiomeWelcome",
+		Buttons = {},
+		NonInteractive = true,
+	},
 }
 
 -- The ScreenGuis the Racer UI replaced (owner decision 2026-10-06): their scripts are disabled and they must not be
@@ -1102,6 +1120,8 @@ UiSpec.Waits = {
 	-- s: a panel's open motion (scale 0.92 -> 1 or a 12 px slide, 0.2 s) and its tile cascade (about 0.55 s) have
 	-- settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
 	PanelMotion = 0.65,
+	-- s: a closed panel may play its close motion (design doc 4.20) this long before Visible must be false
+	PanelClose = 0.3,
 	HudLag = 0.5, -- s: a HUD counter may show any server value from this long ago up to now (count-up, HUD spec 9)
 	HudFollow = 2, -- s: ui_hud re-samples a counter every frame for this long before it fails
 	RollsStable = 15, -- allow the turbo meter to settle after the latest server roll

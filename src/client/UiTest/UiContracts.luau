@@ -306,6 +306,12 @@ function Contracts.Build(h)
 		for _, frame in Spec.SharedFrames do
 			h.switch.Close("Daily")
 			h.switch.Close(frame.Action)
+			-- let the close motion (design doc 4.20) finish before reopening: up to UiSpec.Waits.PanelClose
+			local closing = h.find(frame.Panel)
+			local deadline = os.clock() + Spec.Waits.PanelClose
+			while closing and h.visible(closing) and os.clock() < deadline do
+				task.wait()
+			end
 			h.switch.Action(frame.Action)
 			h.frames(2)
 			local panel = required(res, frame.Panel, "Frame")

@@ -425,8 +425,25 @@ local function panelSwitch()
 	return ok and switch or nil
 end
 
+-- Waits up to UiSpec.Waits.PanelClose for every object to be Visible = false (a panel's close motion, design doc
+-- 4.20). Returns at once when none is visible; the caller still asserts.
+local function waitHidden(objects)
+	local deadline = os.clock() + UiSpec.Waits.PanelClose
+	while os.clock() < deadline do
+		local any = false
+		for _, o in objects do
+			any = any or o.Visible
+		end
+		if not any then
+			return
+		end
+		task.wait()
+	end
+end
+
 local function applyPanelState(open)
 	local switch = panelSwitch()
+	local closed = {}
 	for _, path in allPanels() do
 		local object = findPath(path)
 		local name = UiSpec.PanelSwitch.Names[path]
@@ -436,8 +453,10 @@ local function applyPanelState(open)
 			else
 				object.Visible = false
 			end
+			table.insert(closed, object)
 		end
 	end
+	waitHidden(closed)
 	for _, path in open do
 		local object = findPath(path)
 		local name = UiSpec.PanelSwitch.Names[path]
@@ -5810,9 +5829,11 @@ function S.ui_panels(res)
 				local afterA = openSet()
 				check(res, "open_" .. a .. "_alone", afterA, a, afterA == a)
 				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				waitHidden({ findPath(a) }) -- a's close motion (design doc 4.20)
 				local afterB = openSet()
 				check(res, "open_" .. b .. "_closes_" .. a, afterB, b, afterB == b)
 				Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+				waitHidden({ findPath(b) })
 				local afterToggle = openSet()
 				check(res, "toggle_" .. b .. "_closes_it", afterToggle, "", afterToggle == "")
 			end
@@ -5823,6 +5844,8 @@ function S.ui_panels(res)
 			setPanels({})
 			Switch.Toggle(UiSpec.PanelSwitch.Names[p])
 			Switch.Close(UiSpec.PanelSwitch.Names[p])
+			local closing = findPath(p)
+			waitHidden(closing and { closing } or {})
 			local after = openSet()
 			check(res, "close_" .. p, after, "", after == "")
 		end

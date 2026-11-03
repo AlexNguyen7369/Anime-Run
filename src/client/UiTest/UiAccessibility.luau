@@ -610,6 +610,11 @@ function Access.Build(h)
 			h.check(res, "no_gamepad_no_buttonb_bind_" .. p.Tag, buttonBCount(), bBefore, buttonBCount() == bBefore)
 			switch.Close(p.Name)
 			h.frames(2)
+			-- the close motion (design doc 4.20) may keep it Visible up to UiSpec.Waits.PanelClose
+			local deadline = os.clock() + Spec.Waits.PanelClose
+			while panel.Visible and os.clock() < deadline do
+				task.wait()
+			end
 			sel = GuiService.SelectedObject
 			h.check(res, "no_gamepad_close_keeps_selection_" .. p.Tag, name(sel), "nil", sel == nil)
 			h.check(res, "no_gamepad_panel_closed_" .. p.Tag, panel.Visible, false, panel.Visible == false)
