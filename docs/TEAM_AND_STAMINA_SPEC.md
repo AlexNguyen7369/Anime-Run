@@ -154,7 +154,10 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 - Team row (owner 2026-11-02, replaces the portrait cards beside the Speed number): 3 circle portraits in the retired
   Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Owner
   2026-11-03: avatar head only (body and rarity belt removed), no rarity colour (neutral ring); while running each
-  portrait's background fills like a liquid level to its `Stamina<n>` (bar colours); active runner: enlarged, pulsing
+  portrait shows its `Stamina<n>` on a thick curved arc along the lower right of the circle (bar colours, replaces the
+  liquid level, owner 2026-11-03: smoother row after the owner's reference image; the head breaks out of the top of a
+  dark circle). Orchestrator default 2026-11-03: a slanted number at the lower left shows that runner's stamina seconds
+  left (full stamina on foot); the arc eases per frame and the slots do not shift. Active runner: enlarged, pulsing
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). Display only. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose

@@ -1,8 +1,9 @@
 --!nonstrict
 -- Team row (owner 2026-11-02 / 2026-11-03, docs/TEAM_AND_STAMINA_SPEC.md "HUD"): 3 circle portraits in the retired
--- Level bar's place, slot 1-3 left to right. Each portrait is only the avatar head; rarity is never shown. While
--- running, each portrait's background fills like a liquid level to Stamina<n>; the active slot (RunSlot) is enlarged
--- with a pulsing gold glow and a bobbing marker, pops on a tag-in; a slot at 0 fades grey and shrinks. A badge above
+-- Level bar's place, slot 1-3 left to right. Each portrait is only the avatar head, breaking out of a dark circle;
+-- rarity is never shown. A thick arc on the lower right shows Stamina<n> and a slanted number its seconds left, both
+-- eased per frame; the active slot (RunSlot) is enlarged with a pulsing gold glow and a bobbing marker, pops on a
+-- tag-in; a slot at 0 fades grey and shrinks. Slots sit at fixed positions, so scaling one never moves the others. A badge above
 -- the row names the team bonus (TeamBonus). Hover (tap on touch) opens an info card: name, category and its effect,
 -- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). Display only. Motion goes through UiMotion
 -- (design doc 4.20): tweens land at once and the active pulse + bob stop while motion is reduced.
@@ -20,12 +21,18 @@ local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild(
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local SLOTS = 3
-local CIRCLE = 48 -- px (placeholder)
+local CIRCLE = 52 -- px (placeholder)
+local SPACING = 72 -- px between slot centres (placeholder)
+local ARC_THICK = 8 -- px (placeholder)
+local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right
+local ARC_DOTS = 24 -- overlapping circles; shortcut: no ring image asset, upload one if the edge ever looks scalloped
+local EASE = 10 -- per second, arc and number easing (placeholder)
+local ITALIC = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 local CARD_WIDTH = 240 -- px (placeholder)
-local ACTIVE_SCALE = 1.25 -- placeholders
+local ACTIVE_SCALE = 1.18 -- placeholders
 local TIRED_SCALE = 0.88
 local GOLD = Color3.fromRGB(255, 214, 80)
-local DIM = Color3.fromRGB(28, 38, 62)
+local DIM = Color3.fromRGB(26, 36, 66)
 local RING = Color3.fromRGB(230, 236, 250)
 local GREY = Color3.fromRGB(110, 110, 110)
 local CATEGORY_COLORS = {
@@ -79,16 +86,9 @@ local row = make("Frame", {
 	Name = "Team",
 	BackgroundTransparency = 1,
 	Size = UDim2.fromScale(1, 1),
-	Position = UDim2.fromOffset(0, -8), -- the enlarged active circle clears the TURBO LUCK bar below
+	Position = UDim2.fromOffset(0, -14), -- the enlarged active circle clears the TURBO LUCK bar below
 	ZIndex = 5,
 }, level)
-make("UIListLayout", {
-	FillDirection = Enum.FillDirection.Horizontal,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
-	SortOrder = Enum.SortOrder.LayoutOrder,
-	Padding = UDim.new(0, 16),
-}, row)
 
 -- Overlay for the badge, marker and card: outside the list layout so it can sit anywhere over the row.
 local overlay = make("Frame", {
@@ -100,7 +100,7 @@ local overlay = make("Frame", {
 
 local badge = text(overlay, "Bonus", {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0, -30),
+	Position = UDim2.new(0.5, 0, 0, -44),
 	AutomaticSize = Enum.AutomaticSize.X, -- preset lines run longer than the row
 	Size = UDim2.fromOffset(0, 20),
 	TextSize = 13,
@@ -220,7 +220,7 @@ local function showCard(slot)
 	local screen = hud.AbsoluteSize.X
 	local center = circle.Frame.AbsolutePosition.X + circle.Frame.AbsoluteSize.X / 2
 	center = math.clamp(center, half, math.max(half, screen - half))
-	card.Position = UDim2.fromOffset((center - overlay.AbsolutePosition.X) / hudScale(), -40)
+	card.Position = UDim2.fromOffset((center - overlay.AbsolutePosition.X) / hudScale(), -52)
 	if not card.Visible or shownSlot ~= slot then
 		cardScale.Scale = 0.85
 		tween(cardScale, 0.15, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -229,10 +229,31 @@ local function showCard(slot)
 	shownSlot = slot
 end
 
+local function arcPoint(t)
+	local angle = math.rad(ARC_START - ARC_SWEEP * t)
+	local radius = CIRCLE / 2 - 1
+	return UDim2.new(0.5, radius * math.cos(angle), 0.5, radius * math.sin(angle))
+end
+
+local function dot(parent, name, at, size, color, z)
+	local frame = make("Frame", {
+		Name = name,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = at,
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		ZIndex = z,
+	}, parent)
+	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
+	return frame
+end
+
 for slot = 1, SLOTS do
 	local c = make("Frame", {
 		Name = "Slot" .. slot,
-		LayoutOrder = slot,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, (slot - 2) * SPACING, 0.5, 0),
 		Size = UDim2.fromOffset(CIRCLE, CIRCLE),
 		BackgroundColor3 = DIM,
 		BorderSizePixel = 0,
@@ -249,34 +270,33 @@ for slot = 1, SLOTS do
 		ZIndex = 4,
 	}, c)
 	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, glow)
-	local clip = make("CanvasGroup", { -- a Frame clips square; a CanvasGroup clips to the round corner
-		Name = "Clip",
-		BackgroundTransparency = 1,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = 6,
-	}, c)
-	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, clip)
-	local liquid = make("Frame", { -- stamina level behind the head
-		Name = "Stamina",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.fromScale(1, 0),
-		BackgroundColor3 = StaminaConfig.COLORS.Full,
-		BackgroundTransparency = 0.25,
-		BorderSizePixel = 0,
-		ZIndex = 6,
-	}, clip)
-	make("UIGradient", {
-		Rotation = 90,
-		Transparency = NumberSequence.new(0, 0.45),
-	}, liquid)
 	local ring = make("UIStroke", {
-		Thickness = 3,
+		Thickness = 2,
 		Color = RING,
-		Transparency = 0.25,
+		Transparency = 0.6,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, c)
 	local scale = make("UIScale", { Scale = 1 }, c)
+	local arc = make("Frame", { Name = "Arc", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 8 }, c)
+	local dots = {}
+	for i = 0, ARC_DOTS do
+		local at = arcPoint(i / ARC_DOTS)
+		dot(arc, "Track", at, ARC_THICK + 3, DIM, 8) -- dark outline and the empty part
+		dots[i] = dot(arc, "Fill", at, ARC_THICK, StaminaConfig.COLORS.Full, 9)
+	end
+	local tip = dot(arc, "Tip", arcPoint(0), ARC_THICK, StaminaConfig.COLORS.Full, 9) -- slides between dots
+	local number = text(c, "Seconds", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, -12, 1, 6),
+		Size = UDim2.fromOffset(34, 24),
+		FontFace = ITALIC,
+		TextSize = 22,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 10,
+	})
+	number:FindFirstChildOfClass("UIStroke").Thickness = 2.5
+	number:FindFirstChildOfClass("UIStroke").Color = DIM
+	number:FindFirstChildOfClass("UIStroke").Transparency = 0
 	-- Hover / tap on the circle itself (no invisible button: the row is display-only, not a control)
 	c.MouseEnter:Connect(function()
 		showCard(slot)
@@ -300,20 +320,44 @@ for slot = 1, SLOTS do
 	end)
 	circles[slot] = {
 		Frame = c,
-		Clip = clip,
 		Glow = glow,
-		Liquid = liquid,
 		Ring = ring,
 		Scale = scale,
+		Arc = arc,
+		Dots = dots,
+		Tip = tip,
+		Number = number,
 		Id = nil,
 		Art = nil,
 		State = nil,
+		Target = 1, -- 0-1, the server's stamina
+		Shown = nil, -- 0-1, eased toward Target each frame
+		Color = StaminaConfig.COLORS.Full,
+		Seconds = nil,
 	}
+end
+
+-- Draws the arc at `t` (0-1): dots up to t, the tip exactly at t.
+local function drawArc(circle, t)
+	local last = t * ARC_DOTS
+	for i = 0, ARC_DOTS do
+		circle.Dots[i].Visible = t > 0 and i <= last
+	end
+	circle.Tip.Visible = t > 0
+	circle.Tip.Position = arcPoint(t)
+end
+
+local function paintArc(circle, color)
+	for i = 0, ARC_DOTS do
+		circle.Dots[i].BackgroundColor3 = color
+	end
+	circle.Tip.BackgroundColor3 = color
 end
 
 -- Head only: the body (and its rarity belt) never shows, so rarity is not evident on the row.
 local function headArt(circle, spec)
-	local art = Components.RunnerArt(circle.Clip, "Art", spec, UDim2.new(), UDim2.fromScale(1, 1))
+	-- Larger than the circle and not clipped: the head breaks out of the top
+	local art = Components.RunnerArt(circle.Frame, "Art", spec, UDim2.new(-0.2, 0, -0.34, 0), UDim2.fromScale(1.4, 1.4))
 	art.ZIndex = 7
 	local rig = art:FindFirstChildWhichIsA("Model")
 	local head = rig and rig:FindFirstChild("Head")
@@ -349,39 +393,40 @@ local function render()
 			if spec then
 				circle.Art = headArt(circle, spec)
 			end
+			circle.State = nil -- the new art takes the current look
 		end
 		local stamina = tonumber(player:GetAttribute("Stamina" .. slot))
 		local active = running == slot and spec ~= nil
 		local tired = running ~= nil and spec ~= nil and (stamina or 1) <= 0
 		local state = active and "active" or tired and "tired" or "idle"
-		-- liquid level: only while running
-		local pct = running ~= nil and spec and stamina and math.clamp(stamina / 100, 0, 1) or 0
-		tween(circle.Liquid, 0.12, {
-			Size = UDim2.fromScale(1, pct),
-			BackgroundColor3 = StaminaConfig.Color(stamina or 100),
-		}, Enum.EasingStyle.Linear)
+		-- on foot every runner shows full stamina
+		circle.Target = running ~= nil and stamina and math.clamp(stamina / 100, 0, 1) or 1
+		circle.Arc.Visible = spec ~= nil
+		circle.Number.Visible = spec ~= nil
 		circle.Frame.BackgroundTransparency = spec and 0 or 0.25
 		if circle.State ~= state then
 			circle.State = state
-			tween(circle.Ring, 0.2, {
+			tween(circle.Ring, 0.25, {
 				Color = active and GOLD or tired and GREY or RING,
-				Thickness = active and 4 or 3,
-				Transparency = active and 0 or 0.25,
+				Thickness = active and 3.5 or 2,
+				Transparency = active and 0 or tired and 0.4 or 0.6,
 			})
-			tween(circle.Clip, 0.35, {
-				GroupColor3 = tired and GREY or Color3.new(1, 1, 1),
-				GroupTransparency = tired and 0.45 or 0,
-			})
+			if circle.Art then
+				tween(circle.Art, 0.35, {
+					ImageColor3 = tired and GREY or Color3.new(1, 1, 1),
+					ImageTransparency = tired and 0.45 or 0,
+				})
+			end
 			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Color3.fromRGB(50, 50, 55) or DIM })
 			if not active then
-				tween(circle.Glow, 0.2, { BackgroundTransparency = 1 })
-				tween(circle.Scale, 0.3, { Scale = tired and TIRED_SCALE or 1 })
+				tween(circle.Glow, 0.25, { BackgroundTransparency = 1 })
+				tween(circle.Scale, 0.35, { Scale = tired and TIRED_SCALE or 1 }, Enum.EasingStyle.Quint)
 			end
 		end
 		if active and lastSlot ~= slot then
 			-- tag-in pop
-			circle.Scale.Scale = ACTIVE_SCALE + 0.3
-			tween(circle.Scale, 0.4, { Scale = ACTIVE_SCALE }, Enum.EasingStyle.Back)
+			circle.Scale.Scale = ACTIVE_SCALE + 0.12
+			tween(circle.Scale, 0.45, { Scale = ACTIVE_SCALE }, Enum.EasingStyle.Back)
 		end
 	end
 	lastSlot = running
@@ -408,24 +453,51 @@ local function render()
 	end
 end
 
--- pulse + marker bob for the active runner
+-- Per frame: arc and number ease to the server's stamina; pulse + marker bob for the active runner
 local clock = 0
 RunService.RenderStepped:Connect(function(dt)
 	clock += dt
-	local slot = player:GetAttribute("RunSlot")
-	local circle = slot and circles[slot]
+	local reduced = UiMotion.Reduced()
+	local blend = reduced and 1 or 1 - math.exp(-EASE * dt)
+	local running = player:GetAttribute("RunSlot")
+	for slot, circle in circles do
+		if circle.Id then
+			local shown = circle.Shown or circle.Target
+			if shown ~= circle.Target or circle.Shown == nil then
+				shown += (circle.Target - shown) * blend
+				if math.abs(shown - circle.Target) < 0.001 then
+					shown = circle.Target
+				end
+				circle.Shown = shown
+				drawArc(circle, shown)
+			end
+			local goal = StaminaConfig.Color(shown * 100)
+			if circle.Color ~= goal then
+				local color = circle.Color:Lerp(goal, blend)
+				local gap = math.abs(color.R - goal.R) + math.abs(color.G - goal.G) + math.abs(color.B - goal.B)
+				circle.Color = gap < 0.01 and goal or color
+				paintArc(circle, circle.Color)
+			end
+			local total = tonumber(player:GetAttribute("TeamStamina" .. slot))
+			local seconds = total and math.ceil(total * shown) or nil
+			if seconds ~= circle.Seconds then
+				circle.Seconds = seconds
+				circle.Number.Text = seconds and tostring(seconds) or ""
+			end
+		end
+	end
+	local circle = running and circles[running]
 	if not (circle and circle.State == "active") then
 		marker.Visible = false
 		return
 	end
-	local reduced = UiMotion.Reduced()
-	circle.Glow.BackgroundTransparency = 0.55 + (reduced and 0 or 0.25 * math.sin(clock * 5))
+	circle.Glow.BackgroundTransparency = 0.6 + (reduced and 0 or 0.2 * math.sin(clock * 2.5))
 	local f = circle.Frame
 	local scale = hudScale()
 	marker.Visible = true
 	marker.Position = UDim2.fromOffset(
 		(f.AbsolutePosition.X + f.AbsoluteSize.X / 2 - overlay.AbsolutePosition.X) / scale,
-		(f.AbsolutePosition.Y - overlay.AbsolutePosition.Y) / scale - 4 + (reduced and 0 or 3 * math.sin(clock * 6))
+		(f.AbsolutePosition.Y - overlay.AbsolutePosition.Y) / scale - 14 + (reduced and 0 or 2 * math.sin(clock * 3))
 	)
 end)
 
