@@ -58,8 +58,9 @@
 54. 2026-11-04 — Alex Nguyen — Landed the trim of stale docs and unused assets (handoff 52 KB to 6 KB, ProjectContext removed, 50 files deleted); rules audit PASS, no gameplay code changed.
 55. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs and listed the doc-versus-code conflicts in docs/OWNER_QUESTIONS.md for the owner.
 56. 2026-11-04 — Alex Nguyen — Added a screen-edge pointer that shows the enemy's name and an arrow aimed at it while it is off screen, ui_billboards green, rules audit PASS.
+57. 2026-11-04 — Alex Nguyen — Decluttered the spawn plaza into a straight service row with a one-stall Market, plain path and clear Dojo views, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 
 ## What's next
-**Rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**
+**Resume c3 once the owner's NPC additions land: merge orch/core/c3t, rerun the full server and UI harnesses on the merged branch, run the rules audit, and open the PR to main.**
 
-**Why this is next:** the owner approved c3 and the PR to main; merging into main depends on these checks passing on the code that now includes c3ui and track enemies.
+**Why this is next:** the owner paused c3 for the NPC additions and the spawn rework; the spawn rework has landed, and the PR to main depends on these checks passing on the final code.
