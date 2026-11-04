@@ -1,177 +1,143 @@
-# Painted look for leaf_crow: black storm-cloud cloak with a red-lined collar, slashed plate, low tail (design doc 5).
-from atlas import INK, paint_hair, shade
-from leaf_common import ani_brow, ani_eye, cloud, face_shade, hair_model, hand, lk, nose, relief, sandal, side_hair, steel_plate, strands
+# Target look for leaf_crow (design doc section 5): big head, long black centre-parted bangs and a low ponytail, slashed plate, two lines
+# under the eyes, ankle-long high-collared black cloak lined in red, lobed red clouds edged in white, open-toe sandals.
+from leaf_style3 import bake, block, cloud, dark_eye, gem, hand, head_sides, jitter, paint_plate, plate, sandal, shard, skin_face, stroke, true_face_uv
+from style2 import Kit, Ramps
+from style3 import big_head, finish
 
-SKIN = "#f2d8c6"
-SKIN_D = shade(SKIN, 0.7)
-CLOAK = "#1c1c24"
-CLOAK_D = "#08080c"
-CLOAK_L = "#4c4c60"
-RED = "#b81e28"
-NAIL = "#6a3f96"
-HAIR_D = "#101016"
-HAIR_T = "#4a4a5a"
-BAND = "#20202a"
-DEFAULT = CLOAK
-HAIR_COLOURS = ["#1A1A22"]
+SKIN = "#f5dccb"
+SKIN_D = "#d4ac94"
+DEFAULT = "#141414"
+R = Ramps(
+	hair=["#08080c", "#14141c", "#23232f", "#3a3a4c", "#5c5c74"],
+	skin=["#c49a84", "#e8c2ac", "#f5dccb", "#ffeee0"],
+	cloak=["#0c0c10", "#141418", "#1e1e25", "#2f2f39", "#47474f"],
+	lining=["#5e0c14", "#8c141e", "#b01e28", "#cc3038"],
+	red=["#8c1018", "#b01e28", "#cc2a32", "#e04048"],
+	white=["#b4b4bc", "#dcdce2", "#f4f4f8", "#ffffff"],
+	band=["#0a0a10", "#16161e", "#262630"],
+	pants=["#121216", "#1e1e24", "#2a2a32", "#40404a"],
+	sole=["#0b0a0e", "#19171d", "#2b2830", "#3d3a44"],
+	steel=["#59606c", "#8f96a2", "#c2c8d0", "#eef1f4"],
+)
+HAIR = {"colour": "#1A1A22", "locks": []}
+PROPS = []
+HEAD_ROWS = [(0, 0, 3.98, 0.4, 0.6), (0, 0, 4.16, 0.68, 0.78), (0, 0, 4.46, 0.86, 0.82), (0, 0, 5.3, 0.9, 0.82), (0, 0, 5.56, 0.78, 0.72), (0, 0, 5.62, 0.6, 0.56)]
+# the hair lies flat against the head and collects at the nape
+TIE = (0, 0.86, 4.46)
 
-HAIR = {"colour": "#131319", "cap": {"size": [1.4, 1.26, 0.4], "at": [0, 0.05, 5.26], "bevel": 0.19}, "locks": []}
-_F = dict(flatten=0.22, rings=5, taper=0.7)
-SHARDS = [
-	# centre-parted bangs falling past the cheeks to the jaw, the long iconic pair
-	lk((0.06, -0.54, 5.5), (0.7, -0.92, 5.2), (0.62, -0.88, 4.08), 0.32, mirror=True) | _F,
-	lk((0.42, -0.44, 5.46), (0.8, -0.86, 5.0), (0.78, -0.84, 4.06), 0.32, mirror=True) | _F,
-	lk((0.46, -0.14, 5.52), (0.84, -0.2, 4.9), (0.8, -0.18, 4.3), 0.3, mirror=True) | _F,
-	# hair combed from the crown down to the nape tie
-	lk((0.44, 0.2, 5.46), (0.84, 0.5, 4.9), (0.22, 0.72, 4.34), 0.36, mirror=True) | _F,
-	lk((0.44, 0.34, 5.54), (0.8, 0.78, 5.0), (0.14, 0.74, 4.32), 0.42, mirror=True) | _F,
-	lk((0.16, 0.36, 5.58), (0.4, 0.92, 5.06), (0.05, 0.76, 4.32), 0.42, mirror=True) | _F,
-	lk((0.42, 0.0, 5.54), (0.84, 0.14, 5.0), (0.72, 0.42, 4.42), 0.32, mirror=True) | _F,
-	# crown strands sweeping from the parting
-	lk((0.02, -0.5, 5.6), (0.46, -0.66, 5.66), (0.72, -0.62, 4.94), 0.34, mirror=True) | _F,
-	lk((0.02, -0.2, 5.64), (0.52, -0.3, 5.7), (0.76, -0.26, 4.9), 0.36, mirror=True) | _F,
-	lk((0.02, 0.1, 5.64), (0.52, 0.06, 5.72), (0.76, 0.02, 4.9), 0.36, mirror=True) | _F,
-	lk((0.02, 0.36, 5.62), (0.52, 0.42, 5.64), (0.76, 0.34, 4.86), 0.36, mirror=True) | _F,
-	# low long tail
-	lk((0, 0.74, 4.36), (0.04, 1.08, 3.9), (0.02, 1.0, 3.04), 0.27, flatten=0.5, colour="#1A1A22"),
-	lk((0.1, 0.72, 4.34), (0.2, 1.02, 3.92), (0.16, 0.92, 3.26), 0.2, flatten=0.5),
-	lk((-0.1, 0.72, 4.34), (-0.18, 1.02, 3.92), (-0.16, 0.94, 3.2), 0.2, flatten=0.5),
-]
 
-PROPS = [
-	{"part": "LeftFoot", "box": [1.02, 1.1, 0.1], "at": [0.5, -0.03, 0.05], "colour": "#0E0E14", "bevel": 0.02},
-	{"part": "RightFoot", "box": [1.02, 1.1, 0.1], "at": [-0.5, -0.03, 0.05], "colour": "#0E0E14", "bevel": 0.02},
-	{"part": "Head", "box": [0.2, 0.1, 0.12], "at": [0, 0.76, 4.36], "colour": "#A01A24", "bevel": 0.02},
-	# band tails under the hair
-	{"part": "Head", "lock": [[0.3, 0.62, 5.02], [0.5, 0.9, 4.8], [0.56, 1.0, 4.3]], "r": 0.11, "colour": "#20202A", "flatten": 0.3, "mirror": True},
-	# the standing collar: black outside, red showing inside the back and the sides
-	{"part": "UpperTorso", "box": [1.5, 0.1, 0.5], "at": [0, 0.68, 4.2], "colour": "#B81E28", "bevel": 0.03},
-	{"part": "UpperTorso", "box": [1.58, 0.1, 0.54], "at": [0, 0.76, 4.2], "colour": "#1C1C24", "bevel": 0.03},
-	{"part": "UpperTorso", "box": [0.1, 1.28, 0.58], "at": [0.72, 0.02, 4.2], "colour": "#B81E28", "bevel": 0.03, "mirror": True},
-	{"part": "UpperTorso", "box": [0.1, 1.36, 0.62], "at": [0.8, 0.02, 4.2], "colour": "#1C1C24", "bevel": 0.03, "mirror": True},
-	# front flaps: red lining turned out, black over it, a V at the throat
-	{"part": "UpperTorso", "blade": [(0.0, 3.82), (0.8, 3.9), (0.82, 4.24), (0.3, 4.34)], "y": [-0.62, -0.76], "colour": "#B81E28", "mirror": True},
-	{"part": "UpperTorso", "blade": [(0.13, 3.82), (0.84, 3.9), (0.86, 4.26), (0.4, 4.34)], "y": [-0.68, -0.8], "colour": "#1C1C24", "mirror": True},
-	# a red ring on the right hand
-	{"part": "RightHand", "box": [0.24, 0.05, 0.06], "at": [-1.62, -0.52, 2.1], "colour": "#D03040", "bevel": 0.01},
-]
+def _hair(k):
+	dome = k.lathe("Head", "Crown", [(0.9, 5.3, 0.5), (0.98, 5.54, 0.5), (0.92, 5.86, 0.5), (0.54, 6.1, 0.5), (0.14, 6.16, 0.5)], "hair", n=10, at=(0, 0.05, 0), squash=0.97, outline=0)
+	bake(k, dome, "hair", a=0.42, b=0.42)
+	nape = k.tube("Head", "Nape", [(0, 0.38, 5.66, 0.9, 0.52), (0, 0.38, 5.34, 0.97, 0.56), (0, 0.38, 4.8, 0.96, 0.54), (0, 0.42, 4.3, 0.9, 0.48)], "hair", corner=0.22, nc=1, sub=1, outline=0)
+	jitter(nape, 0.02)
+	bake(k, nape, "hair", a=0.38, b=0.4)
+	# a cap of hair over the head's upper corners, down to the band's top edge
+	block(k, "Head", "Cap", 0, 0, 5.74, 5.42, 0.935, 0.87, "hair", ch=0.05, corner=0.2, jit=0.015, a=0.36, b=0.4)
+	for s in (1, -1):
+		# the parting: broad flat locks running from the crown out and down, each a clear plane
+		shard(k, f"TopF{s}", ((s * 0.04, -0.72, 6.02, 0.2), (s * 0.42, -0.9, 5.84, 0.34), (s * 0.8, -0.86, 5.46, 0.3), (s * 0.94, -0.82, 5.14, 0.01)), a=0.46, b_=0.66)
+		shard(k, f"TopM{s}", ((s * 0.04, -0.2, 6.14, 0.26), (s * 0.46, -0.24, 6.02, 0.36), (s * 0.84, -0.2, 5.56, 0.3), (s * 0.98, -0.18, 5.0, 0.01)), a=0.42, b_=0.66)
+		shard(k, f"TopB{s}", ((s * 0.04, 0.4, 6.1, 0.26), (s * 0.44, 0.5, 5.94, 0.34), (s * 0.76, 0.66, 5.4, 0.3), (s * 0.3, 0.92, 4.5, 0.01)), a=0.38, b_=0.66)
+		shard(k, f"Back{s}", ((s * 0.1, 0.76, 5.9, 0.28), (s * 0.34, 1.0, 5.4, 0.34), (s * 0.24, 1.0, 4.9, 0.26), (s * 0.04, 0.92, 4.46, 0.01)), a=0.36, b_=0.66)
+		# the long bangs: outside the plate, past the cheek, to a point at the jaw; a shorter lock behind
+		shard(k, f"Bang{s}", ((s * 0.3, -0.92, 5.8, 0.14), (s * 0.68, -1.02, 5.46, 0.25), (s * 0.82, -1.03, 4.9, 0.24), (s * 0.84, -0.99, 4.3, 0.17), (s * 0.76, -0.95, 3.84, 0.01)), a=0.48, b_=0.68)
+		shard(k, f"Side{s}", ((s * 0.8, -0.46, 5.5, 0.24), (s * 0.94, -0.5, 5.0, 0.24), (s * 0.95, -0.46, 4.56, 0.18), (s * 0.9, -0.42, 4.14, 0.01)), a=0.34, b_=0.64)
+		shard(k, f"SideB{s}", ((s * 0.82, 0.0, 5.44, 0.26), (s * 0.96, 0.04, 5.0, 0.28), (s * 0.96, 0.08, 4.62, 0.2), (s * 0.9, 0.12, 4.34, 0.01)), a=0.32, b_=0.64)
+	# the low ponytail, a single long clump down the back, its tie a dark ring
+	block(k, "Head", "Tie", TIE[0], TIE[1] + 0.04, TIE[2] + 0.1, TIE[2] - 0.06, 0.2, 0.17, "band", ch=0.03, corner=0.3, sub=1, a=0.6, b=0.5)
+	shard(k, "Tail", ((0, TIE[1] + 0.06, TIE[2], 0.2), (0.0, TIE[1] + 0.2, 4.1, 0.27), (0.03, TIE[1] + 0.24, 3.6, 0.24), (0.0, TIE[1] + 0.2, 3.12, 0.01)), a=0.44, b_=0.7, flat=0.7, centre=(0, 0, 3.8))
+
+
+def _band(k):
+	block(k, "Head", "Band", 0, 0, 5.46, 5.04, 0.955, 0.885, "band", ch=0.03, corner=0.24, a=0.5, b=0.36)
+	plate(k, hw=0.56)
+
+
+def _cloak_top(k):
+	t = "UpperTorso"
+	k.reshape(t, "Torso", [(0, 0, 3.9, 0.95, 0.45), (0, 0, 2.1, 0.95, 0.45)], corner=0.1, nc=1)
+	block(k, t, "Cloak", 0, 0, 3.98, 1.88, 1.08, 0.6, "cloak", ch=0.07, flare=0.03, jit=0.025, sub=1, mids=(3.3, 2.6), a=0.4, b=0.6, g=0.14, tone=0.04)
+	# the closure down the front
+	block(k, t, "Closure", 0, -0.63, 3.9, 1.88, 0.022, 0.02, "cloak", ch=0.006, a=0.02, b=0.04, g=0.0)
+	# the high collar, red inside, open at the front round the chin
+	def rise(a):
+		f = max(0.0, 1 - abs((a + 90) if a < 90 else (a - 270)) / 62)
+		return (-0.06, 0.58 - 0.3 * f)
+
+	inner = k.band(t, "Lining", (0, 0.0, 3.94), 0.9, 0.86, -70, 250, rise, "lining", thick=0.04, e=0.58, n=20, flare=0.03, outline=0)
+	bake(k, inner, "lining", a=0.5, b=0.3)
+	outer = k.band(t, "Collar", (0, 0.0, 3.94), 0.95, 0.91, -70, 250, rise, "cloak", thick=0.09, e=0.58, n=20, flare=0.03, outline=0)
+	bake(k, outer, "cloak", a=0.42, b=0.6)
+	# the neck in the opening
+	block(k, t, "Neck", 0, -0.02, 4.12, 3.9, 0.46, 0.42, "skin", ch=0.02, a=0.3, b=0.1, g=0.0)
+	# the red lining folds out at the opening
+	for s in (1, -1):
+		verts = []
+		for y in (-0.6, -0.66):
+			verts += [(s * 0.42, y, 4.16), (s * 0.02, y, 3.5), (s * 0.3, y, 3.72), (s * 0.68, y, 4.0)]
+		faces = [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
+		bake(k, k._mesh(f"Fold{s}", t, verts, faces, (), 0), "lining", a=0.56, b=0.3)
+	# the clouds: one high on the chest, one large on the back with two smaller
+	cloud(k, t, "CloudChest", (0.46, -0.63, 3.14), rx=0.4)
+	cloud(k, t, "CloudBack", (-0.42, 0.63, 2.66), rx=0.5, facing="back")
+	cloud(k, t, "CloudBackB", (0.56, 0.63, 3.42), rx=0.36, facing="back")
+
+
+def _arm(k, s, side):
+	arm = f"{side}UpperArm"
+	ax = s * 1.5
+	k.reshape(arm, f"{side}Arm", [(ax, 0, 3.9, 0.42, 0.42), (ax, 0, 2.05, 0.42, 0.42)], corner=0.1, nc=1)
+	block(k, arm, "Sleeve", ax, 0, 4.04, 2.5, 0.53, 0.53, "cloak", ch=0.09, flare=0.05, corner=0.18, jit=0.025, sub=1, mids=(3.5, 3.0), a=0.4, b=0.62, g=0.1, tone=0.03)
+	block(k, arm, "Cuff", ax, 0, 2.56, 2.42, 0.6, 0.6, "cloak", ch=0.03, corner=0.18, a=0.58, b=0.56)
+	hand(k, arm, ax)
+	cloud(k, arm, f"CloudArm{s}", (ax + s * 0.56, 0, 3.3), rx=0.34, facing="left" if s > 0 else "right")
+	if s < 0:
+		cloud(k, arm, "CloudArmF", (ax, -0.565, 3.5), rx=0.3)
+
+
+def _leg(k, s, side):
+	leg = f"{side}UpperLeg"
+	x = s * 0.5
+	px = s * 0.55
+	k.reshape(leg, f"{side}Leg", [(x, 0, 2.0, 0.42, 0.42), (x, 0, 0.1, 0.42, 0.42)], corner=0.1, nc=1)
+	# the dark trouser under the hem
+	block(k, leg, "Pants", px, 0, 1.2, 0.5, 0.48, 0.52, "pants", ch=0.03, a=0.42, b=0.5)
+	# each half of the skirt follows its leg, with a split between them
+	block(k, leg, "Skirt", px, 0, 1.95, 0.5, 0.545, 0.61, "cloak", ch=0.05, flare=0.05, corner=0.14, jit=0.03, mids=(1.45, 0.98), a=0.4, b=0.62, g=0.16, tone=0.04)
+	sandal(k, leg, px, "pants", "sole", top=0.6)
+	if s > 0:
+		cloud(k, leg, "CloudLeg", (px + 0.04, -0.655, 1.02), rx=0.36)
+		cloud(k, leg, "CloudLegB", (px, 0.65, 1.3), rx=0.36, facing="back")
+	else:
+		cloud(k, leg, "CloudLeg", (px - 0.04, 0.65, 0.92), rx=0.32, facing="back")
 
 
 def model(parts, kit):
-	hair_model(kit, parts, SHARDS, HAIR_COLOURS[0])
-	relief(kit, parts, "Head", "BandRing", "Head", (1.34, 1.24, 0.22), (0, 0, 5.04), bevel=0.02)
-	relief(kit, parts, "Head", "Plate", "Head", (0.78, 0.08, 0.3), (0, -0.64, 5.04), key="F", bevel=0.015)
+	k = Kit(kit, parts, R, outline=0)
+	big_head(k, HEAD_ROWS)
+	true_face_uv(parts["Head"])
+	_hair(k)
+	_band(k)
+	_cloak_top(k)
 	for s, side in ((1, "Left"), (-1, "Right")):
-		relief(kit, parts, f"{side}LowerArm", "Cuff", f"{side}Arm", (1.14, 1.14, 0.44), (s * 1.5, 0, 2.52))
-		relief(kit, parts, f"{side}LowerLeg", "Hem", f"{side}Leg", (1.1, 1.1, 0.46), (s * 0.5, 0, 0.74))
-
-
-def cloak_face(f, n, pinch=None, y0=0.05, y1=0.9):
-	f.fill(CLOAK)
-	f.folds(n, CLOAK_D, CLOAK_L, y0=y0, y1=y1, pinch=pinch or (f.w / 2, f.h * 0.72))
+		_arm(k, s, side)
+		_leg(k, s, side)
+	finish()
 
 
 def paint(a):
-	paint_hair(a, [HAIR_T])
-	# ---- face: long lean face, red three-comma eyes, the deep tear troughs, a flat mouth
+	R.paint(a)
 	f = a["Head_F"]
-	face_shade(f, SKIN, top=None)
-	f.path("M-5-5H135V46L112 54L96 46L74 52L56 46L34 54L18 46L-5 54Z", shade(SKIN, 0.62))
-	ani_eye(f, 36, 74, -1, RED, w=25, h=11, tilt=3.5, lid=3, ir=7.6, flick=2.6, style="red", sclera="#ece4da", look=0.5)
-	ani_eye(f, 94, 74, 1, RED, w=25, h=11, tilt=3.5, lid=3, ir=7.6, flick=2.6, style="red", sclera="#ece4da", look=-0.5)
-	ani_brow(f, 36, 60, -1, HAIR_D, w=26, angry=2.4, thick=2.6, arch=1.2)
-	ani_brow(f, 94, 60, 1, HAIR_D, w=26, angry=2.4, thick=2.6, arch=1.2)
-	# tear troughs: long creases dropping from the inner corner
-	for s in (-1, 1):
-		f.taper(65 + s * 20, 78, 65 + s * 27, 88, 65 + s * 30, 100, 1.2, "#5a3430")
-		f.taper(65 + s * 13, 78, 65 + s * 18, 86, 65 + s * 21, 96, 0.9, "#5a3430")
-	nose(f, SKIN, x=65, y=93, size=0.8)
-	f.taper(52, 110, 65, 111, 78, 110, 0.9)
-	f.taper(59, 115, 65, 116.5, 71, 115, 0.5, shade(SKIN, 0.55))
-	f.path("M12 96Q24 120 40 135H-5V96Z", SKIN_D, opacity=0.6)
-	f.path("M118 96Q106 120 90 135H135V96Z", SKIN_D, opacity=0.7)
-	# band and the slashed plate
-	f.path("M-5 13H135V35H-5Z", BAND)
-	f.path("M-5 13H135V16H-5Z", "#50505e")
-	f.path("M-5 35H135V40H-5Z", shade(SKIN, 0.5), opacity=0.7)
-	steel_plate(f, 26, 9, 104, 39, slash=True)
-	# ---- torso front: closed cloak, two clouds
-	f = a["Torso_F"]
-	cloak_face(f, 6, pinch=(100, 150), y0=0.14)
-	f.path("M60-5H140L104 40H96Z", RED)
-	f.path("M96 40H104V205H96Z", CLOAK_D)
-	f.ink("M100 24V205", 2)
-	f.taper(112, 44, 116, 120, 110, 200, 1, CLOAK_L)
-	for y in (56, 96, 136):
-		f.path(f"M100 {y - 3}a3 3 0 1 0 0.1 0Z", "#26262e", stroke="#6a6a7c", sw=0.8)
-	cloud(f, 50, 92, 28)
-	cloud(f, 152, 134, 26)
-	cloud(f, 160, 44, 18)
-	f.edges(0.18)
-	# ---- torso back: three clouds
-	f = a["Torso_B"]
-	cloak_face(f, 6, pinch=(100, 170), y0=0.1)
-	cloud(f, 100, 78, 38)
-	cloud(f, 42, 152, 26)
-	cloud(f, 160, 150, 26)
-	f.edges(0.18)
-	f = a["Torso_L"]
-	cloak_face(f, 4, pinch=(50, 160))
-	cloud(f, 54, 110, 25)
-	f.edges(0.2)
-	f = a["Torso_R"]
-	cloak_face(f, 4, pinch=(50, 160))
-	cloud(f, 46, 72, 25)
-	f.edges(0.2)
-	a["Torso_T"].fill(CLOAK)
-	a["Torso_Bo"].fill(CLOAK_D)
-	spots = {"F": (48, 76, 24), "B": (54, 96, 24), "O": (50, 58, 30), "I": (50, 110, 18)}
-	leg_spots = {"F": (46, 66, 24), "B": (52, 80, 28), "O": (50, 44, 26), "I": (50, 90, 18)}
-	for side, sgn in (("Left", 1), ("Right", -1)):
-		# ---- arms: wide sleeve with the red lining at the cuff, purple nails
-		for key in "FBOI":
-			f = a[f"{side}Arm_{key}"]
-			cloak_face(f, 5, pinch=(50, 120), y0=0.1, y1=0.7)
-			x, y, s = spots[key]
-			cloud(f, x, y, s)
-			f.path("M-5 148H105V162H-5Z", CLOAK)
-			f.path("M-5 150H105V153H-5Z", CLOAK_L)
-			f.ink("M-5 148H105", 1.4)
-			f.path("M-5 162H105V172H-5Z", RED)
-			f.ink("M-5 162H105M-5 172H105", 1.4)
-			hand(f, key, side, SKIN, y0=172, nails=NAIL)
-			f.edges(0.2)
-		a[f"{side}Arm_T"].fill(CLOAK)
-		a[f"{side}Arm_Bo"].fill(RED)
-		# ---- legs: the cloak's long skirt, red hem, dark trousers, sandals with purple toenails
-		for key in "FBOI":
-			f = a[f"{side}Leg_{key}"]
-			cloak_face(f, 5, pinch=(50, 130), y0=0.05, y1=0.66)
-			x, y, s = leg_spots[key]
-			if not (key == "F" and side == "Right"):
-				cloud(f, x, y, s)
-			else:
-				cloud(f, 54, 76, 22)
-			f.path("M-5 110H105V136H-5Z", CLOAK)
-			f.path("M-5 112H105V115H-5Z", CLOAK_L)
-			f.ink("M-5 110H105", 1.4)
-			f.path("M-5 136H105V142H-5Z", RED)
-			f.ink("M-5 136H105M-5 142H105", 1.4)
-			f.path("M-5 142H105V164H-5Z", "#2a2c3a")
-			f.taper(14, 146, 50, 152, 88, 146, 1, "#101018")
-			sandal(f, key, side, "#16161e", SKIN, y0=162, nails=NAIL)
-			f.edges(0.2)
-		a[f"{side}Leg_T"].fill(CLOAK)
-		a[f"{side}Leg_Bo"].fill("#0e0e14")
-	# ---- head back and sides
-	f = a["Head_B"]
-	f.fill(HAIR_D)
-	strands(f, 10, 0, 130, 0, 125, HAIR_T)
-	f = a["Head_L"]
-	side_hair(f, SKIN, HAIR_D, "#08080c", True, edge=40, nape=118, top=30, ear=False)
-	f.path("M-5 13H125V35H-5Z", BAND)
-	f = a["Head_R"]
-	side_hair(f, SKIN, HAIR_D, "#08080c", False, edge=40, nape=118, top=30, ear=False)
-	f.path("M-5 13H125V35H-5Z", BAND)
-	a["Head_T"].fill(HAIR_D)
-	a["Head_Bo"].fill(SKIN_D)
+	skin_face(f, SKIN, SKIN_D, top=35)
+	for s, x in ((-1, 38), (1, 92)):
+		dark_eye(f, x, 62, s, w=30, up=10, dn=7, tilt=5, iris=9.5, heavy=3, lid=0.36)
+		# calm level brows
+		ib, ob = 65 + s * 11, 65 + s * 41
+		f.path(f"M{ib} 46Q{65 + s * 26} 41 {ob} 42L{ob} 44.5Q{65 + s * 26} 44 {ib} 48.5Z", "#1c1c24")
+		# the two long lines from the inner eye down the cheek, the likeness's anchor
+		stroke(f, ((x - s * 9, 70), (x - s * 8.5, 80), (x - s * 7, 92)), 1.25, "#6a4a4a")
+	stroke(f, ((66, 78), (67, 88), (65, 91)), 0.8, "#c49a84")
+	f.path("M57 108Q65 106.5 73 108", stroke="#7c4f46", sw=1.4)
+	paint_plate(a["Head_B"], SKIN, slash=True)
+	head_sides(a, SKIN, SKIN_D)

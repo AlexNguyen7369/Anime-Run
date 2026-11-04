@@ -1,246 +1,216 @@
-# Painted look for leaf_copycat: slanted band over one eye, face mask, padded vest (design doc 5).
-from atlas import INK, paint_hair, shade, swirl_d
-from leaf_common import ani_brow, ani_eye, begin_clip, end_clip, face_shade, hair_model, hand, lk, relief, sandal, side_hair, spike, steel_plate, strands
+# Target look for leaf_copycat (design doc section 5): big head, tall silver spikes leaning to one side, plate slanted over one eye,
+# dark mask to the nose, half-lidded eye, green flak vest with chest pouches, red spirals on sleeves and vest back, shin wraps, sandals.
+import math
 
-SKIN = "#f4d6bc"
-SKIN_D = shade(SKIN, 0.7)
-NAVY = "#1f2a3c"
-NAVY_D = "#111824"
-NAVY_L = "#44566e"
-VEST = "#66754a"
-VEST_D = "#3e4a2c"
-VEST_L = "#93a46a"
-RED = "#cc2a20"
-SILVER = "#c8ccd6"
-SILVER_D = "#9096a4"
-BAND = "#1b2331"
-DEFAULT = NAVY
-HAIR_COLOURS = ["#DFE2E8"]
-SLANT = 26.6  # degrees the band drops towards the covered eye
+from atlas import FACES, SIZE, swirl_d
+from leaf_style3 import BADGE, back_panel, bake, block, dark_eye, gem, hand, head_sides, jitter, paint_plate, plate, sandal, shard, skin_face, stroke, true_face_uv, xf
+from style2 import Kit, Ramps
+from style3 import big_head, finish
 
-# Tall broad spikes all pushed up and over to the character's left: the mass stands on the head at an angle.
-_up = [
-	(0, 78, 1.0, 0.56, 0.36),
-	(32, 72, 1.12, 0.56, 0.48),
-	(70, 62, 1.2, 0.56, 0.58),
-	(102, 58, 1.14, 0.56, 0.52),
-	(330, 76, 0.96, 0.56, 0.36),
-	(292, 70, 0.86, 0.54, 0.38),
-	(258, 60, 0.76, 0.5, 0.28),
-	(132, 56, 1.04, 0.56, 0.36),
-	(165, 62, 1.0, 0.58, 0.3),
-	(200, 62, 0.92, 0.58, 0.24),
-	(235, 56, 0.8, 0.54, 0.16),
-	(90, 26, 0.94, 0.5, 0.36),
-	(60, 30, 0.8, 0.48, 0.38),
-	(125, 22, 0.86, 0.52, 0.2),
-	(160, 26, 0.84, 0.56, 0.12),
-	(195, 24, 0.8, 0.56, 0.05),
-	(235, 18, 0.7, 0.5, 0.03),
-	(270, 22, 0.66, 0.44, 0.08),
-	(180, -10, 0.72, 0.56, 0.0),
-	(142, -12, 0.7, 0.5, 0.03),
-	(218, -12, 0.7, 0.5, -0.02),
-	(180, -36, 0.72, 0.54, 0.0),
-	(145, -38, 0.66, 0.46, 0.0),
-	(215, -38, 0.66, 0.46, 0.0),
-	(112, -28, 0.62, 0.4, 0.0),
-	(248, -28, 0.62, 0.4, 0.0),
-]
-SHARDS = [spike(az, el, ln, r, 0.04, reach=0.6, flatten=0.9, side=s, z=5.0) for az, el, ln, r, s in _up] + [
-	# low front locks over the band
-	lk((-0.18, -0.46, 5.38), (-0.24, -0.74, 5.3), (-0.42, -0.72, 5.08), 0.22),
-	lk((0.08, -0.46, 5.4), (0.2, -0.74, 5.36), (0.3, -0.74, 5.14), 0.22),
-	lk((0.36, -0.46, 5.34), (0.54, -0.72, 5.28), (0.72, -0.72, 5.02), 0.22),
-	lk((-0.46, -0.44, 5.3), (-0.62, -0.68, 5.18), (-0.72, -0.66, 4.94), 0.2),
-]
-HAIR = {"colour": "#B4B9C4", "cap": {"size": [1.42, 1.3, 0.5], "at": [0, 0.0, 5.26], "bevel": 0.2}, "locks": []}
+SKIN = "#f7dcc6"
+SKIN_D = "#d8ac90"
+DEFAULT = "#1f2a3a"
+R = Ramps(
+	hair=["#676b76", "#92959f", "#b9bbc5", "#d8d8dc", "#f0f1f4"],
+	skin=["#c79c80", "#eac3a8", "#f7dcc6", "#fff0e2"],
+	navy=["#0c121c", "#172130", "#232f42", "#374860"],
+	vest=["#333d22", "#4a5732", "#5e6b47", "#77865a", "#94a374"],
+	pouch=["#2d3620", "#434e2e", "#566241", "#6f7c54"],
+	band=["#0e1420", "#192335", "#2a384e"],
+	white=["#8f909c", "#d0d1d8", "#ececf0", "#ffffff"],
+	steel=["#59606c", "#8f96a2", "#c2c8d0", "#eef1f4"],
+	sole=["#0b0e14", "#161b24", "#262c38", "#3a4150"],
+	black=["#0f0e13", "#201e27", "#35323f", "#4c4858"],
+)
+HAIR = {"colour": "#D8D8DC", "locks": []}
+PROPS = []
+HEAD_ROWS = [(0, 0, 3.98, 0.5, 0.6), (0, 0, 4.16, 0.78, 0.78), (0, 0, 4.44, 0.9, 0.82), (0, 0, 5.3, 0.9, 0.82), (0, 0, 5.56, 0.78, 0.72), (0, 0, 5.62, 0.6, 0.56)]
+SLANT = 23  # degrees the band falls towards the viewer's right, over the covered eye
+BAND_Z = 5.02
 
-PROPS = [
-	{"part": "LeftFoot", "box": [1.02, 1.1, 0.1], "at": [0.5, -0.03, 0.05], "colour": "#101622", "bevel": 0.02},
-	{"part": "RightFoot", "box": [1.02, 1.1, 0.1], "at": [-0.5, -0.03, 0.05], "colour": "#101622", "bevel": 0.02},
-	# fat padded vest collar and the mask running into it
-	{"part": "UpperTorso", "box": [1.56, 1.22, 0.22], "at": [0, 0, 4.08], "colour": "#66754A", "bevel": 0.09},
-	# band tails, thigh holster over its tape, rear pouch
-	{"part": "Head", "lock": [[0.04, 0.64, 4.82], [0.34, 1.0, 4.6], [0.46, 1.2, 3.92]], "r": 0.13, "colour": "#1B2331", "flatten": 0.3},
-	{"part": "Head", "lock": [[-0.04, 0.64, 4.86], [-0.22, 0.98, 4.62], [-0.2, 1.1, 3.86]], "r": 0.13, "colour": "#1B2331", "flatten": 0.3},
-	{"part": "RightUpperLeg", "box": [0.22, 0.6, 0.46], "at": [-1.1, -0.04, 1.42], "colour": "#2A3444", "bevel": 0.04},
-	{"part": "LowerTorso", "box": [0.6, 0.2, 0.34], "at": [0.46, 0.58, 2.2], "colour": "#2A3444", "bevel": 0.04},
-]
+
+def _hair(k):
+	dome = k.lathe("Head", "Crown", [(0.9, 5.3, 0.5), (1.0, 5.54, 0.5), (0.95, 5.9, 0.5), (0.55, 6.24, 0.5), (0.16, 6.32, 0.5)], "hair", n=10, at=(0.05, 0.05, 0), squash=0.95, outline=0)
+	bake(k, dome, "hair", a=0.44, b=0.34)
+	# a cap of hair over the head's upper corners, all round above the band
+	block(k, "Head", "Cap", 0, 0.05, 5.72, 5.4, 0.93, 0.8, "hair", ch=0.05, corner=0.2, jit=0.015, a=0.38, b=0.4)
+	# the tall mass: broad wedges leaning to the viewer's right, largest in the middle
+	root = (0.1, 0.05, 5.6)
+
+	def from_root(tip, f=0.25):
+		return tuple(root[i] + (tip[i] - root[i]) * f for i in range(3))
+
+	sil = (((-1.34, 0.1, 5.86), 0.4), ((-1.04, 0.1, 6.5), 0.5), ((-0.46, 0.1, 7.06), 0.54), ((0.26, 0.1, 7.34), 0.56), ((0.98, 0.1, 7.12), 0.54), ((1.54, 0.1, 6.6), 0.48), ((1.82, 0.1, 5.98), 0.4))
+	for i, (tip, r) in enumerate(sil):
+		gem(k, "Head", f"Sil{i}", from_root(tip), tip, r, bend=0.04, twist=0.3 + 0.13 * i % 0.5, a=0.44, b_=0.58)
+	back = (((-0.72, 1.0, 6.4), 0.5), ((0.26, 1.16, 6.74), 0.54), ((1.14, 0.98, 6.34), 0.48), ((-0.96, 0.96, 5.62), 0.42), ((1.34, 0.86, 5.6), 0.42), ((0.12, 1.3, 5.72), 0.48))
+	for i, (tip, r) in enumerate(back):
+		gem(k, "Head", f"Back{i}", from_root(tip), tip, r, bend=0.05, twist=0.5 + 0.17 * i, a=0.4, b_=0.58)
+	# the front row stands up from behind the band, one plane brighter than the wedges behind
+	# their roots sit on the band's slanted top edge, in front of the hair behind it
+	slope = math.tan(math.radians(SLANT))
+	front = (((-1.0, -0.66, 6.02), 0.34), ((-0.6, -0.8, 6.42), 0.42), ((-0.06, -0.86, 6.78), 0.46), ((0.52, -0.84, 6.7), 0.46), ((1.06, -0.72, 6.24), 0.42), ((1.34, -0.6, 5.62), 0.32))
+	for i, (tip, r) in enumerate(front):
+		rx = tip[0] * 0.66 - 0.06
+		gem(k, "Head", f"Front{i}", (rx, -0.8, BAND_Z + 0.3 - rx * slope), tip, r, flat=0.5, twist=0.2 + 0.3 * i % 0.6, a=0.5 + 0.03 * (i % 2), b_=0.62)
+	# nape and the jagged hem
+	nape = k.tube("Head", "Nape", [(0, 0.4, 5.66, 0.9, 0.5), (0, 0.4, 5.3, 0.96, 0.52), (0, 0.4, 4.7, 0.95, 0.5), (0, 0.42, 4.38, 0.86, 0.46)], "hair", corner=0.22, nc=1, sub=1, outline=0)
+	jitter(nape, 0.02)
+	bake(k, nape, "hair", a=0.42, b=0.36)
+	for i, x in enumerate((-0.62, -0.2, 0.2, 0.62)):
+		gem(k, "Head", f"NapeS{i}", (x, 0.72, 4.9), (x * 1.06, 0.92, 4.14 + 0.06 * (i % 2)), 0.3, flat=0.5, twist=0.3, across=(1, 0, 0), a=0.44, b_=0.5)
+	# broad locks lying over the nape, so the back breaks into planes
+	for i, x in enumerate((-0.66, -0.22, 0.24, 0.68)):
+		gem(k, "Head", f"BackLow{i}", (x * 0.9, 0.72, 5.72), (x * 1.08, 1.0, 4.72 + 0.1 * (i % 2)), 0.36, flat=0.5, twist=0.25 + 0.2 * i, across=(1, 0, 0), a=0.46, b_=0.62)
+	# a side lock each side, in front of the ear; the viewer's left one falls past the band
+	for s, (y0, z0) in ((-1, (-0.42, 4.6)), (1, (-0.2, 4.46))):
+		shard(k, f"Burn{s}", ((s * 0.84, y0, 5.46, 0.2), (s * 1.0, y0, 5.1, 0.26), (s * 0.98, y0, z0, 0.01)), a=0.46, b_=0.5)
+	# wisps over the band on the viewer's left, the side the band sits high
+	shard(k, "Wisp0", ((-0.76, -0.68, 5.74, 0.14), (-0.86, -0.97, 5.34, 0.2), (-0.8, -0.98, 4.96, 0.01)), a=0.54, b_=0.5)
+
+
+def _band(k):
+	"""Everything slanted as one ring: the cloth, its knot, the plate falling across the viewer's right eye."""
+	piv = (0, 0, BAND_Z)
+	# the hair falls to the band's top edge, no forehead above it; both end inside the nape, the back of the head stays hair
+	cap = block(k, "Head", "Fore", 0, -0.6, BAND_Z + 0.66, BAND_Z, 0.9, 0.25, "hair", ch=0.03, jit=0.02, a=0.38, b=0.4)
+	xf(cap, piv, ry=SLANT)
+	cloth = block(k, "Head", "Band", 0, -0.33, BAND_Z + 0.25, BAND_Z - 0.25, 0.965, 0.555, "band", ch=0.03, corner=0.14, a=0.5, b=0.36)
+	xf(cloth, piv, ry=SLANT)
+	pl = plate(k, hw=0.6, top=BAND_Z + 0.24, bot=BAND_Z - 0.24)
+	xf(pl, piv, ry=SLANT)
+
+
+def _mask(k):
+	"""The mask as a real shell over the lower face, its top edge straight across at the nose, gathered into the neck below."""
+	rows = [(0, 0, 3.92, 0.62, 0.66), (0, 0, 4.14, 0.84, 0.82), (0, 0, 4.42, 0.925, 0.85), (0, 0, 4.6, 0.925, 0.85), (0, 0, 4.63, 0.89, 0.815)]
+	o = k.tube("Head", "Mask", rows, "navy", corner=0.14, nc=1, outline=0)
+	# its top edge climbs towards the ear and on under the hair
+	for v in o.data.vertices:
+		if v.co.z > 4.5:
+			v.co.z += 0.5 * max(0.0, v.co.y + 0.5)
+	o.data.update()
+	bake(k, o, "navy", a=0.5, b=0.46, g=0.12)
+	# the nose under the cloth: a low wedge at the top edge, with a soft fold each side of it
+	gem(k, "Head", "MaskNose", (0, -0.86, 4.6), (0, -0.92, 4.38), 0.1, ramp="navy", flat=0.6, across=(1, 0, 0), a=0.6, b_=0.4)
+	for s in (1, -1):
+		o = block(k, "Head", f"MaskFold{s}", s * 0.36, -0.85, 4.32, 4.22, 0.28, 0.02, "navy", ch=0.008, a=0.42, b=0.3)
+		xf(o, (s * 0.36, -0.85, 4.27), ry=s * 18)
+
+
+def _vest(k):
+	t = "UpperTorso"
+	k.reshape(t, "Torso", [(0, 0, 3.9, 0.95, 0.45), (0, 0, 2.1, 0.95, 0.45)], corner=0.1, nc=1)
+	# the dark shirt shows at the waist; the hips belong to the torso (a leg mesh stays at z <= 2)
+	block(k, t, "Shirt", 0, 0, 3.0, 1.88, 1.05, 0.55, "navy", ch=0.03, a=0.46, b=0.56, g=0.1)
+	block(k, t, "Vest", 0, 0, 3.98, 2.3, 1.08, 0.61, "vest", ch=0.07, flare=0.02, jit=0.03, sub=1, mids=(3.1,), a=0.5, b=0.56, g=0.14, tone=0.05)
+	back_panel(k, t, 3.92, 2.42, 1.02, 0.62, "vest", a=0.5, b=0.5)
+	# the seam down the middle
+	block(k, t, "Seam", 0, -0.62, 3.9, 2.3, 0.03, 0.014, "pouch", ch=0.006, a=0.2, b=0.1)
+	# two long scroll pouches each side of the seam, a flap on each
+	for s in (1, -1):
+		for i, x in enumerate((0.3, 0.74)):
+			px = s * x
+			block(k, t, f"Pouch{s}{i}", px, -0.67, 3.3, 2.46, 0.2, 0.09, "pouch", ch=0.03, corner=0.3, sub=1, a=0.5, b=0.64)
+			block(k, t, f"Flap{s}{i}", px, -0.685, 3.36, 3.08, 0.215, 0.1, "pouch", ch=0.03, corner=0.2, a=0.6, b=0.6)
+	# the thick high collar stands round the neck, open at the very front
+	c = k.band(t, "Collar", (0, 0.02, 3.92), 0.9, 0.78, -68, 248, lambda a: (-0.04, 0.3 - 0.12 * max(0.0, 1 - abs((a + 90) if a < 90 else (a - 270)) / 50)), "vest", thick=0.13, e=0.62, n=18, flare=0.05, outline=0)
+	bake(k, c, "vest", a=0.5, b=0.5)
+	# the neck cloth of the mask, in the collar's opening
+	block(k, t, "NeckCloth", 0, -0.02, 4.1, 3.9, 0.56, 0.5, "navy", ch=0.03, a=0.38, b=0.2, g=0.0)
+
+
+def _spiral(k, arm, s, ax):
+	"""The red spiral on the outside of the sleeve: a thin square patch wearing the art in Head_T."""
+	x0, y0, pw, ph = FACES["Head_T"][:4]
+	bx, by, bw, bh = BADGE
+	o = block(k, arm, "Spiral", ax + s * 0.525, 0, 3.86, 3.34, 0.02, 0.26, "navy", ch=0.006, a=0.42, b=0.4)
+	uv = o.data.uv_layers[0].data
+	for poly in o.data.polygons:
+		if abs(poly.normal.x) > 0.9:
+			for li in poly.loop_indices:
+				co = o.data.vertices[o.data.loops[li].vertex_index].co
+				u, t = (co.y * -s + 0.26) / 0.52, (3.86 - co.z) / 0.52
+				uv[li].uv = ((x0 + bx + u * bw) / SIZE, 1 - (y0 + by + t * bh) / SIZE)
+
+
+def _arm(k, s, side):
+	arm = f"{side}UpperArm"
+	ax = s * 1.5
+	k.reshape(arm, f"{side}Arm", [(ax, 0, 3.9, 0.42, 0.42), (ax, 0, 2.05, 0.42, 0.42)], corner=0.1, nc=1)
+	block(k, arm, "Shoulder", ax, 0, 4.04, 3.0, 0.515, 0.515, "navy", ch=0.1, corner=0.18, jit=0.025, sub=1, mids=(3.5,), a=0.52, b=0.58)
+	block(k, arm, "Forearm", ax, 0, 3.06, 2.46, 0.515, 0.515, "navy", ch=0.08, corner=0.18, jit=0.025, sub=1, a=0.5, b=0.58)
+	# the fingerless glove: dark hand block, a steel plate on the cuff above it
+	block(k, arm, "Cuff", ax, 0, 2.5, 2.24, 0.535, 0.535, "black", ch=0.03, corner=0.16, a=0.5, b=0.5)
+	block(k, arm, "CuffPlate", ax, -0.54, 2.45, 2.29, 0.24, 0.02, "steel", ch=0.008, a=0.42, b=0.4)
+	hand(k, arm, ax, z1=2.3)
+	_spiral(k, arm, s, ax)
+
+
+def _leg(k, s, side):
+	leg = f"{side}UpperLeg"
+	x = s * 0.5
+	px = s * 0.54
+	k.reshape(leg, f"{side}Leg", [(x, 0, 2.0, 0.42, 0.42), (x, 0, 0.1, 0.42, 0.42)], corner=0.1, nc=1)
+	block(k, leg, "Pants", px, 0, 1.95, 0.98, 0.51, 0.56, "navy", ch=0.04, flare=0.03, corner=0.16, jit=0.05, mids=(1.5,), a=0.46, b=0.62, g=0.1, tone=0.07)
+	# the white wraps round the shin, turn on turn
+	for i in range(4):
+		z = 1.06 - i * 0.135
+		o = block(k, leg, f"Wrap{i}", px, 0.02, z + 0.075, z - 0.075, 0.525, 0.565, "white", ch=0.018, corner=0.16, a=0.62, b=0.34, g=0.0)
+		xf(o, (px, 0.02, z), ry=4 if i % 2 else -4)
+	sandal(k, leg, px, "band", "sole", top=0.56)
+
+
+def _holster(k):
+	"""Viewer's left thigh: one white bandage turn, the pouch strapped on the outer side."""
+	leg = "RightUpperLeg"
+	block(k, leg, "Bandage", -0.56, 0, 1.56, 1.36, 0.56, 0.61, "white", ch=0.02, corner=0.16, a=0.6, b=0.36)
+	block(k, leg, "Pouch", -1.16, -0.16, 1.62, 1.0, 0.18, 0.34, "band", ch=0.04, a=0.56)
+	block(k, leg, "PouchFlap", -1.18, -0.18, 1.66, 1.34, 0.18, 0.35, "band", ch=0.035, a=0.7)
+	block(k, leg, "PouchSnap", -1.18, -0.54, 1.46, 1.38, 0.05, 0.02, "steel", ch=0.008, a=0.6)
 
 
 def model(parts, kit):
-	hair_model(kit, parts, SHARDS, HAIR_COLOURS[0])
-	rot = (0, 0.4636, 0)
-	relief(kit, parts, "Head", "BandRing", "Head", (1.36, 1.26, 0.32), (0, 0, 4.835), bevel=0.02, rot=rot)
-	relief(kit, parts, "Head", "Plate", "Head", (0.84, 0.09, 0.4), (0.1, -0.645, 4.785), key="F", bevel=0.015, rot=rot)
-	relief(kit, parts, "UpperTorso", "Vest", "Torso", (2.12, 1.12, 1.56), (0, 0, 3.22), bevel=0.05)
-	for x in (-0.6, 0.6):
-		relief(kit, parts, "UpperTorso", f"Pouch{x}", "Torso", (0.62, 0.1, 0.72), (x, -0.59, 3.3), key="F", bevel=0.03)
+	k = Kit(kit, parts, R, outline=0)
+	big_head(k, HEAD_ROWS)
+	true_face_uv(parts["Head"])
+	_hair(k)
+	_mask(k)
+	_band(k)
+	_vest(k)
 	for s, side in ((1, "Left"), (-1, "Right")):
-		relief(kit, parts, f"{side}LowerArm", "Glove", f"{side}Arm", (1.03, 1.03, 0.38), (s * 1.5, 0, 2.3))
-		relief(kit, parts, f"{side}LowerLeg", "Tape", f"{side}Leg", (1.03, 1.03, 0.36), (s * 0.5, 0, 0.56))
-
-
-def vest_pouch(f, x0, x1, y0=36, y1=112):
-	f.path(f"M{x0} {y0}H{x1}V{y1}H{x0}Z", VEST, stroke=INK, sw=1.8)
-	f.path(f"M{x0} {y0}H{x1}V{y0 + 5}H{x0}Z", VEST_L)
-	f.path(f"M{x1 - 9} {y0}H{x1}V{y1}H{x1 - 9}Z", VEST_D, opacity=0.8)
-	f.path(f"M{x0 + 3} {y0 + 2}H{x1 - 3}V{y0 + 20}Q{(x0 + x1) / 2} {y0 + 30} {x0 + 3} {y0 + 20}Z", shade(VEST, 1.12), stroke=INK, sw=1.2)
-	f.path(ell2((x0 + x1) / 2, y0 + 20, 2.6), "#2a2f20")
-	f.taper(x0 + 8, y0 + 40, (x0 + x1) / 2, y0 + 46, x1 - 8, y0 + 40, 1, VEST_D)
-	f.ink(f"M{(x0 + x1) / 2 - 18} {y1 - 4}H{(x0 + x1) / 2 + 18}", 0.8, VEST_D)
-
-
-def ell2(cx, cy, r):
-	return f"M{cx - r} {cy}a{r} {r} 0 1 0 {2 * r} 0a{r} {r} 0 1 0 {-2 * r} 0Z"
-
-
-def vest_base(f, y1=156):
-	w = f.w
-	f.path(f"M-5-5H{w + 5}V{y1}H-5Z", VEST)
-	f.path(f"M-5-5H{w + 5}V6H-5Z", VEST_L, opacity=0.7)
-	f.path(f"M-5 {y1 - 10}H{w + 5}V{y1}H-5Z", VEST_D)
-	f.ink(f"M-5 {y1}H{w + 5}", 2)
-	for x in range(10, w, 26):
-		f.taper(x, y1 - 26, x + 3, y1 - 16, x, y1 - 10, 0.9, VEST_D)
-
-
-def lower_shirt(f):
-	f.fill(NAVY)
-	f.folds(4, NAVY_D, NAVY_L, y0=0.78, y1=0.97, pinch=(f.w / 2, 186))
-
-
-def spiral(f, cx, cy, r, sw):
-	d = swirl_d(cx, cy, r, turns=2.1, a0=1.2)
-	f.path(d, stroke="#5e0f0a", sw=sw * 1.45)
-	f.path(d, stroke=RED, sw=sw)
+		_arm(k, s, side)
+		_leg(k, s, side)
+	_holster(k)
+	finish()
 
 
 def paint(a):
-	paint_hair(a, [SILVER])
-	# ---- face: one heavy-lidded bored eye, the slanted band over the other, mask from the nose down
+	R.paint(a)
 	f = a["Head_F"]
-	face_shade(f, SKIN, top=None)
-	f.path("M-5-5H135V52L100 44L60 52L20 46L-5 54Z", shade(SKIN, 0.64))
-	ani_eye(f, 34, 73, -1, "#1d1d24", w=31, h=13, tilt=-0.5, lid=4.2, ir=7.6, pupil=0.55, flick=1.5, look=1, lower=0.6, peak=-0.02)
-	f.taper(18, 60, 34, 56, 50, 61, 0.7, shade(SKIN, 0.5))
-	ani_brow(f, 34, 52, -1, "#70747e", w=30, angry=1.4, thick=3.6, arch=2)
-	f.taper(20, 84, 32, 86, 48, 83, 0.7, shade(SKIN, 0.55))
-	# mask: rises to the nose bridge, modelled by the nose beneath it
-	m = "M-5 88L30 86Q52 84 60 78L65 74L70 78Q78 84 100 86L135 88V135H-5Z"
-	f.path(m, NAVY)
-	begin_clip(f, m)
-	f.path("M65 74L72 100L70 104H100Q86 100 74 78Z", NAVY_D, opacity=0.9)
-	f.path("M65 74Q60 92 60 104L68 102Z", NAVY_L, opacity=0.8)
-	f.path("M100 86L135 88V135H96Q110 110 100 86Z", NAVY_D, opacity=0.9)
-	f.path("M-5 88H12Q8 112 26 135H-5Z", NAVY_D, opacity=0.5)
-	f.taper(50, 116, 66, 119, 84, 116, 1.0, NAVY_D)
-	f.taper(30, 104, 26, 118, 36, 130, 1.0, NAVY_L)
-	f.taper(40, 124, 62, 130, 90, 126, 1.0, NAVY_D)
-	end_clip(f)
-	f.ink(m, 1.7)
-	# the scar's lower end shows under the band
-	f.taper(92, 72, 94, 80, 90, 88, 1.2, "#a84a40")
-	# slanted band and plate, worn by the 3D ring and plate
-	f.path("M-5 -6.5L135 63.5V99.5L-5 29.5Z", BAND)
-	f.path("M-5 -6.5L135 63.5V67.5L-5 -2.5Z", "#4a566a")
-	f.path("M-5 29.5L135 99.5V104.5L-5 34.5Z", shade(SKIN, 0.55), opacity=0.7)
-	f.out.append(f'<g transform="rotate({SLANT} 75 51.5)">')
-	steel_plate(f, 33, 31.5, 117, 71.5)
-	f.out.append("</g>")
-	# ---- torso front: padded vest, four scroll pouches reduced to the chest pair, centre zip
-	f = a["Torso_F"]
-	lower_shirt(f)
-	vest_base(f)
-	vest_pouch(f, 8, 92)
-	vest_pouch(f, 108, 192)
-	f.path("M95-5H105V156H95Z", "#3a4228")
-	f.ink("M95-5V156M105-5V156", 1.2)
-	for y in range(2, 156, 7):
-		f.ink(f"M97 {y}H103", 0.8, "#8a8f78")
-	f.path("M92 10H108V24H92Z", "#9aa0a6", stroke=INK, sw=1)
-	f.path("M60-5Q100 30 140-5Z", VEST_D, opacity=0.5)
-	f.path("M-5 170H205V186H-5Z", NAVY_D)
-	f.path("M-5 170H205V173H-5Z", NAVY_L)
-	f.edges()
-	# ---- torso back: red whirl in its white-edged disc, quilted bars
+	skin_face(f, SKIN, SKIN_D, top=30)
+	# the one visible eye, on the viewer's left: half-lidded, dark, a lid crease above it
+	x, y = 38, 54
+	dark_eye(f, x, y, -1, w=33, up=11, dn=8, tilt=2, iris=10, ring="#141418", mid="#2b2b2b", glow="#44444a", heavy=6, lid=0.4)
+	f.path(f"M{x + 17} {y - 8}Q{x} {y - 17} {x - 18} {y - 10}", stroke="#a87c64", sw=1.1)
+	# a soft silver brow, lifted and lazy
+	f.path(f"M{x + 18} {y - 18}Q{x} {y - 27} {x - 21} {y - 20}L{x - 20} {y - 17}Q{x} {y - 23} {x + 18} {y - 15}Z", "#7f818c")
+	stroke(f, ((x - 6, y + 11), (x + 2, y + 13), (x + 12, y + 11)), 0.5, "#c9a08a")
+	paint_plate(a["Head_B"], SKIN)
+	# the vest's back: a large red spiral inside a white ring on the green
 	f = a["Torso_B"]
-	lower_shirt(f)
-	vest_base(f)
-	for y in (28, 124):
-		f.taper(-5, y, 100, y + 5, 205, y, 1.2, VEST_D)
-	f.path("M100 34a42 42 0 1 0 0.1 0Z", shade(VEST, 0.8), stroke=INK, sw=1.6)
-	spiral(f, 100, 76, 34, 6)
-	f.path("M-5 170H205V186H-5Z", NAVY_D)
-	f.edges()
-	for n in ("Torso_L", "Torso_R"):
-		f = a[n]
-		lower_shirt(f)
-		vest_base(f)
-		f.ink("M50-5V156", 1.6)
-		for x in (28, 72):
-			f.taper(x, 10, x + 4, 66, x, 140, 0.9, VEST_D)
-		f.path("M-5 170H105V186H-5Z", NAVY_D)
-		f.edges(0.42)
-	a["Torso_T"].fill(VEST)
-	a["Torso_Bo"].fill(NAVY)
-	for side, sgn in (("Left", 1), ("Right", -1)):
-		# ---- arms: long navy sleeve, red whirl on the shoulder, fingerless glove with its steel plate
-		for key in "FBOI":
-			f = a[f"{side}Arm_{key}"]
-			f.fill(NAVY)
-			f.folds(5, NAVY_D, NAVY_L, y0=0.1, y1=0.76, pinch=(50, 104))
-			f.path("M-5-5H105V18Q50 26 -5 18Z", NAVY_L, opacity=0.35)
-			if key == "O":
-				spiral(f, 50, 44, 24, 5)
-			f.path("M-5 148H105V178H-5Z", "#15151c")
-			f.path("M-5 148H105V152H-5Z", "#3c3c48")
-			f.ink("M-5 148H105", 1.3)
-			hand(f, key, side, SKIN, y0=176, glove="#15151c")
-			if key in ("F", "O"):
-				f.path("M20 150H80V176H20Z", "#a8aeb6", stroke=INK, sw=1.3)
-				f.path("M20 150H80V157H20Z", "#dde1e6")
-				for x in (28, 72):
-					f.path(ell2(x, 169, 1.6), "#50565e")
-			f.edges()
-		a[f"{side}Arm_T"].fill(NAVY)
-		a[f"{side}Arm_Bo"].fill("#15151c")
-		# ---- legs: navy trousers, taped shins, sandals
-		for key in "FBOI":
-			f = a[f"{side}Leg_{key}"]
-			f.fill(NAVY)
-			f.folds(6, NAVY_D, NAVY_L, y0=0.06, y1=0.62, pinch=(50, 106))
-			if side == "Right":
-				f.path("M-5 30H105V56H-5Z", "#e8e4da")
-				f.ink("M-5 40L105 44M-5 48L105 50", 1.0, "#8b857a")
-				f.ink("M-5 30H105M-5 56H105", 1.2)
-			f.path("M-5 126H105V162H-5Z", "#e8e4da")
-			for y in (133, 141, 149, 156):
-				f.ink(f"M-5 {y}L105 {y + 3}", 1.0, "#8b857a")
-			f.ink("M-5 126H105", 1.3)
-			sandal(f, key, side, "#182232", SKIN, y0=162)
-			f.edges()
-		a[f"{side}Leg_T"].fill(NAVY)
-		a[f"{side}Leg_Bo"].fill("#101622")
-	# ---- head back and sides: a tilted ring: low on the covered side, high on the other
-	f = a["Head_B"]
-	f.fill(SILVER_D)
-	strands(f, 9, 0, 130, 0, 130, "#5e6470", lean=-3)
-	f.path("M-5 99.5L135 29.5V-6.5L-5 63.5Z", BAND)
-	f.path("M-5 67.5L135 -2.5V-6.5L-5 63.5Z", "#4a566a")
-	f.path("M-5 110H135V135H-5Z", NAVY)
-	f = a["Head_L"]
-	side_hair(f, SKIN, SILVER_D, "#6e7482", True, edge=44, nape=112, top=30, ear=False)
-	f.path("M-5 88H70L125 112V135H-5Z", NAVY)
-	f.path("M-5 112H60L125 128V135H-5Z", NAVY_D, opacity=0.8)
-	f.path("M-5 61H125V97H-5Z", BAND)
-	f.path("M-5 61H125V64H-5Z", "#4a566a")
-	f = a["Head_R"]
-	side_hair(f, SKIN, SILVER_D, "#6e7482", False, edge=44, nape=112, top=30)
-	f.path("M125 88H50L-5 112V135H125Z", NAVY)
-	f.path("M125 112H60L-5 128V135H125Z", NAVY_D, opacity=0.8)
-	f.path("M-5 -4H125V32H-5Z", BAND)
-	f.path("M-5 -4H125V-1H-5Z", "#4a566a")
-	a["Head_T"].fill(SILVER_D)
-	a["Head_Bo"].fill(NAVY_D)
+	f.fill("#5e6b47")
+	f.soft("M-5-5H205V40Q100 56 -5 40Z", "#77865a", 0.6, 5)
+	f.soft("M-5 96Q100 110 205 96V205H-5Z", "#3f4a2c", 0.7, 5)
+	f.path(swirl_d(100, 66, 44, turns=2.4, a0=1.2), stroke="#c9222a", sw=10)
+	head_sides(a, SKIN, SKIN_D)
+	# the sleeve spiral lives in Head_T, hidden under the hair
+	f = a["Head_T"]
+	f.fill("#232f42")
+	sx, sy = f.w / FACES["Head_T"][2], f.h / FACES["Head_T"][3]
+	bx, by, bw, bh = BADGE
+	cx, cy, rx, ry = (bx + bw / 2) * sx, (by + bh / 2) * sy, bw / 2 * sx, bh / 2 * sy
+	f.path(f"M{cx - rx - 8} {cy - ry - 8}H{cx + rx + 8}V{cy + ry + 8}H{cx - rx - 8}Z", "#232f42")
+	f.out.append(f'<g transform="translate({cx} {cy}) scale({rx / 40} {ry / 40})">')
+	f.path(swirl_d(0, 0, 34, turns=2.4, a0=0.4), stroke="#d0262e", sw=8)
+	f.out.append("</g>")
