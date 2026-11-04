@@ -104,28 +104,28 @@ Stamina = Base(rarity or override)
   amount banked.
 - Exhaustion is not a loss: the bank is paid, and no loser screen shows.
 - Per-distance share (owner 2026-11-01): before the cash-out, the bank gains `PayoutCurve.Cash(n) x covered / length`
-  of the track being run (share placeholder 1.0; `covered` clamped 0..length). Builds into c1.
+  of the track being run (share placeholder 1.0; `covered` clamped 0..length).
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
 - Owner 2026-11-03: a loss is decided only when the runner reaches the finish. A team that tires partway down a track
   the NPC has already finished ends by exhaustion (bank + per-distance share paid), not a loss.
-- Owner 2026-10-30: the run bank is restored, as design doc sections 2-4.3 say. Each track win adds its payout (x the
+- Owner 2026-10-30 (design doc sections 2-4.3): each track win adds its payout (x the
   checkpoint bonus, design doc 4.15) to the run's unbanked pot (not paid at once); exhaustion cashes it out once; a
   loss empties it; Stop, death and leaving cash it out.
 - Owner 2026-10-30: a loss reset starts a new run: stamina refills to 100% and the team restarts at slot 1 (on the
   checkpoint track, design doc 4.15).
 
-## Speed (owner 2026-11-01, design doc 4.13; replaces the Speed-stat formula)
+## Speed (owner 2026-11-01, design doc 4.13)
 
 - Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
-- Orchestrator defaults 2026-11-01 (u1, gaps the rules do not cover; owner may change):
+- Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
-  - The runner is the active slot's character (RunSlot); it wears that slot's aura / trail (c1 port 2026-11-02).
-    Preset factor wired as `RaceConfig.PRESET_CRUISE` but always off (no team code yet).
+  - The runner is the active slot's character (RunSlot); it wears that slot's aura / trail.
+    Preset factor wired as `RaceConfig.PRESET_CRUISE`.
   - The Speed Doubler game passes are removed (design doc 4.16). The upgrade tree's `speed` branch is "Speed"
     (owner 2026-11-01): each owned tier adds +10% cruise (placeholder, 5 tiers), added to the stat points' part.
   - No XP (player levels removed owner 2026-11-01, design doc 4.14).
@@ -133,7 +133,7 @@ Stamina = Base(rarity or override)
   - The Speed board is removed from the plaza (4.13); its store `LB_Speed_v3` is untouched.
   - The HUD shows the player attribute `Cruise` (studs/s): the run's fixed cruise while racing, else the equipped
     character's cruise now.
-- u4 per-slot aura / trail. Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
+- Per-slot aura / trail. Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Save `SlotItems = { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }` (no store or VERSION bump). A
     save without `SlotItems` moves its old `EquippedAura` / `EquippedTrail` to slot 1; the old keys are kept in the
     record, never read again.
@@ -151,17 +151,15 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 
 ## HUD
 
-- Team row (owner 2026-11-02, replaces the portrait cards beside the Speed number): 3 circle portraits in the retired
+- Team row (owner 2026-11-02): 3 circle portraits in the retired
   Level bar's place (above the TURBO LUCK bar), slot 1-3 left to right, so the team tires left to right. Owner
-  2026-11-03: avatar head only (body and rarity belt removed), no rarity colour (neutral ring); while running each
-  portrait shows its `Stamina<n>` on a thick curved arc along the lower right of the circle (bar colours, replaces the
-  liquid level, owner 2026-11-03: smoother row after the owner's reference image; the head breaks out of the top of a
-  dark circle). Orchestrator default 2026-11-03: a slanted number at the lower left shows that runner's stamina seconds
-  left (the run's fixed `RunSeconds<n>` while running, `TeamStamina<n>` on foot); the arc eases per frame and the slots do not shift. Active runner: enlarged, pulsing
+  2026-11-03: avatar head only, no rarity colour (neutral ring); while running each
+  portrait shows its `Stamina<n>` on a thick curved arc along the lower right of the circle (bar colours; the head
+  breaks out of the top of a dark circle). Orchestrator default 2026-11-03: a slanted number at the lower left shows that runner's stamina seconds
+  left (the run's fixed `RunSeconds<n>` while running, `TeamStamina<n>` on foot); the arc eases per frame and the slots do not shift. Active runner (`RunSlot`): enlarged, pulsing
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
-  (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). Display only. While running, the active runner (`RunSlot`) is slightly larger with a highlight ring, and a slot whose
-  `Stamina<n>` is 0 is greyed out. On foot all three show normally; an empty slot is a dim empty circle. Display only.
+  (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
@@ -169,7 +167,7 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   (BillboardGui, camera-relative offset), filled to the owner's `Stamina<RunSlot>`. Shown only while running.
   Owner 2026-11-03: the fill tweens between server updates (no steps), a pale "just lost" trail follows it down
   after a short delay, colour blue > 50% > amber > 25% > red (placeholders), pulses below 25%, refills with a white
-  flash on a tag-in. Orchestrator default 2026-11-03 (owner asked for UI fixes): a
+  flash on a tag-in. Orchestrator default 2026-11-03: a
   minimum on-screen size so it stays readable from far away; low pulse, active pulse and marker bob stop under reduced
   motion (design doc 4.20); the bonus badge sits on a dark pill and the info card stays on screen.
 - Toasts: "<Name> TAG IN!" on a swap, "TEAM EXHAUSTED +$X" on exhaustion (plain text placeholder).

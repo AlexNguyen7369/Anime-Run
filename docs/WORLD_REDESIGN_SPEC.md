@@ -2,8 +2,8 @@
 
 Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.9, 4.10 and 5, and on
 `docs/TRACKS_AND_BIOMES_SPEC.md`. Owner decisions 2026-10-28: redesign the overall map (spawn hub, player plots,
-tracks and biomes, world layout) and scrap every car model, the car body included. Runs after f2 lands, before any
-other work. Numbers and names are placeholders unless stated.
+tracks and biomes, world layout) and scrap every car model, the car body included. Numbers and names are placeholders
+unless stated.
 
 ## 1. Scrap list (fixed)
 
@@ -24,7 +24,7 @@ Nothing car-shaped stays in the game:
   trim. A `BillboardGui` shows the character's name (finite `MaxDistance`). A track enemy has none: its indicator is the client's `NpcIndicator` ScreenGui (design doc 4.26).
 - The runner is anchored and moved by `RaceService` along the race path (the IVS rail already holds an exact speed
   everywhere): position on the right-hand lane, facing along the path, upright (up-vector Y = 1). No physics forces.
-- Smooth motion (owner 2026-10-28, replaces the IVS 2026-10-15 "rail steers with velocity, never snaps" rule): the
+- Smooth motion (owner 2026-10-28): the
   server's anchored rig is the exact authoritative pose; each client renders the visible runner smoothly by
   interpolating along the path from the server's distance and speed, so players see no stutter. The IVS
   `rail_never_snaps` check is replaced by a client-side smoothness check.
@@ -39,15 +39,13 @@ Nothing car-shaped stays in the game:
   The non-flip checks inside `flip_recovery` (live aura re-target, fastest character at max stat) move to `runner`.
 - Owner 2026-10-29:
   - Instant start: a run starts at once, with no cancellable "Teleporting" phase (there is no seat to wait for).
-  - The seat-failure checks (`event_seat_fail_*`) are retired with the `VehicleSeat`.
   - Index tiles and leaderboard pedestals show the character's placeholder runner rig.
   - While racing, the camera follows the visible runner.
   - The hidden avatar is welded inside the runner's Torso; the Humanoid stays.
   - A mid-race character switch works as the IVS mid-race car switch.
   - The rarest-character leaderboard is titled "RAREST CHARACTER".
 - Owner 2026-10-30:
-  - Rail-fall recovery is retired with the car: the anchored runner cannot leave the rail. Its checks
-    (`fall_below`, `launched_above`, `rail_fall_api_exists`, `back_on_path_fast`, `snap_counted`) and the
+  - Rail-fall recovery is retired with the car: the anchored runner cannot leave the rail. Its checks and the
     `RailFallRecoverySeconds` target (owner 2026-10-20) go.
   - Instant start covers solo runs only. A duel keeps its "Teleporting" hold while both runners wait for the
     countdown.
@@ -70,7 +68,7 @@ Nothing car-shaped stays in the game:
 ## 4. Spawn hub: anime town plaza
 
 - One `SpawnLocation` at the plaza centre (the only one in the place).
-- **Start gate**: a large torii-style gate replaces the Race Start pavilion; walking through it starts the run (the
+- **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Shop street**: stalls for Shop, Market and Potions around the plaza (same panels and remotes as now).
 - **Rebirth shrine**, **Index board** (scroll wall), **leaderboard banners**, and the checkpoint NPC as a **sensei**
@@ -81,13 +79,11 @@ Nothing car-shaped stays in the game:
 
 - The 7 workshop plots become **Dojos** (48 x 48, same assignment rules: lowest free plot on join, freed on leave).
 - The **Dojo squad** is the IVS Showcase: the player picks 3 owned characters who are **not in the racing Team**;
-  they stand and train in the Dojo and multiply idle Speed gain with the IVS Showcase formula (unchanged numbers).
-  Owner 2026-11-03 (design doc 4.19, replaces the idle gain): the squad's combined rarity sets the workshop stat
-  boost instead; the Showcase formula, copies and idle gain are retired.
+  they stand and train in the Dojo.
+  Owner 2026-11-03 (design doc 4.19): the squad's combined rarity sets the workshop stat boost; the Showcase formula,
+  copies and idle gain are retired.
 - New rule: a character is either in the Team or in the Dojo squad, never both. `SetTeam` and `SetShowcase` reject a
   character already in the other group.
-- Standing in the Dojo's training zone earns idle Speed, as the IVS workshop zone does (same rate rules). RETIRED
-  2026-11-03: no passive gain (design doc 4.19).
 - Workshop stat boost (owner 2026-11-03, design doc 4.19). Numbers placeholders, in `Shared/WorkshopConfig`:
   - `RARITY_POINTS` Common 1 .. Secret 7; `POINT_BONUS = 0.05`; `LEVEL_SCALE = 0.1`.
   - `Workshop.Boost(squadSpecs, level)` = sum(points) x POINT_BONUS x (1 + LEVEL_SCALE x (level - 1)).
@@ -101,7 +97,6 @@ Nothing car-shaped stays in the game:
     the level scale; the level upgrade button stays.
   - Retired: idle Money gain, offline workshop credit (and its Robux double), workshop in-zone luck, the `Workshop`
     stat point (refunded: `Workshop` leaves `GachaConfig.STATS`), Showcase copy bonus.
-- Until stamina ships, the racing Team is the single equipped character, so the rule applies to that one character.
 - Owner 2026-10-30: an old save whose equipped character is also in the Showcase drops that character from the Dojo
   squad on load (the slot is left empty, stored as an empty entry or removed; owner 2026-10-30); the Team is unchanged.
 
@@ -147,5 +142,5 @@ before any Studio work. All values below are **proposed**. 34 unique meshes, abo
   `src/`; no `Cars` collision group.
 - `world_layout`: hub at the centre, 7 plots around it, Track 1 start at the start gate, no overlaps, baseplate
   covers everything, one SpawnLocation.
-- `dojo`: squad of 3 not in the Team, cross-rejection, multiplier unchanged.
+- `dojo`: squad of 3 not in the Team, cross-rejection.
 - Track tests per `TRACKS_AND_BIOMES_SPEC.md`.

@@ -25,9 +25,6 @@
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
-      },
-      "ProjectContext": {
-        "$path": "context/ProjectContext.luau"
       }
     },
     "StarterPlayer": {

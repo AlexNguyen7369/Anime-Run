@@ -55,6 +55,8 @@
 51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
 52. 2026-11-04 — Alex Nguyen — Replaced every track NPC with a biome-matched enemy: 9 new uploaded models, a name and arrow indicator that follows the enemy's head, npc and ui_billboards green, rules audit PASS.
 53. 2026-11-04 — Alex Nguyen — Landed c3ui with owner rulings as design doc 4.27: phone and tablet HUD fixes, StarterPick in the UI spec, reduced-motion and hitbox test fixes, and rules audit PASS.
+54. 2026-11-04 — Alex Nguyen — Landed the trim of stale docs and unused assets (handoff 52 KB to 6 KB, ProjectContext removed, 50 files deleted); rules audit PASS, no gameplay code changed.
+55. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs and listed the doc-versus-code conflicts in docs/OWNER_QUESTIONS.md for the owner.
 
 ## What's next
 **Rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**

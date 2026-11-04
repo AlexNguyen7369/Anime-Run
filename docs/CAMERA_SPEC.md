@@ -1,11 +1,8 @@
 # Camera Spec
 
-Rule source: `docs/GAME_DESIGN_REQUIREMENTS.md` section 4.12 (owner request 2026-10-31). This spec never contradicts it.
+Rule source: `docs/GAME_DESIGN_REQUIREMENTS.md` section 4.12 (owner request 2026-10-31).
 
 ## 1. Track camera
-- Owner request, verbatim: "change player camera angle to always be facing in the direction the player is moving. So
-  a players camera angle is always moving aligned with the track as if it is shift locking. This is a camera
-  perspective that can be changed in settings. If toggled off, camera angle is regular."
 - When: the local player is racing (`AutoRacing`), the camera follows the visible runner (WORLD_REDESIGN_SPEC 2), the
   runner is moving (`RunSpeed` > 0 on a route) and the camera is the default `Custom` camera.
 - What: each frame the camera yaw turns toward the runner's travel direction (the path tangent the runner faces,

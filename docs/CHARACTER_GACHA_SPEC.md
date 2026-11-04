@@ -33,7 +33,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 
 - Same as IVS: free auto-roll every 3 s; rarest-first check `min(1, luck / Chance)`; else the catch-all Common.
 - Turbo luck every 10th roll x10; upgrade tiers raise both.
-- Bands copied from IVS car odds (1 in N):
+- Bands (1 in N):
 
 | Rarity | Chance band | SpeedMulti band | Count at launch |
 |---|---|---|---|
@@ -148,17 +148,15 @@ Preset trios (the anime's famous team):
 - R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, big mesh hair;
   each character distinctly recognisable as its source. "Target look" below replaces the flat face.
 - Each rarity adds detail: Common plain; Epic+ gets an aura particle; Mythic+ a trail and unique run style.
-- Pipeline: Blender (Blender MCP) -> FBX -> Studio import -> `CharacterModels`.
 
-### Avatar pipeline (owner 2026-11-03, goal `char-art` a4-a5; replaced the chibi draft pipeline)
+### Avatar pipeline (owner 2026-11-03)
 
 - `tools/blender/avatar_base.py` + `build_avatar.py`, run headless:
   `Blender -b --factory-startup --python tools/blender/build_avatar.py -- [<id>...|--sheet]`.
 - Body: R15 block proportions (legs 2, torso 2, head 1.3 units; proposed). Same 15 part names.
 - Per-character look comes from `tools/blender/avatar_chars/<series>.json`, keyed by `Id`: part colours, eye and mouth
   presets, individually placed hair locks, flat clothing panels, marks, props.
-- Budget: at most 12,000 triangles per character including the outline shell (proposed).
-- Look of characters not yet redone (design doc 5): inverted-hull ink outline, cel bands painted into the palette texture, auto-drawn fold lines. "Target look" below replaces this.
+- Budget: at most 12,000 triangles per character (proposed).
 - Output: `assets/characters_avatar/<id>/review/{front,side,back,three_quarter}.png` and `contact_sheet.png`; the
   `<id>.blend` files are rebuilt on demand and not committed.
 - In game: `export_avatar.py` merges the parts into the 6 `RunnerFactory` parts on one palette texture
@@ -167,14 +165,14 @@ Preset trios (the anime's famous team):
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
   the placeholder block rig for anything without a model (`starter`, event-only characters).
 
-### Target look (owner 2026-11-03; design doc 5; pilots `sea_captain`, `db_hero`, `leaf_medic`, `leaf_hero`)
+### Target look (owner 2026-11-03; design doc 5)
 
 - `tools/blender/paint/style3.py`: `big_head(k)` and `finish()` (no ink shell, hard facets) on the `style2.py` kit. Plain block hands.
 - A mesh parented to a leg must stay at z <= 2: `avatar_merge.py` mirrors a part's top about its centre for its bounds triangles, so anything higher lands below z 0.
 - In game every rig is scaled by `RunnerFactory.SCALE` (0.8, proposed); `PARTS`, `HIP_HEIGHT` and `CharacterModelService` follow it.
 - Evidence and validation: `docs/CHARACTER_EVIDENCE_PILOTS.md`.
 
-### Painted textures (owner 2026-11-03, pilot: `sea_captain`, `leaf_hero`, `db_hero`)
+### Painted textures (owner 2026-11-03)
 
 - `tools/blender/paint/char_<id>.py` draws each body face in stud/100 units; `python3 tools/blender/paint/atlas.py <id>`
   writes `assets/characters_avatar/<id>/atlas.{svg,png}` (1024 px, rasterised by headless Chrome).
