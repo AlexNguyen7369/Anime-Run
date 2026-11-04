@@ -50,7 +50,7 @@ indicator.Parent = indicatorGui
 
 -- Off screen a smaller pointer takes over (design doc 4.26). Margins clear the HUD: side columns, top bar, team row.
 local POINTER_SIZE = UDim2.fromOffset(150, 84) -- px (placeholder)
-local POINTER_MARGIN = { Side = 170, Top = 60, Bottom = 175 } -- px from the screen edge to its centre (placeholder)
+local POINTER_MARGIN = { Side = 175, Top = 60, Bottom = 175 } -- px from the screen edge to its centre (placeholder)
 
 local pointer = Instance.new("Frame")
 pointer.Name = "Pointer"
@@ -98,8 +98,11 @@ local function placeIndicator()
 	local viewport = camera.ViewportSize
 	local point = camera:WorldToViewportPoint(top)
 	local onScreen = point.Z > 0 and point.X >= 0 and point.X <= viewport.X and point.Y >= 0 and point.Y <= viewport.Y
-	indicator.Visible = onScreen
-	pointer.Visible = not onScreen
+	if indicator.Visible ~= onScreen or pointer.Visible == onScreen then
+		indicator.Visible = onScreen
+		pointer.Visible = not onScreen
+		UiMotion.Pop(onScreen and indicator or pointer) -- design doc 4.20: on the swap only, never every frame
+	end
 	if onScreen then
 		indicator.Position = UDim2.fromOffset(point.X, point.Y)
 		return

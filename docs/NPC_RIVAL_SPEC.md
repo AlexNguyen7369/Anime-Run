@@ -20,7 +20,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
   indicator shows.
 - Edge pointer (owner 2026-11-04, design doc 4.26): while the head is off screen or behind the camera, the indicator hides
   and the `Pointer` frame in `NpcIndicator` shows the name and an arrow aimed at the enemy, on a rectangle inside the screen
-  edge that clears the HUD (150 x 84, margins 170 sides, 60 top, 175 bottom; placeholders). Under the HUD, like the indicator.
+  edge that clears the HUD (150 x 84, margins 175 sides, 60 top, 175 bottom; placeholders; pops in on the swap, design doc 4.20). Under the HUD, like the indicator.
 - Enemies (owner-approved 2026-11-03, replaces the 2026-10-28 list; tweaked names; source in brackets, internal only;
   this is part of the parody list of design doc section 5):
 

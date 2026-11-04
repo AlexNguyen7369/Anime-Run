@@ -5950,7 +5950,12 @@ function S.ui_billboards(res)
 		return extras
 	end
 	checkList(res, "npc_label_only_name_and_arrow", extrasIn(frame, text, arrow))
-	check(res, "npc_label_not_clickable", frame.Active, false, not frame.Active and #buttonsIn(frame) == 0)
+	local clickable = frame.Active
+		or #buttonsIn(frame) > 0
+		or pointer == nil
+		or pointer.Active
+		or #buttonsIn(pointer) > 0
+	check(res, "npc_label_not_clickable", clickable, false, not clickable)
 	-- Position's offset is the arrow tip in viewport pixels (AnchorPoint 0.5,1, ScreenInsets None). Not realRect: its
 	-- top bar inset does not match this gui (Studio: 62 px off with the arrow on the head).
 	local pointerText = pointer and pointer:FindFirstChild(indicatorSpec.Label)
@@ -5969,8 +5974,11 @@ function S.ui_billboards(res)
 	checkList(res, "npc_pointer_only_name_and_arrow", extrasIn(pointer, pointerText, pointerArrow))
 	local camera, head = Workspace.CurrentCamera, npc:FindFirstChild("Head") or npc.PrimaryPart
 	local errors, wrongVisible = {}, 0
-	local offScreenSamples, pointerTextBad, pointerOutside, worstAim = 0, 0, 0, 0
-	-- One run measures both states: a Scriptable camera aims at the enemy, then away from it. Read just after
+	local farErrors, inFrontSamples, behindSamples = {}, 0, 0
+	local tipMin, tipMax = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+	local offScreenSamples, pointerTextBad, pointerOutside, offMargin, worstAim = 0, 0, 0, 0, 0
+	-- One run measures every state with a Scriptable camera: the head swept across the screen near and far, in front
+	-- of the camera but outside its view, and behind it. Read just after
 	-- NpcRacerView's render step (Last): between frames the camera has moved on (Studio: 63 px, not 0.8).
 	local saved = {
 		CameraType = camera.CameraType,
@@ -5980,31 +5988,61 @@ function S.ui_billboards(res)
 	}
 	local phase, phaseUntil = "OnScreen", os.clock() + indicatorSpec.FrontWait
 	local finished, sampleError = false, nil
-	local function startOffScreen()
-		phase, phaseUntil = "OffScreen", os.clock() + indicatorSpec.FrontWait
+	local function startPhase(name)
+		phase, phaseUntil = name, os.clock() + indicatorSpec.FrontWait
 	end
 	local function aimCamera()
 		if not (head and head.Parent) then
 			return
 		end
-		local atEnemy = CFrame.lookAt(head.Position + indicatorSpec.CameraOffset, head.Position)
+		local tanV = math.tan(math.rad(camera.FieldOfView / 2))
+		local tanH = tanV * camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
+		local away = indicatorSpec.CameraOffset
 		if phase == "OnScreen" then
-			camera.CFrame = atEnemy
+			-- Sweeps the head over the screen, so an indicator that stopped updating leaves it
+			local i = #errors
+			local distances = indicatorSpec.CameraDistances
+			away = away.Unit * distances[math.floor(i * #distances / indicatorSpec.Samples) % #distances + 1]
+			local atEnemy = CFrame.lookAt(head.Position + away, head.Position)
+			local yaw = math.atan(indicatorSpec.SweepX * math.sin(i * 0.7) * tanH)
+			local pitch = math.atan(indicatorSpec.SweepY * math.cos(i * 1.1) * tanV)
+			camera.CFrame = atEnemy * CFrame.Angles(pitch, yaw, 0)
+			return
+		end
+		local atEnemy = CFrame.lookAt(head.Position + away, head.Position)
+		-- Rolled, so the pointer aims in every direction
+		if phase == "InFront" then
+			-- Past the view's corner, still under 90 degrees: in front of the camera and outside it in any direction
+			local turn = math.atan(indicatorSpec.OutsideView * math.sqrt(tanH * tanH + tanV * tanV))
+			camera.CFrame = atEnemy * CFrame.Angles(0, turn, inFrontSamples * 0.7)
 		else
-			-- Turned 90 to 270 degrees from the enemy and rolled, so the pointer aims in every direction
-			local turn = math.rad(90 + (offScreenSamples % indicatorSpec.Samples) * 180 / indicatorSpec.Samples)
+			local turn = math.rad(120 + (behindSamples % indicatorSpec.Samples) * 120 / indicatorSpec.Samples)
 			camera.CFrame = atEnemy * CFrame.Angles(0, turn, turn * 2)
 		end
 	end
 	local function samplePointer(top)
 		offScreenSamples += 1
+		if camera.CFrame:PointToObjectSpace(top).Z < 0 then
+			inFrontSamples += 1
+		else
+			behindSamples += 1
+		end
 		if pointerText.Text ~= want or pointerArrow.Text == "" then
 			pointerTextBad += 1
 		end
-		local viewSize, size = camera.ViewportSize, pointer.AbsoluteSize
+		-- Position and Size offsets, not Absolute values: the frame's pop scale must not count
+		local viewSize, size = camera.ViewportSize, pointer.Size
 		local x, y = pointer.Position.X.Offset, pointer.Position.Y.Offset
-		if x - size.X / 2 < 0 or x + size.X / 2 > viewSize.X or y - size.Y / 2 < 0 or y + size.Y / 2 > viewSize.Y then
+		local halfW, halfH = size.X.Offset / 2, size.Y.Offset / 2
+		if x - halfW < 0 or x + halfW > viewSize.X or y - halfH < 0 or y + halfH > viewSize.Y then
 			pointerOutside += 1
+		end
+		-- Signed distance from the margin rectangle's edge: its centre must lie on that edge
+		local margin = indicatorSpec.PointerMargin
+		local fromEdge =
+			math.max(margin.Side - x, x - (viewSize.X - margin.Side), margin.Top - y, y - (viewSize.Y - margin.Bottom))
+		if math.abs(fromEdge) > margin.Tolerance then
+			offMargin += 1
 		end
 		local relative = camera.CFrame:PointToObjectSpace(top)
 		local direction = Vector2.new(relative.X, -relative.Y)
@@ -6031,13 +6069,20 @@ function S.ui_billboards(res)
 		end
 		if onScreen then
 			local tip = Vector2.new(frame.Position.X.Offset, frame.Position.Y.Offset)
-			table.insert(errors, (tip - Vector2.new(point.X, point.Y)).Magnitude)
+			local tipError = (tip - Vector2.new(point.X, point.Y)).Magnitude
+			table.insert(errors, tipError)
+			tipMin, tipMax = tipMin:Min(tip), tipMax:Max(tip)
+			if (camera.CFrame.Position - top).Magnitude >= indicatorSpec.FarDistance then
+				table.insert(farErrors, tipError)
+			end
 		elseif pointer.Visible then
 			samplePointer(top)
 		end
 		if phase == "OnScreen" and #errors >= indicatorSpec.Samples then
-			startOffScreen()
-		elseif phase == "OffScreen" and offScreenSamples >= indicatorSpec.Samples then
+			startPhase("InFront")
+		elseif phase == "InFront" and inFrontSamples >= indicatorSpec.Samples then
+			startPhase("Behind")
+		elseif phase == "Behind" and behindSamples >= indicatorSpec.Samples then
 			finished = true
 		end
 	end
@@ -6057,10 +6102,10 @@ function S.ui_billboards(res)
 	RunService:BindToRenderStep(indicatorSpec.SampleStep, Enum.RenderPriority.Last.Value + 1, guarded(sampleIndicator))
 	while not finished do
 		if os.clock() >= phaseUntil then
-			if phase == "OffScreen" then
+			if phase == "Behind" then
 				break
 			end
-			startOffScreen()
+			startPhase(phase == "OnScreen" and "InFront" or "Behind")
 		end
 		task.wait()
 	end
@@ -6086,6 +6131,7 @@ function S.ui_billboards(res)
 	end
 	if #errors == 0 then
 		stateMissing(res, "npc_indicator_follows_head", "auto_racing", "head never on screen")
+		stateMissing(res, "npc_indicator_follows_head_spread", "auto_racing", "head never on screen")
 	else
 		table.sort(errors)
 		local median = errors[math.ceil(#errors / 2)]
@@ -6096,6 +6142,38 @@ function S.ui_billboards(res)
 			("<= %d px"):format(indicatorSpec.PositionTolerance),
 			median <= indicatorSpec.PositionTolerance
 		)
+		-- The frame itself moved across the screen: a frozen indicator cannot pass on a head held still
+		local spread = math.max(tipMax.X - tipMin.X, tipMax.Y - tipMin.Y)
+		check(
+			res,
+			"npc_indicator_follows_head_spread",
+			spread,
+			(">= %d px"):format(indicatorSpec.MinSpread),
+			spread >= indicatorSpec.MinSpread
+		)
+	end
+	if #farErrors == 0 then
+		stateMissing(res, "npc_indicator_no_distance_limit", "auto_racing", "head never on screen from far away")
+	else
+		table.sort(farErrors)
+		local farMedian = farErrors[math.ceil(#farErrors / 2)]
+		check(
+			res,
+			"npc_indicator_no_distance_limit",
+			farMedian,
+			("<= %d px from %d studs"):format(indicatorSpec.PositionTolerance, indicatorSpec.FarDistance),
+			farMedian <= indicatorSpec.PositionTolerance
+		)
+	end
+	if inFrontSamples == 0 then
+		stateMissing(res, "npc_pointer_head_in_front_outside_view", "auto_racing", "no such sample")
+	else
+		check(res, "npc_pointer_head_in_front_outside_view", inFrontSamples, ">= 1", true)
+	end
+	if behindSamples == 0 then
+		stateMissing(res, "npc_pointer_head_behind_camera", "auto_racing", "no such sample")
+	else
+		check(res, "npc_pointer_head_behind_camera", behindSamples, ">= 1", true)
 	end
 	if offScreenSamples == 0 then
 		local why = "head never off screen"
@@ -6104,7 +6182,8 @@ function S.ui_billboards(res)
 		stateMissing(res, "npc_pointer_aims_at_enemy", "auto_racing", why)
 	else
 		check(res, "npc_pointer_text", pointerTextBad, 0, pointerTextBad == 0)
-		check(res, "npc_pointer_on_screen", pointerOutside, 0, pointerOutside == 0)
+		local outside = pointerOutside + offMargin
+		check(res, "npc_pointer_on_screen", outside, "0 outside the viewport or off the margin rectangle", outside == 0)
 		check(
 			res,
 			"npc_pointer_aims_at_enemy",
