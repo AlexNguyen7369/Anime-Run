@@ -173,6 +173,29 @@ def lock(name, base, ctrl, tip, r, colour, parent, flatten=0.65, rings=4, sides=
 	return o
 
 
+def blade(name, pts, y, colour, parent, root=None, tip=None):
+	"""Bespoke hair or cloth shape: a front-view outline pts = [(x, z), ...] extruded through depth y = (front, back), the
+	back face shrunk to a ridge so it reads rounded. root / tip set where the painted strands run; use them for hair."""
+	bm = bmesh.new()
+	mx = sum(p[0] for p in pts) / len(pts)
+	mz = sum(p[1] for p in pts) / len(pts)
+	front = [bm.verts.new((x, y[0], z)) for x, z in pts]
+	back = [bm.verts.new((mx + (x - mx) * 0.72, y[1], mz + (z - mz) * 0.72)) for x, z in pts]
+	bm.faces.new(front)
+	bm.faces.new(list(reversed(back)))
+	for i in range(len(pts)):
+		j = (i + 1) % len(pts)
+		bm.faces.new((front[i], front[j], back[j], back[i]))
+	bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+	mesh = bpy.data.meshes.new(name)
+	bm.to_mesh(mesh)
+	bm.free()
+	o = _obj(name, mesh, colour, parent)
+	if root and tip:
+		o["lock"] = (list(root), list(tip))
+	return o
+
+
 def build_body(c):
 	col = c["colours"]
 	parts = {}
@@ -313,6 +336,11 @@ def build_pieces(c, parts):
 			elif "lock" in p:
 				b, m, t = [[sgn * q[0], q[1], q[2]] for q in p["lock"]]
 				lock(name + suffix, b, m, t, p["r"], p["colour"], part, flatten=p.get("flatten", 0.35))
+			elif "blade" in p:
+				pts = [(sgn * x, z) for x, z in p["blade"]]
+				root = p.get("root") and [sgn * p["root"][0], p["root"][1], p["root"][2]]
+				tip = p.get("tip") and [sgn * p["tip"][0], p["tip"][1], p["tip"][2]]
+				blade(name + suffix, pts, p["y"], p["colour"], part, root, tip)
 	for i, m in enumerate(c.get("marks", [])):
 		build_mark(f"{m['part']}_Mark{i}", m, parts[m["part"]])
 

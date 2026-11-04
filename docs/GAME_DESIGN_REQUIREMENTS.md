@@ -325,9 +325,20 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 - Art direction (owner 2026-11-03, later, from reference screenshots of anime Roblox games): close to the original
   character design, not cute: small sharp faces, inked outlines, painted cel shading, drawn clothing and muscle lines.
   The owner accepts the takedown risk of the closer likeness. Models stay in-house; no ripped art.
+- Target look (owner 2026-11-03, latest, from a reference image of the 4 pilots; overrides the art style and art direction
+  bullets above where they differ): chunky blocky Roblox-like 3D figures with no ink outline, hard facets on every mesh and soft shading painted into the texture (owner, same day). Head about
+  1/3 of body height (proposed), faceted angular hair, real 3D clothes (baggy trousers, boots, cuffs, belts), chunky
+  blocky limbs, hands plain smooth blocks with no fingers (owner, same day), models downsized to 0.8 scale (owner asked for smaller, 0.8 proposed; `RunnerFactory.SCALE`, every rig). Models stay hand-built in-house; the reference image is look-only and never ships.
+- Likeness (owner 2026-11-03, latest): designs match the source characters; only the display name differs. Models are still made
+  in-house, no ripped art. The owner accepts the takedown risk: a tweaked name is not a license.
+- Unique assets (owner 2026-11-03, later; overrides the signature-mark rule above where they differ): all 30 characters
+  get their own painted texture and their own hair, drawn as close to 1-1 with the original design as possible,
+  marks included. No shared hairstyles. Drawn and modelled in-house only: no ripped models, textures or image files.
+  Display names stay tweaked (first bullet of this section).
   - Keep one list of every parody and its source (`docs/CHARACTER_GACHA_SPEC.md`) so a takedown can be answered by
     renaming / reskinning one character fast; character `Id`s never contain the real name, so a rename never touches
     saves.
+  - Series initials in `Id`s and asset display names (`mha_`, `db_`, `ds_`, `jk_`) are allowed (owner 2026-11-03).
 
 ## 6. Monetization rules (fixed; Roblox paid random items policy, updated 2026-08-19)
 
@@ -364,6 +375,10 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
   one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance
   share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: owner: upgrade tree Money branch is +10% per tier (code since u4; IVS had +50%).
+- 2026-11-03: owner: hard facets on every character mesh; series initials allowed in ids; 0.8 model downsize (section 5).
+- 2026-11-03: owner: designs match the source characters, only the name differs; Lufy keeps the vest (section 5).
+- 2026-11-03: owner: target look from a reference image: no ink outlines, soft 3D shading, big head, faceted hair, 3D clothes on blocky limbs, plain smooth block hands (section 5).
+- 2026-11-03: owner: unique painted texture and hair for all 30, close to 1-1 with the originals (section 5).
 - 2026-11-03: owner: art direction closer to the original designs (section 5), from reference screenshots.
 - 2026-11-03: owner: the 30 avatar models are the only rollable cast for now and go in the game; the 3 event-only
   characters stop being rollable but stay in the Index as undiscovered tiles; new players pick a starter in a popup

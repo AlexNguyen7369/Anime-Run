@@ -146,7 +146,7 @@ local function placeShowcase(player, workshop)
 				local gui = Instance.new("BillboardGui")
 				gui.Name = "ShowcaseLabel"
 				gui.Size = UDim2.fromOffset(160, 40)
-				gui.StudsOffsetWorldSpace = Vector3.new(0, 7, 0)
+				gui.StudsOffsetWorldSpace = Vector3.new(0, 7, 0) -- not scaled by RunnerFactory.SCALE: must clear big hair (tallest top 5.75)
 				gui.MaxDistance = WorkshopConfig.SHOWCASE_LABEL_DISTANCE
 				gui.Parent = pedestal
 				local label = Instance.new("TextLabel")

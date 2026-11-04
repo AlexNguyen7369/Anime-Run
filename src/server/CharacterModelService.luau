@@ -32,7 +32,7 @@ local function load(id, row, root)
 			d.CanQuery = false
 			d.Massless = true
 			d.Material = Enum.Material.SmoothPlastic
-			d.Size = row.Sizes[d.Name]
+			d.Size = row.Sizes[d.Name] * RunnerFactory.SCALE
 			d.Parent = folder
 		end
 	end

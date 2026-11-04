@@ -13,7 +13,8 @@ local GachaConfig = require(script.Parent.GachaConfig)
 
 local RunnerFactory = {}
 
-RunnerFactory.HIP_HEIGHT = 3 -- studs from the feet (rig bottom) up to the Torso centre, the rig's pivot
+RunnerFactory.SCALE = 0.8 -- uniform size of every rig (proposed, design doc 5); PARTS, meshes and HIP_HEIGHT follow it
+RunnerFactory.HIP_HEIGHT = 3 * RunnerFactory.SCALE -- studs from the feet (rig bottom) up to the Torso centre, the rig's pivot
 RunnerFactory.RIG_TAG = "RunnerBody" -- every built rig: CharacterModelService re-skins them when the models arrive
 RunnerFactory.NAME_DISTANCE = 120 -- studs: the name label shows within this distance (placeholder)
 
@@ -39,6 +40,10 @@ local PARTS = {
 	{ "RightLeg", Vector3.new(0.95, 2, 1), Vector3.new(0.5, -2, 0) },
 	{ "Trim", Vector3.new(2.1, 0.35, 1.1), Vector3.new(0, -0.8, 0) }, -- rarity belt
 }
+for _, row in PARTS do
+	row[2] *= RunnerFactory.SCALE
+	row[3] *= RunnerFactory.SCALE
+end
 RunnerFactory.PARTS = PARTS
 
 -- The rig's colours: { Body, Legs, Skin, Trim }. options.Color overrides the body (NPC rivals).
@@ -162,7 +167,7 @@ function RunnerFactory.build(characterId, options)
 	billboard.Name = "NameLabel"
 	billboard.Adornee = model.Head
 	billboard.Size = UDim2.fromOffset(200, 40)
-	billboard.StudsOffset = Vector3.new(0, 2.2, 0)
+	billboard.StudsOffset = Vector3.new(0, 2.2, 0) -- not scaled by SCALE: must clear big hair (tallest top 1.75 above the head centre)
 	billboard.MaxDistance = RunnerFactory.NAME_DISTANCE
 	billboard.LightInfluence = 0
 	billboard.Parent = model
@@ -200,9 +205,11 @@ function RunnerFactory.Restyle(model, characterId)
 		if p and p:IsA("BasePart") then
 			local template = meshes and meshes:FindFirstChild(name)
 			if template then
-				swap(model, p, template:Clone())
+				local clone = template:Clone()
+				clone.Size *= model:GetScale() -- a rig already sized by ScaleTo (Dojo squad, Best Roll)
+				swap(model, p, clone)
 			elseif p:IsA("MeshPart") then
-				local plain = part(model, name, row[2], byPart[name])
+				local plain = part(model, name, row[2] * model:GetScale(), byPart[name])
 				plain.Parent = nil
 				swap(model, p, plain)
 			else

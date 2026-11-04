@@ -143,8 +143,8 @@ Preset trios (the anime's famous team):
 
 ## Art
 
-- R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, flat face,
-  big mesh hair; each character distinctly recognisable as its source.
+- R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, big mesh hair;
+  each character distinctly recognisable as its source. "Target look" below replaces the flat face.
 - Each rarity adds detail: Common plain; Epic+ gets an aura particle; Mythic+ a trail and unique run style.
 - Pipeline: Blender (Blender MCP) -> FBX -> Studio import -> `CharacterModels`.
 
@@ -156,7 +156,7 @@ Preset trios (the anime's famous team):
 - Per-character look comes from `tools/blender/avatar_chars/<series>.json`, keyed by `Id`: part colours, eye and mouth
   presets, individually placed hair locks, flat clothing panels, marks, props.
 - Budget: at most 12,000 triangles per character including the outline shell (proposed).
-- Look (design doc 5): inverted-hull ink outline, cel bands painted into the palette texture, auto-drawn fold lines.
+- Look of characters not yet redone (design doc 5): inverted-hull ink outline, cel bands painted into the palette texture, auto-drawn fold lines. "Target look" below replaces this.
 - Output: `assets/characters_avatar/<id>/review/{front,side,back,three_quarter}.png` and `contact_sheet.png`; the
   `<id>.blend` files are rebuilt on demand and not committed.
 - In game: `export_avatar.py` merges the parts into the 6 `RunnerFactory` parts on one palette texture
@@ -164,6 +164,21 @@ Preset trios (the anime's famous team):
   `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
   the placeholder block rig for anything without a model (NPC rivals, `starter`, event-only characters).
+
+### Target look (owner 2026-11-03; design doc 5; pilots `sea_captain`, `db_hero`, `leaf_medic`, `leaf_hero`)
+
+- `tools/blender/paint/style3.py`: `big_head(k)` and `finish()` (no ink shell, hard facets) on the `style2.py` kit. Plain block hands.
+- A mesh parented to a leg must stay at z <= 2: `avatar_merge.py` mirrors a part's top about its centre for its bounds triangles, so anything higher lands below z 0.
+- In game every rig is scaled by `RunnerFactory.SCALE` (0.8, proposed); `PARTS`, `HIP_HEIGHT` and `CharacterModelService` follow it.
+- Evidence and validation: `docs/CHARACTER_EVIDENCE_PILOTS.md`.
+
+### Painted textures (owner 2026-11-03, pilot: `sea_captain`, `leaf_hero`, `db_hero`)
+
+- `tools/blender/paint/char_<id>.py` draws each body face in stud/100 units; `python3 tools/blender/paint/atlas.py <id>`
+  writes `assets/characters_avatar/<id>/atlas.{svg,png}` (1024 px, rasterised by headless Chrome).
+- A character with an atlas builds as 6 plain UV-mapped blocks plus the script's `HAIR`, `PROPS`, `MARKS` and optional
+  `model(parts, kit)` bespoke meshes (`tools/blender/avatar_paint.py`). Locks in a `HAIR_COLOURS` colour take painted
+  strands from the atlas's Hair strip; other props use cel swatches in its bottom strip.
 
 ## Tests
 

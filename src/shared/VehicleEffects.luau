@@ -6,6 +6,7 @@
 -- precessing rings, volume emission) locally. Chassis space: x right, y up, z back.
 local CollectionService = game:GetService("CollectionService")
 local MarketConfig = require(script.Parent.MarketConfig)
+local RunnerFactory = require(script.Parent.RunnerFactory)
 local Effects = {}
 
 local TEX = {
@@ -1052,11 +1053,12 @@ local function motion(obj, e)
 	CollectionService:AddTag(obj, Effects.MOTION_TAG)
 end
 local function ribbon(folder, chassis, item, r)
-	local name, x, y, z = item.Id .. r[1], r.x or 0, r.y, r.z or 3
+	local s = RunnerFactory.SCALE -- the ribbon table is in unscaled rig studs
+	local name, x, y, z = item.Id .. r[1], (r.x or 0) * s, r.y * s, (r.z or 3) * s
 	local obj = Instance.new("Trail")
 	obj.Name = name
-	obj.Attachment0 = attachment(chassis, name .. "A", CFrame.new(x - r.half, y, z))
-	obj.Attachment1 = attachment(chassis, name .. "B", CFrame.new(x + r.half, y, z))
+	obj.Attachment0 = attachment(chassis, name .. "A", CFrame.new(x - r.half * s, y, z))
+	obj.Attachment1 = attachment(chassis, name .. "B", CFrame.new(x + r.half * s, y, z))
 	obj.FaceCamera, obj.MinLength, obj.Lifetime = false, 0.1, r.life
 	obj.Texture = TEX[r.tex]
 	obj.TextureMode = r.tile and Enum.TextureMode.Wrap or Enum.TextureMode.Stretch
@@ -1073,7 +1075,7 @@ local function emitter(chassis, item, e, hosts)
 		parent = hosts[e.host]
 	end
 	if not parent then
-		local at = e.at or Vector3.zero
+		local at = (e.at or Vector3.zero) * RunnerFactory.SCALE
 		local cf = e.tilt and (CFrame.new(at) * e.tilt) or frameUp(at, e.dir or Vector3.yAxis)
 		parent = attachment(chassis, item.Id .. (e.host or e[1] .. "At"), cf)
 		motion(parent, e)

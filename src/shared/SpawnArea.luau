@@ -521,7 +521,7 @@ function SpawnArea.Build(startCFrame)
 
 	local best = Instance.new("Model")
 	best.Name = "BestRoll"
-	local _, bestStats = pedestal(best, cfg.X, cfg.Z, cfg.RADIUS, UDim2.fromScale(36, 11), 15, cfg.TEXT_DISTANCE)
+	local _, bestStats = pedestal(best, cfg.X, cfg.Z, cfg.RADIUS, UDim2.fromScale(36, 11), 26, cfg.TEXT_DISTANCE)
 	stat(bestStats, "Title", 0, 0.4, Color3.new(1, 1, 1), "BEST ROLL EVER")
 	stat(bestStats, "Odds", 0.4, 0.22, Color3.fromRGB(255, 214, 90), LeaderboardConfig.NO_DATA)
 	stat(bestStats, "Character", 0.62, 0.2, Color3.new(1, 1, 1), "")

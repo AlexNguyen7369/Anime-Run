@@ -13,6 +13,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import avatar_base  # noqa: E402
 import avatar_merge  # noqa: E402
+import avatar_paint  # noqa: E402
 from avatar_base import build_body, build_face, build_folds, build_pieces  # noqa: E402
 
 OUT = os.path.join(os.path.dirname(os.path.dirname(HERE)), "assets", "characters_avatar")
@@ -60,6 +61,8 @@ def setup_render(scene, res=640):
 
 
 def build(cid, c):
+	if avatar_paint.atlas_path(cid):
+		return avatar_paint.build(cid, c)
 	parts = build_body(c)
 	build_face(c, parts["Head"])
 	build_folds(cid, c, parts)

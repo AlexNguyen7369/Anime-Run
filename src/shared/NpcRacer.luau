@@ -133,7 +133,7 @@ function NpcRacer.BuildModel(info)
 	billboard.Name = "NpcLabel"
 	billboard.Adornee = model.PrimaryPart
 	billboard.Size = UDim2.fromOffset(320, 64)
-	billboard.StudsOffset = Vector3.new(0, 5, 0)
+	billboard.StudsOffset = Vector3.new(0, 5 * RunnerFactory.SCALE, 0)
 	billboard.MaxDistance = NpcConfig.LABEL_DISTANCE -- proximity based
 	billboard.LightInfluence = 0
 	billboard.Parent = model

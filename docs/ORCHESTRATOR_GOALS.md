@@ -72,4 +72,5 @@ Deliverables:
 - a4 | Avatar-style pilot (owner 2026-11-03, replaces chibi): Team Seven trio `leaf_hero`, `leaf_avenger`, `leaf_medic` in `assets/characters_avatar/` | 4 renders each; owner approves the look
 - a5 | Other 27 characters in the approved avatar style; chibi base and its output removed | every id has 4 renders; rules-auditor sign-off; owner visual review
 - a6 | The 30 models in game (owner 2026-11-03): uploaded, drawn by RunnerFactory; event-only not rollable; starter choice popup (design doc 4.21) | Studio check of a run, preview and popup
+- a7 | Painted, unique look for all 30 (owner 2026-11-03): `tools/blender/paint/char_<id>.py` with its own hair for every id; re-export and re-upload | 4 renders each, contact sheet, owner visual review
 Out of scope: R15 skeleton rigging and authored animation (runners use the procedural 6-part swing), models for the 3 event characters.

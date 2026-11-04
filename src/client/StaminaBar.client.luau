@@ -10,14 +10,15 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
+local RunnerFactory = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("RunnerFactory"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local StaminaConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("StaminaConfig"))
 
 local EMPTY = Color3.fromRGB(20, 26, 48)
 local TRAIL = Color3.fromRGB(235, 240, 255)
 -- Scale = studs (placeholder): thin and about as tall as the rig; the offset keeps it readable from far away
-local SIZE = UDim2.new(0.6, 5, 4, 24)
-local OFFSET = Vector3.new(2.8, 0, 0) -- studs right of the Torso, in camera space (placeholder)
+local SIZE = UDim2.new(0.6, 5, 4 * RunnerFactory.SCALE, 24)
+local OFFSET = Vector3.new(2.8 * RunnerFactory.SCALE, 0, 0) -- studs right of the Torso, in camera space (placeholder)
 local MAX_DISTANCE = 200 -- studs (placeholder)
 local STEP = 0.12 -- s, fill tween per server update (updates come at most every 0.1 s)
 local TRAIL_DELAY = 0.35 -- s before the "just lost" trail catches up (placeholder)
