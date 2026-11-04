@@ -37,6 +37,7 @@ local rollRemote = remotes:WaitForChild("RollResult")
 local autoRollRemote = remotes:WaitForChild("SetAutoRoll")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 
 local A = RollAnimConfig
 local COMPACT_TEXT_BAND = 20 -- px each for the odds and the name under the compact figure
@@ -63,6 +64,17 @@ local SHARDS = { { -0.42, 0.1, 0.3 }, { 0.42, 0.1, 0.3 }, { -0.3, -0.36, 0.2 }, 
 local SHOWCASE_ORDER = 14 -- above the HUD and DuelUi (12), below the loser screen (20)
 local BLUR_SIZE = 14
 local TAKEOVER_TITLE = 1 -- s the Secret title covers the screen (placeholder)
+local TICK_PITCH_RISE = 0.5 -- the last RollTick plays this much above pitch 1 (placeholder)
+-- Rarity to landing cue (SFX audit in docs/UI_AUDIT.md). Secret is RollSecret, played on its title.
+local LAND_CUES = {
+	Common = "RollLand1",
+	Uncommon = "RollLand1",
+	Rare = "RollLand2",
+	Epic = "RollLand3",
+	Legendary = "RollLand4",
+	Mythic = "RollLand5",
+	Secret = "RollSecret",
+}
 local AUTO_BUTTON_SIZE = Vector2.new(180, 44)
 local AUTO_BUTTON_BOTTOM = 38 -- keeps the toggle below the card on small phones
 local WHITE = Color3.new(1, 1, 1)
@@ -1165,7 +1177,8 @@ local function play(roll)
 	setPhase("Spin")
 	local started = os.clock()
 	local elapsed = 0
-	for i, slot in A.SpinSlots(roll.Interval) do
+	local slots = A.SpinSlots(roll.Interval)
+	for i, slot in slots do
 		if i > 1 and not UiMotion.Reduced() then
 			setShown(reelIds[i])
 			local b = visibleBody()
@@ -1173,6 +1186,9 @@ local function play(roll)
 				b.FigureScale.Scale = SWAP_POP
 				tween(b.FigureScale, math.min(SWAP_POP_TIME, slot), { Scale = 1 }, Enum.EasingStyle.Back)
 			end
+		end
+		if i > 1 and roll.Emphasized then
+			UiFeedback.Play("RollTick", nil, { Sound = true, Pitch = 1 + TICK_PITCH_RISE * i / #slots })
 		end
 		elapsed += slot
 		if not after(started + elapsed - os.clock()) then
@@ -1189,6 +1205,13 @@ local function play(roll)
 		tween(b.Body, landing * LAND_RISE, { Size = UDim2.fromScale(peak, peak) })
 		landEffects(b, roll)
 	end
+	-- Never on Body: LAND_POP stays the only size change it gets. No visible body (a panel is open): sound only.
+	local landed = visibleBody()
+	UiFeedback.Play(
+		LAND_CUES[spec.Rarity] or "RollLand1",
+		spec.Rarity == "Secret" and takeover.Visible and takeoverText or (landed and landed.Wave),
+		{ Color = rarityColor(spec) }
+	)
 	if not after(landing * LAND_RISE) then
 		return
 	end
@@ -1431,19 +1454,20 @@ local function fitShowcase()
 	local oddsPos = UDim2.fromScale(0.1, top / m.Height)
 	local namePos = UDim2.fromScale(0.1, (top + m.Band + m.Figure) / m.Height)
 	local sideSize = UDim2.fromScale(0.2, 0.12)
+	local raritySize = UDim2.fromScale(0.26, 0.18) -- TextScaled: the box sets the word's size (audit A27)
 	pin(rollRefs.PreviewRunner, { Position = figurePos, Size = figureSize, Visible = false })
 	pin(rollRefs.RollHeader, { Visible = false })
 	pin(rollRefs.RollHeader.Parent, { Visible = false }) -- the outer frame owns the header's Shadow
 	pin(enlarged.Odds, { Position = oddsPos, Size = bandSize })
 	pin(enlarged.CharacterName, { Position = namePos, Size = bandSize })
-	pin(enlarged.Rarity, { Position = UDim2.fromScale(0.03, 0.34), Size = sideSize })
+	pin(enlarged.Rarity, { Position = UDim2.fromScale(0.03, 0.28), Size = raritySize })
 	pin(enlarged.SpeedMulti, { Position = UDim2.fromScale(0.03, 0.46), Size = sideSize })
 	for _, alias in { enlarged.Aliases.Odds, enlarged.Aliases.Name, enlarged.Aliases.Rarity, enlarged.Aliases.Speed } do
 		alias.AnchorPoint = Vector2.new(0, 0)
 	end
 	enlarged.Aliases.Odds.Position, enlarged.Aliases.Odds.Size = oddsPos, bandSize
 	enlarged.Aliases.Name.Position, enlarged.Aliases.Name.Size = namePos, bandSize
-	enlarged.Aliases.Rarity.Position, enlarged.Aliases.Rarity.Size = enlarged.Rarity.Position, sideSize
+	enlarged.Aliases.Rarity.Position, enlarged.Aliases.Rarity.Size = enlarged.Rarity.Position, raritySize
 	enlarged.Aliases.Speed.Position, enlarged.Aliases.Speed.Size = enlarged.SpeedMulti.Position, sideSize
 	enlarged.Reel.Position, enlarged.Reel.Size = figurePos, figureSize
 	enlarged.Viewport.Position, enlarged.Viewport.Size = figurePos, figureSize

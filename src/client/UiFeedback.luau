@@ -26,6 +26,7 @@ UiFeedback.Cues = {
 	DailyClaim = { Slot = "Chime", Volume = 0.6, Motion = { "Slam", "Fly" } },
 	QuestClaim = { Slot = "Chime", Volume = 0.45, Motion = { "Pop", "Shine" } },
 	Rebirth = { Slot = "Boom", Volume = 0.8, Motion = { "Slam", "Burst", "Shake" } },
+	RebirthBar = { Motion = { "Fill" } }, -- the requirement bar following Money; not a moment, so silent
 	Toggle = { Slot = "Tap", Volume = 0.2 },
 	-- Roll rows: no Burst (ROLL_ANIMATION_SPEC bans speed streaks).
 	RollTick = { Slot = "Tap", Volume = 0.05, OptIn = true },

@@ -38,6 +38,7 @@ require(Ui.RacerMotion).Attach(playerGui)
 local client = script.Parent:IsA("LocalScript") and script.Parent.Parent or script.Parent
 local PanelSwitch = require(client.PanelSwitch)
 local UiMotion = require(client.UiMotion)
+local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
 local NpcConfig = require(Shared.NpcConfig)
@@ -485,6 +486,33 @@ rebirth.RewardsTitle.Text = "NEXT REBIRTH"
 local rebirthTitlePad = Instance.new("UIPadding")
 rebirthTitlePad.PaddingLeft = UDim.new(0, 84)
 rebirthTitlePad.Parent = rebirth.Title
+-- The Rebirth moment's title. Hidden at rest, never Active; no number, so nothing here can run ahead of the server.
+local rebirthSlam = Instance.new("TextLabel")
+rebirthSlam.Name = "RebirthSlam"
+rebirthSlam.AnchorPoint = Vector2.new(0.5, 0.5)
+rebirthSlam.Position = UDim2.fromScale(0.5, 0.16)
+rebirthSlam.Size = UDim2.fromScale(0.8, 0.2)
+rebirthSlam.BackgroundTransparency = 1
+rebirthSlam.Font = UiTheme.Font
+rebirthSlam.Text = "REBIRTH!"
+rebirthSlam.TextScaled = true
+rebirthSlam.TextColor3 = palette.Gold
+rebirthSlam.Visible = false
+rebirthSlam.ZIndex = 20
+UiTheme.Stroke(rebirthSlam, 4)
+rebirthSlam.Parent = rebirth.Gui
+local rebirthSlamToken = 0
+local function playRebirthMoment()
+	rebirthSlamToken += 1
+	local token = rebirthSlamToken
+	UiMotion.Fade(rebirthSlam, true, 0.05)
+	UiFeedback.Play("Rebirth", rebirthSlam)
+	task.delay(1.4, function() -- placeholder
+		if rebirthSlamToken == token then
+			UiMotion.Fade(rebirthSlam, false, 0.25)
+		end
+	end)
+end
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
@@ -497,7 +525,10 @@ local function refreshRebirth()
 	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)
 	rebirth.BarText.Text = maxed and "MAX REBIRTH"
 		or string.format("%s / %s", format.MoneyText(money.Value), format.MoneyText(required))
-	rebirth.Fill.Size = UDim2.fromScale(maxed and 1 or math.clamp(money.Value / required, 0, 1), 1)
+	UiFeedback.Play("RebirthBar", nil, {
+		Bar = rebirth.Fill,
+		Goal = UDim2.fromScale(maxed and 1 or math.clamp(money.Value / required, 0, 1), 1),
+	})
 	local active = eligible and not rebirthBusy
 	rebirth.RebirthButton.Active = active
 	label(rebirth.RebirthButton, rebirthReply or (maxed and "MAX" or "REBIRTH"))
@@ -515,6 +546,9 @@ rebirth.RebirthButton.Activated:Connect(function()
 	rebirthReply = ok and (success and "REBIRTH COMPLETE" or tostring(message)) or "Connection error"
 	rebirthBusy = false
 	refreshRebirth()
+	if ok and success then
+		playRebirthMoment()
+	end
 	local shown = rebirthReply
 	task.delay(2.5, function()
 		if rebirthReply == shown then
@@ -536,6 +570,7 @@ end
 settings.AutoToggle.Activated:Connect(function()
 	player:SetAttribute("TopDownView", player:GetAttribute("TopDownView") ~= true)
 	refreshTopDown()
+	UiFeedback.Play("Toggle")
 end)
 refreshTopDown()
 
@@ -547,6 +582,7 @@ end
 settings.TrackCameraToggle.Activated:Connect(function()
 	player:SetAttribute("TrackCamera", player:GetAttribute("TrackCamera") == false)
 	refreshTrackCamera()
+	UiFeedback.Play("Toggle")
 end)
 refreshTrackCamera()
 
@@ -787,8 +823,8 @@ remotes.RollResult.OnClientEvent:Connect(function(_, _, turbo)
 		turboPopUntil = os.clock() + 1.2
 		hud.TurboLabel.Text = "TURBO x" .. tostring(turbo) .. "!"
 		refreshTurbo()
-		UiMotion.Pop(hud.TurboLabel, 0.25)
-		UiMotion.Shine(hud.TurboFill)
+		-- On the label, which spans the bar: the cue's Pop must not change the fill's measured width.
+		UiFeedback.Play("Turbo", hud.TurboLabel, { Bar = hud.TurboFill, Goal = UDim2.fromScale(1, 1) })
 		task.delay(1.2, function()
 			if os.clock() >= turboPopUntil then
 				turboPopUntil = 0
@@ -847,9 +883,39 @@ local function refreshReadouts(dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 end
+-- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
+local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
+local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
+local function rollPhase()
+	local rollGui = playerGui:FindFirstChild("RollToast")
+	local toast = rollGui and rollGui:FindFirstChild("Toast")
+	return toast and toast:GetAttribute("Phase") or "Idle"
+end
+local function playMoneyBig()
+	UiFeedback.Play(
+		"MoneyBig",
+		hud.MoneyValue,
+		{ Origin = workspace.CurrentCamera.ViewportSize / 2, Target = hud.MoneyValue }
+	)
+end
+task.spawn(function()
+	playerGui:WaitForChild("RollToast"):WaitForChild("Toast"):GetAttributeChangedSignal("Phase"):Connect(function()
+		if moneyBigOwed and rollPhase() == "Idle" then
+			moneyBigOwed = false
+			playMoneyBig()
+		end
+	end)
+end)
 local lastMoney = money.Value
 money.Changed:Connect(function(value)
 	if value > lastMoney then
+		if value - lastMoney < math.max(MONEY_BIG_MIN, value * MONEY_BIG_SHARE) then
+			UiFeedback.Play("MoneySmall")
+		elseif rollPhase() == "Idle" then
+			playMoneyBig()
+		else
+			moneyBigOwed = true
+		end
 		UiMotion.Pop(hud.MoneyValue)
 		UiMotion.Float(
 			hud.MoneyValue.Parent,
@@ -905,6 +971,7 @@ settings.SoundToggle.Activated:Connect(function()
 		applySound(descendant)
 	end
 	switch(settings.SoundToggle, not muted)
+	UiFeedback.Play("Toggle")
 end)
 game.DescendantAdded:Connect(function(descendant)
 	if muted then
@@ -915,6 +982,7 @@ settings.EffectsToggle.Activated:Connect(function()
 	local reduced = player:GetAttribute("ReduceEffects") ~= true
 	player:SetAttribute("ReduceEffects", reduced)
 	switch(settings.EffectsToggle, reduced)
+	UiFeedback.Play("Toggle")
 end)
 switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
