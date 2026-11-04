@@ -54,6 +54,7 @@
 50. 2026-11-03 — Alex Nguyen — Tested the first-join flow on real fresh test saves with a Studio-only `TestSaveKey`, and fixed what it found: the first roll card covering the hero reveal, SKIP overlapping a HUD button, the sweep ending away from the gate and the hero hidden behind the avatar; also kept test sessions off the leaderboards (data, world_layout, spawn_area, dojo, workshop pass=5 fail=0; rules audit PASS; phone and a second real account not tested).
 51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
 52. 2026-11-04 — Alex Nguyen — Trimmed stale docs and removed unused assets on orch/trim/t1 (handoff 52 KB to 6 KB, ProjectContext removed); rules audit PASS, no gameplay code changed, not yet merged.
+53. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs on orch/trim/t1 and listed their doc-versus-code conflicts for the owner; not yet merged.
 
 ## What's next
 **Finish track enemies, then merge c3 UI and run the final server and UI harness with a rules audit.**
