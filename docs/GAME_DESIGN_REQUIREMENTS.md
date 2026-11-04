@@ -356,6 +356,11 @@ before any Studio work.
 - The normal roll plays at the very top centre of the screen. Quests moves from the top-right row to an icon button directly above Shop (owner, same day).
 - The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
 
+### 4.33 UI feedback: impact, motion and sound (owner 2026-11-04)
+- UI moments pair motion with sound and feel lively, with extra impact on big moments (roll landing, enemy defeated, Rebirth, claims, purchases). Detail and placeholder timings: `docs/UI_FEEDBACK_SPEC.md`.
+- 5 short impact sounds live in a Folder `ServerStorage/ImpactSounds`, the one place to swap one. The server copies the folder to ReplicatedStorage at start, because clients cannot read ServerStorage. Up to 4 more free Creator Store sounds: reward chime, whoosh, coin, denied. Each id and its creator is logged in the UI sound ledger (section 5 audio rules hold).
+- 4.20 still holds: motion goes through `Client/UiMotion`, display only, no animation hides a number or blocks input for more than ~0.2 s, disabled buttons do not move, panel numbers update at once. 4.28 and the roll spec's limits still hold. Reduced motion cuts the motion, not the sound; the SOUND toggle silences every cue.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -416,6 +421,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
 - 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval, head-and-torso framing, Auto toggle beside Daily, roll at the very top, Quests above Shop, every character and enemy preview uses a drawn portrait (4.31, ROLL_ANIMATION_SPEC).
 - 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.

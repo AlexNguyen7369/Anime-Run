@@ -119,6 +119,20 @@ Deliverables:
 - r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index and Enemies page, Backpack, starter card and showdown banner, with head-only art for the Team minibar | every rollable id in `CharacterPortraits` and `CharacterHeads`; roll and Index scenarios green; Studio capture; rules audit PASS
 Out of scope: odds, economy, new dependencies.
 
+## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)
+Branch: feature/alex/anime-world
+Spec: design doc 4.33, docs/UI_FEEDBACK_SPEC.md
+Deliverables:
+- u0 | Live UI audit and SFX audit, rules written | `docs/UI_AUDIT.md` with captures reviewed; rules audit PASS
+- u1 | 5 impacts in `ServerStorage/ImpactSounds`, up to 4 extras, `UiFeedback` cue table, `UiMotion` presets | every cue resolves to a loaded sound; `ui_motion`, `ui_reduced_motion` fail=0
+- u2 | Consistency: one source for tokens, tint removed, kit bypasses closed | `ui_buttons`, `ui_hud` fail=0; stylua / selene clean
+- u3 | Big moments: roll, showdown, defeat, Rebirth, money | `ui_roll_anim`, `ui_roll_emphasized`, `ui_showdown` fail=0; Studio captures
+- u4 | Panels and small moments: open, tab, purchase, claim, denied, toggles, bars | targeted UI scenarios fail=0; new `ui_feedback` fail=0
+- u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks
+Out of scope: camera shake, per-category volume, music, gameplay and economy.
+
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
 Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")
