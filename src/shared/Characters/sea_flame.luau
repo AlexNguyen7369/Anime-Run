@@ -6,7 +6,7 @@ return {
 	Rarity = "Epic",
 	Chance = 120000,
 	SpeedMulti = 8,
-	Order = 15,
+	Order = 17,
 	Category = "Sprinter",
 	Series = "sea",
 	Archetype = "mage",

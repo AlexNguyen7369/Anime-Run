@@ -338,7 +338,7 @@ before any Studio work.
   Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
   owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
 - Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
-- The plaza Legends gain a seventh pedestal after the spawn rework lands (owner, same day); until then this Series has none.
+- The plaza Legends gain a seventh pedestal after the spawn rework (owner, same day): Aizon `soul_lord`, the rarest of this Series.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 

@@ -35,7 +35,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 - Turbo luck every 10th roll x10; upgrade tiers raise both.
 - Bands (1 in N):
 
-| Rarity | Chance band | SpeedMulti band | Count at launch |
+| Rarity | Chance band | SpeedMulti band | Launch count (before Bleech) |
 |---|---|---|---|
 | Common | 1 (catch-all) | 1.1 | 1 |
 | Uncommon | 10 - 200 | 1.25 - 2.2 | 6 |
@@ -141,7 +141,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 30 regular + 3 event-only = 33 rollable characters, plus the starter.
+Catalog total: 36 regular (30 launch cast + 6 Bleech, owner 2026-11-04) + 3 event-only = 39 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 
