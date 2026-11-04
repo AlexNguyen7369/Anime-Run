@@ -2,6 +2,7 @@
 -- Saved, data-driven gallery and stat rows. Bake in Edit, Bind in Play.
 local Components = {}
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local CharacterCatalog = require(Shared.CharacterCatalog)
 local CharacterPortraits = require(Shared.CharacterPortraits)
 local HudFormat = require(Shared.HudFormat)
 local NpcConfig = require(Shared.NpcConfig)
@@ -181,10 +182,19 @@ function Components.RunnerArt(parent, name, spec, pos, size, portrait)
 	return view
 end
 
--- A character's drawn portrait (CHARACTER_GACHA_SPEC "Digital art portrait"), or nil with none yet: its own, else the
--- one of the model it wears. Enemies are not in the rule: they keep RunnerArt and FillRunner.
+-- The drawn portrait for a spec (CHARACTER_GACHA_SPEC "Digital art portrait"), or nil with none yet: its own, the one of
+-- the model it wears, or for an enemy (Id = a model name) the portrait of the character who wears that model.
+local wearerPortrait = nil
 function Components.PortraitImage(spec)
-	return CharacterPortraits[spec.Id] or CharacterPortraits[spec.Model or spec.Id]
+	if not wearerPortrait then
+		wearerPortrait = {}
+		for _, character in CharacterCatalog.All() do
+			if character.Model and CharacterPortraits[character.Id] then
+				wearerPortrait[character.Model] = CharacterPortraits[character.Id]
+			end
+		end
+	end
+	return CharacterPortraits[spec.Id] or CharacterPortraits[spec.Model or spec.Id] or wearerPortrait[spec.Id]
 end
 
 local function portraitLabel(parent, name, image, pos, size)
@@ -437,7 +447,7 @@ function Components.EnemiesPage(refs, player)
 			row.Best.Text = not beaten and "" or seconds and RaceProgressMap.FormatTime(seconds) or "--:--.--"
 			local portrait = row.Frame:FindFirstChild("Portrait")
 			if beaten and not portrait then
-				Components.RunnerArt(row.Frame, "Portrait", row.Spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+				Components.PortraitArt(row.Frame, "Portrait", row.Spec, UDim2.new(), UDim2.fromScale(1, 1), true)
 			elseif portrait and not beaten then
 				portrait:Destroy()
 			end

@@ -358,6 +358,22 @@ end
 -- The drawn portrait, or with none yet the live model cut to its head: the body (and its rarity belt) never shows, so
 -- rarity is not evident on the row.
 local function headArt(circle, spec)
+	if Components.PortraitImage(spec) then
+		-- The drawn portrait has square shoulders, so it is clipped to the circle as a badge
+		local clip = circle.Frame:FindFirstChild("ArtClip")
+		if not clip then
+			clip = Instance.new("CanvasGroup")
+			clip.Name = "ArtClip"
+			clip.Size = UDim2.fromScale(1, 1)
+			clip.BackgroundTransparency = 1
+			clip.ZIndex = 7
+			local corner = Instance.new("UICorner")
+			corner.CornerRadius = UDim.new(1, 0)
+			corner.Parent = clip
+			clip.Parent = circle.Frame
+		end
+		return Components.PortraitArt(clip, "Art", spec, UDim2.fromScale(-0.1, -0.02), UDim2.fromScale(1.2, 1.2))
+	end
 	-- Larger than the circle and not clipped: the head breaks out of the top
 	local art =
 		Components.PortraitArt(circle.Frame, "Art", spec, UDim2.fromScale(-0.2, -0.34), UDim2.fromScale(1.4, 1.4))
