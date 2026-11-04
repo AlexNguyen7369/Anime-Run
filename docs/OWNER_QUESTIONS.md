@@ -87,4 +87,4 @@ Answered 2026-11-03: owner keeps Lufy.
 - First auto-roll waits about 5 s after a starter pick, found by the fresh-save test: its result card covered the hero reveal.
 - Daily hold: only the auto-open waits for a new player's first run; the Daily HUD button still works. Say if the button should be locked too.
 - Measured on a fresh server in Studio: loading screen opens at 40-44 s (was 65-77 s). Server track build is about 28 s of that (one track per frame, about 40k parts); only the first player on a server waits for it. Deferring far-track building was NOT done: RaceService needs the whole route at start, so it is a risky change. Decision for the owner: accept, or build far tracks in the background later.
-
+Answered 2026-11-03: owner confirmed the load rule; approved c3, the PR to main, then fi5; asked for Tracks 1-5 first, the rest behind the game (design doc 4.25). Owner: the Daily button stays usable, "everything is good" (all defaults accepted, first-roll wait included).

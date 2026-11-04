@@ -132,7 +132,9 @@ before any Studio work. All values below are **proposed**. 34 unique meshes, abo
 - **Fresh-save checks**: in Studio only, ReplicatedStorage attribute `TestSaveKey` = "<name>" (set in Edit before Play) plays on a separate save `Test_<name>_<userId>`; a new name is a new save. Read once at server start; leaderboards skip these sessions. Clear it afterwards: the `data` scenario expects real keys. Do not send gifts in a test session: `GiftRoutes_v1` still uses the real buyer id.
 - **Load**: the loading screen waits for `TerrainNearReady` (plaza and Track 1 terrain, their stand-in ground cleared), `CharacterModels` Ready and `PlazaReady`, then preloads what is on screen in 4 streams. Other characters and Dojo tiers (`ReplicatedStorage.PlazaTierMeshes`) preload behind the game.
 - **Sensei**: moves further along the path (`CheckpointConfig.NPC_POS`) to clear the Legends.
-- **Trees**: one Great Sakura plus smaller sakura, all clear of the road and the plots.
+- **Trees**: one Great Sakura plus smaller sakura, all clear of the road and the plots, with solid invisible trunks.
+- **Atmosphere**: zone 0 has a petal emitter (Rate 10, Reduced Effects rules as other zones) and `AmbForest` + `SfxWindChime` at volume 0.2.
+- **Index icon**: a fan of three cards, in-house (`tools/blender/plaza/index_icon.py`), replaces the car (section 1).
 - **Dojos**: built from one kit inside the 48 x 48 plot. Zone, Showcase pedestal and UpgradePad positions stay. A free
   plot holds a closed shell that is not named `Workshop`, and its sign text comes from `WorkshopConfig.EMPTY_TEXT`, "FREE DOJO".
 
