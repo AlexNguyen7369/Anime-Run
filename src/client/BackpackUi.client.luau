@@ -24,6 +24,7 @@ local Components = require(Ui.RacerComponents)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
@@ -431,12 +432,14 @@ function pickSlot(slot, id, picked)
 			current == "Trails" and "Pick a trail first"
 				or (current == "Auras" and "Pick an aura first" or "Pick a character first")
 		)
+		UiFeedback.Play("Denied", slots.Buttons[slot].Button)
 		return
 	end
 	if current == "Characters" then
 		local team = SlotPicker.TeamWith(slot, id)
 		if not team then
 			notify("Your Team needs at least 1 character")
+			UiFeedback.Play("Denied", slots.Buttons[slot].Button)
 			return
 		end
 		busy = true
@@ -446,6 +449,7 @@ function pickSlot(slot, id, picked)
 		busy = false
 		notify(ok and tostring(message or (done and "Team updated" or "Try again")) or "Connection error")
 		render()
+		UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 		return
 	end
 	busy = true
@@ -455,6 +459,7 @@ function pickSlot(slot, id, picked)
 	busy = false
 	notify(ok and tostring(message or (done and "Done" or "Try again")) or "Connection error")
 	render()
+	UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 end
 local function use(item)
 	if busy then
@@ -467,6 +472,9 @@ local function use(item)
 	busy = false
 	notify(ok and (used and (item.Name .. " activated") or tostring(message)) or "Connection error")
 	render()
+	if not (ok and used) then
+		UiFeedback.Play("Denied") -- render replaced the tile
+	end
 end
 
 function render()
@@ -621,6 +629,9 @@ end
 
 for name, refs in tabs do
 	refs.Button.Activated:Connect(function()
+		if name ~= current then
+			UiFeedback.Play("TabSwitch")
+		end
 		current = name
 		hint.Text = ""
 		render()

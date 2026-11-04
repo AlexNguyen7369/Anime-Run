@@ -11,6 +11,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local duelRemote = remotes:WaitForChild("Duel")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
@@ -227,6 +228,7 @@ local function showInvite(message)
 	)
 	toast.Visible = false
 	showPanel("DuelInvite")
+	UiFeedback.Play("DuelInvite", invitePanel)
 	-- An unanswered invite is a decline after INVITE_TIMEOUT (docs/DUEL_SPEC.md): if the server's Cancelled never
 	-- arrives, the modal still closes instead of blocking the HUD.
 	inviteToken += 1
@@ -243,6 +245,14 @@ local function showCountdown(message)
 	messageToken += 1
 	local token = messageToken
 	countdown.Visible = true
+	local lastTick = nil
+	local function tick(text)
+		countdown.Text = text
+		if text ~= lastTick then
+			lastTick = text
+			UiFeedback.Play("DuelTick", countdown)
+		end
+	end
 	task.spawn(function()
 		local serverStart = tonumber(message.ServerStart)
 		if not serverStart then
@@ -252,9 +262,9 @@ local function showCountdown(message)
 		while token == messageToken do
 			local remaining = serverStart - workspace:GetServerTimeNow()
 			if remaining > 0 then
-				countdown.Text = tostring(math.clamp(math.ceil(remaining), 1, 3))
+				tick(tostring(math.clamp(math.ceil(remaining), 1, 3)))
 			elseif remaining > -1 then
-				countdown.Text = "GO!"
+				tick("GO!")
 			else
 				countdown.Visible = false
 				return
@@ -265,6 +275,7 @@ local function showCountdown(message)
 end
 
 local resultText = { Win = "YOU WIN!", Lose = "YOU LOSE", Draw = "DRAW" }
+local resultCue = { Win = "DuelWin", Lose = "DuelLose" } -- anything else on this toast is ToastHigh
 local cancelText = {
 	Declined = "DUEL DECLINED",
 	InviteTimeout = "NO ANSWER",
@@ -276,7 +287,7 @@ local cancelText = {
 	NotLoaded = "PLAYER NOT READY",
 }
 
-local function showToast(text)
+local function showToast(text, cue)
 	closePanels()
 	messageToken += 1
 	local token = messageToken
@@ -286,8 +297,8 @@ local function showToast(text)
 	toast.Position = TOAST_HOME
 	toast.Visible = true
 	UiMotion.Fade(toast, true)
-	UiMotion.SlideIn(toast, Vector2.new(48, 0))
-	UiMotion.Pop(toast)
+	-- The cue's Slam or Shake is the arrival; a SlideIn under Shake would take its offset for the toast's home.
+	UiFeedback.Play(cue or "ToastHigh", toast)
 	task.delay(3, function()
 		if token == messageToken then
 			UiMotion.Fade(toast, false)
@@ -350,7 +361,7 @@ duelRemote.OnClientEvent:Connect(function(message)
 	elseif message.Type == "Countdown" then
 		showCountdown(message)
 	elseif message.Type == "Result" then
-		showToast(resultText[message.Result] or "DRAW")
+		showToast(resultText[message.Result] or "DRAW", resultCue[message.Result])
 	elseif message.Type == "Cancelled" then
 		showToast(cancelText[message.Reason] or "DUEL CANCELLED")
 	end

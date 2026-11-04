@@ -16,6 +16,7 @@ local Icons = require(Ui.HudIcons)
 local PotionIcons = require(Ui.PotionIcons)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local OUTLINE = UiTheme.Outline
@@ -171,6 +172,40 @@ local function card(name, parent, color, props)
 	return frame
 end
 
+-- ShopBought waits for the answer, never the prompt. A pass: Roblox's. A product: the server's grant, seen as its
+-- Boost_ attributes rising (no remote reports a receipt). shortcut: another potion gain in the same GRANT_WAIT s after a
+-- cancelled prompt also plays it (sound and a Pop only); upgrade if ShopService ever reports receipts.
+local GRANT_WAIT = 120 -- placeholder
+local passCards = {} -- GamepassId -> its card
+local grantWaits = {} -- Boost_ attribute -> { Seen, Card, Until }
+local function expectGrants(productId, boxOf)
+	for _, product in config.Products do
+		if product.ProductId == productId then
+			for boost in product.Grants or {} do
+				local attribute = "Boost_" .. boost
+				grantWaits[attribute] =
+					{ Seen = player:GetAttribute(attribute) or 0, Card = boxOf, Until = os.clock() + GRANT_WAIT }
+			end
+		end
+	end
+end
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who, passId, purchased)
+	if who == player and purchased and passCards[passId] then
+		UiFeedback.Play("ShopBought", passCards[passId])
+	end
+end)
+player.AttributeChanged:Connect(function(attribute)
+	local pending = grantWaits[attribute]
+	if pending and os.clock() < pending.Until and (player:GetAttribute(attribute) or 0) > pending.Seen then
+		for name, other in grantWaits do
+			if other.Card == pending.Card then
+				grantWaits[name] = nil -- a bundle's other grants: one cue
+			end
+		end
+		UiFeedback.Play("ShopBought", pending.Card)
+	end
+end)
+
 -- The green price button. kind = "pass" | "product"; id 0 shows "Coming soon" and never prompts.
 local function buyButton(parent, kind, id, robuxPrice, props)
 	props.Text = ""
@@ -208,6 +243,7 @@ local function buyButton(parent, kind, id, robuxPrice, props)
 			Text = "Coming soon",
 			TextSize = 12,
 		})
+		UiFeedback.DeniedPress(button)
 		return button
 	end
 	task.spawn(function()
@@ -219,8 +255,10 @@ local function buyButton(parent, kind, id, robuxPrice, props)
 	end)
 	button.Activated:Connect(function()
 		if kind == "pass" then
+			passCards[id] = parent
 			MarketplaceService:PromptGamePassPurchase(player, id)
 		else
+			expectGrants(id, parent)
 			MarketplaceService:PromptProductPurchase(player, id)
 		end
 	end)
@@ -508,6 +546,8 @@ redeem.Activated:Connect(function()
 	UiMotion.SlideIn(status, Vector2.new(0, 12)) -- the answer slides in from the bottom edge (section 10)
 	if ok then
 		input.Text = ""
+	else
+		UiFeedback.Play("Denied", redeem)
 	end
 	redeem.Active = true
 end)
@@ -551,6 +591,7 @@ local function giftButton(box, product, reason)
 	corner(gift, 8)
 	stroke(gift, 3)
 	if not enabled then
+		UiFeedback.DeniedPress(gift)
 		local note = make("TextLabel", "GiftReason", box, {
 			AnchorPoint = Vector2.new(0, 1),
 			Position = bundle and UDim2.new(0, 6, 1, -2) or UDim2.new(0, 4, 1, -4),

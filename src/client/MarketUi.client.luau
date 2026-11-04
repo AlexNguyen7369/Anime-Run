@@ -18,6 +18,7 @@ local Icons = require(Ui.HudIcons)
 local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 
@@ -509,6 +510,12 @@ action.Activated:Connect(function()
 		(ok and done) and TILE_GREEN or PALETTE.Reject
 	)
 	render()
+	if ok and done then
+		local counter = UiFeedback.MoneyCounter() -- the cost flies out of the Money counter to BUY
+		UiFeedback.Play("MarketBought", action, { Origin = counter, Target = counter and action })
+	else
+		UiFeedback.Play("Denied", action)
+	end
 end)
 
 function pickSlot(slot, id)
@@ -526,6 +533,7 @@ function pickSlot(slot, id)
 		(ok and done) and TILE_GREEN or PALETTE.Reject
 	)
 	render()
+	UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 end
 
 function render()
@@ -600,6 +608,9 @@ end
 
 for kind, refs in tabs do
 	refs.Button.Activated:Connect(function()
+		if kind ~= selectedKind then
+			UiFeedback.Play("TabSwitch")
+		end
 		selectedKind = kind
 		showingDetail = false
 		applyLayout()

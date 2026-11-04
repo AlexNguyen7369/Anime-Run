@@ -13,6 +13,7 @@ local HudIcons = require(script.Parent.RollToast.Ui.HudIcons)
 local PotionIcons = require(script.Parent.RollToast.Ui.PotionIcons)
 local UiTheme = require(ReplicatedStorage.Shared:WaitForChild("UiTheme"))
 local HudFormat = require(ReplicatedStorage.Shared:WaitForChild("HudFormat"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 
@@ -34,6 +35,7 @@ local TILE_BLUE = PALETTE.Tile
 local TAB = PALETTE.TabIdle
 local GREEN = PALETTE.MoneyDeep -- white stroked text stays readable on it
 local REPLY_SECONDS = 2 -- placeholder: a reply stays this long, then fades
+local SHINE_EVERY = 3 -- placeholder: seconds between a claimable button's light sweeps
 
 local function make(class, name, parent, props)
 	local instance = Instance.new(class)
@@ -266,7 +268,9 @@ local function notify(text)
 	end)
 end
 local stopClaimPulse, stopTodayPulse = nil, nil -- the Daily claim button and today's tile glow while claimable
+local shineRun = 0 -- bumping it ends every claimable button's shine loop
 local function stopPulse()
+	shineRun += 1
 	if stopClaimPulse then
 		stopClaimPulse()
 		stopClaimPulse = nil
@@ -275,6 +279,27 @@ local function stopPulse()
 		stopTodayPulse()
 		stopTodayPulse = nil
 	end
+end
+
+-- A light sweep every SHINE_EVERY s until stopPulse or the button stops being claimable. Shine does nothing while reduced.
+local function shineWhileClaimable(claim)
+	local run = shineRun
+	task.spawn(function()
+		while true do
+			task.wait(SHINE_EVERY)
+			if run ~= shineRun or not claim.Parent or not claim.Active then
+				return
+			end
+			UiMotion.Shine(claim, 0.9)
+		end
+	end)
+end
+
+-- An answer rebuilt the panel, so the new gui has its screen place only next frame. find() gets it (nil: sound only).
+local function answerCue(cue, find)
+	task.delay(0, function()
+		UiFeedback.Play(cue, find(), { Target = UiFeedback.MoneyCounter() })
+	end)
 end
 
 local view = nil -- "Daily" or "Quests": which content the shared modal shows
@@ -494,6 +519,7 @@ local function showDaily()
 			UiMotion.Mark(today.Edge, { Color = PALETTE.Speed })
 			stopTodayPulse = UiMotion.Pulse(today.Edge, { Transparency = 0.6 }, 0.7)
 		end
+		shineWhileClaimable(claim)
 	end
 	claim.Activated:Connect(function()
 		if not claim.Active then
@@ -505,8 +531,13 @@ local function showDaily()
 		if ok and success then
 			notify("Claimed Day " .. tostring(reward.Day))
 			showDaily()
+			answerCue("DailyClaim", function()
+				local cards = content:FindFirstChild("RewardCards")
+				return cards and cards:FindFirstChild("Day" .. tostring(reward.Day))
+			end)
 		else
 			notify(ok and tostring(reward) or "Connection error")
+			UiFeedback.Play("Denied", claim)
 		end
 	end)
 end
@@ -535,7 +566,7 @@ local function selectQuest(quest, current, weekly)
 	questType.Text = weekly and "WEEKLY QUEST" or "DAILY QUEST"
 	questName.Text = quest.Name
 	questGoal.Text = "" -- the quest's name already says its goal
-	progressFill.Size = UDim2.fromScale(math.clamp(current / math.max(1, quest.Target), 0, 1), 1)
+	UiMotion.Fill(progressFill, UDim2.fromScale(math.clamp(current / math.max(1, quest.Target), 0, 1), 1))
 	progressText.Text = string.format(
 		"%s / %s  (%d%%)",
 		HudFormat.Short(current),
@@ -621,6 +652,7 @@ local function showQuests()
 		claim.BackgroundColor3 = claim.Active and GREEN or TAB
 		if claim.Active then
 			UiTheme.Stroke(claim, 2)
+			shineWhileClaimable(claim)
 		end
 		questRows[quest.Id] = { Button = row, Edge = rowEdge }
 		if not selectedQuest then
@@ -638,6 +670,10 @@ local function showQuests()
 			end)
 			notify(ok and (success and ("Claimed " .. tostring(message)) or tostring(message)) or "Connection error")
 			showQuests()
+			answerCue((ok and success) and "QuestClaim" or "Denied", function()
+				local newRow = content:FindFirstChild(quest.Id)
+				return newRow and ((ok and success) and newRow or newRow:FindFirstChild("Claim"))
+			end)
 		end)
 	end
 	if selectedQuest then
@@ -649,10 +685,16 @@ local function showQuests()
 end
 
 dailyQuestTab.Activated:Connect(function()
+	if questCategory ~= "Daily" then
+		UiFeedback.Play("TabSwitch")
+	end
 	questCategory = "Daily"
 	showQuests()
 end)
 weeklyQuestTab.Activated:Connect(function()
+	if questCategory ~= "Weekly" then
+		UiFeedback.Play("TabSwitch")
+	end
 	questCategory = "Weekly"
 	showQuests()
 end)

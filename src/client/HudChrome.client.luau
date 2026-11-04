@@ -11,6 +11,7 @@ local client = script.Parent
 local PanelSwitch = require(client:WaitForChild("PanelSwitch"))
 local Icons = require(client:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local UiFeedback = require(client:WaitForChild("UiFeedback"))
 local UiMotion = require(client:WaitForChild("UiMotion"))
 local QuestConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("QuestConfig"))
 local HttpService = game:GetService("HttpService")
@@ -333,6 +334,9 @@ local function setBadge(b, count)
 	if count > 0 and b.Text ~= text then
 		UiMotion.Pop(b)
 	end
+	if count > 0 and not b.Visible then
+		UiFeedback.Play("BadgeNew", nil, { Sound = true }) -- only growing from 0, never every change
+	end
 	b.Visible = count > 0
 	b.Text = text
 	pulse(b)
@@ -367,6 +371,7 @@ local function refresh()
 	local claimed = (player:GetAttribute("DailyLast") or -1) == math.floor(now / 86400)
 	if not claimed and not dailyBadge.Visible then
 		UiMotion.Pop(dailyBadge)
+		UiFeedback.Play("BadgeNew", nil, { Sound = true })
 	end
 	dailyBadge.Visible = not claimed
 	pulse(dailyBadge)

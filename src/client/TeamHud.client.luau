@@ -21,6 +21,7 @@ local StaminaConfig = require(shared.StaminaConfig)
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local UiTheme = require(shared.UiTheme)
 local Palette = UiTheme.Palette
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local SLOTS = 3
@@ -142,7 +143,6 @@ make("UIPadding", {
 	PaddingRight = UDim.new(0, 10),
 	PaddingTop = UDim.new(0, 6),
 }, card)
-local cardScale = make("UIScale", { Scale = 1 }, card)
 local cardName = text(card, "Name", {
 	Size = UDim2.new(1, 0, 0, 22),
 	TextSize = 19,
@@ -225,8 +225,7 @@ local function showCard(slot)
 	center = math.clamp(center, half, math.max(half, screen - half))
 	card.Position = UDim2.fromOffset((center - overlay.AbsolutePosition.X) / hudScale(), -52)
 	if not card.Visible or shownSlot ~= slot then
-		cardScale.Scale = 0.85
-		tween(cardScale, 0.15, { Scale = 1 }, Enum.EasingStyle.Back)
+		UiMotion.Pop(card)
 	end
 	card.Visible = true
 	shownSlot = slot
@@ -522,6 +521,18 @@ RunService.RenderStepped:Connect(function(dt)
 		(f.AbsolutePosition.X + f.AbsoluteSize.X / 2 - overlay.AbsolutePosition.X) / scale,
 		(f.AbsolutePosition.Y - overlay.AbsolutePosition.Y) / scale - 14 + (reduced and 0 or 2 * math.sin(clock * 3))
 	)
+end)
+
+-- The moments of the run (docs/TEAM_AND_STAMINA_SPEC.md): the circle has its own tag-in pop in render.
+ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent:Connect(function(ev)
+	if type(ev) ~= "table" then
+		return
+	end
+	if ev.Kind == "Swap" then
+		UiFeedback.Play("TagIn")
+	elseif ev.Kind == "Exhausted" then
+		UiFeedback.Play("Exhausted", row)
+	end
 end)
 
 player.AttributeChanged:Connect(function(name)
