@@ -46,10 +46,9 @@
 <path d="M-5-5H205V205H-5Z" fill="#f2f2f4"/>
 <path d="M-5 90Q100 104 205 90V205H-5Z" fill="#c4c5d0" opacity="0.7" filter="url(#b5)"/>
 <path d="M100 75V59" fill="none" stroke="#2c2c3a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M71 34A29 29 0 0 1 129 34A29 29 0 0 1 71 34Z" fill="#2c2c3a"/>
-<path d="M73 34A27 27 0 0 1 127 34Z" fill="#c4141e"/>
-<path d="M73 34A27 27 0 0 0 127 34Z" fill="#ffffff"/>
-<path d="M99.00 34.00a1.00 1.00 0 1 0 2.00 0a1.00 1.00 0 1 0 -2.00 0Z" fill="#c4141e"/>
+<path d="M100 66L66 12Q82 3 93 4L100 14L107 4Q118 3 134 12Z" fill="#2c2c3a"/>
+<path d="M100 61L70 13Q83 6 92 7L100 18L108 7Q117 6 130 13Z" fill="#ffffff"/>
+<path d="M70 13Q83 6 92 7L100 18L108 7Q117 6 130 13L116 36Q100 40 84 36Z" fill="#c4141e"/>
 </g></g>
 <clipPath id="cTorso_L"><rect x="812" y="0" width="106" height="212"/></clipPath>
 <g clip-path="url(#cTorso_L)"><g transform="translate(812 0) scale(1.06000 1.06000)">

@@ -178,14 +178,14 @@ def paint(a):
 	stroke(f, ((66, 76), (67.5, 84), (65, 87)), 0.9, "#c58f76")
 	f.path("M56 104Q65 102.5 74 104", stroke="#7c4f42", sw=1.5)
 	f.soft("M58 109Q65 111 72 109Q65 114 58 109Z", SKIN_D, 0.6, 1)
-	# the back: the shirt's white with the red-over-white fan high on it
+	# the back: the shirt's white with the red-over-white folding fan high on it, its top edge notched
 	f = a["Torso_B"]
 	f.fill("#f2f2f4")
 	f.soft("M-5 90Q100 104 205 90V205H-5Z", "#c4c5d0", 0.7, 5)
 	cx, cy, r = 100, 34, 27
 	f.path(f"M{cx} {cy + r + 14}V{cy + r - 2}", stroke="#2c2c3a", sw=8)
-	f.path(f"M{cx - r - 2} {cy}A{r + 2} {r + 2} 0 0 1 {cx + r + 2} {cy}A{r + 2} {r + 2} 0 0 1 {cx - r - 2} {cy}Z", "#2c2c3a")
-	f.path(f"M{cx - r} {cy}A{r} {r} 0 0 1 {cx + r} {cy}Z", "#c4141e")
-	f.path(f"M{cx - r} {cy}A{r} {r} 0 0 0 {cx + r} {cy}Z", "#ffffff")
-	f.path(ell(cx, cy, 1, 1), "#c4141e")
+	ay = cy + r + 2
+	f.path(f"M{cx} {ay + 3}L{cx - 34} {cy - 22}Q{cx - 18} {cy - 31} {cx - 7} {cy - 30}L{cx} {cy - 20}L{cx + 7} {cy - 30}Q{cx + 18} {cy - 31} {cx + 34} {cy - 22}Z", "#2c2c3a")
+	f.path(f"M{cx} {ay - 2}L{cx - 30} {cy - 21}Q{cx - 17} {cy - 28} {cx - 8} {cy - 27}L{cx} {cy - 16}L{cx + 8} {cy - 27}Q{cx + 17} {cy - 28} {cx + 30} {cy - 21}Z", "#ffffff")
+	f.path(f"M{cx - 30} {cy - 21}Q{cx - 17} {cy - 28} {cx - 8} {cy - 27}L{cx} {cy - 16}L{cx + 8} {cy - 27}Q{cx + 17} {cy - 28} {cx + 30} {cy - 21}L{cx + 16} {cy + 2}Q{cx} {cy + 6} {cx - 16} {cy + 2}Z", "#c4141e")
 	head_sides(a, SKIN, SKIN_D)
