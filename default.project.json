@@ -14,6 +14,11 @@
         }
       }
     },
+    "ServerStorage": {
+      "ImpactSounds": {
+        "$path": "assets/sfx/ImpactSounds"
+      }
+    },
     "ReplicatedFirst": {
       "LoadingScreen": {
         "$path": "src/first/LoadingScreen.client.luau"
