@@ -26,11 +26,10 @@ local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 -- Same vocabulary as the Backpack and Market (HUD_LAYOUT_SPEC section 3): dark body, navy tiles, blue glow
 -- border, green border on the selected tile, Fredoka outlined text.
 local OUTLINE = UiTheme.Outline
-local BODY = Color3.fromRGB(32, 27, 36)
-local CARD = Color3.fromRGB(14, 24, 52)
-local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local SELECTED = Color3.fromRGB(60, 220, 90)
-local GOOD, BAD = Color3.fromRGB(120, 255, 140), Color3.fromRGB(255, 120, 110)
+local CARD = UiTheme.Palette.TileDeep
+local TILE_BLUE = UiTheme.Palette.Tile
+local SELECTED = UiTheme.Palette.Money
+local GOOD, BAD = UiTheme.Palette.Ahead, UiTheme.Palette.Behind
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -46,7 +45,7 @@ local function corner(parent, radius)
 end
 local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = Enum.Font.FredokaOne
+	props.Font = UiTheme.Font
 	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
 	props.TextScaled = props.TextScaled ~= false
 	local label = make("TextLabel", name, parent, props)
@@ -64,7 +63,6 @@ local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
 	Size = UDim2.fromOffset(760, 480),
-	BackgroundColor3 = BODY,
 	Visible = false,
 	Active = true,
 })
@@ -151,7 +149,7 @@ local start = make("TextButton", "Start", detail, {
 	TextScaled = true,
 	TextColor3 = Color3.new(1, 1, 1),
 	BackgroundColor3 = SELECTED,
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
 corner(start, UiTheme.Radius.S)
 UiTheme.Stroke(start, 2)
@@ -179,7 +177,7 @@ for _, spec in chain do
 		LayoutOrder = n,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	corner(card, UiTheme.Radius.M)
 	-- Subtle navy gradient (Backpack tiles); the white background lets the gradient set the colour.
@@ -251,7 +249,6 @@ local function render()
 	local current = CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), best, #chain)
 	for n, refs in cards do
 		refs.Lock.Visible = not CheckpointConfig.IsOpen(n, best, #chain)
-		refs.Card.AutoButtonColor = n ~= shown
 		UiMotion.Mark(
 			refs.Edge,
 			{ Color = n == current and SELECTED or (n == shown and Color3.new(1, 1, 1) or TILE_BLUE) }
@@ -294,7 +291,6 @@ local function render()
 	local selected = shown == current
 	start.Text = selected and "SELECTED" or (open and "START HERE" or "LOCKED")
 	start.Active = open and not selected
-	start.AutoButtonColor = start.Active
 	start.BackgroundColor3 = start.Active and SELECTED or UiTheme.Palette.Muted
 end
 
@@ -332,9 +328,11 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
-close.Activated:Connect(function()
+local function closePanel()
 	PanelSwitch.Close("Checkpoints")
-end)
+end
+close.Activated:Connect(closePanel)
+PanelFrame.CloseOnOutsideClick(panel, closePanel)
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		buildPreviews()

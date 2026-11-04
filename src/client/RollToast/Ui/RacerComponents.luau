@@ -423,8 +423,11 @@ function Components.EnemiesPage(refs, player)
 		local tile = make("Frame", { Name = "Enemy" .. n, LayoutOrder = n, ZIndex = 3 }, page)
 		Components.CardFace(tile, spec, ENEMY_CARD):Destroy() -- enemies have no category
 		edge(tile).Name = "Stroke"
-		local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -38), UDim2.fromOffset(40, 40), 34)
+		local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -28), UDim2.fromOffset(40, 40), 34)
 		locked.ZIndex = 7
+		local lockedTrack =
+			label(tile, "LockedTrack", "TRACK " .. n, UDim2.new(0, 8, 1, -30), UDim2.new(1, -16, 0, 20), 16)
+		lockedTrack.ZIndex = 7
 		local name = label(tile, "EnemyName", "", UDim2.new(0, 8, 1, -54), UDim2.new(1, -16, 0, 24), 20)
 		name.ZIndex = 7
 		name.TextXAlignment = Enum.TextXAlignment.Right
@@ -432,7 +435,15 @@ function Components.EnemiesPage(refs, player)
 		best.ZIndex = 7
 		best.TextXAlignment = Enum.TextXAlignment.Right
 		frames[n] = tile
-		rows[n] = { Frame = tile, Spec = spec, Label = enemy.Label, Locked = locked, Name = name, Best = best }
+		rows[n] = {
+			Frame = tile,
+			Spec = spec,
+			Label = enemy.Label,
+			Locked = locked,
+			LockedTrack = lockedTrack,
+			Name = name,
+			Best = best,
+		}
 	end
 	local function refresh()
 		local reached = player:GetAttribute("BestTrack") or 0
@@ -442,6 +453,7 @@ function Components.EnemiesPage(refs, player)
 			row.Frame:SetAttribute("Beaten", beaten)
 			Components.TintCard(row.Frame, row.Spec, ENEMY_CARD, beaten)
 			row.Locked.Visible = not beaten
+			row.LockedTrack.Visible = not beaten
 			row.Name.Text = beaten and row.Label or ""
 			-- A win saved before best times existed has no time to show.
 			row.Best.Text = not beaten and "" or seconds and RaceProgressMap.FormatTime(seconds) or "--:--.--"

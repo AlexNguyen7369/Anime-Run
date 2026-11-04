@@ -19,6 +19,8 @@ local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+local UiTheme = require(shared.UiTheme)
+local Palette = UiTheme.Palette
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local SLOTS = 3
@@ -29,18 +31,17 @@ local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end 
 local ARC_DOTS = 24 -- overlapping circles; shortcut: no ring image asset, upload one if the edge ever looks scalloped
 local EASE = 10 -- per second, arc and number easing (placeholder)
 local HEAD_FIT = 0.95 -- camera distance factor for the head (placeholder)
-local ITALIC = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 local CARD_WIDTH = 240 -- px (placeholder)
 local ACTIVE_SCALE = 1.18 -- placeholders
 local TIRED_SCALE = 0.88
-local GOLD = Color3.fromRGB(255, 214, 80)
-local DIM = Color3.fromRGB(26, 36, 66)
-local RING = Color3.fromRGB(230, 236, 250)
-local GREY = Color3.fromRGB(110, 110, 110)
+local GOLD = Palette.Gold
+local DIM = Palette.TeamDim
+local RING = Palette.TeamRing
+local GREY = Palette.TeamGrey
 local CATEGORY_COLORS = {
-	Sprinter = Color3.fromRGB(255, 110, 70),
-	Balanced = Color3.fromRGB(90, 210, 120),
-	Marathoner = Color3.fromRGB(80, 160, 255),
+	Sprinter = Palette.Sprinter,
+	Balanced = Palette.Balanced,
+	Marathoner = Palette.Marathoner,
 }
 local CATEGORY_HINT = { Sprinter = "fast, tires sooner", Balanced = "all-round", Marathoner = "slower, runs longer" }
 
@@ -63,7 +64,7 @@ local function text(parent, name, props)
 	local label = make("TextLabel", {
 		Name = name,
 		BackgroundTransparency = 1,
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextScaled = false,
 		ZIndex = 31,
@@ -108,7 +109,7 @@ local badge = text(overlay, "Bonus", {
 	TextSize = 13,
 	TextColor3 = GOLD,
 	BackgroundTransparency = 0.3,
-	BackgroundColor3 = Color3.fromRGB(18, 24, 44), -- stays readable over every biome
+	BackgroundColor3 = Palette.TeamPlate, -- stays readable over every biome
 	Visible = false,
 	ZIndex = 8,
 })
@@ -129,7 +130,7 @@ local card = make("Frame", {
 	Name = "InfoCard",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Size = UDim2.fromOffset(CARD_WIDTH, 96),
-	BackgroundColor3 = Color3.fromRGB(18, 24, 44),
+	BackgroundColor3 = Palette.TeamPlate,
 	BackgroundTransparency = 0.08,
 	Visible = false,
 	ZIndex = 30,
@@ -160,14 +161,14 @@ local hint = text(card, "Hint", {
 	Position = UDim2.fromOffset(100, 26),
 	Size = UDim2.new(1, -100, 0, 20),
 	TextSize = 12,
-	TextColor3 = Color3.fromRGB(190, 200, 225),
+	TextColor3 = Palette.TeamSoft,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
 local effect = text(card, "Effect", { -- own line: beside the chip it wrapped into the stats below
 	Position = UDim2.fromOffset(0, 50),
 	Size = UDim2.new(1, 0, 0, 16),
 	TextSize = 13,
-	TextColor3 = Color3.fromRGB(190, 200, 225),
+	TextColor3 = Palette.TeamSoft,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
 local stats = text(card, "Stats", {
@@ -291,7 +292,7 @@ for slot = 1, SLOTS do
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, -12, 1, 6),
 		Size = UDim2.fromOffset(34, 24),
-		FontFace = ITALIC,
+		Font = UiTheme.Font,
 		TextSize = 22,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 10,
@@ -437,7 +438,7 @@ local function render()
 					ImageTransparency = tired and 0.45 or 0,
 				})
 			end
-			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Color3.fromRGB(50, 50, 55) or DIM })
+			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Palette.TeamTired or DIM })
 			if not active then
 				tween(circle.Glow, 0.25, { BackgroundTransparency = 1 })
 				tween(circle.Scale, 0.35, { Scale = tired and TIRED_SCALE or 1 }, Enum.EasingStyle.Quint)

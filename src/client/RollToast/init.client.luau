@@ -546,9 +546,12 @@ local autoButton = make("TextButton", {
 round(autoButton, UDim.new(0, 12))
 make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Thickness = 2, Color = CARD_BG }, autoButton)
 
+-- Inset by the border's width: a UIStroke draws outside its frame, so a full-screen frame would draw it off screen.
 local takeover = make("Frame", {
 	Name = "Takeover",
-	Size = UDim2.fromScale(1, 1),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.new(1, -20, 1, -20),
 	BackgroundColor3 = Color3.fromRGB(5, 5, 8),
 	BackgroundTransparency = 0.15,
 	Visible = false,
@@ -559,10 +562,10 @@ local rainbow = make("UIGradient", { Color = RAINBOW }, takeoverStroke)
 local takeoverText = make("TextLabel", {
 	Name = "Title",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.45),
+	Position = UDim2.fromScale(0.5, 0.13), -- above the figure
 	Size = UDim2.fromScale(0.8, 0.2),
 	BackgroundTransparency = 1,
-	FontFace = ITALIC,
+	Font = UiTheme.Font,
 	TextScaled = true,
 	TextColor3 = WHITE,
 	ZIndex = 11,
@@ -570,7 +573,7 @@ local takeoverText = make("TextLabel", {
 local takeoverSkip = make("TextLabel", {
 	Name = "Skip",
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.fromScale(0.5, 0.62),
+	Position = UDim2.fromScale(0.5, 0.24),
 	Size = UDim2.fromOffset(320, 24),
 	BackgroundTransparency = 1,
 	Font = Enum.Font.GothamBold,
