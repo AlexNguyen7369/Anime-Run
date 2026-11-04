@@ -193,6 +193,13 @@ Preset trios (the anime's famous team):
   `model(parts, kit)` bespoke meshes (`tools/blender/avatar_paint.py`). Locks in a `HAIR_COLOURS` colour take painted
   strands from the atlas's Hair strip; other props use cel swatches in its bottom strip.
 
+### Digital art portrait (owner 2026-11-04)
+Required for every character added to the game, as part of its art pipeline, not a later pass.
+- Every character with a model has a drawn head-and-upper-torso portrait: bright cel-shaded fills from its own atlas, a bold ink outline, a thin die-cut edge and a straight cut under the chest. Blocky proportions stay, per design doc 5.
+- File: `assets/characters_avatar/<id>/portrait.png` (512 px, transparent), next to its `atlas.png` and `review/`. Build: `tools/blender/portrait/render_portrait.py`. Upload: `tools/blender/portrait/upload_portraits.py`, which writes `src/shared/CharacterPortraits.luau`. A character is not done until its portrait is uploaded and in that registry.
+- The portrait is how the character appears everywhere it is shown as an icon or card: the roll animation, the Index, the Backpack, the Team minibar and the starter choice. The 3D model stays for the world (runners, Dojo, plaza).
+- Sources are our own model and atlas only: no outside art.
+
 ## Tests
 
 - `gacha`: rarest-first odds, turbo roll, duplicate adds `Copies`, Index points.
