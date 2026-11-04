@@ -12,8 +12,10 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local MIN_SECONDS = 8 -- owner
-local MAX_SECONDS = 180 -- proposed: a stuck asset or server must never trap a player here for good
+local MAX_SECONDS = 90 -- proposed: a stuck asset or server must never trap a player here for good
 local QUEUE_QUIET = 1 -- proposed: seconds the content queue stays empty before it counts as done
+local QUEUE_GRACE = 4 -- proposed: most seconds to wait for the queue once everything wanted is preloaded
+local WORKERS = 4 -- proposed: PreloadAsync calls running at once
 local CHUNK = 16 -- assets per PreloadAsync call, so the bar moves as they land
 local LOGO = "rbxassetid://127883918864517" -- assets/logo/AnimeRunLogo.png, owner's art
 
@@ -94,6 +96,7 @@ label.Parent = back
 -- What this client must have before the screen opens: the server's world, then every unique mesh, texture and image in
 -- use around the plaza and on the HUD, then an empty content queue.
 local preloadTotal, preloadDone, preloadFinished = 0, 0, false
+local preloadEndedAt = nil
 
 local function collect(found, seen, source)
 	for _, d in source:GetDescendants() do
@@ -114,7 +117,7 @@ end
 
 local function serverReady()
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
-	return ReplicatedStorage:GetAttribute("TerrainReady") == true
+	return ReplicatedStorage:GetAttribute("TerrainNearReady") == true
 		and models ~= nil
 		and models:GetAttribute("Ready") == true
 		and ReplicatedStorage:GetAttribute("PlazaReady") == true
@@ -132,6 +135,29 @@ task.spawn(function()
 		Players.LocalPlayer:RequestStreamAroundAsync(Vector3.zero)
 	end)
 	local found, seen = {}, {}
+	-- Character models: only those on screen at once (the Legends, the sky-loop runners, this player's team). Their folder
+	-- names are character ids; a new player's team is empty until the starter pick.
+	local later = {}
+	local wanted = {}
+	for _, id in string.split(Players.LocalPlayer:GetAttribute("Team") or "", ",") do
+		wanted[id] = true
+	end
+	pcall(function()
+		local Layout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PlazaAssets"))
+		for _, row in Layout.Legends do
+			wanted[row.Id] = true
+		end
+	end)
+	for _, id in { "leaf_hero", "sea_captain", "db_hero" } do -- starters' models: the pick and the sky loop show them
+		wanted[id] = true
+	end
+	for _, character in ReplicatedStorage:WaitForChild("CharacterModels"):GetChildren() do
+		if wanted[character.Name] then
+			collect(found, seen, character)
+		else
+			table.insert(later, character)
+		end
+	end
 	-- The plaza's sky faces: the client may not have swapped them into Lighting yet (image ids preload as strings)
 	pcall(function()
 		local sky =
@@ -146,7 +172,6 @@ task.spawn(function()
 	end)
 	for _, source in
 		{
-			ReplicatedStorage:FindFirstChild("CharacterModels"),
 			Workspace:FindFirstChild("PlazaDressing"),
 			Workspace:FindFirstChild("Workshops"),
 			Workspace:FindFirstChild("SpawnArea"),
@@ -157,13 +182,35 @@ task.spawn(function()
 		collect(found, seen, source)
 	end
 	preloadTotal = #found
-	for first = 1, #found, CHUNK do
-		pcall(function() -- a failed asset reports failure and still counts as tried
-			ContentProvider:PreloadAsync(table.move(found, first, math.min(first + CHUNK - 1, #found), 1, {}))
+	-- Several calls at once: one after another took most of the wait on a slow connection
+	local cursor = 1
+	local workers = 0
+	for _ = 1, WORKERS do
+		workers += 1
+		task.spawn(function()
+			while cursor <= #found do
+				local first = cursor
+				cursor += CHUNK
+				local last = math.min(first + CHUNK - 1, #found)
+				pcall(function() -- a failed asset reports failure and still counts as tried
+					ContentProvider:PreloadAsync(table.move(found, first, last, 1, {}))
+				end)
+				preloadDone += last - first + 1
+			end
+			workers -= 1
 		end)
-		preloadDone = math.min(first + CHUNK - 1, #found)
 	end
+	while workers > 0 do
+		task.wait()
+	end
+	preloadEndedAt = os.clock()
 	preloadFinished = true
+	-- Characters nobody on screen wears load behind the game
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync(later)
+		end)
+	end)
 end)
 
 -- Real progress, 0..1, and whether everything is done.
@@ -175,13 +222,15 @@ local function realProgress(now)
 	queueEmptySince = queue == 0 and (queueEmptySince or now) or nil
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
 	local server = (
-		math.clamp(ReplicatedStorage:GetAttribute("TerrainProgress") or 0, 0, 1)
+		(ReplicatedStorage:GetAttribute("TerrainNearReady") == true and 1 or 0)
 		+ (models and models:GetAttribute("Ready") == true and 1 or 0)
 		+ (ReplicatedStorage:GetAttribute("PlazaReady") == true and 1 or 0)
 	) / 3
 	local preload = preloadFinished and 1 or (preloadTotal > 0 and preloadDone / preloadTotal or 0)
 	local real = server * 0.45 + preload * 0.45 + (1 - queue / peak) * 0.1
-	local done = preloadFinished and queueEmptySince ~= nil and now - queueEmptySince >= QUEUE_QUIET
+	-- The queue also holds streamed far-away assets, so it gets a short grace, not an open-ended wait
+	local quiet = queueEmptySince ~= nil and now - queueEmptySince >= QUEUE_QUIET
+	local done = preloadFinished and (quiet or now - preloadEndedAt >= QUEUE_GRACE)
 	return real, done
 end
 
@@ -205,6 +254,7 @@ while true do
 end
 fill.Size = UDim2.fromScale(1, 1)
 label.Text = "Loading 100%"
+print(string.format("[LoadingScreen] opened after %.1f s, %d assets preloaded", os.clock() - started, preloadTotal))
 
 -- Design doc 4.20: through Client/UiMotion, which exists by now; without it (a failed load) the plain tween service.
 local fade = TweenInfo.new(0.4)

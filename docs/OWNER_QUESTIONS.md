@@ -80,4 +80,9 @@ Design doc 4.20 says every animation goes through `Client/UiMotion`. The team ro
 
 ## 2026-11-03 first-impression: Sea Legend (rules audit)
 Design doc 4.24 says one top character per Series on the plaza pedestals. `sea_gold` and `sea_captain` (Lufy) are both Legendary, but `sea_gold` has the longer odds and no model, so the pedestal shows Lufy. Blocks nothing. Question: keep Lufy, or model `sea_gold`?
+Answered 2026-11-03: owner keeps Lufy.
+
+## 2026-11-03 first-impression: orchestrator defaults (owner away, "implement recommended options"); review on return
+- Load wait narrowed to what a player sees first (plaza, Track 1, on-screen characters); far biomes and other characters load behind the game. Safety limit 90 s, queue grace 4 s (proposed).
+- Measured on a fresh server in Studio: loading screen opens at 43.6 s (was 65-77 s). Server track build is about 31 s of that (one track per frame, about 40k parts); only the first player on a server waits for it. Deferring far-track building was NOT done: RaceService needs the whole route at start, so it is a risky change. Decision for the owner: accept, or build far tracks in the background later.
 

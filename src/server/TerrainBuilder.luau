@@ -142,6 +142,7 @@ function TerrainBuilder.Build(trackModels, baseplate)
 	local terrain = Workspace.Terrain
 	ReplicatedStorage:SetAttribute("TerrainReady", false)
 	ReplicatedStorage:SetAttribute("TerrainProgress", 0)
+	ReplicatedStorage:SetAttribute("TerrainNearReady", false)
 	local ok, err = pcall(function()
 		terrain:Clear() -- no terrain is saved in the place (spec 3.1)
 		for material, hex in TerrainBuilder.PALETTE do
@@ -161,6 +162,10 @@ function TerrainBuilder.Build(trackModels, baseplate)
 			return a[3] < b[3]
 		end)
 		for i, c in chunks do
+			-- The plaza and Track 1 are built: the loading screen need not wait for the far biomes (design doc 4.24)
+			if c[3] >= 2e7 and not ReplicatedStorage:GetAttribute("TerrainNearReady") then
+				ReplicatedStorage:SetAttribute("TerrainNearReady", true)
+			end
 			writeChunk(terrain, c[1], c[2])
 			ReplicatedStorage:SetAttribute("TerrainProgress", i / #chunks)
 			task.wait()
@@ -173,6 +178,7 @@ function TerrainBuilder.Build(trackModels, baseplate)
 	end
 	finish(trackModels, baseplate)
 	print(string.format("[TERRAIN] built in %.1fs, chunks=%d", os.clock() - t0, err))
+	ReplicatedStorage:SetAttribute("TerrainNearReady", true)
 	ReplicatedStorage:SetAttribute("TerrainReady", true)
 	return true
 end

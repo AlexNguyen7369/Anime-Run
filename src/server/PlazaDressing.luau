@@ -234,6 +234,7 @@ function PlazaDressing.Start(spawnArea)
 		if not ok then
 			warn("[PlazaDressing] failed, keeping what is built: " .. tostring(err))
 		end
+		ReplicatedStorage:SetAttribute("LoadPlazaAt", time())
 		ReplicatedStorage:SetAttribute("PlazaReady", true)
 	end)
 end

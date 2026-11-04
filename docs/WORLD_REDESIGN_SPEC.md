@@ -118,7 +118,7 @@ before any Studio work. All values below are **proposed**. 34 unique meshes, abo
 - **Start gate**: torii about 2x taller and turned to face the spawn along the path. Footprint stays clear of the road.
 - **Path**: 12 wide, with a row of small torii, stone lanterns and lantern strings. Series banners stand by the Legends.
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
-- **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy for now (the rarest, `sea_gold`, has no model; owner to confirm).
+- **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy (`sea_captain`; owner 2026-11-03).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; MARKET entrance arch on the Market's plaza side (posts
   clear of the mosaic, about 24 tall). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`

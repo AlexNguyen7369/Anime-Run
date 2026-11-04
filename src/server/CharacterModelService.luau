@@ -45,8 +45,17 @@ function CharacterModelService.Start()
 	root.Name = "CharacterModels"
 	root.Parent = ReplicatedStorage
 	task.spawn(function()
+		-- All at once: 30 one after another held a fresh server's loading screen for seconds (design doc 4.24)
+		local pending = 0
 		for id, row in Assets do
-			load(id, row, root)
+			pending += 1
+			task.spawn(function()
+				pcall(load, id, row, root)
+				pending -= 1
+			end)
+		end
+		while pending > 0 do
+			task.wait()
 		end
 		for _, rig in CollectionService:GetTagged(RunnerFactory.RIG_TAG) do
 			local id = rig:GetAttribute("CharacterId")
@@ -54,6 +63,7 @@ function CharacterModelService.Start()
 				RunnerFactory.Restyle(rig, id)
 			end
 		end
+		ReplicatedStorage:SetAttribute("LoadModelsAt", time())
 		root:SetAttribute("Ready", true)
 	end)
 end
