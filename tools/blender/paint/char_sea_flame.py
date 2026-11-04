@@ -78,7 +78,7 @@ def _hat(k):
 		k.blob("Head", f"HatBead{i}", on_hat(1.14 * math.cos(a), 0.04 + 1.09 * math.sin(a), 5.72), (0.1, 0.1, 0.1), "bead", v=0.55, rings=3, n=6, outline=0)
 	for i, x in enumerate((-0.23, 0.23)):
 		bx, by, bw, bh = HAT_FACES
-		decal(k, "Head", f"HatFace{i}", on_hat(x, -1.04, 6.0), 0.18, "Head_T", (bx + i * bw / 2, by, bw / 2, bh), "gold")
+		decal(k, "Head", f"HatFace{i}", on_hat(x, -1.04, 6.0), 0.18, "Head_T", (bx + i * bw / 2, by, bw / 2, bh), "gold", n=6)
 	# the chin cord
 	for s in (1, -1):
 		rod(k, "Head", f"Cord{s}", on_hat(s * 0.94, -0.3, 5.42), (0, -0.74, 3.86), 0.03, "bead", n=4, a=0.5, b=0.3)
@@ -102,8 +102,7 @@ def _body(k):
 	block(k, t, "Hips", 0, 0, 2.2, 1.88, 1.03, 0.54, "short", ch=0.02, a=0.46, b=0.56)
 	block(k, t, "Belt", 0, 0, 2.4, 2.1, 1.08, 0.6, "belt", ch=0.03, a=0.52, b=0.56)
 	block(k, t, "Buckle", 0, -0.61, 2.47, 2.04, 0.24, 0.04, "gold", ch=0.03, a=0.62, b=0.32)
-	for pts, nm in (([(-0.1, 2.12), (-0.04, 2.12), (0.03, 2.4), (-0.03, 2.4)], "A0"), ([(0.04, 2.12), (0.1, 2.12), (0.03, 2.4), (-0.03, 2.4)], "A1"), ([(-0.06, 2.2), (0.06, 2.2), (0.06, 2.25), (-0.06, 2.25)], "A2")):
-		prism(k, t, nm, pts, -0.67, -0.62, "gold", a=0.22, b=0.12)
+	prism(k, t, "BuckleSign", [(0, 2.12), (0.1, 2.26), (0, 2.4), (-0.1, 2.26)], -0.67, -0.62, "gold", a=0.22, b=0.12)
 	block(k, t, "Pouch", -0.76, -0.6, 2.32, 1.96, 0.22, 0.1, "belt", ch=0.03, a=0.4, b=0.46)
 	rod(k, t, "Sheath", (0.88, -0.66, 2.38), (0.8, -0.72, 1.56), 0.09, "sheath", n=6, r1=0.06, a=0.54, b=0.5)
 	rod(k, t, "Grip", (0.9, -0.64, 2.68), (0.88, -0.66, 2.4), 0.06, "belt", n=6, a=0.58, b=0.46)
@@ -158,28 +157,30 @@ def _hat_faces(a):
 		rx, ry = bw / 4 * sx, bh / 2 * sy
 		f.path(ell(cx, cy, rx + 1, ry + 1), "#7a4c0a")
 		f.path(ell(cx, cy, rx * 0.92, ry * 0.92), "#3a74c8" if happy else "#d03a34")
-		f.path(ell(cx - rx * 0.35, cy - ry * 0.25, rx * 0.13, ry * 0.16), "#ffffff")
-		f.path(ell(cx + rx * 0.35, cy - ry * 0.25, rx * 0.13, ry * 0.16), "#ffffff")
-		bend = 0.75 if happy else 0.15
-		y0 = cy + ry * (0.32 if happy else 0.55)
-		f.path(f"M{cx - rx * 0.45} {y0}Q{cx} {cy + ry * bend} {cx + rx * 0.45} {y0}", stroke="#ffffff", sw=1.8)
+		# slanted bar eyes, and a zigzag or a wide flat mouth
+		for e in (-1, 1):
+			f.path(f"M{cx + e * rx * 0.2} {cy - ry * (0.1 if happy else 0.05)}L{cx + e * rx * 0.5} {cy - ry * (0.4 if happy else 0.5)}", stroke="#ffffff", sw=2.4)
+		if happy:
+			f.path(f"M{cx - rx * 0.5} {cy + ry * 0.3}H{cx + rx * 0.5}L{cx} {cy + ry * 0.68}Z", "#ffffff")
+		else:
+			f.path(f"M{cx - rx * 0.5} {cy + ry * 0.55}L{cx - rx * 0.2} {cy + ry * 0.28}L{cx} {cy + ry * 0.55}L{cx + rx * 0.2} {cy + ry * 0.28}L{cx + rx * 0.5} {cy + ry * 0.55}", stroke="#ffffff", sw=1.8)
 
 
 def _back_mark(f, cx, cy, s):
-	"""The large back mark: a broad cross behind a round skull, a wide crescent moustache across it."""
+	"""The large back mark: two bars with arrow-cut tips behind an angular skull, a drooping forked band across it."""
 	c = INKBLUE
 	for rot in (38, -38):
 		f.out.append(f'<g transform="translate({cx} {cy}) rotate({rot})">')
-		f.path(f"M{-9 * s} {-72 * s}H{9 * s}V{-58 * s}H{15 * s}V{58 * s}H{9 * s}V{72 * s}H{-9 * s}V{58 * s}H{-15 * s}V{-58 * s}H{-9 * s}Z", c)
+		f.path(f"M0 {-78 * s}L{17 * s} {-56 * s}H{9 * s}V{56 * s}H{17 * s}L0 {78 * s}L{-17 * s} {56 * s}H{-9 * s}V{-56 * s}H{-17 * s}Z", c)
 		f.out.append("</g>")
-	f.path(ell(cx, cy - 4 * s, 34 * s, 33 * s), c)
-	f.path(f"M{cx - 19 * s} {cy + 20 * s}H{cx + 19 * s}V{cy + 38 * s}H{cx - 19 * s}Z", c)
-	f.path(ell(cx - 13 * s, cy - 10 * s, 9 * s, 11 * s), SKIN)
-	f.path(ell(cx + 13 * s, cy - 10 * s, 9 * s, 11 * s), SKIN)
-	f.path(f"M{cx} {cy + 1 * s}L{cx - 4 * s} {cy + 10 * s}H{cx + 4 * s}Z", SKIN)
-	for x in (-10, 0, 10):
-		f.path(f"M{cx + x * s} {cy + 25 * s}V{cy + 37 * s}", stroke=SKIN, sw=2.2)
-	f.path(f"M{cx - 62 * s} {cy - 2 * s}Q{cx - 30 * s} {cy + 24 * s} {cx} {cy + 13 * s}Q{cx + 30 * s} {cy + 24 * s} {cx + 62 * s} {cy - 2 * s}Q{cx + 34 * s} {cy + 38 * s} {cx} {cy + 22 * s}Q{cx - 34 * s} {cy + 38 * s} {cx - 62 * s} {cy - 2 * s}Z", c, stroke=SKIN, sw=1.6)
+	# six-sided head with a narrow jaw, slanted eyes, two teeth
+	f.path(f"M{cx - 18 * s} {cy - 38 * s}H{cx + 18 * s}L{cx + 34 * s} {cy - 12 * s}L{cx + 20 * s} {cy + 38 * s}H{cx - 20 * s}L{cx - 34 * s} {cy - 12 * s}Z", c)
+	for e in (-1, 1):
+		f.path(f"M{cx + e * 4 * s} {cy - 6 * s}L{cx + e * 22 * s} {cy - 18 * s}L{cx + e * 20 * s} {cy - 2 * s}Z", SKIN)
+	f.path(f"M{cx - 3 * s} {cy + 8 * s}H{cx + 3 * s}V{cy + 12 * s}H{cx - 3 * s}Z", SKIN)
+	f.path(f"M{cx} {cy + 26 * s}V{cy + 37 * s}", stroke=SKIN, sw=2.2)
+	# the band droops at both ends and forks at the tips
+	f.path(f"M{cx - 62 * s} {cy + 30 * s}L{cx - 50 * s} {cy + 22 * s}L{cx - 54 * s} {cy + 38 * s}L{cx - 34 * s} {cy + 22 * s}L{cx} {cy + 26 * s}L{cx + 34 * s} {cy + 22 * s}L{cx + 54 * s} {cy + 38 * s}L{cx + 50 * s} {cy + 22 * s}L{cx + 62 * s} {cy + 30 * s}L{cx + 40 * s} {cy + 4 * s}L{cx} {cy + 14 * s}L{cx - 40 * s} {cy + 4 * s}Z", c, stroke=SKIN, sw=1.6)
 
 
 def paint(a):
@@ -232,6 +233,6 @@ def paint(a):
 			a[f"{side}{key}"].fill(SKIN)
 	# the crossed bars on the character's left upper arm, turned to the viewer
 	f = a["LeftArm_F"]
-	for x in (28, 42, 56, 70):
-		f.path(f"M{x} 34V68", stroke=INKBLUE, sw=7)
-	f.path("M38 74L58 26", stroke="#c8202c", sw=4.5)
+	for x in (28, 56):
+		f.path(f"M{x - 3} 68L{x + 7} 34L{x + 17} 68", stroke=INKBLUE, sw=7)
+	f.path("M22 56H78", stroke="#c8202c", sw=4.5)

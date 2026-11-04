@@ -133,18 +133,20 @@ def model(parts, kit):
 
 
 def _tattoo(f, cx, cy):
-	"""A pinwheel and a tangerine beside it, in blue."""
-	for i in range(4):
-		f.out.append(f'<g transform="translate({cx} {cy}) rotate({i * 90})">')
-		f.path("M0 0L0 -17L11 -10Z", TATTOO)
+	"""A three-bladed fan and a pointed fruit beside it, in blue."""
+	for i in range(3):
+		f.out.append(f'<g transform="translate({cx} {cy}) rotate({i * 120})">')
+		f.path("M0 0Q-9 -9 -3 -18Q9 -17 10 -7Q4 -6 0 0Z", TATTOO)
 		f.out.append("</g>")
 	f.path(ell(cx, cy, 2.4), "#f4f8ff")
 	f.path("M" + f"{cx} {cy}L{cx} {cy + 22}", stroke=TATTOO, sw=2.4)
 	tx, ty = cx + 26, cy + 14
-	f.path(ell(tx, ty, 12, 12), TATTOO)
-	f.path(ell(tx, ty, 8.5, 8.5), "#f7d0b0")
-	f.path(ell(tx, ty, 4, 4), TATTOO)
-	f.path(f"M{tx} {ty - 11}Q{tx + 6} {ty - 19} {tx + 13} {ty - 16}Q{tx + 8} {ty - 9} {tx} {ty - 11}Z", TATTOO)
+	# pointed at both ends, cut by one seam, two small leaves on top
+	f.path(f"M{tx} {ty - 13}Q{tx + 15} {ty} {tx} {ty + 13}Q{tx - 15} {ty} {tx} {ty - 13}Z", TATTOO)
+	f.path(f"M{tx} {ty - 8}Q{tx + 9.5} {ty} {tx} {ty + 8}Q{tx - 9.5} {ty} {tx} {ty - 8}Z", "#f7d0b0")
+	f.path(f"M{tx} {ty - 9}V{ty + 9}", stroke=TATTOO, sw=2)
+	for e in (-1, 1):
+		f.path(f"M{tx} {ty - 12}L{tx + e * 11} {ty - 19}L{tx + e * 8} {ty - 11}Z", TATTOO)
 
 
 def paint(a):
