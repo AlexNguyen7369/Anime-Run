@@ -26,17 +26,18 @@ RollAnimConfig.HOLD = {
 
 RollAnimConfig.FIT_INTERVAL = 2.8 -- at a shorter roll interval the animation plays faster, so it still fits
 
-RollAnimConfig.REEL_CARS = 6 -- characters shown per roll; the last one is the result
-RollAnimConfig.SLOT_GROWTH = 1.35 -- each cycle slot lasts this much longer than the one before it
+RollAnimConfig.REEL_CARS = 16 -- characters shown per roll; the last one is the result
+RollAnimConfig.SLOT_GROWTH = 1.12 -- each cycle slot lasts this much longer than the one before it
 RollAnimConfig.LAND_POP = 1.15 -- the result pops to this size on landing, then settles to 1x
 
--- Compact roll (no card: the bare figure, its "1 in N" and its name): top centre, under the Auto Race button
+-- Compact roll (no card: the bare figure, its "1 in N" and its name): top centre, under the hidden RacerHud/Race anchor
 RollAnimConfig.COMPACT_WIDTH = 0.12 -- of the screen width (owner, 2026-10-02)
 RollAnimConfig.COMPACT_MIN = 100 -- px
 RollAnimConfig.COMPACT_MAX = 230 -- px
-RollAnimConfig.COMPACT_HEIGHT = 180 -- px: the figure
+RollAnimConfig.COMPACT_HEIGHT = 110 -- px: the figure
 RollAnimConfig.COMPACT_SCREEN_SHARE = 0.3 -- the figure never takes more of the screen height than this
-RollAnimConfig.COMPACT_GAP = 8 -- px from the Auto Race button's bottom edge to the roll
+RollAnimConfig.COMPACT_GAP = 8 -- px from the RacerHud/Race anchor's bottom edge to the roll
+RollAnimConfig.COMPACT_TOP = 8 -- px from the screen top to the normal roll (placeholder)
 -- Index panel top. Not tied to the figure's height: the compact roll hides while a panel is open (design doc 4.20).
 RollAnimConfig.PANEL_TOP = 12 + 48 + RollAnimConfig.COMPACT_GAP + 66 + 4
 -- Enlarged card: centred, about 3x the old compact card
@@ -87,28 +88,35 @@ function RollAnimConfig.SpinSlots(interval)
 	return slots
 end
 
-local REDRAW_CAP = 100 -- 0.81 ^ 100 is about 1e-9: the fallback below exists only so this can never loop forever
+-- A repeat is redrawn from the low rarities only, weighted by their odds (owner 2026-11-04): the catch-all takes about
+-- 81 % of luck-1 rolls, so plain draws would show one character, and a rarer character must never appear above its
+-- true odds as a fake near-miss.
+local LOW_RARITY = { Common = true, Uncommon = true }
 
--- A real luck-1 roll that differs from both ids. The catch-all takes about 81 % of rolls, so plain draws would show
--- one character with no visible cycling.
 local function drawOther(rng, first, second)
-	for _ = 1, REDRAW_CAP do
-		local id = GachaConfig.Roll(rng, 1)
-		if id ~= first and id ~= second then
-			return id
+	local id = GachaConfig.Roll(rng, 1)
+	if id ~= first and id ~= second then
+		return id
+	end
+	local pool, total = {}, 0
+	for _, spec in CharacterCatalog.Rollable() do
+		if LOW_RARITY[spec.Rarity] and spec.Id ~= first and spec.Id ~= second then
+			table.insert(pool, spec)
+			total += 1 / spec.Chance
 		end
 	end
-	local rollable = CharacterCatalog.Rollable()
-	for i = #rollable, 1, -1 do
-		if rollable[i].Id ~= first and rollable[i].Id ~= second then
-			return rollable[i].Id
+	local pick = rng:NextNumber() * total
+	for _, spec in pool do
+		pick -= 1 / spec.Chance
+		if pick <= 0 then
+			return spec.Id
 		end
 	end
-	return rollable[#rollable].Id
+	return pool[#pool].Id
 end
 
--- The characters shown in order; the last is the result. The others are real rolls at luck 1, so a rare character is
--- never planted as a fake near-miss. No two neighbours are the same.
+-- The characters shown in order; the last is the result. No two neighbours are the same. Every filler starts as a real
+-- luck-1 roll.
 function RollAnimConfig.Reel(rng, resultId)
 	local reel = {}
 	local last = RollAnimConfig.REEL_CARS - 1

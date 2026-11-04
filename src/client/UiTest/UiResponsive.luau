@@ -1717,11 +1717,6 @@ Model.Follow = {
 	["RollShowcase/Card/CardBody/Face/Reel"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 	["RollShowcase/Card/CardBody/Face/Viewport"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 }
--- Client/RollToast places the compact roll's top edge RollAnimConfig.COMPACT_GAP px under the Race button
--- (fitCompact, on every viewport change): Y offset = Race Face bottom in screen pixels (AbsolutePosition.Y +
--- AbsoluteSize.Y + top-bar inset; RollToast ignores the inset) + COMPACT_GAP. The solver applies it to the live
--- properties at every simulated viewport (the live Y offset is the one fitCompact computed for the live screen).
-Model.BelowRace = { ["RollToast/Toast"] = "RacerHud/Race/Face" }
 -- The roll bodies animate (PopIn grows them from 0, LAND_POP, the compact Exit shrink); at rest (Hold / Idle) they
 -- fill their card centred. The solver always places them at this rest geometry.
 Model.Animated = {

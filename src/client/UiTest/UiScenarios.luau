@@ -1070,16 +1070,35 @@ local function cardKind(obj)
 end
 
 -- The compact figure's height: COMPACT_HEIGHT, capped on small screens (docs/ROLL_ANIMATION_SPEC.md "Views").
-function K.compactFigureHeight(screenHeight)
-	return math.min(animNum("COMPACT_HEIGHT"), math.floor(animNum("COMPACT_SCREEN_SHARE") * screenHeight))
+function K.compactFigureHeight(screenHeight, toastTop, levelRect)
+	local figure = math.min(animNum("COMPACT_HEIGHT"), math.floor(animNum("COMPACT_SCREEN_SHARE") * screenHeight))
+	-- On a phone the Toast also ends COMPACT_GAP above the LEVEL bar, when that bar's rect is known
+	if toastTop and levelRect then
+		local room = levelRect.y - animNum("COMPACT_GAP") - toastTop - UiSpec.Compact.ExtraHeight
+		figure = math.min(figure, math.floor(room))
+	end
+	return figure
 end
 
--- Compact: AnchorPoint (0.5, 0), centred, top edge COMPACT_GAP under the Auto Race button, width
+-- The compact roll's top edge: COMPACT_TOP from the screen top (IgnoreGuiInset); when the top-right row's left edge
+-- reaches the roll (a small phone), COMPACT_GAP under that row instead.
+function K.compactTop(base, vp, ctx)
+	local screen = vp or viewport()
+	local half = math.clamp(animNum("COMPACT_WIDTH") * screen.X, animNum("COMPACT_MIN"), animNum("COMPACT_MAX")) / 2
+	local row = findPath(UiResponsive.HudChrome.Bar)
+	local rowRect = row and simRect(row, ctx)
+	if rowRect and rowRect.x < screen.X / 2 + half + animNum("COMPACT_GAP") then
+		return rowRect.y + rowRect.h + animNum("COMPACT_GAP")
+	end
+	return base.y + animNum("COMPACT_TOP")
+end
+
+-- Compact: AnchorPoint (0.5, 0), centred, top edge K.compactTop, width
 -- clamp(COMPACT_WIDTH x parent width, COMPACT_MIN, COMPACT_MAX), height figure + UiSpec.Compact.ExtraHeight.
-local function compactNominal(base, toggleRect, vp)
+local function compactNominal(base, vp, levelRect, ctx)
 	local w = math.clamp(base.w * animNum("COMPACT_WIDTH"), animNum("COMPACT_MIN"), animNum("COMPACT_MAX"))
-	local h = K.compactFigureHeight((vp or viewport()).Y) + UiSpec.Compact.ExtraHeight
-	local top = toggleRect and (toggleRect.y + toggleRect.h + animNum("COMPACT_GAP")) or base.y
+	local top = K.compactTop(base, vp, ctx)
+	local h = K.compactFigureHeight((vp or viewport()).Y, top, levelRect) + UiSpec.Compact.ExtraHeight
 	return R(base.x + base.w / 2 - w / 2, top, w, h)
 end
 
@@ -1094,7 +1113,7 @@ end
 
 -- Layout solver for a hypothetical viewport: UDim2 Position/Size, AnchorPoint, UISizeConstraint, UIScale, UIPadding,
 -- UIListLayout, UIGridLayout, ScrollingFrame CanvasPosition, the top-bar inset, and the runtime rules of the UI
--- scripts mirrored in UiResponsive (Racer panel band R2, compact roll BelowRace, ProgressionUi
+-- scripts mirrored in UiResponsive (Racer panel band R2, ProgressionUi
 -- fits incl. R4). Anything else is recorded in ctx.unsupported (the layout_model_supported check fails, so the solver
 -- must be extended, never ignored). UIGradient, UICorner, UIStroke and GuiObject.Rotation do not move or size
 -- anything (visual only).
@@ -1114,8 +1133,8 @@ simRect = function(obj, ctx)
 	elseif kind then
 		local base = simRect(obj.Parent, ctx)
 		if kind == "compact" then
-			local toggle = findPath(UiSpec.Hud.Race)
-			r = compactNominal(base, toggle and simRect(toggle, ctx), ctx.vp)
+			local level = findPath(UiSpec.HudPair.Level)
+			r = compactNominal(base, ctx.vp, level and simRect(level, ctx), ctx)
 		else
 			r = enlargedNominal(base, ctx.vp)
 		end
@@ -1228,18 +1247,17 @@ simRect = function(obj, ctx)
 					ctx.unsupported[path] = "missing runtime layout dependency"
 				end
 			end
-			-- The compact roll's live Y offset is fitCompact's for the live screen: at a simulated viewport it is
-			-- Race Face bottom + COMPACT_GAP there (UiResponsive.BelowRace)
-			local below = UiResponsive.BelowRace[path]
-			if below and not liveVp and findPath(below) then
-				local race = simRect(findPath(below), ctx)
-				position =
-					UDim2.new(position.X.Scale, position.X.Offset, 0, race.y + race.h + animNum("COMPACT_GAP") - base.y)
+			-- The compact roll's top and height are fitCompact's for the live screen: both follow the simulated one
+			local compactTop = path == "RollToast/Toast" and not liveVp and K.compactTop(base, ctx.vp, ctx)
+			if compactTop then
+				position = UDim2.new(position.X.Scale, position.X.Offset, 0, compactTop - base.y)
 			end
 			local w, h = sizeIn(obj, size, base, ctx, c)
-			-- ...and its height is fitCompact's for the live screen too: the figure's cap follows the simulated one
-			if below and not liveVp then
-				h = K.compactFigureHeight((ctx.vp or viewport()).Y) + UiSpec.Compact.ExtraHeight
+			if compactTop then
+				local level = findPath(UiSpec.HudPair.Level)
+				local top = compactTop
+				h = K.compactFigureHeight((ctx.vp or viewport()).Y, top, level and simRect(level, ctx))
+					+ UiSpec.Compact.ExtraHeight
 			end
 			local x = base.x + base.w * position.X.Scale + c * position.X.Offset - anchor.X * w
 			local y = base.y + base.h * position.Y.Scale + c * position.Y.Offset - anchor.Y * h
@@ -1876,35 +1894,85 @@ function K.modelProblems(view, placeholder, id)
 	return bad
 end
 
--- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the whole figure fits the view. Every visible part's box corners, through the
--- view's camera, stay inside its rectangle (hair, weapons and capes are not cut off).
-function K.figureProblems(view, id)
+-- docs/ROLL_ANIMATION_SPEC.md "Bust framing", from the view's camera: Head and its hair are inside the view (not cut at
+-- the top or the sides); the view's bottom edge is below the head; and nothing shows below the capped torso bottom:
+-- it lies past the view's edge, or the Viewport's BottomFade has faded the figure out there (the legs stay in the view
+-- rect on a slim figure, whose width sets the camera distance, but are invisible).
+function K.bustProblems(view, id)
 	local model = K.modelOf(view, id)
 	local camera = view and view.CurrentCamera
-	if not (model and camera) then
-		return { tostring(id) .. ": no Model or no camera to measure" }
+	local head, torso = model and model:FindFirstChild("Head"), model and model:FindFirstChild("Torso")
+	if not (head and torso and camera) then
+		return { tostring(id) .. ": no Model, Head, Torso or camera to measure" }
 	end
-	local tanY = math.tan(math.rad(camera.FieldOfView) / 2) * UiSpec.RollAnim.FigureFitSlack
+	local cfg = UiSpec.RollAnim
+	local tanY = math.tan(math.rad(camera.FieldOfView) / 2)
 	local tanX = tanY * view.AbsoluteSize.X / math.max(view.AbsoluteSize.Y, 1)
-	local cut = {}
+	-- A world point in view units: -1 and 1 are the view's edges
+	local function project(point)
+		local p = camera.CFrame:PointToObjectSpace(point)
+		local depth = -p.Z
+		if depth <= 0 then
+			return math.huge, math.huge
+		end
+		return p.X / (tanX * depth), p.Y / (tanY * depth)
+	end
+	local bad = {}
+	local tops = { head }
 	for _, d in model:GetDescendants() do
-		if d:IsA("BasePart") and d.Transparency < 1 and not table.find(cut, d.Name) then
-			for _, x in { -0.5, 0.5 } do
-				for _, y in { -0.5, 0.5 } do
-					for _, z in { -0.5, 0.5 } do
-						local corner = d.CFrame * Vector3.new(x * d.Size.X, y * d.Size.Y, z * d.Size.Z)
-						local p = camera.CFrame:PointToObjectSpace(corner)
-						local depth = -p.Z
-						local inside = depth > 0 and math.abs(p.X) <= tanX * depth and math.abs(p.Y) <= tanY * depth
-						if not inside and not table.find(cut, d.Name) then
-							table.insert(cut, d.Name)
-						end
-					end
+		local isHair = d:IsA("BasePart")
+			and d ~= head
+			and d.Transparency < 1
+			and (d:IsDescendantOf(head) or string.find(string.lower(d.Name), "hair", 1, true) ~= nil)
+		if isHair then
+			table.insert(tops, d)
+		end
+	end
+	for _, part in tops do
+		local cut = false
+		for _, x in { -0.5, 0.5 } do
+			for _, y in { -0.5, 0.5 } do
+				for _, z in { -0.5, 0.5 } do
+					local vx, vy = project(part.CFrame * Vector3.new(x * part.Size.X, y * part.Size.Y, z * part.Size.Z))
+					cut = cut or math.abs(vx) > cfg.FigureFitSlack or math.abs(vy) > cfg.FigureFitSlack
 				end
 			end
 		end
+		if cut then
+			table.insert(bad, tostring(id) .. " cut off at " .. part.Name)
+		end
 	end
-	return #cut > 0 and { tostring(id) .. " cut off at " .. table.concat(cut, ",") } or {}
+	local _, headBottom = project(head.CFrame * Vector3.new(0, -head.Size.Y / 2, 0))
+	if headBottom <= -1 then
+		table.insert(bad, ("%s view edge not below the head (%.2f)"):format(tostring(id), headBottom))
+	end
+	local bottomY = torso.Position.Y - math.min(torso.Size.Y / 2, cfg.BustTorsoHalf)
+	local _, torsoBottom = project(Vector3.new(torso.Position.X, bottomY, torso.Position.Z))
+	local fraction = (1 - torsoBottom) / 2 -- of the view's height from its top: BottomFade's time at Rotation 90
+	if fraction < 1 then
+		local fade = view:FindFirstChild("BottomFade")
+		if not (fade and fade:IsA("UIGradient") and fade.Rotation == 90) then
+			table.insert(bad, tostring(id) .. " shows below the Torso: no BottomFade UIGradient at Rotation 90")
+		else
+			local keys = fade.Transparency.Keypoints
+			local shown = keys[#keys].Value
+			for i = 2, #keys do
+				if fraction <= keys[i].Time then
+					local a, b = keys[i - 1], keys[i]
+					local along = (fraction - a.Time) / math.max(b.Time - a.Time, 1e-6)
+					shown = a.Value + (b.Value - a.Value) * math.max(along, 0)
+					break
+				end
+			end
+			if shown < cfg.BustFadeMin then
+				table.insert(
+					bad,
+					("%s shows below the Torso: fade %.2f at view fraction %.2f"):format(tostring(id), shown, fraction)
+				)
+			end
+		end
+	end
+	return bad
 end
 
 -- skipGeometry: leave out contentOutside (SampleRoll measures it once the body has settled from LAND_POP).
@@ -2289,7 +2357,7 @@ local function compactProblems(toast, ev)
 	return bad
 end
 
--- At 1x (Hold): Body fills the rect; top to bottom the caption band, the figure (K.compactFigureHeight), the odds band
+-- At 1x (Hold): Body fills the rect; top to bottom the figure (K.compactFigureHeight, CaptionBand below the top), the odds band
 -- and the name band.
 local function compactLayoutProblems(toast)
 	if not toast then
@@ -2306,7 +2374,8 @@ local function compactLayoutProblems(toast)
 		end
 	end
 	local caption = UiSpec.Compact.CaptionBand
-	local figure = K.compactFigureHeight(viewport().Y)
+	local level = findPath(UiSpec.HudPair.Level)
+	local figure = K.compactFigureHeight(viewport().Y, tr.y, level and realRect(level))
 	local split = tr.y + caption + figure
 	local function edges(name, top, bottom)
 		local o = toast:FindFirstChild(name, true)
@@ -2494,6 +2563,38 @@ local function distToRect(x, y, r)
 	return math.sqrt(dx * dx + dy * dy)
 end
 
+-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": green while AutoRacing, Daily's dark pill colour while off. Nil when right.
+function K.autoTintProblem(toggle)
+	if not toggle then
+		return "no " .. UiSpec.Hud.Auto
+	end
+	local c = toggle.BackgroundColor3
+	local green = c.G >= 0.4 and c.G > 1.25 * c.R and c.G > 1.25 * c.B
+	if attr("AutoRacing") == true then
+		return not green and ("%s not green while AutoRacing"):format(tostring(c)) or nil
+	end
+	local daily = findPath(UiSpec.Hud.Daily)
+	if green or not (daily and sameColour(c, daily.BackgroundColor3)) then
+		return ("%s not Daily's pill colour while off"):format(tostring(c))
+	end
+	return nil
+end
+
+-- The tint may still show the 1 s pending lock: judged once that is over.
+function K.autoTintSettled(toggle)
+	local deadline = os.clock() + UiSpec.Hud.AutoTintWait
+	local problem = K.autoTintProblem(toggle)
+	while problem and os.clock() < deadline do
+		task.wait(0.05)
+		problem = K.autoTintProblem(toggle)
+	end
+	return problem
+end
+
+function K.timeScale(interval)
+	return math.min(1, (interval or GachaConfig.ROLL_INTERVAL) / animNum("FIT_INTERVAL"))
+end
+
 function K.reducedNow()
 	return GuiService.ReducedMotionEnabled or player:GetAttribute("ReduceEffects") == true
 end
@@ -2524,19 +2625,52 @@ function K.lookOf(view)
 	)
 end
 
+-- The enlarged OddsGradient before Land, on every roll: every landing paints it, so white here is a real reset.
+function K.sampleOddsNeutral(rec, card)
+	local odds = partOf(card, "ResultOdds")
+	local gradient = odds and odds:FindFirstChild("OddsGradient")
+	rec.shown.oddsFrames += 1
+	if not (gradient and gradient:IsA("UIGradient")) then
+		rec.shown.oddsTinted["no OddsGradient"] = true
+		return
+	end
+	for _, k in gradient.Color.Keypoints do
+		if not sameColour(k.Value, Color3.new(1, 1, 1)) then
+			rec.shown.oddsTinted[tostring(k.Value)] = true
+		end
+	end
+end
+
 -- One frame of the playing card: what ShownId and the Viewport say (K.shownChecks judges them).
 function K.sampleShown(rec, card, key, phase, now)
 	local s = rec.shown
 	local id = K.shownIdOf(card, key)
 	local view = partOf(card, "Viewport")
+	-- The landing ring: seen in Land, gone by the last Hold frame
+	local wave = partOf(card, "LandWave")
+	local ring = wave and wave:FindFirstChildWhichIsA("UIStroke")
+	if ring and phase == "Land" and effectivelyVisible(wave) then
+		s.waveLand = math.min(s.waveLand or 1, ring.Transparency)
+	elseif ring and phase == "Hold" then
+		s.waveHoldEnd = ring.Transparency
+	end
 	if phase == "PopIn" or phase == "Spin" then
-		-- No text until Land ("" and not "?"); the turbo badge alone shows from pop-in (showcase_turbo_badge_from_popin)
+		-- Until Land the odds show "?" and the name "???", and no other text; the turbo badge alone shows its own from
+		-- pop-in (showcase_turbo_badge_from_popin)
 		local badge = partOf(card, "TurboBadge")
+		local early = { Odds = "?", ResultOdds = "?", CharacterName = "???", ResultName = "???" }
 		for _, d in card:GetDescendants() do
-			if d:IsA("TextLabel") and d.Text ~= "" and effectivelyVisible(d) and d ~= badge then
-				if not (badge and d:IsDescendantOf(badge)) then
+			if d:IsA("TextLabel") and effectivelyVisible(d) and d ~= badge then
+				if d.Text ~= (early[d.Name] or "") and not (badge and d:IsDescendantOf(badge)) then
 					s.earlyText[("%s %q"):format(d.Name, d.Text)] = true
 				end
+			end
+		end
+		for _, name in key == "Compact" and { "Odds", "CharacterName" } or { "ResultOdds", "ResultName" } do
+			local state = labelState(card, name)
+			if not state.shown or state.text ~= early[name] then
+				s.earlyText[("%s %q shown=%s, want %q"):format(name, state.text, tostring(state.shown), early[name])] =
+					true
 			end
 		end
 	end
@@ -2560,14 +2694,16 @@ function K.sampleShown(rec, card, key, phase, now)
 				s.drift = math.max(s.drift, math.abs(s.rest[1] - s.spot[1]), math.abs(s.rest[2] - s.spot[2]))
 			end
 			s.spot = s.spot or s.rest
-			for _, problem in K.figureProblems(view, id) do
+			for _, problem in K.bustProblems(view, id) do
 				table.insert(s.figure, problem)
 			end
 		end
 		if id ~= nil and not K.modelOf(view, id) then
 			s.spinNoModel[id] = true
 		end
-		if view and view:IsA("GuiObject") then
+		-- Short slots end mid swap pop (MotionScale is not back at 1): only a frame at rest says where the spot is
+		local pop = view and view:FindFirstChild("MotionScale")
+		if view and view:IsA("GuiObject") and (not pop or math.abs(pop.Scale - 1) <= 0.01) then
 			s.rest = { centre(realRect(view)) }
 		end
 		-- Nothing slides: any visible tile left in the Reel frame keeps its centre (a pop keeps it too)
@@ -2614,6 +2750,10 @@ function UiScenarios.SampleRoll(ev)
 		shown = { -- K.sampleShown, every frame of the playing card
 			reduced = K.reducedNow(),
 			earlyText = {},
+			oddsFrames = 0,
+			oddsTinted = {},
+			switchFrames = 0,
+			switchPlaceholder = 0,
 			popInFrames = 0,
 			popInHidden = 0,
 			spinFrames = 0,
@@ -2648,6 +2788,7 @@ function UiScenarios.SampleRoll(ev)
 				or {
 					view = icon ~= nil and icon:IsA("ViewportFrame"),
 					rig = K.modelOf(icon, ev.id) ~= nil,
+					bust = K.bustProblems(icon, ev.id),
 					w = fly.AbsoluteSize.X,
 					h = fly.AbsoluteSize.Y,
 				}
@@ -2666,6 +2807,16 @@ function UiScenarios.SampleRoll(ev)
 			continue
 		end
 		local now = os.clock()
+		-- The SWITCH of an emphasized roll, before its PopIn: the enlarged view opens on a figure, never on "?"
+		if ev.emphasized and not rec.seen.Enlarged.PopIn then
+			local opening = rollCards().Enlarged
+			if opening and effectivelyVisible(opening) then
+				rec.shown.switchFrames += 1
+				if partShown(opening, "Placeholder") then
+					rec.shown.switchPlaceholder += 1
+				end
+			end
+		end
 		local view = viewNow()
 		if view ~= lastView then
 			table.insert(rec.views, { view = tostring(view), t = now })
@@ -2673,6 +2824,9 @@ function UiScenarios.SampleRoll(ev)
 		end
 		for key, card in rollCards() do
 			local phase = card:GetAttribute("Phase")
+			if key == "Enlarged" and (phase == "PopIn" or phase == "Spin") then
+				K.sampleOddsNeutral(rec, card)
+			end
 			if phase ~= last[key] then
 				last[key] = phase
 				table.insert(rec.phases[key], { phase = tostring(phase), t = now })
@@ -2710,7 +2864,7 @@ function UiScenarios.SampleRoll(ev)
 						hiddenRigs = hiddenRigs,
 						hiddenShownId = otherCard and K.shownIdOf(otherCard, otherKey),
 						model = K.modelProblems(heldView, partOf(card, "Placeholder"), ev.id),
-						figure = K.figureProblems(heldView, ev.id),
+						figure = K.bustProblems(heldView, ev.id),
 						look = K.lookOf(heldView),
 						-- The odds labels as landed: Odds on both cards (the enlarged one's is the alias of ResultOdds)
 						odds = labelState(card, "Odds"),
@@ -2932,6 +3086,38 @@ function K.shownChecks(res, rec, key, prefix)
 	end
 	checkList(res, prefix .. "shown_id_is_result_from_land", wrong)
 	checkList(res, prefix .. "no_text_before_land", keysOf(s.earlyText))
+	-- docs/ROLL_ANIMATION_SPEC.md "Land": UiMotion lands a tween at once under reduced motion, so the ring has no visible
+	-- frame there (the spec's reduced rule keeps the same phases, the code draws no ring to measure)
+	if not s.reduced then
+		check(
+			res,
+			prefix .. "land_wave_on_land",
+			("Land %s, last Hold frame %s"):format(tostring(s.waveLand), tostring(s.waveHoldEnd)),
+			"Land < 0.5, last Hold frame >= 0.95 (UIStroke Transparency)",
+			s.waveLand ~= nil and s.waveLand < 0.5 and s.waveHoldEnd ~= nil and s.waveHoldEnd >= 0.95
+		)
+	end
+	-- White before Land, this roll and every roll sampled after a Mythic or Secret one
+	local tinted, afterMoving = keysOf(s.oddsTinted), 0
+	if s.oddsFrames == 0 then
+		table.insert(tinted, "no PopIn or Spin frame sampled")
+	end
+	for i = 2, #events.recs do
+		local before = rarityOf(events.recs[i - 1].ev.id)
+		if before == "Mythic" or before == "Secret" then
+			afterMoving += 1
+			for _, colour in keysOf(events.recs[i].shown.oddsTinted) do
+				table.insert(tinted, "after " .. before .. ": " .. colour)
+			end
+		end
+	end
+	check(
+		res,
+		prefix .. "spin_odds_neutral",
+		("%s (%d rolls after a Mythic or Secret)"):format(table.concat(tinted, ", "), afterMoving),
+		"plain white",
+		#tinted == 0
+	)
 	check(
 		res,
 		prefix .. "viewport_visible_from_popin",
@@ -2971,26 +3157,43 @@ function K.shownChecks(res, rec, key, prefix)
 			local at = table.find(ids, slot.id, nextIndex)
 			if at then
 				nextIndex = at + 1
+				slot.reelIndex = at
 			else
 				table.insert(offReel, slot.id)
 			end
 		end
 		checkList(res, prefix .. "spin_shows_reel_in_order", offReel)
-		-- Each slot lasts longer than the one before it
-		local shorter, lengths = {}, {}
+		-- Each slot lasts longer than the one before it, judged on what the frames saw. A slot followed by a missed one
+		-- reads too long, so only a slot whose successor was sampled counts. Neighbours differ by less than a frame's
+		-- noise, so the pairs only catch a real reversal: the first-to-last trend is what proves the slow-down.
+		local shorter, lengths, prev = {}, {}, nil
 		for i, slot in seq do
-			lengths[i] = (seq[i + 1] and seq[i + 1].t or s.spinEnd) - slot.t
-			if i > 1 and lengths[i] < lengths[i - 1] - cfg.SlotJitter then
-				table.insert(shorter, ("slot %d %.3f s after %.3f s"):format(i, lengths[i], lengths[i - 1]))
+			local following = seq[i + 1]
+			if not following or (slot.reelIndex and following.reelIndex == slot.reelIndex + 1) then
+				local length = (following and following.t or s.spinEnd) - slot.t
+				if prev and slot.reelIndex == prev.index + 1 and length < prev.length - cfg.SlotJitter then
+					table.insert(shorter, ("slot %d %.3f s after %.3f s"):format(i, length, prev.length))
+				end
+				prev = { index = slot.reelIndex or i, length = length }
+				table.insert(lengths, length)
 			end
 		end
-		if #lengths < 3 or lengths[#lengths] <= lengths[1] then
+		local third = #lengths // 3
+		local early, late = 0, 0
+		for i = 1, third do
+			early += lengths[i]
+			late += lengths[#lengths + 1 - i]
+		end
+		if third == 0 or late < cfg.SlowDownRatio * early then
 			table.insert(
 				shorter,
-				("%d slots, first %s s, last %s s"):format(#lengths, tostring(lengths[1]), tostring(lengths[#lengths]))
+				("%d slots measured, first third %.3f s, last third %.3f s"):format(#lengths, early, late)
 			)
 		end
 		checkList(res, prefix .. "spin_swaps_slow_down", shorter)
+		if s.spot and s.rest then
+			s.drift = math.max(s.drift, math.abs(s.rest[1] - s.spot[1]), math.abs(s.rest[2] - s.spot[2]))
+		end
 		check(res, prefix .. "spin_fixed_spot", s.drift, "<= " .. cfg.SpotTolerance, s.drift <= cfg.SpotTolerance)
 		check(res, prefix .. "spin_nothing_slides", s.slide, "<= " .. cfg.SpotTolerance, s.slide <= cfg.SpotTolerance)
 		check(res, prefix .. "spin_no_speed_streaks", s.streaks == true, false, s.streaks ~= true)
@@ -3010,7 +3213,7 @@ function K.shownChecks(res, rec, key, prefix)
 	for _, problem in hold and hold.figure or { "no Hold sample" } do
 		table.insert(cut, problem)
 	end
-	checkList(res, prefix .. "whole_figure_fits_view", cut)
+	checkList(res, prefix .. "bust_framing", cut)
 end
 
 -- Waits until the card's Phase is one of `wanted` for two frames running (geometry settled). False on timeout.
@@ -3889,6 +4092,77 @@ function S.ui_layout(res)
 					check(res, "settings_top_right_" .. vpSpec.Name, "missing", "present", false)
 				end
 				-- retired: speed_group_centred_* (no Speed read-out, design doc 4.13, owner 2026-11-01)
+				-- The Auto pill: immediately left of Daily, at its height, and the whole row on screen at every size
+				local autoPill, dailyPill = findPath(UiSpec.Hud.Auto), findPath(UiSpec.Hud.Daily)
+				if autoPill and dailyPill then
+					local ar, dr = rectOf(autoPill), rectOf(dailyPill)
+					local gapToDaily = dr.x - (ar.x + ar.w)
+					check(
+						res,
+						"auto_left_of_daily_" .. vpSpec.Name,
+						gapToDaily,
+						("0..%g"):format(UiSpec.Hud.AutoMaxGap),
+						gapToDaily >= -TOL and gapToDaily <= UiSpec.Hud.AutoMaxGap + TOL
+					)
+					check(
+						res,
+						"auto_at_daily_height_" .. vpSpec.Name,
+						rstr(ar),
+						"y and h of " .. rstr(dr),
+						math.abs(ar.y - dr.y) <= TOL and math.abs(ar.h - dr.h) <= TOL
+					)
+				else
+					check(res, "auto_left_of_daily_" .. vpSpec.Name, "missing", "present", false)
+				end
+				local offRow = {}
+				for _, path in UiSpec.Hud.TopRow do
+					local pill = findPath(path)
+					if not pill then
+						table.insert(offRow, path .. " missing")
+					elseif not contains(rootOf(path), rectOf(pill)) then
+						table.insert(offRow, path .. rstr(rectOf(pill)))
+					end
+				end
+				checkList(res, "top_right_row_on_screen_" .. vpSpec.Name, offRow)
+				-- The compact roll sits at the very top centre: it never runs into that row
+				local toastAtTop, overRow = findPath("RollToast/Toast"), {}
+				for _, path in UiSpec.Hud.TopRow do
+					local pill = findPath(path)
+					if toastAtTop and pill and intersects(rectOf(toastAtTop), rectOf(pill)) then
+						table.insert(overRow, path .. rstr(rectOf(pill)) .. " x Toast" .. rstr(rectOf(toastAtTop)))
+					end
+				end
+				if not toastAtTop then
+					overRow = { "no RollToast/Toast" }
+				end
+				checkList(res, "toast_clear_of_top_right_row_" .. vpSpec.Name, overRow)
+				-- Quests: the Shop tile's twin, directly above it, on screen
+				local questsTile, shopTile = findPath(UiSpec.Hud.Quests), findPath(UiSpec.Hud.Shop)
+				if questsTile and shopTile then
+					local qr, sr = rectOf(questsTile), rectOf(shopTile)
+					local gapToShop = sr.y - (qr.y + qr.h)
+					check(
+						res,
+						"quests_above_shop_" .. vpSpec.Name,
+						rstr(qr) .. " over " .. rstr(sr),
+						("same x and size, gap 0..%g"):format(UiSpec.Hud.ColumnMaxGap),
+						math.abs(qr.x - sr.x) <= TOL
+							and math.abs(qr.w - sr.w) <= TOL
+							and math.abs(qr.h - sr.h) <= TOL
+							and gapToShop >= -TOL
+							and gapToShop <= UiSpec.Hud.ColumnMaxGap + TOL
+					)
+					check(
+						res,
+						"quests_on_screen_" .. vpSpec.Name,
+						rstr(qr),
+						"inside the screen",
+						contains(rootOf(UiSpec.Hud.Quests), qr)
+					)
+				else
+					check(res, "quests_above_shop_" .. vpSpec.Name, "missing", "present", false)
+				end
+				-- RacerHud/Race is hidden: this only holds the anchor the Toast and the panel bands read in place
 				local toggle = findPath(UiSpec.Hud.Race)
 				if toggle then
 					local r, root = rectOf(toggle), rootOf(UiSpec.Hud.Race)
@@ -4350,19 +4624,28 @@ end
 
 function S.ui_buttons(res)
 	waitGuis()
-	local toggle = findPath(UiSpec.Hud.Race)
-	local racing = attr("AutoRacing") == true
+	local toggle = findPath(UiSpec.Hud.Auto)
 	if toggle then
 		check(
 			res,
 			"autorace_label_matches_server",
 			allText(toggle),
-			string.upper(HudFormat.AutoButtonText(racing)),
-			allText(toggle) == string.upper(HudFormat.AutoButtonText(racing))
+			UiSpec.Hud.AutoLabel,
+			allText(toggle) == UiSpec.Hud.AutoLabel
 		)
+		local tint = K.autoTintSettled(toggle)
+		check(res, "auto_pill_tint_matches_server", tint or "right", "right", tint == nil)
 	else
 		check(res, "autorace_label_matches_server", "missing", "present", false)
 	end
+	local oldRace = findPath(UiSpec.Band.Race)
+	check(
+		res,
+		"old_race_button_hidden",
+		oldRace and tostring(effectivelyVisible(oldRace)) or "missing",
+		"false (the instance stays, as the layout anchor)",
+		oldRace ~= nil and not effectivelyVisible(oldRace)
+	)
 	for index, path in UiSpec.Hud.NavButtons do
 		local item = { path, UiSpec.Hud.NavLabels[index] }
 		local b = findPath(item[1])
@@ -4571,14 +4854,13 @@ function S.ui_hud(res)
 		end
 	end
 	checkList(res, "hud_counters_have_text_gradient", noGradient)
-	local toggle = findPath(UiSpec.Hud.Race)
-	local racing = attr("AutoRacing") == true
+	local toggle = findPath(UiSpec.Hud.Auto)
 	check(
 		res,
 		"autorace_label_follows_server",
 		toggle and allText(toggle),
-		string.upper(HudFormat.AutoButtonText(racing)),
-		toggle ~= nil and allText(toggle) == string.upper(HudFormat.AutoButtonText(racing))
+		UiSpec.Hud.AutoLabel,
+		toggle ~= nil and allText(toggle) == UiSpec.Hud.AutoLabel
 	)
 end
 
@@ -5186,7 +5468,7 @@ end
 -- The compact roll card RollToast/Toast (docs/ROLL_ANIMATION_SPEC.md; it replaced the bottom-centre toast): a
 -- TextButton with no text of its own, shown while a roll plays and clickable only then (Visible = false at rest:
 -- no invisible hitbox), hidden while any panel is open, landed on the roll's truth and placed exactly at its
--- contract rect (top centre, COMPACT_GAP under the Auto Race button) at every viewport.
+-- contract rect (top centre, K.compactTop) at every viewport.
 function S.ui_toast(res)
 	waitGuis()
 	local toast = findPath("RollToast/Toast")
@@ -5773,6 +6055,14 @@ function S.ui_roll_anim(res)
 	local target = findPath(UiSpec.RollAnim.FlyTarget)
 	local fly = rec.fly
 	check(res, "flyicon_shown_on_exit", #fly, ">= 1 sample", #fly >= 1)
+	-- The live HUD's Index button, not a hidden generated node
+	check(
+		res,
+		"flyicon_target_is_live",
+		target and tostring(effectivelyVisible(target)) or "missing",
+		"true",
+		target ~= nil and effectivelyVisible(target)
+	)
 	if #fly >= 1 and target and spec then
 		local texts = {}
 		for _, f in fly do
@@ -5790,6 +6080,7 @@ function S.ui_roll_anim(res)
 			"view=true rig=true",
 			icon ~= nil and icon.view and icon.rig
 		)
+		checkList(res, "flyicon_bust_framing", icon and icon.bust or { "no sample" })
 		local side = UiSpec.RollAnim.FlyIconSize
 		check(
 			res,
@@ -7012,6 +7303,13 @@ function S.ui_roll_emphasized(res)
 		"Enlarged",
 		sp ~= nil and sp.view == "Enlarged"
 	)
+	check(
+		res,
+		"emphasized_placeholder_hidden_in_switch",
+		("%d of %d SWITCH frames"):format(rec.shown.switchPlaceholder, rec.shown.switchFrames),
+		"0, at least 1 SWITCH frame",
+		rec.shown.switchFrames > 0 and rec.shown.switchPlaceholder == 0
+	)
 	phaseChecks(res, rec, "Enlarged", "emphasized_")
 	K.shownChecks(res, rec, "Enlarged", "emphasized_")
 	local hold = rec.hold.Enlarged
@@ -7435,6 +7733,7 @@ end
 
 -- Motion, safe area and gamepad focus (docs/HUD_LAYOUT_SPEC.md section 7; UiSpec.Accessibility)
 local access = require(script.Parent.UiAccessibility).Build({
+	timeScale = K.timeScale,
 	check = check,
 	checkList = checkList,
 	stateMissing = stateMissing,
@@ -8501,8 +8800,10 @@ function UiScenarios.RunClick(id)
 			local text = result and allText(result) or ""
 			check(res, cond, text, "server rejection money", string.find(string.lower(text), "money", 1, true) ~= nil)
 		elseif cond == "autorace_label_follows_server" then
-			local want = string.upper(HudFormat.AutoButtonText(attr("AutoRacing") == true))
-			check(res, cond, allText(button), want, allText(button) == want)
+			check(res, cond, allText(button), UiSpec.Hud.AutoLabel, allText(button) == UiSpec.Hud.AutoLabel)
+		elseif cond == "auto_pill_tint_follows_server" then
+			local tint = K.autoTintSettled(button)
+			check(res, cond, tint or "right", "right", tint == nil)
 		elseif cond == "autoracing_is_arg" then
 			check(res, cond, attr("AutoRacing") == true, wantArg, (attr("AutoRacing") == true) == wantArg)
 		elseif cond == "sound_label_off" or cond == "sound_label_on" then

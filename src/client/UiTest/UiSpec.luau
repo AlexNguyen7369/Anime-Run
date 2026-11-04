@@ -77,22 +77,14 @@ UiSpec.Guis = {
 	RacerHud = {
 		Source = "Client/RollToast/RacerUiController (Ui/RacerHud)",
 		-- retired: the Speed read-out / speedometer RacerHud/Speed (design doc 4.13, owner 2026-11-01)
+		-- retired as a button: Race, now hidden, only the layout anchor (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
 		AlwaysOn = {
-			"Race/Face",
 			"Money",
 			"Turbo",
 		},
 		Readouts = { "Money", "Turbo" },
 		NonInteractiveParts = { "Money", "Turbo" },
-		Buttons = {
-			{
-				Path = "Race/Face",
-				Does = "remote",
-				Remote = "SetAutoRace",
-				Arg = "not_attr:AutoRacing", -- the opposite of the current AutoRacing attribute
-				Label = "upper(HudFormat.AutoButtonText(AutoRacing))", -- "AUTO RACE" / "STOP AUTO"
-			},
-		},
+		Buttons = {},
 	},
 	-- Current persistent HUD entry points (docs/HUD_LAYOUT_SPEC.md). The generated
 	-- RacerHud navigation/settings nodes remain hidden compatibility assets and are
@@ -107,8 +99,9 @@ UiSpec.Guis = {
 			"ShopColumn/Shop",
 			"ItemsSlot/Items",
 			"UpgradeSlot/Upgrade",
+			"TopRight/Auto",
 			"TopRight/Daily",
-			"TopRight/Quests",
+			"ShopColumn/Quests",
 			"TopRight/Market",
 			"TopRight/Settings",
 		},
@@ -121,12 +114,19 @@ UiSpec.Guis = {
 			{ Path = "ItemsSlot/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "UpgradeSlot/Upgrade", Does = "toggle_panel", Panel = "RacerUpgrades/Panel", Text = "Upgrade" },
 			{
+				Path = "TopRight/Auto",
+				Does = "remote",
+				Remote = "SetAutoRace",
+				Arg = "not_attr:AutoRacing", -- the opposite of the current AutoRacing attribute
+				Text = "Auto", -- in every state (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
+			},
+			{
 				Path = "TopRight/Daily",
 				Does = "toggle_panel",
 				Panel = "DailyBoosts/ModalBackdrop",
 				Label = "Daily before claim; countdown after claim",
 			},
-			{ Path = "TopRight/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
+			{ Path = "ShopColumn/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
 			{ Path = "TopRight/Market", Does = "toggle_panel", Panel = "MarketUi/Backdrop", Text = "Market" },
 			{ Path = "TopRight/Settings", Does = "toggle_panel", Panel = "RacerSettings/Panel" },
 		},
@@ -495,7 +495,23 @@ UiSpec.Rebirth = {
 }
 -- The HUD (ui/specs/RacerHud.ui.json). Gaps are the spec's offsets (they are not scaled by the UIScale k).
 UiSpec.Hud = {
-	Race = "RacerHud/Race/Face",
+	Race = "RacerHud/Race/Face", -- hidden: geometry only, the anchor the Toast and the panel bands read
+	-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": a pill immediately left of Daily, same height, label "Auto" in every state
+	Auto = "HudChrome/TopRight/Auto",
+	Daily = "HudChrome/TopRight/Daily",
+	AutoLabel = "Auto",
+	AutoMaxGap = 8, -- px between the pill and Daily (TopRight's UIListLayout padding; a phone's UIScale only shrinks it)
+	AutoTintWait = 2, -- s: past the 1 s pending lock, the tint shows AutoRacing
+	-- docs/ROLL_ANIMATION_SPEC.md "Quests button": the Shop tile's twin, directly above it
+	Shop = "HudChrome/ShopColumn/Shop",
+	Quests = "HudChrome/ShopColumn/Quests",
+	ColumnMaxGap = 8, -- px between the two tiles (ShopColumn's UIListLayout padding; a phone's UIScale only shrinks it)
+	TopRow = {
+		"HudChrome/TopRight/Auto",
+		"HudChrome/TopRight/Daily",
+		"HudChrome/TopRight/Market",
+		"HudChrome/TopRight/Settings",
+	},
 	RaceLabel = "RacerHud/Race/Face/RaceLabel",
 	RaceTop = 72, -- px from the screen top (IgnoreGuiInset) to the Race button's top edge, below the top bar
 	NavButtons = {
@@ -524,12 +540,12 @@ UiSpec.Hud = {
 	SideGap = { Desktop = 22, Phone = 12 }, -- px: Money's left edge from the screen side
 }
 
--- The top controls (owner-approved layout, CLAUDE.md + ui/specs/RacerHud.ui.json, reconfirmed 2026-10-08): the Race
--- button (AUTO RACE / STOP AUTO) at the top centre (ui_layout autorace_top_centre_x / autorace_below_topbar) and
--- Settings in the top-right corner (ui.json: AnchorPoint (1, 0), Position (1, -12, 0, 12)). Both stay reachable while
+-- The top controls (owner-approved layout, CLAUDE.md + ui/specs/RacerHud.ui.json, reconfirmed 2026-10-08): the Auto
+-- pill (docs/ROLL_ANIMATION_SPEC.md "Auto toggle"; ui_layout autorace_top_centre_x / autorace_below_topbar now hold
+-- its hidden anchor RacerHud/Race in place) and Settings in the top-right corner (ui.json: AnchorPoint (1, 0), Position (1, -12, 0, 12)). Both stay reachable while
 -- any pop-up panel is open: no open panel may cover either of them (ui_layout panel_clear_of_top_controls_*).
 UiSpec.TopControls = {
-	Race = UiSpec.Hud.Race,
+	Race = UiSpec.Hud.Auto,
 	Settings = UiSpec.Hud.Settings,
 	SettingsMaxRightGap = 32, -- px from the screen's right edge to Settings' right edge
 	SettingsMaxTopGap = 32, -- px from the screen's top edge (IgnoreGuiInset) to Settings' top edge
@@ -765,7 +781,7 @@ UiSpec.BandPanels = {
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
-	Race = "RacerHud/Race",
+	Race = "RacerHud/Race", -- hidden: stays the band's anchor (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
 	Turbo = "RacerHud/Turbo",
 	Grid = "HudChrome/Grid",
 	ShopColumn = "HudChrome/ShopColumn",
@@ -885,13 +901,13 @@ UiSpec.PanelDimmers = {
 		"HudChrome/Grid/Stats",
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Shop",
+		"HudChrome/ShopColumn/Quests",
 		"HudChrome/ItemsSlot/Items",
 		"HudChrome/UpgradeSlot/Upgrade",
 		"HudChrome/TopRight/Daily",
-		"HudChrome/TopRight/Quests",
 		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
-		"RacerHud/Race/Face",
+		"HudChrome/TopRight/Auto",
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
@@ -976,7 +992,7 @@ UiSpec.Showcase = {
 		"Shard4",
 		"Facet",
 	},
-	-- The stacked figure, odds and name may spill past the invisible card (design doc 4.28: no visible card): while shown
+	-- The stacked figure, odds and name may spill past the invisible card (design doc 4.31: no visible card): while shown
 	-- they stay on screen and clear of AutoButton and Hint.
 	ScreenBoundParts = { "Viewport", "ResultName", "ResultOdds" },
 	-- ...and the content parts that must lie inside the card while shown (effects such as Burst may spill out)
@@ -1015,8 +1031,8 @@ UiSpec.Showcase = {
 
 -- The compact roll RollToast/Toast ("Compact = no card", owner decision 4): an invisible background, a transparent
 -- Body filling it with ONLY the bare figure, its odds and its name (docs/ROLL_ANIMATION_SPEC.md "Views"). Top to
--- bottom: the AUTO OFF caption band, the figure (RollAnimConfig.COMPACT_HEIGHT tall, at most COMPACT_SCREEN_SHARE of the
--- screen height), the odds, the name; Toast height = figure height + ExtraHeight.
+-- bottom: the figure with the AUTO OFF caption over its top (RollAnimConfig.COMPACT_HEIGHT tall, at most
+-- COMPACT_SCREEN_SHARE of the screen height), the odds, the name; Toast height = figure height + ExtraHeight.
 UiSpec.Compact = {
 	Body = "Body",
 	Parts = { "Body", "Reel", "LandWave", "Viewport", "Placeholder", "Odds", "CharacterName" },
@@ -1034,9 +1050,9 @@ UiSpec.Compact = {
 		"Flare",
 	},
 	AutoOff = "AutoOff", -- caption part, shown only while AutoRoll is false
-	CaptionBand = 24, -- px above the figure
+	CaptionBand = 0, -- px above the figure: AUTO OFF overlays its top (a band was a dead click area)
 	TextBand = 20, -- px each for the odds and the name under the figure
-	ExtraHeight = 64, -- caption band (24) + odds band (20) + name band (20)
+	ExtraHeight = 40, -- odds band (20) + name band (20)
 	SplitTolerance = 0.02, -- proportional tolerance for Roblox's layout rounding
 }
 
@@ -1061,13 +1077,14 @@ UiSpec.RollAnim = {
 			Mythic = 2.5,
 			Secret = 4,
 		},
-		REEL_CARS = 6,
+		REEL_CARS = 16,
 		LAND_POP = 1.15,
 		COMPACT_WIDTH = 0.12,
 		COMPACT_MIN = 100,
 		COMPACT_MAX = 230,
-		COMPACT_HEIGHT = 180,
+		COMPACT_HEIGHT = 110,
 		COMPACT_SCREEN_SHARE = 0.3,
+		COMPACT_TOP = 8,
 		COMPACT_GAP = 8,
 		ENLARGED_FACTOR = 3,
 		ENLARGED_WIDTH = 0.6, -- the enlarged card no longer derives from the compact size
@@ -1088,6 +1105,7 @@ UiSpec.RollAnim = {
 		"COMPACT_MAX",
 		"COMPACT_HEIGHT",
 		"COMPACT_SCREEN_SHARE",
+		"COMPACT_TOP",
 		"COMPACT_GAP",
 		"ENLARGED_FACTOR",
 		"ENLARGED_WIDTH",
@@ -1101,8 +1119,11 @@ UiSpec.RollAnim = {
 	ShownAttr = "ShownId", -- body attribute: the character on screen in every phase after PopIn
 	SpinMinShown = 2, -- distinct ShownId values during Spin (not under reduced motion)
 	SlotJitter = 0.04, -- s: two frames' slack when comparing the length of two Spin slots
-	SpotTolerance = 3, -- px: the figure's resting centre stays this close during Spin (one fixed spot, no sliding)
-	FigureFitSlack = 1.05, -- a part's box corners may pass the view edge by this factor: the box is wider than its mesh
+	SlowDownRatio = 1.5, -- sampled mean slot length, last third of Spin / first third (about 3 at SLOT_GROWTH 1.12)
+	SpotTolerance = 3, -- px: the figure's resting centre (MotionScale at 1) stays this close during Spin (no sliding)
+	FigureFitSlack = 1.05, -- a Head box corner may pass the view edge by this factor: the box is wider than its mesh
+	BustTorsoHalf = 1.2, -- studs: the torso's capped half height, whose bottom is where the figure must stop showing
+	BustFadeMin = 0.9, -- the Viewport's BottomFade transparency at that bottom, when it lies inside the view
 	LandPopTolerance = 0.06, -- peak body width / nominal within LAND_POP +- this during Land
 	SettledTolerance = 0.02, -- body width / nominal within 1 +- this during Hold (back to 1x)
 	PopInStartMax = 0.25, -- the body grows from 0: its smallest width during PopIn <= this x nominal
@@ -1852,27 +1873,27 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy" },
 		Expect = { Panels = { ["RacerRebirth/Panel"] = false }, Remote = false },
 	},
-	-- Race button: fires SetAutoRace(not AutoRacing); the label follows the server, not the click
+	-- Auto pill: fires SetAutoRace(not AutoRacing); the label stays "Auto", the tint follows the server, not the click
 	{
 		Id = "auto_race_toggle",
-		Gui = "RacerHud",
-		Path = "Race/Face",
+		Gui = "HudChrome",
+		Path = "TopRight/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false },
 		NeedSetup = { "spy" },
 		Expect = {
 			Remote = { Name = "SetAutoRace", Arg = "not_attr:AutoRacing" },
-			After = { "autorace_label_follows_server", "autoracing_is_arg" },
+			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
 	{
 		Id = "auto_race_toggle_back",
-		Gui = "RacerHud",
-		Path = "Race/Face",
+		Gui = "HudChrome",
+		Path = "TopRight/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitSeconds = 1.5 }, -- past the 1 s pending lock
 		NeedSetup = { "spy" },
 		Expect = {
 			Remote = { Name = "SetAutoRace", Arg = "not_attr:AutoRacing" },
-			After = { "autorace_label_follows_server", "autoracing_is_arg" },
+			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
 	-- Index: Equip fires EquipCar with THAT tile's id; the equipped tile fires nothing
@@ -2863,7 +2884,7 @@ UiSpec.ClickThroughBackdrops = { "ShopUi/Backdrop", "MarketUi/Backdrop", "DailyB
 UiSpec.EmptyClickStep = 40 -- px grid for ClickAt = "empty"
 UiSpec.DailyBoosts = {
 	Daily = "HudChrome/TopRight/Daily",
-	Quests = "HudChrome/TopRight/Quests",
+	Quests = "HudChrome/ShopColumn/Quests",
 	Status = "DailyBoosts/Status",
 	Panel = "DailyBoosts/ModalBackdrop",
 	Title = "DailyBoosts/ModalBackdrop/Modal/Title",
@@ -2985,7 +3006,7 @@ table.insert(UiSpec.Clicks, {
 table.insert(UiSpec.Clicks, {
 	Id = "open_quests",
 	Gui = "HudChrome",
-	Path = "TopRight/Quests",
+	Path = "ShopColumn/Quests",
 	Prepare = { Closed = CLOSED, Showcase = false },
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [DAILY] = true }, Remote = false, After = { "quests_daily_view" } },
@@ -3504,7 +3525,6 @@ UiSpec.Accessibility = {
 	ReduceAttr = "ReduceEffects", -- the in-game REDUCED EFFECTS toggle (LocalPlayer attribute, set by the client)
 	ProbeSeconds = 2, -- the probe tween's length when motion is NOT reduced
 	RollWait = 20, -- s to wait for the next auto roll while motion is reduced (ROLL_INTERVAL 3 s + one animation)
-	ReelStill = 1, -- px a reel tile or streak may move during Spin while motion is reduced ("skips its spin")
 	-- Full-screen ScreenGuis that may bleed under a notch (section 7 "Exempt"); every other player ScreenGui uses
 	-- ScreenInsets = DeviceSafeInsets
 	FullBleed = { PanelDim = true, LoserScreen = true, RollShowcase = true, NpcIndicator = true }, -- NpcIndicator: placed in viewport pixels

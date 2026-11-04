@@ -9364,7 +9364,7 @@ function Scenarios.admin()
 	return result("admin", checks, metrics)
 end
 
--- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.28). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
+-- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
 -- undiscovered AND its odds are rarer than the player's 5th-rarest discovered car (while the player has discovered
 -- fewer than 5 cars, any undiscovered car counts). The rarity name alone never triggers it. Every emphasized roll is
 -- announced in global chat." Every number below is copied from the spec, never from an implementation.
@@ -9379,12 +9379,13 @@ local ROLL_ANIM_HOLD = {
 	Secret = 4,
 }
 local ROLL_ANIM_LAYOUT = {
-	REEL_CARS = 6,
+	REEL_CARS = 16,
 	LAND_POP = 1.15,
 	COMPACT_WIDTH = 0.12, -- owner decision 6: smaller compact roll
 	COMPACT_MIN = 100,
 	COMPACT_MAX = 230,
-	COMPACT_HEIGHT = 180, -- spec "Views": figure height (the 30 % of screen height cap is checked by ui_roll_anim)
+	COMPACT_HEIGHT = 110, -- spec "Views": figure height (the 30 % of screen height cap is checked by ui_roll_anim)
+	COMPACT_TOP = 8, -- spec "Views": px from the screen top to the normal roll
 	COMPACT_SCREEN_SHARE = 0.3, -- spec "Views": the figure is at most this share of the screen height
 	COMPACT_GAP = 8,
 	PANEL_TOP = 138, -- 60 + COMPACT_GAP + 66 + 4: not tied to the figure, the compact roll hides while a panel is open
@@ -9392,7 +9393,7 @@ local ROLL_ANIM_LAYOUT = {
 	ENLARGED_WIDTH = 0.6,
 }
 local ROLL_ANIM_ENLARGED_MAX = Vector2.new(780, 336)
-local ROLL_ANIM_REELS = 4000 -- seeded reels for the filler odds (5 fillers each)
+local ROLL_ANIM_REELS = 4000 -- seeded reels for the filler odds (15 fillers each)
 local ROLL_ANIM_REEL_SEED = 20261002
 local ROLL_ANIM_NEAR_MISS_SEED = 4402
 local ROLL_ANIM_SERVICE_SEED = 9917
@@ -9665,8 +9666,8 @@ function Scenarios.roll_anim()
 					end
 				end
 			end
-			-- no planting: the fillers do not depend on what was rolled. Only the last filler may differ, and only as the
-			-- "differs from the result" rule forces: one reel's last filler is the other reel's result.
+			-- no planting: the fillers do not depend on what was rolled. Only the last filler may differ (its redraw avoids
+			-- the result), and then each side is a Common or Uncommon redraw or the plain draw of the other reel's result.
 			if not (a and c and #a == n and #c == n) then
 				indepBad += 1
 			else
@@ -9676,7 +9677,11 @@ function Scenarios.roll_anim()
 						break
 					end
 				end
-				if a[n - 1] ~= c[n - 1] and a[n - 1] ~= c[n] and c[n - 1] ~= a[n] then
+				local function fromRule(own, otherResult)
+					local spec = CharacterCatalog.Get(own)
+					return own == otherResult or (spec and (spec.Rarity == "Common" or spec.Rarity == "Uncommon"))
+				end
+				if a[n - 1] ~= c[n - 1] and not (fromRule(a[n - 1], c[n]) and fromRule(c[n - 1], a[n])) then
 					indepBad += 1
 				end
 			end
@@ -9684,9 +9689,16 @@ function Scenarios.roll_anim()
 		check(checks, "reel_deterministic_per_seed", detBad, 0, detBad == 0)
 		check(checks, "reel_fillers_independent_of_result", indepBad, 0, indepBad == 0)
 
-		-- The odds the no-adjacent-repeat rule really produces, exactly: per filler slot, id -> probability. Slot 1 is a
-		-- plain luck-1 roll; a later slot is a luck-1 roll redrawn until it differs from the slot before it (the last one
-		-- also from the result), so P(id | prev) = plain[id] / (1 - everything rejected).
+		-- The odds the filler rule really produces, exactly: per filler slot, id -> probability. Slot 1 is a plain luck-1
+		-- roll. A later slot keeps a plain roll unless it repeats the slot before it (or, the last one, equals the result);
+		-- then it is redrawn from Common and Uncommon only, without those ids, weighted 1 / Chance (owner 2026-11-04).
+		-- So Rare and rarer only ever come from the plain roll and are never above their plain odds.
+		local lowWeight = {}
+		for _, c in GACHA_CATALOG do
+			if not c.Event and (c.Rarity == "Common" or c.Rarity == "Uncommon") then
+				lowWeight[c.Id] = 1 / c.Chance
+			end
+		end
 		local function fillerOdds(plain, resultId)
 			local slots = { plain }
 			for slot = 2, n - 1 do
@@ -9697,9 +9709,15 @@ function Scenarios.roll_anim()
 				end
 				for prevId, prevP in slots[slot - 1] do
 					local rejected = plain[prevId] + ((isLast and prevId ~= resultId) and plain[resultId] or 0)
+					local poolTotal = 0
+					for id, weight in lowWeight do
+						if id ~= prevId and not (isLast and id == resultId) then
+							poolTotal += weight
+						end
+					end
 					for id, p in plain do
 						if id ~= prevId and not (isLast and id == resultId) then
-							odds[id] += prevP * p / (1 - rejected)
+							odds[id] += prevP * (p + rejected * (lowWeight[id] or 0) / poolTotal)
 						end
 					end
 				end
@@ -9748,40 +9766,54 @@ function Scenarios.roll_anim()
 				fillers > 0 and math.abs(got - mean) <= tol
 			)
 		end
-		-- The slot right before a rare result is no likelier to hold a non-common (or a Rare+) character than the rule's
-		-- exact odds say: results alternate between the two ids below, so their last-filler odds are averaged
+		-- The slot right before the result, for rare results and for the catch-all: its non-common share is the rule's exact
+		-- one, and its Rare+ share stays within the plain luck-1 odds whatever was rolled (no fake near-miss)
+		local pRarePlain = 0
+		-- every rollable car (seed + expansion manifest + event variants at 0), not only the seven seeds
+		for _, c in GACHA_CATALOG do
+			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
+				pRarePlain += expected[c.Id]
+			end
+		end
 		local nm = Random.new(ROLL_ANIM_NEAR_MISS_SEED)
+		local cases = { "db_hero", "leaf_crow", catchAllId }
 		local slots, nonCommon, rarePlus = 0, 0, 0
+		local slotsOf, rareOf = {}, {}
 		for i = 1, ROLL_ANIM_REELS do
-			local resultId = i % 2 == 0 and "db_hero" or "leaf_crow"
+			local resultId = cases[i % #cases + 1]
 			local r = reel(nm, resultId)
 			if r and #r == n then
 				slots += 1
+				slotsOf[resultId] = (slotsOf[resultId] or 0) + 1
 				local spec = CharacterCatalog.Get(r[n - 1])
 				if spec and spec.Chance ~= 1 then
 					nonCommon += 1
 					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
 						rarePlus += 1
+						rareOf[resultId] = (rareOf[resultId] or 0) + 1
 					end
 				end
 			end
 		end
-		local lastOdds = {}
-		for _, resultId in { "db_hero", "leaf_crow" } do
-			for id, p in fillerOdds(expected, resultId)[n - 1] do
-				lastOdds[id] = (lastOdds[id] or 0) + p / 2
-			end
+		local meanNon, varNon = 0, 0
+		for _, resultId in cases do
+			local pNon = 1 - fillerOdds(expected, resultId)[n - 1][catchAllId]
+			local count = slotsOf[resultId] or 0
+			meanNon += count * pNon
+			varNon += count * pNon * (1 - pNon)
+			local maxOf = count * pRarePlain
+				+ GACHA_SIGMAS * math.sqrt(count * pRarePlain * (1 - pRarePlain))
+				+ GACHA_FLOOR
+			local got = rareOf[resultId] or 0
+			check(
+				checks,
+				"reel_no_planted_rare_before_" .. resultId,
+				got,
+				string.format("<= %.1f", maxOf),
+				count > 0 and got <= maxOf
+			)
 		end
-		local pNon = 1 - lastOdds[catchAllId]
-		local pRare = 0
-		-- every rollable car (seed + expansion manifest + event variants at 0), not only the seven seeds
-		for _, c in GACHA_CATALOG do
-			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
-				pRare += lastOdds[c.Id]
-			end
-		end
-		local meanNon = slots * pNon
-		local tolNon = GACHA_SIGMAS * math.sqrt(slots * pNon * (1 - pNon)) + GACHA_FLOOR
+		local tolNon = GACHA_SIGMAS * math.sqrt(varNon) + GACHA_FLOOR
 		check(
 			checks,
 			"reel_slot_before_result_odds",
@@ -9789,7 +9821,9 @@ function Scenarios.roll_anim()
 			string.format("%.1f +- %.1f", meanNon, tolNon),
 			slots == ROLL_ANIM_REELS and math.abs(nonCommon - meanNon) <= tolNon
 		)
-		local maxRare = slots * pRare + GACHA_SIGMAS * math.sqrt(slots * pRare * (1 - pRare)) + GACHA_FLOOR
+		local maxRare = slots * pRarePlain
+			+ GACHA_SIGMAS * math.sqrt(slots * pRarePlain * (1 - pRarePlain))
+			+ GACHA_FLOOR
 		check(
 			checks,
 			"reel_no_planted_rare_before_result",

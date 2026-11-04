@@ -4,7 +4,7 @@
 -- fillers are real rolls, never fake near-misses) -> land (the result pops, then its odds and name appear) -> hold
 -- (longer for rarer characters, with rarity effects) -> exit (the figure shrinks and a small icon of it flies to the
 -- INDEX button). All phases scale to the player's roll interval (RollAnimConfig.TimeScale).
---   Compact view (default): RollToast/Toast at top centre directly under the Auto Race button: NO card, only the bare
+--   Compact view (default): RollToast/Toast at top centre under the hidden RacerHud/Race anchor: NO card, only the bare
 --   figure, its "1 in N" and its name. Shown only while a roll plays (or while auto-roll is off), hidden while the
 --   enlarged view or any panel is open.
 --   Enlarged view: no visible card either: a big figure on a rarity crystal, gradient odds above it, the outlined name
@@ -38,26 +38,30 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local A = RollAnimConfig
-local COMPACT_CAPTION_BAND = 24 -- px above the compact figure: AUTO OFF never covers it
 local COMPACT_TEXT_BAND = 20 -- px each for the odds and the name under the compact figure
 local SWAP_POP = 0.85 -- a cycle swap grows from this scale to 1x
 local SWAP_POP_TIME = 0.16 -- s, at most
 local LAND_RISE = 0.35 -- share of LAND spent growing to LAND_POP; the rest settles while the text appears
 local MODEL_WAIT = 5 -- s the first roll waits for models to load; a failed load must not hold rolls back for good
 local VIEW_FOV = 30
-local VIEW_DIR = Vector3.new(-0.6, 0.35, -1).Unit -- from the figure to the camera, front three-quarter (rigs face -Z)
+local VIEW_DIR = Vector3.new(-0.35, 0.08, -1).Unit -- from the figure to the camera, the Index card's angle (rigs face -Z)
 local VIEW_MARGIN = 1.06
+local BUST_TORSO_HALF = 1.2 -- studs a Torso mesh counts below its centre; a longer one is a cape or coat
+local BUST_FADE = 0.15 -- share of the view the bottom fade takes
+local BUST_ARM_HALF = 0.8 -- studs an arm mesh counts each side of its centre; a wider one holds a weapon
+local VIEW_FADE_START = 0.82 -- of the view's height: the figure fades out from here to the bottom edge
 local VIEW_AMBIENT = Color3.fromRGB(175, 175, 185)
 local VIEW_LIGHT_DIR = Vector3.new(-1, -2, -1)
 -- Enlarged layout, px at the generated card's size: a text band, the square figure, a text band, centred on the card.
 -- The desktop figure spills past the card's 320 px; it still clears the AUTO button down to height 501.
-local ENLARGED_DESKTOP = { Width = 760, Height = 320, Figure = 380, Band = 56 }
-local ENLARGED_PHONE = { Width = 540, Height = 224, Figure = 170, Band = 36 }
+local ENLARGED_DESKTOP = { Width = 760, Height = 320, Figure = 280, Band = 56 }
+local ENLARGED_PHONE = { Width = 540, Height = 224, Figure = 150, Band = 36 }
 local CRYSTAL_SHARE = 0.72 -- the crystal's square side, of the figure's; rotated 45 degrees its corners reach about 1x
 -- Smaller diamonds around the crystal: x and y offset from the figure's centre and side, in figure heights
 local SHARDS = { { -0.42, 0.1, 0.3 }, { 0.42, 0.1, 0.3 }, { -0.3, -0.36, 0.2 }, { 0.3, -0.36, 0.2 } }
 local SHOWCASE_ORDER = 14 -- above the HUD and DuelUi (12), below the loser screen (20)
 local BLUR_SIZE = 14
+local TAKEOVER_TITLE = 1 -- s the Secret title covers the screen (placeholder)
 local AUTO_BUTTON_SIZE = Vector2.new(180, 44)
 local AUTO_BUTTON_BOTTOM = 38 -- keeps the toggle below the card on small phones
 local WHITE = Color3.new(1, 1, 1)
@@ -86,13 +90,6 @@ end)
 local rollRefs = require(Ui.RollShowcase).Bind(playerGui)
 rollRefs.Gui.Enabled = false
 
-local function autoRaceBottom()
-	local hud = playerGui:FindFirstChild("RacerHud")
-	local outer = hud and hud:FindFirstChild("Race")
-	local button = outer and outer:FindFirstChild("Face")
-	-- Screen Y (top-bar inset included), i.e. the offset to use in an IgnoreGuiInset ScreenGui
-	return button and (button.AbsolutePosition.Y + button.AbsoluteSize.Y + GuiService:GetGuiInset().Y) or 60
-end
 local rng = Random.new()
 
 local function make(class, props, parent)
@@ -160,6 +157,15 @@ local function figureView(name, z, parent)
 		ZIndex = z,
 	}, parent)
 	view.CurrentCamera = make("Camera", { Name = "Camera", FieldOfView = VIEW_FOV }, view)
+	make("UIGradient", {
+		Name = "BottomFade",
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(VIEW_FADE_START, 0),
+			NumberSequenceKeypoint.new(1, 1),
+		}),
+	}, view)
 	return view
 end
 
@@ -535,7 +541,7 @@ local takeoverText = make("TextLabel", {
 	TextColor3 = WHITE,
 	ZIndex = 11,
 }, takeover)
-make("TextLabel", {
+local takeoverSkip = make("TextLabel", {
 	Name = "Skip",
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0.62),
@@ -616,27 +622,47 @@ local function rigFor(id)
 	return rig
 end
 
--- Fits the whole figure: the nearest camera distance at which all 8 corners of its box stay inside the view, so hair,
--- weapons and capes are never cut off.
+-- Bust framing (spec "Accuracy"), the same for cycle, landing and fly icon: from the Head mesh's top, which holds the
+-- hair, to the Torso's bottom, wide enough for hair and shoulders. Only these parts count, and the caps ignore a cape
+-- on the Torso or a weapon on an arm, so they cannot shrink the face. The top stays at the view's top edge when width
+-- is the limit; the body below is cut off by the view and its fade.
 local function frameRig(view, rig, aspect)
-	local box, extents = rig:GetBoundingBox()
-	local look = CFrame.lookAt(box.Position + VIEW_DIR, box.Position)
+	local head, torso = rig.Head, rig.Torso
+	local top = head.Position.Y + head.Size.Y / 2
+	local bottom = torso.Position.Y - math.min(torso.Size.Y / 2, BUST_TORSO_HALF)
+	local halfWidth = math.max(head.Size.X, torso.Size.X) / 2
+	for _, arm in { rig.LeftArm, rig.RightArm } do
+		local shoulder = math.abs(arm.Position.X - torso.Position.X) + math.min(arm.Size.X / 2, BUST_ARM_HALF)
+		halfWidth = math.max(halfWidth, shoulder)
+	end
+	local half = Vector3.new(halfWidth, (top - bottom) / 2, math.max(head.Size.Z, torso.Size.Z) / 2)
+	local centre = Vector3.new(torso.Position.X, (top + bottom) / 2, torso.Position.Z)
+	local look = CFrame.lookAt(centre + VIEW_DIR, centre)
 	local tanV = math.tan(math.rad(VIEW_FOV / 2))
-	local distance = 0
+	local forWidth, forHeight = 0, 0
 	for _, sx in { -1, 1 } do
 		for _, sy in { -1, 1 } do
 			for _, sz in { -1, 1 } do
-				local corner = box.Rotation * (Vector3.new(sx, sy, sz) * extents / 2)
+				local corner = Vector3.new(sx, sy, sz) * half
 				local toward = corner:Dot(VIEW_DIR)
-				distance = math.max(
-					distance,
-					toward + math.abs(corner:Dot(look.RightVector)) / (tanV * aspect),
-					toward + math.abs(corner:Dot(look.UpVector)) / tanV
-				)
+				forWidth = math.max(forWidth, toward + math.abs(corner:Dot(look.RightVector)) / (tanV * aspect))
+				forHeight = math.max(forHeight, toward + math.abs(corner:Dot(look.UpVector)) / tanV)
 			end
 		end
 	end
-	view.CurrentCamera.CFrame = CFrame.lookAt(box.Position + VIEW_DIR * distance * VIEW_MARGIN, box.Position)
+	local distance = math.max(forWidth, forHeight) * VIEW_MARGIN
+	local focus = centre - look.UpVector * (distance - forHeight * VIEW_MARGIN) * tanV
+	view.CurrentCamera.CFrame = CFrame.lookAt(focus + VIEW_DIR * distance, focus)
+	-- A slim figure leaves room under its torso when its width sets the distance: the fade ends at the torso's bottom,
+	-- so the rest of the body never shows.
+	local cut = view.CurrentCamera.CFrame:PointToObjectSpace(Vector3.new(centre.X, bottom, centre.Z))
+	local fadeEnd = math.clamp((1 - cut.Y / (-cut.Z * tanV)) / 2, BUST_FADE + 0.01, 0.99)
+	view.BottomFade.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(fadeEnd - BUST_FADE, 0),
+		NumberSequenceKeypoint.new(fadeEnd, 1),
+		NumberSequenceKeypoint.new(1, 1),
+	})
 end
 
 -- Only one body draws at a time, and neither while a panel hides the compact roll.
@@ -651,8 +677,7 @@ local function bodyAspect(b)
 	if b.Full then
 		return 1 -- the enlarged figure's rect is square
 	end
-	return math.max(toast.AbsoluteSize.X, 1)
-		/ math.max(toast.AbsoluteSize.Y - COMPACT_CAPTION_BAND - 2 * COMPACT_TEXT_BAND, 1)
+	return math.max(toast.AbsoluteSize.X, 1) / math.max(toast.AbsoluteSize.Y - 2 * COMPACT_TEXT_BAND, 1)
 end
 
 local function drawShown()
@@ -751,8 +776,13 @@ end
 -- The body before the spin: no text (the odds and name appear on Land), neutral crystal, turbo flames + badge on a
 -- turbo roll
 local function resetBody(b, roll)
-	setText(b, "", "")
+	setText(b, "???", "?")
 	b.Odds.TextColor3 = WHITE
+	if b.OddsGradient then
+		b.OddsGradient.Color = ColorSequence.new(WHITE) -- never a hint from the last roll's rarity
+		b.OddsGradient.Offset = Vector2.new()
+		b.OddsMoving = false
+	end
 	b.WaveStroke.Transparency = 1
 	b.FigureScale.Scale = 1
 	if b.Full then
@@ -878,10 +908,7 @@ local function closeEnlarged()
 		hud.Enabled = true
 	end
 	-- The reverse: shrink back towards the compact card's place, then hide
-	local to = Vector2.new(
-		card.AbsolutePosition.X + card.AbsoluteSize.X / 2,
-		autoRaceBottom() + A.COMPACT_GAP + toast.AbsoluteSize.Y / 2
-	)
+	local to = Vector2.new(card.AbsolutePosition.X + card.AbsoluteSize.X / 2, A.COMPACT_TOP + toast.AbsoluteSize.Y / 2)
 	local info = TweenInfo.new(A.SWITCH, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	UiMotion.Create(card, info, {
 		Position = UDim2.fromOffset(to.X, to.Y),
@@ -946,19 +973,31 @@ local function landEffects(b, roll)
 	if rank >= 6 and not reduced then -- Mythic: a band of light sweeps across the figure
 		b.Flare.Visible = true
 		b.Flare.Position = UDim2.fromScale(-0.1, 0.5)
-		tween(b.Flare, 0.5, { Position = UDim2.fromScale(1.1, 0.5) }, Enum.EasingStyle.Sine)
+		b.Flare.BackgroundTransparency = 0.2
+		tween(b.Flare, 0.5, { Position = UDim2.fromScale(1.1, 0.5), BackgroundTransparency = 1 }, Enum.EasingStyle.Sine)
 	end
 	if spec.Rarity == "Secret" and isEnlarged() then -- Secret: full-screen takeover
 		takeoverText.Text = "SECRET\n" .. spec.Name
+		takeover.BackgroundTransparency = 0.15
+		takeoverText.TextTransparency = 0
+		takeoverSkip.TextTransparency = 0
 		takeover.Visible = true
+		-- The title clears so the rolled figure is visible for the rest of the hold; the rainbow border stays.
+		local mySerial = serial
+		task.delay(TAKEOVER_TITLE, function()
+			if serial == mySerial and takeover.Visible then
+				tween(takeover, 0.3, { BackgroundTransparency = 1 })
+				tween(takeoverText, 0.3, { TextTransparency = 1 })
+				tween(takeoverSkip, 0.3, { TextTransparency = 1 })
+			end
+		end)
 	end
 end
 
 local function flyToIndex(spec, seconds)
-	local indexGui = playerGui:FindFirstChild("RacerHud")
-	local navigation = indexGui and indexGui:FindFirstChild("Navigation")
-	local wrapper = navigation and navigation:FindFirstChild("Index")
-	local target = wrapper and wrapper:FindFirstChild("Face")
+	local chrome = playerGui:FindFirstChild("HudChrome")
+	local grid = chrome and chrome:FindFirstChild("Grid", true)
+	local target = grid and grid:FindFirstChild("Index")
 	if not target or not target.Visible then
 		return
 	end
@@ -1030,7 +1069,12 @@ local function play(roll)
 		b.Reel:SetAttribute("ReelIds", table.concat(reelIds, ","))
 	end
 	if roll.Emphasized and not isEnlarged() then
+		setShown(reelIds[1]) -- the view opens on a figure, not the last roll's or "?"
 		openEnlarged(true)
+		-- The card settles first, so the cycle plays in a fixed spot (Duration already counts this SWITCH).
+		if not after(A.SWITCH) then
+			return
+		end
 	end
 
 	-- Pop in: the figure area grows from nothing, on the first character of the cycle
@@ -1234,12 +1278,31 @@ end)
 -- The figure is capped to a share of the screen; the Toast adds the caption band above it and two text bands below.
 local function fitCompact()
 	local figure = math.min(A.COMPACT_HEIGHT, math.floor(A.COMPACT_SCREEN_SHARE * screenHeight()))
-	local total = COMPACT_CAPTION_BAND + figure + 2 * COMPACT_TEXT_BAND
-	toast.Position = UDim2.new(0.5, 0, 0, autoRaceBottom() + A.COMPACT_GAP)
+	local toastTop = A.COMPACT_TOP
+	local bands = 2 * COMPACT_TEXT_BAND
+	-- On a small phone the top-right row reaches the centre: the roll sits just under it instead
+	local chrome = playerGui:FindFirstChild("HudChrome")
+	local row = chrome and chrome:FindFirstChild("TopRight", true)
+	local camera = workspace.CurrentCamera
+	if row and camera then
+		local halfWidth = math.clamp(A.COMPACT_WIDTH * camera.ViewportSize.X, A.COMPACT_MIN, A.COMPACT_MAX) / 2
+		if row.AbsolutePosition.X < camera.ViewportSize.X / 2 + halfWidth + A.COMPACT_GAP then
+			toastTop = row.AbsolutePosition.Y + GuiService:GetGuiInset().Y + row.AbsoluteSize.Y + A.COMPACT_GAP
+		end
+	end
+	-- On a phone the 30 % cap alone would run the name into the LEVEL bar
+	local racerHud = playerGui:FindFirstChild("RacerHud")
+	local level = racerHud and racerHud:FindFirstChild("Level")
+	if level then
+		local levelTop = level.AbsolutePosition.Y + GuiService:GetGuiInset().Y
+		figure = math.min(figure, math.floor(levelTop - A.COMPACT_GAP - toastTop - bands))
+	end
+	local total = bands + figure
+	toast.Position = UDim2.new(0.5, 0, 0, toastTop)
 	toast.Size = UDim2.new(A.COMPACT_WIDTH, 0, 0, total)
 	toastSize.MinSize = Vector2.new(A.COMPACT_MIN, total)
 	toastSize.MaxSize = Vector2.new(A.COMPACT_MAX, total)
-	local top = COMPACT_CAPTION_BAND / total
+	local top = 0
 	local share = figure / total
 	local band = COMPACT_TEXT_BAND / total
 	for _, view in { compact.Reel, compact.Viewport } do
@@ -1297,6 +1360,7 @@ local function fitShowcase()
 	local sideSize = UDim2.fromScale(0.2, 0.12)
 	pin(rollRefs.PreviewRunner, { Position = figurePos, Size = figureSize, Visible = false })
 	pin(rollRefs.RollHeader, { Visible = false })
+	pin(rollRefs.RollHeader.Parent, { Visible = false }) -- the outer frame owns the header's Shadow
 	pin(enlarged.Odds, { Position = oddsPos, Size = bandSize })
 	pin(enlarged.CharacterName, { Position = namePos, Size = bandSize })
 	pin(enlarged.Rarity, { Position = UDim2.fromScale(0.03, 0.34), Size = sideSize })
@@ -1332,7 +1396,12 @@ UiTheme.Apply(showcase)
 
 -- Last: this can yield, and a roll may arrive meanwhile
 local hud = playerGui:WaitForChild("RacerHud")
-local race = hud:WaitForChild("Race"):WaitForChild("Face")
-race:GetPropertyChangedSignal("AbsolutePosition"):Connect(fitCompact)
-race:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCompact)
+hud:WaitForChild("Level"):GetPropertyChangedSignal("AbsolutePosition"):Connect(fitCompact)
+task.spawn(function()
+	local row = playerGui:WaitForChild("HudChrome"):WaitForChild("TopRight")
+	-- Daily's countdown changes its width; the position settles after the size, so follow both
+	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCompact)
+	row:GetPropertyChangedSignal("AbsolutePosition"):Connect(fitCompact)
+	fitCompact()
+end)
 fitCompact()
