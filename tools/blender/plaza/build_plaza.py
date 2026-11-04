@@ -35,6 +35,19 @@ PLOTS = {  # centre (x, z), front (x, z)
 	6: ((25, 107), (0, -1)),
 	7: ((-42, 91), (0, -1)),
 }
+# Service row (WORLD_REDESIGN_SPEC 7): every front stands on the line x = -72, facing +x. South to north, spaced 28.75:
+# the spec's z 53 end would put the sensei's dais on the path edge, so the row ends at z 45.
+ROW_X, ROW_FACE = -72, (1, 0)
+SHOP = (ROW_X - 5, -70)  # stall origin: the deck front is 5 ahead
+POTIONS = (ROW_X - 5, -41.25)
+MARKET = (ROW_X, -12.5)  # the sign's plane; the stall stands behind it
+MARKET_SIZE = (16.7, 12.26, 14.6)  # the Aura meshes behind the sign's plane (MarketplaceBuilder.CENTER): depth, width, height
+MARKET_SIGN_Y = 13.1  # over the stall's old sign board
+INDEX = (ROW_X, 16.25)
+SENSEI = (ROW_X, 45)
+BEST_ROLL = (-8.5, -75)
+GREAT_SAKURA = (80, 118)  # outside the ring, behind the gap between Plots 5 and 6
+GROUND_Y = -2  # past the floor edge the terrain top is -1 (TerrainShape.GROUND_TOP): the trunk stands a stud into it
 AXIS_LEN = math.hypot(*PAD)
 AXIS = (PAD[0] / AXIS_LEN, PAD[1] / AXIS_LEN)
 PERP = (AXIS[1], -AXIS[0])  # the side of the path toward Plot 7 is +PERP after the sign below
@@ -273,36 +286,12 @@ def hero_torii():
 	return m
 
 
-MARKET_GATE = (17.5, 0)
-
-
-def market_gate():
-	m = M("MarketGate", place(MARKET_GATE[0], MARKET_GATE[1], TOP, (-1, 0)))
-	h, w = 24, 13
-	for s in (-1, 1):
-		m.cyl(1.0, h, (s * w, 0, 0), "purple", n=8, r2=0.85)
-		m.cyl(1.5, 1.2, (s * w, 0, 0), "black", n=8, r2=1.2)
-		m.cyl(1.1, 0.5, (s * w, 0, 6), "gold", n=8)
-		m.cyl(0.8, 1.8, (s * w, -1.4, 12), "sp", n=6)
-	m.box((w * 2 + 5, 1.6, 1.3), (0, 0, h), "purple")
-	m.box((w * 2 + 7, 2.2, 0.8), (0, 0, h + 1), "black")
-	for s in (-1, 1):
-		m.box((0.3, 0.3, 2), (s * 8, 0, h - 1.2), "gold")
-	m.box((18, 0.5, 6.4), (0, 0, h - 5.2), "gold")
-	m.box((17.2, 0.7, 5.6), (0, 0, h - 5.2), "purple")
-	return m
-
-
-def mini_torii(t):
-	x, z = along(t)
-	m = M(f"PathTorii_{t}", place(x, z, TOP, (-AXIS[0], -AXIS[1])))
-	h, w = 11, 7.5
-	for s in (-1, 1):
-		m.cyl(0.65, h, (s * w, 0, 0), "verm", n=8, r2=0.55)
-		m.cyl(0.95, 0.8, (s * w, 0, 0), "black", n=8)
-	m.box((w * 2 + 3, 0.6, 0.8), (0, 0, h - 2.2), "verm")
-	m.box((w * 2 + 5, 1.2, 0.8), (0, 0, h + 0.2), "verm")
-	m.box((w * 2 + 6, 1.5, 0.5), (0, 0, h + 0.8), "black")
+def market_sign():
+	m = M("MarketSign", place(MARKET[0], MARKET[1], TOP, ROW_FACE))
+	for s in (-1, 1):  # posts rise from the stall, behind the board
+		m.box((0.6, 0.6, 16), (s * 5, 0.4, 8), "dark")
+	m.box((18, 0.5, 6.4), (0, 0, MARKET_SIGN_Y), "gold")
+	m.box((17.2, 0.7, 5.6), (0, 0, MARKET_SIGN_Y), "purple")
 	return m
 
 
@@ -318,7 +307,7 @@ def stone_lantern(x, z, name):
 
 
 def sakura(x, z, r, h, name):
-	m = M(name, place(x, z))
+	m = M(name, place(x, z, GROUND_Y))
 	fork = h * 0.55
 	lean = (rng.uniform(-1, 1) * r * 0.08, rng.uniform(-1, 1) * r * 0.08)
 	m.cyl(r * 0.16, h * 0.08, (0, 0, 0), "bark", n=8, r2=r * 0.11)
@@ -336,7 +325,7 @@ def sakura(x, z, r, h, name):
 
 
 def stall(x, z, title, cloth, goods):
-	m = M(title + "Stall", place(x, z, TOP, facing_point(x, z, 0, 0)))
+	m = M(title + "Stall", place(x, z, TOP, ROW_FACE))
 	w, d = 14, 10
 	m.box((w, d, 0.4), (0, 0, 0.2), "plank")
 	m.box((w - 1, 2, 3.6), (0, -d / 2 + 1.5, 2.2), "wood")
@@ -364,40 +353,8 @@ def stall(x, z, title, cloth, goods):
 	return m
 
 
-def shrine():
-	m = M("RebirthShrine", place(0, 50, TOP, facing_point(0, 50, 0, 0)))
-	w, d = 20, 16
-	m.box((w, d, 1), (0, 0, 0.5), "stone")
-	m.box((w + 1.6, d + 1.6, 0.4), (0, 0, 0.2), "stone2")
-	for i in range(2):
-		m.box((8, 1, 0.5 * (2 - i)), (0, -d / 2 - 0.5 - i, 0.25 * (2 - i)), "stone3")
-	for sx in (-1, 0, 1):
-		for sy in (-1, 1):
-			if sx == 0 and sy == -1:
-				continue
-			m.cyl(0.7, 10, (sx * 8.2, sy * 6, 1), "verm", n=8, r2=0.6)
-	m.box((w - 2, 0.6, 7.4), (0, 6.3, 4.9), "paper")
-	for sx in (-1, 1):
-		m.box((0.6, d - 3, 7.4), (sx * 8.4, 0, 4.9), "paper")
-	for x in (-6, -3, 0, 3, 6):
-		m.box((0.25, 0.8, 7.4), (x, 6.3, 4.9), "dark")
-	m.box((w - 1, d - 1, 0.8), (0, 0, 11.3), "verm2")
-	m.roof(0, 0, 11.8, w + 5.5, d + 5.5, 4.5, "tile", ridge=0.55, lift=1.8, trim="gold")
-	m.box((w - 6, d - 7, 1.6), (0, 0, 16.6), "verm2")
-	m.roof(0, 0, 17.4, w - 2.5, d - 3.5, 4.4, "tile2", ridge=0.4, lift=1.5, trim="gold")
-	m.box((6, 0.3, 1.5), (0, -6.75, 10.25), "black")
-	m.box((4.8, 2.6, 2.4), (0, -5, 2.2), "dark")
-	m.box((5.2, 3, 0.3), (0, -5, 3.5), "gold")
-	m.box((0.3, 0.3, 4.2), (0, -6.2, 8.7), "rope")
-	m.cyl(0.9, 1.6, (0, -6.2, 8.8), "gold", n=8, r2=0.5)
-	for sx in (-1, 1):
-		m.cyl(0.8, 1.7, (sx * 8.2, -9, 8), "lamp", n=6)
-		m.box((0.15, 0.15, 3.2), (sx * 8.2, -9, 11), "dark")
-	return m
-
-
 def index_board():
-	m = M("IndexBoard", place(-2, -60, TOP, facing_point(-2, -60, 0, 0)))
+	m = M("IndexBoard", place(INDEX[0], INDEX[1], TOP, ROW_FACE))
 	for sx in (-1, 1):
 		m.cyl(0.8, 13, (sx * 12, 0, 0), "dark", n=6)
 		m.box((2, 2, 0.8), (sx * 12, 0, 0.4), "stone")
@@ -411,52 +368,13 @@ def index_board():
 	return m
 
 
-def pedestal(t, side, glow, cloth):
+def pedestal(t, side, glow):
 	x, z = along(t, side * 15)
 	m = M(f"LegendPedestal_{t}_{side}", place(x, z, TOP, (-PERP[0] * side, -PERP[1] * side)))
 	m.cyl(4.8, 0.8, (0, 0, 0), "slab", n=8)
 	m.cyl(4.0, 1.0, (0, 0, 0.8), "stone", n=8)
 	m.cyl(4.3, 0.3, (0, 0, 1.8), glow, n=8)
 	m.cyl(4.0, 0.5, (0, 0, 2.1), "stone3", n=8)
-	# Series banner behind the figure
-	m.cyl(0.25, 17, (2.9, 3.4, 0), "dark", n=6)
-	m.box((3.2, 0.14, 11), (1.0, 3.4, 10.5), cloth)
-	m.box((3.4, 0.2, 0.3), (1.0, 3.4, 16.1), "dark")
-	return m
-
-
-def planter(x, z, name, r=3.2):
-	rng.seed(11)  # every planter is the same asset
-	m = M(name, place(x, z))
-	m.cyl(r, 1.3, (0, 0, 0), "stone", n=8, r2=r * 1.08)
-	m.cyl(r * 0.96, 0.2, (0, 0, 1.25), "earth", n=8)
-	m.blob(r * 0.72, (0, 0, 2.4), "bush", squash=0.7)
-	for k in range(6):
-		a = k / 6 * math.tau + rng.uniform(-0.3, 0.3)
-		m.blob(0.55, (r * 0.62 * math.cos(a), r * 0.62 * math.sin(a), 2.5 + rng.uniform(-0.3, 0.5)), rng.choice(("bloom", "bloom2", "bloom3")), jitter=0.1)
-	return m
-
-
-def bench(x, z, tx, tz, name):
-	m = M(name, place(x, z, TOP, facing_point(x, z, tx, tz)))
-	m.box((7, 1.6, 0.35), (0, 0, 1.5), "plank")
-	for sx in (-2.8, 2.8):
-		m.box((0.5, 1.5, 1.4), (sx, 0, 0.7), "dark")
-	return m
-
-
-def lantern_string(a, b, y, name, sag=2.4, every=2):
-	m = M(name)
-	n = 12
-	pts = []
-	for i in range(n + 1):
-		s = i / n
-		pts.append(rb(a[0] + (b[0] - a[0]) * s, y - sag * 4 * s * (1 - s), a[1] + (b[1] - a[1]) * s))
-	for i in range(n):
-		m.beam(pts[i], pts[i + 1], 0.1, "rope", 3)
-		if i % every == 1:
-			p = pts[i + 1]
-			m.cyl(0.42, 0.75, (p.x, p.y, p.z - 0.95), "lamp", n=6)
 	return m
 
 
@@ -541,7 +459,7 @@ def sky_loop():
 		m.face([pt(a0, ri, h - 0.45), pt(a0, ri, h), pt(a1, ri, h), pt(a1, ri, h - 0.45)], col((a0 + a1) / 2))
 		for rr in (ri + 0.2, ro - 0.2):  # glowing rails
 			m.face([pt(a0, rr - 0.25, h + 0.04), pt(a0, rr + 0.25, h + 0.04), pt(a1, rr + 0.25, h + 0.04), pt(a1, rr - 0.25, h + 0.04)][::-1], col((a0 + a1) / 2))
-	for deg in (45, 100, 190, 250, 315):
+	for deg in (45, 100, 200, 250, 315):  # 200, not 190: clear of the MARKET sign seen from the spawn
 		a = math.radians(deg)
 		x, z = r * math.cos(a), r * math.sin(a)
 		pos = rb(x, TOP, z)
@@ -728,14 +646,14 @@ def context(col):
 		h = rng.uniform(110, 210)
 		c.cyl(h * 0.95, h, tuple(p), rng.choice(("mtn", "mtn2")), n=7, r2=h * 0.06)
 	c.build(col)
-	k = M("Ctx_Kept")  # what stays: Market footprint and Best Roll pedestal
-	k.box((49.2, 44, 14.6), tuple(rb(45, TOP + 7.3, 0)), "ctx")
-	k.cyl(12, 2, tuple(rb(30, TOP, -60)), "ctx", n=16)
+	k = M("Ctx_Kept")  # what stays: the Aura stall (the Market) and Best Roll pedestal
+	k.box(MARKET_SIZE, tuple(rb(MARKET[0] - MARKET_SIZE[0] / 2, TOP + MARKET_SIZE[2] / 2, MARKET[1])), "ctx")
+	k.box((3, 5, 2.6), tuple(rb(MARKET[0] + 5.3, TOP + 1.5, MARKET[1] + 2)), "ctx")  # its crate display, in front of the line
+	k.cyl(9, 2, tuple(rb(BEST_ROLL[0], TOP, BEST_ROLL[1])), "ctx", n=16)
 	k.box((16, 16, 0.4), tuple(rb(PAD[0], TOP + 0.2, PAD[1])), "pad")
 	k.box((12, 12, 0.1), tuple(rb(0, TOP + 0.06, 0)), "slab")
 	k.build(col)
-	sens_x, sens_z = along(78, -16)
-	s = M("Sensei_Dais", place(sens_x, sens_z))
+	s = M("Sensei_Dais", place(SENSEI[0], SENSEI[1]))
 	s.cyl(4, 0.6, (0, 0, 0), "stone", n=8)
 	s.build(col)
 
@@ -755,7 +673,7 @@ def petals(col):
 			continue
 		p = rb(x, rng.uniform(1.5, 34), z)
 		petal(p, rng.uniform(0.2, 0.36))
-	for cx, cz, r in ((-76, -48, 26), (-58, 8, 15), (-8, 85, 12), (52, -62, 12), (52, 46, 12)):
+	for cx, cz, r in ((GREAT_SAKURA[0], GREAT_SAKURA[1], 26),):
 		for _ in range(150):
 			a, d = rng.uniform(0, math.tau), r * math.sqrt(rng.random())
 			p = rb(cx + d * math.cos(a), TOP + 0.06, cz + d * math.sin(a))
@@ -879,13 +797,13 @@ def shoot(cam, eye, look, name, fov=70):
 	print("SHOT", name)
 
 
-LEGENDS = [  # top character per Series (rarest in the catalog), side of the path, banner colour
-	("jk_strongest", 16, 1, "sp", "purple"),
-	("db_hero", 16, -1, "so", "orange"),
-	("leaf_crow", 30, 1, "sr", "red"),
-	("mha_symbol", 30, -1, "sb", "blue"),
-	("ds_flame", 44, 1, "st", "teal"),
-	("sea_captain", 44, -1, "sg", "green"),
+LEGENDS = [  # top character per Series (rarest in the catalog), side of the path, glow ring
+	("jk_strongest", 16, 1, "sp"),
+	("db_hero", 16, -1, "so"),
+	("leaf_crow", 30, 1, "sr"),
+	("mha_symbol", 30, -1, "sb"),
+	("ds_flame", 44, 1, "st"),
+	("sea_captain", 44, -1, "sg"),
 ]
 LEGEND_H = 9.0  # studs; about 1.6x a runner (proposed)
 RUNNER_H = 5.6
@@ -908,38 +826,21 @@ def build(scene):
 	add(path())
 	add(mosaic())
 	add(hero_torii())
-	add(market_gate())
-	for t in (68, 80, 92, 104):
-		add(mini_torii(t))
-	for i, t in enumerate((24, 37, 53, 74, 86, 98)):
+	add(market_sign())
+	# t 87 not 92: on the Plot 7 side, t 88 to 99 stands on the plot's corner
+	for i, t in enumerate((87, 100)):
 		for s in (-1, 1):
 			x, z = along(t, s * 8.6)
 			add(stone_lantern(x, z, f"Lantern_{i}_{s}"))
-	add(sakura(-76, -48, 20, 44, "GreatSakura"))
-	add(sakura(-58, 8, 12, 19, "Sakura_A"))
-	add(sakura(-8.5, 85, 9, 18, "Sakura_B"))
-	add(sakura(52, -62, 9, 17, "Sakura_C"))
-	add(sakura(52, 46, 9, 17, "Sakura_D"))
-	add(stall(-37.6, -19.8, "SHOP", "blue", "crates"))
-	add(stall(-37.7, -44.6, "POTIONS", "purple", "bottles"))
-	add(shrine())
+	add(sakura(GREAT_SAKURA[0], GREAT_SAKURA[1], 20, 44, "GreatSakura"))
+	add(stall(SHOP[0], SHOP[1], "SHOP", "blue", "crates"))
+	add(stall(POTIONS[0], POTIONS[1], "POTIONS", "purple", "bottles"))
 	add(index_board())
 	add(sky_loop())
-	for i, (x, z) in enumerate(((-24, -14), (-22, -32), (22, -32), (14, -42), (-20, -48), (24, 32), (-12, 62))):
-		add(planter(x, z, f"Planter_{i}"))
-	add(bench(-14, -36, 0, 0, "Bench_0"))
-	add(bench(4, -44, 0, 0, "Bench_1"))
-	add(bench(16, 22, 0, 0, "Bench_2"))
-	add(lantern_string((-37.6, -13), (-37.7, -52), TOP + 13, "LanternString_Shops", sag=1.6))
-	add(lantern_string((-30, -48), (-12, -60), TOP + 12, "LanternString_Index", sag=1.4))
-	for cid, t, side, glow, cloth in LEGENDS:
-		add(pedestal(t, side, glow, cloth))
+	for cid, t, side, glow in LEGENDS:
+		add(pedestal(t, side, glow))
 		x, z = along(t, side * 15)
 		put_char(world, cid, x, TOP + 2.6, z, (-PERP[0] * side - AXIS[0], -PERP[1] * side - AXIS[1]), LEGEND_H, "Legend_" + cid)
-	for t in (16, 30, 44):
-		a, b = along(t, -15), along(t, 15)
-		# the banner poles stand behind the pedestals
-		add(lantern_string(a, b, TOP + 15.5, f"LanternString_{t}"))
 	# Sky-loop runners: the 3 starters' models, racing with blue and orange trails
 	runners = [(205, "neonb", 0, "leaf_hero"), (20, "neono", 1, "sea_captain"), (95, "neonb", 0, "db_hero")]
 	add(trails([(d, c, o) for d, c, o, _ in runners]), False)
@@ -949,8 +850,7 @@ def build(scene):
 		# tangent, running toward decreasing angle
 		put_char(world, cid, x, LOOP_H + 0.05, z, (math.sin(a), -math.cos(a)), RUNNER_H, f"Runner_{cid}")
 	# Sensei stand-in
-	sx, sz = along(78, -16)
-	put_char(ctx, "leaf_copycat", sx, TOP + 0.6, sz, facing_point(sx, sz, 0, 0), 5.8, "Ctx_Sensei")
+	put_char(ctx, "leaf_copycat", SENSEI[0], TOP + 0.6, SENSEI[1], ROW_FACE, 5.8, "Ctx_Sensei")
 	# The Dojo ring as a new player sees it: their own level 1, the rest free
 	for i, (c, f) in PLOTS.items():
 		level = 1 if i == 1 else 0
@@ -959,23 +859,30 @@ def build(scene):
 			mx = place(c[0], c[1], TOP, f) @ Matrix.Translation((0, -18.3, 8.6))
 			add_text(world, "FREE DOJO", mx, 0.95, "dark", f"Sign_Plot{i}")
 	# Signs
-	for txt, x, z, w in (("SHOP", -37.6, -19.8, 1.6), ("POTIONS", -37.7, -44.6, 1.25)):
-		mx = place(x, z, TOP, facing_point(x, z, 0, 0)) @ Matrix.Translation((0, -5.85, 11.2))
+	for txt, (x, z), w in (("SHOP", SHOP, 1.6), ("POTIONS", POTIONS, 1.25)):
+		mx = place(x, z, TOP, ROW_FACE) @ Matrix.Translation((0, -5.85, 11.2))
 		add_text(world, txt, mx, w, "paper", "Sign_" + txt)
-	mx = place(-2, -60, TOP, facing_point(-2, -60, 0, 0)) @ Matrix.Translation((0, -0.45, 10.6))
+	mx = place(INDEX[0], INDEX[1], TOP, ROW_FACE) @ Matrix.Translation((0, -0.45, 10.6))
 	add_text(world, "RUNNER INDEX", mx, 0.85, "verm2", "Sign_Index")
-	mx = place(0, 50, TOP, facing_point(0, 50, 0, 0)) @ Matrix.Translation((0, -6.9, 10.25))
-	add_text(world, "REBIRTH", mx, 0.95, "gold", "Sign_Rebirth")
 	# Wayfinding: the bold signs on the two landmarks
 	mx = place(PAD[0], PAD[1], TOP, (-AXIS[0], -AXIS[1])) @ Matrix.Translation((0, -0.45, 21.6))
 	add_text(world, "RACE START", mx, 2.4, "gold", "Sign_RaceStart")
-	mx = place(MARKET_GATE[0], MARKET_GATE[1], TOP, (-1, 0)) @ Matrix.Translation((0, -0.45, 18.8))
+	mx = place(MARKET[0], MARKET[1], TOP, ROW_FACE) @ Matrix.Translation((0, -0.45, MARKET_SIGN_Y))
 	add_text(world, "MARKET", mx, 3.0, "gold", "Sign_Market")
 	# Tier lineup, far from the plaza
 	lx, lz = 1600, 0
 	lg = M("Ctx_LineupGround", place(lx, lz, TOP - 0.05))
 	lg.box((1000, 700, 0.1), (0, 0, 0), "grass2")
 	lg.build(ctx)
+	# The L7 and L10 kits' bushes draw from rng: replay where it stood before them, so their meshes and hashes stay
+	rng.seed(11)
+	burn = M("Burn")
+	burn.blob(1, (0, 0, 0), "bush")
+	for _ in range(6):
+		rng.uniform(-0.3, 0.3)
+		rng.uniform(-0.3, 0.5)
+		rng.choice(("bloom", "bloom2", "bloom3"))
+		burn.blob(1, (0, 0, 0), "bloom")
 	for i, level in enumerate((0, 1, 4, 7, 10)):
 		kit = dojo((lx - 120 + i * 60, lz), (0, 1), level, f"DojoKit_L{level}")
 		kit.build(line)
@@ -1093,11 +1000,10 @@ def export_all():
 			front = m.matrix.to_3x3() @ Vector((0, -1, 0))
 			placed.append({"Key": key, "Pos": [p.x, p.z, -p.y], "Face": [front.x, -front.y]})
 	legends = []
-	for cid, t, side, _, _ in LEGENDS:
+	for cid, t, side, _ in LEGENDS:
 		x, z = along(t, side * 15)
 		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": [-PERP[0] * side - AXIS[0], -PERP[1] * side - AXIS[1]]})
-	sx, sz = along(78, -16)
-	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [45, 50, 0]}, "SenseiLocal": [sx + 118, sz - 80]}
+	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET[0] - MARKET_SIZE[0] / 2, 50, MARKET[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
 	with open(os.path.join(ROOT, "build", "plaza", "layout.json"), "w") as f:
 		json.dump(layout, f, indent=1)
 	print("EXPORT", len(assets), "assets", sum(p["Tris"] for a in assets.values() for p in a["Parts"].values()), "unique tris")
@@ -1129,7 +1035,9 @@ def main():
 		"05_legends": ((*along(6)[:1], TOP + 6.5, along(6)[1]), (*along(44)[:1], TOP + 9, along(44)[1])),
 		"06_dojo_ring": ((-5, TOP + 7, -5), (-42, TOP + 9, -91)),
 		"07_dojo_tiers": ((1600, 34, 205), (1600, 20, 0)),
-		"08_shops": ((-8, TOP + 8, -6), (-38, TOP + 6, -38)),
+		"08_shops": ((-42, TOP + 8, -40), (ROW_X, TOP + 7, -41)),
+		"09_top": ((0, 240, 0), (0, 0, 0.01)),
+		"10_row": ((0, TOP + 8, 0), (ROW_X, TOP + 8, -12.5)),
 	}
 	for name, (eye, look) in shots.items():
 		if not argv or name in argv:

@@ -70,10 +70,10 @@ Nothing car-shaped stays in the game:
 - One `SpawnLocation` at the plaza centre (the only one in the place).
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
-- **Shop street**: stalls for Shop, Market and Potions around the plaza (same panels and remotes as now).
-- **Rebirth shrine**, **Index board** (scroll wall), **leaderboard banners**, and the checkpoint NPC as a **sensei**
+- **Service row** (owner 2026-11-04): Shop, Potions, Market and Index in one straight row (section 7; same panels and remotes as now).
+- **Index board** (scroll wall), **leaderboard banners**, and the checkpoint NPC as a **sensei**
   (same `CheckpointService` rules).
-- Look: lanterns, cherry trees, stone paving, wooden roofs; no logos or real names (design doc section 5).
+- Look: a few lanterns, one cherry tree, stone paving, wooden roofs; no logos or real names (design doc section 5).
 
 ## 5. Player plots: the Dojo (name proposed)
 
@@ -107,16 +107,20 @@ As in `docs/TRACKS_AND_BIOMES_SPEC.md` (lengths x1.25 per track, 10 anime biomes
 ## 7. First impression pass (owner 2026-11-03, design doc 4.24)
 
 Draft: `tools/blender/plaza/build_plaza.py` (1 Blender unit = 1 stud, positions are world studs), reviewed by the owner
-before any Studio work. All values below are **proposed**. 34 unique meshes, about 27k tris; about 30k tris placed in the plaza at once, plus the 9 character rigs. Ledger: `tools/blender/plaza/plaza_assets.json`.
+before any Studio work. All values below are **proposed**. Mesh and tri counts: printed by the build. Ledger: `tools/blender/plaza/plaza_assets.json`.
 - **Sight line**: the spawn faces the gate across the 130-degree opening in the Dojo ring. The main path runs straight
   from the spawn to the StartPad. The SpawnLocation stays at the plaza centre and the StartPad stays where it is.
 - **Start gate**: torii about 2x taller and turned to face the spawn along the path. Footprint stays clear of the road.
-- **Path**: 12 wide, with a row of small torii, stone lanterns and lantern strings. Series banners stand by the Legends.
+- **Path** (owner 2026-11-04): 12 wide and plain, with 2 stone lanterns on each side at its gate end. No small torii, lantern strings or banners.
+- **Service row** (owner 2026-11-04), world positions with the spawn at the origin: fronts on one straight line at x = -72, facing +x, in the west opening of the Dojo ring so no Dojo stands behind it. South to north, evenly spaced between z -70 and z 45: Shop, Potions, Market, Index, sensei (proposed). Nothing stands between the spawn and a Dojo.
+- **Market** (owner 2026-11-04): only the Aura stall, which opens the same Market panel. The empty Workshop and Parts vendor stalls and every courtyard piece (floor, rug, logs, planter, small lantern) are removed.
+- **Rebirth** (owner 2026-11-04): the shrine is removed; Rebirth opens from its HUD tile.
+- **Best Roll** (owner 2026-11-04): pedestal at (-8.5, -75), between Plots 1 and 2, radius 9.
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
+- **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
 - **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy (`sea_captain`; owner 2026-11-03).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
-- **Wayfinding**: RACE START banner on the torii under its tie beam; MARKET entrance arch on the Market's plaza side (posts
-  clear of the mosaic, about 24 tall). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
+- **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
   as client-only attachments, so streaming never hides them.
 - **Reveal** (Client/ArrivalFlow): first join, after the loading screen, a skippable camera sweep of about 5 s that ends, skipped or not, behind the player looking at the gate; Reduced Motion: a still of the plaza, then a cut.
 - **Starter pick**: popup with a lighter dim, opens after the reveal, with a watchdog so it always opens. A pick plays a petal burst and the character's hero pose beside the spawn for about 4 s; the first auto-roll waits about 5 s so its result card does not cover it.
@@ -126,8 +130,8 @@ before any Studio work. All values below are **proposed**. 34 unique meshes, abo
 - **Dojo extras** (Client/DojoExtras): a petal burst on a level rise; squad rigs play an idle jab within 80 studs; `Glow_lamp` parts take the colour of the owner's `WorkshopStat`; a bold YOUR DOJO label for a new player until they walk within 30 studs or race. All client display; Reduced Motion stops the burst and the training.
 - **Fresh-save checks**: in Studio only, ReplicatedStorage attribute `TestSaveKey` = "<name>" (set in Edit before Play) plays on a separate save `Test_<name>_<userId>`; a new name is a new save. Read once at server start; leaderboards skip these sessions. Clear it afterwards: the `data` scenario expects real keys. Do not send gifts in a test session: `GiftRoutes_v1` still uses the real buyer id.
 - **Load**: the loading screen waits for `TerrainNearReady` (plaza and Track 1 terrain, their stand-in ground cleared), `CharacterModels` Ready and `PlazaReady`, then preloads what is on screen in 4 streams. Other characters and Dojo tiers (`ReplicatedStorage.PlazaTierMeshes`) preload behind the game.
-- **Sensei**: moves further along the path (`CheckpointConfig.NPC_POS`) to clear the Legends.
-- **Trees**: one Great Sakura plus smaller sakura, all clear of the road and the plots, with solid invisible trunks.
+- **Sensei**: ends the service row, beside the path (`CheckpointConfig.NPC_POS`).
+- **Trees** (owner 2026-11-04): one Great Sakura, outside the Dojo ring behind the gap between Plots 5 and 6, clear of the road and the plots, with a solid invisible trunk. No smaller trees, planters or benches.
 - **Atmosphere**: zone 0 has a petal emitter (Rate 10, Reduced Effects rules as other zones) and `AmbForest` + `SfxWindChime` at volume 0.2.
 - **Index icon**: a fan of three cards, in-house (`tools/blender/plaza/index_icon.py`), replaces the car (section 1).
 - **Dojos**: built from one kit inside the 48 x 48 plot. Zone, Showcase pedestal and UpgradePad positions stay. A free
