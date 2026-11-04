@@ -1,5 +1,6 @@
 --!nonstrict
--- Private, server-owned per-player NPC race personal bests.
+-- Server-owned per-player NPC race personal bests. Saved by PlayerData; shown read-only through the player attributes
+-- RaceBest<track>, for the Defeated Enemies page (design doc 4.29).
 local RaceTimeService = {}
 local records = setmetatable({}, { __mode = "k" })
 local TrackRegistry = require(game:GetService("ReplicatedStorage").Shared.TrackRegistry)
@@ -18,6 +19,12 @@ end
 
 local function clean(value)
 	return type(value) == "number" and value == value and value > 0 and value < math.huge and value or nil
+end
+
+local function publish(player, key, seconds)
+	if typeof(player) == "Instance" then -- tests pass plain tables
+		player:SetAttribute("RaceBest" .. key, seconds)
+	end
 end
 
 function RaceTimeService.Setup(player)
@@ -39,6 +46,9 @@ function RaceTimeService.Apply(player, data)
 		end
 	end
 	records[player] = result
+	for key in tracks do
+		publish(player, key, result[key])
+	end
 	return result
 end
 
@@ -63,6 +73,7 @@ function RaceTimeService.Record(player, trackNumber, seconds)
 	local old = RaceTimeService.Setup(player)[key]
 	if not old or value < old then
 		RaceTimeService.Setup(player)[key] = value
+		publish(player, key, value)
 		return value, true
 	end
 	return old, false

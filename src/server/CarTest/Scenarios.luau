@@ -5134,10 +5134,18 @@ function Scenarios.gacha()
 		if got.Model ~= nil then
 			local folder = ReplicatedStorage:FindFirstChild("CharacterModels")
 			local template = type(got.Model) == "string" and folder and folder:FindFirstChild(got.Model)
-			-- Every car, event variants included, uses its own model (docs/CAR_REDESIGN_SPEC.md section 5).
-			local identityOk = got.Model == got.Id
+			-- Every character uses its own model, or the one the spec names (CatalogTests.SHARED_MODEL, design doc 4.30).
+			local sharedModel = require(script.Parent.CatalogTests).SHARED_MODEL[got.Id]
+			local identityOk = got.Model == (sharedModel or got.Id)
 				and (got.Event == nil or got.Event == "rain" or got.Event == "night" or got.Event == "gold")
-			if got.Model == "" or not identityOk or not (template and template:IsA("Model")) then
+			-- CharacterModelService loads a Folder per asset row in the background, so the folder is only due once Ready.
+			local loaded = not (folder and folder:GetAttribute("Ready")) or (template and template:IsA("Folder"))
+			if
+				got.Model == ""
+				or not identityOk
+				or not require(Shared.CharacterModelAssets)[got.Model]
+				or not loaded
+			then
 				modelsOk = false
 			end
 		end
@@ -5177,7 +5185,7 @@ function Scenarios.gacha()
 	check(checks, "catalog_odds_rarity_strictly_ordered", tierOk and 1 or 0, 1, tierOk)
 	local maxChance = rarityMax.Secret or math.huge
 	check(checks, "catalog_odds_secret_fits_int64", maxChance, 9.2e18, maxChance <= 9.2e18)
-	check(checks, "catalog_all_models_resolve_to_own_id", modelsOk and 1 or 0, 1, modelsOk)
+	check(checks, "catalog_all_models_resolve_to_spec_model", modelsOk and 1 or 0, 1, modelsOk)
 	local orderOk, orders = #all > 0, {}
 	for i, c in all do
 		local o = type(c) == "table" and c.Order or nil
@@ -12486,7 +12494,7 @@ Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
--- docs/CHARACTER_GACHA_SPEC.md "Tests": the 30-character launch cast
+-- docs/CHARACTER_GACHA_SPEC.md "Tests": the 36-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase

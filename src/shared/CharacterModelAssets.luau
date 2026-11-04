@@ -431,4 +431,59 @@ return {
 			Torso = Vector3.new(2.3, 3.85, 3.692),
 		},
 	},
+	soul_fang = {
+		Asset = 110030155209034,
+		Sizes = {
+			Head = Vector3.new(2.16, 4.48, 3.32),
+			LeftArm = Vector3.new(1.38, 2.44, 1.18),
+			LeftLeg = Vector3.new(1.184, 2, 1.6),
+			RightArm = Vector3.new(1.38, 2.44, 1.18),
+			RightLeg = Vector3.new(1.198, 2, 1.6),
+			Torso = Vector3.new(2.2, 2.668, 3.063),
+		},
+	},
+	soul_healer = {
+		Asset = 103512383515900,
+		Sizes = {
+			Head = Vector3.new(2.32, 5.28, 2.228),
+			LeftArm = Vector3.new(1.283, 2.44, 1.085),
+			LeftLeg = Vector3.new(1.08, 2, 1.6),
+			RightArm = Vector3.new(1.281, 2.44, 1.089),
+			RightLeg = Vector3.new(1.08, 2, 1.6),
+			Torso = Vector3.new(2.62, 3.64, 1.613),
+		},
+	},
+	soul_ice = {
+		Asset = 112230475164100,
+		Sizes = {
+			Head = Vector3.new(2.6, 2.88, 2.2),
+			LeftArm = Vector3.new(1.32, 2.44, 1.582),
+			LeftLeg = Vector3.new(1.11, 2, 1.56),
+			RightArm = Vector3.new(1.311, 4.542, 5.756),
+			RightLeg = Vector3.new(1.121, 2, 1.56),
+			Torso = Vector3.new(2.2, 2.28, 1.25),
+		},
+	},
+	soul_lord = {
+		Asset = 90626784478143,
+		Sizes = {
+			Head = Vector3.new(2.2, 2.535, 2.146),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.418, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.418, 2, 1.6),
+			Torso = Vector3.new(2.279, 4.04, 2.907),
+		},
+	},
+	soul_substitute = {
+		Asset = 100198908396339,
+		Sizes = {
+			Head = Vector3.new(2.88, 3.96, 2.36),
+			LeftArm = Vector3.new(1.273, 2.44, 1.34),
+			LeftLeg = Vector3.new(1.144, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.34),
+			RightLeg = Vector3.new(1.158, 2, 1.6),
+			Torso = Vector3.new(3.994, 5.042, 2.476),
+		},
+	},
 }

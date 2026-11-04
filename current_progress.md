@@ -60,8 +60,9 @@
 56. 2026-11-04 — Alex Nguyen — Added a screen-edge pointer that shows the enemy's name and an arrow aimed at it while it is off screen, ui_billboards green, rules audit PASS.
 57. 2026-11-04 — Alex Nguyen — Decluttered the spawn plaza into a straight service row with a one-stall Market, plain path and clear Dojo views, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 58. 2026-11-04 — Alex Nguyen — Merged emblem floating headers (fi6) locally for the owner to view in Play, stylua clean, selene 0 errors, Studio shots, spawn_area and ui_billboards scenarios and rules audit still pending.
+59. 2026-11-04 — Alex Nguyen — Added enemy showdown banners, a Defeated Enemies Index page and the 6-character Bleech series with 5 new models; targeted scenarios green and rules audit PASS.
 
 ## What's next
-**Finish fi6: apply the owner's feedback from Play, take the Studio shots, run spawn_area and ui_billboards, run the rules audit, then push the integration branch.**
+**Make the remaining track villains rollable characters under the character design method, on the same design rules as the player cast.**
 
-**Why this is next:** fi6 was merged before its checks so the owner could see it, and the c3 rerun and the PR to main should start from verified headers.
+**Why this is next:** the owner asked for it after the series landed, and c3 and the PR to main restart once every requested feature is merged.

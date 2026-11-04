@@ -1181,6 +1181,32 @@ UiSpec.Guis.NpcIndicator = {
 	AimTolerance = 5, -- degrees, worst sample: the pointer's arrow against the enemy's direction on screen
 }
 
+-- Enemy showdown (design doc 4.28): Frame or CanvasGroup "Banner" > TextLabels and ViewportFrame below, hidden at rest.
+-- Timing is a placeholder in the rule: these are test limits on "short", not the banner's own durations.
+UiSpec.Guis.EnemyShowdown = {
+	Source = "Client/EnemyShowdown",
+	Buttons = {},
+	NonInteractive = true,
+	Banner = "Banner",
+	Vs = "Vs",
+	EnemyName = "EnemyName", -- NpcConfig.For(track).Label
+	TrackName = "TrackName", -- contains BiomeThemes[spec.Biome].DisplayName
+	Defeated = "Defeated",
+	Portrait = "Portrait",
+	ShowWait = 3, -- s: the banner must show its state this soon after the event (a model portrait may load first)
+	MaxShown = 8, -- s: one banner must hide by itself within this
+}
+
+-- Defeated Enemies page (design doc 4.29): somewhere under RacerIndex/Panel, one tile per NpcConfig track.
+UiSpec.DefeatedEnemies = {
+	Page = "EnemiesPage",
+	TileFormat = "Enemy%d",
+	TilePattern = "Enemy(%d+)",
+	Beaten = "Beaten", -- boolean tile attribute
+	TimeAttr = "UiTestBestTime%d", -- LocalPlayer attribute: the time UiTestSetup defeated_states gave track n
+	FillWait = 3, -- s: tiles must match BestTrack and the race bests this soon after the Index opens
+}
+
 UiSpec.Billboards = {
 	WinText = {
 		Tag = "WinPad",
@@ -1297,6 +1323,24 @@ UiSpec.ServerSetup = {
 		When = "just before or during UiTestRun (ui_loser waits Waits.LoseEvent s for it)",
 		What = "Fires NpcRace { Type = 'Result', Result = 'Lose' } to this client, then Reset/Start after "
 			.. "NpcConfig.LOSE_SCREEN_SECONDS, like a real loss.",
+	},
+	{
+		Id = "showdown_start",
+		When = "during ui_showdown (asked for by the scenario)",
+		What = "Fires NpcRace { Type = 'Start' } for the player's current track to this client only, shaped like "
+			.. "RaceService's. The real run's state is never touched.",
+	},
+	{
+		Id = "showdown_win",
+		When = "during ui_showdown, after showdown_start (asked for by the scenario)",
+		What = "Fires NpcRace Result Win for showdown_start's track, then Start for the next track in the same frame, "
+			.. "like a real win. To this client only; banks nothing and changes no saved state.",
+	},
+	{
+		Id = "defeated_states",
+		When = "before the ui_defeated fixture run (UiSpec.Progression.FixtureChecks); needs 'snapshot' first",
+		What = "Racing and rolls paused, BestTrack = 2 and race bests for Tracks 1 and 2; each time also on the "
+			.. "LocalPlayer attribute UiSpec.DefeatedEnemies.TimeAttr. 'restore' puts all of it back.",
 	},
 	{
 		Id = "turbo_next",
@@ -2664,6 +2708,8 @@ UiSpec.Progression.FixtureChecks = {
 	-- avatar stands there (on_foot = at the walk spawn in the hub), not while the main run races the chain
 	{ Setup = "on_foot", Scenario = "ui_billboards" },
 	{ Setup = "on_foot", Scenario = "ui_workshop_modal" },
+	-- Design doc 4.29: beaten and locked enemy tiles side by side, with known best times
+	{ Setup = "defeated_states", Scenario = "ui_defeated" },
 	-- retired: ui_offline_welcome, ui_offline_double, ui_offline_zero (design doc 4.19, owner 2026-11-03)
 	{ Setup = "weather_rain", Scenario = "ui_weather" },
 	{ Setup = "weather_night", Scenario = "ui_weather" },
@@ -3199,10 +3245,10 @@ UiSpec.Backpack = {
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
--- docs/CHARACTER_GACHA_SPEC.md "Launch cast": 30 rollable characters (the starter is not in the Index)
+-- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series": 36 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
-	Count = 30,
-	Rarities = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 },
+	Count = 36,
+	Rarities = { Common = 1, Uncommon = 7, Rare = 7, Epic = 7, Legendary = 6, Mythic = 6, Secret = 2 },
 	-- spec "Event-only characters": also in the Index with their odds; not part of Count / Rarities
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }

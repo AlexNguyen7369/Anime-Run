@@ -1,7 +1,11 @@
 --!nonstrict
 -- Saved, data-driven gallery and stat rows. Bake in Edit, Bind in Play.
 local Components = {}
-local HudFormat = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared").HudFormat)
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local HudFormat = require(Shared.HudFormat)
+local NpcConfig = require(Shared.NpcConfig)
+local RaceProgressMap = require(Shared.RaceProgressMap)
+local UiTheme = require(Shared.UiTheme)
 local WHITE = Color3.new(1, 1, 1)
 local BLACK = Color3.fromRGB(12, 16, 30)
 local DARK = Color3.fromRGB(32, 43, 71)
@@ -295,6 +299,20 @@ function Components.BakeIndex(refs, catalog, config)
 	end
 end
 
+-- Sizes a card grid to its host's columns, now and on every resize.
+local function fitCells(host, layout)
+	local function fit()
+		local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
+		local columns = phone and INDEX_COLUMNS.Phone or INDEX_COLUMNS.Desktop
+		-- UIScale is inherited from the generated host; its Size is in design pixels.
+		local width = host.Size.X.Offset - 14
+		layout.CellSize = UDim2.fromOffset(math.floor((width - (columns - 1) * INDEX_GAP) / columns), INDEX_CELL_HEIGHT)
+	end
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+	host:GetPropertyChangedSignal("Size"):Connect(fit)
+	fit()
+end
+
 function Components.BindIndex(refs, catalog)
 	local grid = refs.GridHost:WaitForChild("Gallery")
 	local tiles = {}
@@ -333,18 +351,80 @@ function Components.BindIndex(refs, catalog)
 			end
 		end
 	end)
-	local layout = grid:FindFirstChildOfClass("UIGridLayout")
-	local function fit()
-		local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-		local columns = phone and INDEX_COLUMNS.Phone or INDEX_COLUMNS.Desktop
-		-- UIScale is inherited from the generated host; its Size is in design pixels.
-		local width = refs.GridHost.Size.X.Offset - 14
-		layout.CellSize = UDim2.fromOffset(math.floor((width - (columns - 1) * INDEX_GAP) / columns), INDEX_CELL_HEIGHT)
-	end
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
-	refs.GridHost:GetPropertyChangedSignal("Size"):Connect(fit)
-	fit()
+	fitCells(refs.GridHost, grid:FindFirstChildOfClass("UIGridLayout"))
 	return tiles
+end
+
+-- The Defeated Enemies page (design doc 4.29), inside GridHost so it follows the panel's desktop and phone layouts.
+-- A locked tile has no Portrait and an empty EnemyName: nothing about the enemy reaches the screen. Returns the page
+-- and its tiles in track order.
+local ENEMY_CARD = { RARITY_COLORS = { Enemy = UiTheme.Palette.Danger } }
+function Components.EnemiesPage(refs, player)
+	local page = scroll(refs.GridHost, "EnemiesPage")
+	page.Visible = false
+	local layout = make("UIGridLayout", {
+		CellPadding = UDim2.fromOffset(INDEX_GAP, INDEX_GAP),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	}, page)
+	fitCells(refs.GridHost, layout)
+	local frames, rows = {}, {}
+	for n, enemy in ipairs(NpcConfig.Tracks) do
+		local spec = { Id = enemy.Model, Rarity = "Enemy" }
+		local tile = make("Frame", { Name = "Enemy" .. n, LayoutOrder = n, ZIndex = 3 }, page)
+		Components.CardFace(tile, spec, ENEMY_CARD):Destroy() -- enemies have no category
+		edge(tile).Name = "Stroke"
+		local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -38), UDim2.fromOffset(40, 40), 34)
+		locked.ZIndex = 7
+		local name = label(tile, "EnemyName", "", UDim2.new(0, 8, 1, -54), UDim2.new(1, -16, 0, 24), 20)
+		name.ZIndex = 7
+		name.TextXAlignment = Enum.TextXAlignment.Right
+		local best = label(tile, "BestTime", "", UDim2.new(0, 8, 1, -30), UDim2.new(1, -16, 0, 20), 16, GOLD)
+		best.ZIndex = 7
+		best.TextXAlignment = Enum.TextXAlignment.Right
+		frames[n] = tile
+		rows[n] = { Frame = tile, Spec = spec, Label = enemy.Label, Locked = locked, Name = name, Best = best }
+	end
+	local function refresh()
+		local reached = player:GetAttribute("BestTrack") or 0
+		for n, row in rows do
+			local beaten = reached >= n
+			local seconds = player:GetAttribute("RaceBest" .. n)
+			row.Frame:SetAttribute("Beaten", beaten)
+			Components.TintCard(row.Frame, row.Spec, ENEMY_CARD, beaten)
+			row.Locked.Visible = not beaten
+			row.Name.Text = beaten and row.Label or ""
+			-- A win saved before best times existed has no time to show.
+			row.Best.Text = not beaten and "" or seconds and RaceProgressMap.FormatTime(seconds) or "--:--.--"
+			local portrait = row.Frame:FindFirstChild("Portrait")
+			if beaten and not portrait then
+				Components.RunnerArt(row.Frame, "Portrait", row.Spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+			elseif portrait and not beaten then
+				portrait:Destroy()
+			end
+		end
+	end
+	player.AttributeChanged:Connect(function(attribute)
+		if attribute == "BestTrack" or string.sub(attribute, 1, 8) == "RaceBest" then
+			refresh()
+		end
+	end)
+	refresh()
+	-- The models load in the background: rebuild any placeholder portraits once they arrive.
+	task.spawn(function()
+		local models = game:GetService("ReplicatedStorage"):WaitForChild("CharacterModels")
+		if models:GetAttribute("Ready") ~= true then
+			models:GetAttributeChangedSignal("Ready"):Wait()
+		end
+		for _, tile in frames do
+			local portrait = tile:FindFirstChild("Portrait")
+			if portrait then
+				portrait:Destroy()
+			end
+		end
+		refresh()
+	end)
+	return page, frames
 end
 
 function Components.BakeStats(refs, config)
