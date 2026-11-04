@@ -64,8 +64,9 @@
 60. 2026-11-04 — Alex Nguyen — Reworked the roll animation to show the rolled character in a 16-slot in-place cycle at the top centre, with reference-style emphasized rolls, an Auto toggle beside Daily and Quests above Shop; roll, HUD and layout scenarios green except 2 Index EnemiesTab phone overlaps from the earlier merge, rules audit PASS.
 61. 2026-11-04 — Alex Nguyen — Redesigned 9 villain models with the character design skill and made 8 of them new rollable characters, catalog and gacha green, rules audit PASS.
 62. 2026-11-04 — Alex Nguyen — Replaced the fork's Market with an in-house stall and cut plaza Legends to two beside the Race Start gate, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
+64. 2026-11-04 — Alex Nguyen — Added drawn portraits and head art for all 44 rollable characters, uploaded them and used them in the roll, Index, Enemies page, Backpack, starter cards, showdown banner and Team minibar; the character build now draws them; targeted scenarios green and rules audit PASS.
 
 ## What's next
-**Restart c3: full server and UI harnesses on the merged feature/alex/anime-world to fail=0, rules audit, then the PR to main.**
+**Merge the integration branch into main through the reviewed PR, then run the full compatibility check c3 on the owner's word.**
 
-**Why this is next:** the owner held c3 for these features; merging into main depends on these checks passing on the code that includes them.
+**Why this is next:** the owner asked to bring main fully up to date, and later features branch from it.
