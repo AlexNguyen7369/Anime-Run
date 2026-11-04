@@ -8,8 +8,8 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
   `assets/sfx/ImpactSounds`, so nothing depends on saving the place. The owner swaps one by editing its id there.
 - A server script copies the folder to `ReplicatedStorage/ImpactSounds` at start. Clients only read that copy.
 - Extras, at most 4: Chime, Whoosh, Coin, Denied. Same folder and same copy.
-- Every sound is free on the Creator Store, under 1.5 s (proposed), with no official show audio (design doc 5). The UI sound
-  ledger is the `Assets` table in `src/shared/UiSounds.luau`: key, id, creator.
+- Every sound is free on the Creator Store, about 2 s at most (proposed; Chime is 2.1 s), with no official show audio (design doc 5). The UI sound
+  ledger is the `Assets` table in `src/shared/UiSounds.luau`: slot, id, creator, name.
 - `HudPressSound` stays as it is (`RacerMotion`, harness pin): the base tick on every button.
 
 ## 2. Cues
