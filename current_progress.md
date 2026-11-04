@@ -54,8 +54,9 @@
 50. 2026-11-03 — Alex Nguyen — Tested the first-join flow on real fresh test saves with a Studio-only `TestSaveKey`, and fixed what it found: the first roll card covering the hero reveal, SKIP overlapping a HUD button, the sweep ending away from the gate and the hero hidden behind the avatar; also kept test sessions off the leaderboards (data, world_layout, spawn_area, dojo, workshop pass=5 fail=0; rules audit PASS; phone and a second real account not tested).
 51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
 52. 2026-11-04 — Alex Nguyen — Replaced every track NPC with a biome-matched enemy: 9 new uploaded models, a name and arrow indicator that follows the enemy's head, npc and ui_billboards green, rules audit PASS.
+53. 2026-11-04 — Alex Nguyen — Landed c3ui with owner rulings as design doc 4.27: phone and tablet HUD fixes, StarterPick in the UI spec, reduced-motion and hitbox test fixes, and rules audit PASS.
 
 ## What's next
-**Land c3ui, then rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**
+**Rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**
 
-**Why this is next:** the owner approved c3 and the PR to main and asked for it to continue once track enemies landed; merging into main depends on these checks passing on the merged code.
+**Why this is next:** the owner approved c3 and the PR to main; merging into main depends on these checks passing on the code that now includes c3ui and track enemies.
