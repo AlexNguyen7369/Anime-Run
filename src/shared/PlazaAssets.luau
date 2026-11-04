@@ -121,68 +121,24 @@ return {
 			},
 		},
 		LegendPedestal = {
-			Asset = 101436028319012,
+			Asset = 111419054534379,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
-				Glow_sp = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
-					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#A75BFF",
-				},
-			},
-		},
-		LegendPedestalx = {
-			Asset = 120745633279878,
-			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
+				Body = { Size = Vector3.new(7.600, 2.600, 7.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_so = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
+					Size = Vector3.new(7.000, 0.300, 7.000),
 					Center = Vector3.new(0.000, 1.950, -0.000),
 					Glow = "#FF9A2E",
 				},
 			},
 		},
-		LegendPedestalxx = {
-			Asset = 108800207329925,
+		LegendPedestalx = {
+			Asset = 93217066984565,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
-				Glow_sr = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
-					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#FF4A3A",
-				},
-			},
-		},
-		LegendPedestalxxx = {
-			Asset = 121967334967009,
-			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
+				Body = { Size = Vector3.new(7.600, 2.600, 7.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_sb = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
+					Size = Vector3.new(7.000, 0.300, 7.000),
 					Center = Vector3.new(0.000, 1.950, -0.000),
 					Glow = "#3C7BFF",
-				},
-			},
-		},
-		LegendPedestalxxxx = {
-			Asset = 134765580259032,
-			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
-				Glow_st = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
-					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#2EC8D0",
-				},
-			},
-		},
-		LegendPedestalxxxxx = {
-			Asset = 130736918087406,
-			Parts = {
-				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
-				Glow_sg = {
-					Size = Vector3.new(8.600, 0.300, 8.600),
-					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#3CD07A",
 				},
 			},
 		},
@@ -193,8 +149,34 @@ return {
 			},
 		},
 		MarketSign = {
-			Asset = 90566703075659,
-			Parts = { Body = { Size = Vector3.new(18.000, 16.300, 1.050), Center = Vector3.new(0.000, 8.150, -0.175) } },
+			Asset = 114312886441158,
+			Parts = { Body = { Size = Vector3.new(16.800, 4.400, 2.650), Center = Vector3.new(0.000, 11.850, -0.675) } },
+		},
+		MarketStall = {
+			Asset = 70996565944578,
+			Parts = {
+				Body = { Size = Vector3.new(23.837, 16.000, 14.842), Center = Vector3.new(0.000, 8.000, -0.000) },
+				Glow_lamp = {
+					Size = Vector3.new(14.300, 1.200, 0.953),
+					Center = Vector3.new(0.000, 6.800, 5.450),
+					Glow = "#FFB765",
+				},
+				Glow_lampw = {
+					Size = Vector3.new(10.715, 2.940, 0.240),
+					Center = Vector3.new(0.188, 6.470, 3.800),
+					Glow = "#FFF0D0",
+				},
+				Glow_neonb = {
+					Size = Vector3.new(7.010, 2.390, 0.240),
+					Center = Vector3.new(1.885, 5.795, 3.800),
+					Glow = "#39C8FF",
+				},
+				Glow_neono = {
+					Size = Vector3.new(1.680, 1.680, 0.240),
+					Center = Vector3.new(2.100, 5.440, 3.800),
+					Glow = "#FF8A1E",
+				},
+			},
 		},
 		POTIONSStall = {
 			Asset = 90249957543522,
@@ -280,7 +262,7 @@ return {
 		{ Key = "MainPath", Pos = Vector3.new(0.000, 1.080, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "SpawnMosaic", Pos = Vector3.new(0.000, 1.100, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "HeroTorii", Pos = Vector3.new(-84.000, 1.000, 78.000), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "MarketSign", Pos = Vector3.new(-72.000, 1.000, -12.500), Face = Vector3.new(1.0000, 0, 0.0000) },
+		{ Key = "MarketSign", Pos = Vector3.new(-73.700, 1.000, -12.500), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "Lantern", Pos = Vector3.new(-69.605, 1.000, 52.897), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "Lantern", Pos = Vector3.new(-57.901, 1.000, 65.501), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "Lantern", Pos = Vector3.new(-79.131, 1.000, 61.743), Face = Vector3.new(0.0000, 0, 1.0000) },
@@ -288,35 +270,16 @@ return {
 		{ Key = "GreatSakura", Pos = Vector3.new(80.000, -2.000, 118.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "SHOPStall", Pos = Vector3.new(-77.000, 1.000, -70.000), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "POTIONSStall", Pos = Vector3.new(-77.000, 1.000, -41.250), Face = Vector3.new(1.0000, 0, 0.0000) },
+		{ Key = "MarketStall", Pos = Vector3.new(-77.500, 1.000, -12.500), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "IndexBoard", Pos = Vector3.new(-72.000, 1.000, 16.250), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LegendPedestal", Pos = Vector3.new(-1.518, 1.000, 21.879), Face = Vector3.new(-0.6805, 0, -0.7328) },
-		{ Key = "LegendPedestalx", Pos = Vector3.new(-21.931, 1.000, -0.105), Face = Vector3.new(0.6805, 0, 0.7328) },
-		{
-			Key = "LegendPedestalxx",
-			Pos = Vector3.new(-11.777, 1.000, 31.405),
-			Face = Vector3.new(-0.6805, 0, -0.7328),
-		},
-		{ Key = "LegendPedestalxxx", Pos = Vector3.new(-32.191, 1.000, 9.422), Face = Vector3.new(0.6805, 0, 0.7328) },
-		{
-			Key = "LegendPedestalxxxx",
-			Pos = Vector3.new(-22.036, 1.000, 40.932),
-			Face = Vector3.new(-0.6805, 0, -0.7328),
-		},
-		{
-			Key = "LegendPedestalxxxxx",
-			Pos = Vector3.new(-42.450, 1.000, 18.948),
-			Face = Vector3.new(0.6805, 0, 0.7328),
-		},
+		{ Key = "LegendPedestal", Pos = Vector3.new(-71.500, 1.000, 94.000), Face = Vector3.new(0.3593, 0, -0.9332) },
+		{ Key = "LegendPedestalx", Pos = Vector3.new(-89.500, 1.000, 61.500), Face = Vector3.new(0.9570, 0, -0.2900) },
 	},
 	Tiers = { [0] = "DojoKit_L0", [1] = "DojoKit_L1", [4] = "DojoKit_L4", [7] = "DojoKit_L7", [10] = "DojoKit_L10" },
 	Legends = {
-		{ Id = "jk_strongest", Pos = Vector3.new(-1.518, 3.600, 21.879), Face = Vector3.new(0.0523, 0, -1.4132) },
-		{ Id = "db_hero", Pos = Vector3.new(-21.931, 3.600, -0.105), Face = Vector3.new(1.4132, 0, 0.0523) },
-		{ Id = "leaf_crow", Pos = Vector3.new(-11.777, 3.600, 31.405), Face = Vector3.new(0.0523, 0, -1.4132) },
-		{ Id = "mha_symbol", Pos = Vector3.new(-32.191, 3.600, 9.422), Face = Vector3.new(1.4132, 0, 0.0523) },
-		{ Id = "ds_flame", Pos = Vector3.new(-22.036, 3.600, 40.932), Face = Vector3.new(0.0523, 0, -1.4132) },
-		{ Id = "sea_captain", Pos = Vector3.new(-42.450, 3.600, 18.948), Face = Vector3.new(1.4132, 0, 0.0523) },
+		{ Id = "db_hero", Pos = Vector3.new(-71.500, 3.600, 94.000), Face = Vector3.new(16.5405, 0, -42.9662) },
+		{ Id = "mha_symbol", Pos = Vector3.new(-89.500, 3.600, 61.500), Face = Vector3.new(34.5405, 0, -10.4662) },
 	},
 	Signs = {
 		{
@@ -349,14 +312,14 @@ return {
 		},
 		{
 			Text = "MARKET",
-			Pos = Vector3.new(-71.550, 14.100, -12.500),
+			Pos = Vector3.new(-73.250, 12.700, -12.500),
 			Face = Vector3.new(1.0000, 0, 0.0000),
 			Size = 3.00,
 			Color = "#E8B23C",
 		},
 	},
 	Landmarks = {
-		Market = Vector3.new(-80.350, 50.000, -12.500),
+		Market = Vector3.new(-77.500, 50.000, -12.500),
 		RaceStart = Vector3.new(-84.000, 60.000, 78.000),
 	},
 	LoopRadius = 62,

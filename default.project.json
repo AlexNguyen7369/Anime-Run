@@ -6,9 +6,6 @@
       "Shared": {
         "$path": "src/shared"
       },
-      "SpawnMarketplace": {
-        "$path": "assets/studio/SpawnMarketplace.rbxmx"
-      },
       "HeroLodTemplate": {
         "$className": "Model",
         "$properties": {
