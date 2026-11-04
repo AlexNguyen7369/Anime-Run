@@ -53,7 +53,7 @@ Out of scope: gameplay changes, track layout changes (w3 layouts stay).
 Status: active (owner 2026-11-03)
 Owner-confirmed: 2026-11-03 (a1-a3 chibi drafts retired by a4)
 Branch: feature/alex/anime-world
-Spec: docs/CHARACTER_GACHA_SPEC.md (Art, Draft pipeline), design doc section 5
+Spec: docs/CHARACTER_GACHA_SPEC.md, design doc section 5
 Deliverables:
 - a4 | Avatar-style pilot (owner 2026-11-03, replaces chibi): Team Seven trio `leaf_hero`, `leaf_avenger`, `leaf_medic` in `assets/characters_avatar/` | 4 renders each; owner approves the look
 - a5 | Other 27 characters in the approved avatar style | every id has 4 renders; rules-auditor sign-off; owner visual review
