@@ -6,7 +6,7 @@ return {
 	Rarity = "Epic",
 	Chance = 2500000,
 	SpeedMulti = 16.5,
-	Order = 23,
+	Order = 25,
 	Category = "Sprinter",
 	Series = "leaf",
 	Archetype = "ninja",

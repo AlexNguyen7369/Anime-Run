@@ -1,8 +1,8 @@
 {
 	"foe_sea2": {
 		"name": "Enelu",
-		"colours": { "skin": "#F6DCC4", "eyes": "#121212", "UpperTorso": "#F6DCC4", "LowerTorso": "#F08A1C", "UpperArm": "#F6DCC4", "LowerArm": "#F6DCC4", "Hand": "#F6DCC4", "UpperLeg": "#F08A1C", "LowerLeg": "#F08A1C", "Foot": "#F6DCC4" },
-		"face": { "eye": "sharp", "mouth": "smirk", "brow": "#121212", "brow_lift": 0.3 },
-		"hair": { "colour": "#F4F0E6", "locks": [] }
+		"colours": { "skin": "#F6D6B8", "eyes": "#9DB6C6", "UpperTorso": "#F6D6B8", "LowerTorso": "#1B2F78", "UpperArm": "#F6D6B8", "LowerArm": "#F6D6B8", "Hand": "#F6D6B8", "UpperLeg": "#F08A1C", "LowerLeg": "#20202E", "Foot": "#F6D6B8" },
+		"face": { "eye": "sharp", "mouth": "smirk", "brow": "#121014", "brow_lift": 0.3 },
+		"hair": { "colour": "#EFCA58", "locks": [] }
 	}
 }
