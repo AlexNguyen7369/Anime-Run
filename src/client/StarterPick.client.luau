@@ -8,6 +8,12 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
+local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+
+-- Client/ArrivalFlow's reveal opens the popup by ArrivalRevealDone; if it never does, this many seconds after loading the
+-- popup opens anyway (a player who cannot pick has no team).
+local REVEAL_WATCHDOG_SECONDS = 10
 
 local player = Players.LocalPlayer
 local pick = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PickStarter")
@@ -23,7 +29,7 @@ local dim = Instance.new("Frame")
 dim.Name = "Dim"
 dim.Size = UDim2.fromScale(1, 1)
 dim.BackgroundColor3 = Color3.new(0, 0, 0)
-dim.BackgroundTransparency = 0.35
+dim.BackgroundTransparency = 0.6 -- the plaza shows behind the popup (design doc 4.24, proposed)
 dim.Active = true -- swallows clicks to the HUD behind it
 dim.Parent = root
 
@@ -135,9 +141,12 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 			return
 		end
 		busy = true
-		pcall(function()
-			pick:InvokeServer(id)
+		local ok, taken = pcall(function()
+			return pick:InvokeServer(id)
 		end)
+		if ok and taken then
+			player:SetAttribute("StarterPicked", id) -- local only: Client/ArrivalFlow plays the in-world reveal
+		end
 		busy = false
 	end)
 end
@@ -149,15 +158,31 @@ local function refill()
 end
 
 local function update()
-	local show = player:GetAttribute("NeedsStarter") == true
+	local show = player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true
 	if show and not root.Enabled then
 		refill()
+		UiMotion.Pop(panel)
 	end
 	root.Enabled = show
 end
 
+local function armWatchdog()
+	if player:GetAttribute("NeedsStarter") == true then
+		task.spawn(function()
+			ArrivalState.WaitForLoading()
+			task.wait(REVEAL_WATCHDOG_SECONDS)
+			player:SetAttribute("ArrivalRevealDone", true)
+		end)
+	end
+end
+
 root.Parent = player:WaitForChild("PlayerGui")
-player:GetAttributeChangedSignal("NeedsStarter"):Connect(update)
+player:GetAttributeChangedSignal("NeedsStarter"):Connect(function()
+	armWatchdog()
+	update()
+end)
+player:GetAttributeChangedSignal("ArrivalRevealDone"):Connect(update)
+armWatchdog()
 update()
 
 -- The models load in the background: show them once they arrive.

@@ -49,8 +49,9 @@
 45. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the other 26 characters in the owner's target look, so all 30 launch characters now load in game at 0.8 scale (Studio: 30 of 30 with 6 meshes each), rules audit fixed to 0 violations, real race and full harness not run.
 46. 2026-11-03 — Alex Nguyen — Gave logos and symbols small shape changes on 15 characters with the overall designs unchanged (design doc 5 Marks) and re-uploaded them, rules audit PASS, in-game check of the new marks still open.
 47. 2026-11-03 — Alex Nguyen — Landed first-impression fi1 and fi2: in-house plaza and Dojo meshes with 5 Dojo looks, Legends and sky-loop runners, golden-hour plaza, a logo loading screen that waits for client assets, and bold Market and Race Start landmarks (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS).
+48. 2026-11-03 — Alex Nguyen — Built first-impression fi3 on its task branch: camera reveal, lighter starter dim with an in-world reveal, petal trail to the gate, Daily held until the first run ends, and the gate burst (stylua clean, selene 0 errors, Studio check still open).
 
 ## What's next
-**Build first-impression fi3: first-join camera reveal, lighter starter dim with an in-world reveal, petal trail to the gate, Daily held until the first run ends, and the gate burst.**
+**Run the fi3 Studio check on a fresh save and land the branch, then build first-impression fi4.**
 
-**Why this is next:** the plaza and landmarks are in place, and this flow is what shows them to a new player; fi4, fi5 and the c3 check before the PR to main follow it.
+**Why this is next:** fi3's done condition needs that Studio check, and fi4, fi5 and the c3 check before the PR to main follow it.
