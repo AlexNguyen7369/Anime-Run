@@ -148,7 +148,7 @@ UiSpec.Guis = {
 				Remote = "EquipCar",
 				Arg = "tile_id", -- THAT tile's car id
 				Count = "catalog", -- one per CharacterCatalog.All()
-				DisabledWhen = "in_team", -- a Team member's tile shows "IN TEAM" and fires nothing (UI audit A14)
+				DisabledWhen = "team_slot_1", -- only Team slot 1 shows "IN TEAM" and fires nothing; slots 2, 3 swap (design doc 4.2, UI audit A14)
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
 			},
 		},
@@ -1905,7 +1905,7 @@ UiSpec.Clicks = {
 		Gui = "RacerIndex",
 		Path = "Panel/Face/GridHost/Gallery/{discovered_unequipped}/Equip",
 		Prepare = only("RacerIndex/Panel"),
-		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows the Team (UI audit A14)
+		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows slot 1 (design doc 4.2, UI audit A14)
 		NeedSetup = { "on_foot", "spy", "index_states" },
 		Expect = {
 			Remote = { Name = "EquipCar", Arg = "tile_id" },

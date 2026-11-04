@@ -690,10 +690,12 @@ local function refreshIndex()
 		tile.Equip.Visible = owned
 		local on = table.find(team, id) ~= nil -- design doc 4.22: green = on the Team, in any of its 3 slots
 		tile.Stroke.Color = on and GREEN or UiTheme.Outline
-		tile.Equip.Active = owned and not on
-		tile.Equip.Selectable = owned and not on
-		Components.Tint(tile.Equip, on and GRAY or GREEN)
-		tile.Equip.Label.Text = on and "IN TEAM" or "EQUIP"
+		-- Design doc 4.2: single equip moves to slot 1 and the server swaps, so only slot 1 has nothing left to do.
+		local first = team[1] == id
+		tile.Equip.Active = owned and not first
+		tile.Equip.Selectable = owned and not first
+		Components.Tint(tile.Equip, first and GRAY or GREEN)
+		tile.Equip.Label.Text = first and "IN TEAM" or "EQUIP"
 		if owned then
 			count += 1
 		end
@@ -711,14 +713,32 @@ local function refreshIndex()
 		config.DISCOVERIES_PER_POINT - count % config.DISCOVERIES_PER_POINT
 	)
 end
+local EQUIP_ANSWER_SECONDS = 3 -- placeholder: a press the server has not answered by then was refused
+local pressedEquip, pressedUntil = nil, 0
 for id, tile in pairs(tiles) do
 	tile.Equip.Activated:Connect(function()
 		if tile.Equip.Active and data:FindFirstChild(id) then
+			pressedEquip, pressedUntil = id, os.clock() + EQUIP_ANSWER_SECONDS
 			remotes.EquipCar:FireServer(id)
-			UiFeedback.Play("Equip", tile.Equip)
 		end
 	end)
 end
+-- The Equip cue is the server's yes, so a refusal plays none. On the card: a tile that lands on slot 1 turns its button
+-- disabled, and a disabled button does not move (design doc 4.20).
+local function equipAnswered()
+	local id = pressedEquip
+	if id and os.clock() > pressedUntil then
+		pressedEquip = nil
+	elseif
+		id
+		and (player:GetAttribute("EquippedCar") == id or string.split(player:GetAttribute("Team") or "", ",")[1] == id)
+	then
+		pressedEquip = nil
+		UiFeedback.Play("Equip", tiles[id].Frame)
+	end
+end
+player:GetAttributeChangedSignal("EquippedCar"):Connect(equipAnswered)
+player:GetAttributeChangedSignal("Team"):Connect(equipAnswered)
 data.ChildAdded:Connect(refreshIndex)
 data.ChildRemoved:Connect(refreshIndex)
 player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
@@ -889,11 +909,7 @@ end
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
 local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
-local function rollPhase()
-	local rollGui = playerGui:FindFirstChild("RollToast")
-	local toast = rollGui and rollGui:FindFirstChild("Toast")
-	return toast and toast:GetAttribute("Phase") or "Idle"
-end
+local rollPhase = UiFeedback.RollPhase
 local function playMoneyBig()
 	UiFeedback.Play(
 		"MoneyBig",

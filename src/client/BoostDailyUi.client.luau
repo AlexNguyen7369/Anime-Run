@@ -427,6 +427,11 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	return card
 end
 
+-- Height of the 7 days. From the modal's Size, which Band.Fit keeps in px: AbsoluteSize carries the panel's MotionScale.
+local function dailyHeight()
+	return math.max(180, modal.Size.Y.Offset + content.Size.Y.Offset - 34 - 42 - 2 * layout.Padding.Offset)
+end
+
 local function showDaily()
 	local opening = not backdrop.Visible or view ~= "Daily"
 	view = "Daily"
@@ -445,10 +450,8 @@ local function showDaily()
 	local camera = workspace.CurrentCamera
 	local phone = camera and camera.ViewportSize.Y <= 500
 	-- Desktop: the 7 days fit the panel with no scroll, under them only the next-reward line and the Claim button.
-	local deskHeight = math.max(180, content.AbsoluteSize.Y - 34 - 42 - 2 * layout.Padding.Offset)
-	local rowHeight = math.floor((deskHeight - 8) / 2)
 	local area = make("Frame", "RewardCards", content, {
-		Size = UDim2.new(1, -8, 0, phone and 530 or deskHeight),
+		Size = UDim2.new(1, -8, 0, phone and 530 or dailyHeight()),
 		BackgroundTransparency = 1,
 	})
 	for day, reward in ipairs(dailyConfig.Rewards) do
@@ -478,8 +481,8 @@ local function showDaily()
 				reward,
 				done,
 				false,
-				UDim2.new(column * 0.25, column == 0 and 0 or 4, 0, row * (rowHeight + 8)),
-				UDim2.new(0.25, -8, 0, rowHeight)
+				UDim2.new(column * 0.25, column == 0 and 0 or 4, row * 0.5, row * 4),
+				UDim2.new(0.25, -8, 0.5, -4)
 			)
 		else
 			dailyCard(area, day, reward, done, true, UDim2.new(0.75, 8, 0, 0), UDim2.new(0.245, -8, 1, 0))
@@ -769,12 +772,23 @@ task.spawn(function()
 	end
 end)
 
--- Band.Fit sizes the modal after it opens: the 7 days re-fit to the real height.
-content:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-	if view == "Daily" and backdrop.Visible then
-		showDaily()
+-- Band.Fit sizes the modal after it opens: the 7 days re-fit to the real height. In place (the cards are fractions of
+-- their area), so Claim and the cards' rise survive.
+modal:GetPropertyChangedSignal("Size"):Connect(function()
+	local area = content:FindFirstChild("RewardCards")
+	local camera = workspace.CurrentCamera
+	if view == "Daily" and area and not (camera and camera.ViewportSize.Y <= 500) then
+		area.Size = UDim2.new(1, -8, 0, dailyHeight())
 	end
 end)
+-- A real resize can cross the phone line, which lays the days out differently: that one rebuilds.
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		if view == "Daily" and backdrop.Visible then
+			showDaily()
+		end
+	end)
+end
 
 -- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
 UiTheme.Apply(screen)

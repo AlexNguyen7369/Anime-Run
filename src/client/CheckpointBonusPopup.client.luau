@@ -54,7 +54,8 @@ local function show(text, pays)
 	UiMotion.Create(group, TweenInfo.new(FADE_IN, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Position = HOME,
 	}):Play()
-	UiFeedback.Play("CheckpointBonus", group, { Target = pays and UiFeedback.MoneyCounter() or nil })
+	-- The pay goes to the run's Unbanked (RaceService), not Money.
+	UiFeedback.Play("CheckpointBonus", group, { Target = pays and UiFeedback.UnbankedCounter() or nil })
 	task.delay(FADE_IN + HOLD, function()
 		if shown ~= mine then
 			return

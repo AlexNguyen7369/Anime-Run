@@ -25,7 +25,7 @@ How moments were driven:
 | A11 | Daily | Day 7, the top prize, opens clipped by the panel edge and Days 4-6 are cut. No highlight on today's tile. | seen | med | `BoostDailyUi.client.luau:446-453` | Fit 7 days without scroll on desktop; mark today with `UiMotion.Mark` and Pulse. |
 | A12 | Backpack | Slot row covers the grid: 1.3 rows of tiles show, second row cut. Slot row is left-aligned and shorter than the grid. Team members are not pinned first. | seen | med | `BackpackUi.client.luau:221`, `SlotPicker.luau:82` | Grid ends above the slots, slots span the grid width, Team first. |
 | A13 | Backpack | Opens on Misc, usually empty, with no route to fill it. Characters is the common job and needs a second tap. | seen | med | `BackpackUi.client.luau:483` | Open on Characters; add a Daily or Market button to the empty state. |
-| A14 | Index | Team members still show green EQUIP (Nammi, Sanjy were in Team). Only `EquippedCar` counts. Pressing EQUIP looks like it replaces a Team member; not confirmed. | seen; effect inferred | med | `RollToast/RacerUiController.luau:640-641`, `:656` | Show "IN TEAM" for all 3 slots, or send equip to the Backpack slot picker. |
+| A14 | Index | Team members still show green EQUIP (Nammi, Sanjy were in Team). Only `EquippedCar` counts. Pressing EQUIP looks like it replaces a Team member; not confirmed. | seen; effect inferred | med | `RollToast/RacerUiController.luau:640-641`, `:656` | Show "IN TEAM" for all 3 slots, or send equip to the Backpack slot picker. **Partial, 2026-11-04:** slot 1 shows disabled "IN TEAM"; slots 2 and 3 keep active "EQUIP", because design doc 4.2 moves a single equip to slot 1 and the server swaps (`GachaService:313-319`). |
 | A15 | Enemies page | Still shows "7 / 47 DISCOVERED · NEXT POINT IN 2", the character count. Locked tiles show a small "?" high in the tile with no track number. Active tab is the same cyan as its bar. | seen | med | `RollToast/RacerUiController.luau:646`, `RollToast/Ui/InventoryTabs.luau:17` | "n / 10 DEFEATED"; show "TRACK n" on locked tiles; active tab white. |
 | A16 | VS, DEFEATED | Flat for the moment it marks. Same plate for both, DEFEATED keeps the red edge, right third is empty, plate crosses the runner's feet, title is 24 px, the smallest line but one. | seen | med | `EnemyShowdown.client.luau:19-21`, `:77-84`, `:145-146` | Slam, large title; green edge and greyed portrait on DEFEATED; shrink plate to its content. Must stay non-blocking (4.28). |
 | A17 | VS, loser, map | One track, two names: "Leafwind Village" on VS, "OVAL" on the loser card and map. | seen | med | `EnemyShowdown.client.luau:30`, `NpcRacerView.client.luau:284` | Use the BiomeThemes name everywhere. |
@@ -89,8 +89,8 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 | roll land Common, Uncommon | `init:1180-1187`, `landEffects:1000` | Pop + thin ring | keep | `RollLand1` | none | - | constant, FLAG |
 | roll land Rare | same | thicker ring | keep | `RollLand2` | Tap | 0.15 | often |
 | roll land Epic | `init:1017` | + pulsing ring | Pop | `RollLand3` | Thunk | 0.35 | often |
-| roll land Legendary | `init:1029-1037` | + gold swell, Shake | Impact (no shards) | `RollLand4` | Crack | 0.6 | rare |
-| roll land Mythic | `init:1038` | + light sweep | Shine + Shake | `RollLand5` | Boom | 0.7 | rare |
+| roll land Legendary | `init:1029-1037` | + gold swell, Shake | Impact without its Shake (no shards); the existing Shake stays | `RollLand4` | Crack | 0.6 | rare |
+| roll land Mythic | `init:1038` | + light sweep | Shine; Shake stays on the figure, not in the cue | `RollLand5` | Boom | 0.7 | rare |
 | Secret takeover | `init:1044-1058` | dark screen + title + fade | Slam on the title + Shake | `RollSecret` | Boom + Chime | 0.9 | rare |
 | VS banner | `EnemyShowdown:133-146` | Fade + SlideIn | Slam | `EnemyVs` | Slash | 0.5 | often |
 | DEFEATED | `EnemyShowdown:133-146` (won) | same as VS | Slam + Burst + Mark portrait | `EnemyDefeated` | Crack | 0.7 | often |
@@ -105,7 +105,7 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 | badge new | `HudChrome:327-331`, `:344` | Pop, ring pulse | keep | `BadgeNew` | Tap only when count grows from 0; else none | 0.1 | often |
 | toast low (status, code answers) | `BoostDailyUi:241`, `ShopUi:500` | SlideIn | Fade | `ToastLow` | none | - | often |
 | toast medium (biome welcome) | `BiomeWelcome:44` | fade + Back | keep | `ToastMid` | Whoosh | 0.2 | often |
-| toast high (duel result) | `DuelUi:279-290` | Fade + SlideIn + Pop | Slam | `ToastHigh` | Thunk | 0.5 | rare |
+| toast high (duel result) | `DuelUi:279-290` | Fade + SlideIn + Pop | SlideIn + Slam, results only; cancel toasts are `ToastLow` | `ToastHigh` | Thunk | 0.5 | rare |
 | checkpoint bonus | `CheckpointBonusPopup:42`, `:72` | fade + Back | Pop + Fly if it pays | `CheckpointBonus` | Chime | 0.4 | often |
 | starter pick | `StarterPick:148`, `ArrivalFlow:226` | panel Pop; in-world reveal | Slam on card | `StarterPick` | Crack | 0.6 | rare |
 | duel countdown | `DuelUi:241` | not read in detail | Pop per number | `DuelTick` | Tap | 0.3 | rare |

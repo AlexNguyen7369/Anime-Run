@@ -275,7 +275,8 @@ local function showCountdown(message)
 end
 
 local resultText = { Win = "YOU WIN!", Lose = "YOU LOSE", Draw = "DRAW" }
-local resultCue = { Win = "DuelWin", Lose = "DuelLose" } -- anything else on this toast is ToastHigh
+local resultCue = { Win = "DuelWin", Lose = "DuelLose", Draw = "ToastHigh" }
+local TOAST_SLIDE = 0.25
 local cancelText = {
 	Declined = "DUEL DECLINED",
 	InviteTimeout = "NO ANSWER",
@@ -297,8 +298,17 @@ local function showToast(text, cue)
 	toast.Position = TOAST_HOME
 	toast.Visible = true
 	UiMotion.Fade(toast, true)
-	-- The cue's Slam or Shake is the arrival; a SlideIn under Shake would take its offset for the toast's home.
-	UiFeedback.Play(cue or "ToastHigh", toast)
+	UiMotion.SlideIn(toast, Vector2.new(48, 0), TOAST_SLIDE)
+	-- Shake takes the Position it finds for the toast's home, so DuelLose waits for the slide. Slam is scale only.
+	if cue == "DuelLose" then
+		task.delay(TOAST_SLIDE, function()
+			if token == messageToken then
+				UiFeedback.Play(cue, toast)
+			end
+		end)
+	else
+		UiFeedback.Play(cue, toast)
+	end
 	task.delay(3, function()
 		if token == messageToken then
 			UiMotion.Fade(toast, false)
@@ -361,8 +371,8 @@ duelRemote.OnClientEvent:Connect(function(message)
 	elseif message.Type == "Countdown" then
 		showCountdown(message)
 	elseif message.Type == "Result" then
-		showToast(resultText[message.Result] or "DRAW", resultCue[message.Result])
+		showToast(resultText[message.Result] or "DRAW", resultCue[message.Result] or "ToastHigh")
 	elseif message.Type == "Cancelled" then
-		showToast(cancelText[message.Reason] or "DUEL CANCELLED")
+		showToast(cancelText[message.Reason] or "DUEL CANCELLED", "ToastLow")
 	end
 end)

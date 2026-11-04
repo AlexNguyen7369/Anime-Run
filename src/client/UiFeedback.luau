@@ -35,7 +35,7 @@ UiFeedback.Cues = {
 	RollLand2 = { Slot = "Tap", Volume = 0.15 },
 	RollLand3 = { Slot = "Thunk", Volume = 0.35, Motion = { "Pop" } },
 	RollLand4 = { Slot = "Crack", Volume = 0.6, Motion = { "Impact" } },
-	RollLand5 = { Slot = "Boom", Volume = 0.7, Motion = { "Shine", "Shake" } },
+	RollLand5 = { Slot = "Boom", Volume = 0.7, Motion = { "Shine" } },
 	RollSecret = { Slot = "Boom", Also = "Chime", Volume = 0.9, Motion = { "Slam", "Shake" } },
 	EnemyVs = { Slot = "Slash", Volume = 0.5, Motion = { "Slam" } },
 	EnemyDefeated = { Slot = "Crack", Volume = 0.7, Motion = { "Slam", "Burst" } },
@@ -126,8 +126,8 @@ local function playSound(cue, row, opts)
 end
 
 -- opts (all optional): Origin (gui or Vector2 for Burst and Fly, default gui), Target (Fly's gui; none: no coins), Count,
--- OnLanded (Fly), Color (shards, coins, flash), Pitch, Sound (see OptIn), Bar and Goal (Fill's bar and its goal Size).
--- Never yields. The rate limit covers the sound only: dropping motion would drop a gui's Pop and a Fly's OnLanded.
+-- OnLanded (Fly), Color (shards, coins, flash), Pitch, Sound (see OptIn), Bar and Goal (Fill's bar and its goal Size),
+-- NoBurst (the Burst is skipped), NoShake (Impact without its Shake). Never yields. The rate limit covers the sound only: dropping motion would drop a gui's Pop and a Fly's OnLanded.
 function UiFeedback.Play(cue, gui, opts)
 	local row = UiFeedback.Cues[cue]
 	if not row then
@@ -135,6 +135,10 @@ function UiFeedback.Play(cue, gui, opts)
 		return
 	end
 	opts = opts or {}
+	-- A disabled button does not move (design doc 4.20): its Denied is sound only.
+	if cue == "Denied" and gui and gui:IsA("GuiButton") and not gui.Active then
+		gui = nil
+	end
 	playSound(cue, row, opts)
 	for _, preset in row.Motion or {} do
 		if preset == "Fly" then
@@ -144,7 +148,7 @@ function UiFeedback.Play(cue, gui, opts)
 				UiMotion.Fill(opts.Bar, opts.Goal)
 			end
 		elseif preset == "Burst" then
-			if opts.Origin or gui then
+			if (opts.Origin or gui) and not opts.NoBurst then
 				UiMotion.Burst(opts.Origin or gui, opts)
 			end
 		elseif gui then
@@ -163,6 +167,21 @@ function UiFeedback.MoneyCounter()
 	local hud = playerGui and playerGui:FindFirstChild("RacerHud")
 	local money = hud and hud:FindFirstChild("Money")
 	return money and money:FindFirstChild("MoneyValue")
+end
+
+-- The HUD's Unbanked read-out, the far end of a Fly for pay not banked yet; nil before the HUD exists.
+function UiFeedback.UnbankedCounter()
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	local hud = playerGui and playerGui:FindFirstChild("RacerHud")
+	return hud and hud:FindFirstChild("Unbanked", true)
+end
+
+-- The roll card's Phase: anything but "Idle" means a roll is running.
+function UiFeedback.RollPhase()
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	local rollGui = playerGui and playerGui:FindFirstChild("RollToast")
+	local toast = rollGui and rollGui:FindFirstChild("Toast")
+	return toast and toast:GetAttribute("Phase") or "Idle"
 end
 
 -- Denied, sound only, for a press on a disabled button (Active = false fires no Activated, and it does not move, design

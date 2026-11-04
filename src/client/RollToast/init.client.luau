@@ -1021,6 +1021,10 @@ local function landEffects(b, roll)
 	stroke.Color = spec.Rarity == "Secret" and WHITE or color
 	stroke.Thickness = rank >= 3 and 6 or 3 -- Rare and up: a stronger ring
 	stroke.Transparency = 0
+	-- Legendary and Mythic: the land's one shake, so their cues carry none. A Secret's is in its cue (on the title).
+	if rank == 5 or rank == 6 then
+		UiMotion.Shake(b.Body, 6, 0.2)
+	end
 	local waveRest = b.Wave:GetAttribute("Rest")
 	b.Wave.Size = UDim2.fromScale(waveRest * 0.4, waveRest * 0.4)
 	tween(b.Wave, 0.45, { Size = UDim2.fromScale(waveRest * 1.25, waveRest * 1.25) })
@@ -1041,14 +1045,11 @@ local function landEffects(b, roll)
 		table.insert(tweens, pulse)
 		pulse:Play()
 	end
-	if rank >= 5 and not reduced then -- Legendary: radial gold burst and a light shake
+	if rank >= 5 and not reduced then -- Legendary: radial gold burst
 		b.Burst.Visible = true
 		b.Burst.Size = UDim2.fromScale(0.3, 0.5)
 		b.Burst.BackgroundTransparency = 0.1
 		tween(b.Burst, 0.6, { Size = UDim2.fromScale(1.4, 2.2), BackgroundTransparency = 1 })
-	end
-	if rank >= 5 then
-		UiMotion.Shake(b.Body, 6, 0.2)
 	end
 	if rank >= 6 and not reduced then -- Mythic: a band of light sweeps across the figure
 		b.Flare.Visible = true
@@ -1210,7 +1211,7 @@ local function play(roll)
 	UiFeedback.Play(
 		LAND_CUES[spec.Rarity] or "RollLand1",
 		spec.Rarity == "Secret" and takeover.Visible and takeoverText or (landed and landed.Wave),
-		{ Color = rarityColor(spec) }
+		{ Color = rarityColor(spec), NoShake = true }
 	)
 	if not after(landing * LAND_RISE) then
 		return

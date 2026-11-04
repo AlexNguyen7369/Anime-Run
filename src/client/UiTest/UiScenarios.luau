@@ -189,7 +189,7 @@ K.UNSUPPORTED_LAYOUT = {
 	UITableLayout = true,
 	UIFlexItem = true,
 }
--- The Team's ids in slot order: what the Index's IN TEAM shows (design doc 4.22, UI audit A14).
+-- The Team's ids in slot order: slot 1 is what the Index's IN TEAM shows (design doc 4.2, UI audit A14).
 function K.teamIds()
 	return string.split(player:GetAttribute("Team") or "", ",")
 end
@@ -4728,7 +4728,7 @@ function S.ui_buttons(res)
 		close ~= nil and close:IsA("GuiButton")
 	)
 
-	-- Equip buttons: hidden on undiscovered tiles, "EQUIP"+enabled on owned tiles, "IN TEAM"+disabled on all 3 Team members
+	-- Equip buttons: hidden on undiscovered tiles, "EQUIP"+enabled on owned tiles (Team slots 2, 3 too: the server swaps, design doc 4.2), "IN TEAM"+disabled on slot 1
 	local team = K.teamIds()
 	local wrong = {}
 	for _, spec in CharacterCatalog.All() do
@@ -4740,7 +4740,7 @@ function S.ui_buttons(res)
 			if b.Visible then
 				table.insert(wrong, spec.Id .. ": undiscovered but Equip visible")
 			end
-		elseif table.find(team, spec.Id) then
+		elseif team[1] == spec.Id then
 			if not (b.Visible and label and label.Text == "IN TEAM" and b.Active == false) then
 				table.insert(
 					wrong,
@@ -8353,7 +8353,7 @@ function UiScenarios.RunClick(id)
 	local path = spec.Path
 	local team = K.teamIds()
 	if string.find(path, "{discovered_unequipped}", 1, true) then
-		-- not on the Team: a Team member's Index tile is disabled (UI audit A14)
+		-- not on the Team: the press adds a member; slot 1's tile is disabled (design doc 4.2, UI audit A14)
 		for _, car in CharacterCatalog.All() do
 			if not tileId and owned(car.Id) and not table.find(team, car.Id) then
 				tileId = car.Id

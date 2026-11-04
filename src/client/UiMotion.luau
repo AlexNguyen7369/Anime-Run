@@ -448,10 +448,12 @@ local function offset(point)
 	return UDim2.fromOffset(point.X, point.Y)
 end
 
--- Pop, Shake, one flash and one ring from the gui. opts.Color tints them.
+-- Pop, Shake, one flash and one ring from the gui. opts.Color tints them; opts.NoShake leaves the Shake out.
 function UiMotion.Impact(gui, opts)
 	UiMotion.Pop(gui)
-	UiMotion.Shake(gui, 6, 0.2)
+	if not (opts and opts.NoShake) then
+		UiMotion.Shake(gui, 6, 0.2)
+	end
 	if UiMotion.Reduced() then
 		return
 	end

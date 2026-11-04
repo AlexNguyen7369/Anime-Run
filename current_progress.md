@@ -69,8 +69,9 @@
 66. 2026-11-04 — Alex Nguyen — Viewed all 9 redesigned villains in game on a test save and confirmed all 10 track enemies resolve to drawn portrait art in the UI.
 67. 2026-11-04 — Alex Nguyen — Landed up to 3 copies of each aura and trail with the Market and Backpack UI changes, slot_items 21 and vehicle_effects 130 fail=0, ui_market 100 checks fail=0 at 0, 1 and 3 copies, rules audit not run.
 68. 2026-11-04 — Alex Nguyen — Wrote UI feedback rules (design doc 4.33, UI_FEEDBACK_SPEC) and a live UI and SFX audit with 34 ranked findings (ui-juice u0).
+69. 2026-11-04 — Alex Nguyen — Fixed ui-juice audit findings on Equip cue timing, Daily rebuilds, Index slot 1 rule, Denied on disabled buttons, DEFEATED Burst, single roll shake, Duel toasts and checkpoint Fly; not run in Studio.
 
 ## What's next
-**Land ui-juice u1 and u2: impact sounds, UiFeedback cue table, UiMotion presets, consistency fixes, verified in Studio.**
+**Run the ui-juice stage in Studio: targeted UI checks on the audit fixes, then the owner's listen pass.**
 
-**Why this is next:** u3 big moments and u4 panel wiring call the UiFeedback cues and edit the files u2 changes; the compat check runs once all of it has landed.
+**Why this is next:** none of the audit fixes has run in Studio, and landing ui-juice depends on that check.

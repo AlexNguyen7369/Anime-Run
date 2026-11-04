@@ -14,6 +14,7 @@ local Themes = require(Shared.BiomeThemes)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
+local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
@@ -160,7 +161,12 @@ function show(event)
 	UiMotion.SlideIn(banner, Vector2.new(0, -24), 0.2)
 	-- The title Slams: the banner's own UIScale is the layout's (FitScale).
 	if won then
-		UiFeedback.Play("EnemyDefeated", title, { Origin = banner, Color = UiTheme.Palette.Money })
+		-- UiFx draws above everything, so the Burst sits out a roll or an open panel; the banner stays below them.
+		UiFeedback.Play("EnemyDefeated", title, {
+			Origin = banner,
+			Color = UiTheme.Palette.Money,
+			NoBurst = UiFeedback.RollPhase() ~= "Idle" or PanelSwitch.AnyOpen(),
+		})
 		lock(DEFEATED_MIN_SECONDS)
 	else
 		UiFeedback.Play("EnemyVs", title)
