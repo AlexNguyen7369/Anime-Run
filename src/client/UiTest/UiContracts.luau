@@ -241,7 +241,7 @@ function Contracts.Build(h)
 	end
 
 	-- docs/CHARACTER_GACHA_SPEC.md "Launch cast": every catalog character has its Index tile with its public odds and
-	-- Order; Count / Rarities are for the 30 regular characters, the event-only ones (Event set) are checked apart.
+	-- Order; Count / Rarities are for the 44 regular characters, the event-only ones (Event set) are checked apart.
 	function scenarios.ui_catalog_manifest(res)
 		local cast = Catalog.All()
 		local restore = h.setPanels({ "RacerIndex/Panel" })

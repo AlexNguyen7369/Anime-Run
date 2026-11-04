@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -84,7 +84,7 @@ local function indexStates(player)
 	player:SetAttribute("StatPoints", G.FreePoints(player))
 end
 
--- AUTO toggle (docs/ROLL_ANIMATION_CONTRACT.md): through GachaService.SetAutoRoll when it exists, else the
+-- AUTO toggle (docs/ROLL_ANIMATION_SPEC.md): through GachaService.SetAutoRoll when it exists, else the
 -- AutoRoll attribute the auto-roll loop reads.
 local function setAutoRoll(player, on)
 	local G = live("GachaService")
@@ -176,6 +176,9 @@ function setups.restore(player)
 	local progression = progressionSnapshots[player]
 	if progression then
 		live("UpgradeService").Apply(player, progression.upgrades)
+		if progression.raceTimes then
+			live("RaceTimeService").Apply(player, { RaceBestTimes = progression.raceTimes })
+		end
 		for name, entry in progression.attributes do
 			player:SetAttribute(name, entry.value)
 		end
@@ -303,6 +306,47 @@ function setups.lose_event(player)
 	end)
 end
 
+-- Enemy showdown (UiSpec ui_showdown, design doc 4.28): fake events to this client only, shaped like RaceService's;
+-- the real run's state is never touched. A real win fires Result and the next Start in the same frame.
+local function fireShowdownStart(player, track)
+	local cfg = require(Shared.NpcConfig).For(track)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace"):FireClient(player, {
+		Type = "Start",
+		Track = track,
+		ServerStart = workspace:GetServerTimeNow(),
+		Speed = cfg.Speed,
+		Color = cfg.Color,
+		Label = cfg.Label,
+		Model = cfg.Model,
+		BestTime = live("RaceTimeService").Best(player, track),
+	})
+end
+
+function setups.showdown_start(player)
+	local run = live("CarService").GetRun(player)
+	local track = type(run) == "table" and type(run.RaceTrack) == "number" and run.RaceTrack or 1
+	player:SetAttribute("UiTestShowdownTrack", track)
+	fireShowdownStart(player, track)
+end
+
+function setups.showdown_win(player)
+	local track = player:GetAttribute("UiTestShowdownTrack") or 1
+	player:SetAttribute("UiTestShowdownTrack", nil)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace"):FireClient(player, {
+		Type = "Result",
+		Track = track,
+		Result = "Win",
+		PlayerTime = 30,
+		NpcTime = 31.5,
+		Bonus = 1,
+		Banked = 0,
+		Unbanked = 0,
+		BestTime = live("RaceTimeService").Best(player, track),
+		NewBest = false,
+	})
+	fireShowdownStart(player, track % #require(Shared.NpcConfig).Tracks + 1)
+end
+
 -- Turbo luck: the upgrade tree decides it (UpgradeService.AdvanceTurbo: turbo when TurboCount + 1 >= Every of
 -- UpgradeService.Turbo(player)), so TurboCount = Every - 1 makes the next auto roll a turbo roll. Rolls alone no
 -- longer does. 'restore' puts the snapshot's upgrade state (TurboCount included) back.
@@ -317,7 +361,7 @@ function setups.turbo_next(player)
 	player:SetAttribute("TurboCount", every - 1)
 end
 
--- Roll animation (docs/ROLL_ANIMATION_CONTRACT.md): the next auto roll is an emphasized roll. Owning no rollable car
+-- Roll animation (docs/ROLL_ANIMATION_SPEC.md): the next auto roll is an emphasized roll. Owning no rollable car
 -- makes any roll new and, with fewer than 5 cars owned, emphasized (GachaConfig.IsEmphasized). As soon as that roll
 -- happened (Rolls changed) exactly the cars owned before are given back (the rolled one is not kept), with the new
 -- roll count, so later rolls are not emphasized by accident and no car is gained.
@@ -437,6 +481,21 @@ end
 
 function setups.checkpoint_open(player)
 	checkpointFixture(player, 2)
+end
+
+-- Defeated Enemies page (UiSpec ui_defeated, design doc 4.29): BestTrack 2, known bests for Tracks 1 and 2, the same
+-- times on unsaved attributes for the client to compare with. 'restore' puts the bests and attributes back.
+function setups.defeated_states(player)
+	checkpointFixture(player, 2)
+	local progression = progressionSnapshots[player]
+	local times = { ["1"] = 41.25, ["2"] = 52.5 }
+	progression.raceTimes = progression.raceTimes or live("RaceTimeService").Snapshot(player)
+	live("RaceTimeService").Apply(player, { RaceBestTimes = times })
+	for track, seconds in times do
+		local name = "UiTestBestTime" .. track
+		progression.attributes[name] = { value = nil }
+		player:SetAttribute(name, seconds)
+	end
 end
 
 -- Quest fixtures (UiSpec quest_claim_*, docs/QUESTS_SPEC.md): today's daily_races quest unclaimed with progress 0
@@ -653,7 +712,7 @@ do
 	end
 end
 
--- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_CONTRACT.md: RollResult's 6th argument is the roll's
+-- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_SPEC.md: RollResult's 6th argument is the roll's
 -- luck). They only fire Remotes.RollResult at the test client: nothing is rolled, granted or paid. AutoRoll goes off
 -- so no real roll covers the planted ones; 'restore' turns it back on and clears the attribute.
 do
@@ -926,7 +985,14 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestSetup"):Connect(onRequest)
 -- Full UI run (UiTestRun): the client harness asks for the states its scenarios need (UiScenarios.Needs) through
 -- this Studio-only RemoteFunction, for its own player only, and restores them after the run ("restore:<id>").
 -- Only these ids; everything else stays driven from the server datamodel as before.
-local CLIENT_SETUPS = { auto_racing = true, auto_roll_on = true, lose_event = true, emphasized_next = true }
+local CLIENT_SETUPS = {
+	auto_racing = true,
+	auto_roll_on = true,
+	lose_event = true,
+	emphasized_next = true,
+	showdown_start = true,
+	showdown_win = true,
+}
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
 if not setupRequest then

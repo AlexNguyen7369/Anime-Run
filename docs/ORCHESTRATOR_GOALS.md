@@ -33,6 +33,8 @@ Deliverables:
 - c2 | Runner categories, Stamina stat point, Stamina potion, team bonus (series / preset) (TEAM_AND_STAMINA_SPEC, CHARACTER_GACHA_SPEC Series and preset teams) | its spec tests green
 - c4 | Workshop stat boost (owner 2026-11-03, design doc 4.19, WORLD_REDESIGN_SPEC 5): chosen stat, squad rarity %, level scale, passive gain removed | stylua / selene clean, lune check of Workshop.Boost, Studio smoke when a Studio is connected (tests paused, owner 2026-11-01)
 - c5 | Track enemies and indicator (owner 2026-11-03, design doc 4.26, NPC_RIVAL_SPEC): names and indicator first, then 9 new enemy models | stylua / selene clean, `npc` + `ui_billboards` checks green, Studio screenshot of the indicator, models in game
+- c6 | Enemy showdown banners (owner 2026-11-04, design doc 4.28) | `ui_showdown` green, screenshot of both banners
+- c7 | Defeated Enemies page in the Index (owner 2026-11-04, design doc 4.29) | `ui_defeated` green, screenshot
 - c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task
 Out of scope: final character art, Robux products, merging into `main`.
 
@@ -76,6 +78,15 @@ Deliverables:
 - fi6 | Emblem floating headers over Index, Shop, Potions, Market, Sensei, Race Start, YOUR DOJO (owner 2026-11-04) | Studio shots; `spawn_area`, `ui_billboards` green; stylua / selene; rules audit PASS
 Out of scope: Market rebuild, phone performance testing (owner's device), c3 (owner's word).
 
+## soul: Bleech series (owner 2026-11-04, design doc 4.30)
+Status: active
+Owner-confirmed: 2026-11-04
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md
+Deliverables:
+- s1 | 5 new models (Orihima, Rukiya, Renjy, Ichigu, Aizon) in the avatar pipeline, one evidence file each | exports under budget, renders reviewed, uploaded
+- s2 | Catalog, Series, preset and Ulquiorro as `soul_hollow` on `foe_soul`, tests | `catalog` + `gacha` scenarios green, rules audit PASS
+Out of scope: Bleech biome changes, rematch rewards, public release licensing.
 ## declutter: Clear spawn plaza (owner 2026-11-04)
 Status: active
 Owner-confirmed: 2026-11-04 ("declutter spawnlocation"; layout, Market sign, sky loop kept and trim level chosen by the owner; d1 draft and deliverables approved by the owner 2026-11-04)
@@ -86,6 +97,27 @@ Deliverables:
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
 - d3 | In-house Market stall replaces the fork's Aura stall; Legends cut to at most 2 beside the gate (owner 2026-11-04) | owner sees the render; Studio shots; `spawn_area`, `world_layout` green; Market prompt opens; stylua / selene; rules audit PASS
 Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner).
+
+## villains: Villains redesigned and rollable (owner 2026-11-04, design doc 4.32)
+Status: active
+Owner-confirmed: 2026-11-04
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md, docs/NPC_RIVAL_SPEC.md
+Deliverables:
+- v1 | 9 `foe_*` models rebuilt with the character design skill, one evidence file each | exports under budget; owner approves renders; uploaded
+- v2 | 8 new catalog characters sharing those models | `catalog` + `gacha` green, rules audit PASS
+Out of scope: Freezo and Aizon models, new enemies.
+## roll-anim: Every roll clearly shows the character rolled (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (layout, cycle in place, fit to interval, no new runtime dependency all chosen by the owner)
+Branch: feature/alex/anime-world
+Spec: design doc 4.31, docs/ROLL_ANIMATION_SPEC.md
+Deliverables:
+- r1 | Rules written in the design doc and the roll spec | rules audit PASS
+- r2 | Result shows the real model, same framing and light from cycle to landing, in-place cycling, larger normal roll | `ui_roll_anim`, `ui_roll_emphasized` and the server roll scenario green; stylua / selene clean; rules audit PASS
+- r3 | Emphasized look: big figure, gradient odds, outlined name, rarity crystal (our own art) | Studio captures of each phase look right; owner visual review
+- r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index, Backpack, Team minibar and starter card | every rollable id in `CharacterPortraits`; roll and Index scenarios green; Studio capture; rules audit PASS
+Out of scope: odds, economy, new dependencies.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active

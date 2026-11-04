@@ -72,13 +72,24 @@ Format: hair; eyes; skin; outfit; props. Marks as in the ledger.
 - `mha_hero` Deko (Izuku Midoriya): dark green #1E4A3A curly clumps, highlights #2F7A5A; green #3AA36B, freckles #B56A4A; #F6D9C4; teal-green #2E7A5A loose jumpsuit with dark lines, two-tip hood down, white gloves, red boots #D4262A with white soles, belt, steel guard #9AA3AD at the throat.
 - `mha_symbol` All Mighty (All Might, hero form): blond #F4D23A two tall V bang spikes, short back spikes; blue #3A8AD8 in deep shadow, wide grin, heavy square jaw, cheek lines; #F4D3B8; blue suit #2E4FA0 with red #D8262A and white bands, yellow #F2C230 gloves and belt, red boots, short red cape #C42A2A; broad shoulder and chest plates.
 
-## Track enemies (owner 2026-11-03, design doc 4.26, `NPC_RIVAL_SPEC.md`)
+## Track enemies (owner 2026-11-03, redesigned 2026-11-04; design doc 4.26, 4.32, `NPC_RIVAL_SPEC.md`)
 
-Marks follow design doc 5 "Marks": same place, size and colour, a clearly different shape.
+Evidence per model: `docs/char_evidence/`. Marks follow design doc 5 "Marks": same place, size and colour, a clearly different shape. Owner approved the renders 2026-11-04.
 
-- `foe_leaf` Paine [Pain]: cloak clouds are 3-lobe clouds on a flat base, the same changed shape as `leaf_crow`.
-- `foe_sea` Arlon [Arlong]: chest sun tattoo is a straight-spiked star (8 long, 8 short) with a hollow ring and crescent centre, not flame rays.
-- `foe_ds` Akazo [Akaza]: iris writing is invented dark glyphs (a kite with a tail, stacked hooks); coat back pattern is rows of dark lozenges, not squares. Blue body lines follow the source layout as a body pattern, like the `jk_king` face lines.
-- `foe_sea2` Enelu [Enel]: earring pendant is a flat-topped six-sided plate with a round stone, not a diamond; drum heads are four straight-edged swept blades round a hub, not a three-comma swirl.
-- `foe_soul` Ulquiorro [Ulquiorra]: chest number tattoo is a stem with two stacked chevrons, not the numeral.
-- `foe_db` Selle [Cell], `foe_jk` Jogoh [Jogo], `foe_mha` Shigaraky [Shigaraki], `foe_jk2` Mahitoh [Mahito]: no marks.
+- `foe_leaf` Paine [Pain]: forehead plate symbol is three leaning teardrops, not four lines; cloak clouds are 3-lobe clouds on a flat base; ear hardware is square studs and a hooked bar, not round studs and a straight bar.
+- `foe_sea` Arlon [Arlong]: chest sun is a straight-spiked star (8 long, 8 short) with a hollow ring and crescent, not flame rays; forearm crew tattoo is a red lozenge with a dark core and chevrons, not curved hooks.
+- `foe_ds` Akazo [Akaza]: iris writing is invented dark glyphs (a kite with a tail, stacked hooks); coat back pattern is rows of dark lozenges, not squares. Blue body lines follow the source as a body pattern.
+- `foe_sea2` Enelu [Enel]: earring is a flat-topped six-sided plate with a round stone, not a diamond; drum heads are four straight-edged swept blades round a hub, not a three-comma swirl.
+- `foe_soul` Ulquiorro [Ulquiorra]: chest number tattoo is not shown: the closed jacket covers it in this version (owner accepted the render).
+- `foe_mha` Shigaraky [Shigaraki]: no marks. Worn hands have fingers: they are costume; the figure's own hands stay plain blocks.
+- `foe_db` Selle [Cell], `foe_jk` Jogoh [Jogo], `foe_jk2` Mahitoh [Mahito]: no marks.
+
+## Bleech series (owner 2026-11-04, design doc 4.30)
+
+Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks".
+
+- `soul_healer` Orihima [Orihime]: hairpin pair is a four-pointed star with a square centre, not a six-petal flower.
+- `soul_fang` Renjy [Renji]: no marks. Tattoos are a body pattern following the source layout (owner 2026-11-04). The block figure has no neck, so the neck bands sit at the top of the chest (owner-accepted departure, same date).
+- `soul_substitute` Ichigu [Ichigo]: badge is an upright diamond plate with a crescent, not a plaque with a skull.
+- `soul_hollow` Ulquiorro: shares `foe_soul` (see Track enemies).
+- `soul_ice` Rukiya [Rukia], `soul_lord` Aizon [Aizen]: no marks.

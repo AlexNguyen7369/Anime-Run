@@ -111,7 +111,6 @@ local function cruise()
 end
 local money = leaderstats:WaitForChild("Money")
 local GREEN = Color3.fromRGB(60, 255, 60)
-local RED = Color3.fromRGB(255, 77, 94)
 local GRAY = Color3.fromRGB(104, 111, 135)
 local sessionStartedAt = os.time()
 
@@ -698,59 +697,13 @@ end
 player:GetAttributeChangedSignal("StatPoints"):Connect(refreshStats)
 refreshStats()
 
-local pendingRace = false
-local function refreshRace()
-	local racing = player:GetAttribute("AutoRacing") == true
-	label(hud.Race, string.upper(format.AutoButtonText(racing)))
-	Components.Tint(hud.Race, pendingRace and GRAY or (racing and RED or GREEN))
-	hud.Race.Active = not pendingRace
-end
-hud.Race.Activated:Connect(function()
-	if pendingRace then
-		return
-	end
-	pendingRace = true
-	refreshRace()
-	remotes.SetAutoRace:FireServer(player:GetAttribute("AutoRacing") ~= true)
-	task.delay(1, function()
-		pendingRace = false
-		refreshRace()
-	end)
+-- The Auto toggle lives in HudChrome/TopRight/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
+-- the Toast read; the generated fit() sets Visible back to true on every resize.
+local raceAnchor = hud.Race.Parent
+raceAnchor:GetPropertyChangedSignal("Visible"):Connect(function()
+	raceAnchor.Visible = false
 end)
-player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshRace)
-refreshRace()
--- The Race button breathes (a soft glow behind it) while the player is on foot (section 10).
-local raceGlow = Instance.new("Frame")
-raceGlow.Name = "BreathGlow"
-raceGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-raceGlow.Position = UDim2.fromScale(0.5, 0.5)
-raceGlow.Size = UDim2.new(1, 10, 1, 10)
-raceGlow.BackgroundColor3 = Color3.fromRGB(120, 255, 150)
-raceGlow.BackgroundTransparency = 1
-raceGlow.ZIndex = 0
-raceGlow.Parent = hud.Race.Parent
-UiTheme.Corner(raceGlow, "M")
-local stopBreath
-local function refreshBreath()
-	local onFoot = player:GetAttribute("AutoRacing") ~= true
-	if onFoot and not stopBreath then
-		raceGlow.BackgroundTransparency = 0.85
-		stopBreath = UiMotion.Pulse(raceGlow, { BackgroundTransparency = 0.45 }, 1.1)
-	elseif not onFoot and stopBreath then
-		stopBreath()
-		stopBreath = nil
-		raceGlow.BackgroundTransparency = 1
-	end
-end
-player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshBreath)
-player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
-	if stopBreath then
-		stopBreath()
-		stopBreath = nil
-	end
-	refreshBreath()
-end)
-refreshBreath()
+raceAnchor.Visible = false
 
 task.spawn(function()
 	playerGui:WaitForChild("RollToast")

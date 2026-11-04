@@ -322,6 +322,39 @@ before any Studio work.
   arrow aimed at it (owner 2026-11-04, replaces "not clamped"). Pointer size and edge margins are placeholders.
 - Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
 
+### 4.28 Enemy showdown moment (owner 2026-11-04)
+- When a track race starts, a short banner names the enemy: "VS", its name and its portrait, with the track's name. When the
+  player wins that track, a short banner says the enemy is defeated, with the same portrait. Display only: the race does not
+  pause and no input is blocked. Timing and layout are placeholders; both go through `Client/UiMotion` (4.20).
+
+### 4.29 Defeated Enemies page (owner 2026-11-04)
+- The Index has a Defeated Enemies page with one tile per track enemy, in track order. A beaten enemy (`BestTrack >= n`) shows
+  its portrait, name and the player's best time on that track. An unbeaten one is locked and hides its portrait and name.
+  No new saved data: it reads `BestTrack` and the race best times, published read-only as player attributes `RaceBest<track>`,
+  which other players can read (owner, same day). No reward (rewards are a separate owner decision).
+
+### 4.30 Bleech series (owner 2026-11-04)
+- A seventh Series, Bleech (based on Bleach; id `soul`), adds 6 rollable characters: Orihima, Rukiya, Renjy, Ichigu, Ulquiorro,
+  Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
+  owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
+- Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
+- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`): the 2 Legends stay `db_hero` and `mha_symbol` (4.24).
+
+### 4.32 Villains are rollable (owner 2026-11-04)
+- The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
+  character design skill and reviewed by the owner before upload. New: Paine, Selle, Arlon, Akazo, Jogoh, Shigaraky, Mahitoh, Enelu.
+  Freezo and Ulquiorro were already rollable. Rarity is the owner's: Epic Arlon, Jogoh; Legendary Paine, Shigaraky, Mahitoh; Mythic
+  Selle, Akazo, Enelu. `Chance`, `SpeedMulti`, `Category` are placeholders inside the bands. Each shares its enemy's model.
+
+### 4.31 Roll animation (owner 2026-11-04)
+- Every roll clearly shows the character actually rolled: its own model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
+- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
+- Rolls show the character from the head to the upper torso, not the whole body (owner, same day), as its drawn portrait.
+- Every character gets a drawn digital portrait as part of being added to the game, stored with its assets and used for its roll, Index, Backpack, Team minibar and starter card (owner, same day; CHARACTER_GACHA_SPEC Digital art portrait).
+- Auto race becomes a toggle pill labelled "Auto", immediately left of Daily in the top-right row; the top-centre Auto Race button is gone (owner, same day).
+- The normal roll plays at the very top centre of the screen. Quests moves from the top-right row to an icon button directly above Shop (owner, same day).
+- The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -382,6 +415,9 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
+- 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval, head-and-torso framing, Auto toggle beside Daily, roll at the very top, Quests above Shop, every character has a drawn portrait (4.31, ROLL_ANIMATION_SPEC).
+- 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
 - 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
 - 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).

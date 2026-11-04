@@ -4775,7 +4775,7 @@ function Scenarios.hud()
 			oddsOk = oddsOk and call(HudFormat.Odds, n) == "1 in " .. call(HudFormat.Short, n)
 		end
 		check(checks, "odds_text_format", oddsOk and 1 or 0, 1, oddsOk)
-		-- BRIEF (owner, 2026-10-13; design doc "Weather events", ROLL_ANIMATION_CONTRACT `RollResult` bullet):
+		-- BRIEF (owner, 2026-10-13; design doc "Weather events", ROLL_ANIMATION_SPEC `RollResult` bullet):
 		-- Odds(chance, luck) = "1 in " .. N with N = max(1, round(chance / luck)) (Short from 1e3, odds rev.
 		-- 2026-10-27); a missing or invalid luck counts as 1.
 		-- No case sits on a .5 boundary, so the rounding direction of a tie is not assumed.
@@ -5134,10 +5134,18 @@ function Scenarios.gacha()
 		if got.Model ~= nil then
 			local folder = ReplicatedStorage:FindFirstChild("CharacterModels")
 			local template = type(got.Model) == "string" and folder and folder:FindFirstChild(got.Model)
-			-- Every car, event variants included, uses its own model (docs/CAR_REDESIGN_SPEC.md section 5).
-			local identityOk = got.Model == got.Id
+			-- Every character uses its own model, or the one the spec names (CatalogTests.SHARED_MODEL, design doc 4.30).
+			local sharedModel = require(script.Parent.CatalogTests).SHARED_MODEL[got.Id]
+			local identityOk = got.Model == (sharedModel or got.Id)
 				and (got.Event == nil or got.Event == "rain" or got.Event == "night" or got.Event == "gold")
-			if got.Model == "" or not identityOk or not (template and template:IsA("Model")) then
+			-- CharacterModelService loads a Folder per asset row in the background, so the folder is only due once Ready.
+			local loaded = not (folder and folder:GetAttribute("Ready")) or (template and template:IsA("Folder"))
+			if
+				got.Model == ""
+				or not identityOk
+				or not require(Shared.CharacterModelAssets)[got.Model]
+				or not loaded
+			then
 				modelsOk = false
 			end
 		end
@@ -5177,7 +5185,7 @@ function Scenarios.gacha()
 	check(checks, "catalog_odds_rarity_strictly_ordered", tierOk and 1 or 0, 1, tierOk)
 	local maxChance = rarityMax.Secret or math.huge
 	check(checks, "catalog_odds_secret_fits_int64", maxChance, 9.2e18, maxChance <= 9.2e18)
-	check(checks, "catalog_all_models_resolve_to_own_id", modelsOk and 1 or 0, 1, modelsOk)
+	check(checks, "catalog_all_models_resolve_to_spec_model", modelsOk and 1 or 0, 1, modelsOk)
 	local orderOk, orders = #all > 0, {}
 	for i, c in all do
 		local o = type(c) == "table" and c.Order or nil
@@ -5502,7 +5510,7 @@ function Scenarios.gacha()
 			local turbo20 = okC and idC == idTurbo and mC == 10 and tq:GetAttribute("Rolls") == 20
 			check(checks, "turbo_roll_20th_uses_luck_x10", turbo20 and 1 or 0, 1, turbo20)
 		end
-		-- BRIEF (owner, 2026-10-13; ROLL_ANIMATION_CONTRACT `RollResult` bullet): Roll returns the roll's luck as its
+		-- BRIEF (owner, 2026-10-13; ROLL_ANIMATION_SPEC `RollResult` bullet): Roll returns the roll's luck as its
 		-- 6th value: GachaService.Luck(player) at that moment, without the turbo multi (the TURBO badge shows that).
 		do
 			local tl = newTestPlayer(cleanup, "CarTestGachaRollLuck")
@@ -9356,35 +9364,36 @@ function Scenarios.admin()
 	return result("admin", checks, metrics)
 end
 
--- Roll animation, server side (docs/ROLL_ANIMATION_CONTRACT.md, sections "Shared/RollAnimConfig" and "Server"; owner
--- decisions in docs/ROLL_ANIMATION_SPEC.md). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
+-- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
 -- undiscovered AND its odds are rarer than the player's 5th-rarest discovered car (while the player has discovered
 -- fewer than 5 cars, any undiscovered car counts). The rarity name alone never triggers it. Every emphasized roll is
--- announced in global chat." Every number below is copied from the contract, never from an implementation.
-local ROLL_ANIM_TIMES = { POP = 0.15, SPIN = 0.8, LAND = 0.15, EXIT = 0.15, SWITCH = 0.3 }
+-- announced in global chat." Every number below is copied from the spec, never from an implementation.
+local ROLL_ANIM_TIMES = { POP = 0.12, SPIN = 1.5, LAND = 0.2, EXIT = 0.2, SWITCH = 0.3, FIT_INTERVAL = 2.8 }
 local ROLL_ANIM_HOLD = {
-	Common = 0.3,
-	Uncommon = 0.3,
-	Rare = 0.4,
-	Epic = 0.6,
+	Common = 0.5,
+	Uncommon = 0.5,
+	Rare = 0.6,
+	Epic = 0.75,
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
 }
 local ROLL_ANIM_LAYOUT = {
-	REEL_CARS = 6,
+	REEL_CARS = 16,
 	LAND_POP = 1.15,
 	COMPACT_WIDTH = 0.12, -- owner decision 6: smaller compact roll
 	COMPACT_MIN = 100,
 	COMPACT_MAX = 230,
-	COMPACT_HEIGHT = 66,
+	COMPACT_HEIGHT = 110, -- spec "Views": figure height (the 30 % of screen height cap is checked by ui_roll_anim)
+	COMPACT_TOP = 8, -- spec "Views": px from the screen top to the normal roll
+	COMPACT_SCREEN_SHARE = 0.3, -- spec "Views": the figure is at most this share of the screen height
 	COMPACT_GAP = 8,
-	PANEL_TOP = 138, -- 60 + COMPACT_GAP + COMPACT_HEIGHT + 4
+	PANEL_TOP = 138, -- 60 + COMPACT_GAP + 66 + 4: not tied to the figure, the compact roll hides while a panel is open
 	ENLARGED_FACTOR = 3,
 	ENLARGED_WIDTH = 0.6,
 }
 local ROLL_ANIM_ENLARGED_MAX = Vector2.new(780, 336)
-local ROLL_ANIM_REELS = 4000 -- seeded reels for the filler odds (5 fillers each)
+local ROLL_ANIM_REELS = 4000 -- seeded reels for the filler odds (15 fillers each)
 local ROLL_ANIM_REEL_SEED = 20261002
 local ROLL_ANIM_NEAR_MISS_SEED = 4402
 local ROLL_ANIM_SERVICE_SEED = 9917
@@ -9392,10 +9401,12 @@ local ROLL_ANIM_SERVICE_ROLLS = 60
 local ROLL_ANIM_TIMING_TOL = 0.05 -- s: a task.wait is never shorter than asked; slack for clock granularity only
 local ROLL_ANIM_LATE = 1.5 -- s: how late a timed auto-roll may come under test load
 
--- Contract: Duration = POP + SPIN + LAND + Hold(rarity) + EXIT, + 2 x SWITCH when emphasized.
-local function rollAnimDuration(rarity, emphasized)
+-- Spec: Duration = TimeScale(interval) x (POP + SPIN + LAND + Hold(rarity) + EXIT), + 2 x SWITCH (never scaled) when
+-- emphasized. TimeScale(interval) = min(1, interval / FIT_INTERVAL).
+local function rollAnimDuration(rarity, emphasized, rollInterval)
 	local t = ROLL_ANIM_TIMES
 	local d = t.POP + t.SPIN + t.LAND + (ROLL_ANIM_HOLD[rarity] or ROLL_ANIM_HOLD.Common) + t.EXIT
+	d *= math.min(1, rollInterval / t.FIT_INTERVAL)
 	if emphasized then
 		d += 2 * t.SWITCH
 	end
@@ -9427,6 +9438,7 @@ function Scenarios.roll_anim()
 		return result("roll_anim", checks, metrics)
 	end
 	local interval = GachaConfig.ROLL_INTERVAL
+	local tiers = { 3, 2.61, 2.27, 2 } -- the player's roll interval at each Roll Speed tier the spec names
 	local validIds, catchAllId = {}, nil
 	for _, c in GACHA_CATALOG do
 		validIds[c.Id] = true
@@ -9441,6 +9453,8 @@ function Scenarios.roll_anim()
 		and type(RollAnimConfig.Duration) == "function"
 		and type(RollAnimConfig.ExtraPause) == "function"
 		and type(RollAnimConfig.Reel) == "function"
+		and type(RollAnimConfig.TimeScale) == "function"
+		and type(RollAnimConfig.SpinSlots) == "function"
 	check(checks, "roll_anim_config_api_exists", cfgOk and 1 or 0, 1, cfgOk)
 	if cfgOk then
 		local constBad = {}
@@ -9489,24 +9503,93 @@ function Scenarios.roll_anim()
 		end
 		check(checks, "roll_anim_hold_unknown_is_common", unknownBad, 0, unknownBad == 0)
 
-		local durBad, pauseBad = 0, 0
+		local scaleBad = {}
+		for _, iv in { 3, 2.8, 2.61, 2.27, 2, 1.4 } do
+			local ok, got = pcall(RollAnimConfig.TimeScale, iv)
+			if not ok or not nearly(got, math.min(1, iv / ROLL_ANIM_TIMES.FIT_INTERVAL)) then
+				table.insert(scaleBad, tostring(iv))
+			end
+		end
+		check(checks, "roll_anim_time_scale_formula", #scaleBad, table.concat(scaleBad, ","), #scaleBad == 0)
+
+		-- SpinSlots(interval): one slot per filler, each longer than the one before it, summing to the scaled SPIN
+		-- (the result comes in at Land, spec "Phases")
+		local slotsBad = {}
+		for _, iv in tiers do
+			local ok, slots = pcall(RollAnimConfig.SpinSlots, iv)
+			local total = 0
+			if not ok or type(slots) ~= "table" or #slots ~= ROLL_ANIM_LAYOUT.REEL_CARS - 1 then
+				table.insert(slotsBad, ("%g s: not %d slots"):format(iv, ROLL_ANIM_LAYOUT.REEL_CARS - 1))
+			else
+				for i, slot in slots do
+					total += slot
+					if i > 1 and slot <= slots[i - 1] then
+						table.insert(slotsBad, ("%g s: slot %d not longer"):format(iv, i))
+					end
+				end
+				local want = ROLL_ANIM_TIMES.SPIN * math.min(1, iv / ROLL_ANIM_TIMES.FIT_INTERVAL)
+				if math.abs(total - want) > 1e-6 then
+					table.insert(slotsBad, ("%g s: sum %.3f want %.3f"):format(iv, total, want))
+				end
+			end
+		end
+		check(checks, "roll_anim_spin_slots", #slotsBad, table.concat(slotsBad, "; "), #slotsBad == 0)
+
+		local durBad, pauseBad, nilBad, switchBad = 0, 0, 0, 0
 		local rarities = table.clone(GACHA_RARITY_ORDER)
 		table.insert(rarities, "Bogus")
 		for _, rarity in rarities do
 			for _, emphasized in { false, true } do
-				local want = rollAnimDuration(rarity, emphasized)
+				for _, iv in tiers do
+					local want = rollAnimDuration(rarity, emphasized, iv)
+					local okD, gotD = pcall(RollAnimConfig.Duration, rarity, emphasized, iv)
+					if not okD or type(gotD) ~= "number" or math.abs(gotD - want) > 1e-6 then
+						durBad += 1
+					end
+					local okP, gotP = pcall(RollAnimConfig.ExtraPause, rarity, emphasized, iv)
+					if not okP or type(gotP) ~= "number" or math.abs(gotP - math.max(0, want - iv)) > 1e-6 then
+						pauseBad += 1
+					end
+				end
+				-- No interval given: the base ROLL_INTERVAL applies
+				local want = rollAnimDuration(rarity, emphasized, interval)
 				local okD, gotD = pcall(RollAnimConfig.Duration, rarity, emphasized)
 				if not okD or type(gotD) ~= "number" or math.abs(gotD - want) > 1e-6 then
-					durBad += 1
+					nilBad += 1
 				end
-				local okP, gotP = pcall(RollAnimConfig.ExtraPause, rarity, emphasized)
+				local okP, gotP = pcall(RollAnimConfig.ExtraPause, rarity, emphasized, nil)
 				if not okP or type(gotP) ~= "number" or math.abs(gotP - math.max(0, want - interval)) > 1e-6 then
-					pauseBad += 1
+					nilBad += 1
+				end
+			end
+			-- SWITCH is not scaled: an emphasized roll is 2 x SWITCH longer at every interval
+			for _, iv in tiers do
+				local okE, withSwitch = pcall(RollAnimConfig.Duration, rarity, true, iv)
+				local okN, without = pcall(RollAnimConfig.Duration, rarity, false, iv)
+				if
+					not (okE and okN and type(withSwitch) == "number" and type(without) == "number")
+					or math.abs(withSwitch - without - 2 * ROLL_ANIM_TIMES.SWITCH) > 1e-6
+				then
+					switchBad += 1
 				end
 			end
 		end
 		check(checks, "roll_anim_duration_formula", durBad, 0, durBad == 0)
 		check(checks, "roll_anim_extra_pause_formula", pauseBad, 0, pauseBad == 0)
+		check(checks, "roll_anim_no_interval_uses_base", nilBad, 0, nilBad == 0)
+		check(checks, "roll_anim_switch_not_scaled", switchBad, 0, switchBad == 0)
+		-- Common to Epic finish inside the interval at every tier, with no extra pause (roll rate does not change)
+		local fitBad = {}
+		for _, rarity in { "Common", "Uncommon", "Rare", "Epic" } do
+			for _, iv in tiers do
+				local okD, d = pcall(RollAnimConfig.Duration, rarity, false, iv)
+				local okP, extra = pcall(RollAnimConfig.ExtraPause, rarity, false, iv)
+				if not (okD and okP and type(d) == "number" and d <= iv and extra == 0) then
+					table.insert(fitBad, ("%s at %g s"):format(rarity, iv))
+				end
+			end
+		end
+		check(checks, "roll_anim_common_to_epic_fit_every_tier", #fitBad, table.concat(fitBad, ","), #fitBad == 0)
 		local okC, commonD = pcall(RollAnimConfig.Duration, "Common", false)
 		commonD = okC and type(commonD) == "number" and commonD or math.huge
 		check(
@@ -9517,7 +9600,7 @@ function Scenarios.roll_anim()
 			commonD <= interval
 		)
 		local okS, secretP = pcall(RollAnimConfig.ExtraPause, "Secret", true)
-		local wantS = rollAnimDuration("Secret", true) - interval
+		local wantS = rollAnimDuration("Secret", true, interval) - interval
 		check(
 			checks,
 			"roll_anim_secret_needs_pause",
@@ -9526,7 +9609,8 @@ function Scenarios.roll_anim()
 			okS and type(secretP) == "number" and wantS > 0 and math.abs(secretP - wantS) <= 1e-6
 		)
 
-		-- Reel(rng, resultId): REEL_CARS ids, the last is the result, the rest are real luck-1 rolls
+		-- Reel(rng, resultId): REEL_CARS ids, the last is the result, the rest are real luck-1 rolls, none equal to the
+		-- slot before it and the last filler not equal to the result (spec "Cycle characters")
 		local n = ROLL_ANIM_LAYOUT.REEL_CARS
 		local function reel(rng, id)
 			local ok, r = pcall(RollAnimConfig.Reel, rng, id)
@@ -9535,7 +9619,7 @@ function Scenarios.roll_anim()
 			end
 			return nil
 		end
-		local lenBad, lastBad, idBad = 0, 0, 0
+		local lenBad, lastBad, idBad, adjacentBad, lastFillerBad = 0, 0, 0, 0, 0
 		for k, c in GACHA_CATALOG do
 			for s = 1, 20 do
 				local r = reel(Random.new(1000 * k + s), c.Id)
@@ -9551,12 +9635,22 @@ function Scenarios.roll_anim()
 							idBad += 1
 						end
 					end
+					for i = 2, #r - 1 do
+						if r[i] == r[i - 1] then
+							adjacentBad += 1
+						end
+					end
+					if #r >= 2 and r[#r - 1] == c.Id then
+						lastFillerBad += 1
+					end
 				end
 			end
 		end
 		check(checks, "reel_length", lenBad, 0, lenBad == 0)
 		check(checks, "reel_last_is_result", lastBad, 0, lastBad == 0)
 		check(checks, "reel_all_rollable", idBad, 0, idBad == 0)
+		check(checks, "reel_no_adjacent_repeat", adjacentBad, 0, adjacentBad == 0)
+		check(checks, "reel_last_filler_differs_from_result", lastFillerBad, 0, lastFillerBad == 0)
 		local detBad, indepBad = 0, 0
 		for s = 1, 200 do
 			local a = reel(Random.new(s), "db_hero")
@@ -9572,22 +9666,67 @@ function Scenarios.roll_anim()
 					end
 				end
 			end
-			-- no planting: the fillers do not depend on what was rolled
+			-- no planting: the fillers do not depend on what was rolled. Only the last filler may differ (its redraw avoids
+			-- the result), and then each side is a Common or Uncommon redraw or the plain draw of the other reel's result.
 			if not (a and c and #a == n and #c == n) then
 				indepBad += 1
 			else
-				for i = 1, n - 1 do
+				for i = 1, n - 2 do
 					if a[i] ~= c[i] then
 						indepBad += 1
 						break
 					end
+				end
+				local function fromRule(own, otherResult)
+					local spec = CharacterCatalog.Get(own)
+					return own == otherResult or (spec and (spec.Rarity == "Common" or spec.Rarity == "Uncommon"))
+				end
+				if a[n - 1] ~= c[n - 1] and not (fromRule(a[n - 1], c[n]) and fromRule(c[n - 1], a[n])) then
+					indepBad += 1
 				end
 			end
 		end
 		check(checks, "reel_deterministic_per_seed", detBad, 0, detBad == 0)
 		check(checks, "reel_fillers_independent_of_result", indepBad, 0, indepBad == 0)
 
-		-- Filler odds over many seeded reels match the real luck-1 odds
+		-- The odds the filler rule really produces, exactly: per filler slot, id -> probability. Slot 1 is a plain luck-1
+		-- roll. A later slot keeps a plain roll unless it repeats the slot before it (or, the last one, equals the result);
+		-- then it is redrawn from Common and Uncommon only, without those ids, weighted 1 / Chance (owner 2026-11-04).
+		-- So Rare and rarer only ever come from the plain roll and are never above their plain odds.
+		local lowWeight = {}
+		for _, c in GACHA_CATALOG do
+			if not c.Event and (c.Rarity == "Common" or c.Rarity == "Uncommon") then
+				lowWeight[c.Id] = 1 / c.Chance
+			end
+		end
+		local function fillerOdds(plain, resultId)
+			local slots = { plain }
+			for slot = 2, n - 1 do
+				local isLast = slot == n - 1
+				local odds = {}
+				for id in plain do
+					odds[id] = 0
+				end
+				for prevId, prevP in slots[slot - 1] do
+					local rejected = plain[prevId] + ((isLast and prevId ~= resultId) and plain[resultId] or 0)
+					local poolTotal = 0
+					for id, weight in lowWeight do
+						if id ~= prevId and not (isLast and id == resultId) then
+							poolTotal += weight
+						end
+					end
+					for id, p in plain do
+						if id ~= prevId and not (isLast and id == resultId) then
+							odds[id] += prevP * (p + rejected * (lowWeight[id] or 0) / poolTotal)
+						end
+					end
+				end
+				slots[slot] = odds
+			end
+			return slots
+		end
+
+		-- Filler odds over many seeded reels match those exact odds
 		local counts, fillers, reelErr = {}, 0, 0
 		local rng = Random.new(ROLL_ANIM_REEL_SEED)
 		for i = 1, ROLL_ANIM_REELS do
@@ -9604,9 +9743,18 @@ function Scenarios.roll_anim()
 		end
 		check(checks, "reel_odds_sample_ok", reelErr, 0, reelErr == 0 and fillers == ROLL_ANIM_REELS * (n - 1))
 		local expected = gachaExpected(1)
+		local wantCount = {} -- id -> expected fillers over the sampled reels (the results cycle through GACHA_SEED)
+		for k, c in GACHA_SEED do
+			local reelsOf = ROLL_ANIM_REELS // #GACHA_SEED + (k <= ROLL_ANIM_REELS % #GACHA_SEED and 1 or 0)
+			for _, odds in fillerOdds(expected, c.Id) do
+				for id, p in odds do
+					wantCount[id] = (wantCount[id] or 0) + reelsOf * p
+				end
+			end
+		end
 		for _, c in GACHA_SEED do
-			local p = expected[c.Id]
-			local mean = fillers * p
+			local mean = wantCount[c.Id]
+			local p = fillers > 0 and mean / fillers or 0
 			local tol = GACHA_SIGMAS * math.sqrt(fillers * p * (1 - p)) + GACHA_FLOOR
 			local got = counts[c.Id] or 0
 			metrics["reel_" .. c.Id] = got
@@ -9618,33 +9766,54 @@ function Scenarios.roll_anim()
 				fillers > 0 and math.abs(got - mean) <= tol
 			)
 		end
-		-- The slot right before a rare result is no likelier to hold a non-common (or a Rare+) car than the odds say
+		-- The slot right before the result, for rare results and for the catch-all: its non-common share is the rule's exact
+		-- one, and its Rare+ share stays within the plain luck-1 odds whatever was rolled (no fake near-miss)
+		local pRarePlain = 0
+		-- every rollable car (seed + expansion manifest + event variants at 0), not only the seven seeds
+		for _, c in GACHA_CATALOG do
+			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
+				pRarePlain += expected[c.Id]
+			end
+		end
 		local nm = Random.new(ROLL_ANIM_NEAR_MISS_SEED)
+		local cases = { "db_hero", "leaf_crow", catchAllId }
 		local slots, nonCommon, rarePlus = 0, 0, 0
+		local slotsOf, rareOf = {}, {}
 		for i = 1, ROLL_ANIM_REELS do
-			local resultId = i % 2 == 0 and "db_hero" or "leaf_crow"
+			local resultId = cases[i % #cases + 1]
 			local r = reel(nm, resultId)
 			if r and #r == n then
 				slots += 1
+				slotsOf[resultId] = (slotsOf[resultId] or 0) + 1
 				local spec = CharacterCatalog.Get(r[n - 1])
 				if spec and spec.Chance ~= 1 then
 					nonCommon += 1
 					if spec.Chance >= GACHA_ODDS_BANDS.Rare[1] then -- Rare or rarer (odds rev. 2026-10-27)
 						rarePlus += 1
+						rareOf[resultId] = (rareOf[resultId] or 0) + 1
 					end
 				end
 			end
 		end
-		local pNon = 1 - expected[catchAllId]
-		local pRare = 0
-		-- every rollable car (seed + expansion manifest + event variants at 0), not only the seven seeds
-		for _, c in GACHA_CATALOG do
-			if c.Chance and c.Chance >= GACHA_ODDS_BANDS.Rare[1] then
-				pRare += expected[c.Id]
-			end
+		local meanNon, varNon = 0, 0
+		for _, resultId in cases do
+			local pNon = 1 - fillerOdds(expected, resultId)[n - 1][catchAllId]
+			local count = slotsOf[resultId] or 0
+			meanNon += count * pNon
+			varNon += count * pNon * (1 - pNon)
+			local maxOf = count * pRarePlain
+				+ GACHA_SIGMAS * math.sqrt(count * pRarePlain * (1 - pRarePlain))
+				+ GACHA_FLOOR
+			local got = rareOf[resultId] or 0
+			check(
+				checks,
+				"reel_no_planted_rare_before_" .. resultId,
+				got,
+				string.format("<= %.1f", maxOf),
+				count > 0 and got <= maxOf
+			)
 		end
-		local meanNon = slots * pNon
-		local tolNon = GACHA_SIGMAS * math.sqrt(slots * pNon * (1 - pNon)) + GACHA_FLOOR
+		local tolNon = GACHA_SIGMAS * math.sqrt(varNon) + GACHA_FLOOR
 		check(
 			checks,
 			"reel_slot_before_result_odds",
@@ -9652,7 +9821,9 @@ function Scenarios.roll_anim()
 			string.format("%.1f +- %.1f", meanNon, tolNon),
 			slots == ROLL_ANIM_REELS and math.abs(nonCommon - meanNon) <= tolNon
 		)
-		local maxRare = slots * pRare + GACHA_SIGMAS * math.sqrt(slots * pRare * (1 - pRare)) + GACHA_FLOOR
+		local maxRare = slots * pRarePlain
+			+ GACHA_SIGMAS * math.sqrt(slots * pRarePlain * (1 - pRarePlain))
+			+ GACHA_FLOOR
 		check(
 			checks,
 			"reel_no_planted_rare_before_result",
@@ -9805,7 +9976,7 @@ function Scenarios.roll_anim()
 		GachaService.Setup(r1)
 		local packed = table.pack(pcall(GachaService.Roll, r1, secret))
 		local okR1 = packed[1] == true
-		-- Owner, 2026-10-13 (docs/ROLL_ANIMATION_CONTRACT.md `RollResult` bullet): a 6th value, luck, was added (was 5).
+		-- Owner, 2026-10-13 (docs/ROLL_ANIMATION_SPEC.md `RollResult` bullet): a 6th value, luck, was added (was 5).
 		local sixOk = okR1 and packed.n == 7 and type(packed[7]) == "number" and packed[7] == GachaService.Luck(r1)
 		check(checks, "service_roll_returns_six_values", okR1 and packed.n - 1 or -1, 6, sixOk)
 		local first = okR1 and packed[2] == rarestId and packed[3] == true and packed[4] == 1 and packed[5] == true
@@ -9947,6 +10118,31 @@ function Scenarios.roll_anim()
 			check(checks, "set_auto_roll_back_on", c and 1 or 0, 1, c and pr:GetAttribute("AutoRoll") == true)
 		end
 
+		-- The wait after a roll uses the player's own interval, in ExtraPause too (spec "Fit to the roll interval"). The
+		-- interval is stubbed for these few calls only: nothing yields before it is put back.
+		if cfgOk and type(GachaService.WaitAfter) == "function" then
+			local pw = newTestPlayer(cleanup, "CarTestRollAnimWaitAfter")
+			local originalInterval = GachaService.RollInterval
+			local waitBad = {}
+			for _, iv in tiers do
+				GachaService.RollInterval = function()
+					return iv
+				end
+				for _, case in { { catchAllId, false }, { rarestId, true } } do
+					local rarity = CharacterCatalog.Get(case[1]).Rarity
+					local want = math.max(iv, rollAnimDuration(rarity, case[2], iv))
+					local okW, got = pcall(GachaService.WaitAfter, case[1], case[2], pw)
+					if not okW or type(got) ~= "number" or math.abs(got - want) > 1e-6 then
+						table.insert(waitBad, ("%s at %g s: %s want %.3f"):format(case[1], iv, tostring(got), want))
+					end
+				end
+			end
+			GachaService.RollInterval = originalInterval
+			check(checks, "wait_after_uses_player_interval", #waitBad, table.concat(waitBad, "; "), #waitBad == 0)
+		else
+			check(checks, "wait_after_uses_player_interval", "no GachaService.WaitAfter or RollAnimConfig", 0, false)
+		end
+
 		-- Timed auto-roll (both run at once): A rolls a forced Secret through StartAutoRoll(player, roller) and must
 		-- wait ROLL_INTERVAL + ExtraPause before the next roll; B starts with AutoRoll = false and must not roll
 		-- until it is turned back on.
@@ -9981,7 +10177,7 @@ function Scenarios.roll_anim()
 		local onAt = os.clock()
 		-- measured from the switch: only a roll made AFTER AutoRoll is back on counts as resuming
 		local rollsAtOn = pb:GetAttribute("Rolls") or 0
-		local wantGap = interval + math.max(0, rollAnimDuration("Secret", true) - interval)
+		local wantGap = interval + math.max(0, rollAnimDuration("Secret", true, interval) - interval)
 		local deadline = math.max(onAt + interval + ROLL_ANIM_LATE, t0 + interval + wantGap + 2 * ROLL_ANIM_LATE)
 		local resumedAt = nil
 		while os.clock() < deadline do
@@ -12332,7 +12528,7 @@ Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
--- docs/CHARACTER_GACHA_SPEC.md "Tests": the 30-character launch cast
+-- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase

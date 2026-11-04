@@ -37,7 +37,10 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 | 9 | Spirit Realm Desert | Ulquiorro [Ulquiorra] | `foe_soul` |
 | 10 | Green Alien Planet | Freezo [Frieza] | `db_tyrant` |
 
-Enemy models are in-house and built in the avatar pipeline (`CHARACTER_GACHA_SPEC.md`). `foe_` ids are model names only: they are not catalog entries, so they cannot be rolled or owned.
+Enemy models are in-house and built in the avatar pipeline (`CHARACTER_GACHA_SPEC.md`). `foe_` ids are model names; rollable catalog characters share them (owner 2026-11-04, design doc 4.32).
+
+Showdown banners and the Defeated Enemies page: design doc 4.28, 4.29. Both use the enemy's `Label` and its `Model` for the
+portrait; a client display only.
 
 ## Tests
 

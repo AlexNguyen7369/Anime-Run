@@ -35,7 +35,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 - Turbo luck every 10th roll x10; upgrade tiers raise both.
 - Bands (1 in N):
 
-| Rarity | Chance band | SpeedMulti band | Count at launch |
+| Rarity | Chance band | SpeedMulti band | Launch count (before Bleech) |
 |---|---|---|---|
 | Common | 1 (catch-all) | 1.1 | 1 |
 | Uncommon | 10 - 200 | 1.25 - 2.2 | 6 |
@@ -94,7 +94,33 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 
 Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.26).
 
-Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
+Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. are proposed):
+
+| Series (based on) | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Bleech (Bleach) | Orihima | Orihime Inoue | Uncommon | B | `soul_healer` | 150 | 2.1 | new |
+| | Rukiya | Rukia Kuchiki | Rare | M | `soul_ice` | 3,000 | 3.5 | new |
+| | Renjy | Renji Abarai | Epic | S | `soul_fang` | 1,000,000 | 13 | new |
+| | Ichigu | Ichigo Kurosaki | Legendary | B | `soul_substitute` | 2e8 | 70 | new |
+| | Ulquiorro | Ulquiorra Cifer | Mythic | S | `soul_hollow` | 3e10 | 200 | `foe_soul` |
+| | Aizon | Sosuke Aizen | Mythic | M | `soul_lord` | 3e14 | 400 | new |
+
+Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
+
+Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are proposed; each shares its enemy's model):
+
+| Series | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Narito Shippudon | Paine | Pain | Legendary | B | `leaf_rings` | 3e7 | 35 | `foe_leaf` |
+| Dragon Bawl Z | Selle | Cell | Mythic | B | `db_perfect` | 1e10 | 170 | `foe_db` |
+| One Peace | Arlon | Arlong | Epic | M | `sea_shark` | 900,000 | 11 | `foe_sea` |
+| One Peace | Enelu | Enel | Mythic | S | `sea_thunder` | 3e12 | 300 | `foe_sea2` |
+| Demon Slicer | Akazo | Akaza | Mythic | S | `ds_upper` | 1e14 | 380 | `foe_ds` |
+| Jujitsu Kaisan | Jogoh | Jogo | Epic | M | `jk_volcano` | 1,200,000 | 13.5 | `foe_jk` |
+| Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
+| My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
+
+Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 
@@ -128,7 +154,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 30 regular + 3 event-only = 33 rollable characters, plus the starter.
+Catalog total: 44 regular (30 launch cast + 6 Bleech + 8 villains, owner 2026-11-04) + 3 event-only = 47 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 
@@ -179,6 +205,13 @@ Preset trios (the anime's famous team):
 - A character with an atlas builds as 6 plain UV-mapped blocks plus the script's `HAIR`, `PROPS`, `MARKS` and optional
   `model(parts, kit)` bespoke meshes (`tools/blender/avatar_paint.py`). Locks in a `HAIR_COLOURS` colour take painted
   strands from the atlas's Hair strip; other props use cel swatches in its bottom strip.
+
+### Digital art portrait (owner 2026-11-04)
+Required for every character added to the game, as part of its art pipeline, not a later pass.
+- Every character with a model has a drawn head-and-upper-torso portrait: bright cel-shaded fills from its own atlas, a bold ink outline, a thin die-cut edge and a straight cut under the chest. Blocky proportions stay, per design doc 5.
+- File: `assets/characters_avatar/<id>/portrait.png` (512 px, transparent), next to its `atlas.png` and `review/`. Build: `tools/blender/portrait/render_portrait.py`. Upload: `tools/blender/portrait/upload_portraits.py`, which writes `src/shared/CharacterPortraits.luau`. A character is not done until its portrait is uploaded and in that registry.
+- The portrait is how the character appears everywhere it is shown as an icon or card: the roll animation, the Index, the Backpack, the Team minibar and the starter choice. The 3D model stays for the world (runners, Dojo, plaza).
+- Sources are our own model and atlas only: no outside art.
 
 ## Tests
 

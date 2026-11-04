@@ -60,8 +60,11 @@
 56. 2026-11-04 — Alex Nguyen — Added a screen-edge pointer that shows the enemy's name and an arrow aimed at it while it is off screen, ui_billboards green, rules audit PASS.
 57. 2026-11-04 — Alex Nguyen — Decluttered the spawn plaza into a straight service row with a one-stall Market, plain path and clear Dojo views, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 58. 2026-11-04 — Alex Nguyen — Merged emblem floating headers (fi6) locally for the owner to view in Play, stylua clean, selene 0 errors, Studio shots, spawn_area and ui_billboards scenarios and rules audit still pending.
+59. 2026-11-04 — Alex Nguyen — Added enemy showdown banners, a Defeated Enemies Index page and the 6-character Bleech series with 5 new models; targeted scenarios green and rules audit PASS.
+60. 2026-11-04 — Alex Nguyen — Reworked the roll animation to show the rolled character in a 16-slot in-place cycle at the top centre, with reference-style emphasized rolls, an Auto toggle beside Daily and Quests above Shop; roll, HUD and layout scenarios green except 2 Index EnemiesTab phone overlaps from the earlier merge, rules audit PASS.
+61. 2026-11-04 — Alex Nguyen — Redesigned 9 villain models with the character design skill and made 8 of them new rollable characters, catalog and gacha green, rules audit PASS.
 
 ## What's next
-**Finish fi6: apply the owner's feedback from Play, take the Studio shots, run spawn_area and ui_billboards, run the rules audit, then push the integration branch.**
+**Restart c3: full server and UI harnesses on the merged feature/alex/anime-world to fail=0, rules audit, then the PR to main.**
 
-**Why this is next:** fi6 was merged before its checks so the owner could see it, and the c3 rerun and the PR to main should start from verified headers.
+**Why this is next:** the owner held c3 for these features; merging into main depends on these checks passing on the code that includes them.
