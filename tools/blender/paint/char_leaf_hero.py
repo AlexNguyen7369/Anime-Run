@@ -5,7 +5,8 @@
 import math
 import random
 
-from atlas import FACES, INK, SIZE, shade, swirl_d
+from atlas import FACES, INK, SIZE, shade
+from leaf_style3 import mark
 from leaf_common import ell
 from style2 import Kit, Ramps
 from style3 import big_head, finish
@@ -388,12 +389,6 @@ def _mouth(f):
 	f.out.append("</g>")
 
 
-def _mark(f, cx, cy, r, colour):
-	"""The swirl, its tail running off along the bottom to a small triangle at lower left."""
-	f.path(swirl_d(cx, cy, r, turns=2.1, a0=math.pi / 2 - 0.6), stroke=colour, sw=r * 0.24)
-	f.path(f"M{cx + r * 0.1} {cy + r}L{cx - r * 1.1} {cy + r * 1.02}L{cx - r * 1.82} {cy + r * 1.02}L{cx - r * 1.12} {cy + r * 0.1}L{cx - r * 0.72} {cy + r * 0.7}", stroke=colour, sw=r * 0.24)
-
-
 def _paint_plate(f):
 	"""Drawn in plate units, 130 x 48, then stretched down Head_B's top."""
 	f.fill(SKIN)
@@ -410,7 +405,7 @@ def _paint_plate(f):
 			f.path(ell(x, y, 3.2, 3.4), "#3c424c")
 			f.path(ell(x - 0.7, y - 0.8, 2.3, 2.4), "#c8cdd4")
 			f.path(ell(x - 1.1, y - 1.2, 0.9, 1), "#ffffff")
-	_mark(f, 70, 23, 13, "#23262e")
+	mark(f, 70, 23, 13, "#23262e")
 	f.out.append("</g>")
 
 
@@ -444,7 +439,7 @@ def paint(a):
 	f.fill("#35323f")
 	f.soft("M-5-5H205V40Q100 56 -5 40Z", "#4c4858", 0.7, 5)
 	f.soft("M-5 96Q100 110 205 96V205H-5Z", "#201e27", 0.7, 5)
-	f.path(swirl_d(100, 60, 50, turns=2.4, a0=1.2), stroke="#f0261a", sw=11)
+	mark(f, 96, 64, 44, "#f0261a")
 	for n in ("Head_L", "Head_R"):
 		a[n].fill(SKIN_D)
 		a[n].soft("M-5 90H125V135H-5Z", "#cf8d66", 0.6, 3)
@@ -458,5 +453,5 @@ def paint(a):
 	f.path(ell(cx, cy, rx + 1, ry + 1), "#5a361a")
 	f.path(ell(cx, cy, rx * 0.93, ry * 0.93), "#f6f4ee")
 	f.out.append(f'<g transform="translate({cx} {cy}) scale({rx / 40} {ry / 40})">')
-	f.path(swirl_d(0, 0, 34, turns=2.6, a0=0.4), stroke="#26222a", sw=6)
+	mark(f, -2, 3, 28, "#26222a")
 	f.out.append("</g>")

@@ -3,7 +3,8 @@
 import math
 
 from atlas import FACES, SIZE, shade
-from leaf_common import begin_clip, ell, end_clip, village_mark
+from leaf_common import begin_clip, ell, end_clip
+from leaf_style3 import mark
 from style3 import big_head, finish
 from style2 import Kit, Ramps
 
@@ -432,10 +433,10 @@ def paint(a):
 	for s, x in ((-1, 34), (1, 96)):
 		_eye(f, x, 66, s)
 		_brow(f, x - s * 1, 46, s)
-	# the diamond on the forehead, two planes
-	f.path("M65 15L73 29L65 43L57 29Z", "#5338b0")
-	f.path("M65 15L73 29L65 29Z", "#7d62dc")
-	f.path("M65 29L57 29L65 43Z", "#3f2a8c")
+	# the drop on the forehead, two planes
+	f.path("M65 15L72 31A7.6 7.6 0 1 1 58 31Z", "#5338b0")
+	f.path("M65 15L72 31L65 31Z", "#7d62dc")
+	f.path("M65 31L58 31A7.6 7.6 0 0 0 65 39Z", "#3f2a8c")
 	# nose: its side and underside in shadow
 	_stroke(f, [(67, 76), (69.5, 82), (68.5, 88)], 0.9, SKIN_D)
 	_stroke(f, [(61, 90), (65, 91.8), (69, 89.6)], 0.7, "#b77a5c")
@@ -460,7 +461,7 @@ def paint(a):
 		for y in (12, 38):
 			f.path(ell(x, y, 1.6, 3), "#59606b")
 			f.path(ell(x - 0.3, y - 0.8, 0.8, 1.4), "#eef1f5")
-	village_mark(f, 65.5, 26.5, 8.5, "#2a2e38", light="#f1f4f7")
+	mark(f, 65.5, 26.5, 8.5, "#2a2e38")
 	# ---- vest: soft fold shading, a yoke seam and side panels, no outline
 	f = a["Torso_F"]
 	_vest_common(f)
@@ -475,9 +476,10 @@ def paint(a):
 	f = a["Torso_B"]
 	_vest_common(f)
 	f.soft("M50 60Q100 40 150 60Q150 120 100 150Q50 120 50 60Z", VEST_L, 0.3, 8)
-	# the pale ring on the back
-	f.path("M100 62a34 34 0 1 0 0.1 0Z", stroke="#f4ece6", sw=13)
-	f.path("M100 62a34 34 0 1 0 0.1 0Z", stroke=VEST_D, sw=1, opacity=0.5)
+	# the pale hexagon on the back
+	hexagon = "M100 62L129.4 79L129.4 113L100 130L70.6 113L70.6 79Z"
+	f.path(hexagon, stroke="#f4ece6", sw=13)
+	f.path(hexagon, stroke=VEST_D, sw=1, opacity=0.5)
 	for n in ("Torso_L", "Torso_R"):
 		f = a[n]
 		f.fill(VEST)

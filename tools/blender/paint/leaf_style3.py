@@ -163,9 +163,9 @@ def plate(k, hw=0.52, top=5.445, bot=5.045, y0=-0.915):
 
 
 def mark(f, cx, cy, r, colour):
-	"""The swirl of the plate, its tail running off along the bottom to a small triangle at lower left."""
-	f.path(swirl_d(cx, cy, r, turns=2.1, a0=math.pi / 2 - 0.6), stroke=colour, sw=r * 0.24)
-	f.path(f"M{cx + r * 0.1} {cy + r}L{cx - r * 1.1} {cy + r * 1.02}L{cx - r * 1.82} {cy + r * 1.02}L{cx - r * 1.12} {cy + r * 0.1}L{cx - r * 0.72} {cy + r * 0.7}", stroke=colour, sw=r * 0.24)
+	"""The in-house mark: a loose swirl of a turn and a quarter, winding the other way, its outer end opening into a leaf at upper right."""
+	f.path(swirl_d(cx, cy, r, turns=-1.25, a0=math.radians(-60) + 2.5 * math.pi), stroke=colour, sw=r * 0.24)
+	f.path(f"M{cx + r * 0.42} {cy - r * 0.92}Q{cx + r * 1.28} {cy - r * 1.12} {cx + r * 1.22} {cy - r * 0.24}Q{cx + r * 0.72} {cy - r * 0.32} {cx + r * 0.42} {cy - r * 0.92}Z", colour)
 
 
 def paint_plate(f, skin, slash=False):
@@ -225,8 +225,8 @@ def rope(k, part, name, z, hw, hd, r, ramp, y=0.0, n=44, **bk):
 
 def cloud_shape(c, u, up, normal, rx, rz, depth):
 	"""Rings of a lobed cloud solid. u and up span the surface it sits on, normal points out of it."""
-	# cusps between lobes; flatter and wider along the bottom
-	cusps = (28, 92, 148, 214, 292)
+	# cusps between lobes: three on top, one long flat lobe for the base
+	cusps = (12, 76, 124, 168)
 	pts = []
 	for i, a0 in enumerate(cusps):
 		a1 = cusps[(i + 1) % len(cusps)] + (360 if i == len(cusps) - 1 else 0)
@@ -235,7 +235,7 @@ def cloud_shape(c, u, up, normal, rx, rz, depth):
 			ang = math.radians(a0 + (a1 - a0) * t)
 			bump = 0.78 + 0.3 * math.sin(math.pi * t) ** 0.7
 			sin = math.sin(ang)
-			pts.append((rx * bump * math.cos(ang), rz * bump * (sin if sin > 0 else sin * 0.72)))
+			pts.append((rx * bump * math.cos(ang), rz * bump * (sin if sin > 0 else sin * 0.5)))
 	front = [tuple(c[j] + u[j] * x + up[j] * z + normal[j] * depth for j in range(3)) for x, z in pts]
 	back = [tuple(c[j] + u[j] * x + up[j] * z - normal[j] * 0.04 for j in range(3)) for x, z in pts]
 	return [back, front]

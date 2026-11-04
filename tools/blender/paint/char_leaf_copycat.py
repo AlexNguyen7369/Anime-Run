@@ -2,8 +2,8 @@
 # dark mask to the nose, half-lidded eye, green flak vest with chest pouches, red spirals on sleeves and vest back, shin wraps, sandals.
 import math
 
-from atlas import FACES, SIZE, swirl_d
-from leaf_style3 import BADGE, back_panel, bake, block, dark_eye, gem, hand, head_sides, jitter, paint_plate, plate, sandal, shard, skin_face, stroke, true_face_uv, xf
+from atlas import FACES, SIZE
+from leaf_style3 import BADGE, mark, back_panel, bake, block, dark_eye, gem, hand, head_sides, jitter, paint_plate, plate, sandal, shard, skin_face, stroke, true_face_uv, xf
 from style2 import Kit, Ramps
 from style3 import big_head, finish
 
@@ -197,12 +197,12 @@ def paint(a):
 	f.path(f"M{x + 18} {y - 18}Q{x} {y - 27} {x - 21} {y - 20}L{x - 20} {y - 17}Q{x} {y - 23} {x + 18} {y - 15}Z", "#7f818c")
 	stroke(f, ((x - 6, y + 11), (x + 2, y + 13), (x + 12, y + 11)), 0.5, "#c9a08a")
 	paint_plate(a["Head_B"], SKIN)
-	# the vest's back: a large red spiral inside a white ring on the green
+	# the vest's back: the large red mark on the green
 	f = a["Torso_B"]
 	f.fill("#5e6b47")
 	f.soft("M-5-5H205V40Q100 56 -5 40Z", "#77865a", 0.6, 5)
 	f.soft("M-5 96Q100 110 205 96V205H-5Z", "#3f4a2c", 0.7, 5)
-	f.path(swirl_d(100, 66, 44, turns=2.4, a0=1.2), stroke="#c9222a", sw=10)
+	mark(f, 96, 68, 40, "#c9222a")
 	head_sides(a, SKIN, SKIN_D)
 	# the sleeve spiral lives in Head_T, hidden under the hair
 	f = a["Head_T"]
@@ -212,5 +212,5 @@ def paint(a):
 	cx, cy, rx, ry = (bx + bw / 2) * sx, (by + bh / 2) * sy, bw / 2 * sx, bh / 2 * sy
 	f.path(f"M{cx - rx - 8} {cy - ry - 8}H{cx + rx + 8}V{cy + ry + 8}H{cx - rx - 8}Z", "#232f42")
 	f.out.append(f'<g transform="translate({cx} {cy}) scale({rx / 40} {ry / 40})">')
-	f.path(swirl_d(0, 0, 34, turns=2.4, a0=0.4), stroke="#d0262e", sw=8)
+	mark(f, -3, 4, 28, "#d0262e")
 	f.out.append("</g>")
