@@ -37,7 +37,10 @@ local function enemiesTab(refs)
 		end)
 	end
 	follow(source, tab, "Position")
-	follow(source, tab, "Size")
+	-- As wide as CHARACTERS: the retired tab's longer width reaches Close on phones
+	local sized = refs.CharactersTab.Parent
+	tab.Size = sized.Size
+	follow(sized, tab, "Size")
 	follow(refs.ConsumablesTabLabel, caption, "TextSize")
 	return tab.Face
 end
