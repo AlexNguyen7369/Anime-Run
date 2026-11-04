@@ -1,6 +1,7 @@
 --!nonstrict
--- HUD entry points (docs/HUD_LAYOUT_SPEC.md): the left 2 x 3 icon grid and the top-right Daily / Quests / Market
--- pills with the round Settings button. Each entry only opens a panel; the panels' scripts own everything else.
+-- HUD entry points (docs/HUD_LAYOUT_SPEC.md): the left 2 x 3 icon grid and the top-right Auto / Daily / Market
+-- pills with the round Settings button. Each entry only opens a panel (the panels' scripts own everything else), but
+-- Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
@@ -119,8 +120,15 @@ local function setHudDimmed(dimmed)
 end
 
 -- Icon tiles -----------------------------------------------------------------------------------------------------
-local PANEL =
-	{ Shop = "Shop", Items = "Backpack", Index = "Index", Upgrade = "Upgrades", Stats = "Stats", Rebirth = "Rebirth" }
+local PANEL = {
+	Quests = "Quests",
+	Shop = "Shop",
+	Items = "Backpack",
+	Index = "Index",
+	Upgrade = "Upgrades",
+	Stats = "Stats",
+	Rebirth = "Rebirth",
+}
 local CELL = Vector2.new(TILE + 12, TILE + LABEL)
 local scales = {}
 -- A transparent holder with a vertical list of tiles; its UIScale shrinks it on phones.
@@ -134,7 +142,7 @@ local function holder(name, count, props)
 end
 local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
 local shopColumn =
-	holder("ShopColumn", 1, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
+	holder("ShopColumn", 2, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Items and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
 local ICON_MID = TILE / 2 / (TILE + LABEL)
@@ -146,6 +154,7 @@ local SLOTS = {
 	{ "Index", grid },
 	{ "Stats", grid },
 	{ "Rebirth", grid },
+	{ "Quests", shopColumn },
 	{ "Shop", shopColumn },
 	{ "Items", itemsSlot },
 	{ "Upgrade", upgradeSlot },
@@ -202,27 +211,37 @@ make("UIListLayout", "Layout", bar, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	Padding = UDim.new(0, 8),
 })
-local function pill(name, order, caption)
+local PILL_COLOR = Color3.fromRGB(18, 18, 21)
+local PILL_TRANSPARENCY = 0.3
+-- With `onClick` it is an action pill: no icon, the caption centred, no panel.
+local function pill(name, order, caption, onClick)
 	local b = make("TextButton", name, bar, {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(caption and 0 or 44, 44),
 		AutomaticSize = caption and Enum.AutomaticSize.X or Enum.AutomaticSize.None,
-		BackgroundColor3 = Color3.fromRGB(18, 18, 21),
-		BackgroundTransparency = 0.3,
+		BackgroundColor3 = PILL_COLOR,
+		BackgroundTransparency = PILL_TRANSPARENCY,
 		Text = "",
 		AutoButtonColor = true,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
-	icon(name, b, {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = caption and UDim2.new(0, 12, 0.5, 0) or UDim2.new(0.5, -13, 0.5, 0),
-		Size = UDim2.fromOffset(26, 26),
-	})
+	if not onClick then
+		icon(name, b, {
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = caption and UDim2.new(0, 12, 0.5, 0) or UDim2.new(0.5, -13, 0.5, 0),
+			Size = UDim2.fromOffset(26, 26),
+		})
+	end
 	local text
 	if caption then
-		make("UIPadding", "Padding", b, { PaddingRight = UDim.new(0, 16) })
+		make(
+			"UIPadding",
+			"Padding",
+			b,
+			{ PaddingLeft = UDim.new(0, onClick and 16 or 0), PaddingRight = UDim.new(0, 16) }
+		)
 		text = make("TextLabel", "Caption", b, {
-			Position = UDim2.fromOffset(46, 0),
+			Position = UDim2.fromOffset(onClick and 0 or 46, 0),
 			Size = UDim2.fromScale(0, 1),
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
@@ -233,11 +252,41 @@ local function pill(name, order, caption)
 		})
 		outlined(text, 1.5)
 	end
-	b.Activated:Connect(function()
+	b.Activated:Connect(onClick or function()
 		PanelSwitch.Action(name)
 	end)
 	return b, text
 end
+-- Auto race toggle: it only asks; the AutoRacing attribute the server sets decides its colour.
+local AUTO_ON = Color3.fromRGB(60, 255, 60)
+local AUTO_PENDING = Color3.fromRGB(104, 111, 135)
+local AUTO_LOCK = 1 -- s a press stays locked, greyed
+local autoPending = false
+local autoPill
+local function refreshAuto()
+	local racing = player:GetAttribute("AutoRacing") == true
+	autoPill.BackgroundColor3 = autoPending and AUTO_PENDING or (racing and AUTO_ON or PILL_COLOR)
+	autoPill.BackgroundTransparency = (autoPending or racing) and 0 or PILL_TRANSPARENCY
+	autoPill.Active = not autoPending
+	autoPill.AutoButtonColor = not autoPending
+end
+autoPill = pill("Auto", 0, "Auto", function()
+	if autoPending then
+		return
+	end
+	autoPending = true
+	refreshAuto()
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("Remotes")
+		:WaitForChild("SetAutoRace")
+		:FireServer(player:GetAttribute("AutoRacing") ~= true)
+	task.delay(AUTO_LOCK, function()
+		autoPending = false
+		refreshAuto()
+	end)
+end)
+player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshAuto)
+refreshAuto()
 local daily, dailyText = pill("Daily", 1, "Daily")
 local dailyBadge = badge(daily)
 dailyBadge.Text = "!"
@@ -245,7 +294,6 @@ dailyBadge.Text = "!"
 dailyBadge.Position = UDim2.fromOffset(38, 9)
 dailyBadge.Size = UDim2.fromOffset(18, 18)
 dailyBadge.TextSize = 13
-pill("Quests", 2, "Quests")
 pill("Market", 3, "Market")
 pill("Settings", 4)
 

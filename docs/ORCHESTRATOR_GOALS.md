@@ -106,6 +106,16 @@ Deliverables:
 - v1 | 9 `foe_*` models rebuilt with the character design skill, one evidence file each | exports under budget; owner approves renders; uploaded
 - v2 | 8 new catalog characters sharing those models | `catalog` + `gacha` green, rules audit PASS
 Out of scope: Freezo and Aizon models, new enemies.
+## roll-anim: Every roll clearly shows the character rolled (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (layout, cycle in place, fit to interval, no new runtime dependency all chosen by the owner)
+Branch: feature/alex/anime-world
+Spec: design doc 4.31, docs/ROLL_ANIMATION_SPEC.md
+Deliverables:
+- r1 | Rules written in the design doc and the roll spec | rules audit PASS
+- r2 | Result shows the real model, same framing and light from cycle to landing, in-place cycling, larger normal roll | `ui_roll_anim`, `ui_roll_emphasized` and the server roll scenario green; stylua / selene clean; rules audit PASS
+- r3 | Emphasized look: big figure, gradient odds, outlined name, rarity crystal (our own art) | Studio captures of each phase look right; owner visual review
+Out of scope: odds, economy, new dependencies.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
