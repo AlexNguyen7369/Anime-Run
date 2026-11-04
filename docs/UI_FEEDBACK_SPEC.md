@@ -8,8 +8,8 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
   `assets/sfx/ImpactSounds`, so nothing depends on saving the place. The owner swaps one by editing its id there.
 - A server script copies the folder to `ReplicatedStorage/ImpactSounds` at start. Clients only read that copy.
 - Extras, at most 4: Chime, Whoosh, Coin, Denied. Same folder and same copy.
-- Every sound is free on the Creator Store, under 1.5 s (proposed), with no official show audio (design doc 5). The UI sound
-  ledger is the `Assets` table in `src/shared/UiSounds.luau`: key, id, creator.
+- Every sound is free on the Creator Store, about 2 s at most (proposed; Chime is 2.1 s), with no official show audio (design doc 5). The UI sound
+  ledger is the `Assets` table in `src/shared/UiSounds.luau`: slot, id, creator, name.
 - `HudPressSound` stays as it is (`RacerMotion`, harness pin): the base tick on every button.
 
 ## 2. Cues
@@ -22,9 +22,10 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
 
 ## 3. Motion presets (in `Client/UiMotion`, design doc 4.20)
 - `Slam`: from scale 1.5 to 1 with Back easing, under 0.2 s (proposed).
-- `Impact`: Pop, Shake, one flash and one ring from the gui.
-- `Burst`: radial shards and anime speed lines from a point. Never in the roll (ROLL_ANIMATION_SPEC bans speed streaks).
-- `Fly`: coin pieces travel to the Money counter, which then pops. The number itself counts as in 4.20.
+- `Impact`: Pop, Shake, one flash and one ring from the gui. A roll land leaves out the Shake: Legendary and Mythic shake once, on the figure.
+- `Burst`: radial shards and anime speed lines from a point. Never in the roll (ROLL_ANIMATION_SPEC bans speed streaks), nor over a running roll or open panels (DEFEATED skips it then).
+- `Fly`: coin pieces travel to the counter for a gain and from it for a spend; whatever they reach then pops. The counter is
+  Money, or the Unbanked read-out for pay not banked yet (checkpoint bonus). The number itself counts as in 4.20.
 - `Fill`: a bar tween, 0.2 s (proposed). The text beside it updates at once.
 - Overlay pieces live in one pooled ScreenGui `UiFx`: never `Active`, at most 24 pieces (proposed), Frames with UICorner and
   UIGradient, no new art. Nothing is left behind after a preset ends.

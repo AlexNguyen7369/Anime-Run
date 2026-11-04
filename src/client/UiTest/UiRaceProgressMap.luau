@@ -30,6 +30,7 @@ function Tests.Run()
 	local npc = require(shared.NpcRacer)
 	local config = require(shared.NpcConfig)
 	local registry = require(shared.TrackRegistry)
+	local themes = require(shared.BiomeThemes)
 	local look = require(script.Parent.UiSpec).RaceMapLook
 	local controllerModule = require(client.RaceProgressMap)
 	local hudModule = require(client.RollToast.Ui.RacerHud)
@@ -62,6 +63,12 @@ function Tests.Run()
 		local entries, specs = npc.ChainEntries(), registry.Chain()
 		local first, second = entries[1], entries[2]
 		assert(first and second, "Client map tests require two tracks")
+		-- One name per track (UI audit A17): the BiomeThemes name players read, as EnemyShowdown shows.
+		local function titleOf(entry, spec)
+			local theme = themes[spec.Biome]
+			local name = theme and theme.DisplayName or spec.Name
+			return string.format("TRACK %d · %s", entry.Number, string.upper(name))
+		end
 		local function route(entry, lane)
 			local path = builder.RacePath(entry.Layout, lane)
 			for i, point in path.Waypoints do
@@ -155,10 +162,7 @@ function Tests.Run()
 		controller.Handle(start)
 		controller.Update(0, map.Point(playerRoute, 0) + up)
 		flag("start_shows_card", card.Visible)
-		flag(
-			"current_track_title",
-			hud.RaceMapTitle.Text == string.format("TRACK %d · %s", first.Number, string.upper(specs[1].Name))
-		)
+		flag("current_track_title", hud.RaceMapTitle.Text == titleOf(first, specs[1]))
 		flag("missing_pb_placeholder", hud.RaceMapPB.Text == "PB --")
 		flag("initial_time_and_status", hud.RaceMapTime.Text == "TIME 00:00.00" and hud.RaceMapStatus.Text == "EVEN")
 		flag("single_current_track_route", oneRoute(), center and #center.Points)
@@ -305,8 +309,7 @@ function Tests.Run()
 		controller.Handle(event(second, 120.01))
 		flag(
 			"track_transition_replaces_title_and_pb",
-			hud.RaceMapTitle.Text == string.format("TRACK %d · %s", second.Number, string.upper(specs[2].Name))
-				and hud.RaceMapPB.Text == "PB 02:00.01"
+			hud.RaceMapTitle.Text == titleOf(second, specs[2]) and hud.RaceMapPB.Text == "PB 02:00.01"
 		)
 		flag("track_transition_replaces_geometry", oneRoute() and childrenNamed("YouDot") == 1)
 		for _, kind in { "Result", "Reset", "Stop" } do
@@ -352,12 +355,7 @@ function Tests.Run()
 		repeat
 			task.wait()
 		until hud.RaceMapTime.Text ~= "TIME 00:00.00" or os.clock() >= renderDeadline
-		flag(
-			"injected_remote_start_connected",
-			card.Visible
-				and hud.RaceMapTitle.Text
-					== string.format("TRACK %d · %s", first.Number, string.upper(specs[1].Name))
-		)
+		flag("injected_remote_start_connected", card.Visible and hud.RaceMapTitle.Text == titleOf(first, specs[1]))
 		local minutes, seconds, centiseconds = hud.RaceMapTime.Text:match("^TIME (%d+):(%d%d)%.(%d%d)$")
 		local liveElapsed = minutes and tonumber(minutes) * 60 + tonumber(seconds) + tonumber(centiseconds) / 100
 		-- Allow render scheduling/server-clock drift around the 65-second offset.

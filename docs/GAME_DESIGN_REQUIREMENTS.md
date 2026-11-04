@@ -360,6 +360,7 @@ before any Studio work.
 - UI moments pair motion with sound and feel lively, with extra impact on big moments (roll landing, enemy defeated, Rebirth, claims, purchases). Detail and placeholder timings: `docs/UI_FEEDBACK_SPEC.md`.
 - 5 short impact sounds live in a Folder `ServerStorage/ImpactSounds`, the one place to swap one. The server copies the folder to ReplicatedStorage at start, because clients cannot read ServerStorage. Up to 4 more free Creator Store sounds: reward chime, whoosh, coin, denied. Each id and its creator is logged in the UI sound ledger (section 5 audio rules hold).
 - 4.20 still holds: motion goes through `Client/UiMotion`, display only, no animation hides a number or blocks input for more than ~0.2 s, disabled buttons do not move, panel numbers update at once. 4.28 and the roll spec's limits still hold. Reduced motion cuts the motion, not the sound; the SOUND toggle silences every cue.
+- Audit fixes from the owner's UI improvement request, owner to review: panels close on outside click (Duel excluded), Upgrades has no EXIT and hides the HUD buttons while open, Quests has a claimable badge.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 

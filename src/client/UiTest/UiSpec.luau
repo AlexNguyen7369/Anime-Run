@@ -148,7 +148,7 @@ UiSpec.Guis = {
 				Remote = "EquipCar",
 				Arg = "tile_id", -- THAT tile's car id
 				Count = "catalog", -- one per CharacterCatalog.All()
-				DisabledWhen = "equipped", -- the equipped tile shows "EQUIPPED" and fires nothing
+				DisabledWhen = "team_slot_1", -- only Team slot 1 shows "IN TEAM" and fires nothing; slots 2, 3 swap (design doc 4.2, UI audit A14)
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
 			},
 		},
@@ -412,7 +412,7 @@ UiSpec.Rebirth = {
 			Name = "RewardsTitle",
 			Parent = "Rewards",
 			Class = "TextLabel",
-			Text = "REWARDS UNLOCKED",
+			Text = "NEXT REBIRTH", -- UI audit A25: these are the next rebirth's rewards
 			Colour = "yellow",
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
@@ -1171,6 +1171,8 @@ UiSpec.IgnoreGuis = {
 	TouchGui = true,
 	RbxCameraUI = true,
 	ProximityPrompts = true,
+	-- Client/UiMotion's display-only overlay, made on first use (ui_feedback judges its pieces)
+	UiFx = true,
 }
 
 -- The enemy indicator (design doc 4.26, docs/NPC_RIVAL_SPEC.md): a ScreenGui that Client/NpcRacerView moves to the head
@@ -1258,10 +1260,11 @@ UiSpec.Waits = {
 	GuiAppear = 15, -- each ScreenGui must exist in PlayerGui within this
 	LoadingScreen = 95, -- s: LoadingScreen must be gone by then (its own safety limit is 90 s, design doc 4.24)
 	HudSettle = 2.5, -- HUD counters must reach the server value within this
-	-- s: a panel's open motion (scale 0.92 -> 1 or a 12 px slide, 0.2 s) and its tile cascade (about 0.55 s) have
-	-- settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
+	-- s: a panel's open motion (scale 0.9 -> 1, 0.2 s, one preset for every panel, UI audit A29) and its tile cascade
+	-- (about 0.55 s) have settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
 	PanelMotion = 0.65,
-	-- s: a closed panel may play its close motion (design doc 4.20) this long before Visible must be false
+	-- s: a closed panel plays its close motion (0.12 s, every panel; design doc 4.20) at most this long before Visible
+	-- must be false
 	PanelClose = 0.3,
 	HudLag = 0.5, -- s: a HUD counter may show any server value from this long ago up to now (count-up, HUD spec 9)
 	HudFollow = 2, -- s: ui_hud re-samples a counter every frame for this long before it fails
@@ -1902,7 +1905,8 @@ UiSpec.Clicks = {
 		Gui = "RacerIndex",
 		Path = "Panel/Face/GridHost/Gallery/{discovered_unequipped}/Equip",
 		Prepare = only("RacerIndex/Panel"),
-		NeedSetup = { "spy", "index_states" },
+		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows slot 1 (design doc 4.2, UI audit A14)
+		NeedSetup = { "on_foot", "spy", "index_states" },
 		Expect = {
 			Remote = { Name = "EquipCar", Arg = "tile_id" },
 			After = { "equipped_is_tile", "tile_shows_equipped" },
@@ -1985,7 +1989,7 @@ UiSpec.Clicks = {
 		Path = "Panel/Face/SoundRow/Face/SoundToggle/Face",
 		Prepare = { Open = { "RacerSettings/Panel" }, Showcase = false, SoundProbe = true, LabelIs = "ON" },
 		NeedSetup = { "spy" },
-		Expect = { Remote = false, After = { "sound_label_off", "sound_probe_muted" } },
+		Expect = { Remote = false, After = { "sound_label_off", "sound_probe_muted", "cue_sounds_muted" } },
 	},
 	{
 		Id = "sound_on",
@@ -1993,7 +1997,7 @@ UiSpec.Clicks = {
 		Path = "Panel/Face/SoundRow/Face/SoundToggle/Face",
 		Prepare = { Open = { "RacerSettings/Panel" }, Showcase = false, SoundProbe = true, LabelIs = "OFF" },
 		NeedSetup = { "spy" },
-		Expect = { Remote = false, After = { "sound_label_on", "sound_probe_restored" } },
+		Expect = { Remote = false, After = { "sound_label_on", "sound_probe_restored", "cue_sounds_restored" } },
 	},
 	{
 		Id = "effects_reduce_on",
@@ -2310,7 +2314,7 @@ UiSpec.Guis.RacerUpgrades = {
 	Panels = { "Panel" },
 	Buttons = {
 		{ Path = "Close/Face", Does = "close_panel", Panel = "RacerUpgrades/Panel", Text = "X" },
-		{ Path = "ZoomTools/Exit/Face", Does = "close_panel", Panel = "RacerUpgrades/Panel", Text = "EXIT" },
+		-- retired: ZoomTools/Exit/Face, held hidden, one way out (UI audit A30; ui_upgrades upgrades_exit_hidden)
 		{ Path = "ZoomTools/ZoomIn/Face", Does = "local", Effect = "tree_zoom_in", Text = "+" },
 		{ Path = "ZoomTools/ZoomOut/Face", Does = "local", Effect = "tree_zoom_out", Text = "-" },
 		-- The tree's root node (START / UPGRADES): owned by everyone, a click fires nothing (click upgrade_start_inert).
@@ -2412,14 +2416,7 @@ for _, name in { "Upgrades", "Workshop" } do
 	})
 end
 -- retired: claim_welcome and offline_double_click (design doc 4.19, owner 2026-11-03)
-table.insert(UiSpec.Clicks, {
-	Id = "exit_upgrades",
-	Gui = "RacerUpgrades",
-	Path = "ZoomTools/Exit/Face",
-	Prepare = only("RacerUpgrades/Panel"),
-	NeedSetup = { "spy" },
-	Expect = { Panels = { ["RacerUpgrades/Panel"] = false }, Remote = false },
-})
+-- retired: exit_upgrades: EXIT is hidden, nothing to press (UI audit A30); ui_upgrades upgrades_exit_hidden pins that
 -- + then - (run in this order, so the tree zoom ends where it started): the RacerUpgrades attribute TreeZoom
 -- (UpgradeTreeView zoom()) rises after + and falls after -, the panel stays open, nothing is sent to the server.
 for _, zoom in { "in", "out" } do
@@ -2454,7 +2451,7 @@ table.insert(UiSpec.Clicks, {
 })
 -- No toggle_upgrades_closed click: the tree is a full-screen overlay that need not leave the HUD tiles clickable
 -- (docs/UPGRADE_TREE_SPEC.md section 5, HUD_LAYOUT_SPEC.md sections 1 and 6, owner 2026-10-26); it closes through
--- its own Close (close_upgrades) and EXIT (exit_upgrades) buttons.
+-- its own Close (close_upgrades) button.
 -- The weather Card toggles on a click (tap): the first click shows it, the second hides it, even while the pointer
 -- still rests on the icon (hover shows it again only on the next MouseEnter). Run the two in this order.
 for _, open in { true, false } do
@@ -3619,5 +3616,36 @@ UiSpec.RaceMapLook = {
 	FadeGroup = "RouteFade", -- optional CanvasGroup inside the canvas that holds the lines
 	Status = { "^AHEAD %d+%.%ds$", "^BEHIND %d+%.%ds$", "^EVEN$" },
 }
+
+-- ui_feedback (design doc 4.33, docs/UI_FEEDBACK_SPEC.md; UiFeedbackChecks). Timings and caps are the spec's proposed
+-- values: a change there moves them here.
+UiSpec.Feedback = {
+	Module = "UiFeedback", -- ModuleScript in StarterPlayerScripts.Client
+	Folder = "ImpactSounds", -- ReplicatedStorage copy of ServerStorage.ImpactSounds
+	Group = "UiSfx", -- SoundGroup under SoundService holding one Sound per cue
+	FxGui = "UiFx",
+	ProbeGui = "UiTestFeedbackProbe", -- the test's own guis, destroyed at the end of the scenario
+	Impacts = { "Tap", "Thunk", "Crack", "Boom", "Slash" },
+	MaxExtras = 4,
+	ServerSetup = "impact_sounds_report",
+	ServerAttr = "UiTestImpactSounds", -- ReplicatedStorage attribute: JSON list { Name, Class, SoundId }
+	ReportWait = 5, -- s for that attribute to replicate
+	LoadWait = 20, -- s for the folder, the group and every Sound's TimeLength
+	RateCue = "Toggle", -- a cue with a sound and no motion
+	RateLimit = 0.05,
+	PlayedWait = 0.3, -- s for Sound.Played to arrive
+	MaxPieces = 24,
+	BurstGone = 1, -- s: a Burst's pieces are gone
+	PiecesGone = 1.5, -- s: an Impact, a 3-coin Fly and Bursts together (Fly 0.58 s at most, Burst 0.45 s)
+	SlamStart = 1.5,
+	SlamRest = 0.2,
+	SampleSeconds = 0.5, -- s a Slam or a Pop is sampled
+	PopPeak = 1.05, -- the gui's on-screen width grows at least this much (Pop is +12%)
+}
+table.insert(UiSpec.ServerSetup, {
+	Id = "impact_sounds_report",
+	When = "asked for by ui_feedback through UiTestSetupRequest",
+	What = "Publishes what ServerStorage.ImpactSounds holds as ReplicatedStorage attribute UiTestImpactSounds.",
+})
 
 return UiSpec

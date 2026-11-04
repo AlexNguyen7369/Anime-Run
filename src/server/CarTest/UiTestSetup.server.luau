@@ -221,6 +221,16 @@ function setups.index_states(player)
 	indexStates(player)
 end
 
+-- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
+function setups.impact_sounds_report()
+	local report = {}
+	local folder = game:GetService("ServerStorage"):FindFirstChild("ImpactSounds")
+	for _, item in folder and folder:GetChildren() or {} do
+		table.insert(report, { Name = item.Name, Class = item.ClassName, SoundId = item:IsA("Sound") and item.SoundId })
+	end
+	ReplicatedStorage:SetAttribute("UiTestImpactSounds", HttpService:JSONEncode(report))
+end
+
 function setups.stat_points(player)
 	indexStates(player)
 end
@@ -992,6 +1002,7 @@ local CLIENT_SETUPS = {
 	emphasized_next = true,
 	showdown_start = true,
 	showdown_win = true,
+	impact_sounds_report = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")

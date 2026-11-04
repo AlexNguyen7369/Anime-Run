@@ -37,6 +37,7 @@ local rollRemote = remotes:WaitForChild("RollResult")
 local autoRollRemote = remotes:WaitForChild("SetAutoRoll")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 
 local A = RollAnimConfig
 local COMPACT_TEXT_BAND = 20 -- px each for the odds and the name under the compact figure
@@ -63,6 +64,17 @@ local SHARDS = { { -0.42, 0.1, 0.3 }, { 0.42, 0.1, 0.3 }, { -0.3, -0.36, 0.2 }, 
 local SHOWCASE_ORDER = 14 -- above the HUD and DuelUi (12), below the loser screen (20)
 local BLUR_SIZE = 14
 local TAKEOVER_TITLE = 1 -- s the Secret title covers the screen (placeholder)
+local TICK_PITCH_RISE = 0.5 -- the last RollTick plays this much above pitch 1 (placeholder)
+-- Rarity to landing cue (SFX audit in docs/UI_AUDIT.md). Secret is RollSecret, played on its title.
+local LAND_CUES = {
+	Common = "RollLand1",
+	Uncommon = "RollLand1",
+	Rare = "RollLand2",
+	Epic = "RollLand3",
+	Legendary = "RollLand4",
+	Mythic = "RollLand5",
+	Secret = "RollSecret",
+}
 local AUTO_BUTTON_SIZE = Vector2.new(180, 44)
 local AUTO_BUTTON_BOTTOM = 38 -- keeps the toggle below the card on small phones
 local WHITE = Color3.new(1, 1, 1)
@@ -546,9 +558,12 @@ local autoButton = make("TextButton", {
 round(autoButton, UDim.new(0, 12))
 make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Thickness = 2, Color = CARD_BG }, autoButton)
 
+-- Inset by the border's width: a UIStroke draws outside its frame, so a full-screen frame would draw it off screen.
 local takeover = make("Frame", {
 	Name = "Takeover",
-	Size = UDim2.fromScale(1, 1),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.5),
+	Size = UDim2.new(1, -20, 1, -20),
 	BackgroundColor3 = Color3.fromRGB(5, 5, 8),
 	BackgroundTransparency = 0.15,
 	Visible = false,
@@ -559,10 +574,10 @@ local rainbow = make("UIGradient", { Color = RAINBOW }, takeoverStroke)
 local takeoverText = make("TextLabel", {
 	Name = "Title",
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.45),
+	Position = UDim2.fromScale(0.5, 0.13), -- above the figure
 	Size = UDim2.fromScale(0.8, 0.2),
 	BackgroundTransparency = 1,
-	FontFace = ITALIC,
+	Font = UiTheme.Font,
 	TextScaled = true,
 	TextColor3 = WHITE,
 	ZIndex = 11,
@@ -570,7 +585,7 @@ local takeoverText = make("TextLabel", {
 local takeoverSkip = make("TextLabel", {
 	Name = "Skip",
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.fromScale(0.5, 0.62),
+	Position = UDim2.fromScale(0.5, 0.24),
 	Size = UDim2.fromOffset(320, 24),
 	BackgroundTransparency = 1,
 	Font = Enum.Font.GothamBold,
@@ -1006,6 +1021,10 @@ local function landEffects(b, roll)
 	stroke.Color = spec.Rarity == "Secret" and WHITE or color
 	stroke.Thickness = rank >= 3 and 6 or 3 -- Rare and up: a stronger ring
 	stroke.Transparency = 0
+	-- Legendary and Mythic: the land's one shake, so their cues carry none. A Secret's is in its cue (on the title).
+	if rank == 5 or rank == 6 then
+		UiMotion.Shake(b.Body, 6, 0.2)
+	end
 	local waveRest = b.Wave:GetAttribute("Rest")
 	b.Wave.Size = UDim2.fromScale(waveRest * 0.4, waveRest * 0.4)
 	tween(b.Wave, 0.45, { Size = UDim2.fromScale(waveRest * 1.25, waveRest * 1.25) })
@@ -1026,14 +1045,11 @@ local function landEffects(b, roll)
 		table.insert(tweens, pulse)
 		pulse:Play()
 	end
-	if rank >= 5 and not reduced then -- Legendary: radial gold burst and a light shake
+	if rank >= 5 and not reduced then -- Legendary: radial gold burst
 		b.Burst.Visible = true
 		b.Burst.Size = UDim2.fromScale(0.3, 0.5)
 		b.Burst.BackgroundTransparency = 0.1
 		tween(b.Burst, 0.6, { Size = UDim2.fromScale(1.4, 2.2), BackgroundTransparency = 1 })
-	end
-	if rank >= 5 then
-		UiMotion.Shake(b.Body, 6, 0.2)
 	end
 	if rank >= 6 and not reduced then -- Mythic: a band of light sweeps across the figure
 		b.Flare.Visible = true
@@ -1162,7 +1178,8 @@ local function play(roll)
 	setPhase("Spin")
 	local started = os.clock()
 	local elapsed = 0
-	for i, slot in A.SpinSlots(roll.Interval) do
+	local slots = A.SpinSlots(roll.Interval)
+	for i, slot in slots do
 		if i > 1 and not UiMotion.Reduced() then
 			setShown(reelIds[i])
 			local b = visibleBody()
@@ -1170,6 +1187,9 @@ local function play(roll)
 				b.FigureScale.Scale = SWAP_POP
 				tween(b.FigureScale, math.min(SWAP_POP_TIME, slot), { Scale = 1 }, Enum.EasingStyle.Back)
 			end
+		end
+		if i > 1 and roll.Emphasized then
+			UiFeedback.Play("RollTick", nil, { Sound = true, Pitch = 1 + TICK_PITCH_RISE * i / #slots })
 		end
 		elapsed += slot
 		if not after(started + elapsed - os.clock()) then
@@ -1186,6 +1206,13 @@ local function play(roll)
 		tween(b.Body, landing * LAND_RISE, { Size = UDim2.fromScale(peak, peak) })
 		landEffects(b, roll)
 	end
+	-- Never on Body: LAND_POP stays the only size change it gets. No visible body (a panel is open): sound only.
+	local landed = visibleBody()
+	UiFeedback.Play(
+		LAND_CUES[spec.Rarity] or "RollLand1",
+		spec.Rarity == "Secret" and takeover.Visible and takeoverText or (landed and landed.Wave),
+		{ Color = rarityColor(spec), NoShake = true }
+	)
 	if not after(landing * LAND_RISE) then
 		return
 	end
@@ -1428,19 +1455,20 @@ local function fitShowcase()
 	local oddsPos = UDim2.fromScale(0.1, top / m.Height)
 	local namePos = UDim2.fromScale(0.1, (top + m.Band + m.Figure) / m.Height)
 	local sideSize = UDim2.fromScale(0.2, 0.12)
+	local raritySize = UDim2.fromScale(0.26, 0.18) -- TextScaled: the box sets the word's size (audit A27)
 	pin(rollRefs.PreviewRunner, { Position = figurePos, Size = figureSize, Visible = false })
 	pin(rollRefs.RollHeader, { Visible = false })
 	pin(rollRefs.RollHeader.Parent, { Visible = false }) -- the outer frame owns the header's Shadow
 	pin(enlarged.Odds, { Position = oddsPos, Size = bandSize })
 	pin(enlarged.CharacterName, { Position = namePos, Size = bandSize })
-	pin(enlarged.Rarity, { Position = UDim2.fromScale(0.03, 0.34), Size = sideSize })
+	pin(enlarged.Rarity, { Position = UDim2.fromScale(0.03, 0.28), Size = raritySize })
 	pin(enlarged.SpeedMulti, { Position = UDim2.fromScale(0.03, 0.46), Size = sideSize })
 	for _, alias in { enlarged.Aliases.Odds, enlarged.Aliases.Name, enlarged.Aliases.Rarity, enlarged.Aliases.Speed } do
 		alias.AnchorPoint = Vector2.new(0, 0)
 	end
 	enlarged.Aliases.Odds.Position, enlarged.Aliases.Odds.Size = oddsPos, bandSize
 	enlarged.Aliases.Name.Position, enlarged.Aliases.Name.Size = namePos, bandSize
-	enlarged.Aliases.Rarity.Position, enlarged.Aliases.Rarity.Size = enlarged.Rarity.Position, sideSize
+	enlarged.Aliases.Rarity.Position, enlarged.Aliases.Rarity.Size = enlarged.Rarity.Position, raritySize
 	enlarged.Aliases.Speed.Position, enlarged.Aliases.Speed.Size = enlarged.SpeedMulti.Position, sideSize
 	enlarged.Reel.Position, enlarged.Reel.Size = figurePos, figureSize
 	enlarged.Viewport.Position, enlarged.Viewport.Size = figurePos, figureSize

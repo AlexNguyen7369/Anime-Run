@@ -5,6 +5,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local UiTheme = require(Shared.UiTheme)
+local palette = UiTheme.Palette
 local catalog = require(Shared.CharacterCatalog)
 local config = require(Shared.GachaConfig)
 local format = require(Shared.HudFormat)
@@ -36,7 +38,10 @@ require(Ui.RacerMotion).Attach(playerGui)
 local client = script.Parent:IsA("LocalScript") and script.Parent.Parent or script.Parent
 local PanelSwitch = require(client.PanelSwitch)
 local UiMotion = require(client.UiMotion)
+local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
+local PanelFrame = require(client.PanelFrame)
+local NpcConfig = require(Shared.NpcConfig)
 local RunnerVisual = require(client.RunnerVisual)
 local hud = require(Ui.RacerHud).Bind(playerGui)
 require(client.RaceProgressMap).Attach(hud)
@@ -53,8 +58,6 @@ hud.MoneyIcon.ImageRectSize = Vector2.new(256, 256)
 hud.MoneyValue.TextXAlignment = Enum.TextXAlignment.Left
 hud.Unbanked.TextXAlignment = Enum.TextXAlignment.Left
 -- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): Money plate, gradient numbers.
-local UiTheme = require(Shared.UiTheme)
-local palette = UiTheme.Palette
 UiTheme.Plate(hud.MoneyPlate, palette.MoneyDeep)
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
 UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
@@ -114,8 +117,8 @@ local function cruise()
 	return type(v) == "number" and v == v and v or 0
 end
 local money = leaderstats:WaitForChild("Money")
-local GREEN = Color3.fromRGB(60, 255, 60)
-local GRAY = Color3.fromRGB(104, 111, 135)
+local GREEN = palette.Money
+local GRAY = palette.Muted
 local sessionStartedAt = os.time()
 
 local function formatDuration(seconds)
@@ -214,18 +217,28 @@ for name, refs in pairs(racerPanels) do
 	refs.Panel.Parent.Visible = false
 	refs.Gui.Enabled = true
 	PanelSwitch.Register(name, refs.Panel.Parent)
-	refs.Close.Activated:Connect(function()
+	local function closePanel()
 		PanelSwitch.Close(name)
-	end)
+	end
+	refs.Close.Activated:Connect(closePanel)
+	PanelFrame.CloseOnOutsideClick(refs.Panel.Parent, closePanel)
+	-- The shared look; the generated geometry stays (see PanelFrame.PaintGenerated).
+	PanelFrame.PaintGenerated({
+		Panel = refs.Panel,
+		Header = refs.Header,
+		Close = refs.Close,
+		CloseLabel = refs.CloseLabel,
+		Theme = name,
+	})
 end
 
 local function label(button, value)
 	HudButtonStyle.SetCaption(button, value)
 end
 
--- Settings look (docs/HUD_LAYOUT_SPEC.md section 4): grey header with the gear, and every toggle an ON / OFF
--- pill on a dark track (green ON on the right, red OFF on the left). The whole track stays the hitbox.
-local OFF_RED = Color3.fromRGB(232, 69, 60)
+-- Settings look (docs/HUD_LAYOUT_SPEC.md section 4): the shared header with the gear, and every toggle an ON / OFF
+-- pill on a dark track (green ON on the right, muted OFF on the left: off is no error). The whole track stays the hitbox.
+local OFF_TONE = palette.Muted
 local function switch(toggle, on)
 	local knob = toggle:FindFirstChild("Knob")
 	if not knob then
@@ -236,7 +249,7 @@ local function switch(toggle, on)
 		knob.ZIndex = 3
 		Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 10)
 		local edge = Instance.new("UIStroke")
-		edge.Thickness, edge.Color = 3, Color3.fromRGB(18, 22, 43)
+		edge.Thickness, edge.Color = 3, UiTheme.Outline
 		edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		edge.Parent = knob
 		knob.Parent = toggle
@@ -251,21 +264,20 @@ local function switch(toggle, on)
 		end
 		Components.Tint(toggle, Color3.fromRGB(16, 16, 20))
 	end
-	knob.Position = on and UDim2.fromScale(0.4, 0) or UDim2.fromScale(0, 0)
-	Components.Tint(knob, on and GREEN or OFF_RED)
+	UiMotion.Mark(knob, { Position = on and UDim2.fromScale(0.4, 0) or UDim2.fromScale(0, 0) })
+	Components.Tint(knob, on and GREEN or OFF_TONE)
 	local caption = knob:FindFirstChildWhichIsA("TextLabel")
 	if caption then
 		caption.Text = on and "ON" or "OFF"
 	end
 	toggle:SetAttribute("On", on)
 end
-Components.Tint(settings.Header, Color3.fromRGB(176, 178, 186))
 settings.Title.Text = "Settings"
 settings.Title.TextXAlignment = Enum.TextXAlignment.Left
 local function fitSettingsTitle()
 	-- Reserve the right side of the generated header for both category tabs and
 	-- the close button at desktop and phone sizes.
-	settings.Title.Size = UDim2.new(1, -286, 1, 0)
+	settings.Title.Size = UDim2.new(1, -302, 1, 0)
 end
 fitSettingsTitle()
 if workspace.CurrentCamera then
@@ -291,8 +303,8 @@ gear.Parent = settings.Title
 local categoryTabs = Instance.new("Frame")
 categoryTabs.Name = "CategoryTabs"
 categoryTabs.AnchorPoint = Vector2.new(1, 0)
-categoryTabs.Position = UDim2.new(1, -64, 0, 8)
-categoryTabs.Size = UDim2.fromOffset(210, 48)
+categoryTabs.Position = UDim2.new(1, -72, 0, 8) -- a gap before Close
+categoryTabs.Size = UDim2.fromOffset(226, 48)
 categoryTabs.BackgroundTransparency = 1
 categoryTabs.ZIndex = 6
 categoryTabs.Parent = settings.Header
@@ -307,17 +319,17 @@ local function categoryButton(name, text, width)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.Size = UDim2.fromOffset(width, 38)
-	button.BackgroundColor3 = Color3.fromRGB(34, 39, 57)
+	button.BackgroundColor3 = palette.PanelDeep
 	button.AutoButtonColor = false
-	button.Font = Enum.Font.FredokaOne
+	button.Font = UiTheme.Font
 	button.Text = text
-	button.TextSize = text == "PLAYER PROFILE" and 12 or 14
+	button.TextSize = 14
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.ZIndex = 7
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 	local edge = Instance.new("UIStroke")
 	edge.Name = "Outline"
-	edge.Color = Color3.fromRGB(18, 22, 43)
+	edge.Color = UiTheme.Outline
 	edge.Thickness = 2
 	edge.Parent = button
 	button.Parent = categoryTabs
@@ -325,7 +337,7 @@ local function categoryButton(name, text, width)
 end
 
 local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84)
-local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 120)
+local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136)
 local profileHost = Instance.new("ScrollingFrame")
 profileHost.Name = "PlayerProfile"
 profileHost.Position = UDim2.fromOffset(16, 96)
@@ -333,7 +345,7 @@ profileHost.Size = UDim2.new(1, -32, 1, -112)
 profileHost.BackgroundTransparency = 1
 profileHost.BorderSizePixel = 0
 profileHost.ScrollBarThickness = 5
-profileHost.ScrollBarImageColor3 = Color3.fromRGB(172, 99, 238)
+profileHost.ScrollBarImageColor3 = palette.Muted
 profileHost.CanvasSize = UDim2.new()
 profileHost.AutomaticCanvasSize = Enum.AutomaticSize.Y
 profileHost.ScrollingDirection = Enum.ScrollingDirection.Y
@@ -365,13 +377,13 @@ for order, spec in profileRows do
 	local row = Instance.new("Frame")
 	row.Name = spec[1]
 	row.Size = UDim2.new(1, -8, 0, 48)
-	row.BackgroundColor3 = Color3.fromRGB(235, 238, 244)
+	row.BackgroundColor3 = palette.Row
 	row.BorderSizePixel = 0
 	row.LayoutOrder = order
 	row.ZIndex = 3
 	Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
 	local rowEdge = Instance.new("UIStroke")
-	rowEdge.Color = Color3.fromRGB(35, 39, 49)
+	rowEdge.Color = UiTheme.Outline
 	rowEdge.Thickness = 3
 	rowEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	rowEdge.Parent = row
@@ -380,9 +392,9 @@ for order, spec in profileRows do
 	name.Position = UDim2.fromOffset(16, 0)
 	name.Size = UDim2.fromScale(0.58, 1)
 	name.BackgroundTransparency = 1
-	name.Font = Enum.Font.FredokaOne
+	name.Font = UiTheme.Font
 	name.Text = spec[2]
-	name.TextColor3 = Color3.fromRGB(35, 39, 49)
+	name.TextColor3 = palette.White
 	name.TextSize = 18
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.ZIndex = 4
@@ -392,9 +404,9 @@ for order, spec in profileRows do
 	value.Position = UDim2.fromScale(0.58, 0)
 	value.Size = UDim2.new(0.38, -12, 1, 0)
 	value.BackgroundTransparency = 1
-	value.Font = Enum.Font.FredokaOne
+	value.Font = UiTheme.Font
 	value.Text = spec[3]
-	value.TextColor3 = Color3.fromRGB(35, 39, 49)
+	value.TextColor3 = palette.Gold
 	value.TextSize = 18
 	value.TextXAlignment = Enum.TextXAlignment.Right
 	value.ZIndex = 4
@@ -412,15 +424,17 @@ local function setSettingsCategory(category)
 	settings.AutoRow.Parent.Visible = showSettings
 	settings.TrackCameraRow.Parent.Visible = showSettings
 	profileHost.Visible = not showSettings
-	settingsTab.BackgroundColor3 = showSettings and Color3.fromRGB(172, 99, 238) or Color3.fromRGB(34, 39, 57)
-	profileTab.BackgroundColor3 = showSettings and Color3.fromRGB(34, 39, 57) or Color3.fromRGB(172, 99, 238)
+	UiMotion.Mark(settingsTab, { BackgroundColor3 = showSettings and palette.Tile or palette.PanelDeep })
+	UiMotion.Mark(profileTab, { BackgroundColor3 = showSettings and palette.PanelDeep or palette.Tile })
 	settings.Gui:SetAttribute("Category", settingsCategory)
 end
 settingsTab.Activated:Connect(function()
 	setSettingsCategory("Settings")
+	UiFeedback.Play("TabSwitch")
 end)
 profileTab.Activated:Connect(function()
 	setSettingsCategory("Profile")
+	UiFeedback.Play("TabSwitch")
 end)
 settings.Panel.Parent:GetPropertyChangedSignal("Visible"):Connect(function()
 	if settings.Panel.Parent.Visible then
@@ -468,6 +482,39 @@ rebirth.PointRewardCaption.Text = string.format(
 )
 -- The place's saved StarterGui copy still says "Money and Speed"; Rebirth resets only Money (design doc 4.14)
 rebirth.WarningText.Text = "Rebirth resets your Money\n(Robux purchases stay)"
+-- These are the next rebirth's rewards, not unlocked ones.
+rebirth.RewardsTitle.Text = "NEXT REBIRTH"
+-- The generated Title rect stops at Close: padding puts the text's centre on the panel's, the rect stays.
+local rebirthTitlePad = Instance.new("UIPadding")
+rebirthTitlePad.PaddingLeft = UDim.new(0, 84)
+rebirthTitlePad.Parent = rebirth.Title
+-- The Rebirth moment's title. Hidden at rest, never Active; no number, so nothing here can run ahead of the server.
+local rebirthSlam = Instance.new("TextLabel")
+rebirthSlam.Name = "RebirthSlam"
+rebirthSlam.AnchorPoint = Vector2.new(0.5, 0.5)
+rebirthSlam.Position = UDim2.fromScale(0.5, 0.16)
+rebirthSlam.Size = UDim2.fromScale(0.8, 0.2)
+rebirthSlam.BackgroundTransparency = 1
+rebirthSlam.Font = UiTheme.Font
+rebirthSlam.Text = "REBIRTH!"
+rebirthSlam.TextScaled = true
+rebirthSlam.TextColor3 = palette.Gold
+rebirthSlam.Visible = false
+rebirthSlam.ZIndex = 20
+UiTheme.Stroke(rebirthSlam, 4)
+rebirthSlam.Parent = rebirth.Gui
+local rebirthSlamToken = 0
+local function playRebirthMoment()
+	rebirthSlamToken += 1
+	local token = rebirthSlamToken
+	UiMotion.Fade(rebirthSlam, true, 0.05)
+	UiFeedback.Play("Rebirth", rebirthSlam)
+	task.delay(1.4, function() -- placeholder
+		if rebirthSlamToken == token then
+			UiMotion.Fade(rebirthSlam, false, 0.25)
+		end
+	end)
+end
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
@@ -480,7 +527,10 @@ local function refreshRebirth()
 	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)
 	rebirth.BarText.Text = maxed and "MAX REBIRTH"
 		or string.format("%s / %s", format.MoneyText(money.Value), format.MoneyText(required))
-	rebirth.Fill.Size = UDim2.fromScale(maxed and 1 or math.clamp(money.Value / required, 0, 1), 1)
+	UiFeedback.Play("RebirthBar", nil, {
+		Bar = rebirth.Fill,
+		Goal = UDim2.fromScale(maxed and 1 or math.clamp(money.Value / required, 0, 1), 1),
+	})
 	local active = eligible and not rebirthBusy
 	rebirth.RebirthButton.Active = active
 	label(rebirth.RebirthButton, rebirthReply or (maxed and "MAX" or "REBIRTH"))
@@ -498,6 +548,9 @@ rebirth.RebirthButton.Activated:Connect(function()
 	rebirthReply = ok and (success and "REBIRTH COMPLETE" or tostring(message)) or "Connection error"
 	rebirthBusy = false
 	refreshRebirth()
+	if ok and success then
+		playRebirthMoment()
+	end
 	local shown = rebirthReply
 	task.delay(2.5, function()
 		if rebirthReply == shown then
@@ -519,6 +572,7 @@ end
 settings.AutoToggle.Activated:Connect(function()
 	player:SetAttribute("TopDownView", player:GetAttribute("TopDownView") ~= true)
 	refreshTopDown()
+	UiFeedback.Play("Toggle")
 end)
 refreshTopDown()
 
@@ -530,6 +584,7 @@ end
 settings.TrackCameraToggle.Activated:Connect(function()
 	player:SetAttribute("TrackCamera", player:GetAttribute("TrackCamera") == false)
 	refreshTrackCamera()
+	UiFeedback.Play("Toggle")
 end)
 refreshTrackCamera()
 
@@ -618,7 +673,7 @@ UserInputService.InputBegan:Connect(function(input, consumed)
 end)
 
 local function refreshIndex()
-	local equipped = player:GetAttribute("EquippedCar")
+	local team = string.split(player:GetAttribute("Team") or "", ",")
 	local count = 0
 	for id, tile in pairs(tiles) do
 		local owned = data:FindFirstChild(id) ~= nil
@@ -633,15 +688,23 @@ local function refreshIndex()
 		tile.Category.Visible = owned
 		Components.TintCard(tile.Frame, tile.Spec, config, owned)
 		tile.Equip.Visible = owned
-		local on = id == equipped
+		local on = table.find(team, id) ~= nil -- design doc 4.22: green = on the Team, in any of its 3 slots
 		tile.Stroke.Color = on and GREEN or UiTheme.Outline
-		tile.Equip.Active = owned and not on
-		tile.Equip.Selectable = owned and not on
-		Components.Tint(tile.Equip, on and GRAY or GREEN)
-		tile.Equip.Label.Text = on and "EQUIPPED" or "EQUIP"
+		-- Design doc 4.2: single equip moves to slot 1 and the server swaps, so only slot 1 has nothing left to do.
+		local first = team[1] == id
+		tile.Equip.Active = owned and not first
+		tile.Equip.Selectable = owned and not first
+		Components.Tint(tile.Equip, first and GRAY or GREEN)
+		tile.Equip.Label.Text = first and "IN TEAM" or "EQUIP"
 		if owned then
 			count += 1
 		end
+	end
+	if index.Gui:GetAttribute("InventoryTab") == "Enemies" then
+		local total = #NpcConfig.Tracks
+		index.IndexProgress.Text =
+			string.format("%d / %d DEFEATED", math.clamp(player:GetAttribute("BestTrack") or 0, 0, total), total)
+		return
 	end
 	index.IndexProgress.Text = string.format(
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
@@ -650,16 +713,37 @@ local function refreshIndex()
 		config.DISCOVERIES_PER_POINT - count % config.DISCOVERIES_PER_POINT
 	)
 end
+local EQUIP_ANSWER_SECONDS = 3 -- placeholder: a press the server has not answered by then was refused
+local pressedEquip, pressedUntil = nil, 0
 for id, tile in pairs(tiles) do
 	tile.Equip.Activated:Connect(function()
 		if tile.Equip.Active and data:FindFirstChild(id) then
+			pressedEquip, pressedUntil = id, os.clock() + EQUIP_ANSWER_SECONDS
 			remotes.EquipCar:FireServer(id)
 		end
 	end)
 end
+-- The Equip cue is the server's yes, so a refusal plays none. On the card: a tile that lands on slot 1 turns its button
+-- disabled, and a disabled button does not move (design doc 4.20).
+local function equipAnswered()
+	local id = pressedEquip
+	if id and os.clock() > pressedUntil then
+		pressedEquip = nil
+	elseif
+		id
+		and (player:GetAttribute("EquippedCar") == id or string.split(player:GetAttribute("Team") or "", ",")[1] == id)
+	then
+		pressedEquip = nil
+		UiFeedback.Play("Equip", tiles[id].Frame)
+	end
+end
+player:GetAttributeChangedSignal("EquippedCar"):Connect(equipAnswered)
+player:GetAttributeChangedSignal("Team"):Connect(equipAnswered)
 data.ChildAdded:Connect(refreshIndex)
 data.ChildRemoved:Connect(refreshIndex)
 player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
+player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
+player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
 refreshIndex()
 require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 
@@ -713,7 +797,8 @@ task.spawn(function()
 	playerGui:WaitForChild("RollToast")
 	local showcase = playerGui:WaitForChild("RollShowcase")
 	local function refreshShowcase()
-		hud.Gui.Enabled = not showcase.Enabled
+		-- The full-screen Upgrades tree hides the HUD too (it shows its own Balance).
+		hud.Gui.Enabled = not showcase.Enabled and not PanelSwitch.IsOpen("Upgrades")
 	end
 	showcase:GetPropertyChangedSignal("Enabled"):Connect(refreshShowcase)
 	PanelSwitch.OnChange(refreshShowcase)
@@ -739,7 +824,8 @@ local function refreshTurbo()
 	if turboTween then
 		turboTween:Cancel()
 	end
-	local size = UDim2.fromScale(progress / every, 1)
+	-- A turbo roll's label holds the bar full, so it never celebrates over an empty fill.
+	local size = os.clock() < turboPopUntil and UDim2.fromScale(1, 1) or UDim2.fromScale(progress / every, 1)
 	turboTween = UiMotion.Create(hud.TurboFill, TweenInfo.new(0.2), { Size = size })
 	local tweenRef = turboTween
 	tweenRef:Play()
@@ -759,8 +845,9 @@ remotes.RollResult.OnClientEvent:Connect(function(_, _, turbo)
 	if type(turbo) == "number" and turbo > 1 then
 		turboPopUntil = os.clock() + 1.2
 		hud.TurboLabel.Text = "TURBO x" .. tostring(turbo) .. "!"
-		UiMotion.Pop(hud.TurboLabel, 0.25)
-		UiMotion.Shine(hud.TurboFill)
+		refreshTurbo()
+		-- On the label, which spans the bar: the cue's Pop must not change the fill's measured width.
+		UiFeedback.Play("Turbo", hud.TurboLabel, { Bar = hud.TurboFill, Goal = UDim2.fromScale(1, 1) })
 		task.delay(1.2, function()
 			if os.clock() >= turboPopUntil then
 				turboPopUntil = 0
@@ -803,7 +890,9 @@ local function fitPanels()
 		local scale = frame:FindFirstChildOfClass("UIScale")
 		local base = frame.Size
 		if scale and base.X.Offset > 0 and base.Y.Offset > 0 then
+			local motion = frame:FindFirstChild("MotionK") -- PanelSwitch's open / close scale
 			scale.Scale = math.max(0.3, math.min(k, width / base.X.Offset, height / base.Y.Offset))
+				* (motion and motion.Value or 1)
 			frame.AnchorPoint = Vector2.new(0.5, 0.5)
 			frame.Position = UDim2.fromOffset((side + right) / 2, top + height / 2)
 		end
@@ -817,9 +906,35 @@ local function refreshReadouts(dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 end
+-- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
+local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
+local moneyBigOwed = false -- a big gain that landed during a roll: its coins wait for the roll to end
+local rollPhase = UiFeedback.RollPhase
+local function playMoneyBig()
+	UiFeedback.Play(
+		"MoneyBig",
+		hud.MoneyValue,
+		{ Origin = workspace.CurrentCamera.ViewportSize / 2, Target = hud.MoneyValue }
+	)
+end
+task.spawn(function()
+	playerGui:WaitForChild("RollToast"):WaitForChild("Toast"):GetAttributeChangedSignal("Phase"):Connect(function()
+		if moneyBigOwed and rollPhase() == "Idle" then
+			moneyBigOwed = false
+			playMoneyBig()
+		end
+	end)
+end)
 local lastMoney = money.Value
 money.Changed:Connect(function(value)
 	if value > lastMoney then
+		if value - lastMoney < math.max(MONEY_BIG_MIN, value * MONEY_BIG_SHARE) then
+			UiFeedback.Play("MoneySmall")
+		elseif rollPhase() == "Idle" then
+			playMoneyBig()
+		else
+			moneyBigOwed = true
+		end
 		UiMotion.Pop(hud.MoneyValue)
 		UiMotion.Float(
 			hud.MoneyValue.Parent,
@@ -875,6 +990,7 @@ settings.SoundToggle.Activated:Connect(function()
 		applySound(descendant)
 	end
 	switch(settings.SoundToggle, not muted)
+	UiFeedback.Play("Toggle")
 end)
 game.DescendantAdded:Connect(function(descendant)
 	if muted then
@@ -885,6 +1001,7 @@ settings.EffectsToggle.Activated:Connect(function()
 	local reduced = player:GetAttribute("ReduceEffects") ~= true
 	player:SetAttribute("ReduceEffects", reduced)
 	switch(settings.EffectsToggle, reduced)
+	UiFeedback.Play("Toggle")
 end)
 switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
