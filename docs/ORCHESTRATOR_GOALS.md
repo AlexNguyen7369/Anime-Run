@@ -73,6 +73,7 @@ Deliverables:
 - fi3 | First join: camera reveal, lighter starter dim + in-world reveal, petal trail to the gate, Daily held until the first run ends, gate burst | Studio check on a fresh save; stylua / selene
 - fi4 | Dojo extras: level-up effect, squad idle poses, stat-coloured lanterns, YOUR DOJO marker | `dojo`, `workshop` green; Studio check
 - fi5 | Plaza petals and audio, sakura trunk collision, Index HUD icon without a car | Studio check; `scrap` still green
+- fi6 | Emblem floating headers over Index, Shop, Potions, Market, Sensei, Race Start, YOUR DOJO (owner 2026-11-04) | Studio shots; `spawn_area`, `ui_billboards` green; stylua / selene; rules audit PASS
 Out of scope: Market rebuild, phone performance testing (owner's device), c3 (owner's word).
 
 ## declutter: Clear spawn plaza (owner 2026-11-04)
