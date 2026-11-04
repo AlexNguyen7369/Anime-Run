@@ -1,8 +1,8 @@
 {
 	"foe_jk2": {
-		"colours": {"skin": "#ECE1D8", "eyes": "#8F9AA3", "UpperTorso": "#1A1E2C", "LowerTorso": "#1A1E2C", "UpperArm": "#1A1E2C", "LowerArm": "#ECE1D8", "Hand": "#ECE1D8", "UpperLeg": "#1A1E2C", "LowerLeg": "#1A1E2C", "Foot": "#E8E8E4"},
-		"face": {"eye": "soft", "mouth": "smirk", "brow": "#6E8494", "brow_tilt": 0.0, "brow_lift": 0.3, "lash": "#2A2630"},
-		"hair": {"colour": "#9DB4C0", "locks": []},
+		"colours": {"skin": "#F3E2D2", "eyes": "#8C98A6", "UpperTorso": "#262E54", "LowerTorso": "#262E54", "UpperArm": "#F3E2D2", "LowerArm": "#F3E2D2", "Hand": "#F3E2D2", "UpperLeg": "#1C2240", "LowerLeg": "#1C2240", "Foot": "#EEF0F2"},
+		"face": {"eye": "soft", "mouth": "smirk", "brow": "#6F8A9E", "brow_tilt": 0.0, "brow_lift": 0.3, "lash": "#1E1A28"},
+		"hair": {"colour": "#A9C8D6", "locks": []},
 		"pieces": [],
 		"marks": []
 	}

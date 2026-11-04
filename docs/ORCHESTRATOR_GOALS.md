@@ -86,7 +86,6 @@ Spec: docs/CHARACTER_GACHA_SPEC.md
 Deliverables:
 - s1 | 5 new models (Orihima, Rukiya, Renjy, Ichigu, Aizon) in the avatar pipeline, one evidence file each | exports under budget, renders reviewed, uploaded
 - s2 | Catalog, Series, preset and Ulquiorro as `soul_hollow` on `foe_soul`, tests | `catalog` + `gacha` scenarios green, rules audit PASS
-- s3 | Plaza Legend for this Series: blocked, owner decides against the 2-Legend cap (design doc 4.24, d3) |
 Out of scope: Bleech biome changes, rematch rewards, public release licensing.
 ## declutter: Clear spawn plaza (owner 2026-11-04)
 Status: active
@@ -98,6 +97,15 @@ Deliverables:
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
 Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner) and the Aura stall kept (its stray checker block removed, owner).
 
+## villains: Villains redesigned and rollable (owner 2026-11-04, design doc 4.32)
+Status: active
+Owner-confirmed: 2026-11-04
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md, docs/NPC_RIVAL_SPEC.md
+Deliverables:
+- v1 | 9 `foe_*` models rebuilt with the character design skill, one evidence file each | exports under budget; owner approves renders; uploaded
+- v2 | 8 new catalog characters sharing those models | `catalog` + `gacha` green, rules audit PASS
+Out of scope: Freezo and Aizon models, new enemies.
 ## roll-anim: Every roll clearly shows the character rolled (owner 2026-11-04)
 Status: active
 Owner-confirmed: 2026-11-04 (layout, cycle in place, fit to interval, no new runtime dependency all chosen by the owner)

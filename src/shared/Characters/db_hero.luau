@@ -6,7 +6,7 @@ return {
 	Rarity = "Secret",
 	Chance = 1.6e16,
 	SpeedMulti = 1000,
-	Order = 38,
+	Order = 46,
 	Category = "Balanced",
 	Series = "db",
 	Archetype = "brawler",
