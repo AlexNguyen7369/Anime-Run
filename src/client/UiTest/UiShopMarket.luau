@@ -140,7 +140,8 @@ function ShopMarket.Build(h)
 
 	-- Shared geometry of a band panel at every viewport: inside the screen and the band, its interactive parts
 	-- (buttons, text boxes) inside their parent and apart from each other, and the solver able to model it.
-	local function panelGeometry(res, prefix, panel)
+	-- leaveOut(d, vp) (optional): true for a descendant not to judge at that viewport
+	local function panelGeometry(res, prefix, panel, leaveOut)
 		local guiName = panel:FindFirstAncestorWhichIsA("LayerCollector").Name
 		for _, vpSpec in h.viewports do
 			local rectOf, vp, ctx = h.provider(vpSpec)
@@ -162,7 +163,7 @@ function ShopMarket.Build(h)
 			end
 			local controls, spill, overlaps = {}, {}, {}
 			for _, d in panel:GetDescendants() do
-				if (d:IsA("GuiButton") or d:IsA("TextBox")) and h.visible(d) then
+				if (d:IsA("GuiButton") or d:IsA("TextBox")) and h.visible(d) and not (leaveOut and leaveOut(d, vp)) then
 					table.insert(controls, { obj = d, r = rectOf(d) })
 					local parent = d.Parent
 					if parent and parent:IsA("GuiObject") and not parent:IsA("ScrollingFrame") then
@@ -678,7 +679,8 @@ function ShopMarket.Build(h)
 			local o = detail and detail:FindFirstChild(p.Name)
 			if not (o and o:IsA(p.Class)) then
 				table.insert(detailBad, ("%s missing (%s)"):format(p.Name, p.Class))
-			else
+			elseif h.visible(o) then
+				-- Only shown parts are judged for geometry (fitDetail hides Description for an owned item)
 				table.insert(dParts, o)
 			end
 		end
@@ -725,7 +727,11 @@ function ShopMarket.Build(h)
 				grid ~= nil and h.visible(grid) and not (detail ~= nil and h.visible(detail))
 			)
 		end
-		panelGeometry(res, "market", panel)
+		-- Phones hide Detail until a tile tap, then use the PHONE layout (judged live by market_phone_detail_view), so
+		-- its live desktop properties mean nothing at a phone viewport.
+		panelGeometry(res, "market", panel, function(d, vp)
+			return phone(vp) and detail ~= nil and detail:IsAncestorOf(d)
+		end)
 		local close = h.find(MK.Close)
 		if close and header then
 			groupGeometry(res, "market_close_in_header", header, { close })
@@ -733,7 +739,7 @@ function ShopMarket.Build(h)
 		if #tabList == #MK.TabOrder then
 			groupGeometry(res, "market_tab_buttons", tabs, tabList)
 		end
-		if #dParts == #MK.DetailParts then
+		if #dParts > 0 then
 			-- (phones: judged live in the Detail view by after.market_phone_detail_view)
 			groupGeometry(res, "market_detail_parts", detail, dParts, desktop)
 		end

@@ -602,7 +602,7 @@ UiSpec.Guis.MarketUi = {
 		},
 		{
 			-- BUY (not owned, and every potion) invokes MarketPurchase(kind, id) for the item the Detail pane shows.
-			-- An owned trail / aura hides Action and shows the team slot buttons instead (u4, Client/SlotPicker).
+			-- An owned trail / aura shows the team slot buttons; Action stays below MAX_COPIES copies (u4, Client/SlotPicker).
 			Path = "Backdrop/Panel/Detail/Action",
 			Does = "remote",
 			Remote = "MarketPurchase",
@@ -742,8 +742,8 @@ UiSpec.Market = {
 		{ Name = "Description", Class = "TextLabel" },
 		{ Name = "Action", Class = "TextButton" },
 	},
-	-- Action label for the shown item: BUY (potions, and trails / auras not owned yet). EQUIP / EQUIPPED retired: an owned
-	-- trail / aura hides Action and shows Slots (u4, design doc 4.13).
+	-- Action label for the shown item: BUY shows for potions and for trails / auras below MAX_COPIES copies. EQUIP /
+	-- EQUIPPED retired: an owned trail / aura also shows Slots; Action hides at the cap (design doc 4.13).
 	ActionText = { Buy = "BUY" },
 	Slots = "Slots", -- Detail/Slots: one TextButton Slot<n> per team slot (MarketConfig.SLOTS), Title "SLOT n" / "REMOVE n"
 	SlotTitle = "SLOT %d", -- slot n does not hold the shown item
