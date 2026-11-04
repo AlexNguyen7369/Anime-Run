@@ -48,8 +48,9 @@
 45. 2026-11-03 — Alex Nguyen — Applied the ninja run to the other 4 Leaf characters (`leaf_copycat`, `leaf_medic`, `leaf_crow`, `leaf_avenger`), with the pose and effect still not seen in a live run.
 45. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the other 26 characters in the owner's target look, so all 30 launch characters now load in game at 0.8 scale (Studio: 30 of 30 with 6 meshes each), rules audit fixed to 0 violations, real race and full harness not run.
 46. 2026-11-03 — Alex Nguyen — Gave logos and symbols small shape changes on 15 characters with the overall designs unchanged (design doc 5 Marks) and re-uploaded them, rules audit PASS, in-game check of the new marks still open.
+47. 2026-11-03 — Alex Nguyen — Landed first-impression fi1 and fi2: in-house plaza and Dojo meshes with 5 Dojo looks, Legends and sky-loop runners, golden-hour plaza, a logo loading screen that waits for client assets, and bold Market and Race Start landmarks (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS).
 
 ## What's next
-**Run the c3 full compatibility check (full server harness, UI harness, rules audit) on feature/alex/anime-world with all 30 new models, and fix what it finds.**
+**Build first-impression fi3: first-join camera reveal, lighter starter dim with an in-world reveal, petal trail to the gate, Daily held until the first run ends, and the gate burst.**
 
-**Why this is next:** the new models, the 0.8 rig scale and the ninja run have only had static Studio checks, and the PR from feature/alex/anime-world into main waits on c3 being green.
+**Why this is next:** the plaza and landmarks are in place, and this flow is what shows them to a new player; fi4, fi5 and the c3 check before the PR to main follow it.
