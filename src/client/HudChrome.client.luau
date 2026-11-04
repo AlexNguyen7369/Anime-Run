@@ -314,12 +314,14 @@ local function refresh()
 	grid.Position = phone and UDim2.new(0, 8, 0.5, -20) or UDim2.new(0, 14, 0.5, -24)
 	shopColumn.Position = phone and UDim2.new(1, -8, 0.5, -20) or UDim2.new(1, -14, 0.5, -24)
 	-- Bottom pair: right beside the LEVEL / TURBO LUCK bars, each icon centred on the gap between the bars. That
-	-- is below the Speed readout, so the wider Speed group never touches them. An open panel fills the band above
-	-- the bars, so the pair hides while any panel is open (the panel's X and Escape close it).
+	-- is below the Speed readout, so the wider Speed group never touches them. Where the pair stacks above the bars
+	-- (height <= STACK_MAX_HEIGHT) an open panel fills its place, so there it hides while any panel is open (the
+	-- panel's X and Escape close it); everywhere else it stays drawn.
 	local hud = gui:FindFirstChild("RacerHud")
 	local level = hud and hud:FindFirstChild("Level")
 	local turbo = hud and hud:FindFirstChild("Turbo")
-	itemsSlot.Visible = level ~= nil and turbo ~= nil
+	local stacked = camera ~= nil and camera.ViewportSize.Y <= STACK_MAX_HEIGHT
+	itemsSlot.Visible = level ~= nil and turbo ~= nil and not (stacked and PanelSwitch.AnyOpen())
 	upgradeSlot.Visible = itemsSlot.Visible
 	if itemsSlot.Visible then
 		-- AbsolutePosition starts below the top bar; these ScreenGuis ignore the inset, so add it back.
@@ -340,7 +342,7 @@ local function refresh()
 		for _, name in { "Money", "Speed" } do
 			table.insert(blockers, rect(name))
 		end
-		if camera and camera.ViewportSize.Y <= STACK_MAX_HEIGHT then
+		if stacked then
 			-- Owner 2026-10-28 (section 6): on the smallest phones the pair sits ABOVE the bars (bottom edge over the
 			-- LEVEL bar and the Money read-out), just outside the Speed read-out on each side.
 			local speed = rect("Speed")

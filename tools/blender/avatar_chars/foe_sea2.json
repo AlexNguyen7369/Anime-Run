@@ -1,0 +1,8 @@
+{
+	"foe_sea2": {
+		"name": "Enelu",
+		"colours": { "skin": "#F6DCC4", "eyes": "#121212", "UpperTorso": "#F6DCC4", "LowerTorso": "#F08A1C", "UpperArm": "#F6DCC4", "LowerArm": "#F6DCC4", "Hand": "#F6DCC4", "UpperLeg": "#F08A1C", "LowerLeg": "#F08A1C", "Foot": "#F6DCC4" },
+		"face": { "eye": "sharp", "mouth": "smirk", "brow": "#121212", "brow_lift": 0.3 },
+		"hair": { "colour": "#F4F0E6", "locks": [] }
+	}
+}

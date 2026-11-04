@@ -92,6 +92,8 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 | | Deko | Deku | Legendary | B | `mha_hero` |
 | | All Mighty | All Might | Mythic | M | `mha_symbol` |
 
+Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.26).
+
 Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
@@ -161,7 +163,7 @@ Preset trios (the anime's famous team):
   (`build/avatar_glb/<id>.glb`); `upload_avatar.py` uploads them as Model assets under the owner's account (ids in
   `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
-  the placeholder block rig for anything without a model (NPC rivals, `starter`, event-only characters).
+  the placeholder block rig for anything without a model (`starter`, event-only characters).
 
 ### Target look (owner 2026-11-03; design doc 5)
 

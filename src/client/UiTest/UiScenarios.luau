@@ -138,6 +138,7 @@ UiScenarios.Names = {
 	-- Backpack Characters tab and runner-rig icons (UiContracts; owner 2026-10-20, Cars -> Characters and car models
 	-- -> runner rigs per docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29)
 	"ui_backpack_characters",
+	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
@@ -708,8 +709,7 @@ local function marketTabScale(obj, child, ctx)
 			n += 1
 		end
 	end
-	local min = (railPath == UiSpec.Market.Tabs and ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight) and fit.PhoneMin
-		or fit.Min
+	local min = ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and fit.PhoneMin or fit.Min
 	return math.clamp((rr.h / railScale - (n - 1) * fit.Gap) / (n * fit.TabSize), min, fit.Max)
 end
 
@@ -1298,7 +1298,8 @@ local function clipped(obj, rectOf)
 end
 
 -- Where a label's text is actually drawn (TextService estimate), or nil when it draws nothing.
-local function textRect(label, r)
+-- scale: the UIScale factor over the label, which draws its text that much smaller or larger (K.textScale).
+local function textRect(label, r, scale)
 	if label.Text == "" or label.TextTransparency >= 0.99 then
 		return nil
 	end
@@ -1308,7 +1309,7 @@ local function textRect(label, r)
 	local ok, size = pcall(function()
 		return TextService:GetTextSize(
 			label.Text,
-			label.TextSize,
+			label.TextSize * (scale or 1),
 			label.Font,
 			Vector2.new(label.TextWrapped and math.max(r.w, 1) or 100000, 100000)
 		)
@@ -1524,6 +1525,11 @@ function UiScenarios.Init()
 					end
 					table.insert(events.rolls, ev)
 					ev.n = #events.rolls
+					-- Behind the loading screen nothing shows and the client stalls on assets (design doc 4.24): the roll
+					-- still counts (n, RollSerial), but its animation is not judged.
+					if playerGui:FindFirstChild("LoadingScreen") then
+						return
+					end
 					if ev.turboMulti > 1 then
 						task.spawn(UiScenarios.SampleTurbo, ev)
 					end
@@ -1568,6 +1574,11 @@ function UiScenarios.Init()
 end
 
 local function waitGuis()
+	-- The loading screen draws over everything and swallows every click until the game has loaded
+	local loading = os.clock() + UiSpec.Waits.LoadingScreen
+	while playerGui:FindFirstChild("LoadingScreen") and os.clock() < loading do
+		task.wait(0.2)
+	end
 	local deadline = os.clock() + UiSpec.Waits.GuiAppear
 	for _, name in declaredGuis() do
 		playerGui:WaitForChild(name, math.max(0.1, deadline - os.clock()))
@@ -2376,6 +2387,10 @@ function UiScenarios.SampleRoll(ev)
 	table.insert(events.recs, rec)
 	local limit = ev.t + durationFor(rarityOf(ev.id), ev.emphasized) + 3
 	local last, lastView, holdAt, nominalW = {}, nil, {}, {}
+	-- Client/RollToast queues a result that arrives while another plays: until that one ends, the card shows it, not ev.
+	local playing = findPath("RollToast/Toast")
+	local midPlay = { Spin = true, Land = true, Hold = true, Exit = true }
+	local behind = playing and midPlay[playing:GetAttribute("Phase")] and playing:GetAttribute("RollSerial") or nil
 	local function sampleFly(now)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
@@ -2389,6 +2404,10 @@ function UiScenarios.SampleRoll(ev)
 		if events.rolls[#events.rolls] ~= ev then
 			rec.interruptedAt = os.clock()
 			break
+		end
+		if behind and playing:GetAttribute("RollSerial") == behind then
+			RunService.Heartbeat:Wait()
+			continue
 		end
 		local now = os.clock()
 		local view = viewNow()
@@ -2611,11 +2630,43 @@ end
 ---------------------------------------------------------------------------------------------------------------
 -- Element sets per panel state
 
+-- The layout is solved from the live (desktop) Visible values, so a view a phone never shows at open (UiSpec.PhoneViews
+-- Hidden: Client/MarketUi shows the grid only, owner 2026-10-28) must be left out at a phone viewport.
+function K.phoneHidden(path, vp)
+	if not (vp and vp.Y <= UiResponsive.PHONE_MAX_HEIGHT) then
+		return false
+	end
+	for _, root in UiSpec.PhoneViewsHidden do
+		if path == root or string.sub(path, 1, #root + 1) == root .. "/" then
+			return true
+		end
+	end
+	return false
+end
+
+-- True while a full-screen overlay panel is open and a, b are in different ScreenGuis (UiSpec.FullScreenPanels: it may
+-- cover other ScreenGuis, docs/HUD_LAYOUT_SPEC.md section 6).
+function K.fullScreenCovers(a, b)
+	local guiA, guiB = string.match(a, "^[^/]+"), string.match(b, "^[^/]+")
+	if guiA ~= guiB then
+		for panel in UiSpec.FullScreenPanels do
+			local g, open = string.match(panel, "^[^/]+"), findPath(panel)
+			if (g == guiA or g == guiB) and open and effectivelyVisible(open) then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 -- True when UiSpec.HiddenWhilePanelOpen hides the AlwaysOn element `path` while the panels in `open` are open.
-local function hiddenByPanel(path, open)
+local function hiddenByPanel(path, open, vp)
 	local rule = UiSpec.HiddenWhilePanelOpen[path]
 	if not rule then
 		return false
+	end
+	if rule == "stacked" then
+		return #open > 0 and vp ~= nil and vp.Y <= UiSpec.HudPair.StackMaxHeight
 	end
 	local except = string.match(rule, "^other_than:(.+)$")
 	for _, p in open do
@@ -2641,13 +2692,13 @@ local function shownInPanel(obj, panel)
 	end
 	return true
 end
-local function elementsFor(open)
+local function elementsFor(open, vp)
 	local list = {}
 	for _, guiName in declaredGuis() do
 		local g = UiSpec.Guis[guiName]
 		for _, p in g.AlwaysOn or {} do
 			local obj = findPath(guiName .. "/" .. p)
-			if obj and not hiddenByPanel(guiName .. "/" .. p, open) then
+			if obj and not hiddenByPanel(guiName .. "/" .. p, open, vp) then
 				table.insert(list, { path = guiName .. "/" .. p, obj = obj })
 			end
 		end
@@ -2657,7 +2708,7 @@ local function elementsFor(open)
 		if panel then
 			table.insert(list, { path = pathOf(panel), obj = panel, panel = true })
 			for _, b in buttonsIn(panel) do
-				if shownInPanel(b, panel) then
+				if shownInPanel(b, panel) and not K.phoneHidden(pathOf(b), vp) then
 					table.insert(list, { path = pathOf(b), obj = b })
 				end
 			end
@@ -2737,14 +2788,8 @@ end
 local function overlapAllowed(a, b, ra, rb, rectOf)
 	-- While a full-screen overlay panel is open (UiSpec.FullScreenPanels), its ScreenGui may cover other ScreenGuis
 	-- (docs/HUD_LAYOUT_SPEC.md section 6); checked first, so its panel surface is not judged as a band panel's
-	local guiA, guiB = string.match(a, "^[^/]+"), string.match(b, "^[^/]+")
-	if guiA ~= guiB then
-		for panel in UiSpec.FullScreenPanels do
-			local g, open = string.match(panel, "^[^/]+"), findPath(panel)
-			if (g == guiA or g == guiB) and open and effectivelyVisible(open) then
-				return true
-			end
-		end
+	if K.fullScreenCovers(a, b) then
+		return true
 	end
 	local panelPath, readout = panelReadoutPair(a, b)
 	if panelPath then
@@ -2892,11 +2937,18 @@ function S.ui_inventory(res)
 	end
 	local unknown = {}
 	for _, gui in playerGui:GetChildren() do
-		if gui:IsA("LayerCollector") and not UiSpec.Guis[gui.Name] and not UiSpec.IgnoreGuis[gui.Name] then
+		if
+			gui:IsA("LayerCollector")
+			and not UiSpec.Guis[gui.Name]
+			and not UiSpec.IgnoreGuis[gui.Name]
+			and not UiSpec.TransientGuis[gui.Name]
+		then
 			table.insert(unknown, gui.Name)
 		end
 	end
 	checkList(res, "every_screengui_in_spec", unknown)
+	local loadingLeft = playerGui:FindFirstChild("LoadingScreen") == nil
+	check(res, "loading_screen_closed", loadingLeft, true, loadingLeft)
 	-- Client scripts without a ScreenGui (UiSpec.ClientScripts), e.g. Client/RollAnnounce
 	local folder = script.Parent.Parent
 	for _, name in UiSpec.ClientScripts do
@@ -2946,6 +2998,8 @@ function S.ui_inventory(res)
 				want = #UpgradeTree.Tiles()
 			elseif spec.Count == "duel_tracks" then
 				want = UiDuel.OfferedTracks()
+			elseif spec.Count == "starter_picks" then
+				want = #CharacterCatalog.STARTER_PICKS
 			elseif spec.Count == "tracks" then
 				-- One per track in the chain (Checkpoints cards); "tracks" used to fall through to 1 (got 10, want 1)
 				want = #TrackRegistry.Chain()
@@ -3278,6 +3332,24 @@ local function hudPairChecks(res)
 	restore()
 end
 
+-- The UIScale factor over a label at ctx.vp (the live values when ctx has no vp), own and ancestors.
+function K.textScale(label, ctx)
+	local s, node = 1, label
+	while node and not node:IsA("LayerCollector") do
+		if ctx.vp then
+			s *= ownScale(node, ctx)
+		else
+			for _, child in node:GetChildren() do
+				if child:IsA("UIScale") and not UiSpec.TransientScales[child.Name] then
+					s *= child.Scale
+				end
+			end
+		end
+		node = node.Parent
+	end
+	return s
+end
+
 function S.ui_layout(res)
 	waitGuis()
 	for _, state in K.STATES do
@@ -3285,7 +3357,7 @@ function S.ui_layout(res)
 		for _, vpSpec in UiSpec.Viewports do
 			local rectOf, vp, ctx = provider(vpSpec)
 			local tag = state.Name .. "_" .. vpSpec.Name
-			local elements = elementsFor(state.Open)
+			local elements = elementsFor(state.Open, vp)
 			local rects = {}
 			for _, e in elements do
 				rects[e] = clipped(e.obj, rectOf)
@@ -3345,14 +3417,20 @@ function S.ui_layout(res)
 							(l:IsA("TextLabel") or l:IsA("TextBox"))
 							and effectivelyVisible(l)
 							and not l:FindFirstAncestorWhichIsA("GuiButton")
+							and not K.phoneHidden(pathOf(l), vp)
 						then
 							local lr = clipped(l, rectOf)
-							local tr = lr and textRect(l, rectOf(l))
+							local tr = lr and textRect(l, rectOf(l), K.textScale(l, ctx))
 							tr = tr and intersection(tr, lr) or tr
 							if tr then
 								for _, b in buttons do
 									local br = rects[b]
-									if br and not b.obj:IsAncestorOf(l) and intersects(tr, br) then
+									if
+										br
+										and not b.obj:IsAncestorOf(l)
+										and intersects(tr, br)
+										and not K.fullScreenCovers(pathOf(l), b.path)
+									then
 										-- A read-out's text under a panel button is fine only where the panel
 										-- verifiably draws over the read-out (UiSpec.PanelCoversReadouts)
 										local lp = pathOf(l)
@@ -3733,6 +3811,19 @@ function S.ui_hitboxes(res)
 
 	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
+		-- A roll caught in PopIn / Exit: the compact roll's Body scales through nothing there (POP, EXIT), so its Toast
+		-- draws nothing and has no hit. And a Toast that just showed or hid is hit-tested by the last frame's layout.
+		-- Measure it settled, unchanged for a frame; nothing below yields.
+		local toast = findPath("RollToast/Toast")
+		local settleBy = os.clock() + UiSpec.Waits.MotionRest
+		while toast and os.clock() < settleBy do
+			local phase, shown = toast:GetAttribute("Phase"), toast.Visible
+			renderFrame()
+			local same = phase == toast:GetAttribute("Phase") and shown == toast.Visible
+			if same and phase ~= "PopIn" and phase ~= "Exit" then
+				break
+			end
+		end
 		local vp = viewport()
 		local spill, padded, hiddenHit, covered, invisible, clippedHit, looks = {}, {}, {}, {}, {}, {}, {}
 		for _, b in allButtons() do
@@ -5548,8 +5639,8 @@ local function loserRecapChecks(res, rec)
 			res,
 			"loser_npc_name",
 			npcName,
-			("contains %q, never %q"):format(label, L.Generic),
-			npcName ~= nil and npcName ~= "" and not string.find(npcName, L.Generic, 1, true) and has("NpcName", label)
+			("exactly %q, never %q"):format(label, L.Generic),
+			npcName == label and not string.find(npcName, L.Generic, 1, true)
 		)
 	else
 		check(res, "loser_npc_name", npcName, "present", npcName ~= nil)
@@ -5795,14 +5886,42 @@ function S.ui_billboards(res)
 		task.wait(0.25)
 		list = npcs()
 	end
+	local indicatorGui = playerGui:FindFirstChild("NpcIndicator")
+	local indicatorSpec = UiSpec.Guis.NpcIndicator
+	local frame = indicatorGui and indicatorGui:FindFirstChild(indicatorSpec.Frame)
 	if #list == 0 then
+		check(res, "npc_indicator_hidden_without_enemy", frame and frame.Visible, false, not (frame and frame.Visible))
 		stateMissing(res, "npc_on_track", "auto_racing", "no IsNpc model in " .. UiSpec.Waits.NpcStart .. " s")
 		return
 	end
 	check(res, "one_npc_at_a_time", #list, 1, #list == 1)
 	local npc = list[1]
-	local bb = npc:FindFirstChild("NpcLabel")
-	local text = bb and bb:FindFirstChild("Text")
+	-- the indicator (design doc 4.26): the client's ScreenGui, the name over an arrow, its tip on the enemy's head
+	local guiOk = indicatorGui ~= nil
+		and indicatorGui:IsA("ScreenGui")
+		and indicatorGui.ScreenInsets == Enum.ScreenInsets.None
+		and indicatorGui.ResetOnSpawn == false
+	check(
+		res,
+		"npc_indicator_gui",
+		indicatorGui and indicatorGui.ClassName,
+		"ScreenGui, ScreenInsets None, no reset",
+		guiOk
+	)
+	-- SafeInsets would shift it from the viewport pixels it is placed in (notched screens)
+	check(
+		res,
+		"npc_indicator_full_bleed",
+		indicatorGui and indicatorGui.ScreenInsets.Name,
+		"not DeviceSafeInsets",
+		indicatorGui ~= nil and indicatorGui.ScreenInsets ~= Enum.ScreenInsets.DeviceSafeInsets
+	)
+	local frameOk = frame ~= nil and frame:IsA("Frame") and frame.AnchorPoint == Vector2.new(0.5, 1)
+	check(res, "npc_indicator_frame", frame and frame.ClassName, "Frame, AnchorPoint 0.5,1", frameOk)
+	if not frameOk then
+		return
+	end
+	local text = frame:FindFirstChild(indicatorSpec.Label)
 	local track = npc:GetAttribute("TrackNumber")
 	local want = NpcConfig.For(track).Label
 	local start = events.npcStart
@@ -5810,14 +5929,79 @@ function S.ui_billboards(res)
 		want = start.Label
 	end
 	check(res, "npc_label_text", text and text.Text, want, text ~= nil and text.Text == want)
+	local arrow = frame:FindFirstChild(indicatorSpec.Arrow)
 	check(
 		res,
-		"npc_label_max_distance",
-		bb and bb.MaxDistance,
-		NpcConfig.LABEL_DISTANCE,
-		bb ~= nil and bb.MaxDistance == NpcConfig.LABEL_DISTANCE
+		"npc_label_arrow",
+		arrow and arrow.ClassName,
+		"TextLabel with text",
+		arrow ~= nil and arrow:IsA("TextLabel") and arrow.Text ~= ""
 	)
-	check(res, "npc_label_not_clickable", bb and bb.Active, false, bb ~= nil and not bb.Active and #buttonsIn(bb) == 0)
+	-- the indicator is the name over the arrow, nothing else (design doc 4.26)
+	local extras = {}
+	for _, child in frame:GetChildren() do
+		if child:IsA("GuiObject") and child ~= text and child ~= arrow then
+			table.insert(extras, child.Name)
+		end
+	end
+	checkList(res, "npc_label_only_name_and_arrow", extras)
+	check(res, "npc_label_not_clickable", frame.Active, false, not frame.Active and #buttonsIn(frame) == 0)
+	-- Position's offset is the arrow tip in viewport pixels (AnchorPoint 0.5,1, ScreenInsets None). Not realRect: its
+	-- top bar inset does not match this gui (Studio: 62 px off with the arrow on the head).
+	local camera, head = Workspace.CurrentCamera, npc:FindFirstChild("Head") or npc.PrimaryPart
+	local errors, wrongVisible = {}, 0
+	-- Sampled until the head has been in front of the camera often enough; it is behind while the player leads.
+	-- Read just after NpcRacerView's render step (Last): between frames the camera has moved on (Studio: 63 px, not 0.8).
+	local finished, sampleError = false, nil
+	local function sampleIndicator()
+		if #errors >= indicatorSpec.Samples or not (head and head.Parent and npc.Parent) then
+			finished = true
+			return
+		end
+		local top = head.Position + Vector3.new(0, head.Size.Y / 2 + indicatorSpec.GapStuds, 0)
+		local point = camera:WorldToViewportPoint(top)
+		if frame.Visible ~= (point.Z > 0) then
+			wrongVisible += 1
+		end
+		if point.Z > 0 then
+			local tip = Vector2.new(frame.Position.X.Offset, frame.Position.Y.Offset)
+			table.insert(errors, (tip - Vector2.new(point.X, point.Y)).Magnitude)
+		end
+	end
+	RunService:BindToRenderStep(indicatorSpec.SampleStep, Enum.RenderPriority.Last.Value + 1, function()
+		if finished then
+			return
+		end
+		local ok, err = pcall(sampleIndicator)
+		if not ok then
+			finished, sampleError = true, err
+		end
+	end)
+	local sampleUntil = os.clock() + indicatorSpec.FrontWait
+	while not finished and os.clock() < sampleUntil do
+		task.wait()
+	end
+	RunService:UnbindFromRenderStep(indicatorSpec.SampleStep)
+	if sampleError then
+		error(sampleError)
+	end
+	if #errors == 0 then
+		local why = "head not in front of the camera in " .. indicatorSpec.FrontWait .. " s"
+		stateMissing(res, "npc_indicator_visible_only_in_front", "auto_racing", why)
+		stateMissing(res, "npc_indicator_follows_head", "auto_racing", why)
+		return
+	end
+	-- One sample may lag when the head crosses the camera plane
+	check(res, "npc_indicator_visible_only_in_front", wrongVisible, "<= 1", wrongVisible <= 1)
+	table.sort(errors)
+	local median = errors[math.ceil(#errors / 2)]
+	check(
+		res,
+		"npc_indicator_follows_head",
+		median,
+		("<= %d px"):format(indicatorSpec.PositionTolerance),
+		median <= indicatorSpec.PositionTolerance
+	)
 end
 
 -- The two panels are mutually exclusive through the real mechanism the buttons use (Client/PanelSwitch).
@@ -6052,6 +6236,10 @@ function S.ui_panels(res)
 			end
 		end
 		for _, buttonPath in if overlay then {} else persistentPaths do
+			-- (UiSpec.HiddenWhilePanelOpen "stacked": this entry hides by rule at a live stacked phone viewport)
+			if hiddenByPanel(buttonPath, { panelPath }, viewport()) then
+				continue
+			end
 			local button = findPath(buttonPath)
 			check(
 				res,
@@ -6117,7 +6305,7 @@ function S.ui_panels(res)
 	for _, panelPath in panels do
 		setPanels({ panelPath })
 		local function wantHidden(path)
-			return hiddenByPanel(path, { panelPath })
+			return hiddenByPanel(path, { panelPath }, viewport())
 		end
 		waitFor(function()
 			for _, path in elems do

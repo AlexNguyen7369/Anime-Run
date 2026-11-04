@@ -300,8 +300,23 @@ before any Studio work.
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
 
+### 4.27 Phone and tablet HUD (owner 2026-11-03)
+- Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Items / Upgrade pair may shrink on 4:3 tablets.
+- At viewport height 400 or less (`StackMaxHeight`) the Items / Upgrade pair stacks, and it hides while a panel is open. Desktop keeps it drawn.
+- Backpack tabs may shrink on phones to fit the rail, as Market's do (minimum scale 0.1).
+- Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
+
 ### 4.25 Track loading (owner 2026-11-03)
 - The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
+
+### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
+- Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
+  and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
+- The player sees one enemy at a time: the one they are racing now.
+- A large indicator (the enemy's name over a down arrow) sits above the enemy's head and follows it. It has no distance
+  limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy: it is not clamped
+  to the screen edge when the enemy is off screen. Pixel size is a placeholder.
+- Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -363,6 +378,8 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
+- 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).
 - 2026-10-28: document created: full stamina refill per run, exhaustion cashes out.
 - 2026-10-28: section 5: real anime characters with tweaked names, Series = tweaked real anime, preset trio = its famous
   team. Parody cast, 6 preset trios, 10 NPC rivals and safeguards approved.

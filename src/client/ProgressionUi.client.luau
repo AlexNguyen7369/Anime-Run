@@ -325,10 +325,23 @@ local workshopTitle = workshopPanel:FindFirstChild("Title")
 if workshopTitle then
 	workshopTitle.TextSize = 14
 end
-local boostLabel = text("Boost", workshopPanel, UDim2.new(0, 12, 0.18, 0), UDim2.new(0.42, -24, 0, 26), "")
-local levelLabel = text("Level", workshopPanel, UDim2.new(0, 12, 0.3, 0), UDim2.new(0.42, -24, 0, 36), "")
-local priceLabel = text("Price", workshopPanel, UDim2.new(0, 12, 0.46, 0), UDim2.new(0.42, -24, 0, 36), "")
-local workshopResult = text("Result", workshopPanel, UDim2.new(0, 12, 0.74, 0), UDim2.new(0.42, -24, 0, 24), "")
+-- The left column's rows stay apart at every panel height: one value at the shortest band (phones, 136 px), another at
+-- the authored 350 px, straight between them. y and h in px.
+local function workshopRow(y136, h136, y350, h350)
+	local function at(short, tall)
+		local s = (tall - short) / (350 - 136)
+		return UDim.new(s, short - s * 136)
+	end
+	return UDim2.new(UDim.new(0, 12), at(y136, y350)), UDim2.new(UDim.new(0.42, -24), at(h136, h350))
+end
+local rowPos, rowSize = workshopRow(28, 14, 63, 26)
+local boostLabel = text("Boost", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(42, 12, 105, 36)
+local levelLabel = text("Level", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(54, 12, 161, 36)
+local priceLabel = text("Price", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(88, 10, 259, 24)
+local workshopResult = text("Result", workshopPanel, rowPos, rowSize, "")
 for _, label in { levelLabel, priceLabel, workshopResult } do
 	label.TextSize = 13
 	label.TextColor3 = Color3.fromRGB(218, 224, 235)
@@ -336,9 +349,10 @@ end
 boostLabel.TextSize = 16
 boostLabel.TextColor3 = GREEN
 -- The boosted stat picker (design doc 4.19): the server validates the pick; the chosen one is green.
+rowPos, rowSize = workshopRow(66, 22, 217, 26)
 local statRow = make("Frame", "Stats", workshopPanel, {
-	Position = UDim2.new(0, 12, 0.62, 0),
-	Size = UDim2.new(0.42, -24, 0, 26),
+	Position = rowPos,
+	Size = rowSize,
 	BackgroundTransparency = 1,
 })
 local statButtons = {}
@@ -356,8 +370,8 @@ for i, stat in Workshop.Config.STATS do
 			or "Connection error; try again"
 	end)
 end
-local buyWorkshop =
-	button("Buy", workshopPanel, UDim2.new(0, 12, 1, -48), UDim2.new(0.42, -24, 0, 36), "BUY NEXT LEVEL")
+rowPos, rowSize = workshopRow(98, 36, 302, 36)
+local buyWorkshop = button("Buy", workshopPanel, rowPos, rowSize, "BUY NEXT LEVEL")
 buyWorkshop.TextSize = 12
 -- Showcase (docs/WORKSHOP_SPEC.md "Showcase"): the right part of the Workshop panel. The server validates every pick.
 local showcaseFrame = make("Frame", "Showcase", workshopPanel, {

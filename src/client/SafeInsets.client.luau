@@ -4,7 +4,7 @@
 -- full-screen dims and overlays keep bleeding edge to edge.
 local Players = game:GetService("Players")
 
-local FULL_BLEED = { PanelDim = true, LoserScreen = true, RollShowcase = true }
+local FULL_BLEED = { PanelDim = true, LoserScreen = true, RollShowcase = true, NpcIndicator = true }
 
 local function apply(gui)
 	if gui:IsA("ScreenGui") and not FULL_BLEED[gui.Name] then

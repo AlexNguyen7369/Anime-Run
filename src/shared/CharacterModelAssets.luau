@@ -112,6 +112,105 @@ return {
 			Torso = Vector3.new(2.16, 3.544, 2.519),
 		},
 	},
+	foe_db = {
+		Asset = 127636160273495,
+		Sizes = {
+			Head = Vector3.new(2.678, 3.772, 1.92),
+			LeftArm = Vector3.new(1.42, 2.6, 1.22),
+			LeftLeg = Vector3.new(1.02, 2, 1.96),
+			RightArm = Vector3.new(1.42, 2.6, 1.22),
+			RightLeg = Vector3.new(1.02, 2, 1.96),
+			Torso = Vector3.new(2, 2.72, 1.74),
+		},
+	},
+	foe_ds = {
+		Asset = 80207385127536,
+		Sizes = {
+			Head = Vector3.new(2.64, 3.16, 2.48),
+			LeftArm = Vector3.new(1.2, 2.44, 1),
+			LeftLeg = Vector3.new(1.424, 2, 1.62),
+			RightArm = Vector3.new(1.2, 2.44, 1),
+			RightLeg = Vector3.new(1.414, 2, 1.62),
+			Torso = Vector3.new(2.15, 3.32, 1.464),
+		},
+	},
+	foe_jk = {
+		Asset = 129282419459244,
+		Sizes = {
+			Head = Vector3.new(2.74, 2.261, 1.738),
+			LeftArm = Vector3.new(1.37, 2.44, 1.184),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.379, 2.44, 1.174),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.26, 2.66, 1.89),
+		},
+	},
+	foe_jk2 = {
+		Asset = 104026709714414,
+		Sizes = {
+			Head = Vector3.new(2.64, 5.96, 2.24),
+			LeftArm = Vector3.new(1.38, 2.44, 1.18),
+			LeftLeg = Vector3.new(1.28, 2, 1.6),
+			RightArm = Vector3.new(1.38, 2.44, 1.18),
+			RightLeg = Vector3.new(1.28, 2, 1.6),
+			Torso = Vector3.new(2.38, 2.64, 1.4),
+		},
+	},
+	foe_leaf = {
+		Asset = 92491213161478,
+		Sizes = {
+			Head = Vector3.new(2.407, 2.97, 2.432),
+			LeftArm = Vector3.new(1.402, 2.44, 1.2),
+			LeftLeg = Vector3.new(1.294, 2, 1.84),
+			RightArm = Vector3.new(1.4, 2.44, 1.208),
+			RightLeg = Vector3.new(1.301, 2, 1.84),
+			Torso = Vector3.new(2.269, 3.192, 2.06),
+		},
+	},
+	foe_mha = {
+		Asset = 108722332569851,
+		Sizes = {
+			Head = Vector3.new(2.28, 2.66, 2.12),
+			LeftArm = Vector3.new(1.52, 2.44, 1.242),
+			LeftLeg = Vector3.new(1.22, 2, 1.8),
+			RightArm = Vector3.new(1.52, 2.44, 1.242),
+			RightLeg = Vector3.new(1.22, 2, 1.8),
+			Torso = Vector3.new(2.203, 2.24, 1.48),
+		},
+	},
+	foe_sea = {
+		Asset = 78284978161540,
+		Sizes = {
+			Head = Vector3.new(3.12, 2.76, 4.12),
+			LeftArm = Vector3.new(1.36, 2.4, 1.16),
+			LeftLeg = Vector3.new(1.132, 2, 1.6),
+			RightArm = Vector3.new(1.36, 2.4, 1.16),
+			RightLeg = Vector3.new(1.13, 2, 1.6),
+			Torso = Vector3.new(2.18, 2.24, 1.36),
+		},
+	},
+	foe_sea2 = {
+		Asset = 79752988806244,
+		Sizes = {
+			Head = Vector3.new(2.1, 3.334, 1.96),
+			LeftArm = Vector3.new(1.28, 2.4, 1.08),
+			LeftLeg = Vector3.new(1.26, 2, 1.572),
+			RightArm = Vector3.new(2.38, 6.88, 1.08),
+			RightLeg = Vector3.new(1.26, 2, 1.572),
+			Torso = Vector3.new(3.65, 7.65, 1.96),
+		},
+	},
+	foe_soul = {
+		Asset = 75082900688194,
+		Sizes = {
+			Head = Vector3.new(2.24, 4, 2.08),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.464, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.464, 2, 1.6),
+			Torso = Vector3.new(2.2, 3.72, 2.943),
+		},
+	},
 	jk_king = {
 		Asset = 128545151242183,
 		Sizes = {

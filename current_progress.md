@@ -53,10 +53,12 @@
 49. 2026-11-03 — Alex Nguyen — Landed first-impression fi3 and fi4 plus a shorter load: first-join reveal, trail, Daily hold and gate burst, Dojo level-up effect, squad poses, stat lanterns and YOUR DOJO marker, with a fresh server opening at 40-44 s instead of 65-77 s (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS; gate burst, a real fresh save, phone and Reduced Motion not seen).
 50. 2026-11-03 — Alex Nguyen — Tested the first-join flow on real fresh test saves with a Studio-only `TestSaveKey`, and fixed what it found: the first roll card covering the hero reveal, SKIP overlapping a HUD button, the sweep ending away from the gate and the hero hidden behind the avatar; also kept test sessions off the leaderboards (data, world_layout, spawn_area, dojo, workshop pass=5 fail=0; rules audit PASS; phone and a second real account not tested).
 51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
-52. 2026-11-04 — Alex Nguyen — Trimmed stale docs and removed unused assets on orch/trim/t1 (handoff 52 KB to 6 KB, ProjectContext removed); rules audit PASS, no gameplay code changed, not yet merged.
-53. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs on orch/trim/t1 and listed their doc-versus-code conflicts for the owner; not yet merged.
+52. 2026-11-04 — Alex Nguyen — Replaced every track NPC with a biome-matched enemy: 9 new uploaded models, a name and arrow indicator that follows the enemy's head, npc and ui_billboards green, rules audit PASS.
+53. 2026-11-04 — Alex Nguyen — Landed c3ui with owner rulings as design doc 4.27: phone and tablet HUD fixes, StarterPick in the UI spec, reduced-motion and hitbox test fixes, and rules audit PASS.
+54. 2026-11-04 — Alex Nguyen — Landed the trim of stale docs and unused assets (handoff 52 KB to 6 KB, ProjectContext removed, 50 files deleted); rules audit PASS, no gameplay code changed.
+55. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs and listed the doc-versus-code conflicts in docs/OWNER_QUESTIONS.md for the owner.
 
 ## What's next
-**Finish track enemies, then merge c3 UI and run the final server and UI harness with a rules audit.**
+**Rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**
 
-**Why this is next:** the owner asked for track enemies before c3, and the PR to main waits on a green c3.
+**Why this is next:** the owner approved c3 and the PR to main; merging into main depends on these checks passing on the code that now includes c3ui and track enemies.

@@ -21,7 +21,7 @@ local pick = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PickStarter
 local root = Instance.new("ScreenGui")
 root.Name = "StarterPick"
 root.ResetOnSpawn = false
-root.DisplayOrder = 50 -- above every panel: this comes first
+root.DisplayOrder = 19 -- above every panel and the roll view (14): this comes first; below LoserScreen (20)
 root.IgnoreGuiInset = true
 root.Enabled = false
 
