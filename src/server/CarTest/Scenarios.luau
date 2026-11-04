@@ -7410,8 +7410,9 @@ local SPAWN_FACING = 0.9 -- walk spawn look . direction to the pad centre (flat)
 local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor top while standing
 -- Anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4, owner 2026-10-28). Names are the test contract:
 --   SpawnArea.StartGate (Model, the torii) over SpawnArea.StartPad; stalls SpawnArea.ShopStall / Marketplace /
---   PotionsStall, SpawnArea.RebirthShrine, SpawnArea.IndexBoard, the sensei
+--   PotionsStall, SpawnArea.IndexBoard, the sensei
 --   SpawnArea.CheckpointNpc. Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
+--   No SpawnArea.RebirthShrine since 2026-11-04 (design doc 4.24 "Clear plaza"): Rebirth opens from its HUD tile.
 local SPAWN_PLAZA = {
 	STONE = {
 		[Enum.Material.Cobblestone] = true,
@@ -7426,11 +7427,13 @@ local SPAWN_PLAZA = {
 		[Enum.Material.Brick] = true,
 	},
 	GATE_MIN_HEIGHT = 16, -- studs: "a large torii-style gate" (test reading: about three avatars tall)
+	-- Spread in x of the row's reference points (WORLD_REDESIGN_SPEC 7): fronts share a line, but each point lies
+	-- somewhere inside its footprint, so they can differ by the deepest footprint, the Market's 14 (build_plaza MARKET_SIZE).
+	ROW_X_SPREAD = 14,
 	FEATURES = {
 		{ Name = "ShopStall", Prompt = "OpenShop" },
 		{ Name = "Marketplace", Prompt = "OpenMarket" }, -- the Market stall keeps MarketService's prompt
 		{ Name = "PotionsStall", Prompt = "OpenPotions" },
-		{ Name = "RebirthShrine", Prompt = "OpenRebirth" },
 		{ Name = "IndexBoard", Prompt = "OpenIndex" },
 		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
 	},
@@ -7752,6 +7755,40 @@ function Scenarios.spawn_area()
 		end
 	end
 	check(checks, "plaza_checkpoint_npc_is_sensei", sensei and 1 or 0, 1, sensei)
+
+	-- Clear plaza (design doc 4.24, owner 2026-11-04): no shrine, and one straight service row, south (low z) to north
+	local noShrine = area:FindFirstChild("RebirthShrine") == nil
+	check(checks, "plaza_no_rebirth_shrine", noShrine and 1 or 0, 1, noShrine)
+	local hubFrame = type(A.Base) == "function" and A.Base(base) or base
+	local rowOk, prevZ, minX, maxX = true, -math.huge, math.huge, -math.huge
+	for _, name in { "ShopStall", "PotionsStall", "Marketplace", "IndexBoard", "CheckpointNpc" } do
+		local model = area:FindFirstChild(name)
+		local at = model and model:IsA("Model") and model:GetPivot().Position
+		if name == "Marketplace" then
+			-- the Market model has no PrimaryPart, so its pivot says little: use the prompt's part
+			at = nil
+			for _, d in model and model:GetDescendants() or {} do
+				if d:IsA("ProximityPrompt") and d.Name == "OpenMarket" and d.Parent:IsA("BasePart") then
+					at = d.Parent.Position
+				end
+			end
+		end
+		if at then
+			local l = hubFrame:PointToObjectSpace(at)
+			rowOk = rowOk and l.Z > prevZ
+			prevZ, minX, maxX = l.Z, math.min(minX, l.X), math.max(maxX, l.X)
+		else
+			rowOk = false
+		end
+	end
+	local rowSpread = maxX - minX
+	check(
+		checks,
+		"plaza_service_row_straight",
+		rowSpread,
+		SPAWN_PLAZA.ROW_X_SPREAD,
+		rowOk and rowSpread <= SPAWN_PLAZA.ROW_X_SPREAD
+	)
 
 	-- SpawnArea.Bounds(start): world boxes of the plaza floor (Area) and the pad (Pad), Y = TOP_Y. Was compared with the
 	-- IVS constant rects; since 2026-10-30 (spec section 3, coordinates chosen by the world build) with the live parts.
