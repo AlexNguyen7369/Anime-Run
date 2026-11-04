@@ -9,6 +9,7 @@ local CharacterCatalog = require(Shared.CharacterCatalog)
 local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
+local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 -- Client/ArrivalFlow's reveal opens the popup by ArrivalRevealDone; if it never does, this many seconds after loading the
@@ -108,15 +109,23 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	card.Parent = row
 	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
 
-	local view = Instance.new("ViewportFrame")
+	-- The drawn portrait; with none yet, the live model (refill keeps it current).
+	local image = Components.PortraitImage(spec)
+	local view = Instance.new(image and "ImageLabel" or "ViewportFrame")
 	view.Name = "Art"
 	view.BackgroundTransparency = 1
 	view.Size = UDim2.fromScale(1, 0.68)
-	view.Ambient = Color3.fromRGB(175, 175, 185)
-	view.LightColor = Color3.new(1, 1, 1)
-	view.LightDirection = Vector3.new(-1, -2, -1)
+	if image then
+		view.Image = image
+		view.ImageColor3 = Color3.new(1, 1, 1)
+		view.ScaleType = Enum.ScaleType.Fit
+	else
+		view.Ambient = Color3.fromRGB(175, 175, 185)
+		view.LightColor = Color3.new(1, 1, 1)
+		view.LightDirection = Vector3.new(-1, -2, -1)
+		views[id] = view
+	end
 	view.Parent = card
-	views[id] = view
 
 	text(card, "CharacterName", spec.Name, 24, UDim2.fromScale(0.5, 0.68), 0.12)
 

@@ -341,7 +341,7 @@ before any Studio work.
 - No plaza Legend for this Series yet: the owner later capped Legends at 2 (4.24, `animerun-b3`, d3); whether Aizon replaces one is an open question.
 
 ### 4.31 Roll animation (owner 2026-11-04)
-- Every roll clearly shows the character actually rolled: its own model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
+- Every roll clearly shows the character actually rolled: its own portrait or model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
 - Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
 - Rolls show the character from the head to the upper torso, not the whole body (owner, same day), as its drawn portrait.
 - Every character gets a drawn digital portrait as part of being added to the game, stored with its assets and used for its roll, Index, Backpack, Team minibar and starter card (owner, same day; CHARACTER_GACHA_SPEC Digital art portrait).
