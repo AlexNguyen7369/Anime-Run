@@ -53,8 +53,9 @@
 49. 2026-11-03 — Alex Nguyen — Landed first-impression fi3 and fi4 plus a shorter load: first-join reveal, trail, Daily hold and gate burst, Dojo level-up effect, squad poses, stat lanterns and YOUR DOJO marker, with a fresh server opening at 40-44 s instead of 65-77 s (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS; gate burst, a real fresh save, phone and Reduced Motion not seen).
 50. 2026-11-03 — Alex Nguyen — Tested the first-join flow on real fresh test saves with a Studio-only `TestSaveKey`, and fixed what it found: the first roll card covering the hero reveal, SKIP overlapping a HUD button, the sweep ending away from the gate and the hero hidden behind the avatar; also kept test sessions off the leaderboards (data, world_layout, spawn_area, dojo, workshop pass=5 fail=0; rules audit PASS; phone and a second real account not tested).
 51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
+52. 2026-11-04 — Alex Nguyen — Replaced every track NPC with a biome-matched enemy: 9 new uploaded models, a name and arrow indicator that follows the enemy's head, npc and ui_billboards green, rules audit PASS.
 
 ## What's next
-**Run the c3 full compatibility check (full server harness, UI harness, rules audit) on feature/alex/anime-world and fix what it finds.**
+**Land c3ui, then rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**
 
-**Why this is next:** the owner approved the PR to main, which needs c3 green and a fresh review, and the Tracks 1-5 loading work (design doc 4.25) follows the PR.
+**Why this is next:** the owner approved c3 and the PR to main and asked for it to continue once track enemies landed; merging into main depends on these checks passing on the merged code.
