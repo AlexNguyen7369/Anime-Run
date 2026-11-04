@@ -121,6 +121,11 @@ UiScenarios.Names = {
 	"ui_roll_anim",
 	"ui_showcase",
 	"ui_loser",
+	-- Enemy showdown banners (design doc 4.28): its own fake events through UiTestSetup, after the loser screen's
+	"ui_showdown",
+	-- Defeated Enemies page (design doc 4.29): structure here; both tile kinds and times after defeated_states
+	-- (UiSpec.Progression.FixtureChecks)
+	"ui_defeated",
 	-- Racing part (win pads, NPC label) here; its hub pedestal part runs in the on_foot fixture run
 	-- (UiSpec.Progression.FixtureChecks: StreamingEnabled streams the hub out while the main run races)
 	"ui_billboards",
@@ -7023,6 +7028,28 @@ local access = require(script.Parent.UiAccessibility).Build({
 	animNum = animNum,
 })
 for name, fn in access.Scenarios do
+	S[name] = fn
+end
+
+-- Enemy showdown and Defeated Enemies (design doc 4.28, 4.29). No new local: the chunk is at the 200-local limit.
+for name, fn in
+	require(script.Parent.UiShowdown).Build({
+		check = check,
+		checkList = checkList,
+		stateMissing = stateMissing,
+		find = findPath,
+		visible = effectivelyVisible,
+		rect = realRect,
+		pathOf = pathOf,
+		swallows = swallows,
+		waitGuis = waitGuis,
+		setPanels = setPanels,
+		requestSetup = UiScenarios.RequestSetup,
+		player = player,
+		playerGui = playerGui,
+		tolerance = TOL,
+	}).Scenarios
+do
 	S[name] = fn
 end
 
