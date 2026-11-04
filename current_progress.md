@@ -77,8 +77,10 @@
 74. 2026-11-04 — Alex Nguyen — Landed /narito, /newplayer and the auto-roll spotlight tutorial on the owner's word with the black-box findings still open: data, admin and gacha pass, the tutorial's burst moved to UiFeedback cue AutoOn, UI harness not run.
 75. 2026-11-04 — Alex Nguyen — Fixed the camera dropping to the hidden avatar for the whole slot after a run's first tag-in by giving the drawn copy its own PrimaryPart; live run steady and ui_run_visual 37 checks pass, full harness not run.
 76. 2026-11-04 — Alex Nguyen — Built the universal run for every character without a RunStyle (design doc 4.34), made the run dust visible at speed, and rebased orch/run/universal onto the integration branch with ui_run_visual retargeted; seen live before the rebase, nothing run in Studio since.
+77. 2026-11-04 — Alex Nguyen — Ran the universal run on 86be288 in Studio on test save u5ui5: ui_camera_follows_runner and ui_runner_smooth pass, ui_run_visual red once on pos_no_pop for db_scholar then 37 of 37 on rerun, cause not found, full harness not run.
+78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 
 ## What's next
-**Run `ui_run_visual`, `ui_camera_follows_runner` and `ui_runner_smooth` on `orch/run/universal` in Studio, then merge it into `feature/alex/anime-world` and have the owner watch the run at full speed.**
+**Merge `orch/run/universal` into `feature/alex/anime-world`, then have the owner watch the run at full speed.**
 
-**Why this is next:** the ui-juice compat check did not cover this branch, its retargeted harness checks have not run, and the placeholder angles and dust can only be tuned once the owner has seen them moving.
+**Why this is next:** the targeted checks have run on the branch, and the placeholder angles and dust can only be tuned once the owner has seen them moving.
