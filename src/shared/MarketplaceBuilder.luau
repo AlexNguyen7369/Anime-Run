@@ -8,9 +8,7 @@ local MeshAssets = require(script.Parent.MarketplaceMeshAssets)
 
 local template = ReplicatedStorage:WaitForChild("SpawnMarketplace"):Clone()
 for _, mesh in template:GetDescendants() do
-	if mesh:IsA("MeshPart") and not mesh.Name:match("^Aura_") then
-		mesh:Destroy() -- the template still holds the removed courtyard: never load it
-	elseif mesh:IsA("MeshPart") then
+	if mesh:IsA("MeshPart") then
 		local assetId = MeshAssets[mesh.Name]
 		assert(assetId, "Missing marketplace mesh asset: " .. mesh.Name)
 		if mesh.MeshId ~= assetId or mesh.MeshSize.Magnitude == 0 then
