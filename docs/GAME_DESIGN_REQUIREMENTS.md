@@ -338,7 +338,7 @@ before any Studio work.
   Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
   owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
 - Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
-- No plaza Legend for this Series yet: the owner later capped Legends at 2 (4.24, `animerun-b3`, d3); whether Aizon replaces one is an open question.
+- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`): the 2 Legends stay `db_hero` and `mha_symbol` (4.24).
 
 ### 4.32 Villains are rollable (owner 2026-11-04)
 - The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
