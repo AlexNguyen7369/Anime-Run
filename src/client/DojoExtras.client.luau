@@ -9,8 +9,8 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
-local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local Workshop = require(Shared:WaitForChild("Workshop"))
 local WorkshopConfig = require(Shared:WaitForChild("WorkshopConfig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -248,47 +248,15 @@ local function showMarker()
 	anchor.Parent = Workspace.Terrain
 	anchor.WorldPosition = Vector3.new(home.X, MARKER_HEIGHT, home.Z)
 
-	local color = Color3.fromRGB(226, 84, 38)
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Label"
-	gui.Adornee = anchor
-	gui.Size = UDim2.fromOffset(190, 62)
-	gui.MaxDistance = MARKER_DISTANCE -- AlwaysOnTop stays off: these billboards do not draw with it
-	gui.LightInfluence = 0
-	gui.Parent = anchor
-
-	local pill = Instance.new("Frame")
-	pill.Size = UDim2.new(1, 0, 0, 44)
-	pill.BackgroundColor3 = color
-	pill.BorderSizePixel = 0
-	pill.Parent = gui
-	Instance.new("UICorner", pill).CornerRadius = UDim.new(0, 12)
-	local rim = Instance.new("UIStroke")
-	rim.Color = Color3.new(1, 1, 1)
-	rim.Thickness = 3
-	rim.Parent = pill
-
-	local text = Instance.new("TextLabel")
-	text.Size = UDim2.new(1, -12, 1, -6)
-	text.Position = UDim2.fromOffset(6, 3)
-	text.BackgroundTransparency = 1
-	text.Font = UiTheme.Font
-	text.Text = "YOUR DOJO"
-	text.TextColor3 = Color3.new(1, 1, 1)
-	text.TextScaled = true
-	UiTheme.Stroke(text, 2)
-	text.Parent = pill
-
-	local arrow = Instance.new("TextLabel")
-	arrow.Size = UDim2.new(1, 0, 0, 18)
-	arrow.Position = UDim2.fromOffset(0, 44)
-	arrow.BackgroundTransparency = 1
-	arrow.Font = UiTheme.Font
-	arrow.Text = "▼"
-	arrow.TextColor3 = color
-	arrow.TextScaled = true
-	UiTheme.Stroke(arrow, 2)
-	arrow.Parent = gui
+	PlazaHeader.Build(
+		anchor,
+		"Label",
+		"YOUR DOJO",
+		"Gem",
+		Color3.fromRGB(226, 84, 38),
+		UDim2.fromOffset(240, 100),
+		MARKER_DISTANCE
+	)
 
 	-- Gone for good on arrival or at the first run's start, which also covers hidden while racing.
 	while player:GetAttribute("AutoRacing") ~= true do
