@@ -1,13 +1,16 @@
 # Board
 
 ## Doing
+- roll-anim r4: upload 36 drawn portraits, show them in the roll, Index, Backpack, Team minibar and starter card
 - c3 full compatibility check: paused by the owner 2026-11-04 until NPC additions land; then rerun full server + UI harness to fail=0, rules audit
 
 ## Next
+- Make the remaining track villains rollable characters (owner)
 - PR feature/alex/anime-world -> main with a fresh reviewer (owner approved)
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-04 roll-anim r1-r3 Roll animation (147f02d): `roll_anim`, `hud`, `gacha`, `scrap` pass=4 fail=0; `ui_roll_anim`, `ui_roll_emphasized`, `ui_toast`, `ui_hitboxes`, `ui_buttons`, `ui_hud`, `ui_reduced_motion` fail=0; `ui_layout` 962 checks fail=2 (Index EnemiesTab, BUGS); rules audit PASS
 - 2026-11-04 c6, c7, s1, s2 (c91c1d4): enemy banners, Defeated Enemies page, Bleech series: ui_showdown 10, ui_defeated 5, catalog 20, gacha 278 all fail=0, audit PASS
 - 2026-11-04 declutter d1, d2 Clear spawn plaza (68e565a): spawn_area, world_layout, dojo, workshop pass=4 fail=0, rules audit PASS
 - 2026-11-04 c5 Screen-edge pointer for the track enemy (8691b0e): `ui_billboards` 21 checks fail=0, rules audit PASS

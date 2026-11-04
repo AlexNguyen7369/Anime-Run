@@ -61,8 +61,9 @@
 57. 2026-11-04 — Alex Nguyen — Decluttered the spawn plaza into a straight service row with a one-stall Market, plain path and clear Dojo views, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 58. 2026-11-04 — Alex Nguyen — Merged emblem floating headers (fi6) locally for the owner to view in Play, stylua clean, selene 0 errors, Studio shots, spawn_area and ui_billboards scenarios and rules audit still pending.
 59. 2026-11-04 — Alex Nguyen — Added enemy showdown banners, a Defeated Enemies Index page and the 6-character Bleech series with 5 new models; targeted scenarios green and rules audit PASS.
+60. 2026-11-04 — Alex Nguyen — Reworked the roll animation to show the rolled character in a 16-slot in-place cycle at the top centre, with reference-style emphasized rolls, an Auto toggle beside Daily and Quests above Shop; roll, HUD and layout scenarios green except 2 Index EnemiesTab phone overlaps from the earlier merge, rules audit PASS.
 
 ## What's next
-**Make the remaining track villains rollable characters under the character design method, on the same design rules as the player cast.**
+**Upload the 36 drawn character portraits and show them in the roll animation, Index, Backpack, Team minibar and starter card.**
 
-**Why this is next:** the owner asked for it after the series landed, and c3 and the PR to main restart once every requested feature is merged.
+**Why this is next:** the owner approved the art and made a portrait a required part of every character, so villain characters, c3 and the PR to main should build on it.

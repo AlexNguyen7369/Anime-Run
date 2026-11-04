@@ -107,6 +107,7 @@ Deliverables:
 - r1 | Rules written in the design doc and the roll spec | rules audit PASS
 - r2 | Result shows the real model, same framing and light from cycle to landing, in-place cycling, larger normal roll | `ui_roll_anim`, `ui_roll_emphasized` and the server roll scenario green; stylua / selene clean; rules audit PASS
 - r3 | Emphasized look: big figure, gradient odds, outlined name, rarity crystal (our own art) | Studio captures of each phase look right; owner visual review
+- r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index, Backpack, Team minibar and starter card | every rollable id in `CharacterPortraits`; roll and Index scenarios green; Studio capture; rules audit PASS
 Out of scope: odds, economy, new dependencies.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
