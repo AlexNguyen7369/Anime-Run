@@ -782,6 +782,27 @@ function Contracts.Build(h)
 		end
 	end
 
+	-- Design doc 4.21: the popup offers exactly the 3 starters, opens only for a player who has to pick, and sits inside
+	-- every viewport. Structure only: a pick would spend the save's one choice (CarTest Phase2Tests covers the server).
+	function scenarios.ui_starter_pick(res)
+		local gui = required(res, "StarterPick", "ScreenGui")
+		local cards = required(res, "StarterPick/Dim/Panel/Cards", "Frame")
+		if not (gui and cards) then
+			return
+		end
+		local needs = h.player:GetAttribute("NeedsStarter") == true
+		local revealed = h.player:GetAttribute("ArrivalRevealDone") == true
+		check(res, "starter_popup_only_when_needed", gui.Enabled, needs and revealed)
+		for _, id in Catalog.STARTER_PICKS do
+			local card = cards:FindFirstChild(id)
+			local name = card and card:FindFirstChild("CharacterName")
+			local choose = card and card:FindFirstChild("Choose")
+			check(res, "starter_name_" .. id, name and name.Text, Catalog.Get(id).Name)
+			check(res, "starter_choose_" .. id, choose and choose:IsA("GuiButton"), true)
+		end
+		check(res, "starter_card_count", #cards:GetChildren() - 1, #Catalog.STARTER_PICKS)
+	end
+
 	function scenarios.ui_backpack_characters(res)
 		local restore = h.setPanels({ B.Panel })
 		h.frames(2)

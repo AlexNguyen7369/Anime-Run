@@ -263,6 +263,22 @@ UiSpec.Guis = {
 	-- panel is open it is hidden (UiSpec.HiddenWhilePanelOpen, owner decision 2026-10-08). It is a button only while
 	-- shown (Visible = false at rest: no invisible hitbox; shown at rest only while AutoRoll is false, with "AUTO OFF").
 	-- Text is "": its parts draw it.
+	-- Starter choice popup (design doc 4.21, 4.24): Enabled only for a new player. A save with rolls never sees it, so
+	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and CarTest Phase2Tests starter_pick_*.
+	StarterPick = {
+		Source = "Client/StarterPick",
+		Overlay = true,
+		Buttons = {
+			{
+				Path = "Dim/Panel/Cards/*/Choose",
+				Does = "remote",
+				Remote = "PickStarter",
+				Count = "starter_picks",
+				ClickCoverage = "ui_starter_pick",
+				Text = "CHOOSE",
+			},
+		},
+	},
 	RollToast = {
 		Source = "Client/RollToast",
 		AlwaysOn = { "Toast" },
@@ -729,9 +745,9 @@ UiSpec.Market = {
 	Back = "MarketUi/Backdrop/Panel/Detail/Back",
 	BackText = "BACK",
 	-- Client/MarketUi fitTabs: a UIScale "Scale" in each side tab (not on the rail), fitted to the rail's height.
-	-- Mirrored so the layout solver models it at every viewport (UiScenarios marketTabScale). PhoneMin: Market only, on
-	-- phones (height <= PhoneMaxHeight) the tabs may shrink to it so every tab stays inside the rail (6365809, section 6
-	-- no overlap; Backpack keeps Min).
+	-- Mirrored so the layout solver models it at every viewport (UiScenarios marketTabScale). PhoneMin: Market and
+	-- Backpack, on phones (height <= PhoneMaxHeight) the tabs may shrink to it so every tab stays inside the rail
+	-- (6365809, section 6 no overlap).
 	TabFit = { ScaleName = "Scale", RailWidth = 96, TabSize = 96, Gap = 10, Min = 0.4, PhoneMin = 0.1, Max = 1 },
 }
 
@@ -785,14 +801,23 @@ UiSpec.HudPair = {
 	IconMid = 36 / 94,
 	Tol = 2,
 	Stacked = {
+		-- 844x390 is <= StackMaxHeight, so it stacks like 667x375 (it was listed in Beside against this table's own rule).
+		{
+			Viewport = "phone_landscape",
+			Items = { x0 = 273, x1 = 316, y0 = 228, y1 = 276 },
+			Upgrade = { x0 = 528, x1 = 571, y0 = 228, y1 = 276 },
+		},
+		-- Upgrade x was outside the Speed read-out (482..525); Speed is retired (design doc 4.13, owner 2026-11-01), so
+		-- it sits StackGap outside the bars.
 		{
 			Viewport = "phone_small_landscape",
 			Items = { x0 = 187, x1 = 229, y0 = 217, y1 = 264 },
-			Upgrade = { x0 = 482, x1 = 525, y0 = 217, y1 = 264 },
+			Upgrade = { x0 = 435, x1 = 478, y0 = 217, y1 = 264 },
 		},
 	},
-	Beside = { "phone_landscape", "hd_720p" },
-	Desktop = { "desktop_1080p", "laptop_768p", "hd_720p", "tablet_4x3" },
+	Beside = { "hd_720p", "tablet_4x3" },
+	-- tablet_4x3 is not here: phone and tablet shrink the pair until it clears Money, desktop never (owner 2026-10-28)
+	Desktop = { "desktop_1080p", "laptop_768p", "hd_720p" },
 }
 
 -- CLAUDE.md: panels open BELOW the Race (Auto Race) button and end ABOVE the bottom TURBO LUCK bar. The progression
@@ -821,11 +846,16 @@ UiSpec.RacerPanelBand = {
 -- Elements that are intentionally HIDDEN while a pop-up panel is open (for example,
 -- the old daily/market controls): they are left out of the overlap lists in that
 -- state, and ui_panels proves they really are hidden (Visible false) then.
--- When = "any": any PanelSwitch panel open; "other_than:<panel>": any panel but that one.
+-- When = "any": any PanelSwitch panel open; "other_than:<panel>": any panel but that one; "stacked": any panel open at
+-- a viewport where the Items / Upgrade pair stacks.
 UiSpec.HiddenWhilePanelOpen = {
 	["DailyBoosts/Status"] = "any",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the compact roll hides under every panel
 	["RollToast/Toast"] = "any",
+	-- Stacked Items / Upgrade (height <= UiSpec.HudPair.StackMaxHeight) sit where an open panel goes: Client/HudChrome
+	-- hides them there while any panel is open. "stacked" holds at those viewports only.
+	["HudChrome/ItemsSlot/Items"] = "stacked",
+	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
@@ -1090,6 +1120,13 @@ UiSpec.Remotes =
 
 -- Created by Roblox, not the game: an explicit list of engine ScreenGui names (never a pattern or wildcard).
 -- ProximityPrompts: the engine's default ProximityPrompt UI (the workshop E prompt), created on first prompt shown.
+-- Game ScreenGuis that exist only for a moment, so gui_exists_* cannot ask for them: Client/first LoadingScreen (every
+-- join, gone once loaded; ui_inventory proves it left) and Client/ArrivalFlow's skip button for the first-join reveal.
+-- Parts of a panel a phone does not show when it opens (K.phoneHidden in UiScenarios). The phone Market detail view
+-- (its own layout, after a tap) is not solved here: it needs a real phone-height view (Prepare.PhoneOnly clicks).
+UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
+UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true }
+
 UiSpec.IgnoreGuis = {
 	Freecam = true,
 	BubbleChat = true,
@@ -1128,6 +1165,7 @@ UiSpec.Billboards = {
 -- Seconds to wait for live events the checks need.
 UiSpec.Waits = {
 	GuiAppear = 15, -- each ScreenGui must exist in PlayerGui within this
+	LoadingScreen = 95, -- s: LoadingScreen must be gone by then (its own safety limit is 90 s, design doc 4.24)
 	HudSettle = 2.5, -- HUD counters must reach the server value within this
 	-- s: a panel's open motion (scale 0.92 -> 1 or a 12 px slide, 0.2 s) and its tile cascade (about 0.55 s) have
 	-- settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)

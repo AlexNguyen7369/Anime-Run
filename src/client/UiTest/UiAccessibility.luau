@@ -47,6 +47,9 @@ function Access.Build(h)
 	-- the result must land, and the reveal (Hold) must come at the normal time (section 7: "The outcome, timing of
 	-- the result reveal and all server values are unchanged").
 	local function reducedReelChecks(res)
+		-- The compact roll hides under every panel (owner 2026-10-28), and the Daily panel opens by itself on a save with
+		-- an unclaimed reward: with no panel open the roll has to be on screen.
+		h.setPanels({})
 		local events = h.events
 		local before = #events.rolls
 		local deadline = os.clock() + cfg.RollWait

@@ -36,6 +36,7 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local A = RollAnimConfig
+local COMPACT_SETTLE = 0.04 -- s the compact card takes back from LAND_POP
 local SHOWCASE_ORDER = 14 -- above the HUD and DuelUi (12), below the loser screen (20)
 local BLUR_SIZE = 14
 local AUTO_BUTTON_SIZE = Vector2.new(180, 44)
@@ -1127,7 +1128,8 @@ local function play(roll)
 		local tile = tiles[b][#reelIds]
 		tween(tile, A.LAND, { Position = UDim2.fromScale(0.5, 0.5), Rotation = 0 }, Enum.EasingStyle.Back)
 	end
-	if not after(A.LAND) then
+	-- The compact card settles before Hold, inside LAND: the reveal keeps its time (POP + SPIN + LAND).
+	if not after(A.LAND - COMPACT_SETTLE) then
 		return
 	end
 	-- Reveal only after the winning sprite reaches the centre. Previously fillResult
@@ -1139,7 +1141,7 @@ local function play(roll)
 		local settleTime = b.Full and math.min(A.Hold(spec.Rarity), 0.22) or 0.03
 		tween(b.Body, settleTime, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Back)
 		if not b.Full then
-			task.wait(0.04)
+			task.wait(COMPACT_SETTLE)
 			b.Body.Size = UDim2.fromScale(1, 1)
 		end
 		landEffects(b, roll, mySerial)
