@@ -71,7 +71,7 @@ Nothing car-shaped stays in the game:
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Service row** (owner 2026-11-04): Shop, Potions, Market and Index in one straight row (section 7; same panels and remotes as now).
-- **Index board** (scroll wall), **leaderboard banners**, and the checkpoint NPC as a **sensei**
+- **Index board** (scroll wall) and the checkpoint NPC as a **sensei**
   (same `CheckpointService` rules).
 - Look: a few lanterns, one cherry tree, stone paving, wooden roofs; no logos or real names (design doc section 5).
 

@@ -77,13 +77,13 @@ Out of scope: Market rebuild, phone performance testing (owner's device), c3 (ow
 
 ## declutter: Clear spawn plaza (owner 2026-11-04)
 Status: active
-Owner-confirmed: 2026-11-04 ("declutter spawnlocation"; layout, Market sign, sky loop kept and trim level chosen by the owner; deliverables proposed by the orchestrator, owner confirms at the d1 review)
+Owner-confirmed: 2026-11-04 ("declutter spawnlocation"; layout, Market sign, sky loop kept and trim level chosen by the owner; d1 draft and deliverables approved by the owner 2026-11-04)
 Branch: feature/alex/anime-world
 Spec: design doc 4.24 Clear plaza, WORLD_REDESIGN_SPEC 4 and 7
 Deliverables:
 - d1 | Rules written; Blender draft of the cleared plaza | renders from spawn and above; owner approves
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
-Out of scope: Market panel, Aura stall mesh, Dojo meshes, gameplay numbers, sky loop.
+Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner) and the Aura stall kept (its stray checker block removed, owner).
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
