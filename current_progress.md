@@ -57,6 +57,7 @@
 53. 2026-11-04 — Alex Nguyen — Landed c3ui with owner rulings as design doc 4.27: phone and tablet HUD fixes, StarterPick in the UI spec, reduced-motion and hitbox test fixes, and rules audit PASS.
 54. 2026-11-04 — Alex Nguyen — Landed the trim of stale docs and unused assets (handoff 52 KB to 6 KB, ProjectContext removed, 50 files deleted); rules audit PASS, no gameplay code changed.
 55. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs and listed the doc-versus-code conflicts in docs/OWNER_QUESTIONS.md for the owner.
+56. 2026-11-04 — Alex Nguyen — Added a screen-edge pointer that shows the enemy's name and an arrow aimed at it while it is off screen, ui_billboards green, rules audit PASS.
 
 ## What's next
 **Rerun the full server and UI harnesses on the merged feature/alex/anime-world to fail=0, run the rules audit, and open the PR to main.**

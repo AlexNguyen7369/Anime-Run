@@ -8,6 +8,12 @@ History: `current_progress.md`, `git log`.
 - c3ui and track enemies (c5) landed. Enemies: design doc 4.26, NPC_RIVAL_SPEC, cast in `NpcConfig.Tracks`, 9 `foe_*` models under the owner's account (not catalog ids, not rollable), Track 10 `db_tyrant`, client `NpcIndicator`. Phone and tablet HUD rulings: design doc 4.27.
 - Last results before those merges: `[CARTEST] END pass=49 fail=1` on 8e30668 (`vehicle-effects-drive-intermittent`, BUGS; passes 6 of 6 alone); `[UITEST] END pass=40 fail=0` (40 scenarios, 3238 checks; a confirmation run stopped after 18 of 40 with no failures). `npc` 117 checks and `ui_billboards` 12 checks fail=0.
 
+## c3 paused (owner 2026-11-04)
+- Paused for NPC additions and the spawn rework (`declutter`, animerun-b3). Resume after those land.
+- Server on fd0f198, stopped partway: `runner_normal_publishes_distance` 19.445 vs 2, `drive_chassis_moved` and `drive_trail_laid` 14.09 vs 36.00. Measured cause of the drive reds: Heartbeat dt summed to 3.0 s while `os.clock` moved 0.586 s and the rail was exact. Publish red is inferred to be the same family.
+- On `orch/core/c3t`, unmerged: `ui_run_visual` (owner: animated runs with aura and trails; not run) d8f0e3d, and a test clock fix in progress. Worktree `../AnimeRun-orch/c3t`.
+- On resume: merge c3t; full server harness; full UI harness with captures; rules audit; PR to main. The earlier server and UI results no longer count.
+
 ## Next
 1. Rerun full server + UI harness on the merged branch to fail=0, rules audit. 2. PR to main with a fresh reviewer. 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity (spec + code, after the PR).
 
@@ -41,3 +47,4 @@ History: `current_progress.md`, `git log`.
 - `assets/characters_avatar/*/atlas.svg` is rewritten by `tools/blender/paint/atlas.py`.
 - Reference images stay outside the repo: `../AnimeRun-orch/art-backup/anime_refs` (look-only, `owner_target.png`); older model passes in `art-backup/`. Anima setup for the owner to run: `art-backup/anima/`.
 - `git push` of many binaries failed once with "inflate returned -5"; a retry later worked.
+- 2026-11-04 LANDED screen-edge pointer (merge 8691b0e on feature/alex/anime-world, pushed; owner, design doc 4.26 replaces "not clamped"). `Pointer` frame in `NpcIndicator`, placed on a margin rectangle (placeholders: 150 x 84, Side 175, Top 60, Bottom 175), arrow aimed from camera space, `UiMotion.Pop` on swap. `ui_billboards` pass 21 checks fail=0, rules audit PASS, stylua clean, selene 0 errors. Seen once in normal play at 1271 x 601; phone not looked at. Near the screen edge the head counts as on screen while the indicator can clip. Next: c3 session runs server reruns and full UI harness, audit, PR to main.

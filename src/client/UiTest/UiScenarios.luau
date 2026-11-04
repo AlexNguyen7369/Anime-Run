@@ -5889,8 +5889,10 @@ function S.ui_billboards(res)
 	local indicatorGui = playerGui:FindFirstChild("NpcIndicator")
 	local indicatorSpec = UiSpec.Guis.NpcIndicator
 	local frame = indicatorGui and indicatorGui:FindFirstChild(indicatorSpec.Frame)
+	local pointer = indicatorGui and indicatorGui:FindFirstChild(indicatorSpec.Pointer)
 	if #list == 0 then
-		check(res, "npc_indicator_hidden_without_enemy", frame and frame.Visible, false, not (frame and frame.Visible))
+		local shown = (frame and frame.Visible) or (pointer and pointer.Visible)
+		check(res, "npc_indicator_hidden_without_enemy", shown, false, not shown)
 		stateMissing(res, "npc_on_track", "auto_racing", "no IsNpc model in " .. UiSpec.Waits.NpcStart .. " s")
 		return
 	end
@@ -5937,71 +5939,263 @@ function S.ui_billboards(res)
 		"TextLabel with text",
 		arrow ~= nil and arrow:IsA("TextLabel") and arrow.Text ~= ""
 	)
-	-- the indicator is the name over the arrow, nothing else (design doc 4.26)
-	local extras = {}
-	for _, child in frame:GetChildren() do
-		if child:IsA("GuiObject") and child ~= text and child ~= arrow then
-			table.insert(extras, child.Name)
+	-- the indicator and the pointer are each the name over the arrow, nothing else (design doc 4.26)
+	local function extrasIn(parent, name, arrowLabel)
+		local extras = {}
+		for _, child in parent:GetChildren() do
+			if child:IsA("GuiObject") and child ~= name and child ~= arrowLabel then
+				table.insert(extras, child.Name)
+			end
 		end
+		return extras
 	end
-	checkList(res, "npc_label_only_name_and_arrow", extras)
-	check(res, "npc_label_not_clickable", frame.Active, false, not frame.Active and #buttonsIn(frame) == 0)
+	checkList(res, "npc_label_only_name_and_arrow", extrasIn(frame, text, arrow))
+	local clickable = frame.Active
+		or #buttonsIn(frame) > 0
+		or pointer == nil
+		or pointer.Active
+		or #buttonsIn(pointer) > 0
+	check(res, "npc_label_not_clickable", clickable, false, not clickable)
 	-- Position's offset is the arrow tip in viewport pixels (AnchorPoint 0.5,1, ScreenInsets None). Not realRect: its
 	-- top bar inset does not match this gui (Studio: 62 px off with the arrow on the head).
+	local pointerText = pointer and pointer:FindFirstChild(indicatorSpec.Label)
+	local pointerArrow = pointer and pointer:FindFirstChild(indicatorSpec.Arrow)
+	local pointerOk = pointer ~= nil
+		and pointer:IsA("Frame")
+		and pointer.AnchorPoint == Vector2.new(0.5, 0.5)
+		and pointerText ~= nil
+		and pointerText:IsA("TextLabel")
+		and pointerArrow ~= nil
+		and pointerArrow:IsA("TextLabel")
+	check(res, "npc_pointer_frame", pointer and pointer.ClassName, "Frame, AnchorPoint 0.5,0.5, Text, Arrow", pointerOk)
+	if not pointerOk then
+		return
+	end
+	checkList(res, "npc_pointer_only_name_and_arrow", extrasIn(pointer, pointerText, pointerArrow))
 	local camera, head = Workspace.CurrentCamera, npc:FindFirstChild("Head") or npc.PrimaryPart
 	local errors, wrongVisible = {}, 0
-	-- Sampled until the head has been in front of the camera often enough; it is behind while the player leads.
-	-- Read just after NpcRacerView's render step (Last): between frames the camera has moved on (Studio: 63 px, not 0.8).
+	local farErrors, inFrontSamples, behindSamples = {}, 0, 0
+	local tipMin, tipMax = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
+	local offScreenSamples, pointerTextBad, pointerOutside, offMargin, worstAim = 0, 0, 0, 0, 0
+	-- One run measures every state with a Scriptable camera: the head swept across the screen near and far, in front
+	-- of the camera but outside its view, and behind it. Read just after
+	-- NpcRacerView's render step (Last): between frames the camera has moved on (Studio: 63 px, not 0.8).
+	local saved = {
+		CameraType = camera.CameraType,
+		CameraSubject = camera.CameraSubject,
+		CFrame = camera.CFrame,
+		Focus = camera.Focus,
+	}
+	local phase, phaseUntil = "OnScreen", os.clock() + indicatorSpec.FrontWait
 	local finished, sampleError = false, nil
+	local sweepFrame = 0
+	local function startPhase(name)
+		phase, phaseUntil = name, os.clock() + indicatorSpec.FrontWait
+	end
+	local function aimCamera()
+		if not (head and head.Parent) then
+			return
+		end
+		local tanV = math.tan(math.rad(camera.FieldOfView / 2))
+		local tanH = tanV * camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
+		local away = indicatorSpec.CameraOffset
+		if phase == "OnScreen" then
+			-- Sweeps the head over the screen, so an indicator that stopped updating leaves it. Counted in frames, not
+			-- samples: a position that puts the head off screen must not stop the sweep.
+			sweepFrame += 1
+			local i = sweepFrame
+			local distances = indicatorSpec.CameraDistances
+			away = away.Unit * distances[math.floor(i * #distances / indicatorSpec.Samples) % #distances + 1]
+			local atEnemy = CFrame.lookAt(head.Position + away, head.Position)
+			local yaw = math.atan(indicatorSpec.SweepX * math.sin(i * 0.7) * tanH)
+			local pitch = math.atan(indicatorSpec.SweepY * math.cos(i * 1.1) * tanV)
+			camera.CFrame = atEnemy * CFrame.Angles(pitch, yaw, 0)
+			return
+		end
+		local atEnemy = CFrame.lookAt(head.Position + away, head.Position)
+		-- Rolled, so the pointer aims in every direction
+		if phase == "InFront" then
+			-- Past the view's corner, still under 90 degrees: in front of the camera and outside it in any direction
+			local turn = math.atan(indicatorSpec.OutsideView * math.sqrt(tanH * tanH + tanV * tanV))
+			camera.CFrame = atEnemy * CFrame.Angles(0, turn, inFrontSamples * 0.7)
+		else
+			local turn = math.rad(120 + (behindSamples % indicatorSpec.Samples) * 120 / indicatorSpec.Samples)
+			camera.CFrame = atEnemy * CFrame.Angles(0, turn, turn * 2)
+		end
+	end
+	local function samplePointer(top)
+		offScreenSamples += 1
+		if camera.CFrame:PointToObjectSpace(top).Z < 0 then
+			inFrontSamples += 1
+		else
+			behindSamples += 1
+		end
+		if pointerText.Text ~= want or pointerArrow.Text == "" then
+			pointerTextBad += 1
+		end
+		-- Position and Size offsets, not Absolute values: the frame's pop scale must not count
+		local viewSize, size = camera.ViewportSize, pointer.Size
+		local x, y = pointer.Position.X.Offset, pointer.Position.Y.Offset
+		local halfW, halfH = size.X.Offset / 2, size.Y.Offset / 2
+		if x - halfW < 0 or x + halfW > viewSize.X or y - halfH < 0 or y + halfH > viewSize.Y then
+			pointerOutside += 1
+		end
+		-- Signed distance from the margin rectangle's edge: its centre must lie on that edge
+		local margin = indicatorSpec.PointerMargin
+		local fromEdge =
+			math.max(margin.Side - x, x - (viewSize.X - margin.Side), margin.Top - y, y - (viewSize.Y - margin.Bottom))
+		if math.abs(fromEdge) > margin.Tolerance then
+			offMargin += 1
+		end
+		local relative = camera.CFrame:PointToObjectSpace(top)
+		local direction = Vector2.new(relative.X, -relative.Y)
+		if direction.Magnitude > 0.01 then
+			local wantRotation = math.deg(math.atan2(direction.Y, direction.X)) - 90
+			worstAim = math.max(worstAim, math.abs((pointerArrow.Rotation - wantRotation + 180) % 360 - 180))
+		end
+	end
 	local function sampleIndicator()
-		if #errors >= indicatorSpec.Samples or not (head and head.Parent and npc.Parent) then
+		if not (head and head.Parent and npc.Parent) then
 			finished = true
 			return
 		end
 		local top = head.Position + Vector3.new(0, head.Size.Y / 2 + indicatorSpec.GapStuds, 0)
+		local viewSize = camera.ViewportSize
 		local point = camera:WorldToViewportPoint(top)
-		if frame.Visible ~= (point.Z > 0) then
+		local onScreen = point.Z > 0
+			and point.X >= 0
+			and point.X <= viewSize.X
+			and point.Y >= 0
+			and point.Y <= viewSize.Y
+		if frame.Visible ~= onScreen or pointer.Visible == onScreen then
 			wrongVisible += 1
 		end
-		if point.Z > 0 then
+		if onScreen then
 			local tip = Vector2.new(frame.Position.X.Offset, frame.Position.Y.Offset)
-			table.insert(errors, (tip - Vector2.new(point.X, point.Y)).Magnitude)
+			local tipError = (tip - Vector2.new(point.X, point.Y)).Magnitude
+			table.insert(errors, tipError)
+			tipMin, tipMax = tipMin:Min(tip), tipMax:Max(tip)
+			if (camera.CFrame.Position - top).Magnitude >= indicatorSpec.FarDistance then
+				table.insert(farErrors, tipError)
+			end
+		elseif pointer.Visible then
+			samplePointer(top)
+		end
+		local farWanted = math.ceil(indicatorSpec.Samples / #indicatorSpec.CameraDistances)
+		if phase == "OnScreen" and #errors >= indicatorSpec.Samples and #farErrors >= farWanted then
+			startPhase("InFront")
+		elseif phase == "InFront" and inFrontSamples >= indicatorSpec.Samples then
+			startPhase("Behind")
+		elseif phase == "Behind" and behindSamples >= indicatorSpec.Samples then
+			finished = true
 		end
 	end
-	RunService:BindToRenderStep(indicatorSpec.SampleStep, Enum.RenderPriority.Last.Value + 1, function()
-		if finished then
-			return
+	local function guarded(step)
+		return function()
+			if finished then
+				return
+			end
+			local ok, err = pcall(step)
+			if not ok then
+				finished, sampleError = true, err
+			end
 		end
-		local ok, err = pcall(sampleIndicator)
-		if not ok then
-			finished, sampleError = true, err
+	end
+	camera.CameraType = Enum.CameraType.Scriptable
+	RunService:BindToRenderStep(indicatorSpec.CameraStep, Enum.RenderPriority.Camera.Value + 1, guarded(aimCamera))
+	RunService:BindToRenderStep(indicatorSpec.SampleStep, Enum.RenderPriority.Last.Value + 1, guarded(sampleIndicator))
+	while not finished do
+		if os.clock() >= phaseUntil then
+			if phase == "Behind" then
+				break
+			end
+			startPhase(phase == "OnScreen" and "InFront" or "Behind")
 		end
-	end)
-	local sampleUntil = os.clock() + indicatorSpec.FrontWait
-	while not finished and os.clock() < sampleUntil do
 		task.wait()
 	end
+	RunService:UnbindFromRenderStep(indicatorSpec.CameraStep)
 	RunService:UnbindFromRenderStep(indicatorSpec.SampleStep)
+	camera.CameraType = saved.CameraType
+	camera.CameraSubject = saved.CameraSubject
+	camera.CFrame = saved.CFrame
+	camera.Focus = saved.Focus
 	if sampleError then
 		error(sampleError)
 	end
-	if #errors == 0 then
-		local why = "head not in front of the camera in " .. indicatorSpec.FrontWait .. " s"
-		stateMissing(res, "npc_indicator_visible_only_in_front", "auto_racing", why)
-		stateMissing(res, "npc_indicator_follows_head", "auto_racing", why)
-		return
+	if #errors == 0 and offScreenSamples == 0 then
+		stateMissing(
+			res,
+			"npc_indicator_visible_only_in_front",
+			"auto_racing",
+			"no sample before the enemy left or FrontWait"
+		)
+	else
+		-- One sample may lag when the head crosses the camera plane
+		check(res, "npc_indicator_visible_only_in_front", wrongVisible, "<= 1", wrongVisible <= 1)
 	end
-	-- One sample may lag when the head crosses the camera plane
-	check(res, "npc_indicator_visible_only_in_front", wrongVisible, "<= 1", wrongVisible <= 1)
-	table.sort(errors)
-	local median = errors[math.ceil(#errors / 2)]
-	check(
-		res,
-		"npc_indicator_follows_head",
-		median,
-		("<= %d px"):format(indicatorSpec.PositionTolerance),
-		median <= indicatorSpec.PositionTolerance
-	)
+	if #errors == 0 then
+		stateMissing(res, "npc_indicator_follows_head", "auto_racing", "head never on screen")
+		stateMissing(res, "npc_indicator_follows_head_spread", "auto_racing", "head never on screen")
+	else
+		table.sort(errors)
+		local median = errors[math.ceil(#errors / 2)]
+		check(
+			res,
+			"npc_indicator_follows_head",
+			median,
+			("<= %d px"):format(indicatorSpec.PositionTolerance),
+			median <= indicatorSpec.PositionTolerance
+		)
+		-- The frame itself moved across the screen: a frozen indicator cannot pass on a head held still
+		local spread = math.max(tipMax.X - tipMin.X, tipMax.Y - tipMin.Y)
+		check(
+			res,
+			"npc_indicator_follows_head_spread",
+			spread,
+			(">= %d px"):format(indicatorSpec.MinSpread),
+			spread >= indicatorSpec.MinSpread
+		)
+	end
+	if #farErrors == 0 then
+		stateMissing(res, "npc_indicator_no_distance_limit", "auto_racing", "head never on screen from far away")
+	else
+		table.sort(farErrors)
+		local farMedian = farErrors[math.ceil(#farErrors / 2)]
+		check(
+			res,
+			"npc_indicator_no_distance_limit",
+			farMedian,
+			("<= %d px from %d studs"):format(indicatorSpec.PositionTolerance, indicatorSpec.FarDistance),
+			farMedian <= indicatorSpec.PositionTolerance
+		)
+	end
+	if inFrontSamples == 0 then
+		stateMissing(res, "npc_pointer_head_in_front_outside_view", "auto_racing", "no such sample")
+	else
+		check(res, "npc_pointer_head_in_front_outside_view", inFrontSamples, ">= 1", true)
+	end
+	if behindSamples == 0 then
+		stateMissing(res, "npc_pointer_head_behind_camera", "auto_racing", "no such sample")
+	else
+		check(res, "npc_pointer_head_behind_camera", behindSamples, ">= 1", true)
+	end
+	if offScreenSamples == 0 then
+		local why = "head never off screen"
+		stateMissing(res, "npc_pointer_text", "auto_racing", why)
+		stateMissing(res, "npc_pointer_on_screen", "auto_racing", why)
+		stateMissing(res, "npc_pointer_aims_at_enemy", "auto_racing", why)
+	else
+		check(res, "npc_pointer_text", pointerTextBad, 0, pointerTextBad == 0)
+		local outside = pointerOutside + offMargin
+		check(res, "npc_pointer_on_screen", outside, "0 outside the viewport or off the margin rectangle", outside == 0)
+		check(
+			res,
+			"npc_pointer_aims_at_enemy",
+			worstAim,
+			("<= %d deg"):format(indicatorSpec.AimTolerance),
+			worstAim <= indicatorSpec.AimTolerance
+		)
+	end
 end
 
 -- The two panels are mutually exclusive through the real mechanism the buttons use (Client/PanelSwitch).
