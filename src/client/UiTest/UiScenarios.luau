@@ -1525,6 +1525,11 @@ function UiScenarios.Init()
 					end
 					table.insert(events.rolls, ev)
 					ev.n = #events.rolls
+					-- Behind the loading screen nothing shows and the client stalls on assets (design doc 4.24): the roll
+					-- still counts (n, RollSerial), but its animation is not judged.
+					if playerGui:FindFirstChild("LoadingScreen") then
+						return
+					end
 					if ev.turboMulti > 1 then
 						task.spawn(UiScenarios.SampleTurbo, ev)
 					end
@@ -2382,6 +2387,10 @@ function UiScenarios.SampleRoll(ev)
 	table.insert(events.recs, rec)
 	local limit = ev.t + durationFor(rarityOf(ev.id), ev.emphasized) + 3
 	local last, lastView, holdAt, nominalW = {}, nil, {}, {}
+	-- Client/RollToast queues a result that arrives while another plays: until that one ends, the card shows it, not ev.
+	local playing = findPath("RollToast/Toast")
+	local midPlay = { Spin = true, Land = true, Hold = true, Exit = true }
+	local behind = playing and midPlay[playing:GetAttribute("Phase")] and playing:GetAttribute("RollSerial") or nil
 	local function sampleFly(now)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
@@ -2395,6 +2404,10 @@ function UiScenarios.SampleRoll(ev)
 		if events.rolls[#events.rolls] ~= ev then
 			rec.interruptedAt = os.clock()
 			break
+		end
+		if behind and playing:GetAttribute("RollSerial") == behind then
+			RunService.Heartbeat:Wait()
+			continue
 		end
 		local now = os.clock()
 		local view = viewNow()
@@ -3799,14 +3812,17 @@ function S.ui_hitboxes(res)
 	for _, state in K.STATES do
 		local restore = setPanels(state.Open)
 		-- A roll caught in PopIn / Exit: the compact roll's Body scales through nothing there (POP, EXIT), so its Toast
-		-- draws nothing and has no hit for those moments. Measure it settled; nothing below yields.
+		-- draws nothing and has no hit. And a Toast that just showed or hid is hit-tested by the last frame's layout.
+		-- Measure it settled, unchanged for a frame; nothing below yields.
 		local toast = findPath("RollToast/Toast")
 		local settleBy = os.clock() + UiSpec.Waits.MotionRest
-		while toast and (toast:GetAttribute("Phase") == "PopIn" or toast:GetAttribute("Phase") == "Exit") do
-			if os.clock() > settleBy then
+		while toast and os.clock() < settleBy do
+			local phase, shown = toast:GetAttribute("Phase"), toast.Visible
+			renderFrame()
+			local same = phase == toast:GetAttribute("Phase") and shown == toast.Visible
+			if same and phase ~= "PopIn" and phase ~= "Exit" then
 				break
 			end
-			task.wait()
 		end
 		local vp = viewport()
 		local spill, padded, hiddenHit, covered, invisible, clippedHit, looks = {}, {}, {}, {}, {}, {}, {}
