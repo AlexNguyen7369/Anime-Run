@@ -75,8 +75,9 @@
 72. 2026-11-04 — Alex Nguyen — Compat check u5 stopped on the owner's word: c3t merged, UI pass=44 fail=0, server pass=49 fail=1 (`data`, fix 0fa4d06 not run), final server run skipped, rules audit FAIL with fixes not re-audited.
 73. 2026-11-04 — Alex Nguyen — Merged ui-juice to main through PR #3 on the owner's word: UI 44 scenarios fail=0, last full server run 49/1 with its data fix passing alone, Burst ruling recorded.
 74. 2026-11-04 — Alex Nguyen — Landed /narito, /newplayer and the auto-roll spotlight tutorial on the owner's word with the black-box findings still open: data, admin and gacha pass, the tutorial's burst moved to UiFeedback cue AutoOn, UI harness not run.
+75. 2026-11-04 — Alex Nguyen — Fixed the camera dropping to the hidden avatar for the whole slot after a run's first tag-in by giving the drawn copy its own PrimaryPart; live run steady and ui_run_visual 37 checks pass, full harness not run.
 
 ## What's next
-**Run the UI harness on f475246, finishing the auto-roll tutorial on the fresh save before `UiTestRun`.**
+**Run the UI harness on the branch head, finishing the auto-roll tutorial on the fresh save before `UiTestRun`.**
 
 **Why this is next:** the new overlay takes every click on a save with 0 rolls and has never been through the UI harness, so any UI check on a fresh save, and any later UI work, depends on knowing whether it reds them.

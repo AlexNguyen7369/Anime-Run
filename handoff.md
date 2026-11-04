@@ -26,6 +26,10 @@ History: `current_progress.md`, `git log`.
 - Black-box findings on save `blackbox_1`, still open: P1 Auto stops after each run; P2 starter vanishes from Backpack and Index once replaced; P3 camera stuck overhead after Top-Down off mid-race (unconfirmed, the tester's Luau polling may have caused it); P4 Potions stall opens the Robux Shop; P5 nothing teaches team slots after the tutorial, `Best 3` blocks runners with a "Dojo squad" message; P6 raw ids `LuckI`, `MoneyI`, `SpeedI` and a status text that stays on screen, Enemies header shows the character count, equipped character changed across rejoin; P7 race HUD overlaps; P8 Stats bars full at 0 points; P9 Auto mid-race ends the run with no confirmation; P10 asset 203785492 wrong type, `UiTest` scripts on the client. Not reached: duel, rebirth, Tracks 3-10, audio, phones.
 - `docs/ADMIN_COMMANDS_SPEC.md` is cited by `AdminService` and `Main.server` but has never existed.
 
+## First tag-in jitter (fixed 2026-11-04)
+- Bug `first-tag-in-camera-on-avatar` in `docs/BUGS.md`. Fix in `RunnerView.client.luau`, check added in `UiRunVisual.luau`. Live run on save `tagout_phys3` (Narito, Nobora, Saske): camera stays on the Torso, runner still on screen at both tag-ins. `ui_run_visual` pass, 37 checks. The new check was not seen failing on the old code. Full harness not run.
+- Unexplained: on save `tagout_phys1`, team Zoru, Nobora, Nammi stayed on Zoru (stamina 19.8 s) for 68 s with no tag-in; Studio's connection dropped right after, so it was not inspected. Not repeated.
+
 ## Next
 1. Owner or coordinator handles the merge to `main`. 2. Run a full server harness and a UI harness on the merged code (`data` alone passed 2026-11-04 with its fix). 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity.
 

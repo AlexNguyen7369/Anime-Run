@@ -771,6 +771,9 @@ function UiRunVisual.Build(deps)
 							table.insert(out.swap_settled, label .. ": no settled copy")
 						else
 							swaps += 1
+							if copy.PrimaryPart ~= copy:FindFirstChild("Torso") then
+								table.insert(out.swap_settled, label .. ": drawn copy's PrimaryPart is not its Torso")
+							end
 							local off = deps.stepsOff(steps, dts, ctx.Speed, smooth)
 							if off > cfg.SwapMaxBadFrames then
 								table.insert(

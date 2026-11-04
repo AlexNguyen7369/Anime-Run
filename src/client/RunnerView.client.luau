@@ -96,6 +96,8 @@ local function rebuild(view)
 		end
 	end
 	copy.Name = rig.Name .. "_Visible"
+	-- the rig's PrimaryPart can replicate nil after a re-skin (first tag-in), which would drop the camera to the hidden avatar
+	copy.PrimaryPart = copy:FindFirstChild("Torso") or copy.PrimaryPart
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
