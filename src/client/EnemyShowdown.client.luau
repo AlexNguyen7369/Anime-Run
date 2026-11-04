@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcConfig = require(Shared.NpcConfig)
 local TrackRegistry = require(Shared.TrackRegistry)
+local Themes = require(Shared.BiomeThemes)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
@@ -24,7 +25,8 @@ local DEFEATED_MIN_SECONDS = 1
 
 local trackNames = {}
 for _, spec in TrackRegistry.Chain() do
-	trackNames[spec.Number] = spec.Name
+	local theme = Themes[spec.Biome]
+	trackNames[spec.Number] = theme and theme.DisplayName or spec.Name -- the name players know, as BiomeWelcome shows
 end
 
 local gui = Instance.new("ScreenGui")
@@ -136,7 +138,7 @@ function show(event)
 	vs.Visible = false
 	defeated.Visible = false
 	enemyName.Text = info.Label
-	trackName.Text = ("TRACK %d · %s"):format(event.Track, string.upper(trackNames[event.Track]))
+	trackName.Text = ("TRACK %d · %s"):format(event.Track, trackNames[event.Track])
 	setPortrait(info.Model)
 	banner.Position = HOME -- a banner replaced mid-slide must not start from the old one's position
 	fade(title, true)

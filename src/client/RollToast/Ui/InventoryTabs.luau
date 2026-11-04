@@ -8,6 +8,15 @@ local UiMotion = require(script.Parent.Parent.Parent:WaitForChild("UiMotion"))
 local CYAN = Color3.fromRGB(30, 216, 255)
 local IDLE = Color3.fromRGB(59, 68, 93)
 
+-- The active tab's colour tweens (design doc 4.20): a white-to-grey gradient over a tweened fill, as a gradient's own
+-- colours cannot tween.
+local function markTab(button, active)
+	Components.Tint(button, Color3.new(1, 1, 1))
+	button.BackgroundColor3 = button:GetAttribute("TabLit") and CYAN or IDLE
+	button:SetAttribute("TabLit", active)
+	UiMotion.Mark(button, { BackgroundColor3 = active and CYAN or IDLE })
+end
+
 -- A copy of the retired tab that keeps following its desktop / phone layout. Returns the copy's Face button.
 local function enemiesTab(refs)
 	local source = refs.ConsumablesTab.Parent
@@ -52,8 +61,8 @@ function Tabs.Attach(refs, player, refreshCars)
 		refs.GridHost.Visible = true
 		gallery.Visible = tab == "Characters"
 		enemiesPage.Visible = tab == "Enemies"
-		Components.Tint(refs.CharactersTab, tab == "Characters" and CYAN or IDLE)
-		Components.Tint(enemiesFace, tab == "Enemies" and CYAN or IDLE)
+		markTab(refs.CharactersTab, tab == "Characters")
+		markTab(enemiesFace, tab == "Enemies")
 		refreshCars()
 	end
 	refs.CharactersTab.Activated:Connect(function()

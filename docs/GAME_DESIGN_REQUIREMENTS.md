@@ -329,7 +329,8 @@ before any Studio work.
 ### 4.29 Defeated Enemies page (owner 2026-11-04)
 - The Index has a Defeated Enemies page with one tile per track enemy, in track order. A beaten enemy (`BestTrack >= n`) shows
   its portrait, name and the player's best time on that track. An unbeaten one is locked and hides its portrait and name.
-  No new saved data: it reads `BestTrack` and the race best times. No reward (rewards are a separate owner decision).
+  No new saved data: it reads `BestTrack` and the race best times, published read-only as player attributes `RaceBest<track>`,
+  which other players can read (owner, same day). No reward (rewards are a separate owner decision).
 
 ### 4.30 Bleech series (owner 2026-11-04)
 - A seventh Series, Bleech (based on Bleach; id `soul`), adds 6 rollable characters: Orihima, Rukiya, Renjy, Ichigu, Ulquiorro,

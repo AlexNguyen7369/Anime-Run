@@ -488,8 +488,16 @@ function Tests.race_progress_map()
 			"v11_snapshot_cannot_mutate_store",
 			fake.data[data.KeyFor(id)].RaceBestTimes["1"] == 75.125 and times.Best(rejoined, 1) == 75.125
 		)
+		-- owner ruling 2026-11-04: best times are readable as RaceBest<track> attributes (design doc 4.29)
 		flag(
-			"pb_not_published_as_attribute",
+			"pb_published_as_track_attribute",
+			rejoined:GetAttribute("RaceBest1") == times.Best(rejoined, 1)
+				and rejoined:GetAttribute("RaceBest1") == 75.125
+				and rejoined:GetAttribute("RaceBest2") == times.Best(rejoined, 2)
+				and rejoined:GetAttribute("RaceBest2") == 90
+		)
+		flag(
+			"pb_aggregate_names_not_attributes",
 			rejoined:GetAttribute("RaceBestTimes") == nil and rejoined:GetAttribute("BestTime") == nil
 		)
 		flag("store_really_used_updateasync", fake.updates >= 5 and fake.writes >= 5)
