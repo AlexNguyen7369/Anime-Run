@@ -11,8 +11,8 @@ Nothing car-shaped stays in the game:
 - The car body under the runner (`CarFactory`), car physics (`CarPhysics` raycast suspension, wheels, `VehicleSeat`),
   car handling config (`CarConfig`) and the car-only parts of `PhysicsTargets`.
 - Car-themed world assets: `assets/studio/RacingGarage.rbxmx` (workshop garage kit), `RaceStartPavilion.rbxmx`, the
-  empty `CarModels` folder, and car-themed parts of `SpawnMarketplace.rbxmx` / `MarketplaceBuilder` (the aura / trail
-  item meshes stay if they are not car-shaped).
+  empty `CarModels` folder, and the fork's whole Market (`SpawnMarketplace.rbxmx`, `MarketplaceBuilder`; owner 2026-11-04,
+  section 7).
 - Car icons and car art keys in the UI (e.g. the `rusty_hatchback` atlas keys in `RacerComponents` /
   `UpgradeTreeView`) and any remaining player-facing "car" wording.
 - The `Cars` collision group becomes `Runners` (players still pass through each other; NPC parts never collide).
@@ -118,7 +118,7 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Best Roll** (owner 2026-11-04): pedestal at (-8.5, -75), between Plots 1 and 2, radius 9.
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
-- **Legends** (owner 2026-11-04): at most 2 pedestals, one each side of the Race Start gate, clear of its posts, the path and Plot 7; about 9 studs tall. Client-only, like the sky-loop runners. Proposed: `db_hero` and `mha_symbol` (their orange and blue match the logo).
+- **Legends** (owner 2026-11-04): at most 2 pedestals, one each side of the Race Start gate, clear of its posts, the path and Plot 7; about 9 studs tall. Client-only, like the sky-loop runners. `db_hero` and `mha_symbol` (their orange and blue match the logo; owner approved 2026-11-04).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
   as client-only attachments, so streaming never hides them.
