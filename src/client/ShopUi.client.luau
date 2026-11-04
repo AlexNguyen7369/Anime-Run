@@ -19,7 +19,7 @@ local HudFormat = require(shared:WaitForChild("HudFormat"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local OUTLINE = UiTheme.Outline
-local PANEL = Color3.fromRGB(236, 236, 242)
+local PALETTE = UiTheme.Palette
 local ROBUX_ICON = "rbxasset://textures/ui/common/robux.png"
 
 local function make(class, name, parent, props)
@@ -44,11 +44,15 @@ end
 -- Chunky white text with a dark outline, like the references.
 local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or Enum.Font.FredokaOne
-	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
+	props.Font = props.Font or UiTheme.Font
+	-- No stroke under 16 px (below), so small text on the light cards goes dark to stay readable.
+	local small = (props.TextSize or 24) < 16
+	props.TextColor3 = props.TextColor3 or (small and PALETTE.PanelDeep or PALETTE.White)
 	props.TextScaled = true
 	local label = make("TextLabel", name, parent, props)
-	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
+	if not small then
+		make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
+	end
 	make("UITextSizeConstraint", "Max", label, { MaxTextSize = props.TextSize or 24 })
 	return label
 end
@@ -90,7 +94,7 @@ local function section(name, order, title, subtitle)
 			Text = subtitle,
 			Font = UiTheme.Font,
 			TextSize = 14,
-			TextColor3 = Color3.fromRGB(120, 120, 135),
+			TextColor3 = PALETTE.SoftText,
 		})
 	end
 	return frame
@@ -104,7 +108,7 @@ local root = make("ScreenGui", "ShopUi", gui, {
 })
 local backdrop = make("Frame", "Backdrop", root, {
 	Size = UDim2.fromScale(1, 1),
-	BackgroundColor3 = Color3.fromRGB(8, 10, 22),
+	BackgroundColor3 = PALETTE.Scrim,
 	BackgroundTransparency = 1, -- the world dim is HudChrome/PanelDim, below the HUD
 	Visible = false,
 })
@@ -113,15 +117,10 @@ local panel = make("Frame", "Panel", backdrop, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 110),
 	Size = UDim2.fromScale(0.78, 0.68),
-	BackgroundColor3 = PANEL,
 	Active = true,
 })
 corner(panel, 16)
 stroke(panel, 4)
-make("UIGradient", "Gradient", panel, {
-	Color = ColorSequence.new(Color3.fromRGB(246, 246, 250), Color3.fromRGB(226, 226, 234)),
-	Rotation = 90,
-})
 local title = caption("Title", panel, {
 	Position = UDim2.fromOffset(-6, -26),
 	Size = UDim2.fromOffset(150, 56),
@@ -136,8 +135,7 @@ local close = make("TextButton", "Close", panel, {
 	Position = UDim2.new(1, 10, 0, -12),
 	Size = UDim2.fromOffset(46, 46),
 	Text = "",
-	BackgroundColor3 = Color3.fromRGB(232, 69, 60),
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 	ZIndex = 3,
 })
 corner(close, 10)
@@ -150,7 +148,7 @@ local list = make("ScrollingFrame", "Items", panel, {
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
-	ScrollBarImageColor3 = Color3.fromRGB(140, 140, 160),
+	ScrollBarImageColor3 = PALETTE.Muted,
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
 	ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -177,11 +175,17 @@ end
 local function buyButton(parent, kind, id, robuxPrice, props)
 	props.Text = ""
 	props.BackgroundColor3 = Color3.new(1, 1, 1)
-	props.AutoButtonColor = true
+	props.AutoButtonColor = false
+	-- Id 0 cannot be bought yet: grey and disabled, so green always means a real price.
+	props.Active = id > 0
 	local button = make("TextButton", "Buy", parent, props)
-	corner(button, 10)
+	corner(button, 8)
 	stroke(button, 3)
-	gradient(button, Color3.fromRGB(226, 255, 120), Color3.fromRGB(98, 214, 60))
+	if id > 0 then
+		gradient(button, PALETTE.Money, PALETTE.MoneyDeep)
+	else
+		gradient(button, PALETTE.Muted, PALETTE.Disabled)
+	end
 	make("ImageLabel", "Robux", button, {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.1, id > 0 and 0.5 or 0.38),
@@ -238,7 +242,7 @@ make("UIGridLayout", "Layout", grid, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 for order, item in config.Gamepasses do
-	local box = card(item.Id, grid, item.Color or Color3.fromRGB(110, 205, 255), { LayoutOrder = order })
+	local box = card(item.Id, grid, item.Color or PALETTE.ShopSky, { LayoutOrder = order })
 	caption("Name", box, {
 		Position = UDim2.fromScale(0.05, 0.04),
 		Size = UDim2.fromScale(0.9, 0.17),
@@ -254,8 +258,8 @@ for order, item in config.Gamepasses do
 	local icon = Icons[item.Icon] or Icons.Shop
 	make("ImageLabel", "Icon", box, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.34),
-		Size = UDim2.fromScale(0.5, 0.36),
+		Position = UDim2.fromScale(0.5, 0.33),
+		Size = UDim2.fromScale(0.5, 0.31), -- ends above the Buy row
 		BackgroundTransparency = 1,
 		Image = icon.Image,
 		ImageRectOffset = icon.Offset or Vector2.zero,
@@ -286,10 +290,10 @@ make("UIGridLayout", "Layout", packRow, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 local POTION_COLORS = {
-	Luck = Color3.fromRGB(110, 230, 160),
-	Money = Color3.fromRGB(255, 200, 70),
-	Speed = Color3.fromRGB(110, 205, 255),
-	Stamina = Color3.fromRGB(90, 140, 255),
+	Luck = PALETTE.ShopMint,
+	Money = PALETTE.ShopAmber,
+	Speed = PALETTE.ShopSky,
+	Stamina = PALETTE.ShopCobalt,
 }
 local function grantCategory(grants)
 	for id in grants do
@@ -316,8 +320,8 @@ for order, product in config.Products do
 		})
 		make("ImageLabel", "Icon", box, {
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.fromScale(0.5, 0.32),
-			Size = UDim2.fromScale(0.5, 0.38),
+			Position = UDim2.fromScale(0.5, 0.31),
+			Size = UDim2.fromScale(0.5, 0.33), -- ends above the Buy row
 			BackgroundTransparency = 1,
 			Image = PotionIcons[category],
 			ScaleType = Enum.ScaleType.Fit,
@@ -331,21 +335,21 @@ for order, product in config.Products do
 end
 for _, product in config.Products do
 	if product.Section == "Bundle" then
-		local banner = card("Bundle", potions, Color3.fromRGB(255, 170, 220), {
+		local banner = card("Bundle", potions, PALETTE.ShopPink, {
 			LayoutOrder = 3,
 			Size = UDim2.new(1, 0, 0, 170),
 		})
 		banner.Gradient.Rotation = 0
 		banner.Gradient.Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(150, 235, 255)),
-			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 225, 120)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(245, 160, 230)),
+			ColorSequenceKeypoint.new(0, PALETTE.ShopSky),
+			ColorSequenceKeypoint.new(0.5, PALETTE.ShopAmber),
+			ColorSequenceKeypoint.new(1, PALETTE.ShopPink),
 		})
 		local name = caption("Name", banner, {
 			Position = UDim2.fromScale(0.03, 0.05),
 			Size = UDim2.fromScale(0.5, 0.22),
 			Text = product.Name,
-			TextColor3 = Color3.fromRGB(240, 120, 255),
+			TextColor3 = PALETTE.Featured,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextSize = 34,
 		})
@@ -409,7 +413,7 @@ end
 -- 4. DOUBLE Server Luck banner (display only until the Server Luck feature exists).
 local luck = section("ServerLuck", 4, nil, nil)
 luck.Parent = list
-local luckBanner = card("Banner", luck, Color3.fromRGB(150, 230, 90), {
+local luckBanner = card("Banner", luck, PALETTE.ShopLime, {
 	LayoutOrder = 1,
 	Size = UDim2.new(1, 0, 0, 150),
 })
@@ -417,7 +421,7 @@ local luckTitle = caption("Title", luckBanner, {
 	Position = UDim2.fromScale(0.03, 0.06),
 	Size = UDim2.fromScale(0.94, 0.24),
 	Text = "DOUBLE Server Luck!",
-	TextColor3 = Color3.fromRGB(80, 220, 90),
+	TextColor3 = PALETTE.Money,
 	TextSize = 38,
 })
 luckTitle.Outline.Thickness = 3
@@ -446,7 +450,7 @@ end
 -- 5. Codes.
 local codes = section("Codes", 5, "Codes", nil)
 codes.Parent = list
-local codeBox = card("Box", codes, Color3.fromRGB(130, 180, 255), {
+local codeBox = card("Box", codes, PALETTE.ShopIce, {
 	LayoutOrder = 2,
 	Size = UDim2.new(1, 0, 0, 170),
 })
@@ -454,17 +458,17 @@ local hint = caption("Hint", codeBox, {
 	Position = UDim2.fromScale(0.04, 0.06),
 	Size = UDim2.fromScale(0.92, 0.18),
 	Text = "Follow the socials on the game page for codes!",
-	TextColor3 = Color3.fromRGB(110, 200, 255),
+	TextColor3 = PALETTE.ShopSky,
 	TextSize = 28,
 })
-hint.Outline.Color = Color3.fromRGB(30, 60, 140)
+hint.Outline.Color = PALETTE.ShopIndigo
 local input = make("TextBox", "Input", codeBox, {})
 input.AnchorPoint = Vector2.new(0.5, 0)
 input.Position = UDim2.fromScale(0.5, 0.3)
 input.Size = UDim2.fromScale(0.5, 0.24)
-input.BackgroundColor3 = Color3.fromRGB(80, 92, 112)
+input.BackgroundColor3 = PALETTE.ShopField
 input.PlaceholderText = "Enter code here.."
-input.PlaceholderColor3 = Color3.fromRGB(40, 46, 60)
+input.PlaceholderColor3 = PALETTE.SoftText
 input.Text = ""
 input.ClearTextOnFocus = false
 input.Font = UiTheme.Font
@@ -479,11 +483,11 @@ local redeem = make("TextButton", "Redeem", codeBox, {
 	Size = UDim2.fromScale(0.26, 0.2),
 	Text = "",
 	BackgroundColor3 = Color3.new(1, 1, 1),
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
-corner(redeem, 10)
+corner(redeem, 8)
 stroke(redeem, 3)
-gradient(redeem, Color3.fromRGB(140, 230, 255), Color3.fromRGB(70, 170, 245))
+gradient(redeem, PALETTE.ShopSky, PALETTE.ShopRedeem)
 caption("Label", redeem, { Size = UDim2.fromScale(1, 1), Text = "Redeem", TextSize = 26 })
 local status = make("TextLabel", "Status", codeBox, {
 	Position = UDim2.fromScale(0.04, 0.83),
@@ -492,14 +496,14 @@ local status = make("TextLabel", "Status", codeBox, {
 	Text = "",
 	Font = UiTheme.Font,
 	TextScaled = true,
-	TextColor3 = Color3.fromRGB(30, 60, 140),
+	TextColor3 = PALETTE.ShopIndigo,
 })
 local statusHome = status.Position
 redeem.Activated:Connect(function()
 	redeem.Active = false
 	local ok, message = remotes:WaitForChild("RedeemCode"):InvokeServer(input.Text)
 	status.Text = tostring(message or (ok and "Code redeemed!" or "Try again"))
-	status.TextColor3 = ok and Color3.fromRGB(30, 140, 60) or Color3.fromRGB(200, 40, 60)
+	status.TextColor3 = ok and PALETTE.MoneyDeep or PALETTE.DangerDeep
 	status.Position = statusHome
 	UiMotion.SlideIn(status, Vector2.new(0, 12)) -- the answer slides in from the bottom edge (section 10)
 	if ok then
@@ -516,7 +520,7 @@ make("TextLabel", "Thanks", list, {
 	Text = "♥  Thanks for your support!  ♥",
 	Font = UiTheme.Font,
 	TextSize = 18,
-	TextColor3 = OUTLINE,
+	TextColor3 = PALETTE.White,
 })
 
 -- The HudChrome Shop tile opens it (PanelSwitch.Toggle("Shop")).
@@ -536,17 +540,16 @@ local function giftButton(box, product, reason)
 		Position = bundle and UDim2.new(1, -8, 1, -6) or UDim2.new(0.96, 0, 1, -28),
 		Size = bundle and UDim2.new(0.34, -8, 0, 30) or UDim2.fromScale(0.37, 0.2),
 		Text = "Gift",
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextSize = 18,
 		TextColor3 = Color3.new(1, 1, 1),
-		BackgroundColor3 = Color3.fromRGB(130, 75, 190),
+		BackgroundColor3 = PALETTE.ShopGift,
 		BackgroundTransparency = enabled and 0 or 0.45,
 		Active = enabled == true,
 		AutoButtonColor = enabled == true,
 	})
 	corner(gift, 8)
 	stroke(gift, 3)
-	gradient(gift, Color3.new(1, 1, 1), Color3.fromRGB(185, 185, 185)) -- depth on the purple, like the Buy button
 	if not enabled then
 		local note = make("TextLabel", "GiftReason", box, {
 			AnchorPoint = Vector2.new(0, 1),

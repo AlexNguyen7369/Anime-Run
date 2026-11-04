@@ -14,8 +14,8 @@ local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 
 local OUTLINE = UiTheme.Outline
-local FREE = Color3.fromRGB(60, 220, 90) -- the slot takes the item (the Market's EQUIP green)
-local HERE = Color3.fromRGB(55, 110, 180) -- the item is on this slot: tapping removes it
+local FREE = UiTheme.Palette.Row -- the slot takes the item; not the money green, so equip and pay look different
+local HERE = UiTheme.Palette.SlotHere -- the item is on this slot: tapping removes it
 
 local SlotPicker = {}
 
@@ -52,13 +52,18 @@ local function isHere(kind, slot, id)
 	return player:GetAttribute(Market.SlotAttribute(slot, kind)) == id
 end
 
--- Short item name for the slot line ("Azure Aura" -> "Azure"), "-" for an empty slot.
+-- Short item name for the slot line ("Azure Aura" -> "Azure"), nil for nothing there.
 local function short(kind, id)
 	local item = Market.Get(kind, id)
-	if not item then
-		return "-"
+	return item and (string.gsub(item.Name, "%s+" .. kind .. "$", ""))
+end
+
+-- What a slot wears, in plain words.
+local function wearing(aura, trail)
+	if aura and trail then
+		return aura .. " + " .. trail
 	end
-	return (string.gsub(item.Name, "%s+" .. kind .. "$", ""))
+	return aura or trail or "Empty"
 end
 
 -- A Frame named `name` under `parent` with `props`; onPick(slot, id) gets the tapped slot and the id to send (nil =
@@ -79,11 +84,15 @@ function SlotPicker.new(name, parent, props, onPick)
 			Size = UDim2.new(1 / Market.SLOTS, -4, 1, 0),
 			BackgroundColor3 = FREE,
 			Text = "",
-			AutoButtonColor = true,
+			AutoButtonColor = false,
 		})
 		UiTheme.Corner(b, "S")
-		make("UIStroke", "Stroke", b, { Color = OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
-		UiTheme.Gradient(b, Color3.new(1, 1, 1), Color3.fromRGB(185, 185, 185))
+		make(
+			"UIStroke",
+			"Stroke",
+			b,
+			{ Color = UiTheme.Palette.White, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
+		)
 		local title = caption("Title", b, {
 			Position = UDim2.fromOffset(4, 2),
 			Size = UDim2.new(1, -8, 0.5, -2),
@@ -93,7 +102,7 @@ function SlotPicker.new(name, parent, props, onPick)
 			Position = UDim2.new(0, 4, 0.5, 0),
 			Size = UDim2.new(1, -8, 0.5, -3),
 			Text = "",
-			TextColor3 = Color3.fromRGB(235, 240, 255),
+			TextColor3 = UiTheme.Palette.SoftText,
 		})
 		picker.Buttons[slot] = { Button = b, Title = title, Items = items }
 		b.Activated:Connect(function()
@@ -119,7 +128,7 @@ function SlotPicker.new(name, parent, props, onPick)
 			local aura = player:GetAttribute(Market.SlotAttribute(slot, "Aura"))
 			local trail = player:GetAttribute(Market.SlotAttribute(slot, "Trail"))
 			local here = id ~= nil and player:GetAttribute(Market.SlotAttribute(slot, kind)) == id
-			refs.Items.Text = short("Aura", aura) .. " / " .. short("Trail", trail)
+			refs.Items.Text = wearing(short("Aura", aura), short("Trail", trail))
 			refs.Title.Text = (here and "REMOVE " or "SLOT ") .. slot
 			refs.Button.BackgroundColor3 = here and HERE or FREE
 		end

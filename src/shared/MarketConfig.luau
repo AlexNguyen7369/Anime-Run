@@ -42,7 +42,7 @@ MarketConfig.Items = {
 			SpeedMulti = 1.5,
 			Color = Color3.fromRGB(255, 120, 235),
 			Accent = Color3.fromRGB(90, 220, 255),
-			Description = "A shifting rainbow ribbon behind your ride.",
+			Description = "A shifting rainbow ribbon behind your runner.",
 		},
 		{
 			Id = "solar_trail",

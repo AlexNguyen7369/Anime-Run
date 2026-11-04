@@ -20,10 +20,11 @@ local GachaConfig = require(shared.GachaConfig)
 local Switch = require(script.Parent.PanelSwitch)
 local UiMotion = require(script.Parent.UiMotion)
 local Band = require(script.Parent.PanelBand)
+local Frame = require(script.Parent.PanelFrame)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local BLUE = Color3.fromRGB(61, 151, 219)
 local GREEN = Color3.fromRGB(89, 225, 138)
-local RED = Color3.fromRGB(238, 87, 107)
+local RED = UiTheme.Palette.Danger
 local DARK = Color3.fromRGB(29, 32, 53)
 
 local function make(class, name, parent, properties)
@@ -76,7 +77,7 @@ local function button(name, parent, position, size, value)
 		TextSize = 15,
 		TextColor3 = Color3.new(1, 1, 1),
 		BackgroundColor3 = BLUE,
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(0, UiTheme.Radius.S) })
 	UiTheme.Stroke(b, 1.5)
@@ -85,7 +86,6 @@ end
 -- A disabled button gets no hover / press highlight.
 local function setActive(b, active)
 	b.Active = active
-	b.AutoButtonColor = active
 end
 local panels = {}
 local function panel(name, title)
@@ -96,17 +96,20 @@ local function panel(name, title)
 		Size = UDim2.new(0.82, 0, 1, -344),
 		BackgroundColor3 = DARK,
 		Visible = false,
+		Active = true,
 	})
 	plate(p)
 	text("Title", p, UDim2.fromOffset(12, 4), UDim2.new(1, -74, 0, 34), title)
 	local close = button("Close", p, UDim2.new(1, -48, 0, 6), UDim2.fromOffset(38, 30), "×")
-	close.BackgroundColor3 = RED
+	Frame.PaintClose(close)
 	Switch.Register(name, p)
 	-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
 	Band.Fit(p, 700)
-	close.Activated:Connect(function()
+	local function closePanel()
 		Switch.Close(name)
-	end)
+	end
+	close.Activated:Connect(closePanel)
+	Frame.CloseOnOutsideClick(p, closePanel)
 	panels[name] = p
 	return p
 end
@@ -207,7 +210,7 @@ for _, category in Boosts.Order do
 	})
 	local timer = text("Timer", icon, UDim2.fromScale(0.5, 1), UDim2.fromOffset(84, 20), "")
 	timer.AnchorPoint = Vector2.new(0.5, 1)
-	timer.Font = Enum.Font.FredokaOne
+	timer.Font = UiTheme.Font
 	timer.TextSize = 17
 	timer.TextWrapped = false
 	timer.ZIndex = 2

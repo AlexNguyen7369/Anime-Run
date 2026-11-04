@@ -143,7 +143,7 @@ function Ui.Build(playerGui)
 	local v3 = new("Frame", {
 		Name = "RaceMap",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -20, 0, 68),
+		Position = UDim2.new(1, -112, 0, 68),
 		Size = UDim2.fromOffset(360, 260),
 		Visible = false,
 		BackgroundTransparency = 1,
@@ -154,13 +154,13 @@ function Ui.Build(playerGui)
 		v3,
 		{
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -20, 0, 68),
+			Position = UDim2.new(1, -112, 0, 68),
 			Size = UDim2.fromOffset(360, 260),
 			Visible = false,
 		},
 		{
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -10, 0, 64),
+			Position = UDim2.new(1, -74, 0, 64),
 			Size = UDim2.fromOffset(250, 184),
 			Visible = false,
 		},
@@ -1669,7 +1669,7 @@ function Ui.Bind(playerGui)
 	local v3 = new("Frame", {
 		Name = "RaceMap",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -20, 0, 68),
+		Position = UDim2.new(1, -112, 0, 68),
 		Size = UDim2.fromOffset(360, 260),
 		Visible = false,
 		BackgroundTransparency = 1,
@@ -1680,13 +1680,13 @@ function Ui.Bind(playerGui)
 		v3,
 		{
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -20, 0, 68),
+			Position = UDim2.new(1, -112, 0, 68),
 			Size = UDim2.fromOffset(360, 260),
 			Visible = false,
 		},
 		{
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -10, 0, 64),
+			Position = UDim2.new(1, -74, 0, 64),
 			Size = UDim2.fromOffset(250, 184),
 			Visible = false,
 		},

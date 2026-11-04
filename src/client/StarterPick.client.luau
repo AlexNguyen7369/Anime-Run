@@ -39,9 +39,10 @@ panel.Name = "Panel"
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
 panel.Size = UDim2.fromScale(0.92, 0.84)
-panel.BackgroundColor3 = Color3.fromRGB(28, 32, 48)
+UiTheme.Body(panel)
 panel.Parent = dim
-Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
+UiTheme.Corner(panel, "L")
+UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
 local limit = Instance.new("UISizeConstraint")
 limit.MaxSize = Vector2.new(860, 520)
 limit.Parent = panel
@@ -60,6 +61,9 @@ local function text(parent, name, value, size, pos, height)
 	local c = Instance.new("UITextSizeConstraint")
 	c.MaxTextSize = size
 	c.Parent = l
+	if size >= 18 then
+		UiTheme.Stroke(l, 2)
+	end
 	l.Parent = parent
 	return l
 end
@@ -105,9 +109,8 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	card.Name = id
 	card.LayoutOrder = i
 	card.Size = UDim2.fromScale(0.32, 1)
-	card.BackgroundColor3 = Color3.fromRGB(44, 50, 72)
+	UiTheme.Plate(card, UiTheme.Palette.Tile).BackgroundTransparency = 0
 	card.Parent = row
-	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
 
 	-- The drawn portrait; with none yet, the live model (refill keeps it current).
 	local image = Components.PortraitImage(spec)
@@ -120,7 +123,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 		view.ImageColor3 = Color3.new(1, 1, 1)
 		view.ScaleType = Enum.ScaleType.Fit
 	else
-		view.Ambient = Color3.fromRGB(175, 175, 185)
+		view.Ambient = Color3.fromRGB(175, 175, 185) -- 3D light, not UI
 		view.LightColor = Color3.new(1, 1, 1)
 		view.LightDirection = Vector3.new(-1, -2, -1)
 		views[id] = view
@@ -134,7 +137,9 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	button.AnchorPoint = Vector2.new(0.5, 1)
 	button.Position = UDim2.new(0.5, 0, 1, -8)
 	button.Size = UDim2.new(1, -16, 0.15, 0)
-	button.BackgroundColor3 = Color3.fromRGB(70, 170, 90)
+	button.BackgroundColor3 = UiTheme.Palette.MoneyDeep
+	button.AutoButtonColor = false
+	UiTheme.Stroke(button, 2)
 	button.Font = UiTheme.Font
 	button.Text = "CHOOSE"
 	button.TextColor3 = UiTheme.Palette.White
@@ -143,7 +148,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	buttonText.MaxTextSize = 24
 	buttonText.Parent = button
 	button.Parent = card
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	UiTheme.Corner(button, "S")
 	local busy = false
 	button.Activated:Connect(function()
 		if busy then

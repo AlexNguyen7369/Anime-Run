@@ -150,9 +150,11 @@ local Palette = UiTheme.Palette
 local CARD_W, CARD_H, OVERHANG = 460, 330, 14
 local ROW_STAGGER = 0.06
 
+local Themes = require(Shared.BiomeThemes)
 local trackNames = {}
 for _, spec in TrackRegistry.Chain() do
-	trackNames[spec.Number] = spec.Name
+	local theme = Themes[spec.Biome]
+	trackNames[spec.Number] = theme and theme.DisplayName or spec.Name -- one name per track, as EnemyShowdown shows
 end
 
 local gui = Instance.new("ScreenGui")

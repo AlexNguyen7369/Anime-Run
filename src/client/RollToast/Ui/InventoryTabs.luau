@@ -5,16 +5,25 @@
 local Tabs = {}
 local Components = require(script.Parent.RacerComponents)
 local UiMotion = require(script.Parent.Parent.Parent:WaitForChild("UiMotion"))
-local CYAN = Color3.fromRGB(30, 216, 255)
-local IDLE = Color3.fromRGB(59, 68, 93)
+local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local LIT = UiTheme.Palette.White -- not the bar's colour, so the active tab stands out
+local IDLE = UiTheme.Palette.Row
 
 -- The active tab's colour tweens (design doc 4.20): a white-to-grey gradient over a tweened fill, as a gradient's own
 -- colours cannot tween.
 local function markTab(button, active)
 	Components.Tint(button, Color3.new(1, 1, 1))
-	button.BackgroundColor3 = button:GetAttribute("TabLit") and CYAN or IDLE
+	button.BackgroundColor3 = button:GetAttribute("TabLit") and LIT or IDLE
 	button:SetAttribute("TabLit", active)
-	UiMotion.Mark(button, { BackgroundColor3 = active and CYAN or IDLE })
+	UiMotion.Mark(button, { BackgroundColor3 = active and LIT or IDLE })
+	local caption = button:FindFirstChildWhichIsA("TextLabel")
+	if caption then
+		caption.TextColor3 = active and UiTheme.Palette.PanelDeep or UiTheme.Palette.White
+		local glyph = caption:FindFirstChildOfClass("UIStroke")
+		if glyph then
+			glyph.Enabled = not active
+		end
+	end
 end
 
 -- A copy of the retired tab that keeps following its desktop / phone layout. Returns the copy's Face button.

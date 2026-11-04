@@ -73,8 +73,8 @@ local function button(name, parent, text, properties)
 	properties.Font = properties.Font or Enum.Font.GothamBold
 	properties.TextSize = properties.TextSize or 15
 	properties.TextColor3 = properties.TextColor3 or Color3.new(1, 1, 1)
-	properties.BackgroundColor3 = properties.BackgroundColor3 or Color3.fromRGB(68, 104, 180)
-	properties.AutoButtonColor = true
+	properties.BackgroundColor3 = properties.BackgroundColor3 or Palette.SlotHere
+	properties.AutoButtonColor = false
 	properties.BorderSizePixel = 0
 	local object = make("TextButton", name, parent, properties)
 	make("UICorner", "Corner", object, { CornerRadius = UDim.new(0, UiTheme.Radius.S) })
@@ -89,7 +89,7 @@ local pickOpponent = make("TextLabel", "Opponent", pickPanel, {
 	Text = "vs opponent",
 	Font = Enum.Font.Gotham,
 	TextSize = 14,
-	TextColor3 = Color3.fromRGB(190, 205, 225),
+	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
@@ -98,7 +98,7 @@ local pickClose = button("Close", pickPanel, "X", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 10),
 	Size = UDim2.fromOffset(38, 30),
-	BackgroundColor3 = Color3.fromRGB(190, 68, 88),
+	BackgroundColor3 = Palette.Danger,
 	TextSize = 14,
 })
 local pickTracks = make("Frame", "Tracks", pickPanel, {
@@ -119,7 +119,7 @@ local inviteText = make("TextLabel", "Text", invitePanel, {
 	Text = "A racer challenges you.",
 	Font = Enum.Font.Gotham,
 	TextSize = 15,
-	TextColor3 = Color3.fromRGB(210, 220, 238),
+	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
@@ -129,13 +129,13 @@ UiTheme.Stroke(inviteText, 1.5)
 local inviteAccept = button("Accept", invitePanel, "ACCEPT", {
 	Position = UDim2.new(0, 18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Color3.fromRGB(65, 170, 105),
+	BackgroundColor3 = Palette.MoneyDeep,
 })
 local inviteDecline = button("Decline", invitePanel, "DECLINE", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Color3.fromRGB(190, 68, 88),
+	BackgroundColor3 = Palette.Danger,
 })
 
 local countdown = make("TextLabel", "Countdown", root, {
@@ -145,7 +145,7 @@ local countdown = make("TextLabel", "Countdown", root, {
 	Text = "",
 	Font = Enum.Font.GothamBlack,
 	TextSize = 64,
-	TextColor3 = Color3.fromRGB(255, 216, 89),
+	TextColor3 = Palette.Gold,
 	BackgroundTransparency = 1,
 	Active = false,
 	Visible = false,

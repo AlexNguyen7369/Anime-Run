@@ -120,12 +120,13 @@ local function takeFocus(panel)
 	end)
 end
 
--- Open motion (docs/HUD_LAYOUT_SPEC.md section 10): scale from 90% to 100%; a panel with a layout UIScale (Racer
--- panels) slides 12 px up instead. Closing is instant: a hide cancels the motion and puts the panel back home.
--- Design doc 4.20 close motion: Toggle / Close shrink the panel to 95% over 0.12 s, then hide it (input is off
--- meanwhile). A panel hidden any other way (Visible = false, another panel opening) still hides at once.
+-- Design doc 4.20 panel motion, one preset for every panel (proposed): open scales 0.9 to 1 with Back easing and fades
+-- in over 0.2 s; Toggle / Close scale to 0.95 and fade out over 0.12 s, then hide (input is off meanwhile). A panel
+-- hidden any other way (Visible = false, another panel opening) hides at once. The fade covers the panel's own fill and
+-- edge (UiMotion.Fade): its class stays Frame, so no CanvasGroup carries the content.
 local CLOSE_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 local OPEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local OPEN_FADE, CLOSE_FADE = 0.2, 0.12
 local motions = {} -- target -> { Tween, Home (position or nil) }
 
 -- A registered full-screen backdrop animates the PanelFrame card inside it, not the whole screen.
@@ -141,6 +142,33 @@ local function motionTarget(panel)
 	return panel
 end
 
+-- What carries the panel's fill and edge: a generated Racer panel's wrapper is see-through, its Face holds them.
+local function fadeTarget(target)
+	return target:FindFirstChild("Face") or target
+end
+
+-- What the motion scales: the MotionScale UIScale, or for a panel with a layout UIScale (Racer panels, set every frame
+-- by RacerUiController.fitPanels) a MotionK NumberValue that fit multiplies in.
+local function scaleHandle(target)
+	local scale = target:FindFirstChildOfClass("UIScale")
+	if scale and scale.Name ~= "MotionScale" then
+		local k = target:FindFirstChild("MotionK")
+		if not k then
+			k = Instance.new("NumberValue")
+			k.Name = "MotionK"
+			k.Value = 1
+			k.Parent = target
+		end
+		return k, "Value"
+	end
+	if not scale then
+		scale = Instance.new("UIScale")
+		scale.Name = "MotionScale"
+		scale.Parent = target
+	end
+	return scale, "Scale"
+end
+
 local function stopMotion(target)
 	local motion = motions[target]
 	if not motion then
@@ -148,11 +176,7 @@ local function stopMotion(target)
 	end
 	motions[target] = nil
 	motion.Tween:Cancel()
-	if motion.Home then
-		target.Position = motion.Home
-	else
-		motion.Scale.Scale = 1
-	end
+	motion.Handle[motion.Property] = 1
 end
 
 -- Design doc 4.20: the panel's main list / grid (the layout with the most items) staggers in on open.
@@ -180,24 +204,16 @@ end
 local function openMotion(panel)
 	local target = motionTarget(panel)
 	stopMotion(target)
+	local face = fadeTarget(target)
+	face.Visible = true -- a finished close fade hid it
 	if UiMotion.Reduced() then
 		return
 	end
-	local scale = target:FindFirstChildOfClass("UIScale")
-	local motion
-	if scale and scale.Name ~= "MotionScale" then
-		local home = target.Position
-		target.Position = home + UDim2.fromOffset(0, 12)
-		motion = { Tween = UiMotion.Create(target, OPEN_INFO, { Position = home }), Home = home }
-	else
-		if not scale then
-			scale = Instance.new("UIScale")
-			scale.Name = "MotionScale"
-			scale.Parent = target
-		end
-		scale.Scale = 0.9 -- design doc 4.20 (proposed)
-		motion = { Tween = UiMotion.Create(scale, OPEN_INFO, { Scale = 1 }), Scale = scale }
-	end
+	UiMotion.Fade(face, true, OPEN_FADE)
+	local handle, property = scaleHandle(target)
+	handle[property] = 0.9 -- design doc 4.20 (proposed)
+	local motion =
+		{ Tween = UiMotion.Create(handle, OPEN_INFO, { [property] = 1 }), Handle = handle, Property = property }
 	cascadeList(target)
 	motions[target] = motion
 	motion.Tween.Completed:Connect(function()
@@ -208,23 +224,20 @@ local function openMotion(panel)
 	motion.Tween:Play()
 end
 
--- Hides `panel` with the close motion (instant while reduced, or for a layout-UIScale panel, which slides on open).
+-- Hides `panel` with the close motion (instant while reduced).
 local function closeMotion(panel)
 	local target = motionTarget(panel)
 	stopMotion(target)
-	local scale = target:FindFirstChildOfClass("UIScale")
-	if UiMotion.Reduced() or (scale and scale.Name ~= "MotionScale") then
+	if UiMotion.Reduced() then
 		panel.Visible = false
 		return
 	end
-	if not scale then
-		scale = Instance.new("UIScale")
-		scale.Name = "MotionScale"
-		scale.Parent = target
-	end
+	local handle, property = scaleHandle(target)
 	closing[panel] = true
 	target.Interactable = false
-	local motion = { Tween = UiMotion.Create(scale, CLOSE_INFO, { Scale = 0.95 }), Scale = scale }
+	UiMotion.Fade(fadeTarget(target), false, CLOSE_FADE)
+	local motion =
+		{ Tween = UiMotion.Create(handle, CLOSE_INFO, { [property] = 0.95 }), Handle = handle, Property = property }
 	motions[target] = motion
 	motion.Tween.Completed:Connect(function(state)
 		if motions[target] ~= motion then
@@ -233,7 +246,7 @@ local function closeMotion(panel)
 		motions[target] = nil
 		closing[panel] = nil
 		target.Interactable = true
-		scale.Scale = 1
+		handle[property] = 1
 		if state == Enum.PlaybackState.Completed then
 			panel.Visible = false
 		end
