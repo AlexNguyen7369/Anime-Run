@@ -356,10 +356,9 @@ def model(parts, kit):
 def glyph_front(f, cx, cy, s, colour="#14141c"):
 	"""The chest mark, strokes on a 40-box."""
 	for d, w in (
-		(("M-14 -17V18"), 2.8),  # left radical
-		(("M-20 -8L-22 -2M-9 -9L-6 -4"), 2.4),
-		(("M-3 -16H18M7 -16L3 0M-1 -7H13V0M-5 0H19"), 2.5),  # upper right
-		(("M-1 6H15V18H-1Z"), 2.5),
+		(("M-16 -15H16M-11 -4H11"), 2.8),  # two bars
+		(("M0 -15V-4"), 2.5),
+		(("M-3 -4L-16 18M3 -4Q5 13 18 16"), 2.8),  # two legs
 	):
 		f.path(_at(d, cx, cy, s), stroke=colour, sw=w * s)
 
@@ -367,9 +366,9 @@ def glyph_front(f, cx, cy, s, colour="#14141c"):
 def glyph_back(f, cx, cy, s, colour="#14141c"):
 	"""The large back mark, strokes on a 44-box."""
 	for d, w in (
-		(("M-13 -21H13V-3H-13ZM-13 -12H13M0 -21V-3"), 2.6),
-		(("M0 -3L-18 9M0 -3L18 9"), 2.8),
-		(("M-7 7Q-7 16 -13 22M7 7V22"), 2.8),
+		(("M0 -22L18 -8L0 6L-18 -8Z"), 2.6),  # a diamond
+		(("M0 6V22M-13 13H13"), 2.8),
+		(("M-9 22H9"), 2.8),
 	):
 		f.path(_at(d, cx, cy, s), stroke=colour, sw=w * s)
 
