@@ -71,8 +71,9 @@
 68. 2026-11-04 — Alex Nguyen — Wrote UI feedback rules (design doc 4.33, UI_FEEDBACK_SPEC) and a live UI and SFX audit with 34 ranked findings (ui-juice u0).
 69. 2026-11-04 — Alex Nguyen — Fixed ui-juice audit findings on Equip cue timing, Daily rebuilds, Index slot 1 rule, Denied on disabled buttons, DEFEATED Burst, single roll shake, Duel toasts and checkpoint Fly; not run in Studio.
 70. 2026-11-04 — Alex Nguyen — Verified ui-juice in Studio (14 targeted scenarios fail=0, sound lengths measured) and fixed cue loudness, raw potion ids in the Quest claim reply, empty-state Stats bars, the VS banner truncating, the race map row under Quests and the Rebirth reply overflow.
+71. 2026-11-04 — Alex Nguyen — Landed UI feedback pass: 9 sounds with the ServerStorage folder, UiFeedback cues, new UiMotion presets, consistency and clarity fixes, big-moment and panel wiring; 15 targeted UI scenarios fail=0 including ui_layout 962 and ui_feedback 27 (ui-juice u1-u4).
 
 ## What's next
-**Owner's listen pass on the ui-juice cues, and a ruling on the enemy pointer crossing the race map.**
+**Run the compat check: merge orch/core/c3t, full UI and server harness to fail=0, rules audit.**
 
-**Why this is next:** every cue volume comes from measured loudness and nobody has heard them, and landing ui-juice depends on that check.
+**Why this is next:** the owner set it as the goal's last step; results are stale until it runs on the merged branch, and any PR to main depends on it.
