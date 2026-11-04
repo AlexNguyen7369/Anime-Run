@@ -209,7 +209,7 @@ Preset trios (the anime's famous team):
 ### Digital art portrait (owner 2026-11-04)
 Required for every character added to the game, as part of its art pipeline, not a later pass.
 - Every character with a model has a drawn head-and-upper-torso portrait: bright cel-shaded fills from its own atlas, a bold ink outline, a thin die-cut edge and a straight cut under the chest. Blocky proportions stay, per design doc 5.
-- File: `assets/characters_avatar/<id>/portrait.png` (512 px, transparent), next to its `atlas.png` and `review/`. Build: `tools/blender/portrait/render_portrait.py`. Upload: `tools/blender/portrait/upload_portraits.py`, which writes `src/shared/CharacterPortraits.luau`. A character is not done until its portrait is uploaded and in that registry.
+- File: `assets/characters_avatar/<id>/portrait.png` (512 px, transparent), next to its `atlas.png`, `<id>.blend` and `review/`. `tools/blender/build_avatar.py` draws it with the model and previews, through `tools/blender/portrait/render_portrait.py`; a new character's folder is not complete without it. Upload: `tools/blender/portrait/upload_portraits.py`, which writes `src/shared/CharacterPortraits.luau`. A character is not done until its portrait is uploaded and in that registry.
 - The portrait is how the character appears everywhere it is shown as an icon or card: the roll animation, the Index, the Backpack, the Team minibar and the starter choice. The 3D model stays for the world (runners, Dojo, plaza).
 - Sources are our own model and atlas only: no outside art.
 

@@ -3,6 +3,7 @@
 #   Blender -b --factory-startup --python tools/blender/portrait/render_portrait.py -- [<id> ...]
 # No ids: every character in src/shared/Characters that has a model, plus the review sheet assets/portraits/_all_sheet.png.
 # --sheet: also writes assets/portraits/_pilot_sheet.png of the named ids (512 and 110 px, orange and dark).
+# --sheet=<name>: also writes assets/portraits/<name>.png of the named ids (256 px, labelled).
 # --save-blend: also saves assets/characters_avatar/<id>/portrait.blend (git-ignored). Named ids only, never in bulk.
 # Writes assets/characters_avatar/<id>/portrait.png (512x512, transparent).
 # Cycles only renders raw data (atlas colour, normal, depth, part id) with no lights; the drawing is done in numpy.
@@ -67,10 +68,20 @@ def strip_ink(o):
 	bm.free()
 
 
-def frame(parts, right, up):
+def touches_frame(alpha):
+	return max(alpha[0].max(), alpha[-1].max(), alpha[:, 0].max(), alpha[:, -1].max()) > 0
+
+
+def frame(parts, right, up, crossings):
 	"""Square frame holding all of the figure above the cut: hair, hat and the full square shoulders, never cropped."""
-	world = [o.matrix_world @ v.co for o in parts for v in o.data.vertices]
-	kept = [p for p in world if p.z > CUT_Z]
+	kept = []
+	for o in parts:
+		world = [o.matrix_world @ v.co for v in o.data.vertices]
+		kept += [p for p in world if p.z > CUT_Z]
+		for a, b in (e.vertices for e in o.data.edges) if crossings else ():
+			# A flared shape (long hair, robe) is widest where it crosses the cut, not at a vertex above it.
+			if (world[a].z > CUT_Z) != (world[b].z > CUT_Z):
+				kept.append(world[a].lerp(world[b], (CUT_Z - world[a].z) / (world[b].z - world[a].z)))
 	xs = [p.dot(right) for p in kept]
 	ys = [p.dot(up) for p in kept]
 	cut_y = Vector((0, 0, CUT_Z)).dot(up)
@@ -336,7 +347,7 @@ def check(path, rgba):
 	"""Self-check: a framing or size failure stops the batch rather than ship."""
 	a = rgba[..., 3]
 	assert rgba.shape == (SIZE, SIZE, 4), rgba.shape
-	assert max(a[0].max(), a[-1].max(), a[:, 0].max(), a[:, -1].max()) == 0, f"{path}: figure touches the frame"
+	assert not touches_frame(a), f"{path}: figure touches the frame"
 	assert 0.2 < (a > 0.5).mean() < 0.95, f"{path}: coverage {(a > 0.5).mean():.2f}"
 	assert ((a > 0.02) & (a < 0.98)).mean() < 0.05, f"{path}: alpha edge not crisp"
 	assert os.path.getsize(path) < MAX_BYTES, f"{path}: {os.path.getsize(path)} bytes"
@@ -368,19 +379,26 @@ def render(cid, model, c, save_blend):
 	bpy.context.view_layer.update()
 
 	right, up, back = camera_axes()
-	cx, cy, side, edge = frame(parts, right, up)
-	setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
-	with tempfile.TemporaryDirectory() as tmp:
-		passes = render_passes(mat, sources, emit, tmp)
-
-	out, solid = draw(passes, np.array([list(right), list(up), list(back)]), side)
-	cut_row = round(SIZE * SS * (1 - edge))
-	rgba = downsample(finish(out, solid, cut_row), SIZE)
+	# Tight frame first, wider only if the figure hits it: a portrait that fits keeps its exact bytes, so no re-upload.
+	for crossings in (False, True):
+		cx, cy, side, edge = frame(parts, right, up, crossings)
+		setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
+		with tempfile.TemporaryDirectory() as tmp:
+			passes = render_passes(mat, sources, emit, tmp)
+		out, solid = draw(passes, np.array([list(right), list(up), list(back)]), side)
+		cut_row = round(SIZE * SS * (1 - edge))
+		rgba = downsample(finish(out, solid, cut_row), SIZE)
+		if not touches_frame(rgba[..., 3]):
+			break
 	rgba[..., :3] = np.round(rgba[..., :3] * 31) / 31  # flat art loses nothing at 5 bits; deflate gains a lot
 	path = portrait_path(cid)
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	write_png(path, rgba)
-	check(path, rgba)
+	try:
+		check(path, rgba)
+	except AssertionError:
+		os.remove(path)  # the uploader takes every portrait.png it finds: a failed one must not stay
+		raise
 	if save_blend:
 		bpy.context.preferences.filepaths.save_version = 0
 		bpy.ops.wm.save_as_mainfile(filepath=os.path.join(AVATARS, cid, "portrait.blend"))
@@ -442,7 +460,7 @@ def text_mask(w, h, labels):
 	return a.reshape(h, 2, w, 2).mean(axis=(1, 3))
 
 
-def all_sheet(ids, images):
+def all_sheet(ids, images, name="_all_sheet"):
 	tile, gap, label, cols = 256, 12, 26, 6
 	rows = -(-len(ids) // cols)
 	w, h = cols * (tile + gap) + gap, rows * (tile + label + gap) + gap
@@ -451,7 +469,7 @@ def all_sheet(ids, images):
 	for img, (x, y) in zip(images, cells):
 		over(out, downsample(img, tile), x, y)
 	mask = text_mask(w, h, [(cid, x + tile / 2, y + tile + 3) for cid, (x, y) in zip(ids, cells)])[..., None]
-	save_sheet(out * (1 - mask) + INK * mask, "_all_sheet.png")
+	save_sheet(out * (1 - mask) + INK * mask, name + ".png")
 
 
 def catalog():
@@ -487,6 +505,9 @@ def main():
 			raise SystemExit(f"{cid}: no model data for {model}")
 	if bulk:
 		all_sheet(done, images)
+	for a in argv:
+		if a.startswith("--sheet="):
+			all_sheet(done, images, a[8:])
 	if "--sheet" in argv:
 		sheet(images)
 

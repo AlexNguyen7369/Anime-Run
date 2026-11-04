@@ -9,6 +9,7 @@
 # resolved: GET the Decal through the asset delivery API (key needs legacy-asset:manage), download the signed location
 # (no key: other host), read the Texture url. Only resolved ids reach the registry. A failed resolve keeps the Decal in
 # the ledger, so a rerun retries the resolve and spends no upload.
+import gzip
 import glob
 import hashlib
 import json
@@ -60,6 +61,8 @@ def upload(cid, path):
 
 def image_id_in(body):
 	"""The image id inside a downloaded Decal asset (an XML model). Raises on anything else rather than guess."""
+	if body.startswith(b"\x1f\x8b"):  # the CDN sends the model gzipped
+		body = gzip.decompress(body)
 	found = TEXTURE.search(body)
 	if found:
 		return found.group(1).decode()
@@ -106,6 +109,7 @@ def self_check():
 	sample = b'<Item class="Decal"><Properties><Content name="Texture"><url>http://www.roblox.com/asset/?id=123</url></Content></Properties></Item>'
 	assert image_id_in(sample) == "123"
 	assert image_id_in(sample.replace(b"http://www.roblox.com/asset/?id=", b"rbxassetid://")) == "123"
+	assert image_id_in(gzip.compress(sample)) == "123"
 	for bad in (b"\x89PNGxx", b"<roblox!xx", b"<html>id=5</html>"):
 		try:
 			image_id_in(bad)
