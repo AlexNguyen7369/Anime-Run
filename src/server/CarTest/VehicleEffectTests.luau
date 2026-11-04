@@ -324,9 +324,16 @@ function Tests.make(helpers)
 				indexMaxJump = 0,
 			}
 			local prevIndex = run.Driver and run.Driver.Index
+			-- Time is the rail's clock (Heartbeat dt can jump with no wall-clock time). A real stall still fails: this
+			-- clock keeps growing while the chassis does not move.
+			local railStart = os.clock()
+			local railClock = railStart
+			local railConn = RunService.PreSimulation:Connect(function()
+				railClock = os.clock()
+			end)
 			while t < DRIVE_SECONDS do
 				local frameDt = RunService.Heartbeat:Wait()
-				t += frameDt
+				t = railClock - railStart
 				diag.frames += 1
 				if frameDt > diag.maxDt then
 					diag.maxDt, diag.maxDtAt = frameDt, t
@@ -373,6 +380,7 @@ function Tests.make(helpers)
 					end
 				end
 			end
+			railConn:Disconnect()
 			local speed = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
 			local wantTravel = math.max(MIN_DRIVE_DISTANCE, DRIVE_SHARE * speed * t)
 			r.metrics.drive = {

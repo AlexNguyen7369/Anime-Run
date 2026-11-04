@@ -35,7 +35,7 @@ Deliverables:
 - c5 | Track enemies and indicator (owner 2026-11-03, design doc 4.26, NPC_RIVAL_SPEC): names and indicator first, then 9 new enemy models | stylua / selene clean, `npc` + `ui_billboards` checks green, Studio screenshot of the indicator, models in game
 - c6 | Enemy showdown banners (owner 2026-11-04, design doc 4.28) | `ui_showdown` green, screenshot of both banners
 - c7 | Defeated Enemies page in the Index (owner 2026-11-04, design doc 4.29) | `ui_defeated` green, screenshot
-- c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task
+- c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task; (owner 2026-11-04) includes animated runs with aura and trails: no frame glitches or mesh bugs (`ui_run_visual`, captures reviewed)
 Out of scope: final character art, Robux products, merging into `main`.
 
 ## biomes: Full anime biome worlds for all 10 tracks (priority 1)

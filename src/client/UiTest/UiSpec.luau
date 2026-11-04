@@ -1297,7 +1297,7 @@ ui-tester on the SERVER datamodel (a client cannot: client attribute changes do 
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
   3. ReplicatedStorage:GetAttribute("UiTestSetupError") must be nil/empty, otherwise the step failed
 The client harness never changes saved state. In a full run (UiTestRun) it asks for the states its scenarios need
-itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next) through the Studio-only
+itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next, run_visual) through the Studio-only
 RemoteFunction ReplicatedStorage.UiTestSetupRequest, and puts them back after the run; every other setup is still
 triggered from the server datamodel as above. Checks
 whose state is missing fail with value "state_missing:<Id>".
@@ -1333,6 +1333,14 @@ UiSpec.ServerSetup = {
 		Id = "auto_racing",
 		When = "before UiTestRun and the showcase clicks (NPC on track, auto-rolls)",
 		What = "Puts the player in auto race (AutoRacing == true).",
+	},
+	{
+		Id = "run_visual",
+		When = "asked for by ui_run_visual itself (UiScenarios.Needs) and by UiRunVisual.Capture; the rig commands "
+			.. "run_visual_rig, run_visual_swap and run_visual_clear only reach UiTestSetupRequest",
+		What = "A straight route of its own (RunRoutes/UiRunVisualRoute) and one rig at a time built for no Player "
+			.. "(Owner = 0), with the real RunnerFactory and VehicleEffects.Apply on a Folder's slot attributes. Reads "
+			.. "and writes no Team, owned item or Money. 'restore:run_visual' removes the rig and the route.",
 	},
 	{
 		Id = "on_foot",
@@ -3583,6 +3591,62 @@ UiSpec.RunnerSmooth = {
 	MaxBadShare = 0.05, -- share of frames allowed off (frame hitches); the IVS stutter is 50 %
 	CameraSeconds = 2, -- ui_camera_follows_runner: frames watched
 	CameraMaxOffset = 8, -- studs between the camera focus and the visible runner ("within a few studs")
+}
+-- ui_run_visual (core c3, owner 2026-11-04; UiRunVisual). Measurement limits, not game values. Pose numbers (SWING, BOB,
+-- STRIDE, NINJA) are never copied here: the scenario measures them from RunnerVisual on an unparented clone.
+UiSpec.RunVisual = {
+	Route = "UiRunVisualRoute", -- Server/CarTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
+	RigPrefix = "UiRunVisualRig",
+	Meshes = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" }, -- design doc 5, RunnerFactory.PARTS without Trim
+	-- Runtime: about 40 rows x (SampleSeconds + settle + fetch) + 2 swaps; the owner's limit is about 5 minutes
+	SampleSeconds = 2, -- each row's window; at 60 fps this is 120 frames and 7 or more strides
+	MaxSeconds = 270, -- s: no new row starts after this; models_covered then fails, naming the shortfall
+	ModelsWait = 60, -- s for CharacterModels Ready (a fresh server loads 39 assets)
+	PreloadSeconds = 5, -- s at most for one model's PreloadAsync before its run starts
+	SettleSeconds = 0.3, -- s the drawn copy must not be rebuilt before its run is judged (rig parts replicate over frames)
+	FoeSpeed = 48, -- studs/s for foe_ models (no catalog cruise); the doc's NPC band `16 x 1.51^(n-1)` at n = about 4
+	ProbeSteps = 64, -- stride phases the pose is measured at per rig
+	-- Frame glitches. Root steps use UiSpec.RunnerSmooth's rule (StepTolerance, MinStepError, MaxBadShare, MinFrames)
+	BackwardTolerance = 0.01, -- studs along the route: float noise only; RunnerView's correction never turns a step back
+	-- A limb's frame change against the Torso may be JointRateFactor x (pose's largest rate x this frame's stride phase,
+	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 2: Heartbeat's clock and RunnerView's differ by up to a frame.
+	JointRateFactor = 2,
+	JointMinDegrees = 1.5,
+	JointMinStuds = 0.02,
+	-- A rest or T pose: all four limbs within RestDegrees of the Torso. A stride crosses it for 1 frame: at the slowest
+	-- cruise (19 studs/s) the cadence is 3.4 /s, so 0.36 rad per frame at 60 fps against a band of 0.05 rad.
+	RestDegrees = 1,
+	MaxRestFrames = 2,
+	-- A lost animation frame: no limb moved. The peak of a stride still moves a limb > 0.1 deg per frame at 240 fps.
+	StuckDegrees = 0.01,
+	StuckStuds = 0.001,
+	MaxStuckFrames = 2,
+	PhaseShare = 0.7, -- RightLeg's mid crossings against 2 per stride (the window's edges and hitches lose a few)
+	SwingShare = 0.8, -- RightLeg's measured swing against the pose's own (0.92 even when sampled at 30 fps)
+	-- Mesh bugs
+	ScaleTolerance = 0.01, -- studs (or model scale): sizes come from CharacterModelAssets x RunnerFactory.SCALE exactly
+	LimbBoundHips = 1.5, -- x RunnerFactory.HIP_HEIGHT: farthest limb centre from the Torso in either pose is 1 x HIP_HEIGHT
+	FootRestTolerance = 0.05, -- studs: standing, the leg box bottom is exactly on the ground (all legs are 2 studs high)
+	FootTolerance = 0.1, -- studs off the range the pose itself gives the leg box over a stride
+	FootSinkLimit = 0.35, -- studs under the ground at most: the deepest boot box (1.96 x SCALE) swung 40 deg reaches 0.13
+	-- Aura and trail. Effect radii unscaled by RunnerFactory.SCALE: known cosmetic note, not a failure.
+	AttachmentTolerance = 0.05, -- studs: VehicleEffectTests' 0.001 is too small for float noise thousands of studs out
+	OriginClear = 1, -- studs: the route is high above the origin, so an attachment this near it has lost its part
+	MinRibbonWidth = 0.05, -- studs between a trail's attachments, VehicleEffectTests MIN_RIBBON_WIDTH
+	-- Slot swap
+	SwapSeconds = 1,
+	SwapMinFrames = 15,
+	SwapMaxBadFrames = 1, -- the rebuild's frame may hitch; the distance itself carries on
+	-- Capture helper (UiRunVisual.Capture). Offsets in the runner's own space: x right, y up, forward is -z.
+	CaptureViews = {
+		front = Vector3.new(0, 0.5, -8),
+		side = Vector3.new(8, 0.5, 0),
+		back = Vector3.new(0, 0.5, 8),
+	},
+	CaptureFloor = Vector3.new(400, 1, 400),
+	CaptureSpeed = 40, -- studs/s: lays the trail, and the 12000 stud route lasts 5 minutes before it loops
+	CaptureWarmSeconds = 1.5, -- s for particles and the trail to build up on a new run
+	CaptureFrames = 3, -- rendered frames before a new view or phase counts as shown
 }
 -- Every TextLabel / TextButton in the game's ScreenGuis (not UiSpec.IgnoreGuis, not the UiTest's own) uses this font
 -- family (section 8: FredokaOne everywhere; Enum.Font.FredokaOne's FontFace family is ".../FredokaOne.json").
