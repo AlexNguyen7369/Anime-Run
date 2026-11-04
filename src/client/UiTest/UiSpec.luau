@@ -1138,19 +1138,31 @@ UiSpec.IgnoreGuis = {
 
 -- The enemy indicator (design doc 4.26, docs/NPC_RIVAL_SPEC.md): a ScreenGui that Client/NpcRacerView moves to the head
 -- each frame. Frame "Indicator" (AnchorPoint 0.5,1: its bottom middle is the arrow tip) > TextLabels "Text" and "Arrow".
+-- Frame "Pointer" (AnchorPoint 0.5,0.5) > the same TextLabels: shown instead while the head is off screen.
 UiSpec.Guis.NpcIndicator = {
 	Source = "Client/NpcRacerView",
 	Buttons = {},
 	NonInteractive = true,
 	ScreenInsets = "None", -- its Position is in viewport pixels
 	Frame = "Indicator",
+	Pointer = "Pointer",
 	Label = "Text", -- NpcConfig.For(track).Label
 	Arrow = "Arrow",
 	GapStuds = 0.4, -- NpcRacerView INDICATOR_GAP: the arrow tip above the top of the head
-	Samples = 30, -- frames sampled with the head in front of the camera
+	Samples = 30, -- frames sampled in each state: head on screen, in front but outside the view, behind the camera
 	SampleStep = "UiTestNpcIndicatorSample", -- temporary BindToRenderStep name
-	FrontWait = 15, -- s: sampling stops here; no front sample at all reports state_missing, not a pass
+	CameraStep = "UiTestNpcIndicatorCamera", -- temporary BindToRenderStep name
+	CameraOffset = Vector3.new(0, 6, 20), -- studs: the test camera from the enemy's head
+	CameraDistances = { 15, 80, 600 }, -- studs, a third of the sweep frames at each, repeating
+	FarDistance = 500, -- studs: samples this far prove there is no distance limit
+	SweepX = 0.7, -- share of the half screen the head sweeps over
+	SweepY = 0.6,
+	OutsideView = 1.2, -- how far past the view's corner the head sits when in front of the camera
+	MinSpread = 150, -- px: the arrow tip must cover this on screen across the samples
+	PointerMargin = { Side = 175, Top = 60, Bottom = 175, Tolerance = 3 }, -- NpcRacerView POINTER_MARGIN, px
+	FrontWait = 15, -- s per state: sampling stops here; no sample at all reports state_missing, not a pass
 	PositionTolerance = 12, -- px, median of the samples: allows one frame of lag on a moving enemy
+	AimTolerance = 5, -- degrees, worst sample: the pointer's arrow against the enemy's direction on screen
 }
 
 UiSpec.Billboards = {
