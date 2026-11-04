@@ -70,8 +70,9 @@
 67. 2026-11-04 — Alex Nguyen — Landed up to 3 copies of each aura and trail with the Market and Backpack UI changes, slot_items 21 and vehicle_effects 130 fail=0, ui_market 100 checks fail=0 at 0, 1 and 3 copies, rules audit not run.
 68. 2026-11-04 — Alex Nguyen — Wrote UI feedback rules (design doc 4.33, UI_FEEDBACK_SPEC) and a live UI and SFX audit with 34 ranked findings (ui-juice u0).
 69. 2026-11-04 — Alex Nguyen — Fixed ui-juice audit findings on Equip cue timing, Daily rebuilds, Index slot 1 rule, Denied on disabled buttons, DEFEATED Burst, single roll shake, Duel toasts and checkpoint Fly; not run in Studio.
+70. 2026-11-04 — Alex Nguyen — Verified ui-juice in Studio (14 targeted scenarios fail=0, sound lengths measured) and fixed cue loudness, raw potion ids in the Quest claim reply, empty-state Stats bars, the VS banner truncating, the race map row under Quests and the Rebirth reply overflow.
 
 ## What's next
-**Run the ui-juice stage in Studio: targeted UI checks on the audit fixes, then the owner's listen pass.**
+**Owner's listen pass on the ui-juice cues, and a ruling on the enemy pointer crossing the race map.**
 
-**Why this is next:** none of the audit fixes has run in Studio, and landing ui-juice depends on that check.
+**Why this is next:** every cue volume comes from measured loudness and nobody has heard them, and landing ui-juice depends on that check.

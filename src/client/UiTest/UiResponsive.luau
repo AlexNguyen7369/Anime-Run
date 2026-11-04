@@ -143,7 +143,7 @@ local generated = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
 				Position = UDim2.fromOffset(8, 236),
-				Size = UDim2.fromOffset(170, 22),
+				Size = UDim2.fromOffset(124, 22),
 				TextSize = 13,
 				Visible = true,
 			},
@@ -158,8 +158,8 @@ local generated = {
 		["RacerHud/RaceMap/RaceMapPB"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(180, 236),
-				Size = UDim2.fromOffset(164, 22),
+				Position = UDim2.fromOffset(134, 236),
+				Size = UDim2.fromOffset(124, 22),
 				TextSize = 13,
 				Visible = true,
 			},

@@ -73,43 +73,43 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 
 | moment | trigger file:line | current motion | proposed motion | cue | sound slot | vol | frequency |
 |---|---|---|---|---|---|---|---|
-| panel open | `PanelSwitch.luau:180` | scale or slide, list Cascade | keep + Fade | `PanelOpen` | Whoosh | 0.15 | often |
+| panel open | `PanelSwitch.luau:180` | scale or slide, list Cascade | keep + Fade | `PanelOpen` | Whoosh | 0.3 | often |
 | panel close | `PanelSwitch.luau:212` | scale 0.95 or instant | Fade | `PanelClose` | none (press tick) | - | often |
 | tab switch | `InventoryTabs.luau:17`, `MarketUi:520`, `BackpackUi:483`, `BoostDailyUi:522` | Mark | Mark | `TabSwitch` | Tap | 0.2 | often |
-| purchase Shop | `ShopUi:216` prompt; no success handler found | none | Pop on the card | `ShopBought` | Chime | 0.5 | rare |
-| purchase Market | `MarketUi:482-493` | status slide | Impact on BUY + Fly of the cost | `MarketBought` | Coin | 0.45 | often |
+| purchase Shop | `ShopUi:216` prompt; no success handler found | none | Pop on the card | `ShopBought` | Chime | 2.5 | rare |
+| purchase Market | `MarketUi:482-493` | status slide | Impact on BUY + Fly of the cost | `MarketBought` | Coin | 1.35 | often |
 | equip | `BackpackUi:448`, `:457`, `MarketUi:503`, `RacerUiController:656` | tile Pop on select; no answer motion | Pop on slot | `Equip` | Thunk | 0.3 | often |
-| upgrade node | `ProgressionUi:312` | label size change | Impact on the node | `UpgradeBought` | Coin (replaces `electronicpingshort`, existing, at 0.3) | 0.4 | often |
-| denied | `ProgressionUi:313-316`, `MarketUi:489`, `BoostDailyUi:474` | rotate -3 on node; red text elsewhere | Shake | `Denied` | Denied | 0.35 | often |
-| Daily claim | `BoostDailyUi:463-471` | status slide | Slam on the day tile + Burst (rewards are potions, no coins) | `DailyClaim` | Chime | 0.6 | rare |
-| Quest claim | `BoostDailyUi:589-596` | status slide | Pop on row + Shine + Burst | `QuestClaim` | Chime | 0.45 | often |
+| upgrade node | `ProgressionUi:312` | label size change | Impact on the node | `UpgradeBought` | Coin (replaces `electronicpingshort`, existing, at 0.3) | 1.2 | often |
+| denied | `ProgressionUi:313-316`, `MarketUi:489`, `BoostDailyUi:474` | rotate -3 on node; red text elsewhere | Shake | `Denied` | Denied | 1.05 | often |
+| Daily claim | `BoostDailyUi:463-471` | status slide | Slam on the day tile + Burst (rewards are potions, no coins) | `DailyClaim` | Chime | 3 | rare |
+| Quest claim | `BoostDailyUi:589-596` | status slide | Pop on row + Shine + Burst | `QuestClaim` | Chime | 2.25 | often |
 | Rebirth | `RacerUiController:489-496` | button text only | Slam + Burst + Shake | `Rebirth` | Boom | 0.8 | rare |
 | toggle | `RacerUiController:254` | snap | Mark on the knob | `Toggle` | Tap | 0.2 | often |
 | roll slot tick | `RollToast/init:1165-1173` | swap Pop | keep | `RollTick` | none by default; Tap at 0.05 only on emphasized rolls | 0.05 | constant, FLAG |
 | roll land Common, Uncommon | `init:1180-1187`, `landEffects:1000` | Pop + thin ring | keep | `RollLand1` | none | - | constant, FLAG |
 | roll land Rare | same | thicker ring | keep | `RollLand2` | Tap | 0.15 | often |
 | roll land Epic | `init:1017` | + pulsing ring | Pop | `RollLand3` | Thunk | 0.35 | often |
-| roll land Legendary | `init:1029-1037` | + gold swell, Shake | Impact without its Shake (no shards); the existing Shake stays | `RollLand4` | Crack | 0.6 | rare |
+| roll land Legendary | `init:1029-1037` | + gold swell, Shake | Impact without its Shake (no shards); the existing Shake stays | `RollLand4` | Crack | 0.36 | rare |
 | roll land Mythic | `init:1038` | + light sweep | Shine; Shake stays on the figure, not in the cue | `RollLand5` | Boom | 0.7 | rare |
 | Secret takeover | `init:1044-1058` | dark screen + title + fade | Slam on the title + Shake | `RollSecret` | Boom + Chime | 0.9 | rare |
 | VS banner | `EnemyShowdown:133-146` | Fade + SlideIn | Slam | `EnemyVs` | Slash | 0.5 | often |
-| DEFEATED | `EnemyShowdown:133-146` (won) | same as VS | Slam + Burst + Mark portrait | `EnemyDefeated` | Crack | 0.7 | often |
+| DEFEATED | `EnemyShowdown:133-146` (won) | same as VS | Slam + Burst + Mark portrait | `EnemyDefeated` | Crack | 0.42 | often |
 | enemy passes | `RaceProgressMap:278` | pill recolours; no moment exists | Pop on the pill | `EnemyPass` | none for behind; Tap for you pass | 0.15 | often |
 | loser recap ribbon | `NpcRacerView:277`, `:302` | SlideIn + Shake | Impact | `LoseRibbon` | Thunk | 0.6 | often |
 | loser recap rows | `NpcRacerView:309-315` | staggered SlideIn | keep | `LoseRow` | none on rows; Tap at 0.1 on Gap only | 0.1 | often |
 | money gain small | `RacerUiController:823` | Pop + Float | keep; no threshold today | `MoneySmall` | none | - | constant, FLAG |
-| money gain big | `RacerUiController:823` (new threshold) | same | Fly | `MoneyBig` | Coin | 0.4 | often |
-| turbo | `RacerUiController:759-763` | label Pop + Shine | Pop + Fill + Shine (no Burst, it lands inside a roll) | `Turbo` | Crack | 0.35 | often |
-| team tag-in | `TeamToast:54`, `TeamHud:448` | toast slide + circle scale | Pop on circle | `TagIn` | Whoosh | 0.25 | often |
+| money gain big | `RacerUiController:823` (new threshold) | same | Fly | `MoneyBig` | Coin | 1.2 | often |
+| turbo | `RacerUiController:759-763` | label Pop + Shine | Pop + Fill + Shine (no Burst, it lands inside a roll) | `Turbo` | Crack | 0.21 | often |
+| team tag-in | `TeamToast:54`, `TeamHud:448` | toast slide + circle scale | Pop on circle | `TagIn` | Whoosh | 0.5 | often |
 | team exhausted (added) | `TeamToast:56` | toast slide | Shake on the Team row | `Exhausted` | Thunk | 0.4 | often |
 | badge new | `HudChrome:327-331`, `:344` | Pop, ring pulse | keep | `BadgeNew` | Tap only when count grows from 0; else none | 0.1 | often |
 | toast low (status, code answers) | `BoostDailyUi:241`, `ShopUi:500` | SlideIn | Fade | `ToastLow` | none | - | often |
-| toast medium (biome welcome) | `BiomeWelcome:44` | fade + Back | keep | `ToastMid` | Whoosh | 0.2 | often |
+| toast medium (biome welcome) | `BiomeWelcome:44` | fade + Back | keep | `ToastMid` | Whoosh | 0.4 | often |
 | toast high (duel result) | `DuelUi:279-290` | Fade + SlideIn + Pop | SlideIn + Slam, results only; cancel toasts are `ToastLow` | `ToastHigh` | Thunk | 0.5 | rare |
-| checkpoint bonus | `CheckpointBonusPopup:42`, `:72` | fade + Back | Pop + Fly if it pays | `CheckpointBonus` | Chime | 0.4 | often |
-| starter pick | `StarterPick:148`, `ArrivalFlow:226` | panel Pop; in-world reveal | Slam on card | `StarterPick` | Crack | 0.6 | rare |
+| checkpoint bonus | `CheckpointBonusPopup:42`, `:72` | fade + Back | Pop + Fly if it pays | `CheckpointBonus` | Chime | 2 | often |
+| starter pick | `StarterPick:148`, `ArrivalFlow:226` | panel Pop; in-world reveal | Slam on card | `StarterPick` | Crack | 0.36 | rare |
 | duel countdown | `DuelUi:241` | not read in detail | Pop per number | `DuelTick` | Tap | 0.3 | rare |
-| duel invite | `DuelUi:223` | panel open | Pop | `DuelInvite` | Chime | 0.4 | rare |
+| duel invite | `DuelUi:223` | panel open | Pop | `DuelInvite` | Chime | 2 | rare |
 | duel result win / lose | `DuelUi:353` via `:279` | toast | Slam + Burst on win, Shake on lose | `DuelWin`, `DuelLose` | Boom, Thunk | 0.7, 0.5 | rare |
 
 Existing sound found outside this table: biome ambience (`BiomeEnvironment`, `BiomeAmbience`), left as it is. No sound exists today for any other moment above.

@@ -155,7 +155,8 @@ function show(event)
 		-- Measured, not TextBounds: right before the first render, under any UIScale.
 		width = math.max(width, TextService:GetTextSize(text.Text, text.TextSize, text.Font, Vector2.new(1e4, 100)).X)
 	end
-	banner.Size = UDim2.fromOffset(math.min(BANNER_W, TEXT_LEFT + width + TEXT_RIGHT), BANNER_H)
+	-- Rounded up: an offset size floors, and half a pixel short truncates the line.
+	banner.Size = UDim2.fromOffset(math.min(BANNER_W, math.ceil(TEXT_LEFT + width + TEXT_RIGHT)), BANNER_H)
 	banner.Position = HOME -- a banner replaced mid-slide must not start from the old one's position
 	fade(title, true)
 	UiMotion.SlideIn(banner, Vector2.new(0, -24), 0.2)

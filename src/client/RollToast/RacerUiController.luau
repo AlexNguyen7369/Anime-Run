@@ -515,6 +515,14 @@ local function playRebirthMoment()
 		end
 	end)
 end
+-- The reply ("REBIRTH COMPLETE", a server message) is wider than the button at its resting size: it shrinks to fit.
+local rebirthCaption = rebirth.RebirthButton:FindFirstChild("RebirthButtonLabel", true)
+if rebirthCaption then
+	local captionSize = Instance.new("UITextSizeConstraint")
+	captionSize.MaxTextSize = rebirthCaption.TextSize
+	captionSize.Parent = rebirthCaption
+	rebirthCaption.TextScaled = true
+end
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
@@ -755,8 +763,13 @@ local function refreshStats()
 		allocations[stat] = player:GetAttribute("Alloc_" .. stat) or 0
 	end
 	local multis = config.Multis(allocations)
+	local earned = free
+	for _, points in allocations do
+		earned += points
+	end
 	for stat, row in pairs(rows) do
 		local available = free > 0
+		row.Frame.Accent.Fill.Size = UDim2.fromScale(earned > 0 and allocations[stat] / earned or 0, 1)
 		row.Value.Text = string.format(
 			"%d pts  %s  >  %s",
 			allocations[stat],

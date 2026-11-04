@@ -541,11 +541,19 @@ function Components.BakeStats(refs, config)
 			Name = "Accent",
 			Position = UDim2.fromOffset(80, 58),
 			Size = UDim2.new(1, -244, 0, 11),
-			BackgroundColor3 = colour,
+			BackgroundColor3 = Color3.fromRGB(205, 209, 217),
 			BorderSizePixel = 0,
 			ZIndex = 4,
 		}, row)
 		round(accent)
+		-- This stat's share of all earned points: empty at 0 points (RacerUiController refreshStats).
+		round(make("Frame", {
+			Name = "Fill",
+			Size = UDim2.fromScale(0, 1),
+			BackgroundColor3 = colour,
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, accent))
 		local value = label(
 			row,
 			"Value",
