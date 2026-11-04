@@ -775,11 +775,11 @@ UiSpec.Band = {
 	-- the old 240x160 floor pushed panels over the Race button on short phones, e72e9fc).
 }
 
--- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): at viewport height <= StackMaxHeight the Items / Upgrade
+-- Owner 2026-10-28 (design doc 4.27): at viewport height <= StackMaxHeight the Items / Upgrade
 -- pair stacks ABOVE the LEVEL bar (both bottoms at or above the Level top and the Money top) and overlaps none of
 -- Clear; elsewhere it stays beside the bars (Items right edge = bars left - SlotGap, Upgrade left = bars right +
--- SlotGap, icon centre on the gap between Level and Turbo) and on desktop (height > 500) the pair is never shrunk
--- (pair UIScale = BottomScale exactly). Expected rects at 667x375 from the brief (screen pixels, +-Tol).
+-- SlotGap, icon centre on the gap between Level and Turbo). On desktop the pair is never shrunk (pair UIScale =
+-- BottomScale exactly); tablet_4x3 may shrink (design doc 4.27). Expected rects at 667x375 from the brief (screen pixels, +-Tol).
 UiSpec.HudPair = {
 	-- The slot holders (one CELL each, scaled by their UIScale "Scale"), not the buttons inside
 	Items = "HudChrome/ItemsSlot",

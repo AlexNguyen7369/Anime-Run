@@ -782,8 +782,8 @@ function Contracts.Build(h)
 		end
 	end
 
-	-- Design doc 4.21: the popup offers exactly the 3 starters, opens only for a player who has to pick, and sits inside
-	-- every viewport. Structure only: a pick would spend the save's one choice (CarTest Phase2Tests covers the server).
+	-- Design doc 4.21: the popup offers exactly the 3 starters and opens only for a player who has to pick.
+	-- Structure only: a pick would spend the save's one choice (CarTest Phase2Tests covers the server).
 	function scenarios.ui_starter_pick(res)
 		local gui = required(res, "StarterPick", "ScreenGui")
 		local cards = required(res, "StarterPick/Dim/Panel/Cards", "Frame")
