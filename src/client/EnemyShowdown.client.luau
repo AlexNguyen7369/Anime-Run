@@ -17,7 +17,7 @@ local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
 -- All placeholders (design doc 4.28).
 local BANNER_W, BANNER_H = 460, 100 -- px
-local HOME = UDim2.fromScale(0.5, 0.42) -- below BiomeWelcome (y 0.22) and CheckpointBonusPopup (y 0.3)
+local HOME = UDim2.fromScale(0.5, 0.62) -- placeholder: under the runner, above the team row
 local VS_SECONDS = 1.6
 local DEFEATED_SECONDS = 1.4
 -- RaceService sends a win and the next track's Start in the same frame: the defeat stays this long before VS replaces it.
