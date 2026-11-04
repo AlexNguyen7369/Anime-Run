@@ -1,5 +1,5 @@
 # Target look for jk_shadows (design doc section 5): a big black urchin of spikes with a blue sheen, messy fringe, narrow calm
-# teal eyes, plain dark high-collar uniform with gold spiral buttons, dark shoes. Drawn in-house.
+# teal eyes, plain dark high-collar uniform with gold pinwheel buttons, dark shoes. Drawn in-house.
 from atlas import shade
 from jk_common import brow2, eye2
 from jk_style3 import GOLD, NAVY, SOLE, Kit, big_head, block, button, collar, crown, dress_shoe, face_base, finish, gem, head_rest, jacket, sleeve, spray, stroke, swirl_art, trouser
