@@ -29,6 +29,7 @@ Nothing car-shaped stays in the game:
   interpolating along the path from the server's distance and speed, so players see no stutter. The IVS
   `rail_never_snaps` check is replaced by a client-side smoothness check.
 - Run animation is procedural and client-side (limb swing and bob from speed); it never changes the server pose.
+  A character's optional `RunStyle` replaces the default swing and may add a client-side particle effect (design doc 4.23).
 - The player's avatar is hidden while racing, as before; the Humanoid stays for camera and respawn.
 - Auras and trails attach to the runner's Torso instead of the car.
 - Kept from IVS: exact cruise speed at once on every start / checkpoint / restart, stays within

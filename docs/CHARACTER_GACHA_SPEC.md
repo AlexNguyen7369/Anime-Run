@@ -20,7 +20,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Series` | id of the character's series in `Shared/SeriesCatalog` (design doc 4.8) |
 | `Archetype` | ninja, swordsman, mage, brawler, idol, mecha pilot, beast-kin, gunslinger, monk, spirit |
 | `Model` | name under `ReplicatedStorage.CharacterModels`; nil shows the "?" placeholder |
-| `RunStyle` | animation set: `Sprint`, `NinjaRun`, `Glide`, `Float` |
+| `RunStyle` | optional animation set: `Sprint`, `NinjaRun`, `Glide`, `Float`; nil = the default swing. Only `NinjaRun` is built (design doc 4.23) |
 | `Event` | optional: `rain`, `night` or `gold`; the character is rollable only during that weather event (IVS `WEATHER_EVENTS_SPEC.md`) |
 
 - `starter` is built in: not rollable, not in the Index, `Balanced`, no Series. Kept for old saves.

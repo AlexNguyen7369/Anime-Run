@@ -44,7 +44,7 @@ local PICKS = {}
 for id, row in
 	{
 		starter_sea = { "Ruffy", "sea_captain" },
-		starter_leaf = { "Karate Kid", "leaf_hero" },
+		starter_leaf = { "Karate Kid", "leaf_hero", "NinjaRun" },
 		starter_db = { "Sayan", "db_hero" },
 	}
 do
@@ -57,6 +57,7 @@ do
 		Order = 0,
 		Category = "Balanced",
 		Model = row[2],
+		RunStyle = row[3],
 		Rollable = false,
 	}
 end
