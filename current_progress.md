@@ -66,8 +66,9 @@
 62. 2026-11-04 — Alex Nguyen — Replaced the fork's Market with an in-house stall and cut plaza Legends to two beside the Race Start gate, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 64. 2026-11-04 — Alex Nguyen — Added drawn portraits and head art for all 44 rollable characters, uploaded them and used them in the roll, Index, Enemies page, Backpack, starter cards, showdown banner and Team minibar; the character build now draws them; targeted scenarios green and rules audit PASS.
 65. 2026-11-04 — Alex Nguyen — Merged the integration branch into main through PR #2 on the owner's word, with the compatibility check on hold and the plaza asset IP signatures waived for this merge.
+66. 2026-11-04 — Alex Nguyen — Viewed all 9 redesigned villains in game on a test save and confirmed all 10 track enemies resolve to drawn portrait art in the UI.
 
 ## What's next
-**Run the full compatibility check c3 when the owner says so, including merging `orch/core/c3t` first.**
+**Land the aura and trail copies work (up to 3 copies, Market and Backpack UI) on `feature/alex/anime-world`, then bring it to `main` through a reviewed PR.**
 
-**Why this is next:** the owner put it on hold, and it is the remaining check on everything merged to main.
+**Why this is next:** the owner approves the c3 compatibility check only after all changes are in one place on `main`.

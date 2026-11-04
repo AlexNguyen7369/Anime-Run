@@ -4,7 +4,6 @@
 - c3 full compatibility check: on hold until the owner says so (2026-11-04); then rerun full server + UI harness to fail=0, rules audit
 
 ## Next
-- Make the remaining track villains rollable characters (owner)
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
