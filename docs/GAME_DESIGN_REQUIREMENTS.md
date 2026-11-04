@@ -338,6 +338,15 @@ the owner before any Studio work (owner 2026-11-03).
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
 
+### 4.25 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
+- Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
+  and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
+- The player sees one enemy at a time: the one they are racing now.
+- A large indicator (the enemy's name over a down arrow) sits above the enemy's head and follows it. It has no distance
+  limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy: it is not clamped
+  to the screen edge when the enemy is off screen. Pixel size is a placeholder.
+- Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -402,6 +411,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.25).
 - 2026-11-03: orchestrator default, for the owner's fresh-save test: Studio-only `TestSaveKey` test saves (4.24).
 - 2026-11-03: orchestrator default (owner delegated, awaiting review): the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
 - 2026-11-03: orchestrator default (owner delegated, awaiting review): a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).

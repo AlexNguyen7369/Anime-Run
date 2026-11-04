@@ -5,7 +5,8 @@
 --   2 arms, 2 legs) with no wheels / VehicleSeat / suspension, anchored and moved by RaceService along the race path:
 --   upright (up Y >= 0.999) on every track at a normal (Epic) and a max (Secret) character cruise, on the path
 --   (deviation <= PhysicsTargets.race.MaxPathDeviation), at exactly its cruise speed from the first second, every pad
---   paid once. A BillboardGui shows the character's name (finite MaxDistance). Auras and trails attach to the Torso.
+--   paid once. A BillboardGui shows the character's name (finite MaxDistance; an NPC's indicator has no limit, design
+--   doc 4.25). Auras and trails attach to the Torso.
 -- `scrap` (section 1 + 7): no CarFactory / CarPhysics / CarConfig, no VehicleSeat or wheel parts, no car assets
 --   (RacingGarage, RaceStartPavilion, CarModels), no car-only PhysicsTargets, no `Cars` collision group (`Runners`).
 -- Test seam (not named by the spec): Shared/RunnerFactory.build(characterId) -> Model (PrimaryPart set), the body
@@ -238,7 +239,15 @@ function Tests.runner()
 	if okNpc then
 		local npcShape = checkRig(flag, "npc_", npc)
 		flag("npc_same_rig", npcShape.key == playerShape.key and #playerShape.arms == 2)
-		flag("npc_name_label", nameLabel(npc, nil))
+		local indicator = npc:FindFirstChild("NpcLabel")
+		local indicatorText = indicator and indicator:FindFirstChild("Text")
+		flag(
+			"npc_name_label",
+			indicator ~= nil
+				and indicator.MaxDistance == math.huge
+				and indicatorText ~= nil
+				and indicatorText.Text == NpcConfig.For(1).Label
+		)
 		metrics.npc_rig = npcShape.key
 		npc:Destroy()
 	end

@@ -1106,7 +1106,14 @@ UiSpec.Billboards = {
 		MaxDistance = "TrackBuilder.WIN_TEXT_DISTANCE",
 		Text = "HudFormat.MoneyText(Cash)",
 	},
-	NpcLabel = { Label = "Text", MaxDistance = "NpcConfig.LABEL_DISTANCE", Text = "NpcConfig.For(track).Label" },
+	-- The enemy indicator (design doc 4.25): name over arrow, no distance limit, draws over the world
+	NpcLabel = {
+		Label = "Text",
+		Arrow = "Arrow",
+		MaxDistance = "math.huge",
+		AlwaysOnTop = true,
+		Text = "NpcConfig.For(track).Label",
+	},
 	-- Mechanical Workshop (docs/WORKSHOP_SPEC.md section 2): Workspace.Workshops.Plot_1..PLOT_COUNT
 	WorkshopSign = {
 		Path = "Base/Sign", -- BillboardGui, label "Text"

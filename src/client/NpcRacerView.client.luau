@@ -11,7 +11,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
-local CharacterCatalog = require(Shared.CharacterCatalog)
 local RouteMath = require(Shared.RaceProgressMap)
 local TrackRegistry = require(Shared.TrackRegistry)
 local UiTheme = require(Shared.UiTheme)
@@ -176,14 +175,6 @@ local function backToText(s)
 	return s == 1 and "Back to the start" or ("Back to checkpoint %d"):format(s)
 end
 
-local function npcLabel(track)
-	local info = NpcConfig.For(track)
-	local o = NpcConfig.Tracks[info.Number]
-	local car = o and o.Model and CharacterCatalog.Get(o.Model)
-	local carName = car and car.Name or (o and o.Model)
-	return carName and ("%s · %s"):format(info.Label, carName) or info.Label
-end
-
 local loseToken = 0
 local shownAt = 0
 local drain = nil
@@ -198,10 +189,10 @@ local function showLoser(event)
 	local track = tonumber(event.Track) or 1
 	local mine, theirs = tonumber(event.PlayerTime), tonumber(event.NpcTime)
 	local best = tonumber(event.BestTime) or lastBest[track]
-	npcName.Text = npcLabel(track)
+	npcName.Text = NpcConfig.For(track).Label
 	trackTitle.Text = ("TRACK %d · %s"):format(track, string.upper(trackNames[track] or "RACE"))
 	yourTime.Text = "YOUR TIME " .. (mine and RouteMath.FormatTime(mine) or "--")
-	npcTime.Text = "NPC TIME " .. (theirs and RouteMath.FormatTime(theirs) or "--")
+	npcTime.Text = "ENEMY TIME " .. (theirs and RouteMath.FormatTime(theirs) or "--")
 	gap.Text = (mine and theirs) and ("+%.2fs"):format(math.max(0, mine - theirs)) or ""
 	pb.Text = best and "PB " .. RouteMath.FormatTime(best) or "PB --"
 	backTo.Text = backToText(runStart or 1)

@@ -5548,8 +5548,8 @@ local function loserRecapChecks(res, rec)
 			res,
 			"loser_npc_name",
 			npcName,
-			("contains %q, never %q"):format(label, L.Generic),
-			npcName ~= nil and npcName ~= "" and not string.find(npcName, L.Generic, 1, true) and has("NpcName", label)
+			("exactly %q, never %q"):format(label, L.Generic),
+			npcName == label and not string.find(npcName, L.Generic, 1, true)
 		)
 	else
 		check(res, "loser_npc_name", npcName, "present", npcName ~= nil)
@@ -5810,13 +5810,17 @@ function S.ui_billboards(res)
 		want = start.Label
 	end
 	check(res, "npc_label_text", text and text.Text, want, text ~= nil and text.Text == want)
+	-- the indicator (design doc 4.25): no distance limit, draws over the world, the name over an arrow
 	check(
 		res,
 		"npc_label_max_distance",
-		bb and bb.MaxDistance,
-		NpcConfig.LABEL_DISTANCE,
-		bb ~= nil and bb.MaxDistance == NpcConfig.LABEL_DISTANCE
+		bb and tostring(bb.MaxDistance),
+		"no limit (math.huge)",
+		bb ~= nil and bb.MaxDistance == math.huge
 	)
+	check(res, "npc_label_always_on_top", bb and bb.AlwaysOnTop, true, bb ~= nil and bb.AlwaysOnTop == true)
+	local arrow = bb and bb:FindFirstChild("Arrow")
+	check(res, "npc_label_arrow", arrow and arrow.ClassName, "TextLabel", arrow ~= nil and arrow:IsA("TextLabel"))
 	check(res, "npc_label_not_clickable", bb and bb.Active, false, bb ~= nil and not bb.Active and #buttonsIn(bb) == 0)
 end
 

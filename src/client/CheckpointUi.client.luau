@@ -269,8 +269,10 @@ local function render()
 	status.BackgroundColor3 = open and UiTheme.Palette.MoneyDeep or UiTheme.Palette.DangerDeep
 	lengthLabel.Text = "LENGTH " .. HudFormat.SpeedText(math.floor(refs.Length + 0.5)) .. " studs"
 	-- shortcut: times are length / speed; the NPC slows on tight corners, so its real time can be a little longer
-	local npc = NpcConfig.For(shown).Speed
-	rival.Text = string.format("NPC RIVAL %d studs/s · about %s", math.floor(npc + 0.5), seconds(refs.Length / npc))
+	local enemy = NpcConfig.For(shown)
+	local npc = enemy.Speed
+	rival.Text =
+		string.format("%s %d studs/s · about %s", enemy.Label, math.floor(npc + 0.5), seconds(refs.Length / npc))
 	local cruise = tonumber(player:GetAttribute("Cruise")) or 0
 	you.Text = cruise > 0
 			and string.format(
