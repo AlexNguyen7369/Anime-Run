@@ -1,7 +1,6 @@
 # Target look for ds_hero (design doc section 5): big head, dark red faceted spikes with bright tips, hanging card earrings,
 # forehead scar, green and black check coat over a black uniform with a white belt, white leg wraps, sandals, sword at the hip.
 from atlas import FACES, SIZE
-from leaf_common import ell
 from ds_style3 import block, cap, checks, coat, eye, gem, katana, sandal, skin_head, spread, stroke, uniform, wrapped_leg
 from style2 import Kit, Ramps
 from style3 import big_head, finish
@@ -104,13 +103,13 @@ def paint(a):
 	stroke(f, [(50, 102), (58, 105), (66, 106), (74, 105), (82, 101)], 1.3, "#6e2a26")
 	skin_head(a, SKIN, "#cf8d66")
 	checks(a["Torso_F"], 0.4, "#1f9a66", "#101016")
-	# the earring: white card, red sun, rays below; lives in Head_T under the hair
+	# the earring: white card, red crescent, two chevrons below; lives in Head_T under the hair
 	f = a["Head_T"]
 	sx, sy = f.w / FACES["Head_T"][2], f.h / FACES["Head_T"][3]
 	cx, cy, cw, chh = CARD
 	X0, Y0, W, H = cx * sx, cy * sy, cw * sx, chh * sy
 	f.path(f"M{X0} {Y0}H{X0 + W}V{Y0 + H}H{X0}Z", "#fbf8ee")
-	f.path(ell(X0 + W / 2, Y0 + H * 0.3, W * 0.32, H * 0.13), "#d6281e")
-	for i in range(-2, 3):
-		d = i * W * 0.17
-		f.path(f"M{X0 + W / 2 + d} {Y0 + H * 0.48}L{X0 + W / 2 + d * 1.6} {Y0 + H * 0.94}", stroke="#d6281e", sw=W * 0.09)
+	mx, l, r = X0 + W / 2, X0 + W * 0.14, X0 + W * 0.86
+	f.path(f"M{l} {Y0 + H * 0.12}Q{mx} {Y0 + H * 0.6} {r} {Y0 + H * 0.12}Q{mx} {Y0 + H * 0.3} {l} {Y0 + H * 0.12}Z", "#d6281e")
+	for t in (0.5, 0.72):
+		f.path(f"M{l} {Y0 + H * t}L{mx} {Y0 + H * (t + 0.16)}L{r} {Y0 + H * t}", stroke="#d6281e", sw=W * 0.12)
