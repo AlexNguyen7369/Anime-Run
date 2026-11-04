@@ -6,8 +6,8 @@
 local CheckpointConfig = {}
 
 CheckpointConfig.PICK_COOLDOWN = 0.5 -- seconds between accepted SetCheckpoint calls per player
-CheckpointConfig.NPC_POS = Vector2.new(49.9, -38.6) -- hub-local (x, z): the sensei, by the path near the start gate (design doc 4.24)
-CheckpointConfig.NPC_FACE = Vector2.new(118, -80) -- hub-local point the NPC faces (the plaza centre)
+CheckpointConfig.NPC_POS = Vector2.new(46, -35) -- hub-local (x, z): the sensei ends the service row (WORLD_REDESIGN_SPEC 7)
+CheckpointConfig.NPC_FACE = Vector2.new(118, -35) -- hub-local point the NPC faces (+x, as the rest of the row)
 CheckpointConfig.PROMPT_DISTANCE = 10
 CheckpointConfig.TEXT_DISTANCE = 80
 CheckpointConfig.BONUS_PER_TRACK = 0.1 -- placeholder: +10% pad cash per track past the checkpoint in one run

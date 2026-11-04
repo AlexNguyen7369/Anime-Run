@@ -48,11 +48,10 @@
   "Tris": 2786
  },
  "GreatSakura": {
-  "Asset": "130972802243412",
-  "Hash": "9a62d39967180233",
+  "Asset": "81417765020310",
+  "Hash": "a833b505a834aa3d",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 2128
  },
  "HeroTorii": {
@@ -128,52 +127,46 @@
   "Tris": 216
  },
  "LegendPedestal": {
-  "Asset": "129557357072898",
-  "Hash": "515bcdab4dd128b8",
+  "Asset": "101436028319012",
+  "Hash": "b1ba797a70939f81",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "LegendPedestalx": {
-  "Asset": "78778611054535",
-  "Hash": "f36bf413331595fb",
+  "Asset": "120745633279878",
+  "Hash": "9537e6559d2f68b0",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "LegendPedestalxx": {
-  "Asset": "123490759702534",
-  "Hash": "9eee4d62195bffe3",
+  "Asset": "108800207329925",
+  "Hash": "a911d10c7e3e2c93",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "LegendPedestalxxx": {
-  "Asset": "81518942480349",
-  "Hash": "6d6c7443ce07037e",
+  "Asset": "121967334967009",
+  "Hash": "0fa567a59f62e983",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "LegendPedestalxxxx": {
-  "Asset": "90953900731602",
-  "Hash": "87911944685dfbb3",
+  "Asset": "134765580259032",
+  "Hash": "b8c750a3a938fb94",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "LegendPedestalxxxxx": {
-  "Asset": "119720624665371",
-  "Hash": "1876c0806401ebf5",
+  "Asset": "130736918087406",
+  "Hash": "7e0df73290060445",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
-  "Tris": 156
+  "Tris": 112
  },
  "MainPath": {
   "Asset": "108055621203106",
@@ -190,6 +183,13 @@
   "Lane": "B",
   "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 280
+ },
+ "MarketSign": {
+  "Asset": "90566703075659",
+  "Hash": "ab3b4cdff7d87a67",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 48
  },
  "POTIONSStall": {
   "Asset": "90249957543522",
@@ -272,11 +272,10 @@
   "Tris": 1072
  },
  "SkyLoop": {
-  "Asset": "106469918819480",
-  "Hash": "f31de5ef42efc8ae",
+  "Asset": "79709231903591",
+  "Hash": "a31ad220e6aafdc4",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 1420
  },
  "SpawnMosaic": {

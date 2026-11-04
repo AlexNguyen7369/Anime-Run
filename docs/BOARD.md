@@ -1,13 +1,14 @@
 # Board
 
 ## Doing
-- c3 full compatibility check: rerun full server + UI harness on the merged branch to fail=0, rules audit
+- c3 full compatibility check: paused by the owner 2026-11-04 until NPC additions land; then rerun full server + UI harness to fail=0, rules audit
 
 ## Next
 - PR feature/alex/anime-world -> main with a fresh reviewer (owner approved)
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-04 declutter d1, d2 Clear spawn plaza (68e565a): spawn_area, world_layout, dojo, workshop pass=4 fail=0, rules audit PASS
 - 2026-11-04 c5 Screen-edge pointer for the track enemy (8691b0e): `ui_billboards` 21 checks fail=0, rules audit PASS
 Older entries: `current_progress.md`.
 - 2026-11-04 c5 Track enemies: biome-matched cast, always-visible indicator, 9 new models (8dea3f3): `npc` 117 checks fail=0, `ui_billboards` 12 checks fail=0, rules audit PASS

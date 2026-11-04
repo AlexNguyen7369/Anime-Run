@@ -7,7 +7,6 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local PANEL = {
 	OpenShop = "Shop",
 	OpenPotions = "Shop", -- the Potions section lives in the Shop panel
-	OpenRebirth = "Rebirth",
 	OpenIndex = "Index",
 }
 

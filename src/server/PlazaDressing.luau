@@ -16,14 +16,13 @@ local WorkshopConfig = require(Shared.WorkshopConfig)
 local PlazaDressing = {}
 
 local TOP = 1 -- SpawnArea.TOP_Y
-local TRUNK_RADIUS = { GreatSakura = 3.2, Sakura_A = 1.9, Sakura_B = 1.4, Sakura_C = 1.4, Sakura_D = 1.4 }
+local TRUNK_RADIUS = { GreatSakura = 3.2 }
 local SIGN_HEIGHT = { [1] = 24, [4] = 32, [7] = 38, [10] = 44 } -- owner's sign above each tier's roof (studs)
 -- Stand-ins a mesh replaces: SpawnArea child -> mesh key
 local REPLACES = {
 	StartGate = "HeroTorii",
 	ShopStall = "SHOPStall",
 	PotionsStall = "POTIONSStall",
-	RebirthShrine = "RebirthShrine",
 	IndexBoard = "IndexBoard",
 	Spawn = "SpawnMosaic",
 }
