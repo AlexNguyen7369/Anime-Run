@@ -39,8 +39,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 
 Enemy models are in-house and built in the avatar pipeline (`CHARACTER_GACHA_SPEC.md`). `foe_` ids are model names; rollable catalog characters share them (owner 2026-11-04, design doc 4.32).
 
-Showdown banners and the Defeated Enemies page: design doc 4.28, 4.29. Both use the enemy's `Label` and its `Model` for the
-portrait; a client display only.
+Showdown banners and the Defeated Enemies page: design doc 4.28, 4.29. Both use the enemy's `Label` and the drawn portrait of the
+character wearing its `Model` (CHARACTER_GACHA_SPEC "Digital art portrait"), or the live model with none; a client display only.
 
 ## Tests
 

@@ -5,7 +5,8 @@
 # --sheet: also writes assets/portraits/_pilot_sheet.png of the named ids (512 and 110 px, orange and dark).
 # --sheet=<name>: also writes assets/portraits/<name>.png of the named ids (256 px, labelled).
 # --save-blend: also saves assets/characters_avatar/<id>/portrait.blend (git-ignored). Named ids only, never in bulk.
-# Writes assets/characters_avatar/<id>/portrait.png (512x512, transparent).
+# Writes assets/characters_avatar/<id>/portrait.png (512x512, transparent) and head.png (256x256, the Head part alone down
+# to just under the chin, for the Team minibar), and on a no-ids run also assets/portraits/_heads_sheet.png.
 # Cycles only renders raw data (atlas colour, normal, depth, part id) with no lights; the drawing is done in numpy.
 import glob
 import os
@@ -44,6 +45,10 @@ MIN_LINE = 44 * SS # inner ink shorter than this (render px) is texture scratch,
 BUSY = 0.35  # share of raw line pixels in a neighbourhood above which it counts as texture
 PALETTE = 20 # colours in a character's fills, before the tone ramp
 MAX_BYTES = 150_000
+HEAD_SIZE = 256
+HEAD_INK_R, HEAD_DIE_R = 40, 28  # bolder than the portrait's, in render px: the head is seen at 60 px
+HEAD_MAX_BYTES = 60_000
+HEAD_CUT_Z = 3.5  # just under the chin (rig: head block 4..5.3): long hair stops here, or it would shrink the face to fit
 
 
 def camera_axes():
@@ -189,8 +194,8 @@ def box_mean(mask, r):
 	return (c[n:, n:] - c[:-n, n:] - c[n:, :-n] + c[:-n, :-n]) / n**2
 
 
-def long_lines(line):
-	"""Keeps the connected lines at least MIN_LINE across. Union-find over row runs, at 1/SS scale."""
+def long_lines(line, min_line=MIN_LINE):
+	"""Keeps the connected lines at least min_line across. Union-find over row runs, at 1/SS scale."""
 	h, w = line.shape
 	small = line.reshape(h // SS, SS, w // SS, SS).any(axis=(1, 3))
 	parent, box, prev, rows = [], [], [], []
@@ -222,12 +227,12 @@ def long_lines(line):
 	for y, runs in enumerate(rows):
 		for a, b, i in runs:
 			x0, x1, y0, y1 = box[find(i)]
-			if max(x1 - x0, y1 - y0 + 1) * SS >= MIN_LINE:
+			if max(x1 - x0, y1 - y0 + 1) * SS >= min_line:
 				keep[y, a:b] = True
 	return line & keep.repeat(SS, 0).repeat(SS, 1)
 
 
-def grade(a):
+def grade(a, lut=None):
 	"""Bright, saturated, flat fills. Value moves with the hue held, so skin does not clip to yellow."""
 	v = np.maximum(a.max(axis=2, keepdims=True), 1e-4)
 	a = a * (np.minimum(v**0.72 * 1.06, 1) / v)
@@ -235,7 +240,7 @@ def grade(a):
 	a = np.clip(grey + (a - grey) * 1.3, 0, 1)
 	# Black hair goes slate, so it still separates from the ink.
 	a = a + np.array((0.07, 0.08, 0.13)) * np.clip(1 - a.max(axis=2, keepdims=True) / 0.4, 0, 1)
-	return paint_by_numbers(a)
+	return paint_by_numbers(a, lut)
 
 
 def vivid(c):
@@ -243,10 +248,13 @@ def vivid(c):
 	return c + 2 * (c - c.mean(axis=1, keepdims=True))
 
 
-def paint_by_numbers(a):
-	"""Snaps fills to one small palette (k-means on the 5-bit colour histogram): atlas gradients and blush go flat."""
+def paint_by_numbers(a, lut=None):
+	"""Snaps fills to one small palette (k-means on the 5-bit colour histogram): atlas gradients and blush go flat.
+	Returns the fills and the colour table; pass that table back to paint another view in the same palette."""
 	bins = np.round(np.clip(a, 0, 1) * 31).astype(np.int32)
 	key = bins[..., 0] * 1024 + bins[..., 1] * 32 + bins[..., 2]
+	if lut is not None:
+		return lut[key], lut
 	used, counts = np.unique(key, return_counts=True)
 	colours = np.stack((used // 1024, used // 32 % 32, used % 32), axis=1) / 31
 	weight = np.sqrt(counts)  # sqrt: small features such as eyes keep a colour of their own
@@ -258,13 +266,15 @@ def paint_by_numbers(a):
 		for i in range(2, len(centres)):
 			if (nearest == i).any():
 				centres[i] = np.average(colours[nearest == i], axis=0, weights=weight[nearest == i])
-	lut = np.zeros((32768, 3))
+	every = np.stack(np.meshgrid(*[np.arange(32)] * 3, indexing="ij"), axis=3).reshape(-1, 3) / 31
+	lut = centres[np.argmin(((vivid(every)[:, None] - vivid(centres)[None]) ** 2).sum(axis=2), axis=1)]  # hair under the cut
 	lut[used] = centres[nearest]
-	return lut[key]
+	return lut[key], lut
 
 
-def draw(p, to_cam, side):
-	"""The drawing inside the silhouette: cel fills and inner ink. p holds top-down float passes."""
+def draw(p, to_cam, side, lut=None, scale=1):
+	"""The drawing inside the silhouette: cel fills and inner ink. p holds top-down float passes. scale widens every
+	pixel-sized line constant for a tighter frame, and lut reuses a palette. Returns the fills, the mask and the palette."""
 	w = p["albedo"].shape[1]
 	solid = p["albedo"][..., 3] > 0.5
 	rgb = p["albedo"][..., :3].astype(np.float64)
@@ -273,7 +283,7 @@ def draw(p, to_cam, side):
 	depth = np.where(solid, p["data"][..., 0], far).astype(np.float64)
 	part = np.where(solid, p["data"][..., 1], 0).astype(np.float64)
 
-	fill = grade(rgb)
+	fill, lut = grade(rgb, lut)
 	d = normal @ (LIGHT / np.linalg.norm(LIGHT))
 
 	# Drawn cast shadow under fringes, chin and props: hard edged, offset away from the light, no scene lighting.
@@ -290,24 +300,25 @@ def draw(p, to_cam, side):
 
 	# Inner ink: depth steps, part borders, hard creases.
 	step = (span_diff(depth, 2) > 0.2) | (span_diff(part, 2) > 0.5)
-	crease = span_diff(normal, 12) > 1.0
-	inner = ~dilate(~solid, 6)  # the silhouette's own step belongs to the outline, and would join every line into one
+	crease = span_diff(normal, 12 * scale) > 1.0
+	inner = ~dilate(~solid, 6 * scale)  # the silhouette's own step belongs to the outline, and would join every line into one
 	raw = (step | crease) & inner
-	long = long_lines(raw & ~(box_mean(raw, 40) > BUSY))  # a tight mesh of lines is texture (straw, frayed rims)
-	out[dilate(long & step, LINE_R) | (long & crease)] = INK
-	return out, solid
+	# A tight mesh of lines is texture (straw, frayed rims)
+	long = long_lines(raw & ~(box_mean(raw, 40 * scale) > BUSY), MIN_LINE * scale)
+	out[dilate(long & step, LINE_R * scale) | (long & crease)] = INK
+	return out, solid, lut
 
 
-def finish(out, solid, cut_row):
+def finish(out, solid, cut_row, ink_r=INK_R, die_r=DIE_R, sliver_r=SLIVER_R):
 	keep = solid.copy()
 	keep[cut_row:] = False  # straight across the image: the outline below then closes along one straight bottom
-	keep = dilate(~dilate(~keep, SLIVER_R), SLIVER_R)  # opening: thin geometry slivers would ink into specks and burrs
-	ink = dilate(keep, INK_R)
-	die = dilate(ink, DIE_R)
+	keep = dilate(~dilate(~keep, sliver_r), sliver_r)  # opening: thin geometry slivers would ink into specks and burrs
+	ink = dilate(keep, ink_r)
+	die = dilate(ink, die_r)
 	# Pockets closed on all 4 sides go ink, as if behind the figure: one outer edge, no bg through small holes.
 	seen = lambda axis: np.logical_or.accumulate(die, axis) & np.flip(np.logical_or.accumulate(np.flip(die, axis), axis), axis)
 	pocket = (seen(0) & seen(1)) & ~die
-	ink, die = ink | dilate(pocket, DIE_R + 2), die | pocket
+	ink, die = ink | dilate(pocket, die_r + 2), die | pocket
 	rgba = np.ones((*solid.shape, 4))
 	rgba[..., 3] = die
 	rgba[ink, :3] = INK
@@ -343,18 +354,64 @@ def write_png(path, rgba):
 		f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
 
 
-def check(path, rgba):
+def check(path, rgba, size=SIZE, max_bytes=MAX_BYTES):
 	"""Self-check: a framing or size failure stops the batch rather than ship."""
 	a = rgba[..., 3]
-	assert rgba.shape == (SIZE, SIZE, 4), rgba.shape
+	assert rgba.shape == (size, size, 4), rgba.shape
 	assert not touches_frame(a), f"{path}: figure touches the frame"
 	assert 0.2 < (a > 0.5).mean() < 0.95, f"{path}: coverage {(a > 0.5).mean():.2f}"
 	assert ((a > 0.02) & (a < 0.98)).mean() < 0.05, f"{path}: alpha edge not crisp"
-	assert os.path.getsize(path) < MAX_BYTES, f"{path}: {os.path.getsize(path)} bytes"
+	assert os.path.getsize(path) < max_bytes, f"{path}: {os.path.getsize(path)} bytes"
 
 
 def portrait_path(cid):
 	return os.path.join(AVATARS, cid, "portrait.png")
+
+
+def head_frame(head, right, up):
+	"""Tight centred square round the Head mesh above HEAD_CUT_Z, with room for its outline. Also the row of that cut."""
+	world = [head.matrix_world @ v.co for v in head.data.vertices]
+	# Measured along the camera's up, as the cut is a row of the image: at this slight elevation depth moves a vertex's row.
+	cut_y = Vector((0, 0, HEAD_CUT_Z)).dot(up)
+	ys = [p.dot(up) for p in world]
+	kept = [p for p, y in zip(world, ys) if y > cut_y]
+	for a, b in (e.vertices for e in head.data.edges):
+		if (ys[a] > cut_y) != (ys[b] > cut_y):
+			kept.append(world[a].lerp(world[b], (cut_y - ys[a]) / (ys[b] - ys[a])))
+	cut_needed = min(ys) < cut_y
+	xs = [p.dot(right) for p in kept]
+	ys = [p.dot(up) for p in kept]
+	edge = MARGIN + (HEAD_INK_R + HEAD_DIE_R) / (SIZE * SS)
+	side = max(max(xs) - min(xs), max(ys) - min(ys)) / (1 - 2 * edge)
+	cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+	n = SIZE * SS
+	cut_row = round((cy + side / 2 - cut_y) / side * n) if cut_needed else n
+	return cx, cy, side, cut_row
+
+
+def render_head(cid, parts, mat, sources, emit, axes, lut, portrait_side):
+	"""head.png. The Head rendered alone: the part id pass can't serve, a collar or shoulder hides its chin and long hair."""
+	head = next(o for o in parts if o.name.startswith("Head"))
+	for o in parts:
+		o.hide_render = o is not head
+	right, up, back = axes
+	cx, cy, side, cut_row = head_frame(head, right, up)
+	setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
+	with tempfile.TemporaryDirectory() as tmp:
+		passes = render_passes(mat, sources, emit, tmp)
+	scale = max(1, round(portrait_side / side))
+	out, solid, _ = draw(passes, np.array([list(right), list(up), list(back)]), side, lut, scale)
+	rgba = downsample(finish(out, solid, cut_row, HEAD_INK_R, HEAD_DIE_R, SLIVER_R * scale), HEAD_SIZE)
+	rgba[..., :3] = np.round(rgba[..., :3] * 31) / 31
+	path = os.path.join(AVATARS, cid, "head.png")
+	write_png(path, rgba)
+	try:
+		check(path, rgba, HEAD_SIZE, HEAD_MAX_BYTES)
+	except AssertionError:
+		os.remove(path)
+		raise
+	print(f"HEAD {cid} {os.path.getsize(path)} bytes frame={side:.2f}", flush=True)
+	return rgba
 
 
 def render(cid, model, c, save_blend):
@@ -385,7 +442,7 @@ def render(cid, model, c, save_blend):
 		setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
 		with tempfile.TemporaryDirectory() as tmp:
 			passes = render_passes(mat, sources, emit, tmp)
-		out, solid = draw(passes, np.array([list(right), list(up), list(back)]), side)
+		out, solid, lut = draw(passes, np.array([list(right), list(up), list(back)]), side)
 		cut_row = round(SIZE * SS * (1 - edge))
 		rgba = downsample(finish(out, solid, cut_row), SIZE)
 		if not touches_frame(rgba[..., 3]):
@@ -402,8 +459,9 @@ def render(cid, model, c, save_blend):
 	if save_blend:
 		bpy.context.preferences.filepaths.save_version = 0
 		bpy.ops.wm.save_as_mainfile(filepath=os.path.join(AVATARS, cid, "portrait.blend"))
+	head = render_head(cid, parts, mat, sources, emit, (right, up, back), lut, side)
 	print(f"PORTRAIT {cid} {os.path.getsize(path)} bytes {time.time() - t0:.1f}s frame={side:.2f}", flush=True)
-	return rgba
+	return rgba, head
 
 
 def over(canvas, img, x, y):
@@ -472,6 +530,21 @@ def all_sheet(ids, images, name="_all_sheet"):
 	save_sheet(out * (1 - mask) + INK * mask, name + ".png")
 
 
+def heads_sheet(ids, heads):
+	tile, small, gap, label, cols = HEAD_SIZE, 60, 12, 26, 8
+	rows = -(-len(ids) // cols)
+	cell_h = tile + small + label + 2 * gap
+	w, h = cols * (tile + gap) + gap, rows * cell_h + gap
+	out = np.ones((h, w, 3)) * np.array((0.45, 0.53, 0.6))
+	cells = [(gap + i % cols * (tile + gap), gap + i // cols * cell_h) for i in range(len(ids))]
+	for img, (x, y) in zip(heads, cells):
+		over(out, img, x, y)
+		over(out, downsample(img, small), x + (tile - small) // 2, y + tile + gap // 2)
+	labels = [(cid, x + tile / 2, y + tile + small + gap // 2 + 2) for cid, (x, y) in zip(ids, cells)]
+	mask = text_mask(w, h, labels)[..., None]
+	save_sheet(out * (1 - mask) + INK * mask, "_heads_sheet.png")
+
+
 def catalog():
 	"""Id -> Model override (or None) for every character file: the same files CharacterCatalog auto-loads."""
 	models = {}
@@ -493,11 +566,13 @@ def main():
 	models = catalog()
 	if bulk:
 		ids = sorted(models)
-	images, done = [], []
+	images, heads, done = [], [], []
 	for cid in ids:
 		model = models.get(cid) or cid
 		if model in data:
-			images.append(render(cid, model, data[model], save_blend))
+			portrait, head = render(cid, model, data[model], save_blend)
+			images.append(portrait)
+			heads.append(head)
 			done.append(cid)
 		elif bulk:
 			print(f"SKIP {cid}: no model data yet", flush=True)  # event characters awaiting a model
@@ -505,6 +580,7 @@ def main():
 			raise SystemExit(f"{cid}: no model data for {model}")
 	if bulk:
 		all_sheet(done, images)
+		heads_sheet(done, heads)
 	for a in argv:
 		if a.startswith("--sheet="):
 			all_sheet(done, images, a[8:])

@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
+local CharacterHeads = require(shared.CharacterHeads)
 local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
@@ -358,21 +359,19 @@ end
 -- The drawn portrait, or with none yet the live model cut to its head: the body (and its rarity belt) never shows, so
 -- rarity is not evident on the row.
 local function headArt(circle, spec)
-	if Components.PortraitImage(spec) then
-		-- The drawn portrait has square shoulders, so it is clipped to the circle as a badge
-		local clip = circle.Frame:FindFirstChild("ArtClip")
-		if not clip then
-			clip = Instance.new("CanvasGroup")
-			clip.Name = "ArtClip"
-			clip.Size = UDim2.fromScale(1, 1)
-			clip.BackgroundTransparency = 1
-			clip.ZIndex = 7
-			local corner = Instance.new("UICorner")
-			corner.CornerRadius = UDim.new(1, 0)
-			corner.Parent = clip
-			clip.Parent = circle.Frame
-		end
-		return Components.PortraitArt(clip, "Art", spec, UDim2.fromScale(-0.1, -0.02), UDim2.fromScale(1.2, 1.2))
+	local drawn = CharacterHeads[spec.Id] or CharacterHeads[spec.Model or spec.Id]
+	if drawn then
+		-- The head-only art (CHARACTER_GACHA_SPEC "Digital art portrait"), breaking out of the top like the live head
+		local image = Instance.new("ImageLabel")
+		image.Name = "Art"
+		image.BackgroundTransparency = 1
+		image.Position = UDim2.fromScale(-0.2, -0.34)
+		image.Size = UDim2.fromScale(1.4, 1.4)
+		image.ScaleType = Enum.ScaleType.Fit
+		image.Image = drawn
+		image.ZIndex = 7
+		image.Parent = circle.Frame
+		return image
 	end
 	-- Larger than the circle and not clipped: the head breaks out of the top
 	local art =
