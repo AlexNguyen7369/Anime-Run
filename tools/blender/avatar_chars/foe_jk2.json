@@ -1,0 +1,9 @@
+{
+	"foe_jk2": {
+		"colours": {"skin": "#ECE1D8", "eyes": "#8F9AA3", "UpperTorso": "#1A1E2C", "LowerTorso": "#1A1E2C", "UpperArm": "#1A1E2C", "LowerArm": "#ECE1D8", "Hand": "#ECE1D8", "UpperLeg": "#1A1E2C", "LowerLeg": "#1A1E2C", "Foot": "#E8E8E4"},
+		"face": {"eye": "soft", "mouth": "smirk", "brow": "#6E8494", "brow_tilt": 0.0, "brow_lift": 0.3, "lash": "#2A2630"},
+		"hair": {"colour": "#9DB4C0", "locks": []},
+		"pieces": [],
+		"marks": []
+	}
+}

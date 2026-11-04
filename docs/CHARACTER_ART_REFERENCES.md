@@ -550,3 +550,14 @@ Shared notes:
   chibis, scale the torso width and arms to ~1.5x, chest depth ~1.3x, legs ~1.2x, total height ~1.2x of the base.
   The head ends up ~1/4 of the height instead of 1/3; this is fine and reads as "big guy". Use the same R15 rig.
 - Sources: https://myheroacademia.fandom.com/wiki/All_Might
+
+## Track enemies (owner 2026-11-03, design doc 4.26, `NPC_RIVAL_SPEC.md`)
+
+Marks follow design doc 5 "Marks": same place, size and colour, a clearly different shape.
+
+- `foe_leaf` Paine [Pain]: cloak clouds are 3-lobe clouds on a flat base, the same changed shape as `leaf_crow`.
+- `foe_sea` Arlon [Arlong]: chest sun tattoo is a straight-spiked star (8 long, 8 short) with a hollow ring and crescent centre, not flame rays.
+- `foe_ds` Akazo [Akaza]: iris writing is invented dark glyphs (a kite with a tail, stacked hooks); coat back pattern is rows of dark lozenges, not squares. Blue body lines follow the source layout as a body pattern, like the `jk_king` face lines.
+- `foe_sea2` Enelu [Enel]: earring pendant is a flat-topped six-sided plate with a round stone, not a diamond; drum heads are four straight-edged swept blades round a hub, not a three-comma swirl.
+- `foe_soul` Ulquiorro [Ulquiorra]: chest number tattoo is a stem with two stacked chevrons, not the numeral.
+- `foe_db` Selle [Cell], `foe_jk` Jogoh [Jogo], `foe_mha` Shigaraky [Shigaraki], `foe_jk2` Mahitoh [Mahito]: no marks.

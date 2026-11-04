@@ -5,14 +5,13 @@
 -- Tracks[n] overrides the defaults for track n:
 --   Color  Color3 of the starter car body
 --   Speed  cruise speed, studs/s (the NPC slows only where corner grip requires it)
---   Label  floating text above the NPC
---   Model  name of a Model under ReplicatedStorage.NpcModels, or a character catalog id (skinned like the player's car)
+--   Label  the enemy's name, shown in the indicator above its head (design doc 4.26)
+--   Model  name of a Model under ReplicatedStorage.NpcModels, or a model id in Shared/CharacterModelAssets (catalog or foe_)
 
 local NpcConfig = {}
 
 NpcConfig.BASE_SPEED = 16 -- Track 1, studs/s: a stat-0 starter car (10) loses; slightly higher starter-track recommendation
 NpcConfig.SPEED_GROWTH = 1.51 -- every later track's NPC is this many times faster; Track 10 = 653 studs/s, under RaceConfig.MAX_CRUISE (owner 2026-10-27, was 1.75)
-NpcConfig.LABEL_DISTANCE = 200 -- studs: the label only shows when the player is this close (owner 2026-10-20, was 60)
 NpcConfig.LOSE_SCREEN_SECONDS = 3 -- loser screen time before the player is sent back to the spawn
 NpcConfig.LABEL_FORMAT = "track%02d_NPC"
 
@@ -28,9 +27,18 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- Track 1 keeps its red; no NPC has a Model yet (car models removed, owner 2026-10-28), so all use the runner rig (Shared/RunnerFactory).
+-- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; foe_ ids are not in the catalog.
 NpcConfig.Tracks = {
-	[1] = { Color = Color3.fromRGB(230, 45, 45) }, -- red
+	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
+	[2] = { Label = "Selle", Model = "foe_db" },
+	[3] = { Label = "Arlon", Model = "foe_sea" },
+	[4] = { Label = "Akazo", Model = "foe_ds" },
+	[5] = { Label = "Jogoh", Model = "foe_jk" },
+	[6] = { Label = "Shigaraky", Model = "foe_mha" },
+	[7] = { Label = "Mahitoh", Model = "foe_jk2" },
+	[8] = { Label = "Enelu", Model = "foe_sea2" },
+	[9] = { Label = "Ulquiorro", Model = "foe_soul" },
+	[10] = { Label = "Freezo", Model = "db_tyrant" },
 }
 
 -- Everything about track `number`'s NPC: { Number, Speed, Color, Label, Model }.
