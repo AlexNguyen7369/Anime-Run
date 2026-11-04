@@ -1,7 +1,7 @@
 --!nonstrict
 -- Market (docs/HUD_LAYOUT_SPEC.md, Market pill): the Backpack look with side tabs, a tile grid and a detail pane.
 -- Buying and equipping go to the server (MarketPurchase / MarketEquip); the client only shows. An owned aura or
--- trail shows the team slot buttons (SlotPicker) in place of the action button: each team slot has its own.
+-- trail shows the team slot buttons (SlotPicker): each team slot has its own. BUY stays below MAX_COPIES copies.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -397,6 +397,15 @@ local PHONE = {
 }
 local showingDetail = false
 local phoneLayout = false
+-- BUY and the slot buttons can show together: on desktop BUY takes the description's band above the slots; phones
+-- already keep them apart. An owned aura / trail hides the description on phones.
+local function fitDetail()
+	local both = slots.Frame.Visible and action.Visible
+	description.Visible = not (slots.Frame.Visible and (phoneLayout or both))
+	if not phoneLayout then
+		action.Position = both and UDim2.new(0.5, 0, 1, -58) or DESKTOP[action].Position
+	end
+end
 local function applyLayout()
 	local camera = workspace.CurrentCamera
 	local phone = camera ~= nil and camera.ViewportSize.Y <= 500
@@ -407,7 +416,7 @@ local function applyLayout()
 		end
 	end
 	description.TextScaled = phone
-	description.Visible = not (phone and slots.Frame.Visible)
+	fitDetail()
 	grid.Visible = not (phone and showingDetail)
 	detail.Visible = not phone or showingDetail
 	back.Visible = phone
@@ -431,13 +440,13 @@ local function owned(kind, id)
 	if kind == "Potion" then
 		return (player:GetAttribute("Boost_" .. id) or 0) > 0
 	end
-	return player:GetAttribute("Own" .. kind .. "_" .. id) == true
+	return Market.Copies(player, kind, id) > 0
 end
 
 local function showDetail(item)
 	local kind = selectedKind
-	local isOwned = owned(kind, item.Id)
-	local cosmetic = kind ~= "Potion" and isOwned -- owned aura / trail: pick its team slot
+	local copies = kind ~= "Potion" and Market.Copies(player, kind, item.Id) or 0
+	local cosmetic = copies > 0 -- owned aura / trail: pick its team slot
 	rarity.Text = kind == "Potion" and (item.Category .. " Potion")
 		or string.format("%s  •  x%.2f cruise for its slot", kind, RaceConfig.ItemCruiseMulti(item.SpeedMulti))
 	nameLabel.Text = item.Name
@@ -447,12 +456,16 @@ local function showDetail(item)
 				Format.MoneyText(item.Price),
 				Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0)
 			)
-		or (isOwned and "Owned" or Format.MoneyText(item.Price))
+		or (
+			copies >= Market.MAX_COPIES and string.format("Owned x%d (max)", copies)
+			or copies > 0 and string.format("%s   •   Owned x%d", Format.MoneyText(item.Price), copies)
+			or Format.MoneyText(item.Price)
+		)
 	description.Text = item.Description
 	actionLabel.Text = "BUY"
-	action.Visible = not cosmetic
+	action.Visible = copies < Market.MAX_COPIES
 	slots.Frame.Visible = cosmetic
-	description.Visible = not (phoneLayout and cosmetic)
+	fitDetail()
 	if cosmetic then
 		slots:Update(kind, item.Id)
 	end
@@ -465,8 +478,8 @@ action.Activated:Connect(function()
 		return
 	end
 	local kind = selectedKind
-	if kind ~= "Potion" and owned(kind, item.Id) then
-		return -- owned auras / trails equip through the slot buttons
+	if kind ~= "Potion" and Market.Copies(player, kind, item.Id) >= Market.MAX_COPIES then
+		return
 	end
 	busy = true
 	local ok, done, message = pcall(function()
@@ -525,7 +538,11 @@ function render()
 		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or onSlot and TILE_GREEN or TILE_BLUE, 4)
 		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -8), UDim2.fromOffset(60, 60))
 		local badge = owned(selectedKind, item.Id)
-				and (selectedKind == "Potion" and ("x" .. Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0)) or "Owned")
+				and "x" .. (selectedKind == "Potion" and Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0) or Market.Copies(
+					player,
+					selectedKind,
+					item.Id
+				))
 			or Format.MoneyText(item.Price)
 		caption("Badge", b, {
 			Position = UDim2.fromOffset(6, 2),

@@ -137,10 +137,14 @@ Stamina = Base(rarity or override)
   - Save `SlotItems = { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }` (no store or VERSION bump). A
     save without `SlotItems` moves its old `EquippedAura` / `EquippedTrail` to slot 1; the old keys are kept in the
     record, never read again.
-  - Each aura / trail is owned once, so an id sits on one slot at most: equipping it on another slot moves it there.
+  - Owner 2026-11-04: up to 3 copies of each aura / trail (`MarketConfig.MAX_COPIES`), each at full price. Saved
+    `OwnedAuras` / `OwnedTrails` repeat an id once per copy; an old save's single entry is 1 copy. An id sits on as many
+    slots as it has copies: equipping it with every copy worn moves it from the lowest other slot wearing it.
   - Cruise and the runner's aura / trail effect use the active slot's items (slot 1 on foot).
   - UI: an owned aura / trail shows three slot buttons (each with that slot's aura / trail); tapping a slot equips the
-    item there, tapping the slot that already has it takes it off (Market detail pane and Backpack).
+    item there, tapping the slot that already has it takes it off (Market detail pane and Backpack). The Market keeps
+    BUY below 3 copies, and the Market and Backpack show the copy count. On desktop, BUY replaces the description while
+    both BUY and the slot buttons show.
 
 ## Balance check (placeholders, owner 2026-11-01)
 

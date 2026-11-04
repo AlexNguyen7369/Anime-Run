@@ -164,7 +164,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   - Preset team bonus x1.1 (4.8).
   - Upgrade tree **Money** branch (owner 2026-11-03): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
-    slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
+    slot's character (damped, as `RaceConfig.ItemCruiseMulti`). A player may own up to 3 copies of each aura and each
+    trail, each copy at the item's full price (owner 2026-11-04); one copy is worn on one team slot.
   - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
     and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
@@ -443,3 +444,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-03: orchestrator defaults, owner accepted: first auto-roll waits about 5 s after a starter pick; Daily panel does not auto-open until the first run ends (4.24). Orchestrator default: Studio-only `TestSaveKey` test saves (4.24).
 - 2026-11-03: track loading: Tracks 1-5 before load-in, the rest behind the game by player proximity (4.25, not built yet).
 - 2026-11-03 owner: doc trimmed; superseded text removed, no live rule changed.
+- 2026-11-04: owner: auras and trails can be bought more than once, up to 3 copies of each at full price; the inventory holds the copies and one copy is worn on one team slot (4.13, TEAM_AND_STAMINA_SPEC).
