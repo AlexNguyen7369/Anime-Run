@@ -88,7 +88,7 @@ Deliverables:
 - s2 | Catalog, Series, preset and Ulquiorro as `soul_hollow` on `foe_soul`, tests | `catalog` + `gacha` scenarios green, rules audit PASS
 Out of scope: Bleech biome changes, rematch rewards, public release licensing.
 ## declutter: Clear spawn plaza (owner 2026-11-04)
-Status: active
+Status: done
 Owner-confirmed: 2026-11-04 ("declutter spawnlocation"; layout, Market sign, sky loop kept and trim level chosen by the owner; d1 draft and deliverables approved by the owner 2026-11-04)
 Branch: feature/alex/anime-world
 Spec: design doc 4.24 Clear plaza, WORLD_REDESIGN_SPEC 4 and 7

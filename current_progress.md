@@ -63,6 +63,7 @@
 59. 2026-11-04 — Alex Nguyen — Added enemy showdown banners, a Defeated Enemies Index page and the 6-character Bleech series with 5 new models; targeted scenarios green and rules audit PASS.
 60. 2026-11-04 — Alex Nguyen — Reworked the roll animation to show the rolled character in a 16-slot in-place cycle at the top centre, with reference-style emphasized rolls, an Auto toggle beside Daily and Quests above Shop; roll, HUD and layout scenarios green except 2 Index EnemiesTab phone overlaps from the earlier merge, rules audit PASS.
 61. 2026-11-04 — Alex Nguyen — Redesigned 9 villain models with the character design skill and made 8 of them new rollable characters, catalog and gacha green, rules audit PASS.
+62. 2026-11-04 — Alex Nguyen — Replaced the fork's Market with an in-house stall and cut plaza Legends to two beside the Race Start gate, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 
 ## What's next
 **Restart c3: full server and UI harnesses on the merged feature/alex/anime-world to fail=0, rules audit, then the PR to main.**
