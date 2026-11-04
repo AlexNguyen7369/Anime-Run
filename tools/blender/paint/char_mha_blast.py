@@ -1,5 +1,5 @@
 # Target look for mha_blast: pale ash-blond spike burst, narrow red eyes in a black eye mask with orange edges, scowl, black
-# high-neck top with an orange X strap, huge grenade gauntlets, belt with pouches, knee pads, black and orange boots.
+# high-neck top with an orange chevron strap, huge grenade gauntlets, belt with pouches, knee pads, black and orange boots.
 from mha_style3 import anime_eye, bake, block, brow_block, core, gem, hand, head_faces, nose, strip
 from style2 import Kit, Ramps
 from style3 import big_head, finish
@@ -52,10 +52,11 @@ def _top(k):
 	# high collar, closed to the neck, orange rim
 	block(k, t, "Collar", 0, -0.02, 4.16, 3.9, 0.72, 0.54, "black", ch=0.04, corner=0.3, a=0.52, b=0.6)
 	block(k, t, "CollarRim", 0, -0.02, 3.98, 3.9, 0.76, 0.58, "orange", ch=0.015, corner=0.3, a=0.56)
-	# the X strap, front and back
+	# the strap, front and back: two chevrons, noses pointing in, a gap between them
 	for y, d in ((-0.635, 0.07), (0.565, 0.07)):
 		for s in (1, -1):
-			strip(k, t, f"X{s}{y}", (s * 0.96, 3.86), (-s * 0.96, 2.5), 0.12, y, d, "orange", a=0.56)
+			strip(k, t, f"XU{s}{y}", (s * 0.96, 3.86), (s * 0.28, 3.18), 0.12, y, d, "orange", a=0.56)
+			strip(k, t, f"XL{s}{y}", (s * 0.28, 3.18), (s * 0.96, 2.5), 0.12, y, d, "orange", a=0.56)
 	block(k, t, "Belt", 0, 0, 2.44, 2.14, 1.1, 0.62, "black", ch=0.04, a=0.62, b=0.6)
 	block(k, t, "Buckle", 0, -0.64, 2.42, 2.16, 0.2, 0.03, "steel", ch=0.02, a=0.5)
 	for i, x in enumerate((-0.86, -0.54, 0.54, 0.86)):
