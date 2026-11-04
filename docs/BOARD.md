@@ -7,6 +7,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-04 market copies Up to 3 copies of each aura and trail (6184cc9): slot_items 21, vehicle_effects 130 fail=0; ui_market 100 checks fail=0 at 0, 1, 3 copies; real BUY and slot clicks on desktop; rules audit not run
 - 2026-11-04 roll-anim r4 Drawn portraits and head art: 44 + 44 uploaded; `roll_anim`, `hud`, `gacha`, `scrap`, `catalog` pass=5 fail=0; `ui_layout` 962 checks fail=0; `ui_roll_anim`, `ui_roll_emphasized`, `ui_index`, `ui_backpack_characters`, `ui_starter_pick`, `ui_showdown`, `ui_defeated` fail=0; rules audit PASS
 - 2026-11-04 declutter d3 In-house Market stall, 2 gate Legends (d553ec1): spawn_area, world_layout, dojo, workshop pass=4 fail=0, rules audit PASS
 - 2026-11-04 villains v1 + v2 (ad8f9cb): 9 redesigned models, 8 rollable: catalog 21, gacha 318 fail=0, audit PASS

@@ -67,8 +67,9 @@
 64. 2026-11-04 — Alex Nguyen — Added drawn portraits and head art for all 44 rollable characters, uploaded them and used them in the roll, Index, Enemies page, Backpack, starter cards, showdown banner and Team minibar; the character build now draws them; targeted scenarios green and rules audit PASS.
 65. 2026-11-04 — Alex Nguyen — Merged the integration branch into main through PR #2 on the owner's word, with the compatibility check on hold and the plaza asset IP signatures waived for this merge.
 66. 2026-11-04 — Alex Nguyen — Viewed all 9 redesigned villains in game on a test save and confirmed all 10 track enemies resolve to drawn portrait art in the UI.
+67. 2026-11-04 — Alex Nguyen — Landed up to 3 copies of each aura and trail with the Market and Backpack UI changes, slot_items 21 and vehicle_effects 130 fail=0, ui_market 100 checks fail=0 at 0, 1 and 3 copies, rules audit not run.
 
 ## What's next
-**Land the aura and trail copies work (up to 3 copies, Market and Backpack UI) on `feature/alex/anime-world`, then bring it to `main` through a reviewed PR.**
+**Bring `feature/alex/anime-world` to `main` through a reviewed PR, so all changes are in one place.**
 
 **Why this is next:** the owner approves the c3 compatibility check only after all changes are in one place on `main`.
