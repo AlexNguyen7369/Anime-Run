@@ -29,7 +29,14 @@ Nothing car-shaped stays in the game:
   interpolating along the path from the server's distance and speed, so players see no stutter. The IVS
   `rail_never_snaps` check is replaced by a client-side smoothness check.
 - Run animation is procedural and client-side (limb swing and bob from speed); it never changes the server pose.
-  A character's optional `RunStyle` replaces the default swing and may add a client-side particle effect (design doc 4.23).
+  A character's optional `RunStyle` replaces the universal run (design doc 4.34). Both add the same client-side particle
+  effect on each player's drawn runner (design doc 4.23): 3 emitters, 36 particles/s per runner (**proposed**), existing textures only.
+  Dust is locked to the runner and blown back from behind the feet: at 700 studs/s world-space puffs land 70 studs apart.
+- Universal run pose, all **proposed** placeholders. Sources give no reliable angles for this style, so these are tuned by eye:
+  - Torso 30 deg forward about the hips (supported: a faster run leans more; the angle is the owner's look choice).
+  - Arms pump +-50 deg opposite the legs, 10 deg back bias, 6 deg outward (supported: arm opposite leg; the angles are inferred).
+  - Head 24 deg back from the torso, keeps the bob (inferred: eyes ahead, the ninja run's ratio).
+  - Legs swing 65 deg (inferred: larger swing at speed). Cadence unchanged. A torso-only lean is the rig's limit: guides prefer leaning the whole body.
 - The player's avatar is hidden while racing, as before; the Humanoid stays for camera and respawn.
 - Auras and trails attach to the runner's Torso instead of the car.
 - Kept from IVS: exact cruise speed at once on every start / checkpoint / restart, stays within

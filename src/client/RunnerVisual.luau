@@ -16,7 +16,6 @@ local RunnerVisual = {}
 RunnerVisual.TAG = "VisibleRunner"
 RunnerVisual.STRIDE = 7 * RunnerFactory.SCALE -- studs per full stride cycle (placeholder)
 RunnerVisual.MAX_CADENCE = 4 -- stride cycles per second at most, so a very fast runner does not blur (placeholder)
-RunnerVisual.SWING = math.rad(40) -- limb swing amplitude (placeholder)
 RunnerVisual.BOB = 0.15 * RunnerFactory.SCALE -- studs of head bob (placeholder)
 
 local OFFSETS = {}
@@ -26,7 +25,8 @@ end
 -- limbs swing about the top of the part (shoulder / hip); arms opposite their leg
 local SWINGS = { LeftArm = 1, RightArm = -1, LeftLeg = -1, RightLeg = 1 }
 
--- NinjaRun pose (design doc 4.23), all placeholders. Forward is -Z, so a negative X angle leans forward / sends arms back.
+-- Run poses, all placeholders. Forward is -Z, so a negative X angle leans forward / sends arms back.
+-- NinjaRun: design doc 4.23.
 local NINJA = {
 	LEAN = math.rad(45), -- torso forward, about the hips
 	ARM_BACK = math.rad(35), -- arms behind the torso
@@ -35,6 +35,16 @@ local NINJA = {
 	HEAD_UP = math.rad(36), -- head back from the torso, so the eyes look ahead
 	LEG_SWING = math.rad(55),
 }
+-- Universal run for every character without a RunStyle: design doc 4.34.
+local SPEED = {
+	LEAN = math.rad(30),
+	ARM_BACK = math.rad(10),
+	ARM_SPLAY = math.rad(6),
+	ARM_SWAY = math.rad(50),
+	HEAD_UP = math.rad(24),
+	LEG_SWING = math.rad(65),
+}
+local STYLES = { NinjaRun = NINJA }
 local SIDES = { LeftArm = -1, RightArm = 1 }
 
 -- The character's RunStyle (docs/CHARACTER_GACHA_SPEC.md), or nil.
@@ -43,27 +53,36 @@ function RunnerVisual.StyleOf(model)
 	return spec and spec.RunStyle
 end
 
-local function poseNinja(model, root, phase, amount)
+local function poseOf(model)
+	return STYLES[RunnerVisual.StyleOf(model)] or SPEED
+end
+
+-- The torso's forward lean while running, in degrees.
+function RunnerVisual.LeanOf(model)
+	return math.deg(poseOf(model).LEAN)
+end
+
+local function poseRun(model, root, phase, amount, style)
 	local sine = math.sin(phase)
 	local bob = math.abs(sine) * RunnerVisual.BOB * amount
 	local hip = OFFSETS.Torso.Size.Y / 2
-	local upper = root * CFrame.new(0, -hip, 0) * CFrame.Angles(-NINJA.LEAN * amount, 0, 0) * CFrame.new(0, hip, 0)
+	local upper = root * CFrame.new(0, -hip, 0) * CFrame.Angles(-style.LEAN * amount, 0, 0) * CFrame.new(0, hip, 0)
 	model.Torso.CFrame = upper
 	for name, o in OFFSETS do
 		local part = name ~= "Torso" and model:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
 			local half = Vector3.new(0, o.Size.Y / 2, 0)
 			if SIDES[name] then
-				local back = -(NINJA.ARM_BACK + NINJA.ARM_SWAY * sine * SWINGS[name]) * amount
-				local splay = NINJA.ARM_SPLAY * SIDES[name] * amount
+				local back = (-style.ARM_BACK + style.ARM_SWAY * sine * SWINGS[name]) * amount
+				local splay = style.ARM_SPLAY * SIDES[name] * amount
 				part.CFrame = upper * CFrame.new(o.Offset + half) * CFrame.Angles(back, 0, splay) * CFrame.new(-half)
 			elseif SWINGS[name] then
-				local swing = sine * NINJA.LEG_SWING * SWINGS[name] * amount
+				local swing = sine * style.LEG_SWING * SWINGS[name] * amount
 				part.CFrame = root * CFrame.new(o.Offset + half) * CFrame.Angles(swing, 0, 0) * CFrame.new(-half)
 			elseif name == "Head" then
 				part.CFrame = upper
 					* CFrame.new(o.Offset - half)
-					* CFrame.Angles(NINJA.HEAD_UP * amount, 0, 0)
+					* CFrame.Angles(style.HEAD_UP * amount, 0, 0)
 					* CFrame.new(half + Vector3.new(0, bob, 0))
 			else
 				part.CFrame = upper * CFrame.new(o.Offset)
@@ -106,27 +125,7 @@ function RunnerVisual.Pose(model, root, phase, amount)
 		model:PivotTo(root)
 		return
 	end
-	if RunnerVisual.StyleOf(model) == "NinjaRun" then
-		poseNinja(model, root, phase, amount or 1)
-		return
-	end
-	local swing = math.sin(phase) * RunnerVisual.SWING * (amount or 1)
-	local bob = math.abs(math.sin(phase)) * RunnerVisual.BOB * (amount or 1)
-	torso.CFrame = root
-	for name, o in OFFSETS do
-		local part = name ~= "Torso" and model:FindFirstChild(name)
-		if part and part:IsA("BasePart") then
-			local s = SWINGS[name]
-			if s then
-				local pivot = root * CFrame.new(o.Offset + Vector3.new(0, o.Size.Y / 2, 0))
-				part.CFrame = pivot * CFrame.Angles(swing * s, 0, 0) * CFrame.new(0, -o.Size.Y / 2, 0)
-			elseif name == "Head" then
-				part.CFrame = root * CFrame.new(o.Offset + Vector3.new(0, bob, 0))
-			else
-				part.CFrame = root * CFrame.new(o.Offset)
-			end
-		end
-	end
+	poseRun(model, root, phase, amount or 1, poseOf(model))
 end
 
 -- The local player's visible runner, or nil.

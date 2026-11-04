@@ -278,12 +278,13 @@ when all 3 are empty, or when the player loses a track to the NPC.
   more than 1. Display only: the server still decides every number and every Team change.
 
 ### 4.23 Ninja run for the Leaf series (owner 2026-11-03)
-- A character's optional `RunStyle` replaces the default run swing (`docs/CHARACTER_GACHA_SPEC.md`). All 5 Leaf characters and
+- A character's optional `RunStyle` replaces the universal run (4.34) (`docs/CHARACTER_GACHA_SPEC.md`). All 5 Leaf characters and
   Karate Kid, who wears Narito's model, use `NinjaRun`: torso leaning forward, both arms straight back, head looking ahead. Angles
   are **proposed** placeholders. The blocky body stays unchanged: only part positions move.
 - `NinjaRun` adds a short client-side effect on the player's runner while moving: air streaks and foot dust. It is free,
   display only and has no gameplay effect. It stays short so it never competes with Market trails and auras. REDUCED
   EFFECTS removes the dust. NPCs wearing the character get the pose, not the effect.
+- Characters without a `RunStyle`: 4.34.
 
 ### 4.24 First impression: arrival, plaza and Dojo look (owner 2026-11-03)
 Display only; no gameplay number changes. Sizes, timings and positions are **proposed** placeholders unless stated.
@@ -375,6 +376,14 @@ before any Studio work.
 - 4.20 still holds: motion goes through `Client/UiMotion`, display only, no animation hides a number or blocks input for more than ~0.2 s, disabled buttons do not move, panel numbers update at once. 4.28 and the roll spec's limits still hold. Reduced motion cuts the motion, not the sound; the SOUND toggle silences every cue.
 - Audit fixes from the owner's UI improvement request, owner to review: panels close on outside click (Duel excluded), Upgrades has no EXIT and hides the HUD buttons while open, Quests has a claimable badge.
 
+### 4.34 Universal run (owner 2026-11-04)
+- Every character without a `RunStyle` uses one designed run, the deep speed lean, in place of the old upright swing: torso
+  leaning forward, arms pumping low and opposite the legs, long leg swing, head tilted up so the eyes look ahead. Angles are
+  **proposed** placeholders (`docs/WORLD_REDESIGN_SPEC.md` section 2). The blocky body stays unchanged: only part positions move.
+- Standing is still upright. New characters get this run by having no `RunStyle`.
+- It has the same client-side effect as `NinjaRun` (4.23): air streaks and foot dust while moving, free, display only, no gameplay
+  effect. REDUCED EFFECTS removes the dust. NPCs get the pose, not the effect.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -436,6 +445,7 @@ None open here; 4.25 marks its own open question.
 
 ## Change log
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
+- 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
 - 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval, head-and-torso framing, Auto toggle beside Daily, roll at the very top, Quests above Shop, every character and enemy preview uses a drawn portrait (4.31, ROLL_ANIMATION_SPEC).
 - 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
