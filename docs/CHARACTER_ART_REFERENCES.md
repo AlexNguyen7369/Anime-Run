@@ -88,7 +88,7 @@ Marks follow design doc 5 "Marks": same place, size and colour, a clearly differ
 Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks".
 
 - `soul_healer` Orihima [Orihime]: hairpin pair is a four-pointed star with a square centre, not a six-petal flower.
-- `soul_fang` Renjy [Renji]: forehead, brow and chest tattoos are stepped bars and wedges, not the source lines. The block figure has no neck, so the neck bands sit at the top of the chest V: a departure from "same place" for the rules audit.
+- `soul_fang` Renjy [Renji]: no marks. Tattoos are a body pattern following the source layout (owner 2026-11-04). The block figure has no neck, so the neck bands sit at the top of the chest (owner-accepted departure, same date).
 - `soul_substitute` Ichigu [Ichigo]: badge is an upright diamond plate with a crescent, not a plaque with a skull.
 - `soul_hollow` Ulquiorro: shares `foe_soul` (see Track enemies).
 - `soul_ice` Rukiya [Rukia], `soul_lord` Aizon [Aizen]: no marks.

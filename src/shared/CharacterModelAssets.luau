@@ -432,7 +432,7 @@ return {
 		},
 	},
 	soul_fang = {
-		Asset = 98415822052376,
+		Asset = 110030155209034,
 		Sizes = {
 			Head = Vector3.new(2.16, 4.48, 3.32),
 			LeftArm = Vector3.new(1.38, 2.44, 1.18),

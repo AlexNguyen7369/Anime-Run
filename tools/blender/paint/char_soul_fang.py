@@ -1,7 +1,7 @@
 # Target look for soul_fang "Renjy" (design doc section 5): a tall red ponytail bursting into spikes, the forehead bare under white-strapped
-# goggles, angular dark brow and forehead marks, marks on the upper chest (the block figure has no neck); a black robe over a white undershirt, a thin white cord,
+# goggles with one dark visor and an orange stripe, forked dark tattoo lines from the brow up the forehead, tattoo wedges at the top of the chest (the block figure has no neck); a black robe over a white undershirt, a thin white cord,
 # wide black hakama, white split-toe socks and straw sandals, a plain sword at his left hip. +X is the viewer's right in the front view.
-# Drawn in-house. Every tattoo line here is a changed shape: same place, size and colour as the source, its own stepped bars.
+# Drawn in-house. The tattoos are a body pattern, not symbol marks (owner 2026-11-04): they follow the source layout and shape.
 import math
 
 from atlas import shade
@@ -12,7 +12,7 @@ from style2 import Ramps
 
 SKIN = "#f0c49a"
 SKIN_D = "#c08a62"
-INK = "#14131f"  # the marks: near black with a little indigo
+INK = "#14131f"  # the tattoos: near black with a little indigo
 COAT = "#1c1e27"
 COAT_L = "#3a3e4e"
 WHITE = "#eef0f4"
@@ -25,6 +25,7 @@ R = Ramps(
 	hakama=["#090a0f", "#12131a", "#1e2029", "#2f323e", "#474a58"],
 	white=["#8f94a4", "#c6cad4", "#e6e8ee", "#f6f7fa", "#ffffff"],
 	lens=["#07080c", "#10141b", "#1c2630", "#34485a"],
+	stripe=["#9c4d17", "#cf7224", "#ee9238", "#ffb561"],
 	strap=["#8a8d9a", "#bcc0ca", "#dfe1e7", "#f8f9fb"],
 	tie=["#0b0b0f", "#17171d", "#2a2a33", "#42424e"],
 	straw=["#6d5428", "#957740", "#bb9c5e", "#dcc186"],
@@ -83,7 +84,7 @@ def _hair(k):
 
 
 def _goggles(k):
-	"""Pushed up where the hair starts: a white strap round the head, two square dark lenses in white frames."""
+	"""Pushed up where the hair starts: a white strap round the head, one dark visor in a white frame, an orange stripe across it."""
 	rings = []
 	n = 16
 	for x_y, z in ((1.0, 5.34), (1.05, 5.36), (1.05, 5.5), (1.0, 5.52)):
@@ -95,11 +96,9 @@ def _goggles(k):
 		rings.append(ring)
 	verts, faces, flat = k._loft(rings)
 	bake(k._mesh("Strap", "Head", verts, faces, flat, outline=0), "strap", k, a=0.52, b=0.4)
-	for s in (1, -1):
-		x = s * 0.38
-		block(k, "Head", f"Frame{s}", x, -0.98, 5.76, 5.34, 0.33, 0.1, "white", ch=0.04, corner=0.25, a=0.56, b=0.4)
-		block(k, "Head", f"Lens{s}", x, -1.085, 5.7, 5.4, 0.26, 0.015, "lens", ch=0.008, corner=0.2, a=0.46, b=0.5, g=0.3)
-	block(k, "Head", "Bridge", 0, -1.04, 5.58, 5.5, 0.07, 0.05, "white", ch=0.015, a=0.54, b=0.4)
+	block(k, "Head", "Frame", 0, -0.98, 5.78, 5.34, 1.0, 0.1, "white", ch=0.04, corner=0.25, a=0.56, b=0.4)
+	block(k, "Head", "Visor", 0, -1.085, 5.71, 5.37, 0.92, 0.015, "lens", ch=0.008, corner=0.2, a=0.46, b=0.5, g=0.3)
+	block(k, "Head", "Stripe", 0, -1.105, 5.61, 5.55, 0.84, 0.008, "stripe", ch=0.004, a=0.56, b=0.3)
 
 
 def _robe(k):
@@ -163,13 +162,6 @@ def model(parts, kit):
 # ---- paint
 
 
-def _bar(f, x0, y0, x1, y1, h, step=3):
-	"""One changed tattoo line: a stepped bar, a square notch cut in its underside, a chevron end."""
-	mx, my = (x0 + x1) / 2, (y0 + y1) / 2
-	d = 1 if x1 > x0 else -1
-	f.path(f"M{x0} {y0}L{mx} {my}L{mx} {my - step}L{x1 - d * h} {y1 - step}L{x1} {y1 - step + h / 2}L{x1 - d * h} {y1 - step + h}L{mx + d * 4} {my - step + h}L{mx + d * 4} {my + h}L{x0 + d * 3} {y0 + h}Z", INK)
-
-
 def _fold(f, x0, y0, cx, cy, x1, y1, op=0.55, sw=6):
 	f.path(f"M{x0} {y0}Q{cx} {cy} {x1} {y1}", stroke=COAT_L, sw=sw, opacity=op, blur=2)
 
@@ -183,11 +175,12 @@ def _torso(a):
 	f.soft("M44 -5H156V16H44Z", SKIN_D, 0.85, 3)
 	f.soft("M44 -5L100 104V84L60 -5Z", SKIN_D, 0.5, 2)
 	f.soft("M156 -5L100 104V84L140 -5Z", SKIN_D, 0.6, 2)
-	# the marks on the neck and upper chest
+	# the neck tattoos, moved to the top of the chest: stacked wedges rooted at the collar, tips running in and down
 	for s in (1, -1):
-		_bar(f, 100 + s * 12, 18, 100 + s * 40, 12, 5)
-		_bar(f, 100 + s * 11, 34, 100 + s * 32, 28, 5)
-		_bar(f, 100 + s * 7, 50, 100 + s * 23, 44, 5)
+		c = lambda u: 100 + s * u
+		f.path(f"M{c(56)} -2L{c(49)} 12L{c(38)} 13L{c(16)} 27L{c(30)} 7L{c(42)} 4Z", INK)
+		f.path(f"M{c(47)} 15L{c(40)} 29L{c(31)} 30L{c(13)} 47L{c(23)} 25L{c(35)} 19Z", INK)
+		f.path(f"M{c(37)} 33L{c(32)} 44L{c(26)} 46L{c(14)} 62L{c(18)} 43L{c(27)} 36Z", INK)
 	_fold(f, 16, 70, 40, 110, 80, 140)
 	_fold(f, 184, 72, 160, 112, 120, 142)
 	_fold(f, 30, 160, 40, 175, 28, 196, 0.5, 5)
@@ -229,12 +222,14 @@ def _face(f):
 	f.soft("M30 124Q65 116 100 124V135H30Z", SKIN_D, 0.5, 3)
 	for cx, s in ((39, -1), (91, 1)):
 		eye2(f, cx, 66, s, 36, 15, "#6e2a1c", tilt=3.6, r=9.5, lid=0.22, lash="#17121a", lash_t=3.2, flick=3, pupil=0.42, sclera="#f6f2ea", crease_line=False)
-		# the tattooed brow, changed: a heavy stepped wedge, inner end low, a barb on top at the outer end
-		ix, ox = cx - s * 19, cx + s * 22
-		f.path(f"M{ix} 54L{cx - s * 3} 46L{cx - s * 3} 42L{cx + s * 12} 39L{ox} 34L{cx + s * 15} 44L{cx + s * 3} 48L{cx + s * 3} 51L{ix + s * 2} 58Z", INK)
-		# the forehead marks, changed: two stepped bars running up from the brow
-		_bar(f, cx - s * 20, 30, cx + s * 16, 20, 6)
-		_bar(f, cx - s * 18, 13, cx + s * 22, 4, 6)
+		# the tattoo: a brow line, pointed and low at the nose, thick as it climbs out to the temple
+		c = lambda u: 65 + s * u
+		f.path(f"M{c(6)} 57Q{c(20)} 48 {c(33)} 37L{c(47)} 18L{c(44)} 36Q{c(32)} 49 {c(20)} 53Q{c(12)} 56 {c(6)} 57Z", INK)
+		# forks rising off it to the hairline
+		f.path(f"M{c(13)} 50L{c(16)} 22L{c(25)} 43Z", INK)
+		f.path(f"M{c(25)} 44L{c(32)} 12L{c(36)} 36Z", INK)
+		# the upper line along the hairline, ending in a zigzag at the temple
+		f.path(f"M{c(39)} 26L{c(50)} 14L{c(64)} 16L{c(56)} 28L{c(66)} 40L{c(52)} 34L{c(55)} 25L{c(49)} 21Z", INK)
 	# nose, a hard grin on one side with one fang
 	f.path("M63 76L67 90L60 91Q64 84 63 76Z", SKIN_D, opacity=0.9)
 	f.path("M46 104Q66 111 88 98", stroke="#2c1612", sw=2.6)
