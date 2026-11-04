@@ -50,8 +50,9 @@
 46. 2026-11-03 — Alex Nguyen — Gave logos and symbols small shape changes on 15 characters with the overall designs unchanged (design doc 5 Marks) and re-uploaded them, rules audit PASS, in-game check of the new marks still open.
 47. 2026-11-03 — Alex Nguyen — Landed first-impression fi1 and fi2: in-house plaza and Dojo meshes with 5 Dojo looks, Legends and sky-loop runners, golden-hour plaza, a logo loading screen that waits for client assets, and bold Market and Race Start landmarks (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS).
 48. 2026-11-03 — Alex Nguyen — Built first-impression fi3 on its task branch: camera reveal, lighter starter dim with an in-world reveal, petal trail to the gate, Daily held until the first run ends, and the gate burst (stylua clean, selene 0 errors, Studio check still open).
+49. 2026-11-03 — Alex Nguyen — Landed first-impression fi3 and fi4 plus a shorter load: first-join reveal, trail, Daily hold and gate burst, Dojo level-up effect, squad poses, stat lanterns and YOUR DOJO marker, with a fresh server opening at 40-44 s instead of 65-77 s (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS; gate burst, a real fresh save, phone and Reduced Motion not seen).
 
 ## What's next
-**Run the fi3 Studio check on a fresh save and land the branch, then build first-impression fi4.**
+**Test the first-join flow on a real fresh save, including a starter pick and the gate burst, and have the owner review the defaults in docs/OWNER_QUESTIONS.md.**
 
-**Why this is next:** fi3's done condition needs that Studio check, and fi4, fi5 and the c3 check before the PR to main follow it.
+**Why this is next:** that flow has only been run with local test flags on the owner's save, and fi5, the c3 check and the PR to main all build on it being right.
