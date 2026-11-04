@@ -72,8 +72,9 @@
 69. 2026-11-04 — Alex Nguyen — Fixed ui-juice audit findings on Equip cue timing, Daily rebuilds, Index slot 1 rule, Denied on disabled buttons, DEFEATED Burst, single roll shake, Duel toasts and checkpoint Fly; not run in Studio.
 70. 2026-11-04 — Alex Nguyen — Verified ui-juice in Studio (14 targeted scenarios fail=0, sound lengths measured) and fixed cue loudness, raw potion ids in the Quest claim reply, empty-state Stats bars, the VS banner truncating, the race map row under Quests and the Rebirth reply overflow.
 71. 2026-11-04 — Alex Nguyen — Landed UI feedback pass: 9 sounds with the ServerStorage folder, UiFeedback cues, new UiMotion presets, consistency and clarity fixes, big-moment and panel wiring; 15 targeted UI scenarios fail=0 including ui_layout 962 and ui_feedback 27 (ui-juice u1-u4).
+72. 2026-11-04 — Alex Nguyen — Compat check u5 stopped on the owner's word: c3t merged, UI pass=44 fail=0, server pass=49 fail=1 (`data`, fix 0fa4d06 not run), final server run skipped, rules audit FAIL with fixes not re-audited.
 
 ## What's next
-**Run the compat check: merge orch/core/c3t, full UI and server harness to fail=0, rules audit.**
+**Run `data` and a full server harness on the merged code to `[CARTEST] END fail=0`, then re-audit the u5 fixes.**
 
-**Why this is next:** the owner set it as the goal's last step; results are stale until it runs on the merged branch, and any PR to main depends on it.
+**Why this is next:** no server run covers any commit after 6a2cf4d, and goal u5 and c3 stay open until that line exists; the merge to `main` goes ahead without it on the owner's word.
