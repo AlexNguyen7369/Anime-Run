@@ -18,12 +18,13 @@ local Boosts = require(shared.BoostConfig)
 local CharacterCatalog = require(shared.CharacterCatalog)
 local GachaConfig = require(shared.GachaConfig)
 local Switch = require(script.Parent.PanelSwitch)
-local UiMotion = require(script.Parent.UiMotion)
+local UiFeedback = require(script.Parent.UiFeedback)
 local Band = require(script.Parent.PanelBand)
+local Frame = require(script.Parent.PanelFrame)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local BLUE = Color3.fromRGB(61, 151, 219)
 local GREEN = Color3.fromRGB(89, 225, 138)
-local RED = Color3.fromRGB(238, 87, 107)
+local RED = UiTheme.Palette.Danger
 local DARK = Color3.fromRGB(29, 32, 53)
 
 local function make(class, name, parent, properties)
@@ -76,7 +77,7 @@ local function button(name, parent, position, size, value)
 		TextSize = 15,
 		TextColor3 = Color3.new(1, 1, 1),
 		BackgroundColor3 = BLUE,
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(0, UiTheme.Radius.S) })
 	UiTheme.Stroke(b, 1.5)
@@ -85,7 +86,6 @@ end
 -- A disabled button gets no hover / press highlight.
 local function setActive(b, active)
 	b.Active = active
-	b.AutoButtonColor = active
 end
 local panels = {}
 local function panel(name, title)
@@ -96,17 +96,20 @@ local function panel(name, title)
 		Size = UDim2.new(0.82, 0, 1, -344),
 		BackgroundColor3 = DARK,
 		Visible = false,
+		Active = true,
 	})
 	plate(p)
 	text("Title", p, UDim2.fromOffset(12, 4), UDim2.new(1, -74, 0, 34), title)
 	local close = button("Close", p, UDim2.new(1, -48, 0, 6), UDim2.fromOffset(38, 30), "×")
-	close.BackgroundColor3 = RED
+	Frame.PaintClose(close)
 	Switch.Register(name, p)
 	-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
 	Band.Fit(p, 700)
-	close.Activated:Connect(function()
+	local function closePanel()
 		Switch.Close(name)
-	end)
+	end
+	close.Activated:Connect(closePanel)
+	Frame.CloseOnOutsideClick(p, closePanel)
 	panels[name] = p
 	return p
 end
@@ -207,7 +210,7 @@ for _, category in Boosts.Order do
 	})
 	local timer = text("Timer", icon, UDim2.fromScale(0.5, 1), UDim2.fromOffset(84, 20), "")
 	timer.AnchorPoint = Vector2.new(0.5, 1)
-	timer.Font = Enum.Font.FredokaOne
+	timer.Font = UiTheme.Font
 	timer.TextSize = 17
 	timer.TextWrapped = false
 	timer.ZIndex = 2
@@ -287,14 +290,16 @@ for _, close in { treeView.Refs.Close, treeView.Refs.Exit } do
 	end)
 end
 local pendingBuys = {}
-local purchaseSound =
-	make("Sound", "PurchaseSound", hud, { SoundId = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3 })
 for _, tile in Tree.Tiles() do
 	local entry = tiles[tile.Id]
 	if not entry then
 		continue
 	end
-	local b, label = entry.Button, entry.Label
+	local b = entry.Button
+	UiFeedback.DeniedPress(b, function() -- not buyable; an owned node is no refusal
+		local folder = player:FindFirstChild("Upgrades")
+		return not pendingBuys[tile.Id] and not (folder and folder:FindFirstChild(tile.Id))
+	end)
 	b.Activated:Connect(function()
 		if not b.Active or pendingBuys[tile.Id] then
 			return
@@ -308,16 +313,7 @@ for _, tile in Tree.Tiles() do
 			or "Connection error; try again"
 		feedback.TextColor3 = ok and bought and GREEN or RED
 		pendingBuys[tile.Id] = nil
-		if ok and bought then
-			purchaseSound:Play()
-		else
-			b.Rotation = -3
-			UiMotion.Create(b, TweenInfo.new(0.15), { Rotation = 0 }):Play()
-		end
-		UiMotion.Create(label, TweenInfo.new(0.15), { TextSize = 15 }):Play()
-		task.delay(0.2, function()
-			label.TextSize = 13
-		end)
+		UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", b)
 	end)
 end
 local workshopPanel = panel("Workshop", "WORKSHOP UPGRADE")
@@ -599,6 +595,7 @@ buyWorkshop.Activated:Connect(function()
 	workshopResult.Text = ok and tostring(reason or (bought and "Upgraded" or "Try again"))
 		or "Connection error; try again"
 	refresh()
+	UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", buyWorkshop)
 end)
 remotes:WaitForChild("WorkshopOpen").OnClientEvent:Connect(function()
 	refresh()

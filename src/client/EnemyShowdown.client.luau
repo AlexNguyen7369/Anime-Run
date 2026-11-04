@@ -5,6 +5,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcConfig = require(Shared.NpcConfig)
@@ -12,11 +13,15 @@ local TrackRegistry = require(Shared.TrackRegistry)
 local Themes = require(Shared.BiomeThemes)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
+local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
 -- All placeholders (design doc 4.28).
-local BANNER_W, BANNER_H = 460, 100 -- px
+local BANNER_W, BANNER_H = 460, 112 -- px; BANNER_W is the widest: each banner shrinks to its text
+local TEXT_LEFT, TEXT_RIGHT = 108, 16 -- px either side of the text
+local DEFEATED_TINT = Color3.fromRGB(125, 125, 125) -- ImageColor3 only multiplies: a dimmed portrait, not true greyscale
 local HOME = UDim2.fromScale(0.5, 0.62) -- placeholder: under the runner, above the team row
 local VS_SECONDS = 1.6
 local DEFEATED_SECONDS = 1.4
@@ -42,7 +47,7 @@ banner.AnchorPoint = Vector2.new(0.5, 0)
 banner.Position = HOME
 banner.Size = UDim2.fromOffset(BANNER_W, BANNER_H)
 banner.Visible = false
-UiTheme.Plate(banner, UiTheme.Palette.Danger)
+local edge = UiTheme.Plate(banner, UiTheme.Palette.Danger):FindFirstChildOfClass("UIStroke")
 banner.Parent = gui
 
 -- Layout scale (not MotionScale), as the loser card: phones shrink, desktop never does (design doc 4.27).
@@ -60,8 +65,8 @@ gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 local function line(name, y, height, textSize, color)
 	local text = Instance.new("TextLabel")
 	text.Name = name
-	text.Position = UDim2.fromOffset(100, y)
-	text.Size = UDim2.new(1, -112, 0, height)
+	text.Position = UDim2.fromOffset(TEXT_LEFT, y)
+	text.Size = UDim2.new(1, -(TEXT_LEFT + TEXT_RIGHT), 0, height)
 	text.BackgroundTransparency = 1
 	text.Font = UiTheme.Font
 	text.TextSize = textSize
@@ -74,14 +79,14 @@ local function line(name, y, height, textSize, color)
 	return text
 end
 
-local vs = line("Vs", 8, 26, 24, UiTheme.Palette.Danger)
+local vs = line("Vs", 6, 44, 42, UiTheme.Palette.Danger)
 vs.Text = "VS"
 vs.Visible = false
-local defeated = line("Defeated", 8, 26, 24, UiTheme.Palette.Money)
+local defeated = line("Defeated", 6, 44, 42, UiTheme.Palette.Money)
 defeated.Text = "DEFEATED!"
 defeated.Visible = false
-local enemyName = line("EnemyName", 34, 34, 30, UiTheme.Palette.White)
-local trackName = line("TrackName", 70, 22, 16, UiTheme.Palette.Unbanked)
+local enemyName = line("EnemyName", 50, 32, 28, UiTheme.Palette.White)
+local trackName = line("TrackName", 84, 20, 16, UiTheme.Palette.Unbanked)
 
 gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 refit()
@@ -97,7 +102,7 @@ local function setPortrait(model)
 		"Portrait",
 		{ Id = model },
 		UDim2.fromOffset(8, 8),
-		UDim2.fromOffset(84, 84),
+		UDim2.fromOffset(96, 96),
 		true
 	)
 end
@@ -141,11 +146,31 @@ function show(event)
 	enemyName.Text = info.Label
 	trackName.Text = ("TRACK %d · %s"):format(event.Track, trackNames[event.Track])
 	setPortrait(info.Model)
+	if won then
+		portrait.ImageColor3 = DEFEATED_TINT
+	end
+	edge.Color = won and UiTheme.Palette.Money or UiTheme.Palette.Danger
+	local width = 0
+	for _, text in { title, enemyName, trackName } do
+		-- Measured, not TextBounds: right before the first render, under any UIScale.
+		width = math.max(width, TextService:GetTextSize(text.Text, text.TextSize, text.Font, Vector2.new(1e4, 100)).X)
+	end
+	-- Rounded up: an offset size floors, and half a pixel short truncates the line.
+	banner.Size = UDim2.fromOffset(math.min(BANNER_W, math.ceil(TEXT_LEFT + width + TEXT_RIGHT)), BANNER_H)
 	banner.Position = HOME -- a banner replaced mid-slide must not start from the old one's position
 	fade(title, true)
 	UiMotion.SlideIn(banner, Vector2.new(0, -24), 0.2)
+	-- The title Slams: the banner's own UIScale is the layout's (FitScale).
 	if won then
+		-- UiFx draws above everything, so the Burst sits out a roll or an open panel; the banner stays below them.
+		UiFeedback.Play("EnemyDefeated", title, {
+			Origin = banner,
+			Color = UiTheme.Palette.Money,
+			NoBurst = UiFeedback.RollPhase() ~= "Idle" or PanelSwitch.AnyOpen(),
+		})
 		lock(DEFEATED_MIN_SECONDS)
+	else
+		UiFeedback.Play("EnemyVs", title)
 	end
 	task.delay(won and DEFEATED_SECONDS or VS_SECONDS, function()
 		if shownToken == mine then

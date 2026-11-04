@@ -249,7 +249,7 @@ function Tests.make(helpers)
 			-- (VehicleEffects.Apply on the live car; the listener itself is wired only for real Players)
 			local before, partsBefore = snapshot(car)
 			local massBefore, masslessBefore = partMass(car), masslessParts(car)
-			player:SetAttribute("OwnTrail_" .. TRAIL_ID, true)
+			player:SetAttribute("OwnTrail_" .. TRAIL_ID, 1)
 			local okEquip, equipped = pcall(MarketService.Equip, player, "Trail", TRAIL_ID)
 			flag("effects_market_equip", okEquip and equipped == true and player:GetAttribute("Slot1Trail") == TRAIL_ID)
 			flag("effects_apply_no_error", (pcall(VehicleEffects.Apply, car, player)))
@@ -324,9 +324,16 @@ function Tests.make(helpers)
 				indexMaxJump = 0,
 			}
 			local prevIndex = run.Driver and run.Driver.Index
+			-- Time is the rail's clock (Heartbeat dt can jump with no wall-clock time). A real stall still fails: this
+			-- clock keeps growing while the chassis does not move.
+			local railStart = os.clock()
+			local railClock = railStart
+			local railConn = RunService.PreSimulation:Connect(function()
+				railClock = os.clock()
+			end)
 			while t < DRIVE_SECONDS do
 				local frameDt = RunService.Heartbeat:Wait()
-				t += frameDt
+				t = railClock - railStart
 				diag.frames += 1
 				if frameDt > diag.maxDt then
 					diag.maxDt, diag.maxDtAt = frameDt, t
@@ -373,6 +380,7 @@ function Tests.make(helpers)
 					end
 				end
 			end
+			railConn:Disconnect()
 			local speed = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
 			local wantTravel = math.max(MIN_DRIVE_DISTANCE, DRIVE_SHARE * speed * t)
 			r.metrics.drive = {
@@ -434,7 +442,7 @@ function Tests.make(helpers)
 			if not switchOk then
 				return
 			end
-			player:SetAttribute("OwnAura_" .. AURA_ID, true)
+			player:SetAttribute("OwnAura_" .. AURA_ID, 1)
 			local okAura = pcall(MarketService.Equip, player, "Aura", AURA_ID)
 			flag("switch_aura_equipped", okAura and player:GetAttribute("Slot1Aura") == AURA_ID)
 			pcall(VehicleEffects.Apply, car, player)

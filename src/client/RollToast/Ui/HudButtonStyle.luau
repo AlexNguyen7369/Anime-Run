@@ -2,7 +2,8 @@
 -- Shared presentation for the handcrafted HUD entries; existing handlers remain on each button.
 local Style = {}
 local Components = require(script.Parent.RacerComponents)
-local OUTLINE = Color3.fromRGB(12, 16, 30)
+local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local OUTLINE = UiTheme.Outline
 Style.Colors = {
 	Upgrades = Color3.fromRGB(30, 216, 255),
 	Bag = Color3.fromRGB(172, 99, 238),
@@ -41,7 +42,7 @@ end
 function Style.Utility(button, slot, color)
 	button.AutoButtonColor = false
 	button.BorderSizePixel = 0
-	button.Font = Enum.Font.FredokaOne
+	button.Font = UiTheme.Font
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextScaled, button.TextWrapped = true, true
 	button.TextTruncate = Enum.TextTruncate.None
@@ -74,7 +75,7 @@ function Style.Utility(button, slot, color)
 	local caption = Instance.new("TextLabel")
 	caption.Name, caption.BackgroundTransparency = "HudCaption", 1
 	caption.Size = UDim2.fromScale(1, 1)
-	caption.Font, caption.TextColor3 = Enum.Font.FredokaOne, Color3.new(1, 1, 1)
+	caption.Font, caption.TextColor3 = UiTheme.Font, Color3.new(1, 1, 1)
 	caption.TextScaled, caption.TextWrapped, caption.ZIndex = true, true, 5
 	caption.Text, caption.Parent = button.Text, button
 	textSize.MinTextSize, textSize.MaxTextSize, textSize.Parent = 14, 23, caption

@@ -140,7 +140,8 @@ function ShopMarket.Build(h)
 
 	-- Shared geometry of a band panel at every viewport: inside the screen and the band, its interactive parts
 	-- (buttons, text boxes) inside their parent and apart from each other, and the solver able to model it.
-	local function panelGeometry(res, prefix, panel)
+	-- leaveOut(d, vp) (optional): true for a descendant not to judge at that viewport
+	local function panelGeometry(res, prefix, panel, leaveOut)
 		local guiName = panel:FindFirstAncestorWhichIsA("LayerCollector").Name
 		for _, vpSpec in h.viewports do
 			local rectOf, vp, ctx = h.provider(vpSpec)
@@ -162,7 +163,7 @@ function ShopMarket.Build(h)
 			end
 			local controls, spill, overlaps = {}, {}, {}
 			for _, d in panel:GetDescendants() do
-				if (d:IsA("GuiButton") or d:IsA("TextBox")) and h.visible(d) then
+				if (d:IsA("GuiButton") or d:IsA("TextBox")) and h.visible(d) and not (leaveOut and leaveOut(d, vp)) then
 					table.insert(controls, { obj = d, r = rectOf(d) })
 					local parent = d.Parent
 					if parent and parent:IsA("GuiObject") and not parent:IsA("ScrollingFrame") then
@@ -537,8 +538,8 @@ function ShopMarket.Build(h)
 	end
 
 	-- What the Detail pane must show for (kind, item): Name, Price (HudFormat.MoneyText), Description, a Rarity,
-	-- and the Action label BUY (potions, not-owned items). An owned trail / aura hides Action and shows the team slot
-	-- buttons (u4, Client/SlotPicker): Slot<n> titled "REMOVE n" when slot n holds it, else "SLOT n".
+	-- and the Action label BUY (potions, trails / auras below MAX_COPIES copies; hidden at the cap). An owned trail /
+	-- aura shows the team slot buttons (u4, Client/SlotPicker): Slot<n> titled "REMOVE n" when slot n holds it, else "SLOT n".
 	local function detailProblems(kind, item)
 		local detail = h.find(MK.Detail)
 		local bad = {}
@@ -552,7 +553,8 @@ function ShopMarket.Build(h)
 			table.insert(bad, ("Name shows %q, want %q"):format(textOf(part("Name")), item.Name))
 		end
 		-- Price row (a Frame since 016c467): its Value label. Potions: price and the owned count (Boost_<Id>); an
-		-- owned trail / aura: "Owned"; else the price.
+		-- owned trail / aura: "Owned x<copies>"; else the price.
+		local copies = kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) or 0
 		local priceRow = part("Price")
 		local priceText = textOf(priceRow and priceRow:FindFirstChild(MK.PriceText))
 		local wantPrice = { HudFormat.MoneyText(item.Price) }
@@ -562,9 +564,9 @@ function ShopMarket.Build(h)
 			local count = HudFormat.Short(attr("Boost_" .. item.Id) or 0)
 			table.insert(wantPrice, "x" .. count)
 			ok = ok and string.match(priceText, "[xX]([%d%.]+%a*)%s*$") == count
-		elseif attr("Own" .. kind .. "_" .. item.Id) == true then
-			wantPrice = { "Owned" }
-			ok = has(priceText, "Owned")
+		elseif copies > 0 then
+			wantPrice = { "Owned x" .. copies }
+			ok = has(priceText, wantPrice[1])
 		end
 		if not ok then
 			table.insert(bad, ("Price shows %q, want %q"):format(priceText, table.concat(wantPrice, " + ")))
@@ -586,21 +588,21 @@ function ShopMarket.Build(h)
 				table.insert(bad, ("Subtitle shows %q, want %s %s"):format(rarity, kind, tostring(wantMulti)))
 			end
 		end
-		local cosmetic = kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) == true
 		local action, slots = part("Action"), part(MK.Slots)
-		if not cosmetic then
+		if copies < MarketConfig.MAX_COPIES then
 			-- The text the Action button shows (its own Text, else its Label child's: Client/MarketUi actionLabel)
 			local shown = shownText(action)
 			if not (action and h.visible(action)) or shown ~= MK.ActionText.Buy then
 				table.insert(bad, ("Action shows %q, want %q"):format(shown, MK.ActionText.Buy))
 			end
+		elseif action and h.visible(action) then
+			table.insert(bad, "Action shown for a " .. kind .. " at the copy cap")
+		end
+		if copies == 0 then
 			if slots and h.visible(slots) then
 				table.insert(bad, "Slots shown for an item that is not an owned trail / aura")
 			end
 		else
-			if action and h.visible(action) then
-				table.insert(bad, "Action shown for an owned " .. kind .. " (the slot buttons equip it)")
-			end
 			if not (slots and h.visible(slots)) then
 				table.insert(bad, "Slots hidden for an owned " .. kind)
 			end
@@ -677,7 +679,8 @@ function ShopMarket.Build(h)
 			local o = detail and detail:FindFirstChild(p.Name)
 			if not (o and o:IsA(p.Class)) then
 				table.insert(detailBad, ("%s missing (%s)"):format(p.Name, p.Class))
-			else
+			elseif h.visible(o) then
+				-- Only shown parts are judged for geometry (fitDetail hides Description for an owned item)
 				table.insert(dParts, o)
 			end
 		end
@@ -724,7 +727,11 @@ function ShopMarket.Build(h)
 				grid ~= nil and h.visible(grid) and not (detail ~= nil and h.visible(detail))
 			)
 		end
-		panelGeometry(res, "market", panel)
+		-- Phones hide Detail until a tile tap, then use the PHONE layout (judged live by market_phone_detail_view), so
+		-- its live desktop properties mean nothing at a phone viewport.
+		panelGeometry(res, "market", panel, function(d, vp)
+			return phone(vp) and detail ~= nil and detail:IsAncestorOf(d)
+		end)
 		local close = h.find(MK.Close)
 		if close and header then
 			groupGeometry(res, "market_close_in_header", header, { close })
@@ -732,7 +739,7 @@ function ShopMarket.Build(h)
 		if #tabList == #MK.TabOrder then
 			groupGeometry(res, "market_tab_buttons", tabs, tabList)
 		end
-		if #dParts == #MK.DetailParts then
+		if #dParts > 0 then
 			-- (phones: judged live in the Detail view by after.market_phone_detail_view)
 			groupGeometry(res, "market_detail_parts", detail, dParts, desktop)
 		end

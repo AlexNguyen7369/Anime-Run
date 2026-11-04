@@ -7,13 +7,15 @@
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
 -- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
--- emphasized_next, auto_roll_on, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
+-- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
+local Workspace = game:GetService("Workspace")
 
 if not RunService:IsStudio() then
 	return
@@ -118,6 +120,103 @@ local function wrapNewRun()
 	end
 end
 
+-- ui_run_visual (core c3, owner 2026-11-04; Client/UiTest/UiRunVisual): one rig at a time on a route of its own, drawn
+-- by the real Client/RunnerView. It belongs to no Player: a Folder holds the slot attributes VehicleEffects.Apply reads,
+-- Owner = 0 keeps the camera and stamina bar off it, and no save, Team, owned item or Money is read or written.
+local RUN_VISUAL = {
+	ROUTE = "UiRunVisualRoute", -- UiSpec.RunVisual.Route
+	START = Vector3.new(0, 4000, 0), -- far above every track, so nothing there and the rig's effects never near the origin
+	LENGTH = 12000, -- studs along +X: 15 s at RaceConfig.MAX_CRUISE, longer than any row's wait + window
+	Current = nil, -- { Rig, Slots, Thread }
+}
+
+function RUN_VISUAL.clear()
+	local current = RUN_VISUAL.Current
+	if current then
+		RUN_VISUAL.Current = nil
+		task.cancel(current.Thread)
+		current.Rig:Destroy()
+		current.Slots:Destroy()
+	end
+end
+
+function RUN_VISUAL.equip(slots, slot, aura, trail)
+	local MarketConfig = require(Shared.MarketConfig)
+	slots:SetAttribute(MarketConfig.SlotAttribute(slot, "Aura"), aura)
+	slots:SetAttribute(MarketConfig.SlotAttribute(slot, "Trail"), trail)
+end
+
+-- Starts `name`'s run as the real spawnCar + RaceService publish do: RunRoute, RunSpeed, RunDistance every PUBLISH_INTERVAL.
+function RUN_VISUAL.start(name, id, aura, trail, speed)
+	RUN_VISUAL.clear()
+	local PathDriver = require(Shared.PathDriver)
+	local RunnerFactory = require(Shared.RunnerFactory)
+	local VehicleEffects = require(Shared.VehicleEffects)
+	local wps = { RUN_VISUAL.START, RUN_VISUAL.START + Vector3.new(RUN_VISUAL.LENGTH, 0, 0) }
+	local arc = PathDriver.Arc(wps)
+	local rig = RunnerFactory.build(id)
+	rig.Name = name
+	rig.ModelStreamingMode = Enum.ModelStreamingMode.Persistent -- whole on this client wherever the player stands
+	local slots = Instance.new("Folder")
+	RUN_VISUAL.equip(slots, 1, aura, trail)
+	VehicleEffects.Apply(rig, slots, 1)
+	rig:SetAttribute("Owner", 0)
+	local function publish(dist)
+		rig:PivotTo(PathDriver.PoseAt(wps, arc, dist) * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0))
+		rig:SetAttribute("RunRoute", RUN_VISUAL.ROUTE)
+		rig:SetAttribute("RunSpeed", speed)
+		rig:SetAttribute("RunDistance", dist)
+	end
+	publish(0)
+	CollectionService:AddTag(rig, live("CarService").RUNNER_TAG)
+	rig.Parent = Workspace
+	local interval = live("RaceService").PUBLISH_INTERVAL
+	local started = os.clock()
+	RUN_VISUAL.Current = {
+		Rig = rig,
+		Slots = slots,
+		Thread = task.spawn(function()
+			while true do
+				task.wait(interval)
+				publish((os.clock() - started) * speed % RUN_VISUAL.LENGTH)
+			end
+		end),
+	}
+end
+
+-- A slot swap in CarService.ApplyCharacter's order: re-skin, then the new slot's aura and trail. The run carries on.
+function RUN_VISUAL.swap(id, aura, trail)
+	local current = RUN_VISUAL.Current
+	if not current then
+		error("run_visual_swap: no rig")
+	end
+	RUN_VISUAL.equip(current.Slots, 2, aura, trail)
+	require(Shared.RunnerFactory).Restyle(current.Rig, id)
+	require(Shared.VehicleEffects).Apply(current.Rig, current.Slots, 2)
+end
+
+function setups.run_visual()
+	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
+	if not root then
+		root = Instance.new("Folder")
+		root.Name = "RunRoutes"
+		root.Parent = ReplicatedStorage
+	end
+	if root:FindFirstChild(RUN_VISUAL.ROUTE) then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = RUN_VISUAL.ROUTE
+	folder:SetAttribute("Count", 2)
+	for i, position in { RUN_VISUAL.START, RUN_VISUAL.START + Vector3.new(RUN_VISUAL.LENGTH, 0, 0) } do
+		local value = Instance.new("Vector3Value")
+		value.Name = tostring(i)
+		value.Value = position
+		value.Parent = folder
+	end
+	folder.Parent = root
+end
+
 -- Global (not per player): logs every RemoteEvent call into ReplicatedStorage.UiTestSpy attributes,
 -- one JSON array per remote name: [{ user = UserId, args = {...} }, ...]. The real handlers still run.
 local function spy()
@@ -219,6 +318,16 @@ end
 
 function setups.index_states(player)
 	indexStates(player)
+end
+
+-- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
+function setups.impact_sounds_report()
+	local report = {}
+	local folder = game:GetService("ServerStorage"):FindFirstChild("ImpactSounds")
+	for _, item in folder and folder:GetChildren() or {} do
+		table.insert(report, { Name = item.Name, Class = item.ClassName, SoundId = item:IsA("Sound") and item.SoundId })
+	end
+	ReplicatedStorage:SetAttribute("UiTestImpactSounds", HttpService:JSONEncode(report))
 end
 
 function setups.stat_points(player)
@@ -992,6 +1101,8 @@ local CLIENT_SETUPS = {
 	emphasized_next = true,
 	showdown_start = true,
 	showdown_win = true,
+	run_visual = true,
+	impact_sounds_report = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1006,9 +1117,29 @@ setupRequest.OnServerInvoke = function(player, request)
 	end
 	local restoreId = string.match(request, "^restore:(.+)$")
 	local ok, err = pcall(function()
+		local rigName, rigId, rigAura, rigTrail, rigSpeed =
+			string.match(request, "^run_visual_rig:([^:]+):([^:]+):([^:]+):([^:]+):([%d%.]+)$")
+		local swapId, swapAura, swapTrail = string.match(request, "^run_visual_swap:([^:]+):([^:]+):([^:]+)$")
+		if rigName then
+			RUN_VISUAL.start(rigName, rigId, rigAura, rigTrail, tonumber(rigSpeed))
+			return
+		elseif swapId then
+			RUN_VISUAL.swap(swapId, swapAura, swapTrail)
+			return
+		elseif request == "run_visual_clear" then
+			RUN_VISUAL.clear()
+			return
+		end
 		local before = clientBefore[player] or {}
 		clientBefore[player] = before
-		if restoreId == "auto_racing" then
+		if restoreId == "run_visual" then
+			RUN_VISUAL.clear()
+			local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
+			local route = routes and routes:FindFirstChild(RUN_VISUAL.ROUTE)
+			if route then
+				route:Destroy()
+			end
+		elseif restoreId == "auto_racing" then
 			longStamina[player] = nil
 			if before.auto_racing == false then
 				live("CarService").SetAutoRace(player, false)

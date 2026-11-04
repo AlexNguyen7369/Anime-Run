@@ -13,7 +13,9 @@ local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
 local RouteMath = require(Shared.RaceProgressMap)
 local UiTheme = require(Shared.UiTheme)
+local Themes = require(Shared.BiomeThemes)
 local UiMotion = require(script.Parent.UiMotion)
+local UiFeedback = require(script.Parent.UiFeedback)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 
 local Controller = {}
@@ -25,6 +27,7 @@ local FLAT = Vector3.new(1, 0, 1)
 local VIEW_SPAN = 260
 local VIEW_MARGIN = 0.15 -- route kept this far (view fraction) outside the canvas; the edge fade hides it
 local REBUILD_PX = 1.5
+local MAP_PLATE = 0.45 -- placeholder: the plate behind the map's text
 local REBUILD_COS = math.cos(math.rad(1.5))
 local DRIVEN = Color3.fromRGB(164, 107, 255)
 local AHEAD = Color3.fromRGB(61, 224, 255)
@@ -59,6 +62,8 @@ local function trackFor(number)
 					spec = candidate
 				end
 			end
+			local theme = spec and Themes[spec.Biome]
+			local displayName = theme and theme.DisplayName or (spec and spec.Name) -- one name per track, as EnemyShowdown shows
 			local npcPath = NpcRacer.LanePath(entry)
 			tracks[number] = {
 				Route = lane(0),
@@ -66,7 +71,7 @@ local function trackFor(number)
 				NpcRoute = RouteMath.Build(npcPath),
 				NpcPath = npcPath,
 				NpcName = shortName(NpcConfig.For(number).Label),
-				Title = string.format("TRACK %d · %s", number, string.upper(spec and spec.Name or "RACE")),
+				Title = string.format("TRACK %d · %s", number, string.upper(displayName or "RACE")),
 			}
 			return tracks[number]
 		end
@@ -146,6 +151,13 @@ function Controller.Attach(hud, player, remote)
 	for _, label in { hud.RaceMapTitle, status, hud.RaceMapTime, hud.RaceMapPB } do
 		label.Font = UiTheme.Font
 		local stroke = label:FindFirstChildOfClass("UIStroke") or UiTheme.Stroke(label, 1.5)
+		-- Its own plate: the map's text sits over bright world, while the card itself stays clear.
+		if label ~= status then -- the status text has its pill
+			label.BackgroundColor3 = Palette.PanelDeep
+			label.BackgroundTransparency = MAP_PLATE
+			UiTheme.Corner(label, "S")
+			table.insert(fadeTargets, { label, "BackgroundTransparency", MAP_PLATE })
+		end
 		table.insert(fadeTargets, { label, "TextTransparency", 0 })
 		table.insert(fadeTargets, { stroke, "Transparency", 0 })
 	end
@@ -179,9 +191,9 @@ function Controller.Attach(hud, player, remote)
 		local label = text("Label", dot, {
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, size + 3),
-			Size = UDim2.fromOffset(64, 14),
+			Size = UDim2.fromOffset(72, 16),
 			Text = caption,
-			TextSize = 11,
+			TextSize = 13,
 			ZIndex = 7,
 		})
 		return dot, label
@@ -269,9 +281,17 @@ function Controller.Attach(hud, player, remote)
 		return state ~= nil and hud.Gui.Enabled and not (showcase and showcase.Enabled)
 	end
 
+	local lead = nil -- "AHEAD" or "BEHIND": who last led this track. EVEN keeps it, so a pass through a tie still counts.
 	local function setStatus(value)
 		if status.Text == value then
 			return
+		end
+		local word = value:match("^%a+")
+		if word == "AHEAD" or word == "BEHIND" then
+			if lead and lead ~= word then
+				UiFeedback.Play("EnemyPass", pill, { Sound = word == "AHEAD" })
+			end
+			lead = word
 		end
 		status.Text = value
 		status.TextColor3 = Palette.White
@@ -410,6 +430,7 @@ function Controller.Attach(hud, player, remote)
 			or "PB --"
 		hud.RaceMapTime.Text = "TIME 00:00.00"
 		status.Text = ""
+		lead = nil
 		setStatus("EVEN")
 		drawGeometry(true)
 		card.Visible = visible()

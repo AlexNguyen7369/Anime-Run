@@ -11,7 +11,10 @@ local client = script.Parent
 local PanelSwitch = require(client:WaitForChild("PanelSwitch"))
 local Icons = require(client:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local UiFeedback = require(client:WaitForChild("UiFeedback"))
 local UiMotion = require(client:WaitForChild("UiMotion"))
+local QuestConfig = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("QuestConfig"))
+local HttpService = game:GetService("HttpService")
 
 -- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the Roblox chat window starts collapsed so it never covers
 -- the left icon tiles; the chat button opens it. The chat CoreScript opens itself after it loads (an early SetCore
@@ -34,7 +37,7 @@ task.spawn(function()
 	end
 end)
 
-local RED = Color3.fromRGB(232, 60, 76)
+local RED = UiTheme.Palette.Danger
 local TILE = 72
 local LABEL = 22
 
@@ -75,7 +78,7 @@ local function badge(parent)
 		Position = UDim2.new(1, -6, 0, 8),
 		Size = UDim2.fromOffset(26, 26),
 		BackgroundColor3 = RED,
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextSize = 16,
 		TextColor3 = Color3.new(1, 1, 1),
 		Text = "",
@@ -181,7 +184,7 @@ for order, slot in SLOTS do
 			Position = UDim2.new(0.5, 0, 1, 2),
 			Size = UDim2.new(1, 8, 0, LABEL + 4),
 			BackgroundTransparency = 1,
-			Font = Enum.Font.FredokaOne,
+			Font = UiTheme.Font,
 			TextSize = 19,
 			TextColor3 = Color3.new(1, 1, 1),
 			Text = name,
@@ -212,7 +215,8 @@ make("UIListLayout", "Layout", bar, {
 	Padding = UDim.new(0, 8),
 })
 local PILL_COLOR = Color3.fromRGB(18, 18, 21)
-local PILL_TRANSPARENCY = 0.3
+local PILL_TRANSPARENCY = 0.12 -- placeholder: nearly solid, so the see-through world signs do not read as HUD
+local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never pushes Auto left
 -- With `onClick` it is an action pill: no icon, the caption centred, no panel.
 local function pill(name, order, caption, onClick)
 	local b = make("TextButton", name, bar, {
@@ -222,7 +226,7 @@ local function pill(name, order, caption, onClick)
 		BackgroundColor3 = PILL_COLOR,
 		BackgroundTransparency = PILL_TRANSPARENCY,
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
 	if not onClick then
@@ -258,8 +262,8 @@ local function pill(name, order, caption, onClick)
 	return b, text
 end
 -- Auto race toggle: it only asks; the AutoRacing attribute the server sets decides its colour.
-local AUTO_ON = Color3.fromRGB(60, 255, 60)
-local AUTO_PENDING = Color3.fromRGB(104, 111, 135)
+local AUTO_ON = UiTheme.Palette.Money
+local AUTO_PENDING = UiTheme.Palette.Muted
 local AUTO_LOCK = 1 -- s a press stays locked, greyed
 local autoPending = false
 local autoPill
@@ -268,7 +272,6 @@ local function refreshAuto()
 	autoPill.BackgroundColor3 = autoPending and AUTO_PENDING or (racing and AUTO_ON or PILL_COLOR)
 	autoPill.BackgroundTransparency = (autoPending or racing) and 0 or PILL_TRANSPARENCY
 	autoPill.Active = not autoPending
-	autoPill.AutoButtonColor = not autoPending
 end
 autoPill = pill("Auto", 0, "Auto", function()
 	if autoPending then
@@ -288,6 +291,8 @@ end)
 player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshAuto)
 refreshAuto()
 local daily, dailyText = pill("Daily", 1, "Daily")
+daily.AutomaticSize = Enum.AutomaticSize.None
+daily.Size = UDim2.fromOffset(DAILY_WIDTH, 44)
 local dailyBadge = badge(daily)
 dailyBadge.Text = "!"
 -- On the calendar's corner, clear of the caption.
@@ -329,19 +334,44 @@ local function setBadge(b, count)
 	if count > 0 and b.Text ~= text then
 		UiMotion.Pop(b)
 	end
+	if count > 0 and not b.Visible then
+		UiFeedback.Play("BadgeNew", nil, { Sound = true }) -- only growing from 0, never every change
+	end
 	b.Visible = count > 0
 	b.Text = text
 	pulse(b)
 end
 
+-- Quests a press can claim right now (Remotes.QuestClaim still decides). Same attributes the Quests panel reads.
+local function decoded(name)
+	local raw = player:GetAttribute(name)
+	local ok, value = pcall(HttpService.JSONDecode, HttpService, type(raw) == "string" and raw or "{}")
+	return ok and type(value) == "table" and value or {}
+end
+local QUEST_LISTS = { { QuestConfig.Daily, "QuestDaily" }, { QuestConfig.Weekly, "QuestWeekly" } }
+local claimableQuests = 0
+local function countQuests()
+	claimableQuests = 0
+	for _, list in QUEST_LISTS do
+		local progress, claimed = decoded(list[2] .. "Progress"), decoded(list[2] .. "Claimed")
+		for _, quest in list[1] do
+			if claimed[quest.Id] ~= 1 and (progress[quest.Id] or 0) >= quest.Target then
+				claimableQuests += 1
+			end
+		end
+	end
+end
+
 local function refresh()
 	setBadge(tiles.Upgrade.Badge, player:GetAttribute("UpgradesBuyable") or 0)
+	setBadge(tiles.Quests.Badge, claimableQuests)
 	setBadge(tiles.Stats.Badge, player:GetAttribute("StatPoints") or 0)
 	-- Same UTC day key the daily reward panel and DailyLoginService use.
 	local now = os.time()
 	local claimed = (player:GetAttribute("DailyLast") or -1) == math.floor(now / 86400)
 	if not claimed and not dailyBadge.Visible then
 		UiMotion.Pop(dailyBadge)
+		UiFeedback.Play("BadgeNew", nil, { Sound = true })
 	end
 	dailyBadge.Visible = not claimed
 	pulse(dailyBadge)
@@ -432,12 +462,23 @@ local function refresh()
 	-- The roll showcase takes the whole screen; every HUD entry hides with the rest of the HUD.
 	local showcase = gui:FindFirstChild("RollShowcase")
 	root.Enabled = not (showcase and showcase.Enabled)
+	-- The full-screen Upgrades tree shows no HUD through it. The Items / Upgrade pair stays: design doc 4.27 keeps it
+	-- drawn while a panel is open, and it hides by itself where it stacks.
+	local inTree = PanelSwitch.IsOpen("Upgrades")
+	grid.Visible, shopColumn.Visible, bar.Visible = not inTree, not inTree, not inTree
 	setHudDimmed(PanelSwitch.AnyOpen())
 end
 
 for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
 end
+for _, attr in { "QuestDailyProgress", "QuestDailyClaimed", "QuestWeeklyProgress", "QuestWeeklyClaimed" } do
+	player:GetAttributeChangedSignal(attr):Connect(function()
+		countQuests()
+		refresh()
+	end)
+end
+countQuests()
 PanelSwitch.OnChange(refresh)
 local elapsed = 0
 RunService.Heartbeat:Connect(function(dt)

@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared.HudFormat)
 local UiTheme = require(Shared.UiTheme)
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local FADE_IN, HOLD, FADE_OUT = 0.25, 1.5, 0.5 -- placeholder
@@ -39,7 +40,7 @@ label.Parent = group
 root.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local shown = 0 -- bumps per popup, so an older popup's fade-out never hides a newer one
-local function show(text)
+local function show(text, pays)
 	shown += 1
 	local mine = shown
 	label.Text = text
@@ -53,6 +54,8 @@ local function show(text)
 	UiMotion.Create(group, TweenInfo.new(FADE_IN, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Position = HOME,
 	}):Play()
+	-- The pay goes to the run's Unbanked (RaceService), not Money.
+	UiFeedback.Play("CheckpointBonus", group, { Target = pays and UiFeedback.UnbankedCounter() or nil })
 	task.delay(FADE_IN + HOLD, function()
 		if shown ~= mine then
 			return
@@ -73,12 +76,10 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace").OnClientEvent:
 	if type(event) == "table" and event.Type == "Result" and event.Result == "Win" then
 		local bonus = tonumber(event.Bonus) or 1
 		if bonus > 1 then
+			local banked = tonumber(event.Banked) or 0
 			show(
-				string.format(
-					"CHECKPOINT BONUS %s · %s",
-					HudFormat.Multi(bonus),
-					HudFormat.MoneyText(tonumber(event.Banked) or 0)
-				)
+				string.format("CHECKPOINT BONUS %s · %s", HudFormat.Multi(bonus), HudFormat.MoneyText(banked)),
+				banked > 0
 			)
 		end
 	end

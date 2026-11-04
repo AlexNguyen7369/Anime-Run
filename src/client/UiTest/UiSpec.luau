@@ -148,7 +148,7 @@ UiSpec.Guis = {
 				Remote = "EquipCar",
 				Arg = "tile_id", -- THAT tile's car id
 				Count = "catalog", -- one per CharacterCatalog.All()
-				DisabledWhen = "equipped", -- the equipped tile shows "EQUIPPED" and fires nothing
+				DisabledWhen = "team_slot_1", -- only Team slot 1 shows "IN TEAM" and fires nothing; slots 2, 3 swap (design doc 4.2, UI audit A14)
 				HiddenWhen = "undiscovered", -- undiscovered tiles have no Equip button
 			},
 		},
@@ -412,7 +412,7 @@ UiSpec.Rebirth = {
 			Name = "RewardsTitle",
 			Parent = "Rewards",
 			Class = "TextLabel",
-			Text = "REWARDS UNLOCKED",
+			Text = "NEXT REBIRTH", -- UI audit A25: these are the next rebirth's rewards
 			Colour = "yellow",
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
@@ -602,7 +602,7 @@ UiSpec.Guis.MarketUi = {
 		},
 		{
 			-- BUY (not owned, and every potion) invokes MarketPurchase(kind, id) for the item the Detail pane shows.
-			-- An owned trail / aura hides Action and shows the team slot buttons instead (u4, Client/SlotPicker).
+			-- An owned trail / aura shows the team slot buttons; Action stays below MAX_COPIES copies (u4, Client/SlotPicker).
 			Path = "Backdrop/Panel/Detail/Action",
 			Does = "remote",
 			Remote = "MarketPurchase",
@@ -742,8 +742,8 @@ UiSpec.Market = {
 		{ Name = "Description", Class = "TextLabel" },
 		{ Name = "Action", Class = "TextButton" },
 	},
-	-- Action label for the shown item: BUY (potions, and trails / auras not owned yet). EQUIP / EQUIPPED retired: an owned
-	-- trail / aura hides Action and shows Slots (u4, design doc 4.13).
+	-- Action label for the shown item: BUY shows for potions and for trails / auras below MAX_COPIES copies. EQUIP /
+	-- EQUIPPED retired: an owned trail / aura also shows Slots; Action hides at the cap (design doc 4.13).
 	ActionText = { Buy = "BUY" },
 	Slots = "Slots", -- Detail/Slots: one TextButton Slot<n> per team slot (MarketConfig.SLOTS), Title "SLOT n" / "REMOVE n"
 	SlotTitle = "SLOT %d", -- slot n does not hold the shown item
@@ -1171,6 +1171,8 @@ UiSpec.IgnoreGuis = {
 	TouchGui = true,
 	RbxCameraUI = true,
 	ProximityPrompts = true,
+	-- Client/UiMotion's display-only overlay, made on first use (ui_feedback judges its pieces)
+	UiFx = true,
 }
 
 -- The enemy indicator (design doc 4.26, docs/NPC_RIVAL_SPEC.md): a ScreenGui that Client/NpcRacerView moves to the head
@@ -1258,10 +1260,11 @@ UiSpec.Waits = {
 	GuiAppear = 15, -- each ScreenGui must exist in PlayerGui within this
 	LoadingScreen = 95, -- s: LoadingScreen must be gone by then (its own safety limit is 90 s, design doc 4.24)
 	HudSettle = 2.5, -- HUD counters must reach the server value within this
-	-- s: a panel's open motion (scale 0.92 -> 1 or a 12 px slide, 0.2 s) and its tile cascade (about 0.55 s) have
-	-- settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
+	-- s: a panel's open motion (scale 0.9 -> 1, 0.2 s, one preset for every panel, UI audit A29) and its tile cascade
+	-- (about 0.55 s) have settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
 	PanelMotion = 0.65,
-	-- s: a closed panel may play its close motion (design doc 4.20) this long before Visible must be false
+	-- s: a closed panel plays its close motion (0.12 s, every panel; design doc 4.20) at most this long before Visible
+	-- must be false
 	PanelClose = 0.3,
 	HudLag = 0.5, -- s: a HUD counter may show any server value from this long ago up to now (count-up, HUD spec 9)
 	HudFollow = 2, -- s: ui_hud re-samples a counter every frame for this long before it fails
@@ -1294,7 +1297,7 @@ ui-tester on the SERVER datamodel (a client cannot: client attribute changes do 
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
   3. ReplicatedStorage:GetAttribute("UiTestSetupError") must be nil/empty, otherwise the step failed
 The client harness never changes saved state. In a full run (UiTestRun) it asks for the states its scenarios need
-itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next) through the Studio-only
+itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next, run_visual) through the Studio-only
 RemoteFunction ReplicatedStorage.UiTestSetupRequest, and puts them back after the run; every other setup is still
 triggered from the server datamodel as above. Checks
 whose state is missing fail with value "state_missing:<Id>".
@@ -1330,6 +1333,14 @@ UiSpec.ServerSetup = {
 		Id = "auto_racing",
 		When = "before UiTestRun and the showcase clicks (NPC on track, auto-rolls)",
 		What = "Puts the player in auto race (AutoRacing == true).",
+	},
+	{
+		Id = "run_visual",
+		When = "asked for by ui_run_visual itself (UiScenarios.Needs) and by UiRunVisual.Capture; the rig commands "
+			.. "run_visual_rig, run_visual_swap and run_visual_clear only reach UiTestSetupRequest",
+		What = "A straight route of its own (RunRoutes/UiRunVisualRoute) and one rig at a time built for no Player "
+			.. "(Owner = 0), with the real RunnerFactory and VehicleEffects.Apply on a Folder's slot attributes. Reads "
+			.. "and writes no Team, owned item or Money. 'restore:run_visual' removes the rig and the route.",
 	},
 	{
 		Id = "on_foot",
@@ -1902,7 +1913,8 @@ UiSpec.Clicks = {
 		Gui = "RacerIndex",
 		Path = "Panel/Face/GridHost/Gallery/{discovered_unequipped}/Equip",
 		Prepare = only("RacerIndex/Panel"),
-		NeedSetup = { "spy", "index_states" },
+		-- on_foot: only an equip on foot changes the Team, and the tile's IN TEAM follows slot 1 (design doc 4.2, UI audit A14)
+		NeedSetup = { "on_foot", "spy", "index_states" },
 		Expect = {
 			Remote = { Name = "EquipCar", Arg = "tile_id" },
 			After = { "equipped_is_tile", "tile_shows_equipped" },
@@ -1985,7 +1997,7 @@ UiSpec.Clicks = {
 		Path = "Panel/Face/SoundRow/Face/SoundToggle/Face",
 		Prepare = { Open = { "RacerSettings/Panel" }, Showcase = false, SoundProbe = true, LabelIs = "ON" },
 		NeedSetup = { "spy" },
-		Expect = { Remote = false, After = { "sound_label_off", "sound_probe_muted" } },
+		Expect = { Remote = false, After = { "sound_label_off", "sound_probe_muted", "cue_sounds_muted" } },
 	},
 	{
 		Id = "sound_on",
@@ -1993,7 +2005,7 @@ UiSpec.Clicks = {
 		Path = "Panel/Face/SoundRow/Face/SoundToggle/Face",
 		Prepare = { Open = { "RacerSettings/Panel" }, Showcase = false, SoundProbe = true, LabelIs = "OFF" },
 		NeedSetup = { "spy" },
-		Expect = { Remote = false, After = { "sound_label_on", "sound_probe_restored" } },
+		Expect = { Remote = false, After = { "sound_label_on", "sound_probe_restored", "cue_sounds_restored" } },
 	},
 	{
 		Id = "effects_reduce_on",
@@ -2310,7 +2322,7 @@ UiSpec.Guis.RacerUpgrades = {
 	Panels = { "Panel" },
 	Buttons = {
 		{ Path = "Close/Face", Does = "close_panel", Panel = "RacerUpgrades/Panel", Text = "X" },
-		{ Path = "ZoomTools/Exit/Face", Does = "close_panel", Panel = "RacerUpgrades/Panel", Text = "EXIT" },
+		-- retired: ZoomTools/Exit/Face, held hidden, one way out (UI audit A30; ui_upgrades upgrades_exit_hidden)
 		{ Path = "ZoomTools/ZoomIn/Face", Does = "local", Effect = "tree_zoom_in", Text = "+" },
 		{ Path = "ZoomTools/ZoomOut/Face", Does = "local", Effect = "tree_zoom_out", Text = "-" },
 		-- The tree's root node (START / UPGRADES): owned by everyone, a click fires nothing (click upgrade_start_inert).
@@ -2412,14 +2424,7 @@ for _, name in { "Upgrades", "Workshop" } do
 	})
 end
 -- retired: claim_welcome and offline_double_click (design doc 4.19, owner 2026-11-03)
-table.insert(UiSpec.Clicks, {
-	Id = "exit_upgrades",
-	Gui = "RacerUpgrades",
-	Path = "ZoomTools/Exit/Face",
-	Prepare = only("RacerUpgrades/Panel"),
-	NeedSetup = { "spy" },
-	Expect = { Panels = { ["RacerUpgrades/Panel"] = false }, Remote = false },
-})
+-- retired: exit_upgrades: EXIT is hidden, nothing to press (UI audit A30); ui_upgrades upgrades_exit_hidden pins that
 -- + then - (run in this order, so the tree zoom ends where it started): the RacerUpgrades attribute TreeZoom
 -- (UpgradeTreeView zoom()) rises after + and falls after -, the panel stays open, nothing is sent to the server.
 for _, zoom in { "in", "out" } do
@@ -2454,7 +2459,7 @@ table.insert(UiSpec.Clicks, {
 })
 -- No toggle_upgrades_closed click: the tree is a full-screen overlay that need not leave the HUD tiles clickable
 -- (docs/UPGRADE_TREE_SPEC.md section 5, HUD_LAYOUT_SPEC.md sections 1 and 6, owner 2026-10-26); it closes through
--- its own Close (close_upgrades) and EXIT (exit_upgrades) buttons.
+-- its own Close (close_upgrades) button.
 -- The weather Card toggles on a click (tap): the first click shows it, the second hides it, even while the pointer
 -- still rests on the icon (hover shows it again only on the next MouseEnter). Run the two in this order.
 for _, open in { true, false } do
@@ -3587,6 +3592,66 @@ UiSpec.RunnerSmooth = {
 	CameraSeconds = 2, -- ui_camera_follows_runner: frames watched
 	CameraMaxOffset = 8, -- studs between the camera focus and the visible runner ("within a few studs")
 }
+-- ui_run_visual (core c3, owner 2026-11-04; UiRunVisual). Measurement limits, not game values. Pose numbers (SWING, BOB,
+-- STRIDE, NINJA) are never copied here: the scenario measures them from RunnerVisual on an unparented clone.
+UiSpec.RunVisual = {
+	Route = "UiRunVisualRoute", -- Server/CarTest/UiTestSetup RUN_VISUAL.ROUTE: straight, flat, RunRoutes folder
+	RigPrefix = "UiRunVisualRig",
+	Meshes = { "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg" }, -- design doc 5, RunnerFactory.PARTS without Trim
+	-- Runtime: about 40 rows x (SampleSeconds + settle + fetch) + 2 swaps; the owner's limit is about 5 minutes
+	SampleSeconds = 2, -- each row's window; at 60 fps this is 120 frames and 7 or more strides
+	MaxSeconds = 270, -- s: no new row starts after this; models_covered then fails, naming the shortfall
+	ModelsWait = 60, -- s for CharacterModels Ready (a fresh server loads 39 assets)
+	-- s at most for one model's PreloadAsync before its run starts, then again for the drawn copy's fetches to end
+	-- (PreloadAsync returns before a MeshPart's fetch starts). Still Loading after that, or Failure: mesh_loaded is red.
+	PreloadSeconds = 5,
+	SettleSeconds = 0.3, -- s the drawn copy must not be rebuilt before its run is judged (rig parts replicate over frames)
+	FoeSpeed = 48, -- studs/s for foe_ models (no catalog cruise); the doc's NPC band `16 x 1.51^(n-1)` at n = about 4
+	ProbeSteps = 64, -- stride phases the pose is measured at per rig
+	-- Frame glitches. Root steps use UiSpec.RunnerSmooth's rule (StepTolerance, MinStepError, MaxBadShare, MinFrames)
+	BackwardTolerance = 0.01, -- studs along the route: float noise only; RunnerView's correction never turns a step back
+	-- A limb's frame change against the Torso may be JointRateFactor x (pose's largest rate x this frame's stride phase,
+	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 2: watch's stamp and RunnerView's read of os.clock are separate
+	-- PreSimulation connections, so a hitch inside a frame moves one gap by up to a frame. 1 went red on a cold first row
+	-- (2026-11-04, db_green 13.5 deg, 4 frames) and on no other row.
+	JointRateFactor = 2,
+	JointMinDegrees = 1.5,
+	JointMinStuds = 0.02,
+	-- A rest or T pose: all four limbs within RestDegrees of the Torso. A stride crosses it for 1 frame: at the slowest
+	-- cruise (19 studs/s) the cadence is 3.4 /s, so 0.36 rad per frame at 60 fps against a band of 0.05 rad.
+	RestDegrees = 1,
+	MaxRestFrames = 2,
+	-- A lost animation frame: no limb moved. The peak of a stride still moves a limb > 0.1 deg per frame at 240 fps.
+	StuckDegrees = 0.01,
+	StuckStuds = 0.001,
+	MaxStuckFrames = 2,
+	PhaseShare = 0.7, -- RightLeg's mid crossings against 2 per stride (the window's edges and hitches lose a few)
+	SwingShare = 0.8, -- RightLeg's measured swing against the pose's own (0.92 even when sampled at 30 fps)
+	-- Mesh bugs
+	ScaleTolerance = 0.01, -- studs (or model scale): sizes come from CharacterModelAssets x RunnerFactory.SCALE exactly
+	LimbBoundHips = 1.5, -- x RunnerFactory.HIP_HEIGHT: farthest limb centre from the Torso in either pose is 1 x HIP_HEIGHT
+	FootRestTolerance = 0.05, -- studs: standing, the leg box bottom is exactly on the ground (all legs are 2 studs high)
+	FootTolerance = 0.1, -- studs off the range the pose itself gives the leg box over a stride
+	FootSinkLimit = 0.35, -- studs under the ground at most: the deepest boot box (1.96 x SCALE) swung 40 deg reaches 0.13
+	-- Aura and trail. Effect radii unscaled by RunnerFactory.SCALE: known cosmetic note, not a failure.
+	AttachmentTolerance = 0.05, -- studs: VehicleEffectTests' 0.001 is too small for float noise thousands of studs out
+	OriginClear = 1, -- studs: the route is high above the origin, so an attachment this near it has lost its part
+	MinRibbonWidth = 0.05, -- studs between a trail's attachments, VehicleEffectTests MIN_RIBBON_WIDTH
+	-- Slot swap
+	SwapSeconds = 1,
+	SwapMinFrames = 15,
+	SwapMaxBadFrames = 1, -- the rebuild's frame may hitch; the distance itself carries on
+	-- Capture helper (UiRunVisual.Capture). Offsets in the runner's own space: x right, y up, forward is -z.
+	CaptureViews = {
+		front = Vector3.new(0, 0.5, -8),
+		side = Vector3.new(8, 0.5, 0),
+		back = Vector3.new(0, 0.5, 8),
+	},
+	CaptureFloor = Vector3.new(400, 1, 400),
+	CaptureSpeed = 40, -- studs/s: lays the trail, and the 12000 stud route lasts 5 minutes before it loops
+	CaptureWarmSeconds = 1.5, -- s for particles and the trail to build up on a new run
+	CaptureFrames = 3, -- rendered frames before a new view or phase counts as shown
+}
 -- Every TextLabel / TextButton in the game's ScreenGuis (not UiSpec.IgnoreGuis, not the UiTest's own) uses this font
 -- family (section 8: FredokaOne everywhere; Enum.Font.FredokaOne's FontFace family is ".../FredokaOne.json").
 UiSpec.Theme = {
@@ -3619,5 +3684,36 @@ UiSpec.RaceMapLook = {
 	FadeGroup = "RouteFade", -- optional CanvasGroup inside the canvas that holds the lines
 	Status = { "^AHEAD %d+%.%ds$", "^BEHIND %d+%.%ds$", "^EVEN$" },
 }
+
+-- ui_feedback (design doc 4.33, docs/UI_FEEDBACK_SPEC.md; UiFeedbackChecks). Timings and caps are the spec's proposed
+-- values: a change there moves them here.
+UiSpec.Feedback = {
+	Module = "UiFeedback", -- ModuleScript in StarterPlayerScripts.Client
+	Folder = "ImpactSounds", -- ReplicatedStorage copy of ServerStorage.ImpactSounds
+	Group = "UiSfx", -- SoundGroup under SoundService holding one Sound per cue
+	FxGui = "UiFx",
+	ProbeGui = "UiTestFeedbackProbe", -- the test's own guis, destroyed at the end of the scenario
+	Impacts = { "Tap", "Thunk", "Crack", "Boom", "Slash" },
+	MaxExtras = 4,
+	ServerSetup = "impact_sounds_report",
+	ServerAttr = "UiTestImpactSounds", -- ReplicatedStorage attribute: JSON list { Name, Class, SoundId }
+	ReportWait = 5, -- s for that attribute to replicate
+	LoadWait = 20, -- s for the folder, the group and every Sound's TimeLength
+	RateCue = "Toggle", -- a cue with a sound and no motion
+	RateLimit = 0.05,
+	PlayedWait = 0.3, -- s for Sound.Played to arrive
+	MaxPieces = 24,
+	BurstGone = 1, -- s: a Burst's pieces are gone
+	PiecesGone = 1.5, -- s: an Impact, a 3-coin Fly and Bursts together (Fly 0.58 s at most, Burst 0.45 s)
+	SlamStart = 1.5,
+	SlamRest = 0.2,
+	SampleSeconds = 0.5, -- s a Slam or a Pop is sampled
+	PopPeak = 1.05, -- the gui's on-screen width grows at least this much (Pop is +12%)
+}
+table.insert(UiSpec.ServerSetup, {
+	Id = "impact_sounds_report",
+	When = "asked for by ui_feedback through UiTestSetupRequest",
+	What = "Publishes what ServerStorage.ImpactSounds holds as ReplicatedStorage attribute UiTestImpactSounds.",
+})
 
 return UiSpec

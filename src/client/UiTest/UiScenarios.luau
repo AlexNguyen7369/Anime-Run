@@ -95,6 +95,9 @@ local UiScenarios = {}
 
 UiScenarios.Names = {
 	"ui_client_rendering",
+	-- Core c3 (owner 2026-11-04): every model's animated run with aura and trail. About 3 minutes. Before any scenario
+	-- asks for auto racing, so no real run is banking while it watches.
+	"ui_run_visual",
 	"ui_inventory",
 	"ui_legacy_controls",
 	"ui_layout",
@@ -105,6 +108,8 @@ UiScenarios.Names = {
 	"ui_reduced_motion",
 	-- docs/HUD_LAYOUT_SPEC.md section 10 (owner 2026-10-27): UiMotion presets land at once while reduced
 	"ui_motion_reduced",
+	-- design doc 4.33, docs/UI_FEEDBACK_SPEC.md: cue sounds, the sound ledger, Slam / Impact / Burst / Fly / Fill, UiFx
+	"ui_feedback",
 	-- retired: ui_speed_float (no Speed stat, design doc 4.13, owner 2026-11-01)
 	"ui_safe_insets",
 	"ui_panel_focus",
@@ -187,6 +192,10 @@ K.UNSUPPORTED_LAYOUT = {
 	UITableLayout = true,
 	UIFlexItem = true,
 }
+-- The Team's ids in slot order: slot 1 is what the Index's IN TEAM shows (design doc 4.2, UI audit A14).
+function K.teamIds()
+	return string.split(player:GetAttribute("Team") or "", ",")
+end
 local legacyObserver = nil
 
 ---------------------------------------------------------------------------------------------------------------
@@ -237,6 +246,7 @@ end
 -- ui_loser / ui_roll_emphasized, at the moment they wait for the event.
 UiScenarios.Needs = {
 	ui_reduced_motion = { "auto_roll_on" },
+	ui_run_visual = { "run_visual" },
 	ui_runner_smooth = { "auto_racing" },
 	ui_camera_follows_runner = { "auto_racing" },
 	ui_toast = { "auto_racing", "auto_roll_on" },
@@ -4457,14 +4467,18 @@ function S.ui_layout(res)
 		end
 
 		-- The solver agrees with the engine on the live viewport (so the other viewports can be trusted). Measured at
-		-- rest: PanelSwitch's open motion (MotionScale 0.92 -> 1, Back easing, HUD_LAYOUT_SPEC section 10) is the
-		-- spec'd motion, not its layout (2026-10-28: RacerWelcome/Panel was caught at the 0.7% overshoot, 705x356 for
-		-- 700x353, 4.97 px). Waits at most Waits.MotionRest; a motion that never rests still fails below.
+		-- rest: PanelSwitch's open motion (MotionScale 0.9 -> 1, Back easing, HUD_LAYOUT_SPEC section 10; on a Racer
+		-- panel its layout UIScale times MotionK, UI audit A29) is the spec'd motion, not its layout (2026-10-28:
+		-- RacerWelcome/Panel was caught at the 0.7% overshoot, 705x356 for 700x353, 4.97 px). Waits at most
+		-- Waits.MotionRest; a motion that never rests still fails below.
 		local function moving()
 			for _, panelPath in state.Open do
 				local p = findPath(panelPath)
 				for _, o in p and { p, table.unpack(p:GetDescendants()) } or {} do
 					if o.Name == "MotionScale" and o:IsA("UIScale") and math.abs(o.Scale - 1) > 1e-3 then
+						return true
+					end
+					if o.Name == "MotionK" and o:IsA("NumberValue") and math.abs(o.Value - 1) > 1e-3 then
 						return true
 					end
 				end
@@ -4718,8 +4732,8 @@ function S.ui_buttons(res)
 		close ~= nil and close:IsA("GuiButton")
 	)
 
-	-- Equip buttons: hidden on undiscovered tiles, "Equip"+enabled on owned tiles, "Equipped"+disabled on the equipped one
-	local equipped = attr("EquippedCar")
+	-- Equip buttons: hidden on undiscovered tiles, "EQUIP"+enabled on owned tiles (Team slots 2, 3 too: the server swaps, design doc 4.2), "IN TEAM"+disabled on slot 1
+	local team = K.teamIds()
 	local wrong = {}
 	for _, spec in CharacterCatalog.All() do
 		local b = findPath("RacerIndex/Panel/Face/GridHost/Gallery/" .. spec.Id .. "/Equip")
@@ -4730,11 +4744,11 @@ function S.ui_buttons(res)
 			if b.Visible then
 				table.insert(wrong, spec.Id .. ": undiscovered but Equip visible")
 			end
-		elseif equipped == spec.Id then
-			if not (b.Visible and label and label.Text == "EQUIPPED" and b.Active == false) then
+		elseif team[1] == spec.Id then
+			if not (b.Visible and label and label.Text == "IN TEAM" and b.Active == false) then
 				table.insert(
 					wrong,
-					("%s: equipped shows %q Visible=%s Active=%s"):format(
+					("%s: Team member shows %q Visible=%s Active=%s"):format(
 						spec.Id,
 						label and label.Text or "nil",
 						tostring(b.Visible),
@@ -4928,6 +4942,18 @@ end
 -- VisibleRunner, Owner = this player's UserId) by interpolating along the path. While auto racing, every frame's step
 -- must be about the runner's speed x dt: the IVS stutter (3.7, 0, 3.7, 0 studs per frame, a server pose replicated
 -- every other frame) fails. The speed is the runner's own mean over the window (the cruise is exact).
+-- K.stepsOff: how many frames of a window are off speed x dt (also ui_run_visual).
+function K.stepsOff(steps, dts, speed, cfg)
+	local bad = 0
+	for i, step in steps do
+		local want = speed * dts[i]
+		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
+			bad += 1
+		end
+	end
+	return bad
+end
+
 function S.ui_runner_smooth(res)
 	local cfg = UiSpec.RunnerSmooth
 	if attr("AutoRacing") ~= true then
@@ -4990,13 +5016,7 @@ function S.ui_runner_smooth(res)
 		("> %s studs/s over >= %d frames"):format(cfg.MinSpeed, cfg.MinFrames),
 		speed > cfg.MinSpeed and #steps >= cfg.MinFrames
 	)
-	local bad = 0
-	for i, step in steps do
-		local want = speed * dts[i]
-		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
-			bad += 1
-		end
-	end
+	local bad = K.stepsOff(steps, dts, speed, cfg)
 	local share = #steps > 0 and bad / #steps or 1
 	check(
 		res,
@@ -5206,7 +5226,7 @@ function S.ui_index(res)
 		table.concat(seen, ",") == table.concat(want, ",")
 	)
 
-	local equipped = attr("EquippedCar")
+	local team = K.teamIds()
 	local wrong = {}
 	local anyFound, anyHidden, equippedTile = false, false, nil
 	for _, t in tiles do
@@ -5224,7 +5244,7 @@ function S.ui_index(res)
 			if not (equip and effectivelyVisible(equip)) then
 				table.insert(wrong, id .. ": discovered but no visible Equip")
 			end
-			if equipped == id then
+			if team[1] == id then
 				equippedTile = t
 			end
 		else
@@ -5258,7 +5278,7 @@ function S.ui_index(res)
 		local label = e and e:FindFirstChild("Label")
 		local ok = e ~= nil
 			and label ~= nil
-			and label.Text == "EQUIPPED"
+			and label.Text == "IN TEAM"
 			and e.Active == false
 			and e.AutoButtonColor == false
 		check(
@@ -5270,7 +5290,7 @@ function S.ui_index(res)
 					tostring(e.Active),
 					tostring(e.AutoButtonColor)
 				),
-			"EQUIPPED Active=false AutoButtonColor=false",
+			"IN TEAM Active=false AutoButtonColor=false",
 			ok
 		)
 	else
@@ -5278,7 +5298,7 @@ function S.ui_index(res)
 			res,
 			"equipped_tile_shows_equipped_and_is_disabled",
 			"index_states",
-			"equipped car is " .. tostring(equipped)
+			"Team slot 1 is " .. tostring(team[1])
 		)
 	end
 
@@ -7058,6 +7078,32 @@ function S.ui_panels(res)
 			local after = openSet()
 			check(res, "close_" .. p, after, "", after == "")
 		end
+		-- UI audit A29: one close preset for every panel, also those with a layout UIScale (they used to close at once):
+		-- still Visible when Close returns, hidden within Waits.PanelClose, scale handle back at rest. Reduced: at once.
+		if not (GuiService.ReducedMotionEnabled or player:GetAttribute("ReduceEffects") == true) then
+			for _, p in registered do
+				setPanels({ p })
+				local panel = findPath(p)
+				Switch.Close(UiSpec.PanelSwitch.Names[p])
+				local stayed = panel.Visible
+				local started = os.clock()
+				waitHidden({ panel })
+				local took = os.clock() - started
+				local k = panel:FindFirstChild("MotionK")
+				check(
+					res,
+					"close_motion_" .. p,
+					("stayed=%s took=%.3f hidden=%s k=%s"):format(
+						tostring(stayed),
+						took,
+						tostring(not panel.Visible),
+						tostring(k and k.Value)
+					),
+					"stayed, hidden within " .. UiSpec.Waits.PanelClose .. " s, k at 1",
+					stayed and not panel.Visible and (k == nil or math.abs(k.Value - 1) <= 1e-3)
+				)
+			end
+		end
 	end
 
 	-- UiSpec.PanelDimmers (owner 2026-10-20, HUD_LAYOUT_SPEC section 6): ONE world dim ScreenGui below the HUD,
@@ -7736,6 +7782,17 @@ end
 for name, fn in UiDuel.Build() do
 	S[name] = fn
 end
+for name, fn in
+	require(script.Parent.UiRunVisual).Build({
+		check = check,
+		checkList = checkList,
+		stateMissing = stateMissing,
+		renderFrame = renderFrame,
+		stepsOff = K.stepsOff,
+	})
+do
+	S[name] = fn
+end
 local extras = UiBoostsRebirth.Build({
 	check = check,
 	checkList = checkList,
@@ -7825,6 +7882,24 @@ local access = require(script.Parent.UiAccessibility).Build({
 })
 for name, fn in access.Scenarios do
 	S[name] = fn
+end
+
+-- UI feedback (design doc 4.33): ui_feedback and the After conditions of the sound clicks. In K: the 200-local limit.
+K.feedback = require(script.Parent.UiFeedbackChecks).Build({
+	check = check,
+	checkList = checkList,
+	stateMissing = stateMissing,
+	frames = frames,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+	playerGui = playerGui,
+})
+for name, fn in K.feedback.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.feedback.After do
+	access.After[cond] = fn
 end
 
 -- Enemy showdown and Defeated Enemies (design doc 4.28, 4.29). No new local: the chunk is at the 200-local limit.
@@ -8297,24 +8372,26 @@ function UiScenarios.RunClick(id)
 	-- Resolve the target (tile tokens)
 	local tileId = nil
 	local path = spec.Path
-	local equipped = attr("EquippedCar")
+	local team = K.teamIds()
 	if string.find(path, "{discovered_unequipped}", 1, true) then
+		-- not on the Team: the press adds a member; slot 1's tile is disabled (design doc 4.2, UI audit A14)
 		for _, car in CharacterCatalog.All() do
-			if not tileId and owned(car.Id) and car.Id ~= equipped then
+			if not tileId and owned(car.Id) and not table.find(team, car.Id) then
 				tileId = car.Id
 			end
 		end
 		if not tileId then
-			stateMissing(res, "target_tile", "index_states", "no owned, unequipped catalog car")
+			stateMissing(res, "target_tile", "index_states", "no owned catalog car off the Team")
 			return res
 		end
 		path = string.gsub(path, "{discovered_unequipped}", tileId)
 	elseif string.find(path, "{equipped}", 1, true) then
-		if not (CharacterCatalog.Get(equipped) and CharacterCatalog.Get(equipped).Rollable) then
-			stateMissing(res, "target_tile", "index_states", "equipped car is " .. tostring(equipped))
+		-- a Team member: slot 1 is what EquippedCar names on foot (GachaService.Equip)
+		if not (CharacterCatalog.Get(team[1]) and CharacterCatalog.Get(team[1]).Rollable) then
+			stateMissing(res, "target_tile", "index_states", "Team slot 1 is " .. tostring(team[1]))
 			return res
 		end
-		tileId = equipped
+		tileId = team[1]
 		path = string.gsub(path, "{equipped}", tileId)
 	end
 	-- Workshop Showcase rows (UiSpec.WorkshopShowcase): {showcase_unshown} = the highest-bonus owned rollable car not
@@ -8999,8 +9076,8 @@ function UiScenarios.RunClick(id)
 				res,
 				cond,
 				label and label.Text,
-				"EQUIPPED",
-				e ~= nil and label ~= nil and label.Text == "EQUIPPED" and e.Active == false
+				"IN TEAM",
+				e ~= nil and label ~= nil and label.Text == "IN TEAM" and e.Active == false
 			)
 		elseif cond == "alloc_incremented" then
 			local k = "Alloc_" .. rowStat

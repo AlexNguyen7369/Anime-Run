@@ -10,11 +10,13 @@ local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 -- Client/ArrivalFlow's reveal opens the popup by ArrivalRevealDone; if it never does, this many seconds after loading the
 -- popup opens anyway (a player who cannot pick has no team).
 local REVEAL_WATCHDOG_SECONDS = 10
+local SLAM_HOLD = 0.2 -- placeholder: the popup stays this long after the server's yes, so the chosen card's Slam shows
 
 local player = Players.LocalPlayer
 local pick = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PickStarter")
@@ -39,9 +41,10 @@ panel.Name = "Panel"
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
 panel.Size = UDim2.fromScale(0.92, 0.84)
-panel.BackgroundColor3 = Color3.fromRGB(28, 32, 48)
+UiTheme.Body(panel)
 panel.Parent = dim
-Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
+UiTheme.Corner(panel, "L")
+UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
 local limit = Instance.new("UISizeConstraint")
 limit.MaxSize = Vector2.new(860, 520)
 limit.Parent = panel
@@ -60,6 +63,9 @@ local function text(parent, name, value, size, pos, height)
 	local c = Instance.new("UITextSizeConstraint")
 	c.MaxTextSize = size
 	c.Parent = l
+	if size >= 18 then
+		UiTheme.Stroke(l, 2)
+	end
 	l.Parent = parent
 	return l
 end
@@ -81,6 +87,8 @@ layout.Padding = UDim.new(0.015, 0)
 layout.Parent = row
 
 local views = {}
+local picking = false -- a pick is out, or its card is slamming: the popup stays even though NeedsStarter is gone
+local update
 
 local function fill(view, id)
 	view:ClearAllChildren()
@@ -105,9 +113,8 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	card.Name = id
 	card.LayoutOrder = i
 	card.Size = UDim2.fromScale(0.32, 1)
-	card.BackgroundColor3 = Color3.fromRGB(44, 50, 72)
+	UiTheme.Plate(card, UiTheme.Palette.Tile).BackgroundTransparency = 0
 	card.Parent = row
-	Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
 
 	-- The drawn portrait; with none yet, the live model (refill keeps it current).
 	local image = Components.PortraitImage(spec)
@@ -120,7 +127,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 		view.ImageColor3 = Color3.new(1, 1, 1)
 		view.ScaleType = Enum.ScaleType.Fit
 	else
-		view.Ambient = Color3.fromRGB(175, 175, 185)
+		view.Ambient = Color3.fromRGB(175, 175, 185) -- 3D light, not UI
 		view.LightColor = Color3.new(1, 1, 1)
 		view.LightDirection = Vector3.new(-1, -2, -1)
 		views[id] = view
@@ -134,7 +141,9 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	button.AnchorPoint = Vector2.new(0.5, 1)
 	button.Position = UDim2.new(0.5, 0, 1, -8)
 	button.Size = UDim2.new(1, -16, 0.15, 0)
-	button.BackgroundColor3 = Color3.fromRGB(70, 170, 90)
+	button.BackgroundColor3 = UiTheme.Palette.MoneyDeep
+	button.AutoButtonColor = false
+	UiTheme.Stroke(button, 2)
 	button.Font = UiTheme.Font
 	button.Text = "CHOOSE"
 	button.TextColor3 = UiTheme.Palette.White
@@ -143,19 +152,28 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	buttonText.MaxTextSize = 24
 	buttonText.Parent = button
 	button.Parent = card
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	UiTheme.Corner(button, "S")
 	local busy = false
 	button.Activated:Connect(function()
 		if busy then
 			return
 		end
 		busy = true
+		picking = true
 		local ok, taken = pcall(function()
 			return pick:InvokeServer(id)
 		end)
 		if ok and taken then
 			player:SetAttribute("StarterPicked", id) -- local only: Client/ArrivalFlow plays the in-world reveal
+			UiFeedback.Play("StarterPick", card)
+			if not UiMotion.Reduced() then
+				task.wait(SLAM_HOLD)
+			end
+		else
+			UiFeedback.Play("Denied", button)
 		end
+		picking = false
+		update()
 		busy = false
 	end)
 end
@@ -166,8 +184,9 @@ local function refill()
 	end
 end
 
-local function update()
-	local show = player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true
+function update()
+	local show = picking
+		or (player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true)
 	if show and not root.Enabled then
 		refill()
 		UiMotion.Pop(panel)

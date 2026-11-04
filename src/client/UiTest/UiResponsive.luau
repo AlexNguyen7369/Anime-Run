@@ -82,13 +82,13 @@ local generated = {
 		["RacerHud/RaceMap"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -20, 0, 68),
+				Position = UDim2.new(1, -112, 0, 68), -- clear of the Quests tile (UI audit A20)
 				Size = UDim2.fromOffset(360, 260),
 				Visible = false,
 			},
 			Phone = {
 				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -10, 0, 64),
+				Position = UDim2.new(1, -74, 0, 64),
 				Size = UDim2.fromOffset(250, 184),
 				Visible = false,
 			},
@@ -143,7 +143,7 @@ local generated = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
 				Position = UDim2.fromOffset(8, 236),
-				Size = UDim2.fromOffset(170, 22),
+				Size = UDim2.fromOffset(124, 22),
 				TextSize = 13,
 				Visible = true,
 			},
@@ -158,8 +158,8 @@ local generated = {
 		["RacerHud/RaceMap/RaceMapPB"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(180, 236),
-				Size = UDim2.fromOffset(164, 22),
+				Position = UDim2.fromOffset(134, 236),
+				Size = UDim2.fromOffset(124, 22),
 				TextSize = 13,
 				Visible = true,
 			},

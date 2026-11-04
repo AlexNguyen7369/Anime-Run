@@ -35,7 +35,7 @@ Deliverables:
 - c5 | Track enemies and indicator (owner 2026-11-03, design doc 4.26, NPC_RIVAL_SPEC): names and indicator first, then 9 new enemy models | stylua / selene clean, `npc` + `ui_billboards` checks green, Studio screenshot of the indicator, models in game
 - c6 | Enemy showdown banners (owner 2026-11-04, design doc 4.28) | `ui_showdown` green, screenshot of both banners
 - c7 | Defeated Enemies page in the Index (owner 2026-11-04, design doc 4.29) | `ui_defeated` green, screenshot
-- c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task
+- c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task; (owner 2026-11-04) includes animated runs with aura and trails: no frame glitches or mesh bugs (`ui_run_visual`, captures reviewed)
 Out of scope: final character art, Robux products, merging into `main`.
 
 ## biomes: Full anime biome worlds for all 10 tracks (priority 1)
@@ -118,6 +118,20 @@ Deliverables:
 - r3 | Emphasized look: big figure, gradient odds, outlined name, rarity crystal (our own art) | Studio captures of each phase look right; owner visual review
 - r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index and Enemies page, Backpack, starter card and showdown banner, with head-only art for the Team minibar | every rollable id in `CharacterPortraits` and `CharacterHeads`; roll and Index scenarios green; Studio capture; rules audit PASS
 Out of scope: odds, economy, new dependencies.
+
+## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
+Status: done on the owner's word 2026-11-04 (u5 gaps accepted: last full server run 49/1, see handoff)
+Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)
+Branch: feature/alex/anime-world
+Spec: design doc 4.33, docs/UI_FEEDBACK_SPEC.md
+Deliverables:
+- u0 | Live UI audit and SFX audit, rules written | `docs/UI_AUDIT.md` with captures reviewed; rules audit PASS
+- u1 | 5 impacts in `ServerStorage/ImpactSounds`, up to 4 extras, `UiFeedback` cue table, `UiMotion` presets | every cue resolves to a loaded sound; `ui_motion`, `ui_reduced_motion` fail=0
+- u2 | Consistency: one source for tokens, tint removed, kit bypasses closed | `ui_buttons`, `ui_hud` fail=0; stylua / selene clean
+- u3 | Big moments: roll, showdown, defeat, Rebirth, money | `ui_roll_anim`, `ui_roll_emphasized`, `ui_showdown` fail=0; Studio captures
+- u4 | Panels and small moments: open, tab, purchase, claim, denied, toggles, bars | targeted UI scenarios fail=0; new `ui_feedback` fail=0
+- u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks. Status 2026-11-04: not met, stopped on the owner's word: UI pass=44 fail=0; server pass=49 fail=1 (`data`, fix not run), final server run skipped; audit FAIL, not re-audited
+Out of scope: camera shake, per-category volume, music, gameplay and economy.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active

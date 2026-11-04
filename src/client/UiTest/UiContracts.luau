@@ -834,6 +834,11 @@ function Contracts.Build(h)
 			restore()
 			return
 		end
+		-- UI audit A13: opens on Characters, marked by a white tab edge. The session keeps the last tab, so this holds on a
+		-- run with no tab clicked before it, or after the backpack_* clicks (Characters is their last).
+		local charactersTab = h.find(B.CharactersTab)
+		local tabEdge = charactersTab and charactersTab:FindFirstChildOfClass("UIStroke")
+		check(res, "backpack_opens_on_characters", tabEdge ~= nil and tabEdge.Color == Color3.new(1, 1, 1), true)
 		-- Exactly the four tabs, top to bottom in the spec's order, each labelled with its name
 		local buttons = {}
 		for _, child in rail:GetChildren() do

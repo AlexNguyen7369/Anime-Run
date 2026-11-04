@@ -2,6 +2,8 @@
 -- Presentation only: authoritative prices, locks and purchases stay in ProgressionUi/UpgradeTree.
 local View = {}
 local Components = require(script.Parent.RacerComponents)
+local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local PanelFrame = require(script.Parent.Parent.Parent:WaitForChild("PanelFrame"))
 local UserInputService = game:GetService("UserInputService")
 local WORLD, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP = 1800, 0.15, 1.6, 0.16
 -- The click box is one row step tall so neighbouring tiles never overlap; the hex art is sized from the width.
@@ -31,7 +33,7 @@ local function label(parent, name, text, pos, size, textSize)
 		Position = pos,
 		Size = size,
 		Text = text,
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextSize = textSize,
 		TextColor3 = WHITE,
 		TextWrapped = true,
@@ -40,7 +42,7 @@ local function label(parent, name, text, pos, size, textSize)
 	make(
 		"UIStroke",
 		"GlyphOutline",
-		{ Color = Color3.fromRGB(12, 16, 30), Thickness = 2.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual },
+		{ Color = UiTheme.Outline, Thickness = 2.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual },
 		object
 	)
 	return object
@@ -74,6 +76,33 @@ function View.Create(gui, Tree, Format)
 	local refs = chrome.Bind(gui)
 	local screen = refs.Gui
 	screen.DisplayOrder = 8
+	-- The detail card is a white plate: dark text, no stroke.
+	for _, line in { refs.DetailTitle, refs.DetailBonus, refs.DetailStatus } do
+		line.TextColor3 = UiTheme.Palette.PanelDeep
+		local glyph = line:FindFirstChildOfClass("UIStroke")
+		if glyph then
+			glyph:Destroy()
+		end
+	end
+	-- Title and Money read clear of the hexes that pan under them.
+	for _, line in { refs.TreeTitle, refs.Balance } do
+		line.BackgroundColor3 = UiTheme.Palette.PanelDeep
+		line.BackgroundTransparency = 0.15
+		UiTheme.Corner(line, "M")
+	end
+	PanelFrame.PaintClose(refs.Close, refs.CloseLabel)
+	local closeShadow = refs.Close.Parent:FindFirstChild("Shadow")
+	if closeShadow then
+		closeShadow.Visible = false
+	end
+	-- One way out (UI audit A30): X. The generated fit re-applies Exit's authored Visible, so hold it hidden.
+	local exit = refs.Exit.Parent
+	exit.Visible = false
+	exit:GetPropertyChangedSignal("Visible"):Connect(function()
+		if exit.Visible then
+			exit.Visible = false
+		end
+	end)
 	local panel = make("Frame", "Panel", {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.fromRGB(7, 15, 24),

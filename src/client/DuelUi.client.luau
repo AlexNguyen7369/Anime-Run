@@ -11,6 +11,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local duelRemote = remotes:WaitForChild("Duel")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
@@ -73,8 +74,8 @@ local function button(name, parent, text, properties)
 	properties.Font = properties.Font or Enum.Font.GothamBold
 	properties.TextSize = properties.TextSize or 15
 	properties.TextColor3 = properties.TextColor3 or Color3.new(1, 1, 1)
-	properties.BackgroundColor3 = properties.BackgroundColor3 or Color3.fromRGB(68, 104, 180)
-	properties.AutoButtonColor = true
+	properties.BackgroundColor3 = properties.BackgroundColor3 or Palette.SlotHere
+	properties.AutoButtonColor = false
 	properties.BorderSizePixel = 0
 	local object = make("TextButton", name, parent, properties)
 	make("UICorner", "Corner", object, { CornerRadius = UDim.new(0, UiTheme.Radius.S) })
@@ -89,7 +90,7 @@ local pickOpponent = make("TextLabel", "Opponent", pickPanel, {
 	Text = "vs opponent",
 	Font = Enum.Font.Gotham,
 	TextSize = 14,
-	TextColor3 = Color3.fromRGB(190, 205, 225),
+	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
@@ -98,7 +99,7 @@ local pickClose = button("Close", pickPanel, "X", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 10),
 	Size = UDim2.fromOffset(38, 30),
-	BackgroundColor3 = Color3.fromRGB(190, 68, 88),
+	BackgroundColor3 = Palette.Danger,
 	TextSize = 14,
 })
 local pickTracks = make("Frame", "Tracks", pickPanel, {
@@ -119,7 +120,7 @@ local inviteText = make("TextLabel", "Text", invitePanel, {
 	Text = "A racer challenges you.",
 	Font = Enum.Font.Gotham,
 	TextSize = 15,
-	TextColor3 = Color3.fromRGB(210, 220, 238),
+	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
@@ -129,13 +130,13 @@ UiTheme.Stroke(inviteText, 1.5)
 local inviteAccept = button("Accept", invitePanel, "ACCEPT", {
 	Position = UDim2.new(0, 18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Color3.fromRGB(65, 170, 105),
+	BackgroundColor3 = Palette.MoneyDeep,
 })
 local inviteDecline = button("Decline", invitePanel, "DECLINE", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Color3.fromRGB(190, 68, 88),
+	BackgroundColor3 = Palette.Danger,
 })
 
 local countdown = make("TextLabel", "Countdown", root, {
@@ -145,7 +146,7 @@ local countdown = make("TextLabel", "Countdown", root, {
 	Text = "",
 	Font = Enum.Font.GothamBlack,
 	TextSize = 64,
-	TextColor3 = Color3.fromRGB(255, 216, 89),
+	TextColor3 = Palette.Gold,
 	BackgroundTransparency = 1,
 	Active = false,
 	Visible = false,
@@ -227,6 +228,7 @@ local function showInvite(message)
 	)
 	toast.Visible = false
 	showPanel("DuelInvite")
+	UiFeedback.Play("DuelInvite", invitePanel)
 	-- An unanswered invite is a decline after INVITE_TIMEOUT (docs/DUEL_SPEC.md): if the server's Cancelled never
 	-- arrives, the modal still closes instead of blocking the HUD.
 	inviteToken += 1
@@ -243,6 +245,14 @@ local function showCountdown(message)
 	messageToken += 1
 	local token = messageToken
 	countdown.Visible = true
+	local lastTick = nil
+	local function tick(text)
+		countdown.Text = text
+		if text ~= lastTick then
+			lastTick = text
+			UiFeedback.Play("DuelTick", countdown)
+		end
+	end
 	task.spawn(function()
 		local serverStart = tonumber(message.ServerStart)
 		if not serverStart then
@@ -252,9 +262,9 @@ local function showCountdown(message)
 		while token == messageToken do
 			local remaining = serverStart - workspace:GetServerTimeNow()
 			if remaining > 0 then
-				countdown.Text = tostring(math.clamp(math.ceil(remaining), 1, 3))
+				tick(tostring(math.clamp(math.ceil(remaining), 1, 3)))
 			elseif remaining > -1 then
-				countdown.Text = "GO!"
+				tick("GO!")
 			else
 				countdown.Visible = false
 				return
@@ -265,6 +275,8 @@ local function showCountdown(message)
 end
 
 local resultText = { Win = "YOU WIN!", Lose = "YOU LOSE", Draw = "DRAW" }
+local resultCue = { Win = "DuelWin", Lose = "DuelLose", Draw = "ToastHigh" }
+local TOAST_SLIDE = 0.25
 local cancelText = {
 	Declined = "DUEL DECLINED",
 	InviteTimeout = "NO ANSWER",
@@ -276,7 +288,7 @@ local cancelText = {
 	NotLoaded = "PLAYER NOT READY",
 }
 
-local function showToast(text)
+local function showToast(text, cue)
 	closePanels()
 	messageToken += 1
 	local token = messageToken
@@ -286,8 +298,17 @@ local function showToast(text)
 	toast.Position = TOAST_HOME
 	toast.Visible = true
 	UiMotion.Fade(toast, true)
-	UiMotion.SlideIn(toast, Vector2.new(48, 0))
-	UiMotion.Pop(toast)
+	UiMotion.SlideIn(toast, Vector2.new(48, 0), TOAST_SLIDE)
+	-- Shake takes the Position it finds for the toast's home, so DuelLose waits for the slide. Slam is scale only.
+	if cue == "DuelLose" then
+		task.delay(TOAST_SLIDE, function()
+			if token == messageToken then
+				UiFeedback.Play(cue, toast)
+			end
+		end)
+	else
+		UiFeedback.Play(cue, toast)
+	end
 	task.delay(3, function()
 		if token == messageToken then
 			UiMotion.Fade(toast, false)
@@ -350,8 +371,8 @@ duelRemote.OnClientEvent:Connect(function(message)
 	elseif message.Type == "Countdown" then
 		showCountdown(message)
 	elseif message.Type == "Result" then
-		showToast(resultText[message.Result] or "DRAW")
+		showToast(resultText[message.Result] or "DRAW", resultCue[message.Result] or "ToastHigh")
 	elseif message.Type == "Cancelled" then
-		showToast(cancelText[message.Reason] or "DUEL CANCELLED")
+		showToast(cancelText[message.Reason] or "DUEL CANCELLED", "ToastLow")
 	end
 end)

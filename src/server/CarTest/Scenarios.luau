@@ -4455,6 +4455,24 @@ function Scenarios.data()
 end
 
 -- HUD: pure formatting and smoothing (Shared/HudFormat).
+-- Judges the real key rule (`Player_<id>`) on its own fake store, so a TestSaveKey session must not rename the keys.
+local dataOnRealKeys = Scenarios.data
+function Scenarios.data()
+	local PlayerData = serverModule("PlayerData")
+	local testSave = PlayerData and PlayerData.TestSave
+	if PlayerData then
+		PlayerData.TestSave = nil
+	end
+	local ok, res = pcall(dataOnRealKeys)
+	if PlayerData then
+		PlayerData.TestSave = testSave
+	end
+	if not ok then
+		error(res, 0)
+	end
+	return res
+end
+
 function Scenarios.hud()
 	local checks = {}
 	local hudMod = Shared:FindFirstChild("HudFormat")

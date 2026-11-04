@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Env = require(Shared.BiomeEnvironment)
 local Themes = require(Shared.BiomeThemes)
 local UiTheme = require(Shared.UiTheme)
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local FADE_IN, HOLD, FADE_OUT = 0.4, 2, 0.6 -- placeholder (4.17)
@@ -45,6 +46,7 @@ local function show(name)
 	shown += 1
 	local mine = shown
 	label.Text = name
+	UiFeedback.Play("ToastMid")
 	group.GroupTransparency = 1
 	group.Visible = true
 	UiMotion.Create(group, TweenInfo.new(FADE_IN, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {

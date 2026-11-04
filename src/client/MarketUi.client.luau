@@ -1,7 +1,7 @@
 --!nonstrict
 -- Market (docs/HUD_LAYOUT_SPEC.md, Market pill): the Backpack look with side tabs, a tile grid and a detail pane.
 -- Buying and equipping go to the server (MarketPurchase / MarketEquip); the client only shows. An owned aura or
--- trail shows the team slot buttons (SlotPicker) in place of the action button: each team slot has its own.
+-- trail shows the team slot buttons (SlotPicker): each team slot has its own. BUY stays below MAX_COPIES copies.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,15 +18,15 @@ local Icons = require(Ui.HudIcons)
 local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
-local BODY = Color3.fromRGB(32, 27, 36)
-local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local TILE_GREEN = Color3.fromRGB(60, 220, 90)
-local TILE_GOLD = Color3.fromRGB(255, 214, 90)
+local TILE_BLUE = PALETTE.Tile
+local TILE_GREEN = PALETTE.Money
+local TILE_GOLD = PALETTE.Gold
 local KINDS = { { "Trail", "Trails" }, { "Aura", "Auras" }, { "Potion", "Potions" } }
 
 local function make(class, name, parent, props)
@@ -50,7 +50,7 @@ local function stroke(parent, color, thickness)
 end
 local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or Enum.Font.FredokaOne
+	props.Font = props.Font or UiTheme.Font
 	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
 	local label = make("TextLabel", name, parent, props)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round })
@@ -68,7 +68,7 @@ local root = make(
 )
 local backdrop = make("Frame", "Backdrop", root, {
 	Size = UDim2.fromScale(1, 1),
-	BackgroundColor3 = Color3.fromRGB(8, 10, 22),
+	BackgroundColor3 = PALETTE.Scrim,
 	BackgroundTransparency = 1, -- the world dim is HudChrome/PanelDim, below the HUD
 	Visible = false,
 })
@@ -77,7 +77,6 @@ local panel = make("Frame", "Panel", backdrop, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 124),
 	Size = UDim2.fromOffset(820, 440),
-	BackgroundColor3 = BODY,
 	Active = true,
 })
 corner(panel, 16)
@@ -111,9 +110,8 @@ local close = make("TextButton", "Close", header, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.fromScale(1, 0),
 	Size = UDim2.fromOffset(72, 64),
-	BackgroundColor3 = Color3.fromRGB(232, 69, 60),
 	Text = "",
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
 caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X", TextSize = 40 })
 
@@ -149,10 +147,10 @@ for order, entry in KINDS do
 		Size = UDim2.fromOffset(96, 96),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	corner(b, 12)
-	UiTheme.Gradient(b, Color3.fromRGB(58, 68, 80), Color3.fromRGB(34, 40, 48))
+	UiTheme.Gradient(b, PALETTE.TabIdle, PALETTE.TabIdleDeep)
 	local edge = stroke(b, OUTLINE, 4)
 	swatch(b, Market.Items[kind][1], kind, UDim2.fromOffset(48, 38), UDim2.fromOffset(56, 56))
 	caption("Label", b, {
@@ -198,7 +196,7 @@ local detail = make("Frame", "Detail", panel, {
 corner(detail, 12)
 stroke(detail, OUTLINE, 3)
 make("UIGradient", "Gradient", detail, {
-	Color = ColorSequence.new(Color3.fromRGB(70, 40, 110), Color3.fromRGB(150, 60, 170)),
+	Color = ColorSequence.new(PALETTE.Row, PALETTE.PanelDeep),
 	Rotation = 90,
 })
 local rarity = caption("Rarity", detail, {
@@ -206,7 +204,7 @@ local rarity = caption("Rarity", detail, {
 	Size = UDim2.new(1, -24, 0, 20),
 	Text = "",
 	TextSize = 16,
-	TextColor3 = Color3.fromRGB(205, 150, 255),
+	TextColor3 = PALETTE.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
 local nameLabel = caption("Name", detail, {
@@ -219,18 +217,20 @@ local nameLabel = caption("Name", detail, {
 })
 local viewport = make("ViewportFrame", "Preview", detail, {
 	Position = UDim2.fromOffset(12, 60),
-	Size = UDim2.new(1, -24, 1, -190),
-	BackgroundColor3 = Color3.fromRGB(12, 15, 30),
+	Size = UDim2.new(1, -24, 1, -178),
+	BackgroundColor3 = PALETTE.TileDeep,
 	BackgroundTransparency = 0.5,
 	Ambient = Color3.fromRGB(130, 140, 190),
 	LightColor = Color3.new(1, 1, 1),
 })
 corner(viewport, 10)
+-- Desktop rows, bottom up. The bottom band holds the slot buttons on an owned item and the description otherwise, so
+-- BUY never moves when the first copy arrives (a double tap cannot land on a slot). Above it: the reply, then price + BUY.
 local priceRow = make("Frame", "Price", detail, {
 	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 12, 1, -100),
-	Size = UDim2.new(1, -24, 0, 26),
-	BackgroundColor3 = Color3.fromRGB(20, 20, 30),
+	Position = UDim2.new(0, 12, 1, -76),
+	Size = UDim2.new(0.5, -16, 0, 38),
+	BackgroundColor3 = PALETTE.PanelDeep,
 	BackgroundTransparency = 0.3,
 })
 corner(priceRow, 6)
@@ -239,32 +239,34 @@ local priceText = caption("Value", priceRow, {
 	Size = UDim2.new(1, -20, 1, 0),
 	Text = "",
 	TextSize = 18,
+	TextScaled = true, -- a short row: "$1.2m • Owned x2" stays on it
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
+make("UITextSizeConstraint", "Max", priceText, { MaxTextSize = 18 })
 local description = make("TextLabel", "Description", detail, {
 	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 12, 1, -54),
-	Size = UDim2.new(1, -24, 0, 42),
+	Position = UDim2.new(0, 12, 1, -10),
+	Size = UDim2.new(1, -24, 0, 44),
 	BackgroundTransparency = 1,
 	Text = "",
 	Font = UiTheme.Font,
 	TextSize = 13,
 	TextWrapped = true,
-	TextColor3 = Color3.fromRGB(225, 225, 240),
+	TextColor3 = PALETTE.SoftText,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,
 })
 local action = make("TextButton", "Action", detail, {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.new(1, -24, 0, 38),
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -12, 1, -76),
+	Size = UDim2.new(0.5, -16, 0, 38),
 	Text = "",
 	BackgroundColor3 = TILE_GREEN,
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
 corner(action, 8)
 stroke(action, OUTLINE, 3)
-UiTheme.Gradient(action, Color3.new(1, 1, 1), Color3.fromRGB(185, 185, 185)) -- depth on whatever colour it shows
+UiTheme.Gradient(action, Color3.new(1, 1, 1), PALETTE.SoftText) -- depth on whatever colour it shows
 local actionLabel = caption("Label", action, { Size = UDim2.fromScale(1, 1), Text = "BUY", TextSize = 22 })
 local pickSlot -- set below: equips the shown item on a team slot
 local slots = SlotPicker.new("Slots", detail, {
@@ -275,18 +277,21 @@ local slots = SlotPicker.new("Slots", detail, {
 }, function(...)
 	pickSlot(...)
 end)
-local status = caption("Status", panel, {
+-- The server's reply, right under BUY.
+local status = caption("Status", detail, {
 	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 120, 1, -4),
-	Size = UDim2.new(0.58, -132, 0, 20),
+	Position = UDim2.new(0, 12, 1, -56),
+	Size = UDim2.new(1, -24, 0, 18),
 	Text = "",
-	TextSize = 15,
+	TextSize = 16,
+	TextScaled = true,
 	TextColor3 = TILE_GOLD,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 5,
 })
-local statusHome = status.Position
+make("UITextSizeConstraint", "Max", status, { MaxTextSize = 16 })
 -- A purchase / equip answer slides in from the bottom edge.
+local statusHome -- set by applyLayout: the status row of the view on screen
 local function notify(text, color)
 	status.Text = text
 	status.TextColor3 = color
@@ -299,7 +304,7 @@ local function preview(item, kind)
 	corner(viewport, 10)
 	local world = make("WorldModel", "World", viewport, {})
 	local camera = make("Camera", "Camera", viewport, {})
-	camera.CFrame = CFrame.lookAt(Vector3.new(4.5, 3.2, 5.5), Vector3.new(0, 1.3, 0.8))
+	camera.CFrame = CFrame.lookAt(Vector3.new(3.3, 2.5, 4), Vector3.new(0, 1.3, 0.8))
 	viewport.CurrentCamera = camera
 	if kind == "Potion" then
 		local bottle = make("Part", "Bottle", world, {
@@ -361,9 +366,9 @@ end
 -- Phones (viewport height <= 500, owner 2026-10-28, docs/HUD_LAYOUT_SPEC.md section 6): the grid only; tapping an
 -- item swaps the grid for the detail view, whose Back button swaps back. Desktop shows both side by side.
 local back = make("TextButton", "Back", detail, {
-	BackgroundColor3 = Color3.fromRGB(68, 104, 180),
+	BackgroundColor3 = PALETTE.SlotHere,
 	Text = "",
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 	Visible = false,
 })
 corner(back, 8)
@@ -374,7 +379,7 @@ local DESKTOP = {
 	[grid] = { Position = grid.Position, Size = grid.Size },
 	[detail] = { AnchorPoint = detail.AnchorPoint, Position = detail.Position, Size = detail.Size },
 }
-for _, part in { rarity, nameLabel, viewport, priceRow, description, action, slots.Frame } do
+for _, part in { rarity, nameLabel, viewport, priceRow, description, action, slots.Frame, status } do
 	DESKTOP[part] = { AnchorPoint = part.AnchorPoint, Position = part.Position, Size = part.Size }
 end
 -- Phone detail: the preview on the left, the text rows and BACK / action on the right, in fractions of the pane so
@@ -394,20 +399,28 @@ local PHONE = {
 	[action] = { AnchorPoint = Vector2.zero, Position = UDim2.fromScale(0.7, 0.77), Size = UDim2.new(0.3, -6, 0.2, 0) },
 	[slots.Frame] = column(0.54, 0.21), -- over the description, which an owned aura / trail hides on phones
 	[back] = { AnchorPoint = Vector2.zero, Position = UDim2.new(0.4, 6, 0.77, 0), Size = UDim2.new(0.3, -12, 0.2, 0) },
+	[status] = {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 10, 1, -8),
+		Size = UDim2.new(0.4, -14, 0, 18),
+	}, -- on the preview
 }
 local showingDetail = false
-local phoneLayout = false
+-- An owned aura / trail: the slot buttons take the description's band, in both views.
+local function fitDetail()
+	description.Visible = not slots.Frame.Visible
+end
 local function applyLayout()
 	local camera = workspace.CurrentCamera
 	local phone = camera ~= nil and camera.ViewportSize.Y <= 500
-	phoneLayout = phone
 	for part, props in phone and PHONE or DESKTOP do
 		for key, value in props do
 			part[key] = value
 		end
 	end
 	description.TextScaled = phone
-	description.Visible = not (phone and slots.Frame.Visible)
+	statusHome = (phone and PHONE or DESKTOP)[status].Position
+	fitDetail()
 	grid.Visible = not (phone and showingDetail)
 	detail.Visible = not phone or showingDetail
 	back.Visible = phone
@@ -431,15 +444,27 @@ local function owned(kind, id)
 	if kind == "Potion" then
 		return (player:GetAttribute("Boost_" .. id) or 0) > 0
 	end
-	return player:GetAttribute("Own" .. kind .. "_" .. id) == true
+	return Market.Copies(player, kind, id) > 0
 end
+
+-- Grey when short of Money; display only, the server still decides and answers a press.
+local money = player:WaitForChild("leaderstats"):WaitForChild("Money")
+local function paintBuy()
+	local item = selected and Market.Get(selectedKind, selected)
+	action.BackgroundColor3 = (item and item.Price > money.Value) and PALETTE.Muted or TILE_GREEN
+end
+money.Changed:Connect(paintBuy)
 
 local function showDetail(item)
 	local kind = selectedKind
-	local isOwned = owned(kind, item.Id)
-	local cosmetic = kind ~= "Potion" and isOwned -- owned aura / trail: pick its team slot
+	local copies = kind ~= "Potion" and Market.Copies(player, kind, item.Id) or 0
+	local cosmetic = copies > 0 -- owned aura / trail: pick its team slot
 	rarity.Text = kind == "Potion" and (item.Category .. " Potion")
-		or string.format("%s  •  x%.2f cruise for its slot", kind, RaceConfig.ItemCruiseMulti(item.SpeedMulti))
+		or string.format(
+			"%s  •  %s cruise speed on its slot",
+			kind,
+			Format.Multi(RaceConfig.ItemCruiseMulti(item.SpeedMulti))
+		)
 	nameLabel.Text = item.Name
 	priceText.Text = kind == "Potion"
 			and string.format(
@@ -447,12 +472,17 @@ local function showDetail(item)
 				Format.MoneyText(item.Price),
 				Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0)
 			)
-		or (isOwned and "Owned" or Format.MoneyText(item.Price))
+		or (
+			copies >= Market.MAX_COPIES and string.format("Owned x%d (max)", copies)
+			or copies > 0 and string.format("%s   •   Owned x%d", Format.MoneyText(item.Price), copies)
+			or Format.MoneyText(item.Price)
+		)
 	description.Text = item.Description
 	actionLabel.Text = "BUY"
-	action.Visible = not cosmetic
+	action.Visible = copies < Market.MAX_COPIES
+	paintBuy()
 	slots.Frame.Visible = cosmetic
-	description.Visible = not (phoneLayout and cosmetic)
+	fitDetail()
 	if cosmetic then
 		slots:Update(kind, item.Id)
 	end
@@ -465,8 +495,8 @@ action.Activated:Connect(function()
 		return
 	end
 	local kind = selectedKind
-	if kind ~= "Potion" and owned(kind, item.Id) then
-		return -- owned auras / trails equip through the slot buttons
+	if kind ~= "Potion" and Market.Copies(player, kind, item.Id) >= Market.MAX_COPIES then
+		return
 	end
 	busy = true
 	local ok, done, message = pcall(function()
@@ -475,9 +505,15 @@ action.Activated:Connect(function()
 	busy = false
 	notify(
 		ok and tostring(message or (done and "Done" or "Try again")) or "Connection error",
-		(ok and done) and TILE_GREEN or Color3.fromRGB(255, 100, 120)
+		(ok and done) and TILE_GREEN or PALETTE.Reject
 	)
 	render()
+	if ok and done then
+		local counter = UiFeedback.MoneyCounter() -- the cost flies out of the Money counter to BUY
+		UiFeedback.Play("MarketBought", action, { Origin = counter, Target = counter and action })
+	else
+		UiFeedback.Play("Denied", action)
+	end
 end)
 
 function pickSlot(slot, id)
@@ -492,9 +528,10 @@ function pickSlot(slot, id)
 	busy = false
 	notify(
 		ok and tostring(message or (done and "Done" or "Try again")) or "Connection error",
-		(ok and done) and TILE_GREEN or Color3.fromRGB(255, 100, 120)
+		(ok and done) and TILE_GREEN or PALETTE.Reject
 	)
 	render()
+	UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 end
 
 function render()
@@ -516,7 +553,7 @@ function render()
 			LayoutOrder = order,
 			BackgroundColor3 = Color3.new(1, 1, 1),
 			Text = "",
-			AutoButtonColor = true,
+			AutoButtonColor = false,
 		})
 		table.insert(shownTiles, b)
 		corner(b, 12)
@@ -525,7 +562,11 @@ function render()
 		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or onSlot and TILE_GREEN or TILE_BLUE, 4)
 		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -8), UDim2.fromOffset(60, 60))
 		local badge = owned(selectedKind, item.Id)
-				and (selectedKind == "Potion" and ("x" .. Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0)) or "Owned")
+				and "x" .. (selectedKind == "Potion" and Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0) or Market.Copies(
+					player,
+					selectedKind,
+					item.Id
+				))
 			or Format.MoneyText(item.Price)
 		caption("Badge", b, {
 			Position = UDim2.fromOffset(6, 2),
@@ -565,6 +606,9 @@ end
 
 for kind, refs in tabs do
 	refs.Button.Activated:Connect(function()
+		if kind ~= selectedKind then
+			UiFeedback.Play("TabSwitch")
+		end
 		selectedKind = kind
 		showingDetail = false
 		applyLayout()

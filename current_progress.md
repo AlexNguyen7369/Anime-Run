@@ -66,8 +66,16 @@
 62. 2026-11-04 — Alex Nguyen — Replaced the fork's Market with an in-house stall and cut plaza Legends to two beside the Race Start gate, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
 64. 2026-11-04 — Alex Nguyen — Added drawn portraits and head art for all 44 rollable characters, uploaded them and used them in the roll, Index, Enemies page, Backpack, starter cards, showdown banner and Team minibar; the character build now draws them; targeted scenarios green and rules audit PASS.
 65. 2026-11-04 — Alex Nguyen — Merged the integration branch into main through PR #2 on the owner's word, with the compatibility check on hold and the plaza asset IP signatures waived for this merge.
+66. 2026-11-04 — Alex Nguyen — Viewed all 9 redesigned villains in game on a test save and confirmed all 10 track enemies resolve to drawn portrait art in the UI.
+67. 2026-11-04 — Alex Nguyen — Landed up to 3 copies of each aura and trail with the Market and Backpack UI changes, slot_items 21 and vehicle_effects 130 fail=0, ui_market 100 checks fail=0 at 0, 1 and 3 copies, rules audit not run.
+68. 2026-11-04 — Alex Nguyen — Wrote UI feedback rules (design doc 4.33, UI_FEEDBACK_SPEC) and a live UI and SFX audit with 34 ranked findings (ui-juice u0).
+69. 2026-11-04 — Alex Nguyen — Fixed ui-juice audit findings on Equip cue timing, Daily rebuilds, Index slot 1 rule, Denied on disabled buttons, DEFEATED Burst, single roll shake, Duel toasts and checkpoint Fly; not run in Studio.
+70. 2026-11-04 — Alex Nguyen — Verified ui-juice in Studio (14 targeted scenarios fail=0, sound lengths measured) and fixed cue loudness, raw potion ids in the Quest claim reply, empty-state Stats bars, the VS banner truncating, the race map row under Quests and the Rebirth reply overflow.
+71. 2026-11-04 — Alex Nguyen — Landed UI feedback pass: 9 sounds with the ServerStorage folder, UiFeedback cues, new UiMotion presets, consistency and clarity fixes, big-moment and panel wiring; 15 targeted UI scenarios fail=0 including ui_layout 962 and ui_feedback 27 (ui-juice u1-u4).
+72. 2026-11-04 — Alex Nguyen — Compat check u5 stopped on the owner's word: c3t merged, UI pass=44 fail=0, server pass=49 fail=1 (`data`, fix 0fa4d06 not run), final server run skipped, rules audit FAIL with fixes not re-audited.
+73. 2026-11-04 — Alex Nguyen — Merged ui-juice to main through PR #3 on the owner's word: UI 44 scenarios fail=0, last full server run 49/1 with its data fix passing alone, Burst ruling recorded.
 
 ## What's next
-**Run the full compatibility check c3 when the owner says so, including merging `orch/core/c3t` first.**
+**Owner listens to the 9 UI sounds in Studio and saves the place so `ServerStorage.ImpactSounds` persists, then rules on docs/OWNER_QUESTIONS.md.**
 
-**Why this is next:** the owner put it on hold, and it is the remaining check on everything merged to main.
+**Why this is next:** no sound has been heard, Coin and Denied have unknown origin, and the folder exists only in the unsaved Edit session until saved.

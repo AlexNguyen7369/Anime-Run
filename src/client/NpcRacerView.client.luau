@@ -15,6 +15,7 @@ local RouteMath = require(Shared.RaceProgressMap)
 local TrackRegistry = require(Shared.TrackRegistry)
 local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
@@ -150,9 +151,11 @@ local Palette = UiTheme.Palette
 local CARD_W, CARD_H, OVERHANG = 460, 330, 14
 local ROW_STAGGER = 0.06
 
+local Themes = require(Shared.BiomeThemes)
 local trackNames = {}
 for _, spec in TrackRegistry.Chain() do
-	trackNames[spec.Number] = spec.Name
+	local theme = Themes[spec.Biome]
+	trackNames[spec.Number] = theme and theme.DisplayName or spec.Name -- one name per track, as EnemyShowdown shows
 end
 
 local gui = Instance.new("ScreenGui")
@@ -302,7 +305,7 @@ local function showLoser(event)
 	UiMotion.SlideIn(ribbon, Vector2.new(0, -80), 0.25)
 	task.delay(0.25, function()
 		if loseToken == token then
-			UiMotion.Shake(ribbon, 10, 0.3)
+			UiFeedback.Play("LoseRibbon", ribbon, { Color = Palette.Danger })
 		end
 	end)
 	local reduced = UiMotion.Reduced()
@@ -313,10 +316,14 @@ local function showLoser(event)
 				if loseToken == token then
 					row.Visible = true
 					UiMotion.SlideIn(row, Vector2.new(0, 18), 0.22)
+					UiFeedback.Play("LoseRow", row, { Sound = row == gap })
 				end
 			end)
+		else
+			UiFeedback.Play("LoseRow", row, { Sound = row == gap })
 		end
 	end
+	-- Not Fill: this bar is the recap's countdown, draining over LOSE_SCREEN_SECONDS; Fill always takes 0.2 s.
 	drain = UiMotion.Create(
 		fill,
 		TweenInfo.new(NpcConfig.LOSE_SCREEN_SECONDS, Enum.EasingStyle.Linear),

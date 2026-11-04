@@ -110,28 +110,10 @@ local function skipButton(onSkip)
 	button.TextSize = 22
 	button.Parent = gui
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
-	-- Design doc 4.20: hover grows, press shrinks, release pops back
-	local scale = Instance.new("UIScale")
-	scale.Name = "MotionScale" -- the UIScale UiMotion.Pop animates
-	scale.Parent = button
-	local function size(goal)
-		UiMotion.Create(scale, TweenInfo.new(0.1), { Scale = goal }):Play()
-	end
-	button.MouseEnter:Connect(function()
-		size(1.035)
-	end)
-	button.MouseLeave:Connect(function()
-		size(1)
-	end)
-	button.MouseButton1Down:Connect(function()
-		size(0.97)
-	end)
-	button.MouseButton1Up:Connect(function()
-		size(1)
-	end)
+	-- Hover and press: Ui/RacerMotion attaches 1.035 / 0.97 to every PlayerGui button (design doc 4.20).
 	button.Activated:Connect(onSkip)
 	gui.Parent = player:WaitForChild("PlayerGui")
-	UiMotion.Pop(button)
+	UiMotion.SlideIn(button, Vector2.new(0, 14)) -- position only: the HoverScale UIScale stays alone on the button
 	return gui
 end
 

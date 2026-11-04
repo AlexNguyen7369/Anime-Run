@@ -42,7 +42,7 @@ MarketConfig.Items = {
 			SpeedMulti = 1.5,
 			Color = Color3.fromRGB(255, 120, 235),
 			Accent = Color3.fromRGB(90, 220, 255),
-			Description = "A shifting rainbow ribbon behind your ride.",
+			Description = "A shifting rainbow ribbon behind your runner.",
 		},
 		{
 			Id = "solar_trail",
@@ -120,15 +120,21 @@ end
 -- Per team slot aura and trail (design doc 4.13): one of each per slot, server attributes Slot<n>Aura / Slot<n>Trail.
 MarketConfig.SLOTS = 3
 MarketConfig.SLOT_KINDS = { "Aura", "Trail" }
+MarketConfig.MAX_COPIES = 3 -- copies of one aura / trail a player can own (design doc 4.13, owner 2026-11-04)
 
 function MarketConfig.SlotAttribute(slot: number, kind: string): string
 	return "Slot" .. slot .. kind
 end
 
+-- Copies of aura / trail `id` the player owns (server attribute Own<Kind>_<id>, nil at 0).
+function MarketConfig.Copies(player: any, kind: string, id: string): number
+	return player:GetAttribute("Own" .. kind .. "_" .. id) or 0
+end
+
 -- Validated per-slot items from a save: { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }. A save with no
 -- SlotItems migrates its old single EquippedAura / EquippedTrail to slot 1. An item is kept only if it exists and
--- `owns(kind, id)`; each id sits on one slot at most (one owned copy each), the lowest slot wins.
-function MarketConfig.CleanSlotItems(saved: any, owns: (string, string) -> boolean): { [number]: { [string]: string } }
+-- the player has a copy free: an id sits on at most `copies(kind, id)` slots, the lowest slots win.
+function MarketConfig.CleanSlotItems(saved: any, copies: (string, string) -> number): { [number]: { [string]: string } }
 	local source = type(saved) == "table" and saved or {}
 	local slots = source.SlotItems
 	if type(slots) ~= "table" then
@@ -140,8 +146,8 @@ function MarketConfig.CleanSlotItems(saved: any, owns: (string, string) -> boole
 		clean[slot] = {}
 		for _, kind in MarketConfig.SLOT_KINDS do
 			local id = entry[kind]
-			if type(id) == "string" and MarketConfig.Get(kind, id) and owns(kind, id) and not used[id] then
-				used[id] = true
+			if type(id) == "string" and MarketConfig.Get(kind, id) and (used[id] or 0) < copies(kind, id) then
+				used[id] = (used[id] or 0) + 1
 				clean[slot][kind] = id
 			end
 		end

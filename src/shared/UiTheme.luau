@@ -24,6 +24,41 @@ UiTheme.Palette = {
 	Row = Color3.fromRGB(41, 55, 83),
 	Muted = Color3.fromRGB(104, 111, 135),
 	White = Color3.new(1, 1, 1),
+	Tile = Color3.fromRGB(47, 107, 255), -- a tile's or card's glow edge
+	TileDeep = Color3.fromRGB(14, 24, 52),
+	TabIdle = Color3.fromRGB(44, 52, 60),
+	TabIdleDeep = Color3.fromRGB(34, 40, 48),
+	SlotHere = Color3.fromRGB(55, 110, 180), -- a team slot holding the shown item: tapping takes it off
+	Gold = Color3.fromRGB(255, 214, 90),
+	SoftText = Color3.fromRGB(210, 220, 240),
+	Scrim = Color3.fromRGB(8, 10, 22),
+	Reject = Color3.fromRGB(255, 100, 120), -- a server "no" in text
+	ShopSky = Color3.fromRGB(110, 205, 255),
+	ShopMint = Color3.fromRGB(110, 230, 160),
+	ShopAmber = Color3.fromRGB(255, 200, 70),
+	ShopCobalt = Color3.fromRGB(90, 140, 255),
+	ShopPink = Color3.fromRGB(255, 170, 220),
+	ShopLime = Color3.fromRGB(150, 230, 90),
+	ShopIce = Color3.fromRGB(130, 180, 255),
+	ShopIndigo = Color3.fromRGB(30, 60, 140),
+	ShopRedeem = Color3.fromRGB(70, 170, 245),
+	ShopGift = Color3.fromRGB(130, 75, 190),
+	ShopField = Color3.fromRGB(80, 92, 112),
+	Disabled = Color3.fromRGB(70, 75, 90),
+	Done = Color3.fromRGB(12, 15, 22),
+	Featured = Color3.fromRGB(184, 85, 255),
+	DoneText = Color3.fromRGB(120, 120, 120),
+	Sky = Color3.fromRGB(80, 170, 250),
+	Lime = Color3.fromRGB(184, 255, 28),
+	TeamGrey = Color3.fromRGB(110, 110, 110),
+	TeamTired = Color3.fromRGB(50, 50, 55),
+	TeamDim = Color3.fromRGB(26, 36, 66),
+	TeamRing = Color3.fromRGB(230, 236, 250),
+	TeamPlate = Color3.fromRGB(18, 24, 44),
+	TeamSoft = Color3.fromRGB(190, 200, 225),
+	Sprinter = Color3.fromRGB(255, 110, 70),
+	Balanced = Color3.fromRGB(90, 210, 120),
+	Marathoner = Color3.fromRGB(80, 160, 255),
 }
 
 local function child(parent, class, name)
@@ -69,6 +104,20 @@ function UiTheme.Plate(gui, glow)
 	UiTheme.Gradient(gui, UiTheme.Palette.Panel, UiTheme.Palette.PanelDeep)
 	local edge = UiTheme.Stroke(gui, 2, glow or UiTheme.Palette.Muted, true)
 	edge.Transparency = 0.25
+	return gui
+end
+
+-- The opaque panel body every panel shares: Panel to PanelDeep, no see-through (panel surfaces cover the read-outs).
+function UiTheme.Body(gui)
+	gui.BackgroundColor3 = Color3.new(1, 1, 1)
+	gui.BackgroundTransparency = 0
+	gui.BorderSizePixel = 0
+	for _, other in gui:GetChildren() do
+		if other:IsA("UIGradient") and other.Name ~= "ThemeGradient" then
+			other:Destroy() -- only one gradient draws
+		end
+	end
+	UiTheme.Gradient(gui, UiTheme.Palette.Panel, UiTheme.Palette.PanelDeep)
 	return gui
 end
 

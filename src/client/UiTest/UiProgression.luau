@@ -111,6 +111,13 @@ function Progression.Build(h)
 		end
 		local restore = h.setPanels({ "RacerUpgrades/Panel" })
 		h.frames(2)
+		-- UI audit A30, one way out: EXIT stays hidden with the tree open, X is drawn (click close_upgrades presses it).
+		local exitButton = h.find("RacerUpgrades/ZoomTools/Exit")
+		local exitShown = exitButton ~= nil and h.visible(exitButton)
+		h.check(res, "upgrades_exit_hidden", exitShown, false, not exitShown)
+		local closeButton = h.find("RacerUpgrades/Close/Face")
+		local closeShown = closeButton ~= nil and h.visible(closeButton)
+		h.check(res, "upgrades_close_shown", closeShown, true, closeShown)
 		-- The hex tree pans by drag / wheel (UpgradeTreeView sets CanvasPosition itself; native scrolling is off), so
 		-- the canvas must be a clipping ScrollingFrame whose canvas spans the whole zoomed TreeWorld (measured with
 		-- the tree open): every tile can be panned into the window (tile_pan_reachable_* / tile_pan_hit_* prove it).
@@ -167,7 +174,7 @@ function Progression.Build(h)
 		end
 		restore()
 		-- Owner 2026-10-13: the spawn-area upgrade pad is removed; the tree opens only from the HUD Upgrade button
-		-- (clicks open_upgrades / close_upgrades / exit_upgrades). Only the workshop plots keep an UpgradePad.
+		-- (clicks open_upgrades / close_upgrades). Only the workshop plots keep an UpgradePad.
 		local plots = workspace:FindFirstChild("Workshops")
 		local worldPads = 0
 		for _, pad in CollectionService:GetTagged("UpgradePad") do

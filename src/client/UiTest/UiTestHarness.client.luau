@@ -9,12 +9,14 @@
 -- Trigger: ReplicatedStorage attribute UiTestRun = true (set it to false first if it is already true).
 -- Clicks: ReplicatedStorage attribute UiTestClick = <UiSpec.Clicks Id> (set it to nil between clicks, and clear
 -- UiTestClickDone before each click); see the protocol in UiSpec.Clicks. Owned by ui-test-writer.
+-- Screenshots of a held run: ReplicatedStorage attribute UiRunVisualCapture, set on the client (UiRunVisual, at Capture).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local UiScenarios = require(script.Parent:WaitForChild("UiScenarios"))
+local UiRunVisual = require(script.Parent:WaitForChild("UiRunVisual"))
 
 local player = Players.LocalPlayer
 local busy = false
@@ -121,6 +123,13 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 		player:SetAttribute("UiTestScenarioResult", json)
 		busy = false
 	end)
+end)
+
+ReplicatedStorage:GetAttributeChangedSignal(UiRunVisual.CAPTURE_ATTR):Connect(function()
+	local command = ReplicatedStorage:GetAttribute(UiRunVisual.CAPTURE_ATTR)
+	if type(command) == "string" and command ~= "" then
+		task.spawn(UiRunVisual.Capture, command)
+	end
 end)
 
 if ReplicatedStorage:GetAttribute("UiTestRun") == true then

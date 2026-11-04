@@ -24,15 +24,15 @@ local Components = require(Ui.RacerComponents)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
-local BODY = Color3.fromRGB(32, 27, 36)
-local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local TILE_GREEN = Color3.fromRGB(60, 220, 90)
+local TILE_BLUE = PALETTE.Tile
+local TILE_GREEN = PALETTE.Money
 local GOLD = PALETTE.Unbanked
 -- Characters grid (design doc 4.22; placeholders): as many columns as fit cells at least this wide.
 local CARD_MIN_WIDTH = 112
@@ -63,7 +63,7 @@ local function stroke(parent, color, thickness)
 end
 local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = Enum.Font.FredokaOne
+	props.Font = UiTheme.Font
 	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
 	local label = make("TextLabel", name, parent, props)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round })
@@ -86,7 +86,6 @@ local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
 	Size = UDim2.fromOffset(720, 420),
-	BackgroundColor3 = BODY,
 	Visible = false,
 	Active = true,
 })
@@ -122,9 +121,8 @@ local close = make("TextButton", "Close", header, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.fromScale(1, 0),
 	Size = UDim2.fromOffset(72, 64),
-	BackgroundColor3 = Color3.fromRGB(232, 69, 60),
 	Text = "",
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
 caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X", TextSize = 40 })
 
@@ -142,10 +140,10 @@ local function tab(name, order, art)
 		Size = UDim2.fromOffset(96, 96),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	corner(b, 12)
-	UiTheme.Gradient(b, Color3.fromRGB(58, 68, 80), Color3.fromRGB(34, 40, 48))
+	UiTheme.Gradient(b, PALETTE.TabIdle, PALETTE.TabIdleDeep)
 	local edge = stroke(b, OUTLINE, 4)
 	art(b)
 	local label = caption("Label", b, {
@@ -260,11 +258,11 @@ local sortButton = make("TextButton", "Sort", toolbar, {
 	Size = UDim2.new(0, 140, 1, 0),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	Text = "",
-	AutoButtonColor = true,
+	AutoButtonColor = false,
 })
-corner(sortButton, 10)
-UiTheme.Gradient(sortButton, TILE_GREEN, PALETTE.MoneyDeep)
-stroke(sortButton, OUTLINE, 3)
+corner(sortButton, UiTheme.Radius.M)
+UiTheme.Gradient(sortButton, PALETTE.Row, PALETTE.PanelDeep)
+stroke(sortButton, PALETTE.White, 2)
 local sortLabel = caption("Label", sortButton, {
 	Size = UDim2.fromScale(1, 1),
 	Text = "Sort: " .. sortMode,
@@ -276,9 +274,9 @@ local search = make("TextBox", "Search", toolbar, {
 	BackgroundColor3 = OUTLINE,
 	BackgroundTransparency = 0.25,
 	ClearTextOnFocus = false,
-	Font = Enum.Font.FredokaOne,
+	Font = UiTheme.Font,
 	PlaceholderText = "Search",
-	PlaceholderColor3 = Color3.fromRGB(190, 195, 215),
+	PlaceholderColor3 = PALETTE.SoftText,
 	Text = "",
 	TextColor3 = Color3.new(1, 1, 1),
 	TextSize = 18,
@@ -300,7 +298,7 @@ local hint = caption("Hint", panel, {
 	Size = UDim2.new(1, -132, 0, 22),
 	Text = "",
 	TextSize = 16,
-	TextColor3 = Color3.fromRGB(255, 214, 90),
+	TextColor3 = PALETTE.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 5,
 })
@@ -315,7 +313,6 @@ local slots = SlotPicker.new("Slots", panel, {
 }, function(...)
 	pickSlot(...)
 end)
-make("UISizeConstraint", "Width", slots.Frame, { MaxSize = Vector2.new(480, 44) })
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -323,7 +320,7 @@ local function notify(text)
 	UiMotion.SlideIn(hint, Vector2.new(0, 14))
 end
 
-local current = "Misc"
+local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
 local chosenCharacter = nil -- the character id the slot buttons put on the Team
 local busy = false
@@ -334,7 +331,7 @@ local function tile(id, order, highlighted)
 		LayoutOrder = order,
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	corner(b, 12)
 	UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
@@ -348,7 +345,7 @@ local function characterTile(spec, order)
 	local b = make("TextButton", spec.Id, grid, {
 		LayoutOrder = order,
 		Text = "",
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
 	Components.CardFace(b, spec, GachaConfig)
 	local slot = table.find(SlotPicker.Team(), spec.Id)
@@ -435,12 +432,14 @@ function pickSlot(slot, id, picked)
 			current == "Trails" and "Pick a trail first"
 				or (current == "Auras" and "Pick an aura first" or "Pick a character first")
 		)
+		UiFeedback.Play("Denied", slots.Buttons[slot].Button)
 		return
 	end
 	if current == "Characters" then
 		local team = SlotPicker.TeamWith(slot, id)
 		if not team then
 			notify("Your Team needs at least 1 character")
+			UiFeedback.Play("Denied", slots.Buttons[slot].Button)
 			return
 		end
 		busy = true
@@ -450,6 +449,7 @@ function pickSlot(slot, id, picked)
 		busy = false
 		notify(ok and tostring(message or (done and "Team updated" or "Try again")) or "Connection error")
 		render()
+		UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 		return
 	end
 	busy = true
@@ -459,6 +459,7 @@ function pickSlot(slot, id, picked)
 	busy = false
 	notify(ok and tostring(message or (done and "Done" or "Try again")) or "Connection error")
 	render()
+	UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 end
 local function use(item)
 	if busy then
@@ -471,6 +472,9 @@ local function use(item)
 	busy = false
 	notify(ok and (used and (item.Name .. " activated") or tostring(message)) or "Connection error")
 	render()
+	if not (ok and used) then
+		UiFeedback.Play("Denied") -- render replaced the tile
+	end
 end
 
 function render()
@@ -486,7 +490,7 @@ function render()
 	table.clear(shownTiles)
 	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
 	slots.Frame.Visible = cosmetic
-	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 64)) or GRID_SIZE -- ends above the Slots row
+	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE -- ends above the Slots row
 	toolbar.Visible = current == "Characters"
 	fitCards()
 	if current == "Characters" then
@@ -517,14 +521,25 @@ function render()
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
-		if not (Market.Get(kind, chosen) and player:GetAttribute("Own" .. kind .. "_" .. chosen) == true) then
+		if not (Market.Get(kind, chosen) and Market.Copies(player, kind, chosen) > 0) then
 			chosen = nil
 		end
 		for order, item in Market.Items[kind] do
-			if player:GetAttribute("Own" .. kind .. "_" .. item.Id) == true then
+			local copies = Market.Copies(player, kind, item.Id)
+			if copies > 0 then
 				shown += 1
 				chosen = chosen or item.Id
 				local b = tile(item.Id, order, SlotPicker.Equipped(kind, item.Id))
+				caption("Copies", b, {
+					Position = UDim2.fromOffset(6, 2),
+					Size = UDim2.new(1, -12, 0, 20),
+					Text = "x" .. copies,
+					TextSize = 15,
+					TextScaled = true,
+					TextColor3 = PALETTE.Gold,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					ZIndex = 5,
+				})
 				if item.Id == chosen then
 					b.Stroke.Color = Color3.new(1, 1, 1)
 				end
@@ -614,6 +629,9 @@ end
 
 for name, refs in tabs do
 	refs.Button.Activated:Connect(function()
+		if name ~= current then
+			UiFeedback.Play("TabSwitch")
+		end
 		current = name
 		hint.Text = ""
 		render()
@@ -669,7 +687,11 @@ require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	TitleObject = header.Title,
 	Close = close,
 	MaxWidth = 760,
+	TitleEnd = UDim.new(0.5, -80), -- the Toolbar starts at 0.5, -76
 })
+require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(panel, function()
+	PanelSwitch.Close("Backpack")
+end)
 local function fitTabs()
 	local ancestor = rail.AbsoluteSize.X / 96 -- PanelBand scale; the rail is 96 design px wide
 	if ancestor <= 0 then

@@ -510,6 +510,15 @@ function Access.Build(h)
 		return list
 	end
 
+	-- The close motion (design doc 4.20) may keep a panel Visible up to UiSpec.Waits.PanelClose.
+	local function waitClosed(panel)
+		local deadline = os.clock() + Spec.Waits.PanelClose
+		while panel.Visible and os.clock() < deadline do
+			task.wait()
+		end
+		h.frames(2)
+	end
+
 	local function eachPanel(res, fn)
 		local switch = h.panelSwitch()
 		h.check(
@@ -562,7 +571,7 @@ function Access.Build(h)
 			local bOpen = buttonBCount()
 			h.check(res, "gamepad_buttonb_bound_" .. p.Tag, bOpen - bBefore, ">= 1 new ButtonB action", bOpen > bBefore)
 			switch.Close(p.Name)
-			h.frames(2)
+			waitClosed(panel) -- every panel plays the close motion now (UI audit A29); focus goes back when it hides
 			sel = GuiService.SelectedObject
 			h.check(res, "gamepad_selection_restored_" .. p.Tag, name(sel), name(target), sel == target)
 			h.check(res, "gamepad_buttonb_unbound_" .. p.Tag, buttonBCount(), bBefore, buttonBCount() == bBefore)
@@ -576,7 +585,7 @@ function Access.Build(h)
 			switch.Toggle("Index")
 			h.frames(cfg.FocusFrames)
 			switch.Close("Index")
-			h.frames(2)
+			waitClosed(index)
 			local sel = GuiService.SelectedObject
 			h.check(res, "gamepad_selection_cleared_index", name(sel), "nil", sel == nil)
 			restore()

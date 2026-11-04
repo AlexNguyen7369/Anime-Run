@@ -13,6 +13,7 @@ local HudIcons = require(script.Parent.RollToast.Ui.HudIcons)
 local PotionIcons = require(script.Parent.RollToast.Ui.PotionIcons)
 local UiTheme = require(ReplicatedStorage.Shared:WaitForChild("UiTheme"))
 local HudFormat = require(ReplicatedStorage.Shared:WaitForChild("HudFormat"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 
@@ -28,11 +29,13 @@ screen.Parent = gui
 -- white border on the selection, Fredoka text with a dark outline.
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
-local BODY = Color3.fromRGB(32, 27, 36)
-local TILE = Color3.fromRGB(14, 24, 52)
-local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local TAB = Color3.fromRGB(44, 52, 60)
-local GREEN = Color3.fromRGB(60, 200, 90)
+local Boosts = require(ReplicatedStorage.Shared:WaitForChild("BoostConfig"))
+local TILE = PALETTE.TileDeep
+local TILE_BLUE = PALETTE.Tile
+local TAB = PALETTE.TabIdle
+local GREEN = PALETTE.MoneyDeep -- white stroked text stays readable on it
+local REPLY_SECONDS = 2 -- placeholder: a reply stays this long, then fades
+local SHINE_EVERY = 3 -- placeholder: seconds between a claimable button's light sweeps
 
 local function make(class, name, parent, props)
 	local instance = Instance.new(class)
@@ -56,19 +59,18 @@ local function button(name, parent, position, size, text)
 		Size = size,
 		BackgroundColor3 = TAB,
 		TextColor3 = Color3.new(1, 1, 1),
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextSize = 18,
 		Text = text,
-		AutoButtonColor = true,
+		AutoButtonColor = false,
 	})
-	rounded(instance, 8)
+	rounded(instance, UiTheme.Radius.S)
 	make(
 		"UIStroke",
 		"Edge",
 		instance,
 		{ Color = OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
 	)
-	UiTheme.Gradient(instance, Color3.new(1, 1, 1), Color3.fromRGB(185, 185, 185)) -- depth on whatever colour it shows
 	return instance
 end
 
@@ -89,23 +91,14 @@ local modal = make("Frame", "Modal", backdrop, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0.08),
 	Size = UDim2.fromScale(0.82, 0.78),
-	BackgroundColor3 = BODY,
 })
-rounded(modal, 14)
+rounded(modal, UiTheme.Radius.L)
 local header = make("Frame", "Header", modal, {
 	Position = UDim2.fromOffset(5, 5),
 	Size = UDim2.new(1, -10, 0, 72),
-	BackgroundColor3 = Color3.fromRGB(190, 20, 34),
 	BorderSizePixel = 0,
 })
 rounded(header, 10)
-local headerGradient = Instance.new("UIGradient")
-headerGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(105, 8, 20)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(238, 28, 42)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(112, 8, 20)),
-})
-headerGradient.Parent = header
 make("ImageLabel", "CalendarIcon", header, {
 	Position = UDim2.fromOffset(14, 10),
 	Size = UDim2.fromOffset(52, 52),
@@ -120,14 +113,11 @@ local title = make("TextLabel", "Title", modal, {
 	TextColor3 = Color3.new(1, 1, 1),
 	Font = UiTheme.Font,
 	TextSize = 30,
-	TextStrokeColor3 = Color3.fromRGB(35, 0, 0),
-	TextStrokeTransparency = 0,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	Text = "DAILY REWARDS",
 })
-local close = button("Close", modal, UDim2.new(1, -62, 0, 12), UDim2.fromOffset(48, 48), "×")
-close.BackgroundColor3 = Color3.fromRGB(210, 75, 90)
-close.TextSize = 34
+UiTheme.Stroke(title, 2)
+local close = button("Close", modal, UDim2.new(1, -62, 0, 12), UDim2.fromOffset(48, 48), "")
 local panelFrame = require(script.Parent:WaitForChild("PanelFrame")).Attach(modal, {
 	Theme = "Daily",
 	Title = "DAILY REWARDS",
@@ -185,7 +175,7 @@ local function detailText(name, position, size, textSize, color)
 		BackgroundTransparency = 1,
 		Text = "",
 		TextColor3 = color,
-		Font = Enum.Font.FredokaOne,
+		Font = UiTheme.Font,
 		TextSize = textSize + 2,
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -194,16 +184,13 @@ local function detailText(name, position, size, textSize, color)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
 	return label
 end
-local questType =
-	detailText("Type", UDim2.fromOffset(14, 12), UDim2.new(1, -28, 0, 20), 13, Color3.fromRGB(80, 170, 250))
-local questName =
-	detailText("Name", UDim2.fromOffset(14, 35), UDim2.new(1, -28, 0, 54), 22, Color3.fromRGB(255, 190, 42))
-local questGoal =
-	detailText("Goal", UDim2.fromOffset(14, 94), UDim2.new(1, -28, 0, 42), 14, Color3.fromRGB(230, 234, 241))
+local questType = detailText("Type", UDim2.fromOffset(14, 12), UDim2.new(1, -28, 0, 20), 13, PALETTE.Sky)
+local questName = detailText("Name", UDim2.fromOffset(14, 35), UDim2.new(1, -28, 0, 54), 22, PALETTE.Gold)
+local questGoal = detailText("Goal", UDim2.fromOffset(14, 94), UDim2.new(1, -28, 0, 42), 14, PALETTE.SoftText)
 local progressTrack = make("Frame", "ProgressTrack", questDetail, {
 	Position = UDim2.fromOffset(14, 144),
 	Size = UDim2.new(1, -28, 0, 24),
-	BackgroundColor3 = Color3.fromRGB(8, 12, 22),
+	BackgroundColor3 = PALETTE.Done,
 	BorderSizePixel = 0,
 })
 rounded(progressTrack, 8)
@@ -221,8 +208,7 @@ local progressText = make("TextLabel", "Progress", progressTrack, {
 	Font = UiTheme.Font,
 	TextSize = 13,
 })
-local questReward =
-	detailText("Reward", UDim2.fromOffset(14, 184), UDim2.new(1, -28, 0, 48), 15, Color3.fromRGB(255, 214, 90))
+local questReward = detailText("Reward", UDim2.fromOffset(14, 184), UDim2.new(1, -28, 0, 48), 15, PALETTE.Gold)
 
 local status = make("TextLabel", "Status", screen, {
 	AnchorPoint = Vector2.new(1, 0),
@@ -237,18 +223,84 @@ local status = make("TextLabel", "Status", screen, {
 	Text = "",
 })
 local statusHome = status.Position
--- A claim answer slides in from the right edge.
+UiTheme.Stroke(status, 2)
+-- The reply inside the panel: Status hides while a panel is open (HUD_LAYOUT_SPEC section 6), so a claim's answer shows here.
+local reply = make("TextLabel", "Reply", modal, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -6),
+	Size = UDim2.new(1, -28, 0, 24),
+	BackgroundColor3 = PALETTE.PanelDeep,
+	BackgroundTransparency = 0.15,
+	TextColor3 = PALETTE.White,
+	Font = UiTheme.Font,
+	TextSize = 18,
+	Text = "",
+	Visible = false,
+	ZIndex = 6,
+})
+rounded(reply, UiTheme.Radius.S)
+UiTheme.Stroke(reply, 2)
+local replySerial = 0
+-- A claim answer slides in from the right edge, stays 2 s and fades away (design doc 4.20).
 local function notify(text)
+	replySerial += 1
+	local mine = replySerial
 	status.Text = text
 	status.Position = statusHome
+	status.TextTransparency = 0
+	status.ThemeStroke.Transparency = 0
 	UiMotion.SlideIn(status, Vector2.new(40, 0))
+	reply.Text = text
+	UiMotion.Fade(reply, true, 0.15)
+	task.delay(REPLY_SECONDS, function()
+		if replySerial ~= mine then
+			return
+		end
+		UiMotion.Fade(reply, false, 0.25)
+		UiMotion.Create(status, TweenInfo.new(0.25), { TextTransparency = 1 }):Play()
+		UiMotion.Create(status.ThemeStroke, TweenInfo.new(0.25), { Transparency = 1 }):Play()
+		task.delay(0.3, function()
+			if replySerial == mine then
+				status.Text = ""
+				reply.Text = ""
+			end
+		end)
+	end)
 end
-local stopClaimPulse = nil -- the Daily claim button glows while it can be claimed
+local stopClaimPulse, stopTodayPulse = nil, nil -- the Daily claim button and today's tile glow while claimable
+local shineRun = 0 -- bumping it ends every claimable button's shine loop
 local function stopPulse()
+	shineRun += 1
 	if stopClaimPulse then
 		stopClaimPulse()
 		stopClaimPulse = nil
 	end
+	if stopTodayPulse then
+		stopTodayPulse()
+		stopTodayPulse = nil
+	end
+end
+
+-- A light sweep every SHINE_EVERY s until stopPulse or the button stops being claimable. Shine does nothing while reduced.
+local function shineWhileClaimable(claim)
+	local run = shineRun
+	task.spawn(function()
+		while true do
+			task.wait(SHINE_EVERY)
+			if run ~= shineRun or not claim.Parent or not claim.Active then
+				return
+			end
+			UiMotion.Shine(claim, 0.9)
+		end
+	end)
+end
+
+-- An answer rebuilt the panel, so the new gui has its screen place only next frame. find() gets it (nil: sound only).
+local function answerCue(cue, find)
+	task.delay(0, function()
+		-- No Target, so no coins: these rewards are potions, not money.
+		UiFeedback.Play(cue, find())
+	end)
 end
 
 local view = nil -- "Daily" or "Quests": which content the shared modal shows
@@ -315,7 +367,7 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	local card = make("Frame", "Day" .. day, parent, {
 		Position = position,
 		Size = size,
-		BackgroundColor3 = done and Color3.fromRGB(12, 15, 22) or Color3.new(1, 1, 1),
+		BackgroundColor3 = done and PALETTE.Done or Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 	})
 	rounded(card, 12)
@@ -323,8 +375,8 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 		UiTheme.Gradient(card, PALETTE.Row, PALETTE.PanelDeep)
 	end
 	local edge = Instance.new("UIStroke")
-	edge.Color = done and Color3.fromRGB(43, 190, 73)
-		or (featured and Color3.fromRGB(184, 85, 255) or Color3.fromRGB(45, 122, 220))
+	edge.Name = "Edge"
+	edge.Color = done and PALETTE.MoneyDeep or (featured and PALETTE.Featured or PALETTE.Tile)
 	edge.Thickness = 3
 	edge.Parent = card
 	make("TextLabel", "Label", card, {
@@ -332,7 +384,7 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 		Size = UDim2.new(1, -16, 0, featured and 32 or 25),
 		BackgroundTransparency = 1,
 		Text = "DAY " .. day,
-		TextColor3 = done and Color3.fromRGB(120, 120, 120) or Color3.new(1, 1, 1),
+		TextColor3 = done and PALETTE.DoneText or Color3.new(1, 1, 1),
 		Font = UiTheme.Font,
 		TextSize = featured and 24 or 17,
 		TextStrokeTransparency = 0,
@@ -355,7 +407,7 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 		Size = UDim2.new(1, -12, 0, 22),
 		BackgroundTransparency = 1,
 		Text = detail,
-		TextColor3 = done and Color3.fromRGB(115, 115, 115) or Color3.fromRGB(235, 240, 255),
+		TextColor3 = done and PALETTE.DoneText or PALETTE.SoftText,
 		Font = UiTheme.Font,
 		TextSize = featured and 15 or 11,
 		TextScaled = false,
@@ -366,13 +418,18 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 		Size = UDim2.fromScale(0.55, 0.45),
 		BackgroundTransparency = 1,
 		Text = done and "✓" or "",
-		TextColor3 = Color3.fromRGB(50, 210, 75),
+		TextColor3 = PALETTE.Money,
 		Font = UiTheme.Font,
 		TextScaled = true,
 		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Color3.fromRGB(0, 30, 0),
+		TextStrokeColor3 = PALETTE.PanelDeep,
 	})
 	return card
+end
+
+-- Height of the 7 days. From the modal's Size, which Band.Fit keeps in px: AbsoluteSize carries the panel's MotionScale.
+local function dailyHeight()
+	return math.max(180, modal.Size.Y.Offset + content.Size.Y.Offset - 34 - 42 - 2 * layout.Padding.Offset)
 end
 
 local function showDaily()
@@ -392,8 +449,9 @@ local function showDaily()
 	local claimedToday = last == math.floor(os.time() / 86400)
 	local camera = workspace.CurrentCamera
 	local phone = camera and camera.ViewportSize.Y <= 500
+	-- Desktop: the 7 days fit the panel with no scroll, under them only the next-reward line and the Claim button.
 	local area = make("Frame", "RewardCards", content, {
-		Size = UDim2.new(1, -8, 0, phone and 530 or 300),
+		Size = UDim2.new(1, -8, 0, phone and 530 or dailyHeight()),
 		BackgroundTransparency = 1,
 	})
 	for day, reward in ipairs(dailyConfig.Rewards) do
@@ -423,8 +481,8 @@ local function showDaily()
 				reward,
 				done,
 				false,
-				UDim2.new(column * 0.25, column == 0 and 0 or 4, 0, row * 150),
-				UDim2.new(0.25, -8, 0, 140)
+				UDim2.new(column * 0.25, column == 0 and 0 or 4, row * 0.5, row * 4),
+				UDim2.new(0.25, -8, 0.5, -4)
 			)
 		else
 			dailyCard(area, day, reward, done, true, UDim2.new(0.75, 8, 0, 0), UDim2.new(0.245, -8, 1, 0))
@@ -438,11 +496,11 @@ local function showDaily()
 	make("TextLabel", "NextReward", content, {
 		Size = UDim2.new(1, -8, 0, 34),
 		BackgroundTransparency = 1,
-		TextColor3 = Color3.fromRGB(184, 255, 28),
+		TextColor3 = PALETTE.Lime,
 		Font = UiTheme.Font,
 		TextSize = phone and 16 or 21,
 		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Color3.fromRGB(30, 45, 0),
+		TextStrokeColor3 = PALETTE.PanelDeep,
 		Text = claimedToday and "NEXT REWARD IN: calculating..." or "CLAIM TODAY'S REWARD!",
 	})
 	local claim = button(
@@ -454,11 +512,18 @@ local function showDaily()
 	)
 	claim.LayoutOrder = 20
 	claim.Active = not claimedToday
-	claim.AutoButtonColor = claim.Active
 	if claim.Active then
 		claim.BackgroundColor3 = GREEN
+		UiTheme.Stroke(claim, 2)
 		claim.Edge.Color = PALETTE.Speed
 		stopClaimPulse = UiMotion.Pulse(claim.Edge, { Transparency = 0.75 }, 0.7)
+		-- Today's tile: the same glow, so the prize waiting now is plain to see.
+		local today = area:FindFirstChild("Day" .. math.min(streak + 1, 7))
+		if today then
+			UiMotion.Mark(today.Edge, { Color = PALETTE.Speed })
+			stopTodayPulse = UiMotion.Pulse(today.Edge, { Transparency = 0.6 }, 0.7)
+		end
+		shineWhileClaimable(claim)
 	end
 	claim.Activated:Connect(function()
 		if not claim.Active then
@@ -470,8 +535,13 @@ local function showDaily()
 		if ok and success then
 			notify("Claimed Day " .. tostring(reward.Day))
 			showDaily()
+			answerCue("DailyClaim", function()
+				local cards = content:FindFirstChild("RewardCards")
+				return cards and cards:FindFirstChild("Day" .. tostring(reward.Day))
+			end)
 		else
 			notify(ok and tostring(reward) or "Connection error")
+			UiFeedback.Play("Denied", claim)
 		end
 	end)
 end
@@ -487,21 +557,27 @@ local function decode(name)
 	return ok and type(value) == "table" and value or {}
 end
 
+-- "Luck Potion I", not the save id "LuckI".
+local function rewardName(quest)
+	local boost = Boosts.Get(quest.Reward)
+	return boost and boost.Name or quest.Reward
+end
+
 local function selectQuest(quest, current, weekly)
 	for id, refs in questRows do
 		refs.Edge.Color = id == quest.Id and Color3.new(1, 1, 1) or TILE_BLUE
 	end
 	questType.Text = weekly and "WEEKLY QUEST" or "DAILY QUEST"
 	questName.Text = quest.Name
-	questGoal.Text = quest.Name
-	progressFill.Size = UDim2.fromScale(math.clamp(current / math.max(1, quest.Target), 0, 1), 1)
+	questGoal.Text = "" -- the quest's name already says its goal
+	UiMotion.Fill(progressFill, UDim2.fromScale(math.clamp(current / math.max(1, quest.Target), 0, 1), 1))
 	progressText.Text = string.format(
 		"%s / %s  (%d%%)",
 		HudFormat.Short(current),
 		HudFormat.Short(quest.Target),
 		math.floor(current / math.max(1, quest.Target) * 100 + 0.5)
 	)
-	questReward.Text = string.format("REWARD  •  x%s %s", HudFormat.Short(quest.RewardCount or 1), quest.Reward)
+	questReward.Text = string.format("REWARD  •  x%s %s", HudFormat.Short(quest.RewardCount or 1), rewardName(quest))
 end
 
 local function showQuests()
@@ -549,9 +625,9 @@ local function showQuests()
 			Size = UDim2.new(1, -124, 0, 24),
 			BackgroundTransparency = 1,
 			Text = quest.Name,
-			Font = Enum.Font.FredokaOne,
+			Font = UiTheme.Font,
 			TextSize = 18,
-			TextColor3 = Color3.fromRGB(255, 190, 42),
+			TextColor3 = PALETTE.Gold,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 		make("TextLabel", "Progress", row, {
@@ -562,11 +638,11 @@ local function showQuests()
 				"%s / %s  •  %s",
 				HudFormat.Short(current),
 				HudFormat.Short(quest.Target),
-				quest.Reward
+				rewardName(quest)
 			),
-			Font = Enum.Font.FredokaOne,
+			Font = UiTheme.Font,
 			TextSize = 15,
-			TextColor3 = Color3.fromRGB(210, 220, 240),
+			TextColor3 = PALETTE.SoftText,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 		local claim = button(
@@ -577,8 +653,11 @@ local function showQuests()
 			done and "CLAIMED" or current >= quest.Target and "CLAIM" or "LOCKED"
 		)
 		claim.Active = not done and current >= quest.Target
-		claim.AutoButtonColor = claim.Active
 		claim.BackgroundColor3 = claim.Active and GREEN or TAB
+		if claim.Active then
+			UiTheme.Stroke(claim, 2)
+			shineWhileClaimable(claim)
+		end
 		questRows[quest.Id] = { Button = row, Edge = rowEdge }
 		if not selectedQuest then
 			selectedQuest, selectedCurrent = quest, current
@@ -593,8 +672,12 @@ local function showQuests()
 			local ok, success, message = pcall(function()
 				return ReplicatedStorage.Remotes.QuestClaim:InvokeServer(weekly, quest.Id)
 			end)
-			notify(ok and (success and ("Claimed " .. tostring(message)) or tostring(message)) or "Connection error")
+			notify(ok and (success and ("Claimed " .. rewardName(quest)) or tostring(message)) or "Connection error")
 			showQuests()
+			answerCue((ok and success) and "QuestClaim" or "Denied", function()
+				local newRow = content:FindFirstChild(quest.Id)
+				return newRow and ((ok and success) and newRow or newRow:FindFirstChild("Claim"))
+			end)
 		end)
 	end
 	if selectedQuest then
@@ -606,10 +689,16 @@ local function showQuests()
 end
 
 dailyQuestTab.Activated:Connect(function()
+	if questCategory ~= "Daily" then
+		UiFeedback.Play("TabSwitch")
+	end
 	questCategory = "Daily"
 	showQuests()
 end)
 weeklyQuestTab.Activated:Connect(function()
+	if questCategory ~= "Weekly" then
+		UiFeedback.Play("TabSwitch")
+	end
 	questCategory = "Weekly"
 	showQuests()
 end)
@@ -626,11 +715,12 @@ local function action(name, show)
 end
 PanelSwitch.SetAction("Daily", action("Daily", showDaily))
 PanelSwitch.SetAction("Quests", action("Quests", showQuests))
-close.Activated:Connect(function()
+local function closePanel()
 	PanelSwitch.Close("Daily")
-	backdrop.Visible = false
 	refreshChrome()
-end)
+end
+close.Activated:Connect(closePanel)
+require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(backdrop, closePanel)
 
 refreshChrome()
 task.spawn(function()
@@ -681,6 +771,24 @@ task.spawn(function()
 		end
 	end
 end)
+
+-- Band.Fit sizes the modal after it opens: the 7 days re-fit to the real height. In place (the cards are fractions of
+-- their area), so Claim and the cards' rise survive.
+modal:GetPropertyChangedSignal("Size"):Connect(function()
+	local area = content:FindFirstChild("RewardCards")
+	local camera = workspace.CurrentCamera
+	if view == "Daily" and area and not (camera and camera.ViewportSize.Y <= 500) then
+		area.Size = UDim2.new(1, -8, 0, dailyHeight())
+	end
+end)
+-- A real resize can cross the phone line, which lays the days out differently: that one rebuilds.
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+		if view == "Daily" and backdrop.Visible then
+			showDaily()
+		end
+	end)
+end
 
 -- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
 UiTheme.Apply(screen)
