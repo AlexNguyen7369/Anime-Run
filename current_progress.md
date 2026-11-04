@@ -59,8 +59,9 @@
 55. 2026-11-04 — Alex Nguyen — Trimmed the five remaining specs and listed the doc-versus-code conflicts in docs/OWNER_QUESTIONS.md for the owner.
 56. 2026-11-04 — Alex Nguyen — Added a screen-edge pointer that shows the enemy's name and an arrow aimed at it while it is off screen, ui_billboards green, rules audit PASS.
 57. 2026-11-04 — Alex Nguyen — Decluttered the spawn plaza into a straight service row with a one-stall Market, plain path and clear Dojo views, spawn_area, world_layout, dojo and workshop pass=4 fail=0, rules audit PASS.
+58. 2026-11-04 — Alex Nguyen — Merged emblem floating headers (fi6) locally for the owner to view in Play, stylua clean, selene 0 errors, Studio shots, spawn_area and ui_billboards scenarios and rules audit still pending.
 
 ## What's next
-**Resume c3 once the owner's NPC additions land: merge orch/core/c3t, rerun the full server and UI harnesses on the merged branch, run the rules audit, and open the PR to main.**
+**Finish fi6: apply the owner's feedback from Play, take the Studio shots, run spawn_area and ui_billboards, run the rules audit, then push the integration branch.**
 
-**Why this is next:** the owner paused c3 for the NPC additions and the spawn rework; the spawn rework has landed, and the PR to main depends on these checks passing on the final code.
+**Why this is next:** fi6 was merged before its checks so the owner could see it, and the c3 rerun and the PR to main should start from verified headers.

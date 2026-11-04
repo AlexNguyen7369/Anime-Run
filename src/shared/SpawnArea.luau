@@ -15,6 +15,7 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
+local PlazaHeader = require(script.Parent.PlazaHeader)
 local UiTheme = require(script.Parent.UiTheme)
 
 local SpawnArea = {}
@@ -541,10 +542,16 @@ function SpawnArea.Build(startCFrame)
 		"Track overview",
 		CheckpointConfig.PROMPT_DISTANCE
 	)
-	billboard(anchor, "Title", {
-		{ "Name", "SENSEI", Color3.new(1, 1, 1) },
-		{ "Sub", "Track overview", Color3.fromRGB(255, 190, 140) },
-	}, UDim2.fromScale(10, 2.4), 4.2, CheckpointConfig.TEXT_DISTANCE)
+	local title = PlazaHeader.Build(
+		anchor,
+		"Title",
+		"SENSEI",
+		"Star",
+		Color3.fromRGB(244, 124, 32),
+		UDim2.new(9, 40, 3.4, 16),
+		CheckpointConfig.TEXT_DISTANCE
+	)
+	title.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
 	npc.PrimaryPart = anchor
 	npc.Parent = model
 
