@@ -72,6 +72,26 @@ local function poseNinja(model, root, phase, amount)
 	end
 end
 
+-- Standing hero pose (design doc 4.24, proposed): right arm raised, left arm and both legs out. Limbs only rotate.
+local HERO = {
+	RightArm = CFrame.Angles(math.rad(165), 0, math.rad(10)),
+	LeftArm = CFrame.Angles(0, 0, math.rad(-30)),
+	RightLeg = CFrame.Angles(0, 0, math.rad(10)),
+	LeftLeg = CFrame.Angles(0, 0, math.rad(-10)),
+}
+
+-- Places the rig with its Torso at `root` in the hero pose. Call before any ScaleTo: OFFSETS are at the built size.
+function RunnerVisual.Hero(model, root)
+	RunnerVisual.Pose(model, root, 0, 0)
+	for name, turn in HERO do
+		local part = model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			local half = Vector3.new(0, OFFSETS[name].Size.Y / 2, 0)
+			part.CFrame = root * CFrame.new(OFFSETS[name].Offset + half) * turn * CFrame.new(-half)
+		end
+	end
+end
+
 -- Advances a stride phase by `speed` studs/s over dt; returns the new phase (radians).
 function RunnerVisual.Advance(phase, speed, dt)
 	local cadence = math.min(math.abs(speed) / RunnerVisual.STRIDE, RunnerVisual.MAX_CADENCE)

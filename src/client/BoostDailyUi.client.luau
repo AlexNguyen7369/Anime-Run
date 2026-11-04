@@ -14,6 +14,7 @@ local PotionIcons = require(script.Parent.RollToast.Ui.PotionIcons)
 local UiTheme = require(ReplicatedStorage.Shared:WaitForChild("UiTheme"))
 local HudFormat = require(ReplicatedStorage.Shared:WaitForChild("HudFormat"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 
 local screen = Instance.new("ScreenGui")
 screen.Name = "DailyBoosts"
@@ -639,10 +640,25 @@ task.spawn(function()
 	end
 end)
 
+-- Design doc 4.24: a new player gets no Daily until their first run ends (ArrivalState.IsNew survives a rejoin). Sticky,
+-- since a win pays MoneyEarned during that run. Nor does anyone before their save is known; a failed load holds nothing.
+local newPlayer, raced, firstRunEnded = false, false, false
+player:GetAttributeChangedSignal("AutoRacing"):Connect(function()
+	local racing = player:GetAttribute("AutoRacing") == true
+	firstRunEnded = firstRunEnded or (raced and not racing)
+	raced = raced or racing
+end)
+local function dailyHeld()
+	newPlayer = newPlayer or ArrivalState.IsNew(player)
+	local unknown = player:GetAttribute("DataLoaded") ~= true and player:GetAttribute("DataFailed") ~= true
+	return unknown or (newPlayer and not firstRunEnded)
+end
+
 local autoShownDay = nil
 task.spawn(function()
 	while screen.Parent do
 		task.wait(1)
+		local held = dailyHeld()
 		local last = player:GetAttribute("DailyLast") or -1
 		local today = math.floor(os.time() / 86400)
 		local nextReward = content:FindFirstChild("NextReward")
@@ -659,7 +675,7 @@ task.spawn(function()
 			end
 		end
 		-- Auto-open once per UTC day: after the player closes it, only the button reopens it.
-		if last ~= today and autoShownDay ~= today and not backdrop.Visible then
+		if last ~= today and autoShownDay ~= today and not backdrop.Visible and not held then
 			autoShownDay = today
 			showDaily()
 		end
