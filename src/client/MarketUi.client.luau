@@ -406,7 +406,6 @@ local PHONE = {
 	}, -- on the preview
 }
 local showingDetail = false
-local phoneLayout = false
 -- An owned aura / trail: the slot buttons take the description's band, in both views.
 local function fitDetail()
 	description.Visible = not slots.Frame.Visible
@@ -414,7 +413,6 @@ end
 local function applyLayout()
 	local camera = workspace.CurrentCamera
 	local phone = camera ~= nil and camera.ViewportSize.Y <= 500
-	phoneLayout = phone
 	for part, props in phone and PHONE or DESKTOP do
 		for key, value in props do
 			part[key] = value
