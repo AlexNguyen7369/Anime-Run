@@ -3,7 +3,7 @@
 import math
 import random
 
-from atlas import FACES, SIZE, swirl_d
+from atlas import FACES, SIZE
 from leaf_common import ell
 from style2 import Kit  # noqa: F401
 from style3 import big_head, finish  # noqa: F401
@@ -219,6 +219,15 @@ def stroke(f, d, colour, sw, opacity=None):
 	return f.path(d, stroke=colour, sw=sw, opacity=opacity)
 
 
+def pinwheel_d(r, arms=3, a0=0.5):
+	"""Curved arms from the centre, for the button face."""
+	d = ""
+	for i in range(arms):
+		a = a0 + i * 2 * math.pi / arms
+		d += f"M0 0Q{r * 0.75 * math.cos(a - 1.1):.2f} {r * 0.75 * math.sin(a - 1.1):.2f} {r * math.cos(a):.2f} {r * math.sin(a):.2f}"
+	return d
+
+
 def swirl_art(a, under):
 	"""Button art, hidden in Head_T under the hair."""
 	f = a["Head_T"]
@@ -230,7 +239,7 @@ def swirl_art(a, under):
 	f.path(ell(cx, cy, rx * 0.92, ry * 0.92), "#e4b442")
 	f.path(ell(cx - rx * 0.2, cy - ry * 0.3, rx * 0.5, ry * 0.4), "#fff0a8", opacity=0.55)
 	f.out.append(f'<g transform="translate({cx} {cy}) scale({rx / 40} {ry / 40})">')
-	f.path(swirl_d(0, 0, 30, turns=2.2, a0=0.5), stroke="#4a2f08", sw=6)
+	f.path(pinwheel_d(30), stroke="#4a2f08", sw=6)
 	f.out.append("</g>")
 
 

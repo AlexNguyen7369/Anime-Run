@@ -1,5 +1,5 @@
 # Target look for jk_nails (design doc section 5): an orange chin-length bob in big planes with parted bangs, amber eyes, a closed
-# dark high-collar jacket with gold spiral buttons, brown belt, knee-length pleated skirt over black tights, brown loafers, a claw
+# dark high-collar jacket with gold pinwheel buttons, brown belt, knee-length pleated skirt over black tights, brown loafers, a claw
 # hammer hanging from one hand and long nails held in the other, a small straw doll at the belt. Drawn in-house.
 import math
 

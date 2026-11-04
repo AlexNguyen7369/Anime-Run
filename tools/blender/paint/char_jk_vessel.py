@@ -1,5 +1,5 @@
 # Target look for jk_vessel (design doc section 5): big head, salmon spikes over a dark undercut, dark high-collar uniform with
-# a red hood at the neck and back, gold spiral buttons, baggy trousers, red high-tops. Bare block hands. Drawn in-house.
+# a red hood at the neck and back, gold pinwheel buttons, baggy trousers, red high-tops. Bare block hands. Drawn in-house.
 from atlas import INK, shade
 from jk_common import brow2, eye2
 from jk_style3 import GOLD, NAVY, Kit, big_head, block, button, collar, crown, ears, face_base, finish, gem, head_rest, jacket, prism, sleeve, slab, sneaker, spray, stroke, swirl_art, trouser
