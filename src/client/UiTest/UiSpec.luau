@@ -3611,8 +3611,10 @@ UiSpec.RunVisual = {
 	-- Frame glitches. Root steps use UiSpec.RunnerSmooth's rule (StepTolerance, MinStepError, MaxBadShare, MinFrames)
 	BackwardTolerance = 0.01, -- studs along the route: float noise only; RunnerView's correction never turns a step back
 	-- A limb's frame change against the Torso may be JointRateFactor x (pose's largest rate x this frame's stride phase,
-	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 1: the frame's time is RunnerView's own clock (UiRunVisual watch).
-	JointRateFactor = 1,
+	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 2: watch's stamp and RunnerView's read of os.clock are separate
+	-- PreSimulation connections, so a hitch inside a frame moves one gap by up to a frame. 1 went red on a cold first row
+	-- (2026-11-04, db_green 13.5 deg, 4 frames) and on no other row.
+	JointRateFactor = 2,
 	JointMinDegrees = 1.5,
 	JointMinStuds = 0.02,
 	-- A rest or T pose: all four limbs within RestDegrees of the Torso. A stride crosses it for 1 frame: at the slowest

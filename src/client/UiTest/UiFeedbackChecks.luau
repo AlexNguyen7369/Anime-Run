@@ -44,7 +44,14 @@ function Checks.Build(h)
 			for _, entry in cueSlots(cue, row) do
 				local sound = group and group:FindFirstChild(entry[1])
 				if sound and sound:IsA("Sound") then
-					table.insert(list, { Sound = sound, Name = entry[1], Volume = row.Volume })
+					table.insert(
+						list,
+						{
+							Sound = sound,
+							Name = entry[1],
+							Volume = entry[2] == row.Also and row.AlsoVolume or row.Volume,
+						}
+					)
 				else
 					table.insert(missing, entry[1] .. ": no Sound under " .. cfg.Group)
 				end
