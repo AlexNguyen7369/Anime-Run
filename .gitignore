@@ -11,3 +11,4 @@ assets/characters_avatar/**/*.blend
 .DS_Store
 assets/plaza_draft/
 assets/characters_avatar/*/atlas.svg
+assets/portraits/
