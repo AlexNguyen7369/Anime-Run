@@ -1,11 +1,10 @@
 # Board
 
 ## Doing
-- c3 full compatibility check: paused by the owner 2026-11-04 until NPC additions land; then rerun full server + UI harness to fail=0, rules audit
+- c3 full compatibility check: on hold until the owner says so (2026-11-04); then rerun full server + UI harness to fail=0, rules audit
 
 ## Next
 - Make the remaining track villains rollable characters (owner)
-- PR feature/alex/anime-world -> main with a fresh reviewer (owner approved)
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
