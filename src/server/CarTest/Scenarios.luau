@@ -6021,7 +6021,8 @@ end
 -- Track 1; owner 2026-11-03 keeps Track 1 balance, so npc_track1_beats_beginner is retired). NPCs are skinned as catalog cars
 -- (NpcConfig.Tracks[n].Model -> the rig's CharacterId).
 -- OWNER CHANGE 2026-11-03 (design doc 4.26, docs/NPC_RIVAL_SPEC.md): every NPC is a named enemy (NpcConfig.Tracks[n].Label).
--- Its label is the indicator: the name over an arrow, no distance limit, always on top; the brief's proximity label is retired.
+-- Its indicator (the name over an arrow) is drawn by the owning client (Client/NpcRacerView, checked by ui_billboards);
+-- the built model has no label, and the brief's proximity label is retired.
 local NPC_ORIGIN = Vector3.new(40000, 0, 0)
 local MULTI_ORIGIN = Vector3.new(-40000, 0, 0)
 local NPC_LOSE_SCREEN = 1 -- s: LoseScreenSeconds used by the test runs
@@ -6431,8 +6432,7 @@ function Scenarios.npc()
 			end
 			check(checks, "npc_info_number", numbersOk and 1 or 0, 1, numbersOk)
 		end
-		-- retired: npc_label_distance_finite (the indicator has no distance limit, design doc 4.26, owner 2026-11-03;
-		-- npc_label_max_distance below checks the limit is gone)
+		-- retired: npc_label_distance_finite (the indicator has no distance limit, design doc 4.26, owner 2026-11-03)
 
 		-- model / label / speed / colour are changeable per track (NpcConfig.Tracks is read live by For)
 		local saved = NpcConfig.Tracks[7]
@@ -6684,7 +6684,7 @@ function Scenarios.npc()
 			)
 		end
 
-		-- NpcRacer.BuildModel: ghost runner in the track's colour with the indicator (design doc 4.26), never parented
+		-- NpcRacer.BuildModel: ghost runner in the track's colour, no label on it (design doc 4.26), never parented
 		if allInfo then
 			local okM1, m1 = pcall(NpcRacer.BuildModel, infos[1])
 			local okM2, m2 = pcall(NpcRacer.BuildModel, infos[2])
@@ -6706,7 +6706,16 @@ function Scenarios.npc()
 				local function body(m)
 					return m.PrimaryPart or m:FindFirstChild("Chassis", true)
 				end
-				local b1, b2 = body(m1), body(m2)
+				-- Every track has a textured Model, which does not take info.Color; the colour tints the placeholder rig
+				-- used when a track's model is missing, so these build that fallback for tracks 1 and 2.
+				local function placeholderRig(info)
+					local rigInfo = table.clone(info)
+					rigInfo.Model = nil
+					local okRig, rig = pcall(NpcRacer.BuildModel, rigInfo)
+					return okRig and typeof(rig) == "Instance" and rig or nil
+				end
+				local rig1, rig2 = placeholderRig(infos[1]), placeholderRig(infos[2])
+				local b1, b2 = rig1 and body(rig1), rig2 and body(rig2)
 				local c1ok = b1 ~= nil and b1:IsA("BasePart") and colorClose(b1.Color, infos[1].Color)
 				check(checks, "npc_model_colour", c1ok and 1 or 0, 1, c1ok)
 				local c2ok = b2 ~= nil
@@ -6714,6 +6723,12 @@ function Scenarios.npc()
 					and colorClose(b2.Color, infos[2].Color)
 					and not colorClose(b2.Color, b1 and b1.Color or Color3.new())
 				check(checks, "npc_model_colour_per_track", c2ok and 1 or 0, 1, c2ok)
+				if rig1 then
+					rig1:Destroy()
+				end
+				if rig2 then
+					rig2:Destroy()
+				end
 				local parts, bad = 0, 0
 				for _, p in m1:GetDescendants() do
 					if p:IsA("BasePart") then
@@ -6724,27 +6739,11 @@ function Scenarios.npc()
 					end
 				end
 				check(checks, "npc_model_parts_ghost", bad, 0, parts > 0 and bad == 0)
-				local bb = m1:FindFirstChild("NpcLabel", true)
-				local bbOk = bb ~= nil and bb:IsA("BillboardGui")
-				local noLimit = bbOk and bb.MaxDistance == math.huge
-				check(checks, "npc_label_max_distance", noLimit and 1 or 0, 1, noLimit)
-				local onTop = bbOk and bb.AlwaysOnTop == true
-				check(checks, "npc_label_always_on_top", onTop and 1 or 0, 1, onTop)
-				local onHead = bbOk
-					and bb.Adornee ~= nil
-					and bb.Adornee == (m1:FindFirstChild("Head") or m1.PrimaryPart)
-				check(checks, "npc_label_follows_head", onHead and 1 or 0, 1, onHead)
-				local tl = bbOk and bb:FindFirstChild("Text", true)
-				local textOk = tl ~= nil and tl ~= false and tl:IsA("TextLabel") and tl.Text == infos[1].Label
-				check(checks, "npc_label_text", textOk and 1 or 0, 1, textOk)
-				local arrow = bbOk and bb:FindFirstChild("Arrow", true)
-				local arrowOk = arrow ~= nil and arrow ~= false and arrow:IsA("TextLabel") and arrow.Text ~= ""
-				check(checks, "npc_label_arrow", arrowOk and 1 or 0, 1, arrowOk)
-				-- was npc_label_title_rival: the indicator is the name over the arrow, nothing else (design doc 4.26)
-				local nameOnly = bbOk
-					and not bb:FindFirstChild("Title", true)
-					and not bb:FindFirstChild("Character", true)
-				check(checks, "npc_label_only_name_and_arrow", nameOnly and 1 or 0, 1, nameOnly)
+				-- retired here: npc_label_max_distance, npc_label_always_on_top, npc_label_follows_head, npc_label_text,
+				-- npc_label_arrow, npc_label_only_name_and_arrow. The indicator is the client's NpcIndicator ScreenGui
+				-- (design doc 4.26), which the server cannot see: ui_billboards checks it.
+				local noLabel = not m1:FindFirstChild("NpcLabel", true) and not m1:FindFirstChild("NameLabel", true)
+				check(checks, "npc_model_no_label", noLabel and 1 or 0, 1, noLabel)
 			end
 			if okM1 and typeof(m1) == "Instance" then
 				m1:Destroy()
@@ -6755,9 +6754,9 @@ function Scenarios.npc()
 
 			-- catalog skins (owner 2026-10-20; the CarModels folder is scrapped, WORLD_REDESIGN_SPEC): Tracks[n].Model is
 			-- a character id, and the rig carries CharacterId == Model unless ReplicatedStorage.NpcModels has that template.
-			-- Every track's enemy, skinned or not, gets the same indicator (design doc 4.26).
+			-- Every track's enemy, skinned or not, is named NPC_<Label> and has no label on the model (design doc 4.26).
 			local npcModels = ReplicatedStorage:FindFirstChild("NpcModels")
-			local skinned, skinBad, skinMissing, badIndicators = 0, 0, {}, {}
+			local skinned, skinBad, skinMissing, badModels = 0, 0, {}, {}
 			for n = 1, 10 do
 				local okI, info = pcall(NpcConfig.For, n)
 				local id = okI and type(info) == "table" and info.Model or nil
@@ -6771,18 +6770,12 @@ function Scenarios.npc()
 						table.insert(skinMissing, n)
 					end
 				end
-				local bb = built and m:FindFirstChild("NpcLabel")
-				local text = bb and bb:FindFirstChild("Text")
-				local indicatorOk = bb
-					and text
-					and bb:FindFirstChild("Arrow")
-					and bb.Adornee ~= nil
-					and bb.MaxDistance == math.huge
-					and bb.AlwaysOnTop == true
-					and text.Text == info.Label
+				local modelOk = built
 					and m.Name == "NPC_" .. info.Label
-				if not indicatorOk then
-					table.insert(badIndicators, n)
+					and not m:FindFirstChild("NpcLabel", true)
+					and not m:FindFirstChild("NameLabel", true)
+				if not modelOk then
+					table.insert(badModels, n)
 				end
 				if built then
 					m:Destroy()
@@ -6790,9 +6783,9 @@ function Scenarios.npc()
 			end
 			metrics.npcSkinned = skinned
 			metrics.npcSkinBadTracks = table.concat(skinMissing, ",")
-			metrics.npcBadIndicatorTracks = table.concat(badIndicators, ",")
+			metrics.npcBadModelTracks = table.concat(badModels, ",")
 			check(checks, "npc_model_catalog_skin", skinBad, 0, skinned >= 1 and skinBad == 0)
-			check(checks, "npc_indicator_every_track", #badIndicators, 0, #badIndicators == 0)
+			check(checks, "npc_model_name_no_label_every_track", #badModels, 0, #badModels == 0)
 		end
 
 		-- RaceService route with per-track NPC data, PathDriver.Chain start / finish indices

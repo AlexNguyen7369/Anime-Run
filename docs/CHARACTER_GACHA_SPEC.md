@@ -165,7 +165,7 @@ Preset trios (the anime's famous team):
   (`build/avatar_glb/<id>.glb`); `upload_avatar.py` uploads them as Model assets under the owner's account (ids in
   `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
-  the placeholder block rig for anything without a model (track enemies until their models land, `starter`, event-only characters).
+  the placeholder block rig for anything without a model (`starter`, event-only characters).
 
 ### Target look (owner 2026-11-03; design doc 5; pilots `sea_captain`, `db_hero`, `leaf_medic`, `leaf_hero`)
 

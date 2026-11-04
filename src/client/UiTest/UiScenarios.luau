@@ -5795,14 +5795,42 @@ function S.ui_billboards(res)
 		task.wait(0.25)
 		list = npcs()
 	end
+	local indicatorGui = playerGui:FindFirstChild("NpcIndicator")
+	local indicatorSpec = UiSpec.Guis.NpcIndicator
+	local frame = indicatorGui and indicatorGui:FindFirstChild(indicatorSpec.Frame)
 	if #list == 0 then
+		check(res, "npc_indicator_hidden_without_enemy", frame and frame.Visible, false, not (frame and frame.Visible))
 		stateMissing(res, "npc_on_track", "auto_racing", "no IsNpc model in " .. UiSpec.Waits.NpcStart .. " s")
 		return
 	end
 	check(res, "one_npc_at_a_time", #list, 1, #list == 1)
 	local npc = list[1]
-	local bb = npc:FindFirstChild("NpcLabel")
-	local text = bb and bb:FindFirstChild("Text")
+	-- the indicator (design doc 4.26): the client's ScreenGui, the name over an arrow, its tip on the enemy's head
+	local guiOk = indicatorGui ~= nil
+		and indicatorGui:IsA("ScreenGui")
+		and indicatorGui.ScreenInsets == Enum.ScreenInsets.None
+		and indicatorGui.ResetOnSpawn == false
+	check(
+		res,
+		"npc_indicator_gui",
+		indicatorGui and indicatorGui.ClassName,
+		"ScreenGui, ScreenInsets None, no reset",
+		guiOk
+	)
+	-- SafeInsets would shift it from the viewport pixels it is placed in (notched screens)
+	check(
+		res,
+		"npc_indicator_full_bleed",
+		indicatorGui and indicatorGui.ScreenInsets.Name,
+		"not DeviceSafeInsets",
+		indicatorGui ~= nil and indicatorGui.ScreenInsets ~= Enum.ScreenInsets.DeviceSafeInsets
+	)
+	local frameOk = frame ~= nil and frame:IsA("Frame") and frame.AnchorPoint == Vector2.new(0.5, 1)
+	check(res, "npc_indicator_frame", frame and frame.ClassName, "Frame, AnchorPoint 0.5,1", frameOk)
+	if not frameOk then
+		return
+	end
+	local text = frame:FindFirstChild(indicatorSpec.Label)
 	local track = npc:GetAttribute("TrackNumber")
 	local want = NpcConfig.For(track).Label
 	local start = events.npcStart
@@ -5810,18 +5838,79 @@ function S.ui_billboards(res)
 		want = start.Label
 	end
 	check(res, "npc_label_text", text and text.Text, want, text ~= nil and text.Text == want)
-	-- the indicator (design doc 4.26): no distance limit, draws over the world, the name over an arrow
+	local arrow = frame:FindFirstChild(indicatorSpec.Arrow)
 	check(
 		res,
-		"npc_label_max_distance",
-		bb and tostring(bb.MaxDistance),
-		"no limit (math.huge)",
-		bb ~= nil and bb.MaxDistance == math.huge
+		"npc_label_arrow",
+		arrow and arrow.ClassName,
+		"TextLabel with text",
+		arrow ~= nil and arrow:IsA("TextLabel") and arrow.Text ~= ""
 	)
-	check(res, "npc_label_always_on_top", bb and bb.AlwaysOnTop, true, bb ~= nil and bb.AlwaysOnTop == true)
-	local arrow = bb and bb:FindFirstChild("Arrow")
-	check(res, "npc_label_arrow", arrow and arrow.ClassName, "TextLabel", arrow ~= nil and arrow:IsA("TextLabel"))
-	check(res, "npc_label_not_clickable", bb and bb.Active, false, bb ~= nil and not bb.Active and #buttonsIn(bb) == 0)
+	-- the indicator is the name over the arrow, nothing else (design doc 4.26)
+	local extras = {}
+	for _, child in frame:GetChildren() do
+		if child:IsA("GuiObject") and child ~= text and child ~= arrow then
+			table.insert(extras, child.Name)
+		end
+	end
+	checkList(res, "npc_label_only_name_and_arrow", extras)
+	check(res, "npc_label_not_clickable", frame.Active, false, not frame.Active and #buttonsIn(frame) == 0)
+	-- Position's offset is the arrow tip in viewport pixels (AnchorPoint 0.5,1, ScreenInsets None). Not realRect: its
+	-- top bar inset does not match this gui (Studio: 62 px off with the arrow on the head).
+	local camera, head = Workspace.CurrentCamera, npc:FindFirstChild("Head") or npc.PrimaryPart
+	local errors, wrongVisible = {}, 0
+	-- Sampled until the head has been in front of the camera often enough; it is behind while the player leads.
+	-- Read just after NpcRacerView's render step (Last): between frames the camera has moved on (Studio: 63 px, not 0.8).
+	local finished, sampleError = false, nil
+	local function sampleIndicator()
+		if #errors >= indicatorSpec.Samples or not (head and head.Parent and npc.Parent) then
+			finished = true
+			return
+		end
+		local top = head.Position + Vector3.new(0, head.Size.Y / 2 + indicatorSpec.GapStuds, 0)
+		local point = camera:WorldToViewportPoint(top)
+		if frame.Visible ~= (point.Z > 0) then
+			wrongVisible += 1
+		end
+		if point.Z > 0 then
+			local tip = Vector2.new(frame.Position.X.Offset, frame.Position.Y.Offset)
+			table.insert(errors, (tip - Vector2.new(point.X, point.Y)).Magnitude)
+		end
+	end
+	RunService:BindToRenderStep(indicatorSpec.SampleStep, Enum.RenderPriority.Last.Value + 1, function()
+		if finished then
+			return
+		end
+		local ok, err = pcall(sampleIndicator)
+		if not ok then
+			finished, sampleError = true, err
+		end
+	end)
+	local sampleUntil = os.clock() + indicatorSpec.FrontWait
+	while not finished and os.clock() < sampleUntil do
+		task.wait()
+	end
+	RunService:UnbindFromRenderStep(indicatorSpec.SampleStep)
+	if sampleError then
+		error(sampleError)
+	end
+	if #errors == 0 then
+		local why = "head not in front of the camera in " .. indicatorSpec.FrontWait .. " s"
+		stateMissing(res, "npc_indicator_visible_only_in_front", "auto_racing", why)
+		stateMissing(res, "npc_indicator_follows_head", "auto_racing", why)
+		return
+	end
+	-- One sample may lag when the head crosses the camera plane
+	check(res, "npc_indicator_visible_only_in_front", wrongVisible, "<= 1", wrongVisible <= 1)
+	table.sort(errors)
+	local median = errors[math.ceil(#errors / 2)]
+	check(
+		res,
+		"npc_indicator_follows_head",
+		median,
+		("<= %d px"):format(indicatorSpec.PositionTolerance),
+		median <= indicatorSpec.PositionTolerance
+	)
 end
 
 -- The two panels are mutually exclusive through the real mechanism the buttons use (Client/PanelSwitch).

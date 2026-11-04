@@ -10,11 +10,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunnerFactory = require(script.Parent.RunnerFactory)
 local TrackBuilder = require(script.Parent.TrackBuilder)
 local TrackRegistry = require(script.Parent.TrackRegistry)
-local UiTheme = require(script.Parent.UiTheme)
 
 local NpcRacer = {}
-
-local INDICATOR_SIZE = UDim2.fromOffset(340, 96) -- px, the same at any distance (placeholder, design doc 4.26)
 
 -- Corner limit kept from IVS so NPC track times are unchanged (design doc section 3): lateral accel = MU x g x share
 local GRIP_MU = 1.2 -- the IVS car's tyre Mu
@@ -118,39 +115,13 @@ function NpcRacer.BuildModel(info)
 		model = RunnerFactory.build(info.Model, { Color = info.Color })
 		local nameLabel = model:FindFirstChild("NameLabel")
 		if nameLabel then
-			nameLabel:Destroy() -- the NPC label below names it
+			nameLabel:Destroy() -- Client/NpcRacerView draws the indicator
 		end
 	end
 	model.Name = "NPC_" .. info.Label
 	model:SetAttribute("IsNpc", true)
 	model:SetAttribute("TrackNumber", info.Number)
 	setupParts(model)
-
-	-- The indicator (design doc 4.26): the arrow tip stays on top of the head, at any distance and through walls.
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "NpcLabel"
-	billboard.Adornee = model:FindFirstChild("Head") or model.PrimaryPart
-	billboard.Size = INDICATOR_SIZE
-	billboard.SizeOffset = Vector2.new(0, 0.5)
-	billboard.ExtentsOffsetWorldSpace = Vector3.new(0, 1, 0)
-	billboard.AlwaysOnTop = true
-	billboard.LightInfluence = 0
-	billboard.Parent = model
-	local function line(name, text, y, height, color)
-		local l = Instance.new("TextLabel")
-		l.Name = name
-		l.Position = UDim2.fromScale(0, y)
-		l.Size = UDim2.fromScale(1, height)
-		l.BackgroundTransparency = 1
-		l.Text = text
-		l.TextScaled = true
-		l.Font = UiTheme.Font
-		l.TextColor3 = color
-		UiTheme.Stroke(l, 3)
-		l.Parent = billboard
-	end
-	line("Text", info.Label, 0, 0.55, Color3.new(1, 1, 1))
-	line("Arrow", "\u{25BC}", 0.55, 0.45, UiTheme.Palette.Danger)
 	return model
 end
 

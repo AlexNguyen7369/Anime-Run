@@ -6,7 +6,7 @@
 --   Color  Color3 of the starter car body
 --   Speed  cruise speed, studs/s (the NPC slows only where corner grip requires it)
 --   Label  the enemy's name, shown in the indicator above its head (design doc 4.26)
---   Model  name of a Model under ReplicatedStorage.NpcModels, or a character catalog id (skinned like the player's car)
+--   Model  name of a Model under ReplicatedStorage.NpcModels, or a model id in Shared/CharacterModelAssets (catalog or foe_)
 
 local NpcConfig = {}
 
@@ -27,17 +27,17 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- One enemy per track (docs/NPC_RIVAL_SPEC.md). No Model yet = the runner rig in the track's colour.
+-- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; foe_ ids are not in the catalog.
 NpcConfig.Tracks = {
-	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45) }, -- red
-	[2] = { Label = "Selle" },
-	[3] = { Label = "Arlon" },
-	[4] = { Label = "Akazo" },
-	[5] = { Label = "Jogoh" },
-	[6] = { Label = "Shigaraky" },
-	[7] = { Label = "Mahitoh" },
-	[8] = { Label = "Enelu" },
-	[9] = { Label = "Ulquiorro" },
+	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
+	[2] = { Label = "Selle", Model = "foe_db" },
+	[3] = { Label = "Arlon", Model = "foe_sea" },
+	[4] = { Label = "Akazo", Model = "foe_ds" },
+	[5] = { Label = "Jogoh", Model = "foe_jk" },
+	[6] = { Label = "Shigaraky", Model = "foe_mha" },
+	[7] = { Label = "Mahitoh", Model = "foe_jk2" },
+	[8] = { Label = "Enelu", Model = "foe_sea2" },
+	[9] = { Label = "Ulquiorro", Model = "foe_soul" },
 	[10] = { Label = "Freezo", Model = "db_tyrant" },
 }
 

@@ -1099,20 +1099,29 @@ UiSpec.IgnoreGuis = {
 	ProximityPrompts = true,
 }
 
+-- The enemy indicator (design doc 4.26, docs/NPC_RIVAL_SPEC.md): a ScreenGui that Client/NpcRacerView moves to the head
+-- each frame. Frame "Indicator" (AnchorPoint 0.5,1: its bottom middle is the arrow tip) > TextLabels "Text" and "Arrow".
+UiSpec.Guis.NpcIndicator = {
+	Source = "Client/NpcRacerView",
+	Buttons = {},
+	NonInteractive = true,
+	ScreenInsets = "None", -- its Position is in viewport pixels
+	Frame = "Indicator",
+	Label = "Text", -- NpcConfig.For(track).Label
+	Arrow = "Arrow",
+	GapStuds = 0.4, -- NpcRacerView INDICATOR_GAP: the arrow tip above the top of the head
+	Samples = 30, -- frames sampled with the head in front of the camera
+	SampleStep = "UiTestNpcIndicatorSample", -- temporary BindToRenderStep name
+	FrontWait = 15, -- s: sampling stops here; no front sample at all reports state_missing, not a pass
+	PositionTolerance = 12, -- px, median of the samples: allows one frame of lag on a moving enemy
+}
+
 UiSpec.Billboards = {
 	WinText = {
 		Tag = "WinPad",
 		Label = "Amount",
 		MaxDistance = "TrackBuilder.WIN_TEXT_DISTANCE",
 		Text = "HudFormat.MoneyText(Cash)",
-	},
-	-- The enemy indicator (design doc 4.26): name over arrow, no distance limit, draws over the world
-	NpcLabel = {
-		Label = "Text",
-		Arrow = "Arrow",
-		MaxDistance = "math.huge",
-		AlwaysOnTop = true,
-		Text = "NpcConfig.For(track).Label",
 	},
 	-- Mechanical Workshop (docs/WORKSHOP_SPEC.md section 2): Workspace.Workshops.Plot_1..PLOT_COUNT
 	WorkshopSign = {
@@ -3386,7 +3395,7 @@ UiSpec.Accessibility = {
 	ReelStill = 1, -- px a reel tile or streak may move during Spin while motion is reduced ("skips its spin")
 	-- Full-screen ScreenGuis that may bleed under a notch (section 7 "Exempt"); every other player ScreenGui uses
 	-- ScreenInsets = DeviceSafeInsets
-	FullBleed = { PanelDim = true, LoserScreen = true, RollShowcase = true },
+	FullBleed = { PanelDim = true, LoserScreen = true, RollShowcase = true, NpcIndicator = true }, -- NpcIndicator: placed in viewport pixels
 	ProbeGui = "UiTestInsetProbe", -- a ScreenGui the test adds to PlayerGui for one frame (late guis get insets too)
 	-- Gamepad focus: a HUD button selected before a panel opens; closing must give the selection back to it
 	RestoreTarget = "HudChrome/Grid/Index",

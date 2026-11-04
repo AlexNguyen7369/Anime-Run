@@ -21,7 +21,7 @@ Nothing car-shaped stays in the game:
 
 - Every player's active character and every NPC rival is a blocky humanoid rig: Head, Torso, 2 arms, 2 legs
   (R15-style proportions, placeholder; final art follows design doc 5), coloured from the character's series palette with a rarity
-  trim. A `BillboardGui` shows the character's name (finite `MaxDistance`; a track enemy's indicator has no limit, design doc 4.26).
+  trim. A `BillboardGui` shows the character's name (finite `MaxDistance`). A track enemy has none: its indicator is the client's `NpcIndicator` ScreenGui (design doc 4.26).
 - The runner is anchored and moved by `RaceService` along the race path (the IVS rail already holds an exact speed
   everywhere): position on the right-hand lane, facing along the path, upright (up-vector Y = 1). No physics forces.
 - Smooth motion (owner 2026-10-28, replaces the IVS 2026-10-15 "rail steers with velocity, never snaps" rule): the
