@@ -10,11 +10,13 @@ local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 -- Client/ArrivalFlow's reveal opens the popup by ArrivalRevealDone; if it never does, this many seconds after loading the
 -- popup opens anyway (a player who cannot pick has no team).
 local REVEAL_WATCHDOG_SECONDS = 10
+local SLAM_HOLD = 0.2 -- placeholder: the popup stays this long after the server's yes, so the chosen card's Slam shows
 
 local player = Players.LocalPlayer
 local pick = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PickStarter")
@@ -85,6 +87,8 @@ layout.Padding = UDim.new(0.015, 0)
 layout.Parent = row
 
 local views = {}
+local picking = false -- a pick is out, or its card is slamming: the popup stays even though NeedsStarter is gone
+local update
 
 local function fill(view, id)
 	view:ClearAllChildren()
@@ -155,12 +159,21 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 			return
 		end
 		busy = true
+		picking = true
 		local ok, taken = pcall(function()
 			return pick:InvokeServer(id)
 		end)
 		if ok and taken then
 			player:SetAttribute("StarterPicked", id) -- local only: Client/ArrivalFlow plays the in-world reveal
+			UiFeedback.Play("StarterPick", card)
+			if not UiMotion.Reduced() then
+				task.wait(SLAM_HOLD)
+			end
+		else
+			UiFeedback.Play("Denied", button)
 		end
+		picking = false
+		update()
 		busy = false
 	end)
 end
@@ -171,8 +184,9 @@ local function refill()
 	end
 end
 
-local function update()
-	local show = player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true
+function update()
+	local show = picking
+		or (player:GetAttribute("NeedsStarter") == true and player:GetAttribute("ArrivalRevealDone") == true)
 	if show and not root.Enabled then
 		refill()
 		UiMotion.Pop(panel)

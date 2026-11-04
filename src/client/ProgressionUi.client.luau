@@ -18,7 +18,7 @@ local Boosts = require(shared.BoostConfig)
 local CharacterCatalog = require(shared.CharacterCatalog)
 local GachaConfig = require(shared.GachaConfig)
 local Switch = require(script.Parent.PanelSwitch)
-local UiMotion = require(script.Parent.UiMotion)
+local UiFeedback = require(script.Parent.UiFeedback)
 local Band = require(script.Parent.PanelBand)
 local Frame = require(script.Parent.PanelFrame)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -290,14 +290,16 @@ for _, close in { treeView.Refs.Close, treeView.Refs.Exit } do
 	end)
 end
 local pendingBuys = {}
-local purchaseSound =
-	make("Sound", "PurchaseSound", hud, { SoundId = "rbxasset://sounds/electronicpingshort.wav", Volume = 0.3 })
 for _, tile in Tree.Tiles() do
 	local entry = tiles[tile.Id]
 	if not entry then
 		continue
 	end
-	local b, label = entry.Button, entry.Label
+	local b = entry.Button
+	UiFeedback.DeniedPress(b, function() -- not buyable; an owned node is no refusal
+		local folder = player:FindFirstChild("Upgrades")
+		return not pendingBuys[tile.Id] and not (folder and folder:FindFirstChild(tile.Id))
+	end)
 	b.Activated:Connect(function()
 		if not b.Active or pendingBuys[tile.Id] then
 			return
@@ -311,16 +313,7 @@ for _, tile in Tree.Tiles() do
 			or "Connection error; try again"
 		feedback.TextColor3 = ok and bought and GREEN or RED
 		pendingBuys[tile.Id] = nil
-		if ok and bought then
-			purchaseSound:Play()
-		else
-			b.Rotation = -3
-			UiMotion.Create(b, TweenInfo.new(0.15), { Rotation = 0 }):Play()
-		end
-		UiMotion.Create(label, TweenInfo.new(0.15), { TextSize = 15 }):Play()
-		task.delay(0.2, function()
-			label.TextSize = 13
-		end)
+		UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", b)
 	end)
 end
 local workshopPanel = panel("Workshop", "WORKSHOP UPGRADE")
@@ -602,6 +595,7 @@ buyWorkshop.Activated:Connect(function()
 	workshopResult.Text = ok and tostring(reason or (bought and "Upgraded" or "Try again"))
 		or "Connection error; try again"
 	refresh()
+	UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", buyWorkshop)
 end)
 remotes:WaitForChild("WorkshopOpen").OnClientEvent:Connect(function()
 	refresh()

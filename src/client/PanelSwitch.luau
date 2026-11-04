@@ -5,6 +5,7 @@
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local PanelSwitch = {}
@@ -202,6 +203,7 @@ local function cascadeList(target)
 end
 
 local function openMotion(panel)
+	UiFeedback.Play("PanelOpen")
 	local target = motionTarget(panel)
 	stopMotion(target)
 	local face = fadeTarget(target)

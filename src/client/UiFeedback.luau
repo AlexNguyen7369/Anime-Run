@@ -2,6 +2,7 @@
 -- One table of UI moments: cue name to sound and motion (design doc 4.33, docs/UI_FEEDBACK_SPEC.md section 2; the pairing
 -- is the SFX audit in docs/UI_AUDIT.md, every value a placeholder). Display only.
 local ContentProvider = game:GetService("ContentProvider")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
@@ -23,8 +24,8 @@ UiFeedback.Cues = {
 	Equip = { Slot = "Thunk", Volume = 0.3, Motion = { "Pop" } },
 	UpgradeBought = { Slot = "Coin", Volume = 0.4, Motion = { "Impact" } },
 	Denied = { Slot = "Denied", Volume = 0.35, Motion = { "Shake" } },
-	DailyClaim = { Slot = "Chime", Volume = 0.6, Motion = { "Slam", "Fly" } },
-	QuestClaim = { Slot = "Chime", Volume = 0.45, Motion = { "Pop", "Shine" } },
+	DailyClaim = { Slot = "Chime", Volume = 0.6, Motion = { "Slam", "Burst", "Fly" } },
+	QuestClaim = { Slot = "Chime", Volume = 0.45, Motion = { "Pop", "Shine", "Burst", "Fly" } },
 	Rebirth = { Slot = "Boom", Volume = 0.8, Motion = { "Slam", "Burst", "Shake" } },
 	Toggle = { Slot = "Tap", Volume = 0.2 },
 	-- Roll rows: no Burst (ROLL_ANIMATION_SPEC bans speed streaks).
@@ -153,6 +154,40 @@ function UiFeedback.Play(cue, gui, opts)
 			end
 		end
 	end
+end
+
+-- The HUD's Money number, the far end of a Fly; nil before the HUD exists.
+function UiFeedback.MoneyCounter()
+	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	local hud = playerGui and playerGui:FindFirstChild("RacerHud")
+	local money = hud and hud:FindFirstChild("Money")
+	return money and money:FindFirstChild("MoneyValue")
+end
+
+-- Denied, sound only, for a press on a disabled button (Active = false fires no Activated, and it does not move, design
+-- doc 4.20). A drag (a scroll or a pan starting on the button) is no press. denies(), optional, can rule a press out.
+function UiFeedback.DeniedPress(button, denies)
+	local down
+	button.InputBegan:Connect(function(input)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			down = input.Position
+		end
+	end)
+	button.InputEnded:Connect(function(input)
+		if
+			input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch
+		then
+			local pressed = down and (input.Position - down).Magnitude < 12
+			down = nil
+			if pressed and not button.Active and (not denies or denies()) then
+				UiFeedback.Play("Denied")
+			end
+		end
+	end)
 end
 
 return UiFeedback

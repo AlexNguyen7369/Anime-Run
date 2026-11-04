@@ -37,14 +37,28 @@ local function motionScale(gui)
 	return scale
 end
 
+-- The UIScale Pop and Slam animate. Only one UIScale applies to a gui, so a button's HoverScale takes the motion; its
+-- RacerMotion tweens are not fought: a later Play overrides the running tween on the same property, whichever came first.
+local function popScale(gui)
+	return motionScale(gui) or gui:FindFirstChild("HoverScale")
+end
+
+-- Where that motion ends: 1, or RacerMotion's hover size on a button the pointer is on (the harness pins both).
+local function popRest(gui, scale)
+	local hovered = scale.Name == "HoverScale"
+		and gui.GuiState == Enum.GuiState.Hover
+		and (not gui:IsA("GuiButton") or gui.Active)
+	return hovered and 1.035 or 1
+end
+
 -- Grows the gui by `amount` (default 12%) and settles back, about 0.18 s.
 function UiMotion.Pop(gui, amount)
-	local scale = motionScale(gui)
+	local scale = popScale(gui)
 	if not scale then
 		return
 	end
 	if UiMotion.Reduced() then
-		scale.Scale = 1
+		scale.Scale = popRest(gui, scale)
 		return
 	end
 	local up = TweenService:Create(
@@ -54,9 +68,11 @@ function UiMotion.Pop(gui, amount)
 	)
 	up.Completed:Connect(function(state)
 		if state == Enum.PlaybackState.Completed then
-			TweenService
-				:Create(scale, TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 1 })
-				:Play()
+			TweenService:Create(
+				scale,
+				TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+				{ Scale = popRest(gui, scale) }
+			):Play()
 		end
 	end)
 	up:Play()
@@ -308,20 +324,22 @@ function UiMotion.Float(parent, text, color, position)
 end
 
 -- From scale 1.5 down to rest with Back easing, 0.18 s. A second Slam restarts it: Play overrides the running tween on
--- the same property, so it still ends at rest. Only one UIScale applies to a gui, so a button's HoverScale takes the
--- motion; its next hover or press puts the hover size back.
+-- the same property, so it still ends at rest.
 function UiMotion.Slam(gui)
-	local scale = motionScale(gui) or gui:FindFirstChild("HoverScale")
+	local scale = popScale(gui)
 	if not scale then
 		return
 	end
 	if UiMotion.Reduced() then
-		scale.Scale = 1
+		scale.Scale = popRest(gui, scale)
 		return
 	end
 	scale.Scale = 1.5
-	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
+	TweenService:Create(
+		scale,
+		TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Scale = popRest(gui, scale) }
+	):Play()
 end
 
 -- A bar tween, 0.2 s. While reduced the size is exact on return.

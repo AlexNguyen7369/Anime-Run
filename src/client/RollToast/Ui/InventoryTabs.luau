@@ -4,6 +4,7 @@
 -- ENEMIES (design doc 4.29) takes that tab's place: a copy, as generated code owns the original.
 local Tabs = {}
 local Components = require(script.Parent.RacerComponents)
+local UiFeedback = require(script.Parent.Parent.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent.Parent.Parent:WaitForChild("UiMotion"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local LIT = UiTheme.Palette.White -- not the bar's colour, so the active tab stands out
@@ -78,9 +79,15 @@ function Tabs.Attach(refs, player, refreshCars)
 		refreshCars()
 	end
 	refs.CharactersTab.Activated:Connect(function()
+		if refs.Gui:GetAttribute("InventoryTab") ~= "Characters" then
+			UiFeedback.Play("TabSwitch")
+		end
 		show("Characters")
 	end)
 	enemiesFace.Activated:Connect(function()
+		if refs.Gui:GetAttribute("InventoryTab") ~= "Enemies" then
+			UiFeedback.Play("TabSwitch")
+		end
 		show("Enemies")
 		UiMotion.Cascade(enemyTiles, "Stroke")
 	end)
