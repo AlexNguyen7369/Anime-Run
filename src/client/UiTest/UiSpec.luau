@@ -3602,15 +3602,17 @@ UiSpec.RunVisual = {
 	SampleSeconds = 2, -- each row's window; at 60 fps this is 120 frames and 7 or more strides
 	MaxSeconds = 270, -- s: no new row starts after this; models_covered then fails, naming the shortfall
 	ModelsWait = 60, -- s for CharacterModels Ready (a fresh server loads 39 assets)
-	PreloadSeconds = 5, -- s at most for one model's PreloadAsync before its run starts
+	-- s at most for one model's PreloadAsync before its run starts, then again for the drawn copy's fetches to end
+	-- (PreloadAsync returns before a MeshPart's fetch starts). Still Loading after that, or Failure: mesh_loaded is red.
+	PreloadSeconds = 5,
 	SettleSeconds = 0.3, -- s the drawn copy must not be rebuilt before its run is judged (rig parts replicate over frames)
 	FoeSpeed = 48, -- studs/s for foe_ models (no catalog cruise); the doc's NPC band `16 x 1.51^(n-1)` at n = about 4
 	ProbeSteps = 64, -- stride phases the pose is measured at per rig
 	-- Frame glitches. Root steps use UiSpec.RunnerSmooth's rule (StepTolerance, MinStepError, MaxBadShare, MinFrames)
 	BackwardTolerance = 0.01, -- studs along the route: float noise only; RunnerView's correction never turns a step back
 	-- A limb's frame change against the Torso may be JointRateFactor x (pose's largest rate x this frame's stride phase,
-	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 2: Heartbeat's clock and RunnerView's differ by up to a frame.
-	JointRateFactor = 2,
+	-- from STRIDE / MAX_CADENCE / SWING / BOB) + the minimum. 1: the frame's time is RunnerView's own clock (UiRunVisual watch).
+	JointRateFactor = 1,
 	JointMinDegrees = 1.5,
 	JointMinStuds = 0.02,
 	-- A rest or T pose: all four limbs within RestDegrees of the Torso. A stride crosses it for 1 frame: at the slowest

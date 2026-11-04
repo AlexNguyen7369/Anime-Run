@@ -12,7 +12,7 @@ local UiFeedback = {}
 
 local RATE_LIMIT = 0.05
 
--- Slot, Volume: its Sound (no Slot: silent on purpose). Also: a second slot at the same volume. Pitch: PlaybackSpeed.
+-- Slot, Volume: its Sound (no Slot: silent on purpose). Also, AlsoVolume: a second slot. Pitch: PlaybackSpeed.
 -- OptIn: the audit's "only sometimes" sounds; they play only with opts.Sound = true.
 -- Motion: UiMotion presets run in order. No Motion: the call site keeps its own (Mark, Fade, SlideIn, a roll's Pop).
 UiFeedback.Cues = {
@@ -36,7 +36,7 @@ UiFeedback.Cues = {
 	RollLand3 = { Slot = "Thunk", Volume = 0.35, Motion = { "Pop" } },
 	RollLand4 = { Slot = "Crack", Volume = 0.36, Motion = { "Impact" } },
 	RollLand5 = { Slot = "Boom", Volume = 0.7, Motion = { "Shine" } },
-	RollSecret = { Slot = "Boom", Also = "Chime", Volume = 0.9, Motion = { "Slam", "Shake" } },
+	RollSecret = { Slot = "Boom", Also = "Chime", Volume = 0.9, AlsoVolume = 4.5, Motion = { "Slam", "Shake" } },
 	EnemyVs = { Slot = "Slash", Volume = 0.5, Motion = { "Slam" } },
 	EnemyDefeated = { Slot = "Crack", Volume = 0.42, Motion = { "Slam", "Burst" } },
 	EnemyPass = { Slot = "Tap", Volume = 0.15, OptIn = true, Motion = { "Pop" } },
@@ -96,7 +96,7 @@ task.spawn(function()
 				sound.Name = #list == 0 and cue or cue .. slot
 				-- Before parenting: the SOUND toggle (RacerUiController applySound) zeroes the template too, and on
 				-- DescendantAdded while muted it remembers the Volume it reads, then zeroes this one.
-				sound.Volume = row.Volume
+				sound.Volume = slot == row.Also and row.AlsoVolume or row.Volume
 				sound.SoundGroup = group
 				sound.Parent = group
 				table.insert(list, sound)
@@ -148,7 +148,8 @@ function UiFeedback.Play(cue, gui, opts)
 				UiMotion.Fill(opts.Bar, opts.Goal)
 			end
 		elseif preset == "Burst" then
-			if (opts.Origin or gui) and not opts.NoBurst then
+			-- Never over a running roll (docs/UI_FEEDBACK_SPEC.md section 3).
+			if (opts.Origin or gui) and not opts.NoBurst and UiFeedback.RollPhase() == "Idle" then
 				UiMotion.Burst(opts.Origin or gui, opts)
 			end
 		elseif gui then

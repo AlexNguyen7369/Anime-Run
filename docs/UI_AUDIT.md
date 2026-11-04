@@ -91,7 +91,7 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 | roll land Epic | `init:1017` | + pulsing ring | Pop | `RollLand3` | Thunk | 0.35 | often |
 | roll land Legendary | `init:1029-1037` | + gold swell, Shake | Impact without its Shake (no shards); the existing Shake stays | `RollLand4` | Crack | 0.36 | rare |
 | roll land Mythic | `init:1038` | + light sweep | Shine; Shake stays on the figure, not in the cue | `RollLand5` | Boom | 0.7 | rare |
-| Secret takeover | `init:1044-1058` | dark screen + title + fade | Slam on the title + Shake | `RollSecret` | Boom + Chime | 0.9 | rare |
+| Secret takeover | `init:1044-1058` | dark screen + title + fade | Slam on the title + Shake | `RollSecret` | Boom + Chime | 0.9 (Chime 4.5, spec x5) | rare |
 | VS banner | `EnemyShowdown:133-146` | Fade + SlideIn | Slam | `EnemyVs` | Slash | 0.5 | often |
 | DEFEATED | `EnemyShowdown:133-146` (won) | same as VS | Slam + Burst + Mark portrait | `EnemyDefeated` | Crack | 0.42 | often |
 | enemy passes | `RaceProgressMap:278` | pill recolours; no moment exists | Pop on the pill | `EnemyPass` | none for behind; Tap for you pass | 0.15 | often |
