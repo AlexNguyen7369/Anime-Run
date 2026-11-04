@@ -9,9 +9,9 @@ never the official logo file). Avatar pilot marks: `leaf_hero` swirl on headband
 `leaf_avenger` red-over-white fan on upper back; `leaf_medic` swirl plate, white ring on back and violet forehead diamond; `leaf_hero` also a round white-swirl shoulder badge. Other near-copy
 marks (a5): `leaf_copycat` swirl plate + red sleeve and vest spirals; `leaf_crow` red-and-white cloak clouds + slashed
 swirl plate; `db_hero` white disc with a black kanji-like glyph; `mha_blast` orange X chest strap; `mha_symbol` V chest
-band; `sea_captain` X chest scar; `db_hero` boots yellow trim, red rope (owner's target image); `sea_flame` back tattoo (cross, skull, moustache), hat faces, crossed arm bars;
+band; `sea_captain` X chest scar; `jk_vessel`, `jk_shadows`, `jk_nails`, `jk_king` gold spiral uniform buttons; `sea_cook` spiral brow; `sea_swords` eye and chest scars, three earrings; `ds_hero` forehead scar; `mha_icefire` burn scar; `db_hero` boots yellow trim, red rope (owner's target image); `sea_flame` back tattoo (cross, skull, moustache), hat faces, crossed arm bars;
 `sea_navigator` pinwheel + tangerine arm tattoo; `ds_hero` green/black checks + hanafuda earrings; `ds_flame` flame
-hems; `ds_sister` hemp-leaf stars + checks; `ds_thunder` triangle scales; `jk_king` face and chest lines.
+hems; `ds_sister` hemp-leaf stars + checks; `ds_thunder` triangle scales; `jk_king` face lines (chest covered, chest lines dropped 2026-11-03).
 
 Earlier ruling 2026-11-03 (superseded): signature marks use a clearly altered version (a different shape class), never
 the official mark.

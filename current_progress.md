@@ -46,8 +46,9 @@
 43. 2026-11-03 — Alex Nguyen — Added the ninja run for Narito and Karate Kid (per-character `RunStyle` pose plus client-side air streaks and foot dust, design doc 4.23), with angles still placeholders and not yet seen in a live run.
 44. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the 4 pilot characters to the owner's target look (no ink outline, hard facets, big head, 3D clothes, plain block hands, designs matching the source with only the name differing) and scaled every rig to 0.8 (proposed), rules audit 0 violations, full harness not run.
 45. 2026-11-03 — Alex Nguyen — Applied the ninja run to the other 4 Leaf characters (`leaf_copycat`, `leaf_medic`, `leaf_crow`, `leaf_avenger`), with the pose and effect still not seen in a live run.
+45. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the other 26 characters in the owner's target look, so all 30 launch characters now load in game at 0.8 scale (Studio: 30 of 30 with 6 meshes each), rules audit fixed to 0 violations, real race and full harness not run.
 
 ## What's next
-**Check the ninja run in a live Studio run on the new Leaf models and tune the placeholder pose and effect values from the owner's verdict.**
+**Run the c3 full compatibility check (full server harness, UI harness, rules audit) on feature/alex/anime-world with all 30 new models, and fix what it finds.**
 
-**Why this is next:** the pose and effect have only been seen as stills of a block stand-in, and every Leaf character now depends on them; the c3 compatibility check that gates the PR into main stays open after it.
+**Why this is next:** the new models, the 0.8 rig scale and the ninja run have only had static Studio checks, and the PR from feature/alex/anime-world into main waits on c3 being green.

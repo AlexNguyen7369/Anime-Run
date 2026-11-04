@@ -1,7 +1,6 @@
 # Board
 
 ## Doing
-- char-art other 26 redesigns (owner go-ahead 2026-11-03): one agent per series, orch/char-art/cs-<series>
 - c4 Workshop stat boost (owner 2026-11-03, design doc 4.19): orch/core/c4 in ../AnimeRun-orch/c4, implementer running
 
 ## Paused
@@ -22,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-03 char-art other 26 in the target look, uploaded; all 30 in game: Studio 30 of 30 with 6 meshes, 0 model load failures; audit 0 violations after the marks ledger fix; real race and harness not run
 - 2026-11-03 char-art 4 pilots to the owner's target look + rig scale 0.8 (c26d9ae): rules audit 0 violations, owner ruled on hard facets and series initials; Studio: 4 load, Best Roll correct; full harness and real race not run
 - uipolish 2026-11-03: rebirth +5% cruise and speed tile, stamina bar fixes, team row rebuilt with a stamina arc
 - 2026-11-03 char-art a1-a3: 30 draft character models (shared chibi Blender base, headless build), art reference sheet, contact sheet (merge 4ae6d23, push failing): rules audit PASS, all 30 Reviewed; owner visual review open
