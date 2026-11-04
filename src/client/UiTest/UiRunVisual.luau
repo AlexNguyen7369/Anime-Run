@@ -274,11 +274,35 @@ local function modelIdOf(id)
 	return spec and spec.Model or id
 end
 
+-- PreloadAsync returns before a MeshPart's fetch starts (status None, then Loading once the drawn copy needs it), so the
+-- row waits on the copy itself, up to PreloadSeconds: a fetch that has not ended by then is still mesh_loaded's red.
+local function waitFetched(copy)
+	local deadline = os.clock() + cfg.PreloadSeconds
+	while os.clock() < deadline do
+		local fetching = false
+		for _, part in copy:GetChildren() do
+			if part:IsA("MeshPart") then
+				for _, content in { part.MeshId, part.TextureID } do
+					local ok, status = pcall(ContentProvider.GetAssetFetchStatus, ContentProvider, content)
+					local ended = ok
+						and (status == Enum.AssetFetchStatus.Success or status == Enum.AssetFetchStatus.Failure)
+					fetching = fetching or not ended
+				end
+			end
+		end
+		if not fetching then
+			return
+		end
+		task.wait(0.05)
+	end
+end
+
 -- Checks that hold for the whole run, once per row. out[check] collects "<label>: <what>".
 local function checkRow(out, label, row, copy, rig)
 	local function add(name, what)
 		table.insert(out[name], label .. ": " .. what)
 	end
+	waitFetched(copy)
 	-- Meshes
 	local count = 0
 	for _, d in copy:GetChildren() do
@@ -413,9 +437,15 @@ local function watch(out, label, ctx, copy, seconds, minFrames)
 	local restRun, restMost, stuckRun, stuckMost, frames = 0, 0, 0, 0, 0
 	local started = os.clock()
 	local up = PhysicsTargets.lap.MinUpYStrict
+	-- The clock RunnerView poses by: its last step each frame is on PreSimulation. A hitch between PreSimulation and
+	-- Heartbeat would otherwise shorten the next Heartbeat gap against the stride phase really advanced.
+	local poseClock = started
+	local poseClockConn = RunService.PreSimulation:Connect(function()
+		poseClock = os.clock()
+	end)
 	while os.clock() - started < seconds do
 		RunService.Heartbeat:Wait()
-		local now = os.clock()
+		local now = poseClock
 		if findCopy(ctx.Rig) ~= copy then
 			note("copy_not_rebuilt_mid_run", now - started)
 			break
@@ -551,6 +581,7 @@ local function watch(out, label, ctx, copy, seconds, minFrames)
 			end
 		end
 	end
+	poseClockConn:Disconnect()
 	for name, entry in bad do
 		table.insert(out[name], ("%s: %d frames, worst %.3f"):format(label, entry.Frames, entry.Worst))
 	end
