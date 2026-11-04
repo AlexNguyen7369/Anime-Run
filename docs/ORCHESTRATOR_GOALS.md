@@ -33,6 +33,8 @@ Deliverables:
 - c2 | Runner categories, Stamina stat point, Stamina potion, team bonus (series / preset) (TEAM_AND_STAMINA_SPEC, CHARACTER_GACHA_SPEC Series and preset teams) | its spec tests green
 - c4 | Workshop stat boost (owner 2026-11-03, design doc 4.19, WORLD_REDESIGN_SPEC 5): chosen stat, squad rarity %, level scale, passive gain removed | stylua / selene clean, lune check of Workshop.Boost, Studio smoke when a Studio is connected (tests paused, owner 2026-11-01)
 - c5 | Track enemies and indicator (owner 2026-11-03, design doc 4.26, NPC_RIVAL_SPEC): names and indicator first, then 9 new enemy models | stylua / selene clean, `npc` + `ui_billboards` checks green, Studio screenshot of the indicator, models in game
+- c6 | Enemy showdown banners (owner 2026-11-04, design doc 4.28) | `ui_showdown` green, screenshot of both banners
+- c7 | Defeated Enemies page in the Index (owner 2026-11-04, design doc 4.29) | `ui_defeated` green, screenshot
 - c3 | Full compatibility check: owner 2026-10-30, the owner runs it manually when they approve; not an orchestrator task
 Out of scope: final character art, Robux products, merging into `main`.
 
@@ -74,6 +76,17 @@ Deliverables:
 - fi4 | Dojo extras: level-up effect, squad idle poses, stat-coloured lanterns, YOUR DOJO marker | `dojo`, `workshop` green; Studio check
 - fi5 | Plaza petals and audio, sakura trunk collision, Index HUD icon without a car | Studio check; `scrap` still green
 Out of scope: Market rebuild, phone performance testing (owner's device), c3 (owner's word).
+
+## soul: Bleech series (owner 2026-11-04, design doc 4.30)
+Status: active
+Owner-confirmed: 2026-11-04
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md
+Deliverables:
+- s1 | 5 new models (Orihima, Rukiya, Renjy, Ichigu, Aizon) in the avatar pipeline, one evidence file each | exports under budget, renders reviewed, uploaded
+- s2 | Catalog, Series, preset and Ulquiorro as `soul_hollow` on `foe_soul`, tests | `catalog` + `gacha` scenarios green, rules audit PASS
+- s3 | Seventh plaza pedestal after the spawn rework lands | pedestal shown, `spawn_area` green
+Out of scope: Bleech biome changes, rematch rewards, public release licensing.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active

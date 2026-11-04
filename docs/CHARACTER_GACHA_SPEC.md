@@ -94,7 +94,20 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 
 Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.26).
 
-Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
+Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. are proposed):
+
+| Series (based on) | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Bleech (Bleach) | Orihima | Orihime Inoue | Uncommon | B | `soul_healer` | 150 | 2.1 | new |
+| | Rukiya | Rukia Kuchiki | Rare | M | `soul_ice` | 3,000 | 3.5 | new |
+| | Renjy | Renji Abarai | Epic | S | `soul_fang` | 1,000,000 | 13 | new |
+| | Ichigu | Ichigo Kurosaki | Legendary | B | `soul_substitute` | 2e8 | 70 | new |
+| | Ulquiorro | Ulquiorra Cifer | Mythic | S | `soul_hollow` | 3e10 | 200 | `foe_soul` |
+| | Aizon | Sosuke Aizen | Mythic | M | `soul_lord` | 3e14 | 400 | new |
+
+Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
+
+Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 7, Legendary 6, Mythic 6, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 

@@ -39,6 +39,9 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 
 Enemy models are in-house and built in the avatar pipeline (`CHARACTER_GACHA_SPEC.md`). `foe_` ids are model names only: they are not catalog entries, so they cannot be rolled or owned.
 
+Showdown banners and the Defeated Enemies page: design doc 4.28, 4.29. Both use the enemy's `Label` and its `Model` for the
+portrait; a client display only.
+
 ## Tests
 
 - `npc`: rival time = path length / speed; loss empties the bank; the NPC exists on one client only; its rig has no label.
