@@ -7428,7 +7428,7 @@ local SPAWN_PLAZA = {
 	},
 	GATE_MIN_HEIGHT = 16, -- studs: "a large torii-style gate" (test reading: about three avatars tall)
 	-- Spread in x of the row's reference points (WORLD_REDESIGN_SPEC 7): fronts share a line, but each point lies
-	-- somewhere inside its footprint, so they can differ by the deepest footprint, the Market's 14 (build_plaza MARKET_SIZE).
+	-- somewhere inside its footprint, so they can differ by the deepest footprint, the Market stall's 11 (build_plaza market_stall), plus room.
 	ROW_X_SPREAD = 14,
 	FEATURES = {
 		{ Name = "ShopStall", Prompt = "OpenShop" },
@@ -7765,7 +7765,7 @@ function Scenarios.spawn_area()
 		local model = area:FindFirstChild(name)
 		local at = model and model:IsA("Model") and model:GetPivot().Position
 		if name == "Marketplace" then
-			-- the Market model has no PrimaryPart, so its pivot says little: use the prompt's part
+			-- the Market's PrimaryPart is the counter holding the prompt: read the prompt's parent, that same part
 			at = nil
 			for _, d in model and model:GetDescendants() or {} do
 				if d:IsA("ProximityPrompt") and d.Name == "OpenMarket" and d.Parent:IsA("BasePart") then

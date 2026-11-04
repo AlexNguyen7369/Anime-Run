@@ -113,12 +113,12 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Start gate**: torii about 2x taller and turned to face the spawn along the path. Footprint stays clear of the road.
 - **Path** (owner 2026-11-04): 12 wide and plain, with 2 stone lanterns on each side at its gate end. No small torii, lantern strings or banners.
 - **Service row** (owner 2026-11-04), world positions with the spawn at the origin: fronts on one straight line at x = -72, facing +x, in the west opening of the Dojo ring so no Dojo stands behind it. South to north, evenly spaced between z -70 and z 45: Shop, Potions, Market, Index, sensei (proposed). Nothing stands between the spawn and a Dojo.
-- **Market** (owner 2026-11-04): only the Aura stall, which opens the same Market panel. The empty Workshop and Parts vendor stalls and every courtyard piece (floor, rug, logs, planter, small lantern) are removed.
+- **Market** (owner 2026-11-04): one in-house stall built from the plaza kit in `build_plaza.py`, with auras and trails on display; it opens the same Market panel. No fork art (`SpawnMarketplace`, `MarketplaceBuilder` retired), no vendor stalls, no courtyard.
 - **Rebirth** (owner 2026-11-04): the shrine is removed; Rebirth opens from its HUD tile.
 - **Best Roll** (owner 2026-11-04): pedestal at (-8.5, -75), between Plots 1 and 2, radius 9.
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
-- **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy (`sea_captain`; owner 2026-11-03).
+- **Legends** (owner 2026-11-04): at most 2 pedestals, one each side of the Race Start gate, clear of its posts, the path and Plot 7; about 9 studs tall. Client-only, like the sky-loop runners. Proposed: `db_hero` and `mha_symbol` (their orange and blue match the logo).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
   as client-only attachments, so streaming never hides them.
