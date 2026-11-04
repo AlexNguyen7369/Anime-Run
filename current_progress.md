@@ -62,8 +62,9 @@
 58. 2026-11-04 — Alex Nguyen — Merged emblem floating headers (fi6) locally for the owner to view in Play, stylua clean, selene 0 errors, Studio shots, spawn_area and ui_billboards scenarios and rules audit still pending.
 59. 2026-11-04 — Alex Nguyen — Added enemy showdown banners, a Defeated Enemies Index page and the 6-character Bleech series with 5 new models; targeted scenarios green and rules audit PASS.
 60. 2026-11-04 — Alex Nguyen — Reworked the roll animation to show the rolled character in a 16-slot in-place cycle at the top centre, with reference-style emphasized rolls, an Auto toggle beside Daily and Quests above Shop; roll, HUD and layout scenarios green except 2 Index EnemiesTab phone overlaps from the earlier merge, rules audit PASS.
+61. 2026-11-04 — Alex Nguyen — Redesigned 9 villain models with the character design skill and made 8 of them new rollable characters, catalog and gacha green, rules audit PASS.
 
 ## What's next
-**Upload the 36 drawn character portraits and show them in the roll animation, Index, Backpack, Team minibar and starter card.**
+**Restart c3: full server and UI harnesses on the merged feature/alex/anime-world to fail=0, rules audit, then the PR to main.**
 
-**Why this is next:** the owner approved the art and made a portrait a required part of every character, so villain characters, c3 and the PR to main should build on it.
+**Why this is next:** the owner held c3 for these features; merging into main depends on these checks passing on the code that includes them.

@@ -27,7 +27,7 @@ NpcConfig.PALETTE = {
 	Color3.fromRGB(245, 245, 245), -- white
 }
 
--- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; foe_ ids are not in the catalog.
+-- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; rollable characters share them (design doc 4.32).
 NpcConfig.Tracks = {
 	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
 	[2] = { Label = "Selle", Model = "foe_db" },

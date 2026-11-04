@@ -1,8 +1,8 @@
 {
   "foe_db": {
     "name": "Selle",
-    "colours": {"skin": "#EFE6DC", "eyes": "#E0449A"},
-    "hair": {"colour": "#B4D86A", "locks": []},
+    "colours": {"skin": "#EEE8EE", "eyes": "#D0347E"},
+    "hair": {"colour": "#78B838", "locks": []},
     "pieces": []
   }
 }
