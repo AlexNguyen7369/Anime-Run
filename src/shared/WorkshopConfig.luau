@@ -53,7 +53,7 @@ WorkshopConfig.SHOWCASE_CAR_SCALE = 1
 WorkshopConfig.SHOWCASE_LABEL_DISTANCE = 60 -- MaxDistance of the name / rarity label over each showcased car
 
 WorkshopConfig.SIGN_DISTANCE = 120 -- MaxDistance of the plot signs
-WorkshopConfig.EMPTY_TEXT = "EMPTY PLOT"
+WorkshopConfig.EMPTY_TEXT = "FREE DOJO"
 WorkshopConfig.TAG = "WorkshopPlot"
 
 return WorkshopConfig

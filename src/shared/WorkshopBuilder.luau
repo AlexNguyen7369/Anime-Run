@@ -23,7 +23,7 @@ local UPGRADE_COLOR = Color3.fromRGB(70, 190, 255)
 local BASE_HEIGHT = 0.2
 local BASE_LIFT = 0.05 -- base top above the floor top, so the two never z-fight
 local SHELL = 36 -- the workshop's square footprint (walls on three sides, front open)
-local SIGN_HEIGHT = 16
+local SIGN_HEIGHT = 28 -- above the tiered Dojo roofs
 
 local function part(model, name, size, cframe, color, material)
 	local p = Instance.new("Part")
@@ -59,7 +59,7 @@ local function billboard(parent, name, offset, size)
 	return text
 end
 
--- An empty plot: `Plot_<index>` with a `Base` slab and a "EMPTY PLOT" `Sign`. Attribute Owner = 0, tag WorkshopPlot.
+-- An empty plot: `Plot_<index>` with a `Base` slab and a WorkshopConfig.EMPTY_TEXT `Sign`. Attribute Owner = 0, tag WorkshopPlot.
 function WorkshopBuilder.BuildPlot(index, plotCFrame)
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. index
@@ -71,7 +71,7 @@ function WorkshopBuilder.BuildPlot(index, plotCFrame)
 		plotCFrame * CFrame.new(0, BASE_LIFT - BASE_HEIGHT / 2, 0),
 		PLOT_COLOR
 	)
-	local text = billboard(base, "Sign", Vector3.new(0, SIGN_HEIGHT, 0), UDim2.fromOffset(260, 60))
+	local text = billboard(base, "Sign", Vector3.new(0, SIGN_HEIGHT, 0), UDim2.fromOffset(170, 38))
 	text.Text = WorkshopConfig.EMPTY_TEXT
 	model.PrimaryPart = base
 	model:SetAttribute("Index", index)

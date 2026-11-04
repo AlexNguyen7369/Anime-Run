@@ -31,8 +31,9 @@ per-biome sky and light change is written on the client only and never replicate
 ## 2. World structure
 
 ### 2.1 Zones
-- Zone 0 is the plaza: the `SpawnArea` and the 7 Dojos plus a margin of 64 studs (placeholder). It uses the
-  `LightingConfig` baseline profile.
+- Zone 0 is the plaza: the `SpawnArea` and the 7 Dojos plus a margin of 64 studs (placeholder). It has its own
+  client-local golden-hour profile (owner 2026-11-03, design doc 4.24; replaces the `LightingConfig` baseline here).
+  The server's `Lighting` stays the `LightingConfig` baseline.
 - Zone n (1-10) covers every point whose nearest track centre line is Track n. Each zone holds its own ring band of
   the spiral, half of each gap to the neighbouring laps (the gap is about 110 studs edge to edge, 155 centre to
   centre), and, for Track 10, all space outside it.
@@ -426,7 +427,7 @@ Assets = {
   preloaded. At low speed the 0.5 s hold and 3 s blend are unchanged. Biome welcome popup (4.17) fires on blend start.
 - The runner sits on its own track's centre line, so racing always gives the right zone.
 
-### 5.2 Profile (data in the biome module; zone 0 = the `LightingConfig` baseline)
+### 5.2 Profile (data in the biome module; zone 0 = the plaza golden-hour profile, section 2.1)
 ```
 Atmosphere = {
 	Sky = { Skybox = "<AssetKey>"|nil, SunTextureId?, MoonTextureId?, SunAngularSize = 21, MoonAngularSize = 11,

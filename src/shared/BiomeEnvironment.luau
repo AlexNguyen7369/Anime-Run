@@ -81,8 +81,42 @@ function BiomeEnvironment.ZoneAt(p)
 end
 
 local baseline = Kit.Atmosphere()
--- Atmosphere profile (spec 5.2) of a zone; zone 0 and any zone without one use the LightingConfig baseline
+-- Zone 0, the plaza: golden hour (owner 2026-11-03, design doc 4.24, spec 2.1). Values are placeholders.
+local PLAZA = Kit.Atmosphere({
+	Lighting = {
+		ClockTime = 16.6,
+		OutdoorAmbient = Kit.hex("B09A88"),
+		Ambient = Kit.hex("4A3F3C"),
+		ExposureCompensation = -0.25,
+	},
+	Atmosphere = { Density = 0.18, Haze = 0.7, Glare = 0.2, Color = Kit.hex("FFD9B0"), Decay = Kit.hex("D9A58F") },
+	Grade = { Saturation = 0.24, TintColor = Kit.hex("FFF0DC") },
+	SunRays = { Intensity = 0.1 },
+	Bloom = { Intensity = 0.35, Size = 24, Threshold = 1.6 },
+	Sky = { Skybox = "SkyGolden", SunAngularSize = 8, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
+	Clouds = { Cover = 0.32, Density = 0.35, Color = Kit.hex("FFE6D2") },
+})
+-- Drawn in-house (tools/blender/plaza/plaza_sky.py, assets/biomes/Plaza/sky): a plain gradient, the same image on the 4 sides.
+local PLAZA_SKY = {
+	Kind = "Skybox",
+	Id = "rbxassetid://103670338630976",
+	Lane = "A",
+	Reviewed = "2026-11-03 rules-auditor",
+	Notes = "In-house numpy gradient, no prompt",
+	Faces = {
+		Bk = "rbxassetid://103670338630976",
+		Ft = "rbxassetid://103670338630976",
+		Lf = "rbxassetid://103670338630976",
+		Rt = "rbxassetid://103670338630976",
+		Up = "rbxassetid://75892213251440",
+		Dn = "rbxassetid://137365666705594",
+	},
+}
+-- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline
 function BiomeEnvironment.Profile(zone)
+	if zone == 0 then
+		return PLAZA
+	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Atmosphere or baseline
 end
@@ -106,6 +140,9 @@ function BiomeEnvironment.Row(biome, key, kind)
 end
 
 function BiomeEnvironment.Asset(zone, key, kind)
+	if zone == 0 then
+		return key == "SkyGolden" and PLAZA_SKY or nil
+	end
 	return BiomeEnvironment.Row(biomeOf[zone], key, kind)
 end
 

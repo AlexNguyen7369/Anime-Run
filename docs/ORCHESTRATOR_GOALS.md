@@ -74,3 +74,17 @@ Deliverables:
 - a6 | The 30 models in game (owner 2026-11-03): uploaded, drawn by RunnerFactory; event-only not rollable; starter choice popup (design doc 4.21) | Studio check of a run, preview and popup
 - a7 | Painted, unique look for all 30 (owner 2026-11-03): `tools/blender/paint/char_<id>.py` with its own hair for every id; re-export and re-upload | 4 renders each, contact sheet, owner visual review
 Out of scope: R15 skeleton rigging and authored animation (runners use the procedural 6-part swing), models for the 3 event characters.
+
+## first-impression: The first 30 seconds wow a new player (design doc 4.24)
+Status: active (owner 2026-11-03: "continue these deliverables")
+Owner-confirmed: 2026-11-03
+Branch: feature/alex/anime-world
+Spec: design doc 4.24, WORLD_REDESIGN_SPEC 7, BIOME_ENVIRONMENT_SPEC 2.1
+Deliverables:
+- fi1 | Plaza and Dojo meshes, golden-hour zone 0, sky loop, logo loading screen that waits for client assets | `world_layout`, `spawn_area`, `dojo`, `workshop` green; Studio check; rules audit PASS
+- fi2 | Wayfinding: Market and Race Start clearly marked in bold (owner) | Studio shots from spawn; targeted scenarios above green
+- fi3 | First join: camera reveal, lighter starter dim + in-world reveal, petal trail to the gate, Daily held until the first run ends, gate burst | Studio check on a fresh save; stylua / selene
+- fi4 | Dojo extras: level-up effect, squad idle poses, stat-coloured lanterns, YOUR DOJO marker | `dojo`, `workshop` green; Studio check
+- fi5 | Plaza petals and audio, sakura trunk collision, Index HUD icon without a car | Studio check; `scrap` still green
+Out of scope: Market rebuild, phone performance testing (owner's device), c3 (owner's word).
+

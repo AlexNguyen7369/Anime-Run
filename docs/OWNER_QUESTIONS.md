@@ -77,3 +77,7 @@
 
 ## 2026-11-03 uipolish: active runner animation (rules audit)
 Design doc 4.20 says every animation goes through `Client/UiMotion`. The team row's active glow and marker bob are a RenderStepped loop in `TeamHud.client.luau`, not a UiMotion preset; they do stop under reduced motion, and `CheckpointUi` uses the same pattern. Question: does that gate satisfy 4.20, or must the loop move into UiMotion? Blocks nothing.
+
+## 2026-11-03 first-impression: Sea Legend (rules audit)
+Design doc 4.24 says one top character per Series on the plaza pedestals. `sea_gold` and `sea_captain` (Lufy) are both Legendary, but `sea_gold` has the longer odds and no model, so the pedestal shows Lufy. Blocks nothing. Question: keep Lufy, or model `sea_gold`?
+

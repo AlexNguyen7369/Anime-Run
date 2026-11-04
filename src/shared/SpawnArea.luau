@@ -32,8 +32,8 @@ local THICKNESS = 3 -- reaches the Baseplate top (y = -2) so the floor never sho
 local PAD_RAISE = 0.2
 local SPAWN_SIZE = 12
 local LABEL_DISTANCE = 150
-local GATE_POST_Z = 11 -- torii posts stand this far either side of the pad centre (opening 19.8 studs)
-local GATE_HEIGHT = 17 -- post height above the floor
+local GATE_POST_Z = 12 -- torii posts stand this far either side of the pad centre (proposed, design doc 4.24)
+local GATE_HEIGHT = 34 -- post height above the floor (proposed; was 17)
 
 -- Anime town palette (placeholders)
 local STONE = Color3.fromRGB(158, 152, 140)
@@ -43,7 +43,6 @@ local WOOD = Color3.fromRGB(150, 98, 60)
 local DARK_WOOD = Color3.fromRGB(82, 52, 36)
 local ROOF_TILE = Color3.fromRGB(58, 62, 72)
 local PAPER = Color3.fromRGB(246, 236, 210)
-local BLOSSOM = Color3.fromRGB(255, 183, 214)
 local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 
 -- Track 1's start, flattened: yaw only, at ground level (the local space every plaza and plot position uses)
@@ -217,44 +216,6 @@ local function roof(parent, frame, width, depth, ridgeY)
 	end
 end
 
--- A stone lantern (toro) with a warm light.
-local function stoneLantern(parent, startCFrame, x, z)
-	local m = Instance.new("Model")
-	m.Name = "StoneLantern"
-	local f = base(startCFrame) * CFrame.new(x, SpawnArea.TOP_Y, z)
-	block(m, "Post", Vector3.new(1.6, 4, 1.6), f * CFrame.new(0, 2, 0), STONE, Enum.Material.Slate)
-	local light =
-		block(m, "Light", Vector3.new(2.6, 2.2, 2.6), f * CFrame.new(0, 5.1, 0), PAPER, Enum.Material.Neon, false)
-	light.Transparency = 0.15
-	glow(light, 16)
-	m.Parent = parent
-end
-
--- A cherry tree: a trunk and a cloud of blossom (footprint about 14 x 14).
-local function cherryTree(parent, startCFrame, x, z)
-	local m = Instance.new("Model")
-	m.Name = "CherryTree"
-	local f = base(startCFrame) * CFrame.new(x, SpawnArea.TOP_Y, z)
-	block(m, "Trunk", Vector3.new(1.8, 9, 1.8), f * CFrame.new(0, 4.5, 0), DARK_WOOD, Enum.Material.Wood)
-	for i, spec in
-		{
-			{ Vector3.new(0, 11, 0), 12 },
-		}
-	do
-		local ball = block(
-			m,
-			"Blossom" .. i,
-			Vector3.one * spec[2],
-			f * CFrame.new(spec[1]),
-			BLOSSOM:Lerp(Color3.new(1, 1, 1), (i % 3) * 0.12),
-			Enum.Material.Grass,
-			false
-		)
-		ball.Shape = Enum.PartType.Ball
-	end
-	m.Parent = parent
-end
-
 -- A wooden market stall facing the plaza centre: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
@@ -293,22 +254,24 @@ local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, 
 	return m
 end
 
--- The torii over the pad: two vermilion posts either side of the pad (across the walking direction, local z), the
+-- The torii over the pad, turned to face the plaza centre (design doc 4.24): two vermilion posts either side of the pad, the
 -- nuki tie beam, the kasagi top beam with its black cap and upturned tips, and a plaque with made-up text. Posts and
 -- footings collide; the opening over the pad is free.
 local function torii(startCFrame)
 	local pc = SpawnArea.PAD_CENTRE
 	local gate = Instance.new("Model")
 	gate.Name = "StartGate"
-	local gf = base(startCFrame) * CFrame.new(pc.X, SpawnArea.TOP_Y, pc.Y) * CFrame.Angles(0, math.rad(90), 0)
+	local c = SpawnArea.CENTRE
+	local gf = base(startCFrame)
+		* CFrame.lookAt(Vector3.new(pc.X, SpawnArea.TOP_Y, pc.Y), Vector3.new(c.X, SpawnArea.TOP_Y, c.Y))
 	local h, w = GATE_HEIGHT, GATE_POST_Z
 	for _, side in { -1, 1 } do
 		block(gate, "Post", Vector3.new(2.2, h, 2.2), gf * CFrame.new(side * w, h / 2, 0), VERMILION)
 	end
-	block(gate, "Nuki", Vector3.new(w * 2 + 6, 1.2, 1.4), gf * CFrame.new(0, h - 3.5, 0), VERMILION, nil, false)
+	block(gate, "Nuki", Vector3.new(w * 2 + 4, 1.2, 1.4), gf * CFrame.new(0, h - 3.5, 0), VERMILION, nil, false)
 	local kasagi =
-		block(gate, "Kasagi", Vector3.new(w * 2 + 8, 1.4, 2.6), gf * CFrame.new(0, h + 0.7, 0), VERMILION, nil, false)
-	block(gate, "Cap", Vector3.new(w * 2 + 10, 1, 3), gf * CFrame.new(0, h + 1.9, 0), BLACK, nil, false)
+		block(gate, "Kasagi", Vector3.new(w * 2 + 5, 1.4, 2.6), gf * CFrame.new(0, h + 0.7, 0), VERMILION, nil, false)
+	block(gate, "Cap", Vector3.new(w * 2 + 7, 1, 3), gf * CFrame.new(0, h + 1.9, 0), BLACK, nil, false)
 	local plaque = block(gate, "Plaque", Vector3.new(3, 2.6, 0.6), gf * CFrame.new(0, h - 1.2, 0), BLACK, nil, false)
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		surfaceText(plaque, face, "Plaque" .. face.Name, "RUN", Color3.fromRGB(255, 214, 90))
@@ -330,8 +293,8 @@ function SpawnArea.Build(startCFrame)
 		"Floor",
 		Vector3.new(SpawnArea.FLOOR_SIZE.X, THICKNESS, SpawnArea.FLOOR_SIZE.Y),
 		frame * CFrame.new(c.X, top - THICKNESS / 2, c.Y),
-		STONE,
-		Enum.Material.Cobblestone
+		Color3.fromRGB(205, 187, 158), -- warm paving (design doc 4.24, placeholder)
+		Enum.Material.Pavement
 	)
 	model.PrimaryPart = floor
 
@@ -367,8 +330,9 @@ function SpawnArea.Build(startCFrame)
 		pad,
 		"Label",
 		{ { "Text", "START RUN", Color3.fromRGB(255, 230, 160) } },
-		UDim2.fromOffset(200, 50),
-		GATE_HEIGHT + 6
+		UDim2.fromOffset(130, 32),
+		20,
+		60
 	)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
@@ -585,23 +549,7 @@ function SpawnArea.Build(startCFrame)
 	npc.PrimaryPart = anchor
 	npc.Parent = model
 
-	-- Decoration: stone lanterns along the path to the gate, cherry trees between the buildings. Kept small: the
-	-- world tests compare every plaza part with every track part in one go
-	-- (every spot clears the Dojo ring and the buildings; checked by world_layout / workshop)
-	local decor = Instance.new("Model")
-	decor.Name = "Decor"
-	local dir = Vector2.new(pc.X - c.X, pc.Y - c.Y).Unit
-	local side = Vector2.new(-dir.Y, dir.X) * 10
-	for _, x in { 95, 60 } do
-		local p = c + dir * ((x - c.X) / dir.X)
-		for _, s in { side, -side } do
-			stoneLantern(decor, startCFrame, p.X + s.X, p.Y + s.Y)
-		end
-	end
-	for _, p in { { 150, -30 }, { 62, -125 } } do
-		cherryTree(decor, startCFrame, p[1], p[2])
-	end
-	decor.Parent = model
+	-- Decoration: Server/PlazaDressing places the meshes (design doc 4.24).
 	return model
 end
 

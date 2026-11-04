@@ -11387,7 +11387,7 @@ WSHOP.PLOT_SIZE = 48
 WSHOP.GAP = 8 -- studs between neighbouring plots
 WSHOP.FRONT_DOT = math.cos(math.rad(45)) -- open front within 45 degrees of the plaza centre (2026-10-30, ring layout)
 WSHOP.ZONE = Vector3.new(32, 12, 32)
-WSHOP.EMPTY = "EMPTY PLOT"
+WSHOP.EMPTY = "FREE DOJO"
 WSHOP.TAG = "WorkshopPlot"
 WSHOP.BASE_RAISE = 0.5 -- the plot Base top is "a hair above the floor": (TOP_Y, TOP_Y + this]
 WSHOP.TOL = 0.5 -- studs: footprints match the spec within this
@@ -12042,7 +12042,7 @@ function Scenarios.workshop()
 			end
 		end
 		flag("workshop_owned_plot_all_anchored", anchoredOk)
-		-- one more player in the server = exactly one more owned plot, the rest EMPTY PLOT without a workshop
+		-- one more player in the server = exactly one more owned plot, the rest FREE DOJO without a workshop
 		local owned1 = ownedCount()
 		local emptyOk = true
 		for i = 1, WSHOP.PLOT_COUNT do
@@ -12078,7 +12078,7 @@ function Scenarios.workshop()
 		-- 6. retired: Rate and Tick (the in-zone idle gain, its formula and every no-gain case; no passive gain,
 		-- design doc 4.19, owner 2026-11-03)
 
-		-- 7. Release: the plot goes back to EMPTY PLOT, Owner 0, no workshop; Plot attribute and PlotOf 0
+		-- 7. Release: the plot goes back to FREE DOJO, Owner 0, no workshop; Plot attribute and PlotOf 0
 		svc("Release", p1)
 		local okR2 = svc("Release", p1) -- twice is harmless
 		local _, plotOfR = svc("PlotOf", p1)

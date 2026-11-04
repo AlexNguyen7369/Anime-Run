@@ -309,6 +309,32 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   display only and has no gameplay effect. It stays short so it never competes with Market trails and auras. REDUCED
   EFFECTS removes the dust. NPCs wearing the character get the pose, not the effect.
 
+### 4.24 First impression: arrival, plaza and Dojo look (owner 2026-11-03)
+Display only; no gameplay number changes. Sizes, timings and positions are **proposed** placeholders unless stated.
+Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza and Dojos are drafted in Blender first and shown to
+the owner before any Studio work (owner 2026-11-03).
+- **Loading screen** (owner, later the same day; replaces "opens at 8 s"): the game's logo (`assets/logo/AnimeRunLogo.png`, owner's
+  art) and a loading bar showing real progress. It does not finish until the assets have fully loaded on the player's
+  client (server world ready, plaza, Dojo, character, sky and HUD assets preloaded, content queue empty), and it stays up
+  at least 8 seconds. Safety limit 180 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
+- **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
+  to the spawn. Reduced Motion replaces it with a cut.
+- **Starter pick**: stays a popup (4.21) with a lighter dim so the plaza shows behind it. The pick plays an in-world
+  reveal: a petal burst and the chosen character's hero pose.
+- **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open until their
+  first run ends. The gate plays a burst when they first cross it.
+- **Legends and sky loop** (new, owner): the plaza shows one top character per Series on a pedestal, and 2-3 client-only
+  runners with trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
+- **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
+  server's `Lighting` stays untouched.
+- **Wayfinding** (owner): the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
+  tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
+  torii; Market: an entrance arch facing the plaza) and a floating bold label high above it, seen across the plaza.
+  Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
+- **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
+  level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
+  poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
+
 ## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
@@ -373,6 +399,11 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: Market and Race Start clearly marked in bold so players can navigate the plaza (4.24).
+- 2026-11-03: owner: the loading screen waits until assets have fully loaded on the player's client, 8 s minimum (4.24).
+- 2026-11-03: owner: first impression pass (4.24): 8-second logo loading screen with a real progress bar, first-join
+  reveal, Legends pedestals and sky-loop runners, closed dojos on free plots, visible Dojo tiers, plaza golden-hour
+  profile (changes BIOME_ENVIRONMENT_SPEC 2.1). Draft in Blender first.
 - 2026-11-03: owner: the ninja run goes to all 5 Leaf characters, not only Narito (4.23).
 - 2026-11-03: owner: ninja run for Narito: per-character `RunStyle` pose plus a short client-side speed effect (4.23).
 - 2026-11-03: owner: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value

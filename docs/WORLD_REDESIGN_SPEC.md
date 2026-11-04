@@ -109,7 +109,26 @@ Nothing car-shaped stays in the game:
 
 As in `docs/TRACKS_AND_BIOMES_SPEC.md` (lengths x1.25 per track, 10 anime biomes), placed along the spiral.
 
-## 7. Tests (written first)
+## 7. First impression pass (owner 2026-11-03, design doc 4.24)
+
+Draft: `tools/blender/plaza/build_plaza.py` (1 Blender unit = 1 stud, positions are world studs), reviewed by the owner
+before any Studio work. All values below are **proposed**. 34 unique meshes, about 27k tris; about 30k tris placed in the plaza at once, plus the 9 character rigs. Ledger: `tools/blender/plaza/plaza_assets.json`.
+- **Sight line**: the spawn faces the gate across the 130-degree opening in the Dojo ring. The main path runs straight
+  from the spawn to the StartPad. The SpawnLocation stays at the plaza centre and the StartPad stays where it is.
+- **Start gate**: torii about 2x taller and turned to face the spawn along the path. Footprint stays clear of the road.
+- **Path**: 12 wide, with a row of small torii, stone lanterns and lantern strings. Series banners stand by the Legends.
+- **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
+- **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy for now (the rarest, `sea_gold`, has no model; owner to confirm).
+- **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
+- **Wayfinding**: RACE START banner on the torii under its tie beam; MARKET entrance arch on the Market's plaza side (posts
+  clear of the mosaic, about 24 tall). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
+  as client-only attachments, so streaming never hides them.
+- **Sensei**: moves further along the path (`CheckpointConfig.NPC_POS`) to clear the Legends.
+- **Trees**: one Great Sakura plus smaller sakura, all clear of the road and the plots.
+- **Dojos**: built from one kit inside the 48 x 48 plot. Zone, Showcase pedestal and UpgradePad positions stay. A free
+  plot holds a closed shell that is not named `Workshop`, and its sign text comes from `WorkshopConfig.EMPTY_TEXT`, "FREE DOJO".
+
+## 8. Tests (written first)
 
 - `runner`: body is a humanoid rig with no wheels / VehicleSeat / suspension; anchored; upright (up Y >= 0.999) on
   every track at normal and max stat speed; on path (deviation <= `MaxPathDeviation`); exact cruise speed; pad paid

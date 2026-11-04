@@ -1110,7 +1110,7 @@ UiSpec.Billboards = {
 	-- Mechanical Workshop (docs/WORKSHOP_SPEC.md section 2): Workspace.Workshops.Plot_1..PLOT_COUNT
 	WorkshopSign = {
 		Path = "Base/Sign", -- BillboardGui, label "Text"
-		EmptyText = "WorkshopConfig.EMPTY_TEXT", -- "EMPTY PLOT" when the plot's Owner attribute is 0
+		EmptyText = "WorkshopConfig.EMPTY_TEXT", -- "FREE DOJO" when the plot's Owner attribute is 0
 		OwnedText = "%s's Workshop", -- the owner's DisplayName
 		MaxDistance = "WorkshopConfig.SIGN_DISTANCE", -- 120
 	},
