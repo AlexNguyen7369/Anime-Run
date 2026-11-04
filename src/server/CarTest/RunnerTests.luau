@@ -354,9 +354,18 @@ function Tests.runner()
 		local torso = model:FindFirstChild("Torso", true)
 		local prev = model.PrimaryPart and model.PrimaryPart.Position
 		local idx, t, unanchored, firstDist = 1, 0, 0, 0
+		-- Time is the rail's clock (Heartbeat dt can jump with no wall-clock time). A real stall still fails: this
+		-- clock keeps growing while distance does not, and a stale publish keeps ageing across frames.
+		local railStart = os.clock()
+		local railClock, railPrev = railStart, railStart
+		local railConn = RunService.PreSimulation:Connect(function()
+			railClock = os.clock()
+		end)
 		while t < timeout and not run.Finished do
-			local dt = RunService.Heartbeat:Wait()
-			t += dt
+			RunService.Heartbeat:Wait()
+			local dt = railClock - railPrev
+			railPrev = railClock
+			t = railClock - railStart
 			local primary = model.PrimaryPart
 			if not primary or run.Finished then
 				break
@@ -402,7 +411,7 @@ function Tests.runner()
 					model:GetAttribute("RunDistance"), model:GetAttribute("RunSpeed"), model:GetAttribute("RunRoute")
 				pub.n += 1
 				if finite(rd) and finite(rs) and type(rr) == "string" and rr ~= "" then
-					local age = os.clock() - changedAt
+					local age = railClock - changedAt
 					local rigArc = arc[seg] + frac * (arc[seg + 1] - arc[seg])
 					pub.distErr = math.max(pub.distErr, math.abs(rd + rs * age - rigArc) - rs * FRAME_LAG)
 					pub.speedErr = math.max(pub.speedErr, math.abs(rs - target) / math.max(target, 1))
@@ -433,6 +442,7 @@ function Tests.runner()
 			end
 		end
 		distConn:Disconnect()
+		railConn:Disconnect()
 		st.finished = run.Finished == true
 		st.runMinUp = type(run.MinUpY) == "number" and run.MinUpY or -1
 		st.kept = model.Parent ~= nil
