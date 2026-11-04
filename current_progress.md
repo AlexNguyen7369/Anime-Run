@@ -74,8 +74,9 @@
 71. 2026-11-04 — Alex Nguyen — Landed UI feedback pass: 9 sounds with the ServerStorage folder, UiFeedback cues, new UiMotion presets, consistency and clarity fixes, big-moment and panel wiring; 15 targeted UI scenarios fail=0 including ui_layout 962 and ui_feedback 27 (ui-juice u1-u4).
 72. 2026-11-04 — Alex Nguyen — Compat check u5 stopped on the owner's word: c3t merged, UI pass=44 fail=0, server pass=49 fail=1 (`data`, fix 0fa4d06 not run), final server run skipped, rules audit FAIL with fixes not re-audited.
 73. 2026-11-04 — Alex Nguyen — Merged ui-juice to main through PR #3 on the owner's word: UI 44 scenarios fail=0, last full server run 49/1 with its data fix passing alone, Burst ruling recorded.
+74. 2026-11-04 — Alex Nguyen — Landed /narito, /newplayer and the auto-roll spotlight tutorial on the owner's word with the black-box findings still open: data, admin and gacha pass, the tutorial's burst moved to UiFeedback cue AutoOn, UI harness not run.
 
 ## What's next
-**Owner listens to the 9 UI sounds in Studio and saves the place so `ServerStorage.ImpactSounds` persists, then rules on docs/OWNER_QUESTIONS.md.**
+**Run the UI harness on f475246, finishing the auto-roll tutorial on the fresh save before `UiTestRun`.**
 
-**Why this is next:** no sound has been heard, Coin and Denied have unknown origin, and the folder exists only in the unsaved Edit session until saved.
+**Why this is next:** the new overlay takes every click on a save with 0 rolls and has never been through the UI harness, so any UI check on a fresh save, and any later UI work, depends on knowing whether it reds them.
