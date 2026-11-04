@@ -84,36 +84,18 @@ function Access.Build(h)
 			return
 		end
 		local key = rec.playKey
-		local card = h.rollCards()[key]
-		local maxMove, samples, start = 0, 0, {}
 		local landBy = ev.t + h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND") + h.animNum("SWITCH") + 3
 		while not rec.hold[key] and os.clock() < landBy do
-			if card and card:GetAttribute("Phase") == "Spin" then
-				samples += 1
-				for _, partName in { "Reel", "Streaks" } do
-					local host = h.partOf(card, partName)
-					if host and host:IsA("GuiObject") then
-						for _, d in host:GetDescendants() do
-							if d:IsA("GuiObject") and h.visible(d) then
-								local pos = d.AbsolutePosition - host.AbsolutePosition
-								if start[d] then
-									maxMove = math.max(maxMove, (pos - start[d]).Magnitude)
-								else
-									start[d] = pos
-								end
-							end
-						end
-					end
-				end
-			end
 			task.wait()
 		end
+		-- docs/ROLL_ANIMATION_SPEC.md "Phases": the cycle does not swap. SampleRoll records ShownId every Spin frame.
+		local shown = rec.shown
 		h.check(
 			res,
 			"reduced_reel_does_not_spin",
-			("%.1f px over %d Spin frames"):format(maxMove, samples),
-			"<= " .. cfg.ReelStill .. " px",
-			maxMove <= cfg.ReelStill
+			("%d ShownId values over %d Spin frames"):format(#shown.spinSeq, shown.spinFrames),
+			"<= 1 ShownId, at least 1 Spin frame",
+			shown.spinFrames > 0 and #shown.spinSeq <= 1
 		)
 		local hold = rec.hold[key]
 		h.check(res, "reduced_roll_reached_hold", hold ~= nil, true, hold ~= nil)
@@ -129,7 +111,7 @@ function Access.Build(h)
 				holdAt = p.t
 			end
 		end
-		local want = h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND")
+		local want = (h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND")) * h.timeScale(ev.interval)
 		local tol = Spec.RollAnim.PhaseTolerance
 		local got = popAt and holdAt and holdAt - popAt
 		h.check(

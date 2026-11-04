@@ -84,7 +84,7 @@ local function indexStates(player)
 	player:SetAttribute("StatPoints", G.FreePoints(player))
 end
 
--- AUTO toggle (docs/ROLL_ANIMATION_CONTRACT.md): through GachaService.SetAutoRoll when it exists, else the
+-- AUTO toggle (docs/ROLL_ANIMATION_SPEC.md): through GachaService.SetAutoRoll when it exists, else the
 -- AutoRoll attribute the auto-roll loop reads.
 local function setAutoRoll(player, on)
 	local G = live("GachaService")
@@ -361,7 +361,7 @@ function setups.turbo_next(player)
 	player:SetAttribute("TurboCount", every - 1)
 end
 
--- Roll animation (docs/ROLL_ANIMATION_CONTRACT.md): the next auto roll is an emphasized roll. Owning no rollable car
+-- Roll animation (docs/ROLL_ANIMATION_SPEC.md): the next auto roll is an emphasized roll. Owning no rollable car
 -- makes any roll new and, with fewer than 5 cars owned, emphasized (GachaConfig.IsEmphasized). As soon as that roll
 -- happened (Rolls changed) exactly the cars owned before are given back (the rolled one is not kept), with the new
 -- roll count, so later rolls are not emphasized by accident and no car is gained.
@@ -712,7 +712,7 @@ do
 	end
 end
 
--- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_CONTRACT.md: RollResult's 6th argument is the roll's
+-- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_SPEC.md: RollResult's 6th argument is the roll's
 -- luck). They only fire Remotes.RollResult at the test client: nothing is rolled, granted or paid. AutoRoll goes off
 -- so no real roll covers the planted ones; 'restore' turns it back on and clears the attribute.
 do

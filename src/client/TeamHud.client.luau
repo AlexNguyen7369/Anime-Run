@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
+local CharacterHeads = require(shared.CharacterHeads)
 local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
@@ -355,10 +356,26 @@ local function paintArc(circle, color)
 	circle.Tip.BackgroundColor3 = color
 end
 
--- Head only: the body (and its rarity belt) never shows, so rarity is not evident on the row.
+-- The drawn portrait, or with none yet the live model cut to its head: the body (and its rarity belt) never shows, so
+-- rarity is not evident on the row.
 local function headArt(circle, spec)
+	local drawn = CharacterHeads[spec.Id] or CharacterHeads[spec.Model or spec.Id]
+	if drawn then
+		-- The head-only art (CHARACTER_GACHA_SPEC "Digital art portrait"), breaking out of the top like the live head
+		local image = Instance.new("ImageLabel")
+		image.Name = "Art"
+		image.BackgroundTransparency = 1
+		image.Position = UDim2.fromScale(-0.2, -0.34)
+		image.Size = UDim2.fromScale(1.4, 1.4)
+		image.ScaleType = Enum.ScaleType.Fit
+		image.Image = drawn
+		image.ZIndex = 7
+		image.Parent = circle.Frame
+		return image
+	end
 	-- Larger than the circle and not clipped: the head breaks out of the top
-	local art = Components.RunnerArt(circle.Frame, "Art", spec, UDim2.fromScale(-0.2, -0.34), UDim2.fromScale(1.4, 1.4))
+	local art =
+		Components.PortraitArt(circle.Frame, "Art", spec, UDim2.fromScale(-0.2, -0.34), UDim2.fromScale(1.4, 1.4))
 	art.ZIndex = 7
 	local rig = art:FindFirstChildWhichIsA("Model")
 	local head = rig and rig:FindFirstChild("Head")

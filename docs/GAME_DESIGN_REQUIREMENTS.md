@@ -287,7 +287,7 @@ before any Studio work.
   reveal: a petal burst and the chosen character's hero pose. The first auto-roll waits about 5 s (proposed) so its result card does not cover it.
 - **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open by itself until their
   first run ends (its button still works). The gate plays a burst when they first cross it.
-- **Legends and sky loop**: the plaza shows one top character per Series on a pedestal, and 2-3 client-only runners with
+- **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, next to the Race Start gate (owner 2026-11-04), and 2-3 client-only runners with
   trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
@@ -297,7 +297,7 @@ before any Studio work.
   torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch) and a floating bold label high above it, seen across the plaza.
   Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
 - **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market and Race Start keep their label high above the landmark (Wayfinding); their distances stay as there. The flat signs stay.
-- **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one stall with no empty structures. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and the Legend pedestals (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
+- **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and at most 2 Legend pedestals beside the gate (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
 - **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
@@ -339,7 +339,22 @@ before any Studio work.
   Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
   owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
 - Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
-- No plaza Legend for this Series yet: the owner later capped Legends at 2 (4.24, `animerun-b3`, d3); whether Aizon replaces one is an open question.
+- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`): the 2 Legends stay `db_hero` and `mha_symbol` (4.24).
+
+### 4.32 Villains are rollable (owner 2026-11-04)
+- The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
+  character design skill and reviewed by the owner before upload. New: Paine, Selle, Arlon, Akazo, Jogoh, Shigaraky, Mahitoh, Enelu.
+  Freezo and Ulquiorro were already rollable. Rarity is the owner's: Epic Arlon, Jogoh; Legendary Paine, Shigaraky, Mahitoh; Mythic
+  Selle, Akazo, Enelu. `Chance`, `SpeedMulti`, `Category` are placeholders inside the bands. Each shares its enemy's model.
+
+### 4.31 Roll animation (owner 2026-11-04)
+- Every roll clearly shows the character actually rolled: its own portrait or model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
+- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
+- Rolls show the character from the head to the upper torso, not the whole body (owner, same day), as its drawn portrait.
+- Every character gets a drawn digital portrait as part of being added to the game, stored with its assets and used for its roll, Index and Enemies page, Backpack, starter card and the enemy showdown banner, with a head-only cut for the Team minibar, whose head still breaks out of the circle per 4.3 (owner, same day; CHARACTER_GACHA_SPEC Digital art portrait).
+- Auto race becomes a toggle pill labelled "Auto", immediately left of Daily in the top-right row; the top-centre Auto Race button is gone (owner, same day).
+- The normal roll plays at the very top centre of the screen. Quests moves from the top-right row to an icon button directly above Shop (owner, same day).
+- The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -401,6 +416,8 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
+- 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval, head-and-torso framing, Auto toggle beside Daily, roll at the very top, Quests above Shop, every character and enemy preview uses a drawn portrait (4.31, ROLL_ANIMATION_SPEC).
 - 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
 - 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
@@ -438,6 +455,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-03: c3 rulings: finish pads may use their biome's palette colour; Track 6 keeps one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.
 - 2026-11-03: Index and Backpack share one collection card, Backpack gets Sort and Search (4.22). Ninja run for all 5 Leaf characters (4.23).
+- 2026-11-04: owner: Legends cut to at most 2 beside the Race Start gate; Market stall rebuilt in-house with a smaller flat sign, free to start from scratch; `soul_lord` gets no Legend (4.24, WORLD_REDESIGN_SPEC 1, 7).
 - 2026-11-04: owner: clear plaza (4.24, WORLD_REDESIGN_SPEC 4, 7): straight service row in the west opening, Rebirth shrine removed (HUD tile stays), Best Roll in a Dojo gap, Market sign replaces its arch, Market reduced to one stall (empty vendor stalls and courtyard removed), path torii, strings, banners, planters, benches and small trees removed, one sky-loop leg moved clear of the Market sign, the stray checker block removed from the Aura stall meshes.
 - 2026-11-04: owner: service headers (4.24, WORLD_REDESIGN_SPEC 7): Index, Shop, Potions, Market, Sensei, Race Start and YOUR DOJO float a bold white italic label over a coloured emblem; the pills and arrows go; the flat signs stay.
 - 2026-11-03: first impression pass (4.24, changes BIOME_ENVIRONMENT_SPEC 2.1): loading screen waits for what a player sees first, 8 s minimum; Market and Race Start marked in bold; plaza petals, ambience, solid sakura trunks, Index icon without a car. The Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold`.

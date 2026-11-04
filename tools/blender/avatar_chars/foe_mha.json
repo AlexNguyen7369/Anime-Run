@@ -1,8 +1,8 @@
 {
 	"foe_mha": {
-		"colours": {"skin": "#DCD6D2", "eyes": "#C8141E", "UpperTorso": "#1C1C22", "LowerTorso": "#1C1C22", "UpperArm": "#1C1C22", "LowerArm": "#1C1C22", "Hand": "#DCD6D2", "UpperLeg": "#16161C", "LowerLeg": "#16161C", "Foot": "#C4202A"},
-		"face": {"eye": "soft", "mouth": "flat", "brow": "#8FA8B2"},
-		"hair": {"colour": "#A9C1C8", "locks": []},
+		"colours": {"skin": "#EFDCC8", "eyes": "#C8141E", "UpperTorso": "#25252D", "LowerTorso": "#25252D", "UpperArm": "#25252D", "LowerArm": "#25252D", "Hand": "#EFDCC8", "UpperLeg": "#1C1C22", "LowerLeg": "#1C1C22", "Foot": "#C4202A"},
+		"face": {"eye": "soft", "mouth": "flat", "brow": "#5E8FAC"},
+		"hair": {"colour": "#86BAD2", "locks": []},
 		"pieces": []
 	}
 }

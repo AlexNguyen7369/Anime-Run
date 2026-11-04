@@ -127,15 +127,15 @@
   "Tris": 216
  },
  "LegendPedestal": {
-  "Asset": "101436028319012",
-  "Hash": "b1ba797a70939f81",
+  "Asset": "111419054534379",
+  "Hash": "9dd4a2375791a17a",
   "Kind": "Mesh",
   "Lane": "B",
   "Tris": 112
  },
  "LegendPedestalx": {
-  "Asset": "120745633279878",
-  "Hash": "9537e6559d2f68b0",
+  "Asset": "93217066984565",
+  "Hash": "00d3696331aae4c5",
   "Kind": "Mesh",
   "Lane": "B",
   "Tris": 112
@@ -185,11 +185,18 @@
   "Tris": 280
  },
  "MarketSign": {
-  "Asset": "90566703075659",
-  "Hash": "ab3b4cdff7d87a67",
+  "Asset": "114312886441158",
+  "Hash": "917bd145f168ce36",
   "Kind": "Mesh",
   "Lane": "B",
-  "Tris": 48
+  "Tris": 60
+ },
+ "MarketStall": {
+  "Asset": "70996565944578",
+  "Hash": "d10fc365fc47cebf",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 1512
  },
  "POTIONSStall": {
   "Asset": "90249957543522",

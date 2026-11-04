@@ -107,7 +107,20 @@ Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. a
 
 Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
 
-Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 7, Legendary 6, Mythic 6, Secret 2.
+Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are proposed; each shares its enemy's model):
+
+| Series | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Narito Shippudon | Paine | Pain | Legendary | B | `leaf_rings` | 3e7 | 35 | `foe_leaf` |
+| Dragon Bawl Z | Selle | Cell | Mythic | B | `db_perfect` | 1e10 | 170 | `foe_db` |
+| One Peace | Arlon | Arlong | Epic | M | `sea_shark` | 900,000 | 11 | `foe_sea` |
+| One Peace | Enelu | Enel | Mythic | S | `sea_thunder` | 3e12 | 300 | `foe_sea2` |
+| Demon Slicer | Akazo | Akaza | Mythic | S | `ds_upper` | 1e14 | 380 | `foe_ds` |
+| Jujitsu Kaisan | Jogoh | Jogo | Epic | M | `jk_volcano` | 1,200,000 | 13.5 | `foe_jk` |
+| Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
+| My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
+
+Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 
@@ -141,7 +154,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 36 regular (30 launch cast + 6 Bleech, owner 2026-11-04) + 3 event-only = 39 characters, plus the starter.
+Catalog total: 44 regular (30 launch cast + 6 Bleech + 8 villains, owner 2026-11-04) + 3 event-only = 47 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 
@@ -192,6 +205,13 @@ Preset trios (the anime's famous team):
 - A character with an atlas builds as 6 plain UV-mapped blocks plus the script's `HAIR`, `PROPS`, `MARKS` and optional
   `model(parts, kit)` bespoke meshes (`tools/blender/avatar_paint.py`). Locks in a `HAIR_COLOURS` colour take painted
   strands from the atlas's Hair strip; other props use cel swatches in its bottom strip.
+
+### Digital art portrait (owner 2026-11-04)
+Required for every character added to the game, as part of its art pipeline, not a later pass.
+- Every character with a model has a drawn head-and-upper-torso portrait: bright cel-shaded fills from its own atlas, a bold ink outline, a thin die-cut edge and a straight cut under the chest. Blocky proportions stay, per design doc 5.
+- Files: `assets/characters_avatar/<id>/portrait.png` (512 px, transparent) and `head.png`, next to its `atlas.png`, `<id>.blend` and `review/`. `tools/blender/build_avatar.py` draws it with the model and previews, through `tools/blender/portrait/render_portrait.py`; a new character's folder is not complete without it. Upload: `tools/blender/portrait/upload_portraits.py`, which writes `src/shared/CharacterPortraits.luau` and `src/shared/CharacterHeads.luau`. A character is not done until its portrait and head are uploaded and in those registries.
+- The portrait is how a character or enemy appears everywhere it is previewed in the UI: the roll animation, the Index and its Enemies page, the Backpack, the starter choice and the enemy showdown banner (owner 2026-11-04). The Team minibar uses `head.png`, the same art with only the head and its hair, breaking out of the top of the circle as design doc 4.3 says (owner, same day). An enemy uses the portrait of the character wearing its model. The 3D model stays in the world (runners, Dojo, plaza, enemies racing) and where a preview must show a live effect (Market aura and trail detail).
+- Sources are our own model and atlas only: no outside art.
 
 ## Tests
 

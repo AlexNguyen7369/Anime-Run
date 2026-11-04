@@ -88,17 +88,18 @@ refit()
 
 local portrait = nil
 local function setPortrait(model)
-	local spec = { Id = model } -- foe_ ids are model names, not catalog entries; RunnerFactory takes either
 	if portrait then
-		local old = portrait:FindFirstChild("Runner")
-		if old then
-			old:Destroy()
-		end
-		Components.FillRunner(portrait, spec, nil, true)
-	else
-		local pos, size = UDim2.fromOffset(8, 8), UDim2.fromOffset(84, 84)
-		portrait = Components.RunnerArt(banner, "Portrait", spec, pos, size, true)
+		portrait:Destroy()
 	end
+	-- foe_ ids are model names, not catalog entries; both helpers take either
+	portrait = Components.PortraitArt(
+		banner,
+		"Portrait",
+		{ Id = model },
+		UDim2.fromOffset(8, 8),
+		UDim2.fromOffset(84, 84),
+		true
+	)
 end
 
 local FADE = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
