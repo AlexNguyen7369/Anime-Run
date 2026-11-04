@@ -8,3 +8,6 @@ roblox.yml
 __pycache__/
 build/
 assets/characters_avatar/**/*.blend
+.DS_Store
+assets/plaza_draft/
+assets/characters_avatar/*/atlas.svg

@@ -10,19 +10,8 @@ Game rules stay in `docs/GAME_DESIGN_REQUIREMENTS.md` and the specs.
   own targeted scenarios green plus `stylua` / `selene`; tests are a development tool, not a gate that delays work.
   One full compatibility check (full harness `[CARTEST] END fail=0` + rules audit) runs once all features are built.
 
-## fork-ivs: Idle Vehicle Simulator code forked into AnimeRun
-Status: done (merged into main 2026-10-28, PR #1, 039ad28)
-Owner-confirmed: 2026-10-28
-Branch: feature/alex/fork-ivs (created on the first task)
-Deliverables:
-- f1 | IVS code copied in (`default.project.json`, `src/`, harness, `stylua.toml` / `selene.toml`, place file) | `rojo build` succeeds; `stylua --check src` and `selene src` clean
-- f2 | Car -> character rename in names and ids (`CarCatalog` -> `CharacterCatalog`, `src/shared/Cars/` -> `src/shared/Characters/` holding the 30 approved characters as placeholder entries with neutral ids, design doc section 5); gameplay unchanged | harness green; no real names in ids
-- f3 | Full harness green on an AnimeRun place in Studio | `[CARTEST] END fail=0`; rules audit PASS
-Out of scope: new mechanics (team, stamina, bonuses, potions, stat point), final character art, Robux products,
-merging into `main` (owner's call).
-
 ## anime-world: World redesign, every car model scrapped (replaces anime-maps)
-Status: active (next after fork-ivs; before anything else, owner 2026-10-28)
+Status: active (owner 2026-10-28)
 Owner-confirmed: 2026-10-28 (scope); deliverables w1-w5 confirmed by owner 2026-10-28
 Branch: feature/alex/anime-world (created on the first task)
 Spec: docs/WORLD_REDESIGN_SPEC.md, docs/TRACKS_AND_BIOMES_SPEC.md
@@ -62,15 +51,12 @@ Out of scope: gameplay changes, track layout changes (w3 layouts stay).
 
 ## char-art: Draft models for the 30 launch characters
 Status: active (owner 2026-11-03)
-Owner-confirmed: 2026-11-03 (draft + renders only; shared chibi base; altered signature marks)
+Owner-confirmed: 2026-11-03 (a1-a3 chibi drafts retired by a4)
 Branch: feature/alex/anime-world
 Spec: docs/CHARACTER_GACHA_SPEC.md (Art, Draft pipeline), design doc section 5
 Deliverables:
-- a1 | Art reference sheet `docs/CHARACTER_ART_REFERENCES.md` (public anime Roblox game style survey + 30 per-character entries) | 30 entries, each with sources and an altered-mark line
-- a2 | Shared chibi base + build script (`tools/blender/`) | base builds headless with the 15 R15 part names; tri budget met
-- a3 | 30 draft models + renders (`assets/characters/`) | every id has a .blend and 4 renders; rules-auditor sign-off; owner visual review of the contact sheet
 - a4 | Avatar-style pilot (owner 2026-11-03, replaces chibi): Team Seven trio `leaf_hero`, `leaf_avenger`, `leaf_medic` in `assets/characters_avatar/` | 4 renders each; owner approves the look
-- a5 | Other 27 characters in the approved avatar style; chibi base and its output removed | every id has 4 renders; rules-auditor sign-off; owner visual review
+- a5 | Other 27 characters in the approved avatar style | every id has 4 renders; rules-auditor sign-off; owner visual review
 - a6 | The 30 models in game (owner 2026-11-03): uploaded, drawn by RunnerFactory; event-only not rollable; starter choice popup (design doc 4.21) | Studio check of a run, preview and popup
 - a7 | Painted, unique look for all 30 (owner 2026-11-03): `tools/blender/paint/char_<id>.py` with its own hair for every id; re-export and re-upload | 4 renders each, contact sheet, owner visual review
 Out of scope: R15 skeleton rigging and authored animation (runners use the procedural 6-part swing), models for the 3 event characters.
@@ -88,3 +74,10 @@ Deliverables:
 - fi5 | Plaza petals and audio, sakura trunk collision, Index HUD icon without a car | Studio check; `scrap` still green
 Out of scope: Market rebuild, phone performance testing (owner's device), c3 (owner's word).
 
+## trim: Context and repo bloat removed (owner 2026-11-03)
+Status: active
+Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")
+Branch: feature/alex/anime-world
+Deliverables:
+- t1 | Stale docs shortened, unused assets and files removed | `rojo build`, `stylua --check src`, `selene src` clean; rules audit finds no live rule lost
+Out of scope: gameplay, tests, git history rewrite.
