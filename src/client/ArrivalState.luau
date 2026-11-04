@@ -5,7 +5,7 @@ local Players = game:GetService("Players")
 local ArrivalState = {}
 
 local GRACE_SECONDS = 3 -- the loading screen opens first thing and stays at least 8 s: not there by now = never
-local LIMIT_SECONDS = 190 -- its own safety limit is 180 s
+local LIMIT_SECONDS = 100 -- its own safety limit is 90 s
 local loadingOver = false
 
 -- True for a player who has not finished a run yet. Survives a rejoin: only runs add to MoneyEarned (MoneyService.Award)

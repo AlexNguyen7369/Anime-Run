@@ -1,6 +1,6 @@
 --!nonstrict
--- The loading screen (owner 2026-11-03, design doc 4.24): the logo and a bar on every join. It opens only when the assets
--- have loaded on this client, and not before 8 seconds. The bar shows real progress. Runs from ReplicatedFirst, so Shared and
+-- The loading screen (owner 2026-11-03, design doc 4.24): the logo and a bar on every join. It opens when what a player sees
+-- first has loaded on this client, and not before 8 seconds; the rest loads behind the game. The bar shows real progress. Runs from ReplicatedFirst, so Shared and
 -- the client modules are read only once the game has loaded.
 local ContentProvider = game:GetService("ContentProvider")
 local Lighting = game:GetService("Lighting")
@@ -93,8 +93,8 @@ label.TextColor3 = Color3.fromRGB(220, 226, 245)
 label.Text = "Loading 0%"
 label.Parent = back
 
--- What this client must have before the screen opens: the server's world, then every unique mesh, texture and image in
--- use around the plaza and on the HUD, then an empty content queue.
+-- What this client must have before the screen opens: the plaza and Track 1 world, then every unique mesh, texture and
+-- image around the plaza, on the HUD and on the characters on screen, then the content queue (with a short grace).
 local preloadTotal, preloadDone, preloadFinished = 0, 0, false
 local preloadEndedAt = nil
 
@@ -205,9 +205,10 @@ task.spawn(function()
 	end
 	preloadEndedAt = os.clock()
 	preloadFinished = true
-	-- Characters nobody on screen wears load behind the game
+	-- Characters nobody on screen wears and the other Dojo tiers load behind the game
 	task.spawn(function()
 		pcall(function()
+			table.insert(later, ReplicatedStorage:FindFirstChild("PlazaTierMeshes"))
 			ContentProvider:PreloadAsync(later)
 		end)
 	end)

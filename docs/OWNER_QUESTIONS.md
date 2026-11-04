@@ -84,5 +84,6 @@ Answered 2026-11-03: owner keeps Lufy.
 
 ## 2026-11-03 first-impression: orchestrator defaults (owner away, "implement recommended options"); review on return
 - Load wait narrowed to what a player sees first (plaza, Track 1, on-screen characters); far biomes and other characters load behind the game. Safety limit 90 s, queue grace 4 s (proposed).
-- Measured on a fresh server in Studio: loading screen opens at 43.6 s (was 65-77 s). Server track build is about 31 s of that (one track per frame, about 40k parts); only the first player on a server waits for it. Deferring far-track building was NOT done: RaceService needs the whole route at start, so it is a risky change. Decision for the owner: accept, or build far tracks in the background later.
+- Daily hold: only the auto-open waits for a new player's first run; the Daily HUD button still works. Say if the button should be locked too.
+- Measured on a fresh server in Studio: loading screen opens at 40-44 s (was 65-77 s). Server track build is about 28 s of that (one track per frame, about 40k parts); only the first player on a server waits for it. Deferring far-track building was NOT done: RaceService needs the whole route at start, so it is a risky change. Decision for the owner: accept, or build far tracks in the background later.
 

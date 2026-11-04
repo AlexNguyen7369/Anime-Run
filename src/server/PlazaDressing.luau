@@ -32,9 +32,16 @@ local IMPORT_TURN = CFrame.Angles(0, math.pi, 0) -- the glTF import turns a mesh
 local templates = {} -- key -> { part name -> { Part, Center } }
 
 local function loadAsset(key, row)
-	local ok, asset = pcall(function()
-		return InsertService:LoadAsset(row.Asset)
-	end)
+	local ok, asset
+	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
+		ok, asset = pcall(function()
+			return InsertService:LoadAsset(row.Asset)
+		end)
+		if ok then
+			break
+		end
+		task.wait(attempt)
+	end
 	if not ok then
 		warn("[PlazaDressing] " .. key .. " failed to load, keeping the stand-in: " .. tostring(asset))
 		return
@@ -230,11 +237,19 @@ function PlazaDressing.Start(spawnArea)
 			for _, plot in CollectionService:GetTagged(WorkshopConfig.TAG) do
 				watchPlot(plot)
 			end
+			-- Every Dojo tier in ReplicatedStorage: the client preloads them behind the game, so a level-up shows no gap
+			local tiers = Instance.new("Folder")
+			tiers.Name = "PlazaTierMeshes"
+			for tier, key in Layout.Tiers do
+				if tier > 0 then
+					place(key, CFrame.identity, tiers)
+				end
+			end
+			tiers.Parent = ReplicatedStorage
 		end)
 		if not ok then
 			warn("[PlazaDressing] failed, keeping what is built: " .. tostring(err))
 		end
-		ReplicatedStorage:SetAttribute("LoadPlazaAt", time())
 		ReplicatedStorage:SetAttribute("PlazaReady", true)
 	end)
 end

@@ -15,9 +15,16 @@ local RunnerFactory = require(Shared.RunnerFactory)
 local CharacterModelService = {}
 
 local function load(id, row, root)
-	local ok, asset = pcall(function()
-		return InsertService:LoadAsset(row.Asset)
-	end)
+	local ok, asset
+	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
+		ok, asset = pcall(function()
+			return InsertService:LoadAsset(row.Asset)
+		end)
+		if ok then
+			break
+		end
+		task.wait(attempt)
+	end
 	if not ok then
 		warn("[CharacterModels] " .. id .. " failed to load, using the placeholder rig: " .. tostring(asset))
 		return
@@ -63,7 +70,6 @@ function CharacterModelService.Start()
 				RunnerFactory.Restyle(rig, id)
 			end
 		end
-		ReplicatedStorage:SetAttribute("LoadModelsAt", time())
 		root:SetAttribute("Ready", true)
 	end)
 end

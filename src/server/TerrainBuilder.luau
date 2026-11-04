@@ -116,7 +116,9 @@ local function writeChunk(terrain, cx, cz)
 	end
 end
 
-local function finish(trackModels, baseplate)
+-- `keep`: optional test on a Ground tile; only passing tiles clear (near-ready clears the plaza and Track 1 first). The
+-- baseplate always goes: its tiles are up to 2048 studs, and the raised plate would show over the plaza.
+local function finish(trackModels, baseplate, keep)
 	for _, tile in baseplate and baseplate:GetDescendants() or {} do
 		if tile:IsA("BasePart") then
 			tile.Position =
@@ -127,7 +129,7 @@ local function finish(trackModels, baseplate)
 	end
 	for _, model in trackModels do
 		for _, tile in model:GetChildren() do
-			if tile.Name == "Ground" and tile:IsA("BasePart") then
+			if tile.Name == "Ground" and tile:IsA("BasePart") and (not keep or keep(tile)) then
 				tile.Transparency = 1
 				tile.CanCollide = false
 				tile.CanQuery = false
@@ -164,6 +166,13 @@ function TerrainBuilder.Build(trackModels, baseplate)
 		for i, c in chunks do
 			-- The plaza and Track 1 are built: the loading screen need not wait for the far biomes (design doc 4.24)
 			if c[3] >= 2e7 and not ReplicatedStorage:GetAttribute("TerrainNearReady") then
+				-- The player is about to see this area: its stand-in ground must go now, not at the end.
+				-- shortcut: Ground tiles are judged by their centre and reach 2048 studs, so on a fresh server, for up to
+				-- about 25 s, a cleared tile can open a gap over unwritten far land and a far tile can cover near land. Off the
+				-- road and cosmetic; clear by chunk as it is written if anyone reports it.
+				finish(trackModels, baseplate, function(tile)
+					return TerrainShape.Zone(tile.Position.X, tile.Position.Z) <= 1
+				end)
 				ReplicatedStorage:SetAttribute("TerrainNearReady", true)
 			end
 			writeChunk(terrain, c[1], c[2])
@@ -173,7 +182,8 @@ function TerrainBuilder.Build(trackModels, baseplate)
 		return #chunks
 	end)
 	if not ok then
-		warn("[TERRAIN] build failed, baseplate kept: " .. tostring(err))
+		warn("[TERRAIN] build failed, far stand-in ground kept: " .. tostring(err))
+		ReplicatedStorage:SetAttribute("TerrainNearReady", true) -- nothing more is coming: do not hold the loading screen
 		return false
 	end
 	finish(trackModels, baseplate)

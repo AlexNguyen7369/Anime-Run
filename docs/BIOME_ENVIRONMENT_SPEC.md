@@ -109,7 +109,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 
   The services start while the terrain writes.
 - Chunk order: plaza and Track 1 first, then zones 2..10 outward. `ReplicatedStorage` attribute `TerrainProgress`
-  (0-1) and `TerrainReady = true` at the end. The harness waits for `TerrainReady`.
+  (0-1), `TerrainNearReady = true` once the plaza and Track 1 are written and their stand-in ground is cleared (the loading screen waits for this), and `TerrainReady = true` at the end. The harness waits for `TerrainReady`.
 - Chunks are 256 x 256 studs (placeholder) in XZ, written with `Terrain:WriteVoxels` at resolution 4, with one
   `task.wait()` per chunk. Water goes in the same call (material `Water`, occupancy 1 below the biome's water level).
   Each chunk's shaped layer starts below both its lowest column top and any tunnel hollow floor in it, so the floor

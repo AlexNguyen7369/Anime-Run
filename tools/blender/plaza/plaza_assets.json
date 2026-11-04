@@ -199,6 +199,14 @@
   "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 148
  },
+ "Petal": {
+  "Asset": 130260166899982,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "In-house numpy teardrop, tools/blender/plaza/plaza_petal.py, decal 85055583418274; used by Client/ArrivalFlow and DojoExtras",
+  "Reviewed": "2026-11-03 rules-auditor"
+ },
  "Planter": {
   "Asset": "136523946816200",
   "Hash": "f53c9465598bcf1f",

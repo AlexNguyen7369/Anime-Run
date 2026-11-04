@@ -59,7 +59,6 @@ for _, spec in chain do
 end
 
 -- The plaza hub beside Track 1's start: players join, respawn and stop here, and walk through its torii to race
-ReplicatedStorage:SetAttribute("LoadTracksAt", time())
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace

@@ -33,7 +33,13 @@ local FIGURE_SECONDS = 4
 local FIGURE_MODEL_WAIT = 3
 local FIGURE_SCALE = 1.5
 local FIGURE_FROM_SPAWN = 7 -- towards the gate, so it does not stand inside the player
-local TRAIL_SPEED = 0.5
+local TRAIL_DISCS = 12
+local TRAIL_ACTIVE_DISTANCE = 400 -- studs from the spawn: no pulsing while away
+local GATE_BURST_DISTANCE = 40 -- studs: the burst is for crossing the gate, not AUTO RACE or a duel from elsewhere
+local TRAIL_FROM = 10 -- studs from the spawn along the path
+local TRAIL_Y = 0.22 -- above the floor top in SPAWN's height, over the path mesh
+local TRAIL_DISC_SIZE = 6
+local TRAIL_COLOR = Color3.fromRGB(255, 60, 150)
 
 -- Round the far side of the plaza, out past the gate, back through the torii opening and down the path to the spawn.
 local KEYS = {
@@ -100,8 +106,28 @@ local function skipButton(onSkip)
 	button.TextSize = 22
 	button.Parent = gui
 	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+	-- Design doc 4.20: hover grows, press shrinks, release pops back
+	local scale = Instance.new("UIScale")
+	scale.Name = "MotionScale" -- the UIScale UiMotion.Pop animates
+	scale.Parent = button
+	local function size(goal)
+		UiMotion.Create(scale, TweenInfo.new(0.1), { Scale = goal }):Play()
+	end
+	button.MouseEnter:Connect(function()
+		size(1.035)
+	end)
+	button.MouseLeave:Connect(function()
+		size(1)
+	end)
+	button.MouseButton1Down:Connect(function()
+		size(0.97)
+	end)
+	button.MouseButton1Up:Connect(function()
+		size(1)
+	end)
 	button.Activated:Connect(onSkip)
 	gui.Parent = player:WaitForChild("PlayerGui")
+	UiMotion.Pop(button)
 	return gui
 end
 
@@ -224,32 +250,71 @@ local trail = nil
 
 local function applyTrailMotion()
 	if trail then
-		trail.Beam.TextureSpeed = UiMotion.Reduced() and 0 or TRAIL_SPEED -- reduced: the trail stays, it only stops moving
+		for _, emitter in trail.Emitters do
+			emitter.Enabled = not UiMotion.Reduced()
+		end
 	end
 end
 
+-- Glowing discs on the path, pulsing in a wave toward the gate, with petals drifting the same way. Flat parts, not a Beam:
+-- from the spawn the camera looks along the path, where a ribbon collapses to a line.
 local function showTrail()
-	local from = Instance.new("Attachment")
-	from.Name = "ArrivalTrailStart"
-	from.Parent = Workspace.Terrain
-	from.WorldPosition = SPAWN + TO_GATE * FIGURE_FROM_SPAWN + Vector3.new(0, 1, 0)
-	local to = Instance.new("Attachment")
-	to.Name = "ArrivalTrailEnd"
-	to.Parent = Workspace.Terrain
-	to.WorldPosition = GATE + Vector3.new(0, 1, 0)
-	local beam = Instance.new("Beam")
-	beam.Attachment0 = from
-	beam.Attachment1 = to
-	beam.Texture = PETAL
-	beam.TextureMode = Enum.TextureMode.Wrap
-	beam.TextureLength = 6
-	beam.Width0 = 3
-	beam.Width1 = 3
-	beam.Segments = 1
-	beam.FaceCamera = true
-	beam.LightInfluence = 0
-	beam.Parent = from
-	trail = { Beam = beam, From = from, To = to }
+	local folder = Instance.new("Folder")
+	folder.Name = "ArrivalTrail"
+	local start = SPAWN + TO_GATE * TRAIL_FROM
+	local length = (GATE - SPAWN).Magnitude - TRAIL_FROM - 6
+	local discs, emitters = {}, {}
+	for i = 1, TRAIL_DISCS do
+		local position = start + TO_GATE * (length * (i - 1) / (TRAIL_DISCS - 1)) + Vector3.new(0, TRAIL_Y, 0)
+		local disc = Instance.new("Part")
+		disc.Name = "Disc"
+		disc.Shape = Enum.PartType.Cylinder
+		disc.Size = Vector3.new(0.08, TRAIL_DISC_SIZE, TRAIL_DISC_SIZE)
+		disc.CFrame = CFrame.new(position) * CFrame.Angles(0, 0, math.rad(90))
+		disc.Anchored = true
+		disc.CanCollide = false
+		disc.CanTouch = false
+		disc.CanQuery = false
+		disc.CastShadow = false
+		disc.Material = Enum.Material.Neon
+		disc.Color = TRAIL_COLOR
+		disc.Parent = folder
+		table.insert(discs, disc)
+		if i % 2 == 0 then
+			local spot = Instance.new("Attachment")
+			spot.CFrame = CFrame.Angles(0, 0, math.rad(-90))
+				* CFrame.lookAt(Vector3.new(0, 0.5, 0), Vector3.new(0, 0.5, 0) + TO_GATE)
+			spot.Parent = disc
+			local emitter = Instance.new("ParticleEmitter")
+			emitter.Texture = PETAL
+			emitter.Rate = 8
+			emitter.Lifetime = NumberRange.new(1.6, 2.4)
+			emitter.Speed = NumberRange.new(8, 12)
+			emitter.EmissionDirection = Enum.NormalId.Front
+			emitter.SpreadAngle = Vector2.new(18, 18)
+			emitter.Size = NumberSequence.new(0.9)
+			emitter.Rotation = NumberRange.new(0, 360)
+			emitter.RotSpeed = NumberRange.new(-120, 120)
+			emitter.Transparency = NumberSequence.new(0.1, 1)
+			emitter.LightInfluence = 0
+			emitter.Parent = spot
+			table.insert(emitters, emitter)
+		end
+	end
+	folder.Parent = Workspace
+	local pulse = RunService.Heartbeat:Connect(function()
+		local camera = Workspace.CurrentCamera
+		if camera and camera.CFrame.Position.Magnitude > TRAIL_ACTIVE_DISTANCE then
+			return
+		end
+		local reduced = UiMotion.Reduced()
+		for i, disc in discs do
+			-- A wave running toward the gate; steady under Reduced Motion
+			local wave = reduced and 1 or (math.sin(os.clock() * 4 - i * 0.7) + 1) / 2
+			disc.Transparency = 0.35 - 0.35 * wave
+		end
+	end)
+	trail = { Folder = folder, Pulse = pulse, Emitters = emitters }
 	applyTrailMotion()
 end
 
@@ -286,11 +351,13 @@ local function onAutoRacing()
 	end
 	startedRun = true
 	if trail then
-		trail.From:Destroy()
-		trail.To:Destroy()
+		trail.Pulse:Disconnect()
+		trail.Folder:Destroy()
 		trail = nil
 	end
-	if wasNew then
+	local character = player.Character
+	local near = character and (character:GetPivot().Position - GATE).Magnitude <= GATE_BURST_DISTANCE
+	if wasNew and near then
 		burst(GATE + Vector3.new(0, 2, 0), PETAL, 45)
 		burst(GATE + Vector3.new(0, 2, 0), SPARKLE, 30, GOLD)
 	end

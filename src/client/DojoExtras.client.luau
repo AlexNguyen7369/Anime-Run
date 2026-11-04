@@ -75,7 +75,7 @@ local function burst(plot)
 	})
 	petals.LightInfluence = 0.4
 	petals.Parent = anchor
-	petals:Emit(BURST_COUNT)
+	task.delay(0.03, petals.Emit, petals, BURST_COUNT) -- a just-parented emitter can drop an Emit
 	task.delay(3, function()
 		anchor:Destroy()
 	end)
