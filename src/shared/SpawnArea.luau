@@ -3,7 +3,8 @@
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
 -- Server/CarService), the service row (Shop, Potions, Market, Index, the Checkpoints sensei: fronts on one line facing
 -- +x, WORLD_REDESIGN_SPEC 7) and the Best Roll pedestal. Players join and respawn here on foot, and Stop sends them back
--- here. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
+-- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
+-- the Market included. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
 -- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
@@ -12,7 +13,6 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
-local MarketplaceBuilder = require(script.Parent.MarketplaceBuilder)
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
 local PlazaHeader = require(script.Parent.PlazaHeader)
@@ -331,12 +331,69 @@ function SpawnArea.Build(startCFrame)
 		"OpenPotions",
 		"Potions"
 	)
-	local marketCenter = MarketplaceBuilder.CENTER
-	local marketplace = MarketplaceBuilder.Build(
-		frame
-			* CFrame.new(marketCenter.X, top, marketCenter.Y)
-			* CFrame.Angles(0, math.rad(MarketplaceBuilder.ROTATION), 0)
+	-- The Market, sized to its MarketStall mesh (origin world x -77.5: the deck front is 5.5 ahead, on world x -72). Deck,
+	-- counter, front posts and the closed rear collide; the curtains are cloth and the roof is out of reach.
+	local marketplace = Instance.new("Model")
+	marketplace.Name = "Marketplace"
+	local mf = facing(startCFrame, 40.5, -92.5, 41.5, -92.5)
+	block(marketplace, "Deck", Vector3.new(20, 0.5, 11), mf * CFrame.new(0, 0.25, 0), WOOD, Enum.Material.WoodPlanks)
+	local marketCounter = block(
+		marketplace,
+		"Counter",
+		Vector3.new(12.4, 3.9, 2.6),
+		mf * CFrame.new(0, 2.45, -3.8),
+		WOOD,
+		Enum.Material.WoodPlanks
 	)
+	for _, px in { -9.5, -6.6, 6.6, 9.5 } do
+		block(
+			marketplace,
+			"Post",
+			Vector3.new(0.9, 8.6, 0.9),
+			mf * CFrame.new(px, 4.6, -4.9),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	block(
+		marketplace,
+		"BackWall",
+		Vector3.new(19, 8.6, 0.6),
+		mf * CFrame.new(0, 4.6, 4.9),
+		DARK_WOOD,
+		Enum.Material.Wood
+	)
+	for _, px in { -9.5, 9.5 } do
+		block(
+			marketplace,
+			"SideWall",
+			Vector3.new(0.6, 8.6, 4.9),
+			mf * CFrame.new(px, 4.6, 2.45),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	block(
+		marketplace,
+		"Roof",
+		Vector3.new(23, 0.6, 14),
+		mf * CFrame.new(0, 9.2, 0),
+		ROOF_TILE,
+		Enum.Material.Slate,
+		false
+	)
+	local marketCurtain = block(
+		marketplace,
+		"Curtain",
+		Vector3.new(12.2, 2.2, 0.2),
+		mf * CFrame.new(0, 7.6, -4.8),
+		Color3.fromRGB(122, 63, 184),
+		Enum.Material.Fabric,
+		false
+	)
+	UiTheme.Stroke(surfaceText(marketCurtain, Enum.NormalId.Front, "Sign", "MARKET", Color3.new(1, 1, 1), 25), 2)
+	marketplace.PrimaryPart = addPrompt(marketCounter, "OpenMarket", "Browse Market", "Market", 8)
+	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
 	marketplace.Parent = model
 
 	-- Index board: a wooden frame holding a paper scroll, on the service row

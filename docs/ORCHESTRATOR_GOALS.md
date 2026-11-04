@@ -95,7 +95,8 @@ Spec: design doc 4.24 Clear plaza, WORLD_REDESIGN_SPEC 4 and 7
 Deliverables:
 - d1 | Rules written; Blender draft of the cleared plaza | renders from spawn and above; owner approves
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
-Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner) and the Aura stall kept (its stray checker block removed, owner).
+- d3 | In-house Market stall replaces the fork's Aura stall; Legends cut to at most 2 beside the gate (owner 2026-11-04) | owner sees the render; Studio shots; `spawn_area`, `world_layout` green; Market prompt opens; stylua / selene; rules audit PASS
+Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner).
 
 ## villains: Villains redesigned and rollable (owner 2026-11-04, design doc 4.32)
 Status: active

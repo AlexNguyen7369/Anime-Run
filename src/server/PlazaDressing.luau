@@ -23,6 +23,7 @@ local REPLACES = {
 	StartGate = "HeroTorii",
 	ShopStall = "SHOPStall",
 	PotionsStall = "POTIONSStall",
+	Marketplace = "MarketStall",
 	IndexBoard = "IndexBoard",
 	Spawn = "SpawnMosaic",
 }
