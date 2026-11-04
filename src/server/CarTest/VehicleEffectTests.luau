@@ -23,7 +23,11 @@ local TRAILS = { "void_trailCore", "void_trailEdgeL", "void_trailEdgeR" }
 local EMITTERS = { "void_trailMotes", "void_trailSmoke" }
 local EMITTER_ATTACHMENT = "void_trailEmitter"
 local DRIVE_SECONDS = 3
-local MIN_DRIVE_DISTANCE = 20 -- studs the chassis must cover in DRIVE_SECONDS
+local MIN_DRIVE_DISTANCE = 20 -- studs the chassis must cover in DRIVE_SECONDS (floor)
+-- Fixed cruise (design doc 4.13): the runner covers run.TargetSpeed x time along the rail. The chassis and every
+-- effect attachment must travel at least this share of that, summed frame to frame (a spiral road brings the runner
+-- back near where it started, so a straight start-to-end distance says nothing about travel).
+local DRIVE_SHARE = 0.5
 local MIN_RIBBON_WIDTH = 0.05 -- studs between a trail's two attachments
 local MASS_TOLERANCE = 1e-6
 local TRACK_TOLERANCE = 1e-3 -- studs: attachment world position vs chassis-space position
@@ -272,17 +276,92 @@ function Tests.make(helpers)
 			flag("equip_controls_unchanged", sameRun and car:GetAttribute("AutoRace") == true)
 
 			-- 4 + 5. The car drives on: the chassis travels, every effect attachment rides on it, no tilt
-			local start = chassis.Position
-			local attStart = {}
+			local last = chassis.Position
+			local travelled = 0
+			local attLast, attTravel = {}, {}
 			for i, a in atts do
-				attStart[i] = a.WorldPosition
+				attLast[i] = a.WorldPosition
+				attTravel[i] = 0
 			end
 			local minUpY, maxTrackErr, detached = 1, 0, 0
 			local t = 0
+			-- Diagnostics only (metrics.drive): why a window can come up short. No check reads these.
+			local function runState()
+				return {
+					stamina = run.Stamina and run.Stamina[run.Slot],
+					slot = run.Slot,
+					run_slot_attr = player:GetAttribute("RunSlot"),
+					race_track = run.RaceTrack,
+					wins = run.Wins,
+					losses = run.Losses,
+					resets = run.Resets,
+					laps = run.Laps,
+					index = run.Driver and run.Driver.Index,
+					done = run.Driver and run.Driver.Done,
+					connected = run.Connection ~= nil,
+					auto_racing = player:GetAttribute("AutoRacing"),
+					race_event = player:GetAttribute("RaceEvent"),
+					run_speed_attr = car:GetAttribute("RunSpeed"),
+				}
+			end
+			local diag = {
+				start = runState(),
+				clockStart = os.clock(),
+				wallStart = DateTime.now().UnixTimestampMillis,
+				frames = 0,
+				maxDt = 0,
+				maxDtAt = 0,
+				maxMove = 0,
+				maxMoveAt = 0,
+				zeroMoves = 0,
+				minTarget = math.huge,
+				maxTarget = -math.huge,
+				runChanged = false,
+				carChanged = false,
+				chassisChanged = false,
+				chassisUnparented = false,
+				indexBackward = 0,
+				indexMaxJump = 0,
+			}
+			local prevIndex = run.Driver and run.Driver.Index
 			while t < DRIVE_SECONDS do
-				t += RunService.Heartbeat:Wait()
+				local frameDt = RunService.Heartbeat:Wait()
+				t += frameDt
+				diag.frames += 1
+				if frameDt > diag.maxDt then
+					diag.maxDt, diag.maxDtAt = frameDt, t
+				end
+				if type(run.TargetSpeed) == "number" then
+					diag.minTarget = math.min(diag.minTarget, run.TargetSpeed)
+					diag.maxTarget = math.max(diag.maxTarget, run.TargetSpeed)
+				end
+				diag.runChanged = diag.runChanged or CarService.GetRun(player) ~= run
+				diag.carChanged = diag.carChanged or CarService.GetCar(player) ~= car or run.Car ~= car
+				diag.chassisChanged = diag.chassisChanged or car:FindFirstChild("Torso", true) ~= chassis
+				local index = run.Driver and run.Driver.Index
+				if index and prevIndex then
+					diag.indexMaxJump = math.max(diag.indexMaxJump, math.abs(index - prevIndex))
+					if index < prevIndex then
+						diag.indexBackward += 1
+					end
+				end
+				prevIndex = index
 				if not chassis.Parent then
+					diag.chassisUnparented = true
 					break
+				end
+				local frameMove = (chassis.Position - last).Magnitude
+				if frameMove > diag.maxMove then
+					diag.maxMove, diag.maxMoveAt = frameMove, t
+				end
+				if frameMove == 0 then
+					diag.zeroMoves += 1
+				end
+				travelled += frameMove
+				last = chassis.Position
+				for i, a in atts do
+					attTravel[i] += (a.WorldPosition - attLast[i]).Magnitude
+					attLast[i] = a.WorldPosition
 				end
 				minUpY = math.min(minUpY, chassis.CFrame.UpVector.Y)
 				for _, a in atts do
@@ -294,21 +373,51 @@ function Tests.make(helpers)
 					end
 				end
 			end
-			local moved = (chassis.Position - start).Magnitude
-			flag("drive_chassis_moved", moved > MIN_DRIVE_DISTANCE, moved, MIN_DRIVE_DISTANCE)
+			local speed = type(run.TargetSpeed) == "number" and run.TargetSpeed or 0
+			local wantTravel = math.max(MIN_DRIVE_DISTANCE, DRIVE_SHARE * speed * t)
+			r.metrics.drive = {
+				seconds = t,
+				target_speed = speed,
+				finished = run.Finished == true,
+				want = wantTravel,
+				clock_elapsed = os.clock() - diag.clockStart,
+				wall_elapsed = (DateTime.now().UnixTimestampMillis - diag.wallStart) / 1000,
+				frames = diag.frames,
+				max_dt = diag.maxDt,
+				max_dt_at = diag.maxDtAt,
+				max_move = diag.maxMove,
+				max_move_at = diag.maxMoveAt,
+				zero_move_frames = diag.zeroMoves,
+				min_target = diag.minTarget,
+				max_target = diag.maxTarget,
+				run_changed = diag.runChanged,
+				car_changed = diag.carChanged,
+				chassis_changed = diag.chassisChanged,
+				chassis_unparented = diag.chassisUnparented,
+				index_backward = diag.indexBackward,
+				index_max_jump = diag.indexMaxJump,
+				state_start = diag.start,
+				state_end = runState(),
+			}
+			flag("drive_chassis_moved", travelled > wantTravel, travelled, wantTravel)
 			local minAttMoved = math.huge
-			for i, a in atts do
-				minAttMoved = math.min(minAttMoved, (a.WorldPosition - attStart[i]).Magnitude)
+			for i in atts do
+				minAttMoved = math.min(minAttMoved, attTravel[i])
 			end
 			minAttMoved = #atts > 0 and minAttMoved or 0
-			flag("drive_trail_laid", minAttMoved > MIN_DRIVE_DISTANCE, minAttMoved, MIN_DRIVE_DISTANCE)
+			flag("drive_trail_laid", minAttMoved > wantTravel, minAttMoved, wantTravel)
 			flag("drive_attachments_stay_on_chassis", detached == 0, detached, 0)
 			flag("drive_attachments_track_chassis", maxTrackErr <= TRACK_TOLERANCE, maxTrackErr, TRACK_TOLERANCE)
 			flag("drive_min_up_y", minUpY >= strict, minUpY, strict)
 			checkProfile("drive", car)
+			-- Diagnostics only: the rail runs at PreSimulation, this loop at Heartbeat, so a hitch between them ends the
+			-- window before the rail catches up; the frame after the window shows that catch-up.
+			r.metrics.drive.next_frame_dt = RunService.Heartbeat:Wait()
+			r.metrics.drive.next_frame_move = (chassis.Position - last).Magnitude
 
-			-- 6a. Mid-race character switch: equip a second owned character with another SpeedMulti (GachaService.Equip,
-			-- the server path), then the EquippedCar listener body (CarService.ApplyCharacter)
+			-- 6a. Mid-race character switch: equip a second owned character with another fixed cruise (design doc 4.13:
+			-- rarity x category; GachaService.Equip, the server path), then the EquippedCar listener body
+			-- (CarService.ApplyCharacter)
 			local Gacha = H.module(Server, "GachaService")
 			local Catalog = H.module(Shared, "CharacterCatalog")
 			local RaceConfig = H.module(Shared, "RaceConfig")
@@ -318,7 +427,8 @@ function Tests.make(helpers)
 				and RaceConfig ~= nil
 				and type(Gacha.Equip) == "function"
 				and type(Gacha.Grant) == "function"
-				and type(Gacha.CruiseMultis) == "function"
+				and type(Gacha.Cruise) == "function"
+				and type(RaceConfig.Cruise) == "function"
 				and type(maxDev) == "number"
 			flag("switch_api_exists", switchOk)
 			if not switchOk then
@@ -329,14 +439,14 @@ function Tests.make(helpers)
 			flag("switch_aura_equipped", okAura and player:GetAttribute("Slot1Aura") == AURA_ID)
 			pcall(VehicleEffects.Apply, car, player)
 			local from = Catalog.Get(player:GetAttribute("EquippedCar"))
-			local fromMulti = from and from.SpeedMulti or 1
+			local fromCruise = RaceConfig.Cruise(from)
 			local to = nil
 			for _, spec in Catalog.Rollable() do
-				if not to and spec.SpeedMulti ~= fromMulti then
+				if not to and RaceConfig.Cruise(spec) ~= fromCruise then
 					to = spec
 				end
 			end
-			flag("switch_second_character", to ~= nil, to and to.Id or "none", "SpeedMulti ~= " .. fromMulti)
+			flag("switch_second_character", to ~= nil, to and to.Id or "none", "Cruise ~= " .. fromCruise)
 			if not to then
 				return
 			end
@@ -366,8 +476,7 @@ function Tests.make(helpers)
 			local allowed = maxDev + speed0 * elapsed + 1
 			flag("switch_same_distance", jump <= allowed, jump, allowed)
 			-- the new character's cruise at once (RaceService's own formula, read right after the switch)
-			local stat = PlayerData.SpeedStat(player)
-			local want = RaceConfig.SpeedFor(stat, Gacha.CruiseMultis(player))
+			local want = Gacha.Cruise(player, swRun.Slot)
 			local got = type(swRun.TargetSpeed) == "number" and swRun.TargetSpeed or -1
 			flag("switch_cruise_at_once", math.abs(got - want) <= SPEED_EXACT, got, want)
 			flag("switch_cruise_changed", math.abs(got - speed0) > SPEED_EXACT, got, speed0)

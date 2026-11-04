@@ -36,7 +36,7 @@ MonetizationConfig.Gamepasses = {
 
 -- Developer products. Grants are boost ids from Shared/BoostConfig; Server/ShopService grants them per receipt.
 local bundle = {}
-for _, category in { "Luck", "Money", "Speed" } do
+for _, category in { "Luck", "Money", "Speed", "Stamina" } do
 	for _, roman in { "I", "II", "III" } do
 		bundle[category .. roman] = 10
 	end
@@ -68,6 +68,15 @@ MonetizationConfig.Products = {
 		ProductId = 0,
 		RobuxPrice = 49,
 		Grants = { SpeedIII = 5 },
+	},
+	{
+		Id = "potion_stamina_pack",
+		Name = "x5 Stamina Potion III",
+		Description = "x2 stamina",
+		Section = "Potions",
+		ProductId = 0,
+		RobuxPrice = 49,
+		Grants = { StaminaIII = 5 },
 	},
 	{
 		Id = "potion_bundle",

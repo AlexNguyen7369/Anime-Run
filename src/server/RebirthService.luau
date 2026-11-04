@@ -86,10 +86,6 @@ function RebirthService.Rebirth(player)
 	if type(gacha.RefreshMultipliers) == "function" then
 		gacha.RefreshMultipliers(player)
 	end
-	local workshop = require(script.Parent.WorkshopService)
-	if type(workshop.RefreshRate) == "function" then
-		workshop.RefreshRate(player)
-	end
 	return true, nextLevel
 end
 

@@ -24,7 +24,7 @@ local function textOf(path)
 	return o and (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text or "missing"
 end
 
--- Every other PanelSwitch panel that is open (Index, Stats, Settings, Rebirth, Upgrades, Workshop, Welcome).
+-- Every other PanelSwitch panel that is open (Index, Stats, Settings, Rebirth, Upgrades, Workshop).
 local function othersOpen()
 	local list = {}
 	for path in Spec.PanelSwitch.Names do
@@ -147,8 +147,9 @@ function Duel.Observe(helpers)
 		end
 	end)
 	task.spawn(function()
-		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
-		local remote = remotes and remotes:WaitForChild(D.Remote, 30)
+		-- no timeout: on a fresh Play the server builds every track before it makes Remotes
+		local remotes = ReplicatedStorage:WaitForChild("Remotes")
+		local remote = remotes:WaitForChild(D.Remote)
 		if not (remote and remote:IsA("RemoteEvent")) then
 			return
 		end

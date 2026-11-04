@@ -7,7 +7,7 @@
   currency (some players call this pay-to-win).
   - https://www.sportskeeda.com/roblox-news/everything-you-should-know-before-playing-roblox-anime-champions-simulator
   - https://earnaldo.com/blog/anime-astral-simulator-free-robux-guide
-- No public source found for a 3-character team with a stamina relay. The mechanic looks new in the genre.
+- No public source found for a 3-character team with a stamina relay.
 - Takeaways: team building is expected by the audience; keep the free auto-spin as the main source so the game does
   not read as pay-to-win.
 
@@ -19,8 +19,7 @@
   - https://create.roblox.com/docs/en-us/marketplace/intellectual-property
 - Fan games and parodies of franchises have been removed after DMCA notices.
   - https://roblox.fandom.com/wiki/Copyright_and_trademark_infringement
-- Decision (owner 2026-10-28): first original only; changed the same day to real anime characters with tweaked names,
-  risk accepted (design doc section 5).
+- Decision (owner 2026-10-28): real anime characters with tweaked names, risk accepted (design doc section 5).
 
 ## 3. Paid random items (spins)
 
@@ -37,5 +36,5 @@
   energy gate (owner 2026-10-28).
   - https://r.datuan.dev/r/gachagaming/wiki/index/what_are_gacha/
 - Balance risk: when rarity drives power, a strong low-rarity unit can outshine higher rarities; role-based design
-  (sprinter vs marathoner) keeps more characters useful (design doc open question 3).
+  (sprinter vs marathoner) keeps more characters useful.
   - https://game-wisdom.com/?p=25009

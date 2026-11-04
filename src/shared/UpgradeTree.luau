@@ -11,7 +11,7 @@ local PayoutCurve = require(script.Parent.PayoutCurve)
 local UpgradeTree = {}
 
 local ROMAN = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" }
-local BONUS_KEYS = { "Money", "Luck", "Speed", "RollSpeed" }
+local BONUS_KEYS = { "Money", "Luck", "Speed", "RollSpeed", "Stamina" }
 
 -- Built once from the config: the ordered tile list and an id -> tile map. Callers always get copies.
 local tiles, byId, branchById = {}, {}, {}
@@ -133,7 +133,7 @@ function UpgradeTree.BuyableCount(state)
 	return n
 end
 
--- Added bonuses from owned tiles: { Money = 0.25, Luck = 0, Speed = 0.1, RollSpeed = 0.2 }.
+-- Added bonuses from owned tiles: { Money = 0.25, Luck = 0, Speed = 0.1, RollSpeed = 0.2, Stamina = 0 }.
 function UpgradeTree.Bonuses(owned)
 	local sums = {}
 	for _, key in BONUS_KEYS do

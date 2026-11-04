@@ -49,7 +49,7 @@ local API = {
 local RUN_ORIGIN = Vector3.new(40000, 0, 40000) -- the options.Duel run's own chain, far from every other scenario
 local RUN_TRACKS = 3 -- the options.Duel run's chain: the first three tracks
 local RUN_TRACK = 2 -- the run starts on the second one: not the first, and not the last (the route goes on after it)
-local RUN_CAP = 40 -- s: the options.Duel run at MAX_STAT must finish its track within this
+local RUN_CAP = 40 -- s: the options.Duel run at MAX_CRUISE (Kami) must finish its track within this
 local RUN_AFTER = 0.5 -- s driven past the finish, to see OnFinish is not called again
 local START_SLACK = 3 -- studs beyond RaceService.START_AHEAD from the track's start waypoint (as the admin /tp test)
 local START_RADIUS = 25 -- studs (horizontal): a held duel car is at the picked track's start (as auto_toggle)
@@ -252,8 +252,8 @@ local function newSaveStore(initial)
 end
 
 -- Spec section 3: `options.Duel = { Track = n, OnFinish = fn(run, time) }` is a non-NPC run that starts on track
--- n, pays no pad and ends at that track's FinishIndex. Driven alone, at MAX_STAT (the stability rules hold at
--- maximum stat speed too), on the second track of its own three-track chain.
+-- n, pays no pad and ends at that track's FinishIndex. Driven alone by Kami at MAX_CRUISE (the stability rules hold
+-- at the top cruise too; design doc 4.13, was MAX_STAT), on the second track of its own three-track chain.
 local function duelRunAlone(r, flag, M)
 	local specs = M.TrackRegistry.Chain()
 	flag("duel_run_chain_has_three_tracks", #specs >= RUN_TRACKS, #specs, RUN_TRACKS)
@@ -281,7 +281,9 @@ local function duelRunAlone(r, flag, M)
 		player.Parent = Workspace
 		M.Money.Setup(player)
 		M.PlayerData.Setup(player)
-		player.BaseSpeed.Value = M.RaceConfig.MAX_STAT -- base Speed (owner 2026-10-21)
+		M.Gacha.Setup(player)
+		player:SetAttribute("AdminKami", true) -- Kami runs at MAX_CRUISE (design doc 4.13)
+		M.Gacha.Equip(player, M.CharacterCatalog.KAMI_ID)
 		player.leaderstats.Money.Value = 500
 		player:SetAttribute("Unbanked", 0) -- as CarService.OnCharacter leaves it
 		local earned0 = player:GetAttribute("MoneyEarned") or 0
@@ -505,7 +507,7 @@ function Tests.duel()
 	end
 	local strict = M.Targets.lap.MinUpYStrict
 	local maxDev = M.Targets.race.MaxPathDeviation
-	local HALF = M.RaceConfig.HALF_STAT
+	local FAST_ID = "ds_sister" -- an Epic Balanced, about the old HALF_STAT cruise (design doc 4.13)
 
 	local fakes = {}
 	local sent = {} -- every message the service sent, in order: { Player, Message }
@@ -537,10 +539,13 @@ function Tests.duel()
 			M.Upgrades.Setup(p)
 			return p
 		end
-		-- A loaded fake on foot at the walk spawn
-		local function newFake(tag, stat, bestTrack)
+		-- A loaded fake on foot at the walk spawn, running character `id` (nil = the starter)
+		local function newFake(tag, id, bestTrack)
 			local p = newPlayer(tag)
-			p.BaseSpeed.Value = stat
+			if id then
+				M.Gacha.Grant(p, id)
+				M.Gacha.Equip(p, id)
+			end
 			p:SetAttribute("BestTrack", bestTrack)
 			p:SetAttribute("DataLoaded", true)
 			return attach(p)
@@ -636,10 +641,10 @@ function Tests.duel()
 		end
 
 		-- The players. B is LOADED from a save (DuelWins 4), so the saved count is what a win adds to.
-		local A = newFake("A", 0, 2)
+		local A = newFake("A", nil, 2)
 		A.Player.leaderstats.Money.Value = 123
 		local saveStore = newSaveStore({
-			[PlayerData.KeyFor(UID_SAVED)] = { Money = 77, Speed = HALF, BestTrack = 4, DuelWins = 4, Version = 8 },
+			[PlayerData.KeyFor(UID_SAVED)] = { Money = 77, BestTrack = 4, DuelWins = 4, Version = 8 },
 		})
 		PlayerData.SetStore(saveStore)
 		local playerB = newPlayer("B")
@@ -654,10 +659,11 @@ function Tests.duel()
 		playerB:SetAttribute("DuelWins", 4) -- the later counts do not depend on the check above
 		playerB:SetAttribute("DataLoaded", true)
 		playerB:SetAttribute("BestTrack", 4)
-		playerB.BaseSpeed.Value = HALF
+		M.Gacha.Grant(playerB, FAST_ID)
+		M.Gacha.Equip(playerB, FAST_ID)
 		playerB.leaderstats.Money.Value = 77
 		local B = attach(playerB)
-		local C = newFake("C", 0, 0)
+		local C = newFake("C", nil, 0)
 		RunService.Heartbeat:Wait()
 		flag("duel_fakes_start_on_foot", onFoot(A) and onFoot(B) and onFoot(C))
 		flag("duel_state_none_at_start", both(A, B, "None") and state(C) == "None", tostring(state(A)), "None")
@@ -730,7 +736,7 @@ function Tests.duel()
 			return onFoot(C)
 		end)
 		-- dead: the spec names no reason of its own for it, so any refusal counts
-		local D = newFake("Dead", 0, 0)
+		local D = newFake("Dead", nil, 0)
 		D.Humanoid.Health = 0
 		frames(0.3)
 		refused("target_dead", A, D, nil)
@@ -913,7 +919,7 @@ function Tests.duel()
 
 		-- Leaving during Invited / Picking cancels with "Left" and cleans the state
 		now += GAP
-		local L1 = newFake("LeftInvited", 0, 0)
+		local L1 = newFake("LeftInvited", nil, 0)
 		from = #sent
 		local leftOk = service.Request(A.Player, L1.Player) == true and service.Pick(A.Player, 1) == true
 		service.PlayerLeft(L1.Player)
@@ -926,7 +932,7 @@ function Tests.duel()
 		)
 		discard(L1)
 		now += GAP
-		local L2 = newFake("LeftPicking", 0, 0)
+		local L2 = newFake("LeftPicking", nil, 0)
 		local leftPicking = service.Request(L2.Player, B.Player) == true and both(L2, B, "Picking")
 		service.PlayerLeft(L2.Player)
 		flag("duel_leave_while_picking_cleans_state", leftPicking and both(L2, B, "None"), tostring(state(B)), "None")
@@ -1082,7 +1088,7 @@ function Tests.duel()
 			flag(pre .. "_money_and_unbanked_unchanged", moneyOk)
 		end
 
-		-- Duel 1, Track 1 driven to the finish: A at stat 0 (BASE_SPEED), B at HALF_STAT: B reaches the finish first
+		-- Duel 1, Track 1 driven to the finish: A on the Common starter, B on an Epic (FAST_ID): B reaches the finish first
 		local track1 = trackOf(1)
 		local d1 = begin("duel_race", A, B, 1)
 		if d1.Ready then
@@ -1129,7 +1135,6 @@ function Tests.duel()
 				tostring(state(A)),
 				"Countdown"
 			)
-			local stat0A, stat0B = PlayerData.SpeedStat(A.Player), PlayerData.SpeedStat(B.Player)
 			if release("duel_race", d1) then
 				local runA, runB = d1.RunA, d1.RunB
 				local events = A.Player:GetAttribute("RaceEvent") == "Racing"
@@ -1152,7 +1157,7 @@ function Tests.duel()
 				for i = track1.StartIndex + 1, track1.FinishIndex do
 					length += (wps[i] - wps[i - 1]).Magnitude
 				end
-				local cap = length / (0.5 * M.RaceConfig.SpeedFor(HALF)) + 10
+				local cap = length / (0.5 * M.RaceConfig.Cruise(M.CharacterCatalog.Get(FAST_ID))) + 10
 				local sides = {
 					{ Fake = A, Run = runA, Car = d1.CarA, MinUp = 1, Dev = 0, Unbanked = 0 },
 					{ Fake = B, Run = runB, Car = d1.CarB, MinUp = 1, Dev = 0, Unbanked = 0 },
@@ -1208,10 +1213,7 @@ function Tests.duel()
 				flag("duel_race_pays_no_pad", paid == 0, paid, 0)
 				local banked = math.max(sides[1].Unbanked, sides[2].Unbanked)
 				flag("duel_race_unbanked_stays_zero", banked == 0, banked, 0)
-				-- Speed gain continues as in any race
-				local gainA = PlayerData.SpeedStat(A.Player) - stat0A
-				local gainB = PlayerData.SpeedStat(B.Player) - stat0B
-				flag("duel_race_both_gain_speed", gainA > 0 and gainB > 0, round(math.min(gainA, gainB)), 0)
+				-- retired: duel_race_both_gain_speed (design doc 4.13, owner 2026-11-01: no Speed stat, no gain)
 				-- stability rules on both cars
 				for _, s in sides do
 					local tag = s.Fake == A and "a" or "b"
@@ -1292,7 +1294,7 @@ function Tests.duel()
 		end
 
 		-- Duel 5, forfeit by leaving during the countdown: the other player wins
-		local L3 = newFake("LeftCountdown", 0, 0)
+		local L3 = newFake("LeftCountdown", nil, 0)
 		local d5 = begin("duel_forfeit_leave", L3, B, 1)
 		if d5.Ready then
 			service.PlayerLeft(L3.Player)
@@ -1301,7 +1303,7 @@ function Tests.duel()
 		discard(L3)
 
 		-- Duel 6, forfeit by death during the race: the other player wins
-		local L4 = newFake("Died", 0, 0)
+		local L4 = newFake("Died", nil, 0)
 		local d6 = begin("duel_forfeit_death", A, L4, 1)
 		if d6.Ready and release("duel_forfeit_death", d6) then
 			frames(0.5)

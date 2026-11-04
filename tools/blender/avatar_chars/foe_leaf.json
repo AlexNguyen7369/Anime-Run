@@ -1,0 +1,8 @@
+{
+	"foe_leaf": {
+		"colours": {"skin": "#F4DCC8", "eyes": "#A692D2", "UpperTorso": "#141418", "LowerTorso": "#141418", "UpperArm": "#141418", "LowerArm": "#141418", "Hand": "#F4DCC8", "UpperLeg": "#141418", "LowerLeg": "#141418", "Foot": "#2A2A32"},
+		"face": {"eye": "sharp", "mouth": "flat", "brow": "#A84A0E", "brow_lift": 0.26, "brow_tilt": 0},
+		"hair": {"colour": "#E8731A", "locks": []},
+		"pieces": []
+	}
+}

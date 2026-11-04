@@ -38,6 +38,10 @@ function Motion.Attach(root)
 		local hovering = false
 		local activeTween
 		local function animate(value)
+			-- Design doc 4.20: a disabled button (Active = false) does not move.
+			if object:IsA("GuiButton") and not object.Active then
+				value = 1
+			end
 			if activeTween then
 				activeTween:Cancel()
 			end

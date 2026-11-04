@@ -11,7 +11,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
-local CharacterCatalog = require(Shared.CharacterCatalog)
 local RouteMath = require(Shared.RaceProgressMap)
 local TrackRegistry = require(Shared.TrackRegistry)
 local UiTheme = require(Shared.UiTheme)
@@ -30,11 +29,100 @@ end
 
 local current = nil -- { Model, Path, Profile, ServerStart }
 
+-- The enemy's indicator (design doc 4.26): the arrow tip follows the top of its head at a fixed pixel size. A ScreenGui
+-- because it must show through walls, fog and any distance; AlwaysOnTop BillboardGuis did not draw in Studio.
+local INDICATOR_SIZE = UDim2.fromOffset(340, 96) -- px (placeholder)
+local INDICATOR_GAP = 0.4 -- studs between the head and the arrow tip
+
+local indicatorGui = Instance.new("ScreenGui")
+indicatorGui.Name = "NpcIndicator"
+indicatorGui.DisplayOrder = -1 -- under the HUD
+indicatorGui.ResetOnSpawn = false
+indicatorGui.ScreenInsets = Enum.ScreenInsets.None -- the whole window, as WorldToViewportPoint counts it
+indicatorGui.Parent = playerGui
+local indicator = Instance.new("Frame")
+indicator.Name = "Indicator"
+indicator.AnchorPoint = Vector2.new(0.5, 1)
+indicator.Size = INDICATOR_SIZE
+indicator.BackgroundTransparency = 1
+indicator.Visible = false
+indicator.Parent = indicatorGui
+
+-- Off screen a smaller pointer takes over (design doc 4.26). Margins clear the HUD: side columns, top bar, team row.
+local POINTER_SIZE = UDim2.fromOffset(150, 84) -- px (placeholder)
+local POINTER_MARGIN = { Side = 175, Top = 60, Bottom = 175 } -- px from the screen edge to its centre (placeholder)
+
+local pointer = Instance.new("Frame")
+pointer.Name = "Pointer"
+pointer.AnchorPoint = Vector2.new(0.5, 0.5)
+pointer.Size = POINTER_SIZE
+pointer.BackgroundTransparency = 1
+pointer.Visible = false
+pointer.Parent = indicatorGui
+
+local function indicatorLine(parent, name, text, y, height, color)
+	local line = Instance.new("TextLabel")
+	line.Name = name
+	line.Position = UDim2.fromScale(0, y)
+	line.Size = UDim2.fromScale(1, height)
+	line.BackgroundTransparency = 1
+	line.Text = text
+	line.TextScaled = true
+	line.Font = UiTheme.Font
+	line.TextColor3 = color
+	UiTheme.Stroke(line, 3)
+	line.Parent = parent
+	return line
+end
+local indicatorName = indicatorLine(indicator, "Text", "", 0, 0.55, Color3.new(1, 1, 1))
+indicatorLine(indicator, "Arrow", "\u{25BC}", 0.55, 0.45, UiTheme.Palette.Danger)
+local pointerName = indicatorLine(pointer, "Text", "", 0, 0.4, Color3.new(1, 1, 1))
+local pointerArrow = indicatorLine(pointer, "Arrow", "\u{25BC}", 0.4, 0.6, UiTheme.Palette.Danger)
+
+-- Where the pointer sits for a screen direction: from the screen centre along it to the margin rectangle.
+local function pointerSpot(viewport, direction)
+	local centre = viewport / 2
+	local toX = direction.X > 0 and viewport.X - POINTER_MARGIN.Side - centre.X or POINTER_MARGIN.Side - centre.X
+	local toY = direction.Y > 0 and viewport.Y - POINTER_MARGIN.Bottom - centre.Y or POINTER_MARGIN.Top - centre.Y
+	local scale = math.min(
+		direction.X ~= 0 and toX / direction.X or math.huge,
+		direction.Y ~= 0 and toY / direction.Y or math.huge
+	)
+	return centre + direction * math.max(scale, 0)
+end
+
+local function placeIndicator()
+	local head = current.Model:FindFirstChild("Head") or current.Model.PrimaryPart
+	local top = head.Position + Vector3.new(0, head.Size.Y / 2 + INDICATOR_GAP, 0)
+	local camera = Workspace.CurrentCamera
+	local viewport = camera.ViewportSize
+	local point = camera:WorldToViewportPoint(top)
+	local onScreen = point.Z > 0 and point.X >= 0 and point.X <= viewport.X and point.Y >= 0 and point.Y <= viewport.Y
+	if indicator.Visible ~= onScreen or pointer.Visible == onScreen then
+		indicator.Visible = onScreen
+		pointer.Visible = not onScreen
+		UiMotion.Pop(onScreen and indicator or pointer) -- design doc 4.20: on the swap only, never every frame
+	end
+	if onScreen then
+		indicator.Position = UDim2.fromOffset(point.X, point.Y)
+		return
+	end
+	-- Camera space, not the viewport point: that point mirrors once the enemy is behind the camera.
+	local relative = camera.CFrame:PointToObjectSpace(top)
+	local direction = Vector2.new(relative.X, -relative.Y)
+	direction = direction.Magnitude > 0.01 and direction.Unit or Vector2.new(0, 1) -- dead behind: point down
+	local spot = pointerSpot(viewport, direction)
+	pointer.Position = UDim2.fromOffset(spot.X, spot.Y)
+	pointerArrow.Rotation = math.deg(math.atan2(direction.Y, direction.X)) - 90 -- the glyph points down at 0
+end
+
 local function clearNpc()
 	if current then
 		current.Model:Destroy()
 		current = nil
 	end
+	indicator.Visible = false
+	pointer.Visible = false
 end
 
 local function startNpc(event)
@@ -52,6 +140,8 @@ local function startNpc(event)
 	model:PivotTo(NpcRacer.PoseAt(path, profile, 0))
 	model.Parent = Workspace -- client-side only: never replicated
 	current = { Model = model, Path = path, Profile = profile, ServerStart = event.ServerStart }
+	indicatorName.Text = info.Label
+	pointerName.Text = info.Label
 end
 
 -- Loser screen (docs/NPC_RACER_SPEC.md "Loser screen", docs/HUD_LAYOUT_SPEC.md sections 8 and 10): built once,
@@ -176,14 +266,6 @@ local function backToText(s)
 	return s == 1 and "Back to the start" or ("Back to checkpoint %d"):format(s)
 end
 
-local function npcLabel(track)
-	local info = NpcConfig.For(track)
-	local o = NpcConfig.Tracks[info.Number]
-	local car = o and o.Model and CharacterCatalog.Get(o.Model)
-	local carName = car and car.Name or (o and o.Model)
-	return carName and ("%s · %s"):format(info.Label, carName) or info.Label
-end
-
 local loseToken = 0
 local shownAt = 0
 local drain = nil
@@ -198,10 +280,10 @@ local function showLoser(event)
 	local track = tonumber(event.Track) or 1
 	local mine, theirs = tonumber(event.PlayerTime), tonumber(event.NpcTime)
 	local best = tonumber(event.BestTime) or lastBest[track]
-	npcName.Text = npcLabel(track)
+	npcName.Text = NpcConfig.For(track).Label
 	trackTitle.Text = ("TRACK %d · %s"):format(track, string.upper(trackNames[track] or "RACE"))
 	yourTime.Text = "YOUR TIME " .. (mine and RouteMath.FormatTime(mine) or "--")
-	npcTime.Text = "NPC TIME " .. (theirs and RouteMath.FormatTime(theirs) or "--")
+	npcTime.Text = "ENEMY TIME " .. (theirs and RouteMath.FormatTime(theirs) or "--")
 	gap.Text = (mine and theirs) and ("+%.2fs"):format(math.max(0, mine - theirs)) or ""
 	pb.Text = best and "PB " .. RouteMath.FormatTime(best) or "PB --"
 	backTo.Text = backToText(runStart or 1)
@@ -292,7 +374,8 @@ remote.OnClientEvent:Connect(function(event)
 end)
 
 local npcPhase = 0
-RunService.RenderStepped:Connect(function(dt)
+-- After the camera moves, or the indicator trails the head by one frame of camera motion.
+RunService:BindToRenderStep("NpcRacer", Enum.RenderPriority.Last.Value, function(dt)
 	if current and current.Model.Parent then
 		local t = Workspace:GetServerTimeNow() - current.ServerStart
 		local running = t < current.Profile.TotalTime
@@ -303,5 +386,6 @@ RunService.RenderStepped:Connect(function(dt)
 			npcPhase,
 			running and 1 or 0
 		)
+		placeIndicator()
 	end
 end)

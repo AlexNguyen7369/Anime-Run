@@ -1,0 +1,7 @@
+{
+	"foe_jk": {
+		"colours": { "skin": "#DBE4E9", "eyes": "#C8201C", "UpperTorso": "#BCCB58", "LowerTorso": "#22232F", "UpperArm": "#BCCB58", "LowerArm": "#DBE4E9", "Hand": "#DBE4E9", "UpperLeg": "#383B52", "LowerLeg": "#383B52", "Foot": "#4E2A1A" },
+		"face": { "eye": "soft", "mouth": "smirk", "brow": "#1C1A20" },
+		"hair": { "colour": "#DBE4E9", "locks": [] }
+	}
+}

@@ -7,8 +7,15 @@ local WORLD, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP = 1800, 0.15, 1.6, 0.16
 -- The click box is one row step tall so neighbouring tiles never overlap; the hex art is sized from the width.
 local NODE_WIDTH, NODE_HEIGHT, STEP_X, STEP_Y = 100, 106, 122, 106
 local CYAN, DARK, WHITE = Color3.fromRGB(30, 216, 255), Color3.fromRGB(27, 33, 46), Color3.new(1, 1, 1)
-local ICONS =
-	{ money = "cash", luck = "luck", speed = "speed", rollspeed = "luck", turbo = "luck", walkspeed = "speed" }
+local ICONS = {
+	money = "cash",
+	luck = "luck",
+	speed = "speed",
+	rollspeed = "luck",
+	turbo = "luck",
+	walkspeed = "speed",
+	stamina = "speed",
+}
 local function make(class, name, props, parent)
 	local object = Instance.new(class)
 	object.Name = name

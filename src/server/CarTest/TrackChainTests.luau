@@ -7,9 +7,10 @@
 --   * TrackValidator rejects an off-target track (its new TARGET_LENGTH check), probed with a plain L-shaped spec;
 --   * no overlap with any other chained track (centre line and race path, the IVS chain rule), the plaza (live
 --     Workspace.SpawnArea) or the Dojo plots (live Workspace.Workshops);
---   * driven by the real RaceService on the live route from this track's start to its finish at normal (HALF_STAT)
---     and max (MAX_STAT) stat speed: 0 flips (upright, up Y >= 0.999), 0 off-track (feet within
---     PhysicsTargets.race.MaxPathDeviation of the route), this track's pad paid exactly once.
+--   * driven by the real RaceService on the live route from this track's start to its finish at a normal (Epic) and
+--     a max (Secret) character cruise (design doc 4.13; was HALF_STAT / MAX_STAT stat speed): 0 flips (upright,
+--     up Y >= 0.999), 0 off-track (feet within PhysicsTargets.race.MaxPathDeviation of the route), this track's pad
+--     paid exactly once.
 -- Chain (called from Scenarios.chain): Tracks 1-10 numbered 1..10, built from TrackBuilder.CHAIN_ORIGIN (owner
 --   2026-10-30), spiralling outward: each track's mean distance from the plaza centre (the world origin, spec 3)
 --   is larger than the previous track's, so Track 1 is nearest. Test-side reading of "farther from the plaza centre".
@@ -301,8 +302,9 @@ local function nearest(pts, p, lo, hi)
 end
 
 -- Drives the runner rig with the real RaceService along the live route, from track `number`'s start
--- (run:JumpToTrack) to its finish, at `stat`. Measures uprightness and path deviation independently of the run.
-local function driveTrack(svc, route, entry, stat)
+-- (run:JumpToTrack) to its finish, running character `id` (owned and equipped). Measures uprightness and path
+-- deviation independently of the run.
+local function driveTrack(svc, route, entry, id)
 	local st = { ok = false, minUp = 1, dev = 0, n = 0 }
 	local wps = route.Path.WorldWaypoints
 	local n = #wps
@@ -310,8 +312,7 @@ local function driveTrack(svc, route, entry, stat)
 	for i = 2, n do
 		arc[i] = arc[i - 1] + (wps[i] - wps[i - 1]).Magnitude
 	end
-	local character = svc.Catalog.All()[1]
-	local okBuild, model = pcall(svc.RunnerFactory.build, character and character.Id)
+	local okBuild, model = pcall(svc.RunnerFactory.build, id)
 	if not okBuild or typeof(model) ~= "Instance" then
 		st.err = "runner build: " .. tostring(model)
 		return st
@@ -324,7 +325,9 @@ local function driveTrack(svc, route, entry, stat)
 	local okRun, run = pcall(function()
 		svc.Money.Setup(player)
 		svc.PlayerData.Setup(player)
-		player.BaseSpeed.Value = stat
+		svc.Gacha.Setup(player)
+		svc.Gacha.Grant(player, id)
+		svc.Gacha.Equip(player, id)
 		return svc.RaceService.NewRun(model, route, player, nil)
 	end)
 	local jumped = okRun and type(run) == "table" and run:JumpToTrack(entry.Number) == true
@@ -342,7 +345,7 @@ local function driveTrack(svc, route, entry, stat)
 	local idx = math.max(entry.StartIndex - 1, 1)
 	local startArc = arc[math.clamp(entry.StartIndex, 1, n)]
 	local finishArc = arc[math.clamp(entry.FinishIndex, 1, n)]
-	local timeout = (finishArc - startArc) / (0.5 * math.max(svc.RaceConfig.SpeedFor(stat), 1)) + 20
+	local timeout = (finishArc - startArc) / (0.5 * math.max(svc.RaceConfig.Cruise(svc.Catalog.Get(id)), 1)) + 20
 	local t, travelled = 0, 0
 	local prev = model.PrimaryPart and model.PrimaryPart.Position
 	while t < timeout do
@@ -460,6 +463,7 @@ function M.make(helpers)
 				PlayerData = H.module(Server, "PlayerData"),
 				RaceConfig = H.module(Shared, "RaceConfig"),
 				Catalog = H.module(Shared, "CharacterCatalog"),
+				Gacha = H.module(Server, "GachaService"),
 			}
 			local Targets = H.module(Shared, "PhysicsTargets")
 			local maxDev = Targets and Targets.race and Targets.race.MaxPathDeviation
@@ -477,11 +481,13 @@ function M.make(helpers)
 				and svc.PlayerData ~= nil
 				and svc.RaceConfig ~= nil
 				and svc.Catalog ~= nil
+				and svc.Gacha ~= nil
 				and TrackBuilder ~= nil
 			check("runner_route_has_track", entry and 1 or 0, 1, apiOk)
 			if apiOk then
 				local cash = TrackBuilder.CashFor(n)
-				for _, case in { { "normal", svc.RaceConfig.HALF_STAT }, { "max", svc.RaceConfig.MAX_STAT } } do
+				-- an Epic Balanced (about the old HALF_STAT cruise) and a Secret Balanced, as the race scenario uses
+				for _, case in { { "normal", "ds_sister" }, { "max", "db_hero" } } do
 					local st = driveTrack(svc, route, entry, case[2])
 					local pre = "runner_" .. case[1] .. "_"
 					check(pre .. "run_started", st.ok and 1 or 0, 1, st.ok)

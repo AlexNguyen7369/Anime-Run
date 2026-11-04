@@ -37,7 +37,7 @@ end
 
 -- Speed multi (design doc 4.13): (1 + SPEED_PER_POINT x Speed points + upgrade tree Speed bonus) x Speed potion
 -- x preset bonus x damped aura x damped trail. `potion` is the active Speed potion multi (1 = none); `preset` true
--- for a preset team; `treeBonus` the owned Speed tiers' summed Bonus (UpgradeTree.Bonuses(owned).Speed, 0 = none).
+-- for a preset team; `treeBonus` the additive bonuses: owned Speed tiers (UpgradeTree.Bonuses(owned).Speed), rebirth level, 0 = none.
 function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMulti, treeBonus)
 	local points = positive(speedPoints) and math.floor(speedPoints) or 0
 	return (1 + RaceConfig.SPEED_PER_POINT * points + (positive(treeBonus) and treeBonus or 0))

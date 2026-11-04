@@ -1,9 +1,7 @@
 --!nonstrict
--- BRIEF: Workshop phase 2: exact 25% offline rate, eight-hour cap,
--- no Speed cap, guarded next-level purchase, OfflineAt persistence and one-time credit.
--- Owner, 2026-10-13 (design doc "Core stat model", WORKSHOP_SPEC section 4): no diminishing term. Offline Speed =
--- Workshop.Rate x OFFLINE_FRACTION x min(seconds, OFFLINE_CAP); the stat itself never reduces it and, owner
--- 2026-10-20, the Speed stat has no cap (MAX_STAT is only a test reference stat, it clamps nothing). (Was: the integral of rate / (1 + stat / GAIN_SOFT).)
+-- BRIEF: Workshop phase 2: guarded next-level purchase; a failed load never saves.
+-- retired: workshop_offline and the offline credit checks (design doc 4.19, owner 2026-11-03: no offline workshop
+-- credit, no passive gain).
 -- Weather: rain luck 2, night NPC speed 1.25/money 2, gold money 3, expiry,
 -- actual rolls/payouts and Event-only catalog eligibility. No owner prices assumed.
 -- Weather, owner 2026-10-13 (design doc "Weather events", WEATHER_EVENTS_SPEC "Schedule"): a weather every
@@ -41,108 +39,6 @@ local function near(a, b, tolerance)
 	return type(a) == "number" and a == a and math.abs(a - b) <= (tolerance or 1e-6)
 end
 
--- Independent oracle (owner, 2026-10-13): 25% of the workshop rate x the time capped at eight hours. The stat does
--- not reduce it and nothing clamps it to a max stat (owner 2026-10-20: no Speed cap). This deliberately never calls Workshop.Rate/OfflineGain.
-local function integrated(_stat, speedMulti, levelMulti, workshopMulti, seconds, config)
-	local a = 0.25 * config.BASE_RATE * speedMulti * levelMulti * workshopMulti
-	local t = math.clamp(seconds, 0, 8 * 60 * 60)
-	return a * t
-end
-
-function Tests.workshop_offline()
-	local r, flag = report("workshop_offline")
-	local workshop = module(Shared, "Workshop")
-	local config = module(Shared, "WorkshopConfig")
-	local race = module(Shared, "RaceConfig")
-	local api = workshop and config and race and type(workshop.OfflineGain) == "function"
-	flag("offline_gain_api_exists", api == true)
-	if not api then
-		return r
-	end
-	local function exact(label, stat, sm, level, wm, seconds)
-		local want = integrated(stat, sm, config.Levels[level].Multi, wm, seconds, config)
-		local ok, got = pcall(workshop.OfflineGain, stat, sm, level, wm, seconds)
-		-- relative tolerance: uncapped gains can reach 1e12+, where 1e-6 absolute is below double precision
-		flag(
-			label,
-			ok and near(got, want, math.max(1e-6, math.abs(want) * 1e-9)),
-			type(got) == "number" and got or -1,
-			want
-		)
-		return got, want
-	end
-	exact("offline_exact_quarter_rate_from_zero", 0, 1, 1, 1, 3600)
-	exact("offline_exact_existing_stat_not_reduced", 2000, 3, 1, 2, 7200)
-	exact("offline_eight_hour_cap", 1234, 2, 1, 3, 8 * 3600)
-	exact("offline_beyond_eight_hours_same_gain", 1234, 2, 1, 3, 48 * 3600)
-	exact("offline_zero_seconds", 100, 2, 1, 3, 0)
-	exact("offline_negative_seconds", 100, 2, 1, 3, -1)
-	exact("offline_zero_speed_multi", 100, 0, 1, 3, 3600)
-	exact("offline_zero_workshop_multi", 100, 2, 1, 0, 3600)
-	-- Owner 2026-10-20: no Speed cap. At and above the old 1e9 reference the full gain is still paid.
-	exact("offline_at_max_stat_full_gain", race.MAX_STAT, 2, 1, 3, 8 * 3600)
-	exact("offline_crossing_max_stat_not_clamped", race.MAX_STAT - 0.25, 1e8, 1, 2, 8 * 3600)
-	exact("offline_above_1e12_full_gain", 1e12, 2, 1, 3, 8 * 3600)
-	exact("offline_above_1e15_full_gain", 1e15, 2, 1, 3, 3600)
-	do
-		local ok, got = pcall(workshop.OfflineGain, race.MAX_STAT - 0.25, 1e8, 1, 2, 8 * 3600)
-		flag("offline_gain_can_pass_max_stat", ok and type(got) == "number" and got > 0.25, ok and got or -1, 0.25)
-		for _, bad in { { "inf", math.huge }, { "nan", 0 / 0 }, { "negative", -1 } } do
-			local okBad, gotBad = pcall(workshop.OfflineGain, bad[2], 2, 1, 3, 3600)
-			flag("offline_bad_stat_no_gain_" .. bad[1], okBad and gotBad == 0, okBad and gotBad or -1, 0)
-		end
-	end
-	-- Owner, 2026-10-13: the rate x the capped time IS the rule (was: an integral that paid less).
-	-- Design doc 4.11: tests scale, never loosen. Old 1e-6 absolute x STAT_SCALE.
-	local tol = 1e-6 * race.STAT_SCALE
-	local got = exact("offline_is_rate_times_capped_time", 0, 10, 1, 5, 8 * 3600)
-	local linear = 0.25 * config.BASE_RATE * 10 * 5 * 8 * 3600
-	flag("offline_no_diminishing_from_zero", near(got, linear, tol), type(got) == "number" and got or -1, linear)
-	-- The public contract: OfflineGain = Rate x OFFLINE_FRACTION x clamp(seconds, 0, OFFLINE_CAP).
-	local contract = type(workshop.Rate) == "function"
-		and type(config.OFFLINE_FRACTION) == "number"
-		and type(config.OFFLINE_CAP) == "number"
-	for _, case in { { 0, 3600 }, { 2000, 3600 }, { 1e6, 7200 }, { 1e6, 48 * 3600 }, { 5e8, 100 } } do
-		local stat, seconds = case[1], case[2]
-		local okWant, wantGain = pcall(function()
-			return workshop.Rate(stat, 2, 1, 3) * config.OFFLINE_FRACTION * math.clamp(seconds, 0, config.OFFLINE_CAP)
-		end)
-		local okGot, gotGain = pcall(workshop.OfflineGain, stat, 2, 1, 3, seconds)
-		contract = contract and okWant and okGot and near(gotGain, wantGain, tol) and wantGain > 0
-	end
-	flag("offline_equals_rate_times_fraction_times_time", contract)
-	local same = true
-	local atZero = workshop.OfflineGain(0, 2, 1, 3, 3600)
-	for _, stat in { 2000, 1e6, 5e8, 1e9, 1e12, 1e15 } do
-		same = same and atZero > 0 and workshop.OfflineGain(stat, 2, 1, 3, 3600) == atZero
-	end
-	flag("offline_same_gain_at_any_stat", same, type(atZero) == "number" and atZero or -1, 0.25 * 2 * 3 * 3600)
-	local first = workshop.OfflineGain(500, 2, 1, 3, 1800)
-	local second = workshop.OfflineGain(500 + first, 2, 1, 3, 1800)
-	local whole = workshop.OfflineGain(500, 2, 1, 3, 3600)
-	flag("offline_gain_composes", near(first + second, whole, tol))
-	for level, entry in config.Levels do
-		exact("offline_configured_level_" .. level, 500, 2, level, 3, 3600)
-		flag("offline_level_multi_valid_" .. level, type(entry.Multi) == "number" and entry.Multi > 0)
-	end
-	for i, args in
-		{
-			{ -1, 1, 1, 1, 10 },
-			{ 0 / 0, 1, 1, 1, 10 },
-			{ 0, math.huge, 1, 1, 10 },
-			{ 0, -1, 1, 1, 10 },
-			{ 0, 1, 1, -1, 10 },
-			{ 0, 1, 1, 1, 0 / 0 },
-			{ 0, 1, 1, 1, math.huge },
-			{ 0, 1, 1, 1, "bad" },
-		}
-	do
-		local ok, gain = pcall(workshop.OfflineGain, table.unpack(args))
-		flag("offline_invalid_input_" .. i, ok and gain == 0)
-	end
-	return r
-end
-
 local function fake(name, data, gacha)
 	local p = Instance.new("Folder")
 	p.Name = "CarTestPhase2" .. name
@@ -161,14 +57,12 @@ function Tests.workshop_phase2()
 	local carService = module(Server, "CarService")
 	local workshop = module(Shared, "Workshop")
 	local config = module(Shared, "WorkshopConfig")
-	local race = module(Shared, "RaceConfig")
-	local api = service and data and gacha and carService and config and race
+	local api = service and data and gacha and carService and config
 	flag("workshop_phase2_dependencies", api ~= nil)
 	if not api then
 		return r
 	end
 	flag("workshop_buy_upgrade_api_exists", type(service.BuyUpgrade) == "function")
-	flag("offline_clock_api_exists", type(data.SetClock) == "function")
 	local players = {}
 	local function player(name)
 		local p = fake(name, data, gacha)
@@ -268,141 +162,20 @@ function Tests.workshop_phase2()
 			end
 		end
 		config.Levels, config.MAX_LEVEL = oldLevels, oldMax
-		local at = os.time()
-		local clock = at
-		if type(data.SetClock) == "function" then
-			data.SetClock(function()
-				return clock
-			end)
-		end
-		local initial = { Speed = 2500, Money = 41, WorkshopLevel = 1, OfflineAt = at - 3600 }
-		local saved
-		local store = { claims = 0 }
-		function store:GetAsync(_key)
-			return initial
-		end
-		function store:SetAsync(_key, payload)
-			saved = payload
-			initial = payload
-		end
-		-- docs/SAVE_SPEC.md section 1 (VERSION 8): Load and Save are one UpdateAsync each. It returns the new value
-		-- and writes nothing (returning nil, like the real DataStore) when the transform returns nil.
-		function store:UpdateAsync(_key, transform)
-			self.claims += 1
-			local updated = transform(table.clone(initial))
-			if updated == nil then
-				return nil
-			end
-			saved = updated
-			initial = updated
-			return updated
-		end
-		data.SetStore(store)
-		local p = player("OfflineLoad")
-		gacha.Apply(p, initial)
-		local offlineGain =
-			integrated(initial.Speed, gacha.SpeedMulti(p), config.Levels[1].Multi, gacha.WorkshopMulti(p), 3600, config)
-		local want = initial.Speed + offlineGain
-		-- Owner, 2026-10-12 (docs/SAVE_SPEC.md section 3): offline earnings are Speed ONLY. Money after the load is
-		-- the saved Money exactly (was: + 10% of the Speed credit).
-		local wantMoney = 41
-		flag("offline_load_succeeds", data.Load(p, 74002, at) == true)
-		flag("offline_load_credits_rate_times_time", near(p.BaseSpeed.Value, want, 0.002), p.BaseSpeed.Value, want)
+		-- retired: the offline credit checks (design doc 4.19, owner 2026-11-03: no offline workshop credit)
 		flag(
-			"offline_claim_persisted_before_any_save",
-			store.claims == 1
-				and near(initial.Speed, want, 0.002)
-				and initial.OfflineAt == at
-				and initial.WorkshopLevel == 1
+			"offline_api_removed",
+			workshop ~= nil
+				and workshop.OfflineMoney == nil
+				and workshop.OfflineGain == nil
+				and workshop.Rate == nil
+				and config.OFFLINE_MONEY_FRACTION == nil
+				and config.OFFLINE_FRACTION == nil
+				and config.OFFLINE_CAP == nil
+				and config.BASE_RATE == nil
 		)
-		flag(
-			"offline_load_credits_no_money",
-			p.leaderstats.Money.Value == wantMoney,
-			p.leaderstats.Money.Value,
-			wantMoney
-		)
-		flag(
-			"offline_claim_leaves_saved_money",
-			initial.Money == wantMoney,
-			type(initial.Money) == "number" and initial.Money or -1,
-			wantMoney
-		)
-		flag("offline_money_attribute_not_set", p:GetAttribute("OfflineMoney") == nil)
-		flag(
-			"offline_money_api_removed",
-			workshop ~= nil and workshop.OfflineMoney == nil and config.OFFLINE_MONEY_FRACTION == nil
-		)
-		flag(
-			"offline_welcome_attributes",
-			near(p:GetAttribute("OfflineSpeed"), want - 2500, 0.002) and p:GetAttribute("OfflineSeconds") == 3600
-		)
-		local reconnect = player("ReconnectBeforeSave")
-		data.Load(reconnect, 74002)
-		flag(
-			"offline_no_replay_on_reconnect_without_save",
-			near(reconnect.BaseSpeed.Value, want, 0.002) and reconnect:GetAttribute("OfflineSpeed") == 0
-		)
-		-- GetAsync can race another session's claim: the callback must use the
-		-- latest persisted record, not a gain computed from the stale read.
-		local claimed = table.clone(initial)
-		local stale = table.clone(initial)
-		stale.Speed, stale.OfflineAt = 2500, at - 3600
-		local racedStore = {}
-		function racedStore:GetAsync(_key)
-			return stale
-		end
-		function racedStore:UpdateAsync(_key, transform)
-			local updated = transform(table.clone(claimed))
-			if updated ~= nil then
-				claimed = updated
-			end
-			return updated
-		end
-		data.SetStore(racedStore)
-		local raced = player("ConcurrentClaim")
-		local raceLoaded = data.Load(raced, 74002)
-		flag(
-			"offline_stale_read_cannot_replay_claim",
-			raceLoaded == true
-					and near(raced.BaseSpeed.Value, want, 0.002)
-					and raced:GetAttribute("OfflineSpeed") == 0
-					and raced.leaderstats.Money.Value == wantMoney
-				or raceLoaded == false
-					and raced:GetAttribute("DataFailed") == true
-					and raced:GetAttribute("DataLoaded") ~= true
-					and raced.BaseSpeed.Value <= 2500
-		)
-		data.SetStore(store)
-		-- Include a subsequent live gain: reloading must neither replay offline credit nor reset live progress.
-		data.AddSpeed(p, 7)
-		local once = p.BaseSpeed.Value
-		clock = at + 60
-		local claimsBefore = store.claims
-		data.Load(p, 74002)
-		flag("offline_repeated_load_preserves_once_credit_and_live_gain", near(p.BaseSpeed.Value, once, 0.002))
-		flag("offline_repeated_load_no_store_claim", store.claims == claimsBefore)
-		flag("offline_save_succeeds", data.Save(p, 74002) == true)
-		flag(
-			"offline_at_saved_unix_timestamp",
-			saved ~= nil and type(saved.OfflineAt) == "number" and saved.OfflineAt == clock and saved.Version == 12
-		)
-		local afterSave = player("ReconnectAfterSave")
-		data.Load(afterSave, 74002)
-		flag(
-			"offline_save_does_not_replay_previous_absence",
-			near(afterSave.BaseSpeed.Value, once, 0.002)
-				and afterSave:GetAttribute("OfflineSpeed") == 0
-				and afterSave.leaderstats.Money.Value == wantMoney
-		)
-		clock = at
-		for _, case in { { "Legacy", nil }, { "Future", at + 3600 }, { "Malformed", "bad" } } do
-			initial = { Speed = 99, WorkshopLevel = 1, OfflineAt = case[2] }
-			local legacy = player(case[1])
-			data.Load(legacy, 74003, at)
-			flag("offline_no_credit_" .. string.lower(case[1]), legacy.BaseSpeed.Value == 99)
-		end
 		for _, mode in { "missing_atomic_api", "failed_atomic_claim" } do
-			initial = { Speed = 99, Money = 41, WorkshopLevel = 1, OfflineAt = at - 3600 }
+			local initial = { Money = 41, WorkshopLevel = 1 }
 			local badStore = {}
 			function badStore:GetAsync(_key)
 				return initial
@@ -419,26 +192,29 @@ function Tests.workshop_phase2()
 			local failedClaim = player(mode)
 			local loaded = data.Load(failedClaim, 74005)
 			flag(
-				"offline_reject_" .. mode,
+				"load_reject_" .. mode,
 				loaded == false
 					and failedClaim:GetAttribute("DataFailed") == true
 					and failedClaim:GetAttribute("DataLoaded") ~= true
-					and failedClaim.BaseSpeed.Value <= 99
+					and failedClaim.leaderstats.Money.Value == 0
 					and data.Save(failedClaim, 74005) == false
-					and initial.OfflineAt == at - 3600
+					and initial.Money == 41
 			)
 		end
-		data.SetStore(store)
+		local store = {}
 		function store:GetAsync(_key)
 			error("injected load failure")
 		end
 		function store:UpdateAsync(_key, _transform) -- VERSION 8: the load is this call
 			error("injected load failure")
 		end
+		data.SetStore(store)
 		local failed = player("Failed")
 		flag(
-			"offline_failed_load_no_credit_or_save",
-			data.Load(failed, 74004, at) == false and failed.BaseSpeed.Value == 0 and data.Save(failed, 74004) == false
+			"load_failed_no_save",
+			data.Load(failed, 74004) == false
+				and failed.leaderstats.Money.Value == 0
+				and data.Save(failed, 74004) == false
 		)
 	end)
 	config.Levels, config.MAX_LEVEL = oldLevels, oldMax
@@ -450,9 +226,6 @@ function Tests.workshop_phase2()
 		ownedPlot:SetAttribute("Owner", originalOwner)
 	end
 	data.SetStore(nil)
-	if type(data.SetClock) == "function" then
-		data.SetClock(nil)
-	end
 	-- Every plot this scenario assigned goes back through the service's real release path (frees owners/plotOf,
 	-- removes the workshop, Owner 0, EMPTY sign), whether or not the body failed.
 	for _, p in players do
@@ -767,7 +540,7 @@ function Tests.weather()
 					local rolled = gacha.Roll(p, rng)
 					flag(
 						"weather_event_car_eligibility_" .. event .. "_" .. label(active),
-						set and (active == event and rolled == eventCar.Id or active ~= event and rolled ~= eventCar.Id)
+						set and rolled ~= eventCar.Id -- owner 2026-11-03: not rollable in any weather
 					)
 				end
 			end
@@ -776,14 +549,14 @@ function Tests.weather()
 		-- state, including variants beyond the first car of each event.
 		local catchAll
 		for _, spec in catalog.All() do
-			if spec.Chance == nil then
+			if spec.Chance == 1 then
 				catchAll = spec.Id
 			end
 		end
 		for _, active in { "", "rain", "night", "gold", "clear", "aurora" } do
 			local eligible = {}
 			for _, spec in catalog.Rollable() do
-				if spec.Chance and (spec.Event == nil or spec.Event == active) then
+				if spec.Chance ~= 1 and (spec.Event == nil or spec.Event == active) then
 					table.insert(eligible, spec)
 				end
 			end
@@ -801,8 +574,8 @@ function Tests.weather()
 				#eligible
 			)
 			for _, candidate in catalog.All() do
-				local allowed = candidate.Event == nil or candidate.Event == active
-				if candidate.Chance then
+				local allowed = candidate.Event == nil -- owner 2026-11-03: event characters are never rolled
+				if candidate.Chance ~= 1 then
 					for _, boundary in { "below", "equal" } do
 						local index = 0
 						local rng = {
@@ -836,19 +609,30 @@ function Tests.weather()
 		-- Event restrictions affect acquisition only. Every current car remains
 		-- owned, equippable, indexed and serializable after its event ends.
 		weather.SetEvent("", at)
+		-- Starter choice (design doc 4.21): only from the list, only once, only while the popup is owed.
+		do
+			local fresh = fake("StarterPick", data, gacha)
+			table.insert(extraPlayers, fresh)
+			flag("starter_pick_refused_without_popup", gacha.PickStarter(fresh, "starter_sea") == false)
+			fresh:SetAttribute("NeedsStarter", true)
+			flag("starter_pick_refuses_other_ids", gacha.PickStarter(fresh, "leaf_hero") == false)
+			flag("starter_pick_accepted", gacha.PickStarter(fresh, "starter_sea") == true)
+			flag("starter_pick_is_team", fresh:GetAttribute("Team") == "starter_sea")
+			flag(
+				"starter_pick_owned",
+				gacha.Copies(fresh, "starter_sea") >= 0 and gacha.Equip(fresh, "starter_sea") == true
+			)
+			flag("starter_pick_only_once", gacha.PickStarter(fresh, "starter_db") == false)
+		end
 		local inventory = fake("EntireCatalog", data, gacha)
 		table.insert(extraPlayers, inventory)
-		-- Owner rule: the car model sets cruise speed (CarSpeedMulti) and never the Speed-stat gain (SpeedMulti)
-		local gainMulti = gacha.SpeedMulti(inventory)
+		-- retired: the CarSpeedMulti / SpeedMulti part (design doc 4.13, owner 2026-11-01: no Speed stat, the
+		-- character's SpeedMulti never enters cruise)
 		for _, spec in catalog.All() do
 			flag("catalog_grant_" .. spec.Id, gacha.Grant(inventory, spec.Id) == true)
 			flag(
 				"catalog_equip_after_event_" .. spec.Id,
-				gacha.Equip(inventory, spec.Id) == true
-					and inventory:GetAttribute("EquippedCar") == spec.Id
-					and type(gacha.CarSpeedMulti) == "function"
-					and near(gacha.CarSpeedMulti(inventory), spec.SpeedMulti)
-					and near(gacha.SpeedMulti(inventory), gainMulti)
+				gacha.Equip(inventory, spec.Id) == true and inventory:GetAttribute("EquippedCar") == spec.Id
 			)
 		end
 		flag(
@@ -1255,8 +1039,8 @@ function Tests.weather()
 end
 
 -- BRIEF (owner, 2026-10-12; docs/GAME_DESIGN_REQUIREMENTS.md "Rebirth system", docs/SAVE_SPEC.md sections 2 and 3):
--- "Rebirthing resets Money and Speed." RebirthService.Rebirth(player) needs the Money requirement (owner 2026-11-01:
--- Level/XP removed) and sets both leaderstats values to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
+-- "Rebirthing resets Money" (design doc 4.14: there is no Speed stat). RebirthService.Rebirth(player) needs the Money
+-- requirement (owner 2026-11-01: Level/XP removed) and sets leaderstats.Money to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
 -- MoneyEarned and DuelWins survive.
 function Tests.rebirth()
 	local r, flag = report("rebirth")
@@ -1306,16 +1090,16 @@ function Tests.rebirth()
 		}
 	do
 		local level, want = case[1], case[2]
-		local got = config.SpeedGainMulti(level)
+		local got = config.LuckMulti(level)
 		flag("rebirth_multi_level_" .. level .. "_is_" .. tostring(want), got == want, got, want)
 	end
-	local curveOk = config.SpeedGainMulti(0) == 1
+	local curveOk = config.LuckMulti(0) == 1
 	for level = 1, 40 do
-		local got = config.SpeedGainMulti(level)
+		local got = config.LuckMulti(level)
 		curveOk = curveOk and got == TOTALS[math.min(level, #TOTALS)]
 	end
 	flag("rebirth_multi_follows_totals_then_flat", curveOk)
-	local huge = config.SpeedGainMulti(1e9)
+	local huge = config.LuckMulti(1e9)
 	flag("rebirth_multi_level_1e9_is_1e11", huge == 1e11, huge, 1e11)
 	flag(
 		"rebirth_late_step_and_effective_cap_removed",
@@ -1342,14 +1126,23 @@ function Tests.rebirth()
 			and config.CanRebirth(19, 1e24 - 1e9) == false
 	)
 	flag("rebirth_old_x10_totals_removed", config.REBIRTH_TOTALS == nil and config.REPEAT_FACTOR == nil)
-	local luckSame = true
-	for _, level in { 0, 1, 2, 5, 10, 11, 19, 20, 21, 60 } do
-		luckSame = luckSame and config.LuckMulti(level) == config.SpeedGainMulti(level)
-	end
-	flag("rebirth_luck_multi_equals_speed_gain_multi", luckSame)
+	-- design doc 4.14: the old SpeedGainMulti stays gone; the cruise gain is SpeedBonus (owner 2026-11-03)
+	flag("rebirth_speed_gain_multi_removed", config.SpeedGainMulti == nil)
+	local speedBonus, perLevel = config.SpeedBonus, config.SPEED_PER_REBIRTH
+	flag(
+		"rebirth_speed_bonus",
+		type(speedBonus) == "function"
+			and type(perLevel) == "number"
+			and near(speedBonus(0), 0)
+			and near(speedBonus(1), perLevel)
+			and near(speedBonus(20), 20 * perLevel)
+			and near(speedBonus(25), speedBonus(20)) -- capped at MAX_LEVEL
+			and near(speedBonus(nil), 0)
+			and near(speedBonus(0 / 0), 0)
+	)
 	local nextOk = type(config.NextMultiplier) == "function"
 	for _, level in { 0, 1, 9, 10, 18, 19, 20, 21 } do
-		nextOk = nextOk and config.NextMultiplier(level) == config.SpeedGainMulti(level + 1)
+		nextOk = nextOk and config.NextMultiplier(level) == config.LuckMulti(level + 1)
 	end
 	flag("rebirth_next_multiplier_is_next_level_total", nextOk)
 	flag(
@@ -1372,29 +1165,26 @@ function Tests.rebirth()
 			p:SetAttribute("MoneyEarned", 9000)
 			p:SetAttribute("DuelWins", 3)
 			p.leaderstats.Money.Value = money
-			p.BaseSpeed.Value = 321.5
 			gacha.Grant(p, "leaf_medic")
 			gacha.Grant(p, "leaf_copycat")
 			gacha.Equip(p, "leaf_copycat")
 			upgrades.Apply(p, { Upgrades = { "money_1", "rollspeed_1" }, BestTrack = 2, TurboCount = 7 })
 			return p
 		end
-		local function untouched(p, money, speed, level)
-			return p.leaderstats.Money.Value == money
-				and near(p.BaseSpeed.Value, speed)
-				and p:GetAttribute("RebirthLevel") == level
+		local function untouched(p, money, level)
+			return p.leaderstats.Money.Value == money and p:GetAttribute("RebirthLevel") == level
 		end
-		-- every refusal leaves Money, Speed and the rebirth level alone
+		-- every refusal leaves Money and the rebirth level alone
 		local function refused(label, p, change, restore)
 			local money = p.leaderstats.Money.Value
 			change()
 			local accepted = service.Rebirth(p)
 			flag("rebirth_refused_" .. label, accepted == false)
 			flag(
-				"rebirth_refused_" .. label .. "_keeps_money_and_speed",
-				untouched(p, money, 321.5, 0),
-				p.BaseSpeed.Value,
-				321.5
+				"rebirth_refused_" .. label .. "_keeps_money",
+				untouched(p, money, 0),
+				p.leaderstats.Money.Value,
+				money
 			)
 			restore()
 		end
@@ -1434,18 +1224,18 @@ function Tests.rebirth()
 		flag("rebirth_accepted_at_required_money", accepted == true and newLevel == 1)
 		flag("rebirth_level_raised", p:GetAttribute("RebirthLevel") == 1, p:GetAttribute("RebirthLevel"), 1)
 		flag("rebirth_resets_money", p.leaderstats.Money.Value == 0, p.leaderstats.Money.Value, 0)
-		flag("rebirth_resets_speed", p.BaseSpeed.Value == 0, p.BaseSpeed.Value, 0)
-		task.wait() -- the shown Speed follows BaseSpeed on its Changed signal (may be deferred)
-		-- Owner 2026-10-21: leaderstats.Speed shows base x ShownSpeedMulti, so it is 0 too (leaf_copycat stays equipped)
-		flag("rebirth_resets_shown_speed", p.leaderstats.Speed.Value == 0, p.leaderstats.Speed.Value, 0)
+		-- retired: rebirth_resets_speed / resets_shown_speed / speed_stat_is_0 (design doc 4.13 / 4.14: no Speed stat)
+		flag(
+			"rebirth_no_speed_stat",
+			p:FindFirstChild("BaseSpeed") == nil and p.leaderstats:FindFirstChild("Speed") == nil
+		)
 		-- design doc "Rebirth system" (owner 2026-10-27 rev. 4): rebirth 1 = total x1.5 (no points, aura or trail here)
 		flag(
 			"rebirth_multiplier_refreshes_immediately",
-			p:GetAttribute("SpeedGainMulti") == 1.5 and p:GetAttribute("LuckMulti") == 1.5,
-			p:GetAttribute("SpeedGainMulti"),
+			p:GetAttribute("SpeedGainMulti") == nil and p:GetAttribute("LuckMulti") == 1.5,
+			p:GetAttribute("LuckMulti"),
 			1.5
 		)
-		flag("rebirth_speed_stat_is_0", data.SpeedStat(p) == 0, data.SpeedStat(p), 0)
 		local carsAfter = gacha.Snapshot(p)
 		flag(
 			"rebirth_keeps_cars",
@@ -1500,17 +1290,12 @@ function Tests.rebirth()
 		flag("rebirth_money_1e10_requirement", config.Requirements(5).Money == 1e10, config.Requirements(5).Money, 1e10)
 		flag("rebirth_money_1e10_accepted", highOk == true and highNext == 6, highNext, 6)
 		flag("rebirth_money_1e10_zeroes_money", high.leaderstats.Money.Value == 0, high.leaderstats.Money.Value, 0)
-		-- rebirth 20 is the last: refused with "Max rebirth" at any level, Money and Speed untouched
+		-- rebirth 20 is the last: refused with "Max rebirth" at any level, Money untouched
 		local maxed = ready("Max", 1e30)
 		maxed:SetAttribute("RebirthLevel", 20)
 		local maxOk, maxMsg = service.Rebirth(maxed)
 		flag("rebirth_refused_at_max_rebirth", maxOk == false and maxMsg == "Max rebirth", maxMsg, "Max rebirth")
-		flag(
-			"rebirth_refused_at_max_keeps_money_and_speed",
-			untouched(maxed, 1e30, 321.5, 20),
-			maxed.BaseSpeed.Value,
-			321.5
-		)
+		flag("rebirth_refused_at_max_keeps_money", untouched(maxed, 1e30, 20), maxed.leaderstats.Money.Value, 1e30)
 		local luckBefore = p:GetAttribute("Alloc_Luck") or 0
 		local spent = gacha.Allocate(p, "Luck")
 		flag(
@@ -1528,13 +1313,12 @@ function Tests.rebirth()
 
 		-- the next rebirth needs the next milestone: refused, and the stats earned since are not wiped
 		p.leaderstats.Money.Value = 60
-		p.BaseSpeed.Value = 50
 		local again = service.Rebirth(p)
 		flag(
-			"rebirth_refused_next_milestone_keeps_money_and_speed",
-			again == false and untouched(p, 60, 50, 1),
-			p.BaseSpeed.Value,
-			50
+			"rebirth_refused_next_milestone_keeps_money",
+			again == false and untouched(p, 60, 1),
+			p.leaderstats.Money.Value,
+			60
 		)
 		-- rate limit: a second request inside REMOTE_COOLDOWN is refused and changes nothing
 		service.REMOTE_COOLDOWN = 60
@@ -1542,33 +1326,29 @@ function Tests.rebirth()
 		service.Rebirth(spam) -- refused (money), starts the cooldown
 		spam.leaderstats.Money.Value = need
 		local spammed = service.Rebirth(spam)
-		flag("rebirth_refused_cooldown_keeps_money_and_speed", spammed == false and untouched(spam, need, 321.5, 0))
+		flag("rebirth_refused_cooldown_keeps_money", spammed == false and untouched(spam, need, 0))
 
 		-- Load trim: PlayerData.Load runs GachaService.Apply BEFORE RebirthService.Apply, so the trim must count the
 		-- SAVED RebirthLevel; rebirth-funded allocations survive, anything beyond index + rebirth points is cut.
-		local function loaded(name, workshopAlloc)
+		-- the Workshop stat point is retired (design doc 4.19), so the trimmed stat is Money
+		local function loaded(name, moneyAlloc)
 			local q = fake("Rebirth" .. name, data, gacha)
 			table.insert(players, q)
 			q:SetAttribute("RebirthLevel", 0) -- not applied yet, as in PlayerData.Load
 			local save = {
 				Cars = { "leaf_copycat", "sea_navigator", "leaf_medic" },
-				StatAlloc = { Workshop = workshopAlloc, Speed = 1 },
+				StatAlloc = { Money = moneyAlloc, Speed = 1 },
 				RebirthLevel = 2,
 			}
 			gacha.Apply(q, save)
 			local index = gachaConfig.EarnedPoints(gacha.UniqueCount(q))
-			local trimmed = { Workshop = q:GetAttribute("Alloc_Workshop"), Speed = q:GetAttribute("Alloc_Speed") }
+			local trimmed = { Money = q:GetAttribute("Alloc_Money"), Speed = q:GetAttribute("Alloc_Speed") }
 			service.Apply(q, save)
 			return q, index, trimmed
 		end
 		local keep, index, kept = loaded("LoadKeep", 2 * per)
 		flag("rebirth_load_index_points_is_1", index == 1, index, 1)
-		flag(
-			"rebirth_load_keeps_rebirth_allocations",
-			kept.Workshop == 2 * per and kept.Speed == 1,
-			kept.Workshop,
-			2 * per
-		)
+		flag("rebirth_load_keeps_rebirth_allocations", kept.Money == 2 * per and kept.Speed == 1, kept.Money, 2 * per)
 		flag("rebirth_load_stat_points_0", keep:GetAttribute("StatPoints") == 0, keep:GetAttribute("StatPoints"), 0)
 		flag(
 			"rebirth_load_earned_points",
@@ -1577,7 +1357,7 @@ function Tests.rebirth()
 			index + 2 * per
 		)
 		local _, _, cut = loaded("LoadOver", 2 * per + 3)
-		flag("rebirth_load_trims_over_allocation", cut.Workshop == 2 * per and cut.Speed == 1, cut.Workshop, 2 * per)
+		flag("rebirth_load_trims_over_allocation", cut.Money == 2 * per and cut.Speed == 1, cut.Money, 2 * per)
 	end)
 	service.REMOTE_COOLDOWN = oldCooldown
 	for _, p in players do

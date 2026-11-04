@@ -14,12 +14,13 @@ GachaConfig.DISCOVERIES_PER_POINT = 3 -- every 3 unique cars in the index grant 
 GachaConfig.TURBO_EVERY = 10
 GachaConfig.TURBO_LUCK = 10
 
-GachaConfig.STATS = { "Speed", "Money", "Luck", "Workshop" }
+-- The Workshop stat retired 2026-11-03 (design doc 4.19): saved Alloc.Workshop points are never read, so they are free
+GachaConfig.STATS = { "Speed", "Money", "Luck", "Stamina" }
 GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier to tune)
 	Speed = 0.02, -- +2 % cruise per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
 	Money = 0.1, -- race payouts
 	Luck = 0.05, -- car roll odds
-	Workshop = 0.2, -- workshop gain (no workshop yet)
+	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)
 }
 
 GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
@@ -34,36 +35,11 @@ GachaConfig.RARITY_COLORS = {
 }
 
 -- Workshop Showcase (docs/WORKSHOP_SPEC.md "Showcase", owner 2026-10-22): duplicates are never sold, they add a
--- copy; the 3 cars the player shows in their workshop multiply workshop Speed gain. Numbers are placeholders.
+-- copy; the 3 characters the player shows in their workshop set the workshop stat boost by rarity (design doc 4.19,
+-- Shared/Workshop.Boost; copies no longer count).
 GachaConfig.SHOWCASE_SLOTS = 3
-GachaConfig.SHOWCASE_SCALE = 0.25
-GachaConfig.COPY_BONUS = 0.1 -- each copy adds 10% of the car's base slot bonus
-GachaConfig.MAX_COPIES = 50 -- copies above this still save but add nothing
 GachaConfig.MAX_SAVED_COPIES = 1e9
 GachaConfig.SHOWCASE_COOLDOWN = 0.5 -- seconds between accepted SetShowcase requests
-
--- One showcased car's bonus: SHOWCASE_SCALE x log10(SpeedMulti) x (1 + COPY_BONUS x min(copies, MAX_COPIES)).
--- The log keeps cars with huge multis (up to x2800) in range.
-function GachaConfig.SlotBonus(spec, copies)
-	local multi = spec and spec.SpeedMulti
-	if type(multi) ~= "number" or multi ~= multi or multi <= 1 or multi == math.huge then
-		return 0
-	end
-	if type(copies) ~= "number" or copies ~= copies or copies < 0 then
-		copies = 0
-	end
-	copies = math.min(math.floor(copies), GachaConfig.MAX_COPIES)
-	return GachaConfig.SHOWCASE_SCALE * math.log10(multi) * (1 + GachaConfig.COPY_BONUS * copies)
-end
-
--- 1 + the slot bonuses of `list` ({ { Spec = spec, Copies = n }, ... }).
-function GachaConfig.ShowcaseMulti(list)
-	local multi = 1
-	for _, slot in list do
-		multi += GachaConfig.SlotBonus(slot.Spec, slot.Copies)
-	end
-	return multi
-end
 
 local function count(n)
 	if type(n) ~= "number" or n ~= n or n < 0 or n == math.huge then
@@ -73,21 +49,18 @@ local function count(n)
 end
 
 -- One roll: checks cars rarest first, each hits with min(1, luck / N), the first hit wins, else the catch-all.
-function GachaConfig.Roll(rng, luck, event)
+function GachaConfig.Roll(rng, luck)
 	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
 		luck = 1
 	end
-	local catchAll = nil
-	for _, spec in CharacterCatalog.Rollable() do
-		if spec.Event and spec.Event ~= event then
-			continue
-		elseif spec.Chance == nil then
-			catchAll = spec
-		elseif rng:NextNumber() < math.min(1, luck / spec.Chance) then
+	local rollable = CharacterCatalog.Rollable()
+	for i, spec in rollable do
+		-- The last one is the catch-all (Chance = 1): it takes every roll the others miss, no draw needed.
+		if i == #rollable or rng:NextNumber() < math.min(1, luck / spec.Chance) then
 			return spec.Id
 		end
 	end
-	return catchAll.Id
+	return nil
 end
 
 -- True if roll number `rollNumber` (1 = the first roll ever) is a turbo roll.
@@ -102,7 +75,7 @@ end
 
 -- An emphasized roll plays in the enlarged view and is announced to the server (owner, 2026-10-02): the car is
 -- undiscovered (not in `ownedIds`, the player's cars before this roll) and rarer than the player's 5th-rarest
--- discovered car; with fewer than 5 discovered, any undiscovered car. Rarer = larger Chance (the catch-all has none).
+-- discovered car; with fewer than 5 discovered, any undiscovered car. Rarer = larger Chance (the catch-all is 1).
 -- Rarity names never matter.
 GachaConfig.EMPHASIS_RANK = 5
 
@@ -137,7 +110,7 @@ function GachaConfig.EarnedPoints(uniqueCount)
 	return math.floor(count(uniqueCount) / GachaConfig.DISCOVERIES_PER_POINT)
 end
 
--- Multis from allocated points: { Speed, Money, Luck, Workshop }, each 1 + points * PER_POINT. `bonuses` (optional,
+-- Multis from allocated points: { Speed, Money, Luck, Stamina }, each 1 + points * PER_POINT. `bonuses` (optional,
 -- the upgrade tree's UpgradeTree.Bonuses) is ADDED on top: 1 + points * PER_POINT + bonuses[stat].
 function GachaConfig.Multis(alloc, bonuses)
 	alloc = type(alloc) == "table" and alloc or {}

@@ -9,6 +9,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
@@ -97,7 +98,15 @@ local function getStore()
 	return store
 end
 
+-- Studio only: ReplicatedStorage attribute TestSaveKey = "<name>", set in Edit, plays this server on a separate test save, so
+-- a fresh-save check never reads or writes the tester's real save. A new name is a new save. Read once: changing it during
+-- Play must not send test data to the real key. Leaderboards skip these sessions.
+PlayerData.TestSave = RunService:IsStudio() and ReplicatedStorage:GetAttribute("TestSaveKey") or nil
+
 function PlayerData.KeyFor(userId)
+	if PlayerData.TestSave then
+		return "Test_" .. tostring(PlayerData.TestSave) .. "_" .. tostring(userId)
+	end
 	return "Player_" .. tostring(userId)
 end
 
@@ -138,9 +147,11 @@ function PlayerData.Load(player, userId)
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
+		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
 		MarketService.Apply(player, data)
 		player:SetAttribute("WorkshopLevel", Workshop.CleanLevel(data.WorkshopLevel)) -- missing = the starter workshop
+		player:SetAttribute("WorkshopStat", Workshop.CleanStat(data.WorkshopStat)) -- missing = Money (design doc 4.19)
 		RebirthService.Apply(player, data)
 		BoostService.Apply(player, data)
 		DailyLoginService.Apply(player, data)
@@ -185,10 +196,6 @@ function PlayerData.Load(player, userId)
 		return false
 	end
 	apply(updated)
-	-- No offline Speed credit since the Speed stat retired (design doc 4.13): nothing to show or double
-	player:SetAttribute("OfflineSpeed", 0)
-	player:SetAttribute("OfflineSeconds", 0)
-	ShopService.SetOfflineReward(player, 0)
 	player:SetAttribute("DataFailed", nil)
 	player:SetAttribute("DataLoaded", true)
 	-- The mailbox was persisted even if the recipient was offline. Claim through the same
@@ -265,6 +272,7 @@ local function save(player, userId, release)
 		BestTrack = upgrades.BestTrack,
 		TurboCount = upgrades.TurboCount,
 		WorkshopLevel = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")),
+		WorkshopStat = Workshop.CleanStat(player:GetAttribute("WorkshopStat")),
 		RebirthLevel = RebirthConfig.CleanLevel(player:GetAttribute("RebirthLevel")),
 		Boosts = boosts.Boosts,
 		ActiveBoosts = boosts.ActiveBoosts,

@@ -394,7 +394,6 @@ local ballTree = prop("BallTree", v(7, 20.5, 7), {
 local LightingConfig = require(script.Parent.Parent.LightingConfig)
 
 -- The LightingConfig baseline as an Atmosphere profile (spec 5.2), with `overrides` merged in one level deep.
--- Zone 0 (the plaza) uses Atmosphere() unchanged.
 local function atmosphere(overrides)
 	local effects = {}
 	for _, e in LightingConfig.Effects do

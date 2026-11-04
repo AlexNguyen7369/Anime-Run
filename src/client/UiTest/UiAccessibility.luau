@@ -6,10 +6,7 @@
 --   ui_motion_reduced    Client/UiMotion presets (docs/HUD_LAYOUT_SPEC.md section 10, owner 2026-10-27): with
 --                        ReduceEffects on, Pop / SlideIn / Shine / Pulse / Shake / Float land on their end state at
 --                        once and nothing loops; with it off (and Roblox's Reduced Motion off) Pop and Pulse animate.
---   ui_speed_float       Client/RollToast/RacerUiController (section 10, owner 2026-10-27; UiSpec.SpeedFloat): a local
---                        growth of leaderstats.Speed shows one MotionFloat "+<GainText(gain)>" in Speed yellow above
---                        SpeedValue, in its parent; 0.5 floats "+0.5"; a burst of growths is summed per 0.25 s and
---                        floats about every 0.25 s (several per second, never closer than MinGap); nothing floats while ReduceEffects is on. Speed and ReduceEffects are put back.
+--   (ui_speed_float retired: no Speed stat and no Speed read-out, design doc 4.13, owner 2026-11-01)
 --   ui_safe_insets       Client/SafeInsets: every player ScreenGui except the full-bleed ones uses DeviceSafeInsets
 --                        (also one added later); every shown button / label lies inside its gui's safe rect.
 --   ui_safe_insets_notch (MANUAL, Device Simulator notched phone) the same, and the safe rect really is inset.
@@ -21,12 +18,10 @@
 -- Every attribute, panel and selection touched is put back.
 
 local ContextActionService = game:GetService("ContextActionService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
 
 local Spec = require(script.Parent.UiSpec)
-local HudFormat = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("HudFormat"))
 
 local Access = {}
 
@@ -52,6 +47,9 @@ function Access.Build(h)
 	-- the result must land, and the reveal (Hold) must come at the normal time (section 7: "The outcome, timing of
 	-- the result reveal and all server values are unchanged").
 	local function reducedReelChecks(res)
+		-- The compact roll hides under every panel (owner 2026-10-28), and the Daily panel opens by itself on a save with
+		-- an unclaimed reward: with no panel open the roll has to be on screen.
+		h.setPanels({})
 		local events = h.events
 		local before = #events.rolls
 		local deadline = os.clock() + cfg.RollWait
@@ -86,36 +84,18 @@ function Access.Build(h)
 			return
 		end
 		local key = rec.playKey
-		local card = h.rollCards()[key]
-		local maxMove, samples, start = 0, 0, {}
 		local landBy = ev.t + h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND") + h.animNum("SWITCH") + 3
 		while not rec.hold[key] and os.clock() < landBy do
-			if card and card:GetAttribute("Phase") == "Spin" then
-				samples += 1
-				for _, partName in { "Reel", "Streaks" } do
-					local host = h.partOf(card, partName)
-					if host and host:IsA("GuiObject") then
-						for _, d in host:GetDescendants() do
-							if d:IsA("GuiObject") and h.visible(d) then
-								local pos = d.AbsolutePosition - host.AbsolutePosition
-								if start[d] then
-									maxMove = math.max(maxMove, (pos - start[d]).Magnitude)
-								else
-									start[d] = pos
-								end
-							end
-						end
-					end
-				end
-			end
 			task.wait()
 		end
+		-- docs/ROLL_ANIMATION_SPEC.md "Phases": the cycle does not swap. SampleRoll records ShownId every Spin frame.
+		local shown = rec.shown
 		h.check(
 			res,
 			"reduced_reel_does_not_spin",
-			("%.1f px over %d Spin frames"):format(maxMove, samples),
-			"<= " .. cfg.ReelStill .. " px",
-			maxMove <= cfg.ReelStill
+			("%d ShownId values over %d Spin frames"):format(#shown.spinSeq, shown.spinFrames),
+			"<= 1 ShownId, at least 1 Spin frame",
+			shown.spinFrames > 0 and #shown.spinSeq <= 1
 		)
 		local hold = rec.hold[key]
 		h.check(res, "reduced_roll_reached_hold", hold ~= nil, true, hold ~= nil)
@@ -131,7 +111,7 @@ function Access.Build(h)
 				holdAt = p.t
 			end
 		end
-		local want = h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND")
+		local want = (h.animNum("POP") + h.animNum("SPIN") + h.animNum("LAND")) * h.timeScale(ev.interval)
 		local tol = Spec.RollAnim.PhaseTolerance
 		local got = popAt and holdAt and holdAt - popAt
 		h.check(
@@ -356,168 +336,6 @@ function Access.Build(h)
 		end)
 		player:SetAttribute(cfg.ReduceAttr, saved)
 		probeGui:Destroy()
-		if not ok then
-			error(err)
-		end
-	end
-
-	---------------------------------------------------------------------------------------------------------------
-	-- Speed gain float (section 10)
-
-	function scenarios.ui_speed_float(res)
-		local F = Spec.SpeedFloat
-		h.waitGuis()
-		local stats = player:FindFirstChild("leaderstats")
-		local speed = stats and stats:FindFirstChild("Speed")
-		local host, value, moneyHost = h.find(F.Host), h.find(F.SpeedValue), h.find(F.Money)
-		if not (speed and speed:IsA("ValueBase") and host and value) then
-			h.stateMissing(res, "speed_float_setup", "hud", "leaderstats.Speed, " .. F.Host .. " or " .. F.SpeedValue)
-			return
-		end
-		h.check(res, "speed_float_host_is_value_parent", h.pathOf(value.Parent), F.Host, value.Parent == host)
-		if GuiService.ReducedMotionEnabled then
-			h.stateMissing(res, "speed_float_motion_on", "reduced_motion_off", "Roblox Reduced Motion is on")
-			return
-		end
-		-- The floats sum every Speed gain of a 0.25 s window: a racing car's (or a workshop's) real gains would mix
-		-- into the planted ones, so this runs on foot (UiSpec.Progression.FixtureChecks on_foot) and outside a workshop
-		if player:GetAttribute("AutoRacing") == true or player:GetAttribute("InWorkshop") == true then
-			h.stateMissing(res, "speed_float_no_live_gain", "on_foot", "AutoRacing or InWorkshop: live Speed gains")
-			return
-		end
-		local floats, misplaced = {}, 0
-		local conns = {
-			host.ChildAdded:Connect(function(c)
-				if c.Name == F.Label then
-					table.insert(floats, { t = os.clock(), label = c })
-				end
-			end),
-		}
-		if moneyHost then
-			table.insert(
-				conns,
-				moneyHost.ChildAdded:Connect(function(c)
-					if c.Name == F.Label then
-						misplaced += 1
-					end
-				end)
-			)
-		end
-		local savedReduce = player:GetAttribute(cfg.ReduceAttr)
-		local saved, written = speed.Value, nil
-		local function grow(by)
-			written = speed.Value + by
-			speed.Value = written
-		end
-		local ok, err = pcall(function()
-			player:SetAttribute(cfg.ReduceAttr, false)
-			task.wait(F.Quiet)
-			-- One growth: one float with its text, colour and place
-			local before = #floats
-			grow(F.Gain)
-			local deadline = os.clock() + F.Wait
-			while #floats == before and os.clock() < deadline do
-				task.wait(0.05)
-			end
-			local first = floats[before + 1]
-			h.check(res, "speed_float_appears", #floats - before, ">= 1", first ~= nil)
-			if first then
-				h.frames(1)
-				local label = first.label
-				local want = "+" .. HudFormat.GainText(F.Gain)
-				h.check(res, "speed_float_is_textlabel", label.ClassName, "TextLabel", label:IsA("TextLabel"))
-				if label:IsA("TextLabel") then
-					h.check(res, "speed_float_text", label.Text, want, label.Text == want)
-					local c, w = label.TextColor3, F.Color
-					local d = math.max(math.abs(c.R - w.R), math.abs(c.G - w.G), math.abs(c.B - w.B))
-					h.check(
-						res,
-						"speed_float_colour",
-						("%d,%d,%d"):format(
-							math.floor(c.R * 255 + 0.5),
-							math.floor(c.G * 255 + 0.5),
-							math.floor(c.B * 255 + 0.5)
-						),
-						"255,232,30",
-						d <= F.ColorTolerance
-					)
-					if label.Parent then
-						local r, v = h.rect(label), h.rect(value)
-						h.check(
-							res,
-							"speed_float_above_value",
-							("float %s value %s"):format(h.rstr(r), h.rstr(v)),
-							"float centre above the value centre",
-							r.y + r.h / 2 < v.y + v.h / 2
-						)
-					else
-						h.check(res, "speed_float_above_value", "destroyed before measured", "measured", false)
-					end
-				end
-			end
-			-- A fractional growth floats with one decimal
-			task.wait(F.Quiet)
-			before = #floats
-			grow(F.FracGain)
-			deadline = os.clock() + F.Wait
-			while #floats == before and os.clock() < deadline do
-				task.wait(0.05)
-			end
-			local frac = floats[before + 1]
-			local fracText = frac and frac.label:IsA("TextLabel") and frac.label.Text or "no float"
-			h.check(res, "speed_float_fraction_text", fracText, F.FracText, fracText == F.FracText)
-			-- A burst: summed per window, a float about every 0.25 s
-			task.wait(F.Quiet)
-			before = #floats
-			for _ = 1, F.BurstCount do
-				grow(F.BurstStep)
-				task.wait(F.BurstEvery)
-			end
-			task.wait(F.Wait)
-			local burst, minGap, single, summed = {}, math.huge, "+" .. HudFormat.GainText(F.BurstStep), false
-			for i = before + 1, #floats do
-				table.insert(burst, floats[i])
-				if #burst > 1 then
-					minGap = math.min(minGap, floats[i].t - floats[i - 1].t)
-				end
-				local label = floats[i].label
-				if label:IsA("TextLabel") and label.Text ~= single then
-					summed = true
-				end
-			end
-			h.check(res, "speed_float_burst_shown", #burst, ">= 1", #burst >= 1)
-			h.check(
-				res,
-				"speed_float_quarter_second_cadence",
-				#burst,
-				">= " .. F.BurstMinFloats,
-				#burst >= F.BurstMinFloats
-			)
-			h.check(
-				res,
-				"speed_float_min_gap",
-				minGap == math.huge and "one float" or minGap,
-				">= " .. F.MinGap,
-				#burst >= 1 and (minGap == math.huge or minGap >= F.MinGap)
-			)
-			h.check(res, "speed_float_gain_summed", summed and "summed" or ("every float " .. single), "summed", summed)
-			h.check(res, "speed_float_not_on_money", misplaced, 0, misplaced == 0)
-			-- Reduced: no float
-			task.wait(F.Quiet)
-			player:SetAttribute(cfg.ReduceAttr, true)
-			before = #floats
-			grow(F.Gain)
-			task.wait(F.Wait)
-			h.check(res, "speed_float_reduced_none", #floats - before, 0, #floats == before)
-		end)
-		for _, c in conns do
-			c:Disconnect()
-		end
-		-- Only put Speed back if the server did not replicate a newer value meanwhile.
-		if written ~= nil and speed.Value == written then
-			speed.Value = saved
-		end
-		player:SetAttribute(cfg.ReduceAttr, savedReduce)
 		if not ok then
 			error(err)
 		end
@@ -777,6 +595,11 @@ function Access.Build(h)
 			h.check(res, "no_gamepad_no_buttonb_bind_" .. p.Tag, buttonBCount(), bBefore, buttonBCount() == bBefore)
 			switch.Close(p.Name)
 			h.frames(2)
+			-- the close motion (design doc 4.20) may keep it Visible up to UiSpec.Waits.PanelClose
+			local deadline = os.clock() + Spec.Waits.PanelClose
+			while panel.Visible and os.clock() < deadline do
+				task.wait()
+			end
 			sel = GuiService.SelectedObject
 			h.check(res, "no_gamepad_close_keeps_selection_" .. p.Tag, name(sel), "nil", sel == nil)
 			h.check(res, "no_gamepad_panel_closed_" .. p.Tag, panel.Visible, false, panel.Visible == false)

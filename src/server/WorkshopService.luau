@@ -1,9 +1,9 @@
 --!nonstrict
 -- Mechanical Workshop, server side (docs/WORKSHOP_SPEC.md). Owns the 7 plots in the spawn area: assigns one to each
--- joining player, builds their workshop, frees it when they leave, and pays idle Money while they stand in its zone
--- (owner 2026-11-01; there is no Speed stat).
+-- joining player, builds their workshop and frees it when they leave. No passive gain since 2026-11-03 (design doc
+-- 4.19): the workshop boosts the player's chosen stat instead (GachaService.WorkshopBoost, Remotes.SetWorkshopStat).
 -- Clients only see: Workspace.Workshops.Plot_N (Owner attribute, signs) and player attributes Plot, WorkshopLevel,
--- InWorkshop, WorkshopRate. The zone check is the server's maths on the character's position, never a touch event.
+-- WorkshopStat.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,7 +17,6 @@ local WorkshopBuilder = require(Shared.WorkshopBuilder)
 local WorkshopConfig = require(Shared.WorkshopConfig)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
-local MoneyService = require(script.Parent.MoneyService)
 
 local WorkshopService = {}
 
@@ -111,15 +110,6 @@ function WorkshopService.BuildPlots(newStartCFrame, parent)
 	return folder
 end
 
--- The client displays the rate inside the Workshop upgrade panel. Keep the authoritative values on player attributes;
--- there is intentionally no world-space speed-gain label in the workshop.
-local function setRate(player, inZone, rate)
-	player:SetAttribute("InWorkshop", inZone)
-	-- Keep the current rate available even when the player is standing at the upgrade pad. The UI can
-	-- show it when the Workshop panel opens without requiring the player to stand in the gain zone.
-	player:SetAttribute("WorkshopRate", rate)
-end
-
 -- A static runner rig of `spec` (docs/WORLD_REDESIGN_SPEC.md section 1: no car models), named "Runner", feet on
 -- `cframe`, at `scale`; every part anchored and out of the physics (RunnerFactory builds it that way).
 local function displayRunner(spec, cframe, scale)
@@ -134,7 +124,7 @@ local function displayRunner(spec, cframe, scale)
 	return rig
 end
 
--- Puts a static copy of each showcased character on the workshop's pedestals, with a name / copies label.
+-- Puts a static copy of each showcased character on the workshop's pedestals, with a name / rarity label.
 local function placeShowcase(player, workshop)
 	local ids = GachaService.ShowcaseList(player)
 	for i = 1, 3 do
@@ -156,7 +146,7 @@ local function placeShowcase(player, workshop)
 				local gui = Instance.new("BillboardGui")
 				gui.Name = "ShowcaseLabel"
 				gui.Size = UDim2.fromOffset(160, 40)
-				gui.StudsOffsetWorldSpace = Vector3.new(0, 7, 0)
+				gui.StudsOffsetWorldSpace = Vector3.new(0, 7, 0) -- not scaled by RunnerFactory.SCALE: must clear big hair (tallest top 5.75)
 				gui.MaxDistance = WorkshopConfig.SHOWCASE_LABEL_DISTANCE
 				gui.Parent = pedestal
 				local label = Instance.new("TextLabel")
@@ -166,7 +156,7 @@ local function placeShowcase(player, workshop)
 				label.TextScaled = true
 				label.TextColor3 = Color3.new(1, 1, 1)
 				label.TextStrokeTransparency = 0.3
-				label.Text = spec.Name .. "\nx" .. GachaService.Copies(player, spec.Id) .. " copies"
+				label.Text = spec.Name .. "\n" .. spec.Rarity
 				label.Parent = gui
 			end
 		end
@@ -180,7 +170,7 @@ local function watchShowcase(player)
 		return
 	end
 	showcaseWatch[player] = player.AttributeChanged:Connect(function(name)
-		if name ~= "Showcase" and name ~= "ShowcaseMulti" then
+		if name ~= "Showcase" then
 			return
 		end
 		local index = plotOf[player]
@@ -188,7 +178,6 @@ local function watchShowcase(player)
 		if workshop then
 			placeShowcase(player, workshop)
 		end
-		setRate(player, player:GetAttribute("InWorkshop") == true, WorkshopService.Rate(player))
 	end)
 end
 
@@ -210,7 +199,6 @@ function WorkshopService.Assign(player)
 	end
 	local index = plots[1] and Workshop.FreePlot(taken) or 0
 	player:SetAttribute("Plot", index)
-	setRate(player, false, 0)
 	if index == 0 then
 		warn(
 			"[Workshop] no free plot for "
@@ -234,7 +222,6 @@ function WorkshopService.Assign(player)
 	bindUpgrade(player, workshop)
 	placeShowcase(player, workshop)
 	watchShowcase(player)
-	setRate(player, false, WorkshopService.Rate(player))
 	return index
 end
 
@@ -247,8 +234,6 @@ function WorkshopService.Release(player)
 		showcaseWatch[player] = nil
 	end
 	player:SetAttribute("Plot", 0)
-	player:SetAttribute("InWorkshop", false)
-	player:SetAttribute("WorkshopRate", 0)
 	if not index then
 		return
 	end
@@ -300,79 +285,36 @@ function WorkshopService.BuyUpgrade(player)
 	replacement.Parent = plots[index]
 	bindUpgrade(player, replacement)
 	placeShowcase(player, replacement)
-	setRate(player, false, WorkshopService.Rate(player))
 	return true, "Upgraded to level " .. (level + 1)
 end
 
--- Money per second the player earns while in their zone right now.
-function WorkshopService.Rate(player)
-	return Workshop.Rate(Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")), GachaService.WorkshopMulti(player))
+-- Sets the stat the workshop boosts (design doc 4.19): one of WorkshopConfig.STATS, anything else changes nothing.
+-- Allowed at any time; a run in progress keeps the Speed / Stamina it started with. Returns ok, reason.
+function WorkshopService.SetStat(player, stat)
+	if type(stat) ~= "string" or not table.find(WorkshopConfig.STATS, stat) then
+		return false, "Not a workshop stat"
+	end
+	player:SetAttribute("WorkshopStat", stat) -- GachaService refreshes WorkshopBoost and the team on this change
+	return true, "Workshop boosts " .. stat
 end
 
-local owed = setmetatable({}, { __mode = "k" }) -- player -> Money earned in the zone but under a whole dollar
-
--- Rebirth changes the live gain multiplier while the player may still be standing in the zone.
--- Refresh the replicated rate immediately instead of waiting for the next zone tick.
-function WorkshopService.RefreshRate(player)
-	local index = plotOf[player]
-	if index then
-		setRate(player, player:GetAttribute("InWorkshop") == true, WorkshopService.Rate(player))
-	end
-end
-
-local function inZone(player, index, character)
-	if CarService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true then
-		return false
-	end
-	character = character or CarService.GetCharacter(player)
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not humanoid or humanoid.Health <= 0 or not root then
-		return false
-	end
-	return Workshop.InZone(startCFrame, index, root.Position)
-end
-
--- One zone check for one player over `dt` seconds: adds the gain if they are in the zone. Returns the Money earned.
--- `character` (optional) defaults to the player's avatar (CarService.GetCharacter / player.Character).
-function WorkshopService.Tick(player, dt, character)
-	local index = plotOf[player]
-	if not index or not startCFrame or type(dt) ~= "number" or dt ~= dt or dt <= 0 then
-		return 0
-	end
-	if typeof(character) ~= "Instance" then
-		character = nil
-	end
-	local rate = WorkshopService.Rate(player)
-	if not inZone(player, index, character) then
-		setRate(player, false, rate)
-		return 0
-	end
-	setRate(player, true, rate)
-	local gain = rate * dt
-	-- Money is whole dollars: carry the fraction to the next tick
-	local total = (owed[player] or 0) + gain
-	local whole = math.floor(total)
-	owed[player] = total - whole
-	if whole >= 1 then
-		MoneyService.Award(player, whole)
-	end
-	return gain
-end
-
--- Save fields (PlayerData VERSION 4 saves WorkshopLevel itself): { WorkshopLevel = n }.
+-- Save fields (PlayerData VERSION 4 saves WorkshopLevel itself, WorkshopStat since 2026-11-03):
+-- { WorkshopLevel = n, WorkshopStat = stat }.
 function WorkshopService.Snapshot(player)
-	return { WorkshopLevel = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")) }
+	return {
+		WorkshopLevel = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")),
+		WorkshopStat = Workshop.CleanStat(player:GetAttribute("WorkshopStat")),
+	}
 end
 
--- Loads saved fields (missing level = 1, clamped to 1 .. MAX_LEVEL).
+-- Loads saved fields (missing level = 1, clamped to 1 .. MAX_LEVEL; missing or unknown stat = Money).
 function WorkshopService.Apply(player, saved)
 	saved = type(saved) == "table" and saved or {}
 	player:SetAttribute("WorkshopLevel", Workshop.CleanLevel(saved.WorkshopLevel))
+	player:SetAttribute("WorkshopStat", Workshop.CleanStat(saved.WorkshopStat))
 end
 
--- Builds the plots, assigns plots on join (after the save loads, so the saved level is built), frees them on leave,
--- runs the zone check every TICK seconds.
+-- Builds the plots, assigns plots on join (after the save loads, so the saved level is built), frees them on leave.
 function WorkshopService.Start(newStartCFrame)
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
 	openRemote = remotes:FindFirstChild("WorkshopOpen") or Instance.new("RemoteEvent")
@@ -388,6 +330,18 @@ function WorkshopService.Start(newStartCFrame)
 		end
 		lastBuy[player] = at
 		return WorkshopService.BuyUpgrade(player)
+	end
+	local statRemote = remotes:FindFirstChild("SetWorkshopStat") or Instance.new("RemoteFunction")
+	statRemote.Name = "SetWorkshopStat"
+	statRemote.Parent = remotes
+	local lastStat = setmetatable({}, { __mode = "k" })
+	statRemote.OnServerInvoke = function(player, stat)
+		local at = os.clock()
+		if lastStat[player] and at - lastStat[player] < WorkshopConfig.REMOTE_COOLDOWN then
+			return false, "Please wait"
+		end
+		lastStat[player] = at
+		return WorkshopService.SetStat(player, stat)
 	end
 	local old = Workspace:FindFirstChild("Workshops")
 	if old then
@@ -410,20 +364,6 @@ function WorkshopService.Start(newStartCFrame)
 		task.spawn(onPlayer, player)
 	end
 	Players.PlayerRemoving:Connect(WorkshopService.Release)
-	task.spawn(function()
-		local last = os.clock()
-		while true do
-			task.wait(WorkshopConfig.TICK)
-			local now = os.clock()
-			local dt = math.min(now - last, WorkshopConfig.TICK * 4) -- a long server hitch never pays a lump sum
-			last = now
-			for player in plotOf do
-				if player.Parent then
-					WorkshopService.Tick(player, dt)
-				end
-			end
-		end
-	end)
 end
 
 return WorkshopService

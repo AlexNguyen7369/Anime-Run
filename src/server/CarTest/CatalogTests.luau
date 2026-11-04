@@ -1,6 +1,6 @@
 --!nonstrict
--- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Tests" (owner 2026-10-28): 30 rollable characters plus the
--- built-in starter, ids exactly the committed list below (never renamed or removed), unique, every field valid, every
+-- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains" + "Tests" (owner 2026-10-28, 2026-11-04): 44 rollable
+-- characters plus the built-in starter, ids exactly the committed list below (never renamed or removed), unique, every field valid, every
 -- Series exists, every preset has 3 distinct members of its own series, and no id contains a real anime name.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -8,8 +8,8 @@ local H = require(script.Parent.AcceptanceSupport)
 
 local Tests = {}
 
--- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (nil = catch-all), SpeedMulti, Event }
--- (Event = nil for the 30 regular characters; spec "Event-only characters" for the last 3).
+-- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (1 = catch-all), SpeedMulti, Event }
+-- (Event = nil for the 44 regular characters; spec "Event-only characters" for the last 3).
 -- (spec "Launch cast" and placeholder Chance / SpeedMulti tables).
 local CAST = {
 	{ "leaf_medic", "Sakara", "Uncommon", "Balanced", "Narito Shippudon", 10, 1.25 },
@@ -22,7 +22,7 @@ local CAST = {
 	{ "db_tyrant", "Freezo", "Epic", "Sprinter", "Dragon Bawl Z", 50000, 6 },
 	{ "db_prince", "Vegata", "Legendary", "Sprinter", "Dragon Bawl Z", 5e7, 45 },
 	{ "db_hero", "Gokku", "Secret", "Balanced", "Dragon Bawl Z", 1.6e16, 1000 },
-	{ "sea_navigator", "Nammi", "Common", "Balanced", "One Peace", nil, 1.1 },
+	{ "sea_navigator", "Nammi", "Common", "Balanced", "One Peace", 1, 1.1 },
 	{ "sea_cook", "Sanjy", "Uncommon", "Sprinter", "One Peace", 40, 1.6 },
 	{ "sea_swords", "Zoru", "Rare", "Marathoner", "One Peace", 2000, 3.2 },
 	{ "sea_flame", "Aice", "Epic", "Sprinter", "One Peace", 120000, 8 },
@@ -42,9 +42,37 @@ local CAST = {
 	{ "mha_blast", "Bakugoo", "Epic", "Sprinter", "My Hero Akademia", 1500000, 14.5 },
 	{ "mha_hero", "Deko", "Legendary", "Balanced", "My Hero Akademia", 7.8e8, 100 },
 	{ "mha_symbol", "All Mighty", "Mythic", "Marathoner", "My Hero Akademia", 1e15, 425 },
+	{ "soul_healer", "Orihima", "Uncommon", "Balanced", "Bleech", 150, 2.1 },
+	{ "soul_ice", "Rukiya", "Rare", "Marathoner", "Bleech", 3000, 3.5 },
+	{ "soul_fang", "Renjy", "Epic", "Sprinter", "Bleech", 1000000, 13 },
+	{ "soul_substitute", "Ichigu", "Legendary", "Balanced", "Bleech", 2e8, 70 },
+	{ "soul_hollow", "Ulquiorro", "Mythic", "Sprinter", "Bleech", 3e10, 200 },
+	{ "soul_lord", "Aizon", "Mythic", "Marathoner", "Bleech", 3e14, 400 },
+	-- Villains (design doc 4.32, spec "Villains")
+	{ "leaf_rings", "Paine", "Legendary", "Balanced", "Narito Shippudon", 3e7, 35 },
+	{ "db_perfect", "Selle", "Mythic", "Balanced", "Dragon Bawl Z", 1e10, 170 },
+	{ "sea_shark", "Arlon", "Epic", "Marathoner", "One Peace", 900000, 11 },
+	{ "sea_thunder", "Enelu", "Mythic", "Sprinter", "One Peace", 3e12, 300 },
+	{ "ds_upper", "Akazo", "Mythic", "Sprinter", "Demon Slicer", 1e14, 380 },
+	{ "jk_volcano", "Jogoh", "Epic", "Marathoner", "Jujitsu Kaisan", 1200000, 13.5 },
+	{ "jk_patch", "Mahitoh", "Legendary", "Balanced", "Jujitsu Kaisan", 5e8, 90 },
+	{ "mha_decay", "Shigaraky", "Legendary", "Sprinter", "My Hero Akademia", 1.5e8, 65 },
 	{ "ds_water", "Giyo", "Epic", "Marathoner", "Demon Slicer", 160000, 6, "rain" },
 	{ "jk_night", "Toje", "Legendary", "Sprinter", "Jujitsu Kaisan", 4.3e7, 8, "night" },
 	{ "sea_gold", "Rojer", "Legendary", "Balanced", "One Peace", 6.2e8, 10, "gold" },
+}
+
+-- A character wearing another id's model (spec "Bleech series" and "Villains" Model columns); every other character has Model = nil.
+Tests.SHARED_MODEL = {
+	soul_hollow = "foe_soul",
+	leaf_rings = "foe_leaf",
+	db_perfect = "foe_db",
+	sea_shark = "foe_sea",
+	sea_thunder = "foe_sea2",
+	ds_upper = "foe_ds",
+	jk_volcano = "foe_jk",
+	jk_patch = "foe_jk2",
+	mha_decay = "foe_mha",
 }
 
 -- Rows as { Id, Rarity, Chance, SpeedMulti, Event } for the gacha scenarios (Scenarios.luau GACHA_CATALOG).
@@ -55,7 +83,7 @@ end
 
 local EVENTS = { rain = true, night = true, gold = true } -- WeatherConfig events with an event-only character
 -- regular (non-event) characters per rarity
-local RARITY_COUNT = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 }
+local RARITY_COUNT = { Common = 1, Uncommon = 7, Rare = 7, Epic = 9, Legendary = 9, Mythic = 9, Secret = 2 }
 local CATEGORIES = { Sprinter = true, Balanced = true, Marathoner = true }
 local ARCHETYPES = {}
 for _, a in
@@ -110,6 +138,23 @@ local REAL_NAME_HASHES = {
 	{ 11, 1307652066 },
 	{ 11, 1795170271 },
 	{ 12, 429441481 },
+	-- Bleech series and its "Based on" column (design doc 4.30)
+	{ 5, 253096350 },
+	{ 5, 273100351 },
+	{ 5, 273672035 },
+	{ 6, 67569950 },
+	{ 6, 1951662473 },
+	{ 7, 1976864668 },
+	{ 9, 1958541188 },
+	-- Villains' "Based on" column (design doc 4.32)
+	{ 4, 2090607759 },
+	{ 4, 2090145031 },
+	{ 6, 1919909773 },
+	{ 4, 2090226475 },
+	{ 5, 253141679 },
+	{ 4, 2090407318 },
+	{ 6, 221740109 },
+	{ 9, 1370699169 },
 	-- Real place names from docs/TRACKS_AND_BIOMES_SPEC.md "References" (w4, design doc section 5 "no real place names")
 	{ 6, 160293963 },
 	{ 6, 42764698 },
@@ -192,8 +237,8 @@ function Tests.catalog()
 	flag("no_pass_characters", type(passes) == "table" and #passes == 0, type(passes) == "table" and #passes or -1, 0)
 
 	local all, rollable = catalog.All(), catalog.Rollable()
-	flag("all_33_characters", #all == #CAST, #all, #CAST)
-	flag("rollable_33_characters", #rollable == #CAST, #rollable, #CAST)
+	flag("all_47_characters", #all == #CAST, #all, #CAST)
+	flag("rollable_44_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
 	-- ids exactly the committed list, unique, starter excluded
 	local want, seen, dupes, extra = {}, {}, {}, {}
@@ -241,7 +286,7 @@ function Tests.catalog()
 		if event == nil then
 			counts[c.Rarity] = (counts[c.Rarity] or 0) + 1
 		end
-		if c.Chance == nil then
+		if c.Chance == 1 then
 			catchAll = id
 		end
 		local s = type(c.Series) == "string" and series.Get(c.Series) or nil
@@ -270,7 +315,7 @@ function Tests.catalog()
 		if not ARCHETYPES[c.Archetype] then
 			table.insert(problems, "Archetype")
 		end
-		if c.Model ~= nil then
+		if c.Model ~= Tests.SHARED_MODEL[id] then
 			table.insert(problems, "Model")
 		end
 		if c.Event ~= event or (c.Event ~= nil and not EVENTS[c.Event]) then
@@ -309,7 +354,7 @@ function Tests.catalog()
 	end
 	flag("no_real_name_in_ids", #realBad == 0, table.concat(realBad, ","), "")
 
-	-- series sizes from the committed list (ds / jk / sea 6 with their event character, others 5); every preset has 3 distinct members of its own series
+	-- series sizes from the committed list (sea / jk 8, ds 7, with their event character; others 6); every preset has 3 distinct members of its own series
 	local presetBad, perSeries, wantSize = {}, {}, {}
 	for _, row in CAST do
 		wantSize[row[5]] = (wantSize[row[5]] or 0) + 1
@@ -339,8 +384,67 @@ function Tests.catalog()
 			table.insert(presetBad, tostring(s.Id))
 		end
 	end
-	flag("series_count_6", #series.List == 6, #series.List, 6)
+	flag("series_count_7", #series.List == 7, #series.List, 7)
 	flag("presets_three_own_members", #presetBad == 0, table.concat(presetBad, ","), "")
+
+	-- Bleech (design doc 4.30, spec "Bleech series"): the 6 ids in their rarities, the shared enemy model, the preset
+	local soulBad = {}
+	for id, rarity in
+		{
+			soul_healer = "Uncommon",
+			soul_ice = "Rare",
+			soul_fang = "Epic",
+			soul_substitute = "Legendary",
+			soul_hollow = "Mythic",
+			soul_lord = "Mythic",
+		}
+	do
+		local c = catalog.Get(id)
+		if not (c and c.Rarity == rarity and c.Series == "soul" and c.Rollable == true) then
+			table.insert(soulBad, id)
+		end
+	end
+	flag("soul_ids_in_rarities", #soulBad == 0, table.concat(soulBad, ","), "")
+	local hollow = catalog.Get("soul_hollow")
+	flag("soul_hollow_uses_foe_soul", hollow ~= nil and hollow.Model == "foe_soul", hollow and hollow.Model, "foe_soul")
+	local soul = series.Get("soul")
+	local soulPreset = soul and soul.Preset
+	flag(
+		"soul_preset_substitute_squad",
+		type(soulPreset) == "table"
+			and soulPreset.Name == "Substitute Squad"
+			and H.same(soulPreset.Members, { "soul_substitute", "soul_ice", "soul_fang" })
+	)
+
+	-- Villains (design doc 4.32): every track enemy's model is worn by a rollable character
+	local npc = H.module(Shared, "NpcConfig")
+	local tracks = npc and npc.Tracks or {}
+	local wearer, villainBad, foeTracks = {}, {}, 0
+	for _, c in rollable do
+		if c.Model ~= nil then
+			wearer[c.Model] = c.Id
+		end
+	end
+	for number, track in tracks do
+		if type(track.Model) == "string" and string.sub(track.Model, 1, 4) == "foe_" then
+			foeTracks += 1
+			if wearer[track.Model] == nil then
+				table.insert(villainBad, ("track %d:%s"):format(number, track.Model))
+			end
+		end
+	end
+	local track9, track10 = tracks[9], tracks[10]
+	local tyrant = catalog.Get("db_tyrant")
+	if not (track9 and wearer[track9.Model] == "soul_hollow") then
+		table.insert(villainBad, "track 9")
+	end
+	if not (track10 and track10.Model == "db_tyrant" and tyrant and tyrant.Rollable == true) then
+		table.insert(villainBad, "track 10")
+	end
+	if foeTracks ~= 9 then -- tracks 1 to 9; guards against the loop passing on nothing
+		table.insert(villainBad, "foe tracks " .. foeTracks)
+	end
+	flag("villains_share_enemy_models", #villainBad == 0, table.concat(villainBad, ", "), "")
 	return r
 end
 

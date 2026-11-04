@@ -55,6 +55,7 @@ local function runAll()
 	for _, scenario in UiScenarios.ManualScenarios() do
 		print(("[UITEST] MANUAL %s reason=%s"):format(scenario.Name, scenario.Manual))
 	end
+	pcall(UiScenarios.RestoreSetups) -- the states UiScenarios.Needs asked for go back as they were
 	print(("[UITEST] END pass=%d fail=%d"):format(pass, fail))
 	pcall(UiScenarios.CloseFixturePanels)
 	busy = false
@@ -94,7 +95,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestClick"):Connect(function()
 	end
 end)
 
--- Short fixture-driven checks for world-pad transitions, weather states and zero offline credit.
+-- Short fixture-driven checks for world-pad transitions and weather states.
 ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 	local name = ReplicatedStorage:GetAttribute("UiTestScenario")
 	if type(name) ~= "string" or name == "" then
@@ -113,6 +114,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 				checks = { { name = "scenario_ran", value = tostring(res), limit = "no error", pass = false } },
 			}
 		end
+		pcall(UiScenarios.RestoreSetups)
 		pcall(UiScenarios.CloseFixturePanels)
 		local json = HttpService:JSONEncode(res)
 		print("[UITEST] " .. json)

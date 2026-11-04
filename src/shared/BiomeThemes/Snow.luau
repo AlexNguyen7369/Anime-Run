@@ -592,8 +592,7 @@ return {
 			Notes = "Creator Store 9112748018: Birds And Cicadas 2, distant birds, insects, light wind, loop, 46.3 s",
 			Reviewed = "2026-10-31 rules-auditor",
 		},
-		-- The in-house toll (assets/audio/Snow/bell_toll.ogg / .wav) has no upload path from the Studio tools (image upload
-		-- only), so the one-shot is a Creator Store bell. Orchestrator default 2026-10-31.
+		-- Studio tools upload images only, so the one-shot is a Creator Store bell. Orchestrator default 2026-10-31.
 		SfxBellToll = {
 			Kind = "Sound",
 			Id = "rbxassetid://9113804175",

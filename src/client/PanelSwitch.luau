@@ -28,10 +28,12 @@ local function notify()
 	changed:Fire()
 end
 
+local closing = {} -- panel -> true while its close motion plays (design doc 4.20)
+
 -- True while any registered panel is open.
 function PanelSwitch.AnyOpen()
 	for _, p in panels do
-		if p.Visible then
+		if p.Visible and not closing[p] then
 			return true
 		end
 	end
@@ -118,8 +120,11 @@ local function takeFocus(panel)
 	end)
 end
 
--- Open motion (docs/HUD_LAYOUT_SPEC.md section 10): scale from 92% to 100%; a panel with a layout UIScale (Racer
+-- Open motion (docs/HUD_LAYOUT_SPEC.md section 10): scale from 90% to 100%; a panel with a layout UIScale (Racer
 -- panels) slides 12 px up instead. Closing is instant: a hide cancels the motion and puts the panel back home.
+-- Design doc 4.20 close motion: Toggle / Close shrink the panel to 95% over 0.12 s, then hide it (input is off
+-- meanwhile). A panel hidden any other way (Visible = false, another panel opening) still hides at once.
+local CLOSE_INFO = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 local OPEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local motions = {} -- target -> { Tween, Home (position or nil) }
 
@@ -150,6 +155,28 @@ local function stopMotion(target)
 	end
 end
 
+-- Design doc 4.20: the panel's main list / grid (the layout with the most items) staggers in on open.
+local function cascadeList(target)
+	local items = {}
+	for _, layout in target:GetDescendants() do
+		if layout:IsA("UIGridLayout") or layout:IsA("UIListLayout") then
+			local found = {}
+			for _, item in layout.Parent:GetChildren() do
+				if item:IsA("GuiObject") and item.Visible and item.BackgroundTransparency < 1 then
+					table.insert(found, item)
+				end
+			end
+			if #found > #items then
+				items = found
+			end
+		end
+	end
+	table.sort(items, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	UiMotion.Cascade(items)
+end
+
 local function openMotion(panel)
 	local target = motionTarget(panel)
 	stopMotion(target)
@@ -168,9 +195,10 @@ local function openMotion(panel)
 			scale.Name = "MotionScale"
 			scale.Parent = target
 		end
-		scale.Scale = 0.92
+		scale.Scale = 0.9 -- design doc 4.20 (proposed)
 		motion = { Tween = UiMotion.Create(scale, OPEN_INFO, { Scale = 1 }), Scale = scale }
 	end
+	cascadeList(target)
 	motions[target] = motion
 	motion.Tween.Completed:Connect(function()
 		if motions[target] == motion then
@@ -178,6 +206,49 @@ local function openMotion(panel)
 		end
 	end)
 	motion.Tween:Play()
+end
+
+-- Hides `panel` with the close motion (instant while reduced, or for a layout-UIScale panel, which slides on open).
+local function closeMotion(panel)
+	local target = motionTarget(panel)
+	stopMotion(target)
+	local scale = target:FindFirstChildOfClass("UIScale")
+	if UiMotion.Reduced() or (scale and scale.Name ~= "MotionScale") then
+		panel.Visible = false
+		return
+	end
+	if not scale then
+		scale = Instance.new("UIScale")
+		scale.Name = "MotionScale"
+		scale.Parent = target
+	end
+	closing[panel] = true
+	target.Interactable = false
+	local motion = { Tween = UiMotion.Create(scale, CLOSE_INFO, { Scale = 0.95 }), Scale = scale }
+	motions[target] = motion
+	motion.Tween.Completed:Connect(function(state)
+		if motions[target] ~= motion then
+			return -- reopened or hidden meanwhile
+		end
+		motions[target] = nil
+		closing[panel] = nil
+		target.Interactable = true
+		scale.Scale = 1
+		if state == Enum.PlaybackState.Completed then
+			panel.Visible = false
+		end
+	end)
+	motion.Tween:Play()
+end
+
+-- Stops a running close motion (the panel is wanted open again, or hidden directly).
+local function cancelClose(panel)
+	if closing[panel] then
+		closing[panel] = nil
+		local target = motionTarget(panel)
+		target.Interactable = true
+		stopMotion(target)
+	end
 end
 
 function PanelSwitch.Register(name, panel)
@@ -195,6 +266,7 @@ function PanelSwitch.Register(name, panel)
 			takeFocus(panel)
 		else
 			wanted[name] = false
+			cancelClose(panel)
 			stopMotion(motionTarget(panel))
 			releaseFocus(panel)
 		end
@@ -208,16 +280,22 @@ function PanelSwitch.Toggle(name)
 	if not panel then
 		return false
 	end
-	local open = not panel.Visible
+	local open = not panel.Visible or closing[panel] == true
+	wanted[name] = open
 	if open then
 		for other, p in panels do
 			if other ~= name then
 				p.Visible = false
 			end
 		end
+		if closing[panel] then
+			cancelClose(panel) -- reopened mid-close: still Visible, so play the open motion again
+			openMotion(panel)
+		end
+		panel.Visible = true
+	else
+		closeMotion(panel)
 	end
-	wanted[name] = open
-	panel.Visible = open
 	notify()
 	return open
 end
@@ -238,12 +316,13 @@ function PanelSwitch.Action(name)
 end
 
 function PanelSwitch.IsOpen(name)
-	return panels[name] ~= nil and panels[name].Visible
+	return panels[name] ~= nil and panels[name].Visible and not closing[panels[name]]
 end
 
 function PanelSwitch.Close(name)
-	if panels[name] and panels[name].Visible then
-		panels[name].Visible = false
+	if PanelSwitch.IsOpen(name) then
+		wanted[name] = false
+		closeMotion(panels[name])
 		notify()
 	end
 end

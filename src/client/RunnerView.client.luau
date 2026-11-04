@@ -14,6 +14,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
 local RunnerVisual = require(script.Parent.RunnerVisual)
+local RunStyleFx = require(script.Parent.RunStyleFx)
 
 local SERVER_TAG = "RunnerRig" -- Server/CarService.RUNNER_TAG
 local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the published one (no visible jump)
@@ -96,6 +97,7 @@ local function rebuild(view)
 	end
 	copy.Name = rig.Name .. "_Visible"
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
+	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
 	view.Copy = copy
 end
@@ -179,6 +181,7 @@ local function step(view, now)
 		-- not running (a held duel start): show it where the server holds it
 		view.Dist = nil
 		view.Moving = false
+		RunStyleFx.SetMoving(copy, false)
 		RunnerVisual.Pose(copy, rig:GetPivot(), 0, 0)
 		return
 	end
@@ -194,6 +197,7 @@ local function step(view, now)
 	dist = math.clamp(dist, 0, arcEnd)
 	view.Dist = dist
 	view.Moving = rs > 0
+	RunStyleFx.SetMoving(copy, view.Moving)
 	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint)
 	view.Hint = k
 	view.Phase = RunnerVisual.Advance(view.Phase, rs, dt)

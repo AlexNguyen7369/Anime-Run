@@ -1,0 +1,296 @@
+{
+ "Bench": {
+  "Asset": "95857922612768",
+  "Hash": "2a643f3915d5ba08",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 36
+ },
+ "DojoKit_L0": {
+  "Asset": "111842336600077",
+  "Hash": "5e38249a2f0ae6bd",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1218
+ },
+ "DojoKit_L1": {
+  "Asset": "77995950375896",
+  "Hash": "8cf3cbadc2de51fb",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1398
+ },
+ "DojoKit_L10": {
+  "Asset": "118329644855637",
+  "Hash": "757d1305e620158d",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 3592
+ },
+ "DojoKit_L4": {
+  "Asset": "86145851224710",
+  "Hash": "7b75b8b7345fa68e",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1892
+ },
+ "DojoKit_L7": {
+  "Asset": "112651178328177",
+  "Hash": "221a39eb7290e00b",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 2786
+ },
+ "GreatSakura": {
+  "Asset": "81417765020310",
+  "Hash": "a833b505a834aa3d",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 2128
+ },
+ "HeroTorii": {
+  "Asset": "139062237027846",
+  "Hash": "2fef0ebbab56dfbe",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 500
+ },
+ "IndexBoard": {
+  "Asset": "116202850831949",
+  "Hash": "d34be3843dfdd079",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 778
+ },
+ "IndexIcon": {
+  "Asset": 109858472680311,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "In-house render, tools/blender/plaza/index_icon.py, assets/ui/IndexIcon.png, decal 80265572611193",
+  "Reviewed": "2026-11-03 rules-auditor"
+ },
+ "Lantern": {
+  "Asset": "102986489315321",
+  "Hash": "b9c58a665cc938b8",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 120
+ },
+ "LanternString": {
+  "Asset": "136578840070991",
+  "Hash": "c8adce91ee29f1f6",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 216
+ },
+ "LanternString_Index": {
+  "Asset": "106970041317442",
+  "Hash": "3181f8959a5bd37a",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 216
+ },
+ "LanternString_Shops": {
+  "Asset": "139009111984660",
+  "Hash": "ce053c65416a0383",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 216
+ },
+ "LanternStringx": {
+  "Asset": "139657596169698",
+  "Hash": "db98081d5c08a554",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 216
+ },
+ "LanternStringxx": {
+  "Asset": "129068882856366",
+  "Hash": "ddac9746607ddbe9",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 216
+ },
+ "LegendPedestal": {
+  "Asset": "111419054534379",
+  "Hash": "9dd4a2375791a17a",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "LegendPedestalx": {
+  "Asset": "93217066984565",
+  "Hash": "00d3696331aae4c5",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "LegendPedestalxx": {
+  "Asset": "108800207329925",
+  "Hash": "a911d10c7e3e2c93",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "LegendPedestalxxx": {
+  "Asset": "121967334967009",
+  "Hash": "0fa567a59f62e983",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "LegendPedestalxxxx": {
+  "Asset": "134765580259032",
+  "Hash": "b8c750a3a938fb94",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "LegendPedestalxxxxx": {
+  "Asset": "130736918087406",
+  "Hash": "7e0df73290060445",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 112
+ },
+ "MainPath": {
+  "Asset": "108055621203106",
+  "Hash": "df0b1f4b7a36a937",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 120
+ },
+ "MarketGate": {
+  "Asset": "87686788825808",
+  "Hash": "ed5ad9acdb4c96ac",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 280
+ },
+ "MarketSign": {
+  "Asset": "114312886441158",
+  "Hash": "917bd145f168ce36",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 60
+ },
+ "MarketStall": {
+  "Asset": "70996565944578",
+  "Hash": "d10fc365fc47cebf",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 1512
+ },
+ "POTIONSStall": {
+  "Asset": "90249957543522",
+  "Hash": "76aa097e2f2f0350",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 826
+ },
+ "PathTorii": {
+  "Asset": "108764224309417",
+  "Hash": "8527de0c1a0cf65d",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 148
+ },
+ "Petal": {
+  "Asset": 130260166899982,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "In-house numpy teardrop, tools/blender/plaza/plaza_petal.py, decal 85055583418274; used by Client/ArrivalFlow and DojoExtras",
+  "Reviewed": "2026-11-03 rules-auditor"
+ },
+ "Planter": {
+  "Asset": "136523946816200",
+  "Hash": "f53c9465598bcf1f",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 616
+ },
+ "RebirthShrine": {
+  "Asset": "121493242392362",
+  "Hash": "481ff962f379ff1f",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1252
+ },
+ "SHOPStall": {
+  "Asset": "128250819026292",
+  "Hash": "8f45c5e587c45a4e",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 658
+ },
+ "Sakura_A": {
+  "Asset": "123792855641621",
+  "Hash": "1d3a50c9c52dc084",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1360
+ },
+ "Sakura_B": {
+  "Asset": "92148830229314",
+  "Hash": "605b5cb647bb9dff",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1072
+ },
+ "Sakura_C": {
+  "Asset": "99684452162305",
+  "Hash": "441f631e6af7d7ee",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1072
+ },
+ "Sakura_D": {
+  "Asset": "114551187402584",
+  "Hash": "189cfffb95a48af4",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 1072
+ },
+ "SkyLoop": {
+  "Asset": "79709231903591",
+  "Hash": "a31ad220e6aafdc4",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 1420
+ },
+ "SpawnMosaic": {
+  "Asset": "133170663026960",
+  "Hash": "421bba1eca24238c",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Reviewed": "2026-11-03 rules-auditor",
+  "Tris": 352
+ }
+}

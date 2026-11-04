@@ -73,15 +73,20 @@ for _, refs in { hud, index, stats, settings, rebirth } do
 end
 -- Catalog additions extend the saved gallery without waiting forever for an old seven-car bake.
 local gallery = index.GridHost:FindFirstChild("Gallery")
+local rebuildGallery = gallery == nil or gallery:GetAttribute("DesignVersion") ~= 2
 for _, spec in catalog.All() do
 	local baked = gallery and gallery:FindFirstChild(spec.Id)
-	if not (baked and baked:FindFirstChild("Art") and baked.Art:IsA("ViewportFrame")) then
-		if gallery then
-			gallery:Destroy()
-		end
-		Components.BakeIndex(index, catalog, config)
-		break
+	local art = baked and baked:FindFirstChild("Art")
+	local image = Components.PortraitImage(spec)
+	-- A saved bake from before an upload holds the wrong Art.
+	local current = art and (if image then art:IsA("ImageLabel") and art.Image == image else art:IsA("ViewportFrame"))
+	rebuildGallery = rebuildGallery or not current
+end
+if rebuildGallery then
+	if gallery then
+		gallery:Destroy()
 	end
+	Components.BakeIndex(index, catalog, config)
 end
 local statsRows = stats.StatsHost:FindFirstChild("Rows")
 local rebuildStats = statsRows == nil or statsRows:GetAttribute("DesignVersion") ~= 2
@@ -110,7 +115,6 @@ local function cruise()
 end
 local money = leaderstats:WaitForChild("Money")
 local GREEN = Color3.fromRGB(60, 255, 60)
-local RED = Color3.fromRGB(255, 77, 94)
 local GRAY = Color3.fromRGB(104, 111, 135)
 local sessionStartedAt = os.time()
 
@@ -462,12 +466,15 @@ rebirth.PointRewardCaption.Text = string.format(
 	rebirthConfig.POINTS_PER_REBIRTH == 1 and "+%d Stat Point" or "+%d Stat Points",
 	rebirthConfig.POINTS_PER_REBIRTH
 )
+-- The place's saved StarterGui copy still says "Money and Speed"; Rebirth resets only Money (design doc 4.14)
+rebirth.WarningText.Text = "Rebirth resets your Money\n(Robux purchases stay)"
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
 	local nextMultiplier = rebirthConfig.NextMultiplier(level)
 	rebirth.LuckRewardCaption.Text = multiplierText(nextMultiplier) .. " Luck"
-	rebirth.SpeedReward.Visible = false -- no speed gain and no XP (design doc 4.14)
+	rebirth.SpeedRewardCaption.Text =
+		string.format("+%d%% Speed", math.floor(rebirthConfig.SpeedBonus(level + 1) * 100 + 0.5))
 	local required = rebirthConfig.Requirements(level).Money
 	local maxed = level >= rebirthConfig.MAX_LEVEL
 	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)
@@ -619,11 +626,15 @@ local function refreshIndex()
 		tile.Name.Text = owned and tile.Spec.Name or "???"
 		tile.Art.ImageColor3 = owned and Color3.new(1, 1, 1) or Color3.new(0, 0, 0)
 		tile.Locked.Visible = not owned
-		tile.Info.Text = owned
-				and string.format("%s · %s", tile.Spec.Rarity, format.RateText(RaceConfig.Cruise(tile.Spec)))
-			or tile.Spec.Rarity
+		tile.Info.Text = owned and format.RateText(RaceConfig.Cruise(tile.Spec)) or tile.Spec.Rarity
+		-- No Equip row on an undiscovered card: its rarity and name drop to the bottom edge.
+		tile.Info.Position = UDim2.new(0, 8, 1, owned and -78 or -48)
+		tile.Name.Position = UDim2.new(0, 8, 1, owned and -62 or -32)
+		tile.Category.Visible = owned
+		Components.TintCard(tile.Frame, tile.Spec, config, owned)
 		tile.Equip.Visible = owned
 		local on = id == equipped
+		tile.Stroke.Color = on and GREEN or UiTheme.Outline
 		tile.Equip.Active = owned and not on
 		tile.Equip.Selectable = owned and not on
 		Components.Tint(tile.Equip, on and GRAY or GREEN)
@@ -690,59 +701,13 @@ end
 player:GetAttributeChangedSignal("StatPoints"):Connect(refreshStats)
 refreshStats()
 
-local pendingRace = false
-local function refreshRace()
-	local racing = player:GetAttribute("AutoRacing") == true
-	label(hud.Race, string.upper(format.AutoButtonText(racing)))
-	Components.Tint(hud.Race, pendingRace and GRAY or (racing and RED or GREEN))
-	hud.Race.Active = not pendingRace
-end
-hud.Race.Activated:Connect(function()
-	if pendingRace then
-		return
-	end
-	pendingRace = true
-	refreshRace()
-	remotes.SetAutoRace:FireServer(player:GetAttribute("AutoRacing") ~= true)
-	task.delay(1, function()
-		pendingRace = false
-		refreshRace()
-	end)
+-- The Auto toggle lives in HudChrome/TopRight/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
+-- the Toast read; the generated fit() sets Visible back to true on every resize.
+local raceAnchor = hud.Race.Parent
+raceAnchor:GetPropertyChangedSignal("Visible"):Connect(function()
+	raceAnchor.Visible = false
 end)
-player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshRace)
-refreshRace()
--- The Race button breathes (a soft glow behind it) while the player is on foot (section 10).
-local raceGlow = Instance.new("Frame")
-raceGlow.Name = "BreathGlow"
-raceGlow.AnchorPoint = Vector2.new(0.5, 0.5)
-raceGlow.Position = UDim2.fromScale(0.5, 0.5)
-raceGlow.Size = UDim2.new(1, 10, 1, 10)
-raceGlow.BackgroundColor3 = Color3.fromRGB(120, 255, 150)
-raceGlow.BackgroundTransparency = 1
-raceGlow.ZIndex = 0
-raceGlow.Parent = hud.Race.Parent
-UiTheme.Corner(raceGlow, "M")
-local stopBreath
-local function refreshBreath()
-	local onFoot = player:GetAttribute("AutoRacing") ~= true
-	if onFoot and not stopBreath then
-		raceGlow.BackgroundTransparency = 0.85
-		stopBreath = UiMotion.Pulse(raceGlow, { BackgroundTransparency = 0.45 }, 1.1)
-	elseif not onFoot and stopBreath then
-		stopBreath()
-		stopBreath = nil
-		raceGlow.BackgroundTransparency = 1
-	end
-end
-player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshBreath)
-player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
-	if stopBreath then
-		stopBreath()
-		stopBreath = nil
-	end
-	refreshBreath()
-end)
-refreshBreath()
+raceAnchor.Visible = false
 
 task.spawn(function()
 	playerGui:WaitForChild("RollToast")

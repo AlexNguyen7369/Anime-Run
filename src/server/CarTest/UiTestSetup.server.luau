@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -26,17 +26,15 @@ local function live(name)
 	return require(Server:WaitForChild(name))
 end
 
-local snapshots = {} -- [Player] = { gacha, money, speed, autoRacing, autoRoll, upgrades }
+local snapshots = {} -- [Player] = { gacha, money, autoRacing, autoRoll, upgrades }
 local spied = {} -- [RemoteEvent] = connection (never connect twice)
 local functionSpies = {} -- original RemoteFunction -> { name, proxy }; original callback is untouched.
 local progressionSnapshots = {}
 local weatherSnapshot = nil
 local questSnapshots = {} -- [Player] = QuestService.Snapshot before a quest_* fixture
 
+-- No Speed stat to snapshot: there is no leaderstats.Speed / BaseSpeed (design doc 4.13, owner 2026-11-01).
 local function stat(player, name)
-	if name == "Speed" then
-		return player:FindFirstChild("BaseSpeed") -- the base Speed; leaderstats.Speed is display only (owner 2026-10-21)
-	end
 	local stats = player:FindFirstChild("leaderstats")
 	return stats and stats:FindFirstChild(name)
 end
@@ -86,7 +84,7 @@ local function indexStates(player)
 	player:SetAttribute("StatPoints", G.FreePoints(player))
 end
 
--- AUTO toggle (docs/ROLL_ANIMATION_CONTRACT.md): through GachaService.SetAutoRoll when it exists, else the
+-- AUTO toggle (docs/ROLL_ANIMATION_SPEC.md): through GachaService.SetAutoRoll when it exists, else the
 -- AutoRoll attribute the auto-roll loop reads.
 local function setAutoRoll(player, on)
 	local G = live("GachaService")
@@ -98,6 +96,27 @@ local function setAutoRoll(player, on)
 end
 
 local setups = {}
+
+-- Team-of-3 stamina (design doc 4.3) ends an auto race by exhaustion in ~13.5 s (a Common team), which would end the
+-- auto_racing fixture mid-run. From auto_racing until 'restore', this player's runs get untiring stamina through
+-- RaceService's StaminaSeconds test seam (a run that passes its own keeps it). Real play is never affected.
+local longStamina = {} -- [Player] = true
+local wrappedNewRun = false
+local function wrapNewRun()
+	if wrappedNewRun then
+		return
+	end
+	wrappedNewRun = true
+	local RaceService = live("RaceService")
+	local orig = RaceService.NewRun
+	RaceService.NewRun = function(car, raceRoute, p, options)
+		if longStamina[p] then
+			options = table.clone(options or {})
+			options.StaminaSeconds = options.StaminaSeconds or { 1e6, 1e6, 1e6 }
+		end
+		return orig(car, raceRoute, p, options)
+	end
+end
 
 -- Global (not per player): logs every RemoteEvent call into ReplicatedStorage.UiTestSpy attributes,
 -- one JSON array per remote name: [{ user = UserId, args = {...} }, ...]. The real handlers still run.
@@ -134,11 +153,10 @@ function setups.snapshot(player)
 		return
 	end
 	local G = live("GachaService")
-	local money, speed = stat(player, "Money"), stat(player, "Speed")
+	local money = stat(player, "Money")
 	snapshots[player] = {
 		gacha = G.Snapshot(player),
 		money = money and money.Value or nil,
-		speed = speed and speed.Value or nil,
 		autoRacing = player:GetAttribute("AutoRacing"),
 		autoRoll = player:GetAttribute("AutoRoll"),
 		-- Upgrade tree state (owned upgrades, BestTrack, TurboCount): turbo_next and the progression fixtures change it
@@ -147,6 +165,7 @@ function setups.snapshot(player)
 end
 
 function setups.restore(player)
+	longStamina[player] = nil
 	local snap = snapshots[player]
 	if not snap then
 		error(
@@ -157,6 +176,9 @@ function setups.restore(player)
 	local progression = progressionSnapshots[player]
 	if progression then
 		live("UpgradeService").Apply(player, progression.upgrades)
+		if progression.raceTimes then
+			live("RaceTimeService").Apply(player, { RaceBestTimes = progression.raceTimes })
+		end
 		for name, entry in progression.attributes do
 			player:SetAttribute(name, entry.value)
 		end
@@ -182,12 +204,9 @@ function setups.restore(player)
 		end
 		weatherSnapshot = nil
 	end
-	local money, speed = stat(player, "Money"), stat(player, "Speed")
+	local money = stat(player, "Money")
 	if money and snap.money ~= nil then
 		money.Value = snap.money
-	end
-	if speed and snap.speed ~= nil then
-		speed.Value = snap.speed
 	end
 	live("CarService").SetAutoRace(player, snap.autoRacing == true)
 	if snap.autoRoll ~= nil then
@@ -212,10 +231,23 @@ function setups.no_stat_points(player)
 	player:SetAttribute("StatPoints", G.FreePoints(player))
 end
 
+local AUTO_RACING_TIMEOUT = 10 -- seconds for a stop / start to land
 function setups.auto_racing(player)
 	local CarService = live("CarService")
-	if CarService.IsAutoRacing(player) ~= true then
+	wrapNewRun()
+	local fresh = not longStamina[player]
+	longStamina[player] = true
+	-- a run started before the seam was on still tires: start a new one (stop, then start)
+	if fresh and CarService.IsAutoRacing(player) == true then
+		CarService.SetAutoRace(player, false)
+	end
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) ~= true do
 		CarService.SetAutoRace(player, true)
+		if player.Parent ~= Players or os.clock() - start > AUTO_RACING_TIMEOUT then
+			error("auto_racing: not auto racing after " .. AUTO_RACING_TIMEOUT .. " s")
+		end
+		task.wait(0.25)
 	end
 end
 
@@ -274,6 +306,47 @@ function setups.lose_event(player)
 	end)
 end
 
+-- Enemy showdown (UiSpec ui_showdown, design doc 4.28): fake events to this client only, shaped like RaceService's;
+-- the real run's state is never touched. A real win fires Result and the next Start in the same frame.
+local function fireShowdownStart(player, track)
+	local cfg = require(Shared.NpcConfig).For(track)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace"):FireClient(player, {
+		Type = "Start",
+		Track = track,
+		ServerStart = workspace:GetServerTimeNow(),
+		Speed = cfg.Speed,
+		Color = cfg.Color,
+		Label = cfg.Label,
+		Model = cfg.Model,
+		BestTime = live("RaceTimeService").Best(player, track),
+	})
+end
+
+function setups.showdown_start(player)
+	local run = live("CarService").GetRun(player)
+	local track = type(run) == "table" and type(run.RaceTrack) == "number" and run.RaceTrack or 1
+	player:SetAttribute("UiTestShowdownTrack", track)
+	fireShowdownStart(player, track)
+end
+
+function setups.showdown_win(player)
+	local track = player:GetAttribute("UiTestShowdownTrack") or 1
+	player:SetAttribute("UiTestShowdownTrack", nil)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace"):FireClient(player, {
+		Type = "Result",
+		Track = track,
+		Result = "Win",
+		PlayerTime = 30,
+		NpcTime = 31.5,
+		Bonus = 1,
+		Banked = 0,
+		Unbanked = 0,
+		BestTime = live("RaceTimeService").Best(player, track),
+		NewBest = false,
+	})
+	fireShowdownStart(player, track % #require(Shared.NpcConfig).Tracks + 1)
+end
+
 -- Turbo luck: the upgrade tree decides it (UpgradeService.AdvanceTurbo: turbo when TurboCount + 1 >= Every of
 -- UpgradeService.Turbo(player)), so TurboCount = Every - 1 makes the next auto roll a turbo roll. Rolls alone no
 -- longer does. 'restore' puts the snapshot's upgrade state (TurboCount included) back.
@@ -288,7 +361,7 @@ function setups.turbo_next(player)
 	player:SetAttribute("TurboCount", every - 1)
 end
 
--- Roll animation (docs/ROLL_ANIMATION_CONTRACT.md): the next auto roll is an emphasized roll. Owning no rollable car
+-- Roll animation (docs/ROLL_ANIMATION_SPEC.md): the next auto roll is an emphasized roll. Owning no rollable car
 -- makes any roll new and, with fewer than 5 cars owned, emphasized (GachaConfig.IsEmphasized). As soon as that roll
 -- happened (Rolls changed) exactly the cars owned before are given back (the rolled one is not kept), with the new
 -- roll count, so later rolls are not emphasized by accident and no car is gained.
@@ -324,7 +397,7 @@ local function progressionSnapshot(player)
 		return
 	end
 	local attributes = {}
-	for _, name in { "WorkshopLevel", "OfflineSpeed", "OfflineSeconds", "UiTestProgressionFixture" } do
+	for _, name in { "WorkshopLevel", "UiTestProgressionFixture" } do
 		attributes[name] = { value = player:GetAttribute(name) }
 	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -410,6 +483,21 @@ function setups.checkpoint_open(player)
 	checkpointFixture(player, 2)
 end
 
+-- Defeated Enemies page (UiSpec ui_defeated, design doc 4.29): BestTrack 2, known bests for Tracks 1 and 2, the same
+-- times on unsaved attributes for the client to compare with. 'restore' puts the bests and attributes back.
+function setups.defeated_states(player)
+	checkpointFixture(player, 2)
+	local progression = progressionSnapshots[player]
+	local times = { ["1"] = 41.25, ["2"] = 52.5 }
+	progression.raceTimes = progression.raceTimes or live("RaceTimeService").Snapshot(player)
+	live("RaceTimeService").Apply(player, { RaceBestTimes = times })
+	for track, seconds in times do
+		local name = "UiTestBestTime" .. track
+		progression.attributes[name] = { value = nil }
+		player:SetAttribute(name, seconds)
+	end
+end
+
 -- Quest fixtures (UiSpec quest_claim_*, docs/QUESTS_SPEC.md): today's daily_races quest unclaimed with progress 0
 -- (incomplete: Claim disabled) or at its Target (complete: Claim enabled). Unsaved; 'restore' applies the
 -- QuestService snapshot taken before the first quest fixture.
@@ -446,17 +534,7 @@ function setups.quest_complete(player)
 	questFixture(player, true)
 end
 
-function setups.offline_welcome(player)
-	progressionSnapshot(player)
-	player:SetAttribute("OfflineSeconds", 3661)
-	player:SetAttribute("OfflineSpeed", 1234)
-end
-
-function setups.offline_zero(player)
-	progressionSnapshot(player)
-	player:SetAttribute("OfflineSpeed", 0)
-	player:SetAttribute("OfflineSeconds", 0)
-end
+-- retired: offline_welcome / offline_zero fixtures, no offline credit or its welcome (design doc 4.19, owner 2026-11-03)
 
 -- World fixtures must END with the avatar at the spot, not just teleport once: a Stop (CarService.SetAutoRace false,
 -- e.g. from 'restore') keeps pulling a real player's avatar back to the walk spawn for CarService PLACE_HOLD (2 s), and
@@ -634,7 +712,7 @@ do
 	end
 end
 
--- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_CONTRACT.md: RollResult's 6th argument is the roll's
+-- Displayed-odds fixtures (UiSpec.RollOdds; docs/ROLL_ANIMATION_SPEC.md: RollResult's 6th argument is the roll's
 -- luck). They only fire Remotes.RollResult at the test client: nothing is rolled, granted or paid. AutoRoll goes off
 -- so no real roll covers the planted ones; 'restore' turns it back on and clears the attribute.
 do
@@ -659,7 +737,7 @@ do
 
 	local function catchAll()
 		for _, spec in CharacterCatalog.Rollable() do
-			if spec.Chance == nil and spec.Event == nil then
+			if spec.Chance == 1 and spec.Event == nil then
 				return spec
 			end
 		end
@@ -737,7 +815,7 @@ end
 local function progressionSpy()
 	local folder = assert(ReplicatedStorage:FindFirstChild("UiTestSpy"), "spy setup required first")
 	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	-- Rebirth too: the rebirth_* clicks must never really reset Money / Speed (UiSpec rebirth clicks, Intercept)
+	-- Rebirth too: the rebirth_* clicks must never really reset Money (UiSpec rebirth clicks, Intercept)
 	-- UiSpec.RemoteFunctions: the rest must never really buy, equip, use a potion, claim or redeem (market_action_buy and
 	-- the other Intercept clicks). Missing ones are skipped here; the client's Intercept check then reports them.
 	local required = { BuyUpgrade = true, WorkshopUpgrade = true, Rebirth = true }
@@ -793,28 +871,29 @@ function setups.showcase_owned(player)
 	assert(snapshots[player], "snapshot required before showcase fixtures")
 	local G = live("GachaService")
 	local CharacterCatalog = require(Shared.CharacterCatalog)
-	local copies = { 0, 3, 7, 1, 12 }
+	-- Copies no longer matter: the copy bonus is retired (design doc 4.19, owner 2026-11-03)
 	for i, spec in CharacterCatalog.Rollable() do
-		if i > #copies then
+		if i > 5 then
 			break
 		end
 		G.Grant(player, spec.Id)
-		player.GachaData[spec.Id]:SetAttribute("Copies", copies[i])
 	end
-	player:SetAttribute("Showcase", "")
-	G.RefreshShowcase(player)
+	player:SetAttribute("Showcase", "") -- GachaService refreshes WorkshopBoost on the Showcase attribute
 end
 
 function setups.showcase_filled(player)
 	setups.showcase_owned(player)
 	local G = live("GachaService")
 	local CharacterCatalog = require(Shared.CharacterCatalog)
-	local GachaConfig = require(Shared.GachaConfig)
+	local Workshop = require(Shared.Workshop)
 	local owned = {}
 	for _, entry in player.GachaData:GetChildren() do
 		local spec = CharacterCatalog.Get(entry.Name)
-		if spec and spec.Rollable and not spec.GamepassId then
-			table.insert(owned, { Id = spec.Id, Bonus = GachaConfig.SlotBonus(spec, G.Copies(player, spec.Id)) })
+		-- Team members can not join the squad (WORLD_REDESIGN_SPEC section 5)
+		local inTeam = table.find(G.TeamList(player), entry.Name) or entry.Name == player:GetAttribute("EquippedCar")
+		if spec and spec.Rollable and not spec.GamepassId and not inTeam then
+			-- copy bonus retired (design doc 4.19): a character's squad weight is its rarity points
+			table.insert(owned, { Id = spec.Id, Bonus = Workshop.Points({ spec }) })
 		end
 	end
 	table.sort(owned, function(a, b)
@@ -828,7 +907,6 @@ function setups.showcase_filled(player)
 		ids[i] = owned[i].Id
 	end
 	player:SetAttribute("Showcase", table.concat(ids, ","))
-	G.RefreshShowcase(player)
 end
 
 -- A same-name proxy for Remotes.SetShowcase that logs every call and then runs the REAL GachaService.SetShowcase.
@@ -903,3 +981,56 @@ local function onRequest()
 end
 
 ReplicatedStorage:GetAttributeChangedSignal("UiTestSetup"):Connect(onRequest)
+
+-- Full UI run (UiTestRun): the client harness asks for the states its scenarios need (UiScenarios.Needs) through
+-- this Studio-only RemoteFunction, for its own player only, and restores them after the run ("restore:<id>").
+-- Only these ids; everything else stays driven from the server datamodel as before.
+local CLIENT_SETUPS = {
+	auto_racing = true,
+	auto_roll_on = true,
+	lose_event = true,
+	emphasized_next = true,
+	showdown_start = true,
+	showdown_win = true,
+}
+local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
+local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+if not setupRequest then
+	setupRequest = Instance.new("RemoteFunction")
+	setupRequest.Name = "UiTestSetupRequest"
+	setupRequest.Parent = ReplicatedStorage
+end
+setupRequest.OnServerInvoke = function(player, request)
+	if type(request) ~= "string" then
+		return false, "bad request"
+	end
+	local restoreId = string.match(request, "^restore:(.+)$")
+	local ok, err = pcall(function()
+		local before = clientBefore[player] or {}
+		clientBefore[player] = before
+		if restoreId == "auto_racing" then
+			longStamina[player] = nil
+			if before.auto_racing == false then
+				live("CarService").SetAutoRace(player, false)
+			end
+			before.auto_racing = nil
+		elseif restoreId == "auto_roll_on" then
+			if before.auto_roll_on ~= nil then
+				setAutoRoll(player, before.auto_roll_on)
+			end
+			before.auto_roll_on = nil
+		elseif restoreId then
+			return -- lose_event and emphasized_next put themselves back
+		elseif CLIENT_SETUPS[request] then
+			if request == "auto_racing" and before.auto_racing == nil then
+				before.auto_racing = live("CarService").IsAutoRacing(player) == true
+			elseif request == "auto_roll_on" and before.auto_roll_on == nil then
+				before.auto_roll_on = player:GetAttribute("AutoRoll") == true
+			end
+			setups[request](player)
+		else
+			error("not a client setup id: " .. request)
+		end
+	end)
+	return ok, ok and nil or tostring(err)
+end

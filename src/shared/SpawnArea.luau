@@ -1,9 +1,10 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), the shop street (Shop, Market, Potions stalls), the Rebirth shrine, the Index scroll board, the
--- leaderboard banners, the Best Roll pedestal and the Checkpoints sensei. Players join and respawn here on foot, and
--- Stop sends them back here. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
+-- Server/CarService), the service row (Shop, Potions, Market, Index, the Checkpoints sensei: fronts on one line facing
+-- +x, WORLD_REDESIGN_SPEC 7) and the Best Roll pedestal. Players join and respawn here on foot, and Stop sends them back
+-- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
+-- the Market included. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
 -- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
@@ -12,9 +13,9 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
-local MarketplaceBuilder = require(script.Parent.MarketplaceBuilder)
 local LeaderboardConfig = require(script.Parent.LeaderboardConfig)
 local CheckpointConfig = require(script.Parent.CheckpointConfig)
+local PlazaHeader = require(script.Parent.PlazaHeader)
 local UiTheme = require(script.Parent.UiTheme)
 
 local SpawnArea = {}
@@ -32,8 +33,8 @@ local THICKNESS = 3 -- reaches the Baseplate top (y = -2) so the floor never sho
 local PAD_RAISE = 0.2
 local SPAWN_SIZE = 12
 local LABEL_DISTANCE = 150
-local GATE_POST_Z = 11 -- torii posts stand this far either side of the pad centre (opening 19.8 studs)
-local GATE_HEIGHT = 17 -- post height above the floor
+local GATE_POST_Z = 12 -- torii posts stand this far either side of the pad centre (proposed, design doc 4.24)
+local GATE_HEIGHT = 34 -- post height above the floor (proposed; was 17)
 
 -- Anime town palette (placeholders)
 local STONE = Color3.fromRGB(158, 152, 140)
@@ -43,7 +44,6 @@ local WOOD = Color3.fromRGB(150, 98, 60)
 local DARK_WOOD = Color3.fromRGB(82, 52, 36)
 local ROOF_TILE = Color3.fromRGB(58, 62, 72)
 local PAPER = Color3.fromRGB(246, 236, 210)
-local BLOSSOM = Color3.fromRGB(255, 183, 214)
 local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 
 -- Track 1's start, flattened: yaw only, at ground level (the local space every plaza and plot position uses)
@@ -197,71 +197,12 @@ local function prompt(parent, cframe, name, action, object, distance)
 	return addPrompt(anchor, name, action, object, distance)
 end
 
--- A gabled roof over a local frame: ridge along local X at `ridgeY`, `width` x `depth`.
-local function roof(parent, frame, width, depth, ridgeY)
-	local slope = math.rad(22)
-	local half = depth / 2
-	local run = half / math.cos(slope)
-	for _, side in { -1, 1 } do
-		block(
-			parent,
-			"Roof",
-			Vector3.new(width, 0.6, run),
-			frame
-				* CFrame.new(0, ridgeY - math.tan(slope) * half / 2, side * half / 2)
-				* CFrame.Angles(side * slope, 0, 0),
-			ROOF_TILE,
-			Enum.Material.Slate,
-			false
-		)
-	end
-end
-
--- A stone lantern (toro) with a warm light.
-local function stoneLantern(parent, startCFrame, x, z)
-	local m = Instance.new("Model")
-	m.Name = "StoneLantern"
-	local f = base(startCFrame) * CFrame.new(x, SpawnArea.TOP_Y, z)
-	block(m, "Post", Vector3.new(1.6, 4, 1.6), f * CFrame.new(0, 2, 0), STONE, Enum.Material.Slate)
-	local light =
-		block(m, "Light", Vector3.new(2.6, 2.2, 2.6), f * CFrame.new(0, 5.1, 0), PAPER, Enum.Material.Neon, false)
-	light.Transparency = 0.15
-	glow(light, 16)
-	m.Parent = parent
-end
-
--- A cherry tree: a trunk and a cloud of blossom (footprint about 14 x 14).
-local function cherryTree(parent, startCFrame, x, z)
-	local m = Instance.new("Model")
-	m.Name = "CherryTree"
-	local f = base(startCFrame) * CFrame.new(x, SpawnArea.TOP_Y, z)
-	block(m, "Trunk", Vector3.new(1.8, 9, 1.8), f * CFrame.new(0, 4.5, 0), DARK_WOOD, Enum.Material.Wood)
-	for i, spec in
-		{
-			{ Vector3.new(0, 11, 0), 12 },
-		}
-	do
-		local ball = block(
-			m,
-			"Blossom" .. i,
-			Vector3.one * spec[2],
-			f * CFrame.new(spec[1]),
-			BLOSSOM:Lerp(Color3.new(1, 1, 1), (i % 3) * 0.12),
-			Enum.Material.Grass,
-			false
-		)
-		ball.Shape = Enum.PartType.Ball
-	end
-	m.Parent = parent
-end
-
--- A wooden market stall facing the plaza centre: counter (with the prompt), posts, a tiled roof, a cloth curtain
+-- A wooden market stall on the service row, facing +x: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
-	local c = SpawnArea.CENTRE
 	local m = Instance.new("Model")
 	m.Name = name
-	local f = facing(startCFrame, x, z, c.X, c.Y)
+	local f = facing(startCFrame, x, z, x + 1, z)
 	local counter =
 		block(m, "Counter", Vector3.new(10, 3.6, 2), f * CFrame.new(0, 1.8, -2), WOOD, Enum.Material.WoodPlanks)
 	for _, px in { -4.8, 4.8 } do
@@ -293,22 +234,24 @@ local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, 
 	return m
 end
 
--- The torii over the pad: two vermilion posts either side of the pad (across the walking direction, local z), the
+-- The torii over the pad, turned to face the plaza centre (design doc 4.24): two vermilion posts either side of the pad, the
 -- nuki tie beam, the kasagi top beam with its black cap and upturned tips, and a plaque with made-up text. Posts and
 -- footings collide; the opening over the pad is free.
 local function torii(startCFrame)
 	local pc = SpawnArea.PAD_CENTRE
 	local gate = Instance.new("Model")
 	gate.Name = "StartGate"
-	local gf = base(startCFrame) * CFrame.new(pc.X, SpawnArea.TOP_Y, pc.Y) * CFrame.Angles(0, math.rad(90), 0)
+	local c = SpawnArea.CENTRE
+	local gf = base(startCFrame)
+		* CFrame.lookAt(Vector3.new(pc.X, SpawnArea.TOP_Y, pc.Y), Vector3.new(c.X, SpawnArea.TOP_Y, c.Y))
 	local h, w = GATE_HEIGHT, GATE_POST_Z
 	for _, side in { -1, 1 } do
 		block(gate, "Post", Vector3.new(2.2, h, 2.2), gf * CFrame.new(side * w, h / 2, 0), VERMILION)
 	end
-	block(gate, "Nuki", Vector3.new(w * 2 + 6, 1.2, 1.4), gf * CFrame.new(0, h - 3.5, 0), VERMILION, nil, false)
+	block(gate, "Nuki", Vector3.new(w * 2 + 4, 1.2, 1.4), gf * CFrame.new(0, h - 3.5, 0), VERMILION, nil, false)
 	local kasagi =
-		block(gate, "Kasagi", Vector3.new(w * 2 + 8, 1.4, 2.6), gf * CFrame.new(0, h + 0.7, 0), VERMILION, nil, false)
-	block(gate, "Cap", Vector3.new(w * 2 + 10, 1, 3), gf * CFrame.new(0, h + 1.9, 0), BLACK, nil, false)
+		block(gate, "Kasagi", Vector3.new(w * 2 + 5, 1.4, 2.6), gf * CFrame.new(0, h + 0.7, 0), VERMILION, nil, false)
+	block(gate, "Cap", Vector3.new(w * 2 + 7, 1, 3), gf * CFrame.new(0, h + 1.9, 0), BLACK, nil, false)
 	local plaque = block(gate, "Plaque", Vector3.new(3, 2.6, 0.6), gf * CFrame.new(0, h - 1.2, 0), BLACK, nil, false)
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		surfaceText(plaque, face, "Plaque" .. face.Name, "RUN", Color3.fromRGB(255, 214, 90))
@@ -330,8 +273,8 @@ function SpawnArea.Build(startCFrame)
 		"Floor",
 		Vector3.new(SpawnArea.FLOOR_SIZE.X, THICKNESS, SpawnArea.FLOOR_SIZE.Y),
 		frame * CFrame.new(c.X, top - THICKNESS / 2, c.Y),
-		STONE,
-		Enum.Material.Cobblestone
+		Color3.fromRGB(205, 187, 158), -- warm paving (design doc 4.24, placeholder)
+		Enum.Material.Pavement
 	)
 	model.PrimaryPart = floor
 
@@ -367,75 +310,96 @@ function SpawnArea.Build(startCFrame)
 		pad,
 		"Label",
 		{ { "Text", "START RUN", Color3.fromRGB(255, 230, 160) } },
-		UDim2.fromOffset(200, 50),
-		GATE_HEIGHT + 6
+		UDim2.fromOffset(130, 32),
+		20,
+		60
 	)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
 
-	-- Shop street (same panels and remotes as before): Shop and Potions stalls south-west of the spawn, the Market east
-	stall(model, startCFrame, "ShopStall", 80, -100, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
+	-- Service row (same panels and remotes as before): hub-local = world + (118, -80), so stall origins at world x -77 put
+	-- their fronts on world x -72
+	stall(model, startCFrame, "ShopStall", 41, -150, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
 	stall(
 		model,
 		startCFrame,
 		"PotionsStall",
-		80,
-		-125,
+		41,
+		-121.25,
 		Color3.fromRGB(120, 60, 160),
 		"POTIONS",
 		"OpenPotions",
 		"Potions"
 	)
-	local marketCenter = MarketplaceBuilder.CENTER
-	local marketplace = MarketplaceBuilder.Build(
-		frame
-			* CFrame.new(marketCenter.X, top, marketCenter.Y)
-			* CFrame.Angles(0, math.rad(MarketplaceBuilder.ROTATION), 0)
-	)
-	marketplace.Parent = model
-
-	-- Rebirth shrine: a raised stone floor, vermilion pillars, a gabled roof, a bell and an offering box (the prompt)
-	local shrine = Instance.new("Model")
-	shrine.Name = "RebirthShrine"
-	local sf = facing(startCFrame, 118, -30, c.X, c.Y)
-	block(shrine, "Platform", Vector3.new(16, 1, 13), sf * CFrame.new(0, 0.5, 0), STONE, Enum.Material.Slate)
-	for _, px in { -6.5, 6.5 } do
-		for _, pz in { -4.8 } do
-			block(
-				shrine,
-				"Pillar",
-				Vector3.new(1.2, 10, 1.2),
-				sf * CFrame.new(px, 6, pz),
-				VERMILION,
-				Enum.Material.Wood
-			)
-		end
-	end
-	roof(shrine, sf, 17, 13, 14.5)
-	local offering = block(
-		shrine,
-		"OfferingBox",
-		Vector3.new(4.5, 2.4, 2.4),
-		sf * CFrame.new(0, 2.2, -3),
-		DARK_WOOD,
+	-- The Market, sized to its MarketStall mesh (origin world x -77.5: the deck front is 5.5 ahead, on world x -72). Deck,
+	-- counter, front posts and the closed rear collide; the curtains are cloth and the roof is out of reach.
+	local marketplace = Instance.new("Model")
+	marketplace.Name = "Marketplace"
+	local mf = facing(startCFrame, 40.5, -92.5, 41.5, -92.5)
+	block(marketplace, "Deck", Vector3.new(20, 0.5, 11), mf * CFrame.new(0, 0.25, 0), WOOD, Enum.Material.WoodPlanks)
+	local marketCounter = block(
+		marketplace,
+		"Counter",
+		Vector3.new(12.4, 3.9, 2.6),
+		mf * CFrame.new(0, 2.45, -3.8),
+		WOOD,
 		Enum.Material.WoodPlanks
 	)
-	local shrineAnchor = addPrompt(offering, "OpenRebirth", "Rebirth", "Rebirth Shrine", 10)
-	billboard(
-		shrineAnchor,
-		"Title",
-		{ { "Name", "REBIRTH SHRINE", Color3.fromRGB(255, 214, 90) } },
-		UDim2.fromScale(14, 2),
-		13
+	for _, px in { -9.5, -6.6, 6.6, 9.5 } do
+		block(
+			marketplace,
+			"Post",
+			Vector3.new(0.9, 8.6, 0.9),
+			mf * CFrame.new(px, 4.6, -4.9),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	block(
+		marketplace,
+		"BackWall",
+		Vector3.new(19, 8.6, 0.6),
+		mf * CFrame.new(0, 4.6, 4.9),
+		DARK_WOOD,
+		Enum.Material.Wood
 	)
-	glow(shrineAnchor, 16)
-	shrine.PrimaryPart = shrineAnchor
-	shrine.Parent = model
+	for _, px in { -9.5, 9.5 } do
+		block(
+			marketplace,
+			"SideWall",
+			Vector3.new(0.6, 8.6, 4.9),
+			mf * CFrame.new(px, 4.6, 2.45),
+			DARK_WOOD,
+			Enum.Material.Wood
+		)
+	end
+	block(
+		marketplace,
+		"Roof",
+		Vector3.new(23, 0.6, 14),
+		mf * CFrame.new(0, 9.2, 0),
+		ROOF_TILE,
+		Enum.Material.Slate,
+		false
+	)
+	local marketCurtain = block(
+		marketplace,
+		"Curtain",
+		Vector3.new(12.2, 2.2, 0.2),
+		mf * CFrame.new(0, 7.6, -4.8),
+		Color3.fromRGB(122, 63, 184),
+		Enum.Material.Fabric,
+		false
+	)
+	UiTheme.Stroke(surfaceText(marketCurtain, Enum.NormalId.Front, "Sign", "MARKET", Color3.new(1, 1, 1), 25), 2)
+	marketplace.PrimaryPart = addPrompt(marketCounter, "OpenMarket", "Browse Market", "Market", 8)
+	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
+	marketplace.Parent = model
 
-	-- Index board: a wooden frame holding a paper scroll, facing the plaza centre
+	-- Index board: a wooden frame holding a paper scroll, on the service row
 	local index = Instance.new("Model")
 	index.Name = "IndexBoard"
-	local xf = facing(startCFrame, 116, -140, c.X, c.Y)
+	local xf = facing(startCFrame, 46, -63.75, 47, -63.75)
 	for _, px in { -10.5, 10.5 } do
 		block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
 	end
@@ -521,7 +485,7 @@ function SpawnArea.Build(startCFrame)
 
 	local best = Instance.new("Model")
 	best.Name = "BestRoll"
-	local _, bestStats = pedestal(best, cfg.X, cfg.Z, cfg.RADIUS, UDim2.fromScale(36, 11), 15, cfg.TEXT_DISTANCE)
+	local _, bestStats = pedestal(best, cfg.X, cfg.Z, cfg.RADIUS, UDim2.fromScale(36, 11), 26, cfg.TEXT_DISTANCE)
 	stat(bestStats, "Title", 0, 0.4, Color3.new(1, 1, 1), "BEST ROLL EVER")
 	stat(bestStats, "Odds", 0.4, 0.22, Color3.fromRGB(255, 214, 90), LeaderboardConfig.NO_DATA)
 	stat(bestStats, "Character", 0.62, 0.2, Color3.new(1, 1, 1), "")
@@ -578,30 +542,20 @@ function SpawnArea.Build(startCFrame)
 		"Track overview",
 		CheckpointConfig.PROMPT_DISTANCE
 	)
-	billboard(anchor, "Title", {
-		{ "Name", "SENSEI", Color3.new(1, 1, 1) },
-		{ "Sub", "Track overview", Color3.fromRGB(255, 190, 140) },
-	}, UDim2.fromScale(10, 2.4), 4.2, CheckpointConfig.TEXT_DISTANCE)
+	local title = PlazaHeader.Build(
+		anchor,
+		"Title",
+		"SENSEI",
+		"Star",
+		Color3.fromRGB(244, 124, 32),
+		UDim2.new(9, 40, 3.4, 16),
+		CheckpointConfig.TEXT_DISTANCE
+	)
+	title.StudsOffsetWorldSpace = Vector3.new(0, 4.2, 0)
 	npc.PrimaryPart = anchor
 	npc.Parent = model
 
-	-- Decoration: stone lanterns along the path to the gate, cherry trees between the buildings. Kept small: the
-	-- world tests compare every plaza part with every track part in one go
-	-- (every spot clears the Dojo ring and the buildings; checked by world_layout / workshop)
-	local decor = Instance.new("Model")
-	decor.Name = "Decor"
-	local dir = Vector2.new(pc.X - c.X, pc.Y - c.Y).Unit
-	local side = Vector2.new(-dir.Y, dir.X) * 10
-	for _, x in { 95, 60 } do
-		local p = c + dir * ((x - c.X) / dir.X)
-		for _, s in { side, -side } do
-			stoneLantern(decor, startCFrame, p.X + s.X, p.Y + s.Y)
-		end
-	end
-	for _, p in { { 150, -30 }, { 62, -125 } } do
-		cherryTree(decor, startCFrame, p[1], p[2])
-	end
-	decor.Parent = model
+	-- Decoration: Server/PlazaDressing places the meshes (design doc 4.24).
 	return model
 end
 

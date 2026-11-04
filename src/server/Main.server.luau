@@ -74,13 +74,15 @@ require(Shared.LightingConfig).Apply()
 -- The player's car auto-races the whole chain at the speed from their saved stats
 RaceService.Start(RaceService.BuildRoute(entries))
 WeatherService.Start()
+require(script.Parent.CharacterModelService).Start() -- loads the uploaded runner models in the background
 PlayerData.Start()
 UpgradeService.SetTrackCount(#chain) -- the tree's tier gate (docs/UPGRADE_TREE_DESIGN.md)
 UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPGRADES badge
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, idle Money in the zone
+WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
+require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo meshes, in the background (design doc 4.24)
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor

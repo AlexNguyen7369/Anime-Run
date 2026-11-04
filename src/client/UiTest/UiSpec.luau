@@ -76,23 +76,15 @@ UiSpec.Guis = {
 	-- animation; its enlarged showcase owns the AUTO toggle.
 	RacerHud = {
 		Source = "Client/RollToast/RacerUiController (Ui/RacerHud)",
+		-- retired: the Speed read-out / speedometer RacerHud/Speed (design doc 4.13, owner 2026-11-01)
+		-- retired as a button: Race, now hidden, only the layout anchor (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
 		AlwaysOn = {
-			"Race/Face",
-			"Speed",
 			"Money",
 			"Turbo",
 		},
-		Readouts = { "Speed", "Money", "Turbo" },
-		NonInteractiveParts = { "Speed", "Money", "Turbo" },
-		Buttons = {
-			{
-				Path = "Race/Face",
-				Does = "remote",
-				Remote = "SetAutoRace",
-				Arg = "not_attr:AutoRacing", -- the opposite of the current AutoRacing attribute
-				Label = "upper(HudFormat.AutoButtonText(AutoRacing))", -- "AUTO RACE" / "STOP AUTO"
-			},
-		},
+		Readouts = { "Money", "Turbo" },
+		NonInteractiveParts = { "Money", "Turbo" },
+		Buttons = {},
 	},
 	-- Current persistent HUD entry points (docs/HUD_LAYOUT_SPEC.md). The generated
 	-- RacerHud navigation/settings nodes remain hidden compatibility assets and are
@@ -107,8 +99,9 @@ UiSpec.Guis = {
 			"ShopColumn/Shop",
 			"ItemsSlot/Items",
 			"UpgradeSlot/Upgrade",
+			"TopRight/Auto",
 			"TopRight/Daily",
-			"TopRight/Quests",
+			"ShopColumn/Quests",
 			"TopRight/Market",
 			"TopRight/Settings",
 		},
@@ -121,12 +114,19 @@ UiSpec.Guis = {
 			{ Path = "ItemsSlot/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "UpgradeSlot/Upgrade", Does = "toggle_panel", Panel = "RacerUpgrades/Panel", Text = "Upgrade" },
 			{
+				Path = "TopRight/Auto",
+				Does = "remote",
+				Remote = "SetAutoRace",
+				Arg = "not_attr:AutoRacing", -- the opposite of the current AutoRacing attribute
+				Text = "Auto", -- in every state (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
+			},
+			{
 				Path = "TopRight/Daily",
 				Does = "toggle_panel",
 				Panel = "DailyBoosts/ModalBackdrop",
 				Label = "Daily before claim; countdown after claim",
 			},
-			{ Path = "TopRight/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
+			{ Path = "ShopColumn/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
 			{ Path = "TopRight/Market", Does = "toggle_panel", Panel = "MarketUi/Backdrop", Text = "Market" },
 			{ Path = "TopRight/Settings", Does = "toggle_panel", Panel = "RacerSettings/Panel" },
 		},
@@ -258,11 +258,27 @@ UiSpec.Guis = {
 			},
 		},
 	},
-	-- The compact roll (docs/ROLL_ANIMATION_CONTRACT.md): top centre, directly UNDER the Race button. With no panel
+	-- The compact roll (docs/ROLL_ANIMATION_SPEC.md): top centre, directly UNDER the Race button. With no panel
 	-- open its area is always reserved (the overlap checks place it there even while hidden between rolls); while any
 	-- panel is open it is hidden (UiSpec.HiddenWhilePanelOpen, owner decision 2026-10-08). It is a button only while
 	-- shown (Visible = false at rest: no invisible hitbox; shown at rest only while AutoRoll is false, with "AUTO OFF").
 	-- Text is "": its parts draw it.
+	-- Starter choice popup (design doc 4.21, 4.24): Enabled only for a new player. A save with rolls never sees it, so
+	-- its Choose buttons are covered by ui_starter_pick (structure, no pick) and CarTest Phase2Tests starter_pick_*.
+	StarterPick = {
+		Source = "Client/StarterPick",
+		Overlay = true,
+		Buttons = {
+			{
+				Path = "Dim/Panel/Cards/*/Choose",
+				Does = "remote",
+				Remote = "PickStarter",
+				Count = "starter_picks",
+				ClickCoverage = "ui_starter_pick",
+				Text = "CHOOSE",
+			},
+		},
+	},
 	RollToast = {
 		Source = "Client/RollToast",
 		AlwaysOn = { "Toast" },
@@ -301,6 +317,24 @@ UiSpec.Guis = {
 	-- The world dim behind open panels (UiSpec.PanelDimmers); below the HUD, never takes a click.
 	PanelDim = {
 		Source = "Client/HudChrome",
+		Buttons = {},
+		NonInteractive = true,
+	},
+	-- "<Name> TAG IN!" / "TEAM EXHAUSTED +$X" toast (TEAM_AND_STAMINA_SPEC "HUD"): TextLabel Toast, hidden at rest.
+	TeamToast = {
+		Source = "Client/TeamToast",
+		Buttons = {},
+		NonInteractive = true,
+	},
+	-- "CHECKPOINT BONUS x1.2 · $paid" (design doc 4.15): CanvasGroup Popup > TextLabel Bonus, hidden at rest.
+	CheckpointBonusPopup = {
+		Source = "Client/CheckpointBonusPopup",
+		Buttons = {},
+		NonInteractive = true,
+	},
+	-- Biome name on entering a new biome (design doc 4.17): CanvasGroup Popup > TextLabel BiomeName, hidden at rest.
+	BiomeWelcome = {
+		Source = "Client/BiomeWelcome",
 		Buttons = {},
 		NonInteractive = true,
 	},
@@ -349,8 +383,8 @@ UiSpec.Settings = {
 -- The Rebirth panel (ui_rebirth, clicks rebirth_*), rebuilt from the owner's reference image (2026-10-15,
 -- docs/REBIRTH_SPEC.md "Panel"). Numbers come from Shared/RebirthConfig (NextMultiplier,
 -- POINTS_PER_REBIRTH, Requirements(RebirthLevel).Money), leaderstats.Money and the RebirthLevel attribute, never
--- from the panel's pixels. Hidden = true: the node must NOT be shown (SpeedReward: no speed gain and no XP, owner
--- 2026-11-01, design doc 4.14).
+-- from the panel's pixels. Hidden = true: the node must NOT be shown (no node uses it now: SpeedReward is back, each
+-- rebirth level gives +5% cruise, owner 2026-11-03, design doc 4.14).
 -- Nodes are found BY NAME under the panel (the generator decides where the Face frames go): each must exist exactly
 -- once below its Parent node (Parent "Panel" = RacerRebirth/Panel), be shown while the panel is open, lie inside its
 -- Parent's rect and inside the panel at every UiSpec.Viewports entry, and have a row in UiResponsive.Nodes (so the
@@ -370,7 +404,8 @@ UiSpec.Rebirth = {
 			Name = "WarningText",
 			Parent = "Warning",
 			Class = "TextLabel",
-			Contains = { "Rebirth resets your Money and Speed", "(Robux purchases stay)" },
+			-- Rebirth resets Money only (design doc 4.14, owner 2026-11-01)
+			Contains = { "Rebirth resets your Money", "(Robux purchases stay)" },
 		},
 		{ Name = "Rewards", Parent = "Panel", Class = "Frame" },
 		{
@@ -381,12 +416,12 @@ UiSpec.Rebirth = {
 			Colour = "yellow",
 		},
 		{ Name = "LuckReward", Parent = "Rewards", Class = "Frame" },
-		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame", Hidden = true },
+		{ Name = "SpeedReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "PointReward", Parent = "Rewards", Class = "Frame" },
 		{ Name = "LuckRewardIcon", Parent = "LuckReward", Class = "ImageLabel" },
 		{ Name = "LuckRewardCaption", Parent = "LuckReward", Class = "TextLabel" },
-		{ Name = "SpeedRewardIcon", Parent = "SpeedReward", Class = "ImageLabel", Hidden = true },
-		{ Name = "SpeedRewardCaption", Parent = "SpeedReward", Class = "TextLabel", Hidden = true },
+		{ Name = "SpeedRewardIcon", Parent = "SpeedReward", Class = "ImageLabel" },
+		{ Name = "SpeedRewardCaption", Parent = "SpeedReward", Class = "TextLabel" },
 		{ Name = "PointRewardIcon", Parent = "PointReward", Class = "ImageLabel" },
 		{ Name = "PointRewardCaption", Parent = "PointReward", Class = "TextLabel" },
 		{ Name = "Requirements", Parent = "Panel", Class = "Frame" },
@@ -405,11 +440,13 @@ UiSpec.Rebirth = {
 	-- Each reward tile <Name> holds <Name>Icon (ImageLabel with a non-empty Image) and <Name>Caption (TextLabel), not
 	-- overlapping (node ids are unique in the generator, so the tile name is the prefix; both are listed in Nodes).
 	-- Caption = Format with the NEXT rebirth's gain: Multiplier tiles use RebirthConfig.NextMultiplier(RebirthLevel)
-	-- = SpeedGainMulti(RebirthLevel + 1), the NEXT TOTAL (x1.5 at level 0, x2 at level 1 ... x10, then x10 per
-	-- rebirth to x100b at 20, the last; owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md "Panel"), others RebirthConfig[Config].
+	-- = the luck multi of RebirthLevel + 1 (design doc 4.14), the NEXT TOTAL (x1.5 at level 0, x2 at level 1 ... x10, then x10 per
+	-- rebirth to x100b at 20, the last; owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md "Panel"), Next tiles call
+	-- RebirthConfig[Next](RebirthLevel + 1), others read RebirthConfig[Config]. Percent: the value is shown x100, rounded.
 	Tiles = {
 		-- %s = HudFormat.Multi(next multiplier) ("x7.5", HUD spec section 8, owner 2026-10-27; was "x%.2f")
 		{ Name = "LuckReward", Multiplier = true, Format = "%s Luck" },
+		{ Name = "SpeedReward", Next = "SpeedBonus", Percent = true, Format = "+%d%% Speed" }, -- owner 2026-11-03
 		{ Name = "PointReward", Config = "POINTS_PER_REBIRTH", Format = "+%d Stat Point", Plural = "+%d Stat Points" },
 	},
 	-- The panel's sections, shown together: no two may overlap (at every viewport).
@@ -458,7 +495,23 @@ UiSpec.Rebirth = {
 }
 -- The HUD (ui/specs/RacerHud.ui.json). Gaps are the spec's offsets (they are not scaled by the UIScale k).
 UiSpec.Hud = {
-	Race = "RacerHud/Race/Face",
+	Race = "RacerHud/Race/Face", -- hidden: geometry only, the anchor the Toast and the panel bands read
+	-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": a pill immediately left of Daily, same height, label "Auto" in every state
+	Auto = "HudChrome/TopRight/Auto",
+	Daily = "HudChrome/TopRight/Daily",
+	AutoLabel = "Auto",
+	AutoMaxGap = 8, -- px between the pill and Daily (TopRight's UIListLayout padding; a phone's UIScale only shrinks it)
+	AutoTintWait = 2, -- s: past the 1 s pending lock, the tint shows AutoRacing
+	-- docs/ROLL_ANIMATION_SPEC.md "Quests button": the Shop tile's twin, directly above it
+	Shop = "HudChrome/ShopColumn/Shop",
+	Quests = "HudChrome/ShopColumn/Quests",
+	ColumnMaxGap = 8, -- px between the two tiles (ShopColumn's UIListLayout padding; a phone's UIScale only shrinks it)
+	TopRow = {
+		"HudChrome/TopRight/Auto",
+		"HudChrome/TopRight/Daily",
+		"HudChrome/TopRight/Market",
+		"HudChrome/TopRight/Settings",
+	},
 	RaceLabel = "RacerHud/Race/Face/RaceLabel",
 	RaceTop = 72, -- px from the screen top (IgnoreGuiInset) to the Race button's top edge, below the top bar
 	NavButtons = {
@@ -468,25 +521,13 @@ UiSpec.Hud = {
 	},
 	NavLabels = { "Index", "Stats", "Rebirth" }, -- stacked top to bottom on the LEFT edge
 	NavMaxLeftGap = 32, -- px from the screen's left edge to the column
-	Speed = "RacerHud/Speed",
-	-- The speed icon is the speedometer's hub (docs/HUD_LAYOUT_SPEC.md section 9, owner 2026-10-27): a child of Speed,
-	-- drawn above the dial (higher ZIndex), its centre inside the dial.
-	SpeedIcon = "RacerHud/Speed/SpeedIcon",
-	-- Round speedometer on the left of the Speed group (section 9): Frame (or CanvasGroup), non-interactive, holds a
-	-- needle object Needle (attribute DialValue = the car's real speed in studs/s, 0 on foot) and a TextLabel DialSpeed.
-	SpeedDial = "RacerHud/Speed/SpeedDial",
-	DialNeedle = "Needle",
-	DialText = "DialSpeed",
-	DialValueAttr = "DialValue",
-	SpeedValue = "RacerHud/Speed/SpeedValue",
-	SpeedSuffix = " SPEED",
-	SpeedCentreTolerance = 2, -- px: the visible icon + number are centred on the screen (brief 2026-10-06: Speed centred; CLAUDE.md still says left)
+	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
 	-- Rounded navy plate behind MoneyValue and Unbanked (section 9): lower ZIndex than both, non-interactive, holds both.
 	MoneyPlate = "RacerHud/Money/MoneyPlate",
 	-- Counters with a text gradient (section 9): a UIGradient child on each.
-	GradientLabels = { "RacerHud/Money/MoneyValue", "RacerHud/Money/Unbanked", "RacerHud/Speed/SpeedValue" },
+	GradientLabels = { "RacerHud/Money/MoneyValue", "RacerHud/Money/Unbanked" },
 	Unbanked = "RacerHud/Money/Unbanked",
 	UnbankedPrefix = "UNBANKED ",
 	Turbo = "RacerHud/Turbo",
@@ -499,12 +540,12 @@ UiSpec.Hud = {
 	SideGap = { Desktop = 22, Phone = 12 }, -- px: Money's left edge from the screen side
 }
 
--- The top controls (owner-approved layout, CLAUDE.md + ui/specs/RacerHud.ui.json, reconfirmed 2026-10-08): the Race
--- button (AUTO RACE / STOP AUTO) at the top centre (ui_layout autorace_top_centre_x / autorace_below_topbar) and
--- Settings in the top-right corner (ui.json: AnchorPoint (1, 0), Position (1, -12, 0, 12)). Both stay reachable while
+-- The top controls (owner-approved layout, CLAUDE.md + ui/specs/RacerHud.ui.json, reconfirmed 2026-10-08): the Auto
+-- pill (docs/ROLL_ANIMATION_SPEC.md "Auto toggle"; ui_layout autorace_top_centre_x / autorace_below_topbar now hold
+-- its hidden anchor RacerHud/Race in place) and Settings in the top-right corner (ui.json: AnchorPoint (1, 0), Position (1, -12, 0, 12)). Both stay reachable while
 -- any pop-up panel is open: no open panel may cover either of them (ui_layout panel_clear_of_top_controls_*).
 UiSpec.TopControls = {
-	Race = UiSpec.Hud.Race,
+	Race = UiSpec.Hud.Auto,
 	Settings = UiSpec.Hud.Settings,
 	SettingsMaxRightGap = 32, -- px from the screen's right edge to Settings' right edge
 	SettingsMaxTopGap = 32, -- px from the screen's top edge (IgnoreGuiInset) to Settings' top edge
@@ -560,14 +601,24 @@ UiSpec.Guis.MarketUi = {
 			Count = "dynamic",
 		},
 		{
-			-- BUY (not owned, and every potion) invokes MarketPurchase(kind, id); EQUIP (owned) invokes
-			-- MarketEquip(kind, id); EQUIPPED fires nothing. Always for the item the Detail pane shows.
+			-- BUY (not owned, and every potion) invokes MarketPurchase(kind, id) for the item the Detail pane shows.
+			-- An owned trail / aura hides Action and shows the team slot buttons instead (u4, Client/SlotPicker).
 			Path = "Backdrop/Panel/Detail/Action",
 			Does = "remote",
-			Remote = "MarketPurchase|MarketEquip",
+			Remote = "MarketPurchase",
 			Arg = "detail_kind_id",
 			Label = "UiSpec.Market.ActionText",
-			DisabledWhen = "equipped",
+		},
+		{
+			-- Replace the old EQUIP / EQUIPPED Action (design doc 4.13: one aura and one trail per team slot): Slot<n>
+			-- invokes MarketEquip(kind, id, n), or MarketEquip(kind, nil, n) when the item is already on slot n.
+			-- ui_market checks their state for the owned item it shows.
+			Path = "Backdrop/Panel/Detail/Slots/*",
+			Does = "remote",
+			Remote = "MarketEquip",
+			Arg = "slot_kind_id",
+			Count = "dynamic",
+			ClickCoverage = "ui_market",
 		},
 	},
 }
@@ -583,15 +634,32 @@ UiSpec.Guis.RacerBackpack = {
 		-- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 3): the Characters tab (was Cars, WORLD_REDESIGN_SPEC
 		-- section 1) lists the owned characters (UiSpec.Backpack).
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
+		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
 		{
-			-- Misc tiles invoke UseBoost(id); Trails / Auras tiles invoke MarketEquip(kind, id); Cars tiles fire
-			-- EquipCar(THAT tile's car id), the equipped car's tile fires nothing (clicks backpack_equip_car*).
+			Path = "Panel/Header/Toolbar/Sort",
+			Does = "local",
+			Effect = "backpack_sort",
+			ClickCoverage = "ui_backpack_characters",
+		},
+		{
+			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); the
+			-- team slot buttons below put it on a slot (u4 / c1, Client/SlotPicker; click backpack_pick_character).
 			Path = "Panel/Items/*",
 			Does = "remote",
-			Remote = "UseBoost|MarketEquip|EquipCar",
+			Remote = "UseBoost",
 			Arg = "item_id",
 			Count = "dynamic",
 			ClickCoverage = "ui_motion_dynamic",
+		},
+		{
+			-- Replace the old tile equip: Slot<n> invokes MarketEquip(kind, id or nil, n) (Trails / Auras) or
+			-- SetTeam(team with the picked character on slot n) (Characters). ui_backpack_characters checks their state.
+			Path = "Panel/Slots/*",
+			Does = "remote",
+			Remote = "MarketEquip|SetTeam",
+			Arg = "slot",
+			Count = "dynamic",
+			ClickCoverage = "ui_backpack_characters",
 		},
 	},
 }
@@ -623,7 +691,7 @@ UiSpec.Guis.ShopUi = {
 
 -- The Shop's parts (docs/GAMEPASS_SHOP_SPEC.md section 1). Sections are direct children of Items, top to bottom in
 -- this order. Cards: a Frame named by the item Id somewhere under its section, holding exactly one "Buy" TextButton:
--- Featured = CharacterCatalog.Passes(), Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
+-- Gamepasses = MonetizationConfig.Gamepasses, Potions = Products with Section
 -- "Potions" plus the Bundle banner (Frame "Bundle", the Section "Bundle" product), ServerLuck = Section "ServerLuck".
 UiSpec.Shop = {
 	Gui = "ShopUi",
@@ -631,7 +699,9 @@ UiSpec.Shop = {
 	Close = "ShopUi/Backdrop/Panel/Close",
 	CloseText = "X",
 	Items = "ShopUi/Backdrop/Panel/Items",
-	Sections = { "Featured", "Gamepasses", "Potions", "ServerLuck", "Codes", "Thanks" },
+	-- No Featured section: gamepass cars are removed and there are no gamepass characters (design doc section 4.1,
+	-- owner 2026-10-28; CharacterCatalog.Passes() is always empty).
+	Sections = { "Gamepasses", "Potions", "ServerLuck", "Codes", "Thanks" },
 	SectionTitles = { Gamepasses = "Gamepasses", Potions = "Potions", Codes = "Codes" },
 	Bundle = "Bundle",
 	BuyName = "Buy",
@@ -672,8 +742,12 @@ UiSpec.Market = {
 		{ Name = "Description", Class = "TextLabel" },
 		{ Name = "Action", Class = "TextButton" },
 	},
-	-- Action label for the shown item: potions are always BUY (consumables)
-	ActionText = { Buy = "BUY", Equip = "EQUIP", Equipped = "EQUIPPED" },
+	-- Action label for the shown item: BUY (potions, and trails / auras not owned yet). EQUIP / EQUIPPED retired: an owned
+	-- trail / aura hides Action and shows Slots (u4, design doc 4.13).
+	ActionText = { Buy = "BUY" },
+	Slots = "Slots", -- Detail/Slots: one TextButton Slot<n> per team slot (MarketConfig.SLOTS), Title "SLOT n" / "REMOVE n"
+	SlotTitle = "SLOT %d", -- slot n does not hold the shown item
+	SlotRemoveTitle = "REMOVE %d", -- slot n holds it (attribute MarketConfig.SlotAttribute(n, kind) == id)
 	-- The tile the market_select_tile click picks (a potion: shown to every player, never owned-only); not the first
 	-- potion, so selecting it really changes Detail.
 	SelectKind = "Potion",
@@ -687,9 +761,9 @@ UiSpec.Market = {
 	Back = "MarketUi/Backdrop/Panel/Detail/Back",
 	BackText = "BACK",
 	-- Client/MarketUi fitTabs: a UIScale "Scale" in each side tab (not on the rail), fitted to the rail's height.
-	-- Mirrored so the layout solver models it at every viewport (UiScenarios marketTabScale). PhoneMin: Market only, on
-	-- phones (height <= PhoneMaxHeight) the tabs may shrink to it so every tab stays inside the rail (6365809, section 6
-	-- no overlap; Backpack keeps Min).
+	-- Mirrored so the layout solver models it at every viewport (UiScenarios marketTabScale). PhoneMin: Market and
+	-- Backpack, on phones (height <= PhoneMaxHeight) the tabs may shrink to it so every tab stays inside the rail
+	-- (6365809, section 6 no overlap).
 	TabFit = { ScaleName = "Scale", RailWidth = 96, TabSize = 96, Gap = 10, Min = 0.4, PhoneMin = 0.1, Max = 1 },
 }
 
@@ -704,10 +778,10 @@ UiSpec.BandPanels = {
 	["RacerBackpack/Panel"] = 760,
 	-- Client/ProgressionUi panel(): Band.Fit(p, 700)
 	["RacerWorkshop/Panel"] = 700,
-	["RacerWelcome/Panel"] = 700,
+	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
-	Race = "RacerHud/Race",
+	Race = "RacerHud/Race", -- hidden: stays the band's anchor (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
 	Turbo = "RacerHud/Turbo",
 	Grid = "HudChrome/Grid",
 	ShopColumn = "HudChrome/ShopColumn",
@@ -717,11 +791,11 @@ UiSpec.Band = {
 	-- the old 240x160 floor pushed panels over the Race button on short phones, e72e9fc).
 }
 
--- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): at viewport height <= StackMaxHeight the Items / Upgrade
+-- Owner 2026-10-28 (design doc 4.27): at viewport height <= StackMaxHeight the Items / Upgrade
 -- pair stacks ABOVE the LEVEL bar (both bottoms at or above the Level top and the Money top) and overlaps none of
 -- Clear; elsewhere it stays beside the bars (Items right edge = bars left - SlotGap, Upgrade left = bars right +
--- SlotGap, icon centre on the gap between Level and Turbo) and on desktop (height > 500) the pair is never shrunk
--- (pair UIScale = BottomScale exactly). Expected rects at 667x375 from the brief (screen pixels, +-Tol).
+-- SlotGap, icon centre on the gap between Level and Turbo). On desktop the pair is never shrunk (pair UIScale =
+-- BottomScale exactly); tablet_4x3 may shrink (design doc 4.27). Expected rects at 667x375 from the brief (screen pixels, +-Tol).
 UiSpec.HudPair = {
 	-- The slot holders (one CELL each, scaled by their UIScale "Scale"), not the buttons inside
 	Items = "HudChrome/ItemsSlot",
@@ -729,9 +803,8 @@ UiSpec.HudPair = {
 	Level = "RacerHud/Level",
 	Turbo = "RacerHud/Turbo",
 	Money = "RacerHud/Money",
-	Speed = "RacerHud/Speed",
+	-- retired: RacerHud/Speed (design doc 4.13, owner 2026-11-01). RacerHud/Level stays: it is the team row's frame (TeamHud)
 	Clear = {
-		"RacerHud/Speed",
 		"RacerHud/Money",
 		"RacerHud/Level",
 		"RacerHud/Turbo",
@@ -744,18 +817,27 @@ UiSpec.HudPair = {
 	IconMid = 36 / 94,
 	Tol = 2,
 	Stacked = {
+		-- 844x390 is <= StackMaxHeight, so it stacks like 667x375 (it was listed in Beside against this table's own rule).
+		{
+			Viewport = "phone_landscape",
+			Items = { x0 = 273, x1 = 316, y0 = 228, y1 = 276 },
+			Upgrade = { x0 = 528, x1 = 571, y0 = 228, y1 = 276 },
+		},
+		-- Upgrade x was outside the Speed read-out (482..525); Speed is retired (design doc 4.13, owner 2026-11-01), so
+		-- it sits StackGap outside the bars.
 		{
 			Viewport = "phone_small_landscape",
 			Items = { x0 = 187, x1 = 229, y0 = 217, y1 = 264 },
-			Upgrade = { x0 = 482, x1 = 525, y0 = 217, y1 = 264 },
+			Upgrade = { x0 = 435, x1 = 478, y0 = 217, y1 = 264 },
 		},
 	},
-	Beside = { "phone_landscape", "hd_720p" },
-	Desktop = { "desktop_1080p", "laptop_768p", "hd_720p", "tablet_4x3" },
+	Beside = { "hd_720p", "tablet_4x3" },
+	-- tablet_4x3 is not here: phone and tablet shrink the pair until it clears Money, desktop never (owner 2026-10-28)
+	Desktop = { "desktop_1080p", "laptop_768p", "hd_720p" },
 }
 
 -- CLAUDE.md: panels open BELOW the Race (Auto Race) button and end ABOVE the bottom TURBO LUCK bar. The progression
--- panels (Upgrades / Workshop / Welcome) keep their rule: below the Race button by this margin (and in the PanelBand,
+-- panels (Upgrades / Workshop) keep their rule: below the Race button by this margin (and in the PanelBand,
 -- Band.Gap below it; the compact roll hides under panels, owner 2026-10-28), and this far above the TURBO bar
 -- (ui_progression_layout).
 UiSpec.PanelTopMargin = 4
@@ -780,11 +862,16 @@ UiSpec.RacerPanelBand = {
 -- Elements that are intentionally HIDDEN while a pop-up panel is open (for example,
 -- the old daily/market controls): they are left out of the overlap lists in that
 -- state, and ui_panels proves they really are hidden (Visible false) then.
--- When = "any": any PanelSwitch panel open; "other_than:<panel>": any panel but that one.
+-- When = "any": any PanelSwitch panel open; "other_than:<panel>": any panel but that one; "stacked": any panel open at
+-- a viewport where the Items / Upgrade pair stacks.
 UiSpec.HiddenWhilePanelOpen = {
 	["DailyBoosts/Status"] = "any",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the compact roll hides under every panel
 	["RollToast/Toast"] = "any",
+	-- Stacked Items / Upgrade (height <= UiSpec.HudPair.StackMaxHeight) sit where an open panel goes: Client/HudChrome
+	-- hides them there while any panel is open. "stacked" holds at those viewports only.
+	["HudChrome/ItemsSlot/Items"] = "stacked",
+	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
@@ -814,13 +901,13 @@ UiSpec.PanelDimmers = {
 		"HudChrome/Grid/Stats",
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Shop",
+		"HudChrome/ShopColumn/Quests",
 		"HudChrome/ItemsSlot/Items",
 		"HudChrome/UpgradeSlot/Upgrade",
 		"HudChrome/TopRight/Daily",
-		"HudChrome/TopRight/Quests",
 		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
-		"RacerHud/Race/Face",
+		"HudChrome/TopRight/Auto",
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
@@ -848,10 +935,9 @@ UiSpec.Motion = {
 -- every other panel's rules stay checked.
 UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
 
--- Overlaps that are allowed: a modal panel may cover a read-out (Speed, Money), never a button or the TURBO bar.
+-- Overlaps that are allowed: a modal panel may cover a read-out (Money), never a button or the TURBO bar.
 UiSpec.AllowOverlap = {}
 for _, panel in { "RacerIndex/Panel", "RacerStats/Panel", "RacerSettings/Panel", "RacerRebirth/Panel" } do
-	table.insert(UiSpec.AllowOverlap, { panel, "RacerHud/Speed" })
 	table.insert(UiSpec.AllowOverlap, { panel, "RacerHud/Money" })
 end
 
@@ -865,7 +951,7 @@ end
 -- A read-out drawn above a panel button is never allowed.
 UiSpec.PanelCoversReadouts = {
 	-- Money (and MoneyValue / Unbanked inside it) is a display-only read-out like Speed (2026-10-08, gate run 5).
-	Readouts = { "RacerHud/Speed", "RacerHud/Money" },
+	Readouts = { "RacerHud/Money" },
 	Surfaces = { "Panel", "Modal", "Face" },
 	MaxSurfaceTransparency = 0.05,
 }
@@ -888,8 +974,6 @@ UiSpec.Showcase = {
 		"Ring",
 		"Burst",
 		"Reel",
-		"Streaks",
-		"Smoke",
 		"Viewport",
 		"Placeholder",
 		"Flare",
@@ -900,23 +984,30 @@ UiSpec.Showcase = {
 		"NewBadge",
 		"TurboBadge",
 		"TurboFlames",
-		"RollHeader",
+		"RollHeader", -- stays as an instance, hidden
+		"LandWave",
+		"Shard1",
+		"Shard2",
+		"Shard3",
+		"Shard4",
+		"Facet",
 	},
+	-- The stacked figure, odds and name may spill past the invisible card (design doc 4.31: no visible card): while shown
+	-- they stay on screen and clear of AutoButton and Hint.
+	ScreenBoundParts = { "Viewport", "ResultName", "ResultOdds" },
 	-- ...and the content parts that must lie inside the card while shown (effects such as Burst may spill out)
 	ContentParts = {
-		"Viewport",
-		"ResultName",
 		"ResultSpeed",
 		"ResultRarity",
-		"ResultOdds",
 		"NewBadge",
 		"TurboBadge",
 		"ScrapBadge",
 	},
-	-- %s = HudFormat.Multi(SpeedMulti) (docs/HUD_LAYOUT_SPEC.md section 8, owner 2026-10-27; was "x%s SPEED MULTIPLIER")
-	SpeedText = "%s SPEED",
-	-- The contract alias (Aliases.Speed, also named SpeedMulti): "Speed " .. HudFormat.Multi(SpeedMulti) (was "25x Speed")
-	SpeedAliasText = "Speed %s",
+	-- %s = HudFormat.RateText(RaceConfig.Cruise(spec)): the card shows cruise, the character SpeedMulti never enters it
+	-- (design doc 4.13, owner 2026-11-01; was "%s SPEED" of HudFormat.Multi(SpeedMulti))
+	SpeedText = "%s",
+	-- The contract alias (Aliases.Speed, also named SpeedMulti): "Cruise " .. RateText(cruise) (was "Speed x25")
+	SpeedAliasText = "Cruise %s",
 	TurboBadgeText = "TURBO x%s", -- %s = the roll's turbo multi
 	-- Duplicates are kept as copies and pay $0 (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the card's
 	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new car. RollResult's
@@ -939,15 +1030,14 @@ UiSpec.Showcase = {
 }
 
 -- The compact roll RollToast/Toast ("Compact = no card", owner decision 4): an invisible background, a transparent
--- Body filling it with ONLY the bare car art and its odds. Racer UI layout, top to bottom: the AUTO OFF caption band,
--- the car art (RollAnimConfig.COMPACT_HEIGHT tall), the odds band; Toast height = COMPACT_HEIGHT + ExtraHeight.
+-- Body filling it with ONLY the bare figure, its odds and its name (docs/ROLL_ANIMATION_SPEC.md "Views"). Top to
+-- bottom: the figure with the AUTO OFF caption over its top (RollAnimConfig.COMPACT_HEIGHT tall, at most
+-- COMPACT_SCREEN_SHARE of the screen height), the odds, the name; Toast height = figure height + ExtraHeight.
 UiSpec.Compact = {
 	Body = "Body",
-	Parts = { "Body", "Reel", "Streaks", "Smoke", "Viewport", "Placeholder", "Odds" },
+	Parts = { "Body", "Reel", "LandWave", "Viewport", "Placeholder", "Odds", "CharacterName" },
 	Forbidden = { -- must not EXIST anywhere in RollToast/Toast (not just be hidden)
 		"Glow",
-		"CharacterName",
-		"ResultName",
 		"SpeedMulti",
 		"ResultSpeed",
 		"Rarity",
@@ -960,37 +1050,41 @@ UiSpec.Compact = {
 		"Flare",
 	},
 	AutoOff = "AutoOff", -- caption part, shown only while AutoRoll is false
-	ExtraHeight = 44, -- caption band (24) + odds band (20)
-	ModelShare = 90 / 110, -- 24 px caption + 66 px art in the 110 px compact toast
+	CaptionBand = 0, -- px above the figure: AUTO OFF overlays its top (a band was a dead click area)
+	TextBand = 20, -- px each for the odds and the name under the figure
+	ExtraHeight = 40, -- odds band (20) + name band (20)
 	SplitTolerance = 0.02, -- proportional tolerance for Roblox's layout rounding
 }
 
--- The roll animation (docs/ROLL_ANIMATION_CONTRACT.md). Numbers are read from Shared/RollAnimConfig; Fallback is the
--- contract's table, used only to keep computing the other checks while the module is missing
+-- The roll animation (docs/ROLL_ANIMATION_SPEC.md). Numbers are read from Shared/RollAnimConfig; Fallback is the
+-- spec's table, used only to keep computing the other checks while the module is missing
 -- (roll_anim_config_present fails then).
 UiSpec.RollAnim = {
 	Module = "RollAnimConfig",
 	Fallback = {
-		POP = 0.15,
-		SPIN = 0.8,
-		LAND = 0.15,
-		EXIT = 0.15,
+		POP = 0.12,
+		SPIN = 1.5,
+		LAND = 0.2,
+		EXIT = 0.2,
 		SWITCH = 0.3,
+		FIT_INTERVAL = 2.8,
 		HOLD = {
-			Common = 0.3,
-			Uncommon = 0.3,
-			Rare = 0.4,
-			Epic = 0.6,
+			Common = 0.5,
+			Uncommon = 0.5,
+			Rare = 0.6,
+			Epic = 0.75,
 			Legendary = 1.5,
 			Mythic = 2.5,
 			Secret = 4,
 		},
-		REEL_CARS = 6,
+		REEL_CARS = 16,
 		LAND_POP = 1.15,
 		COMPACT_WIDTH = 0.12,
 		COMPACT_MIN = 100,
 		COMPACT_MAX = 230,
-		COMPACT_HEIGHT = 66,
+		COMPACT_HEIGHT = 110,
+		COMPACT_SCREEN_SHARE = 0.3,
+		COMPACT_TOP = 8,
 		COMPACT_GAP = 8,
 		ENLARGED_FACTOR = 3,
 		ENLARGED_WIDTH = 0.6, -- the enlarged card no longer derives from the compact size
@@ -1003,28 +1097,42 @@ UiSpec.RollAnim = {
 		"LAND",
 		"EXIT",
 		"SWITCH",
+		"FIT_INTERVAL",
 		"REEL_CARS",
 		"LAND_POP",
 		"COMPACT_WIDTH",
 		"COMPACT_MIN",
 		"COMPACT_MAX",
 		"COMPACT_HEIGHT",
+		"COMPACT_SCREEN_SHARE",
+		"COMPACT_TOP",
 		"COMPACT_GAP",
 		"ENLARGED_FACTOR",
 		"ENLARGED_WIDTH",
 	},
 	Vectors = {},
-	Functions = { "Hold", "Duration", "ExtraPause", "Reel" },
+	Functions = { "Hold", "Duration", "ExtraPause", "Reel", "TimeScale", "SpinSlots" },
 	Phases = { "PopIn", "Spin", "Land", "Hold", "Exit", "Idle" }, -- one roll, in this order
 	PhaseTolerance = 0.1, -- s, per phase length (frame quantisation at both ends)
 	PhaseStart = 0.2, -- s from the RollResult to PopIn (+ SWITCH for an emphasized roll)
+	IntervalMin = 2, -- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL
+	ShownAttr = "ShownId", -- body attribute: the character on screen in every phase after PopIn
+	SpinMinShown = 2, -- distinct ShownId values during Spin (not under reduced motion)
+	SlotJitter = 0.04, -- s: two frames' slack when comparing the length of two Spin slots
+	SlowDownRatio = 1.5, -- sampled mean slot length, last third of Spin / first third (about 3 at SLOT_GROWTH 1.12)
+	SpotTolerance = 3, -- px: the figure's resting centre (MotionScale at 1) stays this close during Spin (no sliding)
+	FigureFitSlack = 1.05, -- a Head box corner may pass the view edge by this factor: the box is wider than its mesh
+	BustTorsoHalf = 1.2, -- studs: the torso's capped half height, whose bottom is where the figure must stop showing
+	BustFadeMin = 0.9, -- the Viewport's BottomFade transparency at that bottom, when it lies inside the view
 	LandPopTolerance = 0.06, -- peak body width / nominal within LAND_POP +- this during Land
 	SettledTolerance = 0.02, -- body width / nominal within 1 +- this during Hold (back to 1x)
 	PopInStartMax = 0.25, -- the body grows from 0: its smallest width during PopIn <= this x nominal
 	ExitShrinkMax = 0.5, -- the compact body shrinks on Exit: its smallest width during Exit <= this x nominal
 	GlowTurnWait = 0.2, -- s between two Glow UIGradient.Rotation samples in Hold (it must have turned)
 	GlowTurnMin = 0.5, -- degrees
-	FlyIcon = "FlyIcon", -- a small car icon: no text, takes no clicks
+	FlyIcon = "FlyIcon", -- a small icon of the rolled character: no text, takes no clicks
+	FlyIconView = "Icon", -- ViewportFrame under FlyIcon, showing the rolled character's Portrait or, with none, its rig
+	FlyIconSize = 44, -- px, square
 	FlyTarget = "HudChrome/Grid/Index",
 	FlyArrive = 24, -- px: the FlyIcon centre comes at least this close to the target's rectangle
 	SwitchGrace = 0.2, -- s after SWITCH for the view to be back to Compact after an emphasized roll
@@ -1049,6 +1157,13 @@ UiSpec.Remotes =
 
 -- Created by Roblox, not the game: an explicit list of engine ScreenGui names (never a pattern or wildcard).
 -- ProximityPrompts: the engine's default ProximityPrompt UI (the workshop E prompt), created on first prompt shown.
+-- Game ScreenGuis that exist only for a moment, so gui_exists_* cannot ask for them: Client/first LoadingScreen (every
+-- join, gone once loaded; ui_inventory proves it left) and Client/ArrivalFlow's skip button for the first-join reveal.
+-- Parts of a panel a phone does not show when it opens (K.phoneHidden in UiScenarios). The phone Market detail view
+-- (its own layout, after a tap) is not solved here: it needs a real phone-height view (Prepare.PhoneOnly clicks).
+UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
+UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true }
+
 UiSpec.IgnoreGuis = {
 	Freecam = true,
 	BubbleChat = true,
@@ -1058,6 +1173,61 @@ UiSpec.IgnoreGuis = {
 	ProximityPrompts = true,
 }
 
+-- The enemy indicator (design doc 4.26, docs/NPC_RIVAL_SPEC.md): a ScreenGui that Client/NpcRacerView moves to the head
+-- each frame. Frame "Indicator" (AnchorPoint 0.5,1: its bottom middle is the arrow tip) > TextLabels "Text" and "Arrow".
+-- Frame "Pointer" (AnchorPoint 0.5,0.5) > the same TextLabels: shown instead while the head is off screen.
+UiSpec.Guis.NpcIndicator = {
+	Source = "Client/NpcRacerView",
+	Buttons = {},
+	NonInteractive = true,
+	ScreenInsets = "None", -- its Position is in viewport pixels
+	Frame = "Indicator",
+	Pointer = "Pointer",
+	Label = "Text", -- NpcConfig.For(track).Label
+	Arrow = "Arrow",
+	GapStuds = 0.4, -- NpcRacerView INDICATOR_GAP: the arrow tip above the top of the head
+	Samples = 30, -- frames sampled in each state: head on screen, in front but outside the view, behind the camera
+	SampleStep = "UiTestNpcIndicatorSample", -- temporary BindToRenderStep name
+	CameraStep = "UiTestNpcIndicatorCamera", -- temporary BindToRenderStep name
+	CameraOffset = Vector3.new(0, 6, 20), -- studs: the test camera from the enemy's head
+	CameraDistances = { 15, 80, 600 }, -- studs, a third of the sweep frames at each, repeating
+	FarDistance = 500, -- studs: samples this far prove there is no distance limit
+	SweepX = 0.7, -- share of the half screen the head sweeps over
+	SweepY = 0.6,
+	OutsideView = 1.2, -- how far past the view's corner the head sits when in front of the camera
+	MinSpread = 150, -- px: the arrow tip must cover this on screen across the samples
+	PointerMargin = { Side = 175, Top = 60, Bottom = 175, Tolerance = 3 }, -- NpcRacerView POINTER_MARGIN, px
+	FrontWait = 15, -- s per state: sampling stops here; no sample at all reports state_missing, not a pass
+	PositionTolerance = 12, -- px, median of the samples: allows one frame of lag on a moving enemy
+	AimTolerance = 5, -- degrees, worst sample: the pointer's arrow against the enemy's direction on screen
+}
+
+-- Enemy showdown (design doc 4.28): Frame or CanvasGroup "Banner" > TextLabels and ViewportFrame below, hidden at rest.
+-- Timing is a placeholder in the rule: these are test limits on "short", not the banner's own durations.
+UiSpec.Guis.EnemyShowdown = {
+	Source = "Client/EnemyShowdown",
+	Buttons = {},
+	NonInteractive = true,
+	Banner = "Banner",
+	Vs = "Vs",
+	EnemyName = "EnemyName", -- NpcConfig.For(track).Label
+	TrackName = "TrackName", -- contains BiomeThemes[spec.Biome].DisplayName
+	Defeated = "Defeated",
+	Portrait = "Portrait",
+	ShowWait = 3, -- s: the banner must show its state this soon after the event (a model portrait may load first)
+	MaxShown = 8, -- s: one banner must hide by itself within this
+}
+
+-- Defeated Enemies page (design doc 4.29): somewhere under RacerIndex/Panel, one tile per NpcConfig track.
+UiSpec.DefeatedEnemies = {
+	Page = "EnemiesPage",
+	TileFormat = "Enemy%d",
+	TilePattern = "Enemy(%d+)",
+	Beaten = "Beaten", -- boolean tile attribute
+	TimeAttr = "UiTestBestTime%d", -- LocalPlayer attribute: the time UiTestSetup defeated_states gave track n
+	FillWait = 3, -- s: tiles must match BestTrack and the race bests this soon after the Index opens
+}
+
 UiSpec.Billboards = {
 	WinText = {
 		Tag = "WinPad",
@@ -1065,11 +1235,10 @@ UiSpec.Billboards = {
 		MaxDistance = "TrackBuilder.WIN_TEXT_DISTANCE",
 		Text = "HudFormat.MoneyText(Cash)",
 	},
-	NpcLabel = { Label = "Text", MaxDistance = "NpcConfig.LABEL_DISTANCE", Text = "NpcConfig.For(track).Label" },
 	-- Mechanical Workshop (docs/WORKSHOP_SPEC.md section 2): Workspace.Workshops.Plot_1..PLOT_COUNT
 	WorkshopSign = {
 		Path = "Base/Sign", -- BillboardGui, label "Text"
-		EmptyText = "WorkshopConfig.EMPTY_TEXT", -- "EMPTY PLOT" when the plot's Owner attribute is 0
+		EmptyText = "WorkshopConfig.EMPTY_TEXT", -- "FREE DOJO" when the plot's Owner attribute is 0
 		OwnedText = "%s's Workshop", -- the owner's DisplayName
 		MaxDistance = "WorkshopConfig.SIGN_DISTANCE", -- 120
 	},
@@ -1078,7 +1247,8 @@ UiSpec.Billboards = {
 	BestRollStats = {
 		Path = "SpawnArea/BestRoll/Pedestal/Stats", -- under Workspace
 		Adornee = "CarMount", -- Pedestal.CarMount
-		Labels = { Title = "BEST ROLL EVER", Odds = true, Car = true, Player = true }, -- true = must exist, any text
+		-- true = must exist, any text; "Character" (was Car: characters, not cars, WORLD_REDESIGN_SPEC, w1)
+		Labels = { Title = "BEST ROLL EVER", Odds = true, Character = true, Player = true },
 		MaxDistance = "LeaderboardConfig.BEST_ROLL.TEXT_DISTANCE", -- 150
 	},
 }
@@ -1086,10 +1256,13 @@ UiSpec.Billboards = {
 -- Seconds to wait for live events the checks need.
 UiSpec.Waits = {
 	GuiAppear = 15, -- each ScreenGui must exist in PlayerGui within this
+	LoadingScreen = 95, -- s: LoadingScreen must be gone by then (its own safety limit is 90 s, design doc 4.24)
 	HudSettle = 2.5, -- HUD counters must reach the server value within this
 	-- s: a panel's open motion (scale 0.92 -> 1 or a 12 px slide, 0.2 s) and its tile cascade (about 0.55 s) have
 	-- settled; setPanels waits this after opening a panel unless motion is reduced (HUD spec section 10)
 	PanelMotion = 0.65,
+	-- s: a closed panel may play its close motion (design doc 4.20) this long before Visible must be false
+	PanelClose = 0.3,
 	HudLag = 0.5, -- s: a HUD counter may show any server value from this long ago up to now (count-up, HUD spec 9)
 	HudFollow = 2, -- s: ui_hud re-samples a counter every frame for this long before it fails
 	RollsStable = 15, -- allow the turbo meter to settle after the latest server roll
@@ -1120,7 +1293,10 @@ ui-tester on the SERVER datamodel (a client cannot: client attribute changes do 
   1. ReplicatedStorage:SetAttribute("UiTestSetup", "<id>:<nonce>")   (a fresh nonce every time)
   2. wait until ReplicatedStorage:GetAttribute("UiTestSetupDone") == "<id>:<nonce>"
   3. ReplicatedStorage:GetAttribute("UiTestSetupError") must be nil/empty, otherwise the step failed
-The client harness never changes saved state and never triggers setup; it reads the replicated state. Checks
+The client harness never changes saved state. In a full run (UiTestRun) it asks for the states its scenarios need
+itself (UiScenarios.Needs: auto_racing, auto_roll_on, lose_event, emphasized_next) through the Studio-only
+RemoteFunction ReplicatedStorage.UiTestSetupRequest, and puts them back after the run; every other setup is still
+triggered from the server datamodel as above. Checks
 whose state is missing fail with value "state_missing:<Id>".
 ]]
 UiSpec.ServerSetup = {
@@ -1157,7 +1333,7 @@ UiSpec.ServerSetup = {
 	},
 	{
 		Id = "on_foot",
-		When = "before the ui_speed_dial fixture run (UiSpec.Progression.FixtureChecks) and first in the NeedSetup of "
+		When = "before the on_foot fixture runs (UiSpec.Progression.FixtureChecks) and first in the NeedSetup of "
 			.. "every click whose After pins Money (progression_not_optimistic: a racing car's pad payouts would move "
 			.. "it mid-check); needs 'snapshot' first",
 		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no car). 'restore' puts "
@@ -1168,6 +1344,24 @@ UiSpec.ServerSetup = {
 		When = "just before or during UiTestRun (ui_loser waits Waits.LoseEvent s for it)",
 		What = "Fires NpcRace { Type = 'Result', Result = 'Lose' } to this client, then Reset/Start after "
 			.. "NpcConfig.LOSE_SCREEN_SECONDS, like a real loss.",
+	},
+	{
+		Id = "showdown_start",
+		When = "during ui_showdown (asked for by the scenario)",
+		What = "Fires NpcRace { Type = 'Start' } for the player's current track to this client only, shaped like "
+			.. "RaceService's. The real run's state is never touched.",
+	},
+	{
+		Id = "showdown_win",
+		When = "during ui_showdown, after showdown_start (asked for by the scenario)",
+		What = "Fires NpcRace Result Win for showdown_start's track, then Start for the next track in the same frame, "
+			.. "like a real win. To this client only; banks nothing and changes no saved state.",
+	},
+	{
+		Id = "defeated_states",
+		When = "before the ui_defeated fixture run (UiSpec.Progression.FixtureChecks); needs 'snapshot' first",
+		What = "Racing and rolls paused, BestTrack = 2 and race bests for Tracks 1 and 2; each time also on the "
+			.. "LocalPlayer attribute UiSpec.DefeatedEnemies.TimeAttr. 'restore' puts all of it back.",
 	},
 	{
 		Id = "turbo_next",
@@ -1679,27 +1873,27 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy" },
 		Expect = { Panels = { ["RacerRebirth/Panel"] = false }, Remote = false },
 	},
-	-- Race button: fires SetAutoRace(not AutoRacing); the label follows the server, not the click
+	-- Auto pill: fires SetAutoRace(not AutoRacing); the label stays "Auto", the tint follows the server, not the click
 	{
 		Id = "auto_race_toggle",
-		Gui = "RacerHud",
-		Path = "Race/Face",
+		Gui = "HudChrome",
+		Path = "TopRight/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false },
 		NeedSetup = { "spy" },
 		Expect = {
 			Remote = { Name = "SetAutoRace", Arg = "not_attr:AutoRacing" },
-			After = { "autorace_label_follows_server", "autoracing_is_arg" },
+			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
 	{
 		Id = "auto_race_toggle_back",
-		Gui = "RacerHud",
-		Path = "Race/Face",
+		Gui = "HudChrome",
+		Path = "TopRight/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitSeconds = 1.5 }, -- past the 1 s pending lock
 		NeedSetup = { "spy" },
 		Expect = {
 			Remote = { Name = "SetAutoRace", Arg = "not_attr:AutoRacing" },
-			After = { "autorace_label_follows_server", "autoracing_is_arg" },
+			After = { "autorace_label_follows_server", "autoracing_is_arg", "auto_pill_tint_follows_server" },
 		},
 	},
 	-- Index: Equip fires EquipCar with THAT tile's id; the equipped tile fires nothing
@@ -1722,7 +1916,8 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy", "index_states" },
 		Expect = { Remote = false, After = { "tile_shows_equipped" } },
 	},
-	-- Stats: "+" fires AllocateStat with THAT row's stat, including Workshop; no points fires nothing.
+	-- Stats: "+" fires AllocateStat with THAT row's stat; no points fires nothing. The Workshop point is retired and
+	-- Stamina is the fourth stat (design doc 4.19 / 4.6, owner 2026-11-03), so allocate_workshop* became allocate_stamina*.
 	{
 		Id = "allocate_speed",
 		Gui = "RacerStats",
@@ -1757,9 +1952,9 @@ UiSpec.Clicks = {
 		},
 	},
 	{
-		Id = "allocate_workshop",
+		Id = "allocate_stamina",
 		Gui = "RacerStats",
-		Path = "Panel/Face/StatsHost/Rows/Workshop/Plus",
+		Path = "Panel/Face/StatsHost/Rows/Stamina/Plus",
 		Prepare = only("RacerStats/Panel"),
 		NeedSetup = { "spy", "stat_points" },
 		Expect = {
@@ -1768,9 +1963,9 @@ UiSpec.Clicks = {
 		},
 	},
 	{
-		Id = "allocate_workshop_no_points",
+		Id = "allocate_stamina_no_points",
 		Gui = "RacerStats",
-		Path = "Panel/Face/StatsHost/Rows/Workshop/Plus",
+		Path = "Panel/Face/StatsHost/Rows/Stamina/Plus",
 		Prepare = only("RacerStats/Panel"),
 		NeedSetup = { "spy", "no_stat_points" },
 		Expect = { Remote = false, After = { "alloc_unchanged", "points_unchanged", "row_shows_alloc" } },
@@ -1842,7 +2037,34 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy" },
 		Expect = { Remote = false, After = { "top_down_flipped", "top_down_label_follows_attr" } },
 	},
-	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_CONTRACT.md). Run these eleven in this order, with
+	-- Track camera (design doc 4.12, docs/CAMERA_SPEC.md): LocalPlayer attribute TrackCamera, unset = ON
+	{
+		Id = "track_camera_off",
+		Gui = "RacerSettings",
+		Path = "Panel/Face/TrackCameraRow/Face/TrackCameraToggle/Face",
+		Prepare = {
+			Open = { "RacerSettings/Panel" },
+			Showcase = false,
+			AttrNot = { TrackCamera = false },
+			LabelIs = "ON",
+		},
+		NeedSetup = { "spy" },
+		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
+	},
+	{
+		Id = "track_camera_on",
+		Gui = "RacerSettings",
+		Path = "Panel/Face/TrackCameraRow/Face/TrackCameraToggle/Face",
+		Prepare = {
+			Open = { "RacerSettings/Panel" },
+			Showcase = false,
+			AttrIs = { TrackCamera = false },
+			LabelIs = "OFF",
+		},
+		NeedSetup = { "spy" },
+		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
+	},
+	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_SPEC.md). Run these eleven in this order, with
 	-- auto_racing active and AutoRoll on; 'restore' afterwards puts AutoRoll back too.
 	{
 		Id = "open_showcase_from_toast",
@@ -2108,33 +2330,19 @@ UiSpec.Guis.RacerWorkshop = {
 	Buttons = {
 		{ Path = "Panel/Close", Does = "close_panel", Panel = "RacerWorkshop/Panel" },
 		{ Path = "Panel/Buy", Does = "remote", Remote = "WorkshopUpgrade", Arg = "none" },
+		-- The boosted stat picker (design doc 4.19): one button per WorkshopConfig.STATS, invokes SetWorkshopStat(stat);
+		-- the chosen one (WorkshopStat) highlighted. ui_workshop_modal checks them.
+		{
+			Path = "Panel/Stats/*",
+			Does = "remote",
+			Remote = "SetWorkshopStat",
+			Arg = "stat",
+			Count = "dynamic",
+			ClickCoverage = "ui_workshop_modal",
+		},
 	},
 }
-UiSpec.Guis.RacerWelcome = {
-	Source = "Client/ProgressionUi",
-	Panels = { "Panel" },
-	Buttons = {
-		{ Path = "Panel/Close", Does = "close_panel", Panel = "RacerWelcome/Panel" },
-		-- Client/WelcomeStyle: Claim closes the panel like Close (the credit is already in Speed).
-		{ Path = "Panel/Claim", Does = "close_panel", Panel = "RacerWelcome/Panel" },
-		-- docs/OFFLINE_DOUBLE_SPEC.md section 5: visible only while OfflineDoubleOpen; ProductId 0 = "COMING SOON",
-		-- inactive, a click does nothing; ProductId > 0 = PromptProductPurchase (Roblox's prompt, no game remote).
-		{ Path = "Panel/Double", Does = "local", Effect = "prompt_purchase_or_nothing" },
-	},
-}
--- Offline reward double (docs/OFFLINE_DOUBLE_SPEC.md, owner 2026-10-28). Judged by ui_offline_double
--- (Progression.FixtureChecks, setup offline_welcome) and the offline_double_click click.
-UiSpec.OfflineDouble = {
-	Panel = "RacerWelcome/Panel",
-	Button = "RacerWelcome/Panel/Double",
-	Price = "RacerWelcome/Panel/Double/Price",
-	Earnings = "RacerWelcome/Panel/Earnings",
-	ComingSoon = "COMING SOON", -- section 5, ProductId == 0
-	PriceFormat = "%d ROBUX", -- section 5, ProductId > 0
-	EarningsFormat = "+%s SPEED", -- section 5, HudFormat.SpeedText(OfflineSpeed + OfflineDoubled)
-	-- The Double button never intersects these (the button row vs the Away line and the amount)
-	NoOverlap = { "RacerWelcome/Panel/Claim", "RacerWelcome/Panel/Away", "RacerWelcome/Panel/Earnings" },
-}
+-- retired: RacerWelcome (the offline welcome) and UiSpec.OfflineDouble: no offline credit and no Robux double (design doc 4.19, owner 2026-11-03)
 UiSpec.Progression = {
 	-- Owner 2026-10-26 (UPGRADE_TREE_SPEC section 5): the click box is 100 x 106 (NODE_HEIGHT = STEP_Y), so
 	-- neighbouring tiles' click areas never overlap.
@@ -2144,13 +2352,14 @@ UiSpec.Progression = {
 	TreeWorld = "RacerUpgrades/Panel/Canvas/TreeWorld",
 	UpgradeEntry = "HudChrome/UpgradeSlot/Upgrade",
 	UpgradeBadge = "HudChrome/UpgradeSlot/Upgrade/Badge",
-	WorkshopRateStep = 0.05,
+	-- RacerWorkshop/Panel/Boost shows "+<WorkshopBoost x 100>% <WorkshopStat>", rounded to 0.1 (design doc 4.19, owner 2026-11-03; replaces
+	-- the idle rate label Rate)
+	WorkshopBoostStep = 0.05,
 }
-for _, name in { "Upgrades", "Workshop", "Welcome" } do
+for _, name in { "Upgrades", "Workshop" } do
 	local path = "Racer" .. name .. "/Panel"
 	UiSpec.PanelSwitch.Names[path] = name
 	table.insert(CLOSED, path)
-	table.insert(UiSpec.AllowOverlap, { path, "RacerHud/Speed" })
 	table.insert(UiSpec.AllowOverlap, { path, "RacerHud/Money" })
 end
 table.insert(UiSpec.ClientScripts, "ProgressionUi")
@@ -2185,20 +2394,13 @@ for _, item in
 		},
 		{ Id = "progression_no_money", What = "Same tree fixture, Money 0. Snapshot required." },
 		{ Id = "workshop_open", What = "Fires WorkshopOpen only to the owner; no purchase." },
-		{
-			Id = "offline_welcome",
-			What = "OfflineSeconds=3661, OfflineSpeed=1234; no credit added. Snapshot required.",
-		},
-		{
-			Id = "offline_double_open",
-			What = "OfflineSeconds=3661, OfflineSpeed=1234, OfflineDoubleOpen=true, OfflineDoubled=nil; no credit added, no receipt. Snapshot required.",
-		},
+		-- retired: offline_welcome, offline_double_open (design doc 4.19, owner 2026-11-03)
 	}
 do
 	item.When = "before the corresponding progression scenario/click; restore afterwards"
 	table.insert(UiSpec.ServerSetup, item)
 end
-for _, name in { "Upgrades", "Workshop", "Welcome" } do
+for _, name in { "Upgrades", "Workshop" } do
 	local path = "Racer" .. name .. "/Panel"
 	table.insert(UiSpec.Clicks, {
 		Id = "close_" .. string.lower(name),
@@ -2209,30 +2411,7 @@ for _, name in { "Upgrades", "Workshop", "Welcome" } do
 		Expect = { Panels = { [path] = false }, Remote = false },
 	})
 end
-table.insert(UiSpec.Clicks, {
-	Id = "claim_welcome",
-	Gui = "RacerWelcome",
-	Path = "Panel/Claim",
-	Prepare = only("RacerWelcome/Panel"),
-	NeedSetup = { "spy", "offline_welcome" },
-	Expect = { Panels = { ["RacerWelcome/Panel"] = false }, Remote = false },
-})
--- OFFLINE_DOUBLE_SPEC section 5. ProductId 0: nothing happens (panel and button stay, no game remote, no purchase
--- prompt; ui-tester also confirms on screen that no Roblox purchase prompt opened). ProductId > 0: the Roblox
--- product prompt opens (ui-tester closes it without buying).
-table.insert(UiSpec.Clicks, {
-	Id = "offline_double_click",
-	Gui = "RacerWelcome",
-	Path = "Panel/Double",
-	Prepare = only("RacerWelcome/Panel"),
-	NeedSetup = { "spy", "offline_double_open" },
-	Expect = {
-		Panels = { ["RacerWelcome/Panel"] = true },
-		Remote = false,
-		After = { "offline_double_click_result" },
-	},
-	Note = "ProductId 0: no purchase prompt may appear. ProductId > 0: the prompt for that product appears; cancel it.",
-})
+-- retired: claim_welcome and offline_double_click (design doc 4.19, owner 2026-11-03)
 table.insert(UiSpec.Clicks, {
 	Id = "exit_upgrades",
 	Gui = "RacerUpgrades",
@@ -2316,15 +2495,15 @@ table.insert(UiSpec.Clicks, {
 	},
 })
 
--- Workshop Showcase (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22). Client/ProgressionUi keeps Level,
--- Price, Rate, Result and Buy in the LEFT part of RacerWorkshop/Panel and adds the frame Panel/Showcase on the right:
---   Multi (TextLabel): contains MultiFormat of the player attribute ShowcaseMulti ("SHOWCASE x1.37 Speed gain");
---   Best3 (TextButton): invokes SetShowcase({ the min(3, owned) owned rollable ids with the highest
---     GachaConfig.SlotBonus(spec, copies) }), copies = attribute Copies on player.GachaData.<id> (missing = 0);
+-- Workshop Showcase = the Dojo squad (docs/WORLD_REDESIGN_SPEC.md section 5). Client/ProgressionUi keeps Boost,
+-- Level, Price, Result and Buy in the LEFT part of RacerWorkshop/Panel and adds the frame Panel/Showcase on the right.
+-- Retired (design doc 4.19, owner 2026-11-03): the Multi label (ShowcaseMulti of idle gain) and the copy bonus.
+--   Best3 (TextButton): invokes SetShowcase({ the min(3, owned) owned rollable ids, not in the Team, with the most
+--     rarity points Workshop.Points({ spec }) (ties: lower id first) });
 --   Slot1..Slot3 (Frame): Name (TextLabel: the car's name, or EmptyText) and Clear (TextButton, shown only while the
 --     slot holds a car; invokes SetShowcase(the shown ids without that car));
---   List (ScrollingFrame): one row Character_<id> per owned rollable car (never the starter or gamepass cars), sorted by
---     slot bonus, highest first; each row has Name (TextLabel) and Show (TextButton: ShowText when not shown,
+--   List (ScrollingFrame): one row Character_<id> per owned rollable car not in the Team (never the starter or gamepass
+--     cars), sorted by rarity points, highest first; each row has Name (TextLabel) and Show (TextButton: ShowText when not shown,
 --     ShownText when shown; a click invokes SetShowcase with the id added / removed; Active false and fires nothing
 --     when 3 cars are shown and this one is not one of them).
 -- Shown ids: player attribute Showcase (ids joined by ","); slot i shows the i-th id. The labels follow the server's
@@ -2337,16 +2516,12 @@ UiSpec.WorkshopShowcase = {
 	EmptyText = "EMPTY",
 	ShowText = "SHOW",
 	ShownText = "SHOWN",
-	-- ShowcaseMulti as HudFormat.Multi ("x1.37", trailing zeros dropped; docs/HUD_LAYOUT_SPEC.md section 8, owner
-	-- 2026-10-27, was "x%.2f"), somewhere in the Multi text and not followed by another digit
-	MultiFormat = "HudFormat.Multi", -- label "SHOWCASE  " .. HudFormat.Multi(ShowcaseMulti) .. " Speed gain"
 	RowPrefix = "Character_",
 	-- The old controls: in the left part of the panel (right edge <= LeftShare of its width; brief "~42%", bound
 	-- 45%) and never on the Showcase frame. Close keeps its own place but may not touch any showcase control.
-	LeftControls = { "Level", "Price", "Rate", "Result", "Buy" },
+	LeftControls = { "Boost", "Level", "Price", "Result", "Buy" }, -- Rate (idle rate) retired, Boost replaces it (4.19)
 	LeftShare = 0.45,
 	ShowcaseMinStart = 0.4, -- the Showcase frame starts at >= 40% of the panel width
-	MultiTolerance = 0.005, -- ShowcaseMulti vs GachaConfig.ShowcaseMulti of the shown cars
 	AnswerWait = 3, -- s: the server's Showcase attribute and the panel follow a click within this
 	Remote = "SetShowcase", -- RemoteFunction(ids) -> ok, reason
 }
@@ -2386,14 +2561,13 @@ for _, item in
 		{
 			Id = "showcase_owned",
 			What = "Snapshot required (GachaService.Snapshot keeps Cars, Copies, Showcase). Unsaved: the player owns "
-				.. "every car it owned plus the first 5 of CharacterCatalog.Rollable(); those 5 get Copies 0, 3, 7, 1, 12 in "
-				.. "that order (slot bonuses differ, so BEST 3 is not just the rarest 3); Showcase '' and ShowcaseMulti "
-				.. "1 set through GachaService (no SetShowcase cooldown left).",
+				.. "every car it owned plus the first 5 of CharacterCatalog.Rollable(); Showcase '' (no SetShowcase "
+				.. "cooldown left). Copies no longer matter (design doc 4.19).",
 		},
 		{
 			Id = "showcase_filled",
-			What = "showcase_owned, then shows the 3 owned rollable cars with the LOWEST slot bonus (Showcase / "
-				.. "ShowcaseMulti through GachaService); run ui_workshop_showcase (3 shown: other rows' Show disabled).",
+			What = "showcase_owned, then shows the 3 owned rollable cars not in the Team with the FEWEST rarity points "
+				.. "(Showcase attribute); run ui_workshop_showcase (3 shown: other rows' Show disabled).",
 		},
 		{
 			Id = "showcase_spy",
@@ -2439,11 +2613,11 @@ for _, click in
 			},
 		},
 		{
-			-- {showcase_unshown}: the highest-bonus owned rollable car that is not shown (resolved by RunClick)
+			-- {showcase_unshown}: the most-rarity-points owned rollable car that is not shown (resolved by RunClick)
 			Id = "showcase_show_row",
 			Path = "Panel/Showcase/List/{showcase_unshown}/Show",
 			Prepare = showcaseOpen({ ScrollIntoView = true, LabelIs = "SHOW", WaitSeconds = 1 }),
-			-- The list re-renders its rows (a roll changes Copies): one press was lost on 2026-10-28 (fired nothing)
+			-- The list re-renders its rows (a roll changes GachaData): one press was lost on 2026-10-28 (fired nothing)
 			Retries = 1,
 			RetryLostPress = true,
 			NeedSetup = { "spy", "showcase_spy" },
@@ -2486,10 +2660,7 @@ for _, item in
 			Id = "workshop_foreign_prompt",
 			What = "Requires second player's owned plot; moves test avatar to that UpgradePad. E must open no panel.",
 		},
-		{
-			Id = "offline_zero",
-			What = "OfflineSpeed=0, OfflineSeconds=0; ui_offline_zero must observe welcome hidden.",
-		},
+		-- retired: offline_zero (design doc 4.19, owner 2026-11-03)
 		{ Id = "weather_rain", What = "Replicates rain with 180 seconds remaining; run ui_weather." },
 		{ Id = "weather_night", What = "Replicates night with 180 seconds remaining; run ui_weather." },
 		{ Id = "weather_gold", What = "Replicates gold with 180 seconds remaining; run ui_weather." },
@@ -2512,7 +2683,7 @@ for _, item in
 		{ Id = "roll_odds_clamp", What = "Same car at extreme luck; display remains base rarity; run ui_roll_odds." },
 		{ Id = "roll_odds_luck1", What = "Same car at luck 1 (base odds); run ui_roll_odds." },
 		{ Id = "roll_odds_no_luck", What = "Same car with NO 6th argument (base odds); run ui_roll_odds." },
-		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance nil) at luck 2 ('1 in ?'); run ui_roll_odds." },
+		{ Id = "roll_odds_catchall", What = "The catch-all car (Chance 1) at luck 2 ('1 in 1'); run ui_roll_odds." },
 		{
 			Id = "weather_rain_roll",
 			What = "weather_rain, then plants the Rain car (else a car with a Chance) at the luck the server gives this "
@@ -2553,18 +2724,14 @@ Fixture run protocol (ui-tester), per FixtureChecks entry, in order:
   5. Restore the setup (snapshot restore) after the scenario's result arrived.
 ]]
 UiSpec.Progression.FixtureChecks = {
-	-- The speedometer at rest: on foot the needle reads 0 (docs/HUD_LAYOUT_SPEC.md section 9). The main run is
-	-- auto_racing, where ui_speed_dial judges the racing needle.
-	{ Setup = "on_foot", Scenario = "ui_speed_dial" },
-	-- The Speed float sums real gains too: judged on foot only (HUD_LAYOUT_SPEC section 10; main run is auto_racing)
-	{ Setup = "on_foot", Scenario = "ui_speed_float" },
+	-- retired: ui_speed_dial and ui_speed_float on foot (no speedometer, no Speed stat: design doc 4.13, owner 2026-11-01)
 	-- World billboards and the workshop modal read parts near the hub: with StreamingEnabled they exist only while the
 	-- avatar stands there (on_foot = at the walk spawn in the hub), not while the main run races the chain
 	{ Setup = "on_foot", Scenario = "ui_billboards" },
 	{ Setup = "on_foot", Scenario = "ui_workshop_modal" },
-	{ Setup = "offline_welcome", Scenario = "ui_offline_welcome" },
-	{ Setup = "offline_welcome", Scenario = "ui_offline_double" },
-	{ Setup = "offline_zero", Scenario = "ui_offline_zero" },
+	-- Design doc 4.29: beaten and locked enemy tiles side by side, with known best times
+	{ Setup = "defeated_states", Scenario = "ui_defeated" },
+	-- retired: ui_offline_welcome, ui_offline_double, ui_offline_zero (design doc 4.19, owner 2026-11-03)
 	{ Setup = "weather_rain", Scenario = "ui_weather" },
 	{ Setup = "weather_night", Scenario = "ui_weather" },
 	{ Setup = "weather_gold", Scenario = "ui_weather" },
@@ -2582,10 +2749,10 @@ UiSpec.Progression.FixtureChecks = {
 }
 
 --[[
-Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_CONTRACT.md). RollResult's 6th
+Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_SPEC.md). RollResult's 6th
 argument is the roll's server luck for compatibility, but both Odds labels (RollToast/Toast `Odds`; RollShowcase/Card
-`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. A catch-all car (Chance nil)
-keeps "1 in ?". The Index and the roll announcement keep the base odds.
+`ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all car (Chance 1)
+shows "1 in 1". The Index and the roll announcement keep the base odds.
 
 Each fixture sets the player attribute Attr = JSON { fixture, id, luck (absent when not sent), nonce }, waits for a
 roll that may still be playing, then fires RollResult(id, false, 1, false, 0, luck) (compact) and, one animation
@@ -2709,7 +2876,6 @@ UiSpec.PanelBody = {
 	["MarketUi/Backdrop"] = "Panel",
 	["ShopUi/Backdrop"] = "Panel",
 }
-table.insert(UiSpec.AllowOverlap, { "DailyBoosts/ModalBackdrop", "RacerHud/Speed" })
 table.insert(UiSpec.AllowOverlap, { "DailyBoosts/ModalBackdrop", "RacerHud/Money" })
 -- Full-screen dimmers of the Shop, Market and Daily panels (owner 2026-10-20, docs/HUD_LAYOUT_SPEC.md section 6 and
 -- docs/GAMEPASS_SHOP_SPEC.md): never a GuiButton, Active = false, so the HUD tiles behind stay clickable
@@ -2718,7 +2884,7 @@ UiSpec.ClickThroughBackdrops = { "ShopUi/Backdrop", "MarketUi/Backdrop", "DailyB
 UiSpec.EmptyClickStep = 40 -- px grid for ClickAt = "empty"
 UiSpec.DailyBoosts = {
 	Daily = "HudChrome/TopRight/Daily",
-	Quests = "HudChrome/TopRight/Quests",
+	Quests = "HudChrome/ShopColumn/Quests",
 	Status = "DailyBoosts/Status",
 	Panel = "DailyBoosts/ModalBackdrop",
 	Title = "DailyBoosts/ModalBackdrop/Modal/Title",
@@ -2763,7 +2929,7 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only("RacerBackpack/Panel"),
 	Expect = { Panels = { ["RacerBackpack/Panel"] = false }, Remote = false },
 })
--- Characters last: the Backpack keeps the Characters view for the backpack_equip_car* clicks below.
+-- Characters last: the Backpack keeps the Characters view for the backpack_pick_character click below.
 for _, tab in { "Misc", "Trails", "Auras", "Characters" } do
 	table.insert(UiSpec.Clicks, {
 		Id = "backpack_" .. string.lower(tab),
@@ -2777,10 +2943,11 @@ for _, tab in { "Misc", "Trails", "Auras", "Characters" } do
 		},
 	})
 end
--- Backpack Cars tiles (owner 2026-10-20): a non-equipped tile fires EquipCar with THAT tile's car id and the
--- server's EquippedCar follows; the equipped tile fires nothing. Both start from the Cars view (click backpack_cars).
+-- Backpack Characters tiles (c1 / u4, Client/SlotPicker): a tile click only picks the character, nothing is sent; the
+-- team slot buttons below send SetTeam. Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
+-- click backpack_equipped_car (the Team of 3 replaced the single equip, design doc 4.2).
 table.insert(UiSpec.Clicks, {
-	Id = "backpack_equip_car",
+	Id = "backpack_pick_character",
 	Gui = "RacerBackpack",
 	Path = "Panel/Items/{discovered_unequipped}",
 	Prepare = {
@@ -2790,23 +2957,7 @@ table.insert(UiSpec.Clicks, {
 		ScrollIntoView = true,
 	},
 	NeedSetup = { "spy", "index_states" },
-	Expect = {
-		Remote = { Name = "EquipCar", Arg = "tile_id" },
-		After = { "equipped_is_tile", "backpack_tile_shows_equipped", "backpack_characters_grid" },
-	},
-})
-table.insert(UiSpec.Clicks, {
-	Id = "backpack_equipped_car",
-	Gui = "RacerBackpack",
-	Path = "Panel/Items/{equipped}",
-	Prepare = {
-		Open = { "RacerBackpack/Panel" },
-		Closed = only("RacerBackpack/Panel").Closed,
-		Showcase = false,
-		ScrollIntoView = true,
-	},
-	NeedSetup = { "spy", "index_states" },
-	Expect = { Remote = false, After = { "backpack_tile_shows_equipped", "backpack_characters_grid" } },
+	Expect = { Remote = false, After = { "backpack_characters_grid" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "close_daily_modal",
@@ -2855,7 +3006,7 @@ table.insert(UiSpec.Clicks, {
 table.insert(UiSpec.Clicks, {
 	Id = "open_quests",
 	Gui = "HudChrome",
-	Path = "TopRight/Quests",
+	Path = "ShopColumn/Quests",
 	Prepare = { Closed = CLOSED, Showcase = false },
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [DAILY] = true }, Remote = false, After = { "quests_daily_view" } },
@@ -2982,7 +3133,6 @@ UiSpec.Duel = {
 }
 for path, name in { ["DuelUi/PickPanel"] = "DuelPick", ["DuelUi/InvitePanel"] = "DuelInvite" } do
 	UiSpec.PanelSwitch.Names[path] = name
-	table.insert(UiSpec.AllowOverlap, { path, "RacerHud/Speed" })
 	table.insert(UiSpec.AllowOverlap, { path, "RacerHud/Money" })
 end
 table.insert(CLOSED, "DuelUi/PickPanel")
@@ -3100,24 +3250,26 @@ UiSpec.Backpack = {
 	Tabs = "RacerBackpack/Panel/Tabs",
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
+	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
 	TabOrder = { "Misc", "Trails", "Auras", "Characters" }, -- top to bottom; button <Name>Tab, label text <Name>
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
 	PhoneMaxHeight = 500,
-	MaxDecimals = 6, -- digits after the point in a tile's "x<SpeedMulti>" (no float noise)
+	MaxDecimals = 6, -- digits after the point in a tile's cruise "<n> studs/s" (no float noise)
 	ModelWait = 5, -- s for a tile's ViewportFrame to receive its runner rig
-	-- Tile border (the tile's UIStroke): green on the equipped car, never green on the others.
+	-- Tile border (the tile's UIStroke): green on Team members (SlotPicker.Equipped), never green on the others; the
+	-- picked tile's border is white instead (c1 / u4).
 	Green = function(c)
 		return c.G > c.R + 0.25 and c.G > c.B + 0.25
 	end,
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
--- docs/CHARACTER_GACHA_SPEC.md "Launch cast": 30 rollable characters (the starter is not in the Index)
+-- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains": 44 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
-	Count = 30,
-	Rarities = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 },
+	Count = 44,
+	Rarities = { Common = 1, Uncommon = 7, Rare = 7, Epic = 9, Legendary = 9, Mythic = 9, Secret = 2 },
 	-- spec "Event-only characters": also in the Index with their odds; not part of Count / Rarities
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }
@@ -3373,10 +3525,9 @@ UiSpec.Accessibility = {
 	ReduceAttr = "ReduceEffects", -- the in-game REDUCED EFFECTS toggle (LocalPlayer attribute, set by the client)
 	ProbeSeconds = 2, -- the probe tween's length when motion is NOT reduced
 	RollWait = 20, -- s to wait for the next auto roll while motion is reduced (ROLL_INTERVAL 3 s + one animation)
-	ReelStill = 1, -- px a reel tile or streak may move during Spin while motion is reduced ("skips its spin")
 	-- Full-screen ScreenGuis that may bleed under a notch (section 7 "Exempt"); every other player ScreenGui uses
 	-- ScreenInsets = DeviceSafeInsets
-	FullBleed = { PanelDim = true, LoserScreen = true, RollShowcase = true },
+	FullBleed = { PanelDim = true, LoserScreen = true, RollShowcase = true, NpcIndicator = true }, -- NpcIndicator: placed in viewport pixels
 	ProbeGui = "UiTestInsetProbe", -- a ScreenGui the test adds to PlayerGui for one frame (late guis get insets too)
 	-- Gamepad focus: a HUD button selected before a panel opens; closing must give the selection back to it
 	RestoreTarget = "HudChrome/Grid/Index",
@@ -3385,27 +3536,7 @@ UiSpec.Accessibility = {
 	FocusFrames = 4, -- rendered frames after Toggle before the selection is judged (PanelSwitch defers it)
 	ButtonB = Enum.KeyCode.ButtonB,
 }
--- Speed gain float (docs/HUD_LAYOUT_SPEC.md section 10, owner 2026-10-27): when leaderstats.Speed grows, the gain is
--- summed per 0.25 s window, one UiMotion.Float TextLabel MotionFloat with "+" .. HudFormat.GainText(gain)
--- rises in Speed yellow above the Speed number, inside SpeedValue's parent (like the Money "+$" float).
-UiSpec.SpeedFloat = {
-	Label = "MotionFloat",
-	Host = "RacerHud/Speed", -- SpeedValue.Parent (UiSpec.Hud.SpeedValue)
-	SpeedValue = "RacerHud/Speed/SpeedValue",
-	Money = "RacerHud/Money", -- the Money float's host: a Speed gain must not float there
-	Color = Color3.fromRGB(255, 232, 30), -- UiTheme Speed (section 8)
-	ColorTolerance = 2 / 255,
-	Gain = 12345, -- one local growth of leaderstats.Speed (client-side only, restored)
-	FracGain = 0.5, -- a fractional growth: floats as "+0.5" (HudFormat.GainText, one decimal below 10)
-	FracText = "+0.5",
-	Quiet = 0.5, -- s with no growth before a probe, so the 0.25 s window has flushed
-	Wait = 0.6, -- s a float may take to appear after the growth (summing may delay it up to 0.25 s)
-	BurstStep = 7, -- each of BurstCount growths, BurstEvery s apart (shorter than 0.25 s, so growths are summed)
-	BurstCount = 20, -- 20 x 0.05 s = about 1 s of growth
-	BurstEvery = 0.05,
-	BurstMinFloats = 3, -- about 1 s of growth floats about every 0.25 s, not once per second
-	MinGap = 0.2, -- s between two floats (0.25 s cadence, 0.05 s frame slack)
-}
+-- retired: UiSpec.SpeedFloat, the Speed gain float (no Speed stat, design doc 4.13, owner 2026-11-01)
 UiSpec.ManualScenarios = UiSpec.ManualScenarios or {}
 table.insert(UiSpec.ManualScenarios, {
 	Name = "ui_safe_insets_notch",
@@ -3441,13 +3572,7 @@ table.insert(UiSpec.Clicks, {
 
 -- UI visual pass (owner 2026-10-27): docs/HUD_LAYOUT_SPEC.md sections 8-10, docs/NPC_RACER_SPEC.md "Loser screen",
 -- docs/RACE_PROGRESS_MAP_SPEC.md "Look". Numbers are measurement tolerances, not layout values.
-UiSpec.SpeedDial = {
-	SampleSeconds = 0.6, -- ui_speed_dial measures the runner's real speed (path distance / time) over this window
-	TeleportStep = 60, -- studs: a single-frame runner step longer than this is a teleport, not running
-	Tolerance = 3, -- studs/s: DialValue and DialSpeed vs the measured car speed ...
-	RelTolerance = 0.15, -- ... or this share of it, whichever is larger
-	RunnerWait = 5, -- s: while AutoRacing the visible runner must exist within this
-}
+-- retired: UiSpec.SpeedDial, the speedometer (design doc 4.13, owner 2026-11-01)
 -- ui_runner_smooth (docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-28): measurement tolerances, not game values
 UiSpec.RunnerSmooth = {
 	Tag = "VisibleRunner", -- CollectionService tag of the runner the client renders (contract: Server/CarTest/RunnerTests)
@@ -3468,10 +3593,12 @@ UiSpec.Theme = {
 	FontFamily = "Fredoka",
 	-- Every multiplier token is HudFormat.Multi style: "x" + digits, at most 2 decimals, no trailing zero after the
 	-- point; never the old "25x" (number before x). Labels that show a multi (ui_theme theme_multi_format):
+	-- The roll card, index tiles and Backpack character tiles show cruise in studs/s now, not a multi (design doc 4.13,
+	-- owner 2026-11-01): replaced by the labels that still show a multi.
 	MultiLabels = {
-		{ Gui = "RollShowcase", Name = "SpeedMulti" }, -- the card's "x25 SPEED" and its contract alias "Speed x25"
-		{ Gui = "RacerIndex", Name = "Info", Under = "Panel/Face/GridHost/Gallery" }, -- index tiles "Rare · x1.5"
-		{ Gui = "RacerBackpack", Name = "Multi", Under = "Panel/Items" }, -- Backpack Cars tiles
+		{ Gui = "RacerRebirth", Name = "LuckRewardCaption" }, -- "x1.5 Luck"
+		{ Gui = "RacerWorkshop", Name = "Level" }, -- "Level 1 • x1 boost"
+		{ Gui = "MarketUi", Name = "Rarity", Under = "Backdrop/Panel/Detail" }, -- "Trail  •  x1.2 cruise for its slot"
 	},
 }
 -- The loser recap (docs/NPC_RACER_SPEC.md "Loser screen (owner 2026-10-27)"): TextLabels anywhere under LoserScreen.

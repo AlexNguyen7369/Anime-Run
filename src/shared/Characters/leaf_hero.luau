@@ -6,9 +6,10 @@ return {
 	Rarity = "Legendary",
 	Chance = 1e7,
 	SpeedMulti = 25,
-	Order = 21,
+	Order = 26,
 	Category = "Marathoner",
 	Series = "leaf",
 	Archetype = "ninja",
 	Model = nil,
+	RunStyle = "NinjaRun",
 }

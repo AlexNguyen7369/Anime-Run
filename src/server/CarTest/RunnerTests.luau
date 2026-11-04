@@ -3,9 +3,10 @@
 -- BEFORE the runner exists; never loosen a limit to make it pass.
 -- `runner` (section 2 + 7): every player's character and every NPC rival is a blocky humanoid rig (Head, Torso,
 --   2 arms, 2 legs) with no wheels / VehicleSeat / suspension, anchored and moved by RaceService along the race path:
---   upright (up Y >= 0.999) on every track at normal (HALF_STAT) and max (MAX_STAT) stat speed, on the path
+--   upright (up Y >= 0.999) on every track at a normal (Epic) and a max (Secret) character cruise, on the path
 --   (deviation <= PhysicsTargets.race.MaxPathDeviation), at exactly its cruise speed from the first second, every pad
---   paid once. A BillboardGui shows the character's name (finite MaxDistance). Auras and trails attach to the Torso.
+--   paid once. A BillboardGui shows the character's name (finite MaxDistance; an NPC has none, its indicator is on the
+--   client, design doc 4.26). Auras and trails attach to the Torso.
 -- `scrap` (section 1 + 7): no CarFactory / CarPhysics / CarConfig, no VehicleSeat or wheel parts, no car assets
 --   (RacingGarage, RaceStartPavilion, CarModels), no car-only PhysicsTargets, no `Cars` collision group (`Runners`).
 -- Test seam (not named by the spec): Shared/RunnerFactory.build(characterId) -> Model (PrimaryPart set), the body
@@ -183,6 +184,7 @@ function Tests.runner()
 	local Catalog = H.module(Shared, "CharacterCatalog")
 	local Effects = H.module(Shared, "VehicleEffects")
 	local MarketConfig = H.module(Shared, "MarketConfig")
+	local GachaService = H.module(Server, "GachaService")
 	local TrackBuilder = H.module(Shared, "TrackBuilder")
 	local Targets = H.module(Shared, "PhysicsTargets")
 	local maxDev = Targets and Targets.race and Targets.race.MaxPathDeviation
@@ -194,7 +196,11 @@ function Tests.runner()
 		and Money ~= nil
 		and PlayerData ~= nil
 		and RaceConfig ~= nil
-		and type(RaceConfig.SpeedFor) == "function"
+		and type(RaceConfig.Cruise) == "function"
+		and GachaService ~= nil
+		and type(GachaService.Setup) == "function"
+		and type(GachaService.Grant) == "function"
+		and type(GachaService.Equip) == "function"
 		and NpcRacer ~= nil
 		and type(NpcRacer.BuildModel) == "function"
 		and NpcConfig ~= nil
@@ -233,7 +239,13 @@ function Tests.runner()
 	if okNpc then
 		local npcShape = checkRig(flag, "npc_", npc)
 		flag("npc_same_rig", npcShape.key == playerShape.key and #playerShape.arms == 2)
-		flag("npc_name_label", nameLabel(npc, nil))
+		-- was npc_name_label: the indicator is the client's ScreenGui (design doc 4.26; ui_billboards checks it)
+		flag(
+			"npc_no_label_on_rig",
+			npc.Name == "NPC_" .. NpcConfig.For(1).Label
+				and not npc:FindFirstChild("NpcLabel", true)
+				and not npc:FindFirstChild("NameLabel", true)
+		)
 		metrics.npc_rig = npcShape.key
 		npc:Destroy()
 	end
@@ -252,7 +264,8 @@ function Tests.runner()
 	end
 	body:Destroy()
 
-	-- 4. Driven by the real RaceService along the live route (every track) at normal and max stat speed
+	-- 4. Driven by the real RaceService along the live route (every track) at a normal and a max character cruise
+	-- (design doc 4.13: fixed cruise per rarity x category; was HALF_STAT / MAX_STAT stat speed)
 	local route = RaceService.GetRoute()
 	local routeOk = type(route) == "table"
 		and type(route.Path) == "table"
@@ -285,15 +298,28 @@ function Tests.runner()
 		return nil
 	end
 
-	-- opts (optional): CharacterId (rig to build, default charId), Setup(player) before the stat is set,
-	-- Started(run, player, st) once the run exists
-	local function drive(stat, opts)
+	-- The player runs character `id` (owned and equipped; Kami through the admin flag) at its plain cruise
+	local function equip(player, id)
+		GachaService.Setup(player)
+		if id == Catalog.KAMI_ID then
+			player:SetAttribute("AdminKami", true)
+		else
+			GachaService.Grant(player, id)
+		end
+		GachaService.Equip(player, id)
+	end
+	local function cruiseOf(id)
+		return RaceConfig.Cruise(Catalog.Get(id))
+	end
+
+	-- opts (optional): Started(run, player, st) once the run exists
+	local function drive(id, opts)
 		opts = opts or {}
 		local st = { ok = false, minUp = 1, minY = math.huge, dev = 0, devN = 0, dist = 0, want = 0, perTrack = {} }
 		-- smooth-motion contract samples (header): frames read, frames missing an attribute, worst errors
 		local pub = { n = 0, missing = 0, distErr = 0, speedErr = 0, age = 0, backward = 0, wrongTrack = 0 }
 		st.pub = pub
-		local model = RunnerFactory.build(opts.CharacterId or charId)
+		local model = RunnerFactory.build(id)
 		model.Name = "CarTestRunner"
 		model.Parent = Workspace
 		local player = Instance.new("Folder")
@@ -302,10 +328,7 @@ function Tests.runner()
 		local okSetup = pcall(function()
 			Money.Setup(player)
 			PlayerData.Setup(player)
-			if opts.Setup then
-				opts.Setup(player)
-			end
-			player.BaseSpeed.Value = stat
+			equip(player, id)
 		end)
 		local okRun, run = false, nil
 		if okSetup then
@@ -327,7 +350,7 @@ function Tests.runner()
 			changedAt = os.clock()
 		end)
 		local lastPub = nil
-		local timeout = arc[n] / (0.5 * math.max(RaceConfig.SpeedFor(stat), 1)) + 40
+		local timeout = arc[n] / (0.5 * math.max(cruiseOf(id), 1)) + 40
 		local torso = model:FindFirstChild("Torso", true)
 		local prev = model.PrimaryPart and model.PrimaryPart.Position
 		local idx, t, unanchored, firstDist = 1, 0, 0, 0
@@ -428,13 +451,14 @@ function Tests.runner()
 		return st
 	end
 
-	for _, case in { { "normal", RaceConfig.HALF_STAT }, { "max", RaceConfig.MAX_STAT } } do
-		local label, stat = case[1], case[2]
-		local st = drive(stat)
+	-- an Epic Balanced (about the old HALF_STAT cruise) and a Secret Balanced, as the race scenario uses
+	for _, case in { { "normal", "ds_sister" }, { "max", "db_hero" } } do
+		local label, id = case[1], case[2]
+		local st = drive(id)
 		local pre = "runner_" .. label .. "_"
 		flag(pre .. "run_started", st.ok)
 		if st.ok then
-			local want = RaceConfig.SpeedFor(stat)
+			local want = cruiseOf(id)
 			flag(
 				pre .. "target_is_cruise",
 				type(st.target0) == "number" and math.abs(st.target0 - want) <= 0.01,
@@ -508,140 +532,40 @@ function Tests.runner()
 		end
 	end
 
-	-- 5. High character multi (re-homed from the retired IVS flip_recovery scenario, its car-only seat / chassis /
-	-- flip checks stay retired): the fastest catalog character (SpeedMulti 2800) at MAX_STAT runs the whole route
-	-- on its path, upright, never below the map. The raw multi is damped to 1 + log10(multi), capped at 4x (design
-	-- doc "Core stat model", owner 2026-10-28), then held to the hard cruise cap of 800 studs/s (docs/WORLDS_SPEC.md
-	-- section 1, owner 2026-10-27), so it is still faster than the max-stat race.
-	local GachaService = H.module(Server, "GachaService")
-	local fastApiOk = GachaService ~= nil
-		and type(GachaService.Setup) == "function"
-		and type(GachaService.Grant) == "function"
-		and type(GachaService.Equip) == "function"
-		and type(GachaService.ShownSpeedMulti) == "function"
-	flag("high_multi_api_exists", fastApiOk)
-	if fastApiOk then
-		local best = nil
-		for _, spec in Catalog.All() do
-			if type(spec.SpeedMulti) == "number" and (best == nil or spec.SpeedMulti > best.SpeedMulti) then
-				best = spec
+	-- 5. Top cruise (re-homed from the retired IVS flip_recovery scenario, its car-only seat / chassis / flip checks
+	-- stay retired): Kami at MAX_CRUISE (design doc 4.13, owner 2026-11-01) runs the whole route on its path,
+	-- upright, never below the map. retired: high_multi_shown_multi_is_character_multi and the SpeedFor targets
+	-- (design doc 4.13: the character's SpeedMulti never enters cruise; no Speed stat).
+	do
+		local st = drive(Catalog.KAMI_ID)
+		flag("high_multi_run_started", st.ok)
+		if st.ok then
+			local want = RaceConfig.MAX_CRUISE
+			local ts = type(st.target0) == "number" and st.target0 or -1
+			flag("high_multi_target_is_max_cruise", math.abs(ts - want) <= 1e-6 * want, ts, want)
+			local lowestRoad = math.huge
+			for _, w in wps do
+				lowestRoad = math.min(lowestRoad, w.Y)
 			end
-		end
-		local multi = best and best.SpeedMulti or 0
-		flag("high_multi_character_found", multi >= 2800, multi, 2800)
-		if best then
-			local BIG_STAT = RaceConfig.MAX_STAT
-			local shown = nil
-			local st = drive(BIG_STAT, {
-				CharacterId = best.Id,
-				Setup = function(player)
-					GachaService.Setup(player)
-					GachaService.Grant(player, best.Id)
-					GachaService.Equip(player, best.Id)
-				end,
-				Started = function(_, player)
-					local okShown, value = pcall(GachaService.ShownSpeedMulti, player)
-					shown = okShown and value or nil
-				end,
-			})
-			flag("high_multi_run_started", st.ok)
-			if st.ok then
-				local want = RaceConfig.SpeedFor(BIG_STAT, multi)
-				local ts = type(st.target0) == "number" and st.target0 or -1
-				flag(
-					"high_multi_shown_multi_is_character_multi",
-					type(shown) == "number" and math.abs(shown - multi) <= 1e-9 * multi,
-					type(shown) == "number" and shown or -1,
-					multi
-				)
-				local capped = math.min(RaceConfig.SpeedFor(BIG_STAT) * 4, 800)
-				flag(
-					"high_multi_target_is_shown_speed_cruise",
-					math.abs(ts - want) <= 1e-6 * want and math.abs(want - capped) <= 1e-6 * capped,
-					ts,
-					capped
-				)
-				local maxStatSpeed = RaceConfig.SpeedFor(RaceConfig.MAX_STAT)
-				flag("high_multi_target_above_max_stat_speed", want > maxStatSpeed, want, maxStatSpeed)
-				local lowestRoad = math.huge
-				for _, w in wps do
-					lowestRoad = math.min(lowestRoad, w.Y)
-				end
-				local floorY = lowestRoad - FALL_BAND
-				local minUpStrict = Targets.lap and Targets.lap.MinUpYStrict or 0.9
-				flag("high_multi_runner_kept", st.kept == true)
-				flag("high_multi_finished", st.finished)
-				flag("high_multi_sticks_to_path", st.devN >= MIN_TRACK_SAMPLES and st.dev <= maxDev, st.dev, maxDev)
-				flag("high_multi_never_below_map", st.minY >= floorY, st.minY, floorY)
-				flag(
-					"high_multi_never_tilted",
-					st.devN >= MIN_TRACK_SAMPLES and st.minUp >= minUpStrict,
-					st.minUp,
-					minUpStrict
-				)
-				flag("high_multi_run_never_tilted", st.runMinUp >= minUpStrict, st.runMinUp, minUpStrict)
-				metrics.high_multi_target = math.round(want)
-			end
+			local floorY = lowestRoad - FALL_BAND
+			local minUpStrict = Targets.lap and Targets.lap.MinUpYStrict or 0.9
+			flag("high_multi_runner_kept", st.kept == true)
+			flag("high_multi_finished", st.finished)
+			flag("high_multi_sticks_to_path", st.devN >= MIN_TRACK_SAMPLES and st.dev <= maxDev, st.dev, maxDev)
+			flag("high_multi_never_below_map", st.minY >= floorY, st.minY, floorY)
+			flag(
+				"high_multi_never_tilted",
+				st.devN >= MIN_TRACK_SAMPLES and st.minUp >= minUpStrict,
+				st.minUp,
+				minUpStrict
+			)
+			flag("high_multi_run_never_tilted", st.runMinUp >= minUpStrict, st.runMinUp, minUpStrict)
+			metrics.high_multi_target = math.round(want)
 		end
 	end
 
-	-- 6. Live aura (owner 2026-10-28, re-homed from flip_recovery): equipping an aura mid-race raises the run's
-	-- target cruise within 0.25 s (RaceService.COMMIT_INTERVAL). Ember Aura (x2) -> item cruise multi
-	-- 1 + 0.5 x log10 2 = 1.150515.
-	do
-		local model = RunnerFactory.build(charId)
-		model.Name = "CarTestAuraRunner"
-		model.Parent = Workspace
-		local player = Instance.new("Folder")
-		player.Name = "CarTestAuraPlayer"
-		player.Parent = Workspace
-		local okSetup = pcall(function()
-			Money.Setup(player)
-			PlayerData.Setup(player)
-			player.BaseSpeed.Value = RaceConfig.HALF_STAT
-		end)
-		local okRun, run = false, nil
-		if okSetup then
-			okRun, run = pcall(RaceService.NewRun, model, route, player, nil)
-		end
-		local started = okSetup and okRun and type(run) == "table"
-		flag("aura_live_run_started", started)
-		if started then
-			local t = 0
-			while t < 0.5 do
-				t += RunService.Heartbeat:Wait()
-			end
-			local before = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			player:SetAttribute("Slot1Aura", "ember_aura")
-			local seen = nil
-			t = 0
-			-- one Heartbeat of slack past 0.25 s: the commit can only land on a frame boundary
-			while t < 0.25 + 1 / 30 do
-				t += RunService.Heartbeat:Wait()
-				local ts = run.TargetSpeed
-				if type(ts) == "number" and before > 0 and ts > before * 1.1 then
-					seen = t
-					break
-				end
-			end
-			local ts = type(run.TargetSpeed) == "number" and run.TargetSpeed or -1
-			local okStat, stat = pcall(PlayerData.SpeedStat, player)
-			local want = okStat and type(stat) == "number" and RaceConfig.SpeedFor(stat) * (1 + 0.5 * math.log10(2))
-				or -1
-			flag("aura_live_raises_target_cruise", seen ~= nil, seen or -1, 0.25)
-			flag(
-				"aura_live_target_is_damped_aura",
-				seen ~= nil and want > 0 and math.abs(ts - want) <= 1e-9 * want,
-				ts,
-				want
-			)
-			pcall(function()
-				run:Destroy()
-			end)
-		end
-		model:Destroy()
-		player:Destroy()
-	end
+	-- 6. retired: live aura mid-race (aura_live_*) (docs/TEAM_AND_STAMINA_SPEC.md "Speed", design doc 4.19: cruise is
+	-- fixed for the whole run at run start)
 	return r
 end
 

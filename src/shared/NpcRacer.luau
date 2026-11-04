@@ -6,18 +6,12 @@
 -- players never see it.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TextService = game:GetService("TextService")
 
-local CharacterCatalog = require(script.Parent.CharacterCatalog)
 local RunnerFactory = require(script.Parent.RunnerFactory)
-local NpcConfig = require(script.Parent.NpcConfig)
 local TrackBuilder = require(script.Parent.TrackBuilder)
 local TrackRegistry = require(script.Parent.TrackRegistry)
-local UiTheme = require(script.Parent.UiTheme)
 
 local NpcRacer = {}
-
-local LABEL_TEXT_SIZE = 18 -- bottom label line, px (the billboard has a fixed pixel size)
 
 -- Corner limit kept from IVS so NPC track times are unchanged (design doc section 3): lateral accel = MU x g x share
 local GRIP_MU = 1.2 -- the IVS car's tyre Mu
@@ -121,64 +115,13 @@ function NpcRacer.BuildModel(info)
 		model = RunnerFactory.build(info.Model, { Color = info.Color })
 		local nameLabel = model:FindFirstChild("NameLabel")
 		if nameLabel then
-			nameLabel:Destroy() -- the NPC label below names it
+			nameLabel:Destroy() -- Client/NpcRacerView draws the indicator
 		end
 	end
 	model.Name = "NPC_" .. info.Label
 	model:SetAttribute("IsNpc", true)
 	model:SetAttribute("TrackNumber", info.Number)
 	setupParts(model)
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "NpcLabel"
-	billboard.Adornee = model.PrimaryPart
-	billboard.Size = UDim2.fromOffset(320, 64)
-	billboard.StudsOffset = Vector3.new(0, 5, 0)
-	billboard.MaxDistance = NpcConfig.LABEL_DISTANCE -- proximity based
-	billboard.LightInfluence = 0
-	billboard.Parent = model
-	local backing = Instance.new("Frame")
-	backing.Name = "Backing"
-	backing.Size = UDim2.fromScale(1, 1)
-	backing.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-	backing.BackgroundTransparency = 0.35
-	backing.Parent = billboard
-	Instance.new("UICorner").Parent = backing
-	local title = Instance.new("TextLabel")
-	title.Name = "Title"
-	title.Size = UDim2.fromScale(1, 0.4)
-	title.BackgroundTransparency = 1
-	title.Text = "NPC RIVAL"
-	title.TextScaled = true
-	title.Font = UiTheme.Font
-	title.TextColor3 = info.Color:Lerp(Color3.new(1, 1, 1), 0.4) -- readable on the dark backing, even for black
-	UiTheme.Stroke(title, 2)
-	title.Parent = billboard
-	-- Bottom line "track01_NPC · Character Name": two labels so `Text` stays exactly info.Label, centred as one line.
-	local spec = info.Model and CharacterCatalog.Get(info.Model)
-	local function piece(name, text, font, x, width)
-		local l = Instance.new("TextLabel")
-		l.Name = name
-		l.Position = UDim2.new(0, x, 0.4, 0)
-		l.Size = UDim2.new(0, width, 0.6, 0)
-		l.BackgroundTransparency = 1
-		l.Text = text
-		l.TextSize = LABEL_TEXT_SIZE
-		l.Font = font
-		l.TextColor3 = Color3.new(1, 1, 1)
-		UiTheme.Stroke(l, 2)
-		l.Parent = billboard
-		return l
-	end
-	local nameText = spec and " · " .. spec.Name or ""
-	local bounds = Vector2.new(1e4, 100)
-	local w1 = TextService:GetTextSize(info.Label, LABEL_TEXT_SIZE, UiTheme.Font, bounds).X
-	local w2 = TextService:GetTextSize(nameText, LABEL_TEXT_SIZE, UiTheme.Font, bounds).X
-	local x = (billboard.Size.X.Offset - w1 - w2) / 2
-	piece("Text", info.Label, UiTheme.Font, x, w1)
-	if spec then
-		piece("Character", nameText, UiTheme.Font, x + w1, w2)
-	end
 	return model
 end
 

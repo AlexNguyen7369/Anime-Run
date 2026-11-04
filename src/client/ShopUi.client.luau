@@ -289,6 +289,7 @@ local POTION_COLORS = {
 	Luck = Color3.fromRGB(110, 230, 160),
 	Money = Color3.fromRGB(255, 200, 70),
 	Speed = Color3.fromRGB(110, 205, 255),
+	Stamina = Color3.fromRGB(90, 140, 255),
 }
 local function grantCategory(grants)
 	for id in grants do
@@ -597,7 +598,7 @@ require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 	local columns = panel.AbsoluteSize.X < 560 and 2 or 3
 	grid.Layout.CellSize = UDim2.new(1 / columns, -11, 0, 196)
-	packRow.Layout.CellSize = UDim2.new(1 / columns, -11, 0, 196)
+	packRow.Layout.CellSize = UDim2.new(1 / (columns == 3 and 4 or 2), -12, 0, 196) -- 4 potion packs: one row of 4 or 2 x 2
 end)
 
 -- Section 10: on open, the first cards light up one after another (background and edge fade in). Grid and list

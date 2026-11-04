@@ -17,9 +17,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local TrackBuilder = require(Shared.TrackBuilder)
 local TrackRegistry = require(Shared.TrackRegistry)
-local RaceConfig = require(Shared.RaceConfig)
-local NpcConfig = require(Shared.NpcConfig)
-local HudFormat = require(Shared.HudFormat)
 
 local Tests = {}
 
@@ -108,6 +105,7 @@ local MAX_VERTICES = 60000
 local PARTICLE_MAX_RATE = 8 -- spec placeholder PARTICLE_MAX_RATE
 local MIN_SCATTER = 10
 local MIN_PATCHES = 5
+local FIGHT_MAX_EMITTERS = 12 -- spec 7 Track 7 fight scene: "at most 12 emitters and 9 beams"
 local PATCH_THICKNESS = 0.2
 local PATCH_GROUND_TOL = 0.05
 -- Scale and detail (owner 2026-10-27, design doc Track environments; spec Rules "Budget", "Scale", "City skyscrapers")
@@ -775,9 +773,11 @@ function Tests.environment()
 			end
 			flag("city_towers_no_mesh", env ~= nil and meshedTowers == 0, meshedTowers, 0)
 			flag("city_landmarks_present", landmarks >= 1, landmarks, 1)
-			flag("city_landmarks_detailed", landmarks >= 1 and thin == 0, thin, 0)
-			flag("city_landmarks_glass_bands", landmarks >= 1 and noGlass == 0, noGlass, 0)
-			flag("city_landmarks_neon_crown", landmarks >= 1 and noNeon == 0, noNeon, 0)
+			-- retired: city_landmarks_detailed / _glass_bands / _neon_crown (the IVS part-built skyscraper rule). Track 6's
+			-- heroes are now the academy tower, the toppled robot and the training blocks as uploaded meshes with a part
+			-- fallback (docs/BIOME_ENVIRONMENT_SPEC.md sections 4 and 7 Track 6; design doc 4.10 "Full biome worlds",
+			-- owner 2026-10-30), so a landmark is one mesh, not >= 25 parts with glass bands and a neon crown.
+			r.metrics.city_landmark_shape = { thin = thin, no_glass = noGlass, no_neon = noNeon }
 			flag(
 				"city_landmark_height",
 				tallest >= CITY_TOWER_MIN_HEIGHT,
@@ -926,8 +926,8 @@ function Tests.environment()
 
 		-- Gate sign (owner 2026-10-21, design doc Track environments "gate signs"; spec Layers 4 "Sign"): Part GateSign
 		-- in Environment/Gate, SurfaceGui GateSignGui on the face toward the oncoming car, TextLabel Biome (upper-case
-		-- biome, words split) and TextLabel RecSpeed = "REC. SPEED " .. the shown Speed whose cruise speed is the
-		-- track's NPC speed (RaceConfig.StatFor), formatted like the HUD Speed (Short when infinite).
+		-- biome, words split). retired: the RecSpeed label and its gate_sign_rec_* checks (design doc 4.13, owner
+		-- 2026-11-01: no Speed stat, gate signs show no Speed requirement).
 		local gateModel = env and env:FindFirstChild("Gate")
 		local sign = gateModel and gateModel:FindFirstChild("GateSign")
 		local gui = sign and sign:IsA("BasePart") and sign:FindFirstChild("GateSignGui")
@@ -945,31 +945,8 @@ function Tests.environment()
 		if signed then
 			flag(("gate_sign_biome_%d"):format(n), biomeLabel ~= nil and biomeLabel.Text == wantBiome)
 		end
-		local npcSpeed = NpcConfig.For(n).Speed
-		local rec = RaceConfig.StatFor(npcSpeed)
-		local recText = rec == math.huge and HudFormat.Short(rec) or HudFormat.SpeedText(rec)
 		if signed then
-			flag(("gate_sign_rec_speed_%d"):format(n), recLabel ~= nil and recLabel.Text == "REC. SPEED " .. recText)
-		end
-		-- owner 2026-10-27: the number uses the lowercase suffixes (k m b t qd ...), never "10K" / "1Qd"
-		local recNum = recLabel and string.sub(recLabel.Text, #"REC. SPEED " + 1) or "?"
-		if signed then
-			flag(("gate_sign_rec_lowercase_%d"):format(n), recLabel ~= nil and not string.find(recNum, "%u"))
-		end
-		-- The recommended shown Speed really cruises at the NPC's speed (finite cases)
-		local cruise = rec < math.huge and RaceConfig.SpeedFor(rec) or npcSpeed
-		flag(
-			("gate_sign_rec_matches_npc_%d"):format(n),
-			rec > 0 and math.abs(cruise - npcSpeed) <= 1e-6 * npcSpeed,
-			cruise,
-			npcSpeed
-		)
-		-- Owner 2026-10-21 ("lower track requirements"): every track's recommended Speed is a real (finite) number,
-		-- and Track 1 does not need ~10M Speed: below 10,000
-		flag(("gate_sign_rec_finite_%d"):format(n), rec > 0 and rec < math.huge, rec < math.huge and rec or -1, 1)
-		if n == 1 then
-			-- 10K old Speed x the design doc 4.11 stat scale
-			flag("gate_sign_rec_track1_below_10k", rec > 0 and rec < 10000 * (1e15 / 3e5), rec, 10000 * (1e15 / 3e5))
+			flag(("gate_sign_no_rec_speed_%d"):format(n), recLabel == nil)
 		end
 		-- Faces the oncoming car: the GUI face normal points back along the drive direction
 		local facing = -1
@@ -1043,11 +1020,18 @@ function Tests.environment()
 		flag(("landmark_present_%d"):format(n), prefixCount.Landmark_ >= 1, prefixCount.Landmark_, 1)
 		flag(("horizon_present_%d"):format(n), prefixCount.Horizon_ >= 1, prefixCount.Horizon_, 1)
 		flag(("scatter_present_%d"):format(n), prefixCount.Scatter_ >= MIN_SCATTER, prefixCount.Scatter_, MIN_SCATTER)
-		flag(("patches_present_%d"):format(n), prefixCount.Patch_ >= MIN_PATCHES, prefixCount.Patch_, MIN_PATCHES)
+		if theme and theme.Tunnel then
+			-- spec 3.5 (owner 2026-10-31, Track 7 Shibuyo Underground): "Ground patches are not built inside a tunnel"
+			flag(("patches_present_%d"):format(n), prefixCount.Patch_ == 0, prefixCount.Patch_, 0)
+		else
+			flag(("patches_present_%d"):format(n), prefixCount.Patch_ >= MIN_PATCHES, prefixCount.Patch_, MIN_PATCHES)
+		end
 		flag(("patches_flat_on_ground_%d"):format(n), env ~= nil and patchBad == 0, patchBad, 0)
 
 		-- Particles (spec Layer 8): only BiomeParticles, inside a Landmark_* model, Rate <= 8, one per landmark
-		local emitters, particlesBad, particlesFirst, perLandmark = 0, 0, nil, {}
+		-- Track 7's fight scene (spec 7 "Fight scene", owner 2026-10-31 / 2026-11-01): FightParticles inside the
+		-- FightScene model at the scene's own rates, at most FIGHT_MAX_EMITTERS; they are that track's particles.
+		local emitters, particlesBad, particlesFirst, perLandmark, fightEmitters = 0, 0, nil, {}, 0
 		for _, d in (env and env:GetDescendants() or {}) do
 			if d:IsA("ParticleEmitter") then
 				local top = d
@@ -1055,16 +1039,24 @@ function Tests.environment()
 					top = top.Parent
 				end
 				local inLandmark = top ~= d and top:IsA("Model") and string.sub(top.Name, 1, 9) == "Landmark_"
-				if d.Name == "BiomeParticles" then
+				local inFight = top ~= d
+					and top:IsA("Model")
+					and top.Name == "FightScene"
+					and d.Name == "FightParticles"
+				if inFight then
+					fightEmitters += 1
+				end
+				if d.Name == "BiomeParticles" or inFight then
 					emitters += 1
 				end
 				if inLandmark then
 					perLandmark[top] = (perLandmark[top] or 0) + 1
 				end
-				local ok = d.Name == "BiomeParticles"
-					and inLandmark
-					and d.Rate <= PARTICLE_MAX_RATE
-					and perLandmark[top] <= 1
+				local ok = (inFight and fightEmitters <= FIGHT_MAX_EMITTERS)
+					or d.Name == "BiomeParticles"
+						and inLandmark
+						and d.Rate <= PARTICLE_MAX_RATE
+						and perLandmark[top] <= 1
 				if not ok then
 					particlesBad += 1
 					particlesFirst = particlesFirst or ("%s rate=%g"):format(d:GetFullName(), d.Rate)
@@ -1072,7 +1064,12 @@ function Tests.environment()
 			end
 		end
 		flag(("particles_rules_%d"):format(n), env ~= nil and particlesBad == 0, particlesBad, 0)
-		flag(("particles_present_%d"):format(n), emitters >= 1, emitters, 1)
+		if n == CITY then
+			-- spec 7, Track 6: "Particles: none, which keeps the city crisp" (City.luau has no Particles)
+			flag(("particles_present_%d"):format(n), emitters == 0, emitters, 0)
+		else
+			flag(("particles_present_%d"):format(n), emitters >= 1, emitters, 1)
+		end
 		visualCounts[tostring(n)] = {
 			landmarks = prefixCount.Landmark_,
 			horizon = prefixCount.Horizon_,
@@ -1104,7 +1101,9 @@ function Tests.environment()
 				end
 			end
 			flag("city_blocks_count", #blocks >= CITY_MIN_BLOCKS, #blocks, CITY_MIN_BLOCKS)
-			flag("city_blocks_both_rows", rows[1] == true and rows[2] == true)
+			-- retired: city_blocks_both_rows (the IVS "two rows deep" city). Owner 2026-11-03 (BIOME_ENVIRONMENT_SPEC, above
+			-- section 3): Track 6 keeps one street-wall row (City.luau Blocks.Rows = 1). Count and coverage still hold.
+			r.metrics.city_block_rows = { rows[1] == true, rows[2] == true }
 			flag("city_blocks_both_sides", sides.L == true and sides.R == true)
 
 			local overlaps, overlapFirst = 0, nil

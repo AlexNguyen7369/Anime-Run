@@ -23,14 +23,15 @@ local PACKS = {
 }
 local PACK_COUNT = 5
 local BUNDLE_ID = "potion_bundle"
-local BUNDLE_COUNT = 10 -- of every one of the 9 potions
-local BUNDLE_POTIONS = 9
+local BUNDLE_COUNT = 10 -- of every one of the 12 potions
+-- 12 = 4 categories x 3 tiers: the bundle includes Stamina I-III (TEAM_AND_STAMINA_SPEC "Stamina potion", 2026-11-03)
+local BUNDLE_POTIONS = 12
 local SERVER_LUCK_IDS = { "server_luck_2x", "server_luck_4x", "server_luck_8x" }
 local SECTIONS = { Potions = true, Bundle = true, ServerLuck = true }
 local MAX_RECEIPTS = 100
 local CODE_COOLDOWN = 2
 local MAX_CODE_LENGTH = 32
-local DATA_VERSION = 12 -- docs/SAVE_SPEC.md: 12 adds Copies/Showcase; 11 adds RaceBestTimes; 10 additive gift fields; ordinary receipts still keep the last 100.
+local DATA_VERSION = 13 -- docs/SAVE_SPEC.md: 13 adds Team (PlayerData); 12 adds Copies/Showcase; 11 adds RaceBestTimes; 10 additive gift fields; ordinary receipts still keep the last 100.
 local MSG_INVALID = "Invalid code"
 local MSG_NOT_LOADED = "Data not loaded"
 local MSG_WAIT = "Please wait"
@@ -511,21 +512,15 @@ function Tests.shop_purchases()
 		local pc = newPlayer("CarTestShop_Main", true)
 		local stats = pc:FindFirstChild("leaderstats")
 		local moneyValue = stats and stats:FindFirstChild("Money")
-		local speedValue = pc:FindFirstChild("BaseSpeed") -- the base Speed (owner 2026-10-21)
 		if moneyValue then
 			moneyValue.Value = 500
-		end
-		if speedValue then
-			speedValue.Value = 7.5
 		end
 		local bc = counts(pc)
 		local okC, msgC = redeem(pc, "  cartestcode \t")
 		flag("shop_code_case_trim_insensitive", okC == true and msgC == MSG_OK, tostring(msgC), MSG_OK)
 		flag("shop_code_grants_exact", changedBy(bc, counts(pc), CODE_GRANTS))
-		flag(
-			"shop_code_money_speed_unchanged",
-			moneyValue ~= nil and speedValue ~= nil and moneyValue.Value == 500 and speedValue.Value == 7.5
-		)
+		-- the Speed half is retired with the Speed stat (design doc 4.13, owner 2026-11-01); codes still pay no Money
+		flag("shop_code_money_unchanged", moneyValue ~= nil and moneyValue.Value == 500)
 		flag("shop_code_recorded_upper_case", sameArray(snapshot(pc).Codes, { CODE }))
 		local bw = counts(pc)
 		local okW, msgW = redeem(pc, CODE_32)

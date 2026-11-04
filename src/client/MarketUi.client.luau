@@ -504,7 +504,7 @@ function render()
 		end
 	end
 	for kind, refs in tabs do
-		refs.Edge.Color = kind == selectedKind and Color3.new(1, 1, 1) or OUTLINE
+		UiMotion.Mark(refs.Edge, { Color = kind == selectedKind and Color3.new(1, 1, 1) or OUTLINE })
 	end
 	local items = Market.Items[selectedKind]
 	if not (selected and Market.Get(selectedKind, selected)) then

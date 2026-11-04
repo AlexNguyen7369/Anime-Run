@@ -1,0 +1,8 @@
+{
+  "foe_db": {
+    "name": "Selle",
+    "colours": {"skin": "#EEE8EE", "eyes": "#D0347E"},
+    "hair": {"colour": "#78B838", "locks": []},
+    "pieces": []
+  }
+}

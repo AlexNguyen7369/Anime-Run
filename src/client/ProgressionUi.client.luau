@@ -5,7 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
--- The workshop / Dojo idle gain pays Money (owner 2026-11-01; there is no Speed stat).
+-- The workshop / Dojo boosts one chosen stat by the squad's rarity (design doc 4.19); there is no idle gain.
 local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Tree = require(shared.UpgradeTree)
@@ -325,16 +325,53 @@ local workshopTitle = workshopPanel:FindFirstChild("Title")
 if workshopTitle then
 	workshopTitle.TextSize = 14
 end
-local levelLabel = text("Level", workshopPanel, UDim2.new(0, 12, 0.22, 0), UDim2.new(0.42, -24, 0, 36), "")
-local priceLabel = text("Price", workshopPanel, UDim2.new(0, 12, 0.42, 0), UDim2.new(0.42, -24, 0, 36), "")
-local workshopRate = text("Rate", workshopPanel, UDim2.new(0, 12, 0.58, 0), UDim2.new(0.42, -24, 0, 26), "")
-local workshopResult = text("Result", workshopPanel, UDim2.new(0, 12, 0.72, 0), UDim2.new(0.42, -24, 0, 24), "")
-for _, label in { levelLabel, priceLabel, workshopRate, workshopResult } do
+-- The left column's rows stay apart at every panel height: one value at the shortest band (phones, 136 px), another at
+-- the authored 350 px, straight between them. y and h in px.
+local function workshopRow(y136, h136, y350, h350)
+	local function at(short, tall)
+		local s = (tall - short) / (350 - 136)
+		return UDim.new(s, short - s * 136)
+	end
+	return UDim2.new(UDim.new(0, 12), at(y136, y350)), UDim2.new(UDim.new(0.42, -24), at(h136, h350))
+end
+local rowPos, rowSize = workshopRow(28, 14, 63, 26)
+local boostLabel = text("Boost", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(42, 12, 105, 36)
+local levelLabel = text("Level", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(54, 12, 161, 36)
+local priceLabel = text("Price", workshopPanel, rowPos, rowSize, "")
+rowPos, rowSize = workshopRow(88, 10, 259, 24)
+local workshopResult = text("Result", workshopPanel, rowPos, rowSize, "")
+for _, label in { levelLabel, priceLabel, workshopResult } do
 	label.TextSize = 13
 	label.TextColor3 = Color3.fromRGB(218, 224, 235)
 end
-local buyWorkshop =
-	button("Buy", workshopPanel, UDim2.new(0, 12, 1, -48), UDim2.new(0.42, -24, 0, 36), "BUY NEXT LEVEL")
+boostLabel.TextSize = 16
+boostLabel.TextColor3 = GREEN
+-- The boosted stat picker (design doc 4.19): the server validates the pick; the chosen one is green.
+rowPos, rowSize = workshopRow(66, 22, 217, 26)
+local statRow = make("Frame", "Stats", workshopPanel, {
+	Position = rowPos,
+	Size = rowSize,
+	BackgroundTransparency = 1,
+})
+local statButtons = {}
+for i, stat in Workshop.Config.STATS do
+	local count = #Workshop.Config.STATS
+	local b =
+		button(stat, statRow, UDim2.new((i - 1) / count, 2, 0, 0), UDim2.new(1 / count, -4, 1, 0), string.upper(stat))
+	b.TextSize = 11
+	statButtons[stat] = b
+	b.Activated:Connect(function()
+		local ok, applied, reason = pcall(function()
+			return remotes:WaitForChild("SetWorkshopStat"):InvokeServer(stat)
+		end)
+		workshopResult.Text = ok and tostring(reason or (applied and "Updated" or "Try again"))
+			or "Connection error; try again"
+	end)
+end
+rowPos, rowSize = workshopRow(98, 36, 302, 36)
+local buyWorkshop = button("Buy", workshopPanel, rowPos, rowSize, "BUY NEXT LEVEL")
 buyWorkshop.TextSize = 12
 -- Showcase (docs/WORKSHOP_SPEC.md "Showcase"): the right part of the Workshop panel. The server validates every pick.
 local showcaseFrame = make("Frame", "Showcase", workshopPanel, {
@@ -342,9 +379,9 @@ local showcaseFrame = make("Frame", "Showcase", workshopPanel, {
 	Size = UDim2.new(0.56, -12, 1, -52),
 	BackgroundTransparency = 1,
 })
-local showcaseMulti = text("Multi", showcaseFrame, UDim2.new(), UDim2.new(1, -88, 0, 20), "")
-showcaseMulti.TextSize = 13
-showcaseMulti.TextXAlignment = Enum.TextXAlignment.Left
+local squadPoints = text("Points", showcaseFrame, UDim2.new(), UDim2.new(1, -88, 0, 20), "")
+squadPoints.TextSize = 13
+squadPoints.TextXAlignment = Enum.TextXAlignment.Left
 local best3 = button("Best3", showcaseFrame, UDim2.new(1, -84, 0, 0), UDim2.fromOffset(84, 20), "BEST 3")
 best3.TextSize = 12
 local slots = {}
@@ -381,7 +418,7 @@ local function shownIds()
 	end
 	return ids
 end
--- Owned rollable cars, highest slot bonus first: { Spec, Copies, Bonus }.
+-- Owned rollable characters, most rarity points first: { Spec, Points }.
 local function showcaseCandidates()
 	local list = {}
 	local data = player:FindFirstChild("GachaData")
@@ -395,13 +432,12 @@ local function showcaseCandidates()
 			and spec.Id ~= player:GetAttribute("EquippedCar")
 			and not table.find(team, spec.Id)
 		then
-			local copies = entry:GetAttribute("Copies") or 0
-			table.insert(list, { Spec = spec, Copies = copies, Bonus = GachaConfig.SlotBonus(spec, copies) })
+			table.insert(list, { Spec = spec, Points = Workshop.Points({ spec }) })
 		end
 	end
 	table.sort(list, function(a, b)
-		if a.Bonus ~= b.Bonus then
-			return a.Bonus > b.Bonus
+		if a.Points ~= b.Points then
+			return a.Points > b.Points
 		end
 		return a.Spec.Id < b.Spec.Id
 	end)
@@ -423,17 +459,15 @@ end
 local function refreshShowcase()
 	local ids = shownIds()
 	local candidates = showcaseCandidates()
-	local copiesOf = {}
-	for _, c in candidates do
-		copiesOf[c.Spec.Id] = c.Copies
-	end
-	showcaseMulti.Text = "SHOWCASE  " .. Format.Multi(player:GetAttribute("ShowcaseMulti") or 1) .. " Money gain"
+	local specs = {}
 	for i, slot in slots do
 		local spec = ids[i] and CharacterCatalog.Get(ids[i])
+		specs[i] = spec
 		slot.Name.Text = spec and spec.Name or "EMPTY"
-		slot.Info.Text = spec and string.format("x%d copies", copiesOf[spec.Id] or 0) or ""
+		slot.Info.Text = spec and string.format("%s · %d pts", spec.Rarity, Workshop.Points({ spec })) or ""
 		slot.Clear.Visible = spec ~= nil
 	end
+	squadPoints.Text = string.format("SQUAD  %d rarity points", Workshop.Points(specs))
 	for _, row in showcaseList:GetChildren() do
 		if row:IsA("Frame") then
 			row:Destroy()
@@ -454,7 +488,7 @@ local function refreshShowcase()
 			row,
 			UDim2.fromScale(0.55, 0),
 			UDim2.new(0.45, -70, 1, 0),
-			string.format("x%d  +%.2f", c.Copies, c.Bonus)
+			string.format("%s · %d pts", c.Spec.Rarity, c.Points)
 		)
 		info.TextSize = 11
 		info.TextColor3 = Color3.fromRGB(160, 174, 195)
@@ -502,28 +536,13 @@ local function refreshShowcaseIfOpen()
 		refreshShowcase()
 	end
 end
-for _, attr in { "Showcase", "ShowcaseMulti" } do
-	player:GetAttributeChangedSignal(attr):Connect(refreshShowcaseIfOpen)
-end
+player:GetAttributeChangedSignal("Showcase"):Connect(refreshShowcaseIfOpen)
 workshopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShowcaseIfOpen)
 task.spawn(function()
 	local data = player:WaitForChild("GachaData")
-	local function watch(entry)
-		entry:GetAttributeChangedSignal("Copies"):Connect(refreshShowcaseIfOpen)
-	end
-	for _, entry in data:GetChildren() do
-		watch(entry)
-	end
-	data.ChildAdded:Connect(function(entry)
-		watch(entry)
-		refreshShowcaseIfOpen()
-	end)
+	data.ChildAdded:Connect(refreshShowcaseIfOpen)
 	data.ChildRemoved:Connect(refreshShowcaseIfOpen)
 end)
-
-local welcome = panel("Welcome", "WELCOME BACK")
-local earnings = text("Earnings", welcome, UDim2.new(0, 12, 0.3, 0), UDim2.new(1, -24, 0, 40), "")
-local away = text("Away", welcome, UDim2.new(0, 12, 0.55, 0), UDim2.new(1, -24, 0, 40), "")
 
 local function refresh()
 	local money = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Money")
@@ -550,23 +569,24 @@ local function refresh()
 	treeView.Balance(balance)
 	local level = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel"))
 	local nextLevel = Workshop.Config.Levels[level + 1]
-	levelLabel.Text = "Level " .. level .. " • " .. Format.Multi(Workshop.LevelMulti(level)) .. " Money gain"
+	levelLabel.Text = "Level " .. level .. " • " .. Format.Multi(Workshop.LevelScale(level)) .. " boost"
 	priceLabel.Text = nextLevel
-			and ("Level " .. (level + 1) .. " • " .. Format.Multi(nextLevel.Multi) .. " • " .. Format.MoneyText(
+			and ("Level " .. (level + 1) .. " • " .. Format.Multi(Workshop.LevelScale(level + 1)) .. " • " .. Format.MoneyText(
 				nextLevel.Price
 			))
 		or "MAX LEVEL"
 	setActive(buyWorkshop, nextLevel ~= nil and balance >= nextLevel.Price)
 	buyWorkshop.Selectable = buyWorkshop.Active
 	buyWorkshop.BackgroundColor3 = buyWorkshop.Active and GREEN or DARK
-	local inWorkshop = player:GetAttribute("InWorkshop") == true
-	local rate = player:GetAttribute("WorkshopRate") or 0
-	workshopRate.Text = string.format(
-		"Current gain  +%s/s%s",
-		rate >= 1000 and Format.MoneyText(rate) or string.format("$%.1f", rate),
-		inWorkshop and "  •  ACTIVE" or ""
-	)
-	workshopRate.TextColor3 = inWorkshop and GREEN or Color3.fromRGB(160, 174, 195)
+	-- Server numbers (WorkshopBoost, WorkshopStat); "+35% Luck", one decimal at most
+	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
+	boostLabel.Text = "+"
+		.. tostring(math.round((player:GetAttribute("WorkshopBoost") or 0) * 1000) / 10)
+		.. "% "
+		.. stat
+	for name, b in statButtons do
+		b.BackgroundColor3 = name == stat and GREEN or BLUE
+	end
 end
 buyWorkshop.Activated:Connect(function()
 	if not buyWorkshop.Active then
@@ -586,36 +606,8 @@ remotes:WaitForChild("WorkshopOpen").OnClientEvent:Connect(function()
 		Switch.Toggle("Workshop")
 	end
 end)
-local lastCredit = nil
-local function refreshWelcome()
-	local credit = player:GetAttribute("OfflineSpeed") or 0
-	local seconds = math.floor(player:GetAttribute("OfflineSeconds") or 0)
-	if credit <= 0 then
-		Switch.Close("Welcome")
-		lastCredit = nil
-	end
-	-- After a bought double the server sets OfflineDoubled to the extra amount it added.
-	local doubled = player:GetAttribute("OfflineDoubled") or 0
-	earnings.Text = string.format("+%s SPEED", Format.SpeedText(credit + doubled))
-	away.Text = string.format(
-		"Away %dh %dm %ds • 25%% gain • 8h maximum",
-		math.floor(seconds / 3600),
-		math.floor(seconds / 60) % 60,
-		seconds % 60
-	)
-	local rewardKey = tostring(credit)
-	if credit > 0 and rewardKey ~= lastCredit then
-		lastCredit = rewardKey
-		if not welcome.Visible then
-			Switch.Toggle("Welcome")
-		end
-	end
-end
-for _, attr in { "BestTrack", "UpgradesBuyable", "WorkshopLevel", "InWorkshop", "WorkshopRate" } do
+for _, attr in { "BestTrack", "UpgradesBuyable", "WorkshopLevel", "WorkshopStat", "WorkshopBoost" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
-end
-for _, attr in { "OfflineSpeed", "OfflineSeconds", "OfflineDoubled" } do
-	player:GetAttributeChangedSignal(attr):Connect(refreshWelcome)
 end
 task.spawn(function()
 	local money = player:WaitForChild("leaderstats"):WaitForChild("Money")
@@ -654,13 +646,7 @@ RunService.Heartbeat:Connect(function(dt)
 	refreshPotions(workspace:GetServerTimeNow())
 end)
 refresh()
-refreshWelcome()
 -- Fredoka text and token radii on every code-built screen, rows added later included (section 8).
 for _, root in themed do
 	UiTheme.Apply(root)
 end
-
--- Offline reward presentation; the existing credit amount and close flow are unchanged.
-require(script.Parent:WaitForChild("WelcomeStyle")).Apply(welcome, function()
-	Switch.Close("Welcome")
-end)

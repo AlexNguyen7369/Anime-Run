@@ -1,0 +1,8 @@
+{
+	"foe_mha": {
+		"colours": {"skin": "#EFDCC8", "eyes": "#C8141E", "UpperTorso": "#25252D", "LowerTorso": "#25252D", "UpperArm": "#25252D", "LowerArm": "#25252D", "Hand": "#EFDCC8", "UpperLeg": "#1C1C22", "LowerLeg": "#1C1C22", "Foot": "#C4202A"},
+		"face": {"eye": "soft", "mouth": "flat", "brow": "#5E8FAC"},
+		"hair": {"colour": "#86BAD2", "locks": []},
+		"pieces": []
+	}
+}

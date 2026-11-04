@@ -6,14 +6,12 @@
 --   * Copies: a roll / grant of an already-owned rollable car adds 1 to GachaData.<id> attribute Copies, pays $0
 --     (Roll's 5th return, scrapMoney, is 0; leaderstats.Money unchanged). GachaConfig.SCRAP_MONEY / ScrapMoney and
 --     GachaService.ScrapValue are removed.
---   * SlotBonus = SHOWCASE_SCALE x log10(SpeedMulti) x (1 + COPY_BONUS x min(copies, MAX_COPIES));
---     ShowcaseMulti = 1 + sum SlotBonus. SHOWCASE_SLOTS 3, SCALE 0.25, COPY_BONUS 0.1, MAX_COPIES 50 (placeholders).
+--   * retired: SlotBonus / ShowcaseMulti / WorkshopMulti, the copy bonus and the offline credit (design doc 4.19,
+--     owner 2026-11-03: the squad gives a stat boost by rarity, copies no longer count, no passive / offline gain).
 --   * SetShowcase(player, ids): array of <= 3 distinct owned rollable ids (never starter / gamepass); anything else
---     returns false and changes nothing. Attributes Showcase ("a,b,c") and ShowcaseMulti. Remotes.SetShowcase is a
---     RemoteFunction.
---   * WorkshopMulti = Workshop points multi x ShowcaseMulti: in WorkshopService.Rate and the offline Speed credit.
+--     returns false and changes nothing. Attribute Showcase ("a,b,c"). Remotes.SetShowcase is a RemoteFunction.
 --   * Save: Snapshot/Apply carry Copies { [id] = n >= 1 } and Showcase { id, ... }; old saves load 0 / empty;
---     PlayerData VERSION 12. A rebirth keeps both (checked in the rebirth scenario).
+--     PlayerData VERSION 13 (13: Team). A rebirth keeps both (checked in the rebirth scenario).
 --   * World: the owner's Plot_N.Workshop has ShowcasePedestal_1..3 (anchored, non-colliding); k showcased characters
 --     = k pedestals holding that character's runner rig (H.isRig, child "Runner" or "Car"; CarModels is scrapped,
 --     docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29); labels have a finite MaxDistance.
@@ -25,23 +23,8 @@ local H = require(script.Parent.AcceptanceSupport)
 local Tests = {}
 
 -- The spec's numbers (docs/WORKSHOP_SPEC.md 5b). Independent oracle: never read from GachaConfig.
-local SPEC = { SLOTS = 3, SCALE = 0.25, COPY_BONUS = 0.1, MAX_COPIES = 50, VERSION = 12, OFFLINE_FRACTION = 0.25 }
+local SPEC = { SLOTS = 3, VERSION = 13 }
 local UID = 990122000
-
-local function near(a, b)
-	return type(a) == "number" and type(b) == "number" and a == a and math.abs(a - b) <= 1e-9 * math.max(1, math.abs(b))
-end
-
-local function oracleSlot(multi, copies)
-	if type(multi) ~= "number" or multi ~= multi or multi <= 1 or multi == math.huge then
-		return 0
-	end
-	if type(copies) ~= "number" or copies ~= copies or copies < 0 then
-		copies = 0
-	end
-	copies = math.min(math.floor(copies), SPEC.MAX_COPIES)
-	return SPEC.SCALE * math.log10(multi) * (1 + SPEC.COPY_BONUS * copies)
-end
 
 function Tests.showcase()
 	local r, flag = H.report("showcase")
@@ -59,15 +42,10 @@ function Tests.showcase()
 		and gacha
 		and data
 		and wservice
-		and type(config.SlotBonus) == "function"
-		and type(config.ShowcaseMulti) == "function"
 		and type(gacha.Copies) == "function"
 		and type(gacha.SetShowcase) == "function"
-		and type(gacha.ShowcaseMulti) == "function"
-		and type(gacha.WorkshopMulti) == "function"
 		and type(gacha.Snapshot) == "function"
 		and type(gacha.Apply) == "function"
-		and type(wservice.Rate) == "function"
 		and type(wservice.Assign) == "function"
 		and type(wservice.Release) == "function"
 	flag("showcase_api_exists", api == true)
@@ -85,27 +63,10 @@ function Tests.showcase()
 		gacha.Setup(p)
 		return p, UID
 	end
-	local function specMulti(id)
-		local spec = catalog.Get(id)
-		return spec and spec.SpeedMulti or 1
-	end
-	local function oracleMulti(p, ids)
-		local m = 1
-		for _, id in ids do
-			m += oracleSlot(specMulti(id), gacha.Copies(p, id))
-		end
-		return m
-	end
 
 	local ok, err = pcall(function()
 		-- 1. Config: the spec's numbers; scrap removed
-		flag(
-			"showcase_config_matches_spec",
-			config.SHOWCASE_SLOTS == SPEC.SLOTS
-				and config.SHOWCASE_SCALE == SPEC.SCALE
-				and config.COPY_BONUS == SPEC.COPY_BONUS
-				and config.MAX_COPIES == SPEC.MAX_COPIES
-		)
+		flag("showcase_config_matches_spec", config.SHOWCASE_SLOTS == SPEC.SLOTS)
 		local cap = config.MAX_SAVED_COPIES
 		flag(
 			"showcase_max_saved_copies_large_integer",
@@ -124,42 +85,22 @@ function Tests.showcase()
 			"duplicate_scrap_money_removed",
 			config.SCRAP_MONEY == nil and config.ScrapMoney == nil and gacha.ScrapValue == nil
 		)
+		-- design doc 4.19 (owner 2026-11-03): the showcase multi of idle gain and the copy bonus are gone
+		flag(
+			"showcase_multi_removed",
+			config.SlotBonus == nil
+				and config.ShowcaseMulti == nil
+				and config.COPY_BONUS == nil
+				and config.MAX_COPIES == nil
+				and gacha.ShowcaseMulti == nil
+				and gacha.WorkshopMulti == nil
+				and wservice.Rate == nil
+		)
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local remote = remotes and remotes:FindFirstChild("SetShowcase")
 		flag("showcase_remote_is_remote_function", remote ~= nil and remote:IsA("RemoteFunction"))
 
-		-- 2. Formula: SlotBonus against the oracle, copy cap, bad input, ShowcaseMulti = 1 + sum
-		local formulaBad, tried = 0, 0
-		for _, spec in catalog.Rollable() do
-			for _, copies in { 0, 1, 7, 50, 51, 1000, -3, 0 / 0, "x", nil } do
-				tried += 1
-				local okS, got = pcall(config.SlotBonus, spec, copies)
-				if not okS or not near(got, oracleSlot(spec.SpeedMulti, copies)) then
-					formulaBad += 1
-				end
-			end
-		end
-		flag("slot_bonus_formula", tried > 0 and formulaBad == 0, formulaBad, 0)
-		local kart = catalog.Get("leaf_copycat")
-		flag(
-			"slot_bonus_copies_capped_at_max",
-			kart ~= nil
-				and near(config.SlotBonus(kart, 50), config.SlotBonus(kart, 5000))
-				and config.SlotBonus(kart, 50) > config.SlotBonus(kart, 49)
-		)
-		local okNil, nilBonus = pcall(config.SlotBonus, nil, 5)
-		flag("slot_bonus_nil_spec_zero", okNil and nilBonus == 0)
-		local okFlat, flat = pcall(config.SlotBonus, { SpeedMulti = 1 }, 10)
-		flag("slot_bonus_multi_1_zero", okFlat and near(flat, 0))
-		flag("showcase_multi_empty_is_1", near(config.ShowcaseMulti({}), 1))
-		local street, rocket = catalog.Get("db_tyrant"), catalog.Get("leaf_hero")
-		local list = { { Spec = kart, Copies = 3 }, { Spec = street, Copies = 0 }, { Spec = rocket, Copies = 60 } }
-		local wantList = 1
-			+ oracleSlot(2, 3)
-			+ oracleSlot(street and street.SpeedMulti, 0)
-			+ oracleSlot(rocket and rocket.SpeedMulti, 60)
-		local okL, gotList = pcall(config.ShowcaseMulti, list)
-		flag("showcase_multi_one_plus_sum", okL and near(gotList, wantList), okL and gotList or -1, wantList)
+		-- 2. retired: SlotBonus / ShowcaseMulti formula (design doc 4.19, owner 2026-11-03)
 
 		-- 3. Copies: a duplicate grant adds 1 copy and pays nothing
 		local p = fake("Copies")
@@ -254,15 +195,9 @@ function Tests.showcase()
 			{ "mixed", { "leaf_medic", x = "db_tyrant" } },
 		}
 		local rejectBad = {}
-		local multiBefore = s:GetAttribute("ShowcaseMulti")
 		for _, case in bad do
 			local okC, accepted = pcall(gacha.SetShowcase, s, case[2])
-			if
-				not okC
-				or accepted ~= false
-				or s:GetAttribute("Showcase") ~= "leaf_copycat"
-				or s:GetAttribute("ShowcaseMulti") ~= multiBefore
-			then
+			if not okC or accepted ~= false or s:GetAttribute("Showcase") ~= "leaf_copycat" then
 				table.insert(rejectBad, case[1])
 				gacha.SetShowcase(s, { "leaf_copycat" })
 			end
@@ -270,61 +205,15 @@ function Tests.showcase()
 		flag("set_showcase_rejects_invalid", #rejectBad == 0, table.concat(rejectBad, ","), "")
 		local three = { "leaf_copycat", "db_tyrant", "leaf_hero" }
 		local okThree = gacha.SetShowcase(s, three)
-		local wantThree = oracleMulti(s, three)
 		flag(
 			"set_showcase_three_cars",
 			okThree == true and s:GetAttribute("Showcase") == "leaf_copycat,db_tyrant,leaf_hero"
 		)
-		flag(
-			"showcase_multi_formula",
-			near(gacha.ShowcaseMulti(s), wantThree) and near(s:GetAttribute("ShowcaseMulti"), wantThree),
-			gacha.ShowcaseMulti(s),
-			wantThree
-		)
-		local noCopies = 1
-			+ oracleSlot(specMulti("leaf_copycat"), 0)
-			+ oracleSlot(specMulti("db_tyrant"), 0)
-			+ oracleSlot(specMulti("leaf_hero"), 0)
-		flag(
-			"showcase_multi_uses_copies",
-			gacha.Copies(s, "leaf_copycat") == 2 and gacha.ShowcaseMulti(s) > noCopies + 1e-9
-		)
-		-- a copy rolled while shown raises the multi, and the UI attribute mirrors it
-		gacha.Grant(s, "db_tyrant")
-		task.wait()
-		local wantMore = oracleMulti(s, three)
-		flag(
-			"showcase_multi_follows_new_copy",
-			wantMore > wantThree
-				and near(gacha.ShowcaseMulti(s), wantMore)
-				and near(s:GetAttribute("ShowcaseMulti"), wantMore),
-			s:GetAttribute("ShowcaseMulti"),
-			wantMore
-		)
-		-- WorkshopMulti = Workshop points multi x ShowcaseMulti
-		local points = config.Multis({ Workshop = s:GetAttribute("Alloc_Workshop") }).Workshop
-		flag(
-			"workshop_multi_includes_showcase",
-			near(gacha.WorkshopMulti(s), points * wantMore),
-			gacha.WorkshopMulti(s),
-			points * wantMore
-		)
-		local rateShown = wservice.Rate(s)
+		-- retired: showcase_multi_formula / uses_copies / follows_new_copy, workshop_multi_includes_showcase,
+		-- workshop_rate_includes_showcase (design doc 4.19, owner 2026-11-03: no showcase multi, no passive gain)
+		gacha.Grant(s, "db_tyrant") -- 1 copy (the snapshot below expects it)
 		local okEmpty = gacha.SetShowcase(s, {})
-		flag(
-			"set_showcase_empty_clears",
-			okEmpty == true
-				and s:GetAttribute("Showcase") == ""
-				and near(gacha.ShowcaseMulti(s), 1)
-				and near(s:GetAttribute("ShowcaseMulti"), 1)
-		)
-		local rateBare = wservice.Rate(s)
-		flag(
-			"workshop_rate_includes_showcase",
-			type(rateBare) == "number" and rateBare > 0 and near(rateShown / rateBare, wantMore),
-			type(rateBare) == "number" and rateBare > 0 and rateShown / rateBare or -1,
-			wantMore
-		)
+		flag("set_showcase_empty_clears", okEmpty == true and s:GetAttribute("Showcase") == "")
 
 		-- 6. Snapshot / Apply cleaning
 		gacha.SetShowcase(s, { "leaf_hero", "leaf_copycat" })
@@ -375,7 +264,6 @@ function Tests.showcase()
 			seen[id] = true
 		end
 		flag("apply_showcase_cleaned", showOk, a:GetAttribute("Showcase"), "leaf_copycat[,leaf_medic]")
-		flag("apply_sets_showcase_multi", near(a:GetAttribute("ShowcaseMulti"), oracleMulti(a, shown)))
 		local b = fake("ApplyFour")
 		gacha.Apply(b, {
 			Cars = { "leaf_copycat", "leaf_medic", "db_tyrant", "leaf_hero" },
@@ -393,12 +281,7 @@ function Tests.showcase()
 		do
 			local j = fake("Junk")
 			local okJ = pcall(gacha.Apply, j, junk)
-			if
-				not okJ
-				or gacha.Copies(j, "leaf_copycat") ~= 0
-				or (j:GetAttribute("Showcase") or "") ~= ""
-				or not near(gacha.ShowcaseMulti(j), 1)
-			then
+			if not okJ or gacha.Copies(j, "leaf_copycat") ~= 0 or (j:GetAttribute("Showcase") or "") ~= "" then
 				junkBad += 1
 			end
 		end
@@ -410,22 +293,18 @@ function Tests.showcase()
 			"apply_old_save_zero_copies_empty_showcase",
 			gacha.Copies(old, "leaf_copycat") == 0
 				and (old:GetAttribute("Showcase") or "") == ""
-				and near(gacha.ShowcaseMulti(old), 1)
 				and type(snapOld.Copies) == "table"
 				and next(snapOld.Copies) == nil
 				and type(snapOld.Showcase) == "table"
 				and #snapOld.Showcase == 0
 		)
 
-		-- 7. PlayerData VERSION 12: offline credit includes the showcase, save round trip, old save upgraded
-		local at = 1800000000
+		-- 7. PlayerData VERSION 13: save round trip, old save upgraded (offline credit retired, design doc 4.19)
 		local function record(showcase)
 			return {
 				Version = SPEC.VERSION,
 				Money = 10,
-				Speed = 1000,
 				WorkshopLevel = 1,
-				OfflineAt = at - 3600,
 				Cars = { "leaf_copycat", "db_tyrant" },
 				Copies = { leaf_copycat = 4 },
 				Showcase = showcase,
@@ -438,38 +317,18 @@ function Tests.showcase()
 			[data.KeyFor(uidOld)] = { Version = 11, Money = 5, Speed = 1, Cars = { "leaf_copycat" } },
 		})
 		data.SetStore(store)
-		data.SetClock(function()
-			return at
-		end)
 		local pShown = H.player(cleanup, uidShown)
 		local pBare = H.player(cleanup, uidBare)
 		flag("data_load_showcase_save", data.Load(pShown, uidShown) == true and data.Load(pBare, uidBare) == true)
-		local wantShow = oracleMulti(pShown, { "leaf_copycat", "db_tyrant" })
-		local gShown, gBare = pShown:GetAttribute("OfflineSpeed"), pBare:GetAttribute("OfflineSpeed")
-		flag(
-			"offline_gain_includes_showcase",
-			type(gShown) == "number" and type(gBare) == "number" and gBare > 0 and near(gShown / gBare, wantShow),
-			type(gBare) == "number" and gBare > 0 and gShown / gBare or -1,
-			wantShow
-		)
-		local wantBare = SPEC.OFFLINE_FRACTION
-			* wconfig.BASE_RATE
-			* gacha.SpeedMulti(pBare)
-			* wconfig.Levels[1].Multi
-			* config.Multis({}).Workshop
-			* 3600
-		flag("offline_gain_bare_rate_times_time", near(gBare, wantBare), gBare, wantBare)
 		flag(
 			"data_load_applies_copies_and_showcase",
-			gacha.Copies(pShown, "leaf_copycat") == 4
-				and pShown:GetAttribute("Showcase") == "leaf_copycat,db_tyrant"
-				and near(pShown:GetAttribute("ShowcaseMulti"), wantShow)
+			gacha.Copies(pShown, "leaf_copycat") == 4 and pShown:GetAttribute("Showcase") == "leaf_copycat,db_tyrant"
 		)
 		gacha.Grant(pShown, "leaf_copycat") -- 5 copies
 		flag("data_save_ok", data.Save(pShown, uidShown, true) == true)
 		local rec = store.data[data.KeyFor(uidShown)]
 		flag(
-			"data_saved_version_12",
+			"data_saved_version_13",
 			type(rec) == "table" and rec.Version == SPEC.VERSION,
 			type(rec) == "table" and rec.Version or -1,
 			SPEC.VERSION
@@ -487,27 +346,23 @@ function Tests.showcase()
 			gacha.Copies(back, "leaf_copycat") == 5
 				and gacha.Copies(back, "db_tyrant") == 0
 				and back:GetAttribute("Showcase") == "leaf_copycat,db_tyrant"
-				and near(back:GetAttribute("ShowcaseMulti"), oracleMulti(back, { "leaf_copycat", "db_tyrant" }))
 		)
 		local pOld = H.player(cleanup, uidOld)
 		flag("data_old_save_loads", data.Load(pOld, uidOld) == true)
 		flag(
 			"data_old_save_zero_copies_empty_showcase",
-			gacha.Copies(pOld, "leaf_copycat") == 0
-				and (pOld:GetAttribute("Showcase") or "") == ""
-				and near(gacha.ShowcaseMulti(pOld), 1)
+			gacha.Copies(pOld, "leaf_copycat") == 0 and (pOld:GetAttribute("Showcase") or "") == ""
 		)
 		data.Save(pOld, uidOld, true)
 		local recOld = store.data[data.KeyFor(uidOld)]
 		flag(
-			"data_old_save_upgraded_to_12",
+			"data_old_save_upgraded_to_13",
 			type(recOld) == "table"
 				and recOld.Version == SPEC.VERSION
 				and (recOld.Copies == nil or next(recOld.Copies) == nil)
 				and (recOld.Showcase == nil or #recOld.Showcase == 0)
 		)
 		data.SetStore(nil)
-		data.SetClock(nil)
 
 		-- 8. World: pedestals on the owner's plot; every showcased character's runner rig stands on one
 		local w = fake("World")
@@ -579,7 +434,6 @@ function Tests.showcase()
 		pcall(wservice.Release, p)
 	end
 	pcall(data.SetStore, nil)
-	pcall(data.SetClock, nil)
 	for _, object in cleanup do
 		object:Destroy()
 	end

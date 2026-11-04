@@ -14,9 +14,6 @@ An idle running simulator on Roblox. The player spins (gacha) for **anime charac
 has **stamina** that drains while it runs; when it is empty the next character on the team takes over. The run ends
 when all 3 are empty, or when the player loses a track to the NPC.
 
-The game is the same concept as IVS, with cars replaced by characters and the single equipped car replaced by a
-3-character team with stamina.
-
 ## 2. Core loop
 
 1. Auto-spin characters (free, every `ROLL_INTERVAL` seconds) and discover them in the Index.
@@ -27,8 +24,8 @@ The game is the same concept as IVS, with cars replaced by characters and the si
    - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
    - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
-6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat (owner 2026-11-01).
-7. Money buys upgrades; rebirth needs and resets Money for luck and a stat point (4.14). There is no player level or XP.
+6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
+7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -38,30 +35,25 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 | Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
 | Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
-| RETIRED 2026-11-01 (4.13): Speed stat (`leaderstats.Speed`) grows with actual speed while running; cruise = log curve of the stat, capped at `MAX_CRUISE` | `RaceConfig` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
-| Workshop plots, idle Speed while standing in the workshop; Showcase of 3 characters multiplies workshop gain | `WorkshopService` |
-| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora) and event-only rolls: 3 event-only characters, rollable only during their event, kept after it ends (owner 2026-10-28) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
-| Rebirth resets Money (Speed retired 2026-11-01, 4.14) | `RebirthService` |
+| Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); chosen stat boost instead of passive gain (4.19) | `WorkshopService` |
+| Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
+| Rebirth resets Money (4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
 | Server decides every number that matters; the client only displays | IVS "Technical and data requirements" |
 
 ## 4. What changes
 
 ### 4.1 Characters replace cars
-- A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti`, `Stamina`,
-  `Category` (4.5), `Series` (4.8) and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
-- Character `SpeedMulti` scales cruise speed (damped, like the IVS car cruise multi). It never scales Speed-stat gain.
-  RETIRED 2026-11-01: cruise is fixed by rarity x category (4.13).
+- A character is a catalog entry with a permanent `Id`, `Name`, `Rarity`, `Chance` (1 in N), `SpeedMulti` (no cruise
+  effect, 4.13), `Stamina`, `Category` (4.5), `Series` (4.8) and an archetype. Spec: `docs/CHARACTER_GACHA_SPEC.md`.
 - The player runs on foot as the active character (a rigged, animated model on the race rail). There is no vehicle.
-
-- IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models,
-  gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Every car model, the car body included,
-  is scrapped; characters run as a placeholder anime runner rig on the race rail (owner 2026-10-28, section 4.10;
-  replaces the same day's "keep the car body" decision).
+- IVS cars and car-only features are not part of Anime Run (owner 2026-10-28): the 111 IVS car entries, car models
+  (the car body included), gamepass cars, the Ember Wyvern dragon and the Singularity orb are removed. Characters run
+  as a placeholder anime runner rig on the race rail (4.10).
 
 ### 4.2 Team of 3
 - The player equips a **team**: 3 ordered slots. The same character may not be in two slots. A team needs at least
@@ -73,40 +65,51 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
-- The drain rate depends on rarity (owner 2026-11-02, track-by-track progression; replaces the 2026-10-30 values
-  Common 20 .. Secret 43): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of running (in-between values
-  proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
+- The drain rate depends on rarity (owner 2026-11-02): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of
+  running (in-between values proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
 - Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small. A team clears a few
   tracks per run and progresses track by track through checkpoints (4.15), not the whole chain in one run.
 - While a runner runs, a vertical blue stamina bar is fixed to the right of its visible character (owner 2026-11-02),
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
+  turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
+  refills with a flash when the next runner tags in. Display only.
+- Team row (owner 2026-11-03): each portrait is only the character's avatar head; rarity is not shown on the row. The
+  current runner gets a clear animated indicator (enlarged, glowing ring, a bobbing marker); every portrait shows its
+  stamina on a thick arc, with its stamina seconds left as a number (orchestrator default); tired runners grey out with
+  an animation; the tag-in plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
-  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01).
+  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
+  Common speed, stamina or Track 1 length (owner 2026-11-03).
 
 ### 4.4 Losing stays a speed comparison
-- Losing a track is unchanged: the NPC's track time is fixed when the track starts; if the player's team reaches the
-  finish later, the player loses. A swap to a slower character mid-track can turn a win into a loss: team order is
-  part of the strategy.
+- The NPC's track time is fixed when the track starts; if the player's team reaches the finish later, the player loses.
+  A swap to a slower character mid-track can turn a win into a loss: team order is part of the strategy.
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
-  - **Sprinter**: cruise SpeedMulti x1.25, stamina x0.9 (proposed 2026-11-02, was x0.8, so Commons stay in 12-15 s).
+  - **Sprinter**: cruise x1.25, stamina x0.9 (proposed).
   - **Balanced**: x1, x1.
-  - **Marathoner**: cruise SpeedMulti x0.8 (owner 2026-10-30, was x0.85), stamina x1.1 (proposed 2026-11-02, was x2.0).
-- Rarity still sets the base speed and base stamina; the category scales them. The category speed multiplies the
-  damped cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it
-  counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
+  - **Marathoner**: cruise x0.8 (owner 2026-10-30), stamina x1.1 (proposed).
+- Rarity sets the base speed and base stamina; the category scales them. Category speed multiplies the damped
+  cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
+- Shown to the player (owner 2026-11-03): hovering a team row portrait (tap on touch) opens an info card with the
+  character's name, its category with the category's speed and stamina effect, its cruise (studs/s) and its stamina
+  (seconds). The card does not show rarity.
 
 ### 4.6 Stamina stat point (owner 2026-10-28)
-- Index stat points can be put into a new stat **Stamina**: each point adds +5% stamina to every character
-  (placeholder), additive with other points like the IVS stats.
+- Index stat points can be put into a stat **Stamina**: each point adds +5% stamina to every character (placeholder),
+  additive with other points.
+- Upgrade tree **Stamina** branch (owner 2026-11-03): each owned tier adds +% stamina to every character, added to the
+  Stamina stat points' part: `1 + 0.05 x Alloc_Stamina + tree bonus` (placeholder +10% per tier, 5 tiers, +50% max).
+  Priced like the Speed branch (weight 1, placeholder). It sits on the free hex direction off Start.
 
 ### 4.7 Stamina potions (owner 2026-10-28)
-- A new potion category **Stamina** (IVS `BoostConfig` pattern): a timed boost, x1.5 stamina for every run started
+- A potion category **Stamina** (IVS `BoostConfig` pattern): a timed boost, x1.5 stamina for every run started
   while it is active, 15 minutes (placeholders). Sold in the Shop as potion packs (Robux developer products) and given
   by daily login and codes, like the IVS potions. Not a random item. Never pays Money.
 
@@ -119,85 +122,69 @@ The game is the same concept as IVS, with cars replaced by characters and the si
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
 ### 4.9 Map redesign: longer tracks and anime biomes (owner 2026-10-28)
-- Tracks are very long and get longer (owner 2026-10-30): every track is the old length times a base factor, growth
-  per track stays x1.25. Track n is `984 x F x 1.25^(n-1)` studs, F = 3 (owner confirmed 2026-10-30; Track 1 about 2,950, Track 10
-  about 22,000). Track 1 gets a new, longer layout. NPC speeds are unchanged; stamina is retuned (4.3, owner
-  2026-10-30).
+- Track n is `984 x F x 1.25^(n-1)` studs, F = 3 (owner 2026-10-30; Track 1 about 2,950, Track 10 about 22,000).
+  Track 1 gets a new, longer layout. NPC speeds are unchanged.
 - Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
   (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
 - Biomes are researched (owner 2026-10-30): before building a track layout or biome, research public information on
   its anime (locations, layout, architecture, palette, landmarks) and match it closely in layout, assets and world
   building. Section 5 safeguards still hold: no logos, symbols, real names, show kanji, ripped assets or exact copies
   of an iconic design.
-- Full biome worlds (owner 2026-10-30, goal `biomes`): each track is a full world, not props along a road. The layers
-  are code-generated Terrain + water, in-house uploaded meshes, per-zone client atmosphere (sky, lighting, fog, grade,
+- Full biome worlds (owner 2026-10-30): each track is a full world, not props along a road. The layers are
+  code-generated Terrain + water, in-house uploaded meshes, per-zone client atmosphere (sky, lighting, fog, grade,
   particles) and ambient audio. Biome sky and light changes are client-local only; the server's `Lighting` stays
   untouched. Heavy layers follow the REDUCED EFFECTS setting. Spec: `docs/BIOME_ENVIRONMENT_SPEC.md`.
 
 ### 4.11 Speed stat scale (owner 2026-10-30) - RETIRED 2026-11-01 with the Speed stat (4.13)
-- The Speed stat shows bigger numbers with the same gameplay: every Speed stat amount is the old amount x
-  `STAT_SCALE = 1e15 / 3e5` (about 3.33e9), so 1 Qd new = 300K old (about where a Legendary trio clears all 10 tracks).
-- Scaled together so cruise speed and time to reach it are unchanged: `RaceConfig.HALF_STAT`, `GAIN_PER_SECOND`,
-  `MAX_STAT` (test reference), `WorkshopConfig.BASE_RATE`, and every other flat Speed amount (rewards, codes, tests).
-  Multipliers (rebirth, stat points, potions) do not change. `BASE_SPEED`, `MAX_SPEED` and `MAX_CRUISE` are studs/s
-  and do not change.
-- Old saves (owner 2026-10-30): pre-scale test saves are wiped, not rescaled. The save store is `PlayerStats_v2` and
-  the Speed board store `LB_Speed_v3` (v2 held raw scores before the log-scaled score); older stores stay untouched.
-- `PlayerData.MAX_ADD` (most one AddSpeed call adds) is a flat Speed amount and scales: `1e18 x STAT_SCALE`.
-- HUD (owner 2026-10-30): Speed keeps suffixes from `SPEED_SUFFIX_FROM = 1e6` (placeholder); the threshold does not scale.
-- Speed board (owner 2026-10-30): the Speed board stores a log-scaled integer score, so any finite Speed ranks
-  (no tie at the int64 cap); the board shows the real Speed decoded from it. Encoding (proposed):
-  `score = floor(log10(1 + whole Speed) x 1e15)` (whole Speed = floored, as the board always used),
-  `Speed = 10^(score / 1e15) - 1`. Other boards are unchanged.
-- Test precision (owner 2026-10-30): above the new `MAX_STAT` a double cannot keep decimals, so
-  `admin_addspeed_past_max_stat_not_clamped` proves only "past MAX_STAT, not clamped" (its decimal part rounds away).
+- Only this remains: the save store is `PlayerStats_v2`; pre-scale test saves were wiped, older stores stay untouched.
 
 ### 4.10 World redesign (owner 2026-10-28)
-- The whole map is redesigned after f2: anime town plaza hub at the centre, 7 player plots (Dojos) around it, the
-  track chain spiralling out from the hub's start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
-- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the
-  racing Team train there and multiply idle Speed gain. A character is in the Team or the Dojo squad, never both.
+- Anime town plaza hub at the centre, 7 player plots (Dojos) around it, the track chain spiralling out from the hub's
+  start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
+- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the racing
+  Team (their effect: 4.19). A character is in the Team or the Dojo squad, never both.
 
 ### 4.12 Track camera (owner 2026-10-31)
 - While the local player's runner is racing, the camera yaw follows the runner's direction of travel along the track,
   like shift-lock. The player still pitches and zooms; turns are smoothed, never snapped.
-- A Settings toggle, TRACK CAMERA, switches it. Off = the regular camera, as before. Default ON (placeholder).
+- A Settings toggle, TRACK CAMERA, switches it. Off = the regular camera. Default ON (placeholder).
 - Client-only display; no server number changes. Spec: `docs/CAMERA_SPEC.md`.
 
 ### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
-Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the per-character `SpeedMulti`.
 - There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
-  and its category (4.5). New players run slow.
-- Base cruise by rarity, Balanced (proposed 2026-11-01, tuned so each rarity tops out about one NPC band; NPC formula
-  unchanged, `16 x 1.51^(n-1)`): Common 24, Uncommon 33, Rare 48, Epic 90 (low rarities raised slightly, owner 2026-11-01; was 20 / 30 / 45), Legendary 200, Mythic 450, Secret 700.
+  and its category (4.5). New players run slow. The character's `SpeedMulti` never enters cruise.
+- Base cruise by rarity, Balanced (proposed, tuned so each rarity tops out about one NPC band; NPC formula
+  `16 x 1.51^(n-1)`): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
   Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
 - Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
   - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
   - Speed potions: timed x cruise (IVS potion pattern; placeholder x1.25).
-  - Upgrade tree **Speed** branch (replaces "Speed Gain", owner 2026-11-01): each owned tier adds +% cruise to the
-    character, additive with the Speed stat points (placeholder +10% per tier, 5 tiers, +50% max).
+  - Upgrade tree **Speed** branch: each owned tier adds +% cruise to the character, additive with the Speed stat points
+    (placeholder +10% per tier, 5 tiers, +50% max).
   - Preset team bonus x1.1 (4.8).
+  - Upgrade tree **Money** branch (owner 2026-11-03): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
     slot's character (damped, as `RaceConfig.ItemCruiseMulti`).
-  - Rebirth adds speed only through its +1 stat point per level (4.14).
+  - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
+    and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
-- Workshop / Dojo idle gain gives Money instead of Speed, for now (owner 2026-11-01); the Dojo squad and the
-  `Workshop` stat point still multiply it. Rate is a placeholder.
-- Admin test runner Kami (owner 2026-11-01): admin command `/kami [player]` gives and equips Kami for the session
-  only (never saved, never rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`
-  (owner 2026-11-01, was 1 Sp).
-- HUD (owner 2026-11-01): the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's
-  CRUISE row and the character cards still show cruise.
+- Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
+  rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`.
+- HUD: the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's CRUISE row and the
+  character cards still show cruise.
 
 ### 4.14 Rebirth (owner 2026-11-01)
-- Rebirth gives no speed gain. Each rebirth level gives: luck multi and +1 stat point (the "stat boost").
-- Rebirth resets Money (there is no Speed to reset).
-- Player levels and XP are removed (owner 2026-11-01, later). Rebirth n+1 needs Money >= `BASE_MONEY` x
-  `MONEY_GROWTH`^n: $100K for rebirth 1, x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP`
-  unread. The rebirth XP multi is gone; the luck totals table is unchanged.
+- Each rebirth level gives: luck multi, +5% cruise (owner 2026-11-03; placeholder, `RebirthConfig.SPEED_PER_REBIRTH`,
+  +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost"). The Rebirth panel shows all three
+  rewards, with the speed icon on the speed tile. Luck and speed show the total after the next rebirth; the stat point
+  tile shows the points that rebirth gives.
+- Rebirth resets Money.
+- Player levels and XP are removed. Rebirth n+1 needs Money >= `BASE_MONEY` x `MONEY_GROWTH`^n: $100K for rebirth 1,
+  x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
+  luck totals table is unchanged.
 
-### 4.15 Sensei checkpoints (owner 2026-11-02; replaces the informational sensei of 2026-11-01)
+### 4.15 Sensei checkpoints (owner 2026-11-02)
 - The plaza sensei opens the Tracks panel: an overview of each track (name, biome, length, NPC rival, payout) where
   the player also picks a **checkpoint**, the track their runs start on (`Remotes.SetCheckpoint`, server-validated).
 - Track 1 is always open. Track n opens once Track n-1 is beaten (`BestTrack >= n - 1`): the player can pick up to
@@ -209,12 +196,12 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   x2; `CheckpointConfig`). The checkpoint track itself pays x1. k restarts when the runner goes back to the
   checkpoint (loss, loop) or the run ends (stop, team exhausted).
 - A won track that paid the bonus shows a popup "CHECKPOINT BONUS x1.2 · $paid" (placeholder art and timing:
-  0.25 s in, 1.5 s hold, 0.5 s out; client-only display, owner 2026-11-02).
+  0.25 s in, 1.5 s hold, 0.5 s out; client-only display).
 
 ### 4.16 Leaderboards removed (owner 2026-11-01)
-- All leaderboards are removed from the plaza for now (clutter at the spawn). Board data stores are left untouched.
-- The Best Roll pedestal stays and keeps showing the server's best roll (owner 2026-11-01).
-- Speed Doubler game passes are removed for now (owner 2026-11-01); nothing else in the shop changes.
+- All leaderboards are removed from the plaza for now. Board data stores are left untouched.
+- The Best Roll pedestal stays and keeps showing the server's best roll.
+- Speed Doubler game passes are removed for now; nothing else in the shop changes.
 
 ### 4.17 Biome welcome popup (owner 2026-11-01)
 - When the local player's runner enters a new biome, a small popup fades in with the biome's display name (e.g.
@@ -222,18 +209,157 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
-  a biome boundary at any speed. Audit mesh / texture loading and pick the cheapest approach that keeps up at
-  `MAX_CRUISE`. Client display only.
-- Biome while racing (owner 2026-11-01, later): the server publishes `RunTrack` (the track whose finish pad is still
-  ahead) on the runner rig; the client takes the biome from it and switches at once at the finish pad. The nearest
-  centre line (`ZoneAt`) is used only while walking. The speed look-ahead is removed (it switched ~280 studs early at
-  800 studs/s and could pick a neighbouring track).
+  a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
+- Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
+  client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
+  while walking. There is no speed look-ahead.
 
-## 5. Characters and intellectual property (owner 2026-10-28, replaces "original only")
+### 4.19 Workshop stat boost (owner 2026-11-03; replaces the workshop / Dojo idle gain)
+- There is no passive gain: standing in the Dojo earns nothing, there is no offline workshop credit and no extra luck
+  while standing in the zone.
+- The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina. The choice is saved
+  (`WorkshopStat`, default Money) and can be changed at any time.
+- The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
+  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
+  sum x 5% (placeholders) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
+  Copies do not count (proposed).
+- Workshop levels stay (bought with Money, same prices) and scale the boost: boost x (1 + 0.1 x (level - 1)) (proposed
+  placeholder; level 10 = x1.9).
+- The boost applies always, everywhere, runs included. It is added to the chosen stat like the upgrade tree bonus
+  (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's `1 + points + tree` part
+  (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree` part (4.6). Speed and
+  Stamina are fixed at run start, like every other run multi.
+- The `Workshop` stat point is retired: allocated Workshop points are refunded as free points.
 
-- Characters are **based on real anime characters with tweaked names** (parody look-alikes, owner 2026-10-28), e.g.
-  "Narito" for a well-known ninja hero. Each Series is a tweaked-name take on a real anime, and its preset trio is
-  that anime's famous team.
+### 4.20 UI animations across the board (owner 2026-11-03)
+- Every player-facing UI animates. Display only; every animation goes through `Client/UiMotion`, so Roblox Reduced
+  Motion and the in-game REDUCED EFFECTS land it at once. Timings below are proposed placeholders.
+  - Panels (every PanelSwitch panel): open = scale 0.9 -> 1 with Back easing + fade in, ~0.2 s; close = scale to 0.95
+    + fade out, ~0.12 s. List / grid items stagger in on open (~0.03 s apart, at most ~0.3 s total).
+  - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
+    1.035 / 0.97, orchestrator default); disabled buttons do not move.
+  - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
+  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+    is ever shown wrong (orchestrator default).
+  - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
+  - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
+
+### 4.21 Starter choice (owner 2026-11-03)
+- A new player gets a popup and chooses one of 3 starter characters: Ruffy, Karate Kid, Sayan. The pick is their first
+  Team member; they roll the next two to fill the Team. Saves that already have rolls or characters get no popup.
+- Starters are not rollable and not in the Index, like the old `starter`. Stats are **proposed**: Common, cruise as the
+  old starter, Balanced, no Series. Look: same model as Lufy, Narito, Gokku (mapping **proposed**: Ruffy = Lufy,
+  Karate Kid = Narito, Sayan = Gokku).
+- Auto-roll waits until the player has picked. The roster in play is these 30 models plus the 3 starters that reuse them.
+
+### 4.22 Collection cards: Index and Backpack Characters (owner 2026-11-03)
+- Layout ideas from the owner's reference screenshot, no copied art. Index tiles and Backpack Characters tiles share one
+  card (`Components.CardFace`): rarity-tinted background, rarity inner border (Secret rainbow), the character's upper
+  body filling the card, cruise in gold above a bold name, category badge top right. Outer border: green = on the Team,
+  white = picked (Backpack), dark otherwise. Sizes, colours and cell counts are **proposed** placeholders.
+- Index: undiscovered cards stay a black silhouette with "?", rarity and public odds; discovered cards add name, cruise,
+  category and Equip. Catalog order is unchanged.
+- Backpack Characters: a Sort button (Rarity, Speed, Stamina; **proposed**) and a name search in the header. The default
+  stays Rarity, least rare first (owner 2026-10-20). Top left of a card: `TEAM <slot>` on the Team, otherwise copies when
+  more than 1. Display only: the server still decides every number and every Team change.
+
+### 4.23 Ninja run for the Leaf series (owner 2026-11-03)
+- A character's optional `RunStyle` replaces the default run swing (`docs/CHARACTER_GACHA_SPEC.md`). All 5 Leaf characters and
+  Karate Kid, who wears Narito's model, use `NinjaRun`: torso leaning forward, both arms straight back, head looking ahead. Angles
+  are **proposed** placeholders. The blocky body stays unchanged: only part positions move.
+- `NinjaRun` adds a short client-side effect on the player's runner while moving: air streaks and foot dust. It is free,
+  display only and has no gameplay effect. It stays short so it never competes with Market trails and auras. REDUCED
+  EFFECTS removes the dust. NPCs wearing the character get the pose, not the effect.
+
+### 4.24 First impression: arrival, plaza and Dojo look (owner 2026-11-03)
+Display only; no gameplay number changes. Sizes, timings and positions are **proposed** placeholders unless stated.
+Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza and Dojos are drafted in Blender first and shown to the owner
+before any Studio work.
+- **Loading screen**: the game's logo (`assets/logo/AnimeRunLogo.png`, owner's art) and a loading bar showing real
+  progress. It does not finish until the assets a player sees first have loaded on their client (the plaza and Track 1
+  world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
+  of grace, proposed), and it stays up at least 8 seconds. Keep the load short; far biomes and other characters load
+  behind the game. Safety limit 90 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
+- **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
+  to the spawn. Reduced Motion replaces it with a cut.
+- **Starter pick**: stays a popup (4.21) with a lighter dim so the plaza shows behind it. The pick plays an in-world
+  reveal: a petal burst and the chosen character's hero pose. The first auto-roll waits about 5 s (proposed) so its result card does not cover it.
+- **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open by itself until their
+  first run ends (its button still works). The gate plays a burst when they first cross it.
+- **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, next to the Race Start gate (owner 2026-11-04), and 2-3 client-only runners with
+  trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
+- **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
+- **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
+  server's `Lighting` stays untouched.
+- **Wayfinding**: the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
+  tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
+  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch) and a floating bold label high above it, seen across the plaza.
+  Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
+- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market and Race Start keep their label high above the landmark (Wayfinding); their distances stay as there. The flat signs stay.
+- **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and at most 2 Legend pedestals beside the gate (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
+- **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
+- **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
+  level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
+  poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
+
+### 4.27 Phone and tablet HUD (owner 2026-11-03)
+- Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Items / Upgrade pair may shrink on 4:3 tablets.
+- At viewport height 400 or less (`StackMaxHeight`) the Items / Upgrade pair stacks, and it hides while a panel is open. Desktop keeps it drawn.
+- Backpack tabs may shrink on phones to fit the rail, as Market's do (minimum scale 0.1).
+- Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
+
+### 4.25 Track loading (owner 2026-11-03)
+- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
+
+### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
+- Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
+  and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
+- The player sees one enemy at a time: the one they are racing now.
+- A large indicator (the enemy's name over a down arrow) sits above the enemy's head and follows it. It has no distance
+  limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy while the enemy's head
+  is on screen. Pixel size is a placeholder.
+- When the enemy's head is off screen or behind the camera, a pointer at the screen edge shows the enemy's name and an
+  arrow aimed at it (owner 2026-11-04, replaces "not clamped"). Pointer size and edge margins are placeholders.
+- Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
+
+### 4.28 Enemy showdown moment (owner 2026-11-04)
+- When a track race starts, a short banner names the enemy: "VS", its name and its portrait, with the track's name. When the
+  player wins that track, a short banner says the enemy is defeated, with the same portrait. Display only: the race does not
+  pause and no input is blocked. Timing and layout are placeholders; both go through `Client/UiMotion` (4.20).
+
+### 4.29 Defeated Enemies page (owner 2026-11-04)
+- The Index has a Defeated Enemies page with one tile per track enemy, in track order. A beaten enemy (`BestTrack >= n`) shows
+  its portrait, name and the player's best time on that track. An unbeaten one is locked and hides its portrait and name.
+  No new saved data: it reads `BestTrack` and the race best times, published read-only as player attributes `RaceBest<track>`,
+  which other players can read (owner, same day). No reward (rewards are a separate owner decision).
+
+### 4.30 Bleech series (owner 2026-11-04)
+- A seventh Series, Bleech (based on Bleach; id `soul`), adds 6 rollable characters: Orihima, Rukiya, Renjy, Ichigu, Ulquiorro,
+  Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
+  owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
+- Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
+- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`): the 2 Legends stay `db_hero` and `mha_symbol` (4.24).
+
+### 4.32 Villains are rollable (owner 2026-11-04)
+- The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
+  character design skill and reviewed by the owner before upload. New: Paine, Selle, Arlon, Akazo, Jogoh, Shigaraky, Mahitoh, Enelu.
+  Freezo and Ulquiorro were already rollable. Rarity is the owner's: Epic Arlon, Jogoh; Legendary Paine, Shigaraky, Mahitoh; Mythic
+  Selle, Akazo, Enelu. `Chance`, `SpeedMulti`, `Category` are placeholders inside the bands. Each shares its enemy's model.
+
+### 4.31 Roll animation (owner 2026-11-04)
+- Every roll clearly shows the character actually rolled: its own portrait or model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
+- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
+- Rolls show the character from the head to the upper torso, not the whole body (owner, same day), as its drawn portrait.
+- Every character gets a drawn digital portrait as part of being added to the game, stored with its assets and used for its roll, Index and Enemies page, Backpack, starter card and the enemy showdown banner, with a head-only cut for the Team minibar, whose head still breaks out of the circle per 4.3 (owner, same day; CHARACTER_GACHA_SPEC Digital art portrait).
+- Auto race becomes a toggle pill labelled "Auto", immediately left of Daily in the top-right row; the top-centre Auto Race button is gone (owner, same day).
+- The normal roll plays at the very top centre of the screen. Quests moves from the top-right row to an icon button directly above Shop (owner, same day).
+- The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
+
+## 5. Characters and intellectual property (owner 2026-10-28)
+
+- Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
+  well-known ninja hero. Each Series is a tweaked-name take on a real anime, and its preset trio is that anime's famous
+  team.
 - Risk accepted by the owner: rightsholders can still file DMCA takedowns against derivative characters, which removes
   the game (`docs/RESEARCH.md` section 2).
 - Safeguards (owner-approved 2026-10-28):
@@ -246,6 +372,27 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   - Keep one list of every parody and its source (`docs/CHARACTER_GACHA_SPEC.md`) so a takedown can be answered by
     renaming / reskinning one character fast; character `Id`s never contain the real name, so a rename never touches
     saves.
+  - Series initials in `Id`s and asset display names (`mha_`, `db_`, `ds_`, `jk_`) are allowed (owner 2026-11-03).
+- Signature marks (owner 2026-11-03): a character's headband plate, crest, cloak pattern or emblem is modelled in-house;
+  its shape follows the Marks rule below. Official logos and ripped art stay banned (first safeguard). Each mark is
+  listed in `docs/CHARACTER_ART_REFERENCES.md` and checked by the rules auditor. The owner accepts the higher takedown
+  risk.
+- Art style (owner 2026-11-03): characters use Roblox avatar proportions and rendering (blocky R15 body, flat face, big
+  mesh hair), inspired by anime Roblox games such as Anime Adventures, with no art copied from those games. Every
+  character must be distinctly recognisable as its source character.
+- Art direction (owner 2026-11-03): close to the original character design, not cute: small sharp faces, drawn clothing
+  and muscle lines. The owner accepts the takedown risk of the closer likeness. Models stay in-house; no ripped art.
+- Target look (owner 2026-11-03; overrides the art style and art direction bullets above where they differ): chunky
+  blocky Roblox-like 3D figures with no ink outline, hard facets on every mesh and soft shading painted into the
+  texture. Head about 1/3 of body height (proposed), faceted angular hair, real 3D clothes (baggy trousers, boots, cuffs,
+  belts), chunky blocky limbs, hands plain smooth blocks with no fingers, models downsized to 0.8 scale (0.8 proposed;
+  `RunnerFactory.SCALE`, every rig). Models stay hand-built in-house; the reference image is look-only and never ships.
+- Marks (owner 2026-11-03; overrides the Likeness and Unique assets bullets on this point): logos and symbols get small changes (emblems, clan marks, plate marks, glyphs, badges, symbol tattoos and earrings): same place, size and colours, a clearly different shape. The overall design stays the same. Scars, clothes, hair and faces are not marks.
+- Likeness (owner 2026-11-03): designs match the source characters; only the display name differs. Models are still made
+  in-house, no ripped art. The owner accepts the takedown risk: a tweaked name is not a license.
+- Unique assets (owner 2026-11-03): all 30 characters get their own painted texture and their own hair, drawn as close
+  to 1-1 with the original design as possible. No shared hairstyles. Drawn and modelled in-house only: no ripped models,
+  textures or image files. Display names stay tweaked (first bullet of this section).
 
 ## 6. Monetization rules (fixed; Roblox paid random items policy, updated 2026-08-19)
 
@@ -265,95 +412,52 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
 
 ## 8. Open questions (owner)
 
-None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
- The Speed-scale save question of 2026-10-30 was answered the same day (4.11: wipe).
-
-The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
+None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-02: owner: stamina implemented (c1 ported onto the fixed-speed code). Stamina lowered for track-by-track
-  progression (Commons about 12-15 s, Secrets 30 s; 4.3), 3 swappable Team slots in the Backpack (4.2), a vertical blue
-  stamina bar right of the running character (4.3). Category stamina retuned to x0.9 / x1.1 (proposed, 4.5).
-- 2026-10-30: owner c1 rulings (TEAM_AND_STAMINA_SPEC Run end, recorded here 2026-11-02): run bank restored (wins
-  bank, exhaustion cashes out, loss empties); a loss reset refills stamina and restarts at slot 1 (at the checkpoint
-  track since 2026-11-02, 4.15).
-- 2026-11-02: owner: the sensei picks checkpoints again; tracks lock until the one before is beaten (BestTrack + 1
-  open); a loss restarts at the checkpoint; tracks won past the checkpoint in the same run pay a bonus (+10% per
-  track, cap x2, placeholders) (4.15, replaces the 2026-11-01 informational sensei).
-- 2026-11-01 (later): owner: biome while racing comes from the server's `RunTrack`, look-ahead removed (4.18).
-- 2026-11-01 (later): owner: player Level / XP removed; rebirth needs Money ($100K, x10 each, placeholder), no XP
-  multi (4.14).
-- 2026-11-01 (later): owner: Kami cruise lowered from 1 Sp to 800 studs/s (equal to `MAX_CRUISE`) (4.13).
-- 2026-11-01 (later): owner: admin-only Kami runner at 1 Sp studs/s, the one `MAX_CRUISE` exception; HUD
-  speedometer and cruise read-out removed (4.13).
-- 2026-11-01 (later): owner: upgrade tree "Speed Gain" branch becomes "Speed": +% cruise per tier (4.13).
-- 2026-11-01 (later): owner: Speed Doubler passes removed; Best Roll pedestal kept and fed; u4 per-slot aura/trail with UI.
-- 2026-11-01 (later): owner: exhaustion pays a per-distance share of the current track's pad cash (4.3); Track 1
-  not shortened, no map shift; Common / Uncommon / Rare base cruise 24 / 33 / 48 (4.13).
-- 2026-11-01 (later): owner: workshop idle gain gives Money for now (4.13); hero landmark LevelOfDetail is set ahead of
-  time, not at runtime (BIOME_ENVIRONMENT_SPEC 4.3).
-- 2026-11-01: owner: no Speed stat or speed gain; fixed cruise per rarity x category; speed multi from stat points,
-  Speed potions, preset bonus, per-slot auras / trails (4.13). Rebirth = luck, XP multi, +1 stat point (4.14).
-  Sensei informational only, no checkpoints (4.15; replaced 2026-11-02). Leaderboards removed (4.16). Biome welcome popup (4.17). Faster
-  mesh / texture / sky loading at high speed (4.18). Base speed table proposed by the orchestrator.
-- 2026-11-01: owner: Track 7's subway must feel very wide along the whole route, not cramped, with assets placed
-  throughout (not only in bays). Orchestrator default (owner delegated): target inner width 120 studs and ceiling 26,
-  narrowed only where a neighbouring track's corridor would be crossed; props line both sides along the whole tunnel.
-- 2026-10-31 (later): owner: Track 7 gets one fight scene the player passes: Gojio [Gojo] mid domain expansion against
-  Joggo [Jogo], Hanamy [Hanami], Mahitto [Mahito] and Chosu [Choso] (Shibuya Incident, station platform). Parody
-  look-alike figures (section 5: tweaked names, in-house art, no official names, logos or ripped assets; names are
-  internal only, never displayed). Overrides the Track 7 "no character likenesses" scenery flag for this scene only.
-  Researched from public information; scene spec in BIOME_ENVIRONMENT_SPEC section 7 Track 7.
-- 2026-10-31: owner redesign of three tracks (tweaked names, section 5 safeguards kept):
-  Track 5 becomes the burning city of the Jogo vs Sukuna fight (Jujutsu Kaisen), night, fire-lit: smoky sky lit orange,
-  embers, craters, scorched streets, fire everywhere. Track 7 becomes the Shibuya Incident subway (Jujutsu Kaisen):
-  the whole route is an enclosed tunnel (tiled walls, ceiling, rails, lights) opening into a few station platforms and
-  concourses; replaces the original "Blossom Shrine Path" (owner: every track is based on an anime, none original).
-  Track 8 becomes Skypeia from One Piece (tweaked); its NPC rival is Enelu [Enel], replacing Kizaro. Research first;
-  references go in TRACKS_AND_BIOMES_SPEC.
-- 2026-10-31: owner request: track camera, yaw aligned with the runner's travel while racing, Settings toggle
-  TRACK CAMERA, off = regular camera (4.12, `docs/CAMERA_SPEC.md`).
-- 2026-10-31: owner: Track 1 gate plaque may stay blank (BIOME_ENVIRONMENT_SPEC 7).
-- 2026-10-30: owner: skybox ledger rows take one Id or 6 Faces; optional terrain `Craters` profile field (Track 2) (BIOME_ENVIRONMENT_SPEC 3.3, 4.4).
-- 2026-10-30: owner: optional terrain `Sections` field (per-stretch ridge / water / material) and hero landmark `At` pin
-  (BIOME_ENVIRONMENT_SPEC 3.3, 4.3).
-- 2026-10-30: owner: free Roblox Creator Store assets allowed for world art, VFX and audio (section 5), with the IP
-  check, scripts stripped and the id + creator in the ledger. Biomes are built one track at a time, with screenshots
-  after each track. b0 spec approved.
-- 2026-10-30: owner: full biome worlds (4.9, `docs/BIOME_ENVIRONMENT_SPEC.md`). Terrain is generated by code at every
-  server start (plaza first). Agents may upload meshes, textures and sounds under the owner's account; every id goes
-  in a ledger. PC-first: heavy layers hook into REDUCED EFFECTS. Per-zone sky and lighting are client-local only.
-  The build is shown in the Team Create place.
-- 2026-10-30: owner w4 rulings (TRACKS_AND_BIOMES_SPEC Biomes): Track 7 renamed Blossom Shrine Path; Track 1 uses
-  the plaza torii as its gate; dressing budget grows with track length; horizon pieces about 100 studs from the road.
-
-- 2026-10-30: owner on the Speed scale (4.11): wipe pre-scale test saves (v2 stores), HUD suffix threshold stays 1e6,
-  Speed board stores a log-scaled score, weaker admin decimal check accepted; MAX_ADD scales.
-- 2026-10-30: owner confirmed the smooth-motion ruling of 2026-10-28 (WORLD_REDESIGN_SPEC section 2): the client
-  interpolates the anchored runner; it replaces the IVS "rail never snaps" rule (`rail_never_snaps`,
-  `PhysicsTargets.race.MaxRailSnaps` retired). Rail-fall recovery retired with the car. Instant start is solo only;
-  duels keep the countdown hold.
-- 2026-10-30: owner: category speed applies after damping (4.5); F = 3 confirmed (4.9); Speed stat x(1e15 / 3e5) so
-  1 Qd = 300K old, same gameplay (4.11).
-- 2026-10-30: owner: speed matters more than stamina. Base stamina flattened (Legendary 30, Mythic 36, Secret 43);
-  Legendary trio clears all 10 tracks in about 90 s; Marathoner cruise x0.8; big stamina only for Marathoners (4.3, 4.5).
-- 2026-10-30: owner: tracks very long (bigger base, same x1.25 growth; F proposed 3) and biomes researched from
-  public info on each anime and matched closely, section 5 safeguards kept (4.9).
-- 2026-10-29: owner ruled on the runner rig (WORLD_REDESIGN_SPEC section 2): instant start with no Teleporting phase,
-  seat-failure checks retired, runner-rig tile and pedestal art, camera follows the runner, avatar welded in the
-  Torso, mid-race switch as in IVS, leaderboard title "RAREST CHARACTER".
-- 2026-10-28: owner asked for a full world redesign before other work (after f2): scrap every car model incl. the
-  car body (placeholder runner rig instead), anime hub, Dojo plots with the Dojo squad, spiral layout (4.10).
-- 2026-10-28: owner: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only;
-  daily login's guaranteed rare stays "rarest unowned character" (IVS behaviour kept).
-- 2026-10-28: owner approved the event-only names (Giyo, Toje, Rojer), the anime-maps deliverables and the Track 1 cliff faces.
-- 2026-10-28: owner asked for the map redesign: tracks x1.25 longer each (Track 1 = reference), anime biomes (4.9).
-- 2026-10-28: owner put event-only characters in scope (weather events carry over, 3 event-only characters).
-- 2026-10-28: owner removed the IVS cars and car-only features; characters keep the car body as a placeholder (4.1).
-- 2026-10-28: owner approved the parody cast, the 6 preset trios, the 10 NPC rivals and the section 5 safeguards.
-- 2026-10-28: owner changed section 5: characters are based on real anime characters with tweaked names (was
-  original only); Series = tweaked real anime, preset trio = its famous team.
-- 2026-10-28: owner answered the open questions: Stamina stat point, Stamina potions, runner categories
-  (Sprinter / Balanced / Marathoner), Series and preset team bonus (sections 4.5-4.8).
-- 2026-10-28: document created (owner decisions: new repo, original characters, full stamina refill per run,
-  exhaustion cashes out).
+- 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
+- 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval, head-and-torso framing, Auto toggle beside Daily, roll at the very top, Quests above Shop, every character and enemy preview uses a drawn portrait (4.31, ROLL_ANIMATION_SPEC).
+- 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
+- 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
+- 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
+- 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).
+- 2026-10-28: document created: full stamina refill per run, exhaustion cashes out.
+- 2026-10-28: section 5: real anime characters with tweaked names, Series = tweaked real anime, preset trio = its famous
+  team. Parody cast, 6 preset trios, 10 NPC rivals and safeguards approved.
+- 2026-10-28: Stamina stat point, Stamina potions, runner categories, Series and preset bonus (4.5-4.8).
+- 2026-10-28: IVS cars and car-only features removed; every car model scrapped, placeholder runner rig, anime hub, Dojo plots, spiral layout (4.1, 4.10).
+- 2026-10-28: map redesign: tracks x1.25 longer each, anime biomes (4.9). Track 1 cliff faces approved.
+- 2026-10-28: weather events carry over with 3 event-only characters (Giyo, Toje, Rojer).
+- 2026-10-28: preset names tweaked (Sayan Pride, Kamada Squad); real-name checks in tests store hashes only; daily login's guaranteed rare stays "rarest unowned character".
+- 2026-10-29: runner rig (WORLD_REDESIGN_SPEC 2): instant start with no Teleporting phase, seat-failure checks retired, runner-rig tile and pedestal art, camera follows the runner, avatar welded in the Torso, mid-race switch as in IVS.
+- 2026-10-30: smooth motion (WORLD_REDESIGN_SPEC 2): the client interpolates the anchored runner, replacing the IVS "rail never snaps" rule; rail-fall recovery retired; instant start is solo only, duels keep the countdown hold.
+- 2026-10-30: tracks very long, F = 3; biomes researched from public info (4.9). Speed matters more than stamina; Marathoner cruise x0.8 (4.3, 4.5).
+- 2026-10-30: full biome worlds (4.9, BIOME_ENVIRONMENT_SPEC): terrain generated by code at every server start, plaza first; agents may upload meshes, textures and sounds under the owner's account, every id in a ledger; PC-first, heavy layers hook into REDUCED EFFECTS; built in the Team Create place.
+- 2026-10-30: free Creator Store assets allowed with the IP check, scripts stripped, id + creator in the ledger (section 5). Biomes built one track at a time, with screenshots after each.
+- 2026-10-30: TRACKS_AND_BIOMES_SPEC: Track 1 uses the plaza torii as its gate; dressing budget grows with track length; horizon pieces about 100 studs from the road.
+- 2026-10-30: BIOME_ENVIRONMENT_SPEC 3.3, 4.3, 4.4: optional terrain `Sections` and `Craters`, hero landmark `At` pin, skybox rows take one Id or 6 Faces.
+- 2026-10-30: c1 rulings (TEAM_AND_STAMINA_SPEC Run end): wins bank, exhaustion cashes out, loss empties; a loss reset refills stamina and restarts at slot 1, at the checkpoint track.
+- 2026-10-31: track camera (4.12).
+- 2026-10-31: Tracks 5, 7, 8 redesigned (TRACKS_AND_BIOMES_SPEC, section 5 safeguards kept): every track is based on an anime, none original. Track 5 is the burning city of the Jogo vs Sukuna fight (night, fire-lit); Track 7 is the Shibuya Incident subway, an enclosed tunnel opening into a few station platforms and concourses; Track 8 is Skypeia, NPC rival Enelu [Enel].
+- 2026-10-31: Track 1 gate plaque may stay blank (BIOME_ENVIRONMENT_SPEC 7).
+- 2026-10-31 (later): Track 7 gets one fight scene the player passes (BIOME_ENVIRONMENT_SPEC 7): parody look-alike figures under section 5, names internal only, never displayed. Overrides the Track 7 "no character likenesses" flag for this scene only.
+- 2026-11-01: no Speed stat or speed gain; fixed cruise; speed multi (4.13). Rebirth rewards (4.14). Leaderboards removed (4.16). Biome popup (4.17). Loading at speed (4.18). Base speed table proposed by the orchestrator.
+- 2026-11-01: Track 7's subway feels very wide along the whole route. Orchestrator default (owner delegated): target inner width 120 studs, ceiling 26, narrowed only where a neighbouring corridor would be crossed; props line both sides along the whole tunnel.
+- 2026-11-01 (later): Level / XP removed, rebirth needs Money (4.14); Kami at 800 studs/s, HUD speedometer removed, upgrade tree Speed branch, Common / Uncommon / Rare cruise 24 / 33 / 48 (4.13); per-distance exhaustion, Track 1 not shortened, no map shift (4.3); Speed Doubler passes removed, Best Roll pedestal kept, per-slot aura / trail with UI (4.16); `RunTrack` biome (4.18); hero landmark LevelOfDetail set ahead of time (BIOME_ENVIRONMENT_SPEC 4.3).
+- 2026-11-02: stamina lowered for track-by-track progression, 3 swappable Team slots, vertical blue bar (4.2, 4.3); category stamina x0.9 / x1.1 proposed (4.5). Sensei checkpoints and bonus (4.15).
+- 2026-11-03: workshop stat boost replaces passive gain (4.19). UI animations (4.20).
+- 2026-11-03: Track 1 balance kept; category info card (4.5); team row, stamina bar look (4.3); upgrade tree Stamina branch (4.6).
+- 2026-11-03: team row after the owner's reference image: stamina arc, head breaks out of a dark circle (4.3, TEAM_AND_STAMINA_SPEC HUD).
+- 2026-11-03: the 30 avatar models are the only rollable cast for now; event-only characters not rollable, stay in the Index; starter popup (3, 4.21).
+- 2026-11-03: section 5 art rulings: Roblox avatar look, closer likeness, unique texture and hair for all 30, target look with hard facets and 0.8 scale, series initials allowed in ids, designs match the source with only the name differing; Lufy keeps the vest. Logos and symbols get small changes, overall design stays.
+- 2026-11-03: rebirth gives +5% cruise per level (4.13, 4.14). Upgrade tree Money branch +10% per tier (4.13).
+- 2026-11-03: c3 rulings: finish pads may use their biome's palette colour; Track 6 keeps one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance share paid), not a loss: a loss is decided only at the runner's finish.
+- 2026-11-03: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.
+- 2026-11-03: Index and Backpack share one collection card, Backpack gets Sort and Search (4.22). Ninja run for all 5 Leaf characters (4.23).
+- 2026-11-04: owner: Legends cut to at most 2 beside the Race Start gate; Market stall rebuilt in-house with a smaller flat sign, free to start from scratch; `soul_lord` gets no Legend (4.24, WORLD_REDESIGN_SPEC 1, 7).
+- 2026-11-04: owner: clear plaza (4.24, WORLD_REDESIGN_SPEC 4, 7): straight service row in the west opening, Rebirth shrine removed (HUD tile stays), Best Roll in a Dojo gap, Market sign replaces its arch, Market reduced to one stall (empty vendor stalls and courtyard removed), path torii, strings, banners, planters, benches and small trees removed, one sky-loop leg moved clear of the Market sign, the stray checker block removed from the Aura stall meshes.
+- 2026-11-04: owner: service headers (4.24, WORLD_REDESIGN_SPEC 7): Index, Shop, Potions, Market, Sensei, Race Start and YOUR DOJO float a bold white italic label over a coloured emblem; the pills and arrows go; the flat signs stay.
+- 2026-11-03: first impression pass (4.24, changes BIOME_ENVIRONMENT_SPEC 2.1): loading screen waits for what a player sees first, 8 s minimum; Market and Race Start marked in bold; plaza petals, ambience, solid sakura trunks, Index icon without a car. The Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold`.
+- 2026-11-03: orchestrator defaults, owner accepted: first auto-roll waits about 5 s after a starter pick; Daily panel does not auto-open until the first run ends (4.24). Orchestrator default: Studio-only `TestSaveKey` test saves (4.24).
+- 2026-11-03: track loading: Tracks 1-5 before load-in, the rest behind the game by player proximity (4.25, not built yet).
+- 2026-11-03 owner: doc trimmed; superseded text removed, no live rule changed.

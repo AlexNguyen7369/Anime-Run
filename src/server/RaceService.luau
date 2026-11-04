@@ -229,13 +229,14 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	-- biome from it while racing (design doc 4.18), never from the nearest centre line.
 	local function trackAt()
 		local number, best = nil, math.huge
-		for _, entry in raceRoute.Pads do
+		local pads = raceRoute.Pads or {}
+		for _, entry in pads do
 			local at = arc[entry.Index] or 0
 			if at > dist and at < best then
 				number, best = entry.Number, at
 			end
 		end
-		return number or raceRoute.Pads[#raceRoute.Pads].Number
+		return number or (pads[#pads] and pads[#pads].Number) -- a route without pads (test fixtures) has no track
 	end
 	-- What clients interpolate the visible runner from (contract in Server/CarTest/RunnerTests)
 	local function publish()
@@ -283,11 +284,19 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local staminaMode = npcMode
 	local team = GachaService.TeamList(player)
 	local seconds = {}
-	for slot, id in team do
-		local given = options.StaminaSeconds and options.StaminaSeconds[slot]
-		seconds[slot] = type(given) == "number" and given > 0 and given
-			or StaminaConfig.Seconds(CharacterCatalog.Get(id))
+	-- fixed for the whole run (a potion that expires mid-run changes nothing); a loss reset (new run) reads it again
+	local function snapshotStamina()
+		local staminaMulti = typeof(player) == "Instance" and GachaService.StaminaMulti(player) or 1
+		for slot, id in team do
+			local given = options.StaminaSeconds and options.StaminaSeconds[slot]
+			seconds[slot] = type(given) == "number" and given > 0 and given
+				or StaminaConfig.Seconds(CharacterCatalog.Get(id), staminaMulti)
+			if staminaMode and typeof(player) == "Instance" then -- cleared with the other stamina attributes at run end
+				player:SetAttribute("RunSeconds" .. slot, seconds[slot]) -- the team row's seconds left
+			end
+		end
 	end
+	snapshotStamina()
 	run.Team = team
 	run.Slot = 1
 	run.Stamina = {}
@@ -313,7 +322,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			runRemote:FireClient(player, event)
 		end
 	end
-	local setCruise, bankShare -- forward declarations (defined below)
+	local setCruise, bankShare, snapshotCruise -- forward declarations (defined below)
 	-- Makes `slot` the active runner: EquippedCar follows (CarService re-skins the runner) and its cruise applies at once
 	local function setSlot(slot)
 		run.Slot = slot
@@ -329,6 +338,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 	local function refill()
+		if snapshotCruise then
+			snapshotCruise() -- a loss reset starts a new run
+			snapshotStamina()
+		end
 		for slot in team do
 			run.Stamina[slot] = 100
 		end
@@ -462,9 +475,24 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		return best
 	end
 
+	-- Each team slot's cruise is fixed when the run starts (design doc 4.13 / 4.19): swaps read this snapshot, so a
+	-- workshop stat, potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
+	local fixedCruise = {}
+	function snapshotCruise()
+		table.clear(fixedCruise)
+		if staminaMode and typeof(player) == "Instance" then
+			for slot, id in team do
+				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot)
+			end
+		end
+	end
+	snapshotCruise()
+
 	-- The run's fixed cruise (design doc 4.13), shown on the HUD as the player attribute Cruise
 	function setCruise()
-		run.TargetSpeed = GachaService.Cruise(player, run.Slot)
+		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
+		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
+		run.TargetSpeed = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
 			player:SetAttribute("Cruise", run.TargetSpeed)
@@ -670,6 +698,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)
+					player:SetAttribute("RunSeconds" .. slot, nil)
 				end
 			end
 			if npcMode then

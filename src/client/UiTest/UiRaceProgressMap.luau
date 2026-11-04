@@ -8,7 +8,8 @@
 -- container. Never touches the live HUD, a real remote, player stats or saves.
 -- Look (docs/RACE_PROGRESS_MAP_SPEC.md "Look", owner 2026-10-27; UiSpec.RaceMapLook): the route is three Path2D
 -- lines RouteOutline / RouteDriven / RouteAhead (in the canvas or its CanvasGroup RouteFade with a UIGradient),
--- split at YOU; YouDot has a Heading chevron; the NPC caption is NpcConfig.For(n).Label; the status is a pill.
+-- split at YOU; YouDot has a Heading chevron; the NPC caption is NpcConfig.For(n).Label in upper case, cut to 10
+-- characters; the status is a pill.
 local Tests = {}
 
 function Tests.Run()
@@ -178,7 +179,10 @@ function Tests.Run()
 			childrenNamed("YouDot") == 1 and childrenNamed("NpcDot") == 1 and childrenNamed("Finish") == 1
 		)
 		local you, rival = canvas.YouDot, canvas.NpcDot
-		local npcLabel = config.For(first.Number).Label
+		local npcLabel = string.upper(config.For(first.Number).Label)
+		if #npcLabel > 10 then
+			npcLabel = npcLabel:sub(1, 9) .. "."
+		end
 		flag(
 			"markers_labeled",
 			you.Label.Text == "YOU" and rival.Label.Text == npcLabel,
