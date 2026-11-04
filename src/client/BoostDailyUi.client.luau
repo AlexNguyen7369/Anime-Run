@@ -298,7 +298,8 @@ end
 -- An answer rebuilt the panel, so the new gui has its screen place only next frame. find() gets it (nil: sound only).
 local function answerCue(cue, find)
 	task.delay(0, function()
-		UiFeedback.Play(cue, find(), { Target = UiFeedback.MoneyCounter() })
+		-- No Target, so no coins: these rewards are potions, not money.
+		UiFeedback.Play(cue, find())
 	end)
 end
 

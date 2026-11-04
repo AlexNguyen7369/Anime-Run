@@ -24,8 +24,8 @@ UiFeedback.Cues = {
 	Equip = { Slot = "Thunk", Volume = 0.3, Motion = { "Pop" } },
 	UpgradeBought = { Slot = "Coin", Volume = 0.4, Motion = { "Impact" } },
 	Denied = { Slot = "Denied", Volume = 0.35, Motion = { "Shake" } },
-	DailyClaim = { Slot = "Chime", Volume = 0.6, Motion = { "Slam", "Burst", "Fly" } },
-	QuestClaim = { Slot = "Chime", Volume = 0.45, Motion = { "Pop", "Shine", "Burst", "Fly" } },
+	DailyClaim = { Slot = "Chime", Volume = 0.6, Motion = { "Slam", "Burst" } },
+	QuestClaim = { Slot = "Chime", Volume = 0.45, Motion = { "Pop", "Shine", "Burst" } },
 	Rebirth = { Slot = "Boom", Volume = 0.8, Motion = { "Slam", "Burst", "Shake" } },
 	RebirthBar = { Motion = { "Fill" } }, -- the requirement bar following Money; not a moment, so silent
 	Toggle = { Slot = "Tap", Volume = 0.2 },

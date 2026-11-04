@@ -81,8 +81,8 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 | equip | `BackpackUi:448`, `:457`, `MarketUi:503`, `RacerUiController:656` | tile Pop on select; no answer motion | Pop on slot | `Equip` | Thunk | 0.3 | often |
 | upgrade node | `ProgressionUi:312` | label size change | Impact on the node | `UpgradeBought` | Coin (replaces `electronicpingshort`, existing, at 0.3) | 0.4 | often |
 | denied | `ProgressionUi:313-316`, `MarketUi:489`, `BoostDailyUi:474` | rotate -3 on node; red text elsewhere | Shake | `Denied` | Denied | 0.35 | often |
-| Daily claim | `BoostDailyUi:463-471` | status slide | Slam on the day tile + Fly | `DailyClaim` | Chime | 0.6 | rare |
-| Quest claim | `BoostDailyUi:589-596` | status slide | Pop on row + Shine | `QuestClaim` | Chime | 0.45 | often |
+| Daily claim | `BoostDailyUi:463-471` | status slide | Slam on the day tile + Burst (rewards are potions, no coins) | `DailyClaim` | Chime | 0.6 | rare |
+| Quest claim | `BoostDailyUi:589-596` | status slide | Pop on row + Shine + Burst | `QuestClaim` | Chime | 0.45 | often |
 | Rebirth | `RacerUiController:489-496` | button text only | Slam + Burst + Shake | `Rebirth` | Boom | 0.8 | rare |
 | toggle | `RacerUiController:254` | snap | Mark on the knob | `Toggle` | Tap | 0.2 | often |
 | roll slot tick | `RollToast/init:1165-1173` | swap Pop | keep | `RollTick` | none by default; Tap at 0.05 only on emphasized rolls | 0.05 | constant, FLAG |

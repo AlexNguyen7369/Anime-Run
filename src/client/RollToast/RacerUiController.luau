@@ -430,9 +430,11 @@ local function setSettingsCategory(category)
 end
 settingsTab.Activated:Connect(function()
 	setSettingsCategory("Settings")
+	UiFeedback.Play("TabSwitch")
 end)
 profileTab.Activated:Connect(function()
 	setSettingsCategory("Profile")
+	UiFeedback.Play("TabSwitch")
 end)
 settings.Panel.Parent:GetPropertyChangedSignal("Visible"):Connect(function()
 	if settings.Panel.Parent.Visible then
@@ -713,6 +715,7 @@ for id, tile in pairs(tiles) do
 	tile.Equip.Activated:Connect(function()
 		if tile.Equip.Active and data:FindFirstChild(id) then
 			remotes.EquipCar:FireServer(id)
+			UiFeedback.Play("Equip", tile.Equip)
 		end
 	end)
 end
