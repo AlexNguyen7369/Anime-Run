@@ -45,8 +45,9 @@
 42. 2026-11-03 — Alex Nguyen — Rebuilt Index and Backpack Characters around one rarity card with Backpack sort and search, fixed Index cards showing placeholder rigs, and gave the catch-all Common a numerical drop chance (Chance 1, roll results unchanged), checked in Studio on desktop; harness not run.
 43. 2026-11-03 — Alex Nguyen — Added the ninja run for Narito and Karate Kid (per-character `RunStyle` pose plus client-side air streaks and foot dust, design doc 4.23), with angles still placeholders and not yet seen in a live run.
 44. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the 4 pilot characters to the owner's target look (no ink outline, hard facets, big head, 3D clothes, plain block hands, designs matching the source with only the name differing) and scaled every rig to 0.8 (proposed), rules audit 0 violations, full harness not run.
+45. 2026-11-03 — Alex Nguyen — Applied the ninja run to the other 4 Leaf characters (`leaf_copycat`, `leaf_medic`, `leaf_crow`, `leaf_avenger`), with the pose and effect still not seen in a live run.
 
 ## What's next
-**Get the owner's go-ahead on the 4 pilot characters, then rebuild the other 26 in the same look (one agent per series) and show them in Blender before uploading.**
+**Check the ninja run in a live Studio run on the new Leaf models and tune the placeholder pose and effect values from the owner's verdict.**
 
-**Why this is next:** the owner committed the 4 pilots but put the other 26 on hold, and until they are rebuilt the roster mixes two art styles and the 26 keep their old outlined look; the c3 full compatibility check should run after that art lands, and the ninja run Studio check stays open in `handoff.md`.
+**Why this is next:** the pose and effect have only been seen as stills of a block stand-in, and every Leaf character now depends on them; the c3 compatibility check that gates the PR into main stays open after it.

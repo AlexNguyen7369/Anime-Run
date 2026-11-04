@@ -301,9 +301,9 @@ Replaces the Speed stat growth (sections 2.6, 3 "Speed stat" row, 4.11) and the 
   stays Rarity, least rare first (owner 2026-10-20). Top left of a card: `TEAM <slot>` on the Team, otherwise copies when
   more than 1. Display only: the server still decides every number and every Team change.
 
-### 4.23 Ninja run for Narito (owner 2026-11-03)
-- A character's optional `RunStyle` replaces the default run swing (`docs/CHARACTER_GACHA_SPEC.md`). Narito and Karate Kid,
-  who wears the same model, use `NinjaRun`: torso leaning forward, both arms straight back, head looking ahead. Angles
+### 4.23 Ninja run for the Leaf series (owner 2026-11-03)
+- A character's optional `RunStyle` replaces the default run swing (`docs/CHARACTER_GACHA_SPEC.md`). All 5 Leaf characters and
+  Karate Kid, who wears Narito's model, use `NinjaRun`: torso leaning forward, both arms straight back, head looking ahead. Angles
   are **proposed** placeholders. The blocky body stays unchanged: only part positions move.
 - `NinjaRun` adds a short client-side effect on the player's runner while moving: air streaks and foot dust. It is free,
   display only and has no gameplay effect. It stays short so it never competes with Market trails and auras. REDUCED
@@ -372,6 +372,7 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: owner: the ninja run goes to all 5 Leaf characters, not only Narito (4.23).
 - 2026-11-03: owner: ninja run for Narito: per-character `RunStyle` pose plus a short client-side speed effect (4.23).
 - 2026-11-03: owner: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value
   **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.

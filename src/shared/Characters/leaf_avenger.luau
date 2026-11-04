@@ -11,4 +11,5 @@ return {
 	Series = "leaf",
 	Archetype = "ninja",
 	Model = nil,
+	RunStyle = "NinjaRun",
 }
