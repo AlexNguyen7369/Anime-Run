@@ -120,7 +120,7 @@ Deliverables:
 Out of scope: odds, economy, new dependencies.
 
 ## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
-Status: active
+Status: done on the owner's word 2026-11-04 (u5 gaps accepted: last full server run 49/1, see handoff)
 Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)
 Branch: feature/alex/anime-world
 Spec: design doc 4.33, docs/UI_FEEDBACK_SPEC.md

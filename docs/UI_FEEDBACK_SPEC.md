@@ -24,7 +24,7 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
 ## 3. Motion presets (in `Client/UiMotion`, design doc 4.20)
 - `Slam`: from scale 1.5 to 1 with Back easing, under 0.2 s (proposed).
 - `Impact`: Pop, Shake, one flash and one ring from the gui. A roll land leaves out the Shake: Legendary and Mythic shake once, on the figure.
-- `Burst`: radial shards and anime speed lines from a point. Never in the roll (ROLL_ANIMATION_SPEC bans speed streaks), nor over a running roll or open panels (DEFEATED skips it then).
+- `Burst`: radial shards and anime speed lines from a point. Never in the roll (ROLL_ANIMATION_SPEC bans speed streaks), nor over a running roll or another open panel (DEFEATED skips it then). It may play over the panel the moment happens in: Daily, Quest, Rebirth, Duel win (owner 2026-11-04).
 - `Fly`: coin pieces travel to the counter for a gain and from it for a spend; whatever they reach then pops. The counter is
   Money, or the Unbanked read-out for pay not banked yet (checkpoint bonus). The number itself counts as in 4.20.
 - `Fill`: a bar tween, 0.2 s (proposed). The text beside it updates at once.
