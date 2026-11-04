@@ -339,6 +339,12 @@ the owner before any Studio work (owner 2026-11-03).
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
 
+### 4.27 Phone and tablet HUD (owner 2026-11-03)
+- Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Items / Upgrade pair may shrink on 4:3 tablets.
+- At viewport height 400 or less (`StackMaxHeight`) the Items / Upgrade pair stacks, and it hides while a panel is open. Desktop keeps it drawn.
+- Backpack tabs may shrink on phones to fit the rail, as Market's do (minimum scale 0.1).
+- Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
+
 ### 4.25 Track loading (owner 2026-11-03)
 - The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first (owner: "once tracks 1-5 load, then load in player proximity"). Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
 
@@ -420,6 +426,7 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 - 2026-11-03: orchestrator default, owner accepted the same day: the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
 - 2026-11-03: orchestrator default, owner accepted the same day: a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).
 - 2026-11-03: owner: the loading screen waits for what a player sees first, the rest loads behind the game (4.24).
+- 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).
 - 2026-11-03: owner approved fi5: plaza petals, quiet forest ambience, solid sakura trunks, Index icon without a car (4.24).
 - 2026-11-03: owner: track loading: once Tracks 1-5 are built the player can load in; the rest build behind the game, in player proximity (4.25, not built yet).
 - 2026-11-03: owner: the Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold` (4.24).
