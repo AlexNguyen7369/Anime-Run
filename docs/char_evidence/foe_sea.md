@@ -48,7 +48,7 @@ Image sources viewed (look only, nothing traced or shipped):
 
 Same place, colours and about the same size, a clearly different shape.
 - Chest sun: red straight-spiked star, 8 long and 8 short points, hollow ring and crescent centre, instead of flame rays round a disc. Matches the existing line in `docs/CHARACTER_ART_REFERENCES.md`.
-- Forearm crew tattoo: tall red lozenge with a dark core and two pairs of straight chevrons, instead of curved hooks and flames. Not yet in the ledger in `docs/CHARACTER_ART_REFERENCES.md`; this task could not edit that file.
+- Forearm crew tattoo: tall red lozenge with a dark core and two pairs of straight chevrons, instead of curved hooks and flames. In the ledger in `docs/CHARACTER_ART_REFERENCES.md`; this task could not edit that file.
 
 ## Contradictions and choices
 
