@@ -1,109 +1,116 @@
-# Painted look for ds_hero: green and black check coat over the corps uniform, hanging card earrings, forehead scar.
-from atlas import INK, face_base, paint_hair, shade
-from ds_common import L, checks, coat, dome, ell, fore, hairline, haori_body, head_sides, katana, panels, sharp_eye, sleeve, tip_tone, tone
+# Target look for ds_hero (design doc section 5): big head, dark red faceted spikes with bright tips, hanging card earrings,
+# forehead scar, green and black check coat over a black uniform with a white belt, white leg wraps, sandals, sword at the hip.
+from atlas import FACES, SIZE
+from leaf_common import ell
+from ds_style3 import block, cap, checks, coat, eye, gem, katana, sandal, skin_head, spread, stroke, uniform, wrapped_leg
+from style2 import Kit, Ramps
+from style3 import big_head, finish
 
-SKIN = "#f2c9a4"
-HAIR = "#4A1418"
-TIP = "#b5362a"
-GREEN = "#1f9463"
-BLACK = "#15151b"
-EYE = "#8f1f22"
+SKIN = "#f7cfa9"
+SKIN_D = "#dfa27a"
 DEFAULT = "#1b1b27"
-HAIR_COLOURS = [HAIR]
+R = Ramps(
+	hair=["#22070a", "#3c0d10", "#5c1416", "#7e1e1e"],
+	tip=["#74191a", "#a4281f", "#c83a28", "#e4553a"],
+	skin=["#c98a64", "#eab48c", "#f7cfa9", "#ffe2c6"],
+	uni=["#0c0c14", "#191924", "#2a2a38", "#3e3e50"],
+	white=["#9b9aa6", "#d4d4dc", "#f0f0f4", "#ffffff"],
+	belt=["#a8a6b0", "#dcdce2", "#f6f6f8", "#ffffff"],
+	wrapline=["#55555f", "#73737d", "#8f8f99"],
+	gold=["#8c6a14", "#c6a02c", "#ecd060", "#fff0a0"],
+	sole=["#5e3d22", "#855a34", "#a87a4c", "#c79a68"],
+	strap=["#14141a", "#25252e", "#3b3b46"],
+	red=["#6a0f0f", "#a51c1a", "#cc2c24", "#e6463a"],
+	steel=["#2a2a32", "#40404c", "#5c5c6a"],
+	card=["#c8c4b8", "#ece8dc", "#fbf8ee", "#ffffff"],
+)
+HAIR = {"colour": "#4f1014", "locks": []}
+PROPS = []
+CARD = (4, 4, 24, 62)  # px inside Head_T for the earring art, under the hair
 
 
-HAIR = {
-	"colour": "#260a0e",
-	"cap": {"size": [1.34, 1.26, 0.56], "at": [0, 0.02, 5.04], "bevel": 0.24},
-	"locks": tone(
-		[
-			# fringe: chunky spikes around a bare patch of forehead on the character's left, where the scar sits
-			fore(-0.72, 4.42, 0.2, -0.5),
-			fore(-0.5, 4.72, 0.27, -0.44),
-			fore(-0.22, 4.82, 0.28),
-			fore(0.05, 4.86, 0.26),
-			fore(0.3, 5.24, 0.2),
-			fore(0.54, 4.8, 0.24, 0.5),
-			fore(0.74, 4.46, 0.2, 0.5),
-			*dome(),
-			# top: short spikes standing up and out
-			L([0.05, -0.2, 5.45], [0.1, -0.35, 5.72], [0.14, -0.5, 5.92], 0.3),
-			L([-0.26, -0.25, 5.45], [-0.38, -0.38, 5.68], [-0.46, -0.46, 5.86], 0.3),
-			L([0.36, -0.25, 5.42], [0.5, -0.35, 5.62], [0.68, -0.42, 5.74], 0.3),
-			L([-0.54, -0.15, 5.32], [-0.8, -0.2, 5.44], [-1.04, -0.26, 5.5], 0.28),
-			L([0.6, -0.08, 5.3], [0.84, -0.12, 5.4], [1.08, -0.14, 5.38], 0.27),
-			L([0.62, 0.05, 5.1], [0.88, 0.05, 5.1], [1.08, 0.02, 4.9], 0.27, mirror=True),
-			L([0.64, 0.25, 5.0], [0.86, 0.3, 4.92], [1.02, 0.36, 4.66], 0.25, mirror=True),
-			# crown, swept back
-			*[L([x, 0.15, 5.46], [x * 1.2, 0.42, 5.72], [x * 1.45, 0.76, 5.78], 0.3) for x in (-0.42, 0.0, 0.42)],
-			# back of the head, layered to the nape
-			*[L([x, 0.5, 5.28], [x * 1.15, 0.85, 5.15], [x * 1.3, 1.08, 4.88], 0.31) for x in (-0.56, -0.2, 0.2, 0.56)],
-			*[L([x, 0.58, 4.88], [x * 1.1, 0.84, 4.56], [x * 1.2, 0.8, 4.1], 0.31) for x in (-0.54, -0.18, 0.18, 0.54)],
-			# behind the ear
-			L([0.66, 0.3, 4.9], [0.8, 0.4, 4.66], [0.82, 0.44, 4.36], 0.2, mirror=True),
-		],
-		HAIR_COLOURS[0],
-	),
-}
-
-PROPS = [
-	{"part": "UpperTorso", "box": [1.36, 1.14, 0.2], "at": [0, 0, 4.03], "colour": "#1B1B27", "bevel": 0.05},
-	*katana("#17171f", "#23232e", "#0f0f15"),
-]
+def _hair(k):
+	cap(k, side_z=4.62, back_y=-0.02)
+	root = (0, 0.1, 5.5)
+	# the crown: short thick wedges, standing up and out, big enough to overlap
+	top = (((-1.34, -0.05, 5.74), 0.44), ((-1.06, -0.16, 6.2), 0.48), ((-0.5, -0.26, 6.56), 0.5), ((0.1, -0.24, 6.7), 0.52), ((0.66, -0.24, 6.5), 0.5), ((1.1, -0.16, 6.16), 0.48), ((1.38, -0.05, 5.7), 0.44), ((-0.78, 0.58, 6.32), 0.5), ((0.1, 0.7, 6.48), 0.52), ((0.88, 0.58, 6.28), 0.5), ((-1.28, 0.66, 5.66), 0.44), ((1.3, 0.66, 5.64), 0.44), ((-1.1, 1.1, 5.3), 0.42), ((1.12, 1.1, 5.28), 0.42))
+	for i, (t, r) in enumerate(top):
+		gem(k, "Head", f"Top{i}", spread(root, t), t, r, tip="tip", bend=0.05, twist=0.3 + 0.13 * i % 0.5)
+	# the back: broad wedges lying down the head in two rows, so the tips read as an edge, not as dots
+	for i, x in enumerate((-0.72, -0.24, 0.24, 0.72)):
+		gem(k, "Head", f"BackU{i}", (x * 0.8, 0.62, 6.1), (x * 1.16, 1.2, 5.28 + 0.1 * (i % 2)), 0.48, tip="tip", split=0.8, flat=0.5, twist=0.25, across=(1, 0, 0))
+	# nape: a row of broad downward wedges
+	for i, x in enumerate((-0.68, -0.23, 0.23, 0.68)):
+		gem(k, "Head", f"NapeS{i}", (x, 0.66, 5.0), (x * 1.08, 0.98, 4.16 + 0.07 * (i % 2)), 0.38, tip="tip", flat=0.5, twist=0.3, across=(1, 0, 0))
+	# the fringe: broad wedges falling on the forehead, lifted on the viewer's right where the scar shows
+	fringe = (((-0.84, -0.9, 4.86), 0.34), ((-0.42, -0.94, 4.8), 0.38), ((0.0, -0.96, 4.88), 0.36), ((0.34, -0.95, 5.2), 0.3), ((0.84, -0.9, 5.0), 0.28))
+	for i, (t, r) in enumerate(fringe):
+		gem(k, "Head", f"Fringe{i}", (t[0] * 0.86, -0.62, 6.12 + 0.05 * (i % 2)), t, r, tip="tip", split=0.8, flat=0.5, twist=0.2 + 0.25 * i % 0.5, across=(1, 0, 0))
+	for s in (1, -1):
+		gem(k, "Head", f"Burn{s}", (s * 0.86, -0.56, 5.3), (s * 0.94, -0.66, 4.56), 0.2, tip="tip", flat=0.6, twist=0.2, across=(0, 1, 0))
+		gem(k, "Head", f"Side{s}", (s * 0.9, 0.2, 5.3), (s * 1.08, 0.22, 4.44), 0.34, tip="tip", flat=0.45, twist=0.3, across=(0, 1, 0))
 
 
-def pattern(f):
-	checks(f, GREEN, BLACK, 30, ox=(f.w % 60) / 2)
-	f.soft(f"M-5-5H{f.w + 5}V{f.h * 0.14}H-5Z", "#ffffff", 0.05, 3)
-
-
-def paint_card(f):
-	"""Card earring: white strip, red sun and rays."""
-	f.path("M-2-2H26V62H-2Z", "#f6f2e8")
-	f.path("M-2-2H26V3H-2ZM-2 57H26V62H-2Z", "#d23026")
-	for x, y in ((3, 34), (12, 30), (21, 34), (1, 44), (23, 44), (12, 50)):
-		f.ink(f"M12 22L{x} {y + 12}", 1.6, "#d23026")
-	f.path(ell(12, 19, 8.5, 8.5), "#d23026", stroke=INK, sw=0.7)
-	f.path("M-2 64H26V122H-2Z", "#f6f2e8")
-
-
-def paint(a):
-	paint_hair(a, ["#4c1418"])
-	tip_tone(a, 0, 1, "#a02c26", 24, 0.8)
-	# ---- face: big steady eyes, level brows, firm mouth
-	f = a["Head_F"]
-	face_base(f, SKIN, shadow_top=34)
-	hairline(f, "#2c0c10", 20)
-	sc = "#c9272b"
-	# forehead scar on the character's left, flame shaped
-	f.path("M78 44Q74 34 84 30Q84 36 90 30Q90 24 98 22Q98 30 106 28Q104 34 112 36Q104 44 98 50Q90 56 84 50Q78 50 78 44Z", shade(sc, 0.82), stroke=shade(sc, 0.5), sw=0.9)
-	f.path("M84 44Q86 36 92 38Q96 32 102 34Q100 40 96 46Q90 50 84 44Z", sc)
-	f.taper(14, 46, 32, 37, 53, 51, 3.4, "#3a1014")
-	f.taper(116, 46, 98, 39, 77, 51, 3.0, "#3a1014")
-	sharp_eye(f, 50, 69, 19, 63, 6.6, 6.0, "#9e2a28", "#4e0d12", "#e4603a", 9.2, dx=1, dy=1, pupil=0.42)
-	sharp_eye(f, 80, 69, 111, 63, 6.6, 6.0, "#9e2a28", "#4e0d12", "#e4603a", 9.2, dx=-1, dy=1, pupil=0.42)
-	# firm mouth, the jaw set: a line, no lips
-	f.taper(47, 106, 65, 102, 83, 105, 1.5)
-	f.taper(47, 106, 65, 104, 83, 105, 0.5, "#7a3a30")
-	f.taper(44, 104, 45, 106, 49, 108, 0.7)
-	f.taper(86, 103, 85, 105, 81, 107, 0.7)
-	f.taper(54, 117, 65, 120, 76, 117, 0.8, shade(SKIN, 0.55))
-	f.taper(26, 94, 30, 106, 40, 116, 0.7, shade(SKIN, 0.62))
-	f.taper(104, 94, 100, 106, 90, 116, 0.7, shade(SKIN, 0.62))
-	head_sides(a, SKIN, HAIR_COLOURS[0], "#8c2c2c")
-	haori_body(a, pattern, SKIN)
-	paint_card(a["Extra"])
+def _earrings(k):
+	x0, y0, pw, ph = FACES["Head_T"][:4]
+	cx, cy, cw, chh = CARD
+	for s in (1, -1):
+		block(k, "Head", f"Ring{s}", s * 0.96, -0.1, 4.62, 4.48, 0.03, 0.03, "gold", ch=0.008, a=0.6)
+		o = block(k, "Head", f"Card{s}", s * 0.96, -0.1, 4.5, 4.02, 0.1, 0.035, "card", ch=0.008, a=0.7, b=0.3)
+		layer = o.data.uv_layers[0].data
+		for poly in o.data.polygons:
+			if abs(poly.normal.y) > 0.9:
+				for li in poly.loop_indices:
+					co = o.data.vertices[o.data.loops[li].vertex_index].co
+					u = (co.x - s * 0.96 + 0.1) / 0.2
+					t = (4.5 - co.z) / 0.48
+					layer[li].uv = ((x0 + cx + u * cw) / SIZE, 1 - (y0 + cy + t * chh) / SIZE)
 
 
 def model(parts, kit):
-	head = parts["Head"]
-	for sgn in (1, -1):
-		x0, y0, x1, y1, zt, zb = 0.68, -0.14, 0.83, 0.0, 4.48, 4.02
-		tag = lambda u, v: ("Extra", u, v)
-		q = [((x0, y0, zt), tag(1, 0)), ((x0, y0, zb), tag(1, 60)), ((x1, y1, zb), tag(23, 60)), ((x1, y1, zt), tag(23, 0))]
-		if sgn < 0:
-			q = [((-p[0], p[1], p[2]), t) for p, t in reversed(q)]
-		panels(kit, f"Head_Card{sgn}", head, [q], lining=tag(12, 90))
-		kit.rbox(f"Head_CardPin{sgn}", (0.03, 0.03, 0.1), (sgn * 0.74, -0.08, 4.5), "#e8c55a", head, bevel=0)
-	coat(kit, parts, 1.12, 0.12)
-	sleeve(kit, parts, 2.28, 0.08)
+	k = Kit(kit, parts, R, outline=0)
+	big_head(k)
+	_hair(k)
+	_earrings(k)
+	uniform(k)
+	coat(k, "Torso_F", hem=1.16, lapel="uni")
+	for s, side in ((1, "Left"), (-1, "Right")):
+		wrapped_leg(k, side, s)
+		sandal(k, f"{side}UpperLeg", s * 0.53, strap="strap")
+	katana(k, "uni", "uni", "steel")
+	finish()
+
+
+def paint(a):
+	R.paint(a)
+	f = a["Head_F"]
+	f.skin = SKIN
+	f.fill(SKIN)
+	f.soft("M-5-5H135V24Q65 30 -5 24Z", "#cf8d66", 0.7, 3)
+	f.soft("M-5 30H9Q5 90 28 135H-5Z", SKIN_D, 0.6, 5)
+	f.soft("M135 30H121Q125 90 102 135H135Z", SKIN_D, 0.75, 5)
+	f.soft("M30 124Q65 116 100 124V135H30Z", SKIN_D, 0.45, 3)
+	f.soft("M12 76Q26 70 34 84Q24 96 12 88Z", "#ffb08c", 0.4, 3)
+	f.soft("M118 76Q104 70 96 84Q106 96 118 88Z", "#ffb08c", 0.4, 3)
+	for s, x in ((-1, 37), (1, 93)):
+		eye(f, x, 64, s, ("#4a0d12", "#8f1f22", "#d05a48"), w=33, up=16, dn=14, inner=7, outer=-3, ir=(12, 16.5), pu=(3.8, 5.6), wing=3.2)
+		ib, ob = 65 + s * 11, 65 + s * 46
+		f.path(f"M{ib} 46L{ib + s * 1} 40Q{65 + s * 26} 33 {ob} 37L{ob - s * 2} 42Q{65 + s * 26} 40 {ib} 48Z", "#5e1416")
+	# the scar on the forehead, a dark red flame shape on the viewer's right
+	f.path("M84 34Q80 26 88 18Q88 24 94 20Q92 24 100 22Q98 30 92 36Q88 38 84 34Z", "#a23a30", stroke="#7a2520", sw=0.6)
+	f.soft("M59 80L65 74L71 80Q65 86 59 80Z", SKIN_D, 0.7, 1)
+	f.path("M60 83Q65 85.5 70 83", stroke="#b0745a", sw=1.1)
+	# a small firm smile
+	stroke(f, [(50, 102), (58, 105), (66, 106), (74, 105), (82, 101)], 1.3, "#6e2a26")
+	skin_head(a, SKIN, "#cf8d66")
+	checks(a["Torso_F"], 0.4, "#1f9a66", "#101016")
+	# the earring: white card, red sun, rays below; lives in Head_T under the hair
+	f = a["Head_T"]
+	sx, sy = f.w / FACES["Head_T"][2], f.h / FACES["Head_T"][3]
+	cx, cy, cw, chh = CARD
+	X0, Y0, W, H = cx * sx, cy * sy, cw * sx, chh * sy
+	f.path(f"M{X0} {Y0}H{X0 + W}V{Y0 + H}H{X0}Z", "#fbf8ee")
+	f.path(ell(X0 + W / 2, Y0 + H * 0.3, W * 0.32, H * 0.13), "#d6281e")
+	for i in range(-2, 3):
+		d = i * W * 0.17
+		f.path(f"M{X0 + W / 2 + d} {Y0 + H * 0.48}L{X0 + W / 2 + d * 1.6} {Y0 + H * 0.94}", stroke="#d6281e", sw=W * 0.09)
