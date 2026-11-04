@@ -1,225 +1,138 @@
-# Painted look for sea_cook, post-timeskip: black suit, blue shirt, long fringe over his right eye. Marks: the curled
-# eyebrow and chin tuft, drawn in-house (design doc 5). No smoking prop: the audience includes children.
-from atlas import INK, paint_hair, shade, swirl_d
-from sea_common import cap, circle, fx, hair_back, hairline, hand, head_side, sheet, skirt, strand, strand_zone
+# Target look for sea_cook (design doc section 5): swept blond fringe hiding the viewer-left eye, one sharp blue eye under a
+# spiral brow, goatee, black suit with lapels over a blue shirt and black tie, block hands, dress shoes.
+import math
 
-SKIN = "#f2d0ac"
-SKIN_D = shade(SKIN, 0.68)
-HAIR_C = "#eec94b"
-HAIR_L = "#f8e07a"
-HAIR_D = shade(HAIR_C, 0.6)
-SUIT = "#2a2c38"
-SUIT_D = "#101018"
-SUIT_L = "#646880"
-SHIRT = "#3f76b8"
-SHIRT_D = shade(SHIRT, 0.66)
-SHIRT_L = "#8ab2e0"
-DEFAULT = SUIT
+from atlas import INK, shade
+from sea_style3 import bake, block, core, eye, gem, hand, head_base, head_sides, jitter, mirror, prism
+from style2 import Kit, Ramps
+from style3 import big_head, finish
 
-HAIR_COLOURS = [HAIR_C, SUIT]
-HAIR = {
-	"colour": HAIR_C,
-	"locks": [
-		# the crown swept over from the parting on his left towards his right
-		{"b": [0.42, -0.42, 5.28], "c": [0.1, -0.56, 5.46], "t": [-0.5, -0.56, 5.3], "r": 0.26, "flatten": 0.5},
-		{"b": [0.46, -0.1, 5.32], "c": [0.1, -0.18, 5.5], "t": [-0.58, -0.3, 5.34], "r": 0.26, "flatten": 0.5},
-		{"b": [0.46, 0.24, 5.3], "c": [0.1, 0.2, 5.48], "t": [-0.6, 0.08, 5.3], "r": 0.26, "flatten": 0.5},
-		{"b": [0.36, 0.5, 5.26], "c": [0.1, 0.52, 5.42], "t": [-0.58, 0.44, 5.22], "r": 0.24, "flatten": 0.5},
-		# the parting's other side: short and tucked behind the left ear
-		{"b": [0.5, -0.44, 5.34], "c": [0.74, -0.5, 5.1], "t": [0.76, -0.44, 4.78], "r": 0.17, "flatten": 0.6},
-		{"b": [0.54, -0.16, 5.34], "c": [0.82, -0.12, 5.04], "t": [0.8, 0.1, 4.68], "r": 0.2, "flatten": 0.6},
-		{"b": [0.54, 0.2, 5.3], "c": [0.82, 0.26, 4.96], "t": [0.78, 0.38, 4.52], "r": 0.2, "flatten": 0.6},
-		# his right side, longer, falling by the jaw
-		{"b": [-0.56, -0.2, 5.3], "c": [-0.84, -0.24, 4.9], "t": [-0.8, -0.2, 4.44], "r": 0.22, "flatten": 0.6},
-		{"b": [-0.56, 0.12, 5.3], "c": [-0.86, 0.14, 4.86], "t": [-0.8, 0.22, 4.4], "r": 0.22, "flatten": 0.6},
-		{"b": [-0.54, 0.4, 5.26], "c": [-0.82, 0.48, 4.86], "t": [-0.76, 0.56, 4.44], "r": 0.2, "flatten": 0.6},
-		# back: layered clumps tapering to a neat nape
-		{"b": [0.42, 0.62, 5.2], "c": [0.52, 0.8, 4.84], "t": [0.46, 0.76, 4.42], "r": 0.2, "flatten": 0.55},
-		{"b": [0.14, 0.64, 5.2], "c": [0.18, 0.82, 4.8], "t": [0.14, 0.78, 4.3], "r": 0.2, "flatten": 0.55},
-		{"b": [-0.14, 0.64, 5.2], "c": [-0.18, 0.82, 4.8], "t": [-0.14, 0.78, 4.28], "r": 0.2, "flatten": 0.55},
-		{"b": [-0.42, 0.62, 5.2], "c": [-0.52, 0.8, 4.84], "t": [-0.46, 0.76, 4.38], "r": 0.2, "flatten": 0.55},
-		{"b": [0.28, 0.62, 4.82], "c": [0.32, 0.74, 4.5], "t": [0.26, 0.7, 4.18], "r": 0.16, "flatten": 0.55},
-		{"b": [-0.02, 0.62, 4.82], "c": [-0.02, 0.76, 4.5], "t": [-0.02, 0.72, 4.12], "r": 0.16, "flatten": 0.55},
-		{"b": [-0.3, 0.62, 4.82], "c": [-0.32, 0.74, 4.5], "t": [-0.28, 0.7, 4.18], "r": 0.16, "flatten": 0.55},
-	],
-}
-PROPS = [
-	# polished dress shoes: long, narrow toes
-	{"part": "LeftFoot", "box": [0.92, 0.6, 0.2], "at": [0.5, -0.68, 0.1], "colour": "#0f0f14", "bevel": 0.09},
-	{"part": "RightFoot", "box": [0.92, 0.6, 0.2], "at": [-0.5, -0.68, 0.1], "colour": "#0f0f14", "bevel": 0.09},
-]
+SKIN = "#f9d4b0"
+SKIN_D = "#dfa57c"
+SKIN_L = "#ffe3c8"
+GOLD = "#f4cf3e"
+DEFAULT = "#14141c"
+R = Ramps(
+	hair=["#9a6c0a", "#cf9a12", "#eebf22", "#f8d646", "#ffec80"],
+	skin=["#c88c64", "#ecb48a", "#f9d4b0", "#ffe3c8"],
+	suit=["#07070c", "#13131c", "#22222e", "#37374a", "#50506a"],
+	shirt=["#1d447e", "#2f66ac", "#4a84ca", "#74a8e2"],
+	tie=["#040408", "#0e0e14", "#1c1c26", "#30303c"],
+	shoe=["#050507", "#111116", "#26262e", "#4c4c58"],
+	button=["#3a3a44", "#6a6a78", "#a0a0ae", "#d6d6e0"],
+)
+HAIR = {"colour": GOLD, "locks": []}
+PROPS = []
+
+
+def _hair(k):
+	bake(k, k.lathe("Head", "Crown", [(0.92, 5.3, 0.5), (1.0, 5.5, 0.5), (0.97, 5.8, 0.5), (0.64, 6.03, 0.5), (0.16, 6.12, 0.5)], "hair", n=10, at=(0, 0.05, 0), squash=0.93, outline=0), "hair", a=0.5, b=0.36)
+	nape = k.tube("Head", "Nape", [(0, 0.42, 5.3, 0.95, 0.49), (0, 0.42, 4.74, 0.96, 0.5), (0, 0.42, 4.5, 0.82, 0.42)], "hair", corner=0.22, nc=1, sub=1, outline=0)
+	jitter(nape, 0.02)
+	bake(k, nape, "hair", a=0.46, b=0.36)
+	# the fringe sweeps from a parting on the viewer's right across and down over the viewer-left eye
+	sweep = (
+		((0.3, -0.72, 5.72), (-0.36, -0.95, 4.34), 0.42),
+		((-0.14, -0.72, 5.7), (-0.74, -0.95, 4.2), 0.42),
+		((-0.5, -0.72, 5.6), (-1.0, -0.9, 4.42), 0.34),
+		((0.34, -0.72, 5.72), (-0.14, -0.95, 4.62), 0.3),
+	)
+	for i, (b, t, r) in enumerate(sweep):
+		gem(k, "Head", f"Sweep{i}", b, t, r, flat=0.42, twist=0.15 + 0.12 * i, across=(1, 0.0, 0.25))
+	# the short side of the parting, clear of the visible eye
+	for i, (b, t, r) in enumerate((((0.46, -0.74, 5.74), (0.74, -0.96, 5.14), 0.27), ((0.74, -0.66, 5.62), (1.03, -0.84, 4.92), 0.25))):
+		gem(k, "Head", f"Short{i}", b, t, r, flat=0.48, twist=0.3, across=(1, 0, -0.2))
+	# big swept planes on top, the side locks and the jagged nape
+	for i, (b, t, r) in enumerate((((0.3, -0.3, 5.74), (-0.96, -0.46, 5.96), 0.36), ((0.32, 0.1, 5.8), (-1.08, 0.14, 5.76), 0.38), ((0.46, -0.16, 5.74), (1.12, -0.28, 5.62), 0.32), ((0.3, 0.46, 5.7), (-0.94, 0.84, 5.5), 0.36), ((0.42, 0.42, 5.7), (1.08, 0.76, 5.52), 0.34))):
+		gem(k, "Head", f"Top{i}", b, t, r, flat=0.55, twist=0.25 + 0.14 * i, bend=0.05)
+	for s in (1, -1):
+		for i, (y, z, r) in enumerate(((-0.34, 4.5, 0.27), (0.04, 4.3, 0.3), (0.42, 4.22, 0.3))):
+			gem(k, "Head", f"Side{s}{i}", (s * 0.93, y, 5.56), (s * 1.0, y + 0.05, z), r, flat=0.42, twist=0.2 + 0.2 * i, across=(0, 1, 0))
+	for i, x in enumerate((-0.68, -0.34, 0.0, 0.34, 0.68)):
+		gem(k, "Head", f"Hem{i}", (x, 0.74, 5.0), (x * 1.08, 0.94, 4.08 + 0.06 * (i % 2)), 0.3, flat=0.5, twist=0.3, across=(1, 0, 0))
+	# the goatee stands off the chin
+	gem(k, "Head", "Goatee", (0, -0.78, 4.18), (0, -0.87, 3.98), 0.08, flat=0.6, twist=0.1, across=(1, 0, 0), a=0.36)
+
+
+def _suit(k):
+	t = "UpperTorso"
+	block(k, t, "Jacket", 0, 0, 3.99, 1.74, 1.05, 0.56, "suit", ch=0.05, flare=0.02, jit=0.015, mids=(3.3, 2.5), a=0.36, b=0.46, g=0.1, tone=0.03)
+	block(k, t, "CollarBack", 0, 0.34, 4.2, 3.92, 0.72, 0.2, "suit", ch=0.04, a=0.56, b=0.5)
+	# the open V: blue shirt, its collar points, the black tie
+	prism(k, t, "Shirt", [(-0.5, 3.99), (0.5, 3.99), (0.02, 2.62), (-0.02, 2.62)], -0.62, -0.5, "shirt", a=0.56, b=0.26)
+	for s, pts in ((1, [(0.02, 3.99), (0.42, 4.0), (0.3, 3.68), (0.12, 3.76)]), (-1, mirror([(0.02, 3.99), (0.42, 4.0), (0.3, 3.68), (0.12, 3.76)]))):
+		prism(k, t, f"ShirtCollar{s}", pts, -0.66, -0.58, "shirt", a=0.82, b=0.2)
+	prism(k, t, "Tie", [(-0.08, 3.86), (0.08, 3.86), (0.05, 3.74), (0.13, 3.04), (0, 2.84), (-0.13, 3.04), (-0.05, 3.74)], -0.67, -0.6, "tie", a=0.62, b=0.34)
+	block(k, t, "TieKnot", 0, -0.63, 3.96, 3.76, 0.11, 0.06, "tie", ch=0.02, a=0.75, b=0.3)
+	# lapels: a broad peak each side of the V
+	lapel = [(0.5, 3.99), (0.82, 3.99), (0.92, 3.5), (0.68, 3.46), (0.72, 3.2), (0.03, 2.58), (0.0, 2.56)]
+	prism(k, t, "LapelL", lapel, -0.64, -0.55, "suit", a=0.56, b=0.42)
+	prism(k, t, "LapelR", mirror(lapel), -0.64, -0.55, "suit", a=0.56, b=0.42)
+	# front closing, two buttons, pocket flaps, the back vent
+	prism(k, t, "Closing", [(-0.018, 2.6), (0.018, 2.6), (0.018, 1.76), (-0.018, 1.76)], -0.61, -0.55, "tie", a=0.2, b=0.1)
+	for i, z in enumerate((2.42, 2.08)):
+		k.blob(t, f"Button{i}", (-0.11, -0.585, z), (0.05, 0.03, 0.05), "button", v=0.55, rings=3, n=6, outline=0)
+	for s in (1, -1):
+		block(k, t, f"Pocket{s}", s * 0.56, -0.585, 2.32, 2.2, 0.29, 0.03, "suit", ch=0.012, a=0.72, b=0.42)
+	block(k, t, "Breast", 0.56, -0.585, 3.14, 3.08, 0.2, 0.02, "suit", ch=0.01, a=0.2, b=0.1)
+	prism(k, t, "Vent", [(-0.02, 2.5), (0.02, 2.5), (0.02, 1.76), (-0.02, 1.76)], 0.55, 0.61, "tie", a=0.18, b=0.1)
+
+
+def _arm(k, s, side):
+	arm, ax = f"{side}UpperArm", s * 1.5
+	block(k, arm, "Sleeve", ax, 0, 4.04, 2.62, 0.515, 0.515, "suit", ch=0.1, corner=0.18, sub=1, jit=0.015, mids=(3.3,), a=0.36, b=0.46, g=0.1)
+	block(k, arm, "Cuff", ax, 0, 2.66, 2.5, 0.505, 0.505, "shirt", ch=0.025, corner=0.18, a=0.72, b=0.3)
+	hand(k, arm, ax)
+
+
+def _leg(k, s, side):
+	leg = f"{side}UpperLeg"
+	px = s * 0.52
+	block(k, leg, "Trousers", px, 0, 1.97, 0.34, 0.47, 0.5, "suit", ch=0.03, flare=0.03, corner=0.14, jit=0.012, mids=(1.1,), a=0.36, b=0.46, g=0.1, tone=0.02)
+	prism(k, leg, "Crease", [(px - 0.02, 1.9), (px + 0.02, 1.9), (px + 0.025, 0.36), (px - 0.025, 0.36)], -0.54, -0.48, "suit", a=0.58, b=0.28)
+	block(k, leg, "Shoe", px, -0.14, 0.42, 0.08, 0.49, 0.66, "shoe", ch=0.1, corner=0.3, sub=1, a=0.52, b=0.5)
+	block(k, leg, "Heel", px, 0.26, 0.1, 0.0, 0.47, 0.25, "shoe", ch=0.015, a=0.3, b=0.2)
+	block(k, leg, "Sole", px, -0.28, 0.09, 0.0, 0.5, 0.52, "shoe", ch=0.015, a=0.28, b=0.2)
+	block(k, leg, "Lace", px, -0.5, 0.39, 0.3, 0.16, 0.1, "button", ch=0.015, a=0.1, b=0.1)
 
 
 def model(parts, kit):
-	head = parts["Head"]
-	line = hairline([(0, 4.78), (45, 4.5), (90, 4.36), (135, 4.46), (180, 4.6), (225, 4.98), (270, 5.1), (315, 5.1)])
-	cap(kit, "Head_Cap", HAIR_C, head, line, top=5.44, n=3.6)
-	# the long fringe: from the parting on his left, across the forehead and straight down over his right eye to the jaw
-	y = -0.68
-	rows = [
-		[(0.44, y + 0.06, 5.32), (0.2, y, 5.32), (-0.12, y, 5.34), (-0.42, y + 0.02, 5.32), (-0.66, y + 0.1, 5.24)],
-		[(0.28, y - 0.01, 5.14), (0.06, y - 0.01, 5.14), (-0.22, y - 0.01, 5.14), (-0.48, y, 5.12), (-0.72, y + 0.06, 5.04)],
-		[(0.06, y - 0.01, 4.88), (-0.12, y - 0.02, 4.84), (-0.34, y - 0.02, 4.82), (-0.56, y - 0.01, 4.8), (-0.76, y + 0.04, 4.76)],
-		[(-0.1, y, 4.6), (-0.24, y - 0.02, 4.54), (-0.42, y - 0.02, 4.48), (-0.6, y - 0.01, 4.5), (-0.78, y + 0.03, 4.54)],
-	]
-	sheet(kit, "Head_Fringe", rows, HAIR_C, head, thick=0.08, lock=((0.1, y, 5.34), (-0.4, y, 4.4)))
-	# the fringe's tips, separate points so the edge is never a straight cut
-	for i, (b, c, t, r) in enumerate(
-		(
-			((-0.14, y, 4.74), (-0.14, y - 0.05, 4.54), (-0.08, y - 0.03, 4.3), 0.13),
-			((-0.32, y, 4.7), (-0.36, y - 0.05, 4.44), (-0.28, y - 0.03, 4.16), 0.15),
-			((-0.52, y, 4.7), (-0.56, y - 0.04, 4.42), (-0.52, y - 0.02, 4.1), 0.15),
-			((-0.72, y + 0.04, 4.7), (-0.78, y + 0.02, 4.44), (-0.74, y + 0.04, 4.2), 0.12),
-		)
-	):
-		strand(kit, f"Head_FringeTip{i}", [b, c, t], r, HAIR_C, head, flatten=0.45, rings=4, wide=(1, 0, 0))
-	# thin raised strands over the broad fringe, so it reads as combed hair
-	for i, pts in enumerate(
-		(
-			[(0.3, y - 0.01, 5.3), (0.08, y - 0.04, 5.14), (-0.16, y - 0.05, 4.9), (-0.22, y - 0.05, 4.6)],
-			[(0.16, y - 0.01, 5.32), (-0.1, y - 0.04, 5.14), (-0.36, y - 0.05, 4.86), (-0.42, y - 0.05, 4.5)],
-			[(0.0, y - 0.01, 5.34), (-0.28, y - 0.04, 5.14), (-0.54, y - 0.04, 4.86), (-0.62, y - 0.03, 4.52)],
-		)
-	):
-		strand(kit, f"Head_FringeLine{i}", pts, 0.075, HAIR_C, head, flatten=0.4, rings=5, wide=(1, 0, 0))
-	torso = parts["LowerTorso"]
-	# jacket hem below the waist, two fronts cut away from the last button and a vented back
-	skirt(kit, "LowerTorso_HemF", SUIT, torso, [[(0.1, -0.54), (0.58, -0.54), (1.03, -0.52), (1.05, -0.1)], [(-1.05, -0.1), (-1.03, -0.52), (-0.58, -0.54), (-0.1, -0.54)]], 2.18, 1.68, flare=0.03, rows=2)
-	skirt(kit, "LowerTorso_HemB", SUIT, torso, [[(1.05, -0.1), (1.05, 0.3), (0.98, 0.54), (0.5, 0.54), (0.04, 0.54)], [(-0.04, 0.54), (-0.5, 0.54), (-0.98, 0.54), (-1.05, 0.3), (-1.05, -0.1)]], 2.18, 1.68, flare=0.03, rows=2)
+	k = Kit(kit, parts, R, outline=0)
+	big_head(k)
+	core(k)
+	_hair(k)
+	_suit(k)
+	for s, side in ((1, "Left"), (-1, "Right")):
+		_arm(k, s, side)
+		_leg(k, s, side)
+	finish()
 
 
-def face(a):
-	f = a["Head_F"]
-	f.fill(SKIN)
-	dark = shade(SKIN, 0.7)
-	e = shade(SKIN, 0.42)
-	# the fringe's cast shadow is heavy on his right; long lean cheek
-	f.path("M-5-5H135V30L116 34L100 26L84 34L70 40L64 70L60 104L42 118L-5 124Z", shade(SKIN, 0.6), opacity=0.95, blur=2)
-	f.soft("M135 30H120Q118 86 98 135H135Z", dark, 1.0, 3)
-	f.soft("M64 90Q72 112 88 122L82 130Q66 118 60 96Z", dark, 0.5, 2)
-	f.soft("M30 130Q65 120 104 130V136H30Z", dark, 0.9, 2)
-	# hair painted over his right eye, in case an angle looks behind the fringe
-	f.path("M-5-5H62L58 40L52 90L34 112L-5 120Z", HAIR_D)
-	# his left eye: long, cool, half lidded, the blue iris pushed under the lid
-	f.path("M80 64Q94 54 114 58Q112 68 100 70Q88 71 80 64Z", "#fbf8f2")
-	f.path(circle(97, 62, 6.4, 7.6), "#2f7ed8")
-	f.path(circle(97, 58.6, 6.2, 4), "#123a78")
-	f.path(circle(97, 62, 3.2, 4), "#07080e")
-	f.path(circle(95, 59.5, 1.3), "#ffffff")
-	f.path("M78 65Q92 50 116 56L120 60L113 60Q94 55 80 66Z", INK)
-	f.ink("M84 69Q96 73 110 65", 0.9)
-	f.taper(86, 74, 98, 77, 108, 72, 0.5, e)
-	# the curled brow: the tail runs in from the temple and winds into a tight spiral at its inner end
-	f.path("M90 42Q106 49 126 39L126 43Q106 54 88 47Z", "#94701a")
-	f.path(swirl_d(84, 39, 8.4, turns=2.2, a0=0.9), stroke="#94701a", sw=2.5)
-	# narrow nose, long shadow
-	f.taper(68, 56, 67, 74, 66, 86, 0.8, dark)
-	f.path("M68 74L63 90L72 91Z", dark, opacity=0.6)
-	f.ink("M62 91Q67 94 73 91", 1.1, e)
-	# thin sardonic mouth, the left corner up
-	f.path("M60 108Q74 110 92 101", stroke=INK, sw=1.7)
-	f.ink("M92 101Q95 100 96 97", 1.1)
-	f.taper(66, 113, 76, 115, 84, 111, 0.7, e)
-	# goatee: a narrow pointed tuft on the chin and a thin patch under the lip, stubble along the jaw on his left
-	f.path("M63 120Q70 117 78 120L74 129L70 135L67 129Z", "#c49d2b")
-	for x in (66, 70, 74):
-		f.taper(x, 120, x, 125, x - (x - 70) * 0.4, 131, 0.5, "#8a6c14")
-	f.path("M68 112H74L71 117Z", "#c49d2b")
-	for x, y in ((98, 114), (103, 108), (108, 102), (92, 120), (86, 124)):
-		f.ink(f"M{x} {y}l1.4 2.4", 0.8, "#b89a48")
+def _spiral(cx, cy, rx, ry, turns=1.9, n=28, a0=0.2):
+	return "".join(f"{'M' if i == 0 else 'L'}{cx + rx * (0.12 + 0.88 * i / n) * math.cos(a0 + 2 * math.pi * turns * i / n):.2f} {cy + ry * (0.12 + 0.88 * i / n) * math.sin(a0 + 2 * math.pi * turns * i / n):.2f}" for i in range(n + 1))
 
 
 def paint(a):
-	paint_hair(a, [HAIR_C, SUIT])
-	strand_zone(a, 0, 2, HAIR_C, lines=42)
-	strand_zone(a, 1, 2, SUIT)
-	face(a)
-	# ---- torso front: suit jacket, shirt, narrow tie
-	f = a["Torso_F"]
-	f.fill(SUIT)
-	f.path("M60-5H140L108 130H92Z", SHIRT)
-	# shirt stripes and folds
-	for x in (70, 80, 90, 110, 120, 130):
-		f.ink(f"M{x} -5L{100 + (x - 100) * 0.25} 130", 0.7, SHIRT_L)
-	f.soft("M60-5H140V20Q100 40 60 20Z", SHIRT_D, 0.5, 2)
-	f.path("M64 -5L100 22L88 44L52 6Z", shade(SHIRT, 1.3), stroke=INK, sw=1.4)
-	f.path("M136 -5L100 22L112 44L148 6Z", shade(SHIRT, 1.3), stroke=INK, sw=1.4)
-	f.path("M92 20H108L111 36L104 114L100 124L96 114L89 36Z", "#111118", stroke=INK, sw=1.2)
-	f.path("M92 20H108L106 36H94Z", "#22222c")
-	f.taper(96, 38, 97, 80, 98, 112, 0.7, SUIT_L)
-	# lapels: long and sharp
-	f.path("M52-5L92 134L80 134L44 62L66 50L40-5Z", "#2c2e3a", stroke=INK, sw=1.8)
-	f.path("M148-5L108 134L120 134L156 62L134 50L160-5Z", "#2c2e3a", stroke=INK, sw=1.8)
-	f.taper(58, 52, 74, 90, 86, 128, 0.8, SUIT_L)
-	f.taper(142, 52, 126, 90, 114, 128, 0.8, SUIT_L)
-	# the single button stance, front edge opening towards the hem
-	f.ink("M92 134Q96 170 74 205", 2.2)
-	f.ink("M108 134Q104 170 126 205", 2.2)
-	f.path("M92 134Q96 170 74 205H126Q104 170 108 134Z", "#17171f")
-	f.path(circle(114, 150, 3.4), "#0a0a10", stroke=SUIT_L, sw=0.9)
-	# pockets, breast pocket with a pale fold
-	f.ink("M26 158L62 152", 1.5, SUIT_L)
-	f.ink("M138 152L174 158", 1.5, SUIT_L)
-	f.ink("M146 66L176 62", 1.4, SUIT_L)
-	f.path("M150 66L160 56L172 62L174 63Z", "#d8dce4", stroke=INK, sw=0.7)
-	f.folds(5, SUIT_D, SUIT_L, y0=0.3, y1=0.8, pinch=(100, 150), width=1.3)
-	f.edges(0.3)
-	# ---- torso back
-	f = a["Torso_B"]
-	f.fill(SUIT)
-	f.path("M60-5Q100 14 140-5V10Q100 30 60 10Z", "#2c2e3a", stroke=INK, sw=1.6)
-	f.ink("M100 28V205", 1.6, SUIT_D)
-	f.taper(20, 40, 60, 60, 90, 90, 1.1, SUIT_L)
-	f.taper(180, 40, 140, 60, 110, 90, 1.1, SUIT_L)
-	f.folds(6, SUIT_D, SUIT_L, y0=0.3, y1=0.84, pinch=(100, 170), width=1.3)
-	f.edges(0.3)
-	for n in ("Torso_L", "Torso_R"):
-		f = a[n]
-		f.fill(SUIT)
-		f.ink("M50-5V205", 1.4, SUIT_D)
-		f.folds(4, SUIT_D, SUIT_L, y0=0.1, y1=0.8, pinch=(50, 150), width=1.3)
-		f.edges(0.3)
-	for side in ("Left", "Right"):
-		for key in "FBOI":
-			f = a[f"{side}Arm_{key}"]
-			f.fill(SUIT)
-			f.folds(5, SUIT_D, SUIT_L, y0=0.04, y1=0.72, pinch=(50, 104), width=1.3)
-			f.taper(14, 96, 50, 110, 88, 98, 1.2, SUIT_D)
-			f.ink("M50-5V40", 0.9, SUIT_D)
-			# blue cuff shows past the jacket sleeve
-			f.path("M-5 154H105V174H-5Z", SHIRT)
-			f.path("M-5 154H105V160H-5Z", SUIT_D, opacity=0.6)
-			f.ink("M-5 154H105", 2)
-			f.ink("M-5 174H105", 1.2)
-			if key == "O":
-				for y in (136, 144):
-					f.path(circle(fx(side, key, 0.72), y, 2.2), "#0a0a10", stroke=SUIT_L, sw=0.6)
-			hand(f, side, key, SKIN, y=174)
-			f.edges(0.3)
-		a[f"{side}Arm_T"].fill(SUIT)
-		a[f"{side}Arm_Bo"].fill(SKIN_D)
-		# ---- legs: long trousers, pressed crease, a clean break on black shoes. The kick is the whole character.
-		for key in "FBOI":
-			f = a[f"{side}Leg_{key}"]
-			f.fill(SUIT)
-			f.path("M50-5L47 186H53Z", SUIT_L, opacity=0.35)
-			f.taper(50, 2, 50, 90, 50, 180, 1.1, SUIT_L)
-			f.folds(4, SUIT_D, SUIT_L, y0=0.05, y1=0.4, pinch=(50, 6), width=1.2)
-			f.taper(16, 96, 50, 110, 84, 94, 1.1, SUIT_D)
-			f.taper(14, 160, 50, 168, 86, 158, 1.0, SUIT_L)
-			f.path("M-5 172Q50 180 105 172V205H-5Z", "#0f0f14")
-			f.ink("M-5 172Q50 180 105 172", 2)
-			f.path("M-5 193H105V205H-5Z", "#050508")
-			if key == "F":
-				f.path("M22 190Q50 176 78 190Q50 196 22 190Z", "#3a3c4a", opacity=0.9)
-				f.ink("M36 182L64 188M64 182L36 188", 1.0, "#3a3c4a")
-			f.edges(0.3)
-		a[f"{side}Leg_T"].fill(SUIT)
-		a[f"{side}Leg_Bo"].fill("#050508")
-	hair_back(a["Head_B"], HAIR_C, SKIN, nape=106, jag=8)
-	a["Head_T"].fill(HAIR_C)
-	a["Head_Bo"].fill(SKIN_D)
-	head_side(a["Head_L"], SKIN, HAIR_C, True, hair_front=0.38, low=0.42)
-	head_side(a["Head_R"], SKIN, HAIR_C, False, hair_front=0.1, low=0.84, back_low=0.9, ear=False)
-	a["Torso_T"].fill(SUIT)
-	a["Torso_Bo"].fill(SUIT)
+	R.paint(a)
+	f = a["Head_F"]
+	head_base(f, SKIN, SKIN_D, SKIN_L, hair_shadow=26)
+	# under the fringe: hair colour, so no gap shows skin where the viewer-left eye would be
+	f.path("M-5-5H60L66 62L46 118L-5 124Z", "#cf9a12")
+	eye(f, 97, 66, 1, "#2a7fe0", "#0e2c66", "#8fd0ff", w=30, up=20, down=11, inner=5, outer=-6, wing=4.0, lid=5, ry=12)
+	# the spiral brow: curl at the nose side, tail running outwards and up
+	brow = "#8a5f0a"
+	f.path(_spiral(94, 34, 8.5, 10.5), stroke=brow, sw=2.8)
+	f.path("M97 23.5Q112 20 127 27L126 33Q112 26 100 29Z", brow)
+	# slim nose, a dry half smile, a short bar under the lip
+	f.soft("M60 76L64 66L69 76Q64 81 60 76Z", SKIN_D, 0.7, 1)
+	f.path("M60 79Q64 81 68 79", stroke=shade(SKIN, 0.5), sw=1.1)
+	f.path("M48 100Q66 104 86 95", stroke=INK, sw=2.2)
+	f.path("M86 95L89 92", stroke=INK, sw=1.8)
+	f.path("M54 108Q66 112 78 106", stroke=shade(SKIN, 0.62), sw=1.3)
+	f.path("M57 120Q66 114 75 120L71 135H61Z", "#cf9a12")
+	head_sides(a, SKIN, SKIN_D)
+	# hair down the sides of the head: a jagged edge in front of where the ear would be
+	a["Head_L"].path("M28-5L34 44L22 58L36 72L26 96L44 90L62 112L84 92L125 118V-5Z", "#cf9a12")
+	a["Head_R"].path("M92-5L86 44L98 58L84 72L94 96L76 90L58 112L36 92L-5 118V-5Z", "#cf9a12")
+	for n in ("Head_B", "Head_T"):
+		a[n].fill("#cf9a12")
