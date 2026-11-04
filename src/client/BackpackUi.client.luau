@@ -181,7 +181,7 @@ tab("Auras", 3, function(b)
 	swatch(b, Market.Items.Aura[1], "Aura", UDim2.fromOffset(48, 36), UDim2.fromOffset(48, 48))
 end)
 tab("Characters", 4, function(b)
-	Components.RunnerArt(b, "Art", CharacterCatalog.All()[1], UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
+	Components.PortraitArt(b, "Art", CharacterCatalog.All()[1], UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
 end)
 
 -- Owned cars, least rare first, then catalog order.
@@ -357,7 +357,7 @@ local function characterTile(spec, order)
 		b.Stroke.Color = Color3.new(1, 1, 1)
 	end
 	table.insert(shownTiles, b)
-	Components.RunnerArt(b, "Art", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+	Components.CardArt(b, spec)
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and data:FindFirstChild(spec.Id)
 	local copies = entry and entry:GetAttribute("Copies") or 1

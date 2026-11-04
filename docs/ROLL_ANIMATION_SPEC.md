@@ -3,7 +3,7 @@
 Owner 2026-11-04. Design doc 4.31 is the rule; this page holds the detail. Display only: the server decides every roll, and the client never changes a result. All values marked placeholder are tunable.
 
 ## Accuracy
-- The landed result always shows the rolled character's own model, drawn by `RunnerFactory.build(spec.Id)`. `spec.Model = nil` means "wears its own model", as in `RunnerFactory`. It does not mean "no model". The "?" shows only when `RunnerFactory.HasModel(spec.Id)` is false, which no rollable character is.
+- The landed result always shows the rolled character's own drawn portrait, or its own model from `RunnerFactory.build(spec.Id)` while it has no portrait. `spec.Model = nil` means "wears its own model", as in `RunnerFactory`. It does not mean "no model". The "?" shows only when `RunnerFactory.HasModel(spec.Id)` is false, which no rollable character is.
 - Every shown frame of the cycle and the landed result use the same view rectangle, camera framing and lighting, so nothing jumps or changes colour on landing.
 - The name, odds and rarity shown always belong to the character shown.
 - **Bust framing (owner 2026-11-04)**: every roll view, in the cycle, the landing and the fly icon, shows the character's drawn portrait (CHARACTER_GACHA_SPEC "Digital art portrait"): head to upper torso. Until a character's portrait is in `CharacterPortraits`, the live model is framed the same way, with a short soft fade at the bottom edge.

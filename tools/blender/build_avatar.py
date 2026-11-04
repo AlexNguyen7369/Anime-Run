@@ -5,6 +5,7 @@
 import json
 import math
 import os
+import subprocess
 import sys
 
 import bpy
@@ -130,14 +131,29 @@ def contact_sheet(data, cols=6, res=1800):
 	print("SHEET", scene.render.filepath)
 
 
+# Every character's digital art is part of its build (CHARACTER_GACHA_SPEC "Digital art portrait"). Own process: the
+# portrait script resets the scene. Enemy-only models (no character file) get none.
+def draw_portraits(ids):
+	characters = os.path.join(HERE, "..", "..", "src", "shared", "Characters")
+	wanted = [cid for cid in ids if os.path.exists(os.path.join(characters, cid + ".luau"))]
+	if wanted:
+		script = os.path.join(HERE, "portrait", "render_portrait.py")
+		subprocess.run(
+			[bpy.app.binary_path, "-b", "--factory-startup", "--python-exit-code", "1", "--python", script, "--", *wanted],
+			check=True,
+		)
+
+
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	data = load_data()
 	if argv == ["--sheet"]:
 		contact_sheet(data)
 		return
-	for cid in argv or list(data):
+	built = argv or list(data)
+	for cid in built:
 		build_one(cid, data[cid])
+	draw_portraits(built)
 
 
 if __name__ == "__main__":  # export_avatar.py imports build()

@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Catalog = require(Shared.CharacterCatalog)
+local Portraits = require(Shared.CharacterPortraits)
 local TrackRegistry = require(Shared.TrackRegistry)
 local TrackBuilder = require(Shared.TrackBuilder)
 local Format = require(Shared.HudFormat)
@@ -545,6 +546,10 @@ function Contracts.Build(h)
 	-- The tile art holds that character's placeholder runner rig (docs/WORLD_REDESIGN_SPEC.md section 2,
 	-- owner 2026-10-29: RunnerFactory.build(id) in the ViewportFrame): a Model with Head,
 	-- Torso, 2 *Arm* and 2 *Leg* parts, attribute CharacterId = id (test seam), and nothing car-shaped.
+	-- docs/CHARACTER_GACHA_SPEC.md "Digital art portrait": a registered card shows an ImageLabel of its image instead.
+	local function portraitOf(spec)
+		return Portraits[spec.Id] or Portraits[spec.Model or spec.Id]
+	end
 	local function hasRunner(art, id)
 		for _, model in art and art:GetChildren() or {} do
 			if model:IsA("Model") and model:GetAttribute("CharacterId") == id then
@@ -570,6 +575,25 @@ function Contracts.Build(h)
 			end
 		end
 		return false
+	end
+	-- What is wrong with a card's Art for `spec`: its portrait (ImageLabel, the card's top 3/4), or with none its rig.
+	local function cardArtProblem(art, spec)
+		local image = portraitOf(spec)
+		if image then
+			if not (art and art:IsA("ImageLabel") and art.Image == image) then
+				return ("Art is %s, want ImageLabel of %s"):format(art and art.ClassName or "missing", image)
+			end
+			if art.Size ~= UDim2.fromScale(1, 0.75) then
+				return "portrait size " .. tostring(art.Size) .. ", want fromScale(1, 0.75)"
+			end
+			return nil
+		end
+		if not (art and art:IsA("ViewportFrame") and hasRunner(art, spec.Id)) then
+			return "Art is "
+				.. (art and art.ClassName or "missing")
+				.. (hasRunner(art, spec.Id) and "" or ", no runner rig of this character")
+		end
+		return nil
 	end
 	local function rank(rarity)
 		return table.find(B.RarityOrder, rarity) or math.huge
@@ -693,14 +717,11 @@ function Contracts.Build(h)
 				continue
 			end
 			local art = tile:FindFirstChild("Art")
-			if not (art and art:IsA("ViewportFrame") and hasRunner(art, tile.Name)) then
-				table.insert(
-					p.backpack_characters_runner_art,
-					tile.Name
-						.. ": Art is "
-						.. (art and art.ClassName or "missing")
-						.. (hasRunner(art, tile.Name) and "" or ", no runner rig of this character")
-				)
+			local artProblem = cardArtProblem(art, car)
+			if artProblem then
+				table.insert(p.backpack_characters_runner_art, tile.Name .. ": " .. artProblem)
+			elseif portraitOf(car) and art.ImageColor3 ~= Color3.new(1, 1, 1) then
+				table.insert(p.backpack_characters_runner_art, tile.Name .. ": portrait not white")
 			end
 			local name = tile:FindFirstChild("Name")
 			if not (name and name:IsA("TextLabel") and name.Text == car.Name) then
@@ -902,22 +923,19 @@ function Contracts.Build(h)
 			for _, car in Catalog.All() do
 				local tile = h.find(B.IndexGallery .. "/" .. car.Id)
 				local art = tile and tile:FindFirstChild("Art")
-				if not (art and art:IsA("ViewportFrame") and hasRunner(art, car.Id)) then
-					table.insert(
-						p.index_tiles_runner_art,
-						car.Id
-							.. ": Art is "
-							.. (art and art.ClassName or "missing")
-							.. (hasRunner(art, car.Id) and "" or ", no runner rig of this character")
-					)
+				local artProblem = cardArtProblem(art, car)
+				if artProblem then
+					table.insert(p.index_tiles_runner_art, car.Id .. ": " .. artProblem)
 				end
-				if art and art:IsA("ViewportFrame") then
+				if art and (art:IsA("ViewportFrame") or art:IsA("ImageLabel")) then
 					local owned = data ~= nil and data:FindFirstChild(car.Id) ~= nil
 					if (art.ImageColor3 == BLACK) == owned then
 						table.insert(
 							p.index_silhouette_state,
 							car.Id .. (owned and ": discovered but black" or ": undiscovered but not black")
 						)
+					elseif owned and art:IsA("ImageLabel") and art.ImageColor3 ~= Color3.new(1, 1, 1) then
+						table.insert(p.index_silhouette_state, car.Id .. ": discovered portrait not white")
 					end
 				end
 			end

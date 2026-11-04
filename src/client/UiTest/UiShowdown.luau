@@ -41,8 +41,23 @@ local function showsText(label)
 	return (label:IsA("TextLabel") or label:IsA("TextButton")) and label.Text ~= "" and label.TextTransparency < 0.95
 end
 
--- A ViewportFrame that really shows a model: camera set, model with parts inside. Adds what is wrong to bad.
-local function portraitModel(portrait, bad, who)
+-- An enemy's portrait really shows (docs/CHARACTER_GACHA_SPEC.md "Digital art portrait"): an ImageLabel of its drawn
+-- image when one exists for its model (`track`'s NpcConfig Model), else a ViewportFrame with a camera and a model with
+-- parts. Adds what is wrong to bad; returns what it draws (the image, or the model's name), nil when it draws nothing.
+local function portraitModel(portrait, bad, who, track)
+	local client = script.Parent.Parent
+	local Components = require(client:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+	local image = Components.PortraitImage({ Id = NpcConfig.For(track).Model })
+	if image then
+		if not (portrait and portrait:IsA("ImageLabel") and portrait.Image == image) then
+			table.insert(
+				bad,
+				("%s: %s, want an ImageLabel of %s"):format(who, portrait and portrait.ClassName or "missing", image)
+			)
+			return nil
+		end
+		return image
+	end
 	if not (portrait and portrait:IsA("ViewportFrame")) then
 		table.insert(bad, who .. ": no ViewportFrame")
 		return nil
@@ -55,7 +70,7 @@ local function portraitModel(portrait, bad, who)
 	if not portrait.CurrentCamera then
 		table.insert(bad, who .. ": portrait has no CurrentCamera, it draws nothing")
 	end
-	return model
+	return model.Name
 end
 
 function Showdown.Build(h)
@@ -98,9 +113,9 @@ function Showdown.Build(h)
 			if not (portrait and h.visible(portrait)) then
 				table.insert(bad, "Portrait not shown")
 			end
-			local model = portraitModel(portrait, bad, "Portrait")
-			if model then
-				portraits[number] = portraits[number] or model.Name
+			local drawnFigure = portraitModel(portrait, bad, "Portrait", number)
+			if drawnFigure then
+				portraits[number] = portraits[number] or drawnFigure
 			end
 		end
 		local function vsBad()
@@ -163,8 +178,7 @@ function Showdown.Build(h)
 			end
 			enemyBad(lastWin.Track, bad)
 			if #bad == 0 then
-				local model = portraitModel(named(B.Portrait), bad, "Portrait")
-				bad.modelName = model and model.Name
+				bad.modelName = portraitModel(named(B.Portrait), bad, "Portrait", lastWin.Track)
 			end
 			return bad
 		end)
@@ -255,7 +269,7 @@ function Showdown.Build(h)
 			if drawnInTile(d, tile) then
 				if d:IsA("GuiObject") and showsText(d) then
 					table.insert(texts, d.Text)
-				elseif d:IsA("ViewportFrame") then
+				elseif d:IsA("ViewportFrame") or (d:IsA("ImageLabel") and d.Name == B.Portrait) then
 					table.insert(viewports, d)
 				end
 			end
@@ -280,7 +294,7 @@ function Showdown.Build(h)
 			if #viewports == 0 then
 				table.insert(bad, who .. ": beaten, no portrait shown")
 			else
-				portraitModel(viewports[1], bad, who)
+				portraitModel(viewports[1], bad, who, n)
 			end
 		else
 			if shows(label) then

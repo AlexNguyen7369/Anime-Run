@@ -2,6 +2,8 @@
 -- Saved, data-driven gallery and stat rows. Bake in Edit, Bind in Play.
 local Components = {}
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local CharacterCatalog = require(Shared.CharacterCatalog)
+local CharacterPortraits = require(Shared.CharacterPortraits)
 local HudFormat = require(Shared.HudFormat)
 local NpcConfig = require(Shared.NpcConfig)
 local RaceProgressMap = require(Shared.RaceProgressMap)
@@ -28,6 +30,7 @@ local CATEGORY_COLORS = {
 }
 local PORTRAIT_FIT = 0.72 -- view height, as a share of feet-to-head height
 local PORTRAIT_DROP = 0.2 -- camera aim below the head, same share
+local CARD_PORTRAIT_HEIGHT = 0.75 -- drawn portrait's height on a card (placeholder): keeps the face above the card's text
 local INDEX_COLUMNS = { Desktop = 4, Phone = 3 }
 local INDEX_GAP = 12
 local INDEX_CELL_HEIGHT = 168
@@ -179,6 +182,52 @@ function Components.RunnerArt(parent, name, spec, pos, size, portrait)
 	return view
 end
 
+-- The drawn portrait for a spec (CHARACTER_GACHA_SPEC "Digital art portrait"), or nil with none yet: its own, the one of
+-- the model it wears, or for an enemy (Id = a model name) the portrait of the character who wears that model.
+local wearerPortrait = nil
+function Components.PortraitImage(spec)
+	if not wearerPortrait then
+		wearerPortrait = {}
+		for _, character in CharacterCatalog.All() do
+			if character.Model and CharacterPortraits[character.Id] then
+				wearerPortrait[character.Model] = CharacterPortraits[character.Id]
+			end
+		end
+	end
+	return CharacterPortraits[spec.Id] or CharacterPortraits[spec.Model or spec.Id] or wearerPortrait[spec.Id]
+end
+
+local function portraitLabel(parent, name, image, pos, size)
+	return make("ImageLabel", {
+		Name = name,
+		BackgroundTransparency = 1,
+		Image = image,
+		ImageColor3 = WHITE,
+		ScaleType = Enum.ScaleType.Fit,
+		Position = pos,
+		Size = size,
+		ZIndex = 4,
+	}, parent)
+end
+
+-- The drawn portrait as an ImageLabel, or with none yet the live model (RunnerArt) in the same rect.
+function Components.PortraitArt(parent, name, spec, pos, size, framing)
+	local image = Components.PortraitImage(spec)
+	if image then
+		return portraitLabel(parent, name, image, pos, size)
+	end
+	return Components.RunnerArt(parent, name, spec, pos, size, framing)
+end
+
+-- A collection card's Art. A drawn portrait stops above the card's bottom text; the live model fills the card.
+function Components.CardArt(tile, spec)
+	local image = Components.PortraitImage(spec)
+	if image then
+		return portraitLabel(tile, "Art", image, UDim2.new(), UDim2.fromScale(1, CARD_PORTRAIT_HEIGHT))
+	end
+	return Components.RunnerArt(tile, "Art", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+end
+
 -- The collection card shared by the Index and the Backpack (design doc 4.22). `lit` false = undiscovered.
 function Components.TintCard(tile, spec, config, lit)
 	local color = spec.Rarity == "Secret" and SECRET_TINT or config.RARITY_COLORS[spec.Rarity] or WHITE
@@ -277,7 +326,7 @@ function Components.BakeIndex(refs, catalog, config)
 		local tile = make("Frame", { Name = spec.Id, LayoutOrder = spec.Order, ZIndex = 3 }, grid)
 		Components.CardFace(tile, spec, config)
 		edge(tile).Name = "Stroke"
-		local art = Components.RunnerArt(tile, "Art", spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+		local art = Components.CardArt(tile, spec)
 		art.ImageColor3 = Color3.new(0, 0, 0)
 		local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -38), UDim2.fromOffset(40, 40), 34)
 		locked.ZIndex = 7
@@ -398,7 +447,7 @@ function Components.EnemiesPage(refs, player)
 			row.Best.Text = not beaten and "" or seconds and RaceProgressMap.FormatTime(seconds) or "--:--.--"
 			local portrait = row.Frame:FindFirstChild("Portrait")
 			if beaten and not portrait then
-				Components.RunnerArt(row.Frame, "Portrait", row.Spec, UDim2.new(), UDim2.fromScale(1, 1), true)
+				Components.PortraitArt(row.Frame, "Portrait", row.Spec, UDim2.new(), UDim2.fromScale(1, 1), true)
 			elseif portrait and not beaten then
 				portrait:Destroy()
 			end

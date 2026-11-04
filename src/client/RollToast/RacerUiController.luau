@@ -76,7 +76,11 @@ local gallery = index.GridHost:FindFirstChild("Gallery")
 local rebuildGallery = gallery == nil or gallery:GetAttribute("DesignVersion") ~= 2
 for _, spec in catalog.All() do
 	local baked = gallery and gallery:FindFirstChild(spec.Id)
-	rebuildGallery = rebuildGallery or not (baked and baked:FindFirstChild("Art") and baked.Art:IsA("ViewportFrame"))
+	local art = baked and baked:FindFirstChild("Art")
+	local image = Components.PortraitImage(spec)
+	-- A saved bake from before an upload holds the wrong Art.
+	local current = art and (if image then art:IsA("ImageLabel") and art.Image == image else art:IsA("ViewportFrame"))
+	rebuildGallery = rebuildGallery or not current
 end
 if rebuildGallery then
 	if gallery then

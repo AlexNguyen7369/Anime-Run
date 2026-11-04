@@ -1867,24 +1867,65 @@ function K.modelOf(view, id)
 	return nil
 end
 
--- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the view shows the rolled character's own model. spec.Model == nil means
--- "wears its own model", not "no model": "?" shows only when RunnerFactory.HasModel is false, which no rollable
--- character is.
+-- docs/CHARACTER_GACHA_SPEC.md "Digital art portrait": a character's registered image, as Components.PortraitImage
+-- reads it (a variant wears its model's), or nil with no entry yet.
+function K.portraitImage(id)
+	local spec = CharacterCatalog.Get(id)
+	local registry = require(Shared:WaitForChild("CharacterPortraits"))
+	return spec and (registry[spec.Id] or registry[spec.Model or spec.Id]) or nil
+end
+
+-- The portrait the roll must draw: registered and loaded. Anything else falls back to the rig.
+function K.portraitLoaded(id)
+	local image = K.portraitImage(id)
+	return image ~= nil
+		and game:GetService("ContentProvider"):GetAssetFetchStatus(image) == Enum.AssetFetchStatus.Success
+end
+
+-- A roll view's own Portrait while it shows, else nil.
+function K.shownPortrait(view)
+	local portrait = view and view:FindFirstChild("Portrait")
+	return portrait and portrait:IsA("ImageLabel") and portrait.Visible and portrait or nil
+end
+
+-- What a roll view draws for `id`: its portrait's image or its rig, nil when it draws neither (or another's image).
+function K.figureOf(view, id)
+	local portrait = K.shownPortrait(view)
+	if portrait then
+		return portrait.Image == K.portraitImage(id) and portrait.Image or nil
+	end
+	return K.modelOf(view, id)
+end
+
+-- docs/ROLL_ANIMATION_SPEC.md "Accuracy", docs/CHARACTER_GACHA_SPEC.md "Digital art portrait": the view shows the rolled
+-- character's own loaded portrait and no rig, or with none its own model. spec.Model == nil means "wears its own model",
+-- not "no model": "?" shows only when there is neither, which no rollable character is.
 function K.modelProblems(view, placeholder, id)
 	local bad = {}
-	local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
-	if not RunnerFactory.HasModel(id) then
-		table.insert(bad, "RunnerFactory.HasModel(" .. tostring(id) .. ") is false for a rollable character")
-	end
-	local model = K.modelOf(view, id)
-	if not model then
-		table.insert(bad, "Viewport lacks a Model built for " .. tostring(id))
-	elseif not model:FindFirstChildWhichIsA("BasePart", true) then
-		table.insert(bad, "the Model built for " .. tostring(id) .. " has no parts")
+	local portrait = K.shownPortrait(view)
+	if portrait then
+		local want = K.portraitImage(id)
+		if portrait.Image ~= want then
+			table.insert(bad, ("Portrait %s want %s for %s"):format(portrait.Image, tostring(want), tostring(id)))
+		end
+	else
+		if K.portraitLoaded(id) then
+			table.insert(bad, "the loaded portrait of " .. tostring(id) .. " is not shown")
+		end
+		local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+		if not RunnerFactory.HasModel(id) then
+			table.insert(bad, "RunnerFactory.HasModel(" .. tostring(id) .. ") is false for a rollable character")
+		end
+		local model = K.modelOf(view, id)
+		if not model then
+			table.insert(bad, "Viewport lacks a Model built for " .. tostring(id))
+		elseif not model:FindFirstChildWhichIsA("BasePart", true) then
+			table.insert(bad, "the Model built for " .. tostring(id) .. " has no parts")
+		end
 	end
 	for _, d in view and view:GetDescendants() or {} do
 		local other = d:IsA("Model") and d:GetAttribute("CharacterId")
-		if other and other ~= id then
+		if other and (portrait or other ~= id) then
 			table.insert(bad, "Viewport also holds a Model of " .. tostring(other))
 		end
 	end
@@ -1897,8 +1938,11 @@ end
 -- docs/ROLL_ANIMATION_SPEC.md "Bust framing", from the view's camera: Head and its hair are inside the view (not cut at
 -- the top or the sides); the view's bottom edge is below the head; and nothing shows below the capped torso bottom:
 -- it lies past the view's edge, or the Viewport's BottomFade has faded the figure out there (the legs stay in the view
--- rect on a slim figure, whose width sets the camera distance, but are invisible).
+-- rect on a slim figure, whose width sets the camera distance, but are invisible). A drawn portrait is cut already.
 function K.bustProblems(view, id)
+	if K.shownPortrait(view) then
+		return {}
+	end
 	local model = K.modelOf(view, id)
 	local camera = view and view.CurrentCamera
 	local head, torso = model and model:FindFirstChild("Head"), model and model:FindFirstChild("Torso")
@@ -2698,8 +2742,19 @@ function K.sampleShown(rec, card, key, phase, now)
 				table.insert(s.figure, problem)
 			end
 		end
-		if id ~= nil and not K.modelOf(view, id) then
+		if id ~= nil and not K.figureOf(view, id) then
 			s.spinNoModel[id] = true
+		end
+		if id ~= nil and not K.shownPortrait(view) and K.portraitLoaded(id) then
+			s.spinPortraitBad[id .. ": loaded portrait not shown"] = true
+		end
+		-- The swap holds the last image under an undrawn new one: only then may Portrait differ from ShownId
+		local portrait = K.shownPortrait(view)
+		if portrait and id ~= nil and portrait.Image ~= K.portraitImage(id) then
+			local hold = view:FindFirstChild("PortraitHold", true)
+			if not (hold and hold.Visible and not portrait.IsLoaded) then
+				s.spinPortraitBad[("%s: Portrait %s"):format(id, portrait.Image)] = true
+			end
 		end
 		-- Short slots end mid swap pop (MotionScale is not back at 1): only a frame at rest says where the spot is
 		local pop = view and view:FindFirstChild("MotionScale")
@@ -2725,7 +2780,7 @@ function K.sampleShown(rec, card, key, phase, now)
 			s.wrong[phase .. ": " .. tostring(id)] = true
 		end
 		if phase ~= "Exit" then
-			local model = K.modelOf(view, rec.ev.id)
+			local model = K.figureOf(view, rec.ev.id)
 			if not model then
 				s.noModel += 1
 			elseif model ~= s.model then
@@ -2760,6 +2815,7 @@ function UiScenarios.SampleRoll(ev)
 			spinNil = 0,
 			spinSeq = {},
 			spinNoModel = {},
+			spinPortraitBad = {},
 			figure = {},
 			tileStart = {},
 			drift = 0,
@@ -2787,7 +2843,7 @@ function UiScenarios.SampleRoll(ev)
 			rec.flyIcon = rec.flyIcon
 				or {
 					view = icon ~= nil and icon:IsA("ViewportFrame"),
-					rig = K.modelOf(icon, ev.id) ~= nil,
+					rig = K.figureOf(icon, ev.id) ~= nil,
 					bust = K.bustProblems(icon, ev.id),
 					w = fly.AbsoluteSize.X,
 					h = fly.AbsoluteSize.Y,
@@ -3151,6 +3207,7 @@ function K.shownChecks(res, rec, key, prefix)
 			s.spinFrames > 0 and s.spinNil == 0
 		)
 		checkList(res, prefix .. "spin_model_is_shown_character", keysOf(s.spinNoModel))
+		checkList(res, prefix .. "spin_portrait_is_shown_character", keysOf(s.spinPortraitBad))
 		-- The shown characters are the reel's, in its order (a very short slot may fall between two frames)
 		local ids, nextIndex, offReel = K.reelIdsOf(rec, key), 1, {}
 		for _, slot in seq do
@@ -5176,8 +5233,9 @@ function S.ui_index(res)
 				table.insert(wrong, id .. ": undiscovered but name is " .. tostring(name and name.Text))
 			end
 			-- Owner 2026-10-20 (docs/CAR_EXPANSION_SPEC.md "Car icons"): the silhouette is the car's own model in a
-			-- ViewportFrame (was the atlas ImageLabel), still black
-			if not (art and art:IsA("ViewportFrame") and art.ImageColor3 == Color3.new(0, 0, 0)) then
+			-- ViewportFrame (was the atlas ImageLabel), still black; with a portrait, that ImageLabel in black
+			local wantClass = K.portraitImage(id) and "ImageLabel" or "ViewportFrame"
+			if not (art and art:IsA(wantClass) and art.ImageColor3 == Color3.new(0, 0, 0)) then
 				table.insert(wrong, id .. ": undiscovered art is not a silhouette")
 			end
 			if not (locked and locked:IsA("TextLabel") and locked.Text == "?" and effectivelyVisible(locked)) then
@@ -5875,6 +5933,14 @@ function S.ui_roll_anim(res)
 		end
 	end
 	checkList(res, "roll_anim_config_present", missing)
+	-- docs/CHARACTER_GACHA_SPEC.md "Digital art portrait": red until the upload completes
+	local noPortrait = {}
+	for _, rollable in CharacterCatalog.Rollable() do
+		if not K.portraitImage(rollable.Id) then
+			table.insert(noPortrait, rollable.Id)
+		end
+	end
+	checkList(res, "every_rollable_has_portrait", noPortrait)
 
 	local toast = findPath("RollToast/Toast")
 	local _, _, bigCard = showcaseParts()
@@ -6076,8 +6142,8 @@ function S.ui_roll_anim(res)
 		check(
 			res,
 			"flyicon_shows_rolled_character",
-			icon and ("view=%s rig=%s"):format(tostring(icon.view), tostring(icon.rig)) or "no sample",
-			"view=true rig=true",
+			icon and ("view=%s figure=%s"):format(tostring(icon.view), tostring(icon.rig)) or "no sample",
+			"view=true figure=true",
 			icon ~= nil and icon.view and icon.rig
 		)
 		checkList(res, "flyicon_bust_framing", icon and icon.bust or { "no sample" })

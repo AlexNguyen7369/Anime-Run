@@ -11,7 +11,8 @@
 --   below it, smaller rarity and cruise text, NEW / +1 COPY / TURBO badges, in the RollShowcase overlay (dimmed +
 --   blurred), with the AUTO toggle and "Tap anywhere to close". Clicking the compact roll opens it. An emphasized roll
 --   (server flag) opens it by itself and drops back to compact after the roll.
--- Both bodies always hold the same roll, but only the visible one draws a figure (one reusable rig per character).
+-- Both bodies always hold the same roll, but only the visible one draws a figure: the character's drawn portrait
+-- (Portrait, inside Viewport), or with none loaded its live model (one reusable rig per character).
 -- Tests read the Phase / RollId / RollSerial attributes on each card, ShownId on each body, the View attribute on the
 -- RollToast ScreenGui and ReelIds on each Reel.
 
@@ -84,6 +85,7 @@ local BOLD = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeig
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local Ui = script:WaitForChild("Ui")
+local Components = require(Ui.RacerComponents)
 task.spawn(function()
 	require(script:WaitForChild("RacerUiController"))
 end)
@@ -171,6 +173,29 @@ end
 
 local function figureScale(view)
 	return make("UIScale", { Name = "MotionScale" }, view)
+end
+
+-- Inside the view: same rect and same MotionScale pops, and the view's BottomFade does not reach children.
+local function portraitLabel(view, name, z)
+	return make("ImageLabel", {
+		Name = name,
+		BackgroundTransparency = 1,
+		ImageColor3 = WHITE,
+		ScaleType = Enum.ScaleType.Fit,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = z,
+	}, view)
+end
+
+-- Portrait, and under it the previous image held until the new one has drawn, so a swap never shows a blank frame.
+local function portraitParts(b, z)
+	b.Portrait = portraitLabel(b.Viewport, "Portrait", z + 5)
+	b.PortraitHold = portraitLabel(b.Viewport, "PortraitHold", z + 4)
+	b.Portrait:GetPropertyChangedSignal("IsLoaded"):Connect(function()
+		b.PortraitHold.Visible = b.Portrait.Visible and not b.Portrait.IsLoaded
+	end)
+	return b
 end
 
 local function placeholderLabel(view, z)
@@ -352,7 +377,7 @@ local function buildBody(z)
 		}),
 	}, flameStroke)
 
-	return {
+	return portraitParts({
 		Body = body,
 		Glow = glow,
 		GlowGradient = glowGradient,
@@ -380,7 +405,7 @@ local function buildBody(z)
 		FlameGradient = flameGradient,
 		Aliases = { Name = aliasName, Speed = aliasSpeed, Rarity = aliasRarity, Odds = aliasOdds },
 		Full = true,
-	}
+	}, z)
 end
 
 -- The compact roll: no card, only the bare figure with its "1 in N" and name under it. fitCompact sizes these.
@@ -417,7 +442,7 @@ local function buildBare(parent, z)
 	autoOff.TextStrokeTransparency = 1
 	make("UIStroke", { Color = BLACK, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual }, autoOff)
 	autoOff.Visible = false
-	return {
+	return portraitParts({
 		Body = body,
 		Reel = reel,
 		Wave = wave,
@@ -429,7 +454,7 @@ local function buildBare(parent, z)
 		CharacterName = characterName,
 		AutoOff = autoOff,
 		Full = false,
-	}
+	}, z)
 end
 
 -- Compact card --------------------------------------------------------------------------------------------------
@@ -465,6 +490,7 @@ local flyIcon = make("Frame", {
 }, gui)
 local flyView = figureView("Icon", 21, flyIcon)
 flyView.Size = UDim2.fromScale(1, 1)
+local flyPortrait = portraitLabel(flyView, "Portrait", 22)
 
 -- Enlarged view -------------------------------------------------------------------------------------------------
 
@@ -575,6 +601,7 @@ local shownId = nil -- the character on screen, in whichever body is visible
 local drawnRig = nil
 local rigs = {} -- character id -> its one rig, reused between rolls
 local modelsReady = false
+local portraitsReady = false
 
 local function setAttr(name, value)
 	for _, c in cards do
@@ -611,6 +638,16 @@ local function isEnlarged()
 end
 
 -- Figures ---------------------------------------------------------------------------------------------------------
+
+-- The portrait to draw for a character: only a loaded one, so nothing blank reaches a frame. nil falls back to its rig.
+local function portraitFor(id)
+	local spec = CharacterCatalog.Get(id)
+	local image = spec and Components.PortraitImage(spec)
+	if image and ContentProvider:GetAssetFetchStatus(image) == Enum.AssetFetchStatus.Success then
+		return image
+	end
+	return nil
+end
 
 local function rigFor(id)
 	local rig = rigs[id]
@@ -680,9 +717,20 @@ local function bodyAspect(b)
 	return math.max(toast.AbsoluteSize.X, 1) / math.max(toast.AbsoluteSize.Y - 2 * COMPACT_TEXT_BAND, 1)
 end
 
+local function showPortrait(b, image)
+	local front, hold = b.Portrait, b.PortraitHold
+	if image and front.Image ~= image then
+		hold.Image = front.Image
+		front.Image = image
+	end
+	front.Visible = image ~= nil
+	hold.Visible = image ~= nil and not front.IsLoaded
+end
+
 local function drawShown()
 	local b = visibleBody()
-	local rig = b and shownId and rigFor(shownId) or nil
+	local image = b and shownId and portraitFor(shownId) or nil
+	local rig = b and shownId and not image and rigFor(shownId) or nil
 	if drawnRig and drawnRig ~= rig then
 		drawnRig.Parent = nil
 	end
@@ -691,8 +739,9 @@ local function drawShown()
 		frameRig(b.Viewport, rig, bodyAspect(b))
 		rig.Parent = b.Viewport
 	end
-	local noModel = shownId == nil or not RunnerFactory.HasModel(shownId)
+	local noModel = shownId == nil or not (portraitFor(shownId) or RunnerFactory.HasModel(shownId))
 	for _, each in bodies do
+		showPortrait(each, each == b and image or nil)
 		each.Placeholder.Visible = noModel
 	end
 end
@@ -705,7 +754,21 @@ local function setShown(id)
 	drawShown()
 end
 
+-- Portraits load before the first roll, as the rigs below do. Starters wear rollable models, so this covers their images.
+task.spawn(function()
+	local images = {}
+	for _, spec in CharacterCatalog.All() do
+		local image = Components.PortraitImage(spec)
+		if image then
+			table.insert(images, make("ImageLabel", { Image = image }))
+		end
+	end
+	pcall(ContentProvider.PreloadAsync, ContentProvider, images)
+	portraitsReady = true
+end)
+
 -- Loads every character's meshes, then builds a rig per frame, so neither an empty figure nor a hitch reaches a roll.
+-- A character with a portrait gets no rig unless its image fails to load (play builds one then).
 task.spawn(function()
 	local root = ReplicatedStorage:WaitForChild("CharacterModels")
 	while not root:GetAttribute("Ready") do
@@ -714,8 +777,10 @@ task.spawn(function()
 	pcall(ContentProvider.PreloadAsync, ContentProvider, { root })
 	modelsReady = true
 	for _, spec in CharacterCatalog.Rollable() do
-		rigFor(spec.Id)
-		task.wait()
+		if not Components.PortraitImage(spec) then
+			rigFor(spec.Id)
+			task.wait()
+		end
 	end
 end)
 
@@ -1010,8 +1075,11 @@ local function flyToIndex(spec, seconds)
 	if old then
 		old:Destroy()
 	end
+	local image = portraitFor(spec.Id)
+	flyPortrait.Image = image or ""
+	flyPortrait.Visible = image ~= nil
 	-- A copy: the rig itself stays in the view shrinking behind this icon
-	local rig = rigFor(spec.Id)
+	local rig = not image and rigFor(spec.Id)
 	if rig then
 		local icon = rig:Clone()
 		frameRig(flyView, icon, 1)
@@ -1062,7 +1130,9 @@ local function play(roll)
 	local timeScale = A.TimeScale(roll.Interval)
 	local reelIds = A.Reel(rng, spec.Id)
 	for _, id in reelIds do
-		rigFor(id) -- before anything shows: a build mid-cycle would be a visible hitch
+		if not portraitFor(id) then
+			rigFor(id) -- before anything shows: a build mid-cycle would be a visible hitch
+		end
 	end
 	for _, b in bodies do
 		resetBody(b, roll)
@@ -1242,7 +1312,7 @@ local function drainRollQueue()
 	end
 	playingRoll = true
 	local deadline = os.clock() + MODEL_WAIT
-	while not modelsReady and os.clock() < deadline do
+	while not (modelsReady and portraitsReady) and os.clock() < deadline do
 		RunService.Heartbeat:Wait()
 	end
 	while #rollQueue > 0 do
