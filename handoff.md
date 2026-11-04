@@ -8,14 +8,17 @@ History: `current_progress.md`, `git log`.
 - c3ui and track enemies (c5) landed. Enemies: design doc 4.26, NPC_RIVAL_SPEC, cast in `NpcConfig.Tracks`, 9 `foe_*` models under the owner's account (not catalog ids, not rollable), Track 10 `db_tyrant`, client `NpcIndicator`. Phone and tablet HUD rulings: design doc 4.27.
 - Last results before those merges: `[CARTEST] END pass=49 fail=1` on 8e30668 (`vehicle-effects-drive-intermittent`, BUGS; passes 6 of 6 alone); `[UITEST] END pass=40 fail=0` (40 scenarios, 3238 checks; a confirmation run stopped after 18 of 40 with no failures). `npc` 117 checks and `ui_billboards` 12 checks fail=0.
 
-## c3 paused (owner 2026-11-04)
-- Paused for NPC additions and the spawn rework. The spawn rework (`declutter`) landed at 68e565a; resume after NPC additions land. Earlier server and UI results predate it.
-- Server on fd0f198, stopped partway: `runner_normal_publishes_distance` 19.445 vs 2, `drive_chassis_moved` and `drive_trail_laid` 14.09 vs 36.00. Measured cause of the drive reds: Heartbeat dt summed to 3.0 s while `os.clock` moved 0.586 s and the rail was exact. Publish red is inferred to be the same family.
-- On `orch/core/c3t`, unmerged: `ui_run_visual` (owner: animated runs with aura and trails; not run) d8f0e3d, and a test clock fix in progress. Worktree `../AnimeRun-orch/c3t`.
-- On resume: merge c3t; full server harness; full UI harness with captures; rules audit; PR to main. The earlier server and UI results no longer count.
+## Compat check u5 / c3 (2026-11-04)
+- c3t merged (337fac8). Last UI: `[UITEST] END pass=44 fail=0`, 3450 checks, fresh save `u5ui5`, on the code of 76f68c4 (a later commit only reformats one test line). Captures reviewed: 2 only (db_green side, leaf_hero front), on the earlier 44/0 run, not every model.
+- Last server: `[CARTEST] END pass=49 fail=1` on 6a2cf4d, save `u5srv1`. Only red `data`: its literal `Player_<id>` keys under TestSaveKey. Fixed in 0fa4d06, but that fix has NOT been run, alone or in a full run. `runner` and `vehicle_effects` passed in that run.
+- The final full server run was skipped on the owner's word 2026-11-04, relayed by the coordinator. So 0fa4d06's Burst guard and Chime volume have the UI run behind them, and no server run covers any commit after 6a2cf4d. Nothing here says server fail=0.
+- Rules audit: FAIL with 6 findings on its one round; 5 addressed (Burst guard, Chime x5, JointRateFactor reason, BUGS cause, Chime length), `mesh_loaded` wait kept and recorded, 5 rulings in `docs/OWNER_QUESTIONS.md`. Not re-audited after the fixes.
+- Test changes: `ui_run_visual` joints use RunnerView's PreSimulation clock (same limit; factor 1 tried and red on a cold first row). `mesh_loaded` now waits up to 5 s on the drawn copy: the audit calls this a loosening; a real player can see a first-time model pop in. `ui_feedback` reads RollSecret's AlsoVolume. `data` runs with TestSave off on its fake store.
+- A full UI run needs a fresh save with: StarterPick done, then `snapshot` and `index_states` from the server before `UiTestRun`. Start the server harness only after the player's `DataLoaded`: earlier, `runner` and `scrap` go red because the world is not built.
+- `ContentId 203785492 failed: Asset type does not match requested type`: source not found. First log line, before game scripts. Not in the repo, script sources, Edit attributes, or the listed content properties at runtime.
 
 ## Next
-1. Rerun full server + UI harness on the merged branch to fail=0, rules audit. 2. PR to main with a fresh reviewer. 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity (spec + code, after the PR).
+1. Owner or coordinator handles the merge to `main`. 2. Run `data` (never run since its fix) and a full server harness on the merged code. 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity.
 
 ## Open
 - Spawn plaza (design doc 4.24 Clear plaza, landed 68e565a): owner to look at it in Studio. Best Roll overlaps under 1 degree of Plot 1 from spawn, not ruled on. Market is an in-house stall and Legends are 2 beside the gate. `Reviewed` is unsigned in `plaza_assets.json` for GreatSakura, SkyLoop, MarketSign, MarketStall and the pedestals: rules audit signs it after a screenshot review (BIOME_ENVIRONMENT_SPEC 4.1). Row x spread check (`ROW_X_SPREAD` 14) is lenient. Dead asset ledger rows stay in `plaza_assets.json`.

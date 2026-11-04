@@ -130,7 +130,7 @@ Deliverables:
 - u2 | Consistency: one source for tokens, tint removed, kit bypasses closed | `ui_buttons`, `ui_hud` fail=0; stylua / selene clean
 - u3 | Big moments: roll, showdown, defeat, Rebirth, money | `ui_roll_anim`, `ui_roll_emphasized`, `ui_showdown` fail=0; Studio captures
 - u4 | Panels and small moments: open, tab, purchase, claim, denied, toggles, bars | targeted UI scenarios fail=0; new `ui_feedback` fail=0
-- u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks
+- u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks. Status 2026-11-04: not met, stopped on the owner's word: UI pass=44 fail=0; server pass=49 fail=1 (`data`, fix not run), final server run skipped; audit FAIL, not re-audited
 Out of scope: camera shake, per-category volume, music, gameplay and economy.
 
 ## trim: Context and repo bloat removed (owner 2026-11-03)

@@ -1,7 +1,7 @@
 # Board
 
 ## Doing
-- c3 full compatibility check: on hold until the owner says so (2026-11-04); then rerun full server + UI harness to fail=0, rules audit
+- u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 ## Next
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
