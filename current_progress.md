@@ -43,8 +43,9 @@
 40. 2026-11-03 — Alex Nguyen — Added the owner's rebirth speed reward (+5% cruise per level, placeholder) with a speed tile on the Rebirth panel, and fixed the stamina bar trail and team row info card, checked in Studio on desktop.
 41. 2026-11-03 — Alex Nguyen — Rebuilt the team row after the owner's reference image (real character heads in dark circles, curved stamina arc, seconds left, per-frame easing, fixed slots), checked in Studio on desktop.
 42. 2026-11-03 — Alex Nguyen — Rebuilt Index and Backpack Characters around one rarity card with Backpack sort and search, fixed Index cards showing placeholder rigs, and gave the catch-all Common a numerical drop chance (Chance 1, roll results unchanged), checked in Studio on desktop; harness not run.
+43. 2026-11-03 — Alex Nguyen — Added the ninja run for Narito and Karate Kid (per-character `RunStyle` pose plus client-side air streaks and foot dust, design doc 4.23), with angles still placeholders and not yet seen in a live run.
 
 ## What's next
-**Finish the full compatibility check (c3): fix the 2 open UI harness failures (`ui_layout` phone HUD-pair overlaps, `ui_reduced_motion` roll viewport), rerun the server and UI harnesses to `fail=0` with the new models and starter popup, then run the rules audit.**
+**Check the ninja run in Studio with Narito on the team (Rojo must serve this checkout), then, once the owner approves, add `RunStyle = "NinjaRun"` to `leaf_copycat`, `leaf_medic`, `leaf_crow` and `leaf_avenger`.**
 
-**Why this is next:** the owner asked for c3 on 2026-11-03 and it gates the PR from feature/alex/anime-world into main; the character and starter changes landed after its last rounds, so they still need that full run.
+**Why this is next:** the owner made the rollout to all Leaf characters depend on approving this run, and the pose and effect values can only be tuned from a live look; the c3 compatibility check that gates the PR into main stays open after it.
