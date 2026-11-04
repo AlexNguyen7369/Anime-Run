@@ -16,8 +16,11 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
   other; NPC parts never collide.
 - Indicator (owner 2026-11-03, design doc 4.26): above the enemy's head, the name over a down arrow, in the client's
   `NpcIndicator` ScreenGui (`Client/NpcRacerView`), moved to the head each frame, so it has no distance limit and shows
-  through walls and fog. Fixed pixel size (340 x 96, placeholder); not clamped to the screen edge; hidden only while the
-  head is behind the camera. Only the enemy of the current race exists, so only one indicator shows.
+  through walls and fog. Fixed pixel size (340 x 96, placeholder). Only the enemy of the current race exists, so only one
+  indicator shows.
+- Edge pointer (owner 2026-11-04, design doc 4.26): while the head is off screen or behind the camera, the indicator hides
+  and the `Pointer` frame in `NpcIndicator` shows the name and an arrow aimed at the enemy, on a rectangle inside the screen
+  edge that clears the HUD (150 x 84, margins 170 sides, 60 top, 175 bottom; placeholders). Under the HUD, like the indicator.
 - Enemies (owner-approved 2026-11-03, replaces the 2026-10-28 list; tweaked names; source in brackets, internal only;
   this is part of the parody list of design doc section 5):
 
@@ -39,4 +42,5 @@ Enemy models are in-house and built in the avatar pipeline (`CHARACTER_GACHA_SPE
 ## Tests
 
 - `npc`: rival time = path length / speed; loss empties the bank; the NPC exists on one client only; its rig has no label.
-- `ui_billboards`: the indicator has the enemy's name and an arrow and tracks its head.
+- `ui_billboards`: the indicator has the enemy's name and an arrow and tracks its head; off screen the pointer shows instead,
+  stays on screen and aims at the enemy.

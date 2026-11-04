@@ -314,8 +314,10 @@ before any Studio work.
   and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
 - The player sees one enemy at a time: the one they are racing now.
 - A large indicator (the enemy's name over a down arrow) sits above the enemy's head and follows it. It has no distance
-  limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy: it is not clamped
-  to the screen edge when the enemy is off screen. Pixel size is a placeholder.
+  limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy while the enemy's head
+  is on screen. Pixel size is a placeholder.
+- When the enemy's head is off screen or behind the camera, a pointer at the screen edge shows the enemy's name and an
+  arrow aimed at it (owner 2026-11-04, replaces "not clamped"). Pointer size and edge margins are placeholders.
 - Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
@@ -378,6 +380,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
 - 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).
 - 2026-10-28: document created: full stamina refill per run, exhaustion cashes out.
