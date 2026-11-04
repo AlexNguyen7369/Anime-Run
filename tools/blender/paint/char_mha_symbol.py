@@ -1,5 +1,5 @@
 # Target look for mha_symbol: two tall blond bang spikes in a V, short spikes behind, eyes in deep shadow, huge grin, heavy jaw,
-# blue suit with a padded chest, red V band edged white, broad shoulders, yellow gloves, red boots, short red cape.
+# blue suit with a padded chest, red Y band edged white, broad shoulders, yellow gloves, red boots, short red cape.
 from atlas import shade
 from leaf_common import ell
 from mha_style3 import bake, block, core, gem, hand, head_faces, nose, strip
@@ -51,10 +51,12 @@ def _suit(k):
 	# the broad padded chest in big plates; the suit stays on, no muscle lines
 	for s in (1, -1):
 		block(k, t, f"Chest{s}", s * 0.54, -0.6, 3.74, 3.0, 0.5, 0.12, "blue", ch=0.06, corner=0.2, jit=0.01, a=0.52, b=0.58)
-	# the V band: white under red
+	# the Y band: white under red, arms from the shoulders to a stem above the belt
 	for s in (1, -1):
-		strip(k, t, f"VWhite{s}", (s * 0.98, 3.84), (0, 2.6), 0.2, -0.73, 0.08, "white", a=0.58, b=0.4)
-		strip(k, t, f"VRed{s}", (s * 0.98, 3.84), (0, 2.6), 0.13, -0.75, 0.08, "red", a=0.54, b=0.5)
+		strip(k, t, f"VWhite{s}", (s * 0.98, 3.84), (0, 3.1), 0.2, -0.73, 0.08, "white", a=0.58, b=0.4)
+		strip(k, t, f"VRed{s}", (s * 0.98, 3.84), (0, 3.1), 0.13, -0.75, 0.08, "red", a=0.54, b=0.5)
+	strip(k, t, "StemWhite", (0, 3.2), (0, 2.6), 0.2, -0.73, 0.08, "white", a=0.58, b=0.4)
+	strip(k, t, "StemRed", (0, 3.2), (0, 2.6), 0.13, -0.75, 0.08, "red", a=0.54, b=0.5)
 	block(k, t, "Belt", 0, 0, 2.42, 2.16, 1.08, 0.61, "yellow", ch=0.04, a=0.54)
 	block(k, t, "Hips", 0, 0, 2.16, 1.88, 1.06, 0.585, "blue", ch=0.02, a=0.42, b=0.6)
 	# high collar and the short cape, close to the back, hem cut in points
