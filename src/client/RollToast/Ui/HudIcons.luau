@@ -4,7 +4,7 @@
 return {
 	Shop = { Image = "rbxassetid://122477634476364" },
 	Items = { Image = "rbxassetid://129493708099921" },
-	Index = { Image = "rbxassetid://128931878370627" },
+	Index = { Image = "rbxassetid://109858472680311" }, -- in-house card fan, tools/blender/plaza/index_icon.py
 	Upgrade = { Image = "rbxassetid://91603574230764" },
 	Stats = { Image = "rbxassetid://122191050291444" },
 	Rebirth = { Image = "rbxassetid://126025259967772" },

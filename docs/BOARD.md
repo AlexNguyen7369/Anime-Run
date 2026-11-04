@@ -1,7 +1,7 @@
 # Board
 
 ## Doing
-- first-impression fi5 (not started; owner asked for fi1-fi4 this round)
+- c3 full compatibility check, then PR to main (owner approved), then 4.25 track loading
 - c4 Workshop stat boost (owner 2026-11-03, design doc 4.19): orch/core/c4 in ../AnimeRun-orch/c4, implementer running
 
 ## Paused
@@ -22,6 +22,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-03 first-impression fi5: plaza petals and audio, trunks, Index icon: pass=8 fail=0, rules audit findings fixed
 - 2026-11-03 first-impression fi3, fi4, load optimization: fresh server 40-44 s (was 65-77), pass=4 fail=0, rules audit PASS round 4; gate burst, real fresh save, phone, Reduced Motion not seen
 - 2026-11-03 first-impression fi1 + fi2 (5759bae): plaza and Dojo meshes, loading screen, Market and Race Start landmarks: world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS round 2
 - 2026-11-03 char-art marks pass: 15 characters' logos and symbols altered, overall designs unchanged, uploaded; rules audit PASS; Studio load check of the new assets open (Studio held)

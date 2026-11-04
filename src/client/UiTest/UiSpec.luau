@@ -1106,7 +1106,7 @@ UiSpec.Billboards = {
 		MaxDistance = "TrackBuilder.WIN_TEXT_DISTANCE",
 		Text = "HudFormat.MoneyText(Cash)",
 	},
-	-- The enemy indicator (design doc 4.25): name over arrow, no distance limit, draws over the world
+	-- The enemy indicator (design doc 4.26): name over arrow, no distance limit, draws over the world
 	NpcLabel = {
 		Label = "Text",
 		Arrow = "Arrow",

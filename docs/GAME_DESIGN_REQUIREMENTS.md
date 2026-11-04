@@ -316,8 +316,8 @@ the owner before any Studio work (owner 2026-11-03).
 - **Loading screen** (owner, later the same day; replaces "opens at 8 s"): the game's logo (`assets/logo/AnimeRunLogo.png`, owner's
   art) and a loading bar showing real progress. It does not finish until the assets a player sees first have loaded on their
   client (the plaza and Track 1 world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content
-  queue empty, at most 4 s of grace, proposed), and it stays up at least 8 seconds. Owner 2026-11-03, later, asked to keep the load
-  short; this narrowing (far biomes and other characters load behind the game) is an orchestrator default awaiting the owner's review (`docs/OWNER_QUESTIONS.md`). Safety limit 90 s (proposed): a stuck asset never traps a
+  queue empty, at most 4 s of grace, proposed), and it stays up at least 8 seconds. Owner 2026-11-03, later: keep the load
+  short; far biomes and other characters load behind the game (owner confirmed). Safety limit 90 s (proposed): a stuck asset never traps a
   player. Shown on every join (proposed).
 - **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
   to the spawn. Reduced Motion replaces it with a cut.
@@ -327,6 +327,7 @@ the owner before any Studio work (owner 2026-11-03).
   first run ends (its button still works). The gate plays a burst when they first cross it.
 - **Legends and sky loop** (new, owner): the plaza shows one top character per Series on a pedestal, and 2-3 client-only
   runners with trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
+- **Plaza atmosphere** (owner approved the plan): falling petals and quiet forest ambience reusing Track 1's reviewed sounds. Sakura trunks are solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
 - **Wayfinding** (owner): the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
@@ -338,7 +339,10 @@ the owner before any Studio work (owner 2026-11-03).
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
 
-### 4.25 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
+### 4.25 Track loading (owner 2026-11-03)
+- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first (owner: "once tracks 1-5 load, then load in player proximity"). Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
+
+### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
 - Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
   and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
 - The player sees one enemy at a time: the one they are racing now.
@@ -411,11 +415,13 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
-- 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.25).
+- 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
 - 2026-11-03: orchestrator default, for the owner's fresh-save test: Studio-only `TestSaveKey` test saves (4.24).
-- 2026-11-03: orchestrator default (owner delegated, awaiting review): the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
-- 2026-11-03: orchestrator default (owner delegated, awaiting review): a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).
-- 2026-11-03: owner asked to keep the load short; orchestrator default (owner delegated, awaiting review): the loading screen waits for what a player sees first, the rest loads behind the game (4.24).
+- 2026-11-03: orchestrator default, owner accepted the same day: the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
+- 2026-11-03: orchestrator default, owner accepted the same day: a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).
+- 2026-11-03: owner: the loading screen waits for what a player sees first, the rest loads behind the game (4.24).
+- 2026-11-03: owner approved fi5: plaza petals, quiet forest ambience, solid sakura trunks, Index icon without a car (4.24).
+- 2026-11-03: owner: track loading: once Tracks 1-5 are built the player can load in; the rest build behind the game, in player proximity (4.25, not built yet).
 - 2026-11-03: owner: the Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold` (4.24).
 - 2026-11-03: owner: Market and Race Start clearly marked in bold so players can navigate the plaza (4.24).
 - 2026-11-03: owner: the loading screen waits until assets have fully loaded on the player's client, 8 s minimum (4.24).

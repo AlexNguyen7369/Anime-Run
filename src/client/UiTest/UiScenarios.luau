@@ -5810,7 +5810,7 @@ function S.ui_billboards(res)
 		want = start.Label
 	end
 	check(res, "npc_label_text", text and text.Text, want, text ~= nil and text.Text == want)
-	-- the indicator (design doc 4.25): no distance limit, draws over the world, the name over an arrow
+	-- the indicator (design doc 4.26): no distance limit, draws over the world, the name over an arrow
 	check(
 		res,
 		"npc_label_max_distance",

@@ -16,6 +16,7 @@ local WorkshopConfig = require(Shared.WorkshopConfig)
 local PlazaDressing = {}
 
 local TOP = 1 -- SpawnArea.TOP_Y
+local TRUNK_RADIUS = { GreatSakura = 3.2, Sakura_A = 1.9, Sakura_B = 1.4, Sakura_C = 1.4, Sakura_D = 1.4 }
 local SIGN_HEIGHT = { [1] = 24, [4] = 32, [7] = 38, [10] = 44 } -- owner's sign above each tier's roof (studs)
 -- Stand-ins a mesh replaces: SpawnArea child -> mesh key
 local REPLACES = {
@@ -222,6 +223,22 @@ function PlazaDressing.Start(spawnArea)
 			folder.Name = "PlazaDressing"
 			for _, row in Layout.Placed do
 				place(row.Key, frameOf(row.Pos, row.Face), folder)
+			end
+			-- The trees' meshes do not collide: a solid trunk under each (radius proposed, from build_plaza.py)
+			for _, row in Layout.Placed do
+				local radius = TRUNK_RADIUS[row.Key]
+				if radius and templates[row.Key] then -- no mesh, no unseen wall
+					local trunk = Instance.new("Part")
+					trunk.Name = "SakuraTrunk"
+					trunk.Shape = Enum.PartType.Cylinder
+					trunk.Size = Vector3.new(24, radius * 2, radius * 2)
+					trunk.CFrame = CFrame.new(row.Pos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90))
+					trunk.Anchored = true
+					trunk.Transparency = 1
+					trunk.CastShadow = false
+					trunk.CanTouch = false
+					trunk.Parent = folder
+				end
 			end
 			for _, row in Layout.Signs do
 				sign(row.Text, row.Pos, row.Face, row.Size, Color3.fromHex(row.Color), folder)

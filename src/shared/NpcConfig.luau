@@ -5,7 +5,7 @@
 -- Tracks[n] overrides the defaults for track n:
 --   Color  Color3 of the starter car body
 --   Speed  cruise speed, studs/s (the NPC slows only where corner grip requires it)
---   Label  the enemy's name, shown in the indicator above its head (design doc 4.25)
+--   Label  the enemy's name, shown in the indicator above its head (design doc 4.26)
 --   Model  name of a Model under ReplicatedStorage.NpcModels, or a character catalog id (skinned like the player's car)
 
 local NpcConfig = {}

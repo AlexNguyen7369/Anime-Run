@@ -6020,7 +6020,7 @@ end
 -- faster than RaceConfig.BASE_SPEED (a stat-0 starter car loses; retired: design doc 4.13, a Common wins
 -- Track 1; owner 2026-11-03 keeps Track 1 balance, so npc_track1_beats_beginner is retired). NPCs are skinned as catalog cars
 -- (NpcConfig.Tracks[n].Model -> the rig's CharacterId).
--- OWNER CHANGE 2026-11-03 (design doc 4.25, docs/NPC_RIVAL_SPEC.md): every NPC is a named enemy (NpcConfig.Tracks[n].Label).
+-- OWNER CHANGE 2026-11-03 (design doc 4.26, docs/NPC_RIVAL_SPEC.md): every NPC is a named enemy (NpcConfig.Tracks[n].Label).
 -- Its label is the indicator: the name over an arrow, no distance limit, always on top; the brief's proximity label is retired.
 local NPC_ORIGIN = Vector3.new(40000, 0, 0)
 local MULTI_ORIGIN = Vector3.new(-40000, 0, 0)
@@ -6396,7 +6396,7 @@ function Scenarios.npc()
 			local growthOk = isFiniteNumber(cfgGrowth) and cfgGrowth > 1 and math.abs(growth - cfgGrowth) <= 1e-6
 			check(checks, "npc_speed_growth_is_config", growth, isFiniteNumber(cfgGrowth) and cfgGrowth or -1, growthOk)
 			-- retired: npc_track1_rec_speed_below_10k (no Speed requirement, design doc 4.13, owner 2026-11-01)
-			-- the enemy's own name (design doc 4.25), never the LABEL_FORMAT fallback
+			-- the enemy's own name (design doc 4.26), never the LABEL_FORMAT fallback
 			local function enemyNamed(n)
 				local entry = NpcConfig.Tracks[n]
 				local name = entry and entry.Label
@@ -6431,7 +6431,7 @@ function Scenarios.npc()
 			end
 			check(checks, "npc_info_number", numbersOk and 1 or 0, 1, numbersOk)
 		end
-		-- retired: npc_label_distance_finite (the indicator has no distance limit, design doc 4.25, owner 2026-11-03;
+		-- retired: npc_label_distance_finite (the indicator has no distance limit, design doc 4.26, owner 2026-11-03;
 		-- npc_label_max_distance below checks the limit is gone)
 
 		-- model / label / speed / colour are changeable per track (NpcConfig.Tracks is read live by For)
@@ -6684,7 +6684,7 @@ function Scenarios.npc()
 			)
 		end
 
-		-- NpcRacer.BuildModel: ghost runner in the track's colour with the indicator (design doc 4.25), never parented
+		-- NpcRacer.BuildModel: ghost runner in the track's colour with the indicator (design doc 4.26), never parented
 		if allInfo then
 			local okM1, m1 = pcall(NpcRacer.BuildModel, infos[1])
 			local okM2, m2 = pcall(NpcRacer.BuildModel, infos[2])
@@ -6740,7 +6740,7 @@ function Scenarios.npc()
 				local arrow = bbOk and bb:FindFirstChild("Arrow", true)
 				local arrowOk = arrow ~= nil and arrow ~= false and arrow:IsA("TextLabel") and arrow.Text ~= ""
 				check(checks, "npc_label_arrow", arrowOk and 1 or 0, 1, arrowOk)
-				-- was npc_label_title_rival: the indicator is the name over the arrow, nothing else (design doc 4.25)
+				-- was npc_label_title_rival: the indicator is the name over the arrow, nothing else (design doc 4.26)
 				local nameOnly = bbOk
 					and not bb:FindFirstChild("Title", true)
 					and not bb:FindFirstChild("Character", true)
@@ -6755,7 +6755,7 @@ function Scenarios.npc()
 
 			-- catalog skins (owner 2026-10-20; the CarModels folder is scrapped, WORLD_REDESIGN_SPEC): Tracks[n].Model is
 			-- a character id, and the rig carries CharacterId == Model unless ReplicatedStorage.NpcModels has that template.
-			-- Every track's enemy, skinned or not, gets the same indicator (design doc 4.25).
+			-- Every track's enemy, skinned or not, gets the same indicator (design doc 4.26).
 			local npcModels = ReplicatedStorage:FindFirstChild("NpcModels")
 			local skinned, skinBad, skinMissing, badIndicators = 0, 0, {}, {}
 			for n = 1, 10 do

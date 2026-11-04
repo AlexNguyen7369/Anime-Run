@@ -14,7 +14,7 @@ local UiTheme = require(script.Parent.UiTheme)
 
 local NpcRacer = {}
 
-local INDICATOR_SIZE = UDim2.fromOffset(340, 96) -- px, the same at any distance (placeholder, design doc 4.25)
+local INDICATOR_SIZE = UDim2.fromOffset(340, 96) -- px, the same at any distance (placeholder, design doc 4.26)
 
 -- Corner limit kept from IVS so NPC track times are unchanged (design doc section 3): lateral accel = MU x g x share
 local GRIP_MU = 1.2 -- the IVS car's tyre Mu
@@ -126,7 +126,7 @@ function NpcRacer.BuildModel(info)
 	model:SetAttribute("TrackNumber", info.Number)
 	setupParts(model)
 
-	-- The indicator (design doc 4.25): the arrow tip stays on top of the head, at any distance and through walls.
+	-- The indicator (design doc 4.26): the arrow tip stays on top of the head, at any distance and through walls.
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "NpcLabel"
 	billboard.Adornee = model:FindFirstChild("Head") or model.PrimaryPart

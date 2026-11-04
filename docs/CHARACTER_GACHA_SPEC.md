@@ -92,7 +92,7 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 | | Deko | Deku | Legendary | B | `mha_hero` |
 | | All Mighty | All Might | Mythic | M | `mha_symbol` |
 
-Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.25).
+Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.26).
 
 Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
 

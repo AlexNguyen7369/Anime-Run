@@ -6,7 +6,7 @@
 --   upright (up Y >= 0.999) on every track at a normal (Epic) and a max (Secret) character cruise, on the path
 --   (deviation <= PhysicsTargets.race.MaxPathDeviation), at exactly its cruise speed from the first second, every pad
 --   paid once. A BillboardGui shows the character's name (finite MaxDistance; an NPC's indicator has no limit, design
---   doc 4.25). Auras and trails attach to the Torso.
+--   doc 4.26). Auras and trails attach to the Torso.
 -- `scrap` (section 1 + 7): no CarFactory / CarPhysics / CarConfig, no VehicleSeat or wheel parts, no car assets
 --   (RacingGarage, RaceStartPavilion, CarModels), no car-only PhysicsTargets, no `Cars` collision group (`Runners`).
 -- Test seam (not named by the spec): Shared/RunnerFactory.build(characterId) -> Model (PrimaryPart set), the body

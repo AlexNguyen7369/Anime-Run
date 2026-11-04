@@ -71,6 +71,14 @@
   "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 778
  },
+ "IndexIcon": {
+  "Asset": 109858472680311,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "In-house render, tools/blender/plaza/index_icon.py, assets/ui/IndexIcon.png, decal 80265572611193",
+  "Reviewed": "2026-11-03 rules-auditor"
+ },
  "Lantern": {
   "Asset": "102986489315321",
   "Hash": "b9c58a665cc938b8",

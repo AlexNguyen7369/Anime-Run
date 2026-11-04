@@ -52,8 +52,9 @@
 48. 2026-11-03 — Alex Nguyen — Built first-impression fi3 on its task branch: camera reveal, lighter starter dim with an in-world reveal, petal trail to the gate, Daily held until the first run ends, and the gate burst (stylua clean, selene 0 errors, Studio check still open).
 49. 2026-11-03 — Alex Nguyen — Landed first-impression fi3 and fi4 plus a shorter load: first-join reveal, trail, Daily hold and gate burst, Dojo level-up effect, squad poses, stat lanterns and YOUR DOJO marker, with a fresh server opening at 40-44 s instead of 65-77 s (world_layout, spawn_area, dojo, workshop pass=4 fail=0; rules audit PASS; gate burst, a real fresh save, phone and Reduced Motion not seen).
 50. 2026-11-03 — Alex Nguyen — Tested the first-join flow on real fresh test saves with a Studio-only `TestSaveKey`, and fixed what it found: the first roll card covering the hero reveal, SKIP overlapping a HUD button, the sweep ending away from the gate and the hero hidden behind the avatar; also kept test sessions off the leaderboards (data, world_layout, spawn_area, dojo, workshop pass=5 fail=0; rules audit PASS; phone and a second real account not tested).
+51. 2026-11-03 — Alex Nguyen — Landed first-impression fi5: falling petals and quiet ambience in the plaza, solid sakura trunks and an in-house Index icon replacing the car, and recorded the owner's rulings on loading and the Daily panel (pass=8 fail=0 before the icon id and trunk guard changes; rules audit findings fixed).
 
 ## What's next
-**Owner reviews the defaults in docs/OWNER_QUESTIONS.md and tries the game on a phone; then fi5, or the c3 check and PR to main, on the owner's word.**
+**Run the c3 full compatibility check (full server harness, UI harness, rules audit) on feature/alex/anime-world and fix what it finds.**
 
-**Why this is next:** the fresh-save flow now passes, so the open questions and phone performance are what stand between this branch and main.
+**Why this is next:** the owner approved the PR to main, which needs c3 green and a fresh review, and the Tracks 1-5 loading work (design doc 4.25) follows the PR.

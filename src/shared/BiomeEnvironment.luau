@@ -95,7 +95,29 @@ local PLAZA = Kit.Atmosphere({
 	Bloom = { Intensity = 0.35, Size = 24, Threshold = 1.6 },
 	Sky = { Skybox = "SkyGolden", SunAngularSize = 8, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
 	Clouds = { Cover = 0.32, Density = 0.35, Color = Kit.hex("FFE6D2") },
+	Particles = {
+		{
+			Texture = "PlazaPetal",
+			Color = Kit.hex("FFFFFF"),
+			Size = 0.7,
+			Rate = 10,
+			Lifetime = 7,
+			Speed = 2,
+			SpreadAngle = 50,
+			LightEmission = 0,
+			Area = Kit.v(90, 35, 90),
+		},
+	},
 })
+-- Reuses Track 1's reviewed forest ambience, quieter (rows in BiomeThemes/Speedway)
+local PLAZA_AUDIO = { Loop = "AmbForest", OneShots = { "SfxWindChime" }, Volume = 0.2 }
+local PLAZA_PETAL = {
+	Kind = "Texture",
+	Id = "rbxassetid://130260166899982",
+	Lane = "B",
+	Reviewed = "2026-11-03 rules-auditor",
+	Notes = "In-house numpy teardrop, tools/blender/plaza/plaza_petal.py",
+}
 -- Drawn in-house (tools/blender/plaza/plaza_sky.py, assets/biomes/Plaza/sky): a plain gradient, the same image on the 4 sides.
 local PLAZA_SKY = {
 	Kind = "Skybox",
@@ -122,6 +144,9 @@ function BiomeEnvironment.Profile(zone)
 end
 
 function BiomeEnvironment.Audio(zone)
+	if zone == 0 then
+		return PLAZA_AUDIO
+	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Audio or {}
 end
@@ -141,7 +166,12 @@ end
 
 function BiomeEnvironment.Asset(zone, key, kind)
 	if zone == 0 then
-		return key == "SkyGolden" and PLAZA_SKY or nil
+		if key == "SkyGolden" then
+			return PLAZA_SKY
+		elseif key == "PlazaPetal" then
+			return PLAZA_PETAL
+		end
+		return BiomeEnvironment.Row("Speedway", key, kind)
 	end
 	return BiomeEnvironment.Row(biomeOf[zone], key, kind)
 end
