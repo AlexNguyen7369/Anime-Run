@@ -340,6 +340,12 @@ before any Studio work.
 - Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
 - No plaza Legend for this Series yet: the owner later capped Legends at 2 (4.24, `animerun-b3`, d3); whether Aizon replaces one is an open question.
 
+### 4.32 Villains are rollable (owner 2026-11-04)
+- The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
+  character design skill and reviewed by the owner before upload. New: Paine, Selle, Arlon, Akazo, Jogoh, Shigaraky, Mahitoh, Enelu.
+  Freezo and Ulquiorro were already rollable. Rarity is the owner's: Epic Arlon, Jogoh; Legendary Paine, Shigaraky, Mahitoh; Mythic
+  Selle, Akazo, Enelu. `Chance`, `SpeedMulti`, `Category` are placeholders inside the bands. Each shares its enemy's model.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -400,6 +406,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).
 - 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
 - 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).

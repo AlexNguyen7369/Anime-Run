@@ -107,7 +107,20 @@ Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. a
 
 Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
 
-Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 7, Legendary 6, Mythic 6, Secret 2.
+Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are proposed; each shares its enemy's model):
+
+| Series | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Narito Shippudon | Paine | Pain | Legendary | B | `leaf_rings` | 3e7 | 35 | `foe_leaf` |
+| Dragon Bawl Z | Selle | Cell | Mythic | B | `db_perfect` | 1e10 | 170 | `foe_db` |
+| One Peace | Arlon | Arlong | Epic | M | `sea_shark` | 900,000 | 11 | `foe_sea` |
+| One Peace | Enelu | Enel | Mythic | S | `sea_thunder` | 3e12 | 300 | `foe_sea2` |
+| Demon Slicer | Akazo | Akaza | Mythic | S | `ds_upper` | 1e14 | 380 | `foe_ds` |
+| Jujitsu Kaisan | Jogoh | Jogo | Epic | M | `jk_volcano` | 1,200,000 | 13.5 | `foe_jk` |
+| Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
+| My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
+
+Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 
@@ -141,7 +154,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 36 regular (30 launch cast + 6 Bleech, owner 2026-11-04) + 3 event-only = 39 characters, plus the starter.
+Catalog total: 44 regular (30 launch cast + 6 Bleech + 8 villains, owner 2026-11-04) + 3 event-only = 47 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 

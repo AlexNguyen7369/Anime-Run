@@ -98,6 +98,16 @@ Deliverables:
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
 Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner) and the Aura stall kept (its stray checker block removed, owner).
 
+## villains: Villains redesigned and rollable (owner 2026-11-04, design doc 4.32)
+Status: active
+Owner-confirmed: 2026-11-04
+Branch: feature/alex/anime-world
+Spec: docs/CHARACTER_GACHA_SPEC.md, docs/NPC_RIVAL_SPEC.md
+Deliverables:
+- v1 | 9 `foe_*` models rebuilt with the character design skill, one evidence file each | exports under budget; owner approves renders; uploaded
+- v2 | 8 new catalog characters sharing those models | `catalog` + `gacha` green, rules audit PASS
+Out of scope: Freezo and Aizon models, new enemies.
+
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
 Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")
