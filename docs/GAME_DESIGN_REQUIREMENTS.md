@@ -410,6 +410,7 @@ The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 - 2026-11-03: orchestrator default, owner accepted the same day: the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
 - 2026-11-03: orchestrator default, owner accepted the same day: a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).
 - 2026-11-03: owner: the loading screen waits for what a player sees first, the rest loads behind the game (4.24).
+- 2026-11-03: owner approved fi5: plaza petals, quiet forest ambience, solid sakura trunks, Index icon without a car (4.24).
 - 2026-11-03: owner: track loading: once Tracks 1-5 are built the player can load in; the rest build behind the game, in player proximity (4.25, not built yet).
 - 2026-11-03: owner: the Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold` (4.24).
 - 2026-11-03: owner: Market and Race Start clearly marked in bold so players can navigate the plaza (4.24).

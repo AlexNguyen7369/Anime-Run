@@ -227,7 +227,7 @@ function PlazaDressing.Start(spawnArea)
 			-- The trees' meshes do not collide: a solid trunk under each (radius proposed, from build_plaza.py)
 			for _, row in Layout.Placed do
 				local radius = TRUNK_RADIUS[row.Key]
-				if radius then
+				if radius and templates[row.Key] then -- no mesh, no unseen wall
 					local trunk = Instance.new("Part")
 					trunk.Name = "SakuraTrunk"
 					trunk.Shape = Enum.PartType.Cylinder
