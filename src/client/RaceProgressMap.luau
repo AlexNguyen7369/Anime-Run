@@ -15,6 +15,7 @@ local RouteMath = require(Shared.RaceProgressMap)
 local UiTheme = require(Shared.UiTheme)
 local Themes = require(Shared.BiomeThemes)
 local UiMotion = require(script.Parent.UiMotion)
+local UiFeedback = require(script.Parent.UiFeedback)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 
 local Controller = {}
@@ -280,9 +281,17 @@ function Controller.Attach(hud, player, remote)
 		return state ~= nil and hud.Gui.Enabled and not (showcase and showcase.Enabled)
 	end
 
+	local lead = nil -- "AHEAD" or "BEHIND": who last led this track. EVEN keeps it, so a pass through a tie still counts.
 	local function setStatus(value)
 		if status.Text == value then
 			return
+		end
+		local word = value:match("^%a+")
+		if word == "AHEAD" or word == "BEHIND" then
+			if lead and lead ~= word then
+				UiFeedback.Play("EnemyPass", pill, { Sound = word == "AHEAD" })
+			end
+			lead = word
 		end
 		status.Text = value
 		status.TextColor3 = Palette.White
@@ -421,6 +430,7 @@ function Controller.Attach(hud, player, remote)
 			or "PB --"
 		hud.RaceMapTime.Text = "TIME 00:00.00"
 		status.Text = ""
+		lead = nil
 		setStatus("EVEN")
 		drawGeometry(true)
 		card.Visible = visible()
