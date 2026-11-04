@@ -118,7 +118,7 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Best Roll** (owner 2026-11-04): pedestal at (-8.5, -75), between Plots 1 and 2, radius 9.
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
-- **Legends**: 7 pedestals, 4 on one side of the path and 3 on the other (owner 2026-11-04, Bleech uses Aizon `soul_lord`), each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy (`sea_captain`; owner 2026-11-03).
+- **Legends**: 6 pedestals, 3 on each side of the path, each with the top character of one Series, about 9 studs tall. Client-only, like the sky-loop runners. Sea uses Lufy (`sea_captain`; owner 2026-11-03).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
   as client-only attachments, so streaming never hides them.

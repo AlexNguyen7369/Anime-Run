@@ -86,7 +86,7 @@ Spec: docs/CHARACTER_GACHA_SPEC.md
 Deliverables:
 - s1 | 5 new models (Orihima, Rukiya, Renjy, Ichigu, Aizon) in the avatar pipeline, one evidence file each | exports under budget, renders reviewed, uploaded
 - s2 | Catalog, Series, preset and Ulquiorro as `soul_hollow` on `foe_soul`, tests | `catalog` + `gacha` scenarios green, rules audit PASS
-- s3 | Seventh plaza pedestal after the spawn rework lands | pedestal shown, `spawn_area` green
+- s3 | Plaza Legend for this Series: blocked, owner decides against the 2-Legend cap (design doc 4.24, d3) |
 Out of scope: Bleech biome changes, rematch rewards, public release licensing.
 ## declutter: Clear spawn plaza (owner 2026-11-04)
 Status: active

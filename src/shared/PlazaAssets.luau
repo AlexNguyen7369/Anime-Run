@@ -291,7 +291,6 @@ return {
 		{ Key = "IndexBoard", Pos = Vector3.new(-72.000, 1.000, 16.250), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "LegendPedestal", Pos = Vector3.new(-1.518, 1.000, 21.879), Face = Vector3.new(-0.6805, 0, -0.7328) },
-		{ Key = "LegendPedestal", Pos = Vector3.new(-32.295, 1.000, 50.458), Face = Vector3.new(-0.6805, 0, -0.7328) }, -- Bleech: reuses this mesh
 		{ Key = "LegendPedestalx", Pos = Vector3.new(-21.931, 1.000, -0.105), Face = Vector3.new(0.6805, 0, 0.7328) },
 		{
 			Key = "LegendPedestalxx",
@@ -318,7 +317,6 @@ return {
 		{ Id = "mha_symbol", Pos = Vector3.new(-32.191, 3.600, 9.422), Face = Vector3.new(1.4132, 0, 0.0523) },
 		{ Id = "ds_flame", Pos = Vector3.new(-22.036, 3.600, 40.932), Face = Vector3.new(0.0523, 0, -1.4132) },
 		{ Id = "sea_captain", Pos = Vector3.new(-42.450, 3.600, 18.948), Face = Vector3.new(1.4132, 0, 0.0523) },
-		{ Id = "soul_lord", Pos = Vector3.new(-32.295, 3.600, 50.458), Face = Vector3.new(0.0523, 0, -1.4132) },
 	},
 	Signs = {
 		{

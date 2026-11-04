@@ -804,7 +804,6 @@ LEGENDS = [  # top character per Series (rarest in the catalog), side of the pat
 	("mha_symbol", 30, -1, "sb"),
 	("ds_flame", 44, 1, "st"),
 	("sea_captain", 44, -1, "sg"),
-	("soul_lord", 58, 1, "sp"),
 ]
 LEGEND_H = 9.0  # studs; about 1.6x a runner (proposed)
 RUNNER_H = 5.6
