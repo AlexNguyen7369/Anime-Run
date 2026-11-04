@@ -6,7 +6,7 @@ return {
 	Rarity = "Epic",
 	Chance = 1500000,
 	SpeedMulti = 14.5,
-	Order = 19,
+	Order = 22,
 	Category = "Sprinter",
 	Series = "mha",
 	Archetype = "brawler",

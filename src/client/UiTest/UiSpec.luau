@@ -3183,10 +3183,10 @@ UiSpec.Backpack = {
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
--- docs/CHARACTER_GACHA_SPEC.md "Launch cast": 30 rollable characters (the starter is not in the Index)
+-- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series": 36 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
-	Count = 30,
-	Rarities = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 },
+	Count = 36,
+	Rarities = { Common = 1, Uncommon = 7, Rare = 7, Epic = 7, Legendary = 6, Mythic = 6, Secret = 2 },
 	-- spec "Event-only characters": also in the Index with their odds; not part of Count / Rarities
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }

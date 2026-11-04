@@ -1,6 +1,6 @@
 --!nonstrict
--- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Tests" (owner 2026-10-28): 30 rollable characters plus the
--- built-in starter, ids exactly the committed list below (never renamed or removed), unique, every field valid, every
+-- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Tests" (owner 2026-10-28, 2026-11-04): 36 rollable
+-- characters plus the built-in starter, ids exactly the committed list below (never renamed or removed), unique, every field valid, every
 -- Series exists, every preset has 3 distinct members of its own series, and no id contains a real anime name.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -9,7 +9,7 @@ local H = require(script.Parent.AcceptanceSupport)
 local Tests = {}
 
 -- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (1 = catch-all), SpeedMulti, Event }
--- (Event = nil for the 30 regular characters; spec "Event-only characters" for the last 3).
+-- (Event = nil for the 36 regular characters; spec "Event-only characters" for the last 3).
 -- (spec "Launch cast" and placeholder Chance / SpeedMulti tables).
 local CAST = {
 	{ "leaf_medic", "Sakara", "Uncommon", "Balanced", "Narito Shippudon", 10, 1.25 },
@@ -42,10 +42,19 @@ local CAST = {
 	{ "mha_blast", "Bakugoo", "Epic", "Sprinter", "My Hero Akademia", 1500000, 14.5 },
 	{ "mha_hero", "Deko", "Legendary", "Balanced", "My Hero Akademia", 7.8e8, 100 },
 	{ "mha_symbol", "All Mighty", "Mythic", "Marathoner", "My Hero Akademia", 1e15, 425 },
+	{ "soul_healer", "Orihima", "Uncommon", "Balanced", "Bleech", 150, 2.1 },
+	{ "soul_ice", "Rukiya", "Rare", "Marathoner", "Bleech", 3000, 3.5 },
+	{ "soul_fang", "Renjy", "Epic", "Sprinter", "Bleech", 1000000, 13 },
+	{ "soul_substitute", "Ichigu", "Legendary", "Balanced", "Bleech", 2e8, 70 },
+	{ "soul_hollow", "Ulquiorro", "Mythic", "Sprinter", "Bleech", 3e10, 200 },
+	{ "soul_lord", "Aizon", "Mythic", "Marathoner", "Bleech", 3e14, 400 },
 	{ "ds_water", "Giyo", "Epic", "Marathoner", "Demon Slicer", 160000, 6, "rain" },
 	{ "jk_night", "Toje", "Legendary", "Sprinter", "Jujitsu Kaisan", 4.3e7, 8, "night" },
 	{ "sea_gold", "Rojer", "Legendary", "Balanced", "One Peace", 6.2e8, 10, "gold" },
 }
+
+-- A character wearing another id's model (spec "Bleech series" Model column); every other character has Model = nil.
+Tests.SHARED_MODEL = { soul_hollow = "foe_soul" }
 
 -- Rows as { Id, Rarity, Chance, SpeedMulti, Event } for the gacha scenarios (Scenarios.luau GACHA_CATALOG).
 Tests.CAST = {}
@@ -55,7 +64,7 @@ end
 
 local EVENTS = { rain = true, night = true, gold = true } -- WeatherConfig events with an event-only character
 -- regular (non-event) characters per rarity
-local RARITY_COUNT = { Common = 1, Uncommon = 6, Rare = 6, Epic = 6, Legendary = 5, Mythic = 4, Secret = 2 }
+local RARITY_COUNT = { Common = 1, Uncommon = 7, Rare = 7, Epic = 7, Legendary = 6, Mythic = 6, Secret = 2 }
 local CATEGORIES = { Sprinter = true, Balanced = true, Marathoner = true }
 local ARCHETYPES = {}
 for _, a in
@@ -110,6 +119,14 @@ local REAL_NAME_HASHES = {
 	{ 11, 1307652066 },
 	{ 11, 1795170271 },
 	{ 12, 429441481 },
+	-- Bleech series and its "Based on" column (design doc 4.30)
+	{ 5, 253096350 },
+	{ 5, 273100351 },
+	{ 5, 273672035 },
+	{ 6, 67569950 },
+	{ 6, 1951662473 },
+	{ 7, 1976864668 },
+	{ 9, 1958541188 },
 	-- Real place names from docs/TRACKS_AND_BIOMES_SPEC.md "References" (w4, design doc section 5 "no real place names")
 	{ 6, 160293963 },
 	{ 6, 42764698 },
@@ -192,8 +209,8 @@ function Tests.catalog()
 	flag("no_pass_characters", type(passes) == "table" and #passes == 0, type(passes) == "table" and #passes or -1, 0)
 
 	local all, rollable = catalog.All(), catalog.Rollable()
-	flag("all_33_characters", #all == #CAST, #all, #CAST)
-	flag("rollable_30_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
+	flag("all_39_characters", #all == #CAST, #all, #CAST)
+	flag("rollable_36_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
 	-- ids exactly the committed list, unique, starter excluded
 	local want, seen, dupes, extra = {}, {}, {}, {}
@@ -270,7 +287,7 @@ function Tests.catalog()
 		if not ARCHETYPES[c.Archetype] then
 			table.insert(problems, "Archetype")
 		end
-		if c.Model ~= nil then
+		if c.Model ~= Tests.SHARED_MODEL[id] then
 			table.insert(problems, "Model")
 		end
 		if c.Event ~= event or (c.Event ~= nil and not EVENTS[c.Event]) then
@@ -309,7 +326,7 @@ function Tests.catalog()
 	end
 	flag("no_real_name_in_ids", #realBad == 0, table.concat(realBad, ","), "")
 
-	-- series sizes from the committed list (ds / jk / sea 6 with their event character, others 5); every preset has 3 distinct members of its own series
+	-- series sizes from the committed list (ds / jk / sea 6 with their event character, soul 6, others 5); every preset has 3 distinct members of its own series
 	local presetBad, perSeries, wantSize = {}, {}, {}
 	for _, row in CAST do
 		wantSize[row[5]] = (wantSize[row[5]] or 0) + 1
@@ -339,8 +356,37 @@ function Tests.catalog()
 			table.insert(presetBad, tostring(s.Id))
 		end
 	end
-	flag("series_count_6", #series.List == 6, #series.List, 6)
+	flag("series_count_7", #series.List == 7, #series.List, 7)
 	flag("presets_three_own_members", #presetBad == 0, table.concat(presetBad, ","), "")
+
+	-- Bleech (design doc 4.30, spec "Bleech series"): the 6 ids in their rarities, the shared enemy model, the preset
+	local soulBad = {}
+	for id, rarity in
+		{
+			soul_healer = "Uncommon",
+			soul_ice = "Rare",
+			soul_fang = "Epic",
+			soul_substitute = "Legendary",
+			soul_hollow = "Mythic",
+			soul_lord = "Mythic",
+		}
+	do
+		local c = catalog.Get(id)
+		if not (c and c.Rarity == rarity and c.Series == "soul" and c.Rollable == true) then
+			table.insert(soulBad, id)
+		end
+	end
+	flag("soul_ids_in_rarities", #soulBad == 0, table.concat(soulBad, ","), "")
+	local hollow = catalog.Get("soul_hollow")
+	flag("soul_hollow_uses_foe_soul", hollow ~= nil and hollow.Model == "foe_soul", hollow and hollow.Model, "foe_soul")
+	local soul = series.Get("soul")
+	local soulPreset = soul and soul.Preset
+	flag(
+		"soul_preset_substitute_squad",
+		type(soulPreset) == "table"
+			and soulPreset.Name == "Substitute Squad"
+			and H.same(soulPreset.Members, { "soul_substitute", "soul_ice", "soul_fang" })
+	)
 	return r
 end
 
