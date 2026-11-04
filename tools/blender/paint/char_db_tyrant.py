@@ -1,212 +1,127 @@
-# Painted look for db_tyrant, last form: all smooth white body, glossy purple domes on crown, shoulders, chest, forearms and
-# shins, a long tail, red eyes, purple lips and the marks round the eyes.
-from atlas import INK, shade
-from db_common import bare_arm, dome, fist, head_faces, limb_faces, mirrored, sculpted_head, shard, sharp_eye, tube
-import math
+# Target look for db_tyrant, last form: smooth white body, glossy purple domes on crown, shoulders, chest, forearms and shins,
+# a long tail held close and curling round to the front, red eyes, dark purple lips, marks round the eyes.
+# +X is the viewer's right in the front view.
+from db_common import circle
+from db_style3 import block, box, dome, pipe, shell
+from leaf_common import begin_clip, end_clip
+from style2 import Kit, Ramps, face
+from style3 import big_head, finish
 
-WHITE = "#ffffff"
-SHADOW = "#d4cce8"
-SHADOW_D = "#a79cc8"
-PURPLE = "#7a35b4"
-PURPLE_L = "#b77ee8"
+WHITE = "#f4f2f8"
+SHADOW = "#c8c0dc"
+SHADOW_D = "#958ab4"
+PURPLE = "#8e3fc2"
 PURPLE_D = "#40186e"
-LINE = "#3a3250"
+LIP = "#5b2b7a"
+MARK = "#7a3fa0"
+RED = "#c0142b"
 DEFAULT = WHITE
-HAIR_COLOURS = []
+R = Ramps(
+	white=["#958ab4", "#c8c0dc", WHITE, "#ffffff"],
+	# the gloss: a dark foot, a saturated body and one bright plane on top
+	purple=["#3a1566", "#5c2490", PURPLE, "#b070ea", "#e8c8ff"],
+)
 HAIR = {"colour": WHITE, "locks": []}
 PROPS = []
-PI = math.pi
-# z, half width, front depth, back depth
-HEAD = ((4.0, 0.24, 0.36, 0.12), (4.08, 0.38, 0.48, 0.3), (4.22, 0.52, 0.56, 0.46), (4.42, 0.62, 0.6, 0.58), (4.66, 0.66, 0.62, 0.62), (4.96, 0.66, 0.64, 0.64), (5.16, 0.62, 0.62, 0.62), (5.3, 0.5, 0.52, 0.52), (5.38, 0.3, 0.32, 0.32), (5.41, 0.08, 0.08, 0.08))
+# a rounder, narrower skull than the rest of the cast, tapering to a small chin
+HEAD_ROWS = [(0, 0, 3.98, 0.42, 0.5), (0, 0, 4.14, 0.62, 0.66), (0, 0, 4.42, 0.78, 0.76), (0, 0, 5.3, 0.82, 0.78), (0, 0, 5.56, 0.72, 0.68), (0, 0, 5.72, 0.5, 0.48)]
+GLOSS = dict(base=0.46, amp=0.5, grad=0.08)
 
 
-def glossy(kit, name, centre, radii, part, rot=(0, 0, 0)):
-	"""A dome with a flat light patch on it: the painted gloss of the source design."""
-	from mathutils import Euler, Vector
+def _body(k):
+	shell(k, "Torso", [(4.05, 0.82, 0.44, (0,) * 5), (3.88, 1.03, 0.54, (0,) * 5), (3.4, 1.04, 0.55, (0.02, -0.04, 0, -0.04, 0.02)), (2.9, 1.0, 0.54, (0.04, 0, 0.03, 0, 0.04)), (2.5, 1.02, 0.54, (0,) * 5), (2.02, 1.04, 0.56, (0,) * 5)], "white", base=0.3, amp=0.5)
+	dome(k, "UpperTorso", "ChestDome", (0, -0.5, 3.36), (0.74, 0.5, 0.26), "purple", up="-y", n=12, **GLOSS)
+	# the tail: from the small of the back, down behind the legs, round the viewer's right, tip turned up at the foot
+	pts = [(0.0, 0.42, 2.5, 0.3), (0.0, 0.72, 2.28, 0.31), (0.06, 0.92, 1.74, 0.3), (0.14, 1.0, 1.16, 0.28), (0.34, 1.0, 0.62, 0.25), (0.84, 0.94, 0.32, 0.21), (1.34, 0.56, 0.24, 0.17), (1.58, 0.06, 0.28, 0.13), (1.62, -0.34, 0.54, 0.09), (1.62, -0.46, 1.06, 0.015)]
+	pipe(k, "UpperTorso", "Tail", pts, "white", base=0.44, amp=0.42, grad=0.04)
 
-	dome(kit, name, centre, radii, PURPLE, part, rot=rot)
-	m = Euler(rot, "XYZ").to_matrix()
-	off = m @ Vector((-radii[0] * 0.3, -radii[1] * 0.1, radii[2] * 0.72))
-	dome(kit, name + "_Gloss", tuple(Vector(centre) + off), (radii[0] * 0.26, radii[1] * 0.3, radii[2] * 0.3), PURPLE_L, part, rot=rot, nu=8, nv=2)["flat"] = True
+
+def _arm(k, part, s):
+	ax = s * 1.5
+	block(k, part, "Arm", ax - 0.525, ax + 0.525, -0.525, 0.525, 3.08, 3.96, "white", c=0.03, base=0.34, amp=0.48)
+	# the shoulder cap covers the block's whole top, its planes stepping in to a dome
+	rows = [(3.66, 0.5), (3.72, 0.56), (3.94, 0.59), (4.1, 0.52), (4.22, 0.36), (4.27, 0.18)]
+	box(k, part, "ShoulderDome", [(z, ax - w, ax + w, -w, w) for z, w in rows], "purple", c=0.14, **GLOSS)
+	# the forearm: a fat glossy plate bulging out of the arm all round
+	rows = [(3.1, 0.5), (2.98, 0.57), (2.7, 0.6), (2.46, 0.56), (2.36, 0.5)]
+	box(k, part, "Forearm", [(z, ax - w, ax + w, -w, w) for z, w in rows], "purple", c=0.12, **GLOSS)
+	block(k, part, "Hand", ax - 0.52, ax + 0.52, -0.52, 0.52, 1.8, 2.38, "white", c=0.03, base=0.42, amp=0.4, grad=0.08)
+
+
+def _leg(k, part, block_name, s):
+	x0, x1 = min(s * 0.03, s * 1.03), max(s * 0.03, s * 1.03)
+	k.reshape(part, block_name, [(s * 0.53, 0, 2.0, 0.46, 0.46), (s * 0.53, 0, 0.0, 0.46, 0.46)], corner=0.12, nc=1)
+	box(k, part, "Thigh", [(2.0, x0, x1, -0.53, 0.53), (1.3, x0, x1, -0.53, 0.53), (0.32, x0 + 0.02, x1 - 0.02, -0.52, 0.52)], "white", c=0.08, base=0.34, amp=0.48, grad=0.08)
+	cx = (x0 + x1) / 2
+	dome(k, part, "ShinDome", (cx, -0.48, 0.98), (0.42, 0.56, 0.2), "purple", up="-y", n=10, **GLOSS)
+	# the foot, long and bare
+	rows = [(0.0, -0.92, 0.56), (0.1, -0.96, 0.58), (0.26, -0.92, 0.58), (0.44, -0.66, 0.56), (0.56, -0.54, 0.54)]
+	box(k, part, "Foot", [(z, x0 - 0.01, x1 + 0.01, y0, y1) for z, y0, y1 in rows], "white", c=0.08, base=0.42, amp=0.4, grad=0.08)
 
 
 def model(parts, kit):
-	head, t = parts["Head"], parts["UpperTorso"]
-	# a smooth egg of a skull, narrow chin
-	sculpted_head(kit, parts, HEAD, SHADOW, n=2.6)
-	glossy(kit, "Head_Crown", (0, 0.03, 5.3), (0.47, 0.56, 0.26), head)
-	# small ridged ears
-	for sgn, side in ((1, "L"), (-1, "R")):
-		dome(kit, f"Head_Ear{side}", (sgn * 0.7, 0.05, 4.72), (0.09, 0.14, 0.2), WHITE, head, full=True, nu=8, nv=3)
-		dome(kit, f"Head_EarHole{side}", (sgn * 0.77, 0.05, 4.72), (0.03, 0.06, 0.1), SHADOW_D, head, full=True, nu=6, nv=2)["flat"] = True
-	glossy(kit, "UpperTorso_Chest", (0, -0.48, 3.42), (0.5, 0.36, 0.2), t, rot=(PI / 2, 0, 0))
-	for sgn, side in ((1, "Left"), (-1, "Right")):
-		arm, leg = parts[side + "UpperArm"], parts[side + "LowerLeg"]
-		glossy(kit, side + "UpperArm_Shoulder", (sgn * 1.5, 0, 3.96), (0.58, 0.56, 0.36), arm)
-		# forearm: one dome on the front and one on the outside
-		glossy(kit, side + "LowerArm_ForeF", (sgn * 1.5, -0.49, 2.76), (0.34, 0.42, 0.1), arm, rot=(PI / 2, 0, 0))
-		glossy(kit, side + "LowerArm_ForeO", (sgn * 1.99, 0.0, 2.76), (0.34, 0.42, 0.1), arm, rot=(0, sgn * PI / 2, 0))
-		glossy(kit, side + "LowerLeg_Shin", (sgn * 0.5, -0.48, 0.66), (0.34, 0.46, 0.2), leg, rot=(PI / 2, 0, 0))
-		# three clawed toes
-		foot = parts[side + "Foot"]
-		for i, dx in enumerate((-0.3, 0.0, 0.3)):
-			x = sgn * 0.5 + dx
-			shard(kit, f"{side}Foot_Toe{i}", (x, -0.42, 0.14), (x, -0.72, 0.16), (x, -0.86, 0.06), 0.17, WHITE, foot, flatten=0.8, facing=(0, 0, 1), power=0.5, belly=0.1)
-			shard(kit, f"{side}Foot_Nail{i}", (x, -0.74, 0.1), (x, -0.84, 0.1), (x, -0.98, 0.02), 0.07, "#2c2238", foot, flatten=0.7, facing=(0, 0, 1))
-	# the long tail: thick at the root, whips round the wearer's left and up past the shoulder
-	spine = [(0, 0.46, 2.42), (0, 0.9, 2.18), (0.1, 1.4, 1.84), (0.5, 1.84, 1.5), (1.1, 2.04, 1.44), (1.75, 1.94, 1.72), (2.3, 1.56, 2.3), (2.5, 1.14, 3.0), (2.5, 0.84, 3.64)]
-	radii = [0.34, 0.32, 0.29, 0.26, 0.23, 0.2, 0.16, 0.1, 0.01]
-	tube(kit, "LowerTorso_Tail", spine, radii, WHITE, t, sides=8)
+	k = Kit(kit, parts, R)
+	big_head(k, HEAD_ROWS)
+	# the crown dome sits flush on the skull, leaving a white forehead
+	rows = [(5.38, 0.8, 0.76), (5.42, 0.815, 0.775), (5.56, 0.75, 0.71), (5.72, 0.6, 0.56), (5.86, 0.36, 0.34), (5.92, 0.18, 0.18)]
+	box(k, "Head", "CrownDome", [(z, -w, w, -d, d) for z, w, d in rows], "purple", c=0.16, **GLOSS)
+	_body(k)
+	for s, side in ((1, "Left"), (-1, "Right")):
+		_arm(k, f"{side}UpperArm", s)
+		_leg(k, f"{side}UpperLeg", f"{side}Leg", s)
+	finish()
 
 
-def paint_face(f):
-	f.fill(WHITE)
-	# soft narrow jaw, skull shading
-	f.path("M135 62H116Q112 96 96 114Q82 124 65 126V135H135Z", SHADOW, opacity=0.8)
-	f.path("M-5 92H10Q20 106 34 116Q50 124 65 126V135H-5Z", SHADOW, opacity=0.45)
-	# the ridge lines from brow up the forehead
-	f.taper(50, 30, 56, 44, 60, 56, 0.9, LINE)
-	f.taper(80, 30, 74, 44, 70, 56, 0.9, LINE)
-	# the purple marks: a thin stripe under each eye out to the temple, a shorter one above
-	for sgn, cx in ((-1, 36), (1, 94)):
-		f.path(f"M{cx - sgn * 13} 78Q{cx + sgn * 2} 86 {cx + sgn * 18} 72L{cx + sgn * 29} 58Q{cx + sgn * 25} 78 {cx + sgn * 12} 88Q{cx - sgn * 4} 92 {cx - sgn * 13} 78Z", PURPLE, stroke=PURPLE_D, sw=0.6)
-		f.path(f"M{cx - sgn * 4} 50Q{cx + sgn * 12} 44 {cx + sgn * 27} 42L{cx + sgn * 29} 50Q{cx + sgn * 12} 50 {cx - sgn * 4} 50Z", PURPLE, stroke=PURPLE_D, sw=0.6)
-	# long, arched, cruel eyes: black rims, big red iris
-	sharp_eye(f, 37, 66, -1, w=30, h=16, slant=8, pupil=3, iris="#cc1038", look=1.5, lid=3.4, top_arc=2, shine=True)
-	sharp_eye(f, 93, 66, 1, w=30, h=16, slant=8, pupil=3, iris="#cc1038", look=-1.5, lid=3.4, top_arc=2, shine=True)
-	f.taper(50, 80, 42, 84, 32, 82, 0.7, INK)
-	f.taper(80, 80, 88, 84, 98, 82, 0.7, INK)
-	# small nose, two slits
-	f.taper(60, 90, 62, 94, 64, 96, 0.5, LINE)
-	f.taper(70, 90, 68, 94, 66, 96, 0.5, LINE)
-	# black-purple lips drawn in a thin smirk
-	f.path("M46 112Q56 106 66 108Q74 106 86 106Q78 116 66 118Q54 118 46 112Z", "#3a1560", stroke=INK, sw=1.1)
-	f.path("M47 112Q66 110 85 106Q70 113 66 113Q56 114 47 112Z", INK)
-	f.path("M60 108Q66 106 72 107Q66 110 60 108Z", PURPLE_L, opacity=0.8)
-	f.taper(88, 103, 87, 105, 85, 107, 0.8, INK)
+def _eye(f, cx, cy, sgn):
+	"""Long and cat-like: red iris on white under a black lid, a thin dark rim."""
+	i, o = cx - sgn * 20, cx + sgn * 19
+	shape = f"M{i} {cy + 7}L{o} {cy - 15}L{o + sgn * 1} {cy + 3}Q{cx + sgn * 6} {cy + 14} {i + sgn * 7} {cy + 12}Z"
+	begin_clip(f, shape)
+	f.path(shape, "#ffffff")
+	f.path(circle(cx - sgn * 1.5, cy, 9.4, 11), RED)
+	f.path(circle(cx - sgn * 1.5, cy, 4.6, 5.8), "#14060c")
+	f.path(circle(cx, cy - 4.5, 1.6, 2), "#ffffff")
+	end_clip(f)
+	f.path(f"M{i - sgn * 2} {cy + 7}L{o + sgn * 3} {cy - 15}L{o + sgn * 1.5} {cy - 7}L{i - sgn * 2} {cy + 9}Z", "#14101c")
+	f.path(f"M{i + sgn * 7} {cy + 12}Q{cx + sgn * 6} {cy + 14} {o + sgn} {cy + 3}", stroke="#14101c", sw=1.3)
 
 
-def body_front(f):
-	f.fill(WHITE)
-	f.path("M174 -5Q190 70 172 118Q196 150 178 205H205V-5Z", SHADOW, opacity=0.8)
-	f.path("M26 -5Q12 70 28 118Q6 150 20 205H-5V-5Z", SHADOW, opacity=0.45)
-	# neck, collarbones
-	f.path("M64-5H136V6Q100 22 64 6Z", SHADOW, opacity=0.8)
-	f.taper(40, 26, 64, 34, 90, 26, 1, LINE)
-	f.taper(160, 26, 136, 34, 110, 26, 1, LINE)
-	# pecs: hard shadow under each
-	f.path("M16 62Q50 92 92 74L96 80Q50 104 18 80Z", SHADOW, opacity=0.95)
-	f.path("M184 62Q150 92 108 74L104 80Q150 104 182 80Z", SHADOW, opacity=0.95)
-	f.taper(14, 62, 50, 92, 94, 74, 1.7, LINE)
-	f.taper(186, 62, 150, 92, 106, 74, 1.7, LINE)
-	# abs
-	f.taper(100, 76, 102, 120, 100, 168, 1.5, LINE)
-	for y, w in ((98, 34), (118, 32), (138, 28)):
-		f.taper(100 - w, y, 80, y + 5, 98, y + 2, 1.1, LINE)
-		f.taper(100 + w, y, 120, y + 5, 102, y + 2, 1.1, LINE)
-		f.path(f"M{100 - w} {y}Q80 {y + 5} 98 {y + 2}L96 {y + 8}Q80 {y + 11} {100 - w + 2} {y + 6}Z", SHADOW, opacity=0.7)
-		f.path(f"M{100 + w} {y}Q120 {y + 5} 102 {y + 2}L104 {y + 8}Q120 {y + 11} {100 + w - 2} {y + 6}Z", SHADOW, opacity=0.7)
-	f.taper(40, 60, 34, 118, 50, 166, 1.1, LINE)
-	f.taper(160, 60, 166, 118, 150, 166, 1.1, LINE)
-	# hips
-	f.taper(28, 172, 66, 188, 96, 200, 1.5, LINE)
-	f.taper(172, 172, 134, 188, 104, 200, 1.5, LINE)
-	f.edges(0.14)
-
-
-def body_back(f):
-	f.fill(WHITE)
-	f.path("M174 -5Q190 70 172 118Q196 150 178 205H205V-5Z", SHADOW, opacity=0.8)
-	f.path("M64-5H136V10Q100 24 64 10Z", SHADOW, opacity=0.8)
-	f.taper(100, 18, 102, 90, 100, 150, 1.5, LINE)
-	f.taper(28, 34, 46, 80, 84, 96, 1.6, LINE)
-	f.taper(172, 34, 154, 80, 116, 96, 1.6, LINE)
-	f.path("M28 34Q46 80 84 96L60 120Q30 90 22 60Z", SHADOW, opacity=0.6)
-	f.path("M172 34Q154 80 116 96L140 120Q170 90 178 60Z", SHADOW, opacity=0.7)
-	f.taper(40, 128, 70, 150, 92, 158, 1.1, LINE)
-	f.taper(160, 128, 130, 150, 108, 158, 1.1, LINE)
-	# tail root
-	f.path("M60 200Q100 150 140 200Z", SHADOW, opacity=0.8)
-	f.edges(0.14)
-
-
-def body_side(f):
-	f.fill(WHITE)
-	f.path("M60 -5Q78 90 60 205H105V-5Z", SHADOW, opacity=0.75)
-	f.path("M-5-5H105V24Q50 40 -5 24Z", SHADOW, opacity=0.5)
-	for y in (70, 90, 110, 130):
-		f.taper(16, y, 34, y + 8, 50, y + 4, 0.9, LINE)
-	f.taper(60, 30, 72, 100, 58, 180, 1.2, LINE)
-	f.edges(0.14)
-
-
-def paint_arm(f, key):
-	bare_arm(f, key, WHITE, top=0, wrist=176, d=SHADOW, line=LINE)
-	fist(f, key, WHITE, y=176, line=LINE, nails="#6a5a8c" if key == "I" else None)
-
-
-def paint_leg(f, key):
-	f.fill(WHITE)
-	f.path("M70 -5Q88 50 74 100Q90 150 78 205H105V-5Z", SHADOW, opacity=0.85)
-	line = LINE
-	if key == "F":
-		f.taper(14, 8, 34, 44, 26, 88, 1.3, line)
-		f.taper(86, 8, 66, 44, 74, 88, 1.3, line)
-		f.path("M26 82Q50 72 74 82Q78 104 50 112Q22 104 26 82Z", SHADOW, opacity=0.4)  # kneecap
-		f.taper(26, 82, 50, 72, 74, 82, 1.1, line)
-		f.taper(26, 92, 50, 116, 74, 92, 1.3, line)
-	elif key == "O":
-		f.taper(10, 16, 50, 50, 70, 84, 1.3, line)
-		f.taper(30, 112, 60, 150, 60, 186, 1.2, line)
-	elif key == "B":
-		f.taper(50, 6, 52, 40, 50, 84, 1.3, line)
-		f.taper(14, 92, 50, 104, 86, 92, 1.2, line)
-		f.path("M24 108Q50 96 76 108Q78 150 50 164Q22 150 24 108Z", SHADOW, opacity=0.55)
-		f.taper(24, 108, 26, 150, 50, 164, 1.1, line)
-		f.taper(76, 108, 74, 150, 50, 164, 1.1, line)
-	else:
-		f.taper(12, 20, 40, 60, 60, 92, 1.1, line)
-		f.taper(30, 110, 44, 150, 40, 188, 1.1, line)
-	f.path("M-5 192H105V205H-5Z", SHADOW, opacity=0.8)
-	f.taper(10, 190, 50, 196, 90, 190, 1.1, line)
+def _face(f):
+	face(f, WHITE, hairline=-40, nose_y=90, shadow=SHADOW)
+	f.soft("M-5 30H10Q8 90 22 135H-5Z", SHADOW, 0.7, 5)
+	f.soft("M135 30H120Q122 90 108 135H135Z", SHADOW, 0.85, 5)
+	for cx, sgn in ((37, -1), (93, 1)):
+		# the purple streak under the eye, running out and up towards the temple
+		i, o = cx - sgn * 10, cx + sgn * 27
+		f.path(f"M{i} {90}L{o} {66}L{o} {71}L{i + sgn * 7} {92}Z", MARK)
+		_eye(f, cx, 68, sgn)
+		# a thin mark above the eye, in place of a brow
+		f.path(f"M{cx - sgn * 17} {49}L{cx + sgn * 20} {32}L{cx + sgn * 19} {36}L{cx - sgn * 15} {52}Z", MARK)
+	# small dark lips, a thin smirk
+	f.path("M52 108Q66 103 80 105Q86 104 88 100Q84 112 66 113Q56 113 52 108Z", LIP)
+	f.path("M52 108Q66 108 82 106Q86 105 88 100", stroke="#2a1040", sw=1.3)
 
 
 def paint(a):
-	paint_face(a["Head_F"])
-	body_front(a["Torso_F"])
-	body_back(a["Torso_B"])
-	for f, mir in head_faces(a, "Torso"):
-		with mirrored(f, mir):
-			body_side(f)
-	for _, key, f, mir in limb_faces(a, "Arm"):
-		with mirrored(f, mir):
-			paint_arm(f, key)
-		f.edges(0.12)
-	for _, key, f, mir in limb_faces(a, "Leg"):
-		with mirrored(f, mir):
-			paint_leg(f, key)
-		f.edges(0.12)
-	for f, mir in head_faces(a):
-		with mirrored(f, mir):
-			f.fill(WHITE)
-			f.path("M-5 104Q60 122 125 104V135H-5Z", SHADOW, opacity=0.9)
-			f.path("M70 -5Q90 60 74 110H125V-5Z", SHADOW, opacity=0.65)
-			# the purple mark wraps a little round the temple
-			f.path("M-5 44Q14 50 22 62Q14 82 -5 92Z", PURPLE)
-			f.taper(30, 96, 44, 110, 58, 118, 0.9, LINE)
-		f.edges(0.12)
-	f = a["Head_B"]
-	f.fill(WHITE)
-	f.path("M-5 84Q65 112 135 84V135H-5Z", SHADOW, opacity=0.9)
-	f.path("M100 -5Q116 50 104 94L135 88V-5Z", SHADOW, opacity=0.5)
-	f.taper(30, 28, 65, 16, 100, 28, 1, LINE)
-	f.taper(65, 30, 67, 60, 65, 92, 0.9, LINE)
-	a["Head_T"].fill(WHITE)
-	a["Head_Bo"].fill(SHADOW_D)
-	a["Torso_T"].fill(WHITE)
+	R.paint(a)
+	_face(a["Head_F"])
+	a["Head_T"].fill(PURPLE)
+	a["Head_B"].fill(WHITE)
+	a["Head_Bo"].fill(SHADOW)
+	for n, cx in (("Head_L", 52), ("Head_R", 68)):
+		f = a[n]
+		f.fill(WHITE)
+		# the ear: a bare hole on a smooth head
+		f.path(circle(cx, 72, 8, 11), SHADOW_D)
+		f.path(circle(cx, 72, 4, 7), "#3a3250")
+	for n in ("Torso_F", "Torso_B", "Torso_L", "Torso_R", "Torso_T"):
+		a[n].fill(WHITE)
 	a["Torso_Bo"].fill(SHADOW)
 	for side in ("Left", "Right"):
-		a[f"{side}Arm_T"].fill(WHITE)
+		for key in "FBOI":
+			a[f"{side}Arm_{key}"].fill(WHITE)
+			a[f"{side}Leg_{key}"].fill(WHITE)
+		a[f"{side}Arm_T"].fill(PURPLE)
 		a[f"{side}Arm_Bo"].fill(SHADOW)
 		a[f"{side}Leg_T"].fill(WHITE)
 		a[f"{side}Leg_Bo"].fill(SHADOW)
