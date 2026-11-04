@@ -43,7 +43,7 @@ local RaceConfig = require(Shared:WaitForChild("RaceConfig"))
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Shared/RollAnimConfig (docs/ROLL_ANIMATION_CONTRACT.md), read live. While it is missing, the contract's values
+-- Shared/RollAnimConfig (docs/ROLL_ANIMATION_SPEC.md), read live. While it is missing, the contract's values
 -- (UiSpec.RollAnim.Fallback) keep the other checks computable and roll_anim_config_present fails.
 local animModule = nil
 local function anim()
@@ -80,9 +80,11 @@ local function holdFor(rarity)
 	return h[rarity] or h.Common
 end
 
--- One roll's length: POP + SPIN + LAND + Hold(rarity) + EXIT (+ 2 x SWITCH when emphasized)
-local function durationFor(rarity, emphasized)
+-- One roll's length: TimeScale(interval) x (POP + SPIN + LAND + Hold(rarity) + EXIT) (+ 2 x SWITCH when emphasized).
+-- TimeScale(interval) = min(1, interval / FIT_INTERVAL); no interval = the base ROLL_INTERVAL.
+local function durationFor(rarity, emphasized, interval)
 	local d = animNum("POP") + animNum("SPIN") + animNum("LAND") + holdFor(rarity) + animNum("EXIT")
+	d *= math.min(1, (interval or GachaConfig.ROLL_INTERVAL) / animNum("FIT_INTERVAL"))
 	if emphasized then
 		d += 2 * animNum("SWITCH")
 	end
@@ -1045,7 +1047,7 @@ end
 
 -- The two roll cards animate (PopIn grows from 0, LAND_POP, Exit shrink, the 0.3 s SWITCH), so their live Size /
 -- Position are only meaningful while settled. The solver places them at their CONTRACT rect
--- (docs/ROLL_ANIMATION_CONTRACT.md, numbers from Shared/RollAnimConfig) unless ctx.live; liveVsNominal proves the
+-- (docs/ROLL_ANIMATION_SPEC.md, numbers from Shared/RollAnimConfig) unless ctx.live; liveVsNominal proves the
 -- live card sits exactly there (at every viewport) whenever it is settled.
 local function cardKind(obj)
 	if not obj:IsA("GuiObject") then
@@ -1062,18 +1064,23 @@ local function cardKind(obj)
 	return nil
 end
 
+-- The compact figure's height: COMPACT_HEIGHT, capped on small screens (docs/ROLL_ANIMATION_SPEC.md "Views").
+function K.compactFigureHeight(screenHeight)
+	return math.min(animNum("COMPACT_HEIGHT"), math.floor(animNum("COMPACT_SCREEN_SHARE") * screenHeight))
+end
+
 -- Compact: AnchorPoint (0.5, 0), centred, top edge COMPACT_GAP under the Auto Race button, width
--- clamp(COMPACT_WIDTH x parent width, COMPACT_MIN, COMPACT_MAX), height COMPACT_HEIGHT.
-local function compactNominal(base, toggleRect)
+-- clamp(COMPACT_WIDTH x parent width, COMPACT_MIN, COMPACT_MAX), height figure + UiSpec.Compact.ExtraHeight.
+local function compactNominal(base, toggleRect, vp)
 	local w = math.clamp(base.w * animNum("COMPACT_WIDTH"), animNum("COMPACT_MIN"), animNum("COMPACT_MAX"))
-	local h = animNum("COMPACT_HEIGHT") + UiSpec.Compact.ExtraHeight
+	local h = K.compactFigureHeight((vp or viewport()).Y) + UiSpec.Compact.ExtraHeight
 	local top = toggleRect and (toggleRect.y + toggleRect.h + animNum("COMPACT_GAP")) or base.y
 	return R(base.x + base.w / 2 - w / 2, top, w, h)
 end
 
 -- Enlarged: the generated RollShowcase.ui.json card (Desktop 760x320 / Phone 540x224, AnchorPoint (0.5, 0.5),
 -- Position (0.5, 0.46)) scaled by its generated UIScale k about its centre (UiResponsive.CardRect). The
--- docs/ROLL_ANIMATION_CONTRACT.md size formula (ENLARGED_WIDTH x screen width) is superseded by the owner-approved
+-- docs/ROLL_ANIMATION_SPEC.md size formula (ENLARGED_WIDTH x screen width) is superseded by the owner-approved
 -- ui.json, with no ENLARGED_MAX cap (owner decision 2026-10-08).
 local function enlargedNominal(base, vp)
 	local r = UiResponsive.CardRect(vp, base)
@@ -1103,7 +1110,7 @@ simRect = function(obj, ctx)
 		local base = simRect(obj.Parent, ctx)
 		if kind == "compact" then
 			local toggle = findPath(UiSpec.Hud.Race)
-			r = compactNominal(base, toggle and simRect(toggle, ctx))
+			r = compactNominal(base, toggle and simRect(toggle, ctx), ctx.vp)
 		else
 			r = enlargedNominal(base, ctx.vp)
 		end
@@ -1225,6 +1232,10 @@ simRect = function(obj, ctx)
 					UDim2.new(position.X.Scale, position.X.Offset, 0, race.y + race.h + animNum("COMPACT_GAP") - base.y)
 			end
 			local w, h = sizeIn(obj, size, base, ctx, c)
+			-- ...and its height is fitCompact's for the live screen too: the figure's cap follows the simulated one
+			if below and not liveVp then
+				h = K.compactFigureHeight((ctx.vp or viewport()).Y) + UiSpec.Compact.ExtraHeight
+			end
 			local x = base.x + base.w * position.X.Scale + c * position.X.Offset - anchor.X * w
 			local y = base.y + base.h * position.Y.Scale + c * position.Y.Offset - anchor.Y * h
 			r = R(x, y, w, h)
@@ -1505,14 +1516,15 @@ function UiScenarios.Init()
 		task.spawn(function()
 			local roll = remotes:WaitForChild("RollResult")
 			if roll then
-				roll.OnClientEvent:Connect(function(id, isNew, turboMulti, emphasized, scrapMoney, luck)
+				roll.OnClientEvent:Connect(function(id, isNew, turboMulti, emphasized, scrapMoney, luck, interval)
 					local ev = {
 						id = id,
 						isNew = isNew,
 						scrapMoney = scrapMoney, -- duplicates pay $0 now (UiSpec.Showcase.CopyBadgeText)
 						turboMulti = type(turboMulti) == "number" and turboMulti or 1,
 						emphasized = emphasized == true,
-						luck = luck, -- as sent (6th argument, docs/ROLL_ANIMATION_CONTRACT.md); nil when not sent
+						luck = luck, -- as sent (6th argument, docs/ROLL_ANIMATION_SPEC.md); nil when not sent
+						interval = interval, -- the player's roll interval (last argument); nil when not sent = the base
 						rolls = player:GetAttribute("Rolls"), -- set by the server before it fires RollResult
 						t = os.clock(),
 						panelsOpen = {}, -- declared panels open when the roll arrived (roll_odds_*_no_panel_open)
@@ -1785,6 +1797,29 @@ local function contentOutside(card)
 			table.insert(bad, name .. rstr(realRect(o)) .. " outside the card")
 		end
 	end
+	local vp = viewport()
+	local screen = R(0, 0, vp.X, vp.Y)
+	local gui = guiOf(card)
+	for _, name in UiSpec.Showcase.ScreenBoundParts do
+		local o = card:FindFirstChild(name, true)
+		if o and o:IsA("GuiObject") and effectivelyVisible(o) then
+			local r = realRect(o)
+			if not contains(screen, r) then
+				table.insert(bad, name .. rstr(r) .. " off the screen")
+			end
+			for _, otherName in { UiSpec.Showcase.AutoButton.Path, UiSpec.Showcase.Hint } do
+				local other = gui and gui:FindFirstChild(otherName, true)
+				if
+					other
+					and other:IsA("GuiObject")
+					and effectivelyVisible(other)
+					and intersects(r, realRect(other))
+				then
+					table.insert(bad, name .. rstr(r) .. " overlaps " .. otherName .. rstr(realRect(other)))
+				end
+			end
+		end
+	end
 	return bad
 end
 
@@ -1797,6 +1832,74 @@ local function cardBodySettled(card)
 		return true
 	end
 	return math.abs(body.AbsoluteSize.X / card.AbsoluteSize.X - 1) <= UiSpec.RollAnim.SettledTolerance
+end
+
+-- A roll Viewport's rig built by RunnerFactory.build for `id` (RunnerFactory marks each rig with its CharacterId).
+function K.modelOf(view, id)
+	for _, d in view and view:GetDescendants() or {} do
+		if d:IsA("Model") and d:GetAttribute("CharacterId") == id then
+			return d
+		end
+	end
+	return nil
+end
+
+-- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the view shows the rolled character's own model. spec.Model == nil means
+-- "wears its own model", not "no model": "?" shows only when RunnerFactory.HasModel is false, which no rollable
+-- character is.
+function K.modelProblems(view, placeholder, id)
+	local bad = {}
+	local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+	if not RunnerFactory.HasModel(id) then
+		table.insert(bad, "RunnerFactory.HasModel(" .. tostring(id) .. ") is false for a rollable character")
+	end
+	local model = K.modelOf(view, id)
+	if not model then
+		table.insert(bad, "Viewport lacks a Model built for " .. tostring(id))
+	elseif not model:FindFirstChildWhichIsA("BasePart", true) then
+		table.insert(bad, "the Model built for " .. tostring(id) .. " has no parts")
+	end
+	for _, d in view and view:GetDescendants() or {} do
+		local other = d:IsA("Model") and d:GetAttribute("CharacterId")
+		if other and other ~= id then
+			table.insert(bad, "Viewport also holds a Model of " .. tostring(other))
+		end
+	end
+	if placeholder and effectivelyVisible(placeholder) then
+		table.insert(bad, 'Placeholder "?" shown for a rollable character')
+	end
+	return bad
+end
+
+-- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the whole figure fits the view. Every visible part's box corners, through the
+-- view's camera, stay inside its rectangle (hair, weapons and capes are not cut off).
+function K.figureProblems(view, id)
+	local model = K.modelOf(view, id)
+	local camera = view and view.CurrentCamera
+	if not (model and camera) then
+		return { tostring(id) .. ": no Model or no camera to measure" }
+	end
+	local tanY = math.tan(math.rad(camera.FieldOfView) / 2) * UiSpec.RollAnim.FigureFitSlack
+	local tanX = tanY * view.AbsoluteSize.X / math.max(view.AbsoluteSize.Y, 1)
+	local cut = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Transparency < 1 and not table.find(cut, d.Name) then
+			for _, x in { -0.5, 0.5 } do
+				for _, y in { -0.5, 0.5 } do
+					for _, z in { -0.5, 0.5 } do
+						local corner = d.CFrame * Vector3.new(x * d.Size.X, y * d.Size.Y, z * d.Size.Z)
+						local p = camera.CFrame:PointToObjectSpace(corner)
+						local depth = -p.Z
+						local inside = depth > 0 and math.abs(p.X) <= tanX * depth and math.abs(p.Y) <= tanY * depth
+						if not inside and not table.find(cut, d.Name) then
+							table.insert(cut, d.Name)
+						end
+					end
+				end
+			end
+		end
+	end
+	return #cut > 0 and { tostring(id) .. " cut off at " .. table.concat(cut, ",") } or {}
 end
 
 -- skipGeometry: leave out contentOutside (SampleRoll measures it once the body has settled from LAND_POP).
@@ -1904,26 +2007,8 @@ local function cardProblems(card, ev, skipGeometry)
 	if not (view and view:IsA("ViewportFrame")) then
 		table.insert(bad, "no Viewport ViewportFrame")
 	end
-	local placeholder = part("Placeholder")
-	if spec.Model == nil then
-		if
-			not (
-				placeholder
-				and placeholder:IsA("TextLabel")
-				and placeholder.Text == "?"
-				and effectivelyVisible(placeholder)
-			)
-		then
-			table.insert(bad, 'no visible Placeholder "?" for a car without a model')
-		end
-	else
-		local model = view and view:FindFirstChild(spec.Model, true)
-		if not (model and model:IsA("Model")) then
-			table.insert(bad, "Viewport lacks a clone of CarModels." .. tostring(spec.Model))
-		end
-		if placeholder and effectivelyVisible(placeholder) and placeholder.Text ~= "" then
-			table.insert(bad, "Placeholder shown for a car with a model")
-		end
+	for _, problem in K.modelProblems(view, part("Placeholder"), spec.Id) do
+		table.insert(bad, problem)
 	end
 	return bad
 end
@@ -2032,7 +2117,7 @@ local function waitNewRoll(timeout)
 end
 
 ---------------------------------------------------------------------------------------------------------------
--- Roll animation recorder (docs/ROLL_ANIMATION_CONTRACT.md). Every RollResult starts one: it samples both cards
+-- Roll animation recorder (docs/ROLL_ANIMATION_SPEC.md). Every RollResult starts one: it samples both cards
 -- each Heartbeat until the card that plays the roll is Idle again (or a newer roll arrives), then the view
 -- SWITCH + SwitchGrace later.
 
@@ -2133,6 +2218,10 @@ local function compactShapeProblems(toast)
 	if body and body:IsA("GuiObject") and body.BackgroundTransparency < 0.99 then
 		table.insert(bad, ("Body not transparent (BackgroundTransparency %.2f)"):format(body.BackgroundTransparency))
 	end
+	-- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the figure is not cut off
+	if toast.ClipsDescendants then
+		table.insert(bad, "Toast clips its figure (ClipsDescendants)")
+	end
 	for _, holder in { toast, body } do
 		local stroke = holder and holder:FindFirstChildWhichIsA("UIStroke")
 		if stroke and stroke.Enabled and stroke.Transparency < 0.99 then
@@ -2142,8 +2231,8 @@ local function compactShapeProblems(toast)
 	return bad
 end
 
--- The landed compact roll shows the roll's truth: its odds (rarity-coloured, italic) under the bare model ("?" for a
--- car without a model), both inside the rect, and a Reel that clips its cars.
+-- The landed compact roll shows the roll's truth: its odds (rarity-coloured, italic) and name under the bare figure,
+-- the rolled character's own model (K.modelProblems), all inside the rect, and a Reel that clips its cars.
 local function compactProblems(toast, ev)
 	if not toast then
 		return { "no RollToast/Toast" }
@@ -2171,28 +2260,19 @@ local function compactProblems(toast, ev)
 	if not (view and view:IsA("ViewportFrame") and effectivelyVisible(view)) then
 		table.insert(bad, "no visible Viewport ViewportFrame")
 	end
-	local placeholder = toast:FindFirstChild("Placeholder", true)
-	if spec.Model == nil then
-		if
-			not (
-				placeholder
-				and placeholder:IsA("TextLabel")
-				and placeholder.Text == "?"
-				and effectivelyVisible(placeholder)
-			)
-		then
-			table.insert(bad, 'no visible Placeholder "?" for a car without a model')
-		end
-	else
-		local model = view and view:FindFirstChild(spec.Model, true)
-		if not (model and model:IsA("Model")) then
-			table.insert(bad, "Viewport lacks a clone of CarModels." .. tostring(spec.Model))
-		end
-		if placeholder and effectivelyVisible(placeholder) and placeholder.Text ~= "" then
-			table.insert(bad, "Placeholder shown for a car with a model")
-		end
+	for _, problem in K.modelProblems(view, toast:FindFirstChild("Placeholder", true), spec.Id) do
+		table.insert(bad, problem)
 	end
-	for _, o in { view, odds } do
+	local nameLabel = toast:FindFirstChild("CharacterName", true)
+	if
+		not (nameLabel and nameLabel:IsA("TextLabel") and nameLabel.Text == spec.Name and effectivelyVisible(nameLabel))
+	then
+		table.insert(
+			bad,
+			("CharacterName %q want %q"):format(nameLabel and tostring(nameLabel.Text) or "nil", spec.Name)
+		)
+	end
+	for _, o in { view, odds, nameLabel } do
 		if o and o:IsA("GuiObject") and effectivelyVisible(o) and not contains(tr, realRect(o)) then
 			table.insert(bad, o.Name .. rstr(realRect(o)) .. " outside the rect " .. rstr(tr))
 		end
@@ -2204,7 +2284,8 @@ local function compactProblems(toast, ev)
 	return bad
 end
 
--- At 1x (Hold): Body fills the rect, the model fills the top ModelShare of it and the odds the rest.
+-- At 1x (Hold): Body fills the rect; top to bottom the caption band, the figure (K.compactFigureHeight), the odds band
+-- and the name band.
 local function compactLayoutProblems(toast)
 	if not toast then
 		return { "no RollToast/Toast" }
@@ -2219,7 +2300,9 @@ local function compactLayoutProblems(toast)
 			table.insert(bad, "Body" .. rstr(br) .. " does not fill " .. rstr(tr))
 		end
 	end
-	local split = tr.y + UiSpec.Compact.ModelShare * tr.h
+	local caption = UiSpec.Compact.CaptionBand
+	local figure = K.compactFigureHeight(viewport().Y)
+	local split = tr.y + caption + figure
 	local function edges(name, top, bottom)
 		local o = toast:FindFirstChild(name, true)
 		if not (o and o:IsA("GuiObject")) then
@@ -2227,13 +2310,14 @@ local function compactLayoutProblems(toast)
 			return
 		end
 		local r = realRect(o)
-		if math.abs(r.y - top) > tol or math.abs(r.y + r.h - bottom) > tol then
+		local rEnd = r.y + r.h
+		if math.abs(r.y - top) > tol or math.abs(rEnd - bottom) > tol then
 			table.insert(
 				bad,
 				("%s spans y %d..%d, want %d..%d (+- %d)"):format(
 					name,
 					math.floor(r.y + 0.5),
-					math.floor(r.y + r.h + 0.5),
+					math.floor(rEnd + 0.5),
 					math.floor(top + 0.5),
 					math.floor(bottom + 0.5),
 					math.floor(tol + 0.5)
@@ -2241,8 +2325,11 @@ local function compactLayoutProblems(toast)
 			)
 		end
 	end
-	edges("Viewport", tr.y, split)
-	edges("Odds", split, tr.y + tr.h)
+	local band = UiSpec.Compact.TextBand
+	edges("Reel", tr.y + caption, split)
+	edges("Viewport", tr.y + caption, split)
+	edges("Odds", split, split + band)
+	edges("CharacterName", split + band, split + 2 * band)
 	return bad
 end
 
@@ -2311,6 +2398,38 @@ local function styleProblems(card, spec)
 	if not (reel and reel:IsA("GuiObject") and reel.ClipsDescendants) then
 		table.insert(bad, "Reel does not clip its cars (ClipsDescendants)")
 	end
+	-- docs/ROLL_ANIMATION_SPEC.md "Views": the odds gradient comes from the rarity; Mythic and Secret are multi-colour
+	local resultOdds = partOf(card, "ResultOdds")
+	local oddsGradient = resultOdds and resultOdds:FindFirstChild("OddsGradient")
+	if not (oddsGradient and oddsGradient:IsA("UIGradient")) then
+		table.insert(bad, "ResultOdds has no OddsGradient")
+	elseif spec.Rarity == "Mythic" or spec.Rarity == "Secret" then
+		if #oddsGradient.Color.Keypoints < 3 then
+			table.insert(bad, "OddsGradient not multi-colour on a " .. spec.Rarity .. " roll")
+		end
+	else
+		local inColour = false
+		for _, k in oddsGradient.Color.Keypoints do
+			inColour = inColour or sameColour(k.Value, colour)
+		end
+		if not inColour then
+			table.insert(bad, "OddsGradient not in the " .. spec.Rarity .. " colour")
+		end
+	end
+	-- "No visible card body"
+	local face = findPath(UiSpec.Showcase.Gui .. "/" .. UiSpec.Showcase.Body)
+	local faceStroke = face and face:FindFirstChildOfClass("UIStroke")
+	if faceStroke and faceStroke.Enabled then
+		table.insert(bad, "the card body's UIStroke is enabled")
+	end
+	if face and face:IsA("GuiObject") and face.BackgroundTransparency < 0.99 then
+		table.insert(bad, ("the card body draws (BackgroundTransparency %.2f)"):format(face.BackgroundTransparency))
+	end
+	for _, hidden in { "Shadow", "Lift" } do
+		if partShown(card, hidden) then
+			table.insert(bad, hidden .. " shown behind a card with no body")
+		end
+	end
 	return bad
 end
 
@@ -2370,6 +2489,112 @@ local function distToRect(x, y, r)
 	return math.sqrt(dx * dx + dy * dy)
 end
 
+function K.reducedNow()
+	return GuiService.ReducedMotionEnabled or player:GetAttribute("ReduceEffects") == true
+end
+
+-- Which character the playing card's body says is on screen. docs/ROLL_ANIMATION_SPEC.md "Accuracy": the body attribute;
+-- the enlarged card's animated body is UiSpec.Showcase.Body or its parent, CardBody (the spec does not pick).
+function K.shownIdOf(card, key)
+	local attrName = UiSpec.RollAnim.ShownAttr
+	if key == "Compact" then
+		local body = compactBody(card)
+		return body and body:GetAttribute(attrName)
+	end
+	local face = findPath(UiSpec.Showcase.Gui .. "/" .. UiSpec.Showcase.Body)
+	return face and (face:GetAttribute(attrName) or face.Parent:GetAttribute(attrName))
+end
+
+-- A view's light and lens: the same from the cycle through the landing (docs/ROLL_ANIMATION_SPEC.md "Accuracy").
+function K.lookOf(view)
+	if not (view and view:IsA("ViewportFrame")) then
+		return "no Viewport"
+	end
+	local camera = view.CurrentCamera
+	return ("Ambient %s, LightColor %s, LightDirection %s, FieldOfView %s"):format(
+		tostring(view.Ambient),
+		tostring(view.LightColor),
+		tostring(view.LightDirection),
+		camera and ("%.2f"):format(camera.FieldOfView) or "no camera"
+	)
+end
+
+-- One frame of the playing card: what ShownId and the Viewport say (K.shownChecks judges them).
+function K.sampleShown(rec, card, key, phase, now)
+	local s = rec.shown
+	local id = K.shownIdOf(card, key)
+	local view = partOf(card, "Viewport")
+	if phase == "PopIn" or phase == "Spin" then
+		-- No text until Land ("" and not "?"); the turbo badge alone shows from pop-in (showcase_turbo_badge_from_popin)
+		local badge = partOf(card, "TurboBadge")
+		for _, d in card:GetDescendants() do
+			if d:IsA("TextLabel") and d.Text ~= "" and effectivelyVisible(d) and d ~= badge then
+				if not (badge and d:IsDescendantOf(badge)) then
+					s.earlyText[("%s %q"):format(d.Name, d.Text)] = true
+				end
+			end
+		end
+	end
+	if phase == "PopIn" then
+		s.popInFrames += 1
+		if not (view and effectivelyVisible(view)) then
+			s.popInHidden += 1
+		end
+	elseif phase == "Spin" then
+		s.spinFrames += 1
+		s.spinEnd = now
+		s.look = s.look or K.lookOf(view)
+		s.streaks = s.streaks or partShown(card, "Streaks")
+		if id == nil then
+			s.spinNil += 1
+		elseif id ~= s.spinLast then
+			s.spinLast = id
+			table.insert(s.spinSeq, { id = id, t = now })
+			-- The figure rests just before each swap: all those resting centres are one spot
+			if s.spot and s.rest then
+				s.drift = math.max(s.drift, math.abs(s.rest[1] - s.spot[1]), math.abs(s.rest[2] - s.spot[2]))
+			end
+			s.spot = s.spot or s.rest
+			for _, problem in K.figureProblems(view, id) do
+				table.insert(s.figure, problem)
+			end
+		end
+		if id ~= nil and not K.modelOf(view, id) then
+			s.spinNoModel[id] = true
+		end
+		if view and view:IsA("GuiObject") then
+			s.rest = { centre(realRect(view)) }
+		end
+		-- Nothing slides: any visible tile left in the Reel frame keeps its centre (a pop keeps it too)
+		local reel = partOf(card, "Reel")
+		for _, d in reel and reel:GetDescendants() or {} do
+			if d:IsA("GuiObject") and effectivelyVisible(d) then
+				local x, y = centre(realRect(d))
+				local from = s.tileStart[d]
+				if from then
+					s.slide = math.max(s.slide, math.abs(x - from[1]), math.abs(y - from[2]))
+				else
+					s.tileStart[d] = { x, y }
+				end
+			end
+		end
+	elseif phase == "Land" or phase == "Hold" or phase == "Exit" then
+		s.landFrames += 1
+		if id ~= rec.ev.id then
+			s.wrong[phase .. ": " .. tostring(id)] = true
+		end
+		if phase ~= "Exit" then
+			local model = K.modelOf(view, rec.ev.id)
+			if not model then
+				s.noModel += 1
+			elseif model ~= s.model then
+				s.modelSwaps += s.model and 1 or 0
+				s.model = model
+			end
+		end
+	end
+end
+
 function UiScenarios.SampleRoll(ev)
 	local rec = {
 		ev = ev,
@@ -2381,6 +2606,24 @@ function UiScenarios.SampleRoll(ev)
 		fly = {}, -- FlyIcon samples from Exit on
 		views = {},
 		viewAtStart = viewNow(),
+		shown = { -- K.sampleShown, every frame of the playing card
+			reduced = K.reducedNow(),
+			earlyText = {},
+			popInFrames = 0,
+			popInHidden = 0,
+			spinFrames = 0,
+			spinNil = 0,
+			spinSeq = {},
+			spinNoModel = {},
+			figure = {},
+			tileStart = {},
+			drift = 0,
+			slide = 0,
+			landFrames = 0,
+			wrong = {},
+			noModel = 0,
+			modelSwaps = 0,
+		},
 	}
 	-- The card that plays it: the enlarged one for an emphasized roll or while the player has it open
 	rec.playKey = (ev.emphasized or rec.viewAtStart == "Enlarged") and "Enlarged" or "Compact"
@@ -2395,6 +2638,14 @@ function UiScenarios.SampleRoll(ev)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
 			local x, y = centre(realRect(fly))
+			local icon = fly:FindFirstChild(UiSpec.RollAnim.FlyIconView)
+			rec.flyIcon = rec.flyIcon
+				or {
+					view = icon ~= nil and icon:IsA("ViewportFrame"),
+					rig = K.modelOf(icon, ev.id) ~= nil,
+					w = fly.AbsoluteSize.X,
+					h = fly.AbsoluteSize.Y,
+				}
 			table.insert(rec.fly, { t = now, x = x, y = y, text = allText(fly), clicks = takesClicks(fly) })
 			return true
 		end
@@ -2437,7 +2688,25 @@ function UiScenarios.SampleRoll(ev)
 					local reel = partOf(card, "Reel")
 					local grad = glowGradient(card)
 					local compact = key == "Compact"
+					local heldView = partOf(card, "Viewport")
+					local otherKey = key == "Compact" and "Enlarged" or "Compact"
+					local otherCard = rollCards()[otherKey]
+					local otherView = partOf(otherCard, "Viewport")
+					local hiddenRigs = {}
+					for _, d in otherView and otherView:GetDescendants() or {} do
+						if d:IsA("Model") then
+							table.insert(hiddenRigs, tostring(d:GetAttribute("CharacterId")))
+						end
+					end
 					rec.hold[key] = {
+						-- docs/ROLL_ANIMATION_SPEC.md "Accuracy": the rolled character's own model, fully framed
+						shownId = K.shownIdOf(card, key),
+						-- The rig lives only in the visible body; the hidden one knows the character by ShownId alone
+						hiddenRigs = hiddenRigs,
+						hiddenShownId = otherCard and K.shownIdOf(otherCard, otherKey),
+						model = K.modelProblems(heldView, partOf(card, "Placeholder"), ev.id),
+						figure = K.figureProblems(heldView, ev.id),
+						look = K.lookOf(heldView),
 						-- The odds labels as landed: Odds on both cards (the enlarged one's is the alias of ResultOdds)
 						odds = labelState(card, "Odds"),
 						resultOdds = labelState(card, "ResultOdds"),
@@ -2474,6 +2743,7 @@ function UiScenarios.SampleRoll(ev)
 					rec.ratios,
 					{ phase = tostring(phase), r = scaled.AbsoluteSize.X / nominalW[key], t = now }
 				)
+				K.sampleShown(rec, card, key, tostring(phase), now)
 			end
 			local h = rec.hold[key]
 			-- Settled (or leaving Hold, the latest resting moment: the enlarged card does not shrink on Exit)
@@ -2487,13 +2757,6 @@ function UiScenarios.SampleRoll(ev)
 			if phase == "Hold" and h and h.glowRot2 == nil and now - holdAt[key] >= UiSpec.RollAnim.GlowTurnWait then
 				local grad = glowGradient(card)
 				h.glowRot2 = grad and grad.Rotation or false
-			end
-			if
-				key == rec.playKey
-				and (phase == "Land" or (phase == "Hold" and now - (holdAt[key] or now) < 0.25))
-				and partShown(card, "Smoke")
-			then
-				rec.smoke = true
 			end
 		end
 		local seen = rec.seen[rec.playKey]
@@ -2509,17 +2772,23 @@ function UiScenarios.SampleRoll(ev)
 	if rec.idleAt then
 		local untilT = rec.idleAt + animNum("SWITCH") + UiSpec.RollAnim.SwitchGrace
 		local flyShown = false
+		local toast = findPath("RollToast/Toast")
+		local toastShown = toast ~= nil and effectivelyVisible(toast)
 		while os.clock() < untilT and events.rolls[#events.rolls] == ev do
 			RunService.Heartbeat:Wait()
-			flyShown = sampleFly(os.clock())
+			-- A roll now plays for most of the interval: the next one may arrive inside this wait, and the toast and the
+			-- FlyIcon it brings are not this roll's. Keep the last frame that still belongs to this roll.
+			if events.rolls[#events.rolls] == ev then
+				flyShown = sampleFly(os.clock())
+				toastShown = toast ~= nil and effectivelyVisible(toast)
+			end
 		end
-		local toast = findPath("RollToast/Toast")
 		rec.after = {
 			complete = events.rolls[#events.rolls] == ev,
 			view = viewNow(),
 			showcase = showcaseState(),
 			blur = blurState(),
-			toastShown = toast ~= nil and effectivelyVisible(toast),
+			toastShown = toastShown,
 			flyShown = flyShown,
 		}
 	end
@@ -2579,6 +2848,17 @@ local function enlargedLookChecks(res, prefix, hold)
 	checkList(res, prefix .. "rarity_effects_match", hold.effects)
 	local r1, r2 = hold.glowRot, hold.glowRot2
 	local turned = type(r1) == "number" and type(r2) == "number" and math.abs(r2 - r1) >= UiSpec.RollAnim.GlowTurnMin
+	if K.reducedNow() then
+		-- No loops under reduced motion (docs/ROLL_ANIMATION_SPEC.md "Phases")
+		check(
+			res,
+			prefix .. "glow_gradient_still_reduced_motion",
+			("%s -> %s"):format(tostring(r1), tostring(r2)),
+			"unchanged",
+			r1 == r2
+		)
+		return
+	end
 	check(
 		res,
 		prefix .. "glow_gradient_turns",
@@ -2588,7 +2868,8 @@ local function enlargedLookChecks(res, prefix, hold)
 	)
 end
 
--- PopIn -> Spin -> Land -> Hold -> Exit -> Idle, each phase as long as RollAnimConfig says (+- PhaseTolerance).
+-- PopIn -> Spin -> Land -> Hold -> Exit -> Idle, each phase as long as RollAnimConfig says scaled by the TimeScale of
+-- the interval this roll was sent with (+- PhaseTolerance).
 local function phaseChecks(res, rec, key, prefix)
 	local seq = phaseSeq(rec, key)
 	local names = seqNames(seq)
@@ -2601,7 +2882,11 @@ local function phaseChecks(res, rec, key, prefix)
 	local maxDelay = UiSpec.RollAnim.PhaseStart + (rec.ev.emphasized and animNum("SWITCH") or 0)
 	check(res, prefix .. "phase_starts_after_roll", delay, "<= " .. maxDelay, delay <= maxDelay)
 	local rarity = rarityOf(rec.ev.id)
+	local scale = math.min(1, (rec.ev.interval or GachaConfig.ROLL_INTERVAL) / animNum("FIT_INTERVAL"))
 	local wants = { animNum("POP"), animNum("SPIN"), animNum("LAND"), holdFor(rarity), animNum("EXIT") }
+	for i, seconds in wants do
+		wants[i] = seconds * scale
+	end
 	local tol = UiSpec.RollAnim.PhaseTolerance
 	for i = 1, 5 do
 		local d = seq[i + 1].t - seq[i].t
@@ -2610,6 +2895,117 @@ local function phaseChecks(res, rec, key, prefix)
 		check(res, name, d, limit, math.abs(d - wants[i]) <= tol)
 	end
 	return true
+end
+
+-- The ids in a card's Reel.ReelIds as this roll was sampled.
+function K.reelIdsOf(rec, key)
+	local spin, hold = rec.spin[key], rec.hold[key]
+	local raw = (spin and spin.reelIds) or (hold and hold.reelIds)
+	local ids = {}
+	if type(raw) == "string" then
+		for id in string.gmatch(raw, "[^,]+") do
+			table.insert(ids, (string.gsub(id, "^%s*(.-)%s*$", "%1")))
+		end
+	end
+	return ids, raw
+end
+
+-- docs/ROLL_ANIMATION_SPEC.md "Accuracy" and "Phases", from K.sampleShown's frames: what ShownId and the Viewport held
+-- from Spin through Exit, on the card that played the roll.
+function K.shownChecks(res, rec, key, prefix)
+	local s, cfg = rec.shown, UiSpec.RollAnim
+	local function keysOf(set)
+		local list = {}
+		for name in set do
+			table.insert(list, name)
+		end
+		return list
+	end
+	local wrong = keysOf(s.wrong)
+	if s.landFrames == 0 then
+		wrong = { "no Land, Hold or Exit frame sampled" }
+	end
+	checkList(res, prefix .. "shown_id_is_result_from_land", wrong)
+	checkList(res, prefix .. "no_text_before_land", keysOf(s.earlyText))
+	check(
+		res,
+		prefix .. "viewport_visible_from_popin",
+		("%d of %d PopIn frames hidden"):format(s.popInHidden, s.popInFrames),
+		"0, at least 1 PopIn frame",
+		s.popInFrames > 0 and s.popInHidden == 0
+	)
+	check(
+		res,
+		prefix .. "same_model_land_through_hold",
+		("model %s, %d swaps, %d frames without it"):format(tostring(s.model ~= nil), s.modelSwaps, s.noModel),
+		"model true, 0 swaps, 0 frames without it",
+		s.model ~= nil and s.modelSwaps == 0 and s.noModel == 0
+	)
+	local seq = s.spinSeq
+	if s.reduced then
+		-- The cycle does not swap: the result appears at the end of Spin
+		check(res, prefix .. "spin_no_swap_reduced_motion", #seq, "<= 1 ShownId", #seq <= 1)
+	else
+		local distinct = {}
+		for _, slot in seq do
+			distinct[slot.id] = true
+		end
+		local count = #keysOf(distinct)
+		check(res, prefix .. "spin_cycles_characters", count, ">= " .. cfg.SpinMinShown, count >= cfg.SpinMinShown)
+		check(
+			res,
+			prefix .. "spin_shown_id_always_set",
+			("%d of %d frames without ShownId"):format(s.spinNil, s.spinFrames),
+			"0, at least 1 Spin frame",
+			s.spinFrames > 0 and s.spinNil == 0
+		)
+		checkList(res, prefix .. "spin_model_is_shown_character", keysOf(s.spinNoModel))
+		-- The shown characters are the reel's, in its order (a very short slot may fall between two frames)
+		local ids, nextIndex, offReel = K.reelIdsOf(rec, key), 1, {}
+		for _, slot in seq do
+			local at = table.find(ids, slot.id, nextIndex)
+			if at then
+				nextIndex = at + 1
+			else
+				table.insert(offReel, slot.id)
+			end
+		end
+		checkList(res, prefix .. "spin_shows_reel_in_order", offReel)
+		-- Each slot lasts longer than the one before it
+		local shorter, lengths = {}, {}
+		for i, slot in seq do
+			lengths[i] = (seq[i + 1] and seq[i + 1].t or s.spinEnd) - slot.t
+			if i > 1 and lengths[i] < lengths[i - 1] - cfg.SlotJitter then
+				table.insert(shorter, ("slot %d %.3f s after %.3f s"):format(i, lengths[i], lengths[i - 1]))
+			end
+		end
+		if #lengths < 3 or lengths[#lengths] <= lengths[1] then
+			table.insert(
+				shorter,
+				("%d slots, first %s s, last %s s"):format(#lengths, tostring(lengths[1]), tostring(lengths[#lengths]))
+			)
+		end
+		checkList(res, prefix .. "spin_swaps_slow_down", shorter)
+		check(res, prefix .. "spin_fixed_spot", s.drift, "<= " .. cfg.SpotTolerance, s.drift <= cfg.SpotTolerance)
+		check(res, prefix .. "spin_nothing_slides", s.slide, "<= " .. cfg.SpotTolerance, s.slide <= cfg.SpotTolerance)
+		check(res, prefix .. "spin_no_speed_streaks", s.streaks == true, false, s.streaks ~= true)
+	end
+	local hold = rec.hold[key]
+	checkList(res, prefix .. "hidden_body_holds_no_model", hold and hold.hiddenRigs or { "no Hold sample" })
+	check(
+		res,
+		prefix .. "hidden_body_shown_id",
+		tostring(hold and hold.hiddenShownId),
+		rec.ev.id,
+		hold ~= nil and hold.hiddenShownId == rec.ev.id
+	)
+	local heldLook = hold and hold.look or "no Hold sample"
+	check(res, prefix .. "same_light_and_lens_spin_to_hold", heldLook, tostring(s.look), heldLook == s.look)
+	local cut = table.clone(s.figure)
+	for _, problem in hold and hold.figure or { "no Hold sample" } do
+		table.insert(cut, problem)
+	end
+	checkList(res, prefix .. "whole_figure_fits_view", cut)
 end
 
 -- Waits until the card's Phase is one of `wanted` for two frames running (geometry settled). False on timeout.
@@ -3506,7 +3902,7 @@ function S.ui_layout(res)
 				end
 				-- Rolls strip (spec section 5, owner's revision): only the TurboBar, bottom centre, its bottom edge
 				-- BottomGap px above the screen bottom, BarSize. (The compact roll card moved to the top centre,
-				-- docs/ROLL_ANIMATION_CONTRACT.md: the overlap checks above place it at its contract rect, ui_toast
+				-- docs/ROLL_ANIMATION_SPEC.md: the overlap checks above place it at its contract rect, ui_toast
 				-- proves the live card sits there.)
 				local turboBar = findPath(UiSpec.Hud.Turbo)
 				if turboBar then
@@ -4782,7 +5178,7 @@ function S.ui_settings_profile(res)
 	restore()
 end
 
--- The compact roll card RollToast/Toast (docs/ROLL_ANIMATION_CONTRACT.md; it replaced the bottom-centre toast): a
+-- The compact roll card RollToast/Toast (docs/ROLL_ANIMATION_SPEC.md; it replaced the bottom-centre toast): a
 -- TextButton with no text of its own, shown while a roll plays and clickable only then (Visible = false at rest:
 -- no invisible hitbox), hidden while any panel is open, landed on the roll's truth and placed exactly at its
 -- contract rect (top centre, COMPACT_GAP under the Auto Race button) at every viewport.
@@ -4969,7 +5365,7 @@ function S.ui_toast(res)
 			layout = compactLayoutProblems(toast),
 			placement = liveVsNominal(toast),
 		}
-		local goneAt = mine.t + durationFor(rarity, mine.emphasized) + UiSpec.Waits.ToastGoneGrace
+		local goneAt = mine.t + durationFor(rarity, mine.emphasized, mine.interval) + UiSpec.Waits.ToastGoneGrace
 		task.wait(math.max(0, goneAt - os.clock()))
 		renderFrame()
 		local hit = false
@@ -5164,9 +5560,9 @@ function S.ui_rolls(res)
 	)
 end
 
--- One roll on the compact card (docs/ROLL_ANIMATION_CONTRACT.md): PopIn -> Spin -> Land -> Hold -> Exit -> Idle with
--- RollAnimConfig's timings on a real RollResult, RollId / RollSerial / Reel.ReelIds, every card part, the land pop,
--- the FlyIcon to INDEX, the turbo badge and flames from pop-in, rarity effects, and no roll covering one still
+-- One roll on the compact card (docs/ROLL_ANIMATION_SPEC.md): PopIn -> Spin -> Land -> Hold -> Exit -> Idle with
+-- RollAnimConfig's timings on a real RollResult, RollId / RollSerial / Reel.ReelIds / ShownId, every card part, the
+-- rolled character's own model from the cycle through the landing, the land pop, the FlyIcon to INDEX, the turbo badge and flames from pop-in, rarity effects, and no roll covering one still
 -- playing (the server's ExtraPause).
 function S.ui_roll_anim(res)
 	waitGuis()
@@ -5269,7 +5665,18 @@ function S.ui_roll_anim(res)
 	end
 	local ev = rec.ev
 	local spec = CharacterCatalog.Get(ev.id)
+	-- The server sends the player's roll interval as RollResult's last argument (spec "Fit to the roll interval")
+	check(
+		res,
+		"roll_result_sends_interval",
+		tostring(ev.interval),
+		("%g..%g"):format(UiSpec.RollAnim.IntervalMin, GachaConfig.ROLL_INTERVAL),
+		type(ev.interval) == "number"
+			and ev.interval >= UiSpec.RollAnim.IntervalMin
+			and ev.interval <= GachaConfig.ROLL_INTERVAL
+	)
 	phaseChecks(res, rec, "Compact", "")
+	K.shownChecks(res, rec, "Compact", "")
 	local hold = rec.hold.Compact
 	if not hold then
 		check(res, "card_sampled_at_hold", "no Hold", "Hold", false)
@@ -5277,20 +5684,14 @@ function S.ui_roll_anim(res)
 		return
 	end
 	check(res, "roll_id_matches_roll", tostring(hold.rollId), ev.id, hold.rollId == ev.id)
-	-- Compact = the bare model and its odds (owner decision 4). The card style, rarity effects and the turning
+	-- Compact = the bare figure, its odds and its name (owner decision 4, spec "Views"). The card style, rarity effects and the turning
 	-- Glow are checked on the enlarged card (showcase_card_style / emphasized_card_style and friends).
 	checkList(res, "compact_matches_roll", hold.problems)
 	checkList(res, "compact_is_no_card_at_hold", hold.shape or { "no sample" })
 	checkList(res, "compact_model_over_odds", hold.layout or { "no sample" })
 
 	-- Reel: REEL_CARS rollable ids, the last one the result
-	local reelIds = (rec.spin.Compact and rec.spin.Compact.reelIds) or hold.reelIds
-	local ids = {}
-	if type(reelIds) == "string" then
-		for id in string.gmatch(reelIds, "[^,]+") do
-			table.insert(ids, (string.gsub(id, "^%s*(.-)%s*$", "%1")))
-		end
-	end
+	local ids, reelIds = K.reelIdsOf(rec, "Compact")
 	check(res, "reel_ids_count", #ids, animNum("REEL_CARS"), #ids == animNum("REEL_CARS"))
 	check(res, "reel_ids_end_with_result", tostring(ids[#ids]), ev.id, ids[#ids] == ev.id)
 	local notRollable = {}
@@ -5304,6 +5705,14 @@ function S.ui_roll_anim(res)
 		notRollable = { "ReelIds " .. tostring(reelIds) }
 	end
 	checkList(res, "reel_ids_rollable_cars", notRollable)
+	-- No two neighbours are the same, so the last filler differs from the result too (spec "Cycle characters")
+	local repeats = {}
+	for i = 2, #ids do
+		if ids[i] == ids[i - 1] then
+			table.insert(repeats, ids[i])
+		end
+	end
+	checkList(res, "reel_ids_no_adjacent_repeat", repeats)
 
 	-- Size: grows from 0 in PopIn, LAND_POP x in Land, back to 1x in Hold, shrinks in Exit
 	local minPop, peakLand, worstHold, minExit = math.huge, 0, 0, math.huge
@@ -5353,7 +5762,6 @@ function S.ui_roll_anim(res)
 		"<= " .. UiSpec.RollAnim.ExitShrinkMax,
 		minExit <= UiSpec.RollAnim.ExitShrinkMax
 	)
-	check(res, "smoke_puff_on_land", rec.smoke == true, true, rec.smoke == true)
 
 	-- FlyIcon (a small car icon, no text) flies from the roll to the HUD INDEX button on Exit, takes no clicks, then
 	-- is gone
@@ -5368,6 +5776,23 @@ function S.ui_roll_anim(res)
 			end
 		end
 		checkList(res, "flyicon_has_no_text", texts)
+		-- The icon is the rolled character itself (docs/ROLL_ANIMATION_SPEC.md "Phases": Exit)
+		local icon = rec.flyIcon
+		check(
+			res,
+			"flyicon_shows_rolled_character",
+			icon and ("view=%s rig=%s"):format(tostring(icon.view), tostring(icon.rig)) or "no sample",
+			"view=true rig=true",
+			icon ~= nil and icon.view and icon.rig
+		)
+		local side = UiSpec.RollAnim.FlyIconSize
+		check(
+			res,
+			"flyicon_size",
+			icon and ("%gx%g"):format(icon.w, icon.h) or "no sample",
+			("%gx%g"):format(side, side),
+			icon ~= nil and math.abs(icon.w - side) <= TOL and math.abs(icon.h - side) <= TOL
+		)
 		local tr = realRect(target)
 		local first, best = distToRect(fly[1].x, fly[1].y, tr), math.huge
 		local clicks = false
@@ -5545,7 +5970,7 @@ function S.ui_showcase(res)
 	end
 	checkList(res, "toast_card_parts_not_clickable", innerToast)
 
-	-- docs/ROLL_ANIMATION_CONTRACT.md: the hint, the AUTO button (label from the server's AutoRoll), the view state
+	-- docs/ROLL_ANIMATION_SPEC.md: the hint, the AUTO button (label from the server's AutoRoll), the view state
 	local hint = backdrop and backdrop:FindFirstChild(cfg.Hint)
 	check(
 		res,
@@ -6525,7 +6950,7 @@ function S.ui_panels(res)
 	restore()
 end
 
--- An emphasized roll (RollResult 5th argument true; docs/ROLL_ANIMATION_CONTRACT.md): the view switches to Enlarged
+-- An emphasized roll (RollResult 5th argument true; docs/ROLL_ANIMATION_SPEC.md): the view switches to Enlarged
 -- at PopIn, the roll plays on the enlarged card at its contract size, the view goes back to Compact (closed, blur
 -- off) after Exit because the player did not open it, and the roll is announced to everyone in RBXGeneral.
 -- ServerSetup emphasized_next makes the next roll emphasized ('[UITEST] WAIT emphasized_roll').
@@ -6583,6 +7008,7 @@ function S.ui_roll_emphasized(res)
 		sp ~= nil and sp.view == "Enlarged"
 	)
 	phaseChecks(res, rec, "Enlarged", "emphasized_")
+	K.shownChecks(res, rec, "Enlarged", "emphasized_")
 	local hold = rec.hold.Enlarged
 	if hold then
 		check(res, "emphasized_view_open_at_hold", hold.showcase, "open", hold.showcase == "open")
@@ -6805,6 +7231,11 @@ local function rollOddsJudge(res)
 		if rec then
 			local open = rec.ev.panelsOpen or {}
 			checkList(res, "roll_odds_" .. name .. "_no_panel_open", open)
+		end
+		-- The odds shown belong to the character shown: its own model, ShownId the planted id
+		if hold then
+			checkList(res, "roll_odds_" .. name .. "_shows_rolled_model", hold.model)
+			check(res, "roll_odds_" .. name .. "_shown_id", tostring(hold.shownId), fx.id, hold.shownId == fx.id)
 		end
 		if hold and view.Key == "Compact" then
 			check(
@@ -8447,7 +8878,7 @@ function UiScenarios.RunClick(id)
 				true,
 				partShown(toast, UiSpec.Compact.AutoOff)
 			)
-			-- The last result as the compact roll shows it: its model ("?" placeholder) and odds (owner decision 4)
+			-- The last result as the compact roll shows it: its own model, odds and name (spec "Accuracy", "Views")
 			local last = events.rolls[#events.rolls]
 			if last then
 				checkList(res, "toast_auto_off_shows_last_result", compactProblems(toast, last))

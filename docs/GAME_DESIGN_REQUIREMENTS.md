@@ -322,6 +322,11 @@ before any Studio work.
   arrow aimed at it (owner 2026-11-04, replaces "not clamped"). Pointer size and edge margins are placeholders.
 - Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
 
+### 4.31 Roll animation (owner 2026-11-04)
+- Every roll clearly shows the character actually rolled: its own model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
+- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
+- The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -382,6 +387,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: roll animation shows the rolled model, cycles in place, larger normal roll, reference-style emphasized roll, fits the roll interval (4.31, ROLL_ANIMATION_SPEC).
 - 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
 - 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).

@@ -258,7 +258,7 @@ UiSpec.Guis = {
 			},
 		},
 	},
-	-- The compact roll (docs/ROLL_ANIMATION_CONTRACT.md): top centre, directly UNDER the Race button. With no panel
+	-- The compact roll (docs/ROLL_ANIMATION_SPEC.md): top centre, directly UNDER the Race button. With no panel
 	-- open its area is always reserved (the overlap checks place it there even while hidden between rolls); while any
 	-- panel is open it is hidden (UiSpec.HiddenWhilePanelOpen, owner decision 2026-10-08). It is a button only while
 	-- shown (Visible = false at rest: no invisible hitbox; shown at rest only while AutoRoll is false, with "AUTO OFF").
@@ -958,8 +958,6 @@ UiSpec.Showcase = {
 		"Ring",
 		"Burst",
 		"Reel",
-		"Streaks",
-		"Smoke",
 		"Viewport",
 		"Placeholder",
 		"Flare",
@@ -970,15 +968,21 @@ UiSpec.Showcase = {
 		"NewBadge",
 		"TurboBadge",
 		"TurboFlames",
-		"RollHeader",
+		"RollHeader", -- stays as an instance, hidden
+		"LandWave",
+		"Shard1",
+		"Shard2",
+		"Shard3",
+		"Shard4",
+		"Facet",
 	},
+	-- The stacked figure, odds and name may spill past the invisible card (design doc 4.28: no visible card): while shown
+	-- they stay on screen and clear of AutoButton and Hint.
+	ScreenBoundParts = { "Viewport", "ResultName", "ResultOdds" },
 	-- ...and the content parts that must lie inside the card while shown (effects such as Burst may spill out)
 	ContentParts = {
-		"Viewport",
-		"ResultName",
 		"ResultSpeed",
 		"ResultRarity",
-		"ResultOdds",
 		"NewBadge",
 		"TurboBadge",
 		"ScrapBadge",
@@ -1010,15 +1014,14 @@ UiSpec.Showcase = {
 }
 
 -- The compact roll RollToast/Toast ("Compact = no card", owner decision 4): an invisible background, a transparent
--- Body filling it with ONLY the bare car art and its odds. Racer UI layout, top to bottom: the AUTO OFF caption band,
--- the car art (RollAnimConfig.COMPACT_HEIGHT tall), the odds band; Toast height = COMPACT_HEIGHT + ExtraHeight.
+-- Body filling it with ONLY the bare figure, its odds and its name (docs/ROLL_ANIMATION_SPEC.md "Views"). Top to
+-- bottom: the AUTO OFF caption band, the figure (RollAnimConfig.COMPACT_HEIGHT tall, at most COMPACT_SCREEN_SHARE of the
+-- screen height), the odds, the name; Toast height = figure height + ExtraHeight.
 UiSpec.Compact = {
 	Body = "Body",
-	Parts = { "Body", "Reel", "Streaks", "Smoke", "Viewport", "Placeholder", "Odds" },
+	Parts = { "Body", "Reel", "LandWave", "Viewport", "Placeholder", "Odds", "CharacterName" },
 	Forbidden = { -- must not EXIST anywhere in RollToast/Toast (not just be hidden)
 		"Glow",
-		"CharacterName",
-		"ResultName",
 		"SpeedMulti",
 		"ResultSpeed",
 		"Rarity",
@@ -1031,27 +1034,29 @@ UiSpec.Compact = {
 		"Flare",
 	},
 	AutoOff = "AutoOff", -- caption part, shown only while AutoRoll is false
-	ExtraHeight = 44, -- caption band (24) + odds band (20)
-	ModelShare = 90 / 110, -- 24 px caption + 66 px art in the 110 px compact toast
+	CaptionBand = 24, -- px above the figure
+	TextBand = 20, -- px each for the odds and the name under the figure
+	ExtraHeight = 64, -- caption band (24) + odds band (20) + name band (20)
 	SplitTolerance = 0.02, -- proportional tolerance for Roblox's layout rounding
 }
 
--- The roll animation (docs/ROLL_ANIMATION_CONTRACT.md). Numbers are read from Shared/RollAnimConfig; Fallback is the
--- contract's table, used only to keep computing the other checks while the module is missing
+-- The roll animation (docs/ROLL_ANIMATION_SPEC.md). Numbers are read from Shared/RollAnimConfig; Fallback is the
+-- spec's table, used only to keep computing the other checks while the module is missing
 -- (roll_anim_config_present fails then).
 UiSpec.RollAnim = {
 	Module = "RollAnimConfig",
 	Fallback = {
-		POP = 0.15,
-		SPIN = 0.8,
-		LAND = 0.15,
-		EXIT = 0.15,
+		POP = 0.12,
+		SPIN = 1.5,
+		LAND = 0.2,
+		EXIT = 0.2,
 		SWITCH = 0.3,
+		FIT_INTERVAL = 2.8,
 		HOLD = {
-			Common = 0.3,
-			Uncommon = 0.3,
-			Rare = 0.4,
-			Epic = 0.6,
+			Common = 0.5,
+			Uncommon = 0.5,
+			Rare = 0.6,
+			Epic = 0.75,
 			Legendary = 1.5,
 			Mythic = 2.5,
 			Secret = 4,
@@ -1061,7 +1066,8 @@ UiSpec.RollAnim = {
 		COMPACT_WIDTH = 0.12,
 		COMPACT_MIN = 100,
 		COMPACT_MAX = 230,
-		COMPACT_HEIGHT = 66,
+		COMPACT_HEIGHT = 180,
+		COMPACT_SCREEN_SHARE = 0.3,
 		COMPACT_GAP = 8,
 		ENLARGED_FACTOR = 3,
 		ENLARGED_WIDTH = 0.6, -- the enlarged card no longer derives from the compact size
@@ -1074,28 +1080,38 @@ UiSpec.RollAnim = {
 		"LAND",
 		"EXIT",
 		"SWITCH",
+		"FIT_INTERVAL",
 		"REEL_CARS",
 		"LAND_POP",
 		"COMPACT_WIDTH",
 		"COMPACT_MIN",
 		"COMPACT_MAX",
 		"COMPACT_HEIGHT",
+		"COMPACT_SCREEN_SHARE",
 		"COMPACT_GAP",
 		"ENLARGED_FACTOR",
 		"ENLARGED_WIDTH",
 	},
 	Vectors = {},
-	Functions = { "Hold", "Duration", "ExtraPause", "Reel" },
+	Functions = { "Hold", "Duration", "ExtraPause", "Reel", "TimeScale", "SpinSlots" },
 	Phases = { "PopIn", "Spin", "Land", "Hold", "Exit", "Idle" }, -- one roll, in this order
 	PhaseTolerance = 0.1, -- s, per phase length (frame quantisation at both ends)
 	PhaseStart = 0.2, -- s from the RollResult to PopIn (+ SWITCH for an emphasized roll)
+	IntervalMin = 2, -- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL
+	ShownAttr = "ShownId", -- body attribute: the character on screen in every phase after PopIn
+	SpinMinShown = 2, -- distinct ShownId values during Spin (not under reduced motion)
+	SlotJitter = 0.04, -- s: two frames' slack when comparing the length of two Spin slots
+	SpotTolerance = 3, -- px: the figure's resting centre stays this close during Spin (one fixed spot, no sliding)
+	FigureFitSlack = 1.05, -- a part's box corners may pass the view edge by this factor: the box is wider than its mesh
 	LandPopTolerance = 0.06, -- peak body width / nominal within LAND_POP +- this during Land
 	SettledTolerance = 0.02, -- body width / nominal within 1 +- this during Hold (back to 1x)
 	PopInStartMax = 0.25, -- the body grows from 0: its smallest width during PopIn <= this x nominal
 	ExitShrinkMax = 0.5, -- the compact body shrinks on Exit: its smallest width during Exit <= this x nominal
 	GlowTurnWait = 0.2, -- s between two Glow UIGradient.Rotation samples in Hold (it must have turned)
 	GlowTurnMin = 0.5, -- degrees
-	FlyIcon = "FlyIcon", -- a small car icon: no text, takes no clicks
+	FlyIcon = "FlyIcon", -- a small icon of the rolled character: no text, takes no clicks
+	FlyIconView = "Icon", -- ViewportFrame under FlyIcon, holding the rolled character's rig
+	FlyIconSize = 44, -- px, square
 	FlyTarget = "HudChrome/Grid/Index",
 	FlyArrive = 24, -- px: the FlyIcon centre comes at least this close to the target's rectangle
 	SwitchGrace = 0.2, -- s after SWITCH for the view to be back to Compact after an emphasized roll
@@ -1983,7 +1999,7 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy" },
 		Expect = { Remote = false, After = { "track_camera_flipped", "track_camera_label_follows_attr" } },
 	},
-	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_CONTRACT.md). Run these eleven in this order, with
+	-- Compact roll -> enlarged view (docs/ROLL_ANIMATION_SPEC.md). Run these eleven in this order, with
 	-- auto_racing active and AutoRoll on; 'restore' afterwards puts AutoRoll back too.
 	{
 		Id = "open_showcase_from_toast",
@@ -2666,7 +2682,7 @@ UiSpec.Progression.FixtureChecks = {
 }
 
 --[[
-Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_CONTRACT.md). RollResult's 6th
+Displayed odds (docs/WEATHER_EVENTS_SPEC.md "Displayed odds"; docs/ROLL_ANIMATION_SPEC.md). RollResult's 6th
 argument is the roll's server luck for compatibility, but both Odds labels (RollToast/Toast `Odds`; RollShowcase/Card
 `ResultOdds` and its alias `Odds`) show the catalog rarity with `HudFormat.Odds(Chance)`. The catch-all car (Chance 1)
 shows "1 in 1". The Index and the roll announcement keep the base odds.

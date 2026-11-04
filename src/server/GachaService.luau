@@ -272,7 +272,16 @@ function GachaService.Roll(player, roller)
 	end
 	local scrapMoney = 0
 	if rollRemote and player:IsA("Player") then
-		rollRemote:FireClient(player, id, isNew, turboMulti, emphasized, scrapMoney, luck)
+		rollRemote:FireClient(
+			player,
+			id,
+			isNew,
+			turboMulti,
+			emphasized,
+			scrapMoney,
+			luck,
+			GachaService.RollInterval(player)
+		)
 	end
 	if emphasized then
 		GachaService.Announce(player, id, rollNumber)
@@ -709,7 +718,8 @@ end
 -- longer (RollAnimConfig.ExtraPause), so the next roll never covers one still playing.
 function GachaService.WaitAfter(id, emphasized, player)
 	local spec = CharacterCatalog.Get(id)
-	return GachaService.RollInterval(player) + RollAnimConfig.ExtraPause(spec and spec.Rarity, emphasized == true)
+	local interval = GachaService.RollInterval(player)
+	return interval + RollAnimConfig.ExtraPause(spec and spec.Rarity, emphasized == true, interval)
 end
 
 -- Rolls every GachaService.WaitAfter(last roll) seconds while the player's AutoRoll is on, until handle:Stop() (or

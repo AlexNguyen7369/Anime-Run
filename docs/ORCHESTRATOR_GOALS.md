@@ -86,6 +86,17 @@ Deliverables:
 - d2 | Approved draft in game | Studio shots from spawn show every Dojo; `world_layout`, `spawn_area`, `dojo`, `workshop` green; all prompts open; stylua / selene; rules audit PASS
 Out of scope: Market panel, Dojo meshes, gameplay numbers; sky loop kept (one leg moved, owner) and the Aura stall kept (its stray checker block removed, owner).
 
+## roll-anim: Every roll clearly shows the character rolled (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (layout, cycle in place, fit to interval, no new runtime dependency all chosen by the owner)
+Branch: feature/alex/anime-world
+Spec: design doc 4.31, docs/ROLL_ANIMATION_SPEC.md
+Deliverables:
+- r1 | Rules written in the design doc and the roll spec | rules audit PASS
+- r2 | Result shows the real model, same framing and light from cycle to landing, in-place cycling, larger normal roll | `ui_roll_anim`, `ui_roll_emphasized` and the server roll scenario green; stylua / selene clean; rules audit PASS
+- r3 | Emphasized look: big figure, gradient odds, outlined name, rarity crystal (our own art) | Studio captures of each phase look right; owner visual review
+Out of scope: odds, economy, new dependencies.
+
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
 Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")

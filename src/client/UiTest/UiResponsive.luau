@@ -1714,8 +1714,6 @@ end
 -- Client/RollToast copies PreviewRunner's Position / Size into these enlarged-card parts (fitRollArt, on every viewport
 -- change).
 Model.Follow = {
-	["RollShowcase/Card/CardBody/Face/Glow"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
-	["RollShowcase/Card/CardBody/Face/Ring"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 	["RollShowcase/Card/CardBody/Face/Reel"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 	["RollShowcase/Card/CardBody/Face/Viewport"] = "RollShowcase/Card/CardBody/Face/PreviewRunner",
 }
