@@ -288,13 +288,14 @@ before any Studio work.
   first run ends (its button still works). The gate plays a burst when they first cross it.
 - **Legends and sky loop**: the plaza shows one top character per Series on a pedestal, and 2-3 client-only runners with
   trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
-- **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. Sakura trunks are solid.
+- **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
 - **Wayfinding**: the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
-  torii; Market: an entrance arch facing the plaza) and a floating bold label high above it, seen across the plaza.
+  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch) and a floating bold label high above it, seen across the plaza.
   Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
+- **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one stall with no empty structures. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and the Legend pedestals (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
 - **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
@@ -416,6 +417,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-03: c3 rulings: finish pads may use their biome's palette colour; Track 6 keeps one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.
 - 2026-11-03: Index and Backpack share one collection card, Backpack gets Sort and Search (4.22). Ninja run for all 5 Leaf characters (4.23).
+- 2026-11-04: owner: clear plaza (4.24, WORLD_REDESIGN_SPEC 4, 7): straight service row in the west opening, Rebirth shrine removed (HUD tile stays), Best Roll in a Dojo gap, Market sign replaces its arch, Market reduced to one stall (empty vendor stalls and courtyard removed), path torii, strings, banners, planters, benches and small trees removed, one sky-loop leg moved clear of the Market sign, the stray checker block removed from the Aura stall meshes.
 - 2026-11-03: first impression pass (4.24, changes BIOME_ENVIRONMENT_SPEC 2.1): loading screen waits for what a player sees first, 8 s minimum; Market and Race Start marked in bold; plaza petals, ambience, solid sakura trunks, Index icon without a car. The Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold`.
 - 2026-11-03: orchestrator defaults, owner accepted: first auto-roll waits about 5 s after a starter pick; Daily panel does not auto-open until the first run ends (4.24). Orchestrator default: Studio-only `TestSaveKey` test saves (4.24).
 - 2026-11-03: track loading: Tracks 1-5 before load-in, the rest behind the game by player proximity (4.25, not built yet).

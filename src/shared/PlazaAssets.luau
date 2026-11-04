@@ -3,10 +3,6 @@
 -- WORLD_REDESIGN_SPEC 7). Do not edit by hand. Part Center / Size are studs in the asset's local frame.
 return {
 	Assets = {
-		Bench = {
-			Asset = 95857922612768,
-			Parts = { Body = { Size = Vector3.new(7.000, 1.675, 1.600), Center = Vector3.new(0.000, 0.837, -0.000) } },
-		},
 		DojoKit_L0 = {
 			Asset = 111842336600077,
 			Parts = {
@@ -98,9 +94,9 @@ return {
 			},
 		},
 		GreatSakura = {
-			Asset = 130972802243412,
+			Asset = 81417765020310,
 			Parts = {
-				Body = { Size = Vector3.new(45.348, 48.451, 42.552), Center = Vector3.new(-0.960, 24.225, -0.701) },
+				Body = { Size = Vector3.new(41.319, 49.584, 40.872), Center = Vector3.new(0.777, 24.792, 3.231) },
 			},
 		},
 		HeroTorii = {
@@ -124,65 +120,10 @@ return {
 				},
 			},
 		},
-		LanternString = {
-			Asset = 136578840070991,
-			Parts = {
-				Body = { Size = Vector3.new(20.472, 2.483, 22.027), Center = Vector3.new(-11.728, 15.292, 10.891) },
-				Glow_lamp = {
-					Size = Vector3.new(17.851, 3.150, 19.047),
-					Center = Vector3.new(-10.024, 14.725, 12.719),
-					Glow = "#FFB765",
-				},
-			},
-		},
-		LanternString_Index = {
-			Asset = 106970041317442,
-			Parts = {
-				Body = { Size = Vector3.new(18.057, 1.480, 12.075), Center = Vector3.new(-21.001, 12.308, -54.003) },
-				Glow_lamp = {
-					Size = Vector3.new(15.840, 2.150, 10.727),
-					Center = Vector3.new(-19.500, 11.725, -55.000),
-					Glow = "#FFB765",
-				},
-			},
-		},
-		LanternString_Shops = {
-			Asset = 139009111984660,
-			Parts = {
-				Body = { Size = Vector3.new(0.184, 1.683, 39.011), Center = Vector3.new(-37.643, 13.206, -32.500) },
-				Glow_lamp = {
-					Size = Vector3.new(0.923, 2.350, 33.227),
-					Center = Vector3.new(-37.658, 12.625, -35.750),
-					Glow = "#FFB765",
-				},
-			},
-		},
-		LanternStringx = {
-			Asset = 139657596169698,
-			Parts = {
-				Body = { Size = Vector3.new(20.472, 2.483, 22.027), Center = Vector3.new(-21.987, 15.292, 20.417) },
-				Glow_lamp = {
-					Size = Vector3.new(17.851, 3.150, 19.047),
-					Center = Vector3.new(-20.283, 14.725, 22.246),
-					Glow = "#FFB765",
-				},
-			},
-		},
-		LanternStringxx = {
-			Asset = 129068882856366,
-			Parts = {
-				Body = { Size = Vector3.new(20.472, 2.483, 22.027), Center = Vector3.new(-32.246, 15.292, 29.944) },
-				Glow_lamp = {
-					Size = Vector3.new(17.851, 3.150, 19.047),
-					Center = Vector3.new(-30.542, 14.725, 31.772),
-					Glow = "#FFB765",
-				},
-			},
-		},
 		LegendPedestal = {
-			Asset = 129557357072898,
+			Asset = 101436028319012,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_sp = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -191,9 +132,9 @@ return {
 			},
 		},
 		LegendPedestalx = {
-			Asset = 78778611054535,
+			Asset = 120745633279878,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_so = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -202,9 +143,9 @@ return {
 			},
 		},
 		LegendPedestalxx = {
-			Asset = 123490759702534,
+			Asset = 108800207329925,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_sr = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -213,9 +154,9 @@ return {
 			},
 		},
 		LegendPedestalxxx = {
-			Asset = 81518942480349,
+			Asset = 121967334967009,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_sb = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -224,9 +165,9 @@ return {
 			},
 		},
 		LegendPedestalxxxx = {
-			Asset = 90953900731602,
+			Asset = 134765580259032,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_st = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -235,9 +176,9 @@ return {
 			},
 		},
 		LegendPedestalxxxxx = {
-			Asset = 119720624665371,
+			Asset = 130736918087406,
 			Parts = {
-				Body = { Size = Vector3.new(9.600, 17.000, 9.600), Center = Vector3.new(0.000, 8.500, -0.000) },
+				Body = { Size = Vector3.new(9.600, 2.600, 9.600), Center = Vector3.new(0.000, 1.300, -0.000) },
 				Glow_sg = {
 					Size = Vector3.new(8.600, 0.300, 8.600),
 					Center = Vector3.new(0.000, 1.950, -0.000),
@@ -251,16 +192,9 @@ return {
 				Body = { Size = Vector3.new(73.720, 0.050, 69.908), Center = Vector3.new(-46.763, 0.000, 43.423) },
 			},
 		},
-		MarketGate = {
-			Asset = 87686788825808,
-			Parts = {
-				Body = { Size = Vector3.new(33.000, 25.400, 3.000), Center = Vector3.new(0.000, 12.700, -0.000) },
-				Glow_sp = {
-					Size = Vector3.new(27.600, 1.800, 1.386),
-					Center = Vector3.new(0.000, 12.900, 1.400),
-					Glow = "#A75BFF",
-				},
-			},
+		MarketSign = {
+			Asset = 90566703075659,
+			Parts = { Body = { Size = Vector3.new(18.000, 16.300, 1.050), Center = Vector3.new(0.000, 8.150, -0.175) } },
 		},
 		POTIONSStall = {
 			Asset = 90249957543522,
@@ -293,25 +227,6 @@ return {
 				},
 			},
 		},
-		PathTorii = {
-			Asset = 108764224309417,
-			Parts = { Body = { Size = Vector3.new(21.000, 12.050, 1.900), Center = Vector3.new(0.000, 6.025, -0.000) } },
-		},
-		Planter = {
-			Asset = 136523946816200,
-			Parts = { Body = { Size = Vector3.new(6.912, 4.038, 6.912), Center = Vector3.new(0.000, 2.019, -0.000) } },
-		},
-		RebirthShrine = {
-			Asset = 121493242392362,
-			Parts = {
-				Body = { Size = Vector3.new(25.935, 23.050, 21.745), Center = Vector3.new(0.000, 11.525, -0.000) },
-				Glow_lamp = {
-					Size = Vector3.new(18.000, 1.700, 1.386),
-					Center = Vector3.new(0.000, 8.850, 9.000),
-					Glow = "#FFB765",
-				},
-			},
-		},
 		SHOPStall = {
 			Asset = 128250819026292,
 			Parts = {
@@ -323,32 +238,8 @@ return {
 				},
 			},
 		},
-		Sakura_A = {
-			Asset = 123792855641621,
-			Parts = {
-				Body = { Size = Vector3.new(26.491, 22.308, 22.220), Center = Vector3.new(-0.235, 11.154, 0.628) },
-			},
-		},
-		Sakura_B = {
-			Asset = 92148830229314,
-			Parts = {
-				Body = { Size = Vector3.new(17.516, 20.315, 15.721), Center = Vector3.new(0.494, 10.157, -0.777) },
-			},
-		},
-		Sakura_C = {
-			Asset = 99684452162305,
-			Parts = {
-				Body = { Size = Vector3.new(18.268, 19.489, 15.189), Center = Vector3.new(-0.314, 9.745, 0.252) },
-			},
-		},
-		Sakura_D = {
-			Asset = 114551187402584,
-			Parts = {
-				Body = { Size = Vector3.new(17.973, 19.444, 16.664), Center = Vector3.new(0.151, 9.722, -0.163) },
-			},
-		},
 		SkyLoop = {
-			Asset = 106469918819480,
+			Asset = 79709231903591,
 			Parts = {
 				Body = { Size = Vector3.new(129.000, 29.000, 129.000), Center = Vector3.new(0.000, 15.500, -0.000) },
 				Glow_neonb = {
@@ -389,45 +280,16 @@ return {
 		{ Key = "MainPath", Pos = Vector3.new(0.000, 1.080, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "SpawnMosaic", Pos = Vector3.new(0.000, 1.100, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "HeroTorii", Pos = Vector3.new(-84.000, 1.000, 78.000), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "MarketGate", Pos = Vector3.new(17.500, 1.000, -0.000), Face = Vector3.new(-1.0000, 0, -0.0000) },
-		{ Key = "PathTorii", Pos = Vector3.new(-49.830, 1.000, 46.271), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "PathTorii", Pos = Vector3.new(-58.623, 1.000, 54.436), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "PathTorii", Pos = Vector3.new(-67.417, 1.000, 62.602), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "PathTorii", Pos = Vector3.new(-76.211, 1.000, 70.767), Face = Vector3.new(0.7328, 0, -0.6805) },
-		{ Key = "Lantern", Pos = Vector3.new(-23.439, 1.000, 10.029), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-11.735, 1.000, 22.633), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-32.965, 1.000, 18.875), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-21.261, 1.000, 31.479), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-44.690, 1.000, 29.762), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-32.986, 1.000, 42.366), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-60.079, 1.000, 44.051), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-48.375, 1.000, 56.655), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-68.872, 1.000, 52.217), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-57.168, 1.000, 64.821), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-77.666, 1.000, 60.382), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Lantern", Pos = Vector3.new(-65.962, 1.000, 72.986), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "GreatSakura", Pos = Vector3.new(-76.000, 1.000, -48.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Sakura_A", Pos = Vector3.new(-58.000, 1.000, 8.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Sakura_B", Pos = Vector3.new(-8.500, 1.000, 85.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Sakura_C", Pos = Vector3.new(52.000, 1.000, -62.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Sakura_D", Pos = Vector3.new(52.000, 1.000, 46.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "SHOPStall", Pos = Vector3.new(-37.600, 1.000, -19.800), Face = Vector3.new(0.8848, 0, 0.4659) },
-		{ Key = "POTIONSStall", Pos = Vector3.new(-37.700, 1.000, -44.600), Face = Vector3.new(0.6456, 0, 0.7637) },
-		{ Key = "RebirthShrine", Pos = Vector3.new(0.000, 1.000, 50.000), Face = Vector3.new(0.0000, 0, -1.0000) },
-		{ Key = "IndexBoard", Pos = Vector3.new(-2.000, 1.000, -60.000), Face = Vector3.new(0.0333, 0, 0.9994) },
+		{ Key = "MarketSign", Pos = Vector3.new(-72.000, 1.000, -12.500), Face = Vector3.new(1.0000, 0, 0.0000) },
+		{ Key = "Lantern", Pos = Vector3.new(-69.605, 1.000, 52.897), Face = Vector3.new(0.0000, 0, 1.0000) },
+		{ Key = "Lantern", Pos = Vector3.new(-57.901, 1.000, 65.501), Face = Vector3.new(0.0000, 0, 1.0000) },
+		{ Key = "Lantern", Pos = Vector3.new(-79.131, 1.000, 61.743), Face = Vector3.new(0.0000, 0, 1.0000) },
+		{ Key = "Lantern", Pos = Vector3.new(-67.427, 1.000, 74.347), Face = Vector3.new(0.0000, 0, 1.0000) },
+		{ Key = "GreatSakura", Pos = Vector3.new(80.000, -2.000, 118.000), Face = Vector3.new(0.0000, 0, 1.0000) },
+		{ Key = "SHOPStall", Pos = Vector3.new(-77.000, 1.000, -70.000), Face = Vector3.new(1.0000, 0, 0.0000) },
+		{ Key = "POTIONSStall", Pos = Vector3.new(-77.000, 1.000, -41.250), Face = Vector3.new(1.0000, 0, 0.0000) },
+		{ Key = "IndexBoard", Pos = Vector3.new(-72.000, 1.000, 16.250), Face = Vector3.new(1.0000, 0, 0.0000) },
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(-24.000, 1.000, -14.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(-22.000, 1.000, -32.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(22.000, 1.000, -32.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(14.000, 1.000, -42.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(-20.000, 1.000, -48.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(24.000, 1.000, 32.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Planter", Pos = Vector3.new(-12.000, 1.000, 62.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "Bench", Pos = Vector3.new(-14.000, 1.000, -36.000), Face = Vector3.new(0.3624, 0, 0.9320) },
-		{ Key = "Bench", Pos = Vector3.new(4.000, 1.000, -44.000), Face = Vector3.new(-0.0905, 0, 0.9959) },
-		{ Key = "Bench", Pos = Vector3.new(16.000, 1.000, 22.000), Face = Vector3.new(-0.5882, 0, -0.8087) },
-		{ Key = "LanternString_Shops", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LanternString_Index", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "LegendPedestal", Pos = Vector3.new(-1.518, 1.000, 21.879), Face = Vector3.new(-0.6805, 0, -0.7328) },
 		{ Key = "LegendPedestalx", Pos = Vector3.new(-21.931, 1.000, -0.105), Face = Vector3.new(0.6805, 0, 0.7328) },
 		{
@@ -446,9 +308,6 @@ return {
 			Pos = Vector3.new(-42.450, 1.000, 18.948),
 			Face = Vector3.new(0.6805, 0, 0.7328),
 		},
-		{ Key = "LanternString", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LanternStringx", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LanternStringxx", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 	},
 	Tiers = { [0] = "DojoKit_L0", [1] = "DojoKit_L1", [4] = "DojoKit_L4", [7] = "DojoKit_L7", [10] = "DojoKit_L10" },
 	Legends = {
@@ -462,31 +321,24 @@ return {
 	Signs = {
 		{
 			Text = "SHOP",
-			Pos = Vector3.new(-32.424, 12.200, -17.074),
-			Face = Vector3.new(0.8848, 0, 0.4659),
+			Pos = Vector3.new(-71.150, 12.200, -70.000),
+			Face = Vector3.new(1.0000, 0, 0.0000),
 			Size = 1.60,
 			Color = "#F6ECD2",
 		},
 		{
 			Text = "POTIONS",
-			Pos = Vector3.new(-33.923, 12.200, -40.132),
-			Face = Vector3.new(0.6456, 0, 0.7637),
+			Pos = Vector3.new(-71.150, 12.200, -41.250),
+			Face = Vector3.new(1.0000, 0, 0.0000),
 			Size = 1.25,
 			Color = "#F6ECD2",
 		},
 		{
 			Text = "RUNNER INDEX",
-			Pos = Vector3.new(-1.985, 11.600, -59.550),
-			Face = Vector3.new(0.0333, 0, 0.9994),
+			Pos = Vector3.new(-71.550, 11.600, 16.250),
+			Face = Vector3.new(1.0000, 0, 0.0000),
 			Size = 0.85,
 			Color = "#A92617",
-		},
-		{
-			Text = "REBIRTH",
-			Pos = Vector3.new(0.000, 11.250, 43.100),
-			Face = Vector3.new(0.0000, 0, -1.0000),
-			Size = 0.95,
-			Color = "#E8B23C",
 		},
 		{
 			Text = "RACE START",
@@ -497,14 +349,14 @@ return {
 		},
 		{
 			Text = "MARKET",
-			Pos = Vector3.new(17.050, 19.800, -0.000),
-			Face = Vector3.new(-1.0000, 0, -0.0000),
+			Pos = Vector3.new(-71.550, 14.100, -12.500),
+			Face = Vector3.new(1.0000, 0, 0.0000),
 			Size = 3.00,
 			Color = "#E8B23C",
 		},
 	},
 	Landmarks = {
-		Market = Vector3.new(45.000, 50.000, 0.000),
+		Market = Vector3.new(-80.350, 50.000, -12.500),
 		RaceStart = Vector3.new(-84.000, 60.000, 78.000),
 	},
 	LoopRadius = 62,

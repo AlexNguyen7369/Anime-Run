@@ -1,7 +1,6 @@
 --!nonstrict
--- Modular Blender marketplace; smooth box boundaries keep detailed displays from snagging players. The car-themed
--- Workshop and Parts stall meshes are scrapped (docs/WORLD_REDESIGN_SPEC.md section 1): those two vendors are plain
--- placeholder stalls (visible counter, posts and roof) until the anime hub.
+-- The Market: only the Aura stall of the Blender marketplace (docs/WORLD_REDESIGN_SPEC.md section 7). Smooth box
+-- boundaries keep its detailed displays from snagging players.
 local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,23 +25,13 @@ for _, mesh in template:GetDescendants() do
 end
 
 local MarketplaceBuilder = {}
-MarketplaceBuilder.CENTER = Vector2.new(163, -80) -- east side of the plaza
-MarketplaceBuilder.ROTATION = -90 -- entrance (+Z) faces west, toward the plaza centre
-MarketplaceBuilder.SIZE = Vector3.new(48, 0.2, 44)
-MarketplaceBuilder.VENDORS = {
-	{ Name = "Aura", Kind = "Aura", Counter = Vector3.new(-17, 0, -3), Width = 9, Npc = Vector3.new(-17, 0, -7) },
-	{
-		Name = "Workshop",
-		Kind = "Upgrades",
-		Counter = Vector3.new(0, 0, -11),
-		Width = 18,
-		Npc = Vector3.new(0, 0, -15),
-	},
-	{ Name = "Parts", Kind = "Trail", Counter = Vector3.new(17, 0, -3), Width = 9, Npc = Vector3.new(17, 0, -7) },
-}
-local PLACEHOLDER = { Workshop = true, Parts = true } -- vendors without stall meshes
-local WOOD = Color3.fromRGB(160, 110, 70)
-local ROOF = Color3.fromRGB(58, 62, 72) -- dark roof tiles
+-- Local to world: ROTATION 90 sends local +Z to hub +x and local +X to hub -z, so hub (x, z) = CENTER + (local z, -local x).
+-- The Aura meshes span local x -23.13 to -10.87 (centre -17) and z -17 to -0.65 at the sign board, 6.5 at the crate.
+-- CENTER.X: local z -0.3 (the MarketSign's plane, just in front of that board) lands on hub x 46 (world -72).
+-- CENTER.Y: local x -17 lands on hub z -92.5 (world -12.5, the row's Market spot).
+MarketplaceBuilder.CENTER = Vector2.new(46.3, -109.5)
+MarketplaceBuilder.ROTATION = 90 -- entrance (+Z) faces +x, as the rest of the service row
+local COUNTER = Vector3.new(-17, 0, -3)
 
 local function box(parent, name, size, cf, collide)
 	local p = Instance.new("Part")
@@ -62,24 +51,6 @@ end
 function MarketplaceBuilder.Build(placement)
 	local model = Instance.new("Model")
 	model.Name = "Marketplace"
-	model:SetAttribute("EntranceWidth", 24)
-	model:SetAttribute("CourtyardWidth", 24)
-	local vendors = Instance.new("Folder")
-	vendors.Name = "Vendors"
-	vendors.Parent = model
-	local areas = {}
-	for _, spec in MarketplaceBuilder.VENDORS do
-		local vendor = Instance.new("Model")
-		vendor.Name = spec.Name
-		vendor:SetAttribute("VendorKind", spec.Kind)
-		vendor:SetAttribute("Modular", true)
-		vendor.Parent = vendors
-		areas[spec.Name] = vendor
-	end
-	local courtyard = Instance.new("Model")
-	courtyard.Name = "Courtyard"
-	courtyard.Parent = model
-	areas.Courtyard = courtyard
 	local visual = template:Clone()
 	for _, mesh in visual:GetChildren() do
 		if mesh:IsA("BasePart") then
@@ -92,7 +63,7 @@ function MarketplaceBuilder.Build(placement)
 			if mesh:IsA("MeshPart") then
 				mesh.DoubleSided = true
 			end
-			mesh.Parent = areas[mesh.Name:match("^(%w+)_")]
+			mesh.Parent = model
 		end
 	end
 	visual:Destroy()
@@ -102,102 +73,44 @@ function MarketplaceBuilder.Build(placement)
 	local function boundary(name, size, pos)
 		return box(boundaries, name, size, placement * CFrame.new(pos), true)
 	end
-	local floor = boundary("WalkSurface", MarketplaceBuilder.SIZE, Vector3.new(0, 0.1, 0))
+	local floor = boundary("WalkSurface", Vector3.new(12.4, 0.2, 23.8), Vector3.new(-17, 0.1, -5.2))
 	model.PrimaryPart = floor
-	boundary("RearWall", Vector3.new(46, 10, 0.8), Vector3.new(0, 5.2, -20))
-	for _, x in { -23, 23 } do
-		boundary("SideDisplay_" .. x, Vector3.new(3.2, 3, 12), Vector3.new(x, 1.7, 15))
-	end
-	for _, spec in MarketplaceBuilder.VENDORS do
-		local vendor = areas[spec.Name]
-		local c = spec.Counter
-		local counter =
-			boundary(spec.Name .. "Counter", Vector3.new(spec.Width + 0.5, 4.2, 3), c + Vector3.new(0, 2.1, 0))
-		if PLACEHOLDER[spec.Name] then
-			counter.Transparency = 0
-			counter.Color = WOOD
-			counter.Material = Enum.Material.WoodPlanks
-			local roof = box(
-				vendor,
-				"PlaceholderRoof",
-				Vector3.new(spec.Width + 4, 0.6, 10),
-				placement * CFrame.new(c + Vector3.new(0, 11.5, -3)),
-				false
-			)
-			roof.Transparency = 0
-			roof.Color = ROOF
-			roof.Material = Enum.Material.Slate
-		end
-		local points = Instance.new("Folder")
-		points.Name = "InteractionPoints"
-		points.Parent = vendor
-		local anchor = box(
-			points,
-			"PromptAnchor",
-			Vector3.new(1, 1, 1),
-			placement * CFrame.new(c + Vector3.new(0, 4.5, 1.7)),
-			false
-		)
-		CollectionService:AddTag(anchor, "MarketPad")
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "OpenMarket"
-		prompt.ActionText = "Browse Market"
-		prompt.ObjectText = spec.Kind == "Trail" and "Trail Vendor" or spec.Name .. " Vendor"
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = 0
-		prompt.MaxActivationDistance = 8
-		prompt.RequiresLineOfSight = false
-		prompt.Parent = anchor
-		for name, position in
-			{
-				NPC = spec.Npc + Vector3.new(0, 3.2, 0),
-				ShopButton = c + Vector3.new(2, 4.6, 1.6),
-				ItemDisplay = c + Vector3.new(0, 4.8, 0),
-			}
-		do
-			local point = Instance.new("Attachment")
-			point.Name = name
-			point.Position = position - (c + Vector3.new(0, 4.5, 1.7))
-			point.Parent = anchor
-		end
-		vendor.PrimaryPart = anchor
-	end
-	boundary("AuraFrontDisplay", Vector3.new(5.2, 3.6, 3.2), Vector3.new(-19, 1.8, 5))
-	for _, x in { -22, -12, 12, 22 } do
+	boundary("BackWall", Vector3.new(11, 10, 0.8), Vector3.new(-17, 5.2, -16.5))
+	boundary("Counter", Vector3.new(9.5, 4.2, 3), COUNTER + Vector3.new(0, 2.1, 0))
+	boundary("FrontDisplay", Vector3.new(5.2, 3.6, 3.2), Vector3.new(-19, 1.8, 5))
+	for _, x in { -22, -12 } do
 		for _, z in { -16, -2 } do
-			local post = boundary("Post_" .. x .. "_" .. z, Vector3.new(1.5, 11.2, 1.5), Vector3.new(x, 5.8, z))
-			if x > 0 then -- the Parts stall's posts, visible now its meshes are gone
-				post.Transparency = 0
-				post.Color = WOOD
-			end
+			boundary("Post_" .. x .. "_" .. z, Vector3.new(1.5, 11.2, 1.5), Vector3.new(x, 5.8, z))
 		end
 	end
-	for _, x in { -10, 10 } do
-		local post = boundary("WorkshopPost_" .. x, Vector3.new(1.5, 13, 1.5), Vector3.new(x, 6.7, -10))
-		post.Transparency = 0
-		post.Color = WOOD
-	end
-	for index, pos in
-		{
-			Vector3.new(-17, 8, -4),
-			Vector3.new(0, 10, -10),
-			Vector3.new(17, 8, -4),
-			Vector3.new(-21, 4, 18),
-			Vector3.new(21, 4, 18),
-		}
-	do
-		local mount = Instance.new("Attachment") -- an attachment, not a part: the plaza keeps few parts
-		mount.Name = "LanternMount_" .. index
-		mount.Parent = floor
-		mount.WorldCFrame = placement * CFrame.new(pos)
-		local light = Instance.new("PointLight")
-		light.Name = "WarmLantern"
-		light.Color = Color3.fromRGB(255, 201, 117)
-		light.Brightness = 1.4
-		light.Range = 14
-		light.Shadows = false
-		light.Parent = mount
-	end
+	local anchor = box(
+		model,
+		"PromptAnchor",
+		Vector3.new(1, 1, 1),
+		placement * CFrame.new(COUNTER + Vector3.new(0, 4.5, 1.7)),
+		false
+	)
+	CollectionService:AddTag(anchor, "MarketPad")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenMarket"
+	prompt.ActionText = "Browse Market"
+	prompt.ObjectText = "Market"
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 8
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = anchor
+	local mount = Instance.new("Attachment") -- an attachment, not a part: the plaza keeps few parts
+	mount.Name = "LanternMount"
+	mount.Parent = floor
+	mount.WorldCFrame = placement * CFrame.new(-17, 8, -4)
+	local light = Instance.new("PointLight")
+	light.Name = "WarmLantern"
+	light.Color = Color3.fromRGB(255, 201, 117)
+	light.Brightness = 1.4
+	light.Range = 14
+	light.Shadows = false
+	light.Parent = mount
 	return model
 end
 

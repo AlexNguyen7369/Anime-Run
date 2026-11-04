@@ -1,9 +1,9 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), the shop street (Shop, Market, Potions stalls), the Rebirth shrine, the Index scroll board, the
--- leaderboard banners, the Best Roll pedestal and the Checkpoints sensei. Players join and respawn here on foot, and
--- Stop sends them back here. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
+-- Server/CarService), the service row (Shop, Potions, Market, Index, the Checkpoints sensei: fronts on one line facing
+-- +x, WORLD_REDESIGN_SPEC 7) and the Best Roll pedestal. Players join and respawn here on foot, and Stop sends them back
+-- here. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
 -- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
@@ -196,33 +196,12 @@ local function prompt(parent, cframe, name, action, object, distance)
 	return addPrompt(anchor, name, action, object, distance)
 end
 
--- A gabled roof over a local frame: ridge along local X at `ridgeY`, `width` x `depth`.
-local function roof(parent, frame, width, depth, ridgeY)
-	local slope = math.rad(22)
-	local half = depth / 2
-	local run = half / math.cos(slope)
-	for _, side in { -1, 1 } do
-		block(
-			parent,
-			"Roof",
-			Vector3.new(width, 0.6, run),
-			frame
-				* CFrame.new(0, ridgeY - math.tan(slope) * half / 2, side * half / 2)
-				* CFrame.Angles(side * slope, 0, 0),
-			ROOF_TILE,
-			Enum.Material.Slate,
-			false
-		)
-	end
-end
-
--- A wooden market stall facing the plaza centre: counter (with the prompt), posts, a tiled roof, a cloth curtain
+-- A wooden market stall on the service row, facing +x: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
-	local c = SpawnArea.CENTRE
 	local m = Instance.new("Model")
 	m.Name = name
-	local f = facing(startCFrame, x, z, c.X, c.Y)
+	local f = facing(startCFrame, x, z, x + 1, z)
 	local counter =
 		block(m, "Counter", Vector3.new(10, 3.6, 2), f * CFrame.new(0, 1.8, -2), WOOD, Enum.Material.WoodPlanks)
 	for _, px in { -4.8, 4.8 } do
@@ -337,14 +316,15 @@ function SpawnArea.Build(startCFrame)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
 
-	-- Shop street (same panels and remotes as before): Shop and Potions stalls south-west of the spawn, the Market east
-	stall(model, startCFrame, "ShopStall", 80, -100, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
+	-- Service row (same panels and remotes as before): hub-local = world + (118, -80), so stall origins at world x -77 put
+	-- their fronts on world x -72
+	stall(model, startCFrame, "ShopStall", 41, -150, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
 	stall(
 		model,
 		startCFrame,
 		"PotionsStall",
-		80,
-		-125,
+		41,
+		-121.25,
 		Color3.fromRGB(120, 60, 160),
 		"POTIONS",
 		"OpenPotions",
@@ -358,48 +338,10 @@ function SpawnArea.Build(startCFrame)
 	)
 	marketplace.Parent = model
 
-	-- Rebirth shrine: a raised stone floor, vermilion pillars, a gabled roof, a bell and an offering box (the prompt)
-	local shrine = Instance.new("Model")
-	shrine.Name = "RebirthShrine"
-	local sf = facing(startCFrame, 118, -30, c.X, c.Y)
-	block(shrine, "Platform", Vector3.new(16, 1, 13), sf * CFrame.new(0, 0.5, 0), STONE, Enum.Material.Slate)
-	for _, px in { -6.5, 6.5 } do
-		for _, pz in { -4.8 } do
-			block(
-				shrine,
-				"Pillar",
-				Vector3.new(1.2, 10, 1.2),
-				sf * CFrame.new(px, 6, pz),
-				VERMILION,
-				Enum.Material.Wood
-			)
-		end
-	end
-	roof(shrine, sf, 17, 13, 14.5)
-	local offering = block(
-		shrine,
-		"OfferingBox",
-		Vector3.new(4.5, 2.4, 2.4),
-		sf * CFrame.new(0, 2.2, -3),
-		DARK_WOOD,
-		Enum.Material.WoodPlanks
-	)
-	local shrineAnchor = addPrompt(offering, "OpenRebirth", "Rebirth", "Rebirth Shrine", 10)
-	billboard(
-		shrineAnchor,
-		"Title",
-		{ { "Name", "REBIRTH SHRINE", Color3.fromRGB(255, 214, 90) } },
-		UDim2.fromScale(14, 2),
-		13
-	)
-	glow(shrineAnchor, 16)
-	shrine.PrimaryPart = shrineAnchor
-	shrine.Parent = model
-
-	-- Index board: a wooden frame holding a paper scroll, facing the plaza centre
+	-- Index board: a wooden frame holding a paper scroll, on the service row
 	local index = Instance.new("Model")
 	index.Name = "IndexBoard"
-	local xf = facing(startCFrame, 116, -140, c.X, c.Y)
+	local xf = facing(startCFrame, 46, -63.75, 47, -63.75)
 	for _, px in { -10.5, 10.5 } do
 		block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
 	end
