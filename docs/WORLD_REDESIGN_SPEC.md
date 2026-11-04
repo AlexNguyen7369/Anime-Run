@@ -123,12 +123,13 @@ before any Studio work. All values below are **proposed**. 34 unique meshes, abo
 - **Wayfinding**: RACE START banner on the torii under its tie beam; MARKET entrance arch on the Market's plaza side (posts
   clear of the mosaic, about 24 tall). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
   as client-only attachments, so streaming never hides them.
-- **Reveal** (Client/ArrivalFlow): first join, after the loading screen, a skippable camera sweep of about 5 s; Reduced Motion: a still of the plaza, then a cut.
-- **Starter pick**: popup with a lighter dim, opens after the reveal, with a watchdog so it always opens. A pick plays a petal burst and the character's hero pose at the spawn for about 4 s.
+- **Reveal** (Client/ArrivalFlow): first join, after the loading screen, a skippable camera sweep of about 5 s that ends, skipped or not, behind the player looking at the gate; Reduced Motion: a still of the plaza, then a cut.
+- **Starter pick**: popup with a lighter dim, opens after the reveal, with a watchdog so it always opens. A pick plays a petal burst and the character's hero pose beside the spawn for about 4 s; the first auto-roll waits about 5 s so its result card does not cover it.
 - **Trail**: 12 flat neon discs along the path pulsing in a wave toward the gate, with petals drifting the same way, until the first run. Reduced Motion: steady discs, no petals.
 - **Daily hold**: the Daily panel's auto-open waits until a new player's first run ends; its HUD button still works. "New" survives a rejoin: no money earned, no track beaten, no Daily claimed.
 - **Gate burst**: petals and gold at the pad when a new player's first run starts within 40 studs of the gate.
 - **Dojo extras** (Client/DojoExtras): a petal burst on a level rise; squad rigs play an idle jab within 80 studs; `Glow_lamp` parts take the colour of the owner's `WorkshopStat`; a bold YOUR DOJO label for a new player until they walk within 30 studs or race. All client display; Reduced Motion stops the burst and the training.
+- **Fresh-save checks**: in Studio only, ReplicatedStorage attribute `TestSaveKey` = "<name>" (set in Edit before Play) plays on a separate save `Test_<name>_<userId>`; a new name is a new save. Read once at server start; leaderboards skip these sessions. Clear it afterwards: the `data` scenario expects real keys. Do not send gifts in a test session: `GiftRoutes_v1` still uses the real buyer id.
 - **Load**: the loading screen waits for `TerrainNearReady` (plaza and Track 1 terrain, their stand-in ground cleared), `CharacterModels` Ready and `PlazaReady`, then preloads what is on screen in 4 streams. Other characters and Dojo tiers (`ReplicatedStorage.PlazaTierMeshes`) preload behind the game.
 - **Sensei**: moves further along the path (`CheckpointConfig.NPC_POS`) to clear the Legends.
 - **Trees**: one Great Sakura plus smaller sakura, all clear of the road and the plots.

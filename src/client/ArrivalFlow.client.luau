@@ -33,6 +33,7 @@ local FIGURE_SECONDS = 4
 local FIGURE_MODEL_WAIT = 3
 local FIGURE_SCALE = 1.5
 local FIGURE_FROM_SPAWN = 7 -- towards the gate, so it does not stand inside the player
+local FIGURE_SIDE = 7 -- off the camera line, so the player's own avatar does not hide it
 local TRAIL_DISCS = 12
 local TRAIL_ACTIVE_DISTANCE = 400 -- studs from the spawn: no pulsing while away
 local GATE_BURST_DISTANCE = 40 -- studs: the burst is for crossing the gate, not AUTO RACE or a duel from elsewhere
@@ -42,13 +43,16 @@ local TRAIL_DISC_SIZE = 6
 local TRAIL_COLOR = Color3.fromRGB(255, 60, 150)
 
 -- Round the far side of the plaza, out past the gate, back through the torii opening and down the path to the spawn.
+local FINAL_POS = Vector3.new(8.8, 8.5, -8.2)
+local FINAL_FOCUS = Vector3.new(-84, 15, 78)
 local KEYS = {
 	{ Pos = Vector3.new(-30, 75, -80), Focus = Vector3.new(0, 5, 0) },
 	{ Pos = Vector3.new(-135, 55, 20), Focus = Vector3.new(-20, 5, 20) },
 	{ Pos = Vector3.new(-140, 28, 130), Focus = Vector3.new(-84, 16, 78) },
 	{ Pos = Vector3.new(-84, 14, 78), Focus = Vector3.new(0, 4, 0) },
 	{ Pos = Vector3.new(-40, 14, 37), Focus = Vector3.new(0, 4, 0) },
-	{ Pos = Vector3.new(-11, 8, 10), Focus = Vector3.new(0, 4, 0) },
+	{ Pos = Vector3.new(10, 14, -4), Focus = Vector3.new(-20, 6, 18) },
+	{ Pos = FINAL_POS, Focus = FINAL_FOCUS }, -- behind the player, looking at the gate: what they walk toward
 }
 local KEY_DISTANCE = { 0 } -- studs along the path, so the speed stays even across unequal gaps
 for i = 2, #KEYS do
@@ -96,7 +100,7 @@ local function skipButton(onSkip)
 	local button = Instance.new("TextButton")
 	button.Name = "Skip"
 	button.AnchorPoint = Vector2.new(1, 1)
-	button.Position = UDim2.new(1, -16, 1, -16)
+	button.Position = UDim2.new(1, -16, 1, -76) -- above the bottom-right HUD button
 	button.Size = UDim2.fromOffset(96, 44)
 	button.BackgroundColor3 = Color3.new(0, 0, 0)
 	button.BackgroundTransparency = 0.4
@@ -183,6 +187,8 @@ local function playReveal()
 	if gui then
 		gui:Destroy()
 	end
+	-- Skipped or not, the player ends up behind their character, looking at the gate
+	Workspace.CurrentCamera.CFrame = CFrame.lookAt(FINAL_POS, FINAL_FOCUS)
 	Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
 	if not ok then
 		warn("[ArrivalFlow] reveal failed: " .. tostring(failure))
@@ -218,7 +224,7 @@ end
 
 -- The chosen character's hero pose at the spawn, in a petal burst; gone after a few seconds.
 local function pickReveal(id)
-	local at = SPAWN + TO_GATE * FIGURE_FROM_SPAWN
+	local at = SPAWN + TO_GATE * FIGURE_FROM_SPAWN + TO_GATE:Cross(Vector3.yAxis) * FIGURE_SIDE
 	burst(at + Vector3.new(0, 3, 0), PETAL, 70)
 	local waited = os.clock()
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")

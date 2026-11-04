@@ -339,11 +339,16 @@ function GachaService.CheckStarter(player)
 end
 
 -- The player's starter choice: accepted once, only from CharacterCatalog.STARTER_PICKS. Returns true if taken.
+-- The first auto-roll waits for the pick's in-world reveal, so its result card does not cover it (design doc 4.24).
+local STARTER_ROLL_HOLD = 5 -- seconds (proposed)
+local rollHoldUntil = setmetatable({}, { __mode = "k" })
+
 function GachaService.PickStarter(player, id)
 	if player:GetAttribute("NeedsStarter") ~= true or not table.find(CharacterCatalog.STARTER_PICKS, id) then
 		return false
 	end
 	addEntry(folder(player), id)
+	rollHoldUntil[player] = os.clock() + STARTER_ROLL_HOLD
 	player:SetAttribute("NeedsStarter", false)
 	player:SetAttribute("Team", id)
 	player:SetAttribute("EquippedCar", id)
@@ -724,6 +729,7 @@ function GachaService.StartAutoRoll(player, roller)
 				and player.Parent
 				and player:GetAttribute("AutoRoll") ~= false
 				and player:GetAttribute("NeedsStarter") ~= true
+				and os.clock() >= (rollHoldUntil[player] or 0)
 			then
 				local id, _, _, emphasized = GachaService.Roll(player, roller)
 				handle.Rolls += 1

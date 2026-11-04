@@ -9,6 +9,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
@@ -97,7 +98,15 @@ local function getStore()
 	return store
 end
 
+-- Studio only: ReplicatedStorage attribute TestSaveKey = "<name>", set in Edit, plays this server on a separate test save, so
+-- a fresh-save check never reads or writes the tester's real save. A new name is a new save. Read once: changing it during
+-- Play must not send test data to the real key. Leaderboards skip these sessions.
+PlayerData.TestSave = RunService:IsStudio() and ReplicatedStorage:GetAttribute("TestSaveKey") or nil
+
 function PlayerData.KeyFor(userId)
+	if PlayerData.TestSave then
+		return "Test_" .. tostring(PlayerData.TestSave) .. "_" .. tostring(userId)
+	end
 	return "Player_" .. tostring(userId)
 end
 

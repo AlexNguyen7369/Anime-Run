@@ -322,7 +322,7 @@ the owner before any Studio work (owner 2026-11-03).
 - **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
   to the spawn. Reduced Motion replaces it with a cut.
 - **Starter pick**: stays a popup (4.21) with a lighter dim so the plaza shows behind it. The pick plays an in-world
-  reveal: a petal burst and the chosen character's hero pose.
+  reveal: a petal burst and the chosen character's hero pose. The first auto-roll waits about 5 s (proposed) so its result card does not cover it.
 - **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open by itself until their
   first run ends (its button still works). The gate plays a burst when they first cross it.
 - **Legends and sky loop** (new, owner): the plaza shows one top character per Series on a pedestal, and 2-3 client-only
@@ -333,6 +333,7 @@ the owner before any Studio work (owner 2026-11-03).
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
   torii; Market: an entrance arch facing the plaza) and a floating bold label high above it, seen across the plaza.
   Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
+- **Fresh-save checks** (dev tool, Studio only): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server. Owner 2026-11-03 asked for a fresh-save test; the tool is an orchestrator default.
 - **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
@@ -401,6 +402,8 @@ None open. Workshop gain answered 2026-11-01 (4.13: Money, for now).
 The four questions of 2026-10-28 were answered the same day (sections 4.5-4.8).
 
 ## Change log
+- 2026-11-03: orchestrator default, for the owner's fresh-save test: Studio-only `TestSaveKey` test saves (4.24).
+- 2026-11-03: orchestrator default (owner delegated, awaiting review): the first auto-roll after a starter pick waits about 5 s so its result card does not cover the reveal (4.24).
 - 2026-11-03: orchestrator default (owner delegated, awaiting review): a new player's Daily panel does not auto-open until their first run ends; its HUD button still works (4.24).
 - 2026-11-03: owner asked to keep the load short; orchestrator default (owner delegated, awaiting review): the loading screen waits for what a player sees first, the rest loads behind the game (4.24).
 - 2026-11-03: owner: the Sea Legend on the plaza is Lufy (`sea_captain`), not `sea_gold` (4.24).
