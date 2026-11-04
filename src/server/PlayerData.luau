@@ -342,6 +342,41 @@ function PlayerData.Save(player, userId, release)
 	return result
 end
 
+-- Admin /newplayer: replaces the save with an empty record and stops this session's saves, so the next load is a brand
+-- new save. Pending gifts and their receipts stay (paid for). No lock is left, so a rejoin need not wait. The caller
+-- removes the player. Returns true if the save was reset. Yields.
+function PlayerData.ResetToNew(player, userId)
+	if player:GetAttribute("DataFailed") or not player:GetAttribute("DataLoaded") then
+		return false
+	end
+	local dataStore = getStore()
+	if not dataStore then
+		return false
+	end
+	userId = userId or player.UserId
+	while saving[player] do
+		task.wait()
+	end
+	saving[player] = true
+	local refused = false
+	local ok, result = pcall(function()
+		return dataStore:UpdateAsync(PlayerData.KeyFor(userId), function(current)
+			refused = lockedElsewhere(current, clock())
+			if refused then
+				return nil
+			end
+			local record = type(current) == "table" and current or {}
+			return { GiftMailbox = record.GiftMailbox, GiftReceipts = record.GiftReceipts }
+		end)
+	end)
+	local reset = ok and not refused and type(result) == "table"
+	if reset then
+		player:SetAttribute("DataLoaded", nil) -- blocks every later save, the leave save included
+	end
+	saving[player] = nil
+	return reset
+end
+
 -- Waits until the player's stats finished loading (or failed). Returns true if loaded.
 function PlayerData.WaitLoaded(player, timeout)
 	local deadline = os.clock() + (timeout or 10)

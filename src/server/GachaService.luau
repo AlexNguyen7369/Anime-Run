@@ -4,7 +4,7 @@
 --   duplicates rolled since (docs/WORKSHOP_SPEC.md "Showcase": never sold, they power the workshop Showcase)
 --   player attributes: Team (up to 3 character ids joined by ",", docs/TEAM_AND_STAMINA_SPEC.md), EquippedCar (the
 --   active runner: Team[1] on foot, the runner in play during a run), Rolls, StatPoints (free points), Alloc_<Stat> for each GachaConfig.STATS,
---   AutoRoll (the AUTO toggle of the roll view, true on join, not saved), Showcase (shown car ids joined by ","),
+--   AutoRoll (the AUTO toggle of the roll view, true on join, false on a save with no rolls yet, not saved), Showcase (shown car ids joined by ","),
 --   LuckMulti (live permanent multiplier snapshot), Cruise (the equipped character's cruise, studs/s), WorkshopBoost
 --   (the workshop stat boost fraction, design doc 4.19; the stat is the saved WorkshopStat attribute)
 -- Every unique car in the index counts towards stat points (GachaConfig.EarnedPoints); earned points are
@@ -339,11 +339,14 @@ function GachaService.TeamList(player)
 	return list
 end
 
--- Opens the starter popup for a brand new save (design doc 4.21). Called once a real save has loaded.
+-- A save with no rolls has auto-roll off until Client/AutoRollTutorial has the player turn it on; a brand new save also
+-- opens the starter popup (design doc 4.21). Called once a real save has loaded.
 function GachaService.CheckStarter(player)
-	local data = folder(player)
-	if #data:GetChildren() == 0 and cleanCount(player:GetAttribute("Rolls")) == 0 then
-		player:SetAttribute("NeedsStarter", true)
+	if cleanCount(player:GetAttribute("Rolls")) == 0 then
+		player:SetAttribute("AutoRoll", false)
+		if #folder(player):GetChildren() == 0 then
+			player:SetAttribute("NeedsStarter", true)
+		end
 	end
 end
 

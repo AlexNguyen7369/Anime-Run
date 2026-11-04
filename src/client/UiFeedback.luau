@@ -53,6 +53,7 @@ UiFeedback.Cues = {
 	ToastHigh = { Slot = "Thunk", Volume = 0.5, Motion = { "Slam" } },
 	CheckpointBonus = { Slot = "Chime", Volume = 2, Motion = { "Pop", "Fly" } },
 	StarterPick = { Slot = "Crack", Volume = 0.36, Motion = { "Slam" } },
+	AutoOn = { Slot = "Chime", Volume = 2.25, Motion = { "Burst" } }, -- the auto-roll tutorial's last step (design doc 4.21)
 	DuelTick = { Slot = "Tap", Volume = 0.3, Motion = { "Pop" } },
 	DuelInvite = { Slot = "Chime", Volume = 2, Motion = { "Pop" } },
 	DuelWin = { Slot = "Boom", Volume = 0.7, Motion = { "Slam", "Burst" } },

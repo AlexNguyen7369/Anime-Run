@@ -172,6 +172,10 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
   rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`.
+- Admin test commands (owner 2026-11-04): `/narito [player]` adds Narito (`leaf_hero`) to the index. `/newplayer` erases
+  the sender's own save and kicks them, so the next join is a brand new player (starter popup, 4.21; arrival flow, 4.24).
+  It takes no target. Only pending gifts and their receipts stay, so a paid gift is not lost or paid twice. `/wipe` stays
+  as it is: a live reset of progress with no starter popup.
 - HUD: the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's CRUISE row and the
   character cards still show cruise.
 
@@ -251,7 +255,16 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Starters are not rollable and not in the Index, like the old `starter`. Stats are **proposed**: Common, cruise as the
   old starter, Balanced, no Series. Look: same model as Lufy, Narito, Gokku (mapping **proposed**: Ruffy = Lufy,
   Karate Kid = Narito, Sayan = Gokku).
-- Auto-roll waits until the player has picked. The roster in play is these 30 models plus the 3 starters that reuse them.
+- Auto-roll is off for a new player until a spotlight tutorial has them turn it on (owner 2026-11-04). After the pick's
+  reveal (about 4 s, proposed) the screen dims except for one spotlit control and a short line of text: first the compact
+  roll card, which opens the roll view, then its AUTO button. Nothing else takes clicks until AUTO is on, and the
+  tutorial cannot be skipped. A save with 0 rolls starts with auto-roll off and gets the tutorial on each join; any save
+  with a roll keeps the default of on. No new saved field.
+  Look (owner 2026-11-04; sizes and timings proposed): the dim closes in on a rounded spotlight that glides from step to
+  step, with a pulsing gold ring, a ripple and a bobbing arrow. A caption card shows the picked starter's drawn head,
+  "STEP 1 OF 2" and the instruction. Turning AUTO on plays a gold burst and "AUTO ON!", then the dim fades away. Reduced
+  Motion keeps the spotlight, ring and card and drops the movement.
+- The roster in play is these 30 models plus the 3 starters that reuse them.
 
 ### 4.22 Collection cards: Index and Backpack Characters (owner 2026-11-03)
 - Layout ideas from the owner's reference screenshot, no copied art. Index tiles and Backpack Characters tiles share one
@@ -470,3 +483,5 @@ None open here; 4.25 marks its own open question.
 - 2026-11-03: track loading: Tracks 1-5 before load-in, the rest behind the game by player proximity (4.25, not built yet).
 - 2026-11-03 owner: doc trimmed; superseded text removed, no live rule changed.
 - 2026-11-04: owner: auras and trails can be bought more than once, up to 3 copies of each at full price; the inventory holds the copies and one copy is worn on one team slot (4.13, TEAM_AND_STAMINA_SPEC).
+- 2026-11-04: owner: admin test commands `/narito` and `/newplayer` (4.13).
+- 2026-11-04: owner: new players start with auto-roll off and a spotlight tutorial turns it on (4.21).

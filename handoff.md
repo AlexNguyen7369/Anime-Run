@@ -17,8 +17,17 @@ History: `current_progress.md`, `git log`.
 - A full UI run needs a fresh save with: StarterPick done, then `snapshot` and `index_states` from the server before `UiTestRun`. Start the server harness only after the player's `DataLoaded`: earlier, `runner` and `scrap` go red because the world is not built.
 - `ContentId 203785492 failed: Asset type does not match requested type`: source not found. First log line, before game scripts. Not in the repo, script sources, Edit attributes, or the listed content properties at runtime.
 
+## /narito, /newplayer, auto-roll tutorial (landed 2026-11-04, owner's word)
+- Landed from `stash@{0}` with the tester NOT green; the owner chose to land anyway. Do not pop that stash: it would conflict. It stays only as a copy, for the owner to drop.
+- The tutorial's gold burst now goes through `UiFeedback` cue `AutoOn` (design doc 4.33). The Burst is skipped over a running roll.
+- Results on save `landcmds1`: `[CARTEST] END pass=3 fail=0` (`data`, `admin`, `gacha`). Tutorial from `execute_luau`: fresh save has AutoRoll false and no rolls while off, the overlay shows after the pick, and SetAutoRoll true plays `AutoOn` and closes the overlay. The roll card and AUTO clicks were not re-clicked after the rebase; the tester clicked them before it. `/newplayer` through real chat also predates the rebase.
+- UI harness NOT run. A fresh save with 0 rolls now shows the overlay, which may red UI checks: finish the tutorial before `UiTestRun`. Phone size not looked at.
+- `/newplayer` without `TestSaveKey` erases the owner's real save. Commands from `execute_luau` load their own `PlayerData`, so `/newplayer` from there is refused by the lock; use chat. `data` reds 51 literal `Player_` checks under `TestSaveKey` unless it runs on code with 0fa4d06.
+- Black-box findings on save `blackbox_1`, still open: P1 Auto stops after each run; P2 starter vanishes from Backpack and Index once replaced; P3 camera stuck overhead after Top-Down off mid-race (unconfirmed, the tester's Luau polling may have caused it); P4 Potions stall opens the Robux Shop; P5 nothing teaches team slots after the tutorial, `Best 3` blocks runners with a "Dojo squad" message; P6 raw ids `LuckI`, `MoneyI`, `SpeedI` and a status text that stays on screen, Enemies header shows the character count, equipped character changed across rejoin; P7 race HUD overlaps; P8 Stats bars full at 0 points; P9 Auto mid-race ends the run with no confirmation; P10 asset 203785492 wrong type, `UiTest` scripts on the client. Not reached: duel, rebirth, Tracks 3-10, audio, phones.
+- `docs/ADMIN_COMMANDS_SPEC.md` is cited by `AdminService` and `Main.server` but has never existed.
+
 ## Next
-1. Owner or coordinator handles the merge to `main`. 2. Run `data` (never run since its fix) and a full server harness on the merged code. 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity.
+1. Owner or coordinator handles the merge to `main`. 2. Run a full server harness and a UI harness on the merged code (`data` alone passed 2026-11-04 with its fix). 3. Design doc 4.25: Tracks 1-5 load first, the rest by proximity.
 
 ## Open
 - Spawn plaza (design doc 4.24 Clear plaza, landed 68e565a): owner to look at it in Studio. Best Roll overlaps under 1 degree of Plot 1 from spawn, not ruled on. Market is an in-house stall and Legends are 2 beside the gate. `Reviewed` is unsigned in `plaza_assets.json` for GreatSakura, SkyLoop, MarketSign, MarketStall and the pedestals: rules audit signs it after a screenshot review (BIOME_ENVIRONMENT_SPEC 4.1). Row x spread check (`ROW_X_SPREAD` 14) is lenient. Dead asset ledger rows stay in `plaza_assets.json`.

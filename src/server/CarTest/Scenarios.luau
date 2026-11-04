@@ -3231,6 +3231,41 @@ function Scenarios.data()
 	PlayerData.Load(p3, 9002) -- a different user does not see it
 	check(checks, "other_user_isolated", val(p3, "Money") or -1, 0, val(p3, "Money") == 0)
 
+	-- /newplayer: the next load is a brand new save; gifts stay; the old session can not write the old stats back
+	local pOld = newPlayer("CarTestDataResetOld")
+	PlayerData.Load(pOld, 9003)
+	stat(pOld, "Money").Value = 500
+	serverModule("GachaService").Grant(pOld, "leaf_hero")
+	pOld:SetAttribute("Rolls", 3)
+	PlayerData.Save(pOld, 9003)
+	store.data[PlayerData.KeyFor(9003)].GiftReceipts = { gift1 = true }
+	local didReset = PlayerData.ResetToNew(pOld, 9003)
+	local savedAfter = PlayerData.Save(pOld, 9003, true)
+	check(checks, "reset_ok", didReset and 1 or 0, 1, didReset == true)
+	check(checks, "reset_blocks_later_save", savedAfter and 1 or 0, 0, savedAfter == false)
+	local resetRec = store.data[PlayerData.KeyFor(9003)]
+	check(checks, "reset_no_lock", resetRec.Lock and 1 or 0, 0, resetRec.Lock == nil)
+	check(checks, "reset_keeps_gift_receipts", resetRec.GiftReceipts and 1 or 0, 1, resetRec.GiftReceipts ~= nil)
+	local pNew = newPlayer("CarTestDataResetNew")
+	PlayerData.Load(pNew, 9003)
+	check(checks, "reset_money_zero", val(pNew, "Money") or -1, 0, val(pNew, "Money") == 0)
+	local startsNew = pNew:GetAttribute("NeedsStarter") == true and pNew:GetAttribute("Rolls") == 0
+	check(checks, "reset_needs_starter", startsNew and 1 or 0, 1, startsNew)
+	check(
+		checks,
+		"new_save_auto_roll_off",
+		pNew:GetAttribute("AutoRoll") == false and 1 or 0,
+		1,
+		pNew:GetAttribute("AutoRoll") == false
+	)
+	-- a save that has rolled keeps auto-roll on (Setup's default) and gets no popup
+	store.data[PlayerData.KeyFor(9004)] = { Rolls = 2, Version = DATA_VERSION }
+	local pRolled = newPlayer("CarTestDataRolled")
+	serverModule("GachaService").Setup(pRolled)
+	PlayerData.Load(pRolled, 9004)
+	local keptOn = pRolled:GetAttribute("AutoRoll") == true and pRolled:GetAttribute("NeedsStarter") ~= true
+	check(checks, "rolled_save_auto_roll_on", keptOn and 1 or 0, 1, keptOn)
+
 	-- retired: leaderstats.Speed / base Speed display and save checks (no Speed stat, design doc 4.13, owner 2026-11-01)
 
 	-- sanitised save (retired: the Speed cases, no Speed stat, design doc 4.13)
@@ -8530,7 +8565,7 @@ local ADMIN_ORIGIN = Vector3.new(0, 0, -40000)
 local ADMIN_UID = 914200001 -- listed in AdminConfig.UserIds for the duration of the test
 local ADMIN_STRANGER_UID = 914200002 -- never listed: not an admin
 -- /speed and /addspeed are gone with the Speed stat (design doc 4.13, owner 2026-11-01)
-local ADMIN_COMMANDS = { "help", "money", "addmoney", "give", "equip", "roll", "wipe", "tp" }
+local ADMIN_COMMANDS = { "help", "money", "addmoney", "give", "narito", "equip", "roll", "wipe", "newplayer", "tp" }
 local ADMIN_MAX_MONEY = 1e30 -- AdminService MAX_MONEY (owner 2026-10-27; was 1e15)
 local ADMIN_TP_SETTLE = 1 -- s driven on Track 1 before the jump (a race is in progress in NPC mode)
 local ADMIN_TP_DRIVE = 4 -- s driven after the jump
@@ -8841,6 +8876,8 @@ function Scenarios.admin()
 			"/roll 5",
 			"/wipe",
 			"/wipe me",
+			"/narito",
+			"/newplayer",
 			"/tp 2",
 		}
 		local before = adminSnap(stranger)
@@ -9096,6 +9133,11 @@ function Scenarios.admin()
 		)
 		ls.Money.Value = 5
 		rejected("admin_wipe_unknown_target_false", "/wipe zzqx_nobody_here")
+
+		-- narito (the wipe above left nothing owned). /newplayer is never run here: the save scenario tests its reset.
+		accepted("admin_narito", "/narito", ownedCount, 1, function()
+			return ownedCount() == 1 and ownsId("leaf_hero")
+		end)
 
 		-- help / unknown / not a command
 		local okHelp, helpMsg = admin(p, "/help")

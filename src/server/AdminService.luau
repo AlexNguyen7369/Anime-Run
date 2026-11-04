@@ -18,6 +18,7 @@ local AdminConfig = require(script.Parent.AdminConfig)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
+local PlayerData = require(script.Parent.PlayerData)
 local RebirthConfig = require(Shared.RebirthConfig)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
@@ -311,6 +312,18 @@ AdminService.Commands = {
 			return true, isNew and ("gave " .. id) or (id .. " already owned")
 		end,
 	},
+	narito = {
+		Usage = "/narito [player]",
+		Help = "add Narito to the index",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			return AdminService.Commands.give.Apply(p, "leaf_hero")
+		end,
+	},
 	kami = {
 		Usage = "/kami [player]",
 		Help = "give and equip Kami, the admin test runner (800 studs/s, this session only)",
@@ -392,6 +405,25 @@ AdminService.Commands = {
 			return true, "wiped"
 		end,
 	},
+	-- No target: this erases a save, so it never reaches another player or "all" (design doc 4.13).
+	newplayer = {
+		Usage = "/newplayer",
+		Help = "erase your own save and leave; your next join is a brand new player",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			if not PlayerData.ResetToNew(p) then
+				return false, "Could not reset the save"
+			end
+			-- deferred so the command's reply goes out first
+			task.defer(p.Kick, p, "Save erased. Rejoin (in Studio: Stop, then Play) to start as a new player.")
+			return true, "save erased"
+		end,
+	},
 	tp = {
 		Usage = "/tp <track number | vfxarea | home> [player]",
 		Help = "move the runner to a track, or walk to the VFX showcase area or back to spawn",
@@ -436,10 +468,12 @@ local ORDER = {
 	"resetluck",
 	"weather",
 	"give",
+	"narito",
 	"kami",
 	"equip",
 	"roll",
 	"wipe",
+	"newplayer",
 	"tp",
 }
 
