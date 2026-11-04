@@ -517,14 +517,25 @@ function render()
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
-		if not (Market.Get(kind, chosen) and player:GetAttribute("Own" .. kind .. "_" .. chosen) == true) then
+		if not (Market.Get(kind, chosen) and Market.Copies(player, kind, chosen) > 0) then
 			chosen = nil
 		end
 		for order, item in Market.Items[kind] do
-			if player:GetAttribute("Own" .. kind .. "_" .. item.Id) == true then
+			local copies = Market.Copies(player, kind, item.Id)
+			if copies > 0 then
 				shown += 1
 				chosen = chosen or item.Id
 				local b = tile(item.Id, order, SlotPicker.Equipped(kind, item.Id))
+				caption("Copies", b, {
+					Position = UDim2.fromOffset(6, 2),
+					Size = UDim2.new(1, -12, 0, 20),
+					Text = "x" .. copies,
+					TextSize = 15,
+					TextScaled = true,
+					TextColor3 = Color3.fromRGB(255, 205, 65),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					ZIndex = 5,
+				})
 				if item.Id == chosen then
 					b.Stroke.Color = Color3.new(1, 1, 1)
 				end

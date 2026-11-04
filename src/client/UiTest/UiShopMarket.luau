@@ -537,8 +537,8 @@ function ShopMarket.Build(h)
 	end
 
 	-- What the Detail pane must show for (kind, item): Name, Price (HudFormat.MoneyText), Description, a Rarity,
-	-- and the Action label BUY (potions, not-owned items). An owned trail / aura hides Action and shows the team slot
-	-- buttons (u4, Client/SlotPicker): Slot<n> titled "REMOVE n" when slot n holds it, else "SLOT n".
+	-- and the Action label BUY (potions, trails / auras below MAX_COPIES copies; hidden at the cap). An owned trail /
+	-- aura shows the team slot buttons (u4, Client/SlotPicker): Slot<n> titled "REMOVE n" when slot n holds it, else "SLOT n".
 	local function detailProblems(kind, item)
 		local detail = h.find(MK.Detail)
 		local bad = {}
@@ -552,7 +552,8 @@ function ShopMarket.Build(h)
 			table.insert(bad, ("Name shows %q, want %q"):format(textOf(part("Name")), item.Name))
 		end
 		-- Price row (a Frame since 016c467): its Value label. Potions: price and the owned count (Boost_<Id>); an
-		-- owned trail / aura: "Owned"; else the price.
+		-- owned trail / aura: "Owned x<copies>"; else the price.
+		local copies = kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) or 0
 		local priceRow = part("Price")
 		local priceText = textOf(priceRow and priceRow:FindFirstChild(MK.PriceText))
 		local wantPrice = { HudFormat.MoneyText(item.Price) }
@@ -562,9 +563,9 @@ function ShopMarket.Build(h)
 			local count = HudFormat.Short(attr("Boost_" .. item.Id) or 0)
 			table.insert(wantPrice, "x" .. count)
 			ok = ok and string.match(priceText, "[xX]([%d%.]+%a*)%s*$") == count
-		elseif attr("Own" .. kind .. "_" .. item.Id) == true then
-			wantPrice = { "Owned" }
-			ok = has(priceText, "Owned")
+		elseif copies > 0 then
+			wantPrice = { "Owned x" .. copies }
+			ok = has(priceText, wantPrice[1])
 		end
 		if not ok then
 			table.insert(bad, ("Price shows %q, want %q"):format(priceText, table.concat(wantPrice, " + ")))
@@ -586,21 +587,21 @@ function ShopMarket.Build(h)
 				table.insert(bad, ("Subtitle shows %q, want %s %s"):format(rarity, kind, tostring(wantMulti)))
 			end
 		end
-		local cosmetic = kind ~= "Potion" and attr("Own" .. kind .. "_" .. item.Id) == true
 		local action, slots = part("Action"), part(MK.Slots)
-		if not cosmetic then
+		if copies < MarketConfig.MAX_COPIES then
 			-- The text the Action button shows (its own Text, else its Label child's: Client/MarketUi actionLabel)
 			local shown = shownText(action)
 			if not (action and h.visible(action)) or shown ~= MK.ActionText.Buy then
 				table.insert(bad, ("Action shows %q, want %q"):format(shown, MK.ActionText.Buy))
 			end
+		elseif action and h.visible(action) then
+			table.insert(bad, "Action shown for a " .. kind .. " at the copy cap")
+		end
+		if copies == 0 then
 			if slots and h.visible(slots) then
 				table.insert(bad, "Slots shown for an item that is not an owned trail / aura")
 			end
 		else
-			if action and h.visible(action) then
-				table.insert(bad, "Action shown for an owned " .. kind .. " (the slot buttons equip it)")
-			end
 			if not (slots and h.visible(slots)) then
 				table.insert(bad, "Slots hidden for an owned " .. kind)
 			end

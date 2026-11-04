@@ -13,26 +13,22 @@ local MarketService = {}
 MarketService.REMOTE_COOLDOWN = 0.25
 local lastRequest = setmetatable({}, { __mode = "k" })
 
-local function owns(player, kind, id)
-	return player:GetAttribute("Own" .. kind .. "_" .. id) == true
+local function setCopies(player, kind, id, count)
+	player:SetAttribute("Own" .. kind .. "_" .. id, count > 0 and count or nil)
 end
 
-local function setOwned(player, kind, id, value)
-	player:SetAttribute("Own" .. kind .. "_" .. id, value == true and true or nil)
+-- The saved form of a kind's copies: each id once per copy.
+local function ownedList(player, kind)
+	local list = {}
+	for _, item in MarketConfig.Items[kind] do
+		for _ = 1, MarketConfig.Copies(player, kind, item.Id) do
+			table.insert(list, item.Id)
+		end
+	end
+	return list
 end
 
 function MarketService.Snapshot(player)
-	local ownedAuras, ownedTrails = {}, {}
-	for _, item in MarketConfig.Items.Aura do
-		if owns(player, "Aura", item.Id) then
-			table.insert(ownedAuras, item.Id)
-		end
-	end
-	for _, item in MarketConfig.Items.Trail do
-		if owns(player, "Trail", item.Id) then
-			table.insert(ownedTrails, item.Id)
-		end
-	end
 	local slotItems = {}
 	for slot = 1, MarketConfig.SLOTS do
 		slotItems[slot] = {
@@ -41,32 +37,28 @@ function MarketService.Snapshot(player)
 		}
 	end
 	return {
-		OwnedAuras = ownedAuras,
-		OwnedTrails = ownedTrails,
+		OwnedAuras = ownedList(player, "Aura"),
+		OwnedTrails = ownedList(player, "Trail"),
 		SlotItems = slotItems,
 	}
 end
 
 function MarketService.Apply(player, saved)
 	saved = type(saved) == "table" and saved or {}
-	for _, item in MarketConfig.Items.Aura do
-		setOwned(player, "Aura", item.Id, false)
-	end
-	for _, item in MarketConfig.Items.Trail do
-		setOwned(player, "Trail", item.Id, false)
-	end
-	for _, id in type(saved.OwnedAuras) == "table" and saved.OwnedAuras or {} do
-		if MarketConfig.Get("Aura", id) then
-			setOwned(player, "Aura", id, true)
+	for _, kind in MarketConfig.SLOT_KINDS do
+		for _, item in MarketConfig.Items[kind] do
+			setCopies(player, kind, item.Id, 0)
 		end
-	end
-	for _, id in type(saved.OwnedTrails) == "table" and saved.OwnedTrails or {} do
-		if MarketConfig.Get("Trail", id) then
-			setOwned(player, "Trail", id, true)
+		local list = saved["Owned" .. kind .. "s"]
+		for _, id in type(list) == "table" and list or {} do
+			if MarketConfig.Get(kind, id) then
+				local count = math.min(MarketConfig.Copies(player, kind, id) + 1, MarketConfig.MAX_COPIES)
+				setCopies(player, kind, id, count)
+			end
 		end
 	end
 	local slotItems = MarketConfig.CleanSlotItems(saved, function(kind, id)
-		return owns(player, kind, id)
+		return MarketConfig.Copies(player, kind, id)
 	end)
 	for slot, entry in slotItems do
 		for _, kind in MarketConfig.SLOT_KINDS do
@@ -84,20 +76,21 @@ function MarketService.Purchase(player, kind, id)
 		local ok, result = BoostService.Purchase(player, id)
 		return ok, ok and ("Purchased " .. item.Name .. " • Bag x" .. tostring(result)) or result
 	end
-	if owns(player, kind, id) then
-		return false, "Already owned or unavailable"
+	local copies = MarketConfig.Copies(player, kind, id)
+	if copies >= MarketConfig.MAX_COPIES then
+		return false, "Max copies owned"
 	end
 	local money = MoneyService.Setup(player)
 	if money.Value < item.Price then
 		return false, "Not enough money"
 	end
 	money.Value -= item.Price
-	setOwned(player, kind, id, true)
-	return true, "Purchased " .. item.Name
+	setCopies(player, kind, id, copies + 1)
+	return true, string.format("Purchased %s • Owned x%d", item.Name, copies + 1)
 end
 
--- Puts aura / trail `id` on team slot `slot` (1..SLOTS, default 1); `id` nil takes that slot's one off. One owned
--- copy each: equipping an item already on another slot moves it here.
+-- Puts aura / trail `id` on team slot `slot` (1..SLOTS, default 1); `id` nil takes that slot's one off. One copy wears
+-- on one slot: with every copy already worn elsewhere, the lowest other slot wearing it gives up its copy.
 function MarketService.Equip(player, kind, id, slot)
 	slot = slot or 1
 	if
@@ -115,15 +108,22 @@ function MarketService.Equip(player, kind, id, slot)
 		return true, string.format("Slot %d %s removed", slot, string.lower(kind))
 	end
 	local item = MarketConfig.Get(kind, id)
-	if not item or not owns(player, kind, id) then
+	local copies = item and MarketConfig.Copies(player, kind, id) or 0
+	if copies < 1 then
 		return false, "Buy it first"
 	end
-	for other = 1, MarketConfig.SLOTS do
-		if player:GetAttribute(MarketConfig.SlotAttribute(other, kind)) == id then
-			player:SetAttribute(MarketConfig.SlotAttribute(other, kind), nil)
+	if player:GetAttribute(attribute) ~= id then
+		local wearing = {}
+		for other = 1, MarketConfig.SLOTS do
+			if player:GetAttribute(MarketConfig.SlotAttribute(other, kind)) == id then
+				table.insert(wearing, other)
+			end
 		end
+		if #wearing >= copies then
+			player:SetAttribute(MarketConfig.SlotAttribute(wearing[1], kind), nil)
+		end
+		player:SetAttribute(attribute, id)
 	end
-	player:SetAttribute(attribute, id)
 	return true, string.format("Equipped %s on slot %d", item.Name, slot)
 end
 
