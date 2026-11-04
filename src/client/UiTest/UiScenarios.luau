@@ -5988,6 +5988,7 @@ function S.ui_billboards(res)
 	}
 	local phase, phaseUntil = "OnScreen", os.clock() + indicatorSpec.FrontWait
 	local finished, sampleError = false, nil
+	local sweepFrame = 0
 	local function startPhase(name)
 		phase, phaseUntil = name, os.clock() + indicatorSpec.FrontWait
 	end
@@ -5999,8 +6000,10 @@ function S.ui_billboards(res)
 		local tanH = tanV * camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
 		local away = indicatorSpec.CameraOffset
 		if phase == "OnScreen" then
-			-- Sweeps the head over the screen, so an indicator that stopped updating leaves it
-			local i = #errors
+			-- Sweeps the head over the screen, so an indicator that stopped updating leaves it. Counted in frames, not
+			-- samples: a position that puts the head off screen must not stop the sweep.
+			sweepFrame += 1
+			local i = sweepFrame
 			local distances = indicatorSpec.CameraDistances
 			away = away.Unit * distances[math.floor(i * #distances / indicatorSpec.Samples) % #distances + 1]
 			local atEnemy = CFrame.lookAt(head.Position + away, head.Position)
@@ -6078,7 +6081,8 @@ function S.ui_billboards(res)
 		elseif pointer.Visible then
 			samplePointer(top)
 		end
-		if phase == "OnScreen" and #errors >= indicatorSpec.Samples then
+		local farWanted = math.ceil(indicatorSpec.Samples / #indicatorSpec.CameraDistances)
+		if phase == "OnScreen" and #errors >= indicatorSpec.Samples and #farErrors >= farWanted then
 			startPhase("InFront")
 		elseif phase == "InFront" and inFrontSamples >= indicatorSpec.Samples then
 			startPhase("Behind")
