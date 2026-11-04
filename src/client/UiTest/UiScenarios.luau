@@ -93,6 +93,9 @@ local UiScenarios = {}
 
 UiScenarios.Names = {
 	"ui_client_rendering",
+	-- Core c3 (owner 2026-11-04): every model's animated run with aura and trail. About 3 minutes. Before any scenario
+	-- asks for auto racing, so no real run is banking while it watches.
+	"ui_run_visual",
 	"ui_inventory",
 	"ui_legacy_controls",
 	"ui_layout",
@@ -230,6 +233,7 @@ end
 -- ui_loser / ui_roll_emphasized, at the moment they wait for the event.
 UiScenarios.Needs = {
 	ui_reduced_motion = { "auto_roll_on" },
+	ui_run_visual = { "run_visual" },
 	ui_runner_smooth = { "auto_racing" },
 	ui_camera_follows_runner = { "auto_racing" },
 	ui_toast = { "auto_racing", "auto_roll_on" },
@@ -4188,6 +4192,18 @@ end
 -- VisibleRunner, Owner = this player's UserId) by interpolating along the path. While auto racing, every frame's step
 -- must be about the runner's speed x dt: the IVS stutter (3.7, 0, 3.7, 0 studs per frame, a server pose replicated
 -- every other frame) fails. The speed is the runner's own mean over the window (the cruise is exact).
+-- K.stepsOff: how many frames of a window are off speed x dt (also ui_run_visual).
+function K.stepsOff(steps, dts, speed, cfg)
+	local bad = 0
+	for i, step in steps do
+		local want = speed * dts[i]
+		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
+			bad += 1
+		end
+	end
+	return bad
+end
+
 function S.ui_runner_smooth(res)
 	local cfg = UiSpec.RunnerSmooth
 	if attr("AutoRacing") ~= true then
@@ -4250,13 +4266,7 @@ function S.ui_runner_smooth(res)
 		("> %s studs/s over >= %d frames"):format(cfg.MinSpeed, cfg.MinFrames),
 		speed > cfg.MinSpeed and #steps >= cfg.MinFrames
 	)
-	local bad = 0
-	for i, step in steps do
-		local want = speed * dts[i]
-		if math.abs(step - want) > math.max(cfg.MinStepError, cfg.StepTolerance * want) then
-			bad += 1
-		end
-	end
+	local bad = K.stepsOff(steps, dts, speed, cfg)
 	local share = #steps > 0 and bad / #steps or 1
 	check(
 		res,
@@ -6934,6 +6944,17 @@ end
 
 -- Duel UI and Rebirth panel scenarios (their own modules, same helpers).
 for name, fn in UiDuel.Build() do
+	S[name] = fn
+end
+for name, fn in
+	require(script.Parent.UiRunVisual).Build({
+		check = check,
+		checkList = checkList,
+		stateMissing = stateMissing,
+		renderFrame = renderFrame,
+		stepsOff = K.stepsOff,
+	})
+do
 	S[name] = fn
 end
 local extras = UiBoostsRebirth.Build({
