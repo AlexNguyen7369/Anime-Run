@@ -1,259 +1,160 @@
-# Painted look for db_prince: battle armour over a blue bodysuit, the flame of hair with the deep widow's peak, a scowl.
-from atlas import INK, paint_hair, shade
-from db_common import sculpted_head, bare_arm, cuff, dome, fist, head_faces, limb_faces, loft, mirrored, shards, sharp_eye, slab_brow, toe
+# Target look for db_prince: one tall upward flame of black hair over a deep widow's peak, a scowl, white chest armour with
+# gold shoulder and hip flaps, blue bodysuit, white gloves and boots with gold toes. +X is the viewer's right in the front view.
+from db_style3 import arm_bands, block, box, hair_cap, hair_style, shell, slab, spikes
+from leaf_common import begin_clip, end_clip
+from db_common import circle
+from style2 import H, Kit, Ramps, face
+from style3 import big_head, finish
 
-SKIN = "#efbf94"
-SKIN_D = shade(SKIN, 0.64)
-SUIT = "#21409f"
-SUIT_D = "#122466"
-SUIT_L = "#5474d6"
-WHITE = "#ffffff"
-WHITE_D = "#bcc0cf"
-GOLD = "#e6b32f"
-GOLD_D = "#a06f12"
-GOLD_L = "#ffe38a"
-HAIRC = "#101116"
-HAIR_INK = "#22242e"
-DEFAULT = SUIT
-HAIR_COLOURS = [HAIRC]
+SKIN = "#f2cfae"
+SKIN_D = "#d09c76"
+BLUE = "#2b4fa8"
+BLUE_D = "#182c6c"
+WHITE = "#f4f4f0"
+HAIRC = "#0a0a12"
+LINE = "#3c2012"
+DEFAULT = BLUE
+R = Ramps(
+	hair=["#040408", "#08080f", "#12122a", "#2c2c70", "#5a54c8"],
+	skin=["#b5866a", "#d8a884", SKIN, "#fbe2c8"],
+	blue=["#101e5a", "#1a3078", BLUE, "#3f68c8", "#5c86e0"],
+	white=["#8e8ea4", "#c0c0d0", WHITE, "#ffffff"],
+	gold=["#94660c", "#c48e1c", "#e8b63a", "#f8d870"],
+)
 HAIR = {"colour": HAIRC, "locks": []}
 PROPS = []
-# z, half width, front depth, back depth: the jaw as this character has it
-HEAD = ((4.0, 0.22, 0.42, 0.12), (4.08, 0.36, 0.53, 0.3), (4.22, 0.5, 0.58, 0.46), (4.42, 0.6, 0.6, 0.56), (4.62, 0.64, 0.6, 0.6), (5.0, 0.65, 0.6, 0.6), (5.22, 0.62, 0.58, 0.58), (5.3, 0.5, 0.46, 0.46))
-
-# Everything rises: one narrowing flame, jagged at its edges, no fringe at all.
-SPIKES = [
-	# front wall of the flame
-	((0.0, -0.5, 5.0), (0.0, -0.4, 6.0), (0.03, -0.1, 7.0), 0.46),
-	((-0.28, -0.52, 5.12), (-0.33, -0.42, 5.9), (-0.24, -0.14, 6.6), 0.4),
-	((0.28, -0.52, 5.12), (0.33, -0.42, 5.9), (0.26, -0.14, 6.66), 0.4),
-	((-0.54, -0.48, 5.08), (-0.72, -0.32, 5.68), (-0.6, -0.08, 6.22), 0.34),
-	((0.54, -0.48, 5.08), (0.72, -0.32, 5.68), (0.64, -0.08, 6.28), 0.34),
-	((-0.68, -0.14, 4.98), (-0.94, -0.06, 5.38), (-0.92, 0.05, 5.84), 0.28),
-	((0.68, -0.14, 4.98), (0.94, -0.06, 5.4), (0.97, 0.05, 5.9), 0.28),
-	# middle
-	((-0.12, 0.08, 5.35), (-0.16, 0.1, 6.1), (-0.12, 0.26, 6.86), 0.4),
-	((0.18, 0.08, 5.35), (0.2, 0.1, 6.0), (0.16, 0.26, 6.74), 0.38),
-	((-0.42, 0.1, 5.3), (-0.54, 0.14, 5.95), (-0.44, 0.26, 6.42), 0.34),
-	((0.42, 0.1, 5.3), (0.54, 0.14, 5.95), (0.46, 0.26, 6.48), 0.34),
-	((-0.66, 0.16, 5.06), (-0.88, 0.22, 5.46), (-0.84, 0.32, 5.98), 0.28),
-	((0.66, 0.16, 5.06), (0.88, 0.22, 5.46), (0.88, 0.32, 6.02), 0.28),
-	# the back of the flame, nape to crown
-	((0.0, 0.42, 5.2), (0.0, 0.52, 6.0), (0.0, 0.66, 6.68), 0.42),
-	((-0.34, 0.44, 5.14), (-0.44, 0.52, 5.8), (-0.36, 0.66, 6.26), 0.36),
-	((0.34, 0.44, 5.14), (0.44, 0.52, 5.8), (0.38, 0.66, 6.3), 0.36),
-	((-0.62, 0.4, 4.92), (-0.8, 0.48, 5.3), (-0.76, 0.62, 5.72), 0.28),
-	((0.62, 0.4, 4.92), (0.8, 0.48, 5.3), (0.78, 0.62, 5.76), 0.28),
-	((0.0, 0.6, 4.86), (0.02, 0.76, 5.32), (-0.02, 0.92, 5.92), 0.36),
-	((-0.34, 0.6, 4.72), (-0.42, 0.76, 5.12), (-0.42, 0.9, 5.56), 0.3),
-	((0.34, 0.6, 4.72), (0.42, 0.76, 5.12), (0.44, 0.9, 5.6), 0.3),
-	((-0.56, 0.54, 4.56), (-0.7, 0.68, 4.86), (-0.74, 0.8, 5.18), 0.22),
-	((0.56, 0.54, 4.56), (0.7, 0.68, 4.86), (0.76, 0.8, 5.2), 0.22),
-	((0.0, 0.62, 4.5), (0.0, 0.76, 4.8), (0.0, 0.88, 5.2), 0.28),
+HEAD_ROWS = [(0, 0, 3.98, 0.5, 0.56), (0, 0, 4.14, 0.72, 0.74), (0, 0, 4.42, 0.84, 0.8), (0, 0, 5.3, 0.84, 0.8), (0, 0, 5.56, 0.74, 0.7), (0, 0, 5.62, 0.58, 0.54)]
+_S = dict(flat=0.66, p=1.7, q=0.85)
+FLAME = [
+	# the tall core, straight up
+	H((0.0, 0.12, 5.7), (-0.05, 0.14, 6.9), (0.02, 0.2, 7.08), 0.8, **_S),
+	# flanking masses: a flame narrowing to the top
+	H((-0.42, 0.05, 5.7), (-0.62, 0.05, 6.6), (-0.46, 0.14, 6.96), 0.56, **_S),
+	H((0.42, 0.05, 5.7), (0.62, 0.05, 6.6), (0.5, 0.14, 6.9), 0.56, **_S),
+	H((-0.66, -0.05, 5.5), (-1.02, -0.05, 6.15), (-0.98, 0.05, 6.8), 0.46, **_S),
+	H((0.66, -0.05, 5.5), (1.02, -0.05, 6.15), (1.02, 0.05, 6.74), 0.46, **_S),
+	H((-0.8, 0.08, 5.2), (-1.18, 0.08, 5.6), (-1.28, 0.14, 6.26), 0.36, **_S),
+	H((0.8, 0.08, 5.2), (1.18, 0.08, 5.6), (1.3, 0.14, 6.22), 0.36, **_S),
+	# the front face of the flame, rising straight off the hairline
+	H((-0.3, -0.5, 5.82), (-0.34, -0.55, 6.3), (-0.22, -0.36, 6.94), 0.4, **_S),
+	H((0.3, -0.5, 5.82), (0.34, -0.55, 6.3), (0.24, -0.36, 6.9), 0.4, **_S),
+	H((-0.68, -0.44, 5.88), (-0.76, -0.5, 6.15), (-0.7, -0.34, 6.56), 0.3, **_S),
+	H((0.68, -0.44, 5.88), (0.76, -0.5, 6.15), (0.72, -0.34, 6.5), 0.3, **_S),
+	# the back
+	H((0.0, 0.55, 5.45), (0.0, 0.85, 6.3), (0.04, 0.72, 6.86), 0.5, **_S),
+	H((-0.45, 0.5, 5.2), (-0.62, 0.82, 5.85), (-0.62, 0.72, 6.56), 0.4, **_S),
+	H((0.45, 0.5, 5.2), (0.62, 0.82, 5.82), (0.64, 0.72, 6.5), 0.4, **_S),
+]
+_F = dict(flat=0.6, p=1.3, q=0.75)
+PEAK = [
+	# the point of the widow's peak: a plate on the brow, the temples left bare beside it
+	H((0.0, -0.62, 5.76), (0.0, -0.9, 5.56), (0.0, -0.86, 5.0), 0.34, **_F),
+	# short sideburns
+	H((-0.88, -0.3, 5.4), (-0.92, -0.36, 5.12), (-0.9, -0.42, 4.84), 0.15, **_F),
+	H((0.88, -0.3, 5.4), (0.92, -0.36, 5.12), (0.9, -0.42, 4.84), 0.15, **_F),
 ]
 
 
-def _flap(kit, part, name, sgn):
-	"""Shoulder flap: flat on the shoulder, bent down past the arm's outer edge."""
-	col = GOLD
-	row = lambda x, z: [(sgn * x, -0.46, z), (sgn * x, 0.46, z), (sgn * x, 0.46, z + 0.1), (sgn * x, -0.46, z + 0.1)]
-	return loft(kit, name, [row(0.95, 4.04), row(1.5, 4.08), row(1.95, 4.04), row(2.14, 3.86), row(2.2, 3.56)], col, part)
+def _armour(k):
+	# the chest plate, a hard block with a raised centre
+	shell(k, "Chest", [(4.05, 0.84, 0.46, (0,) * 5), (3.88, 1.06, 0.58, (0,) * 5), (3.5, 1.08, 0.6, (0.03, -0.05, -0.02, -0.05, 0.03)), (3.1, 1.04, 0.58, (0.05, -0.02, 0.03, -0.02, 0.05)), (2.98, 1.02, 0.56, (0.03,) * 5)], "white", base=0.3, amp=0.5)
+	# the gold belly ribs below it
+	for i, (z1, z0) in enumerate(((3.0, 2.86), (2.88, 2.74))):
+		block(k, "UpperTorso", f"Rib{i}", -1.0, 1.0, -0.56, 0.56, z0, z1, "gold", c=0.03, base=0.42, amp=0.34)
+	# the blue suit at the hips, under the flaps
+	block(k, "UpperTorso", "Hips", -1.02, 1.02, -0.54, 0.54, 2.02, 2.76, "blue", c=0.04, base=0.34, amp=0.36)
+	block(k, "UpperTorso", "Waist", -1.05, 1.05, -0.58, 0.58, 2.62, 2.76, "white", c=0.03, base=0.44, amp=0.32)
+	# hip flaps, flat gold plates off the waist: two in front, one on each side, two behind
+	for name, x0, x1, yy, zbot, thick in (("FL", -1.02, -0.26, -0.62, 2.04, 0.1), ("FR", 0.26, 1.02, -0.62, 2.04, 0.1), ("BL", -1.02, -0.26, 0.54, 2.08, 0.1), ("BR", 0.26, 1.02, 0.54, 2.08, 0.1)):
+		slab(k, "UpperTorso", "Flap" + name, [(x0, x1, yy, 2.68), (x0 + 0.04, x1 - 0.04, yy - 0.05 * (1 if yy < 0 else -1), 2.3), (x0 + 0.14, x1 - 0.14, yy - 0.07 * (1 if yy < 0 else -1), zbot)], "gold", thick=thick, base=0.42, amp=0.36)
+	for s, tag in ((1, "L"), (-1, "R")):
+		rows = [(2.68, 1.04, 1.16, -0.4, 0.4), (2.3, 1.06, 1.2, -0.36, 0.36), (2.04, 1.06, 1.18, -0.26, 0.26)]
+		box(k, "UpperTorso", "FlapS" + tag, [(z, min(s * a, s * b), max(s * a, s * b), y0, y1) for z, a, b, y0, y1 in rows], "gold", c=0.03, base=0.42, amp=0.36)
 
 
-def _hipflap(kit, part, name, sgn, y):
-	rows = [
-		[(sgn * 0.42, y, 2.42), (sgn * 1.0, y, 2.42), (sgn * 1.0, y + (0.05 if y > 0 else -0.05), 2.42), (sgn * 0.42, y + (0.05 if y > 0 else -0.05), 2.42)],
-		[(sgn * 0.46, y * 1.1, 1.86), (sgn * 1.05, y * 1.1, 1.86), (sgn * 1.05, y * 1.1 + (0.05 if y > 0 else -0.05), 1.86), (sgn * 0.46, y * 1.1 + (0.05 if y > 0 else -0.05), 1.86)],
-	]
-	return loft(kit, name, rows, GOLD, part)
+def _arm(k, part, s):
+	ax = s * 1.5
+	arm_bands(k, part, ax, (("Sleeve", 3.92, 3.4, 0.525, "blue"), ("Arm", 3.42, 2.72, 0.515, "skin")))
+	# the glove: long cuff, plain block hand
+	block(k, part, "Cuff", ax - 0.56, ax + 0.56, -0.56, 0.56, 2.42, 2.76, "white", c=0.05, base=0.44, amp=0.36, grad=0.12)
+	block(k, part, "Hand", ax - 0.515, ax + 0.515, -0.515, 0.515, 1.8, 2.44, "white", c=0.06, base=0.42, amp=0.34, grad=0.08)
+	# the gold shoulder flap: a wide plate that juts past the arm, and a yoke strap toward the neck
+	x0, x1 = s * 0.92, s * 2.14
+	a, b = min(x0, x1), max(x0, x1)
+	box(k, part, "Flap", [(3.84, a, b, -0.66, 0.66), (3.96, a, b, -0.68, 0.68), (4.14, a + 0.02, b - 0.02, -0.56, 0.6), (4.2, a + 0.1, b - 0.14, -0.44, 0.48)], "gold", c=0.07, base=0.44, amp=0.38)
+
+
+def _leg(k, part, block_name, s):
+	x0, x1 = min(s * 0.03, s * 1.03), max(s * 0.03, s * 1.03)
+	k.reshape(part, block_name, [(s * 0.53, 0, 2.0, 0.44, 0.44), (s * 0.53, 0, 0.0, 0.44, 0.44)], corner=0.12, nc=1)
+	box(k, part, "Thigh", [(2.0, x0, x1, -0.54, 0.54), (1.5, x0, x1, -0.54, 0.54), (1.0, x0 + 0.02, x1 - 0.02, -0.52, 0.52)], "blue", c=0.07, base=0.38, amp=0.42, grad=0.14)
+	rows = [(0.08, -0.9, 0.56), (0.26, -0.9, 0.56), (0.42, -0.68, 0.54), (0.58, -0.54, 0.54), (1.02, -0.54, 0.54), (1.12, -0.56, 0.56)]
+	box(k, part, "Boot", [(z, x0 - 0.01, x1 + 0.01, y0, y1) for z, y0, y1 in rows], "white", c=0.08, base=0.42, amp=0.36, grad=0.12)
+	# the gold cap over the toe
+	rows = [(0.1, -0.94, -0.4), (0.27, -0.94, -0.4), (0.44, -0.72, -0.4), (0.5, -0.58, -0.4)]
+	box(k, part, "Toe", [(z, x0 - 0.03, x1 + 0.03, y0, y1) for z, y0, y1 in rows], "gold", c=0.06, base=0.44, amp=0.36)
+	block(k, part, "Sole", x0 - 0.02, x1 + 0.02, -0.92, 0.58, 0.0, 0.09, "white", c=0.02, base=0.12, amp=0.2)
 
 
 def model(parts, kit):
-	sculpted_head(kit, parts, HEAD, SKIN_D, n=5)
-	for sgn in (1, -1):
-		dome(kit, f"Head_Ear{sgn}", (sgn * 0.65, 0.04, 4.66), (0.08, 0.13, 0.17), SKIN, parts["Head"], full=True, nu=8, nv=3)
-	head = parts["Head"]
-	# the hair mass and its M-shaped hairline, seen in front; the peak drops to the brow line
-	dome(kit, "Head_Skull", (0, 0.2, 4.9), (0.67, 0.62, 0.52), HAIRC, head).__setitem__("lock", ((0, 0, 4.9), (0, 0, 5.42)))
-	line = [(-0.66, 4.86), (-0.58, 5.02), (-0.42, 5.16), (-0.22, 5.12), (0.0, 4.86), (0.22, 5.12), (0.42, 5.16), (0.58, 5.02), (0.66, 4.86), (0.62, 5.3), (0.0, 5.36), (-0.62, 5.3)]
-	kit.blade("Head_Hairline", line, (-0.63, -0.2), HAIRC, head, (0, -0.64, 4.9), (0, -0.4, 5.4))
-	shards(kit, parts, HAIRC, SPIKES)
-	t = parts["UpperTorso"]
-	for sgn, side in ((1, "Left"), (-1, "Right")):
-		arm, foot = parts[side + "UpperArm"], parts[side + "Foot"]
-		_flap(kit, arm, side + "UpperArm_Flap", sgn)
-		cuff(kit, arm, side + "UpperArm_Sleeve", sgn * 1.5, 3.44, 0.1, SUIT, w=1.06)
-		cuff(kit, arm, side + "Hand_GloveTop", sgn * 1.5, 2.86, 0.14, WHITE, w=1.08)
-		_hipflap(kit, t, f"UpperTorso_HipF{side}", sgn, -0.56)
-		_hipflap(kit, t, f"UpperTorso_HipB{side}", sgn, 0.56)
-		cuff(kit, foot, side + "Foot_Top", sgn * 0.5, 1.02, 0.14, GOLD, w=1.08)
-		toe(kit, foot, side + "Foot_Toe", sgn * 0.5, GOLD, GOLD, reach=0.36, h=0.42)
-	# armour neck ring
-	kit.rbox("UpperTorso_Collar", (1.06, 0.72, 0.14), (0, 0, 4.02), SUIT, t, bevel=0.04)
+	k = Kit(kit, parts, R)
+	big_head(k, HEAD_ROWS)
+	style = hair_style()
+	hair_cap(k, ((5.54, 4.42, 0.89, 0.88), (5.76, 5.0, 0.93, 0.92), (6.05, 5.85, 0.76, 0.74), (6.22, 6.18, 0.38, 0.36)), style)
+	spikes(k, FLAME + PEAK, style)
+	_armour(k)
+	for s, side in ((1, "Left"), (-1, "Right")):
+		_arm(k, f"{side}UpperArm", s)
+		_leg(k, f"{side}UpperLeg", f"{side}Leg", s)
+	finish()
 
 
-def paint_face(f):
-	f.fill(SKIN)
-	f.path("M135 70H119Q114 96 100 112Q84 122 65 125V135H135Z", SKIN_D, opacity=0.8)
-	f.path("M-5 92H9Q18 106 32 116Q48 123 65 125V135H-5Z", SKIN_D, opacity=0.5)
-	# widow's peak painted under the blade so no block corner shows skin
-	f.path("M-5-5H135V30L120 20L104 8L84 12L65 44L46 12L26 8L10 20L-5 30Z", HAIRC)
-	f.path("M65 44L52 22L46 12L38 30L50 46Z", SKIN_D, opacity=0.8)
-	f.path("M65 44L78 22L84 12L92 30L80 46Z", SKIN_D, opacity=0.8)
-	f.path("M4 20Q10 50 8 70L-5 70V20Z", SKIN_D, opacity=0.7)
-	f.path("M126 20Q120 50 122 70L135 70V20Z", SKIN_D, opacity=0.85)
-	f.path("M64 62Q67 76 62 90L69 90Q72 74 67 62Z", SKIN_D, opacity=0.5)
-	# the scowl: brows that nearly meet, crushed down
-	slab_brow(f, 40, 60, -1, HAIRC, w=36, thick=9, angry=14)
-	slab_brow(f, 90, 60, 1, HAIRC, w=36, thick=9, angry=14)
-	sharp_eye(f, 37, 72, -1, w=29, h=11, slant=8, pupil=4.2, look=2, lid=2.8, top_arc=-0.5, shine=False)
-	sharp_eye(f, 93, 72, 1, w=29, h=11, slant=8, pupil=4.2, look=-2, lid=2.8, top_arc=-0.5, shine=False)
-	# furrows
-	line = shade(SKIN, 0.42)
-	f.taper(61, 46, 64, 54, 61, 62, 0.9, line)
-	f.taper(69, 46, 66, 54, 69, 62, 0.9, line)
-	f.taper(56, 42, 60, 50, 57, 60, 0.6, line)
-	f.taper(74, 42, 70, 50, 73, 60, 0.6, line)
-	# nose, cheek lines, a flat down-turned mouth
-	f.path("M66 84L60 96L69 97Z", shade(SKIN, 0.7))
-	f.ink("M59 97Q64 99 69 97", 1.2, shade(SKIN, 0.35))
-	f.path("M44 113Q58 104 66 107Q74 104 88 113Q74 110 65 111Q56 110 44 113Z", INK)
-	f.taper(44, 113, 43, 117, 46, 120, 0.9, INK)
-	f.taper(88, 113, 89, 117, 86, 120, 0.9, INK)
-	f.taper(56, 119, 65, 122, 74, 119, 0.8, line)
+def _eye(f, cx, cy, sgn):
+	"""Narrow and sharp, a small black iris close under the sloped lid."""
+	i, o = cx - sgn * 17, cx + sgn * 17
+	shape = f"M{i} {cy + 3}L{o} {cy - 11}L{o + sgn * 1} {cy + 2}Q{cx + sgn * 6} {cy + 11} {i + sgn * 7} {cy + 9}Z"
+	begin_clip(f, shape)
+	f.path(shape, "#ffffff")
+	f.path(circle(cx - sgn * 3, cy - 0.5, 6.6, 9), "#060608")
+	f.path(circle(cx - sgn * 1.5, cy - 3.5, 1.8, 2.2), "#ffffff")
+	end_clip(f)
+	f.path(f"M{i - sgn * 2} {cy + 6}L{o + sgn * 4} {cy - 14}L{o + sgn * 1.5} {cy - 4}L{i - sgn * 2} {cy + 8}Z", "#060608")
+	f.path(f"M{i + sgn * 8} {cy + 11}Q{cx + sgn * 6} {cy + 13} {o} {cy + 4}", stroke=SKIN_D, sw=1.1)
 
 
-def armour_front(f):
-	f.fill(SUIT)
-	# suit at the neck
-	f.path("M60-5H140V10Q100 28 60 10Z", SUIT_D)
-	# chest plate: two hard shells, a centre ridge, rolled top edge
-	chest = "M6 14Q60 8 72 14Q100 30 128 14Q140 8 194 14Q200 60 194 96Q150 112 100 106Q50 112 6 96Q0 60 6 14Z"
-	f.path(chest, WHITE, stroke=INK, sw=2.4)
-	f.path("M6 68Q40 92 92 78L96 104Q50 112 6 96Z", WHITE_D, opacity=0.7)
-	f.path("M194 60Q160 92 108 78L104 104Q150 112 194 96Z", WHITE_D, opacity=0.9)
-	f.path("M12 18Q60 12 72 20Q100 36 128 20Q140 12 188 18L186 24Q140 20 128 26Q100 42 72 26Q60 20 14 24Z", "#ffffff")
-	f.taper(100, 32, 102, 70, 100, 106, 1.6)
-	f.taper(10, 66, 54, 92, 94, 76, 1.8)
-	f.taper(190, 66, 146, 92, 106, 76, 1.8)
-	f.taper(30, 28, 40, 50, 28, 62, 0.8, WHITE_D)
-	f.taper(170, 28, 160, 50, 172, 62, 0.8, WHITE_D)
-	# gold belly plate with ribs
-	f.path("M14 100Q100 116 186 100L176 156Q100 168 24 156Z", GOLD, stroke=INK, sw=2.2)
-	f.path("M150 106L186 100L176 156L140 162Z", GOLD_D, opacity=0.65)
-	f.path("M16 104Q100 120 184 104L183 110Q100 126 17 110Z", GOLD_L, opacity=0.8)
-	f.taper(100, 112, 102, 136, 100, 164, 1.4)
-	for y in (122, 138):
-		f.taper(22, y, 62, y + 8, 98, y + 6, 1.2, GOLD_D)
-		f.taper(178, y, 138, y + 8, 102, y + 6, 1.2, GOLD_D)
-	# suit below the plate
-	f.path("M100 170V200", stroke=INK, sw=2)
-	f.path("M30 176Q70 190 98 198L60 200H10Z", SUIT_D, opacity=0.7)
-	f.path("M170 176Q130 190 102 198L140 200H190Z", SUIT_D, opacity=0.85)
-	f.edges(0.2)
-
-
-def armour_back(f):
-	f.fill(SUIT)
-	f.path("M60-5H140V8Q100 22 60 8Z", SUIT_D)
-	f.path("M6 12Q100 28 194 12Q200 60 196 100Q100 116 4 100Q0 60 6 12Z", WHITE, stroke=INK, sw=2.4)
-	f.path("M4 80Q50 100 90 86L96 110Q50 110 4 100Z", WHITE_D, opacity=0.7)
-	f.path("M196 70Q150 100 110 86L104 110Q150 110 196 100Z", WHITE_D, opacity=0.9)
-	f.taper(100, 22, 102, 60, 100, 108, 1.5)
-	f.taper(18, 30, 46, 66, 86, 82, 1.5)
-	f.taper(182, 30, 154, 66, 114, 82, 1.5)
-	f.path("M14 100Q100 116 186 100L176 156Q100 168 24 156Z", GOLD, stroke=INK, sw=2.2)
-	f.path("M150 106L186 100L176 156L140 162Z", GOLD_D, opacity=0.65)
-	for y in (122, 138):
-		f.taper(22, y, 100, y + 10, 178, y, 1.2, GOLD_D)
-	f.path("M100 170V200", stroke=INK, sw=2)
-	f.edges(0.2)
-
-
-def armour_side(f):
-	f.fill(SUIT)
-	f.path("M-5 10Q50 16 105 10V96Q50 108 -5 96Z", WHITE, stroke=INK, sw=2)
-	f.path("M60 10Q70 60 56 102L105 96V10Z", WHITE_D, opacity=0.7)
-	f.path("M-5 100Q50 112 105 100L100 156Q50 166 0 156Z", GOLD, stroke=INK, sw=2)
-	f.path("M60 106L105 100L100 156L60 162Z", GOLD_D, opacity=0.6)
-	for y in (122, 138):
-		f.taper(2, y, 50, y + 8, 98, y, 1.2, GOLD_D)
-	# the strap that holds front and back shells together
-	f.path("M38 18H62V96H38Z", "#2a2a33", stroke=INK, sw=1.2)
-	f.edges(0.26)
-
-
-def paint_arm(f, key):
-	bare_arm(f, key, SKIN, top=0, wrist=172)
-	# short suit sleeve
-	f.path("M-5-5H105V60H-5Z", SUIT)
-	f.path("M72-5Q84 26 76 60H105V-5Z", SUIT_D, opacity=0.65)
-	f.taper(10, 18, 34, 34, 46, 46, 1.2, SUIT_D)
-	f.taper(90, 20, 68, 34, 56, 48, 1.2, SUIT_D)
-	# long glove, wrinkled at the wrist; closed fist in white
-	white = WHITE
-	f.path("M-5 112H105V210H-5Z", white)
-	f.path("M74 112Q86 150 76 172L105 170V112Z", WHITE_D, opacity=0.8)
-	f.taper(8, 148, 30, 156, 50, 150, 1.2, WHITE_D)
-	f.taper(92, 138, 70, 146, 54, 140, 1.2, WHITE_D)
-	f.taper(12, 164, 50, 170, 90, 164, 1.3, "#6f7382")
-	fist(f, key, white, y=174, line="#5b5f6e")
-
-
-def paint_leg(f, key):
-	f.fill(SUIT)
-	f.path("M74 0Q90 40 78 92H105V0Z", SUIT_D, opacity=0.65)
-	f.folds(4, SUIT_D, SUIT_L, y0=0.04, y1=0.36, pinch=(50, 80), width=1.4)
-	f.taper(30, 66, 50, 80, 72, 66, 1.3, SUIT_D)  # knee
-	# tall white boot with a gold shin and foot
-	f.path("M-5 90H105V205H-5Z", WHITE)
-	f.path("M72 90Q88 150 78 184H105V90Z", WHITE_D, opacity=0.8)
-	f.taper(10, 124, 50, 132, 90, 124, 1.1, WHITE_D)
-	f.taper(16, 152, 50, 160, 84, 152, 1.1, WHITE_D)
-	f.path("M-5 176H105V205H-5Z", GOLD)
-	f.path("M60 176H105V205H60Z", GOLD_D, opacity=0.5)
-	f.ink("M-5 176H105", 1.8)
-	f.path("M-5 196H105V205H-5Z", shade(GOLD_D, 0.7))
+def _face(f):
+	face(f, SKIN, hairline=14, nose_y=88)
+	f.soft("M30 40H100V100Q65 118 30 100Z", "#ffe8d2", 0.45, 8)
+	f.soft("M-5 30H10Q8 90 22 135H-5Z", SKIN_D, 0.55, 5)
+	f.soft("M135 30H120Q122 90 108 135H135Z", SKIN_D, 0.65, 5)
+	for cx, sgn in ((37, -1), (93, 1)):
+		_eye(f, cx, 69, sgn)
+		# a heavy brow plunging to the nose, a crease between
+		i, o = cx - sgn * 22, cx + sgn * 22
+		f.path(f"M{i} {56}L{o} {30}L{o - sgn * 2} {41}L{i + sgn * 4} {64}Z", "#060608")
+		f.path(f"M{65 + sgn * 3} 50L{65 + sgn * 2} 62", stroke=SKIN_D, sw=1.5)
+	# the set scowl: flat, with one corner pulled up
+	f.path("M50 107L76 107Q82 106 86 100", stroke=LINE, sw=2.4)
+	f.soft("M58 112Q66 115 74 112V114Q66 118 58 115Z", SKIN_D, 0.5, 2)
 
 
 def paint(a):
-	paint_hair(a, [HAIR_INK])
-	paint_face(a["Head_F"])
-	armour_front(a["Torso_F"])
-	armour_back(a["Torso_B"])
-	for f, mir in head_faces(a, "Torso"):
-		with mirrored(f, mir):
-			armour_side(f)
-	for _, key, f, mir in limb_faces(a, "Arm"):
-		with mirrored(f, mir):
-			paint_arm(f, key)
-		f.edges(0.2)
-	for _, key, f, mir in limb_faces(a, "Leg"):
-		with mirrored(f, mir):
-			paint_leg(f, key)
-		f.edges(0.22)
-	for f, mir in head_faces(a):
-		with mirrored(f, mir):
-			f.fill(SKIN)
-			f.path("M-5 104Q60 120 125 104V135H-5Z", SKIN_D, opacity=0.9)
-			f.path("M26-5H125V110Q96 102 82 72L74 40L60 56L50 28L34 22Z", HAIRC)
-			f.path("M-5-5H26L34 22L6 10Z", HAIRC)
-			f.path("M50 62Q60 52 72 62Q74 78 62 92Q52 94 50 82Z", SKIN, stroke=INK, sw=2)
-			f.ink("M56 66Q62 60 66 68Q66 76 62 82", 1.4, shade(SKIN, 0.45))
-			f.taper(90, 6, 96, 50, 100, 92, 1.6, "#3a3d4a")
-		f.edges(0.22)
-	f = a["Head_B"]
-	f.fill(SKIN_D)
-	# hair down to the nape in rising points
-	f.path("M-5-5H135V88L120 104L104 84L90 110L72 88L58 114L40 86L26 106L10 86L-5 96Z", HAIRC)
-	for x in (20, 46, 72, 98, 118):
-		f.taper(x, 0, x + 3, 40, x - 2, 80, 1.6, "#343745")
+	R.paint(a)
+	_face(a["Head_F"])
 	a["Head_T"].fill(HAIRC)
+	a["Head_B"].fill(HAIRC)
 	a["Head_Bo"].fill(SKIN_D)
-	a["Torso_T"].fill(WHITE)
-	a["Torso_Bo"].fill(SUIT_D)
+	for n, d in (("Head_L", "M62 -5H125V135H74L62 60Z"), ("Head_R", "M58 -5H-5V135H46L58 60Z")):
+		a[n].fill(SKIN)
+		a[n].path(d, HAIRC)
+	for n in ("Torso_F", "Torso_B", "Torso_L", "Torso_R", "Torso_T"):
+		a[n].fill(WHITE)
+	a["Torso_Bo"].fill(BLUE_D)
 	for side in ("Left", "Right"):
-		a[f"{side}Arm_T"].fill(SUIT)
-		a[f"{side}Arm_Bo"].fill("#8f93a2")
-		a[f"{side}Leg_T"].fill(SUIT)
-		a[f"{side}Leg_Bo"].fill(GOLD_D)
+		for key in "FBOI":
+			a[f"{side}Arm_{key}"].fill(SKIN)
+			a[f"{side}Leg_{key}"].fill(BLUE)
+		a[f"{side}Arm_T"].fill(BLUE)
+		a[f"{side}Arm_Bo"].fill(WHITE)
+		a[f"{side}Leg_T"].fill(BLUE)
+		a[f"{side}Leg_Bo"].fill(WHITE)
