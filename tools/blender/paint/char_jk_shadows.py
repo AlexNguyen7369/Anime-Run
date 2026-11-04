@@ -1,191 +1,75 @@
-# Painted look for jk_shadows. Uniform and spiral buttons close to the source design, drawn in-house (design doc 5).
-from atlas import INK, paint_hair, shade
-from jk_common import brow2, buried, collar, eye2, flipped, form, hair_ink, head_front, hem_line, jacket_back, jacket_front, jacket_side, nose, pal, side_face, sleeve, swirl_button, trouser
+# Target look for jk_shadows (design doc section 5): a big black urchin of spikes with a blue sheen, messy fringe, narrow calm
+# teal eyes, plain dark high-collar uniform with gold spiral buttons, dark shoes. Drawn in-house.
+from atlas import shade
+from jk_common import brow2, eye2
+from jk_style3 import GOLD, NAVY, SOLE, Kit, big_head, block, button, collar, crown, dress_shoe, face_base, finish, gem, head_rest, jacket, sleeve, spray, stroke, swirl_art, trouser
+from style2 import Ramps
 
-SKIN = "#f0d6c2"
-UNI = pal("#1c2030", "#0a0c15", "#4e5c82", "#6b7ca8")
-HAIR_DARK = "#1A1C28"  # the near-black mass
-HAIR_BLUE = "#262B40"  # blue sheen tufts
-DEFAULT = UNI["base"]
-HAIR_COLOURS = [HAIR_DARK, HAIR_BLUE]
-
-
-def _urchin():
-	"""The sea-urchin mop: spikes in every direction, a layered jagged fringe, no bald spot from any side."""
-	blue = {"colour": HAIR_BLUE}
-	return [
-		# fringe: long uneven shards hanging into the eyes
-		{"b": [0.0, -0.6, 5.28], "c": [0.04, -0.72, 5.0], "t": [-0.02, -0.68, 4.74], "r": 0.16},
-		{"b": [-0.2, -0.6, 5.26], "c": [-0.28, -0.72, 5.0], "t": [-0.2, -0.68, 4.78], "r": 0.15, **blue},
-		{"b": [0.2, -0.6, 5.26], "c": [0.3, -0.72, 5.02], "t": [0.24, -0.68, 4.8], "r": 0.15, **blue},
-		{"b": [-0.42, -0.58, 5.24], "c": [-0.52, -0.7, 5.02], "t": [-0.5, -0.67, 4.82], "r": 0.14},
-		{"b": [0.42, -0.58, 5.24], "c": [0.52, -0.7, 5.02], "t": [0.48, -0.67, 4.84], "r": 0.14},
-		{"b": [-0.6, -0.5, 5.2], "c": [-0.72, -0.6, 4.96], "t": [-0.68, -0.6, 4.7], "r": 0.11, **blue},
-		{"b": [0.6, -0.5, 5.2], "c": [0.72, -0.6, 4.96], "t": [0.7, -0.6, 4.72], "r": 0.11, **blue},
-		# front face of the mop, forward and up
-		{"b": [0.0, -0.5, 5.2], "c": [0.02, -0.92, 5.62], "t": [-0.06, -1.1, 6.02], "r": 0.26},
-		{"b": [0.34, -0.5, 5.2], "c": [0.52, -0.9, 5.56], "t": [0.76, -1.06, 5.92], "r": 0.25, **blue},
-		{"b": [-0.34, -0.5, 5.2], "c": [-0.5, -0.88, 5.6], "t": [-0.72, -1.04, 6.0], "r": 0.25},
-		{"b": [0.58, -0.44, 5.14], "c": [0.92, -0.72, 5.26], "t": [1.28, -0.82, 5.44], "r": 0.22},
-		{"b": [-0.58, -0.44, 5.14], "c": [-0.94, -0.7, 5.3], "t": [-1.3, -0.8, 5.5], "r": 0.22, **blue},
-		# top: tall ones
-		{"b": [0.0, -0.16, 5.3], "c": [0.04, -0.3, 5.96], "t": [-0.04, -0.34, 6.58], "r": 0.3},
-		{"b": [0.3, -0.14, 5.3], "c": [0.48, -0.26, 5.9], "t": [0.66, -0.3, 6.44], "r": 0.28, **blue},
-		{"b": [-0.3, -0.14, 5.3], "c": [-0.46, -0.26, 5.92], "t": [-0.58, -0.3, 6.5], "r": 0.28},
-		{"b": [0.16, 0.2, 5.3], "c": [0.24, 0.26, 5.96], "t": [0.26, 0.3, 6.5], "r": 0.28},
-		{"b": [-0.18, 0.2, 5.3], "c": [-0.26, 0.26, 5.94], "t": [-0.32, 0.3, 6.46], "r": 0.28, **blue},
-		{"b": [0.52, 0.06, 5.26], "c": [0.86, 0.06, 5.82], "t": [1.08, 0.04, 6.24], "r": 0.26},
-		{"b": [-0.52, 0.06, 5.26], "c": [-0.86, 0.06, 5.84], "t": [-1.02, 0.04, 6.28], "r": 0.26, **blue},
-		# sides: straight out at temple height
-		{"b": [0.58, -0.1, 5.1], "c": [1.04, -0.16, 5.34], "t": [1.54, -0.18, 5.68], "r": 0.26, **blue},
-		{"b": [-0.58, -0.1, 5.1], "c": [-1.04, -0.16, 5.36], "t": [-1.5, -0.18, 5.76], "r": 0.26},
-		{"b": [0.6, 0.18, 5.0], "c": [1.1, 0.22, 5.04], "t": [1.58, 0.24, 5.2], "r": 0.25},
-		{"b": [-0.6, 0.18, 5.0], "c": [-1.08, 0.22, 5.02], "t": [-1.56, 0.26, 5.14], "r": 0.25, **blue},
-		{"b": [0.62, -0.26, 4.9], "c": [1.0, -0.3, 4.78], "t": [1.32, -0.3, 4.76], "r": 0.2},
-		{"b": [-0.62, -0.26, 4.9], "c": [-1.0, -0.3, 4.78], "t": [-1.34, -0.3, 4.7], "r": 0.2, **blue},
-		{"b": [0.62, 0.22, 4.72], "c": [0.94, 0.28, 4.56], "t": [1.2, 0.3, 4.46], "r": 0.2, **blue},
-		{"b": [-0.62, 0.22, 4.72], "c": [-0.94, 0.28, 4.56], "t": [-1.2, 0.3, 4.44], "r": 0.2},
-		{"b": [0.6, -0.1, 4.7], "c": [0.8, -0.12, 4.56], "t": [0.96, -0.12, 4.36], "r": 0.14},
-		{"b": [-0.6, -0.1, 4.7], "c": [-0.8, -0.12, 4.56], "t": [-0.96, -0.12, 4.36], "r": 0.14},
-		# back: out and up, then down over the nape
-		{"b": [0.0, 0.48, 5.26], "c": [0.0, 0.92, 5.72], "t": [0.04, 1.16, 6.14], "r": 0.3, **blue},
-		{"b": [0.38, 0.46, 5.24], "c": [0.62, 0.86, 5.66], "t": [0.88, 1.08, 6.0], "r": 0.28},
-		{"b": [-0.38, 0.46, 5.24], "c": [-0.62, 0.86, 5.66], "t": [-0.84, 1.1, 6.04], "r": 0.28, **blue},
-		{"b": [0.0, 0.56, 4.98], "c": [0.1, 1.0, 5.14], "t": [0.26, 1.34, 5.46], "r": 0.3},
-		{"b": [0.42, 0.56, 4.96], "c": [0.72, 0.98, 5.0], "t": [1.0, 1.28, 5.1], "r": 0.27, **blue},
-		{"b": [-0.42, 0.56, 4.96], "c": [-0.72, 0.98, 5.0], "t": [-1.0, 1.28, 5.12], "r": 0.27},
-		{"b": [0.16, 0.58, 4.68], "c": [0.22, 0.96, 4.56], "t": [0.26, 1.24, 4.5], "r": 0.26, **blue},
-		{"b": [-0.2, 0.58, 4.66], "c": [-0.28, 0.94, 4.54], "t": [-0.32, 1.2, 4.46], "r": 0.26},
-		{"b": [0.46, 0.56, 4.64], "c": [0.66, 0.84, 4.5], "t": [0.82, 1.02, 4.4], "r": 0.2},
-		{"b": [-0.46, 0.56, 4.64], "c": [-0.66, 0.84, 4.5], "t": [-0.82, 1.02, 4.38], "r": 0.2, **blue},
-		{"b": [0.0, 0.58, 4.4], "c": [0.0, 0.8, 4.28], "t": [0.0, 0.92, 4.16], "r": 0.22},
-	]
+SKIN = "#f2d8c8"
+SKIN_D = "#cfa892"
+DEFAULT = "#1a1e2e"
+R = Ramps(
+	hair=["#030408", "#0a0c12", "#141722", "#1f2638", "#333f66"],
+	skin=["#b48c74", "#e0b8a2", "#f2d8c8", "#ffe8dc"],
+	navy=NAVY,
+	shoe=["#08080c", "#14151c", "#23242e", "#363846"],
+	sole=SOLE,
+	gold=GOLD,
+)
+HAIR = {"colour": "#15171F", "locks": []}
+PROPS = []
 
 
-def _shortened(locks, k=0.84):
-	"""Trims every spike towards its root (fringe excluded, its tips sit where the eyes need them)."""
-	for l in locks:
-		if l["t"][2] > l["b"][2] - 0.1 or l["t"][1] > 0.7:
-			l["c"] = [l["b"][i] + (l["c"][i] - l["b"][i]) * k for i in range(3)]
-			l["t"] = [l["b"][i] + (l["t"][i] - l["b"][i]) * k for i in range(3)]
-	return locks
-
-
-HAIR = {"colour": HAIR_DARK, "cap": {"size": [1.24, 1.16, 0.34], "at": [0, 0, 5.18], "bevel": 0.14}, "locks": buried(_shortened(_urchin()))}
-
-
-def _feet(colour, box, at, bevel=0.05):
-	return [{"part": part, "box": box, "at": [sgn * at[0], at[1], at[2]], "colour": colour, "bevel": bevel} for part, sgn in (("LeftFoot", 1), ("RightFoot", -1))]
-
-
-PROPS = [
-	*_feet("#20222A", [1.0, 0.36, 0.2], (0.5, -0.6, 0.12)),
-	*_feet("#C8C4BC", [1.02, 1.34, 0.08], (0.5, -0.1, 0.04)),
-]
+def _hair(k):
+	crown(k, [(0.96, 5.2), (1.04, 5.46), (0.96, 5.84), (0.54, 6.14), (0.14, 6.22)])
+	block(k, "Head", "Cap", 0, 0, 5.68, 5.24, 0.965, 0.88, "hair", ch=0.08, corner=0.3, jit=0.015, sub=1, a=0.46, b=0.4)
+	root = (0, 0.06, 5.42)
+	# the urchin: long spikes going out in every direction, top ring, then lower rings, then behind
+	spray(k, "Top", root, (((-0.5, -0.04, 6.86), 0.42), ((0.12, 0.1, 7.02), 0.44), ((0.66, 0.0, 6.82), 0.42), ((-0.16, 0.56, 6.82), 0.42), ((0.44, 0.6, 6.72), 0.4)), f=0.3)
+	spray(k, "Upper", root, (((-1.14, 0.0, 6.42), 0.42), ((-0.82, -0.42, 6.56), 0.42), ((-0.2, -0.58, 6.62), 0.42), ((0.4, -0.58, 6.6), 0.42), ((0.96, -0.42, 6.5), 0.42), ((1.26, 0.04, 6.34), 0.42), ((-0.86, 0.62, 6.42), 0.42), ((0.9, 0.62, 6.38), 0.42), ((0.04, 1.12, 6.48), 0.44)), f=0.25)
+	spray(k, "Mid", root, (((-1.5, -0.08, 5.84), 0.38), ((-1.32, -0.42, 5.46), 0.34), ((1.52, -0.04, 5.88), 0.38), ((1.34, -0.42, 5.42), 0.34), ((-1.28, 0.56, 5.88), 0.4), ((1.3, 0.56, 5.86), 0.4), ((-0.66, 1.22, 6.0), 0.42), ((0.7, 1.22, 5.98), 0.42), ((0.0, 1.44, 5.8), 0.44), ((-1.1, 0.96, 5.5), 0.38), ((1.12, 0.96, 5.46), 0.38)), f=0.25)
+	spray(k, "Low", root, (((-1.32, 0.34, 5.02), 0.32), ((1.32, 0.34, 4.98), 0.32), ((-0.82, 1.14, 5.04), 0.36), ((0.84, 1.14, 5.02), 0.36), ((-0.32, 1.26, 4.98), 0.38), ((0.34, 1.26, 4.96), 0.38)), f=0.3)
+	block(k, "Head", "Nape", 0, 0.4, 5.3, 4.36, 0.95, 0.5, "hair", ch=0.06, corner=0.22, jit=0.02, a=0.46, b=0.36)
+	for i, x in enumerate((-0.66, -0.33, 0.0, 0.33, 0.66)):
+		gem(k, "Head", f"NapeTip{i}", (x, 0.66, 4.86), (x * 1.1, 0.92, 4.2 + 0.07 * (i % 2)), 0.28, flat=0.5, twist=0.3, across=(1, 0, 0))
+	# side locks down past the ears
+	for s in (1, -1):
+		for i, (y, z0, r) in enumerate(((-0.46, 4.56, 0.24), (-0.14, 4.46, 0.26), (0.16, 4.46, 0.26))):
+			gem(k, "Head", f"Side{s}{i}", (s * 0.86, y, 5.2), (s * 0.97, y - 0.02, z0), r, flat=0.45, twist=0.25 + 0.2 * i, across=(0, 1, 0))
+	# messy fringe: uneven wedges falling across the forehead, one past the brow
+	for i, (bx, tx, tz, r) in enumerate(((-0.7, -0.84, 5.0, 0.24), (-0.38, -0.46, 4.98, 0.25), (-0.06, -0.14, 4.92, 0.25), (0.24, 0.3, 5.06, 0.24), (0.56, 0.66, 4.98, 0.24), (0.8, 0.88, 5.1, 0.2))):
+		gem(k, "Head", f"Fringe{i}", (bx, -0.56, 5.66), (tx, -0.93, tz), r, flat=0.5, twist=0.2 + 0.25 * i % 0.6, across=(1, 0, 0), a=0.52)
+	for i, (x, z, r) in enumerate(((-0.56, 6.14, 0.3), (-0.12, 6.28, 0.32), (0.34, 6.2, 0.32), (0.76, 6.06, 0.3))):
+		gem(k, "Head", f"Front{i}", (x * 0.8, -0.56, 5.46), (x, -1.0, z), r, flat=0.6, twist=0.35)
 
 
 def model(parts, kit):
-	"""The tall stand-up collar, closing right under the chin."""
-	collar(kit, parts["UpperTorso"], "Collar", "#1F2436", 0.72, 0.66, 3.96, lambda t: 0.13 + 0.2 * t ** 0.7, thick=0.06, gap=0.05, lean=0.03)
-
-
-def _shoe(f, key):
-	"""Plain black work shoe: sole, stitched toe seam."""
-	top = 168
-	f.path(f"M-5 {top}H105V206H-5Z", "#1d1f26")
-	f.soft(f"M14 {top + 2}H42V{top + 22}H14Z", "#6a7080", 0.5, 3)
-	f.ink(f"M-5 {top}H105", 1.6)
-	f.path("M-5 192H105V206H-5Z", "#c8c4bc")
-	f.ink("M-5 192H105", 1.2)
-	if key == "F":
-		for y in range(top + 3, 190, 5):
-			f.ink(f"M42 {y}H58", 0.9, "#8a8e98")
-		f.ink(f"M36 {top}V192M64 {top}V192", 0.8)
-	elif key == "O":
-		f.taper(10, top + 14, 50, top + 8, 90, 188, 0.7, "#6a7080")
-
-
-def _hair_side(f):
-	"""Black shards to the jaw with a blue sheen, an ear just showing."""
-	side_face(f, SKIN, 70, 66)
-	f.path("M-5 -5H125V110L108 100L104 114L88 92L82 72Q70 50 60 58Q56 70 58 88L46 72L40 88L30 58L22 72L14 46L6 62L-5 40Z", HAIR_DARK)
-	f.soft("M4 8Q40 2 76 8Q72 30 40 38Q10 30 4 8Z", "#46527e", 0.5, 5)
-	for x0, y0, x1, y1 in ((18, 2, 22, 56), (42, 2, 42, 66), (66, 2, 56, 46), (88, 2, 96, 84), (110, 2, 110, 92)):
-		f.taper(x0, y0, (x0 + x1) / 2 + 3, (y0 + y1) / 2, x1, y1, 1.2, "#05060c")
-		f.taper(x0 + 3, y0 + 4, (x0 + x1) / 2 + 6, (y0 + y1) / 2 - 8, x1 + 2, y1 - 22, 0.9, "#3e4c78")
+	k = Kit(kit, parts, R, outline=0)
+	big_head(k)
+	_hair(k)
+	jacket(k)
+	collar(k, "navy", 4.18, 4.36, z0=3.84, rx=0.9, ry=0.87, a=0.56)
+	for i, z in enumerate((3.7, 3.28, 2.86, 2.44)):
+		button(k, "UpperTorso", f"Button{i}", 0, -0.6, z, r=0.12)
+	for s, side in ((1, "Left"), (-1, "Right")):
+		sleeve(k, side, s)
+		leg, px = trouser(k, side, s, low=0.46)
+		dress_shoe(k, leg, px)
+	finish()
 
 
 def paint(a):
-	paint_hair(a, ["#20222e", "#2c3350"])
-	hair_ink(a, 0, 2, "#262935", gap=0.2, shine=1.9)
-	hair_ink(a, 1, 2, "#303855", gap=0.25, shine=1.7)
-	# ---- face: long narrow eyes half shut, thin level brows, a small flat mouth. Unimpressed and cold.
+	R.paint(a)
+	swirl_art(a, "#15171f")
 	f = a["Head_F"]
-	head_front(f, SKIN, hair_shadow=44, jaw_y=84, chin_y=125, chin_w=17)
-	f.soft("M-5 30H22Q24 48 14 74H-5Z", "#3a3548", 0.28, 3)
-	f.soft("M135 30H108Q106 48 116 74H135Z", "#3a3548", 0.28, 3)
-	eye2(f, 42, 66, -1, 28, 8.5, "#256a78", tilt=2.2, r=7.4, lid=0.55, lash_t=2.6, flick=3, look=1.2, crease_line=False)
-	eye2(f, 88, 66, 1, 28, 8.5, "#256a78", tilt=2.2, r=7.4, lid=0.55, lash_t=2.6, flick=3, look=-1.2, crease_line=False)
-	brow2(f, 41, 54, -1, 26, 3, 2.0, "#15161f", arc=-0.5)
-	brow2(f, 89, 54, 1, 26, 3, 2.0, "#15161f", arc=-0.5)
-	f.taper(35, 74, 44, 76, 53, 74, 0.5, shade(SKIN, 0.62))
-	f.taper(95, 74, 86, 76, 77, 74, 0.5, shade(SKIN, 0.62))
-	nose(f, SKIN, 76, 14)
-	f.taper(56, 106, 66, 105, 74, 107, 1.1)
-	f.taper(60, 110.5, 65, 111.5, 70, 110.5, 0.5, shade(SKIN, 0.55))
-	# ---- sides and back
-	for name in ("Head_L", "Head_R"):
-		f = a[name]
-		if name == "Head_R":
-			with flipped(f):
-				_hair_side(f)
-		else:
-			_hair_side(f)
-	f = a["Head_B"]
-	f.fill(HAIR_DARK)
-	f.soft("M10 8Q60 0 118 10Q110 48 66 56Q20 48 10 8Z", "#46527e", 0.4, 8)
-	for i in range(16):
-		x = 4 + i * 8.2
-		f.taper(x, 2, x + f.rng.uniform(-3, 3), 60, x + f.rng.uniform(-6, 6), 120 + f.rng.uniform(-14, 6), 1.2, "#05060c")
-		if i % 2:
-			f.taper(x + 3, 12, x + 3, 40, x + 4, 72, 0.8, "#3e4c78")
-	f.path("M-5 135V124L10 116L22 126L40 112L54 128L72 114L88 128L104 114L120 124L135 116V135Z", shade(SKIN, 0.5))
-	form(f, "#04050b", 0.4)
-	a["Head_T"].fill(HAIR_DARK)
-	a["Head_Bo"].fill(shade(SKIN, 0.5))
-	# ---- torso: a straight closed jacket, three spiral buttons down a real placket
-	base2 = shade(UNI["base"], 0.75)
-	f = a["Torso_F"]
-	jacket_front(f, UNI, seed=2, hem=178)
-	hem_line(f, UNI, 178, base2)
-	f.path("M90 -5H110L111 178H89Z", shade(UNI["base"], 1.12))
-	f.taper(89, -5, 88, 90, 89, 178, 1.4)
-	f.taper(111, -5, 112, 90, 111, 178, 1.4)
-	f.taper(92, -5, 91, 90, 92, 178, 0.6, UNI["lite"])
-	f.soft("M-5 -5H205V14Q100 26 -5 14Z", "#000000", 0.5, 3)
-	for y in (24, 72, 122):
-		swirl_button(f, 100, y, 8.5)
-	form(f)
-	f = a["Torso_B"]
-	jacket_back(f, UNI, seed=2, hem=178)
-	hem_line(f, UNI, 178, base2)
-	form(f)
-	for name in ("Torso_L", "Torso_R"):
-		f = a[name]
-		jacket_side(f, UNI, seed=2, hem=178)
-		hem_line(f, UNI, 178, base2)
-		form(f)
-	a["Torso_T"].fill(UNI["base"])
-	a["Torso_T"].soft("M0 0H200V30H0Z", UNI["sheen"], 0.3, 5)
-	a["Torso_Bo"].fill(UNI["dark"])
-	# ---- limbs: narrow plain sleeves, straight trousers
-	for side in ("Left", "Right"):
-		for key in "FBOI":
-			sleeve(a[f"{side}Arm_{key}"], UNI, key, seed=side + "s", skin=SKIN, cuff=156, hand_top=168)
-			f = a[f"{side}Leg_{key}"]
-			trouser(f, UNI, key, seed=side + "s", shoe_top=168)
-			_shoe(f, key)
-		a[f"{side}Arm_T"].fill(UNI["base"])
-		a[f"{side}Arm_Bo"].fill(SKIN)
-		a[f"{side}Leg_T"].fill(UNI["base"])
-		a[f"{side}Leg_Bo"].fill("#c8c4bc")
+	face_base(f, SKIN, SKIN_D, top=36)
+	# narrow, half-lidded, cool eyes under low straight brows
+	for s, x in ((-1, 39), (1, 91)):
+		eye2(f, x, 62, s, 35, 12.5, "#2a6a78", tilt=3, r=8.8, lid=0.34, lash_t=3.4, flick=4, sclera="#fbf9f6", crease_line=False)
+		brow2(f, x, 44, s, 34, 4.2, 3.2, "#14161e", arc=-0.4)
+	f.soft("M60 80L65 74L70 80Q65 86 60 80Z", SKIN_D, 0.7, 1)
+	stroke(f, "M61 84Q65 85.5 69 84", shade(SKIN, 0.5), 1.1)
+	# a small flat unimpressed mouth
+	stroke(f, "M55 99Q65 101 75 98", "#6a3a34", 2)
+	f.soft("M58 104Q65 106 72 104Q65 108 58 104Z", SKIN_D, 0.5, 1)
+	head_rest(a, shade(SKIN, 0.78), shade(SKIN, 0.6))
