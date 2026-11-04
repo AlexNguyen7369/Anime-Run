@@ -5,7 +5,8 @@ Goal `char-art` deliverable a1 (docs/ORCHESTRATOR_GOALS.md). Real names appear h
 
 Owner ruling 2026-11-03, later (design doc section 5), overrides every "altered version" line and the chibi
 takeaways below: Roblox avatar style, distinct resemblance, marks may closely resemble the original (modelled in-house,
-never the official logo file). Avatar pilot marks: `leaf_hero` swirl on headband plate and red swirl on jacket back;
+never the official logo file). **Current marks (owner 2026-11-03, design doc 5 "Marks": small changes, same place, size and colours; replaces the shapes listed after this):** plate, back, shoulder, vest and sleeve swirls on `leaf_hero`, `leaf_medic`, `leaf_copycat`, `leaf_crow`: 1.25-turn swirl wound the other way, ending in a leaf. `leaf_medic` back hexagon, forehead teardrop. `leaf_avenger` folding wedge fan with notched top. `leaf_crow` 3-lobe clouds on a flat base. `db_hero` two invented abstract signs on chest and back discs. `ds_hero` crescent over 2 chevrons on earrings. `jk_vessel`, `jk_shadows`, `jk_nails` gold three-arm pinwheel buttons. `mha_blast` two chevrons. `mha_symbol` Y band. `sea_flame` six-sided skull on arrow bars, hexagon hat faces, 2 chevrons, diamond buckle. `sea_navigator` 3-blade pinwheel and pointed fruit. Not marks, unchanged: scars, face lines, spiral brow, clothing patterns.
+Earlier list: Avatar pilot marks: `leaf_hero` swirl on headband plate and red swirl on jacket back;
 `leaf_avenger` red-over-white fan on upper back; `leaf_medic` swirl plate, white ring on back and violet forehead diamond; `leaf_hero` also a round white-swirl shoulder badge. Other near-copy
 marks (a5): `leaf_copycat` swirl plate + red sleeve and vest spirals; `leaf_crow` red-and-white cloak clouds + slashed
 swirl plate; `db_hero` white disc with a black kanji-like glyph; `mha_blast` orange X chest strap; `mha_symbol` V chest

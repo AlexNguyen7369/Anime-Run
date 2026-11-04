@@ -21,6 +21,7 @@
 - Series / preset team bonus, Stamina stat point, Stamina potion
 
 ## Done
+- 2026-11-03 char-art marks pass: 15 characters' logos and symbols altered, overall designs unchanged, uploaded; rules audit PASS; Studio load check of the new assets open (Studio held)
 - 2026-11-03 char-art other 26 in the target look, uploaded; all 30 in game: Studio 30 of 30 with 6 meshes, 0 model load failures; audit 0 violations after the marks ledger fix; real race and harness not run
 - 2026-11-03 char-art 4 pilots to the owner's target look + rig scale 0.8 (c26d9ae): rules audit 0 violations, owner ruled on hard facets and series initials; Studio: 4 load, Best Roll correct; full harness and real race not run
 - uipolish 2026-11-03: rebirth +5% cruise and speed tile, stamina bar fixes, team row rebuilt with a stamina arc

@@ -47,6 +47,7 @@
 44. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the 4 pilot characters to the owner's target look (no ink outline, hard facets, big head, 3D clothes, plain block hands, designs matching the source with only the name differing) and scaled every rig to 0.8 (proposed), rules audit 0 violations, full harness not run.
 45. 2026-11-03 — Alex Nguyen — Applied the ninja run to the other 4 Leaf characters (`leaf_copycat`, `leaf_medic`, `leaf_crow`, `leaf_avenger`), with the pose and effect still not seen in a live run.
 45. 2026-11-03 — Alex Nguyen — Rebuilt and re-uploaded the other 26 characters in the owner's target look, so all 30 launch characters now load in game at 0.8 scale (Studio: 30 of 30 with 6 meshes each), rules audit fixed to 0 violations, real race and full harness not run.
+46. 2026-11-03 — Alex Nguyen — Gave logos and symbols small shape changes on 15 characters with the overall designs unchanged (design doc 5 Marks) and re-uploaded them, rules audit PASS, in-game check of the new marks still open.
 
 ## What's next
 **Run the c3 full compatibility check (full server harness, UI harness, rules audit) on feature/alex/anime-world with all 30 new models, and fix what it finds.**

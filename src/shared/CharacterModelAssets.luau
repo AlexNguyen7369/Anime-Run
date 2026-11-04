@@ -14,7 +14,7 @@ return {
 		},
 	},
 	db_hero = {
-		Asset = 139186488737019,
+		Asset = 120555368600804,
 		Sizes = {
 			Head = Vector3.new(5.403, 4.364, 3.206),
 			LeftArm = Vector3.new(1.3, 2.4, 1.1),
@@ -80,7 +80,7 @@ return {
 		},
 	},
 	ds_hero = {
-		Asset = 82421185765019,
+		Asset = 96420727287450,
 		Sizes = {
 			Head = Vector3.new(2.76, 3.4, 2.4),
 			LeftArm = Vector3.new(1.34, 2.44, 1.2),
@@ -113,7 +113,7 @@ return {
 		},
 	},
 	jk_king = {
-		Asset = 97253359746757,
+		Asset = 128545151242183,
 		Sizes = {
 			Head = Vector3.new(2.246, 3.12, 2.56),
 			LeftArm = Vector3.new(1.273, 2.44, 1.08),
@@ -124,7 +124,7 @@ return {
 		},
 	},
 	jk_nails = {
-		Asset = 90991744260944,
+		Asset = 119058119912711,
 		Sizes = {
 			Head = Vector3.new(2.263, 2.4, 2.077),
 			LeftArm = Vector3.new(1.273, 3.56, 1.18),
@@ -135,7 +135,7 @@ return {
 		},
 	},
 	jk_shadows = {
-		Asset = 123210799775734,
+		Asset = 95894321444848,
 		Sizes = {
 			Head = Vector3.new(3.04, 4.04, 2.88),
 			LeftArm = Vector3.new(1.273, 2.44, 1.08),
@@ -157,7 +157,7 @@ return {
 		},
 	},
 	jk_vessel = {
-		Asset = 139841543848141,
+		Asset = 121761418095038,
 		Sizes = {
 			Head = Vector3.new(2.36, 3.48, 2.12),
 			LeftArm = Vector3.new(1.273, 2.44, 1.08),
@@ -168,7 +168,7 @@ return {
 		},
 	},
 	leaf_avenger = {
-		Asset = 97423016771940,
+		Asset = 139210604541217,
 		Sizes = {
 			Head = Vector3.new(2.581, 3.24, 3.72),
 			LeftArm = Vector3.new(1.33, 2.44, 1.135),
@@ -179,7 +179,7 @@ return {
 		},
 	},
 	leaf_copycat = {
-		Asset = 127380900297965,
+		Asset = 79697130586014,
 		Sizes = {
 			Head = Vector3.new(3.64, 4.68, 2.6),
 			LeftArm = Vector3.new(1.29, 2.44, 1.12),
@@ -190,7 +190,7 @@ return {
 		},
 	},
 	leaf_crow = {
-		Asset = 73465275042296,
+		Asset = 115193054538619,
 		Sizes = {
 			Head = Vector3.new(2.266, 3.761, 2.537),
 			LeftArm = Vector3.new(1.402, 2.44, 1.2),
@@ -201,7 +201,7 @@ return {
 		},
 	},
 	leaf_hero = {
-		Asset = 99496724338450,
+		Asset = 115170371198623,
 		Sizes = {
 			Head = Vector3.new(3.76, 3.52, 2.9),
 			LeftArm = Vector3.new(1.281, 2.44, 1.461),
@@ -212,7 +212,7 @@ return {
 		},
 	},
 	leaf_medic = {
-		Asset = 99203486532029,
+		Asset = 115578241256078,
 		Sizes = {
 			Head = Vector3.new(4.284, 2.968, 2.933),
 			LeftArm = Vector3.new(1.35, 2.04, 1.15),
@@ -223,7 +223,7 @@ return {
 		},
 	},
 	mha_blast = {
-		Asset = 118688263739722,
+		Asset = 86225580380556,
 		Sizes = {
 			Head = Vector3.new(3.28, 4.48, 3),
 			LeftArm = Vector3.new(2, 2.44, 1.49),
@@ -267,7 +267,7 @@ return {
 		},
 	},
 	mha_symbol = {
-		Asset = 88808303565224,
+		Asset = 121463649907517,
 		Sizes = {
 			Head = Vector3.new(2.32, 4.32, 2.4),
 			LeftArm = Vector3.new(1.66, 2.44, 1.34),
@@ -300,7 +300,7 @@ return {
 		},
 	},
 	sea_flame = {
-		Asset = 87927667298967,
+		Asset = 104509284895109,
 		Sizes = {
 			Head = Vector3.new(3.8, 3.337, 3.841),
 			LeftArm = Vector3.new(1.29, 2.4, 1.361),
@@ -311,7 +311,7 @@ return {
 		},
 	},
 	sea_navigator = {
-		Asset = 115594858593598,
+		Asset = 140524529549266,
 		Sizes = {
 			Head = Vector3.new(2.714, 5.44, 2.173),
 			LeftArm = Vector3.new(1.28, 2.4, 1.361),
