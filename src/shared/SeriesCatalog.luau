@@ -34,6 +34,11 @@ SeriesCatalog.List = {
 		Name = "My Hero Akademia",
 		Preset = { Name = "Class 1-A", Members = { "mha_hero", "mha_blast", "mha_icefire" } },
 	},
+	{
+		Id = "soul",
+		Name = "Bleech",
+		Preset = { Name = "Substitute Squad", Members = { "soul_substitute", "soul_ice", "soul_fang" } },
+	},
 }
 
 local byId = {}

@@ -35,7 +35,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 - Turbo luck every 10th roll x10; upgrade tiers raise both.
 - Bands (1 in N):
 
-| Rarity | Chance band | SpeedMulti band | Count at launch |
+| Rarity | Chance band | SpeedMulti band | Launch count (before Bleech) |
 |---|---|---|---|
 | Common | 1 (catch-all) | 1.1 | 1 |
 | Uncommon | 10 - 200 | 1.25 - 2.2 | 6 |
@@ -94,7 +94,20 @@ is the internal source list; it never ships in the game. Category: S = Sprinter,
 
 Track enemies are part of this parody list; their names and sources are in `docs/NPC_RIVAL_SPEC.md` (design doc section 5, 4.26).
 
-Counts per rarity: Common 1, Uncommon 6, Rare 6, Epic 6, Legendary 5, Mythic 4, Secret 2.
+Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. are proposed):
+
+| Series (based on) | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Bleech (Bleach) | Orihima | Orihime Inoue | Uncommon | B | `soul_healer` | 150 | 2.1 | new |
+| | Rukiya | Rukia Kuchiki | Rare | M | `soul_ice` | 3,000 | 3.5 | new |
+| | Renjy | Renji Abarai | Epic | S | `soul_fang` | 1,000,000 | 13 | new |
+| | Ichigu | Ichigo Kurosaki | Legendary | B | `soul_substitute` | 2e8 | 70 | new |
+| | Ulquiorro | Ulquiorra Cifer | Mythic | S | `soul_hollow` | 3e10 | 200 | `foe_soul` |
+| | Aizon | Sosuke Aizen | Mythic | M | `soul_lord` | 3e14 | 400 | new |
+
+Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
+
+Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 7, Legendary 6, Mythic 6, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 
@@ -128,7 +141,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 30 regular + 3 event-only = 33 rollable characters, plus the starter.
+Catalog total: 36 regular (30 launch cast + 6 Bleech, owner 2026-11-04) + 3 event-only = 39 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 

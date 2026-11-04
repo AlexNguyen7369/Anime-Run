@@ -82,3 +82,13 @@ Marks follow design doc 5 "Marks": same place, size and colour, a clearly differ
 - `foe_sea2` Enelu [Enel]: earring pendant is a flat-topped six-sided plate with a round stone, not a diamond; drum heads are four straight-edged swept blades round a hub, not a three-comma swirl.
 - `foe_soul` Ulquiorro [Ulquiorra]: chest number tattoo is a stem with two stacked chevrons, not the numeral.
 - `foe_db` Selle [Cell], `foe_jk` Jogoh [Jogo], `foe_mha` Shigaraky [Shigaraki], `foe_jk2` Mahitoh [Mahito]: no marks.
+
+## Bleech series (owner 2026-11-04, design doc 4.30)
+
+Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks".
+
+- `soul_healer` Orihima [Orihime]: hairpin pair is a four-pointed star with a square centre, not a six-petal flower.
+- `soul_fang` Renjy [Renji]: no marks. Tattoos are a body pattern following the source layout (owner 2026-11-04). The block figure has no neck, so the neck bands sit at the top of the chest (owner-accepted departure, same date).
+- `soul_substitute` Ichigu [Ichigo]: badge is an upright diamond plate with a crescent, not a plaque with a skull.
+- `soul_hollow` Ulquiorro: shares `foe_soul` (see Track enemies).
+- `soul_ice` Rukiya [Rukia], `soul_lord` Aizon [Aizen]: no marks.

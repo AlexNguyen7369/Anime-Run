@@ -322,6 +322,24 @@ before any Studio work.
   arrow aimed at it (owner 2026-11-04, replaces "not clamped"). Pointer size and edge margins are placeholders.
 - Delivery (owner, same day): names and indicator land first on the placeholder rig; new enemy models follow in one pass.
 
+### 4.28 Enemy showdown moment (owner 2026-11-04)
+- When a track race starts, a short banner names the enemy: "VS", its name and its portrait, with the track's name. When the
+  player wins that track, a short banner says the enemy is defeated, with the same portrait. Display only: the race does not
+  pause and no input is blocked. Timing and layout are placeholders; both go through `Client/UiMotion` (4.20).
+
+### 4.29 Defeated Enemies page (owner 2026-11-04)
+- The Index has a Defeated Enemies page with one tile per track enemy, in track order. A beaten enemy (`BestTrack >= n`) shows
+  its portrait, name and the player's best time on that track. An unbeaten one is locked and hides its portrait and name.
+  No new saved data: it reads `BestTrack` and the race best times, published read-only as player attributes `RaceBest<track>`,
+  which other players can read (owner, same day). No reward (rewards are a separate owner decision).
+
+### 4.30 Bleech series (owner 2026-11-04)
+- A seventh Series, Bleech (based on Bleach; id `soul`), adds 6 rollable characters: Orihima, Rukiya, Renjy, Ichigu, Ulquiorro,
+  Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
+  owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
+- Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
+- No plaza Legend for this Series yet: the owner later capped Legends at 2 (4.24, `animerun-b3`, d3); whether Aizon replaces one is an open question.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -382,6 +400,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: enemy showdown banners (4.28), Defeated Enemies page (4.29), Bleech series of 6 (4.30). Enemy aura is a plan only: `docs/ENEMY_AURA_PLAN.md`.
 - 2026-11-04: owner: a screen-edge pointer shows the enemy while it is off screen (4.26).
 - 2026-11-03: owner: every track NPC is an enemy from its biome's anime, with an always-visible name and arrow indicator; cast replaces the 2026-10-28 rivals (4.26).
 - 2026-11-03: owner: phone and tablet HUD rules: pair stacks and hides under panels at height 400 or less, tablets shrink, Backpack tabs shrink as Market's, rolls behind loading are not judged (4.27).
