@@ -190,8 +190,15 @@ when all 3 are empty, or when the player loses a track to the NPC.
   luck totals table is unchanged.
 
 ### 4.15 Sensei checkpoints (owner 2026-11-02)
-- The plaza sensei opens the Tracks panel: an overview of each track (name, biome, length, NPC rival, payout) where
-  the player also picks a **checkpoint**, the track their runs start on (`Remotes.SetCheckpoint`, server-validated).
+- The plaza sensei opens the Tracks panel, one scrolling list of long horizontal cards, one per track (owner
+  2026-11-04, replaces the card grid and detail pane). A card shows only: the track number, a screenshot of that
+  track's road (no 3D render), the biome's in-game name, one brief definition of the place in its anime's story,
+  the recommended speed and the enemy's name. Length, payout and times are not shown. Definitions: `TRACKS_AND_BIOMES_SPEC`
+  "Track card definitions" (proposed copy, tweaked names only, section 5).
+- Clicking an open card picks it as the player's **checkpoint**, the track their runs start on
+  (`Remotes.SetCheckpoint`, server-validated). The current checkpoint's card is marked. A locked card stays dimmed
+  with its lock, and clicking it picks nothing.
+- Recommended speed is the lowest whole speed above the enemy's cruise speed (proposed; `NpcConfig.RecommendedSpeed`).
 - Track 1 is always open. Track n opens once Track n-1 is beaten (`BestTrack >= n - 1`): the player can pick up to
   the track they are stuck on; every later track stays locked until they pass it.
 - The pick is saved (`Checkpoint`) and clamped to what is open. A run starts on the checkpoint track; a loss sends the
@@ -495,3 +502,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-04: owner: auras and trails can be bought more than once, up to 3 copies of each at full price; the inventory holds the copies and one copy is worn on one team slot (4.13, TEAM_AND_STAMINA_SPEC).
 - 2026-11-04: owner: admin test commands `/narito` and `/newplayer` (4.13).
 - 2026-11-04: owner: new players start with auto-roll off and a spotlight tutorial turns it on (4.21).
+- 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).

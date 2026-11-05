@@ -70,6 +70,24 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 1. Track tests first (one `TrackTests/<Track>.luau` per track: target length +-5%, validator rules, chain no-overlap,
    0 flips / 0 off-track at normal and max stat speed, pad paid once).
 
+## Track card definitions (owner 2026-11-04, design doc 4.15)
+Copy is proposed and lives in `Shared/TrackCards`, with each track's road screenshot. Tweaked names only (design doc
+section 5). The "Based on" notes stay in docs and never ship. "Mahoraka" is this list's tweak of Mahoraga, who is not
+in the cast.
+
+| Track | Definition | Based on |
+|---|---|---|
+| 1 | Hidden ninja village of Narito's youth, left a crater by Paine's assault. | Konoha, Pain's assault |
+| 2 | Selle's tournament ring on the wasteland, where the fate of the world is fought. | Cell Games |
+| 3 | Island harbor ruled by Arlon's fish-man crew, until Lufy's pirates land. | Arlong Park |
+| 4 | Wisteria-ringed mountain where slayers train and demons like Akazo hunt by moonlight. | Final Selection mountain, Akaza |
+| 5 | Sukana fights Jogoh and Mahoraka here, and the streets burn to molten rock. | Sukuna vs Jogo and Mahoraga |
+| 6 | Home of the hero academy, where Shigaraky's villains strike at the next generation. | U.A., League of Villains |
+| 7 | Subway station packed with crowds trapped on Halloween night, with Mahitoh waiting below. | Shibuya Station, Mahito |
+| 8 | Sky island above the clouds, ruled by the self-made god Enelu and his golden bell. | Skypiea, Enel |
+| 9 | Endless white sand under a black sky, where Ulquiorro guards the dome palace. | Hueco Mundo, Ulquiorra |
+| 10 | Green planet where Freezo hunts the wish-granting orbs. | Namek, Frieza |
+
 ## References
 
 One entry per track: what the research settled. Headings give the "Based on" source; real show names appear in docs

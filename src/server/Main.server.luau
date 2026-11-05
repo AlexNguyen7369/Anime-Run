@@ -99,7 +99,6 @@ do
 	ReplicatedStorage:SetAttribute("PlazaRadius", TerrainShape.PlazaRadius())
 end
 BiomeDressing.SnapToTerrain(trackModels)
-require(Shared.TrackPreviews).Bake(trackModels) -- checkpoint card previews (docs/CHECKPOINT_SPEC.md section 4)
 
 local plate
 -- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
