@@ -463,7 +463,8 @@ local function specAndMulti(player, id, slot)
 			GachaService.TeamBonus(player) == "Preset",
 			MarketConfig.SpeedMulti(player, slot),
 			MarketConfig.TrailMulti(player, slot),
-			(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
+			bonuses(player).Speed or 0,
+			RebirthConfig.SpeedMulti(player:GetAttribute("RebirthLevel"))
 		)
 end
 

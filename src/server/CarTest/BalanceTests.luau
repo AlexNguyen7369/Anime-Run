@@ -12,6 +12,9 @@ local function balance()
 	local NpcConfig = require(Shared.NpcConfig)
 	local StaminaConfig = require(Shared.StaminaConfig)
 	local HudFormat = require(Shared.HudFormat)
+	local RebirthConfig = require(Shared.RebirthConfig)
+	local BoostConfig = require(Shared.BoostConfig)
+	local MarketConfig = require(Shared.MarketConfig)
 
 	local rising, curve = true, RaceConfig.SPEED_CURVE
 	for i = 2, #curve do
@@ -47,6 +50,42 @@ local function balance()
 		end
 	end
 	flag("balance_speed_is_whole", whole)
+
+	-- The current pool's best kit: Secret, rebirth 20, all 35 points in Speed (+70%), 5 tree tiers (+50%), the best Dojo
+	-- squad at level 10 (+190%), best potion, preset, best aura and trail. It reaches 800 studs/s, no further.
+	local function best(list)
+		local top = 1
+		for _, item in list do
+			top = math.max(top, item.SpeedMulti)
+		end
+		return top
+	end
+	local kit = RaceConfig.Speed(
+		{ Rarity = "Secret", Category = "Balanced" },
+		RaceConfig.SpeedMulti(
+			35,
+			BoostConfig.ByCategory.Speed[3].Multiplier,
+			true,
+			best(MarketConfig.Items.Aura),
+			best(MarketConfig.Items.Trail),
+			0.5 + 1.9,
+			RebirthConfig.SpeedMulti(20)
+		)
+	)
+	flag(
+		"balance_best_kit_near_800",
+		RaceConfig.CruiseOf(kit) >= 780 and RaceConfig.CruiseOf(kit) <= 800,
+		RaceConfig.CruiseOf(kit),
+		800
+	)
+	flag("balance_rebirth_5_is_x100", RebirthConfig.SpeedMulti(5) == 100, RebirthConfig.SpeedMulti(5), 100)
+	local costsRise = #RebirthConfig.COSTS == RebirthConfig.MAX_LEVEL
+		and #RebirthConfig.SPEED_TOTALS == RebirthConfig.MAX_LEVEL
+	for i = 2, RebirthConfig.MAX_LEVEL do
+		costsRise = costsRise and RebirthConfig.COSTS[i] > RebirthConfig.COSTS[i - 1]
+		costsRise = costsRise and RebirthConfig.SPEED_TOTALS[i] > RebirthConfig.SPEED_TOTALS[i - 1]
+	end
+	flag("balance_rebirth_tables_rise", costsRise)
 
 	-- Track 1 gate, Balanced (spec "Track 1 gate"): "exhaust", "win" or "lose"
 	local function gate(team, staminaMulti)

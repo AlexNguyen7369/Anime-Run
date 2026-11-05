@@ -82,8 +82,9 @@
 79. 2026-11-05 — Alex Nguyen — Wrote the Speed balance rules: whole-number Speed with a curve to studs/s, new enemy and rebirth tables, keep-won-tracks loss rule, pacing model and research notes.
 80. 2026-11-05 — Alex Nguyen — Changed a loss to cash out the tracks already won, not yet run in Studio.
 81. 2026-11-05 — Alex Nguyen — Built the Speed core: Speed number, curve to studs/s, enemy table, full-value auras and trails and a balance test, checked offline only.
+82. 2026-11-05 — Alex Nguyen — Changed rebirth to a high total Speed multi with a new cost table, checked offline only.
 
 ## What's next
-**Change rebirth to a high total Speed multi with the new cost table.**
+**Show the whole-number Speed everywhere in the UI instead of studs/s.**
 
-**Why this is next:** late tracks cannot be reached without it, and the 800 studs/s top of the pool depends on it.
+**Why this is next:** the server now has the number, and players still see studs/s until this lands.

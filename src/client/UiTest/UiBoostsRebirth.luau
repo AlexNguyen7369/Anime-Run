@@ -106,7 +106,7 @@ function Extras.Build(h)
 				)
 			else
 				local want
-				if tile.Multiplier then
+				if tile.Multiplier or tile.Multi then
 					want = tile.Format:format(HudFormat.Multi(value))
 				else
 					local n = tile.Percent and math.floor(value * 100 + 0.5) or value

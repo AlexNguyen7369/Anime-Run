@@ -442,11 +442,11 @@ UiSpec.Rebirth = {
 	-- Caption = Format with the NEXT rebirth's gain: Multiplier tiles use RebirthConfig.NextMultiplier(RebirthLevel)
 	-- = the luck multi of RebirthLevel + 1 (design doc 4.14), the NEXT TOTAL (x1.5 at level 0, x2 at level 1 ... x10, then x10 per
 	-- rebirth to x100b at 20, the last; owner 2026-10-27 rev. 4, docs/REBIRTH_SPEC.md "Panel"), Next tiles call
-	-- RebirthConfig[Next](RebirthLevel + 1), others read RebirthConfig[Config]. Percent: the value is shown x100, rounded.
+	-- RebirthConfig[Next](RebirthLevel + 1), others read RebirthConfig[Config]. Multi: shown with HudFormat.Multi.
 	Tiles = {
 		-- %s = HudFormat.Multi(next multiplier) ("x7.5", HUD spec section 8, owner 2026-10-27; was "x%.2f")
 		{ Name = "LuckReward", Multiplier = true, Format = "%s Luck" },
-		{ Name = "SpeedReward", Next = "SpeedBonus", Percent = true, Format = "+%d%% Speed" }, -- owner 2026-11-03
+		{ Name = "SpeedReward", Next = "SpeedMulti", Multi = true, Format = "%s Speed" }, -- owner 2026-11-05
 		{ Name = "PointReward", Config = "POINTS_PER_REBIRTH", Format = "+%d Stat Point", Plural = "+%d Stat Points" },
 	},
 	-- The panel's sections, shown together: no two may overlap (at every viewport).

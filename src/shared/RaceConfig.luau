@@ -34,7 +34,7 @@ RaceConfig.SPEED_CURVE = {
 	{ 1e22, 361.3 },
 	{ 1e27, 485.7 },
 	{ 5e29, 653 },
-	{ 3e31, 800 },
+	{ 7e31, 800 },
 }
 -- Category x Speed (design doc 4.5; placeholders)
 RaceConfig.CATEGORY_SPEED = { Sprinter = 1.25, Balanced = 1, Marathoner = 0.8 }
@@ -52,14 +52,16 @@ end
 
 -- Speed multi (design doc 4.13): (1 + SPEED_PER_POINT x Speed points + upgrade tree Speed bonus) x Speed potion
 -- x preset bonus x aura x trail. `potion` is the active Speed potion multi (1 = none); `preset` true
--- for a preset team; `treeBonus` the additive bonuses: owned Speed tiers (UpgradeTree.Bonuses(owned).Speed), rebirth level, 0 = none.
-function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMulti, treeBonus)
+-- for a preset team; `treeBonus` the additive bonuses: owned Speed tiers (UpgradeTree.Bonuses(owned).Speed), 0 = none;
+-- `rebirth` the rebirth level's total (RebirthConfig.SpeedMulti), 1 = none.
+function RaceConfig.SpeedMulti(speedPoints, potion, preset, auraMulti, trailMulti, treeBonus, rebirth)
 	local points = positive(speedPoints) and math.floor(speedPoints) or 0
 	return (1 + RaceConfig.SPEED_PER_POINT * points + (positive(treeBonus) and treeBonus or 0))
 		* (positive(potion) and math.max(potion, 1) or 1)
 		* (preset == true and RaceConfig.PRESET_CRUISE or 1)
 		* RaceConfig.ItemCruiseMulti(auraMulti)
 		* RaceConfig.ItemCruiseMulti(trailMulti)
+		* (positive(rebirth) and rebirth or 1)
 end
 
 -- Whole Speed of a character spec at a speed multi: RARITY_BASE x CATEGORY_SPEED x multi, no cap. An unknown rarity runs

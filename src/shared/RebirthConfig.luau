@@ -9,10 +9,12 @@ RebirthConfig.DEFAULT_LEVEL = 0
 -- one. Rebirth gives no XP (owner 2026-11-01, design doc 4.14).
 RebirthConfig.TOTALS = { 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7.5, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11 }
 RebirthConfig.MAX_LEVEL = #RebirthConfig.TOTALS
--- Money needed for the next rebirth (owner 2026-11-01, placeholder): $100K for rebirth 1, x10 each after.
-RebirthConfig.BASE_MONEY = 1e5
-RebirthConfig.MONEY_GROWTH = 10
-RebirthConfig.SPEED_PER_REBIRTH = 0.05 -- +5 % cruise per rebirth level (placeholder, owner 2026-11-03, design doc 4.14)
+-- Total Speed multi per rebirth level, Money needed for each rebirth (proposed, owner 2026-11-05, design doc 4.14,
+-- docs/SPEED_BALANCE_SPEC.md; fitted with tools/balance/speed_model.py)
+-- stylua: ignore
+RebirthConfig.SPEED_TOTALS = { 5, 12, 25, 50, 100, 250, 600, 1500, 4000, 1e4, 1.6e5, 2.5e6, 4e7, 6.5e8, 1e10, 1.6e11, 2.5e12, 4e13, 6.5e14, 1e16 }
+-- stylua: ignore
+RebirthConfig.COSTS = { 5e3, 12e3, 25e3, 50e3, 1e5, 3e5, 8e5, 2e6, 5e6, 1.2e7, 2e7, 4e8, 2e9, 1e10, 4e10, 1.2e11, 2.5e11, 3e11, 3.5e11, 5e11 }
 RebirthConfig.POINTS_PER_REBIRTH = 1 -- stat points per rebirth (placeholder, owner 2026-10-15; docs/REBIRTH_SPEC.md)
 
 function RebirthConfig.CleanLevel(level)
@@ -30,9 +32,13 @@ function RebirthConfig.LuckMulti(level)
 	return RebirthConfig.TOTALS[math.min(level, RebirthConfig.MAX_LEVEL)]
 end
 
--- Cruise bonus of a rebirth level, additive with the Speed points and the tree (RaceConfig.SpeedMulti).
-function RebirthConfig.SpeedBonus(level)
-	return math.min(RebirthConfig.CleanLevel(level), RebirthConfig.MAX_LEVEL) * RebirthConfig.SPEED_PER_REBIRTH
+-- Total Speed multi of a rebirth level; it multiplies the speed multi (RaceConfig.SpeedMulti).
+function RebirthConfig.SpeedMulti(level)
+	level = RebirthConfig.CleanLevel(level)
+	if level == 0 then
+		return 1
+	end
+	return RebirthConfig.SPEED_TOTALS[math.min(level, RebirthConfig.MAX_LEVEL)]
 end
 
 function RebirthConfig.MoneyMulti(_level)
@@ -52,7 +58,7 @@ end
 function RebirthConfig.Requirements(level)
 	level = math.min(RebirthConfig.CleanLevel(level), RebirthConfig.MAX_LEVEL - 1) -- past the last: the final value
 	return {
-		Money = RebirthConfig.BASE_MONEY * RebirthConfig.MONEY_GROWTH ^ level,
+		Money = RebirthConfig.COSTS[level + 1],
 	}
 end
 

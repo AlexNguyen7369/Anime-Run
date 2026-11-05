@@ -528,8 +528,7 @@ local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
 	local nextMultiplier = rebirthConfig.NextMultiplier(level)
 	rebirth.LuckRewardCaption.Text = multiplierText(nextMultiplier) .. " Luck"
-	rebirth.SpeedRewardCaption.Text =
-		string.format("+%d%% Speed", math.floor(rebirthConfig.SpeedBonus(level + 1) * 100 + 0.5))
+	rebirth.SpeedRewardCaption.Text = multiplierText(rebirthConfig.SpeedMulti(level + 1)) .. " Speed"
 	local required = rebirthConfig.Requirements(level).Money
 	local maxed = level >= rebirthConfig.MAX_LEVEL
 	local eligible = not maxed and rebirthConfig.CanRebirth(level, money.Value)

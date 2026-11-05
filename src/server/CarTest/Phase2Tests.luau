@@ -1106,39 +1106,38 @@ function Tests.rebirth()
 		config.LATE_STEP == nil and config.MAX_EFFECTIVE_MULTIPLIER == nil
 	)
 	flag("rebirth_rev3_step_removed", config.EARLY_STEP == nil and config.ADD_UNTIL == nil)
-	-- Owner 2026-11-01 (Level/XP removed): Money needed for the next rebirth = $100K x 10^RebirthLevel, flat past
-	-- the last rebirth. Pinned as literals.
+	-- Owner 2026-11-05 (design doc 4.14): the cost table, flat past the last rebirth. Pinned as literals.
 	flag(
 		"rebirth_money_requirement",
-		config.Requirements(0).Money == 1e5
-			and config.Requirements(1).Money == 1e6
-			and config.Requirements(19).Money == 1e24
-			and config.Requirements(25).Money == 1e24
+		config.Requirements(0).Money == 5e3
+			and config.Requirements(1).Money == 12e3
+			and config.Requirements(19).Money == 5e11
+			and config.Requirements(25).Money == 5e11
 			and config.Requirements(0).Level == nil,
 		config.Requirements(0).Money,
-		1e5
+		5e3
 	)
 	flag(
 		"rebirth_cannot_rebirth_at_max",
 		config.CanRebirth(20, math.huge) == false
 			and config.CanRebirth(25, math.huge) == false
-			and config.CanRebirth(19, 1e24) == true
-			and config.CanRebirth(19, 1e24 - 1e9) == false
+			and config.CanRebirth(19, 5e11) == true
+			and config.CanRebirth(19, 5e11 - 1) == false
 	)
 	flag("rebirth_old_x10_totals_removed", config.REBIRTH_TOTALS == nil and config.REPEAT_FACTOR == nil)
-	-- design doc 4.14: the old SpeedGainMulti stays gone; the cruise gain is SpeedBonus (owner 2026-11-03)
+	-- design doc 4.14: the old SpeedGainMulti stays gone; rebirth's Speed reward is SpeedMulti (owner 2026-11-05)
 	flag("rebirth_speed_gain_multi_removed", config.SpeedGainMulti == nil)
-	local speedBonus, perLevel = config.SpeedBonus, config.SPEED_PER_REBIRTH
+	local speedMulti = config.SpeedMulti
 	flag(
-		"rebirth_speed_bonus",
-		type(speedBonus) == "function"
-			and type(perLevel) == "number"
-			and near(speedBonus(0), 0)
-			and near(speedBonus(1), perLevel)
-			and near(speedBonus(20), 20 * perLevel)
-			and near(speedBonus(25), speedBonus(20)) -- capped at MAX_LEVEL
-			and near(speedBonus(nil), 0)
-			and near(speedBonus(0 / 0), 0)
+		"rebirth_speed_multi",
+		type(speedMulti) == "function"
+			and speedMulti(0) == 1
+			and speedMulti(1) == 5
+			and speedMulti(5) == 100
+			and speedMulti(20) == 1e16
+			and speedMulti(25) == 1e16 -- capped at MAX_LEVEL
+			and speedMulti(nil) == 1
+			and speedMulti(0 / 0) == 1
 	)
 	local nextOk = type(config.NextMultiplier) == "function"
 	for _, level in { 0, 1, 9, 10, 18, 19, 20, 21 } do
@@ -1283,11 +1282,11 @@ function Tests.rebirth()
 			gacha.EarnedPoints(p),
 			wantEarned
 		)
-		-- Owner 2026-11-01: rebirth level 5 requires $10B.
+		-- Rebirth level 5 needs the cost table's value; extra Money does not matter.
 		local high = ready("Money1e10", 1e10)
 		high:SetAttribute("RebirthLevel", 5)
 		local highOk, highNext = service.Rebirth(high)
-		flag("rebirth_money_1e10_requirement", config.Requirements(5).Money == 1e10, config.Requirements(5).Money, 1e10)
+		flag("rebirth_money_level5_requirement", config.Requirements(5).Money == 3e5, config.Requirements(5).Money, 3e5)
 		flag("rebirth_money_1e10_accepted", highOk == true and highNext == 6, highNext, 6)
 		flag("rebirth_money_1e10_zeroes_money", high.leaderstats.Money.Value == 0, high.leaderstats.Money.Value, 0)
 		-- rebirth 20 is the last: refused with "Max rebirth" at any level, Money untouched
