@@ -12589,6 +12589,7 @@ Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
 Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/SIDEKICK_SPEC.md "Gems"
 Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design doc 4.36, docs/SIDEKICK_SPEC.md
+Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
