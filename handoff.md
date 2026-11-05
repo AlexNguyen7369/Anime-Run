@@ -9,7 +9,9 @@ History: `current_progress.md`, `git log`.
 - Not done on Sidekicks: portraits (`SidekickView.Art` is a marked placeholder; `render_portrait.py` has no data for these models), followers (b7d), `ArePaidRandomItemsRestricted` handling (b9), `ui_sidekicks` scenario does not exist. On phone landscape the 5 Backpack tabs fit but are about 10-12 px, estimated, and no real phone was tried.
 - UI scenarios on a fresh save need StarterPick done first, or `backpack_tabs_topmost_desktop` reads the popup. `UiTestScenarioResult` is a client attribute: read it from the Client datamodel.
 - Products: `ANIMERUN_PRODUCTS_KEY` in `~/.zshrc`, read OK (`GET .../developer-products/creator` 200, 0 products), create untested. Create only the 4 gem packs and the 149 Robux Boss spawn, then show the owner ids and prices before use. Check the upload count before b3.
-- Next: b4 arena blockout, Sidekick portraits alongside.
+- b4 landed; owner approved the size 2026-11-05. Low-graphics fallback is in `BOSS_EVENT_SPEC`. Rojo `34874` serves the worktree `../AnimeRun-orch/b4`, reused for each task's branch so Studio stays connected.
+- Sidekick portraits: uncommitted in `../AnimeRun-orch/portraits`, branch `orch/boss-event/portraits`; owner has not answered upload or Kaizel redo.
+- Next: b5 event server.
 
 ## State (2026-11-03)
 - Integration branch `feature/alex/anime-world`. `main` has only fork-ivs; merging needs an open PR and a fresh reviewer (owner approved it after c3).

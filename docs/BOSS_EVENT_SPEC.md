@@ -38,6 +38,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 - The owner kept radius 850 after seeing draft renders and measurements (2026-11-04): evenly spaced players are about 4 px at 800 studs, so they mostly read when bunched. Recheck in Studio.
 - Diameter exceeds streaming target 1024: arena and boss build on the client; runner rigs need persistent streaming during events.
 - `ZoneAt` ignores height, so a new arena zone overrides it, reusing Track 8's cloud profile and particles.
+- Low graphics (measured in Studio 2026-11-05): from the lanes, about 890 studs out, a part-built boss does not draw at quality 1 or on this machine's Automatic setting, and does at 8 and 21; at quality 1 it draws at 500. The owner kept radius 850. A flat BillboardGui boss drew at quality 1 from the lanes, so one sits behind the 3D model (**proposed**), playing pre-rendered frames. Check that the model hides it at high quality, and check on a real phone.
 - Closed rail: 7 lane routes built once, distance wraps with no hitch. A boss run mode separates stamina from `npcMode`.
 
 ## Boss and attacks

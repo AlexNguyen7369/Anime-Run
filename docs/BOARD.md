@@ -3,13 +3,14 @@
 ## Doing
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
-- boss-event b4: arena blockout, owner reviews size
+- boss-event b5: event server
 
 ## Next
-- boss-event: Sidekick portraits, then b5 onward: `docs/ORCHESTRATOR_GOALS.md`
+- boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-05 boss-event b4 arena blockout: boss_arena 154, race 52, npc 117 checks pass; owner approved size; rules audit deferred to b11
 - 2026-11-05 boss-event b3 Sidekicks (a661c4f): `[CARTEST]` pass=7 fail=0, sidekicks 212 checks; ui_layout 962 checks, ui_backpack_characters 24, ui_buttons 9, all pass; rules audit deferred to b11
 - 2026-11-05 boss-event b2 Gems: `[CARTEST]` pass=6 fail=0; b1 models owner-approved (5ec6ae0), not uploaded
 - 2026-11-04 market copies Up to 3 copies of each aura and trail (6184cc9): slot_items 21, vehicle_effects 130 fail=0; ui_market 100 checks fail=0 at 0, 1, 3 copies; real BUY and slot clicks on desktop; rules audit not run

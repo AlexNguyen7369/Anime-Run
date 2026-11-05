@@ -83,8 +83,9 @@
 80. 2026-11-05 — Alex Nguyen — Added Gems with track and task rewards, save VERSION 14, HUD plate and `/gems` (`[CARTEST]` pass=6 fail=0 on `gems`, `data`, `shop_purchases`, `race_progress_map`, `showcase`, `gift_mailbox`).
 81. 2026-11-05 — Alex Nguyen — Committed the owner-approved Big Raga and 3 Sidekick models with their evidence files, renders and arena draft tools, with nothing uploaded yet.
 82. 2026-11-05 — Alex Nguyen — Added Sidekick summons, summon page, Bag of 50, opt-in auto-sell, per-character equip and run gains (`[CARTEST]` pass=7 fail=0 including `sidekicks`; `ui_layout`, `ui_backpack_characters` and `ui_buttons` pass), with portraits and followers still to come.
+83. 2026-11-05 — Alex Nguyen — Added the boss arena blockout with a closed 7-lane ring and PathDriver wrapping (`[CARTEST]` pass=3 fail=0 on `boss_arena`, `race`, `npc`), the owner approved its size and rules for preparation, late join and team damage were written.
 
 ## What's next
-**Build the arena blockout: closed 7-lane ring at inner radius 850, y about 1,200, with a screenshot for the owner to review the size (goal `boss-event`, deliverable b4).**
+**Build the event server: scheduler, teleport, preparation and late join, team damage, boss run, HP, end and chat message (goal `boss-event`, deliverable b5).**
 
-**Why this is next:** the event server, sky dressing and boss animation all need the arena and its closed rail, and the owner reviews its size before they build on it.
+**Why this is next:** the team HUD, boss animation and Relic drops all run on the event's timeline and hit events, and the arena it needs has landed.
