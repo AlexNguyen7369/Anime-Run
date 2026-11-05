@@ -441,6 +441,17 @@ local function bonuses(player)
 	return b
 end
 
+-- `bonuses` plus the Money and Luck of the Relics on the Team's characters, added like the tree bonus (design doc 4.38).
+local function bonusesWithRelics(player)
+	local b = bonuses(player)
+	local relics = require(script.Parent.RelicService) -- late: RelicService -> GachaService
+	for _, id in GachaService.TeamList(player) do
+		b.Money = (b.Money or 0) + relics.Multi(player, id, "Money") - 1
+		b.Luck = (b.Luck or 0) + relics.Multi(player, id, "Luck") - 1
+	end
+	return b
+end
+
 -- Player stamina multi (design doc 4.6-4.8): Stamina points + upgrade tree Stamina tiers + workshop boost, active Stamina potion,
 -- team bonus. Read once at run start (RaceService).
 function GachaService.StaminaMulti(player)
@@ -454,7 +465,7 @@ end
 
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
 -- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level + workshop boost, active Speed potion, preset team bonus, that slot's
--- damped aura and trail, that character's Sidekick), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
+-- damped aura and trail, that character's Sidekick and Relic), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
 -- not own runs as the starter.
 function GachaService.CruiseFor(player, id, slot)
 	slot = slot or 1
@@ -467,8 +478,10 @@ function GachaService.CruiseFor(player, id, slot)
 		MarketConfig.TrailMulti(player, slot),
 		(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
 	)
-	-- late: SidekickService -> GachaService
-	return RaceConfig.Cruise(spec, multi * require(script.Parent.SidekickService).CruiseMulti(player, spec.Id))
+	-- late: SidekickService, RelicService -> GachaService
+	local gear = require(script.Parent.SidekickService).CruiseMulti(player, spec.Id)
+		* require(script.Parent.RelicService).Multi(player, spec.Id, "Speed")
+	return RaceConfig.Cruise(spec, multi * gear)
 end
 
 -- Cruise of the equipped character (EquippedCar: RaceService sets it to the active Team slot's character).
@@ -485,6 +498,7 @@ function GachaService.RefreshTeam(player)
 	player:SetAttribute("WorkshopBoost", GachaService.WorkshopBoost(player))
 	local staminaMulti = GachaService.StaminaMulti(player)
 	local gear = require(script.Parent.SidekickService) -- late: SidekickService -> GachaService
+	local relics = require(script.Parent.RelicService) -- late, the same
 	for slot = 1, TEAM_SIZE do
 		local spec = team[slot] and CharacterCatalog.Get(team[slot])
 		player:SetAttribute("TeamCruise" .. slot, spec and GachaService.CruiseFor(player, team[slot], slot) or nil)
@@ -492,7 +506,12 @@ function GachaService.RefreshTeam(player)
 			"TeamStamina" .. slot,
 			spec
 					and math.round(
-						StaminaConfig.Seconds(spec, staminaMulti * gear.StaminaMulti(player, team[slot])) * 10
+						StaminaConfig.Seconds(
+							spec,
+							staminaMulti
+								* gear.StaminaMulti(player, team[slot])
+								* relics.Multi(player, team[slot], "Stamina")
+						) * 10
 					) / 10
 				or nil
 		)
@@ -509,14 +528,14 @@ function GachaService.RefreshMultipliers(player)
 end
 
 function GachaService.MoneyMulti(player)
-	return GachaConfig.Multis(alloc(player), bonuses(player)).Money
+	return GachaConfig.Multis(alloc(player), bonusesWithRelics(player)).Money
 		* RebirthConfig.MoneyMulti(player:GetAttribute("RebirthLevel"))
 		* require(script.Parent.BoostService).Multiplier(player, "Money")
 		* require(script.Parent.WeatherService).Multipliers().Money
 end
 
 function GachaService.Luck(player)
-	local luck = GachaConfig.Multis(alloc(player), bonuses(player)).Luck
+	local luck = GachaConfig.Multis(alloc(player), bonusesWithRelics(player)).Luck
 		* RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel"))
 		* require(script.Parent.BoostService).Multiplier(player, "Luck")
 		* require(script.Parent.WeatherService).Multipliers().Luck

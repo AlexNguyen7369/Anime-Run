@@ -54,7 +54,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.
 
 ## Saved data
-`VERSION` 14 adds `Gems`, `Sidekicks`, `Relics`, `CharacterGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/relic`.
+`VERSION` 14 to 16 add `Gems`, `Sidekicks`, `CharacterGear`, `Relics`, `RelicGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/relic`.
 
 ## Analytics
 Custom events: invite shown, teleported, defeated or timed out, spawn bought, first summon.

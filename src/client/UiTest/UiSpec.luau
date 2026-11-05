@@ -636,6 +636,13 @@ UiSpec.Guis.RacerBackpack = {
 		-- section 1) lists the owned characters (UiSpec.Backpack).
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
 		{ Path = "Panel/Tabs/SidekicksTab", Does = "local", Effect = "backpack_category", Text = "Sidekicks" },
+		{ Path = "Panel/Tabs/RelicsTab", Does = "local", Effect = "backpack_category", Text = "Relics" },
+		-- The Relics tab's row (design doc 4.38), where the other tabs show the Slots. RelicEquip stays out of
+		-- UiSpec.RemoteFunctions, like SidekickSummon: these clicks equip for real and are judged After.
+		{ Path = "Panel/RelicActions/Equip", Does = "remote", Remote = "RelicEquip", Arg = "character_entry" },
+		{ Path = "Panel/RelicActions/TakeOff", Does = "remote", Remote = "RelicEquip", Arg = "character" },
+		{ Path = "Panel/RelicActions/PrevCharacter", Does = "local", ClickCoverage = "ui_relics" },
+		{ Path = "Panel/RelicActions/NextCharacter", Does = "local", ClickCoverage = "ui_relics" },
 		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
 		{
 			Path = "Panel/Header/Toolbar/Sort",
@@ -1375,6 +1382,17 @@ UiSpec.ServerSetup = {
 		When = "asked for by ui_sidekicks; first after 'spy' in the sidekicks_* clicks' NeedSetup",
 		What = "Bag holds one of every Sidekick in List and BossDrops, nothing worn, auto-sell off, Gems for a 10x, "
 			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
+	},
+	{
+		Id = "relic_states",
+		When = "asked for by ui_relics; first after 'spy' in the relics_tab, relics_take_off and relics_character_badge clicks' NeedSetup",
+		What = "Bag holds one of every Big Raga Relic, the first worn by Team slot 1's character. New entries each time. "
+			.. "'restore' (or restore:relic_states) puts all of it back.",
+	},
+	{
+		Id = "relic_states_bare",
+		When = "first after 'spy' in the relics_equip click's NeedSetup",
+		What = "As relic_states with nothing worn. 'restore' puts all of it back.",
 	},
 	{
 		Id = "defeated_states",
@@ -2951,8 +2969,42 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy", "sidekick_states" },
 	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "sidekicks_bag_art" } },
 })
+-- Before the tab loop too. Equip and Take off act on the Relics view, which relics_tab just opened (the session keeps the
+-- tab); the badge click leaves on Characters, which the loop ends on anyway.
+table.insert(UiSpec.Clicks, {
+	Id = "relics_tab",
+	Gui = "RacerBackpack",
+	Path = "Panel/Tabs/RelicsTab",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_tab" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_equip",
+	Gui = "RacerBackpack",
+	Path = "Panel/RelicActions/Equip",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states_bare" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_equip" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_take_off",
+	Gui = "RacerBackpack",
+	Path = "Panel/RelicActions/TakeOff",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_take_off" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_character_badge",
+	Gui = "RacerBackpack",
+	Path = "Panel/Tabs/CharactersTab",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_character_badge" } },
+})
 -- Characters last: the Backpack keeps the Characters view for the backpack_pick_character click below.
-for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Characters" } do
+for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Relics", "Characters" } do
 	table.insert(UiSpec.Clicks, {
 		Id = "backpack_" .. string.lower(tab),
 		Gui = "RacerBackpack",
@@ -3270,12 +3322,14 @@ end
 UiSpec.Backpack = {
 	Panel = "RacerBackpack/Panel",
 	Tabs = "RacerBackpack/Panel/Tabs",
-	-- Client/BackpackUi fitTabs: five tabs need a tighter rail gap at phone heights (Market.PhoneMaxHeight); Market.TabFit.Gap otherwise.
+	-- Client/BackpackUi fitTabs: six tabs need a tighter rail gap at phone heights (Market.PhoneMaxHeight); Market.TabFit.Gap otherwise.
 	TabFit = { PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
-	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks" }, -- top to bottom; button <Name>Tab, label text <Name>
+	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
+	RelicActions = "RacerBackpack/Panel/RelicActions", -- the Relics tab's row (UiRelics)
+	RelicButtons = { "PrevCharacter", "NextCharacter", "Equip", "TakeOff" },
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },

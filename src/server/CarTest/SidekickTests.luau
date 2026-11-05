@@ -16,7 +16,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Server = script.Parent.Parent
 local Tests = {}
 local UID = 990136000
-local VERSION = 15
+local VERSION = 16 -- 16: Relics (RelicTests)
 local SOURCE_NAMES = { "pochita", "igris", "kaisel" } -- design doc 4.36: the real names no id or name may show
 
 local function gems(p)

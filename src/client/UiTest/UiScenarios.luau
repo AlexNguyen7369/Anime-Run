@@ -154,6 +154,8 @@ UiScenarios.Names = {
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
 	"ui_sidekicks",
+	-- Backpack Relics tab (UiRelics; design doc 4.38)
+	"ui_relics",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
@@ -257,6 +259,7 @@ UiScenarios.Needs = {
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
 	ui_sidekicks = { "sidekick_states" },
+	ui_relics = { "relic_states" },
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
@@ -7982,6 +7985,25 @@ for name, fn in K.sidekicks.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.sidekicks.After do
+	access.After[cond] = fn
+end
+-- Backpack Relics tab (design doc 4.38).
+K.relics = require(script.Parent.UiRelics).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	pathOf = pathOf,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	player = player,
+})
+for name, fn in K.relics.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.relics.After do
 	access.After[cond] = fn
 end
 

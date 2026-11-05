@@ -41,6 +41,7 @@ local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local GachaService = require(script.Parent.GachaService)
 local SidekickService = require(script.Parent.SidekickService)
+local RelicService = require(script.Parent.RelicService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local BoostConfig = require(Shared.BoostConfig)
 local BoostService = require(script.Parent.BoostService)
@@ -303,7 +304,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			seconds[slot] = type(given) == "number" and given > 0 and given
 				or StaminaConfig.Seconds(
 					CharacterCatalog.Get(id),
-					staminaMulti * (typeof(player) == "Instance" and SidekickService.StaminaMulti(player, id) or 1)
+					staminaMulti
+						* (
+							typeof(player) == "Instance"
+								and SidekickService.StaminaMulti(player, id) * RelicService.Multi(player, id, "Stamina")
+							or 1
+						)
 				)
 			if staminaMode and typeof(player) == "Instance" then -- cleared with the other stamina attributes at run end
 				player:SetAttribute("RunSeconds" .. slot, seconds[slot]) -- the team row's seconds left
