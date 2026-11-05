@@ -4,6 +4,8 @@
 # No ids: every character in src/shared/Characters that has a model, plus the review sheet assets/portraits/_all_sheet.png.
 # --sheet: also writes assets/portraits/_pilot_sheet.png of the named ids (512 and 110 px, orange and dark).
 # --sheet=<name>: also writes assets/portraits/<name>.png of the named ids (256 px, labelled).
+# --blend=<dir>: the named ids are non-humanoids (SIDEKICK_VIEWS), read from <dir>/<id>/<id>.blend, and the contact sheet
+# goes to assets/characters_avatar/review/sidekick_portraits.png.
 # --save-blend: also saves assets/characters_avatar/<id>/portrait.blend (git-ignored). Named ids only, never in bulk.
 # Writes assets/characters_avatar/<id>/portrait.png (512x512, transparent) and head.png (256x256, the Head part alone down
 # to just under the chin, for the Team minibar), and on a no-ids run also assets/portraits/_heads_sheet.png.
@@ -49,10 +51,33 @@ HEAD_SIZE = 256
 HEAD_INK_R, HEAD_DIE_R = 40, 28  # bolder than the portrait's, in render px: the head is seen at 60 px
 HEAD_MAX_BYTES = 60_000
 HEAD_CUT_Z = 3.5  # just under the chin (rig: head block 4..5.3): long hair stops here, or it would shrink the face to fit
+# Non-humanoids have no R15 head cut. Part name prefixes: show draws, frame fits the square, cut is the straight bottom.
+# turn 50 on the wyvern portrait puts the far wing's membrane behind its dark head, so the head reads on cyan. turn 10 on the knight
+# head tucks the plume behind the helm. Shown parts wider than the frame are cropped straight at its edge; pad widens the square, keeping the cut at the bottom.
+# focus and side replace frame and cut: a square of that many studs centred on a world point.
+SIDEKICK_PALETTE = 32  # a big ramp of orange or red would otherwise swallow small dark features such as a pupil
+SIDEKICK_VIEWS = {
+	"side_chain": {
+		"portrait": {"show": ("Body", "Bar", "Handle", "Tail", "Leg"), "frame": ("Body", "Bar", "Handle", "Tail", "Leg"), "cut": -1.0},
+		"head": {"show": ("Body", "Bar", "Handle"), "frame": ("Body", "Bar", "Handle"), "cut": 0.0},
+	},
+	"side_wyvern": {
+		"portrait": {"show": ("Body", "Head", "Neck", "Wing", "Tail"), "focus": (0, -2.0, 5.85), "side": 2.2, "turn": 50},
+		"head": {"show": ("Head", "Neck"), "frame": ("Head",), "cut": 5.2},
+	},
+	"side_knight": {
+		"portrait": {"show": ("Head", "Torso", "LeftArm", "RightArm", "Sword"), "frame": ("Head", "Sword"), "cut": 3.2},
+		"head": {"show": ("Head",), "frame": ("Head",), "cut": 3.9, "turn": 10},
+	},
+	"side_raga": {
+		"portrait": {"show": ("Head", "Wheel", "UpperTorso"), "focus": (0, -0.8, 6.85), "side": 5.3, "turn": 12},
+		"head": {"show": ("Head", "Wheel"), "frame": ("Head", "Wheel"), "cut": 4.8, "turn": 15},
+	},
+}
 
 
-def camera_axes():
-	az, el = np.radians(TURN), np.radians(ELEVATION)
+def camera_axes(turn=TURN):
+	az, el = np.radians(turn), np.radians(ELEVATION)
 	back = Vector((np.sin(az) * np.cos(el), -np.cos(az) * np.cos(el), np.sin(el)))  # towards the camera
 	right = Vector((0, 0, 1)).cross(back).normalized()
 	return right, back.cross(right).normalized(), back
@@ -309,7 +334,7 @@ def draw(p, to_cam, side, lut=None, scale=1):
 	return out, solid, lut
 
 
-def finish(out, solid, cut_row, ink_r=INK_R, die_r=DIE_R, sliver_r=SLIVER_R):
+def finish(out, solid, cut_row, ink_r=INK_R, die_r=DIE_R, sliver_r=SLIVER_R, pockets=True):
 	keep = solid.copy()
 	keep[cut_row:] = False  # straight across the image: the outline below then closes along one straight bottom
 	keep = dilate(~dilate(~keep, sliver_r), sliver_r)  # opening: thin geometry slivers would ink into specks and burrs
@@ -317,7 +342,7 @@ def finish(out, solid, cut_row, ink_r=INK_R, die_r=DIE_R, sliver_r=SLIVER_R):
 	die = dilate(ink, die_r)
 	# Pockets closed on all 4 sides go ink, as if behind the figure: one outer edge, no bg through small holes.
 	seen = lambda axis: np.logical_or.accumulate(die, axis) & np.flip(np.logical_or.accumulate(np.flip(die, axis), axis), axis)
-	pocket = (seen(0) & seen(1)) & ~die
+	pocket = (seen(0) & seen(1)) & ~die & pockets  # spikes and wings would black out whole gaps
 	ink, die = ink | dilate(pocket, die_r + 2), die | pocket
 	rgba = np.ones((*solid.shape, 4))
 	rgba[..., 3] = die
@@ -368,22 +393,27 @@ def portrait_path(cid):
 	return os.path.join(AVATARS, cid, "portrait.png")
 
 
-def head_frame(head, right, up):
-	"""Tight centred square round the Head mesh above HEAD_CUT_Z, with room for its outline. Also the row of that cut."""
-	world = [head.matrix_world @ v.co for v in head.data.vertices]
+def head_frame(meshes, right, up, cut_z=HEAD_CUT_Z, ink_r=HEAD_INK_R, die_r=HEAD_DIE_R, pad=1):
+	"""Tight centred square round the meshes above cut_z, with room for the outline. Also the row of that cut."""
 	# Measured along the camera's up, as the cut is a row of the image: at this slight elevation depth moves a vertex's row.
-	cut_y = Vector((0, 0, HEAD_CUT_Z)).dot(up)
-	ys = [p.dot(up) for p in world]
-	kept = [p for p, y in zip(world, ys) if y > cut_y]
-	for a, b in (e.vertices for e in head.data.edges):
-		if (ys[a] > cut_y) != (ys[b] > cut_y):
-			kept.append(world[a].lerp(world[b], (cut_y - ys[a]) / (ys[b] - ys[a])))
-	cut_needed = min(ys) < cut_y
+	cut_y = Vector((0, 0, cut_z)).dot(up)
+	kept, cut_needed = [], False
+	for mesh in meshes:
+		world = [mesh.matrix_world @ v.co for v in mesh.data.vertices]
+		ys = [p.dot(up) for p in world]
+		kept += [p for p, y in zip(world, ys) if y > cut_y]
+		for a, b in (e.vertices for e in mesh.data.edges):
+			if (ys[a] > cut_y) != (ys[b] > cut_y):
+				kept.append(world[a].lerp(world[b], (cut_y - ys[a]) / (ys[b] - ys[a])))
+		cut_needed = cut_needed or min(ys) < cut_y
 	xs = [p.dot(right) for p in kept]
 	ys = [p.dot(up) for p in kept]
-	edge = MARGIN + (HEAD_INK_R + HEAD_DIE_R) / (SIZE * SS)
+	edge = MARGIN + (ink_r + die_r) / (SIZE * SS)
 	side = max(max(xs) - min(xs), max(ys) - min(ys)) / (1 - 2 * edge)
 	cx, cy = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+	if pad != 1:
+		side *= pad
+		cy = cut_y + side * (0.5 - edge)
 	n = SIZE * SS
 	cut_row = round((cy + side / 2 - cut_y) / side * n) if cut_needed else n
 	return cx, cy, side, cut_row
@@ -395,7 +425,7 @@ def render_head(cid, parts, mat, sources, emit, axes, lut, portrait_side):
 	for o in parts:
 		o.hide_render = o is not head
 	right, up, back = axes
-	cx, cy, side, cut_row = head_frame(head, right, up)
+	cx, cy, side, cut_row = head_frame([head], right, up)
 	setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
 	with tempfile.TemporaryDirectory() as tmp:
 		passes = render_passes(mat, sources, emit, tmp)
@@ -464,13 +494,68 @@ def render(cid, model, c, save_blend):
 	return rgba, head
 
 
+def sidekick_shot(meshes, view, mat, sources, emit, is_head, lut=None, portrait_side=None):
+	"""One drawing of a non-humanoid: the same passes, draw and finish as a character, framed by its SIDEKICK_VIEWS entry."""
+	right, up, back = camera_axes(view.get("turn", TURN))
+	ink_r, die_r, size = (HEAD_INK_R, HEAD_DIE_R, HEAD_SIZE) if is_head else (INK_R, DIE_R, SIZE)
+	for o in meshes:
+		o.hide_render = not o.name.startswith(view["show"])
+	if "focus" in view:  # a close crop: shown parts run off the frame and the outline closes along it
+		focus, side = Vector(view["focus"]), view["side"]
+		cx, cy, cut_row = focus.dot(right), focus.dot(up), SIZE * SS
+	else:
+		framed = [o for o in meshes if o.name.startswith(view["frame"])]
+		cx, cy, side, cut_row = head_frame(framed, right, up, view["cut"], ink_r, die_r, view.get("pad", 1))
+	setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
+	with tempfile.TemporaryDirectory() as tmp:
+		passes = render_passes(mat, sources, emit, tmp)
+	scale = max(1, round(portrait_side / side)) if is_head else 1
+	out, solid, lut = draw(passes, np.array([list(right), list(up), list(back)]), side, lut, scale)
+	fill, _ = grade(passes["albedo"][..., :3].astype(np.float64), lut)
+	part = passes["data"][..., 1]
+	neon = np.isin(np.round(part), [o.pass_index for o in meshes if "Neon" in o.name]) & (out != INK).any(axis=2)
+	out[neon] = fill[neon]  # neon glows: no shade band, or it reads as dark blue
+	inset = round((MARGIN + (ink_r + die_r) / (SIZE * SS)) * SIZE * SS)
+	solid[: inset], solid[-inset:], solid[:, : inset], solid[:, -inset:] = False, False, False, False  # outline closes along the crop
+	rgba = downsample(finish(out, solid, cut_row, ink_r, die_r, SLIVER_R * scale, False), size)
+	rgba[..., :3] = np.round(rgba[..., :3] * 31) / 31
+	return rgba, lut, side
+
+
+def render_sidekick(cid, blend_dir):
+	global PALETTE
+	PALETTE = SIDEKICK_PALETTE
+	bpy.ops.wm.open_mainfile(filepath=os.path.join(blend_dir, cid, cid + ".blend"))
+	mat, sources, emit = data_material(bpy.data.images["Atlas_" + cid])
+	meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+	for i, o in enumerate(meshes):
+		o.data.materials[0] = mat
+		o.pass_index = i + 1
+	view = SIDEKICK_VIEWS[cid]
+	portrait, lut, side = sidekick_shot(meshes, view["portrait"], mat, sources, emit, False)
+	head, _, _ = sidekick_shot(meshes, view["head"], mat, sources, emit, True, lut, side)
+	os.makedirs(os.path.join(AVATARS, cid), exist_ok=True)
+	for path, rgba, size, max_bytes in (
+		(portrait_path(cid), portrait, SIZE, MAX_BYTES),
+		(os.path.join(AVATARS, cid, "head.png"), head, HEAD_SIZE, HEAD_MAX_BYTES),
+	):
+		write_png(path, rgba)
+		try:
+			check(path, rgba, size, max_bytes)
+		except AssertionError:
+			os.remove(path)
+			raise
+		print(f"SIDEKICK {path} {os.path.getsize(path)} bytes", flush=True)
+	return portrait
+
+
 def over(canvas, img, x, y):
 	h, w = img.shape[:2]
 	a = img[..., 3:]
 	canvas[y : y + h, x : x + w] = img[..., :3] * a + canvas[y : y + h, x : x + w] * (1 - a)
 
 
-def sheet(images):
+def sheet(images, name="_pilot_sheet.png"):
 	gap, small = 16, 110
 	band = SIZE + small + 3 * gap
 	out = np.ones((band * 2, (SIZE + gap) * len(images) + gap, 3))
@@ -480,7 +565,7 @@ def sheet(images):
 			x = gap + i * (SIZE + gap)
 			over(out, img, x, b * band + gap)
 			over(out, downsample(img, small), x + (SIZE - small) // 2, b * band + SIZE + 2 * gap)
-	save_sheet(out, "_pilot_sheet.png")
+	save_sheet(out, name)
 
 
 def save_sheet(out, name):
@@ -560,6 +645,11 @@ def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	save_blend = "--save-blend" in argv
 	ids = [a for a in argv if not a.startswith("--")]
+	blend_dir = next((a[8:] for a in argv if a.startswith("--blend=")), None)
+	if blend_dir:
+		assert ids, "--blend needs named ids"
+		sheet([render_sidekick(cid, blend_dir) for cid in ids], os.path.join(AVATARS, "review", "sidekick_portraits.png"))
+		return
 	bulk = not ids
 	assert not (bulk and save_blend), "--save-blend needs named ids: never in bulk"
 	data = build_avatar.load_data()

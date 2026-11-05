@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 # Upload build/avatar_glb/<id>.glb as Model assets under the owner's account (Open Cloud) and write the id registry.
-#   ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required. python3 tools/blender/upload_avatar.py [<id> ...]
+#   ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required, except for --dry-run. python3 tools/blender/upload_avatar.py [--dry-run] [<id> ...]
+# Sidekick ids (side_*) go to SidekickArt.luau, never to the character registry, which is not rewritten when only they are named.
 # Display names use the Id only, never a real name (design doc 5). Ids already in avatar_assets.json are skipped.
 import json
 import os
 import subprocess
 import sys
 import time
+
+import sidekick_art
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
@@ -51,7 +54,7 @@ def write_registry(ledger):
 		"-- docs/CHARACTER_GACHA_SPEC.md \"Avatar pipeline\". Do not edit by hand.",
 		"return {",
 	]
-	for cid in sorted(ledger):
+	for cid in sorted(c for c in ledger if not sidekick_art.is_sidekick(c)):
 		with open(os.path.join(GLB, cid + ".json")) as f:
 			sizes = json.load(f)
 		parts = ", ".join("%s = Vector3.new(%g, %g, %g)" % (k, *v) for k, v in sorted(sizes.items()))
@@ -63,7 +66,13 @@ def write_registry(ledger):
 
 def main():
 	ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
-	ids = sys.argv[1:] or sorted(f[:-4] for f in os.listdir(GLB) if f.endswith(".glb"))
+	dry = "--dry-run" in sys.argv
+	ids = [a for a in sys.argv[1:] if a != "--dry-run"] or sorted(f[:-4] for f in os.listdir(GLB) if f.endswith(".glb"))
+	if dry:
+		for cid in ids:
+			print("DRY", "unchanged" if cid in ledger else "upload", cid, os.path.getsize(os.path.join(GLB, cid + ".glb")), "bytes")
+		print("DRY character registry rewritten:", not all(map(sidekick_art.is_sidekick, ids)))
+		return
 	for cid in ids:
 		if cid in ledger:
 			continue
@@ -71,7 +80,9 @@ def main():
 		with open(LEDGER, "w") as f:
 			json.dump(ledger, f, indent=1, sort_keys=True)
 		print("UPLOADED", cid, ledger[cid], flush=True)
-	write_registry(ledger)
+	sidekick_art.write()
+	if not all(map(sidekick_art.is_sidekick, ids)):
+		write_registry(ledger)
 
 
 main()
