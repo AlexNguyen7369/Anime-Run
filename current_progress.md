@@ -86,8 +86,9 @@
 83. 2026-11-05 — Alex Nguyen — Added the boss arena blockout with a closed 7-lane ring and PathDriver wrapping (`[CARTEST]` pass=3 fail=0 on `boss_arena`, `race`, `npc`), the owner approved its size and rules for preparation, late join and team damage were written.
 84. 2026-11-05 — Alex Nguyen — Added the boss event server and the owner's gem icon, uploaded 4 Sidekick models with portraits, and wrote the Big Raga Sidekick drop rule (`[CARTEST]` 12 scenarios pass including `boss_event` 352 checks; `runner` did not finish and live play is not checked).
 85. 2026-11-05 — Alex Nguyen — Showed Sidekick models on the summon page with portraits in the Bag and a Sidekicks page in the Index, and added the boss event leave remote and duel join (`[CARTEST]` pass=4 fail=0 including `boss_event` 443 checks; `ui_layout` 962 and `ui_sidekicks` 56 pass; owner approval of the summon screen is open).
+86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
 
 ## What's next
-**Play the boss event live in Studio, then build the sky dressing (goal `boss-event`, deliverable b6).**
+**Land the event UI (b7c) and Relics (b8), both in progress.**
 
-**Why this is next:** the server is tested only by its scenarios so far, and the arena still shows the plaza's sky and haze.
+**Why this is next:** a real event needs its team HUD, HP bar and Relic reward, and the paid spawn depends on Relic odds.
