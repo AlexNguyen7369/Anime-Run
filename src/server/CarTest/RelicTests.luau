@@ -21,7 +21,7 @@
 --     Start(): makes RemoteFunction Remotes.RelicEquip, args (characterId, entry or nil). Attributes RelicBag and RelicGear are JSON.
 --   Saved fields `Relics` and `RelicGear`, PlayerData VERSION 16. CharacterGear stays Sidekick-only: its value is one entry
 --     string that SidekickService.Apply and the sidekicks tests read, so nesting Relics there would change a saved shape.
---     docs/RELIC_SPEC.md and BOSS_EVENT_SPEC say `CharacterGear` for this: their wording needs the owner's update.
+--     docs/RELIC_SPEC.md and BOSS_EVENT_SPEC likewise save Relic wear in the separate `RelicGear`.
 --   BossEventService.Hooks.Rewards default: GrantDefeat(player, "big_raga", its own Random) for each player.
 --   GachaService.MoneyMulti and Luck: each Team character's Multi - 1 is added like the tree bonus (GachaConfig.Multis).
 --   CruiseFor and the run's stamina seconds: multiplied by the wearer's Multi, like the Sidekick's.
@@ -306,6 +306,7 @@ function Tests.relics()
 			end
 			local plain = sequence(4242)
 			local lucky = dressed()
+			flag("luck_setup_team", gacha.SetTeam(lucky, { charA }) == true) -- Luck counts only on the Team (design doc 4.38)
 			S.Equip(lucky, charA, grant(lucky, secret.Id))
 			lucky:SetAttribute("AdminLuck", 1e6)
 			flag("luck_setup_real", gacha.Luck(lucky) > 1e6, gacha.Luck(lucky))
