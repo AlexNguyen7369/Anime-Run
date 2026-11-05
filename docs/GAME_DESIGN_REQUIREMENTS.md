@@ -168,6 +168,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
     trail, each copy at the item's full price (owner 2026-11-04); one copy is worn on one team slot.
   - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
     and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
+  - A character's Sidekick (4.36) and Relic (4.38), when they give speed (owner 2026-11-04).
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
@@ -384,6 +385,57 @@ before any Studio work.
 - It has the same client-side effect as `NinjaRun` (4.23): air streaks and foot dust while moving, free, display only, no gameplay
   effect. REDUCED EFFECTS removes the dust. NPCs get the pose, not the effect.
 
+### 4.35 Gems (owner 2026-11-04)
+- Gems are a currency that buys Sidekick summons (4.36). They come from exactly four sources: winning a track (the runner beats the
+  NPC to the finish), daily and weekly tasks (`QuestConfig`), Robux gem packs and selling a Sidekick. Duels, exhaustion, a losing
+  finish and daily login pay none.
+- Gem packs are the only monetization on the Sidekick side (owner 2026-11-04). Because Gems can be bought, summons are paid random
+  items under section 6. Rebirth keeps Gems. Amounts are in `docs/SIDEKICK_SPEC.md`, **placeholder**.
+
+### 4.36 Sidekicks (owner 2026-11-04)
+- A Sidekick is a small companion rolled from a gacha at a plaza vendor, Sidekicks, for Gems. It is equipped per character, follows
+  that character, deals its damage in boss events (4.37) and gives that character a speed or stamina gain while racing. Speed gain
+  counts as an entry in the 4.13 speed multi, inside `MAX_CRUISE`.
+- The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events.
+- First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
+  **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
+- Luck never affects summons (owner 2026-11-04). Luck, luck potions and every luck source apply only to the character auto-roll, which is
+  fully separate from Sidekicks. Summons have no luck potions, VIP discount, shiny pass or pity.
+- The summon page (owner's reference, layout ideas only, no copied art): gem packs and buttons on the left; on the right one banner showing
+  the Sidekicks, the Gem balance, and Summon 1x and Summon 10x. Odds sit behind a button labelled "Details" (section 6).
+- The Bag has its own Sidekicks category, holding 50 Sidekicks (owner 2026-11-04). Each summon is its own bag entry. A summon needs room for
+  everything it would add, after auto-sell (orchestrator default).
+- Selling a Sidekick pays a small Gem refund, always well under a summon's cost (owner 2026-11-04). The summon page has an auto-sell filter
+  by rarity. An equipped Sidekick is never sold.
+- Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
+- Art rulings (owner 2026-11-04; override section 5's target look for these models): Pochito is polished and closer to its source, with smooth rounded surfaces rather than hard facets. Kaizel is a thin wyvern, not a bulky dragon, with neon blue parts. Igriz keeps its red version; Kaizel stays black and cyan. Models are still made in-house, with no ripped art.
+
+### 4.37 Boss events (owner 2026-11-04)
+- Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
+  out. Then a 5 minute boss fight runs: 8 minutes in total. Everyone returns to the spawn at the end.
+- Any player with a Sidekick can pay 149 Robux to start the same event at once for their server, from a Boss button at the top left of the
+  screen. It cannot be bought while an event is active.
+- The first boss is Big Raga, based on Mahoraga (Jujutsu Kaisen). It stands huge in the middle of a separate circular sky arena: clouds,
+  heaven and Olympus style. Inspired by Pokemon GO raid battles, it scales with the arena: far larger than any Legend or pedestal figure.
+  It cycles idle moves, each attack visual only. A later boss may use an enclosed underground arena.
+- Teams auto-run around the ring with real cruise and stamina, in lanes for up to 7 players, seeing each other's characters and Sidekicks.
+  When a team is exhausted, it waits 5 seconds, then the full team respawns and continues. This overrides 4.3's run end inside the arena.
+- Only the running character's Sidekick fires its own themed attack at the boss (flame breath, slash, and so on). The server decides every
+  hit and its damage; clients only draw it. A character with no Sidekick deals no damage.
+- Auto-roll pauses during the event and returns to the player's own state afterward. A big boss HP bar replaces the top middle of the
+  screen, popping in on spawn and filling left to right.
+- Only a defeat pays: each player above a small minimum damage gets 1 random Relic (4.38). A timeout pays nothing.
+- Detail, sizes and timings not stated here: `docs/BOSS_EVENT_SPEC.md`, **placeholder**.
+- Every boss move, and every Sidekick attack, is reviewed by the owner as key frames before in-betweens are made.
+
+### 4.38 Relics (owner 2026-11-04)
+- A Relic is a boss drop equipped on a character, one per character. Stats: damage, attack speed, luck, money gain, speed gain, stamina gain.
+- Each boss drops 6 Relics, one per rarity: Common, Rare, Epic, Legendary, Mythic, Secret. Each Relic ties to its boss's anime. Common has 1 stat,
+  Rare has 1 higher stat, Epic 2, Legendary 3, Mythic 4, Secret all. Future bosses bring their own 6, with a different stat priority.
+- The Secret is one universal Relic shared by every boss.
+- Big Raga prioritises stamina and damage on its Epic to Mythic Relics, with lower everything else. Named Relics follow section 5: **proposed** in
+  `docs/RELIC_SPEC.md`, with bonuses and odds **placeholder**. Relics cannot be traded.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -437,6 +489,7 @@ before any Studio work.
 - Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
 - Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
   `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`. Unknown ids are kept. Stamina is never saved.
+  Boss-event fields (owner 2026-11-04): `docs/BOSS_EVENT_SPEC.md`.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
 
 ## 8. Open questions (owner)
@@ -444,6 +497,9 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: Gems (4.35), Sidekicks (4.36), boss events with Big Raga (4.37), Relics (4.38); speed multi gains Sidekick and Relic entries (4.13); arena exhaustion respawns the team (overrides 4.3 inside the arena).
+- 2026-11-04: owner: Gems can be bought in packs, the only Sidekick monetization; luck never affects summons; summon page reference; Sidekicks Bag category of 50; auto-sell filter; selling refunds Gems (4.35, 4.36).
+- 2026-11-04: owner: Pochito smooth and closer to source, Kaizel thin with neon blue, Igriz stays red (4.36, overrides section 5's target look for these models); Big Raga's wheel sits on top of its 560-stud height; arena radius 850 kept; event camera turns inward (BOSS_EVENT_SPEC).
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).

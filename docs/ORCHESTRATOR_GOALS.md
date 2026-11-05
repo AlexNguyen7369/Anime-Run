@@ -119,6 +119,29 @@ Deliverables:
 - r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index and Enemies page, Backpack, starter card and showdown banner, with head-only art for the Team minibar | every rollable id in `CharacterPortraits` and `CharacterHeads`; roll and Index scenarios green; Studio capture; rules audit PASS
 Out of scope: odds, economy, new dependencies.
 
+## boss-event: Boss events, Relics, Gems and Sidekicks (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (plan approved)
+Branch: feature/alex/boss-event (from aaf4b80, because it needs the unmerged universal run)
+Spec: design doc 4.35-4.38, docs/BOSS_EVENT_SPEC.md, docs/SIDEKICK_SPEC.md, docs/RELIC_SPEC.md
+Deliverables:
+- b0 | Rules and research written | owner reads back and confirms
+- b1 | Contact sheet: Big Raga and 3 miniature Sidekicks, no upload | owner approves designs
+- b2 | Gems, quest rewards, save fields, HUD, admin | `gems` green: win and quests pay, duel and exhaustion do not
+- b3 | Sidekick roll, summon page, gem packs, Bag of 50, auto-sell, equip, followers | `sidekicks`, `ui_sidekicks` green: luck cannot change odds, odds sum to 100%, full bag refuses without spending, equipped never sold
+- b4 | Arena blockout, lanes, closed rail | owner reviews a size screenshot
+- b5 | Event server: scheduler, teleport, boss run, HP, end | `boss_event` covers the full loop with 7 fake players
+- b6 | Sky arena dressing | owner look, asset ledger signed
+- b7a | Boss key frames: 3 moves, sliced renders | owner approves each move
+- b7b | In-betweens, bake, in-game idle cycle | approved keys unchanged, owner look in Studio
+- b7c | HP bar, popups, VFX, SFX | `ui_boss` green, owner look
+- b7d | Sidekick attacks: key frames, in-betweens, effects | owner approves each attack; `ui_sidekick_attack` green with 7 players
+- b8 | Relics: data, drops, equip, UI, icons | `relics` green, odds sum to 100%
+- b9 | Paid spawn | receipt test green: retry, active event, two buyers
+- b10 | Sidekick tutorial | `ui_sidekick_tutorial` green
+- b11 | Compatibility check | full harness and rules audit results reported
+Out of scope: Relic or Sidekick trading, a second boss, an underground arena, pity, luck on summons, summon potions, VIP, shiny pass, extra banners.
+
 ## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
 Status: done on the owner's word 2026-11-04 (u5 gaps accepted: last full server run 49/1, see handoff)
 Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)
