@@ -1,0 +1,1540 @@
+{
+ "units": "XYZ Euler degrees about each part's joint, relative to its parent; root_offset in model units",
+ "pivots": {
+  "Head": [
+   0.0,
+   0.0,
+   4.85
+  ],
+  "LeftFoot": [
+   0.7,
+   0.0,
+   0.36
+  ],
+  "LeftHand": [
+   2.1,
+   0.0,
+   2.3
+  ],
+  "LeftLowerArm": [
+   2.1,
+   0.0,
+   3.42
+  ],
+  "LeftLowerLeg": [
+   0.7,
+   0.0,
+   1.25
+  ],
+  "LeftUpperArm": [
+   2.1,
+   0.0,
+   4.5
+  ],
+  "LeftUpperLeg": [
+   0.7,
+   0.0,
+   2.4
+  ],
+  "LowerTorso": [
+   0.0,
+   0.0,
+   2.6
+  ],
+  "RightFoot": [
+   -0.7,
+   0.0,
+   0.36
+  ],
+  "RightHand": [
+   -2.1,
+   0.0,
+   2.3
+  ],
+  "RightLowerArm": [
+   -2.1,
+   0.0,
+   3.42
+  ],
+  "RightLowerLeg": [
+   -0.7,
+   0.0,
+   1.25
+  ],
+  "RightUpperArm": [
+   -2.1,
+   0.0,
+   4.5
+  ],
+  "RightUpperLeg": [
+   -0.7,
+   0.0,
+   2.4
+  ],
+  "Sword": [
+   -2.1,
+   0.0,
+   1.78
+  ],
+  "Tail": [
+   0.0,
+   0.62,
+   2.72
+  ],
+  "UpperTorso": [
+   0.0,
+   0.0,
+   2.95
+  ],
+  "Wheel": [
+   0.0,
+   0.1,
+   7.85
+  ]
+ },
+ "moves": {
+  "attack": {
+   "end": 3.6,
+   "keys": [
+    {
+     "t": 0.7,
+     "desc": "Wind-up: turns from the hips, blade arm lifts out to the side",
+     "root_offset": [
+      0,
+      0.05,
+      -0.1
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       0,
+       0,
+       14
+      ],
+      "LeftFoot": [
+       -20.785,
+       -3.844,
+       1.457
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -25,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       35.65,
+       7.125,
+       1.892
+      ],
+      "LeftUpperArm": [
+       -35,
+       -45,
+       0
+      ],
+      "LeftUpperLeg": [
+       -11.802,
+       -3.517,
+       4.823
+      ],
+      "LowerTorso": [
+       -3,
+       0,
+       -5
+      ],
+      "RightFoot": [
+       -16.927,
+       3.849,
+       -1.171
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       0,
+       32,
+       0
+      ],
+      "RightLowerLeg": [
+       35.222,
+       -6.886,
+       -2.275
+      ],
+      "RightUpperArm": [
+       -15,
+       82,
+       0
+      ],
+      "RightUpperLeg": [
+       -15.204,
+       2.961,
+       5.162
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       -5,
+       0,
+       -8
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 1.4,
+     "desc": "Anticipation: rises tall, leans back, blade held high to the side",
+     "root_offset": [
+      0,
+      0.1,
+      -0.1
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       3,
+       -4,
+       16
+      ],
+      "LeftFoot": [
+       -24.991,
+       -4.088,
+       1.903
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -22,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       43.519,
+       8.671,
+       2.904
+      ],
+      "LeftUpperArm": [
+       -20,
+       -55,
+       0
+      ],
+      "LeftUpperLeg": [
+       -13.922,
+       -9.261,
+       7.286
+      ],
+      "LowerTorso": [
+       -5,
+       4,
+       -8
+      ],
+      "RightFoot": [
+       -7.731,
+       2.796,
+       -0.379
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       0,
+       50,
+       0
+      ],
+      "RightLowerLeg": [
+       22.966,
+       -4.503,
+       -1.226
+      ],
+      "RightUpperArm": [
+       10,
+       92,
+       0
+      ],
+      "RightUpperLeg": [
+       -10.795,
+       -2.803,
+       7.788
+      ],
+      "Sword": [
+       0,
+       0,
+       -40
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       -9,
+       5,
+       -10
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 1.75,
+     "desc": "Strike: whole body drops and turns, straight arm brings the blade to the floor",
+     "root_offset": [
+      0,
+      0.26,
+      -0.28
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       -8,
+       0,
+       -14
+      ],
+      "LeftFoot": [
+       -16.857,
+       -5.63,
+       1.703
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -22,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       50.831,
+       9.207,
+       6.173
+      ],
+      "LeftUpperArm": [
+       25,
+       -42,
+       0
+      ],
+      "LeftUpperLeg": [
+       -46.826,
+       -3.492,
+       -5.333
+      ],
+      "LowerTorso": [
+       13,
+       -3,
+       6
+      ],
+      "RightFoot": [
+       -27.757,
+       6.376,
+       -3.345
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       62.448,
+       -11.37,
+       -7.824
+      ],
+      "RightUpperArm": [
+       -56,
+       32,
+       0
+      ],
+      "RightUpperLeg": [
+       -47.469,
+       7.959,
+       -8.041
+      ],
+      "Sword": [
+       0,
+       0,
+       30
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       10,
+       -4,
+       16
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 2.05,
+     "desc": "Follow-through: blade point bites the floor, weight over it, off arm flung back",
+     "root_offset": [
+      0,
+      0.3,
+      -0.33
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       -12,
+       0,
+       -16
+      ],
+      "LeftFoot": [
+       -16.954,
+       -5.985,
+       1.821
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -30,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       54.947,
+       9.714,
+       7.534
+      ],
+      "LeftUpperArm": [
+       35,
+       -50,
+       0
+      ],
+      "LeftUpperLeg": [
+       -53.751,
+       -4.84,
+       -5.869
+      ],
+      "LowerTorso": [
+       16,
+       -3,
+       7
+      ],
+      "RightFoot": [
+       -28.846,
+       6.831,
+       -3.748
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -4,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       66.901,
+       -11.902,
+       -9.244
+      ],
+      "RightUpperArm": [
+       -60,
+       30,
+       0
+      ],
+      "RightUpperLeg": [
+       -53.715,
+       7.887,
+       -9.595
+      ],
+      "Sword": [
+       0,
+       0,
+       30
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       11,
+       -4,
+       18
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 2.9,
+     "desc": "Recovery: pulls the blade out and straightens, arm low, then settles to rest",
+     "root_offset": [
+      0,
+      -0.1,
+      -0.14
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       -3,
+       0,
+       -6
+      ],
+      "LeftFoot": [
+       -24.563,
+       -4.521,
+       2.063
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -10,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       42.252,
+       8.44,
+       2.693
+      ],
+      "LeftUpperArm": [
+       6,
+       -18,
+       0
+      ],
+      "LeftUpperLeg": [
+       -22.567,
+       -4.308,
+       -4.643
+      ],
+      "LowerTorso": [
+       5,
+       0,
+       5
+      ],
+      "RightFoot": [
+       -27.761,
+       4.531,
+       -2.381
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -14,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       41.38,
+       -8.536,
+       -2.074
+      ],
+      "RightUpperArm": [
+       -22,
+       28,
+       0
+      ],
+      "RightUpperLeg": [
+       -18.548,
+       3.216,
+       -5.3
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       4,
+       0,
+       5
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    }
+   ]
+  },
+  "shout": {
+   "end": 3.4,
+   "keys": [
+    {
+     "t": 0.45,
+     "desc": "Gather: chin down, shoulders forward, arms pull in",
+     "root_offset": [
+      0,
+      -0.04,
+      -0.14
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       12,
+       0,
+       0
+      ],
+      "LeftFoot": [
+       -24.595,
+       -4.635,
+       2.118
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -42,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       42.25,
+       8.442,
+       2.689
+      ],
+      "LeftUpperArm": [
+       -34,
+       -14,
+       0
+      ],
+      "LeftUpperLeg": [
+       -22.554,
+       -3.747,
+       0.328
+      ],
+      "LowerTorso": [
+       5,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -24.595,
+       4.635,
+       -2.118
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -42,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       42.25,
+       -8.442,
+       -2.689
+      ],
+      "RightUpperArm": [
+       -34,
+       14,
+       0
+      ],
+      "RightUpperLeg": [
+       -22.554,
+       3.747,
+       -0.328
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       9,
+       0,
+       0
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 1.0,
+     "desc": "Head back: chest out, arms spread wide and low",
+     "root_offset": [
+      0,
+      0.06,
+      -0.03
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       -20,
+       0,
+       0
+      ],
+      "LeftFoot": [
+       -9.484,
+       -2.146,
+       0.358
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -10,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       19.14,
+       3.806,
+       0.647
+      ],
+      "LeftUpperArm": [
+       10,
+       -62,
+       0
+      ],
+      "LeftUpperLeg": [
+       -5.639,
+       -1.68,
+       -0.118
+      ],
+      "LowerTorso": [
+       -4,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -9.484,
+       2.146,
+       -0.358
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -10,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       19.14,
+       -3.806,
+       -0.647
+      ],
+      "RightUpperArm": [
+       10,
+       62,
+       0
+      ],
+      "RightUpperLeg": [
+       -5.639,
+       1.68,
+       0.118
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       -6,
+       0,
+       0
+      ],
+      "UpperTorso": [
+       -9,
+       0,
+       0
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 1.35,
+     "desc": "Roar peak: arms fully spread, head thrown back, wheel tipped with it",
+     "root_offset": [
+      0,
+      0.1,
+      -0.05
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       -22,
+       0,
+       0
+      ],
+      "LeftFoot": [
+       -11.546,
+       -2.738,
+       0.559
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       0,
+       -22,
+       0
+      ],
+      "LeftLowerLeg": [
+       24.495,
+       4.841,
+       1.113
+      ],
+      "LeftUpperArm": [
+       -12,
+       -84,
+       0
+      ],
+      "LeftUpperLeg": [
+       -6.911,
+       -2.161,
+       -0.227
+      ],
+      "LowerTorso": [
+       -6,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -11.546,
+       2.738,
+       -0.559
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       0,
+       22,
+       0
+      ],
+      "RightLowerLeg": [
+       24.495,
+       -4.841,
+       -1.113
+      ],
+      "RightUpperArm": [
+       -12,
+       88,
+       0
+      ],
+      "RightUpperLeg": [
+       -6.911,
+       2.161,
+       0.227
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       -9,
+       0,
+       0
+      ],
+      "UpperTorso": [
+       -11,
+       0,
+       0
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 2.5,
+     "desc": "Recover: head level, arms lower, weight settles, then back to rest",
+     "root_offset": [
+      0,
+      0,
+      -0.08
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       2,
+       0,
+       0
+      ],
+      "LeftFoot": [
+       -17.808,
+       -3.539,
+       1.136
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -14,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       31.883,
+       6.343,
+       1.591
+      ],
+      "LeftUpperArm": [
+       0,
+       -28,
+       0
+      ],
+      "LeftUpperLeg": [
+       -16.025,
+       -2.82,
+       0.099
+      ],
+      "LowerTorso": [
+       2,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -17.808,
+       3.539,
+       -1.136
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -14,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       31.883,
+       -6.343,
+       -1.591
+      ],
+      "RightUpperArm": [
+       0,
+       40,
+       0
+      ],
+      "RightUpperLeg": [
+       -16.025,
+       2.82,
+       -0.099
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       3,
+       0,
+       0
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    }
+   ]
+  },
+  "wheel_turn": {
+   "end": 1.6,
+   "keys": [
+    {
+     "t": 0.0,
+     "desc": "Rest: wheel at its start",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "wheel_spin": 0,
+     "rotations": {
+      "Head": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftFoot": [
+       -0.2,
+       -0.04,
+       0.0
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerLeg": [
+       0.355,
+       0.071,
+       0.0
+      ],
+      "LeftUpperArm": [
+       0.0,
+       -12.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -0.155,
+       -0.031,
+       0.0
+      ],
+      "LowerTorso": [
+       0,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -0.2,
+       0.04,
+       -0.0
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerLeg": [
+       0.355,
+       -0.071,
+       -0.0
+      ],
+      "RightUpperArm": [
+       0.0,
+       26.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -0.155,
+       0.031,
+       -0.0
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Wheel": [
+       -10.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "t": 0.3,
+     "desc": "Brace: shoulders set, small head tilt, wheel draws back a little",
+     "root_offset": [
+      0,
+      0,
+      -0.04
+     ],
+     "wheel_spin": -6,
+     "rotations": {
+      "Head": [
+       3,
+       0,
+       0
+      ],
+      "LeftFoot": [
+       -12.697,
+       -2.517,
+       0.567
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       22.498,
+       4.49,
+       0.776
+      ],
+      "LeftUpperArm": [
+       0.0,
+       -12.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -9.784,
+       -1.976,
+       0.0
+      ],
+      "LowerTorso": [
+       0,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -12.697,
+       2.517,
+       -0.567
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       22.498,
+       -4.49,
+       -0.776
+      ],
+      "RightUpperArm": [
+       0.0,
+       26.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -9.784,
+       1.976,
+       0.0
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Wheel": [
+       -10.054,
+       -5.909,
+       1.046
+      ]
+     }
+    },
+    {
+     "t": 0.5,
+     "desc": "Turning: wheel halfway through the spoke, body still",
+     "root_offset": [
+      0,
+      0,
+      -0.04
+     ],
+     "wheel_spin": 22.5,
+     "rotations": {
+      "Head": [
+       3,
+       5,
+       0
+      ],
+      "LeftFoot": [
+       -12.697,
+       -2.517,
+       0.567
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       22.498,
+       4.49,
+       0.776
+      ],
+      "LeftUpperArm": [
+       0.0,
+       -12.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -9.784,
+       -1.976,
+       0.0
+      ],
+      "LowerTorso": [
+       0,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -12.697,
+       2.517,
+       -0.567
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       22.498,
+       -4.49,
+       -0.776
+      ],
+      "RightUpperArm": [
+       0.0,
+       26.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -9.784,
+       1.976,
+       0.0
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Wheel": [
+       -10.805,
+       22.14,
+       -4.114
+      ]
+     }
+    },
+    {
+     "t": 0.7,
+     "desc": "Click: wheel slams past the spoke, head tilted most",
+     "root_offset": [
+      0,
+      0,
+      -0.04
+     ],
+     "wheel_spin": 50,
+     "rotations": {
+      "Head": [
+       3,
+       7,
+       0
+      ],
+      "LeftFoot": [
+       -12.697,
+       -2.517,
+       0.567
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "LeftLowerLeg": [
+       22.498,
+       4.49,
+       0.776
+      ],
+      "LeftUpperArm": [
+       0.0,
+       -12.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -9.784,
+       -1.976,
+       0.0
+      ],
+      "LowerTorso": [
+       0,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -12.697,
+       2.517,
+       -0.567
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       -6,
+       0,
+       0
+      ],
+      "RightLowerLeg": [
+       22.498,
+       -4.49,
+       -0.776
+      ],
+      "RightUpperArm": [
+       0.0,
+       26.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -9.784,
+       1.976,
+       0.0
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Wheel": [
+       -15.34,
+       48.974,
+       -11.692
+      ]
+     }
+    },
+    {
+     "t": 1.0,
+     "desc": "Settle: one spoke on, wheel looks as at the start but has turned; head returning",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "wheel_spin": 45,
+     "rotations": {
+      "Head": [
+       0,
+       3,
+       0
+      ],
+      "LeftFoot": [
+       -0.2,
+       -0.04,
+       0.0
+      ],
+      "LeftHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerArm": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLowerLeg": [
+       0.355,
+       0.071,
+       0.0
+      ],
+      "LeftUpperArm": [
+       0.0,
+       -12.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -0.155,
+       -0.031,
+       0.0
+      ],
+      "LowerTorso": [
+       0,
+       0,
+       0
+      ],
+      "RightFoot": [
+       -0.2,
+       0.04,
+       -0.0
+      ],
+      "RightHand": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerArm": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLowerLeg": [
+       0.355,
+       -0.071,
+       -0.0
+      ],
+      "RightUpperArm": [
+       0.0,
+       26.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -0.155,
+       0.031,
+       -0.0
+      ],
+      "Sword": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "UpperTorso": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Wheel": [
+       -14.002,
+       44.136,
+       -9.851
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
