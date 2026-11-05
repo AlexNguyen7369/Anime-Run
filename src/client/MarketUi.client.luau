@@ -461,7 +461,7 @@ local function showDetail(item)
 	local cosmetic = copies > 0 -- owned aura / trail: pick its team slot
 	rarity.Text = kind == "Potion" and (item.Category .. " Potion")
 		or string.format(
-			"%s  •  %s cruise speed on its slot",
+			"%s  •  %s Speed on its slot",
 			kind,
 			Format.Multi(RaceConfig.ItemCruiseMulti(item.SpeedMulti))
 		)

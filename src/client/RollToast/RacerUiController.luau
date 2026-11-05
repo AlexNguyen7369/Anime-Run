@@ -111,9 +111,9 @@ local tiles = Components.BindIndex(index, catalog)
 local rows = Components.BindStats(stats, config)
 local data = player:WaitForChild("GachaData")
 local leaderstats = player:WaitForChild("leaderstats")
--- The current cruise, studs/s (player attribute Cruise, set by the server; there is no Speed stat, design doc 4.13)
-local function cruise()
-	local v = player:GetAttribute("Cruise")
+-- The current Speed (player attribute Speed, set by the server; design doc 4.13)
+local function currentSpeed()
+	local v = player:GetAttribute("Speed")
 	return type(v) == "number" and v == v and v or 0
 end
 local money = leaderstats:WaitForChild("Money")
@@ -368,7 +368,7 @@ local profileRows = {
 	{ "TotalRolls", "TOTAL ROLLS", "0" },
 	{ "BestRoll", "BEST ROLL", "1 in ?" },
 	{ "CharactersDiscovered", "DISCOVERED", "0" },
-	{ "Speed", "CRUISE", "0 studs/s" },
+	{ "Speed", "SPEED", "0" },
 	{ "Luck", "LUCK STAT", "x1.00" },
 	{ "SessionTime", "TIME THIS SESSION", "0m 00s" },
 }
@@ -453,7 +453,7 @@ local function refreshProfile()
 	profileValues.TotalRolls.Text = format.SpeedText(player:GetAttribute("Rolls") or 0)
 	profileValues.BestRoll.Text = format.Odds(best and best.Chance)
 	profileValues.CharactersDiscovered.Text = format.SpeedText(#data:GetChildren())
-	profileValues.Speed.Text = format.RateText(cruise())
+	profileValues.Speed.Text = format.RateText(currentSpeed())
 	profileValues.Luck.Text = format.Multi(multis.Luck) .. string.format(" · %d pts", allocations.Luck)
 	profileValues.SessionTime.Text = formatDuration(os.time() - sessionStartedAt)
 end
@@ -462,7 +462,7 @@ for _, attr in { "Rolls", "Alloc_Luck" } do
 end
 data.ChildAdded:Connect(refreshProfile)
 data.ChildRemoved:Connect(refreshProfile)
-player:GetAttributeChangedSignal("Cruise"):Connect(refreshProfile)
+player:GetAttributeChangedSignal("Speed"):Connect(refreshProfile)
 refreshProfile()
 task.spawn(function()
 	while player.Parent do
@@ -688,7 +688,7 @@ local function refreshIndex()
 		tile.Name.Text = owned and tile.Spec.Name or "???"
 		tile.Art.ImageColor3 = owned and Color3.new(1, 1, 1) or Color3.new(0, 0, 0)
 		tile.Locked.Visible = not owned
-		tile.Info.Text = owned and format.RateText(RaceConfig.Cruise(tile.Spec)) or tile.Spec.Rarity
+		tile.Info.Text = owned and format.RateText(RaceConfig.Speed(tile.Spec)) or tile.Spec.Rarity
 		-- No Equip row on an undiscovered card: its rarity and name drop to the bottom edge.
 		tile.Info.Position = UDim2.new(0, 8, 1, owned and -78 or -48)
 		tile.Name.Position = UDim2.new(0, 8, 1, owned and -62 or -32)

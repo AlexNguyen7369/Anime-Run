@@ -180,7 +180,7 @@ local function refresh()
 			t.Frame.BackgroundColor3 = TILE_BG
 			t.Icon.TextTransparency = 0.7 -- transparent placeholder until the car has a model
 			t.Name.Text = spec.Name
-			t.Info.Text = string.format("%s · %s\n%s", spec.Rarity, HudFormat.RateText(RaceConfig.Cruise(spec)), odds)
+			t.Info.Text = string.format("%s · %s\n%s", spec.Rarity, HudFormat.RateText(RaceConfig.Speed(spec)), odds)
 			t.Equip.Visible = true
 			local isOn = equipped == id
 			t.Equip.Text = isOn and "Equipped" or "Equip"

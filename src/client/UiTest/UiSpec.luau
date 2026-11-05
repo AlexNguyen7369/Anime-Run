@@ -1003,11 +1003,11 @@ UiSpec.Showcase = {
 		"TurboBadge",
 		"ScrapBadge",
 	},
-	-- %s = HudFormat.RateText(RaceConfig.Cruise(spec)): the card shows cruise, the character SpeedMulti never enters it
+	-- %s = HudFormat.RateText(RaceConfig.Speed(spec)): the card shows Speed, the character SpeedMulti never enters it
 	-- (design doc 4.13, owner 2026-11-01; was "%s SPEED" of HudFormat.Multi(SpeedMulti))
 	SpeedText = "%s",
-	-- The contract alias (Aliases.Speed, also named SpeedMulti): "Cruise " .. RateText(cruise) (was "Speed x25")
-	SpeedAliasText = "Cruise %s",
+	-- The contract alias (Aliases.Speed, also named SpeedMulti): "Speed " .. RateText(speed)
+	SpeedAliasText = "Speed %s",
 	TurboBadgeText = "TURBO x%s", -- %s = the roll's turbo multi
 	-- Duplicates are kept as copies and pay $0 (docs/WORKSHOP_SPEC.md "5b. Showcase", owner 2026-10-22): the card's
 	-- ScrapBadge shows this on a duplicate roll (never a Money amount), and is hidden on a new car. RollResult's
@@ -3609,7 +3609,7 @@ UiSpec.Theme = {
 	MultiLabels = {
 		{ Gui = "RacerRebirth", Name = "LuckRewardCaption" }, -- "x1.5 Luck"
 		{ Gui = "RacerWorkshop", Name = "Level" }, -- "Level 1 • x1 boost"
-		{ Gui = "MarketUi", Name = "Rarity", Under = "Backdrop/Panel/Detail" }, -- "Trail  •  x1.2 cruise for its slot"
+		{ Gui = "MarketUi", Name = "Rarity", Under = "Backdrop/Panel/Detail" }, -- "Trail  •  x1.2 Speed on its slot"
 	},
 }
 -- The loser recap (docs/NPC_RACER_SPEC.md "Loser screen (owner 2026-10-27)"): TextLabels anywhere under LoserScreen.

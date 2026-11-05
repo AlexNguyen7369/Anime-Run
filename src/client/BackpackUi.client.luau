@@ -198,10 +198,10 @@ local function ownedCars()
 	end
 	table.sort(list, function(a, b)
 		-- Highest first; a tie falls through to the default order.
-		local va = sortMode == "Speed" and RaceConfig.Cruise(a)
+		local va = sortMode == "Speed" and RaceConfig.Speed(a)
 			or sortMode == "Stamina" and StaminaConfig.Seconds(a)
 			or 0
-		local vb = sortMode == "Speed" and RaceConfig.Cruise(b)
+		local vb = sortMode == "Speed" and RaceConfig.Speed(b)
 			or sortMode == "Stamina" and StaminaConfig.Seconds(b)
 			or 0
 		if va ~= vb then
@@ -371,7 +371,7 @@ local function characterTile(spec, order)
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -8, 1, -28),
 		Size = UDim2.new(1, -16, 0, 16),
-		Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
+		Text = HudFormat.RateText(RaceConfig.Speed(spec)),
 		TextSize = 14,
 		TextColor3 = GOLD,
 		TextXAlignment = Enum.TextXAlignment.Right,
@@ -396,7 +396,7 @@ local function characterFacts(spec)
 		spec.Name,
 		spec.Rarity,
 		spec.Category or "Balanced",
-		HudFormat.RateText(RaceConfig.Cruise(spec)),
+		HudFormat.RateText(RaceConfig.Speed(spec)),
 		StaminaConfig.Seconds(spec)
 	)
 end

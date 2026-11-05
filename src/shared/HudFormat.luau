@@ -95,9 +95,9 @@ function HudFormat.AutoButtonText(isRacing)
 	return isRacing == true and "Stop Auto" or "Auto Race"
 end
 
--- A cruise speed as shown, e.g. "42 studs/s" (anything that is not a finite number >= 0 shows 0).
-function HudFormat.RateText(cruise)
-	return HudFormat.SpeedText(math.floor((tonumber(cruise) or 0) + 0.5)) .. " studs/s"
+-- A Speed as shown, e.g. "1,200" or "1.5oc" (anything that is not a finite number >= 0 shows 0; design doc 4.13).
+function HudFormat.RateText(speed)
+	return HudFormat.SpeedText(math.floor((tonumber(speed) or 0) + 0.5))
 end
 
 -- Moves the number on screen towards the real stat: smooth, never overshoots, never counts down while the

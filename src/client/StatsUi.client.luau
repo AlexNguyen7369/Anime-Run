@@ -25,7 +25,7 @@ local TOP_CLEAR = 68 -- the panel starts below the Auto Race button (top centre,
 local ROW_STEP = 44
 local PANEL_HEIGHT = 60 + ROW_STEP * #GachaConfig.STATS
 local LABELS = {
-	Speed = "Cruise Multi",
+	Speed = "Speed Multi",
 	Money = "Base Money Multi",
 	Luck = "Luck Multi",
 }

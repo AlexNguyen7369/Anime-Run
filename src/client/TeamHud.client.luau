@@ -5,7 +5,7 @@
 -- eased per frame; the active slot (RunSlot) is enlarged with a pulsing gold glow and a bobbing marker, pops on a
 -- tag-in; a slot at 0 fades grey and shrinks. Slots sit at fixed positions, so scaling one never moves the others. A badge above
 -- the row names the team bonus (TeamBonus). Hover (tap on touch) opens an info card: name, category and its effect,
--- cruise and stamina (server attributes TeamCruise<n> / TeamStamina<n>). Display only. Motion goes through UiMotion
+-- Speed and stamina (server attributes TeamSpeed<n> / TeamStamina<n>). Display only. Motion goes through UiMotion
 -- (design doc 4.20): tweens land at once and the active pulse + bob stop while motion is reduced.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +15,7 @@ local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
 local CharacterHeads = require(shared.CharacterHeads)
+local HudFormat = require(shared.HudFormat)
 local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
@@ -212,9 +213,9 @@ local function showCard(slot)
 		.. " speed · "
 		.. factor(StaminaConfig.CATEGORY[category] or 1)
 		.. " stamina"
-	local cruise = tonumber(player:GetAttribute("TeamCruise" .. slot))
+	local speed = tonumber(player:GetAttribute("TeamSpeed" .. slot))
 	local seconds = tonumber(player:GetAttribute("TeamStamina" .. slot))
-	stats.Text = (cruise and string.format("%d studs/s", math.floor(cruise + 0.5)) or "-")
+	stats.Text = (speed and HudFormat.RateText(speed) .. " Speed" or "-")
 		.. "  ·  "
 		.. (seconds and string.format("%.1f s stamina", seconds) or "-")
 	hint.Text = CATEGORY_HINT[category] or ""
@@ -541,7 +542,7 @@ player.AttributeChanged:Connect(function(name)
 		or name == "RunSlot"
 		or name == "TeamBonus"
 		or string.sub(name, 1, 7) == "Stamina"
-		or string.sub(name, 1, 10) == "TeamCruise"
+		or string.sub(name, 1, 9) == "TeamSpeed"
 		or string.sub(name, 1, 11) == "TeamStamina"
 	then
 		render()

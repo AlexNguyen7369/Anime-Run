@@ -730,7 +730,7 @@ function Contracts.Build(h)
 			end
 			local multi = tile:FindFirstChild("Multi")
 			-- The tile shows the character's cruise, fixed by rarity x category (design doc 4.13; was Multi(SpeedMulti))
-			local wantMulti = Format.RateText(RaceConfig.Cruise(car))
+			local wantMulti = Format.RateText(RaceConfig.Speed(car))
 			local got = multi and multi:IsA("TextLabel") and multi.Text or "missing"
 			if got ~= wantMulti then
 				table.insert(p.backpack_characters_multi, tile.Name .. ": " .. got .. " want " .. wantMulti)

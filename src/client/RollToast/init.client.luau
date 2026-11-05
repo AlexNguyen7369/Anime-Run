@@ -904,7 +904,7 @@ local function revealText(b, roll, seconds)
 	local shown = { b.Odds, b.CharacterName }
 	if b.Full then
 		paintOdds(b, spec)
-		b.SpeedMulti.Text = HudFormat.RateText(RaceConfig.Cruise(spec))
+		b.SpeedMulti.Text = HudFormat.RateText(RaceConfig.Speed(spec))
 		b.Rarity.Text = spec.Rarity
 		b.Rarity.TextColor3 = textColor(spec)
 		b.Rarity.TextStrokeColor3 = spec.Rarity == "Secret" and rarityColor(spec) or BLACK
@@ -913,7 +913,7 @@ local function revealText(b, roll, seconds)
 		-- A duplicate is kept as a copy for the workshop Showcase, never sold (owner 2026-10-22).
 		b.ScrapBadge.Visible = not roll.IsNew
 		b.ScrapBadge.Text = "+1 COPY"
-		b.Aliases.Speed.Text = "Cruise " .. HudFormat.RateText(RaceConfig.Cruise(spec))
+		b.Aliases.Speed.Text = "Speed " .. HudFormat.RateText(RaceConfig.Speed(spec))
 		b.Aliases.Rarity.Text = spec.Rarity
 		b.Aliases.Name.TextColor3 = b.CharacterName.TextColor3
 		b.Aliases.Speed.TextColor3 = b.SpeedMulti.TextColor3

@@ -13,7 +13,7 @@ MarketConfig.Items = {
 			SpeedMulti = 1.2,
 			Color = Color3.fromRGB(80, 190, 255),
 			Accent = Color3.fromRGB(180, 245, 255),
-			Description = "A cool, charged glow that lifts your cruise speed.",
+			Description = "A cool, charged glow that lifts your Speed.",
 		},
 		{
 			Id = "ember_aura",

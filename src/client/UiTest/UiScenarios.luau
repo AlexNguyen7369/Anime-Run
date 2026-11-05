@@ -2069,9 +2069,9 @@ local function cardProblems(card, ev, skipGeometry)
 		end
 	end
 	local multi = part("SpeedMulti")
-	-- The card's SpeedMulti label shows the character's cruise ("90 studs/s") or its contract alias ("Cruise 90
-	-- studs/s"), HudFormat.RateText(RaceConfig.Cruise(spec)): cruise is fixed by rarity x category (design doc 4.13)
-	local cruiseText = HudFormat.RateText(RaceConfig.Cruise(spec))
+	-- The card's SpeedMulti label shows the character's Speed ("20,000") or its contract alias ("Speed 20,000"),
+	-- HudFormat.RateText(RaceConfig.Speed(spec)): base Speed is fixed by rarity x category (design doc 4.13)
+	local cruiseText = HudFormat.RateText(RaceConfig.Speed(spec))
 	local wantMulti = UiSpec.Showcase.SpeedText:format(cruiseText)
 	local wantAlias = UiSpec.Showcase.SpeedAliasText:format(cruiseText)
 	if not (multi and multi:IsA("TextLabel") and (multi.Text == wantMulti or multi.Text == wantAlias)) then
@@ -5514,8 +5514,8 @@ function S.ui_settings_profile(res)
 	checkList(res, "profile_rows_present", profileMissing)
 
 	local data = player:FindFirstChild("GachaData")
-	-- The Speed row is the CRUISE row: the server's Cruise attribute in studs/s (no Speed stat, design doc 4.13)
-	local cruise = attr("Cruise")
+	-- The Speed row: the server's Speed attribute (design doc 4.13)
+	local currentSpeed = attr("Speed")
 	local allocation = {}
 	for _, stat in GachaConfig.STATS do
 		allocation[stat] = attr("Alloc_" .. stat) or 0
@@ -5525,7 +5525,9 @@ function S.ui_settings_profile(res)
 		TotalRolls = HudFormat.SpeedText(attr("Rolls") or 0),
 		BestRoll = HudFormat.Odds(best and best.Chance),
 		CharactersDiscovered = HudFormat.SpeedText(data and #data:GetChildren() or 0),
-		Speed = HudFormat.RateText(type(cruise) == "number" and cruise == cruise and cruise or 0),
+		Speed = HudFormat.RateText(
+			type(currentSpeed) == "number" and currentSpeed == currentSpeed and currentSpeed or 0
+		),
 		Luck = string.format("%s · %d pts", HudFormat.Multi(GachaConfig.Multis(allocation).Luck), allocation.Luck),
 	}
 	local mismatches = {}

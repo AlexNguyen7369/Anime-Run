@@ -501,7 +501,7 @@ function Components.BakeStats(refs, config)
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, list)
 	local names = {
-		Speed = "CRUISE MULTIPLIER",
+		Speed = "SPEED MULTIPLIER",
 		Money = "MONEY MULTIPLIER",
 		Luck = "LUCK MULTIPLIER",
 		Stamina = "STAMINA MULTIPLIER",

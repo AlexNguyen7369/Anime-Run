@@ -83,8 +83,9 @@
 80. 2026-11-05 — Alex Nguyen — Changed a loss to cash out the tracks already won, not yet run in Studio.
 81. 2026-11-05 — Alex Nguyen — Built the Speed core: Speed number, curve to studs/s, enemy table, full-value auras and trails and a balance test, checked offline only.
 82. 2026-11-05 — Alex Nguyen — Changed rebirth to a high total Speed multi with a new cost table, checked offline only.
+83. 2026-11-05 — Alex Nguyen — Switched the UI from studs/s to the whole-number Speed, not yet run in Studio.
 
 ## What's next
-**Show the whole-number Speed everywhere in the UI instead of studs/s.**
+**Run speed_probe in Studio to test a cap of at least 1000 studs/s, once the owner says Studio is free.**
 
-**Why this is next:** the server now has the number, and players still see studs/s until this lands.
+**Why this is next:** the cap value sets MAX_CRUISE and the curve's top segment, and slices B-E need Studio verification in the same session.

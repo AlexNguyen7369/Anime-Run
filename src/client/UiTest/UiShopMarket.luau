@@ -579,11 +579,11 @@ function ShopMarket.Build(h)
 			table.insert(bad, ("Rarity shows %q, want %s"):format(rarity, item.Rarity or "a rarity"))
 		end
 		-- Trail / aura subtitle names its damped cruise multi for its team slot (no Speed Gain: design doc 4.13, owner
-		-- 2026-11-01): "<Kind>  •  <HudFormat.Multi(RaceConfig.ItemCruiseMulti(SpeedMulti))> cruise for its slot" (every
+		-- 2026-11-01): "<Kind>  •  <HudFormat.Multi(RaceConfig.ItemCruiseMulti(SpeedMulti))> Speed on its slot" (every
 		-- multi token is HudFormat.Multi style, HUD_LAYOUT_SPEC section 8).
 		if kind == "Trail" or kind == "Aura" then
 			local wantMulti = type(item.SpeedMulti) == "number"
-				and (HudFormat.Multi(RaceConfig.ItemCruiseMulti(item.SpeedMulti)) .. " cruise")
+				and (HudFormat.Multi(RaceConfig.ItemCruiseMulti(item.SpeedMulti)) .. " Speed")
 			if not wantMulti or not has(rarity, kind) or not has(rarity, wantMulti) then
 				table.insert(bad, ("Subtitle shows %q, want %s %s"):format(rarity, kind, tostring(wantMulti)))
 			end
