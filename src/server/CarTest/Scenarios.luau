@@ -6919,7 +6919,7 @@ function Scenarios.npc()
 		local C1, C2 = TrackBuilder.CashFor(1), TrackBuilder.CashFor(2)
 		-- Run bank (owner 2026-10-30, TEAM_AND_STAMINA_SPEC "Run end by exhaustion"; design doc 2-4.3): a win adds
 		-- its pad payout x the checkpoint bonus (design doc 4.15: CheckpointConfig.Bonus(tracks past the run's start
-		-- track)) to the run's unbanked pot; Stop / death / leaving cash it out; a loss empties it.
+		-- track)) to the run's unbanked pot; Stop / death / leaving / a loss cash it out (a loss pays nothing for the lost track).
 		local Checkpoint = sharedModule("CheckpointConfig")
 		local W1 = math.floor(C1 * Checkpoint.Bonus(0))
 		local W2 = math.floor(C2 * Checkpoint.Bonus(1))
@@ -7138,7 +7138,7 @@ function Scenarios.npc()
 			check(checks, "npc_lose_not_in_server_workspace", b.npcSeen and 1 or 0, 0, not b.npcSeen)
 		end
 
-		-- (c) WIN THEN LOSE: Track 1 is banked; losing Track 2 empties the pot, so nothing is ever paid (run bank).
+		-- (c) WIN THEN LOSE: Track 1 is banked; losing Track 2 cashes it out and pays nothing for Track 2 (owner 2026-11-05).
 		local c = race(
 			"WinLose",
 			nil,
@@ -7184,13 +7184,13 @@ function Scenarios.npc()
 				and r2.Event.Banked == 0
 				and r2.Event.Unbanked == 0
 				and r2.RunUnbanked == 0
-				and r2.Money == 0
+				and r2.Money == W1
 				and c.snap.Unbanked == 0
 				and c.snap.UnbankedAttr == 0
-			check(checks, "npc_win_lose_loss_empties_bank", num(r2 and r2.Event.Unbanked), 0, cleared)
-			-- the lost pot is gone: the stop pays nothing (BankedTotal still counts the Track 1 win)
-			local nothing = c.balance == 0 and c.snap.PaidTotalAfter == 0 and c.snap.BankedTotal == W1
-			check(checks, "npc_win_lose_nothing_paid", c.balance, 0, nothing)
+			check(checks, "npc_win_lose_loss_cashes_out_bank", num(r2 and r2.Money), W1, cleared)
+			-- only Track 1's win was paid, once: the stop adds nothing
+			local paidOnce = c.balance == W1 and c.snap.PaidTotalAfter == W1 and c.snap.BankedTotal == W1
+			check(checks, "npc_win_lose_paid_won_track_once", c.balance, W1, paidOnce)
 			local counts = c.snap.Wins == 1 and c.snap.Losses == 1
 			check(checks, "npc_win_lose_counted", type(c.snap.Wins) == "number" and c.snap.Wins or -1, 1, counts)
 			checkNpcLoseReset(checks, "npc_win_lose", c, 2, wps)
@@ -7420,7 +7420,7 @@ function Scenarios.multiplayer()
 			resetPose ~= nil and dB <= NPC_RESET_RADIUS
 		)
 		-- Run bank per player (owner 2026-10-30, TEAM_AND_STAMINA_SPEC; design doc 4.15 bonus): A's Track 1 win is
-		-- banked, not paid, and its stop cashes it out; B's loss emptied B's pot. No bank is shared.
+		-- banked, not paid, and its stop cashes it out; B lost with nothing banked. No bank is shared.
 		local W1 = math.floor(C1 * sharedModule("CheckpointConfig").Bonus(0))
 		local money = A.balance == W1
 			and A.snap.BankedTotal == W1

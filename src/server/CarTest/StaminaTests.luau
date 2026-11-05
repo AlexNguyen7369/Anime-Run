@@ -830,7 +830,7 @@ function Tests.stamina()
 			1
 		)
 
-		-- 7. NPC finish and exhaustion on the same tick: the loss is decided first and the bank is emptied
+		-- 7. NPC finish and exhaustion on the same tick: the loss is decided first and cashes out the bank (owner 2026-11-05)
 		local lose = firstIndex(tie, function(e)
 			return e.Kind == "Race"
 				and e.Event.Type == "Result"
@@ -849,15 +849,15 @@ function Tests.stamina()
 			cashed = cashed or e.Event.Banked ~= 0
 		end
 		flag(
-			"stamina_same_tick_loss_empties_bank",
+			"stamina_same_tick_loss_cashes_out_bank",
 			tieStep == 2
 				and type(tie.PotAtTie) == "number"
 				and tie.PotAtTie > 0
-				and moneyOf(tie.Player) == tie.MoneyAtTie
+				and moneyOf(tie.Player) == tie.MoneyAtTie + tie.PotAtTie
 				and not cashed
 				and (tie.Run.Unbanked or 0) == 0,
 			moneyOf(tie.Player) - (tie.MoneyAtTie or 0),
-			0
+			tie.PotAtTie or 0
 		)
 
 		-- 8. A loss reset starts a new run (owner 2026-10-30): slot 1, every slot back to 100

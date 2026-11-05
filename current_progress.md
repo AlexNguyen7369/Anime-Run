@@ -80,8 +80,9 @@
 77. 2026-11-04 — Alex Nguyen — Ran the universal run on 86be288 in Studio on test save u5ui5: ui_camera_follows_runner and ui_runner_smooth pass, ui_run_visual red once on pos_no_pop for db_scholar then 37 of 37 on rerun, cause not found, full harness not run.
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 79. 2026-11-05 — Alex Nguyen — Wrote the Speed balance rules: whole-number Speed with a curve to studs/s, new enemy and rebirth tables, keep-won-tracks loss rule, pacing model and research notes.
+80. 2026-11-05 — Alex Nguyen — Changed a loss to cash out the tracks already won, not yet run in Studio.
 
 ## What's next
-**Change the loss rule in RaceService so a loss cashes out the tracks already won.**
+**Build the Speed core: the Speed number, the curve to studs/s and the enemy table.**
 
-**Why this is next:** it is the one code slice independent of the Speed core, and the model only reaches Track 10 with it.
+**Why this is next:** the rebirth multis and the Speed display both read it.

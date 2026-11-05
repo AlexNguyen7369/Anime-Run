@@ -15,7 +15,7 @@
 -- lost. Tracks won past the checkpoint track in the same run pay the checkpoint bonus (CheckpointConfig.Bonus).
 -- Banked winnings (owner 2026-10-30, TEAM_AND_STAMINA_SPEC "Run end"): winning a track adds its pad's value
 -- (MoneyService.Quote x checkpoint bonus) to the run's bank (run.Unbanked, mirrored in the player attribute Unbanked)
--- instead of paying; a loss empties the bank; run:CashOut() (also done by run:Destroy, so Stop, death and leaving)
+-- instead of paying; a loss cashes out the won tracks (owner 2026-11-05); run:CashOut() (also done by run:Destroy, so Stop, death and leaving)
 -- pays it. Team and stamina (docs/TEAM_AND_STAMINA_SPEC.md): an NPC run reads the player's Team at start. The active
 -- runner's stamina drains 100 / seconds percent per second; at 0 the next slot tags in at its own cruise; when the
 -- last one is empty the current track's per-distance share is banked, the bank is cashed out, the run stops and the
@@ -403,7 +403,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			reachTrack(player, track.Number)
 			rewardTrackWin(track.Number)
 		else
-			setUnbanked(0) -- a lost race loses what was not cashed out yet
+			run:CashOut() -- a loss keeps the tracks already won; the lost track pays nothing (owner 2026-11-05)
 		end
 		local event = {
 			Type = "Result",
