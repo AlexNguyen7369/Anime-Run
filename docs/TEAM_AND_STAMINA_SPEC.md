@@ -48,9 +48,7 @@ Stamina = Base(rarity or override)
 
 ## Runner categories
 
-- Cruise multi = `CruiseStatMulti(SpeedMulti) x CategorySpeed` (Sprinter 1.25, Balanced 1, Marathoner 0.8): the
-  category applies after the IVS damping (owner 2026-10-30), then aura / trail and the total caps
-  (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
+- Category multiplies the Speed number (Sprinter 1.25, Balanced 1, Marathoner 0.8; owner 2026-11-05, design doc 4.5).
 - Category is fixed per character (catalog `Category`). The HUD card shows its icon.
 
 ## Stamina stat point
@@ -81,10 +79,10 @@ Stamina = Base(rarity or override)
 
 - `Shared/SeriesCatalog` lists series and their preset trio (`CHARACTER_GACHA_SPEC.md`).
 - Bonus is decided once at run start from the full team:
-  - the 3 ids equal a series' `Preset.Members` (any order) -> **Preset**: stamina x1.4, cruise x1.1;
+  - the 3 ids equal a series' `Preset.Members` (any order) -> **Preset**: stamina x1.4, Speed x1.1;
   - else all 3 share one `Series` -> **Series**: stamina x1.2;
   - else none. Teams of 1 or 2 never get a bonus.
-- The preset cruise x1.1 multiplies the total cruise multi before `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE` apply.
+- The preset x1.1 multiplies the speed multi.
 - Player attribute `TeamBonus` (`"Preset:<seriesId>"`, `"Series:<seriesId>"` or `""`); the team editor shows the
   bonus live while the player builds the team.
 
@@ -110,29 +108,29 @@ Stamina = Base(rarity or override)
   the NPC has already finished ends by exhaustion (bank + per-distance share paid), not a loss.
 - Owner 2026-10-30 (design doc sections 2-4.3): each track win adds its payout (x the
   checkpoint bonus, design doc 4.15) to the run's unbanked pot (not paid at once); exhaustion cashes it out once; a
-  loss empties it; Stop, death and leaving cash it out.
+  loss cashes out the won tracks and the lost track pays nothing (owner 2026-11-05); Stop, death and leaving cash it out.
 - Owner 2026-10-30: a loss reset starts a new run: stamina refills to 100% and the team restarts at slot 1 (on the
   checkpoint track, design doc 4.15).
 
 ## Speed (owner 2026-11-01, design doc 4.13)
 
-- Cruise of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, capped at `MAX_CRUISE` (800).
-  RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
+- Speed of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, whole, no cap. Cruise = `RaceConfig.CruiseOf(Speed)`, capped at
+  `MAX_CRUISE` (`docs/SPEED_BALANCE_SPEC.md`). RarityBase (proposed): Common 100, Uncommon 300, Rare 1,200, Epic 20k, Legendary 5m, Mythic 50b, Secret 50t.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
-  trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
-- Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
+  trail x rebirth total. Each team slot has its own aura and trail; they scale only that slot.
+- Fixed for the whole run at run start (like stamina); no gain while running.
 - Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
   - The runner is the active slot's character (RunSlot); it wears that slot's aura / trail.
     Preset factor wired as `RaceConfig.PRESET_CRUISE`.
   - The Speed Doubler game passes are removed (design doc 4.16). The upgrade tree's `speed` branch is "Speed"
-    (owner 2026-11-01): each owned tier adds +10% cruise (placeholder, 5 tiers), added to the stat points' part.
+    (owner 2026-11-01): each owned tier adds +10% Speed (placeholder, 5 tiers), added to the stat points' part.
   - No XP (player levels removed owner 2026-11-01, design doc 4.14).
   - Offline Speed credit and its Robux double are off (nothing to credit); the product stays unsold (ProductId 0).
   - The Speed board is removed from the plaza (4.13); its store `LB_Speed_v3` is untouched.
-  - The HUD shows the player attribute `Cruise` (studs/s): the run's fixed cruise while racing, else the equipped
-    character's cruise now.
+  - Player attributes `Speed` and `Cruise` (studs/s, not shown): the run's fixed values while racing, else the equipped
+    character's values now.
 - Per-slot aura / trail. Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Save `SlotItems = { [1] = { Aura = id?, Trail = id? }, [2] = ..., [3] = ... }` (no store or VERSION bump). A
     save without `SlotItems` moves its old `EquippedAura` / `EquippedTrail` to slot 1; the old keys are kept in the
@@ -163,7 +161,7 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   left (the run's fixed `RunSeconds<n>` while running, `TeamStamina<n>` on foot); the arc eases per frame and the slots do not shift. Active runner (`RunSlot`): enlarged, pulsing
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
-  (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
+  (name, category + its speed / stamina effect, Speed, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
@@ -178,8 +176,8 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 
 ## Tests (to write first)
 
-- `team_bonus`: preset in any order beats Series; 2-member teams get nothing; preset cruise stays under the cap.
+- `team_bonus`: preset in any order beats Series; 2-member teams get nothing; preset x1.1 applies once.
 - `team`: `SetTeam` validation (unowned, duplicate, 4 ids, mid-run), save round-trip, fallback to starter.
 - `stamina`: drain rate per rarity within 1%; category, stat point, potion and team-bonus multipliers each applied
   once (and a potion expiring mid-run changes nothing); swap at 0 to the next slot; empty slots skipped; exhaustion cashes out
-  once; loss in the same tick empties the bank; stamina is 100% on every run start.
+  once; loss in the same tick cashes out the won tracks; stamina is 100% on every run start.

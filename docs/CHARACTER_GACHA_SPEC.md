@@ -14,7 +14,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Name` | display name, tweaked from the source character (design doc section 5) |
 | `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret |
 | `Chance` | 1 in N; every rollable character has a number (owner 2026-11-03); the catch-all Common is 1 |
-| `SpeedMulti` | raw cruise multi, damped by `RaceConfig.CruiseStatMulti` |
+| `SpeedMulti` | no effect on Speed or cruise (design doc 4.13) |
 | `Stamina` | optional override of the rarity base, seconds (`TEAM_AND_STAMINA_SPEC.md`) |
 | `Category` | `Sprinter`, `Balanced` or `Marathoner` (design doc 4.5) |
 | `Series` | id of the character's series in `Shared/SeriesCatalog` (design doc 4.8) |

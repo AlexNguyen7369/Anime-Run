@@ -7,13 +7,13 @@ safeguards) and 4.9 (this map redesign). Numbers are placeholders unless stated.
 
 - Owner 2026-10-30: track n target length = `984 x F x 1.25^(n-1)` studs, F = 3 (owner confirmed 2026-10-30), within
   +-5%. Measured along the centre line by `TrackValidator` (check `TARGET_LENGTH`).
-- Table at F = 3; NPC speeds `16 x 1.51^(n-1)`:
+- Table at F = 3; NPC speeds from `docs/SPEED_BALANCE_SPEC.md`:
 
 | Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Length (studs) | 2,952 | 3,690 | 4,612 | 5,766 | 7,207 | 9,009 | 11,261 | 14,076 | 17,595 | 21,994 |
-| NPC speed (studs/s) | 16 | 24.2 | 36.5 | 55.1 | 83.2 | 125.6 | 189.7 | 286.4 | 432.4 | 653 |
-| NPC time (s) | 184.5 | 152.7 | 126.4 | 104.7 | 86.6 | 71.7 | 59.4 | 49.2 | 40.7 | 33.7 |
+| NPC cruise (studs/s) | 45.5 | 61.2 | 82.2 | 110.6 | 148.7 | 199.9 | 268.7 | 361.3 | 485.7 | 653 |
+| NPC time (s) | 64.9 | 60.3 | 56.1 | 52.1 | 48.5 | 45.1 | 41.9 | 39.0 | 36.2 | 33.7 |
 
 - Cruise speed is fixed for a runner during a run, so a team that wins Track 10 runs the whole chain in at most about
   101 s. A Legendary trio clears it in about 90 s using about all its stamina (owner 2026-10-30,

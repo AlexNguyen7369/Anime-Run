@@ -23,9 +23,10 @@ when all 3 are empty, or when the player loses a track to the NPC.
 5. The run ends:
    - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
    - **Player stops** (Stop button, death, leave): the bank is cashed out.
-   - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
-6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
-7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
+   - **Loss** (NPC reaches a track's finish first): the tracks already won that run are cashed out, the lost track pays
+     nothing (owner 2026-11-05); loser screen; back to the start track.
+6. Each character has a Speed number (rarity x category x speed multi x rebirth multi; 4.13). A curve turns it into real movement.
+7. Money buys upgrades; rebirth needs and resets Money for luck, a Speed multi and a stat point (4.14). There is no player level or XP.
 
 ## 3. Rules carried over from IVS unchanged (rename only: car -> character)
 
@@ -34,7 +35,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | Numbered, point-to-point track chain; each track starts on the previous finish; loops back to Track 1 after the last | `TrackBuilder`, `TrackValidator` |
 | Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
-| Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
+| Banked money in NPC mode; cash-out on stop / death / leave; a loss cashes out the won tracks (owner 2026-11-05) | `RaceService` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
@@ -83,8 +84,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
   `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
-  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
-  Common speed, stamina or Track 1 length (owner 2026-11-03).
+  Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Common movement speed, stamina and Track 1
+  length stay as they were; Track 1's enemy is faster so it needs a full Rare team (owner 2026-11-05, replaces 2026-11-03's no retune).
 
 ### 4.4 Losing stays a speed comparison
 - The NPC's track time is fixed when the track starts; if the player's team reaches the finish later, the player loses.
@@ -92,13 +93,13 @@ when all 3 are empty, or when the player loses a track to the NPC.
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
-  - **Sprinter**: cruise x1.25, stamina x0.9 (proposed).
+  - **Sprinter**: Speed x1.25, stamina x0.9 (proposed).
   - **Balanced**: x1, x1.
-  - **Marathoner**: cruise x0.8 (owner 2026-10-30), stamina x1.1 (proposed).
-- Rarity sets the base speed and base stamina; the category scales them. Category speed multiplies the damped
-  cruise multi (after `CruiseStatMulti`), so Marathoner x0.8 is a real 20% slower (owner 2026-10-30); it counts inside `MAX_CRUISE_TOTAL_MULTI` and `MAX_CRUISE`.
+  - **Marathoner**: Speed x0.8 (owner 2026-10-30), stamina x1.1 (proposed).
+- Rarity sets the base Speed and base stamina; the category scales them. Category multiplies the Speed number (owner
+  2026-11-05, replaces the real 20% slower of 2026-10-30): a Marathoner shows x0.8 Speed and moves about 1% slower, and the shown number predicts the race.
 - Shown to the player (owner 2026-11-03): hovering a team row portrait (tap on touch) opens an info card with the
-  character's name, its category with the category's speed and stamina effect, its cruise (studs/s) and its stamina
+  character's name, its category with the category's speed and stamina effect, its Speed and its stamina
   (seconds). The card does not show rarity.
 
 ### 4.6 Stamina stat point (owner 2026-10-28)
@@ -117,13 +118,13 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Every character belongs to one **Series** (a tweaked-name take on a real anime, section 5).
 - **Series bonus**: all 3 team slots from the same Series -> +20% stamina for the whole team (placeholder).
 - **Preset teams**: named trios defined in the catalog (e.g. a series' main squad). A team with exactly those 3
-  characters, in any order, gets the preset bonus instead of the Series bonus: +40% stamina and x1.1 cruise
-  (placeholders). The cruise part counts inside the IVS total cruise cap (`MAX_CRUISE_TOTAL_MULTI`, `MAX_CRUISE`).
+  characters, in any order, gets the preset bonus instead of the Series bonus: +40% stamina and x1.1 Speed
+  (placeholders).
 - Only full 3-character teams get a bonus. The best one applies; bonuses never stack with each other.
 
 ### 4.9 Map redesign: longer tracks and anime biomes (owner 2026-10-28)
 - Track n is `984 x F x 1.25^(n-1)` studs, F = 3 (owner 2026-10-30; Track 1 about 2,950, Track 10 about 22,000).
-  Track 1 gets a new, longer layout. NPC speeds are unchanged.
+  Track 1 gets a new, longer layout. NPC speeds: `docs/SPEED_BALANCE_SPEC.md`.
 - Every track has an anime-inspired biome: one per series (Tracks 1-6, in series order) plus 4 classic anime worlds
   (Tracks 7-10). Biomes follow section 5 (evoke, never copy logos or symbols). Spec: `docs/TRACKS_AND_BIOMES_SPEC.md`.
 - Biomes are researched (owner 2026-10-30): before building a track layout or biome, research public information on
@@ -150,24 +151,29 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - A Settings toggle, TRACK CAMERA, switches it. Off = the regular camera. Default ON (placeholder).
 - Client-only display; no server number changes. Spec: `docs/CAMERA_SPEC.md`.
 
-### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
-- There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
-  and its category (4.5). New players run slow. The character's `SpeedMulti` never enters cruise.
-- Base cruise by rarity, Balanced (proposed, tuned so each rarity tops out about one NPC band; NPC formula
-  `16 x 1.51^(n-1)`): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
-  Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
-- Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
-  - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
-  - Speed potions: timed x cruise (IVS potion pattern; placeholder x1.25).
-  - Upgrade tree **Speed** branch: each owned tier adds +% cruise to the character, additive with the Speed stat points
+### 4.13 Speed (owner 2026-11-05; replaces the fixed studs/s cruise of 2026-11-01)
+- **Speed** is the game's number: whole, uncapped, shown everywhere, never in studs/s. **Cruise** is real movement in
+  studs/s, computed from Speed by a curve (`RaceConfig.SPEED_CURVE`) and capped at `MAX_CRUISE`. Cruise is never shown. Spec, tables and pacing: `docs/SPEED_BALANCE_SPEC.md`.
+- Each character has a fixed base Speed set only by its rarity and its category (4.5). The character's `SpeedMulti` never
+  enters it. New players run slow.
+- Base Speed by rarity, Balanced (proposed): Common 100, Uncommon 300, Rare 1,200, Epic 20k, Legendary 5m, Mythic 50b, Secret
+  50t. Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
+- Late game (owner 2026-11-05): the enemies of Tracks 9-10 are in the octillions. Early game: Track 1's enemy and length stop
+  a player until they have a full team of Rares with stamina buffs; better teams pass sooner, and weaker teams still earn
+  through exhaustion pay (4.3).
+- The best kit of the current 47 characters reaches about 800 studs/s; the range above it to `MAX_CRUISE` is for future
+  characters (owner 2026-11-05). `MAX_CRUISE` stays 800 until the speed probe supports raising it to at least 1000.
+- Speed multi = everything that scales base Speed, multiplied together:
+  - Index stat points in Speed: +% Speed per point (placeholder +2% per point, additive with the other stat points).
+  - Speed potions: timed x Speed (IVS potion pattern; placeholder x1.25).
+  - Upgrade tree **Speed** branch: each owned tier adds +% Speed to the character, additive with the Speed stat points
     (placeholder +10% per tier, 5 tiers, +50% max).
   - Preset team bonus x1.1 (4.8).
   - Upgrade tree **Money** branch (owner 2026-11-03): +10% Money per tier, 5 tiers.
   - Auras and trails: one aura and one trail equippable per team slot; each slot's aura and trail scale only that
-    slot's character (damped, as `RaceConfig.ItemCruiseMulti`). A player may own up to 3 copies of each aura and each
+    slot's character at their full listed multi (proposed 2026-11-05, was damped). A player may own up to 3 copies of each aura and each
     trail, each copy at the item's full price (owner 2026-11-04); one copy is worn on one team slot.
-  - Rebirth: +5% cruise per rebirth level (owner 2026-11-03, placeholder; 4.14), additive with the Speed stat points
-    and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
+  - Rebirth: a total multi on Speed by rebirth level (4.14); its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
@@ -176,17 +182,17 @@ when all 3 are empty, or when the player loses a track to the NPC.
   the sender's own save and kicks them, so the next join is a brand new player (starter popup, 4.21; arrival flow, 4.24).
   It takes no target. Only pending gifts and their receipts stay, so a paid gift is not lost or paid twice. `/wipe` stays
   as it is: a live reset of progress with no starter popup.
-- HUD: the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's CRUISE row and the
-  character cards still show cruise.
+- HUD: the speedometer and the cruise read-out (`RacerHud/Speed`) are removed. The profile's SPEED row and the
+  character cards show Speed.
 
 ### 4.14 Rebirth (owner 2026-11-01)
-- Each rebirth level gives: luck multi, +5% cruise (owner 2026-11-03; placeholder, `RebirthConfig.SPEED_PER_REBIRTH`,
-  +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost"). The Rebirth panel shows all three
+- Each rebirth level gives: luck multi, a total Speed multi (owner 2026-11-05; proposed x5 at rebirth 1, x100 at rebirth
+  5, x10qd at rebirth 20; `RebirthConfig.SPEED_TOTALS`, full table in `docs/SPEED_BALANCE_SPEC.md`) and +1 stat point (the "stat boost"). The Rebirth panel shows all three
   rewards, with the speed icon on the speed tile. Luck and speed show the total after the next rebirth; the stat point
   tile shows the points that rebirth gives.
 - Rebirth resets Money.
-- Player levels and XP are removed. Rebirth n+1 needs Money >= `BASE_MONEY` x `MONEY_GROWTH`^n: $100K for rebirth 1,
-  x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
+- Player levels and XP are removed. Rebirth n+1 needs the Money in `RebirthConfig.COSTS` (proposed 2026-11-05: $5K for
+  rebirth 1 up to $500B for rebirth 20, fitted to the 60-100 hour target; replaces $100K x10 each, which Track payouts could not reach). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
   luck totals table is unchanged.
 
 ### 4.15 Sensei checkpoints (owner 2026-11-02)
@@ -198,7 +204,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Clicking an open card picks it as the player's **checkpoint**, the track their runs start on
   (`Remotes.SetCheckpoint`, server-validated). The current checkpoint's card is marked. A locked card stays dimmed
   with its lock, and clicking it picks nothing.
-- Recommended speed is the lowest whole speed above the enemy's cruise speed (proposed; `NpcConfig.RecommendedSpeed`).
+- Recommended speed is the enemy's Speed x 1.01, rounded up (proposed 2026-11-05; `NpcConfig.RecommendedSpeed`).
 - Track 1 is always open. Track n opens once Track n-1 is beaten (`BestTrack >= n - 1`): the player can pick up to
   the track they are stuck on; every later track stays locked until they pass it.
 - The pick is saved (`Checkpoint`) and clamped to what is open. A run starts on the checkpoint track; a loss sends the
@@ -238,8 +244,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Workshop levels stay (bought with Money, same prices) and scale the boost: boost x (1 + 0.1 x (level - 1)) (proposed
   placeholder; level 10 = x1.9).
 - The boost applies always, everywhere, runs included. It is added to the chosen stat like the upgrade tree bonus
-  (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's `1 + points + tree` part
-  (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree` part (4.6). Speed and
+  (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's `1 + points + tree` part; Stamina to the stamina multi's `1 + points + tree` part (4.6). Speed and
   Stamina are fixed at run start, like every other run multi.
 - The `Workshop` stat point is retired: allocated Workshop points are refunded as free points.
 
@@ -276,9 +281,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.22 Collection cards: Index and Backpack Characters (owner 2026-11-03)
 - Layout ideas from the owner's reference screenshot, no copied art. Index tiles and Backpack Characters tiles share one
   card (`Components.CardFace`): rarity-tinted background, rarity inner border (Secret rainbow), the character's upper
-  body filling the card, cruise in gold above a bold name, category badge top right. Outer border: green = on the Team,
+  body filling the card, Speed in gold above a bold name, category badge top right. Outer border: green = on the Team,
   white = picked (Backpack), dark otherwise. Sizes, colours and cell counts are **proposed** placeholders.
-- Index: undiscovered cards stay a black silhouette with "?", rarity and public odds; discovered cards add name, cruise,
+- Index: undiscovered cards stay a black silhouette with "?", rarity and public odds; discovered cards add name, Speed,
   category and Equip. Catalog order is unchanged.
 - Backpack Characters: a Sort button (Rarity, Speed, Stamina; **proposed**) and a name search in the header. The default
   stays Rarity, least rare first (owner 2026-10-20). Top left of a card: `TEAM <slot>` on the Team, otherwise copies when
@@ -335,7 +340,7 @@ before any Studio work.
 
 ### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
 - Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
-  and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules and NPC speeds are unchanged.
+  and sources: `docs/NPC_RIVAL_SPEC.md`. Race rules are unchanged; NPC speeds: `docs/SPEED_BALANCE_SPEC.md`.
 - The player sees one enemy at a time: the one they are racing now.
 - A large indicator (the enemy's name over a down arrow) sits above the enemy's head and follows it. It has no distance
   limit and draws over the world, so it stays visible wherever the enemy is. It is fixed to the enemy while the enemy's head
@@ -451,6 +456,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-05: owner: Speed is a whole number with Tracks 9-10 in the octillions, and a curve turns it into studs/s (4.13). Track 1's enemy needs a full Rare team with stamina buffs (4.3). Rebirth gives a high total Speed multi and new costs, 60-100 hours to Track 10 (4.14). Category multiplies the Speed number (4.5). A loss keeps the won tracks (section 2). Cap test for 1000+ studs/s pending. `docs/SPEED_BALANCE_SPEC.md`.
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).

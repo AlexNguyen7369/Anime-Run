@@ -38,3 +38,21 @@
 - Balance risk: when rarity drives power, a strong low-rarity unit can outshine higher rarities; role-based design
   (sprinter vs marathoner) keeps more characters useful.
   - https://game-wisdom.com/?p=25009
+
+## 5. Rebirth and big numbers (2026-11-05)
+
+Public data is thin and mostly community guides; check in game before relying on a value.
+
+| Game | Rebirth reward | Source |
+|---|---|---|
+| Tank VS Train | Rebirth N = x(N+1) power, 13 levels | https://allthings.how/tank-vs-train-rebirth-guide-how-to-reach-rebirth-13-on-roblox/ |
+| Survive LAVA for Brainrots | cash x1.5 to x7 over 12 levels | https://allthings.how/how-rebirth-works-in-survive-lava-for-brainrots-all-12-levels-and-requirements/ |
+| Escape Tsunami for Brainrots | money x11 at rebirth 20 | search summary, allthings.how |
+| Race for Eggs | cash x2, x4, x8 | search summary |
+| Clicker Simulator | x20 at rebirth 10, x150+ at rebirth 50 (sources conflict) | https://earnaldo.com/blog/clicker-simulator-free-robux-guide |
+| Pet Simulator 99 | max 9 rebirths, +75% pet strength early | https://robloxden.com/game-codes/pet-simulator-99/guides/pet-simulator-99-how-to-rebirth |
+| Legends of Speed | +1 multi stacking; level 50, 75, 100 to rebirth | https://legends-of-speed.fandom.com/wiki/Rebirth |
+
+- Linear or doubling rebirth multis are normal. Anime Run's table is much steeper on purpose, to match octillion Speed; no game above backs it as a benchmark.
+- Exponential costs are the usual pacing tool and can outrun players when not tied to income: https://devforum.roblox.com/t/simulator-formulas/853976
+- Not found: a verified endgame table reaching octillions, or Muscle Legends and Race Clicker tables.

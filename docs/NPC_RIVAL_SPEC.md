@@ -4,14 +4,14 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 (`IVS docs/NPC_RACER_SPEC.md`), with anime runners instead of cars.
 
 - One enemy per track, from the anime of that track's biome (design doc 4.26, section 5): `Shared/NpcConfig.Tracks[n]`, its own name (`Label`), colour and `Model`.
-- Speed (placeholder): Track 1 = 16 studs/s, x1.51 per later track (Track 10 = 653 studs/s), always below
-  `RaceConfig.MAX_CRUISE`.
+- Speed (placeholder): `NpcConfig.Tracks[n].Speed`, 1k on Track 1 to 500oc on Track 10, shown as a number; real movement is
+  45.5 to 653 studs/s, always below `RaceConfig.MAX_CRUISE` (`docs/SPEED_BALANCE_SPEC.md`).
 - NPC rivals have no stamina: they run the whole track at their speed.
 - Runs the LEFT lane; the player's runner keeps the right lane.
 - Pure maths (`NpcRacer.LanePath`, `Profile`, `PoseAt`): its track time is known when the track starts.
 - A race starts every time the player starts a track. The player wins if their runner reaches the finish before the
   NPC's time. A loss plays out to the finish, then the loser screen shows for `LOSE_SCREEN_SECONDS` (3) and the player
-  goes back to the start track; the bank is emptied.
+  goes back to the start track; the tracks already won that run are cashed out and the lost track pays nothing (owner 2026-11-05).
 - Per player: the NPC exists only in the owner's client; race events go only to the owner. Players pass through each
   other; NPC parts never collide.
 - Indicator (owner 2026-11-03, design doc 4.26): above the enemy's head, the name over a down arrow, in the client's
