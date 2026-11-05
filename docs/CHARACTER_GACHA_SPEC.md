@@ -124,7 +124,7 @@ Robux-exclusive runner (owner 2026-11-04, design doc 4.35; never rolled, not in 
 
 | Character | Based on | Rarity | Cat. | Id | Base cruise | Model |
 |---|---|---|---|---|---|---|
-| Saitamo | Saitama (One-Punch Man) | Mythic (proposed) | B | `punch_hero` | 350 | built locally, not uploaded |
+| Saitamo | Saitama (One-Punch Man) | Mythic (proposed) | B | `punch_hero` | 350 | `punch_hero` |
 
 Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 

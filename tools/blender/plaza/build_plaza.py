@@ -448,8 +448,8 @@ def index_board():
 	return m
 
 
-def pedestal(i, x, z, glow):
-	m = M(f"LegendPedestal_{i}", place(x, z, TOP, facing_point(x, z, *LEGEND_LOOK)))
+def pedestal(i, x, z, glow, look=None):
+	m = M(f"LegendPedestal_{i}", place(x, z, TOP, facing_point(x, z, *(look or LEGEND_LOOK))))
 	m.cyl(3.8, 0.8, (0, 0, 0), "slab", n=8)
 	m.cyl(3.2, 1.0, (0, 0, 0.8), "stone", n=8)
 	m.cyl(3.5, 0.3, (0, 0, 1.8), glow, n=8)
@@ -878,6 +878,9 @@ LEGENDS = [  # one each side of the gate (x, z), glow ring in a logo colour
 	("db_hero", -71.5, 94, "so"),
 	("mha_symbol", -89.5, 61.5, "sb"),
 ]
+# The Robux-exclusive runner's pedestal (design doc 4.35), not a Legend: in the gap between Plots 6 and 7 as seen from the
+# spawn, so every Dojo stays visible (4.24 Clear plaza), facing the spawn. Position proposed.
+EXCLUSIVE = ("punch_hero", -4.5, 36, "so")
 LEGEND_LOOK = along(75)  # both turn toward a player coming up the path
 LEGEND_H = 9.0  # studs; about 1.6x a runner (proposed)
 RUNNER_H = 5.6
@@ -915,6 +918,9 @@ def build(scene):
 	for i, (cid, x, z, glow) in enumerate(LEGENDS):
 		add(pedestal(i, x, z, glow))
 		put_char(world, cid, x, TOP + 2.6, z, facing_point(x, z, *LEGEND_LOOK), LEGEND_H, "Legend_" + cid)
+	cid, x, z, glow = EXCLUSIVE
+	add(pedestal(len(LEGENDS), x, z, glow, look=SPAWN))
+	put_char(world, cid, x, TOP + 2.6, z, facing_point(x, z, *SPAWN), LEGEND_H, "Exclusive_" + cid)
 	# Sky-loop runners: the 3 starters' models, racing with blue and orange trails
 	runners = [(205, "neonb", 0, "leaf_hero"), (20, "neono", 1, "sea_captain"), (95, "neonb", 0, "db_hero")]
 	add(trails([(d, c, o) for d, c, o, _ in runners]), False)
@@ -1076,7 +1082,9 @@ def export_all():
 	legends = []
 	for cid, x, z, _ in LEGENDS:
 		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *LEGEND_LOOK))})
-	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
+	cid, x, z, _ = EXCLUSIVE
+	exclusive = {"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *SPAWN))}
+	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Exclusive": exclusive, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
 	with open(os.path.join(ROOT, "build", "plaza", "layout.json"), "w") as f:
 		json.dump(layout, f, indent=1)
 	print("EXPORT", len(assets), "assets", sum(p["Tris"] for a in assets.values() for p in a["Parts"].values()), "unique tris")
@@ -1103,6 +1111,9 @@ def main():
 	shots = {
 		"01_spawn_view": ((back[0], TOP + 7.5, back[1]), (PAD[0], TOP + 14, PAD[1])),  # default camera behind a new player
 		"02_aerial": ((115, 92, -125), (-12, 0, 12)),
+		"09_exclusive": ((0, TOP + 7.5, -2), (-4.5, TOP + 8, 36)),
+		"10_exclusive_close": ((3, TOP + 7, 18), (-4.5, TOP + 7.5, 36)),
+		"11_spawn_ring_north": ((0, TOP + 7.5, -8), (0, TOP + 8, 100)),
 		"03_gate_back": ((-104, TOP + 9, 96), (0, TOP + 8, 0)),
 		"04_reveal_start": ((-185, 95, 170), (-20, 8, 15)),
 		"06_dojo_ring": ((-5, TOP + 7, -5), (-42, TOP + 9, -91)),

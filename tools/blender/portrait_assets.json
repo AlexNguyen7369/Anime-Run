@@ -247,6 +247,14 @@
   "HeadImage": "83018071556826",
   "Image": "119531960093620"
  },
+ "punch_hero": {
+  "Decal": "74035650272221",
+  "Hash": "2e32d79dcd09459b2471fbdf2cbfdf0a160dabc232d38e6a05130e27b4a2cd72",
+  "HeadDecal": "95880093135921",
+  "HeadHash": "d256ccc233a46ff068b04b02ff60b865c4ce4cc6cdfe1ae81f0982e63da26f5a",
+  "HeadImage": "138408988862084",
+  "Image": "90519431236954"
+ },
  "sea_captain": {
   "Decal": "110467950109719",
   "Hash": "438e89fae8be8c3eed134880b80c1e268714dc950844021b91bb2ba4796ef5ef",

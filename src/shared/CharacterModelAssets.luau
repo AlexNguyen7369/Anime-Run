@@ -376,6 +376,17 @@ return {
 			Torso = Vector3.new(2.356, 2.56, 1.653),
 		},
 	},
+	punch_hero = {
+		Asset = 127303754806397,
+		Sizes = {
+			Head = Vector3.new(2, 2.04, 1.68),
+			LeftArm = Vector3.new(1.32, 2.4, 1.12),
+			LeftLeg = Vector3.new(1.16, 2.12, 1.64),
+			RightArm = Vector3.new(1.32, 2.4, 1.12),
+			RightLeg = Vector3.new(1.16, 2.12, 1.64),
+			Torso = Vector3.new(3.56, 4.28, 2.027),
+		},
+	},
 	sea_captain = {
 		Asset = 92259398998895,
 		Sizes = {

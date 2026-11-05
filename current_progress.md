@@ -83,8 +83,9 @@
 80. 2026-11-04 — Alex Nguyen — Ran passes, odds, bag and 7 related scenarios in Studio with 0 failures, and created the 10 developer products off sale through Open Cloud; gamepasses were refused for a missing key scope.
 81. 2026-11-04 — Alex Nguyen — Created the 11 gamepasses off sale through Open Cloud and put their ids in MonetizationConfig.
 82. 2026-11-04 — Alex Nguyen — Built the Saitamo model, atlas and portrait locally with its evidence record, not uploaded, pending the owner's review and licensing decision.
+83. 2026-11-05 — Alex Nguyen — Recorded the owner's ruling, uploaded the Saitamo model, portrait and head, and drafted its spawn pedestal in Blender for review.
 
 ## What's next
-**Get the owner's decision on the Saitamo renders and on uploading an unlicensed likeness sold through its own pass, then clear the Studio test attributes and check the new UI.**
+**Get the owner's look at the Saitamo pedestal draft, then build it in game with its pass prompt and test the new UI in Studio.**
 
-**Why this is next:** the pedestal, the pass going on sale and the merge all depend on that decision and that check.
+**Why this is next:** design doc 4.24 requires that look before Studio work, and merging and going on sale depend on the UI and harness checks.

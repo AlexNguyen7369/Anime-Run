@@ -403,7 +403,7 @@ before any Studio work.
 - Dojo Master: workshop boost x1.5. It replaces the Gold, Diamond and Void Workshop passes, which are removed.
 - Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
 - + Inventory: +100 bag spaces (4.36).
-- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
+- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
 - Server Luck stays unsold until it is built. Auto Restart and Bank Insurance were offered and declined.
 
 ### 4.36 Character bag and auto sell (owner 2026-11-04)
@@ -474,6 +474,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-05: owner: upload the Saitamo likeness with no license, takedown risk accepted (4.35).
 - 2026-11-04: owner: first gamepass list, exclusive runner Saitamo with a spawn pedestal, Workshop tier passes removed (4.13, 4.24, 4.35, MONETIZATION_SPEC). Character bag, auto sell, upgrade tree Inventory branch; sold duplicates pay Money (3, 4.36, BAG_AND_AUTOSELL_SPEC). "Details" odds list (6).
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).

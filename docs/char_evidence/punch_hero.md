@@ -2,7 +2,7 @@
 
 Source design: Saitama, One-Punch Man. Version: the standard hero suit, intact, deadpan face. No torn suit and no serious face.
 Check date: 2026-11-04.
-Licensing: no Roblox-supported license or written permission found, unlicensed reference. Roblox listings for this franchise found in the search carry disclaimers or no licensing claim; licensed games found are on other platforms. Owner's section 5 risk acceptance is not a license. This character is sold directly through its own pass, so the upload decision stays with the owner.
+Licensing: no Roblox-supported license or written permission found, unlicensed reference. Roblox listings for this franchise found in the search carry disclaimers or no licensing claim; licensed games found are on other platforms. Owner's section 5 risk acceptance is not a license. This character is sold directly through its own pass, so the upload decision was the owner's: upload, risk accepted (owner 2026-11-05, design doc 4.35).
 
 | Attribute | Value | Status | Source | Version | Checked |
 |---|---|---|---|---|---|
@@ -31,5 +31,5 @@ Licensing: no Roblox-supported license or written permission found, unlicensed r
 | Camera readability | not checked | not seen in game or at running speed |
 | Tris | pass | 2,044 of the 12,000 budget |
 | Body rule | pass | blocky R15 proportions kept, plain hands, no taper |
-| Roblox import | not run | not exported or uploaded |
-| IP | unlicensed reference | private build only |
+| Roblox import | uploaded, not seen in game | Model 127303754806397 |
+| IP | unlicensed, public use | owner ruling 2026-11-05, design doc 4.35 |
