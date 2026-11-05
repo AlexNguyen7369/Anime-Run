@@ -1,7 +1,8 @@
 --!nonstrict
 -- Boss arena blockout (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"). Client-only: the diameter exceeds the streaming
--- target. Plain parts from BossArenaConfig; the dressing and clouds come later.
--- shortcut: a test attribute starts this, not an event; the event server (b5) replaces the BossArenaPreview trigger.
+-- target. Plain parts from BossArenaConfig; the dressing and clouds come later. Built while this player is in an event
+-- (player attribute BossEvent), or while the test attribute BossArenaPreview is on.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -92,11 +93,16 @@ local function build(mine)
 end
 
 local function refresh()
+	local want = ReplicatedStorage:GetAttribute(ATTRIBUTE) == true
+		or Players.LocalPlayer:GetAttribute("BossEvent") == true
+	if want == (folder ~= nil) then
+		return
+	end
 	if folder then
 		folder:Destroy()
 		folder = nil
 	end
-	if ReplicatedStorage:GetAttribute(ATTRIBUTE) == true then
+	if want then
 		local mine = Instance.new("Folder")
 		mine.Name = "BossArenaPreview"
 		mine.Parent = Workspace
@@ -106,4 +112,5 @@ local function refresh()
 end
 
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
+Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
 refresh()

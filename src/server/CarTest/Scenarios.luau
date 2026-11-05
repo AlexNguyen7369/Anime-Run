@@ -12529,7 +12529,7 @@ end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
 -- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
-local STAMINA_SCENARIOS = { team = true, stamina = true, team_bonus = true, sidekicks = true }
+local STAMINA_SCENARIOS = { team = true, stamina = true, team_bonus = true, sidekicks = true, boss_event = true }
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
@@ -12590,6 +12590,8 @@ Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design
 Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/SIDEKICK_SPEC.md "Gems"
 Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design doc 4.36, docs/SIDEKICK_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
+-- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
+Scenarios.boss_event = require(script.Parent.BossEventTests).make({ newFakeCharacter = newFakeCharacter }).boss_event
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

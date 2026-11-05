@@ -806,7 +806,10 @@ end)
 -- PanelSwitch panel is open, so it never covers a panel's top or takes its clicks; the roll keeps playing.
 local function refreshToast()
 	local playing = phase ~= "Idle"
-	local show = not isEnlarged() and not PanelSwitch.AnyOpen() and (playing or not autoRollOn())
+	local show = not isEnlarged()
+		and not PanelSwitch.AnyOpen()
+		and (playing or not autoRollOn())
+		and player:GetAttribute("BossEvent") ~= true
 	local hud = playerGui:FindFirstChild("RacerHud")
 	if hud and not isEnlarged() then
 		hud.Enabled = true
@@ -1420,6 +1423,7 @@ end
 fitCompact()
 -- Synchronously, so the toast is never drawn for a frame after a panel opens.
 PanelSwitch.OnChange(refreshToast)
+player:GetAttributeChangedSignal("BossEvent"):Connect(refreshToast) -- design doc 4.37: auto-roll pauses in the event
 toast:GetPropertyChangedSignal("AbsoluteSize"):Connect(drawShown)
 
 -- The generated RollShowcase is the old card layout, and its fit() puts these rows back on every resize. Runtime

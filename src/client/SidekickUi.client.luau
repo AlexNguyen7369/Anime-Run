@@ -183,15 +183,13 @@ local balance = make("Frame", "Balance", right, {
 	Size = UDim2.new(1, 0, 0, 26),
 	BackgroundTransparency = 1,
 })
-local gemIcon = make("Frame", "GemIcon", balance, {
+make("ImageLabel", "GemIcon", balance, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.new(0, 14, 0.5, 0),
-	Size = UDim2.fromOffset(15, 15),
-	Rotation = 45,
-	BackgroundColor3 = PALETTE.White,
-	BorderSizePixel = 0,
+	Size = UDim2.fromOffset(24, 24),
+	BackgroundTransparency = 1,
+	Image = Icons.Gem.Image,
 })
-UiTheme.Gradient(gemIcon, GEM, GEM_DEEP)
 local gemsValue = caption("GemsValue", balance, {
 	Position = UDim2.fromOffset(30, 0),
 	Size = UDim2.new(1, -30, 1, 0),
