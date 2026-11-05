@@ -53,7 +53,10 @@ function RaceConfig.Cruise(spec, speedMulti)
 	if spec and positive(spec.AdminCruise) then
 		return spec.AdminCruise
 	end
-	local base = RaceConfig.RARITY_BASE[spec and spec.Rarity] or RaceConfig.RARITY_BASE.Common
+	-- BaseCruise: the exclusive runner's exception to rarity x category (design doc 4.13, 4.35)
+	local base = spec and spec.BaseCruise
+		or RaceConfig.RARITY_BASE[spec and spec.Rarity]
+		or RaceConfig.RARITY_BASE.Common
 	local category = RaceConfig.CATEGORY_SPEED[spec and spec.Category] or 1
 	local multi = positive(speedMulti) and speedMulti or 1
 	return math.min(base * category * multi, RaceConfig.MAX_CRUISE)

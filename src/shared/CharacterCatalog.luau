@@ -62,6 +62,22 @@ do
 	}
 end
 
+-- The Robux-exclusive runner (design doc 4.35): granted by its gamepass, never rolled, not in the Index. Rarity sets
+-- the look and stamina (proposed). Model is added in the art pass; until then the placeholder rig runs it.
+CharacterCatalog.EXCLUSIVE_ID = "punch_hero"
+PICKS[CharacterCatalog.EXCLUSIVE_ID] = {
+	Id = CharacterCatalog.EXCLUSIVE_ID,
+	Name = "Saitamo",
+	Rarity = "Mythic",
+	Chance = nil,
+	SpeedMulti = 1,
+	BaseCruise = 350, -- studs/s (owner 2026-11-04)
+	Order = 0,
+	Category = "Balanced",
+	Model = nil,
+	Rollable = false,
+}
+
 local specs = {} -- Id -> spec
 for _, module in Characters:GetChildren() do
 	if module:IsA("ModuleScript") then

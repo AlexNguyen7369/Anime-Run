@@ -38,7 +38,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
-| Duplicates add `Copies` and pay no Money | IVS 2026-10-22 |
+| Duplicates add `Copies` and pay no Money, unless sold (owner 2026-11-04, 4.36) | IVS 2026-10-22 |
 | Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); chosen stat boost instead of passive gain (4.19) | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (4.14) | `RebirthService` |
@@ -170,6 +170,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
     and the upgrade tree Speed branch; its +1 stat point can also go into Speed.
 - Removed: `leaderstats.Speed`, Speed gain while running, Speed rewards and codes, the Speed leaderboard, gate signs
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
+- Saitamo's base cruise is 350 (owner 2026-11-04, 4.35), the one exception to rarity x category. The speed multi applies as usual.
 - Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
   rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`.
 - Admin test commands (owner 2026-11-04): `/narito [player]` adds Narito (`leaf_hero`) to the index. `/newplayer` erases
@@ -310,6 +311,7 @@ before any Studio work.
   first run ends (its button still works). The gate plays a burst when they first cross it.
 - **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, next to the Race Start gate (owner 2026-11-04), and 2-3 client-only runners with
   trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
+- **Exclusive pedestal** (owner 2026-11-04, 4.35): one pedestal near the spawn advertises Saitamo. It does not count toward the 2 Legends and follows Clear plaza: every Dojo stays visible from the spawn.
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
@@ -391,6 +393,27 @@ before any Studio work.
 - It has the same client-side effect as `NinjaRun` (4.23): air streaks and foot dust while moving, free, display only, no gameplay
   effect. REDUCED EFFECTS removes the dust. NPCs get the pose, not the effect.
 
+### 4.35 Gamepasses (owner 2026-11-04)
+- Passes are permanent and account-bound; nothing here is random. Prices are placeholders except Saitamo's. Effects, numbers and code paths: `docs/MONETIZATION_SPEC.md`.
+- VIP: a VIP title, +10% Money, +10% Luck. Planned, not built: -10% Sidekick roll cost, when the owner adds Sidekick rolls in a later update.
+- 2x Auto-Roll: halves the roll interval, so the 2 s floor of Roll Speed tiers (`MIN_ROLL_INTERVAL`) becomes 1 s for its owners.
+- Extra Roll I and II: +1 roll each per roll tick (3 in total).
+- 2x Money: doubles race payouts.
+- Lucky and ULTRA Lucky: +1 and +2 Luck, added to the additive Luck part (+3 with both, **proposed**).
+- Dojo Master: workshop boost x1.5. It replaces the Gold, Diamond and Void Workshop passes, which are removed.
+- Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
+- + Inventory: +100 bag spaces (4.36).
+- Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
+- Server Luck stays unsold until it is built. Auto Restart and Bank Insurance were offered and declined.
+
+### 4.36 Character bag and auto sell (owner 2026-11-04)
+- The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
+- A full bag stops rolling until there is space. Only rolling is blocked: passes, daily rewards, codes and gifts still land. A save already over the cap keeps everything and cannot roll until it is below the cap.
+- Auto sell: the player fills in N in "1 in N", in Settings and in the auto-roll view. A rolled duplicate whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space. Default off.
+- Selling never takes a player's last copy of a character, and a new discovery is always kept.
+- Sell spares (orchestrator proposal, owner approved the plan 2026-11-04): a Backpack card sells all but 1 copy of that character, with a second tap to confirm, so a full bag can always be emptied.
+- Sale prices are not scaled by Money multis. Spec: `docs/BAG_AND_AUTOSELL_SPEC.md`.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -435,7 +458,7 @@ before any Studio work.
 - Free auto-spins stay the main source of characters.
 - Any spin bought with Robux, or with a currency bought with Robux, shows every outcome with its odds as a percentage
   (summing to exactly 100%) before purchase, behind a button labelled "Info" or "Details" (not a bare icon).
-- Paid luck boosts and any pity system show the updated odds while active.
+- Paid luck boosts and any pity system show the updated odds while active. The roll view and the luck Shop cards have a "Details" button listing every outcome as a percentage at the player's current luck (owner 2026-11-04).
 - Users flagged by `PolicyService:GetPolicyInfoForPlayerAsync` (`ArePaidRandomItemsRestricted`) get a free earnable
   path to every paid-random item, or see fixed disclosed outcomes; such items are not tradable.
 
@@ -443,7 +466,7 @@ before any Studio work.
 
 - Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
 - Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
-  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`. Unknown ids are kept. Stamina is never saved.
+  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`, `AutoSell`, `AutoSellChance`. Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
 
 ## 8. Open questions (owner)
@@ -451,6 +474,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-04: owner: first gamepass list, exclusive runner Saitamo with a spawn pedestal, Workshop tier passes removed (4.13, 4.24, 4.35, MONETIZATION_SPEC). Character bag, auto sell, upgrade tree Inventory branch; sold duplicates pay Money (3, 4.36, BAG_AND_AUTOSELL_SPEC). "Details" odds list (6).
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).

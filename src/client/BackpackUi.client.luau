@@ -18,6 +18,7 @@ local Ui = script.Parent:WaitForChild("RollToast"):WaitForChild("Ui")
 local Icons = require(Ui.HudIcons)
 local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
+local BagConfig = require(shared.BagConfig)
 local CharacterCatalog = require(shared.CharacterCatalog)
 local GachaConfig = require(shared.GachaConfig)
 local Components = require(Ui.RacerComponents)
@@ -285,6 +286,32 @@ local search = make("TextBox", "Search", toolbar, {
 corner(search, 10)
 stroke(search, OUTLINE, 3)
 make("UIPadding", "Padding", search, { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) })
+-- Bag space and selling a chosen character's spares (docs/BAG_AND_AUTOSELL_SPEC.md). Characters tab only.
+local bagLabel = caption("Bag", panel, {
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -176, 1, -6),
+	Size = UDim2.fromOffset(110, 22),
+	Text = "",
+	TextSize = 16,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	ZIndex = 8,
+	Visible = false,
+})
+local sellSpares = make("TextButton", "SellSpares", panel, {
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -12, 1, -4),
+	Size = UDim2.fromOffset(156, 28),
+	BackgroundColor3 = PALETTE.Muted,
+	Font = UiTheme.Font,
+	Text = "",
+	TextColor3 = PALETTE.White,
+	TextSize = 15,
+	AutoButtonColor = true,
+	ZIndex = 8,
+	Visible = false,
+})
+corner(sellSpares, UiTheme.Radius.S)
+stroke(sellSpares, OUTLINE, 2)
 local empty = caption("Empty", panel, {
 	Position = UDim2.fromOffset(120, 140),
 	Size = UDim2.new(1, -132, 0, 40),
@@ -323,6 +350,44 @@ end
 local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
 local chosenCharacter = nil -- the character id the slot buttons put on the Team
+local sellArmed = nil -- the id a first Sell tap asked about; the second tap sells
+local function refreshBag()
+	local onCharacters = toolbar.Visible
+	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
+	bagLabel.Visible = onCharacters
+	bagLabel.Text = "Bag " .. used .. "/" .. cap
+	bagLabel.TextColor3 = used >= cap and PALETTE.DangerDeep or PALETTE.White
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and chosenCharacter and data:FindFirstChild(chosenCharacter)
+	local spares = entry and entry:GetAttribute("Copies") or 0
+	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
+	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
+	sellSpares.Visible = onCharacters and spares > 0 and price ~= nil
+	if sellSpares.Visible then
+		sellSpares.Text = sellArmed == chosenCharacter and ("SURE? +$" .. HudFormat.Short(spares * price))
+			or ("SELL " .. spares .. " SPARE" .. (spares == 1 and "" or "S"))
+		sellSpares.BackgroundColor3 = sellArmed == chosenCharacter and PALETTE.DangerDeep or PALETTE.Muted
+	end
+end
+sellSpares.Activated:Connect(function()
+	if sellArmed ~= chosenCharacter then
+		sellArmed = chosenCharacter
+		refreshBag()
+		return
+	end
+	sellArmed = nil
+	local ok, message = remotes:WaitForChild("SellSpares"):InvokeServer(chosenCharacter)
+	if ok then
+		UiFeedback.Play("MoneyBig", sellSpares)
+	else
+		hint.Text = tostring(message)
+		UiFeedback.Play("Denied", sellSpares)
+	end
+	refreshBag()
+end)
+player:GetAttributeChangedSignal("BagUsed"):Connect(refreshBag)
+player:GetAttributeChangedSignal("BagCap"):Connect(refreshBag)
+toolbar:GetPropertyChangedSignal("Visible"):Connect(refreshBag)
 local busy = false
 local entering = false -- the next render is the panel opening: cascade its tiles
 local shownTiles = {}
@@ -518,6 +583,7 @@ function render()
 		end
 		applySearch()
 		slots:Update("Character", chosenCharacter)
+		refreshBag()
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"

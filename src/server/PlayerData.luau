@@ -268,6 +268,8 @@ local function save(player, userId, release)
 		Equipped = gacha.Equipped,
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
+		AutoSell = gacha.AutoSell,
+		AutoSellChance = gacha.AutoSellChance,
 		Upgrades = upgrades.Upgrades,
 		BestTrack = upgrades.BestTrack,
 		TurboCount = upgrades.TurboCount,

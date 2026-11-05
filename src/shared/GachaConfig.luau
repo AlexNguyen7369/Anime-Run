@@ -63,6 +63,44 @@ function GachaConfig.Roll(rng, luck)
 	return nil
 end
 
+-- The exact chance of every outcome at `luck`, walking the same order as GachaConfig.Roll: { { Spec, Chance (0-1) } }.
+-- A check only runs if every rarer check missed, so a chance is not simply luck / N (design doc 6).
+function GachaConfig.Odds(luck)
+	if type(luck) ~= "number" or luck ~= luck or luck < 1 then
+		luck = 1
+	end
+	local rollable = CharacterCatalog.Rollable()
+	local odds, left = {}, 1
+	for i, spec in rollable do
+		local hit = i == #rollable and 1 or math.min(1, luck / spec.Chance)
+		table.insert(odds, { Spec = spec, Chance = left * hit })
+		left *= 1 - hit
+	end
+	return odds
+end
+
+-- GachaConfig.Odds as display percentages: 3 significant digits, the most likely outcome takes the rounding so the
+-- list sums to exactly 100. { { Spec, Percent } }, most likely first.
+function GachaConfig.OddsPercents(luck)
+	local rows = {}
+	for _, row in GachaConfig.Odds(luck) do
+		if row.Chance > 0 then
+			table.insert(rows, { Spec = row.Spec, Percent = tonumber(string.format("%.3g", row.Chance * 100)) })
+		end
+	end
+	table.sort(rows, function(a, b)
+		return a.Percent > b.Percent
+	end)
+	local rest = 100
+	for i = 2, #rows do
+		rest -= rows[i].Percent
+	end
+	if rows[1] then
+		rows[1].Percent = rest
+	end
+	return rows
+end
+
 -- True if roll number `rollNumber` (1 = the first roll ever) is a turbo roll.
 function GachaConfig.IsTurbo(rollNumber)
 	return count(rollNumber) > 0 and count(rollNumber) % GachaConfig.TURBO_EVERY == 0

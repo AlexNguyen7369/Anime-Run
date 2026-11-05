@@ -150,6 +150,7 @@ DailyLoginService.Start()
 DuelService.Start() -- player vs player duels, no stake (docs/DUEL_SPEC.md)
 CheckpointService.Start() -- pick the starting track at the plaza sensei (design doc 4.15)
 QuestService.Start() -- UTC daily and weekly quest tracking (docs/QUESTS_SPEC.md)
-ShopService.Start() -- Robux potion receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md)
+require(script.Parent.PassService).Start() -- gamepass ownership and the paid random items policy
+ShopService.Start() -- Robux potion receipts and redeem codes (docs/MONETIZATION_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)
 LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)

@@ -1,5 +1,5 @@
 --!nonstrict
--- Shop catalogue (docs/GAMEPASS_SHOP_SPEC.md, docs/SHOP_PURCHASES_SPEC.md). The Creator Dashboard supplies the real
+-- Shop catalogue (docs/MONETIZATION_SPEC.md). The Creator Dashboard supplies the real
 -- ids; zero keeps an entry visible as "Coming soon". RobuxPrice is the listed price (proposed) shown until Roblox
 -- reports the live one. Title/Color/Icon are presentation only.
 local MonetizationConfig = {}
@@ -22,17 +22,21 @@ local VIOLET = Color3.fromRGB(175, 120, 255)
 local LIME = Color3.fromRGB(200, 240, 110)
 
 MonetizationConfig.Gamepasses = {
-	pass("vip", "VIP", 499, "VIP title, perks and priority treatment!", GOLD, "Rebirth"),
+	pass("vip", "VIP", 499, "VIP title, +10% Money and Luck!", GOLD, "Rebirth"),
 	pass("auto_roll_2x", "2x Auto-Roll", 199, "Roll twice as fast!", MINT, "Index"),
 	pass("extra_roll_1", "Extra Roll I", 299, "+1 auto-roll at once (2 total)!", SKY, "Index"),
 	pass("extra_roll_2", "Extra Roll II", 599, "+1 more auto-roll (3 total)!", VIOLET, "Index"),
 	pass("money_2x", "2x Money", 249, "Doubles race payouts!", GOLD, "Shop"),
 	pass("luck_1", "Lucky", 149, "Permanent +1 Luck!", LIME, "Stats"),
 	pass("luck_2", "ULTRA Lucky", 299, "Permanent +2 Luck!", VIOLET, "Stats"),
-	pass("workshop_gold", "Gold Workshop", 199, "Permanent Gold workshop tier!", GOLD, "Upgrade"),
-	pass("workshop_diamond", "Diamond Workshop", 499, "Permanent Diamond workshop tier!", SKY, "Upgrade"),
-	pass("workshop_void", "Void Workshop", 999, "Permanent Void workshop tier!", VIOLET, "Upgrade"),
+	pass("dojo_master", "Dojo Master", 299, "Workshop boost x1.5!", GOLD, "Upgrade"),
+	pass("deep_stamina", "Deep Stamina", 199, "+25% stamina for your team!", SKY, "Stats"),
+	pass("inventory", "+ Inventory", 199, "+100 bag spaces!", MINT, "Items"),
+	pass("exclusive_runner", "Saitamo", 999, "Exclusive runner: 350 studs/s!", VIOLET, "Index"),
 }
+
+-- Items that change roll odds (design doc 6): restricted players can not buy them, and they show "Details".
+MonetizationConfig.PaidLuck = { luck_1 = true, luck_2 = true, potion_luck_pack = true, potion_bundle = true }
 
 -- Developer products. Grants are boost ids from Shared/BoostConfig; Server/ShopService grants them per receipt.
 local bundle = {}

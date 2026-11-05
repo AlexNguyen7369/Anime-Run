@@ -103,6 +103,18 @@ UpgradeConfig.Branches = {
 		Direction = { 1, 0 },
 		Bonus = { 0.10, 0.10, 0.10, 0.10, 0.10 },
 	},
+	{
+		Id = "inventory",
+		Name = "Inventory",
+		-- Bag spaces per owned tier (design doc 4.36, owner 2026-11-04). 5 tiers and Weight are placeholders.
+		-- Forks off Walkspeed I because all 6 directions off Start are taken.
+		Effect = "Inventory",
+		Weight = 1,
+		Parent = "walkspeed_1",
+		Origin = { -1, 1 },
+		Direction = { -1, 0 },
+		Bonus = { 50, 50, 50, 50, 50 },
+	},
 }
 
 return UpgradeConfig
