@@ -120,6 +120,12 @@ Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are pr
 | Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
 | My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
 
+Robux-exclusive runner (owner 2026-11-04, design doc 4.35; never rolled, not in the Index, no Series, not counted in the rows below):
+
+| Character | Based on | Rarity | Cat. | Id | Base cruise | Model |
+|---|---|---|---|---|---|---|
+| Saitamo | Saitama (One-Punch Man) | Mythic (proposed) | B | `punch_hero` | 350 | built locally, not uploaded |
+
 Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
