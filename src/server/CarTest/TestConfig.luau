@@ -46,6 +46,7 @@ return {
 		"gift_mailbox",
 		"slot_items",
 		"gems",
+		"sidekicks",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

@@ -25,11 +25,12 @@ local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 local GiftMailbox = require(script.Parent.GiftMailbox)
 local RaceTimeService = require(script.Parent.RaceTimeService)
+local SidekickService = require(script.Parent.SidekickService)
 
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 14 -- 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 15 -- 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
@@ -157,6 +158,7 @@ function PlayerData.Load(player, userId)
 		BoostService.Apply(player, data)
 		DailyLoginService.Apply(player, data)
 		QuestService.Apply(player, data)
+		SidekickService.Apply(player, data) -- version 14 and older: an empty bag, free summon unused
 		RaceTimeService.Apply(player, data)
 		ShopService.Apply(player, data) -- version 8 and older: no receipts, no codes
 		giftReceipts[player] = type(data.GiftReceipts) == "table" and table.clone(data.GiftReceipts) or {}
@@ -260,9 +262,14 @@ local function save(player, userId, release)
 	local daily = DailyLoginService.Snapshot(player)
 	local quests = QuestService.Snapshot(player)
 	local shop = ShopService.Snapshot(player)
+	local sidekicks = SidekickService.Snapshot(player)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
 		Gems = cleanInt(player:GetAttribute("Gems"), 0, MAX_MONEY, 0),
+		Sidekicks = sidekicks.Sidekicks,
+		CharacterGear = sidekicks.CharacterGear,
+		SidekickAutoSell = sidekicks.SidekickAutoSell,
+		SidekickFreeUsed = sidekicks.SidekickFreeUsed,
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
 		Showcase = gacha.Showcase,

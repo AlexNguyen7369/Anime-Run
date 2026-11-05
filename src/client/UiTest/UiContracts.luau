@@ -839,7 +839,7 @@ function Contracts.Build(h)
 		local charactersTab = h.find(B.CharactersTab)
 		local tabEdge = charactersTab and charactersTab:FindFirstChildOfClass("UIStroke")
 		check(res, "backpack_opens_on_characters", tabEdge ~= nil and tabEdge.Color == Color3.new(1, 1, 1), true)
-		-- Exactly the four tabs, top to bottom in the spec's order, each labelled with its name
+		-- Exactly the five tabs, top to bottom in the spec's order, each labelled with its name
 		local buttons = {}
 		for _, child in rail:GetChildren() do
 			if child:IsA("GuiButton") then

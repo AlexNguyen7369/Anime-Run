@@ -39,6 +39,16 @@ local LABELS = {
 		HideWithin = HIDE_WITHIN,
 	},
 	{
+		Key = "Sidekicks",
+		Text = "SIDEKICKS",
+		Shape = "Star",
+		Color = Color3.fromRGB(30, 150, 170),
+		At = Vector3.new(-72, 18, -98.75),
+		Size = ROW_SIZE,
+		MaxDistance = ROW_MAX_DISTANCE,
+		HideWithin = ROW_HIDE_WITHIN,
+	},
+	{
 		Key = "Shop",
 		Text = "SHOP",
 		Shape = "Gem",

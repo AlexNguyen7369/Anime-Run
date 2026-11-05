@@ -34,6 +34,14 @@ MonetizationConfig.Gamepasses = {
 	pass("workshop_void", "Void Workshop", 999, "Permanent Void workshop tier!", VIOLET, "Upgrade"),
 }
 
+-- Gem packs (design doc 4.35, docs/SIDEKICK_SPEC.md, placeholder prices). ProductId 0: no product yet, the tile shows "Coming soon".
+MonetizationConfig.GemPacks = {
+	{ Id = "gems_1000", Gems = 1000, ProductId = 0, RobuxPrice = 199 },
+	{ Id = "gems_2500", Gems = 2500, ProductId = 0, RobuxPrice = 449 },
+	{ Id = "gems_10000", Gems = 10000, ProductId = 0, RobuxPrice = 1499 },
+	{ Id = "gems_30000", Gems = 30000, ProductId = 0, RobuxPrice = 3999 },
+}
+
 -- Developer products. Grants are boost ids from Shared/BoostConfig; Server/ShopService grants them per receipt.
 local bundle = {}
 for _, category in { "Luck", "Money", "Speed", "Stamina" } do

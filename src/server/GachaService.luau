@@ -211,6 +211,8 @@ local function owns(player, id)
 	return data ~= nil and data:FindFirstChild(id) ~= nil
 end
 
+GachaService.Owns = owns
+
 -- Discovers a catalog car. Returns true if it is new to the index, false if already owned (nothing changes),
 -- nil (and changes nothing) for anything that is not a rollable car Id.
 function GachaService.Grant(player, id)
@@ -452,7 +454,7 @@ end
 
 -- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
 -- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level + workshop boost, active Speed potion, preset team bonus, that slot's
--- damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
+-- damped aura and trail, that character's Sidekick), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
 -- not own runs as the starter.
 function GachaService.CruiseFor(player, id, slot)
 	slot = slot or 1
@@ -465,7 +467,8 @@ function GachaService.CruiseFor(player, id, slot)
 		MarketConfig.TrailMulti(player, slot),
 		(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
 	)
-	return RaceConfig.Cruise(spec, multi)
+	-- late: SidekickService -> GachaService
+	return RaceConfig.Cruise(spec, multi * require(script.Parent.SidekickService).CruiseMulti(player, spec.Id))
 end
 
 -- Cruise of the equipped character (EquippedCar: RaceService sets it to the active Team slot's character).
@@ -481,12 +484,17 @@ function GachaService.RefreshTeam(player)
 	player:SetAttribute("TeamBonus", kind and (kind .. ":" .. series.Id) or "")
 	player:SetAttribute("WorkshopBoost", GachaService.WorkshopBoost(player))
 	local staminaMulti = GachaService.StaminaMulti(player)
+	local gear = require(script.Parent.SidekickService) -- late: SidekickService -> GachaService
 	for slot = 1, TEAM_SIZE do
 		local spec = team[slot] and CharacterCatalog.Get(team[slot])
 		player:SetAttribute("TeamCruise" .. slot, spec and GachaService.CruiseFor(player, team[slot], slot) or nil)
 		player:SetAttribute(
 			"TeamStamina" .. slot,
-			spec and math.round(StaminaConfig.Seconds(spec, staminaMulti) * 10) / 10 or nil
+			spec
+					and math.round(
+						StaminaConfig.Seconds(spec, staminaMulti * gear.StaminaMulti(player, team[slot])) * 10
+					) / 10
+				or nil
 		)
 	end
 	if player:GetAttribute("AutoRacing") ~= true then
