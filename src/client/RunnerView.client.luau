@@ -24,7 +24,7 @@ local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns t
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
-local routes = {} -- RunRoutes folder name -> { Wps, Arc }
+local routes = {} -- RunRoutes folder name -> { Wps, Arc, Closed }
 
 local EFFECTS = { "ParticleEmitter", "Trail", "Beam", "BillboardGui" }
 local function isEffect(d)
@@ -68,7 +68,8 @@ local function routeOf(name)
 		end
 		wps[i] = v.Value
 	end
-	cached = { Wps = wps, Arc = PathDriver.Arc(wps) }
+	-- Closed: a lap route (design doc 4.37). The folder attribute is set by whoever publishes the route.
+	cached = { Wps = wps, Arc = PathDriver.Arc(wps), Closed = folder:GetAttribute("Closed") == true }
 	routes[name] = cached
 	return cached
 end
@@ -187,7 +188,7 @@ local function step(view, now)
 		RunnerVisual.Pose(copy, rig:GetPivot(), 0, 0)
 		return
 	end
-	local arcEnd = route.Arc[#route.Arc]
+	local arcEnd = route.Closed and math.huge or route.Arc[#route.Arc] -- a lap route's distance keeps growing; PoseAt wraps it
 	local target = math.min(rd + rs * (now - view.ChangedAt), arcEnd)
 	local dist = view.Dist
 	if not dist or math.abs(target - dist) > math.max(SNAP_STUDS, rs * SNAP_SECONDS) then
@@ -200,7 +201,7 @@ local function step(view, now)
 	view.Dist = dist
 	view.Moving = rs > 0
 	RunStyleFx.SetMoving(copy, view.Moving)
-	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint)
+	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint, route.Closed)
 	view.Hint = k
 	view.Phase = RunnerVisual.Advance(view.Phase, rs, dt)
 	RunnerVisual.Pose(copy, feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0), view.Phase, rs > 0 and 1 or 0)

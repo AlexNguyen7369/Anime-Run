@@ -18,8 +18,12 @@ function PathDriver.Arc(wps)
 end
 
 -- Flat (XZ) path direction at waypoint k: between its neighbours, so the heading turns smoothly through a corner.
-local function tangentAt(wps, k)
-	local d = wps[math.min(k + 1, #wps)] - wps[math.max(k - 1, 1)]
+-- A closed path's last waypoint repeats its first, so its ends take their neighbours across the seam.
+local function tangentAt(wps, k, closed)
+	local n = #wps
+	local after = k < n and wps[k + 1] or (closed and wps[2] or wps[n])
+	local before = k > 1 and wps[k - 1] or (closed and wps[n - 1] or wps[1])
+	local d = after - before
 	return Vector3.new(d.X, 0, d.Z)
 end
 
@@ -38,15 +42,20 @@ end
 
 -- The pose `dist` studs along the path: the point on the waypoint polyline (feet on the road, exact arc length) and
 -- an upright CFrame at that point facing along the path (heading blended between the waypoint tangents).
+-- closed: the path is a loop (last waypoint repeats the first) and dist wraps around it; otherwise dist clamps to its ends.
 -- Returns cframe (at the feet), segment index.
-function PathDriver.PoseAt(wps, arc, dist, hint)
+function PathDriver.PoseAt(wps, arc, dist, hint, closed)
 	local n = #wps
-	dist = math.clamp(dist, 0, arc[n])
+	if closed then
+		dist %= arc[n]
+	else
+		dist = math.clamp(dist, 0, arc[n])
+	end
 	local k = PathDriver.SegmentAt(arc, dist, hint)
 	local len = arc[k + 1] - arc[k]
 	local t = len > 1e-6 and (dist - arc[k]) / len or 0
 	local pos = wps[k]:Lerp(wps[k + 1], t)
-	local dir = tangentAt(wps, k):Lerp(tangentAt(wps, k + 1), t)
+	local dir = tangentAt(wps, k, closed):Lerp(tangentAt(wps, k + 1, closed), t)
 	if dir.Magnitude < 1e-6 then
 		local d = wps[k + 1] - wps[k]
 		dir = Vector3.new(d.X, 0, d.Z)
