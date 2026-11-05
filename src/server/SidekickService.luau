@@ -209,6 +209,20 @@ local function worn(player, characterId)
 	return row and Config.Get(row.Id)
 end
 
+-- The catalog row of what the character wears; nil with none or an id this version does not know.
+SidekickService.Worn = worn
+
+-- The characters the player owns that wear a Sidekick this version knows (boss event teams, design doc 4.37).
+function SidekickService.GearedCharacters(player)
+	local list = {}
+	for characterId in state[player] and state[player].CharacterGear or {} do
+		if worn(player, characterId) and GachaService.Owns(player, characterId) then
+			table.insert(list, characterId)
+		end
+	end
+	return list
+end
+
 -- 1 + the worn Sidekick's gain for that character; 1 with none or an id this version does not know.
 function SidekickService.CruiseMulti(player, characterId)
 	local spec = worn(player, characterId)

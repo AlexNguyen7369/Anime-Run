@@ -36,6 +36,7 @@ local CheckpointConfig = require(Shared.CheckpointConfig)
 local GemConfig = require(Shared.GemConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
+local BossEventConfig = require(Shared.BossEventConfig)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local GachaService = require(script.Parent.GachaService)
@@ -138,6 +139,7 @@ local function routeName(path)
 	local folder = Instance.new("Folder")
 	folder.Name = name
 	folder:SetAttribute("Count", #path.WorldWaypoints)
+	folder:SetAttribute("Closed", path.Closed == true or nil) -- a lap route: RunnerView lets its distance keep growing
 	for i, p in path.WorldWaypoints do
 		local v = Instance.new("Vector3Value")
 		v.Name = tostring(i)
@@ -161,6 +163,8 @@ end
 --          { StartTrack = n } (NPC mode) starts on track n, and a loss or the loop goes back to it (checkpoints).
 --          { Duel = { Track = n, OnFinish = fn(run, seconds) } } is a duel run (docs/DUEL_SPEC.md): no NPC, starts
 --          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
+--          { Boss = true, Team = { ids } } is a boss event run (design doc 4.37, docs/BOSS_EVENT_SPEC.md): real stamina on the
+--          closed lane route, no NPC, no pads, never a cash-out. At all empty: run.Waiting, then the full team refills.
 function RaceService.NewRun(car, raceRoute, player, options)
 	options = options or {}
 	car:SetAttribute("AutoRace", true)
@@ -193,6 +197,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		Wins = 0,
 		Losses = 0,
 		Resets = 0,
+		Waiting = false, -- boss run: the exhausted team's wait before its refill
 	}
 
 	local function rewardTrackWin(trackNumber)
@@ -202,6 +207,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 	local npcMode = options.Npc == true and type(raceRoute.Tracks) == "table" and #raceRoute.Tracks > 0
 	local duel = not npcMode and type(options.Duel) == "table" and options.Duel or nil
+	local boss = options.Boss == true
+	local closed = raceRoute.Path.Closed == true -- dist keeps growing and wraps around the route
+	local waitLeft = 0 -- boss run: seconds of run.Waiting left
 	-- options.StartTrack (design doc 4.15): the NPC run starts here, restarts here after a loss and loops here
 	local startIndex = 1
 	for i, track in npcMode and raceRoute.Tracks or {} do
@@ -219,11 +227,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	-- The nearer end of segment k to the runner (the IVS driver's nearest-waypoint Index)
 	local function nearestIndex(k)
-		return dist - arc[k] < arc[k + 1] - dist and k or k + 1
+		local at = closed and dist % arc[n] or dist
+		return at - arc[k] < arc[k + 1] - at and k or k + 1
 	end
 	-- Puts the rig at its arc position, upright and facing along the path. Returns the segment index.
 	local function place()
-		local feet, k = PathDriver.PoseAt(wps, arc, dist, driver.Index)
+		local feet, k = PathDriver.PoseAt(wps, arc, dist, driver.Index, closed)
 		car:PivotTo(rigCFrame(feet))
 		return k
 	end
@@ -244,7 +253,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local function publish()
 		sincePublish = 0
 		car:SetAttribute("RunRoute", routeId)
-		car:SetAttribute("RunSpeed", run.Finished and 0 or run.TargetSpeed)
+		car:SetAttribute("RunSpeed", (run.Finished or run.Waiting) and 0 or run.TargetSpeed)
 		car:SetAttribute("RunDistance", dist)
 		car:SetAttribute("RunTrack", trackAt())
 	end
@@ -282,9 +291,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 
-	-- Team and stamina (NPC runs only). Server state; replicated as RunSlot and Stamina1..3.
-	local staminaMode = npcMode
-	local team = GachaService.TeamList(player)
+	-- Team and stamina (NPC and boss runs). Server state; replicated as RunSlot and Stamina1..3.
+	local staminaMode = npcMode or boss
+	local team = boss and options.Team or GachaService.TeamList(player) -- an event's team never touches the Team attribute
 	local seconds = {}
 	-- fixed for the whole run (a potion that expires mid-run changes nothing); a loss reset (new run) reads it again
 	local function snapshotStamina()
@@ -603,54 +612,66 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		if driver.Index ~= lastIndex then
 			dist = arc[math.clamp(driver.Index, 1, n)]
 		end
-		if not run.Finished then
-			dist = math.min(dist + run.TargetSpeed * railDt, arc[n])
+		if not run.Finished and not run.Waiting then
+			local moved = dist + run.TargetSpeed * railDt
+			dist = closed and moved or math.min(moved, arc[n])
 		end
 		local k = place()
-		driver.Done = dist >= arc[n]
+		driver.Done = not closed and dist >= arc[n]
 		driver.Index = driver.Done and n or nearestIndex(k)
 		lastIndex = driver.Index
 		run.MinUpY = math.min(run.MinUpY, car.PrimaryPart.CFrame.UpVector.Y)
 		runTime += railDt
-		if npcMode then
-			if race then
-				local track = raceRoute.Tracks[race.Index]
-				local last = race.Index == #raceRoute.Tracks
-				if driver.Index >= track.FinishIndex or (last and driver.Done) then
-					finishRace() -- decided before this tick's drain: a loss on the same tick wins (spec)
-				end
+		if npcMode and race then
+			local track = raceRoute.Tracks[race.Index]
+			local last = race.Index == #raceRoute.Tracks
+			if driver.Index >= track.FinishIndex or (last and driver.Done) then
+				finishRace() -- decided before this tick's drain: a loss on the same tick wins (spec)
 			end
-			if staminaMode and not run.Finished then
-				local slot = run.Slot
-				run.Stamina[slot] -= 100 / seconds[slot] * railDt
-				sinceStamina += railDt
-				if run.Stamina[slot] <= 0 then
-					run.Stamina[slot] = 0
-					if slot < #team then
-						setSlot(slot + 1)
-						publishStamina()
-						runEvent({ Kind = "Swap", From = team[slot], To = team[slot + 1], Slot = slot + 1 })
-					else
-						publishStamina()
-						bankShare()
-						local banked = run:CashOut()
-						runEvent({ Kind = "Exhausted", Banked = banked })
-						run:Destroy()
-						if isPlayer(player) then
-							task.defer(function()
-								local CarService = require(script.Parent.CarService)
-								if CarService.GetRun(player) == run then
-									CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
-								end
-							end)
-						end
-						return
-					end
-				elseif sinceStamina >= RaceService.PUBLISH_INTERVAL then
+		end
+		if run.Waiting then
+			waitLeft -= railDt
+			if waitLeft <= 0 then
+				run.Waiting = false
+				refill()
+				runEvent({ Kind = "BossRefill" })
+			end
+		elseif staminaMode and not run.Finished then
+			local slot = run.Slot
+			run.Stamina[slot] -= 100 / seconds[slot] * railDt
+			sinceStamina += railDt
+			if run.Stamina[slot] <= 0 then
+				run.Stamina[slot] = 0
+				if slot < #team then
+					setSlot(slot + 1)
 					publishStamina()
+					runEvent({ Kind = "Swap", From = team[slot], To = team[slot + 1], Slot = slot + 1 })
+				elseif boss then
+					publishStamina()
+					run.Waiting, waitLeft = true, BossEventConfig.RefillWaitSeconds
+					publish()
+					runEvent({ Kind = "BossWait" })
+				else
+					publishStamina()
+					bankShare()
+					local banked = run:CashOut()
+					runEvent({ Kind = "Exhausted", Banked = banked })
+					run:Destroy()
+					if isPlayer(player) then
+						task.defer(function()
+							local CarService = require(script.Parent.CarService)
+							if CarService.GetRun(player) == run then
+								CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
+							end
+						end)
+					end
+					return
 				end
+			elseif sinceStamina >= RaceService.PUBLISH_INTERVAL then
+				publishStamina()
 			end
-		elseif duel then
+		end
+		if duel then
 			local track = duelIndex and raceRoute.Tracks[duelIndex]
 			local last = duelIndex == #raceRoute.Tracks -- the driver stops just before the route's last waypoint
 			if track and not run.Finished and (driver.Index >= track.FinishIndex or (last and driver.Done)) then
@@ -662,7 +683,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 					end
 				end
 			end
-		else
+		elseif not npcMode and not boss then
 			payPads()
 		end
 		if (runTime > DEVIATION_GRACE or runTime * run.TargetSpeed > DEVIATION_GRACE_STUDS) and not run.Finished then -- past the last finish there is no path to follow
@@ -679,7 +700,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 
 		sincePublish += railDt
-		if sincePublish >= RaceService.PUBLISH_INTERVAL or run.Finished ~= (car:GetAttribute("RunSpeed") == 0) then
+		if
+			sincePublish >= RaceService.PUBLISH_INTERVAL
+			or (run.Finished or run.Waiting) ~= (car:GetAttribute("RunSpeed") == 0)
+		then
 			publish()
 		end
 	end)
@@ -737,6 +761,12 @@ function RaceService.TrackStartCFrame(number)
 		end
 	end
 	return nil
+end
+
+-- Where a runner (its Torso) starts a route of its own, such as a boss lane.
+function RaceService.RouteStartCFrame(path)
+	local closed = path.Closed == true
+	return rigCFrame((PathDriver.PoseAt(path.WorldWaypoints, arcOf(path), RaceService.START_AHEAD, 1, closed)))
 end
 
 -- Called by CarService once the player's car exists. Returns the run, or nil if there is no route

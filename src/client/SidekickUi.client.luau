@@ -4,6 +4,7 @@
 -- per rarity). Right: the banner, the Gem balance, Summon 1x and 10x, and the reveal. The server decides every result.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
@@ -25,6 +26,10 @@ local Icons = require(Ui.HudIcons)
 local PALETTE = UiTheme.Palette
 local OUTLINE = UiTheme.Outline
 local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255) -- as the HUD's Gems plate
+local MODEL_VIEW_DIR = Vector3.new(0.45, 0.15, -1).Unit -- from the model to the camera, as Client/StarterPick
+local MODEL_LIGHT_DIR = Vector3.new(-1, -2, -1)
+local TURN_SPEED = math.rad(30) -- radians per second (placeholder)
+local MODEL_SWAY = math.rad(30) -- how far the view swings either way from the front (placeholder)
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -161,20 +166,94 @@ make("UIListLayout", "Layout", banner, {
 	Padding = UDim.new(0.015, 0),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-for order, row in Config.List do
-	local cell = make("Frame", row.Id, banner, {
-		LayoutOrder = order,
-		Size = UDim2.fromScale(0.31, 0.92),
-		BackgroundTransparency = 1,
+
+-- The actual 3D models (owner 2026-11-05). Every view on screen, up to 13 with a 10x reveal: one Heartbeat turns them all.
+local views = {} -- ViewportFrame -> { Row, Focus, Distance }
+local turnAngle = 0
+local turning = nil
+
+-- The camera sways around the front, so the model always faces the player, and the light follows it.
+local function aimView(view, spot)
+	local turn = CFrame.Angles(0, math.sin(turnAngle) * MODEL_SWAY, 0)
+	view.CurrentCamera.CFrame = CFrame.lookAt(spot.Focus + turn * MODEL_VIEW_DIR * spot.Distance, spot.Focus)
+	view.LightDirection = turn * MODEL_LIGHT_DIR
+end
+local function turnViews(dt)
+	local reduced = UiMotion.Reduced()
+	if reduced and turnAngle == 0 then
+		return
+	end
+	turnAngle = reduced and 0 or (turnAngle + dt * TURN_SPEED) % (2 * math.pi)
+	for view, spot in views do
+		if view:FindFirstChildOfClass("Model") then
+			aimView(view, spot)
+		end
+	end
+end
+-- No model yet (not loaded, or panel closed): the tile keeps its name and stays empty.
+local function fillViews()
+	local models = ReplicatedStorage:FindFirstChild("SidekickModels")
+	if not panel.Visible or not models or models:GetAttribute("Ready") ~= true then
+		return
+	end
+	for view, spot in views do
+		local source = spot.Row and models:FindFirstChild(spot.Row.Id)
+		if source and not view:FindFirstChildOfClass("Model") then
+			local model = source:Clone()
+			model.Parent = view
+			local box, extents = model:GetBoundingBox()
+			spot.Focus = box.Position
+			spot.Distance = 0.72 * extents.Magnitude / 2 / math.sin(math.rad(15))
+			aimView(view, spot)
+		end
+	end
+end
+-- A cell's rarity tile with its name and model, and the rarity below it. row nil: an id this version does not know.
+local function modelCell(cell, row)
+	local tile = make("Frame", "Tile", cell, {
+		Size = UDim2.fromScale(1, 0.78),
+		BackgroundColor3 = PALETTE.White,
+		BorderSizePixel = 0,
+		ZIndex = 3,
 	})
-	SidekickView.Art(cell, row, UDim2.fromScale(0.5, 0.39), UDim2.fromScale(1, 0.78))
+	UiTheme.Corner(tile, "S")
+	UiTheme.Gradient(tile, SidekickView.RarityColor(row and row.Rarity), PALETTE.PanelDeep)
+	caption("Label", tile, {
+		Position = UDim2.fromScale(0.04, 0.02),
+		Size = UDim2.fromScale(0.92, 0.16),
+		Text = row and row.Name or "?",
+		ZIndex = 4,
+	})
+	local view = make("ViewportFrame", "Model", tile, {
+		Position = UDim2.fromScale(0, 0.16),
+		Size = UDim2.fromScale(1, 0.84),
+		BackgroundTransparency = 1,
+		Ambient = Color3.fromRGB(235, 235, 240), -- 3D light, not UI
+		LightColor = Color3.new(1, 1, 1),
+		LightDirection = MODEL_LIGHT_DIR,
+		ZIndex = 3,
+	})
+	view.CurrentCamera = make("Camera", "Camera", view, { FieldOfView = 30 })
 	caption("Rarity", cell, {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.fromScale(0.5, 1),
 		Size = UDim2.fromScale(1, 0.2),
-		Text = row.Rarity,
-		TextColor3 = SidekickView.RarityColor(row.Rarity),
+		Text = row and row.Rarity or "",
+		TextColor3 = SidekickView.RarityColor(row and row.Rarity),
 	})
+	views[view] = { Row = row }
+	return tile
+end
+
+for order, row in Config.List do
+	modelCell(
+		make("Frame", row.Id, banner, {
+			LayoutOrder = order,
+			Size = UDim2.fromScale(0.31, 0.92),
+			BackgroundTransparency = 1,
+		}),
+		row
+	)
 end
 
 local balance = make("Frame", "Balance", right, {
@@ -183,15 +262,13 @@ local balance = make("Frame", "Balance", right, {
 	Size = UDim2.new(1, 0, 0, 26),
 	BackgroundTransparency = 1,
 })
-local gemIcon = make("Frame", "GemIcon", balance, {
+make("ImageLabel", "GemIcon", balance, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.new(0, 14, 0.5, 0),
-	Size = UDim2.fromOffset(15, 15),
-	Rotation = 45,
-	BackgroundColor3 = PALETTE.White,
-	BorderSizePixel = 0,
+	Size = UDim2.fromOffset(24, 24),
+	BackgroundTransparency = 1,
+	Image = Icons.Gem.Image,
 })
-UiTheme.Gradient(gemIcon, GEM, GEM_DEEP)
 local gemsValue = caption("GemsValue", balance, {
 	Position = UDim2.fromOffset(30, 0),
 	Size = UDim2.new(1, -30, 1, 0),
@@ -244,18 +321,24 @@ local revealOk = button("Ok", reveal, {
 	ZIndex = 8,
 }, "OK")
 
-local function showReveal(results)
+local function clearReveal()
 	for _, child in revealGrid:GetChildren() do
 		if child:IsA("GuiObject") then
+			views[child.Tile.Model] = nil
 			child:Destroy()
 		end
 	end
+end
+
+local function showReveal(results)
+	clearReveal()
+	turnAngle = 0 -- faces the player first
 	revealLayout.CellSize = #results > 1 and UDim2.fromScale(0.19, 0.47) or UDim2.fromScale(0.5, 0.96)
 	local arts, best, bestRank = {}, nil, 0
 	for order, result in results do
 		local row = Config.Get(result.Id)
 		local cell = make("Frame", "Result" .. order, revealGrid, { LayoutOrder = order, BackgroundTransparency = 1 })
-		local art = SidekickView.Art(cell, row, UDim2.fromScale(0.5, 0.5), UDim2.fromScale(1, 1))
+		local art = modelCell(cell, row)
 		table.insert(arts, art)
 		if result.Sold and row then
 			caption("Sold", art, {
@@ -272,12 +355,14 @@ local function showReveal(results)
 			best, bestRank = art, rank
 		end
 	end
+	fillViews()
 	reveal.Visible = true
 	UiMotion.Cascade(arts)
 	UiFeedback.Play(SidekickView.LAND_CUES[GachaConfig.RARITY_ORDER[bestRank]] or "RollLand1", best)
 end
 revealOk.Activated:Connect(function()
 	reveal.Visible = false
+	clearReveal()
 end)
 
 -- A full-body sheet with its Back button: Details and Settings.
@@ -464,13 +549,35 @@ player.AttributeChanged:Connect(function(attribute)
 	end
 end)
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
+	clearReveal()
+	if turning then
+		turning:Disconnect()
+		turning = nil
+	end
 	if panel.Visible then
 		reveal.Visible = false
 		detailsSheet.Visible = false
 		settingsSheet.Visible = false
 		status.Text = ""
 		refresh()
+		turnAngle = 0
+		fillViews()
+		turning = RunService.Heartbeat:Connect(turnViews)
+	else
+		for view in views do
+			local model = view:FindFirstChildOfClass("Model")
+			if model then
+				model:Destroy()
+			end
+		end
 	end
+end)
+task.spawn(function()
+	local models = ReplicatedStorage:WaitForChild("SidekickModels")
+	if models:GetAttribute("Ready") ~= true then
+		models:GetAttributeChangedSignal("Ready"):Wait()
+	end
+	fillViews()
 end)
 refresh()
 UiTheme.Apply(root)

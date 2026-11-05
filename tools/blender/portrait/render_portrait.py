@@ -55,6 +55,7 @@ HEAD_CUT_Z = 3.5  # just under the chin (rig: head block 4..5.3): long hair stop
 # Non-humanoids have no R15 head cut. Part name prefixes: show draws, frame fits the square, cut is the straight bottom.
 # turn 50 on the wyvern portrait puts the far wing's membrane behind its dark head, so the head reads on cyan. turn 10 on the knight
 # head tucks the plume behind the helm. Shown parts wider than the frame are cropped straight at its edge; pad widens the square, keeping the cut at the bottom.
+# focus and side replace frame and cut: a square of that many studs centred on a world point.
 SIDEKICK_PALETTE = 32  # a big ramp of orange or red would otherwise swallow small dark features such as a pupil
 SIDEKICK_VIEWS = {
 	"side_chain": {
@@ -62,12 +63,16 @@ SIDEKICK_VIEWS = {
 		"head": {"show": ("Body", "Bar", "Handle"), "frame": ("Body", "Bar", "Handle"), "cut": 0.0},
 	},
 	"side_wyvern": {
-		"portrait": {"show": ("Body", "Head", "Neck", "Wing", "Tail"), "frame": ("Head", "Neck"), "cut": 4.0, "pad": 1.1, "turn": 50},
+		"portrait": {"show": ("Body", "Head", "Neck", "Wing", "Tail"), "focus": (0, -2.0, 5.85), "side": 2.2, "turn": 50},
 		"head": {"show": ("Head", "Neck"), "frame": ("Head",), "cut": 5.2},
 	},
 	"side_knight": {
 		"portrait": {"show": ("Head", "Torso", "LeftArm", "RightArm", "Sword"), "frame": ("Head", "Sword"), "cut": 3.2},
 		"head": {"show": ("Head",), "frame": ("Head",), "cut": 3.9, "turn": 10},
+	},
+	"side_raga": {
+		"portrait": {"show": ("Head", "Wheel", "UpperTorso"), "focus": (0, -0.8, 6.85), "side": 5.3, "turn": 12},
+		"head": {"show": ("Head", "Wheel"), "frame": ("Head", "Wheel"), "cut": 4.8, "turn": 15},
 	},
 }
 
@@ -507,8 +512,12 @@ def sidekick_shot(meshes, view, mat, sources, emit, is_head, lut=None, portrait_
 	ink_r, die_r, size = (HEAD_INK_R, HEAD_DIE_R, HEAD_SIZE) if is_head else (INK_R, DIE_R, SIZE)
 	for o in meshes:
 		o.hide_render = not o.name.startswith(view["show"])
-	framed = [o for o in meshes if o.name.startswith(view["frame"])]
-	cx, cy, side, cut_row = head_frame(framed, right, up, view["cut"], ink_r, die_r, view.get("pad", 1))
+	if "focus" in view:  # a close crop: shown parts run off the frame and the outline closes along it
+		focus, side = Vector(view["focus"]), view["side"]
+		cx, cy, cut_row = focus.dot(right), focus.dot(up), SIZE * SS
+	else:
+		framed = [o for o in meshes if o.name.startswith(view["frame"])]
+		cx, cy, side, cut_row = head_frame(framed, right, up, view["cut"], ink_r, die_r, view.get("pad", 1))
 	setup_scene(right * cx + up * cy + back * 40, (-back).to_track_quat("-Z", "Y"), side)
 	with tempfile.TemporaryDirectory() as tmp:
 		passes = render_passes(mat, sources, emit, tmp)

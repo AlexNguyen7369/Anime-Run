@@ -77,8 +77,9 @@ local last = Env.CurrentZone
 while true do
 	local zone = Env.CurrentZone
 	if zone ~= last then
+		local fromArena = last == Env.ARENA_ZONE -- coming home from the boss arena is not entering a biome
 		last = zone
-		local theme = zone and zone ~= 0 and Themes[Env.BiomeOf(zone)]
+		local theme = not fromArena and zone and zone ~= 0 and Themes[Env.BiomeOf(zone)]
 		if theme and type(theme.DisplayName) == "string" then
 			show(theme.DisplayName)
 		end

@@ -84,9 +84,12 @@
 81. 2026-11-05 — Alex Nguyen — Committed the owner-approved Big Raga and 3 Sidekick models with their evidence files, renders and arena draft tools, with nothing uploaded yet.
 82. 2026-11-05 — Alex Nguyen — Added Sidekick summons, summon page, Bag of 50, opt-in auto-sell, per-character equip and run gains (`[CARTEST]` pass=7 fail=0 including `sidekicks`; `ui_layout`, `ui_backpack_characters` and `ui_buttons` pass), with portraits and followers still to come.
 83. 2026-11-05 — Alex Nguyen — Added the boss arena blockout with a closed 7-lane ring and PathDriver wrapping (`[CARTEST]` pass=3 fail=0 on `boss_arena`, `race`, `npc`), the owner approved its size and rules for preparation, late join and team damage were written.
-84. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
+84. 2026-11-05 — Alex Nguyen — Added the boss event server and the owner's gem icon, uploaded 4 Sidekick models with portraits, and wrote the Big Raga Sidekick drop rule (`[CARTEST]` 12 scenarios pass including `boss_event` 352 checks; `runner` did not finish and live play is not checked).
+85. 2026-11-05 — Alex Nguyen — Showed Sidekick models on the summon page with portraits in the Bag and a Sidekicks page in the Index, and added the boss event leave remote and duel join (`[CARTEST]` pass=4 fail=0 including `boss_event` 443 checks; `ui_layout` 962 and `ui_sidekicks` 56 pass; owner approval of the summon screen is open).
+86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
+87. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
 
 ## What's next
-**Merge `feature/alex/boss-event` into `orch/roster/art1` and upload the 9 new Sidekick models and portraits through `tools/blender/sidekick_art.py`.**
+**Land the event UI (b7c) and Relics (b8), both in progress.**
 
-**Why this is next:** the boss-event session applies the approved 12-Sidekick table only once these models exist, and rows with no uploaded model stay out of live odds.
+**Why this is next:** a real event needs its team HUD, HP bar and Relic reward, and the paid spawn depends on Relic odds.

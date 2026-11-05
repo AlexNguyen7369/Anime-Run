@@ -69,18 +69,15 @@ local gemsPlate = UiTheme.Plate(Instance.new("Frame"), GEM_DEEP)
 gemsPlate.Name = "Gems"
 gemsPlate.AnchorPoint = Vector2.new(0, 1)
 gemsPlate.Parent = hud.Gui
--- A square on its corner is the gem.
-local gemIcon = Instance.new("Frame")
+local gemIcon = Instance.new("ImageLabel")
 gemIcon.Name = "GemIcon"
 gemIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 gemIcon.Position = UDim2.fromScale(0.17, 0.5)
-gemIcon.Size = UDim2.fromScale(0.5, 0.5)
+gemIcon.Size = UDim2.fromScale(0.8, 0.8)
 gemIcon.SizeConstraint = Enum.SizeConstraint.RelativeYY
-gemIcon.Rotation = 45
-gemIcon.BackgroundColor3 = Color3.new(1, 1, 1)
-gemIcon.BorderSizePixel = 0
+gemIcon.BackgroundTransparency = 1
+gemIcon.Image = require(Ui.HudIcons).Gem.Image
 gemIcon.ZIndex = 3
-UiTheme.Gradient(gemIcon, GEM, GEM_DEEP)
 gemIcon.Parent = gemsPlate
 local gemsValue = Instance.new("TextLabel")
 gemsValue.Name = "GemsValue"
@@ -759,6 +756,10 @@ local function refreshIndex()
 			string.format("%d / %d DEFEATED", math.clamp(player:GetAttribute("BestTrack") or 0, 0, total), total)
 		return
 	end
+	if index.Gui:GetAttribute("InventoryTab") == "Sidekicks" then
+		index.IndexProgress.Text = index.Gui:GetAttribute("SidekicksProgress") or ""
+		return
+	end
 	index.IndexProgress.Text = string.format(
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
 		count,
@@ -797,6 +798,7 @@ data.ChildRemoved:Connect(refreshIndex)
 player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
+index.Gui:GetAttributeChangedSignal("SidekicksProgress"):Connect(refreshIndex)
 refreshIndex()
 require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 

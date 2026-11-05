@@ -5,7 +5,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Flow
 | Time | What happens |
 |---|---|
-| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. Hidden during duels. Leaving a run cashes out its bank through the normal stop. |
+| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. It shows during duels too, and teleporting leaves the duel. Leaving a run cashes out its bank through the normal stop. |
 | 0:00-1:00 | Preparation. Arrivals stand at their lane on the track (**proposed**: no warm-up laps) with the team HUD and a countdown. A player who picks nothing gets the auto-chosen team at 1:00. |
 | 1:00 | Big Raga rises from under the track to full height; the HP bar pops in and fills left to right. Rise and intro are 20 s, no damage. Red event header; red chat message to the whole server. Everyone starts running when the intro ends. If nobody is in the arena, the boss still waits for joiners. |
 | 1:00-3:00 | Late joining. Teams are auto-chosen, with no team HUD choice. Each joiner sees the red header. HP = 4,000 x players in the arena: a joiner adds 4,000 to both max and current HP. |
@@ -14,8 +14,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 | End | On a defeat, each player with at least 1% of boss HP in damage gets 1 Relic and an independent 0.001% roll for the Big Raga Sidekick (`side_raga`). Everyone returns to spawn. |
 
 - Scheduler: fixed per server, `WeatherService` shape, every 30 minutes. A due time inside an event skips to the next 30-minute mark. A purchase does not move the timer.
-- Auto-roll pauses through a `BossEvent` attribute gate at `GachaService.StartAutoRoll`; `AutoRoll` itself is never changed. The roll card hides through `refreshToast`.
-- `PadTouched` cannot start a race during an event. A death or leave mid-event does not break the player's return.
+- Auto-roll pauses for participants only, through a per-player `BossEvent` attribute gate at `GachaService.StartAutoRoll`; `AutoRoll` itself is never changed. The roll card hides through `refreshToast`.
+- `PadTouched` cannot start a race for a player in the event. A death or leave mid-event does not break the player's return. A Leave button (b7c) and a server leave remote take a player back to spawn; a leaver gets no reward (**proposed**).
 
 ## Run rules
 - Real cruise and real stamina. At all empty: wait 5 s, full team refills, continue.

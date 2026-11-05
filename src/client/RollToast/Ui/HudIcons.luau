@@ -12,4 +12,5 @@ return {
 	Quests = { Image = "rbxassetid://73247739778799" },
 	Market = { Image = "rbxassetid://123121209984440" },
 	Settings = { Image = "rbxassetid://131875159358960" },
+	Gem = { Image = "rbxassetid://136869552622521" }, -- owner's icon 2026-11-05, assets/ui/gem.png
 }

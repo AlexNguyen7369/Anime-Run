@@ -11,20 +11,28 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
 local RunnerFactory = require(Shared.RunnerFactory)
+local SidekickArt = require(Shared.SidekickArt)
 
 local CharacterModelService = {}
 
-local function load(id, row, root)
+local NEON_BLUE = Color3.fromRGB(82, 216, 250) -- side_wyvern's "glow" ramp (tools/blender/build_boss_event.py)
+
+local function fetch(assetId)
 	local ok, asset
 	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
 		ok, asset = pcall(function()
-			return InsertService:LoadAsset(row.Asset)
+			return InsertService:LoadAsset(assetId)
 		end)
 		if ok then
 			break
 		end
 		task.wait(attempt)
 	end
+	return ok, asset
+end
+
+local function load(id, row, root)
+	local ok, asset = fetch(row.Asset)
 	if not ok then
 		warn("[CharacterModels] " .. id .. " failed to load, using the placeholder rig: " .. tostring(asset))
 		return
@@ -47,7 +55,64 @@ local function load(id, row, root)
 	folder.Parent = root
 end
 
+-- A Sidekick's whole Model, in ReplicatedStorage.SidekickModels/<id> (docs/SIDEKICK_SPEC.md). It keeps its authored layout,
+-- unlike a runner's parts, and meshes named *Neon* get Material Neon (docs/char_evidence/side_wyvern.md).
+local function loadSidekick(id, assetId, root)
+	local ok, asset = fetch(assetId)
+	if not ok then
+		warn("[SidekickModels] " .. id .. " failed to load: " .. tostring(asset))
+		return
+	end
+	local model = asset:FindFirstChildOfClass("Model") or asset
+	model.Name = id
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+			if string.find(d.Name, "Neon", 1, true) then
+				-- The import gives every part a grey SurfaceAppearance, which overrides Color on an untextured mesh.
+				local surface = d:FindFirstChildOfClass("SurfaceAppearance")
+				if surface then
+					surface:Destroy()
+				end
+				d.Material = Enum.Material.Neon
+				d.Color = NEON_BLUE
+			end
+		end
+	end
+	model.Parent = root
+	if model ~= asset then
+		asset:Destroy()
+	end
+end
+
+local function startSidekicks()
+	local root = Instance.new("Folder")
+	root.Name = "SidekickModels"
+	root.Parent = ReplicatedStorage
+	task.spawn(function()
+		local pending = 0
+		for id, art in SidekickArt do
+			if art.Model then
+				pending += 1
+				task.spawn(function()
+					pcall(loadSidekick, id, art.Model, root)
+					pending -= 1
+				end)
+			end
+		end
+		while pending > 0 do
+			task.wait()
+		end
+		root:SetAttribute("Ready", true)
+	end)
+end
+
 function CharacterModelService.Start()
+	startSidekicks()
 	local root = Instance.new("Folder")
 	root.Name = "CharacterModels"
 	root.Parent = ReplicatedStorage

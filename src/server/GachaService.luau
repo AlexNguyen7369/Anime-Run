@@ -750,6 +750,7 @@ function GachaService.StartAutoRoll(player, roller)
 				and player.Parent
 				and player:GetAttribute("AutoRoll") ~= false
 				and player:GetAttribute("NeedsStarter") ~= true
+				and player:GetAttribute("BossEvent") ~= true
 				and os.clock() >= (rollHoldUntil[player] or 0)
 			then
 				local id, _, _, emphasized = GachaService.Roll(player, roller)
