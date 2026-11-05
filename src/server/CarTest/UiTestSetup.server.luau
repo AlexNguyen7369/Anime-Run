@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, sidekick_states, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -263,7 +263,39 @@ function setups.snapshot(player)
 	}
 end
 
+-- Sidekick fixture (UiSpec.ServerSetup sidekick_states): what it replaced, until 'restore' or restore:sidekick_states.
+local sidekickSnapshots = {}
+local function restoreSidekicks(player)
+	local saved = sidekickSnapshots[player]
+	if saved then
+		live("SidekickService").Apply(player, saved.state)
+		player:SetAttribute("Gems", saved.gems)
+		player:SetAttribute("RebirthLevel", saved.rebirth)
+		sidekickSnapshots[player] = nil
+	end
+end
+
+function setups.sidekick_states(player)
+	local service, config = live("SidekickService"), require(Shared.SidekickConfig)
+	if not sidekickSnapshots[player] then
+		sidekickSnapshots[player] = {
+			state = service.Snapshot(player),
+			gems = player:GetAttribute("Gems"),
+			rebirth = player:GetAttribute("RebirthLevel"),
+		}
+	end
+	service.Apply(player, {})
+	for _, rows in { config.List, config.BossDrops } do
+		for _, row in rows do
+			assert(service.Grant(player, row.Id), "could not grant " .. row.Id)
+		end
+	end
+	player:SetAttribute("Gems", config.TenCost)
+	player:SetAttribute("RebirthLevel", config.UnlockRebirth)
+end
+
 function setups.restore(player)
+	restoreSidekicks(player)
 	longStamina[player] = nil
 	local snap = snapshots[player]
 	if not snap then
@@ -1103,6 +1135,7 @@ local CLIENT_SETUPS = {
 	showdown_win = true,
 	run_visual = true,
 	impact_sounds_report = true,
+	sidekick_states = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1150,6 +1183,8 @@ setupRequest.OnServerInvoke = function(player, request)
 				setAutoRoll(player, before.auto_roll_on)
 			end
 			before.auto_roll_on = nil
+		elseif restoreId == "sidekick_states" then
+			restoreSidekicks(player)
 		elseif restoreId then
 			return -- lose_event and emphasized_next put themselves back
 		elseif CLIENT_SETUPS[request] then

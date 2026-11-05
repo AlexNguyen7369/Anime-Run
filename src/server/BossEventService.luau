@@ -4,8 +4,8 @@
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
 -- BossEventHp and BossEventMaxHp, and the player attribute BossEvent (true while in the event). They call the RemoteFunctions
--- Remotes.BossEventTeleport() and Remotes.BossEventSetTeam(ids); each returns ok, reason. Remotes.BossEventChat carries the
--- server-wide spawn message to Client/BossEventChat.
+-- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
+-- Remotes.BossEventChat carries the server-wide spawn message to Client/BossEventChat.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -253,10 +253,6 @@ function BossEventService.Join(player)
 	if event.Members[player] then
 		return false, "Already in the event"
 	end
-	local duelState = DuelService.StateOf(player)
-	if duelState == "Countdown" or duelState == "Racing" then
-		return false, "In a duel"
-	end
 	local auto = BossEventService.AutoTeam(player)
 	if #auto == 0 then
 		return false, "Needs a Sidekick"
@@ -274,6 +270,10 @@ function BossEventService.Join(player)
 	end
 	if not lane then
 		return false, "The arena is full"
+	end
+	local duelState = DuelService.StateOf(player)
+	if duelState == "Countdown" or duelState == "Racing" then
+		DuelService.PlayerLeft(player) -- a forfeit, only once nothing above can refuse the join
 	end
 	local current = event
 	local member = {
@@ -454,6 +454,10 @@ function BossEventService.Init()
 	local function left(player)
 		BossEventService.Leave(player, "Left")
 	end
+	bind(remotes, "BossEventLeave", function(player)
+		left(player)
+		return true
+	end)
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
 	nextAt = now() + Cfg.IntervalSeconds

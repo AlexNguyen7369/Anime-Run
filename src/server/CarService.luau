@@ -498,7 +498,7 @@ function CarService.Start()
 	end
 	remote.OnServerEvent:Connect(function(player, enabled)
 		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true then
-			return -- an event's runner is the event's: dying is the way out
+			return -- an event's runner is the event's: BossEventLeave or dying is the way out
 		end
 		local now = os.clock()
 		if lastToggle[player] and now - lastToggle[player] < CarService.TOGGLE_COOLDOWN then

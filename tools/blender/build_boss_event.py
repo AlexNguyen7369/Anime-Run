@@ -789,6 +789,7 @@ WYVERN_RAMPS = {
 # meshes the game sets to Material Neon: everything blue, each under the part it moves with
 WYVERN_NEON = ("WingNeonLeft", "WingNeonRight", "BodyNeon", "NeckNeon", "HeadNeon", "TailNeon", "LegNeonLeft", "LegNeonRight")
 WYVERN_SHOULDER = (0.36, -0.05, 4.12)
+WYVERN_MEMBRANE = 0.12  # wing shell depth: thick enough that both faces stay apart in Roblox, inside the finger bones
 
 
 def wyvern_wing(m, s, side):
@@ -811,8 +812,8 @@ def wyvern_wing(m, s, side):
 	for a, b in zip(chain, chain[1:]):
 		pull = a.lerp(b, 0.5).lerp(wrist if b is not root else elbow, 0.26)
 		grid = [[wrist, wrist.lerp(pull, 0.5), wrist], [a.lerp(wrist, 0.5), pull.lerp(wrist, 0.05), b.lerp(wrist, 0.5)], [a, pull, b]]
-		m.sheet(neon, "glow", grid, (0, 0.03, 0), a=0.5, b=0.1, g=0.04, tone=0.04, extra=soft)
-	m.sheet(neon, "glow", [[shoulder, elbow, wrist], [shoulder.lerp(root, 0.5), elbow.lerp(root, 0.4), wrist.lerp(root, 0.26)], [root, root.lerp(tips[3], 0.5), wrist.lerp(tips[3], 0.5)]], (0, 0.03, 0), a=0.5, b=0.1, g=0.04, tone=0.04)
+		m.sheet(neon, "glow", grid, (0, WYVERN_MEMBRANE, 0), a=0.5, b=0.1, g=0.04, tone=0.04, extra=soft)
+	m.sheet(neon, "glow", [[shoulder, elbow, wrist], [shoulder.lerp(root, 0.5), elbow.lerp(root, 0.4), wrist.lerp(root, 0.26)], [root, root.lerp(tips[3], 0.5), wrist.lerp(tips[3], 0.5)]], (0, WYVERN_MEMBRANE, 0), a=0.5, b=0.1, g=0.04, tone=0.04)
 	# glowing cracks along the arm
 	for a, b in ((shoulder, elbow), (elbow, wrist)):
 		for t in (0.3, 0.68):

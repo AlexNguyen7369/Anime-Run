@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local GachaConfig = require(shared:WaitForChild("GachaConfig"))
+local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 
 local SidekickView = {}
@@ -65,20 +66,27 @@ function SidekickView.GainText(row)
 	return table.concat(parts, ", ")
 end
 
--- shortcut: a plain rarity tile with the name, because the portraits are not uploaded; when they are, draw the portrait here
--- and every Sidekick screen follows.
--- row nil: an id this version does not know. Centred on `position`. Returns the tile, with its name in .Label.
+-- The drawn portrait on its rarity colour, for the Bag (design doc 4.36). row nil: an id this version does not know; it and a
+-- row with no portrait show the name in .Label instead. Centred on `position`. Returns the ImageLabel.
 function SidekickView.Art(parent, row, position, size)
-	local art = Instance.new("Frame")
+	local portrait = row and SidekickArt[row.Id] and SidekickArt[row.Id].Portrait
+	local art = Instance.new("ImageLabel")
 	art.Name = "Art"
+	art.Image = portrait or ""
+	art.ScaleType = Enum.ScaleType.Fit
 	art.AnchorPoint = Vector2.new(0.5, 0.5)
 	art.Position = position
 	art.Size = size
 	art.ZIndex = 3
 	art.BorderSizePixel = 0
-	art.BackgroundColor3 = Color3.new(1, 1, 1)
 	UiTheme.Corner(art, "S")
-	UiTheme.Gradient(art, SidekickView.RarityColor(row and row.Rarity), UiTheme.Palette.PanelDeep)
+	if portrait then
+		-- A plain fill: a UIGradient would tint the image too.
+		art.BackgroundColor3 = SidekickView.RarityColor(row.Rarity):Lerp(UiTheme.Palette.PanelDeep, 0.4)
+	else
+		art.BackgroundColor3 = Color3.new(1, 1, 1)
+		UiTheme.Gradient(art, SidekickView.RarityColor(row and row.Rarity), UiTheme.Palette.PanelDeep)
+	end
 	local label = Instance.new("TextLabel")
 	label.Name = "Label"
 	label.BackgroundTransparency = 1
@@ -86,6 +94,7 @@ function SidekickView.Art(parent, row, position, size)
 	label.Size = UDim2.fromScale(0.88, 0.5)
 	label.Font = UiTheme.Font
 	label.Text = row and row.Name or "?"
+	label.Visible = not portrait
 	label.TextColor3 = UiTheme.Palette.White
 	label.TextScaled = true
 	label.ZIndex = 4

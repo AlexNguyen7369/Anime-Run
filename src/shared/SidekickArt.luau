@@ -18,7 +18,7 @@ return {
 		Head = "rbxassetid://98971820948073",
 	},
 	side_wyvern = {
-		Model = 111123406038498,
+		Model = 82529303318475,
 		Portrait = "rbxassetid://90210420017655",
 		Head = "rbxassetid://139199490786574",
 	},

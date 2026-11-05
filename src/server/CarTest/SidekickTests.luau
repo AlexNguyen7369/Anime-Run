@@ -239,6 +239,46 @@ function Tests.sidekicks()
 		flag("summon_keeps_turbo", lucky:GetAttribute("TurboCount") == 3, lucky:GetAttribute("TurboCount"), 3)
 		flag("summon_keeps_quests", H.same(Quest.Snapshot(lucky), questBefore))
 
+		-- Big Raga: a boss drop only (owner 2026-11-05, docs/SIDEKICK_SPEC.md). 500 is its spec's sell value.
+		local raga = Cfg.Get("side_raga")
+		flag("raga_in_get", raga ~= nil and raga.Name == "Big Raga" and raga.Rarity == "Secret")
+		flag("raga_in_boss_drops", Cfg.BossDrops ~= nil and Cfg.BossDrops[1] == raga)
+		flag("raga_not_in_list", rowOf.side_raga == nil)
+		flag("raga_sells_for_spec", raga ~= nil and raga.SellGems == 500, raga and raga.SellGems, 500)
+		local catalogTests = require(script.Parent.CatalogTests)
+		flag(
+			"no_real_name_side_raga",
+			raga ~= nil
+				and catalogTests.realNameIn("side_raga") == nil
+				and catalogTests.realNameIn(string.lower(raga.Name)) == nil
+		)
+		local pool = unlocked()
+		autoSellAll(pool)
+		local pooled, ragaSummons, poolOk = 0, 0, true
+		for _ = 1, 200 do
+			pool:SetAttribute("Gems", Cfg.TenCost)
+			local fine, results = S.Summon(pool, 10)
+			poolOk = poolOk and fine == true
+			for _, result in (fine and results or {}) do
+				pooled += 1
+				ragaSummons += result.Id == "side_raga" and 1 or 0
+			end
+		end
+		flag("raga_pool_summons_ran", poolOk and pooled == 2000, pooled, 2000)
+		flag("raga_never_summoned", ragaSummons == 0, ragaSummons, 0)
+		local holder = unlocked()
+		dressed(holder)
+		local ragaEntry = grant(holder, "side_raga")
+		flag("raga_granted_to_bag", ragaEntry ~= nil and has(holder, ragaEntry))
+		flag("raga_equips", ragaEntry ~= nil and S.Equip(holder, charA, ragaEntry) == true)
+		flag("raga_cruise_gain", raga ~= nil and approx(S.CruiseMulti(holder, charA), 1 + raga.Cruise))
+		flag("raga_stamina_gain", raga ~= nil and approx(S.StaminaMulti(holder, charA), 1 + raga.Stamina))
+		flag("raga_worn_not_sold", S.Sell(holder, ragaEntry) == false and has(holder, ragaEntry))
+		S.Equip(holder, charA, nil)
+		holder:SetAttribute("Gems", 0)
+		flag("raga_sells", S.Sell(holder, ragaEntry) == true and not has(holder, ragaEntry))
+		flag("raga_sell_pays_spec", gems(holder) == 500, gems(holder), 500)
+
 		-- Costs and unlock.
 		for _, kind in { { 1, Cfg.SummonCost }, { 10, Cfg.TenCost } } do
 			local count, cost = kind[1], kind[2]
