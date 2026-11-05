@@ -55,12 +55,15 @@ class ApiError(Exception):
 
 def send(method, path, fields):
     # The key goes over stdin (-H @-), so it never shows in the process list.
-    command = ["curl", "-sS", "-m", "30", "-X", method, "-H", "@-", "-w", "\n%{http_code}", API + "/" + path]
+    command = ["curl", "--http1.1", "-sS", "-m", "30", "-X", method, "-H", "@-", "-w", "\n%{http_code}", API + "/" + path]
     for key, value in fields.items():
         command += ["--form-string", "%s=%s" % (key, value)]
     done = subprocess.run(
-        command, input="x-api-key: " + os.environ["ANIMERUN_PRODUCTS_KEY"], capture_output=True, text=True, check=True
+        command, input="x-api-key: " + os.environ["ANIMERUN_PRODUCTS_KEY"], capture_output=True, text=True
     )
+    if done.returncode != 0:
+        # The request may or may not have landed: list the universe before a rerun, or a pass could be duplicated.
+        raise ApiError("curl exit %d: %s" % (done.returncode, done.stderr.strip()[:200]))
     text, _, status = done.stdout.rpartition("\n")
     if status != "200":
         raise ApiError(status + " " + text[:200])

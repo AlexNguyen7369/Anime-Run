@@ -81,8 +81,9 @@
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 79. 2026-11-04 — Alex Nguyen — Wrote the monetization rules and specs and built gamepass ownership, pass effects, the Details odds list, the character bag, auto sell and Sell spares on feature/alex/monetization, with nothing on sale and not yet run in Studio.
 80. 2026-11-04 — Alex Nguyen — Ran passes, odds, bag and 7 related scenarios in Studio with 0 failures, and created the 10 developer products off sale through Open Cloud; gamepasses were refused for a missing key scope.
+81. 2026-11-04 — Alex Nguyen — Created the 11 gamepasses off sale through Open Cloud and put their ids in MonetizationConfig.
 
 ## What's next
-**Add `game-pass:write` to the `ANIMERUN_PRODUCTS_KEY` API key, rerun `tools/monetization/create_products.py` for the 11 gamepasses, and look at the new UI in Studio.**
+**Reopen the Anime Run place in Studio, clear the test attributes `TestSaveKey` and `CarTestOnly`, and look at the new Shop, Backpack, Settings and roll view UI with real ids.**
 
-**Why this is next:** the passes cannot be bought or test-bought without ids, and no new panel has been seen on screen yet.
+**Why this is next:** no new panel has been seen on screen, and merging and going on sale both depend on that check and the harness runs.

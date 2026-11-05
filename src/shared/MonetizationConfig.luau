@@ -4,11 +4,26 @@
 -- reports the live one. Title/Color/Icon are presentation only.
 local MonetizationConfig = {}
 
+-- Ids come from tools/monetization/create_products.py (ledger product_ids.json).
+local PASS_IDS = {
+	vip = 2072398327,
+	auto_roll_2x = 2072460303,
+	extra_roll_1 = 2071152820,
+	extra_roll_2 = 2067428411,
+	money_2x = 2071590457,
+	luck_1 = 2071600457,
+	luck_2 = 2071522505,
+	dojo_master = 2071362782,
+	deep_stamina = 2071540479,
+	inventory = 2067308486,
+	exclusive_runner = 2067692445,
+}
+
 local function pass(id, name, price, description, color, icon)
 	return {
 		Id = id,
 		Name = name,
-		GamepassId = 0,
+		GamepassId = PASS_IDS[id] or 0,
 		RobuxPrice = price,
 		Description = description,
 		Color = color,
