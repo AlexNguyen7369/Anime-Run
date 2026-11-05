@@ -717,7 +717,7 @@ local function backpackRailGap(rail, ctx)
 	if pathOf(rail) ~= UiSpec.Backpack.Tabs then
 		return nil
 	end
-	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Market.TabFit.Gap
+	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Backpack.TabFit.Gap
 end
 
 -- MarketUi's and BackpackUi's per-tab fit (Client/MarketUi and Client/BackpackUi fitTabs, the same formula, mirrored in

@@ -3322,8 +3322,8 @@ end
 UiSpec.Backpack = {
 	Panel = "RacerBackpack/Panel",
 	Tabs = "RacerBackpack/Panel/Tabs",
-	-- Client/BackpackUi fitTabs: six tabs need a tighter rail gap at phone heights (Market.PhoneMaxHeight); Market.TabFit.Gap otherwise.
-	TabFit = { PhoneGap = 2 },
+	-- Client/BackpackUi fitTabs: six tabs need a tighter rail gap than Market.TabFit.Gap, tightest at phone heights (Market.PhoneMaxHeight).
+	TabFit = { Gap = 6, PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)

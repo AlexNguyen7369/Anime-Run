@@ -1057,7 +1057,7 @@ local function fitTabs()
 	end
 	-- As Client/MarketUi: on phones the tabs may shrink below 0.4 so all stay inside the rail (owner 2026-10-28).
 	local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-	local gap = phone and 2 or 10 -- six tabs need the phone rail's gaps too
+	local gap = phone and 2 or 6 -- six tabs need the phone rail's gaps too
 	rail.Layout.Padding = UDim.new(0, gap)
 	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 5 * gap) / (6 * 96), phone and 0.1 or 0.4, 1)
 	for _, refs in tabs do
