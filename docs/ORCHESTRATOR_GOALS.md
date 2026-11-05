@@ -130,11 +130,11 @@ Deliverables:
 - b2 | Gems, quest rewards, save fields, HUD, admin | `gems` green: win and quests pay, duel and exhaustion do not
 - b3 | Sidekick roll, summon page, gem packs, Bag of 50, auto-sell, equip, followers | `sidekicks`, `ui_sidekicks` green: luck cannot change odds, odds sum to 100%, full bag refuses without spending, equipped never sold
 - b4 | Arena blockout, lanes, closed rail | owner reviews a size screenshot
-- b5 | Event server: scheduler, teleport, boss run, HP, end | `boss_event` covers the full loop with 7 fake players
+- b5 | Event server: scheduler, teleport, prep and late join, team damage, boss run, HP, end, chat message | `boss_event` covers the full loop with 7 fake players
 - b6 | Sky arena dressing | owner look, asset ledger signed
 - b7a | Boss key frames: 3 moves, sliced renders | owner approves each move
 - b7b | In-betweens, bake, in-game idle cycle | approved keys unchanged, owner look in Studio
-- b7c | HP bar, popups, VFX, SFX | `ui_boss` green, owner look
+- b7c | Team HUD, red header, spawn rise, HP bar, popups, VFX, SFX | `ui_boss` green, owner look
 - b7d | Sidekick attacks: key frames, in-betweens, effects | owner approves each attack; `ui_sidekick_attack` green with 7 players
 - b8 | Relics: data, drops, equip, UI, icons | `relics` green, odds sum to 100%
 - b9 | Paid spawn | receipt test green: retry, active event, two buyers

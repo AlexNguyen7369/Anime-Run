@@ -413,7 +413,12 @@ before any Studio work.
 
 ### 4.37 Boss events (owner 2026-11-04)
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
-  out. Then a 5 minute boss fight runs: 8 minutes in total. Everyone returns to the spawn at the end.
+  out. The event lasts 8 minutes in total (owner 2026-11-05):
+  - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2.
+  - 1:00, Big Raga rises from under the track to full height, then the fight starts. It runs to 8:00, or ends early on a defeat.
+  - 1:00-3:00, late joining: players can still teleport in, and their team is chosen for them. Teleporting closes at 3:00.
+  - Everyone returns to the spawn at the end.
+- When Big Raga spawns, and for each player who joins after that, a big flashing red warning header ("Big Raga has emerged, take him down!!!") shows on the screen of players in the event only. At the spawn, a bright red Roblox chat message ("BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS") goes to everyone in the server (owner 2026-11-05).
 - Any player with a Sidekick can pay 149 Robux to start the same event at once for their server, from a Boss button at the top left of the
   screen. It cannot be bought while an event is active.
 - The first boss is Big Raga, based on Mahoraga (Jujutsu Kaisen). It stands huge in the middle of a separate circular sky arena: clouds,
@@ -421,8 +426,9 @@ before any Studio work.
   It cycles idle moves, each attack visual only. A later boss may use an enclosed underground arena.
 - Teams auto-run around the ring with real cruise and stamina, in lanes for up to 7 players, seeing each other's characters and Sidekicks.
   When a team is exhausted, it waits 5 seconds, then the full team respawns and continues. This overrides 4.3's run end inside the arena.
-- Only the running character's Sidekick fires its own themed attack at the boss (flame breath, slash, and so on). The server decides every
-  hit and its damage; clients only draw it. A character with no Sidekick deals no damage.
+- A team deals one team damage: the average damage of its Sidekicks, times a gentle speed scale that adds at most +100% (owner 2026-11-05). The HUD shows it. The running character's Sidekick fires its own themed attack at the boss (flame breath, slash, and so on). The server decides every
+  hit and its damage; clients only draw it.
+- Boss HP grows with the players in the arena until teleporting closes at 3:00, then locks (owner 2026-11-05).
 - Auto-roll pauses during the event and returns to the player's own state afterward. A big boss HP bar replaces the top middle of the
   screen, popping in on spawn and filling left to right.
 - Only a defeat pays: each player above a small minimum damage gets 1 random Relic (4.38). A timeout pays nothing.
@@ -552,3 +558,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-04: owner: auras and trails can be bought more than once, up to 3 copies of each at full price; the inventory holds the copies and one copy is worn on one team slot (4.13, TEAM_AND_STAMINA_SPEC).
 - 2026-11-04: owner: admin test commands `/narito` and `/newplayer` (4.13).
 - 2026-11-04: owner: new players start with auto-roll off and a spotlight tutorial turns it on (4.21).
+- 2026-11-05: owner: boss event gains a 1 minute preparation with a team HUD, Big Raga rises at 1:00 and the fight runs to 8:00, late joiners get an auto-chosen team until 3:00, team damage is the Sidekick average times a capped speed scale (replaces speed not changing damage), boss HP locks at 3:00, a red event header and a server-wide red chat message mark the spawn (4.37).

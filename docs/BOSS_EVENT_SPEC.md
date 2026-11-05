@@ -5,9 +5,11 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Flow
 | Time | What happens |
 |---|---|
-| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. Hidden during duels. |
-| 0:00-3:00 | Arrivals run warm-up laps with no damage and see a countdown (orchestrator default). Leaving a run cashes out its bank through the normal stop. |
-| 3:00 | Teleport closes. If nobody came, the event ends. Big Raga spawns, and the HP bar pops in and fills left to right. Intro is 20 s, inside the 5 minutes. HP locks: 4,000 x players in the arena. |
+| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. Hidden during duels. Leaving a run cashes out its bank through the normal stop. |
+| 0:00-1:00 | Preparation. Arrivals stand at their lane on the track (**proposed**: no warm-up laps) with the team HUD and a countdown. A player who picks nothing gets the auto-chosen team at 1:00. |
+| 1:00 | Big Raga rises from under the track to full height; the HP bar pops in and fills left to right. Rise and intro are 20 s, no damage. Red event header; red chat message to the whole server. Everyone starts running when the intro ends. If nobody is in the arena, the boss still waits for joiners. |
+| 1:00-3:00 | Late joining. Teams are auto-chosen, with no team HUD choice. Each joiner sees the red header. HP = 4,000 x players in the arena: a joiner adds 4,000 to both max and current HP. |
+| 3:00 | Teleport closes and HP locks. If nobody came, the event ends. |
 | To 8:00 | Fight. Defeat ends it early; timeout at 8:00 pays nothing. |
 | End | On a defeat, each player with at least 1% of boss HP in damage gets 1 Relic. Everyone returns to spawn. |
 
@@ -17,7 +19,12 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 ## Run rules
 - Real cruise and real stamina. At all empty: wait 5 s, full team refills, continue.
-- Only the running character's Sidekick hits, every 1.5 s, for its damage (`SIDEKICK_SPEC`), scaled by Relics. Speed does not change damage.
+- The team hits every 1.5 s for its team damage: the average of its Sidekicks' damage (`SIDEKICK_SPEC`), scaled by Relics, x speed scale. Speed scale (**placeholder**) = 1 + min(1, cruise / 800), from the running character's cruise, so at most +100%. Only the running character's Sidekick draws the attack.
+
+## Team HUD
+- Three slots, chosen from the player's characters with a Sidekick; the note reads "Only characters with Sidekicks can be equipped for bosses". Fewer than 3 such characters means fewer slots filled, and the team runs with 1 or 2.
+- Shows the live team damage. This team is for the event only; the player's normal Team is not changed.
+- Auto-chosen team (**proposed**): the 3 characters with a Sidekick whose Sidekick deals the most damage, ties by cruise.
 
 ## Arena
 | Item | Value |
@@ -35,7 +42,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 ## Boss and attacks
 - Built in Blender with named parts, outside `RunnerFactory`: a separate wheel and split upper and lower limbs. Client-side pose data in a `DojoExtras` style loop, moves timed from a server start time.
-- Three moves (**proposed**): attack, shout, wheel turn. 4-6 key frames each.
+- Three moves (**proposed**): attack, shout, wheel turn. 4-6 key frames each. The spawn rise comes up through the dais from under the track, reviewed from a Studio capture.
 - **Owner gate (design doc 4.37):** render key frames as labelled slices, show one move at a time, and revise until approved. Only then fill and bake, leaving approved keys unchanged. Sidekick attacks follow the same gate; effects are approved from a Studio capture.
 - Hits are batched from the server. Local attacks draw at full strength, others lighter. Impact is about 0.4 s after the hit. REDUCED EFFECTS keeps a simple shot. Cues go through `UiFeedback`; audio follows section 5 with ledger rows.
 
