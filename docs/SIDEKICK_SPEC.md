@@ -33,6 +33,12 @@ The owner creates the 4 developer products and gives their ids. Prices come from
 | `side_wyvern` | Kaisel | Kaizel | Epic | 30% | +8% cruise | 14 | 10 Gems |
 | `side_knight` | Igris | Igriz | Legendary | 10% | +3% cruise, +3% stamina | 22 | 20 Gems |
 
+Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell values **proposed**):
+
+| Id | Based on | Name | Rarity | Odds | Run gain | Hit every 1.5 s | Sells for |
+|---|---|---|---|---|---|---|---|
+| `side_raga` | Mahoraga | Big Raga | Secret | 0.001% per eligible player on a defeat | +10% cruise, +10% stamina | 40 | 500 Gems |
+
 ## Summon page
 Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.
 - Left: 4 gem pack tiles, then **Details** and **Settings** buttons. Settings holds the auto-sell filter: one toggle per rarity, off by default.

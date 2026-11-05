@@ -11,7 +11,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 | 1:00-3:00 | Late joining. Teams are auto-chosen, with no team HUD choice. Each joiner sees the red header. HP = 4,000 x players in the arena: a joiner adds 4,000 to both max and current HP. |
 | 3:00 | Teleport closes and HP locks. If nobody came, the event ends. |
 | To 8:00 | Fight. Defeat ends it early; timeout at 8:00 pays nothing. |
-| End | On a defeat, each player with at least 1% of boss HP in damage gets 1 Relic. Everyone returns to spawn. |
+| End | On a defeat, each player with at least 1% of boss HP in damage gets 1 Relic and an independent 0.001% roll for the Big Raga Sidekick (`side_raga`). Everyone returns to spawn. |
 
 - Scheduler: fixed per server, `WeatherService` shape, every 30 minutes. A due time inside an event skips to the next 30-minute mark. A purchase does not move the timer.
 - Auto-roll pauses through a `BossEvent` attribute gate at `GachaService.StartAutoRoll`; `AutoRoll` itself is never changed. The roll card hides through `refreshToast`.
@@ -50,7 +50,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Paid spawn
 - 149 Robux developer product, outside `MonetizationConfig.Products`, like `OfflineDouble`. The owner creates it and gives the id. Disabled for the 8 minutes of an event and for a player with no Sidekick.
 - A receipt commits a saved `BossCredit`, then starts the event if the server is idle. Otherwise the button reads "Boss ready", to use once inactive. A retry or a second buyer never loses or doubles a paid start.
-- A **Details** button shows Relic odds as percentages summing to 100% before purchase. Roblox's page does not cover a paid boss with server-wide drops; this is the cautious reading.
+- A **Details** button shows Relic odds as percentages summing to 100%, plus the separate 0.001% Big Raga Sidekick chance, before purchase. Roblox's page does not cover a paid boss with server-wide drops; this is the cautious reading.
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.
 
 ## Saved data
