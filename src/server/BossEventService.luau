@@ -3,7 +3,8 @@
 -- WeatherService shape), or at once for a paid start. The server decides every hit; no remote reaches the damage. Contract:
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
--- BossEventHp and BossEventMaxHp, and the player attribute BossEvent (true while in the event). They call the RemoteFunctions
+-- BossEventHp and BossEventMaxHp, and the player attributes BossEvent (true while in the event) and BossTeamDamage (TeamDamage,
+-- nil outside the event). They call the RemoteFunctions
 -- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message to Client/BossEventChat.
 local Players = game:GetService("Players")
@@ -180,6 +181,7 @@ function BossEventService.SetTeam(player, ids)
 		return false, "Invalid team"
 	end
 	member.Team = table.clone(ids)
+	player:SetAttribute("BossTeamDamage", BossEventService.TeamDamage(player))
 	return true
 end
 
@@ -230,6 +232,7 @@ end
 -- back last so a failed return cannot keep the event's character.
 local function release(player, member, depart)
 	player:SetAttribute("BossEvent", nil)
+	player:SetAttribute("BossTeamDamage", nil)
 	if member.Run then
 		safely(member.Run.Destroy, member.Run)
 	end
@@ -294,6 +297,9 @@ function BossEventService.Join(player)
 	end
 	if event == current and current.IntroDone and current.Members[player] == member then
 		startRun(player, member)
+	end
+	if BossEventService.IsIn(player) then
+		player:SetAttribute("BossTeamDamage", BossEventService.TeamDamage(player))
 	end
 	return true
 end
@@ -394,6 +400,9 @@ local function tick(at)
 	end
 	if event ~= current then
 		return
+	end
+	for player in current.Members do
+		player:SetAttribute("BossTeamDamage", BossEventService.TeamDamage(player)) -- the running character and refills change it
 	end
 	if elapsed >= Cfg.JoinSeconds and next(current.Members) == nil then
 		BossEventService.End("NoPlayers") -- nobody came, or nobody is left and nobody can come

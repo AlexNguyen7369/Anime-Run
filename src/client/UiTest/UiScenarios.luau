@@ -159,6 +159,9 @@ UiScenarios.Names = {
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
+	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
+	-- wants none before it.
+	"ui_boss",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -7985,6 +7988,25 @@ for cond, fn in K.sidekicks.After do
 	access.After[cond] = fn
 end
 
+-- Boss event UI (design doc 4.37). No new local: the chunk is at the 200-local limit.
+K.boss = require(script.Parent.UiBossEvent).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.boss.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.boss.After do
+	access.After[cond] = fn
+end
+
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly
 -- quest browser; Backpack moved to RacerBackpack and its old Bag view is not a
 -- valid contract anymore.
@@ -8954,6 +8976,15 @@ function UiScenarios.RunClick(id)
 			for i, v in wantArgs do
 				ok = ok and fired[1].args[i] == v
 			end
+		end
+		if expect.Remote.ArgsJson then
+			-- A table argument (BossEventSetTeam's id list): the whole argument list compared as JSON
+			want = expect.Remote.Name .. expect.Remote.ArgsJson
+			names = {}
+			for _, f in fired do
+				table.insert(names, f.name .. HttpService:JSONEncode(f.args))
+			end
+			ok = #fired == 1 and names[1] == want
 		end
 		if type(wantArg) == "table" then
 			-- SetShowcase(ids): exactly one argument, the promised id list (Progression.SameShowcase)

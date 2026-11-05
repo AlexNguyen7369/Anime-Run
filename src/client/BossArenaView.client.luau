@@ -4,9 +4,13 @@
 -- (player attribute BossEvent), or while the test attribute BossArenaPreview is on.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Cfg = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossArenaConfig"))
+local Event = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossEventConfig"))
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local ATTRIBUTE = "BossArenaPreview"
 local PARTS_PER_FRAME = 60 -- about 1,450 parts, so about 25 frames
@@ -21,13 +25,19 @@ local GREY = Color3.fromRGB(150, 150, 150)
 local DECK = Color3.fromRGB(205, 200, 190)
 local LINE = Color3.fromRGB(245, 245, 245)
 local RAIL = Color3.fromRGB(120, 120, 125)
+-- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00): through the dais from under the track. shortcut: stand-ins only, add the model
+-- and the flat fallback here once they are in this file.
+local RISERS = { BossStandIn = true, WheelStandIn = true }
 
 local folder = nil -- the built arena, nil when off
 local added = 0
+local homes = setmetatable({}, { __mode = "k" }) -- riser part -> its full-height CFrame
+local lastRise = nil
 
 local function addPart(name, size, cframe, color, shape)
 	local part = Instance.new("Part")
 	part.Name = name
+	part.Transparency = RISERS[name] and 1 or 0 -- a riser stays hidden until stepRise has placed it
 	part.Anchored = true
 	part.CanTouch = false
 	part.Material = Enum.Material.SmoothPlastic
@@ -111,6 +121,41 @@ local function refresh()
 	end
 end
 
+-- nil before the spawn; 0 to 1 over the intro from the server's start time. A preview with no event shows it risen.
+local function riseNow()
+	local start = ReplicatedStorage:GetAttribute("BossEventStart")
+	if not start then
+		return 1
+	end
+	local t = (Workspace:GetServerTimeNow() - start - Event.PrepSeconds) / Event.IntroSeconds
+	if t < 0 then
+		return nil
+	end
+	return UiMotion.Reduced() and 1
+		or TweenService:GetValue(math.min(t, 1), Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+end
+
+local function stepRise()
+	if not folder then
+		lastRise = nil
+		return
+	end
+	local rise = riseNow()
+	local below = (1 - (rise or 0)) * (Cfg.BossHeight + Cfg.BossWheelHeight + DAIS_THICK)
+	for name in RISERS do
+		local part = folder:FindFirstChild(name)
+		if part then
+			homes[part] = homes[part] or part.CFrame
+			if rise ~= lastRise or part.Transparency == 1 and rise then
+				part.CFrame = homes[part] - Vector3.new(0, below, 0)
+				part.Transparency = rise and 0 or 1
+			end
+		end
+	end
+	lastRise = rise
+end
+
+RunService.Heartbeat:Connect(stepRise)
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
 Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
 refresh()

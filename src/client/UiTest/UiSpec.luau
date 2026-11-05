@@ -1498,6 +1498,7 @@ Expect:
  Showcase = true/false: showcase open after the click (default: unchanged)
  Remote   = { Name, Arg } exactly one call of that remote and no other remote; Remote = false: no remote at all
             { Name, Args = { ... } }: the call's whole argument list, in order
+            { Name, ArgsJson = "[...]" }: the same as JSON, for a table argument
  After    = post-conditions once the server / UI answered
 ]]
 local CLOSED = {
@@ -2400,6 +2401,10 @@ UiSpec.RemoteFunctions = {
 	-- gift_* clicks Intercept them, so progression_spy must proxy them too
 	"SetCheckpoint",
 	"PrepareGift",
+	-- Boss event (Client/BossEventUi): the boss_* clicks must never really join or leave
+	"BossEventTeleport",
+	"BossEventSetTeam",
+	"BossEventLeave",
 }
 table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
@@ -3799,5 +3804,113 @@ table.insert(UiSpec.Clicks, {
 		After = { "sidekicks_reveal_models" },
 	},
 })
+
+-- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
+-- LeaveButton is AlwaysOn, for ui_layout's every-viewport fit: Panels must be PanelSwitch ones, and the Invite must not close
+-- with them, so Invite and TeamHud are judged by ui_boss.
+UiSpec.BossEvent = {
+	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
+}
+UiSpec.Guis.RacerBossEvent = {
+	Source = "Client/BossEventUi",
+	AlwaysOn = { "LeaveButton" },
+	NonInteractiveParts = { "Warning", "BossBar" },
+	Buttons = {
+		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
+		{ Path = "Invite/DeclineButton", Does = "local" },
+		{
+			Path = "TeamHud/List/*",
+			Does = "remote",
+			Remote = "BossEventSetTeam",
+			Arg = "ids in slot order",
+			Count = "dynamic",
+		},
+		{ Path = "LeaveButton", Does = "remote", Remote = "BossEventLeave" },
+	},
+}
+UiSpec.HiddenWhilePanelOpen["RacerBossEvent/LeaveButton"] = "any"
+table.insert(UiSpec.ClientScripts, "BossEventUi")
+for _, item in
+	{
+		{
+			Id = "boss_ui_invite",
+			What = "Two characters with a Sidekick, a fresh event in Prep at 5 s, the player outside it.",
+		},
+		{
+			Id = "boss_ui_invite_locked",
+			What = "No Sidekick at all, a fresh event in Prep at 5 s, the player outside it.",
+		},
+		{
+			Id = "boss_ui_prep_in",
+			What = "Two characters with a Sidekick, a fresh event in Prep at 5 s, BossEvent true and BossTeamDamage set.",
+		},
+		{
+			Id = "boss_ui_fight_in",
+			What = "As boss_ui_prep_in, in Fight after the intro. Attributes only: nobody really joins, 'restore' clears "
+				.. "them and puts the characters and Sidekicks back.",
+		},
+	}
+do
+	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
+	table.insert(UiSpec.ServerSetup, item)
+end
+-- Run in this order: Teleport is refused by the spy so the Invite stays, then Decline hides it.
+local BOSS_PREPARE = { Showcase = false, RequireShown = true, WaitSeconds = 0.5 }
+for _, click in
+	{
+		{
+			Id = "boss_teleport_locked",
+			Path = "Invite/TeleportButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				TargetActive = false,
+				Intercept = "BossEventTeleport",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
+			Expect = { Remote = false, After = { "boss_invite_shown" } },
+		},
+		{
+			Id = "boss_teleport",
+			Path = "Invite/TeleportButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_invite_shown" } },
+		},
+		{
+			Id = "boss_decline",
+			Path = "Invite/DeclineButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				Intercept = "BossEventTeleport",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = false, After = { "boss_invite_hidden" } },
+		},
+		{
+			Id = "boss_pick_character",
+			Path = "TeamHud/List/" .. UiSpec.BossEvent.Pick,
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_prep_in" },
+			Expect = {
+				Remote = { Name = "BossEventSetTeam", ArgsJson = '[["' .. UiSpec.BossEvent.Pick .. '"]]' },
+				After = { "boss_slot1_filled" },
+			},
+		},
+		{
+			Id = "boss_leave",
+			Path = "LeaveButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_fight_in" },
+			Expect = { Remote = { Name = "BossEventLeave", Args = {} } },
+		},
+	}
+do
+	click.Gui = "RacerBossEvent"
+	table.insert(UiSpec.Clicks, click)
+end
 
 return UiSpec
