@@ -57,6 +57,8 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 - Owned as a `GachaData` entry from the first grant. The grant ignores the bag cap. The entry takes 1 space. A refunded pass ends its effects at the next join; the runner stays in the save (shortcut, see `GachaService.GrantExclusive`).
 - Pedestal near the spawn, client-only, with a prompt that opens the pass. Drafted in Blender and shown to the owner first (design doc 4.24).
 
-## Going live (owner)
+## Going live
 
-Create the 11 passes, the potion packs, the bundle and the gift products on the Creator Dashboard, or authorize the beta Open Cloud API. Paste ids into `MonetizationConfig`. Icons are in-house art only. Luck items go on sale only once odds disclosure and restricted-player handling are in.
+- `tools/monetization/create_products.py` creates what is missing, off sale, and records ids in `product_ids.json`. Roblox has no delete for these. Its key needs `developer-product:write` and `game-pass:write`.
+- The same script with `--on-sale` puts everything in the ledger on sale. Run it only after the branch is merged and published: an on-sale pass shows on the game's Store page.
+- Pass ids go in `MonetizationConfig`. Icons are in-house art only. Saitamo goes on sale only once its model is in.

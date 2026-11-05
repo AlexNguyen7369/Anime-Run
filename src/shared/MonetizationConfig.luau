@@ -51,7 +51,7 @@ MonetizationConfig.Products = {
 		Name = "x5 Luck Potion III",
 		Description = "x2 Luck",
 		Section = "Potions",
-		ProductId = 0,
+		ProductId = 3728396283,
 		RobuxPrice = 49,
 		Grants = { LuckIII = 5 },
 	},
@@ -60,7 +60,7 @@ MonetizationConfig.Products = {
 		Name = "x5 Money Potion III",
 		Description = "x2 Money",
 		Section = "Potions",
-		ProductId = 0,
+		ProductId = 3728396286,
 		RobuxPrice = 49,
 		Grants = { MoneyIII = 5 },
 	},
@@ -69,7 +69,7 @@ MonetizationConfig.Products = {
 		Name = "x5 Speed Potion III",
 		Description = "x2 cruise speed",
 		Section = "Potions",
-		ProductId = 0,
+		ProductId = 3728396289,
 		RobuxPrice = 49,
 		Grants = { SpeedIII = 5 },
 	},
@@ -78,7 +78,7 @@ MonetizationConfig.Products = {
 		Name = "x5 Stamina Potion III",
 		Description = "x2 stamina",
 		Section = "Potions",
-		ProductId = 0,
+		ProductId = 3728396292,
 		RobuxPrice = 49,
 		Grants = { StaminaIII = 5 },
 	},
@@ -87,7 +87,7 @@ MonetizationConfig.Products = {
 		Name = "POTION BUNDLE!",
 		Description = "x10 of EVERY potion",
 		Section = "Bundle",
-		ProductId = 0,
+		ProductId = 3728396295,
 		RobuxPrice = 999,
 		Grants = bundle,
 	},
@@ -129,10 +129,17 @@ MonetizationConfig.OfflineDouble = {
 }
 
 -- Separate ids keep a delayed ordinary receipt from consuming a gift reservation.
--- Owner creates the corresponding recipient-owned developer products before enabling.
+-- Ids come from tools/monetization/create_products.py (ledger product_ids.json).
+local GIFT_IDS = {
+	potion_luck_pack = 3728396304,
+	potion_money_pack = 3728396311,
+	potion_speed_pack = 3728396315,
+	potion_stamina_pack = 3728396319,
+	potion_bundle = 3728396326,
+}
 for _, product in MonetizationConfig.Products do
 	if product.Grants then
-		product.GiftProductId = 0
+		product.GiftProductId = GIFT_IDS[product.Id] or 0
 	end
 end
 

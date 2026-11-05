@@ -1,0 +1,15 @@
+{
+  "passes": {},
+  "products": {
+    "potion_luck_pack": 3728396283,
+    "potion_money_pack": 3728396286,
+    "potion_speed_pack": 3728396289,
+    "potion_stamina_pack": 3728396292,
+    "potion_bundle": 3728396295,
+    "potion_luck_pack_gift": 3728396304,
+    "potion_money_pack_gift": 3728396311,
+    "potion_speed_pack_gift": 3728396315,
+    "potion_stamina_pack_gift": 3728396319,
+    "potion_bundle_gift": 3728396326
+  }
+}

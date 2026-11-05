@@ -78,6 +78,7 @@ function Tests.passes()
 		table.insert(cleanup, p)
 		return p
 	end
+	local realMoneyId, realVipId = byId.money_2x.GamepassId, byId.vip.GamepassId
 	local ok, err = pcall(function()
 		-- Ownership
 		byId.money_2x.GamepassId, byId.vip.GamepassId = 990076001, 990076002
@@ -177,7 +178,7 @@ function Tests.passes()
 	end)
 	PassService.SetOwnerCheck(nil)
 	PassService.SetPolicyRead(nil)
-	byId.money_2x.GamepassId, byId.vip.GamepassId = 0, 0
+	byId.money_2x.GamepassId, byId.vip.GamepassId = realMoneyId, realVipId
 	for _, p in cleanup do
 		p:Destroy()
 	end
