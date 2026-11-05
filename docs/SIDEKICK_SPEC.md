@@ -36,9 +36,9 @@ The owner creates the 4 developer products and gives their ids. Prices come from
 ## Summon page
 Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.
 - Left: 4 gem pack tiles, then **Details** and **Settings** buttons. Settings holds the auto-sell filter: one toggle per rarity, off by default.
-- Right: one banner with the Sidekicks' drawn art, names and rarities; Gem balance; Summon 1x and Summon 10x.
+- Right: one banner with the Sidekicks' actual 3D models (owner 2026-11-05), names and rarities; Gem balance; Summon 1x and Summon 10x. Summon results show the models too.
 - Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, pity bars, extra banners, banner timer.
-- Sidekicks need drawn portraits (owner's UI rule). `render_portrait.py` needs a `Head` mesh, so the non-humanoids need checking.
+- Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
 
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.

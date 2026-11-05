@@ -408,6 +408,7 @@ before any Studio work.
 - Selling a Sidekick pays a small Gem refund, always well under a summon's cost (owner 2026-11-04). The summon page has an auto-sell filter
   by rarity. An equipped Sidekick is never sold.
 - Ground Sidekicks walk beside their character. Flying Sidekicks hover around the character's shoulder and have a flapping animation (owner 2026-11-04). Kaizel flies; Pochito and Igriz walk. Every future flying Sidekick follows this rule.
+- Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
 - Art rulings (owner 2026-11-04; override section 5's target look for these models): Pochito is polished and closer to its source, with smooth rounded surfaces rather than hard facets. Kaizel is a thin wyvern, not a bulky dragon, with neon blue parts. Igriz keeps its red version; Kaizel stays black and cyan. Models are still made in-house, with no ripped art.
 
@@ -559,3 +560,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-04: owner: admin test commands `/narito` and `/newplayer` (4.13).
 - 2026-11-04: owner: new players start with auto-roll off and a spotlight tutorial turns it on (4.21).
 - 2026-11-05: owner: boss event gains a 1 minute preparation with a team HUD, Big Raga rises at 1:00 and the fight runs to 8:00, late joiners get an auto-chosen team until 3:00, team damage is the Sidekick average times a capped speed scale (replaces speed not changing damage), boss HP locks at 3:00, a red event header and a server-wide red chat message mark the spawn (4.37).
+- 2026-11-05: owner: Sidekick summon shows actual models; portraits only in the Sidekick index and Bag equip (4.36).
