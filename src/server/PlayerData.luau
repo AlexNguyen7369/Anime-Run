@@ -29,7 +29,7 @@ local RaceTimeService = require(script.Parent.RaceTimeService)
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 13 -- 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 14 -- 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
@@ -146,6 +146,7 @@ function PlayerData.Load(player, userId)
 
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
+		player:SetAttribute("Gems", cleanInt(data.Gems, 0, MAX_MONEY, 0))
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
@@ -261,6 +262,7 @@ local function save(player, userId, release)
 	local shop = ShopService.Snapshot(player)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
+		Gems = cleanInt(player:GetAttribute("Gems"), 0, MAX_MONEY, 0),
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
 		Showcase = gacha.Showcase,

@@ -33,6 +33,7 @@ local RunnerFactory = require(Shared.RunnerFactory)
 local NpcConfig = require(Shared.NpcConfig)
 local NpcRacer = require(Shared.NpcRacer)
 local CheckpointConfig = require(Shared.CheckpointConfig)
+local GemConfig = require(Shared.GemConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
 local MoneyService = require(script.Parent.MoneyService)
@@ -400,8 +401,14 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			amount = track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0
 			run.BankedTotal += amount
 			setUnbanked(run.Unbanked + amount)
+			-- Gems are paid here, not in rewardTrackWin: payPads shares it and beats no NPC (design doc 4.35).
+			local firstClear = track.Number > (player:GetAttribute("BestTrack") or 0)
 			reachTrack(player, track.Number)
 			rewardTrackWin(track.Number)
+			MoneyService.AddGems(
+				player,
+				GemConfig.TrackWin(track.Number) + (firstClear and GemConfig.FirstClear(track.Number) or 0)
+			)
 		else
 			setUnbanked(0) -- a lost race loses what was not cashed out yet
 		end

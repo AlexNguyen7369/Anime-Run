@@ -210,6 +210,20 @@ AdminService.Commands = {
 			return true, "Money = " .. money.Value
 		end,
 	},
+	gems = {
+		Usage = "/gems <amount> [player]",
+		Help = "set Gems (1.5k, 2m, 3b work)",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local n = amount(args)
+			return n and n >= 0 and n <= MAX_MONEY and math.floor(n) or nil
+		end,
+		Apply = function(p, n)
+			p:SetAttribute("Gems", n)
+			return true, "Gems = " .. n
+		end,
+	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
 		Help = "set the rebirth level (Money is not reset)",
@@ -380,7 +394,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, characters, stat points and upgrades",
+		Help = "reset Money, Gems, characters, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -388,6 +402,7 @@ AdminService.Commands = {
 		end,
 		Apply = function(p)
 			moneyValue(p).Value = 0
+			p:SetAttribute("Gems", 0)
 			p:SetAttribute("RebirthLevel", 0)
 			local stats = p:FindFirstChild("leaderstats")
 			local rebirth = stats and stats:FindFirstChild("Rebirth")
@@ -462,6 +477,7 @@ local ORDER = {
 	"money",
 	"addmoney",
 	"givemoney",
+	"gems",
 	"setrebirth",
 	"luck",
 	"giveluck",

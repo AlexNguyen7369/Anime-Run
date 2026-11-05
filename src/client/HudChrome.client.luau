@@ -417,7 +417,7 @@ local function refresh()
 			return nil
 		end
 		local blockers = {}
-		for _, name in { "Money", "Speed" } do
+		for _, name in { "Money", "Gems", "Speed" } do
 			table.insert(blockers, rect(name))
 		end
 		if stacked then

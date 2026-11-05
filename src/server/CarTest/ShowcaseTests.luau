@@ -11,7 +11,7 @@
 --   * SetShowcase(player, ids): array of <= 3 distinct owned rollable ids (never starter / gamepass); anything else
 --     returns false and changes nothing. Attribute Showcase ("a,b,c"). Remotes.SetShowcase is a RemoteFunction.
 --   * Save: Snapshot/Apply carry Copies { [id] = n >= 1 } and Showcase { id, ... }; old saves load 0 / empty;
---     PlayerData VERSION 13 (13: Team). A rebirth keeps both (checked in the rebirth scenario).
+--     PlayerData VERSION 14 (13: Team; 14: Gems). A rebirth keeps both (checked in the rebirth scenario).
 --   * World: the owner's Plot_N.Workshop has ShowcasePedestal_1..3 (anchored, non-colliding); k showcased characters
 --     = k pedestals holding that character's runner rig (H.isRig, child "Runner" or "Car"; CarModels is scrapped,
 --     docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29); labels have a finite MaxDistance.
@@ -23,7 +23,7 @@ local H = require(script.Parent.AcceptanceSupport)
 local Tests = {}
 
 -- The spec's numbers (docs/WORKSHOP_SPEC.md 5b). Independent oracle: never read from GachaConfig.
-local SPEC = { SLOTS = 3, VERSION = 13 }
+local SPEC = { SLOTS = 3, VERSION = 14 }
 local UID = 990122000
 
 function Tests.showcase()
@@ -299,7 +299,7 @@ function Tests.showcase()
 				and #snapOld.Showcase == 0
 		)
 
-		-- 7. PlayerData VERSION 13: save round trip, old save upgraded (offline credit retired, design doc 4.19)
+		-- 7. PlayerData VERSION 14: save round trip, old save upgraded (offline credit retired, design doc 4.19)
 		local function record(showcase)
 			return {
 				Version = SPEC.VERSION,
