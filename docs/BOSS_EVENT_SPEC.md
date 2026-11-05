@@ -24,7 +24,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 |---|---|
 | Ring | Inner radius 850, width 80, 7 lanes, about 5,600 studs per lap |
 | Laps | 800 / 200 / 48 / 24 studs/s: 7 s / 28 s / 2 min / 4 min |
-| Boss height | 0.66 x inner radius, about 560 studs to the top of the head; the wheel sits on top of that (owner 2026-11-04), about 806 studs in all |
+| Boss height | 0.66 x inner radius, about 560 studs to the top of the head; the wheel sits on top of that (owner 2026-11-04), 804 studs in all |
 | Camera | Turns inward during the event so the boss stays in view (owner 2026-11-04); angle set from the arena renders |
 | Height | y about 1,200, confirmed by a Studio read |
 

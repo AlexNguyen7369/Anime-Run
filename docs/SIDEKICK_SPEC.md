@@ -48,10 +48,11 @@ Layout ideas from the owner's reference, no copied art. Motion through `Client/U
 
 ## Display
 - Height is 30-40% of a character: 1.7-2.3 studs. Client-only follower attached to the visible runner. It needs a scale-aware pose, since `RunnerVisual.Pose` breaks on scaled rigs.
+- A catalog field `Movement` is `Walk` or `Fly`. `Walk` stays on the ground beside the character. `Fly` hovers around the shoulder with a gentle bob and loops its flap animation. Flying models keep wings as separate named parts.
 - The vendor is the sixth service, at the row end z -98.75, about 6 studs in front of Plot 1 (**proposed**, screenshot before committing).
 
 | Sidekick | Follow motion (proposed) | Event attack (proposed) | Effect (proposed) |
 |---|---|---|---|
 | Pochito | Fast scamper, pull-cord tail bouncing | Revs its head saw and hurls a spinning saw blade | Sparks, orange saw arc, blade spin |
-| Kaizel | Wings beating, gliding beside the runner | Rears back and breathes a flame burst | Flame stream, embers, heat flash at impact |
+| Kaizel | Flying: hovers around the runner's shoulder, wings flapping | Rears back and breathes a flame burst | Flame stream, embers, heat flash at impact |
 | Igriz | Armoured sprint | Sword swing launches a crimson slash wave | Crescent slash, red trail, cut flash at impact |
