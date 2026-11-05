@@ -89,8 +89,9 @@
 86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
 87. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
 88. 2026-11-05 — Alex Nguyen — Uploaded the 9 new Sidekick models, portraits and heads to Roblox and added them to the generated SidekickArt registry, not yet in live odds.
+89. 2026-11-05 — Alex Nguyen — Recorded the roster goal and the owner's rulings: characters wait for speed balance, Eternal and Void base Speed set, Void Saitamo ships with the Void characters.
 
 ## What's next
-**Write the Eternal and Void tier rules on top of `feature/alex/speed-balance`, using its Speed scale, then integrate the 12 new-series characters.**
+**After `feature/alex/speed-balance` lands and `speed_probe` has run, write the Eternal tier rules into the design doc and integrate the 12 new-series characters.**
 
-**Why this is next:** the speed balance branch replaces fixed cruise with a Speed number and curve, so tier values and the characters' catalog rows depend on it, and the boss-event session handles the Sidekick rows.
+**Why this is next:** the characters' catalog rows and the Eternal tier depend on that branch's Speed scale and on the tested `MAX_CRUISE`.

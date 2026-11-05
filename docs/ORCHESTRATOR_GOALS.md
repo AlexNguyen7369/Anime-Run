@@ -163,3 +163,15 @@ Branch: feature/alex/anime-world
 Deliverables:
 - t1 | Stale docs shortened, unused assets and files removed | `rojo build`, `stylua --check src`, `selene src` clean; rules audit finds no live rule lost
 Out of scope: gameplay, tests, git history rewrite.
+
+## roster: New characters, tiers above Secret and the 12-Sidekick pool (owner 2026-11-05)
+Status: paused for characters until `feature/alex/speed-balance` lands and `speed_probe` has run; Sidekick rows are with the boss-event session
+Owner-confirmed: 2026-11-05
+Branch: orch/roster/art1 (art committed, bca9b6e)
+Deliverables:
+- art1: models, portraits, evidence for 12 Chainsaw Mann and Solo Levelin characters, 9 Sidekicks, Void Saitamo; done: owner approved all 22 on 2026-11-05.
+- side1: 12-Sidekick pool live; done when boss-event merges the art and applies the table, and each Sidekick is seen following a runner in Studio.
+- tier1: Eternal tier (base Speed 5e16, proposed, owner OK 2026-11-05) and a curve anchor Speed 7e37 = 1000 studs/s, once `speed_probe` supports `MAX_CRUISE` 1000; done when `catalog`, `gacha` and the stamina and workshop scenarios are green.
+- char1: 12 characters uploaded and rollable, rules in the design doc first; done when `catalog` and `gacha` are green and an Eternal roll and run are seen in Studio.
+- void1: Void tier (base Speed 5e19) with Overspeed passives; Void Saitamo (`punch_void`) ships with the Void characters in a later update, after the monetization branch is merged.
+Out of scope: backlog characters and Attack animation before key-frame approval.
