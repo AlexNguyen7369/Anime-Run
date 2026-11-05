@@ -20,6 +20,8 @@ local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local RebirthConfig = require(Shared.RebirthConfig)
+local SidekickConfig = require(Shared.SidekickConfig)
+local SidekickService = require(script.Parent.SidekickService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
 
@@ -224,6 +226,20 @@ AdminService.Commands = {
 			return true, "Gems = " .. n
 		end,
 	},
+	sidekick = {
+		Usage = "/sidekick <id> [player]",
+		Help = "add one Sidekick to the bag",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local id = args[1]:lower()
+			return SidekickConfig.Get(id) and id or nil
+		end,
+		Apply = function(p, id)
+			local ok, message = SidekickService.Grant(p, id)
+			return ok, ok and ("added " .. id) or message
+		end,
+	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
 		Help = "set the rebirth level (Money is not reset)",
@@ -394,7 +410,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, Gems, characters, stat points and upgrades",
+		Help = "reset Money, Gems, characters, Sidekicks, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -417,6 +433,7 @@ AdminService.Commands = {
 			p:SetAttribute("DailyLast", -1)
 			GachaService.Apply(p, {})
 			UpgradeService.Apply(p, {}) -- after the gacha reset, so TurboCount starts from Rolls = 0
+			SidekickService.Apply(p, {})
 			return true, "wiped"
 		end,
 	},
@@ -478,6 +495,7 @@ local ORDER = {
 	"addmoney",
 	"givemoney",
 	"gems",
+	"sidekick",
 	"setrebirth",
 	"luck",
 	"giveluck",

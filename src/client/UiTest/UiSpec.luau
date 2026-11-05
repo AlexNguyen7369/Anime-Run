@@ -634,6 +634,7 @@ UiSpec.Guis.RacerBackpack = {
 		-- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 3): the Characters tab (was Cars, WORLD_REDESIGN_SPEC
 		-- section 1) lists the owned characters (UiSpec.Backpack).
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
+		{ Path = "Panel/Tabs/SidekicksTab", Does = "local", Effect = "backpack_category", Text = "Sidekicks" },
 		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
 		{
 			Path = "Panel/Header/Toolbar/Sort",
@@ -2935,7 +2936,7 @@ table.insert(UiSpec.Clicks, {
 	Expect = { Panels = { ["RacerBackpack/Panel"] = false }, Remote = false },
 })
 -- Characters last: the Backpack keeps the Characters view for the backpack_pick_character click below.
-for _, tab in { "Misc", "Trails", "Auras", "Characters" } do
+for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Characters" } do
 	table.insert(UiSpec.Clicks, {
 		Id = "backpack_" .. string.lower(tab),
 		Gui = "RacerBackpack",
@@ -3253,10 +3254,12 @@ end
 UiSpec.Backpack = {
 	Panel = "RacerBackpack/Panel",
 	Tabs = "RacerBackpack/Panel/Tabs",
+	-- Client/BackpackUi fitTabs: five tabs need a tighter rail gap at phone heights (Market.PhoneMaxHeight); Market.TabFit.Gap otherwise.
+	TabFit = { PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
-	TabOrder = { "Misc", "Trails", "Auras", "Characters" }, -- top to bottom; button <Name>Tab, label text <Name>
+	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks" }, -- top to bottom; button <Name>Tab, label text <Name>
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },

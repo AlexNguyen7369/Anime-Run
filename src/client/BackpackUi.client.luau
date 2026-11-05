@@ -4,7 +4,8 @@
 -- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
 -- doc 4.2). The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
--- sort; their cards are the shared collection card (design doc 4.22).
+-- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks tab is the Bag (design doc 4.36): pick an
+-- entry, then Equip on the character shown, Take off or Sell; every one asks the server.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -28,6 +29,8 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
+local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
+local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -181,6 +184,10 @@ end)
 tab("Characters", 4, function(b)
 	Components.PortraitArt(b, "Art", CharacterCatalog.All()[1], UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
 end)
+tab("Sidekicks", 5, function(b)
+	SidekickView.Art(b, SidekickConfig.List[1], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible =
+		false
+end)
 
 -- Owned cars, least rare first, then catalog order.
 local rarityRank = {}
@@ -285,6 +292,16 @@ local search = make("TextBox", "Search", toolbar, {
 corner(search, 10)
 stroke(search, OUTLINE, 3)
 make("UIPadding", "Padding", search, { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) })
+local bagCount = caption("BagCount", header, {
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -76, 0.5, 0),
+	Size = UDim2.fromOffset(120, 40),
+	Text = "",
+	TextSize = 24,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	Visible = false,
+	ZIndex = 5,
+})
 local empty = caption("Empty", panel, {
 	Position = UDim2.fromOffset(120, 140),
 	Size = UDim2.new(1, -132, 0, 40),
@@ -313,6 +330,46 @@ local slots = SlotPicker.new("Slots", panel, {
 }, function(...)
 	pickSlot(...)
 end)
+-- The Sidekicks tab's row, where the other tabs show the Slots: < character > Equip, Take off, Sell.
+local actions = make("Frame", "SidekickActions", panel, {
+	AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 120, 1, -32),
+	Size = UDim2.new(1, -132, 0, 44),
+	BackgroundTransparency = 1,
+	Visible = false,
+})
+local function actionButton(name, label, x, width)
+	local b = make("TextButton", name, actions, {
+		Position = UDim2.fromScale(x, 0),
+		Size = UDim2.fromScale(width, 1),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		Text = "",
+		AutoButtonColor = false,
+	})
+	corner(b, UiTheme.Radius.M)
+	UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
+	stroke(b, OUTLINE, 3)
+	local text = caption("Label", b, {
+		Position = UDim2.fromScale(0.06, 0.1),
+		Size = UDim2.fromScale(0.88, 0.8),
+		Text = label,
+		TextScaled = true,
+	})
+	make("UITextSizeConstraint", "MaxSize", text, { MaxTextSize = 18 })
+	return b, text
+end
+local prevCharacter = actionButton("PrevCharacter", "<", 0, 0.08)
+local nextCharacter = actionButton("NextCharacter", ">", 0.36, 0.08)
+local wearerLabel = caption("Wearer", actions, {
+	Position = UDim2.fromScale(0.09, 0.1),
+	Size = UDim2.fromScale(0.26, 0.8),
+	Text = "",
+	TextScaled = true,
+})
+make("UITextSizeConstraint", "MaxSize", wearerLabel, { MaxTextSize = 18 })
+local equipButton = actionButton("Equip", "Equip", 0.46, 0.17)
+local takeOffButton = actionButton("TakeOff", "Take off", 0.64, 0.17)
+local sellButton, sellLabel = actionButton("Sell", "Sell", 0.82, 0.18)
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -323,6 +380,9 @@ end
 local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
 local chosenCharacter = nil -- the character id the slot buttons put on the Team
+local chosenEntry = nil -- the Bag entry the Sidekicks row acts on
+local sellAsked = nil -- the entry whose Sell was pressed once: the second press sells it
+local gearOf = {} -- character id -> the Sidekick row it wears (filled per render)
 local busy = false
 local entering = false -- the next render is the panel opening: cascade its tiles
 local shownTiles = {}
@@ -355,6 +415,18 @@ local function characterTile(spec, order)
 	end
 	table.insert(shownTiles, b)
 	Components.CardArt(b, spec)
+	local worn = gearOf[spec.Id]
+	if worn then
+		caption("SidekickBadge", b, {
+			Position = UDim2.fromOffset(9, 28),
+			Size = UDim2.new(1, -18, 0, 16),
+			Text = worn.Name,
+			TextSize = 13,
+			TextColor3 = SidekickView.RarityColor(worn.Rarity),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 7,
+		})
+	end
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and data:FindFirstChild(spec.Id)
 	local copies = entry and entry:GetAttribute("Copies") or 1
@@ -477,6 +549,106 @@ local function use(item)
 	end
 end
 
+-- Bag entry facts in words; the numbers come from the shared catalog, the server pays them.
+local function sidekickFacts(row)
+	if not row then
+		return "A Sidekick from a newer version. It stays in your Bag and cannot be sold."
+	end
+	return string.format(
+		"%s (%s): %s. Sells for %d Gems.",
+		row.Name,
+		row.Rarity,
+		SidekickView.GainText(row),
+		row.SellGems
+	)
+end
+
+-- The row under the Bag: what the picked entry can do. A disabled button does not move (design doc 4.20).
+local function setEnabled(button, on)
+	button.Active = on
+	button.BackgroundTransparency = on and 0 or 0.5
+	button.Label.TextTransparency = on and 0 or 0.5
+end
+local function updateActions(wearers)
+	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
+	wearerLabel.Text = spec and spec.Name or "No character"
+	local row = chosenEntry and SidekickView.Row(player, chosenEntry)
+	local known = row and SidekickConfig.Get(row.Id)
+	local wearer = chosenEntry and wearers[chosenEntry]
+	setEnabled(equipButton, chosenEntry ~= nil and spec ~= nil and wearer ~= chosenCharacter)
+	setEnabled(takeOffButton, wearer ~= nil)
+	setEnabled(sellButton, known ~= nil and wearer == nil)
+	sellLabel.Text = known and string.format(sellAsked == chosenEntry and "Sure? +%d" or "Sell +%d", known.SellGems)
+		or "Sell"
+end
+
+local function sidekickRequest(remote, button, cue, ...)
+	if busy then
+		return
+	end
+	busy = true
+	local args = table.pack(...)
+	local ok, done, message = pcall(function()
+		return remotes:WaitForChild(remote):InvokeServer(table.unpack(args, 1, args.n))
+	end)
+	busy = false
+	local fine = ok and done == true
+	notify(ok and (fine and "Done" or tostring(message or "Try again")) or "Connection error")
+	render()
+	UiFeedback.Play(fine and cue or "Denied", button)
+end
+
+local function renderSidekicks(wearers)
+	local bag = SidekickView.Bag(player)
+	local still = false
+	for _, item in bag do
+		still = still or item.Entry == chosenEntry
+	end
+	chosenEntry = still and chosenEntry or (bag[1] and bag[1].Entry)
+	if sellAsked ~= chosenEntry then
+		sellAsked = nil
+	end
+	if not chosenCharacter then
+		local owned = ownedCars()
+		chosenCharacter = owned[1] and owned[1].Id
+	end
+	for order, item in bag do
+		local row = SidekickConfig.Get(item.Id)
+		local b = tile(item.Entry, order, wearers[item.Entry] ~= nil)
+		if item.Entry == chosenEntry then
+			b.Stroke.Color = Color3.new(1, 1, 1)
+		end
+		SidekickView.Art(b, row, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
+		if wearers[item.Entry] then
+			caption("Worn", b, {
+				Position = UDim2.fromOffset(8, 4),
+				Size = UDim2.new(1, -16, 0, 18),
+				Text = "WORN",
+				TextSize = 15,
+				TextColor3 = TILE_GREEN,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 5,
+			})
+		end
+		b.MouseEnter:Connect(function()
+			hint.Text = sidekickFacts(row)
+		end)
+		b.Activated:Connect(function()
+			chosenEntry = item.Entry
+			hint.Text = sidekickFacts(row) -- touch has no hover
+			render()
+			local picked = grid:FindFirstChild(item.Entry)
+			if picked then
+				UiMotion.Pop(picked, 0.06)
+			end
+		end)
+	end
+	bagCount.Text = #bag .. " / " .. SidekickConfig.BagSize
+	updateActions(wearers)
+	empty.Text = "No Sidekicks yet. Summon them at the Sidekicks stall!"
+	return #bag
+end
+
 function render()
 	for _, child in grid:GetChildren() do
 		if child:IsA("GuiObject") then
@@ -489,11 +661,28 @@ function render()
 	local shown = 0
 	table.clear(shownTiles)
 	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
+	local inBag = current == "Sidekicks"
 	slots.Frame.Visible = cosmetic
-	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE -- ends above the Slots row
+	actions.Visible = inBag
+	bagCount.Visible = inBag
+	-- ends above the Slots row
+	grid.Size = (cosmetic or inBag) and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
 	toolbar.Visible = current == "Characters"
 	fitCards()
-	if current == "Characters" then
+	local wearers = {} -- entry -> character id
+	for character, entry in SidekickView.Gear(player) do
+		wearers[entry] = character
+	end
+	table.clear(gearOf)
+	for _, item in SidekickView.Bag(player) do
+		local character = wearers[item.Entry]
+		if character then
+			gearOf[character] = SidekickConfig.Get(item.Id)
+		end
+	end
+	if inBag then
+		shown = renderSidekicks(wearers)
+	elseif current == "Characters" then
 		local owned = ownedCars()
 		local still = false
 		for _, spec in owned do
@@ -640,6 +829,60 @@ end
 close.Activated:Connect(function()
 	PanelSwitch.Close("Backpack")
 end)
+local function stepCharacter(step)
+	local owned = ownedCars()
+	if #owned == 0 then
+		return
+	end
+	local at = 1
+	for i, spec in owned do
+		if spec.Id == chosenCharacter then
+			at = i
+		end
+	end
+	chosenCharacter = owned[(at - 1 + step) % #owned + 1].Id
+	UiFeedback.Play("TabSwitch")
+	render()
+end
+prevCharacter.Activated:Connect(function()
+	stepCharacter(-1)
+end)
+nextCharacter.Activated:Connect(function()
+	stepCharacter(1)
+end)
+equipButton.Activated:Connect(function()
+	if equipButton.Active then
+		sidekickRequest("SidekickEquip", equipButton, "Equip", chosenCharacter, chosenEntry)
+	end
+end)
+takeOffButton.Activated:Connect(function()
+	local wearer
+	for character, entry in SidekickView.Gear(player) do
+		wearer = entry == chosenEntry and character or wearer
+	end
+	if takeOffButton.Active and wearer then
+		sidekickRequest("SidekickEquip", takeOffButton, "Equip", wearer, nil)
+	end
+end)
+-- Two presses: the first shows what the sale pays, so a rare entry never goes on a stray tap.
+sellButton.Activated:Connect(function()
+	local row = sellButton.Active and chosenEntry and SidekickView.Row(player, chosenEntry)
+	local known = row and SidekickConfig.Get(row.Id)
+	if not known then
+		return
+	end
+	if sellAsked ~= chosenEntry then
+		sellAsked = chosenEntry
+		notify(string.format("Sell %s for %d Gems? Press Sell again.", known.Name, known.SellGems))
+		sellLabel.Text = string.format("Sure? +%d", known.SellGems)
+		return
+	end
+	sellAsked = nil
+	sidekickRequest("SidekickSell", sellButton, "UpgradeBought", chosenEntry)
+end)
+for _, button in { equipButton, takeOffButton, sellButton } do
+	UiFeedback.DeniedPress(button)
+end
 sortButton.Activated:Connect(function()
 	sortMode = SORTS[table.find(SORTS, sortMode) % #SORTS + 1]
 	sortLabel.Text = "Sort: " .. sortMode
@@ -654,7 +897,9 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	end
 end)
 player.AttributeChanged:Connect(function(attr)
-	local watched = attr:sub(1, 6) == "Boost_"
+	local watched = attr == "SidekickBag"
+		or attr == "SidekickGear"
+		or attr:sub(1, 6) == "Boost_"
 		or attr:sub(1, 3) == "Own"
 		or attr:sub(1, 8) == "Equipped"
 		or attr:match("^Slot%d") ~= nil
@@ -679,7 +924,7 @@ task.spawn(function()
 	end
 	changed()
 end)
--- Same band as the other panels; short panels (phones) shrink the four tabs to fit.
+-- Same band as the other panels; short panels (phones) shrink the five tabs to fit.
 require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Theme = "Backpack",
 	Title = "Backpack",
@@ -699,7 +944,9 @@ local function fitTabs()
 	end
 	-- As Client/MarketUi: on phones the tabs may shrink below 0.4 so all stay inside the rail (owner 2026-10-28).
 	local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 3 * 10) / (4 * 96), phone and 0.1 or 0.4, 1)
+	local gap = phone and 2 or 10 -- five tabs need the phone rail's gaps too
+	rail.Layout.Padding = UDim.new(0, gap)
+	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 4 * gap) / (5 * 96), phone and 0.1 or 0.4, 1)
 	for _, refs in tabs do
 		refs.Scale.Scale = scale
 	end

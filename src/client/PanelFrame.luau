@@ -15,6 +15,7 @@ Frame.Themes = {
 	Rebirth = { Color3.fromRGB(190, 50, 170), Color3.fromRGB(240, 90, 200) },
 	Settings = { Color3.fromRGB(70, 80, 110), Color3.fromRGB(110, 125, 160) },
 	Stats = { Color3.fromRGB(90, 60, 200), Color3.fromRGB(172, 99, 238) },
+	Sidekicks = { Color3.fromRGB(20, 110, 130), Color3.fromRGB(60, 200, 190) },
 }
 local function child(parent, class, name)
 	local value = parent:FindFirstChild(name)

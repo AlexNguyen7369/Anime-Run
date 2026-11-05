@@ -705,6 +705,15 @@ local function sameSize(a, b)
 	return math.abs(a.X - b.X) < 0.5 and math.abs(a.Y - b.Y) < 0.5
 end
 
+-- The gap BackpackUi fitTabs sets on its rail at ctx.vp, nil for other layouts: the live Padding describes the real
+-- window, not a simulated viewport.
+local function backpackRailGap(rail, ctx)
+	if pathOf(rail) ~= UiSpec.Backpack.Tabs then
+		return nil
+	end
+	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Market.TabFit.Gap
+end
+
 -- MarketUi's and BackpackUi's per-tab fit (Client/MarketUi and Client/BackpackUi fitTabs, the same formula, mirrored in
 -- UiSpec.Market.TabFit): each side tab's UIScale "Scale" = clamp((rail height / rail scale - (n - 1) x gap) / (n x
 -- tab size), Min, Max), the rail scale being its rendered width / design width. nil for any other UIScale.
@@ -727,7 +736,8 @@ local function marketTabScale(obj, child, ctx)
 		end
 	end
 	local min = ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and fit.PhoneMin or fit.Min
-	return math.clamp((rr.h / railScale - (n - 1) * fit.Gap) / (n * fit.TabSize), min, fit.Max)
+	local gap = backpackRailGap(rail, ctx) or fit.Gap
+	return math.clamp((rr.h / railScale - (n - 1) * gap) / (n * fit.TabSize), min, fit.Max)
 end
 
 -- The visible HudChrome bottom-pair blockers (Money) at ctx.vp: { [path] = rect }.
@@ -988,7 +998,9 @@ local function listCell(obj, parent, list, base, ctx, scale)
 	end
 	local vertical = list.FillDirection == Enum.FillDirection.Vertical
 	local items = layoutItems(parent, list)
-	local gap = (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
+	local railGap = backpackRailGap(parent, ctx)
+	local gap = railGap and scale * railGap
+		or (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
 	local sizes, total, before = {}, 0, nil
 	for k, item in items do
 		local size = variantProps(item, ctx)
@@ -1041,7 +1053,9 @@ autoHeight = function(obj, w, h, ctx, c)
 	elseif list then
 		local items = layoutItems(obj, list)
 		local vertical = list.FillDirection == Enum.FillDirection.Vertical
-		local gap = (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
+		local railGap = backpackRailGap(obj, ctx)
+		local gap = railGap and c * railGap
+			or (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
 		for k, item in items do
 			local _, ih = sizeIn(item, variantProps(item, ctx), inner, ctx, c)
 			content = vertical and content + ih + (k < #items and gap or 0) or math.max(content, ih)
