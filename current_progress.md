@@ -81,8 +81,10 @@
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 79. 2026-11-04 — Alex Nguyen — Wrote the owner-confirmed boss event rules (design doc 4.35-4.38, three specs, goal, market research) on feature/alex/boss-event with no game code.
 80. 2026-11-05 — Alex Nguyen — Added Gems with track and task rewards, save VERSION 14, HUD plate and `/gems` (`[CARTEST]` pass=6 fail=0 on `gems`, `data`, `shop_purchases`, `race_progress_map`, `showcase`, `gift_mailbox`).
+81. 2026-11-05 — Alex Nguyen — Committed the owner-approved Big Raga and 3 Sidekick models with their evidence files, renders and arena draft tools, with nothing uploaded yet.
+82. 2026-11-05 — Alex Nguyen — Added Sidekick summons, summon page, Bag of 50, opt-in auto-sell, per-character equip and run gains (`[CARTEST]` pass=7 fail=0 including `sidekicks`; `ui_layout`, `ui_backpack_characters` and `ui_buttons` pass), with portraits and followers still to come.
 
 ## What's next
-**Build the Sidekick system: summons, Bag of 50, auto-sell, per-character equip and summon page, with gem packs left for last (goal `boss-event`, deliverable b3).**
+**Build the arena blockout: closed 7-lane ring at inner radius 850, y about 1,200, with a screenshot for the owner to review the size (goal `boss-event`, deliverable b4).**
 
-**Why this is next:** the boss event locks out players with no Sidekick and takes its damage from them, and the owner ruled gameplay comes before monetization.
+**Why this is next:** the event server, sky dressing and boss animation all need the arena and its closed rail, and the owner reviews its size before they build on it.

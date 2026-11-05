@@ -4,9 +4,12 @@ History: `current_progress.md`, `git log`.
 
 ## Boss event (2026-11-04)
 - Goal `boss-event` in `docs/ORCHESTRATOR_GOALS.md`. Integration branch `feature/alex/boss-event`, worktree `../AnimeRun-orch/boss-event`, started from aaf4b80 for the universal run. Rules: design doc 4.35-4.38, `BOSS_EVENT_SPEC`, `SIDEKICK_SPEC`, `RELIC_SPEC`; owner confirmed the 10 defaults, including warm-up laps and HP lock.
-- b1 art is untracked in that worktree. Owner approved Igriz and the Big Raga design; Big Raga's scale, Pochito and Kaizel are being revised, then the arena re-renders with `tools/blender/arena/build_arena.py`. No upload before the owner approves the revision. Animation gate: key frames as slices, owner approves each move before in-betweens.
+- b1 landed: owner approved all 4 models 2026-11-05 (5ec6ae0), not uploaded. `assets/arena_draft/` stays untracked. Animation gate: key frames as slices, owner approves each move before in-betweens.
+- b2 and b3 landed (b3 merge a661c4f). Auto-sell is off until a player turns it on (owner 2026-11-05). VIP discount on summons is held for the monetization session's decision.
+- Not done on Sidekicks: portraits (`SidekickView.Art` is a marked placeholder; `render_portrait.py` has no data for these models), followers (b7d), `ArePaidRandomItemsRestricted` handling (b9), `ui_sidekicks` scenario does not exist. On phone landscape the 5 Backpack tabs fit but are about 10-12 px, estimated, and no real phone was tried.
+- UI scenarios on a fresh save need StarterPick done first, or `backpack_tabs_topmost_desktop` reads the popup. `UiTestScenarioResult` is a client attribute: read it from the Client datamodel.
 - Products: `ANIMERUN_PRODUCTS_KEY` in `~/.zshrc`, read OK (`GET .../developer-products/creator` 200, 0 products), create untested. Create only the 4 gem packs and the 149 Robux Boss spawn, then show the owner ids and prices before use. Check the upload count before b3.
-- Next: finish b1, then b2 Gems.
+- Next: b4 arena blockout, Sidekick portraits alongside.
 
 ## State (2026-11-03)
 - Integration branch `feature/alex/anime-world`. `main` has only fork-ivs; merging needs an open PR and a fresh reviewer (owner approved it after c3).
