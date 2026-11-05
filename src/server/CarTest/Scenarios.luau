@@ -3025,7 +3025,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 13 -- docs/SAVE_SPEC.md: VERSION 13 adds Team; 12 Copies and Showcase; 11 RaceBestTimes
+	local DATA_VERSION = 14 -- docs/SAVE_SPEC.md: VERSION 14 adds Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local Money = serverModule("MoneyService")
@@ -12587,6 +12587,7 @@ end
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
+Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/SIDEKICK_SPEC.md "Gems"
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

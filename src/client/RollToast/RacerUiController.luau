@@ -63,6 +63,51 @@ UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDee
 UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
 hud.Unbanked.TextColor3 = Color3.new(1, 1, 1)
+-- Gems read-out (design doc 4.35): a new plate just above the Money plate; RacerHud is generated, so it is built here.
+local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
+local gemsPlate = UiTheme.Plate(Instance.new("Frame"), GEM_DEEP)
+gemsPlate.Name = "Gems"
+gemsPlate.AnchorPoint = Vector2.new(0, 1)
+gemsPlate.Parent = hud.Gui
+-- A square on its corner is the gem.
+local gemIcon = Instance.new("Frame")
+gemIcon.Name = "GemIcon"
+gemIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+gemIcon.Position = UDim2.fromScale(0.17, 0.5)
+gemIcon.Size = UDim2.fromScale(0.5, 0.5)
+gemIcon.SizeConstraint = Enum.SizeConstraint.RelativeYY
+gemIcon.Rotation = 45
+gemIcon.BackgroundColor3 = Color3.new(1, 1, 1)
+gemIcon.BorderSizePixel = 0
+gemIcon.ZIndex = 3
+UiTheme.Gradient(gemIcon, GEM, GEM_DEEP)
+gemIcon.Parent = gemsPlate
+local gemsValue = Instance.new("TextLabel")
+gemsValue.Name = "GemsValue"
+gemsValue.Position = UDim2.fromScale(0.33, 0.1)
+gemsValue.Size = UDim2.fromScale(0.62, 0.8)
+gemsValue.BackgroundTransparency = 1
+gemsValue.Font = UiTheme.Font
+gemsValue.TextSize = 26
+gemsValue.TextColor3 = Color3.new(1, 1, 1)
+gemsValue.TextXAlignment = Enum.TextXAlignment.Left
+gemsValue.Text = "0"
+gemsValue.ZIndex = 3
+UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
+UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
+gemsValue.Parent = gemsPlate
+-- Follows the Money plate's desktop and phone layouts, so it needs no phone branch of its own.
+local function placeGems()
+	local plate = hud.MoneyPlate
+	local width, height = plate.Size.X.Offset, plate.Size.Y.Offset
+	gemsPlate.Size = UDim2.fromOffset(width * 0.62, height * 0.38)
+	gemsPlate.Position = UDim2.new(
+		0,
+		hud.Money.Position.X.Offset + plate.Position.X.Offset,
+		1,
+		hud.Money.Position.Y.Offset - hud.Money.Size.Y.Offset + plate.Position.Y.Offset - 4
+	)
+end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
 local index = require(Ui.RacerIndex).Bind(playerGui)
@@ -875,6 +920,7 @@ end)
 hud.Level.Visible = false
 
 local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
+local shownGems = player:GetAttribute("Gems") or 0
 local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
@@ -918,6 +964,9 @@ local function refreshReadouts(dt)
 	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
+	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
+	gemsValue.Text = format.Short(shownGems)
+	placeGems()
 end
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
@@ -1020,7 +1069,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, index.IndexProgress, stats.Points }) do
+for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress, stats.Points }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14

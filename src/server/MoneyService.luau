@@ -50,6 +50,16 @@ function MoneyService.Award(player, amount)
 	return money.Value
 end
 
+-- Adds Gems (design doc 4.35) to the player attribute Gems. Returns the new balance, or nil if the amount is not positive.
+function MoneyService.AddGems(player, amount)
+	if type(amount) ~= "number" or amount ~= amount or amount < 1 then
+		return nil
+	end
+	local gems = math.min((player:GetAttribute("Gems") or 0) + math.floor(amount), MAX_MONEY)
+	player:SetAttribute("Gems", gems)
+	return gems
+end
+
 -- What the pad is worth to the player (its Cash times the Money multi), without paying it. NPC race wins award
 -- this quote immediately at the track finish; callers may also use it for previews/tests.
 -- 0 for anything that is not a winnings pad with a positive Cash.
