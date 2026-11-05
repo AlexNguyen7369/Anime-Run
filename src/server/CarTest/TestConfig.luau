@@ -48,6 +48,7 @@ return {
 		"gems",
 		"sidekicks",
 		"boss_arena",
+		"boss_event",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

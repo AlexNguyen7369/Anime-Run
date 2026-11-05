@@ -15,6 +15,7 @@ local CharacterCatalog = require(Shared.CharacterCatalog)
 local WeatherConfig = require(Shared.WeatherConfig)
 local VfxArea = require(Shared.VfxArea)
 local AdminConfig = require(script.Parent.AdminConfig)
+local BossEventService = require(script.Parent.BossEventService)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
@@ -238,6 +239,24 @@ AdminService.Commands = {
 		Apply = function(p, id)
 			local ok, message = SidekickService.Grant(p, id)
 			return ok, ok and ("added " .. id) or message
+		end,
+	},
+	boss = {
+		Usage = "/boss",
+		Help = "start a boss event now, or end the running one",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function()
+			if BossEventService.State().Phase ~= "Idle" then
+				BossEventService.End("Timeout") -- pays nothing
+				return true, "boss event ended"
+			end
+			BossEventService.Start("Admin")
+			return true, "boss event started"
 		end,
 	},
 	setrebirth = {
@@ -496,6 +515,7 @@ local ORDER = {
 	"givemoney",
 	"gems",
 	"sidekick",
+	"boss",
 	"setrebirth",
 	"luck",
 	"giveluck",
