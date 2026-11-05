@@ -84,8 +84,9 @@
 81. 2026-11-05 — Alex Nguyen — Committed the owner-approved Big Raga and 3 Sidekick models with their evidence files, renders and arena draft tools, with nothing uploaded yet.
 82. 2026-11-05 — Alex Nguyen — Added Sidekick summons, summon page, Bag of 50, opt-in auto-sell, per-character equip and run gains (`[CARTEST]` pass=7 fail=0 including `sidekicks`; `ui_layout`, `ui_backpack_characters` and `ui_buttons` pass), with portraits and followers still to come.
 83. 2026-11-05 — Alex Nguyen — Added the boss arena blockout with a closed 7-lane ring and PathDriver wrapping (`[CARTEST]` pass=3 fail=0 on `boss_arena`, `race`, `npc`), the owner approved its size and rules for preparation, late join and team damage were written.
+84. 2026-11-05 — Alex Nguyen — Added the boss event server and the owner's gem icon, uploaded 4 Sidekick models with portraits, and wrote the Big Raga Sidekick drop rule (`[CARTEST]` 12 scenarios pass including `boss_event` 352 checks; `runner` did not finish and live play is not checked).
 
 ## What's next
-**Build the event server: scheduler, teleport, preparation and late join, team damage, boss run, HP, end and chat message (goal `boss-event`, deliverable b5).**
+**Show the Sidekicks' actual models on the summon page and its results, with portraits in Bag equip and a Sidekicks page in the Index, then send the owner a screenshot for approval (goal `boss-event`, owner request 2026-11-05).**
 
-**Why this is next:** the team HUD, boss animation and Relic drops all run on the event's timeline and hit events, and the arena it needs has landed.
+**Why this is next:** the owner asked to approve the summon screen, and followers and Sidekick attacks reuse these uploaded models.
