@@ -16,6 +16,7 @@ return {
 		"money",
 		"race",
 		"economy",
+		"balance",
 		"data",
 		"hud",
 		"auto_toggle",

@@ -4,14 +4,14 @@
 --
 -- Tracks[n] overrides the defaults for track n:
 --   Color  Color3 of the starter car body
---   Speed  cruise speed, studs/s (the NPC slows only where corner grip requires it)
+--   Speed  the enemy's Speed, the game's whole number (docs/SPEED_BALANCE_SPEC.md); For() adds Cruise, its studs/s
 --   Label  the enemy's name, shown in the indicator above its head (design doc 4.26)
 --   Model  name of a Model under ReplicatedStorage.NpcModels, or a model id in Shared/CharacterModelAssets (catalog or foe_)
 
+local RaceConfig = require(script.Parent.RaceConfig)
+
 local NpcConfig = {}
 
-NpcConfig.BASE_SPEED = 16 -- Track 1, studs/s: a stat-0 starter car (10) loses; slightly higher starter-track recommendation
-NpcConfig.SPEED_GROWTH = 1.51 -- every later track's NPC is this many times faster; Track 10 = 653 studs/s, under RaceConfig.MAX_CRUISE (owner 2026-10-27, was 1.75)
 NpcConfig.LOSE_SCREEN_SECONDS = 3 -- loser screen time before the player is sent back to the spawn
 NpcConfig.LABEL_FORMAT = "track%02d_NPC"
 
@@ -29,35 +29,37 @@ NpcConfig.PALETTE = {
 
 -- One enemy per track (docs/NPC_RIVAL_SPEC.md). Model: an id in Shared/CharacterModelAssets; rollable characters share them (design doc 4.32).
 NpcConfig.Tracks = {
-	[1] = { Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
-	[2] = { Label = "Selle", Model = "foe_db" },
-	[3] = { Label = "Arlon", Model = "foe_sea" },
-	[4] = { Label = "Akazo", Model = "foe_ds" },
-	[5] = { Label = "Jogoh", Model = "foe_jk" },
-	[6] = { Label = "Shigaraky", Model = "foe_mha" },
-	[7] = { Label = "Mahitoh", Model = "foe_jk2" },
-	[8] = { Label = "Enelu", Model = "foe_sea2" },
-	[9] = { Label = "Ulquiorro", Model = "foe_soul" },
-	[10] = { Label = "Freezo", Model = "db_tyrant" },
+	[1] = { Speed = 1e3, Label = "Paine", Color = Color3.fromRGB(230, 45, 45), Model = "foe_leaf" },
+	[2] = { Speed = 1e5, Label = "Selle", Model = "foe_db" },
+	[3] = { Speed = 1e7, Label = "Arlon", Model = "foe_sea" },
+	[4] = { Speed = 3e9, Label = "Akazo", Model = "foe_ds" },
+	[5] = { Speed = 3e12, Label = "Jogoh", Model = "foe_jk" },
+	[6] = { Speed = 3e15, Label = "Shigaraky", Model = "foe_mha" },
+	[7] = { Speed = 3e18, Label = "Mahitoh", Model = "foe_jk2" },
+	[8] = { Speed = 1e22, Label = "Enelu", Model = "foe_sea2" },
+	[9] = { Speed = 1e27, Label = "Ulquiorro", Model = "foe_soul" },
+	[10] = { Speed = 5e29, Label = "Freezo", Model = "db_tyrant" },
 }
 
--- Everything about track `number`'s NPC: { Number, Speed, Color, Label, Model }.
+-- Everything about track `number`'s NPC: { Number, Speed, Cruise, Color, Label, Model }. A track past the table has the last enemy's Speed.
 function NpcConfig.For(number)
 	number = math.max(1, math.floor(tonumber(number) or 1))
 	local o = NpcConfig.Tracks[number] or {}
 	local palette = NpcConfig.PALETTE
+	local speed = o.Speed or NpcConfig.Tracks[#NpcConfig.Tracks].Speed
 	return {
 		Number = number,
-		Speed = o.Speed or NpcConfig.BASE_SPEED * NpcConfig.SPEED_GROWTH ^ (number - 1),
+		Speed = speed,
+		Cruise = RaceConfig.CruiseOf(speed),
 		Color = o.Color or palette[(number - 1) % #palette + 1],
 		Label = o.Label or string.format(NpcConfig.LABEL_FORMAT, number),
 		Model = o.Model,
 	}
 end
 
--- The lowest whole speed above track `number`'s enemy cruise speed (proposed, design doc 4.15).
+-- Enemy Speed x 1.01, rounded up (proposed 2026-11-05, design doc 4.15). A flat +1 does nothing at 1e27, and a tie loses.
 function NpcConfig.RecommendedSpeed(number)
-	return math.floor(NpcConfig.For(number).Speed) + 1
+	return math.ceil(NpcConfig.For(number).Speed * 1.01)
 end
 
 return NpcConfig

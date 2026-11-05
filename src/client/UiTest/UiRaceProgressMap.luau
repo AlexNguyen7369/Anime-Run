@@ -84,7 +84,7 @@ function Tests.Run()
 			return {
 				Type = "Start",
 				Track = entry.Number,
-				Speed = config.For(entry.Number).Speed,
+				Speed = config.For(entry.Number).Cruise,
 				ServerStart = workspace:GetServerTimeNow(),
 				BestTime = best,
 			}

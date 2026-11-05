@@ -2890,9 +2890,7 @@ function Scenarios.economy()
 	local function num(x)
 		return type(x) == "number" and x == x
 	end
-	local consts = {
-		ITEM_CRUISE_DAMP = 0.5, -- owner 2026-10-28: aura / trail cruise multi = 1 + 0.5 x log10(multi)
-	}
+	local consts = {}
 	for name, want in consts do
 		check(checks, "const_" .. string.lower(name), RaceConfig[name] or -1, want, RaceConfig[name] == want)
 	end
@@ -2927,13 +2925,13 @@ function Scenarios.economy()
 	local function near(a, b, tol)
 		return num(a) and math.abs(a - b) <= tol
 	end
-	-- aura / trail item multi: 1 + 0.5 x log10(multi), min 1 (owner 2026-10-28; worked out by hand)
+	-- aura / trail item multi: its listed multi, min 1 (proposed 2026-11-05)
 	local okI, i05 = pcall(RaceConfig.ItemCruiseMulti, 0.5)
 	check(checks, "item_cruise_multi_below_one_is_1", okI and i05 or -1, 1, okI and i05 == 1)
 	local ok3, i3 = pcall(RaceConfig.ItemCruiseMulti, 3)
-	check(checks, "item_cruise_multi_3", ok3 and i3 or -1, 1.23856, ok3 and near(i3, 1.23856, 5e-6))
+	check(checks, "item_cruise_multi_3", ok3 and i3 or -1, 3, ok3 and i3 == 3)
 	local ok5, i5 = pcall(RaceConfig.ItemCruiseMulti, 5)
-	check(checks, "item_cruise_multi_5", ok5 and i5 or -1, 1.34949, ok5 and near(i5, 1.34949, 5e-6))
+	check(checks, "item_cruise_multi_5", ok5 and i5 or -1, 5, ok5 and i5 == 5)
 
 	-- Hard cruise cap (docs/WORLDS_SPEC.md section 1, owner 2026-10-27): MAX_CRUISE = 800 and no character or multi
 	-- ever runs faster; every NPC stays below it.
@@ -2947,7 +2945,7 @@ function Scenarios.economy()
 	local top = Catalog.Get("db_hero") -- Secret
 	local capWorst, cruiseCapOk = 0, starter ~= nil and top ~= nil
 	for _, spec in { starter, top } do
-		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e100, 1e300 } do
+		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e29, 1e100, 1e300 } do
 			local v = cr(spec, m)
 			if not (num(v) and v <= CRUISE_CAP) then
 				cruiseCapOk = false
@@ -2956,7 +2954,7 @@ function Scenarios.economy()
 		end
 	end
 	-- the cap is reached, not just respected
-	cruiseCapOk = cruiseCapOk and cr(top, 2800) == CRUISE_CAP and cr(starter, 1e6) == CRUISE_CAP
+	cruiseCapOk = cruiseCapOk and cr(top, 1e29) == CRUISE_CAP and cr(starter, 1e100) == CRUISE_CAP
 	check(checks, "cruise_never_above_cap", capWorst, CRUISE_CAP, cruiseCapOk)
 	-- bad, <= 0 or infinite multis count as 1
 	local badMultiOk = starter ~= nil and num(cr(starter, 1))
@@ -2973,7 +2971,7 @@ function Scenarios.economy()
 	if npcOk then
 		for n = 1, trackCount do
 			local ok, info = pcall(NpcConfig.For, n)
-			local sp = ok and type(info) == "table" and info.Speed or nil
+			local sp = ok and type(info) == "table" and info.Cruise or nil
 			if not (num(sp) and sp < CRUISE_CAP) then
 				npcOk = false
 			end
@@ -6440,24 +6438,7 @@ function Scenarios.npc()
 				end
 			end
 			check(checks, "npc_speed_increasing_1_to_5", increasing and 1 or 0, 1, increasing)
-			local s1 = isFiniteNumber(infos[1].Speed) and infos[1].Speed or math.huge
-			-- retired: npc_track1_beats_beginner (Track 1 NPC faster than a fresh player, NPC_RACER_SPEC 2026-10-20).
-			-- Design doc 4.13: a Common wins Track 1 (24 > 16 studs/s); owner 2026-11-03: Track 1 balance kept as is.
-			-- Owner 2026-10-21 ("lower track requirements", replaces "substantially harder" >= 3x BASE_SPEED and the
-			-- fixed x2.5 growth): Track 1 = NpcConfig.BASE_SPEED, x SPEED_GROWTH per track (placeholders, read live),
-			-- and Track 1 must not need ~10M Speed: its recommended shown Speed is below 10,000.
-			local cfgBase, cfgGrowth = NpcConfig.BASE_SPEED, NpcConfig.SPEED_GROWTH
-			check(
-				checks,
-				"npc_track1_is_config_base",
-				s1,
-				isFiniteNumber(cfgBase) and cfgBase or -1,
-				isFiniteNumber(cfgBase) and math.abs(s1 - cfgBase) <= 1e-6
-			)
-			local growth = infos[2].Speed / infos[1].Speed
-			local growthOk = isFiniteNumber(cfgGrowth) and cfgGrowth > 1 and math.abs(growth - cfgGrowth) <= 1e-6
-			check(checks, "npc_speed_growth_is_config", growth, isFiniteNumber(cfgGrowth) and cfgGrowth or -1, growthOk)
-			-- retired: npc_track1_rec_speed_below_10k (no Speed requirement, design doc 4.13, owner 2026-11-01)
+			-- retired: npc_track1_is_config_base, npc_speed_growth_is_config (enemy table, BalanceTests, owner 2026-11-05)
 			-- the enemy's own name (design doc 4.26), never the LABEL_FORMAT fallback
 			local function enemyNamed(n)
 				local entry = NpcConfig.Tracks[n]
@@ -12594,6 +12575,7 @@ Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
+Scenarios.balance = require(script.Parent.BalanceTests).balance
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the chassis, no mass/controls change, equip preserved
 Scenarios.vehicle_effects = require(script.Parent.VehicleEffectTests).make({
 	newFakeCharacter = newFakeCharacter,

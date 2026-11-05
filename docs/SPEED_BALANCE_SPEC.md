@@ -44,7 +44,7 @@ Recommended speed on a track card: enemy Speed x 1.01, rounded up. `floor + 1` d
 | Mythic | 50b | 125 (450) | 27 |
 | Secret | 50t | 168 (700) | 30 |
 
-Curve anchors, in order: (10, 10), Common, Uncommon, Rare, the enemies of Tracks 2-10, then Speed 3e31 = 800 studs/s.
+Curve anchors, in order: (10, 10), Common, Uncommon, Track 1's enemy, Rare, the enemies of Tracks 2-10, then Speed 3e31 = 800 studs/s.
 The best current kit (Secret, rebirth 20, full buffs) is about 2.8e31 Speed, about 797 studs/s, so the 47 characters top
 out at 800. The range from 800 to `MAX_CRUISE` is for future characters; its anchor comes from the cap test.
 

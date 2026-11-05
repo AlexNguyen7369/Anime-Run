@@ -71,7 +71,7 @@ function RaceService.BuildRoute(entries)
 			FinishIndex = path.FinishIndices[i],
 			PadIndex = path.PadIndices[i],
 			Pad = pad,
-			Npc = { Config = config, Path = lane, Profile = NpcRacer.Profile(lane, config.Speed) },
+			Npc = { Config = config, Path = lane, Profile = NpcRacer.Profile(lane, config.Cruise) },
 		})
 	end
 	return { Path = path, Pads = pads, Tracks = tracks }
@@ -352,7 +352,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local function startRace(i)
 		local track = raceRoute.Tracks[i]
 		local cfg = track.Npc.Config
-		local speed = options.NpcSpeeds and options.NpcSpeeds[track.Number] or cfg.Speed
+		local speed = options.NpcSpeeds and options.NpcSpeeds[track.Number] or cfg.Cruise
 		speed *= require(script.Parent.WeatherService).Multipliers().NpcSpeed
 		local profile = track.Npc.Profile
 		if speed ~= profile.Speed then
@@ -477,12 +477,14 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	-- Each team slot's cruise is fixed when the run starts (design doc 4.13 / 4.19): swaps read this snapshot, so a
 	-- workshop stat, potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
-	local fixedCruise = {}
+	local fixedCruise, fixedSpeed = {}, {}
 	function snapshotCruise()
 		table.clear(fixedCruise)
+		table.clear(fixedSpeed)
 		if staminaMode and typeof(player) == "Instance" then
 			for slot, id in team do
 				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot)
+				fixedSpeed[slot] = GachaService.SpeedFor(player, id, slot)
 			end
 		end
 	end
@@ -496,6 +498,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
 			player:SetAttribute("Cruise", run.TargetSpeed)
+			player:SetAttribute(
+				"Speed",
+				(id == team[run.Slot] and fixedSpeed[run.Slot]) or GachaService.SpeedFor(player, id, run.Slot)
+			)
 		end
 	end
 	setCruise()

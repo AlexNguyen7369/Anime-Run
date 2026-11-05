@@ -81,8 +81,9 @@
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 79. 2026-11-05 — Alex Nguyen — Wrote the Speed balance rules: whole-number Speed with a curve to studs/s, new enemy and rebirth tables, keep-won-tracks loss rule, pacing model and research notes.
 80. 2026-11-05 — Alex Nguyen — Changed a loss to cash out the tracks already won, not yet run in Studio.
+81. 2026-11-05 — Alex Nguyen — Built the Speed core: Speed number, curve to studs/s, enemy table, full-value auras and trails and a balance test, checked offline only.
 
 ## What's next
-**Build the Speed core: the Speed number, the curve to studs/s and the enemy table.**
+**Change rebirth to a high total Speed multi with the new cost table.**
 
-**Why this is next:** the rebirth multis and the Speed display both read it.
+**Why this is next:** late tracks cannot be reached without it, and the 800 studs/s top of the pool depends on it.

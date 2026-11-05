@@ -22,7 +22,7 @@ local STARTER = {
 }
 
 -- Admin-only test runner (owner 2026-11-01, docs/GAME_DESIGN_REQUIREMENTS.md 4.13): granted for the session by /kami,
--- never saved, never rolled, not in the index. Its AdminCruise is used as-is (no cap applied).
+-- never saved, never rolled, not in the index. Its AdminSpeed is used as-is.
 CharacterCatalog.KAMI_ID = "kami"
 local KAMI = {
 	Id = CharacterCatalog.KAMI_ID,
@@ -30,7 +30,7 @@ local KAMI = {
 	Rarity = "Secret",
 	Chance = nil,
 	SpeedMulti = 1,
-	AdminCruise = 800, -- studs/s, equal to RaceConfig.MAX_CRUISE (owner 2026-11-01)
+	AdminSpeed = 3e31, -- runs at RaceConfig.MAX_CRUISE, the curve's top (owner 2026-11-01)
 	Order = 0,
 	Category = "Balanced",
 	Model = nil,

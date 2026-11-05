@@ -161,12 +161,12 @@ local function slotMulti(player: any, slot: number?, kind: string): number
 	return item and item.SpeedMulti or 1
 end
 
--- Slot `slot`'s (default 1) aura raw multi (damped into cruise by RaceConfig.ItemCruiseMulti).
+-- Slot `slot`'s (default 1) aura multi (RaceConfig.ItemCruiseMulti).
 function MarketConfig.SpeedMulti(player, slot)
 	return slotMulti(player, slot, "Aura")
 end
 
--- Slot `slot`'s (default 1) trail raw multi (damped into cruise by RaceConfig.ItemCruiseMulti; owner 2026-10-28).
+-- Slot `slot`'s (default 1) trail multi (RaceConfig.ItemCruiseMulti).
 function MarketConfig.TrailMulti(player, slot)
 	return slotMulti(player, slot, "Trail")
 end

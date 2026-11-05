@@ -17,7 +17,7 @@ GachaConfig.TURBO_LUCK = 10
 -- The Workshop stat retired 2026-11-03 (design doc 4.19): saved Alloc.Workshop points are never read, so they are free
 GachaConfig.STATS = { "Speed", "Money", "Luck", "Stamina" }
 GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier to tune)
-	Speed = 0.02, -- +2 % cruise per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
+	Speed = 0.02, -- +2 % Speed per point (placeholder, design doc 4.13; RaceConfig.SpeedMulti)
 	Money = 0.1, -- race payouts
 	Luck = 0.05, -- car roll odds
 	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)

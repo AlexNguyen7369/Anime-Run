@@ -450,22 +450,31 @@ function GachaService.StaminaMulti(player)
 	)
 end
 
--- Cruise of character `id` on team slot `slot` (default 1), studs/s (design doc 4.13): fixed by rarity x category,
--- times the speed multi (Speed points + upgrade tree Speed tiers + rebirth level + workshop boost, active Speed potion, preset team bonus, that slot's
--- damped aura and trail), capped at MAX_CRUISE. The character's SpeedMulti never enters it. An id the player does
--- not own runs as the starter.
-function GachaService.CruiseFor(player, id, slot)
+-- The spec and speed multi of character `id` on team slot `slot` (default 1; design doc 4.13): Speed points + upgrade
+-- tree Speed tiers + rebirth level + workshop boost, active Speed potion, preset team bonus, that slot's aura and trail.
+-- The character's SpeedMulti never enters it. An id the player does not own runs as the starter.
+local function specAndMulti(player, id, slot)
 	slot = slot or 1
 	local spec = type(id) == "string" and owns(player, id) and CharacterCatalog.Get(id) or CharacterCatalog.Get(STARTER)
-	local multi = RaceConfig.SpeedMulti(
-		alloc(player).Speed,
-		require(script.Parent.BoostService).Multiplier(player, "Speed"),
-		GachaService.TeamBonus(player) == "Preset",
-		MarketConfig.SpeedMulti(player, slot),
-		MarketConfig.TrailMulti(player, slot),
-		(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
-	)
-	return RaceConfig.Cruise(spec, multi)
+	return spec,
+		RaceConfig.SpeedMulti(
+			alloc(player).Speed,
+			require(script.Parent.BoostService).Multiplier(player, "Speed"),
+			GachaService.TeamBonus(player) == "Preset",
+			MarketConfig.SpeedMulti(player, slot),
+			MarketConfig.TrailMulti(player, slot),
+			(bonuses(player).Speed or 0) + RebirthConfig.SpeedBonus(player:GetAttribute("RebirthLevel"))
+		)
+end
+
+-- Whole Speed of character `id` on team slot `slot` (design doc 4.13).
+function GachaService.SpeedFor(player, id, slot)
+	return RaceConfig.Speed(specAndMulti(player, id, slot))
+end
+
+-- Cruise of character `id` on team slot `slot`, studs/s.
+function GachaService.CruiseFor(player, id, slot)
+	return RaceConfig.Cruise(specAndMulti(player, id, slot))
 end
 
 -- Cruise of the equipped character (EquippedCar: RaceService sets it to the active Team slot's character).
@@ -474,7 +483,7 @@ function GachaService.Cruise(player, slot)
 end
 
 -- Replicates what the team row shows (server numbers, display only): TeamBonus ("Preset:<id>", "Series:<id>" or
--- ""), TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Cruise while on foot (a run sets its own).
+-- ""), TeamSpeed1..3, TeamCruise1..3 (studs/s) and TeamStamina1..3 (seconds) per slot, and Speed and Cruise while on foot (a run sets its own).
 function GachaService.RefreshTeam(player)
 	local team = GachaService.TeamList(player)
 	local kind, series = GachaService.TeamBonus(player)
@@ -483,6 +492,7 @@ function GachaService.RefreshTeam(player)
 	local staminaMulti = GachaService.StaminaMulti(player)
 	for slot = 1, TEAM_SIZE do
 		local spec = team[slot] and CharacterCatalog.Get(team[slot])
+		player:SetAttribute("TeamSpeed" .. slot, spec and GachaService.SpeedFor(player, team[slot], slot) or nil)
 		player:SetAttribute("TeamCruise" .. slot, spec and GachaService.CruiseFor(player, team[slot], slot) or nil)
 		player:SetAttribute(
 			"TeamStamina" .. slot,
@@ -490,6 +500,7 @@ function GachaService.RefreshTeam(player)
 		)
 	end
 	if player:GetAttribute("AutoRacing") ~= true then
+		player:SetAttribute("Speed", GachaService.SpeedFor(player, player:GetAttribute("EquippedCar")))
 		player:SetAttribute("Cruise", GachaService.Cruise(player))
 	end
 end
@@ -778,8 +789,9 @@ local function remote(remotes, name)
 end
 
 function GachaService.Start()
-	UpgradeService.OnChanged(function(player) -- a bought Speed tier changes cruise (design doc 4.13)
+	UpgradeService.OnChanged(function(player) -- a bought Speed tier changes Speed (design doc 4.13)
 		if player:GetAttribute("AutoRacing") ~= true then
+			player:SetAttribute("Speed", GachaService.SpeedFor(player, player:GetAttribute("EquippedCar")))
 			player:SetAttribute("Cruise", GachaService.Cruise(player))
 		end
 	end)

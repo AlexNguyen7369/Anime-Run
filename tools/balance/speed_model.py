@@ -34,7 +34,7 @@ CHANCES = {
 }
 
 # (Speed, studs/s), ascending. Above the last anchor the runner holds that cruise.
-CURVE = [(10, 10), (100, 24), (300, 33), (1200, 48)] + [(ENEMY_SPEED[i], ENEMY_CRUISE[i]) for i in range(1, 10)] + [(3e31, 800)]
+CURVE = [(10, 10), (100, 24), (300, 33), (1e3, ENEMY_T1_CRUISE), (1200, 48)] + [(ENEMY_SPEED[i], ENEMY_CRUISE[i]) for i in range(1, 10)] + [(3e31, 800)]
 
 REBIRTH_SPEED = [1, 5, 12, 25, 50, 100, 250, 600, 1500, 4000, 1e4, 1.6e5, 2.5e6, 4e7, 6.5e8, 1e10, 1.6e11, 2.5e12, 4e13, 6.5e14, 1e16]
 REBIRTH_LUCK = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 7.5, 10, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11]

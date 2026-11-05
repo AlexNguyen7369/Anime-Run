@@ -387,7 +387,7 @@ function Tests.weather()
 					end,
 				})
 				table.insert(resources, run)
-				local wantSpeed = route.Tracks[1].Npc.Config.Speed * (event == "" and 1 or expected[event][3])
+				local wantSpeed = route.Tracks[1].Npc.Config.Cruise * (event == "" and 1 or expected[event][3])
 				flag("weather_reaches_npc_track_start_" .. label(event), start ~= nil and near(start.Speed, wantSpeed))
 				run:Destroy()
 				resources[#resources] = nil

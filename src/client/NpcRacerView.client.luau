@@ -136,7 +136,7 @@ local function startNpc(event)
 	info.Color = typeof(event.Color) == "Color3" and event.Color or info.Color
 	info.Label = type(event.Label) == "string" and event.Label or info.Label
 	info.Model = type(event.Model) == "string" and event.Model or info.Model
-	local profile = NpcRacer.Profile(path, type(event.Speed) == "number" and event.Speed or info.Speed)
+	local profile = NpcRacer.Profile(path, type(event.Speed) == "number" and event.Speed or info.Cruise)
 	local model = NpcRacer.BuildModel(info)
 	model:PivotTo(NpcRacer.PoseAt(path, profile, 0))
 	model.Parent = Workspace -- client-side only: never replicated
