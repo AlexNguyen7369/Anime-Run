@@ -80,8 +80,9 @@
 77. 2026-11-04 — Alex Nguyen — Ran the universal run on 86be288 in Studio on test save u5ui5: ui_camera_follows_runner and ui_runner_smooth pass, ui_run_visual red once on pos_no_pop for db_scholar then 37 of 37 on rerun, cause not found, full harness not run.
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
 79. 2026-11-04 — Alex Nguyen — Wrote the owner-confirmed boss event rules (design doc 4.35-4.38, three specs, goal, market research) on feature/alex/boss-event with no game code.
+80. 2026-11-05 — Alex Nguyen — Added Gems with track and task rewards, save VERSION 14, HUD plate and `/gems` (`[CARTEST]` pass=6 fail=0 on `gems`, `data`, `shop_purchases`, `race_progress_map`, `showcase`, `gift_mailbox`).
 
 ## What's next
-**Build Gems: track and task rewards, gem save field, HUD readout and `/gems` (goal `boss-event`, deliverable b2).**
+**Build the Sidekick system: summons, Bag of 50, auto-sell, per-character equip and summon page, with gem packs left for last (goal `boss-event`, deliverable b3).**
 
-**Why this is next:** Sidekick summons, gem packs and the rebirth 2 tutorial all spend or show Gems, and the save fields it adds are shared by the later Sidekick, Relic and paid spawn work.
+**Why this is next:** the boss event locks out players with no Sidekick and takes its damage from them, and the owner ruled gameplay comes before monetization.
