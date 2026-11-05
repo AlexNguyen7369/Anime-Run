@@ -2,6 +2,12 @@
 
 History: `current_progress.md`, `git log`.
 
+## Boss event (2026-11-04)
+- Goal `boss-event` in `docs/ORCHESTRATOR_GOALS.md`. Integration branch `feature/alex/boss-event`, worktree `../AnimeRun-orch/boss-event`, started from aaf4b80 for the universal run. Rules: design doc 4.35-4.38, `BOSS_EVENT_SPEC`, `SIDEKICK_SPEC`, `RELIC_SPEC`; owner confirmed the 10 defaults, including warm-up laps and HP lock.
+- b1 art is untracked in that worktree. Owner approved Igriz and the Big Raga design; Big Raga's scale, Pochito and Kaizel are being revised, then the arena re-renders with `tools/blender/arena/build_arena.py`. No upload before the owner approves the revision. Animation gate: key frames as slices, owner approves each move before in-betweens.
+- Products: `ANIMERUN_PRODUCTS_KEY` in `~/.zshrc`, read OK (`GET .../developer-products/creator` 200, 0 products), create untested. Create only the 4 gem packs and the 149 Robux Boss spawn, then show the owner ids and prices before use. Check the upload count before b3.
+- Next: finish b1, then b2 Gems.
+
 ## State (2026-11-03)
 - Integration branch `feature/alex/anime-world`. `main` has only fork-ivs; merging needs an open PR and a fresh reviewer (owner approved it after c3).
 - Built and landed: all 10 biome tracks, team of 3 + stamina + team bonus, workshop stat boost, all 30 character models, first impression fi1-fi5.

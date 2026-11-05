@@ -79,8 +79,9 @@
 76. 2026-11-04 — Alex Nguyen — Built the universal run for every character without a RunStyle (design doc 4.34), made the run dust visible at speed, and rebased orch/run/universal onto the integration branch with ui_run_visual retargeted; seen live before the rebase, nothing run in Studio since.
 77. 2026-11-04 — Alex Nguyen — Ran the universal run on 86be288 in Studio on test save u5ui5: ui_camera_follows_runner and ui_runner_smooth pass, ui_run_visual red once on pos_no_pop for db_scholar then 37 of 37 on rerun, cause not found, full harness not run.
 78. 2026-11-04 — Alex Nguyen — Pushed orch/run/universal to origin on the owner's word after the latest ui_run_visual run passed; not merged into the integration branch.
+79. 2026-11-04 — Alex Nguyen — Wrote the owner-confirmed boss event rules (design doc 4.35-4.38, three specs, goal, market research) on feature/alex/boss-event with no game code.
 
 ## What's next
-**Merge `orch/run/universal` into `feature/alex/anime-world`, then have the owner watch the run at full speed.**
+**Build Gems: track and task rewards, gem save field, HUD readout and `/gems` (goal `boss-event`, deliverable b2).**
 
-**Why this is next:** the targeted checks have run on the branch, and the placeholder angles and dust can only be tuned once the owner has seen them moving.
+**Why this is next:** Sidekick summons, gem packs and the rebirth 2 tutorial all spend or show Gems, and the save fields it adds are shared by the later Sidekick, Relic and paid spawn work.
