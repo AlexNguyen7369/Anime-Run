@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Arena = require(Shared.BossArenaConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
 local RunnerVisual = require(script.Parent.RunnerVisual)
@@ -21,6 +22,8 @@ local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the publish
 local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at once
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
 local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns to the runner's travel (docs/CAMERA_SPEC.md)
+-- The boss event camera turns inward (docs/BOSS_EVENT_SPEC.md "Arena"), angles from the arena draft's GAME_YAW, GAME_PITCH.
+local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
@@ -216,19 +219,33 @@ end
 
 -- Track camera (docs/CAMERA_SPEC.md): turns the camera yaw toward the runner's travel, keeping the player's pitch and
 -- zoom. Runs before the default camera, which builds its next frame from this look direction.
+local savedPitch = nil -- the player's pitch from before the boss event; the event sets it once and the player keeps control
+
+local function setAngles(camera, pitch, yaw)
+	local focus = camera.Focus.Position
+	local distance = (camera.CFrame.Position - focus).Magnitude
+	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, distance)
+end
+
 local function alignYaw(camera, torso, dt)
 	local dir = torso.CFrame.LookVector
+	local inEvent = player:GetAttribute("BossEvent") == true
+	if inEvent then
+		local inward = ((Arena.Center - torso.Position) * Vector3.new(1, 0, 1)).Unit
+		dir = dir * math.cos(ARENA_YAW) + inward * math.sin(ARENA_YAW)
+	end
 	if Vector2.new(dir.X, dir.Z).Magnitude < 1e-3 then
 		return
 	end
-	local focus = camera.Focus.Position
-	local offset = camera.CFrame.Position - focus
 	local look = camera.CFrame.LookVector
 	local yaw = math.atan2(-look.X, -look.Z)
 	local turn = (math.atan2(-dir.X, -dir.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
 	yaw += turn * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
 	local pitch = math.asin(math.clamp(look.Y, -1, 1))
-	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, offset.Magnitude)
+	if inEvent and not savedPitch then
+		savedPitch, pitch = pitch, ARENA_PITCH
+	end
+	setAngles(camera, pitch, yaw)
 end
 
 local function trackCameraOn(camera, mine)
@@ -252,6 +269,11 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
 	local camera = Workspace.CurrentCamera
+	if camera and savedPitch and player:GetAttribute("BossEvent") ~= true then
+		local look = camera.CFrame.LookVector
+		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
+		savedPitch = nil
+	end
 	local mine = player:GetAttribute("AutoRacing") == true and RunnerVisual.LocalRunner()
 	local torso = mine and mine.PrimaryPart
 	followed = nil

@@ -40,6 +40,14 @@ function SidekickView.AutoSell(player)
 	return decode(player, "SidekickAutoSell") -- rarity -> true
 end
 
+function SidekickView.RelicBag(player)
+	return decode(player, "RelicBag") -- array of { Id, Entry }
+end
+
+function SidekickView.RelicGear(player)
+	return decode(player, "RelicGear") -- character id -> entry
+end
+
 -- The Bag row of `entry`, or nil.
 function SidekickView.Row(player, entry)
 	for _, row in SidekickView.Bag(player) do

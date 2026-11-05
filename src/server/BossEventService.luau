@@ -20,6 +20,7 @@ local DuelService = require(script.Parent.DuelService)
 local GachaService = require(script.Parent.GachaService)
 local PlayerData = require(script.Parent.PlayerData)
 local RaceService = require(script.Parent.RaceService)
+local RelicService = require(script.Parent.RelicService)
 local SidekickService = require(script.Parent.SidekickService)
 
 local BossEventService = {}
@@ -34,6 +35,7 @@ local lastEnd = nil
 local chatRemote = nil
 local started = false
 local lastRequest = setmetatable({}, { __mode = "k" })
+local rewardRng = Random.new()
 
 local function now()
 	return clock and clock() or workspace:GetServerTimeNow()
@@ -74,7 +76,19 @@ BossEventService.Hooks = {
 			chatRemote:FireAllClients(text)
 		end
 	end,
-	Rewards = function(_players) end, -- shortcut: no Relics yet, b8 grants them here
+	-- One Relic each; one player's failure never costs another's. The toast goes through Remotes.RunEvent (Client/TeamToast).
+	Rewards = function(players)
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local toast = remotes and remotes:FindFirstChild("RunEvent")
+		for _, player in players do
+			safely(function()
+				local ok, relic, raga = RelicService.GrantDefeat(player, "big_raga", rewardRng)
+				if ok and toast and player:IsA("Player") then
+					toast:FireClient(player, { Kind = "BossReward", Relic = relic.Id, Raga = raga })
+				end
+			end)
+		end
+	end,
 }
 
 function BossEventService.SetClock(fn)
@@ -185,7 +199,7 @@ function BossEventService.SetTeam(player, ids)
 	return true
 end
 
--- The live number: the average of the team's Sidekicks, times the speed scale of the running character's cruise.
+-- The live number: the average of the team's Sidekicks, each scaled by its wearer's Relic, times the speed scale of the running character's cruise.
 function BossEventService.TeamDamage(player)
 	local member = event and event.Members[player]
 	if not member then
@@ -196,7 +210,7 @@ function BossEventService.TeamDamage(player)
 	for _, id in team do
 		local spec = SidekickService.Worn(player, id)
 		if spec then
-			table.insert(damages, spec.Damage)
+			table.insert(damages, spec.Damage * RelicService.Multi(player, id, "Damage"))
 		end
 	end
 	local cruise = member.Run and member.Run.TargetSpeed
@@ -219,6 +233,18 @@ function BossEventService.RecordHit(player)
 		publish()
 	end
 	return dealt
+end
+
+-- Seconds between hits. The team hits as one (design doc 4.37), so Relic attack speed counts as the team's average.
+local function hitSpacing(player, member)
+	local total, count = 0, 0
+	for _, id in member.Team do
+		if SidekickService.Worn(player, id) then
+			total += RelicService.Multi(player, id, "AttackSpeed")
+			count += 1
+		end
+	end
+	return count > 0 and Cfg.HitEverySeconds / (total / count) or Cfg.HitEverySeconds
 end
 
 local function startRun(player, member)
@@ -390,11 +416,11 @@ local function tick(at)
 		if not player.Parent then
 			BossEventService.Leave(player, "Left")
 		elseif member.Run and member.Run.Waiting then
-			member.NextHit = at + Cfg.HitEverySeconds -- the wait owes nothing afterward
+			member.NextHit = at + hitSpacing(player, member) -- the wait owes nothing afterward
 		elseif member.Run then
 			while event == current and current.Members[player] == member and member.NextHit <= at do
 				BossEventService.RecordHit(player)
-				member.NextHit += Cfg.HitEverySeconds
+				member.NextHit += hitSpacing(player, member)
 			end
 		end
 	end

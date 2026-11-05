@@ -5,7 +5,8 @@
 -- doc 4.2). The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
 -- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks tab is the Bag (design doc 4.36): pick an
--- entry, then Equip on the character shown, Take off or Sell; every one asks the server.
+-- entry, then Equip on the character shown, Take off or Sell; every one asks the server. The Relics tab works the same way,
+-- with no Sell (design doc 4.38).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -30,6 +31,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
+local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 
 local OUTLINE = UiTheme.Outline
@@ -188,6 +190,11 @@ tab("Sidekicks", 5, function(b)
 	SidekickView.Art(b, SidekickConfig.List[1], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible =
 		false
 end)
+-- shortcut: Relic art is SidekickView's text tile (rarity colour, name), in-house icons need art and an upload; replace them then.
+tab("Relics", 6, function(b)
+	local list = RelicConfig.Bosses.big_raga
+	SidekickView.Art(b, list[#list], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible = false
+end)
 
 -- Owned cars, least rare first, then catalog order.
 local rarityRank = {}
@@ -331,15 +338,16 @@ local slots = SlotPicker.new("Slots", panel, {
 	pickSlot(...)
 end)
 -- The Sidekicks tab's row, where the other tabs show the Slots: < character > Equip, Take off, Sell.
-local actions = make("Frame", "SidekickActions", panel, {
+local ACTION_ROW = {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 120, 1, -32),
 	Size = UDim2.new(1, -132, 0, 44),
 	BackgroundTransparency = 1,
 	Visible = false,
-})
-local function actionButton(name, label, x, width)
-	local b = make("TextButton", name, actions, {
+}
+local actions = make("Frame", "SidekickActions", panel, ACTION_ROW)
+local function actionButton(name, label, x, width, row)
+	local b = make("TextButton", name, row or actions, {
 		Position = UDim2.fromScale(x, 0),
 		Size = UDim2.fromScale(width, 1),
 		BackgroundColor3 = Color3.new(1, 1, 1),
@@ -370,6 +378,19 @@ make("UITextSizeConstraint", "MaxSize", wearerLabel, { MaxTextSize = 18 })
 local equipButton = actionButton("Equip", "Equip", 0.46, 0.17)
 local takeOffButton = actionButton("TakeOff", "Take off", 0.64, 0.17)
 local sellButton, sellLabel = actionButton("Sell", "Sell", 0.82, 0.18)
+-- The Relics tab's row: < character > Equip, Take off.
+local relicActions = make("Frame", "RelicActions", panel, ACTION_ROW)
+local relicPrev = actionButton("PrevCharacter", "<", 0, 0.08, relicActions)
+local relicNext = actionButton("NextCharacter", ">", 0.36, 0.08, relicActions)
+local relicWearerLabel = caption("Wearer", relicActions, {
+	Position = UDim2.fromScale(0.09, 0.1),
+	Size = UDim2.fromScale(0.26, 0.8),
+	Text = "",
+	TextScaled = true,
+})
+make("UITextSizeConstraint", "MaxSize", relicWearerLabel, { MaxTextSize = 18 })
+local relicEquip = actionButton("Equip", "Equip", 0.46, 0.26, relicActions)
+local relicTakeOff = actionButton("TakeOff", "Take off", 0.74, 0.26, relicActions)
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -381,8 +402,10 @@ local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
 local chosenCharacter = nil -- the character id the slot buttons put on the Team
 local chosenEntry = nil -- the Bag entry the Sidekicks row acts on
+local chosenRelic = nil -- the bag entry the Relics row acts on
 local sellAsked = nil -- the entry whose Sell was pressed once: the second press sells it
 local gearOf = {} -- character id -> the Sidekick row it wears (filled per render)
+local relicOf = {} -- character id -> the Relic row it wears (filled per render)
 local busy = false
 local entering = false -- the next render is the panel opening: cascade its tiles
 local shownTiles = {}
@@ -423,6 +446,18 @@ local function characterTile(spec, order)
 			Text = worn.Name,
 			TextSize = 13,
 			TextColor3 = SidekickView.RarityColor(worn.Rarity),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 7,
+		})
+	end
+	local relic = relicOf[spec.Id]
+	if relic then
+		caption("RelicBadge", b, {
+			Position = UDim2.fromOffset(9, worn and 44 or 28),
+			Size = UDim2.new(1, -18, 0, 16),
+			Text = relic.Name,
+			TextSize = 13,
+			TextColor3 = SidekickView.RarityColor(relic.Rarity),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 7,
 		})
@@ -563,6 +598,13 @@ local function sidekickFacts(row)
 	)
 end
 
+local function relicFacts(row)
+	if not row then
+		return "A Relic from a newer version. It stays in your Bag."
+	end
+	return string.format("%s (%s): %s.", row.Name, row.Rarity, RelicConfig.GainText(row))
+end
+
 -- The row under the Bag: what the picked entry can do. A disabled button does not move (design doc 4.20).
 local function setEnabled(button, on)
 	button.Active = on
@@ -598,24 +640,12 @@ local function sidekickRequest(remote, button, cue, ...)
 	UiFeedback.Play(fine and cue or "Denied", button)
 end
 
-local function renderSidekicks(wearers)
-	local bag = SidekickView.Bag(player)
-	local still = false
-	for _, item in bag do
-		still = still or item.Entry == chosenEntry
-	end
-	chosenEntry = still and chosenEntry or (bag[1] and bag[1].Entry)
-	if sellAsked ~= chosenEntry then
-		sellAsked = nil
-	end
-	if not chosenCharacter then
-		local owned = ownedCars()
-		chosenCharacter = owned[1] and owned[1].Id
-	end
+-- One tile per bag entry, the worn ones marked. `rowOf` finds the catalog row, `facts` words it, `pick` takes the click.
+local function entryTiles(bag, wearers, picked, rowOf, facts, pick)
 	for order, item in bag do
-		local row = SidekickConfig.Get(item.Id)
+		local row = rowOf(item.Id)
 		local b = tile(item.Entry, order, wearers[item.Entry] ~= nil)
-		if item.Entry == chosenEntry then
+		if item.Entry == picked then
 			b.Stroke.Color = Color3.new(1, 1, 1)
 		end
 		SidekickView.Art(b, row, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
@@ -631,21 +661,73 @@ local function renderSidekicks(wearers)
 			})
 		end
 		b.MouseEnter:Connect(function()
-			hint.Text = sidekickFacts(row)
+			hint.Text = facts(row)
 		end)
 		b.Activated:Connect(function()
-			chosenEntry = item.Entry
-			hint.Text = sidekickFacts(row) -- touch has no hover
+			pick(item.Entry)
+			hint.Text = facts(row) -- touch has no hover
 			render()
-			local picked = grid:FindFirstChild(item.Entry)
-			if picked then
-				UiMotion.Pop(picked, 0.06)
+			local tileNow = grid:FindFirstChild(item.Entry)
+			if tileNow then
+				UiMotion.Pop(tileNow, 0.06)
 			end
 		end)
 	end
+end
+
+local function ensureCharacter()
+	if not chosenCharacter then
+		local owned = ownedCars()
+		chosenCharacter = owned[1] and owned[1].Id
+	end
+end
+
+local function renderSidekicks(wearers)
+	local bag = SidekickView.Bag(player)
+	local still = false
+	for _, item in bag do
+		still = still or item.Entry == chosenEntry
+	end
+	chosenEntry = still and chosenEntry or (bag[1] and bag[1].Entry)
+	if sellAsked ~= chosenEntry then
+		sellAsked = nil
+	end
+	ensureCharacter()
+	entryTiles(bag, wearers, chosenEntry, SidekickConfig.Get, sidekickFacts, function(entry)
+		chosenEntry = entry
+	end)
 	bagCount.Text = #bag .. " / " .. SidekickConfig.BagSize
 	updateActions(wearers)
 	empty.Text = "No Sidekicks yet. Summon them at the Sidekicks stall!"
+	return #bag
+end
+
+local function relicWearers()
+	local wearers = {} -- entry -> character id
+	for character, entry in SidekickView.RelicGear(player) do
+		wearers[entry] = character
+	end
+	return wearers
+end
+
+local function renderRelics()
+	local bag, wearers = SidekickView.RelicBag(player), relicWearers()
+	local still = false
+	for _, item in bag do
+		still = still or item.Entry == chosenRelic
+	end
+	chosenRelic = still and chosenRelic or (bag[1] and bag[1].Entry)
+	ensureCharacter()
+	entryTiles(bag, wearers, chosenRelic, RelicConfig.Get, relicFacts, function(entry)
+		chosenRelic = entry
+	end)
+	bagCount.Text = tostring(#bag) -- no cap: no rule gives this bag one
+	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
+	relicWearerLabel.Text = spec and spec.Name or "No character"
+	local wearer = chosenRelic and wearers[chosenRelic]
+	setEnabled(relicEquip, chosenRelic ~= nil and spec ~= nil and wearer ~= chosenCharacter)
+	setEnabled(relicTakeOff, wearer ~= nil)
+	empty.Text = "No Relics yet. Defeat a boss to earn one!"
 	return #bag
 end
 
@@ -662,11 +744,13 @@ function render()
 	table.clear(shownTiles)
 	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
 	local inBag = current == "Sidekicks"
+	local inRelics = current == "Relics"
 	slots.Frame.Visible = cosmetic
 	actions.Visible = inBag
-	bagCount.Visible = inBag
+	relicActions.Visible = inRelics
+	bagCount.Visible = inBag or inRelics
 	-- ends above the Slots row
-	grid.Size = (cosmetic or inBag) and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
+	grid.Size = (cosmetic or inBag or inRelics) and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
 	toolbar.Visible = current == "Characters"
 	fitCards()
 	local wearers = {} -- entry -> character id
@@ -680,8 +764,18 @@ function render()
 			gearOf[character] = SidekickConfig.Get(item.Id)
 		end
 	end
+	table.clear(relicOf)
+	local relicRows = {} -- entry -> Relic row
+	for _, item in SidekickView.RelicBag(player) do
+		relicRows[item.Entry] = RelicConfig.Get(item.Id)
+	end
+	for character, entry in SidekickView.RelicGear(player) do
+		relicOf[character] = relicRows[entry]
+	end
 	if inBag then
 		shown = renderSidekicks(wearers)
+	elseif inRelics then
+		shown = renderRelics()
 	elseif current == "Characters" then
 		local owned = ownedCars()
 		local still = false
@@ -880,7 +974,24 @@ sellButton.Activated:Connect(function()
 	sellAsked = nil
 	sidekickRequest("SidekickSell", sellButton, "UpgradeBought", chosenEntry)
 end)
-for _, button in { equipButton, takeOffButton, sellButton } do
+relicPrev.Activated:Connect(function()
+	stepCharacter(-1)
+end)
+relicNext.Activated:Connect(function()
+	stepCharacter(1)
+end)
+relicEquip.Activated:Connect(function()
+	if relicEquip.Active then
+		sidekickRequest("RelicEquip", relicEquip, "Equip", chosenCharacter, chosenRelic)
+	end
+end)
+relicTakeOff.Activated:Connect(function()
+	local wearer = chosenRelic and relicWearers()[chosenRelic]
+	if relicTakeOff.Active and wearer then
+		sidekickRequest("RelicEquip", relicTakeOff, "Equip", wearer, nil)
+	end
+end)
+for _, button in { equipButton, takeOffButton, sellButton, relicEquip, relicTakeOff } do
 	UiFeedback.DeniedPress(button)
 end
 sortButton.Activated:Connect(function()
@@ -899,6 +1010,8 @@ end)
 player.AttributeChanged:Connect(function(attr)
 	local watched = attr == "SidekickBag"
 		or attr == "SidekickGear"
+		or attr == "RelicBag"
+		or attr == "RelicGear"
 		or attr:sub(1, 6) == "Boost_"
 		or attr:sub(1, 3) == "Own"
 		or attr:sub(1, 8) == "Equipped"
@@ -924,7 +1037,7 @@ task.spawn(function()
 	end
 	changed()
 end)
--- Same band as the other panels; short panels (phones) shrink the five tabs to fit.
+-- Same band as the other panels; short panels (phones) shrink the six tabs to fit.
 require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Theme = "Backpack",
 	Title = "Backpack",
@@ -944,9 +1057,9 @@ local function fitTabs()
 	end
 	-- As Client/MarketUi: on phones the tabs may shrink below 0.4 so all stay inside the rail (owner 2026-10-28).
 	local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-	local gap = phone and 2 or 10 -- five tabs need the phone rail's gaps too
+	local gap = phone and 2 or 6 -- six tabs need the phone rail's gaps too
 	rail.Layout.Padding = UDim.new(0, gap)
-	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 4 * gap) / (5 * 96), phone and 0.1 or 0.4, 1)
+	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 5 * gap) / (6 * 96), phone and 0.1 or 0.4, 1)
 	for _, refs in tabs do
 		refs.Scale.Scale = scale
 	end
