@@ -8425,7 +8425,7 @@ function UiScenarios.RunClick(id)
 
 	-- Prepare panels and scroll
 	-- Prepare.KeepPanels: the panels stay exactly as the previous click left them (no close / reopen, which would reset
-	-- a view such as the Checkpoints detail pane) and are not restored; Prepare.LeavePanels: prepared as usual but left
+	-- a view such as the Market detail pane) and are not restored; Prepare.LeavePanels: prepared as usual but left
 	-- that way after the click, so the next KeepPanels click starts from it.
 	local restorePanels = prep.KeepPanels and function() end or preparePanels(prep)
 	if prep.LeavePanels then
