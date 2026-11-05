@@ -85,8 +85,9 @@
 82. 2026-11-05 — Alex Nguyen — Added Sidekick summons, summon page, Bag of 50, opt-in auto-sell, per-character equip and run gains (`[CARTEST]` pass=7 fail=0 including `sidekicks`; `ui_layout`, `ui_backpack_characters` and `ui_buttons` pass), with portraits and followers still to come.
 83. 2026-11-05 — Alex Nguyen — Added the boss arena blockout with a closed 7-lane ring and PathDriver wrapping (`[CARTEST]` pass=3 fail=0 on `boss_arena`, `race`, `npc`), the owner approved its size and rules for preparation, late join and team damage were written.
 84. 2026-11-05 — Alex Nguyen — Added the boss event server and the owner's gem icon, uploaded 4 Sidekick models with portraits, and wrote the Big Raga Sidekick drop rule (`[CARTEST]` 12 scenarios pass including `boss_event` 352 checks; `runner` did not finish and live play is not checked).
+85. 2026-11-05 — Alex Nguyen — Showed Sidekick models on the summon page with portraits in the Bag and a Sidekicks page in the Index, and added the boss event leave remote and duel join (`[CARTEST]` pass=4 fail=0 including `boss_event` 443 checks; `ui_layout` 962 and `ui_sidekicks` 56 pass; owner approval of the summon screen is open).
 
 ## What's next
-**Show the Sidekicks' actual models on the summon page and its results, with portraits in Bag equip and a Sidekicks page in the Index, then send the owner a screenshot for approval (goal `boss-event`, owner request 2026-11-05).**
+**Play the boss event live in Studio, then build the sky dressing (goal `boss-event`, deliverable b6).**
 
-**Why this is next:** the owner asked to approve the summon screen, and followers and Sidekick attacks reuse these uploaded models.
+**Why this is next:** the server is tested only by its scenarios so far, and the arena still shows the plaza's sky and haze.
