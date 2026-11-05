@@ -756,6 +756,10 @@ local function refreshIndex()
 			string.format("%d / %d DEFEATED", math.clamp(player:GetAttribute("BestTrack") or 0, 0, total), total)
 		return
 	end
+	if index.Gui:GetAttribute("InventoryTab") == "Sidekicks" then
+		index.IndexProgress.Text = index.Gui:GetAttribute("SidekicksProgress") or ""
+		return
+	end
 	index.IndexProgress.Text = string.format(
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
 		count,
@@ -794,6 +798,7 @@ data.ChildRemoved:Connect(refreshIndex)
 player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
+index.Gui:GetAttributeChangedSignal("SidekicksProgress"):Connect(refreshIndex)
 refreshIndex()
 require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 

@@ -28,6 +28,8 @@
 --         reads only run.TargetSpeed and run.Waiting, and calls run:Destroy().
 --       Depart(player): back to spawn. Chat(text): to the whole server, default fires RemoteEvent Remotes.BossEventChat.
 --       Rewards(players): on a defeat only, once. A stub until b8 (Relics).
+--     Remotes.BossEventLeave: the client's leave option, no arguments, runs Leave(player, "Left") (owner 2026-11-05).
+--     Join during a duel's Countdown or Racing: succeeds and ends the duel through DuelService.PlayerLeft (owner 2026-11-05).
 --     Init(): boot. Makes the remote, starts the 1 s loop. Called by Main.server. Not `Start`, which starts an event here.
 --     Hits: a member's first hit comes one HitEverySeconds after the intro's end, or after joining if later.
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
@@ -42,9 +44,10 @@
 --   8th player: 4.37 says lanes for up to 7, so an 8th is refused.
 --   after the event: EquippedCar goes back to what it was at Join (a run moves it; only Team is ruled).
 --   joined then left, nobody in at 3:00: same as nobody came.
--- NOT pinned, no rule found, implementer picks and reports: an arena empty after 3:00; a decliner's auto-roll and pad (BossEvent
---   is tested on members only); a leaver's reward; changing gear mid-event; a Dojo squad character on the event team; the
---   client's Remotes.SetAutoRace during an event; rejoining after leaving; a joiner during a duel (the spec only hides the popup).
+-- NOT pinned, no rule found, implementer picks and reports: an arena empty after 3:00; a decliner's pad; changing gear mid-event;
+--   a Dojo squad character on the event team; rejoining after leaving.
+-- NOT reachable from here: a server test cannot fire a client remote, so only the existence of Remotes.BossEventLeave and
+--   Remotes.SetAutoRace is checked, not their handlers (SetAutoRace stays ignored in the event, leave runs Leave).
 --
 -- Runs on Folder players and an isolated PlayerData clone, like SidekickTests. Real wall time well under 40 s.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_event", then CarTestRun = true.
@@ -82,7 +85,7 @@ function Tests.make(deps)
 	local function boss_event()
 		local r, flag = H.report("boss_event")
 		local started = os.clock()
-		local cleanup, liveRuns = {}, {}
+		local cleanup, liveRuns, duelists = {}, {}, {}
 
 		local function section(name, body)
 			local ok, err = xpcall(body, debug.traceback)
@@ -1040,6 +1043,177 @@ function Tests.make(deps)
 				eq("idle_after_end", phase(), "Idle")
 			end)
 
+			serviceSection("leave_option", function()
+				begin()
+				eq(
+					"leave_works_in_prep",
+					(function()
+						local p = fighter()
+						S.Join(p)
+						S.Leave(p, "Left")
+						return not S.IsIn(p) and p:GetAttribute("BossEvent") == nil and log.Depart[p] == 1
+					end)(),
+					true
+				)
+				eq("leave_in_prep_takes_hp_back", S.State().MaxHp, 0)
+
+				-- Not in the event: harmless, in an event and with none.
+				local stranger = fighter()
+				local maxBefore, playersBefore = S.State().MaxHp, S.State().Players
+				eq("leave_not_in_no_error", (pcall(S.Leave, stranger, "Left")), true)
+				eq("leave_not_in_no_return", log.Depart[stranger], nil)
+				eq("leave_not_in_no_gate", stranger:GetAttribute("BossEvent"), nil)
+				eq("leave_not_in_keeps_max", S.State().MaxHp, maxBefore)
+				eq("leave_not_in_keeps_players", S.State().Players, playersBefore)
+
+				local stay, tired, rich, late = fighter(), fighter(), fighter(), fighter()
+				for _, p in { stay, tired, rich, late } do
+					S.Join(p)
+				end
+				to(FIGHT)
+
+				-- Exhaustion only causes the wait: leaving in it works like any other time.
+				local tiredRun = log.Runs[tired]
+				tiredRun.Waiting = true
+				local maxFull = S.State().MaxHp
+				S.Leave(tired, "Left")
+				eq("leave_in_wait_out", S.IsIn(tired), false)
+				eq("leave_in_wait_returns", log.Depart[tired], 1)
+				eq("leave_in_wait_stops_run", tiredRun.Destroyed, 1)
+				eq("leave_before_3_00_lowers_max_4000", S.State().MaxHp, maxFull - HP)
+
+				-- A leaver above the reward share still gets nothing.
+				local need = Cfg.MinDamageShare * maxFull
+				for _ = 1, 1000 do
+					if S.DamageOf(rich) > need then
+						break
+					end
+					S.RecordHit(rich)
+				end
+				flag("test_leaver_over_share", S.DamageOf(rich) > need, S.DamageOf(rich), need)
+				S.Leave(rich, "Left")
+				eq("leaver_damage_gone", S.DamageOf(rich), 0)
+				eq("leaver_hits_nothing", S.RecordHit(rich), 0)
+
+				-- After 3:00 the leave option still works and HP stays locked.
+				log.Runs[stay].Waiting = true
+				log.Runs[late].Waiting = true
+				to(CLOSE)
+				local maxLocked, lateRun = S.State().MaxHp, log.Runs[late]
+				S.Leave(late, "Left")
+				eq("leave_after_3_00_out", S.IsIn(late), false)
+				eq("leave_after_3_00_returns", log.Depart[late], 1)
+				eq("leave_after_3_00_stops_run", lateRun.Destroyed, 1)
+				eq("leave_after_3_00_keeps_max", S.State().MaxHp, maxLocked)
+
+				log.Runs[stay].Waiting = false
+				log.Runs[stay].TargetSpeed = 800
+				for _ = 1, 10000 do
+					if not S.IsIn(stay) then
+						break
+					end
+					S.RecordHit(stay)
+				end
+				eq("leavers_test_defeat", S.State().LastEnd, "Defeated")
+				eq("leavers_rewards_once", #log.Rewards, 1)
+				local list = log.Rewards[1] or {}
+				flag("stayer_rewarded", table.find(list, stay) ~= nil)
+				flag("leaver_in_wait_no_reward", table.find(list, tired) == nil)
+				flag("leaver_over_share_no_reward", table.find(list, rich) == nil)
+				flag("leaver_after_3_00_no_reward", table.find(list, late) == nil)
+				eq("leaver_not_returned_again", log.Depart[rich], 1)
+				eq("leave_no_event_no_error", (pcall(S.Leave, rich, "Left")), true)
+				eq("leave_no_event_no_return", log.Depart[rich], 1)
+
+				-- The last player leaving a hurt boss before 3:00 never defeats it.
+				begin()
+				local solo = fighter()
+				S.Join(solo)
+				to(FIGHT)
+				flag("test_solo_hit", S.RecordHit(solo) > 0)
+				S.Leave(solo, "Left")
+				to(FIGHT + STEP)
+				eq("leave_alone_keeps_fight", phase(), "Fight")
+				eq("leave_alone_not_defeated", S.State().LastEnd, nil)
+				eq("leave_alone_no_rewards", #log.Rewards, 0)
+
+				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+				local remote = remotes and remotes:FindFirstChild("BossEventLeave")
+				flag(
+					"leave_remote_exists",
+					remote ~= nil and (remote:IsA("RemoteFunction") or remote:IsA("RemoteEvent"))
+				)
+				local autoRace = remotes and remotes:FindFirstChild("SetAutoRace")
+				flag("autorace_remote_exists", autoRace ~= nil and autoRace:IsA("RemoteEvent"))
+			end)
+
+			serviceSection("death_return", function()
+				begin()
+				local dead, other = fighter(), fighter()
+				S.Join(dead)
+				S.Join(other)
+				to(FIGHT)
+				local realDepart = S.Hooks.Depart
+				S.Hooks.Depart = function(p)
+					realDepart(p)
+					if p == dead then
+						error("no avatar to return on purpose")
+					end
+				end
+				eq("death_no_error", (pcall(S.Leave, dead, "Death")), true)
+				eq("death_out", S.IsIn(dead), false)
+				local departs = log.Depart[dead]
+				eq("leave_after_death_no_error", (pcall(S.Leave, dead, "Left")), true)
+				eq("leave_after_death_no_second_return", log.Depart[dead], departs)
+				eq("death_tick_safe", (pcall(S.Advance, clock + STEP)), true)
+				eq("death_end_safe", (pcall(S.End, "Timeout")), true)
+				eq("death_other_still_returned", log.Depart[other], 1)
+				eq("death_no_reward_on_timeout", #log.Rewards, 0)
+			end)
+
+			serviceSection("non_participants", function()
+				local outsider, rolls = newPlayer(), 0
+				outsider:SetAttribute("AutoRoll", true)
+				outsider:SetAttribute("NeedsStarter", false)
+				gacha.RollInterval = function(who)
+					return who == outsider and 0.02 or oldInterval(who)
+				end
+				gacha.Roll = function(who, ...)
+					if who == outsider then
+						rolls += 1
+						return chars[1], nil, nil, false
+					end
+					return oldRoll(who, ...)
+				end
+				gacha.WaitAfter = function(id, emphasized, who)
+					return who == outsider and 0.02 or oldWaitAfter(id, emphasized, who)
+				end
+				local handle = gacha.StartAutoRoll(outsider)
+				local function rollsOn(name)
+					local held = rolls
+					flag(
+						name,
+						waitFor(1, function()
+							return rolls > held
+						end)
+					)
+				end
+				begin()
+				local member = fighter()
+				S.Join(member)
+				eq("outsider_no_gate_in_prep", outsider:GetAttribute("BossEvent"), nil)
+				rollsOn("outsider_rolls_in_prep")
+				to(FIGHT)
+				eq("outsider_no_gate_in_fight", outsider:GetAttribute("BossEvent"), nil)
+				eq("outsider_not_in", S.IsIn(outsider), false)
+				rollsOn("outsider_rolls_in_fight")
+				S.End("Timeout")
+				eq("outsider_no_gate_after", outsider:GetAttribute("BossEvent"), nil)
+				rollsOn("outsider_rolls_after")
+				handle:Stop()
+				gacha.RollInterval, gacha.Roll, gacha.WaitAfter = oldInterval, oldRoll, oldWaitAfter
+			end)
+
 			serviceSection("chat_notice", function()
 				eq("chat_silent_when_idle", #log.Chat, 0)
 				begin()
@@ -1149,6 +1323,36 @@ function Tests.make(deps)
 					end)
 				)
 
+				-- The leave option, for real: the run stops and the player is back at spawn.
+				begin()
+				for name, fn in realHooks do
+					S.Hooks[name] = fn
+				end
+				S.Hooks.Rewards = function() end
+				S.Join(p)
+				to(FIGHT)
+				flag(
+					"real_leave_boss_run_started",
+					waitFor(1, function()
+						return CarService.GetRun(p) ~= nil
+					end)
+				)
+				S.Leave(p, "Left")
+				eq("real_leave_clears_gate", p:GetAttribute("BossEvent"), nil)
+				flag(
+					"real_leave_stops_run",
+					waitFor(1, function()
+						return CarService.GetRun(p) == nil and not CarService.IsAutoRacing(p)
+					end)
+				)
+				flag(
+					"real_leave_back_at_spawn",
+					waitFor(1, function()
+						return flatDistance(character:GetPivot().Position, CarService.WalkSpawnCFrame().Position) < 10
+					end)
+				)
+				eq("real_leave_team_kept", p:GetAttribute("Team"), normal)
+
 				-- A death mid-event: out of the event, and the next tick is fine.
 				begin()
 				for name, fn in realHooks do
@@ -1170,8 +1374,118 @@ function Tests.make(deps)
 				eq("real_death_clears_gate", p:GetAttribute("BossEvent"), nil)
 				clock = T0 + FIGHT + STEP
 				eq("real_death_tick_safe", (pcall(S.Advance, clock)), true)
+				flag(
+					"real_death_stops_run",
+					waitFor(1, function()
+						return CarService.GetRun(p) == nil
+					end)
+				)
+				eq("real_leave_after_death_safe", (pcall(S.Leave, p, "Left")), true)
 				S.Reset(T0)
 				SpawnArea.START_COOLDOWN = oldCooldown
+			end)
+
+			-- Owner 2026-11-05: a player in a duel can teleport in, and leaves the duel through DuelService.PlayerLeft.
+			section("duel_join", function()
+				local CarService = require(Server.CarService)
+				local Arena = require(Shared.BossArenaConfig)
+				local Duel = require(Server.DuelService)
+				local DuelConfig = require(Shared.DuelConfig)
+				local duelNow, sent = 5000, {}
+				S.SetClock(function()
+					return clock
+				end)
+				clock = T0
+				S.Reset(T0)
+				for name, fn in realHooks do
+					S.Hooks[name] = fn
+				end
+				S.Hooks.Rewards = function() end
+				Duel.SetClock(function()
+					return duelNow
+				end)
+				Duel.SetNotify(function(who, message)
+					table.insert(sent, { Player = who, Message = message })
+				end)
+				local function rival()
+					local p = fighter()
+					p:SetAttribute("DataLoaded", true)
+					p:SetAttribute("RaceEvent", "Off")
+					p:SetAttribute("AutoRacing", false)
+					local character =
+						deps.newFakeCharacter(CFrame.new(CarService.WalkSpawnCFrame().Position + Vector3.new(0, 3, 0)))
+					character.Parent = character.Parent or workspace
+					table.insert(cleanup, character)
+					CarService.OnCharacter(p, character)
+					table.insert(duelists, p)
+					return p, character
+				end
+				local function told(who, kind)
+					local found
+					for _, item in sent do
+						if item.Player == who and type(item.Message) == "table" and item.Message.Type == kind then
+							found = item.Message
+						end
+					end
+					return found
+				end
+				local function pair(name)
+					local a, characterA = rival()
+					local b = rival()
+					local asked = Duel.Request(a, b) == true and Duel.Pick(a, 1) == true
+					flag(name .. "_duel_requested", asked)
+					task.spawn(pcall, Duel.Respond, b, true)
+					flag(
+						name .. "_duel_seated",
+						waitFor(5, function()
+							return told(a, "Countdown") ~= nil and told(b, "Countdown") ~= nil
+						end)
+					)
+					return a, b, characterA
+				end
+				local function joinedOut(name, a, b, character)
+					eq(name .. "_join_ok", S.Join(a), true)
+					eq(name .. "_in_event", S.IsIn(a), true)
+					eq(name .. "_gate_set", a:GetAttribute("BossEvent"), true)
+					eq(name .. "_duel_state_ended", Duel.StateOf(a), "None")
+					eq(name .. "_opponent_state_ended", Duel.StateOf(b), "None")
+					eq(name .. "_joiner_result", (told(a, "Result") or {}).Result, "Lose")
+					eq(name .. "_opponent_result", (told(b, "Result") or {}).Result, "Win")
+					eq(name .. "_opponent_win_counted", b:GetAttribute("DuelWins"), 1)
+					flag(
+						name .. "_duel_run_gone",
+						waitFor(1, function()
+							return CarService.GetRun(a) == nil
+						end)
+					)
+					flag(
+						name .. "_opponent_off_run",
+						waitFor(1, function()
+							return not CarService.IsAutoRacing(b)
+						end)
+					)
+					task.wait(0.3) -- the duel's own stop runs on its own thread: it must not undo the teleport
+					eq(name .. "_still_in_event", S.IsIn(a), true)
+					local spot = (CarService.GetCar(a) or character):GetPivot().Position
+					local radius = flatDistance(spot, Arena.Center)
+					local want = Arena.LaneRadius(S.LaneOf(a) or 1)
+					flag(name .. "_stands_at_lane", math.abs(radius - want) < 6, radius, want)
+				end
+
+				local a, b, character = pair("countdown")
+				eq("countdown_state", Duel.StateOf(a), "Countdown")
+				eq("refused_join_no_event", S.Join(a), false)
+				eq("refused_join_keeps_duel", Duel.StateOf(a), "Countdown")
+				S.Start("Test")
+				joinedOut("countdown", a, b, character)
+
+				a, b, character = pair("racing")
+				duelNow += DuelConfig.COUNTDOWN
+				Duel.Tick()
+				eq("racing_state", Duel.StateOf(a), "Racing")
+				joinedOut("racing", a, b, character)
+
+				S.Reset(T0)
 			end)
 		end
 
@@ -1198,6 +1512,14 @@ function Tests.make(deps)
 			end
 			S.SetClock(nil)
 			S.Reset(workspace:GetServerTimeNow())
+		end)
+		pcall(function()
+			local Duel = require(Server.DuelService)
+			for _, p in duelists do
+				Duel.PlayerLeft(p)
+			end
+			Duel.SetClock(nil)
+			Duel.SetNotify(nil)
 		end)
 		SpawnArea.START_COOLDOWN = oldCooldown
 		gacha.RollInterval, gacha.Roll, gacha.WaitAfter = oldInterval, oldRoll, oldWaitAfter

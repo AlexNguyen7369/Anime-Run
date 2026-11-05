@@ -152,6 +152,8 @@ UiScenarios.Names = {
 	"ui_backpack_characters",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
+	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
+	"ui_sidekicks",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
@@ -254,6 +256,7 @@ UiScenarios.Needs = {
 	ui_roll_anim = { "auto_roll_on" },
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
+	ui_sidekicks = { "sidekick_states" },
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
@@ -807,11 +810,35 @@ local function inheritedScale(obj, ctx)
 	return s
 end
 
+-- InventoryTabs' copied Index tabs at a variant, nil for other nodes. They exist only at runtime, so the live properties
+-- describe the live variant. ENEMIES: the retired tab's position, CHARACTERS' size. SIDEKICKS: sidekicksTab's place().
+local function indexTabProps(path, variant)
+	local head = "RacerIndex/Panel/Face/Header/Face/"
+	if path ~= head .. "EnemiesTab" and path ~= head .. "SidekicksTab" then
+		return nil
+	end
+	local position = UiResponsive.Nodes[head .. "ConsumablesTab"][variant].Position
+	local size = UiResponsive.Nodes[head .. "CharactersTab"][variant].Size
+	if path == head .. "EnemiesTab" then
+		return { Position = position, Size = size }
+	end
+	local x = position.X.Offset + size.X.Offset + 16
+	local room = UiResponsive.Nodes[head .. "Close"][variant].Position.X.Offset - x - 8
+	return {
+		Position = UDim2.fromOffset(x, position.Y.Offset),
+		Size = UDim2.fromOffset(math.min(size.X.Offset, room), size.Y.Offset),
+	}
+end
+
 -- The layout props a node uses at ctx.vp: on the other variant than the live one a generated node takes the model's
 -- variant props (UiResponsive.Nodes), else its live properties.
 local function variantProps(obj, ctx)
-	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[pathOf(obj)]
+	local path = pathOf(obj)
+	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[path]
 	local props = node and node[UiResponsive.VariantOf(ctx.vp)] or {}
+	if otherVariant(ctx.vp) then
+		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
+	end
 	return props.Size or obj.Size, props.Position or obj.Position, props.AnchorPoint or obj.AnchorPoint
 end
 
@@ -7936,6 +7963,26 @@ for name, fn in
 	}).Scenarios
 do
 	S[name] = fn
+end
+
+-- Sidekick art wiring (design doc 4.36, 4.37). No new local: the chunk is at the 200-local limit.
+K.sidekicks = require(script.Parent.UiSidekicks).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	pathOf = pathOf,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	player = player,
+})
+for name, fn in K.sidekicks.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.sidekicks.After do
+	access.After[cond] = fn
 end
 
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly

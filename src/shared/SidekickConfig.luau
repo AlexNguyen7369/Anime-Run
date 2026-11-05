@@ -45,10 +45,27 @@ SidekickConfig.List = {
 	},
 }
 
+-- Boss drops only, never summoned (docs/SIDEKICK_SPEC.md). Summon rolls read List alone.
+SidekickConfig.BossDrops = {
+	{
+		Id = "side_raga",
+		Name = "Big Raga",
+		Rarity = "Secret",
+		Odds = 0.001,
+		Movement = "Walk",
+		Cruise = 0.1,
+		Stamina = 0.1,
+		Damage = 40,
+		SellGems = 500,
+	},
+}
+
 function SidekickConfig.Get(id)
-	for _, row in SidekickConfig.List do
-		if row.Id == id then
-			return row
+	for _, list in { SidekickConfig.List, SidekickConfig.BossDrops } do
+		for _, row in list do
+			if row.Id == id then
+				return row
+			end
 		end
 	end
 	return nil

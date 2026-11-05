@@ -576,6 +576,7 @@ UiSpec.PanelSwitch = {
 		["DailyBoosts/ModalBackdrop"] = "Daily",
 		["MarketUi/Backdrop"] = "Market",
 		["CheckpointUi/Panel"] = "Checkpoints",
+		["RacerSidekicks/Panel"] = "Sidekicks",
 	},
 }
 
@@ -1368,6 +1369,12 @@ UiSpec.ServerSetup = {
 		When = "during ui_showdown, after showdown_start (asked for by the scenario)",
 		What = "Fires NpcRace Result Win for showdown_start's track, then Start for the next track in the same frame, "
 			.. "like a real win. To this client only; banks nothing and changes no saved state.",
+	},
+	{
+		Id = "sidekick_states",
+		When = "asked for by ui_sidekicks; first after 'spy' in the sidekicks_* clicks' NeedSetup",
+		What = "Bag holds one of every Sidekick in List and BossDrops, nothing worn, auto-sell off, Gems for a 10x, "
+			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
 	},
 	{
 		Id = "defeated_states",
@@ -2935,6 +2942,15 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only("RacerBackpack/Panel"),
 	Expect = { Panels = { ["RacerBackpack/Panel"] = false }, Remote = false },
 })
+-- Before the tab loop, which ends on Characters. Bag art needs entries, so it has its own fixture.
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_bag_art",
+	Gui = "RacerBackpack",
+	Path = "Panel/Tabs/SidekicksTab",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "sidekick_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "sidekicks_bag_art" } },
+})
 -- Characters last: the Backpack keeps the Characters view for the backpack_pick_character click below.
 for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Characters" } do
 	table.insert(UiSpec.Clicks, {
@@ -3282,6 +3298,34 @@ UiSpec.CharacterCast = {
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }
 
+-- Sidekick summon page (Client/SidekickUi; design doc 4.36, docs/SIDEKICK_SPEC.md). Opened at the plaza stall.
+UiSpec.Guis.RacerSidekicks = {
+	Source = "Client/SidekickUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerSidekicks/Panel", Text = "X" },
+		{ Path = "Panel/Body/Left/Details", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/Left/Settings", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/DetailsSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/SettingsSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{
+			Path = "Panel/Body/SettingsSheet/List/*/Toggle",
+			Does = "remote",
+			Remote = "SidekickAutoSell",
+			Count = "dynamic",
+			ClickCoverage = "ui_sidekicks",
+		},
+		{ Path = "Panel/Body/Right/Summon1", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
+		{
+			Path = "Panel/Body/Right/Summon10",
+			Does = "remote",
+			Remote = "SidekickSummon",
+			Arg = "count",
+			ClickCoverage = "ui_sidekicks",
+		},
+		{ Path = "Panel/Body/Right/Reveal/Ok", Does = "local", ClickCoverage = "ui_sidekicks" },
+	},
+}
 UiSpec.Guis.CheckpointUi = {
 	Source = "Client/CheckpointUi",
 	Panels = { "Panel" },
@@ -3511,6 +3555,21 @@ UiSpec.IndexTabs = {
 	GridHost = "RacerIndex/Panel/Face/GridHost",
 	ConsumablesHost = "RacerIndex/Panel/Face/ConsumablesHost",
 }
+-- Sidekicks page in the Index (owner 2026-11-05, design doc 4.36). A copy of the Enemies tab's shape; before
+-- index_cars_tab so the Index ends on Characters.
+table.insert(UiSpec.Guis.RacerIndex.Buttons, {
+	Path = "Panel/Face/Header/Face/SidekicksTab/Face",
+	Does = "local",
+	Effect = "index_sidekicks_shown",
+})
+table.insert(UiSpec.Clicks, {
+	Id = "index_sidekicks_tab",
+	Gui = "RacerIndex",
+	Path = "Panel/Face/Header/Face/SidekicksTab/Face",
+	Prepare = only("RacerIndex/Panel"),
+	NeedSetup = { "spy" },
+	Expect = { Panels = { ["RacerIndex/Panel"] = true }, Remote = false },
+})
 table.insert(UiSpec.Guis.RacerIndex.Buttons, {
 	Path = "Panel/Face/Header/Face/CharactersTab/Face",
 	Does = "local",
@@ -3717,6 +3776,28 @@ table.insert(UiSpec.ServerSetup, {
 	Id = "impact_sounds_report",
 	When = "asked for by ui_feedback through UiTestSetupRequest",
 	What = "Publishes what ServerStorage.ImpactSounds holds as ReplicatedStorage attribute UiTestImpactSounds.",
+})
+
+table.insert(UiSpec.Clicks, {
+	Id = "close_sidekicks",
+	Gui = "RacerSidekicks",
+	Path = "Panel/Header/Close",
+	Prepare = only("RacerSidekicks/Panel"),
+	Expect = { Panels = { ["RacerSidekicks/Panel"] = false }, Remote = false },
+})
+-- A real summon on fixture Gems: the reveal needs its results. SidekickSummon is deliberately not in
+-- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here.
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_reveal_models",
+	Gui = "RacerSidekicks",
+	Path = "Panel/Body/Right/Summon1",
+	Prepare = only("RacerSidekicks/Panel"),
+	NeedSetup = { "spy", "sidekick_states" },
+	Expect = {
+		Panels = { ["RacerSidekicks/Panel"] = true },
+		Remote = false,
+		After = { "sidekicks_reveal_models" },
+	},
 })
 
 return UiSpec

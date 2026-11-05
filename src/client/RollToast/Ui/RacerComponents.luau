@@ -4,9 +4,13 @@ local Components = {}
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local CharacterPortraits = require(Shared.CharacterPortraits)
+local GachaConfig = require(Shared.GachaConfig)
 local HudFormat = require(Shared.HudFormat)
 local NpcConfig = require(Shared.NpcConfig)
 local RaceProgressMap = require(Shared.RaceProgressMap)
+local SidekickArt = require(Shared.SidekickArt)
+local SidekickConfig = require(Shared.SidekickConfig)
+local SidekickView = require(script.Parent.Parent.Parent:WaitForChild("SidekickView"))
 local UiTheme = require(Shared.UiTheme)
 local WHITE = Color3.new(1, 1, 1)
 local BLACK = Color3.fromRGB(12, 16, 30)
@@ -485,6 +489,71 @@ function Components.EnemiesPage(refs, player)
 		end
 		refresh()
 	end)
+	return page, frames
+end
+
+-- The Sidekicks page (design doc 4.36): the summon pool, then boss drops. An unowned tile is a dark silhouette with "???",
+-- as the character cards. Owned means in the Bag now: nothing saves a Sidekick sold earlier. Publishes its progress line in
+-- the Gui attribute SidekicksProgress. Returns the page and its tiles in order.
+function Components.SidekicksPage(refs, player)
+	local page = scroll(refs.GridHost, "SidekicksPage")
+	page.Visible = false
+	local layout = make("UIGridLayout", {
+		CellPadding = UDim2.fromOffset(INDEX_GAP, INDEX_GAP),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	}, page)
+	fitCells(refs.GridHost, layout)
+	local frames, rows = {}, {}
+	for _, list in { SidekickConfig.List, SidekickConfig.BossDrops } do
+		for _, row in list do
+			local tile = make("Frame", { Name = row.Id, LayoutOrder = #frames + 1, ZIndex = 3 }, page)
+			Components.CardFace(tile, row, GachaConfig):Destroy() -- Sidekicks have no category
+			edge(tile).Name = "Stroke"
+			local art = SidekickArt[row.Id]
+			local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -38), UDim2.fromOffset(40, 40), 34)
+			locked.ZIndex = 7
+			local info = label(tile, "Info", row.Rarity, UDim2.new(0, 8, 1, -48), UDim2.new(1, -16, 0, 18), 15, GOLD)
+			info.ZIndex = 7
+			info.TextXAlignment = Enum.TextXAlignment.Right
+			local name = label(tile, "CharacterName", "???", UDim2.new(0, 8, 1, -32), UDim2.new(1, -16, 0, 24), 20)
+			name.ZIndex = 7
+			name.TextXAlignment = Enum.TextXAlignment.Right
+			table.insert(frames, tile)
+			table.insert(rows, {
+				Frame = tile,
+				Spec = row,
+				Art = portraitLabel(
+					tile,
+					"Art",
+					art and art.Portrait or "",
+					UDim2.new(),
+					UDim2.fromScale(1, CARD_PORTRAIT_HEIGHT)
+				),
+				Locked = locked,
+				Name = name,
+			})
+		end
+	end
+	local function refresh()
+		local bag = {}
+		for _, item in SidekickView.Bag(player) do
+			bag[item.Id] = true
+		end
+		local count = 0
+		for _, row in rows do
+			local owned = bag[row.Spec.Id] == true
+			count += owned and 1 or 0
+			row.Frame:SetAttribute("Owned", owned)
+			row.Art.ImageColor3 = owned and WHITE or Color3.new(0, 0, 0)
+			row.Locked.Visible = not owned
+			row.Name.Text = owned and row.Spec.Name or "???"
+			Components.TintCard(row.Frame, row.Spec, GachaConfig, owned)
+		end
+		refs.Gui:SetAttribute("SidekicksProgress", string.format("%d / %d OWNED", count, #rows))
+	end
+	player:GetAttributeChangedSignal("SidekickBag"):Connect(refresh)
+	refresh()
 	return page, frames
 end
 
