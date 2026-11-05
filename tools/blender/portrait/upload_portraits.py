@@ -2,7 +2,8 @@
 # Uploads assets/characters_avatar/<id>/portrait.png and head.png as Decal assets under the owner's account (Open Cloud),
 # keeps the ledger tools/blender/portrait_assets.json (id -> content Hash, Decal id, Image id, and HeadHash, HeadDecal,
 # HeadImage; only changed images re-upload) and writes the generated src/shared/CharacterPortraits.luau and
-# CharacterHeads.luau. Display names use the Id only, never a real name (design doc 5).
+# CharacterHeads.luau. Display names use the Id only, never a real name (design doc 5). Sidekick ids (side_*) go to
+# SidekickArt.luau instead: they are not characters.
 #   python3 tools/blender/portrait/upload_portraits.py [--dry-run] [<id> ...]
 # ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required, except for --dry-run: no network, no writes, no key read.
 #
@@ -22,6 +23,9 @@ import time
 from urllib.parse import urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+import sidekick_art  # noqa: E402
+
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 AVATARS = os.path.join(REPO, "assets", "characters_avatar")
 LEDGER = os.path.join(os.path.dirname(HERE), "portrait_assets.json")
@@ -162,12 +166,14 @@ def main():
 						json.dump(ledger, f, indent=1, sort_keys=True)
 				print("RESOLVED", title, cid, row[image_key], flush=True)
 		# Rendered ids only: a ledger row whose image was deleted drops out.
-		entries = {cid: ledger[cid][image_key] for cid in found if ledger.get(cid, {}).get(image_key)}
+		entries = {cid: ledger[cid][image_key] for cid in found if ledger.get(cid, {}).get(image_key) and not sidekick_art.is_sidekick(cid)}
 		if dry:
 			print(f"DRY {title} {counts}; no network, nothing written. Registry now would hold {len(entries)} of {len(found)} rendered ids.")
 			continue
 		write_registry(registry, what, entries)
 		print("REGISTRY", title, len(entries), "of", len(found), "rendered ids")
+	if not dry:
+		sidekick_art.write()
 
 
 main()

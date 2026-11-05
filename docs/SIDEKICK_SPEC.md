@@ -45,6 +45,7 @@ Layout ideas from the owner's reference, no copied art. Motion through `Client/U
 - Right: one banner with the Sidekicks' actual 3D models (owner 2026-11-05), names and rarities; Gem balance; Summon 1x and Summon 10x. Summon results show the models too.
 - Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, pity bars, extra banners, banner timer.
 - Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
+- Uploaded models and images are listed in the generated `src/shared/SidekickArt.luau`, never in the character registries (`CharacterModelAssets`, `CharacterPortraits`, `CharacterHeads`), so no Sidekick reaches character code.
 
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.

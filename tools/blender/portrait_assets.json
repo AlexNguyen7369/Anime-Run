@@ -303,6 +303,38 @@
   "HeadImage": "94066208181840",
   "Image": "72613724415866"
  },
+ "side_chain": {
+  "Decal": "96625299680481",
+  "Hash": "8795cb0bf1dc18b9767a9cfceb63ee5cbb56f4d8c428acd1f7e4e26477f1ff63",
+  "HeadDecal": "72086303708263",
+  "HeadHash": "fc0875c290499c7620e750e20c708e05455ec9ea80a880d512398f06a6c45c21",
+  "HeadImage": "104756712547019",
+  "Image": "139333358616500"
+ },
+ "side_knight": {
+  "Decal": "132041751445364",
+  "Hash": "7960ea8f547f58884f0f728b865a42896de59579b1a4441131c3498c48c85af4",
+  "HeadDecal": "95841872253720",
+  "HeadHash": "83dd4acfafa94c4e228abf49ae0de4f4bb6338084b04ba167f71c63d5748c2d9",
+  "HeadImage": "98545701958767",
+  "Image": "130776132014249"
+ },
+ "side_raga": {
+  "Decal": "120122438738706",
+  "Hash": "d130a113f362d5992dada45e62354be3e02dda8a577a61f1e5f11d911ddb0d66",
+  "HeadDecal": "117822048217177",
+  "HeadHash": "4f21fcc8bd0d44bd96dc5f715c64713dd5c468b6023d14a36c1dcd181625e769",
+  "HeadImage": "98971820948073",
+  "Image": "131167879450036"
+ },
+ "side_wyvern": {
+  "Decal": "122904029476707",
+  "Hash": "771ec0a3e3c55f6767d8f0216fca9336dd783c01a73827e84e6b07e0cdc98a9b",
+  "HeadDecal": "118521410167149",
+  "HeadHash": "5c32a657699c78a46ba07ab0e875aa6312e37ff41dc536ae43009380bee6aa2d",
+  "HeadImage": "139199490786574",
+  "Image": "90210420017655"
+ },
  "soul_fang": {
   "Decal": "126302842413456",
   "Hash": "4a0515c4e3f96bb424ab6cc370f02567a9427e4fa9ea02ef68062924a46548f5",

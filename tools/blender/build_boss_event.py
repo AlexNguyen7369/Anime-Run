@@ -1,6 +1,8 @@
-# Boss-event models (boss_raga, side_chain, side_knight, side_wyvern), their review renders and contact sheet, headless:
+# Boss-event models (boss_raga, side_chain, side_knight, side_wyvern, side_raga), their review renders and contact sheet, headless:
 #   Blender -b --factory-startup --python tools/blender/build_boss_event.py -- build [<id> ...]
 #   Blender -b --factory-startup --python tools/blender/build_boss_event.py -- sheet
+#   Blender -b --factory-startup --python tools/blender/build_boss_event.py -- export <id> ...
+# export reads assets/characters_avatar/<id>/<id>.blend and writes build/avatar_glb/<id>.glb for upload_avatar.py.
 # avatar_merge.py keeps only meshes under an R15 name and avatar_paint.py always makes 6 body blocks, so these models do
 # not use them: each is a set of named parts with their origin at the joint, faceted solids on one ramp texture
 # (assets/characters_avatar/<id>/atlas.png). Front faces -Y; +X is the viewer's right in the front view.
@@ -28,7 +30,7 @@ TRI_BUDGET = 20000  # per mesh, owner's cap for this event
 LIGHT = Vector((-0.35, -0.6, 0.72)).normalized()
 SIDEKICK_RATIO = 0.35
 RAGA_HEAD_STUDS, RUNNER_STUDS, LEGEND_STUDS = 560.0, 5.75, 10.9
-NAMES = {"boss_raga": "Big Raga", "side_chain": "Pochito", "side_knight": "Igriz", "side_wyvern": "Kaizel"}
+NAMES = {"boss_raga": "Big Raga", "side_chain": "Pochito", "side_knight": "Igriz", "side_wyvern": "Kaizel", "side_raga": "Big Raga"}
 VIEW_ORDER = ("front", "three_quarter", "side", "back")
 LINEUP_H = 680
 HERO_SHOULDER = 4.0  # top of the R15 torso and arms, avatar_base.BOXES
@@ -284,8 +286,8 @@ def raga_wing(m, root, tip, side):
 	mid = root.lerp(tip, 0.5) + Vector((0, 0, 0.14))
 	m.path("Head", "skin", [root, mid, tip], [0.12, 0.09, 0.01], [0.1, 0.075, 0.01], n=6, a=0.56, b=0.32)
 	span = tip - root
-	for i in range(7):
-		t = 0.16 + i * 0.125
+	for i in range(5 if m.cid == "side_raga" else 7):
+		t = 0.16 + i * (0.175 if m.cid == "side_raga" else 0.125)
 		b = root.lerp(tip, t) + Vector((0, 0.01 * i, 0))
 		# inner feathers hang down, outer ones trail along the bone
 		d = (span.normalized() * (0.25 + 0.9 * t) + Vector((0, 0, -1.0))).normalized() * (0.62 + 0.42 * math.sin(math.pi * min(1, t + 0.1)))
@@ -302,10 +304,11 @@ def raga_arm(m, side, s, x):
 	m.block(up, "skin", x, 0.3, 3.86, 3.42, 0.42, 0.31, ch=0.06, jit=0.012)  # triceps
 	m.block(low, "crease", x, 0, 3.42, 2.28, 0.54, 0.54)
 	# the source's bandage wraps: slanted overlapping turns, wider than the arm
-	for i, z in enumerate((3.3, 3.11, 2.92, 2.73, 2.54)):
+	for i, z in enumerate((3.3, 2.98, 2.66) if m.cid == "side_raga" else (3.3, 3.11, 2.92, 2.73, 2.54)):
 		tilt = 0.05 * (1 if i % 2 else -1)
 		x0, x1 = x - 0.6, x + 0.6
-		rows = [[(x1, -0.6, z + tilt), (x1, 0.6, z - tilt), (x0, 0.6, z + tilt), (x0, -0.6, z - tilt)], [(x1, -0.6, z - 0.2 + tilt), (x1, 0.6, z - 0.2 - tilt), (x0, 0.6, z - 0.2 + tilt), (x0, -0.6, z - 0.2 - tilt)]]
+		h = 0.3 if m.cid == "side_raga" else 0.2
+		rows = [[(x1, -0.6, z + tilt), (x1, 0.6, z - tilt), (x0, 0.6, z + tilt), (x0, -0.6, z - tilt)], [(x1, -0.6, z - h + tilt), (x1, 0.6, z - h - tilt), (x0, 0.6, z - h + tilt), (x0, -0.6, z - h - tilt)]]
 		m.add(low, "wrap", *m._loft(rows), a=0.56 - 0.04 * (i % 2), b=0.34, g=0.2)
 	m.block(hand, "skin", x, 0, 2.3, 1.78, 0.58, 0.58, ch=0.07, a=0.58, b=0.3)
 
@@ -325,7 +328,8 @@ def raga_leg(m, side, s):
 	m.block(foot, "skin", x, -0.12, 0.36, 0, 0.62, 0.78, ch=0.06, a=0.56, b=0.34)
 	for i in (-1, 0, 1):
 		m.block(foot, "skin", x + i * 0.4, -0.96, 0.24, 0, 0.18, 0.22, ch=0.05, a=0.58, b=0.32)
-		m.spike(foot, "black", (x + i * 0.4, -1.12, 0.1), (x + i * 0.4, -1.32, 0.03), 0.07, flat=0.7)
+		if m.cid != "side_raga":
+			m.spike(foot, "black", (x + i * 0.4, -1.12, 0.1), (x + i * 0.4, -1.32, 0.03), 0.07, flat=0.7)
 
 
 def raga_head(m):
@@ -342,9 +346,11 @@ def raga_head(m):
 	m.block(h, "mouth", 0, -0.75, 5.44, 4.98, 0.52, 0.04, ch=0.01, a=0.45, b=0.05)
 	m.block(h, "skin", 0, -0.82, 5.52, 5.42, 0.58, 0.075, ch=0.03, a=0.54)
 	m.block(h, "skin", 0, -0.82, 5.0, 4.9, 0.54, 0.075, ch=0.03, a=0.48)
-	for i in range(-3, 4):
-		m.block(h, "tooth", i * 0.145, -0.8, 5.42, 5.23, 0.068, 0.035, ch=0.012, a=0.62, b=0.25)
-		m.block(h, "tooth", i * 0.145, -0.8, 5.2, 5.01, 0.068, 0.035, ch=0.012, a=0.55, b=0.25)
+	small = m.cid == "side_raga"  # the same square teeth, fewer and wider: at Sidekick size 7 per row fall under 2 px each
+	for i in (-1.5, -0.5, 0.5, 1.5) if small else range(-3, 4):
+		step, hw = (0.255, 0.115) if small else (0.145, 0.068)
+		m.block(h, "tooth", i * step, -0.8, 5.42, 5.23, hw, 0.035, ch=0.012, a=0.62, b=0.25)
+		m.block(h, "tooth", i * step, -0.8, 5.2, 5.01, hw, 0.035, ch=0.012, a=0.55, b=0.25)
 	for s, tag in ((1, "L"), (-1, "R")):
 		# no eyes: a wing grows out of each socket, one pair up, one pair out
 		raga_wing(m, (s * 0.5, -0.82, 5.82), (s * 2.25, -0.95, 7.05), s)
@@ -354,12 +360,13 @@ def raga_head(m):
 def raga_wheel(m):
 	"""The eight-handled wheel, in the XZ plane round its hub: spin it about its local Y."""
 	w, hub = "Wheel", Vector((0, 0.1, 7.85))
-	m.ring(w, "gold", hub, (0, 1, 0), 1.02, 0.075, n=24, a=0.55, b=0.4)
-	m.ring(w, "gold", hub, (0, 1, 0), 0.5, 0.05, n=16, a=0.55, b=0.4)
+	small = m.cid == "side_raga"  # thicker bars: the wheel is the silhouette's mark and must survive at Sidekick size
+	m.ring(w, "gold", hub, (0, 1, 0), 1.02, 0.12 if small else 0.075, n=16 if small else 24, a=0.55, b=0.4)
+	m.ring(w, "gold", hub, (0, 1, 0), 0.5, 0.085 if small else 0.05, n=12 if small else 16, a=0.55, b=0.4)
 	for i in range(8):
 		a = math.pi * i / 4 + math.pi / 8
 		d = Vector((math.cos(a), 0, math.sin(a)))
-		n = Vector((-d.z, 0, d.x)) * 0.055
+		n = Vector((-d.z, 0, d.x)) * (0.09 if small else 0.055)
 		p0, p1 = hub + d * 0.05, hub + d * 1.28
 		m.plate(w, "gold", [p0 + n, p1 + n, p1 - n, p0 - n], (0, 0.1, 0), a=0.55, b=0.4)
 		m.ell(w, "gold", tuple(p1 + d * 0.06), (0.17, 0.17, 0.17), rows=4, n=8, a=0.56, b=0.5, g=0.0)
@@ -399,12 +406,13 @@ def raga_torso(m):
 		m.block(u, "skin", s * 0.66, 0.66, 3.72, 3.0, 0.52, 0.12, ch=0.05, jit=0.02)  # lat
 		m.block(u, "skin", s * 1.32, 0, 4.7, 3.1, 0.1, 0.6, ch=0.03, jit=0.012)
 	# the black rope round the shoulders and its hanging tags
-	m.ring(u, "black", (0, 0.08, 4.62), (0, 0.18, 1), 1.02, 0.065, n=16, a=0.44, b=0.34)
+	small = m.cid == "side_raga"
+	m.ring(u, "black", (0, 0.08, 4.62), (0, 0.18, 1), 1.02, 0.1 if small else 0.065, n=10 if small else 16, a=0.44, b=0.34)
 	for x, y, z in ((0.0, 1.1, 4.26), (0.68, 0.86, 4.5), (-0.68, 0.86, 4.5), (1.02, 0.1, 4.9)):
 		m.plate(u, "black", [(x - 0.09, y, z + 0.14), (x + 0.09, y, z + 0.14), (x + 0.2, y, z - 0.42), (x, y, z - 0.3), (x - 0.2, y, z - 0.42)], (0, 0.05, 0), a=0.46, b=0.25)
 
 
-def boss_raga():
+def boss_raga(cid="boss_raga"):
 	parts = {
 		"LowerTorso": ((0, 0, 2.6), None),
 		"UpperTorso": ((0, 0, 2.95), "LowerTorso"),
@@ -427,7 +435,7 @@ def boss_raga():
 	}
 	# an A-pose so the sword clears the body and the floor; the wheel leans back so its face reads from below
 	pose = {"LeftUpperArm": (0, -12, 0), "RightUpperArm": (0, 26, 0), "Wheel": (-10, 0, 0)}
-	m = Model("boss_raga", RAGA_RAMPS, parts, pose, a=0.56, b=0.3)
+	m = Model(cid, RAGA_RAMPS, parts, pose, a=0.56, b=0.3)
 	raga_torso(m)
 	raga_head(m)
 	raga_wheel(m)
@@ -903,6 +911,8 @@ def side_wyvern():
 
 
 MODELS = {"boss_raga": boss_raga, "side_chain": side_chain, "side_knight": side_knight, "side_wyvern": side_wyvern}
+# Outside MODELS so the b1 contact sheet stays as the owner approved it.
+BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga")}
 
 
 # ---- rendering
@@ -949,7 +959,7 @@ def view_dir(view):
 def build_one(cid):
 	build_avatar.reset()
 	bpy.context.preferences.filepaths.save_version = 0
-	m = MODELS[cid]()
+	m = BUILDS[cid]()
 	root, tris = m.finish()
 	os.makedirs(os.path.join(OUT, cid, "review"), exist_ok=True)
 	os.makedirs(TMP, exist_ok=True)
@@ -1235,6 +1245,22 @@ def sheet():
 	print("SHEET", png, json.dumps(line), json.dumps(scale))
 
 
+def export_glb(cid):
+	"""GLB of the built parts at their own scale and joints. The follower sizes the model at runtime (SIDEKICK_SPEC Display)."""
+	bpy.ops.wm.open_mainfile(filepath=os.path.join(OUT, cid, cid + ".blend"))
+	# In memory only: a neon part's Base Color is black, so without this it turns black if the importer drops emission.
+	for mat in bpy.data.materials:
+		if mat.use_nodes and mat.name.endswith("_Neon"):
+			nt = mat.node_tree
+			tex = next(n for n in nt.nodes if n.type == "TEX_IMAGE")
+			nt.links.new(tex.outputs["Color"], next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED").inputs["Base Color"])
+	path = os.path.join(ROOT, "build", "avatar_glb", cid + ".glb")
+	os.makedirs(os.path.dirname(path), exist_ok=True)
+	bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_yup=True, export_apply=True, export_animations=False)
+	tris = sum(len(o.data.polygons) for o in bpy.context.scene.objects if o.type == "MESH")
+	print(f"EXPORTED {cid} tris={tris} {os.path.getsize(path)} bytes")
+
+
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :]
 	if argv[0] == "build":
@@ -1242,6 +1268,9 @@ def main():
 			build_one(cid)
 	elif argv[0] == "sheet":
 		sheet()
+	elif argv[0] == "export":
+		for cid in argv[1:]:
+			export_glb(cid)
 
 
 main()
