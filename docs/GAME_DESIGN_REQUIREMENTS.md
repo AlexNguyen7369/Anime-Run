@@ -191,8 +191,15 @@ when all 3 are empty, or when the player loses a track to the NPC.
   luck totals table is unchanged.
 
 ### 4.15 Sensei checkpoints (owner 2026-11-02)
-- The plaza sensei opens the Tracks panel: an overview of each track (name, biome, length, NPC rival, payout) where
-  the player also picks a **checkpoint**, the track their runs start on (`Remotes.SetCheckpoint`, server-validated).
+- The plaza sensei opens the Tracks panel, one scrolling list of long horizontal cards, one per track (owner
+  2026-11-04, replaces the card grid and detail pane). A card shows only: the track number, a screenshot of that
+  track's road (no 3D render), the biome's in-game name, one brief definition of the place in its anime's story,
+  the recommended speed and the enemy's name. Length, payout and times are not shown. Definitions: `TRACKS_AND_BIOMES_SPEC`
+  "Track card definitions" (proposed copy, tweaked names only, section 5).
+- Clicking an open card picks it as the player's **checkpoint**, the track their runs start on
+  (`Remotes.SetCheckpoint`, server-validated). The current checkpoint's card is marked. A locked card stays dimmed
+  with its lock, and clicking it picks nothing.
+- Recommended speed is the lowest whole speed above the enemy's cruise speed (proposed; `NpcConfig.RecommendedSpeed`).
 - Track 1 is always open. Track n opens once Track n-1 is beaten (`BestTrack >= n - 1`): the player can pick up to
   the track they are stuck on; every later track stays locked until they pass it.
 - The pick is saved (`Checkpoint`) and clamped to what is open. A run starts on the checkpoint track; a loss sends the
@@ -309,9 +316,9 @@ before any Studio work.
   server's `Lighting` stays untouched.
 - **Wayfinding**: the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
-  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch) and a floating bold label high above it, seen across the plaza.
-  Labels show only on foot and hide up close (proposed: within 20 studs, out to 260 studs).
-- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market and Race Start keep their label high above the landmark (Wayfinding); their distances stay as there. The flat signs stay.
+  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch). Race Start also has a floating bold label high above it, seen across the plaza; the Market's floating header follows the service row (Service headers, owner 2026-11-04).
+  Labels show only on foot and hide up close (proposed for Race Start: within 20 studs, out to 260 studs).
+- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the service row: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
 - **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and at most 2 Legend pedestals beside the gate (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
 - **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
@@ -553,6 +560,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-03: c3 rulings: finish pads may use their biome's palette colour; Track 6 keeps one street-wall row; a team that tires on a track the NPC already finished is an exhaustion (bank and per-distance share paid), not a loss: a loss is decided only at the runner's finish.
 - 2026-11-03: every character that can drop has a numerical drop chance. The catch-all Common is "1 in 1" (value **proposed**): it still takes every roll the rarer characters miss, so roll results do not change.
 - 2026-11-03: Index and Backpack share one collection card, Backpack gets Sort and Search (4.22). Ninja run for all 5 Leaf characters (4.23).
+- 2026-11-04: owner: Market's floating header matches Index and the service row instead of floating high above the stall (4.24, WORLD_REDESIGN_SPEC 7).
 - 2026-11-04: owner: Legends cut to at most 2 beside the Race Start gate; Market stall rebuilt in-house with a smaller flat sign, free to start from scratch; `soul_lord` gets no Legend (4.24, WORLD_REDESIGN_SPEC 1, 7).
 - 2026-11-04: owner: clear plaza (4.24, WORLD_REDESIGN_SPEC 4, 7): straight service row in the west opening, Rebirth shrine removed (HUD tile stays), Best Roll in a Dojo gap, Market sign replaces its arch, Market reduced to one stall (empty vendor stalls and courtyard removed), path torii, strings, banners, planters, benches and small trees removed, one sky-loop leg moved clear of the Market sign, the stray checker block removed from the Aura stall meshes.
 - 2026-11-04: owner: service headers (4.24, WORLD_REDESIGN_SPEC 7): Index, Shop, Potions, Market, Sensei, Race Start and YOUR DOJO float a bold white italic label over a coloured emblem; the pills and arrows go; the flat signs stay.
@@ -580,3 +588,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: boss bar layout with a colour-coded Drop list of Relic rates and Big Raga's rate in black (4.37, `BOSS_EVENT_SPEC`).
 - 2026-11-05: owner: VIP gets 10% off Sidekick summons (4.36), relayed by the monetization session, reversing the earlier no-discount line. That session creates all 5 products.
 - 2026-11-05: owner: exhaustion camera hovers above the runner, replacing the front aerial view (4.37).
+- 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).

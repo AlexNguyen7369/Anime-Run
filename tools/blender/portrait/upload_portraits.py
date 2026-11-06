@@ -48,11 +48,11 @@ def curl(*args):
 	return json.loads(r.stdout)
 
 
-def upload(cid, path, title):
+def upload(cid, path, title, description=None):
 	req = {
 		"assetType": "Decal",
 		"displayName": f"AnimeRun_{title}_{cid}",
-		"description": f"Anime Run character {title.lower()}",
+		"description": description or f"Anime Run character {title.lower()}",
 		"creationContext": {"creator": {"userId": os.environ["ROBLOX_CREATOR_ID"]}},
 	}
 	op = curl("-X", "POST", API + "assets", "-F", "request=" + json.dumps(req), "-F", f"fileContent=@{path};type=image/png")

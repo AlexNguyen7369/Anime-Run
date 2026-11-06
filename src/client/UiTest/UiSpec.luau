@@ -1518,7 +1518,7 @@ Prepare:
  ScrollIntoView the harness scrolls the target's ScrollingFrame so the target is fully shown; put back afterwards
  WaitSeconds    extra wait before publishing
  KeepPanels     no panel is closed, reopened or restored: the click starts from the view the previous click left
-                (Checkpoints Detail after a card click; a reopen shows the current checkpoint again)
+                (Market Detail after a phone card click; a reopen would reset it)
  LeavePanels    panels prepared as usual but NOT restored after the click (the next click uses KeepPanels)
 ClickAt: where to click when it is not the target's centre: "corner" (UiSpec.Showcase.CornerInset px in from the
  bottom-right corner, off the card) or a "<Gui>/<Path>" whose centre is used. The target must be topmost there.
@@ -2437,7 +2437,7 @@ UiSpec.RemoteFunctions = {
 	"MarketPurchase",
 	"MarketEquip",
 	"RedeemCode",
-	-- Checkpoints (Client/CheckpointUi Detail/Start) and gifting (Client/GiftPicker Confirm): the checkpoint_* and
+	-- Checkpoints (Client/CheckpointUi Cards/*) and gifting (Client/GiftPicker Confirm): the checkpoint_* and
 	-- gift_* clicks Intercept them, so progression_spy must proxy them too
 	"SetCheckpoint",
 	"PrepareGift",
@@ -3421,16 +3421,15 @@ UiSpec.Guis.CheckpointUi = {
 	Panels = { "Panel" },
 	Buttons = {
 		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "CheckpointUi/Panel", Text = "X" },
-		-- CHECKPOINT_SPEC section 4 (owner 2026-10-27): a card click (locked ones too) only shows its track in Detail
-		{ Path = "Panel/Cards/*", Does = "local", Count = "tracks" },
-		-- Detail/Start: "START HERE" (open, not current) calls SetCheckpoint(the shown track); "SELECTED" / "LOCKED"
-		-- are disabled (Active false) and fire nothing
+		-- Design doc 4.15 (owner 2026-11-04): an open, non-current card calls SetCheckpoint(its track); a locked or the
+		-- current card fires nothing
 		{
-			Path = "Panel/Detail/Start",
+			Path = "Panel/Cards/*",
 			Does = "remote",
 			Remote = "SetCheckpoint",
-			Arg = "detail_track",
-			DisabledWhen = "locked_or_selected",
+			Arg = "card_track",
+			DisabledWhen = "locked_or_current",
+			Count = "tracks",
 		},
 	},
 }
@@ -3440,17 +3439,11 @@ UiSpec.Checkpoints = {
 	LockTransparency = 0.4,
 	Prompt = "OpenCheckpoints",
 	PanelTheme = "Checkpoints", -- PanelFrame.Attach theme (owner 2026-10-20)
-	-- Detail pane (design doc 4.15, owner 2026-11-02): Preview (ViewportFrame), Title "TRACK n · BIOME DISPLAY NAME",
-	-- Status chip, Length, Rival, You, Cash, Bonus, Start (TextButton)
-	Detail = "CheckpointUi/Panel/Detail",
-	CashPrefix = "PAYOUT ", -- .. HudFormat.MoneyText(TrackBuilder.CashFor(n))
-	StatusCheckpoint = "YOUR CHECKPOINT",
-	StatusBeaten = "BEATEN",
-	StatusNext = "NEXT TO BEAT",
-	LockedFormat = "LOCKED · BEAT TRACK %d",
-	StartOpen = "START HERE",
-	StartSelected = "SELECTED",
-	StartLocked = "LOCKED",
+	-- Card labels (design doc 4.15, owner 2026-11-04)
+	SpeedPrefix = "RECOMMENDED SPEED ", -- .. HudFormat.SpeedText(NpcConfig.RecommendedSpeed(n))
+	EnemyPrefix = "ENEMY ", -- .. NpcConfig.For(n).Label
+	ChipText = "YOUR CHECKPOINT",
+	CardMinWidthShare = 0.8, -- "long horizontal cards": this test's reading of most of the list's width
 }
 table.insert(CLOSED, UiSpec.Checkpoints.Panel)
 for _, fixture in
@@ -3462,86 +3455,39 @@ do
 	fixture.When = "After snapshot; restore all attributes afterwards. Owned by server fixture writer."
 	table.insert(UiSpec.ServerSetup, fixture)
 end
-local CHECKPOINT_TRACK2 = (function()
-	local chain =
-		require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("TrackRegistry")).Chain()
-	return chain[2] and ("TRACK 2 · " .. string.upper(chain[2].Name)) or "TRACK 2"
-end)()
--- Checkpoint clicks (CHECKPOINT_SPEC section 4), run in this order: a card click shows its track in Detail and never
--- calls SetCheckpoint; Detail/Start does the pick. LeavePanels / KeepPanels keep the Detail pane a card click set up
--- for the Start click right after it (a reopen would show the current checkpoint again).
+-- Checkpoint clicks (design doc 4.15): an open card picks its track; the current and a locked card pick nothing.
 for _, case in
 	{
-		-- Selected card: shows Track 1, Start "SELECTED"
+		-- Current card
 		{
 			Id = "checkpoint_selected_no_remote",
 			Path = "Panel/Cards/Track_1",
 			Best = 0,
 			Setup = "checkpoint_locked",
-			After = { "checkpoint_detail_shows_card", "checkpoint_not_optimistic" },
 		},
-		-- Locked card: clickable, shows Track 2 with Start "LOCKED"
+		-- Locked card: clickable, picks nothing
 		{
 			Id = "checkpoint_locked_no_remote",
 			Path = "Panel/Cards/Track_2",
 			Best = 0,
 			Setup = "checkpoint_locked",
-			Leave = true,
-			After = { "checkpoint_detail_shows_card" },
 		},
+		-- Open card
 		{
-			Id = "checkpoint_start_locked_no_remote",
-			Path = "Panel/Detail/Start",
-			Best = 0,
-			Setup = "checkpoint_locked",
-			Keep = true,
-			Label = "LOCKED",
-			Active = false,
-			After = { "checkpoint_not_optimistic" },
-		},
-		-- Freshly opened: Detail shows the current checkpoint (Track 1), Start "SELECTED"
-		{
-			Id = "checkpoint_start_selected_no_remote",
-			Path = "Panel/Detail/Start",
-			Best = 0,
-			Setup = "checkpoint_locked",
-			Label = "SELECTED",
-			Active = false,
-			After = { "checkpoint_not_optimistic" },
-		},
-		-- Open card: shows Track 2, Start "START HERE"
-		{
-			Id = "checkpoint_card_shows_detail",
+			Id = "checkpoint_select_track",
 			Path = "Panel/Cards/Track_2",
 			Best = 2,
 			Setup = "checkpoint_open",
-			Leave = true,
-			After = { "checkpoint_detail_shows_card" },
-		},
-		{
-			Id = "checkpoint_select_track",
-			Path = "Panel/Detail/Start",
-			Best = 2,
-			Setup = "checkpoint_open",
-			Keep = true,
-			Label = "START HERE",
-			Active = true,
 			Remote = { Name = "SetCheckpoint", Args = { 2 } },
-			After = { "checkpoint_not_optimistic" },
 		},
 	}
 do
 	local prepare = {
-		Open = not case.Keep and { UiSpec.Checkpoints.Panel } or nil,
-		KeepPanels = case.Keep,
-		LeavePanels = case.Leave,
+		Open = { UiSpec.Checkpoints.Panel },
 		Showcase = false,
 		AttrIs = { Checkpoint = 1, BestTrack = case.Best },
 		Intercept = "SetCheckpoint", -- refuse the click unless the server logging proxy is installed
-		ScrollIntoView = not case.Keep and string.find(case.Path, "Cards", 1, true) ~= nil or nil,
-		LabelIs = case.Label,
-		TargetActive = case.Active,
-		TextIs = case.Keep and { [UiSpec.Checkpoints.Detail .. "/Title"] = CHECKPOINT_TRACK2 } or nil,
+		ScrollIntoView = true,
 	}
 	table.insert(UiSpec.Clicks, {
 		Id = case.Id,
@@ -3552,7 +3498,7 @@ do
 		Expect = {
 			Panels = { [UiSpec.Checkpoints.Panel] = true },
 			Remote = case.Remote or false,
-			After = case.After,
+			After = { "checkpoint_not_optimistic" },
 		},
 	})
 end

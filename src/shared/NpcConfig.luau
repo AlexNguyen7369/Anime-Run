@@ -55,4 +55,9 @@ function NpcConfig.For(number)
 	}
 end
 
+-- The lowest whole speed above track `number`'s enemy cruise speed (proposed, design doc 4.15).
+function NpcConfig.RecommendedSpeed(number)
+	return math.floor(NpcConfig.For(number).Speed) + 1
+end
+
 return NpcConfig

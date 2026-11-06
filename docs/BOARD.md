@@ -13,6 +13,7 @@
 - 2026-11-05 boss-event b4 arena blockout: boss_arena 154, race 52, npc 117 checks pass; owner approved size; rules audit deferred to b11
 - 2026-11-05 boss-event b3 Sidekicks (a661c4f): `[CARTEST]` pass=7 fail=0, sidekicks 212 checks; ui_layout 962 checks, ui_backpack_characters 24, ui_buttons 9, all pass; rules audit deferred to b11
 - 2026-11-05 boss-event b2 Gems: `[CARTEST]` pass=6 fail=0; b1 models owner-approved (5ec6ae0), not uploaded
+- 2026-11-04 sensei-cards s1 Tracks panel as road-screenshot cards: `ui_checkpoints` 369 fail=0; `checkpoint_selected_no_remote`, `checkpoint_locked_no_remote`, `checkpoint_select_track` 390 each fail=0; `checkpoint_close`, `checkpoint_switch_to_index` 19 each fail=0; `checkpoint_escape` MANUAL; rules audit PASS round 2
 - 2026-11-04 market copies Up to 3 copies of each aura and trail (6184cc9): slot_items 21, vehicle_effects 130 fail=0; ui_market 100 checks fail=0 at 0, 1, 3 copies; real BUY and slot clicks on desktop; rules audit not run
 - 2026-11-04 roll-anim r4 Drawn portraits and head art: 44 + 44 uploaded; `roll_anim`, `hud`, `gacha`, `scrap`, `catalog` pass=5 fail=0; `ui_layout` 962 checks fail=0; `ui_roll_anim`, `ui_roll_emphasized`, `ui_index`, `ui_backpack_characters`, `ui_starter_pick`, `ui_showdown`, `ui_defeated` fail=0; rules audit PASS
 - 2026-11-04 declutter d3 In-house Market stall, 2 gate Legends (d553ec1): spawn_area, world_layout, dojo, workshop pass=4 fail=0, rules audit PASS

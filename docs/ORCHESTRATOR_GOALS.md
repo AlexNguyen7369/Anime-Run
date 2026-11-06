@@ -156,6 +156,14 @@ Deliverables:
 - u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks. Status 2026-11-04: not met, stopped on the owner's word: UI pass=44 fail=0; server pass=49 fail=1 (`data`, fix not run), final server run skipped; audit FAIL, not re-audited
 Out of scope: camera shake, per-category volume, music, gameplay and economy.
 
+## sensei-cards: Sensei Tracks panel as one list of road-screenshot cards (owner 2026-11-04, design doc 4.15)
+Status: active
+Owner-confirmed: 2026-11-04 (owner's request, reference image of a numbered horizontal card list)
+Branch: feature/alex/anime-world
+Deliverables:
+- s1 | Tracks panel: long horizontal clickable cards with road screenshot, definition, recommended speed, enemy name | `ui_checkpoints` and the checkpoint_* clicks green; stylua / selene; rules audit PASS
+Out of scope: checkpoint rules, bonus, server code.
+
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
 Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")

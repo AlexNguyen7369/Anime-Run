@@ -99,6 +99,9 @@
 96. 2026-11-05 — Alex Nguyen — Drew attack key frames for all 12 Sidekicks on orch/roster/attacks, all owner-approved and handed to the boss-event session to bake.
 97. 2026-11-05 — Alex Nguyen — Added the Sidekick tutorial with its free summon (`[CARTEST]` sidekick_tutorial 54, sidekicks 316, duel 187, race 52 pass; `ui_sidekick_tutorial` 52, `ui_layout` 962, `ui_sidekicks` 252 pass) and recorded the VIP summon discount.
 98. 2026-11-05 — Alex Nguyen — Added Sidekick attacks for all 12 from the approved keys, the paid boss spawn and gem packs with real product ids off sale, and a VIP discount seam that stays off until the monetization branch merges (`[CARTEST]` sidekick_attacks 533, boss_paid 167, boss_event 830, sidekicks 322 pass; `ui_sidekick_attack` 345, `ui_boss_paid` 28, `ui_sidekicks` 252 pass).
+99. 2026-11-04 — Alex Nguyen — Fast-forwarded feature/alex/anime-world to orch/run/universal (aaf4b80) in the main checkout so Rojo serves the universal run for Studio Play; not pushed to origin.
+100. 2026-11-04 — Alex Nguyen — Replaced the sensei Tracks panel's grid, detail pane and 3D previews with one list of clickable road-screenshot cards showing a brief anime definition, recommended speed and enemy name (b4c7cc8); not pushed to origin.
+101. 2026-11-05 — Alex Nguyen — Moved the Market's floating header down to match Index and the service row (design doc 4.24), committed to feature/alex/anime-world and main with no Studio test on the owner's word; not pushed to origin.
 
 ## What's next
 **Run the full server and UI harness and the rules audit for goal `boss-event` (deliverable b11).**

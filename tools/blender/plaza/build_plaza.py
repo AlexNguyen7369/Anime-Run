@@ -1076,7 +1076,7 @@ def export_all():
 	legends = []
 	for cid, x, z, _ in LEGENDS:
 		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *LEGEND_LOOK))})
-	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
+	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
 	with open(os.path.join(ROOT, "build", "plaza", "layout.json"), "w") as f:
 		json.dump(layout, f, indent=1)
 	print("EXPORT", len(assets), "assets", sum(p["Tris"] for a in assets.values() for p in a["Parts"].values()), "unique tris")

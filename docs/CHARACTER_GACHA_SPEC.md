@@ -169,6 +169,8 @@ Preset trios (the anime's famous team):
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 
+Named in text but not in the cast (design doc section 5, one list): Mahoraka (Mahoraga, Jujutsu Kaisen), Track 5's card definition only (`TRACKS_AND_BIOMES_SPEC`).
+
 ## Art
 
 - R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, big mesh hair;
