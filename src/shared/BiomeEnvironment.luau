@@ -158,7 +158,19 @@ local ARENA = Kit.Atmosphere({
 	SunRays = { Intensity = 0.05 },
 	Sky = { SunAngularSize = 21, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
 	Clouds = { Cover = 0 },
-	Particles = { Themes.Snow.Atmosphere.Particles[1] },
+	Particles = {
+		Themes.Snow.Atmosphere.Particles[1],
+		{
+			Texture = "MoteParticle", -- small white motes floating through the clouds (owner 2026-11-06)
+			Color = Kit.hex("FFFFFF"),
+			Size = 0.8,
+			Rate = 40,
+			Lifetime = 8,
+			Speed = 1.5,
+			SpreadAngle = 180,
+			LightEmission = 0.3,
+		},
+	},
 })
 
 -- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline

@@ -99,6 +99,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 - Diameter exceeds streaming target 1024: arena and boss build on the client; runner rigs need persistent streaming during events.
 - `ZoneAt` ignores height, so a new arena zone overrides it, reusing Track 8's cloud profile and particles.
 - Low graphics (measured in Studio 2026-11-05): from the lanes, about 890 studs out, a part-built boss does not draw at quality 1 or on this machine's Automatic setting, and does at 8 and 21; at quality 1 it draws at 500. The owner kept radius 850. A flat BillboardGui boss drew at quality 1 from the lanes, so one sits behind the 3D model (**proposed**), playing pre-rendered frames. Check that the model hides it at high quality, and check on a real phone.
+- Motes (owner 2026-11-06): small white floating particles in the arena's zone profile, second emitter of `BiomeEnvironment`'s `ARENA`, sharing Snow's reviewed `MoteParticle`; off under REDUCED EFFECTS. Numbers **placeholder**. World-space particles spread out as the camera outruns them, so they read thinner at top cruise.
 - Closed rail: 7 lane routes built once, distance wraps with no hitch. A boss run mode separates stamina from `npcMode`.
 
 ## Boss and attacks
