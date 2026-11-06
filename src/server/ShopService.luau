@@ -181,6 +181,9 @@ function ShopService.UseBossCredit(player)
 	if credit < 1 then
 		return false, "No boss credit"
 	end
+	if #bossEvents().AutoTeam(player) == 0 then
+		return false, "Needs a Sidekick" -- locked out of the event (design doc 4.37), so the credit stays saved
+	end
 	local started, reason = bossEvents().Start("Paid")
 	if not started then
 		return false, reason

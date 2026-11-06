@@ -790,32 +790,56 @@ local function dueTier()
 	end
 	return nil
 end
--- From public data alone: listed odds and what the rotation leaves split across its Commons, or a due tier sharing 100%.
+-- The server's percents to 3 decimals by largest remainder, so the rows sum to exactly 100.000. Row name -> percent.
+local function roundedOdds(rotation)
+	local rows, spare = {}, 100000
+	local function add(name, id)
+		local exact = rotation.Odds[id] * 1000 + 1e-6 -- 24.166 * 1000 lands just under 24166
+		local whole = math.floor(exact)
+		spare -= whole
+		table.insert(rows, { Name = name, Whole = whole, Remainder = exact - whole })
+	end
+	for _, id in rotation.Ids do
+		add(id, id)
+	end
+	add("Secret", rotation.SecretId)
+	table.sort(rows, function(a, b)
+		if a.Remainder ~= b.Remainder then
+			return a.Remainder > b.Remainder
+		end
+		return a.Name < b.Name
+	end)
+	local rounded = {}
+	for index, row in rows do
+		rounded[row.Name] = (row.Whole + (index <= spare and 1 or 0)) / 1000
+	end
+	return rounded
+end
+-- The server's Odds, or a due tier sharing 100%.
 local function showOdds()
 	local rotation = detailsRotation
 	if not rotation then
 		return
 	end
 	local tier = dueTier()
-	local secretOdds = rotation.SecretChoices[1].Odds
-	local rest, commons, inTier = 100 - secretOdds, 0, 0
-	for _, id in rotation.Ids do
-		local row = Config.Get(id)
-		rest -= row.Odds
-		commons += row.Rarity == "Common" and 1 or 0
-		inTier += row.Rarity == tier and 1 or 0
-	end
-	local total = tier and 0 or secretOdds
-	for _, id in rotation.Ids do
-		local row = Config.Get(id)
-		local odds = row.Odds + (row.Rarity == "Common" and rest / commons or 0)
-		if tier then
-			odds = row.Rarity == tier and 100 / inTier or 0
+	local odds = {}
+	if tier then
+		local inTier = 0
+		for _, id in rotation.Ids do
+			inTier += Config.Get(id).Rarity == tier and 1 or 0
 		end
-		total += odds
-		detailsList[id].Odds.Text = string.format("%.3f%%", odds)
+		for _, id in rotation.Ids do
+			odds[id] = Config.Get(id).Rarity == tier and 100 / inTier or 0
+		end
+		odds.Secret = 0
+	else
+		odds = roundedOdds(rotation)
 	end
-	detailsList.Secret.Odds.Text = string.format("%.3f%%", tier and 0 or secretOdds)
+	local total = 0
+	for name, percent in odds do
+		total += percent
+		detailsList[name].Odds.Text = string.format("%.3f%%", percent)
+	end
 	detailsTotal.Text = string.format("Total: %g%%", total)
 	guaranteedNote.Visible = tier ~= nil
 	if tier then
