@@ -186,4 +186,5 @@ RunService.Heartbeat:Connect(function()
 		UiFeedback.Play("ToastHigh")
 	end
 	panel.Visible = show
+	root.Enabled = show -- never above the showcase or loser screens while closed
 end)
