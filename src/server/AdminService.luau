@@ -454,6 +454,7 @@ AdminService.Commands = {
 		Apply = function(p)
 			moneyValue(p).Value = 0
 			p:SetAttribute("Gems", 0)
+			p:SetAttribute("BossCredit", 0)
 			p:SetAttribute("RebirthLevel", 0)
 			local stats = p:FindFirstChild("leaderstats")
 			local rebirth = stats and stats:FindFirstChild("Rebirth")

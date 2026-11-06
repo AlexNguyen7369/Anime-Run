@@ -31,7 +31,7 @@ local RelicService = require(script.Parent.RelicService)
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 17 -- 17: SidekickPity, SidekickLegendaryPity (design doc 4.36); 16: Relics, RelicGear (design doc 4.38); 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 18 -- 18: BossCredit (docs/BOSS_EVENT_SPEC.md "Paid spawn"); 17: SidekickPity, SidekickLegendaryPity (design doc 4.36); 16: Relics, RelicGear (design doc 4.38); 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
@@ -149,6 +149,7 @@ function PlayerData.Load(player, userId)
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
 		player:SetAttribute("Gems", cleanInt(data.Gems, 0, MAX_MONEY, 0))
+		player:SetAttribute("BossCredit", cleanInt(data.BossCredit, 0, MAX_DUEL_WINS, 0)) -- version 17 and older: none
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
@@ -269,6 +270,7 @@ local function save(player, userId, release)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
 		Gems = cleanInt(player:GetAttribute("Gems"), 0, MAX_MONEY, 0),
+		BossCredit = cleanInt(player:GetAttribute("BossCredit"), 0, MAX_DUEL_WINS, 0),
 		Sidekicks = sidekicks.Sidekicks,
 		CharacterGear = sidekicks.CharacterGear,
 		SidekickAutoSell = sidekicks.SidekickAutoSell,

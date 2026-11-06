@@ -2437,6 +2437,9 @@ UiSpec.RemoteFunctions = {
 	"BossEventTeleport",
 	"BossEventSetTeam",
 	"BossEventLeave",
+	-- Paid spawn: the boss_paid_* clicks must never really prompt or start
+	"BossBuy",
+	"BossUseCredit",
 }
 table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
@@ -3921,8 +3924,8 @@ UiSpec.BossEvent = {
 }
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton" },
-	NonInteractiveParts = { "Warning", "BossBar", "DropList" },
+	AlwaysOn = { "LeaveButton", "BossButton", "BossDetails" },
+	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetailsPanel" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
@@ -3935,6 +3938,7 @@ UiSpec.Guis.RacerBossEvent = {
 			Count = "dynamic",
 		},
 		{ Path = "LeaveButton", Does = "remote", Remote = "BossEventLeave" },
+		{ Path = "BossDetails", Does = "local" },
 	},
 }
 UiSpec.HiddenWhilePanelOpen["RacerBossEvent/LeaveButton"] = "any"
@@ -3958,6 +3962,9 @@ for _, item in
 			What = "As boss_ui_prep_in, in Fight after the intro. Attributes only: nobody really joins, 'restore' clears "
 				.. "them and puts the characters and Sidekicks back.",
 		},
+		{ Id = "boss_ui_idle", What = "One character with a Sidekick, no event, no BossCredit." },
+		{ Id = "boss_ui_credit", What = "As boss_ui_idle, holding one BossCredit." },
+		{ Id = "boss_ui_restricted", What = "As boss_ui_idle, with PaidRandomRestricted." },
 	}
 do
 	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
@@ -4036,6 +4043,40 @@ for _, click in
 			Prepare = BOSS_PREPARE,
 			NeedSetup = { "spy", "progression_spy", "boss_ui_fight_in" },
 			Expect = { Remote = { Name = "BossEventLeave", Args = {} } },
+		},
+		{
+			Id = "boss_paid_details",
+			Path = "BossDetails",
+			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+		},
+		{
+			Id = "boss_paid_use_credit",
+			Path = "BossButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_credit" },
+			Expect = { Remote = { Name = "BossUseCredit", Args = {} } },
+		},
+		{
+			Id = "boss_paid_coming_soon",
+			Path = "BossButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				TargetActive = false,
+				Intercept = "BossBuy",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false },
+		},
+		{
+			Id = "boss_paid_restricted",
+			Path = "BossButton",
+			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			NeedSetup = { "spy", "progression_spy", "boss_ui_restricted" },
+			Expect = { Remote = false, After = { "boss_paid_error_shown" } },
 		},
 	}
 do

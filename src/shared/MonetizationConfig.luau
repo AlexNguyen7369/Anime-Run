@@ -132,6 +132,14 @@ MonetizationConfig.OfflineDouble = {
 	WINDOW_SECONDS = 300,
 }
 
+-- The paid boss spawn (docs/BOSS_EVENT_SPEC.md "Paid spawn"). Not a Shop entry: sold only from the BossButton. ProductId 0 = not on
+-- sale yet; the owner creates the 149 R$ developer product and gives the id.
+MonetizationConfig.BossSpawn = {
+	Id = "boss_spawn",
+	Robux = 149,
+	ProductId = 0,
+}
+
 -- Separate ids keep a delayed ordinary receipt from consuming a gift reservation.
 -- Owner creates the corresponding recipient-owned developer products before enabling.
 for _, product in MonetizationConfig.Products do

@@ -26,6 +26,7 @@
 --     Scale changes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every pulse scale. A press
 --     with no Sidekick does not fire BossEventTeleport and shows text with "sidekick" anywhere in the ScreenGui; before it, no such
 --     text shows once the Invite has closed.
+--   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossButton is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
 --   BossBar/Status, under the bar's left side, has one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time). In
@@ -590,7 +591,7 @@ function Module.Build(h)
 		check(res, "button_back_for_new_event", waitShown(BUTTON, true), true)
 		state(res, "Idle", 0, 0, 0, false)
 		check(res, "invite_hidden_at_end", waitShown(INVITE, false), false)
-		check(res, "button_hidden_at_end", waitShown(BUTTON, false), false)
+		-- At the end the button stays: idle, it is the paid spawn (UiBossPaid).
 	end
 
 	local function teleportActive()
@@ -1262,7 +1263,7 @@ function Module.Build(h)
 		h.checkList(res, "reduced_warning_text_alone", warningBareList())
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
-		onlyShown(res, "event_end", {})
+		onlyShown(res, "event_end", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
 
 		-- The same order as without reduced motion, here to the Warning's end.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
@@ -1284,7 +1285,6 @@ function Module.Build(h)
 			spread ~= nil and spread <= STILL_MAX_SPREAD
 		)
 		state(res, "Idle", 0, 0, 0, false)
-		waitShown(BUTTON, false)
 	end
 
 	-- Owner 2026-11-05: the team is exhausted. Camera high above the runner, dim, centred countdown, a loading sign full at the end time.
@@ -1554,7 +1554,7 @@ function Module.Build(h)
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
-			onlyShown(res, "rest", {})
+			onlyShown(res, "rest", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
 			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
 			checkLocked(res)

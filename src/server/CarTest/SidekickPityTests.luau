@@ -20,7 +20,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 
 local UID = 990138000
-local VERSION = 17 -- 17: SidekickPity, SidekickLegendaryPity
+local VERSION = 18 -- 18: BossCredit; 17: SidekickPity, SidekickLegendaryPity
 local SLOT0 = 1000000 -- far from today, so the live slot cannot pass by accident
 local MYTHIC_AT, LEGENDARY_AT = 300, 100 -- design doc 4.36
 

@@ -1,7 +1,7 @@
 --!nonstrict
 -- The Sidekicks summon page (design doc 4.36, docs/SIDEKICK_SPEC.md "Summon page"), opened at the plaza stall. Header: Gem
 -- balance, rotation timer, Mythic Pity. Main: the poster (Mythic, Legendaries and Rares in one view, with rates), the cost,
--- Auto-Sell, Summon 1x and 10x. GemColumn: gem bundles (no products yet: "Coming soon"). Details shows every outcome's odds before
+-- Auto-Sell, Summon 1x and 10x. GemColumn: gem bundles (ProductId 0: "Coming soon"; otherwise a press invokes GemPackBuy). Details shows every outcome's odds before
 -- any spend (section 6) and the Secrets' silhouettes. Client/SidekickReveal plays results. The gacha look is this page's alone
 -- (owner 2026-11-05). The server decides every result.
 local Lighting = game:GetService("Lighting")
@@ -291,7 +291,6 @@ make("UIPadding", "Padding", packs, {
 })
 local smallest = Monetization.GemPacks[1]
 for order, pack in Monetization.GemPacks do
-	-- shortcut: greyed Frames while every ProductId is 0, buttons and the receipt path come with the real product ids.
 	local tile = make("Frame", pack.Id, packs, {
 		LayoutOrder = -order,
 		Size = UDim2.new(1, -6, 0, 92),
@@ -981,6 +980,28 @@ end)
 summon10.Activated:Connect(function()
 	summon(10, summon10)
 end)
+-- A Buy press area only on a pack with a product: until then a tile is the greyed Frame above and nothing can be pressed.
+for _, pack in Monetization.GemPacks do
+	if pack.ProductId > 0 then
+		local tile = packs[pack.Id]
+		tile.Soon.Visible = false
+		local buy = make("TextButton", "Buy", tile, {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Text = "",
+			ZIndex = 4,
+		})
+		buy.Activated:Connect(function()
+			local ok, done, message = pcall(function()
+				return remotes:WaitForChild("GemPackBuy"):InvokeServer(pack.Id)
+			end)
+			if not (ok and done == true) then
+				statusText.Text = ok and tostring(message or "Try again") or "Connection error"
+				UiFeedback.Play("Denied", buy)
+			end
+		end)
+	end
+end
 UiFeedback.DeniedPress(summon1)
 UiFeedback.DeniedPress(summon10)
 autoSellButton.Activated:Connect(function()

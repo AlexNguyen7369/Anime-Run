@@ -166,6 +166,8 @@ UiScenarios.Names = {
 	"ui_boss",
 	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
 	"ui_boss_vfx",
+	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")
+	"ui_boss_paid",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
@@ -8039,6 +8041,20 @@ K.bossVfx = require(script.Parent.UiBossVfx).Build({
 })
 for name, fn in K.bossVfx.Scenarios do
 	S[name] = fn
+end
+
+K.bossPaid = require(script.Parent.UiBossPaid).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+})
+for name, fn in K.bossPaid.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossPaid.After do
+	access.After[cond] = fn
 end
 
 K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({

@@ -17,7 +17,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Server = script.Parent.Parent
 local Tests = {}
 local UID = 990136000
-local VERSION = 17 -- 17: pity (SidekickPityTests); 16: Relics (RelicTests)
+local VERSION = 18 -- 18: BossCredit (BossPaidTests); 17: pity (SidekickPityTests); 16: Relics (RelicTests)
 local CLOCK = 1800000123 -- one fixed rotation slot for the whole scenario
 local SOURCE_NAMES = { "pochita", "igris", "kaisel" } -- design doc 4.36: the real names no id or name may show
 

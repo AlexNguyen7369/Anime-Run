@@ -363,6 +363,8 @@ local function restoreBossUi(player)
 		live("GachaService").Apply(player, saved.gacha)
 		live("SidekickService").Apply(player, saved.sidekicks)
 		player:SetAttribute("NeedsStarter", saved.needsStarter)
+		player:SetAttribute("BossCredit", saved.bossCredit)
+		player:SetAttribute("PaidRandomRestricted", nil)
 		setAutoRoll(player, saved.autoRoll == true)
 		bossUiSnapshots[player] = nil
 	end
@@ -378,6 +380,7 @@ local function bossUiGear(player, how)
 			sidekicks = service.Snapshot(player),
 			autoRoll = player:GetAttribute("AutoRoll"),
 			needsStarter = player:GetAttribute("NeedsStarter"),
+			bossCredit = player:GetAttribute("BossCredit"),
 		}
 	end
 	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
@@ -425,6 +428,19 @@ local function bossUiState(player, phase, elapsed, hp, max, inEvent, damage)
 end
 
 local BOSS_UI_DAMAGE = 1234
+function setups.boss_ui_idle(player)
+	bossUiGear(player, 1)
+	clearBossUi(player)
+	player:SetAttribute("BossCredit", 0)
+end
+function setups.boss_ui_credit(player)
+	setups.boss_ui_idle(player)
+	player:SetAttribute("BossCredit", 1)
+end
+function setups.boss_ui_restricted(player)
+	setups.boss_ui_idle(player)
+	player:SetAttribute("PaidRandomRestricted", true)
+end
 function setups.boss_ui_invite(player)
 	bossUiGear(player, 2)
 	clearBossUi(player)
@@ -1507,6 +1523,11 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
 		if bossGear then
 			bossUiGear(player, tonumber(bossGear) or bossGear)
+			return
+		end
+		local bossCredit = string.match(request, "^boss_ui_credit:(%d+)$")
+		if bossCredit then
+			player:SetAttribute("BossCredit", tonumber(bossCredit))
 			return
 		end
 		local bossTutorial = string.match(request, "^boss_ui_tutorial:(%a+)$")
