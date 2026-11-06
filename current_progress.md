@@ -97,6 +97,7 @@
 94. 2026-11-05 — Alex Nguyen — Redesigned the Sidekick summon page with a 5-model poster showing rates, a More Gems column, pity bars and an animated reveal using 7 uploaded textures, and accidentally uploaded 26 unreleased character Decals through an unguarded script, now fixed.
 95. 2026-11-05 — Alex Nguyen — Landed Sidekick followers, summon pity, the summon redesign, the 3 second spawn, attack stamina cost, shout and wheel status effects, the boss bar and Drop list, the Boss (Active) button, move chat and the exhaustion view (`[CARTEST]` boss_event 705 and 10 other scenarios pass; `ui_boss` 393, `ui_layout` 962, `ui_sidekicks` 393 pass; `runner`, phone and second player not checked).
 96. 2026-11-05 — Alex Nguyen — Drew attack key frames for all 12 Sidekicks on orch/roster/attacks, all owner-approved and handed to the boss-event session to bake.
+97. 2026-11-05 — Alex Nguyen — Added the Sidekick tutorial with its free summon (`[CARTEST]` sidekick_tutorial 54, sidekicks 316, duel 187, race 52 pass; `ui_sidekick_tutorial` 52, `ui_layout` 962, `ui_sidekicks` 252 pass) and recorded the VIP summon discount.
 
 ## What's next
 **Build the Sidekick attacks from the 12 approved key frames: bake, playback, projectiles, effects, server hits (goal `boss-event`, deliverable b7d).**

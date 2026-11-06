@@ -58,6 +58,7 @@ local RUNNER_GROUP = "Runners"
 
 local route = nil
 local npcRemote = nil -- Remotes.NpcRace, created by Start
+local SHOWDOWN_SECONDS = 2 -- proposed: a little over Client/EnemyShowdown's VS banner
 local runRemote = nil -- Remotes.RunEvent, created by Start: Swap / Exhausted to the owner
 
 -- entries = { { Layout, Origin, Model, Number }, ... } in Number order (the chain Main builds).
@@ -342,6 +343,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			runRemote:FireClient(player, event)
 		end
 	end
+	local showdownToken = 0
 	local setCruise, bankShare, snapshotCruise -- forward declarations (defined below)
 	-- Makes `slot` the active runner: EquippedCar follows (CarService re-skins the runner) and its cruise applies at once
 	local function setSlot(slot)
@@ -390,6 +392,17 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			Model = cfg.Model,
 			BestTime = RaceTimeService.Best(player, track.Number),
 		})
+		if isPlayer(player) then
+			-- The VS banner's moment (design doc 4.28), not the race: Client/SidekickTutorial may show during a normal run.
+			showdownToken += 1
+			local mine = showdownToken
+			player:SetAttribute("ShowdownActive", true)
+			task.delay(SHOWDOWN_SECONDS, function()
+				if showdownToken == mine then
+					player:SetAttribute("ShowdownActive", nil)
+				end
+			end)
+		end
 	end
 
 	local function backToStart()

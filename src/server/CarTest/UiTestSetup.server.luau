@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, sidekick_big_reveal, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -314,7 +314,7 @@ function setups.sidekick_states(player)
 			rebirth = player:GetAttribute("RebirthLevel"),
 		}
 	end
-	service.Apply(player, {})
+	service.Apply(player, { SidekickFreeUsed = true }) -- keeps Client/SidekickTutorial out of this fixture
 	for _, rows in { config.List, config.BossDrops } do
 		for _, row in rows do
 			assert(service.Grant(player, row.Id), "could not grant " .. row.Id)
@@ -386,7 +386,7 @@ local function bossUiGear(player, how)
 	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
 	player:SetAttribute("NeedsStarter", nil)
 	player:SetAttribute("Rolls", math.max(player:GetAttribute("Rolls") or 0, 1))
-	service.Apply(player, {})
+	service.Apply(player, { SidekickFreeUsed = true }) -- keeps Client/SidekickTutorial out of this fixture
 	local rollable = require(Shared.CharacterCatalog).Rollable()
 	if how == "bag" then
 		assert(service.Grant(player, "side_knight"))
@@ -475,7 +475,7 @@ end
 function setups.relic_states_bare(player)
 	local service, config = live("RelicService"), require(Shared.RelicConfig)
 	relicSnapshots[player] = relicSnapshots[player] or service.Snapshot(player)
-	service.Apply(player, {})
+	service.Apply(player, { SidekickFreeUsed = true }) -- keeps Client/SidekickTutorial out of this fixture
 	for _, row in config.Bosses.big_raga do
 		assert(service.Grant(player, row.Id), "could not grant " .. row.Id)
 	end
@@ -490,6 +490,7 @@ end
 
 function setups.restore(player)
 	restoreBossUi(player)
+	setups.sidekick_tutorial_restore(player)
 	restoreSidekicks(player)
 	restoreRelics(player)
 	longStamina[player] = nil
@@ -747,6 +748,22 @@ end
 
 function sidekickFollowSteps.crowd(_, arg)
 	followCrowd(tonumber(arg))
+end
+
+-- A batch as Remotes.BossHits carries it, to this client only (ui_sidekick_attack). No damage is dealt.
+-- arg: <userId|me>:<sidekick id>:<damage>, comma separated.
+function sidekickFollowSteps.hits(player, arg)
+	local remote = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("BossHits")
+	assert(remote, "Remotes.BossHits is missing")
+	local entries = {}
+	for user, id, damage in string.gmatch(arg, "([^:,]+):([^:,]+):([^:,]+)") do
+		table.insert(entries, {
+			UserId = user == "me" and player.UserId or tonumber(user),
+			SidekickId = id,
+			Damage = tonumber(damage),
+		})
+	end
+	remote:FireClient(player, entries)
 end
 
 -- The run ends: the runner goes, as CarService's removeCar does it.
@@ -1476,7 +1493,68 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestSetup"):Connect(onRequest)
 -- Full UI run (UiTestRun): the client harness asks for the states its scenarios need (UiScenarios.Needs) through
 -- this Studio-only RemoteFunction, for its own player only, and restores them after the run ("restore:<id>").
 -- Only these ids; everything else stays driven from the server datamodel as before.
+-- ui_sidekick_tutorial (design doc 4.36; Client/UiTest/UiSidekickTutorial): at the unlock with the free summon unused, on foot,
+-- past the roll tutorial. Steps sidekick_tutorial:rebirth:<n> and sidekick_tutorial:block:<run|duel|showdown|boss|off>.
+local sidekickTutorialBefore = {}
+
+function setups.sidekick_tutorial_ready(player)
+	local CarService, service = live("CarService"), live("SidekickService")
+	if not sidekickTutorialBefore[player] then
+		sidekickTutorialBefore[player] = {
+			rolls = player:GetAttribute("Rolls"),
+			racing = CarService.IsAutoRacing(player) == true,
+		}
+	end
+	setups.sidekick_states(player)
+	service.Apply(player, {})
+	player:SetAttribute("Gems", 0)
+	player:SetAttribute("Rolls", math.max(player:GetAttribute("Rolls") or 0, 1))
+	CarService.SetAutoRace(player, false)
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) or CarService.GetCar(player) ~= nil do
+		if os.clock() - start > ON_FOOT_TIMEOUT then
+			error("sidekick_tutorial_ready: still racing after " .. ON_FOOT_TIMEOUT .. " s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	player:SetAttribute("RaceEvent", "Off")
+	player:SetAttribute("BossEvent", nil)
+	player:SetAttribute("DuelActive", nil)
+	player:SetAttribute("ShowdownActive", nil)
+end
+
+function setups.sidekick_tutorial_step(player, step, arg)
+	if step == "rebirth" then
+		player:SetAttribute("RebirthLevel", tonumber(arg))
+	elseif step == "block" then
+		-- A duel and a showdown run on a track too: only their own attribute may hold the tutorial back.
+		player:SetAttribute("RaceEvent", arg == "off" and "Off" or "Racing")
+		player:SetAttribute("BossEvent", arg == "boss" and true or nil)
+		player:SetAttribute("DuelActive", arg == "duel" and true or nil)
+		player:SetAttribute("ShowdownActive", arg == "showdown" and true or nil)
+	else
+		error("unknown step " .. step)
+	end
+end
+
+function setups.sidekick_tutorial_restore(player)
+	local saved = sidekickTutorialBefore[player]
+	if saved then
+		sidekickTutorialBefore[player] = nil
+		player:SetAttribute("RaceEvent", "Off")
+		player:SetAttribute("BossEvent", nil)
+		player:SetAttribute("DuelActive", nil)
+		player:SetAttribute("ShowdownActive", nil)
+		restoreSidekicks(player)
+		player:SetAttribute("Rolls", saved.rolls)
+		if saved.racing then
+			live("CarService").SetAutoRace(player, true)
+		end
+	end
+end
+
 local CLIENT_SETUPS = {
+	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
 	lose_event = true,
@@ -1513,6 +1591,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			return
 		elseif request == "run_visual_clear" then
 			RUN_VISUAL.clear()
+			return
+		end
+		local tutorialStep, tutorialArg = string.match(request, "^sidekick_tutorial:(%a+):(%w+)$")
+		if tutorialStep then
+			setups.sidekick_tutorial_step(player, tutorialStep, tutorialArg)
 			return
 		end
 		local followStep, followArg = string.match(request, "^sidekick_follow_(%a+):?(.*)$")
@@ -1584,6 +1667,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			before.auto_roll_on = nil
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
+		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then
+			setups.sidekick_tutorial_restore(player)
 		elseif restoreId == "sidekick_follow" then
 			restoreSidekickFollow(player)
 		elseif restoreId == "boss_ui" then

@@ -12607,6 +12607,7 @@ Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design d
 Scenarios.sidekick_rotation = require(script.Parent.SidekickRotationTests).sidekick_rotation -- design doc 4.36 rotation
 Scenarios.sidekick_follow = require(script.Parent.SidekickFollowTests).sidekick_follow -- design doc 4.36, SIDEKICK_SPEC "Display"
 Scenarios.sidekick_pity = require(script.Parent.SidekickPityTests).sidekick_pity -- design doc 4.36 "Summon pity"
+Scenarios.sidekick_tutorial = require(script.Parent.SidekickTutorialTests).sidekick_tutorial -- design doc 4.36 free summon
 Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
@@ -12614,6 +12615,8 @@ Scenarios.boss_paid = require(script.Parent.BossPaidTests).boss_paid -- docs/BOS
 Scenarios.boss_event = require(script.Parent.BossEventTests).make({ newFakeCharacter = newFakeCharacter }).boss_event
 -- docs/BOSS_EVENT_SPEC.md "Boss and attacks": pose data, timing and rise, client visuals only (b7b)
 Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
+-- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
+Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

@@ -36,10 +36,10 @@ MonetizationConfig.Gamepasses = {
 
 -- Gem packs (design doc 4.35, docs/SIDEKICK_SPEC.md, placeholder prices). ProductId 0: no product yet, the tile shows "Coming soon".
 MonetizationConfig.GemPacks = {
-	{ Id = "gems_1000", Name = "Small", Gems = 1000, ProductId = 0, RobuxPrice = 199 },
-	{ Id = "gems_2500", Name = "Medium", Gems = 2500, ProductId = 0, RobuxPrice = 449 },
-	{ Id = "gems_10000", Name = "Large", Gems = 10000, ProductId = 0, RobuxPrice = 1499 },
-	{ Id = "gems_30000", Name = "Huge", Gems = 30000, ProductId = 0, RobuxPrice = 3999 },
+	{ Id = "gems_1000", Name = "Small", Gems = 1000, ProductId = 3728728637, RobuxPrice = 199 },
+	{ Id = "gems_2500", Name = "Medium", Gems = 2500, ProductId = 3728728638, RobuxPrice = 449 },
+	{ Id = "gems_10000", Name = "Large", Gems = 10000, ProductId = 3728728641, RobuxPrice = 1499 },
+	{ Id = "gems_30000", Name = "Huge", Gems = 30000, ProductId = 3728728643, RobuxPrice = 3999 },
 }
 
 -- Developer products. Grants are boost ids from Shared/BoostConfig; Server/ShopService grants them per receipt.
@@ -137,7 +137,7 @@ MonetizationConfig.OfflineDouble = {
 MonetizationConfig.BossSpawn = {
 	Id = "boss_spawn",
 	Robux = 149,
-	ProductId = 0,
+	ProductId = 3728728633,
 }
 
 -- Separate ids keep a delayed ordinary receipt from consuming a gift reservation.

@@ -119,7 +119,8 @@ local function summon(player, current, count, cost)
 		local row = paid or Config.Roll(rng, rows)
 		mythicPity = row.Rarity == "Mythic" and 0 or mythicPity + 1
 		legendaryPity = row.Rarity == "Legendary" and 0 or legendaryPity + 1
-		local sold = current.SidekickAutoSell[row.Rarity] == true
+		-- A free summon (cost 0) is always kept: it is what unlocks boss events (owner 2026-11-05).
+		local sold = cost > 0 and current.SidekickAutoSell[row.Rarity] == true
 		results[i] = { Id = row.Id, Sold = sold, Pity = paid and true or nil }
 		if sold then
 			soldValue += row.SellGems
@@ -162,6 +163,17 @@ function SidekickService.SetClock(fn)
 end
 
 -- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry, Pity = true when guaranteed }, sold ones listed too) or false, reason.
+-- VIP pays 10% fewer Gems (design doc 4.36, owner 2026-11-05).
+-- shortcut: always false here, because the pass check lives in PassService on the unmerged feature/alex/monetization; point this at it in that merge.
+function SidekickService.IsVip(_player)
+	return false
+end
+
+function SidekickService.CostFor(player, count)
+	local cost = count == 1 and Config.SummonCost or Config.TenCost
+	return SidekickService.IsVip(player) and math.floor(cost * 0.9) or cost
+end
+
 function SidekickService.Summon(player, count)
 	if count ~= 1 and count ~= 10 then
 		return false, "Invalid summon"
@@ -169,7 +181,7 @@ function SidekickService.Summon(player, count)
 	if not unlocked(player) then
 		return false, "Reach rebirth " .. Config.UnlockRebirth
 	end
-	local cost = count == 1 and Config.SummonCost or Config.TenCost
+	local cost = SidekickService.CostFor(player, count)
 	if (player:GetAttribute("Gems") or 0) < cost then
 		return false, "Not enough Gems"
 	end
@@ -420,6 +432,7 @@ function SidekickService.Start()
 	remotes.Name = "Remotes"
 	remotes.Parent = ReplicatedStorage
 	bind(remotes, "SidekickSummon", SidekickService.Summon)
+	bind(remotes, "SidekickFreeSummon", SidekickService.GrantFreeSummon)
 	bind(remotes, "SidekickSell", SidekickService.Sell)
 	bind(remotes, "SidekickAutoSell", SidekickService.SetAutoSell)
 	bind(remotes, "SidekickEquip", SidekickService.Equip)
