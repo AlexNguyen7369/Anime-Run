@@ -1,7 +1,6 @@
 # Board
 
 ## Doing
-- boss-phase2: Fully Adapted Raga, line run, chests, rewards popup, Relic art (p0 rules landed; p1 art and p2 server next; `docs/ORCHESTRATOR_GOALS.md`)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
@@ -11,6 +10,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-06 boss-phase2 Phase 2, line run, chests, rewards popup, Relic art, phone load fixes: `[CARTEST] END pass=64 fail=1` (fixed, `scrap` pass after), `[UITEST] END pass=54 fail=2` (exempted, those pass alone); rules audit 3 rounds, findings fixed, not re-audited after the last; fresh PR review
 - 2026-11-05 boss-event b4 arena blockout: boss_arena 154, race 52, npc 117 checks pass; owner approved size; rules audit deferred to b11
 - 2026-11-05 boss-event b3 Sidekicks (a661c4f): `[CARTEST]` pass=7 fail=0, sidekicks 212 checks; ui_layout 962 checks, ui_backpack_characters 24, ui_buttons 9, all pass; rules audit deferred to b11
 - 2026-11-05 boss-event b2 Gems: `[CARTEST]` pass=6 fail=0; b1 models owner-approved (5ec6ae0), not uploaded
