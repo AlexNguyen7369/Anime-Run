@@ -191,7 +191,6 @@ tab("Sidekicks", 5, function(b)
 	SidekickView.Art(b, SidekickConfig.List[1], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible =
 		false
 end)
--- shortcut: Relic art is SidekickView's text tile (rarity colour, name), in-house icons need art and an upload; replace them then.
 tab("Relics", 6, function(b)
 	local list = RelicConfig.Bosses.big_raga
 	SidekickView.Art(b, list[#list], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible = false

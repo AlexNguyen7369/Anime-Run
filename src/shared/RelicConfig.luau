@@ -10,6 +10,7 @@ RelicConfig.WheelArt = "rbxassetid://126470652353383" -- assets/ui/raga_wheel.pn
 local WORLD_CORE = {
 	Id = "relic_world_core",
 	Name = "World Core",
+	Image = "rbxassetid://90225252879253", -- assets/ui/relic_world_core.png
 	Rarity = "Secret",
 	Odds = 0.1,
 	Bonuses = { Damage = 0.15, AttackSpeed = 0.15, Luck = 0.15, Money = 0.15, Speed = 0.15, Stamina = 0.15 },
@@ -20,6 +21,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_talisman",
 			Name = "Cursed Talisman",
+			Image = "rbxassetid://112073311599626", -- assets/ui/relic_talisman.png
 			Rarity = "Common",
 			Odds = 55,
 			Bonuses = { Stamina = 0.03 },
@@ -27,6 +29,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_nail",
 			Name = "Nobora's Nail",
+			Image = "rbxassetid://116058098442275", -- assets/ui/relic_nail.png
 			Rarity = "Rare",
 			Odds = 28,
 			Bonuses = { Damage = 0.06 },
@@ -42,6 +45,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_finger",
 			Name = "Sukana's Finger",
+			Image = "rbxassetid://104879331110597", -- assets/ui/relic_finger.png
 			Rarity = "Legendary",
 			Odds = 4,
 			Bonuses = { Stamina = 0.15, Damage = 0.15, AttackSpeed = 0.04 },
@@ -49,6 +53,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_eyes",
 			Name = "Gojio's Sixfold Eyes",
+			Image = "rbxassetid://109441811086116", -- assets/ui/relic_eyes.png
 			Rarity = "Mythic",
 			Odds = 0.9,
 			Bonuses = { Stamina = 0.22, Damage = 0.22, AttackSpeed = 0.06, Luck = 0.06 },
