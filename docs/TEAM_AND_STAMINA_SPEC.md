@@ -148,9 +148,9 @@ Stamina = Base(rarity or override)
 
 ## Balance check (placeholders, owner 2026-11-01)
 
-NPC speeds unchanged (`16 x 1.51^(n-1)`: 16, 24, 37, 55, 83, 126, 190, 287, 433, 653). With no multis a Balanced
-runner wins up to: Common Track 1 (24 > 16), Uncommon Track 2, Rare Track 3, Epic Track 5, Legendary Track 7 (200 > 190),
-Mythic Track 9, Secret Track 10 (700 > 653). Sprinters reach about one band further; multis push teams the rest of
+NPC speeds (owner 2026-11-05, `48 x 1.363^(n-1)`: 48, 65, 89, 122, 166, 226, 308, 420, 572, 779). On speed alone, with no
+multis, a Balanced runner reaches: Common and Uncommon no track, Rare level with Track 1, Epic Track 3 (90 > 89), Legendary
+Track 5, Mythic Track 8, Secret Track 9. Sprinters reach about one band further; multis push teams the rest of
 the way. Stamina numbers unchanged. Owner retunes after a playtest.
 
 ## HUD

@@ -6456,7 +6456,10 @@ function Scenarios.npc()
 			check(checks, "npc_speed_increasing_1_to_5", increasing and 1 or 0, 1, increasing)
 			local s1 = isFiniteNumber(infos[1].Speed) and infos[1].Speed or math.huge
 			-- retired: npc_track1_beats_beginner (Track 1 NPC faster than a fresh player, NPC_RACER_SPEC 2026-10-20).
-			-- Design doc 4.13: a Common wins Track 1 (24 > 16 studs/s); owner 2026-11-03: Track 1 balance kept as is.
+			-- Design doc 4.13 (owner 2026-11-05): a Common does not outrun Track 1; a Rare is about level with it.
+			local common, rare = RaceConfig.RARITY_BASE.Common, RaceConfig.RARITY_BASE.Rare
+			check(checks, "npc_track1_above_common", s1, common, s1 > common)
+			check(checks, "npc_track1_near_rare", s1, rare, math.abs(s1 - rare) <= rare * 0.1)
 			-- Owner 2026-10-21 ("lower track requirements", replaces "substantially harder" >= 3x BASE_SPEED and the
 			-- fixed x2.5 growth): Track 1 = NpcConfig.BASE_SPEED, x SPEED_GROWTH per track (placeholders, read live),
 			-- and Track 1 must not need ~10M Speed: its recommended shown Speed is below 10,000.

@@ -7,16 +7,16 @@ safeguards) and 4.9 (this map redesign). Numbers are placeholders unless stated.
 
 - Owner 2026-10-30: track n target length = `984 x F x 1.25^(n-1)` studs, F = 3 (owner confirmed 2026-10-30), within
   +-5%. Measured along the centre line by `TrackValidator` (check `TARGET_LENGTH`).
-- Table at F = 3; NPC speeds `16 x 1.51^(n-1)`:
+- Table at F = 3; NPC speeds `48 x 1.363^(n-1)`:
 
 | Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Length (studs) | 2,952 | 3,690 | 4,612 | 5,766 | 7,207 | 9,009 | 11,261 | 14,076 | 17,595 | 21,994 |
-| NPC speed (studs/s) | 16 | 24.2 | 36.5 | 55.1 | 83.2 | 125.6 | 189.7 | 286.4 | 432.4 | 653 |
-| NPC time (s) | 184.5 | 152.7 | 126.4 | 104.7 | 86.6 | 71.7 | 59.4 | 49.2 | 40.7 | 33.7 |
+| NPC speed (studs/s) | 48 | 65.4 | 89.2 | 121.5 | 165.7 | 225.8 | 307.8 | 419.5 | 571.8 | 779.3 |
+| NPC time (s) | 61.5 | 56.4 | 51.7 | 47.4 | 43.5 | 39.9 | 36.6 | 33.6 | 30.8 | 28.2 |
 
 - Cruise speed is fixed for a runner during a run, so a team that wins Track 10 runs the whole chain in at most about
-  101 s. A Legendary trio clears it in about 90 s using about all its stamina (owner 2026-10-30,
+  126 s. A Legendary trio clears it in about 90 s using about all its stamina (owner 2026-10-30,
   `TEAM_AND_STAMINA_SPEC.md` balance check).
 - All IVS track rules still hold: numbered chain, point-to-point, first and last segments level straights >= 40,
   wide checkpoint area, WinPad on the left apron, right-hand racing lane, min radius, no overlap with any track or the

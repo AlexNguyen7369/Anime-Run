@@ -10,8 +10,8 @@
 
 local NpcConfig = {}
 
-NpcConfig.BASE_SPEED = 16 -- Track 1, studs/s: a stat-0 starter car (10) loses; slightly higher starter-track recommendation
-NpcConfig.SPEED_GROWTH = 1.51 -- every later track's NPC is this many times faster; Track 10 = 653 studs/s, under RaceConfig.MAX_CRUISE (owner 2026-10-27, was 1.75)
+NpcConfig.BASE_SPEED = 48 -- Track 1, studs/s: a Common (24) loses, a Rare (48) is about level (owner 2026-11-05, design doc 4.13)
+NpcConfig.SPEED_GROWTH = 1.363 -- every later track's NPC is this many times faster; Track 10 = 779 studs/s, under RaceConfig.MAX_CRUISE (owner 2026-11-05, was 1.51)
 NpcConfig.LOSE_SCREEN_SECONDS = 3 -- loser screen time before the player is sent back to the spawn
 NpcConfig.LABEL_FORMAT = "track%02d_NPC"
 
