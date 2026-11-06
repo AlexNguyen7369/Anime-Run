@@ -165,6 +165,8 @@ Deliverables:
 Out of scope: gameplay, tests, git history rewrite.
 
 ## roster: New characters, tiers above Secret and the 12-Sidekick pool (owner 2026-11-05)
+Release: owner 2026-11-05, relayed by the summon redesign session: "These unreleased characters will be projected for world 2, note these changes down." They are planned for the World 2 update, "coming soon".
+Open questions (owner): is `punch_void` included in World 2? Does the wait for `feature/alex/speed-balance` still apply?
 Status: paused for characters until `feature/alex/speed-balance` lands and `speed_probe` has run; Sidekick rows are with the boss-event session
 Owner-confirmed: 2026-11-05
 Branch: orch/roster/art1 (art committed, bca9b6e)

@@ -90,6 +90,7 @@
 87. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
 88. 2026-11-05 — Alex Nguyen — Uploaded the 9 new Sidekick models, portraits and heads to Roblox and added them to the generated SidekickArt registry, not yet in live odds.
 89. 2026-11-05 — Alex Nguyen — Recorded the roster goal and the owner's rulings: characters wait for speed balance, Eternal and Void base Speed set, Void Saitamo ships with the Void characters.
+90. 2026-11-05 — Alex Nguyen — Recorded the owner's ruling that the unreleased characters are projected for the World 2 update, with two open questions.
 
 ## What's next
 **After `feature/alex/speed-balance` lands and `speed_probe` has run, write the Eternal tier rules into the design doc and integrate the 12 new-series characters.**
