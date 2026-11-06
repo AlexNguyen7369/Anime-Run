@@ -333,10 +333,7 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 	end
 	-- The event's wider view (BOSS_EVENT_SPEC "Run rules"). Top-down keeps its own FOV and saves the normal one: it runs after this
 	-- step, so the normal one is back first. It holds the camera Scriptable until its restore, which brings that FOV back.
-	local wide = camera
-		and player:GetAttribute("BossEvent") == true
-		and camera.CameraType == Enum.CameraType.Custom
-		and not (player:GetAttribute("TopDownView") == true and player:GetAttribute("AutoRacing") == true)
+	local wide = camera and player:GetAttribute("BossEvent") == true and camera.CameraType == Enum.CameraType.Custom
 	if waitView then
 		wide = fovBefore ~= nil
 	end

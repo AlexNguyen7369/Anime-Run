@@ -17,7 +17,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 - Scheduler: fixed per server, `WeatherService` shape, every 30 minutes. A due time inside an event skips to the next 30-minute mark. A purchase does not move the timer.
 - Auto-roll pauses for participants only, through a per-player `BossEvent` attribute gate at `GachaService.StartAutoRoll`; `AutoRoll` itself is never changed. The roll card hides through `refreshToast`.
-- `PadTouched` cannot start a race for a player in the event. A death or leave mid-event does not break the player's return. A Leave button (b7c) and a server leave remote take a player back to spawn; a leaver gets no reward (**proposed**).
+- `PadTouched` cannot start a race for a player in the event. A death or leave mid-event does not break the player's return. A Leave button (b7c) and a server leave remote take a player back to spawn; a leaver gets no reward for a phase not yet defeated, and keeps what an earlier phase paid (owner 2026-11-06).
 
 ## Run rules
 - Real cruise and real stamina. See "Line run". At all gone: wait 8.5 s, full team refills, continue (owner 2026-11-06).
@@ -31,7 +31,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 - Damage numbers (owner 2026-11-06, replaces the yellow over red): one per hit, for that character, popping in with an overshoot, rising with a little sideways drift, fading; coloured by the character's rarity (of the character, not its Sidekick, **proposed**), from `GachaConfig.RARITY_COLORS`.
 - Minibar during the wait (owner 2026-11-05): every slot takes the grey exhausted look, and its bar refills from its lower-left end to its full end, reaching full at `BossWaitEndsAt`. Display only; server stamina stays 0 until the refill.
 - Exhaustion view (owner 2026-11-05): during the 8.5 s wait the local camera hovers above and outward of the player's own runner, tilted down toward the boss, so the player sees everything from above (owner 2026-11-05); the screen dims slightly; a small panel, centred below the bar and clear of the drop list, says "Exhausted, reviving", with a countdown and a loading sign that completes exactly at the wait's end, from a server end time. Then the camera returns and the team is revived. Client only.
-- Camera: event FOV locked at 100 and camera distance at 40 studs, for the whole event including the exhaustion view and the Phase 2 cutscene (owner 2026-11-06), so surrounding players show. Sidekicks stay within their 30-40% size rule (4.36) and read through placement and a soft outline (**proposed**).
+- Camera: event FOV locked at 100 for the whole event, including the exhaustion view, the Phase 2 cutscene and a saved top-down setting (owner 2026-11-06), so surrounding players show. While running, the camera distance is locked at 40 studs (**proposed**, the distance in the owner's screenshot); the exhaustion view and cutscene keep their own position. At FOV 100 from there the runner reads about 2.7 px and the boss about 237 px on a 907 px screen. Sidekicks stay within their 30-40% size rule (4.36) and read through placement and a soft outline (**proposed**).
 - Characters act individually (owner 2026-11-06): each character in the line hits on its own timer, every 1.5 s divided by its Relic's attack speed, for its Sidekick's damage (`SIDEKICK_SPEC`), scaled by its Relic, x its own speed scale, x the player's statuses (**proposed**: full damage each, so a team of 3 deals about 3 x the old average). Speed scale (**placeholder**) = 1 + min(1, cruise / 800), from that character's cruise, so at most +100%. Each hit fires that character's Sidekick's attack from its own follower. `BossTeamDamage` is the sum per round for the HUD. A character out of the line deals nothing and owes nothing.
 
 ## Preparation run and cutscene (owner 2026-11-05)
@@ -46,7 +46,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 |---|---|
 | Bar in and out | 0.3 s pop up, just before the sweep starts; 0.3 s disappear (owner 2026-11-06) |
 | Sweep | 1.5 s in Phase 1; faster in Phase 2 on every move (owner 2026-11-06), 1.1 s (**proposed**); ending at the move's moment (`Impact`, `Roar`, `WheelClick`). The shortest gap between moments is 3.95 s |
-| Spot | Several pixels narrower (owner 2026-11-06): width 12.5% (**proposed**; 80 px on a 640 px bar, was 90), 0.1875 s in Phase 1 and 0.1375 s in Phase 2. Centre at 25% to 69% of the bar in Phase 1 and 25% to 62% in Phase 2, so the window ends at least 0.35 s before the moment; white core, gold edges; different per player and per move, from a seed both sides compute |
+| Spot | Several pixels narrower (owner 2026-11-06): width 12.5% (**proposed**; 80 px on a 640 px bar, was 90), 0.1875 s in Phase 1 and 0.1375 s in Phase 2. Centre at 25% to 69% of the bar in Phase 1 and 25% to 62% in Phase 2, so the window ends about 0.35 s before the moment; white core, gold edges; different per player and per move, from a seed both sides compute |
 | Presses | One per move; a press off the spot counts as the try, and the player is hit at the moment |
 | Result text | 1.5 s. Dodged: gold, popping out, with a star burst. Hit: red, flashing (owner 2026-11-06) |
 | Lane dash | 0.35 s on every client, with the side dash pose: 3 key frames approved by the owner 2026-11-06 (`assets/characters_avatar/runner_dash/keyframes/dash_keys.jpg`) |
@@ -56,7 +56,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 - Prompt text: "Press SPACE when the bar hits the white!" (**proposed**).
 - No bar for a player in the team wait or without a run, and such a player is not hit by that move (**proposed**).
 - Lane: to a free neighbouring lane, at random if both are free; if neither is, the runner shares a neighbour's lane. The lap angle is kept.
-- Trust: the client sends the press's server-time stamp, because a 0.21 s window would not survive ping. The server accepts a press only if the stamp is inside the window and no more than 0.5 s old, and the press arrives by the moment. A forged stamp only skips boss effects, which a perfect player also skips (accepted risk).
+- Trust: the client sends the press's server-time stamp, because a window of under 0.2 s would not survive ping. The server accepts a press only if the stamp is inside the window and no more than 0.5 s old, and the press arrives by the moment. A forged stamp only skips boss effects, which a perfect player also skips (accepted risk).
 
 ## Line run (owner 2026-11-06)
 - All of a player's team runs at once, in a line behind the held runner, and every character in the line drains at once. A character at 0 vanishes in smoke and stays gone until the team timer ends. The last one gone starts the 8.5 s wait, then all refill.
@@ -113,7 +113,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 
 ## Paid spawn
 - Bosses popup (owner 2026-11-05): the top-left button always reads "Bosses" and toggles a popup, centred on the screen with a header and an X like the other popups (owner 2026-11-06). Teleport open: "Big Raga is raging right now" and Go, locked with the prompt for a player with no Sidekick. Teleport closed during the event: the same line, Go disabled, "Teleporting closed". No event: a short description, Details with the odds, Spawn boss, and "Next event in m:ss" from `BossEventNextAt`, a `ReplicatedStorage` attribute on the same clock as `BossEventStart`. Hidden inside the arena.
-- 149 Robux developer product, outside `MonetizationConfig.Products`, like `OfflineDouble`. The owner creates it and gives the id. Disabled for the 8 minutes of an event and for a player with no Sidekick.
+- 149 Robux developer product, outside `MonetizationConfig.Products`, like `OfflineDouble`. The owner creates it and gives the id. Disabled for the whole of an event, at most 10:03 and for a player with no Sidekick.
 - A receipt commits a saved `BossCredit`, then starts the event if the server is idle. Otherwise Spawn boss reads "Spawn boss (ready)", to use once inactive. A retry or a second buyer never loses or doubles a paid start.
 - The popup's **Details** section shows both chests' Relic odds as percentages, each table summing to 100%, plus each chest's separate Big Raga Sidekick chance (0.001% and 0.01%), before purchase. Roblox's page does not cover a paid boss with server-wide drops; this is the cautious reading.
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.

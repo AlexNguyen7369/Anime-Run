@@ -565,6 +565,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-06: owner: characters act individually with their own projectiles and damage numbers coloured by rarity, replacing one team damage (2026-11-05) and red and yellow numbers; Raga grows 25% in the scream cutscene; exhausted teams skip to the cutscene and revive after it; the wheel spins very fast then stops abruptly; FOV locked for the whole event; no duplicate Raga on attacks; white motes in the arena (4.37).
 - 2026-11-06: owner: boss Phase 2 (Fully Adapted Raga), team runs in a line with no revive until an 8.5 s team timer, 7,500 HP per player, stacking statuses of 15 s and 20 s, Slice 15% and 30%, Vulnerable, 5% damage for rewards, chests, rewards popup, 100,000 Money, 1,000 Gems as a fifth Gem source, art for every Relic (4.35, 4.37, 4.38, BOSS_EVENT_SPEC, RELIC_SPEC).
 - 2026-11-04: owner: Gems (4.35), Sidekicks (4.36), boss events with Big Raga (4.37), Relics (4.38); speed multi gains Sidekick and Relic entries (4.13); arena exhaustion respawns the team (overrides 4.3 inside the arena).
 - 2026-11-04: owner: Gems can be bought in packs, the only Sidekick monetization; luck never affects summons; summon page reference; Sidekicks Bag category of 50; auto-sell filter; selling refunds Gems (4.35, 4.36).
