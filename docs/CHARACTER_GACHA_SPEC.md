@@ -52,7 +52,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 ## Series and preset teams
 
 `Shared/SeriesCatalog`: one entry per series, `{ Id, Name, Preset = { Name, Members = { id, id, id } } }`. Ids are
-permanent save-safe keys like character ids and never contain a real name. Every series has 5 or 6 characters spread
+permanent save-safe keys like character ids and never contain a real name. Every series has 5 to 7 regular characters spread
 over the rarities so a Series bonus is reachable early; each has one preset trio, its anime's famous team.
 
 ## Launch cast (owner-approved 2026-10-28, 30 characters in 6 series)

@@ -161,7 +161,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Late game (owner 2026-11-05): the enemies of Tracks 9-10 are in the octillions. Early game: Track 1's enemy and length stop
   a player until they have a full team of Rares with stamina buffs; better teams pass sooner, and weaker teams still earn
   through exhaustion pay (4.3).
-- The best kit of the current 47 characters reaches about 800 studs/s; the range above it to `MAX_CRUISE` is for future
+- The best Secret kit reaches about 800 studs/s; the range above it to `MAX_CRUISE` is for future
   characters (owner 2026-11-05). `MAX_CRUISE` stays 800 until the speed probe supports raising it to at least 1000.
 - Speed multi = everything that scales base Speed, multiplied together:
   - Index stat points in Speed: +% Speed per point (placeholder +2% per point, additive with the other stat points).
