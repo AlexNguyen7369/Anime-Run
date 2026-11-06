@@ -88,8 +88,9 @@
 85. 2026-11-05 — Alex Nguyen — Showed Sidekick models on the summon page with portraits in the Bag and a Sidekicks page in the Index, and added the boss event leave remote and duel join (`[CARTEST]` pass=4 fail=0 including `boss_event` 443 checks; `ui_layout` 962 and `ui_sidekicks` 56 pass; owner approval of the summon screen is open).
 86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
 87. 2026-11-05 — Alex Nguyen — Merged Relics (b8) into the boss event UI (b7c), keeping the arena's sky dressing with the spawn rise and adding the flat fallback to it (selene and rojo build pass; not run in Studio).
+88. 2026-11-05 — Alex Nguyen — Landed Relics, the event UI and the Big Raga bag overflow, and recorded the 30 minute summon rotation rule (`[CARTEST]` pass=5 fail=0 including `boss_event` 461 and `relics` 374; `ui_boss` 151, `ui_relics`, `ui_layout`, `ui_buttons`, `ui_sidekicks`, `ui_backpack_characters` pass; live: warning flash dim, camera misses the rise).
 
 ## What's next
-**Run the targeted Studio tests on the merged b7c branch (`boss_arena`, `boss_event`, `ui_boss`, Relics), then land it.**
+**Fix the event UI's live findings, then apply the 12-Sidekick pool and the 30 minute rotation (goal `boss-event`).**
 
-**Why this is next:** the merge has only been linted and built, and the paid spawn depends on the event UI and Relic odds working together.
+**Why this is next:** the owner confirmed the pool and rotation, and the event's first impression depends on seeing Big Raga rise.
