@@ -93,8 +93,9 @@
 90. 2026-11-05 — Alex Nguyen — Uploaded the 9 new Sidekick models, portraits and heads to Roblox and added them to the generated SidekickArt registry, not yet in live odds.
 91. 2026-11-05 — Alex Nguyen — Recorded the roster goal and the owner's rulings: characters wait for speed balance, Eternal and Void base Speed set, Void Saitamo ships with the Void characters.
 92. 2026-11-05 — Alex Nguyen — Applied the 12-Sidekick pool and the global 30 minute summon rotation with a server-only Secret, and fixed the event UI's live findings (`[CARTEST]` sidekick_rotation 231, sidekicks 316, boss_event 461, relics 374 pass; `ui_sidekicks` 144, `ui_boss` 159, `ui_layout` 962 pass).
+93. 2026-11-05 — Alex Nguyen — Added Big Raga's real model, baked motion from the owner-approved keys, rise and VFX (`[CARTEST]` `boss_anim` 119, `boss_event` 461, `boss_arena` 154; `ui_boss_vfx` 46 pass; the owner's look at the motion and effects is still open).
 
 ## What's next
-**Land the boss motion, real model and VFX (goal `boss-event`, deliverable b7b).**
+**Build Sidekick followers and their attacks with key frames for owner approval (goal `boss-event`, deliverable b7d).**
 
-**Why this is next:** the owner approved the key frames and asked for very dynamic motion and VFX that show boss urgency.
+**Why this is next:** Sidekicks are invisible while running, and players see their damage only through the boss HP bar.
