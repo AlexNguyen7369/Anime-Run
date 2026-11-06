@@ -54,7 +54,7 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 - Every 30 minutes, from UTC time, every server computes the same rotation from the time slot alone: no store, no messaging. It holds 1 Mythic, 2 Legendaries, 2 Rares, all Commons and 1 hidden Secret.
 - The server rolls only against the current rotation, and judges a summon by the slot when it arrives.
 - A Sidekick's odds stay as listed. Those out of rotation leave a remainder (1.001% with today's 12), split evenly across Commons (owner-approved 2026-11-05), so the shown odds sum to 100%.
-- Details and the page show the rotation and a countdown (**proposed**). The Secret's row reads "Secret: one of Rikka, Kurami, 0.001%": which one is hidden, but each possible outcome is still disclosed, since bought Gems make summons paid random items (section 6). The reveal shows it when it drops.
+- Details and the page show the rotation and a countdown (owner 2026-11-05). The Secret's row shows the rotation's Secret as a black silhouette with "Secret, 0.001%"; the reveal names it when it drops.
 - A Mythic, Legendary or Rare row with no uploaded model stays out of the rotation.
 
 ## Pity (owner 2026-11-05)
@@ -63,12 +63,23 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 - Attributes `SidekickPity`, `SidekickLegendaryPity`; config `PityCount`, `LegendaryPityCount`.
 
 ## Summon page
-Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.
-- Left: 4 gem pack tiles, then **Details** and **Settings** buttons. Settings holds the auto-sell filter: one toggle per rarity, off by default.
-- Right: one banner with the Sidekicks' actual 3D models (owner 2026-11-05), names and rarities; Gem balance; Summon 1x and Summon 10x. Summon results show the models too.
-- Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, pity bars, extra banners.
+Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
+- Top: Gem balance, a timer bar counting to the next rotation, and Mythic Pity and Legendary Pity with their counts.
+- Poster: one view with the Mythic's actual 3D model large in the centre, the Legendaries beside it and the Rares at the ends. Big names in front, each with its rarity and rate (owner 2026-11-05), and a FEATURED sticker that makes no odds claim. Tapping it, or its **Details** button, opens Details.
+- Details also shows the Secret: only this rotation's one Secret, as a blacked-out silhouette, with "Secret" and its chance and no name column (owner 2026-11-05). Details lists rates only, no stats. `SidekickRotation` publishes the live `SecretId`; the owner accepts that clients can read it.
+- Commons appear only in Details.
+- Below: **Auto-Sell** (one toggle per rarity, off by default), Summon 1x and Summon 10x. The cost shows large above them.
+- More Gems column: Small, Medium, Large and Huge, biggest first. A "+N% More!" badge is calculated from the listed prices against the smallest pack and rounded down.
+- A blur covers the world while the page is open.
+- Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, rate up, extra banners.
 - Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
 - Uploaded models and images are listed in the generated `src/shared/SidekickArt.luau`, never in the character registries (`CharacterModelAssets`, `CharacterPortraits`, `CharacterHeads`), so no Sidekick reaches character code.
+
+## Summon reveal (owner 2026-11-05)
+In the style common to anime tower defense games: all effects original, no copied art or sound. `Client/SidekickReveal`, above the roll view; the summon page steps aside while it plays. It plays over the game world and never covers the whole screen. Timings and sizes are **placeholders**. A click skips to the end. Reduced effects start at the end. Results show the actual models.
+- Summon 1x: a vortex winds up with sparks pouring in and a growing shake, and turns the rarity's colour partway; it collapses and hits with a flash, comic burst, shock rings and sparks. The model pops in, about 56% of screen height, on turning rays with rising glints. Below it: name, a divider, rarity.
+- Summon 10x: 10 cards drop in and flip one by one with rings and sparks. A Legendary, Mythic or Secret card first trembles and glows its colour. A Mythic or Secret then interrupts with the 1x showcase.
+- End: "(Click anywhere to continue)". No buttons.
 
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.

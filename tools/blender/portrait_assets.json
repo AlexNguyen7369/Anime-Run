@@ -247,6 +247,62 @@
   "HeadImage": "83018071556826",
   "Image": "119531960093620"
  },
+ "punch_void": {
+  "Decal": "110043888034731",
+  "Hash": "7471cfd0ad6d9d60c5b3e40096880941b7ea283cc1be816ae1e8beeda26886e7",
+  "HeadDecal": "138848890010542",
+  "HeadHash": "ee9210fbe78b5fca0986bac2d5b777185848e995a48864469b8ecf7be6ea4e0e",
+  "HeadImage": "139528859046670",
+  "Image": "135539293863004"
+ },
+ "saw_blood": {
+  "Decal": "79025712326799",
+  "Hash": "26a94291a02fc966dc1d844e583040d51957070c1affd72b9c69a68c2e21cf52",
+  "HeadDecal": "119244473201808",
+  "HeadHash": "80a542fdb84b16276eeadf8cb10699fb488911f6db6d8c3b1b1e11d8a96410fc",
+  "HeadImage": "97700222189701",
+  "Image": "78159777977480"
+ },
+ "saw_bomb": {
+  "Decal": "75629773019931",
+  "Hash": "62a6944ca45a88870cd88d18de9d4387aedb4ac735d005849b82b2ed95eb752a",
+  "HeadDecal": "114711290199190",
+  "HeadHash": "77217583f2008b7febd95d3f3a8f606b0ae8ae2627a437af81d606edc3fe6793",
+  "HeadImage": "80030508974082",
+  "Image": "71101948040852"
+ },
+ "saw_control": {
+  "Decal": "81453500412770",
+  "Hash": "a4154bafab724610a701e88da916b2a939a541e37e51767a7294f4e384bfb3b4",
+  "HeadDecal": "85085397717105",
+  "HeadHash": "62b441d6aa6ef288be37a385b4e31167219c28666f3cc9b6f5d44265c71b85ea",
+  "HeadImage": "109960706382830",
+  "Image": "139929139817643"
+ },
+ "saw_fox": {
+  "Decal": "76858291005911",
+  "Hash": "fa0571f00b66f3e1a60c5e57aae6198b53bb36f599757fad51f510d64c68c4a4",
+  "HeadDecal": "90678391818670",
+  "HeadHash": "50c4a063133e1bb32bb3f1e3f862f64d9375d5f56ec7c98940ee424243a7b370",
+  "HeadImage": "135421439492342",
+  "Image": "107780820781840"
+ },
+ "saw_hero": {
+  "Decal": "94442633875665",
+  "Hash": "17e2ae28879074ad9d2675f0543f89d7f2d39a21e67cd1a618b7ccbb0230cfff",
+  "HeadDecal": "113690925750884",
+  "HeadHash": "6944aeb12a769fb1157521eeed28c72c76cf77db0bc5d8c6ac4b77269238d8c6",
+  "HeadImage": "113806576301399",
+  "Image": "89908465139103"
+ },
+ "saw_nervous": {
+  "Decal": "131498918060005",
+  "Hash": "c1f6536930d0b8948918b1fb87f92d9f91bca402a211c3b0e88f37bf7b25fa09",
+  "HeadDecal": "103853003785663",
+  "HeadHash": "acbb00b0dec0b2448a611bf646e0bb78334d77d4787fa0a14856d2b586b39273",
+  "HeadImage": "96242637149146",
+  "Image": "104288283691447"
+ },
  "sea_captain": {
   "Decal": "110467950109719",
   "Hash": "438e89fae8be8c3eed134880b80c1e268714dc950844021b91bb2ba4796ef5ef",
@@ -406,6 +462,54 @@
   "HeadHash": "5c32a657699c78a46ba07ab0e875aa6312e37ff41dc536ae43009380bee6aa2d",
   "HeadImage": "139199490786574",
   "Image": "90210420017655"
+ },
+ "solo_beast": {
+  "Decal": "92895029110836",
+  "Hash": "4cc7896bc5c05efc97ef0ef16693625365a879cb7bf374915e8457477aeee396",
+  "HeadDecal": "120061349142712",
+  "HeadHash": "5ed97af1b81d7477ffb8db7933b66da1a99884b83dc3956fcd30b93768d9fa46",
+  "HeadImage": "137541090437375",
+  "Image": "121613744123412"
+ },
+ "solo_blade": {
+  "Decal": "82867961394003",
+  "Hash": "cbec3d6911d7f2b466a603032239504b57c3ac4dc7ee30a280ce17ce32f81ec9",
+  "HeadDecal": "121900941769322",
+  "HeadHash": "04d9a33983478fa8674f45a7fa7dcc62d12823cf6f5baf7d596313fd62facb50",
+  "HeadImage": "101012748627129",
+  "Image": "77052579143527"
+ },
+ "solo_goliath": {
+  "Decal": "139415933977083",
+  "Hash": "131e2fa457751465a871cc5960bfef1bfaf21f087d8d23a5bda3673b9e5a5a75",
+  "HeadDecal": "90982047717855",
+  "HeadHash": "f99f5cc12a51dcee587504e9aa5968dd123fde9d2209bc2ef359cb7c99ea0e5c",
+  "HeadImage": "132942231043867",
+  "Image": "136091651795821"
+ },
+ "solo_mage": {
+  "Decal": "96162319702117",
+  "Hash": "eb279b5da9c9195bbcc114a40ba1f2e48dc7f20235ca630f765e725ee99f189f",
+  "HeadDecal": "71083987461644",
+  "HeadHash": "56bd5f18f82b3fe269b5b000dfe07723e013b15489497547c8b0714e2a2ab994",
+  "HeadImage": "89778721488768",
+  "Image": "120021176329765"
+ },
+ "solo_monarch": {
+  "Decal": "123525733278132",
+  "Hash": "fc726846926ca5daac0dfece0a756bf28744c7c922117f00cddb726431fc3863",
+  "HeadDecal": "140379841315706",
+  "HeadHash": "39b7e4b1d53af9b676fb27647fa6906b14a4f75f6d5c4b997a9b1679fb2d556e",
+  "HeadImage": "139528015545812",
+  "Image": "116328840187847"
+ },
+ "solo_vice": {
+  "Decal": "76458868866898",
+  "Hash": "2920393e96589938a57206bd5f5fac60a3bbe8a5350dd40ed9c723ed32746708",
+  "HeadDecal": "107265367763699",
+  "HeadHash": "3887444bd75475d3c032779c7ee9a90afb18e9539d46c689a5cd7302ef68b75b",
+  "HeadImage": "123143340967532",
+  "Image": "79846174838927"
  },
  "soul_fang": {
   "Decal": "126302842413456",
