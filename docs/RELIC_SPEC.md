@@ -25,4 +25,4 @@ Odds sum to 100%. Luck, potions and pity do not change them. Duplicates stack as
 ## Names and art
 Names use existing tweaked forms (section 5), never the official names. Icons are made in-house. Saved as `Relics` and `RelicGear` (`BOSS_EVENT_SPEC`). Not tradable.
 
-Raga's Wheel keeps the saved id `relic_cube`, so a Sealing Cube already in a bag becomes Raga's Wheel. Its tile in the Backpack's Relics tab shows the Dodge bar's art, `assets/ui/raga_wheel.png`, drawn by `tools/blender/portrait/draw_raga_wheel.py`. The Index has no Relic page; the Backpack tab is where Relics are drawn.
+Raga's Wheel keeps the saved id `relic_cube`, so a Sealing Cube already in a bag becomes Raga's Wheel. Its tile in the Backpack's Relics tab shows the Dodge bar's art, `assets/ui/raga_wheel.png`, drawn by `tools/blender/portrait/draw_raga_wheel.py`.

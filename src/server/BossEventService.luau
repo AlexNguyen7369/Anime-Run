@@ -691,6 +691,9 @@ local function tick(at)
 	end
 	local t = elapsed - Cfg.PrepSeconds
 	for player, member in table.clone(current.Members) do
+		if event ~= current then -- a hit below defeated the boss
+			return
+		end
 		chargeMoves(player, member, t)
 		player:SetAttribute("BossStatus", statusJson(t, member.Spared))
 		if not player.Parent then
