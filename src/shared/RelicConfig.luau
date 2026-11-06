@@ -82,6 +82,49 @@ function RelicConfig.Odds(boss)
 	return shown
 end
 
+-- Sealed spins saved as rows of the bag (RELIC_SPEC "Chests"), apart from Bosses.
+local ADAPTED_ODDS = { Common = 38.5, Rare = 30, Epic = 20, Legendary = 8, Mythic = 3, Secret = 0.5 }
+local adaptedTable = RelicConfig.Odds("big_raga")
+for _, row in adaptedTable do
+	row.Odds = ADAPTED_ODDS[row.Rarity]
+end
+
+RelicConfig.Chests = {
+	relic_chest_raga = {
+		Id = "relic_chest_raga",
+		Name = "Raga's Treasure",
+		Image = "rbxassetid://129792034295199", -- assets/ui/chest_raga.png
+		Chest = true,
+		Bonuses = {},
+		Boss = "big_raga",
+		SidekickChance = RelicConfig.RagaSidekickChance,
+		Table = RelicConfig.Odds("big_raga"),
+	},
+	relic_chest_adapted = {
+		Id = "relic_chest_adapted",
+		Name = "Adapted Raga's Treasure",
+		Image = "rbxassetid://81070324097920", -- assets/ui/chest_adapted.png
+		Chest = true,
+		Bonuses = {},
+		Boss = "big_raga",
+		SidekickChance = 0.0001, -- owner 2026-11-06: 0.01%, as a fraction
+		Table = adaptedTable,
+	},
+}
+for id, chest in RelicConfig.Chests do
+	byId[id] = chest
+end
+
+-- A copy of a chest's rows, {} for anything else.
+function RelicConfig.ChestOdds(id)
+	local shown = {}
+	local chest = id ~= nil and RelicConfig.Chests[id]
+	for i, row in chest and chest.Table or {} do
+		shown[i] = table.clone(row)
+	end
+	return shown
+end
+
 local STAT_WORDS = {
 	{ "Damage", "Damage" },
 	{ "AttackSpeed", "Attack Speed" },

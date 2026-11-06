@@ -12,20 +12,11 @@ BossEventConfig.TotalSeconds = 480
 BossEventConfig.RefillWaitSeconds = 5
 BossEventConfig.ChatMessage = "BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS"
 BossEventConfig.InviteSeconds = 3 -- owner: then teleporting stays open from the Boss button
--- Schedule event -> the chat line to players in the event (BOSS_EVENT_SPEC, wording proposed).
-BossEventConfig.MoveChat = {
-	Impact = "Big Raga attacks! -5% stamina",
-	Roar = "Big Raga shouts! Damage down for 5 s",
-	WheelClick = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
-}
 
 BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: the rise and the cutscene, no damage; the fight starts at its end
 BossEventConfig.RiseSeconds = 1.5 -- owner 2026-11-05: the first part of it, Big Raga rising with the HP bar
-BossEventConfig.AttackStaminaCost = 5 -- owner: percent of a full bar, per attack Impact, on the running character
 BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
-BossEventConfig.ShoutSeconds = 5 -- owner
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
-BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
 BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view
 -- Placeholders. At WaitCameraFov on a 907 px screen: the runner is at y near 775, about 6 px tall; the boss is 430 to 455 px
@@ -35,10 +26,41 @@ local WAIT_CAMERA_UP = 320
 local WAIT_CAMERA_DOWN_ANGLE = math.rad(11) -- the view's axis, below horizontal
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
-BossEventConfig.HpPerPlayer = 5000 -- owner 2026-11-05
+BossEventConfig.HpPerPlayer = 7500 -- owner 2026-11-06
+BossEventConfig.Phase2ExtraHp = 50000 -- owner 2026-11-06: Phase 2's HP is Phase 1's max plus this
+BossEventConfig.Phase2ExtraSeconds = 120 -- owner 2026-11-06
+BossEventConfig.ScreamSeconds = 3 -- owner 2026-11-06
+BossEventConfig.Phase1Money = 100000 -- owner 2026-11-06
+BossEventConfig.Phase2Gems = 1000 -- owner 2026-11-06
+BossEventConfig.VulnerableMulti = 1.5 -- owner 2026-11-06: the next undodged Impact's cost
 BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
-BossEventConfig.MinDamageShare = 0.01 -- placeholder: of max HP, for a reward
+BossEventConfig.MinDamageShare = 0.05 -- owner 2026-11-06: of the phase's own max HP, for its reward
 local FULL_SCALE_CRUISE = 800 -- placeholder: the cruise that reaches the +100% cap
+
+-- Owner 2026-11-06. AttackStaminaCost: percent of a full bar, per attack Impact, on the running character.
+local STAGES = {
+	{ AttackStaminaCost = 15, StatusSeconds = 15 },
+	{ AttackStaminaCost = 30, StatusSeconds = 20 },
+}
+
+function BossEventConfig.Stage(stage)
+	return STAGES[stage]
+end
+
+-- Schedule event -> the chat line to players in the event (BOSS_EVENT_SPEC, wording proposed).
+function BossEventConfig.MoveChat(name, stage)
+	local row = STAGES[stage]
+	if name == "Impact" then
+		return string.format("Big Raga attacks! -%d%% stamina", row.AttackStaminaCost)
+	elseif name == "Roar" then
+		return string.format("Big Raga shouts! Damage down for %d s", row.StatusSeconds)
+	end
+	return string.format(
+		"Big Raga turns its wheel! It takes %d%% less damage for %d s",
+		math.round(BossEventConfig.AdaptedCut * 100),
+		row.StatusSeconds
+	)
+end
 
 -- 1 + min(1, cruise / 800): at most +100% (owner 2026-11-05).
 function BossEventConfig.SpeedScale(cruise)

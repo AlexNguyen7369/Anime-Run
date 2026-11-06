@@ -20,6 +20,7 @@ RelicService.REMOTE_COOLDOWN = 0.25
 
 local state = setmetatable({}, { __mode = "k" })
 local lastRequest = setmetatable({}, { __mode = "k" })
+local openRng = Random.new()
 
 local function ensure(player)
 	local current = state[player]
@@ -74,6 +75,35 @@ function RelicService.GrantDefeat(player, boss, rng)
 	return true, row, won == true
 end
 
+-- One sealed chest into the bag. Returns true, its entry; or false, reason.
+function RelicService.GrantChest(player, id)
+	if id == nil or not Config.Chests[id] then
+		return false, "Not a chest"
+	end
+	return RelicService.Grant(player, id)
+end
+
+-- Removes a chest and rolls at its own table: draw 1 the Relic, draw 2 the Sidekick, which may overflow the bag. Returns true, the
+-- Relic's row, whether the Sidekick came; or false, reason.
+function RelicService.OpenChest(player, entry, rng)
+	local current = ensure(player)
+	local index = nil
+	for i, row in current.Relics do
+		if row.Entry == entry then
+			index = i
+		end
+	end
+	local chest = index and Config.Chests[current.Relics[index].Id]
+	if not chest then
+		return false, "Not a chest"
+	end
+	local row = SidekickConfig.Roll(rng, chest.Table)
+	table.remove(current.Relics, index)
+	RelicService.Grant(player, row.Id)
+	local won = rng:NextNumber() <= chest.SidekickChance and SidekickService.GrantDrop(player, "side_raga")
+	return true, row, won == true
+end
+
 -- Puts `entry` on `characterId` (nil takes off whatever it wears). A character wears one entry, an entry sits on one character.
 function RelicService.Equip(player, characterId, entry)
 	if type(characterId) ~= "string" or not CharacterCatalog.Get(characterId) then
@@ -84,8 +114,12 @@ function RelicService.Equip(player, characterId, entry)
 	end
 	local current = ensure(player)
 	if entry ~= nil then
-		if not findEntry(current, entry) then
+		local row = findEntry(current, entry)
+		if not row then
 			return false, "Not in your bag"
+		end
+		if Config.Chests[row.Id] then
+			return false, "Open it instead"
 		end
 		for character, worn in current.RelicGear do
 			if worn == entry then
@@ -117,7 +151,7 @@ function RelicService.Sell(player, entry)
 		return false, "Not in your bag"
 	end
 	local spec = Config.Get(current.Relics[index].Id)
-	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
+	local price = spec and not spec.Chest and BagConfig.SELL_PRICE[spec.Rarity]
 	if not price then
 		return false, "Cannot sell this Relic"
 	end
@@ -184,6 +218,13 @@ function RelicService.Start()
 	end
 	bind("RelicEquip", RelicService.Equip)
 	bind("RelicSell", RelicService.Sell)
+	bind("RelicOpenChest", function(player, entry)
+		local ok, row, won = RelicService.OpenChest(player, entry, openRng)
+		if not ok then
+			return false, row
+		end
+		return true, { Relic = row.Id, Sidekick = won }
+	end)
 end
 
 return RelicService
