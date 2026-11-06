@@ -247,6 +247,14 @@
   "HeadImage": "83018071556826",
   "Image": "119531960093620"
  },
+ "punch_hero": {
+  "Decal": "74035650272221",
+  "Hash": "2e32d79dcd09459b2471fbdf2cbfdf0a160dabc232d38e6a05130e27b4a2cd72",
+  "HeadDecal": "95880093135921",
+  "HeadHash": "d256ccc233a46ff068b04b02ff60b865c4ce4cc6cdfe1ae81f0982e63da26f5a",
+  "HeadImage": "138408988862084",
+  "Image": "90519431236954"
+ },
  "punch_void": {
   "Decal": "110043888034731",
   "Hash": "7471cfd0ad6d9d60c5b3e40096880941b7ea283cc1be816ae1e8beeda26886e7",

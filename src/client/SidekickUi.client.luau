@@ -696,6 +696,17 @@ local summon10 = button("Summon10", main, {
 	Position = UDim2.fromScale(1, 1),
 	Size = UDim2.new(0.4, 0, 0, 46),
 }, string.format("Summon 10x: %d Gems", Config.TenCost), SUMMON_TOP, SUMMON_DEEP)
+-- VIP pays less (design doc 4.36); the server publishes what this player pays.
+local function showCosts()
+	local one = player:GetAttribute("SidekickCost1") or Config.SummonCost
+	local ten = player:GetAttribute("SidekickCost10") or Config.TenCost
+	costRow.Value.Text = tostring(one)
+	summon1.Label.Text = string.format("Summon 1x: %d Gems", one)
+	summon10.Label.Text = string.format("Summon 10x: %d Gems", ten)
+end
+player:GetAttributeChangedSignal("SidekickCost1"):Connect(showCosts)
+player:GetAttributeChangedSignal("SidekickCost10"):Connect(showCosts)
+showCosts()
 -- Client/SidekickTutorial's spotlight lands here. On the poster, above the names and rates, so it covers no rate.
 local freeSummon = button("FreeSummon", main, {
 	AnchorPoint = Vector2.new(0.5, 1),

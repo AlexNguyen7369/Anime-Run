@@ -11,7 +11,7 @@ local PayoutCurve = require(script.Parent.PayoutCurve)
 local UpgradeTree = {}
 
 local ROMAN = { "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" }
-local BONUS_KEYS = { "Money", "Luck", "Speed", "RollSpeed", "Stamina" }
+local BONUS_KEYS = { "Money", "Luck", "Speed", "RollSpeed", "Stamina", "Inventory" }
 
 -- Built once from the config: the ordered tile list and an id -> tile map. Callers always get copies.
 local tiles, byId, branchById = {}, {}, {}

@@ -200,19 +200,30 @@ settings.AutoRow.Visible = true
 -- TRACK CAMERA row (docs/CAMERA_SPEC.md): a copy of the generated AutoRow one row lower, with the panel one row taller.
 -- shortcut: built at runtime because the generated RacerSettings has no spec in this repo; move it into the UI spec when one exists.
 local trackCameraRow = settings.AutoRow.Parent:Clone()
-local twins = {} -- AutoRow GuiObject -> its copy
+local twins = {} -- { AutoRow GuiObject, its copy }
 local function pair(original, copy)
 	for _, child in original:GetChildren() do
 		local twin = copy:FindFirstChild(child.Name)
 		if twin then
 			if child:IsA("GuiObject") then
-				twins[child] = twin
+				table.insert(twins, { child, twin })
 			end
 			pair(child, twin)
 		end
 	end
 end
 pair(settings.AutoRow.Parent, trackCameraRow)
+-- AUTO SELL row (design doc 4.36), built the same way, one row lower still. Its toggle opens the popup.
+local autoSellRow = settings.AutoRow.Parent:Clone()
+pair(settings.AutoRow.Parent, autoSellRow)
+autoSellRow.Name = "AutoSellRow"
+for _, d in autoSellRow:GetDescendants() do
+	d.Name = string.gsub(d.Name, "^Auto", "AutoSell")
+end
+autoSellRow.Parent = settings.AutoRow.Parent.Parent
+settings.AutoSellRow = autoSellRow.Face
+settings.AutoSellName = settings.AutoSellRow.AutoSellName
+settings.AutoSellToggle = settings.AutoSellRow.AutoSellToggle.Face
 trackCameraRow.Name = "TrackCameraRow"
 for _, d in trackCameraRow:GetDescendants() do
 	d.Name = string.gsub(d.Name, "^Auto", "TrackCamera")
@@ -228,7 +239,8 @@ do
 	local function relayout()
 		queued = false
 		local step = autoRow.Position.Y.Offset - effectsRow.Position.Y.Offset
-		for d, twin in twins do
+		for _, row in twins do
+			local d, twin = row[1], row[2]
 			twin.Position, twin.Size = d.Position, d.Size
 			if d:IsA("TextLabel") or d:IsA("TextButton") then
 				twin.TextSize = d.TextSize
@@ -236,10 +248,12 @@ do
 		end
 		trackCameraRow.Size = autoRow.Size
 		trackCameraRow.Position = autoRow.Position + UDim2.fromOffset(0, step)
+		autoSellRow.Size = autoRow.Size
+		autoSellRow.Position = autoRow.Position + UDim2.fromOffset(0, 2 * step)
 		if panel.Size ~= grown then
 			authored = panel.Size
 		end
-		grown = authored + UDim2.fromOffset(0, step)
+		grown = authored + UDim2.fromOffset(0, 2 * step)
 		panel.Size = grown
 	end
 	local function queue()
@@ -632,6 +646,14 @@ local function refreshTrackCamera()
 	label(settings.TrackCameraName, "TRACK CAMERA")
 	switch(settings.TrackCameraToggle, player:GetAttribute("TrackCamera") ~= false)
 end
+-- AUTO SELL row (design doc 4.36): the toggle shows the setting and opens the popup, where N is typed.
+label(settings.AutoSellName, "AUTO SELL")
+local function refreshAutoSellRow()
+	switch(settings.AutoSellToggle, player:GetAttribute("AutoSell") == true)
+end
+player:GetAttributeChangedSignal("AutoSell"):Connect(refreshAutoSellRow)
+refreshAutoSellRow()
+settings.AutoSellToggle.Activated:Connect(require(script.Parent.Parent:WaitForChild("RollOptions")).OpenAutoSell)
 settings.TrackCameraToggle.Activated:Connect(function()
 	player:SetAttribute("TrackCamera", player:GetAttribute("TrackCamera") == false)
 	refreshTrackCamera()

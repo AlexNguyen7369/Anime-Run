@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
+local BagConfig = require(Shared.BagConfig)
 local GachaConfig = require(Shared.GachaConfig)
 local MarketConfig = require(Shared.MarketConfig)
 local RaceConfig = require(Shared.RaceConfig)
@@ -24,6 +25,7 @@ local SeriesCatalog = require(Shared.SeriesCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
 local Workshop = require(Shared.Workshop)
 local UpgradeService = require(script.Parent.UpgradeService)
+local PassService = require(script.Parent.PassService)
 
 local GachaService = {}
 local QuestService = require(script.Parent.QuestService)
@@ -34,6 +36,7 @@ GachaService.TEAM_COOLDOWN = 0.5 -- seconds between accepted SetTeam requests (T
 local MAX_COUNT = 1e9
 local STARTER = CharacterCatalog.STARTER_ID
 local TEAM_SIZE = 3
+local EXCLUSIVE_PASS = "exclusive_runner"
 
 local rng = Random.new()
 local watched = setmetatable({}, { __mode = "k" }) -- players whose Cruise is kept current
@@ -41,6 +44,7 @@ local lastRequest = setmetatable({}, { __mode = "k" }) -- player -> os.clock()
 local autoRolls = setmetatable({}, { __mode = "k" }) -- player -> handle
 local rollRemote = nil -- Remotes.RollResult, made by Start(): tells the player what they rolled
 local announceRemote = nil -- Remotes.RollAnnounce, made by Start(): an emphasized roll, to everyone in the server
+local extraRollsRemote = nil -- Remotes.ExtraRolls, made by Start(): a tick's rolls that do not play the animation
 
 local function cleanCount(n)
 	if type(n) ~= "number" or n ~= n or n < 0 then
@@ -97,6 +101,7 @@ function GachaService.Setup(player)
 		local function refresh()
 			GachaService.RefreshTeam(player)
 			player:SetAttribute("LuckMulti", RebirthConfig.LuckMulti(player:GetAttribute("RebirthLevel")))
+			GachaService.RefreshBag(player)
 		end
 		player.AttributeChanged:Connect(function(name)
 			if
@@ -112,8 +117,13 @@ function GachaService.Setup(player)
 				or name == "AutoRacing"
 				or string.sub(name, 1, 6) == "Alloc_"
 				or string.sub(name, 1, 16) == "BoostUntil_Speed"
+				or string.sub(name, 1, 5) == "Pass_"
+				or name == "PaidRandomRestricted"
 			then
 				refresh()
+			end
+			if name == "Pass_" .. EXCLUSIVE_PASS then
+				GachaService.GrantExclusive(player)
 			end
 			-- A potion ending changes no attribute: refresh once when it runs out (the team row shows these numbers)
 			if string.sub(name, 1, 11) == "BoostUntil_" then
@@ -137,6 +147,7 @@ end
 UpgradeService.OnChanged(function(player)
 	if watched[player] then
 		GachaService.RefreshTeam(player)
+		GachaService.RefreshBag(player)
 	end
 end)
 
@@ -212,6 +223,43 @@ local function owns(player, id)
 end
 
 GachaService.Owns = owns
+-- Bag spaces in use: every copy takes 1 (design doc 4.36). Copies counts the duplicates after the first.
+function GachaService.BagUsed(player)
+	local data = player:FindFirstChild("GachaData")
+	if not data then
+		return 0
+	end
+	local used = 0
+	for _, entry in data:GetChildren() do
+		used += 1 + cleanCopies(entry:GetAttribute("Copies"))
+	end
+	return used
+end
+
+function GachaService.BagCap(player)
+	return BagConfig.Cap(PassService.Owns(player, "inventory"), UpgradeService.Bonuses(player).Inventory)
+end
+
+function GachaService.BagFull(player)
+	return GachaService.BagUsed(player) >= GachaService.BagCap(player)
+end
+
+-- Display only: BagUsed, BagCap, BagFull. The auto-roll loop recounts.
+function GachaService.RefreshBag(player)
+	local used, cap = GachaService.BagUsed(player), GachaService.BagCap(player)
+	player:SetAttribute("BagUsed", used)
+	player:SetAttribute("BagCap", cap)
+	player:SetAttribute("BagFull", used >= cap)
+end
+
+-- shortcut: a refunded pass ends its effects at the next join but the runner stays in the save; removing it would need
+-- Team and Showcase repair, upgrade if refunds become a real problem.
+function GachaService.GrantExclusive(player)
+	local data = folder(player)
+	if PassService.Owns(player, EXCLUSIVE_PASS) and not data:FindFirstChild(CharacterCatalog.EXCLUSIVE_ID) then
+		addEntry(data, CharacterCatalog.EXCLUSIVE_ID)
+	end
+end
 
 -- Discovers a catalog car. Returns true if it is new to the index, false if already owned (nothing changes),
 -- nil (and changes nothing) for anything that is not a rollable car Id.
@@ -259,7 +307,7 @@ end
 -- played enlarged and announced to the whole server), 0 (duplicates used to pay scrap Money; they now add a copy,
 -- owner 2026-10-22) and the roll's luck without
 -- the turbo multi (the client divides the displayed odds by it, docs/WEATHER_EVENTS_SPEC.md).
-function GachaService.Roll(player, roller)
+local function rollOnce(player, roller)
 	GachaService.Setup(player)
 	local rollNumber = math.min(cleanCount(player:GetAttribute("Rolls")) + 1, MAX_COUNT)
 	local turboMulti = UpgradeService.AdvanceTurbo(player)
@@ -267,28 +315,129 @@ function GachaService.Roll(player, roller)
 	local id = GachaConfig.Roll(roller or rng, luck * turboMulti)
 	local emphasized = GachaConfig.IsEmphasized(id, ownedIds(player))
 	player:SetAttribute("Rolls", rollNumber)
-	local isNew = GachaService.Grant(player, id)
+	local spec = CharacterCatalog.Get(id)
+	-- Auto sell (design doc 4.36): only a duplicate, so a new discovery is always kept.
+	local soldFor = 0
+	local isNew = false
+	if
+		owns(player, id)
+		and BagConfig.ShouldSell(player:GetAttribute("AutoSell"), player:GetAttribute("AutoSellChance"), spec)
+	then
+		soldFor = BagConfig.SELL_PRICE[spec.Rarity]
+		require(script.Parent.MoneyService).Award(player, soldFor)
+	else
+		isNew = GachaService.Grant(player, id)
+	end
+	GachaService.RefreshBag(player)
 	QuestService.Progress(player, "Rolls")
 	if isNew then
 		QuestService.Progress(player, "Discoveries")
 	end
-	local scrapMoney = 0
-	if rollRemote and player:IsA("Player") then
-		rollRemote:FireClient(
-			player,
-			id,
-			isNew,
-			turboMulti,
-			emphasized,
-			scrapMoney,
-			luck,
-			GachaService.RollInterval(player)
-		)
-	end
 	if emphasized then
 		GachaService.Announce(player, id, rollNumber)
 	end
-	return id, isNew, turboMulti, emphasized, scrapMoney, luck
+	return {
+		Id = id,
+		IsNew = isNew,
+		Turbo = turboMulti,
+		Emphasized = emphasized,
+		SoldFor = soldFor,
+		Luck = luck,
+		Chance = spec and spec.Chance or 0,
+	}
+end
+
+local function playRoll(player, roll)
+	if rollRemote and player:IsA("Player") then
+		rollRemote:FireClient(
+			player,
+			roll.Id,
+			roll.IsNew,
+			roll.Turbo,
+			roll.Emphasized,
+			roll.SoldFor,
+			roll.Luck,
+			GachaService.RollInterval(player)
+		)
+	end
+end
+
+-- The fifth return value is what auto sell paid for this roll (0 when it was kept).
+function GachaService.Roll(player, roller)
+	local roll = rollOnce(player, roller)
+	playRoll(player, roll)
+	return roll.Id, roll.IsNew, roll.Turbo, roll.Emphasized, roll.SoldFor, roll.Luck
+end
+
+-- One auto-roll tick: 1 roll plus Extra Roll passes, stopping if the bag fills. The rarest plays the animation; the
+-- others go to the small toast (docs/MONETIZATION_SPEC.md). Returns the roll that played, or nil if none was made.
+function GachaService.RollTick(player, roller)
+	local extras = (PassService.Owns(player, "extra_roll_1") and 1 or 0)
+		+ (PassService.Owns(player, "extra_roll_2") and 1 or 0)
+	local rolls = {}
+	for _ = 1, 1 + extras do
+		if GachaService.BagFull(player) then
+			break
+		end
+		table.insert(rolls, rollOnce(player, roller))
+	end
+	if #rolls == 0 then
+		return nil
+	end
+	local best = rolls[1]
+	for _, roll in rolls do
+		if roll.Chance > best.Chance then
+			best = roll
+		end
+	end
+	playRoll(player, best)
+	if #rolls > 1 and extraRollsRemote and player:IsA("Player") then
+		local others = {}
+		for _, roll in rolls do
+			if roll ~= best then
+				table.insert(others, { Id = roll.Id, IsNew = roll.IsNew, SoldFor = roll.SoldFor })
+			end
+		end
+		extraRollsRemote:FireClient(player, others)
+	end
+	return best
+end
+
+-- Sells every spare copy of one character (docs/BAG_AND_AUTOSELL_SPEC.md "Sell spares"): the last copy always stays.
+function GachaService.SellSpares(player, id)
+	if player:GetAttribute("DataLoaded") ~= true or player:GetAttribute("DataFailed") then
+		return false, "Data not loaded"
+	end
+	local spec = type(id) == "string" and CharacterCatalog.Get(id)
+	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
+	local data = player:FindFirstChild("GachaData")
+	local entry = price and data and data:FindFirstChild(id)
+	local copies = entry and cleanCopies(entry:GetAttribute("Copies")) or 0
+	if copies < 1 then
+		return false, "No spares to sell"
+	end
+	if require(script.Parent.MoneyService).Award(player, copies * price) == nil then
+		return false, "Try again"
+	end
+	entry:SetAttribute("Copies", 0)
+	GachaService.RefreshBag(player)
+	return true, "Sold " .. copies
+end
+
+-- The auto sell setting (design doc 4.36). `chance` stays unchanged when off, so turning it back on keeps it.
+function GachaService.SetAutoSell(player, on, chance)
+	if type(on) ~= "boolean" then
+		return false
+	end
+	if on then
+		local clean = BagConfig.CleanChance(chance)
+		if not clean then
+			return false
+		end
+		player:SetAttribute("AutoSellChance", clean)
+	end
+	player:SetAttribute("AutoSell", on)
+	return true
 end
 
 -- The AUTO toggle: while false the auto-roll loop makes no roll. Returns true if the value was applied.
@@ -430,6 +579,7 @@ function GachaService.WorkshopBoost(player)
 		table.insert(specs, CharacterCatalog.Get(id))
 	end
 	return Workshop.Boost(specs, player:GetAttribute("WorkshopLevel"))
+		* (PassService.Owns(player, "dojo_master") and 1.5 or 1)
 end
 
 -- The upgrade tree bonuses plus the workshop boost on the chosen stat: both sit in the additive `1 + points + tree`
@@ -438,6 +588,19 @@ local function bonuses(player)
 	local b = UpgradeService.Bonuses(player)
 	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
 	b[stat] = (b[stat] or 0) + GachaService.WorkshopBoost(player)
+	-- Gamepasses (design doc 4.35). Restricted players get no paid Luck (design doc 6).
+	if PassService.Owns(player, "vip") then
+		b.Money = (b.Money or 0) + 0.10
+	end
+	if PassService.Owns(player, "deep_stamina") then
+		b.Stamina = (b.Stamina or 0) + 0.25
+	end
+	if PassService.PaidLuckAllowed(player) then
+		b.Luck = (b.Luck or 0)
+			+ (PassService.Owns(player, "vip") and 0.10 or 0)
+			+ (PassService.Owns(player, "luck_1") and 1 or 0)
+			+ (PassService.Owns(player, "luck_2") and 2 or 0)
+	end
 	return b
 end
 
@@ -532,6 +695,7 @@ function GachaService.MoneyMulti(player)
 		* RebirthConfig.MoneyMulti(player:GetAttribute("RebirthLevel"))
 		* require(script.Parent.BoostService).Multiplier(player, "Money")
 		* require(script.Parent.WeatherService).Multipliers().Money
+		* (PassService.Owns(player, "money_2x") and 2 or 1)
 end
 
 function GachaService.Luck(player)
@@ -639,6 +803,8 @@ function GachaService.Snapshot(player)
 		Equipped = team[1],
 		Rolls = cleanCount(player:GetAttribute("Rolls")),
 		StatAlloc = alloc(player),
+		AutoSell = player:GetAttribute("AutoSell") == true,
+		AutoSellChance = BagConfig.CleanChance(player:GetAttribute("AutoSellChance")),
 	}
 end
 
@@ -710,6 +876,8 @@ function GachaService.Apply(player, saved)
 	end
 	player:SetAttribute("Showcase", table.concat(showcase, ","))
 	player:SetAttribute("Rolls", cleanCount(saved.Rolls))
+	player:SetAttribute("AutoSellChance", BagConfig.CleanChance(saved.AutoSellChance))
+	player:SetAttribute("AutoSell", saved.AutoSell == true and BagConfig.CleanChance(saved.AutoSellChance) ~= nil)
 
 	local a = {}
 	local savedAlloc = type(saved.StatAlloc) == "table" and saved.StatAlloc or {}
@@ -733,13 +901,14 @@ function GachaService.Apply(player, saved)
 	end
 
 	refreshPoints(player)
+	GachaService.RefreshBag(player)
 end
 
--- Seconds between rolls for a player: UpgradeService.RollInterval (3 s, down to 2 s with Roll Speed tiers);
--- GachaConfig.ROLL_INTERVAL when no player is given.
+-- Seconds between rolls for a player: UpgradeService.RollInterval (3 s, down to 2 s with Roll Speed tiers), halved by
+-- 2x Auto-Roll (design doc 4.35); GachaConfig.ROLL_INTERVAL when no player is given.
 function GachaService.RollInterval(player)
 	if typeof(player) == "Instance" then
-		return UpgradeService.RollInterval(player)
+		return UpgradeService.RollInterval(player) / (PassService.Owns(player, "auto_roll_2x") and 2 or 1)
 	end
 	return GachaConfig.ROLL_INTERVAL
 end
@@ -772,9 +941,11 @@ function GachaService.StartAutoRoll(player, roller)
 				and player:GetAttribute("BossEvent") ~= true
 				and os.clock() >= (rollHoldUntil[player] or 0)
 			then
-				local id, _, _, emphasized = GachaService.Roll(player, roller)
-				handle.Rolls += 1
-				wait = GachaService.WaitAfter(id, emphasized, player)
+				local roll = GachaService.RollTick(player, roller)
+				if roll then -- nil: the bag is full (design doc 4.36); the loop keeps checking
+					handle.Rolls += 1
+					wait = GachaService.WaitAfter(roll.Id, roll.Emphasized, player)
+				end
 			end
 		end
 	end)
@@ -819,6 +990,28 @@ function GachaService.Start()
 	end
 	rollRemote = remote(remotes, "RollResult")
 	announceRemote = remote(remotes, "RollAnnounce")
+	extraRollsRemote = remote(remotes, "ExtraRolls")
+	remote(remotes, "SetAutoSell").OnServerEvent:Connect(function(player, on, chance)
+		if accept(player) then
+			GachaService.SetAutoSell(player, on, chance)
+		end
+	end)
+	local sellRemote = remotes:FindFirstChild("SellSpares") or Instance.new("RemoteFunction")
+	sellRemote.Name = "SellSpares"
+	sellRemote.Parent = remotes
+	sellRemote.OnServerInvoke = function(player, id)
+		if not accept(player) then
+			return false, "Please wait"
+		end
+		return GachaService.SellSpares(player, id)
+	end
+	-- Read-only: what the Details list shows (design doc 6). The numbers are the same ones a roll uses.
+	local luckRemote = remotes:FindFirstChild("GetRollLuck") or Instance.new("RemoteFunction")
+	luckRemote.Name = "GetRollLuck"
+	luckRemote.Parent = remotes
+	luckRemote.OnServerInvoke = function(player)
+		return GachaService.Luck(player), UpgradeService.Turbo(player).Multi
+	end
 	remote(remotes, "SetAutoRoll").OnServerEvent:Connect(GachaService.RequestSetAutoRoll)
 	remote(remotes, "EquipCar").OnServerEvent:Connect(function(player, id)
 		if accept(player) then

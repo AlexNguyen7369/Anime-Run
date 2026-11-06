@@ -10316,8 +10316,9 @@ end
 local UPG = {} -- upgrade tree test constants and helpers (one local: the chunk has a 200-local limit)
 -- design doc 4.13 (owner 2026-11-01): "Speed Gain" becomes "Speed", +10 % cruise per tier (placeholder); design doc
 -- 4.6 (owner 2026-11-03): the Stamina branch, +10 % stamina per tier, Weight 1 (placeholders)
-UPG.BRANCH_ORDER = { "money", "luck", "rollspeed", "turbo", "speed", "walkspeed", "stamina" }
-UPG.BRANCH_TIERS = { money = 5, luck = 5, rollspeed = 5, turbo = 4, speed = 5, walkspeed = 5, stamina = 5 }
+UPG.BRANCH_ORDER = { "money", "luck", "rollspeed", "turbo", "speed", "walkspeed", "stamina", "inventory" }
+UPG.BRANCH_TIERS =
+	{ money = 5, luck = 5, rollspeed = 5, turbo = 4, speed = 5, walkspeed = 5, stamina = 5, inventory = 5 }
 UPG.BRANCH_NAMES = {
 	money = "Money",
 	luck = "Luck",
@@ -10326,14 +10327,17 @@ UPG.BRANCH_NAMES = {
 	speed = "Speed",
 	walkspeed = "Walkspeed",
 	stamina = "Stamina",
+	inventory = "Inventory",
 }
-UPG.BRANCH_WEIGHTS = { money = 1, luck = 1.2, rollspeed = 1.5, turbo = 2, speed = 1, walkspeed = 0.5, stamina = 1 }
+UPG.BRANCH_WEIGHTS =
+	{ inventory = 1, money = 1, luck = 1.2, rollspeed = 1.5, turbo = 2, speed = 1, walkspeed = 0.5, stamina = 1 }
 UPG.BONUS = {
 	money = { 0.10, 0.10, 0.10, 0.10, 0.10 }, -- owner 2026-11-03: +10 % per Money tier (was +50 %)
 	luck = { 0.50, 0.50, 0.50, 0.50, 0.50 },
 	rollspeed = { 0.15, 0.15, 0.15, 0.15, 0.15 },
 	speed = { 0.10, 0.10, 0.10, 0.10, 0.10 },
 	stamina = { 0.10, 0.10, 0.10, 0.10, 0.10 },
+	inventory = { 50, 50, 50, 50, 50 }, -- bag spaces (design doc 4.36)
 }
 -- Owner 2026-10-27 (spec section 2, design doc "payout and price curves"): NiceRound(150 * Ratio(depth) ^ 1.5 * weight)
 -- with depth base prices 150, 4.7k, 97k, 3.1m, 63m, 2.0b, 41b (replaces 150 * 50 ^ (depth - 1) * weight)
@@ -10344,6 +10348,7 @@ UPG.PRICES = {
 	speed = { 150, 4700, 97000, 3100000, 63000000 },
 	walkspeed = { 75, 2400, 49000, 1500000, 32000000 },
 	stamina = { 150, 4700, 97000, 3100000, 63000000 }, -- Weight 1, like money and speed
+	inventory = { 4700, 97000, 3100000, 63000000, 2000000000 }, -- Weight 1, forks at depth 1
 	turbo = { 9500, 6200000, 4000000000, 82000000000 }, -- PriceDepth 2, 4, 6, 7
 }
 -- Owner, 2026-10-12 (docs/UPGRADE_TREE_SPEC.md section 4; replaces x10/15, x50/25, x100/40, x1000/100)
@@ -11263,7 +11268,7 @@ function Scenarios.upgrades()
 			and b.Weight == UPG.BRANCH_WEIGHTS[id]
 			and (UPG.BONUS[id] == nil or UPG.deepEqual(b.Bonus, UPG.BONUS[id]))
 			and (id ~= "turbo" or (UPG.deepEqual(b.Tiers, UPG.TURBO) and UPG.deepEqual(b.PriceDepth, { 2, 4, 6, 7 })))
-			and b.Parent == (id == "turbo" and "rollspeed_1" or "start")
+			and b.Parent == (id == "turbo" and "rollspeed_1" or id == "inventory" and "walkspeed_1" or "start")
 			and (id ~= "walkspeed" or UPG.deepEqual(b.WalkSpeed, UPG.WALKSPEED))
 		cfgOk = cfgOk and branchOk
 	end
@@ -12599,6 +12604,9 @@ do
 	Scenarios.assets_ip = env.assets_ip
 	Scenarios.tunnel_clear = env.tunnel_clear
 end
+Scenarios.passes = require(script.Parent.MonetizationTests).passes -- docs/MONETIZATION_SPEC.md
+Scenarios.odds = require(script.Parent.MonetizationTests).odds
+Scenarios.bag = require(script.Parent.MonetizationTests).bag -- docs/BAG_AND_AUTOSELL_SPEC.md
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)

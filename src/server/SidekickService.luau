@@ -50,6 +50,8 @@ local function publish(player)
 	player:SetAttribute("SidekickFreeUsed", current.SidekickFreeUsed)
 	player:SetAttribute("SidekickPity", current.SidekickPity)
 	player:SetAttribute("SidekickLegendaryPity", current.SidekickLegendaryPity)
+	player:SetAttribute("SidekickCost1", SidekickService.CostFor(player, 1))
+	player:SetAttribute("SidekickCost10", SidekickService.CostFor(player, 10))
 end
 
 local function addEntry(current, id)
@@ -164,9 +166,8 @@ end
 
 -- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry, Pity = true when guaranteed }, sold ones listed too) or false, reason.
 -- VIP pays 10% fewer Gems (design doc 4.36, owner 2026-11-05).
--- shortcut: always false here, because the pass check lives in PassService on the unmerged feature/alex/monetization; point this at it in that merge.
-function SidekickService.IsVip(_player)
-	return false
+function SidekickService.IsVip(player)
+	return require(script.Parent.PassService).Owns(player, "vip") == true
 end
 
 function SidekickService.CostFor(player, count)

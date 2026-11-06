@@ -1,5 +1,5 @@
 --!nonstrict
--- Robux developer-product receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md). Both grant potions only, through
+-- Robux developer-product receipts and redeem codes (docs/MONETIZATION_SPEC.md). Both grant potions only, through
 -- BoostService; neither ever touches Money. The offline-reward double (docs/OFFLINE_DOUBLE_SPEC.md) doubled offline
 -- Speed; there is no Speed stat since 2026-11-01 (design doc 4.13), so it never grants anything.
 -- Also the paid boss spawn (docs/BOSS_EVENT_SPEC.md "Paid spawn") and gem packs (docs/SIDEKICK_SPEC.md). Contract: Server/CarTest/BossPaidTests.

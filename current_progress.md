@@ -102,6 +102,12 @@
 99. 2026-11-04 — Alex Nguyen — Fast-forwarded feature/alex/anime-world to orch/run/universal (aaf4b80) in the main checkout so Rojo serves the universal run for Studio Play; not pushed to origin.
 100. 2026-11-04 — Alex Nguyen — Replaced the sensei Tracks panel's grid, detail pane and 3D previews with one list of clickable road-screenshot cards showing a brief anime definition, recommended speed and enemy name (b4c7cc8); not pushed to origin.
 101. 2026-11-05 — Alex Nguyen — Moved the Market's floating header down to match Index and the service row (design doc 4.24), committed to feature/alex/anime-world and main with no Studio test on the owner's word; not pushed to origin.
+102. 2026-11-04 — Alex Nguyen — Wrote the monetization rules and specs and built gamepass ownership, pass effects, the Details odds list, the character bag, auto sell and Sell spares on feature/alex/monetization, with nothing on sale and not yet run in Studio.
+103. 2026-11-04 — Alex Nguyen — Ran passes, odds, bag and 7 related scenarios in Studio with 0 failures, and created the 10 developer products off sale through Open Cloud; gamepasses were refused for a missing key scope.
+104. 2026-11-04 — Alex Nguyen — Created the 11 gamepasses off sale through Open Cloud and put their ids in MonetizationConfig.
+105. 2026-11-04 — Alex Nguyen — Built the Saitamo model, atlas and portrait locally with its evidence record, not uploaded, pending the owner's review and licensing decision.
+106. 2026-11-05 — Alex Nguyen — Recorded the owner's ruling, uploaded the Saitamo model, portrait and head, and drafted its spawn pedestal in Blender for review.
+107. 2026-11-05 — Alex Nguyen — Created the Boss Spawn and 4 gem pack developer products off sale for the boss event and recorded the owner's -10% VIP discount on Sidekick summons.
 
 ## What's next
 **Run the full server and UI harness and the rules audit for goal `boss-event` (deliverable b11).**

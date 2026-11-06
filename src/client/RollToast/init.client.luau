@@ -558,6 +558,28 @@ local autoButton = make("TextButton", {
 round(autoButton, UDim.new(0, 12))
 make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Thickness = 2, Color = CARD_BG }, autoButton)
 
+-- Beside AUTO: the auto sell filter (design doc 4.36) and every outcome's odds (design doc 6).
+local function viewButton(name, text, xOffset)
+	local b = make("TextButton", {
+		Name = name,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, xOffset, 1, -AUTO_BUTTON_BOTTOM),
+		Size = UDim2.fromOffset(130, AUTO_BUTTON_SIZE.Y),
+		BackgroundColor3 = Color3.fromRGB(104, 111, 135),
+		FontFace = BOLD,
+		Text = text,
+		TextSize = 18,
+		TextColor3 = WHITE,
+		AutoButtonColor = true,
+		ZIndex = 4,
+	}, showcase)
+	round(b, UDim.new(0, 12))
+	make("UIStroke", { ApplyStrokeMode = Enum.ApplyStrokeMode.Border, Thickness = 2, Color = CARD_BG }, b)
+	return b
+end
+local autoSellButton = viewButton("AutoSellButton", "AUTO SELL", -(AUTO_BUTTON_SIZE.X + 130) / 2 - 8)
+local detailsButton = viewButton("DetailsButton", "Details", (AUTO_BUTTON_SIZE.X + 130) / 2 + 8)
+
 -- Inset by the border's width: a UIStroke draws outside its frame, so a full-screen frame would draw it off screen.
 local takeover = make("Frame", {
 	Name = "Takeover",
@@ -913,9 +935,9 @@ local function revealText(b, roll, seconds)
 		b.Rarity.TextStrokeColor3 = spec.Rarity == "Secret" and rarityColor(spec) or BLACK
 		b.Rarity.TextStrokeTransparency = spec.Rarity == "Secret" and 0 or 0.4
 		b.NewBadge.Visible = roll.IsNew
-		-- A duplicate is kept as a copy for the workshop Showcase, never sold (owner 2026-10-22).
+		-- A duplicate is kept as a copy unless auto sell took it (design doc 4.36).
 		b.ScrapBadge.Visible = not roll.IsNew
-		b.ScrapBadge.Text = "+1 COPY"
+		b.ScrapBadge.Text = roll.ScrapMoney > 0 and ("SOLD +$" .. HudFormat.Short(roll.ScrapMoney)) or "+1 COPY"
 		b.Aliases.Speed.Text = "Cruise " .. HudFormat.RateText(RaceConfig.Cruise(spec))
 		b.Aliases.Rarity.Text = spec.Rarity
 		b.Aliases.Name.TextColor3 = b.CharacterName.TextColor3
@@ -1282,6 +1304,9 @@ refreshAutoButton()
 autoButton.Activated:Connect(function()
 	autoRollRemote:FireServer(not autoRollOn())
 end)
+local RollOptions = require(script.Parent:WaitForChild("RollOptions"))
+autoSellButton.Activated:Connect(RollOptions.OpenAutoSell)
+detailsButton.Activated:Connect(RollOptions.OpenDetails)
 
 -- Open on the press, not the release: the idle toast can hide between the two (it shows only while a roll plays)
 -- and a release on a hidden button never fires Activated.
@@ -1307,7 +1332,10 @@ backdrop.Activated:Connect(function()
 		takeover.Visible = false -- tap to skip the Secret takeover
 		return
 	end
-	if not over(card) and not over(autoButton) then
+	if RollOptions.IsOpen() then
+		return -- the press belongs to the popup above the view
+	end
+	if not over(card) and not over(autoButton) and not over(autoSellButton) and not over(detailsButton) then
 		closeEnlarged()
 	else
 		-- The player is using the view (e.g. pressed where the toast was just as an emphasized roll opened it):

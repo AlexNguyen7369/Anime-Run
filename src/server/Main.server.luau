@@ -153,6 +153,7 @@ require(script.Parent.SidekickService).Start() -- summons, bag and equip remotes
 require(script.Parent.RelicService).Start() -- the Relic equip remote (design doc 4.38)
 require(script.Parent.BossEventService).Init() -- the 30 minute boss event (design doc 4.37)
 QuestService.Start() -- UTC daily and weekly quest tracking (docs/QUESTS_SPEC.md)
-ShopService.Start() -- Robux potion receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md)
+require(script.Parent.PassService).Start() -- gamepass ownership and the paid random items policy
+ShopService.Start() -- Robux potion receipts and redeem codes (docs/MONETIZATION_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)
 LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)
