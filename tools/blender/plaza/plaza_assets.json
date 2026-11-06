@@ -78,6 +78,20 @@
   "Notes": "In-house render, tools/blender/plaza/index_icon.py, assets/ui/IndexIcon.png, decal 80265572611193",
   "Reviewed": "2026-11-03 rules-auditor"
  },
+ "AutoIcon": {
+  "Asset": 122355836258114,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIcon.png, decal 91116410833696"
+ },
+ "AutoIconOff": {
+  "Asset": 83629554083032,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIconOff.png, decal 81798273067588"
+ },
  "Lantern": {
   "Asset": "102986489315321",
   "Hash": "b9c58a665cc938b8",

@@ -94,7 +94,7 @@ local function stepThree(dt)
 	end
 	spot.Root.Enabled = true
 	closeAt = closeAt or os.clock() + STEP3_SECONDS
-	local slot = playerGui:FindFirstChild("HudChrome") and playerGui.HudChrome:FindFirstChild("ItemsSlot")
+	local slot = playerGui:FindFirstChild("HudChrome") and playerGui.HudChrome:FindFirstChild("Grid")
 	local tile = slot and slot:FindFirstChild("Items")
 	local target = tile and tile.Visible and tile or spot.Card
 	spot.Arrow.Visible = target == tile

@@ -186,6 +186,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
   +100% at rebirth 20, capped by `MAX_CRUISE`) and +1 stat point (the "stat boost"). The Rebirth panel shows all three
   rewards, with the speed icon on the speed tile. Luck and speed show the total after the next rebirth; the stat point
   tile shows the points that rebirth gives.
+- Stat points are spent in the Rebirth panel's STATS tab (owner 2026-11-05; 4.40).
 - Rebirth resets Money.
 - Player levels and XP are removed. Rebirth n+1 needs Money >= `BASE_MONEY` x `MONEY_GROWTH`^n: $100K for rebirth 1,
   x10 each after (placeholder; `RebirthConfig`). Old saves keep `Level` / `XP` unread. The rebirth XP multi is gone; the
@@ -328,8 +329,8 @@ before any Studio work.
   poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
 
 ### 4.27 Phone and tablet HUD (owner 2026-11-03)
-- Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Items / Upgrade pair may shrink on 4:3 tablets.
-- At viewport height 400 or less (`StackMaxHeight`) the Items / Upgrade pair stacks, and it hides while a panel is open. Desktop keeps it drawn.
+- Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Auto / Upgrade pair (4.40) may shrink on 4:3 tablets.
+- At viewport height 400 or less (`StackMaxHeight`) the Auto / Upgrade pair stacks, and it hides while a panel is open. Desktop keeps it drawn.
 - Backpack tabs may shrink on phones to fit the rail, as Market's do (minimum scale 0.1).
 - Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
 
@@ -373,10 +374,10 @@ before any Studio work.
 
 ### 4.31 Roll animation (owner 2026-11-04)
 - Every roll clearly shows the character actually rolled: its own portrait or model, with the same framing and light from the cycle through the landing. Detail and placeholder timings: `docs/ROLL_ANIMATION_SPEC.md`.
-- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule unchanged) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
+- Characters cycle in one fixed centre spot and slow down, instead of sliding through a reel. A normal roll plays as a larger bare figure at top centre; an emphasized roll (rule: 4.40) plays large in the screen centre with gradient odds, an outlined name and a rarity crystal, and no visible card.
 - Rolls show the character from the head to the upper torso, not the whole body (owner, same day), as its drawn portrait.
 - Every character gets a drawn digital portrait as part of being added to the game, stored with its assets and used for its roll, Index and Enemies page, Backpack, starter card and the enemy showdown banner, with a head-only cut for the Team minibar, whose head still breaks out of the circle per 4.3 (owner, same day; CHARACTER_GACHA_SPEC Digital art portrait).
-- Auto race becomes a toggle pill labelled "Auto", immediately left of Daily in the top-right row; the top-centre Auto Race button is gone (owner, same day).
+- Auto race is a toggle labelled "Auto"; the top-centre Auto Race button is gone (owner, same day). Its place and look are now in 4.40 (owner 2026-11-05), which replaces the top-right pill.
 - The normal roll plays at the very top centre of the screen. Quests moves from the top-right row to an icon button directly above Shop (owner, same day).
 - The animation fits the player's roll interval at every Roll Speed tier, so roll rate and upgrades do not change for non-emphasized Common to Epic. No new dependency; motion stays in `Client/UiMotion`.
 
@@ -469,6 +470,13 @@ before any Studio work.
 - Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
 - Server Luck stays unsold until it is built. Auto Restart and Bank Insurance were offered and declined.
 
+### 4.40 HUD entries and rarer big roll popup (owner 2026-11-05)
+- Stats has no HUD tile. It is a category of the Rebirth panel: the header has REBIRTH and STATS tabs. The Rebirth tile opens on REBIRTH. The free stat point badge shows on the Rebirth tile and on the STATS tab.
+- Items (Backpack) takes the Stats tile in the left grid: Index, Items, Rebirth.
+- A new Auto button takes the bottom slot Items left, beside Upgrade. Its icon is the owner's green play triangle inside two circling arrows, label "Auto". The top-right row is Daily, Market, Settings.
+- Auto state: grey icon while off and during the 1 s press lock, full green with a pulsing ring while auto race is on (owner's choice). It only asks: the server decides (`Remotes.SetAutoRace`).
+- A roll gets the big popup (emphasized view and server announcement, `GachaConfig.IsEmphasized`) only when the character is undiscovered and at least 100 times rarer (`EMPHASIS_MULTI`) than the player's 3rd-rarest discovered character (`EMPHASIS_RANK`). With fewer than 3 discovered, the bar is 100 times the starter, which counts as 1 in 1: 1 in 100. The first 3 discoveries no longer pop up automatically. This replaces the earlier rule of "rarer than the 5th-rarest; any new character below 5 discovered".
+
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
 - A full bag stops rolling until there is space. Only rolling is blocked: passes, daily rewards, codes and gifts still land. A save already over the cap keeps everything and cannot roll until it is below the cap.
@@ -543,6 +551,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-04: owner: Pochito smooth and closer to source, Kaizel thin with neon blue, Igriz stays red (4.36, overrides section 5's target look for these models); Big Raga's wheel sits on top of its 560-stud height; arena radius 850 kept; event camera turns inward (BOSS_EVENT_SPEC).
 - 2026-11-05: owner: upload the Saitamo likeness with no license, takedown risk accepted (4.39).
 - 2026-11-04: owner: first gamepass list, exclusive runner Saitamo with a spawn pedestal, Workshop tier passes removed (4.13, 4.24, 4.39, MONETIZATION_SPEC). Character bag, auto sell, upgrade tree Inventory branch; sold duplicates pay Money (3, 4.41, BAG_AND_AUTOSELL_SPEC). "Details" odds list (6).
+- 2026-11-05: owner: Stats moves into the Rebirth panel as a tab, Items takes its tile, a new Auto button takes the Items slot and replaces the top-right pill; big roll popup needs 100x the 3rd-rarest discovered, or 1 in 100 before 3 discovered (4.40).
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).
 - 2026-11-04: owner: villains are rollable and redesigned to the player cast's rules (4.32).

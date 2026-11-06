@@ -221,7 +221,7 @@ function Extras.Build(h)
 	function scenarios.ui_rebirth(res)
 		local restore = h.setPanels({ RB.Panel })
 		local title = h.find(RB.Title)
-		local titleText = title and title:IsA("TextLabel") and title.Text or "missing"
+		local titleText = title and title:IsA("TextButton") and title.Text or "missing"
 		h.check(res, "rebirth_title", titleText, RB.TitleText, titleText == RB.TitleText)
 
 		local panel = h.find(RB.Panel)

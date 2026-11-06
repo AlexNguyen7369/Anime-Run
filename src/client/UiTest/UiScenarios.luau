@@ -1264,7 +1264,7 @@ simRect = function(obj, ctx)
 					missing = true
 				end
 			end
-			-- The column's right edge includes its visible descendants (the STATS PointsBadge), as the game reads
+			-- The column's right edge includes its visible descendants (the Rebirth PointsBadge), as the game reads
 			-- it: each GuiObject descendant whose own Visible is true (UiResponsive.ColumnRight).
 			if dependencies.Navigation then
 				local parts = {}
@@ -1749,7 +1749,7 @@ local function allText(obj)
 		return ""
 	end
 	local list = {}
-	-- The Stats tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
+	-- The Rebirth tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
 	local badge = findPath(UiSpec.Hud.PointsBadge)
 	for _, o in { obj, table.unpack(obj:GetDescendants()) } do
 		local inBadge = o.Name == "PointsBadge" or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
@@ -2674,19 +2674,16 @@ local function distToRect(x, y, r)
 	return math.sqrt(dx * dx + dy * dy)
 end
 
--- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": green while AutoRacing, Daily's dark pill colour while off. Nil when right.
+-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": green icon and ring while AutoRacing, grey icon and no ring while off. Nil when right.
 function K.autoTintProblem(toggle)
-	if not toggle then
-		return "no " .. UiSpec.Hud.Auto
+	local icon, glow = toggle and toggle:FindFirstChild("Icon"), toggle and toggle:FindFirstChild("Glow")
+	if not (icon and glow) then
+		return "no icon and glow on " .. UiSpec.Hud.Auto
 	end
-	local c = toggle.BackgroundColor3
-	local green = c.G >= 0.4 and c.G > 1.25 * c.R and c.G > 1.25 * c.B
-	if attr("AutoRacing") == true then
-		return not green and ("%s not green while AutoRacing"):format(tostring(c)) or nil
-	end
-	local daily = findPath(UiSpec.Hud.Daily)
-	if green or not (daily and sameColour(c, daily.BackgroundColor3)) then
-		return ("%s not Daily's pill colour while off"):format(tostring(c))
+	local on = attr("AutoRacing") == true
+	local want = on and UiSpec.Hud.AutoImageOn or UiSpec.Hud.AutoImageOff
+	if icon.Image ~= want or glow.Visible ~= on then
+		return ("icon %s glow %s while AutoRacing %s"):format(icon.Image, tostring(glow.Visible), tostring(on))
 	end
 	return nil
 end
@@ -4216,28 +4213,7 @@ function S.ui_layout(res)
 					check(res, "settings_top_right_" .. vpSpec.Name, "missing", "present", false)
 				end
 				-- retired: speed_group_centred_* (no Speed read-out, design doc 4.13, owner 2026-11-01)
-				-- The Auto pill: immediately left of Daily, at its height, and the whole row on screen at every size
-				local autoPill, dailyPill = findPath(UiSpec.Hud.Auto), findPath(UiSpec.Hud.Daily)
-				if autoPill and dailyPill then
-					local ar, dr = rectOf(autoPill), rectOf(dailyPill)
-					local gapToDaily = dr.x - (ar.x + ar.w)
-					check(
-						res,
-						"auto_left_of_daily_" .. vpSpec.Name,
-						gapToDaily,
-						("0..%g"):format(UiSpec.Hud.AutoMaxGap),
-						gapToDaily >= -TOL and gapToDaily <= UiSpec.Hud.AutoMaxGap + TOL
-					)
-					check(
-						res,
-						"auto_at_daily_height_" .. vpSpec.Name,
-						rstr(ar),
-						"y and h of " .. rstr(dr),
-						math.abs(ar.y - dr.y) <= TOL and math.abs(ar.h - dr.h) <= TOL
-					)
-				else
-					check(res, "auto_left_of_daily_" .. vpSpec.Name, "missing", "present", false)
-				end
+				-- retired: auto_left_of_daily_*, auto_at_daily_height_* (Auto left the row, design doc 4.40)
 				local offRow = {}
 				for _, path in UiSpec.Hud.TopRow do
 					local pill = findPath(path)
@@ -4420,7 +4396,7 @@ function S.ui_layout(res)
 							"<= " .. maxBottom,
 							r.y + r.h <= maxBottom + TOL
 						)
-						-- the grid includes what sticks out of it (the STATS PointsBadge): every GuiObject descendant
+						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
 						-- with Visible = true, as PanelBand.Rect reads it
 						local parts = {}
 						for _, d in nav:GetDescendants() do
@@ -5380,7 +5356,7 @@ end
 
 function S.ui_stats(res)
 	waitGuis()
-	local open = findPath(UiSpec.Hud.NavButtons[2])
+	local open = findPath(UiSpec.Hud.StatsTab)
 	local panel = findPath("RacerStats/Panel")
 	check(
 		res,

@@ -614,10 +614,10 @@ local function layout()
 		top = PHONE_TOP
 	end
 	local chrome = playerGui:FindFirstChild("HudChrome")
-	local items = chrome and chrome:FindFirstChild("ItemsSlot")
-	if items and items.Visible then
-		-- Where Items and Upgrade stack above the bars, they stay reachable under the band's bottom.
-		bottom = math.min(bottom, items.AbsolutePosition.Y + GuiService:GetGuiInset().Y - 6)
+	local pair = chrome and chrome:FindFirstChild("AutoSlot")
+	if pair and pair.Visible then
+		-- Where Auto and Upgrade stack above the bars, they stay reachable under the band's bottom.
+		bottom = math.min(bottom, pair.AbsolutePosition.Y + GuiService:GetGuiInset().Y - 6)
 	end
 	local row = chrome and chrome:FindFirstChild("TopRight")
 	local key = table.concat({ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1 }, ",")

@@ -28,7 +28,7 @@ HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.
 
 ## Views
 - **Normal roll (top centre, no card)**: bare figure, odds, name and the landing ring at the very top centre of the screen (`COMPACT_TOP` 8 px, placeholder; owner 2026-11-04), above the world view rather than over the player. If the top-right row would overlap it (small phones), it sits just under that row. Figure height 110 px (placeholder, owner 2026-11-04: smaller), capped at 30 % of screen height on small screens. It still hides while a panel is open (design doc 4.20 rulings stay), and a click still opens the enlarged view.
-- **Emphasized roll (screen centre)**: `GachaConfig.IsEmphasized`, unchanged. Dim and blur stay. No visible card body: large figure, gradient odds above it, outlined name below it, a rarity-coloured crystal shape behind it, smaller rarity and cruise text, and NEW, +1 COPY and TURBO badges. "Tap anywhere to close" and the AUTO toggle stay.
+- **Emphasized roll (screen centre)**: `GachaConfig.IsEmphasized`, rule in design doc 4.40 (owner 2026-11-05). Dim and blur stay. No visible card body: large figure, gradient odds above it, outlined name below it, a rarity-coloured crystal shape behind it, smaller rarity and cruise text, and NEW, +1 COPY and TURBO badges. "Tap anywhere to close" and the AUTO toggle stay.
 - The odds gradient colours come from the rarity; Secret and Mythic use a slowly moving multi-colour gradient. The crystal is built from our own rotated frames and gradients, with no uploaded or copied art.
 - Secret takeover stays, and tap to skip stays. Its dark screen and title last about 1 s (placeholder), then clear so the figure shows for the rest of the hold; the rainbow border stays.
 
@@ -40,10 +40,10 @@ HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.
 - Every tween goes through `Client/UiMotion` (design doc 4.20). No new dependency. Twinkle and Xocoatl are not used in game (owner 2026-11-04).
 - The references (owner's images of other games) guide layout only; no art, names or look from them are copied (design doc 5).
 
-## Auto toggle (owner 2026-11-04)
-- The top-centre Auto Race button moves to the top-right row as a pill immediately left of Daily, with the same pill shape and height, labelled "Auto". `HudChrome/TopRight/Auto`.
-- It is a toggle: green while auto race is on, the dark pill colour while off, greyed for the 1 s pending lock. The label stays "Auto" in every state. It only asks: the server decides (`Remotes.SetAutoRace`), and its state follows the `AutoRacing` attribute.
+## Auto toggle (owner 2026-11-04, moved 2026-11-05)
+- Auto is an icon tile in the bottom pair, beside Upgrade, labelled "Auto". `HudChrome/AutoSlot/Auto`. The top-right pill and the top-centre button are gone (design doc 4.40).
+- It is a toggle: full green icon with a pulsing ring while auto race is on, grey icon while off and during the 1 s pending lock. The label stays "Auto" in every state. It only asks: the server decides (`Remotes.SetAutoRace`), and its state follows the `AutoRacing` attribute.
 - The old `RacerHud/Race` stays hidden as the layout anchor that `PanelBand` reads, so panel bands do not move.
 
 ## Quests button (owner 2026-11-04)
-- Quests leaves the top-right row and becomes an icon button directly above Shop (`HudChrome/ShopColumn/Quests`), same tile as Shop, opening the same panel. The top-right row is Auto, Daily, Market, Settings.
+- Quests leaves the top-right row and becomes an icon button directly above Shop (`HudChrome/ShopColumn/Quests`), same tile as Shop, opening the same panel. The top-right row is Daily, Market, Settings (design doc 4.40).
