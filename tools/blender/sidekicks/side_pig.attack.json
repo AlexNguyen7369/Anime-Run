@@ -1,0 +1,88 @@
+{
+	"movement": "Walk",
+	"title": "Hawke: belly charge (proposed)",
+	"end": 1.3,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Squats back on its hind legs, head down, ears pinned",
+			"root": {
+				"Body": [0, 0.2, 0]
+			},
+			"parts": {
+				"Body": [-24, 0, 0],
+				"Head": [34, 0, 0],
+				"HeadEarLeft": [40, -25, 0],
+				"HeadEarRight": [40, 25, 0],
+				"LegFrontLeft": [0, 0, 0],
+				"LegFrontRight": [0, 0, 0],
+				"LegBackLeft": [46, 0, 0],
+				"LegBackRight": [46, 0, 0],
+				"Tail": [25, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.55,
+			"desc": "Belly thrust out first, legs flung, ears streaming: impact",
+			"root": {
+				"Body": [0, -0.25, 0]
+			},
+			"parts": {
+				"Body": [-22, 0, 0],
+				"Head": [-14, 0, 0],
+				"HeadEarLeft": [70, -30, 0],
+				"HeadEarRight": [70, 30, 0],
+				"LegFrontLeft": [-40, -18, 0],
+				"LegFrontRight": [-40, 18, 0],
+				"LegBackLeft": [44, -10, 0],
+				"LegBackRight": [44, 10, 0],
+				"Tail": [55, 0, 0]
+			},
+			"markers": [
+				{
+					"label": "belly impact",
+					"shape": "burst",
+					"at": [0, -3.2, 1.2],
+					"r": 0.9,
+					"rgb": [1, 0.8, 0.1]
+				}
+			]
+		},
+		{
+			"name": "Bounce back",
+			"t": 0.8,
+			"desc": "Rebounds off the belly, nose-down, rear kicking up",
+			"root": {
+				"Body": [0, 0.25, 0]
+			},
+			"parts": {
+				"Body": [18, 0, 0],
+				"Head": [8, 0, 0],
+				"HeadEarLeft": [-35, -20, 0],
+				"HeadEarRight": [-35, 20, 0],
+				"LegFrontLeft": [-34, 0, 0],
+				"LegFrontRight": [-34, 0, 0],
+				"LegBackLeft": [20, 0, 0],
+				"LegBackRight": [20, 0, 0],
+				"Tail": [-30, 0, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.05,
+			"desc": "Settles level, little head shake",
+			"parts": {
+				"Body": [-4, 0, 0],
+				"Head": [4, 10, 8],
+				"LegFrontLeft": [4, 0, 0],
+				"LegFrontRight": [4, 0, 0],
+				"LegBackLeft": [4, 0, 0],
+				"LegBackRight": [4, 0, 0],
+				"HeadEarLeft": [14, 0, 0],
+				"HeadEarRight": [14, 0, 0]
+			}
+		}
+	]
+}

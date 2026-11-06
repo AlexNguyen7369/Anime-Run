@@ -1,0 +1,344 @@
+{
+ "id": "side_pig",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.2,
+   1.5
+  ],
+  "Head": [
+   0.0,
+   -0.6,
+   1.8
+  ],
+  "HeadEarLeft": [
+   0.5,
+   -0.85,
+   2.42
+  ],
+  "HeadEarRight": [
+   -0.5,
+   -0.85,
+   2.42
+  ],
+  "LegBackLeft": [
+   0.72,
+   1.02,
+   0.9
+  ],
+  "LegBackRight": [
+   -0.72,
+   1.02,
+   0.9
+  ],
+  "LegFrontLeft": [
+   0.68,
+   -0.6,
+   0.9
+  ],
+  "LegFrontRight": [
+   -0.68,
+   -0.6,
+   0.9
+  ],
+  "Tail": [
+   0.0,
+   1.86,
+   1.95
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadEarLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadEarRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Hawke: belly charge (proposed)",
+   "end": 1.3,
+   "Release": 0.55,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.3,
+     "desc": "Squats back on its hind legs, head down, ears pinned",
+     "root_offset": {
+      "Body": [
+       0,
+       0.2,
+       0.328
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -24,
+       0,
+       0
+      ],
+      "Head": [
+       34,
+       0,
+       0
+      ],
+      "HeadEarLeft": [
+       40,
+       -25,
+       0
+      ],
+      "HeadEarRight": [
+       40,
+       25,
+       0
+      ],
+      "LegBackLeft": [
+       46,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       46,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       0,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       0,
+       0,
+       0
+      ],
+      "Tail": [
+       25,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.55,
+     "desc": "Belly thrust out first, legs flung, ears streaming: impact",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.25,
+       0.31
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -22,
+       0,
+       0
+      ],
+      "Head": [
+       -14,
+       0,
+       0
+      ],
+      "HeadEarLeft": [
+       70,
+       -30,
+       0
+      ],
+      "HeadEarRight": [
+       70,
+       30,
+       0
+      ],
+      "LegBackLeft": [
+       44,
+       -10,
+       0
+      ],
+      "LegBackRight": [
+       44,
+       10,
+       0
+      ],
+      "LegFrontLeft": [
+       -40,
+       -18,
+       0
+      ],
+      "LegFrontRight": [
+       -40,
+       18,
+       0
+      ],
+      "Tail": [
+       55,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Bounce back",
+     "t": 0.8,
+     "desc": "Rebounds off the belly, nose-down, rear kicking up",
+     "root_offset": {
+      "Body": [
+       0,
+       0.25,
+       0.252
+      ]
+     },
+     "rotations": {
+      "Body": [
+       18,
+       0,
+       0
+      ],
+      "Head": [
+       8,
+       0,
+       0
+      ],
+      "HeadEarLeft": [
+       -35,
+       -20,
+       0
+      ],
+      "HeadEarRight": [
+       -35,
+       20,
+       0
+      ],
+      "LegBackLeft": [
+       20,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       20,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -34,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       -34,
+       0,
+       0
+      ],
+      "Tail": [
+       -30,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.05,
+     "desc": "Settles level, little head shake",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.056
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -4,
+       0,
+       0
+      ],
+      "Head": [
+       4,
+       10,
+       8
+      ],
+      "HeadEarLeft": [
+       14,
+       0,
+       0
+      ],
+      "HeadEarRight": [
+       14,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       4,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       4,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       4,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       4,
+       0,
+       0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

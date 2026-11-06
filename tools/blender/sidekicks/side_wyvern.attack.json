@@ -1,0 +1,84 @@
+{
+	"movement": "Fly",
+	"title": "Kaizel: rears back and breathes a flame burst (proposed)",
+	"end": 1.4,
+	"keys": [
+		{
+			"name": "Rear back",
+			"t": 0.45,
+			"desc": "Chest up, neck thrown back, wings high and swept back",
+			"root": {
+				"Body": [0, 0.3, 0.25]
+			},
+			"parts": {
+				"Body": [-28, 0, 0],
+				"Neck": [-30, 0, 0],
+				"Head": [-10, 0, 0],
+				"WingLeft": [0, -38, 28],
+				"WingRight": [0, 38, -28],
+				"Tail": [18, 0, 0],
+				"LegLeft": [20, 0, 0],
+				"LegRight": [20, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.75,
+			"desc": "Neck strikes forward, wings slam down, flame bursts",
+			"root": {
+				"Body": [0, -0.25, -0.15]
+			},
+			"parts": {
+				"Body": [12, 0, 0],
+				"Neck": [40, 0, 0],
+				"Head": [-30, 0, 0],
+				"WingLeft": [0, 42, -6],
+				"WingRight": [0, -42, 6],
+				"Tail": [-20, 0, 0],
+				"LegLeft": [-30, 0, 0],
+				"LegRight": [-30, 0, 0]
+			},
+			"markers": [
+				{
+					"label": "flame burst",
+					"shape": "cone",
+					"on": "Head",
+					"at": [0, -1.5, -0.1],
+					"r": 1.25,
+					"rgb": [1, 0.42, 0.05],
+					"spin": 190
+				}
+			]
+		},
+		{
+			"name": "Hold",
+			"t": 1.0,
+			"desc": "Still breathing: neck low, wings rising from the beat",
+			"root": {
+				"Body": [0, -0.1, 0]
+			},
+			"parts": {
+				"Body": [6, 0, 0],
+				"Neck": [30, 0, 0],
+				"Head": [-20, 0, 0],
+				"WingLeft": [0, -4, -6],
+				"WingRight": [0, 4, 6],
+				"Tail": [-10, 0, 0],
+				"LegLeft": [-12, 0, 0],
+				"LegRight": [-12, 0, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.2,
+			"desc": "Head lifts, wings open wide to steady the hover",
+			"parts": {
+				"Body": [-4, 0, 0],
+				"Neck": [-6, 0, 0],
+				"Head": [-4, 0, 0],
+				"WingLeft": [0, -20, 8],
+				"WingRight": [0, 20, -8]
+			}
+		}
+	]
+}

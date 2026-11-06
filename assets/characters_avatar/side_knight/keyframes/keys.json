@@ -1,0 +1,284 @@
+{
+ "id": "side_knight",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Head": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "LeftArm": [
+   1.52,
+   0.0,
+   3.9
+  ],
+  "LeftLeg": [
+   0.52,
+   0.0,
+   2.0
+  ],
+  "RightArm": [
+   -1.52,
+   0.0,
+   3.9
+  ],
+  "RightLeg": [
+   -0.52,
+   0.0,
+   2.0
+  ],
+  "Sword": [
+   -1.52,
+   0.0,
+   1.94
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.0
+  ]
+ },
+ "rest": {
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Sword": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Igriz: sword swing launches a crimson slash wave (proposed)",
+   "end": 1.4,
+   "Release": 0.6,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.3,
+     "desc": "Turns away, sword drawn back behind the head",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.056
+      ]
+     },
+     "rotations": {
+      "Head": [
+       0,
+       0,
+       22
+      ],
+      "LeftArm": [
+       -55,
+       -30,
+       0
+      ],
+      "LeftLeg": [
+       -22,
+       -8,
+       0
+      ],
+      "RightArm": [
+       -165,
+       25,
+       0
+      ],
+      "RightLeg": [
+       24,
+       8,
+       0
+      ],
+      "Sword": [
+       125,
+       0,
+       0
+      ],
+      "Torso": [
+       -8,
+       8,
+       -32
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.6,
+     "desc": "Full-body diagonal cut, blade straight out, wave launches",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.5,
+       -0.055
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -14,
+       0,
+       -20
+      ],
+      "LeftArm": [
+       40,
+       -40,
+       0
+      ],
+      "LeftLeg": [
+       -46,
+       -10,
+       0
+      ],
+      "RightArm": [
+       -80,
+       -18,
+       -30
+      ],
+      "RightLeg": [
+       36,
+       8,
+       0
+      ],
+      "Sword": [
+       170,
+       0,
+       0
+      ],
+      "Torso": [
+       18,
+       -6,
+       32
+      ]
+     }
+    },
+    {
+     "name": "Follow-through",
+     "t": 0.85,
+     "desc": "Blade carries low across the body, weight on the front leg",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.35,
+       -0.028
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -16,
+       0,
+       -30
+      ],
+      "LeftArm": [
+       52,
+       -48,
+       0
+      ],
+      "LeftLeg": [
+       -46,
+       -10,
+       0
+      ],
+      "RightArm": [
+       -62,
+       -38,
+       -10
+      ],
+      "RightLeg": [
+       30,
+       8,
+       0
+      ],
+      "Sword": [
+       135,
+       0,
+       0
+      ],
+      "Torso": [
+       22,
+       -4,
+       48
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.15,
+     "desc": "Straightens, sword held out low at the side",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.123
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -2,
+       0,
+       -6
+      ],
+      "LeftArm": [
+       -8,
+       -12,
+       0
+      ],
+      "LeftLeg": [
+       -12,
+       0,
+       0
+      ],
+      "RightArm": [
+       -20,
+       26,
+       0
+      ],
+      "RightLeg": [
+       10,
+       0,
+       0
+      ],
+      "Sword": [
+       60,
+       0,
+       0
+      ],
+      "Torso": [
+       4,
+       0,
+       8
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

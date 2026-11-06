@@ -1,0 +1,314 @@
+{
+ "id": "side_chain",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Bar": [
+   0.0,
+   -0.95,
+   1.9
+  ],
+  "Body": [
+   0.0,
+   0.0,
+   1.3
+  ],
+  "Handle": [
+   0.0,
+   0.4,
+   2.4
+  ],
+  "LegBackL": [
+   0.56,
+   0.72,
+   0.62
+  ],
+  "LegBackR": [
+   -0.56,
+   0.72,
+   0.62
+  ],
+  "LegFrontL": [
+   0.56,
+   -0.62,
+   0.62
+  ],
+  "LegFrontR": [
+   -0.56,
+   -0.62,
+   0.62
+  ],
+  "Tail": [
+   0.0,
+   1.42,
+   1.4
+  ]
+ },
+ "rest": {
+  "Bar": [
+   0.0,
+   0.0,
+   32.0
+  ],
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Handle": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackL": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackR": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontL": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontR": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Pochito: revs its head saw and hurls a spinning blade (proposed)",
+   "end": 1.35,
+   "Release": 0.7,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.25,
+     "desc": "Sits back on its haunches, saw tips back",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.154
+      ]
+     },
+     "rotations": {
+      "Bar": [
+       -20,
+       0,
+       44
+      ],
+      "Body": [
+       -14,
+       0,
+       -10
+      ],
+      "Handle": [
+       -8,
+       0,
+       0
+      ],
+      "LegBackL": [
+       14,
+       0,
+       0
+      ],
+      "LegBackR": [
+       14,
+       0,
+       0
+      ],
+      "LegFrontL": [
+       14,
+       0,
+       0
+      ],
+      "LegFrontR": [
+       14,
+       0,
+       0
+      ],
+      "Tail": [
+       18,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Rev",
+     "t": 0.5,
+     "desc": "Coiled deepest, saw cocked far back, cord pulled, tail stiff",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.278
+      ]
+     },
+     "rotations": {
+      "Bar": [
+       -62,
+       0,
+       72
+      ],
+      "Body": [
+       -32,
+       0,
+       -22
+      ],
+      "Handle": [
+       -40,
+       0,
+       0
+      ],
+      "LegBackL": [
+       32,
+       0,
+       0
+      ],
+      "LegBackR": [
+       32,
+       0,
+       0
+      ],
+      "LegFrontL": [
+       10,
+       0,
+       0
+      ],
+      "LegFrontR": [
+       46,
+       0,
+       0
+      ],
+      "Tail": [
+       55,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.7,
+     "desc": "Whole body whips nose-down, saw snaps forward, blade flies",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.3,
+       0.181
+      ]
+     },
+     "rotations": {
+      "Bar": [
+       48,
+       0,
+       12
+      ],
+      "Body": [
+       24,
+       0,
+       14
+      ],
+      "Handle": [
+       25,
+       0,
+       0
+      ],
+      "LegBackL": [
+       10,
+       0,
+       0
+      ],
+      "LegBackR": [
+       20,
+       0,
+       0
+      ],
+      "LegFrontL": [
+       -58,
+       0,
+       0
+      ],
+      "LegFrontR": [
+       -30,
+       0,
+       0
+      ],
+      "Tail": [
+       -25,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.0,
+     "desc": "Rocks back up, saw lifts, tail settling",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.072
+      ]
+     },
+     "rotations": {
+      "Bar": [
+       8,
+       0,
+       32
+      ],
+      "Body": [
+       -6,
+       0,
+       4
+      ],
+      "Handle": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegBackL": [
+       6,
+       0,
+       0
+      ],
+      "LegBackR": [
+       6,
+       0,
+       0
+      ],
+      "LegFrontL": [
+       6,
+       0,
+       0
+      ],
+      "LegFrontR": [
+       6,
+       0,
+       0
+      ],
+      "Tail": [
+       14,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
