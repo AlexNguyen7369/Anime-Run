@@ -1702,7 +1702,7 @@ function Tests.make(deps)
 				local moves, current = {}, nil
 				for k = 0, math.floor((SPAN_END - FIGHT) / SCAN) do
 					local t = FIGHT + k * SCAN
-					local name = Poses.Schedule(0, t)
+					local name = Poses.Schedule(PREP, t) -- t is on the event clock, where the spawn is at PREP
 					if current and current.Move ~= name then
 						current.End = t
 						current = nil

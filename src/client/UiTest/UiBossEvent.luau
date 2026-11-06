@@ -1084,9 +1084,12 @@ function Module.Build(h)
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + wait + 5 } })
 		)
+		-- The cell always exists, hidden; it must show and take its place in the row before a hit test can find it.
 		waitIs(function()
-			return named(BAR, "Status_Shouted") ~= nil
+			local cell = named(BAR, "Status_Shouted")
+			return cell ~= nil and h.visible(cell)
 		end, true)
+		task.wait(0.1)
 		local playerGui = h.player:WaitForChild("PlayerGui")
 		for name, target in { bar = h.find(BAR), status = named(BAR, "Status_Shouted"), leave = h.find(LEAVE) } do
 			local firstTarget, firstDim

@@ -526,7 +526,12 @@ function Module.Build(h)
 			return
 		end
 		for _, word in { "On", "Off" } do
-			remote:InvokeServer(rarities[1], word == "On")
+			-- The second toggle lands inside the server's remote cooldown ("Please wait"), so it asks until accepted.
+			local refused = waitFor(function()
+				local done, why = remote:InvokeServer(rarities[1], word == "On")
+				return done ~= true and tostring(why) or nil
+			end)
+			check(res, "sidekick_autosell_accepted_" .. word, refused or "accepted", "accepted")
 			local problem = waitFor(function()
 				return toggleText(rarities[1]) ~= word and toggleText(rarities[1]) or nil
 			end)
@@ -600,7 +605,12 @@ function Module.Build(h)
 				table.insert(outside, h.pathOf(part))
 			end
 			for j = i + 1, #parts do
-				if not part:IsAncestorOf(parts[j]) and crossing(r, h.rect(parts[j])) then
+				-- A part inside another (Details in the Banner's poster) is meant to cross it, whichever is listed first.
+				if
+					not part:IsAncestorOf(parts[j])
+					and not parts[j]:IsAncestorOf(part)
+					and crossing(r, h.rect(parts[j]))
+				then
 					table.insert(overlaps, part.Name .. " x " .. parts[j].Name)
 				end
 			end
