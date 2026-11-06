@@ -9,7 +9,7 @@ BossEventConfig.IntervalSeconds = 1800
 BossEventConfig.PrepSeconds = 60
 BossEventConfig.JoinSeconds = 180 -- teleporting closes and HP locks
 BossEventConfig.TotalSeconds = 480
-BossEventConfig.RefillWaitSeconds = 5
+BossEventConfig.RefillWaitSeconds = 8.5 -- owner 2026-11-06
 BossEventConfig.ChatMessage = "BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS"
 BossEventConfig.InviteSeconds = 3 -- owner: then teleporting stays open from the Boss button
 

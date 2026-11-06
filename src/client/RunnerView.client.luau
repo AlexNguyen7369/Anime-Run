@@ -30,7 +30,6 @@ local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
-local routes = {} -- RunRoutes folder name -> { Wps, Arc, Closed }
 
 local EFFECTS = { "ParticleEmitter", "Trail", "Beam", "BillboardGui" }
 local function isEffect(d)
@@ -49,35 +48,6 @@ local function hide(d)
 	elseif isEffect(d) then
 		d.Enabled = false
 	end
-end
-
--- The route's waypoints once every one has replicated, else nil.
-local function routeOf(name)
-	if type(name) ~= "string" then
-		return nil
-	end
-	local cached = routes[name]
-	if cached then
-		return cached
-	end
-	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
-	local folder = root and root:FindFirstChild(name)
-	local count = folder and folder:GetAttribute("Count")
-	if not (folder and type(count) == "number" and #folder:GetChildren() >= count and count >= 2) then
-		return nil
-	end
-	local wps = table.create(count)
-	for i = 1, count do
-		local v = folder:FindFirstChild(tostring(i))
-		if not v then
-			return nil
-		end
-		wps[i] = v.Value
-	end
-	-- Closed: a lap route (design doc 4.37). The folder attribute is set by whoever publishes the route.
-	cached = { Wps = wps, Arc = PathDriver.Arc(wps), Closed = folder:GetAttribute("Closed") == true }
-	routes[name] = cached
-	return cached
 end
 
 -- (Re)builds the drawn copy from the server rig (its look, aura and trail), keeping the run state.
@@ -185,7 +155,7 @@ local function step(view, now)
 	local dt = math.max(0, now - (view.At or now))
 	view.At = now
 	local rd, rs = rig:GetAttribute("RunDistance"), rig:GetAttribute("RunSpeed")
-	local route = routeOf(rig:GetAttribute("RunRoute"))
+	local route = RunnerVisual.RouteOf(rig:GetAttribute("RunRoute"))
 	if not (route and type(rd) == "number" and type(rs) == "number") then
 		-- not running (a held duel start): show it where the server holds it
 		view.Dist = nil

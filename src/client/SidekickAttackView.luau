@@ -15,6 +15,8 @@ local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local Attacks = require(Shared:WaitForChild("SidekickAttacks"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
+local StaminaConfig = require(Shared:WaitForChild("StaminaConfig"))
+local BossTeamRig = require(script.Parent:WaitForChild("BossTeamRig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local LEAD = 0.12 -- s from the batch to the first shot; a wind-up longer than this is entered part way
@@ -766,6 +768,22 @@ local function merged(entries)
 	return list
 end
 
+-- The follower wearing this hit's Sidekick: in a line run the line takes turns (BOSS_EVENT_SPEC "Run rules"), and a follower past
+-- the budget falls back to the front's.
+local function shooter(hit)
+	local front = followers[hit.UserId]
+	if front and front.Id == hit.SidekickId then
+		return front
+	end
+	for slot = 2, StaminaConfig.TEAM_SIZE do
+		local behind = followers[BossTeamRig.Owner(hit.UserId, slot)]
+		if behind and behind.Id == hit.SidekickId then
+			return behind
+		end
+	end
+	return front
+end
+
 local function onHits(entries)
 	if type(entries) ~= "table" or not folder then
 		return
@@ -773,7 +791,7 @@ local function onHits(entries)
 	local reduced = UiMotion.Reduced()
 	for _, hit in merged(entries) do
 		local id = hit.SidekickId
-		local follower = followers[hit.UserId]
+		local follower = shooter(hit)
 		if follower then
 			local row = EFFECTS[id]
 			local simple = reduced or row.Plain

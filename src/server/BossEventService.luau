@@ -375,7 +375,19 @@ function BossEventService.SetTeam(player, ids)
 	return true
 end
 
--- The live number: the average of the team's Sidekicks, each scaled by its wearer's Relic, times the speed scale of the running character's cruise.
+-- Slots still running: run.Line, or the whole team before a run exists (RelicTests' StartRun stub has no Line either).
+local function lineOf(member, team)
+	if member.Run and member.Run.Line then
+		return member.Run.Line
+	end
+	local all = {}
+	for slot in team do
+		table.insert(all, slot)
+	end
+	return all
+end
+
+-- The live number: the average of the line's Sidekicks, each scaled by its wearer's Relic, times the speed scale of the front character's cruise.
 function BossEventService.TeamDamage(player)
 	local member = event and event.Members[player]
 	if not member then
@@ -383,7 +395,8 @@ function BossEventService.TeamDamage(player)
 	end
 	local team = member.Team or BossEventService.AutoTeam(player)
 	local damages = {}
-	for _, id in team do
+	for _, slot in lineOf(member, team) do
+		local id = team[slot]
 		local spec = SidekickService.Worn(player, id)
 		if spec then
 			table.insert(damages, spec.Damage * RelicService.Multi(player, id, "Damage"))
@@ -474,7 +487,10 @@ function BossEventService.RecordHit(player)
 	if event.ScreamEndsAt and now() < event.ScreamEndsAt then
 		return 0
 	end
-	local sidekick = member.Team[member.Run.Slot]
+	-- Counted before the check: a slot whose Sidekick came off must not hold up the others' turns.
+	local line = lineOf(member, member.Team)
+	member.HitTurn += 1
+	local sidekick = member.Team[line[(member.HitTurn - 1) % #line + 1]]
 	local spec = sidekick and SidekickService.Worn(player, sidekick)
 	if not spec then
 		return 0 -- design doc 4.36: the Sidekick deals the damage
@@ -498,8 +514,8 @@ function BossEventService.RecordHit(player)
 	return dealt
 end
 
--- Each move since this member's last charge that hit: the attack's cost on the character running now, Vulnerable and the move's
--- chat line. At 0 the run's own next frame swaps or starts the wait, exactly as for a drain to 0. A move during the wait is passed
+-- Each move since this member's last charge that hit: the attack's cost on every character in the line, Vulnerable and the move's
+-- chat line. At 0 the run's own next frame takes the slot out of the line, exactly as for a drain to 0. A move during the wait is passed
 -- over, never owed; a dodged one is already spared.
 local function chargeMoves(player, member, t)
 	local from = indexAt(member.ChargedTo)
@@ -513,7 +529,9 @@ local function chargeMoves(player, member, t)
 			local _, name = BossDodge.Moment(index)
 			if name == "Impact" and run then
 				local cost = Cfg.Stage(event.Stage).AttackStaminaCost * (member.Vulnerable and Cfg.VulnerableMulti or 1)
-				run.Stamina[run.Slot] = math.max(0, run.Stamina[run.Slot] - cost)
+				for _, slot in lineOf(member, member.Team) do
+					run.Stamina[slot] = math.max(0, run.Stamina[slot] - cost)
+				end
 			end
 			member.Vulnerable = true
 			safely(BossEventService.Hooks.MoveChat, player, Cfg.MoveChat(name, event.Stage))
@@ -524,6 +542,7 @@ end
 local function startRun(player, member)
 	local introEnd = event.StartAt + Cfg.PrepSeconds + Cfg.IntroSeconds
 	member.NextHit = math.max(introEnd, member.JoinedAt) + Cfg.HitEverySeconds
+	member.HitTurn = 0
 	local ok, run = safely(BossEventService.Hooks.StartRun, player, member.Team, member.Lane)
 	member.Run = ok and run or nil
 end
