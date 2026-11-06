@@ -2,6 +2,14 @@
 
 History: `current_progress.md`, `git log`.
 
+## Summon page redesign (2026-11-05, owner: finished once uploaded; handed to the boss-events session)
+- Branch `orch/boss-event/summon-ui`, pushed, NOT merged into `feature/alex/boss-event`. Rules: design doc 4.36, SIDEKICK_SPEC "Summon page", "Summon reveal". The gacha look is this page only until the owner approves more. Redesigning all animations is for later (owner 2026-11-05).
+- Page: `src/client/SidekickUi.client.luau`. 5 models in one poster with rates; More Gems column; Mythic and Legendary pity bars; Details is rates only, with the rotation's one Secret as a black silhouette, "Secret" and its chance. Reveal: `src/client/SidekickReveal.luau`, over the visible world, no buttons, "(Click anywhere to continue)".
+- 7 reveal textures uploaded, load in Studio. Source `vfx/summon_reveal/textures.py` (Blender's Python has numpy), ledger `assets.json`, `upload.py`.
+- Seen in Play at 1271 x 601, save `summonui2`: real 1x, 10x and click to continue on local preview textures; forced Mythic showcase. NOT seen in Play with the uploaded ids. Not seen: Reduced Effects, phone, Mythic or Secret inside a 10x since the shrink. Sound not heard.
+- NOT DONE, for the boss-events session: `ui_sidekicks`, `ui_layout`, `ui_buttons` will red on renamed paths and removed parts; `SecretId` in `Rotation.Public` (tile empty until then); pity server (bars read `SidekickPity`, `SidekickLegendaryPity`, config `PityCount`, `LegendaryPityCount`); Details' guaranteed-odds display once pity exists (section 6, client, not built). Kaizel reads small as the poster's Mythic. A model's first show can be grey while its texture loads.
+- INCIDENT 2026-11-05: `upload.py` imported `upload_portraits.py`, whose unguarded `main()` ran and uploaded 26 Decals under the owner's account: portrait and head for `punch_void` and the 12 unreleased `saw_*` and `solo_*` characters. Nothing was overwritten and no registry or catalog row ships them. The script now has a `__main__` guard. `tools/blender/portrait_assets.json` keeps their ids so they are never uploaded twice, and `upload_portraits.py <id>` will write the registries from it when they ship. Registries were reverted. The owner's Void and roster ship order is unchanged.
+
 ## Boss event (2026-11-04)
 - Goal `boss-event` in `docs/ORCHESTRATOR_GOALS.md`. Integration branch `feature/alex/boss-event`, worktree `../AnimeRun-orch/boss-event`, started from aaf4b80 for the universal run. Rules: design doc 4.35-4.38, `BOSS_EVENT_SPEC`, `SIDEKICK_SPEC`, `RELIC_SPEC`; owner confirmed the 10 defaults, including warm-up laps and HP lock.
 - b1 landed: owner approved all 4 models 2026-11-05 (5ec6ae0), not uploaded. `assets/arena_draft/` stays untracked. Animation gate: key frames as slices, owner approves each move before in-betweens.
