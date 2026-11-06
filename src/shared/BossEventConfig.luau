@@ -26,12 +26,12 @@ BossEventConfig.ShoutSeconds = 5 -- owner
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
 BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
-BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view zooms in on the boss and the runner
--- Placeholders. At WaitCameraFov on a 907 px screen: a 5 stud runner is about 25 px at y near 655, above the bottom
--- bars; the boss is about 530 px tall, wheel top to feet, all in view.
-local WAIT_CAMERA_OUT = 140 -- behind the runner, away from the boss
-local WAIT_CAMERA_UP = 20
-local WAIT_CAMERA_LOOK_HEIGHT = 150 -- on the boss, above the deck
+BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view
+-- Placeholders. At WaitCameraFov on a 907 px screen: the runner is at y near 775, about 6 px tall; the boss is 430 to 455 px
+-- tall, wheel top at y 43 to 56, feet at y 489 to 498.
+local WAIT_CAMERA_OUT = 500 -- past the runner, away from the boss
+local WAIT_CAMERA_UP = 350
+local WAIT_CAMERA_DOWN_ANGLE = math.rad(11) -- the view's axis, below horizontal
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
 BossEventConfig.HpPerPlayer = 4000 -- placeholder
@@ -56,14 +56,15 @@ function BossEventConfig.TeamDamage(damages, cruise)
 	return total / #damages * BossEventConfig.SpeedScale(cruise)
 end
 
--- The exhaustion view: close behind and above the runner, looking at the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
+-- The exhaustion view: hovers above and outward of the runner, tilted down toward the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
 function BossEventConfig.WaitCameraCFrame(center, runnerPosition)
-	local look = center + Vector3.yAxis * WAIT_CAMERA_LOOK_HEIGHT
 	local flat = runnerPosition and (runnerPosition - center) * Vector3.new(1, 0, 1)
-	if not flat or flat.Magnitude < 1 then
-		return CFrame.lookAt(center + BossEventConfig.WaitCameraOffset, look)
+	local eye = center + BossEventConfig.WaitCameraOffset
+	if flat and flat.Magnitude >= 1 then
+		eye = runnerPosition + flat.Unit * WAIT_CAMERA_OUT + Vector3.yAxis * WAIT_CAMERA_UP
 	end
-	return CFrame.lookAt(runnerPosition + flat.Unit * WAIT_CAMERA_OUT + Vector3.yAxis * WAIT_CAMERA_UP, look)
+	local inward = ((center - eye) * Vector3.new(1, 0, 1)).Unit
+	return CFrame.lookAt(eye, eye + inward - Vector3.yAxis * math.tan(WAIT_CAMERA_DOWN_ANGLE))
 end
 
 return BossEventConfig

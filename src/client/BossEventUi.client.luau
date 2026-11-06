@@ -50,7 +50,9 @@ local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too 
 local BAR_LOW_TOP = 58 -- px: under the top row and Roblox's reserved top-left (x 0..360, y 0..58)
 local BAR_HIGH_TOP = 10 -- px: where the bar fits between those two
 local RESERVED_RIGHT = 360
-local EXHAUSTED_TEXT = "Your team is exhausted. Reviving..."
+local EXHAUSTED_TEXT = "Exhausted, reviving"
+-- px at full scale. 360 wide stays left of the drop list on 1920 x 907.
+local EXHAUSTED_WIDTH, EXHAUSTED_MESSAGE, EXHAUSTED_COUNT, EXHAUSTED_LOADING = 360, 36, 48, 14
 local DIM_TRANSPARENCY = 0.65 -- "slightly dims" (BOSS_EVENT_SPEC "Exhaustion view")
 local STATUS_GAP = 4 -- px under the bar
 local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 40, 22
@@ -63,8 +65,6 @@ local TITLE_HEIGHT, TRACK_HEIGHT = 40, 60 -- px at full scale
 local DROP_WIDTH, DROP_WIDTH_MIN = 400, 190
 local DROP_HEADING, DROP_HEADING_MIN = 32, 14
 local DROP_ROW, DROP_ROW_MIN = 26, 13
-local DROP_RIGHT_OF = 0.15 -- the list's centre stays right of the bar's end less this share of the bar
-local WARNING_MIN_BELOW = 40 -- px: under the drop list only with this much room above the screen's middle, else left of the list
 -- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
 local STATUS_LOOKS = {
 	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
@@ -312,7 +312,7 @@ for order, look in STATUS_LOOKS do
 	}
 end
 
--- Under the bar, towards the screen's right (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
+-- Hangs from the bar's bottom-right corner, after the Warning (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
 local dropList = make("Frame", "DropList", root, { BackgroundTransparency = 1, Visible = false })
 make("UIListLayout", "List", dropList, {
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -414,25 +414,19 @@ make("Frame", "Dim", exhausted, {
 	BorderSizePixel = 0,
 	ZIndex = 0,
 })
-label("Message", exhausted, {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.43),
-	Size = UDim2.fromScale(0.44, 0.11), -- stops short of the drop list on the right
+local exhaustedMessage = label("Message", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0),
 	Text = EXHAUSTED_TEXT,
 	Font = Enum.Font.GothamBlack,
-}, 48)
+}, EXHAUSTED_MESSAGE)
 local exhaustedCount = label("Countdown", exhausted, {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.56),
-	Size = UDim2.fromScale(0.3, 0.14),
+	AnchorPoint = Vector2.new(0.5, 0),
 	Text = "",
 	Font = Enum.Font.GothamBlack,
 	TextColor3 = Palette.Gold,
-}, 84)
+}, EXHAUSTED_COUNT)
 local loading = make("Frame", "Loading", exhausted, {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.67),
-	Size = UDim2.new(0.4, 0, 0, 18),
+	AnchorPoint = Vector2.new(0.5, 0),
 	BackgroundColor3 = Palette.TeamTired,
 	BorderSizePixel = 0,
 })
@@ -503,7 +497,7 @@ local function placeHud(phone, left, top, right, bottom)
 	end
 end
 
-local function placeTop(size, row, shopX)
+local function placeTop(size, row)
 	local scale = math.clamp(size.Y / TOP_FULL_HEIGHT, TOP_MIN_SCALE, 1)
 	local width = math.min(math.max(size.X * BAR_WIDTH, 280), size.X - 2 * BAR_SIDE_CLEAR)
 	local barLeft = (size.X - width) / 2
@@ -539,11 +533,8 @@ local function placeTop(size, row, shopX)
 	local rowHeight =
 		math.clamp(math.floor(rowRoom / #dropRows), 8, math.max(DROP_ROW_MIN, math.round(DROP_ROW * scale)))
 	local listHeight = headingHeight + ruleHeight + #dropRows * (rowHeight + 1) + 1
-	-- Right up to the Shop column and Leave; narrower only if its centre would fall left of the owner's line.
-	local listRight = math.min(size.X - BAR_SIDE_CLEAR, shopX and shopX - 8 or size.X)
-	local centreFloor = barLeft + width * (1 - DROP_RIGHT_OF)
-	local listWidth = math.min(math.max(DROP_WIDTH_MIN, DROP_WIDTH * scale), 2 * (listRight - centreFloor) - 2)
-	local listLeft = listRight - listWidth
+	local listWidth = math.max(DROP_WIDTH_MIN, DROP_WIDTH * scale)
+	local listLeft = barLeft + width - listWidth
 	dropList.Position = UDim2.fromOffset(listLeft, listTop)
 	dropList.Size = UDim2.fromOffset(listWidth, listHeight)
 	dropHeading.Size = UDim2.new(1, 0, 0, headingHeight)
@@ -552,19 +543,29 @@ local function placeTop(size, row, shopX)
 		row.Size = UDim2.new(1, 0, 0, rowHeight)
 	end
 
-	-- Under the list where that still ends above the middle, else left of it.
+	-- The list is hidden while this shows, so only the status row is in its way.
 	local warningEnd = size.Y / 2 - 8
-	local warningTop = listTop + listHeight + 8
-	local warningWidth = math.min(size.X * 0.86, 1100)
-	local warningX = size.X / 2
-	if warningEnd - warningTop < WARNING_MIN_BELOW then
-		warningTop = listTop + statusHeight + 8
-		warningWidth = listLeft - 16
-		warningX = 8 + warningWidth / 2
+	local warningTop = listTop + statusHeight + 8
+	warning.Position = UDim2.fromOffset(size.X / 2, warningTop)
+	warning.Size = UDim2.fromOffset(
+		math.min(size.X * 0.86, 1100),
+		math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop))
+	)
+
+	-- Centred: beside the list where it fits between the screen's middle and the list, else under the list.
+	local panelWidth = math.round(EXHAUSTED_WIDTH * scale)
+	local panelTop = listTop + statusHeight + 8
+	if panelWidth / 2 + 8 > listLeft - size.X / 2 then
+		panelTop = listTop + listHeight + 8
 	end
-	warning.Position = UDim2.fromOffset(warningX, warningTop)
-	warning.Size =
-		UDim2.fromOffset(warningWidth, math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop)))
+	local messageHeight = math.round(EXHAUSTED_MESSAGE * scale)
+	local countHeight = math.round(EXHAUSTED_COUNT * scale)
+	exhaustedMessage.Position = UDim2.new(0.5, 0, 0, panelTop)
+	exhaustedMessage.Size = UDim2.fromOffset(panelWidth, messageHeight)
+	exhaustedCount.Position = UDim2.new(0.5, 0, 0, panelTop + messageHeight)
+	exhaustedCount.Size = UDim2.fromOffset(panelWidth, countHeight)
+	loading.Position = UDim2.new(0.5, 0, 0, panelTop + messageHeight + countHeight + 4)
+	loading.Size = UDim2.fromOffset(panelWidth, math.round(EXHAUSTED_LOADING * scale))
 end
 
 -- Follows the HUD while a part shows (PanelBand.Fit's way); the writes run only when a number changed.
@@ -585,19 +586,14 @@ local function layout()
 		bottom = math.min(bottom, items.AbsolutePosition.Y + GuiService:GetGuiInset().Y - 6)
 	end
 	local row = chrome and chrome:FindFirstChild("TopRight")
-	local shop = chrome and chrome:FindFirstChild("ShopColumn")
-	local shopX = shop and shop.AbsolutePosition.X
-	local key = table.concat(
-		{ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1, shopX or -1 },
-		","
-	)
+	local key = table.concat({ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1 }, ",")
 	if key == lastLayout then
 		return
 	end
 	lastLayout = key
 	placeInvite(phone, left, top, right, bottom)
 	placeHud(phone, left, top, right, bottom)
-	placeTop(size, row, shopX)
+	placeTop(size, row)
 end
 
 -- Team --------------------------------------------------------------------------------------------------------------------
@@ -919,7 +915,7 @@ local function render()
 	bossPrompt.Visible = joinable and not invite.Visible and not teleport.Active and os.clock() < promptUntil
 	hud.Visible = inEvent and phase == "Prep" and not panelOpen
 	bar.Visible = inFight
-	dropList.Visible = inFight and not panelOpen
+	dropList.Visible = inFight and warningUntil == 0 and not panelOpen
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 

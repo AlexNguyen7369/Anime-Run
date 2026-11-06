@@ -10,12 +10,12 @@
 --     inside the track and drawn over the Fill.
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
---   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its centre past the
---     bar's right end minus 15% of bar width, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
+--   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
+--     the HP bar's right edge and its top just under the bar's bottom, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
 --   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
 --     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
---     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. checkFit's text rules also judge it against the
---     Warning: the Warning has to clear the list.
+--     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. It stays hidden until the spawn Warning has gone, for late
+--     joiners and with reduced motion too. The Warning stays horizontally centred on the screen and reserves no room for the list.
 --   TeamHud/List: one GuiButton per eligible character, directly in List, named its character id.
 --   Slot<n> has attribute CharacterId while it holds a character, none while it is empty.
 --   Invite Countdown counts to teleport closing (3:00), TeamHud Countdown to the spawn (1:00). "m:ss" or plain seconds.
@@ -41,7 +41,8 @@
 --   Exhaustion view (owner 2026-11-05, spec "Exhaustion view"): ExhaustedPanel is a GuiObject directly in the ScreenGui, with
 --     Message, Countdown, Dim and Loading/Fill directly in it. It runs only on the local player's own BossWaitEndsAt, while
 --     BossEvent is true; the server clears BossEvent first on leaving, so a stale end time must not hold the view. The view's
---     FieldOfView is Cfg.WaitCameraFov; after a revive it returns to Cfg.CameraFov.
+--     FieldOfView is Cfg.WaitCameraFov; after a revive it returns to Cfg.CameraFov. Message reads exactly "Exhausted, reviving".
+--     Message, Countdown and Loading stay small (the WAIT_*_MAX numbers) and clear of DropList and the bar.
 -- READINGS the docs leave open, for the owner (names start with reading_):
 --   a Sidekick only in the Bag, on no character, locks the Invite: the server refuses that join ("Needs a Sidekick").
 -- Invite and TeamHud are not UiSpec Panels (Panels must be PanelSwitch ones and close each other, the Invite must not), so
@@ -93,7 +94,7 @@ local COUNTDOWN_SLACK = 2 -- s
 local RATIO_SLACK = 0.02
 local FILL_SLACK = 0.1 -- of the bar: the fill against the server clock while it moves
 local FOV_OUTSIDE = 63 -- a value no script sets, so a restore to a fixed default shows
-local BUDGET = 84 -- s: the whole scenario
+local BUDGET = 98 -- s: the whole scenario
 local DIM_MIN, DIM_MAX = 0.5, 0.85 -- BackgroundTransparency: "slightly dimmed"
 local WAIT_CENTRE_SLACK = 0.1 -- of the screen
 local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
@@ -101,6 +102,11 @@ local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
 local WAIT_PULL_SECONDS = 0.6 + 0.1
 local WAIT_VIEW_SLACK = 3 + 1 -- studs: DRIFT_STUDS and a small tolerance
 local WAIT_COUNT_SLACK = 0.15 -- s around a whole-second change
+local WAIT_MESSAGE_TEXT = "Exhausted, reviving"
+-- Owner 2026-11-05, px on 1920x907; a bigger window may grow them in step.
+local WAIT_MESSAGE_MAX_HEIGHT, WAIT_COUNTDOWN_MAX_HEIGHT = 36, 48
+local WAIT_LOADING_MAX_WIDTH = 400
+local WAIT_SIZE_HEIGHT, WAIT_SIZE_WIDTH = 907, 1920
 local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
@@ -110,7 +116,8 @@ local BAR_MIN_HEIGHT = 56 -- px
 local BAR_VALUE_MIN_TEXT = 28 -- px
 local BAR_TITLE_MIN_TEXT = 36 -- px
 local BAR_SIZE_MIN_SCREEN = 1280 -- px of width where those sizes are judged
-local DROP_RIGHT_SHARE = 0.15 -- of the bar's width, back from its right end
+local DROP_EDGE_SLACK = 2 -- px: its right edge against the HP bar's, owner 2026-11-05
+local DROP_TOP_MAX_GAP = 16 -- px under the HP bar: "just under", placeholder
 local DROP_ROW_MIN_HEIGHT = 16 -- px at desktop: bigger than the old 15
 local TEXT_GONE = 0.9 -- TextTransparency: the flash's out, "fully disappearing"
 local TEXT_SOLID = 0.1 -- and its in
@@ -400,18 +407,41 @@ function Module.Build(h)
 		return GuiService.ReducedMotionEnabled or h.player:GetAttribute("ReduceEffects") == true
 	end
 	-- nil once the Warning has stayed hidden WARNING_QUIET s in a row, else the seconds it had when time ran out.
+	-- Second result: the DropList showed before the Warning's last moment on screen.
 	local function warningStays(maxSeconds)
 		local started = os.clock()
 		local lastShown = started
+		local dropSeen, dropEarly = false, false
 		while os.clock() - started < maxSeconds do
-			if shown(WARNING) then
+			local warningUp = shown(WARNING)
+			dropSeen = dropSeen or shown(DROP)
+			dropEarly = dropEarly or (warningUp and dropSeen)
+			if warningUp then
 				lastShown = os.clock()
 			elseif os.clock() - lastShown >= WARNING_QUIET then
-				return nil
+				return nil, dropEarly
 			end
 			task.wait(0.05)
 		end
-		return maxSeconds
+		return maxSeconds, dropEarly
+	end
+	-- Owner 2026-11-05: while the Warning shows the DropList does not; after it, it does. Call with the Warning up.
+	local function checkDropAfterWarning(res, tag, maxSeconds)
+		local left, dropEarly = warningStays(maxSeconds)
+		check(res, tag .. "_warning_goes_away", left, nil)
+		check(res, tag .. "_drop_hidden_during_warning", dropEarly, false)
+		check(res, tag .. "_drop_shown_after_warning", waitShown(DROP, true), true)
+	end
+	-- Owner 2026-11-05: centred on the screen on any window, nothing moved aside for the list.
+	local function checkWarningCentred(res, tag)
+		local middle = workspace.CurrentCamera.ViewportSize.X / 2
+		local label = hasText(WARNING, WARNING_TEXT)
+		for name, object in { frame = h.find(WARNING), label = label } do
+			local r = h.rect(object)
+			local off = math.abs(r.x + r.w / 2 - middle)
+			h.check(res, tag .. "_warning_centred_" .. name, off, "<= " .. Spec.Tolerance, off <= Spec.Tolerance)
+		end
+		check(res, tag .. "_warning_text_centred", label and label.TextXAlignment, Enum.TextXAlignment.Center)
 	end
 
 	-- A 0-roll save with auto-roll off. Client/AutoRollTutorial destroys its gui for good at the first roll, so a session past
@@ -714,6 +744,7 @@ function Module.Build(h)
 			)
 		end
 		checkBarGeometry(res)
+		checkWarningCentred(res, "spawn")
 
 		local reduced = reducedNow()
 		if not reduced then
@@ -723,8 +754,10 @@ function Module.Build(h)
 		local red, heavy, strokeDark, strokeSolid, strokeFades = true, true, true, true, true
 		local faintest, solidest = 0, 1
 		local bare = {}
+		local dropWithWarning = false
 		local stop = os.clock() + FLASH_SAMPLE
 		while os.clock() < stop do
+			dropWithWarning = dropWithWarning or (shown(WARNING) and shown(DROP))
 			local current = hasText(WARNING, WARNING_TEXT)
 			if current then
 				local gone = current.TextTransparency
@@ -761,7 +794,10 @@ function Module.Build(h)
 
 		-- An HP change is not a new spawn: the Warning ends once and does not come back.
 		local left = WARNING_MAX - (os.clock() - spawnedAt)
-		check(res, "warning_goes_away_by_itself", warningStays(math.max(left, WARNING_QUIET + 0.1)), nil)
+		local stays, dropEarly = warningStays(math.max(left, WARNING_QUIET + 0.1))
+		check(res, "warning_goes_away_by_itself", stays, nil)
+		check(res, "spawn_drop_hidden_during_warning", dropWithWarning or dropEarly, false)
+		check(res, "spawn_drop_shown_after_warning", waitShown(DROP, true), true)
 		check(res, "bar_stays_after_warning", shown(BAR), true)
 		state(res, "Fight", "keep", hp - 1, hp, true, 100)
 		task.wait(0.4)
@@ -1090,13 +1126,22 @@ function Module.Build(h)
 		h.checkList(res, "drop_on_screen_" .. tag, outside)
 		h.checkList(res, "drop_text_fits_" .. tag, clipped)
 		local r = h.rect(list)
-		local barBottom = barRect.y + barRect.h
+		local hpBar = h.rect(barTrack() or h.find(BAR))
+		local barBottom = hpBar.y + hpBar.h
 		h.check(res, "drop_under_bar_" .. tag, r.y, ">= " .. barBottom, r.y >= barBottom - Spec.Tolerance)
-		local middle = barRect.x + barRect.w / 2
+		h.check(
+			res,
+			"drop_just_under_bar_" .. tag,
+			r.y,
+			"<= " .. barBottom + DROP_TOP_MAX_GAP,
+			r.y <= barBottom + DROP_TOP_MAX_GAP
+		)
+		local middle = hpBar.x + hpBar.w / 2
 		h.check(res, "drop_right_side_" .. tag, r.x, ">= " .. middle, r.x >= middle - Spec.Tolerance)
+		local barRight = hpBar.x + hpBar.w
+		local edgeOff = math.abs(r.x + r.w - barRight)
+		h.check(res, "drop_right_edge_on_bar_" .. tag, edgeOff, "<= " .. DROP_EDGE_SLACK, edgeOff <= DROP_EDGE_SLACK)
 		local centre = r.x + r.w / 2
-		local rightMost = barRect.x + barRect.w * (1 - DROP_RIGHT_SHARE)
-		h.check(res, "drop_far_right_" .. tag, centre, "> " .. rightMost, centre > rightMost)
 
 		-- Owner's reference: a centred column, the rule shorter than the rows.
 		local offCentre, leftAligned, small = {}, {}, {}
@@ -1153,6 +1198,8 @@ function Module.Build(h)
 		check(res, "late_join_leave_shown", waitShown(LEAVE, true), true)
 		check(res, "late_join_no_team_hud", shown(HUD), false)
 		checkRatio(res, "late_join_ratio", 3000 / 4000)
+		checkWarningCentred(res, "late_join")
+		checkDropAfterWarning(res, "late_join", WARNING_MAX)
 
 		if isDesktop() then
 			local restore = h.setPanels({ "RacerIndex/Panel" })
@@ -1208,6 +1255,7 @@ function Module.Build(h)
 		end
 		check(res, "reduced_warning_does_not_flash", count, 1)
 		check(res, "reduced_warning_stays_shown", alwaysShown, true)
+		check(res, "reduced_drop_hidden_with_warning", shown(DROP), false)
 		local label = hasText(WARNING, WARNING_TEXT)
 		check(res, "reduced_warning_is_red", label ~= nil and isRed(label.TextColor3), true)
 		check(res, "reduced_warning_solid", label ~= nil and label.TextTransparency <= TEXT_SOLID, true)
@@ -1215,6 +1263,14 @@ function Module.Build(h)
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
 		onlyShown(res, "event_end", {})
+
+		-- The same order as without reduced motion, here to the Warning's end.
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
+		check(res, "reduced_again_warning_shown", waitShown(WARNING, true), true)
+		checkWarningCentred(res, "reduced")
+		checkDropAfterWarning(res, "reduced", WARNING_MAX)
+		state(res, "Idle", 0, 0, 0, false)
+		waitShown(DROP, false)
 
 		-- The button: glow yes, pulse no.
 		state(res, "Prep", 5, 0, 0, false)
@@ -1231,7 +1287,7 @@ function Module.Build(h)
 		waitShown(BUTTON, false)
 	end
 
-	-- Owner 2026-11-05: the team is exhausted. Camera behind the runner, dim, centred countdown, a loading sign full at the end time.
+	-- Owner 2026-11-05: the team is exhausted. Camera high above the runner, dim, centred countdown, a loading sign full at the end time.
 	local function checkWaitView(res)
 		local camera = workspace.CurrentCamera
 		local wait = Cfg.RefillWaitSeconds
@@ -1313,12 +1369,7 @@ function Module.Build(h)
 		check(res, "wait_camera_at_runner_view", waitIs(atRunnerView, true, WAIT_PULL_SECONDS + SHOW_WAIT), true)
 		check(res, "wait_fov", math.round(camera.FieldOfView), math.round(Cfg.WaitCameraFov))
 		check(res, "wait_message_shown", h.visible(message), true)
-		check(
-			res,
-			"wait_message_says_exhausted",
-			string.find(string.lower(message.Text), "exhaust", 1, true) ~= nil,
-			true
-		)
+		check(res, "wait_message_text", message.Text, WAIT_MESSAGE_TEXT)
 		check(res, "wait_countdown_shown", h.visible(countdown), true)
 		check(res, "wait_fill_shown", h.visible(fill), true)
 		check(res, "wait_dim_shown", h.visible(dim), true)
@@ -1331,6 +1382,33 @@ function Module.Build(h)
 			dim.BackgroundTransparency >= DIM_MIN and dim.BackgroundTransparency <= DIM_MAX
 		)
 		local view = camera.ViewportSize
+		local loading = fill.Parent
+		local tallScale = math.max(1, view.Y / WAIT_SIZE_HEIGHT)
+		local wideScale = math.max(1, view.X / WAIT_SIZE_WIDTH)
+		local messageMax = WAIT_MESSAGE_MAX_HEIGHT * tallScale
+		local countdownMax = WAIT_COUNTDOWN_MAX_HEIGHT * tallScale
+		local loadingMax = WAIT_LOADING_MAX_WIDTH * wideScale
+		h.check(res, "wait_message_small", h.rect(message).h, "<= " .. messageMax, h.rect(message).h <= messageMax)
+		h.check(
+			res,
+			"wait_countdown_small",
+			h.rect(countdown).h,
+			"<= " .. countdownMax,
+			h.rect(countdown).h <= countdownMax
+		)
+		h.check(res, "wait_loading_small", h.rect(loading).w, "<= " .. loadingMax, h.rect(loading).w <= loadingMax)
+		check(res, "wait_message_text_fits", message.TextFits, true)
+		check(res, "wait_countdown_text_fits", countdown.TextFits, true)
+		-- Judged on rects: the DropList may still be waiting for this fresh spawn's Warning, and its place does not change.
+		local panelCrossed = {}
+		for _, part in { message, countdown, loading } do
+			for name, path in { DropList = DROP, BossBar = BAR } do
+				if crossing(h.rect(part), h.rect(h.find(path))) then
+					table.insert(panelCrossed, part.Name .. " x " .. name)
+				end
+			end
+		end
+		h.checkList(res, "wait_panel_clear_of_drop_and_bar", panelCrossed)
 		h.check(
 			res,
 			"wait_dim_full_screen",

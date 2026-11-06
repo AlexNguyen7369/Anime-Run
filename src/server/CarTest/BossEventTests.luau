@@ -47,9 +47,10 @@
 --       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
 --       at or before its joining, is never charged.
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
---     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): near
---     and above the local runner, on the ring's outer side, looking in at the boss. In a 907 px high view at WaitCameraFov the runner
---     shows at least 20 px tall, the wheel top and feet show, and the boss is at least 500 px tall. The whole ring need not fit.
+--     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
+--     eye about 500 outward of and 350 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
+--     runner shows at least 5 px tall with y at most 790, above the bottom HUD, the wheel top and feet show, and the boss is at least
+--     400 px tall. The whole ring need not fit.
 --     No runnerPosition: a fixed spot on the boss's front (-Z).
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
 --   RaceService.NewRun option Boss = true, with Team = { ids }, on { Path = BossArenaConfig.LaneRoute(n), Pads = {}, Tracks = {} }:
@@ -1999,7 +2000,9 @@ function Tests.make(deps)
 				flag("wait_cframe_is_function", type(makeFrame) == "function")
 				if type(makeFrame) == "function" then
 					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
-					local MIN_RUNNER_PX, MIN_BOSS_PX = 20, 500
+					-- Placeholders set from the geometry (owner 2026-11-05).
+					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 5, 400, 790
+					local EYE_OUT, EYE_UP, EYE_SLACK = 500, 350, 50 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
 					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT
@@ -2017,8 +2020,8 @@ function Tests.make(deps)
 						return y / halfTall * VIEW_HEIGHT / 2, math.abs(y) <= halfTall and math.abs(x) <= halfWide
 					end
 					local feetOfBoss, wheelTop = Arena.Center, Arena.Center + Vector3.yAxis * Arena.BossTotalHeight
-					local bad = { side = {}, runner = {}, boss = {} }
-					local smallestRunner, smallestBoss = math.huge, math.huge
+					local bad = { side = {}, runner = {}, boss = {}, spot = {} }
+					local smallestRunner, smallestBoss, lowestRunner = math.huge, math.huge, -math.huge
 					for _, lane in { 1, Arena.Lanes } do
 						for i = 0, Arena.Segments - 1, Arena.Segments / 8 do
 							local tag = lane .. "@" .. i
@@ -2030,8 +2033,14 @@ function Tests.make(deps)
 								flat(frame.Position).Magnitude <= flat(root).Magnitude
 								or frame.Position.Y <= root.Y
 								or frame.LookVector:Dot(inward) <= 0
+								or frame.LookVector.Y >= 0
 							then
 								table.insert(bad.side, tag)
+							end
+							local out = flat(frame.Position).Magnitude - flat(root).Magnitude
+							local up = frame.Position.Y - root.Y
+							if math.abs(out - EYE_OUT) > EYE_SLACK or math.abs(up - EYE_UP) > EYE_SLACK then
+								table.insert(bad.spot, tag)
 							end
 							local feetY, feetShow = project(frame, feet)
 							local headY, headShow = project(frame, feet + Vector3.yAxis * RIG_HEIGHT)
@@ -2039,6 +2048,7 @@ function Tests.make(deps)
 								table.insert(bad.runner, tag)
 							end
 							smallestRunner = math.min(smallestRunner, headY - feetY)
+							lowestRunner = math.max(lowestRunner, VIEW_HEIGHT / 2 - feetY) -- y from the top
 							local bottomY, bottomShow = project(frame, feetOfBoss)
 							local topY, topShow = project(frame, wheelTop)
 							if not (bottomShow and topShow) then
@@ -2048,7 +2058,9 @@ function Tests.make(deps)
 						end
 					end
 					flag("wait_camera_outer_above_looking_in", #bad.side == 0, table.concat(bad.side, " "), "none")
+					flag("wait_camera_eye_spot", #bad.spot == 0, table.concat(bad.spot, " "), "none")
 					flag("wait_runner_in_view", #bad.runner == 0, table.concat(bad.runner, " "), "none")
+					flag("wait_runner_above_hud", lowestRunner <= MAX_RUNNER_Y, lowestRunner, MAX_RUNNER_Y)
 					flag("wait_runner_tall_enough", smallestRunner >= MIN_RUNNER_PX, smallestRunner, MIN_RUNNER_PX)
 					flag("wait_boss_in_view", #bad.boss == 0, table.concat(bad.boss, " "), "none")
 					flag("wait_boss_tall_enough", smallestBoss >= MIN_BOSS_PX, smallestBoss, MIN_BOSS_PX)
