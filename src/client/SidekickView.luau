@@ -81,7 +81,7 @@ end
 -- The drawn portrait on its rarity colour, for the Bag (design doc 4.36). row nil: an id this version does not know; it and a
 -- row with no portrait show the name in .Label instead. Centred on `position`. Returns the ImageLabel.
 function SidekickView.Art(parent, row, position, size)
-	local portrait = row and SidekickArt[row.Id] and SidekickArt[row.Id].Portrait
+	local portrait = row and (row.Image or (SidekickArt[row.Id] and SidekickArt[row.Id].Portrait))
 	local art = Instance.new("ImageLabel")
 	art.Name = "Art"
 	art.Image = portrait or ""

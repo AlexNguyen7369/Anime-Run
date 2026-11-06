@@ -35,12 +35,15 @@
 --         the Advance step. No move chat in the intro, and never to anyone outside the event.
 --     Remotes.BossEventLeave: the client's leave option, no arguments, runs Leave(player, "Left") (owner 2026-11-05).
 --     Join during a duel's Countdown or Racing: succeeds and ends the duel through DuelService.PlayerLeft (owner 2026-11-05).
---     Init(): boot. Makes the remote, starts the 1 s loop. Called by Main.server. Not `Start`, which starts an event here.
+--     Init(): boot. Makes the remotes, starts the loop. Called by Main.server. Not `Start`, which starts an event here.
 --     Hits: a member's first hit comes one HitEverySeconds after the intro's end, or after joining if later.
 --     Hooks.DamageMulti(t): pure, t in seconds since the spawn; the default is the real Shouted x Adapted. RecordHit deals
 --       TeamDamage x DamageMulti(now - spawn). TeamDamage and attribute BossTeamDamage stay uncut. Other sections stub it to 1
 --       so their damage sums stay exact.
---     ReplicatedStorage attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event.
+--     Player attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event. Each
+--       player's own: a dodged move leaves it out (design doc 4.37). Hooks.DamageMulti(t, spared) takes the member's dodged moments.
+--     Dodge(player, index, stamp) (Remotes.BossDodge): one press of the Dodge bar for moment `index` of Shared/BossDodge. Returns ok,
+--       reason. Hooks.SwitchLane(run, lane) moves the dodger's run to a neighbouring lane.
 --     An effect starts on its moment and is over at EndsAt. A hit in a long frame's catch-up is not pinned to a moment.
 --     AttackImpactsBetween(fromT, toT): pure. How many Big Raga attack Impacts fall in fromT < t <= toT, t in seconds since the
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
@@ -1223,8 +1226,14 @@ function Tests.make(deps)
 				local both, shoutOnly, adaptedOnly = findTime(true, true), findTime(true, false), findTime(false, true)
 				flag("status_scan_has_each_state", both ~= nil and shoutOnly ~= nil and adaptedOnly ~= nil)
 
+				local holder = nil -- the member whose status is read
+				local function beginHeld()
+					begin()
+					holder = fighter()
+					S.Join(holder)
+				end
 				local function status()
-					local raw = ReplicatedStorage:GetAttribute("BossStatus")
+					local raw = holder:GetAttribute("BossStatus")
 					if raw == nil then
 						return {}
 					end
@@ -1246,6 +1255,7 @@ function Tests.make(deps)
 					begin()
 					S.Hooks.DamageMulti = realHooks.DamageMulti
 					local p = fighter()
+					holder = p
 					S.Join(p)
 					to(t + PREP)
 					local base, hp, before = S.TeamDamage(p), S.State().Hp, S.DamageOf(p)
@@ -1267,7 +1277,7 @@ function Tests.make(deps)
 				eq("status_both_listed", #status(), 2)
 
 				-- Edges and EndsAt, in server time, off the injected clock.
-				begin()
+				beginHeld()
 				S.Hooks.DamageMulti = realHooks.DamageMulti
 				local spawnAt = T0 + PREP
 				local roar, click = roars[1], clicks[1]
@@ -1291,7 +1301,7 @@ function Tests.make(deps)
 					(select(2, statusOf("Shouted"))),
 					active(roars, 5, roar + 5 + MARGIN) and 1 or 0
 				)
-				begin()
+				beginHeld()
 				S.Hooks.DamageMulti = realHooks.DamageMulti
 				to(PREP + click + MARGIN)
 				local adapted = statusOf("Adapted")
@@ -1321,10 +1331,195 @@ function Tests.make(deps)
 				eq("status_multi_none_in_rise", realHooks.DamageMulti(INTRO / 2), 1)
 
 				-- Nothing is left behind by the event's end.
-				begin()
+				beginHeld()
 				to(PREP + both)
 				S.End("Timeout")
-				eq("status_cleared_at_end", ReplicatedStorage:GetAttribute("BossStatus"), nil)
+				eq("status_cleared_at_end", holder:GetAttribute("BossStatus"), nil)
+			end)
+
+			-- The Dodge bar (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"). Times are read off Shared/BossDodge.
+			serviceSection("dodge", function()
+				local BossDodge = require(Shared.BossDodge)
+				local race = require(Server.RaceService)
+				local factory = require(Shared.RunnerFactory)
+				local Arena = require(Shared.BossArenaConfig)
+				local HttpService = game:GetService("HttpService")
+
+				-- Moments.
+				local lastAt, shortest = 0, math.huge
+				for index = 1, 24 do
+					local at = BossDodge.Moment(index)
+					eq("moment_index_round_trip_" .. index, BossDodge.IndexAtOrBefore(at + 1e-6), index) -- the service's own epsilon
+					if index > 1 then
+						shortest = math.min(shortest, at - lastAt)
+					end
+					lastAt = at
+				end
+				eq("moment_none_before_the_first", BossDodge.IndexAtOrBefore(BossDodge.Moment(1) - 0.01), 0)
+				flag(
+					"moments_leave_room_for_bar_and_text",
+					shortest >= BossDodge.SweepSeconds + BossDodge.ResultSeconds,
+					shortest
+				)
+
+				-- The spot: clear of the start, its window over well before the moment, different per moment and per player.
+				local seen, lowest, latest = {}, 1, -math.huge
+				for index = 1, 200 do
+					local spot = BossDodge.Spot(1234, T0, index)
+					eq("spot_stable_" .. index, BossDodge.Spot(1234, T0, index), spot)
+					lowest = math.min(lowest, spot)
+					seen[math.floor(spot * 20)] = true
+					latest = math.max(latest, select(2, BossDodge.Window(spot, 0)))
+				end
+				flag("spot_clear_of_start", lowest >= 0.2, lowest)
+				flag("spot_window_ends_before_moment", latest <= -0.35, latest)
+				local buckets = 0
+				for _ in seen do
+					buckets += 1
+				end
+				flag("spot_spread_over_the_bar", buckets >= 7, buckets)
+				local differs = false
+				for index = 1, 20 do
+					differs = differs or BossDodge.Spot(1234, T0, index) ~= BossDodge.Spot(5678, T0, index)
+				end
+				flag("spot_differs_per_player", differs)
+
+				begin()
+				local lanes = {}
+				S.Hooks.SwitchLane = function(_, lane)
+					table.insert(lanes, lane)
+				end
+				S.Hooks.DamageMulti = realHooks.DamageMulti
+				local a, b = fighter(), fighter()
+				S.Join(a)
+				S.Join(b)
+				eq("dodge_a_in_lane_1", S.LaneOf(a), 1)
+				eq("dodge_b_in_lane_2", S.LaneOf(b), 2)
+				local function momentT(index)
+					return FIGHT + BossDodge.Moment(index) -- on the test's event clock
+				end
+				local function windowOf(p, index)
+					local id = p:GetAttribute("UserId") or 0
+					return BossDodge.Window(BossDodge.Spot(id, T0, index), T0 + momentT(index))
+				end
+				local function middle(p, index)
+					local from, to = windowOf(p, index)
+					return (from + to) / 2
+				end
+				-- Advance to the press's own time, then press with that stamp.
+				local function pressAt(p, index, stamp, arrives)
+					to((arrives or stamp) - T0)
+					return S.Dodge(p, index, stamp)
+				end
+				local function statusIds(p)
+					local ids = {}
+					for _, row in HttpService:JSONDecode(p:GetAttribute("BossStatus") or "[]") do
+						ids[row.Id] = true
+					end
+					return ids
+				end
+				local function linesTo(p)
+					local n = 0
+					for _, line in log.MoveChat do
+						n += line.Player == p and 1 or 0
+					end
+					return n
+				end
+				walk(FIGHT)
+				local runA, runB = log.Runs[a], log.Runs[b]
+
+				-- Moment 1, the attack: a dodges. Neither its stamina nor its chat is touched; b pays. Lane 1's only neighbour is taken.
+				eq("dodge_moment_1_is_impact", select(2, BossDodge.Moment(1)), "Impact")
+				eq("dodge_before_the_bar_refused", S.Dodge(a, 1, clock), false)
+				eq("dodge_on_spot_ok", pressAt(a, 1, middle(a, 1)), true)
+				eq("dodge_lane_neighbour_shared_when_only_choice", S.LaneOf(a), 2)
+				eq("dodge_switch_hook_called", lanes[1], 2)
+				eq("dodge_second_press_refused", S.Dodge(a, 1, clock), false)
+				to(momentT(1) + 0.05)
+				eq("dodged_impact_costs_nothing", runA.Stamina[1], 100)
+				eq("hit_impact_costs_stamina", runB.Stamina[1], 100 - Cfg.AttackStaminaCost)
+				eq("dodged_move_no_chat", linesTo(a), 0)
+				eq("hit_move_chat", linesTo(b), 1)
+
+				-- Moment 2, the wheel turn: a presses early and is hit, and its one press is spent.
+				eq("dodge_moment_2_is_wheel", select(2, BossDodge.Moment(2)), "WheelClick")
+				local early = windowOf(a, 2) - 0.1
+				eq("dodge_off_spot_refused", pressAt(a, 2, early), false)
+				eq("dodge_off_spot_spends_the_press", pressAt(a, 2, middle(a, 2)), false)
+				to(momentT(2) + 0.05)
+				eq("off_spot_is_hit_adapted", statusIds(a).Adapted, true)
+				eq("off_spot_lane_unchanged", S.LaneOf(a), 2)
+
+				-- Moment 3, the shout: a dodges, b does not, so their statuses and their hits differ (owner 2026-11-05).
+				eq("dodge_moment_3_is_roar", select(2, BossDodge.Moment(3)), "Roar")
+				eq("dodge_roar_ok", pressAt(a, 3, middle(a, 3)), true)
+				flag("dodge_lane_is_a_neighbour", math.abs(S.LaneOf(a) - 2) == 1, S.LaneOf(a))
+				to(momentT(3) + 0.05)
+				eq("dodged_shout_not_listed", statusIds(a).Shouted, nil)
+				eq("hit_shout_listed", statusIds(b).Shouted, true)
+				local baseA, baseB = S.TeamDamage(a), S.TeamDamage(b)
+				near("dodger_hit_keeps_damage", S.RecordHit(a), baseA * (1 - Cfg.AdaptedCut))
+				near("hit_player_damage_cut", S.RecordHit(b), baseB * (1 - Cfg.AdaptedCut) * (1 - Cfg.ShoutDamageCut))
+
+				-- Moment 4: a stamp in the window, too old on arrival. Moment 5: arriving after the moment.
+				local from4 = windowOf(a, 4)
+				eq("dodge_stale_stamp_refused", pressAt(a, 4, from4, from4 + 0.52), false)
+				local stamp5 = middle(a, 5)
+				to(momentT(5) + 0.01)
+				eq("dodge_after_the_moment_refused", S.Dodge(a, 5, stamp5), false)
+
+				-- Bad input from a client.
+				for _, bad in { "1", 0, -1, 1.5, math.huge, 0 / 0 } do
+					eq("dodge_bad_index_" .. tostring(bad), S.Dodge(a, bad, clock), false)
+				end
+				eq("dodge_bad_stamp_text", S.Dodge(a, 6, "x"), false)
+				eq("dodge_bad_stamp_nan", S.Dodge(a, 6, 0 / 0), false)
+				eq("dodge_outsider_refused", S.Dodge(fighter(), 6, clock), false)
+
+				-- Moment 6, the attack, in the wait: no press, no cost, no line.
+				eq("dodge_moment_6_is_impact", select(2, BossDodge.Moment(6)), "Impact")
+				local stamina, heard = runA.Stamina[runA.Slot], linesTo(a)
+				runA.Waiting = true
+				eq("dodge_in_wait_refused", pressAt(a, 6, middle(a, 6)), false)
+				to(momentT(6) + 0.05)
+				runA.Waiting = false
+				eq("wait_move_costs_nothing", runA.Stamina[runA.Slot], stamina)
+				eq("wait_move_no_chat", linesTo(a), heard)
+				S.End("Timeout")
+				eq("dodge_status_cleared_at_end", a:GetAttribute("BossStatus"), nil)
+
+				-- The real run: the same lap angle on the new lane's route, published for clients.
+				local player = newPlayer()
+				wear(player, chars[1], "side_knight")
+				local car = factory.build(chars[1])
+				car.Name, car.Parent = "CarTestBossRunner", player
+				local run = race.NewRun(
+					car,
+					{ Path = Arena.LaneRoute(2), Pads = {}, Tracks = {} },
+					player,
+					{ Boss = true, Team = { chars[1] }, StaminaSeconds = { 1e6, 1e6, 1e6 } }
+				)
+				table.insert(liveRuns, run)
+				task.wait(0.3)
+				local function radiusOf()
+					return (car:GetPivot().Position - Arena.Center) * Vector3.new(1, 0, 1)
+				end
+				local before = radiusOf()
+				local routeBefore = car:GetAttribute("RunRoute")
+				local distBefore = car:GetAttribute("RunDistance")
+				run:SwitchRoute(Arena.LaneRoute(3))
+				local after = radiusOf()
+				flag("switch_radius_new_lane", math.abs(after.Magnitude - Arena.LaneRadius(3)) < 3, after.Magnitude)
+				flag("switch_same_lap_angle", before.Unit:Dot(after.Unit) > 0.999, before.Unit:Dot(after.Unit))
+				flag("switch_publishes_route", car:GetAttribute("RunRoute") ~= routeBefore)
+				flag("switch_distance_scaled", car:GetAttribute("RunDistance") >= distBefore)
+				task.wait(0.2)
+				flag(
+					"switch_stays_on_new_lane",
+					math.abs(radiusOf().Magnitude - Arena.LaneRadius(3)) < 3,
+					radiusOf().Magnitude
+				)
+				run:Destroy()
 			end)
 
 			serviceSection("hp", function()

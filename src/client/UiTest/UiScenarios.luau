@@ -164,6 +164,8 @@ UiScenarios.Names = {
 	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
 	-- wants none before it.
 	"ui_boss",
+	-- The Dodge bar (UiBossEvent; docs/BOSS_EVENT_SPEC.md "Dodge bar")
+	"ui_boss_dodge",
 	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
 	"ui_boss_vfx",
 	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")

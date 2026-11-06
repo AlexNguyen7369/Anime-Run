@@ -135,6 +135,104 @@ function RunnerVisual.Pose(model, root, phase, amount)
 	poseRun(model, root, phase, amount or 1, poseOf(model))
 end
 
+-- The side dash of a dodge (design doc 4.37), the owner's 3 key frames (approved 2026-11-06), dashing to the runner's right. Angles
+-- in degrees; for Arms, Legs and Head { x, y, z } about the part's joint, in the frame of the Torso or the hips. Times are of the dash.
+local DASH_KEYS = {
+	{
+		Time = 0.15,
+		Drop = -0.5,
+		Roll = 14,
+		Lean = 25,
+		Yaw = 0,
+		LeftArm = { 40, 0, -55 },
+		RightArm = { -35, 0, 38 },
+		LeftLeg = { -10, 0, -34 },
+		RightLeg = { 38, 0, 8 },
+		Head = { 10, 0, -10 },
+	},
+	{
+		Time = 0.5,
+		Drop = 0.5,
+		Roll = -42,
+		Lean = 10,
+		Yaw = -12,
+		LeftArm = { -20, 0, -65 },
+		RightArm = { 15, 0, 115 },
+		LeftLeg = { -18, 0, 18 },
+		RightLeg = { 12, 0, 62 },
+		Head = { 8, 0, 28 },
+	},
+	{
+		Time = 0.8,
+		Drop = -0.6,
+		Roll = -12,
+		Lean = 28,
+		Yaw = 0,
+		LeftArm = { 25, 0, -62 },
+		RightArm = { -25, 0, 48 },
+		LeftLeg = { -30, 0, -14 },
+		RightLeg = { 25, 0, 32 },
+		Head = { 12, 0, 8 },
+	},
+}
+local MIRROR = { LeftArm = "RightArm", RightArm = "LeftArm", LeftLeg = "RightLeg", RightLeg = "LeftLeg", Head = "Head" }
+local DASH_BODY_ROLL = 0.6 -- of the Torso's roll, on the hips the legs hang from
+
+local function dashAngles(k, name, side)
+	local row = k[side > 0 and name or MIRROR[name]]
+	return CFrame.Angles(math.rad(row[1]), math.rad(row[2]) * side, math.rad(row[3]) * side)
+end
+
+-- The dash's pose at `u` (0 to 1) over the run pose Pose just placed: it blends in over the first key and out after the last.
+-- `side` is 1 for the runner's right, -1 for its left. Models without a Torso are left as they are.
+function RunnerVisual.PoseDash(model, root, u, side)
+	local torso = model:FindFirstChild("Torso")
+	if not (torso and torso:IsA("BasePart")) then
+		return
+	end
+	local first, last = DASH_KEYS[1], DASH_KEYS[#DASH_KEYS]
+	local weight = math.clamp(u < first.Time and u / first.Time or (1 - u) / (1 - last.Time), 0, 1)
+	local from, to = first, first
+	for i = 1, #DASH_KEYS - 1 do
+		if u >= DASH_KEYS[i].Time then
+			from, to = DASH_KEYS[i], DASH_KEYS[i + 1]
+		end
+	end
+	local at = math.clamp((u - from.Time) / math.max(to.Time - from.Time, 1e-6), 0, 1)
+	local function mix(a, b)
+		return a + (b - a) * at
+	end
+	local hip = OFFSETS.Torso.Size.Y / 2
+	local base = root
+		* CFrame.new(0, mix(from.Drop, to.Drop), 0)
+		* CFrame.Angles(0, math.rad(mix(from.Yaw, to.Yaw)) * side, 0)
+		* CFrame.new(0, -hip, 0)
+	local roll = math.rad(mix(from.Roll, to.Roll)) * side
+	local upper = base * CFrame.Angles(-math.rad(mix(from.Lean, to.Lean)), 0, roll) * CFrame.new(0, hip, 0)
+	local hips = base * CFrame.Angles(0, 0, roll * DASH_BODY_ROLL) * CFrame.new(0, hip, 0)
+	local function place(part, cf)
+		part.CFrame = part.CFrame:Lerp(cf, weight)
+	end
+	place(torso, upper)
+	for name, o in OFFSETS do
+		local part = name ~= "Torso" and model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			local half = Vector3.new(0, o.Size.Y / 2, 0)
+			if MIRROR[name] then
+				local turn = dashAngles(from, name, side):Lerp(dashAngles(to, name, side), at)
+				if name == "Head" then
+					place(part, upper * CFrame.new(o.Offset - half) * turn * CFrame.new(half))
+				else
+					local frame = SWINGS[name] and SIDES[name] and upper or hips
+					place(part, frame * CFrame.new(o.Offset + half) * turn * CFrame.new(-half))
+				end
+			else
+				place(part, upper * CFrame.new(o.Offset))
+			end
+		end
+	end
+end
+
 -- The local player's visible runner, or nil.
 function RunnerVisual.LocalRunner()
 	local userId = Players.LocalPlayer and Players.LocalPlayer.UserId

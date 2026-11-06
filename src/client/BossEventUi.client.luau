@@ -1,6 +1,6 @@
 --!nonstrict
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
--- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent, BossTeamDamage and BossWaitEndsAt) and asks through
+-- it follows the server's attributes (ReplicatedStorage BossEvent*, player BossEvent, BossStatus, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
 -- Outside an event BossButton is the paid spawn (BOSS_EVENT_SPEC "Paid spawn", contract: Client/UiTest/UiBossPaid), through Remotes.BossBuy
 -- and BossUseCredit; the server judges every press.
@@ -867,7 +867,7 @@ local statusEnds = {} -- id -> EndsAt
 
 -- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time.
 local function drawStatus()
-	local raw = ReplicatedStorage:GetAttribute("BossStatus")
+	local raw = player:GetAttribute("BossStatus")
 	if raw ~= statusRaw then
 		statusRaw = raw
 		statusEnds = {}

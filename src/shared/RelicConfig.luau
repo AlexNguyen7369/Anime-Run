@@ -4,6 +4,7 @@
 local RelicConfig = {}
 
 RelicConfig.RagaSidekickChance = 0.00001 -- design doc 4.37: 0.001%, as a fraction
+RelicConfig.WheelArt = "rbxassetid://126470652353383" -- assets/ui/raga_wheel.png, also on the Dodge bar (design doc 4.37)
 
 -- The one universal Secret: every boss's list ends with this same row (design doc 4.38).
 local WORLD_CORE = {
@@ -31,8 +32,9 @@ RelicConfig.Bosses = {
 			Bonuses = { Damage = 0.06 },
 		},
 		{
-			Id = "relic_cube",
-			Name = "Sealing Cube",
+			Id = "relic_cube", -- saved id kept from the Sealing Cube, so saved bags lose nothing (RELIC_SPEC)
+			Name = "Raga's Wheel",
+			Image = RelicConfig.WheelArt,
 			Rarity = "Epic",
 			Odds = 12,
 			Bonuses = { Stamina = 0.1, Damage = 0.1 },

@@ -153,6 +153,9 @@ local function routeName(path)
 	return name
 end
 
+-- Builds the route's folder now, so a later SwitchRoute never names one a client has not received.
+RaceService.PrepareRoute = routeName
+
 -- The rig's pivot (its Torso) for the feet pose `feet` on the path.
 local function rigCFrame(feet)
 	return feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
@@ -726,6 +729,16 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			publish()
 		end
 	end)
+
+	-- Boss run: moves to another lane of the ring at the same lap angle (design doc 4.37). Lanes have the same waypoint count, so
+	-- driver.Index holds.
+	function run:SwitchRoute(path)
+		local newArc = arcOf(path)
+		dist *= newArc[n] / arc[n]
+		wps, arc, routeId = path.WorldWaypoints, newArc, routeName(path)
+		place()
+		publish()
+	end
 
 	-- Pays the bank into leaderstats.Money and empties it. Returns the amount paid (0 if none).
 	function run:CashOut()

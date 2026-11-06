@@ -848,7 +848,7 @@ function Module.Build(h)
 	local function checkStatusRow(res)
 		local hp = Cfg.HpPerPlayer
 		local function setStatus(rows)
-			ReplicatedStorage:SetAttribute("BossStatus", rows and HttpService:JSONEncode(rows) or nil)
+			h.player:SetAttribute("BossStatus", rows and HttpService:JSONEncode(rows) or nil)
 		end
 		local function cell(id)
 			local found = named(BAR, "Status_" .. id)
@@ -1018,7 +1018,7 @@ function Module.Build(h)
 		if not list then
 			return
 		end
-		ReplicatedStorage:SetAttribute(
+		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
 		)
@@ -1077,7 +1077,7 @@ function Module.Build(h)
 
 		if missing then -- its own check above already failed
 			state(res, "Idle", 0, 0, 0, false)
-			ReplicatedStorage:SetAttribute("BossStatus", nil)
+			h.player:SetAttribute("BossStatus", nil)
 			return
 		end
 		local size = workspace.CurrentCamera.ViewportSize
@@ -1181,7 +1181,7 @@ function Module.Build(h)
 				h.check(res, "bar_" .. string.lower(name) .. "_text_tall", tall, ">= " .. least, tall >= least)
 			end
 		end
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 
 		-- A leave takes it; a Prep in the event never had it (prep_droplist_shown).
 		state(res, "Fight", "keep", hp, hp, false)
@@ -1438,7 +1438,7 @@ function Module.Build(h)
 		check(res, "wait_view_sees_boss", outside, 0)
 
 		-- The bar, its status row and Leave stay on top of the dim.
-		ReplicatedStorage:SetAttribute(
+		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + wait + 5 } })
 		)
@@ -1470,7 +1470,7 @@ function Module.Build(h)
 			)
 		end
 		check(res, "wait_leave_usable", h.find(LEAVE).Active and h.find(LEAVE).Interactable, true)
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 
 		-- Both follow the end time. Past 5 s the panel holds at 1 and full until the server clears the attribute.
 		local endsAt = h.player:GetAttribute("BossWaitEndsAt")
@@ -1540,6 +1540,68 @@ function Module.Build(h)
 		camera.FieldOfView = fovBefore
 	end
 
+	-- The Dodge bar (design doc 4.37): over the roster minibar, its art at the left, a hit's words replacing it.
+	function scenarios.ui_boss_dodge(res)
+		local hp = Cfg.HpPerPlayer
+		local Dodge = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossDodge"))
+		local at, name = Dodge.Moment(1)
+		local lead = Dodge.SweepSeconds * 0.5
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
+		local DODGE = "RacerBossDodge/DodgeBar"
+		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
+		local bar = h.find(DODGE)
+		if bar then
+			local gui = h.player:WaitForChild("PlayerGui")
+			local row = gui.RacerHud.Level:FindFirstChild("Team")
+			local inner = bar:FindFirstChild("Bar")
+			local wheel = bar:FindFirstChild("Wheel")
+			local subtitle = bar:FindFirstChild("Subtitle")
+			check(
+				res,
+				"dodge_bar_above_team_row",
+				bar.AbsolutePosition.Y + bar.AbsoluteSize.Y <= row.AbsolutePosition.Y,
+				true
+			)
+			check(res, "dodge_wheel_art", wheel ~= nil and wheel.Image ~= "", true)
+			check(
+				res,
+				"dodge_wheel_at_left_end",
+				wheel ~= nil
+					and math.abs(wheel.AbsolutePosition.X + wheel.AbsoluteSize.X / 2 - bar.AbsolutePosition.X) <= 1,
+				true
+			)
+			check(
+				res,
+				"dodge_subtitle_says_how",
+				subtitle ~= nil and h.visible(subtitle) and subtitle.Text:find("white") ~= nil,
+				true
+			)
+			local spot = inner and inner:FindFirstChild("Spot")
+			check(res, "dodge_spot_clear_of_start", spot ~= nil and spot.Position.X.Scale >= 0.2, true)
+		end
+		local RESULT = "RacerBossDodge/Result"
+		check(res, "dodge_hit_text_shows", waitShown(RESULT, true, lead + 1), true)
+		local result = h.find(RESULT)
+		check(res, "dodge_hit_words", result and result.Text, Dodge.HitText[name])
+		check(res, "dodge_hit_replaces_bar", waitShown(DODGE, false, 0.6), false) -- after its 0.3 s disappearing
+		check(res, "dodge_hit_text_red", result and result.TextColor3.R > 0.9 and result.TextColor3.G < 0.3, true)
+		-- The dash: into the side asked, mirrored for the other.
+		local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
+		local RunnerFactory = require(ReplicatedStorage.Shared.RunnerFactory)
+		local probe = RunnerFactory.build("db_hero")
+		RunnerVisual.Pose(probe, CFrame.identity, 0, 1)
+		RunnerVisual.PoseDash(probe, CFrame.identity, 0.5, 1)
+		local rightUp = probe.Torso.CFrame.UpVector.X
+		RunnerVisual.Pose(probe, CFrame.identity, 0, 1)
+		RunnerVisual.PoseDash(probe, CFrame.identity, 0.5, -1)
+		local leftUp = probe.Torso.CFrame.UpVector.X
+		probe:Destroy()
+		check(res, "dash_leans_right_when_right", rightUp > 0.4, true)
+		check(res, "dash_leans_left_when_left", leftUp < -0.4, true)
+		state(res, "Idle", 0, 0, 0, false)
+		check(res, "dodge_bar_gone_after_event", waitShown(DODGE, false), false)
+	end
+
 	function scenarios.ui_boss(res)
 		h.waitGuis()
 		local gui = h.find(ROOT)
@@ -1571,7 +1633,7 @@ function Module.Build(h)
 			checkReduced(res)
 		end, debug.traceback)
 		h.check(res, "boss_checks_completed", ok and "yes" or tostring(err), "yes", ok)
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
 		h.player:SetAttribute("ReduceEffects", savedReduce)
 		setup(res, "restore:boss_ui")

@@ -98,6 +98,10 @@ function Module.Build(h)
 			end)
 			check(res, "relic_tile_" .. item.Id, problem or "shown", "shown")
 			local tile = items and items:FindFirstChild(item.Entry)
+			if row.Image then
+				local art = tile and tile:FindFirstChild("Art")
+				check(res, "relic_art_" .. item.Id, art and art.Image, row.Image)
+			end
 			local worn = tile and tile:FindFirstChild("Worn")
 			local isWorn = wearerOf(gear, item.Entry) ~= nil
 			check(res, "relic_worn_mark_" .. item.Id, worn ~= nil and h.visible(worn), isWorn)

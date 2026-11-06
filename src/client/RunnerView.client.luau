@@ -23,6 +23,7 @@ local SERVER_TAG = "RunnerRig" -- Server/CarService.RUNNER_TAG
 local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the published one (no visible jump)
 local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at once
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
+local LANE_SLIDE_SECONDS = 0.35 -- placeholder: the drawn runner's side dash into the next lane on a dodge
 local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns to the runner's travel (docs/CAMERA_SPEC.md)
 -- The boss event camera turns inward (docs/BOSS_EVENT_SPEC.md "Arena"), angles from the arena draft's GAME_YAW, GAME_PITCH.
 local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
@@ -193,6 +194,15 @@ local function step(view, now)
 		RunnerVisual.Pose(copy, rig:GetPivot(), 0, 0)
 		return
 	end
+	if view.Route and view.Route ~= route and view.Route.Closed and route.Closed and view.Dist then -- a dodge (design doc 4.37): same lap angle, sliding over from the old lane
+		local scaled = view.Dist * route.Arc[#route.Arc] / view.Route.Arc[#view.Route.Arc]
+		local old = PathDriver.PoseAt(view.Route.Wps, view.Route.Arc, view.Dist, nil, view.Route.Closed)
+		local new = PathDriver.PoseAt(route.Wps, route.Arc, scaled, nil, route.Closed)
+		view.Dist, view.Hint = scaled, nil
+		view.Slide, view.SlideLeft = old.Position - new.Position, LANE_SLIDE_SECONDS
+		view.SlideSide = new.RightVector:Dot(new.Position - old.Position) >= 0 and 1 or -1
+	end
+	view.Route = route
 	local arcEnd = route.Closed and math.huge or route.Arc[#route.Arc] -- a lap route's distance keeps growing; PoseAt wraps it
 	local target = math.min(rd + rs * (now - view.ChangedAt), arcEnd)
 	local dist = view.Dist
@@ -208,8 +218,22 @@ local function step(view, now)
 	RunStyleFx.SetMoving(copy, view.Moving)
 	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint, route.Closed)
 	view.Hint = k
+	local dashAt = nil
+	if view.Slide then
+		view.SlideLeft -= dt
+		if view.SlideLeft > 0 then
+			feet += view.Slide * (view.SlideLeft / LANE_SLIDE_SECONDS) ^ 2
+			dashAt = 1 - view.SlideLeft / LANE_SLIDE_SECONDS
+		else
+			view.Slide = nil
+		end
+	end
 	view.Phase = RunnerVisual.Advance(view.Phase, rs, dt)
-	RunnerVisual.Pose(copy, feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0), view.Phase, rs > 0 and 1 or 0)
+	local root = feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
+	RunnerVisual.Pose(copy, root, view.Phase, rs > 0 and 1 or 0)
+	if dashAt then
+		RunnerVisual.PoseDash(copy, root, dashAt, view.SlideSide)
+	end
 end
 
 local function stepAll()

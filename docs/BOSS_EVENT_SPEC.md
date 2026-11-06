@@ -20,14 +20,33 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 ## Run rules
 - Real cruise and real stamina. At all empty: wait 5 s, full team refills, continue.
-- Each Big Raga attack's `Impact` costs the running character 5% of a full bar, for every running player, decided by the server from the shared move schedule. A character in the 5 s wait loses nothing (**proposed**). Shout and wheel turn cost no stamina.
-- `Roar` starts Shouted: players deal 25% less damage for 5 s (amount **proposed**; the owner set the 5 s). Each `WheelClick` step in a wheel turn starts or refreshes Adapted: Big Raga takes 10% less damage for 5 s (owner 2026-11-05; no stacking is **proposed**). Both are server state from the shared schedule and multiply damage at hit time.
-- Boss bar (owner's reference 2026-11-05, layout only, no copied art): boss name above the bar; HP numbers inside it; status icons with seconds under its left side, from a server attribute.
+- Each Big Raga attack's `Impact` costs the running character 5% of a full bar, for every running player the attack hits (see Dodge bar), decided by the server from the shared move schedule. A character in the 5 s wait loses nothing (**proposed**). Shout and wheel turn cost no stamina.
+- `Roar` starts Shouted on each player it hits: that player deals 25% less damage for 5 s (amount **proposed**; the owner set the 5 s). Each `WheelClick` step in a wheel turn starts or refreshes Adapted on each player it hits: Big Raga takes 10% less damage from that player for 5 s (owner 2026-11-05; no stacking is **proposed**). Both are per-player server state from the shared schedule and the player's dodges, and multiply damage at hit time.
+- Boss bar (owner's reference 2026-11-05, layout only, no copied art): boss name above the bar; HP numbers inside it; status icons with seconds under its left side, from the player's own server attribute, so two players can see different icons.
 - Drop list hanging from the bar's bottom-right corner, its right edge on the bar's right edge, for players in the event, appearing after the spawn warning has finished flashing, the warning staying centred with no room reserved for the list (owner 2026-11-05) (rows centre aligned, heavy text with a dark stroke; owner's reference 2026-11-05, layout only): a "Drop:" heading over a shorter rule, then one row per Relic with its name and percentage, in its rarity's colour, and Big Raga 0.001% in black with a light outline to stay readable.
-- Chat (owner 2026-11-05): each Big Raga attack, shout and wheel turn posts a Roblox chat message to players in the event only, from the server's shared schedule. Wording **proposed**: "Big Raga attacks! -5% stamina", "Big Raga shouts! Damage down for 5 s", "Big Raga turns its wheel! It takes 10% less damage for 5 s".
+- Chat (owner 2026-11-05): each Big Raga attack, shout and wheel turn posts a Roblox chat message to the players in the event it hits, from the server's shared schedule; a player who dodged gets no line (**proposed**). Wording **proposed**: "Big Raga attacks! -5% stamina", "Big Raga shouts! Damage down for 5 s", "Big Raga turns its wheel! It takes 10% less damage for 5 s".
 - Exhaustion view (owner 2026-11-05): during the 5 s wait the local camera hovers above and outward of the player's own runner, tilted down toward the boss, so the player sees everything from above (owner 2026-11-05); the screen dims slightly; a small panel, centred below the bar and clear of the drop list, says "Exhausted, reviving", with a countdown and a loading sign that completes exactly at 5 s, from a server end time. Then the camera returns and the team is revived. Client only.
 - Camera: wider event FOV, 100 (**placeholder**), so surrounding players show. Sidekicks stay within their 30-40% size rule (4.36) and read through placement and a soft outline (**proposed**).
 - The team hits every 1.5 s for its team damage: the average of its Sidekicks' damage (`SIDEKICK_SPEC`), scaled by Relics, x speed scale. Speed scale (**placeholder**) = 1 + min(1, cruise / 800), from the running character's cruise, so at most +100%. Only the running character's Sidekick draws the attack.
+
+## Dodge bar
+Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Shared/BossDodge`.
+
+| Item | Value |
+|---|---|
+| Bar in and out | 0.3 s pop up, just before the sweep starts; 0.3 s disappear (owner 2026-11-06) |
+| Sweep | 1.5 s, ending at the move's moment (`Impact`, `Roar`, `WheelClick`). The shortest gap between moments is 3.95 s |
+| Spot | Centre at 25% to 69% of the bar, so the window ends at least 0.35 s before the moment, width 14% (about 0.21 s); white core, gold edges; different per player and per move, from a seed both sides compute |
+| Presses | One per move; a press off the spot counts as the try, and the player is hit at the moment |
+| Result text | 1.5 s. Dodged: gold, popping out, with a star burst. Hit: red, flashing (owner 2026-11-06) |
+| Lane dash | 0.35 s on every client, with the side dash pose: 3 key frames approved by the owner 2026-11-06 (`assets/characters_avatar/runner_dash/keyframes/dash_keys.jpg`) |
+| Stars | 12 UI stars from the text and a burst of `ParticleEmitter` stars on the local runner; none under REDUCED EFFECTS |
+
+- Input: Space or gamepad A, bound only while the bar shows, so it never jumps. On touch the bar itself is the button, and the subtitle says "Tap" (**proposed**; phones have no Space).
+- Prompt text: "Press SPACE when the bar hits the white!" (**proposed**).
+- No bar for a player in the 5 s wait or without a run, and such a player is not hit by that move (**proposed**).
+- Lane: to a free neighbouring lane, at random if both are free; if neither is, the runner shares a neighbour's lane. The lap angle is kept.
+- Trust: the client sends the press's server-time stamp, because a 0.21 s window would not survive ping. The server accepts a press only if the stamp is inside the window and no more than 0.5 s old, and the press arrives by the moment. A forged stamp only skips boss effects, which a perfect player also skips (accepted risk).
 
 ## Team HUD
 - Three slots, chosen from the player's characters with a Sidekick; the note reads "Only characters with Sidekicks can be equipped for bosses". Fewer than 3 such characters means fewer slots filled, and the team runs with 1 or 2.

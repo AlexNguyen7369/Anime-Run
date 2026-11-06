@@ -3,10 +3,11 @@
 -- WeatherService shape), or at once for a paid start. The server decides every hit; no remote reaches the damage. Contract:
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
--- BossEventHp, BossEventMaxHp and BossStatus (JSON list of { Id, EndsAt in server time }, nil when empty), and the player attributes
--- BossEvent (true while in the event), BossTeamDamage (TeamDamage, nil outside the event) and BossWaitEndsAt (server time the
--- exhausted team revives, nil otherwise). They call the RemoteFunctions
--- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
+-- BossEventHp and BossEventMaxHp, and the player attributes BossEvent (true while in the event), BossTeamDamage (TeamDamage, nil
+-- outside the event), BossWaitEndsAt (server time the exhausted team revives, nil otherwise) and BossStatus (JSON list of { Id,
+-- EndsAt in server time }, nil when empty; each player's own, since a dodge spares that player alone). They call the
+-- RemoteFunctions Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids), Remotes.BossEventLeave() and
+-- Remotes.BossDodge(index, stamp); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message and each member's move lines to Client/BossEventChat.
 -- Remotes.BossHits carries each hit, batched, to the players in the event: { UserId, SidekickId, Damage }, for Client/SidekickAttackView.
 local HttpService = game:GetService("HttpService")
@@ -15,9 +16,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
+local BossDodge = require(Shared.BossDodge)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
-local Poses = require(Shared.BossRagaPoses)
 local StaminaConfig = require(Shared.StaminaConfig)
 local CarService = require(script.Parent.CarService)
 local DuelService = require(script.Parent.DuelService)
@@ -30,10 +31,12 @@ local SidekickService = require(script.Parent.SidekickService)
 local BossEventService = {}
 
 local REMOTE_COOLDOWN = 0.25
+local TICK_SECONDS = 0.25 -- a player's status icon appears this soon after the move that hit them
 local HIT_BATCH_SECONDS = 0.25 -- at most 4 batches of hits a second to a player (docs/BOSS_EVENT_SPEC.md)
 local DAMAGE_EPSILON = 1e-6 -- exactly the minimum share still earns the reward, whatever the float sum
 local TIME_EPSILON = 1e-6 -- s: a clock a float's hair before a schedule moment is on it
-local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
+local DODGE_STAMP_SLACK = 0.03 -- s: a press stamped on the spot's edge, on a client clock a hair off the server's
+local DODGE_MAX_AGE = 0.5 -- s: a stamp older than this on arrival is refused
 local STATUSES = {
 	{ Id = "Shouted", Event = "Roar", Seconds = Cfg.ShoutSeconds, Cut = Cfg.ShoutDamageCut },
 	{ Id = "Adapted", Event = "WheelClick", Seconds = Cfg.AdaptedSeconds, Cut = Cfg.AdaptedCut },
@@ -66,86 +69,41 @@ local function publish()
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
 	ReplicatedStorage:SetAttribute("BossEventMaxHp", event and event.MaxHp or nil)
-	if not event then
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
-	end
 end
 
--- Event name -> its moments in one schedule cycle, seconds after the intro's end. Read off the shared schedule, so every client's
--- animation and the server agree. Rounded to the 3 places the schedule's times are written in.
-local moments = {}
-do
-	for _, move in Poses.Moves do
-		for _, moveEvent in move.Events do
-			moments[moveEvent.Name] = {}
-		end
-	end
-	local lastMove, lastLocal = nil, 0
-	for k = 0, math.ceil(Poses.CycleSeconds / SCAN_STEP) - 1 do
-		local since = k * SCAN_STEP
-		local move, localTime = Poses.Schedule(-Cfg.IntroSeconds, since)
-		if move ~= lastMove or localTime < lastLocal then
-			for _, moveEvent in Poses.Moves[move].Events do
-				local at = since - localTime + moveEvent.Time
-				table.insert(moments[moveEvent.Name], math.round(at * 1000) / 1000)
-			end
-		end
-		lastMove, lastLocal = move, localTime
-	end
-end
-
--- t in seconds since the spawn -> whole cycles past the intro's end, and seconds into this cycle. Nil before the intro's end.
-local function cycleAt(t)
-	local since = t + TIME_EPSILON - Cfg.IntroSeconds
-	if since < 0 then
-		return nil
-	end
-	local cycles = math.floor(since / Poses.CycleSeconds)
-	return cycles, since - cycles * Poses.CycleSeconds
-end
-
-local function countUpTo(name, t)
-	local cycles, inCycle = cycleAt(t)
-	if not cycles then
-		return 0
-	end
-	local count = cycles * #moments[name]
-	for _, at in moments[name] do
-		count += at <= inCycle and 1 or 0
-	end
-	return count
+-- The index of the last moment at or before t, in seconds since the spawn.
+local function indexAt(t)
+	return BossDodge.IndexAtOrBefore(t + TIME_EPSILON - Cfg.IntroSeconds)
 end
 
 -- How many attack Impacts fall in fromT < t <= toT, in seconds since the spawn. Pure.
 function BossEventService.AttackImpactsBetween(fromT, toT)
-	return math.max(0, countUpTo("Impact", toT) - countUpTo("Impact", fromT))
+	local count = 0
+	for index = indexAt(fromT) + 1, indexAt(toT) do
+		count += select(2, BossDodge.Moment(index)) == "Impact" and 1 or 0
+	end
+	return count
 end
 
--- When a status running at t ends, in seconds since the spawn, or nil. A new moment refreshes it: statuses never stack.
-local function statusEnd(status, t)
-	local cycles, inCycle = cycleAt(t)
-	if not cycles then
-		return nil
-	end
-	local list = moments[status.Event]
-	local at = nil
-	for i = #list, 1, -1 do
-		if list[i] <= inCycle then
-			at = cycles * Poses.CycleSeconds + list[i]
-			break
+-- When a status running at t ends, in seconds since the spawn, or nil. The latest moment that was not spared counts: statuses
+-- never stack. `spared` is a member's moment index -> true, nil for a player every move hits.
+local function statusEnd(status, t, spared)
+	for index = indexAt(t), 1, -1 do
+		local at, name = BossDodge.Moment(index)
+		local ends = Cfg.IntroSeconds + at + status.Seconds
+		if t + TIME_EPSILON >= ends then
+			return nil
+		elseif name == status.Event and not (spared and spared[index]) then
+			return ends
 		end
 	end
-	if not at and cycles > 0 then
-		at = (cycles - 1) * Poses.CycleSeconds + list[#list]
-	end
-	local ends = at and Cfg.IntroSeconds + at + status.Seconds
-	return ends and t + TIME_EPSILON < ends and ends or nil
+	return nil
 end
 
-local function statusJson(t)
+local function statusJson(t, spared)
 	local rows = {}
 	for _, status in STATUSES do
-		local ends = statusEnd(status, t)
+		local ends = statusEnd(status, t, spared)
 		if ends then
 			table.insert(rows, { Id = status.Id, EndsAt = event.StartAt + Cfg.PrepSeconds + ends })
 		end
@@ -154,11 +112,11 @@ local function statusJson(t)
 end
 
 BossEventService.Hooks = {
-	-- What the running statuses leave of a hit, t in seconds since the spawn. Pure.
-	DamageMulti = function(t)
+	-- What the running statuses leave of a hit, t in seconds since the spawn, `spared` the member's dodged moments. Pure.
+	DamageMulti = function(t, spared)
 		local multi = 1
 		for _, status in STATUSES do
-			if statusEnd(status, t) then
+			if statusEnd(status, t, spared) then
 				multi *= 1 - status.Cut
 			end
 		end
@@ -187,6 +145,9 @@ BossEventService.Hooks = {
 	end,
 	Depart = function(player)
 		CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
+	end,
+	SwitchLane = function(run, lane)
+		run:SwitchRoute(Arena.LaneRoute(lane))
 	end,
 	Chat = function(text)
 		if chatRemote then
@@ -371,7 +332,7 @@ function BossEventService.RecordHit(player)
 	if not spec then
 		return 0 -- design doc 4.36: the Sidekick deals the damage
 	end
-	local multi = BossEventService.Hooks.DamageMulti(now() - event.StartAt - Cfg.PrepSeconds)
+	local multi = BossEventService.Hooks.DamageMulti(now() - event.StartAt - Cfg.PrepSeconds, member.Spared)
 	local dealt = math.min(BossEventService.TeamDamage(player) * multi, event.Hp)
 	member.Damage += dealt
 	event.Hp -= dealt
@@ -399,14 +360,24 @@ local function hitSpacing(player, member)
 	return count > 0 and Cfg.HitEverySeconds / (total / count) or Cfg.HitEverySeconds
 end
 
--- The attacks since this member's last charge, on the character running now. At 0 the run's own next frame swaps or starts the
--- wait, exactly as for a drain to 0. Impacts during the wait are passed over, never owed.
-local function chargeAttacks(member, t)
-	local impacts = BossEventService.AttackImpactsBetween(member.ChargedTo, t)
+-- Each move since this member's last charge that hit: the attack's cost on the character running now and the move's chat line. At
+-- 0 the run's own next frame swaps or starts the wait, exactly as for a drain to 0. A move during the wait is passed over, never
+-- owed; a dodged one is already spared.
+local function chargeMoves(player, member, t)
+	local from = indexAt(member.ChargedTo)
 	member.ChargedTo = math.max(member.ChargedTo, t)
 	local run = member.Run
-	if impacts > 0 and run and not run.Waiting then
-		run.Stamina[run.Slot] = math.max(0, run.Stamina[run.Slot] - impacts * Cfg.AttackStaminaCost)
+	for index = from + 1, indexAt(t) do
+		if run and run.Waiting then
+			member.Spared[index] = true
+		end
+		if not member.Spared[index] then
+			local _, name = BossDodge.Moment(index)
+			if name == "Impact" and run then
+				run.Stamina[run.Slot] = math.max(0, run.Stamina[run.Slot] - Cfg.AttackStaminaCost)
+			end
+			safely(BossEventService.Hooks.MoveChat, player, Cfg.MoveChat[name])
+		end
 	end
 end
 
@@ -423,6 +394,7 @@ local function release(player, member, depart)
 	player:SetAttribute("BossEvent", nil)
 	player:SetAttribute("BossTeamDamage", nil)
 	player:SetAttribute("BossWaitEndsAt", nil)
+	player:SetAttribute("BossStatus", nil)
 	if member.Run then
 		safely(member.Run.Destroy, member.Run)
 	end
@@ -477,6 +449,8 @@ function BossEventService.Join(player)
 		HitsSentAt = -math.huge,
 		JoinedAt = joinedAt,
 		ChargedTo = elapsed - Cfg.PrepSeconds, -- nothing at or before the join is owed
+		Spared = {}, -- moment index -> true: dodged, or passed in the wait
+		Pressed = {}, -- moment index -> true: the one press a prompt allows was used
 		Equipped = player:GetAttribute("EquippedCar"),
 	}
 	current.Members[player] = member
@@ -494,6 +468,65 @@ function BossEventService.Join(player)
 	if BossEventService.IsIn(player) then
 		player:SetAttribute("BossTeamDamage", BossEventService.TeamDamage(player))
 	end
+	return true
+end
+
+-- The neighbouring lane to dodge into: a free one, at random if both are; a taken one if neither is.
+local function dodgeLane(player, lane)
+	local free, near = {}, {}
+	for _, candidate in { lane - 1, lane + 1 } do
+		if candidate >= 1 and candidate <= Arena.Lanes then
+			table.insert(near, candidate)
+			local taken = false
+			for other, member in event.Members do
+				taken = taken or (other ~= player and member.Lane == candidate)
+			end
+			if not taken then
+				table.insert(free, candidate)
+			end
+		end
+	end
+	local from = #free > 0 and free or near
+	return from[rewardRng:NextInteger(1, #from)]
+end
+
+-- One press of the Dodge bar. `index` and `stamp` (the press, in server time) come from a client: the window and the moment are
+-- the server's. docs/BOSS_EVENT_SPEC.md "Dodge bar" covers why the stamp is trusted this far. Returns ok, reason.
+function BossEventService.Dodge(player, index, stamp)
+	local member = event and event.Members[player]
+	if not member then
+		return false, "Not in the event"
+	end
+	if not (member.Run and not member.Run.Waiting) then
+		return false, "Not running"
+	end
+	if type(index) ~= "number" or index < 1 or index % 1 ~= 0 or index == math.huge then
+		return false, "Invalid press"
+	end
+	if type(stamp) ~= "number" or stamp ~= stamp or math.abs(stamp) == math.huge then
+		return false, "Invalid press"
+	end
+	local at = now()
+	local moment = event.StartAt + Cfg.PrepSeconds + Cfg.IntroSeconds + BossDodge.Moment(index)
+	if at > moment or at < moment - BossDodge.SweepSeconds - DODGE_STAMP_SLACK then
+		return false, "No bar"
+	end
+	if member.Pressed[index] then
+		return false, "Already pressed"
+	end
+	member.Pressed[index] = true
+	local from, to = BossDodge.Window(BossDodge.Spot(userIdOf(player) or 0, event.StartAt, index), moment)
+	if
+		stamp < from - DODGE_STAMP_SLACK
+		or stamp > to + DODGE_STAMP_SLACK
+		or stamp > at + DODGE_STAMP_SLACK
+		or at - stamp > DODGE_MAX_AGE
+	then
+		return false, "Missed"
+	end
+	member.Spared[index] = true
+	member.Lane = dodgeLane(player, member.Lane)
+	safely(BossEventService.Hooks.SwitchLane, member.Run, member.Lane)
 	return true
 end
 
@@ -515,6 +548,9 @@ end
 
 local function begin(source, at)
 	event = { StartAt = at, Source = source, Phase = "Prep", Hp = 0, MaxHp = 0, Members = {} }
+	for lane = 1, Arena.Lanes do
+		RaceService.PrepareRoute(Arena.LaneRoute(lane)) -- a dodge never sends a client to a route it does not have yet
+	end
 	publish()
 end
 
@@ -556,19 +592,6 @@ function BossEventService.Reset(at)
 	publish()
 end
 
--- One chat line per move whose moment passed since the last tick, to the players in the event now.
-local function announceMoves(current, t)
-	local from = current.ChattedTo or 0
-	current.ChattedTo = math.max(from, t)
-	for name, text in Cfg.MoveChat do
-		if countUpTo(name, t) > countUpTo(name, from) then
-			for player in current.Members do
-				safely(BossEventService.Hooks.MoveChat, player, text)
-			end
-		end
-	end
-end
-
 -- One event's clock at `at`: the spawn, the end of the intro, every hit due, the ends.
 local function tick(at)
 	local current = event
@@ -595,10 +618,9 @@ local function tick(at)
 		end
 	end
 	local t = elapsed - Cfg.PrepSeconds
-	ReplicatedStorage:SetAttribute("BossStatus", statusJson(t))
-	announceMoves(current, t)
 	for player, member in table.clone(current.Members) do
-		chargeAttacks(member, t)
+		chargeMoves(player, member, t)
+		player:SetAttribute("BossStatus", statusJson(t, member.Spared))
 		if not player.Parent then
 			BossEventService.Leave(player, "Left")
 		elseif member.Run and member.Run.Waiting then
@@ -676,6 +698,7 @@ function BossEventService.Init()
 		return BossEventService.Join(player)
 	end)
 	bind(remotes, "BossEventSetTeam", BossEventService.SetTeam)
+	bind(remotes, "BossDodge", BossEventService.Dodge)
 	local function left(player)
 		BossEventService.Leave(player, "Left")
 	end
@@ -688,7 +711,7 @@ function BossEventService.Init()
 	nextAt = now() + Cfg.IntervalSeconds
 	task.spawn(function()
 		while true do
-			task.wait(1)
+			task.wait(TICK_SECONDS)
 			if ReplicatedStorage:GetAttribute("CarTestRunning") ~= true then
 				safely(BossEventService.Advance)
 			end
