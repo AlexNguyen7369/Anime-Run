@@ -7,6 +7,7 @@
 --   rotation), with Name, Rarity and Rate ("%g%%"); Poster/Model is one ViewportFrame holding those models, named by id.
 --   RotationTimer is a TextLabel showing m:ss to EndsAt. DetailsSheet/List has a row per Public id and one named Secret, each with a
 --   label Odds reading "%.3f%%"; the Secret row has Shape/Model, black, holding SecretId's model, and no Name label.
+--   Rows come from Public.Odds (id to percent), rounded to 3 decimals by largest remainder, so the shown rows sum to exactly 100.000.
 -- Guarantee contract (design doc 4.36, section 6; implementer: report a change, do not loosen): when SidekickPity >= PityCount - 1 the
 --   Mythic is due; else when SidekickLegendaryPity >= LegendaryPityCount - 1 a Legendary is due. While one is due the tier's rows
 --   share 100% evenly (one Mythic 100.000%, two Legendaries 50.000% each, as the server picks evenly and section 6 sums to 100),
@@ -347,31 +348,45 @@ function Module.Build(h)
 			odds.Secret = 0
 			return odds
 		end
-		-- What the player must see, from the replicated view alone: listed odds, the rest split across Commons.
-		local secrets = secretRows()
-		odds.Secret = secrets[1] and secrets[1].Odds or 0
-		local rest, commons = 100 - odds.Secret, 0
+		-- What the server rolls, from the replicated view alone.
+		local served = view.Odds or {}
+		odds.Secret = served[view.SecretId] or 0
 		for _, id in view.Ids do
-			local row = Config.Get(id)
-			rest -= row.Odds
-			commons += row.Rarity == "Common" and 1 or 0
-		end
-		for _, id in view.Ids do
-			local row = Config.Get(id)
-			odds[id] = row.Odds + (row.Rarity == "Common" and rest / commons or 0)
+			odds[id] = served[id] or 0
 		end
 		return odds
 	end
 	local function shownOdds(list, name)
 		return labelText(list:FindFirstChild(name), "Odds")
 	end
+	local function shownThousandths(list, name)
+		local number = tonumber(string.match(shownOdds(list, name), "^(%d+%.%d%d%d)%%$"))
+		return number and math.round(number * 1000)
+	end
 	local function shownSum(res, tag, list, view)
 		local sum = 0
 		for name in wantOdds(view) do
-			sum += tonumber(string.match(shownOdds(list, name), "^(%d+%.%d%d%d)%%$")) or 0
+			sum += shownThousandths(list, name) or 0
 		end
-		local rounding = 0.0005 * (#view.Ids + 1) + 1e-6
-		h.check(res, tag, sum, "100 +- " .. rounding, math.abs(sum - 100) <= rounding)
+		check(res, tag, sum, 100000)
+	end
+	-- nil when every shown row is its percent rounded by largest remainder: down or up by under 0.001, only the largest remainders up.
+	local function oddsProblem(list, want)
+		local lowestUp, highestDown = math.huge, -math.huge
+		for name, percent in want do
+			local shown = shownThousandths(list, name)
+			local exact = percent * 1000 + 1e-6 -- 24.166 * 1000 lands just under 24166
+			local floor = math.floor(exact)
+			local remainder = exact - floor
+			if shown == floor then
+				highestDown = math.max(highestDown, remainder)
+			elseif shown == floor + 1 and remainder > 2e-6 then
+				lowestUp = math.min(lowestUp, remainder)
+			else
+				return name .. " " .. shownOdds(list, name) .. " want about " .. string.format("%.5f%%", percent)
+			end
+		end
+		return lowestUp < highestDown - 2e-6 and "not largest remainder" or nil
 	end
 
 	-- Section 6: every summon outcome, read from the shown labels, sums to 100%.
@@ -388,9 +403,11 @@ function Module.Build(h)
 		if not view then
 			return -- sidekick_rotation_attribute_readable already failed
 		end
-		for name, odds in wantOdds(view) do
-			check(res, "sidekick_details_odds_" .. name, shownOdds(list, name), string.format("%.3f%%", odds))
-		end
+		check(res, "sidekick_public_has_odds", type(view.Odds), "table")
+		local rows = waitFor(function()
+			return oddsProblem(list, wantOdds(view))
+		end)
+		check(res, "sidekick_details_odds_match_server", rows or "right", "right")
 		shownSum(res, "sidekick_details_sum_100", list, view)
 		local secrets = secretRows()
 		local liveIsAChoice = false
@@ -462,13 +479,7 @@ function Module.Build(h)
 			check(res, "sidekick_pity_bars_" .. tag, bars or "follow", "follow")
 			local want = wantOdds(view, tier)
 			local odds = waitFor(function()
-				for name, percent in want do
-					local text = string.format("%.3f%%", percent)
-					if shownOdds(list, name) ~= text then
-						return name .. " " .. shownOdds(list, name) .. " want " .. text
-					end
-				end
-				return nil
+				return oddsProblem(list, want)
 			end)
 			check(res, "sidekick_guarantee_odds_" .. tag, odds or "right", "right")
 			shownSum(res, "sidekick_guarantee_sum_100_" .. tag, list, view)

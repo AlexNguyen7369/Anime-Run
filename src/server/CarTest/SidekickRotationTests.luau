@@ -7,7 +7,8 @@
 --     A tier with too few rows that have a Model holds the ones it has.
 --   Rotation.Odds maps only in-rotation ids.
 --   Rotation.Public(slot) has exactly: Ids (array), SecretChoices (array of { Name, Odds }), SecretId (the slot's
---     live Secret, owner ruling: Details shows it as a black silhouette), EndsAt ((slot + 1) * 1800).
+--     live Secret, owner ruling: Details shows it as a black silhouette), EndsAt ((slot + 1) * 1800), Odds (Rotation.Odds(slot):
+--     id to percent, the numbers Details shows).
 --   SidekickService.Roll(rng): the row or id of one roll on the clock's slot, one rng:NextNumber() per roll (Config.Roll),
 --     which lets the sweep below judge exact odds without any luck. SetClock(fn) replaces os.time and publishes at once;
 --     SetClock() puts the real clock back. A summon reads the clock once. Start keeps the attribute current within 2 s.
@@ -141,6 +142,7 @@ function Tests.sidekick_rotation()
 			true, true, true, true, true, true, true, true
 		local publicSecretOk, publicSecretChoice = true, true
 		local publicKeysOk, publicIdsOk, publicEndsOk, publicHidden, choicesSame = true, true, true, true, true
+		local publicOddsOk = true
 		local firstChoices
 		local previous
 		for slot = SLOT0, SLOT0 + SLOTS - 1 do
@@ -195,7 +197,11 @@ function Tests.sidekick_rotation()
 				publicKeys[key] = true
 			end
 			publicKeysOk = publicKeysOk
-				and H.same(publicKeys, { Ids = true, SecretChoices = true, SecretId = true, EndsAt = true })
+				and H.same(
+					publicKeys,
+					{ Ids = true, SecretChoices = true, SecretId = true, EndsAt = true, Odds = true }
+				)
+			publicOddsOk = publicOddsOk and H.same(public.Odds, odds)
 			publicIdsOk = publicIdsOk and H.same(setOf(public.Ids or {}), setOf(members(rotation)))
 			publicEndsOk = publicEndsOk and public.EndsAt == (slot + 1) * 1800
 			local raw = HttpService:JSONEncode(public)
@@ -231,6 +237,7 @@ function Tests.sidekick_rotation()
 		flag("odds_remainder_on_commons", commonOk)
 
 		flag("public_keys_exact", publicKeysOk)
+		flag("public_odds_are_the_slots", publicOddsOk)
 		flag("public_ids_without_secret", publicIdsOk)
 		flag("public_ends_at_slot_end", publicEndsOk)
 		flag("public_secret_id_is_the_slots", publicSecretOk)

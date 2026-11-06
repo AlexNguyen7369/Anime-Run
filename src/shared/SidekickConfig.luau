@@ -157,7 +157,7 @@ SidekickConfig.BossDrops = {
 		Cruise = 0.1,
 		Stamina = 0.1,
 		Damage = 40,
-		SellGems = 500,
+		SellGems = 30,
 	},
 }
 

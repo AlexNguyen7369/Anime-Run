@@ -506,7 +506,8 @@ function BossEventService.Leave(player, reason)
 	event.Members[player] = nil
 	if now() - event.StartAt < Cfg.JoinSeconds then
 		event.MaxHp -= Cfg.HpPerPlayer
-		event.Hp = math.min(event.Hp, event.MaxHp)
+		-- An emptied arena has MaxHp 0, so Hp is 0 too: the next joiner starts from exactly one player's HP.
+		event.Hp = math.min(math.max(event.Hp - Cfg.HpPerPlayer, 1), event.MaxHp)
 	end
 	publish()
 	release(player, member, reason ~= "Death")

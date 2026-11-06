@@ -19,7 +19,23 @@ local Tests = {}
 local UID = 990136000
 local VERSION = 18 -- 18: BossCredit (BossPaidTests); 17: pity (SidekickPityTests); 16: Relics (RelicTests)
 local CLOCK = 1800000123 -- one fixed rotation slot for the whole scenario
-local SOURCE_NAMES = { "pochita", "igris", "kaisel" } -- design doc 4.36: the real names no id or name may show
+-- Design doc section 5: the real names no id or name may show, from each docs/char_evidence/side_*.md "Based on" line.
+local SOURCE_NAMES = {
+	"pochita",
+	"igris",
+	"kaisel",
+	"beru",
+	"kasugai",
+	"rika",
+	"divine dog",
+	"divine dogs",
+	"star platinum",
+	"kurama",
+	"hawk",
+	"ryuk",
+	"chopper",
+	"mahoraga",
+}
 
 local function gems(p)
 	return tonumber(p:GetAttribute("Gems")) or 0
@@ -65,15 +81,27 @@ function Tests.sidekicks()
 		local odds = 0
 		for _, row in List do
 			odds += row.Odds
+			flag("movement_valid_" .. row.Id, row.Movement == "Walk" or row.Movement == "Fly")
+		end
+		local allRows = table.clone(List)
+		table.move(Cfg.BossDrops, 1, #Cfg.BossDrops, #allRows + 1, allRows)
+		flag("catalog_has_13", #allRows == 13, #allRows, 13)
+		for _, row in allRows do
 			local text = string.lower(row.Id .. " " .. row.Name)
 			local clean = require(script.Parent.CatalogTests).realNameIn(string.lower(row.Id)) == nil
 				and require(script.Parent.CatalogTests).realNameIn(string.lower(row.Name)) == nil
 			for _, name in SOURCE_NAMES do
-				clean = clean and string.find(text, name, 1, true) == nil
+				-- Whole words, lowercased: "Hawke" is the intended tweak of "Hawk"; "side_hawk" and "Hawk" still fail.
+				clean = clean and string.find(text, "%f[%a]" .. name .. "%f[%A]") == nil
 			end
 			flag("no_real_name_" .. row.Id, clean)
-			flag("movement_valid_" .. row.Id, row.Movement == "Walk" or row.Movement == "Fly")
-			flag("sells_under_cost_" .. row.Id, row.SellGems > 0 and row.SellGems < Cfg.SummonCost)
+			-- Design doc 4.36: "well under a summon's cost", read as at most 60% of it.
+			flag(
+				"sells_well_under_cost_" .. row.Id,
+				row.SellGems > 0 and row.SellGems <= 0.6 * Cfg.SummonCost,
+				row.SellGems,
+				0.6 * Cfg.SummonCost
+			)
 		end
 		flag("odds_sum_100", approx(odds, 100), odds, 100)
 		flag("config_costs_positive", Cfg.SummonCost > 0 and Cfg.TenCost > 0 and Cfg.BagSize >= 10)
@@ -252,12 +280,12 @@ function Tests.sidekicks()
 		flag("summon_keeps_turbo", lucky:GetAttribute("TurboCount") == 3, lucky:GetAttribute("TurboCount"), 3)
 		flag("summon_keeps_quests", H.same(Quest.Snapshot(lucky), questBefore))
 
-		-- Big Raga: a boss drop only (owner 2026-11-05, docs/SIDEKICK_SPEC.md). 500 is its spec's sell value.
+		-- Big Raga: a boss drop only (owner 2026-11-05, docs/SIDEKICK_SPEC.md). 30 is its spec's sell value.
 		local raga = Cfg.Get("side_raga")
 		flag("raga_in_get", raga ~= nil and raga.Name == "Big Raga" and raga.Rarity == "Secret")
 		flag("raga_in_boss_drops", Cfg.BossDrops ~= nil and Cfg.BossDrops[1] == raga)
 		flag("raga_not_in_list", rowOf.side_raga == nil)
-		flag("raga_sells_for_spec", raga ~= nil and raga.SellGems == 500, raga and raga.SellGems, 500)
+		flag("raga_sells_for_spec", raga ~= nil and raga.SellGems == 30, raga and raga.SellGems, 30)
 		local catalogTests = require(script.Parent.CatalogTests)
 		flag(
 			"no_real_name_side_raga",
@@ -290,7 +318,8 @@ function Tests.sidekicks()
 		S.Equip(holder, charA, nil)
 		holder:SetAttribute("Gems", 0)
 		flag("raga_sells", S.Sell(holder, ragaEntry) == true and not has(holder, ragaEntry))
-		flag("raga_sell_pays_spec", gems(holder) == 500, gems(holder), 500)
+		flag("raga_sell_value_is_30", raga ~= nil and raga.SellGems == 30, raga and raga.SellGems, 30)
+		flag("raga_sell_pays_spec", raga ~= nil and gems(holder) == raga.SellGems, gems(holder), raga and raga.SellGems)
 
 		-- VIP pays 10% fewer Gems (design doc 4.36). IsVip is a marked shortcut, always false until the monetization branch merges.
 		local priced = unlocked()

@@ -69,6 +69,7 @@ function Rotation.Odds(slot)
 end
 
 -- All a client may see. SecretChoices is the same every slot; SecretId is this slot's Secret, for the Details silhouette (owner 2026-11-05).
+-- Odds holds this slot's ids only, so it reveals no more than Ids and SecretId.
 function Rotation.Public(slot)
 	local choices = {}
 	for _, row in Config.List do
@@ -81,6 +82,7 @@ function Rotation.Public(slot)
 		Ids = publicIds(rotation),
 		SecretChoices = choices,
 		SecretId = rotation.Secret,
+		Odds = Rotation.Odds(slot),
 		EndsAt = (slot + 1) * Rotation.SLOT_SECONDS,
 	}
 end
