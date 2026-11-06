@@ -423,7 +423,7 @@ before any Studio work.
   - 1:00-3:00, late joining: players can still teleport in, and their team is chosen for them. Teleporting closes at 3:00.
   - Everyone returns to the spawn at the end. A player can also leave the battle at any time with a leave option; there is no other early exit (owner 2026-11-05). Exhaustion never removes a player: the 5 second wait applies, then the team resumes.
   - A player in a duel can teleport in (owner 2026-11-05).
-- When Big Raga spawns, and for each player who joins after that, a big flashing red warning header ("Big Raga has emerged, take him down!!!") shows on the screen of players in the event only. At the spawn, a bright red Roblox chat message ("BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS") goes to everyone in the server (owner 2026-11-05).
+- When Big Raga spawns, and for each player who joins after that, a big red warning ("Big Raga has emerged, take him down!!!") flashes in and out, with no border and no background, on the screen of players in the event only (owner 2026-11-05). At the spawn, a bright red Roblox chat message ("BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS") goes to everyone in the server (owner 2026-11-05).
 - Any player with a Sidekick can pay 149 Robux to start the same event at once for their server, from a Boss button at the top left of the
   screen. It cannot be bought while an event is active.
 - The first boss is Big Raga, based on Mahoraga (Jujutsu Kaisen). It stands huge in the middle of a separate circular sky arena: clouds,
@@ -574,3 +574,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: Big Raga's shout lowers players' damage for 5 seconds; its wheel turn gives it 10% damage reduction; both show as status effects under the HP bar (4.37).
 - 2026-11-05: owner: Sidekick summon pity, Mythic at 300 and Legendary at 100 (4.36), relayed by the summon redesign session; replaces the spec's no-pity line for Sidekicks only.
 - 2026-11-05: owner: pity details (Mythic resets only its own count, Mythic wins a tie, the tutorial summon counts, Secrets are independent); boss exhaustion view (4.36, 4.37).
+- 2026-11-05: owner: the spawn warning is flashing text with no border or background; Roblox chat notes each Big Raga attack, shout and wheel turn for players in the event; in the plaza the invite shows for 3 seconds, then teleporting stays open from the top-left Boss button, reading (Active), glowing and pulsing in size (4.37).
