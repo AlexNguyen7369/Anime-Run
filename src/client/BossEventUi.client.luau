@@ -309,7 +309,7 @@ make("UIListLayout", "List", dropList, { Padding = UDim.new(0, 1), SortOrder = E
 local dropHeading = label("Heading", dropList, {
 	LayoutOrder = 1,
 	Text = "Drop:",
-	TextXAlignment = Enum.TextXAlignment.Left,
+	TextXAlignment = Enum.TextXAlignment.Right,
 }, 18)
 local dropRule = make("Frame", "Rule", dropList, {
 	LayoutOrder = 2,
@@ -322,7 +322,7 @@ local function dropRow(id, text, color, stroke)
 		LayoutOrder = 3 + #dropRows,
 		Text = text,
 		TextColor3 = color,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextXAlignment = Enum.TextXAlignment.Right,
 	}, 15)
 	UiTheme.Stroke(row, 1, stroke)
 	table.insert(dropRows, row)
