@@ -8,9 +8,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.RelicConfig)
+local BagConfig = require(Shared.BagConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local SidekickConfig = require(Shared.SidekickConfig)
 local GachaService = require(script.Parent.GachaService)
+local MoneyService = require(script.Parent.MoneyService)
 local SidekickService = require(script.Parent.SidekickService)
 
 local RelicService = {}
@@ -101,6 +103,37 @@ function RelicService.Unequip(player, characterId)
 	return RelicService.Equip(player, characterId, nil)
 end
 
+-- A hand sale for Money (design doc 4.38). Never a worn entry, never an id this version does not know (it may be worth something
+-- after a rollback). The Money comes first: a refused payment keeps the Relic. Returns true, the Money paid.
+function RelicService.Sell(player, entry)
+	local current = ensure(player)
+	local index = nil
+	for i, row in current.Relics do
+		if row.Entry == entry then
+			index = i
+		end
+	end
+	if not index then
+		return false, "Not in your bag"
+	end
+	local spec = Config.Get(current.Relics[index].Id)
+	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
+	if not price then
+		return false, "Cannot sell this Relic"
+	end
+	for _, worn in current.RelicGear do
+		if worn == entry then
+			return false, "Take it off first"
+		end
+	end
+	if MoneyService.Award(player, price) == nil then
+		return false, "Try again"
+	end
+	table.remove(current.Relics, index)
+	publish(player)
+	return true, price
+end
+
 -- 1 + the worn Relic's bonus in `stat`; 1 with none or an id this version does not know.
 function RelicService.Multi(player, characterId, stat)
 	local current = state[player]
@@ -132,21 +165,25 @@ function RelicService.Start()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes") or Instance.new("Folder")
 	remotes.Name = "Remotes"
 	remotes.Parent = ReplicatedStorage
-	local remote = remotes:FindFirstChild("RelicEquip") or Instance.new("RemoteFunction")
-	remote.Name = "RelicEquip"
-	remote.Parent = remotes
-	-- Before the save loads nothing may change: Load would replace it.
-	remote.OnServerInvoke = function(player, characterId, entry)
-		if player:GetAttribute("DataLoaded") ~= true then
-			return false, "Data not loaded"
+	local function bind(name, fn)
+		local remote = remotes:FindFirstChild(name) or Instance.new("RemoteFunction")
+		remote.Name = name
+		remote.Parent = remotes
+		-- Before the save loads nothing may change: Load would replace it.
+		remote.OnServerInvoke = function(player, ...)
+			if player:GetAttribute("DataLoaded") ~= true then
+				return false, "Data not loaded"
+			end
+			local at = os.clock()
+			if lastRequest[player] and at - lastRequest[player] < RelicService.REMOTE_COOLDOWN then
+				return false, "Please wait"
+			end
+			lastRequest[player] = at
+			return fn(player, ...)
 		end
-		local at = os.clock()
-		if lastRequest[player] and at - lastRequest[player] < RelicService.REMOTE_COOLDOWN then
-			return false, "Please wait"
-		end
-		lastRequest[player] = at
-		return RelicService.Equip(player, characterId, entry)
 	end
+	bind("RelicEquip", RelicService.Equip)
+	bind("RelicSell", RelicService.Sell)
 end
 
 return RelicService

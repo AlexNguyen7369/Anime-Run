@@ -150,6 +150,11 @@ function PlayerData.Load(player, userId)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
 		player:SetAttribute("Gems", cleanInt(data.Gems, 0, MAX_MONEY, 0))
 		player:SetAttribute("BossCredit", cleanInt(data.BossCredit, 0, MAX_DUEL_WINS, 0)) -- version 17 and older: none
+		-- Additive, older saves have none. Ids are judged at each join (BossEventService).
+		player:SetAttribute(
+			"LastBossTeam",
+			type(data.LastBossTeam) == "string" and string.sub(data.LastBossTeam, 1, 200) or ""
+		)
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
@@ -271,6 +276,7 @@ local function save(player, userId, release)
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
 		Gems = cleanInt(player:GetAttribute("Gems"), 0, MAX_MONEY, 0),
 		BossCredit = cleanInt(player:GetAttribute("BossCredit"), 0, MAX_DUEL_WINS, 0),
+		LastBossTeam = player:GetAttribute("LastBossTeam") or "",
 		Sidekicks = sidekicks.Sidekicks,
 		CharacterGear = sidekicks.CharacterGear,
 		SidekickAutoSell = sidekicks.SidekickAutoSell,

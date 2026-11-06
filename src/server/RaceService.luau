@@ -153,6 +153,9 @@ local function routeName(path)
 	return name
 end
 
+-- Builds the route's folder now, so a later SwitchRoute never names one a client has not received.
+RaceService.PrepareRoute = routeName
+
 -- The rig's pivot (its Torso) for the feet pose `feet` on the path.
 local function rigCFrame(feet)
 	return feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
@@ -299,7 +302,8 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local seconds = {}
 	-- fixed for the whole run (a potion that expires mid-run changes nothing); a loss reset (new run) reads it again
 	local function snapshotStamina()
-		local staminaMulti = typeof(player) == "Instance" and GachaService.StaminaMulti(player) or 1
+		local staminaMulti = typeof(player) == "Instance" and GachaService.StaminaMulti(player, boss and team or nil)
+			or 1
 		for slot, id in team do
 			local given = options.StaminaSeconds and options.StaminaSeconds[slot]
 			seconds[slot] = type(given) == "number" and given > 0 and given
@@ -521,7 +525,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		table.clear(fixedCruise)
 		if staminaMode and typeof(player) == "Instance" then
 			for slot, id in team do
-				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot)
+				fixedCruise[slot] = GachaService.CruiseFor(player, id, slot, boss and team or nil)
 			end
 		end
 	end
@@ -726,6 +730,16 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			publish()
 		end
 	end)
+
+	-- Boss run: moves to another lane of the ring at the same lap angle (design doc 4.37). Lanes have the same waypoint count, so
+	-- driver.Index holds.
+	function run:SwitchRoute(path)
+		local newArc = arcOf(path)
+		dist *= newArc[n] / arc[n]
+		wps, arc, routeId = path.WorldWaypoints, newArc, routeName(path)
+		place()
+		publish()
+	end
 
 	-- Pays the bank into leaderstats.Money and empties it. Returns the amount paid (0 if none).
 	function run:CashOut()

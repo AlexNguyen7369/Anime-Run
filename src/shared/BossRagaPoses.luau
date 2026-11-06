@@ -790,10 +790,10 @@ end
 function Poses.RiseAt(t)
 	if t <= 0 then
 		return 0
-	elseif t >= Event.IntroSeconds then
+	elseif t >= Event.RiseSeconds then
 		return 1
 	end
-	return 1 - (1 - t / Event.IntroSeconds) ^ 3
+	return 1 - (1 - t / Event.RiseSeconds) ^ 3
 end
 
 return Poses

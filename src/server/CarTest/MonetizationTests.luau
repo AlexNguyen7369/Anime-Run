@@ -299,7 +299,7 @@ function Tests.bag()
 		GachaService.RollTick(x, CATCH_ALL_ROLLER)
 		flag("bag_extra_stops_when_full", x:GetAttribute("Rolls") == 2, x:GetAttribute("Rolls"), 2)
 
-		-- Auto sell: duplicate sold, discovery kept, last copy safe
+		-- Auto sell (owner 2026-11-06): every roll at or under N is sold, a new discovery too; held copies never change
 		local s = player("BagSell")
 		local money = MoneyService.Setup(s)
 		flag(
@@ -307,14 +307,84 @@ function Tests.bag()
 			not GachaService.SetAutoSell(s, true, -1) and not GachaService.SetAutoSell(s, "on", 5)
 		)
 		flag("bag_set_accepts", GachaService.SetAutoSell(s, true, 1))
-		local _, isNew, _, _, sold = GachaService.Roll(s, CATCH_ALL_ROLLER)
-		flag("bag_discovery_kept", isNew == true and sold == 0 and s.GachaData:FindFirstChild(id) ~= nil)
-		flag("bag_discovery_pays_nothing", money.Value == 0)
-		_, isNew, _, _, sold = GachaService.Roll(s, CATCH_ALL_ROLLER)
-		flag("bag_duplicate_sold", isNew == false and sold == price, sold, price)
-		flag("bag_sale_pays", money.Value == price, money.Value, price)
-		flag("bag_sale_adds_no_copy", GachaService.Copies(s, id) == 0)
-		flag("bag_sale_counts_roll", s:GetAttribute("Rolls") == 2)
+		local QuestService = require(Server.QuestService)
+		local realProgress, discoveries = QuestService.Progress, 0
+		QuestService.Progress = function(who, kind, ...)
+			discoveries += (who == s and kind == "Discoveries") and 1 or 0
+			return realProgress(who, kind, ...)
+		end
+		local sellOk, sellErr = pcall(function()
+			local _, isNew, _, _, sold = GachaService.Roll(s, CATCH_ALL_ROLLER)
+			flag("bag_new_roll_sold", isNew == false and sold == price, sold, price)
+			flag("bag_new_sold_stays_undiscovered", s.GachaData:FindFirstChild(id) == nil)
+			flag("bag_new_sold_no_discovery_progress", discoveries == 0, discoveries, 0)
+			flag("bag_new_sale_pays", money.Value == price, money.Value, price)
+			GachaService.Grant(s, id)
+			_, isNew, _, _, sold = GachaService.Roll(s, CATCH_ALL_ROLLER)
+			flag("bag_duplicate_sold", isNew == false and sold == price, sold, price)
+			flag("bag_sale_pays", money.Value == 2 * price, money.Value, 2 * price)
+			flag("bag_sale_adds_no_copy", GachaService.Copies(s, id) == 0)
+			flag("bag_sale_counts_roll", s:GetAttribute("Rolls") == 2)
+			s.GachaData[id]:SetAttribute("Copies", 3)
+			GachaService.Roll(s, CATCH_ALL_ROLLER)
+			flag("bag_held_copies_never_change", GachaService.Copies(s, id) == 3, GachaService.Copies(s, id), 3)
+		end)
+		QuestService.Progress = realProgress
+		flag("bag_sell_section_no_error", sellOk, sellOk and 1 or tostring(sellErr))
+
+		-- A full bag with auto sell on (owner 2026-11-06): a roll under N is drawn and sold; a rarer one does not happen
+		local rollable = CharacterCatalog.Rollable()
+		local held = rollable[1].Id ~= id and rollable[1].Id or rollable[2].Id
+		local f = player("BagFullSell")
+		local fullCash = MoneyService.Setup(f)
+		GachaService.Grant(f, held)
+		f.GachaData[held]:SetAttribute("Copies", 79)
+		GachaService.RefreshBag(f)
+		flag("bag_full_sell_set", GachaService.SetAutoSell(f, true, 1))
+		flag("bag_full_sell_fixture_full", GachaService.BagFull(f))
+		local rollsAt = f:GetAttribute("Rolls")
+		local soldRoll = GachaService.RollTick(f, CATCH_ALL_ROLLER)
+		flag("bag_full_sells_under_n", soldRoll ~= nil and soldRoll.SoldFor == price and soldRoll.IsNew == false)
+		flag("bag_full_sold_counts", f:GetAttribute("Rolls") == rollsAt + 1, f:GetAttribute("Rolls"), rollsAt + 1)
+		flag("bag_full_sold_pays", fullCash.Value == price, fullCash.Value, price)
+		flag("bag_full_stays_at_cap", GachaService.BagUsed(f) == 80, GachaService.BagUsed(f), 80)
+		flag("bag_full_sold_adds_nothing", f.GachaData:FindFirstChild(id) == nil)
+		local rarest = {
+			NextNumber = function()
+				return 0
+			end,
+		}
+		local rollsNow, turboNow, cashNow = f:GetAttribute("Rolls"), f:GetAttribute("TurboCount"), fullCash.Value
+		flag("bag_full_blocks_rarer_than_n", GachaService.RollTick(f, rarest) == nil)
+		flag("bag_full_blocked_rolls_unmoved", f:GetAttribute("Rolls") == rollsNow, f:GetAttribute("Rolls"), rollsNow)
+		flag(
+			"bag_full_blocked_turbo_unmoved",
+			f:GetAttribute("TurboCount") == turboNow,
+			f:GetAttribute("TurboCount"),
+			turboNow
+		)
+		flag("bag_full_blocked_pays_nothing", fullCash.Value == cashNow and GachaService.BagUsed(f) == 80)
+
+		-- The loop: a sold roll at a full bag is a roll, not a blocked try. Its BagFullHit needs a real Player: ui_bag_full.
+		local realWait, realPace = GachaService.WaitAfter, GachaService.RollInterval
+		GachaService.WaitAfter = function(rollId, emphasized, who)
+			return who == f and 0.02 or realWait(rollId, emphasized, who)
+		end
+		GachaService.RollInterval = function(who)
+			return who == f and 0.02 or realPace(who)
+		end
+		f:SetAttribute("AutoRoll", true)
+		f:SetAttribute("NeedsStarter", false)
+		local loop = GachaService.StartAutoRoll(f, CATCH_ALL_ROLLER)
+		local loopDeadline = os.clock() + 2
+		while loop.Rolls < 2 and os.clock() < loopDeadline do
+			task.wait(0.02)
+		end
+		loop:Stop()
+		GachaService.WaitAfter, GachaService.RollInterval = realWait, realPace
+		flag("bag_full_loop_keeps_selling", loop.Rolls >= 2, loop.Rolls, ">= 2")
+		flag("bag_full_loop_nothing_blocked", loop.BlockedTries == 0, loop.BlockedTries, 0)
+		flag("bag_full_loop_stays_full", GachaService.BagFull(f))
 
 		-- Sell spares
 		local m = player("BagSpares")
@@ -329,6 +399,111 @@ function Tests.bag()
 		flag("bag_spares_pays", cash.Value == 10 * price, cash.Value, 10 * price)
 		flag("bag_spares_last_copy_stays", m.GachaData:FindFirstChild(id) ~= nil and GachaService.BagUsed(m) == 1)
 		flag("bag_spares_pays_once", GachaService.SellSpares(m, id) == false and cash.Value == 10 * price)
+
+		-- Sell spares by count (owner 2026-11-05): a whole number from 1 to the spares
+		local q = player("BagCount")
+		local qCash = MoneyService.Setup(q)
+		GachaService.Grant(q, id)
+		q.GachaData[id]:SetAttribute("Copies", 10)
+		q:SetAttribute("DataLoaded", true)
+		for _, bad in { 0, -1, 1.5, 11, 0 / 0, math.huge, "3", true } do
+			flag(
+				"bag_count_refused_" .. tostring(bad),
+				GachaService.SellSpares(q, id, bad) == false and qCash.Value == 0 and GachaService.Copies(q, id) == 10
+			)
+		end
+		flag("bag_count_partial", GachaService.SellSpares(q, id, 3) == true)
+		flag("bag_count_partial_pays", qCash.Value == 3 * price, qCash.Value, 3 * price)
+		flag("bag_count_partial_left", GachaService.Copies(q, id) == 7, GachaService.Copies(q, id), 7)
+		flag("bag_count_partial_used", GachaService.BagUsed(q) == 8, GachaService.BagUsed(q), 8)
+		flag("bag_count_all_left", GachaService.SellSpares(q, id, 7) == true and GachaService.Copies(q, id) == 0)
+		flag("bag_count_last_copy_stays", q.GachaData:FindFirstChild(id) ~= nil and GachaService.BagUsed(q) == 1)
+		flag("bag_count_none_left", GachaService.SellSpares(q, id, 1) == false and qCash.Value == 10 * price)
+
+		-- Mass sell (owner 2026-11-05): one payment, a repeat counts once, the last copy of each stays
+		local other = rollable[1].Id ~= id and rollable[1].Id or rollable[2].Id
+		local bare = rollable[3].Id ~= id and rollable[3].Id or rollable[4].Id
+		local otherPrice = BagConfig.SELL_PRICE[CharacterCatalog.Get(other).Rarity]
+		local many = player("BagMany")
+		local manyCash = MoneyService.Setup(many)
+		GachaService.Grant(many, id)
+		GachaService.Grant(many, other)
+		GachaService.Grant(many, bare)
+		many.GachaData[id]:SetAttribute("Copies", 4)
+		many.GachaData[other]:SetAttribute("Copies", 2)
+		local function unsold()
+			return manyCash.Value == 0 and GachaService.Copies(many, id) == 4 and GachaService.Copies(many, other) == 2
+		end
+		flag("bag_many_needs_load", GachaService.SellSparesMany(many, { id }) == false and unsold())
+		many:SetAttribute("DataLoaded", true)
+		local tooLong = {}
+		for i = 1, #CharacterCatalog.All() + 1 do
+			tooLong[i] = id
+		end
+		for name, bad in { number = 5, none = false, string = id, row = { id, 5 }, long = tooLong } do
+			flag("bag_many_bad_" .. name, GachaService.SellSparesMany(many, bad or nil) == false and unsold())
+		end
+		flag("bag_many_nothing_to_sell", GachaService.SellSparesMany(many, { bare, "no_such" }) == false and unsold())
+		flag("bag_many_empty_list", GachaService.SellSparesMany(many, {}) == false and unsold())
+		local awards = 0
+		local realAward = MoneyService.Award
+		MoneyService.Award = function(...)
+			awards += 1
+			return realAward(...)
+		end
+		local manyOk, manyDone = pcall(GachaService.SellSparesMany, many, { id, id, other, bare, "no_such" })
+		MoneyService.Award = realAward
+		flag("bag_many_sells", manyOk and manyDone == true, tostring(manyDone))
+		flag("bag_many_one_payment", awards == 1, awards, 1)
+		local manyPaid = 4 * price + 2 * otherPrice
+		flag("bag_many_pays_sum_deduped", manyCash.Value == manyPaid, manyCash.Value, manyPaid)
+		flag("bag_many_clears_spares", GachaService.Copies(many, id) == 0 and GachaService.Copies(many, other) == 0)
+		flag(
+			"bag_many_keeps_last_copies",
+			many.GachaData:FindFirstChild(id) ~= nil
+				and many.GachaData:FindFirstChild(other) ~= nil
+				and GachaService.BagUsed(many) == 3
+		)
+		flag("bag_many_pays_once", GachaService.SellSparesMany(many, { id, other }) == false)
+		flag("bag_many_money_kept", manyCash.Value == manyPaid, manyCash.Value, manyPaid)
+
+		-- A full bag blocks the auto-roll loop's try (owner 2026-11-05): it stays on and keeps trying
+		local blocked = player("BagBlocked")
+		GachaService.Grant(blocked, id)
+		blocked.GachaData[id]:SetAttribute("Copies", 79)
+		GachaService.RefreshBag(blocked)
+		blocked:SetAttribute("AutoRoll", true)
+		blocked:SetAttribute("NeedsStarter", false)
+		local realInterval = GachaService.RollInterval
+		-- Only this player's pace: a live player in the session keeps rolling.
+		GachaService.RollInterval = function(who)
+			return who == blocked and 0.02 or realInterval(who)
+		end
+		local handle = GachaService.StartAutoRoll(blocked, CATCH_ALL_ROLLER)
+		flag("bag_blocked_handle_starts_at_0", handle.BlockedTries == 0, handle.BlockedTries, 0)
+		local blockedDeadline = os.clock() + 2
+		while handle.BlockedTries < 3 and os.clock() < blockedDeadline do
+			task.wait(0.02)
+		end
+		flag("bag_blocked_tries_counted", handle.BlockedTries >= 3, handle.BlockedTries, ">= 3")
+		flag("bag_blocked_no_rolls", handle.Rolls == 0, handle.Rolls, 0)
+		flag("bag_blocked_autoroll_stays_on", blocked:GetAttribute("AutoRoll") == true)
+		flag("bag_blocked_flag_stays", blocked:GetAttribute("BagFull") == true)
+		blocked:SetAttribute("Pass_inventory", true) -- space: rolling resumes by itself, with no new loop
+		GachaService.RefreshBag(blocked)
+		local resumedDeadline = os.clock() + 2
+		while handle.Rolls < 1 and os.clock() < resumedDeadline do
+			task.wait(0.02)
+		end
+		handle:Stop()
+		GachaService.RollInterval = realInterval
+		flag("bag_blocked_resumes", handle.Rolls >= 1, handle.Rolls, ">= 1")
+		local fullRemote = ReplicatedStorage:FindFirstChild("Remotes")
+			and ReplicatedStorage.Remotes:FindFirstChild("BagFullHit")
+		flag("bag_full_hit_remote", fullRemote ~= nil and fullRemote:IsA("RemoteEvent"))
+		local manyRemote = ReplicatedStorage:FindFirstChild("Remotes")
+			and ReplicatedStorage.Remotes:FindFirstChild("SellSparesMany")
+		flag("bag_sell_many_remote", manyRemote ~= nil and manyRemote:IsA("RemoteFunction"))
 
 		-- Saves
 		local o = player("BagSave")

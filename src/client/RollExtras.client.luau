@@ -1,8 +1,9 @@
 --!nonstrict
 -- The small toast for a tick's rolls that do not play the animation (Extra Roll passes, docs/MONETIZATION_SPEC.md) and
--- the banner shown while a full bag stops rolling (docs/BAG_AND_AUTOSELL_SPEC.md). Display only.
+-- the red text for a try a full bag blocked (docs/BAG_AND_AUTOSELL_SPEC.md). Display only.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
@@ -15,6 +16,8 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local PALETTE = UiTheme.Palette
 local TOAST_SECONDS = 1.5 -- placeholder
+local BAG_FULL_SECONDS = 1 -- owner 2026-11-05
+local BAG_FULL_RED = Color3.fromRGB(235, 20, 30)
 
 local root = Instance.new("ScreenGui")
 root.Name = "RollExtras"
@@ -63,56 +66,75 @@ remotes:WaitForChild("ExtraRolls").OnClientEvent:Connect(function(rolls)
 	end)
 end)
 
--- The banner stays while rolling is stopped: otherwise an idle player has no sign of why rolls ended.
-local banner = Instance.new("Frame")
-banner.Name = "BagFull"
-banner.AnchorPoint = Vector2.new(0.5, 0)
-banner.Position = UDim2.new(0.5, 0, 0, 70)
-banner.Size = UDim2.fromOffset(330, 84)
-banner.BackgroundColor3 = PALETTE.PanelDeep
-banner.Visible = false
-banner.Active = true
-banner.Parent = root
-UiTheme.Corner(banner, "M")
-UiTheme.Stroke(banner, 2, PALETTE.DangerDeep, true)
+-- Every try the full bag blocks (design doc 4.41): red text, no background, gone within 1 s. Auto roll stays on and tries again.
+local bagFull = Instance.new("TextLabel")
+bagFull.Name = "BagFull"
+bagFull.AnchorPoint = Vector2.new(0.5, 0)
+bagFull.Position = UDim2.new(0.5, 0, 0, 70)
+bagFull.Size = UDim2.fromOffset(320, 44)
+bagFull.BackgroundTransparency = 1
+bagFull.Font = UiTheme.Font
+bagFull.Text = "BAG FULL"
+bagFull.TextColor3 = BAG_FULL_RED
+bagFull.TextSize = 34
+bagFull.Visible = false
+bagFull.Parent = root
+local bagFullStroke = Instance.new("UIStroke")
+bagFullStroke.Color = UiTheme.Outline
+bagFullStroke.Thickness = 2
+bagFullStroke.Parent = bagFull
 
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Position = UDim2.fromOffset(8, 4)
-title.Size = UDim2.new(1, -16, 0, 30)
-title.BackgroundTransparency = 1
-title.Font = UiTheme.Font
-title.Text = "BAG FULL: rolling stopped"
-title.TextColor3 = PALETTE.White
-title.TextSize = 20
-title.Parent = banner
-
-local function action(name, text, x, fn)
-	local b = Instance.new("TextButton")
-	b.Name = name
-	b.AnchorPoint = Vector2.new(x, 1)
-	b.Position = UDim2.new(x, x == 0 and 8 or -8, 1, -8)
-	b.Size = UDim2.new(0.5, -12, 0, 36)
-	b.BackgroundColor3 = PALETTE.Muted
-	b.Font = UiTheme.Font
-	b.Text = text
-	b.TextColor3 = PALETTE.White
-	b.TextSize = 16
-	b.Parent = banner
-	UiTheme.Corner(b, "S")
-	b.Activated:Connect(fn)
-end
-action("SellSpares", "SELL SPARES", 0, function()
-	if not PanelSwitch.IsOpen("Backpack") then
-		PanelSwitch.Toggle("Backpack")
+local fades = {}
+remotes:WaitForChild("BagFullHit").OnClientEvent:Connect(function()
+	for _, fade in fades do
+		fade:Cancel()
 	end
+	bagFull.TextTransparency, bagFullStroke.Transparency = 0, 0
+	bagFull.Visible = true
+	local info = TweenInfo.new(BAG_FULL_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	fades = {
+		TweenService:Create(bagFull, info, { TextTransparency = 1 }),
+		TweenService:Create(bagFullStroke, info, { Transparency = 1 }),
+	}
+	for _, fade in fades do
+		fade:Play()
+	end
+	fades[1].Completed:Connect(function(state)
+		if state == Enum.PlaybackState.Completed then
+			bagFull.Visible = false
+		end
+	end)
 end)
-action("AutoSell", "AUTO SELL", 1, RollOptions.OpenAutoSell)
 
-local function refresh()
-	banner.Visible = player:GetAttribute("BagFull") == true
+-- The auto sell filter, under the roll (design doc 4.41): the roll view that also holds it does not open while a full bag blocks rolls.
+local autoSell = Instance.new("TextButton")
+autoSell.Name = "AutoSell"
+autoSell.AnchorPoint = Vector2.new(0.5, 0)
+autoSell.Position = UDim2.new(0.5, 0, 0, 204) -- under the roll's odds and the extra rolls' toast
+autoSell.Size = UDim2.fromOffset(170, 26)
+autoSell.BackgroundColor3 = PALETTE.Muted
+autoSell.Font = UiTheme.Font
+autoSell.TextColor3 = PALETTE.White
+autoSell.TextSize = 14
+autoSell.Parent = root
+UiTheme.Corner(autoSell, "S")
+autoSell.Activated:Connect(RollOptions.OpenAutoSell)
+
+local function refreshAutoSell()
+	local on = player:GetAttribute("AutoSell") == true
+	local chance = player:GetAttribute("AutoSellChance")
+	autoSell.Text = on and type(chance) == "number" and "Auto Sell: 1 in " .. HudFormat.Short(chance)
+		or "Auto Sell: OFF"
+	autoSell.BackgroundColor3 = on and PALETTE.MoneyDeep or PALETTE.Muted
+	autoSell.Visible = player:GetAttribute("AutoRoll") ~= false
+		and player:GetAttribute("NeedsStarter") ~= true
+		and player:GetAttribute("BossEvent") ~= true
+		and not PanelSwitch.AnyOpen()
 end
-player:GetAttributeChangedSignal("BagFull"):Connect(refresh)
-refresh()
+for _, name in { "AutoSell", "AutoSellChance", "AutoRoll", "NeedsStarter", "BossEvent" } do
+	player:GetAttributeChangedSignal(name):Connect(refreshAutoSell)
+end
+PanelSwitch.OnChange(refreshAutoSell)
+refreshAutoSell()
 
 UiTheme.Apply(root)

@@ -720,7 +720,7 @@ local function startRise()
 	})
 	play.Dust = dust
 	local total = burst(dust, few and 8 or 30)
-		+ math.ceil((few and RISE_DUST_REDUCED or RISE_DUST) * Event.IntroSeconds)
+		+ math.ceil((few and RISE_DUST_REDUCED or RISE_DUST) * Event.RiseSeconds)
 		+ RISE_PULSES * (few and RISE_PULSE_DUST_REDUCED or RISE_PULSE_DUST)
 	if not few then
 		local debris = emitter(spot, {
@@ -742,7 +742,7 @@ local function startRise()
 			Enabled = true,
 		})
 		play.Debris = debris
-		total += math.ceil(RISE_DEBRIS * Event.IntroSeconds)
+		total += math.ceil(RISE_DEBRIS * Event.RiseSeconds)
 	end
 	-- Cracks that spread in stages across the dais, a jolt on each. Only the dais: past it is open air.
 	local crack = holder("Cracks", CFrame.new(daisTop()), Vector3.new(160, 0.2, 160))
@@ -778,9 +778,9 @@ local function startRise()
 end
 
 local function stepRise(play, since)
-	local rumble = 1.6 * (0.45 + 0.55 * math.clamp(1 - since / Event.IntroSeconds, 0, 1))
+	local rumble = 1.6 * (0.45 + 0.55 * math.clamp(1 - since / Event.RiseSeconds, 0, 1))
 	BossShake.Hold("BossRise", rumble, 16)
-	local stage = math.floor(since / (Event.IntroSeconds / (RISE_PULSES + 1)))
+	local stage = math.floor(since / (Event.RiseSeconds / (RISE_PULSES + 1)))
 	if stage ~= play.Stage then
 		play.Stage = stage
 		local size = math.min(160 + stage * 60, 2 * Arena.DaisRadius)
@@ -914,7 +914,7 @@ function BossVfx.Step(since, move, localTime)
 	if ReplicatedStorage:GetAttribute(FORCE) ~= nil then
 		return
 	end
-	local rising = since ~= nil and since < Event.IntroSeconds
+	local rising = since ~= nil and since < Event.RiseSeconds
 	if rising and not risePlay then
 		risePlay = startRise()
 	elseif risePlay and not rising then

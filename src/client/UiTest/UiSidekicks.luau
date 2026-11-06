@@ -705,6 +705,8 @@ function Module.Build(h)
 			end)
 			check(res, "sidekick_bag_art_" .. item.Id, got, Art[item.Id].Portrait)
 		end
+		-- Owner 2026-11-05: tiles open Client/ItemMenu (the sidekicks_menu_* clicks, UiRelics); the Bag's action row is gone.
+		check(res, "sidekick_actions_row_gone", h.find("RacerBackpack/Panel/SidekickActions"), nil)
 	end
 
 	-- After a real press of the poster's Tap or its Details button.

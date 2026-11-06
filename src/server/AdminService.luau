@@ -257,6 +257,28 @@ AdminService.Commands = {
 			return ok, ok and ("added " .. id) or message
 		end,
 	},
+	relics = {
+		Usage = "/relics [player]",
+		Help = "add one of every Relic to the bag",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			local added = 0
+			local seen = {} -- a universal Relic sits on every boss's list
+			for _, list in RelicConfig.Bosses do
+				for _, row in list do
+					if not seen[row.Id] and RelicService.Grant(p, row.Id) then
+						added += 1
+					end
+					seen[row.Id] = true
+				end
+			end
+			return true, "added " .. added .. " Relics"
+		end,
+	},
 	boss = {
 		Usage = "/boss",
 		Help = "start a boss event now, or end the running one",
@@ -534,6 +556,7 @@ local ORDER = {
 	"gems",
 	"sidekick",
 	"relic",
+	"relics",
 	"boss",
 	"setrebirth",
 	"luck",

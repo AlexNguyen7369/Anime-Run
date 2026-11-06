@@ -29,7 +29,7 @@ function BagConfig.CleanChance(n)
 	return n
 end
 
--- Does auto sell take this rolled duplicate? A character with no Chance or no price is never sold.
+-- Does auto sell take this roll? A character with no Chance or no price is never sold.
 function BagConfig.ShouldSell(on, chance, spec)
 	return on == true
 		and BagConfig.CleanChance(chance) ~= nil

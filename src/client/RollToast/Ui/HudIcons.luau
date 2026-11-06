@@ -14,5 +14,6 @@ return {
 	Settings = { Image = "rbxassetid://131875159358960" },
 	Gem = { Image = "rbxassetid://136869552622521" }, -- owner's icon 2026-11-05, assets/ui/gem.png
 	Auto = { Image = "rbxassetid://122355836258114" }, -- owner's icon, tools/blender/plaza/auto_icon.py
-	AutoOff = { Image = "rbxassetid://83629554083032" }, -- the same, grey
+	AutoArrows = { Image = "rbxassetid://110966439139915" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
+	AutoPlay = { Image = "rbxassetid://121841618485883" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
 }

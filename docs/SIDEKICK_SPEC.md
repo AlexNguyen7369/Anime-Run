@@ -85,8 +85,9 @@ In the style common to anime tower defense games: all effects original, no copie
 ## Bag and equip
 - Backpack gets a Sidekicks tab holding 50 entries. Each summon is one entry, saved in `Sidekicks`. This replaces the earlier copies rule.
 - A summon needs free room for everything it would add, after auto-sell. Otherwise it is refused with a clear message, and no Gems are spent.
-- Auto-sell applies at summon time, except to the free summon, which is always kept (**proposed**, so a player cannot lose the Sidekick that unlocks events). A hand sell lives in the Bag. An equipped Sidekick is never sold.
+- Auto-sell applies at summon time, except to the free summon, which is always kept (**proposed**, so a player cannot lose the Sidekick that unlocks events). A hand sell lives in the click menu, in the Bag and the Index. An equipped Sidekick is never sold.
 - Equip is keyed per character, in `CharacterGear`, unlike slot-keyed auras. A character wears one entry; an entry sits on one character.
+- Click menu (owner 2026-11-05), `Client/ItemMenu`, shared with Relics: a tile click in the Bag or Index opens Equip and Sell, or Take off with Sell disabled when worn. Equip opens a grid of owned characters with their drawn portraits, each marked with what it wears; choosing an occupied character replaces its item. Sell shows "Are you sure you want to sell X for Y?" with Sell and Cancel. An Index tile acts on that id's first unworn entry, else its first worn one (**proposed**).
 
 ## Display
 - Height is 30-40% of a character: 1.7-2.3 studs. Client-only follower attached to the visible runner. It needs a scale-aware pose, since `RunnerVisual.Pose` breaks on scaled rigs.

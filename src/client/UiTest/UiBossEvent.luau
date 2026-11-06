@@ -4,7 +4,14 @@
 -- the boss_* clicks in UiSpec.Clicks, judged after them here.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton sit directly in the ScreenGui.
+--   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton, BossesPanel, EditTeamButton
+--     sit directly in the ScreenGui.
+--   Team HUD (owner 2026-11-05): TeamHud/Header/CloseButton closes it with at least 1 pick, and invokes BossEventPrepRun; with none, red
+--     TeamHud/TeamWarning "Select a character first" fades within 1 s and the HUD stays. EditTeamButton reopens it until the spawn.
+--     TeamHud/AverageStamina reads "Average stamina: <n> s", from BossTeamStamina<n> of the picks. The HUD opens on LastBossTeam's ids.
+--   BossBar/BossTimer: left of the Title's text, above the track, counting to TotalSeconds.
+--   Minibar (owner 2026-11-05): RacerHud's Team/Slot<n> read BossTeam while BossEvent is true. While BossWaitEndsAt is set every filled
+--     slot is tired grey and none active, and its Arc's Fill dots run from empty to full by that time.
 --   Named anywhere inside their part: Invite Countdown; TeamHud Countdown; BossBar Fill (its parent is the track).
 --   Boss bar (owner 2026-11-05): BossBar/Title "Big Raga" above the track; BossBar/Value "current/max" with thousands separators,
 --     inside the track and drawn over the Fill.
@@ -20,13 +27,15 @@
 --   Slot<n> has attribute CharacterId while it holds a character, none while it is empty.
 --   Invite Countdown counts to teleport closing (3:00), TeamHud Countdown to the spawn (1:00). "m:ss" or plain seconds.
 --   Decline lasts for one event (one BossEventStart): a new start shows the Invite again.
---   Plaza flow (owner 2026-11-05): the Invite closes by itself after Cfg.InviteSeconds. BossButton shows for an outsider from the
---     event's start until teleporting closes at 3:00, Invite up or not, declined or not, in a duel too, locked too. Its Text is
---     exactly "Boss (Active)". Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
---     Scale changes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every pulse scale. A press
---     with no Sidekick does not fire BossEventTeleport and shows text with "sidekick" anywhere in the ScreenGui; before it, no such
---     text shows once the Invite has closed.
---   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossButton is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
+--   Plaza flow (owner 2026-11-05): the Invite closes by itself after Cfg.InviteSeconds. BossButton shows for anyone outside the event
+--     and outside a tutorial, past teleport close too, Invite up or not, declined or not, in a duel too, locked too. Its Text is
+--     exactly "Bosses". Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
+--     Scale changes until teleporting closes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every
+--     pulse scale. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
+--     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
+--   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
+--   A popup's rows draw only while it shows and only a real press opens it, so they are judged after the clicks.
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
 --   BossBar/Status, under the bar's left side, has one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time). In
@@ -58,6 +67,7 @@ local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
+local UiTheme = require(Shared:WaitForChild("UiTheme"))
 
 local ROOT = "RacerBossEvent"
 local INVITE = ROOT .. "/Invite"
@@ -71,6 +81,8 @@ local LEAVE = ROOT .. "/LeaveButton"
 local PANEL = ROOT .. "/ExhaustedPanel"
 local BUTTON = ROOT .. "/BossButton"
 local DROP = ROOT .. "/DropList"
+local BOSSES = ROOT .. "/BossesPanel"
+local EDIT_TEAM = ROOT .. "/EditTeamButton"
 local PARTS = {
 	Invite = INVITE,
 	TeamHud = HUD,
@@ -80,12 +92,18 @@ local PARTS = {
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
 	DropList = DROP,
+	BossesPanel = BOSSES,
+	EditTeamButton = EDIT_TEAM,
 }
 
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
 local BOSS_NAME = "Big Raga"
-local BUTTON_TEXT = "Boss (Active)"
+local BUTTON_TEXT = "Bosses"
+local RAGING_TEXT = "Big Raga is raging right now"
+local TEAM_WARNING_TEXT = "Select a character first"
+local TEAM_WARNING_SECONDS = 1 -- owner 2026-11-05
+local WARNING_SLACK = 0.3 -- s around it
 
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
 local WARNING_MAX = 12 -- s: proposed, "goes away by itself" has no number in the docs
@@ -95,7 +113,7 @@ local COUNTDOWN_SLACK = 2 -- s
 local RATIO_SLACK = 0.02
 local FILL_SLACK = 0.1 -- of the bar: the fill against the server clock while it moves
 local FOV_OUTSIDE = 63 -- a value no script sets, so a restore to a fixed default shows
-local BUDGET = 98 -- s: the whole scenario
+local BUDGET = 110 -- s: the whole scenario
 local DIM_MIN, DIM_MAX = 0.5, 0.85 -- BackgroundTransparency: "slightly dimmed"
 local WAIT_CENTRE_SLACK = 0.1 -- of the screen
 local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
@@ -314,7 +332,12 @@ function Module.Build(h)
 			end
 			for j = i + 1, #texts do
 				local b = texts[j]
-				if not a:IsAncestorOf(b) and not b:IsAncestorOf(a) and crossing(ra, h.rect(b)) then
+				-- BossTimer shares the Title's row: their drawn texts are judged by checkBossTimer, not their full-width frames.
+				local sameRow = a.Parent == b.Parent
+					and a.Parent == h.find(BAR)
+					and (a.Name == "BossTimer" or b.Name == "BossTimer")
+					and (a.Name == "Title" or b.Name == "Title")
+				if not sameRow and not a:IsAncestorOf(b) and not b:IsAncestorOf(a) and crossing(ra, h.rect(b)) then
 					table.insert(overlaps, a.Name .. " x " .. b.Name)
 				end
 			end
@@ -324,7 +347,7 @@ function Module.Build(h)
 		h.checkList(res, tag .. "_text_on_screen", outside)
 		local onHud = {}
 		for name, path in PARTS do
-			if name ~= "Warning" and shown(path) then
+			if name ~= "Warning" and name ~= "BossesPanel" and shown(path) then -- the popup opens over the HUD by design
 				local r = h.rect(h.find(path))
 				for guiName, gui in Spec.Guis do
 					for _, element in gui.AlwaysOn or {} do
@@ -575,16 +598,25 @@ function Module.Build(h)
 		check(res, "invite_hidden_after_joining", waitShown(INVITE, false), false)
 		check(res, "button_hidden_after_joining", waitShown(BUTTON, false), false)
 
-		-- Gone at 3:00 by the clock alone: no attribute changes here.
+		-- Owner 2026-11-05: at 3:00, by the clock alone, only the pulse ends. The button stays for its popup.
 		state(res, "Fight", Cfg.JoinSeconds - 1.5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		task.wait(0.2)
 		check(res, "button_shown_before_close", shown(BUTTON), true)
-		check(res, "button_hidden_at_close", waitShown(BUTTON, false, 3), false)
+		task.wait(2)
+		check(res, "button_shown_at_close", shown(BUTTON), true)
 		check(res, "invite_hidden_at_close", shown(INVITE), false)
 		state(res, "Fight", Cfg.JoinSeconds + 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		task.wait(0.3)
 		check(res, "invite_hidden_after_close", shown(INVITE), false)
-		check(res, "button_hidden_after_close", shown(BUTTON), false)
+		checkButtonShows(res, "past_close")
+		local stillSpread = watchPulse(0.6)
+		h.check(
+			res,
+			"button_no_pulse_past_close",
+			stillSpread or "no PulseScale",
+			"<= " .. STILL_MAX_SPREAD,
+			stillSpread ~= nil and stillSpread <= STILL_MAX_SPREAD
+		)
 
 		state(res, "Prep", 5, 0, 0, false)
 		check(res, "invite_back_for_new_event", waitShown(INVITE, true), true)
@@ -621,7 +653,7 @@ function Module.Build(h)
 		gear(res, 2) -- equipping during the invite opens it, with no event attribute changing
 		check(res, "locked_opens_when_a_sidekick_is_worn", waitIs(teleportActive, true), true)
 
-		-- With the Invite gone the button still reads Active; the press itself is the click boss_button_locked.
+		-- With the Invite gone the button still works; the presses are the clicks boss_button_locked and boss_action_locked.
 		gear(res, 0)
 		state(res, "Prep", 5, 0, 0, false)
 		waitShown(INVITE, true)
@@ -651,6 +683,50 @@ function Module.Build(h)
 		table.sort(names)
 		return table.concat(names, ",")
 	end
+	-- Owner 2026-11-05: X and its warning's parts, the average stamina, the HUD opening on the saved team. Attributes set here stay on
+	-- this client: the HUD only reads them. The presses are the boss_close_* and boss_edit_team clicks.
+	local function checkTeamHudSaved(res)
+		local warning = h.find(HUD .. "/TeamWarning")
+		check(res, "hud_warning_is_text", warning ~= nil and warning:IsA("TextLabel"), true)
+		check(res, "hud_warning_text", warning and warning.Text, TEAM_WARNING_TEXT)
+		check(res, "hud_warning_red", warning ~= nil and isRed(warning.TextColor3), true)
+		local close = h.find(HUD .. "/Header/CloseButton")
+		check(res, "hud_close_is_a_button", close ~= nil and close:IsA("GuiButton"), true)
+		state(res, "Prep", 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true, 100)
+		check(res, "hud_shown_with_empty_team", waitShown(HUD, true), true)
+		check(res, "hud_warning_hidden_at_rest", shown(HUD .. "/TeamWarning"), false)
+		check(res, "hud_close_shown", shown(HUD .. "/Header/CloseButton"), true)
+		local function average()
+			return textOf(HUD, "AverageStamina")
+		end
+		check(res, "hud_average_no_team", waitIs(average, "Average stamina: -"), "Average stamina: -")
+		state(res, "Idle", 0, 0, 0, false)
+		waitShown(HUD, false)
+
+		local ids = string.split(gearNames(), ",")
+		h.player:SetAttribute("LastBossTeam", ids[2] .. "," .. ids[1] .. ",no_such_character")
+		h.player:SetAttribute("BossTeamStamina1", 10)
+		h.player:SetAttribute("BossTeamStamina2", 20)
+		state(res, "Prep", 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true, 100)
+		check(res, "hud_saved_team_shown", waitShown(HUD, true), true)
+		local function slotId(n)
+			return function()
+				local slot = h.find(HUD .. "/Slot" .. n)
+				return slot and slot:GetAttribute("CharacterId")
+			end
+		end
+		check(res, "hud_opens_on_saved_slot1", waitIs(slotId(1), ids[2]), ids[2])
+		check(res, "hud_opens_on_saved_slot2", slotId(2)(), ids[1])
+		check(res, "hud_saved_drops_unknown", slotId(3)(), nil)
+		check(res, "hud_average_stamina", waitIs(average, "Average stamina: 15.0 s"), "Average stamina: 15.0 s")
+		checkFit(res, "prep_saved_team")
+		h.player:SetAttribute("LastBossTeam", "")
+		h.player:SetAttribute("BossTeamStamina1", nil)
+		h.player:SetAttribute("BossTeamStamina2", nil)
+		state(res, "Idle", 0, 0, 0, false)
+		waitShown(HUD, false)
+	end
+
 	local function checkTeamHud(res)
 		gear(res, 2)
 		state(res, "Prep", 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true, 1234)
@@ -690,6 +766,7 @@ function Module.Build(h)
 		state(res, "Prep", "keep", Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		check(res, "hud_hidden_outside_arena", waitShown(HUD, false), false)
 		gear(res, 2)
+		checkTeamHudSaved(res)
 	end
 
 	local function barTrack()
@@ -805,10 +882,10 @@ function Module.Build(h)
 		check(res, "warning_not_back_on_hp_change", shown(WARNING), false)
 	end
 
-	-- Owner 2026-11-05: the bar fills with the rise, in 2-3 s, on the server's clock.
+	-- Owner 2026-11-05: the bar fills with the rise, in 1.5 s, on the server's clock.
 	local function checkIntroFill(res)
-		local intro = Cfg.IntroSeconds
-		h.check(res, "intro_is_2_to_3_seconds", intro, "2 to 3", intro >= 2 and intro <= 3)
+		local intro = Cfg.RiseSeconds
+		check(res, "rise_is_1_5_seconds", intro, 1.5)
 		if reducedNow() then
 			return
 		end
@@ -848,7 +925,7 @@ function Module.Build(h)
 	local function checkStatusRow(res)
 		local hp = Cfg.HpPerPlayer
 		local function setStatus(rows)
-			ReplicatedStorage:SetAttribute("BossStatus", rows and HttpService:JSONEncode(rows) or nil)
+			h.player:SetAttribute("BossStatus", rows and HttpService:JSONEncode(rows) or nil)
 		end
 		local function cell(id)
 			local found = named(BAR, "Status_" .. id)
@@ -1018,7 +1095,7 @@ function Module.Build(h)
 		if not list then
 			return
 		end
-		ReplicatedStorage:SetAttribute(
+		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
 		)
@@ -1077,7 +1154,7 @@ function Module.Build(h)
 
 		if missing then -- its own check above already failed
 			state(res, "Idle", 0, 0, 0, false)
-			ReplicatedStorage:SetAttribute("BossStatus", nil)
+			h.player:SetAttribute("BossStatus", nil)
 			return
 		end
 		local size = workspace.CurrentCamera.ViewportSize
@@ -1181,11 +1258,169 @@ function Module.Build(h)
 				h.check(res, "bar_" .. string.lower(name) .. "_text_tall", tall, ">= " .. least, tall >= least)
 			end
 		end
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 
 		-- A leave takes it; a Prep in the event never had it (prep_droplist_shown).
 		state(res, "Fight", "keep", hp, hp, false)
 		check(res, "drop_hidden_on_leave", waitShown(DROP, false), false)
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
+	-- Owner 2026-11-05: the time left in the event, top left above the HP bar, sharing the Title's row with no text on text.
+	local function checkBossTimer(res)
+		local hp = Cfg.HpPerPlayer
+		local elapsed = Cfg.PrepSeconds + Cfg.IntroSeconds + 5
+		state(res, "Fight", elapsed, hp, hp, true, 100)
+		check(res, "timer_bar_shown", waitShown(BAR, true), true)
+		local timer, title, track = h.find(BAR .. "/BossTimer"), h.find(BAR .. "/Title"), barTrack()
+		check(res, "timer_shown", timer ~= nil and h.visible(timer), true)
+		if not (timer and title and track) then
+			return
+		end
+		task.wait(0.2)
+		local got = secondsIn(timer.Text)
+		local want = Cfg.TotalSeconds - elapsed
+		h.check(
+			res,
+			"timer_counts_to_the_end",
+			got or timer.Text,
+			("%d +- %d"):format(want, COUNTDOWN_SLACK),
+			got ~= nil and math.abs(got - want) <= COUNTDOWN_SLACK
+		)
+		check(res, "timer_is_clock_format", string.match(timer.Text, "^%d+:%d%d$") ~= nil, true)
+		local t, b, r = h.rect(timer), h.rect(title), h.rect(track)
+		h.check(res, "timer_above_track", t.y + t.h, "<= " .. r.y, t.y + t.h <= r.y + Spec.Tolerance)
+		h.check(res, "timer_at_left", t.x, "about " .. r.x, math.abs(t.x - r.x) <= Spec.Tolerance)
+		local timerEnd = t.x + timer.TextBounds.X
+		local titleStart = b.x + (b.w - title.TextBounds.X) / 2
+		h.check(res, "timer_text_clear_of_title_text", timerEnd, "<= " .. titleStart, timerEnd <= titleStart)
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
+	-- Owner 2026-11-05: in the event the minibar is the event team. During the wait: all grey, none active, bars refilling by the end
+	-- time. Attributes set here stay on this client: TeamHud only reads them. The 5 s wait's start and end are sampled, not all of it.
+	local function checkWaitMinibar(res)
+		local hud = h.find("RacerHud")
+		local row = hud and hud:FindFirstChild("Team", true)
+		check(res, "minibar_row_present", row ~= nil, true)
+		if not row then
+			return
+		end
+		local grey, tired = UiTheme.Palette.TeamGrey, UiTheme.Palette.TeamTired
+		local hp, wait = Cfg.HpPerPlayer, Cfg.RefillWaitSeconds
+		local ids = string.split(gearNames(), ",")
+		local function arcVisible(n)
+			local arc = row:FindFirstChild("Slot" .. n) and row["Slot" .. n]:FindFirstChild("Arc")
+			return arc ~= nil and arc.Visible
+		end
+		-- Fill dots shown over all of them, on one slot.
+		local function arcShare(n)
+			local arc = row["Slot" .. n]:FindFirstChild("Arc")
+			local shown_, total = 0, 0
+			for _, d in arc:GetChildren() do
+				if d.Name == "Fill" then
+					total += 1
+					shown_ += d.Visible and 1 or 0
+				end
+			end
+			return total > 0 and shown_ / total or 0
+		end
+		local function allTired()
+			for n = 1, #ids do
+				local slot = row["Slot" .. n]
+				local ring = slot:FindFirstChildOfClass("UIStroke")
+				if ring.Color ~= grey or slot.BackgroundColor3 ~= tired or slot.Glow.BackgroundTransparency ~= 1 then
+					return false
+				end
+			end
+			return true
+		end
+		local mainTeam = h.player:GetAttribute("Team")
+		h.player:SetAttribute("BossTeam", ids[1] .. "," .. ids[2])
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+		check(
+			res,
+			"minibar_event_team_slot1",
+			waitIs(function()
+				return arcVisible(1)
+			end, true),
+			true
+		)
+		check(res, "minibar_event_team_slot2", arcVisible(2), true)
+		check(res, "minibar_event_team_only_two", arcVisible(3), false)
+		check(res, "minibar_main_team_kept", h.player:GetAttribute("Team"), mainTeam)
+		local bonus = hud:FindFirstChild("Bonus", true)
+		-- Owner 2026-11-06: the badge reads the event team's own bonus, never the main Team's.
+		local mainBonus = h.player:GetAttribute("TeamBonus")
+		h.player:SetAttribute("TeamBonus", "Preset:leaf")
+		h.player:SetAttribute("BossTeamBonus", "")
+		check(
+			res,
+			"minibar_badge_ignores_main_team",
+			waitIs(function()
+				return bonus ~= nil and bonus.Visible
+			end, false),
+			false
+		)
+		h.player:SetAttribute("TeamBonus", mainBonus)
+		h.player:SetAttribute("BossTeamBonus", "Preset:leaf")
+		check(
+			res,
+			"minibar_badge_reads_event_team",
+			waitIs(function()
+				return bonus ~= nil and bonus.Visible
+			end, true),
+			true
+		)
+		check(
+			res,
+			"minibar_badge_names_preset",
+			bonus ~= nil and string.find(bonus.Text, "TEAM SEVEN", 1, true) ~= nil,
+			true
+		)
+		h.player:SetAttribute("BossTeamBonus", nil)
+
+		-- A whole wait's start: from about empty, with a run slot that would otherwise be active.
+		h.player:SetAttribute("RunSlot", 1)
+		setup(res, "boss_ui_wait:" .. wait)
+		check(res, "minibar_wait_all_tired", waitIs(allTired, true), true)
+		local slotOne = row:FindFirstChild("Slot1")
+		local thin = slotOne and slotOne:FindFirstChildOfClass("UIStroke").Thickness
+		check(res, "minibar_wait_none_active", thin, 2)
+		local function expectShare(ends)
+			return math.clamp(1 - (ends - workspace:GetServerTimeNow()) / wait, 0, 1)
+		end
+		local ends = h.player:GetAttribute("BossWaitEndsAt")
+		h.check(
+			res,
+			"minibar_wait_starts_low",
+			arcShare(1),
+			("%.2f +- %s"):format(ends and expectShare(ends) or 0, FILL_SLACK),
+			ends ~= nil and math.abs(arcShare(1) - expectShare(ends)) <= FILL_SLACK
+		)
+		-- The last of a wait: full exactly as it ends, never falling.
+		setup(res, "boss_ui_wait:1.5")
+		task.wait(0.1)
+		ends = h.player:GetAttribute("BossWaitEndsAt")
+		local worst, last, falls = 0, 0, 0
+		while ends and ends - workspace:GetServerTimeNow() > 0.03 do
+			for n = 1, #ids do
+				worst = math.max(worst, math.abs(arcShare(n) - expectShare(ends)))
+			end
+			falls += arcShare(1) < last - 0.001 and 1 or 0
+			last = arcShare(1)
+			task.wait()
+		end
+		h.check(res, "minibar_wait_fill_follows_end_time", worst, "<= " .. FILL_SLACK, worst <= FILL_SLACK)
+		check(res, "minibar_wait_fill_never_falls", falls, 0)
+		task.wait(0.1)
+		check(res, "minibar_wait_full_at_end", arcShare(1), 1)
+		check(res, "minibar_wait_still_tired_at_end", allTired(), true)
+
+		setup(res, "boss_ui_wait:none")
+		check(res, "minibar_revive_leaves_grey", waitIs(allTired, false), false)
+		h.player:SetAttribute("RunSlot", nil)
+		h.player:SetAttribute("BossTeam", nil)
 		state(res, "Idle", 0, 0, 0, false)
 	end
 
@@ -1209,10 +1444,10 @@ function Module.Build(h)
 			check(res, "leave_back_after_panel", waitShown(LEAVE, true), true)
 		end
 
-		-- Near the intro's end the fill is nearly done, whenever the client first drew it.
+		-- Near the rise's end the fill is nearly done, whenever the client first drew it.
 		state(res, "Idle", 0, 0, 0, false)
 		check(res, "late_intro_bar_clear", waitShown(BAR, false), false)
-		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds - 0.5, 3000, 4000, true, 100)
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.RiseSeconds - 0.3, 3000, 4000, true, 100)
 		check(res, "late_intro_bar_shown", waitShown(BAR, true), true)
 		local early = fillRatio() or 0
 		h.check(res, "late_intro_fill_follows_the_clock", early, "> 0.5 of 0.75", early > 0.5)
@@ -1438,7 +1673,7 @@ function Module.Build(h)
 		check(res, "wait_view_sees_boss", outside, 0)
 
 		-- The bar, its status row and Leave stay on top of the dim.
-		ReplicatedStorage:SetAttribute(
+		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + wait + 5 } })
 		)
@@ -1470,7 +1705,7 @@ function Module.Build(h)
 			)
 		end
 		check(res, "wait_leave_usable", h.find(LEAVE).Active and h.find(LEAVE).Interactable, true)
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 
 		-- Both follow the end time. Past 5 s the panel holds at 1 and full until the server clears the attribute.
 		local endsAt = h.player:GetAttribute("BossWaitEndsAt")
@@ -1540,6 +1775,68 @@ function Module.Build(h)
 		camera.FieldOfView = fovBefore
 	end
 
+	-- The Dodge bar (design doc 4.37): over the roster minibar, its art at the left, a hit's words replacing it.
+	function scenarios.ui_boss_dodge(res)
+		local hp = Cfg.HpPerPlayer
+		local Dodge = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossDodge"))
+		local at, name = Dodge.Moment(1)
+		local lead = Dodge.SweepSeconds * 0.5
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
+		local DODGE = "RacerBossDodge/DodgeBar"
+		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
+		local bar = h.find(DODGE)
+		if bar then
+			local gui = h.player:WaitForChild("PlayerGui")
+			local row = gui.RacerHud.Level:FindFirstChild("Team")
+			local inner = bar:FindFirstChild("Bar")
+			local wheel = bar:FindFirstChild("Wheel")
+			local subtitle = bar:FindFirstChild("Subtitle")
+			check(
+				res,
+				"dodge_bar_above_team_row",
+				bar.AbsolutePosition.Y + bar.AbsoluteSize.Y <= row.AbsolutePosition.Y,
+				true
+			)
+			check(res, "dodge_wheel_art", wheel ~= nil and wheel.Image ~= "", true)
+			check(
+				res,
+				"dodge_wheel_at_left_end",
+				wheel ~= nil
+					and math.abs(wheel.AbsolutePosition.X + wheel.AbsoluteSize.X / 2 - bar.AbsolutePosition.X) <= 1,
+				true
+			)
+			check(
+				res,
+				"dodge_subtitle_says_how",
+				subtitle ~= nil and h.visible(subtitle) and subtitle.Text:find("white") ~= nil,
+				true
+			)
+			local spot = inner and inner:FindFirstChild("Spot")
+			check(res, "dodge_spot_clear_of_start", spot ~= nil and spot.Position.X.Scale >= 0.2, true)
+		end
+		local RESULT = "RacerBossDodge/Result"
+		check(res, "dodge_hit_text_shows", waitShown(RESULT, true, lead + 1), true)
+		local result = h.find(RESULT)
+		check(res, "dodge_hit_words", result and result.Text, Dodge.HitText[name])
+		check(res, "dodge_hit_replaces_bar", waitShown(DODGE, false, 0.6), false) -- after its 0.3 s disappearing
+		check(res, "dodge_hit_text_red", result and result.TextColor3.R > 0.9 and result.TextColor3.G < 0.3, true)
+		-- The dash: into the side asked, mirrored for the other.
+		local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
+		local RunnerFactory = require(ReplicatedStorage.Shared.RunnerFactory)
+		local probe = RunnerFactory.build("db_hero")
+		RunnerVisual.Pose(probe, CFrame.identity, 0, 1)
+		RunnerVisual.PoseDash(probe, CFrame.identity, 0.5, 1)
+		local rightUp = probe.Torso.CFrame.UpVector.X
+		RunnerVisual.Pose(probe, CFrame.identity, 0, 1)
+		RunnerVisual.PoseDash(probe, CFrame.identity, 0.5, -1)
+		local leftUp = probe.Torso.CFrame.UpVector.X
+		probe:Destroy()
+		check(res, "dash_leans_right_when_right", rightUp > 0.4, true)
+		check(res, "dash_leans_left_when_left", leftUp < -0.4, true)
+		state(res, "Idle", 0, 0, 0, false)
+		check(res, "dodge_bar_gone_after_event", waitShown(DODGE, false), false)
+	end
+
 	function scenarios.ui_boss(res)
 		h.waitGuis()
 		local gui = h.find(ROOT)
@@ -1563,15 +1860,17 @@ function Module.Build(h)
 			checkSpawn(res)
 			checkBarValues(res)
 			checkDropList(res)
+			checkBossTimer(res)
 			checkLateJoin(res)
 			checkOutsider(res)
 			checkCameraFov(res)
 			checkWaitView(res)
+			checkWaitMinibar(res)
 			checkStatusRow(res)
 			checkReduced(res)
 		end, debug.traceback)
 		h.check(res, "boss_checks_completed", ok and "yes" or tostring(err), "yes", ok)
-		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		h.player:SetAttribute("BossStatus", nil)
 		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
 		h.player:SetAttribute("ReduceEffects", savedReduce)
 		setup(res, "restore:boss_ui")
@@ -1592,11 +1891,70 @@ function Module.Build(h)
 			res,
 			"boss_locked_button_prompts_for_sidekick",
 			waitIs(function()
-				return shownTextHas(ROOT, "sidekick")
+				return shown(BOSSES .. "/BossPrompt") and shownTextHas(BOSSES .. "/BossPrompt", "sidekick")
 			end, true),
 			true
 		)
 		check(res, "boss_locked_button_stays", shown(BUTTON), true)
+	end
+	-- A press in an event only opens the popup (owner rule): Expect.Remote = false judges that it does not teleport.
+	function after.boss_panel_raging(res)
+		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
+		check(
+			res,
+			"boss_panel_status",
+			waitIs(function()
+				return textOf(BOSSES, "Status")
+			end, RAGING_TEXT),
+			RAGING_TEXT
+		)
+		check(res, "boss_panel_go", textOf(BOSSES, "BossAction"), "Go")
+		check(res, "boss_panel_no_details_in_event", shown(BOSSES .. "/BossDetails"), false)
+		check(res, "boss_panel_no_heading_in_event", shown(BOSSES .. "/DetailsHeading"), false)
+		check(res, "boss_panel_no_next_in_event", shown(BOSSES .. "/NextEvent"), false)
+		check(res, "boss_panel_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
+		checkFit(res, "boss_panel")
+	end
+	function after.boss_panel_closed(res)
+		check(res, "boss_panel_toggles_closed", waitShown(BOSSES, false), false)
+		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
+	end
+	function after.boss_go_closed(res)
+		local action = h.find(BOSSES .. "/BossAction")
+		check(res, "boss_go_stays_past_close", action ~= nil and h.visible(action), true)
+		check(res, "boss_go_disabled_past_close", action ~= nil and action.Active, false)
+		check(res, "boss_status_past_close", textOf(BOSSES, "Status"), RAGING_TEXT)
+		check(res, "boss_prompt_past_close", textOf(BOSSES, "BossPrompt"), "Teleporting closed")
+	end
+	-- The warning has faded by the time an After runs (Waits.ClickSettle): UiSpec's watcher saw it.
+	function after.boss_team_warning(res)
+		local watch = Spec.BossEvent.WarningWatch
+		check(res, "boss_warning_appeared", watch.ShownAt ~= nil, true)
+		check(res, "boss_warning_solid_at_first", watch.Transparency, 0)
+		check(res, "boss_warning_shown_text", watch.Text, TEAM_WARNING_TEXT)
+		local seconds = watch.ShownAt and watch.HiddenAt and watch.HiddenAt - watch.ShownAt
+		h.check(
+			res,
+			"boss_warning_fades_in_1_s",
+			seconds or "still shown",
+			TEAM_WARNING_SECONDS .. " +- " .. WARNING_SLACK,
+			seconds and math.abs(seconds - TEAM_WARNING_SECONDS) <= WARNING_SLACK
+		)
+		check(res, "boss_close_refused_keeps_hud", shown(HUD), true)
+		check(res, "boss_close_refused_no_edit_team", shown(EDIT_TEAM), false)
+	end
+	function after.boss_hud_closed(res)
+		check(res, "boss_close_hides_hud", waitShown(HUD, false), false)
+		check(res, "boss_close_shows_edit_team", waitShown(EDIT_TEAM, true), true)
+		check(res, "boss_close_no_warning", shown(HUD .. "/TeamWarning"), false)
+		check(res, "boss_close_keeps_leave", shown(LEAVE), true)
+		checkFit(res, "boss_hud_closed")
+	end
+	function after.boss_hud_reopened(res)
+		check(res, "boss_edit_team_shows_hud", waitShown(HUD, true), true)
+		check(res, "boss_edit_team_hides_itself", waitShown(EDIT_TEAM, false), false)
+		local slot = h.find(HUD .. "/Slot1")
+		check(res, "boss_edit_team_keeps_pick", slot and slot:GetAttribute("CharacterId"), Spec.BossEvent.Pick)
 	end
 	function after.boss_slot1_filled(res)
 		local slot = h.find(HUD .. "/Slot1")

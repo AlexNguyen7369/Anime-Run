@@ -20,7 +20,10 @@
 --     a draw <= RagaSidekickChance grants side_raga through SidekickService.GrantDrop.
 --   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for side_raga only (design doc 4.37: nothing else
 --     may overflow); any other id is false, reason, with nothing changed.
---     Start(): makes RemoteFunction Remotes.RelicEquip, args (characterId, entry or nil). Attributes RelicBag and RelicGear are JSON.
+--     Start(): makes RemoteFunctions Remotes.RelicEquip, args (characterId, entry or nil), and Remotes.RelicSell, args (entry).
+--     Attributes RelicBag and RelicGear are JSON.
+--     Sell(player, entry) (owner 2026-11-05): true, price or false, reason. Pays BagConfig.SELL_PRICE by rarity through MoneyService,
+--     never Gems. Refuses a worn entry, an entry not in the bag and an id this version does not know.
 --   Saved fields `Relics` and `RelicGear`, PlayerData VERSION 16. CharacterGear stays Sidekick-only: its value is one entry
 --     string that SidekickService.Apply and the sidekicks tests read, so nesting Relics there would change a saved shape.
 --     docs/RELIC_SPEC.md and BOSS_EVENT_SPEC likewise save Relic wear in the separate `RelicGear`.
@@ -31,7 +34,7 @@
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
 --   team attack speed: the team hits as one (4.37), so its attack multi is the average of the team's multis.
---   relic bag: no rule gives it a cap, so a defeat's Relic is never refused. No sell: no rule gives Relics a value.
+--   relic bag: no rule gives it a cap, so a defeat's Relic is never refused.
 --   rebirth keeps Relics, like Sidekicks.
 -- NOT covered: icons (in-house art, none yet), the Details sheet showing these odds (the paid spawn's task).
 --
@@ -517,18 +520,73 @@ function Tests.relics()
 
 			-- Design doc 4.38: never traded.
 			flag("no_trade_api", S.Trade == nil and S.Gift == nil and S.Transfer == nil)
-			flag("reading_no_relic_sell", S.Sell == nil)
 			S.Start()
 			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 			local equipRemote = remotes and remotes:FindFirstChild("RelicEquip")
+			local sellRemote = remotes and remotes:FindFirstChild("RelicSell")
 			flag("remote_exists", equipRemote ~= nil and equipRemote:IsA("RemoteFunction"))
+			flag("sell_remote_exists", sellRemote ~= nil and sellRemote:IsA("RemoteFunction"))
 			local others = {}
 			for _, item in remotes and remotes:GetChildren() or {} do
-				if string.find(string.lower(item.Name), "relic", 1, true) and item ~= equipRemote then
+				if
+					string.find(string.lower(item.Name), "relic", 1, true)
+					and item ~= equipRemote
+					and item ~= sellRemote
+				then
 					table.insert(others, item.Name)
 				end
 			end
-			flag("only_remote_is_equip", #others == 0, table.concat(others, ","), "")
+			flag("only_remotes_are_equip_and_sell", #others == 0, table.concat(others, ","), "")
+		end)
+
+		-- Owner 2026-11-05 (design doc 4.38, docs/RELIC_SPEC.md "Selling"): by rarity, for Money, never a worn one.
+		section("sell", function()
+			local BagConfig = require(Shared.BagConfig)
+			local p = dressed()
+			local cash = money.Setup(p)
+			local start, gems = cash.Value, p:GetAttribute("Gems")
+			local paid = 0
+			for _, row in rows do
+				local entry = grant(p, row.Id)
+				local count = #bag(p)
+				local price = BagConfig.SELL_PRICE[row.Rarity]
+				flag("sell_price_exists_" .. row.Rarity, type(price) == "number" and price > 0, price, "> 0")
+				local done, got = S.Sell(p, entry)
+				paid += price
+				flag("sell_ok_" .. row.Rarity, done == true and got == price, got, price)
+				flag("sell_pays_" .. row.Rarity, cash.Value == start + paid, cash.Value, start + paid)
+				flag("sell_removes_" .. row.Rarity, not has(p, entry) and #bag(p) == count - 1)
+				flag("sell_twice_refused_" .. row.Rarity, (S.Sell(p, entry)) == false and cash.Value == start + paid)
+			end
+			flag("sell_no_gems", p:GetAttribute("Gems") == gems, p:GetAttribute("Gems"), gems)
+
+			local total = cash.Value
+			local worn = grant(p, rows[1].Id)
+			S.Equip(p, charA, worn)
+			local before = snap(p)
+			flag("sell_refuses_worn", (S.Sell(p, worn)) == false and unchanged(p, before) and cash.Value == total)
+			for label, junk in { unknown = "no_such_entry", number = 5, table = {} } do
+				local ran, result = pcall(S.Sell, p, junk)
+				flag("sell_refuses_" .. label, ran and result == false and unchanged(p, before) and cash.Value == total)
+			end
+			flag("sell_refuses_nil", (S.Sell(p, nil)) == false and unchanged(p, before) and cash.Value == total)
+			S.Equip(p, charA, nil)
+			flag("sell_after_take_off", (S.Sell(p, worn)) == true and not has(p, worn))
+
+			-- An id this version does not know may be worth something after a rollback: it stays.
+			local future = dressed()
+			S.Apply(future, { Relics = { { Id = "relic_future", Entry = "x" } }, RelicGear = {} })
+			flag("sell_refuses_unknown_id", (S.Sell(future, "x")) == false and has(future, "x"))
+
+			-- The Money comes first: a refused payment keeps the Relic.
+			local entry = grant(p, rows[1].Id)
+			local realAward = money.Award
+			money.Award = function()
+				return nil
+			end
+			local ran, result = pcall(S.Sell, p, entry)
+			money.Award = realAward
+			flag("sell_refused_payment_keeps_relic", ran and result == false and has(p, entry), tostring(result))
 		end)
 
 		section("multi", function()
@@ -918,6 +976,36 @@ function Tests.relics()
 			)
 			local _, help = Admin.Run(admin, "/help")
 			flag("admin_listed", string.find(help, "/relic", 1, true) ~= nil)
+			flag("admin_relics_listed", string.find(help, "/relics", 1, true) ~= nil)
+
+			-- /relics: one of every Relic, a universal one on several bosses' lists only once.
+			local distinct = {}
+			local want = 0
+			for _, list in C.Bosses do
+				for _, row in list do
+					want += distinct[row.Id] and 0 or 1
+					distinct[row.Id] = true
+				end
+			end
+			local collector = dressed()
+			flag("admin_relics_ok", Admin.Run(collector, "/relics") == true)
+			local got = {}
+			for _, item in bag(collector) do
+				got[item.Id] = (got[item.Id] or 0) + 1
+			end
+			flag("admin_relics_count", #bag(collector) == want, #bag(collector), want)
+			local wrong = {}
+			for id in distinct do
+				if got[id] ~= 1 then
+					table.insert(wrong, id)
+				end
+			end
+			flag("admin_relics_one_each", #wrong == 0, table.concat(wrong, ","), "")
+			local full = H.copy(snap(collector))
+			flag(
+				"admin_relics_rejects_unknown_player",
+				Admin.Run(collector, "/relics NoSuchPlayerHere") == false and unchanged(collector, full)
+			)
 
 			S.Equip(admin, charA, bag(admin)[1].Entry)
 			flag("wipe_ok", Admin.Run(admin, "/wipe") == true)

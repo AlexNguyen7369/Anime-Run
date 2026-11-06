@@ -13,6 +13,7 @@ local Spec = require(script.Parent.UiSpec)
 local UiResponsive = require(script.Parent.UiResponsive)
 
 local Extras = {}
+local SOLD_TICK_WAIT = 20 -- s: a tick at the slowest roll interval, after an emphasized roll's wait
 
 -- h: check, checkList, find, visible, setPanels, player, pathOf, render, provider, viewports, contains, intersects,
 -- rstr (UiScenarios' helpers). Returns { Scenarios, After, Snapshot, BoostToken }.
@@ -443,6 +444,155 @@ function Extras.Build(h)
 			)
 		end
 		return bad
+	end
+
+	local checkAutoSellButton -- below ui_bag_full, which ends with it
+	-- Design doc 4.41, owner 2026-11-05: red text, no background, gone within 1 s, for each blocked try. BagFullHit is what the loop fires.
+	function scenarios.ui_bag_full(res)
+		local gui = h.find("RollExtras")
+		h.check(res, "bag_full_gui", gui ~= nil, true, gui ~= nil)
+		local label = h.find("RollExtras/BagFull")
+		h.check(
+			res,
+			"bag_full_is_text",
+			label and label.ClassName,
+			"TextLabel",
+			label ~= nil and label:IsA("TextLabel")
+		)
+		if not (label and label:IsA("TextLabel")) then
+			return
+		end
+		h.check(res, "bag_full_no_background", label.BackgroundTransparency, 1, label.BackgroundTransparency == 1)
+		h.check(res, "bag_full_text", label.Text, "BAG FULL", label.Text == "BAG FULL")
+		local c = label.TextColor3
+		h.check(res, "bag_full_red", rgb(c), "red", c.R >= 0.5 and c.G < 0.3 and c.B < 0.3)
+		local buttons = {}
+		for _, d in gui:GetDescendants() do
+			if d:IsA("GuiButton") and d.Name ~= "AutoSell" then
+				table.insert(buttons, d.Name) -- the old banner's SELL SPARES and AUTO SELL
+			end
+		end
+		h.checkList(res, "bag_full_no_buttons", buttons)
+		local function untilShown(want, seconds)
+			local deadline = os.clock() + seconds
+			while h.visible(label) ~= want and os.clock() < deadline do
+				task.wait()
+			end
+			return h.visible(label)
+		end
+		h.check(res, "bag_full_hidden_at_rest", untilShown(false, 1.5), false, untilShown(false, 0) == false)
+		local fired, why = h.requestSetup("bag_full_hit")
+		h.check(res, "bag_full_hit_setup", tostring(why), "ok", fired == true)
+		h.check(res, "bag_full_shows_on_a_hit", untilShown(true, 2), true, h.visible(label))
+		local shownAt = os.clock()
+		h.check(res, "bag_full_solid_at_first", label.TextTransparency, "< 0.5", label.TextTransparency < 0.5)
+
+		-- A second try restarts it: solid again, and a full second from there.
+		task.wait(0.6)
+		local faded = label.TextTransparency
+		h.check(res, "bag_full_fades", faded, "> 0", faded > 0)
+		h.requestSetup("bag_full_hit")
+		local deadline, restarted = os.clock() + 1, false
+		while not restarted and os.clock() < deadline do
+			restarted = label.TextTransparency < faded
+			task.wait()
+		end
+		h.check(res, "bag_full_restarts_on_a_hit", restarted, true, restarted)
+		shownAt = os.clock()
+		local gone = untilShown(false, 1.5) == false
+		local seconds = os.clock() - shownAt
+		h.check(res, "bag_full_gone", gone, true, gone)
+		h.check(res, "bag_full_gone_within_1_s", seconds, "<= 1.2", seconds <= 1.2)
+
+		-- Owner 2026-11-06: a tick that sells at a full bag warns too. The real loop, on this player; rolls and copies are the server's.
+		local rollsBefore = attr("Rolls")
+		local soldUp, soldWhy = h.requestSetup("bag_full_sold")
+		h.check(res, "bag_full_sold_setup", tostring(soldWhy), "ok", soldUp == true)
+		local warned = untilShown(true, SOLD_TICK_WAIT)
+		h.check(res, "bag_full_warns_on_a_sold_tick", warned, true, warned == true)
+		local rolled = attr("Rolls") ~= rollsBefore
+		h.check(res, "bag_full_sold_tick_counts", attr("Rolls"), "not " .. tostring(rollsBefore), rolled)
+		h.check(res, "bag_full_stays_full", attr("BagFull"), true, attr("BagFull") == true)
+		h.check(res, "bag_full_autoroll_stays_on", attr("AutoRoll"), true, attr("AutoRoll") == true)
+		h.requestSetup("bag_spares_clear")
+		untilShown(false, 1.5)
+		checkAutoSellButton(res)
+	end
+
+	-- Auto Sell under the roll (owner 2026-11-06). Attributes set here stay on this client: the button only reads them.
+	checkAutoSellButton = function(res)
+		local button = h.find("RollExtras/AutoSell")
+		h.check(
+			res,
+			"auto_sell_button",
+			button and button.ClassName,
+			"TextButton",
+			button ~= nil and button:IsA("TextButton")
+		)
+		if not button then
+			return
+		end
+		local names = { "AutoSell", "AutoSellChance", "AutoRoll", "NeedsStarter", "BossEvent" }
+		local saved = {}
+		for _, name in names do
+			saved[name] = attr(name)
+		end
+		local function settle(want)
+			local deadline = os.clock() + 2
+			while h.visible(button) ~= want and os.clock() < deadline do
+				task.wait()
+			end
+			return h.visible(button)
+		end
+		local function set(name, value)
+			h.player:SetAttribute(name, value)
+			task.wait()
+		end
+		set("AutoRoll", true)
+		set("NeedsStarter", nil)
+		set("BossEvent", nil)
+		set("AutoSell", false)
+		h.check(res, "auto_sell_button_shown", settle(true), true, h.visible(button))
+		h.check(res, "auto_sell_button_off", button.Text, "Auto Sell: OFF", button.Text == "Auto Sell: OFF")
+		set("AutoSell", true)
+		set("AutoSellChance", 1000)
+		local on = "Auto Sell: 1 in " .. HudFormat.Short(1000)
+		h.check(res, "auto_sell_button_on", button.Text, on, button.Text == on)
+		for name, value in { AutoRoll = false, NeedsStarter = true, BossEvent = true } do
+			set(name, value)
+			h.check(res, "auto_sell_button_hidden_by_" .. name, settle(false), false, not h.visible(button))
+			set(name, name == "AutoRoll" or nil) -- back to on, on, off: the base state set above
+			h.check(res, "auto_sell_button_back_after_" .. name, settle(true), true, h.visible(button))
+		end
+		local restore = h.setPanels({ RB.Panel })
+		h.check(res, "auto_sell_button_hidden_under_a_panel", settle(false), false, not h.visible(button))
+		restore()
+		h.check(res, "auto_sell_button_back_after_panel", settle(true), true, h.visible(button))
+		for _, name in names do
+			h.player:SetAttribute(name, saved[name])
+		end
+	end
+
+	-- After the real press: it opens the Auto Sell popup and sends nothing; its Close shuts it.
+	function after.auto_sell_popup_open(res)
+		local popup = h.find("RollOptions/AutoSell")
+		h.check(
+			res,
+			"auto_sell_popup_opens",
+			popup ~= nil and h.visible(popup),
+			true,
+			popup ~= nil and h.visible(popup)
+		)
+	end
+	function after.auto_sell_popup_closed(res)
+		local popup = h.find("RollOptions/AutoSell")
+		h.check(
+			res,
+			"auto_sell_popup_closes",
+			popup ~= nil and h.visible(popup),
+			false,
+			popup ~= nil and not h.visible(popup)
+		)
 	end
 
 	function scenarios.ui_daily_boosts(res)

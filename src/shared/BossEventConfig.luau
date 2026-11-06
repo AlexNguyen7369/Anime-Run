@@ -19,7 +19,8 @@ BossEventConfig.MoveChat = {
 	WheelClick = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
 }
 
-BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: 2 to 3 s, the rise, no damage
+BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: the rise and the cutscene, no damage; the fight starts at its end
+BossEventConfig.RiseSeconds = 1.5 -- owner 2026-11-05: the first part of it, Big Raga rising with the HP bar
 BossEventConfig.AttackStaminaCost = 5 -- owner: percent of a full bar, per attack Impact, on the running character
 BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
 BossEventConfig.ShoutSeconds = 5 -- owner
@@ -34,7 +35,7 @@ local WAIT_CAMERA_UP = 320
 local WAIT_CAMERA_DOWN_ANGLE = math.rad(11) -- the view's axis, below horizontal
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
-BossEventConfig.HpPerPlayer = 4000 -- placeholder
+BossEventConfig.HpPerPlayer = 5000 -- owner 2026-11-05
 BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
 BossEventConfig.MinDamageShare = 0.01 -- placeholder: of max HP, for a reward
 local FULL_SCALE_CRUISE = 800 -- placeholder: the cruise that reaches the +100% cap

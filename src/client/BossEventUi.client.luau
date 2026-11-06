@@ -1,15 +1,16 @@
 --!nonstrict
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
--- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent, BossTeamDamage and BossWaitEndsAt) and asks through
+-- it follows the server's attributes (ReplicatedStorage BossEvent*, player BossEvent, BossStatus, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
--- Outside an event BossButton is the paid spawn (BOSS_EVENT_SPEC "Paid spawn", contract: Client/UiTest/UiBossPaid), through Remotes.BossBuy
--- and BossUseCredit; the server judges every press.
+-- BossButton only opens the BossesPanel popup (BOSS_EVENT_SPEC "Paid spawn", contract: Client/UiTest/UiBossPaid). Its action is Go in an
+-- event, otherwise the paid spawn through Remotes.BossBuy and BossUseCredit; the server judges every press.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -48,10 +49,15 @@ local GLOW_THICK = 5
 local PROMPT_SECONDS = 3
 local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESTRICTED_TEXT = "Paid spawns are not available on your account"
-local BOSS_DETAILS_SIZE = Vector2.new(64, 24) -- right edge 280 on a small phone, short of the compact roll's 283
-local STACK_GAP = 2 -- px: Details under the BossButton, both above the panel band and clear of it at every viewport
-local PROMPT_ROW = 28 -- px: the BossPrompt's row under Details
-local DETAILS_ROW = 22 -- px per odds row
+local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweaked name only
+local CLOSED_TEXT = "Teleporting closed"
+local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a Relic!"
+local BOSSES_WIDTH = 340 -- px
+local DETAILS_ROW = 20 -- px per odds row
+local TEAM_WARNING_TEXT = "Select a character first"
+local TEAM_WARNING_SECONDS = 1 -- placeholder
+local EDIT_TEAM_SIZE = Vector2.new(120, 34) -- px
+local EDIT_TEAM_GAP = 64 -- px above the Team row: clear of its enlarged active circle and its marker
 local RESEND_GAP = 0.3 -- s between team sends: the server refuses a request inside its 0.25 s cooldown
 local PHONE_MAX_HEIGHT = 500 -- the HUD's phone rule
 local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too low, and the roll it clears is hidden or below
@@ -163,6 +169,13 @@ local decline = button("DeclineButton", invite, "Decline", Palette.TabIdle, {
 -- Team HUD ----------------------------------------------------------------------------------------------------------------
 local hud, hudHeader, hudCountdown = panel("TeamHud", "CHOOSE YOUR TEAM")
 hud.Parent = root
+hudCountdown.Position = UDim2.fromScale(0.87, 0.14) -- room for the X
+hudCountdown.Size = UDim2.fromScale(0.2, 0.72) -- clear of the title
+local hudClose = button("CloseButton", hudHeader, "X", Palette.Danger, {
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.fromScale(0.99, 0.5),
+	Size = UDim2.fromScale(0.09, 0.8),
+})
 local slots = {}
 for i = 1, StaminaConfig.TEAM_SIZE do
 	-- RacerHover before parenting: Ui/RacerMotion owes a Frame with a CharacterId its HoverScale, and looks only when it is added.
@@ -201,6 +214,21 @@ local teamDamage = label("TeamDamage", hud, {
 	TextColor3 = Palette.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, 26)
+local avgStamina = label("AverageStamina", hud, {
+	Text = "",
+	TextColor3 = Palette.White,
+	TextXAlignment = Enum.TextXAlignment.Left,
+}, 22)
+local teamWarning = label("TeamWarning", hud, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.fromScale(0.5, 1),
+	Size = UDim2.new(1, -16, 0, 34),
+	Text = TEAM_WARNING_TEXT,
+	Font = Enum.Font.GothamBlack,
+	TextColor3 = WARNING_BRIGHT,
+	Visible = false,
+	ZIndex = 5,
+}, 28)
 local note = label("Note", hud, {
 	Text = NOTE_TEXT,
 	TextColor3 = Palette.SoftText,
@@ -245,6 +273,12 @@ local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
 
 local bar =
 	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
+local bossTimer = label("BossTimer", bar, {
+	Text = "",
+	Font = Enum.Font.GothamBlack,
+	TextColor3 = Palette.Gold,
+	TextXAlignment = Enum.TextXAlignment.Left,
+}, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
 	Text = "Big Raga",
 	Font = Enum.Font.GothamBlack,
@@ -369,6 +403,12 @@ dropRow(
 )
 
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
+local editTeam = button("EditTeamButton", root, "Edit Team", Palette.MoneyDeep, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Size = UDim2.fromOffset(EDIT_TEAM_SIZE.X, EDIT_TEAM_SIZE.Y),
+	TextSize = 18,
+	Visible = false,
+})
 local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -8, 0, 56),
@@ -379,7 +419,7 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 
 -- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
 -- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
-local bossButton = button("BossButton", nil, "Boss (Active)", Palette.Danger, {
+local bossButton = button("BossButton", nil, "Bosses", Palette.Danger, {
 	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
 	TextSize = 14,
 	Visible = false,
@@ -390,46 +430,81 @@ local bossGlow = bossButton.ThemeStroke
 bossGlow.Name = "Glow"
 bossGlow.Color = Palette.Gold
 bossButton.Parent = root
-local bossPrompt = label("BossPrompt", root, {
-	Size = UDim2.fromOffset(300, 24),
-	Text = LOCKED_TEXT,
-	TextColor3 = Palette.Gold,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	Visible = false,
-}, 18)
-local bossDetails = button("BossDetails", root, "Details", Palette.TabIdle, {
-	Size = UDim2.fromOffset(BOSS_DETAILS_SIZE.X, BOSS_DETAILS_SIZE.Y),
-	TextSize = 14,
-	Visible = false,
+-- The popup. Rows stack in LayoutOrder and a hidden row takes no room, so it fits its state.
+-- Centred, with a header and an X, as the other popups (owner 2026-11-06).
+local bossesPanel, bossesHeader = panel("BossesPanel", "BOSSES")
+bossesPanel.Position = UDim2.fromScale(0.5, 0.5)
+bossesPanel.Size = UDim2.fromOffset(BOSSES_WIDTH, 0)
+bossesPanel.AutomaticSize = Enum.AutomaticSize.Y
+bossesPanel.Parent = root
+bossesHeader.Size = UDim2.new(1, 0, 0, 42)
+bossesHeader.LayoutOrder = 0
+local bossesClose = button("CloseButton", bossesHeader, "X", Palette.Danger, {
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -4, 0.5, 0),
+	Size = UDim2.fromOffset(38, 34),
 })
--- The Drop list's own rows, so the two can not disagree. Display only.
-local detailsPanel = make("Frame", "BossDetailsPanel", root, {
-	Size = UDim2.fromOffset(230, #dropRows * DETAILS_ROW + 8),
-	Visible = false,
+make("UIPadding", "Padding", bossesPanel, {
+	PaddingTop = UDim.new(0, 8),
+	PaddingBottom = UDim.new(0, 8),
+	PaddingLeft = UDim.new(0, 10),
+	PaddingRight = UDim.new(0, 10),
 })
-UiTheme.Body(detailsPanel)
-UiTheme.Corner(detailsPanel, "M")
-UiTheme.Stroke(detailsPanel, 3, UiTheme.Outline, true)
-make("UIListLayout", "List", detailsPanel, {
+make("UIListLayout", "List", bossesPanel, {
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
+	Padding = UDim.new(0, 4),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local bossStatus = label("Status", bossesPanel, {
+	Size = UDim2.new(1, 0, 0, 40),
+	LayoutOrder = 1,
+	Text = ABOUT_TEXT,
+	TextWrapped = true,
+}, 16)
+local bossDetailsHeading = label("DetailsHeading", bossesPanel, {
+	Size = UDim2.new(1, 0, 0, 22),
+	LayoutOrder = 2,
+	Text = "Details",
+	TextColor3 = Palette.Gold,
+}, 18)
+-- The Drop list's own rows, so the two can not disagree. Display only.
+local bossDetails = make("Frame", "BossDetails", bossesPanel, {
+	Size = UDim2.new(1, 0, 0, #dropRows * DETAILS_ROW),
+	LayoutOrder = 3,
+	BackgroundTransparency = 1,
+})
+make("UIListLayout", "List", bossDetails, {
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 for _, row in dropRows do
 	local copy = row:Clone()
-	copy.Size = UDim2.new(1, -12, 0, DETAILS_ROW)
-	copy.Parent = detailsPanel
+	copy.Size = UDim2.new(1, 0, 0, DETAILS_ROW)
+	copy.Parent = bossDetails
 end
+local bossNext = label("NextEvent", bossesPanel, {
+	Size = UDim2.new(1, 0, 0, 22),
+	LayoutOrder = 4,
+	Text = "",
+}, 16)
+local bossAction = button("BossAction", bossesPanel, "Go", Palette.MoneyDeep, {
+	Size = UDim2.new(1, 0, 0, 40),
+	LayoutOrder = 5,
+})
+local bossPrompt = label("BossPrompt", bossesPanel, {
+	Size = UDim2.new(1, 0, 0, 22),
+	LayoutOrder = 6,
+	Text = "",
+	TextColor3 = Palette.Gold,
+	TextWrapped = true,
+	Visible = false,
+}, 15)
 
 local function placeBossButton()
 	local inset = GuiService.TopbarInset
 	local x = inset.Min.X + BOSS_BUTTON_GAP
 	local y = math.max(2, (inset.Max.Y - BOSS_BUTTON_SIZE.Y) / 2)
 	bossButton.Position = UDim2.fromOffset(x, y)
-	local detailsTop = y + BOSS_BUTTON_SIZE.Y + STACK_GAP
-	bossDetails.Position = UDim2.fromOffset(x, detailsTop)
-	bossPrompt.Position = UDim2.fromOffset(x, detailsTop + BOSS_DETAILS_SIZE.Y + 4)
-	detailsPanel.Position = UDim2.fromOffset(x, detailsTop + BOSS_DETAILS_SIZE.Y + 4 + PROMPT_ROW)
 end
 GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
 placeBossButton()
@@ -513,14 +588,18 @@ local function placeHud(phone, left, top, right, bottom)
 		local belowSlots = slotTop + side + 2
 		teamDamage.Position = UDim2.fromOffset(8, belowSlots)
 		teamDamage.Size = UDim2.fromOffset(column - 8, 20)
-		note.Position = UDim2.fromOffset(8, belowSlots + 22)
-		note.Size = UDim2.fromOffset(column - 8, math.max(0, height - belowSlots - 28))
+		avgStamina.Position = UDim2.fromOffset(8, belowSlots + 20)
+		avgStamina.Size = UDim2.fromOffset(column - 8, 18)
+		note.Position = UDim2.fromOffset(8, belowSlots + 40)
+		note.Size = UDim2.fromOffset(column - 8, math.max(0, height - belowSlots - 46))
 		list.Position = UDim2.fromOffset(column + 4, slotTop)
 		list.Size = UDim2.fromOffset(width - column - 12, math.max(0, height - slotTop - 6))
 		listGrid.CellSize = UDim2.fromOffset(58, 58)
 	else
 		teamDamage.Position = UDim2.fromOffset(slotsEnd + 8, slotTop)
-		teamDamage.Size = UDim2.fromOffset(width - slotsEnd - 20, side)
+		teamDamage.Size = UDim2.fromOffset(width - slotsEnd - 20, side * 0.55)
+		avgStamina.Position = UDim2.fromOffset(slotsEnd + 8, slotTop + side * 0.55)
+		avgStamina.Size = UDim2.fromOffset(width - slotsEnd - 20, side * 0.45)
 		local noteTop = slotTop + side + 4
 		note.Position = UDim2.fromOffset(12, noteTop)
 		note.Size = UDim2.fromOffset(width - 24, 22)
@@ -542,6 +621,7 @@ local function placeTop(size, row)
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
 	barTitle.Size = UDim2.new(1, 0, 0, titleHeight)
+	bossTimer.Size = UDim2.new(0.25, 0, 0, titleHeight)
 	track.Position = UDim2.fromOffset(0, titleHeight + 2)
 	track.Size = UDim2.new(1, 0, 0, trackHeight)
 	barValue.Position = UDim2.fromOffset(8, titleHeight + 3)
@@ -628,11 +708,18 @@ local function layout()
 	placeInvite(phone, left, top, right, bottom)
 	placeHud(phone, left, top, right, bottom)
 	placeTop(size, row)
+	local racerHud = playerGui:FindFirstChild("RacerHud")
+	local level = racerHud and racerHud:FindFirstChild("Level")
+	local teamRow = level and level:FindFirstChild("Team") -- TeamHud's minibar row
+	if teamRow then
+		local at = teamRow.AbsolutePosition
+		editTeam.Position = UDim2.fromOffset(at.X + teamRow.AbsoluteSize.X / 2, at.Y - EDIT_TEAM_GAP)
+	end
 end
 
 -- Team --------------------------------------------------------------------------------------------------------------------
 local cells = {} -- character id -> { Button, Edge, Badge }
-local picks = {} -- ids in slot order; empty until the player picks: the server then chooses at the spawn
+local picks = {} -- ids in slot order; the saved team, else empty until the player picks: the server then chooses at the spawn
 local confirmed = {} -- what the server last accepted
 local sentKey = ""
 local sending = false
@@ -788,11 +875,13 @@ refreshGear()
 -- Presses -----------------------------------------------------------------------------------------------------------------
 local declinedStart = nil
 local promptUntil = 0
+local promptText = ""
 local busy = false
-local detailsOpen = false
+local bossesOpen = false
+local hudClosed = false -- the player closed the team HUD this event: Edit Team reopens it
 
 local function showPrompt(text)
-	bossPrompt.Text = text
+	promptText = text
 	promptUntil = os.clock() + PROMPT_SECONDS
 end
 
@@ -821,29 +910,68 @@ end)
 decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
+-- Only opens the popup, in every state: teleporting and spawning are its action's job (owner 2026-11-05).
 bossButton.Activated:Connect(function()
-	if ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil then
-		if teleport.Active then
-			ask("BossEventTeleport", bossButton)
-		else
-			showPrompt(LOCKED_TEXT)
-		end
-	elseif not bossButton.Active then
-		return
-	elseif (player:GetAttribute("BossCredit") or 0) >= 1 then
-		ask("BossUseCredit", bossButton, true)
-	elseif player:GetAttribute("PaidRandomRestricted") == true then
-		showPrompt(RESTRICTED_TEXT)
-		UiMotion.Shake(bossButton, 6, 0.2) -- cue: Denied
-	else
-		ask("BossBuy", bossButton, true)
+	bossesOpen = not bossesOpen
+	if bossesOpen then
+		UiMotion.Pop(bossesPanel)
 	end
 end)
-bossDetails.Activated:Connect(function()
-	detailsOpen = not detailsOpen
+bossesClose.Activated:Connect(function()
+	bossesOpen = false
+end)
+PanelFrame.CloseOnOutsideClick(bossesPanel, function()
+	bossesOpen = false
+end)
+bossAction.Activated:Connect(function()
+	if not bossAction.Active then
+		UiMotion.Shake(bossAction, 6, 0.2) -- cue: Denied
+	elseif ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil then
+		ask("BossEventTeleport", bossAction, true)
+	elseif (player:GetAttribute("BossCredit") or 0) >= 1 then
+		ask("BossUseCredit", bossAction, true)
+	elseif player:GetAttribute("PaidRandomRestricted") == true then
+		showPrompt(RESTRICTED_TEXT)
+		UiMotion.Shake(bossAction, 6, 0.2) -- cue: Denied
+	else
+		ask("BossBuy", bossAction, true)
+	end
 end)
 leave.Activated:Connect(function()
 	ask("BossEventLeave", leave)
+end)
+-- Design doc 4.37: closes only with a team to run. Red text, fading, otherwise.
+local warningFades = {}
+hudClose.Activated:Connect(function()
+	if #picks > 0 then
+		hudClosed = true
+		ask("BossEventPrepRun", hudClose)
+		return
+	end
+	UiMotion.Shake(hudClose, 6, 0.2) -- cue: Denied
+	for _, fade in warningFades do
+		fade:Cancel()
+	end
+	local stroke = teamWarning.ThemeStroke
+	teamWarning.TextTransparency, stroke.Transparency = 0, 0
+	teamWarning.Visible = true
+	local info = TweenInfo.new(TEAM_WARNING_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	warningFades = {
+		TweenService:Create(teamWarning, info, { TextTransparency = 1 }),
+		TweenService:Create(stroke, info, { Transparency = 1 }),
+	}
+	for _, fade in warningFades do
+		fade:Play()
+	end
+	warningFades[1].Completed:Connect(function(state)
+		if state == Enum.PlaybackState.Completed then
+			teamWarning.Visible = false
+		end
+	end)
+end)
+editTeam.Activated:Connect(function()
+	hudClosed = false
+	UiMotion.Pop(hud)
 end)
 
 -- Follows the server ------------------------------------------------------------------------------------------------------
@@ -867,7 +995,7 @@ local statusEnds = {} -- id -> EndsAt
 
 -- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time.
 local function drawStatus()
-	local raw = ReplicatedStorage:GetAttribute("BossStatus")
+	local raw = player:GetAttribute("BossStatus")
 	if raw ~= statusRaw then
 		statusRaw = raw
 		statusEnds = {}
@@ -901,9 +1029,9 @@ local function tutorialActive()
 		or (tutorial ~= nil and player:GetAttribute("AutoRoll") == false and (player:GetAttribute("Rolls") or 0) == 0)
 end
 
--- In an event: teleporting, while it is open. Otherwise the paid spawn, read afresh at each call (UiBossPaid).
-local function drawBossButton(live, joinable)
-	local idle = not live and not tutorialActive()
+-- The button shows to everyone outside the arena; the popup's rows follow the event. Read afresh at each call (UiBossPaid).
+local function drawBossButton(phase, inEvent, joinable)
+	local shown = not inEvent and not tutorialActive()
 	if joinable ~= pulsing then
 		pulsing = joinable
 		if stopPulse then
@@ -919,26 +1047,44 @@ local function drawBossButton(live, joinable)
 			end
 		end
 	end
-	bossButton.Visible = joinable or idle
-	bossDetails.Visible = idle
-	detailsOpen = detailsOpen and idle -- closed again when the button next comes back
-	detailsPanel.Visible = detailsOpen and not PanelSwitch.AnyOpen()
-	bossPrompt.Visible = bossButton.Visible and not invite.Visible and os.clock() < promptUntil
-	if joinable then
-		bossButton.Text = "Boss (Active)"
-		bossButton.Active = true
-		bossButton.BackgroundColor3 = Palette.Danger
-	elseif idle then
+	bossButton.Visible = shown
+	bossesOpen = bossesOpen and shown
+	bossesPanel.Visible = bossesOpen and not PanelSwitch.AnyOpen()
+	if not bossesPanel.Visible then
+		return
+	end
+	local active = phase ~= nil
+	local armed = teleport.Active -- has a Sidekick: both Go and the spawn need one
+	bossStatus.Text = active and RAGING_TEXT or ABOUT_TEXT
+	bossDetailsHeading.Visible = not active
+	bossDetails.Visible = not active
+	bossNext.Visible = not active
+	local steady = ""
+	if active then
+		bossAction.Text = "Go"
+		bossAction.Active = joinable and armed
+		bossAction.BackgroundColor3 = bossAction.Active and Palette.MoneyDeep or Palette.Disabled
+		steady = not joinable and CLOSED_TEXT or not armed and LOCKED_TEXT or ""
+	else
 		local sale = Monetization.BossSpawn
 		local credit = (player:GetAttribute("BossCredit") or 0) >= 1
 		local restricted = player:GetAttribute("PaidRandomRestricted") == true -- pressable: the press shows the error
-		local buyable = teleport.Active and (restricted or sale.ProductId > 0)
-		bossButton.Text = credit and "Boss ready"
-			or sale.ProductId > 0 and ("Boss %d R$"):format(sale.Robux)
+		local buyable = armed and (restricted or sale.ProductId > 0)
+		bossAction.Text = credit and "Spawn boss (ready)"
+			or sale.ProductId > 0 and ("Spawn boss %d R$"):format(sale.Robux)
 			or "Coming soon"
-		bossButton.Active = credit or buyable
-		bossButton.BackgroundColor3 = credit and Palette.MoneyDeep or buyable and Palette.Danger or Palette.Disabled
+		bossAction.Active = armed and (credit or buyable)
+		bossAction.BackgroundColor3 = not armed and Palette.Disabled
+			or credit and Palette.MoneyDeep
+			or buyable and Palette.Danger
+			or Palette.Disabled
+		steady = not armed and LOCKED_TEXT or ""
+		local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+		bossNext.Text = nextAt and "Next event in " .. clockText(nextAt - workspace:GetServerTimeNow()) or ""
 	end
+	local passing = os.clock() < promptUntil
+	bossPrompt.Text = passing and promptText or steady
+	bossPrompt.Visible = bossPrompt.Text ~= ""
 end
 
 local function render()
@@ -946,7 +1092,7 @@ local function render()
 	local inEvent = player:GetAttribute("BossEvent") == true
 	local live = phase ~= nil or inEvent
 	if not live and not wasLive then
-		drawBossButton(false, false)
+		drawBossButton(phase, inEvent, false)
 		return
 	end
 	wasLive = live
@@ -960,7 +1106,16 @@ local function render()
 	local key = inEvent and start or nil
 	if key ~= teamKey then
 		teamKey = key
-		picks, confirmed, sentKey = {}, {}, ""
+		-- Opens on the last event's team, as the server's join does (design doc 4.37); with none, the slots start empty.
+		local gear = SidekickView.Gear(player)
+		picks = {}
+		for _, id in string.split(inEvent and player:GetAttribute("LastBossTeam") or "", ",") do
+			if gear[id] and CharacterCatalog.Get(id) and #picks < #slots and not table.find(picks, id) then
+				table.insert(picks, id)
+			end
+		end
+		confirmed, sentKey = table.clone(picks), table.concat(picks, ",")
+		hudClosed = false
 		drawPicks()
 	end
 
@@ -986,7 +1141,7 @@ local function render()
 	end
 
 	local joinable = phase ~= nil and not inEvent and elapsed < Cfg.JoinSeconds and not tutorialActive()
-	-- Once per event, for its own seconds: after that the Boss button carries teleporting.
+	-- Once per event, for its own seconds: after that the Bosses popup carries teleporting.
 	if joinable and invitedStart ~= start then
 		invitedStart = start
 		inviteUntil = os.clock() + Cfg.InviteSeconds
@@ -996,8 +1151,9 @@ local function render()
 		invite.Visible = false
 	end
 
-	drawBossButton(live, joinable)
-	hud.Visible = inEvent and phase == "Prep" and not panelOpen
+	drawBossButton(phase, inEvent, joinable)
+	hud.Visible = inEvent and phase == "Prep" and not hudClosed and not panelOpen
+	editTeam.Visible = inEvent and phase == "Prep" and hudClosed and not panelOpen
 	bar.Visible = inFight
 	dropList.Visible = inFight and warningUntil == 0 and not panelOpen
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
@@ -1018,14 +1174,21 @@ local function render()
 	if hud.Visible then
 		hudCountdown.Text = clockText(Cfg.PrepSeconds - elapsed)
 		teamDamage.Text = "Team damage: " .. HudFormat.SpeedText(player:GetAttribute("BossTeamDamage"))
+		local total = 0
+		for i in picks do
+			total += player:GetAttribute("BossTeamStamina" .. i) or 0
+		end
+		avgStamina.Text = #picks > 0 and string.format("Average stamina: %.1f s", total / #picks)
+			or "Average stamina: -"
 	end
 	if bar.Visible then
 		local hp = ReplicatedStorage:GetAttribute("BossEventHp") or 0
 		local max = ReplicatedStorage:GetAttribute("BossEventMaxHp") or 0
 		-- Left to right over the intro, from the server's start: a late joiner sees the same width as everyone.
-		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.IntroSeconds, 0, 1)
+		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.RiseSeconds, 0, 1)
 		fill.Size = UDim2.fromScale(max > 0 and math.clamp(hp / max, 0, 1) * intro or 0, 1)
 		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
+		bossTimer.Text = clockText(Cfg.TotalSeconds - elapsed)
 		drawStatus()
 	end
 end

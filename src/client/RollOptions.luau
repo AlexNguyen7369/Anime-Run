@@ -147,8 +147,8 @@ local sellSave = button("Save", sell, "SAVE", {
 	TextSize = 22,
 })
 
-local NOTE = "Sells rolled duplicates with odds of 1 in N or more common, for Money. Your last copy and new "
-	.. "characters are always kept."
+local NOTE =
+	"Sells every roll with odds of 1 in N or more common, for Money, new characters too. Copies you already own stay."
 local wantOn = false
 
 local function paintToggle()

@@ -4,9 +4,8 @@
 -- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
 -- doc 4.2). The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
--- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks tab is the Bag (design doc 4.36): pick an
--- entry, then Equip on the character shown, Take off or Sell; every one asks the server. The Relics tab works the same way,
--- with no Sell (design doc 4.38).
+-- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks and Relics tabs are bags (design doc 4.36,
+-- 4.38): a tile opens Client/ItemMenu. Spare characters sell one by one or in select mode (design doc 4.41); the server decides.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -34,6 +33,7 @@ local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
+local ItemMenu = require(script.Parent:WaitForChild("ItemMenu"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -270,7 +270,7 @@ make("UIListLayout", "Layout", toolbar, {
 })
 local sortButton = make("TextButton", "Sort", toolbar, {
 	LayoutOrder = 1,
-	Size = UDim2.new(0, 140, 1, 0),
+	Size = UDim2.new(0, 112, 1, 0),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	Text = "",
 	AutoButtonColor = false,
@@ -281,11 +281,23 @@ stroke(sortButton, PALETTE.White, 2)
 local sortLabel = caption("Label", sortButton, {
 	Size = UDim2.fromScale(1, 1),
 	Text = "Sort: " .. sortMode,
-	TextSize = 18,
+	TextSize = 15,
 })
-local search = make("TextBox", "Search", toolbar, {
+local massSell = make("TextButton", "MassSell", toolbar, {
 	LayoutOrder = 2,
-	Size = UDim2.new(1, -148, 1, 0),
+	Size = UDim2.new(0, 84, 1, 0),
+	BackgroundColor3 = PALETTE.Danger,
+	Font = UiTheme.Font,
+	Text = "Mass sell",
+	TextColor3 = PALETTE.White,
+	TextSize = 15,
+	AutoButtonColor = false,
+})
+corner(massSell, UiTheme.Radius.M)
+stroke(massSell, PALETTE.White, 2)
+local search = make("TextBox", "Search", toolbar, {
+	LayoutOrder = 3,
+	Size = UDim2.new(1, -212, 1, 0),
 	BackgroundColor3 = OUTLINE,
 	BackgroundTransparency = 0.25,
 	ClearTextOnFocus = false,
@@ -364,60 +376,32 @@ local slots = SlotPicker.new("Slots", panel, {
 }, function(...)
 	pickSlot(...)
 end)
--- The Sidekicks tab's row, where the other tabs show the Slots: < character > Equip, Take off, Sell.
-local ACTION_ROW = {
+-- Select mode's row, where the Slots show otherwise (design doc 4.41).
+local massBar = make("Frame", "MassBar", panel, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 120, 1, -32),
 	Size = UDim2.new(1, -132, 0, 44),
 	BackgroundTransparency = 1,
 	Visible = false,
-}
-local actions = make("Frame", "SidekickActions", panel, ACTION_ROW)
-local function actionButton(name, label, x, width, row)
-	local b = make("TextButton", name, row or actions, {
+})
+local function barButton(name, text, x, width, color)
+	local b = make("TextButton", name, massBar, {
 		Position = UDim2.fromScale(x, 0),
 		Size = UDim2.fromScale(width, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Text = "",
+		BackgroundColor3 = color,
+		Font = UiTheme.Font,
+		Text = text,
+		TextColor3 = PALETTE.White,
+		TextSize = 17,
 		AutoButtonColor = false,
 	})
 	corner(b, UiTheme.Radius.M)
-	UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
 	stroke(b, OUTLINE, 3)
-	local text = caption("Label", b, {
-		Position = UDim2.fromScale(0.06, 0.1),
-		Size = UDim2.fromScale(0.88, 0.8),
-		Text = label,
-		TextScaled = true,
-	})
-	make("UITextSizeConstraint", "MaxSize", text, { MaxTextSize = 18 })
-	return b, text
+	return b
 end
-local prevCharacter = actionButton("PrevCharacter", "<", 0, 0.08)
-local nextCharacter = actionButton("NextCharacter", ">", 0.36, 0.08)
-local wearerLabel = caption("Wearer", actions, {
-	Position = UDim2.fromScale(0.09, 0.1),
-	Size = UDim2.fromScale(0.26, 0.8),
-	Text = "",
-	TextScaled = true,
-})
-make("UITextSizeConstraint", "MaxSize", wearerLabel, { MaxTextSize = 18 })
-local equipButton = actionButton("Equip", "Equip", 0.46, 0.17)
-local takeOffButton = actionButton("TakeOff", "Take off", 0.64, 0.17)
-local sellButton, sellLabel = actionButton("Sell", "Sell", 0.82, 0.18)
--- The Relics tab's row: < character > Equip, Take off.
-local relicActions = make("Frame", "RelicActions", panel, ACTION_ROW)
-local relicPrev = actionButton("PrevCharacter", "<", 0, 0.08, relicActions)
-local relicNext = actionButton("NextCharacter", ">", 0.36, 0.08, relicActions)
-local relicWearerLabel = caption("Wearer", relicActions, {
-	Position = UDim2.fromScale(0.09, 0.1),
-	Size = UDim2.fromScale(0.26, 0.8),
-	Text = "",
-	TextScaled = true,
-})
-make("UITextSizeConstraint", "MaxSize", relicWearerLabel, { MaxTextSize = 18 })
-local relicEquip = actionButton("Equip", "Equip", 0.46, 0.26, relicActions)
-local relicTakeOff = actionButton("TakeOff", "Take off", 0.74, 0.26, relicActions)
+local massAll = barButton("SelectAll", "Select all", 0, 0.24, PALETTE.Row)
+local massGo = barButton("Sell", "", 0.26, 0.5, PALETTE.Danger)
+local massCancel = barButton("Cancel", "Cancel", 0.78, 0.22, PALETTE.Row)
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -428,12 +412,11 @@ end
 local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
 local chosenCharacter = nil -- the character id the slot buttons put on the Team
-local chosenEntry = nil -- the Bag entry the Sidekicks row acts on
-local chosenRelic = nil -- the bag entry the Relics row acts on
-local sellAsked = nil -- the entry whose Sell was pressed once: the second press sells it
 local gearOf = {} -- character id -> the Sidekick row it wears (filled per render)
 local relicOf = {} -- character id -> the Relic row it wears (filled per render)
-local sellArmed = nil -- the id a first Sell tap asked about; the second tap sells
+local selecting = false -- select mode: a card marks itself for the mass sale
+local selected = {} -- character id -> true
+local render -- set below
 local function refreshBag()
 	local onCharacters = toolbar.Visible
 	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
@@ -445,28 +428,37 @@ local function refreshBag()
 	local spares = entry and entry:GetAttribute("Copies") or 0
 	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
 	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
-	sellSpares.Visible = onCharacters and spares > 0 and price ~= nil
+	sellSpares.Visible = onCharacters and not selecting and spares > 0 and price ~= nil
 	if sellSpares.Visible then
-		sellSpares.Text = sellArmed == chosenCharacter and ("SURE? +$" .. HudFormat.Short(spares * price))
-			or ("SELL " .. spares .. " SPARE" .. (spares == 1 and "" or "S"))
-		sellSpares.BackgroundColor3 = sellArmed == chosenCharacter and PALETTE.DangerDeep or PALETTE.Muted
+		sellSpares.Text = "SELL " .. spares .. " SPARE" .. (spares == 1 and "" or "S")
 	end
 end
 sellSpares.Activated:Connect(function()
-	if sellArmed ~= chosenCharacter then
-		sellArmed = chosenCharacter
-		refreshBag()
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and chosenCharacter and data:FindFirstChild(chosenCharacter)
+	local spares = entry and entry:GetAttribute("Copies") or 0
+	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
+	local price = spec and BagConfig.SELL_PRICE[spec.Rarity]
+	if spares < 1 or not price then
 		return
 	end
-	sellArmed = nil
-	local ok, message = remotes:WaitForChild("SellSpares"):InvokeServer(chosenCharacter)
-	if ok then
-		UiFeedback.Play("MoneyBig", sellSpares)
-	else
-		hint.Text = tostring(message)
-		UiFeedback.Play("Denied", sellSpares)
-	end
-	refreshBag()
+	ItemMenu.Confirm({
+		Limit = spares,
+		Words = function(n)
+			return string.format(
+				"Are you sure you want to sell %d %s for $%s?",
+				n,
+				n == 1 and "copy of " .. spec.Name or "copies of " .. spec.Name,
+				HudFormat.Short(n * price)
+			)
+		end,
+	}, function(n)
+		local ok = ItemMenu.Ask("SellSpares", sellSpares, "MoneyBig", chosenCharacter, n)
+		if ok then
+			render()
+		end
+		return ok
+	end)
 end)
 player:GetAttributeChangedSignal("BagUsed"):Connect(refreshBag)
 player:GetAttributeChangedSignal("BagCap"):Connect(refreshBag)
@@ -594,7 +586,6 @@ local function fitCards()
 end
 grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCards)
 
-local render
 function pickSlot(slot, id, picked)
 	if busy then
 		return
@@ -667,52 +658,20 @@ local function relicFacts(row)
 	if not row then
 		return "A Relic from a newer version. It stays in your Bag."
 	end
-	return string.format("%s (%s): %s.", row.Name, row.Rarity, RelicConfig.GainText(row))
+	return string.format(
+		"%s (%s): %s. Sells for $%s.",
+		row.Name,
+		row.Rarity,
+		RelicConfig.GainText(row),
+		HudFormat.Short(BagConfig.SELL_PRICE[row.Rarity] or 0)
+	)
 end
 
--- The row under the Bag: what the picked entry can do. A disabled button does not move (design doc 4.20).
-local function setEnabled(button, on)
-	button.Active = on
-	button.BackgroundTransparency = on and 0 or 0.5
-	button.Label.TextTransparency = on and 0 or 0.5
-end
-local function updateActions(wearers)
-	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
-	wearerLabel.Text = spec and spec.Name or "No character"
-	local row = chosenEntry and SidekickView.Row(player, chosenEntry)
-	local known = row and SidekickConfig.Get(row.Id)
-	local wearer = chosenEntry and wearers[chosenEntry]
-	setEnabled(equipButton, chosenEntry ~= nil and spec ~= nil and wearer ~= chosenCharacter)
-	setEnabled(takeOffButton, wearer ~= nil)
-	setEnabled(sellButton, known ~= nil and wearer == nil)
-	sellLabel.Text = known and string.format(sellAsked == chosenEntry and "Sure? +%d" or "Sell +%d", known.SellGems)
-		or "Sell"
-end
-
-local function sidekickRequest(remote, button, cue, ...)
-	if busy then
-		return
-	end
-	busy = true
-	local args = table.pack(...)
-	local ok, done, message = pcall(function()
-		return remotes:WaitForChild(remote):InvokeServer(table.unpack(args, 1, args.n))
-	end)
-	busy = false
-	local fine = ok and done == true
-	notify(ok and (fine and "Done" or tostring(message or "Try again")) or "Connection error")
-	render()
-	UiFeedback.Play(fine and cue or "Denied", button)
-end
-
--- One tile per bag entry, the worn ones marked. `rowOf` finds the catalog row, `facts` words it, `pick` takes the click.
-local function entryTiles(bag, wearers, picked, rowOf, facts, pick)
+-- One tile per bag entry, the worn ones marked. `rowOf` finds the catalog row, `facts` words it; a press opens the menu.
+local function entryTiles(bag, wearers, kind, rowOf, facts)
 	for order, item in bag do
 		local row = rowOf(item.Id)
 		local b = tile(item.Entry, order, wearers[item.Entry] ~= nil)
-		if item.Entry == picked then
-			b.Stroke.Color = Color3.new(1, 1, 1)
-		end
 		SidekickView.Art(b, row, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
 		if wearers[item.Entry] then
 			caption("Worn", b, {
@@ -729,40 +688,17 @@ local function entryTiles(bag, wearers, picked, rowOf, facts, pick)
 			hint.Text = facts(row)
 		end)
 		b.Activated:Connect(function()
-			pick(item.Entry)
 			hint.Text = facts(row) -- touch has no hover
-			render()
-			local tileNow = grid:FindFirstChild(item.Entry)
-			if tileNow then
-				UiMotion.Pop(tileNow, 0.06)
-			end
+			UiMotion.Pop(b, 0.06)
+			ItemMenu.Open(kind, item.Entry, b)
 		end)
-	end
-end
-
-local function ensureCharacter()
-	if not chosenCharacter then
-		local owned = ownedCars()
-		chosenCharacter = owned[1] and owned[1].Id
 	end
 end
 
 local function renderSidekicks(wearers)
 	local bag = SidekickView.Bag(player)
-	local still = false
-	for _, item in bag do
-		still = still or item.Entry == chosenEntry
-	end
-	chosenEntry = still and chosenEntry or (bag[1] and bag[1].Entry)
-	if sellAsked ~= chosenEntry then
-		sellAsked = nil
-	end
-	ensureCharacter()
-	entryTiles(bag, wearers, chosenEntry, SidekickConfig.Get, sidekickFacts, function(entry)
-		chosenEntry = entry
-	end)
+	entryTiles(bag, wearers, "Sidekick", SidekickConfig.Get, sidekickFacts)
 	bagCount.Text = #bag .. " / " .. SidekickConfig.BagSize
-	updateActions(wearers)
 	empty.Text = "No Sidekicks yet. Summon them at the Sidekicks stall!"
 	return #bag
 end
@@ -776,24 +712,40 @@ local function relicWearers()
 end
 
 local function renderRelics()
-	local bag, wearers = SidekickView.RelicBag(player), relicWearers()
-	local still = false
-	for _, item in bag do
-		still = still or item.Entry == chosenRelic
-	end
-	chosenRelic = still and chosenRelic or (bag[1] and bag[1].Entry)
-	ensureCharacter()
-	entryTiles(bag, wearers, chosenRelic, RelicConfig.Get, relicFacts, function(entry)
-		chosenRelic = entry
-	end)
+	local bag = SidekickView.RelicBag(player)
+	entryTiles(bag, relicWearers(), "Relic", RelicConfig.Get, relicFacts)
 	bagCount.Text = tostring(#bag) -- no cap: no rule gives this bag one
-	local spec = chosenCharacter and CharacterCatalog.Get(chosenCharacter)
-	relicWearerLabel.Text = spec and spec.Name or "No character"
-	local wearer = chosenRelic and wearers[chosenRelic]
-	setEnabled(relicEquip, chosenRelic ~= nil and spec ~= nil and wearer ~= chosenCharacter)
-	setEnabled(relicTakeOff, wearer ~= nil)
 	empty.Text = "No Relics yet. Defeat a boss to earn one!"
 	return #bag
+end
+
+-- Select mode's bar: the total at the moment of drawing; a roll landing after it only adds to the sale.
+local function drawMassBar()
+	local data = player:FindFirstChild("GachaData")
+	local spares, money = 0, 0
+	for id in selected do
+		local spec = CharacterCatalog.Get(id)
+		local entry = data and data:FindFirstChild(id)
+		local copies = entry and entry:GetAttribute("Copies") or 0
+		spares += copies
+		money += copies * (spec and BagConfig.SELL_PRICE[spec.Rarity] or 0)
+	end
+	massGo.Text = string.format("Sell %d spare%s +$%s", spares, spares == 1 and "" or "s", HudFormat.Short(money))
+	massGo.Active = spares > 0
+	massGo.BackgroundColor3 = spares > 0 and PALETTE.Danger or PALETTE.Disabled
+	return spares, money
+end
+
+local function setSelected(card, id, on)
+	selected[id] = on or nil
+	card.Picked.Visible = on
+	card.Stroke.Color = on and PALETTE.Danger or OUTLINE
+end
+
+local function leaveSelect()
+	selecting = false
+	table.clear(selected)
+	massSell.Text = "Mass sell"
 end
 
 function render()
@@ -810,12 +762,12 @@ function render()
 	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
 	local inBag = current == "Sidekicks"
 	local inRelics = current == "Relics"
-	slots.Frame.Visible = cosmetic
-	actions.Visible = inBag
-	relicActions.Visible = inRelics
+	selecting = selecting and current == "Characters"
+	slots.Frame.Visible = cosmetic and not selecting
+	massBar.Visible = selecting
 	bagCount.Visible = inBag or inRelics
 	-- ends above the Slots row
-	grid.Size = (cosmetic or inBag or inRelics) and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
+	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
 	toolbar.Visible = current == "Characters"
 	fitCards()
 	local wearers = {} -- entry -> character id
@@ -854,7 +806,43 @@ function render()
 			b.MouseEnter:Connect(function()
 				hint.Text = characterFacts(spec)
 			end)
+			local entry = selecting and player.GachaData:FindFirstChild(spec.Id)
+			local spares = entry and entry:GetAttribute("Copies") or 0
+			if selecting then
+				caption("Picked", b, {
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.4),
+					Size = UDim2.new(1, -8, 0, 30),
+					Text = "SELL",
+					TextSize = 26,
+					TextColor3 = PALETTE.Danger,
+					Visible = false,
+					ZIndex = 8,
+				})
+				if spares > 0 then
+					setSelected(b, spec.Id, selected[spec.Id] == true)
+				else
+					selected[spec.Id] = nil
+					make("Frame", "Dim", b, { -- no spares: the last copy is never sold (design doc 4.41)
+						Size = UDim2.fromScale(1, 1),
+						BackgroundColor3 = OUTLINE,
+						BackgroundTransparency = 0.45,
+						BorderSizePixel = 0,
+						ZIndex = 9,
+					})
+				end
+			end
 			b.Activated:Connect(function()
+				if selecting then
+					if spares > 0 then
+						setSelected(b, spec.Id, not selected[spec.Id])
+						drawMassBar()
+						UiMotion.Pop(b, 0.06)
+					else
+						UiFeedback.Play("Denied", b)
+					end
+					return
+				end
 				chosenCharacter = spec.Id
 				hint.Text = characterFacts(spec) -- touch has no hover
 				render()
@@ -867,6 +855,9 @@ function render()
 		applySearch()
 		slots:Update("Character", chosenCharacter)
 		refreshBag()
+		if selecting then
+			drawMassBar()
+		end
 		empty.Text = "No characters yet. Keep rolling!"
 	elseif current ~= "Misc" then
 		local kind = current == "Trails" and "Trail" or "Aura"
@@ -983,83 +974,64 @@ for name, refs in tabs do
 		end
 		current = name
 		hint.Text = ""
+		if name ~= "Characters" then
+			leaveSelect()
+		end
 		render()
 	end)
 end
 close.Activated:Connect(function()
 	PanelSwitch.Close("Backpack")
 end)
-local function stepCharacter(step)
-	local owned = ownedCars()
-	if #owned == 0 then
-		return
+massSell.Activated:Connect(function()
+	if selecting then
+		leaveSelect()
+	else
+		selecting = true
+		massSell.Text = "Done"
+		hint.Text = "Pick characters with spares. The last copy always stays."
 	end
-	local at = 1
-	for i, spec in owned do
-		if spec.Id == chosenCharacter then
-			at = i
-		end
-	end
-	chosenCharacter = owned[(at - 1 + step) % #owned + 1].Id
 	UiFeedback.Play("TabSwitch")
 	render()
-end
-prevCharacter.Activated:Connect(function()
-	stepCharacter(-1)
 end)
-nextCharacter.Activated:Connect(function()
-	stepCharacter(1)
+massCancel.Activated:Connect(function()
+	leaveSelect()
+	render()
 end)
-equipButton.Activated:Connect(function()
-	if equipButton.Active then
-		sidekickRequest("SidekickEquip", equipButton, "Equip", chosenCharacter, chosenEntry)
+massAll.Activated:Connect(function()
+	for _, card in grid:GetChildren() do
+		if card:FindFirstChild("Picked") and not card:FindFirstChild("Dim") and card.Visible then
+			setSelected(card, card.Name, true)
+		end
 	end
+	drawMassBar()
 end)
-takeOffButton.Activated:Connect(function()
-	local wearer
-	for character, entry in SidekickView.Gear(player) do
-		wearer = entry == chosenEntry and character or wearer
-	end
-	if takeOffButton.Active and wearer then
-		sidekickRequest("SidekickEquip", takeOffButton, "Equip", wearer, nil)
-	end
-end)
--- Two presses: the first shows what the sale pays, so a rare entry never goes on a stray tap.
-sellButton.Activated:Connect(function()
-	local row = sellButton.Active and chosenEntry and SidekickView.Row(player, chosenEntry)
-	local known = row and SidekickConfig.Get(row.Id)
-	if not known then
+massGo.Activated:Connect(function()
+	local spares, money = drawMassBar()
+	if spares < 1 then
+		UiFeedback.Play("Denied", massGo)
 		return
 	end
-	if sellAsked ~= chosenEntry then
-		sellAsked = chosenEntry
-		notify(string.format("Sell %s for %d Gems? Press Sell again.", known.Name, known.SellGems))
-		sellLabel.Text = string.format("Sure? +%d", known.SellGems)
-		return
-	end
-	sellAsked = nil
-	sidekickRequest("SidekickSell", sellButton, "UpgradeBought", chosenEntry)
+	ItemMenu.Confirm({
+		Text = string.format(
+			"Are you sure you want to sell %d spare%s for $%s? The last copy of each stays.",
+			spares,
+			spares == 1 and "" or "s",
+			HudFormat.Short(money)
+		),
+	}, function()
+		local ids = {}
+		for id in selected do
+			table.insert(ids, id)
+		end
+		local ok = ItemMenu.Ask("SellSparesMany", massGo, "MoneyBig", ids)
+		if ok then
+			leaveSelect()
+			render()
+		end
+		return ok
+	end)
 end)
-relicPrev.Activated:Connect(function()
-	stepCharacter(-1)
-end)
-relicNext.Activated:Connect(function()
-	stepCharacter(1)
-end)
-relicEquip.Activated:Connect(function()
-	if relicEquip.Active then
-		sidekickRequest("RelicEquip", relicEquip, "Equip", chosenCharacter, chosenRelic)
-	end
-end)
-relicTakeOff.Activated:Connect(function()
-	local wearer = chosenRelic and relicWearers()[chosenRelic]
-	if relicTakeOff.Active and wearer then
-		sidekickRequest("RelicEquip", relicTakeOff, "Equip", wearer, nil)
-	end
-end)
-for _, button in { equipButton, takeOffButton, sellButton, relicEquip, relicTakeOff } do
-	UiFeedback.DeniedPress(button)
-end
 sortButton.Activated:Connect(function()
 	sortMode = SORTS[table.find(SORTS, sortMode) % #SORTS + 1]
 	sortLabel.Text = "Sort: " .. sortMode
@@ -1070,7 +1042,10 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 	if panel.Visible then
 		hint.Text = ""
 		entering = true
+		leaveSelect()
 		render()
+	else
+		ItemMenu.Close()
 	end
 end)
 player.AttributeChanged:Connect(function(attr)

@@ -23,6 +23,9 @@ local BLEND_IN = 0.1 -- s from rest into a pose entered part way
 local LINGER = 0.35 -- s a landed shot stays, invisible, for its particles and trail to die
 local IMPACT_SECONDS = 1.2
 local NUMBER_SECONDS = 1.1
+local NUMBER_POP = 0.18 -- s of the pop out, placeholder
+local NUMBER_DRIFT = 40 -- studs sideways at most, placeholder
+local NUMBER_TOP, NUMBER_BOTTOM = Color3.fromRGB(255, 225, 40), Color3.fromRGB(235, 30, 30) -- design doc 4.37
 local BUDGET = 400 -- particles alive at once, with 7 players (brief)
 local OTHERS = 0.3 -- of the counts for someone else's attack
 local OTHERS_SIZE = 0.7
@@ -459,20 +462,26 @@ end
 local function damageNumber(impact, damage)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DamageNumber"
-	gui.Size = UDim2.fromOffset(220, 72)
+	gui.Size = UDim2.fromOffset(88, 29) -- pops up to its full size
 	gui.AlwaysOnTop = true
-	gui.StudsOffsetWorldSpace = Vector3.new(0, 40, 0)
+	local drift = math.random(-NUMBER_DRIFT, NUMBER_DRIFT)
+	gui.StudsOffsetWorldSpace = Vector3.new(drift * 0.2, 40, 0)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
-	label.TextColor3 = TEXT_COLOR
+	label.TextColor3 = Color3.new(1, 1, 1)
 	label.TextStrokeTransparency = 0
 	label.Text = HudFormat.Short(math.round(damage))
 	label.Parent = gui
+	local colors = Instance.new("UIGradient") -- design doc 4.37: over white text, the gradient is the colour
+	colors.Color = ColorSequence.new(NUMBER_TOP, NUMBER_BOTTOM)
+	colors.Rotation = 90
+	colors.Parent = label
 	gui.Parent = impact
-	tween(gui, NUMBER_SECONDS, { StudsOffsetWorldSpace = Vector3.new(0, 170, 0) })
+	tween(gui, NUMBER_POP, { Size = UDim2.fromOffset(220, 72) }, Enum.EasingStyle.Back)
+	tween(gui, NUMBER_SECONDS, { StudsOffsetWorldSpace = Vector3.new(drift, 170, 0) })
 	task.delay(NUMBER_SECONDS * 0.6, function()
 		tween(label, NUMBER_SECONDS * 0.4, { TextTransparency = 1, TextStrokeTransparency = 1 })
 	end)

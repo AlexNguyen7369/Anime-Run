@@ -293,32 +293,64 @@ game:GetService("GuiService"):GetPropertyChangedSignal("ReducedMotionEnabled"):C
 player:GetAttributeChangedSignal("ReduceEffects"):Connect(restartPulses)
 
 -- Auto race toggle: it only asks; the AutoRacing attribute the server sets decides its look (design doc 4.40).
-local AUTO_LOCK = 1 -- s a press stays locked, greyed
+local AUTO_LOCK = 1 -- s a press stays locked, with no spin
 local autoTile = tiles.Auto.Button
 local autoIcon = autoTile.Icon
-local autoGlow = make("Frame", "Glow", autoTile, {
+-- The arrows go over the still triangle (design doc 4.40). Green in both states; on Reduced Motion a ring replaces the spin.
+autoIcon.Image = Icons.AutoPlay.Image
+local autoArrows = autoIcon:Clone()
+autoArrows.Name = "Arrows"
+autoArrows.Image = Icons.AutoArrows.Image
+autoArrows.Parent = autoTile
+local autoRing = make("Frame", "OnRing", autoTile, {
 	AnchorPoint = autoIcon.AnchorPoint,
 	Position = autoIcon.Position,
 	Size = autoIcon.Size,
-	BackgroundColor3 = UiTheme.Palette.Money,
-	BackgroundTransparency = 0.7,
+	BackgroundTransparency = 1,
 	Visible = false,
 	ZIndex = autoIcon.ZIndex - 1,
 })
-make("UICorner", "Corner", autoGlow, { CornerRadius = UDim.new(1, 0) })
-make("UIStroke", "Ring", autoGlow, { Color = UiTheme.Palette.Money, Thickness = 4 })
--- Both images load up front, so the first press never shows an empty tile.
-task.spawn(function()
-	game:GetService("ContentProvider"):PreloadAsync({ Icons.Auto.Image, Icons.AutoOff.Image })
-end)
+make("UICorner", "Corner", autoRing, { CornerRadius = UDim.new(1, 0) })
+make("UIStroke", "Ring", autoRing, { Color = UiTheme.Palette.Money, Thickness = 2 })
+local autoBeat = make("UIScale", "Beat", autoIcon, {})
+-- Placeholders.
+local AUTO_SPIN = 200 -- degrees a second at full speed
+local AUTO_EASE = 3.5 -- per second: spins up and winds down instead of snapping
+local AUTO_BEAT, AUTO_BEAT_RATE = 0.08, 4 -- the triangle's breathing while on: size, radians a second
+local autoSpeed, autoClock = 0, 0
 local autoPending = false
+local autoWasOn = false
 local function refreshAuto()
 	local on = player:GetAttribute("AutoRacing") == true and not autoPending
-	autoIcon.Image = on and Icons.Auto.Image or Icons.AutoOff.Image
 	autoTile.Active = not autoPending
-	autoGlow.Visible = on
-	pulse(autoGlow)
+	if on ~= autoWasOn then
+		autoWasOn = on
+		UiMotion.Pop(autoTile, 0.1)
+	end
+	autoTile:SetAttribute("Spinning", on and not UiMotion.Reduced())
+	if UiMotion.Reduced() then
+		autoSpeed = 0
+		autoBeat.Scale = 1
+	end
+	autoRing.Visible = on and UiMotion.Reduced()
 end
+RunService.RenderStepped:Connect(function(dt)
+	local goal = autoTile:GetAttribute("Spinning") and AUTO_SPIN or 0
+	if autoSpeed == goal then
+		return
+	end
+	autoSpeed += (goal - autoSpeed) * (1 - math.exp(-AUTO_EASE * dt))
+	if math.abs(goal - autoSpeed) < 1 then
+		autoSpeed = goal
+	end
+end)
+RunService.RenderStepped:Connect(function(dt)
+	if autoSpeed > 0 then
+		autoClock += dt
+		autoArrows.Rotation = (autoArrows.Rotation + autoSpeed * dt) % 360
+		autoBeat.Scale = 1 + AUTO_BEAT * math.sin(autoClock * AUTO_BEAT_RATE) * autoSpeed / AUTO_SPIN
+	end
+end)
 autoTile.Activated:Connect(function()
 	if autoPending then
 		return
@@ -335,6 +367,8 @@ autoTile.Activated:Connect(function()
 	end)
 end)
 player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshAuto)
+game:GetService("GuiService"):GetPropertyChangedSignal("ReducedMotionEnabled"):Connect(refreshAuto)
+player:GetAttributeChangedSignal("ReduceEffects"):Connect(refreshAuto)
 refreshAuto()
 
 -- Section 10: a red badge pops when its count changes (never every refresh).

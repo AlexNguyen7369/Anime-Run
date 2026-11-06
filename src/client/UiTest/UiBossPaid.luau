@@ -3,15 +3,18 @@
 -- the published attributes through UiTestSetup boss_ui_*, as ui_boss does; the real presses are the boss_paid_* clicks in UiSpec.Clicks.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   RacerBossEvent/BossButton. Read at each render, from player attributes and MonetizationConfig.BossSpawn.ProductId:
---     in an event: as ui_boss, Text exactly "Boss (Active)". Otherwise, with BossCredit >= 1: Text exactly "Boss ready", Active; a
---     press invokes BossUseCredit. Otherwise, no Sidekick: shown, Active false. Otherwise, ProductId 0: Text has "Coming soon",
---     Active false, a press fires nothing. Otherwise: Text has "Boss" and the price 149, Active; a press invokes BossBuy.
+--   RacerBossEvent/BossButton: Text exactly "Bosses", Active, in every state; a press only toggles RacerBossEvent/BossesPanel.
+--   BossesPanel/BossAction, drawn only while the popup shows. In an event: as ui_boss. Otherwise, read at each render from player
+--     attributes and MonetizationConfig.BossSpawn.ProductId: with BossCredit >= 1, "Spawn boss (ready)", a press invokes BossUseCredit.
+--     Otherwise, ProductId 0: "Coming soon", Active false, a press fires nothing. Otherwise: "Spawn boss 149 R$", a press invokes
+--     BossBuy. No Sidekick: Active false (with no credit).
 --   Player attribute PaidRandomRestricted (ShopService publishes it): a press does not invoke BossBuy and BossPrompt shows an
 --     error, whatever the ProductId. A refused BossBuy shows its message in BossPrompt too.
---   RacerBossEvent/BossDetails, a button directly in the ScreenGui, shown with BossButton outside an event, with no purchase needed.
---   Its press toggles RacerBossEvent/BossDetailsPanel, hidden until then. Directly in it: one TextLabel Row_<id> per
---   RelicConfig.Odds("big_raga"), Text holding that row's percent, and Row_side_raga, Text "Big Raga 0.001%", black.
+--   BossesPanel/BossDetails, a Frame, shown with DetailsHeading and NextEvent outside an event. Directly in it: one TextLabel Row_<id> per
+--     RelicConfig.Odds("big_raga"), Text holding that row's percent, and Row_side_raga, Text "Big Raga 0.001%", black.
+--   NextEvent: "Next event in m:ss", from ReplicatedStorage.BossEventNextAt.
+--   BossesPanel is centred, with Header/CloseButton, and closes on a click outside it (owner 2026-11-06; boss_panel_* clicks).
+--   A popup only a real press opens can not be judged by the scenario: its states are the boss_paid_* clicks (UiSpec.Clicks).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Monetization = require(Shared:WaitForChild("MonetizationConfig"))
@@ -19,9 +22,13 @@ local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 
 local ROOT = "RacerBossEvent"
 local BUTTON = ROOT .. "/BossButton"
-local DETAILS = ROOT .. "/BossDetails"
-local PANEL = ROOT .. "/BossDetailsPanel"
-local PROMPT = ROOT .. "/BossPrompt"
+local PANEL = ROOT .. "/BossesPanel"
+local DETAILS = PANEL .. "/BossDetails"
+local ACTION = PANEL .. "/BossAction"
+local PROMPT = PANEL .. "/BossPrompt"
+local NEXT_EVENT = PANEL .. "/NextEvent"
+local BUTTON_TEXT = "Bosses"
+local NEXT_SLACK = 5 -- s
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
 
 local Module = {}
@@ -56,16 +63,11 @@ function Module.Build(h)
 		local button = h.find(BUTTON)
 		return button and button.Text or ""
 	end
-	local function has(needle)
-		return function()
-			return string.find(text(), needle, 1, true) ~= nil
-		end
-	end
 	local function active()
 		local button = h.find(BUTTON)
 		return button ~= nil and button.Active
 	end
-	local function checkState(res, tag, wantText, wantActive)
+	local function checkState(res, tag)
 		check(
 			res,
 			tag .. "_shown",
@@ -74,17 +76,22 @@ function Module.Build(h)
 			end, true),
 			true
 		)
-		check(res, tag .. "_text", waitIs(has(wantText), true) and wantText or text(), wantText)
-		if wantActive ~= nil then
-			check(res, tag .. "_active", waitIs(active, wantActive), wantActive)
-		end
+		check(res, tag .. "_text", waitIs(text, BUTTON_TEXT), BUTTON_TEXT)
+		check(res, tag .. "_active", waitIs(active, true), true)
 	end
 
 	function scenarios.ui_boss_paid(res)
 		h.waitGuis()
-		for _, path in { BUTTON, DETAILS, PANEL } do
+		for _, path in
+			{ BUTTON, PANEL, DETAILS, ACTION, PROMPT, NEXT_EVENT, PANEL .. "/Status", PANEL .. "/DetailsHeading" }
+		do
 			check(res, "paid_part_present_" .. path, h.find(path) ~= nil, true)
 		end
+		for _, gone in { "BossDetails", "BossDetailsPanel", "BossPrompt" } do
+			check(res, "paid_part_moved_" .. gone, h.find(ROOT .. "/" .. gone), nil)
+		end
+		local details = h.find(DETAILS)
+		check(res, "paid_details_is_a_frame", details ~= nil and details.ClassName, "Frame")
 		local spawnProduct = Monetization.BossSpawn
 		check(res, "paid_config", spawnProduct ~= nil, true)
 		if not spawnProduct then
@@ -96,42 +103,23 @@ function Module.Build(h)
 			spawnProduct.ProductId = 0
 			setup(res, "boss_ui_gear:1")
 			setup(res, "boss_ui_state:Idle:0:0:0:false:0")
-			checkState(res, "coming_soon", "Coming soon", false)
-			check(
-				res,
-				"idle_details_shown",
-				waitIs(function()
-					return shown(DETAILS)
-				end, true),
-				true
-			)
-			check(res, "details_hidden_until_pressed", shown(PANEL), false)
+			checkState(res, "coming_soon")
+			check(res, "panel_hidden_until_pressed", shown(PANEL), false)
 
 			spawnProduct.ProductId = realId
-			checkState(res, "able", "Boss", true)
-			checkState(res, "able_price", tostring(spawnProduct.Robux), true)
+			checkState(res, "able")
 
 			setup(res, "boss_ui_credit:1")
-			checkState(res, "credit", "Boss ready", true)
-			check(res, "credit_text_exact", waitIs(text, "Boss ready"), "Boss ready")
+			checkState(res, "credit")
 
-			setup(res, "boss_ui_state:Prep:5:4000:4000:false:0")
-			checkState(res, "credit_in_event", "Boss (Active)")
-			check(res, "event_text_exact", waitIs(text, "Boss (Active)"), "Boss (Active)")
+			setup(res, "boss_ui_state:Prep:5:5000:5000:false:0")
+			checkState(res, "credit_in_event")
 			setup(res, "boss_ui_state:Idle:0:0:0:false:0")
-			checkState(res, "credit_after_event", "Boss ready", true)
+			checkState(res, "credit_after_event")
 
 			setup(res, "boss_ui_credit:0")
 			setup(res, "boss_ui_gear:0")
-			check(
-				res,
-				"no_sidekick_shown",
-				waitIs(function()
-					return shown(BUTTON)
-				end, true),
-				true
-			)
-			check(res, "no_sidekick_disabled", waitIs(active, false), false)
+			checkState(res, "no_sidekick") -- it still opens the popup: BossAction is what a no-Sidekick player can not press
 		end, debug.traceback)
 		h.check(res, "paid_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		spawnProduct.ProductId = realId
@@ -148,7 +136,31 @@ function Module.Build(h)
 			end, true),
 			true
 		)
-		local panel = h.find(PANEL)
+		check(res, "details_heading_shown", shown(PANEL .. "/DetailsHeading"), true)
+		check(res, "details_shown", shown(DETAILS), true)
+		local action = h.find(ACTION)
+		check(res, "idle_action_text", action and action.Text, "Spawn boss 149 R$")
+		local status = h.find(PANEL .. "/Status")
+		check(
+			res,
+			"idle_status_is_about",
+			status ~= nil and status.Text ~= "" and status.Text ~= "Big Raga is raging right now",
+			true
+		)
+		local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+		check(res, "next_at_published", type(nextAt), "number")
+		local nextLabel = h.find(NEXT_EVENT)
+		local minutes, seconds = string.match(nextLabel and nextLabel.Text or "", "^Next event in (%d+):(%d%d)$")
+		local left = minutes and tonumber(minutes) * 60 + tonumber(seconds)
+		local want = type(nextAt) == "number" and nextAt - workspace:GetServerTimeNow() or 0
+		h.check(
+			res,
+			"next_event_text",
+			left or (nextLabel and nextLabel.Text),
+			("%d +- %d"):format(want, NEXT_SLACK),
+			left ~= nil and math.abs(left - want) <= NEXT_SLACK
+		)
+		local panel = h.find(DETAILS)
 		local sum = 0
 		for _, row in RelicConfig.Odds("big_raga") do
 			local label = panel and panel:FindFirstChild("Row_" .. row.Id)
@@ -160,6 +172,17 @@ function Module.Build(h)
 		local side = panel and panel:FindFirstChild("Row_side_raga")
 		check(res, "details_raga_text", side and side.Text, "Big Raga 0.001%")
 		check(res, "details_raga_black", side and side.TextColor3, Color3.new(0, 0, 0))
+	end
+	function after.boss_paid_refusal_shown(res)
+		check(
+			res,
+			"refused_buy_message_shown",
+			waitIs(function()
+				local prompt = h.find(PROMPT)
+				return shown(PROMPT) and prompt.Text == "money"
+			end, true),
+			true
+		)
 	end
 	function after.boss_paid_error_shown(res)
 		check(

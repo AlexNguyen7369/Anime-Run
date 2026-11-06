@@ -496,8 +496,6 @@ UiSpec.Hud = {
 	Race = "RacerHud/Race/Face", -- hidden: geometry only, the anchor the Toast and the panel bands read
 	-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": a tile in the bottom pair, label "Auto" in every state (design doc 4.40)
 	Auto = "HudChrome/AutoSlot/Auto",
-	AutoImageOn = "rbxassetid://122355836258114",
-	AutoImageOff = "rbxassetid://83629554083032",
 	Daily = "HudChrome/TopRight/Daily",
 	AutoLabel = "Auto",
 	AutoTintWait = 2, -- s: past the 1 s pending lock, the icon shows AutoRacing
@@ -637,12 +635,12 @@ UiSpec.Guis.RacerBackpack = {
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
 		{ Path = "Panel/Tabs/SidekicksTab", Does = "local", Effect = "backpack_category", Text = "Sidekicks" },
 		{ Path = "Panel/Tabs/RelicsTab", Does = "local", Effect = "backpack_category", Text = "Relics" },
-		-- The Relics tab's row (design doc 4.38), where the other tabs show the Slots. RelicEquip stays out of
-		-- UiSpec.RemoteFunctions, like SidekickSummon: these clicks equip for real and are judged After.
-		{ Path = "Panel/RelicActions/Equip", Does = "remote", Remote = "RelicEquip", Arg = "character_entry" },
-		{ Path = "Panel/RelicActions/TakeOff", Does = "remote", Remote = "RelicEquip", Arg = "character" },
-		{ Path = "Panel/RelicActions/PrevCharacter", Does = "local", ClickCoverage = "ui_relics" },
-		{ Path = "Panel/RelicActions/NextCharacter", Does = "local", ClickCoverage = "ui_relics" },
+		-- Characters tab: both open a confirmation (Client/ItemMenu, design doc 4.41); the sale itself is its Yes.
+		{ Path = "Panel/SellSpares", Does = "local" },
+		{ Path = "Panel/Header/Toolbar/MassSell", Does = "local" },
+		{ Path = "Panel/MassBar/SelectAll", Does = "local" },
+		{ Path = "Panel/MassBar/Sell", Does = "local" },
+		{ Path = "Panel/MassBar/Cancel", Does = "local" },
 		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
 		{
 			Path = "Panel/Header/Toolbar/Sort",
@@ -1157,11 +1155,20 @@ UiSpec.Announce = {
 }
 
 -- Client scripts that build no ScreenGui but must exist (StarterPlayerScripts.Client).
-UiSpec.ClientScripts = { "RollAnnounce" }
+UiSpec.ClientScripts = { "RollAnnounce", "BossPrepRun" } -- BossPrepRun: display only, judged by nothing here yet
 
 -- Remotes the UI fires or listens to (ReplicatedStorage.Remotes, RemoteEvents).
-UiSpec.Remotes =
-	{ "SetAutoRace", "SetAutoRoll", "EquipCar", "AllocateStat", "RollResult", "RollAnnounce", "NpcRace", "Duel" }
+UiSpec.Remotes = {
+	"SetAutoRace",
+	"SetAutoRoll",
+	"EquipCar",
+	"AllocateStat",
+	"RollResult",
+	"RollAnnounce",
+	"NpcRace",
+	"Duel",
+	"BagFullHit",
+}
 
 -- Created by Roblox, not the game: an explicit list of engine ScreenGui names (never a pattern or wildcard).
 -- ProximityPrompts: the engine's default ProximityPrompt UI (the workshop E prompt), created on first prompt shown.
@@ -1519,6 +1526,11 @@ Prepare:
  KeepPanels     no panel is closed, reopened or restored: the click starts from the view the previous click left
                 (Market Detail after a phone card click; a reopen would reset it)
  LeavePanels    panels prepared as usual but NOT restored after the click (the next click uses KeepPanels)
+ OpenFirst      panels are prepared before the target is looked up: it only exists once its panel has drawn (a bag tile)
+ EndPanels      { paths } exactly these panels are left open after the click: the end of a KeepPanels chain
+ Before         a function run on this client before the click; what it returns runs after the checks
+ PressFirst     { Path, Until } a popup only a real press opens: unless Until already shows, the harness first publishes a target
+                on Path and prints a RETRY line with done=<Id>#0; ui-tester handles it as step 4, then the click goes on
 ClickAt: where to click when it is not the target's centre: "corner" (UiSpec.Showcase.CornerInset px in from the
  bottom-right corner, off the card) or a "<Gui>/<Path>" whose centre is used. The target must be topmost there.
  "empty": the target is a click-through panel (UiSpec.ClickThroughBackdrops); the harness picks the first point of a
@@ -2451,6 +2463,7 @@ UiSpec.RemoteFunctions = {
 	"BossEventTeleport",
 	"BossEventSetTeam",
 	"BossEventLeave",
+	"BossEventPrepRun",
 	-- Paid spawn: the boss_paid_* clicks must never really prompt or start
 	"BossBuy",
 	"BossUseCredit",
@@ -3015,21 +3028,66 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy", "relic_states" },
 	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_tab" } },
 })
-table.insert(UiSpec.Clicks, {
-	Id = "relics_equip",
-	Gui = "RacerBackpack",
-	Path = "Panel/RelicActions/Equip",
-	Prepare = only("RacerBackpack/Panel"),
-	NeedSetup = { "spy", "relic_states_bare" },
-	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_equip" } },
+-- Tiles open Client/ItemMenu (design doc 4.36, 4.38). One flow is a chain: a tile click leaves the Backpack open, each step keeps the
+-- panels, the last closes them. RelicEquip and RelicSell stay out of UiSpec.RemoteFunctions, like SidekickSummon: these clicks
+-- equip and sell for real, on relic_states' fixture, and are judged After. {relic_first} and the others: UiSpec.Backpack.EntryTokens.
+local BAG_PANEL = "RacerBackpack/Panel"
+-- `steps`: { id, gui, path, after, extra Prepare fields }; the first is the opening click, with its NeedSetup in `need`.
+function UiSpec.AddMenuChain(need, panel, steps)
+	for i, step in steps do
+		local prepare = { KeepPanels = true, Showcase = false, RequireShown = true }
+		if i == 1 then
+			prepare = only(panel)
+			prepare.OpenFirst, prepare.LeavePanels, prepare.RequireShown = true, true, true
+		elseif i == #steps then
+			prepare.EndPanels = {}
+		end
+		for key, value in step[5] or {} do
+			prepare[key] = value
+		end
+		table.insert(UiSpec.Clicks, {
+			Id = step[1],
+			Gui = step[2],
+			Path = step[3],
+			ClickAt = step[6],
+			Prepare = prepare,
+			NeedSetup = i == 1 and need or { "spy" },
+			Expect = { Panels = { [panel] = true }, Remote = false, After = step[4] and { step[4] } or nil },
+		})
+	end
+end
+local MENU = "RacerItemMenu"
+UiSpec.AddMenuChain({ "spy", "relic_states_bare" }, BAG_PANEL, {
+	{ "relics_menu_tile", "RacerBackpack", "Panel/Items/{relic_first}", "item_menu_free" },
+	{ "relics_picker_open", MENU, "Menu/Equip", "item_picker_shown" },
+	{ "relics_picker_close", MENU, "Picker/Close", "item_menu_closed" },
 })
-table.insert(UiSpec.Clicks, {
-	Id = "relics_take_off",
-	Gui = "RacerBackpack",
-	Path = "Panel/RelicActions/TakeOff",
-	Prepare = only("RacerBackpack/Panel"),
-	NeedSetup = { "spy", "relic_states" },
-	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_take_off" } },
+UiSpec.AddMenuChain({ "spy" }, BAG_PANEL, {
+	{ "relics_equip_tile", "RacerBackpack", "Panel/Items/{relic_first}" },
+	{ "relics_equip_menu", MENU, "Menu/Equip" },
+	{ "relics_equip", MENU, "Picker/Characters/{owned_first}", "relics_equip" },
+})
+UiSpec.AddMenuChain({ "spy", "relic_states" }, BAG_PANEL, {
+	{ "relics_worn_tile", "RacerBackpack", "Panel/Items/{relic_worn}", "item_menu_worn" },
+	{ "relics_sell_worn", MENU, "Menu/Sell", "item_menu_stays", { TargetActive = false } },
+	{ "relics_take_off", MENU, "Menu/Equip", "relics_take_off" },
+})
+UiSpec.AddMenuChain({ "spy", "relic_states_bare" }, BAG_PANEL, {
+	{ "relics_sell_tile", "RacerBackpack", "Panel/Items/{relic_first}" },
+	{ "relics_sell_menu", MENU, "Menu/Sell", "item_confirm_shown" },
+	{ "relics_sell_cancel", MENU, "Confirm/Cancel", "item_menu_closed" },
+})
+UiSpec.AddMenuChain({ "spy" }, BAG_PANEL, {
+	{ "relics_sell_again_tile", "RacerBackpack", "Panel/Items/{relic_first}" },
+	{ "relics_sell_again_menu", MENU, "Menu/Sell" },
+	{ "relics_sell", MENU, "Confirm/Yes", "relics_sold" },
+})
+-- The same menu from a Sidekick tile; its sale is judged by the sidekicks scenario on the server.
+UiSpec.AddMenuChain({ "spy", "sidekick_states" }, BAG_PANEL, {
+	{ "sidekicks_menu_tab", "RacerBackpack", "Panel/Tabs/SidekicksTab" }, -- the Bag kept relics_tab's view
+	{ "sidekicks_menu_tile", "RacerBackpack", "Panel/Items/{sidekick_first}", "item_menu_free" },
+	{ "sidekicks_menu_sell", MENU, "Menu/Sell", "item_confirm_shown" },
+	{ "sidekicks_menu_cancel", MENU, "Confirm/Cancel", "item_menu_closed" },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "relics_character_badge",
@@ -3052,6 +3110,34 @@ for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Relics", "Characters" }
 			After = tab == "Characters" and { "backpack_characters_grid" } or nil,
 		},
 	})
+end
+-- Sell and Mass sell (design doc 4.41), from the Characters view the loop ended on. No sale here: the real ones are the server's `bag`.
+UiSpec.AddMenuChain({ "spy", "bag_spares" }, BAG_PANEL, {
+	{ "backpack_sell_spares", "RacerBackpack", "Panel/SellSpares", "item_stepper_shown" },
+	{ "backpack_sell_spares_cancel", MENU, "Confirm/Cancel", "item_menu_closed" },
+	{ "backpack_mass_enter", "RacerBackpack", "Panel/Header/Toolbar/MassSell", "mass_mode_shown" },
+	{ "backpack_mass_all", "RacerBackpack", "Panel/MassBar/SelectAll", "mass_all_selected" },
+	{ "backpack_mass_sell", "RacerBackpack", "Panel/MassBar/Sell", "item_confirm_shown" },
+	{ "backpack_mass_sell_cancel", MENU, "Confirm/Cancel", "item_menu_closed" },
+	{ "backpack_mass_cancel", "RacerBackpack", "Panel/MassBar/Cancel", "mass_mode_left" },
+})
+UiSpec.Clicks[#UiSpec.Clicks].NeedSetup = { "spy", "bag_spares_clear" }
+for _, item in
+	{
+		{
+			Id = "bag_spares",
+			What = "2 Copies on every owned character; bag_spares_clear or 'restore' puts them back.",
+		},
+		{ Id = "bag_spares_clear", What = "Copies as they stood before bag_spares." },
+		{ Id = "bag_full_hit", What = "Fires Remotes.BagFullHit to this client, as a blocked auto-roll try does." },
+		{
+			Id = "bag_full_sold",
+			What = "A bag at its cap with auto sell on at a huge N, so the real auto-roll loop sells each roll; bag_spares_clear puts it back.",
+		},
+	}
+do
+	item.When = "the backpack_* sale clicks and ui_bag_full"
+	table.insert(UiSpec.ServerSetup, item)
 end
 -- Backpack Characters tiles (c1 / u4, Client/SlotPicker): a tile click only picks the character, nothing is sent; the
 -- team slot buttons below send SetTeam. Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
@@ -3355,6 +3441,12 @@ end
 -- ui_backpack_characters measures the live engine rects and tags its geometry checks with the live variant (_desktop, or
 -- _phone at ViewportSize.Y <= PhoneMaxHeight): ui-tester runs it at a desktop size AND at phone landscape
 -- (UiSpec.LegacyControls.ResizeProtocol sizes); both sets of check names must appear and pass.
+local CatalogForTokens =
+	require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog"))
+local function decodeAttribute(player, name)
+	local raw = player:GetAttribute(name)
+	return type(raw) == "string" and game:GetService("HttpService"):JSONDecode(raw) or {}
+end
 UiSpec.Backpack = {
 	Panel = "RacerBackpack/Panel",
 	Tabs = "RacerBackpack/Panel/Tabs",
@@ -3364,8 +3456,30 @@ UiSpec.Backpack = {
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
 	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
-	RelicActions = "RacerBackpack/Panel/RelicActions", -- the Relics tab's row (UiRelics)
-	RelicButtons = { "PrevCharacter", "NextCharacter", "Equip", "TakeOff" },
+	-- Path tokens of the click machinery: a tile's name known only at the click. Each returns it, or nil while it has not arrived.
+	EntryTokens = {
+		["{relic_first}"] = function(player)
+			local bag = decodeAttribute(player, "RelicBag")
+			return bag[1] and bag[1].Entry
+		end,
+		["{relic_worn}"] = function(player)
+			local _, entry = next(decodeAttribute(player, "RelicGear"))
+			return entry
+		end,
+		["{sidekick_first}"] = function(player)
+			local bag = decodeAttribute(player, "SidekickBag")
+			return bag[1] and bag[1].Entry
+		end,
+		["{owned_first}"] = function(player)
+			local data = player:FindFirstChild("GachaData")
+			for _, spec in CatalogForTokens.All() do
+				if data and data:FindFirstChild(spec.Id) then
+					return spec.Id -- ItemMenu's picker: catalog order
+				end
+			end
+			return nil
+		end,
+	},
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
@@ -3611,6 +3725,34 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only("RacerIndex/Panel"),
 	NeedSetup = { "spy" },
 	Expect = { Panels = { ["RacerIndex/Panel"] = true }, Remote = false },
+})
+-- Relics page in the Index (owner 2026-11-05, design doc 4.38), the same shape. An owned tile on either page opens Client/ItemMenu.
+table.insert(UiSpec.Guis.RacerIndex.Buttons, {
+	Path = "Panel/Face/Header/Face/RelicsTab/Face",
+	Does = "local",
+	Effect = "index_relics_shown",
+})
+table.insert(UiSpec.Guis.RacerIndex.Buttons, {
+	Path = "Panel/Face/GridHost/RelicsPage/*",
+	Does = "local",
+	Count = "dynamic",
+})
+table.insert(UiSpec.Guis.RacerIndex.Buttons, {
+	Path = "Panel/Face/GridHost/SidekicksPage/*",
+	Does = "local",
+	Count = "dynamic",
+	ClickCoverage = "ui_sidekicks",
+})
+UiSpec.AddMenuChain({ "spy", "relic_states" }, "RacerIndex/Panel", {
+	{ "index_relics_tab", "RacerIndex", "Panel/Face/Header/Face/RelicsTab/Face", "index_relics_page" },
+	{
+		"index_relics_tile",
+		"RacerIndex",
+		"Panel/Face/GridHost/RelicsPage/"
+			.. require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("RelicConfig")).Bosses.big_raga[1].Id,
+		"item_menu_shown",
+	},
+	{ "index_relics_scrim", MENU, "Scrim", "item_menu_closed", nil, "corner" },
 })
 table.insert(UiSpec.Guis.RacerIndex.Buttons, {
 	Path = "Panel/Face/Header/Face/CharactersTab/Face",
@@ -3909,23 +4051,88 @@ table.insert(UiSpec.Clicks, {
 	},
 })
 
+-- The click menu for Sidekicks and Relics, and the sale confirmation (Client/ItemMenu; design doc 4.36, 4.41). A module the Backpack
+-- and the Index require, so it is no ClientScript. Enabled only while it shows; the chains above press it.
+UiSpec.Guis.RacerItemMenu = {
+	Source = "Client/ItemMenu",
+	Buttons = {
+		{ Path = "Scrim", Does = "local" },
+		{ Path = "Menu/Equip", Does = "local" },
+		{ Path = "Menu/Sell", Does = "local" },
+		{ Path = "Confirm/Yes", Does = "remote", Remote = "RelicSell|SidekickSell|SellSpares|SellSparesMany" },
+		{ Path = "Confirm/Cancel", Does = "local" },
+		{ Path = "Confirm/Stepper/Less", Does = "local", ClickCoverage = "ui_relics" },
+		{ Path = "Confirm/Stepper/More", Does = "local", ClickCoverage = "ui_relics" },
+		{ Path = "Confirm/Stepper/Max", Does = "local", ClickCoverage = "ui_relics" },
+		{ Path = "Picker/Close", Does = "local" },
+		{ Path = "Picker/Characters/*", Does = "remote", Remote = "RelicEquip|SidekickEquip", Count = "dynamic" },
+	},
+}
+-- The extra rolls' toast, the full bag's red text and the Auto Sell button under the roll (Client/RollExtras; ui_bag_full).
+UiSpec.Guis.RollExtras = {
+	Source = "Client/RollExtras",
+	AlwaysOn = { "AutoSell" },
+	NonInteractiveParts = { "Toast", "BagFull" },
+	Buttons = { { Path = "AutoSell", Does = "local" } },
+}
+-- Its popups (Client/RollOptions): Auto Sell, opened by that button, Settings and the roll view; the roll odds Details.
+UiSpec.Guis.RollOptions = {
+	Source = "Client/RollOptions",
+	Buttons = {
+		{ Path = "AutoSell/Close", Does = "local" },
+		{ Path = "AutoSell/Toggle", Does = "local", ClickCoverage = "ui_bag_full" },
+		{ Path = "AutoSell/Save", Does = "remote", Remote = "SetAutoSell", ClickCoverage = "ui_bag_full" },
+		{ Path = "Details/Close", Does = "local", ClickCoverage = "ui_rolls" },
+		{ Path = "Details/Normal", Does = "local", ClickCoverage = "ui_rolls" },
+		{ Path = "Details/Turbo", Does = "local", ClickCoverage = "ui_rolls" },
+	},
+}
+for _, click in
+	{
+		{
+			Id = "roll_auto_sell_open",
+			Gui = "RollExtras",
+			Path = "AutoSell",
+			Prepare = { Showcase = false, RequireShown = true, AttrIs = { AutoRoll = true } },
+			NeedSetup = { "spy", "auto_roll_on" },
+			Expect = { Remote = false, After = { "auto_sell_popup_open" } },
+		},
+		{
+			Id = "roll_auto_sell_close",
+			Gui = "RollOptions",
+			Path = "AutoSell/Close",
+			Prepare = { Showcase = false, RequireShown = true },
+			NeedSetup = { "spy" },
+			Expect = { Remote = false, After = { "auto_sell_popup_closed" } },
+		},
+	}
+do
+	table.insert(UiSpec.Clicks, click)
+end
+
 -- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
 -- LeaveButton is AlwaysOn, for ui_layout's every-viewport fit: Panels must be PanelSwitch ones, and the Invite must not close
--- with them, so Invite and TeamHud are judged by ui_boss. BossButton is AlwaysOn too (owner 2026-11-05): its top-left place
+-- with them, so Invite and TeamHud are judged by ui_boss. EditTeamButton follows the live Team row, so it is theirs too. BossesPanel
+-- opens over the HUD by design. BossButton is AlwaysOn too (owner 2026-11-05): its top-left place
 -- is kept free of every always-on element even while it is hidden. BossBar and DropList are not AlwaysOn: BossEventUi sizes them
 -- for the live screen, so the solver cannot place them at another viewport, and the bar takes the hidden roll's place by design.
 -- ui_boss judges their overlap on the engine's rects (checkDropList, checkFit).
 UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
+	WarningWatch = {}, -- what the boss_close_no_pick click's Prepare.Before saw of TeamWarning: it has faded before an After runs
 }
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton", "BossDetails" },
-	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetailsPanel" },
+	AlwaysOn = { "LeaveButton", "BossButton" },
+	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetails" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
-		{ Path = "BossButton", Does = "remote", Remote = "BossEventTeleport", Label = "Boss (Active)" },
+		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
+		{ Path = "BossesPanel/BossAction", Does = "remote", Remote = "BossEventTeleport|BossUseCredit|BossBuy" },
+		{ Path = "BossesPanel/Header/CloseButton", Does = "local" },
+		{ Path = "TeamHud/Header/CloseButton", Does = "remote", Remote = "BossEventPrepRun" },
+		{ Path = "EditTeamButton", Does = "local" },
 		{
 			Path = "TeamHud/List/*",
 			Does = "remote",
@@ -3934,7 +4141,6 @@ UiSpec.Guis.RacerBossEvent = {
 			Count = "dynamic",
 		},
 		{ Path = "LeaveButton", Does = "remote", Remote = "BossEventLeave" },
-		{ Path = "BossDetails", Does = "local" },
 	},
 }
 UiSpec.HiddenWhilePanelOpen["RacerBossEvent/LeaveButton"] = "any"
@@ -3961,14 +4167,65 @@ for _, item in
 		{ Id = "boss_ui_idle", What = "One character with a Sidekick, no event, no BossCredit." },
 		{ Id = "boss_ui_credit", What = "As boss_ui_idle, holding one BossCredit." },
 		{ Id = "boss_ui_restricted", What = "As boss_ui_idle, with PaidRandomRestricted." },
+		{
+			Id = "boss_ui_past_close",
+			What = "Two characters with a Sidekick, an event past teleport close, the player outside it.",
+		},
 	}
 do
 	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
 	table.insert(UiSpec.ServerSetup, item)
 end
 -- The Invite is up for 3 s of its own (BossEventConfig.InviteSeconds): BOSS_PREPARE presses inside that. The spy refuses Teleport, so
--- nobody joins and the BossButton stays.
+-- nobody joins and the BossButton stays. The BossButton only toggles BossesPanel; a BossAction click opens it first (BOSS_POPUP).
 local BOSS_PREPARE = { Showcase = false, RequireShown = true, WaitSeconds = 0.5 }
+local function bossPopup(extra)
+	local prepare = {
+		Showcase = false,
+		RequireShown = true,
+		WaitSeconds = 0.5,
+		PressFirst = { Path = "RacerBossEvent/BossButton", Until = "RacerBossEvent/BossesPanel" },
+	}
+	for key, value in extra do
+		prepare[key] = value
+	end
+	return prepare
+end
+local function bossButtonPrepare(wait)
+	return {
+		Showcase = false,
+		RequireShown = true,
+		WaitSeconds = wait,
+		Intercept = { "BossEventTeleport", "BossBuy", "BossUseCredit" },
+	}
+end
+-- TeamWarning fades before an After runs (Waits.ClickSettle), so this notes it as it comes and goes.
+local function watchTeamWarning()
+	local watch = UiSpec.BossEvent.WarningWatch
+	table.clear(watch)
+	local label = game:GetService("Players").LocalPlayer.PlayerGui.RacerBossEvent.TeamHud.TeamWarning
+	local connection = label:GetPropertyChangedSignal("Visible"):Connect(function()
+		if label.Visible then
+			watch.ShownAt, watch.Text, watch.Transparency = os.clock(), label.Text, label.TextTransparency
+		else
+			watch.HiddenAt = os.clock()
+		end
+	end)
+	return function()
+		connection:Disconnect()
+	end
+end
+-- Client copy of the config only: nothing is prompted, and restore puts it back.
+local function comingSoon()
+	local spawnProduct = require(
+		game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("MonetizationConfig")
+	).BossSpawn
+	local realId = spawnProduct.ProductId
+	spawnProduct.ProductId = 0
+	return function()
+		spawnProduct.ProductId = realId
+	end
+end
 for _, click in
 	{
 		{
@@ -4003,25 +4260,62 @@ for _, click in
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
 			Expect = { Remote = false, After = { "boss_invite_hidden" } },
 		},
+		-- Owner 2026-11-05: in an event too, the button never teleports.
 		{
+			-- After the Invite closed by itself: the popup is centred too, over it.
 			Id = "boss_button",
 			Path = "BossButton",
-			Prepare = BOSS_PREPARE,
+			Prepare = bossButtonPrepare(3.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
-			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
+			Expect = { Remote = false, After = { "boss_panel_raging" } },
+		},
+		{
+			Id = "boss_button_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
 		},
 		{
 			-- Pressed after the Invite closed by itself, so its own locked prompt is not what the After sees.
 			Id = "boss_button_locked",
 			Path = "BossButton",
-			Prepare = {
-				Showcase = false,
-				RequireShown = true,
-				WaitSeconds = 3.5,
-				Intercept = "BossEventTeleport",
-			},
+			Prepare = bossButtonPrepare(3.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
 			Expect = { Remote = false, After = { "boss_button_prompts_for_sidekick" } },
+		},
+		{
+			Id = "boss_action_locked",
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({
+				WaitSeconds = 3.5,
+				LabelIs = "Go",
+				TargetActive = false,
+				Intercept = "BossEventTeleport",
+			}),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
+			Expect = { Remote = false, After = { "boss_button_prompts_for_sidekick" } },
+		},
+		{
+			Id = "boss_action_go",
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({ WaitSeconds = 3.5, LabelIs = "Go", TargetActive = true }),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
+		},
+		{
+			Id = "boss_action_past_close",
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({ LabelIs = "Go", TargetActive = false, Intercept = "BossEventTeleport" }),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_past_close" },
+			Expect = { Remote = false, After = { "boss_go_closed" } },
+		},
+		{
+			Id = "boss_close_no_pick",
+			Path = "TeamHud/Header/CloseButton",
+			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Before = watchTeamWarning },
+			NeedSetup = { "spy", "progression_spy", "boss_ui_prep_in" },
+			Expect = { Remote = false, After = { "boss_team_warning" } },
 		},
 		{
 			Id = "boss_pick_character",
@@ -4033,6 +4327,21 @@ for _, click in
 				After = { "boss_slot1_filled" },
 			},
 		},
+		-- The pick above still stands: no new fixture, so the same event. The spy refuses PrepRun; the HUD closes all the same.
+		{
+			Id = "boss_close_with_pick",
+			Path = "TeamHud/Header/CloseButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = { Name = "BossEventPrepRun", Args = {} }, After = { "boss_hud_closed" } },
+		},
+		{
+			Id = "boss_edit_team",
+			Path = "EditTeamButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_hud_reopened" } },
+		},
 		{
 			Id = "boss_leave",
 			Path = "LeaveButton",
@@ -4042,38 +4351,67 @@ for _, click in
 		},
 		{
 			Id = "boss_paid_details",
-			Path = "BossDetails",
-			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
 			Expect = { Remote = false, After = { "boss_paid_details_open" } },
 		},
 		{
 			Id = "boss_paid_use_credit",
-			Path = "BossButton",
-			Prepare = BOSS_PREPARE,
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({ LabelIs = "Spawn boss (ready)", TargetActive = true }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_credit" },
 			Expect = { Remote = { Name = "BossUseCredit", Args = {} } },
 		},
 		{
-			-- The real id is set, so a press asks to buy; Intercept keeps the real prompt from opening. ui_boss_paid holds id 0.
+			-- The real id is set, so a press asks to buy; Intercept keeps the real prompt from opening. The spy refuses it.
 			Id = "boss_paid_buy",
-			Path = "BossButton",
-			Prepare = {
-				Showcase = false,
-				RequireShown = true,
-				WaitSeconds = 0.5,
-				TargetActive = true,
-				Intercept = "BossBuy",
-			},
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({ LabelIs = "Spawn boss 149 R$", TargetActive = true, Intercept = "BossBuy" }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = { Name = "BossBuy", Args = {} } },
+			Expect = { Remote = { Name = "BossBuy", Args = {} }, After = { "boss_paid_refusal_shown" } },
 		},
 		{
 			Id = "boss_paid_restricted",
-			Path = "BossButton",
-			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({ LabelIs = "Spawn boss 149 R$", TargetActive = true, Intercept = "BossBuy" }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_restricted" },
 			Expect = { Remote = false, After = { "boss_paid_error_shown" } },
+		},
+		{
+			Id = "boss_paid_coming_soon",
+			Path = "BossesPanel/BossAction",
+			Prepare = bossPopup({
+				LabelIs = "Coming soon",
+				TargetActive = false,
+				Intercept = "BossBuy",
+				Before = comingSoon,
+			}),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false },
+		},
+		-- These three end with nothing of this popup open for what runs next.
+		{
+			Id = "boss_panel_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+		{
+			Id = "boss_panel_close_button",
+			Path = "BossesPanel/Header/CloseButton",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+		{
+			Id = "boss_panel_outside_click",
+			Path = "BossesPanel",
+			ClickAt = "empty",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
 		},
 	}
 do

@@ -15,6 +15,7 @@ local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
 local CharacterHeads = require(shared.CharacterHeads)
+local BossCfg = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossEventConfig"))
 local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
@@ -181,8 +182,23 @@ local stats = text(card, "Stats", {
 local circles = {}
 local shownSlot = nil
 
+-- The event roster while in an event (design doc 4.37), the main Team otherwise. The two never mix.
+local function inEvent()
+	return player:GetAttribute("BossEvent") == true
+end
+
 local function teamIds()
-	return string.split(player:GetAttribute("Team") or "", ",")
+	return string.split(player:GetAttribute(inEvent() and "BossTeam" or "Team") or "", ",")
+end
+
+local function teamStat(stat, slot)
+	return tonumber(player:GetAttribute((inEvent() and "BossTeam" or "Team") .. stat .. slot))
+end
+
+-- Seconds left of the event's exhausted wait, nil outside it.
+local function waitLeft()
+	local ends = player:GetAttribute("BossWaitEndsAt")
+	return inEvent() and type(ends) == "number" and math.max(0, ends - workspace:GetServerTimeNow()) or nil
 end
 
 local function factor(x)
@@ -212,8 +228,8 @@ local function showCard(slot)
 		.. " speed · "
 		.. factor(StaminaConfig.CATEGORY[category] or 1)
 		.. " stamina"
-	local cruise = tonumber(player:GetAttribute("TeamCruise" .. slot))
-	local seconds = tonumber(player:GetAttribute("TeamStamina" .. slot))
+	local cruise = teamStat("Cruise", slot)
+	local seconds = teamStat("Stamina", slot)
 	stats.Text = (cruise and string.format("%d studs/s", math.floor(cruise + 0.5)) or "-")
 		.. "  ·  "
 		.. (seconds and string.format("%.1f s stamina", seconds) or "-")
@@ -398,9 +414,15 @@ local function headArt(circle, spec)
 end
 
 local lastSlot = nil
+local wasWaiting = false
 local function render()
 	local team = teamIds()
 	local running = player:GetAttribute("RunSlot")
+	local waiting = waitLeft() ~= nil
+	if wasWaiting and not waiting and not UiMotion.Reduced() then
+		lastSlot = nil -- revived: the first runner takes the tag-in pop, even in a team of 1
+	end
+	wasWaiting = waiting
 	for slot, circle in circles do
 		local spec = team[slot] and team[slot] ~= "" and CharacterCatalog.Get(team[slot])
 		local id = spec and spec.Id
@@ -416,8 +438,8 @@ local function render()
 			circle.State = nil -- the new art takes the current look
 		end
 		local stamina = tonumber(player:GetAttribute("Stamina" .. slot))
-		local active = running == slot and spec ~= nil
-		local tired = running ~= nil and spec ~= nil and (stamina or 1) <= 0
+		local active = running == slot and spec ~= nil and not waiting
+		local tired = spec ~= nil and (waiting or (running ~= nil and (stamina or 1) <= 0))
 		local state = active and "active" or tired and "tired" or "idle"
 		-- on foot every runner shows full stamina
 		circle.Target = running ~= nil and stamina and math.clamp(stamina / 100, 0, 1) or 1
@@ -451,7 +473,8 @@ local function render()
 	end
 	lastSlot = running
 	-- team bonus badge
-	local kind, seriesId = string.match(player:GetAttribute("TeamBonus") or "", "^(%a+):(.+)$")
+	local kind, seriesId =
+		string.match(player:GetAttribute(inEvent() and "BossTeamBonus" or "TeamBonus") or "", "^(%a+):(.+)$")
 	local series = seriesId and SeriesCatalog.Get(seriesId)
 	if series and kind == "Preset" then
 		badge.Text = string.format(
@@ -480,10 +503,16 @@ RunService.RenderStepped:Connect(function(dt)
 	local reduced = UiMotion.Reduced()
 	local blend = reduced and 1 or 1 - math.exp(-EASE * dt)
 	local running = player:GetAttribute("RunSlot")
+	local left = waitLeft()
 	for slot, circle in circles do
 		if circle.Id then
 			local shown = circle.Shown or circle.Target
-			if shown ~= circle.Target or circle.Shown == nil then
+			if left then
+				-- The revive (design doc 4.37): grey bars fill from the bottom, full exactly as the wait ends. Display only.
+				shown = math.clamp(1 - left / BossCfg.RefillWaitSeconds, 0, 1)
+				circle.Shown = shown
+				drawArc(circle, shown)
+			elseif shown ~= circle.Target or circle.Shown == nil then
 				shown += (circle.Target - shown) * blend
 				if math.abs(shown - circle.Target) < 0.001 then
 					shown = circle.Target
@@ -491,7 +520,7 @@ RunService.RenderStepped:Connect(function(dt)
 				circle.Shown = shown
 				drawArc(circle, shown)
 			end
-			local goal = StaminaConfig.Color(shown * 100)
+			local goal = left and GREY or StaminaConfig.Color(shown * 100)
 			if circle.Color ~= goal then
 				local color = circle.Color:Lerp(goal, blend)
 				local gap = math.abs(color.R - goal.R) + math.abs(color.G - goal.G) + math.abs(color.B - goal.B)
@@ -499,8 +528,7 @@ RunService.RenderStepped:Connect(function(dt)
 				paintArc(circle, circle.Color)
 			end
 			-- The run's own fixed seconds while running: TeamStamina moves if a potion is used mid-run
-			local total =
-				tonumber(player:GetAttribute("RunSeconds" .. slot) or player:GetAttribute("TeamStamina" .. slot))
+			local total = tonumber(player:GetAttribute("RunSeconds" .. slot)) or teamStat("Stamina", slot)
 			local seconds = total and math.ceil(total * shown) or nil
 			if seconds ~= circle.Seconds then
 				circle.Seconds = seconds
@@ -538,6 +566,9 @@ end)
 player.AttributeChanged:Connect(function(name)
 	if
 		name == "Team"
+		or name == "BossEvent"
+		or name == "BossWaitEndsAt"
+		or (string.sub(name, 1, 8) == "BossTeam" and name ~= "BossTeamDamage")
 		or name == "RunSlot"
 		or name == "TeamBonus"
 		or string.sub(name, 1, 7) == "Stamina"

@@ -10,7 +10,7 @@
 --     Sample(move, t) returns parts, rootOffset: parts[part] is a Vector3 of XYZ Euler degrees, rootOffset a Vector3.
 --     Schedule(startTime, now) returns move, localTime. startTime is the spawn, the start of the rise (BossEventStart +
 --       PrepSeconds), so "idle" plays until startTime + IntroSeconds.
---     RiseAt(t): t is seconds since the spawn, clamped 0 to 1 over IntroSeconds.
+--     RiseAt(t): t is seconds since the spawn, clamped 0 to 1 over RiseSeconds (1.5 s of the 3 s IntroSeconds, owner 2026-11-05).
 -- wheel_spin in keys.json is not sampled: the Wheel's rotations already hold it.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_anim", then CarTestRun = true.
 local H = require(script.Parent.AcceptanceSupport)
@@ -277,19 +277,21 @@ function Tests.boss_anim()
 	end)
 
 	section("rise", function()
-		local intro = Event.IntroSeconds
+		local rise = Event.RiseSeconds
+		flag("rise_inside_intro", rise < Event.IntroSeconds, rise, Event.IntroSeconds)
 		flag("rise_starts_at_0", Poses.RiseAt(0) == 0, Poses.RiseAt(0), 0)
-		flag("rise_ends_at_1", Poses.RiseAt(intro) == 1, Poses.RiseAt(intro), 1)
+		flag("rise_ends_at_1", Poses.RiseAt(rise) == 1, Poses.RiseAt(rise), 1)
+		flag("rise_not_done_before_its_end", Poses.RiseAt(rise - 0.05) < 1, Poses.RiseAt(rise - 0.05), "< 1")
 		flag("rise_clamped_before", Poses.RiseAt(-5) == 0, Poses.RiseAt(-5), 0)
-		flag("rise_clamped_after", Poses.RiseAt(intro + 50) == 1, Poses.RiseAt(intro + 50), 1)
+		flag("rise_clamped_after", Poses.RiseAt(rise + 50) == 1, Poses.RiseAt(rise + 50), 1)
 		local monotonic, last = true, 0
-		for t = 0, intro, 0.05 do
+		for t = 0, rise, 0.05 do
 			local value = Poses.RiseAt(t)
 			monotonic = monotonic and value >= last
 			last = value
 		end
 		flag("rise_monotonic", monotonic)
-		local middle = Poses.RiseAt(intro / 2)
+		local middle = Poses.RiseAt(rise / 2)
 		flag("rise_moves_midway", middle > 0 and middle < 1, middle)
 	end)
 

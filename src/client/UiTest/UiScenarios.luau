@@ -156,6 +156,8 @@ UiScenarios.Names = {
 	"ui_sidekicks",
 	-- Backpack Relics tab (UiRelics; design doc 4.38)
 	"ui_relics",
+	-- The full bag's red text (UiBoostsRebirth; design doc 4.41)
+	"ui_bag_full",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
@@ -164,6 +166,8 @@ UiScenarios.Names = {
 	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
 	-- wants none before it.
 	"ui_boss",
+	-- The Dodge bar (UiBossEvent; docs/BOSS_EVENT_SPEC.md "Dodge bar")
+	"ui_boss_dodge",
 	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
 	"ui_boss_vfx",
 	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")
@@ -273,6 +277,7 @@ UiScenarios.Needs = {
 	ui_roll_emphasized = { "auto_roll_on" },
 	ui_sidekicks = { "sidekick_states" },
 	ui_relics = { "relic_states" },
+	ui_bag_full = { "auto_roll_on" },
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
@@ -827,10 +832,10 @@ local function inheritedScale(obj, ctx)
 end
 
 -- InventoryTabs' copied Index tabs at a variant, nil for other nodes. They exist only at runtime, so the live properties
--- describe the live variant. ENEMIES: the retired tab's position, CHARACTERS' size. SIDEKICKS: sidekicksTab's place().
+-- describe the live variant. ENEMIES: the retired tab's position, CHARACTERS' size. SIDEKICKS and RELICS: sideTabs' place().
 local function indexTabProps(path, variant)
 	local head = "RacerIndex/Panel/Face/Header/Face/"
-	if path ~= head .. "EnemiesTab" and path ~= head .. "SidekicksTab" then
+	if path ~= head .. "EnemiesTab" and path ~= head .. "SidekicksTab" and path ~= head .. "RelicsTab" then
 		return nil
 	end
 	local position = UiResponsive.Nodes[head .. "ConsumablesTab"][variant].Position
@@ -838,11 +843,12 @@ local function indexTabProps(path, variant)
 	if path == head .. "EnemiesTab" then
 		return { Position = position, Size = size }
 	end
-	local x = position.X.Offset + size.X.Offset + 16
+	local x = position.X.Offset + size.X.Offset + 8
 	local room = UiResponsive.Nodes[head .. "Close"][variant].Position.X.Offset - x - 8
+	local width = math.min(size.X.Offset, math.floor((room - 8) / 2))
 	return {
-		Position = UDim2.fromOffset(x, position.Y.Offset),
-		Size = UDim2.fromOffset(math.min(size.X.Offset, room), size.Y.Offset),
+		Position = UDim2.fromOffset(path == head .. "RelicsTab" and x + width + 8 or x, position.Y.Offset),
+		Size = UDim2.fromOffset(width, size.Y.Offset),
 	}
 end
 
@@ -2674,18 +2680,45 @@ local function distToRect(x, y, r)
 	return math.sqrt(dx * dx + dy * dy)
 end
 
--- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": green icon and ring while AutoRacing, grey icon and no ring while off. Nil when right.
+-- Design doc 4.40 (owner 2026-11-05): green in both states; while AutoRacing the arrows spin round the still triangle, or a ring
+-- shows on Reduced Motion. The ids come from HudIcons: they change with an upload. Nil when right.
 function K.autoTintProblem(toggle)
-	local icon, glow = toggle and toggle:FindFirstChild("Icon"), toggle and toggle:FindFirstChild("Glow")
-	if not (icon and glow) then
-		return "no icon and glow on " .. UiSpec.Hud.Auto
+	local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+	local icon, arrows = toggle and toggle:FindFirstChild("Icon"), toggle and toggle:FindFirstChild("Arrows")
+	local ring = toggle and toggle:FindFirstChild("OnRing")
+	if not (icon and arrows and ring) then
+		return "no Icon, Arrows and OnRing on " .. UiSpec.Hud.Auto
 	end
-	local on = attr("AutoRacing") == true
-	local want = on and UiSpec.Hud.AutoImageOn or UiSpec.Hud.AutoImageOff
-	if icon.Image ~= want or glow.Visible ~= on then
-		return ("icon %s glow %s while AutoRacing %s"):format(icon.Image, tostring(glow.Visible), tostring(on))
+	if toggle:FindFirstChild("Glow") then
+		return "the retired Glow is back on " .. UiSpec.Hud.Auto
+	end
+	if icon.Image ~= Icons.AutoPlay.Image or arrows.Image ~= Icons.AutoArrows.Image then
+		return ("icon %s arrows %s, want AutoPlay and AutoArrows"):format(icon.Image, arrows.Image)
+	end
+	local on, reduced = attr("AutoRacing") == true, K.reducedNow()
+	local spinning, ringShown = toggle:GetAttribute("Spinning") == true, ring.Visible
+	if spinning ~= (on and not reduced) or ringShown ~= (on and reduced) then
+		return ("Spinning %s OnRing %s while AutoRacing %s, reduced %s"):format(
+			tostring(spinning),
+			tostring(ringShown),
+			tostring(on),
+			tostring(reduced)
+		)
 	end
 	return nil
+end
+
+-- The arrows really turn while Spinning, and hold still otherwise. Nil when right.
+function K.autoSpinProblem(toggle)
+	local arrows = toggle and toggle:FindFirstChild("Arrows")
+	if not arrows then
+		return "no Arrows on " .. UiSpec.Hud.Auto
+	end
+	local from = arrows.Rotation
+	task.wait(0.2)
+	local turned = arrows.Rotation ~= from
+	local want = toggle:GetAttribute("Spinning") == true
+	return turned ~= want and ("arrows turned %s while Spinning %s"):format(tostring(turned), tostring(want)) or nil
 end
 
 -- The tint may still show the 1 s pending lock: judged once that is over.
@@ -7827,6 +7860,7 @@ do
 	S[name] = fn
 end
 local extras = UiBoostsRebirth.Build({
+	requestSetup = UiScenarios.RequestSetup,
 	check = check,
 	checkList = checkList,
 	find = findPath,
@@ -8554,19 +8588,49 @@ function UiScenarios.RunClick(id)
 			path = string.gsub(path, token, UiSpec.WorkshopShowcase.RowPrefix .. showcaseId)
 		end
 	end
+	-- A bag tile's Entry (UiSpec.Backpack.EntryTokens) or the picker's first card: known only at the click.
+	for token, source in UiSpec.Backpack.EntryTokens do
+		if string.find(path, token, 1, true) then
+			local entry = nil
+			local deadline = os.clock() + UiScenarios.SETUP_WAIT
+			repeat
+				entry = source(player)
+				if not entry then
+					task.wait(0.1)
+				end
+			until entry or os.clock() > deadline
+			if not entry then
+				stateMissing(res, "target_entry", previous, "nothing for " .. token)
+				return res
+			end
+			path = string.gsub(path, token, entry)
+		end
+	end
 	local rowStat = spec.Gui == "RacerStats" and splitPath(path)[5] or nil
 	-- A tree tile: RacerUpgrades Panel/Canvas/TreeWorld/<tile id> (scrolled into the canvas window below)
 	local upgradeId = spec.Gui == "RacerUpgrades"
 			and pathMatches(UiSpec.Progression.TreeWorld .. "/*", spec.Gui .. "/" .. path)
 			and splitPath(path)[4]
 		or nil
+	-- Prepare.OpenFirst: the target only exists once its panel has opened and drawn (a bag tile named by its Entry).
+	local earlyPanels = prep.OpenFirst and preparePanels(prep) or nil
 	local button = findPath(spec.Gui .. "/" .. path)
+	if prep.OpenFirst then
+		local deadline = os.clock() + UiSpec.Waits.ClickSettle
+		while not button and os.clock() < deadline do
+			task.wait(0.05)
+			button = findPath(spec.Gui .. "/" .. path)
+		end
+	end
 	if not button and spec.Gui == UiSpec.Showcase.Gui and #splitPath(path) == 1 then
 		local sg = playerGui:FindFirstChild(spec.Gui)
 		button = sg and sg:FindFirstChild(path, true) -- the card may sit inside the backdrop
 	end
 	check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
 	if not button then
+		if earlyPanels then
+			earlyPanels()
+		end
 		return res
 	end
 
@@ -8574,7 +8638,7 @@ function UiScenarios.RunClick(id)
 	-- Prepare.KeepPanels: the panels stay exactly as the previous click left them (no close / reopen, which would reset
 	-- a view such as the Market detail pane) and are not restored; Prepare.LeavePanels: prepared as usual but left
 	-- that way after the click, so the next KeepPanels click starts from it.
-	local restorePanels = prep.KeepPanels and function() end or preparePanels(prep)
+	local restorePanels = earlyPanels or prep.KeepPanels and function() end or preparePanels(prep)
 	if prep.LeavePanels then
 		restorePanels = function() end
 	end
@@ -8619,8 +8683,19 @@ function UiScenarios.RunClick(id)
 			check(res, "set_text_target_exists", textPath, "TextBox or TextLabel", false)
 		end
 	end
+	-- Prepare.Before: a function run here, on this client (a client copy of a config, a watcher); what it returns runs at restore.
+	local undoBefore = prep.Before and prep.Before() or nil
 	local function restore()
 		restorePanels()
+		-- Prepare.EndPanels: the last click of a KeepPanels chain leaves exactly these panels open.
+		if prep.EndPanels then
+			applyPanelState(prep.EndPanels)
+			frames(1)
+		end
+		if undoBefore then
+			undoBefore()
+			undoBefore = nil
+		end
 		if grid and savedCanvas then
 			grid.CanvasPosition = savedCanvas
 		end
@@ -8639,6 +8714,51 @@ function UiScenarios.RunClick(id)
 	if prep.WaitSeconds then
 		task.wait(prep.WaitSeconds)
 	end
+	-- Prepare.PressFirst: a popup only a real press opens. Its one press goes out like a retry and is judged by the popup showing.
+	if prep.PressFirst and not Click.shownNow(findPath(prep.PressFirst.Until)) then
+		local opener = findPath(prep.PressFirst.Path)
+		local done = id .. "#0"
+		if not (opener and Click.shownNow(opener)) then
+			stateMissing(res, "press_first_shown", previous, prep.PressFirst.Path .. " is not shown")
+			restore()
+			return res
+		end
+		ReplicatedStorage:SetAttribute("UiTestClickDone", nil)
+		local ox, oy = centre(realRect(opener))
+		local tl = inset()
+		local tx, ty = math.floor(ox - tl.X + 0.5), math.floor(oy - tl.Y + 0.5)
+		player:SetAttribute(
+			"UiTestClickTarget",
+			HttpService:JSONEncode({
+				id = id,
+				x = tx,
+				y = ty,
+				screenX = math.floor(ox + 0.5),
+				screenY = math.floor(oy + 0.5),
+				viewportX = math.floor(viewport().X + 0.5),
+				viewportY = math.floor(viewport().Y + 0.5),
+				insetY = math.floor(tl.Y + 0.5),
+				done = done,
+			})
+		)
+		print(("[UITEST] RETRY %s x=%d y=%d done=%s"):format(id, tx, ty, done))
+		local deadline = os.clock() + UiSpec.Waits.ClickDone
+		while ReplicatedStorage:GetAttribute("UiTestClickDone") ~= done and os.clock() < deadline do
+			task.wait(0.1)
+		end
+		player:SetAttribute("UiTestClickTarget", nil)
+		local openBy = os.clock() + UiSpec.Waits.ClickSettle
+		while not Click.shownNow(findPath(prep.PressFirst.Until)) and os.clock() < openBy do
+			task.wait(0.05)
+		end
+		local opened = Click.shownNow(findPath(prep.PressFirst.Until))
+		check(res, "press_first_opens", opened, true, opened)
+		if not opened then
+			restore()
+			return res
+		end
+		task.wait(UiSpec.Waits.PanelMotion) -- its pop has ended: the click point below is where it stays
+	end
 	if prep.LabelIs ~= nil then
 		local actual = allText(button)
 		if actual ~= prep.LabelIs then
@@ -8648,6 +8768,7 @@ function UiScenarios.RunClick(id)
 				previous,
 				("%s shows %q, want %q"):format(pathOf(button), actual, prep.LabelIs)
 			)
+			restore()
 			return res
 		end
 	end
@@ -9101,7 +9222,7 @@ function UiScenarios.RunClick(id)
 		elseif cond == "autorace_label_follows_server" then
 			check(res, cond, allText(button), UiSpec.Hud.AutoLabel, allText(button) == UiSpec.Hud.AutoLabel)
 		elseif cond == "auto_pill_tint_follows_server" then
-			local tint = K.autoTintSettled(button)
+			local tint = K.autoTintSettled(button) or K.autoSpinProblem(button)
 			check(res, cond, tint or "right", "right", tint == nil)
 		elseif cond == "autoracing_is_arg" then
 			check(res, cond, attr("AutoRacing") == true, wantArg, (attr("AutoRacing") == true) == wantArg)

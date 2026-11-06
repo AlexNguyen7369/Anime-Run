@@ -153,9 +153,11 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.13 Fixed character speed, no Speed stat (owner 2026-11-01)
 - There is no Speed stat and no speed gain. Each character has a fixed cruise speed (studs/s) set only by its rarity
   and its category (4.5). New players run slow. The character's `SpeedMulti` never enters cruise.
-- Base cruise by rarity, Balanced (proposed, tuned so each rarity tops out about one NPC band; NPC formula
-  `16 x 1.51^(n-1)`): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
-  Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
+- Base cruise by rarity, Balanced (proposed; NPC formula, placeholder, `48 x 1.363^(n-1)`): Common 24, Uncommon 33,
+  Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700. Category multiplies it: Sprinter x1.25, Balanced x1,
+  Marathoner x0.8 (4.5).
+- Enemy speed (owner 2026-11-05): a starter or other Common with no multis never outruns the Track 1 enemy. A Rare is
+  about level with it. Later enemies scale up from there, staying below `MAX_CRUISE`.
 - Speed multi = everything that scales that fixed cruise, multiplied together, capped by `MAX_CRUISE` (800 studs/s):
   - Index stat points in Speed: +% cruise per point (placeholder +2% per point, additive with the other stat points).
   - Speed potions: timed x cruise (IVS potion pattern; placeholder x1.25).
@@ -420,6 +422,7 @@ before any Studio work.
 - Summon pool rotation (owner 2026-11-05): the pool rotates every 30 minutes, identical on all servers. Each rotation holds 1 Mythic, 2 Legendaries, 2 Rares and all Commons, plus 1 Secret, shown in Details as a black silhouette (owner 2026-11-05; its id reaches clients, and rolls stay on the server). A Sidekick's odds do not change with the rotation. Exact numbers: `docs/SIDEKICK_SPEC.md`.
 - Summon pity (owner 2026-11-05): summon 300 without a Mythic gives the rotation's Mythic; summon 100 without a Legendary gives one of the rotation's Legendaries. A Mythic resets only the Mythic count; if both land on one summon the Mythic wins. Secrets have no pity and reset nothing. Counts carry across rotations and are saved per player. Details shows the updated odds when the next summon is guaranteed (section 6).
 - Sidekick index (owner 2026-11-05): a Sidekicks page in the existing Index panel.
+- Click menu (owner 2026-11-05): clicking a Sidekick or Relic, in the Bag or in the Index, opens a small menu with Equip and Sell. Equip opens a picker of the player's own characters; one item per character still holds, so choosing a character that already wears one replaces it, and the old item returns to the bag. Sell asks "Are you sure?" first. This replaces the Bag's character stepper and second-press sale.
 - Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
 - Art rulings (owner 2026-11-04; override section 5's target look for these models): Pochito is polished and closer to its source, with smooth rounded surfaces rather than hard facets. Kaizel is a thin wyvern, not a bulky dragon, with neon blue parts. Igriz keeps its red version; Kaizel stays black and cyan. Models are still made in-house, with no ripped art.
@@ -427,22 +430,27 @@ before any Studio work.
 ### 4.37 Boss events (owner 2026-11-04)
 - Every 30 minutes (per server), a popup gives players 3 minutes to teleport to the event, or decline. A player with no Sidekick is locked
   out. The event lasts 8 minutes in total (owner 2026-11-05):
-  - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2.
-  - 1:00, Big Raga rises from under the track to full height in 2-3 seconds, with the HP bar filling alongside (owner 2026-11-05), then the fight starts. It runs to 8:00, or ends early on a defeat.
-  - 1:00-3:00, late joining: players can still teleport in, and their team is chosen for them. Teleporting closes at 3:00.
+  - 0:00-1:00, preparation: arrivals stand on the track with a team HUD of 3 slots. Only characters with a Sidekick can be slotted, and the HUD says so. A player with 1 or 2 such characters has a team of 1 or 2. The HUD opens on the team from the player's last event, when it is still valid, and shows the team's average stamina as a number (owner 2026-11-05). Its X closes it only with at least 1 character chosen; otherwise red text, gone in a moment, says to select a character. After closing, the team runs on the track as display only, each with its Sidekick, and an Edit Team button above the minibar reopens the HUD until the spawn (owner 2026-11-05).
+  - 1:00, Big Raga rises from under the track to full height in 1.5 seconds (owner 2026-11-05, replaces 2-3 seconds), with the HP bar filling alongside (owner 2026-11-05). No team edits from here. Everyone's characters jump, turn to face Big Raga and show red exclamation marks, then all but the first vanish in a cloud of smoke and the first starts running: the fight starts 1.5 seconds after the rise, at 3 seconds (owner 2026-11-05). It runs to 8:00, or ends early on a defeat.
+  - 1:00-3:00, late joining: players can still teleport in; their team is their last event's, or else chosen for them, with no edits, and they start at once (owner 2026-11-05). Teleporting closes at 3:00.
   - Everyone returns to the spawn at the end. A player can also leave the battle at any time with a leave option; there is no other early exit (owner 2026-11-05). Exhaustion never removes a player: the 5 second wait applies, then the team resumes.
   - A player in a duel can teleport in (owner 2026-11-05).
 - When Big Raga spawns, and for each player who joins after that, a big red warning ("Big Raga has emerged, take him down!!!") flashes in and out, with no border and no background, on the screen of players in the event only (owner 2026-11-05). At the spawn, a bright red Roblox chat message ("BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS") goes to everyone in the server (owner 2026-11-05).
-- Any player with a Sidekick can pay 149 Robux to start the same event at once for their server, from a Boss button at the top left of the
-  screen. It cannot be bought while an event is active.
+- Any player with a Sidekick can pay 149 Robux to start the same event at once for their server, from the Bosses popup. It cannot be bought while an event is active.
+- Bosses button (owner 2026-11-05): the button at the top left of the screen reads "Bosses" and holds no details. A press opens a popup. While an event runs it says "Big Raga is raging right now" with a Go option; with no event it offers Spawn boss, the event's details and the time until the next event. Only the tweaked name appears (section 5).
+- Event roster (owner 2026-11-05): the event team and the main Team are separate. In an event the Team minibar shows the event team; the main Team is never changed and shows again afterward. A team bonus depends on the team alone, so in an event it comes from the event team (owner 2026-11-06).
 - The first boss is Big Raga, based on Mahoraga (Jujutsu Kaisen). It stands huge in the middle of a separate circular sky arena: clouds,
   heaven and Olympus style. Inspired by Pokemon GO raid battles, it scales with the arena: far larger than any Legend or pedestal figure.
-  It cycles idle moves. Each time it attacks, every running character in the arena loses 5% stamina (owner 2026-11-05); each shout lowers players' damage for 5 seconds, and each wheel turn makes it take 10% less damage. Both show as status effects under its HP bar (owner 2026-11-05). A later boss may use an enclosed underground arena.
+  It cycles idle moves. Each attack that hits a player costs that player's running character 5% stamina (owner 2026-11-05); each shout that hits a player lowers that player's damage for 5 seconds, and each wheel turn that hits a player makes the boss take 10% less damage from that player. Both show as status effects under its HP bar, and they differ from player to player (owner 2026-11-05). A later boss may use an enclosed underground arena.
+- Dodge bar (owner 2026-11-05): 1 to 2 seconds before each attack, shout and wheel turn, a big bar shows at the bottom of the screen, above the roster minibar, with digital art of the boss's wheel attached to its left end and on top of it. The bar pops up and disappears with a 0.3 second animation (owner 2026-11-06). A vertical slider moves fast from left to right; a white, yellow and gold spot sits at a random place on the bar, clear of the start. White subtitles flash lightly above the bar and say how to play. The player presses Space when the slider is on the spot.
+  - Dodged: the bar pops, "Nice Dodge!" pops out at the player in animated gold text with a star particle effect, the runner really moves left or right into the next lane with a side dash animation, and the move does not affect the player (owner 2026-11-06, replaces white text). The dash's 3 key frames are approved by the owner before in-betweens.
+  - Otherwise the player is hit: a red header flashing at the player replaces the bar (owner 2026-11-06), "You were hit by Raga's Slice", "Raga yelled, you are intimidated" or "Raga has adapted to you", and the move's effect applies.
 - Teams auto-run around the ring with real cruise and stamina, in lanes for up to 7 players, seeing each other's characters and Sidekicks.
-  When a team is exhausted, it waits 5 seconds, then the full team respawns and continues. During the wait the camera hovers above and behind the player's runner, looking over the track at the boss (owner 2026-11-05), the screen dims slightly, and a centred countdown with a loading sign says the team is exhausted, completing at 5 seconds (owner 2026-11-05). This overrides 4.3's run end inside the arena.
+  When a team is exhausted, it waits 5 seconds, then the full team respawns and continues. During the wait the whole minibar is greyed out and its stamina bars refill from bottom to top, reaching full at 5 seconds (owner 2026-11-05). During the wait the camera hovers above and behind the player's runner, looking over the track at the boss (owner 2026-11-05), the screen dims slightly, and a centred countdown with a loading sign says the team is exhausted, completing at 5 seconds (owner 2026-11-05). This overrides 4.3's run end inside the arena.
 - A team deals one team damage: the average damage of its Sidekicks, times a gentle speed scale that adds at most +100% (owner 2026-11-05). The HUD shows it. The running character's Sidekick fires its own themed attack at the boss (flame breath, slash, and so on). The server decides every
   hit and its damage; clients only draw it.
-- Boss HP grows with the players in the arena until teleporting closes at 3:00, then locks (owner 2026-11-05).
+- Boss HP grows with the players in the arena until teleporting closes at 3:00, then locks (owner 2026-11-05). A timer for the time left in the event shows at the top left above the HP bar (owner 2026-11-05).
+- Damage numbers pop out animated and coloured red and yellow (owner 2026-11-05).
 - Auto-roll pauses only for players in the event (owner 2026-11-05) and returns to the player's own state afterward. A big boss HP bar replaces the top middle of the
   screen, popping in on spawn and filling left to right.
 - Only a defeat pays: each player above a small minimum damage gets 1 random Relic (4.38). A timeout pays nothing.
@@ -452,11 +460,13 @@ before any Studio work.
 
 ### 4.38 Relics (owner 2026-11-04)
 - A Relic is a boss drop equipped on a character, one per character. Stats: damage, attack speed, luck, money gain, speed gain, stamina gain.
+- A Relic can be sold for Money by rarity, never for Gems (owner 2026-11-05; prices **proposed** in `docs/RELIC_SPEC.md`). An equipped Relic is not sold. The Index has a Relics page, and Relics use the click menu in 4.36 (owner 2026-11-05).
 - Each boss drops 6 Relics, one per rarity: Common, Rare, Epic, Legendary, Mythic, Secret. Each Relic ties to its boss's anime. Common has 1 stat,
   Rare has 1 higher stat, Epic 2, Legendary 3, Mythic 4, Secret all. Future bosses bring their own 6, with a different stat priority.
 - The Secret is one universal Relic shared by every boss.
 - Big Raga prioritises stamina and damage on its Epic to Mythic Relics, with lower everything else. Named Relics follow section 5: **proposed** in
   `docs/RELIC_SPEC.md`, with bonuses and odds **placeholder**. Relics cannot be traded.
+- Big Raga's Epic is Raga's Wheel, replacing the Sealing Cube, drawn with the Dodge bar's wheel art (owner 2026-11-05).
 ### 4.39 Gamepasses (owner 2026-11-04)
 - Passes are permanent and account-bound; nothing here is random. Prices are placeholders except Saitamo's. Effects, numbers and code paths: `docs/MONETIZATION_SPEC.md`.
 - VIP: a VIP title, +10% Money, +10% Luck. -10% Sidekick summon cost (owner confirmed 2026-11-05, replacing "no VIP discount"), built with the summons (`SidekickService.CostFor`).
@@ -474,15 +484,18 @@ before any Studio work.
 - Stats has no HUD tile. It is a category of the Rebirth panel: the header has REBIRTH and STATS tabs. The Rebirth tile opens on REBIRTH. The free stat point badge shows on the Rebirth tile and on the STATS tab.
 - Items (Backpack) takes the Stats tile in the left grid: Index, Items, Rebirth.
 - A new Auto button takes the bottom slot Items left, beside Upgrade. Its icon is the owner's green play triangle inside two circling arrows, label "Auto". The top-right row is Daily, Market, Settings.
-- Auto state: grey icon while off and during the 1 s press lock, full green with a pulsing ring while auto race is on (owner's choice). It only asks: the server decides (`Remotes.SetAutoRace`).
+- Auto state (owner 2026-11-05, replaces the grey icon and pulsing ring): the icon is green in both states; while auto race is on, its arrows spin around the still triangle. No spin during the 1 s press lock. It only asks: the server decides (`Remotes.SetAutoRace`).
 - A roll gets the big popup (emphasized view and server announcement, `GachaConfig.IsEmphasized`) only when the character is undiscovered and at least 100 times rarer (`EMPHASIS_MULTI`) than the player's 3rd-rarest discovered character (`EMPHASIS_RANK`). With fewer than 3 discovered, the bar is 100 times the starter, which counts as 1 in 1: 1 in 100. The first 3 discoveries no longer pop up automatically. This replaces the earlier rule of "rarer than the 5th-rarest; any new character below 5 discovered".
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
 - A full bag stops rolling until there is space. Only rolling is blocked: passes, daily rewards, codes and gifts still land. A save already over the cap keeps everything and cannot roll until it is below the cap.
-- Auto sell: the player fills in N in "1 in N", in Settings and in the auto-roll view. A rolled duplicate whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space. Default off.
-- Selling never takes a player's last copy of a character, and a new discovery is always kept.
-- Sell spares (orchestrator proposal, owner approved the plan 2026-11-04): a Backpack card sells all but 1 copy of that character, with a second tap to confirm, so a full bag can always be emptied.
+- Full bag warning (owner 2026-11-05, replaces the fixed banner): auto roll is never turned off by a full bag and keeps trying at its normal pace. Each blocked try shows red "BAG FULL" text on the screen, with no background, gone within 1 second.
+- Auto sell: the player fills in N in "1 in N", in Settings, in the auto-roll view and from a button under the roll (owner 2026-11-06). A roll whose `Chance` is at most N is sold for Money by rarity (prices **proposed**) and takes no space, a new discovery too (owner 2026-11-06, replaces duplicates only): it stays undiscovered. Default off.
+- With auto sell on, a full bag keeps rolling and selling what is at or under N, and still shows the BAG FULL text. A roll rarer than N needs a space, so at a full bag it does not happen, with Rolls and Turbo unmoved (owner 2026-11-06).
+- Selling never takes a copy a player already holds down to none: the last copy stays. Auto sell only ever sells the roll itself.
+- Sell spares (orchestrator proposal, owner approved the plan 2026-11-04): a Backpack card sells spare copies of that character, never the last one, so a full bag can always be emptied. The player chooses how many and confirms in a dialog (owner 2026-11-05).
+- Mass sell (owner 2026-11-05): the Backpack's Characters tab has a select mode to sell all spares of several characters at once, after one confirmation. The last copy of each stays.
 - Sale prices are not scaled by Money multis. Spec: `docs/BAG_AND_AUTOSELL_SPEC.md`.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
@@ -621,4 +634,9 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: boss bar layout with a colour-coded Drop list of Relic rates and Big Raga's rate in black (4.37, `BOSS_EVENT_SPEC`).
 - 2026-11-05: owner: VIP gets 10% off Sidekick summons (4.36), relayed by the monetization session, reversing the earlier no-discount line. That session creates all 5 products.
 - 2026-11-05: owner: exhaustion camera hovers above the runner, replacing the front aerial view (4.37).
+- 2026-11-06: owner: auto sell takes everything at or under N, new discoveries too; a full bag keeps auto selling and keeps warning (4.41).
+- 2026-11-06: owner: a team bonus depends on the team alone, so an event's bonus comes from the event team (4.37); an auto sell button under the roll, with auto roll (4.41).
+- 2026-11-05: owner: boss start: team saved from the last event, average stamina on the team HUD, X to close with at least 1 character, red warning, display-only team run, Edit Team button, jump and smoke cutscene with the fight at 3 s, no team edits for late joiners, 5,000 HP per player, event timer, red and yellow animated damage numbers (4.37).
+- 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).
+- 2026-11-05: owner: enemies much faster. A Common does not outrun the Track 1 enemy and a Rare is about level with it; NPC formula `48 x 1.363^(n-1)` (placeholder), replacing `16 x 1.51^(n-1)` and the 2026-11-03 "Track 1 balance kept" (4.13).
 - 2026-11-04: owner: Tracks panel is one list of long horizontal cards with a road screenshot, a brief anime-context definition, recommended speed and enemy name; a card click picks the checkpoint; no 3D render, detail pane or START HERE (4.15).

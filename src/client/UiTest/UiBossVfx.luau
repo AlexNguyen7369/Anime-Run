@@ -129,7 +129,7 @@ function Module.Build(h)
 
 		local fullTop = Arena.Y + FULL_HEIGHT
 		if not GuiService.ReducedMotionEnabled then
-			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds / 2)
+			state(res, "Fight", Cfg.PrepSeconds + Cfg.RiseSeconds / 4) -- early: the rise is over in RiseSeconds, well inside the intro
 			local shown = waitFor(function()
 				return shownParts(model) > 0
 			end, SETTLE_WAIT)

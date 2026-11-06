@@ -843,6 +843,10 @@ local function refreshIndex()
 		index.IndexProgress.Text = index.Gui:GetAttribute("SidekicksProgress") or ""
 		return
 	end
+	if index.Gui:GetAttribute("InventoryTab") == "Relics" then
+		index.IndexProgress.Text = index.Gui:GetAttribute("RelicsProgress") or ""
+		return
+	end
 	index.IndexProgress.Text = string.format(
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
 		count,
@@ -882,6 +886,7 @@ player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
 index.Gui:GetAttributeChangedSignal("SidekicksProgress"):Connect(refreshIndex)
+index.Gui:GetAttributeChangedSignal("RelicsProgress"):Connect(refreshIndex)
 refreshIndex()
 require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 

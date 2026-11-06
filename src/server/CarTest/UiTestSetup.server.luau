@@ -355,6 +355,8 @@ local function clearBossUi(player)
 	player:SetAttribute("BossEvent", nil)
 	player:SetAttribute("BossTeamDamage", nil)
 	player:SetAttribute("BossWaitEndsAt", nil)
+	player:SetAttribute("BossTeam", nil)
+	player:SetAttribute("BossPrepRun", nil)
 end
 local function restoreBossUi(player)
 	clearBossUi(player)
@@ -364,6 +366,7 @@ local function restoreBossUi(player)
 		live("SidekickService").Apply(player, saved.sidekicks)
 		player:SetAttribute("NeedsStarter", saved.needsStarter)
 		player:SetAttribute("BossCredit", saved.bossCredit)
+		player:SetAttribute("LastBossTeam", saved.lastBossTeam)
 		player:SetAttribute("PaidRandomRestricted", nil)
 		setAutoRoll(player, saved.autoRoll == true)
 		bossUiSnapshots[player] = nil
@@ -381,8 +384,10 @@ local function bossUiGear(player, how)
 			autoRoll = player:GetAttribute("AutoRoll"),
 			needsStarter = player:GetAttribute("NeedsStarter"),
 			bossCredit = player:GetAttribute("BossCredit"),
+			lastBossTeam = player:GetAttribute("LastBossTeam"),
 		}
 	end
+	player:SetAttribute("LastBossTeam", "") -- a real saved team would fill the HUD's slots before the first pick
 	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
 	player:SetAttribute("NeedsStarter", nil)
 	player:SetAttribute("Rolls", math.max(player:GetAttribute("Rolls") or 0, 1))
@@ -451,6 +456,13 @@ function setups.boss_ui_invite_locked(player)
 	clearBossUi(player)
 	bossUiState(player, "Prep", 5, 0, 0, false)
 end
+-- Past teleport close, the player outside: the Bosses popup's Go stays, disabled (BOSS_EVENT_SPEC "Paid spawn").
+function setups.boss_ui_past_close(player)
+	bossUiGear(player, 2)
+	clearBossUi(player)
+	local config = require(Shared.BossEventConfig)
+	bossUiState(player, "Fight", config.JoinSeconds + 5, 4000, 4000, false)
+end
 function setups.boss_ui_prep_in(player)
 	bossUiGear(player, 2)
 	bossUiState(player, "Prep", 5, 4000, 4000, true, BOSS_UI_DAMAGE)
@@ -486,6 +498,50 @@ function setups.relic_states(player)
 	local service = live("RelicService")
 	local character = live("GachaService").TeamList(player)[1]
 	assert(service.Equip(player, character, service.Snapshot(player).Relics[1].Entry), "could not equip a Relic")
+end
+
+-- One blocked auto-roll try, as the loop's fire to this client (docs/BAG_AND_AUTOSELL_SPEC.md).
+function setups.bag_full_hit(player)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("BagFullHit"):FireClient(player)
+end
+
+-- Spares on every owned character, for the Sell and Mass sell clicks. No sale runs in them; bag_spares_clear or 'restore' undoes it.
+local sparesBefore = {}
+function setups.bag_spares(player)
+	local before = {}
+	for _, entry in player:WaitForChild("GachaData"):GetChildren() do
+		before[entry] = entry:GetAttribute("Copies") or 0
+		entry:SetAttribute("Copies", 2)
+	end
+	sparesBefore[player] = before
+	live("GachaService").RefreshBag(player)
+end
+
+-- A full bag and auto sell at a huge N: the real loop sells each roll and warns (ui_bag_full, owner 2026-11-06).
+local autoSellBefore = {}
+function setups.bag_full_sold(player)
+	local G = live("GachaService")
+	autoSellBefore[player] = { on = player:GetAttribute("AutoSell"), chance = player:GetAttribute("AutoSellChance") }
+	assert(G.SetAutoSell(player, true, 1000000000000), "auto sell refused")
+	local entry = player:WaitForChild("GachaData"):GetChildren()[1]
+	sparesBefore[player] = { [entry] = entry:GetAttribute("Copies") or 0 }
+	entry:SetAttribute("Copies", math.max(0, G.BagCap(player)))
+	G.RefreshBag(player)
+end
+
+-- As Copies stood before bag_spares: a bag left full would stop every roll the later clicks wait for.
+function setups.bag_spares_clear(player)
+	for entry, copies in sparesBefore[player] or {} do
+		entry:SetAttribute("Copies", copies)
+	end
+	sparesBefore[player] = nil
+	local sale = autoSellBefore[player]
+	if sale then
+		player:SetAttribute("AutoSell", sale.on)
+		player:SetAttribute("AutoSellChance", sale.chance)
+		autoSellBefore[player] = nil
+	end
+	live("GachaService").RefreshBag(player)
 end
 
 function setups.restore(player)
@@ -1341,6 +1397,9 @@ local function progressionSpy()
 			"BossEventTeleport",
 			"BossEventSetTeam",
 			"BossEventLeave",
+			"BossEventPrepRun",
+			"BossBuy",
+			"BossUseCredit",
 		}
 	do
 		local target = remotes:FindFirstChild(name)

@@ -35,12 +35,15 @@
 --         the Advance step. No move chat in the intro, and never to anyone outside the event.
 --     Remotes.BossEventLeave: the client's leave option, no arguments, runs Leave(player, "Left") (owner 2026-11-05).
 --     Join during a duel's Countdown or Racing: succeeds and ends the duel through DuelService.PlayerLeft (owner 2026-11-05).
---     Init(): boot. Makes the remote, starts the 1 s loop. Called by Main.server. Not `Start`, which starts an event here.
+--     Init(): boot. Makes the remotes, starts the loop. Called by Main.server. Not `Start`, which starts an event here.
 --     Hits: a member's first hit comes one HitEverySeconds after the intro's end, or after joining if later.
 --     Hooks.DamageMulti(t): pure, t in seconds since the spawn; the default is the real Shouted x Adapted. RecordHit deals
 --       TeamDamage x DamageMulti(now - spawn). TeamDamage and attribute BossTeamDamage stay uncut. Other sections stub it to 1
 --       so their damage sums stay exact.
---     ReplicatedStorage attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event.
+--     Player attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event. Each
+--       player's own: a dodged move leaves it out (design doc 4.37). Hooks.DamageMulti(t, spared) takes the member's dodged moments.
+--     Dodge(player, index, stamp) (Remotes.BossDodge): one press of the Dodge bar for moment `index` of Shared/BossDodge. Returns ok,
+--       reason. Hooks.SwitchLane(run, lane) moves the dodger's run to a neighbouring lane.
 --     An effect starts on its moment and is over at EndsAt. A hit in a long frame's catch-up is not pinned to a moment.
 --     AttackImpactsBetween(fromT, toT): pure. How many Big Raga attack Impacts fall in fromT < t <= toT, t in seconds since the
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
@@ -53,6 +56,10 @@
 --       SidekickId: the Sidekick worn by the running character, member.Team[run.Slot] (design doc 4.37). Damage: what RecordHit dealt.
 --       A hit waiting for the gap goes out in a later batch. The hit that defeats the boss still reaches the members.
 --       A running character whose Sidekick came off mid-event cannot hit: RecordHit returns 0, no entry, no damage (design doc 4.36).
+--   Event roster (owner 2026-11-05): player attributes BossTeam (comma ids), BossTeamCruise<n>, BossTeamStamina<n> and BossLane from
+--     Join; BossTeam follows SetTeam and the lock, then all clear on leaving, with EquippedCar back. Saved LastBossTeam follows each
+--     accepted pick and the lock. Join starts from its ids still owned and wearing a Sidekick. StartPrepRun(player) sets BossPrepRun,
+--     members only. ReplicatedStorage attribute BossEventNextAt mirrors State().NextAt.
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
 --     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
 --     eye about 450 outward of and 320 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
@@ -66,7 +73,7 @@
 --     and Waiting false. Never "Exhausted", never a cash-out. The run keeps options.Team; the Team attribute does not change.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
---   leave before 3:00: "HP = 4,000 x players in the arena" holds, so max falls by 4,000; current never exceeds max or defeats.
+--   leave before 3:00: "HP = 5,000 x players in the arena" holds, so max falls by 5,000; current never exceeds max or defeats.
 --   bag only: a Sidekick in the Bag on no character gives no possible team, so that player cannot join.
 --   8th player: 4.37 says lanes for up to 7, so an 8th is refused.
 --   after the event: EquippedCar goes back to what it was at Join (a run moves it; only Team is ruled).
@@ -131,7 +138,7 @@ function Tests.make(deps)
 		local SidekickConfig = require(Shared.SidekickConfig)
 		local SpawnArea = require(Shared.SpawnArea)
 		local oldCooldown = SpawnArea.START_COOLDOWN
-		local oldInterval, oldRoll, oldWaitAfter = gacha.RollInterval, gacha.Roll, gacha.WaitAfter
+		local oldInterval, oldRollTick, oldWaitAfter = gacha.RollInterval, gacha.RollTick, gacha.WaitAfter
 
 		-- Clone only PlayerData so SetStore never redirects the live player's autosaves.
 		local module = Server.PlayerData:Clone()
@@ -184,12 +191,12 @@ function Tests.make(deps)
 				gacha.RollInterval = function(who)
 					return who == p and 0.02 or oldInterval(who)
 				end
-				gacha.Roll = function(who, ...)
+				gacha.RollTick = function(who, ...)
 					if who == p then
 						rolls += 1
-						return chars[1], nil, nil, false
+						return { Id = chars[1], Emphasized = false }
 					end
-					return oldRoll(who, ...)
+					return oldRollTick(who, ...)
 				end
 				gacha.WaitAfter = function(id, emphasized, who)
 					return who == p and 0.02 or oldWaitAfter(id, emphasized, who)
@@ -214,7 +221,7 @@ function Tests.make(deps)
 					end)
 				)
 				handle:Stop()
-				gacha.RollInterval, gacha.Roll, gacha.WaitAfter = oldInterval, oldRoll, oldWaitAfter
+				gacha.RollInterval, gacha.RollTick, gacha.WaitAfter = oldInterval, oldRollTick, oldWaitAfter
 			end)
 
 			section("pad_gate", function()
@@ -417,10 +424,11 @@ function Tests.make(deps)
 				eq("refill_wait_5", Cfg.RefillWaitSeconds, 5)
 				eq("chat_message_text", Cfg.ChatMessage, CHAT)
 				-- Spec placeholders: the only literal checks of them, retune here
-				flag("owner_intro_2_to_3", Cfg.IntroSeconds >= 2 and Cfg.IntroSeconds <= 3, Cfg.IntroSeconds, "2 to 3")
+				eq("owner_rise_1_5", Cfg.RiseSeconds, 1.5) -- owner 2026-11-05, replaces 2-3 s
+				eq("owner_intro_3", Cfg.IntroSeconds, 3) -- owner 2026-11-05: the rise plus the cutscene
 				eq("owner_attack_cost_5", Cfg.AttackStaminaCost, 5)
 				eq("spec_camera_fov_100", Cfg.CameraFov, 100)
-				eq("spec_hp_per_player_4000", Cfg.HpPerPlayer, 4000)
+				eq("owner_hp_per_player_5000", Cfg.HpPerPlayer, 5000) -- owner 2026-11-05
 				eq("spec_hit_every_1_5", Cfg.HitEverySeconds, 1.5)
 				eq("spec_min_share_1_percent", Cfg.MinDamageShare, 0.01)
 				eq("spec_hit_matches_sidekick_config", Cfg.HitEverySeconds, SidekickConfig.HitInterval)
@@ -768,6 +776,213 @@ function Tests.make(deps)
 				S.End("Timeout")
 				eq("normal_team_kept_after", p:GetAttribute("Team"), normal)
 				eq("reading_equipped_restored_after", p:GetAttribute("EquippedCar"), equipped)
+			end)
+
+			-- Owner 2026-11-05 (design doc 4.37, BOSS_EVENT_SPEC "Team HUD"): the event's own roster, apart from the main Team.
+			serviceSection("event_roster", function()
+				begin()
+				local a, b, c, bare = chars[1], chars[2], chars[3], chars[4]
+				local p = newPlayer()
+				for _, id in { a, b, c } do
+					wear(p, id, "side_chain")
+				end
+				gacha.Grant(p, bare)
+				local normal, equipped = p:GetAttribute("Team"), p:GetAttribute("EquippedCar")
+
+				eq("prep_run_needs_membership", (S.StartPrepRun(p)), false)
+				eq("prep_run_outside_sets_nothing", p:GetAttribute("BossPrepRun"), nil)
+				eq("roster_join_ok", S.Join(p), true)
+				local auto = S.AutoTeam(p)
+				eq("roster_join_publishes_auto", p:GetAttribute("BossTeam"), table.concat(auto, ","))
+				eq("roster_join_publishes_lane", p:GetAttribute("BossLane"), S.LaneOf(p))
+				eq("roster_join_has_no_pick_yet", S.TeamOf(p), nil)
+				eq("roster_join_runner_is_first", p:GetAttribute("EquippedCar"), auto[1])
+				for slot, id in auto do
+					near(
+						"roster_cruise_" .. slot,
+						p:GetAttribute("BossTeamCruise" .. slot),
+						gacha.CruiseFor(p, id, slot)
+					)
+					local seconds = p:GetAttribute("BossTeamStamina" .. slot)
+					flag("roster_stamina_" .. slot, type(seconds) == "number" and seconds > 0, seconds, "> 0")
+				end
+				eq("roster_join_keeps_main_team", p:GetAttribute("Team"), normal)
+				eq("prep_run_for_a_member", S.StartPrepRun(p), true)
+				eq("prep_run_published", p:GetAttribute("BossPrepRun"), true)
+
+				eq("roster_set_team_ok", S.SetTeam(p, { c, a }), true)
+				eq("roster_set_team_publishes", p:GetAttribute("BossTeam"), c .. "," .. a)
+				eq("roster_set_team_saves", p:GetAttribute("LastBossTeam"), c .. "," .. a)
+				near("roster_set_team_cruise", p:GetAttribute("BossTeamCruise1"), gacha.CruiseFor(p, c, 1))
+				eq("roster_set_team_clears_third_cruise", p:GetAttribute("BossTeamCruise3"), nil)
+				eq("roster_set_team_clears_third_stamina", p:GetAttribute("BossTeamStamina3"), nil)
+				eq("roster_set_team_runner_is_first", p:GetAttribute("EquippedCar"), c)
+				eq("roster_set_team_keeps_main_team", p:GetAttribute("Team"), normal)
+				eq("roster_refused_pick", S.SetTeam(p, { bare }), false)
+				eq("roster_refused_keeps_published", p:GetAttribute("BossTeam"), c .. "," .. a)
+				eq("roster_refused_keeps_saved", p:GetAttribute("LastBossTeam"), c .. "," .. a)
+
+				S.Leave(p, "Left")
+				for _, name in { "BossTeam", "BossLane", "BossPrepRun", "BossTeamCruise1", "BossTeamStamina1" } do
+					eq("roster_leave_clears_" .. name, p:GetAttribute(name), nil)
+				end
+				eq("roster_leave_restores_runner", p:GetAttribute("EquippedCar"), equipped)
+				eq("roster_leave_keeps_main_team", p:GetAttribute("Team"), normal)
+				eq("roster_leave_keeps_saved", p:GetAttribute("LastBossTeam"), c .. "," .. a)
+
+				-- No pick by 1:00: the auto team is the locked one, published and saved.
+				local none = fighter()
+				S.Join(none)
+				to(PREP)
+				local locked = table.concat(S.TeamOf(none), ",")
+				eq("roster_lock_publishes", none:GetAttribute("BossTeam"), locked)
+				eq("roster_lock_saves", none:GetAttribute("LastBossTeam"), locked)
+			end)
+
+			serviceSection("saved_team", function()
+				begin()
+				local a, b, c = chars[1], chars[2], chars[3]
+				local p = newPlayer()
+				local entryB
+				wear(p, a, "side_chain")
+				entryB = wear(p, b, "side_chain")
+				wear(p, c, "side_chain")
+				p:SetAttribute("LastBossTeam", b .. "," .. a)
+				eq("saved_join_ok", S.Join(p), true)
+				flag("saved_team_used_by_join", H.same(S.TeamOf(p), { b, a }))
+				eq("saved_team_published", p:GetAttribute("BossTeam"), b .. "," .. a)
+				S.Leave(p, "Left")
+
+				-- A Sidekick off, a repeat, an unknown and an unowned id all drop out, in order.
+				sidekick.Equip(p, b, nil)
+				flag("saved_fixture_b_bare", entryB ~= nil and not sidekick.Worn(p, b))
+				p:SetAttribute("LastBossTeam", table.concat({ b, a, a, "no_such_character", chars[6], c }, ","))
+				eq("saved_filtered_join_ok", S.Join(p), true)
+				flag(
+					"saved_team_filtered",
+					H.same(S.TeamOf(p), { a, c }),
+					table.concat(S.TeamOf(p) or {}, ","),
+					a .. "," .. c
+				)
+				S.Leave(p, "Left")
+
+				-- None left: as a player with no saved team.
+				p:SetAttribute("LastBossTeam", b)
+				eq("saved_empty_join_ok", S.Join(p), true)
+				eq("saved_none_valid_no_team_yet", S.TeamOf(p), nil)
+				S.Leave(p, "Left")
+
+				-- Late joiners: no edits, the run starts at once, with the saved team or else the auto team.
+				to(PREP)
+				to(FIGHT + 1)
+				local late = newPlayer()
+				wear(late, a, "side_chain")
+				wear(late, c, "side_chain")
+				late:SetAttribute("LastBossTeam", c)
+				eq("late_saved_join_ok", S.Join(late), true)
+				flag("late_saved_team_used", H.same(S.TeamOf(late), { c }))
+				flag("late_saved_runs_at_once", log.Runs[late] ~= nil and H.same(log.Runs[late].Team, { c }))
+				eq("late_saved_refused_edits", S.SetTeam(late, { a }), false)
+				flag("late_saved_keeps_team", H.same(S.TeamOf(late), { c }))
+				local fresh = fighter()
+				eq("late_fresh_join_ok", S.Join(fresh), true)
+				flag("late_fresh_gets_auto", H.same(S.TeamOf(fresh), S.AutoTeam(fresh)))
+				flag("late_fresh_runs_at_once", log.Runs[fresh] ~= nil)
+				eq("late_fresh_refused_edits", S.SetTeam(fresh, { chars[1] }), false)
+
+				-- Saved through PlayerData, additive; junk loads as nothing.
+				nextId += 1
+				local savedId = nextId
+				local keeper = H.player(cleanup, savedId)
+				data.Load(keeper, savedId)
+				keeper:SetAttribute("LastBossTeam", a .. "," .. c)
+				eq("saved_field_save_ok", data.Save(keeper, savedId, true), true)
+				eq("saved_field_written", store.data[data.KeyFor(savedId)].LastBossTeam, a .. "," .. c)
+				local record = H.copy(store.data[data.KeyFor(savedId)])
+				record.LastBossTeam = a
+				nextId += 1
+				store.data[data.KeyFor(nextId)] = record
+				local back = H.player(cleanup, nextId)
+				data.Load(back, nextId)
+				eq("saved_field_loaded", back:GetAttribute("LastBossTeam"), a)
+				record = H.copy(record)
+				record.LastBossTeam = 5
+				nextId += 1
+				store.data[data.KeyFor(nextId)] = record
+				local junk = H.player(cleanup, nextId)
+				data.Load(junk, nextId)
+				eq("saved_field_junk_empty", junk:GetAttribute("LastBossTeam"), "")
+			end)
+
+			-- Owner 2026-11-06: the event team earns its own team bonus; the main Team's counts for nothing here.
+			serviceSection("event_team_bonus", function()
+				begin()
+				local Stamina = require(Shared.StaminaConfig)
+				local relic = require(Server.RelicService)
+				local preset = { "leaf_hero", "leaf_avenger", "leaf_medic" } -- a preset trio (SeriesCatalog)
+				local mixed = { "db_hero", "sea_captain", "ds_hero" } -- three series
+				local p = newPlayer()
+				for _, id in preset do
+					wear(p, id, "side_chain")
+				end
+				for _, id in mixed do
+					wear(p, id, "side_chain")
+				end
+				local function seconds(id, multi)
+					return math.round(
+						Stamina.Seconds(
+							catalog.Get(id),
+							multi * sidekick.StaminaMulti(p, id) * relic.Multi(p, id, "Stamina")
+						) * 10
+					) / 10
+				end
+				eq("bonus_fixture_preset", (gacha.TeamBonus(p, preset)), "Preset")
+				eq("bonus_fixture_mixed", (gacha.TeamBonus(p, mixed)), nil)
+
+				eq("bonus_main_mixed_set", gacha.SetTeam(p, mixed), true)
+				eq("bonus_preset_join", S.Join(p), true)
+				eq("bonus_preset_pick", S.SetTeam(p, preset), true)
+				eq("bonus_preset_attribute", p:GetAttribute("BossTeamBonus"), "Preset:leaf")
+				local want = seconds(preset[1], gacha.StaminaMulti(p, preset))
+				near("bonus_preset_stamina", p:GetAttribute("BossTeamStamina1"), want)
+				local bare = seconds(preset[1], gacha.StaminaMulti(p))
+				flag("bonus_preset_stamina_raised", want > bare, want, "> " .. bare)
+				local cruise = gacha.CruiseFor(p, preset[1], 1, preset)
+				near("bonus_preset_cruise", p:GetAttribute("BossTeamCruise1"), cruise)
+				local plain = gacha.CruiseFor(p, preset[1], 1)
+				flag("bonus_preset_cruise_raised", cruise > plain, cruise, "> " .. plain)
+				eq("bonus_preset_keeps_main_team", p:GetAttribute("Team"), table.concat(mixed, ","))
+				S.Leave(p, "Left")
+				eq("bonus_leave_clears", p:GetAttribute("BossTeamBonus"), nil)
+
+				eq("bonus_main_preset_set", gacha.SetTeam(p, preset), true)
+				eq("bonus_mixed_join", S.Join(p), true)
+				eq("bonus_mixed_pick", S.SetTeam(p, mixed), true)
+				eq("bonus_mixed_attribute_empty", p:GetAttribute("BossTeamBonus"), "")
+				want = seconds(mixed[1], gacha.StaminaMulti(p, mixed))
+				near("bonus_mixed_stamina", p:GetAttribute("BossTeamStamina1"), want)
+				local boosted = seconds(mixed[1], gacha.StaminaMulti(p))
+				flag("bonus_mixed_stamina_not_raised", want < boosted, want, "< " .. boosted)
+				cruise = gacha.CruiseFor(p, mixed[1], 1, mixed)
+				near("bonus_mixed_cruise", p:GetAttribute("BossTeamCruise1"), cruise)
+				local mainCruise = gacha.CruiseFor(p, mixed[1], 1)
+				flag("bonus_mixed_cruise_not_raised", cruise < mainCruise, cruise, "< " .. mainCruise)
+				S.Leave(p, "Left")
+			end)
+
+			-- BOSS_EVENT_SPEC "Paid spawn": "Next event in m:ss" reads this attribute.
+			serviceSection("next_at_published", function()
+				local function published()
+					return ReplicatedStorage:GetAttribute("BossEventNextAt")
+				end
+				eq("next_at_after_reset", published(), T0 + Cfg.IntervalSeconds)
+				eq("next_at_matches_state", published(), S.State().NextAt)
+				begin()
+				eq("next_at_kept_in_event", published(), S.State().NextAt)
+				S.End("Timeout")
+				to(Cfg.IntervalSeconds)
+				eq("next_at_moves_on", published(), T0 + 2 * Cfg.IntervalSeconds)
+				eq("next_at_still_matches_state", published(), S.State().NextAt)
 			end)
 
 			serviceSection("auto_team", function()
@@ -1223,8 +1438,14 @@ function Tests.make(deps)
 				local both, shoutOnly, adaptedOnly = findTime(true, true), findTime(true, false), findTime(false, true)
 				flag("status_scan_has_each_state", both ~= nil and shoutOnly ~= nil and adaptedOnly ~= nil)
 
+				local holder = nil -- the member whose status is read
+				local function beginHeld()
+					begin()
+					holder = fighter()
+					S.Join(holder)
+				end
 				local function status()
-					local raw = ReplicatedStorage:GetAttribute("BossStatus")
+					local raw = holder:GetAttribute("BossStatus")
 					if raw == nil then
 						return {}
 					end
@@ -1246,6 +1467,7 @@ function Tests.make(deps)
 					begin()
 					S.Hooks.DamageMulti = realHooks.DamageMulti
 					local p = fighter()
+					holder = p
 					S.Join(p)
 					to(t + PREP)
 					local base, hp, before = S.TeamDamage(p), S.State().Hp, S.DamageOf(p)
@@ -1267,7 +1489,7 @@ function Tests.make(deps)
 				eq("status_both_listed", #status(), 2)
 
 				-- Edges and EndsAt, in server time, off the injected clock.
-				begin()
+				beginHeld()
 				S.Hooks.DamageMulti = realHooks.DamageMulti
 				local spawnAt = T0 + PREP
 				local roar, click = roars[1], clicks[1]
@@ -1291,7 +1513,7 @@ function Tests.make(deps)
 					(select(2, statusOf("Shouted"))),
 					active(roars, 5, roar + 5 + MARGIN) and 1 or 0
 				)
-				begin()
+				beginHeld()
 				S.Hooks.DamageMulti = realHooks.DamageMulti
 				to(PREP + click + MARGIN)
 				local adapted = statusOf("Adapted")
@@ -1321,10 +1543,195 @@ function Tests.make(deps)
 				eq("status_multi_none_in_rise", realHooks.DamageMulti(INTRO / 2), 1)
 
 				-- Nothing is left behind by the event's end.
-				begin()
+				beginHeld()
 				to(PREP + both)
 				S.End("Timeout")
-				eq("status_cleared_at_end", ReplicatedStorage:GetAttribute("BossStatus"), nil)
+				eq("status_cleared_at_end", holder:GetAttribute("BossStatus"), nil)
+			end)
+
+			-- The Dodge bar (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"). Times are read off Shared/BossDodge.
+			serviceSection("dodge", function()
+				local BossDodge = require(Shared.BossDodge)
+				local race = require(Server.RaceService)
+				local factory = require(Shared.RunnerFactory)
+				local Arena = require(Shared.BossArenaConfig)
+				local HttpService = game:GetService("HttpService")
+
+				-- Moments.
+				local lastAt, shortest = 0, math.huge
+				for index = 1, 24 do
+					local at = BossDodge.Moment(index)
+					eq("moment_index_round_trip_" .. index, BossDodge.IndexAtOrBefore(at + 1e-6), index) -- the service's own epsilon
+					if index > 1 then
+						shortest = math.min(shortest, at - lastAt)
+					end
+					lastAt = at
+				end
+				eq("moment_none_before_the_first", BossDodge.IndexAtOrBefore(BossDodge.Moment(1) - 0.01), 0)
+				flag(
+					"moments_leave_room_for_bar_and_text",
+					shortest >= BossDodge.SweepSeconds + BossDodge.ResultSeconds,
+					shortest
+				)
+
+				-- The spot: clear of the start, its window over well before the moment, different per moment and per player.
+				local seen, lowest, latest = {}, 1, -math.huge
+				for index = 1, 200 do
+					local spot = BossDodge.Spot(1234, T0, index)
+					eq("spot_stable_" .. index, BossDodge.Spot(1234, T0, index), spot)
+					lowest = math.min(lowest, spot)
+					seen[math.floor(spot * 20)] = true
+					latest = math.max(latest, select(2, BossDodge.Window(spot, 0)))
+				end
+				flag("spot_clear_of_start", lowest >= 0.2, lowest)
+				flag("spot_window_ends_before_moment", latest <= -0.35, latest)
+				local buckets = 0
+				for _ in seen do
+					buckets += 1
+				end
+				flag("spot_spread_over_the_bar", buckets >= 7, buckets)
+				local differs = false
+				for index = 1, 20 do
+					differs = differs or BossDodge.Spot(1234, T0, index) ~= BossDodge.Spot(5678, T0, index)
+				end
+				flag("spot_differs_per_player", differs)
+
+				begin()
+				local lanes = {}
+				S.Hooks.SwitchLane = function(_, lane)
+					table.insert(lanes, lane)
+				end
+				S.Hooks.DamageMulti = realHooks.DamageMulti
+				local a, b = fighter(), fighter()
+				S.Join(a)
+				S.Join(b)
+				eq("dodge_a_in_lane_1", S.LaneOf(a), 1)
+				eq("dodge_b_in_lane_2", S.LaneOf(b), 2)
+				local function momentT(index)
+					return FIGHT + BossDodge.Moment(index) -- on the test's event clock
+				end
+				local function windowOf(p, index)
+					local id = p:GetAttribute("UserId") or 0
+					return BossDodge.Window(BossDodge.Spot(id, T0, index), T0 + momentT(index))
+				end
+				local function middle(p, index)
+					local from, to = windowOf(p, index)
+					return (from + to) / 2
+				end
+				-- Advance to the press's own time, then press with that stamp.
+				local function pressAt(p, index, stamp, arrives)
+					to((arrives or stamp) - T0)
+					return S.Dodge(p, index, stamp)
+				end
+				local function statusIds(p)
+					local ids = {}
+					for _, row in HttpService:JSONDecode(p:GetAttribute("BossStatus") or "[]") do
+						ids[row.Id] = true
+					end
+					return ids
+				end
+				local function linesTo(p)
+					local n = 0
+					for _, line in log.MoveChat do
+						n += line.Player == p and 1 or 0
+					end
+					return n
+				end
+				walk(FIGHT)
+				local runA, runB = log.Runs[a], log.Runs[b]
+
+				-- Moment 1, the attack: a dodges. Neither its stamina nor its chat is touched; b pays. Lane 1's only neighbour is taken.
+				eq("dodge_moment_1_is_impact", select(2, BossDodge.Moment(1)), "Impact")
+				eq("dodge_before_the_bar_refused", S.Dodge(a, 1, clock), false)
+				eq("dodge_on_spot_ok", pressAt(a, 1, middle(a, 1)), true)
+				eq("dodge_lane_neighbour_shared_when_only_choice", S.LaneOf(a), 2)
+				eq("dodge_switch_hook_called", lanes[1], 2)
+				eq("dodge_second_press_refused", S.Dodge(a, 1, clock), false)
+				to(momentT(1) + 0.05)
+				eq("dodged_impact_costs_nothing", runA.Stamina[1], 100)
+				eq("hit_impact_costs_stamina", runB.Stamina[1], 100 - Cfg.AttackStaminaCost)
+				eq("dodged_move_no_chat", linesTo(a), 0)
+				eq("hit_move_chat", linesTo(b), 1)
+
+				-- Moment 2, the wheel turn: a presses early and is hit, and its one press is spent.
+				eq("dodge_moment_2_is_wheel", select(2, BossDodge.Moment(2)), "WheelClick")
+				local early = windowOf(a, 2) - 0.1
+				eq("dodge_off_spot_refused", pressAt(a, 2, early), false)
+				eq("dodge_off_spot_spends_the_press", pressAt(a, 2, middle(a, 2)), false)
+				to(momentT(2) + 0.05)
+				eq("off_spot_is_hit_adapted", statusIds(a).Adapted, true)
+				eq("off_spot_lane_unchanged", S.LaneOf(a), 2)
+
+				-- Moment 3, the shout: a dodges, b does not, so their statuses and their hits differ (owner 2026-11-05).
+				eq("dodge_moment_3_is_roar", select(2, BossDodge.Moment(3)), "Roar")
+				eq("dodge_roar_ok", pressAt(a, 3, middle(a, 3)), true)
+				flag("dodge_lane_is_a_neighbour", math.abs(S.LaneOf(a) - 2) == 1, S.LaneOf(a))
+				to(momentT(3) + 0.05)
+				eq("dodged_shout_not_listed", statusIds(a).Shouted, nil)
+				eq("hit_shout_listed", statusIds(b).Shouted, true)
+				local baseA, baseB = S.TeamDamage(a), S.TeamDamage(b)
+				near("dodger_hit_keeps_damage", S.RecordHit(a), baseA * (1 - Cfg.AdaptedCut))
+				near("hit_player_damage_cut", S.RecordHit(b), baseB * (1 - Cfg.AdaptedCut) * (1 - Cfg.ShoutDamageCut))
+
+				-- Moment 4: a stamp in the window, too old on arrival. Moment 5: arriving after the moment.
+				local from4 = windowOf(a, 4)
+				eq("dodge_stale_stamp_refused", pressAt(a, 4, from4, from4 + 0.52), false)
+				local stamp5 = middle(a, 5)
+				to(momentT(5) + 0.01)
+				eq("dodge_after_the_moment_refused", S.Dodge(a, 5, stamp5), false)
+
+				-- Bad input from a client.
+				for _, bad in { "1", 0, -1, 1.5, math.huge, 0 / 0 } do
+					eq("dodge_bad_index_" .. tostring(bad), S.Dodge(a, bad, clock), false)
+				end
+				eq("dodge_bad_stamp_text", S.Dodge(a, 6, "x"), false)
+				eq("dodge_bad_stamp_nan", S.Dodge(a, 6, 0 / 0), false)
+				eq("dodge_outsider_refused", S.Dodge(fighter(), 6, clock), false)
+
+				-- Moment 6, the attack, in the wait: no press, no cost, no line.
+				eq("dodge_moment_6_is_impact", select(2, BossDodge.Moment(6)), "Impact")
+				local stamina, heard = runA.Stamina[runA.Slot], linesTo(a)
+				runA.Waiting = true
+				eq("dodge_in_wait_refused", pressAt(a, 6, middle(a, 6)), false)
+				to(momentT(6) + 0.05)
+				runA.Waiting = false
+				eq("wait_move_costs_nothing", runA.Stamina[runA.Slot], stamina)
+				eq("wait_move_no_chat", linesTo(a), heard)
+				S.End("Timeout")
+				eq("dodge_status_cleared_at_end", a:GetAttribute("BossStatus"), nil)
+
+				-- The real run: the same lap angle on the new lane's route, published for clients.
+				local player = newPlayer()
+				wear(player, chars[1], "side_knight")
+				local car = factory.build(chars[1])
+				car.Name, car.Parent = "CarTestBossRunner", player
+				local run = race.NewRun(
+					car,
+					{ Path = Arena.LaneRoute(2), Pads = {}, Tracks = {} },
+					player,
+					{ Boss = true, Team = { chars[1] }, StaminaSeconds = { 1e6, 1e6, 1e6 } }
+				)
+				table.insert(liveRuns, run)
+				task.wait(0.3)
+				local function radiusOf()
+					return (car:GetPivot().Position - Arena.Center) * Vector3.new(1, 0, 1)
+				end
+				local before = radiusOf()
+				local routeBefore = car:GetAttribute("RunRoute")
+				local distBefore = car:GetAttribute("RunDistance")
+				run:SwitchRoute(Arena.LaneRoute(3))
+				local after = radiusOf()
+				flag("switch_radius_new_lane", math.abs(after.Magnitude - Arena.LaneRadius(3)) < 3, after.Magnitude)
+				flag("switch_same_lap_angle", before.Unit:Dot(after.Unit) > 0.999, before.Unit:Dot(after.Unit))
+				flag("switch_publishes_route", car:GetAttribute("RunRoute") ~= routeBefore)
+				flag("switch_distance_scaled", car:GetAttribute("RunDistance") >= distBefore)
+				task.wait(0.2)
+				flag(
+					"switch_stays_on_new_lane",
+					math.abs(radiusOf().Magnitude - Arena.LaneRadius(3)) < 3,
+					radiusOf().Magnitude
+				)
+				run:Destroy()
 			end)
 
 			serviceSection("hp", function()
@@ -1354,7 +1761,7 @@ function Tests.make(deps)
 				S.Join(players[6])
 				S.Join(players[7])
 				eq("joiner_grows_max", S.State().MaxHp, 7 * HP)
-				near("joiner_grows_current_by_4000_each", S.State().Hp, hurt + 3 * HP)
+				near("joiner_grows_current_by_hp_each", S.State().Hp, hurt + 3 * HP)
 				eq("state_counts_players", S.State().Players, 7)
 				-- 7 lanes, one each
 				local lanes = {}
@@ -1420,8 +1827,8 @@ function Tests.make(deps)
 				near("join_leave_same_hp", S.State().Hp, hurt)
 				eq("join_leave_same_max", S.State().MaxHp, max)
 				S.Leave(b, "Left")
-				near("leave_takes_4000_from_current", S.State().Hp, hurt - HP)
-				eq("leave_takes_4000_from_max", S.State().MaxHp, max - HP)
+				near("leave_takes_hp_from_current", S.State().Hp, hurt - HP)
+				eq("leave_takes_hp_from_max", S.State().MaxHp, max - HP)
 
 				-- Under 4,000 left: the floor of 1, and a join then leave still changes nothing.
 				begin()
@@ -1640,7 +2047,7 @@ function Tests.make(deps)
 				eq("leave_in_wait_out", S.IsIn(tired), false)
 				eq("leave_in_wait_returns", log.Depart[tired], 1)
 				eq("leave_in_wait_stops_run", tiredRun.Destroyed, 1)
-				eq("leave_before_3_00_lowers_max_4000", S.State().MaxHp, maxFull - HP)
+				eq("leave_before_3_00_lowers_max_hp", S.State().MaxHp, maxFull - HP)
 
 				-- A leaver above the reward share still gets nothing.
 				local need = Cfg.MinDamageShare * maxFull
@@ -1738,12 +2145,12 @@ function Tests.make(deps)
 				gacha.RollInterval = function(who)
 					return who == outsider and 0.02 or oldInterval(who)
 				end
-				gacha.Roll = function(who, ...)
+				gacha.RollTick = function(who, ...)
 					if who == outsider then
 						rolls += 1
-						return chars[1], nil, nil, false
+						return { Id = chars[1], Emphasized = false }
 					end
-					return oldRoll(who, ...)
+					return oldRollTick(who, ...)
 				end
 				gacha.WaitAfter = function(id, emphasized, who)
 					return who == outsider and 0.02 or oldWaitAfter(id, emphasized, who)
@@ -1771,7 +2178,7 @@ function Tests.make(deps)
 				eq("outsider_no_gate_after", outsider:GetAttribute("BossEvent"), nil)
 				rollsOn("outsider_rolls_after")
 				handle:Stop()
-				gacha.RollInterval, gacha.Roll, gacha.WaitAfter = oldInterval, oldRoll, oldWaitAfter
+				gacha.RollInterval, gacha.RollTick, gacha.WaitAfter = oldInterval, oldRollTick, oldWaitAfter
 			end)
 
 			serviceSection("chat_notice", function()
@@ -2676,7 +3083,7 @@ function Tests.make(deps)
 			Duel.SetNotify(nil)
 		end)
 		SpawnArea.START_COOLDOWN = oldCooldown
-		gacha.RollInterval, gacha.Roll, gacha.WaitAfter = oldInterval, oldRoll, oldWaitAfter
+		gacha.RollInterval, gacha.RollTick, gacha.WaitAfter = oldInterval, oldRollTick, oldWaitAfter
 		for _, run in liveRuns do
 			pcall(function()
 				run:Destroy()
