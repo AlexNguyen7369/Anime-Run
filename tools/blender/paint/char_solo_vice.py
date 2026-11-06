@@ -1,4 +1,4 @@
-# Target look for solo_vice "Jinhoe" (design doc section 5): a young hunter with short light brown hair swept to one side over shaved sides, an
+# Target look for solo_vice "Jinhu" (design doc section 5): a young hunter with short light brown hair swept to one side over shaved sides, an
 # earnest worried face and grey eyes, buried in shiny heavy white and orange plate: huge pauldrons, a stacked chest plate, tassets, greaves,
 # sabatons. +X is the viewer's right in the front view. Drawn in-house.
 from atlas import shade

@@ -7,6 +7,7 @@ local Config = require(ReplicatedStorage.Shared.DailyLoginConfig)
 local GachaService = require(script.Parent.GachaService)
 local BoostService = require(script.Parent.BoostService)
 local CharacterCatalog = require(ReplicatedStorage.Shared.CharacterCatalog)
+local GachaConfig = require(ReplicatedStorage.Shared.GachaConfig)
 
 local Daily = { REMOTE_COOLDOWN = 0.5 }
 local lastRequest = setmetatable({}, { __mode = "k" })
@@ -61,8 +62,10 @@ local function grantRare(player)
 			owned[entry.Name] = true
 		end
 	end
+	local order = GachaConfig.RARITY_ORDER
+	local top = table.find(order, Config.MAX_GUARANTEED_RARITY)
 	for _, spec in CharacterCatalog.Rollable() do
-		if spec.Chance and not owned[spec.Id] then
+		if spec.Chance and not owned[spec.Id] and table.find(order, spec.Rarity) <= top then
 			return GachaService.Grant(player, spec.Id) == true and spec.Name or nil
 		end
 	end

@@ -1,4 +1,4 @@
-# Target look for solo_goliath "Tomas Andre" (design doc section 5): a huge man with long golden hair swept back past the shoulders, a sprawling goatee and dark
+# Target look for solo_goliath "Golioth" (design doc section 5): a huge man with long golden hair swept back past the shoulders, a sprawling goatee and dark
 # sunglasses; his beach look: an oversized open Hawaiian-style shirt over a bare chest with black in-house tribal lines, baggy shorts and big sandals. Big by garment only:
 # the same block body, a wider shirt, wider sleeves and shorts, a bigger hair mass. +X is the viewer's right. Drawn in-house.
 from atlas import shade

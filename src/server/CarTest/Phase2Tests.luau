@@ -1378,8 +1378,12 @@ function Tests.daily_login()
 	local boosts = module(Server, "BoostService")
 	local data = module(Server, "PlayerData")
 	local gacha = module(Server, "GachaService")
+	local catalog = module(Shared, "CharacterCatalog")
+	local gachaConfig = module(Shared, "GachaConfig")
 	local api = service
 		and config
+		and catalog
+		and gachaConfig
 		and boostConfig
 		and boosts
 		and data
@@ -1447,6 +1451,73 @@ function Tests.daily_login()
 			local twice = service.Claim(p)
 			flag("daily_claim_" .. day .. "_once_per_day", twice == false and p.leaderstats.Money.Value == 1234)
 		end
+
+		-- The guaranteed reward (owner 2026-11-05, design doc 4.39): the rarest unowned character of
+		-- MAX_GUARANTEED_RARITY or below, never above it even when those are unowned; nothing once all of those are owned.
+		flag(
+			"daily_max_guaranteed_is_legendary",
+			config.MAX_GUARANTEED_RARITY == "Legendary",
+			config.MAX_GUARANTEED_RARITY,
+			"Legendary"
+		)
+		local order = gachaConfig.RARITY_ORDER
+		local top = table.find(order, config.MAX_GUARANTEED_RARITY)
+		local capped, legendaries = {}, {} -- rarest first, as Rollable lists them
+		for _, spec in catalog.Rollable() do
+			if table.find(order, spec.Rarity) <= top then
+				table.insert(capped, spec)
+			end
+			if spec.Rarity == config.MAX_GUARANTEED_RARITY then
+				table.insert(legendaries, spec)
+			end
+		end
+		-- Claims day 7 for a player owning `specs`: returns whether it succeeded, the result's Rare and the new ids.
+		local function claimRare(name, specs)
+			local p = fake("DailyRare" .. name, data, gacha)
+			table.insert(players, p)
+			p:SetAttribute("DataLoaded", true)
+			p:SetAttribute("DailyLast", math.floor(os.time() / 86400) - 1)
+			p:SetAttribute("DailyStreak", DAYS - 1)
+			for _, spec in specs do
+				gacha.Grant(p, spec.Id)
+			end
+			local before = {}
+			for _, entry in p.GachaData:GetChildren() do
+				before[entry.Name] = true
+			end
+			local claimed, info = service.Claim(p)
+			local added = {}
+			for _, entry in p.GachaData:GetChildren() do
+				if not before[entry.Name] then
+					table.insert(added, entry.Name)
+				end
+			end
+			return claimed == true, type(info) == "table" and info.Rare or nil, added
+		end
+		local function grantsExactly(label, specs, want)
+			local claimed, rare, added = claimRare(label, specs)
+			flag("daily_rare_" .. label .. "_id", claimed and #added == 1 and added[1] == want.Id, added[1], want.Id)
+			flag("daily_rare_" .. label .. "_name", rare == want.Name, rare, want.Name)
+		end
+		-- Owns nothing, so Mythic, Secret and Eternal are all unowned: the rarest Legendary, nothing above it
+		grantsExactly("never_above_cap", {}, legendaries[1])
+		flag("daily_rare_first_pick_is_legendary", capped[1] == legendaries[1] and capped[1].Rarity == "Legendary")
+		-- One Legendary left, every lower rarity unowned: that Legendary comes first
+		local allButOne = table.clone(legendaries)
+		local lastLegendary = table.remove(allButOne)
+		grantsExactly("legendary_before_lower", allButOne, lastLegendary)
+		-- No Legendary left: the rarest of the rarity below
+		local nextDown = capped[#legendaries + 1]
+		flag(
+			"daily_rare_next_down_is_epic",
+			nextDown ~= nil and nextDown.Rarity == "Epic",
+			nextDown and nextDown.Rarity
+		)
+		grantsExactly("falls_to_lower", legendaries, nextDown)
+		-- Every Legendary or lower owned, Mythic and up unowned: the claim succeeds and grants no character
+		local claimed, rare, added = claimRare("all_capped_owned", capped)
+		flag("daily_rare_all_capped_owned_claims", claimed)
+		flag("daily_rare_all_capped_owned_grants_nothing", rare == nil and #added == 0, added[1] or rare, "nothing")
 	end)
 	service.REMOTE_COOLDOWN = oldCooldown
 	for _, p in players do

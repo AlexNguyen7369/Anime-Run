@@ -59,18 +59,18 @@ local CAST = {
 	{ "jk_patch", "Mahitoh", "Legendary", "Balanced", "Jujitsu Kaisan", 5e8, 90 },
 	{ "mha_decay", "Shigaraky", "Legendary", "Sprinter", "My Hero Akademia", 1.5e8, 65 },
 	-- Two new series (design doc 4.39)
-	{ "saw_nervous", "Kobene", "Uncommon", "Marathoner", "Chainsaw Mann", 180, 2.15 },
-	{ "saw_fox", "Akki", "Rare", "Balanced", "Chainsaw Mann", 6000, 4.3 },
-	{ "saw_blood", "Powah", "Epic", "Sprinter", "Chainsaw Mann", 800000, 12.5 },
-	{ "saw_bomb", "Rezi", "Legendary", "Sprinter", "Chainsaw Mann", 4e8, 85 },
-	{ "saw_hero", "Denjy", "Mythic", "Balanced", "Chainsaw Mann", 5e13, 370 },
-	{ "saw_control", "Makina", "Eternal", "Marathoner", "Chainsaw Mann", 3e19, 5000 },
-	{ "solo_vice", "Jinhoe", "Uncommon", "Marathoner", "Solo Levelin", 160, 2.1 },
-	{ "solo_mage", "Jongen", "Rare", "Balanced", "Solo Levelin", 5000, 4.1 },
-	{ "solo_blade", "Cha Hain", "Epic", "Sprinter", "Solo Levelin", 1800000, 15 },
-	{ "solo_beast", "Yunho", "Legendary", "Marathoner", "Solo Levelin", 6e8, 95 },
-	{ "solo_goliath", "Tomas Andre", "Mythic", "Marathoner", "Solo Levelin", 7e14, 415 },
-	{ "solo_monarch", "Jinwu", "Eternal", "Balanced", "Solo Levelin", 1.5e19, 4000 },
+	{ "saw_nervous", "Kobene", "Uncommon", "Marathoner", "Saw Man", 180, 2.15 },
+	{ "saw_fox", "Akki", "Rare", "Balanced", "Saw Man", 6000, 4.3 },
+	{ "saw_blood", "Powah", "Epic", "Sprinter", "Saw Man", 800000, 12.5 },
+	{ "saw_bomb", "Rezi", "Legendary", "Sprinter", "Saw Man", 4e8, 85 },
+	{ "saw_hero", "Denjy", "Mythic", "Balanced", "Saw Man", 5e13, 370 },
+	{ "saw_control", "Makina", "Eternal", "Marathoner", "Saw Man", 3e19, 5000 },
+	{ "solo_vice", "Jinhu", "Uncommon", "Marathoner", "Solo Levelup", 160, 2.1 },
+	{ "solo_mage", "Jongen", "Rare", "Balanced", "Solo Levelup", 5000, 4.1 },
+	{ "solo_blade", "Sha Hain", "Epic", "Sprinter", "Solo Levelup", 1800000, 15 },
+	{ "solo_beast", "Yunho", "Legendary", "Marathoner", "Solo Levelup", 6e8, 95 },
+	{ "solo_goliath", "Golioth", "Mythic", "Marathoner", "Solo Levelup", 7e14, 415 },
+	{ "solo_monarch", "Jinwu", "Eternal", "Balanced", "Solo Levelup", 1.5e19, 4000 },
 	{ "ds_water", "Giyo", "Epic", "Marathoner", "Demon Slicer", 160000, 6, "rain" },
 	{ "jk_night", "Toje", "Legendary", "Sprinter", "Jujitsu Kaisan", 4.3e7, 8, "night" },
 	{ "sea_gold", "Rojer", "Legendary", "Balanced", "One Peace", 6.2e8, 10, "gold" },
@@ -170,7 +170,7 @@ local REAL_NAME_HASHES = {
 	{ 4, 2090407318 },
 	{ 6, 221740109 },
 	{ 9, 1370699169 },
-	-- Chainsaw Mann and Solo Levelin, series and "Based on" column (design doc 4.39). A tweaked name may hold part of a
+	-- Saw Man and Solo Levelup, series and "Based on" column (design doc 4.39). A tweaked name may hold part of a
 	-- real one, so two-part names are stored whole: the scan reads hub and Dojo text, where tweaked names may show.
 	{ 6, 159852035 },
 	{ 3, 193486266 },
@@ -483,18 +483,15 @@ function Tests.catalog()
 	)
 
 	-- Two new series (design doc 4.39): their presets
-	for _, want in
+	for _, row in
 		{
 			{ "saw", "Division Four", { "saw_hero", "saw_blood", "saw_fox" } },
 			{ "solo", "Ajin Guild", { "solo_monarch", "solo_blade", "solo_vice" } },
 		}
 	do
-		local s = series.Get(want[1])
+		local s = series.Get(row[1])
 		local preset = s and s.Preset
-		flag(
-			want[1] .. "_preset",
-			type(preset) == "table" and preset.Name == want[2] and H.same(preset.Members, want[3])
-		)
+		flag(row[1] .. "_preset", type(preset) == "table" and preset.Name == row[2] and H.same(preset.Members, row[3]))
 	end
 
 	-- Villains (design doc 4.32): every track enemy's model is worn by a rollable character

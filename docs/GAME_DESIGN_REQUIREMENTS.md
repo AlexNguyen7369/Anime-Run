@@ -403,11 +403,14 @@ before any Studio work.
   at least as loud as Secret: the same roll cue and full-screen takeover, with its own colour.
 - Curve anchor Speed 7e37 = 1000 studs/s (owner OK). `MAX_CRUISE` stays 800 until the speed probe supports 1000 per
   `docs/SPEED_BALANCE_SPEC.md`, so movement stays capped until then.
-- Two new Series: Chainsaw Mann (id `saw`) and Solo Levelin (id `solo`), 6 characters each. Cast, presets and numbers:
+- Two new Series: Saw Man (id `saw`) and Solo Levelup (id `solo`), 6 characters each. Cast, presets and numbers:
   `docs/CHARACTER_GACHA_SPEC.md`. Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
 - Best Roll pedestal (orchestrator default, owner to be told): Eternal odds pass the int64 limit of an OrderedDataStore, so the
   RarestCar board stores a log-scale score in a new store, `LB_RarestCar_v2`. `LB_RarestCar_v1` stays untouched (4.16). The new
   store starts empty, so the pedestal refills as players join.
+
+- Daily login's guaranteed reward (owner 2026-11-05; replaces "rarest unowned character" of 2026-10-28): the rarest unowned
+  character of Legendary or below, since players progress past that. `DailyLoginConfig.MAX_GUARANTEED_RARITY`, tunable by the owner.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -469,7 +472,9 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-05: owner: Eternal tier above Secret, later tiers planned, curve anchor 7e37 = 1000 studs/s, series Chainsaw Mann and Solo Levelin (4.39, amends 4.3, 4.13, 4.19, 4.22). Orchestrator default: Best Roll moves to a new log-scale store (4.39).
+- 2026-11-05: owner: display names Jinhu, Golioth, Sha Hain and series name Solo Levelup (4.39).
+- 2026-11-05: owner: Daily login's guaranteed reward gives at most a Legendary; series name Saw Man (4.39).
+- 2026-11-05: owner: Eternal tier above Secret, later tiers planned, curve anchor 7e37 = 1000 studs/s, series Saw Man and Solo Levelup (4.39, amends 4.3, 4.13, 4.19, 4.22). Orchestrator default: Best Roll moves to a new log-scale store (4.39).
 - 2026-11-05: owner: Speed is a whole number with Tracks 9-10 in the octillions, and a curve turns it into studs/s (4.13). Track 1's enemy needs a full Rare team with stamina buffs (4.3). Rebirth gives a high total Speed multi and new costs, 60-100 hours to Track 10 (4.14). Category multiplies the Speed number (4.5). A loss keeps the won tracks (section 2). Cap test for 1000+ studs/s pending. `docs/SPEED_BALANCE_SPEC.md`.
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).

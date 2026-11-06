@@ -1,6 +1,6 @@
 # solo_blade evidence
 
-Id `solo_blade`, proposed display name Cha Hain. Based on: Cha Hae-In, Solo Leveling. Version: her raid armour.
+Id `solo_blade`, proposed display name Sha Hain. Based on: Cha Hae-In, Solo Leveling. Version: her raid armour.
 Usage: public Roblox experience (playable character, proposed). Rig: R15 blocks, `tools/blender/paint/char_solo_blade.py`.
 Check date: 2026-11-05.
 

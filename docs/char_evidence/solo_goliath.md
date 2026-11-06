@@ -1,6 +1,6 @@
 # solo_goliath evidence
 
-Id `solo_goliath`, proposed display name Tomas Andre. Based on: Thomas Andre, Solo Leveling. Version: his casual beach look, the visit that brings the daggers.
+Id `solo_goliath`, proposed display name Golioth. Based on: Thomas Andre, Solo Leveling. Version: his casual beach look, the visit that brings the daggers.
 Usage: public Roblox experience (playable character, proposed). Rig: R15 blocks, `tools/blender/paint/char_solo_goliath.py`.
 Check date: 2026-11-05.
 

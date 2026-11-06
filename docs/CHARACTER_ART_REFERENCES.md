@@ -94,13 +94,13 @@ Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks"
 - `soul_hollow` Ulquiorro: shares `foe_soul` (see Track enemies).
 - `soul_ice` Rukiya [Rukia], `soul_lord` Aizon [Aizen]: no marks.
 
-## Chainsaw Mann and Solo Levelin series (owner 2026-11-05, design doc 4.39)
+## Saw Man and Solo Levelup series (owner 2026-11-05, design doc 4.39)
 
 Evidence per character: `docs/char_evidence/`. Marks follow design doc 5 "Marks". Base sources: Chainsaw Man, Solo Leveling.
 
-- `solo_goliath` Tomas Andre [Thomas Andre]: chest tattoos keep the source's place and colour (black, bare chest) in a clearly different hooked-blade shape. The exact source design was not reached, so the difference is by construction, not by comparison. Open shirt print is our own teal blooms: no source gives the print.
+- `solo_goliath` Golioth [Thomas Andre]: chest tattoos keep the source's place and colour (black, bare chest) in a clearly different hooked-blade shape. The exact source design was not reached, so the difference is by construction, not by comparison. Open shirt print is our own teal blooms: no source gives the print.
 - `saw_hero` Denjy [Denji]: pull cord with a ring handle is treated as a prop, not an emblem; owner may rule otherwise.
 - `saw_fox` Akki [Aki]: plain red stud earring in the left ear, no symbol on it; kept as in the source and not counted as a mark.
 - `saw_control` Makina [Makima]: eye rings are a defining eye design, not a logo.
-- `solo_blade` Cha Hain [Cha Hae-In]: plain gold chest lines, no emblem.
-- `saw_nervous` Kobene [Kobeni], `saw_blood` Powah [Power], `saw_bomb` Rezi [Reze], `solo_vice` Jinhoe [Yoo Jinho], `solo_mage` Jongen [Choi Jong-In], `solo_beast` Yunho [Baek Yoonho], `solo_monarch` Jinwu [Sung Jinwoo]: no marks.
+- `solo_blade` Sha Hain [Cha Hae-In]: plain gold chest lines, no emblem.
+- `saw_nervous` Kobene [Kobeni], `saw_blood` Powah [Power], `saw_bomb` Rezi [Reze], `solo_vice` Jinhu [Yoo Jinho], `solo_mage` Jongen [Choi Jong-In], `solo_beast` Yunho [Baek Yoonho], `solo_monarch` Jinwu [Sung Jinwoo]: no marks.

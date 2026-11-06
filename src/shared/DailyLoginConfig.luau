@@ -4,6 +4,9 @@
 
 local DailyLoginConfig = {}
 
+-- The guaranteed reward's top rarity (owner 2026-11-05, design doc 4.39): players progress past it. Tunable.
+DailyLoginConfig.MAX_GUARANTEED_RARITY = "Legendary"
+
 DailyLoginConfig.Rewards = {
 	{ Boost = "Luck" },
 	{ Boost = "Money" },

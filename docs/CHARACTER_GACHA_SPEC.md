@@ -108,21 +108,21 @@ Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. a
 
 Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
 
-Chainsaw Mann and Solo Levelin series (owner 2026-11-05, design doc 4.39; `Chance`, `SpeedMulti`, Cat. are proposed):
+Saw Man and Solo Levelup series (owner 2026-11-05, design doc 4.39; `Chance`, `SpeedMulti`, Cat. are proposed):
 
 | Series (based on) | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
 |---|---|---|---|---|---|---|---|---|
-| Chainsaw Mann (Chainsaw Man) | Kobene | Kobeni | Uncommon | M | `saw_nervous` | 180 | 2.15 | new |
+| Saw Man (Chainsaw Man) | Kobene | Kobeni | Uncommon | M | `saw_nervous` | 180 | 2.15 | new |
 | | Akki | Aki | Rare | B | `saw_fox` | 6,000 | 4.3 | new |
 | | Powah | Power | Epic | S | `saw_blood` | 800,000 | 12.5 | new |
 | | Rezi | Reze | Legendary | S | `saw_bomb` | 4e8 | 85 | new |
 | | Denjy | Denji | Mythic | B | `saw_hero` | 5e13 | 370 | new |
 | | Makina | Makima | Eternal | M | `saw_control` | 3e19 | 5,000 | new |
-| Solo Levelin (Solo Leveling) | Jinhoe | Yoo Jinho | Uncommon | M | `solo_vice` | 160 | 2.1 | new |
+| Solo Levelup (Solo Leveling) | Jinhu | Yoo Jinho | Uncommon | M | `solo_vice` | 160 | 2.1 | new |
 | | Jongen | Choi Jong-In | Rare | B | `solo_mage` | 5,000 | 4.1 | new |
-| | Cha Hain | Cha Hae-In | Epic | S | `solo_blade` | 1,800,000 | 15 | new |
+| | Sha Hain | Cha Hae-In | Epic | S | `solo_blade` | 1,800,000 | 15 | new |
 | | Yunho | Baek Yoonho | Legendary | M | `solo_beast` | 6e8 | 95 | new |
-| | Tomas Andre | Thomas Andre | Mythic | M | `solo_goliath` | 7e14 | 415 | new |
+| | Golioth | Thomas Andre | Mythic | M | `solo_goliath` | 7e14 | 415 | new |
 | | Jinwu | Sung Jinwoo | Eternal | B | `solo_monarch` | 1.5e19 | 4,000 | new |
 
 Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are proposed; each shares its enemy's model):
@@ -172,7 +172,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 56 regular (30 launch cast + 6 Bleech + 8 villains + 6 Chainsaw Mann + 6 Solo Levelin, owner 2026-11-05) + 3 event-only = 59 characters, plus the starter.
+Catalog total: 56 regular (30 launch cast + 6 Bleech + 8 villains + 6 Saw Man + 6 Solo Levelup, owner 2026-11-05) + 3 event-only = 59 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 
@@ -184,8 +184,8 @@ Preset trios (the anime's famous team):
 | Demon Slicer | Kamada Squad | Tanjiru, Zenitsa, Inosuki |
 | Jujitsu Kaisan | First Years | Yuuji, Megumo, Nobora |
 | My Hero Akademia | Class 1-A | Deko, Bakugoo, Todoroky |
-| Chainsaw Mann | Division Four | Denjy, Powah, Akki |
-| Solo Levelin | Ajin Guild | Jinwu, Cha Hain, Jinhoe |
+| Saw Man | Division Four | Denjy, Powah, Akki |
+| Solo Levelup | Ajin Guild | Jinwu, Sha Hain, Jinhu |
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 

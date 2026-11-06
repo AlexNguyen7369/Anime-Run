@@ -41,12 +41,12 @@ SeriesCatalog.List = {
 	},
 	{
 		Id = "saw",
-		Name = "Chainsaw Mann",
+		Name = "Saw Man",
 		Preset = { Name = "Division Four", Members = { "saw_hero", "saw_blood", "saw_fox" } },
 	},
 	{
 		Id = "solo",
-		Name = "Solo Levelin",
+		Name = "Solo Levelup",
 		Preset = { Name = "Ajin Guild", Members = { "solo_monarch", "solo_blade", "solo_vice" } },
 	},
 }

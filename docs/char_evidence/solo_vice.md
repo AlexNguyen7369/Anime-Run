@@ -1,6 +1,6 @@
 # solo_vice evidence
 
-Id `solo_vice`, proposed display name Jinhoe. Based on: Yoo Jinho, Solo Leveling. Version: his first appearance in the heavy white and orange armour.
+Id `solo_vice`, proposed display name Jinhu. Based on: Yoo Jinho, Solo Leveling. Version: his first appearance in the heavy white and orange armour.
 Usage: public Roblox experience (playable character, proposed). Rig: R15 blocks, `tools/blender/paint/char_solo_vice.py`.
 Check date: 2026-11-05.
 

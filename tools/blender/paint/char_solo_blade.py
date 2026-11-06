@@ -1,4 +1,4 @@
-# Target look for solo_blade "Cha Hain" (design doc section 5): a blonde shoulder-length bob with a side-swept fringe, calm grey eyes, a black high-collar
+# Target look for solo_blade "Sha Hain" (design doc section 5): a blonde shoulder-length bob with a side-swept fringe, calm grey eyes, a black high-collar
 # undersuit under crimson and gold knight plate: pauldrons, a cuirass, a plated skirt, greaves; a long dark blade with a silver grip held point-up
 # in her right hand. Same block body as everyone: no slimming, the likeness is hair, face, paint and garments. +X is the viewer's right. Drawn in-house.
 from atlas import shade
