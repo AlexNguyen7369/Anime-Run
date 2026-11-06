@@ -678,7 +678,8 @@ end
 
 -- WheelClick: the source's adaptation signature --------------------------------------------------------------------------------
 
-local function playClick()
+local function playClick(scale)
+	scale = scale or 1
 	-- cue: BossWheelClick (the clunk of one step)
 	local few = reduced()
 	local frame = raga:Frame("Wheel")
@@ -692,7 +693,7 @@ local function playClick()
 			Texture = Art.Flare,
 			Color = ColorSequence.new(PALE_GOLD, GOLD),
 			LightEmission = 1,
-			Size = sequence(0, 70, 0.3, 100, 1, 70),
+			Size = sequence(0, 70 * scale, 0.3, 100 * scale, 1, 70 * scale),
 			Transparency = sequence(0, 0, 1, 1),
 			Lifetime = NumberRange.new(0.3, 0.5),
 			Rotation = NumberRange.new(0, 360),
@@ -713,7 +714,7 @@ local function playClick()
 			ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward,
 			Size = sequence(0, 22, 1, 2),
 			Lifetime = NumberRange.new(0.4, 1),
-			Speed = NumberRange.new(260, 640),
+			Speed = NumberRange.new(260 * scale, 640 * scale),
 			Drag = 1.2,
 			Acceleration = Vector3.new(0, -200, 0),
 		}),
@@ -1029,6 +1030,13 @@ function BossVfx.Step(since, move, localTime, screamLeft)
 
 	if screamLeft and not screaming and screamLeft >= Event.ScreamSeconds - SCREAM_LATE then
 		playScream(screamLeft)
+	end
+	if screaming and not screamLeft then
+		-- The wheel's dead stop (BOSS_EVENT_SPEC "Phase 2"), for a client that saw the scream.
+		playClick(2.5)
+		local gui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+		gui = gui and gui:FindFirstChild("RacerBossEvent")
+		UiFeedback.Play("BossScream", gui and gui:FindFirstChild("BossBar"))
 	end
 	screaming = screamLeft ~= nil
 

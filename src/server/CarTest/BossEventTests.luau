@@ -703,6 +703,25 @@ function Tests.make(deps)
 				near("team_damage_capped", Cfg.TeamDamage({ 22, 22, 22 }, 1600), 44)
 				eq("team_damage_empty_is_0", Cfg.TeamDamage({}, 500), 0)
 			end)
+			-- BOSS_EVENT_SPEC "Phase 2", wheel: very fast through the scream, a dead stop, a hold, then a slow steady spin.
+			section("wheel_spin", function()
+				local spin, scream = Cfg.WheelSpinAt, Cfg.ScreamSeconds
+				eq("wheel_0_at_start", spin(0), 0)
+				eq("wheel_0_before_start", spin(-1), 0)
+				local fast = spin(2) - spin(1)
+				flag("wheel_fast_in_scream", fast >= math.rad(720), fast, math.rad(720))
+				eq("wheel_dead_stop_0_5", spin(scream + 0.5), spin(scream))
+				eq("wheel_dead_stop_0_99", spin(scream + 0.99), spin(scream))
+				local slow = spin(scream + 5.5) - spin(scream + 5)
+				flag("wheel_rises_after_hold", spin(scream + 5) > spin(scream), spin(scream + 5), spin(scream))
+				flag("wheel_slow_positive", slow > 0, slow, 0)
+				flag("wheel_slow_under_90_deg_s", slow / 0.5 < math.rad(90), slow / 0.5, math.rad(90))
+				local worstDrop = 0
+				for i = 1, 400 do
+					worstDrop = math.max(worstDrop, spin((i - 1) * 0.05) - spin(i * 0.05))
+				end
+				eq("wheel_never_decreases", worstDrop, 0)
+			end)
 		end
 
 		local function serviceSections(Cfg, S, realHooks)
@@ -3935,7 +3954,8 @@ function Tests.make(deps)
 				if type(makeFrame) == "function" then
 					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
 					-- Placeholders set from the geometry (owner 2026-11-05).
-					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 5, 400, 790
+					-- Owner locked the event FOV at 100 (2026-11-06): measured runner 2.71 px, boss 237 px on a 907 px screen.
+					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 2.5, 225, 790
 					local EYE_OUT, EYE_UP, EYE_SLACK = 450, 320, 50 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))

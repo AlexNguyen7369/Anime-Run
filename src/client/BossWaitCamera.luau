@@ -59,7 +59,7 @@ end
 
 local function screamView()
 	local ends = ReplicatedStorage:GetAttribute("BossScreamEndsAt")
-	return type(ends) == "number" and not UiMotion.Reduced() and ends - workspace:GetServerTimeNow() > RETURN_SECONDS
+	return type(ends) == "number" and not UiMotion.Reduced() and ends > workspace:GetServerTimeNow() -- holds to the wheel's stop
 end
 
 function BossWaitCamera.Step(camera, dt)

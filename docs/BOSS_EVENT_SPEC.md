@@ -69,7 +69,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 - Growth cutscene (owner 2026-11-06): over the 3 s scream Big Raga grows smoothly to 1.25 x, feet staying on the dais, and keeps that size for the phase. Client only, timed from `BossScreamEndsAt`, so a client arriving late snaps to the right size. The local camera eases to frame the boss and returns as the scream ends (**proposed**); REDUCED EFFECTS keeps the camera still and the growth. The growth must also apply to the low-graphics flat boss.
 - Exhausted teams (owner 2026-11-06): the cutscene skips exhaustion. A team in the wait when it starts leaves the exhaustion view and panel, watches the cutscene, and revives in full when the scream ends, whatever its timer read. A team that empties during the scream does the same (**proposed**).
 - The move schedule restarts from its beginning when the scream ends; statuses and Vulnerable clear when the scream starts (**proposed**). Attributes: `BossEventStage`, `BossEventEndsAt`, `BossScreamEndsAt`, `BossScheduleStart`.
-- The wheel spins continuously for the whole phase, on top of the baked track.
+- Wheel (owner 2026-11-06): as Phase 2 starts it spins visibly very fast through the scream, then stops very abruptly at the scream's end, with the stop emphasized to the player: a burst from the hub, the bar's shake, and the camera holding on the boss until the stop. Fast spin 1,080 deg/s after a 0.35 s ramp, a dead stop in one frame, held 1 s (**proposed**), then the steady phase spin, 50 deg/s (**placeholder**).
 - Once the bar is full, the drop list's rates change to Phase 2's one row at a time, top to bottom.
 - A leave in Phase 2 takes no HP back. Teleport is closed.
 

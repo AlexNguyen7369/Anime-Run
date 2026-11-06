@@ -14,7 +14,6 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
-local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 

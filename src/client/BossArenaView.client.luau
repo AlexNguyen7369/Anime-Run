@@ -29,7 +29,6 @@ local LINE_WIDTH, LINE_THICK = 1, 0.1
 -- model's outline from the lanes and behind the model along the view line. Images are 9.42 units square, framed on his box.
 local FLAT_FRAME = 9.42 * Poses.Scale
 local GROWTH = 1.25 -- owner 2026-11-06
-local WHEEL_SPIN = math.rad(50) -- placeholder: radians a second, on top of the baked track
 local ROAR_AT = Poses.Moves.shout.Events[1].Time
 local FLAT_INSIDE = 0.92 -- of the image's true size
 local FLAT_CENTER_Y = 9.237 / 2 * Poses.Scale
@@ -387,7 +386,7 @@ local function stage2At(now)
 		+ Event.IntroSeconds
 		- Event.ScreamSeconds
 	local done = left and math.clamp(1 - left / Event.ScreamSeconds, 0, 1) or 1
-	return 1 + (GROWTH - 1) * done * done * (3 - 2 * done), math.max(0, now - started) * WHEEL_SPIN, left
+	return 1 + (GROWTH - 1) * done * done * (3 - 2 * done), Event.WheelSpinAt(now - started), left
 end
 
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.

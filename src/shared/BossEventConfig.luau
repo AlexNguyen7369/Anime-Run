@@ -17,6 +17,19 @@ BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: the rise and the cutscene,
 BossEventConfig.RiseSeconds = 1.5 -- owner 2026-11-05: the first part of it, Big Raga rising with the HP bar
 BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
+-- Radians the wheel has turned `since` seconds after the scream began (BOSS_EVENT_SPEC "Phase 2"): time-based, so a late client
+-- agrees. Placeholders.
+local WHEEL_FAST, WHEEL_RAMP, WHEEL_HOLD, WHEEL_SLOW = math.rad(1080), 0.35, 1, math.rad(50)
+function BossEventConfig.WheelSpinAt(since)
+	if since <= 0 then
+		return 0
+	end
+	local fast = math.min(since, BossEventConfig.ScreamSeconds)
+	local angle = fast < WHEEL_RAMP and WHEEL_FAST * fast * fast / (2 * WHEEL_RAMP)
+		or WHEEL_FAST * (fast - WHEEL_RAMP / 2)
+	return angle + WHEEL_SLOW * math.max(0, since - BossEventConfig.ScreamSeconds - WHEEL_HOLD)
+end
+
 BossEventConfig.CameraFov = 100 -- owner 2026-11-06: locked for the whole event
 BossEventConfig.CameraZoom = 40 -- owner 2026-11-06: studs, the wide view's distance
 BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
