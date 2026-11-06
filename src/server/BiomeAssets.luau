@@ -6,6 +6,7 @@
 local AssetService = game:GetService("AssetService")
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local BiomeEnvironment = require(ReplicatedStorage:WaitForChild("Shared").BiomeEnvironment)
 
@@ -21,11 +22,15 @@ local function load(biome, key)
 	if not row then
 		return nil
 	end
+	-- Collaborators load a copy saved in the place (named by asset id), as CharacterModelService does
+	local baked = ServerStorage:FindFirstChild("BakedModels")
+	local copy = baked and baked:FindFirstChild(string.match(row.Id, "%d+"))
 	local ok, part = pcall(function()
-		return AssetService:CreateMeshPartAsync(Content.fromUri(row.Id), {
-			CollisionFidelity = Enum.CollisionFidelity.Box,
-			RenderFidelity = Enum.RenderFidelity.Automatic,
-		})
+		return copy and copy:Clone()
+			or AssetService:CreateMeshPartAsync(Content.fromUri(row.Id), {
+				CollisionFidelity = Enum.CollisionFidelity.Box,
+				RenderFidelity = Enum.RenderFidelity.Automatic,
+			})
 	end)
 	if not ok or not part then
 		warn("[BiomeAssets] " .. biome .. "/" .. key .. " failed to load, using parts: " .. tostring(part))

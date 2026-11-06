@@ -200,6 +200,10 @@ Sidekicks and boss (design doc section 5, one list): Pochito (Pochita, Chainsaw 
   `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
   the placeholder block rig for anything without a model (`starter`, event-only characters).
+- Baked copies (owner 2026-11-06): `LoadAsset` refuses collaborators in Studio because the assets are under the owner's
+  account, so each model is also saved in the place at `ServerStorage.BakedModels/<asset id>`. The game clones that copy
+  first and calls `LoadAsset` only when there is none. A newly uploaded model must be baked by the owner, or collaborators
+  see the placeholder.
 
 ### Target look (owner 2026-11-03; design doc 5)
 
