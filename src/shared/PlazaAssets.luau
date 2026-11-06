@@ -319,7 +319,6 @@ return {
 		},
 	},
 	Landmarks = {
-		Market = Vector3.new(-77.500, 50.000, -12.500),
 		RaceStart = Vector3.new(-84.000, 60.000, 78.000),
 	},
 	LoopRadius = 62,
