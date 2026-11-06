@@ -26,7 +26,7 @@ BossEventConfig.ShoutSeconds = 5 -- owner
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
 BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
-BossEventConfig.WaitCameraFov = 66 -- placeholder: the exhaustion view zooms in on the boss and the runner
+BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view zooms in on the boss and the runner
 -- Placeholders. At WaitCameraFov on a 907 px screen: a 5 stud runner is about 27 px at y near 750, clear of the bottom
 -- bars; the boss is about 530 px tall, wheel top to feet, all in view.
 local WAIT_CAMERA_OUT = 120 -- behind the runner, away from the boss
