@@ -3662,13 +3662,16 @@ function Tests.make(deps)
 					S.SetTeam(p, ids)
 					return p, ids
 				end
-				-- Every hit `p` heard, each with its batch's time. Steps of STEP send each frame's hits in that frame's batch.
+				-- `p`'s own hits as `p` heard them, each with its batch's time: every member hears every hit, so others' are left out.
+				-- Steps of STEP send each frame's hits in that frame's batch.
 				local function heardBy(p)
 					local list = {}
 					for _, batch in log.BossHits do
 						if batch.Player == p then
 							for _, entry in batch.Entries do
-								table.insert(list, { Entry = entry, At = batch.At })
+								if entry.UserId == p:GetAttribute("UserId") then
+									table.insert(list, { Entry = entry, At = batch.At })
+								end
 							end
 						end
 					end
