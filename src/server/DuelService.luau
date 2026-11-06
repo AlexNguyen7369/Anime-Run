@@ -93,6 +93,7 @@ local function clear(duel)
 	for _, p in { duel.A, duel.B } do
 		if duelOf[p] == duel then
 			duelOf[p] = nil
+			p:SetAttribute("DuelActive", nil)
 		end
 	end
 end
@@ -187,6 +188,7 @@ function DuelService.Respond(b, accept)
 	duel.Phase = "Countdown"
 	duel.At = clock()
 	for slot, p in { duel.A, duel.B } do
+		p:SetAttribute("DuelActive", true)
 		-- Yields until the avatar is seated in its held car, so each player is seated on their own thread
 		task.spawn(pcall, CarService.SetAutoRace, p, true, {
 			Track = duel.Track,

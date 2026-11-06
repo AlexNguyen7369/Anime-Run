@@ -697,6 +697,14 @@ local summon10 = button("Summon10", main, {
 	Position = UDim2.fromScale(1, 1),
 	Size = UDim2.new(0.4, 0, 0, 46),
 }, string.format("Summon 10x: %d Gems", Config.TenCost), SUMMON_TOP, SUMMON_DEEP)
+-- Client/SidekickTutorial's spotlight lands here. On the poster, above the names and rates, so it covers no rate.
+local freeSummon = button("FreeSummon", main, {
+	AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 0.56, -46),
+	Size = UDim2.new(0.5, 0, 0, 46),
+	Visible = false,
+	ZIndex = 2,
+}, "FREE SUMMON", SUMMON_TOP, SUMMON_DEEP)
 
 -- A full-body sheet with its Back button: Details and Auto-Sell.
 local function sheet(name, heading)
@@ -944,6 +952,7 @@ local function refresh()
 	elseif string.find(statusText.Text, "unlock", 1, true) then
 		statusText.Text = ""
 	end
+	freeSummon.Visible = not locked and player:GetAttribute("SidekickFreeUsed") == false
 	local on = SidekickView.AutoSell(player)
 	for rarity, toggle in toggles do
 		toggle.Label.Text = on[rarity] == true and "On" or "Off"
@@ -951,13 +960,13 @@ local function refresh()
 	end
 end
 
-local function summon(count, source)
+local function summon(remoteName, count, source)
 	if busy or not source.Active then
 		return
 	end
 	busy = true
 	local ok, done, results = pcall(function()
-		return remotes:WaitForChild("SidekickSummon"):InvokeServer(count)
+		return remotes:WaitForChild(remoteName):InvokeServer(count)
 	end)
 	busy = false
 	if ok and done == true then
@@ -976,10 +985,13 @@ local function summon(count, source)
 	refresh()
 end
 summon1.Activated:Connect(function()
-	summon(1, summon1)
+	summon("SidekickSummon", 1, summon1)
 end)
 summon10.Activated:Connect(function()
-	summon(10, summon10)
+	summon("SidekickSummon", 10, summon10)
+end)
+freeSummon.Activated:Connect(function()
+	summon("SidekickFreeSummon", nil, freeSummon)
 end)
 UiFeedback.DeniedPress(summon1)
 UiFeedback.DeniedPress(summon10)
@@ -994,6 +1006,7 @@ player.AttributeChanged:Connect(function(attribute)
 		attribute == "Gems"
 		or attribute == "RebirthLevel"
 		or attribute == "SidekickAutoSell"
+		or attribute == "SidekickFreeUsed"
 		or attribute == "SidekickPity"
 		or attribute == "SidekickLegendaryPity"
 	then
