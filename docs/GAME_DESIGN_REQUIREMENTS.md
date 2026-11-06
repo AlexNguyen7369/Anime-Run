@@ -396,7 +396,7 @@ before any Studio work.
 - A Sidekick is a small companion rolled from a gacha at a plaza vendor, Sidekicks, for Gems. It is equipped per character, follows
   that character, deals its damage in boss events (4.37) and gives that character a speed or stamina gain while racing. Speed gain
   counts as an entry in the 4.13 speed multi, inside `MAX_CRUISE`.
-- The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events.
+- The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events. The free summon's Sidekick is never auto-sold (**proposed**), and the tutorial's last step points the player to equip it in the Bag, since only an equipped Sidekick unlocks events. The tutorial may show during a normal track run; it waits only for a duel, a boss event, a showdown and a short transition (owner 2026-11-05).
 - First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
 - Luck never affects summons (owner 2026-11-04). Luck, luck potions and every luck source apply only to the character auto-roll, which is

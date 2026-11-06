@@ -168,6 +168,8 @@ UiScenarios.Names = {
 	"ui_boss_vfx",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
+	-- Sidekick tutorial (UiSidekickTutorial; design doc 4.36). It stops a real run, and puts it back
+	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -8048,6 +8050,23 @@ K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
 })
 for name, fn in K.sidekickFollow.Scenarios do
 	S[name] = fn
+end
+
+K.sidekickTutorial = require(script.Parent.UiSidekickTutorial).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickTutorial.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.sidekickTutorial.After do
+	access.After[cond] = fn
 end
 
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly

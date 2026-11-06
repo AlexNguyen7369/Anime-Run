@@ -119,7 +119,8 @@ local function summon(player, current, count, cost)
 		local row = paid or Config.Roll(rng, rows)
 		mythicPity = row.Rarity == "Mythic" and 0 or mythicPity + 1
 		legendaryPity = row.Rarity == "Legendary" and 0 or legendaryPity + 1
-		local sold = current.SidekickAutoSell[row.Rarity] == true
+		-- A free summon (cost 0) is always kept: it is what unlocks boss events (owner 2026-11-05).
+		local sold = cost > 0 and current.SidekickAutoSell[row.Rarity] == true
 		results[i] = { Id = row.Id, Sold = sold, Pity = paid and true or nil }
 		if sold then
 			soldValue += row.SellGems
@@ -420,6 +421,7 @@ function SidekickService.Start()
 	remotes.Name = "Remotes"
 	remotes.Parent = ReplicatedStorage
 	bind(remotes, "SidekickSummon", SidekickService.Summon)
+	bind(remotes, "SidekickFreeSummon", SidekickService.GrantFreeSummon)
 	bind(remotes, "SidekickSell", SidekickService.Sell)
 	bind(remotes, "SidekickAutoSell", SidekickService.SetAutoSell)
 	bind(remotes, "SidekickEquip", SidekickService.Equip)

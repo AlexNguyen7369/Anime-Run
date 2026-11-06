@@ -1384,6 +1384,13 @@ UiSpec.ServerSetup = {
 			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
 	},
 	{
+		Id = "sidekick_tutorial_ready",
+		When = "asked for by ui_sidekick_tutorial; after 'spy' in the sidekick_tutorial_* clicks' NeedSetup",
+		What = "Rebirth at the unlock, free summon unused, empty Bag, no Gems, Rolls at least 1, on foot. Steps "
+			.. "sidekick_tutorial:rebirth:<n> and sidekick_tutorial:block:<run|duel|showdown|boss|off>. 'restore' (or "
+			.. "restore:sidekick_tutorial) puts all of it back and restarts a run it stopped.",
+	},
+	{
 		Id = "sidekick_big_reveal",
 		When = "before click sidekicks_reveal_big, after 'spy'",
 		What = "sidekick_states, and the next 10 server rolls are scripted: the rotation's Mythic 5th, its Secret 9th, the rest its "
@@ -3391,8 +3398,20 @@ UiSpec.Guis.RacerSidekicks = {
 		},
 		{ Path = "Panel/Body/Main/Summon1", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
 		{ Path = "Panel/Body/Main/Summon10", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
+		-- Shown only while the free summon is unused (design doc 4.36)
+		{ Path = "Panel/Body/Main/FreeSummon", Does = "remote", Remote = "SidekickFreeSummon", Count = "dynamic" },
 	},
 }
+-- Sidekick tutorial (Client/SidekickTutorial; design doc 4.36, 4.21). UiSidekickTutorial holds the contract and judges its fit:
+-- it is an overlay, enabled only while showing. GoButton shows in step 1 only.
+UiSpec.Guis.SidekickTutorial = {
+	Source = "Client/SidekickTutorial",
+	Overlay = true,
+	Buttons = {
+		{ Path = "Layer/Card/GoButton", Does = "open_panel", Panel = "RacerSidekicks/Panel", Count = "dynamic" },
+	},
+}
+table.insert(UiSpec.ClientScripts, "SidekickTutorial")
 UiSpec.Guis.CheckpointUi = {
 	Source = "Client/CheckpointUi",
 	Panels = { "Panel" },
@@ -3908,6 +3927,30 @@ table.insert(UiSpec.Clicks, {
 	Path = "Tap",
 	Prepare = REVEAL_CLOSE,
 	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekick_tutorial_go",
+	Gui = "SidekickTutorial",
+	Path = "Layer/Card/GoButton",
+	Prepare = only(),
+	NeedSetup = { "spy", "sidekick_tutorial_ready" },
+	Expect = {
+		Panels = { ["RacerSidekicks/Panel"] = true },
+		Remote = false,
+		After = { "sidekick_tutorial_go" },
+	},
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekick_tutorial_free",
+	Gui = "RacerSidekicks",
+	Path = "Panel/Body/Main/FreeSummon",
+	Prepare = only("RacerSidekicks/Panel"),
+	NeedSetup = { "spy", "sidekick_tutorial_ready" },
+	Expect = {
+		Panels = { ["RacerSidekicks/Panel"] = true },
+		Remote = false,
+		After = { "sidekick_tutorial_free" },
+	},
 })
 
 -- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
