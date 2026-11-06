@@ -643,6 +643,10 @@ function BossEventService.Join(player)
 		Pressed = {}, -- moment index -> true: the one press a prompt allows was used
 		Equipped = player:GetAttribute("EquippedCar"),
 	}
+	-- A move before the join never hit this player: no stack, as for the stamina through ChargedTo.
+	for index = 1, indexAt(member.ChargedTo) do
+		member.Spared[index] = true
+	end
 	current.Members[player] = member
 	player:SetAttribute("BossLane", lane)
 	publishTeam(player, member.Team or auto) -- before BossEvent, so the minibar never reads a stale team
