@@ -1384,6 +1384,14 @@ UiSpec.ServerSetup = {
 			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
 	},
 	{
+		Id = "sidekick_follow_*",
+		When = "asked for by ui_sidekick_follow, one step at a time",
+		What = "Stops this player's run, then builds a rig of theirs (Owner = UserId) far above the world, drawn by "
+			.. "the real RunnerView, and Sidekicks worn per character. Steps: start, wear:<character>:<id|none>, swap:<character>, "
+			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), end. "
+			.. "restore:sidekick_follow puts all of it back and restarts a run it stopped.",
+	},
+	{
 		Id = "relic_states",
 		When = "asked for by ui_relics; first after 'spy' in the relics_tab, relics_take_off and relics_character_badge clicks' NeedSetup",
 		What = "Bag holds one of every Big Raga Relic, the first worn by Team slot 1's character. New entries each time. "

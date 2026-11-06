@@ -46,6 +46,7 @@ local SPEED = {
 }
 local STYLES = { NinjaRun = NINJA }
 local SIDES = { LeftArm = -1, RightArm = 1 }
+local roots = setmetatable({}, { __mode = "k" }) -- model -> the root last posed at
 
 -- The character's RunStyle (docs/CHARACTER_GACHA_SPEC.md), or nil.
 function RunnerVisual.StyleOf(model)
@@ -117,9 +118,15 @@ function RunnerVisual.Advance(phase, speed, dt)
 	return (phase + 2 * math.pi * cadence * dt) % (2 * math.pi)
 end
 
+-- The `root` last given to Pose: the runner's unleaned frame, as the Torso leans while running. Nil before the first Pose.
+function RunnerVisual.RootOf(model)
+	return roots[model]
+end
+
 -- Places the rig with its Torso at `root` and its limbs at stride phase `phase` (amount 0 = standing still).
 -- Models without a Torso (custom NPC models) are pivoted as a whole.
 function RunnerVisual.Pose(model, root, phase, amount)
+	roots[model] = root
 	local torso = model:FindFirstChild("Torso")
 	if not (torso and torso:IsA("BasePart")) then
 		model:PivotTo(root)

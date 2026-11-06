@@ -12591,6 +12591,7 @@ Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design
 Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/SIDEKICK_SPEC.md "Gems"
 Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design doc 4.36, docs/SIDEKICK_SPEC.md
 Scenarios.sidekick_rotation = require(script.Parent.SidekickRotationTests).sidekick_rotation -- design doc 4.36 rotation
+Scenarios.sidekick_follow = require(script.Parent.SidekickFollowTests).sidekick_follow -- design doc 4.36, SIDEKICK_SPEC "Display"
 Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
