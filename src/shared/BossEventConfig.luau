@@ -31,7 +31,7 @@ function BossEventConfig.WheelSpinAt(since)
 end
 
 BossEventConfig.CameraFov = 100 -- owner 2026-11-06: locked for the whole event
-BossEventConfig.CameraZoom = 40 -- owner 2026-11-06: studs, the wide view's distance
+BossEventConfig.CameraZoom = 40 -- proposed: studs while running, the distance in the owner's 2026-11-06 screenshot; also the game's max
 BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
 -- Placeholders. At WaitCameraFov on a 907 px screen: the runner is about 2.7 px tall and the boss about 237 px.
 local WAIT_CAMERA_OUT = 450 -- past the runner, away from the boss
@@ -50,7 +50,7 @@ BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
 BossEventConfig.MinDamageShare = 0.05 -- owner 2026-11-06: of the phase's own max HP, for its reward
 local FULL_SCALE_CRUISE = 800 -- placeholder: the cruise that reaches the +100% cap
 
--- Owner 2026-11-06. AttackStaminaCost: percent of a full bar, per attack Impact, on the running character.
+-- Owner 2026-11-06. AttackStaminaCost: percent of a full bar, per attack Impact, on every character in the line.
 local STAGES = {
 	{ AttackStaminaCost = 15, StatusSeconds = 15 },
 	{ AttackStaminaCost = 30, StatusSeconds = 20 },
