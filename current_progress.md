@@ -114,8 +114,9 @@
 111. 2026-11-06 — Alex Nguyen — Made enemies faster so a Common does not outrun the Track 1 enemy and a Rare is about level, not run in Studio.
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
+114. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
 
 ## What's next
-**Get the owner's decision on PR #4's merge gate (full harness and rules audit, or a recorded waiver), then run a new fresh review.**
+**Merge `feature/alex/anime-world` into `feature/alex/boss-phase2` and run the full server and UI harness on it, including `ui_boss` and `ui_bag_full`.**
 
-**Why this is next:** the first review returned CHANGES on that gate, and `main` only takes a PR a fresh reviewer approved.
+**Why this is next:** the owner's route to `main` is now the boss phase 2 PR, and `main` only takes a PR a fresh reviewer approved on green tests.
