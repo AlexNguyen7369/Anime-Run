@@ -114,8 +114,9 @@
 111. 2026-11-06 — Alex Nguyen — Made enemies faster so a Common does not outrun the Track 1 enemy and a Rare is about level, not run in Studio.
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
+114. 2026-11-06 — Alex Nguyen — Wrote boss Phase 2 rules into the design doc, boss and Relic specs and the goals file, with no code yet.
 
 ## What's next
-**Get the owner's decision on PR #4's merge gate (full harness and rules audit, or a recorded waiver), then run a new fresh review.**
+**Draw the 5 Relic and 2 chest images and show the owner a contact sheet, while the Phase 2 server tests and code start.**
 
-**Why this is next:** the first review returned CHANGES on that gate, and `main` only takes a PR a fresh reviewer approved.
+**Why this is next:** the owner asked for the art first and approves it before upload, and the Phase 2 line run, presentation and rewards popup all build on the server's phase and chest work.
