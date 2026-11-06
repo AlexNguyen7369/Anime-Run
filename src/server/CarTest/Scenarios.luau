@@ -12593,6 +12593,7 @@ Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design d
 Scenarios.sidekick_rotation = require(script.Parent.SidekickRotationTests).sidekick_rotation -- design doc 4.36 rotation
 Scenarios.sidekick_follow = require(script.Parent.SidekickFollowTests).sidekick_follow -- design doc 4.36, SIDEKICK_SPEC "Display"
 Scenarios.sidekick_pity = require(script.Parent.SidekickPityTests).sidekick_pity -- design doc 4.36 "Summon pity"
+Scenarios.sidekick_tutorial = require(script.Parent.SidekickTutorialTests).sidekick_tutorial -- design doc 4.36 free summon
 Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
