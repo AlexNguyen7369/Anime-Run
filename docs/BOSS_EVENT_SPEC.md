@@ -7,7 +7,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 |---|---|
 | 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. It shows during duels too, and teleporting leaves the duel. Leaving a run cashes out its bank through the normal stop. |
 | 0:00-1:00 | Preparation. Arrivals stand at their lane on the track (**proposed**: no warm-up laps) with the team HUD and a countdown. A player who picks nothing gets the auto-chosen team at 1:00. |
-| 1:00 | Big Raga rises from under the track to full height; the HP bar pops in and fills left to right. Rise and intro are 20 s, no damage. Red event header; red chat message to the whole server. Everyone starts running when the intro ends. If nobody is in the arena, the boss still waits for joiners. |
+| 1:00 | Big Raga rises from under the track to full height; the HP bar pops in and fills left to right. Rise and intro are 3 s (owner: 2-3 s), no damage either way. Red event header; red chat message to the whole server. Everyone starts running when the intro ends. If nobody is in the arena, the boss still waits for joiners. |
 | 1:00-3:00 | Late joining. Teams are auto-chosen, with no team HUD choice. Each joiner sees the red header. HP = 4,000 x players in the arena: a joiner adds 4,000 to both max and current HP. |
 | 3:00 | Teleport closes and HP locks. If nobody came, the event ends. |
 | To 8:00 | Fight. Defeat ends it early; timeout at 8:00 pays nothing. |
@@ -19,6 +19,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 ## Run rules
 - Real cruise and real stamina. At all empty: wait 5 s, full team refills, continue.
+- Each Big Raga attack's `Impact` costs the running character 5% of a full bar, for every running player, decided by the server from the shared move schedule. A character in the 5 s wait loses nothing (**proposed**). Shout and wheel turn cost nothing.
+- Camera: wider event FOV, 100 (**placeholder**), so surrounding players show. Sidekicks stay within their 30-40% size rule (4.36) and read through placement and a soft outline (**proposed**).
 - The team hits every 1.5 s for its team damage: the average of its Sidekicks' damage (`SIDEKICK_SPEC`), scaled by Relics, x speed scale. Speed scale (**placeholder**) = 1 + min(1, cruise / 800), from the running character's cruise, so at most +100%. Only the running character's Sidekick draws the attack.
 
 ## Team HUD
