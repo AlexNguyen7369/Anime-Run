@@ -113,8 +113,9 @@
 110. 2026-11-06 — Alex Nguyen — Added the Boss Dodge bar with per-player move effects, a lane-changing side dash, gold and red result text and star effects, and replaced the Sealing Cube with Raga's Wheel; targeted tests ran with 6 known reds and the full harness has not run.
 111. 2026-11-06 — Alex Nguyen — Made enemies faster so a Common does not outrun the Track 1 enemy and a Rare is about level, not run in Studio.
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
+113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
 
 ## What's next
-**Clear the open red checks (`ui_boss` minibar and Invite overlap, `ui_bag_full` setups), run `ui_sidekicks`, the click tests and the rules audit, then run the full harness.**
+**Get the owner's decision on PR #4's merge gate (full harness and rules audit, or a recorded waiver), then run a new fresh review.**
 
-**Why this is next:** the owner landed this for playtest with those checks open, and a reviewed PR into `main` needs them cleared first.
+**Why this is next:** the first review returned CHANGES on that gate, and `main` only takes a PR a fresh reviewer approved.
