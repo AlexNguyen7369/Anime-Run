@@ -409,6 +409,7 @@ before any Studio work.
   by rarity. An equipped Sidekick is never sold.
 - Ground Sidekicks walk beside their character. Flying Sidekicks hover around the character's shoulder and have a flapping animation (owner 2026-11-04). Kaizel flies; Pochito and Igriz walk. Every future flying Sidekick follows this rule.
 - Summon pool rotation (owner 2026-11-05): the pool rotates every 30 minutes, identical on all servers. Each rotation holds 1 Mythic, 2 Legendaries, 2 Rares and all Commons, plus 1 Secret that players are not told. A Sidekick's odds do not change with the rotation. Exact numbers: `docs/SIDEKICK_SPEC.md`.
+- Summon pity (owner 2026-11-05): summon 300 without a Mythic gives the rotation's Mythic; summon 100 without a Legendary or better gives one of the rotation's Legendaries. Counts carry across rotations and are saved per player. Details shows the updated odds when the next summon is guaranteed (section 6).
 - Sidekick index (owner 2026-11-05): a Sidekicks page in the existing Index panel.
 - Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
@@ -571,3 +572,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: 12-Sidekick pool (roster session's table) and a global 30 minute summon rotation with a hidden Secret (4.36).
 - 2026-11-05: owner: Big Raga's spawn takes 2-3 seconds with the HP bar; each of its attacks takes 5% stamina from running characters; players get a wider FOV in the event and Sidekicks and their attacks must read clearly (4.37). Pity and banner work belong to the summon redesign session.
 - 2026-11-05: owner: Big Raga's shout lowers players' damage for 5 seconds; its wheel turn gives it 10% damage reduction; both show as status effects under the HP bar (4.37).
+- 2026-11-05: owner: Sidekick summon pity, Mythic at 300 and Legendary at 100 (4.36), relayed by the summon redesign session; replaces the spec's no-pity line for Sidekicks only.
