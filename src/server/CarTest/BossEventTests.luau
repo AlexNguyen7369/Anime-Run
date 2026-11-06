@@ -1838,6 +1838,98 @@ function Tests.make(deps)
 				close("late_joiner_pays_later_one", log.Runs[later].Stamina[1], 100 - HEAVY)
 				close("outsider_unaffected", outsiderRun.Stamina[1], 100)
 				outsiderRun:Destroy()
+
+				-- A Roar and a WheelClick just before a join leave the joiner no status; a move after the join hits as normal.
+				local BossDodge = require(Shared.BossDodge)
+				local HttpService = game:GetService("HttpService")
+				local SECONDS = Cfg.Stage(1).StatusSeconds
+				local lastRoar, lastClick, lastIndex, joinAt = nil, nil, nil, nil
+				local index = 0
+				while index < 200 and not joinAt do
+					index += 1
+					local momentAt, name = BossDodge.Moment(index)
+					lastRoar = name == "Roar" and momentAt or lastRoar
+					lastClick = name == "WheelClick" and momentAt or lastClick
+					local candidate = momentAt + INTRO + STEP
+					if
+						lastRoar
+						and lastClick
+						and (name == "Roar" or name == "WheelClick")
+						and candidate < math.min(lastRoar, lastClick) + INTRO + SECONDS
+					then
+						joinAt, lastIndex = candidate, index
+					end
+				end
+				flag("late_joiner_status_window_found", joinAt ~= nil and PREP + joinAt < CLOSE, joinAt, CLOSE - PREP)
+				if not joinAt then
+					S.Reset(T0)
+					return
+				end
+				local function nextMoment(eventName)
+					for i = lastIndex + 1, lastIndex + 200 do
+						local momentAt, name = BossDodge.Moment(i)
+						if name == eventName then
+							return momentAt + INTRO
+						end
+					end
+					return nil
+				end
+				local function statusRow(p, id)
+					local raw = p:GetAttribute("BossStatus")
+					for _, row in raw and HttpService:JSONDecode(raw) or {} do
+						if row.Id == id then
+							return row
+						end
+					end
+					return nil
+				end
+				-- A fresh event with a member from the start, then the joiner. Automatic hits stay muted; each check turns the real hook on.
+				local function lateJoiner()
+					beginReal()
+					local seen, live = {}, false
+					S.Hooks.DamageMulti = function(t, spared, stage)
+						seen.T, seen.Spared = t, spared
+						return live and realHooks.DamageMulti(t, spared, stage) or 0
+					end
+					local early = teamOf(1)
+					S.Join(early)
+					to(PREP + joinAt)
+					local p = teamOf(1)
+					S.Join(p)
+					S.Advance(clock)
+					return p,
+						early,
+						seen,
+						function()
+							live = true
+							local dealt = S.RecordHit(p)
+							live = false
+							return dealt
+						end
+				end
+
+				local joiner, early, seen, realHit = lateJoiner()
+				flag("late_joiner_control_early_member_shouted", statusRow(early, "Shouted") ~= nil)
+				flag("late_joiner_control_early_member_adapted", statusRow(early, "Adapted") ~= nil)
+				eq("late_joiner_not_shouted", statusRow(joiner, "Shouted"), nil)
+				eq("late_joiner_not_adapted", statusRow(joiner, "Adapted"), nil)
+				eq("late_joiner_not_vulnerable", statusRow(joiner, "Vulnerable"), nil)
+				near("late_joiner_full_damage", realHit(), S.TeamDamage(joiner))
+				eq("late_joiner_multi_is_1", realHooks.DamageMulti(seen.T, seen.Spared, 1), 1)
+
+				-- Fresh events, as the two later moves can fall in either order.
+				for _, case in { { "Roar", "Shouted" }, { "WheelClick", "Adapted" } } do
+					local tag = "late_joiner_later_" .. case[1] .. "_"
+					local p, _, seenLater, hit = lateJoiner()
+					local moveAt = nextMoment(case[1])
+					to(PREP + moveAt + MARGIN)
+					local row = statusRow(p, case[2])
+					eq(tag .. "adds_one_stack", row and row.Count, 1)
+					flag(tag .. "makes_vulnerable", statusRow(p, "Vulnerable") ~= nil)
+					local dealt = hit()
+					flag(tag .. "cuts_the_hit", dealt < S.TeamDamage(p), dealt, S.TeamDamage(p))
+					flag(tag .. "multi_below_1", realHooks.DamageMulti(seenLater.T, seenLater.Spared, 1) < 1)
+				end
 				S.Reset(T0)
 			end)
 
