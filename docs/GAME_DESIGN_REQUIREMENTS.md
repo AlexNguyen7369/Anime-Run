@@ -451,6 +451,7 @@ before any Studio work.
   hit and its damage; clients only draw it.
 - Boss HP grows with the players in the arena until teleporting closes, then locks (owner 2026-11-05). A timer for the time left in the event shows at the top left above the HP bar (owner 2026-11-05).
 - Damage numbers pop out animated and coloured red and yellow (owner 2026-11-05).
+- The arena's clouds fill with small white floating particles (owner 2026-11-06).
 - Auto-roll pauses only for players in the event (owner 2026-11-05) and returns to the player's own state afterward. A big boss HP bar replaces the top middle of the
   screen, popping in on spawn and filling left to right.
 - Phase 2 (owner 2026-11-06): when Big Raga first reaches 0 HP, Phase 1's rewards are processed at once. It then does a bigger scream for 3 seconds straight, its HP bar fully revives at Phase 1's maximum plus 50,000, and its title becomes "Fully Adapted Raga". Its wheel spins fully for the whole phase, 2 fresh minutes are added to the event's timer, and the Dodge bar sweeps faster on every move. While the bar fills back up and after, the new drop rates spill into the drop list one by one, from top to bottom.

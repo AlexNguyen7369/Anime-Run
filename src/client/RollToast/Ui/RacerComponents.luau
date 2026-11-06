@@ -592,7 +592,6 @@ function Components.RelicsPage(refs, player, onPress)
 			end)
 			Components.CardFace(tile, row, GachaConfig):Destroy() -- Relics have no category
 			edge(tile).Name = "Stroke"
-			-- shortcut: SidekickView's text tile, as the Bag; replace with in-house icons once they are drawn and uploaded.
 			local art = SidekickView.Art(tile, row, UDim2.fromScale(0.5, 0.36), UDim2.new(1, -16, 0.6, 0))
 			local locked = label(tile, "Locked", "?", UDim2.new(0.5, -20, 0.5, -38), UDim2.fromOffset(40, 40), 34)
 			locked.ZIndex = 7
