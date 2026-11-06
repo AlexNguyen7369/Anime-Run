@@ -117,8 +117,9 @@
 114. 2026-11-06 — Alex Nguyen — Wrote boss Phase 2 rules into the design doc, boss and Relic specs and the goals file, with no code yet.
 115. 2026-11-06 — Alex Nguyen — Added small white floating particles to the boss arena's zone profile, not yet seen in Studio.
 116. 2026-11-06 — Alex Nguyen — Drew and uploaded art for 5 Relics and 2 chests after owner approval and set the Relic rows' images.
+117. 2026-11-06 — Alex Nguyen — Built the boss Phase 2 server and the line run; `[CARTEST] END pass=2 fail=0` on `boss_event` and `relics`, with client visuals not yet seen.
 
 ## What's next
-**Land the boss Phase 2 server code: stages, stacks, Vulnerable, rewards and chests.**
+**Build the Phase 2 presentation, rewards popup and chest opening on the client.**
 
-**Why this is next:** the line run, Phase 2 presentation and rewards popup all read the stage attributes and chest rows this adds.
+**Why this is next:** players cannot yet see Phase 2's state or open chests, and the full harness and PR wait on it.
