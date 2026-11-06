@@ -39,6 +39,13 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 |---|---|---|---|---|---|---|---|
 | `side_raga` | Mahoraga | Big Raga | Secret | 0.001% per eligible player on a defeat | +10% cruise, +10% stamina | 40 | 500 Gems |
 
+## Rotation (owner 2026-11-05)
+- Every 30 minutes, from UTC time, every server computes the same rotation from the time slot alone: no store, no messaging. It holds 1 Mythic, 2 Legendaries, 2 Rares, all Commons and 1 hidden Secret.
+- The server rolls only against the current rotation, and judges a summon by the slot when it arrives.
+- A Sidekick's odds stay as listed. Those out of rotation leave a remainder (1.001% with today's 12), split evenly across Commons (**proposed**), so the shown odds sum to 100%.
+- Details and the page show the rotation and a countdown (**proposed**). The Secret's row reads "Secret: one of Rikka, Kurami, 0.001%": which one is hidden, but each possible outcome is still disclosed, since bought Gems make summons paid random items (section 6). The reveal shows it when it drops.
+- A Mythic, Legendary or Rare row with no uploaded model stays out of the rotation.
+
 ## Summon page
 Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.
 - Left: 4 gem pack tiles, then **Details** and **Settings** buttons. Settings holds the auto-sell filter: one toggle per rarity, off by default.
