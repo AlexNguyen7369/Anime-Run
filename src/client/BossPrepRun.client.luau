@@ -1,8 +1,8 @@
 --!nonstrict
 -- The boss event's preparation run and spawn cutscene (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Preparation run and cutscene").
 -- Display only, drawn from replicated attributes and BossEventStart: nothing here touches a run, damage or stamina. The first on
--- each team is that player's own held runner, posed through RunnerView's HeldPose; the others are local rigs with Sidekicks.
-local CollectionService = game:GetService("CollectionService")
+-- each team is that player's own held runner, posed through RunnerView's HeldPose; the others are local rigs with Sidekicks, until
+-- that player's line run has reached this client and Client/BossLineRun takes over in the same frame.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -13,66 +13,29 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
-local Follow = require(Shared:WaitForChild("SidekickFollow"))
 local PathDriver = require(Shared:WaitForChild("PathDriver"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+local BossTeamRig = require(script.Parent:WaitForChild("BossTeamRig"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 -- Placeholders.
 local RUN_SPEED = 60 -- studs/s
-local TEAM_GAP = 12 -- studs between runners in line
 local JUMP_SECONDS = 0.4
 local JUMP_HEIGHT = 6 -- studs
-local MARK_UNTIL = 2.2 -- s after the spawn: the marks go and all but the first vanish
+local MARK_UNTIL = 2.2 -- s after the spawn: the marks go
+local HANDOVER_SECONDS = 2 -- past the intro: how long the line stands waiting for its run to replicate
 local MARK_RED = Color3.fromRGB(235, 20, 30)
-local PUFFS, PUFFS_REDUCED = 7, 3
-local PUFF_SECONDS = 0.7
 
-local holder = Instance.new("Folder")
-holder.Name = "BossPrepRun"
-holder.Parent = workspace
-
-local teams = {} -- player -> { Key, Rigs = { [slot] = rig }, Marks = { [slot] = gui }, Phase, Smoked }
-
-local function heldCopy(who)
-	for _, model in CollectionService:GetTagged(RunnerVisual.TAG) do
-		if model:GetAttribute("Owner") == who.UserId then
-			return model
-		end
-	end
-	return nil
-end
+local teams = {} -- player -> { Key, Rigs = { [slot] = rig }, Marks = { [slot] = gui }, Phase }
 
 local function clearHeld(who)
-	local copy = heldCopy(who)
+	local copy = BossTeamRig.HeldCopy(who)
 	if copy and copy:GetAttribute("HeldPose") then
 		copy:SetAttribute("HeldPose", nil)
 		copy:SetAttribute("HeldPhase", nil)
 		copy:SetAttribute("HeldAmount", nil)
 	end
-end
-
--- A rig for a place behind the first: a VisibleRunner, so it gets its Sidekick, with an Owner no real player has.
-local function newRig(who, slot, id)
-	local rig = RunnerFactory.build(id)
-	rig.Name = "PrepRunner"
-	for _, part in rig:GetDescendants() do
-		if part:IsA("BasePart") then
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanQuery = false
-			part.CanTouch = false
-		end
-	end
-	rig:SetAttribute("Owner", -(who.UserId * 10 + slot))
-	rig:SetAttribute(
-		"FollowerFixtureId",
-		Follow.WornId(who:GetAttribute("SidekickGear"), who:GetAttribute("SidekickBag"), id)
-	)
-	rig.Parent = holder
-	CollectionService:AddTag(rig, RunnerVisual.TAG)
-	return rig
 end
 
 local function dropTeam(who)
@@ -88,32 +51,6 @@ local function dropTeam(who)
 		mark:Destroy()
 	end
 	clearHeld(who)
-end
-
-local function smoke(position)
-	for i = 1, UiMotion.Reduced() and PUFFS_REDUCED or PUFFS do
-		local puff = Instance.new("Part")
-		puff.Shape = Enum.PartType.Ball
-		puff.Material = Enum.Material.SmoothPlastic
-		puff.Color = Color3.fromRGB(240, 240, 240)
-		puff.Anchored = true
-		puff.CanCollide = false
-		puff.CanQuery = false
-		puff.CanTouch = false
-		puff.CastShadow = false
-		puff.Size = Vector3.one * 3
-		puff.Position = position + Vector3.new(math.random(-3, 3), math.random(0, 4), math.random(-3, 3))
-		puff.Parent = holder
-		local info = TweenInfo.new(PUFF_SECONDS * (0.7 + i * 0.06), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		TweenService:Create(puff, info, {
-			Size = Vector3.one * math.random(9, 13),
-			Transparency = 1,
-			Position = puff.Position + Vector3.new(0, 4, 0),
-		}):Play()
-		task.delay(info.Time, function()
-			puff:Destroy()
-		end)
-	end
 end
 
 local function addMark(team, slot, model)
@@ -136,7 +73,7 @@ local function addMark(team, slot, model)
 	text.TextScaled = true
 	text.TextStrokeTransparency = 0
 	text.Parent = gui
-	gui.Parent = holder
+	gui.Parent = BossTeamRig.Holder
 	TweenService:Create(gui, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(40, 80) }):Play()
 	team.Marks[slot] = gui
 end
@@ -171,8 +108,9 @@ local function stepPlayer(who, since, dt)
 		and type(lane) == "number"
 		and type(roster) == "string"
 		and roster ~= ""
-		and since < Cfg.IntroSeconds
+		and since < Cfg.IntroSeconds + HANDOVER_SECONDS
 		and (since >= 0 or who:GetAttribute("BossPrepRun") == true)
+		and not BossTeamRig.RunOf(who)
 	if not shows then
 		dropTeam(who)
 		return
@@ -190,12 +128,11 @@ local function stepPlayer(who, since, dt)
 			Marks = {},
 			Hints = {},
 			Phase = 0,
-			Smoked = false,
 		}
 		teams[who] = team
 		for slot = 2, #team.Ids do
 			if CharacterCatalog.Get(team.Ids[slot]) then
-				team.Rigs[slot] = newRig(who, slot, team.Ids[slot])
+				team.Rigs[slot] = BossTeamRig.New(who, slot, team.Ids[slot])
 			end
 		end
 	end
@@ -203,18 +140,9 @@ local function stepPlayer(who, since, dt)
 	team.Phase = RunnerVisual.Advance(team.Phase, RUN_SPEED, dt)
 	local amount = since < 0 and 1 or 0
 	local lead = since < 0 and RUN_SPEED * since or 0 -- reaches the lane's start exactly at the spawn
-	local vanish = since >= MARK_UNTIL
-	local copy = heldCopy(who)
-	if vanish and not team.Smoked then
-		team.Smoked = true
-		for slot, rig in team.Rigs do
-			local torso = rig:FindFirstChild("Torso")
-			if torso then
-				smoke(torso.Position)
-			end
-			rig:Destroy()
-			team.Rigs[slot] = nil
-		end
+	local marked = since >= JUMP_SECONDS and since < MARK_UNTIL
+	local copy = BossTeamRig.HeldCopy(who)
+	if since >= MARK_UNTIL then
 		for slot, mark in team.Marks do
 			mark:Destroy()
 			team.Marks[slot] = nil
@@ -226,15 +154,15 @@ local function stepPlayer(who, since, dt)
 		copy:SetAttribute("HeldPose", root)
 		copy:SetAttribute("HeldPhase", team.Phase)
 		copy:SetAttribute("HeldAmount", amount)
-		if since >= JUMP_SECONDS and not vanish then
+		if marked then
 			addMark(team, 1, copy)
 		end
 	end
 	for slot, rig in team.Rigs do
 		local root
-		root, team.Hints[slot] = rootAt(route, lead - TEAM_GAP * (slot - 1), since, team.Hints[slot])
+		root, team.Hints[slot] = rootAt(route, lead - BossTeamRig.TEAM_GAP * (slot - 1), since, team.Hints[slot])
 		RunnerVisual.Pose(rig, root, team.Phase, amount)
-		if since >= JUMP_SECONDS then
+		if marked then
 			addMark(team, slot, rig)
 		end
 	end

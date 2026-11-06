@@ -291,11 +291,15 @@ local function place()
 	dodge.Visible = true
 end
 
+local function currentStage()
+	return ReplicatedStorage:GetAttribute("BossEventStage") or 1
+end
+
 local function openPrompt(index, at, name, startAt)
 	prompt = { Index = index, At = at, Name = name }
 	doneIndex, doneStart = index, startAt
 	slider.BackgroundColor3 = WHITE
-	spot.Position = UDim2.fromScale(BossDodge.Spot(player.UserId, startAt, index), 0.5)
+	spot.Position = UDim2.fromScale(BossDodge.Spot(player.UserId, startAt, index, currentStage()), 0.5)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	subtitle.Text = touch and "Tap when the bar hits the white!" or "Press SPACE when the bar hits the white!"
 	subtitle.TextTransparency = 0
@@ -349,12 +353,13 @@ local function render()
 			closePrompt()
 			showHit(BossDodge.HitText[name])
 		else
-			slider.Position = UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepSeconds, 0, 1), 0.5)
+			slider.Position =
+				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
 		end
 	elseif since >= 0 then
 		local index = BossDodge.IndexAtOrBefore(since) + 1
 		local at, name = BossDodge.Moment(index)
-		if index > doneIndex and at - since <= BossDodge.SweepSeconds + BAR_ANIM_SECONDS then
+		if index > doneIndex and at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
 			openPrompt(index, at, name, startAt)
 		end
 	end

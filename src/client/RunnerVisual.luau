@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
+local PathDriver = require(Shared:WaitForChild("PathDriver"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
 
 local RunnerVisual = {}
@@ -231,6 +232,37 @@ function RunnerVisual.PoseDash(model, root, u, side)
 			end
 		end
 	end
+end
+
+local routes = {} -- RunRoutes folder name -> { Wps, Arc, Closed }
+
+-- The route's waypoints once every one has replicated, else nil.
+function RunnerVisual.RouteOf(name)
+	if type(name) ~= "string" then
+		return nil
+	end
+	local cached = routes[name]
+	if cached then
+		return cached
+	end
+	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
+	local folder = root and root:FindFirstChild(name)
+	local count = folder and folder:GetAttribute("Count")
+	if not (folder and type(count) == "number" and #folder:GetChildren() >= count and count >= 2) then
+		return nil
+	end
+	local wps = table.create(count)
+	for i = 1, count do
+		local v = folder:FindFirstChild(tostring(i))
+		if not v then
+			return nil
+		end
+		wps[i] = v.Value
+	end
+	-- Closed: a lap route (design doc 4.37). The folder attribute is set by whoever publishes the route.
+	cached = { Wps = wps, Arc = PathDriver.Arc(wps), Closed = folder:GetAttribute("Closed") == true }
+	routes[name] = cached
+	return cached
 end
 
 -- The local player's visible runner, or nil.

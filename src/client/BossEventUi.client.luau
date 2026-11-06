@@ -1164,7 +1164,7 @@ local function render()
 	exhausted.Visible = inEvent and type(waitEnds) == "number"
 	if exhausted.Visible then
 		local left = waitEnds - workspace:GetServerTimeNow()
-		exhaustedCount.Text = tostring(math.clamp(math.ceil(left), 1, Cfg.RefillWaitSeconds))
+		exhaustedCount.Text = tostring(math.clamp(math.ceil(left), 1, math.ceil(Cfg.RefillWaitSeconds)))
 		loadingFill.Size = UDim2.fromScale(math.clamp(1 - left / Cfg.RefillWaitSeconds, 0, 1), 1)
 	end
 
