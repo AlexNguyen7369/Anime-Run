@@ -3913,14 +3913,16 @@ table.insert(UiSpec.Clicks, {
 -- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
 -- LeaveButton is AlwaysOn, for ui_layout's every-viewport fit: Panels must be PanelSwitch ones, and the Invite must not close
 -- with them, so Invite and TeamHud are judged by ui_boss. BossButton is AlwaysOn too (owner 2026-11-05): its top-left place
--- is kept free of every always-on element even while it is hidden.
+-- is kept free of every always-on element even while it is hidden. BossBar and DropList are not AlwaysOn: BossEventUi sizes them
+-- for the live screen, so the solver cannot place them at another viewport, and the bar takes the hidden roll's place by design.
+-- ui_boss judges their overlap on the engine's rects (checkDropList, checkFit).
 UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
 }
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
 	AlwaysOn = { "LeaveButton", "BossButton" },
-	NonInteractiveParts = { "Warning", "BossBar" },
+	NonInteractiveParts = { "Warning", "BossBar", "DropList" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },

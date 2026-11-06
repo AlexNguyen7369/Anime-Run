@@ -5,7 +5,13 @@
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
 --   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton sit directly in the ScreenGui.
---   Named anywhere inside their part: Invite Countdown; TeamHud Countdown; BossBar Name, Value, Fill (its parent is the track).
+--   Named anywhere inside their part: Invite Countdown; TeamHud Countdown; BossBar Fill (its parent is the track).
+--   Boss bar (owner 2026-11-05): BossBar/Title "Big Raga" above the track; BossBar/Value "current/max" with thousands separators,
+--     inside the track and drawn over the Fill.
+--   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
+--     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
+--     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. checkFit's text rules also judge it against the
+--     Warning: the Warning has to clear the list.
 --   TeamHud/List: one GuiButton per eligible character, directly in List, named its character id.
 --   Slot<n> has attribute CharacterId while it holds a character, none while it is empty.
 --   Invite Countdown counts to teleport closing (3:00), TeamHud Countdown to the spawn (1:00). "m:ss" or plain seconds.
@@ -18,8 +24,9 @@
 --     text shows once the Invite has closed.
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
---   BossBar has a Status row anywhere inside it, with one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time):
---     an ImageLabel icon, the name and a countdown. It goes when EndsAt passes. ui_boss sets BossStatus locally, client side.
+--   BossBar/Status, under the bar's left side, has one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time). In
+--     it: Icon, an ImageLabel whose Image or text differs per status (a colour alone is not distinct), and Seconds, like "4s".
+--     No name is required. It goes when EndsAt passes. ui_boss sets BossStatus locally, client side.
 --   The arena camera: workspace.CurrentCamera.FieldOfView is Cfg.CameraFov while player attribute BossEvent is true; the value it
 --     had before comes back when the attribute goes, not a fixed default.
 --   The BossBar pops through UiMotion.Pop (UIScale MotionScale). LeaveButton hides while a PanelSwitch panel is open.
@@ -40,6 +47,8 @@ local HttpService = game:GetService("HttpService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
+local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
+local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 
 local ROOT = "RacerBossEvent"
@@ -53,6 +62,7 @@ local BAR = ROOT .. "/BossBar"
 local LEAVE = ROOT .. "/LeaveButton"
 local PANEL = ROOT .. "/ExhaustedPanel"
 local BUTTON = ROOT .. "/BossButton"
+local DROP = ROOT .. "/DropList"
 local PARTS = {
 	Invite = INVITE,
 	TeamHud = HUD,
@@ -61,6 +71,7 @@ local PARTS = {
 	LeaveButton = LEAVE,
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
+	DropList = DROP,
 }
 
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
@@ -95,6 +106,7 @@ local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
 local BUTTON_MAX_PAST_INSET = 40 -- px from TopbarInset.Min.X: "very top left"
+local OUTLINE_MIN_LUMINANCE = 0.5 -- the Big Raga row's outline: "light", against its black text
 
 local Module = {}
 
@@ -633,6 +645,11 @@ function Module.Build(h)
 		gear(res, 2)
 	end
 
+	local function barTrack()
+		local fill = named(BAR, "Fill")
+		return fill and fill.Parent
+	end
+
 	local function checkBarGeometry(res)
 		local bar = h.find(BAR)
 		if not (bar and isDesktop()) then
@@ -668,7 +685,18 @@ function Module.Build(h)
 			local height = h.rect(label).h
 			h.check(res, "warning_is_big", height, ">= " .. MIN_WARNING_HEIGHT, height >= MIN_WARNING_HEIGHT)
 		end
-		check(res, "bar_name", textOf(BAR, "Name"), BOSS_NAME)
+		local title, track = h.find(BAR .. "/Title"), barTrack()
+		check(res, "bar_title", title and title.Text, BOSS_NAME)
+		if title and track then
+			local titleBottom, trackTop = h.rect(title).y + h.rect(title).h, h.rect(track).y
+			h.check(
+				res,
+				"bar_title_above_track",
+				titleBottom,
+				"<= " .. trackTop,
+				titleBottom <= trackTop + Spec.Tolerance
+			)
+		end
 		checkBarGeometry(res)
 
 		local reduced = reducedNow()
@@ -780,8 +808,8 @@ function Module.Build(h)
 		check(res, "status_bar_shown", waitShown(BAR, true), true)
 		local now = workspace:GetServerTimeNow()
 		setStatus({ { Id = "Shouted", EndsAt = now + 2 }, { Id = "Adapted", EndsAt = now + 12 } })
-		local row = named(BAR, "Status")
-		check(res, "status_row_present", row ~= nil, true)
+		check(res, "status_row_present", h.find(BAR .. "/Status") ~= nil, true)
+		local track, looks, firstLeft = barTrack(), {}, nil
 		for id, ends in { Shouted = 2, Adapted = 12 } do
 			check(
 				res,
@@ -791,20 +819,40 @@ function Module.Build(h)
 				end, true),
 				true
 			)
-			local item = cell(id)
-			local icon, words = false, {}
-			for _, d in item and item:GetDescendants() or {} do
-				icon = icon or d:IsA("ImageLabel")
-				if d:IsA("TextLabel") then
-					table.insert(words, d.Text)
+			local item = h.find(BAR .. "/Status/Status_" .. id)
+			local icon, seconds = item and item:FindFirstChild("Icon"), item and item:FindFirstChild("Seconds")
+			check(res, "status_icon_" .. id, icon ~= nil and icon:IsA("ImageLabel"), true)
+			check(res, "status_seconds_" .. id, seconds ~= nil and seconds:IsA("TextLabel"), true)
+			if icon then
+				local look = { icon.Image }
+				for _, d in icon:GetDescendants() do
+					if d:IsA("TextLabel") then
+						table.insert(look, d.Text)
+					end
 				end
+				looks[id] = table.concat(look, "|")
 			end
-			local text = table.concat(words, " ")
-			check(res, "status_icon_" .. id, icon, true)
-			check(res, "status_name_" .. id, string.find(text, id, 1, true) ~= nil, true)
+			local text = seconds and seconds:IsA("TextLabel") and seconds.Text or ""
+			check(res, "status_seconds_format_" .. id, string.match(text, "^%d+s$") ~= nil, true)
 			local left = secondsIn(text)
 			h.check(res, "status_countdown_" .. id, left, "<= " .. ends, left ~= nil and left <= ends + COUNTDOWN_SLACK)
+			if id == "Adapted" then
+				firstLeft = left
+			end
+			if item and track then
+				local r, t = h.rect(item), h.rect(track)
+				h.check(res, "status_under_track_" .. id, r.y, ">= " .. t.y + t.h, r.y >= t.y + t.h - Spec.Tolerance)
+				local middle = t.x + t.w / 2
+				h.check(
+					res,
+					"status_left_side_" .. id,
+					r.x + r.w,
+					"<= " .. middle,
+					r.x + r.w <= middle + Spec.Tolerance
+				)
+			end
 		end
+		check(res, "status_icons_differ", looks.Shouted ~= nil and looks.Shouted ~= looks.Adapted, true)
 		check(
 			res,
 			"status_gone_when_expired",
@@ -814,6 +862,15 @@ function Module.Build(h)
 			false
 		)
 		check(res, "status_other_stays", cellShown("Adapted"), true)
+		local adapted = h.find(BAR .. "/Status/Status_Adapted/Seconds")
+		local laterLeft = adapted and secondsIn(adapted.Text)
+		h.check(
+			res,
+			"status_seconds_count_down",
+			laterLeft or "no Seconds",
+			"< " .. tostring(firstLeft),
+			laterLeft ~= nil and firstLeft ~= nil and laterLeft < firstLeft
+		)
 		state(res, "Fight", "keep", hp, hp, false)
 		check(
 			res,
@@ -867,6 +924,24 @@ function Module.Build(h)
 			return string.find(text, "2500", 1, true) ~= nil and string.find(text, "4000", 1, true) ~= nil
 		end, true)
 		check(res, "bar_value_text", value, true)
+		local valueLabel, track = h.find(BAR .. "/Value"), barTrack()
+		check(res, "bar_value_separators", valueLabel and valueLabel.Text, "2,500/4,000")
+		if valueLabel and track then
+			check(res, "bar_value_inside_track", within(h.rect(track), h.rect(valueLabel)), true)
+			local middle = valueLabel.AbsolutePosition + valueLabel.AbsoluteSize / 2
+			local hits = h.player:WaitForChild("PlayerGui"):GetGuiObjectsAtPosition(middle.X, middle.Y)
+			local valueAt, fillAt = table.find(hits, valueLabel), table.find(hits, named(BAR, "Fill"))
+			check(res, "bar_value_over_fill", valueAt ~= nil and (fillAt == nil or valueAt < fillAt), true)
+		end
+		state(res, "Fight", "keep", 1234567, 2000000, true, 100)
+		check(
+			res,
+			"bar_value_millions",
+			waitIs(function()
+				return textOf(BAR, "Value")
+			end, "1,234,567/2,000,000"),
+			"1,234,567/2,000,000"
+		)
 		state(res, "Fight", "keep", 1000, 4000, true, 100)
 		checkRatio(res, "bar_ratio_follows_hp", 1000 / 4000)
 		state(res, "Fight", "keep", 6000, 8000, true, 100)
@@ -878,6 +953,130 @@ function Module.Build(h)
 		state(res, "Fight", "keep", 0, hp, true, 100)
 		checkRatio(res, "bar_ratio_empty", 0)
 		checkFit(res, "bar_values")
+	end
+
+	-- Owner 2026-11-05: the odds under the bar's right side. Judged on the engine's rects at the viewport the run is on: BossEventUi
+	-- writes the bar's size for the live screen, so ui_layout's solver cannot place it at another one.
+	local function checkDropList(res)
+		local hp = Cfg.HpPerPlayer
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+		check(res, "drop_shown_in_fight", waitShown(DROP, true), true)
+		local list = h.find(DROP)
+		if not list then
+			return
+		end
+		ReplicatedStorage:SetAttribute(
+			"BossStatus",
+			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
+		)
+		task.wait(0.2)
+
+		local heading, rule = list:FindFirstChild("Heading"), list:FindFirstChild("Rule")
+		check(res, "drop_heading", heading and h.visible(heading) and heading.Text, "Drop:")
+		check(res, "drop_rule_shown", rule ~= nil and h.visible(rule), true)
+
+		local odds = RelicConfig.Odds("big_raga")
+		table.sort(odds, function(a, b)
+			return a.Odds > b.Odds
+		end)
+		check(res, "drop_has_relics", #odds > 0, true)
+		check(res, "drop_side_chance_is_config", ("%.3f"):format(RelicConfig.RagaSidekickChance * 100), "0.001")
+		local rowCount = 0
+		for _, child in list:GetChildren() do
+			rowCount += string.sub(child.Name, 1, 4) == "Row_" and 1 or 0
+		end
+		check(res, "drop_row_count", rowCount, #odds + 1)
+		local parts, missing = {}, false
+		local function add(part)
+			missing = missing or part == nil
+			if part then
+				table.insert(parts, part)
+			end
+		end
+		add(heading)
+		add(rule)
+		for _, row in odds do
+			local name = "Row_" .. row.Id
+			local label = list:FindFirstChild(name)
+			check(res, "drop_text_" .. name, label and label.Text, ("%s %s%%"):format(row.Name, tostring(row.Odds)))
+			check(res, "drop_colour_" .. name, label and label.TextColor3, GachaConfig.RARITY_COLORS[row.Rarity])
+			add(label)
+		end
+		local side = list:FindFirstChild("Row_side_raga")
+		check(res, "drop_text_Row_side_raga", side and side.Text, "Big Raga 0.001%")
+		check(res, "drop_colour_Row_side_raga", side and side.TextColor3, Color3.new(0, 0, 0))
+		add(side)
+		if side then
+			local color, stroke = textStroke(side)
+			local light = luminance(color)
+			h.check(res, "drop_outline_light", light, ">= " .. OUTLINE_MIN_LUMINANCE, light >= OUTLINE_MIN_LUMINANCE)
+			h.check(res, "drop_outline_shows", stroke, "<= " .. STROKE_SHOWS, stroke <= STROKE_SHOWS)
+		end
+
+		-- Non-interactive, whatever the implementer nests.
+		local active = {}
+		for _, d in { list, table.unpack(list:GetDescendants()) } do
+			if d:IsA("GuiObject") and d.Active then
+				table.insert(active, d.Name)
+			end
+		end
+		h.checkList(res, "drop_not_active", active)
+
+		if missing then -- its own check above already failed
+			state(res, "Idle", 0, 0, 0, false)
+			ReplicatedStorage:SetAttribute("BossStatus", nil)
+			return
+		end
+		local size = workspace.CurrentCamera.ViewportSize
+		local tag = isDesktop() and "desktop" or "phone"
+		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
+		local barRect = h.rect(h.find(BAR))
+		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
+		local status = h.find(BAR .. "/Status/Status_Shouted")
+		if status then
+			others.Status = h.rect(status)
+		end
+		local crossed, outOfOrder, outside, clipped = {}, {}, {}, {}
+		for i, a in parts do
+			local ra = h.rect(a)
+			if not within(screen, ra) then
+				table.insert(outside, a.Name)
+			end
+			if a:IsA("TextLabel") and not a.TextFits then
+				table.insert(clipped, a.Name)
+			end
+			for name, r in others do
+				if crossing(ra, r) then
+					table.insert(crossed, a.Name .. " x " .. name)
+				end
+			end
+			for j = i + 1, #parts do
+				local b = parts[j]
+				local rb = h.rect(b)
+				if crossing(ra, rb) then
+					table.insert(crossed, a.Name .. " x " .. b.Name)
+				end
+			end
+			local nextPart = parts[i + 1]
+			if nextPart and h.rect(nextPart).y < ra.y + ra.h - Spec.Tolerance then
+				table.insert(outOfOrder, a.Name .. " before " .. nextPart.Name)
+			end
+		end
+		h.checkList(res, "drop_no_overlap_" .. tag, crossed)
+		h.checkList(res, "drop_in_odds_order_" .. tag, outOfOrder)
+		h.checkList(res, "drop_on_screen_" .. tag, outside)
+		h.checkList(res, "drop_text_fits_" .. tag, clipped)
+		local r = h.rect(list)
+		local barBottom = barRect.y + barRect.h
+		h.check(res, "drop_under_bar_" .. tag, r.y, ">= " .. barBottom, r.y >= barBottom - Spec.Tolerance)
+		local middle = barRect.x + barRect.w / 2
+		h.check(res, "drop_right_side_" .. tag, r.x, ">= " .. middle, r.x >= middle - Spec.Tolerance)
+		ReplicatedStorage:SetAttribute("BossStatus", nil)
+
+		-- A leave takes it; a Prep in the event never had it (prep_droplist_shown).
+		state(res, "Fight", "keep", hp, hp, false)
+		check(res, "drop_hidden_on_leave", waitShown(DROP, false), false)
+		state(res, "Idle", 0, 0, 0, false)
 	end
 
 	-- 1:00-3:00: each joiner sees the header too, and a bar already at the right width.
@@ -1189,7 +1388,7 @@ function Module.Build(h)
 		if not gui then
 			return
 		end
-		for _, path in { TELEPORT, DECLINE, HUD .. "/Slot1", WARNING, BAR, LEAVE, BUTTON } do
+		for _, path in { TELEPORT, DECLINE, HUD .. "/Slot1", WARNING, BAR, LEAVE, BUTTON, DROP } do
 			check(res, "boss_part_present_" .. path, h.find(path) ~= nil, true)
 		end
 		local started = os.clock()
@@ -1204,6 +1403,7 @@ function Module.Build(h)
 			checkIntroFill(res)
 			checkSpawn(res)
 			checkBarValues(res)
+			checkDropList(res)
 			checkLateJoin(res)
 			checkOutsider(res)
 			checkCameraFov(res)

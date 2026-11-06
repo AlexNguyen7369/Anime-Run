@@ -13,6 +13,8 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
+local GachaConfig = require(shared:WaitForChild("GachaConfig"))
+local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local CharacterHeads = require(shared:WaitForChild("CharacterHeads"))
 local CharacterPortraits = require(shared:WaitForChild("CharacterPortraits"))
@@ -35,7 +37,8 @@ local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
 local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
-local BOSS_BUTTON_SIZE = Vector2.new(128, 40)
+local BOSS_BUTTON_SIZE = Vector2.new(128, 40) -- at most: the width follows the screen
+local BOSS_BUTTON_WIDTH = 0.15 -- of the screen: at 667 wide, with the pulse and glow it ends at x 329, clear of Auto at 333
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
@@ -51,10 +54,12 @@ local EXHAUSTED_TEXT = "Your team is exhausted. Reviving..."
 local DIM_TRANSPARENCY = 0.65 -- "slightly dims" (BOSS_EVENT_SPEC "Exhaustion view")
 local STATUS_GAP = 4 -- px under the bar
 local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 28, 22
--- The icon is a plain in-house shape with a glyph on it; no image upload. No digit in these texts: the countdown is the number.
+local STATUS_SECONDS, STATUS_SECONDS_PHONE = 14, 12
+local WARNING_MIN_BELOW = 40 -- px: under the drop list only with this much room above the screen's middle, else left of the list
+-- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
 local STATUS_LOOKS = {
 	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
-	{ Id = "Adapted", Glyph = "O", Color = Palette.Gold },
+	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
 }
 
 local function make(class, name, parent, props)
@@ -221,41 +226,37 @@ local warningLabel = label("Text", warning, {
 }, 72)
 local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
 
-local bar = make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
-UiTheme.Plate(bar, Palette.Danger)
-label("Name", bar, {
-	Position = UDim2.new(0, 10, 0.06, 0),
-	Size = UDim2.new(0.4, -10, 0.44, 0),
+local bar =
+	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
+local barTitle = label("Title", bar, {
 	Text = "Big Raga",
-	TextXAlignment = Enum.TextXAlignment.Left,
-}, 24)
-local barValue = label("Value", bar, {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -10, 0.06, 0),
-	Size = UDim2.new(0.6, -10, 0.44, 0),
-	Text = "",
-	TextXAlignment = Enum.TextXAlignment.Right,
+	Font = Enum.Font.GothamBlack,
 }, 24)
 local track = make("Frame", "Track", bar, {
-	Position = UDim2.new(0, 10, 0.54, 0),
-	Size = UDim2.new(1, -20, 0.36, 0),
 	BackgroundColor3 = Palette.TeamTired,
 	BorderSizePixel = 0,
 })
 UiTheme.Corner(track, "S")
+UiTheme.Stroke(track, 2, Palette.Gold, true)
 local fill = make("Frame", "Fill", track, {
 	Size = UDim2.fromScale(0, 1),
 	BackgroundColor3 = Palette.White,
 	BorderSizePixel = 0,
 })
 UiTheme.Corner(fill, "S")
-UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep)
+-- Two bands with a hard edge, bright over deep.
+UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Palette.Danger),
+	ColorSequenceKeypoint.new(0.5, Palette.Danger),
+	ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
+	ColorSequenceKeypoint.new(1, Palette.DangerDeep),
+})
+local barValue = label("Value", bar, { Text = "", ZIndex = 2 }, 20) -- above the Track and its Fill
 
--- Under the bar, with it on screen and off: the Warning sits below this row.
+-- Under the bar's left side, with the bar on screen and off: the Warning sits below this row.
 local statusRow = make("Frame", "Status", bar, { BackgroundTransparency = 1 })
 make("UIListLayout", "List", statusRow, {
 	FillDirection = Enum.FillDirection.Horizontal,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	Padding = UDim.new(0, 4),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
@@ -263,40 +264,88 @@ local statusCells = {}
 for order, look in STATUS_LOOKS do
 	local cell = make("Frame", "Status_" .. look.Id, statusRow, {
 		LayoutOrder = order,
-		Size = UDim2.new(0.5, -2, 1, 0),
-		BackgroundColor3 = Palette.Row,
-		BackgroundTransparency = 0.15,
-		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
 		Visible = false,
 	})
-	UiTheme.Corner(cell, "S")
 	local icon = make("ImageLabel", "Icon", cell, {
-		Position = UDim2.fromOffset(1, 1),
-		Size = UDim2.new(1, -2, 1, -2),
-		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
 		BackgroundColor3 = look.Color,
 		BorderSizePixel = 0,
 	})
 	UiTheme.Corner(icon, "S")
-	label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 20)
-	label("Name", cell, {
-		Position = UDim2.fromOffset(STATUS_HEIGHT + 2, 0),
-		Size = UDim2.new(0.68, -STATUS_HEIGHT - 2, 1, 0),
-		Text = look.Id,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}, 18)
+	UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	if look.Glyph then
+		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 20)
+	else
+		local wheel = make("Frame", "Wheel", icon, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.62, 0.62),
+			BackgroundTransparency = 1,
+		})
+		make("UICorner", "Round", wheel, { CornerRadius = UDim.new(1, 0) })
+		UiTheme.Stroke(wheel, 2, UiTheme.Outline, true)
+		for name, size in { Across = UDim2.new(1, 0, 0, 2), Down = UDim2.new(0, 2, 1, 0) } do
+			make("Frame", name, wheel, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = size,
+				BackgroundColor3 = UiTheme.Outline,
+				BorderSizePixel = 0,
+			})
+		end
+	end
 	statusCells[look.Id] = {
 		Frame = cell,
-		Left = label("Countdown", cell, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -6, 0, 0),
-			Size = UDim2.new(0.32, -6, 1, 0),
-			Text = "",
-			TextColor3 = Palette.Gold,
-			TextXAlignment = Enum.TextXAlignment.Right,
-		}, 18),
+		Icon = icon,
+		Left = label("Seconds", cell, { Text = "", TextColor3 = Palette.Gold }, 14),
 	}
 end
+
+-- Under the bar's right side (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
+local dropList = make("Frame", "DropList", root, { BackgroundTransparency = 1, Visible = false })
+make("UIListLayout", "List", dropList, { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder })
+local dropHeading = label("Heading", dropList, {
+	LayoutOrder = 1,
+	Text = "Drop:",
+	TextXAlignment = Enum.TextXAlignment.Left,
+}, 18)
+local dropRule = make("Frame", "Rule", dropList, {
+	LayoutOrder = 2,
+	BackgroundColor3 = Palette.SoftText,
+	BorderSizePixel = 0,
+})
+local dropRows = {}
+local function dropRow(id, text, color, stroke)
+	local row = label("Row_" .. id, dropList, {
+		LayoutOrder = 3 + #dropRows,
+		Text = text,
+		TextColor3 = color,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	}, 15)
+	UiTheme.Stroke(row, 1, stroke)
+	table.insert(dropRows, row)
+end
+local dropOdds = RelicConfig.Odds("big_raga")
+table.sort(dropOdds, function(a, b)
+	return a.Odds > b.Odds
+end)
+for _, row in dropOdds do
+	-- Secret's near-black needs the light outline Big Raga's black has.
+	dropRow(
+		row.Id,
+		("%s %s%%"):format(row.Name, tostring(row.Odds)),
+		GachaConfig.RARITY_COLORS[row.Rarity],
+		row.Rarity == "Secret" and Palette.White or nil
+	)
+end
+dropRow(
+	"side_raga",
+	("Big Raga %.3f%%"):format(RelicConfig.RagaSidekickChance * 100),
+	Color3.new(0, 0, 0),
+	Palette.White
+)
 
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
 local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
@@ -310,10 +359,11 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 -- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
 -- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
 local bossButton = button("BossButton", nil, "Boss (Active)", Palette.Danger, {
-	Size = UDim2.fromOffset(BOSS_BUTTON_SIZE.X, BOSS_BUTTON_SIZE.Y),
-	TextSize = 16,
+	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
+	TextSize = 14,
 	Visible = false,
 })
+make("UISizeConstraint", "MaxWidth", bossButton, { MaxSize = BOSS_BUTTON_SIZE })
 make("UIScale", "PulseScale", bossButton, {})
 local bossGlow = bossButton.ThemeStroke
 bossGlow.Name = "Glow"
@@ -445,16 +495,57 @@ local function placeTop(phone, size, row)
 	local barLeft = (size.X - width) / 2
 	local fits = barLeft >= RESERVED_RIGHT and row and barLeft + width + 8 <= row.AbsolutePosition.X
 	local barTop = fits and BAR_HIGH_TOP or BAR_LOW_TOP
-	local height = phone and 42 or 58
+	local titleHeight, trackHeight = phone and 16 or 24, phone and 20 or 26
+	local height = titleHeight + 2 + trackHeight
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
-	local statusHeight = phone and STATUS_HEIGHT_PHONE or STATUS_HEIGHT
+	barTitle.Size = UDim2.new(1, 0, 0, titleHeight)
+	track.Position = UDim2.fromOffset(0, titleHeight + 2)
+	track.Size = UDim2.new(1, 0, 0, trackHeight)
+	barValue.Position = UDim2.fromOffset(8, titleHeight + 3)
+	barValue.Size = UDim2.new(1, -16, 0, trackHeight - 2)
+
+	local iconSize = phone and STATUS_HEIGHT_PHONE or STATUS_HEIGHT
+	local secondsHeight = phone and STATUS_SECONDS_PHONE or STATUS_SECONDS
+	local statusHeight = iconSize + secondsHeight
 	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
-	statusRow.Size = UDim2.new(1, 0, 0, statusHeight)
-	local warningTop = barTop + height + STATUS_GAP + statusHeight + 8
-	warning.Position = UDim2.new(0.5, 0, 0, warningTop)
-	local warningHeight = math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, size.Y / 2 - warningTop - 8))
-	warning.Size = UDim2.fromOffset(math.min(size.X * 0.86, 1100), warningHeight)
+	statusRow.Size = UDim2.new(0.5, -4, 0, statusHeight)
+	for _, cell in statusCells do
+		cell.Frame.Size = UDim2.fromOffset(iconSize + 8, statusHeight)
+		cell.Icon.Size = UDim2.fromOffset(iconSize, iconSize)
+		cell.Left.Position = UDim2.fromOffset(0, iconSize)
+		cell.Left.Size = UDim2.new(1, 0, 0, secondsHeight)
+	end
+
+	-- A short screen takes smaller rows, never fewer.
+	local listTop = barTop + height + STATUS_GAP
+	local headingHeight, ruleHeight = phone and 13 or 18, phone and 1 or 2
+	local rowRoom = size.Y - listTop - 8 - headingHeight - ruleHeight - #dropRows - 1
+	local rowHeight = math.clamp(math.floor(rowRoom / #dropRows), 8, phone and 11 or 15)
+	local listHeight = headingHeight + ruleHeight + #dropRows * (rowHeight + 1) + 1
+	local listWidth = math.min(width / 2, phone and 140 or 220)
+	local listLeft = barLeft + width - listWidth
+	dropList.Position = UDim2.fromOffset(listLeft, listTop)
+	dropList.Size = UDim2.fromOffset(listWidth, listHeight)
+	dropHeading.Size = UDim2.new(1, 0, 0, headingHeight)
+	dropRule.Size = UDim2.new(1, 0, 0, ruleHeight)
+	for _, row in dropRows do
+		row.Size = UDim2.new(1, 0, 0, rowHeight)
+	end
+
+	-- Under the list where that still ends above the middle, else left of it.
+	local warningEnd = size.Y / 2 - 8
+	local warningTop = listTop + listHeight + 8
+	local warningWidth = math.min(size.X * 0.86, 1100)
+	local warningX = size.X / 2
+	if warningEnd - warningTop < WARNING_MIN_BELOW then
+		warningTop = listTop + statusHeight + 8
+		warningWidth = listLeft - 16
+		warningX = 8 + warningWidth / 2
+	end
+	warning.Position = UDim2.fromOffset(warningX, warningTop)
+	warning.Size =
+		UDim2.fromOffset(warningWidth, math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop)))
 end
 
 -- Follows the HUD while a part shows (PanelBand.Fit's way); the writes run only when a number changed.
@@ -804,6 +895,7 @@ local function render()
 	bossPrompt.Visible = joinable and not invite.Visible and not teleport.Active and os.clock() < promptUntil
 	hud.Visible = inEvent and phase == "Prep" and not panelOpen
 	bar.Visible = inFight
+	dropList.Visible = inFight and not panelOpen
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
@@ -829,7 +921,7 @@ local function render()
 		-- Left to right over the intro, from the server's start: a late joiner sees the same width as everyone.
 		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.IntroSeconds, 0, 1)
 		fill.Size = UDim2.fromScale(max > 0 and math.clamp(hp / max, 0, 1) * intro or 0, 1)
-		barValue.Text = HudFormat.SpeedText(math.ceil(hp)) .. " / " .. HudFormat.SpeedText(math.ceil(max))
+		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
 		drawStatus()
 	end
 end
