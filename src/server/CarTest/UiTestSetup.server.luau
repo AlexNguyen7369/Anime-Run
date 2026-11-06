@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, sidekick_states, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -294,8 +294,116 @@ function setups.sidekick_states(player)
 	player:SetAttribute("RebirthLevel", config.UnlockRebirth)
 end
 
+-- Boss event UI fixtures (UiSpec.ServerSetup boss_ui_*, Client/UiTest/UiBossEvent): the published attributes only, so
+-- nobody really joins and the UI runs in seconds. The characters and Sidekicks they replace come back with restoreBossUi.
+local bossUiSnapshots = {}
+local BOSS_UI_ATTRIBUTES = { "BossEventPhase", "BossEventStart", "BossEventHp", "BossEventMaxHp" }
+local function clearBossUi(player)
+	for _, name in BOSS_UI_ATTRIBUTES do
+		ReplicatedStorage:SetAttribute(name, nil)
+	end
+	player:SetAttribute("BossEvent", nil)
+	player:SetAttribute("BossTeamDamage", nil)
+end
+local function restoreBossUi(player)
+	clearBossUi(player)
+	local saved = bossUiSnapshots[player]
+	if saved then
+		live("GachaService").Apply(player, saved.gacha)
+		live("SidekickService").Apply(player, saved.sidekicks)
+		bossUiSnapshots[player] = nil
+	end
+end
+
+-- how: a count of characters each wearing a Sidekick, plus one owned without any; or "bag", one Sidekick worn by nobody.
+local function bossUiGear(player, how)
+	local G, service = live("GachaService"), live("SidekickService")
+	if not bossUiSnapshots[player] then
+		live("BossEventService").Reset() -- no real event, and no timed one due during the fixture
+		bossUiSnapshots[player] = { gacha = G.Snapshot(player), sidekicks = service.Snapshot(player) }
+	end
+	service.Apply(player, {})
+	local rollable = require(Shared.CharacterCatalog).Rollable()
+	if how == "bag" then
+		assert(service.Grant(player, "side_knight"))
+		return
+	end
+	for i = 1, how do
+		G.Grant(player, rollable[i].Id)
+		local _, entry = service.Grant(player, "side_knight")
+		assert(service.Equip(player, rollable[i].Id, entry))
+	end
+	G.Grant(player, rollable[how + 1].Id)
+end
+
+-- elapsed "keep" leaves BossEventStart as it is; phase "Idle" clears the event; inEvent and damage are the player's.
+local function bossUiState(player, phase, elapsed, hp, max, inEvent, damage)
+	if phase == "Idle" then
+		clearBossUi(player)
+		return
+	end
+	if tonumber(elapsed) then
+		ReplicatedStorage:SetAttribute("BossEventStart", workspace:GetServerTimeNow() - tonumber(elapsed))
+	end
+	ReplicatedStorage:SetAttribute("BossEventHp", hp)
+	ReplicatedStorage:SetAttribute("BossEventMaxHp", max)
+	ReplicatedStorage:SetAttribute("BossEventPhase", phase)
+	player:SetAttribute("BossTeamDamage", damage)
+	player:SetAttribute("BossEvent", inEvent or nil)
+end
+
+local BOSS_UI_DAMAGE = 1234
+function setups.boss_ui_invite(player)
+	bossUiGear(player, 2)
+	clearBossUi(player)
+	bossUiState(player, "Prep", 5, 0, 0, false)
+end
+function setups.boss_ui_invite_locked(player)
+	bossUiGear(player, 0)
+	clearBossUi(player)
+	bossUiState(player, "Prep", 5, 0, 0, false)
+end
+function setups.boss_ui_prep_in(player)
+	bossUiGear(player, 2)
+	bossUiState(player, "Prep", 5, 4000, 4000, true, BOSS_UI_DAMAGE)
+end
+function setups.boss_ui_fight_in(player)
+	bossUiGear(player, 2)
+	local config = require(Shared.BossEventConfig)
+	bossUiState(player, "Fight", config.PrepSeconds + config.IntroSeconds + 5, 4000, 4000, true, BOSS_UI_DAMAGE)
+end
+
+-- Relic fixture (UiSpec.ServerSetup relic_states, relic_states_bare): what they replaced, until 'restore' or restore:<id>.
+local relicSnapshots = {}
+local function restoreRelics(player)
+	local saved = relicSnapshots[player]
+	if saved then
+		live("RelicService").Apply(player, saved)
+		relicSnapshots[player] = nil
+	end
+end
+
+-- One of every Big Raga Relic in the bag, nothing worn. New entries each time, so the Backpack picks the first again.
+function setups.relic_states_bare(player)
+	local service, config = live("RelicService"), require(Shared.RelicConfig)
+	relicSnapshots[player] = relicSnapshots[player] or service.Snapshot(player)
+	service.Apply(player, {})
+	for _, row in config.Bosses.big_raga do
+		assert(service.Grant(player, row.Id), "could not grant " .. row.Id)
+	end
+end
+
+function setups.relic_states(player)
+	setups.relic_states_bare(player)
+	local service = live("RelicService")
+	local character = live("GachaService").TeamList(player)[1]
+	assert(service.Equip(player, character, service.Snapshot(player).Relics[1].Entry), "could not equip a Relic")
+end
+
 function setups.restore(player)
+	restoreBossUi(player)
 	restoreSidekicks(player)
+	restoreRelics(player)
 	longStamina[player] = nil
 	local snap = snapshots[player]
 	if not snap then
@@ -973,6 +1081,9 @@ local function progressionSpy()
 			"RedeemCode",
 			"SetCheckpoint",
 			"PrepareGift",
+			"BossEventTeleport",
+			"BossEventSetTeam",
+			"BossEventLeave",
 		}
 	do
 		local target = remotes:FindFirstChild(name)
@@ -995,6 +1106,9 @@ local function progressionSpy()
 				folder:SetAttribute(name, HttpService:JSONEncode(log))
 				-- shop_redeem_invalid_code must see the server's real reply: a UiSpec.Shop.TestCode-style code (prefix
 				-- "UITEST-", never a real code) goes to the real ShopService.Redeem, which answers and saves nothing.
+				if name == "BossEventSetTeam" then
+					return true -- boss_pick_character judges the slot it fills; the real handler knows no fixture member
+				end
 				local text = ...
 				if name == "RedeemCode" and type(text) == "string" and string.sub(text, 1, 7) == "UITEST-" then
 					return live("ShopService").Redeem(player, text)
@@ -1136,6 +1250,8 @@ local CLIENT_SETUPS = {
 	run_visual = true,
 	impact_sounds_report = true,
 	sidekick_states = true,
+	duel_countdown = true, -- ui_boss: the Invite stays through a real Duel message
+	relic_states = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1163,6 +1279,17 @@ setupRequest.OnServerInvoke = function(player, request)
 			RUN_VISUAL.clear()
 			return
 		end
+		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
+		if bossGear then
+			bossUiGear(player, tonumber(bossGear) or bossGear)
+			return
+		end
+		local phase, elapsed, hp, max, inEvent, damage =
+			string.match(request, "^boss_ui_state:(%a+):([^:]+):([^:]+):([^:]+):(%a+):([^:]+)$")
+		if phase then
+			bossUiState(player, phase, elapsed, tonumber(hp), tonumber(max), inEvent == "true", tonumber(damage))
+			return
+		end
 		local before = clientBefore[player] or {}
 		clientBefore[player] = before
 		if restoreId == "run_visual" then
@@ -1185,6 +1312,10 @@ setupRequest.OnServerInvoke = function(player, request)
 			before.auto_roll_on = nil
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
+		elseif restoreId == "boss_ui" then
+			restoreBossUi(player)
+		elseif restoreId == "relic_states" then
+			restoreRelics(player)
 		elseif restoreId then
 			return -- lose_event and emphasized_next put themselves back
 		elseif CLIENT_SETUPS[request] then

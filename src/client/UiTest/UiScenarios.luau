@@ -154,11 +154,16 @@ UiScenarios.Names = {
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
 	"ui_sidekicks",
+	-- Backpack Relics tab (UiRelics; design doc 4.38)
+	"ui_relics",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
+	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
+	-- wants none before it.
+	"ui_boss",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -257,6 +262,7 @@ UiScenarios.Needs = {
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
 	ui_sidekicks = { "sidekick_states" },
+	ui_relics = { "relic_states" },
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
@@ -714,7 +720,7 @@ local function backpackRailGap(rail, ctx)
 	if pathOf(rail) ~= UiSpec.Backpack.Tabs then
 		return nil
 	end
-	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Market.TabFit.Gap
+	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Backpack.TabFit.Gap
 end
 
 -- MarketUi's and BackpackUi's per-tab fit (Client/MarketUi and Client/BackpackUi fitTabs, the same formula, mirrored in
@@ -7984,6 +7990,44 @@ end
 for cond, fn in K.sidekicks.After do
 	access.After[cond] = fn
 end
+-- Backpack Relics tab (design doc 4.38).
+K.relics = require(script.Parent.UiRelics).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	pathOf = pathOf,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	player = player,
+})
+for name, fn in K.relics.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.relics.After do
+	access.After[cond] = fn
+end
+
+-- Boss event UI (design doc 4.37). No new local: the chunk is at the 200-local limit.
+K.boss = require(script.Parent.UiBossEvent).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.boss.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.boss.After do
+	access.After[cond] = fn
+end
 
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly
 -- quest browser; Backpack moved to RacerBackpack and its old Bag view is not a
@@ -8954,6 +8998,15 @@ function UiScenarios.RunClick(id)
 			for i, v in wantArgs do
 				ok = ok and fired[1].args[i] == v
 			end
+		end
+		if expect.Remote.ArgsJson then
+			-- A table argument (BossEventSetTeam's id list): the whole argument list compared as JSON
+			want = expect.Remote.Name .. expect.Remote.ArgsJson
+			names = {}
+			for _, f in fired do
+				table.insert(names, f.name .. HttpService:JSONEncode(f.args))
+			end
+			ok = #fired == 1 and names[1] == want
 		end
 		if type(wantArg) == "table" then
 			-- SetShowcase(ids): exactly one argument, the promised id list (Progression.SameShowcase)

@@ -23,6 +23,8 @@ local PlayerData = require(script.Parent.PlayerData)
 local RebirthConfig = require(Shared.RebirthConfig)
 local SidekickConfig = require(Shared.SidekickConfig)
 local SidekickService = require(script.Parent.SidekickService)
+local RelicConfig = require(Shared.RelicConfig)
+local RelicService = require(script.Parent.RelicService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
 
@@ -241,6 +243,20 @@ AdminService.Commands = {
 			return ok, ok and ("added " .. id) or message
 		end,
 	},
+	relic = {
+		Usage = "/relic <id> [player]",
+		Help = "add one Relic to the bag",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local id = args[1]:lower()
+			return RelicConfig.Get(id) and id or nil
+		end,
+		Apply = function(p, id)
+			local ok, message = RelicService.Grant(p, id)
+			return ok, ok and ("added " .. id) or message
+		end,
+	},
 	boss = {
 		Usage = "/boss",
 		Help = "start a boss event now, or end the running one",
@@ -429,7 +445,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, Gems, characters, Sidekicks, stat points and upgrades",
+		Help = "reset Money, Gems, characters, Sidekicks, Relics, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -453,6 +469,7 @@ AdminService.Commands = {
 			GachaService.Apply(p, {})
 			UpgradeService.Apply(p, {}) -- after the gacha reset, so TurboCount starts from Rolls = 0
 			SidekickService.Apply(p, {})
+			RelicService.Apply(p, {})
 			return true, "wiped"
 		end,
 	},
@@ -515,6 +532,7 @@ local ORDER = {
 	"givemoney",
 	"gems",
 	"sidekick",
+	"relic",
 	"boss",
 	"setrebirth",
 	"luck",

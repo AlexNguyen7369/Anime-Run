@@ -87,8 +87,9 @@
 84. 2026-11-05 — Alex Nguyen — Added the boss event server and the owner's gem icon, uploaded 4 Sidekick models with portraits, and wrote the Big Raga Sidekick drop rule (`[CARTEST]` 12 scenarios pass including `boss_event` 352 checks; `runner` did not finish and live play is not checked).
 85. 2026-11-05 — Alex Nguyen — Showed Sidekick models on the summon page with portraits in the Bag and a Sidekicks page in the Index, and added the boss event leave remote and duel join (`[CARTEST]` pass=4 fail=0 including `boss_event` 443 checks; `ui_layout` 962 and `ui_sidekicks` 56 pass; owner approval of the summon screen is open).
 86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
+87. 2026-11-05 — Alex Nguyen — Merged Relics (b8) into the boss event UI (b7c), keeping the arena's sky dressing with the spawn rise and adding the flat fallback to it (selene and rojo build pass; not run in Studio).
 
 ## What's next
-**Land the event UI (b7c) and Relics (b8), both in progress.**
+**Run the targeted Studio tests on the merged b7c branch (`boss_arena`, `boss_event`, `ui_boss`, Relics), then land it.**
 
-**Why this is next:** a real event needs its team HUD, HP bar and Relic reward, and the paid spawn depends on Relic odds.
+**Why this is next:** the merge has only been linted and built, and the paid spawn depends on the event UI and Relic odds working together.

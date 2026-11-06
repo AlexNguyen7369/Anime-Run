@@ -202,6 +202,17 @@ function SidekickService.Grant(player, id)
 	return true, entry
 end
 
+-- The Big Raga drop may overflow the bag, for example 51/50 (owner 2026-11-05, design doc 4.37). No other id may.
+function SidekickService.GrantDrop(player, id)
+	if id ~= "side_raga" then
+		return false, "Not a boss drop"
+	end
+	local current = ensure(player)
+	local entry = addEntry(current, id)
+	publish(player)
+	return true, entry
+end
+
 local function worn(player, characterId)
 	local current = state[player]
 	local entry = current and type(characterId) == "string" and current.CharacterGear[characterId]
@@ -255,26 +266,32 @@ local function cleanRows(saved)
 	return rows, seen
 end
 
--- Replaces the state with a saved record. Junk reads as empty; gear only points at bag entries, one character each.
-function SidekickService.Apply(player, saved)
-	saved = type(saved) == "table" and saved or {}
-	local rows, known = cleanRows(saved.Sidekicks)
+-- A saved bag and its gear (also Server/RelicService): junk reads as empty; gear only points at bag entries, one character each.
+function SidekickService.CleanBag(savedRows, savedGear)
+	local rows, known = cleanRows(savedRows)
 	local gear, characters = {}, {}
-	if known and type(saved.CharacterGear) == "table" then
-		for character in saved.CharacterGear do
+	if known and type(savedGear) == "table" then
+		for character in savedGear do
 			if type(character) == "string" then
 				table.insert(characters, character)
 			end
 		end
 		table.sort(characters) -- a doubled entry keeps the same holder every load
 		for _, character in characters do
-			local entry = saved.CharacterGear[character]
+			local entry = savedGear[character]
 			if type(entry) == "string" and known[entry] then
 				known[entry] = nil
 				gear[character] = entry
 			end
 		end
 	end
+	return rows, gear
+end
+
+-- Replaces the state with a saved record.
+function SidekickService.Apply(player, saved)
+	saved = type(saved) == "table" and saved or {}
+	local rows, gear = SidekickService.CleanBag(saved.Sidekicks, saved.CharacterGear)
 	local autoSell = {}
 	if type(saved.SidekickAutoSell) == "table" then
 		for rarity, on in saved.SidekickAutoSell do

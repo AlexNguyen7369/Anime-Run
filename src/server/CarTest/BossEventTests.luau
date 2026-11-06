@@ -20,6 +20,8 @@
 --     IsIn(player) (a strict boolean), LaneOf(player) (1 to 7), TeamOf(player) (ids in slot order, or nil before one is set),
 --     DamageOf(player) (this event's total, 0 when not in it).
 --     SetTeam(player, ids): true or false + reason. AutoTeam(player): ids, pure, sets nothing.
+--     Player attribute BossTeamDamage: TeamDamage(player) for the team HUD (b7c). Set at Join, SetTeam and each Advance while
+--       the player is in the event; nil outside it.
 --     TeamDamage(player): the live number. RecordHit(player): one hit of that number, returns what it dealt (0 when it may
 --       not hit). No extra argument is read and no remote reaches it. The hit that empties HP ends the event as "Defeated".
 --     Hooks, a table of replaceable functions; the defaults are the real game:
@@ -1234,6 +1236,52 @@ function Tests.make(deps)
 				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 				local remote = remotes and remotes:FindFirstChild("BossEventChat")
 				flag("chat_remote_exists_for_all_players", remote ~= nil and remote:IsA("RemoteEvent"))
+			end)
+
+			serviceSection("hud_attribute", function()
+				begin()
+				local a, b = chars[1], chars[2]
+				local p = newPlayer()
+				wear(p, a, "side_knight")
+				wear(p, b, "side_chain")
+				local outsider = fighter()
+				local both = { damageOf("side_knight"), damageOf("side_chain") }
+				local function shows(name, want)
+					near("attr_" .. name, p:GetAttribute("BossTeamDamage") or -1, want)
+					near(
+						"attr_" .. name .. "_is_service_number",
+						p:GetAttribute("BossTeamDamage") or -1,
+						S.TeamDamage(p)
+					)
+				end
+				eq("attr_nil_before_join", p:GetAttribute("BossTeamDamage"), nil)
+				S.Join(p)
+				-- No pick yet: the team that would run, the auto-chosen one.
+				local auto = S.AutoTeam(p)
+				shows("after_join", Cfg.TeamDamage(both, gacha.CruiseFor(p, auto[1], 1)))
+				S.SetTeam(p, { b })
+				shows("after_pick_one", Cfg.TeamDamage({ damageOf("side_chain") }, gacha.CruiseFor(p, b, 1)))
+				S.SetTeam(p, { a, b })
+				shows("after_pick_two", Cfg.TeamDamage(both, gacha.CruiseFor(p, a, 1)))
+				to(FIGHT)
+				local run = log.Runs[p]
+				for _, cruise in { 200, 800, 1600 } do
+					run.TargetSpeed = cruise
+					to(clock - T0 + STEP)
+					shows("in_run_at_" .. cruise, Cfg.TeamDamage(both, cruise))
+				end
+				eq("attr_nil_for_outsider", outsider:GetAttribute("BossTeamDamage"), nil)
+				local late = fighter()
+				S.Join(late)
+				near(
+					"attr_late_joiner",
+					late:GetAttribute("BossTeamDamage") or -1,
+					Cfg.TeamDamage({ damageOf("side_knight") }, log.Runs[late].TargetSpeed) -- a joiner runs at once
+				)
+				S.Leave(p, "Left")
+				eq("attr_nil_after_leave", p:GetAttribute("BossTeamDamage"), nil)
+				S.End("Timeout")
+				eq("attr_nil_after_end", late:GetAttribute("BossTeamDamage"), nil)
 			end)
 
 			section("default_hooks", function()

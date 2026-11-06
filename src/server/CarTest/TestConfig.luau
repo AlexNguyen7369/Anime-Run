@@ -47,6 +47,7 @@ return {
 		"slot_items",
 		"gems",
 		"sidekicks",
+		"relics",
 		"boss_arena",
 		"boss_event",
 		"vehicle_effects",

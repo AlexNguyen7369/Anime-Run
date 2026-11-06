@@ -5,11 +5,15 @@
 -- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossArenaConfig"))
+local Event = require(Shared:WaitForChild("BossEventConfig"))
 local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local ATTRIBUTE = "BossArenaPreview"
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
@@ -17,6 +21,7 @@ local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
 local RING_STEP = 2
 -- Placeholder sizes, all studs. Heights and radii not named here are the draft's.
 local DECK_THICK = 8
+local DAIS_THICK = 14
 local LINE_WIDTH, LINE_THICK = 1, 0.1
 local BOSS_WIDTH, BOSS_DEPTH = 200, 120 -- a stand-in for the height only
 local WHEEL_THICK = 30
@@ -41,9 +46,14 @@ local LANE_B, LANE_B2 = look("DCD5C6", Marble), look("D2CBBA", Marble)
 local GOLD, GOLD2 = look("E8B23C", Plastic), look("C9922B", Plastic)
 local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
 local GREY = look("969696", Plastic, true)
+-- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00): through the dais from under the track. The flat fallback hangs on the
+-- stand-in, so it moves with it and only needs hiding. shortcut: stand-ins only, add the model here once it is in this file.
+local RISERS = { BossStandIn = true, WheelStandIn = true, LowGraphicsBoss = true }
 
 local folder = nil -- the built arena, nil when off
 local added = 0
+local homes = setmetatable({}, { __mode = "k" }) -- riser part -> its full-height CFrame
+local lastRise = nil
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
 local function pace(mine)
@@ -57,6 +67,7 @@ end
 local function addPart(name, size, cframe, style, shape)
 	local part = Instance.new("Part")
 	part.Name = name
+	part.Transparency = RISERS[name] and 1 or 0 -- a riser stays hidden until stepRise has placed it
 	part.Anchored = true
 	part.CanTouch = false
 	-- Only the deck is solid, so that the camera stops at it and an arch passing never pops the camera in.
@@ -156,8 +167,8 @@ local function addDais()
 		local cf = CFrame.new(center.X, top - height / 2, center.Z) * CFrame.Angles(0, 0, math.pi / 2)
 		addPart(name, Vector3.new(height, 2 * r, 2 * r), cf, style, Enum.PartType.Cylinder)
 	end
-	drum("Dais", y, 14, radius, MARBLE)
-	drum("DaisTrim", y - 14, 6, radius + 15, GOLD)
+	drum("Dais", y, DAIS_THICK, radius, MARBLE)
+	drum("DaisTrim", y - DAIS_THICK, 6, radius + 15, GOLD)
 	drum("DaisDrum", y - 20, 40, radius + 15, MARBLE2)
 	drum("DaisStem", y - 60, 60, 40, GOLD2)
 end
@@ -170,6 +181,7 @@ local function addBillboard(standIn)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "LowGraphicsBoss"
 	gui.AlwaysOnTop = false
+	gui.Enabled = false -- a riser: stepRise shows it
 	gui.LightInfluence = 0
 	gui.Size = UDim2.fromScale(BOSS_WIDTH, Cfg.BossHeight) -- a billboard's scale is in studs
 	gui.StudsOffset = Vector3.new(0, 0, -(Vector2.new(BOSS_WIDTH, BOSS_DEPTH).Magnitude / 2 + 10))
@@ -304,6 +316,43 @@ local function refresh()
 	end
 end
 
+-- nil before the spawn; 0 to 1 over the intro from the server's start time. A preview with no event shows it risen.
+local function riseNow()
+	local start = ReplicatedStorage:GetAttribute("BossEventStart")
+	if not start then
+		return 1
+	end
+	local t = (Workspace:GetServerTimeNow() - start - Event.PrepSeconds) / Event.IntroSeconds
+	if t < 0 then
+		return nil
+	end
+	return UiMotion.Reduced() and 1
+		or TweenService:GetValue(math.min(t, 1), Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+end
+
+local function stepRise()
+	if not folder then
+		lastRise = nil
+		return
+	end
+	local rise = riseNow()
+	local below = (1 - (rise or 0)) * (Cfg.BossHeight + Cfg.BossWheelHeight + DAIS_THICK)
+	for name in RISERS do
+		local part = folder:FindFirstChild(name, true)
+		if part and part:IsA("BillboardGui") then
+			part.Enabled = rise ~= nil
+		elseif part then
+			homes[part] = homes[part] or part.CFrame
+			if rise ~= lastRise or part.Transparency == 1 and rise then
+				part.CFrame = homes[part] - Vector3.new(0, below, 0)
+				part.Transparency = rise and 0 or 1
+			end
+		end
+	end
+	lastRise = rise
+end
+
+RunService.Heartbeat:Connect(stepRise)
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
 Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
 refresh()

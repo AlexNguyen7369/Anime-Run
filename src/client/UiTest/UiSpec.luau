@@ -636,6 +636,13 @@ UiSpec.Guis.RacerBackpack = {
 		-- section 1) lists the owned characters (UiSpec.Backpack).
 		{ Path = "Panel/Tabs/CharactersTab", Does = "local", Effect = "backpack_category", Text = "Characters" },
 		{ Path = "Panel/Tabs/SidekicksTab", Does = "local", Effect = "backpack_category", Text = "Sidekicks" },
+		{ Path = "Panel/Tabs/RelicsTab", Does = "local", Effect = "backpack_category", Text = "Relics" },
+		-- The Relics tab's row (design doc 4.38), where the other tabs show the Slots. RelicEquip stays out of
+		-- UiSpec.RemoteFunctions, like SidekickSummon: these clicks equip for real and are judged After.
+		{ Path = "Panel/RelicActions/Equip", Does = "remote", Remote = "RelicEquip", Arg = "character_entry" },
+		{ Path = "Panel/RelicActions/TakeOff", Does = "remote", Remote = "RelicEquip", Arg = "character" },
+		{ Path = "Panel/RelicActions/PrevCharacter", Does = "local", ClickCoverage = "ui_relics" },
+		{ Path = "Panel/RelicActions/NextCharacter", Does = "local", ClickCoverage = "ui_relics" },
 		-- Characters tab only (design doc 4.22): cycles Rarity / Speed / Stamina; default order stays RarityOrder.
 		{
 			Path = "Panel/Header/Toolbar/Sort",
@@ -1377,6 +1384,17 @@ UiSpec.ServerSetup = {
 			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
 	},
 	{
+		Id = "relic_states",
+		When = "asked for by ui_relics; first after 'spy' in the relics_tab, relics_take_off and relics_character_badge clicks' NeedSetup",
+		What = "Bag holds one of every Big Raga Relic, the first worn by Team slot 1's character. New entries each time. "
+			.. "'restore' (or restore:relic_states) puts all of it back.",
+	},
+	{
+		Id = "relic_states_bare",
+		When = "first after 'spy' in the relics_equip click's NeedSetup",
+		What = "As relic_states with nothing worn. 'restore' puts all of it back.",
+	},
+	{
 		Id = "defeated_states",
 		When = "before the ui_defeated fixture run (UiSpec.Progression.FixtureChecks); needs 'snapshot' first",
 		What = "Racing and rolls paused, BestTrack = 2 and race bests for Tracks 1 and 2; each time also on the "
@@ -1498,6 +1516,7 @@ Expect:
  Showcase = true/false: showcase open after the click (default: unchanged)
  Remote   = { Name, Arg } exactly one call of that remote and no other remote; Remote = false: no remote at all
             { Name, Args = { ... } }: the call's whole argument list, in order
+            { Name, ArgsJson = "[...]" }: the same as JSON, for a table argument
  After    = post-conditions once the server / UI answered
 ]]
 local CLOSED = {
@@ -2400,6 +2419,10 @@ UiSpec.RemoteFunctions = {
 	-- gift_* clicks Intercept them, so progression_spy must proxy them too
 	"SetCheckpoint",
 	"PrepareGift",
+	-- Boss event (Client/BossEventUi): the boss_* clicks must never really join or leave
+	"BossEventTeleport",
+	"BossEventSetTeam",
+	"BossEventLeave",
 }
 table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
@@ -2951,8 +2974,42 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "spy", "sidekick_states" },
 	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "sidekicks_bag_art" } },
 })
+-- Before the tab loop too. Equip and Take off act on the Relics view, which relics_tab just opened (the session keeps the
+-- tab); the badge click leaves on Characters, which the loop ends on anyway.
+table.insert(UiSpec.Clicks, {
+	Id = "relics_tab",
+	Gui = "RacerBackpack",
+	Path = "Panel/Tabs/RelicsTab",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_tab" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_equip",
+	Gui = "RacerBackpack",
+	Path = "Panel/RelicActions/Equip",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states_bare" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_equip" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_take_off",
+	Gui = "RacerBackpack",
+	Path = "Panel/RelicActions/TakeOff",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_take_off" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "relics_character_badge",
+	Gui = "RacerBackpack",
+	Path = "Panel/Tabs/CharactersTab",
+	Prepare = only("RacerBackpack/Panel"),
+	NeedSetup = { "spy", "relic_states" },
+	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false, After = { "relics_character_badge" } },
+})
 -- Characters last: the Backpack keeps the Characters view for the backpack_pick_character click below.
-for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Characters" } do
+for _, tab in { "Misc", "Trails", "Auras", "Sidekicks", "Relics", "Characters" } do
 	table.insert(UiSpec.Clicks, {
 		Id = "backpack_" .. string.lower(tab),
 		Gui = "RacerBackpack",
@@ -3270,12 +3327,14 @@ end
 UiSpec.Backpack = {
 	Panel = "RacerBackpack/Panel",
 	Tabs = "RacerBackpack/Panel/Tabs",
-	-- Client/BackpackUi fitTabs: five tabs need a tighter rail gap at phone heights (Market.PhoneMaxHeight); Market.TabFit.Gap otherwise.
-	TabFit = { PhoneGap = 2 },
+	-- Client/BackpackUi fitTabs: six tabs need a tighter rail gap than Market.TabFit.Gap, tightest at phone heights (Market.PhoneMaxHeight).
+	TabFit = { Gap = 6, PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
 	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
-	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks" }, -- top to bottom; button <Name>Tab, label text <Name>
+	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
+	RelicActions = "RacerBackpack/Panel/RelicActions", -- the Relics tab's row (UiRelics)
+	RelicButtons = { "PrevCharacter", "NextCharacter", "Equip", "TakeOff" },
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
 	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
@@ -3799,5 +3858,113 @@ table.insert(UiSpec.Clicks, {
 		After = { "sidekicks_reveal_models" },
 	},
 })
+
+-- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
+-- LeaveButton is AlwaysOn, for ui_layout's every-viewport fit: Panels must be PanelSwitch ones, and the Invite must not close
+-- with them, so Invite and TeamHud are judged by ui_boss.
+UiSpec.BossEvent = {
+	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
+}
+UiSpec.Guis.RacerBossEvent = {
+	Source = "Client/BossEventUi",
+	AlwaysOn = { "LeaveButton" },
+	NonInteractiveParts = { "Warning", "BossBar" },
+	Buttons = {
+		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
+		{ Path = "Invite/DeclineButton", Does = "local" },
+		{
+			Path = "TeamHud/List/*",
+			Does = "remote",
+			Remote = "BossEventSetTeam",
+			Arg = "ids in slot order",
+			Count = "dynamic",
+		},
+		{ Path = "LeaveButton", Does = "remote", Remote = "BossEventLeave" },
+	},
+}
+UiSpec.HiddenWhilePanelOpen["RacerBossEvent/LeaveButton"] = "any"
+table.insert(UiSpec.ClientScripts, "BossEventUi")
+for _, item in
+	{
+		{
+			Id = "boss_ui_invite",
+			What = "Two characters with a Sidekick, a fresh event in Prep at 5 s, the player outside it.",
+		},
+		{
+			Id = "boss_ui_invite_locked",
+			What = "No Sidekick at all, a fresh event in Prep at 5 s, the player outside it.",
+		},
+		{
+			Id = "boss_ui_prep_in",
+			What = "Two characters with a Sidekick, a fresh event in Prep at 5 s, BossEvent true and BossTeamDamage set.",
+		},
+		{
+			Id = "boss_ui_fight_in",
+			What = "As boss_ui_prep_in, in Fight after the intro. Attributes only: nobody really joins, 'restore' clears "
+				.. "them and puts the characters and Sidekicks back.",
+		},
+	}
+do
+	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
+	table.insert(UiSpec.ServerSetup, item)
+end
+-- Run in this order: Teleport is refused by the spy so the Invite stays, then Decline hides it.
+local BOSS_PREPARE = { Showcase = false, RequireShown = true, WaitSeconds = 0.5 }
+for _, click in
+	{
+		{
+			Id = "boss_teleport_locked",
+			Path = "Invite/TeleportButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				TargetActive = false,
+				Intercept = "BossEventTeleport",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
+			Expect = { Remote = false, After = { "boss_invite_shown" } },
+		},
+		{
+			Id = "boss_teleport",
+			Path = "Invite/TeleportButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_invite_shown" } },
+		},
+		{
+			Id = "boss_decline",
+			Path = "Invite/DeclineButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				Intercept = "BossEventTeleport",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = false, After = { "boss_invite_hidden" } },
+		},
+		{
+			Id = "boss_pick_character",
+			Path = "TeamHud/List/" .. UiSpec.BossEvent.Pick,
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_prep_in" },
+			Expect = {
+				Remote = { Name = "BossEventSetTeam", ArgsJson = '[["' .. UiSpec.BossEvent.Pick .. '"]]' },
+				After = { "boss_slot1_filled" },
+			},
+		},
+		{
+			Id = "boss_leave",
+			Path = "LeaveButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_fight_in" },
+			Expect = { Remote = { Name = "BossEventLeave", Args = {} } },
+		},
+	}
+do
+	click.Gui = "RacerBossEvent"
+	table.insert(UiSpec.Clicks, click)
+end
 
 return UiSpec

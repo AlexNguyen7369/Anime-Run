@@ -20,4 +20,4 @@ Odds sum to 100%. Luck, potions and pity do not change them. Duplicates stack as
 - Money and Luck count while the character is on the Team, added like the upgrade tree bonus.
 
 ## Names and art
-Names use existing tweaked forms (section 5), never the official names. Icons are made in-house. Saved as `Relics` and `CharacterGear` (`BOSS_EVENT_SPEC`). Not tradable.
+Names use existing tweaked forms (section 5), never the official names. Icons are made in-house. Saved as `Relics` and `RelicGear` (`BOSS_EVENT_SPEC`). Not tradable.
