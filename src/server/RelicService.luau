@@ -68,7 +68,7 @@ function RelicService.GrantDefeat(player, boss, rng)
 		return false, "Unknown boss"
 	end
 	RelicService.Grant(player, row.Id)
-	local won = rng:NextNumber() <= Config.RagaSidekickChance and SidekickService.Grant(player, "side_raga")
+	local won = rng:NextNumber() <= Config.RagaSidekickChance and SidekickService.GrantDrop(player, "side_raga")
 	return true, row, won == true
 end
 

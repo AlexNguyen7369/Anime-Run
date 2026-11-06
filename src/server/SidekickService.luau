@@ -202,6 +202,17 @@ function SidekickService.Grant(player, id)
 	return true, entry
 end
 
+-- The Big Raga drop may overflow the bag, for example 51/50 (owner 2026-11-05, design doc 4.37). No other id may.
+function SidekickService.GrantDrop(player, id)
+	if id ~= "side_raga" then
+		return false, "Not a boss drop"
+	end
+	local current = ensure(player)
+	local entry = addEntry(current, id)
+	publish(player)
+	return true, entry
+end
+
 local function worn(player, characterId)
 	local current = state[player]
 	local entry = current and type(characterId) == "string" and current.CharacterGear[characterId]

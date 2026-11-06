@@ -17,7 +17,9 @@
 --     Apply(player, saved): takes the whole save record; junk reads as empty; an unknown id stays, worn or not.
 --     Multi(player, characterId, stat): 1 + the worn Relic's bonus, 1 with none, an unknown id or junk.
 --     GrantDefeat(player, boss, rng): true or false, reason. Draw 1 picks the Relic, draw 2 is the Sidekick roll:
---     a draw <= RagaSidekickChance grants side_raga through SidekickService.Grant. A refusal there leaves the Relic given.
+--     a draw <= RagaSidekickChance grants side_raga through SidekickService.GrantDrop.
+--   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for side_raga only (design doc 4.37: nothing else
+--     may overflow); any other id is false, reason, with nothing changed.
 --     Start(): makes RemoteFunction Remotes.RelicEquip, args (characterId, entry or nil). Attributes RelicBag and RelicGear are JSON.
 --   Saved fields `Relics` and `RelicGear`, PlayerData VERSION 16. CharacterGear stays Sidekick-only: its value is one entry
 --     string that SidekickService.Apply and the sidekicks tests read, so nesting Relics there would change a saved shape.
@@ -28,7 +30,6 @@
 --   Boss TeamDamage: each Sidekick's Damage x its wearer's Multi, then averaged. Hit spacing = HitEverySeconds / attack multi.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
---   full Sidekick bag: SidekickService.Grant's own rule refuses, so the 0.001% win is lost while the Relic is still given.
 --   team attack speed: the team hits as one (4.37), so its attack multi is the average of the team's multis.
 --   relic bag: no rule gives it a cap, so a defeat's Relic is never refused. No sell: no rule gives Relics a value.
 --   rebirth keeps Relics, like Sidekicks.
@@ -367,22 +368,87 @@ function Tests.relics()
 			flag("defeat_unknown_boss_refused", (S.GrantDefeat(stranger, "no_boss", Random.new(1))) == false)
 			flag("defeat_unknown_boss_no_change", unchanged(stranger, before) and ragas(stranger) == 0)
 
-			-- SidekickService.Grant refuses into a full bag; no drop rule overrides it (design doc 4.36 has only summons).
-			local full = loaded(nil)
+			-- The Big Raga drop may overflow the Sidekick bag; nothing else may (owner 2026-11-05, design doc 4.37).
+			local full, fullId = loaded(nil)
 			for _ = 1, SidekickConfig.BagSize do
 				Sidekick.Grant(full, SidekickConfig.List[1].Id)
 			end
-			local count = #Sidekick.Snapshot(full).Sidekicks
+			local function sidekicks(p)
+				return #Sidekick.Snapshot(p).Sidekicks
+			end
+			local count = sidekicks(full)
 			flag("full_bag_setup", count == SidekickConfig.BagSize, count, SidekickConfig.BagSize)
-			local fullRng = scripted({ NEVER, chance })
-			flag("reading_raga_full_bag_defeat_still_ok", S.GrantDefeat(full, BOSS, fullRng) == true)
-			flag("reading_raga_full_bag_relic_given", #bag(full) == 1, #bag(full), 1)
+			S.GrantDefeat(full, BOSS, scripted({ NEVER, chance * 1.0001 }))
 			flag(
-				"reading_raga_full_bag_refused",
-				ragas(full) == 0 and #Sidekick.Snapshot(full).Sidekicks == count,
-				ragas(full),
-				0
+				"raga_overflow_miss_adds_nothing",
+				ragas(full) == 0 and sidekicks(full) == count,
+				sidekicks(full),
+				count
 			)
+			local otherBefore = H.copy(Sidekick.Snapshot(full))
+			flag(
+				"raga_overflow_drop_only_for_raga",
+				(Sidekick.GrantDrop(full, SidekickConfig.List[1].Id)) == false
+					and (Sidekick.GrantDrop(full, "no_such")) == false
+					and H.same(Sidekick.Snapshot(full), otherBefore)
+			)
+			local relicsBefore = #bag(full)
+			flag("raga_overflow_defeat_ok", S.GrantDefeat(full, BOSS, scripted({ NEVER, chance })) == true)
+			flag("raga_overflow_relic_given", #bag(full) == relicsBefore + 1, #bag(full), relicsBefore + 1)
+			flag("raga_overflow_adds_raga", ragas(full) == 1, ragas(full), 1)
+			flag("raga_overflow_bag_51", sidekicks(full) == count + 1, sidekicks(full), count + 1)
+
+			-- Kept across a save round trip; load cleaning trims nothing.
+			flag("raga_overflow_save_ok", data.Save(full, fullId, true) == true)
+			local fullRecord = store.data[data.KeyFor(fullId)]
+			flag("raga_overflow_saved", #fullRecord.Sidekicks == count + 1, #fullRecord.Sidekicks, count + 1)
+			local cleaned = Sidekick.CleanBag(H.copy(fullRecord.Sidekicks), H.copy(fullRecord.CharacterGear))
+			flag("raga_overflow_clean_bag_keeps", #cleaned == count + 1, #cleaned, count + 1)
+			local again, _, againOk = loaded(H.copy(fullRecord))
+			flag("raga_overflow_load_ok", againOk == true)
+			flag("raga_overflow_load_keeps", sidekicks(again) == count + 1, sidekicks(again), count + 1)
+			flag("raga_overflow_load_keeps_raga", ragas(again) == 1, ragas(again), 1)
+			flag(
+				"raga_overflow_load_same",
+				H.same(Sidekick.Snapshot(again).Sidekicks, Sidekick.Snapshot(full).Sidekicks)
+			)
+
+			-- Over the cap, every other way in still refuses and spends no Gems.
+			local GEMS = 10 * SidekickConfig.TenCost
+			again:SetAttribute("RebirthLevel", SidekickConfig.UnlockRebirth)
+			again:SetAttribute("Gems", GEMS)
+			local function refusesAll(label, want)
+				flag("raga_overflow_summon_1_refused_" .. label, (Sidekick.Summon(again, 1)) == false)
+				flag("raga_overflow_summon_10_refused_" .. label, (Sidekick.Summon(again, 10)) == false)
+				flag("raga_overflow_free_refused_" .. label, (Sidekick.GrantFreeSummon(again)) == false)
+				flag(
+					"raga_overflow_grant_refused_" .. label,
+					(Sidekick.Grant(again, SidekickConfig.List[1].Id)) == false
+				)
+				Admin.Run(again, "/sidekick " .. SidekickConfig.List[1].Id)
+				flag("raga_overflow_bag_unchanged_" .. label, sidekicks(again) == want, sidekicks(again), want)
+			end
+			refusesAll("51", count + 1)
+			flag("raga_overflow_no_gems_spent", again:GetAttribute("Gems") == GEMS, again:GetAttribute("Gems"), GEMS)
+
+			-- Selling one brings it to 50, the cap: still no room.
+			local sold = SidekickConfig.List[1]
+			local soldEntry
+			for _, row in Sidekick.Snapshot(again).Sidekicks do
+				if row.Id == sold.Id then
+					soldEntry = row.Entry
+					break
+				end
+			end
+			flag("raga_overflow_sell_ok", (Sidekick.Sell(again, soldEntry)) == true)
+			flag("raga_overflow_sell_to_50", sidekicks(again) == count, sidekicks(again), count)
+			flag(
+				"raga_overflow_sell_pays",
+				again:GetAttribute("Gems") == GEMS + sold.SellGems,
+				again:GetAttribute("Gems"),
+				GEMS + sold.SellGems
+			)
+			refusesAll("50", count)
 
 			-- 60 is past the Sidekick bag's 50: Relics have no cap rule, and a defeat must not lose its Relic.
 			local hoard = loaded(nil)
