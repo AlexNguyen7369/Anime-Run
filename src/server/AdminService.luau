@@ -445,7 +445,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, Gems, characters, Sidekicks, Relics, stat points and upgrades",
+		Help = "reset Money, Gems, characters, Sidekicks, summon pity, Relics, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()

@@ -7,6 +7,8 @@ SidekickConfig.SummonCost = 50
 SidekickConfig.TenCost = 500
 SidekickConfig.BagSize = 50
 SidekickConfig.UnlockRebirth = 2
+SidekickConfig.PityCount = 300 -- the summon that reaches this without a Mythic gives the rotation's Mythic (design doc 4.36)
+SidekickConfig.LegendaryPityCount = 100 -- the same for one of the rotation's Legendaries
 SidekickConfig.HitInterval = 1.5 -- seconds between a Sidekick's hits in a boss event (design doc 4.37)
 
 SidekickConfig.List = {

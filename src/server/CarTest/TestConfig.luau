@@ -49,6 +49,7 @@ return {
 		"sidekicks",
 		"sidekick_rotation",
 		"sidekick_follow",
+		"sidekick_pity",
 		"relics",
 		"boss_arena",
 		"boss_event",

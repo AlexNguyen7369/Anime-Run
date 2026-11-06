@@ -6,7 +6,7 @@
 --   Odds is a percent (60 = 60%). Cruise and Stamina are fractions (0.08 = +8%): each multi is 1 + the worn row's value.
 --   Summon and GrantFreeSummon return true, results (array of tables with .Id) or false, reason (string).
 --   Sell, SetAutoSell and Equip return a true / false first value. Roll may return the row or its id.
---   Snapshot returns exactly the 4 save fields; SidekickAutoSell maps rarity to true; Apply takes the whole save record.
+--   Snapshot returns exactly the save fields, pity counts included; SidekickAutoSell maps rarity to true; Apply takes the whole save record.
 --   Any remote cooldown lives on SidekickService.REMOTE_COOLDOWN, as in QuestService.
 --   The clock is held in one slot; real summons are judged against that slot's Rotation.Odds. SidekickRotationTests holds the rotation.
 -- Runs on Folder players and an isolated PlayerData clone, like GemTests.
@@ -17,7 +17,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local Server = script.Parent.Parent
 local Tests = {}
 local UID = 990136000
-local VERSION = 16 -- 16: Relics (RelicTests)
+local VERSION = 17 -- 17: pity (SidekickPityTests); 16: Relics (RelicTests)
 local CLOCK = 1800000123 -- one fixed rotation slot for the whole scenario
 local SOURCE_NAMES = { "pochita", "igris", "kaisel" } -- design doc 4.36: the real names no id or name may show
 

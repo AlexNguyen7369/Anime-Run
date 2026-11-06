@@ -1,9 +1,9 @@
 --!nonstrict
 -- Sidekicks (design doc 4.36, docs/SIDEKICK_SPEC.md): summons for Gems, the Bag, auto-sell, the free summon, per-character
 -- equip and the run gain. The server decides everything; nothing a client sends is trusted. Clients only read the player
--- attributes SidekickBag, SidekickGear, SidekickAutoSell (JSON) and SidekickFreeUsed, and the ReplicatedStorage attribute
+-- attributes SidekickBag, SidekickGear, SidekickAutoSell (JSON), SidekickFreeUsed, SidekickPity and SidekickLegendaryPity, and the ReplicatedStorage attribute
 -- SidekickRotation (JSON of SidekickRotation.Public). Saved by PlayerData (Snapshot/Apply).
--- Summons never touch GachaService.Roll, Luck or the roll counters: odds are the listed ones for everyone.
+-- Summons never touch GachaService.Roll, Luck or the roll counters: odds are the listed ones for everyone, except pity (4.36).
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -29,7 +29,14 @@ end
 local function ensure(player)
 	local current = state[player]
 	if not current then
-		current = { Sidekicks = {}, CharacterGear = {}, SidekickAutoSell = {}, SidekickFreeUsed = false }
+		current = {
+			Sidekicks = {},
+			CharacterGear = {},
+			SidekickAutoSell = {},
+			SidekickFreeUsed = false,
+			SidekickPity = 0,
+			SidekickLegendaryPity = 0,
+		}
 		state[player] = current
 	end
 	return current
@@ -41,6 +48,8 @@ local function publish(player)
 	player:SetAttribute("SidekickGear", HttpService:JSONEncode(current.CharacterGear))
 	player:SetAttribute("SidekickAutoSell", HttpService:JSONEncode(current.SidekickAutoSell))
 	player:SetAttribute("SidekickFreeUsed", current.SidekickFreeUsed)
+	player:SetAttribute("SidekickPity", current.SidekickPity)
+	player:SetAttribute("SidekickLegendaryPity", current.SidekickLegendaryPity)
 end
 
 local function addEntry(current, id)
@@ -85,15 +94,33 @@ local function publishRotation()
 	ReplicatedStorage:SetAttribute("SidekickRotation", HttpService:JSONEncode(Rotation.Public(Rotation.Slot(clock()))))
 end
 
+-- A random row of that rarity in the slot; nil when the slot has none, so the count waits for a slot that does.
+local function guaranteed(rows, rarity)
+	local matches = {}
+	for _, row in rows do
+		if row.Rarity == rarity then
+			table.insert(matches, row)
+		end
+	end
+	return #matches > 0 and matches[rng:NextInteger(1, #matches)] or nil
+end
+
 -- count rolls: each one is sold (rarity on auto-sell) or kept. Refused, with nothing changed, when the bag cannot hold what
 -- would be kept. `cost` is taken here so the check and the spend happen together; nothing yields.
 local function summon(player, current, count, cost)
 	local kept, soldValue, results = 0, 0, {}
 	local rows = slotRows() -- one clock reading: the slot when the request arrives, for all of a 10x
+	local mythicPity, legendaryPity = current.SidekickPity, current.SidekickLegendaryPity -- stored only once nothing can refuse
 	for i = 1, count do
-		local row = Config.Roll(rng, rows)
+		-- A Mythic wins a tie; the Legendary count then stays over its threshold and pays on the next summon.
+		local paid = mythicPity + 1 >= Config.PityCount and guaranteed(rows, "Mythic")
+			or legendaryPity + 1 >= Config.LegendaryPityCount and guaranteed(rows, "Legendary")
+			or nil
+		local row = paid or Config.Roll(rng, rows)
+		mythicPity = row.Rarity == "Mythic" and 0 or mythicPity + 1
+		legendaryPity = row.Rarity == "Legendary" and 0 or legendaryPity + 1
 		local sold = current.SidekickAutoSell[row.Rarity] == true
-		results[i] = { Id = row.Id, Sold = sold }
+		results[i] = { Id = row.Id, Sold = sold, Pity = paid and true or nil }
 		if sold then
 			soldValue += row.SellGems
 		else
@@ -106,6 +133,7 @@ local function summon(player, current, count, cost)
 	if cost > 0 and not MoneyService.SpendGems(player, cost) then
 		return false, "Not enough Gems"
 	end
+	current.SidekickPity, current.SidekickLegendaryPity = mythicPity, legendaryPity
 	for _, result in results do
 		if not result.Sold then
 			result.Entry = addEntry(current, result.Id)
@@ -133,7 +161,7 @@ function SidekickService.SetClock(fn)
 	publishRotation()
 end
 
--- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry }, sold ones listed too) or false, reason.
+-- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry, Pity = true when guaranteed }, sold ones listed too) or false, reason.
 function SidekickService.Summon(player, count)
 	if count ~= 1 and count ~= 10 then
 		return false, "Invalid summon"
@@ -321,6 +349,14 @@ function SidekickService.CleanBag(savedRows, savedGear)
 	return rows, gear
 end
 
+-- A saved count: junk reads as 0, a fraction rounds down.
+local function cleanCount(value)
+	if type(value) ~= "number" or value ~= value or value < 0 or value == math.huge then
+		return 0
+	end
+	return math.floor(value)
+end
+
 -- Replaces the state with a saved record.
 function SidekickService.Apply(player, saved)
 	saved = type(saved) == "table" and saved or {}
@@ -338,6 +374,8 @@ function SidekickService.Apply(player, saved)
 		CharacterGear = gear,
 		SidekickAutoSell = autoSell,
 		SidekickFreeUsed = saved.SidekickFreeUsed == true,
+		SidekickPity = cleanCount(saved.SidekickPity),
+		SidekickLegendaryPity = cleanCount(saved.SidekickLegendaryPity),
 	}
 	publish(player)
 	GachaService.RefreshTeam(player)
@@ -354,6 +392,8 @@ function SidekickService.Snapshot(player)
 		CharacterGear = table.clone(current.CharacterGear),
 		SidekickAutoSell = table.clone(current.SidekickAutoSell),
 		SidekickFreeUsed = current.SidekickFreeUsed,
+		SidekickPity = current.SidekickPity,
+		SidekickLegendaryPity = current.SidekickLegendaryPity,
 	}
 end
 

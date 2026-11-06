@@ -3025,7 +3025,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 16 -- docs/SAVE_SPEC.md: VERSION 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
+	local DATA_VERSION = 17 -- docs/SAVE_SPEC.md: VERSION 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local Money = serverModule("MoneyService")
@@ -12592,6 +12592,7 @@ Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/S
 Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design doc 4.36, docs/SIDEKICK_SPEC.md
 Scenarios.sidekick_rotation = require(script.Parent.SidekickRotationTests).sidekick_rotation -- design doc 4.36 rotation
 Scenarios.sidekick_follow = require(script.Parent.SidekickFollowTests).sidekick_follow -- design doc 4.36, SIDEKICK_SPEC "Display"
+Scenarios.sidekick_pity = require(script.Parent.SidekickPityTests).sidekick_pity -- design doc 4.36 "Summon pity"
 Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)

@@ -31,7 +31,7 @@ local SECTIONS = { Potions = true, Bundle = true, ServerLuck = true }
 local MAX_RECEIPTS = 100
 local CODE_COOLDOWN = 2
 local MAX_CODE_LENGTH = 32
-local DATA_VERSION = 16 -- docs/SAVE_SPEC.md: 16 adds Relics; 15 adds Sidekicks; 14 adds Gems; 13 adds Team (PlayerData); 12 adds Copies/Showcase; 11 adds RaceBestTimes; 10 additive gift fields; ordinary receipts still keep the last 100.
+local DATA_VERSION = 17 -- docs/SAVE_SPEC.md: 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics; 15 adds Sidekicks; 14 adds Gems; 13 adds Team (PlayerData); 12 adds Copies/Showcase; 11 adds RaceBestTimes; 10 additive gift fields; ordinary receipts still keep the last 100.
 local MSG_INVALID = "Invalid code"
 local MSG_NOT_LOADED = "Data not loaded"
 local MSG_WAIT = "Please wait"
