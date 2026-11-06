@@ -27,7 +27,8 @@
 --     Hooks, a table of replaceable functions; the defaults are the real game:
 --       Arrive(player, lane): stops a normal run through the normal stop, stands the player on the lane.
 --       StartRun(player, team, lane): returns the run. Called at the intro's end, or at once for a joiner after it. The service
---         reads only run.TargetSpeed, run.Waiting, run.Slot and run.Stamina, writes run.Stamina[run.Slot], and calls run:Destroy().
+--         reads only run.TargetSpeed, run.Waiting, run.Line and run.Stamina, writes run.Stamina of slots in run.Line, and calls
+--         run:Destroy().
 --       Depart(player): back to spawn. Chat(text): to the whole server, default fires RemoteEvent Remotes.BossEventChat.
 --       PayStage(player, stage) -> ok: the stage's chest plus Money or Gems. RewardPopup(player, summary). See "Phase 2" below.
 --       MoveChat(player, text) (owner 2026-11-05): one Big Raga move, to one event player; default fires Remotes.BossEventChat
@@ -48,15 +49,15 @@
 --     An effect starts on its moment and is over at EndsAt. A hit in a long frame's catch-up is not pinned to a moment.
 --     AttackImpactsBetween(fromT, toT): pure. How many Big Raga attack Impacts fall in fromT < t <= toT, t in seconds since the
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
---       member Stage(stage).AttackStaminaCost per impact (x VulnerableMulti when Vulnerable), floored at 0, on the slot running at
+--       member Stage(stage).AttackStaminaCost per impact (x VulnerableMulti when Vulnerable), floored at 0, on every slot in run.Line at
 --       that frame. An impact in a member's wait, or at or before its joining, is never charged.
 --     Hooks.BossHits(player, entries) (b7d): one batch to one event player; the default fires RemoteEvent Remotes.BossHits to that
 --       player (a Folder test player makes FireClient throw: call it through `safely`). Every event player gets every entry; each
 --       player's batches are at least 0.25 s apart by the injected clock, and never empty. An entry is one hit that dealt damage:
 --       { UserId, SidekickId, Damage }, nothing else. UserId: Player.UserId, or attribute UserId on a Folder test player.
---       SidekickId: the Sidekick worn by the running character, member.Team[run.Slot] (design doc 4.37). Damage: what RecordHit dealt.
+--       SidekickId: the Sidekick of a slot in the line, a per-run counter cycling run.Line (spec "Run rules"). Damage: what RecordHit dealt.
 --       A hit waiting for the gap goes out in a later batch. The hit that defeats the boss still reaches the members.
---       A running character whose Sidekick came off mid-event cannot hit: RecordHit returns 0, no entry, no damage (design doc 4.36).
+--       A character in the line whose Sidekick came off mid-event cannot hit: RecordHit returns 0, no entry, no damage (design doc 4.36).
 --   Event roster (owner 2026-11-05): player attributes BossTeam (comma ids), BossTeamCruise<n>, BossTeamStamina<n> and BossLane from
 --     Join; BossTeam follows SetTeam and the lock, then all clear on leaving, with EquippedCar back. Saved LastBossTeam follows each
 --     accepted pick and the lock. Join starts from its ids still owned and wearing a Sidekick. StartPrepRun(player) sets BossPrepRun,
@@ -72,6 +73,12 @@
 --     stamina without npcMode, distance wraps the closed route. At all empty: run.Waiting = true, RunSpeed 0, runner still,
 --     OnRunEvent { Kind = "BossWait" }; after RefillWaitSeconds { Kind = "BossRefill" }, fired with stamina already 100, slot 1
 --     and Waiting false. Never "Exhausted", never a cash-out. The run keeps options.Team; the Team attribute does not change.
+--   Line run (owner 2026-11-06, task p3; design doc 4.37, BOSS_EVENT_SPEC "Line run"). A boss run has no Swap: every slot in the
+--     line drains at once at 100 / seconds[slot], and { Kind = "BossGone", Slot = n } fires, with run state already moved, when
+--     a slot reaches 0. run.Line: slots still in the line, in order. run.Slot = run.Line[1], and TargetSpeed, RunSlot and
+--     EquippedCar follow it. Player attribute BossLine: comma list ("1,3"), "" in the wait. The wait starts only on an empty line.
+--     TeamDamage: Sidekicks of the line, speed scale from run.TargetSpeed; the whole team before a run exists.
+--     NOT pinned, no rule found: TeamDamage and run.Slot in the wait; which Sidekick a line slot without one yields to.
 --
 --   Phase 2 (owner 2026-11-06, task p2; design doc 4.37, BOSS_EVENT_SPEC "Phase 2", "Rewards"). "Stage" 1 and 2 are Phases 1 and 2.
 --     State() adds Stage, EndsAt (server time), ScreamEndsAt (nil outside the scream), Phase1MaxHp. StageDamageOf(player, stage).
@@ -82,6 +89,7 @@
 --     NOT pinned, no rule found: Short for a player paid one stage only, and the popup flags of a player whose PayStage failed.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
+--   a boss run clears BossLine on Destroy, with its other attributes.
 --   leave before 3:00: "HP = 7,500 x players in the arena" holds, so max falls by 7,500; current never exceeds max or defeats.
 --   DamageMulti's t counts from BossScheduleStart in both stages (the spawn in stage 1), so one schedule lookup serves both.
 --   Spot's startAt stays the event's BossEventStart in stage 2; only `index` restarts.
@@ -259,7 +267,7 @@ function Tests.make(deps)
 			local factory = require(Shared.RunnerFactory)
 			local Arena = require(Shared.BossArenaConfig)
 			local StaminaConfig = require(Shared.StaminaConfig)
-			local WAIT = 5 -- design doc 4.37, owner value
+			local WAIT = 8.5 -- design doc 4.37, owner 2026-11-06
 
 			local function startRun(p, lane, options)
 				local car = factory.build(chars[1])
@@ -283,13 +291,35 @@ function Tests.make(deps)
 				local ids = { chars[1], chars[2], chars[3] }
 				local log, run = {}, nil
 				local atRefill
+				-- A team of 2 waits and refills alongside, so it costs no wall time of its own.
+				local duoPlayer, duoRefill, duoRun = runner(), nil, nil
+				duoRun = startRun(duoPlayer, 7, {
+					Team = { chars[1], chars[2] },
+					StaminaSeconds = { 0.2, 0.3 },
+					OnRunEvent = function(event)
+						if event.Kind == "BossRefill" then
+							duoRefill = {
+								Stamina = table.clone(duoRun.Stamina),
+								Slot = duoRun.Slot,
+								Line = table.clone(duoRun.Line or {}),
+								Attr = duoPlayer:GetAttribute("BossLine"),
+							}
+						end
+					end,
+				})
 				run = startRun(p, 1, {
 					Team = ids,
-					StaminaSeconds = { 0.2, 0.2, 0.2 },
+					StaminaSeconds = { 0.2, 0.3, 0.4 },
 					OnRunEvent = function(event)
 						table.insert(log, { Kind = event.Kind, T = os.clock() })
 						if event.Kind == "BossRefill" then
-							atRefill = { Stamina = table.clone(run.Stamina), Slot = run.Slot, Waiting = run.Waiting }
+							atRefill = {
+								Stamina = table.clone(run.Stamina),
+								Slot = run.Slot,
+								Waiting = run.Waiting,
+								Line = table.clone(run.Line or {}),
+								Attr = p:GetAttribute("BossLine"),
+							}
 						end
 					end,
 				})
@@ -314,9 +344,15 @@ function Tests.make(deps)
 				if count("BossWait") < 1 then
 					return -- red: no boss mode yet, the checks below would only repeat this one
 				end
-				eq("run_swapped_through_team", count("Swap"), 2)
+				-- Went through the whole team: by BossGone, with no Swap (owner 2026-11-06).
+				eq("run_swapped_through_team", count("BossGone"), 3)
+				eq("run_no_swap_event", (count("Swap")), 0)
 				eq("run_waiting_flag", run.Waiting, true)
 				near("run_stamina_empty", run.Stamina[3], 0)
+				near("run_gone_slot_1_stays_0", run.Stamina[1], 0)
+				near("run_gone_slot_2_stays_0", run.Stamina[2], 0)
+				eq("run_wait_line_empty", #(run.Line or { 1 }), 0)
+				eq("run_wait_line_attr_empty", p:GetAttribute("BossLine"), "")
 				eq("run_speed_zero_in_wait", car:GetAttribute("RunSpeed"), 0)
 				local before = car:GetPivot().Position
 				task.wait(1)
@@ -337,8 +373,17 @@ function Tests.make(deps)
 				local _, waitAt = count("BossWait")
 				local _, refillAt = count("BossRefill")
 				local gap = refillAt and waitAt and refillAt - waitAt or 0
-				flag("run_wait_is_5_seconds", gap >= WAIT - 0.1 and gap <= WAIT + 0.6, gap, WAIT)
-				atRefill = atRefill or { Stamina = {} }
+				flag("run_wait_is_8_5_seconds", gap >= WAIT - 0.1 and gap <= WAIT + 0.6, gap, WAIT)
+				atRefill = atRefill or { Stamina = {}, Line = {} }
+				flag("run_refill_full_line", H.same(atRefill.Line, { 1, 2, 3 }))
+				eq("run_refill_line_attr", atRefill.Attr, "1,2,3")
+				duoRefill = duoRefill or { Stamina = {}, Line = {} }
+				near("run_duo_refill_slot_1_full", duoRefill.Stamina[1], 100)
+				near("run_duo_refill_slot_2_full", duoRefill.Stamina[2], 100)
+				eq("run_duo_refill_from_slot_1", duoRefill.Slot, 1)
+				flag("run_duo_refill_full_line", H.same(duoRefill.Line, { 1, 2 }))
+				eq("run_duo_refill_line_attr", duoRefill.Attr, "1,2")
+				duoRun:Destroy()
 				near("run_refill_slot_1_full", atRefill.Stamina[1], 100)
 				near("run_refill_slot_2_full", atRefill.Stamina[2], 100)
 				near("run_refill_slot_3_full", atRefill.Stamina[3], 100)
@@ -382,6 +427,178 @@ function Tests.make(deps)
 				)
 				eq("run_team_of_one_no_swap", swapped, 0)
 				run:Destroy()
+			end)
+
+			-- Line run (owner 2026-11-06). A row is the run as one event saw it, so the state an event fires with is what is checked.
+			local function lineRun(p, lane, ids, seconds)
+				local rows, run = {}, nil
+				run = startRun(p, lane, {
+					Team = ids,
+					StaminaSeconds = seconds,
+					OnRunEvent = function(event)
+						table.insert(rows, {
+							Kind = event.Kind,
+							Gone = event.Slot,
+							Slot = run.Slot,
+							Line = table.clone(run.Line or {}),
+							Attr = p:GetAttribute("BossLine"),
+							Speed = run.TargetSpeed,
+							RunSlot = p:GetAttribute("RunSlot"),
+							Equipped = p:GetAttribute("EquippedCar"),
+							Waiting = run.Waiting,
+						})
+					end,
+				})
+				return run, rows
+			end
+			local function ofKind(rows, kind)
+				local list = {}
+				for _, row in rows do
+					if row.Kind == kind then
+						table.insert(list, row)
+					end
+				end
+				return list
+			end
+			local function untilWait(rows)
+				return waitFor(3, function()
+					return #ofKind(rows, "BossWait") >= 1
+				end)
+			end
+			-- The wait's row, checked for every team size: one wait, last of all, on an empty line.
+			local function checkWait(name, p, rows, goneCount)
+				flag(name .. "_waits", untilWait(rows))
+				local gone, waits = ofKind(rows, "BossGone"), ofKind(rows, "BossWait")
+				eq(name .. "_gone_count", #gone, goneCount)
+				eq(name .. "_one_wait", #waits, 1)
+				eq(name .. "_no_swap", #ofKind(rows, "Swap"), 0)
+				local row = waits[1] or { Line = { 0 } }
+				eq(name .. "_wait_after_last_gone", rows[#rows] == row, true)
+				eq(name .. "_wait_flag", row.Waiting, true)
+				eq(name .. "_wait_line_empty", #row.Line, 0)
+				eq(name .. "_wait_attr_empty", p:GetAttribute("BossLine"), "")
+			end
+			local function rowOf(list, i)
+				return list[i] or { Line = {} }
+			end
+
+			section("run_line_drain", function()
+				local p = runner()
+				local ids = { chars[1], chars[2], chars[3] }
+				local run = startRun(p, 5, { Team = ids, StaminaSeconds = { 1, 2, 4 } })
+				local from = os.clock()
+				RunService.Heartbeat:Wait()
+				flag("line_starts_full", H.same(run.Line or {}, { 1, 2, 3 }))
+				eq("line_attr_starts_full", p:GetAttribute("BossLine"), "1,2,3")
+				eq("line_front_starts_slot_1", run.Slot, 1)
+				task.wait(0.3)
+				local took = os.clock() - from
+				local a, b, c = 100 - run.Stamina[1], 100 - run.Stamina[2], 100 - run.Stamina[3]
+				flag("line_all_drain_at_once", a > 0 and b > 0 and c > 0, c, "> 0")
+				-- Read in one frame, so the ratios are exact whatever the frame times were.
+				flag("line_drain_own_length_2", b > 0 and math.abs(a / b - 2) < 1e-3, b > 0 and a / b or 0, 2)
+				flag("line_drain_own_length_4", c > 0 and math.abs(a / c - 4) < 1e-3, c > 0 and a / c or 0, 4)
+				flag("line_drain_rate", math.abs(a - 100 * took) < 15, a, 100 * took)
+				eq("line_attr_nobody_gone", p:GetAttribute("BossLine"), "1,2,3")
+				near("line_speed_is_front", run.TargetSpeed, gacha.CruiseFor(p, chars[1], 1, ids))
+				run:Destroy()
+				eq("reading_line_attr_clears_on_destroy", p:GetAttribute("BossLine"), nil)
+			end)
+
+			section("run_line_middle_goes_first", function()
+				local p = runner()
+				local ids = { chars[1], chars[2], chars[3] }
+				local run, rows = lineRun(p, 5, ids, { 0.6, 0.2, 0.4 })
+				checkWait("line_middle", p, rows, 3)
+				local gone = ofKind(rows, "BossGone")
+				local first, second, third = rowOf(gone, 1), rowOf(gone, 2), rowOf(gone, 3)
+				eq("line_middle_first_gone", first.Gone, 2)
+				flag("line_middle_first_line", H.same(first.Line, { 1, 3 }))
+				eq("line_middle_first_attr", first.Attr, "1,3")
+				eq("line_middle_front_stays", first.Slot, 1)
+				near("line_middle_speed_stays", first.Speed, gacha.CruiseFor(p, chars[1], 1, ids))
+				eq("line_middle_not_waiting", first.Waiting, false)
+				eq("line_middle_second_gone", second.Gone, 3)
+				flag("line_middle_second_line", H.same(second.Line, { 1 }))
+				eq("line_middle_second_attr", second.Attr, "1")
+				eq("line_middle_second_not_waiting", second.Waiting, false)
+				eq("line_middle_third_gone", third.Gone, 1)
+				run:Destroy()
+			end)
+
+			section("run_line_front_goes_first", function()
+				local p = runner()
+				local ids = { chars[1], chars[2], chars[3] }
+				local run, rows = lineRun(p, 6, ids, { 0.2, 0.6, 0.4 })
+				checkWait("line_front", p, rows, 3)
+				local gone = ofKind(rows, "BossGone")
+				local first, second, third = rowOf(gone, 1), rowOf(gone, 2), rowOf(gone, 3)
+				eq("line_front_first_gone", first.Gone, 1)
+				flag("line_front_first_line", H.same(first.Line, { 2, 3 }))
+				eq("line_front_first_attr", first.Attr, "2,3")
+				eq("line_front_slot_moves", first.Slot, 2)
+				eq("line_front_run_slot_moves", first.RunSlot, 2)
+				eq("line_front_runner_wears_next", first.Equipped, chars[2])
+				near("line_front_speed_follows", first.Speed, gacha.CruiseFor(p, chars[2], 2, ids))
+				eq("line_front_second_gone", second.Gone, 3)
+				flag("line_front_second_line", H.same(second.Line, { 2 }))
+				eq("line_front_second_attr", second.Attr, "2")
+				eq("line_front_slot_stays_2", second.Slot, 2)
+				eq("line_front_third_gone", third.Gone, 2)
+				near("line_front_slot_1_stays_0", run.Stamina[1], 0)
+				run:Destroy()
+			end)
+
+			-- An attack can empty several slots in one frame (chargeMoves floors them all before the run's next tick).
+			section("run_line_same_frame", function()
+				local p = runner()
+				local ids = { chars[1], chars[2], chars[3] }
+				local run, rows = lineRun(p, 2, ids, { 1e6, 1e6, 1e6 })
+				RunService.Heartbeat:Wait()
+				run.Stamina[1], run.Stamina[2] = 0, 0
+				flag(
+					"line_two_gone_in_a_frame",
+					waitFor(1, function()
+						return #ofKind(rows, "BossGone") >= 2
+					end)
+				)
+				flag("line_two_gone_line", H.same(run.Line or {}, { 3 }))
+				eq("line_two_gone_attr", p:GetAttribute("BossLine"), "3")
+				eq("line_two_gone_front", run.Slot, 3)
+				near("line_two_gone_speed", run.TargetSpeed, gacha.CruiseFor(p, chars[3], 3, ids))
+				eq("line_two_gone_not_waiting", run.Waiting, false)
+				run:Destroy()
+
+				local q = runner()
+				local all, allRows = lineRun(q, 3, ids, { 1e6, 1e6, 1e6 })
+				RunService.Heartbeat:Wait()
+				for slot = 1, 3 do
+					all.Stamina[slot] = 0
+				end
+				checkWait("line_all_gone_in_a_frame", q, allRows, 3)
+				all:Destroy()
+			end)
+
+			section("run_line_small_teams", function()
+				local p = runner()
+				local duo, rows = lineRun(p, 4, { chars[1], chars[2] }, { 0.2, 0.4 })
+				RunService.Heartbeat:Wait()
+				eq("line_duo_attr_starts", p:GetAttribute("BossLine"), "1,2")
+				checkWait("line_duo", p, rows, 2)
+				local first = rowOf(ofKind(rows, "BossGone"), 1)
+				eq("line_duo_first_gone", first.Gone, 1)
+				flag("line_duo_first_line", H.same(first.Line, { 2 }))
+				eq("line_duo_first_attr", first.Attr, "2")
+				eq("line_duo_slot_moves", first.Slot, 2)
+				duo:Destroy()
+
+				local q = runner()
+				local solo, soloRows = lineRun(q, 3, { chars[1] }, { 0.1 })
+				RunService.Heartbeat:Wait()
+				eq("line_solo_attr_starts", q:GetAttribute("BossLine"), "1")
+				checkWait("line_solo", q, soloRows, 1)
+				eq("line_solo_gone", rowOf(ofKind(soloRows, "BossGone"), 1).Gone, 1)
+				solo:Destroy()
 			end)
 
 			section("run_mode_real_numbers", function()
@@ -432,7 +649,7 @@ function Tests.make(deps)
 				eq("prep_1_minute", Cfg.PrepSeconds, 60)
 				eq("join_closes_at_3_00", Cfg.JoinSeconds, 180)
 				eq("total_8_minutes", Cfg.TotalSeconds, 480)
-				eq("refill_wait_5", Cfg.RefillWaitSeconds, 5)
+				eq("refill_wait_8_5", Cfg.RefillWaitSeconds, 8.5)
 				eq("chat_message_text", Cfg.ChatMessage, CHAT)
 				-- Spec placeholders: the only literal checks of them, retune here
 				eq("owner_rise_1_5", Cfg.RiseSeconds, 1.5) -- owner 2026-11-05, replaces 2-3 s
@@ -531,6 +748,10 @@ function Tests.make(deps)
 					table.insert(log.BossHits, { Player = p, Entries = table.clone(entries), At = clock - T0 })
 				end
 				S.Hooks.StartRun = function(p, team, lane)
+					local line = {}
+					for slot in team do
+						table.insert(line, slot)
+					end
 					local run = {
 						TargetSpeed = 0,
 						Waiting = false,
@@ -538,6 +759,7 @@ function Tests.make(deps)
 						Lane = lane,
 						Destroyed = 0,
 						Slot = 1,
+						Line = line,
 						Stamina = { 100, 100, 100 },
 					}
 					function run:Destroy()
@@ -1370,7 +1592,7 @@ function Tests.make(deps)
 					return n
 				end
 
-				-- Each impact once, the running slot only, and no damage to the boss.
+				-- Each impact once, every slot in the line, and no damage to the boss.
 				beginReal()
 				local p = teamOf(3)
 				eq("stamina_join_ok", S.Join(p), true)
@@ -1385,8 +1607,8 @@ function Tests.make(deps)
 				local hp, dealt = S.State().Hp, S.DamageOf(p)
 				to(at(1))
 				close("first_impact_costs_plain", run.Stamina[1], 100 - COST)
-				close("other_slot_2_untouched", run.Stamina[2], 100)
-				close("other_slot_3_untouched", run.Stamina[3], 100)
+				close("line_slot_2_pays_too", run.Stamina[2], 100 - COST)
+				close("line_slot_3_pays_too", run.Stamina[3], 100 - COST)
 				eq("impact_no_boss_damage", S.State().Hp, hp)
 				eq("impact_no_player_damage", S.DamageOf(p), dealt)
 				eq("impact_keeps_slot", run.Slot, 1)
@@ -1411,7 +1633,7 @@ function Tests.make(deps)
 				to(at(2) + MARGIN)
 				close("catch_up_from_prep_counts_each", log.Runs[caught].Stamina[1], 100 - COST - HEAVY)
 
-				-- Under the cost goes to 0; the run's own exhaustion then swaps.
+				-- Under the cost goes to 0; that slot then leaves the line, by BossGone and not by Swap.
 				beginReal()
 				local low = teamOf(3)
 				S.Join(low)
@@ -1421,18 +1643,40 @@ function Tests.make(deps)
 				to(at(1))
 				eq("under_cost_goes_to_0", lowRun.Stamina[1], 0)
 				flag(
-					"zero_swaps_as_normal",
+					"zero_front_moves_as_normal",
 					waitFor(1, function()
 						return lowRun.Slot == 2
 					end)
 				)
-				eq("zero_one_swap", kindCount(low, "Swap"), 1)
-				close("swap_target_untouched", lowRun.Stamina[2], 100)
+				eq("zero_one_gone", kindCount(low, "BossGone"), 1)
+				eq("zero_no_swap", kindCount(low, "Swap"), 0)
+				close("next_in_line_paid_the_same_impact", lowRun.Stamina[2], 100 - COST)
 				to(at(2) + MARGIN)
-				close("next_impact_costs_new_runner", lowRun.Stamina[2], 100 - HEAVY)
-				eq("swapped_runner_kept_at_0", lowRun.Stamina[1], 0)
+				close("next_impact_costs_new_front", lowRun.Stamina[2], 100 - COST - HEAVY)
+				close("next_impact_costs_rest_of_line", lowRun.Stamina[3], 100 - COST - HEAVY)
+				eq("gone_slot_kept_at_0", lowRun.Stamina[1], 0)
 
-				-- reading_: two impacts in one frame fall on the slot running at that frame; the rest of the cost is not moved on.
+				-- One impact that empties every slot: all gone in a frame, one wait.
+				beginReal()
+				local wiped = teamOf(3)
+				S.Join(wiped)
+				to(FIGHT)
+				local wipedRun = log.Runs[wiped]
+				for slot = 1, 3 do
+					wipedRun.Stamina[slot] = 3
+				end
+				to(at(1))
+				flag(
+					"zero_all_wait_once_gone",
+					waitFor(1, function()
+						return wipedRun.Waiting == true
+					end)
+				)
+				eq("zero_all_three_gone", kindCount(wiped, "BossGone"), 3)
+				eq("zero_all_one_wait", kindCount(wiped, "BossWait"), 1)
+				eq("zero_all_no_swap", kindCount(wiped, "Swap"), 0)
+
+				-- reading_: two impacts in one frame fall on the line of that frame; a slot's spare cost moves on to nobody.
 				beginReal()
 				local over = teamOf(3)
 				S.Join(over)
@@ -1440,7 +1684,7 @@ function Tests.make(deps)
 				log.Runs[over].Stamina[1] = 7
 				to(at(2) + MARGIN)
 				eq("reading_catch_up_floors_at_0", log.Runs[over].Stamina[1], 0)
-				close("reading_catch_up_next_slot_untouched", log.Runs[over].Stamina[2], 100)
+				close("reading_catch_up_next_slot_pays_its_own", log.Runs[over].Stamina[2], 100 - COST - HEAVY)
 
 				-- The last character at 0 means the wait, never a cash-out.
 				beginReal()
@@ -2590,7 +2834,7 @@ function Tests.make(deps)
 				eq("hit_events_catch_up_one_batch", #batchesTo(late), 1)
 				eq("hit_events_catch_up_all_hits", #entriesTo(late), 10)
 
-				-- The running character's Sidekick is the one that fires; the team's damage stays the team's.
+				-- A Sidekick of the line is the one that fires; the line's damage stays the line's.
 				begin()
 				local team = fighter()
 				wear(team, chars[2], "side_chain")
@@ -2598,13 +2842,13 @@ function Tests.make(deps)
 				eq("hit_events_team_set", S.SetTeam(team, { chars[1], chars[2] }), true)
 				walk(FIGHT)
 				local run = log.Runs[team]
-				run.Slot = 2
+				run.Line, run.Slot = { 2 }, 2
 				walk(FIGHT + EVERY + HALF)
 				local heard = entriesTo(team)
 				eq("hit_events_slot_two_entry", #heard, 1)
 				eq("hit_events_slot_two_id", heard[1] and heard[1].SidekickId, "side_chain")
 				near("hit_events_slot_two_damage", heard[1] and heard[1].Damage, S.TeamDamage(team))
-				run.Slot = 1
+				run.Line, run.Slot = { 1 }, 1
 				walk(FIGHT + EVERY * 2 + HALF)
 				heard = entriesTo(team)
 				eq("hit_events_slot_one_id", heard[2] and heard[2].SidekickId, "side_knight")
@@ -2631,15 +2875,66 @@ function Tests.make(deps)
 				local hp = S.State().Hp
 				local damage = S.DamageOf(team)
 				sidekick.Equip(team, chars[2], nil)
-				run.Slot = 2
+				run.Line, run.Slot = { 2 }, 2
 				eq("hit_events_no_sidekick_refused", S.RecordHit(team), 0)
 				walk(clock - T0 + EVERY * 2)
 				eq("hit_events_no_sidekick_no_entry", #entriesTo(team), before)
 				eq("hit_events_no_sidekick_no_hp_lost", S.State().Hp, hp)
 				eq("hit_events_no_sidekick_no_damage", S.DamageOf(team), damage)
-				run.Slot = 1
+				run.Line, run.Slot = { 1 }, 1
 				walk(clock - T0 + EVERY * 2)
 				flag("hit_events_worn_slot_hits_again", #entriesTo(team) > before, #entriesTo(team), before + 1)
+
+				-- Line run (owner 2026-11-06): the line's Sidekicks take turns, by a per-run counter over run.Line.
+				begin()
+				local line = fighter()
+				wear(line, chars[2], "side_chain")
+				wear(line, chars[3], "side_fox")
+				S.Join(line)
+				eq("hit_line_team_set", S.SetTeam(line, { chars[1], chars[2], chars[3] }), true)
+				walk(FIGHT)
+				local lineRun = log.Runs[line]
+				walk(FIGHT + EVERY * 3 + HALF)
+				heard = entriesTo(line)
+				eq("hit_line_three_hits", #heard, 3)
+				local drew = {}
+				for _, entry in heard do
+					drew[entry.SidekickId] = (drew[entry.SidekickId] or 0) + 1
+				end
+				eq("hit_line_knight_drew_once", drew.side_knight, 1)
+				eq("hit_line_chain_drew_once", drew.side_chain, 1)
+				eq("hit_line_fox_drew_once", drew.side_fox, 1)
+				walk(FIGHT + EVERY * 6 + HALF)
+				heard = entriesTo(line)
+				eq("hit_line_six_hits", #heard, 6)
+				for i = 1, 3 do
+					eq(
+						"hit_line_cycle_repeats_" .. i,
+						heard[i + 3] and heard[i + 3].SidekickId,
+						heard[i] and heard[i].SidekickId
+					)
+				end
+				-- A slot out of the line draws nothing; the two left still alternate.
+				lineRun.Line, lineRun.Slot = { 1, 3 }, 1
+				walk(FIGHT + EVERY * 8 + HALF)
+				heard = entriesTo(line)
+				eq("hit_line_two_left_hits", #heard, 8)
+				flag(
+					"hit_line_two_left_alternate",
+					heard[7] ~= nil and heard[8] ~= nil and heard[7].SidekickId ~= heard[8].SidekickId
+				)
+				flag(
+					"hit_line_gone_slot_draws_nothing",
+					heard[7] ~= nil
+						and heard[8] ~= nil
+						and heard[7].SidekickId ~= "side_chain"
+						and heard[8].SidekickId ~= "side_chain"
+				)
+				near("hit_line_damage_is_the_lines", heard[8] and heard[8].Damage, S.TeamDamage(line))
+				lineRun.Line, lineRun.Slot = { 3 }, 3
+				walk(FIGHT + EVERY * 9 + HALF)
+				heard = entriesTo(line)
+				eq("hit_line_last_one_draws", heard[9] and heard[9].SidekickId, "side_fox")
 
 				-- Not in the event: no hit and no batch; a leaver stops hearing.
 				begin()
@@ -3153,6 +3448,101 @@ function Tests.make(deps)
 				eq("heavy_floors_at_0", run.Stamina[1], 0)
 				S.Leave(p, "Left")
 				eq("vulnerable_cleared_on_leave", p:GetAttribute("BossStatus"), nil)
+			end)
+
+			-- Line run (owner 2026-11-06, spec "Run rules", "Line run"): the attack and the damage follow run.Line.
+			serviceSection("line_run_service", function()
+				local BossDodge = require(Shared.BossDodge)
+				local COST = Cfg.Stage(1).AttackStaminaCost
+				local HEAVY = COST * Cfg.VulnerableMulti
+				local DK, DC, DF = damageOf("side_knight"), damageOf("side_chain"), damageOf("side_fox")
+				local function moment(index)
+					return FIGHT + BossDodge.Moment(index)
+				end
+				local function fresh(size)
+					begin()
+					S.Hooks.SwitchLane = function() end
+					local p = newPlayer()
+					local ids = {}
+					for i, sideId in { "side_knight", "side_chain", "side_fox" } do
+						if i <= size then
+							wear(p, chars[i], sideId)
+							table.insert(ids, chars[i])
+						end
+					end
+					S.Join(p)
+					S.SetTeam(p, ids)
+					return p, ids
+				end
+				local function stamina(name, run, one, two, three)
+					near(name .. "_slot_1", run.Stamina[1], one)
+					near(name .. "_slot_2", run.Stamina[2], two)
+					near(name .. "_slot_3", run.Stamina[3], three)
+				end
+				flag("line_test_damages_differ", DK ~= DC or DC ~= DF, DK, DC)
+
+				-- TeamDamage: the line's Sidekicks, the front's cruise; the whole team before a run.
+				local p, ids = fresh(3)
+				near(
+					"line_damage_before_run_is_whole_team",
+					S.TeamDamage(p),
+					Cfg.TeamDamage({ DK, DC, DF }, gacha.CruiseFor(p, ids[1], 1, ids))
+				)
+				to(FIGHT)
+				local run = log.Runs[p]
+				run.TargetSpeed = 400
+				near("line_damage_whole_line", S.TeamDamage(p), Cfg.TeamDamage({ DK, DC, DF }, 400))
+				run.Line, run.Slot = { 2, 3 }, 2
+				near("line_damage_two_left", S.TeamDamage(p), Cfg.TeamDamage({ DC, DF }, 400))
+				run.TargetSpeed = 800
+				near("line_damage_speed_from_front", S.TeamDamage(p), Cfg.TeamDamage({ DC, DF }, 800))
+				run.Line, run.Slot = { 1, 3 }, 1
+				near("line_damage_middle_gone", S.TeamDamage(p), Cfg.TeamDamage({ DK, DF }, 800))
+				run.Line, run.Slot = { 3 }, 3
+				near("line_damage_one_left", S.TeamDamage(p), Cfg.TeamDamage({ DF }, 800))
+
+				-- An undodged Impact: every slot in the line, Vulnerable included, each floored; a slot in no line pays nothing.
+				p = fresh(3)
+				to(FIGHT)
+				run = log.Runs[p]
+				to(moment(1))
+				stamina("line_impact_plain", run, 100 - COST, 100 - COST, 100 - COST)
+				run.Line, run.Slot = { 2, 3 }, 2
+				run.Stamina[1], run.Stamina[2], run.Stamina[3] = 100, 100, 1
+				to(moment(4) + 0.05)
+				stamina("line_impact_heavy", run, 100, 100 - HEAVY, 0)
+				eq("line_impact_floors_at_exactly_0", run.Stamina[3], 0)
+
+				-- Dodged, or in the wait: nobody pays.
+				p = fresh(3)
+				to(FIGHT)
+				run = log.Runs[p]
+				eq("line_press_1", press(p, 1, 1, FIGHT), true)
+				to(moment(1) + 0.05)
+				stamina("line_dodged", run, 100, 100, 100)
+				p = fresh(3)
+				to(FIGHT)
+				run = log.Runs[p]
+				run.Waiting = true
+				to(moment(1) + 0.05)
+				run.Waiting = false
+				stamina("line_waiting", run, 100, 100, 100)
+
+				-- A team of 2 works the same way; its absent third slot is in no line.
+				p, ids = fresh(2)
+				near(
+					"line_duo_damage_before_run",
+					S.TeamDamage(p),
+					Cfg.TeamDamage({ DK, DC }, gacha.CruiseFor(p, ids[1], 1, ids))
+				)
+				to(FIGHT)
+				run = log.Runs[p]
+				to(moment(1))
+				stamina("line_duo_impact", run, 100 - COST, 100 - COST, 100)
+				run.TargetSpeed = 400
+				near("line_duo_damage", S.TeamDamage(p), Cfg.TeamDamage({ DK, DC }, 400))
+				run.Line, run.Slot = { 2 }, 2
+				near("line_duo_damage_one_left", S.TeamDamage(p), Cfg.TeamDamage({ DC }, 400))
 			end)
 
 			serviceSection("stage2_dodge", function()
