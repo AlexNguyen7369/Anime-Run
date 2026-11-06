@@ -86,6 +86,9 @@
 --     end + ScreamSeconds + Phase2ExtraSeconds. ReplicatedStorage attributes BossEventStage, BossEventEndsAt, BossScreamEndsAt,
 --     BossScheduleStart. BossScheduleStart is Poses.Schedule's start: moment i comes at scream end + BossDodge.Moment(i).
 --     Summary = { Outcome = "Defeated"|"Survived"|"Left", Damage = total, Stage1, Stage2, Short }.
+--     Exhausted teams (owner 2026-11-06, BOSS_EVENT_SPEC "Phase 2"): run:ReviveAt(seconds), seconds from now, ends a wait then: full stamina,
+--     full line, BossRefill. The service calls it at the scream's start on a waiting run, and on a run that empties during the scream, each
+--     with the time to the scream's end, and BossWaitEndsAt stays nil.
 --     NOT pinned, no rule found: Short for a player paid one stage only, and the popup flags of a player whose PayStage failed.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
@@ -764,6 +767,10 @@ function Tests.make(deps)
 					}
 					function run:Destroy()
 						self.Destroyed += 1
+					end
+					run.Revives = {}
+					function run:ReviveAt(seconds)
+						table.insert(self.Revives, seconds)
 					end
 					log.Runs[p] = run
 					table.insert(log.Started, { Player = p, Team = team, Lane = lane, At = clock - T0 })
@@ -4120,6 +4127,77 @@ function Tests.make(deps)
 						return ends(tired) == nil
 					end)
 				)
+
+				-- The cutscene skips exhaustion (owner 2026-11-06): the service asks a waiting run to revive at the scream's end.
+				begin()
+				local waiter, hitter = fighter(), fighter()
+				S.Join(waiter)
+				S.Join(hitter)
+				to(FIGHT)
+				log.Runs[waiter].Waiting = true
+				kill(hitter)
+				local asked = log.Runs[waiter].Revives
+				eq("revive_asked_once_at_scream_start", #asked, 1)
+				near("revive_asked_with_the_scream_left", asked[1] or -1, Cfg.ScreamSeconds)
+				eq("revive_not_asked_of_a_runner", #log.Runs[hitter].Revives, 0)
+
+				-- The same on real runs and real seconds: all in one scream, so it costs one scream's wall time.
+				local longP, shortP, midP, killer = arrive(), arrive(), arrive(), arrive()
+				realEvent(longP, shortP, midP, killer)
+				local refill = Cfg.RefillWaitSeconds
+				Cfg.RefillWaitSeconds = 0.9 -- about 0.5 s left by the kill, however long the rest takes
+				local shortRun = exhaust(shortP)
+				Cfg.RefillWaitSeconds = refill
+				local longRun = exhaust(longP) -- 8 s and more left
+				flag("revive_fixture_runs_wait", shortRun ~= nil and longRun ~= nil)
+				flag("revive_fixture_short_still_waits", shortRun ~= nil and shortRun.Waiting == true)
+				if not (shortRun and longRun) then
+					S.Reset(T0)
+					SpawnArea.START_COOLDOWN = oldCooldown
+					return
+				end
+				flag("revive_at_exists", type(longRun.ReviveAt) == "function")
+				kill(killer)
+				local wallStart, clockStart = os.clock(), clock
+				local function follow()
+					clock = clockStart + (os.clock() - wallStart)
+					S.Advance(clock)
+				end
+				eq("revive_long_end_time_nil_at_scream_start", ends(longP), nil)
+				eq("revive_short_end_time_nil_at_scream_start", ends(shortP), nil)
+				while os.clock() - wallStart < 1 do
+					follow()
+					task.wait()
+				end
+				local midRun = exhaust(midP) -- emptied during the scream, with 8.5 s of wait it must not serve
+				flag("revive_mid_scream_run_waits", midRun ~= nil)
+				eq("revive_mid_scream_no_end_time", ends(midP), nil)
+				local runs = { long = longRun, short = shortRun, mid = midRun }
+				local revivedAt = {}
+				local scream = Cfg.ScreamSeconds
+				while os.clock() - wallStart < scream + 0.5 do
+					follow()
+					for name, run in runs do
+						if not revivedAt[name] and run.Waiting == false then
+							revivedAt[name] = os.clock() - wallStart
+						end
+					end
+					task.wait()
+				end
+				for name, run in runs do
+					local at = revivedAt[name]
+					flag("revive_" .. name .. "_at_scream_end", at ~= nil and math.abs(at - scream) <= 0.3, at, scream)
+					eq("revive_" .. name .. "_stands_revived", run.Waiting, false)
+					local full = true
+					for slot in run.Team do
+						full = full and math.abs((run.Stamina[slot] or 0) - 100) < 5 -- a little drained by the time this reads
+					end
+					flag("revive_" .. name .. "_full_stamina", full)
+					eq("revive_" .. name .. "_full_line", #(run.Line or {}), #run.Team)
+				end
+				for name, p in { long = longP, short = shortP, mid = midP } do
+					eq("revive_" .. name .. "_end_time_stays_nil", ends(p), nil)
+				end
 				S.Reset(T0)
 				SpawnArea.START_COOLDOWN = oldCooldown
 			end)

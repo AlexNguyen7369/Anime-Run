@@ -347,7 +347,16 @@ end
 -- Boss event UI fixtures (UiSpec.ServerSetup boss_ui_*, Client/UiTest/UiBossEvent): the published attributes only, so
 -- nobody really joins and the UI runs in seconds. The characters and Sidekicks they replace come back with restoreBossUi.
 local bossUiSnapshots = {}
-local BOSS_UI_ATTRIBUTES = { "BossEventPhase", "BossEventStart", "BossEventHp", "BossEventMaxHp" }
+local BOSS_UI_ATTRIBUTES = {
+	"BossEventPhase",
+	"BossEventStart",
+	"BossEventHp",
+	"BossEventMaxHp",
+	"BossEventStage",
+	"BossEventEndsAt",
+	"BossScreamEndsAt",
+	"BossScheduleStart",
+}
 local function clearBossUi(player)
 	for _, name in BOSS_UI_ATTRIBUTES do
 		ReplicatedStorage:SetAttribute(name, nil)
@@ -1687,6 +1696,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			player:SetAttribute("BossWaitEndsAt", seconds and workspace:GetServerTimeNow() + seconds or nil)
 			return
 		end
+		local phase2Step, phase2Arg = string.match(request, "^boss_phase2_(%a+):(.*)$")
+		if phase2Step then
+			assert(setups["boss_phase2_" .. phase2Step], "unknown step " .. phase2Step)(player, phase2Arg)
+			return
+		end
 		local pityMythic, pityLegendary = string.match(request, "^sidekick_ui_pity:(%d+):(%d+)$")
 		if pityMythic then -- through the service, so the published attributes and the saved counts agree
 			local service = live("SidekickService")
@@ -1752,4 +1766,38 @@ setupRequest.OnServerInvoke = function(player, request)
 		end
 	end)
 	return ok, ok and nil or tostring(err)
+end
+
+-- Boss Phase 2 fixtures (Client/UiTest/UiBossPhase2, UiRelics; UiSpec.ServerSetup boss_phase2_*, boss_rewards_open,
+-- relic_chest_states). Published attributes and one real-hook message only. Below the handler on purpose: it reads `setups` when called.
+function setups.boss_phase2_stage(_, arg)
+	local stage, endsIn, screamIn, scheduleAgo = table.unpack(string.split(arg, ":"))
+	local now = workspace:GetServerTimeNow()
+	ReplicatedStorage:SetAttribute("BossEventStage", tonumber(stage))
+	ReplicatedStorage:SetAttribute("BossEventEndsAt", tonumber(endsIn) and now + tonumber(endsIn) or nil)
+	ReplicatedStorage:SetAttribute("BossScreamEndsAt", tonumber(screamIn) and now + tonumber(screamIn) or nil)
+	ReplicatedStorage:SetAttribute("BossScheduleStart", tonumber(scheduleAgo) and now - tonumber(scheduleAgo) or nil)
+end
+
+function setups.boss_phase2_rewards(player, arg)
+	local outcome, damage, stage1, stage2, short = table.unpack(string.split(arg, ":"))
+	live("BossEventService").Hooks.RewardPopup(player, {
+		Outcome = outcome,
+		Damage = tonumber(damage),
+		Stage1 = stage1 == "true",
+		Stage2 = stage2 == "true",
+		Short = short == "true",
+	})
+end
+
+function setups.boss_rewards_open(player)
+	setups.boss_phase2_rewards(player, "Defeated:1234567:true:true:false")
+end
+
+function setups.relic_chest_states(player)
+	setups.relic_states_bare(player)
+	local service = live("RelicService")
+	for _, id in { "relic_chest_raga", "relic_chest_raga", "relic_chest_adapted" } do
+		assert(service.GrantChest(player, id), "could not grant " .. id)
+	end
 end

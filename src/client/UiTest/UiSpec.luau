@@ -4059,6 +4059,7 @@ UiSpec.Guis.RacerItemMenu = {
 		{ Path = "Scrim", Does = "local" },
 		{ Path = "Menu/Equip", Does = "local" },
 		{ Path = "Menu/Sell", Does = "local" },
+		{ Path = "Menu/Open", Does = "remote", Remote = "RelicOpenChest" },
 		{ Path = "Confirm/Yes", Does = "remote", Remote = "RelicSell|SidekickSell|SellSpares|SellSparesMany" },
 		{ Path = "Confirm/Cancel", Does = "local" },
 		{ Path = "Confirm/Stepper/Less", Does = "local", ClickCoverage = "ui_relics" },
@@ -4354,7 +4355,7 @@ for _, click in
 			Path = "BossButton",
 			Prepare = bossButtonPrepare(0.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+			Expect = { Remote = false, After = { "boss_paid_details_open", "boss_details_both_tables" } },
 		},
 		{
 			Id = "boss_paid_use_credit",
@@ -4417,6 +4418,76 @@ for _, click in
 do
 	click.Gui = "RacerBossEvent"
 	table.insert(UiSpec.Clicks, click)
+end
+
+-- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
+UiSpec.Guis.RacerBossRewards = {
+	Source = "Client/BossRewardPopup",
+	Buttons = { { Path = "Panel/Header/CloseButton", Does = "local" } },
+}
+UiSpec.RelicChest = {
+	Watch = {}, -- what the chest open click's Prepare.Before saw of the reveal's chest: a press's After comes too late for its first moves
+}
+table.insert(UiSpec.ServerSetup, {
+	Id = "relic_chest_states",
+	When = "first after 'spy' in the relics_chest_tab click's NeedSetup",
+	What = "As relic_states_bare, plus 2 relic_chest_raga and 1 relic_chest_adapted. 'restore' puts all of it back.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_rewards_open",
+	When = "before the boss_rewards_close click (NeedSetup)",
+	What = "One BossRewards message to this client: Defeated, both stages paid. Display only, nothing is granted.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_phase2_*",
+	When = "asked for by ui_boss_phase2 and ui_boss_rewards, one step at a time",
+	What = "boss_phase2_stage:<stage>:<ends in s|none>:<scream ends in s|none>:<schedule start s ago|none>, the attributes only; "
+		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>, one BossRewards message. "
+		.. "restore:boss_ui clears the attributes.",
+})
+do
+	-- A reveal's chest image: on every frame from the press, where it stands.
+	local function watchChest()
+		local watch = UiSpec.RelicChest.Watch
+		table.clear(watch)
+		local gui = game:GetService("Players").LocalPlayer.PlayerGui
+		local connection = game:GetService("RunService").Heartbeat:Connect(function()
+			local reveal = gui:FindFirstChild("RacerSidekickReveal")
+			local chest = reveal and reveal:FindFirstChild("Chest", true)
+			if chest and chest:IsA("ImageLabel") and chest.Visible then
+				local at = chest.AbsolutePosition
+				watch.First = watch.First or at
+				watch.Image = chest.Image
+				watch.Samples = (watch.Samples or 0) + 1
+				watch.Drift = math.max(watch.Drift or 0, (at - watch.First).Magnitude)
+			end
+		end)
+		return function()
+			connection:Disconnect()
+		end
+	end
+	UiSpec.AddMenuChain({ "spy", "relic_chest_states" }, BAG_PANEL, {
+		{ "relics_chest_tab", "RacerBackpack", "Panel/Tabs/RelicsTab", "chest_tiles" },
+		{ "relics_chest_tile", "RacerBackpack", "Panel/Items/relic_chest_raga", "chest_menu" },
+		{ "relics_chest_open", MENU, "Menu/Open", "chest_opening", { Before = watchChest } },
+	})
+	table.insert(UiSpec.Clicks, {
+		Id = "relics_chest_reveal_close",
+		Gui = "RacerSidekickReveal",
+		Path = "Tap",
+		Prepare = { KeepPanels = true, Showcase = false },
+		Expect = { Remote = false, After = { "chest_reveal_closed" } },
+	})
+	local rewardsPrepare = only()
+	rewardsPrepare.RequireShown, rewardsPrepare.WaitSeconds = true, 0.5
+	table.insert(UiSpec.Clicks, {
+		Id = "boss_rewards_close",
+		Gui = "RacerBossRewards",
+		Path = "Panel/Header/CloseButton",
+		Prepare = rewardsPrepare,
+		NeedSetup = { "spy", "boss_rewards_open" },
+		Expect = { Remote = false, After = { "boss_rewards_closed" } },
+	})
 end
 
 return UiSpec
