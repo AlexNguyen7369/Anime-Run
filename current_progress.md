@@ -118,6 +118,7 @@
 115. 2026-11-06 — Alex Nguyen — Added small white floating particles to the boss arena's zone profile, not yet seen in Studio.
 116. 2026-11-06 — Alex Nguyen — Drew and uploaded art for 5 Relics and 2 chests after owner approval and set the Relic rows' images.
 117. 2026-11-06 — Alex Nguyen — Built the boss Phase 2 server and the line run; `[CARTEST] END pass=2 fail=0` on `boss_event` and `relics`, with client visuals not yet seen.
+118. 2026-11-06 — Alex Nguyen — Wrote the rule for Raga growing 25% in the Phase 2 scream cutscene, with no code yet.
 
 ## What's next
 **Build the Phase 2 presentation, rewards popup and chest opening on the client.**
