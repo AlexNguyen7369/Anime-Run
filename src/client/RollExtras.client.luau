@@ -129,11 +129,13 @@ local function refreshAutoSell()
 	autoSell.Visible = player:GetAttribute("AutoRoll") ~= false
 		and player:GetAttribute("NeedsStarter") ~= true
 		and player:GetAttribute("BossEvent") ~= true
+		and ReplicatedStorage:GetAttribute("BossEventPhase") == nil -- clear of the boss invite
 		and not PanelSwitch.AnyOpen()
 end
 for _, name in { "AutoSell", "AutoSellChance", "AutoRoll", "NeedsStarter", "BossEvent" } do
 	player:GetAttributeChangedSignal(name):Connect(refreshAutoSell)
 end
+ReplicatedStorage:GetAttributeChangedSignal("BossEventPhase"):Connect(refreshAutoSell)
 PanelSwitch.OnChange(refreshAutoSell)
 refreshAutoSell()
 

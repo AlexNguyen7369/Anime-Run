@@ -1325,29 +1325,55 @@ function Module.Build(h)
 			end
 			return total > 0 and shown_ / total or 0
 		end
-		local function allTired()
-			for n = 1, #ids do
+		local TEAM_SLOTS = 2 -- BossTeam below holds ids[1] and ids[2]; a slot with no character is never tired (TeamHud render)
+		local function sameColour(a, b)
+			return math.abs(a.R - b.R) + math.abs(a.G - b.G) + math.abs(a.B - b.B) < 0.01 -- float32 only
+		end
+		-- nil when every team slot is tired grey and none active, else what is not.
+		local function tiredProblem()
+			for n = 1, TEAM_SLOTS do
 				local slot = row["Slot" .. n]
 				local ring = slot:FindFirstChildOfClass("UIStroke")
-				if ring.Color ~= grey or slot.BackgroundColor3 ~= tired or slot.Glow.BackgroundTransparency ~= 1 then
-					return false
+				if not sameColour(ring.Color, grey) then
+					return "Slot" .. n .. " ring " .. tostring(ring.Color)
+				elseif not sameColour(slot.BackgroundColor3, tired) then
+					return "Slot" .. n .. " background " .. tostring(slot.BackgroundColor3)
+				elseif slot.Glow.BackgroundTransparency ~= 1 then
+					return "Slot" .. n .. " glow " .. slot.Glow.BackgroundTransparency
 				end
 			end
-			return true
+			return nil
 		end
 		local mainTeam = h.player:GetAttribute("Team")
 		h.player:SetAttribute("BossTeam", ids[1] .. "," .. ids[2])
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+		-- Slot 1 shows the main Team's first too: only with BossEvent here does the row read BossTeam.
 		check(
 			res,
-			"minibar_event_team_slot1",
+			"minibar_in_event",
 			waitIs(function()
-				return arcVisible(1)
+				return h.player:GetAttribute("BossEvent")
 			end, true),
 			true
 		)
-		check(res, "minibar_event_team_slot2", arcVisible(2), true)
-		check(res, "minibar_event_team_only_two", arcVisible(3), false)
+		for n = 1, TEAM_SLOTS do
+			check(
+				res,
+				"minibar_event_team_slot" .. n,
+				waitIs(function()
+					return arcVisible(n)
+				end, true),
+				true
+			)
+		end
+		check(
+			res,
+			"minibar_event_team_only_two",
+			waitIs(function()
+				return arcVisible(3)
+			end, false),
+			false
+		)
 		check(res, "minibar_main_team_kept", h.player:GetAttribute("Team"), mainTeam)
 		local bonus = hud:FindFirstChild("Bonus", true)
 		-- Owner 2026-11-06: the badge reads the event team's own bonus, never the main Team's.
@@ -1383,7 +1409,7 @@ function Module.Build(h)
 		-- A whole wait's start: from about empty, with a run slot that would otherwise be active.
 		h.player:SetAttribute("RunSlot", 1)
 		setup(res, "boss_ui_wait:" .. wait)
-		check(res, "minibar_wait_all_tired", waitIs(allTired, true), true)
+		check(res, "minibar_wait_all_tired", waitIs(tiredProblem, nil), nil)
 		local slotOne = row:FindFirstChild("Slot1")
 		local thin = slotOne and slotOne:FindFirstChildOfClass("UIStroke").Thickness
 		check(res, "minibar_wait_none_active", thin, 2)
@@ -1404,7 +1430,7 @@ function Module.Build(h)
 		ends = h.player:GetAttribute("BossWaitEndsAt")
 		local worst, last, falls = 0, 0, 0
 		while ends and ends - workspace:GetServerTimeNow() > 0.03 do
-			for n = 1, #ids do
+			for n = 1, TEAM_SLOTS do
 				worst = math.max(worst, math.abs(arcShare(n) - expectShare(ends)))
 			end
 			falls += arcShare(1) < last - 0.001 and 1 or 0
@@ -1415,10 +1441,17 @@ function Module.Build(h)
 		check(res, "minibar_wait_fill_never_falls", falls, 0)
 		task.wait(0.1)
 		check(res, "minibar_wait_full_at_end", arcShare(1), 1)
-		check(res, "minibar_wait_still_tired_at_end", allTired(), true)
+		check(res, "minibar_wait_still_tired_at_end", tiredProblem(), nil)
 
 		setup(res, "boss_ui_wait:none")
-		check(res, "minibar_revive_leaves_grey", waitIs(allTired, false), false)
+		check(
+			res,
+			"minibar_revive_leaves_grey",
+			waitIs(function()
+				return tiredProblem() ~= nil
+			end, true),
+			true
+		)
 		h.player:SetAttribute("RunSlot", nil)
 		h.player:SetAttribute("BossTeam", nil)
 		state(res, "Idle", 0, 0, 0, false)

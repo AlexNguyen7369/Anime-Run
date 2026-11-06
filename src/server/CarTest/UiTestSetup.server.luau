@@ -545,6 +545,7 @@ function setups.bag_spares_clear(player)
 end
 
 function setups.restore(player)
+	setups.bag_spares_clear(player)
 	restoreBossUi(player)
 	setups.sidekick_tutorial_restore(player)
 	restoreSidekicks(player)
@@ -1629,6 +1630,9 @@ local CLIENT_SETUPS = {
 	sidekick_states = true,
 	duel_countdown = true, -- ui_boss: the Invite stays through a real Duel message
 	relic_states = true,
+	bag_full_hit = true, -- ui_bag_full
+	bag_full_sold = true,
+	bag_spares_clear = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1738,6 +1742,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "bag_full_sold" then
+			setups.bag_spares_clear(player)
 		elseif restoreId then
 			return -- lose_event and emphasized_next put themselves back
 		elseif CLIENT_SETUPS[request] then

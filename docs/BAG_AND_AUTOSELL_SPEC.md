@@ -44,6 +44,6 @@ Branch `inventory`, Parent `walkspeed_1`, Origin `{ -1, 1 }`, Direction `{ -1, 0
 
 ## UI
 
-- `Client/RollOptions` holds one Auto Sell popup: an on/off toggle and "1 in [ ]". An AUTO SELL row in Settings, an AUTO SELL button beside AUTO in the roll view and a button under the roll (owner 2026-11-06), reading "Auto Sell: OFF" or "Auto Sell: 1 in N", open it. The button shows while auto roll is on, outside events and open panels.
+- `Client/RollOptions` holds one Auto Sell popup: an on/off toggle and "1 in [ ]". An AUTO SELL row in Settings, an AUTO SELL button beside AUTO in the roll view and a button under the roll (owner 2026-11-06), reading "Auto Sell: OFF" or "Auto Sell: 1 in N", open it. The button shows while auto roll is on, with no boss event running and no panel open.
 - The Backpack's Characters tab shows `Bag used/cap`. A Sell button acts on the chosen character when it has spares. A Mass sell button enters select mode: tiles with spares toggle a check mark, tiles with none dim, and a bar offers Select all, Sell and Cancel.
 - On each `BagFullHit`: red "BAG FULL" text with no background restarts, fades and is gone at 1 s (owner 2026-11-05). A dark text stroke keeps it readable (**proposed**). There is no fixed banner.
