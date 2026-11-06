@@ -60,8 +60,8 @@ function RelicService.Grant(player, id)
 	return true, entry
 end
 
--- A defeat's pay (design doc 4.37): 1 Relic, then its own draw for the Big Raga Sidekick. SidekickService.Grant's full bag
--- refusal stands: that win is lost and the Relic stays. Returns true, the Relic's row, whether the Sidekick came; or false, reason.
+-- A defeat's pay (design doc 4.37): 1 Relic, then its own draw for the Big Raga Sidekick. That drop may overflow the bag.
+-- Returns true, the Relic's row, whether the Sidekick came; or false, reason.
 function RelicService.GrantDefeat(player, boss, rng)
 	local row = RelicService.Roll(boss, rng)
 	if not row then
