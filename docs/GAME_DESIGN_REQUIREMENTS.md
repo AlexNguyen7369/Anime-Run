@@ -412,6 +412,8 @@ before any Studio work.
 - Daily login's guaranteed reward (owner 2026-11-05; replaces "rarest unowned character" of 2026-10-28): the rarest unowned
   character of Legendary or below, since players progress past that. `DailyLoginConfig.MAX_GUARANTEED_RARITY`, tunable by the owner.
 
+- World 2 (owner 2026-11-05): the unreleased characters are projected for the World 2 update, "coming soon". **Open question:** is `punch_void` included, and does the wait for `feature/alex/speed-balance` still apply?
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -472,6 +474,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-05: owner: unreleased characters projected for the World 2 update, "coming soon" (4.39); 2 open questions.
 - 2026-11-05: owner: display names Jinhu, Golioth, Sha Hain and series name Solo Levelup (4.39).
 - 2026-11-05: owner: Daily login's guaranteed reward gives at most a Legendary; series name Saw Man (4.39).
 - 2026-11-05: owner: Eternal tier above Secret, later tiers planned, curve anchor 7e37 = 1000 studs/s, series Saw Man and Solo Levelup (4.39, amends 4.3, 4.13, 4.19, 4.22). Orchestrator default: Best Roll moves to a new log-scale store (4.39).

@@ -87,6 +87,7 @@
 84. 2026-11-05 — Alex Nguyen — Added the Eternal tier, Chainsaw Mann and Solo Levelin series with 12 uploaded characters, the RarestCar log score and updated tests on orch/roster/chars1, none of it run in Studio.
 85. 2026-11-05 — Alex Nguyen — Fixed three stale lines the rules audit found on orch/roster/chars1.
 86. 2026-11-05 — Alex Nguyen — Applied the owner's rulings on orch/roster/chars1: Daily reward capped at Legendary, series names Saw Man and Solo Levelup, display names Jinhu, Golioth and Sha Hain, with tests updated.
+87. 2026-11-05 — Alex Nguyen — Recorded in design doc 4.39 that the unreleased characters are projected for the World 2 update.
 
 ## What's next
 **Run `speed_probe` and the `catalog`, `gacha`, stamina, workshop and `rarest_board` scenarios in Studio on `orch/roster/chars1`, once the owner releases `feature/alex/speed-balance`.**
