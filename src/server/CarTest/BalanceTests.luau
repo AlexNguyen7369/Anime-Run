@@ -22,6 +22,15 @@ local function balance()
 	end
 	flag("balance_curve_rises", rising)
 	flag("balance_curve_top_is_cap", RaceConfig.CruiseOf(1e300) == RaceConfig.MAX_CRUISE, RaceConfig.CruiseOf(1e300))
+	-- design doc 4.39: the curve runs on to 7e37 = 1000 studs/s, while MAX_CRUISE holds movement at 800
+	local last, beforeLast = curve[#curve], curve[#curve - 1]
+	flag(
+		"balance_curve_end_anchor",
+		last[1] == 7e37 and last[2] == 1000 and beforeLast[1] == 7e31 and beforeLast[2] == 800,
+		last[1],
+		7e37
+	)
+	flag("balance_max_cruise_stays_800", RaceConfig.MAX_CRUISE == 800, RaceConfig.MAX_CRUISE, 800)
 
 	local enemiesOnCurve, enemiesRise, recBeats = true, true, true
 	for n = 1, 10 do
@@ -51,8 +60,9 @@ local function balance()
 	end
 	flag("balance_speed_is_whole", whole)
 
-	-- The current pool's best kit: Secret, rebirth 20, all 35 points in Speed (+70%), 5 tree tiers (+50%), the best Dojo
-	-- squad at level 10 (+190%), best potion, preset, best aura and trail. It reaches 800 studs/s, no further.
+	-- The best kit of the 47 characters before Eternal (design doc 4.13): Secret, rebirth 20, all 35 points in Speed (+70%),
+	-- 5 tree tiers (+50%), the best Dojo squad at level 10 (+190%), best potion, preset, best aura and trail. It reaches
+	-- 800 studs/s, no further. Eternals pass that Speed and are held at MAX_CRUISE (design doc 4.39), checked below.
 	local function best(list)
 		local top = 1
 		for _, item in list do
@@ -60,24 +70,37 @@ local function balance()
 		end
 		return top
 	end
-	local kit = RaceConfig.Speed(
-		{ Rarity = "Secret", Category = "Balanced" },
-		RaceConfig.SpeedMulti(
-			35,
-			BoostConfig.ByCategory.Speed[3].Multiplier,
-			true,
-			best(MarketConfig.Items.Aura),
-			best(MarketConfig.Items.Trail),
-			0.5 + 1.9,
-			RebirthConfig.SpeedMulti(20)
-		)
+	local kitMulti = RaceConfig.SpeedMulti(
+		35,
+		BoostConfig.ByCategory.Speed[3].Multiplier,
+		true,
+		best(MarketConfig.Items.Aura),
+		best(MarketConfig.Items.Trail),
+		0.5 + 1.9,
+		RebirthConfig.SpeedMulti(20)
 	)
+	local kit = RaceConfig.Speed({ Rarity = "Secret", Category = "Balanced" }, kitMulti)
 	flag(
 		"balance_best_kit_near_800",
 		RaceConfig.CruiseOf(kit) >= 780 and RaceConfig.CruiseOf(kit) <= 800,
 		RaceConfig.CruiseOf(kit),
 		800
 	)
+	local eternal, secret = { Rarity = "Eternal", Category = "Balanced" }, { Rarity = "Secret", Category = "Balanced" }
+	local eternalKit = RaceConfig.Cruise(eternal, kitMulti)
+	flag("balance_eternal_best_kit_capped", eternalKit == RaceConfig.MAX_CRUISE, eternalKit, RaceConfig.MAX_CRUISE)
+	flag(
+		"balance_eternal_above_secret",
+		RaceConfig.Cruise(eternal, 1) > RaceConfig.Cruise(secret, 1),
+		RaceConfig.Cruise(eternal, 1)
+	)
+	flag("balance_eternal_base_50qd", RaceConfig.Speed(eternal, 1) == 5e16, RaceConfig.Speed(eternal, 1), 5e16)
+	-- 1e34 Speed sits between the 800 and 1000 anchors; past the top anchor too
+	local capped = true
+	for _, multi in { 2e17, 1e30, 1e100 } do
+		capped = capped and RaceConfig.Cruise(eternal, multi) == RaceConfig.MAX_CRUISE
+	end
+	flag("balance_eternal_capped_at_huge_multi", capped)
 	flag("balance_rebirth_5_is_x100", RebirthConfig.SpeedMulti(5) == 100, RebirthConfig.SpeedMulti(5), 100)
 	local costsRise = #RebirthConfig.COSTS == RebirthConfig.MAX_LEVEL
 		and #RebirthConfig.SPEED_TOTALS == RebirthConfig.MAX_LEVEL

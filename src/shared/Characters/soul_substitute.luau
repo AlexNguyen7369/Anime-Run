@@ -6,7 +6,7 @@ return {
 	Rarity = "Legendary",
 	Chance = 2e8,
 	SpeedMulti = 70,
-	Order = 32,
+	Order = 38,
 	Category = "Balanced",
 	Series = "soul",
 	Archetype = "swordsman",

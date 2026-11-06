@@ -6,7 +6,7 @@ return {
 	Rarity = "Legendary",
 	Chance = 1e8,
 	SpeedMulti = 60,
-	Order = 30,
+	Order = 36,
 	Category = "Marathoner",
 	Series = "sea",
 	Archetype = "brawler",

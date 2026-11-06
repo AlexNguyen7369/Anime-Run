@@ -2526,12 +2526,12 @@ local function styleProblems(card, spec)
 	if not (reel and reel:IsA("GuiObject") and reel.ClipsDescendants) then
 		table.insert(bad, "Reel does not clip its cars (ClipsDescendants)")
 	end
-	-- docs/ROLL_ANIMATION_SPEC.md "Views": the odds gradient comes from the rarity; Mythic and Secret are multi-colour
+	-- docs/ROLL_ANIMATION_SPEC.md "Views": the odds gradient comes from the rarity; Mythic, Secret and Eternal are multi-colour
 	local resultOdds = partOf(card, "ResultOdds")
 	local oddsGradient = resultOdds and resultOdds:FindFirstChild("OddsGradient")
 	if not (oddsGradient and oddsGradient:IsA("UIGradient")) then
 		table.insert(bad, "ResultOdds has no OddsGradient")
-	elseif spec.Rarity == "Mythic" or spec.Rarity == "Secret" then
+	elseif spec.Rarity == "Mythic" or spec.Rarity == "Secret" or spec.Rarity == "Eternal" then
 		if #oddsGradient.Color.Keypoints < 3 then
 			table.insert(bad, "OddsGradient not multi-colour on a " .. spec.Rarity .. " roll")
 		end
@@ -2562,7 +2562,7 @@ local function styleProblems(card, spec)
 end
 
 -- Rarity effects at landing: Ring only from Epic, Burst only from Legendary (Legendary and Mythic must show it),
--- the full-screen Takeover only for Secret. Whether Legendary+ also shows the Ring is not specified: not tested.
+-- the full-screen Takeover only for Secret and Eternal (design doc 4.39). Whether Legendary+ also shows the Ring is not specified: not tested.
 local function effectProblems(card, spec)
 	local bad = {}
 	local r = rarityRank(spec.Rarity)
@@ -2582,11 +2582,12 @@ local function effectProblems(card, spec)
 	local sgui = playerGui:FindFirstChild(UiSpec.Showcase.Gui)
 	local takeover = sgui and sgui:FindFirstChild(UiSpec.Showcase.Takeover, true)
 	local shown = takeover ~= nil and takeover:IsA("GuiObject") and effectivelyVisible(takeover)
-	if spec.Rarity ~= "Secret" and shown then
+	local wantsTakeover = spec.Rarity == "Secret" or spec.Rarity == "Eternal"
+	if not wantsTakeover and shown then
 		table.insert(bad, "Takeover shown on a " .. spec.Rarity .. " roll")
 	end
-	if spec.Rarity == "Secret" and not shown then
-		table.insert(bad, "no Takeover on a Secret roll")
+	if wantsTakeover and not shown then
+		table.insert(bad, "no Takeover on a " .. spec.Rarity .. " roll")
 	end
 	return bad
 end
@@ -3023,7 +3024,7 @@ end
 -- An enlarged Hold sample's problems once its settled geometry is in (SampleRoll adds contentOutside when the body
 -- is back at 1x, at the latest when Hold ends). A sample whose geometry never got measured reports that.
 local function settledProblems(rec, hold)
-	local deadline = os.clock() + holdFor("Secret") + 2
+	local deadline = os.clock() + holdFor("Eternal") + 2
 	while hold.geomPending and not rec.done and os.clock() < deadline do
 		task.wait(0.05)
 	end
@@ -3163,14 +3164,14 @@ function K.shownChecks(res, rec, key, prefix)
 			s.waveLand ~= nil and s.waveLand < 0.5 and s.waveHoldEnd ~= nil and s.waveHoldEnd >= 0.95
 		)
 	end
-	-- White before Land, this roll and every roll sampled after a Mythic or Secret one
+	-- White before Land, this roll and every roll sampled after a Mythic, Secret or Eternal one
 	local tinted, afterMoving = keysOf(s.oddsTinted), 0
 	if s.oddsFrames == 0 then
 		table.insert(tinted, "no PopIn or Spin frame sampled")
 	end
 	for i = 2, #events.recs do
 		local before = rarityOf(events.recs[i - 1].ev.id)
-		if before == "Mythic" or before == "Secret" then
+		if before == "Mythic" or before == "Secret" or before == "Eternal" then
 			afterMoving += 1
 			for _, colour in keysOf(events.recs[i].shown.oddsTinted) do
 				table.insert(tinted, "after " .. before .. ": " .. colour)
@@ -3180,7 +3181,7 @@ function K.shownChecks(res, rec, key, prefix)
 	check(
 		res,
 		prefix .. "spin_odds_neutral",
-		("%s (%d rolls after a Mythic or Secret)"):format(table.concat(tinted, ", "), afterMoving),
+		("%s (%d rolls after a Mythic, Secret or Eternal)"):format(table.concat(tinted, ", "), afterMoving),
 		"plain white",
 		#tinted == 0
 	)

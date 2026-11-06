@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Upload build/avatar_glb/<id>.glb as Model assets under the owner's account (Open Cloud) and write the id registry.
-#   ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required. python3 tools/blender/upload_avatar.py [<id> ...]
+#   ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required. python3 tools/blender/upload_avatar.py [--dry-run] [<id> ...]
+#   --dry-run: no network, no writes, lists what would upload.
 # Display names use the Id only, never a real name (design doc 5). Ids already in avatar_assets.json are skipped.
 import json
 import os
@@ -63,15 +64,21 @@ def write_registry(ledger):
 
 def main():
 	ledger = json.load(open(LEDGER)) if os.path.exists(LEDGER) else {}
-	ids = sys.argv[1:] or sorted(f[:-4] for f in os.listdir(GLB) if f.endswith(".glb"))
+	dry = "--dry-run" in sys.argv
+	named = [a for a in sys.argv[1:] if a != "--dry-run"]
+	ids = named or sorted(f[:-4] for f in os.listdir(GLB) if f.endswith(".glb"))
 	for cid in ids:
 		if cid in ledger:
+			continue
+		if dry:
+			print("DRY upload", cid, os.path.getsize(os.path.join(GLB, cid + ".glb")), "bytes")
 			continue
 		ledger[cid] = upload(cid)
 		with open(LEDGER, "w") as f:
 			json.dump(ledger, f, indent=1, sort_keys=True)
 		print("UPLOADED", cid, ledger[cid], flush=True)
-	write_registry(ledger)
+	if not dry:
+		write_registry(ledger)
 
 
 main()

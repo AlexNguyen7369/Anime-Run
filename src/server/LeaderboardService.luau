@@ -85,6 +85,14 @@ local function whole(value)
 	return math.min(math.floor(value), 9e18)
 end
 
+local RAREST_SCALE = 1e6
+
+-- A RarestCar score: log scale, because an OrderedDataStore holds int64 (about 9.22e18) and Eternal odds pass that.
+-- The + 1 keeps the catch-all's Chance of 1 above 0, which means no score.
+local function rarestScore(chance)
+	return math.floor(math.log10(chance) * RAREST_SCALE) + 1
+end
+
 -- The player's score on every board, as integers.
 function LeaderboardService.Scores(player)
 	local rarest = 0
@@ -98,7 +106,7 @@ function LeaderboardService.Scores(player)
 	return {
 		MoneyEarned = whole(player:GetAttribute("MoneyEarned")),
 		Rolls = whole(player:GetAttribute("Rolls")),
-		RarestCar = whole(rarest),
+		RarestCar = rarest >= 1 and rarestScore(rarest) or 0,
 	}
 end
 
@@ -150,18 +158,23 @@ end
 -- The catalog car a RarestCar score stands for, or nil.
 local function carByChance(score)
 	for _, spec in CharacterCatalog.All() do
-		if spec.Chance == score then
+		if type(spec.Chance) == "number" and rarestScore(spec.Chance) == score then
 			return spec
 		end
 	end
 	return nil
 end
 
+-- The odds of a RarestCar row. A score no character matches (its Chance was retuned) decodes to about its old odds.
+local function rarestOdds(score, spec)
+	return HudFormat.Odds(spec and spec.Chance or 10 ^ ((score - 1) / RAREST_SCALE))
+end
+
 local function rowText(board, rank, entry)
 	local head = string.format("%d. %s", rank, entry.Name)
 	if board.Id == "RarestCar" then
 		local spec = carByChance(entry.Score)
-		return head .. "  " .. (spec and spec.Name .. "  " or "") .. HudFormat.Odds(entry.Score)
+		return head .. "  " .. (spec and spec.Name .. "  " or "") .. rarestOdds(entry.Score, spec)
 	elseif board.Id == "MoneyEarned" then
 		return head .. "  " .. HudFormat.MoneyText(entry.Score)
 	end
@@ -201,7 +214,7 @@ local function renderBestRoll()
 	end
 	local row = (tops.RarestCar or {})[1]
 	local spec = row and carByChance(row.Score)
-	stats.Odds.Text = row and HudFormat.Odds(row.Score) or Config.NO_DATA
+	stats.Odds.Text = row and rarestOdds(row.Score, spec) or Config.NO_DATA
 	stats.Character.Text = spec and spec.Name or ""
 	stats.Player.Text = row and "by " .. row.Name or ""
 	local id = spec and spec.Id or nil

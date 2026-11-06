@@ -1026,7 +1026,7 @@ UiSpec.Showcase = {
 	-- (Racer UI: 38, below the card on small phones; the HUD and its TURBO bar are hidden while the view is open),
 	-- above the Hint, clear of the card, at least MinSize (tap-sized on a phone)
 	AutoButton = { Path = "AutoButton", MinSize = Vector2.new(160, 44), BottomGap = 38 },
-	Takeover = "Takeover", -- Secret only: full-screen frame in RollShowcase during its hold
+	Takeover = "Takeover", -- Secret and Eternal only: full-screen frame in RollShowcase during its hold
 }
 
 -- The compact roll RollToast/Toast ("Compact = no card", owner decision 4): an invisible background, a transparent
@@ -1076,6 +1076,7 @@ UiSpec.RollAnim = {
 			Legendary = 1.5,
 			Mythic = 2.5,
 			Secret = 4,
+			Eternal = 5,
 		},
 		REEL_CARS = 16,
 		LAND_POP = 1.15,
@@ -3259,7 +3260,7 @@ UiSpec.Backpack = {
 	TabOrder = { "Misc", "Trails", "Auras", "Characters" }, -- top to bottom; button <Name>Tab, label text <Name>
 	CharactersTab = "RacerBackpack/Panel/Tabs/CharactersTab",
 	-- Least rare first (the spec's list, not read from GachaConfig), then catalog Order.
-	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+	RarityOrder = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" },
 	PhoneMaxHeight = 500,
 	MaxDecimals = 6, -- digits after the point in a tile's cruise "<n> studs/s" (no float noise)
 	ModelWait = 5, -- s for a tile's ViewportFrame to receive its runner rig
@@ -3271,10 +3272,10 @@ UiSpec.Backpack = {
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
--- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains": 44 rollable characters (the starter is not in the Index)
+-- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains" + design doc 4.39: 56 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
-	Count = 44,
-	Rarities = { Common = 1, Uncommon = 7, Rare = 7, Epic = 9, Legendary = 9, Mythic = 9, Secret = 2 },
+	Count = 56,
+	Rarities = { Common = 1, Uncommon = 9, Rare = 9, Epic = 11, Legendary = 11, Mythic = 11, Secret = 2, Eternal = 2 },
 	-- spec "Event-only characters": also in the Index with their odds; not part of Count / Rarities
 	Events = { ds_water = "rain", jk_night = "night", sea_gold = "gold" },
 }

@@ -6,7 +6,7 @@ return {
 	Rarity = "Rare",
 	Chance = 4000,
 	SpeedMulti = 3.9,
-	Order = 13,
+	Order = 15,
 	Category = "Sprinter",
 	Series = "ds",
 	Archetype = "swordsman",

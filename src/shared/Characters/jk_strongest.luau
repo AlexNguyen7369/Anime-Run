@@ -6,7 +6,7 @@ return {
 	Rarity = "Secret",
 	Chance = 5e18,
 	SpeedMulti = 2800,
-	Order = 47,
+	Order = 57,
 	Category = "Balanced",
 	Series = "jk",
 	Archetype = "mage",

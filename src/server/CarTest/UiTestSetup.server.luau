@@ -870,7 +870,7 @@ do
 			})
 		)
 		task.spawn(function()
-			task.wait(RollAnimConfig.Duration("Secret", true) + GAP) -- a real roll may still be playing
+			task.wait(RollAnimConfig.Duration("Eternal", true) + GAP) -- a real roll may still be playing
 			for _, emphasized in { false, true } do
 				if player.Parent ~= Players then
 					return

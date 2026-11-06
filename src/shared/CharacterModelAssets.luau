@@ -376,6 +376,72 @@ return {
 			Torso = Vector3.new(2.356, 2.56, 1.653),
 		},
 	},
+	saw_blood = {
+		Asset = 83357616073721,
+		Sizes = {
+			Head = Vector3.new(2.359, 5.2, 2.226),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.12, 2.28, 1.44),
+		},
+	},
+	saw_bomb = {
+		Asset = 115518307469588,
+		Sizes = {
+			Head = Vector3.new(2.339, 2.32, 1.995),
+			LeftArm = Vector3.new(1.319, 2.44, 1.119),
+			LeftLeg = Vector3.new(1.08, 2, 1.6),
+			RightArm = Vector3.new(1.32, 2.44, 1.121),
+			RightLeg = Vector3.new(1.08, 2, 1.6),
+			Torso = Vector3.new(2.497, 4.04, 1.64),
+		},
+	},
+	saw_control = {
+		Asset = 128486769488427,
+		Sizes = {
+			Head = Vector3.new(2.604, 5.64, 2.07),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.15, 2.24, 1.44),
+		},
+	},
+	saw_fox = {
+		Asset = 107016875762067,
+		Sizes = {
+			Head = Vector3.new(2.05, 4.08, 1.928),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.2, 2.32, 1.44),
+		},
+	},
+	saw_hero = {
+		Asset = 91708532852487,
+		Sizes = {
+			Head = Vector3.new(2.72, 2.793, 2.4),
+			LeftArm = Vector3.new(1.319, 2.44, 1.119),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.32, 2.44, 1.121),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.12, 2.2, 1.44),
+		},
+	},
+	saw_nervous = {
+		Asset = 109604444970465,
+		Sizes = {
+			Head = Vector3.new(2.56, 2.56, 2.16),
+			LeftArm = Vector3.new(1.273, 2.44, 1.08),
+			LeftLeg = Vector3.new(1.148, 2, 1.6),
+			RightArm = Vector3.new(1.277, 2.44, 1.075),
+			RightLeg = Vector3.new(1.164, 2, 1.6),
+			Torso = Vector3.new(2.2, 2.32, 1.44),
+		},
+	},
 	sea_captain = {
 		Asset = 92259398998895,
 		Sizes = {
@@ -429,6 +495,72 @@ return {
 			RightArm = Vector3.new(1.28, 2.4, 1.08),
 			RightLeg = Vector3.new(1.12, 2, 1.72),
 			Torso = Vector3.new(2.3, 3.85, 3.692),
+		},
+	},
+	solo_beast = {
+		Asset = 104371422577078,
+		Sizes = {
+			Head = Vector3.new(3.2, 3.68, 3),
+			LeftArm = Vector3.new(1.28, 3.84, 1.52),
+			LeftLeg = Vector3.new(1.26, 2, 1.6),
+			RightArm = Vector3.new(1.28, 3.84, 1.52),
+			RightLeg = Vector3.new(1.26, 2, 1.6),
+			Torso = Vector3.new(2.2, 2.28, 1.29),
+		},
+	},
+	solo_blade = {
+		Asset = 124521352977942,
+		Sizes = {
+			Head = Vector3.new(2.84, 2.36, 2.28),
+			LeftArm = Vector3.new(1.58, 2.44, 1.32),
+			LeftLeg = Vector3.new(1.34, 2, 1.72),
+			RightArm = Vector3.new(3.013, 5.676, 5.472),
+			RightLeg = Vector3.new(1.34, 2, 1.72),
+			Torso = Vector3.new(2.2, 3.06, 1.47),
+		},
+	},
+	solo_goliath = {
+		Asset = 118407162154271,
+		Sizes = {
+			Head = Vector3.new(2.84, 4.6, 2.4),
+			LeftArm = Vector3.new(1.983, 2.68, 1.515),
+			LeftLeg = Vector3.new(1.46, 2, 1.76),
+			RightArm = Vector3.new(1.991, 2.68, 1.507),
+			RightLeg = Vector3.new(1.46, 2.015, 1.76),
+			Torso = Vector3.new(2.5, 2.72, 1.44),
+		},
+	},
+	solo_mage = {
+		Asset = 136702809445108,
+		Sizes = {
+			Head = Vector3.new(2.52, 2.763, 2.24),
+			LeftArm = Vector3.new(1.31, 2.44, 1.11),
+			LeftLeg = Vector3.new(1.5, 2, 1.6),
+			RightArm = Vector3.new(1.31, 2.44, 1.11),
+			RightLeg = Vector3.new(1.5, 2, 1.6),
+			Torso = Vector3.new(2.28, 2.84, 1.34),
+		},
+	},
+	solo_monarch = {
+		Asset = 92070078889261,
+		Sizes = {
+			Head = Vector3.new(2.76, 2.88, 2.104),
+			LeftArm = Vector3.new(1.28, 3.607, 1.993),
+			LeftLeg = Vector3.new(1.38, 2.02, 1.64),
+			RightArm = Vector3.new(1.373, 3.739, 1.976),
+			RightLeg = Vector3.new(1.38, 2, 1.64),
+			Torso = Vector3.new(2.25, 2.56, 1.44),
+		},
+	},
+	solo_vice = {
+		Asset = 84810252749463,
+		Sizes = {
+			Head = Vector3.new(2.56, 2.68, 2.197),
+			LeftArm = Vector3.new(1.82, 2.5, 1.56),
+			LeftLeg = Vector3.new(1.35, 2, 1.72),
+			RightArm = Vector3.new(1.82, 2.5, 1.56),
+			RightLeg = Vector3.new(1.35, 2, 1.72),
+			Torso = Vector3.new(2.32, 2.86, 1.722),
 		},
 	},
 	soul_fang = {

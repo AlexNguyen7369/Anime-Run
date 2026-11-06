@@ -6,7 +6,7 @@ return {
 	Rarity = "Mythic",
 	Chance = 1e15,
 	SpeedMulti = 425,
-	Order = 45,
+	Order = 55,
 	Category = "Marathoner",
 	Series = "mha",
 	Archetype = "brawler",

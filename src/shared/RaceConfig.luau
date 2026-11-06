@@ -16,9 +16,11 @@ RaceConfig.RARITY_BASE = {
 	Legendary = 5e6,
 	Mythic = 5e10,
 	Secret = 5e13,
+	Eternal = 5e16, -- proposed (design doc 4.39)
 }
 -- { Speed, studs/s }, ascending (proposed 2026-11-05): Common, Uncommon, Track 1's enemy, Rare, then the enemies of Tracks
--- 2-10 (NpcConfig.Tracks), then the best kit of the current cast at 800. Above the last anchor the runner holds its cruise.
+-- 2-10 (NpcConfig.Tracks), then the best Secret kit at 800, then 1000 (owner OK 2026-11-05, design doc 4.39; MAX_CRUISE
+-- still caps movement until the speed probe supports raising it). Above the last anchor the runner holds its cruise.
 RaceConfig.SPEED_CURVE = {
 	{ 10, 10 },
 	{ 100, 24 },
@@ -35,6 +37,7 @@ RaceConfig.SPEED_CURVE = {
 	{ 1e27, 485.7 },
 	{ 5e29, 653 },
 	{ 7e31, 800 },
+	{ 7e37, 1000 },
 }
 -- Category x Speed (design doc 4.5; placeholders)
 RaceConfig.CATEGORY_SPEED = { Sprinter = 1.25, Balanced = 1, Marathoner = 0.8 }

@@ -6,7 +6,7 @@ return {
 	Rarity = "Legendary",
 	Chance = 3e7,
 	SpeedMulti = 35,
-	Order = 27,
+	Order = 33,
 	Category = "Balanced",
 	Series = "leaf",
 	Archetype = "spirit",

@@ -11,7 +11,7 @@ Owner 2026-11-04. Design doc 4.31 is the rule; this page holds the detail. Displ
 
 ## Phases (names unchanged: PopIn, Spin, Land, Hold, Exit)
 Base times in seconds (placeholders): POP 0.12, SPIN 1.5, LAND 0.2, EXIT 0.2, SWITCH 0.3.
-HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.5, Mythic 2.5, Secret 4.
+HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.5, Mythic 2.5, Secret 4, Eternal 5 (design doc 4.39).
 
 - **Fit to the roll interval**: `TimeScale(interval) = min(1, interval / FIT_INTERVAL)`, with `FIT_INTERVAL` 2.8 (placeholder). It multiplies POP, SPIN, LAND, HOLD and EXIT; SWITCH is not scaled. Non-emphasized Common to Epic therefore finish inside the player's roll interval at every Roll Speed tier (3 s down to 2 s), so roll rate and upgrades do not change for them. An emphasized roll adds 2 x SWITCH, and a longer roll (for example Legendary, 0.52 s at 3 s) waits that much more before the next roll.
 - The server sends the player's interval as a new last argument of `RollResult`, and uses the same interval in `RollAnimConfig.Duration` and `ExtraPause`. With no interval given, the base `ROLL_INTERVAL` applies.
@@ -29,8 +29,8 @@ HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.
 ## Views
 - **Normal roll (top centre, no card)**: bare figure, odds, name and the landing ring at the very top centre of the screen (`COMPACT_TOP` 8 px, placeholder; owner 2026-11-04), above the world view rather than over the player. If the top-right row would overlap it (small phones), it sits just under that row. Figure height 110 px (placeholder, owner 2026-11-04: smaller), capped at 30 % of screen height on small screens. It still hides while a panel is open (design doc 4.20 rulings stay), and a click still opens the enlarged view.
 - **Emphasized roll (screen centre)**: `GachaConfig.IsEmphasized`, unchanged. Dim and blur stay. No visible card body: large figure, gradient odds above it, outlined name below it, a rarity-coloured crystal shape behind it, smaller rarity and cruise text, and NEW, +1 COPY and TURBO badges. "Tap anywhere to close" and the AUTO toggle stay.
-- The odds gradient colours come from the rarity; Secret and Mythic use a slowly moving multi-colour gradient. The crystal is built from our own rotated frames and gradients, with no uploaded or copied art.
-- Secret takeover stays, and tap to skip stays. Its dark screen and title last about 1 s (placeholder), then clear so the figure shows for the rest of the hold; the rainbow border stays.
+- The odds gradient colours come from the rarity; Mythic, Secret and Eternal use a slowly moving multi-colour gradient. The crystal is built from our own rotated frames and gradients, with no uploaded or copied art.
+- Secret takeover stays, Eternal gets it too with its own title (design doc 4.39), and tap to skip stays. Its dark screen and title last about 1 s (placeholder), then clear so the figure shows for the rest of the hold; the rainbow border stays.
 
 ## Performance
 - No hitch at Spin start: rigs are built before they are shown, reused between rolls, and only the visible view draws the cycle. Viewports that are not visible do not rebuild rigs.

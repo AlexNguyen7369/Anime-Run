@@ -23,7 +23,7 @@ GachaConfig.PER_POINT = { -- each point adds this to its multi (additive, easier
 	Stamina = 0.05, -- +5 % stamina per point (placeholder, design doc 4.6; StaminaConfig.Multi)
 }
 
-GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+GachaConfig.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" }
 GachaConfig.RARITY_COLORS = {
 	Common = Color3.fromRGB(180, 180, 180),
 	Uncommon = Color3.fromRGB(90, 200, 90),
@@ -32,6 +32,7 @@ GachaConfig.RARITY_COLORS = {
 	Legendary = Color3.fromRGB(255, 170, 40),
 	Mythic = Color3.fromRGB(255, 70, 110),
 	Secret = Color3.fromRGB(20, 20, 20),
+	Eternal = Color3.fromRGB(60, 235, 225), -- proposed (design doc 4.39)
 }
 
 -- Workshop Showcase (docs/WORKSHOP_SPEC.md "Showcase", owner 2026-10-22): duplicates are never sold, they add a

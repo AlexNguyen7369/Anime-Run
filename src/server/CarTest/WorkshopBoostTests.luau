@@ -1,7 +1,7 @@
 --!nonstrict
 -- BRIEF: design doc 4.19 and docs/WORLD_REDESIGN_SPEC.md section 5 "Workshop stat boost" (owner 2026-11-03), goal
 -- core c4: `workshop_boost`. Never loosen a limit to make it pass. The point values and percentages are the doc's
--- placeholders, written here as literals (Common 1 .. Secret 7, x 5 %, level scale 1 + 0.1 x (level - 1)).
+-- placeholders, written here as literals (Common 1 .. Secret 7, Eternal 8, x 5 %, level scale 1 + 0.1 x (level - 1)).
 --
 -- API the test reads:
 --   Shared/Workshop.Boost(squadSpecs, level) -> fraction added to the chosen stat; Workshop.CleanStat(stat)
@@ -74,6 +74,7 @@ function Tests.workshop_boost()
 	local cases = {
 		{ "3 Commons", specs("Common", "Common", "Common"), 1, 0.15 },
 		{ "3 Secrets", specs("Secret", "Secret", "Secret"), 1, 1.05 },
+		{ "3 Eternals", specs("Eternal", "Eternal", "Eternal"), 1, 1.2 }, -- design doc 4.39, 4.19
 		{ "Rare Epic Legendary", specs("Rare", "Epic", "Legendary"), 1, 0.6 },
 		{ "Uncommon Mythic", specs("Uncommon", "Mythic"), 1, 0.4 },
 		{ "empty", {}, 1, 0 },

@@ -29,6 +29,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 4.2-4.8 and 7. Numbers are
 | Legendary | 24 |
 | Mythic | 27 |
 | Secret | 30 (owner 2026-11-02) |
+| Eternal | 32 (proposed, design doc 4.39) |
 
 - Effective stamina, fixed for the whole run when it starts (all multipliers placeholders, in `Shared/StaminaConfig`):
 
@@ -115,7 +116,7 @@ Stamina = Base(rarity or override)
 ## Speed (owner 2026-11-01, design doc 4.13)
 
 - Speed of the active runner = `RarityBase x CategorySpeed x SpeedMulti`, whole, no cap. Cruise = `RaceConfig.CruiseOf(Speed)`, capped at
-  `MAX_CRUISE` (`docs/SPEED_BALANCE_SPEC.md`). RarityBase (proposed): Common 100, Uncommon 300, Rare 1,200, Epic 20k, Legendary 5m, Mythic 50b, Secret 50t.
+  `MAX_CRUISE` (`docs/SPEED_BALANCE_SPEC.md`). RarityBase (proposed): Common 100, Uncommon 300, Rare 1,200, Epic 20k, Legendary 5m, Mythic 50b, Secret 50t, Eternal 50qd.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail x rebirth total. Each team slot has its own aura and trail; they scale only that slot.
 - Fixed for the whole run at run start (like stamina); no gain while running.

@@ -67,7 +67,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.
 - The drain rate depends on rarity (owner 2026-11-02): Commons tire at about 12-15 s and Secrets at 30 s. Seconds of
-  running (in-between values proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30.
+  running (in-between values proposed): Common 13.5, Uncommon 15.5, Rare 18, Epic 21, Legendary 24, Mythic 27, Secret 30, Eternal 32 (proposed, 4.39).
 - Speed matters more than stamina (owner 2026-10-30): the rarity spread in stamina is small. A team clears a few
   tracks per run and progresses track by track through checkpoints (4.15), not the whole chain in one run.
 - While a runner runs, a vertical blue stamina bar is fixed to the right of its visible character (owner 2026-11-02),
@@ -157,7 +157,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Each character has a fixed base Speed set only by its rarity and its category (4.5). The character's `SpeedMulti` never
   enters it. New players run slow.
 - Base Speed by rarity, Balanced (proposed): Common 100, Uncommon 300, Rare 1,200, Epic 20k, Legendary 5m, Mythic 50b, Secret
-  50t. Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
+  50t, Eternal 50qd (4.39). Category multiplies it: Sprinter x1.25, Balanced x1, Marathoner x0.8 (4.5).
 - Late game (owner 2026-11-05): the enemies of Tracks 9-10 are in the octillions. Early game: Track 1's enemy and length stop
   a player until they have a full team of Rares with stamina buffs; better teams pass sooner, and weaker teams still earn
   through exhaustion pay (4.3).
@@ -238,8 +238,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina. The choice is saved
   (`WorkshopStat`, default Money) and can be changed at any time.
 - The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
-  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
-  sum x 5% (placeholders) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
+  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7, Eternal 8 (proposed, 4.39); the
+  sum x 5% (placeholders) is the boost. 3 Commons = +15%, 3 Secrets = +105%, 3 Eternals = +120%. Empty slots give 0.
   Copies do not count (proposed).
 - Workshop levels stay (bought with Money, same prices) and scale the boost: boost x (1 + 0.1 x (level - 1)) (proposed
   placeholder; level 10 = x1.9).
@@ -280,7 +280,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 
 ### 4.22 Collection cards: Index and Backpack Characters (owner 2026-11-03)
 - Layout ideas from the owner's reference screenshot, no copied art. Index tiles and Backpack Characters tiles share one
-  card (`Components.CardFace`): rarity-tinted background, rarity inner border (Secret rainbow), the character's upper
+  card (`Components.CardFace`): rarity-tinted background, rarity inner border (Secret and Eternal rainbow), the character's upper
   body filling the card, Speed in gold above a bold name, category badge top right. Outer border: green = on the Team,
   white = picked (Backpack), dark otherwise. Sizes, colours and cell counts are **proposed** placeholders.
 - Index: undiscovered cards stay a black silhouette with "?", rarity and public odds; discovered cards add name, Speed,
@@ -396,6 +396,19 @@ before any Studio work.
 - It has the same client-side effect as `NinjaRun` (4.23): air streaks and foot dust while moving, free, display only, no gameplay
   effect. REDUCED EFFECTS removes the dust. NPCs get the pose, not the effect.
 
+### 4.39 Tiers above Secret and two new series (owner 2026-11-05)
+- **Eternal** is a rarity tier above Secret. Tiers keep growing with updates: Void and Nebula come later. Void and above are
+  **Overspeed** tiers with a per-character passive, not built yet.
+- Eternal (all proposed): base Speed 5e16 (50qd), stamina 32 s, Dojo rarity points 8, `Chance` band 1e19 to 5e19. On screen it is
+  at least as loud as Secret: the same roll cue and full-screen takeover, with its own colour.
+- Curve anchor Speed 7e37 = 1000 studs/s (owner OK). `MAX_CRUISE` stays 800 until the speed probe supports 1000 per
+  `docs/SPEED_BALANCE_SPEC.md`, so movement stays capped until then.
+- Two new Series: Chainsaw Mann (id `saw`) and Solo Levelin (id `solo`), 6 characters each. Cast, presets and numbers:
+  `docs/CHARACTER_GACHA_SPEC.md`. Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
+- Best Roll pedestal (orchestrator default, owner to be told): Eternal odds pass the int64 limit of an OrderedDataStore, so the
+  RarestCar board stores a log-scale score in a new store, `LB_RarestCar_v2`. `LB_RarestCar_v1` stays untouched (4.16). The new
+  store starts empty, so the pedestal refills as players join.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -456,6 +469,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-05: owner: Eternal tier above Secret, later tiers planned, curve anchor 7e37 = 1000 studs/s, series Chainsaw Mann and Solo Levelin (4.39, amends 4.3, 4.13, 4.19, 4.22). Orchestrator default: Best Roll moves to a new log-scale store (4.39).
 - 2026-11-05: owner: Speed is a whole number with Tracks 9-10 in the octillions, and a curve turns it into studs/s (4.13). Track 1's enemy needs a full Rare team with stamina buffs (4.3). Rebirth gives a high total Speed multi and new costs, 60-100 hours to Track 10 (4.14). Category multiplies the Speed number (4.5). A loss keeps the won tracks (section 2). Cap test for 1000+ studs/s pending. `docs/SPEED_BALANCE_SPEC.md`.
 - 2026-11-04: owner: UI feedback pass: impact, motion and sound paired across the UI; ServerStorage impact folder copied to the client at start; up to 4 extra sounds (4.33, UI_FEEDBACK_SPEC).
 - 2026-11-04: owner: universal run: every character without a `RunStyle` gets the deep speed lean and the ninja run's effect (4.34).

@@ -17,6 +17,7 @@ local ATLAS = "rbxassetid://121915283083474"
 local CARD_DARK = Color3.fromRGB(14, 14, 20)
 local GOLD = Color3.fromRGB(255, 214, 72)
 local SECRET_TINT = Color3.fromRGB(96, 56, 170)
+local RAINBOW_RIM = { Secret = true, Eternal = true } -- design doc 4.22, 4.39
 local SECRET_RIM = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 120)),
 	ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255, 220, 90)),
@@ -265,11 +266,11 @@ function Components.CardFace(tile, spec, config)
 	}, tile)
 	make("UICorner", { CornerRadius = UDim.new(0, 8) }, rim)
 	local rimEdge = make("UIStroke", {
-		Color = spec.Rarity == "Secret" and WHITE or config.RARITY_COLORS[spec.Rarity] or WHITE,
+		Color = RAINBOW_RIM[spec.Rarity] and WHITE or config.RARITY_COLORS[spec.Rarity] or WHITE,
 		Thickness = 3,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, rim)
-	if spec.Rarity == "Secret" then
+	if RAINBOW_RIM[spec.Rarity] then
 		make("UIGradient", { Color = SECRET_RIM, Rotation = 45 }, rimEdge)
 	end
 	local category = make("TextLabel", {

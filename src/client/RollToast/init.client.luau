@@ -74,6 +74,7 @@ local LAND_CUES = {
 	Legendary = "RollLand4",
 	Mythic = "RollLand5",
 	Secret = "RollSecret",
+	Eternal = "RollSecret", -- design doc 4.39: at least as loud as Secret
 }
 local AUTO_BUTTON_SIZE = Vector2.new(180, 44)
 local AUTO_BUTTON_BOTTOM = 38 -- keeps the toggle below the card on small phones
@@ -130,6 +131,11 @@ end
 
 local function rarityRank(spec)
 	return table.find(GachaConfig.RARITY_ORDER, spec.Rarity) or 1
+end
+
+-- Secret and every tier above it (design doc 4.39): the full-screen takeover and the moving odds.
+local function isTopTier(spec)
+	return rarityRank(spec) >= table.find(GachaConfig.RARITY_ORDER, "Secret")
 end
 
 -- Card body ------------------------------------------------------------------------------------------------------
@@ -888,7 +894,7 @@ end
 
 -- The odds gradient follows the rarity; Mythic and Secret get the slowly moving multi-colour one.
 local function paintOdds(b, spec)
-	local moving = spec.Rarity == "Mythic" or spec.Rarity == "Secret"
+	local moving = spec.Rarity == "Mythic" or isTopTier(spec)
 	local color = rarityColor(spec)
 	b.OddsGradient.Color = moving and RAINBOW or ColorSequence.new(WHITE:Lerp(color, 0.55), color)
 	b.OddsGradient.Offset = Vector2.new()
@@ -1057,8 +1063,8 @@ local function landEffects(b, roll)
 		b.Flare.BackgroundTransparency = 0.2
 		tween(b.Flare, 0.5, { Position = UDim2.fromScale(1.1, 0.5), BackgroundTransparency = 1 }, Enum.EasingStyle.Sine)
 	end
-	if spec.Rarity == "Secret" and isEnlarged() then -- Secret: full-screen takeover
-		takeoverText.Text = "SECRET\n" .. spec.Name
+	if isTopTier(spec) and isEnlarged() then -- Secret and up: full-screen takeover
+		takeoverText.Text = string.upper(spec.Rarity) .. "\n" .. spec.Name
 		takeover.BackgroundTransparency = 0.15
 		takeoverText.TextTransparency = 0
 		takeoverSkip.TextTransparency = 0
@@ -1210,7 +1216,7 @@ local function play(roll)
 	local landed = visibleBody()
 	UiFeedback.Play(
 		LAND_CUES[spec.Rarity] or "RollLand1",
-		spec.Rarity == "Secret" and takeover.Visible and takeoverText or (landed and landed.Wave),
+		isTopTier(spec) and takeover.Visible and takeoverText or (landed and landed.Wave),
 		{ Color = rarityColor(spec), NoShake = true }
 	)
 	if not after(landing * LAND_RISE) then

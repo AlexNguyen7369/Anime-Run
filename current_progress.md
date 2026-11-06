@@ -84,8 +84,9 @@
 81. 2026-11-05 — Alex Nguyen — Built the Speed core: Speed number, curve to studs/s, enemy table, full-value auras and trails and a balance test, checked offline only.
 82. 2026-11-05 — Alex Nguyen — Changed rebirth to a high total Speed multi with a new cost table, checked offline only.
 83. 2026-11-05 — Alex Nguyen — Switched the UI from studs/s to the whole-number Speed, not yet run in Studio.
+84. 2026-11-05 — Alex Nguyen — Added the Eternal tier, Chainsaw Mann and Solo Levelin series with 12 uploaded characters, the RarestCar log score and updated tests on orch/roster/chars1, none of it run in Studio.
 
 ## What's next
-**Run speed_probe in Studio to test a cap of at least 1000 studs/s, once the owner says Studio is free.**
+**Run `speed_probe` and the `catalog`, `gacha`, stamina, workshop and `rarest_board` scenarios in Studio on `orch/roster/chars1`, once the owner releases `feature/alex/speed-balance`.**
 
-**Why this is next:** the cap value sets MAX_CRUISE and the curve's top segment, and slices B-E need Studio verification in the same session.
+**Why this is next:** every Eternal and new-cast test is unverified until then, and raising `MAX_CRUISE` to 1000 depends on the probe.

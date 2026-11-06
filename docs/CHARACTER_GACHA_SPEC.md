@@ -12,7 +12,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 |---|---|
 | `Id` | permanent key (`"kaze_ninja"`) |
 | `Name` | display name, tweaked from the source character (design doc section 5) |
-| `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret |
+| `Rarity` | Common, Uncommon, Rare, Epic, Legendary, Mythic, Secret, Eternal |
 | `Chance` | 1 in N; every rollable character has a number (owner 2026-11-03); the catch-all Common is 1 |
 | `SpeedMulti` | no effect on Speed or cruise (design doc 4.13) |
 | `Stamina` | optional override of the rarity base, seconds (`TEAM_AND_STAMINA_SPEC.md`) |
@@ -44,6 +44,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | Legendary | 1e7 - 7.8e8 | 25 - 100 | 5 |
 | Mythic | 5e9 - 1e15 | 150 - 425 | 4 |
 | Secret | 1.6e16 - 5e18 | 1,000 - 2,800 | 2 |
+| Eternal (design doc 4.39) | 1e19 - 5e19 (proposed) | 4,000 - 6,000 (proposed) | 0 |
 
 - Duplicates add `Copies` to the owned entry; no Money.
 - Index: discovering a character = owning it; every 3 unique discoveries grant 1 stat point.
@@ -51,7 +52,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 ## Series and preset teams
 
 `Shared/SeriesCatalog`: one entry per series, `{ Id, Name, Preset = { Name, Members = { id, id, id } } }`. Ids are
-permanent save-safe keys like character ids and never contain a real name. Every series has 5 characters spread
+permanent save-safe keys like character ids and never contain a real name. Every series has 5 or 6 characters spread
 over the rarities so a Series bonus is reachable early; each has one preset trio, its anime's famous team.
 
 ## Launch cast (owner-approved 2026-10-28, 30 characters in 6 series)
@@ -107,6 +108,23 @@ Bleech series (owner 2026-11-04, design doc 4.30; `Chance`, `SpeedMulti`, Cat. a
 
 Preset trio: "Substitute Squad" (proposed name): `soul_substitute`, `soul_ice`, `soul_fang`.
 
+Chainsaw Mann and Solo Levelin series (owner 2026-11-05, design doc 4.39; `Chance`, `SpeedMulti`, Cat. are proposed):
+
+| Series (based on) | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
+|---|---|---|---|---|---|---|---|---|
+| Chainsaw Mann (Chainsaw Man) | Kobene | Kobeni | Uncommon | M | `saw_nervous` | 180 | 2.15 | new |
+| | Akki | Aki | Rare | B | `saw_fox` | 6,000 | 4.3 | new |
+| | Powah | Power | Epic | S | `saw_blood` | 800,000 | 12.5 | new |
+| | Rezi | Reze | Legendary | S | `saw_bomb` | 4e8 | 85 | new |
+| | Denjy | Denji | Mythic | B | `saw_hero` | 5e13 | 370 | new |
+| | Makina | Makima | Eternal | M | `saw_control` | 3e19 | 5,000 | new |
+| Solo Levelin (Solo Leveling) | Jinhoe | Yoo Jinho | Uncommon | M | `solo_vice` | 160 | 2.1 | new |
+| | Jongen | Choi Jong-In | Rare | B | `solo_mage` | 5,000 | 4.1 | new |
+| | Cha Hain | Cha Hae-In | Epic | S | `solo_blade` | 1,800,000 | 15 | new |
+| | Yunho | Baek Yoonho | Legendary | M | `solo_beast` | 6e8 | 95 | new |
+| | Tomas Andre | Thomas Andre | Mythic | M | `solo_goliath` | 7e14 | 415 | new |
+| | Jinwu | Sung Jinwoo | Eternal | B | `solo_monarch` | 1.5e19 | 4,000 | new |
+
 Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are proposed; each shares its enemy's model):
 
 | Series | Character | Based on | Rarity | Cat. | Id | Chance | SpeedMulti | Model |
@@ -120,7 +138,7 @@ Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are pr
 | Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
 | My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
 
-Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
+Counts per rarity: Common 1, Uncommon 9, Rare 9, Epic 11, Legendary 11, Mythic 11, Secret 2, Eternal 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
 
@@ -154,7 +172,7 @@ the event.
 | `jk_night` | Toje | Toji | Jujitsu Kaisan | Legendary | S | `night` | 4.3e7 | 8 |
 | `sea_gold` | Rojer | Gol D. Roger | One Peace | Legendary | B | `gold` | 6.2e8 | 10 |
 
-Catalog total: 44 regular (30 launch cast + 6 Bleech + 8 villains, owner 2026-11-04) + 3 event-only = 47 characters, plus the starter.
+Catalog total: 56 regular (30 launch cast + 6 Bleech + 8 villains + 6 Chainsaw Mann + 6 Solo Levelin, owner 2026-11-05) + 3 event-only = 59 characters, plus the starter.
 
 Preset trios (the anime's famous team):
 
@@ -166,6 +184,8 @@ Preset trios (the anime's famous team):
 | Demon Slicer | Kamada Squad | Tanjiru, Zenitsa, Inosuki |
 | Jujitsu Kaisan | First Years | Yuuji, Megumo, Nobora |
 | My Hero Akademia | Class 1-A | Deko, Bakugoo, Todoroky |
+| Chainsaw Mann | Division Four | Denjy, Powah, Akki |
+| Solo Levelin | Ajin Guild | Jinwu, Cha Hain, Jinhoe |
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 

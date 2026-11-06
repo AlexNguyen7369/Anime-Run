@@ -7,7 +7,7 @@ return {
 	Rarity = "Legendary",
 	Chance = 4.3e7,
 	SpeedMulti = 8,
-	Order = 28,
+	Order = 34,
 	Category = "Sprinter",
 	Series = "jk",
 	Archetype = "brawler",

@@ -32,7 +32,8 @@ WorkshopConfig.ZONE_SIZE = Vector3.new(32, 12, 32)
 -- Workshop stat boost (design doc 4.19, WORLD_REDESIGN_SPEC section 5; numbers placeholders, owner 2026-11-03):
 -- boost = sum of the Dojo squad's RARITY_POINTS x POINT_BONUS x (1 + LEVEL_SCALE x (level - 1)), added to STATS' pick.
 WorkshopConfig.STATS = { "Money", "Luck", "Speed", "Stamina" } -- the first one is the default
-WorkshopConfig.RARITY_POINTS = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7 }
+WorkshopConfig.RARITY_POINTS =
+	{ Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythic = 6, Secret = 7, Eternal = 8 }
 WorkshopConfig.POINT_BONUS = 0.05
 WorkshopConfig.LEVEL_SCALE = 0.1
 

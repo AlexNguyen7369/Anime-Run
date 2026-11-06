@@ -30,8 +30,9 @@ local H = require(script.Parent.AcceptanceSupport)
 local Server = script.Parent.Parent
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 
-local RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local RARITIES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" }
 local COMMON_RANGE, SECRET_BASE = { 12, 15 }, 30 -- owner 2026-11-02; the others are proposed
+local ETERNAL_BASE = 32 -- proposed, design doc 4.39
 local DRAIN_TOL = 0.01 -- spec: drain rate per rarity within 1%
 local SPEED_TOL = 1e-6 -- swap cruise: fixed per character (design doc 4.13)
 local SLOW_NPC = 0.001 -- studs/s: the NPC never wins
@@ -488,6 +489,7 @@ function Tests.stamina()
 			and config.BASE.Common <= COMMON_RANGE[2]
 			and config.BASE.Secret == SECRET_BASE
 	)
+	flag("stamina_base_eternal_32", config.BASE.Eternal == ETERNAL_BASE, config.BASE.Eternal, ETERNAL_BASE)
 	local fromRarity = true
 	for _, spec in catalog.All() do
 		if spec.Stamina == nil and config.Base(spec) ~= config.BASE[spec.Rarity] then

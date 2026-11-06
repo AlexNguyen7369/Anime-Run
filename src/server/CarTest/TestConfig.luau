@@ -23,6 +23,7 @@ return {
 		"spawn_area",
 		"gacha",
 		"catalog",
+		"rarest_board",
 		"index",
 		"npc",
 		"bank",

@@ -1,15 +1,16 @@
 --!nonstrict
--- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains" + "Tests" (owner 2026-10-28, 2026-11-04): 44 rollable
+-- BRIEF: docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains" + "Tests" (owner 2026-10-28, 2026-11-04, design doc 4.39): 56 rollable
 -- characters plus the built-in starter, ids exactly the committed list below (never renamed or removed), unique, every field valid, every
 -- Series exists, every preset has 3 distinct members of its own series, and no id contains a real anime name.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local H = require(script.Parent.AcceptanceSupport)
 
 local Tests = {}
 
 -- The committed id list: { Id, Name, Rarity, Category, Series name, Chance (1 = catch-all), SpeedMulti, Event }
--- (Event = nil for the 44 regular characters; spec "Event-only characters" for the last 3).
+-- (Event = nil for the 56 regular characters; spec "Event-only characters" for the last 3).
 -- (spec "Launch cast" and placeholder Chance / SpeedMulti tables).
 local CAST = {
 	{ "leaf_medic", "Sakara", "Uncommon", "Balanced", "Narito Shippudon", 10, 1.25 },
@@ -57,6 +58,19 @@ local CAST = {
 	{ "jk_volcano", "Jogoh", "Epic", "Marathoner", "Jujitsu Kaisan", 1200000, 13.5 },
 	{ "jk_patch", "Mahitoh", "Legendary", "Balanced", "Jujitsu Kaisan", 5e8, 90 },
 	{ "mha_decay", "Shigaraky", "Legendary", "Sprinter", "My Hero Akademia", 1.5e8, 65 },
+	-- Two new series (design doc 4.39)
+	{ "saw_nervous", "Kobene", "Uncommon", "Marathoner", "Chainsaw Mann", 180, 2.15 },
+	{ "saw_fox", "Akki", "Rare", "Balanced", "Chainsaw Mann", 6000, 4.3 },
+	{ "saw_blood", "Powah", "Epic", "Sprinter", "Chainsaw Mann", 800000, 12.5 },
+	{ "saw_bomb", "Rezi", "Legendary", "Sprinter", "Chainsaw Mann", 4e8, 85 },
+	{ "saw_hero", "Denjy", "Mythic", "Balanced", "Chainsaw Mann", 5e13, 370 },
+	{ "saw_control", "Makina", "Eternal", "Marathoner", "Chainsaw Mann", 3e19, 5000 },
+	{ "solo_vice", "Jinhoe", "Uncommon", "Marathoner", "Solo Levelin", 160, 2.1 },
+	{ "solo_mage", "Jongen", "Rare", "Balanced", "Solo Levelin", 5000, 4.1 },
+	{ "solo_blade", "Cha Hain", "Epic", "Sprinter", "Solo Levelin", 1800000, 15 },
+	{ "solo_beast", "Yunho", "Legendary", "Marathoner", "Solo Levelin", 6e8, 95 },
+	{ "solo_goliath", "Tomas Andre", "Mythic", "Marathoner", "Solo Levelin", 7e14, 415 },
+	{ "solo_monarch", "Jinwu", "Eternal", "Balanced", "Solo Levelin", 1.5e19, 4000 },
 	{ "ds_water", "Giyo", "Epic", "Marathoner", "Demon Slicer", 160000, 6, "rain" },
 	{ "jk_night", "Toje", "Legendary", "Sprinter", "Jujitsu Kaisan", 4.3e7, 8, "night" },
 	{ "sea_gold", "Rojer", "Legendary", "Balanced", "One Peace", 6.2e8, 10, "gold" },
@@ -83,7 +97,8 @@ end
 
 local EVENTS = { rain = true, night = true, gold = true } -- WeatherConfig events with an event-only character
 -- regular (non-event) characters per rarity
-local RARITY_COUNT = { Common = 1, Uncommon = 7, Rare = 7, Epic = 9, Legendary = 9, Mythic = 9, Secret = 2 }
+local RARITY_COUNT =
+	{ Common = 1, Uncommon = 9, Rare = 9, Epic = 11, Legendary = 11, Mythic = 11, Secret = 2, Eternal = 2 }
 local CATEGORIES = { Sprinter = true, Balanced = true, Marathoner = true }
 local ARCHETYPES = {}
 for _, a in
@@ -155,6 +170,22 @@ local REAL_NAME_HASHES = {
 	{ 4, 2090407318 },
 	{ 6, 221740109 },
 	{ 9, 1370699169 },
+	-- Chainsaw Mann and Solo Levelin, series and "Based on" column (design doc 4.39). A tweaked name may hold part of a
+	-- real one, so two-part names are stored whole: the scan reads hub and Dojo text, where tweaked names may show.
+	{ 6, 159852035 },
+	{ 3, 193486266 },
+	{ 5, 271097524 },
+	{ 4, 2090684541 },
+	{ 5, 256497457 },
+	{ 6, 221847675 },
+	{ 9, 1044187460 },
+	{ 7, 1850452240 },
+	{ 6, 25944079 },
+	{ 6, 708224327 },
+	{ 12, 1130477581 },
+	{ 6, 114052001 },
+	{ 12, 1717385066 },
+	{ 13, 700217521 },
 	-- Real place names from docs/TRACKS_AND_BIOMES_SPEC.md "References" (w4, design doc section 5 "no real place names")
 	{ 6, 160293963 },
 	{ 6, 42764698 },
@@ -237,8 +268,8 @@ function Tests.catalog()
 	flag("no_pass_characters", type(passes) == "table" and #passes == 0, type(passes) == "table" and #passes or -1, 0)
 
 	local all, rollable = catalog.All(), catalog.Rollable()
-	flag("all_47_characters", #all == #CAST, #all, #CAST)
-	flag("rollable_44_characters", #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
+	flag("all_59_characters", #all == 59 and #all == #CAST, #all, #CAST)
+	flag("rollable_56_characters", #rollable == 56 and #rollable == #CAST - 3, #rollable, #CAST - 3) -- owner 2026-11-03: 3 event-only out
 
 	-- ids exactly the committed list, unique, starter excluded
 	local want, seen, dupes, extra = {}, {}, {}, {}
@@ -342,6 +373,41 @@ function Tests.catalog()
 	flag("catch_all_sea_navigator", catchAll == "sea_navigator", tostring(catchAll), "sea_navigator")
 	flag("rollable_catch_all_last", rollable[#rollable] ~= nil and rollable[#rollable].Id == "sea_navigator")
 
+	-- No two rollable characters share a Chance: the rarest-first order and the Best Roll pedestal both read it
+	local chanceOwner, chanceDupes = {}, {}
+	for _, c in rollable do
+		if chanceOwner[c.Chance] then
+			table.insert(chanceDupes, chanceOwner[c.Chance] .. "=" .. c.Id)
+		end
+		chanceOwner[c.Chance] = c.Id
+	end
+	flag("rollable_chances_unique", #chanceDupes == 0, table.concat(chanceDupes, ","), "")
+
+	-- Every rarity has its row in each per-rarity table: RaceConfig and StaminaConfig fall back to Common silently
+	local gachaConfig = H.module(Shared, "GachaConfig")
+	local raceConfig = H.module(Shared, "RaceConfig")
+	local staminaConfig = H.module(Shared, "StaminaConfig")
+	local workshopConfig = H.module(Shared, "WorkshopConfig")
+	local rollAnim = H.module(Shared, "RollAnimConfig")
+	local rowsOk = gachaConfig and raceConfig and staminaConfig and workshopConfig and rollAnim
+	flag("rarity_tables_exist", rowsOk ~= nil and rowsOk ~= false)
+	if rowsOk then
+		local rowBad = {}
+		for _, rarity in gachaConfig.RARITY_ORDER do
+			local function need(name, ok)
+				if not ok then
+					table.insert(rowBad, name .. "." .. rarity)
+				end
+			end
+			need("RaceConfig.RARITY_BASE", type(raceConfig.RARITY_BASE[rarity]) == "number")
+			need("StaminaConfig.BASE", type(staminaConfig.BASE[rarity]) == "number")
+			need("WorkshopConfig.RARITY_POINTS", type(workshopConfig.RARITY_POINTS[rarity]) == "number")
+			need("GachaConfig.RARITY_COLORS", typeof(gachaConfig.RARITY_COLORS[rarity]) == "Color3")
+			need("RollAnimConfig.HOLD", type(rollAnim.HOLD[rarity]) == "number")
+		end
+		flag("every_rarity_has_its_rows", #rowBad == 0, table.concat(rowBad, ", "), "")
+	end
+
 	-- no id contains a real anime name
 	local realBad = {}
 	for _, list in { all, { starter } } do
@@ -384,7 +450,7 @@ function Tests.catalog()
 			table.insert(presetBad, tostring(s.Id))
 		end
 	end
-	flag("series_count_7", #series.List == 7, #series.List, 7)
+	flag("series_count_9", #series.List == 9, #series.List, 9)
 	flag("presets_three_own_members", #presetBad == 0, table.concat(presetBad, ","), "")
 
 	-- Bleech (design doc 4.30, spec "Bleech series"): the 6 ids in their rarities, the shared enemy model, the preset
@@ -416,6 +482,21 @@ function Tests.catalog()
 			and H.same(soulPreset.Members, { "soul_substitute", "soul_ice", "soul_fang" })
 	)
 
+	-- Two new series (design doc 4.39): their presets
+	for _, want in
+		{
+			{ "saw", "Division Four", { "saw_hero", "saw_blood", "saw_fox" } },
+			{ "solo", "Ajin Guild", { "solo_monarch", "solo_blade", "solo_vice" } },
+		}
+	do
+		local s = series.Get(want[1])
+		local preset = s and s.Preset
+		flag(
+			want[1] .. "_preset",
+			type(preset) == "table" and preset.Name == want[2] and H.same(preset.Members, want[3])
+		)
+	end
+
 	-- Villains (design doc 4.32): every track enemy's model is worn by a rollable character
 	local npc = H.module(Shared, "NpcConfig")
 	local tracks = npc and npc.Tracks or {}
@@ -445,6 +526,133 @@ function Tests.catalog()
 		table.insert(villainBad, "foe tracks " .. foeTracks)
 	end
 	flag("villains_share_enemy_models", #villainBad == 0, table.concat(villainBad, ", "), "")
+	return r
+end
+
+-- Best Roll pedestal store (design doc 4.39): Chance passes int64, so the RarestCar board stores a log-scale score in
+-- LB_RarestCar_v2. Checked through LeaderboardService's own seams: the score it would write, read back by a fake store.
+local RAREST_ROUND_TRIP = { "saw_control", "solo_monarch", "jk_strongest" } -- Chance 3e19, 1.5e19, 5e18
+local RAREST_UID = 991600000
+
+local function fakePlayerOwning(id)
+	local p = Instance.new("Folder")
+	p.Name = "CarTestRarest"
+	local owned = Instance.new("Folder")
+	owned.Name = "GachaData"
+	owned.Parent = p
+	local entry = Instance.new("StringValue")
+	entry.Name = id
+	entry.Value = id
+	entry.Parent = owned
+	return p
+end
+
+local function fakeStore(rows)
+	return {
+		GetSortedAsync = function()
+			return {
+				GetCurrentPage = function()
+					return rows
+				end,
+			}
+		end,
+	}
+end
+
+function Tests.rarest_board()
+	local r, flag = H.report("rarest_board")
+	local catalog = H.module(Shared, "CharacterCatalog")
+	local config = H.module(Shared, "LeaderboardConfig")
+	local format = H.module(Shared, "HudFormat")
+	local service = H.module(script.Parent.Parent, "LeaderboardService")
+	local apiOk = catalog ~= nil
+		and config ~= nil
+		and format ~= nil
+		and service ~= nil
+		and type(service.Scores) == "function"
+		and type(service.SetStore) == "function"
+		and type(service.SetNameLookup) == "function"
+		and type(service.Refresh) == "function"
+	flag("rarest_board_api", apiOk)
+	if not apiOk then
+		return r
+	end
+
+	local store
+	for _, board in config.Boards do
+		if board.Id == "RarestCar" then
+			store = board.Store
+		end
+	end
+	flag("rarest_board_store_v2", store == "LB_RarestCar_v2", store, "LB_RarestCar_v2")
+
+	-- The score OrderedDataStore can hold, and rarer always scores higher (Rollable is rarest first)
+	local function scoreOf(id)
+		local p = fakePlayerOwning(id)
+		local score = service.Scores(p).RarestCar
+		p:Destroy()
+		return score
+	end
+	local fitBad, orderBad, above = {}, {}, nil
+	for _, spec in catalog.Rollable() do
+		local score = scoreOf(spec.Id)
+		if not (type(score) == "number" and score == math.floor(score) and score >= 0 and score <= 9.2e18) then
+			table.insert(fitBad, spec.Id .. "=" .. tostring(score))
+		elseif above and score >= above then
+			table.insert(orderBad, spec.Id)
+		end
+		above = score
+	end
+	flag("rarest_score_fits_int64", #fitBad == 0, table.concat(fitBad, ","), "")
+	flag("rarest_score_rises_with_chance", #orderBad == 0, table.concat(orderBad, ","), "")
+	flag("rarest_score_eternal_beats_secret", scoreOf("saw_control") > scoreOf("solo_monarch"))
+	flag("rarest_score_lowest_eternal_beats_secret", scoreOf("solo_monarch") > scoreOf("jk_strongest"))
+
+	-- Round trip: the stored score reads back as the same character, with its own odds, on the pedestal
+	local area = Workspace:FindFirstChild("SpawnArea")
+	local best = area and area:FindFirstChild("BestRoll")
+	local stats = best and best:FindFirstChild("Stats", true)
+	flag("rarest_pedestal_exists", stats ~= nil)
+	if stats then
+		service.SetNameLookup(function()
+			return "CarTestRarest"
+		end)
+		local only = { RarestCar = true }
+		local ok, err = pcall(function()
+			for _, id in RAREST_ROUND_TRIP do
+				local spec = catalog.Get(id)
+				service.SetStore(function()
+					return fakeStore({ { key = tostring(RAREST_UID), value = scoreOf(id) } })
+				end)
+				service.Refresh(only)
+				flag(
+					"rarest_round_trip_id_" .. id,
+					best:GetAttribute("CharacterId") == id,
+					best:GetAttribute("CharacterId"),
+					id
+				)
+				flag(
+					"rarest_round_trip_name_" .. id,
+					stats.Character.Text == spec.Name,
+					stats.Character.Text,
+					spec.Name
+				)
+				local odds = format.Odds(spec.Chance)
+				flag("rarest_round_trip_odds_" .. id, stats.Odds.Text == odds, stats.Odds.Text, odds)
+			end
+		end)
+		flag("rarest_round_trip_no_error", ok)
+		if not ok then
+			r.metrics.error = tostring(err)
+		end
+		-- Leave the pedestal empty and hand it back to the real store; its next read fills it
+		service.SetStore(function()
+			return fakeStore({})
+		end)
+		pcall(service.Refresh, only)
+		service.SetStore(nil)
+		service.SetNameLookup(nil)
+	end
 	return r
 end
 

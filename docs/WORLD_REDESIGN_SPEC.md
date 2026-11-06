@@ -92,7 +92,7 @@ Nothing car-shaped stays in the game:
 - New rule: a character is either in the Team or in the Dojo squad, never both. `SetTeam` and `SetShowcase` reject a
   character already in the other group.
 - Workshop stat boost (owner 2026-11-03, design doc 4.19). Numbers placeholders, in `Shared/WorkshopConfig`:
-  - `RARITY_POINTS` Common 1 .. Secret 7; `POINT_BONUS = 0.05`; `LEVEL_SCALE = 0.1`.
+  - `RARITY_POINTS` Common 1 .. Secret 7, Eternal 8; `POINT_BONUS = 0.05`; `LEVEL_SCALE = 0.1`.
   - `Workshop.Boost(squadSpecs, level)` = sum(points) x POINT_BONUS x (1 + LEVEL_SCALE x (level - 1)).
   - Saved `WorkshopStat` (one of `Money`, `Luck`, `Speed`, `Stamina`; anything else -> `Money`); player attributes
     `WorkshopStat` and `WorkshopBoost` (the added fraction, e.g. 0.35).

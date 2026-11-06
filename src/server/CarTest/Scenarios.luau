@@ -2943,8 +2943,9 @@ function Scenarios.economy()
 	end
 	local starter = Catalog.Get(Catalog.STARTER_ID)
 	local top = Catalog.Get("db_hero") -- Secret
-	local capWorst, cruiseCapOk = 0, starter ~= nil and top ~= nil
-	for _, spec in { starter, top } do
+	local eternal = Catalog.Get("saw_control") -- the top rarity (design doc 4.39)
+	local capWorst, cruiseCapOk = 0, starter ~= nil and top ~= nil and eternal ~= nil
+	for _, spec in { starter, top, eternal } do
 		for _, m in { 1, 1.5, 10 ^ 0.5, 2800, 1e6, 1e29, 1e100, 1e300 } do
 			local v = cr(spec, m)
 			if not (num(v) and v <= CRUISE_CAP) then
@@ -2954,7 +2955,10 @@ function Scenarios.economy()
 		end
 	end
 	-- the cap is reached, not just respected
-	cruiseCapOk = cruiseCapOk and cr(top, 1e29) == CRUISE_CAP and cr(starter, 1e100) == CRUISE_CAP
+	cruiseCapOk = cruiseCapOk
+		and cr(top, 1e29) == CRUISE_CAP
+		and cr(starter, 1e100) == CRUISE_CAP
+		and cr(eternal, 1e29) == CRUISE_CAP
 	check(checks, "cruise_never_above_cap", capWorst, CRUISE_CAP, cruiseCapOk)
 	-- bad, <= 0 or infinite multis count as 1
 	local badMultiOk = starter ~= nil and num(cr(starter, 1))
@@ -4815,6 +4819,7 @@ function Scenarios.hud()
 			{ 2.5e6, "1 in 2.5m" },
 			{ 3.2e16, "1 in 32qd" },
 			{ 5e18, "1 in 5qt" },
+			{ 3e19, "1 in 30qt" },
 		}
 		local oddsOk = HudFormat.SUFFIX_FROM == 1e3
 		for _, c in oddsCases do
@@ -4871,7 +4876,8 @@ function Scenarios.hud()
 end
 
 -- Character gacha + index + stat allocation. The expected catalog is docs/CHARACTER_GACHA_SPEC.md's launch cast
--- (CatalogTests.CAST). GACHA_SEED is one character per rarity, the fixed discovery fixtures (spec Chance table).
+-- (CatalogTests.CAST). GACHA_SEED is one character per rarity to Secret, the fixed discovery fixtures (spec Chance table);
+-- Eternal (design doc 4.39) is covered by the catalog-wide checks and `eternal_*` below.
 local GACHA_SEED = {
 	{ Id = "sea_navigator", Rarity = "Common", Chance = 1, SpeedMulti = 1.1 },
 	{ Id = "leaf_medic", Rarity = "Uncommon", Chance = 10, SpeedMulti = 1.25 },
@@ -4894,7 +4900,8 @@ local GACHA_ODDS_BANDS = {
 	Epic = { 5e4, 2.5e6 },
 	Legendary = { 1e7, 7.8e8 },
 	Mythic = { 5e9, 1e15 },
-	Secret = { 1.6e16, 5e18 }, -- under int64 (RarestCar leaderboard)
+	Secret = { 1.6e16, 5e18 },
+	Eternal = { 1e19, 5e19 }, -- past int64: the RarestCar board stores a log-scale score (design doc 4.39)
 }
 local function gachaSig2(x)
 	local e = math.floor(math.log10(x)) - 1
@@ -4904,7 +4911,7 @@ local GACHA_CATALOG = {}
 for _, row in require(script.Parent.CatalogTests).CAST do
 	table.insert(GACHA_CATALOG, table.clone(row))
 end
-local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local GACHA_RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Eternal" }
 local GACHA_STATS = { "Speed", "Money", "Luck", "Stamina" } -- design doc 4.19: the Workshop point is retired
 local GACHA_PER_POINT = { Speed = 0.02, Money = 0.1, Luck = 0.05, Stamina = 0.05 } -- design doc 4.13 / 4.6 (placeholders)
 local GACHA_ROLLS = 100000
@@ -5226,7 +5233,7 @@ function Scenarios.gacha()
 	end
 	check(checks, "catalog_spec_chances", #oddsBad, table.concat(oddsBad, ", "), #oddsBad == 0)
 	local tierOk = true
-	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret (Common is the catch-all)
+	for i = 3, #GACHA_RARITY_ORDER do -- Uncommon < Rare < ... < Secret < Eternal (Common is the catch-all)
 		local lower, higher = GACHA_RARITY_ORDER[i - 1], GACHA_RARITY_ORDER[i]
 		tierOk = tierOk
 			and rarityMax[lower] ~= nil
@@ -5234,6 +5241,7 @@ function Scenarios.gacha()
 			and rarityMax[lower] < rarityMin[higher]
 	end
 	check(checks, "catalog_odds_rarity_strictly_ordered", tierOk and 1 or 0, 1, tierOk)
+	-- Secret's band still ends under int64; only Eternal passes it (design doc 4.39)
 	local maxChance = rarityMax.Secret or math.huge
 	check(checks, "catalog_odds_secret_fits_int64", maxChance, 9.2e18, maxChance <= 9.2e18)
 	check(checks, "catalog_all_models_resolve_to_spec_model", modelsOk and 1 or 0, 1, modelsOk)
@@ -5263,6 +5271,37 @@ function Scenarios.gacha()
 		end
 	end
 	check(checks, "rollable_rarest_first", rarestOk and 1 or 0, 1, rarestOk)
+	-- Eternal (design doc 4.39): first in rarest-first order, and enough luck rolls one
+	local firstEternal = rollable[1] ~= nil
+		and rollable[1].Rarity == "Eternal"
+		and rollable[2] ~= nil
+		and rollable[2].Rarity == "Eternal"
+	check(
+		checks,
+		"eternal_first_in_rollable",
+		rollable[1] and rollable[1].Id or "none",
+		"saw_control",
+		firstEternal and rollable[1].Id == "saw_control"
+	)
+	local rolledEternal, rolledOther = {}, 0
+	local okEternal = pcall(function()
+		local rng = Random.new(20261105)
+		for _ = 1, 2000 do
+			local spec = CharacterCatalog.Get(GachaConfig.Roll(rng, 2e19)) -- always an Eternal: the rarer at 2 in 3, else the next
+			if spec and spec.Rarity == "Eternal" then
+				rolledEternal[spec.Id] = true
+			else
+				rolledOther += 1
+			end
+		end
+	end)
+	check(
+		checks,
+		"eternal_rolled_with_luck",
+		rolledOther,
+		0,
+		okEternal and rolledOther == 0 and rolledEternal.saw_control == true and rolledEternal.solo_monarch == true
+	)
 	local rollSeen, membershipOk = {}, true
 	for _, c in rollable do
 		if rollSeen[c.Id] or not seen[c.Id] or c.Rollable ~= true then
@@ -9418,6 +9457,7 @@ local ROLL_ANIM_HOLD = {
 	Legendary = 1.5,
 	Mythic = 2.5,
 	Secret = 4,
+	Eternal = 5,
 }
 local ROLL_ANIM_LAYOUT = {
 	REEL_CARS = 16,
@@ -12569,8 +12609,9 @@ Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
--- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
+-- docs/CHARACTER_GACHA_SPEC.md "Tests": the 56-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
+Scenarios.rarest_board = require(script.Parent.CatalogTests).rarest_board -- design doc 4.39 (LB_RarestCar_v2)
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
 Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)

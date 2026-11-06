@@ -39,6 +39,16 @@ SeriesCatalog.List = {
 		Name = "Bleech",
 		Preset = { Name = "Substitute Squad", Members = { "soul_substitute", "soul_ice", "soul_fang" } },
 	},
+	{
+		Id = "saw",
+		Name = "Chainsaw Mann",
+		Preset = { Name = "Division Four", Members = { "saw_hero", "saw_blood", "saw_fox" } },
+	},
+	{
+		Id = "solo",
+		Name = "Solo Levelin",
+		Preset = { Name = "Ajin Guild", Members = { "solo_monarch", "solo_blade", "solo_vice" } },
+	},
 }
 
 local byId = {}

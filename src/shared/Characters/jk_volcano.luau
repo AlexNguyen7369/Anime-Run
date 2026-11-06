@@ -6,7 +6,7 @@ return {
 	Rarity = "Epic",
 	Chance = 1200000,
 	SpeedMulti = 13.5,
-	Order = 23,
+	Order = 28,
 	Category = "Marathoner",
 	Series = "jk",
 	Archetype = "spirit",
