@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Upload build/avatar_glb/<id>.glb as Model assets under the owner's account (Open Cloud) and write the id registry.
 #   ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required, except for --dry-run. python3 tools/blender/upload_avatar.py [--dry-run] [<id> ...]
-# Sidekick ids (side_*) go to SidekickArt.luau, never to the character registry, which is not rewritten when only they are named.
+# Sidekick ids (side_*) and boss ids (boss_*) go to SidekickArt.luau, never to the character registry, which is not rewritten when only they are named.
 # Display names use the Id only, never a real name (design doc 5). Ids already in avatar_assets.json are skipped.
 import json
 import os
@@ -54,7 +54,7 @@ def write_registry(ledger):
 		"-- docs/CHARACTER_GACHA_SPEC.md \"Avatar pipeline\". Do not edit by hand.",
 		"return {",
 	]
-	for cid in sorted(c for c in ledger if not sidekick_art.is_sidekick(c)):
+	for cid in sorted(c for c in ledger if not sidekick_art.in_art_registry(c)):
 		with open(os.path.join(GLB, cid + ".json")) as f:
 			sizes = json.load(f)
 		parts = ", ".join("%s = Vector3.new(%g, %g, %g)" % (k, *v) for k, v in sorted(sizes.items()))
@@ -71,7 +71,7 @@ def main():
 	if dry:
 		for cid in ids:
 			print("DRY", "unchanged" if cid in ledger else "upload", cid, os.path.getsize(os.path.join(GLB, cid + ".glb")), "bytes")
-		print("DRY character registry rewritten:", not all(map(sidekick_art.is_sidekick, ids)))
+		print("DRY character registry rewritten:", not all(map(sidekick_art.in_art_registry, ids)))
 		return
 	for cid in ids:
 		if cid in ledger:
@@ -81,7 +81,7 @@ def main():
 			json.dump(ledger, f, indent=1, sort_keys=True)
 		print("UPLOADED", cid, ledger[cid], flush=True)
 	sidekick_art.write()
-	if not all(map(sidekick_art.is_sidekick, ids)):
+	if not all(map(sidekick_art.in_art_registry, ids)):
 		write_registry(ledger)
 
 

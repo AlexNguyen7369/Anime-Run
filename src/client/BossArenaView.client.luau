@@ -6,13 +6,15 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossArenaConfig"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
+local Poses = require(Shared:WaitForChild("BossRagaPoses"))
+local VfxArt = require(Shared:WaitForChild("BossVfxArt"))
+local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
+local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local ATTRIBUTE = "BossArenaPreview"
@@ -23,8 +25,14 @@ local RING_STEP = 2
 local DECK_THICK = 8
 local DAIS_THICK = 14
 local LINE_WIDTH, LINE_THICK = 1, 0.1
-local BOSS_WIDTH, BOSS_DEPTH = 200, 120 -- a stand-in for the height only
-local WHEEL_THICK = 30
+-- The flat fallback (spec "Arena"): front image from his front and back, side image otherwise, sized so that it sits inside the
+-- model's outline from the lanes and behind the model along the view line. Images are 9.42 units square, framed on his box.
+local FLAT_FRAME = 9.42 * Poses.Scale
+local FLAT_INSIDE = 0.92 -- of the image's true size
+local FLAT_CENTER_Y = 9.237 / 2 * Poses.Scale
+local LANES = 890 -- studs from the boss, for the size the billboard's push back would lose
+local FLAT_FRONT = { Image = VfxArt.FlatFront, Back = 260, Side = 0 }
+local FLAT_SIDE = { Image = VfxArt.FlatSide, Back = 400, Side = -58 } -- his box is 0.67 units behind his centre
 local ARCH_COUNT, ARCH_START, SECTOR = 6, math.rad(15), math.rad(60) -- the draft's ARCH_START and SECTOR
 local ARCH_PIECES = 8 -- the draft's 12, for phones
 local BAY_OFFSETS = { math.rad(20), math.rad(40) } -- colonnade bays after each arch
@@ -45,15 +53,11 @@ local LANE_A, LANE_A2 = look("F7F3EA", Marble), look("EEE8DB", Marble)
 local LANE_B, LANE_B2 = look("DCD5C6", Marble), look("D2CBBA", Marble)
 local GOLD, GOLD2 = look("E8B23C", Plastic), look("C9922B", Plastic)
 local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
-local GREY = look("969696", Plastic, true)
--- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00): through the dais from under the track. The flat fallback hangs on the
--- stand-in, so it moves with it and only needs hiding. shortcut: stand-ins only, add the model here once it is in this file.
-local RISERS = { BossStandIn = true, WheelStandIn = true, LowGraphicsBoss = true }
 
 local folder = nil -- the built arena, nil when off
 local added = 0
-local homes = setmetatable({}, { __mode = "k" }) -- riser part -> its full-height CFrame
-local lastRise = nil
+local raga = nil -- the boss, while the arena stands
+local flat = nil -- { Anchor, Gui, Image, Showing }
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
 local function pace(mine)
@@ -67,7 +71,7 @@ end
 local function addPart(name, size, cframe, style, shape)
 	local part = Instance.new("Part")
 	part.Name = name
-	part.Transparency = RISERS[name] and 1 or 0 -- a riser stays hidden until stepRise has placed it
+	part.Transparency = 0
 	part.Anchored = true
 	part.CanTouch = false
 	-- Only the deck is solid, so that the camera stops at it and an arch passing never pops the camera in.
@@ -173,25 +177,45 @@ local function addDais()
 	drum("DaisStem", y - 60, 60, 40, GOLD2)
 end
 
--- Placeholder for the boss's own pre-rendered frames, which replace this image when they exist. Parts this far off do not
--- draw at low graphics quality but a billboard does (spec "Low graphics"). The offset is along the view line, so it stays
--- behind the stand-in from every side, and the depth test (AlwaysOnTop off) lets the model hide it and keeps it off the
--- track and runners. Stretched to the stand-in's shape, since a wider image would show around the model at high quality.
-local function addBillboard(standIn)
+-- Parts this far off do not draw at low graphics quality but a billboard does (spec "Low graphics"). The offset is along the view
+-- line, so it stays behind the model from every side, and the depth test (AlwaysOnTop off) lets the model hide it and keeps it off
+-- the track and runners. shortcut: 2 still images at rest, drawn from his front and his right, so his back and left show the same
+-- image the wrong way round; animated frames only if a real phone at low graphics shows the owner they are worth it.
+local function addFlat()
+	local anchor =
+		addPart("LowGraphicsAnchor", Vector3.one, CFrame.new(Cfg.Center.X, Cfg.Y + FLAT_CENTER_Y, Cfg.Center.Z), MARBLE)
+	anchor.Transparency = 1
+	anchor.CastShadow = false
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "LowGraphicsBoss"
 	gui.AlwaysOnTop = false
-	gui.Enabled = false -- a riser: stepRise shows it
+	gui.Enabled = false -- steps show it from the spawn
 	gui.LightInfluence = 0
-	gui.Size = UDim2.fromScale(BOSS_WIDTH, Cfg.BossHeight) -- a billboard's scale is in studs
-	gui.StudsOffset = Vector3.new(0, 0, -(Vector2.new(BOSS_WIDTH, BOSS_DEPTH).Magnitude / 2 + 10))
 	local image = Instance.new("ImageLabel")
 	image.Size = UDim2.fromScale(1, 1)
 	image.BackgroundTransparency = 1
-	image.Image = SidekickArt.side_raga.Portrait
 	image.ScaleType = Enum.ScaleType.Stretch
 	image.Parent = gui
-	gui.Parent = standIn
+	gui.Parent = anchor
+	flat = { Anchor = anchor, Gui = gui, Image = image, Home = anchor.CFrame }
+end
+
+local function aimFlat(rise, below)
+	flat.Gui.Enabled = rise ~= nil
+	if not rise then
+		return
+	end
+	flat.Anchor.CFrame = flat.Home - Vector3.new(0, below, 0)
+	local camera = Workspace.CurrentCamera
+	local away = camera and (camera.CFrame.Position - Cfg.Center) * Vector3.new(1, 0, 1)
+	local view = (not away or away.Magnitude < 1 or math.abs(away.Unit.Z) > 0.7) and FLAT_FRONT or FLAT_SIDE
+	if flat.Showing ~= view then
+		flat.Showing = view
+		local size = FLAT_FRAME * FLAT_INSIDE * (LANES + view.Back) / LANES
+		flat.Image.Image = view.Image
+		flat.Gui.Size = UDim2.fromScale(size, size) -- a billboard's scale is in studs
+		flat.Gui.StudsOffset = Vector3.new(view.Side, 0, -view.Back)
+	end
 end
 
 -- A flattened sphere, an engine primitive.
@@ -239,7 +263,7 @@ local function addClouds(mine)
 end
 
 local function build(mine)
-	local y, center = Cfg.Y, Cfg.Center
+	local y = Cfg.Y
 	local inner, width = Cfg.InnerRadius, Cfg.Width
 	local outer = inner + width
 	local laneWidth = width / Cfg.Lanes
@@ -288,13 +312,7 @@ local function build(mine)
 	if not pace(mine) then
 		return
 	end
-	local body = Vector3.new(BOSS_WIDTH, Cfg.BossHeight, BOSS_DEPTH)
-	local standIn = addPart("BossStandIn", body, CFrame.new(center.X, y + Cfg.BossHeight / 2, center.Z), GREY)
-	addBillboard(standIn)
-	local wheelY = y + Cfg.BossHeight + Cfg.BossWheelHeight / 2
-	local wheel = Vector3.new(WHEEL_THICK, Cfg.BossWheelHeight, Cfg.BossWheelHeight)
-	-- A cylinder's axis is its X, so the wheel keeps its axis horizontal, like the boss's.
-	addPart("WheelStandIn", wheel, CFrame.new(center.X, wheelY, center.Z), GREY, Enum.PartType.Cylinder)
+	addFlat()
 end
 
 local function refresh()
@@ -304,55 +322,53 @@ local function refresh()
 		return
 	end
 	if folder then
+		BossVfx.Stop()
 		folder:Destroy()
 		folder = nil
+		raga, flat = nil, nil
 	end
 	if want then
 		local mine = Instance.new("Folder")
 		mine.Name = "BossArenaPreview"
 		mine.Parent = Workspace
 		folder = mine
+		raga = BossRaga.new(mine)
+		local effects = Instance.new("Folder")
+		effects.Name = "BossEffects"
+		effects.Parent = mine
+		BossVfx.Start(effects, raga)
 		build(mine)
 	end
 end
 
--- nil before the spawn; 0 to 1 over the intro from the server's start time. A preview with no event shows it risen.
-local function riseNow()
+-- Seconds since the spawn from the server's start time, nil before it. A preview with no event shows it risen.
+local function sinceSpawn(now)
 	local start = ReplicatedStorage:GetAttribute("BossEventStart")
 	if not start then
-		return 1
+		return Event.IntroSeconds
 	end
-	local t = (Workspace:GetServerTimeNow() - start - Event.PrepSeconds) / Event.IntroSeconds
-	if t < 0 then
-		return nil
-	end
-	return UiMotion.Reduced() and 1
-		or TweenService:GetValue(math.min(t, 1), Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
+	local t = now - start - Event.PrepSeconds
+	return t >= 0 and t or nil
 end
 
-local function stepRise()
-	if not folder then
-		lastRise = nil
+-- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
+local function step()
+	if not raga then
 		return
 	end
-	local rise = riseNow()
-	local below = (1 - (rise or 0)) * (Cfg.BossHeight + Cfg.BossWheelHeight + DAIS_THICK)
-	for name in RISERS do
-		local part = folder:FindFirstChild(name, true)
-		if part and part:IsA("BillboardGui") then
-			part.Enabled = rise ~= nil
-		elseif part then
-			homes[part] = homes[part] or part.CFrame
-			if rise ~= lastRise or part.Transparency == 1 and rise then
-				part.CFrame = homes[part] - Vector3.new(0, below, 0)
-				part.Transparency = rise and 0 or 1
-			end
-		end
+	local now = Workspace:GetServerTimeNow()
+	local since = sinceSpawn(now)
+	local rise = since and (UiMotion.Reduced() and 1 or Poses.RiseAt(since))
+	local below = (1 - (rise or 0)) * (Cfg.BossTotalHeight + DAIS_THICK)
+	local move, localTime = Poses.Schedule(since and now - since or now, now)
+	raga:Step(rise, below, move, localTime, now)
+	if flat then
+		aimFlat(rise, below)
 	end
-	lastRise = rise
+	BossVfx.Step(since, move, localTime)
 end
 
-RunService.Heartbeat:Connect(stepRise)
+RunService.Heartbeat:Connect(step)
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
 Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
 refresh()

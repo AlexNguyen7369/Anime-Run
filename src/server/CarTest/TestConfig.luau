@@ -50,6 +50,7 @@ return {
 		"relics",
 		"boss_arena",
 		"boss_event",
+		"boss_anim",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

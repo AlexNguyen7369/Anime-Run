@@ -12,6 +12,14 @@ def is_sidekick(cid):
 	return cid.startswith("side_")
 
 
+def is_boss(cid):
+	return cid.startswith("boss_")
+
+
+def in_art_registry(cid):
+	return is_sidekick(cid) or is_boss(cid)
+
+
 def lines(models, images):
 	out = [
 		"--!nonstrict",
@@ -19,11 +27,12 @@ def lines(models, images):
 		"-- docs/SIDEKICK_SPEC.md. A field with no upload yet is absent.",
 		"return {",
 	]
-	for cid in sorted(c for c in {*models, *images} if is_sidekick(c)):
+	for cid in sorted(c for c in {*models, *images} if in_art_registry(c)):
 		row = images.get(cid, {})
 		fields = []
 		if cid in models:
-			fields.append("Model = %s" % models[cid])
+			# BossModel, not Model: CharacterModelService loads each row's Model as a Sidekick, and a boss is not one.
+			fields.append("%s = %s" % ("BossModel" if is_boss(cid) else "Model", models[cid]))
 		if row.get("Image"):
 			fields.append('Portrait = "rbxassetid://%s"' % row["Image"])
 		if row.get("HeadImage"):
@@ -43,3 +52,4 @@ def write():
 
 
 assert lines({"side_a": "1", "db_hero": "2"}, {"side_a": {"Image": "3"}, "db_hero": {"Image": "4"}})[4:] == ["\tside_a = {", "\t\tModel = 1,", '\t\tPortrait = "rbxassetid://3",', "\t},", "}\n"]
+assert lines({"boss_a": "1"}, {})[4:] == ["\tboss_a = {", "\t\tBossModel = 1,", "\t},", "}\n"]

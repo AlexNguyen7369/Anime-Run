@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
+local BossRagaPoses = require(Shared.BossRagaPoses)
 local RunnerFactory = require(Shared.RunnerFactory)
 local SidekickArt = require(Shared.SidekickArt)
 
@@ -111,8 +112,49 @@ local function startSidekicks()
 	end)
 end
 
+-- Big Raga's loose parts, in ReplicatedStorage.BossModels/boss_raga, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks").
+-- Each client clones and poses them. Its parts keep the import's SurfaceAppearance: it holds the texture.
+local function loadBoss(assetId, root)
+	local ok, asset = fetch(assetId)
+	if not ok then
+		warn("[BossModels] boss_raga failed to load: " .. tostring(asset))
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "boss_raga"
+	for _, d in asset:GetDescendants() do
+		local bind = d:IsA("MeshPart") and BossRagaPoses.Bind[d.Name]
+		if bind then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+			d.Material = Enum.Material.SmoothPlastic
+			d.Size = Vector3.new(bind.Size[1], bind.Size[2], bind.Size[3])
+			d.Parent = folder
+		end
+	end
+	asset:Destroy()
+	folder.Parent = root
+end
+
+local function startBoss()
+	local root = Instance.new("Folder")
+	root.Name = "BossModels"
+	root.Parent = ReplicatedStorage
+	task.spawn(function()
+		local art = SidekickArt.boss_raga
+		if art and art.BossModel then
+			pcall(loadBoss, art.BossModel, root)
+		end
+		root:SetAttribute("Ready", true)
+	end)
+end
+
 function CharacterModelService.Start()
 	startSidekicks()
+	startBoss()
 	local root = Instance.new("Folder")
 	root.Name = "CharacterModels"
 	root.Parent = ReplicatedStorage
