@@ -1515,6 +1515,7 @@ end
 
 local function runSetup(request)
 	local id = string.match(request, "^([^:]+):")
+	local arg = string.match(request, "^[^:]+:(.*):[^:]*$") -- "<id>:<args>:<nonce>"; nil for "<id>:<nonce>"
 	ReplicatedStorage:SetAttribute("UiTestSetupError", nil)
 	local ok, err = pcall(function()
 		if id == "spy" then
@@ -1534,7 +1535,7 @@ local function runSetup(request)
 			error("unknown setup id " .. tostring(id))
 		end
 		for _, player in Players:GetPlayers() do
-			fn(player)
+			fn(player, arg)
 		end
 	end)
 	if not ok then
@@ -1800,4 +1801,38 @@ function setups.relic_chest_states(player)
 	for _, id in { "relic_chest_raga", "relic_chest_raga", "relic_chest_adapted" } do
 		assert(service.GrantChest(player, id), "could not grant " .. id)
 	end
+end
+
+-- Real boss run, nothing faked past the gear; restore:boss_ui gives the characters and Sidekicks back.
+function setups.boss_live(player)
+	bossUiGear(player, 3)
+	local service = live("BossEventService")
+	if service.State().Phase == "Idle" then
+		assert(service.Start("Admin"))
+	end
+	if not service.IsIn(player) then
+		assert(service.Join(player))
+	end
+end
+
+-- arg "stage1": hits until Stage 2. "stage2": hits until the event ends. Real RecordHit calls, so real pay.
+function setups.boss_live_hits(player, arg)
+	assert(arg == "stage1" or arg == "stage2", "boss_live_hits: stage1 or stage2")
+	local service = live("BossEventService")
+	local function reached()
+		local state = service.State()
+		if arg == "stage1" then
+			return state.Stage == 2
+		end
+		return state.Phase == "Idle"
+	end
+	local calls = 0
+	-- IsIn: out of the event no hit can land, so stop rather than wait out the cap.
+	while calls < 200000 and not reached() and service.IsIn(player) do
+		calls += 1
+		if service.RecordHit(player) == 0 or calls % 200 == 0 then
+			task.wait()
+		end
+	end
+	assert(reached(), "boss_live_hits " .. arg .. " not reached after " .. calls .. " calls")
 end

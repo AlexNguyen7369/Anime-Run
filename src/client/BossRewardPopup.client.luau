@@ -45,7 +45,6 @@ end
 
 local root = make("ScreenGui", "RacerBossRewards", player:WaitForChild("PlayerGui"), {
 	ResetOnSpawn = false,
-	IgnoreGuiInset = true,
 	DisplayOrder = 13, -- with the boss event's own UI, above the HUD
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
