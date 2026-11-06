@@ -1,4 +1,17 @@
 --!nonstrict
+-- Test code never reaches a live server or phone: it is about a third of the client's script bytes and samples GUI every frame.
+if not game:GetService("RunService"):IsStudio() then
+	local tests = script.Parent:FindFirstChild("CarTest")
+	local uiTests = game:GetService("StarterPlayer").StarterPlayerScripts:FindFirstChild("Client")
+	uiTests = uiTests and uiTests:FindFirstChild("UiTest")
+	if tests then
+		tests:Destroy()
+	end
+	if uiTests then
+		uiTests:Destroy()
+	end
+end
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 

@@ -105,8 +105,8 @@ local function collect(found, seen, source)
 			key = d.MeshId .. "|" .. d.TextureID
 		elseif d:IsA("Sky") or d:IsA("Decal") or d:IsA("Texture") then
 			key = d
-		elseif d:IsA("ImageLabel") or d:IsA("ImageButton") then
-			key = d.Image
+		elseif (d:IsA("ImageLabel") or d:IsA("ImageButton")) and not d:FindFirstAncestor("Gallery") then
+			key = d.Image -- the Index's portraits load behind the game (RollToast)
 		end
 		if key and key ~= "" and key ~= "|" and not seen[key] then
 			seen[key] = true
