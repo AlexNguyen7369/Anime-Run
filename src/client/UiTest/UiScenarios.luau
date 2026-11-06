@@ -6525,6 +6525,8 @@ function S.ui_showcase(res)
 			-- Closed popups, opened from the roll view on purpose (docs/BAG_AND_AUTOSELL_SPEC.md "UI"; Client/ItemMenu): nothing of theirs is drawn here.
 			and name ~= "RollOptions"
 			and name ~= "RacerItemMenu"
+			-- Closed too: Enabled false until a boss event's return to spawn (Client/BossRewardPopup).
+			and name ~= "RacerBossRewards"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -6634,7 +6636,14 @@ function S.ui_loser(res)
 	local highest, who = -math.huge, "none"
 	for _, name in declaredGuis() do
 		local other = playerGui:FindFirstChild(name)
-		if name ~= "LoserScreen" and other and other:IsA("ScreenGui") and other.DisplayOrder >= highest then
+		-- RacerBossRewards: closed popup (Client/BossRewardPopup); loser_draws_above_all_guis judges it live if it is open.
+		if
+			name ~= "LoserScreen"
+			and name ~= "RacerBossRewards"
+			and other
+			and other:IsA("ScreenGui")
+			and other.DisplayOrder >= highest
+		then
 			highest, who = other.DisplayOrder, name
 		end
 	end
