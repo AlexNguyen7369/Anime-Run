@@ -318,7 +318,8 @@ function Tests.sidekicks()
 		S.Equip(holder, charA, nil)
 		holder:SetAttribute("Gems", 0)
 		flag("raga_sells", S.Sell(holder, ragaEntry) == true and not has(holder, ragaEntry))
-		flag("raga_sell_pays_spec", gems(holder) == 500, gems(holder), 500)
+		flag("raga_sell_value_is_30", raga ~= nil and raga.SellGems == 30, raga and raga.SellGems, 30)
+		flag("raga_sell_pays_spec", raga ~= nil and gems(holder) == raga.SellGems, gems(holder), raga and raga.SellGems)
 
 		-- VIP pays 10% fewer Gems (design doc 4.36). IsVip is a marked shortcut, always false until the monetization branch merges.
 		local priced = unlocked()
