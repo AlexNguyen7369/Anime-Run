@@ -11,7 +11,9 @@ History: `current_progress.md`, `git log`.
 - Products: `ANIMERUN_PRODUCTS_KEY` in `~/.zshrc`, read OK (`GET .../developer-products/creator` 200, 0 products), create untested. Create only the 4 gem packs and the 149 Robux Boss spawn, then show the owner ids and prices before use. Check the upload count before b3.
 - b4 landed; owner approved the size 2026-11-05. Low-graphics fallback is in `BOSS_EVENT_SPEC`. Rojo `34874` serves the worktree `../AnimeRun-orch/b4`, reused for each task's branch so Studio stays connected.
 - Sidekick portraits: uncommitted in `../AnimeRun-orch/portraits`, branch `orch/boss-event/portraits`; owner has not answered upload or Kaizel redo.
-- Next: b5 event server.
+- Paused by the owner 2026-11-05; wait for "resume" before any Studio test. Merged locally, untested: Relics and event UI at 25bb760 on orch/boss-event/b7c; Rojo 34874 serves it from ../AnimeRun-orch/b4 (detached). `TestSaveKey` and `CarTestOnly` are still set in Studio.
+- On resume: change Relic code and the `reading_*` full-bag check so the Big Raga drop overflows (test writer first), test and land b7c, merge orch/roster/art1 (bca9b6e, 9 uploaded models, check wing membranes and *Neon* names) and apply the 12-row pool the roster session sent (hide rows with no model), then owner review of boss key frames, then b7b, b7d, b10, b9 with the monetization session, b11.
+- Owner: summon screen is a placeholder for now. The 30 minute rotation (rules in 4.36, `SIDEKICK_SPEC`) comes first, then summon visuals.
 
 ## State (2026-11-03)
 - Integration branch `feature/alex/anime-world`. `main` has only fork-ivs; merging needs an open PR and a fresh reviewer (owner approved it after c3).

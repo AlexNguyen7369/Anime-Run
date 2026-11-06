@@ -408,6 +408,7 @@ before any Studio work.
 - Selling a Sidekick pays a small Gem refund, always well under a summon's cost (owner 2026-11-04). The summon page has an auto-sell filter
   by rarity. An equipped Sidekick is never sold.
 - Ground Sidekicks walk beside their character. Flying Sidekicks hover around the character's shoulder and have a flapping animation (owner 2026-11-04). Kaizel flies; Pochito and Igriz walk. Every future flying Sidekick follows this rule.
+- Summon pool rotation (owner 2026-11-05): the pool rotates every 30 minutes, identical on all servers. Each rotation holds 1 Mythic, 2 Legendaries, 2 Rares and all Commons, plus 1 Secret that players are not told. A Sidekick's odds do not change with the rotation. Exact numbers: `docs/SIDEKICK_SPEC.md`.
 - Sidekick index (owner 2026-11-05): a Sidekicks page in the existing Index panel.
 - Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
@@ -435,7 +436,7 @@ before any Studio work.
 - Auto-roll pauses only for players in the event (owner 2026-11-05) and returns to the player's own state afterward. A big boss HP bar replaces the top middle of the
   screen, popping in on spawn and filling left to right.
 - Only a defeat pays: each player above a small minimum damage gets 1 random Relic (4.38). A timeout pays nothing.
-- On a defeat, each of those players also has a 0.001% chance of a Big Raga Sidekick (owner 2026-11-05), a downsized version of the boss with its own drawn portrait. It is never in the Gem summon pool, and its odds are shown with the Relic odds.
+- On a defeat, each of those players also has a 0.001% chance of a Big Raga Sidekick (owner 2026-11-05), a downsized version of the boss with its own drawn portrait. It is never in the Gem summon pool, and its odds are shown with the Relic odds. This drop may overflow the Sidekick bag, for example 51/50 (owner 2026-11-05); nothing else may.
 - Detail, sizes and timings not stated here: `docs/BOSS_EVENT_SPEC.md`, **placeholder**.
 - Every boss move, and every Sidekick attack, is reviewed by the owner as key frames before in-betweens are made.
 
@@ -566,3 +567,5 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: Sidekick summon shows actual models; portraits only in the Sidekick index and Bag equip (4.36).
 - 2026-11-05: owner: Big Raga Sidekick drops from a boss defeat at 0.001%; Sidekicks page in the Index (4.36, 4.37).
 - 2026-11-05: owner: auto-roll pauses only for participants; arena has a leave option; players in a duel can teleport in (4.37). Owner confirmed the 12-Sidekick pool's rates from the roster session (Legendary 1% each, Mythic 0.5% each, Secret 0.001% each; Pochito Common, Kaizel and Igriz Mythic), to be written into 4.36 with its table when its art is approved.
+- 2026-11-05: owner: the Big Raga Sidekick drop may overflow the Sidekick bag (4.37). Summon screen accepted as a placeholder; its visuals follow a 30 minute rotation of the characters in the gacha pool, not yet specified.
+- 2026-11-05: owner: 12-Sidekick pool (roster session's table) and a global 30 minute summon rotation with a hidden Secret (4.36).
