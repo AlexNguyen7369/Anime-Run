@@ -393,7 +393,7 @@ local function takePiece(at, size, color, rotation, radius)
 		fxGui.Name = "UiFx"
 		fxGui.IgnoreGuiInset = true
 		fxGui.ResetOnSpawn = false
-		fxGui.DisplayOrder = 100 -- above every game gui (the highest is 60)
+		fxGui.DisplayOrder = 100 -- above every game gui (the highest is LoserScreen, 61)
 		fxGui.Parent = playerGui
 	end
 	fxOut += 1
