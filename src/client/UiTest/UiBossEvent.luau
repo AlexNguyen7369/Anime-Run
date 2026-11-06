@@ -19,6 +19,9 @@
 --   The BossBar pops through UiMotion.Pop (UIScale MotionScale). LeaveButton hides while a PanelSwitch panel is open.
 --   The Warning frame is the plate: red and opaque, its flash stays red, white heavy text on it. No flash with reduced motion.
 --   The Invite waits while a save is in the starter pick or the roll tutorial (boss_ui_gear sets a save past both).
+--   Exhaustion view (owner 2026-11-05, spec "Exhaustion view"): ExhaustedPanel is a GuiObject directly in the ScreenGui, with
+--     Message, Countdown, Dim and Loading/Fill directly in it. It runs only on the local player's own BossWaitEndsAt, while
+--     BossEvent is true; the server clears BossEvent first on leaving, so a stale end time must not hold the view.
 -- READINGS the docs leave open, for the owner (names start with reading_):
 --   a Sidekick only in the Bag, on no character, locks the Invite: the server refuses that join ("Needs a Sidekick").
 -- Invite and TeamHud are not UiSpec Panels (Panels must be PanelSwitch ones and close each other, the Invite must not), so
@@ -26,7 +29,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
-local Cfg = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossEventConfig"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Cfg = require(Shared:WaitForChild("BossEventConfig"))
+local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Spec = require(script.Parent.UiSpec)
 
 local ROOT = "RacerBossEvent"
@@ -38,7 +43,9 @@ local LIST = HUD .. "/List"
 local WARNING = ROOT .. "/Warning"
 local BAR = ROOT .. "/BossBar"
 local LEAVE = ROOT .. "/LeaveButton"
-local PARTS = { Invite = INVITE, TeamHud = HUD, Warning = WARNING, BossBar = BAR, LeaveButton = LEAVE }
+local PANEL = ROOT .. "/ExhaustedPanel"
+local PARTS =
+	{ Invite = INVITE, TeamHud = HUD, Warning = WARNING, BossBar = BAR, LeaveButton = LEAVE, ExhaustedPanel = PANEL }
 
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
@@ -52,7 +59,11 @@ local COUNTDOWN_SLACK = 2 -- s
 local RATIO_SLACK = 0.02
 local FILL_SLACK = 0.1 -- of the bar: the fill against the server clock while it moves
 local FOV_OUTSIDE = 63 -- a value no script sets, so a restore to a fixed default shows
-local BUDGET = 54 -- s: the whole scenario
+local BUDGET = 68 -- s: the whole scenario
+local DIM_MIN, DIM_MAX = 0.5, 0.85 -- BackgroundTransparency: "slightly dimmed"
+local WAIT_CENTRE_SLACK = 0.1 -- of the screen
+local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
+local WAIT_COUNT_SLACK = 0.15 -- s around a whole-second change
 local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
@@ -806,6 +817,217 @@ function Module.Build(h)
 		onlyShown(res, "event_end", {})
 	end
 
+	-- Owner 2026-11-05: the team is exhausted. Aerial camera, dim, centred countdown, a loading sign full at the end time.
+	local function checkWaitView(res)
+		local camera = workspace.CurrentCamera
+		local wait = Cfg.RefillWaitSeconds
+		local fightAt = Cfg.PrepSeconds + Cfg.IntroSeconds + 5
+		local hp = Cfg.HpPerPlayer
+		local function waitSet(seconds)
+			setup(res, "boss_ui_wait:" .. tostring(seconds))
+		end
+		local function scriptable()
+			return camera.CameraType == Enum.CameraType.Scriptable
+		end
+
+		local panel = h.find(PANEL)
+		local message, countdown = h.find(PANEL .. "/Message"), h.find(PANEL .. "/Countdown")
+		local fill, dim = h.find(PANEL .. "/Loading/Fill"), h.find(PANEL .. "/Dim")
+		check(res, "wait_panel_complete", panel and message and countdown and fill and dim and true, true)
+		check(res, "wait_config_present", typeof(Cfg.WaitCameraOffset), "Vector3")
+		check(res, "wait_cframe_present", type(Cfg.WaitCameraCFrame), "function")
+		if not (panel and message and countdown and fill and dim) or type(Cfg.WaitCameraCFrame) ~= "function" then
+			return
+		end
+		local frame = Cfg.WaitCameraCFrame(Arena.Center)
+		local function atAerial()
+			return (camera.CFrame.Position - frame.Position).Magnitude < WAIT_CAMERA_SLACK
+		end
+
+		state(res, "Idle", 0, 0, 0, false)
+		task.wait(0.2)
+		local typeBefore, subjectBefore, fovBefore = camera.CameraType, camera.CameraSubject, camera.FieldOfView
+		state(res, "Fight", fightAt, hp, hp, true, 100)
+		waitShown(BAR, true)
+		task.wait(0.2)
+		local inEventType = camera.CameraType
+		local function checkRestored(tag, fov)
+			check(res, tag .. "_panel_gone", waitShown(PANEL, false), false)
+			check(res, tag .. "_not_scriptable", waitIs(scriptable, false), false)
+			check(res, tag .. "_camera_type", camera.CameraType, typeBefore)
+			check(res, tag .. "_camera_subject", camera.CameraSubject, subjectBefore)
+			check(res, tag .. "_camera_left_aerial", waitIs(atAerial, false), false)
+			check(res, tag .. "_fov", math.round(camera.FieldOfView), math.round(fov))
+		end
+		check(res, "wait_none_panel_hidden", shown(PANEL), false)
+		check(res, "wait_none_camera_free", camera.CameraType, typeBefore)
+
+		-- Not this player's wait: the end time on anything else starts nothing.
+		ReplicatedStorage:SetAttribute("BossWaitEndsAt", workspace:GetServerTimeNow() + wait)
+		task.wait(0.4)
+		check(res, "wait_other_panel_hidden", shown(PANEL), false)
+		check(res, "wait_other_camera_free", camera.CameraType, inEventType)
+		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
+
+		-- A whole wait, sampled to its end.
+		waitSet(wait)
+		local waitStart = os.clock()
+		check(res, "wait_panel_shown", waitShown(PANEL, true), true)
+		check(res, "wait_camera_scriptable", waitIs(scriptable, true), true)
+		check(res, "wait_camera_at_aerial", waitIs(atAerial, true), true)
+		check(res, "wait_fov", math.round(camera.FieldOfView), math.round(Cfg.CameraFov))
+		check(res, "wait_message_shown", h.visible(message), true)
+		check(
+			res,
+			"wait_message_says_exhausted",
+			string.find(string.lower(message.Text), "exhaust", 1, true) ~= nil,
+			true
+		)
+		check(res, "wait_countdown_shown", h.visible(countdown), true)
+		check(res, "wait_fill_shown", h.visible(fill), true)
+		check(res, "wait_dim_shown", h.visible(dim), true)
+		check(res, "wait_dim_is_frame", dim.ClassName, "Frame")
+		h.check(
+			res,
+			"wait_dim_slight",
+			dim.BackgroundTransparency,
+			DIM_MIN .. " to " .. DIM_MAX,
+			dim.BackgroundTransparency >= DIM_MIN and dim.BackgroundTransparency <= DIM_MAX
+		)
+		local view = camera.ViewportSize
+		h.check(
+			res,
+			"wait_dim_full_screen",
+			dim.AbsoluteSize,
+			view,
+			dim.AbsoluteSize.X >= view.X - 1 and dim.AbsoluteSize.Y >= view.Y - 1
+		)
+		for name, label in { countdown = countdown, message = message } do
+			local centre = (label.AbsolutePosition + label.AbsoluteSize / 2 + GuiService:GetGuiInset()) / view
+			h.check(
+				res,
+				"wait_" .. name .. "_centred",
+				centre,
+				"within " .. WAIT_CENTRE_SLACK,
+				math.abs(centre.X - 0.5) <= WAIT_CENTRE_SLACK and math.abs(centre.Y - 0.5) <= 2 * WAIT_CENTRE_SLACK
+			)
+		end
+
+		-- The live camera sees the whole ring and the wheel's top.
+		local outside = 0
+		local function see(point)
+			local at = camera:WorldToViewportPoint(point)
+			if at.Z <= 0 or at.X < 0 or at.Y < 0 or at.X > view.X or at.Y > view.Y then
+				outside += 1
+			end
+		end
+		see(Arena.Center + Vector3.yAxis * Arena.BossTotalHeight)
+		for i = 0, Arena.Segments - 1 do
+			see(Arena.RingPoint(Arena.InnerRadius, i))
+			see(Arena.RingPoint(Arena.InnerRadius + Arena.Width, i))
+		end
+		check(res, "wait_view_sees_ring_and_wheel", outside, 0)
+
+		-- The bar, its status row and Leave stay on top of the dim.
+		ReplicatedStorage:SetAttribute(
+			"BossStatus",
+			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + wait + 5 } })
+		)
+		waitIs(function()
+			return named(BAR, "Status_Shouted") ~= nil
+		end, true)
+		local playerGui = h.player:WaitForChild("PlayerGui")
+		for name, target in { bar = h.find(BAR), status = named(BAR, "Status_Shouted"), leave = h.find(LEAVE) } do
+			local firstTarget, firstDim
+			if target then
+				local middle = target.AbsolutePosition + target.AbsoluteSize / 2
+				for i, hit in playerGui:GetGuiObjectsAtPosition(middle.X, middle.Y) do
+					if not firstTarget and (hit == target or hit:IsDescendantOf(target)) then
+						firstTarget = i
+					elseif hit == dim then
+						firstDim = i
+					end
+				end
+			end
+			h.check(
+				res,
+				"wait_" .. name .. "_above_dim",
+				tostring(firstTarget) .. " vs " .. tostring(firstDim),
+				"target hit before the dim",
+				firstTarget ~= nil and firstDim ~= nil and firstTarget < firstDim
+			)
+		end
+		check(res, "wait_leave_usable", h.find(LEAVE).Active and h.find(LEAVE).Interactable, true)
+		ReplicatedStorage:SetAttribute("BossStatus", nil)
+
+		-- Both follow the end time. Past 5 s the panel holds at 1 and full until the server clears the attribute.
+		local endsAt = h.player:GetAttribute("BossWaitEndsAt")
+		local worstFill, badCount, lastFill, shrank, loose, lost, seen = 0, 0, 0, false, false, false, {}
+		while endsAt and endsAt - workspace:GetServerTimeNow() > 0.03 do
+			local remaining = endsAt - workspace:GetServerTimeNow()
+			local size = fill.Size.X
+			worstFill = math.max(worstFill, math.abs(size.Scale - (1 - remaining / wait)))
+			shrank = shrank or size.Scale < lastFill - 0.001
+			lastFill = size.Scale
+			loose = loose or size.Offset ~= 0
+			local shownCount = tonumber(countdown.Text)
+			seen[shownCount or "bad"] = true
+			if
+				shownCount ~= math.ceil(remaining)
+				and shownCount ~= math.ceil(remaining + WAIT_COUNT_SLACK)
+				and shownCount ~= math.ceil(remaining - WAIT_COUNT_SLACK)
+			then
+				badCount += 1
+			end
+			lost = lost or not scriptable() or not shown(PANEL)
+			task.wait()
+		end
+		h.check(res, "wait_fill_follows_end_time", worstFill, "<= " .. FILL_SLACK, worstFill <= FILL_SLACK)
+		check(res, "wait_fill_never_shrinks", shrank, false)
+		check(res, "wait_fill_uses_scale", loose, false)
+		check(res, "wait_countdown_follows_end_time", badCount, 0)
+		check(res, "wait_countdown_reaches_1", seen[1] == true, true)
+		check(res, "wait_countdown_never_0_or_more_than_5", seen[0] or seen[6] or seen.bad or false, false)
+		check(res, "wait_view_held_throughout", lost, false)
+		task.wait(0.1)
+		h.check(res, "wait_fill_complete_at_end", fill.Size.X.Scale, ">= 0.98", fill.Size.X.Scale >= 0.98)
+		check(res, "wait_countdown_holds_1_at_end", countdown.Text, "1")
+		local waited = os.clock() - waitStart
+		h.check(res, "wait_ran_its_time", waited, "about " .. wait, math.abs(waited - wait) < 1)
+
+		-- Revive: everything back, still in the event.
+		waitSet("none")
+		checkRestored("revive", Cfg.CameraFov)
+
+		-- A wait seen part-way, as after a rejoin of the view: the panel starts from the end time, not from 0.
+		waitSet(2)
+		waitShown(PANEL, true)
+		local partFill = fill.Size.X.Scale
+		h.check(
+			res,
+			"wait_late_fill_from_end_time",
+			partFill,
+			">= " .. (1 - 2 / wait - FILL_SLACK),
+			partFill >= 1 - 2 / wait - FILL_SLACK
+		)
+		h.check(res, "wait_late_countdown", countdown.Text, "<= 2", (tonumber(countdown.Text) or 99) <= 2)
+
+		-- Leaving mid-wait: BossEvent goes first, the end time a moment later.
+		waitSet(4)
+		check(res, "wait_leave_case_shown", waitShown(PANEL, true), true)
+		state(res, "Fight", "keep", hp, hp, false)
+		checkRestored("wait_leave", fovBefore)
+		waitSet("none")
+
+		-- The event's end mid-wait.
+		state(res, "Fight", fightAt, hp, hp, true, 100)
+		waitSet(4)
+		check(res, "wait_end_case_shown", waitShown(PANEL, true), true)
+		state(res, "Idle", 0, 0, 0, false)
+		checkRestored("wait_event_end", fovBefore)
+		camera.FieldOfView = fovBefore
+	end
+
 	function scenarios.ui_boss(res)
 		h.waitGuis()
 		local gui = h.find(ROOT)
@@ -831,11 +1053,13 @@ function Module.Build(h)
 			checkLateJoin(res)
 			checkOutsider(res)
 			checkCameraFov(res)
+			checkWaitView(res)
 			checkStatusRow(res)
 			checkReduced(res)
 		end, debug.traceback)
 		h.check(res, "boss_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossStatus", nil)
+		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
 		h.player:SetAttribute("ReduceEffects", savedReduce)
 		setup(res, "restore:boss_ui")
 		local spent = os.clock() - started

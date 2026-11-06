@@ -325,6 +325,7 @@ local function clearBossUi(player)
 	end
 	player:SetAttribute("BossEvent", nil)
 	player:SetAttribute("BossTeamDamage", nil)
+	player:SetAttribute("BossWaitEndsAt", nil)
 end
 local function restoreBossUi(player)
 	clearBossUi(player)
@@ -1482,6 +1483,12 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossTutorial = string.match(request, "^boss_ui_tutorial:(%a+)$")
 		if bossTutorial then
 			bossUiTutorial(player, bossTutorial == "on")
+			return
+		end
+		local bossWait = string.match(request, "^boss_ui_wait:([%w%.]+)$")
+		if bossWait then -- seconds left in this player's wait, or "none"
+			local seconds = tonumber(bossWait)
+			player:SetAttribute("BossWaitEndsAt", seconds and workspace:GetServerTimeNow() + seconds or nil)
 			return
 		end
 		if request == "sidekick_ui_clock:next" then

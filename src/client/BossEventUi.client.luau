@@ -1,6 +1,6 @@
 --!nonstrict
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
--- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent and BossTeamDamage) and asks through
+-- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
@@ -39,6 +39,8 @@ local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too 
 local BAR_LOW_TOP = 58 -- px: under the top row and Roblox's reserved top-left (x 0..360, y 0..58)
 local BAR_HIGH_TOP = 10 -- px: where the bar fits between those two
 local RESERVED_RIGHT = 360
+local EXHAUSTED_TEXT = "Your team is exhausted. Reviving..."
+local DIM_TRANSPARENCY = 0.65 -- "slightly dims" (BOSS_EVENT_SPEC "Exhaustion view")
 local STATUS_GAP = 4 -- px under the bar
 local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 28, 22
 -- The icon is a plain in-house shape with a glyph on it; no image upload. No digit in these texts: the countdown is the number.
@@ -294,6 +296,51 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 	TextSize = 18,
 	Visible = false,
 })
+
+-- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
+local exhausted = make("Frame", "ExhaustedPanel", root, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	ZIndex = 0,
+	Visible = false,
+})
+make("Frame", "Dim", exhausted, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = DIM_TRANSPARENCY,
+	BorderSizePixel = 0,
+	ZIndex = 0,
+})
+label("Message", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.43),
+	Size = UDim2.fromScale(0.8, 0.11),
+	Text = EXHAUSTED_TEXT,
+	Font = Enum.Font.GothamBlack,
+}, 48)
+local exhaustedCount = label("Countdown", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.56),
+	Size = UDim2.fromScale(0.3, 0.14),
+	Text = "",
+	Font = Enum.Font.GothamBlack,
+	TextColor3 = Palette.Gold,
+}, 84)
+local loading = make("Frame", "Loading", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(0.5, 0.67),
+	Size = UDim2.new(0.4, 0, 0, 18),
+	BackgroundColor3 = Palette.TeamTired,
+	BorderSizePixel = 0,
+})
+UiTheme.Corner(loading, "S")
+UiTheme.Stroke(loading, 2, UiTheme.Outline, true)
+local loadingFill = make("Frame", "Fill", loading, {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Palette.Gold,
+	BorderSizePixel = 0,
+})
+UiTheme.Corner(loadingFill, "S")
 
 -- Layout ------------------------------------------------------------------------------------------------------------------
 local lastLayout = nil
@@ -686,6 +733,15 @@ local function render()
 	bar.Visible = inFight
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
+
+	-- From the server's end time, so a late view is as far along. Past it, full at 1 until the server revives the team.
+	local waitEnds = player:GetAttribute("BossWaitEndsAt")
+	exhausted.Visible = inEvent and type(waitEnds) == "number"
+	if exhausted.Visible then
+		local left = waitEnds - workspace:GetServerTimeNow()
+		exhaustedCount.Text = tostring(math.clamp(math.ceil(left), 1, Cfg.RefillWaitSeconds))
+		loadingFill.Size = UDim2.fromScale(math.clamp(1 - left / Cfg.RefillWaitSeconds, 0, 1), 1)
+	end
 
 	if invite.Visible then
 		inviteCountdown.Text = clockText(Cfg.JoinSeconds - elapsed)

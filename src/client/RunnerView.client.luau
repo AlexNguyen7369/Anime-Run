@@ -15,6 +15,7 @@ local Arena = require(Shared.BossArenaConfig)
 local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
+local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
 
@@ -301,6 +302,10 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
 	local camera = Workspace.CurrentCamera
+	if camera then
+		BossWaitCamera.Step(camera, dt)
+	end
+	local waitView = BossWaitCamera.Held() -- it owns the camera and its FOV until it has given them back
 	if camera and savedPitch and player:GetAttribute("BossEvent") ~= true then
 		local look = camera.CFrame.LookVector
 		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
@@ -312,6 +317,9 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		and player:GetAttribute("BossEvent") == true
 		and camera.CameraType == Enum.CameraType.Custom
 		and not (player:GetAttribute("TopDownView") == true and player:GetAttribute("AutoRacing") == true)
+	if waitView then
+		wide = fovBefore ~= nil
+	end
 	if wide and not fovBefore then
 		fovBefore = camera.FieldOfView
 		camera.FieldOfView = BossCfg.CameraFov
@@ -331,7 +339,7 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		if not rising and trackCameraOn(camera, mine) then
 			alignYaw(camera, torso, dt)
 		end
-		followed = { Part = torso, Position = torso.Position }
+		followed = not waitView and { Part = torso, Position = torso.Position } or nil
 	elseif camera and cameraOnRunner then
 		cameraOnRunner = false
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")

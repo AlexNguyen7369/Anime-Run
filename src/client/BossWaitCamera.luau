@@ -1,0 +1,94 @@
+--!nonstrict
+-- The exhaustion view's camera (docs/BOSS_EVENT_SPEC.md "Exhaustion view"), stepped by Client/RunnerView. It follows only the
+-- local player's own BossWaitEndsAt while BossEvent is true, and holds the camera Scriptable until it has brought it back.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Arena = require(Shared.BossArenaConfig)
+local Cfg = require(Shared.BossEventConfig)
+local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+
+local player = Players.LocalPlayer
+
+-- Placeholders.
+local PULL_SECONDS = 0.6
+local RETURN_SECONDS = 0.5
+local DRIFT_STUDS = 15
+local DRIFT_RATE = 0.5 -- radians a second
+
+local BossWaitCamera = {}
+
+local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back }: what comes back, and where this move started
+
+local function subjectPosition(camera)
+	local subject = camera.CameraSubject
+	local part = subject and (subject:IsA("Humanoid") and subject.RootPart or subject:IsA("BasePart") and subject)
+	return part and part.Position or nil
+end
+
+-- Where the camera was before the wait, carried along with what it follows.
+local function homeFrame(camera)
+	local at = subjectPosition(camera)
+	return at and held.SubjectAt and held.View + (at - held.SubjectAt) or held.View
+end
+
+local function smooth(alpha)
+	alpha = math.min(alpha, 1)
+	return alpha * alpha * (3 - 2 * alpha)
+end
+
+local function release(camera)
+	camera.CFrame = homeFrame(camera)
+	camera.CameraType = held.Type
+	camera.FieldOfView = held.Fov
+	held = nil
+end
+
+function BossWaitCamera.Held()
+	return held ~= nil
+end
+
+function BossWaitCamera.Step(camera, dt)
+	local inEvent = player:GetAttribute("BossEvent") == true
+	if inEvent and type(player:GetAttribute("BossWaitEndsAt")) == "number" then
+		if not held then
+			held = {
+				Type = camera.CameraType,
+				Fov = camera.FieldOfView,
+				View = camera.CFrame,
+				SubjectAt = subjectPosition(camera),
+				From = camera.CFrame,
+				Age = 0,
+			}
+		elseif held.Back then -- a new wait during the return
+			held.Back, held.From, held.Age = nil, camera.CFrame, 0
+		end
+		held.Age += dt
+		camera.CameraType = Enum.CameraType.Scriptable
+		camera.FieldOfView = Cfg.CameraFov
+		local aerial = Cfg.WaitCameraCFrame(Arena.Center)
+		if UiMotion.Reduced() then
+			camera.CFrame = aerial
+		else
+			local drifted = aerial * CFrame.new(math.sin(held.Age * DRIFT_RATE) * DRIFT_STUDS, 0, 0)
+			camera.CFrame = held.From:Lerp(drifted, smooth(held.Age / PULL_SECONDS))
+		end
+	elseif held then
+		if not inEvent or UiMotion.Reduced() then
+			release(camera) -- leaving or the event's end: the teleport moves the view anyway
+			return
+		end
+		if not held.Back then
+			held.Back, held.From = 0, camera.CFrame
+		end
+		held.Back += dt
+		if held.Back >= RETURN_SECONDS then
+			release(camera)
+		else
+			camera.CFrame = held.From:Lerp(homeFrame(camera), smooth(held.Back / RETURN_SECONDS))
+		end
+	end
+end
+
+return BossWaitCamera

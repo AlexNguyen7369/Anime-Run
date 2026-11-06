@@ -4,7 +4,8 @@
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
 -- BossEventHp, BossEventMaxHp and BossStatus (JSON list of { Id, EndsAt in server time }, nil when empty), and the player attributes
--- BossEvent (true while in the event) and BossTeamDamage (TeamDamage, nil outside the event). They call the RemoteFunctions
+-- BossEvent (true while in the event), BossTeamDamage (TeamDamage, nil outside the event) and BossWaitEndsAt (server time the
+-- exhausted team revives, nil otherwise). They call the RemoteFunctions
 -- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message to Client/BossEventChat.
 local HttpService = game:GetService("HttpService")
@@ -169,7 +170,17 @@ BossEventService.Hooks = {
 	end,
 	StartRun = function(player, team, lane)
 		local route = { Path = Arena.LaneRoute(lane), Pads = {}, Tracks = {} }
-		return CarService.RunHeld(player, route, { Boss = true, Team = team })
+		return CarService.RunHeld(player, route, {
+			Boss = true,
+			Team = team,
+			OnRunEvent = function(event)
+				if event.Kind == "BossWait" then
+					player:SetAttribute("BossWaitEndsAt", workspace:GetServerTimeNow() + Cfg.RefillWaitSeconds)
+				elseif event.Kind == "BossRefill" then
+					player:SetAttribute("BossWaitEndsAt", nil)
+				end
+			end,
+		})
 	end,
 	Depart = function(player)
 		CarService.SetAutoRace(player, false) -- back on foot at the walk spawn
@@ -374,6 +385,7 @@ end
 local function release(player, member, depart)
 	player:SetAttribute("BossEvent", nil)
 	player:SetAttribute("BossTeamDamage", nil)
+	player:SetAttribute("BossWaitEndsAt", nil)
 	if member.Run then
 		safely(member.Run.Destroy, member.Run)
 	end

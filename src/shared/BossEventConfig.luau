@@ -17,6 +17,8 @@ BossEventConfig.ShoutSeconds = 5 -- owner
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
 BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
+BossEventConfig.WaitCameraOffset = Vector3.new(0, 850, -1200) -- placeholder: front and above; Big Raga faces -Z
+local WAIT_CAMERA_LOOK_HEIGHT = 150 -- placeholder: above the ring's centre
 BossEventConfig.HpPerPlayer = 4000 -- placeholder
 BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
 BossEventConfig.MinDamageShare = 0.01 -- placeholder: of max HP, for a reward
@@ -37,6 +39,11 @@ function BossEventConfig.TeamDamage(damages, cruise)
 		total += damage
 	end
 	return total / #damages * BossEventConfig.SpeedScale(cruise)
+end
+
+-- The exhaustion view: the whole ring and the wheel's top fit at CameraFov (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
+function BossEventConfig.WaitCameraCFrame(center)
+	return CFrame.lookAt(center + BossEventConfig.WaitCameraOffset, center + Vector3.yAxis * WAIT_CAMERA_LOOK_HEIGHT)
 end
 
 return BossEventConfig

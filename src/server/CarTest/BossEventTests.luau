@@ -43,6 +43,10 @@
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
 --       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
 --       at or before its joining, is never charged.
+--   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
+--     cleared at refill and on leaving. BossEventConfig.WaitCameraOffset, a Vector3 from the arena centre: above the whole
+--     boss and on its front (-Z). BossEventConfig.WaitCameraCFrame(center): pure, at center + offset, and sees the ring and
+--     the wheel top at CameraFov.
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
 --   RaceService.NewRun option Boss = true, with Team = { ids }, on { Path = BossArenaConfig.LaneRoute(n), Pads = {}, Tracks = {} }:
 --     stamina without npcMode, distance wraps the closed route. At all empty: run.Waiting = true, RunSpeed 0, runner still,
@@ -1868,6 +1872,161 @@ function Tests.make(deps)
 					end)
 				)
 				eq("real_leave_after_death_safe", (pcall(S.Leave, p, "Left")), true)
+				S.Reset(T0)
+				SpawnArea.START_COOLDOWN = oldCooldown
+			end)
+
+			-- Owner 2026-11-05, BOSS_EVENT_SPEC "Exhaustion view": the framing, and the end time the client's view runs from.
+			section("wait_view", function()
+				local CarService = require(Server.CarService)
+				local Arena = require(Shared.BossArenaConfig)
+				local offset = Cfg.WaitCameraOffset
+				local makeFrame = Cfg.WaitCameraCFrame
+				flag("wait_offset_is_vector", typeof(offset) == "Vector3", typeof(offset), "Vector3")
+				flag("wait_cframe_is_function", type(makeFrame) == "function")
+				if typeof(offset) == "Vector3" and type(makeFrame) == "function" then
+					flag("wait_camera_above_boss", offset.Y > Arena.BossTotalHeight, offset.Y, Arena.BossTotalHeight)
+					flag("wait_camera_in_front", offset.Z < 0, offset.Z, "< 0") -- Big Raga faces -Z (Client/BossRaga)
+					local frame = makeFrame(Arena.Center)
+					flag(
+						"wait_camera_at_offset",
+						(frame.Position - (Arena.Center + offset)).Magnitude < 0.01,
+						frame.Position,
+						Arena.Center + offset
+					)
+					local moved = Vector3.new(100, 50, -300)
+					local shifted = makeFrame(Arena.Center + moved)
+					flag(
+						"wait_cframe_pure",
+						(shifted.Position - frame.Position - moved).Magnitude < 0.01
+							and shifted.LookVector:FuzzyEq(frame.LookVector, 0.001)
+					)
+					local points = { Arena.Center + Vector3.yAxis * Arena.BossTotalHeight }
+					for i = 0, Arena.Segments - 1 do
+						table.insert(points, Arena.RingPoint(Arena.InnerRadius, i))
+						table.insert(points, Arena.RingPoint(Arena.InnerRadius + Arena.Width, i))
+					end
+					local halfTall = math.tan(math.rad(Cfg.CameraFov / 2))
+					for name, aspect in { wide = 16 / 9, tablet = 4 / 3 } do
+						local outside = 0
+						for _, point in points do
+							local at = frame:PointToObjectSpace(point)
+							local depth = -at.Z
+							if
+								depth <= 0
+								or math.abs(at.Y) / depth > halfTall
+								or math.abs(at.X) / depth > halfTall * aspect
+							then
+								outside += 1
+							end
+						end
+						eq("wait_view_sees_all_" .. name, outside, 0)
+					end
+				end
+
+				S.SetClock(function()
+					return clock
+				end)
+				SpawnArea.START_COOLDOWN = 0
+				local function realEvent(...)
+					begin()
+					for name, fn in realHooks do
+						S.Hooks[name] = fn
+					end
+					S.Hooks.Rewards = function() end
+					for _, p in { ... } do
+						S.Join(p)
+					end
+					to(FIGHT)
+				end
+				local function arrive()
+					local p = fighter()
+					local character = deps.newFakeCharacter(CarService.WalkSpawnCFrame())
+					character.Parent = character.Parent or workspace
+					table.insert(cleanup, character)
+					CarService.OnCharacter(p, character)
+					return p
+				end
+				-- Empties the team of a running player, and waits for the wait to start.
+				local function exhaust(p)
+					waitFor(1, function()
+						return CarService.GetRun(p) ~= nil
+					end)
+					local run = CarService.GetRun(p)
+					if not run then
+						return nil
+					end
+					waitFor(2, function()
+						for i in run.Stamina do
+							run.Stamina[i] = 0.01
+						end
+						return run.Waiting == true
+					end)
+					return run.Waiting == true and run or nil
+				end
+				local function ends(p)
+					return p:GetAttribute("BossWaitEndsAt")
+				end
+
+				local tired, other = arrive(), arrive()
+				realEvent(tired, other)
+				eq("wait_attr_none_while_running", ends(tired), nil)
+				local run = exhaust(tired)
+				flag("wait_run_waits", run ~= nil)
+				if not run then
+					S.Reset(T0)
+					SpawnArea.START_COOLDOWN = oldCooldown
+					return
+				end
+				local endsAt = ends(tired)
+				flag("wait_attr_published", type(endsAt) == "number", endsAt, "number")
+				-- Either clock: the client reads GetServerTimeNow, and in this test the event's own clock is a fake.
+				local left = type(endsAt) == "number"
+						and math.min(
+							math.abs(endsAt - workspace:GetServerTimeNow() - Cfg.RefillWaitSeconds),
+							math.abs(endsAt - clock - Cfg.RefillWaitSeconds)
+						)
+					or math.huge
+				flag("wait_attr_is_end_time", left < 0.5, left, "< 0.5 from now + wait")
+				eq("wait_other_player_untouched", ends(other), nil)
+				flag(
+					"wait_attr_clears_at_refill",
+					waitFor(Cfg.RefillWaitSeconds + 1, function()
+						return ends(tired) == nil
+					end)
+				)
+				flag(
+					"wait_attr_lasts_to_refill",
+					waitFor(0.2, function()
+						return run.Waiting == false
+					end),
+					run.Waiting,
+					false
+				)
+
+				-- Leaving mid-wait, and the event's end mid-wait: the attribute goes and stays gone.
+				local left2 = exhaust(tired)
+				flag("wait_second_wait_starts", left2 ~= nil)
+				flag("wait_second_wait_publishes", type(ends(tired)) == "number")
+				S.Leave(tired, "Left")
+				flag(
+					"wait_attr_clears_on_leave",
+					waitFor(0.5, function()
+						return ends(tired) == nil
+					end)
+				)
+				task.wait(0.3)
+				eq("wait_attr_stays_clear_after_leave", ends(tired), nil)
+
+				realEvent(tired)
+				flag("wait_end_case_waits", exhaust(tired) ~= nil)
+				S.End("Timeout")
+				flag(
+					"wait_attr_clears_on_event_end",
+					waitFor(0.5, function()
+						return ends(tired) == nil
+					end)
+				)
 				S.Reset(T0)
 				SpawnArea.START_COOLDOWN = oldCooldown
 			end)
