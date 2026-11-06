@@ -108,8 +108,9 @@
 105. 2026-11-04 — Alex Nguyen — Built the Saitamo model, atlas and portrait locally with its evidence record, not uploaded, pending the owner's review and licensing decision.
 106. 2026-11-05 — Alex Nguyen — Recorded the owner's ruling, uploaded the Saitamo model, portrait and head, and drafted its spawn pedestal in Blender for review.
 107. 2026-11-05 — Alex Nguyen — Created the Boss Spawn and 4 gem pack developer products off sale for the boss event and recorded the owner's -10% VIP discount on Sidekick summons.
+108. 2026-11-05 — Alex Nguyen — On the owner's word, stopped the harness and merged monetization and the checkout's commits into feature/alex/boss-event with VIP 10% off summons live; a boot and one live event show no errors, but the full server and UI harness have not run on the merged code.
 
 ## What's next
-**Run the full server and UI harness and the rules audit for goal `boss-event` (deliverable b11).**
+**Run the full server and UI harness and a rules re-audit on the merged code, then open a PR into main.**
 
-**Why this is next:** it is the last deliverable and the check that decides whether a PR into main can open.
+**Why this is next:** the owner put tests after playable; `main` needs a reviewed PR, and known red checks must be cleared first.
