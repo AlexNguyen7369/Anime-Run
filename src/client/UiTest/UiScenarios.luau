@@ -164,6 +164,8 @@ UiScenarios.Names = {
 	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
 	-- wants none before it.
 	"ui_boss",
+	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
+	"ui_boss_vfx",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -8027,6 +8029,14 @@ for name, fn in K.boss.Scenarios do
 end
 for cond, fn in K.boss.After do
 	access.After[cond] = fn
+end
+K.bossVfx = require(script.Parent.UiBossVfx).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossVfx.Scenarios do
+	S[name] = fn
 end
 
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly

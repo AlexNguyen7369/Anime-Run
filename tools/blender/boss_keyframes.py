@@ -240,7 +240,7 @@ def solve_legs(key, pivots):
 		hip_rest, knee_rest, ankle_rest = (Vector(pivots[side + p]) for p in ("UpperLeg", "LowerLeg", "Foot"))
 		l1, l2 = (hip_rest - knee_rest).length, (knee_rest - ankle_rest).length
 		fx, fy, yaw = key.get("feet", {}).get(side, (s * 0.7, 0, 0))
-		ankle = Vector((fx, fy, ankle_rest.z))
+		ankle = Vector((fx, fy, ankle_rest.z + key.get("lift", {}).get(side, 0)))  # lift: in-betweens only, no approved key has one
 		hip = pelvis + root3 @ (hip_rest - Vector(pivots["LowerTorso"]))
 		to = ankle - hip
 		assert to.length <= l1 + l2 + 1e-4, f"{side} leg cannot reach: {to.length:.3f} > {l1 + l2:.3f}, lower the root"
@@ -494,4 +494,5 @@ def main():
 		json.dump(data, f, indent=1)
 
 
-main()
+if __name__ == "__main__":  # bake_boss_raga.py imports the pose data and the leg solver
+	main()

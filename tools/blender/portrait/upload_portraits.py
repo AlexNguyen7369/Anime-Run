@@ -176,4 +176,5 @@ def main():
 		sidekick_art.write()
 
 
-main()
+if __name__ == "__main__":  # upload_boss_vfx.py reuses upload and resolve
+	main()
