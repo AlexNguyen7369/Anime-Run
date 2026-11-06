@@ -17,8 +17,22 @@ BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: the rise and the cutscene,
 BossEventConfig.RiseSeconds = 1.5 -- owner 2026-11-05: the first part of it, Big Raga rising with the HP bar
 BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
-BossEventConfig.CameraFov = 100 -- placeholder
-BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view
+-- Radians the wheel has turned `since` seconds after the scream began (BOSS_EVENT_SPEC "Phase 2"): time-based, so a late client
+-- agrees. Placeholders.
+local WHEEL_FAST, WHEEL_RAMP, WHEEL_HOLD, WHEEL_SLOW = math.rad(1080), 0.35, 1, math.rad(50)
+function BossEventConfig.WheelSpinAt(since)
+	if since <= 0 then
+		return 0
+	end
+	local fast = math.min(since, BossEventConfig.ScreamSeconds)
+	local angle = fast < WHEEL_RAMP and WHEEL_FAST * fast * fast / (2 * WHEEL_RAMP)
+		or WHEEL_FAST * (fast - WHEEL_RAMP / 2)
+	return angle + WHEEL_SLOW * math.max(0, since - BossEventConfig.ScreamSeconds - WHEEL_HOLD)
+end
+
+BossEventConfig.CameraFov = 100 -- owner 2026-11-06: locked for the whole event
+BossEventConfig.CameraZoom = 40 -- owner 2026-11-06: studs, the wide view's distance
+BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
 -- Placeholders. At WaitCameraFov on a 907 px screen: the runner is at y near 775, about 6 px tall; the boss is 430 to 455 px
 -- tall, wheel top at y 43 to 56, feet at y 489 to 498.
 local WAIT_CAMERA_OUT = 450 -- past the runner, away from the boss
@@ -65,18 +79,6 @@ end
 -- 1 + min(1, cruise / 800): at most +100% (owner 2026-11-05).
 function BossEventConfig.SpeedScale(cruise)
 	return 1 + math.min(1, cruise / FULL_SCALE_CRUISE)
-end
-
--- The average of the team's Sidekick damages, times the speed scale. No rounding.
-function BossEventConfig.TeamDamage(damages, cruise)
-	if #damages == 0 then
-		return 0
-	end
-	local total = 0
-	for _, damage in damages do
-		total += damage
-	end
-	return total / #damages * BossEventConfig.SpeedScale(cruise)
 end
 
 -- The exhaustion view: hovers above and outward of the runner, tilted down toward the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.

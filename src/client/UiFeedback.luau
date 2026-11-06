@@ -58,6 +58,7 @@ UiFeedback.Cues = {
 	DuelInvite = { Slot = "Chime", Volume = 2, Motion = { "Pop" } },
 	DuelWin = { Slot = "Boom", Volume = 0.7, Motion = { "Slam", "Burst" } },
 	DuelLose = { Slot = "Thunk", Volume = 0.5, Motion = { "Shake" } },
+	BossScream = { Motion = { "Shake" } }, -- no sound until BossRoar is approved (BossVfx "cue:")
 }
 
 local sounds = {} -- cue -> its Sounds, filled when the copied folder has arrived; until then cues only run motion

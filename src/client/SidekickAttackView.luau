@@ -14,8 +14,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local Attacks = require(Shared:WaitForChild("SidekickAttacks"))
+local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
+local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
-local StaminaConfig = require(Shared:WaitForChild("StaminaConfig"))
 local BossTeamRig = require(script.Parent:WaitForChild("BossTeamRig"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -27,8 +28,9 @@ local IMPACT_SECONDS = 1.2
 local NUMBER_SECONDS = 1.1
 local NUMBER_POP = 0.18 -- s of the pop out, placeholder
 local NUMBER_DRIFT = 40 -- studs sideways at most, placeholder
-local NUMBER_TOP, NUMBER_BOTTOM = Color3.fromRGB(255, 225, 40), Color3.fromRGB(235, 30, 30) -- design doc 4.37
 local BUDGET = 400 -- particles alive at once, with 7 players (brief)
+local REDUCED_BUDGET = 60 -- the same under REDUCED EFFECTS, proposed
+local OTHERS_BUDGET = 0.5 -- of the budget: others' 18 characters stop adding there, so the local 3 still draw
 local OTHERS = 0.3 -- of the counts for someone else's attack
 local OTHERS_SIZE = 0.7
 local SURFACE = 110 -- studs from the boss's chest toward the shooter: the hit shows on its near side
@@ -395,6 +397,11 @@ local function particlesOf(layers, mine)
 	return total
 end
 
+local function hasRoom(layers, mine)
+	local budget = UiMotion.Reduced() and REDUCED_BUDGET or BUDGET
+	return live + particlesOf(layers, mine) <= budget * (mine and 1 or OTHERS_BUDGET)
+end
+
 -- particles of a shot, particles of its impact, for the budget's books.
 function SidekickAttackView.Particles(id, mine, simple)
 	local row = EFFECTS[id]
@@ -461,7 +468,7 @@ end
 
 -- Impact ---------------------------------------------------------------------------------------------------------------------------
 
-local function damageNumber(impact, damage)
+local function damageNumber(impact, hit)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DamageNumber"
 	gui.Size = UDim2.fromOffset(88, 29) -- pops up to its full size
@@ -473,14 +480,15 @@ local function damageNumber(impact, damage)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBlack
 	label.TextScaled = true
-	label.TextColor3 = Color3.new(1, 1, 1)
+	local character = Catalog.Get(hit.CharacterId)
+	local colour = character and GachaConfig.RARITY_COLORS[character.Rarity] or Color3.new(1, 1, 1)
+	label.TextColor3 = colour
+	if colour.R + colour.G + colour.B < 0.6 then
+		label.TextStrokeColor3 = Color3.new(1, 1, 1) -- a near-black Secret reads only on a light outline
+	end
 	label.TextStrokeTransparency = 0
-	label.Text = HudFormat.Short(math.round(damage))
+	label.Text = HudFormat.Short(math.round(hit.Damage))
 	label.Parent = gui
-	local colors = Instance.new("UIGradient") -- design doc 4.37: over white text, the gradient is the colour
-	colors.Color = ColorSequence.new(NUMBER_TOP, NUMBER_BOTTOM)
-	colors.Rotation = 90
-	colors.Parent = label
 	gui.Parent = impact
 	tween(gui, NUMBER_POP, { Size = UDim2.fromOffset(220, 72) }, Enum.EasingStyle.Back)
 	tween(gui, NUMBER_SECONDS, { StudsOffsetWorldSpace = Vector3.new(drift, 170, 0) })
@@ -490,6 +498,14 @@ local function damageNumber(impact, damage)
 	task.delay(NUMBER_SECONDS, function()
 		gui:Destroy()
 	end)
+end
+
+-- The number of a hit with no follower to draw it from: at the boss, when a shot would have landed.
+local function numberAlone(hit)
+	local impact = newPart("Impact", CFrame.new(bossPoint(Arena.Center)), Vector3.new(30, 30, 30))
+	tagged(impact, "Impact", hit, 0)
+	impact.Parent = folder
+	damageNumber(impact, hit)
 end
 
 local function addRing(impact, row, mine)
@@ -533,7 +549,7 @@ end
 local function land(shot)
 	local hit, recipe, mine = shot.Hit, shot.Recipe, shot.Mine
 	local point = shot.Target
-	local particles = live + particlesOf(recipe.Impact, mine) <= BUDGET and recipe.Impact or nil
+	local particles = hasRoom(recipe.Impact, mine) and recipe.Impact or nil
 	local impact = newPart("Impact", CFrame.new(point), Vector3.new(30, 30, 30))
 	tagged(impact, "Impact", hit, particlesOf(particles, mine))
 	impact.Parent = folder
@@ -548,8 +564,8 @@ local function land(shot)
 			addStreak(impact, row, mine)
 		end
 	end
-	if mine and shot.Number then
-		damageNumber(impact, shot.Number)
+	if shot.Number then
+		damageNumber(impact, hit)
 	end
 end
 
@@ -558,6 +574,9 @@ end
 local function launch(hit, follower, recipe, mine, number)
 	local source = follower.Parts[1]
 	if not (source and source.Parent) then
+		if number then
+			task.delay(FLIGHT, numberAlone, hit)
+		end
 		return
 	end
 	local from = source.Position
@@ -599,7 +618,7 @@ local function launch(hit, follower, recipe, mine, number)
 			table.insert(sprites, { Part = sprite, Size = sprite.Size, Spin = math.rad(row[4]) })
 		end
 	end
-	local layers = live + particlesOf(recipe.Muzzle, mine) <= BUDGET and recipe.Muzzle or nil
+	local layers = hasRoom(recipe.Muzzle, mine) and recipe.Muzzle or nil
 	tagged(part, "Shot", hit, particlesOf(layers, mine))
 	part:SetAttribute("Effect", recipe.Effect)
 	part.Parent = folder
@@ -747,18 +766,12 @@ end
 
 -- Hits -----------------------------------------------------------------------------------------------------------------------------
 
--- One Sidekick's hits in a batch are one attack, with their damage summed: a long frame's catch-up is not a volley.
-local function merged(entries)
-	local byKey, list = {}, {}
+-- The batch's drawable hits, one attack each.
+local function ordered(entries)
+	local list = {}
 	for _, entry in entries do
 		if type(entry) == "table" and EFFECTS[entry.SidekickId] then
-			local key = tostring(entry.UserId) .. ":" .. entry.SidekickId
-			if byKey[key] then
-				byKey[key].Damage += entry.Damage
-			else
-				byKey[key] = { UserId = entry.UserId, SidekickId = entry.SidekickId, Damage = entry.Damage }
-				table.insert(list, byKey[key])
-			end
+			table.insert(list, entry)
 		end
 	end
 	-- The local player's first: the budget favours what it wants most visible.
@@ -768,20 +781,10 @@ local function merged(entries)
 	return list
 end
 
--- The follower wearing this hit's Sidekick: in a line run the line takes turns (BOSS_EVENT_SPEC "Run rules"), and a follower past
--- the budget falls back to the front's.
+-- That character's own follower (BOSS_EVENT_SPEC "Run rules"). The line's front has no rig, and a rig past the follower budget falls back
+-- to the front's.
 local function shooter(hit)
-	local front = followers[hit.UserId]
-	if front and front.Id == hit.SidekickId then
-		return front
-	end
-	for slot = 2, StaminaConfig.TEAM_SIZE do
-		local behind = followers[BossTeamRig.Owner(hit.UserId, slot)]
-		if behind and behind.Id == hit.SidekickId then
-			return behind
-		end
-	end
-	return front
+	return hit.Slot and followers[BossTeamRig.Owner(hit.UserId, hit.Slot)] or followers[hit.UserId]
 end
 
 local function onHits(entries)
@@ -789,10 +792,12 @@ local function onHits(entries)
 		return
 	end
 	local reduced = UiMotion.Reduced()
-	for _, hit in merged(entries) do
+	for _, hit in ordered(entries) do
 		local id = hit.SidekickId
 		local follower = shooter(hit)
-		if follower then
+		if not follower or follower.Hidden then
+			task.delay(LEAD + FLIGHT, numberAlone, hit)
+		else
 			local row = EFFECTS[id]
 			local simple = reduced or row.Plain
 			local recipe = simple and row.Simple or row
@@ -803,15 +808,7 @@ local function onHits(entries)
 			local release = Attacks.Attacks[id].Release
 			for i, at in release do
 				if i == 1 or not simple then
-					task.delay(
-						LEAD + at - release[1],
-						launch,
-						hit,
-						follower,
-						recipe,
-						mine,
-						i == 1 and hit.Damage or nil
-					)
+					task.delay(LEAD + at - release[1], launch, hit, follower, recipe, mine, i == 1)
 				end
 			end
 		end

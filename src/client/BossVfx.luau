@@ -19,6 +19,7 @@ local Event = require(Shared:WaitForChild("BossEventConfig"))
 local Poses = require(Shared:WaitForChild("BossRagaPoses"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 local BossShake = require(script.Parent:WaitForChild("BossShake"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local FORCE = "BossVfxForce" -- client-local test attribute: not nil holds off the schedule, an event name plays that event
@@ -37,12 +38,15 @@ local RISE_PULSES = 3 -- the rise's cracks and jolts, evenly through it
 local RISE_DUST, RISE_DUST_REDUCED = 15, 3 -- a second of the rise; with the debris, the bursts and the pulses: budget 150, reduced 30
 local RISE_DEBRIS = 15 -- a second of the rise
 local RISE_PULSE_DUST, RISE_PULSE_DUST_REDUCED = 10, 3
+local SCREAM_PULSES, SCREAM_PULSES_REDUCED = 6, 3 -- budget: 6 x (20 + 14) + 4 = 208, reduced 3 x (6 + 5) + 2 = 35
+local SCREAM_LATE = 0.5 -- s into the scream: a client later than this skips its effects
 
 local BossVfx = {}
 
 local effects, raga = nil, nil
 local tracked = {} -- part -> { Joint, or a function } moved to the boss each frame
 local previousMove, previousTime = nil, nil
+local screaming = false
 local risePlay, aura = nil, nil
 local impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
 
@@ -293,7 +297,7 @@ end
 local function playImpact()
 	-- cue: BossImpact (a boom with a crack on top)
 	local few = reduced()
-	local center = impactPoint
+	local center = impactPoint + (impactPoint - Arena.Center) * Vector3.new(1, 0, 1) * (raga.Growth - 1)
 	local spot = holder("ImpactSpot", CFrame.new(center), Vector3.new(160, 1, 160))
 	expire(spot, 4.4)
 	local total = 0
@@ -586,9 +590,96 @@ local function playRoar()
 	return total
 end
 
+-- The scream (BOSS_EVENT_SPEC "Phase 2"): a Roar held for its whole length, from one spot on the mouth, in even pulses over `seconds`.
+local function playScream(seconds)
+	-- cue: BossRoar
+	local few = reduced()
+	local function mouth()
+		return CFrame.new(raga:Point("Head", MOUTH))
+	end
+	local spot = holder("RoarSpot", mouth(), Vector3.new(90, 90, 90))
+	tracked[spot] = mouth
+	expire(spot, seconds + 3)
+	local total = burst(
+		emitter(spot, {
+			Name = "Flash",
+			Texture = Art.Flare,
+			Color = ColorSequence.new(HOT, RED),
+			LightEmission = 1,
+			Size = sequence(0, 70, 0.5, 100, 1, 80),
+			Transparency = sequence(0, 0, 1, 1),
+			Lifetime = NumberRange.new(0.3, 0.5),
+			Rotation = NumberRange.new(0, 360),
+			Speed = NumberRange.new(0),
+		}),
+		few and 2 or 4
+	)
+	local blast = emitter(spot, {
+		Name = "Blast",
+		Texture = Art.Spark,
+		Color = ColorSequence.new(HOT, RED),
+		LightEmission = 1,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		Shape = Enum.ParticleEmitterShape.Sphere,
+		ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+		ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward,
+		Size = sequence(0, 70, 1, 6),
+		Lifetime = NumberRange.new(0.6, 1.2),
+		Speed = NumberRange.new(600, 1300),
+		Drag = 1.2,
+	})
+	local breath = emitter(spot, {
+		Name = "Breath",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(DARK, RED),
+		LightInfluence = 0.2,
+		Shape = Enum.ParticleEmitterShape.Sphere,
+		ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward,
+		Size = sequence(0, 50, 1, 100),
+		Transparency = sequence(0, 0.25, 0.6, 0.55, 1, 1),
+		Lifetime = NumberRange.new(1.2, 2.4),
+		Speed = NumberRange.new(200, 420),
+		Drag = 1.8,
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-60, 60),
+	})
+	local pulses = few and SCREAM_PULSES_REDUCED or SCREAM_PULSES
+	for k = 0, pulses - 1 do
+		local delay = k * seconds / pulses
+		total += burst(blast, few and 6 or 20, delay)
+		total += burst(breath, few and 5 or 14, delay)
+		task.delay(delay, function()
+			if raga and spot.Parent then
+				local tilt = CFrame.Angles(math.rad(k % 3 == 1 and 24 or k % 3 == 2 and -24 or 0), 0, 0)
+				growingRing(
+					"SonicRing",
+					mouth() * tilt,
+					200,
+					MAX_DECAL_PART,
+					1.1,
+					k % 2 == 0 and RED or HOT,
+					0,
+					FLAT_FACES
+				)
+			end
+		end)
+	end
+	regrade(
+		{ Brightness = -0.25, Contrast = 0.2, Saturation = -0.2, TintColor = Color3.fromRGB(255, 180, 170) },
+		0.25,
+		seconds - 0.25,
+		0.6
+	)
+	pulseEdges(RED, 0.65, seconds / 3, 3)
+	local gui = Players.LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("RacerBossEvent")
+	UiFeedback.Play("BossScream", gui and gui:FindFirstChild("BossBar"))
+	effects:SetAttribute("LastParticles", total)
+end
+
 -- WheelClick: the source's adaptation signature --------------------------------------------------------------------------------
 
-local function playClick()
+local function playClick(scale)
+	scale = scale or 1
 	-- cue: BossWheelClick (the clunk of one step)
 	local few = reduced()
 	local frame = raga:Frame("Wheel")
@@ -602,7 +693,7 @@ local function playClick()
 			Texture = Art.Flare,
 			Color = ColorSequence.new(PALE_GOLD, GOLD),
 			LightEmission = 1,
-			Size = sequence(0, 70, 0.3, 100, 1, 70),
+			Size = sequence(0, 70 * scale, 0.3, 100 * scale, 1, 70 * scale),
 			Transparency = sequence(0, 0, 1, 1),
 			Lifetime = NumberRange.new(0.3, 0.5),
 			Rotation = NumberRange.new(0, 360),
@@ -623,7 +714,7 @@ local function playClick()
 			ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward,
 			Size = sequence(0, 22, 1, 2),
 			Lifetime = NumberRange.new(0.4, 1),
-			Speed = NumberRange.new(260, 640),
+			Speed = NumberRange.new(260 * scale, 640 * scale),
 			Drag = 1.2,
 			Acceleration = Vector3.new(0, -200, 0),
 		}),
@@ -896,6 +987,7 @@ end
 function BossVfx.Start(folder, boss)
 	effects, raga = folder, boss
 	previousMove, previousTime = nil, nil
+	screaming = false
 end
 
 function BossVfx.Stop()
@@ -903,8 +995,8 @@ function BossVfx.Stop()
 	effects, raga = nil, nil
 end
 
--- since: seconds since the spawn, nil before it.
-function BossVfx.Step(since, move, localTime)
+-- since: seconds since the spawn, nil before it. screamLeft: the scream's seconds left, nil outside it.
+function BossVfx.Step(since, move, localTime, screamLeft)
 	if not effects then
 		return
 	end
@@ -935,6 +1027,18 @@ function BossVfx.Step(since, move, localTime)
 		aura:Destroy()
 		aura = nil
 	end
+
+	if screamLeft and not screaming and screamLeft >= Event.ScreamSeconds - SCREAM_LATE then
+		playScream(screamLeft)
+	end
+	if screaming and not screamLeft then
+		-- The wheel's dead stop (BOSS_EVENT_SPEC "Phase 2"), for a client that saw the scream.
+		playClick(2.5)
+		local gui = Players.LocalPlayer:FindFirstChild("PlayerGui")
+		gui = gui and gui:FindFirstChild("RacerBossEvent")
+		UiFeedback.Play("BossScream", gui and gui:FindFirstChild("BossBar"))
+	end
+	screaming = screamLeft ~= nil
 
 	if since and not rising then
 		if move == previousMove and previousTime and localTime > previousTime then

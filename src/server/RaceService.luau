@@ -783,6 +783,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 
 	-- Pays the bank into leaderstats.Money and empties it. Returns the amount paid (0 if none).
+	-- Boss run: ends the wait `seconds` from now, whatever was left of it (BOSS_EVENT_SPEC "Phase 2"). Its refill is the wait's own.
+	function run:ReviveAt(seconds)
+		if run.Waiting then
+			waitLeft = seconds
+		end
+	end
 	function run:CashOut()
 		local amount = run.Unbanked
 		if amount <= 0 then

@@ -1,6 +1,7 @@
 --!nonstrict
 -- The exhaustion view's camera (docs/BOSS_EVENT_SPEC.md "Exhaustion view"), stepped by Client/RunnerView. It follows only the
--- local player's own BossWaitEndsAt while BossEvent is true, and holds the camera Scriptable until it has brought it back.
+-- local player's own BossWaitEndsAt while BossEvent is true, and holds the camera Scriptable until it has brought it back. The growth
+-- cutscene ("Phase 2") takes the same view of the boss, back as the scream ends; REDUCED EFFECTS keeps the camera still through it.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -56,9 +57,14 @@ function BossWaitCamera.Held()
 	return held ~= nil
 end
 
+local function screamView()
+	local ends = ReplicatedStorage:GetAttribute("BossScreamEndsAt")
+	return type(ends) == "number" and not UiMotion.Reduced() and ends > workspace:GetServerTimeNow() -- holds to the wheel's stop
+end
+
 function BossWaitCamera.Step(camera, dt)
 	local inEvent = player:GetAttribute("BossEvent") == true
-	if inEvent and type(player:GetAttribute("BossWaitEndsAt")) == "number" then
+	if inEvent and (type(player:GetAttribute("BossWaitEndsAt")) == "number" or screamView()) then
 		if not held then
 			held = {
 				Type = camera.CameraType,

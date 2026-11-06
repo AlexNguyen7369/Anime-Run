@@ -1,6 +1,6 @@
 --!nonstrict
 -- Team toasts (docs/TEAM_AND_STAMINA_SPEC.md "Swap" / "Run end by exhaustion"), display only: "<Name> TAG IN!" when
--- the next slot takes over, "TEAM EXHAUSTED +$X" with the cashed-out bank, and a boss defeat's reward, from Remotes.RunEvent.
+-- the next slot takes over and "TEAM EXHAUSTED +$X" with the cashed-out bank, from Remotes.RunEvent.
 -- shortcut: plain text toast, no swap VFX; upgrade with the art pass.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -8,7 +8,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared.CharacterCatalog)
 local HudFormat = require(shared.HudFormat)
-local RelicConfig = require(shared.RelicConfig)
 local UiTheme = require(shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -56,8 +55,5 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 		show((spec and spec.Name or "Next runner") .. " TAG IN!", 1.5)
 	elseif ev.Kind == "Exhausted" then
 		show("TEAM EXHAUSTED  +" .. HudFormat.MoneyText(tonumber(ev.Banked) or 0), 3)
-	elseif ev.Kind == "BossReward" then
-		local relic = RelicConfig.Get(ev.Relic)
-		show((relic and relic.Name or "A Relic") .. (ev.Raga and " + BIG RAGA SIDEKICK!" or " EARNED!"), 4)
 	end
 end)

@@ -4,6 +4,11 @@
 -- 2026-11-05: tiles open the click menu, design doc 4.36, 4.38), and the fixture relic_states (UiScenarios.Needs). A press cannot be
 -- faked here, so the tiles, the menu, equip and sale are judged after the real clicks in UiSpec.Clicks (relics_*, sidekicks_menu_*,
 -- index_relics_*, backpack_mass_*, backpack_sell_spares*).
+-- Chests (docs/RELIC_SPEC.md "Chests"), judged after the relics_chest_* clicks on the fixture relic_chest_states. Contract these assume beyond the
+-- brief (implementer: report a change, do not loosen): one tile per chest id, named that id, with the entries counted on it: Art (the chest's
+-- Image), Count (its number). Menu/Open and Menu/Odds (the table's rates and the Sidekick chance, in Text at any depth); Menu/Equip and
+-- Menu/Sell hidden. The Bag stays open behind the reveal. RacerSidekickReveal/**/Chest, an ImageLabel with the chest's Image, keeps one
+-- AbsolutePosition while it shows: outside Stage, which shakes. The result is an ImageLabel with the Relic's Image. Hint ends the reveal.
 -- Tab order, labels, count and phone fit: ui_backpack_characters reads UiSpec.Backpack.TabOrder at both sizes.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +19,10 @@ local Spec = require(script.Parent.UiSpec)
 
 local MENU = "RacerItemMenu"
 local WAIT = 5 -- s: the bag renders after the attribute arrives
+local REVEAL_WAIT = 15 -- s: the reveal runs to its Hint by itself
+local RAGA_CHEST = "relic_chest_raga"
+local CHEST_DRIFT = 0.5 -- px
+local CHEST_SAMPLES = 10 -- frames the chest shows, at the least
 local B = Spec.Backpack
 
 local Module = {}
@@ -92,6 +101,10 @@ function Module.Build(h)
 			local tile = page and page:FindFirstChild(row.Id)
 			check(res, "relic_index_tile_" .. row.Id, tile ~= nil and tile:IsA("GuiButton"), true)
 		end
+		check(res, "chest_menu_open_present", h.find(MENU .. "/Menu/Open") ~= nil, true)
+		for id in Config.Chests do
+			check(res, "chest_no_index_tile_" .. id, page and page:FindFirstChild(id), nil)
+		end
 		restore()
 	end
 
@@ -134,6 +147,152 @@ function Module.Build(h)
 			end
 		end
 		h.checkList(res, "relic_tiles_are_buttons", notButtons)
+	end
+
+	-- The word "nil" in any shown text under `holder`, or the holder itself.
+	local function nilTexts(holder)
+		local bad = {}
+		for _, d in holder and holder:GetDescendants() or {} do
+			if (d:IsA("TextLabel") or d:IsA("TextButton")) and string.find(string.lower(d.Text), "%f[%a]nil%f[%A]") then
+				table.insert(bad, d.Name .. ": " .. d.Text)
+			end
+		end
+		return bad
+	end
+	-- id -> how many entries of it the bag holds.
+	local function bagCounts()
+		local counts = {}
+		for _, item in decode("RelicBag") do
+			counts[item.Id] = (counts[item.Id] or 0) + 1
+		end
+		return counts
+	end
+	local function allText(holder)
+		local parts = {}
+		if holder then
+			for _, d in holder:GetDescendants() do
+				if d:IsA("TextLabel") then
+					table.insert(parts, d.Text)
+				end
+			end
+			if holder:IsA("TextLabel") then
+				table.insert(parts, holder.Text)
+			end
+		end
+		return table.concat(parts, " | ")
+	end
+
+	-- After the Relics tab click on relic_chest_states: raga x2, adapted x1.
+	function after.chest_tiles(res)
+		local items = h.find(B.Items)
+		local counts = bagCounts()
+		check(res, "chest_fixture_raga", counts.relic_chest_raga, 2)
+		check(res, "chest_fixture_adapted", counts.relic_chest_adapted, 1)
+		for id, chest in Config.Chests do
+			local problem = waitFor(function()
+				return not (items and items:FindFirstChild(id)) and "no tile" or nil
+			end)
+			check(res, "chest_tile_" .. id, problem or "shown", "shown")
+			local tile = items and items:FindFirstChild(id)
+			local art = tile and tile:FindFirstChild("Art")
+			check(res, "chest_art_" .. id, art and art.Image, chest.Image)
+			local count = tile and tile:FindFirstChild("Count")
+			local number = count and tonumber(string.match(count.Text, "%d+"))
+			check(res, "chest_quantity_" .. id, number, counts[id])
+			check(res, "chest_tile_is_button_" .. id, tile ~= nil and tile:IsA("GuiButton"), true)
+			h.checkList(res, "chest_tile_never_nil_" .. id, nilTexts(tile))
+		end
+		local stacked = 0
+		for _, item in decode("RelicBag") do
+			stacked += items and items:FindFirstChild(item.Entry) and Config.Chests[item.Id] and 1 or 0
+		end
+		check(res, "chest_no_tile_per_entry", stacked, 0)
+	end
+
+	-- After a press on the Raga chest's tile.
+	function after.chest_menu(res)
+		local box = h.find(MENU .. "/Menu")
+		check(res, "chest_menu_shown", box ~= nil and h.visible(box), true)
+		local open = h.find(MENU .. "/Menu/Open")
+		check(res, "chest_menu_open_shown", open ~= nil and h.visible(open), true)
+		check(res, "chest_menu_open_text", open and open.Text, "Open")
+		for _, name in { "Equip", "Sell" } do
+			local button = h.find(MENU .. "/Menu/" .. name)
+			check(res, "chest_menu_no_" .. name, button ~= nil and h.visible(button), false)
+		end
+		local odds = h.find(MENU .. "/Menu/Odds")
+		check(res, "chest_menu_odds_shown", odds ~= nil and h.visible(odds), true)
+		local words = allText(odds)
+		local missing = {}
+		for _, row in Config.ChestOdds(RAGA_CHEST) do
+			if not string.find(words, tostring(row.Odds) .. "%", 1, true) then
+				table.insert(missing, row.Id)
+			end
+		end
+		h.checkList(res, "chest_menu_odds_rates", missing)
+		check(res, "chest_menu_odds_sidekick", string.find(words, "0.001%", 1, true) ~= nil, true)
+		h.checkList(res, "chest_menu_never_nil", nilTexts(box))
+		h.checkList(res, "chest_panel_never_nil", nilTexts(h.find(B.Panel)))
+	end
+
+	-- After the press on Open: one chest gone, one Relic come, the reveal running with a still chest.
+	function after.chest_opening(res)
+		local problem = waitFor(function()
+			local counts = bagCounts()
+			return counts.relic_chest_raga ~= 1 and tostring(counts.relic_chest_raga) or nil
+		end)
+		check(res, "chest_open_takes_one", problem or "one left", "one left")
+		local counts = bagCounts()
+		check(res, "chest_open_keeps_other_chest", counts.relic_chest_adapted, 1)
+		local won, relics = nil, 0
+		for id, n in counts do
+			if not Config.Chests[id] then
+				relics += n
+				won = n > 1 and id or won
+			end
+		end
+		check(res, "chest_open_grants_one_relic", relics, #Config.Bosses.big_raga + 1)
+		after.item_menu_closed(res)
+
+		local gui = h.player.PlayerGui
+		local reveal = gui:FindFirstChild("RacerSidekickReveal")
+		check(res, "chest_reveal_runs", reveal ~= nil, true)
+		local wonImage = won and Config.Get(won).Image
+		local deadline = os.clock() + REVEAL_WAIT
+		local artShown, ended = false, false
+		while os.clock() < deadline and not (artShown and ended) do
+			for _, d in reveal and reveal:GetDescendants() or {} do
+				artShown = artShown or (d:IsA("ImageLabel") and d.Image == wonImage and h.visible(d))
+			end
+			local hint = reveal and reveal:FindFirstChild("Hint")
+			ended = hint ~= nil and h.visible(hint)
+			task.wait(0.05)
+		end
+		check(res, "chest_reveal_shows_relic_art", artShown, true)
+		check(res, "chest_reveal_ends", ended, true)
+
+		local watch = Spec.RelicChest.Watch
+		check(res, "chest_reveal_chest_image", watch.Image, Config.Chests[RAGA_CHEST].Image)
+		h.check(
+			res,
+			"chest_reveal_chest_seen",
+			watch.Samples,
+			">= " .. CHEST_SAMPLES,
+			(watch.Samples or 0) >= CHEST_SAMPLES
+		)
+		h.check(
+			res,
+			"chest_still_in_reveal",
+			watch.Drift,
+			"<= " .. CHEST_DRIFT,
+			(watch.Drift or math.huge) <= CHEST_DRIFT
+		)
+	end
+
+	-- After the Tap that ends it: nothing else was opened.
+	function after.chest_reveal_closed(res)
+		check(res, "chest_reveal_gone", h.player.PlayerGui:FindFirstChild("RacerSidekickReveal"), nil)
+		check(res, "chest_open_was_once", bagCounts().relic_chest_raga, 1)
 	end
 
 	-- Client/ItemMenu after a real press: on screen and on top.

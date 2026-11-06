@@ -172,6 +172,9 @@ UiScenarios.Names = {
 	"ui_boss_vfx",
 	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")
 	"ui_boss_paid",
+	-- Phase 2's presentation and the rewards popup (UiBossPhase2; docs/BOSS_EVENT_SPEC.md "Phase 2", "Rewards")
+	"ui_boss_phase2",
+	"ui_boss_rewards",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
@@ -8068,6 +8071,24 @@ for name, fn in K.bossPaid.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.bossPaid.After do
+	access.After[cond] = fn
+end
+
+K.bossPhase2 = require(script.Parent.UiBossPhase2).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossPhase2.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossPhase2.After do
 	access.After[cond] = fn
 end
 

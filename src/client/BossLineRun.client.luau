@@ -73,6 +73,9 @@ local function syncRigs(who, line)
 			table.insert(fresh, line.Rigs[slot])
 		end
 	end
+	if before and #before == 0 then
+		table.insert(fresh, BossTeamRig.HeldCopy(who)) -- the refill: the held body comes back with the rest
+	end
 	line.Key, line.Slots = key, slots
 	return before and fresh or nil -- the first sight of a line is the hand-over from BossPrepRun, with no smoke
 end
