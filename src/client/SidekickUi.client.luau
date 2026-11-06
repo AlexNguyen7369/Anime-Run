@@ -763,7 +763,61 @@ local function detailsLine(name, order, columns)
 		end
 	end
 end
--- From public data alone: listed odds, what the rotation leaves split across its Commons, and the Secret as one row.
+-- Above every row (the Secret's order is 0). Hidden until a pity guarantee is due.
+local guaranteedNote = caption("GuaranteedNote", detailsList, {
+	LayoutOrder = -1,
+	Size = UDim2.new(1, -6, 0, 44),
+	Text = "",
+	TextColor3 = PALETTE.Gold,
+	TextSize = 16,
+	TextWrapped = true,
+	Visible = false,
+})
+local detailsRotation = nil
+-- The rarity the next single summon must pay, Mythic first (design doc 4.36), or nil.
+local function dueTier()
+	if (player:GetAttribute("SidekickPity") or 0) >= PITY_COUNT - 1 then
+		return "Mythic"
+	elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= LEGENDARY_PITY_COUNT - 1 then
+		return "Legendary"
+	end
+	return nil
+end
+-- From public data alone: listed odds and what the rotation leaves split across its Commons, or a due tier sharing 100%.
+local function showOdds()
+	local rotation = detailsRotation
+	if not rotation then
+		return
+	end
+	local tier = dueTier()
+	local secretOdds = rotation.SecretChoices[1].Odds
+	local rest, commons, inTier = 100 - secretOdds, 0, 0
+	for _, id in rotation.Ids do
+		local row = Config.Get(id)
+		rest -= row.Odds
+		commons += row.Rarity == "Common" and 1 or 0
+		inTier += row.Rarity == tier and 1 or 0
+	end
+	local total = tier and 0 or secretOdds
+	for _, id in rotation.Ids do
+		local row = Config.Get(id)
+		local odds = row.Odds + (row.Rarity == "Common" and rest / commons or 0)
+		if tier then
+			odds = row.Rarity == tier and 100 / inTier or 0
+		end
+		total += odds
+		detailsList[id].Odds.Text = string.format("%.3f%%", odds)
+	end
+	detailsList.Secret.Odds.Text = string.format("%.3f%%", tier and 0 or secretOdds)
+	detailsTotal.Text = string.format("Total: %g%%", total)
+	guaranteedNote.Visible = tier ~= nil
+	if tier then
+		guaranteedNote.Text = string.format(
+			"%s guaranteed on your next summon. These odds are for that one summon: in a 10x it is the first, and the rest roll normally.",
+			tier
+		)
+	end
+end
 local function renderDetails(rotation)
 	forgetViews(detailsList)
 	for _, child in detailsList:GetChildren() do
@@ -771,28 +825,18 @@ local function renderDetails(rotation)
 			child:Destroy()
 		end
 	end
-	local secretOdds = rotation.SecretChoices[1].Odds
-	local rest, commons = 100 - secretOdds, 0
-	for _, id in rotation.Ids do
-		local row = Config.Get(id)
-		rest -= row.Odds
-		commons += row.Rarity == "Common" and 1 or 0
-	end
-	local total = secretOdds
 	for order, id in rotation.Ids do
 		local row = Config.Get(id)
-		local odds = row.Odds + (row.Rarity == "Common" and rest / commons or 0)
-		total += odds
 		detailsLine(id, order, {
 			{ Key = "Name", Text = row.Name, X = 0, Width = 0.45 },
 			{ Key = "Rarity", Text = row.Rarity, X = 0.45, Width = 0.3, Rarity = row.Rarity },
-			{ Key = "Odds", Text = string.format("%.3f%%", odds), X = 0.75, Width = 0.25, Color = PALETTE.Gold },
+			{ Key = "Odds", Text = "", X = 0.75, Width = 0.25, Color = PALETTE.Gold },
 		})
 	end
 	-- This rotation's one Secret: its black shape, the rarity and the rate (owner 2026-11-05).
 	detailsLine("Secret", 0, {
 		{ Key = "Rarity", Text = "Secret", X = 0.45, Width = 0.3, Rarity = "Secret" },
-		{ Key = "Odds", Text = string.format("%.3f%%", secretOdds), X = 0.75, Width = 0.25, Color = PALETTE.Gold },
+		{ Key = "Odds", Text = "", X = 0.75, Width = 0.25, Color = PALETTE.Gold },
 	})
 	local line = detailsList.Secret
 	line.Size = UDim2.new(1, -6, 0, 66)
@@ -806,7 +850,8 @@ local function renderDetails(rotation)
 	UiTheme.Corner(tile, "S")
 	local shape = modelView(tile, { Size = UDim2.fromScale(1, 1), ImageColor3 = BLACK })
 	views[shape] = { Row = Config.Get(rotation.SecretId) }
-	detailsTotal.Text = string.format("Total: %g%%", total)
+	detailsRotation = rotation
+	showOdds()
 end
 caption("Note", detailsList, {
 	LayoutOrder = 101,
@@ -887,6 +932,7 @@ local function refresh()
 	pityValue.Text = string.format("%d/%d", player:GetAttribute("SidekickPity") or 0, PITY_COUNT)
 	legendaryPityValue.Text =
 		string.format("%d/%d", player:GetAttribute("SidekickLegendaryPity") or 0, LEGENDARY_PITY_COUNT)
+	showOdds()
 	local locked = (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth
 	for _, summonButton in { summon1, summon10 } do
 		summonButton.Active = not locked

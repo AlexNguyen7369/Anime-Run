@@ -4,12 +4,18 @@
 -- the boss_* clicks in UiSpec.Clicks, judged after them here.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton sit directly in the ScreenGui.
+--   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton sit directly in the ScreenGui.
 --   Named anywhere inside their part: Invite Countdown; TeamHud Countdown; BossBar Name, Value, Fill (its parent is the track).
 --   TeamHud/List: one GuiButton per eligible character, directly in List, named its character id.
 --   Slot<n> has attribute CharacterId while it holds a character, none while it is empty.
 --   Invite Countdown counts to teleport closing (3:00), TeamHud Countdown to the spawn (1:00). "m:ss" or plain seconds.
 --   Decline lasts for one event (one BossEventStart): a new start shows the Invite again.
+--   Plaza flow (owner 2026-11-05): the Invite closes by itself after Cfg.InviteSeconds. BossButton shows for an outsider from the
+--     event's start until teleporting closes at 3:00, Invite up or not, declined or not, in a duel too, locked too. Its Text is
+--     exactly "Boss (Active)". Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
+--     Scale changes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every pulse scale. A press
+--     with no Sidekick does not fire BossEventTeleport and shows text with "sidekick" anywhere in the ScreenGui; before it, no such
+--     text shows once the Invite has closed.
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
 --   BossBar has a Status row anywhere inside it, with one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time):
@@ -17,7 +23,9 @@
 --   The arena camera: workspace.CurrentCamera.FieldOfView is Cfg.CameraFov while player attribute BossEvent is true; the value it
 --     had before comes back when the attribute goes, not a fixed default.
 --   The BossBar pops through UiMotion.Pop (UIScale MotionScale). LeaveButton hides while a PanelSwitch panel is open.
---   The Warning frame is the plate: red and opaque, its flash stays red, white heavy text on it. No flash with reduced motion.
+--   The Warning (owner 2026-11-05) is flashing text alone: no background anywhere in it, no border, a heavy red label with a dark
+--     text stroke (TextStroke*, or a UIStroke in the label in Contextual mode) that fades with the text. It flashes through
+--     TextTransparency, near 1 and near 0 in turn. Solid with reduced motion.
 --   The Invite waits while a save is in the starter pick or the roll tutorial (boss_ui_gear sets a save past both).
 --   Exhaustion view (owner 2026-11-05, spec "Exhaustion view"): ExhaustedPanel is a GuiObject directly in the ScreenGui, with
 --     Message, Countdown, Dim and Loading/Fill directly in it. It runs only on the local player's own BossWaitEndsAt, while
@@ -44,12 +52,21 @@ local WARNING = ROOT .. "/Warning"
 local BAR = ROOT .. "/BossBar"
 local LEAVE = ROOT .. "/LeaveButton"
 local PANEL = ROOT .. "/ExhaustedPanel"
-local PARTS =
-	{ Invite = INVITE, TeamHud = HUD, Warning = WARNING, BossBar = BAR, LeaveButton = LEAVE, ExhaustedPanel = PANEL }
+local BUTTON = ROOT .. "/BossButton"
+local PARTS = {
+	Invite = INVITE,
+	TeamHud = HUD,
+	Warning = WARNING,
+	BossBar = BAR,
+	LeaveButton = LEAVE,
+	ExhaustedPanel = PANEL,
+	BossButton = BUTTON,
+}
 
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
 local BOSS_NAME = "Big Raga"
+local BUTTON_TEXT = "Boss (Active)"
 
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
 local WARNING_MAX = 12 -- s: proposed, "goes away by itself" has no number in the docs
@@ -59,7 +76,7 @@ local COUNTDOWN_SLACK = 2 -- s
 local RATIO_SLACK = 0.02
 local FILL_SLACK = 0.1 -- of the bar: the fill against the server clock while it moves
 local FOV_OUTSIDE = 63 -- a value no script sets, so a restore to a fixed default shows
-local BUDGET = 68 -- s: the whole scenario
+local BUDGET = 84 -- s: the whole scenario
 local DIM_MIN, DIM_MAX = 0.5, 0.85 -- BackgroundTransparency: "slightly dimmed"
 local WAIT_CENTRE_SLACK = 0.1 -- of the screen
 local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
@@ -68,8 +85,16 @@ local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
 local BAR_MAX_BOTTOM = 0.3 -- of the screen height: "top middle"
-local PLATE_MAX_TRANSPARENCY = 0.1
-local MIN_TEXT_CONTRAST = 3 -- WCAG large text
+local TEXT_GONE = 0.9 -- TextTransparency: the flash's out, "fully disappearing"
+local TEXT_SOLID = 0.1 -- and its in
+local STROKE_SHOWS = 0.5 -- stroke transparency at most, while the text shows
+local STROKE_MAX_LUMINANCE = 0.2
+local INVITE_SECONDS = Cfg.InviteSeconds or 3 -- read here so a missing value fails its own check, not the whole scenario
+local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the request that showed it
+local PULSE_SAMPLE = 2 -- s the button's pulse is watched
+local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
+local STILL_MAX_SPREAD = 0.001
+local BUTTON_MAX_PAST_INSET = 40 -- px from TopbarInset.Min.X: "very top left"
 
 local Module = {}
 
@@ -294,23 +319,29 @@ function Module.Build(h)
 		end
 		return 0.2126 * channel(c.R) + 0.7152 * channel(c.G) + 0.0722 * channel(c.B)
 	end
-	local function contrast(a, b)
-		local la, lb = luminance(a), luminance(b)
-		return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05)
-	end
-	-- The plate is red and solid, and the exact text reads against this moment's colour.
-	local function warningPlate()
-		local warning, label = h.find(WARNING), hasText(WARNING, WARNING_TEXT)
-		if not (warning and label) then
-			return { Red = false, Bright = false, Readable = false, Heavy = false }
+	-- The label's stroke as the player sees it: its colour and transparency, or nil with no stroke at all.
+	local function textStroke(label)
+		for _, d in label:GetChildren() do
+			if d:IsA("UIStroke") and d.ApplyStrokeMode == Enum.ApplyStrokeMode.Contextual then
+				return d.Color, d.Transparency
+			end
 		end
-		local plate = warning.BackgroundColor3
-		return {
-			Red = isRed(plate) and warning.BackgroundTransparency <= PLATE_MAX_TRANSPARENCY,
-			Bright = plate.R >= 0.8,
-			Readable = contrast(label.TextColor3, plate) >= MIN_TEXT_CONTRAST and label.TextTransparency <= 0.1,
-			Heavy = label.FontFace.Weight.Value >= Enum.FontWeight.Bold.Value,
-		}
+		return label.TextStrokeColor3, label.TextStrokeTransparency
+	end
+	-- Text alone: every background in the Warning is clear and nothing draws a border.
+	local function warningBareList()
+		local warning = h.find(WARNING)
+		local bad = {}
+		for _, d in warning and { warning, table.unpack(warning:GetDescendants()) } or {} do
+			if d:IsA("GuiObject") and d.BackgroundTransparency < 1 then
+				table.insert(bad, d.Name .. " background")
+			elseif d:IsA("UIStroke") and d.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and d.Transparency < 1 then
+				table.insert(bad, d.Parent.Name .. " border")
+			elseif d:IsA("ImageLabel") and d.ImageTransparency < 1 then
+				table.insert(bad, d.Name .. " image")
+			end
+		end
+		return bad
 	end
 
 	-- What a flash changes, as one string, for the Warning and everything in it.
@@ -382,44 +413,126 @@ function Module.Build(h)
 		waitShown(INVITE, false)
 	end
 
+	local function glowing()
+		local glow = named(BUTTON, "Glow")
+		if glow and glow:IsA("UIStroke") then
+			return glow.Transparency < 1 and glow.Thickness > 0
+		end
+		return glow ~= nil and glow:IsA("GuiObject") and h.visible(glow)
+	end
+	-- The biggest Scale difference over `seconds` and the leftmost the button reached; nil without its PulseScale.
+	local function watchPulse(seconds)
+		local button = h.find(BUTTON)
+		local scale = button and button:FindFirstChild("PulseScale")
+		if not (scale and scale:IsA("UIScale")) then
+			return nil
+		end
+		local low, high, left = scale.Scale, scale.Scale, h.rect(button).x
+		local stop = os.clock() + seconds
+		while os.clock() < stop do
+			low, high = math.min(low, scale.Scale), math.max(high, scale.Scale)
+			left = math.min(left, h.rect(button).x)
+			task.wait(0.03)
+		end
+		return high - low, left
+	end
+	local function checkButtonShows(res, tag)
+		check(res, tag .. "_button_shown", waitShown(BUTTON, true), true)
+		check(res, tag .. "_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
+		check(res, tag .. "_button_active", h.find(BUTTON) and h.find(BUTTON).Active, true)
+		check(res, tag .. "_button_glows", waitIs(glowing, true), true)
+	end
+	local function checkButtonPlace(res)
+		local inset = GuiService.TopbarInset
+		local spread, left = watchPulse(PULSE_SAMPLE)
+		h.check(
+			res,
+			"button_pulses",
+			spread or "no PulseScale",
+			">= " .. PULSE_MIN_SPREAD,
+			spread ~= nil and spread >= PULSE_MIN_SPREAD
+		)
+		h.check(
+			res,
+			"button_past_roblox_buttons",
+			left or "no PulseScale",
+			">= " .. inset.Min.X,
+			left ~= nil and left >= inset.Min.X - 1
+		)
+		h.check(
+			res,
+			"button_very_left",
+			left or "no PulseScale",
+			"<= " .. inset.Min.X + BUTTON_MAX_PAST_INSET,
+			left ~= nil and left <= inset.Min.X + BUTTON_MAX_PAST_INSET
+		)
+		local top = h.rect(h.find(BUTTON)).y
+		h.check(res, "button_very_top", top, "<= " .. inset.Max.Y, top <= inset.Max.Y)
+	end
+
 	local function checkInvite(res)
+		check(res, "invite_seconds_is_3", Cfg.InviteSeconds, 3)
 		gear(res, 2)
+		local asked = os.clock()
 		state(res, "Prep", 5, 0, 0, false)
-		onlyShown(res, "invite", { Invite = true })
+		onlyShown(res, "invite", { Invite = true, BossButton = true })
 		check(res, "invite_teleport_shown", shown(TELEPORT), true)
 		check(res, "invite_decline_shown", shown(DECLINE), true)
 		local teleport = h.find(TELEPORT)
 		check(res, "invite_teleport_enabled", teleport ~= nil and teleport.Active, true)
 		checkCountdown(res, "invite_countdown_to_close", INVITE, Cfg.JoinSeconds - 5)
+		checkButtonShows(res, "invite")
 		checkFit(res, "invite")
 
-		state(res, "Fight", 100, Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
-		check(res, "invite_stays_after_spawn", waitShown(INVITE, true), true)
+		-- It closes by itself, on its own time, and the button carries on until 3:00.
+		check(res, "invite_closes_by_itself", waitShown(INVITE, false, INVITE_SECONDS + INVITE_LATE), false)
+		local closedAfter = os.clock() - asked
+		h.check(
+			res,
+			"invite_shows_for_its_seconds",
+			closedAfter,
+			("%s -%s +%s"):format(INVITE_SECONDS, INVITE_EARLY, INVITE_LATE),
+			closedAfter >= INVITE_SECONDS - INVITE_EARLY and closedAfter <= INVITE_SECONDS + INVITE_LATE
+		)
+		checkButtonShows(res, "plaza")
+		checkButtonPlace(res)
+		checkFit(res, "plaza")
+
+		state(res, "Fight", "keep", Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		task.wait(0.3)
-		checkCountdown(res, "invite_countdown_after_spawn", INVITE, Cfg.JoinSeconds - 100)
+		check(res, "invite_not_back_at_spawn", shown(INVITE), false)
+		checkButtonShows(res, "spawn")
 
 		-- Owner 2026-11-05: a player in a duel can teleport in. A real Duel message, to this client only.
 		setup(res, "duel_countdown")
 		task.wait(0.3)
-		check(res, "invite_stays_in_duel", shown(INVITE), true)
+		checkButtonShows(res, "duel")
+		state(res, "Prep", 5, 0, 0, false)
+		check(res, "invite_shows_in_duel", waitShown(INVITE, true), true)
 		check(res, "invite_teleport_enabled_in_duel", teleport ~= nil and teleport.Active, true)
+		checkButtonShows(res, "duel_new_event")
 
 		state(res, "Prep", 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true, 10)
 		check(res, "invite_hidden_after_joining", waitShown(INVITE, false), false)
+		check(res, "button_hidden_after_joining", waitShown(BUTTON, false), false)
 
 		-- Gone at 3:00 by the clock alone: no attribute changes here.
 		state(res, "Fight", Cfg.JoinSeconds - 1.5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		task.wait(0.2)
-		check(res, "invite_shown_before_close", shown(INVITE), true)
-		check(res, "invite_hidden_at_close", waitShown(INVITE, false, 3), false)
+		check(res, "button_shown_before_close", shown(BUTTON), true)
+		check(res, "button_hidden_at_close", waitShown(BUTTON, false, 3), false)
+		check(res, "invite_hidden_at_close", shown(INVITE), false)
 		state(res, "Fight", Cfg.JoinSeconds + 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, false)
 		task.wait(0.3)
 		check(res, "invite_hidden_after_close", shown(INVITE), false)
+		check(res, "button_hidden_after_close", shown(BUTTON), false)
 
 		state(res, "Prep", 5, 0, 0, false)
 		check(res, "invite_back_for_new_event", waitShown(INVITE, true), true)
+		check(res, "button_back_for_new_event", waitShown(BUTTON, true), true)
 		state(res, "Idle", 0, 0, 0, false)
 		check(res, "invite_hidden_at_end", waitShown(INVITE, false), false)
+		check(res, "button_hidden_at_end", waitShown(BUTTON, false), false)
 	end
 
 	local function teleportActive()
@@ -439,6 +552,7 @@ function Module.Build(h)
 			end, true),
 			true
 		)
+		checkButtonShows(res, "locked")
 		checkFit(res, "locked")
 
 		gear(res, "bag")
@@ -447,6 +561,15 @@ function Module.Build(h)
 
 		gear(res, 2) -- equipping during the invite opens it, with no event attribute changing
 		check(res, "locked_opens_when_a_sidekick_is_worn", waitIs(teleportActive, true), true)
+
+		-- With the Invite gone the button still reads Active; the press itself is the click boss_button_locked.
+		gear(res, 0)
+		state(res, "Prep", 5, 0, 0, false)
+		waitShown(INVITE, true)
+		check(res, "locked_invite_closes_by_itself", waitShown(INVITE, false, INVITE_SECONDS + INVITE_LATE), false)
+		checkButtonShows(res, "locked_plaza")
+		check(res, "locked_no_prompt_before_a_press", shownTextHas(ROOT, "sidekick"), false)
+		gear(res, 2)
 	end
 
 	local function listNames()
@@ -553,29 +676,43 @@ function Module.Build(h)
 			local bar = h.find(BAR)
 			check(res, "bar_pops_in", bar ~= nil and bar:FindFirstChild("MotionScale") ~= nil, true)
 		end
-		local looks = {}
-		local red, bright, readable, heavy = true, false, true, true
+		local red, heavy, strokeDark, strokeSolid, strokeFades = true, true, true, true, true
+		local faintest, solidest = 0, 1
+		local bare = {}
 		local stop = os.clock() + FLASH_SAMPLE
 		while os.clock() < stop do
-			looks[warningLook()] = true
-			local plate = warningPlate()
-			red = red and plate.Red
-			bright = bright or plate.Bright
-			readable = readable and plate.Readable
-			heavy = heavy and plate.Heavy
-			task.wait(0.05)
+			local current = hasText(WARNING, WARNING_TEXT)
+			if current then
+				local gone = current.TextTransparency
+				faintest, solidest = math.max(faintest, gone), math.min(solidest, gone)
+				red = red and isRed(current.TextColor3)
+				heavy = heavy and current.FontFace.Weight.Value >= Enum.FontWeight.Bold.Value
+				local color, stroke = textStroke(current)
+				strokeDark = strokeDark and luminance(color) <= STROKE_MAX_LUMINANCE
+				strokeSolid = strokeSolid and (gone > TEXT_SOLID or stroke <= STROKE_SHOWS)
+				strokeFades = strokeFades and (gone < TEXT_GONE or stroke >= TEXT_GONE)
+			end
+			for _, item in warningBareList() do
+				bare[item] = true
+			end
+			task.wait(0.03)
 		end
-		local count = 0
-		for _ in looks do
-			count += 1
+		local bareList = {}
+		for item in bare do
+			table.insert(bareList, item)
 		end
+		h.checkList(res, "warning_text_alone", bareList)
 		check(res, "warning_is_red", red, true) -- every moment of the flash
-		check(res, "warning_reaches_bright_red", bright, true)
-		check(res, "warning_text_readable_on_plate", readable, true)
 		check(res, "warning_text_heavy", heavy, true)
+		check(res, "warning_stroke_is_dark", strokeDark, true)
+		check(res, "warning_stroke_shows_with_text", strokeSolid, true)
+		check(res, "warning_stroke_goes_with_text", strokeFades, true)
 		checkFit(res, "fight")
-		if not reduced then
-			h.check(res, "warning_flashes", count, ">= 2 looks", count >= 2)
+		if reduced then
+			h.check(res, "warning_solid", faintest, "<= " .. TEXT_SOLID, faintest <= TEXT_SOLID)
+		else
+			h.check(res, "warning_flashes_out", faintest, ">= " .. TEXT_GONE, faintest >= TEXT_GONE)
+			h.check(res, "warning_flashes_in", solidest, "<= " .. TEXT_SOLID, solidest <= TEXT_SOLID)
 		end
 
 		-- An HP change is not a new spawn: the Warning ends once and does not come back.
@@ -746,7 +883,7 @@ function Module.Build(h)
 	-- 1:00-3:00: each joiner sees the header too, and a bar already at the right width.
 	local function checkLateJoin(res)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 10, 3000, 4000, false)
-		onlyShown(res, "before_join", { Invite = true })
+		onlyShown(res, "before_join", { BossButton = true }, { Invite = true })
 		state(res, "Fight", "keep", 3000, 4000, true, 100)
 		check(res, "late_join_warning_shown", waitShown(WARNING, true), true)
 		check(res, "late_join_bar_shown", waitShown(BAR, true), true)
@@ -774,15 +911,15 @@ function Module.Build(h)
 
 	local function checkOutsider(res)
 		state(res, "Prep", Cfg.PrepSeconds - 3, 4000, 4000, false)
-		onlyShown(res, "outsider_prep", { Invite = true })
+		onlyShown(res, "outsider_prep", { BossButton = true }, { Invite = true })
 		state(res, "Fight", Cfg.PrepSeconds, 4000, 4000, false)
 		task.wait(1)
-		onlyShown(res, "outsider_spawn", { Invite = true })
+		onlyShown(res, "outsider_spawn", { BossButton = true }, { Invite = true })
 		-- A leave: everything of the arena goes with the attribute.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
 		check(res, "leaver_bar_shown_first", waitShown(BAR, true), true)
 		state(res, "Fight", "keep", 4000, 4000, false)
-		onlyShown(res, "after_leave", {}, { Invite = true })
+		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true }) -- rejoining after leaving: no rule
 	end
 
 	-- UiMotion: Roblox's Reduced Motion or the REDUCED EFFECTS toggle. The header stays still and stays readable.
@@ -808,13 +945,27 @@ function Module.Build(h)
 		end
 		check(res, "reduced_warning_does_not_flash", count, 1)
 		check(res, "reduced_warning_stays_shown", alwaysShown, true)
-		local plate = warningPlate()
-		check(res, "reduced_warning_solid_red", plate.Red, true)
-		check(res, "reduced_warning_bright", plate.Bright, true)
-		check(res, "reduced_warning_text_readable", plate.Readable, true)
+		local label = hasText(WARNING, WARNING_TEXT)
+		check(res, "reduced_warning_is_red", label ~= nil and isRed(label.TextColor3), true)
+		check(res, "reduced_warning_solid", label ~= nil and label.TextTransparency <= TEXT_SOLID, true)
+		h.checkList(res, "reduced_warning_text_alone", warningBareList())
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
 		onlyShown(res, "event_end", {})
+
+		-- The button: glow yes, pulse no.
+		state(res, "Prep", 5, 0, 0, false)
+		checkButtonShows(res, "reduced")
+		local spread = watchPulse(1.5)
+		h.check(
+			res,
+			"reduced_button_no_pulse",
+			spread or "no PulseScale",
+			"<= " .. STILL_MAX_SPREAD,
+			spread ~= nil and spread <= STILL_MAX_SPREAD
+		)
+		state(res, "Idle", 0, 0, 0, false)
+		waitShown(BUTTON, false)
 	end
 
 	-- Owner 2026-11-05: the team is exhausted. Aerial camera, dim, centred countdown, a loading sign full at the end time.
@@ -1035,7 +1186,7 @@ function Module.Build(h)
 		if not gui then
 			return
 		end
-		for _, path in { TELEPORT, DECLINE, HUD .. "/Slot1", WARNING, BAR, LEAVE } do
+		for _, path in { TELEPORT, DECLINE, HUD .. "/Slot1", WARNING, BAR, LEAVE, BUTTON } do
 			check(res, "boss_part_present_" .. path, h.find(path) ~= nil, true)
 		end
 		local started = os.clock()
@@ -1067,11 +1218,23 @@ function Module.Build(h)
 	end
 
 	-- After the real presses (UiSpec.Clicks boss_*). The spy answers false to Teleport: refused means not joined.
-	function after.boss_invite_shown(res)
-		check(res, "boss_refused_teleport_keeps_invite", shown(INVITE), true)
+	function after.boss_refused_keeps_button(res)
+		check(res, "boss_refused_teleport_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_invite_hidden(res)
 		check(res, "boss_decline_hides_invite", waitShown(INVITE, false), false)
+		check(res, "boss_decline_keeps_button", shown(BUTTON), true)
+	end
+	function after.boss_button_prompts_for_sidekick(res)
+		check(
+			res,
+			"boss_locked_button_prompts_for_sidekick",
+			waitIs(function()
+				return shownTextHas(ROOT, "sidekick")
+			end, true),
+			true
+		)
+		check(res, "boss_locked_button_stays", shown(BUTTON), true)
 	end
 	function after.boss_slot1_filled(res)
 		local slot = h.find(HUD .. "/Slot1")

@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, sidekick_states, sidekick_big_reveal, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -266,6 +266,7 @@ end
 -- Sidekick fixture (UiSpec.ServerSetup sidekick_states): what it replaced, until 'restore' or restore:sidekick_states.
 local sidekickSnapshots = {}
 local sidekickClockMoved = false
+local sidekickRealRoll = nil -- SidekickConfig.Roll, while sidekick_big_reveal has it scripted
 -- Moves the rotation clock by whole seconds (0 puts the real clock back), so ui_sidekicks sees a slot change.
 -- Only the server can tell which later slot has another Mythic: the client has the attribute alone.
 local function nextMythicOffset()
@@ -283,10 +284,18 @@ local function sidekickUiClock(offset)
 		return os.time() + offset
 	end or nil)
 end
+local function unscriptSidekickRolls(player)
+	if sidekickRealRoll then
+		require(Shared.SidekickConfig).Roll = sidekickRealRoll
+		sidekickRealRoll = nil
+	end
+	player:SetAttribute("UiTestRevealIds", nil)
+end
 local function restoreSidekicks(player)
 	if sidekickClockMoved then
 		sidekickUiClock(0)
 	end
+	unscriptSidekickRolls(player)
 	local saved = sidekickSnapshots[player]
 	if saved then
 		live("SidekickService").Apply(player, saved.state)
@@ -313,6 +322,26 @@ function setups.sidekick_states(player)
 	end
 	player:SetAttribute("Gems", config.TenCost)
 	player:SetAttribute("RebirthLevel", config.UnlockRebirth)
+end
+
+-- Real summon path and real reveal, only the rolls scripted: a Secret is too rare to wait for. Solo Studio: one player summons.
+function setups.sidekick_big_reveal(player)
+	setups.sidekick_states(player)
+	local config, rotation = require(Shared.SidekickConfig), live("SidekickRotation")
+	local slot = rotation.For(rotation.Slot(os.time()))
+	local ids = table.create(10, slot.Common[1])
+	ids[5], ids[9] = slot.Mythic[1], slot.Secret
+	sidekickRealRoll = sidekickRealRoll or config.Roll
+	local rolled = 0
+	config.Roll = function()
+		rolled += 1
+		if rolled == #ids then
+			config.Roll = sidekickRealRoll
+			sidekickRealRoll = nil
+		end
+		return config.Get(ids[rolled])
+	end
+	player:SetAttribute("UiTestRevealIds", table.concat(ids, ","))
 end
 
 -- Boss event UI fixtures (UiSpec.ServerSetup boss_ui_*, Client/UiTest/UiBossEvent): the published attributes only, so
@@ -1489,6 +1518,14 @@ setupRequest.OnServerInvoke = function(player, request)
 		if bossWait then -- seconds left in this player's wait, or "none"
 			local seconds = tonumber(bossWait)
 			player:SetAttribute("BossWaitEndsAt", seconds and workspace:GetServerTimeNow() + seconds or nil)
+			return
+		end
+		local pityMythic, pityLegendary = string.match(request, "^sidekick_ui_pity:(%d+):(%d+)$")
+		if pityMythic then -- through the service, so the published attributes and the saved counts agree
+			local service = live("SidekickService")
+			local saved = service.Snapshot(player)
+			saved.SidekickPity, saved.SidekickLegendaryPity = tonumber(pityMythic), tonumber(pityLegendary)
+			service.Apply(player, saved)
 			return
 		end
 		if request == "sidekick_ui_clock:next" then

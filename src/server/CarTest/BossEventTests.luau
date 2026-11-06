@@ -30,6 +30,9 @@
 --         reads only run.TargetSpeed, run.Waiting, run.Slot and run.Stamina, writes run.Stamina[run.Slot], and calls run:Destroy().
 --       Depart(player): back to spawn. Chat(text): to the whole server, default fires RemoteEvent Remotes.BossEventChat.
 --       Rewards(players): on a defeat only, once. A stub until b8 (Relics).
+--       MoveChat(player, text) (owner 2026-11-05): one Big Raga move, to one event player; default fires Remotes.BossEventChat
+--         to that player only. Once per attack, shout and wheel_turn move of the shared schedule, inside that move, whatever
+--         the Advance step. No move chat in the intro, and never to anyone outside the event.
 --     Remotes.BossEventLeave: the client's leave option, no arguments, runs Leave(player, "Left") (owner 2026-11-05).
 --     Join during a duel's Countdown or Racing: succeeds and ends the duel through DuelService.PlayerLeft (owner 2026-11-05).
 --     Init(): boot. Makes the remote, starts the 1 s loop. Called by Main.server. Not `Start`, which starts an event here.
@@ -435,7 +438,7 @@ function Tests.make(deps)
 
 			local log
 			local function install()
-				log = { Arrive = {}, Depart = {}, Chat = {}, Rewards = {}, Started = {}, Runs = {} }
+				log = { Arrive = {}, Depart = {}, Chat = {}, MoveChat = {}, Rewards = {}, Started = {}, Runs = {} }
 				S.Hooks.DamageMulti = function()
 					return 1
 				end
@@ -447,6 +450,9 @@ function Tests.make(deps)
 				end
 				S.Hooks.Chat = function(text)
 					table.insert(log.Chat, text)
+				end
+				S.Hooks.MoveChat = function(p, text)
+					table.insert(log.MoveChat, { Player = p, Text = text, At = clock - T0 })
 				end
 				S.Hooks.Rewards = function(players)
 					table.insert(log.Rewards, players)
@@ -508,7 +514,7 @@ function Tests.make(deps)
 				eq("phase_0_prep", S.PhaseAt(0), "Prep")
 				eq("phase_before_spawn_prep", S.PhaseAt(PREP - 0.01), "Prep")
 				eq("phase_spawn_fight", S.PhaseAt(PREP), "Fight")
-				eq("phase_intro_is_fight", S.PhaseAt(PREP + 1), "Fight")
+				eq("phase_intro_is_fight", S.PhaseAt(PREP + INTRO / 2), "Fight")
 				eq("phase_before_8_00_fight", S.PhaseAt(TOTAL - 0.01), "Fight")
 				eq("phase_8_00_end", S.PhaseAt(TOTAL), "End")
 				eq("phase_past_end", S.PhaseAt(TOTAL + 100), "End")
@@ -790,7 +796,7 @@ function Tests.make(deps)
 				begin()
 				local first = fighter()
 				S.Join(first)
-				to(PREP + 10)
+				to(PREP + INTRO / 2)
 				S.Join(p)
 				flag("late_joiner_gets_auto_team", H.same(S.TeamOf(p), S.AutoTeam(p)))
 				eq("late_joiner_cannot_choose", S.SetTeam(p, { low }), false)
@@ -1297,7 +1303,7 @@ function Tests.make(deps)
 					eq("prep_max_grows_" .. i, S.State().MaxHp, i * HP)
 					eq("prep_current_grows_" .. i, S.State().Hp, i * HP)
 				end
-				to(PREP + 5)
+				to(PREP + INTRO / 2)
 				S.Join(players[4])
 				eq("intro_join_grows_max", S.State().MaxHp, 4 * HP)
 				to(FIGHT)
@@ -1679,6 +1685,113 @@ function Tests.make(deps)
 				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 				local remote = remotes and remotes:FindFirstChild("BossEventChat")
 				flag("chat_remote_exists_for_all_players", remote ~= nil and remote:IsA("RemoteEvent"))
+			end)
+
+			-- Owner 2026-11-05. The moves are read off the shared schedule; a line may come anywhere inside its move.
+			serviceSection("move_chat", function()
+				flag("move_chat_default_hook_exists", type(realHooks.MoveChat) == "function")
+				local Poses = require(Shared.BossRagaPoses)
+				local WORDS = {
+					attack = "Big Raga attacks! -5% stamina",
+					shout = "Big Raga shouts! Damage down for 5 s",
+					wheel_turn = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
+				}
+				local SCAN = 0.01
+				local SLACK = 2 * SCAN
+				local SPAN_END = FIGHT + 2 * Poses.CycleSeconds + 1 -- 1 s into the next cycle's opening idle
+				local moves, current = {}, nil
+				for k = 0, math.floor((SPAN_END - FIGHT) / SCAN) do
+					local t = FIGHT + k * SCAN
+					local name = Poses.Schedule(0, t)
+					if current and current.Move ~= name then
+						current.End = t
+						current = nil
+					end
+					if WORDS[name] and not current then
+						current = { Move = name, Start = t }
+						table.insert(moves, current)
+					end
+				end
+				flag("move_chat_scan_finds_moves", #moves >= 6, #moves, 6)
+				local function heard(p)
+					local lines = {}
+					for _, line in log.MoveChat do
+						if line.Player == p then
+							table.insert(lines, line)
+						end
+					end
+					return lines
+				end
+				-- The player heard exactly moves[from] onward, each line inside its move. `tick` is the Advance step.
+				local function heardMoves(tag, p, from, tick)
+					local lines = heard(p)
+					eq(tag .. "_exact_count", #lines, #moves - from + 1)
+					for i = from, #moves do
+						local line, move = lines[i - from + 1], moves[i]
+						eq(tag .. "_text_" .. i, line and line.Text, WORDS[move.Move])
+						flag(
+							tag .. "_inside_move_" .. i,
+							line ~= nil and line.At >= move.Start - SLACK and line.At <= (move.End or SPAN_END) + tick,
+							line and line.At,
+							move.Start
+						)
+					end
+				end
+
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 0 -- nothing may defeat the boss in this span
+				end
+				local member, introJoiner, leaver, outsider = fighter(), fighter(), fighter(), fighter()
+				S.Join(member)
+				S.Join(leaver)
+				walk(PREP - STEP)
+				eq("move_chat_none_in_prep", #log.MoveChat, 0)
+				walk(PREP + INTRO / 2)
+				S.Join(introJoiner)
+				walk(FIGHT)
+				eq("move_chat_none_in_intro", #log.MoveChat, 0)
+				-- A quiet moment in the idle after the second move, before the third.
+				local gapAt = math.ceil((moves[2].End + STEP) / STEP) * STEP
+				flag("move_chat_gap_is_idle", gapAt + STEP < moves[3].Start, gapAt, moves[3].Start)
+				walk(gapAt)
+				S.Leave(leaver, "Left")
+				local late = fighter()
+				S.Join(late)
+				walk(SPAN_END)
+				eq("move_chat_event_still_running", phase(), "Fight")
+				heardMoves("move_chat_member", member, 1, STEP)
+				heardMoves("move_chat_intro_joiner", introJoiner, 1, STEP)
+				heardMoves("move_chat_late_joiner", late, 3, STEP)
+				eq("move_chat_leaver_only_before", #heard(leaver), 2)
+				eq("move_chat_outsider_none", #heard(outsider), 0)
+				local wheels, wheelLines = 0, 0
+				for _, move in moves do
+					wheels += move.Move == "wheel_turn" and 1 or 0
+				end
+				for _, line in heard(member) do
+					wheelLines += line.Text == WORDS.wheel_turn and 1 or 0
+				end
+				flag("move_chat_schedule_has_wheel_turns", wheels >= 2, wheels, 2)
+				eq("move_chat_wheel_turn_once_per_move", wheelLines, wheels)
+				eq("move_chat_spawn_chat_stays_single", #log.Chat, 1)
+				eq("move_chat_spawn_chat_stays_server_wide", log.Chat[1], CHAT)
+				local total = #log.MoveChat
+				S.End("Timeout")
+				walk(SPAN_END + Poses.CycleSeconds)
+				eq("move_chat_none_after_end", #log.MoveChat, total)
+
+				-- The live loop ticks once a second: still each move once.
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 0
+				end
+				local ticked = fighter()
+				S.Join(ticked)
+				for t = 1, math.ceil(SPAN_END) do
+					to(t)
+				end
+				heardMoves("move_chat_one_second_ticks", ticked, 1, 1)
 			end)
 
 			serviceSection("hud_attribute", function()
