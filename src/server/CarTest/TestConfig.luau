@@ -48,6 +48,7 @@ return {
 		"gems",
 		"sidekicks",
 		"sidekick_rotation",
+		"sidekick_pity",
 		"relics",
 		"boss_arena",
 		"boss_event",

@@ -240,7 +240,7 @@ function Tests.gems()
 		flag("save_ok", data.Save(saver, saverId, true) == true)
 		flag(
 			"save_writes_field",
-			store.data[key].Gems == 456 and store.data[key].Version == 16,
+			store.data[key].Gems == 456 and store.data[key].Version == 17,
 			store.data[key].Gems,
 			456
 		)

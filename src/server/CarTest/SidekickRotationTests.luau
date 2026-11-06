@@ -445,7 +445,7 @@ function Tests.sidekick_rotation()
 		end
 		local rollsBefore = sequence()
 
-		-- Real summons: 10 independent rolls of one slot; a long losing streak moves nothing (no pity).
+		-- Real summons: 10 independent rolls of one slot; S.Roll stays pure: pity lives in summons (SidekickPityTests).
 		local p = unlocked()
 		local inRotation, fine, varied = true, true, true
 		for _ = 1, 300 do
