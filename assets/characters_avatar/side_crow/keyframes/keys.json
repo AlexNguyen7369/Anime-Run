@@ -1,0 +1,235 @@
+{
+ "id": "side_crow",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.2,
+   2.45
+  ],
+  "Head": [
+   0.0,
+   -0.75,
+   3.1
+  ],
+  "LegLeft": [
+   0.3,
+   0.45,
+   1.75
+  ],
+  "LegRight": [
+   -0.3,
+   0.45,
+   1.75
+  ],
+  "Tail": [
+   0.0,
+   1.05,
+   1.8
+  ],
+  "WingLeft": [
+   0.62,
+   0.05,
+   2.95
+  ],
+  "WingRight": [
+   -0.62,
+   0.05,
+   2.95
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Kasugay: wing gust (proposed)",
+   "end": 1.2,
+   "Release": 0.5,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.3,
+     "desc": "Leans back, wings lifted high and behind the body",
+     "root_offset": {
+      "Body": [
+       0,
+       0.25,
+       0.2
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -26,
+       0,
+       0
+      ],
+      "Head": [
+       18,
+       0,
+       0
+      ],
+      "LegLeft": [
+       -30,
+       0,
+       0
+      ],
+      "LegRight": [
+       -30,
+       0,
+       0
+      ],
+      "Tail": [
+       20,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -52,
+       20
+      ],
+      "WingRight": [
+       0,
+       52,
+       -20
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.5,
+     "desc": "Both wings clap forward and down, body pitches in, gust",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.2,
+       -0.15
+      ]
+     },
+     "rotations": {
+      "Body": [
+       20,
+       0,
+       0
+      ],
+      "Head": [
+       -14,
+       0,
+       0
+      ],
+      "LegLeft": [
+       40,
+       0,
+       0
+      ],
+      "LegRight": [
+       40,
+       0,
+       0
+      ],
+      "Tail": [
+       -30,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       42,
+       -52
+      ],
+      "WingRight": [
+       0,
+       -42,
+       52
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.8,
+     "desc": "Wings open flat to catch the hover, head comes up",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -6,
+       0,
+       0
+      ],
+      "Head": [
+       4,
+       0,
+       0
+      ],
+      "LegLeft": [
+       10,
+       0,
+       0
+      ],
+      "LegRight": [
+       10,
+       0,
+       0
+      ],
+      "Tail": [
+       8,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -6,
+       4
+      ],
+      "WingRight": [
+       0,
+       6,
+       -4
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

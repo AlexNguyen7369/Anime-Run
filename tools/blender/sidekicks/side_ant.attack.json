@@ -1,0 +1,109 @@
+{
+	"movement": "Walk",
+	"title": "Beroo: claw flurry (proposed)",
+	"end": 1.4,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.2,
+			"desc": "Coils left, left claw cocked high, right claw low",
+			"parts": {
+				"Torso": [-10, -4, 30],
+				"Head": [8, 0, -18],
+				"LeftArm": [-140, 40, 0],
+				"RightArm": [15, 35, 0],
+				"Gaster": [-10, 0, 0],
+				"RightLeg": [-22, 8, 0],
+				"LeftLeg": [24, -8, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.4,
+			"desc": "First slash: left claw rips across, torso turns into it",
+			"root": {
+				"Torso": [0, -0.5, 0]
+			},
+			"parts": {
+				"Torso": [18, 0, -30],
+				"Head": [-12, 0, 18],
+				"LeftArm": [-85, 30, 0],
+				"RightArm": [-120, 55, 0],
+				"Gaster": [22, 0, 0],
+				"RightLeg": [-42, 8, 0],
+				"LeftLeg": [34, -8, 0]
+			},
+			"markers": [
+				{
+					"label": "claw slashes",
+					"shape": "rect",
+					"at": [1.0, -4.8, 4.2],
+					"r": 1.5,
+					"sx": 0.1,
+					"rgb": [0.75, 0.2, 1],
+					"spin": 35
+				},
+				{
+					"label": "",
+					"shape": "rect",
+					"at": [0.2, -4.8, 3.6],
+					"r": 1.5,
+					"sx": 0.1,
+					"rgb": [0.75, 0.2, 1],
+					"spin": 35
+				}
+			]
+		},
+		{
+			"name": "Second slash",
+			"t": 0.6,
+			"desc": "Right claw rips back across, left claw thrown behind",
+			"root": {
+				"Torso": [0, -0.6, 0]
+			},
+			"parts": {
+				"Torso": [20, 0, 34],
+				"Head": [-14, 0, -20],
+				"LeftArm": [-110, -60, 0],
+				"RightArm": [-80, -30, 0],
+				"Gaster": [26, -10, 0],
+				"RightLeg": [34, 8, 0],
+				"LeftLeg": [-42, -8, 0]
+			}
+		},
+		{
+			"name": "Third slash",
+			"t": 0.8,
+			"desc": "Both claws come down together from overhead",
+			"root": {
+				"Torso": [0, -0.65, 0]
+			},
+			"parts": {
+				"Torso": [34, 0, 0],
+				"Head": [-30, 0, 0],
+				"LeftArm": [-60, 8, 0],
+				"RightArm": [-60, -8, 0],
+				"Gaster": [-20, 0, 0],
+				"RightLeg": [-40, 10, 0],
+				"LeftLeg": [18, -10, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.1,
+			"desc": "Pulls upright, claws open at the sides, mandibles forward",
+			"root": {
+				"Torso": [0, -0.15, 0]
+			},
+			"parts": {
+				"Torso": [-4, 0, 0],
+				"Head": [6, 0, 0],
+				"LeftArm": [-25, -30, 0],
+				"RightArm": [-25, 30, 0],
+				"Gaster": [4, 0, 0],
+				"RightLeg": [-8, 4, 0],
+				"LeftLeg": [8, -4, 0]
+			}
+		}
+	]
+}

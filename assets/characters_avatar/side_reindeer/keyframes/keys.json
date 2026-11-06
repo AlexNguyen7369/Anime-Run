@@ -1,0 +1,285 @@
+{
+ "id": "side_reindeer",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "ArmLeft": [
+   0.84,
+   0.0,
+   2.08
+  ],
+  "ArmRight": [
+   -0.84,
+   0.0,
+   2.08
+  ],
+  "Body": [
+   0.0,
+   0.0,
+   1.1
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   2.3
+  ],
+  "HeadAntlerLeft": [
+   1.05,
+   0.0,
+   4.2
+  ],
+  "HeadAntlerRight": [
+   -1.05,
+   0.0,
+   4.2
+  ],
+  "HeadHat": [
+   0.0,
+   0.0,
+   2.3
+  ],
+  "LegLeft": [
+   0.36,
+   0.0,
+   1.0
+  ],
+  "LegRight": [
+   -0.36,
+   0.0,
+   1.0
+  ]
+ },
+ "rest": {
+  "ArmLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "ArmRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadAntlerLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadAntlerRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadHat": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Choppa: hoof punch (proposed)",
+   "end": 1.2,
+   "Release": 0.5,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.3,
+     "desc": "Twists away, punching arm far back, head tips back",
+     "root_offset": {
+      "Body": [
+       0,
+       0.2,
+       0.045
+      ]
+     },
+     "rotations": {
+      "ArmLeft": [
+       -70,
+       -22,
+       0
+      ],
+      "ArmRight": [
+       70,
+       40,
+       0
+      ],
+      "Body": [
+       -10,
+       6,
+       -38
+      ],
+      "Head": [
+       -10,
+       0,
+       16
+      ],
+      "HeadAntlerLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadAntlerRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadHat": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       -28,
+       -6,
+       0
+      ],
+      "LegRight": [
+       30,
+       6,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.5,
+     "desc": "Lunges, body turns hard, hoof straight out under the hat brim",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.45,
+       0.062
+      ]
+     },
+     "rotations": {
+      "ArmLeft": [
+       50,
+       -40,
+       0
+      ],
+      "ArmRight": [
+       -92,
+       0,
+       -32
+      ],
+      "Body": [
+       -8,
+       -4,
+       32
+      ],
+      "Head": [
+       -12,
+       0,
+       -26
+      ],
+      "HeadAntlerLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadAntlerRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadHat": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       -46,
+       -8,
+       0
+      ],
+      "LegRight": [
+       44,
+       8,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 0.8,
+     "desc": "Pulls back upright, both hooves up in a guard",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0.06
+      ]
+     },
+     "rotations": {
+      "ArmLeft": [
+       -44,
+       -12,
+       0
+      ],
+      "ArmRight": [
+       -52,
+       12,
+       0
+      ],
+      "Body": [
+       2,
+       0,
+       8
+      ],
+      "Head": [
+       -4,
+       8,
+       -6
+      ],
+      "HeadAntlerLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadAntlerRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HeadHat": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       -10,
+       0,
+       0
+      ],
+      "LegRight": [
+       12,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

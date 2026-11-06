@@ -1,0 +1,473 @@
+{
+ "id": "side_fist",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "FloatHips": [
+   0.0,
+   0.0,
+   2.2
+  ],
+  "FloatLegLeft": [
+   0.58,
+   0.0,
+   1.8
+  ],
+  "FloatLegRight": [
+   -0.58,
+   0.0,
+   1.8
+  ],
+  "FloatShinLeft": [
+   0.58,
+   0.0,
+   0.66
+  ],
+  "FloatShinRight": [
+   -0.58,
+   0.0,
+   0.66
+  ],
+  "Hair": [
+   0.0,
+   0.0,
+   5.8
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "LeftArm": [
+   1.62,
+   0.0,
+   3.9
+  ],
+  "RightArm": [
+   -1.62,
+   0.0,
+   3.9
+  ],
+  "Scarf": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.0
+  ]
+ },
+ "rest": {
+  "FloatHips": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "FloatLegLeft": [
+   16.0,
+   0.0,
+   0.0
+  ],
+  "FloatLegRight": [
+   26.0,
+   0.0,
+   0.0
+  ],
+  "FloatShinLeft": [
+   14.0,
+   0.0,
+   0.0
+  ],
+  "FloatShinRight": [
+   18.0,
+   0.0,
+   0.0
+  ],
+  "Hair": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   -68.0,
+   0.0,
+   0.0
+  ],
+  "Scarf": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Purple Platina: rapid punch barrage (proposed)",
+   "end": 1.35,
+   "Release": 0.38,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.2,
+     "desc": "Twists right, right fist pulled far back, left at guard",
+     "root_offset": {
+      "Torso": [
+       0,
+       0.3,
+       0
+      ]
+     },
+     "rotations": {
+      "FloatHips": [
+       10,
+       0,
+       10
+      ],
+      "FloatLegLeft": [
+       16.0,
+       0.0,
+       0.0
+      ],
+      "FloatLegRight": [
+       26.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinLeft": [
+       14.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinRight": [
+       18.0,
+       0.0,
+       0.0
+      ],
+      "Hair": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Head": [
+       6,
+       0,
+       26
+      ],
+      "LeftArm": [
+       -92,
+       -12,
+       0
+      ],
+      "RightArm": [
+       55,
+       28,
+       0
+      ],
+      "Scarf": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -8,
+       0,
+       -36
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.38,
+     "desc": "Right straight: arm full out, torso turned hard into it",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.45,
+       0
+      ]
+     },
+     "rotations": {
+      "FloatHips": [
+       -18,
+       0,
+       -14
+      ],
+      "FloatLegLeft": [
+       16.0,
+       0.0,
+       0.0
+      ],
+      "FloatLegRight": [
+       26.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinLeft": [
+       14.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinRight": [
+       18.0,
+       0.0,
+       0.0
+      ],
+      "Hair": [
+       14,
+       0,
+       0
+      ],
+      "Head": [
+       -16,
+       0,
+       -28
+      ],
+      "LeftArm": [
+       58,
+       -22,
+       0
+      ],
+      "RightArm": [
+       -92,
+       -14,
+       0
+      ],
+      "Scarf": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       20,
+       0,
+       36
+      ]
+     }
+    },
+    {
+     "name": "Left straight",
+     "t": 0.55,
+     "desc": "Left arm full out, right snapped back, torso turned opposite",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.5,
+       0
+      ]
+     },
+     "rotations": {
+      "FloatHips": [
+       -18,
+       0,
+       14
+      ],
+      "FloatLegLeft": [
+       16.0,
+       0.0,
+       0.0
+      ],
+      "FloatLegRight": [
+       26.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinLeft": [
+       14.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinRight": [
+       18.0,
+       0.0,
+       0.0
+      ],
+      "Hair": [
+       14,
+       0,
+       0
+      ],
+      "Head": [
+       -18,
+       0,
+       28
+      ],
+      "LeftArm": [
+       -92,
+       14,
+       0
+      ],
+      "RightArm": [
+       60,
+       22,
+       0
+      ],
+      "Scarf": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       22,
+       0,
+       -36
+      ]
+     }
+    },
+    {
+     "name": "Both fists",
+     "t": 0.72,
+     "desc": "Peak speed: both arms forward, one high, one low",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.55,
+       0
+      ]
+     },
+     "rotations": {
+      "FloatHips": [
+       -28,
+       0,
+       -4
+      ],
+      "FloatLegLeft": [
+       16.0,
+       0.0,
+       0.0
+      ],
+      "FloatLegRight": [
+       26.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinLeft": [
+       14.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinRight": [
+       18.0,
+       0.0,
+       0.0
+      ],
+      "Hair": [
+       20,
+       0,
+       0
+      ],
+      "Head": [
+       -20,
+       0,
+       -6
+      ],
+      "LeftArm": [
+       -62,
+       8,
+       0
+      ],
+      "RightArm": [
+       -122,
+       -8,
+       0
+      ],
+      "Scarf": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       24,
+       0,
+       8
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.05,
+     "desc": "Upright, arms back to the signature pose, hair settling",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "FloatHips": [
+       6,
+       0,
+       0
+      ],
+      "FloatLegLeft": [
+       16.0,
+       0.0,
+       0.0
+      ],
+      "FloatLegRight": [
+       26.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinLeft": [
+       14.0,
+       0.0,
+       0.0
+      ],
+      "FloatShinRight": [
+       18.0,
+       0.0,
+       0.0
+      ],
+      "Hair": [
+       -8,
+       0,
+       0
+      ],
+      "Head": [
+       2,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -14,
+       -10,
+       0
+      ],
+      "RightArm": [
+       -50,
+       6,
+       0
+      ],
+      "Scarf": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -6,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

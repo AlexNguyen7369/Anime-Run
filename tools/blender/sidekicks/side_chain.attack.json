@@ -1,0 +1,79 @@
+{
+	"movement": "Walk",
+	"title": "Pochito: revs its head saw and hurls a spinning blade (proposed)",
+	"end": 1.35,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.25,
+			"desc": "Sits back on its haunches, saw tips back",
+			"parts": {
+				"Body": [-14, 0, -10],
+				"Bar": [-20, 0, 44],
+				"LegFrontL": [14, 0, 0],
+				"LegFrontR": [14, 0, 0],
+				"LegBackL": [14, 0, 0],
+				"LegBackR": [14, 0, 0],
+				"Tail": [18, 0, 0],
+				"Handle": [-8, 0, 0]
+			}
+		},
+		{
+			"name": "Rev",
+			"t": 0.5,
+			"desc": "Coiled deepest, saw cocked far back, cord pulled, tail stiff",
+			"parts": {
+				"Body": [-32, 0, -22],
+				"Bar": [-62, 0, 72],
+				"LegFrontL": [10, 0, 0],
+				"LegFrontR": [46, 0, 0],
+				"LegBackL": [32, 0, 0],
+				"LegBackR": [32, 0, 0],
+				"Tail": [55, 0, 0],
+				"Handle": [-40, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.7,
+			"desc": "Whole body whips nose-down, saw snaps forward, blade flies",
+			"root": {
+				"Body": [0, -0.3, 0]
+			},
+			"parts": {
+				"Body": [24, 0, 14],
+				"Bar": [48, 0, 12],
+				"LegFrontL": [-58, 0, 0],
+				"LegFrontR": [-30, 0, 0],
+				"LegBackL": [10, 0, 0],
+				"LegBackR": [20, 0, 0],
+				"Tail": [-25, 0, 0],
+				"Handle": [25, 0, 0]
+			},
+			"markers": [
+				{
+					"label": "spinning blade",
+					"shape": "saw",
+					"at": [0, -5.2, 1.9],
+					"r": 0.95,
+					"rgb": [1, 0.55, 0.05]
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 1.0,
+			"desc": "Rocks back up, saw lifts, tail settling",
+			"parts": {
+				"Body": [-6, 0, 4],
+				"Bar": [8, 0, 32],
+				"LegFrontL": [6, 0, 0],
+				"LegFrontR": [6, 0, 0],
+				"LegBackL": [6, 0, 0],
+				"LegBackR": [6, 0, 0],
+				"Tail": [14, 0, 0]
+			}
+		}
+	],
+	"view": [0.85, -0.5, 0.18]
+}

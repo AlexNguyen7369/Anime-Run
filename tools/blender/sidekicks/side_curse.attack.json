@@ -1,0 +1,89 @@
+{
+	"movement": "Fly",
+	"title": "Rikka: cursed scream (proposed)",
+	"end": 1.45,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.4,
+			"desc": "Curls inward, head low, arms clutch close, crest folded",
+			"root": {
+				"Body": [0, 0.25, -0.25]
+			},
+			"parts": {
+				"Body": [24, 0, 0],
+				"Head": [28, 0, 0],
+				"Crest": [24, 0, 0],
+				"LeftArm": [-30, 32, 0],
+				"RightArm": [-30, -32, 0],
+				"Tail": [-30, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.75,
+			"desc": "Whole body throws back open, arms flung wide: the scream",
+			"root": {
+				"Body": [0, 0.3, 0.3]
+			},
+			"parts": {
+				"Body": [-24, 0, 0],
+				"Head": [-14, 0, 0],
+				"Crest": [-20, 0, 0],
+				"LeftArm": [20, -50, 0],
+				"RightArm": [20, 50, 0],
+				"Tail": [26, 0, 0]
+			},
+			"markers": [
+				{
+					"label": "scream wave",
+					"shape": "crescent",
+					"on": "Head",
+					"at": [0, -4.2, 0.2],
+					"r": 1.6,
+					"rgb": [0.9, 0.2, 0.3],
+					"sx": 0.5,
+					"spin": -35
+				},
+				{
+					"label": "",
+					"shape": "crescent",
+					"on": "Head",
+					"at": [0, -5.8, 0.2],
+					"r": 2.4,
+					"rgb": [0.9, 0.2, 0.3],
+					"sx": 0.5,
+					"spin": -35
+				}
+			]
+		},
+		{
+			"name": "Lean in",
+			"t": 1.0,
+			"desc": "Scream carries on: head thrust forward, claws raised",
+			"root": {
+				"Body": [0, -0.35, 0]
+			},
+			"parts": {
+				"Body": [12, 0, 0],
+				"Head": [10, 0, 0],
+				"Crest": [-6, 0, 0],
+				"LeftArm": [-70, -35, 0],
+				"RightArm": [-70, 35, 0],
+				"Tail": [10, 0, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.25,
+			"desc": "Sags back into the hover, arms drop, head tilts",
+			"parts": {
+				"Body": [4, 0, 0],
+				"Head": [6, 10, 0],
+				"LeftArm": [-12, 10, 0],
+				"RightArm": [-12, -10, 0],
+				"Tail": [-10, 0, 0]
+			}
+		}
+	]
+}

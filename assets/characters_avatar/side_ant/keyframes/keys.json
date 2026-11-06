@@ -1,0 +1,543 @@
+{
+ "id": "side_ant",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Gaster": [
+   0.0,
+   0.6,
+   2.1
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   4.1
+  ],
+  "LeftArm": [
+   1.56,
+   0.0,
+   3.9
+  ],
+  "LeftArmNeon": [
+   1.56,
+   0.0,
+   3.9
+  ],
+  "LeftLeg": [
+   0.56,
+   0.0,
+   2.0
+  ],
+  "LeftLegNeon": [
+   0.56,
+   0.0,
+   2.0
+  ],
+  "RightArm": [
+   -1.56,
+   0.0,
+   3.9
+  ],
+  "RightArmNeon": [
+   -1.56,
+   0.0,
+   3.9
+  ],
+  "RightLeg": [
+   -0.56,
+   0.0,
+   2.0
+  ],
+  "RightLegNeon": [
+   -0.56,
+   0.0,
+   2.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.0
+  ],
+  "TorsoNeon": [
+   0.0,
+   0.0,
+   3.0
+  ]
+ },
+ "rest": {
+  "Gaster": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArmNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLegNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArmNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLegNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "TorsoNeon": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Beroo: claw flurry (proposed)",
+   "end": 1.4,
+   "Release": 0.4,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.2,
+     "desc": "Coils left, left claw cocked high, right claw low",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.206
+      ]
+     },
+     "rotations": {
+      "Gaster": [
+       -10,
+       0,
+       0
+      ],
+      "Head": [
+       8,
+       0,
+       -18
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -140,
+       40,
+       0
+      ],
+      "LeftArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLeg": [
+       24,
+       -8,
+       0
+      ],
+      "LeftLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       15,
+       35,
+       0
+      ],
+      "RightArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLeg": [
+       -22,
+       8,
+       0
+      ],
+      "RightLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -10,
+       -4,
+       30
+      ],
+      "TorsoNeon": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.4,
+     "desc": "First slash: left claw rips across, torso turns into it",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.5,
+       0.208
+      ]
+     },
+     "rotations": {
+      "Gaster": [
+       22,
+       0,
+       0
+      ],
+      "Head": [
+       -12,
+       0,
+       18
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -85,
+       30,
+       0
+      ],
+      "LeftArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLeg": [
+       34,
+       -8,
+       0
+      ],
+      "LeftLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       -120,
+       55,
+       0
+      ],
+      "RightArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLeg": [
+       -42,
+       8,
+       0
+      ],
+      "RightLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       18,
+       0,
+       -30
+      ],
+      "TorsoNeon": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "name": "Second slash",
+     "t": 0.6,
+     "desc": "Right claw rips back across, left claw thrown behind",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.6,
+       0.167
+      ]
+     },
+     "rotations": {
+      "Gaster": [
+       26,
+       -10,
+       0
+      ],
+      "Head": [
+       -14,
+       0,
+       -20
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -110,
+       -60,
+       0
+      ],
+      "LeftArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLeg": [
+       -42,
+       -8,
+       0
+      ],
+      "LeftLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       -80,
+       -30,
+       0
+      ],
+      "RightArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLeg": [
+       34,
+       8,
+       0
+      ],
+      "RightLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       20,
+       0,
+       34
+      ],
+      "TorsoNeon": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "name": "Third slash",
+     "t": 0.8,
+     "desc": "Both claws come down together from overhead",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.65,
+       0.082
+      ]
+     },
+     "rotations": {
+      "Gaster": [
+       -20,
+       0,
+       0
+      ],
+      "Head": [
+       -30,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -60,
+       8,
+       0
+      ],
+      "LeftArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLeg": [
+       18,
+       -10,
+       0
+      ],
+      "LeftLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       -60,
+       -8,
+       0
+      ],
+      "RightArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLeg": [
+       -40,
+       10,
+       0
+      ],
+      "RightLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       34,
+       0,
+       0
+      ],
+      "TorsoNeon": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.1,
+     "desc": "Pulls upright, claws open at the sides, mandibles forward",
+     "root_offset": {
+      "Torso": [
+       0,
+       -0.15,
+       0.097
+      ]
+     },
+     "rotations": {
+      "Gaster": [
+       4,
+       0,
+       0
+      ],
+      "Head": [
+       6,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftArm": [
+       -25,
+       -30,
+       0
+      ],
+      "LeftArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LeftLeg": [
+       8,
+       -4,
+       0
+      ],
+      "LeftLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       -25,
+       30,
+       0
+      ],
+      "RightArmNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightLeg": [
+       -8,
+       4,
+       0
+      ],
+      "RightLegNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       -4,
+       0,
+       0
+      ],
+      "TorsoNeon": [
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
