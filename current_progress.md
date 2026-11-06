@@ -95,8 +95,9 @@
 92. 2026-11-05 — Alex Nguyen — Applied the 12-Sidekick pool and the global 30 minute summon rotation with a server-only Secret, and fixed the event UI's live findings (`[CARTEST]` sidekick_rotation 231, sidekicks 316, boss_event 461, relics 374 pass; `ui_sidekicks` 144, `ui_boss` 159, `ui_layout` 962 pass).
 93. 2026-11-05 — Alex Nguyen — Added Big Raga's real model, baked motion from the owner-approved keys, rise and VFX (`[CARTEST]` `boss_anim` 119, `boss_event` 461, `boss_arena` 154; `ui_boss_vfx` 46 pass; the owner's look at the motion and effects is still open).
 94. 2026-11-05 — Alex Nguyen — Redesigned the Sidekick summon page with a 5-model poster showing rates, a More Gems column, pity bars and an animated reveal using 7 uploaded textures, and accidentally uploaded 26 unreleased character Decals through an unguarded script, now fixed.
+95. 2026-11-05 — Alex Nguyen — Landed Sidekick followers, summon pity, the summon redesign, the 3 second spawn, attack stamina cost, shout and wheel status effects, the boss bar and Drop list, the Boss (Active) button, move chat and the exhaustion view (`[CARTEST]` boss_event 705 and 10 other scenarios pass; `ui_boss` 393, `ui_layout` 962, `ui_sidekicks` 393 pass; `runner`, phone and second player not checked).
 
 ## What's next
-**Merge `orch/boss-event/summon-ui` into `feature/alex/boss-event` and update `ui_sidekicks`, `ui_layout` and `ui_buttons` for the new page (boss-events session).**
+**Build the Sidekick attacks from the 12 approved key frames: bake, playback, projectiles, effects, server hits (goal `boss-event`, deliverable b7d).**
 
-**Why this is next:** those tests fail on the renamed parts until updated, and `SecretId`, the pity server and Details' guaranteed-odds display all build on this page.
+**Why this is next:** the owner approved all 12, and until then Sidekicks deal damage with nothing on screen.
