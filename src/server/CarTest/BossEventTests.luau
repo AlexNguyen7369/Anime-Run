@@ -46,6 +46,13 @@
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
 --       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
 --       at or before its joining, is never charged.
+--     Hooks.BossHits(player, entries) (b7d): one batch to one event player; the default fires RemoteEvent Remotes.BossHits to that
+--       player (a Folder test player makes FireClient throw: call it through `safely`). Every event player gets every entry; each
+--       player's batches are at least 0.25 s apart by the injected clock, and never empty. An entry is one hit that dealt damage:
+--       { UserId, SidekickId, Damage }, nothing else. UserId: Player.UserId, or attribute UserId on a Folder test player.
+--       SidekickId: the Sidekick worn by the running character, member.Team[run.Slot] (design doc 4.37). Damage: what RecordHit dealt.
+--       A hit waiting for the gap goes out in a later batch. The hit that defeats the boss still reaches the members.
+--       A running character whose Sidekick came off mid-event cannot hit: RecordHit returns 0, no entry, no damage (design doc 4.36).
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
 --     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
 --     eye about 450 outward of and 320 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
@@ -440,7 +447,16 @@ function Tests.make(deps)
 
 			local log
 			local function install()
-				log = { Arrive = {}, Depart = {}, Chat = {}, MoveChat = {}, Rewards = {}, Started = {}, Runs = {} }
+				log = {
+					Arrive = {},
+					Depart = {},
+					Chat = {},
+					MoveChat = {},
+					Rewards = {},
+					Started = {},
+					Runs = {},
+					BossHits = {},
+				}
 				S.Hooks.DamageMulti = function()
 					return 1
 				end
@@ -458,6 +474,9 @@ function Tests.make(deps)
 				end
 				S.Hooks.Rewards = function(players)
 					table.insert(log.Rewards, players)
+				end
+				S.Hooks.BossHits = function(p, entries)
+					table.insert(log.BossHits, { Player = p, Entries = table.clone(entries), At = clock - T0 })
 				end
 				S.Hooks.StartRun = function(p, team, lane)
 					local run = {
@@ -1794,6 +1813,241 @@ function Tests.make(deps)
 					to(t)
 				end
 				heardMoves("move_chat_one_second_ticks", ticked, 1, 1)
+			end)
+
+			-- Design doc 4.37: the server decides every hit; clients only draw it. Docs/BOSS_EVENT_SPEC.md: hits are batched (task b7d).
+			serviceSection("hit_events", function()
+				local HALF = EVERY / 2
+				local GAP = 0.25 -- s: at most 4 batches a second
+				local function idOf(p)
+					return p:GetAttribute("UserId")
+				end
+				local function batchesTo(p)
+					local list = {}
+					for _, batch in log.BossHits do
+						if batch.Player == p then
+							table.insert(list, batch)
+						end
+					end
+					return list
+				end
+				-- What `p` was sent, optionally only `from`'s hits.
+				local function entriesTo(p, from)
+					local list = {}
+					for _, batch in batchesTo(p) do
+						for _, entry in batch.Entries do
+							if not from or entry.UserId == idOf(from) then
+								table.insert(list, entry)
+							end
+						end
+					end
+					return list
+				end
+				local function sum(list)
+					local total = 0
+					for _, entry in list do
+						total += entry.Damage
+					end
+					return total
+				end
+				local function dealt()
+					return S.State().MaxHp - S.State().Hp
+				end
+
+				flag("hit_events_default_hook", type(realHooks.BossHits) == "function")
+				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+				local remote = remotes and remotes:FindFirstChild("BossHits")
+				flag("hit_events_remote_exists", remote ~= nil and remote:IsA("RemoteEvent"))
+
+				-- Two players: one entry per hit, the right ids, everyone in the event hears all of it, nobody else does.
+				begin()
+				local a, b, outsider = fighter(), newPlayer(), fighter()
+				wear(b, chars[1], "side_chain")
+				S.Join(a)
+				S.Join(b)
+				walk(PREP)
+				eq("hit_events_none_in_prep", #log.BossHits, 0)
+				walk(FIGHT + EVERY - STEP)
+				eq("hit_events_none_before_first_hit", #log.BossHits, 0)
+				walk(FIGHT + EVERY * 4 + HALF)
+				eq("hit_events_a_hits_to_a", #entriesTo(a, a), 4)
+				eq("hit_events_b_hits_to_a", #entriesTo(a, b), 4)
+				eq("hit_events_a_hits_to_b", #entriesTo(b, a), 4)
+				eq("hit_events_b_hits_to_b", #entriesTo(b, b), 4)
+				eq("hit_events_outsider_hears_nothing", #batchesTo(outsider), 0)
+				local shape, sameId, sameB = true, true, true
+				for _, entry in entriesTo(a) do
+					local keys = 0
+					for _ in entry do
+						keys += 1
+					end
+					shape = shape and keys == 3 and type(entry.Damage) == "number"
+				end
+				for _, entry in entriesTo(a, a) do
+					sameId = sameId and entry.SidekickId == "side_knight"
+					near("hit_events_a_damage", entry.Damage, S.TeamDamage(a))
+				end
+				for _, entry in entriesTo(a, b) do
+					sameB = sameB and entry.SidekickId == "side_chain"
+					near("hit_events_b_damage", entry.Damage, S.TeamDamage(b))
+				end
+				flag("hit_events_entry_has_only_three_fields", shape)
+				flag("hit_events_a_sidekick_id", sameId)
+				flag("hit_events_b_sidekick_id", sameB)
+				-- The event adds no damage: entries, per-player totals and the HP drop all agree, at the hit cadence.
+				near("hit_events_no_extra_damage_a", S.DamageOf(a), S.TeamDamage(a) * 4)
+				near("hit_events_sum_is_damage_of", sum(entriesTo(a, a)), S.DamageOf(a))
+				near("hit_events_sum_is_hp_drop", sum(entriesTo(a)), dealt())
+				local empty = 0
+				for _, batch in log.BossHits do
+					empty += #batch.Entries == 0 and 1 or 0
+				end
+				eq("hit_events_no_empty_batch", empty, 0)
+
+				-- Many hits on small steps: at most 4 batches a second, and nothing lost to the gap.
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 0.01 -- nothing may defeat the boss in this span
+				end
+				local busy = fighter()
+				S.Join(busy)
+				walk(FIGHT)
+				for _ = 1, 60 do
+					clock += 0.05
+					eq("hit_events_direct_hit_deals", S.RecordHit(busy) > 0, true)
+					S.Advance(clock)
+				end
+				walk(clock - T0 + STEP * 2)
+				local batches = batchesTo(busy)
+				flag("hit_events_batched", #batches >= 2 and #batches < 60, #batches)
+				local tightest, biggest = math.huge, 0
+				for i, batch in batches do
+					biggest = math.max(biggest, #batch.Entries)
+					if i > 1 then
+						tightest = math.min(tightest, batch.At - batches[i - 1].At)
+					end
+				end
+				flag(
+					"hit_events_at_most_4_a_second",
+					tightest >= GAP - 1e-6,
+					tightest < math.huge and tightest or -1,
+					GAP
+				)
+				flag("hit_events_batch_holds_several", biggest > 1, biggest, 2)
+				eq(
+					"hit_events_small_steps_one_entry_per_hit",
+					#entriesTo(busy),
+					math.round(S.DamageOf(busy) / (S.TeamDamage(busy) * 0.01))
+				)
+				near("hit_events_small_steps_sum", sum(entriesTo(busy)), S.DamageOf(busy))
+
+				-- One long frame's catch-up is one batch of every hit.
+				begin()
+				local late = fighter()
+				S.Join(late)
+				walk(FIGHT)
+				to(FIGHT + EVERY * 10)
+				eq("hit_events_catch_up_one_batch", #batchesTo(late), 1)
+				eq("hit_events_catch_up_all_hits", #entriesTo(late), 10)
+
+				-- The running character's Sidekick is the one that fires; the team's damage stays the team's.
+				begin()
+				local team = fighter()
+				wear(team, chars[2], "side_chain")
+				S.Join(team)
+				eq("hit_events_team_set", S.SetTeam(team, { chars[1], chars[2] }), true)
+				walk(FIGHT)
+				local run = log.Runs[team]
+				run.Slot = 2
+				walk(FIGHT + EVERY + HALF)
+				local heard = entriesTo(team)
+				eq("hit_events_slot_two_entry", #heard, 1)
+				eq("hit_events_slot_two_id", heard[1] and heard[1].SidekickId, "side_chain")
+				near("hit_events_slot_two_damage", heard[1] and heard[1].Damage, S.TeamDamage(team))
+				run.Slot = 1
+				walk(FIGHT + EVERY * 2 + HALF)
+				heard = entriesTo(team)
+				eq("hit_events_slot_one_id", heard[2] and heard[2].SidekickId, "side_knight")
+
+				-- No client number is read.
+				local before = #entriesTo(team)
+				near("hit_events_cheat_ignored", S.RecordHit(team, 1e9, "side_fox"), S.TeamDamage(team))
+				walk(clock - T0 + GAP)
+				heard = entriesTo(team)
+				eq("hit_events_cheat_one_entry", #heard, before + 1)
+				eq("hit_events_cheat_id_is_server's", heard[#heard] and heard[#heard].SidekickId, "side_knight")
+				near("hit_events_cheat_damage_is_server's", heard[#heard] and heard[#heard].Damage, S.TeamDamage(team))
+
+				-- A wait deals nothing, so it sends nothing.
+				before = #entriesTo(team)
+				run.Waiting = true
+				eq("hit_events_waiting_refused", S.RecordHit(team), 0)
+				walk(clock - T0 + EVERY * 2)
+				eq("hit_events_waiting_no_entry", #entriesTo(team), before)
+				run.Waiting = false
+
+				-- A character with no Sidekick cannot hit (design doc 4.36: the Sidekick deals the damage).
+				before = #entriesTo(team)
+				local hp = S.State().Hp
+				local damage = S.DamageOf(team)
+				sidekick.Equip(team, chars[2], nil)
+				run.Slot = 2
+				eq("hit_events_no_sidekick_refused", S.RecordHit(team), 0)
+				walk(clock - T0 + EVERY * 2)
+				eq("hit_events_no_sidekick_no_entry", #entriesTo(team), before)
+				eq("hit_events_no_sidekick_no_hp_lost", S.State().Hp, hp)
+				eq("hit_events_no_sidekick_no_damage", S.DamageOf(team), damage)
+				run.Slot = 1
+				walk(clock - T0 + EVERY * 2)
+				flag("hit_events_worn_slot_hits_again", #entriesTo(team) > before, #entriesTo(team), before + 1)
+
+				-- Not in the event: no hit and no batch; a leaver stops hearing.
+				begin()
+				local stays, leaver, never = fighter(), fighter(), fighter()
+				S.Join(stays)
+				S.Join(leaver)
+				walk(FIGHT + EVERY + HALF)
+				flag("hit_events_leaver_heard_while_in", #batchesTo(leaver) > 0)
+				eq("hit_events_never_joined_refused", S.RecordHit(never), 0)
+				local heardBefore, stayBefore = #batchesTo(leaver), #entriesTo(stays, stays)
+				S.Leave(leaver, "Left")
+				eq("hit_events_left_refused", S.RecordHit(leaver), 0)
+				walk(FIGHT + EVERY * 3 + HALF)
+				eq("hit_events_leaver_hears_no_more", #batchesTo(leaver), heardBefore)
+				eq("hit_events_stayer_keeps_hitting", #entriesTo(stays, stays), stayBefore + 2)
+				eq("hit_events_leaver_no_later_entry", #entriesTo(stays, leaver) <= 1, true)
+				eq("hit_events_never_joined_hears_nothing", #batchesTo(never), 0)
+				S.End("Timeout")
+				local total = #log.BossHits
+				eq("hit_events_refused_after_end", S.RecordHit(stays), 0)
+				walk(clock - T0 + EVERY * 2)
+				eq("hit_events_none_after_end", #log.BossHits, total)
+
+				-- The hit that defeats the boss is drawn too, for no more than the HP it took.
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 1e9
+				end
+				local killer = fighter()
+				S.Join(killer)
+				walk(FIGHT)
+				local maxHp = S.State().MaxHp
+				walk(FIGHT + EVERY + HALF)
+				eq("hit_events_defeat_ended", phase(), "Idle")
+				eq("hit_events_defeat_one_entry", #entriesTo(killer), 1)
+				near("hit_events_defeat_entry_is_hp_left", entriesTo(killer)[1] and entriesTo(killer)[1].Damage, maxHp)
+
+				-- A failed send costs no hit.
+				begin()
+				S.Hooks.BossHits = function()
+					error("send failed")
+				end
+				local unheard = fighter()
+				S.Join(unheard)
+				walk(FIGHT + EVERY * 2 + HALF)
+				eq("hit_events_failed_send_keeps_fight", phase(), "Fight")
+				near("hit_events_failed_send_keeps_damage", S.DamageOf(unheard), S.TeamDamage(unheard) * 2)
+				S.End("Timeout")
 			end)
 
 			serviceSection("hud_attribute", function()

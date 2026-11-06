@@ -1391,10 +1391,11 @@ UiSpec.ServerSetup = {
 	},
 	{
 		Id = "sidekick_follow_*",
-		When = "asked for by ui_sidekick_follow, one step at a time",
+		When = "asked for by ui_sidekick_follow and ui_sidekick_attack, one step at a time",
 		What = "Stops this player's run, then builds a rig of theirs (Owner = UserId) far above the world, drawn by "
 			.. "the real RunnerView, and Sidekicks worn per character. Steps: start, wear:<character>:<id|none>, swap:<character>, "
-			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), end. "
+			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), hits:<userId|me>:<id>:<damage>,... "
+			.. "(ui_sidekick_attack: a fake Remotes.BossHits batch to this client, no damage dealt), end. "
 			.. "restore:sidekick_follow puts all of it back and restarts a run it stopped.",
 	},
 	{

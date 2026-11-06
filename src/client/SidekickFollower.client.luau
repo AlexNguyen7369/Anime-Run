@@ -1,7 +1,7 @@
 --!nonstrict
 -- Sidekick followers (design doc 4.36; docs/SIDEKICK_SPEC.md "Display"), client only. Contract: Client/UiTest/UiSidekickFollow.
 -- A VisibleRunner wears what its CharacterId has equipped, from its Owner's replicated SidekickGear and SidekickBag. On foot
--- there is no VisibleRunner, so no follower. Follow motion only: attacks wait for the owner's key frames.
+-- there is no VisibleRunner, so no follower. Attacks at the boss play on top of the follow motion, from Client/SidekickAttackView.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,6 +14,7 @@ local Follow = require(Shared:WaitForChild("SidekickFollow"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
 local RunnerVisual = require(script.Parent.RunnerVisual)
+local SidekickAttackView = require(script.Parent.SidekickAttackView)
 local UiMotion = require(script.Parent.UiMotion)
 
 -- All placeholders.
@@ -38,6 +39,7 @@ holder.Parent = Workspace
 local followers = {} -- owner UserId -> follower
 local worn = {} -- owner UserId -> the attributes last read and the id they gave, so JSON is decoded only on a change
 local nextSync = 0
+SidekickAttackView.Start(followers)
 
 local function partsOf(model)
 	local parts = {}
@@ -281,16 +283,19 @@ local function place(follower, camera, now, dt, reduced)
 	local frame = ground * CFrame.new(0, offset.Y + bob, 0)
 
 	local rests, moves, frames = follower.Rests, follower.Moves, follower.Frames
+	local pose, flaps = SidekickAttackView.Pose(follower, now)
 	for i, rest in rests do
 		local move = moves[i]
+		local posed = pose and pose[i] or CFrame.identity
 		if not move then
-			frames[i] = frame * rest
+			frames[i] = frame * posed * rest
 		elseif move.Kind == "Wing" then
-			frames[i] = frame * move.Hinge * CFrame.Angles(0, 0, flap * move.Sign) * move.Back * rest
+			local angle = flap * move.Sign * (flaps and flaps[i] or 1)
+			frames[i] = frame * posed * move.Hinge * CFrame.Angles(0, 0, angle) * move.Back * rest
 		elseif move.Kind == "Lag" then
-			frames[i] = frame * CFrame.new(0, lag, 0) * rest
+			frames[i] = frame * CFrame.new(0, lag, 0) * posed * rest
 		else
-			frames[i] = frame * move.Hinge * CFrame.Angles(tail, 0, 0) * move.Back * rest
+			frames[i] = frame * posed * move.Hinge * CFrame.Angles(tail, 0, 0) * move.Back * rest
 		end
 	end
 	Workspace:BulkMoveTo(follower.Parts, frames, Enum.BulkMoveMode.FireCFrameChanged)

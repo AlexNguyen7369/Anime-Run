@@ -54,6 +54,7 @@ return {
 		"boss_arena",
 		"boss_event",
 		"boss_anim",
+		"sidekick_attacks",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

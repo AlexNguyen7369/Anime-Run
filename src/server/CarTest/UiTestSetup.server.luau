@@ -733,6 +733,22 @@ function sidekickFollowSteps.crowd(_, arg)
 	followCrowd(tonumber(arg))
 end
 
+-- A batch as Remotes.BossHits carries it, to this client only (ui_sidekick_attack). No damage is dealt.
+-- arg: <userId|me>:<sidekick id>:<damage>, comma separated.
+function sidekickFollowSteps.hits(player, arg)
+	local remote = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("BossHits")
+	assert(remote, "Remotes.BossHits is missing")
+	local entries = {}
+	for user, id, damage in string.gmatch(arg, "([^:,]+):([^:,]+):([^:,]+)") do
+		table.insert(entries, {
+			UserId = user == "me" and player.UserId or tonumber(user),
+			SidekickId = id,
+			Damage = tonumber(damage),
+		})
+	end
+	remote:FireClient(player, entries)
+end
+
 -- The run ends: the runner goes, as CarService's removeCar does it.
 sidekickFollowSteps["end"] = function()
 	followCrowd(0)

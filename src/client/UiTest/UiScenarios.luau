@@ -168,6 +168,8 @@ UiScenarios.Names = {
 	"ui_boss_vfx",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
+	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
+	"ui_sidekick_attack",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -8047,6 +8049,15 @@ K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
 	player = player,
 })
 for name, fn in K.sidekickFollow.Scenarios do
+	S[name] = fn
+end
+
+K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickAttack.Scenarios do
 	S[name] = fn
 end
 
