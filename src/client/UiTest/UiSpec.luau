@@ -806,6 +806,7 @@ UiSpec.Band = {
 UiSpec.HudPair = {
 	-- The slot holders (one CELL each, scaled by their UIScale "Scale"), not the buttons inside
 	Auto = "HudChrome/AutoSlot",
+	Items = "HudChrome/AutoSlot", -- design doc 4.40: Auto took the slot Items left; hudPairChecks still reads it under this key
 	Upgrade = "HudChrome/UpgradeSlot",
 	Level = "RacerHud/Level",
 	Turbo = "RacerHud/Turbo",
@@ -1347,7 +1348,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "auto_racing",
 		When = "before UiTestRun and the showcase clicks (NPC on track, auto-rolls)",
-		What = "Puts the player in auto race (AutoRacing == true).",
+		What = "Puts the player in auto race (AutoRacing == true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
 	},
 	{
 		Id = "run_visual",
@@ -1445,7 +1446,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "auto_roll_on",
 		When = "before UiTestRun if AutoRoll is false (a scenario fails with state_missing:auto_roll_on)",
-		What = "Turns auto-rolling back on (AutoRoll = true).",
+		What = "Turns auto-rolling back on (AutoRoll = true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
 	},
 	{
 		Id = "restore",
@@ -4076,6 +4077,8 @@ UiSpec.Guis.RollExtras = {
 	NonInteractiveParts = { "Toast", "BagFull" },
 	Buttons = { { Path = "AutoSell", Does = "local" } },
 }
+-- docs/BAG_AND_AUTOSELL_SPEC.md "UI": the button shows with no panel open (Client/RollExtras refreshAutoSell).
+UiSpec.HiddenWhilePanelOpen["RollExtras/AutoSell"] = "any"
 -- Its popups (Client/RollOptions): Auto Sell, opened by that button, Settings and the roll view; the roll odds Details.
 UiSpec.Guis.RollOptions = {
 	Source = "Client/RollOptions",
@@ -4425,6 +4428,29 @@ UiSpec.Guis.RacerBossRewards = {
 	Source = "Client/BossRewardPopup",
 	Buttons = { { Path = "Panel/Header/CloseButton", Does = "local" } },
 }
+-- The dodge prompt (Client/BossDodgeUi; docs/BOSS_EVENT_SPEC.md "Dodge bar"), shown only at an attack's moment: ui_boss_dodge judges it.
+UiSpec.Guis.RacerBossDodge = {
+	Source = "Client/BossDodgeUi",
+	Buttons = { { Path = "DodgeBar/Bar", Does = "remote", Remote = "BossDodge", ClickCoverage = "ui_boss_dodge" } },
+}
+-- How far the camera is from what it follows. A runner in a full run moves 24 studs/s (and BossWaitCamera.homeFrame carries the
+-- camera with it), so the boss camera checks read this, not a world position. No subject: math.huge, which no home check accepts.
+function UiSpec.CameraReach(camera)
+	local subject = camera.CameraSubject
+	local part = subject and (subject:IsA("Humanoid") and subject.RootPart or subject:IsA("BasePart") and subject)
+	return part and (camera.CFrame.Position - part.Position).Magnitude or math.huge
+end
+-- A missing RollResult's reason: a full bag stops every roll (design doc 4.41), so a failure names it instead of only the silence.
+function UiSpec.NoRollWhy(player, text)
+	local why = text or "no Remotes.RollResult"
+	if player:GetAttribute("BagFull") == true then
+		why ..= (": bag full %s/%s, design doc 4.41"):format(
+			tostring(player:GetAttribute("BagUsed")),
+			tostring(player:GetAttribute("BagCap"))
+		)
+	end
+	return why
+end
 UiSpec.RelicChest = {
 	Watch = {}, -- what the chest open click's Prepare.Before saw of the reveal's chest: a press's After comes too late for its first moves
 }

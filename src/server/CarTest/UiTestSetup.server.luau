@@ -553,6 +553,43 @@ function setups.bag_spares_clear(player)
 	live("GachaService").RefreshBag(player)
 end
 
+-- A full bag stops every roll (design doc 4.41) and a full run's rolls fill it, so auto_racing and auto_roll_on empty the
+-- spares from half full (placeholder: a scenario's rolls must fit). Not while a bag fixture holds the bag on purpose.
+-- Still full: an error, which the run shows as setup_error and bag_has_room_*. restoreBagRoom gives the copies back.
+local bagRoomBefore = {}
+local function makeBagRoom(player)
+	local G = live("GachaService")
+	if sparesBefore[player] or G.BagUsed(player) * 2 < G.BagCap(player) then
+		return
+	end
+	local before = bagRoomBefore[player] or {}
+	bagRoomBefore[player] = before
+	for _, entry in player:WaitForChild("GachaData"):GetChildren() do
+		before[entry.Name] = before[entry.Name] or entry:GetAttribute("Copies") or 0
+		entry:SetAttribute("Copies", 0)
+	end
+	G.RefreshBag(player)
+	if G.BagFull(player) then
+		error(("bag full with no spares: %d/%d"):format(G.BagUsed(player), G.BagCap(player)))
+	end
+end
+
+local function restoreBagRoom(player)
+	local before = bagRoomBefore[player]
+	if not before then
+		return
+	end
+	bagRoomBefore[player] = nil
+	local data = player:FindFirstChild("GachaData")
+	for name, copies in before do
+		local entry = data and data:FindFirstChild(name)
+		if entry then
+			entry:SetAttribute("Copies", copies)
+		end
+	end
+	live("GachaService").RefreshBag(player)
+end
+
 function setups.restore(player)
 	setups.bag_spares_clear(player)
 	restoreBossUi(player)
@@ -567,6 +604,7 @@ function setups.restore(player)
 		)
 	end
 	live("GachaService").Apply(player, snap.gacha)
+	restoreBagRoom(player) -- after Apply: a snapshot taken once the spares were gone would not hold them
 	local progression = progressionSnapshots[player]
 	if progression then
 		live("UpgradeService").Apply(player, progression.upgrades)
@@ -653,6 +691,7 @@ function setups.auto_racing(player)
 		end
 		task.wait(0.25)
 	end
+	makeBagRoom(player)
 end
 
 -- UiSpec.ServerSetup on_foot (ui_speed_dial at rest): auto race stopped through the real Stop path, avatar on foot
@@ -962,6 +1001,7 @@ end
 
 function setups.auto_roll_on(player)
 	setAutoRoll(player, true)
+	makeBagRoom(player)
 end
 
 local function progressionSnapshot(player)
@@ -1745,11 +1785,13 @@ setupRequest.OnServerInvoke = function(player, request)
 				live("CarService").SetAutoRace(player, false)
 			end
 			before.auto_racing = nil
+			restoreBagRoom(player)
 		elseif restoreId == "auto_roll_on" then
 			if before.auto_roll_on ~= nil then
 				setAutoRoll(player, before.auto_roll_on)
 			end
 			before.auto_roll_on = nil
+			restoreBagRoom(player)
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
 		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then

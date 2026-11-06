@@ -33,6 +33,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Dodge = require(Shared:WaitForChild("BossDodge"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
+local Spec = require(script.Parent.UiSpec)
 
 local ROOT = "RacerBossEvent"
 local BAR = ROOT .. "/BossBar"
@@ -242,7 +243,7 @@ function Module.Build(h)
 					Scale = bossScale(),
 					Feet = feet,
 					Height = wheel and feet and wheel.Position.Y + verticalHalf(wheel) - feet,
-					Camera = workspace.CurrentCamera.CFrame.Position,
+					Reach = Spec.CameraReach(workspace.CurrentCamera), -- the runner moves: from the subject, not the world
 				})
 				task.wait()
 			end
@@ -325,7 +326,7 @@ function Module.Build(h)
 		local fill = h.find(BAR .. "/Track/Fill")
 		check(res, "scream_fill_present", fill ~= nil, true)
 		local camera = workspace.CurrentCamera
-		local cameraHome, cameraType = camera.CFrame.Position, camera.CameraType
+		local cameraHome, cameraType = Spec.CameraReach(camera), camera.CameraType
 		stage(res, 2, 200, scream, Cfg.IntroSeconds - scream)
 		local fullAt = screamEndClock(scream)
 		local samples = {}
@@ -380,12 +381,12 @@ function Module.Build(h)
 		local moved = 0
 		for _, sample in samples do
 			if sample.At <= 1 then
-				moved = math.max(moved, (sample.Camera - cameraHome).Magnitude)
+				moved = math.max(moved, math.abs(sample.Reach - cameraHome))
 			end
 		end
 		h.check(res, "growth_camera_frames_boss", moved, ">= " .. CAMERA_MOVED, moved >= CAMERA_MOVED)
 		local homeBack = waitIs(function()
-			return (camera.CFrame.Position - cameraHome).Magnitude <= CAMERA_HOME_SLACK
+			return math.abs(Spec.CameraReach(camera) - cameraHome) <= CAMERA_HOME_SLACK
 		end, true)
 		check(res, "growth_camera_returns", homeBack, true)
 		check(res, "growth_camera_type_returns", camera.CameraType, cameraType)
@@ -478,7 +479,7 @@ function Module.Build(h)
 		h.player:SetAttribute("ReduceEffects", true)
 		local camera = workspace.CurrentCamera
 		task.wait(0.2)
-		local home = camera.CFrame.Position
+		local home = Spec.CameraReach(camera)
 		local scream = Cfg.ScreamSeconds
 		stage(res, 2, 200, scream, Cfg.IntroSeconds - scream)
 		local fullAt = screamEndClock(scream)
@@ -488,7 +489,7 @@ function Module.Build(h)
 		checkGrowth(res, "reduced_growth", samples)
 		local moved = 0
 		for _, sample in samples do
-			moved = math.max(moved, (sample.Camera - home).Magnitude)
+			moved = math.max(moved, math.abs(sample.Reach - home))
 		end
 		h.check(res, "reduced_camera_still", moved, "<= " .. CAMERA_STILL, moved <= CAMERA_STILL)
 		h.player:SetAttribute("ReduceEffects", saved)

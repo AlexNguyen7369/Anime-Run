@@ -1744,6 +1744,17 @@ local function fmtNum(n)
 	return ("%g"):format(n)
 end
 
+-- The roll fixtures leave room (Server/CarTest/UiTestSetup makeBagRoom): a full bag stops every roll (design doc 4.41).
+function K.checkBagRoom(res, tag)
+	check(
+		res,
+		"bag_has_room_" .. tag,
+		tostring(attr("BagUsed")) .. "/" .. tostring(attr("BagCap")),
+		"BagFull false",
+		attr("BagFull") ~= true
+	)
+end
+
 -- HudFormat.Multi(n) ("x1.5", docs/HUD_LAYOUT_SPEC.md section 8) appears in text and is not followed by another digit
 -- or point (so "x1.50" or "x1.375" never pass for x1.5 / x1.38).
 local function multiIn(text, n)
@@ -4392,6 +4403,10 @@ function S.ui_layout(res)
 			for _, panelPath in state.Open do
 				local panel = panelBody(panelPath)
 				for _, key in not UiSpec.FullScreenPanels[panelPath] and { "Race", "Settings" } or {} do
+					-- Design doc 4.40, Client/HudChrome: stacked on a phone, Auto hides under any open panel, so nothing is covered.
+					if hiddenByPanel(UiSpec.TopControls[key], state.Open, vp) then
+						continue
+					end
 					local name = "panel_clear_of_top_controls_" .. panelPath .. "_" .. key .. "_" .. vpSpec.Name
 					local control = findPath(UiSpec.TopControls[key])
 					if panel and control then
@@ -5641,6 +5656,7 @@ function S.ui_toast(res)
 		stateMissing(res, "autoroll_on_for_toast", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "toast")
 
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the 2026-10-20 wording): the compact roll HIDES
 	-- while a panel is open, so it never covers a panel or takes its clicks: hidden and not clickable in every sampled
@@ -5739,7 +5755,7 @@ function S.ui_toast(res)
 				type(serial0) == "number" and serial1 == serial0 and hold.rollId == ev0.id
 			)
 		else
-			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, true)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
@@ -5756,7 +5772,7 @@ function S.ui_toast(res)
 				not shown and not clickable
 			)
 		else
-			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, false)
 		restorePanel()
@@ -5818,7 +5834,7 @@ function S.ui_toast(res)
 			res,
 			"roll_result_received",
 			"auto_racing",
-			"no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s"
+			UiSpec.NoRollWhy(player, "no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s")
 		)
 		restore()
 		return
@@ -5985,12 +6001,16 @@ function S.ui_rolls(res)
 		rec.shown == true and string.find(rec.shownText or "", wantPop, 1, true) ~= nil
 	)
 	check(res, "turbo_pop_hidden_after_turbo", rec.gone, true, rec.gone == true)
+	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
+	-- roll's RollResult, so the bar may already hold them.
+	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
+	local fillLimit = extras / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
 		res,
 		"turbo_fill_empty_after_turbo",
 		rec.fill or "missing",
-		("0 +- %.2f"):format(UiSpec.Turbo.FillTolerance),
-		rec.fill ~= nil and rec.fill <= UiSpec.Turbo.FillTolerance
+		("<= %.2f (%d extras)"):format(fillLimit, extras),
+		rec.fill ~= nil and rec.fill <= fillLimit
 	)
 end
 
@@ -6070,6 +6090,7 @@ function S.ui_roll_anim(res)
 		stateMissing(res, "autoroll_on_for_anim", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "anim")
 	local restore = setPanels({})
 
 	-- 1. A whole compact roll, uninterrupted, started after this point
@@ -6098,7 +6119,7 @@ function S.ui_roll_anim(res)
 			"roll_animation_completed",
 			lastDone
 					and (seqNames(phaseSeq(lastDone, "Compact")) .. (lastDone.interruptedAt and " (interrupted)" or ""))
-				or "no RollResult",
+				or UiSpec.NoRollWhy(player, "no RollResult"),
 			"PopIn,Spin,Land,Hold,Exit,Idle on RollToast/Toast before the next roll",
 			false
 		)
@@ -6470,6 +6491,9 @@ function S.ui_showcase(res)
 		if
 			name ~= cfg.Gui
 			and not UiSpec.Guis[name].Overlay
+			-- Closed popups, opened from the roll view on purpose (docs/BAG_AND_AUTOSELL_SPEC.md "UI"; Client/ItemMenu): nothing of theirs is drawn here.
+			and name ~= "RollOptions"
+			and name ~= "RacerItemMenu"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -9509,7 +9533,7 @@ function UiScenarios.RunClick(id)
 				local later = toast ~= nil and not effectivelyVisible(toast)
 				check(res, cond .. "_on_roll", toast and effectivelyVisible(toast), false, later)
 			else
-				stateMissing(res, cond .. "_on_roll", "auto_racing", "no Remotes.RollResult")
+				stateMissing(res, cond .. "_on_roll", "auto_racing", UiSpec.NoRollWhy(player))
 			end
 		elseif cond == "showcase_updates_live_turbo" then
 			-- The open card plays a TURBO roll that arrives after the click and lands on it, badge and flames shown
