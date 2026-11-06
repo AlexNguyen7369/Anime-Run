@@ -23,13 +23,16 @@ local DETAILS = ROOT .. "/BossDetails"
 local PANEL = ROOT .. "/BossDetailsPanel"
 local PROMPT = ROOT .. "/BossPrompt"
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
-local FAKE_PRODUCT = 990139901 -- client copy of the config only; nothing is ever prompted
 
 local Module = {}
 
 function Module.Build(h)
 	local scenarios, after = {}, {}
 
+	-- h.check takes the verdict as its fifth argument; without it every check fails.
+	local function check(res, name, got, want)
+		h.check(res, name, got, want, got == want)
+	end
 	local function waitIs(fn, want)
 		local deadline = os.clock() + SHOW_WAIT
 		local value = fn()
@@ -63,7 +66,7 @@ function Module.Build(h)
 		return button ~= nil and button.Active
 	end
 	local function checkState(res, tag, wantText, wantActive)
-		h.check(
+		check(
 			res,
 			tag .. "_shown",
 			waitIs(function()
@@ -71,28 +74,30 @@ function Module.Build(h)
 			end, true),
 			true
 		)
-		h.check(res, tag .. "_text", waitIs(has(wantText), true) and wantText or text(), wantText)
+		check(res, tag .. "_text", waitIs(has(wantText), true) and wantText or text(), wantText)
 		if wantActive ~= nil then
-			h.check(res, tag .. "_active", waitIs(active, wantActive), wantActive)
+			check(res, tag .. "_active", waitIs(active, wantActive), wantActive)
 		end
 	end
 
 	function scenarios.ui_boss_paid(res)
 		h.waitGuis()
 		for _, path in { BUTTON, DETAILS, PANEL } do
-			h.check(res, "paid_part_present_" .. path, h.find(path) ~= nil, true)
+			check(res, "paid_part_present_" .. path, h.find(path) ~= nil, true)
 		end
 		local spawnProduct = Monetization.BossSpawn
-		h.check(res, "paid_config", spawnProduct ~= nil, true)
+		check(res, "paid_config", spawnProduct ~= nil, true)
 		if not spawnProduct then
 			return
 		end
 		local realId = spawnProduct.ProductId
 		local ok, err = xpcall(function()
+			-- Client copy of the config only, put back below on every path: nothing is prompted.
+			spawnProduct.ProductId = 0
 			setup(res, "boss_ui_gear:1")
 			setup(res, "boss_ui_state:Idle:0:0:0:false:0")
 			checkState(res, "coming_soon", "Coming soon", false)
-			h.check(
+			check(
 				res,
 				"idle_details_shown",
 				waitIs(function()
@@ -100,25 +105,25 @@ function Module.Build(h)
 				end, true),
 				true
 			)
-			h.check(res, "details_hidden_until_pressed", shown(PANEL), false)
+			check(res, "details_hidden_until_pressed", shown(PANEL), false)
 
-			spawnProduct.ProductId = FAKE_PRODUCT
+			spawnProduct.ProductId = realId
 			checkState(res, "able", "Boss", true)
 			checkState(res, "able_price", tostring(spawnProduct.Robux), true)
 
 			setup(res, "boss_ui_credit:1")
 			checkState(res, "credit", "Boss ready", true)
-			h.check(res, "credit_text_exact", waitIs(text, "Boss ready"), "Boss ready")
+			check(res, "credit_text_exact", waitIs(text, "Boss ready"), "Boss ready")
 
 			setup(res, "boss_ui_state:Prep:5:4000:4000:false:0")
 			checkState(res, "credit_in_event", "Boss (Active)")
-			h.check(res, "event_text_exact", waitIs(text, "Boss (Active)"), "Boss (Active)")
+			check(res, "event_text_exact", waitIs(text, "Boss (Active)"), "Boss (Active)")
 			setup(res, "boss_ui_state:Idle:0:0:0:false:0")
 			checkState(res, "credit_after_event", "Boss ready", true)
 
 			setup(res, "boss_ui_credit:0")
 			setup(res, "boss_ui_gear:0")
-			h.check(
+			check(
 				res,
 				"no_sidekick_shown",
 				waitIs(function()
@@ -126,7 +131,7 @@ function Module.Build(h)
 				end, true),
 				true
 			)
-			h.check(res, "no_sidekick_disabled", waitIs(active, false), false)
+			check(res, "no_sidekick_disabled", waitIs(active, false), false)
 		end, debug.traceback)
 		h.check(res, "paid_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		spawnProduct.ProductId = realId
@@ -135,7 +140,7 @@ function Module.Build(h)
 
 	-- After the real presses (UiSpec.Clicks boss_paid_*).
 	function after.boss_paid_details_open(res)
-		h.check(
+		check(
 			res,
 			"details_opens",
 			waitIs(function()
@@ -153,11 +158,11 @@ function Module.Build(h)
 		end
 		h.check(res, "details_sum_100", sum, 100, math.abs(sum - 100) < 1e-6)
 		local side = panel and panel:FindFirstChild("Row_side_raga")
-		h.check(res, "details_raga_text", side and side.Text, "Big Raga 0.001%")
-		h.check(res, "details_raga_black", side and side.TextColor3, Color3.new(0, 0, 0))
+		check(res, "details_raga_text", side and side.Text, "Big Raga 0.001%")
+		check(res, "details_raga_black", side and side.TextColor3, Color3.new(0, 0, 0))
 	end
 	function after.boss_paid_error_shown(res)
-		h.check(
+		check(
 			res,
 			"restricted_error_shown",
 			waitIs(function()

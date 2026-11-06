@@ -36,12 +36,12 @@ function Tests.sidekicks()
 	local oldLuck, oldRoll, oldConfigRoll, oldStudio = gacha.Luck, gacha.Roll, GachaConfig.Roll, Admin.AllowStudio
 	local rebirth = require(Server.RebirthService)
 	local oldRebirthCooldown = rebirth.REMOTE_COOLDOWN
-	local S, oldCooldown
+	local S, oldCooldown, oldIsVip
 	local cleanup, runs = {}, {}
 	local ok, err = xpcall(function()
 		local Cfg = require(Shared.SidekickConfig)
 		S = require(Server.SidekickService)
-		oldCooldown = S.REMOTE_COOLDOWN
+		oldCooldown, oldIsVip = S.REMOTE_COOLDOWN, S.IsVip
 		S.REMOTE_COOLDOWN = 0
 		rebirth.REMOTE_COOLDOWN = 0
 		local Rotation = require(Server.SidekickRotation)
@@ -291,6 +291,20 @@ function Tests.sidekicks()
 		holder:SetAttribute("Gems", 0)
 		flag("raga_sells", S.Sell(holder, ragaEntry) == true and not has(holder, ragaEntry))
 		flag("raga_sell_pays_spec", gems(holder) == 500, gems(holder), 500)
+
+		-- VIP pays 10% fewer Gems (design doc 4.36). IsVip is a marked shortcut, always false until the monetization branch merges.
+		local priced = unlocked()
+		flag("cost_1", S.CostFor(priced, 1) == 50, S.CostFor(priced, 1), 50)
+		flag("cost_10", S.CostFor(priced, 10) == 500, S.CostFor(priced, 10), 500)
+		S.IsVip = function()
+			return true
+		end
+		flag("vip_cost_1", S.CostFor(priced, 1) == 45, S.CostFor(priced, 1), 45)
+		flag("vip_cost_10", S.CostFor(priced, 10) == 450, S.CostFor(priced, 10), 450)
+		priced:SetAttribute("Gems", 48)
+		flag("vip_summon_ok", (S.Summon(priced, 1)) == true)
+		flag("vip_summon_spends_45", gems(priced) == 3, gems(priced), 3)
+		S.IsVip = oldIsVip
 
 		-- Costs and unlock.
 		for _, kind in { { 1, Cfg.SummonCost }, { 10, Cfg.TenCost } } do
@@ -757,7 +771,7 @@ function Tests.sidekicks()
 	gacha.Luck, gacha.Roll, GachaConfig.Roll, Admin.AllowStudio = oldLuck, oldRoll, oldConfigRoll, oldStudio
 	rebirth.REMOTE_COOLDOWN = oldRebirthCooldown
 	if S then
-		S.REMOTE_COOLDOWN = oldCooldown
+		S.REMOTE_COOLDOWN, S.IsVip = oldCooldown, oldIsVip
 		if S.SetClock then
 			S.SetClock()
 		end

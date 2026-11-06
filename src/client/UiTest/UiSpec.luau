@@ -4103,17 +4103,18 @@ for _, click in
 			Expect = { Remote = { Name = "BossUseCredit", Args = {} } },
 		},
 		{
-			Id = "boss_paid_coming_soon",
+			-- The real id is set, so a press asks to buy; Intercept keeps the real prompt from opening. ui_boss_paid holds id 0.
+			Id = "boss_paid_buy",
 			Path = "BossButton",
 			Prepare = {
 				Showcase = false,
 				RequireShown = true,
 				WaitSeconds = 0.5,
-				TargetActive = false,
+				TargetActive = true,
 				Intercept = "BossBuy",
 			},
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = false },
+			Expect = { Remote = { Name = "BossBuy", Args = {} } },
 		},
 		{
 			Id = "boss_paid_restricted",

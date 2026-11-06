@@ -4,7 +4,7 @@
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_paid", then CarTestRun = true.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   MonetizationConfig.BossSpawn = { Id = "boss_spawn", Robux = 149, ProductId = 0 }, not in Products.
+--   MonetizationConfig.BossSpawn = { Id = "boss_spawn", Robux = 149, ProductId = 3728728633 }, not in Products.
 --   Player attribute BossCredit, saved as the record's BossCredit, cleaned to a whole number >= 0, reset by /wipe.
 --   ShopService seams, nil restores the real one:
 --     SetPlayers(obj): obj:GetPlayerByUserId(id), as GiftService.SetPlayers. SetPrompt(fn): fn(player, productId) in place of
@@ -27,6 +27,9 @@ local BOSS_PRODUCT = 990139901
 local PACK_PRODUCT_BASE = 990139910
 local GRANTED = Enum.ProductPurchaseDecision.PurchaseGranted
 local RETRY = Enum.ProductPurchaseDecision.NotProcessedYet
+local REAL_BOSS_ID = 3728728633
+local REAL_PACK_IDS =
+	{ gems_1000 = 3728728637, gems_2500 = 3728728638, gems_10000 = 3728728641, gems_30000 = 3728728643 }
 
 function Tests.boss_paid()
 	local r, flag = H.report("boss_paid")
@@ -38,6 +41,7 @@ function Tests.boss_paid()
 	for i, pack in Monetization.GemPacks do
 		packIds[i] = pack.ProductId
 	end
+	local bossId = Monetization.BossSpawn.ProductId
 	local oldStudio = Admin.AllowStudio
 
 	local function eq(name, actual, expected)
@@ -53,7 +57,10 @@ function Tests.boss_paid()
 		flag("config_exists", type(spawnProduct) == "table")
 		eq("config_id", spawnProduct.Id, "boss_spawn")
 		eq("config_robux", spawnProduct.Robux, 149)
-		eq("config_product_id_zero", spawnProduct.ProductId, 0)
+		eq("config_product_id", spawnProduct.ProductId, REAL_BOSS_ID)
+		for _, pack in Monetization.GemPacks do
+			eq("config_product_id_" .. pack.Id, pack.ProductId, REAL_PACK_IDS[pack.Id])
+		end
 		for _, product in Monetization.Products do
 			flag("config_not_in_products_" .. tostring(product.Id), product.Id ~= "boss_spawn")
 		end
@@ -152,9 +159,13 @@ function Tests.boss_paid()
 			end
 		end)
 
-		-- ProductId 0: nothing is on sale, and a forged receipt pays nothing. Runs first, before the fake ids go in.
+		-- ProductId 0: nothing is on sale, and a forged receipt pays nothing. The ids are put to 0 here only: the fake ids follow, the end of this test restores the real ones.
 		section("product_id_zero", function()
 			idle()
+			spawnProduct.ProductId = 0
+			for _, pack in Monetization.GemPacks do
+				pack.ProductId = 0
+			end
 			local p = buyer()
 			local bought, message = Shop.PromptBoss(p)
 			eq("zero_boss_refused", bought, false)
@@ -444,9 +455,7 @@ function Tests.boss_paid()
 	for i, pack in Monetization.GemPacks do
 		pack.ProductId = packIds[i]
 	end
-	if Monetization.BossSpawn then
-		Monetization.BossSpawn.ProductId = 0
-	end
+	Monetization.BossSpawn.ProductId = bossId
 	Admin.AllowStudio = oldStudio
 	for _, restore in { "SetPlayers", "SetSave", "SetPrompt", "SetPolicy" } do
 		if Shop[restore] then
