@@ -23,13 +23,13 @@
 --     Player attribute BossTeamDamage: TeamDamage(player) for the team HUD (b7c). Set at Join, SetTeam and each Advance while
 --       the player is in the event; nil outside it.
 --     TeamDamage(player): the live number. RecordHit(player): one hit of that number, returns what it dealt (0 when it may
---       not hit). No extra argument is read and no remote reaches it. The hit that empties HP ends the event as "Defeated".
+--       not hit). No extra argument is read and no remote reaches it. See "Phase 2" below for what the hit that empties HP does.
 --     Hooks, a table of replaceable functions; the defaults are the real game:
 --       Arrive(player, lane): stops a normal run through the normal stop, stands the player on the lane.
 --       StartRun(player, team, lane): returns the run. Called at the intro's end, or at once for a joiner after it. The service
 --         reads only run.TargetSpeed, run.Waiting, run.Slot and run.Stamina, writes run.Stamina[run.Slot], and calls run:Destroy().
 --       Depart(player): back to spawn. Chat(text): to the whole server, default fires RemoteEvent Remotes.BossEventChat.
---       Rewards(players): on a defeat only, once. A stub until b8 (Relics).
+--       PayStage(player, stage) -> ok: the stage's chest plus Money or Gems. RewardPopup(player, summary). See "Phase 2" below.
 --       MoveChat(player, text) (owner 2026-11-05): one Big Raga move, to one event player; default fires Remotes.BossEventChat
 --         to that player only. Once per attack, shout and wheel_turn move of the shared schedule, inside that move, whatever
 --         the Advance step. No move chat in the intro, and never to anyone outside the event.
@@ -40,15 +40,16 @@
 --     Hooks.DamageMulti(t): pure, t in seconds since the spawn; the default is the real Shouted x Adapted. RecordHit deals
 --       TeamDamage x DamageMulti(now - spawn). TeamDamage and attribute BossTeamDamage stay uncut. Other sections stub it to 1
 --       so their damage sums stay exact.
---     Player attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event. Each
---       player's own: a dodged move leaves it out (design doc 4.37). Hooks.DamageMulti(t, spared) takes the member's dodged moments.
+--     Player attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time, the latest stack's), Count } and
+--       { Id = "Vulnerable", Count = 1 } with no EndsAt; nil outside an event. Each player's own: a dodged move leaves it out (design
+--       doc 4.37). Hooks.DamageMulti(t, spared, stage) takes the member's dodged moments and multiplies once per live stack.
 --     Dodge(player, index, stamp) (Remotes.BossDodge): one press of the Dodge bar for moment `index` of Shared/BossDodge. Returns ok,
 --       reason. Hooks.SwitchLane(run, lane) moves the dodger's run to a neighbouring lane.
 --     An effect starts on its moment and is over at EndsAt. A hit in a long frame's catch-up is not pinned to a moment.
 --     AttackImpactsBetween(fromT, toT): pure. How many Big Raga attack Impacts fall in fromT < t <= toT, t in seconds since the
 --       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
---       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
---       at or before its joining, is never charged.
+--       member Stage(stage).AttackStaminaCost per impact (x VulnerableMulti when Vulnerable), floored at 0, on the slot running at
+--       that frame. An impact in a member's wait, or at or before its joining, is never charged.
 --     Hooks.BossHits(player, entries) (b7d): one batch to one event player; the default fires RemoteEvent Remotes.BossHits to that
 --       player (a Folder test player makes FireClient throw: call it through `safely`). Every event player gets every entry; each
 --       player's batches are at least 0.25 s apart by the injected clock, and never empty. An entry is one hit that dealt damage:
@@ -72,8 +73,18 @@
 --     OnRunEvent { Kind = "BossWait" }; after RefillWaitSeconds { Kind = "BossRefill" }, fired with stamina already 100, slot 1
 --     and Waiting false. Never "Exhausted", never a cash-out. The run keeps options.Team; the Team attribute does not change.
 --
+--   Phase 2 (owner 2026-11-06, task p2; design doc 4.37, BOSS_EVENT_SPEC "Phase 2", "Rewards"). "Stage" 1 and 2 are Phases 1 and 2.
+--     State() adds Stage, EndsAt (server time), ScreamEndsAt (nil outside the scream), Phase1MaxHp. StageDamageOf(player, stage).
+--     First HP 0: stage 1 pays at once, then MaxHp = Phase 1's max + Phase2ExtraHp at full Hp, ScreamSeconds of scream, EndsAt = old
+--     end + ScreamSeconds + Phase2ExtraSeconds. ReplicatedStorage attributes BossEventStage, BossEventEndsAt, BossScreamEndsAt,
+--     BossScheduleStart. BossScheduleStart is Poses.Schedule's start: moment i comes at scream end + BossDodge.Moment(i).
+--     Summary = { Outcome = "Defeated"|"Survived"|"Left", Damage = total, Stage1, Stage2, Short }.
+--     NOT pinned, no rule found: Short for a player paid one stage only, and the popup flags of a player whose PayStage failed.
+--
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
---   leave before 3:00: "HP = 5,000 x players in the arena" holds, so max falls by 5,000; current never exceeds max or defeats.
+--   leave before 3:00: "HP = 7,500 x players in the arena" holds, so max falls by 7,500; current never exceeds max or defeats.
+--   DamageMulti's t counts from BossScheduleStart in both stages (the spawn in stage 1), so one schedule lookup serves both.
+--   Spot's startAt stays the event's BossEventStart in stage 2; only `index` restarts.
 --   bag only: a Sidekick in the Bag on no character gives no possible team, so that player cannot join.
 --   8th player: 4.37 says lanes for up to 7, so an 8th is refused.
 --   after the event: EquippedCar goes back to what it was at Join (a run moves it; only Team is ruled).
@@ -426,11 +437,39 @@ function Tests.make(deps)
 				-- Spec placeholders: the only literal checks of them, retune here
 				eq("owner_rise_1_5", Cfg.RiseSeconds, 1.5) -- owner 2026-11-05, replaces 2-3 s
 				eq("owner_intro_3", Cfg.IntroSeconds, 3) -- owner 2026-11-05: the rise plus the cutscene
-				eq("owner_attack_cost_5", Cfg.AttackStaminaCost, 5)
+				-- Owner 2026-11-06: per stage, and the old flat numbers are gone.
+				eq("owner_attack_cost_stage_1", Cfg.Stage(1).AttackStaminaCost, 15)
+				eq("owner_attack_cost_stage_2", Cfg.Stage(2).AttackStaminaCost, 30)
+				eq("owner_status_seconds_stage_1", Cfg.Stage(1).StatusSeconds, 15)
+				eq("owner_status_seconds_stage_2", Cfg.Stage(2).StatusSeconds, 20)
+				eq("old_attack_cost_removed", Cfg.AttackStaminaCost, nil)
+				eq("old_shout_seconds_removed", Cfg.ShoutSeconds, nil)
+				eq("old_adapted_seconds_removed", Cfg.AdaptedSeconds, nil)
+				eq("owner_phase2_extra_hp", Cfg.Phase2ExtraHp, 50000)
+				eq("owner_phase2_extra_seconds", Cfg.Phase2ExtraSeconds, 120)
+				eq("owner_scream_seconds", Cfg.ScreamSeconds, 3)
+				eq("owner_phase1_money", Cfg.Phase1Money, 100000)
+				eq("owner_phase2_gems", Cfg.Phase2Gems, 1000)
+				eq("owner_vulnerable_multi", Cfg.VulnerableMulti, 1.5)
+				eq("move_chat_is_a_function", type(Cfg.MoveChat), "function")
+				eq("move_chat_attack_1", Cfg.MoveChat("Impact", 1), "Big Raga attacks! -15% stamina")
+				eq("move_chat_attack_2", Cfg.MoveChat("Impact", 2), "Big Raga attacks! -30% stamina")
+				eq("move_chat_shout_1", Cfg.MoveChat("Roar", 1), "Big Raga shouts! Damage down for 15 s")
+				eq("move_chat_shout_2", Cfg.MoveChat("Roar", 2), "Big Raga shouts! Damage down for 20 s")
+				eq(
+					"move_chat_wheel_1",
+					Cfg.MoveChat("WheelClick", 1),
+					"Big Raga turns its wheel! It takes 10% less damage for 15 s"
+				)
+				eq(
+					"move_chat_wheel_2",
+					Cfg.MoveChat("WheelClick", 2),
+					"Big Raga turns its wheel! It takes 10% less damage for 20 s"
+				)
 				eq("spec_camera_fov_100", Cfg.CameraFov, 100)
-				eq("owner_hp_per_player_5000", Cfg.HpPerPlayer, 5000) -- owner 2026-11-05
+				eq("owner_hp_per_player_7500", Cfg.HpPerPlayer, 7500) -- owner 2026-11-06
 				eq("spec_hit_every_1_5", Cfg.HitEverySeconds, 1.5)
-				eq("spec_min_share_1_percent", Cfg.MinDamageShare, 0.01)
+				eq("owner_min_share_5_percent", Cfg.MinDamageShare, 0.05) -- owner 2026-11-06
 				eq("spec_hit_matches_sidekick_config", Cfg.HitEverySeconds, SidekickConfig.HitInterval)
 				-- Formula: 1 + min(1, cruise / 800), at most +100%
 				near("scale_at_0", Cfg.SpeedScale(0), 1)
@@ -460,7 +499,8 @@ function Tests.make(deps)
 					Depart = {},
 					Chat = {},
 					MoveChat = {},
-					Rewards = {},
+					Paid = {},
+					Popups = {},
 					Started = {},
 					Runs = {},
 					BossHits = {},
@@ -480,8 +520,12 @@ function Tests.make(deps)
 				S.Hooks.MoveChat = function(p, text)
 					table.insert(log.MoveChat, { Player = p, Text = text, At = clock - T0 })
 				end
-				S.Hooks.Rewards = function(players)
-					table.insert(log.Rewards, players)
+				S.Hooks.PayStage = function(p, stage)
+					table.insert(log.Paid, { Player = p, Stage = stage })
+					return true
+				end
+				S.Hooks.RewardPopup = function(p, summary)
+					table.insert(log.Popups, { Player = p, Summary = summary })
 				end
 				S.Hooks.BossHits = function(p, entries)
 					table.insert(log.BossHits, { Player = p, Entries = table.clone(entries), At = clock - T0 })
@@ -524,6 +568,81 @@ function Tests.make(deps)
 			end
 			local function phase()
 				return S.State().Phase
+			end
+			-- Who PayStage was called for in `stage`.
+			local function paidIn(stage)
+				local list = {}
+				for _, row in log.Paid do
+					if row.Stage == stage then
+						table.insert(list, row.Player)
+					end
+				end
+				return list
+			end
+			local function timesPaid(p, stage)
+				local n = 0
+				for _, row in log.Paid do
+					n += (row.Player == p and row.Stage == stage) and 1 or 0
+				end
+				return n
+			end
+			local function popupsOf(p)
+				local list = {}
+				for _, row in log.Popups do
+					if row.Player == p then
+						table.insert(list, row.Summary)
+					end
+				end
+				return list
+			end
+			-- For the sections that run the real hooks: no chest, Money or popup on a Folder player.
+			local function quietRewards()
+				S.Hooks.PayStage = function()
+					return true
+				end
+				S.Hooks.RewardPopup = function() end
+			end
+			-- One hit of exactly `amount` from `p`, capped by the HP left. The run must be running and not in the scream.
+			local function deal(p, amount)
+				local old = S.Hooks.DamageMulti
+				S.Hooks.DamageMulti = function()
+					return amount / S.TeamDamage(p)
+				end
+				local dealt = S.RecordHit(p)
+				S.Hooks.DamageMulti = old
+				return dealt
+			end
+			-- The hit that empties HP: stage 1's starts stage 2, stage 2's ends the event.
+			local function kill(p)
+				return deal(p, 1e9)
+			end
+			-- To the scream's end with nobody hitting, so damage sums stay exact.
+			local function pastScream(...)
+				for _, p in { ... } do
+					log.Runs[p].Waiting = true
+				end
+				to(S.State().ScreamEndsAt - T0)
+				for _, p in { ... } do
+					log.Runs[p].Waiting = false
+				end
+			end
+			local function statusRow(p, id)
+				for _, row in game:GetService("HttpService"):JSONDecode(p:GetAttribute("BossStatus") or "[]") do
+					if row.Id == id then
+						return row
+					end
+				end
+				return nil
+			end
+			-- A press in the middle of `p`'s window for moment `index`. `base` is the event-clock time the stage's moments count from.
+			local function press(p, index, stage, base)
+				local BossDodge = require(Shared.BossDodge)
+				local moment = T0 + base + BossDodge.Moment(index)
+				local spot = BossDodge.Spot(p:GetAttribute("UserId"), T0, index, stage)
+				local from, till = BossDodge.Window(spot, moment, stage)
+				local stamp = (from + till) / 2
+				to(stamp - T0)
+				return S.Dodge(p, index, stamp)
 			end
 			local function serviceSection(name, body)
 				section(name, function()
@@ -587,7 +706,8 @@ function Tests.make(deps)
 				to(TOTAL)
 				eq("idle_after_8_00", phase(), "Idle")
 				eq("timeout_reported", S.State().LastEnd, "Timeout")
-				eq("timeout_pays_nothing", #log.Rewards, 0)
+				eq("timeout_pays_nothing", #log.Paid, 0)
+				eq("timeout_in_stage_1_no_popup", #log.Popups, 0)
 				eq("timeout_returns_player", log.Depart[p], 1)
 			end)
 
@@ -598,11 +718,11 @@ function Tests.make(deps)
 				eq("nobody_hp_0", S.State().MaxHp, 0)
 				walk(CLOSE - STEP)
 				eq("nobody_not_defeated_at_0_hp", phase(), "Fight")
-				eq("nobody_no_rewards_yet", #log.Rewards, 0)
+				eq("nobody_no_rewards_yet", #log.Paid, 0)
 				to(CLOSE)
 				eq("nobody_ends_at_3_00", phase(), "Idle")
 				eq("nobody_reported", S.State().LastEnd, "NoPlayers")
-				eq("nobody_pays_nothing", #log.Rewards, 0)
+				eq("nobody_pays_nothing", #log.Paid, 0)
 
 				begin()
 				local p = fighter()
@@ -627,9 +747,17 @@ function Tests.make(deps)
 				end
 				eq("defeat_not_before_empty", phase(), "Fight")
 				S.RecordHit(a)
+				-- Owner 2026-11-06: the first HP 0 pays Phase 1 and starts Phase 2; only the second ends the event.
+				eq("first_zero_starts_stage_2", S.State().Stage, 2)
+				eq("first_zero_keeps_fight", phase(), "Fight")
+				eq("first_zero_pays_stage_1_once", #paidIn(1), 1)
+				eq("first_zero_keeps_player", log.Depart[a], nil)
+				eq("first_zero_keeps_run", log.Runs[a].Destroyed, 0)
+				pastScream(a)
+				kill(a)
 				eq("defeat_ends_early", phase(), "Idle")
 				eq("defeat_reported", S.State().LastEnd, "Defeated")
-				eq("defeat_rewards_once", #log.Rewards, 1)
+				eq("defeat_rewards_once", #paidIn(2), 1)
 				eq("defeat_returns_player", log.Depart[a], 1)
 				eq("defeat_stops_run", log.Runs[a].Destroyed, 1)
 				eq("hit_after_end_is_0", S.RecordHit(a), 0)
@@ -1147,7 +1275,9 @@ function Tests.make(deps)
 					flag("impacts_function_exists", false)
 					return
 				end
-				local COST = Cfg.AttackStaminaCost
+				local COST = Cfg.Stage(1).AttackStaminaCost
+				-- Any undodged move leaves its player Vulnerable, so every impact but a run's first costs this.
+				local HEAVY = COST * Cfg.VulnerableMulti
 				local MARGIN = 0.01 -- s either side of an impact the scan found, which is rounded to 3 places
 
 				-- Impact times, seconds since the spawn, read off the shared schedule and not from the service.
@@ -1254,7 +1384,7 @@ function Tests.make(deps)
 				close("full_before_first_impact", run.Stamina[1], 100)
 				local hp, dealt = S.State().Hp, S.DamageOf(p)
 				to(at(1))
-				close("first_impact_costs_5", run.Stamina[1], 100 - COST)
+				close("first_impact_costs_plain", run.Stamina[1], 100 - COST)
 				close("other_slot_2_untouched", run.Stamina[2], 100)
 				close("other_slot_3_untouched", run.Stamina[3], 100)
 				eq("impact_no_boss_damage", S.State().Hp, hp)
@@ -1267,21 +1397,21 @@ function Tests.make(deps)
 				walk(at(2) - MARGIN)
 				close("wheel_and_shout_cost_nothing", run.Stamina[1], 100 - COST)
 				to(at(2) + MARGIN)
-				close("second_impact_costs_5", run.Stamina[1], 100 - 2 * COST)
+				close("second_impact_costs_heavy", run.Stamina[1], 100 - COST - HEAVY)
 				to(at(4) + MARGIN)
-				close("long_frame_counts_each_impact", run.Stamina[1], 100 - 4 * COST)
+				close("long_frame_counts_each_impact", run.Stamina[1], 100 - COST - 3 * HEAVY)
 				run.Stamina[1] = 50
 				to(at(5) + MARGIN)
-				close("cost_is_of_a_full_bar", run.Stamina[1], 50 - COST)
+				close("cost_is_of_a_full_bar", run.Stamina[1], 50 - HEAVY)
 
 				-- One long first frame, from the preparation to past two impacts.
 				beginReal()
 				local caught = teamOf(1)
 				S.Join(caught)
 				to(at(2) + MARGIN)
-				close("catch_up_from_prep_counts_each", log.Runs[caught].Stamina[1], 100 - 2 * COST)
+				close("catch_up_from_prep_counts_each", log.Runs[caught].Stamina[1], 100 - COST - HEAVY)
 
-				-- Under 5% goes to 0; the run's own exhaustion then swaps.
+				-- Under the cost goes to 0; the run's own exhaustion then swaps.
 				beginReal()
 				local low = teamOf(3)
 				S.Join(low)
@@ -1299,7 +1429,7 @@ function Tests.make(deps)
 				eq("zero_one_swap", kindCount(low, "Swap"), 1)
 				close("swap_target_untouched", lowRun.Stamina[2], 100)
 				to(at(2) + MARGIN)
-				close("next_impact_costs_new_runner", lowRun.Stamina[2], 100 - COST)
+				close("next_impact_costs_new_runner", lowRun.Stamina[2], 100 - HEAVY)
 				eq("swapped_runner_kept_at_0", lowRun.Stamina[1], 0)
 
 				-- reading_: two impacts in one frame fall on the slot running at that frame; the rest of the cost is not moved on.
@@ -1344,7 +1474,7 @@ function Tests.make(deps)
 				S.Advance(clock)
 				close("wait_owes_nothing_afterward", waitRun.Stamina[1], 40)
 				to(at(2) + MARGIN)
-				close("after_wait_next_impact_costs", waitRun.Stamina[1], 40 - COST)
+				close("after_wait_next_impact_costs", waitRun.Stamina[1], 40 - HEAVY) -- the moves after the wait hit
 
 				-- Every running member, each on their own; outsiders and later joiners are apart from it.
 				beginReal()
@@ -1366,9 +1496,9 @@ function Tests.make(deps)
 				S.Advance(clock)
 				close("late_joiner_skips_past_impacts", log.Runs[later].Stamina[1], 100)
 				to(at(2) + MARGIN)
-				close("member_pays_both", log.Runs[a].Stamina[1], 100 - 2 * COST)
-				close("joiner_on_the_impact_pays_later_one", log.Runs[onImpact].Stamina[1], 100 - COST)
-				close("late_joiner_pays_later_one", log.Runs[later].Stamina[1], 100 - COST)
+				close("member_pays_both", log.Runs[a].Stamina[1], 100 - COST - HEAVY)
+				close("joiner_on_the_impact_pays_later_one", log.Runs[onImpact].Stamina[1], 100 - HEAVY)
+				close("late_joiner_pays_later_one", log.Runs[later].Stamina[1], 100 - HEAVY)
 				close("outsider_unaffected", outsiderRun.Stamina[1], 100)
 				outsiderRun:Destroy()
 				S.Reset(T0)
@@ -1379,9 +1509,9 @@ function Tests.make(deps)
 				local Poses = require(Shared.BossRagaPoses)
 				local HttpService = game:GetService("HttpService")
 				eq("status_shout_cut", Cfg.ShoutDamageCut, 0.25)
-				eq("status_shout_seconds", Cfg.ShoutSeconds, 5)
 				eq("status_adapted_cut", Cfg.AdaptedCut, 0.1)
-				eq("status_adapted_seconds", Cfg.AdaptedSeconds, 5)
+				local SECONDS = Cfg.Stage(1).StatusSeconds
+				eq("status_seconds_stage_1", SECONDS, 15)
 				if type(realHooks.DamageMulti) ~= "function" then
 					flag("status_damage_hook_exists", false)
 					return
@@ -1416,8 +1546,7 @@ function Tests.make(deps)
 					return false
 				end
 				local function expected(t)
-					return (active(roars, Cfg.ShoutSeconds, t) and 0.75 or 1)
-						* (active(clicks, Cfg.AdaptedSeconds, t) and 0.9 or 1)
+					return (active(roars, SECONDS, t) and 0.75 or 1) * (active(clicks, SECONDS, t) and 0.9 or 1)
 				end
 				-- A clear moment and a moment for each state, past the edges by MARGIN.
 				local function findTime(wantShout, wantAdapted)
@@ -1426,8 +1555,8 @@ function Tests.make(deps)
 						local same = true
 						for _, probe in { t - MARGIN, t, t + MARGIN } do
 							same = same
-								and active(roars, Cfg.ShoutSeconds, probe) == wantShout
-								and active(clicks, Cfg.AdaptedSeconds, probe) == wantAdapted
+								and active(roars, SECONDS, probe) == wantShout
+								and active(clicks, SECONDS, probe) == wantAdapted
 						end
 						if same then
 							return t
@@ -1486,7 +1615,8 @@ function Tests.make(deps)
 				eq("status_adapted_listed", (select(2, statusOf("Adapted"))), 1)
 				eq("status_adapted_only", (select(2, statusOf("Shouted"))), 0)
 				hitAt("status_both", both, 0.75 * 0.9)
-				eq("status_both_listed", #status(), 2)
+				-- Vulnerable has its own row beside these two.
+				eq("status_both_listed", (select(2, statusOf("Shouted"))) + (select(2, statusOf("Adapted"))), 2)
 
 				-- Edges and EndsAt, in server time, off the injected clock.
 				beginHeld()
@@ -1497,7 +1627,7 @@ function Tests.make(deps)
 				eq(
 					"status_not_before_roar",
 					(select(2, statusOf("Shouted"))),
-					active(roars, Cfg.ShoutSeconds, roar - MARGIN) and 1 or 0
+					active(roars, SECONDS, roar - MARGIN) and 1 or 0
 				)
 				to(PREP + roar + MARGIN)
 				local row = statusOf("Shouted")
@@ -1505,13 +1635,13 @@ function Tests.make(deps)
 				near(
 					"status_shouted_ends_at",
 					row and math.round(row.EndsAt * 100) / 100,
-					math.round((spawnAt + roar + 5) * 100) / 100
+					math.round((spawnAt + roar + SECONDS) * 100) / 100
 				)
-				to(PREP + roar + 5 + MARGIN)
+				to(PREP + roar + SECONDS + MARGIN)
 				eq(
 					"status_shouted_expires",
 					(select(2, statusOf("Shouted"))),
-					active(roars, 5, roar + 5 + MARGIN) and 1 or 0
+					active(roars, SECONDS, roar + SECONDS + MARGIN) and 1 or 0
 				)
 				beginHeld()
 				S.Hooks.DamageMulti = realHooks.DamageMulti
@@ -1520,15 +1650,18 @@ function Tests.make(deps)
 				near(
 					"status_adapted_ends_at",
 					adapted and math.round(adapted.EndsAt * 100) / 100,
-					math.round((spawnAt + click + 5) * 100) / 100
+					math.round((spawnAt + click + SECONDS) * 100) / 100
 				)
+				eq("status_row_counts_its_stack", adapted and adapted.Count, 1)
 				S.Advance(clock)
-				eq("status_no_stacking", (select(2, statusOf("Adapted"))), 1)
-				to(PREP + click + 5 + MARGIN)
+				eq("status_one_row_a_status", (select(2, statusOf("Adapted"))), 1)
+				adapted = statusOf("Adapted")
+				eq("status_advance_adds_no_stack", adapted and adapted.Count, 1)
+				to(PREP + click + SECONDS + MARGIN)
 				eq(
 					"status_adapted_expires",
 					(select(2, statusOf("Adapted"))),
-					active(clicks, 5, click + 5 + MARGIN) and 1 or 0
+					active(clicks, SECONDS, click + SECONDS + MARGIN) and 1 or 0
 				)
 
 				-- The pure multiplier, every moment of the schedule, so a refresh (if the schedule ever gives one) is judged too.
@@ -1536,11 +1669,11 @@ function Tests.make(deps)
 				for k = 0, math.ceil(3 * Poses.CycleSeconds / 0.25) do
 					local t = INTRO + k * 0.25 + 0.03
 					if expected(t - MARGIN) == expected(t + MARGIN) then
-						worst = math.max(worst, math.abs(realHooks.DamageMulti(t) - expected(t)))
+						worst = math.max(worst, math.abs(realHooks.DamageMulti(t, nil, 1) - expected(t)))
 					end
 				end
 				flag("status_multi_matches_schedule", worst < 1e-6, worst, 0)
-				eq("status_multi_none_in_rise", realHooks.DamageMulti(INTRO / 2), 1)
+				eq("status_multi_none_in_rise", realHooks.DamageMulti(INTRO / 2, nil, 1), 1)
 
 				-- Nothing is left behind by the event's end.
 				beginHeld()
@@ -1577,11 +1710,11 @@ function Tests.make(deps)
 				-- The spot: clear of the start, its window over well before the moment, different per moment and per player.
 				local seen, lowest, latest = {}, 1, -math.huge
 				for index = 1, 200 do
-					local spot = BossDodge.Spot(1234, T0, index)
-					eq("spot_stable_" .. index, BossDodge.Spot(1234, T0, index), spot)
+					local spot = BossDodge.Spot(1234, T0, index, 1)
+					eq("spot_stable_" .. index, BossDodge.Spot(1234, T0, index, 1), spot)
 					lowest = math.min(lowest, spot)
 					seen[math.floor(spot * 20)] = true
-					latest = math.max(latest, select(2, BossDodge.Window(spot, 0)))
+					latest = math.max(latest, select(2, BossDodge.Window(spot, 0, 1)))
 				end
 				flag("spot_clear_of_start", lowest >= 0.2, lowest)
 				flag("spot_window_ends_before_moment", latest <= -0.35, latest)
@@ -1592,9 +1725,31 @@ function Tests.make(deps)
 				flag("spot_spread_over_the_bar", buckets >= 7, buckets)
 				local differs = false
 				for index = 1, 20 do
-					differs = differs or BossDodge.Spot(1234, T0, index) ~= BossDodge.Spot(5678, T0, index)
+					differs = differs or BossDodge.Spot(1234, T0, index, 1) ~= BossDodge.Spot(5678, T0, index, 1)
 				end
 				flag("spot_differs_per_player", differs)
+
+				-- Owner 2026-11-06: narrower spot, faster sweep in stage 2, centres bounded per stage.
+				eq("spot_width", BossDodge.SpotWidth, 0.125)
+				eq("sweep_stage_1", BossDodge.SweepFor(1), 1.5)
+				eq("sweep_stage_2", BossDodge.SweepFor(2), 1.1)
+				eq("sweep_seconds_is_stage_1", BossDodge.SweepSeconds, BossDodge.SweepFor(1))
+				local spans =
+					{ { Low = 0.25, High = 0.69, Latest = -0.35 }, { Low = 0.25, High = 0.62, Latest = -0.349 } }
+				for stage, span in spans do
+					local low, high, ends = 1, 0, -math.huge
+					for index = 1, 200 do
+						local spot = BossDodge.Spot(1234, T0, index, stage)
+						low, high = math.min(low, spot), math.max(high, spot)
+						ends = math.max(ends, select(2, BossDodge.Window(spot, 0, stage)))
+					end
+					flag("spot_range_low_stage_" .. stage, low >= span.Low, low, span.Low)
+					flag("spot_range_high_stage_" .. stage, high <= span.High, high, span.High)
+					-- 0.349 in stage 2: at the centre 0.62 the window ends 0.34925 s before the moment.
+					flag("spot_window_clear_stage_" .. stage, ends <= span.Latest, ends, span.Latest)
+					local from, till = BossDodge.Window(0.5, 0, stage)
+					near("window_width_stage_" .. stage, till - from, BossDodge.SpotWidth * BossDodge.SweepFor(stage))
+				end
 
 				begin()
 				local lanes = {}
@@ -1612,7 +1767,7 @@ function Tests.make(deps)
 				end
 				local function windowOf(p, index)
 					local id = p:GetAttribute("UserId") or 0
-					return BossDodge.Window(BossDodge.Spot(id, T0, index), T0 + momentT(index))
+					return BossDodge.Window(BossDodge.Spot(id, T0, index, 1), T0 + momentT(index), 1)
 				end
 				local function middle(p, index)
 					local from, to = windowOf(p, index)
@@ -1649,7 +1804,7 @@ function Tests.make(deps)
 				eq("dodge_second_press_refused", S.Dodge(a, 1, clock), false)
 				to(momentT(1) + 0.05)
 				eq("dodged_impact_costs_nothing", runA.Stamina[1], 100)
-				eq("hit_impact_costs_stamina", runB.Stamina[1], 100 - Cfg.AttackStaminaCost)
+				eq("hit_impact_costs_stamina", runB.Stamina[1], 100 - Cfg.Stage(1).AttackStaminaCost)
 				eq("dodged_move_no_chat", linesTo(a), 0)
 				eq("hit_move_chat", linesTo(b), 1)
 
@@ -1887,7 +2042,7 @@ function Tests.make(deps)
 			serviceSection("rewards_list", function()
 				begin()
 				local big, exact, under, none = fighter(), newPlayer(), newPlayer(), newPlayer()
-				-- A Sidekick whose damage divides the 4-player threshold, so "exactly 1 percent" is reachable in whole hits.
+				-- A Sidekick whose damage divides the 4-player threshold, so "exactly the share" is reachable in whole hits.
 				local wantNeed, evenSide = Cfg.MinDamageShare * 4 * HP, SidekickConfig.List[1]
 				for _, row in SidekickConfig.List do
 					if approx(wantNeed / row.Damage, math.round(wantNeed / row.Damage)) then
@@ -1915,19 +2070,13 @@ function Tests.make(deps)
 				for _ = 1, hits - 1 do
 					S.RecordHit(under)
 				end
-				log.Runs[big].TargetSpeed = 800
-				for _ = 1, 1000 do
-					if not S.IsIn(big) then
-						break
-					end
-					S.RecordHit(big)
-				end
-				eq("rewards_on_defeat", S.State().LastEnd, "Defeated")
-				eq("rewards_hook_once", #log.Rewards, 1)
-				local list = log.Rewards[1] or {}
+				kill(big)
+				eq("rewards_on_defeat", S.State().Stage, 2)
+				local list = paidIn(1)
+				eq("rewards_hook_once", timesPaid(big, 1), 1)
 				flag("rewards_top_damage_listed", table.find(list, big) ~= nil)
-				flag("rewards_exactly_1_percent_listed", table.find(list, exact) ~= nil)
-				flag("rewards_below_1_percent_not_listed", table.find(list, under) == nil)
+				flag("rewards_exactly_the_share_listed", table.find(list, exact) ~= nil)
+				flag("rewards_below_the_share_not_listed", table.find(list, under) == nil)
 				flag("rewards_no_damage_not_listed", table.find(list, none) == nil)
 				eq("rewards_list_size", #list, 2)
 				-- Damage is one event's: the next one starts at 0.
@@ -2074,21 +2223,17 @@ function Tests.make(deps)
 				eq("leave_after_3_00_keeps_max", S.State().MaxHp, maxLocked)
 
 				log.Runs[stay].Waiting = false
-				log.Runs[stay].TargetSpeed = 800
-				for _ = 1, 10000 do
-					if not S.IsIn(stay) then
-						break
-					end
-					S.RecordHit(stay)
-				end
-				eq("leavers_test_defeat", S.State().LastEnd, "Defeated")
-				eq("leavers_rewards_once", #log.Rewards, 1)
-				local list = log.Rewards[1] or {}
+				kill(stay)
+				eq("leavers_test_defeat", S.State().Stage, 2)
+				local list = paidIn(1)
+				eq("leavers_rewards_once", timesPaid(stay, 1), 1)
 				flag("stayer_rewarded", table.find(list, stay) ~= nil)
 				flag("leaver_in_wait_no_reward", table.find(list, tired) == nil)
 				flag("leaver_over_share_no_reward", table.find(list, rich) == nil)
 				flag("leaver_after_3_00_no_reward", table.find(list, late) == nil)
 				eq("leaver_not_returned_again", log.Depart[rich], 1)
+				eq("leaver_no_popup", #popupsOf(rich), 0)
+				S.End("Timeout")
 				eq("leave_no_event_no_error", (pcall(S.Leave, rich, "Left")), true)
 				eq("leave_no_event_no_return", log.Depart[rich], 1)
 
@@ -2102,7 +2247,7 @@ function Tests.make(deps)
 				to(FIGHT + STEP)
 				eq("leave_alone_keeps_fight", phase(), "Fight")
 				eq("leave_alone_not_defeated", S.State().LastEnd, nil)
-				eq("leave_alone_no_rewards", #log.Rewards, 0)
+				eq("leave_alone_no_rewards", #log.Paid, 0)
 
 				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 				local remote = remotes and remotes:FindFirstChild("BossEventLeave")
@@ -2135,7 +2280,7 @@ function Tests.make(deps)
 				eq("death_tick_safe", (pcall(S.Advance, clock + STEP)), true)
 				eq("death_end_safe", (pcall(S.End, "Timeout")), true)
 				eq("death_other_still_returned", log.Depart[other], 1)
-				eq("death_no_reward_on_timeout", #log.Rewards, 0)
+				eq("death_no_reward_on_timeout", #log.Paid, 0)
 			end)
 
 			serviceSection("non_participants", function()
@@ -2208,9 +2353,9 @@ function Tests.make(deps)
 				flag("move_chat_default_hook_exists", type(realHooks.MoveChat) == "function")
 				local Poses = require(Shared.BossRagaPoses)
 				local WORDS = {
-					attack = "Big Raga attacks! -5% stamina",
-					shout = "Big Raga shouts! Damage down for 5 s",
-					wheel_turn = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
+					attack = "Big Raga attacks! -15% stamina",
+					shout = "Big Raga shouts! Damage down for 15 s",
+					wheel_turn = "Big Raga turns its wheel! It takes 10% less damage for 15 s",
 				}
 				local SCAN = 0.01
 				local SLACK = 2 * SCAN
@@ -2528,9 +2673,19 @@ function Tests.make(deps)
 				walk(FIGHT)
 				local maxHp = S.State().MaxHp
 				walk(FIGHT + EVERY + HALF)
-				eq("hit_events_defeat_ended", phase(), "Idle")
+				eq("hit_events_defeat_ended", S.State().Stage, 2)
 				eq("hit_events_defeat_one_entry", #entriesTo(killer), 1)
 				near("hit_events_defeat_entry_is_hp_left", entriesTo(killer)[1] and entriesTo(killer)[1].Damage, maxHp)
+				-- And stage 2's, whose hit ends the event.
+				local secondMax = S.State().MaxHp
+				walk(S.State().ScreamEndsAt - T0 + 2 * EVERY)
+				eq("hit_events_final_defeat_ended", phase(), "Idle")
+				eq("hit_events_final_defeat_reaches_members", #entriesTo(killer), 2)
+				near(
+					"hit_events_final_entry_is_hp_left",
+					entriesTo(killer)[2] and entriesTo(killer)[2].Damage,
+					secondMax
+				)
 
 				-- A failed send costs no hit.
 				begin()
@@ -2591,6 +2746,639 @@ function Tests.make(deps)
 				eq("attr_nil_after_end", late:GetAttribute("BossTeamDamage"), nil)
 			end)
 
+			------------------------------------------------------------------------------------------------------------------------
+			-- Phase 2 (owner 2026-11-06, design doc 4.37, BOSS_EVENT_SPEC "Phase 2" and "Rewards"). Stage 1 and 2 are Phases 1 and 2.
+			------------------------------------------------------------------------------------------------------------------------
+			serviceSection("stage2_start", function()
+				local Poses = require(Shared.BossRagaPoses)
+				local BossDodge = require(Shared.BossDodge)
+				local function attr(name)
+					return ReplicatedStorage:GetAttribute(name)
+				end
+				begin()
+				local a, b = fighter(), fighter()
+				S.Join(a)
+				S.Join(b)
+				eq("stage_1_in_prep", S.State().Stage, 1)
+				to(FIGHT)
+				eq("stage_1_in_the_fight", S.State().Stage, 1)
+				eq("stage_1_ends_at_old_end", S.State().EndsAt, T0 + TOTAL)
+				eq("stage_1_no_scream", S.State().ScreamEndsAt, nil)
+				eq("stage_damage_starts_0", S.StageDamageOf(a, 1), 0)
+				local firstMax = S.State().MaxHp
+				local KILL = FIGHT + 5 -- moment 1 of stage 1 would fall inside the scream
+				to(KILL)
+				flag("stage_test_kill_before_moment_1", KILL < FIGHT + BossDodge.Moment(1))
+				flag("stage_test_kill_inside_scream", FIGHT + BossDodge.Moment(1) < KILL + Cfg.ScreamSeconds)
+				local before = S.DamageOf(b)
+				local killed = kill(b)
+				near("stage_1_damage_counts_to_stage_1", S.StageDamageOf(b, 1), before + killed)
+				eq("stage_2_damage_starts_0", S.StageDamageOf(b, 2), 0)
+				near("damage_of_is_the_total", S.DamageOf(b), before + killed)
+
+				local state = S.State()
+				local screamEnd = T0 + KILL + Cfg.ScreamSeconds
+				local endsAt = T0 + TOTAL + Cfg.ScreamSeconds + Cfg.Phase2ExtraSeconds
+				eq("stage_2_started", state.Stage, 2)
+				eq("stage_2_still_fight", state.Phase, "Fight")
+				eq("stage_2_no_last_end", state.LastEnd, nil)
+				eq("stage_2_keeps_members", S.IsIn(a) and S.IsIn(b), true)
+				eq("stage_2_no_return", log.Depart[a], nil)
+				eq("stage_2_keeps_run", log.Runs[a].Destroyed, 0)
+				eq("stage_2_max_hp", state.MaxHp, firstMax + Cfg.Phase2ExtraHp)
+				eq("stage_2_hp_full", state.Hp, state.MaxHp)
+				eq("stage_2_phase1_max", state.Phase1MaxHp, firstMax)
+				eq("stage_2_ends_at", state.EndsAt, endsAt)
+				eq("stage_2_scream_ends_at", state.ScreamEndsAt, screamEnd)
+				eq("stage_2_attr_stage", attr("BossEventStage"), 2)
+				eq("stage_2_attr_ends_at", attr("BossEventEndsAt"), endsAt)
+				eq("stage_2_attr_scream_ends_at", attr("BossScreamEndsAt"), screamEnd)
+				eq("stage_2_attr_max_hp", attr("BossEventMaxHp"), state.MaxHp)
+				eq("stage_2_attr_hp", attr("BossEventHp"), state.MaxHp)
+				eq("stage_2_phase_at_stays_pure", S.PhaseAt(TOTAL), "End")
+
+				-- Poses.Schedule on the published start: moment 1 at the scream's end + Moment(1).
+				local scheduleStart = attr("BossScheduleStart")
+				local move, localTime = Poses.Schedule(scheduleStart, screamEnd + BossDodge.Moment(1))
+				eq("stage_2_schedule_move", move, "attack")
+				flag(
+					"stage_2_schedule_on_the_impact",
+					type(localTime) == "number" and math.abs(localTime - Poses.Moves.attack.Events[1].Time) < 0.01,
+					localTime,
+					Poses.Moves.attack.Events[1].Time
+				)
+
+				-- The scream: no damage, no moves, HP stays full, no one joins.
+				local run = log.Runs[a]
+				local stamina, lines = run.Stamina[1], #log.MoveChat
+				eq("scream_record_hit_0", S.RecordHit(a), 0)
+				walk(KILL + Cfg.ScreamSeconds - STEP)
+				eq("scream_hp_stays_full", S.State().Hp, S.State().MaxHp)
+				eq("scream_no_stage_2_damage", S.StageDamageOf(a, 2), 0)
+				eq("scream_record_hit_0_near_its_end", S.RecordHit(a), 0)
+				eq("scream_charges_no_move", run.Stamina[1], stamina)
+				eq("scream_no_move_chat", #log.MoveChat, lines)
+				eq("scream_still_listed", S.State().ScreamEndsAt, screamEnd)
+				flag("join_test_before_3_00", clock - T0 < CLOSE, clock - T0, CLOSE)
+				local late = fighter()
+				local joined, why = S.Join(late)
+				eq("stage_2_join_refused", joined, false)
+				eq("stage_2_join_reason", why, "Teleporting has closed")
+				eq("stage_2_join_adds_no_hp", S.State().MaxHp, firstMax + Cfg.Phase2ExtraHp)
+				eq("stage_2_join_not_in", S.IsIn(late), false)
+
+				to(KILL + Cfg.ScreamSeconds)
+				eq("scream_over", S.State().ScreamEndsAt, nil)
+				eq("stage_2_after_scream", S.State().Stage, 2)
+				local soFar = S.StageDamageOf(a, 2)
+				local dealt = S.RecordHit(a)
+				flag("stage_2_hits_after_scream", dealt > 0, dealt, "> 0")
+				near("stage_2_hit_counts_to_stage_2", S.StageDamageOf(a, 2), soFar + dealt)
+				near("stage_2_hit_keeps_stage_1", S.StageDamageOf(a, 1), S.DamageOf(a) - S.StageDamageOf(a, 2))
+				eq("stage_2_outsider_stage_damage", S.StageDamageOf(late, 2), 0)
+				soFar = S.StageDamageOf(a, 2)
+				walk(KILL + Cfg.ScreamSeconds + 2 * EVERY)
+				flag("stage_2_cadence_resumes", S.StageDamageOf(a, 2) > soFar, S.StageDamageOf(a, 2), soFar)
+
+				-- A leave takes no HP back, even before 3:00.
+				local hp, max = S.State().Hp, S.State().MaxHp
+				flag("leave_test_before_3_00", clock - T0 < CLOSE, clock - T0, CLOSE)
+				S.Leave(b, "Left")
+				eq("stage_2_leave_keeps_max", S.State().MaxHp, max)
+				near("stage_2_leave_keeps_hp", S.State().Hp, hp)
+
+				S.End("Timeout")
+				for _, name in { "BossEventStage", "BossEventEndsAt", "BossScreamEndsAt", "BossScheduleStart" } do
+					eq("stage_attr_cleared_" .. name, attr(name), nil)
+				end
+
+				-- Two hits due in one tick: the first HP 0 fires once, and the second hit lands in the scream.
+				begin()
+				local x, y = fighter(), fighter()
+				S.Join(x)
+				S.Join(y)
+				to(FIGHT)
+				S.Hooks.DamageMulti = function()
+					return 1e9
+				end
+				local max1 = S.State().MaxHp
+				to(FIGHT + EVERY)
+				eq("once_stage_2", S.State().Stage, 2)
+				eq("once_max", S.State().MaxHp, max1 + Cfg.Phase2ExtraHp)
+				eq("once_hp_full", S.State().Hp, S.State().MaxHp)
+				eq("once_pays_the_one_who_dealt_it", #paidIn(1), 1)
+				to(clock - T0 + STEP)
+				eq("once_next_tick_max", S.State().MaxHp, max1 + Cfg.Phase2ExtraHp)
+				eq("once_next_tick_pays_no_more", #paidIn(1), 1)
+				eq("once_next_tick_hp_full", S.State().Hp, S.State().MaxHp)
+			end)
+
+			-- The tick ends on State().EndsAt, not on TotalSeconds.
+			serviceSection("stage2_end_time", function()
+				local ENDS = TOTAL + Cfg.ScreamSeconds + Cfg.Phase2ExtraSeconds
+				begin()
+				local p = fighter()
+				S.Join(p)
+				to(FIGHT)
+				local run = log.Runs[p]
+				run.Waiting = true
+				to(TOTAL - 10)
+				run.Waiting = false
+				kill(p)
+				eq("late_kill_same_end", S.State().EndsAt, T0 + ENDS)
+				run.Waiting = true
+				to(TOTAL)
+				eq("stage_2_passes_8_00", phase(), "Fight")
+				eq("stage_2_passes_8_00_no_end", S.State().LastEnd, nil)
+				to(ENDS - STEP)
+				eq("stage_2_runs_to_its_end", phase(), "Fight")
+				to(ENDS)
+				eq("stage_2_ends_at_its_end", phase(), "Idle")
+				eq("stage_2_end_reported", S.State().LastEnd, "Timeout")
+
+				-- Killed on the very tick of 8:00: stage 2 starts, the timeout does not fire.
+				begin()
+				local q = fighter()
+				S.Join(q)
+				to(FIGHT)
+				log.Runs[q].Waiting = true
+				to(TOTAL - EVERY)
+				log.Runs[q].Waiting = false
+				S.Hooks.DamageMulti = function()
+					return 1e9
+				end
+				to(TOTAL)
+				eq("kill_on_8_00_starts_stage_2", S.State().Stage, 2)
+				eq("kill_on_8_00_still_fight", phase(), "Fight")
+				eq("kill_on_8_00_end", S.State().EndsAt, T0 + ENDS)
+			end)
+
+			serviceSection("stage2_moves", function()
+				local BossDodge = require(Shared.BossDodge)
+				local COST1 = Cfg.Stage(1).AttackStaminaCost
+				local COST2 = Cfg.Stage(2).AttackStaminaCost
+				local function lastLine()
+					return log.MoveChat[#log.MoveChat] and log.MoveChat[#log.MoveChat].Text
+				end
+				begin()
+				local p = fighter()
+				S.Join(p)
+				to(FIGHT)
+				local run = log.Runs[p]
+				-- Stage 1's moment 1 hits, so there is a Vulnerable to clear and a spent moment 1.
+				to(FIGHT + BossDodge.Moment(1) + 0.05)
+				near("stage_1_impact_plain", run.Stamina[1], 100 - COST1)
+				flag("stage_1_impact_leaves_vulnerable", statusRow(p, "Vulnerable") ~= nil)
+				eq("stage_1_chat_numbers", lastLine(), Cfg.MoveChat("Impact", 1))
+				run.Stamina[1] = 100
+				kill(p)
+				to(clock - T0 + STEP)
+				eq("stage_start_clears_statuses", p:GetAttribute("BossStatus"), nil)
+				local lines = #log.MoveChat
+				local base = S.State().ScreamEndsAt - T0
+				local function moment(index)
+					return base + BossDodge.Moment(index)
+				end
+				walk(moment(1) - STEP)
+				near("moment_1_not_early", run.Stamina[1], 100)
+				eq("moment_1_no_chat_early", #log.MoveChat, lines)
+				to(moment(1))
+				-- Plain, not heavy: stage 1's Vulnerable went at the stage start. Charged though moment 1 was already spent.
+				near("stage_2_impact_plain", run.Stamina[1], 100 - COST2)
+				eq("stage_2_chat_numbers", lastLine(), Cfg.MoveChat("Impact", 2))
+				eq("stage_2_one_line", #log.MoveChat, lines + 1)
+				flag("stage_2_impact_leaves_vulnerable", statusRow(p, "Vulnerable") ~= nil)
+				eq("stage_2_moment_2_is_wheel", select(2, BossDodge.Moment(2)), "WheelClick")
+				to(moment(2) + 0.05)
+				eq("stage_2_wheel_chat", lastLine(), Cfg.MoveChat("WheelClick", 2))
+				eq("stage_2_moment_3_is_roar", select(2, BossDodge.Moment(3)), "Roar")
+				to(moment(3) + 0.05)
+				eq("stage_2_roar_chat", lastLine(), Cfg.MoveChat("Roar", 2))
+				near("stage_2_other_moves_cost_nothing", run.Stamina[1], 100 - COST2)
+				eq("stage_2_moment_4_is_impact", select(2, BossDodge.Moment(4)), "Impact")
+				to(moment(4) + 0.05)
+				near("stage_2_impact_heavy", run.Stamina[1], 100 - COST2 - COST2 * Cfg.VulnerableMulti)
+				eq("stage_2_moment_6_is_impact", select(2, BossDodge.Moment(6)), "Impact")
+				to(moment(6) + 0.05)
+				eq("stage_2_impact_floors_at_0", run.Stamina[1], 0)
+			end)
+
+			serviceSection("status_stacks", function()
+				local Poses = require(Shared.BossRagaPoses)
+				local BossDodge = require(Shared.BossDodge)
+				local CUT_S, CUT_A = 1 - Cfg.ShoutDamageCut, 1 - Cfg.AdaptedCut
+				local S2 = Cfg.Stage(2).StatusSeconds
+				local real = realHooks.DamageMulti
+				-- Each status's moments: { At, Index }, seconds after the intro's end.
+				local found = { WheelClick = {}, Roar = {} }
+				for index = 1, 14 do
+					local at, name = BossDodge.Moment(index)
+					if found[name] then
+						table.insert(found[name], { At = at, Index = index })
+					end
+				end
+				local clicks, roars = found.WheelClick, found.Roar
+				local clickGap, roarGap = clicks[2].At - clicks[1].At, roars[3].At - roars[2].At
+				flag("stack_gap_clicks_under_stage_2", clickGap < S2, clickGap, S2)
+				flag("stack_gap_roars_under_stage_2", roarGap < S2, roarGap, S2)
+				flag("stack_gap_clicks_over_stage_1", clickGap > Cfg.Stage(1).StatusSeconds, clickGap)
+				flag("stack_gap_roars_over_stage_1", roarGap > Cfg.Stage(1).StatusSeconds, roarGap)
+
+				-- Stage 1 on today's schedule: never more than one of a status.
+				begin()
+				S.Hooks.DamageMulti = real
+				local one = fighter()
+				S.Join(one)
+				local most = 0
+				for k = 0, math.ceil(2 * Poses.CycleSeconds / STEP) do
+					to(FIGHT + k * STEP)
+					for _, id in { "Shouted", "Adapted" } do
+						local row = statusRow(one, id)
+						most = math.max(most, row and row.Count or 0)
+					end
+				end
+				eq("stage_1_at_most_one_stack", most, 1)
+
+				-- Stage 2, nothing dodged.
+				begin()
+				local p = fighter()
+				S.Join(p)
+				to(FIGHT)
+				local stageSeen
+				S.Hooks.DamageMulti = function(t, spared, stage)
+					stageSeen = stage
+					return real(t, spared, stage)
+				end
+				S.RecordHit(p)
+				eq("damage_multi_told_stage_1", stageSeen, 1)
+				kill(p)
+				local base = S.State().ScreamEndsAt - T0
+				local run = log.Runs[p]
+				to(base + clicks[2].At + 0.05)
+				local adapted, shouted, vulnerable =
+					statusRow(p, "Adapted"), statusRow(p, "Shouted"), statusRow(p, "Vulnerable")
+				eq("adapted_x2_count", adapted and adapted.Count, 2)
+				near("adapted_x2_ends_at_latest", adapted and adapted.EndsAt, T0 + base + clicks[2].At + S2)
+				eq("shouted_x1_count", shouted and shouted.Count, 1)
+				near("shouted_x1_ends_at", shouted and shouted.EndsAt, T0 + base + roars[1].At + S2)
+				eq("vulnerable_row_count", vulnerable and vulnerable.Count, 1)
+				eq("vulnerable_row_no_ends_at", vulnerable and vulnerable.EndsAt, nil)
+				near("adapted_x2_cuts_twice", S.RecordHit(p), S.TeamDamage(p) * CUT_A * CUT_A * CUT_S)
+				eq("damage_multi_told_stage_2", stageSeen, 2)
+				near("adapted_x2_hud_number_not_cut", p:GetAttribute("BossTeamDamage"), S.TeamDamage(p))
+				-- A stack has its own timer.
+				to(base + clicks[1].At + S2 + 0.05)
+				adapted = statusRow(p, "Adapted")
+				eq("adapted_older_stack_expires", adapted and adapted.Count, 1)
+				near("adapted_latest_end_kept", adapted and adapted.EndsAt, T0 + base + clicks[2].At + S2)
+				to(base + roars[3].At + 0.05)
+				shouted, adapted = statusRow(p, "Shouted"), statusRow(p, "Adapted")
+				eq("shouted_x2_count", shouted and shouted.Count, 2)
+				near("shouted_x2_ends_at_latest", shouted and shouted.EndsAt, T0 + base + roars[3].At + S2)
+				eq("adapted_x1_beside_shouted_x2", adapted and adapted.Count, 1)
+				near("shouted_x2_cuts_twice", S.RecordHit(p), S.TeamDamage(p) * CUT_S * CUT_S * CUT_A)
+				eq("stacks_run_not_waiting", run.Waiting, false)
+
+				-- The pure hook. t counts from BossScheduleStart, the stage's own spawn.
+				local t = INTRO + clicks[2].At + 0.5
+				near("pure_stage_2_x2", real(t, nil, 2), CUT_A * CUT_A * CUT_S)
+				near("pure_stage_1_x1_at_same_time", real(t, nil, 1), CUT_A * CUT_S)
+				near("pure_spared_stack_not_counted", real(t, { [clicks[1].Index] = true }, 2), CUT_A * CUT_S)
+				eq("pure_none_in_intro", real(INTRO / 2, nil, 2), 1)
+
+				-- A dodged move and a wait-spared move add no stack.
+				begin()
+				S.Hooks.SwitchLane = function() end
+				local dodger = fighter()
+				S.Join(dodger)
+				to(FIGHT)
+				S.Hooks.DamageMulti = real
+				kill(dodger)
+				base = S.State().ScreamEndsAt - T0
+				to(base + clicks[1].At + 0.05)
+				eq("dodge_case_one_stack", (statusRow(dodger, "Adapted") or {}).Count, 1)
+				eq("dodge_case_press_ok", press(dodger, clicks[2].Index, 2, base), true)
+				to(base + clicks[2].At + 0.05)
+				eq("dodged_move_adds_no_stack", (statusRow(dodger, "Adapted") or {}).Count, 1)
+				near(
+					"dodged_stack_end_not_moved",
+					(statusRow(dodger, "Adapted") or {}).EndsAt,
+					T0 + base + clicks[1].At + S2
+				)
+				local dodgerRun = log.Runs[dodger]
+				dodgerRun.Waiting = true
+				to(base + roars[2].At + 0.05)
+				dodgerRun.Waiting = false
+				-- The first roar's stack ran out by here, so the wait's roar would be the only one.
+				flag("wait_case_first_roar_gone", roars[1].At + S2 < roars[2].At, roars[1].At + S2, roars[2].At)
+				eq("wait_spared_move_adds_no_stack", statusRow(dodger, "Shouted"), nil)
+			end)
+
+			serviceSection("vulnerable", function()
+				local BossDodge = require(Shared.BossDodge)
+				local COST = Cfg.Stage(1).AttackStaminaCost
+				local HEAVY = COST * Cfg.VulnerableMulti
+				for index, name in
+					{ "Impact", "WheelClick", "Roar", "Impact", "WheelClick", "Impact", "Roar", "Impact" }
+				do
+					eq("vulnerable_moment_" .. index, select(2, BossDodge.Moment(index)), name)
+				end
+				local function moment(index)
+					return FIGHT + BossDodge.Moment(index)
+				end
+				local function fresh()
+					begin()
+					S.Hooks.SwitchLane = function() end
+					local p = fighter()
+					S.Join(p)
+					to(FIGHT)
+					return p, log.Runs[p]
+				end
+
+				-- A dodged Impact neither spends nor sets it.
+				local p, run = fresh()
+				eq("vulnerable_none_at_start", statusRow(p, "Vulnerable"), nil)
+				eq("vulnerable_press_1", press(p, 1, 1, FIGHT), true)
+				to(moment(1) + 0.05)
+				near("dodged_impact_costs_nothing", run.Stamina[1], 100)
+				eq("dodged_impact_does_not_set", statusRow(p, "Vulnerable"), nil)
+				to(moment(2) + 0.05)
+				local row = statusRow(p, "Vulnerable")
+				flag("undodged_wheel_sets", row ~= nil)
+				eq("vulnerable_count_is_1", row and row.Count, 1)
+				eq("vulnerable_has_no_end", row and row.EndsAt, nil)
+				eq("vulnerable_press_3", press(p, 3, 1, FIGHT), true)
+				eq("vulnerable_press_4", press(p, 4, 1, FIGHT), true)
+				to(moment(4) + 0.05)
+				near("dodged_impact_does_not_spend_cost", run.Stamina[1], 100)
+				flag("dodged_impact_does_not_spend", statusRow(p, "Vulnerable") ~= nil)
+				eq("vulnerable_press_5", press(p, 5, 1, FIGHT), true)
+				to(moment(6) + 0.05)
+				near("undodged_impact_costs_heavy", run.Stamina[1], 100 - HEAVY)
+				flag("undodged_impact_sets_it_again", statusRow(p, "Vulnerable") ~= nil)
+				eq("vulnerable_press_7", press(p, 7, 1, FIGHT), true)
+				to(moment(8) + 0.05)
+				near("impact_set_by_an_impact_is_heavy", run.Stamina[1], 100 - 2 * HEAVY)
+				eq("no_stacking_count_stays_1", (statusRow(p, "Vulnerable") or {}).Count, 1)
+				S.End("Timeout")
+				eq("vulnerable_cleared_at_end", p:GetAttribute("BossStatus"), nil)
+
+				-- The order: an Impact when not Vulnerable costs plain, then sets it. The moves between are dodged.
+				p, run = fresh()
+				to(moment(1))
+				near("first_impact_plain", run.Stamina[1], 100 - COST)
+				flag("first_impact_sets", statusRow(p, "Vulnerable") ~= nil)
+				eq("order_press_2", press(p, 2, 1, FIGHT), true)
+				eq("order_press_3", press(p, 3, 1, FIGHT), true)
+				to(moment(4) + 0.05)
+				near("second_impact_heavy_from_the_first", run.Stamina[1], 100 - COST - HEAVY)
+
+				-- A move spared by the wait sets nothing.
+				p, run = fresh()
+				run.Waiting = true
+				to(moment(1) + 0.05)
+				run.Waiting = false
+				near("wait_impact_costs_nothing", run.Stamina[1], 100)
+				eq("wait_impact_does_not_set", statusRow(p, "Vulnerable"), nil)
+				eq("wait_press_2", press(p, 2, 1, FIGHT), true)
+				eq("wait_press_3", press(p, 3, 1, FIGHT), true)
+				to(moment(4) + 0.05)
+				near("impact_after_wait_plain", run.Stamina[1], 100 - COST)
+
+				-- Floored at 0, and it leaves with the player.
+				p, run = fresh()
+				to(moment(1))
+				run.Stamina[1] = 10
+				to(moment(4) + 0.05)
+				eq("heavy_floors_at_0", run.Stamina[1], 0)
+				S.Leave(p, "Left")
+				eq("vulnerable_cleared_on_leave", p:GetAttribute("BossStatus"), nil)
+			end)
+
+			serviceSection("stage2_dodge", function()
+				local BossDodge = require(Shared.BossDodge)
+				begin()
+				S.Hooks.SwitchLane = function() end
+				local p = fighter()
+				S.Join(p)
+				to(FIGHT)
+				local run = log.Runs[p]
+				-- Moment 1 pressed and spared in stage 1: both reset at the stage start.
+				eq("stage_1_press_ok", press(p, 1, 1, FIGHT), true)
+				to(FIGHT + BossDodge.Moment(1) + 0.05)
+				kill(p)
+				for index = 1, 3 do
+					eq("scream_no_bar_" .. index, S.Dodge(p, index, clock), false)
+				end
+				local base = S.State().ScreamEndsAt - T0
+				local function moment(index)
+					return base + BossDodge.Moment(index)
+				end
+				-- Inside stage 1's sweep, before stage 2's: no bar yet, and the press is not spent.
+				to(moment(1) - BossDodge.SweepFor(2) - 0.1)
+				eq("stage_2_before_its_faster_bar", S.Dodge(p, 1, clock), false)
+				local lines = #log.MoveChat
+				eq("stage_2_press_same_index_ok", press(p, 1, 2, base), true)
+				eq("stage_2_second_press_refused", S.Dodge(p, 1, clock), false)
+				to(moment(1) + 0.05)
+				near("stage_2_dodged_costs_nothing", run.Stamina[1], 100)
+				eq("stage_2_dodged_no_chat", #log.MoveChat, lines)
+				eq("stage_2_dodged_no_vulnerable", statusRow(p, "Vulnerable"), nil)
+
+				-- Off the spot: the press is spent, and the move hits.
+				local spot = BossDodge.Spot(p:GetAttribute("UserId"), T0, 2, 2)
+				local from = BossDodge.Window(spot, T0 + moment(2), 2)
+				local early = from - 0.1
+				flag("stage_2_early_is_on_the_bar", early >= T0 + moment(2) - BossDodge.SweepFor(2), early)
+				to(early - T0)
+				eq("stage_2_off_spot_refused", S.Dodge(p, 2, early), false)
+				eq("stage_2_off_spot_spends_press", press(p, 2, 2, base), false)
+				to(moment(2) + 0.05)
+				eq("stage_2_off_spot_is_hit", (statusRow(p, "Adapted") or {}).Count, 1)
+				flag("stage_2_off_spot_vulnerable", statusRow(p, "Vulnerable") ~= nil)
+				eq("stage_2_after_moment_refused", S.Dodge(p, 2, clock), false)
+			end)
+
+			serviceSection("stage2_rewards", function()
+				local SHARE = Cfg.MinDamageShare
+				local function popup(tag, p, outcome, stage1, stage2, short, damage)
+					local list = popupsOf(p)
+					eq(tag .. "_one_popup", #list, 1)
+					local summary = list[1] or {}
+					eq(tag .. "_outcome", summary.Outcome, outcome)
+					eq(tag .. "_stage_1", summary.Stage1, stage1)
+					eq(tag .. "_stage_2", summary.Stage2, stage2)
+					if short ~= nil then
+						eq(tag .. "_short", summary.Short, short)
+					end
+					near(tag .. "_damage", summary.Damage, damage)
+				end
+				local function has(list, p)
+					return table.find(list, p) ~= nil
+				end
+
+				-- Both stages defeated, a player for each mix of shares.
+				begin()
+				local both, first, second, under, none = fighter(), fighter(), fighter(), fighter(), fighter()
+				local all = { both, first, second, under, none }
+				for _, p in all do
+					S.Join(p)
+				end
+				to(FIGHT)
+				local need1 = SHARE * S.State().MaxHp
+				deal(both, need1)
+				deal(first, need1) -- exactly the share
+				deal(under, need1 * 0.99)
+				kill(both)
+				local paid1 = paidIn(1)
+				eq("pay_1_at_the_defeat", #paid1, 2)
+				flag("pay_1_top", has(paid1, both))
+				flag("pay_1_exact_share", has(paid1, first))
+				flag("pay_1_not_under", not has(paid1, under))
+				flag("pay_1_not_no_damage", not has(paid1, none))
+				eq("pay_1_no_popup_yet", #log.Popups, 0)
+				eq("pay_1_nothing_of_stage_2", #paidIn(2), 0)
+				eq("share_1_against_phase1_max", need1, SHARE * S.State().Phase1MaxHp)
+				pastScream(table.unpack(all))
+				local need2 = SHARE * S.State().MaxHp
+				deal(both, need2)
+				deal(second, need2) -- exactly the share of stage 2's own HP
+				deal(first, need2 * 0.99)
+				deal(under, need2 * 0.5)
+				near("stage_damage_first_1", S.StageDamageOf(first, 1), need1)
+				near("stage_damage_first_2", S.StageDamageOf(first, 2), need2 * 0.99)
+				near("damage_of_first_total", S.DamageOf(first), need1 + need2 * 0.99)
+				local totals = {}
+				for _, p in all do
+					totals[p] = S.DamageOf(p)
+				end
+				totals[both] += kill(both)
+				eq("pay_2_event_over", phase(), "Idle")
+				eq("pay_2_defeated", S.State().LastEnd, "Defeated")
+				local paid2 = paidIn(2)
+				eq("pay_2_list", #paid2, 2)
+				flag("pay_2_top", has(paid2, both))
+				flag("pay_2_exact_share", has(paid2, second))
+				flag("pay_2_not_first", not has(paid2, first))
+				flag("pay_2_not_under", not has(paid2, under))
+				eq("pay_1_still_once", timesPaid(both, 1), 1)
+				eq("pay_2_once", timesPaid(both, 2), 1)
+				popup("popup_both", both, "Defeated", true, true, false, totals[both])
+				popup("popup_first", first, "Defeated", true, false, nil, totals[first])
+				popup("popup_second", second, "Defeated", false, true, nil, totals[second])
+				popup("popup_under", under, "Defeated", false, false, true, totals[under])
+				popup("popup_none", none, "Defeated", false, false, true, 0)
+
+				-- A timeout in stage 1 pays nothing and shows nothing (the clock's timeout is in "timeline").
+				begin()
+				local timed = fighter()
+				S.Join(timed)
+				to(FIGHT)
+				deal(timed, SHARE * S.State().MaxHp)
+				S.End("Timeout")
+				eq("timeout_1_end_no_pay", #log.Paid, 0)
+				eq("timeout_1_end_no_popup", #log.Popups, 0)
+
+				-- A timeout in stage 2: stage 1's pay stands, nothing more, popup "Survived".
+				begin()
+				local keeper, small = fighter(), fighter()
+				S.Join(keeper)
+				S.Join(small)
+				to(FIGHT)
+				deal(small, SHARE * S.State().MaxHp * 0.5)
+				local smallTotal = S.DamageOf(small)
+				local keeperTotal = kill(keeper)
+				pastScream(keeper, small)
+				keeperTotal += deal(keeper, SHARE * S.State().MaxHp) -- over stage 2's share, and a timeout still pays no more
+				log.Runs[keeper].Waiting, log.Runs[small].Waiting = true, true
+				to(S.State().EndsAt - T0)
+				eq("timeout_2_reported", S.State().LastEnd, "Timeout")
+				eq("timeout_2_stage_1_pay_stands", timesPaid(keeper, 1), 1)
+				eq("timeout_2_pays_no_more", #paidIn(2), 0)
+				popup("survived_keeper", keeper, "Survived", true, false, false, keeperTotal)
+				popup("survived_small", small, "Survived", false, false, true, smallTotal)
+
+				-- Leaves: stage 1's leaver gets nothing; stage 2's keeps stage 1's pay and gets "Left" if it was paid.
+				begin()
+				local stayer, paidLeaver, unpaidLeaver, earlyLeaver = fighter(), fighter(), fighter(), fighter()
+				for _, p in { stayer, paidLeaver, unpaidLeaver, earlyLeaver } do
+					S.Join(p)
+				end
+				to(FIGHT)
+				deal(earlyLeaver, SHARE * S.State().MaxHp * 2)
+				S.Leave(earlyLeaver, "Left")
+				eq("stage_1_leaver_no_popup", #popupsOf(earlyLeaver), 0)
+				local leaverTotal = deal(paidLeaver, SHARE * S.State().MaxHp)
+				deal(unpaidLeaver, 1)
+				local stayerTotal = kill(stayer)
+				local paid = paidIn(1)
+				flag("leave_stayer_paid", has(paid, stayer))
+				flag("leave_paid_leaver_paid", has(paid, paidLeaver))
+				flag("leave_unpaid_not_paid", not has(paid, unpaidLeaver))
+				flag("leave_early_not_paid", not has(paid, earlyLeaver))
+				pastScream(stayer, paidLeaver, unpaidLeaver)
+				leaverTotal += deal(paidLeaver, SHARE * S.State().MaxHp) -- over stage 2's share too
+				local hp, max = S.State().Hp, S.State().MaxHp
+				flag("left_test_before_3_00", clock - T0 < CLOSE, clock - T0, CLOSE)
+				S.Leave(paidLeaver, "Left")
+				popup("left_paid", paidLeaver, "Left", true, false, nil, leaverTotal)
+				eq("left_paid_returns", log.Depart[paidLeaver], 1)
+				S.Leave(unpaidLeaver, "Left")
+				eq("left_unpaid_no_popup", #popupsOf(unpaidLeaver), 0)
+				eq("left_takes_no_max_back", S.State().MaxHp, max)
+				near("left_takes_no_hp_back", S.State().Hp, hp)
+				stayerTotal += kill(stayer)
+				eq("left_defeat", S.State().LastEnd, "Defeated")
+				eq("left_gets_no_stage_2_pay", timesPaid(paidLeaver, 2), 0)
+				eq("stayer_gets_stage_2_pay", timesPaid(stayer, 2), 1)
+				eq("left_no_second_popup", #popupsOf(paidLeaver), 1)
+				popup("left_stayer", stayer, "Defeated", true, true, false, stayerTotal)
+
+				-- One player's failure never costs another's, in either stage or at the popup.
+				begin()
+				local thrower, refused, fine = fighter(), fighter(), fighter()
+				for _, p in { thrower, refused, fine } do
+					S.Join(p)
+				end
+				S.Hooks.PayStage = function(p, stage)
+					table.insert(log.Paid, { Player = p, Stage = stage })
+					if p == thrower then
+						error("pay failed on purpose")
+					end
+					return p ~= refused
+				end
+				S.Hooks.RewardPopup = function(p, summary)
+					table.insert(log.Popups, { Player = p, Summary = summary })
+					if p == thrower then
+						error("popup failed on purpose")
+					end
+				end
+				to(FIGHT)
+				for _, p in { thrower, refused } do
+					deal(p, SHARE * S.State().MaxHp)
+				end
+				kill(fine)
+				eq("failure_stage_2_starts", S.State().Stage, 2)
+				for tag, p in { thrower = thrower, refused = refused, fine = fine } do
+					eq("failure_stage_1_each_once_" .. tag, timesPaid(p, 1), 1)
+				end
+				pastScream(thrower, refused, fine)
+				for _, p in { thrower, refused } do
+					deal(p, SHARE * S.State().MaxHp)
+				end
+				eq("failure_kill_no_error", (pcall(kill, fine)), true)
+				eq("failure_event_over", phase(), "Idle")
+				eq("failure_defeat_reported", S.State().LastEnd, "Defeated")
+				for tag, p in { thrower = thrower, refused = refused, fine = fine } do
+					eq("failure_stage_2_each_once_" .. tag, timesPaid(p, 2), 1)
+					eq("failure_each_popup_" .. tag, #popupsOf(p), 1)
+					eq("failure_each_released_" .. tag, p:GetAttribute("BossEvent"), nil)
+				end
+				local fineSummary = popupsOf(fine)[1] or {}
+				eq("failure_fine_keeps_stage_1", fineSummary.Stage1, true)
+				eq("failure_fine_keeps_stage_2", fineSummary.Stage2, true)
+			end)
+
 			section("default_hooks", function()
 				local CarService = require(Server.CarService)
 				local Arena = require(Shared.BossArenaConfig)
@@ -2603,7 +3391,7 @@ function Tests.make(deps)
 				for name, fn in realHooks do
 					S.Hooks[name] = fn
 				end
-				S.Hooks.Rewards = function() end
+				quietRewards()
 				SpawnArea.START_COOLDOWN = 0
 				flag("live_route_exists", race.GetRoute() ~= nil)
 
@@ -2683,7 +3471,7 @@ function Tests.make(deps)
 				for name, fn in realHooks do
 					S.Hooks[name] = fn
 				end
-				S.Hooks.Rewards = function() end
+				quietRewards()
 				S.Join(p)
 				to(FIGHT)
 				flag(
@@ -2713,7 +3501,7 @@ function Tests.make(deps)
 				for name, fn in realHooks do
 					S.Hooks[name] = fn
 				end
-				S.Hooks.Rewards = function() end
+				quietRewards()
 				S.Join(p)
 				to(FIGHT)
 				waitFor(1, function()
@@ -2848,7 +3636,7 @@ function Tests.make(deps)
 					for name, fn in realHooks do
 						S.Hooks[name] = fn
 					end
-					S.Hooks.Rewards = function() end
+					quietRewards()
 					for _, p in { ... } do
 						S.Join(p)
 					end
@@ -2961,7 +3749,7 @@ function Tests.make(deps)
 				for name, fn in realHooks do
 					S.Hooks[name] = fn
 				end
-				S.Hooks.Rewards = function() end
+				quietRewards()
 				Duel.SetClock(function()
 					return duelNow
 				end)
