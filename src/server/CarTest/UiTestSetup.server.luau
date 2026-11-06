@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, sidekick_states, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -560,6 +560,154 @@ function setups.on_foot(player)
 		end
 		RunService.Heartbeat:Wait()
 	end
+end
+
+-- ui_sidekick_follow (design doc 4.36; Client/UiTest/UiSidekickFollow): a rig of this player's, drawn by the real Client/RunnerView,
+-- with Sidekicks worn per character through the real SidekickService. Crowd rigs have no Player, as a solo Studio run has no others:
+-- attribute FollowerFixtureId says what they wear. Characters and Sidekicks come back with restoreBossUi, and a stopped run restarts.
+local FOLLOW_FAKE_ID = -1000 -- the crowd's first Owner is one below this
+local FOLLOW_CROWD_GAP = 12 -- studs along +X
+local sidekickFollow = { Rig = nil, Crowd = {}, Thread = nil, Entries = {}, WasRacing = nil }
+
+local function followRig(name, id, owner, along)
+	local RunnerFactory = require(Shared.RunnerFactory)
+	local rig = RunnerFactory.build(id)
+	rig.Name = name
+	rig.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	rig:PivotTo(CFrame.new(RUN_VISUAL.START + Vector3.new(along, RunnerFactory.HIP_HEIGHT, 0)))
+	rig:SetAttribute("Owner", owner)
+	return rig
+end
+
+local function followShow(rig)
+	CollectionService:AddTag(rig, live("CarService").RUNNER_TAG)
+	rig.Parent = Workspace
+end
+
+local function followStopRun()
+	if sidekickFollow.Thread then
+		task.cancel(sidekickFollow.Thread)
+		sidekickFollow.Thread = nil
+	end
+end
+
+local function followCrowd(count)
+	for _, rig in sidekickFollow.Crowd do
+		rig:Destroy()
+	end
+	sidekickFollow.Crowd = {}
+	local id = require(Shared.CharacterCatalog).Rollable()[1].Id
+	for i = 1, count do
+		local rig = followRig("FollowCrowd" .. i, id, FOLLOW_FAKE_ID - i, i * FOLLOW_CROWD_GAP)
+		rig:SetAttribute("FollowerFixtureId", "side_chain")
+		followShow(rig)
+		table.insert(sidekickFollow.Crowd, rig)
+	end
+end
+
+local function restoreSidekickFollow(player)
+	followStopRun()
+	followCrowd(0)
+	if sidekickFollow.Rig then
+		sidekickFollow.Rig:Destroy()
+		sidekickFollow.Rig = nil
+	end
+	local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
+	local route = routes and routes:FindFirstChild(RUN_VISUAL.ROUTE)
+	if route then
+		route:Destroy()
+	end
+	sidekickFollow.Entries = {}
+	restoreBossUi(player)
+	if sidekickFollow.WasRacing then
+		live("CarService").SetAutoRace(player, true)
+	end
+	sidekickFollow.WasRacing = nil
+end
+
+local sidekickFollowSteps = {}
+
+function sidekickFollowSteps.start(player)
+	local CarService = live("CarService")
+	RUN_VISUAL.clear()
+	sidekickFollow.WasRacing = CarService.IsAutoRacing(player) == true
+	CarService.SetAutoRace(player, false)
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) or CarService.GetCar(player) ~= nil do
+		if os.clock() - start > ON_FOOT_TIMEOUT then
+			error("sidekick_follow_start: still racing after " .. ON_FOOT_TIMEOUT .. " s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	bossUiGear(player, 0) -- the snapshot; a save past the starter pick, nothing worn
+	local rollable = require(Shared.CharacterCatalog).Rollable()
+	for i = 2, 4 do
+		live("GachaService").Grant(player, rollable[i].Id)
+	end
+	sidekickFollow.Rig = followRig("FollowRunner", rollable[1].Id, player.UserId, 0)
+	followShow(sidekickFollow.Rig)
+end
+
+function sidekickFollowSteps.wear(player, arg)
+	local character, id = string.match(arg, "^([^:]+):([^:]+)$")
+	local service = live("SidekickService")
+	if id == "none" then
+		assert(service.Equip(player, character, nil))
+		return
+	end
+	if not sidekickFollow.Entries[id] then
+		local _, entry = service.Grant(player, id)
+		sidekickFollow.Entries[id] = assert(entry, "could not grant " .. id)
+	end
+	assert(service.Equip(player, character, sidekickFollow.Entries[id]))
+end
+
+-- A slot swap's re-skin, as CarService.ApplyCharacter does it.
+function sidekickFollowSteps.swap(_, arg)
+	require(Shared.RunnerFactory).Restyle(sidekickFollow.Rig, arg)
+end
+
+-- A real run's published state, as RUN_VISUAL.start publishes it.
+function sidekickFollowSteps.run(_, arg)
+	setups.run_visual()
+	local PathDriver = require(Shared.PathDriver)
+	local RunnerFactory = require(Shared.RunnerFactory)
+	local wps = { RUN_VISUAL.START, RUN_VISUAL.START + Vector3.new(RUN_VISUAL.LENGTH, 0, 0) }
+	local arc = PathDriver.Arc(wps)
+	local speed = tonumber(arg)
+	local rig = sidekickFollow.Rig
+	local started = os.clock()
+	local interval = live("RaceService").PUBLISH_INTERVAL
+	followStopRun()
+	sidekickFollow.Thread = task.spawn(function()
+		while true do
+			local dist = (os.clock() - started) * speed % RUN_VISUAL.LENGTH
+			rig:PivotTo(PathDriver.PoseAt(wps, arc, dist) * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0))
+			rig:SetAttribute("RunRoute", RUN_VISUAL.ROUTE)
+			rig:SetAttribute("RunSpeed", speed)
+			rig:SetAttribute("RunDistance", dist)
+			task.wait(interval)
+		end
+	end)
+end
+
+function sidekickFollowSteps.stop()
+	followStopRun()
+	local rig = sidekickFollow.Rig
+	rig:SetAttribute("RunRoute", nil)
+	rig:SetAttribute("RunSpeed", nil)
+	rig:SetAttribute("RunDistance", nil)
+end
+
+function sidekickFollowSteps.crowd(_, arg)
+	followCrowd(tonumber(arg))
+end
+
+-- The run ends: the runner goes, as CarService's removeCar does it.
+sidekickFollowSteps["end"] = function()
+	followCrowd(0)
+	sidekickFollow.Rig:Destroy()
+	sidekickFollow.Rig = nil
 end
 
 -- A fake loss sent to the client only (the real run's state is never touched): Result/Lose now, then after
@@ -1321,6 +1469,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			RUN_VISUAL.clear()
 			return
 		end
+		local followStep, followArg = string.match(request, "^sidekick_follow_(%a+):?(.*)$")
+		if followStep then
+			assert(sidekickFollowSteps[followStep], "unknown step " .. followStep)(player, followArg)
+			return
+		end
 		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
 		if bossGear then
 			bossUiGear(player, tonumber(bossGear) or bossGear)
@@ -1366,6 +1519,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			before.auto_roll_on = nil
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
+		elseif restoreId == "sidekick_follow" then
+			restoreSidekickFollow(player)
 		elseif restoreId == "boss_ui" then
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
