@@ -159,11 +159,11 @@ local banner = make("Frame", "Banner", right, {
 	BackgroundColor3 = PALETTE.TileDeep,
 })
 UiTheme.Corner(banner, "M")
-make("UIListLayout", "Layout", banner, {
-	FillDirection = Enum.FillDirection.Horizontal,
+make("UIGridLayout", "Layout", banner, {
+	CellSize = UDim2.fromScale(0.19, 0.47),
+	CellPadding = UDim2.fromScale(0.01, 0.02),
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	VerticalAlignment = Enum.VerticalAlignment.Center,
-	Padding = UDim.new(0.015, 0),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 
@@ -245,15 +245,35 @@ local function modelCell(cell, row)
 	return tile
 end
 
-for order, row in Config.List do
-	modelCell(
-		make("Frame", row.Id, banner, {
-			LayoutOrder = order,
-			Size = UDim2.fromScale(0.31, 0.92),
-			BackgroundTransparency = 1,
-		}),
-		row
-	)
+-- The server's public rotation: a model per id and one mystery tile, which never holds a model or a name.
+local function renderBanner(rotation)
+	for _, child in banner:GetChildren() do
+		if child:IsA("GuiObject") then
+			local view = child:FindFirstChild("Model", true)
+			if view then
+				views[view] = nil
+			end
+			child:Destroy()
+		end
+	end
+	local mystery = make("Frame", "Secret", banner, { LayoutOrder = 0, BackgroundTransparency = 1 })
+	local tile = make("Frame", "Tile", mystery, {
+		Size = UDim2.fromScale(1, 0.78),
+		BackgroundColor3 = SidekickView.RarityColor("Secret"),
+		BorderSizePixel = 0,
+		ZIndex = 3,
+	})
+	UiTheme.Corner(tile, "S")
+	caption("Label", tile, { Size = UDim2.fromScale(1, 1), Text = "?", TextSize = 40, ZIndex = 4 })
+	caption("Rarity", mystery, {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 1),
+		Size = UDim2.fromScale(1, 0.2),
+		Text = "Secret",
+	})
+	for order, id in rotation.Ids do
+		modelCell(make("Frame", id, banner, { LayoutOrder = order, BackgroundTransparency = 1 }), Config.Get(id))
+	end
 end
 
 local balance = make("Frame", "Balance", right, {
@@ -271,9 +291,16 @@ make("ImageLabel", "GemIcon", balance, {
 })
 local gemsValue = caption("GemsValue", balance, {
 	Position = UDim2.fromOffset(30, 0),
-	Size = UDim2.new(1, -30, 1, 0),
+	Size = UDim2.new(0.4, -30, 1, 0),
 	Text = "0",
 	TextXAlignment = Enum.TextXAlignment.Left,
+})
+local rotationTimer = caption("RotationTimer", balance, {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.fromScale(1, 0),
+	Size = UDim2.fromScale(0.6, 1),
+	Text = "",
+	TextXAlignment = Enum.TextXAlignment.Right,
 })
 local status = caption("Status", right, {
 	AnchorPoint = Vector2.new(0, 1),
@@ -402,37 +429,67 @@ end
 
 -- Details: section 6's odds, shown and open before any spend.
 local detailsSheet, detailsList = sheet("DetailsSheet", "Details: summon odds")
-local total = 0
-for order, row in Config.List do
-	total += row.Odds
-	local line = make("Frame", row.Id, detailsList, {
+local detailsTotal = caption("Total", detailsList, {
+	LayoutOrder = 100,
+	Size = UDim2.new(1, -6, 0, 24),
+	Text = "",
+	TextColor3 = PALETTE.Gold,
+})
+local function detailsLine(name, order, columns)
+	local line = make("Frame", name, detailsList, {
 		LayoutOrder = order,
 		Size = UDim2.new(1, -6, 0, 34),
 		BackgroundColor3 = PALETTE.Row,
 	})
 	UiTheme.Corner(line, "S")
-	local function column(key, text, x, width, color)
-		caption(key, line, {
-			Position = UDim2.new(x, 6, 0.12, 0),
-			Size = UDim2.new(width, -12, 0.76, 0),
-			Text = text,
-			TextColor3 = color,
+	for _, column in columns do
+		caption(column.Key, line, {
+			Position = UDim2.new(column.X, 6, 0.12, 0),
+			Size = UDim2.new(column.Width, -12, 0.76, 0),
+			Text = column.Text,
+			TextColor3 = column.Color,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 	end
-	column("Name", row.Name, 0, 0.26)
-	column("Rarity", row.Rarity, 0.26, 0.22, SidekickView.RarityColor(row.Rarity))
-	column("Odds", string.format("%g%%", row.Odds), 0.48, 0.14, PALETTE.Gold)
-	column("Gain", SidekickView.GainText(row), 0.62, 0.38)
 end
-caption("Total", detailsList, {
-	LayoutOrder = #Config.List + 1,
-	Size = UDim2.new(1, -6, 0, 24),
-	Text = string.format("Total: %g%%", total),
-	TextColor3 = PALETTE.Gold,
-})
+-- From public data alone: listed odds, what the rotation leaves split across its Commons, and the Secret as one row.
+local function renderDetails(rotation)
+	for _, child in detailsList:GetChildren() do
+		if child:IsA("Frame") then
+			child:Destroy()
+		end
+	end
+	local secretOdds = rotation.SecretChoices[1].Odds
+	local rest, commons = 100 - secretOdds, 0
+	for _, id in rotation.Ids do
+		local row = Config.Get(id)
+		rest -= row.Odds
+		commons += row.Rarity == "Common" and 1 or 0
+	end
+	local total = secretOdds
+	for order, id in rotation.Ids do
+		local row = Config.Get(id)
+		local odds = row.Odds + (row.Rarity == "Common" and rest / commons or 0)
+		total += odds
+		detailsLine(id, order, {
+			{ Key = "Name", Text = row.Name, X = 0, Width = 0.26 },
+			{ Key = "Rarity", Text = row.Rarity, X = 0.26, Width = 0.22, Color = SidekickView.RarityColor(row.Rarity) },
+			{ Key = "Odds", Text = string.format("%.3f%%", odds), X = 0.48, Width = 0.14, Color = PALETTE.Gold },
+			{ Key = "Gain", Text = SidekickView.GainText(row), X = 0.62, Width = 0.38 },
+		})
+	end
+	local names = {}
+	for _, choice in rotation.SecretChoices do
+		table.insert(names, choice.Name)
+	end
+	detailsLine("Secret", #rotation.Ids + 1, {
+		{ Key = "Name", Text = "Secret: one of " .. table.concat(names, ", "), X = 0, Width = 0.48 },
+		{ Key = "Odds", Text = string.format("%.3f%%", secretOdds), X = 0.48, Width = 0.14, Color = PALETTE.Gold },
+	})
+	detailsTotal.Text = string.format("Total: %g%%", total)
+end
 caption("Note", detailsList, {
-	LayoutOrder = #Config.List + 2,
+	LayoutOrder = 101,
 	Size = UDim2.new(1, -6, 0, 22),
 	Text = "Each roll is independent. Luck and potions never change these odds.",
 	TextColor3 = PALETTE.SoftText,
@@ -570,6 +627,33 @@ panel:GetPropertyChangedSignal("Visible"):Connect(function()
 				model:Destroy()
 			end
 		end
+	end
+end)
+-- The client only displays the server's rotation; slot changes redraw in place, leaving the page open.
+local rotationEndsAt = 0
+local function showTimer()
+	local seconds = math.floor(math.max(0, rotationEndsAt - workspace:GetServerTimeNow()))
+	local text = string.format("Next rotation %d:%02d", seconds // 60, seconds % 60)
+	rotationTimer.Text = text
+	detailsSheet.Heading.Text = "Details: summon odds. " .. text
+end
+local function renderRotation()
+	local rotation = SidekickView.Rotation()
+	if not rotation.Ids then
+		return
+	end
+	rotationEndsAt = rotation.EndsAt
+	renderBanner(rotation)
+	renderDetails(rotation)
+	fillViews()
+	showTimer()
+end
+ReplicatedStorage:GetAttributeChangedSignal("SidekickRotation"):Connect(renderRotation)
+renderRotation()
+task.spawn(function()
+	while true do
+		task.wait(1)
+		showTimer()
 	end
 end)
 task.spawn(function()

@@ -31,6 +31,7 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" --
 -- Placeholders.
 local WARNING_SECONDS = 6
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
+local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local RESEND_GAP = 0.3 -- s between team sends: the server refuses a request inside its 0.25 s cooldown
 local PHONE_MAX_HEIGHT = 500 -- the HUD's phone rule
 local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too low, and the roll it clears is hidden or below
@@ -50,7 +51,7 @@ end
 
 local function label(name, parent, props, maxSize)
 	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
+	props.Font = props.Font or UiTheme.Font
 	props.TextColor3 = props.TextColor3 or Palette.White
 	props.TextScaled = true
 	local text = make("TextLabel", name, parent, props)
@@ -188,13 +189,17 @@ local listGrid = make("UIGridLayout", "Grid", list, {
 
 -- Warning, BossBar, LeaveButton -------------------------------------------------------------------------------------------
 local warning = make("Frame", "Warning", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
-UiTheme.Plate(warning, Palette.Danger)
+warning.BackgroundColor3 = WARNING_BRIGHT
+warning.BorderSizePixel = 0
+UiTheme.Corner(warning, "M")
+UiTheme.Stroke(warning, 3, Palette.White, true)
 local warningLabel = label("Text", warning, {
-	Position = UDim2.fromScale(0.02, 0),
-	Size = UDim2.fromScale(0.96, 1),
+	Position = UDim2.fromScale(0.02, 0.06),
+	Size = UDim2.fromScale(0.96, 0.88),
 	Text = WARNING_TEXT,
-	TextColor3 = Palette.Danger,
-}, 40)
+	Font = Enum.Font.GothamBlack,
+}, 56)
+UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
 
 local bar = make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
 UiTheme.Plate(bar, Palette.Danger)
@@ -302,7 +307,7 @@ local function placeTop(phone, size, row)
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
 	warning.Position = UDim2.new(0.5, 0, 0, barTop + height + 8)
-	warning.Size = UDim2.fromOffset(math.min(size.X * 0.7, 900), phone and 36 or 60)
+	warning.Size = UDim2.fromOffset(math.min(size.X * 0.8, 1000), phone and 48 or 84)
 end
 
 -- Follows the HUD while a part shows (PanelBand.Fit's way); the writes run only when a number changed.
@@ -341,7 +346,9 @@ local sentKey = ""
 local sending = false
 
 local function art(id)
-	return CharacterHeads[id] or CharacterPortraits[id] or ""
+	local spec = CharacterCatalog.Get(id)
+	local model = spec and spec.Model or id -- starters are drawn under the model they wear
+	return CharacterHeads[id] or CharacterHeads[model] or CharacterPortraits[id] or CharacterPortraits[model] or ""
 end
 
 -- The drawn head of the Sidekick `entry`, or "" while it has no upload.
@@ -537,6 +544,14 @@ local function endWarning()
 	end
 end
 
+-- The roll tutorial and the starter popup dim the screen and take the clicks: from the pick until AUTO's closing animation ends.
+local function tutorialActive()
+	local tutorial = playerGui:FindFirstChild("AutoRollTutorial")
+	return player:GetAttribute("NeedsStarter") == true
+		or (tutorial ~= nil and tutorial.Enabled)
+		or (tutorial ~= nil and player:GetAttribute("AutoRoll") == false and (player:GetAttribute("Rolls") or 0) == 0)
+end
+
 local function render()
 	local phase = ReplicatedStorage:GetAttribute("BossEventPhase")
 	local inEvent = player:GetAttribute("BossEvent") == true
@@ -567,7 +582,7 @@ local function render()
 			bar.Visible = true
 			UiMotion.Pop(bar)
 			warningUntil = os.clock() + WARNING_SECONDS
-			stopFlash = UiMotion.Pulse(warningLabel, { TextTransparency = 0.65 }, FLASH_PERIOD)
+			stopFlash = UiMotion.Pulse(warning, { BackgroundColor3 = Palette.DangerDeep }, FLASH_PERIOD)
 			-- cue: ToastHigh
 		end
 	end
@@ -575,7 +590,11 @@ local function render()
 		endWarning()
 	end
 
-	local joinable = phase ~= nil and not inEvent and declinedStart ~= start and elapsed < Cfg.JoinSeconds
+	local joinable = phase ~= nil
+		and not inEvent
+		and declinedStart ~= start
+		and elapsed < Cfg.JoinSeconds
+		and not tutorialActive()
 	if joinable and not invite.Visible then
 		invite.Visible = true
 		UiMotion.Pop(invite) -- cue: DuelInvite

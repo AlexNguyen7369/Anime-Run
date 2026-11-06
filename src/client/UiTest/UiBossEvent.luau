@@ -13,6 +13,8 @@
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
 --   The BossBar pops through UiMotion.Pop (UIScale MotionScale). LeaveButton hides while a PanelSwitch panel is open.
+--   The Warning frame is the plate: red and opaque, its flash stays red, white heavy text on it. No flash with reduced motion.
+--   The Invite waits while a save is in the starter pick or the roll tutorial (boss_ui_gear sets a save past both).
 -- READINGS the docs leave open, for the owner (names start with reading_):
 --   a Sidekick only in the Bag, on no character, locks the Invite: the server refuses that join ("Needs a Sidekick").
 -- Invite and TeamHud are not UiSpec Panels (Panels must be PanelSwitch ones and close each other, the Invite must not), so
@@ -49,6 +51,8 @@ local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
 local BAR_MAX_BOTTOM = 0.3 -- of the screen height: "top middle"
+local PLATE_MAX_TRANSPARENCY = 0.1
+local MIN_TEXT_CONTRAST = 3 -- WCAG large text
 
 local Module = {}
 
@@ -264,13 +268,41 @@ function Module.Build(h)
 		h.checkList(res, tag .. "_clear_of_hud", onHud)
 	end
 
+	local function isRed(c)
+		return c.R >= 0.5 and c.G < 0.3 and c.B < 0.3
+	end
+	local function luminance(c)
+		local function channel(v)
+			return v <= 0.03928 and v / 12.92 or ((v + 0.055) / 1.055) ^ 2.4
+		end
+		return 0.2126 * channel(c.R) + 0.7152 * channel(c.G) + 0.0722 * channel(c.B)
+	end
+	local function contrast(a, b)
+		local la, lb = luminance(a), luminance(b)
+		return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05)
+	end
+	-- The plate is red and solid, and the exact text reads against this moment's colour.
+	local function warningPlate()
+		local warning, label = h.find(WARNING), hasText(WARNING, WARNING_TEXT)
+		if not (warning and label) then
+			return { Red = false, Bright = false, Readable = false, Heavy = false }
+		end
+		local plate = warning.BackgroundColor3
+		return {
+			Red = isRed(plate) and warning.BackgroundTransparency <= PLATE_MAX_TRANSPARENCY,
+			Bright = plate.R >= 0.8,
+			Readable = contrast(label.TextColor3, plate) >= MIN_TEXT_CONTRAST and label.TextTransparency <= 0.1,
+			Heavy = label.FontFace.Weight.Value >= Enum.FontWeight.Bold.Value,
+		}
+	end
+
 	-- What a flash changes, as one string, for the Warning and everything in it.
 	local function warningLook()
 		local warning = h.find(WARNING)
 		if not warning then
-			return "missing", false
+			return "missing"
 		end
-		local look, red = {}, false
+		local look = {}
 		for _, d in { warning, table.unpack(warning:GetDescendants()) } do
 			if d:IsA("GuiObject") then
 				table.insert(look, tostring(d.Visible))
@@ -279,7 +311,6 @@ function Module.Build(h)
 			end
 			if d:IsA("TextLabel") then
 				local c = d.TextColor3
-				red = red or (c.R > 0.6 and c.G < 0.4 and c.B < 0.4 and d.Text == WARNING_TEXT)
 				table.insert(look, ("%.2f"):format(d.TextTransparency))
 				table.insert(look, ("%.2f"):format(d.TextStrokeTransparency))
 				table.insert(look, tostring(c))
@@ -287,7 +318,7 @@ function Module.Build(h)
 				table.insert(look, ("%.2f"):format(d.Transparency))
 			end
 		end
-		return table.concat(look, ","), red
+		return table.concat(look, ",")
 	end
 	local function reducedNow()
 		return GuiService.ReducedMotionEnabled or h.player:GetAttribute("ReduceEffects") == true
@@ -305,6 +336,33 @@ function Module.Build(h)
 			task.wait(0.05)
 		end
 		return maxSeconds
+	end
+
+	-- A 0-roll save with auto-roll off. Client/AutoRollTutorial destroys its gui for good at the first roll, so a session past
+	-- that gets a stand-in of the same name: BossEventUi's check reads only that name and the two attributes.
+	local function checkInviteWaitsForTutorial(res)
+		gear(res, 2)
+		setup(res, "boss_ui_tutorial:on")
+		waitIs(function()
+			return h.player:GetAttribute("Rolls") == 0 and h.player:GetAttribute("AutoRoll") == false
+		end, true)
+		local playerGui = h.player:WaitForChild("PlayerGui")
+		local standIn = nil
+		if not playerGui:FindFirstChild("AutoRollTutorial") then
+			standIn = Instance.new("ScreenGui")
+			standIn.Name = "AutoRollTutorial"
+			standIn.Enabled = false
+			standIn.Parent = playerGui
+		end
+		state(res, "Prep", 5, 0, 0, false)
+		check(res, "invite_hidden_during_tutorial", waitShown(INVITE, true, 1), false)
+		setup(res, "boss_ui_tutorial:off")
+		check(res, "invite_shows_after_tutorial", waitShown(INVITE, true), true)
+		if standIn then
+			standIn:Destroy()
+		end
+		state(res, "Idle", 0, 0, 0, false)
+		waitShown(INVITE, false)
 	end
 
 	local function checkInvite(res)
@@ -478,12 +536,16 @@ function Module.Build(h)
 			local bar = h.find(BAR)
 			check(res, "bar_pops_in", bar ~= nil and bar:FindFirstChild("MotionScale") ~= nil, true)
 		end
-		local looks, red, ratios, leftDrift = {}, false, {}, 0
+		local looks, ratios, leftDrift = {}, {}, 0
+		local red, bright, readable, heavy = true, false, true, true
 		local stop = os.clock() + FLASH_SAMPLE
 		while os.clock() < stop do
-			local look, isRed = warningLook()
-			looks[look] = true
-			red = red or isRed
+			looks[warningLook()] = true
+			local plate = warningPlate()
+			red = red and plate.Red
+			bright = bright or plate.Bright
+			readable = readable and plate.Readable
+			heavy = heavy and plate.Heavy
 			local ratio = fillRatio()
 			if ratio then
 				table.insert(ratios, ratio)
@@ -496,7 +558,10 @@ function Module.Build(h)
 		for _ in looks do
 			count += 1
 		end
-		check(res, "warning_is_red", red, true)
+		check(res, "warning_is_red", red, true) -- every moment of the flash
+		check(res, "warning_reaches_bright_red", bright, true)
+		check(res, "warning_text_readable_on_plate", readable, true)
+		check(res, "warning_text_heavy", heavy, true)
 		checkFit(res, "fight")
 		if not reduced then
 			h.check(res, "warning_flashes", count, ">= 2 looks", count >= 2)
@@ -609,6 +674,10 @@ function Module.Build(h)
 		end
 		check(res, "reduced_warning_does_not_flash", count, 1)
 		check(res, "reduced_warning_stays_shown", alwaysShown, true)
+		local plate = warningPlate()
+		check(res, "reduced_warning_solid_red", plate.Red, true)
+		check(res, "reduced_warning_bright", plate.Bright, true)
+		check(res, "reduced_warning_text_readable", plate.Readable, true)
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
 		onlyShown(res, "event_end", {})
@@ -629,6 +698,7 @@ function Module.Build(h)
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
 			onlyShown(res, "rest", {})
+			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
 			checkLocked(res)
 			checkTeamHud(res)

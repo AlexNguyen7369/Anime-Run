@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
+local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
 local RunnerVisual = require(script.Parent.RunnerVisual)
@@ -227,6 +228,36 @@ local function setAngles(camera, pitch, yaw)
 	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, distance)
 end
 
+-- The rise (docs/BOSS_EVENT_SPEC.md "Arena"): through the intro the camera looks at the arena centre, so the boss is seen
+-- coming up from under the track. It orbits the focus, which keeps the player's character on screen.
+local function riseCameraOn(camera)
+	if
+		player:GetAttribute("BossEvent") ~= true
+		or ReplicatedStorage:GetAttribute("BossEventPhase") ~= "Fight"
+		or player:GetAttribute("TrackCamera") == false
+		or player:GetAttribute("TopDownView") == true
+		or camera.CameraType ~= Enum.CameraType.Custom
+	then
+		return false
+	end
+	local start = ReplicatedStorage:GetAttribute("BossEventStart")
+	return start ~= nil and Workspace:GetServerTimeNow() - start < BossCfg.PrepSeconds + BossCfg.IntroSeconds
+end
+
+local function faceArena(camera, dt)
+	local inward = (Arena.Center - camera.Focus.Position) * Vector3.new(1, 0, 1)
+	if inward.Magnitude < 1e-3 then
+		return
+	end
+	local look = camera.CFrame.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	local turn = (math.atan2(-inward.X, -inward.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
+	local ease = 1 - math.exp(-TRACK_CAMERA_RATE * dt)
+	local pitch = math.asin(math.clamp(look.Y, -1, 1))
+	savedPitch = savedPitch or pitch
+	setAngles(camera, pitch + (ARENA_PITCH - pitch) * ease, yaw + turn * ease)
+end
+
 local function alignYaw(camera, torso, dt)
 	local dir = torso.CFrame.LookVector
 	local inEvent = player:GetAttribute("BossEvent") == true
@@ -274,6 +305,7 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
 		savedPitch = nil
 	end
+	local rising = camera and riseCameraOn(camera)
 	local mine = player:GetAttribute("AutoRacing") == true and RunnerVisual.LocalRunner()
 	local torso = mine and mine.PrimaryPart
 	followed = nil
@@ -282,7 +314,7 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 			camera.CameraSubject = torso
 		end
 		cameraOnRunner = true
-		if trackCameraOn(camera, mine) then
+		if not rising and trackCameraOn(camera, mine) then
 			alignYaw(camera, torso, dt)
 		end
 		followed = { Part = torso, Position = torso.Position }
@@ -292,6 +324,9 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		if humanoid then
 			camera.CameraSubject = humanoid
 		end
+	end
+	if rising then
+		faceArena(camera, dt)
 	end
 end)
 
