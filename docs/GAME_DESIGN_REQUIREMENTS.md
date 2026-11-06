@@ -400,7 +400,7 @@ before any Studio work.
 - First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
 - Luck never affects summons (owner 2026-11-04). Luck, luck potions and every luck source apply only to the character auto-roll, which is
-  fully separate from Sidekicks. Summons have no luck potions, VIP discount, shiny pass or pity.
+  fully separate from Sidekicks. Summons have no luck potions, VIP discount or shiny pass.
 - The summon page (owner's reference, layout ideas only, no copied art): gem packs and buttons on the left; on the right one banner showing
   the Sidekicks, the Gem balance, and Summon 1x and Summon 10x. Odds sit behind a button labelled "Details" (section 6).
 - The Bag has its own Sidekicks category, holding 50 Sidekicks (owner 2026-11-04). Each summon is its own bag entry. A summon needs room for
