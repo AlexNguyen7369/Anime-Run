@@ -1755,6 +1755,15 @@ function K.checkBagRoom(res, tag)
 	)
 end
 
+-- A pass owner's rolls (2x Auto-Roll, Extra Rolls) refill the bag within one long scenario, so its waits ask for room again: the
+-- fixture's makeBagRoom leaves a bag below half full alone and never touches one a bag fixture holds on purpose.
+function K.keepBagRoom(res)
+	local ok, err = UiScenarios.RequestSetup("auto_roll_on")
+	if not ok then
+		check(res, "bag_room_setup", tostring(err), "ok", false)
+	end
+end
+
 -- HudFormat.Multi(n) ("x1.5", docs/HUD_LAYOUT_SPEC.md section 8) appears in text and is not followed by another digit
 -- or point (so "x1.50" or "x1.375" never pass for x1.5 / x1.38).
 local function multiIn(text, n)
@@ -1821,7 +1830,8 @@ function UiScenarios.SampleTurbo(ev)
 	table.insert(events.turbos, rec)
 	task.wait(UiSpec.Waits.TurboPopShow)
 	rec.shownText, rec.shown = popState()
-	task.wait(UiSpec.Waits.TurboPopHide - UiSpec.Waits.TurboPopShow)
+	local hideBy = math.min(UiSpec.Waits.TurboPopHide, (ev.interval or math.huge) - UiSpec.Waits.TurboBeforeNext)
+	task.wait(hideBy - UiSpec.Waits.TurboPopShow)
 	local _, _, gone = popState()
 	rec.gone = gone
 	rec.fill = fillFraction()
@@ -2946,6 +2956,17 @@ function UiScenarios.SampleRoll(ev)
 	local playing = findPath("RollToast/Toast")
 	local midPlay = { Spin = true, Land = true, Hold = true, Exit = true }
 	local behind = playing and midPlay[playing:GetAttribute("Phase")] and playing:GetAttribute("RollSerial") or nil
+	-- At a fast roll interval the rise to LAND_POP takes about 2 frames (TimeScale; 2x Auto-Roll), so land_pop_peak reads every
+	-- write of the compact Body's Size while the card shows, not only a Heartbeat's AbsoluteSize.
+	local landBody = playing and compactBody(playing)
+	rec.landSize = 0
+	local landConn = landBody
+		and landBody:GetPropertyChangedSignal("Size"):Connect(function()
+			local mine = not (behind and playing:GetAttribute("RollSerial") == behind)
+			if mine and playing:GetAttribute("Phase") == "Land" and effectivelyVisible(playing) then
+				rec.landSize = math.max(rec.landSize, landBody.Size.X.Scale)
+			end
+		end)
 	local function sampleFly(now)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
@@ -3117,6 +3138,9 @@ function UiScenarios.SampleRoll(ev)
 			toastShown = toastShown,
 			flyShown = flyShown,
 		}
+	end
+	if landConn then
+		landConn:Disconnect()
 	end
 	rec.done = true
 end
@@ -5683,6 +5707,7 @@ function S.ui_toast(res)
 	local want = table.concat(UiSpec.RollAnim.Phases, ",")
 	for _, p in allPanels() do
 		local restorePanel = setPanels({})
+		K.keepBagRoom(res)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
 			local ev0 = events.rolls[#events.rolls]
 			waitCardPhase(toast, { Spin = true }, animNum("POP") + 0.5)
@@ -5780,10 +5805,11 @@ function S.ui_toast(res)
 
 	-- With no panel open: shown on a roll (clickable), landed on the roll's truth at its contract rect, then gone
 	-- (Visible = false, not clickable) once the roll's animation is over. Uses a roll with no other roll before
-	-- that (3 tries).
+	-- that (8 tries: with Extra Rolls the rarest of each tick plays, and a Rare or better leaves no gap at the 2x interval).
 	local restore = setPanels({})
+	K.keepBagRoom(res)
 	local ev, shownRec, holdRec, goneRec = nil, nil, nil, nil
-	for _ = 1, 3 do
+	for _ = 1, 8 do
 		if not waitNewRoll(UiSpec.Waits.RollToast) then
 			break
 		end
@@ -5815,9 +5841,11 @@ function S.ui_toast(res)
 			layout = compactLayoutProblems(toast),
 			placement = liveVsNominal(toast),
 		}
+		-- Idle ends the wait: at the 2x interval the next roll comes before the grace is over
 		local goneAt = mine.t + durationFor(rarity, mine.emphasized, mine.interval) + UiSpec.Waits.ToastGoneGrace
-		task.wait(math.max(0, goneAt - os.clock()))
-		renderFrame()
+		while os.clock() < goneAt and toast:GetAttribute("Phase") ~= "Idle" do
+			RunService.Heartbeat:Wait()
+		end
 		local hit = false
 		for _, h in hitsAt(x, y) do
 			hit = hit or h == toast or h:IsDescendantOf(toast)
@@ -5968,6 +5996,7 @@ function S.ui_rolls(res)
 	end
 	local rec = isolatedTurbo()
 	if not rec then
+		K.keepBagRoom(res)
 		player:SetAttribute("UiTestWaiting", "turbo_roll")
 		print(
 			("[UITEST] WAIT turbo_roll up to %d s (ServerSetup turbo_next makes it quick)"):format(
@@ -6129,14 +6158,15 @@ function S.ui_roll_anim(res)
 	local ev = rec.ev
 	local spec = CharacterCatalog.Get(ev.id)
 	-- The server sends the player's roll interval as RollResult's last argument (spec "Fit to the roll interval")
+	local intervalPass = attr("Pass_auto_roll_2x") == true and 2 or 1 -- docs/MONETIZATION_SPEC.md: Interval / 2
+	local intervalLow, intervalHigh =
+		UiSpec.RollAnim.IntervalMin / intervalPass, GachaConfig.ROLL_INTERVAL / intervalPass
 	check(
 		res,
 		"roll_result_sends_interval",
 		tostring(ev.interval),
-		("%g..%g"):format(UiSpec.RollAnim.IntervalMin, GachaConfig.ROLL_INTERVAL),
-		type(ev.interval) == "number"
-			and ev.interval >= UiSpec.RollAnim.IntervalMin
-			and ev.interval <= GachaConfig.ROLL_INTERVAL
+		("%g..%g"):format(intervalLow, intervalHigh),
+		type(ev.interval) == "number" and ev.interval >= intervalLow and ev.interval <= intervalHigh
 	)
 	phaseChecks(res, rec, "Compact", "")
 	K.shownChecks(res, rec, "Compact", "")
@@ -6207,9 +6237,9 @@ function S.ui_roll_anim(res)
 	check(
 		res,
 		"land_pop_peak",
-		peakLand,
-		("%.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
-		math.abs(peakLand - pop) <= UiSpec.RollAnim.LandPopTolerance
+		("Size %.3f, Heartbeat AbsoluteSize %.3f"):format(rec.landSize, peakLand),
+		("Size %.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
+		math.abs(rec.landSize - pop) <= UiSpec.RollAnim.LandPopTolerance
 	)
 	check(
 		res,

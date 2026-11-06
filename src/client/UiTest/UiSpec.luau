@@ -1122,7 +1122,9 @@ UiSpec.RollAnim = {
 	Phases = { "PopIn", "Spin", "Land", "Hold", "Exit", "Idle" }, -- one roll, in this order
 	PhaseTolerance = 0.1, -- s, per phase length (frame quantisation at both ends)
 	PhaseStart = 0.2, -- s from the RollResult to PopIn (+ SWITCH for an emphasized roll)
-	IntervalMin = 2, -- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL
+	-- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL, both halved by the 2x Auto-Roll pass
+	-- (docs/MONETIZATION_SPEC.md, GachaService.RollInterval)
+	IntervalMin = 2,
 	ShownAttr = "ShownId", -- body attribute: the character on screen in every phase after PopIn
 	SpinMinShown = 2, -- distinct ShownId values during Spin (not under reduced motion)
 	SlotJitter = 0.04, -- s: two frames' slack when comparing the length of two Spin slots
@@ -1302,6 +1304,7 @@ UiSpec.Waits = {
 	TurboRoll = 35, -- a turbo roll comes every TurboEvery (10) rolls x ROLL_INTERVAL (3 s) = 30 s at most
 	TurboPopShow = 0.5, -- the TURBO label must show "TURBO x<multi>!" this soon after a turbo RollResult
 	TurboPopHide = 2, -- and be back to "TURBO LUCK 0/<every>" (bar empty) this soon after it
+	TurboBeforeNext = 0.1, -- s: a faster roll interval (2x Auto-Roll) reads that this long before its next roll: the pop lasts 1.2 s
 	TurboStable = 6, -- ui_turbo waits at most this long for a moment HudSettle s after the last turbo change
 	WorkshopPlot = 15, -- the player's plot (attribute Plot) and its Workshop must exist within this
 }
