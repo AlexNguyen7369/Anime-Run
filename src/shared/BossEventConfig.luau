@@ -9,6 +9,13 @@ BossEventConfig.JoinSeconds = 180 -- teleporting closes and HP locks
 BossEventConfig.TotalSeconds = 480
 BossEventConfig.RefillWaitSeconds = 5
 BossEventConfig.ChatMessage = "BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS"
+BossEventConfig.InviteSeconds = 3 -- owner: then teleporting stays open from the Boss button
+-- Schedule event -> the chat line to players in the event (BOSS_EVENT_SPEC, wording proposed).
+BossEventConfig.MoveChat = {
+	Impact = "Big Raga attacks! -5% stamina",
+	Roar = "Big Raga shouts! Damage down for 5 s",
+	WheelClick = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
+}
 
 BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: 2 to 3 s, the rise, no damage
 BossEventConfig.AttackStaminaCost = 5 -- owner: percent of a full bar, per attack Impact, on the running character

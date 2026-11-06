@@ -33,6 +33,14 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" --
 local WARNING_SECONDS = 6
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
+local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
+local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
+local BOSS_BUTTON_SIZE = Vector2.new(128, 40)
+local PULSE_SCALE = 1.08
+local PULSE_PERIOD = 0.6
+local GLOW_THICK = 5
+local PROMPT_SECONDS = 3
+local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESEND_GAP = 0.3 -- s between team sends: the server refuses a request inside its 0.25 s cooldown
 local PHONE_MAX_HEIGHT = 500 -- the HUD's phone rule
 local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too low, and the roll it clears is hidden or below
@@ -198,18 +206,20 @@ local listGrid = make("UIGridLayout", "Grid", list, {
 })
 
 -- Warning, BossBar, LeaveButton -------------------------------------------------------------------------------------------
-local warning = make("Frame", "Warning", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
-warning.BackgroundColor3 = WARNING_BRIGHT
-warning.BorderSizePixel = 0
-UiTheme.Corner(warning, "M")
-UiTheme.Stroke(warning, 3, Palette.White, true)
+local warning = make("Frame", "Warning", root, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Visible = false,
+})
 local warningLabel = label("Text", warning, {
-	Position = UDim2.fromScale(0.02, 0.06),
-	Size = UDim2.fromScale(0.96, 0.88),
+	Size = UDim2.fromScale(1, 1),
 	Text = WARNING_TEXT,
 	Font = Enum.Font.GothamBlack,
-}, 56)
-UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
+	TextColor3 = WARNING_BRIGHT,
+	TextWrapped = true,
+}, 72)
+local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
 
 local bar = make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
 UiTheme.Plate(bar, Palette.Danger)
@@ -296,6 +306,36 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 	TextSize = 18,
 	Visible = false,
 })
+
+-- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
+-- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
+local bossButton = button("BossButton", nil, "Boss (Active)", Palette.Danger, {
+	Size = UDim2.fromOffset(BOSS_BUTTON_SIZE.X, BOSS_BUTTON_SIZE.Y),
+	TextSize = 16,
+	Visible = false,
+})
+make("UIScale", "PulseScale", bossButton, {})
+local bossGlow = bossButton.ThemeStroke
+bossGlow.Name = "Glow"
+bossGlow.Color = Palette.Gold
+bossButton.Parent = root
+local bossPrompt = label("BossPrompt", root, {
+	Size = UDim2.fromOffset(300, 24),
+	Text = LOCKED_TEXT,
+	TextColor3 = Palette.Gold,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Visible = false,
+}, 18)
+
+local function placeBossButton()
+	local inset = GuiService.TopbarInset
+	local x = inset.Min.X + BOSS_BUTTON_GAP
+	local y = math.max(2, (inset.Max.Y - BOSS_BUTTON_SIZE.Y) / 2)
+	bossButton.Position = UDim2.fromOffset(x, y)
+	bossPrompt.Position = UDim2.fromOffset(x, y + BOSS_BUTTON_SIZE.Y + 6)
+end
+GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
+placeBossButton()
 
 -- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
 local exhausted = make("Frame", "ExhaustedPanel", root, {
@@ -411,8 +451,10 @@ local function placeTop(phone, size, row)
 	local statusHeight = phone and STATUS_HEIGHT_PHONE or STATUS_HEIGHT
 	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
 	statusRow.Size = UDim2.new(1, 0, 0, statusHeight)
-	warning.Position = UDim2.new(0.5, 0, 0, barTop + height + STATUS_GAP + statusHeight + 8)
-	warning.Size = UDim2.fromOffset(math.min(size.X * 0.8, 1000), phone and 48 or 84)
+	local warningTop = barTop + height + STATUS_GAP + statusHeight + 8
+	warning.Position = UDim2.new(0.5, 0, 0, warningTop)
+	local warningHeight = math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, size.Y / 2 - warningTop - 8))
+	warning.Size = UDim2.fromOffset(math.min(size.X * 0.86, 1100), warningHeight)
 end
 
 -- Follows the HUD while a part shows (PanelBand.Fit's way); the writes run only when a number changed.
@@ -592,8 +634,7 @@ local function refreshGear()
 	local locked = #rows == 0 -- READING in UiBossEvent: a Sidekick only in the Bag locks it, the server refuses that join
 	teleport.Active = not locked
 	teleport.BackgroundColor3 = locked and Palette.Disabled or Palette.MoneyDeep
-	inviteHint.Text = locked and "Get a Sidekick and equip it to teleport"
-		or "Teleport to fight Big Raga before the timer ends"
+	inviteHint.Text = locked and LOCKED_TEXT or "Teleport to fight Big Raga before the timer ends"
 end
 player:GetAttributeChangedSignal("SidekickGear"):Connect(refreshGear)
 player:GetAttributeChangedSignal("SidekickBag"):Connect(refreshGear)
@@ -601,6 +642,7 @@ refreshGear()
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
 local declinedStart = nil
+local promptUntil = 0
 local busy = false
 
 -- Remotes are found when pressed (UiBossEvent): progression_spy swaps them.
@@ -625,6 +667,13 @@ end)
 decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
+bossButton.Activated:Connect(function()
+	if teleport.Active then
+		ask("BossEventTeleport", bossButton)
+	else
+		promptUntil = os.clock() + PROMPT_SECONDS
+	end
+end)
 leave.Activated:Connect(function()
 	ask("BossEventLeave", leave)
 end)
@@ -635,6 +684,9 @@ local wasFight = false
 local teamKey = nil
 local warningUntil = 0
 local stopFlash = nil
+local stopPulse = nil
+local invitedStart = nil
+local inviteUntil = 0
 
 local function clockText(seconds)
 	local whole = math.ceil(math.max(0, seconds))
@@ -710,7 +762,12 @@ local function render()
 			bar.Visible = true
 			UiMotion.Pop(bar)
 			warningUntil = os.clock() + WARNING_SECONDS
-			stopFlash = UiMotion.Pulse(warning, { BackgroundColor3 = Palette.DangerDeep }, FLASH_PERIOD)
+			local stopText = UiMotion.Pulse(warningLabel, { TextTransparency = 1 }, FLASH_PERIOD)
+			local stopStroke = UiMotion.Pulse(warningStroke, { Transparency = 1 }, FLASH_PERIOD)
+			stopFlash = function()
+				stopText()
+				stopStroke()
+			end
 			-- cue: ToastHigh
 		end
 	end
@@ -718,17 +775,33 @@ local function render()
 		endWarning()
 	end
 
-	local joinable = phase ~= nil
-		and not inEvent
-		and declinedStart ~= start
-		and elapsed < Cfg.JoinSeconds
-		and not tutorialActive()
-	if joinable and not invite.Visible then
-		invite.Visible = true
+	local joinable = phase ~= nil and not inEvent and elapsed < Cfg.JoinSeconds and not tutorialActive()
+	-- Once per event, for its own seconds: after that the Boss button carries teleporting.
+	if joinable and invitedStart ~= start then
+		invitedStart = start
+		inviteUntil = os.clock() + Cfg.InviteSeconds
+		invite.Visible = declinedStart ~= start
 		UiMotion.Pop(invite) -- cue: DuelInvite
-	elseif not joinable then
+	elseif not joinable or declinedStart == start or os.clock() >= inviteUntil then
 		invite.Visible = false
 	end
+
+	if joinable ~= bossButton.Visible then
+		bossButton.Visible = joinable
+		if stopPulse then
+			stopPulse()
+			stopPulse = nil
+		end
+		if joinable then
+			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
+			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
+			stopPulse = function()
+				stopSize()
+				stopGlow()
+			end
+		end
+	end
+	bossPrompt.Visible = joinable and not invite.Visible and not teleport.Active and os.clock() < promptUntil
 	hud.Visible = inEvent and phase == "Prep" and not panelOpen
 	bar.Visible = inFight
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen

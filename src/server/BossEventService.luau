@@ -7,7 +7,7 @@
 -- BossEvent (true while in the event), BossTeamDamage (TeamDamage, nil outside the event) and BossWaitEndsAt (server time the
 -- exhausted team revives, nil otherwise). They call the RemoteFunctions
 -- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
--- Remotes.BossEventChat carries the server-wide spawn message to Client/BossEventChat.
+-- Remotes.BossEventChat carries the server-wide spawn message and each member's move lines to Client/BossEventChat.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -188,6 +188,11 @@ BossEventService.Hooks = {
 	Chat = function(text)
 		if chatRemote then
 			chatRemote:FireAllClients(text)
+		end
+	end,
+	MoveChat = function(player, text)
+		if chatRemote and player:IsA("Player") then
+			chatRemote:FireClient(player, text)
 		end
 	end,
 	-- One Relic each; one player's failure never costs another's. The toast goes through Remotes.RunEvent (Client/TeamToast).
@@ -515,6 +520,19 @@ function BossEventService.Reset(at)
 	publish()
 end
 
+-- One chat line per move whose moment passed since the last tick, to the players in the event now.
+local function announceMoves(current, t)
+	local from = current.ChattedTo or 0
+	current.ChattedTo = math.max(from, t)
+	for name, text in Cfg.MoveChat do
+		if countUpTo(name, t) > countUpTo(name, from) then
+			for player in current.Members do
+				safely(BossEventService.Hooks.MoveChat, player, text)
+			end
+		end
+	end
+end
+
 -- One event's clock at `at`: the spawn, the end of the intro, every hit due, the ends.
 local function tick(at)
 	local current = event
@@ -542,6 +560,7 @@ local function tick(at)
 	end
 	local t = elapsed - Cfg.PrepSeconds
 	ReplicatedStorage:SetAttribute("BossStatus", statusJson(t))
+	announceMoves(current, t)
 	for player, member in table.clone(current.Members) do
 		chargeAttacks(member, t)
 		if not player.Parent then
