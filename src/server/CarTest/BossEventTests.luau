@@ -47,9 +47,10 @@
 --       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
 --       at or before its joining, is never charged.
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
---     cleared at refill and on leaving. BossEventConfig.WaitCameraOffset, a Vector3 from the arena centre: above the whole
---     boss and on its front (-Z). BossEventConfig.WaitCameraCFrame(center): pure, at center + offset, and sees the ring and
---     the wheel top at CameraFov.
+--     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): near
+--     and above the local runner, on the ring's outer side, looking in at the boss. In a 907 px high view at WaitCameraFov the runner
+--     shows at least 20 px tall, the wheel top and feet show, and the boss is at least 500 px tall. The whole ring need not fit.
+--     No runnerPosition: a fixed spot on the boss's front (-Z).
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
 --   RaceService.NewRun option Boss = true, with Team = { ids }, on { Path = BossArenaConfig.LaneRoute(n), Pads = {}, Tracks = {} }:
 --     stamina without npcMode, distance wraps the closed route. At all empty: run.Waiting = true, RunSpeed 0, runner still,
@@ -1993,47 +1994,87 @@ function Tests.make(deps)
 			section("wait_view", function()
 				local CarService = require(Server.CarService)
 				local Arena = require(Shared.BossArenaConfig)
-				local offset = Cfg.WaitCameraOffset
+				local RunnerFactory = require(Shared.RunnerFactory)
 				local makeFrame = Cfg.WaitCameraCFrame
-				flag("wait_offset_is_vector", typeof(offset) == "Vector3", typeof(offset), "Vector3")
 				flag("wait_cframe_is_function", type(makeFrame) == "function")
-				if typeof(offset) == "Vector3" and type(makeFrame) == "function" then
-					flag("wait_camera_above_boss", offset.Y > Arena.BossTotalHeight, offset.Y, Arena.BossTotalHeight)
-					flag("wait_camera_in_front", offset.Z < 0, offset.Z, "< 0") -- Big Raga faces -Z (Client/BossRaga)
-					local frame = makeFrame(Arena.Center)
-					flag(
-						"wait_camera_at_offset",
-						(frame.Position - (Arena.Center + offset)).Magnitude < 0.01,
-						frame.Position,
-						Arena.Center + offset
-					)
+				if type(makeFrame) == "function" then
+					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
+					local MIN_RUNNER_PX, MIN_BOSS_PX = 20, 500
+					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
+					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
+					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT
+					local function flat(point)
+						return Vector3.new(point.X - Arena.Center.X, 0, point.Z - Arena.Center.Z)
+					end
+					-- Screen height in px from the view's middle, and whether the point shows.
+					local function project(frame, point)
+						local at = frame:PointToObjectSpace(point)
+						local depth = -at.Z
+						if depth <= 0 then
+							return 0, false
+						end
+						local y, x = at.Y / depth, at.X / depth
+						return y / halfTall * VIEW_HEIGHT / 2, math.abs(y) <= halfTall and math.abs(x) <= halfWide
+					end
+					local feetOfBoss, wheelTop = Arena.Center, Arena.Center + Vector3.yAxis * Arena.BossTotalHeight
+					local bad = { side = {}, runner = {}, boss = {} }
+					local smallestRunner, smallestBoss = math.huge, math.huge
+					for _, lane in { 1, Arena.Lanes } do
+						for i = 0, Arena.Segments - 1, Arena.Segments / 8 do
+							local tag = lane .. "@" .. i
+							local feet = Arena.RingPoint(Arena.LaneRadius(lane), i)
+							local root = feet + Vector3.yAxis * RunnerFactory.HIP_HEIGHT
+							local frame = makeFrame(Arena.Center, root)
+							local inward = -flat(frame.Position)
+							if
+								flat(frame.Position).Magnitude <= flat(root).Magnitude
+								or frame.Position.Y <= root.Y
+								or frame.LookVector:Dot(inward) <= 0
+							then
+								table.insert(bad.side, tag)
+							end
+							local feetY, feetShow = project(frame, feet)
+							local headY, headShow = project(frame, feet + Vector3.yAxis * RIG_HEIGHT)
+							if not (feetShow and headShow) then
+								table.insert(bad.runner, tag)
+							end
+							smallestRunner = math.min(smallestRunner, headY - feetY)
+							local bottomY, bottomShow = project(frame, feetOfBoss)
+							local topY, topShow = project(frame, wheelTop)
+							if not (bottomShow and topShow) then
+								table.insert(bad.boss, tag)
+							end
+							smallestBoss = math.min(smallestBoss, topY - bottomY)
+						end
+					end
+					flag("wait_camera_outer_above_looking_in", #bad.side == 0, table.concat(bad.side, " "), "none")
+					flag("wait_runner_in_view", #bad.runner == 0, table.concat(bad.runner, " "), "none")
+					flag("wait_runner_tall_enough", smallestRunner >= MIN_RUNNER_PX, smallestRunner, MIN_RUNNER_PX)
+					flag("wait_boss_in_view", #bad.boss == 0, table.concat(bad.boss, " "), "none")
+					flag("wait_boss_tall_enough", smallestBoss >= MIN_BOSS_PX, smallestBoss, MIN_BOSS_PX)
+
+					local root = Arena.RingPoint(Arena.LaneRadius(1), 12) + Vector3.yAxis * RunnerFactory.HIP_HEIGHT
 					local moved = Vector3.new(100, 50, -300)
-					local shifted = makeFrame(Arena.Center + moved)
+					local frame, shifted = makeFrame(Arena.Center, root), makeFrame(Arena.Center + moved, root + moved)
 					flag(
 						"wait_cframe_pure",
 						(shifted.Position - frame.Position - moved).Magnitude < 0.01
 							and shifted.LookVector:FuzzyEq(frame.LookVector, 0.001)
 					)
-					local points = { Arena.Center + Vector3.yAxis * Arena.BossTotalHeight }
-					for i = 0, Arena.Segments - 1 do
-						table.insert(points, Arena.RingPoint(Arena.InnerRadius, i))
-						table.insert(points, Arena.RingPoint(Arena.InnerRadius + Arena.Width, i))
-					end
-					local halfTall = math.tan(math.rad(Cfg.CameraFov / 2))
-					for name, aspect in { wide = 16 / 9, tablet = 4 / 3 } do
-						local outside = 0
-						for _, point in points do
-							local at = frame:PointToObjectSpace(point)
-							local depth = -at.Z
-							if
-								depth <= 0
-								or math.abs(at.Y) / depth > halfTall
-								or math.abs(at.X) / depth > halfTall * aspect
-							then
-								outside += 1
-							end
-						end
-						eq("wait_view_sees_all_" .. name, outside, 0)
+					local fine, fallback = pcall(makeFrame, Arena.Center)
+					flag(
+						"wait_fallback_no_error",
+						fine and typeof(fallback) == "CFrame",
+						tostring(fallback),
+						"a CFrame"
+					)
+					if fine and typeof(fallback) == "CFrame" then
+						flag(
+							"wait_fallback_in_front",
+							fallback.Position.Z < Arena.Center.Z,
+							fallback.Position.Z,
+							"< centre"
+						) -- Big Raga faces -Z (Client/BossRaga)
 					end
 				end
 

@@ -1,6 +1,8 @@
 --!nonstrict
 -- Boss event numbers (design doc 4.37, docs/BOSS_EVENT_SPEC.md). Interval, prep, join, total, refill wait and chat text are
 -- owner values; the rest are spec placeholders.
+local Arena = require(script.Parent.BossArenaConfig)
+
 local BossEventConfig = {}
 
 BossEventConfig.IntervalSeconds = 1800
@@ -24,8 +26,14 @@ BossEventConfig.ShoutSeconds = 5 -- owner
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
 BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
-BossEventConfig.WaitCameraOffset = Vector3.new(0, 850, -1200) -- placeholder: front and above; Big Raga faces -Z
-local WAIT_CAMERA_LOOK_HEIGHT = 150 -- placeholder: above the ring's centre
+BossEventConfig.WaitCameraFov = 66 -- placeholder: the exhaustion view zooms in on the boss and the runner
+-- Placeholders. At WaitCameraFov on a 907 px screen: a 5 stud runner is about 27 px at y near 750, clear of the bottom
+-- bars; the boss is about 530 px tall, wheel top to feet, all in view.
+local WAIT_CAMERA_OUT = 120 -- behind the runner, away from the boss
+local WAIT_CAMERA_UP = 30
+local WAIT_CAMERA_LOOK_HEIGHT = 200 -- on the boss, above the deck
+-- No runner: the same distance from the ring, on the boss's front (it faces -Z).
+BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
 BossEventConfig.HpPerPlayer = 4000 -- placeholder
 BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
 BossEventConfig.MinDamageShare = 0.01 -- placeholder: of max HP, for a reward
@@ -48,9 +56,14 @@ function BossEventConfig.TeamDamage(damages, cruise)
 	return total / #damages * BossEventConfig.SpeedScale(cruise)
 end
 
--- The exhaustion view: the whole ring and the wheel's top fit at CameraFov (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
-function BossEventConfig.WaitCameraCFrame(center)
-	return CFrame.lookAt(center + BossEventConfig.WaitCameraOffset, center + Vector3.yAxis * WAIT_CAMERA_LOOK_HEIGHT)
+-- The exhaustion view: close behind and above the runner, looking at the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
+function BossEventConfig.WaitCameraCFrame(center, runnerPosition)
+	local look = center + Vector3.yAxis * WAIT_CAMERA_LOOK_HEIGHT
+	local flat = runnerPosition and (runnerPosition - center) * Vector3.new(1, 0, 1)
+	if not flat or flat.Magnitude < 1 then
+		return CFrame.lookAt(center + BossEventConfig.WaitCameraOffset, look)
+	end
+	return CFrame.lookAt(runnerPosition + flat.Unit * WAIT_CAMERA_OUT + Vector3.yAxis * WAIT_CAMERA_UP, look)
 end
 
 return BossEventConfig

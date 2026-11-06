@@ -53,8 +53,17 @@ local RESERVED_RIGHT = 360
 local EXHAUSTED_TEXT = "Your team is exhausted. Reviving..."
 local DIM_TRANSPARENCY = 0.65 -- "slightly dims" (BOSS_EVENT_SPEC "Exhaustion view")
 local STATUS_GAP = 4 -- px under the bar
-local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 28, 22
-local STATUS_SECONDS, STATUS_SECONDS_PHONE = 14, 12
+local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 40, 22
+local STATUS_SECONDS, STATUS_SECONDS_PHONE = 20, 12
+local BAR_WIDTH = 0.62 -- of the screen
+local BAR_SIDE_CLEAR = 78 -- px each side, for the LeaveButton (right edge -8, 62 wide) and its gap
+local TOP_FULL_HEIGHT = 900 -- px: a shorter screen scales the bar and the drop list down
+local TOP_MIN_SCALE = 0.4
+local TITLE_HEIGHT, TRACK_HEIGHT = 40, 60 -- px at full scale
+local DROP_WIDTH, DROP_WIDTH_MIN = 400, 190
+local DROP_HEADING, DROP_HEADING_MIN = 32, 14
+local DROP_ROW, DROP_ROW_MIN = 26, 13
+local DROP_RIGHT_OF = 0.15 -- the list's centre stays right of the bar's end less this share of the bar
 local WARNING_MIN_BELOW = 40 -- px: under the drop list only with this much room above the screen's middle, else left of the list
 -- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
 local STATUS_LOOKS = {
@@ -231,7 +240,7 @@ local bar =
 local barTitle = label("Title", bar, {
 	Text = "Big Raga",
 	Font = Enum.Font.GothamBlack,
-}, 24)
+}, TITLE_HEIGHT)
 local track = make("Frame", "Track", bar, {
 	BackgroundColor3 = Palette.TeamTired,
 	BorderSizePixel = 0,
@@ -251,7 +260,7 @@ UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence
 	ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
 	ColorSequenceKeypoint.new(1, Palette.DangerDeep),
 })
-local barValue = label("Value", bar, { Text = "", ZIndex = 2 }, 20) -- above the Track and its Fill
+local barValue = label("Value", bar, { Text = "", ZIndex = 2 }, 36) -- above the Track and its Fill
 
 -- Under the bar's left side, with the bar on screen and off: the Warning sits below this row.
 local statusRow = make("Frame", "Status", bar, { BackgroundTransparency = 1 })
@@ -276,7 +285,7 @@ for order, look in STATUS_LOOKS do
 	UiTheme.Corner(icon, "S")
 	UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
 	if look.Glyph then
-		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 20)
+		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 30)
 	else
 		local wheel = make("Frame", "Wheel", icon, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -299,18 +308,22 @@ for order, look in STATUS_LOOKS do
 	statusCells[look.Id] = {
 		Frame = cell,
 		Icon = icon,
-		Left = label("Seconds", cell, { Text = "", TextColor3 = Palette.Gold }, 14),
+		Left = label("Seconds", cell, { Text = "", TextColor3 = Palette.Gold }, STATUS_SECONDS),
 	}
 end
 
--- Under the bar's right side (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
+-- Under the bar, towards the screen's right (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
 local dropList = make("Frame", "DropList", root, { BackgroundTransparency = 1, Visible = false })
-make("UIListLayout", "List", dropList, { Padding = UDim.new(0, 1), SortOrder = Enum.SortOrder.LayoutOrder })
+make("UIListLayout", "List", dropList, {
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 1),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
 local dropHeading = label("Heading", dropList, {
 	LayoutOrder = 1,
 	Text = "Drop:",
-	TextXAlignment = Enum.TextXAlignment.Right,
-}, 18)
+	Font = Enum.Font.GothamBlack,
+}, DROP_HEADING)
 local dropRule = make("Frame", "Rule", dropList, {
 	LayoutOrder = 2,
 	BackgroundColor3 = Palette.SoftText,
@@ -322,9 +335,9 @@ local function dropRow(id, text, color, stroke)
 		LayoutOrder = 3 + #dropRows,
 		Text = text,
 		TextColor3 = color,
-		TextXAlignment = Enum.TextXAlignment.Right,
-	}, 15)
-	UiTheme.Stroke(row, 1, stroke)
+		Font = Enum.Font.GothamBlack,
+	}, DROP_ROW)
+	UiTheme.Stroke(row, 2, stroke)
 	table.insert(dropRows, row)
 end
 local dropOdds = RelicConfig.Odds("big_raga")
@@ -490,12 +503,13 @@ local function placeHud(phone, left, top, right, bottom)
 	end
 end
 
-local function placeTop(phone, size, row)
-	local width = math.clamp(size.X * 0.42, 280, 620)
+local function placeTop(size, row, shopX)
+	local scale = math.clamp(size.Y / TOP_FULL_HEIGHT, TOP_MIN_SCALE, 1)
+	local width = math.min(math.max(size.X * BAR_WIDTH, 280), size.X - 2 * BAR_SIDE_CLEAR)
 	local barLeft = (size.X - width) / 2
 	local fits = barLeft >= RESERVED_RIGHT and row and barLeft + width + 8 <= row.AbsolutePosition.X
 	local barTop = fits and BAR_HIGH_TOP or BAR_LOW_TOP
-	local titleHeight, trackHeight = phone and 16 or 24, phone and 20 or 26
+	local titleHeight, trackHeight = math.round(TITLE_HEIGHT * scale), math.round(TRACK_HEIGHT * scale)
 	local height = titleHeight + 2 + trackHeight
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
@@ -505,8 +519,8 @@ local function placeTop(phone, size, row)
 	barValue.Position = UDim2.fromOffset(8, titleHeight + 3)
 	barValue.Size = UDim2.new(1, -16, 0, trackHeight - 2)
 
-	local iconSize = phone and STATUS_HEIGHT_PHONE or STATUS_HEIGHT
-	local secondsHeight = phone and STATUS_SECONDS_PHONE or STATUS_SECONDS
+	local iconSize = math.max(STATUS_HEIGHT_PHONE, math.round(STATUS_HEIGHT * scale))
+	local secondsHeight = math.max(STATUS_SECONDS_PHONE, math.round(STATUS_SECONDS * scale))
 	local statusHeight = iconSize + secondsHeight
 	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
 	statusRow.Size = UDim2.new(0.5, -4, 0, statusHeight)
@@ -519,16 +533,21 @@ local function placeTop(phone, size, row)
 
 	-- A short screen takes smaller rows, never fewer.
 	local listTop = barTop + height + STATUS_GAP
-	local headingHeight, ruleHeight = phone and 13 or 18, phone and 1 or 2
+	local headingHeight = math.max(DROP_HEADING_MIN, math.round(DROP_HEADING * scale))
+	local ruleHeight = scale < 0.6 and 1 or 2
 	local rowRoom = size.Y - listTop - 8 - headingHeight - ruleHeight - #dropRows - 1
-	local rowHeight = math.clamp(math.floor(rowRoom / #dropRows), 8, phone and 11 or 15)
+	local rowHeight =
+		math.clamp(math.floor(rowRoom / #dropRows), 8, math.max(DROP_ROW_MIN, math.round(DROP_ROW * scale)))
 	local listHeight = headingHeight + ruleHeight + #dropRows * (rowHeight + 1) + 1
-	local listWidth = math.min(width / 2, phone and 140 or 220)
-	local listLeft = barLeft + width - listWidth
+	-- Right up to the Shop column and Leave; narrower only if its centre would fall left of the owner's line.
+	local listRight = math.min(size.X - BAR_SIDE_CLEAR, shopX and shopX - 8 or size.X)
+	local centreFloor = barLeft + width * (1 - DROP_RIGHT_OF)
+	local listWidth = math.min(math.max(DROP_WIDTH_MIN, DROP_WIDTH * scale), 2 * (listRight - centreFloor) - 2)
+	local listLeft = listRight - listWidth
 	dropList.Position = UDim2.fromOffset(listLeft, listTop)
 	dropList.Size = UDim2.fromOffset(listWidth, listHeight)
 	dropHeading.Size = UDim2.new(1, 0, 0, headingHeight)
-	dropRule.Size = UDim2.new(1, 0, 0, ruleHeight)
+	dropRule.Size = UDim2.new(0.6, 0, 0, ruleHeight)
 	for _, row in dropRows do
 		row.Size = UDim2.new(1, 0, 0, rowHeight)
 	end
@@ -566,14 +585,19 @@ local function layout()
 		bottom = math.min(bottom, items.AbsolutePosition.Y + GuiService:GetGuiInset().Y - 6)
 	end
 	local row = chrome and chrome:FindFirstChild("TopRight")
-	local key = table.concat({ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1 }, ",")
+	local shop = chrome and chrome:FindFirstChild("ShopColumn")
+	local shopX = shop and shop.AbsolutePosition.X
+	local key = table.concat(
+		{ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1, shopX or -1 },
+		","
+	)
 	if key == lastLayout then
 		return
 	end
 	lastLayout = key
 	placeInvite(phone, left, top, right, bottom)
 	placeHud(phone, left, top, right, bottom)
-	placeTop(phone, size, row)
+	placeTop(size, row, shopX)
 end
 
 -- Team --------------------------------------------------------------------------------------------------------------------

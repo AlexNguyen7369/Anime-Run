@@ -8,6 +8,10 @@
 --   Named anywhere inside their part: Invite Countdown; TeamHud Countdown; BossBar Fill (its parent is the track).
 --   Boss bar (owner 2026-11-05): BossBar/Title "Big Raga" above the track; BossBar/Value "current/max" with thousands separators,
 --     inside the track and drawn over the Fill.
+--   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
+--     On every screen it stays on screen and clear of HudChrome/TopRight.
+--   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its centre past the
+--     bar's right end minus 15% of bar width, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
 --   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
 --     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
 --     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. checkFit's text rules also judge it against the
@@ -36,7 +40,8 @@
 --   The Invite waits while a save is in the starter pick or the roll tutorial (boss_ui_gear sets a save past both).
 --   Exhaustion view (owner 2026-11-05, spec "Exhaustion view"): ExhaustedPanel is a GuiObject directly in the ScreenGui, with
 --     Message, Countdown, Dim and Loading/Fill directly in it. It runs only on the local player's own BossWaitEndsAt, while
---     BossEvent is true; the server clears BossEvent first on leaving, so a stale end time must not hold the view.
+--     BossEvent is true; the server clears BossEvent first on leaving, so a stale end time must not hold the view. The view's
+--     FieldOfView is Cfg.WaitCameraFov; after a revive it returns to Cfg.CameraFov.
 -- READINGS the docs leave open, for the owner (names start with reading_):
 --   a Sidekick only in the Bag, on no character, locks the Invite: the server refuses that join ("Needs a Sidekick").
 -- Invite and TeamHud are not UiSpec Panels (Panels must be PanelSwitch ones and close each other, the Invite must not), so
@@ -96,6 +101,13 @@ local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
 local BAR_MAX_BOTTOM = 0.3 -- of the screen height: "top middle"
+local BAR_MIN_WIDTH_SHARE = 0.6 -- of the screen, owner 2026-11-05
+local BAR_MIN_HEIGHT = 56 -- px
+local BAR_VALUE_MIN_TEXT = 28 -- px
+local BAR_TITLE_MIN_TEXT = 36 -- px
+local BAR_SIZE_MIN_SCREEN = 1280 -- px of width where those sizes are judged
+local DROP_RIGHT_SHARE = 0.15 -- of the bar's width, back from its right end
+local DROP_ROW_MIN_HEIGHT = 16 -- px at desktop: bigger than the old 15
 local TEXT_GONE = 0.9 -- TextTransparency: the flash's out, "fully disappearing"
 local TEXT_SOLID = 0.1 -- and its in
 local STROKE_SHOWS = 0.5 -- stroke transparency at most, while the text shows
@@ -969,7 +981,7 @@ function Module.Build(h)
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
 		)
-		task.wait(0.2)
+		task.wait(0.5) -- the bar's pop has ended: its size is judged below
 
 		local heading, rule = list:FindFirstChild("Heading"), list:FindFirstChild("Rule")
 		check(res, "drop_heading", heading and h.visible(heading) and heading.Text, "Drop:")
@@ -1032,6 +1044,13 @@ function Module.Build(h)
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
 		local barRect = h.rect(h.find(BAR))
 		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
+		for _, tile in { "Quests", "Shop" } do
+			local found = h.find("HudChrome/ShopColumn/" .. tile)
+			check(res, "drop_tile_exists_" .. tile, found ~= nil, true)
+			if found and h.visible(found) then
+				others[tile] = h.rect(found)
+			end
+		end
 		local status = h.find(BAR .. "/Status/Status_Shouted")
 		if status then
 			others.Status = h.rect(status)
@@ -1071,6 +1090,47 @@ function Module.Build(h)
 		h.check(res, "drop_under_bar_" .. tag, r.y, ">= " .. barBottom, r.y >= barBottom - Spec.Tolerance)
 		local middle = barRect.x + barRect.w / 2
 		h.check(res, "drop_right_side_" .. tag, r.x, ">= " .. middle, r.x >= middle - Spec.Tolerance)
+		local centre = r.x + r.w / 2
+		local rightMost = barRect.x + barRect.w * (1 - DROP_RIGHT_SHARE)
+		h.check(res, "drop_far_right_" .. tag, centre, "> " .. rightMost, centre > rightMost)
+
+		-- Owner's reference: a centred column, the rule shorter than the rows.
+		local offCentre, leftAligned, small = {}, {}, {}
+		local widestRow = 0
+		for _, part in parts do
+			local partRect = h.rect(part)
+			if math.abs(partRect.x + partRect.w / 2 - centre) > Spec.Tolerance then
+				table.insert(offCentre, part.Name)
+			end
+			if part:IsA("TextLabel") and part.TextXAlignment ~= Enum.TextXAlignment.Center then
+				table.insert(leftAligned, part.Name)
+			end
+			if string.sub(part.Name, 1, 4) == "Row_" then
+				widestRow = math.max(widestRow, partRect.w)
+				if isDesktop() and partRect.h < DROP_ROW_MIN_HEIGHT then
+					table.insert(small, part.Name)
+				end
+			end
+		end
+		h.checkList(res, "drop_centred_" .. tag, offCentre)
+		h.checkList(res, "drop_centre_aligned_" .. tag, leftAligned)
+		h.checkList(res, "drop_rows_bigger_" .. tag, small)
+		local ruleWidth = h.rect(rule).w
+		h.check(res, "drop_rule_shorter_" .. tag, ruleWidth, "< " .. widestRow, ruleWidth < widestRow)
+
+		h.check(res, "bar_on_screen_" .. tag, barRect, "inside the screen", within(screen, barRect))
+		local topRight = h.find("HudChrome/TopRight")
+		check(res, "bar_clear_of_top_right_" .. tag, topRight ~= nil and crossing(barRect, h.rect(topRight)), false)
+		if isDesktop() and size.X >= BAR_SIZE_MIN_SCREEN then
+			local minWidth = size.X * BAR_MIN_WIDTH_SHARE
+			h.check(res, "bar_wide", barRect.w, ">= " .. minWidth, barRect.w >= minWidth)
+			h.check(res, "bar_tall", barRect.h, ">= " .. BAR_MIN_HEIGHT, barRect.h >= BAR_MIN_HEIGHT)
+			for name, least in { Value = BAR_VALUE_MIN_TEXT, Title = BAR_TITLE_MIN_TEXT } do
+				local label = h.find(BAR .. "/" .. name)
+				local tall = label and label.TextBounds.Y or 0
+				h.check(res, "bar_" .. string.lower(name) .. "_text_tall", tall, ">= " .. least, tall >= least)
+			end
+		end
 		ReplicatedStorage:SetAttribute("BossStatus", nil)
 
 		-- A leave takes it; a Prep in the event never had it (prep_droplist_shown).
@@ -1184,13 +1244,14 @@ function Module.Build(h)
 		local message, countdown = h.find(PANEL .. "/Message"), h.find(PANEL .. "/Countdown")
 		local fill, dim = h.find(PANEL .. "/Loading/Fill"), h.find(PANEL .. "/Dim")
 		check(res, "wait_panel_complete", panel and message and countdown and fill and dim and true, true)
-		check(res, "wait_config_present", typeof(Cfg.WaitCameraOffset), "Vector3")
 		check(res, "wait_cframe_present", type(Cfg.WaitCameraCFrame), "function")
 		if not (panel and message and countdown and fill and dim) or type(Cfg.WaitCameraCFrame) ~= "function" then
 			return
 		end
-		local frame = Cfg.WaitCameraCFrame(Arena.Center)
 		local function atAerial()
+			local character = h.player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local frame = Cfg.WaitCameraCFrame(Arena.Center, root and root.Position)
 			return (camera.CFrame.Position - frame.Position).Magnitude < WAIT_CAMERA_SLACK
 		end
 
@@ -1201,12 +1262,17 @@ function Module.Build(h)
 		waitShown(BAR, true)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
+		local homeBefore = camera.CFrame.Position
+		local function atHome()
+			return (camera.CFrame.Position - homeBefore).Magnitude < WAIT_CAMERA_SLACK
+		end
 		local function checkRestored(tag, fov)
 			check(res, tag .. "_panel_gone", waitShown(PANEL, false), false)
 			check(res, tag .. "_not_scriptable", waitIs(scriptable, false), false)
 			check(res, tag .. "_camera_type", camera.CameraType, typeBefore)
 			check(res, tag .. "_camera_subject", camera.CameraSubject, subjectBefore)
-			check(res, tag .. "_camera_left_aerial", waitIs(atAerial, false), false)
+			-- The wait's spot follows the runner now, so nearness to it no longer tells the two views apart.
+			check(res, tag .. "_camera_back_home", waitIs(atHome, true), true)
 			check(res, tag .. "_fov", math.round(camera.FieldOfView), math.round(fov))
 		end
 		check(res, "wait_none_panel_hidden", shown(PANEL), false)
@@ -1225,7 +1291,7 @@ function Module.Build(h)
 		check(res, "wait_panel_shown", waitShown(PANEL, true), true)
 		check(res, "wait_camera_scriptable", waitIs(scriptable, true), true)
 		check(res, "wait_camera_at_aerial", waitIs(atAerial, true), true)
-		check(res, "wait_fov", math.round(camera.FieldOfView), math.round(Cfg.CameraFov))
+		check(res, "wait_fov", math.round(camera.FieldOfView), math.round(Cfg.WaitCameraFov))
 		check(res, "wait_message_shown", h.visible(message), true)
 		check(
 			res,
@@ -1263,20 +1329,15 @@ function Module.Build(h)
 			)
 		end
 
-		-- The live camera sees the whole ring and the wheel's top.
+		-- The live camera sees the whole boss, wheel top to feet (BossEventTests judges the runner and the sizes, purely).
 		local outside = 0
-		local function see(point)
-			local at = camera:WorldToViewportPoint(point)
+		for _, height in { 0, Arena.BossTotalHeight } do
+			local at = camera:WorldToViewportPoint(Arena.Center + Vector3.yAxis * height)
 			if at.Z <= 0 or at.X < 0 or at.Y < 0 or at.X > view.X or at.Y > view.Y then
 				outside += 1
 			end
 		end
-		see(Arena.Center + Vector3.yAxis * Arena.BossTotalHeight)
-		for i = 0, Arena.Segments - 1 do
-			see(Arena.RingPoint(Arena.InnerRadius, i))
-			see(Arena.RingPoint(Arena.InnerRadius + Arena.Width, i))
-		end
-		check(res, "wait_view_sees_ring_and_wheel", outside, 0)
+		check(res, "wait_view_sees_boss", outside, 0)
 
 		-- The bar, its status row and Leave stay on top of the dim.
 		ReplicatedStorage:SetAttribute(

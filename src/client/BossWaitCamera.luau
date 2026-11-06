@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
 local Cfg = require(Shared.BossEventConfig)
+local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local player = Players.LocalPlayer
@@ -14,12 +15,12 @@ local player = Players.LocalPlayer
 -- Placeholders.
 local PULL_SECONDS = 0.6
 local RETURN_SECONDS = 0.5
-local DRIFT_STUDS = 15
+local DRIFT_STUDS = 3
 local DRIFT_RATE = 0.5 -- radians a second
 
 local BossWaitCamera = {}
 
-local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back }: what comes back, and where this move started
+local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back, RunnerAt }: what comes back, and where this move started
 
 local function subjectPosition(camera)
 	local subject = camera.CameraSubject
@@ -31,6 +32,12 @@ end
 local function homeFrame(camera)
 	local at = subjectPosition(camera)
 	return at and held.SubjectAt and held.View + (at - held.SubjectAt) or held.View
+end
+
+-- Caught once at the wait's start: the runner may be replaced during the wait, and the view must not jump.
+local function runnerPosition()
+	local runner = RunnerVisual.LocalRunner()
+	return runner and runner.PrimaryPart and runner.PrimaryPart.Position or nil
 end
 
 local function smooth(alpha)
@@ -60,18 +67,19 @@ function BossWaitCamera.Step(camera, dt)
 				SubjectAt = subjectPosition(camera),
 				From = camera.CFrame,
 				Age = 0,
+				RunnerAt = runnerPosition(),
 			}
 		elseif held.Back then -- a new wait during the return
-			held.Back, held.From, held.Age = nil, camera.CFrame, 0
+			held.Back, held.From, held.Age, held.RunnerAt = nil, camera.CFrame, 0, runnerPosition()
 		end
 		held.Age += dt
 		camera.CameraType = Enum.CameraType.Scriptable
-		camera.FieldOfView = Cfg.CameraFov
-		local aerial = Cfg.WaitCameraCFrame(Arena.Center)
+		camera.FieldOfView = Cfg.WaitCameraFov
+		local view = Cfg.WaitCameraCFrame(Arena.Center, held.RunnerAt)
 		if UiMotion.Reduced() then
-			camera.CFrame = aerial
+			camera.CFrame = view
 		else
-			local drifted = aerial * CFrame.new(math.sin(held.Age * DRIFT_RATE) * DRIFT_STUDS, 0, 0)
+			local drifted = view * CFrame.new(math.sin(held.Age * DRIFT_RATE) * DRIFT_STUDS, 0, 0)
 			camera.CFrame = held.From:Lerp(drifted, smooth(held.Age / PULL_SECONDS))
 		end
 	elseif held then
