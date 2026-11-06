@@ -575,3 +575,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: Sidekick summon pity, Mythic at 300 and Legendary at 100 (4.36), relayed by the summon redesign session; replaces the spec's no-pity line for Sidekicks only.
 - 2026-11-05: owner: pity details (Mythic resets only its own count, Mythic wins a tie, the tutorial summon counts, Secrets are independent); boss exhaustion view (4.36, 4.37).
 - 2026-11-05: owner: the spawn warning is flashing text with no border or background; Roblox chat notes each Big Raga attack, shout and wheel turn for players in the event; in the plaza the invite shows for 3 seconds, then teleporting stays open from the top-left Boss button, reading (Active), glowing and pulsing in size (4.37).
+- 2026-11-05: owner: boss bar layout with a colour-coded Drop list of Relic rates and Big Raga's rate in black (4.37, `BOSS_EVENT_SPEC`).
