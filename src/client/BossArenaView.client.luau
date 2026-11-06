@@ -28,6 +28,9 @@ local LINE_WIDTH, LINE_THICK = 1, 0.1
 -- The flat fallback (spec "Arena"): front image from his front and back, side image otherwise, sized so that it sits inside the
 -- model's outline from the lanes and behind the model along the view line. Images are 9.42 units square, framed on his box.
 local FLAT_FRAME = 9.42 * Poses.Scale
+local GROWTH = 1.25 -- owner 2026-11-06
+local WHEEL_SPIN = math.rad(50) -- placeholder: radians a second, on top of the baked track
+local ROAR_AT = Poses.Moves.shout.Events[1].Time
 local FLAT_INSIDE = 0.92 -- of the image's true size
 local FLAT_CENTER_Y = 9.237 / 2 * Poses.Scale
 local LANES = 890 -- studs from the boss, for the size the billboard's push back would lose
@@ -204,21 +207,21 @@ local function addFlat()
 	flat = { Anchor = anchor, Gui = gui, Image = image, Home = anchor.CFrame }
 end
 
-local function aimFlat(rise, below)
+local function aimFlat(rise, below, growth)
 	flat.Gui.Enabled = rise ~= nil
 	if not rise then
 		return
 	end
-	flat.Anchor.CFrame = flat.Home - Vector3.new(0, below, 0)
+	flat.Anchor.CFrame = flat.Home + Vector3.new(0, FLAT_CENTER_Y * (growth - 1) - below, 0)
 	local camera = Workspace.CurrentCamera
 	local away = camera and (camera.CFrame.Position - Cfg.Center) * Vector3.new(1, 0, 1)
 	local view = (not away or away.Magnitude < 1 or math.abs(away.Unit.Z) > 0.7) and FLAT_FRONT or FLAT_SIDE
-	if flat.Showing ~= view then
-		flat.Showing = view
-		local size = FLAT_FRAME * FLAT_INSIDE * (LANES + view.Back) / LANES
+	if flat.Showing ~= view or flat.Growth ~= growth then
+		flat.Showing, flat.Growth = view, growth
+		local size = FLAT_FRAME * FLAT_INSIDE * (LANES + view.Back) / LANES * growth
 		flat.Image.Image = view.Image
 		flat.Gui.Size = UDim2.fromScale(size, size) -- a billboard's scale is in studs
-		flat.Gui.StudsOffset = Vector3.new(view.Side, 0, -view.Back)
+		flat.Gui.StudsOffset = Vector3.new(view.Side * growth, 0, -view.Back)
 	end
 end
 
@@ -370,6 +373,20 @@ local function sinceSpawn(now)
 	return t >= 0 and t or nil
 end
 
+-- Stage 2 from server time alone, so a late client is right: the growth, the wheel's turn, the scream's seconds left (nil outside it).
+local function stage2At(now)
+	if ReplicatedStorage:GetAttribute("BossEventStage") ~= 2 then
+		return 1, 0, nil
+	end
+	local ends = ReplicatedStorage:GetAttribute("BossScreamEndsAt")
+	local left = ends and ends > now and ends - now or nil
+	local started = (ReplicatedStorage:GetAttribute("BossScheduleStart") or now)
+		+ Event.IntroSeconds
+		- Event.ScreamSeconds
+	local done = left and math.clamp(1 - left / Event.ScreamSeconds, 0, 1) or 1
+	return 1 + (GROWTH - 1) * done * done * (3 - 2 * done), math.max(0, now - started) * WHEEL_SPIN, left
+end
+
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
 local function step()
 	if not raga then
@@ -379,12 +396,17 @@ local function step()
 	local since = sinceSpawn(now)
 	local rise = since and (UiMotion.Reduced() and 1 or Poses.RiseAt(since))
 	local below = (1 - (rise or 0)) * (Cfg.BossTotalHeight + DAIS_THICK)
-	local move, localTime = Poses.Schedule(since and now - since or now, now)
-	raga:Step(rise, below, move, localTime, now)
-	if flat then
-		aimFlat(rise, below)
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
+	local move, localTime = Poses.Schedule(schedule, now)
+	local growth, spin, screamLeft = stage2At(now)
+	if screamLeft then
+		move, localTime = "shout", ROAR_AT -- the approved pose, held: no new key frames (BOSS_EVENT_SPEC "Phase 2")
 	end
-	BossVfx.Step(since, move, localTime)
+	raga:Step(rise, below, move, localTime, now, growth, spin, screamLeft and not UiMotion.Reduced() and 1 or 0)
+	if flat then
+		aimFlat(rise, below, growth)
+	end
+	BossVfx.Step(since, move, localTime, screamLeft)
 end
 
 RunService.Heartbeat:Connect(step)

@@ -50,6 +50,13 @@ local function hide(d)
 	end
 end
 
+-- A team with no one left in the line: the held body is gone too, until the refill (BOSS_EVENT_SPEC "Line run").
+local function teamGone(rig)
+	local id = rig:GetAttribute("Owner")
+	local owner = type(id) == "number" and Players:GetPlayerByUserId(id)
+	return owner and owner:GetAttribute("BossEvent") == true and owner:GetAttribute("BossLine") == "" or false
+end
+
 -- (Re)builds the drawn copy from the server rig (its look, aura and trail), keeping the run state.
 local function rebuild(view)
 	view.Dirty = false
@@ -79,6 +86,11 @@ local function rebuild(view)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
 	view.Copy = copy
+	if view.Gone then
+		for _, d in copy:GetDescendants() do
+			hide(d)
+		end
+	end
 end
 
 local function add(rig)
@@ -150,6 +162,12 @@ local function step(view, now)
 	end
 	if view.Dirty or not (copy and copy.Parent) then
 		rebuild(view)
+		copy = view.Copy
+	end
+	local gone = teamGone(rig)
+	if gone ~= (view.Gone == true) then
+		view.Gone = gone
+		rebuild(view) -- hides it, or brings it back with its effects as they were
 		copy = view.Copy
 	end
 	local dt = math.max(0, now - (view.At or now))

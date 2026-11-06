@@ -13,6 +13,7 @@ local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 
 local C_INVERSE = C:Inverse()
 local SCALE = Poses.Scale
 local RUMBLE_STUDS, RUMBLE_DEGREES = 9, 0.7 -- placeholder: the model's own shake while it rises
+local TREMBLE_STUDS = 5 -- placeholder: the scream's small shake
 local MODEL_WAIT = 30 -- s: the server loads the model at start, so this only matters on a very fresh server
 local PARTS = 18
 
@@ -57,6 +58,7 @@ function BossRaga.new(parent)
 	self.Shown = false
 	self.Anchor = CFrame.new(Arena.Center)
 	self.Joints = {}
+	self.Growth = 1
 	task.spawn(function()
 		local root = ReplicatedStorage:WaitForChild("BossModels", MODEL_WAIT)
 		local deadline = os.clock() + MODEL_WAIT
@@ -68,9 +70,10 @@ function BossRaga.new(parent)
 			warn("[BossRaga] no model to show")
 			return
 		end
-		local parts = {}
+		local parts, sizes = {}, {}
 		for i, row in ORDER do
 			local part = source[row.Name]:Clone()
+			sizes[i] = part.Size
 			part.Anchored = true
 			part.CanCollide = false
 			part.CanTouch = false
@@ -79,13 +82,19 @@ function BossRaga.new(parent)
 			part.Parent = self.Model
 			parts[i] = part
 		end
-		self.Parts = parts
+		self.Parts, self.Sizes = parts, sizes
 	end)
 	return self
 end
 
--- rise: nil before the spawn, then 0 to 1. Lifting is done by moving the whole boss down, through the dais.
-function BossRaga:Step(rise, below, move, localTime, now)
+-- A frame relative to the anchor, grown about the anchor: the feet stand there, so they stay on the dais.
+local function grown(frame, growth)
+	return frame.Rotation + frame.Position * growth
+end
+
+-- rise: nil before the spawn, then 0 to 1. Lifting is done by moving the whole boss down, through the dais. Stage 2's growth (a part's
+-- size and place, at most 18 parts' writes a frame, only during the scream), wheel spin in radians and scream tremble (0 to 1).
+function BossRaga:Step(rise, below, move, localTime, now, growth, spin, tremble)
 	if not self.Parts then
 		return
 	end
@@ -109,7 +118,17 @@ function BossRaga:Step(rise, below, move, localTime, now)
 			studs * math.noise(now * 13, 3.5)
 		) * CFrame.Angles(turn * math.noise(now * 9, 4.5), 0, turn * math.noise(now * 7, 5.5))
 	end
+	if tremble > 0 then -- sideways only: the feet stay on the dais
+		local studs = TREMBLE_STUDS * tremble
+		anchor *= CFrame.new(studs * math.noise(now * 19, 6.5), 0, studs * math.noise(now * 23, 7.5))
+	end
 	self.Anchor = anchor
+	if growth ~= self.Growth then
+		self.Growth = growth
+		for i, part in self.Parts do
+			part.Size = self.Sizes[i] * growth
+		end
+	end
 	local parts, root = Poses.Sample(move, localTime)
 	local joints = self.Joints
 	local frames = {}
@@ -124,7 +143,10 @@ function BossRaga:Step(rise, below, move, localTime, now)
 			joint = joints[row.Parent] * joint
 		end
 		joints[row.Name] = joint
-		frames[i] = anchor * C * joint * row.Center * C_INVERSE
+		if row.Name == "Wheel" then
+			joint *= CFrame.Angles(0, spin, 0) -- the wheel's local Y is its hub (tools/blender/build_boss_event.py raga_wheel)
+		end
+		frames[i] = anchor * grown(C * joint * row.Center * C_INVERSE, growth)
 	end
 	Workspace:BulkMoveTo(self.Parts, frames, Enum.BulkMoveMode.FireCFrameChanged)
 end
@@ -132,13 +154,13 @@ end
 -- A joint's world CFrame now, with Roblox's axes. At the rest anchor until the first pose.
 function BossRaga:Frame(name)
 	local joint = self.Joints[name]
-	return self.Anchor * C * (joint or CFrame.identity) * C_INVERSE
+	return self.Anchor * grown(C * (joint or CFrame.identity) * C_INVERSE, self.Growth)
 end
 
 -- A point on a part, given in model units and Blender axes from its joint.
 function BossRaga:Point(name, units)
 	local joint = self.Joints[name] or CFrame.identity
-	return (self.Anchor * C * joint):PointToWorldSpace(units * SCALE)
+	return self.Anchor:PointToWorldSpace((C * joint):PointToWorldSpace(units * SCALE) * self.Growth)
 end
 
 -- A point of the unposed model, in units and Blender axes, standing on the dais.

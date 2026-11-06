@@ -129,7 +129,7 @@ local resultScale = make("UIScale", { Name = "ResultScale" }, result)
 make("UIStroke", { Thickness = 2.5, Color = Color3.fromRGB(45, 15, 5) }, result) -- gold and red both need it over a bright sky
 
 local prompt = nil -- { Index, At, Name, Pending, Missed, Dodged }
-local doneIndex, doneStart = 0, nil -- no second bar for a moment; a new event starts over
+local doneIndex, doneSchedule = 0, nil -- no second bar for a moment; a new event or stage starts over
 local resultUntil = 0
 local stopFlash = nil
 
@@ -297,7 +297,7 @@ end
 
 local function openPrompt(index, at, name, startAt)
 	prompt = { Index = index, At = at, Name = name }
-	doneIndex, doneStart = index, startAt
+	doneIndex = index
 	slider.BackgroundColor3 = WHITE
 	spot.Position = UDim2.fromScale(BossDodge.Spot(player.UserId, startAt, index, currentStage()), 0.5)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
@@ -340,10 +340,16 @@ local function render()
 		end
 		return
 	end
-	if doneStart ~= startAt then
-		doneIndex, doneStart = 0, startAt
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
+	if doneSchedule ~= schedule then
+		doneIndex, doneSchedule = 0, schedule
+		if prompt then
+			closePrompt() -- no hit: the schedule it belonged to is over (BOSS_EVENT_SPEC "Phase 2")
+			return
+		end
 	end
-	local since = workspace:GetServerTimeNow() - startAt - Cfg.PrepSeconds - Cfg.IntroSeconds
+	-- Below 0 through the scream: the new schedule's moments start at its end.
+	local since = workspace:GetServerTimeNow() - schedule - Cfg.IntroSeconds
 	if prompt then
 		if prompt.Dodged then
 			closePrompt()

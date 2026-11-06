@@ -150,10 +150,15 @@ BossEventService.Hooks = {
 		return CarService.RunHeld(player, route, {
 			Boss = true,
 			Team = team,
-			OnRunEvent = function(event)
-				if event.Kind == "BossWait" then
-					player:SetAttribute("BossWaitEndsAt", workspace:GetServerTimeNow() + Cfg.RefillWaitSeconds)
-				elseif event.Kind == "BossRefill" then
+			OnRunEvent = function(fired)
+				if fired.Kind == "BossWait" then
+					local member = event and event.Members[player]
+					if event and event.ScreamEndsAt and member and member.Run then
+						member.Run:ReviveAt(math.max(0, event.ScreamEndsAt - now())) -- the cutscene skips exhaustion
+					else
+						player:SetAttribute("BossWaitEndsAt", workspace:GetServerTimeNow() + Cfg.RefillWaitSeconds)
+					end
+				elseif fired.Kind == "BossRefill" then
 					player:SetAttribute("BossWaitEndsAt", nil)
 				end
 			end,
@@ -473,6 +478,10 @@ local function startStage2(current)
 		member.Spared, member.Pressed, member.ChargedTo, member.Vulnerable = {}, {}, 0, false
 		member.NextHit = current.ScreamEndsAt + hitSpacing(player, member) -- no hit is owed for the scream
 		player:SetAttribute("BossStatus", nil)
+		if member.Run and member.Run.Waiting then
+			member.Run:ReviveAt(Cfg.ScreamSeconds) -- the cutscene skips exhaustion
+			player:SetAttribute("BossWaitEndsAt", nil)
+		end
 	end
 	publish()
 	payStage(current, 1, current.Phase1MaxHp)

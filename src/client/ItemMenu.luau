@@ -16,6 +16,7 @@ local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
+local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -24,6 +25,8 @@ local Palette = UiTheme.Palette
 local MENU_WIDTH = 170 -- px
 local MENU_ROW = 40 -- px
 local MENU_GAP = 6 -- px
+local CHEST_WIDTH = 230 -- px: its odds rows need more than an item's menu
+local ODDS_ROW = 16 -- px
 local CARD_SIZE = UDim2.fromOffset(112, 128)
 local PICKER_MAX = Vector2.new(640, 460) -- px: a phone gets its screen's share instead
 
@@ -153,6 +156,20 @@ local menuNote = caption("Note", menu, {
 	TextSize = 14,
 	Visible = false,
 })
+
+-- A chest's own: Open and its odds (docs/RELIC_SPEC.md "Chests").
+local menuOpen = action("Open", menu, "Open", Palette.MoneyDeep, {
+	Position = UDim2.fromOffset(8, 36),
+	Size = UDim2.new(1, -16, 0, MENU_ROW),
+	Visible = false,
+})
+local menuOdds = make("Frame", "Odds", menu, {
+	Position = UDim2.fromOffset(8, 36 + MENU_ROW + MENU_GAP),
+	Size = UDim2.new(1, -16, 0, 0),
+	BackgroundTransparency = 1,
+	Visible = false,
+})
+make("UIListLayout", "List", menuOdds, { SortOrder = Enum.SortOrder.LayoutOrder })
 
 -- The confirmation -------------------------------------------------------------------------------------------------------
 local confirm = card("Confirm", UDim2.fromOffset(340, 190))
@@ -297,7 +314,7 @@ local function ask(remote, button, cue, show, ...)
 	if not fine then
 		show(called and tostring(message or "Try again") or "Connection error")
 	end
-	return fine
+	return fine, message
 end
 
 -- A sale's question. `options`: Text (string), Label, and for a quantity Limit (a whole number) and Words (count -> string).
@@ -419,18 +436,19 @@ local function openSale(kindName, entry, row)
 end
 
 -- Beside `anchor`, kept on screen. Works in screen pixels: this gui ignores the inset, so a gui that does not is shifted by it.
-local function placeMenu(anchor, height)
+local function placeMenu(anchor, height, width)
+	width = width or MENU_WIDTH
 	local gui = anchor:FindFirstAncestorOfClass("ScreenGui")
 	local inset = gui and not gui.IgnoreGuiInset and GuiService:GetGuiInset().Y or 0
 	local screen = workspace.CurrentCamera.ViewportSize
 	local x = anchor.AbsolutePosition.X + anchor.AbsoluteSize.X + MENU_GAP
-	if x + MENU_WIDTH > screen.X then
-		x = anchor.AbsolutePosition.X - MENU_WIDTH - MENU_GAP
+	if x + width > screen.X then
+		x = anchor.AbsolutePosition.X - width - MENU_GAP
 	end
 	local y = anchor.AbsolutePosition.Y + inset
-	menu.Size = UDim2.fromOffset(MENU_WIDTH, height)
+	menu.Size = UDim2.fromOffset(width, height)
 	menu.Position = UDim2.fromOffset(
-		math.clamp(x, 4, math.max(4, screen.X - MENU_WIDTH - 4)),
+		math.clamp(x, 4, math.max(4, screen.X - width - 4)),
 		math.clamp(y, 4, math.max(4, screen.Y - height - 4))
 	)
 end
@@ -448,6 +466,11 @@ menuSell.Activated:Connect(function()
 		UiFeedback.Play("Denied", menuSell)
 	end
 end)
+menuOpen.Activated:Connect(function()
+	if menuOpen.Active and menuAct.Open then
+		menuAct.Open()
+	end
+end)
 
 -- The menu of one bag entry (`kindName`: "Sidekick" or "Relic"), beside the tile that was pressed.
 function ItemMenu.Open(kindName, entry, anchor)
@@ -461,6 +484,8 @@ function ItemMenu.Open(kindName, entry, anchor)
 	local wearer = wearerOf(kind, entry)
 	hideAll()
 	root.Enabled = true
+	menuEquip.Visible, menuSell.Visible = true, true
+	menuOpen.Visible, menuOdds.Visible = false, false
 	local price = row and kind.Price(row)
 	menuTitle.Text = row and row.Name or kind.Noun
 	menuEquip.Text = wearer and "Take off" or "Equip"
@@ -486,6 +511,65 @@ function ItemMenu.Open(kindName, entry, anchor)
 		openSale(kindName, entry, row)
 	end
 	placeMenu(anchor, 36 + 2 * MENU_ROW + MENU_GAP + (wearer and 26 or 10))
+	menu.Visible = true
+	UiMotion.Pop(menu, 0.06)
+end
+
+-- The menu of a chest tile, which stands for every entry of chest `id`: Open takes the first. Only the server's answer opens the reveal.
+function ItemMenu.OpenChest(id, anchor)
+	local chest = RelicConfig.Chests[id]
+	hideAll()
+	root.Enabled = true
+	menuTitle.Text = chest.Name
+	menuEquip.Visible, menuSell.Visible, menuNote.Visible = false, false, false
+	menuOpen.Visible, menuOdds.Visible = true, true
+	setEnabled(menuOpen, true, Palette.MoneyDeep)
+	for _, child in menuOdds:GetChildren() do
+		if child:IsA("GuiObject") then
+			child:Destroy()
+		end
+	end
+	local lines = {}
+	for order, row in RelicConfig.ChestOdds(id) do
+		lines[order] = {
+			("%s %s%%"):format(row.Name, tostring(row.Odds)),
+			row.Rarity ~= "Secret" and SidekickView.RarityColor(row.Rarity) or nil, -- Secret's black would not read here
+		}
+	end
+	table.insert(lines, { ("Big Raga %g%%"):format(chest.SidekickChance * 100) })
+	for order, line in lines do
+		caption("Row" .. order, menuOdds, {
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, ODDS_ROW),
+			Text = line[1],
+			TextColor3 = line[2],
+			TextSize = 14,
+		})
+	end
+	menuOdds.Size = UDim2.new(1, -16, 0, #lines * ODDS_ROW)
+	menuAct.Open = function()
+		local entry = nil
+		for _, item in SidekickView.RelicBag(player) do
+			if item.Id == id then
+				entry = item.Entry
+				break
+			end
+		end
+		setEnabled(menuOpen, false, Palette.MoneyDeep)
+		local fine, won = ask("RelicOpenChest", menuOpen, "Equip", function(message)
+			menuTitle.Text = message
+		end, entry)
+		setEnabled(menuOpen, true, Palette.MoneyDeep)
+		if fine then
+			hideAll()
+			local results = { { Row = RelicConfig.Get(won.Relic) } }
+			if won.Sidekick then
+				table.insert(results, { Id = "side_raga" })
+			end
+			SidekickReveal.Play(results, function() end, chest.Image)
+		end
+	end
+	placeMenu(anchor, 36 + MENU_ROW + MENU_GAP + #lines * ODDS_ROW + 8, CHEST_WIDTH)
 	menu.Visible = true
 	UiMotion.Pop(menu, 0.06)
 end
