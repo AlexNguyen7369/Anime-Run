@@ -1200,7 +1200,11 @@ local function render()
 		endWarning()
 	end
 
-	local joinable = phase ~= nil and not inEvent and elapsed < Cfg.JoinSeconds and not tutorialActive()
+	local joinable = phase ~= nil
+		and not inEvent
+		and elapsed < Cfg.JoinSeconds
+		and ReplicatedStorage:GetAttribute("BossEventStage") ~= 2 -- Phase 1's defeat closes teleporting (design doc 4.37)
+		and not tutorialActive()
 	-- Once per event, for its own seconds: after that the Bosses popup carries teleporting.
 	if joinable and invitedStart ~= start then
 		invitedStart = start

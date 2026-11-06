@@ -113,7 +113,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 
 ## Paid spawn
 - Bosses popup (owner 2026-11-05): the top-left button always reads "Bosses" and toggles a popup, centred on the screen with a header and an X like the other popups (owner 2026-11-06). Teleport open: "Big Raga is raging right now" and Go, locked with the prompt for a player with no Sidekick. Teleport closed during the event: the same line, Go disabled, "Teleporting closed". No event: a short description, Details with the odds, Spawn boss, and "Next event in m:ss" from `BossEventNextAt`, a `ReplicatedStorage` attribute on the same clock as `BossEventStart`. Hidden inside the arena.
-- 149 Robux developer product, outside `MonetizationConfig.Products`, like `OfflineDouble`. The owner creates it and gives the id. Disabled for the whole of an event, at most 10:03 and for a player with no Sidekick.
+- 149 Robux developer product, outside `MonetizationConfig.Products`, like `OfflineDouble`. The owner creates it and gives the id. Disabled for the whole of an event, at most 10:03, and for a player with no Sidekick.
 - A receipt commits a saved `BossCredit`, then starts the event if the server is idle. Otherwise Spawn boss reads "Spawn boss (ready)", to use once inactive. A retry or a second buyer never loses or doubles a paid start.
 - The popup's **Details** section shows both chests' Relic odds as percentages, each table summing to 100%, plus each chest's separate Big Raga Sidekick chance (0.001% and 0.01%), before purchase. Roblox's page does not cover a paid boss with server-wide drops; this is the cautious reading.
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.

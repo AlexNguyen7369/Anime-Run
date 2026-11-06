@@ -41,6 +41,8 @@ local DETAILS = ROOT .. "/BossesPanel/BossDetails"
 local EXHAUSTED = ROOT .. "/ExhaustedPanel"
 local DODGE_BAR = "RacerBossDodge/DodgeBar"
 local POPUP = "RacerBossRewards/Panel"
+local INVITE = ROOT .. "/Invite"
+local BUTTON = ROOT .. "/BossButton"
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
@@ -69,6 +71,8 @@ local FEET_FROM = 0.2 -- of the scream: past the pose's change into the shout
 local CAMERA_MOVED, CAMERA_STILL, CAMERA_HOME_SLACK = 1, 1, 5 -- studs
 local BUILD_WAIT = 8 -- s: the arena builds over frames
 local GATE_HOLD = 0.6 -- s a held popup must stay hidden
+local CLOSED_HOLD = 0.7 -- s: longer than the button's 0.6 s pulse period
+local PULSE_SLACK = 0.001
 local DAMAGE, DAMAGE_TEXT = 1234567, "1,234,567"
 local SHORT_DAMAGE, SHORT_DAMAGE_TEXT = 12345, "12,345"
 
@@ -613,6 +617,39 @@ function Module.Build(h)
 		check(res, "dodge_stage2_gone", waitShown(DODGE_BAR, false, SHOW_WAIT), false)
 	end
 
+	-- Phase 1's defeat closes teleporting, whatever the time left to join (design doc 4.37). The same fixture in stage 1 proves the Invite would show.
+	-- shortcut: the popup's Go is drawn only while open and only a real press opens it, so this reads `joinable` through the Invite and the
+	-- button's pulse; to read Go itself, add a UiSpec.Clicks entry with bossPopup and a stage 2 fixture.
+	local function checkTeleportClosedInStage2(res, hp)
+		stage(res, 1, 90)
+		state(res, "Fight", 5, hp, hp, false)
+		check(res, "stage2_closed_control_invite_stage1", waitShown(INVITE, true), true)
+		stage(res, 2, 200)
+		check(res, "stage2_closed_invite_goes", waitShown(INVITE, false), false)
+		-- A new event start, so nothing but the stage holds the Invite back.
+		state(res, "Fight", 6, hp, hp, false)
+		local start = ReplicatedStorage:GetAttribute("BossEventStart")
+		local started = waitIs(function()
+			start = ReplicatedStorage:GetAttribute("BossEventStart")
+			return type(start) == "number" and workspace:GetServerTimeNow() - start < Cfg.JoinSeconds
+		end, true)
+		check(res, "stage2_closed_inside_join_window", started, true)
+		check(res, "stage2_closed_not_in_event", h.player:GetAttribute("BossEvent") == true, false)
+		check(res, "stage2_closed_button_shown", waitShown(BUTTON, true), true)
+		local pulse = h.find(BUTTON .. "/PulseScale")
+		check(res, "stage2_closed_pulse_present", pulse ~= nil, true)
+		local invited, pulsed = false, false
+		local deadline = os.clock() + CLOSED_HOLD
+		while os.clock() < deadline do
+			invited = invited or shown(INVITE)
+			pulsed = pulsed or (pulse ~= nil and math.abs(pulse.Scale - 1) > PULSE_SLACK)
+			task.wait()
+		end
+		check(res, "stage2_closed_no_invite", invited, false)
+		check(res, "stage2_closed_no_pulse", pulsed, false)
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
 	function scenarios.ui_boss_phase2(res)
 		h.waitGuis()
 		local hp = Cfg.HpPerPlayer
@@ -628,6 +665,7 @@ function Module.Build(h)
 			checkExhaustedInScream(res)
 			state(res, "Idle", 0, 0, 0, false)
 			checkDodgeStage2(res, hp)
+			checkTeleportClosedInStage2(res, hp)
 		end, debug.traceback)
 		h.check(res, "phase2_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		h.player:SetAttribute("BossStatus", nil)
