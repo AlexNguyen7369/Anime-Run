@@ -363,6 +363,8 @@ local function restoreBossUi(player)
 		live("GachaService").Apply(player, saved.gacha)
 		live("SidekickService").Apply(player, saved.sidekicks)
 		player:SetAttribute("NeedsStarter", saved.needsStarter)
+		player:SetAttribute("BossCredit", saved.bossCredit)
+		player:SetAttribute("PaidRandomRestricted", nil)
 		setAutoRoll(player, saved.autoRoll == true)
 		bossUiSnapshots[player] = nil
 	end
@@ -378,6 +380,7 @@ local function bossUiGear(player, how)
 			sidekicks = service.Snapshot(player),
 			autoRoll = player:GetAttribute("AutoRoll"),
 			needsStarter = player:GetAttribute("NeedsStarter"),
+			bossCredit = player:GetAttribute("BossCredit"),
 		}
 	end
 	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
@@ -425,6 +428,19 @@ local function bossUiState(player, phase, elapsed, hp, max, inEvent, damage)
 end
 
 local BOSS_UI_DAMAGE = 1234
+function setups.boss_ui_idle(player)
+	bossUiGear(player, 1)
+	clearBossUi(player)
+	player:SetAttribute("BossCredit", 0)
+end
+function setups.boss_ui_credit(player)
+	setups.boss_ui_idle(player)
+	player:SetAttribute("BossCredit", 1)
+end
+function setups.boss_ui_restricted(player)
+	setups.boss_ui_idle(player)
+	player:SetAttribute("PaidRandomRestricted", true)
+end
 function setups.boss_ui_invite(player)
 	bossUiGear(player, 2)
 	clearBossUi(player)
@@ -732,6 +748,22 @@ end
 
 function sidekickFollowSteps.crowd(_, arg)
 	followCrowd(tonumber(arg))
+end
+
+-- A batch as Remotes.BossHits carries it, to this client only (ui_sidekick_attack). No damage is dealt.
+-- arg: <userId|me>:<sidekick id>:<damage>, comma separated.
+function sidekickFollowSteps.hits(player, arg)
+	local remote = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("BossHits")
+	assert(remote, "Remotes.BossHits is missing")
+	local entries = {}
+	for user, id, damage in string.gmatch(arg, "([^:,]+):([^:,]+):([^:,]+)") do
+		table.insert(entries, {
+			UserId = user == "me" and player.UserId or tonumber(user),
+			SidekickId = id,
+			Damage = tonumber(damage),
+		})
+	end
+	remote:FireClient(player, entries)
 end
 
 -- The run ends: the runner goes, as CarService's removeCar does it.
@@ -1574,6 +1606,11 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
 		if bossGear then
 			bossUiGear(player, tonumber(bossGear) or bossGear)
+			return
+		end
+		local bossCredit = string.match(request, "^boss_ui_credit:(%d+)$")
+		if bossCredit then
+			player:SetAttribute("BossCredit", tonumber(bossCredit))
 			return
 		end
 		local bossTutorial = string.match(request, "^boss_ui_tutorial:(%a+)$")

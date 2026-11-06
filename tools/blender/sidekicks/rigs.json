@@ -1,0 +1,259 @@
+{
+ "side_ant": {
+  "Fit": "Torso",
+  "FitCenter": [
+   0.0,
+   0.055,
+   2.6
+  ],
+  "FitHeight": 3.08,
+  "Parents": {
+   "Gaster": "Torso",
+   "Head": "Torso",
+   "HeadNeon": "Head",
+   "LeftArm": "Torso",
+   "LeftArmNeon": "LeftArm",
+   "LeftLeg": "Torso",
+   "LeftLegNeon": "LeftLeg",
+   "RightArm": "Torso",
+   "RightArmNeon": "RightArm",
+   "RightLeg": "Torso",
+   "RightLegNeon": "RightLeg",
+   "Torso": null,
+   "TorsoNeon": "Torso"
+  }
+ },
+ "side_chain": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   -0.159,
+   1.2954
+  ],
+  "FitHeight": 2.0092,
+  "Parents": {
+   "Bar": "Body",
+   "Body": null,
+   "Handle": "Body",
+   "LegBackL": "Body",
+   "LegBackR": "Body",
+   "LegFrontL": "Body",
+   "LegFrontR": "Body",
+   "Tail": "Body"
+  }
+ },
+ "side_crow": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   0.0228,
+   2.5316
+  ],
+  "FitHeight": 2.2291,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LegLeft": "Body",
+   "LegRight": "Body",
+   "Tail": "Body",
+   "WingLeft": "Body",
+   "WingRight": "Body"
+  }
+ },
+ "side_curse": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0069,
+   0.1029,
+   4.3152
+  ],
+  "FitHeight": 3.186,
+  "Parents": {
+   "Body": null,
+   "Crest": "Head",
+   "Head": "Body",
+   "LeftArm": "Body",
+   "RightArm": "Body",
+   "Tail": "Body"
+  }
+ },
+ "side_dogs": {
+  "Fit": "BlackBody",
+  "FitCenter": [
+   -1.62,
+   0.3718,
+   2.5095
+  ],
+  "FitHeight": 2.9074,
+  "Parents": {
+   "BlackBody": null,
+   "BlackHead": "BlackBody",
+   "BlackHeadJaw": "BlackHead",
+   "BlackLegBackLeft": "BlackBody",
+   "BlackLegBackRight": "BlackBody",
+   "BlackLegFrontLeft": "BlackBody",
+   "BlackLegFrontRight": "BlackBody",
+   "BlackTail": "BlackBody",
+   "WhiteBody": null,
+   "WhiteHead": "WhiteBody",
+   "WhiteHeadJaw": "WhiteHead",
+   "WhiteLegBackLeft": "WhiteBody",
+   "WhiteLegBackRight": "WhiteBody",
+   "WhiteLegFrontLeft": "WhiteBody",
+   "WhiteLegFrontRight": "WhiteBody",
+   "WhiteTail": "WhiteBody"
+  }
+ },
+ "side_fist": {
+  "Fit": "Torso",
+  "FitCenter": [
+   0.0,
+   -0.0275,
+   3.205
+  ],
+  "FitHeight": 2.03,
+  "Parents": {
+   "FloatHips": "Torso",
+   "FloatLegLeft": "FloatHips",
+   "FloatLegRight": "FloatHips",
+   "FloatShinLeft": "FloatLegLeft",
+   "FloatShinRight": "FloatLegRight",
+   "Hair": "Head",
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "RightArm": "Torso",
+   "Scarf": "Torso",
+   "Torso": null
+  }
+ },
+ "side_fox": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   0.2077,
+   1.6703
+  ],
+  "FitHeight": 2.1428,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Tail1": "Body",
+   "Tail2": "Body",
+   "Tail3": "Body",
+   "Tail4": "Body",
+   "Tail5": "Body",
+   "Tail6": "Body",
+   "Tail7": "Body",
+   "Tail8": "Body",
+   "Tail9": "Body"
+  }
+ },
+ "side_knight": {
+  "Fit": "Torso",
+  "FitCenter": [
+   -0.0028,
+   0.2521,
+   2.1931
+  ],
+  "FitHeight": 4.0138,
+  "Parents": {
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Sword": "RightArm",
+   "Torso": null
+  }
+ },
+ "side_pig": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0213,
+   0.2181,
+   1.505
+  ],
+  "FitHeight": 2.5254,
+  "Parents": {
+   "Body": null,
+   "Head": "Body",
+   "HeadEarLeft": "Head",
+   "HeadEarRight": "Head",
+   "LegBackLeft": "Body",
+   "LegBackRight": "Body",
+   "LegFrontLeft": "Body",
+   "LegFrontRight": "Body",
+   "Tail": "Body"
+  }
+ },
+ "side_reaper": {
+  "Fit": "Torso",
+  "FitCenter": [
+   0.0,
+   -0.0895,
+   3.0966
+  ],
+  "FitHeight": 2.2731,
+  "Parents": {
+   "Head": "Torso",
+   "LeftArm": "Torso",
+   "LeftLeg": "Torso",
+   "RightArm": "Torso",
+   "RightLeg": "Torso",
+   "Torso": null,
+   "WingLeft": "Torso",
+   "WingRight": "Torso"
+  }
+ },
+ "side_reindeer": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0,
+   0.0889,
+   1.6846
+  ],
+  "FitHeight": 1.5293,
+  "Parents": {
+   "ArmLeft": "Body",
+   "ArmRight": "Body",
+   "Body": null,
+   "Head": "Body",
+   "HeadAntlerLeft": "HeadHat",
+   "HeadAntlerRight": "HeadHat",
+   "HeadHat": "Head",
+   "LegLeft": "Body",
+   "LegRight": "Body"
+  }
+ },
+ "side_wyvern": {
+  "Fit": "Body",
+  "FitCenter": [
+   0.0036,
+   0.2612,
+   3.7621
+  ],
+  "FitHeight": 1.2349,
+  "Parents": {
+   "Body": null,
+   "BodyNeon": "Body",
+   "Head": "Neck",
+   "HeadNeon": "Head",
+   "LegLeft": "Body",
+   "LegNeonLeft": "LegLeft",
+   "LegNeonRight": "LegRight",
+   "LegRight": "Body",
+   "Neck": "Body",
+   "NeckNeon": "Neck",
+   "Tail": "Body",
+   "TailNeon": "Tail",
+   "WingLeft": "Body",
+   "WingNeonLeft": "WingLeft",
+   "WingNeonRight": "WingRight",
+   "WingRight": "Body"
+  }
+ }
+}

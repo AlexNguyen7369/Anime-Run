@@ -163,6 +163,17 @@ function SidekickService.SetClock(fn)
 end
 
 -- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry, Pity = true when guaranteed }, sold ones listed too) or false, reason.
+-- VIP pays 10% fewer Gems (design doc 4.36, owner 2026-11-05).
+-- shortcut: always false here, because the pass check lives in PassService on the unmerged feature/alex/monetization; point this at it in that merge.
+function SidekickService.IsVip(_player)
+	return false
+end
+
+function SidekickService.CostFor(player, count)
+	local cost = count == 1 and Config.SummonCost or Config.TenCost
+	return SidekickService.IsVip(player) and math.floor(cost * 0.9) or cost
+end
+
 function SidekickService.Summon(player, count)
 	if count ~= 1 and count ~= 10 then
 		return false, "Invalid summon"
@@ -170,7 +181,7 @@ function SidekickService.Summon(player, count)
 	if not unlocked(player) then
 		return false, "Reach rebirth " .. Config.UnlockRebirth
 	end
-	local cost = count == 1 and Config.SummonCost or Config.TenCost
+	local cost = SidekickService.CostFor(player, count)
 	if (player:GetAttribute("Gems") or 0) < cost then
 		return false, "Not enough Gems"
 	end

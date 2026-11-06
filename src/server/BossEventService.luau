@@ -8,6 +8,7 @@
 -- exhausted team revives, nil otherwise). They call the RemoteFunctions
 -- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message and each member's move lines to Client/BossEventChat.
+-- Remotes.BossHits carries each hit, batched, to the players in the event: { UserId, SidekickId, Damage }, for Client/SidekickAttackView.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -29,6 +30,7 @@ local SidekickService = require(script.Parent.SidekickService)
 local BossEventService = {}
 
 local REMOTE_COOLDOWN = 0.25
+local HIT_BATCH_SECONDS = 0.25 -- at most 4 batches of hits a second to a player (docs/BOSS_EVENT_SPEC.md)
 local DAMAGE_EPSILON = 1e-6 -- exactly the minimum share still earns the reward, whatever the float sum
 local TIME_EPSILON = 1e-6 -- s: a clock a float's hair before a schedule moment is on it
 local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
@@ -42,6 +44,7 @@ local event = nil -- { StartAt, Source, Phase, Hp, MaxHp, Spawned, IntroDone, Me
 local nextAt = math.huge
 local lastEnd = nil
 local chatRemote = nil
+local hitsRemote = nil
 local started = false
 local lastRequest = setmetatable({}, { __mode = "k" })
 local rewardRng = Random.new()
@@ -195,6 +198,11 @@ BossEventService.Hooks = {
 			chatRemote:FireClient(player, text)
 		end
 	end,
+	BossHits = function(player, entries)
+		if hitsRemote and player:IsA("Player") then
+			hitsRemote:FireClient(player, entries)
+		end
+	end,
 	-- One Relic each; one player's failure never costs another's. The toast goes through Remotes.RunEvent (Client/TeamToast).
 	Rewards = function(players)
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
@@ -337,16 +345,40 @@ function BossEventService.TeamDamage(player)
 	return Cfg.TeamDamage(damages, cruise)
 end
 
+local function userIdOf(player)
+	return player:IsA("Player") and player.UserId or player:GetAttribute("UserId")
+end
+
+-- Sends what each member has waiting, at most every HIT_BATCH_SECONDS unless `final`: the last hits of an event are not held back.
+local function sendHits(members, at, final)
+	for player, member in members do
+		if #member.Hits > 0 and (final or at - member.HitsSentAt >= HIT_BATCH_SECONDS) then
+			local hits = member.Hits
+			member.Hits, member.HitsSentAt = {}, at
+			safely(BossEventService.Hooks.BossHits, player, hits)
+		end
+	end
+end
+
 -- One hit, of the server's own number: this reads nothing from a client.
 function BossEventService.RecordHit(player)
 	local member = event and event.Members[player]
 	if not (member and member.Run) or member.Run.Waiting then
 		return 0
 	end
+	local sidekick = member.Team[member.Run.Slot]
+	local spec = sidekick and SidekickService.Worn(player, sidekick)
+	if not spec then
+		return 0 -- design doc 4.36: the Sidekick deals the damage
+	end
 	local multi = BossEventService.Hooks.DamageMulti(now() - event.StartAt - Cfg.PrepSeconds)
 	local dealt = math.min(BossEventService.TeamDamage(player) * multi, event.Hp)
 	member.Damage += dealt
 	event.Hp -= dealt
+	local entry = { UserId = userIdOf(player), SidekickId = spec.Id, Damage = dealt }
+	for _, other in event.Members do
+		table.insert(other.Hits, entry)
+	end
 	if event.Hp <= 0 then
 		BossEventService.End("Defeated")
 	else
@@ -441,6 +473,8 @@ function BossEventService.Join(player)
 		Lane = lane,
 		Team = elapsed >= Cfg.PrepSeconds and auto or nil, -- after preparation the team is chosen for the joiner
 		Damage = 0,
+		Hits = {}, -- waiting for the next batch
+		HitsSentAt = -math.huge,
 		JoinedAt = joinedAt,
 		ChargedTo = elapsed - Cfg.PrepSeconds, -- nothing at or before the join is owed
 		Equipped = player:GetAttribute("EquippedCar"),
@@ -499,6 +533,7 @@ function BossEventService.End(reason)
 	event = nil
 	lastEnd = reason
 	publish()
+	sendHits(ending.Members, now(), true)
 	local winners = {}
 	local need = Cfg.MinDamageShare * ending.MaxHp - DAMAGE_EPSILON
 	for player, member in ending.Members do
@@ -577,6 +612,7 @@ local function tick(at)
 	if event ~= current then
 		return
 	end
+	sendHits(current.Members, at)
 	for player in current.Members do
 		player:SetAttribute("BossTeamDamage", BossEventService.TeamDamage(player)) -- the running character and refills change it
 	end
@@ -632,6 +668,9 @@ function BossEventService.Init()
 	chatRemote = remotes:FindFirstChild("BossEventChat") or Instance.new("RemoteEvent")
 	chatRemote.Name = "BossEventChat"
 	chatRemote.Parent = remotes
+	hitsRemote = remotes:FindFirstChild("BossHits") or Instance.new("RemoteEvent")
+	hitsRemote.Name = "BossHits"
+	hitsRemote.Parent = remotes
 	bind(remotes, "BossEventTeleport", function(player)
 		return BossEventService.Join(player)
 	end)

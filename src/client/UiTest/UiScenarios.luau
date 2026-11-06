@@ -166,8 +166,12 @@ UiScenarios.Names = {
 	"ui_boss",
 	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
 	"ui_boss_vfx",
+	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")
+	"ui_boss_paid",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
+	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
+	"ui_sidekick_attack",
 	-- Sidekick tutorial (UiSidekickTutorial; design doc 4.36). It stops a real run, and puts it back
 	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
@@ -8043,6 +8047,20 @@ for name, fn in K.bossVfx.Scenarios do
 	S[name] = fn
 end
 
+K.bossPaid = require(script.Parent.UiBossPaid).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+})
+for name, fn in K.bossPaid.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossPaid.After do
+	access.After[cond] = fn
+end
+
 K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
 	check = check,
 	requestSetup = UiScenarios.RequestSetup,
@@ -8052,6 +8070,14 @@ for name, fn in K.sidekickFollow.Scenarios do
 	S[name] = fn
 end
 
+K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickAttack.Scenarios do
+	S[name] = fn
+end
 K.sidekickTutorial = require(script.Parent.UiSidekickTutorial).Build({
 	check = check,
 	find = findPath,

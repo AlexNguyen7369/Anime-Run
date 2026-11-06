@@ -2,6 +2,8 @@
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
 -- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
+-- Outside an event BossButton is the paid spawn (BOSS_EVENT_SPEC "Paid spawn", contract: Client/UiTest/UiBossPaid), through Remotes.BossBuy
+-- and BossUseCredit; the server judges every press.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +21,7 @@ local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local CharacterHeads = require(shared:WaitForChild("CharacterHeads"))
 local CharacterPortraits = require(shared:WaitForChild("CharacterPortraits"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
+local Monetization = require(shared:WaitForChild("MonetizationConfig"))
 local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
@@ -44,6 +47,11 @@ local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
 local PROMPT_SECONDS = 3
 local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
+local RESTRICTED_TEXT = "Paid spawns are not available on your account"
+local BOSS_DETAILS_SIZE = Vector2.new(64, 24) -- right edge 280 on a small phone, short of the compact roll's 283
+local STACK_GAP = 2 -- px: Details under the BossButton, both above the panel band and clear of it at every viewport
+local PROMPT_ROW = 28 -- px: the BossPrompt's row under Details
+local DETAILS_ROW = 22 -- px per odds row
 local RESEND_GAP = 0.3 -- s between team sends: the server refuses a request inside its 0.25 s cooldown
 local PHONE_MAX_HEIGHT = 500 -- the HUD's phone rule
 local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too low, and the roll it clears is hidden or below
@@ -389,13 +397,39 @@ local bossPrompt = label("BossPrompt", root, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 	Visible = false,
 }, 18)
+local bossDetails = button("BossDetails", root, "Details", Palette.TabIdle, {
+	Size = UDim2.fromOffset(BOSS_DETAILS_SIZE.X, BOSS_DETAILS_SIZE.Y),
+	TextSize = 14,
+	Visible = false,
+})
+-- The Drop list's own rows, so the two can not disagree. Display only.
+local detailsPanel = make("Frame", "BossDetailsPanel", root, {
+	Size = UDim2.fromOffset(230, #dropRows * DETAILS_ROW + 8),
+	Visible = false,
+})
+UiTheme.Body(detailsPanel)
+UiTheme.Corner(detailsPanel, "M")
+UiTheme.Stroke(detailsPanel, 3, UiTheme.Outline, true)
+make("UIListLayout", "List", detailsPanel, {
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	VerticalAlignment = Enum.VerticalAlignment.Center,
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+for _, row in dropRows do
+	local copy = row:Clone()
+	copy.Size = UDim2.new(1, -12, 0, DETAILS_ROW)
+	copy.Parent = detailsPanel
+end
 
 local function placeBossButton()
 	local inset = GuiService.TopbarInset
 	local x = inset.Min.X + BOSS_BUTTON_GAP
 	local y = math.max(2, (inset.Max.Y - BOSS_BUTTON_SIZE.Y) / 2)
 	bossButton.Position = UDim2.fromOffset(x, y)
-	bossPrompt.Position = UDim2.fromOffset(x, y + BOSS_BUTTON_SIZE.Y + 6)
+	local detailsTop = y + BOSS_BUTTON_SIZE.Y + STACK_GAP
+	bossDetails.Position = UDim2.fromOffset(x, detailsTop)
+	bossPrompt.Position = UDim2.fromOffset(x, detailsTop + BOSS_DETAILS_SIZE.Y + 4)
+	detailsPanel.Position = UDim2.fromOffset(x, detailsTop + BOSS_DETAILS_SIZE.Y + 4 + PROMPT_ROW)
 end
 GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
 placeBossButton()
@@ -755,18 +789,27 @@ refreshGear()
 local declinedStart = nil
 local promptUntil = 0
 local busy = false
+local detailsOpen = false
 
--- Remotes are found when pressed (UiBossEvent): progression_spy swaps them.
-local function ask(remoteName, target)
+local function showPrompt(text)
+	bossPrompt.Text = text
+	promptUntil = os.clock() + PROMPT_SECONDS
+end
+
+-- Remotes are found when pressed (UiBossEvent): progression_spy swaps them. showRefusal puts the server's reason in the BossPrompt.
+local function ask(remoteName, target, showRefusal)
 	if busy then
 		return
 	end
 	busy = true
 	local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild(remoteName)
-	local called, ok = pcall(remote.InvokeServer, remote)
+	local called, ok, message = pcall(remote.InvokeServer, remote)
 	busy = false
 	if not (called and ok) then
 		UiMotion.Shake(target, 6, 0.2) -- cue: Denied
+		if showRefusal then
+			showPrompt(called and tostring(message or "Try again") or "Connection error")
+		end
 	end
 end
 
@@ -779,11 +822,25 @@ decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
 bossButton.Activated:Connect(function()
-	if teleport.Active then
-		ask("BossEventTeleport", bossButton)
+	if ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil then
+		if teleport.Active then
+			ask("BossEventTeleport", bossButton)
+		else
+			showPrompt(LOCKED_TEXT)
+		end
+	elseif not bossButton.Active then
+		return
+	elseif (player:GetAttribute("BossCredit") or 0) >= 1 then
+		ask("BossUseCredit", bossButton, true)
+	elseif player:GetAttribute("PaidRandomRestricted") == true then
+		showPrompt(RESTRICTED_TEXT)
+		UiMotion.Shake(bossButton, 6, 0.2) -- cue: Denied
 	else
-		promptUntil = os.clock() + PROMPT_SECONDS
+		ask("BossBuy", bossButton, true)
 	end
+end)
+bossDetails.Activated:Connect(function()
+	detailsOpen = not detailsOpen
 end)
 leave.Activated:Connect(function()
 	ask("BossEventLeave", leave)
@@ -796,6 +853,7 @@ local teamKey = nil
 local warningUntil = 0
 local stopFlash = nil
 local stopPulse = nil
+local pulsing = false
 local invitedStart = nil
 local inviteUntil = 0
 
@@ -843,11 +901,52 @@ local function tutorialActive()
 		or (tutorial ~= nil and player:GetAttribute("AutoRoll") == false and (player:GetAttribute("Rolls") or 0) == 0)
 end
 
+-- In an event: teleporting, while it is open. Otherwise the paid spawn, read afresh at each call (UiBossPaid).
+local function drawBossButton(live, joinable)
+	local idle = not live and not tutorialActive()
+	if joinable ~= pulsing then
+		pulsing = joinable
+		if stopPulse then
+			stopPulse()
+			stopPulse = nil
+		end
+		if joinable then
+			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
+			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
+			stopPulse = function()
+				stopSize()
+				stopGlow()
+			end
+		end
+	end
+	bossButton.Visible = joinable or idle
+	bossDetails.Visible = idle
+	detailsOpen = detailsOpen and idle -- closed again when the button next comes back
+	detailsPanel.Visible = detailsOpen and not PanelSwitch.AnyOpen()
+	bossPrompt.Visible = bossButton.Visible and not invite.Visible and os.clock() < promptUntil
+	if joinable then
+		bossButton.Text = "Boss (Active)"
+		bossButton.Active = true
+		bossButton.BackgroundColor3 = Palette.Danger
+	elseif idle then
+		local sale = Monetization.BossSpawn
+		local credit = (player:GetAttribute("BossCredit") or 0) >= 1
+		local restricted = player:GetAttribute("PaidRandomRestricted") == true -- pressable: the press shows the error
+		local buyable = teleport.Active and (restricted or sale.ProductId > 0)
+		bossButton.Text = credit and "Boss ready"
+			or sale.ProductId > 0 and ("Boss %d R$"):format(sale.Robux)
+			or "Coming soon"
+		bossButton.Active = credit or buyable
+		bossButton.BackgroundColor3 = credit and Palette.MoneyDeep or buyable and Palette.Danger or Palette.Disabled
+	end
+end
+
 local function render()
 	local phase = ReplicatedStorage:GetAttribute("BossEventPhase")
 	local inEvent = player:GetAttribute("BossEvent") == true
 	local live = phase ~= nil or inEvent
 	if not live and not wasLive then
+		drawBossButton(false, false)
 		return
 	end
 	wasLive = live
@@ -897,22 +996,7 @@ local function render()
 		invite.Visible = false
 	end
 
-	if joinable ~= bossButton.Visible then
-		bossButton.Visible = joinable
-		if stopPulse then
-			stopPulse()
-			stopPulse = nil
-		end
-		if joinable then
-			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
-			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
-			stopPulse = function()
-				stopSize()
-				stopGlow()
-			end
-		end
-	end
-	bossPrompt.Visible = joinable and not invite.Visible and not teleport.Active and os.clock() < promptUntil
+	drawBossButton(live, joinable)
 	hud.Visible = inEvent and phase == "Prep" and not panelOpen
 	bar.Visible = inFight
 	dropList.Visible = inFight and warningUntil == 0 and not panelOpen

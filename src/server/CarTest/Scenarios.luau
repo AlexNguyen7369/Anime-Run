@@ -3025,7 +3025,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 17 -- docs/SAVE_SPEC.md: VERSION 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
+	local DATA_VERSION = 18 -- docs/SAVE_SPEC.md: VERSION 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local Money = serverModule("MoneyService")
@@ -3230,6 +3230,20 @@ function Scenarios.data()
 	local p3 = newPlayer("CarTestDataP3")
 	PlayerData.Load(p3, 9002) -- a different user does not see it
 	check(checks, "other_user_isolated", val(p3, "Money") or -1, 0, val(p3, "Money") == 0)
+
+	-- docs/BOSS_EVENT_SPEC.md "Paid spawn": BossCredit round trip (VERSION 18), cleaned to a whole number, absent on old saves
+	local pCredit = newPlayer("CarTestDataCredit")
+	PlayerData.Load(pCredit, 9031)
+	pCredit:SetAttribute("BossCredit", 2)
+	PlayerData.Save(pCredit, 9031)
+	local pCreditBack = newPlayer("CarTestDataCreditBack")
+	PlayerData.Load(pCreditBack, 9031)
+	local creditBack = pCreditBack:GetAttribute("BossCredit")
+	check(checks, "boss_credit_roundtrip", creditBack or -1, 2, creditBack == 2)
+	local pCreditFresh = newPlayer("CarTestDataCreditFresh")
+	PlayerData.Load(pCreditFresh, 9032)
+	local creditFresh = pCreditFresh:GetAttribute("BossCredit")
+	check(checks, "boss_credit_default_zero", creditFresh or -1, 0, creditFresh == 0)
 
 	-- /newplayer: the next load is a brand new save; gifts stay; the old session can not write the old stats back
 	local pOld = newPlayer("CarTestDataResetOld")
@@ -12597,9 +12611,12 @@ Scenarios.sidekick_tutorial = require(script.Parent.SidekickTutorialTests).sidek
 Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
 Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
+Scenarios.boss_paid = require(script.Parent.BossPaidTests).boss_paid -- docs/BOSS_EVENT_SPEC.md "Paid spawn" (b9)
 Scenarios.boss_event = require(script.Parent.BossEventTests).make({ newFakeCharacter = newFakeCharacter }).boss_event
 -- docs/BOSS_EVENT_SPEC.md "Boss and attacks": pose data, timing and rise, client visuals only (b7b)
 Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
+-- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
+Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

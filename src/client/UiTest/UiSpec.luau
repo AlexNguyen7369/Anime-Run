@@ -1398,10 +1398,11 @@ UiSpec.ServerSetup = {
 	},
 	{
 		Id = "sidekick_follow_*",
-		When = "asked for by ui_sidekick_follow, one step at a time",
+		When = "asked for by ui_sidekick_follow and ui_sidekick_attack, one step at a time",
 		What = "Stops this player's run, then builds a rig of theirs (Owner = UserId) far above the world, drawn by "
 			.. "the real RunnerView, and Sidekicks worn per character. Steps: start, wear:<character>:<id|none>, swap:<character>, "
-			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), end. "
+			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), hits:<userId|me>:<id>:<damage>,... "
+			.. "(ui_sidekick_attack: a fake Remotes.BossHits batch to this client, no damage dealt), end. "
 			.. "restore:sidekick_follow puts all of it back and restarts a run it stopped.",
 	},
 	{
@@ -2444,6 +2445,9 @@ UiSpec.RemoteFunctions = {
 	"BossEventTeleport",
 	"BossEventSetTeam",
 	"BossEventLeave",
+	-- Paid spawn: the boss_paid_* clicks must never really prompt or start
+	"BossBuy",
+	"BossUseCredit",
 }
 table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
@@ -3964,8 +3968,8 @@ UiSpec.BossEvent = {
 }
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton" },
-	NonInteractiveParts = { "Warning", "BossBar", "DropList" },
+	AlwaysOn = { "LeaveButton", "BossButton", "BossDetails" },
+	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetailsPanel" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
@@ -3978,6 +3982,7 @@ UiSpec.Guis.RacerBossEvent = {
 			Count = "dynamic",
 		},
 		{ Path = "LeaveButton", Does = "remote", Remote = "BossEventLeave" },
+		{ Path = "BossDetails", Does = "local" },
 	},
 }
 UiSpec.HiddenWhilePanelOpen["RacerBossEvent/LeaveButton"] = "any"
@@ -4001,6 +4006,9 @@ for _, item in
 			What = "As boss_ui_prep_in, in Fight after the intro. Attributes only: nobody really joins, 'restore' clears "
 				.. "them and puts the characters and Sidekicks back.",
 		},
+		{ Id = "boss_ui_idle", What = "One character with a Sidekick, no event, no BossCredit." },
+		{ Id = "boss_ui_credit", What = "As boss_ui_idle, holding one BossCredit." },
+		{ Id = "boss_ui_restricted", What = "As boss_ui_idle, with PaidRandomRestricted." },
 	}
 do
 	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
@@ -4079,6 +4087,41 @@ for _, click in
 			Prepare = BOSS_PREPARE,
 			NeedSetup = { "spy", "progression_spy", "boss_ui_fight_in" },
 			Expect = { Remote = { Name = "BossEventLeave", Args = {} } },
+		},
+		{
+			Id = "boss_paid_details",
+			Path = "BossDetails",
+			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+		},
+		{
+			Id = "boss_paid_use_credit",
+			Path = "BossButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_credit" },
+			Expect = { Remote = { Name = "BossUseCredit", Args = {} } },
+		},
+		{
+			-- The real id is set, so a press asks to buy; Intercept keeps the real prompt from opening. ui_boss_paid holds id 0.
+			Id = "boss_paid_buy",
+			Path = "BossButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 0.5,
+				TargetActive = true,
+				Intercept = "BossBuy",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = { Name = "BossBuy", Args = {} } },
+		},
+		{
+			Id = "boss_paid_restricted",
+			Path = "BossButton",
+			Prepare = { Showcase = false, RequireShown = true, WaitSeconds = 0.5, Intercept = "BossBuy" },
+			NeedSetup = { "spy", "progression_spy", "boss_ui_restricted" },
+			Expect = { Remote = false, After = { "boss_paid_error_shown" } },
 		},
 	}
 do
