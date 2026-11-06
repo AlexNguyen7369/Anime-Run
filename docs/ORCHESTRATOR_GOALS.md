@@ -143,7 +143,7 @@ Deliverables:
 Out of scope: Relic or Sidekick trading, a second boss, an underground arena, pity, luck on summons, summon potions, VIP, shiny pass, extra banners.
 
 ## boss-phase2: Fully Adapted Raga, line run, chests and rewards popup (owner 2026-11-06)
-Status: active
+Status: done 2026-11-06 (PR #5 merged, d2450c6)
 Owner-confirmed: 2026-11-06 (plan approved: `~/.claude/plans/squishy-wishing-cook.md`)
 Branch: feature/alex/boss-phase2 (from e87b19d, because `main` lacks the boss event and PR #4 is still open)
 Spec: design doc 4.35, 4.37, 4.38, docs/BOSS_EVENT_SPEC.md, docs/RELIC_SPEC.md
