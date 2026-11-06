@@ -119,8 +119,9 @@
 116. 2026-11-06 — Alex Nguyen — Drew and uploaded art for 5 Relics and 2 chests after owner approval and set the Relic rows' images.
 117. 2026-11-06 — Alex Nguyen — Built the boss Phase 2 server and the line run; `[CARTEST] END pass=2 fail=0` on `boss_event` and `relics`, with client visuals not yet seen.
 118. 2026-11-06 — Alex Nguyen — Wrote the rule for Raga growing 25% in the Phase 2 scream cutscene, with no code yet.
+119. 2026-11-06 — Alex Nguyen — Landed the boss Phase 2 client, growth cutscene, wheel stop, rewards popup, chest opening, FOV lock and individual character hits; targeted scenarios passed, with the full harness not yet run.
 
 ## What's next
-**Build the Phase 2 presentation, rewards popup and chest opening on the client.**
+**Run the full harness and rules audit on `feature/alex/boss-phase2`, then open its PR to `main` with a fresh review.**
 
-**Why this is next:** players cannot yet see Phase 2's state or open chests, and the full harness and PR wait on it.
+**Why this is next:** the goal's last deliverable depends on them, and no full run covers this code yet.
