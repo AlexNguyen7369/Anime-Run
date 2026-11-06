@@ -93,28 +93,26 @@ UiSpec.Guis = {
 		Source = "Client/HudChrome",
 		AlwaysOn = {
 			"Grid/Index",
-			"Grid/Stats",
-			"Grid/Stats/Badge",
+			"Grid/Items",
 			"Grid/Rebirth",
+			"Grid/Rebirth/Badge",
 			"ShopColumn/Shop",
-			"ItemsSlot/Items",
+			"AutoSlot/Auto",
 			"UpgradeSlot/Upgrade",
-			"TopRight/Auto",
 			"TopRight/Daily",
 			"ShopColumn/Quests",
 			"TopRight/Market",
 			"TopRight/Settings",
 		},
-		Readouts = { "Grid/Stats/Badge" },
+		Readouts = { "Grid/Rebirth/Badge" },
 		Buttons = {
 			{ Path = "Grid/Index", Does = "toggle_panel", Panel = "RacerIndex/Panel", Text = "Index" },
-			{ Path = "Grid/Stats", Does = "toggle_panel", Panel = "RacerStats/Panel", Text = "Stats" },
+			{ Path = "Grid/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "Grid/Rebirth", Does = "toggle_panel", Panel = "RacerRebirth/Panel", Text = "Rebirth" },
 			{ Path = "ShopColumn/Shop", Does = "toggle_panel", Panel = "ShopUi/Backdrop", Text = "Shop" },
-			{ Path = "ItemsSlot/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "UpgradeSlot/Upgrade", Does = "toggle_panel", Panel = "RacerUpgrades/Panel", Text = "Upgrade" },
 			{
-				Path = "TopRight/Auto",
+				Path = "AutoSlot/Auto",
 				Does = "remote",
 				Remote = "SetAutoRace",
 				Arg = "not_attr:AutoRacing", -- the opposite of the current AutoRacing attribute
@@ -392,11 +390,11 @@ UiSpec.Settings = {
 -- in the text; Colour: the heading's TextColor3 family (UiSpec.Rebirth.Colours).
 UiSpec.Rebirth = {
 	Panel = "RacerRebirth/Panel",
-	Title = "RacerRebirth/Panel/Face/Header/Face/Title",
+	Title = "RacerRebirth/Panel/Face/Header/Face/RebirthTabs/RebirthTab", -- the tab replaces the title (design doc 4.40)
 	TitleText = "REBIRTH",
 	Nodes = {
 		{ Name = "Header", Parent = "Panel", Class = "Frame" },
-		{ Name = "Title", Parent = "Header", Class = "TextLabel", Text = "REBIRTH" },
+		{ Name = "Title", Parent = "Header", Class = "TextLabel" },
 		{ Name = "Close", Parent = "Header", Class = "Frame" },
 		{ Name = "Warning", Parent = "Panel", Class = "Frame" },
 		{ Name = "WarningTitle", Parent = "Warning", Class = "TextLabel", Text = "WARNING", Colour = "red" },
@@ -496,18 +494,20 @@ UiSpec.Rebirth = {
 -- The HUD (ui/specs/RacerHud.ui.json). Gaps are the spec's offsets (they are not scaled by the UIScale k).
 UiSpec.Hud = {
 	Race = "RacerHud/Race/Face", -- hidden: geometry only, the anchor the Toast and the panel bands read
-	-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": a pill immediately left of Daily, same height, label "Auto" in every state
-	Auto = "HudChrome/TopRight/Auto",
+	-- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": a tile in the bottom pair, label "Auto" in every state (design doc 4.40)
+	Auto = "HudChrome/AutoSlot/Auto",
+	AutoImageOn = "rbxassetid://122355836258114",
+	AutoImageOff = "rbxassetid://83629554083032",
 	Daily = "HudChrome/TopRight/Daily",
 	AutoLabel = "Auto",
-	AutoMaxGap = 8, -- px between the pill and Daily (TopRight's UIListLayout padding; a phone's UIScale only shrinks it)
-	AutoTintWait = 2, -- s: past the 1 s pending lock, the tint shows AutoRacing
+	AutoTintWait = 2, -- s: past the 1 s pending lock, the icon shows AutoRacing
 	-- docs/ROLL_ANIMATION_SPEC.md "Quests button": the Shop tile's twin, directly above it
 	Shop = "HudChrome/ShopColumn/Shop",
 	Quests = "HudChrome/ShopColumn/Quests",
 	ColumnMaxGap = 8, -- px between the two tiles (ShopColumn's UIListLayout padding; a phone's UIScale only shrinks it)
+	-- Design doc 4.40: Stats is a tab of the Rebirth panel, one strip in each panel's header
+	StatsTab = "RacerRebirth/Panel/Face/Header/Face/RebirthTabs/StatsTab",
 	TopRow = {
-		"HudChrome/TopRight/Auto",
 		"HudChrome/TopRight/Daily",
 		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
@@ -516,10 +516,10 @@ UiSpec.Hud = {
 	RaceTop = 72, -- px from the screen top (IgnoreGuiInset) to the Race button's top edge, below the top bar
 	NavButtons = {
 		"HudChrome/Grid/Index",
-		"HudChrome/Grid/Stats",
+		"HudChrome/Grid/Items",
 		"HudChrome/Grid/Rebirth",
 	},
-	NavLabels = { "Index", "Stats", "Rebirth" }, -- stacked top to bottom on the LEFT edge
+	NavLabels = { "Index", "Items", "Rebirth" }, -- stacked top to bottom on the LEFT edge
 	NavMaxLeftGap = 32, -- px from the screen's left edge to the column
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
@@ -535,7 +535,7 @@ UiSpec.Hud = {
 	TurboLabel = "RacerHud/Turbo/Face/TurboLabel",
 	TurboBottomGap = { Desktop = 22, Phone = 16 }, -- px from the screen bottom to the TURBO LUCK bar's bottom edge
 	Settings = "HudChrome/TopRight/Settings",
-	PointsBadge = "HudChrome/Grid/Stats/Badge",
+	PointsBadge = "HudChrome/Grid/Rebirth/Badge",
 	BottomGap = { Desktop = 22, Phone = 16 }, -- px: Money (bottom left) and TURBO bar bottom edges
 	SideGap = { Desktop = 22, Phone = 12 }, -- px: Money's left edge from the screen side
 }
@@ -802,12 +802,12 @@ UiSpec.Band = {
 
 -- Owner 2026-10-28 (design doc 4.27): at viewport height <= StackMaxHeight the Items / Upgrade
 -- pair stacks ABOVE the LEVEL bar (both bottoms at or above the Level top and the Money top) and overlaps none of
--- Clear; elsewhere it stays beside the bars (Items right edge = bars left - SlotGap, Upgrade left = bars right +
+-- Clear; elsewhere it stays beside the bars (Auto right edge = bars left - SlotGap, Upgrade left = bars right +
 -- SlotGap, icon centre on the gap between Level and Turbo). On desktop the pair is never shrunk (pair UIScale =
 -- BottomScale exactly); tablet_4x3 may shrink (design doc 4.27). Expected rects at 667x375 from the brief (screen pixels, +-Tol).
 UiSpec.HudPair = {
 	-- The slot holders (one CELL each, scaled by their UIScale "Scale"), not the buttons inside
-	Items = "HudChrome/ItemsSlot",
+	Auto = "HudChrome/AutoSlot",
 	Upgrade = "HudChrome/UpgradeSlot",
 	Level = "RacerHud/Level",
 	Turbo = "RacerHud/Turbo",
@@ -877,9 +877,9 @@ UiSpec.HiddenWhilePanelOpen = {
 	["DailyBoosts/Status"] = "any",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the compact roll hides under every panel
 	["RollToast/Toast"] = "any",
-	-- Stacked Items / Upgrade (height <= UiSpec.HudPair.StackMaxHeight) sit where an open panel goes: Client/HudChrome
+	-- Stacked Auto / Upgrade (height <= UiSpec.HudPair.StackMaxHeight) sit where an open panel goes: Client/HudChrome
 	-- hides them there while any panel is open. "stacked" holds at those viewports only.
-	["HudChrome/ItemsSlot/Items"] = "stacked",
+	["HudChrome/AutoSlot/Auto"] = "stacked",
 	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
@@ -907,16 +907,15 @@ UiSpec.PanelDimmers = {
 	Veil = { MinCoverage = 0.9, MaxTransparency = 0.95 },
 	PersistentButtons = {
 		"HudChrome/Grid/Index",
-		"HudChrome/Grid/Stats",
+		"HudChrome/Grid/Items",
 		"HudChrome/Grid/Rebirth",
 		"HudChrome/ShopColumn/Shop",
 		"HudChrome/ShopColumn/Quests",
-		"HudChrome/ItemsSlot/Items",
+		"HudChrome/AutoSlot/Auto",
 		"HudChrome/UpgradeSlot/Upgrade",
 		"HudChrome/TopRight/Daily",
 		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
-		"HudChrome/TopRight/Auto",
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
@@ -1779,15 +1778,22 @@ UiSpec.Clicks = {
 	},
 	{
 		Id = "open_stats",
-		Gui = "HudChrome",
-		Path = "Grid/Stats",
-		Prepare = { Closed = CLOSED, Showcase = false },
-		Expect = { Panels = { ["RacerStats/Panel"] = true }, Remote = false },
+		Gui = "RacerRebirth",
+		Path = "Panel/Face/Header/Face/RebirthTabs/StatsTab",
+		Prepare = only("RacerRebirth/Panel"),
+		Expect = { Panels = { ["RacerStats/Panel"] = true, ["RacerRebirth/Panel"] = false }, Remote = false },
+	},
+	{
+		Id = "stats_tab_back_to_rebirth",
+		Gui = "RacerStats",
+		Path = "Panel/Face/Header/Face/RebirthTabs/RebirthTab",
+		Prepare = only("RacerStats/Panel"),
+		Expect = { Panels = { ["RacerRebirth/Panel"] = true, ["RacerStats/Panel"] = false }, Remote = false },
 	},
 	{
 		Id = "toggle_stats_closed",
 		Gui = "HudChrome",
-		Path = "Grid/Stats",
+		Path = "Grid/Rebirth",
 		Prepare = only("RacerStats/Panel"),
 		Expect = { Panels = { ["RacerStats/Panel"] = false }, Remote = false },
 	},
@@ -1864,11 +1870,11 @@ UiSpec.Clicks = {
 	},
 	-- Mutually exclusive through the real buttons (the HUD button must be reachable while another panel is open)
 	{
-		Id = "open_stats_while_index_open",
+		Id = "open_rebirth_while_index_open",
 		Gui = "HudChrome",
-		Path = "Grid/Stats",
+		Path = "Grid/Rebirth",
 		Prepare = only("RacerIndex/Panel"),
-		Expect = { Panels = { ["RacerStats/Panel"] = true, ["RacerIndex/Panel"] = false }, Remote = false },
+		Expect = { Panels = { ["RacerRebirth/Panel"] = true, ["RacerIndex/Panel"] = false }, Remote = false },
 	},
 	{
 		Id = "open_index_while_stats_open",
@@ -1933,11 +1939,11 @@ UiSpec.Clicks = {
 		NeedSetup = { "spy" },
 		Expect = { Panels = { ["RacerRebirth/Panel"] = false }, Remote = false },
 	},
-	-- Auto pill: fires SetAutoRace(not AutoRacing); the label stays "Auto", the tint follows the server, not the click
+	-- Auto tile: fires SetAutoRace(not AutoRacing); the label stays "Auto", the icon follows the server, not the click
 	{
 		Id = "auto_race_toggle",
 		Gui = "HudChrome",
-		Path = "TopRight/Auto",
+		Path = "AutoSlot/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false },
 		NeedSetup = { "spy" },
 		Expect = {
@@ -1948,7 +1954,7 @@ UiSpec.Clicks = {
 	{
 		Id = "auto_race_toggle_back",
 		Gui = "HudChrome",
-		Path = "TopRight/Auto",
+		Path = "AutoSlot/Auto",
 		Prepare = { Closed = CLOSED, Showcase = false, WaitSeconds = 1.5 }, -- past the 1 s pending lock
 		NeedSetup = { "spy" },
 		Expect = {
@@ -2978,7 +2984,7 @@ local DAILY = "DailyBoosts/ModalBackdrop"
 table.insert(UiSpec.Clicks, {
 	Id = "open_backpack",
 	Gui = "HudChrome",
-	Path = "ItemsSlot/Items",
+	Path = "Grid/Items",
 	Prepare = { Closed = CLOSED, Showcase = false },
 	NeedSetup = { "spy" },
 	Expect = { Panels = { ["RacerBackpack/Panel"] = true }, Remote = false },

@@ -1793,14 +1793,14 @@ function Model.CardRect(viewport, root)
 end
 
 -- Client/HudChrome refresh() (docs/HUD_LAYOUT_SPEC.md section 1), every 0.25 s and on every PanelSwitch change:
---   each tile holder (Grid, ShopColumn, ItemsSlot, UpgradeSlot) has a UIScale "Scale" = (phone and Phone or 1) x
+--   each tile holder (Grid, ShopColumn, AutoSlot, UpgradeSlot) has a UIScale "Scale" = (phone and Phone or 1) x
 --   (BottomScale for the bottom pair); TopRight's UIScale "Scale" = phone and BarPhone or 1 (phone = viewport height
---   <= PHONE_MAX_HEIGHT). Grid / ShopColumn take HolderPositions[variant]. ItemsSlot's Position =
+--   <= PHONE_MAX_HEIGHT). Grid / ShopColumn take HolderPositions[variant]. AutoSlot's Position =
 --   fromOffset(left - SlotGap, gap), UpgradeSlot's = fromOffset(right + SlotGap, gap), where left / right are the
 --   outer edges of RacerHud/Level and RacerHud/Turbo together and gap = (Level bottom + Turbo top) / 2, in screen
 --   pixels (HudChrome ignores the inset). The pair is Visible only when Level and Turbo exist.
 --   Owner 2026-10-28 (section 6): at viewport height <= StackMaxHeight the pair stacks ABOVE the bars instead:
---   AnchorPoint (1, 1) / (0, 1), bottom y = min(Level top, Money top) - StackGap, ItemsSlot x = left - StackGap,
+--   AnchorPoint (1, 1) / (0, 1), bottom y = min(Level top, Money top) - StackGap, AutoSlot x = left - StackGap,
 --   UpgradeSlot x = right + StackGap (Money only when visible; the Speed read-out is gone, design doc 4.13, owner 2026-11-01).
 Model.HudChrome = {
 	Phone = 0.68,
@@ -1812,7 +1812,7 @@ Model.HudChrome = {
 		["HudChrome/Grid"] = { Desktop = UDim2.new(0, 14, 0.5, -24), Phone = UDim2.new(0, 8, 0.5, -20) },
 		["HudChrome/ShopColumn"] = { Desktop = UDim2.new(1, -14, 0.5, -24), Phone = UDim2.new(1, -8, 0.5, -20) },
 	},
-	Slots = { ["HudChrome/ItemsSlot"] = "left", ["HudChrome/UpgradeSlot"] = "right" },
+	Slots = { ["HudChrome/AutoSlot"] = "left", ["HudChrome/UpgradeSlot"] = "right" },
 	Level = "RacerHud/Level",
 	Turbo = "RacerHud/Turbo",
 	Bar = "HudChrome/TopRight",

@@ -864,7 +864,7 @@ function setups.turbo_next(player)
 end
 
 -- Roll animation (docs/ROLL_ANIMATION_SPEC.md): the next auto roll is an emphasized roll. Owning no rollable car
--- makes any roll new and, with fewer than 5 cars owned, emphasized (GachaConfig.IsEmphasized). As soon as that roll
+-- makes any roll new, and EMPHASIS_MULTI 0 drops the bar for this one roll (GachaConfig.IsEmphasized). As soon as that roll
 -- happened (Rolls changed) exactly the cars owned before are given back (the rolled one is not kept), with the new
 -- roll count, so later rolls are not emphasized by accident and no car is gained.
 function setups.emphasized_next(player)
@@ -873,12 +873,16 @@ function setups.emphasized_next(player)
 	local empty = table.clone(before)
 	empty.Cars = {}
 	G.Apply(player, empty)
+	local GachaConfig = require(game:GetService("ReplicatedStorage").Shared.GachaConfig)
+	local multi = GachaConfig.EMPHASIS_MULTI
+	GachaConfig.EMPHASIS_MULTI = 0
 	local rolls0 = player:GetAttribute("Rolls")
 	task.spawn(function()
 		local deadline = os.clock() + 60
 		while player.Parent == Players and player:GetAttribute("Rolls") == rolls0 and os.clock() < deadline do
 			task.wait(0.05)
 		end
+		GachaConfig.EMPHASIS_MULTI = multi
 		if player.Parent ~= Players then
 			return
 		end

@@ -9438,9 +9438,9 @@ function Scenarios.admin()
 	return result("admin", checks, metrics)
 end
 
--- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
--- undiscovered AND its odds are rarer than the player's 5th-rarest discovered car (while the player has discovered
--- fewer than 5 cars, any undiscovered car counts). The rarity name alone never triggers it. Every emphasized roll is
+-- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02; bar changed 2026-11-05, design doc 4.40): "A roll is emphasized when the car is
+-- undiscovered AND its odds are at least 100x the player's 3rd-rarest discovered car (while the player has discovered
+-- fewer than 3 cars, 100x the starter, which counts as 1). The rarity name alone never triggers it. Every emphasized roll is
 -- announced in global chat." Every number below is copied from the spec, never from an implementation.
 local ROLL_ANIM_TIMES = { POP = 0.12, SPIN = 1.5, LAND = 0.2, EXIT = 0.2, SWITCH = 0.3, FIT_INTERVAL = 2.8 }
 local ROLL_ANIM_HOLD = {
@@ -9931,15 +9931,17 @@ function Scenarios.roll_anim()
 		for _, c in GACHA_CATALOG do
 			table.insert(allIds, c.Id)
 		end
-		local rare5 = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat" } -- 5th-rarest = leaf_copycat (Rare)
-		local rare5w = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } -- 5th = leaf_medic (Uncommon)
-		local common5 = { "sea_navigator", "leaf_medic", "leaf_copycat", "db_tyrant", "leaf_hero" } -- 5th = catch-all
-		local six = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat", "sea_navigator" }
+		-- Odds: db_hero 1.6e16, leaf_crow 5e9, leaf_hero 1e7, db_tyrant 5e4, leaf_copycat 500, leaf_medic 10, sea_navigator 1
+		local top3 = { "db_hero", "leaf_crow", "db_tyrant" } -- 3rd = 5e4, bar 5e6
+		local low3 = { "db_hero", "leaf_crow", "leaf_medic" } -- 3rd = 10, bar 1000
+		local common3 = { "sea_navigator", "leaf_medic", "leaf_copycat" } -- 3rd = catch-all, bar 100
+		local four = { "db_hero", "leaf_crow", "db_tyrant", "sea_navigator" } -- 3rd = 5e4, not the least rare
+		local two = { "db_hero", "leaf_crow" } -- fewer than 3: the starter's 1, bar 100
 		local newCases = {}
 		for _, id in allIds do
-			table.insert(newCases, { id, {}, true })
+			table.insert(newCases, { id, {}, (CharacterCatalog.Get(id).Chance or 0) >= 100 })
 		end
-		expectAll("emph_nothing_owned_any_new_true", newCases)
+		expectAll("emph_nothing_owned_needs_100x_starter", newCases)
 		local ownedCases = {}
 		for _, id in allIds do
 			table.insert(ownedCases, { id, { id }, false })
@@ -9953,40 +9955,41 @@ function Scenarios.roll_anim()
 			{ nil, {}, false },
 			{ 5, {}, false },
 		})
-		local four = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }
-		expectAll("emph_under_five_any_new_true", {
-			{ "sea_navigator", four, true },
-			{ "leaf_medic", four, true },
-			{ "leaf_copycat", four, true },
+		expectAll("emph_under_three_needs_100x_starter", {
+			{ "sea_navigator", two, false },
+			{ "leaf_medic", two, false },
+			{ "leaf_copycat", two, true },
 		})
 		expectAll("emph_only_distinct_rollable_owned_count", {
-			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "starter" }, true },
-			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "no_such_car" }, true },
-			{ "leaf_medic", { "db_hero", "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }, true },
+			{ "leaf_medic", { "db_hero", "leaf_crow", "starter" }, false },
+			{ "leaf_medic", { "db_hero", "leaf_crow", "no_such_car" }, false },
+			{ "leaf_copycat", { "db_hero", "db_hero", "leaf_crow" }, true },
 		})
-		expectAll("emph_five_owned_catch_all_is_least_rare", {
-			{ "leaf_crow", common5, true },
-			{ "db_hero", common5, true },
+		expectAll("emph_three_owned_catch_all_is_least_rare", {
+			{ "db_tyrant", common3, true },
+			{ "db_hero", common3, true },
+			{ "leaf_crow", common3, true },
 		})
-		expectAll("emph_not_rarer_than_fifth_false", {
-			{ "leaf_medic", rare5, false },
-			{ "sea_navigator", rare5, false },
-			{ "sea_navigator", rare5w, false },
+		expectAll("emph_under_100x_third_false", {
+			{ "leaf_medic", top3, false },
+			{ "leaf_copycat", top3, false },
+			{ "leaf_copycat", low3, false }, -- rarer than the 3rd, but only 50x
 		})
-		expectAll("emph_rarer_than_fifth_true", {
-			{ "leaf_copycat", rare5w, true },
+		expectAll("emph_at_least_100x_third_true", {
+			{ "leaf_hero", top3, true },
+			{ "db_tyrant", { "db_hero", "leaf_crow", "leaf_copycat" }, true }, -- exactly 100x
 		})
-		-- with 6 owned the 5th-rarest decides (leaf_copycat here), not the least rare one
-		expectAll("emph_uses_fifth_rarest_not_least", {
-			{ "leaf_medic", six, false },
+		-- with 4 owned the 3rd-rarest decides, not the least rare one
+		expectAll("emph_uses_third_rarest_not_least", {
+			{ "leaf_copycat", four, false },
 		})
-		local reversed = table.clone(rare5w)
+		local reversed = table.clone(low3)
 		for i = 1, #reversed // 2 do
 			reversed[i], reversed[#reversed + 1 - i] = reversed[#reversed + 1 - i], reversed[i]
 		end
 		expectAll("emph_owned_order_ignored", {
-			{ "leaf_copycat", reversed, true },
-			{ "sea_navigator", reversed, false },
+			{ "leaf_hero", reversed, true },
+			{ "leaf_copycat", reversed, false },
 		})
 		-- Rarity names never matter: relabel cars (restored afterwards) so two cars share a rarity name but only
 		-- the one with the rarer odds passes, and a "Secret"-named common car never passes.
@@ -9999,9 +10002,9 @@ function Scenarios.roll_anim()
 				spec.Rarity = rarity
 			end
 			expectAll("emph_rarity_names_ignored", {
-				{ "leaf_copycat", rare5w, true }, -- now labelled Common, still passes on odds
-				{ "sea_navigator", rare5w, false }, -- now labelled Rare like the real leaf_copycat, still fails
-				{ "leaf_medic", rare5, false }, -- labelled Secret, odds of an Uncommon: fails
+				{ "leaf_copycat", two, true }, -- now labelled Common, still passes on odds
+				{ "sea_navigator", two, false }, -- now labelled Rare like the real leaf_copycat, still fails
+				{ "leaf_medic", two, false }, -- labelled Secret, odds of an Uncommon: fails
 			})
 		end)
 		for id, rarity in saved do

@@ -372,7 +372,7 @@ categoryLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 categoryLayout.Padding = UDim.new(0, 6)
 categoryLayout.Parent = categoryTabs
 
-local function categoryButton(name, text, width)
+local function categoryButton(name, text, width, parent)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.Size = UDim2.fromOffset(width, 38)
@@ -389,12 +389,12 @@ local function categoryButton(name, text, width)
 	edge.Color = UiTheme.Outline
 	edge.Thickness = 2
 	edge.Parent = button
-	button.Parent = categoryTabs
+	button.Parent = parent
 	return button
 end
 
-local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84)
-local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136)
+local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84, categoryTabs)
+local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136, categoryTabs)
 local profileHost = Instance.new("ScrollingFrame")
 profileHost.Name = "PlayerProfile"
 profileHost.Position = UDim2.fromOffset(16, 96)
@@ -545,6 +545,63 @@ rebirth.RewardsTitle.Text = "NEXT REBIRTH"
 local rebirthTitlePad = Instance.new("UIPadding")
 rebirthTitlePad.PaddingLeft = UDim.new(0, 84)
 rebirthTitlePad.Parent = rebirth.Title
+
+-- Stats is a category of the Rebirth panel (design doc 4.40): two generated panels, one tab strip in each header.
+-- The tabs replace the titles; the generated fit() forces Title.Visible, so the text is what goes.
+local statsTabBadges = {}
+local function rebirthTabs(refs, selected)
+	refs.Title.Text = ""
+	local strip = Instance.new("Frame")
+	strip.Name = "RebirthTabs"
+	strip.AnchorPoint = Vector2.new(0, 0.5)
+	strip.Position = UDim2.new(0, 12, 0.5, 0)
+	strip.Size = UDim2.fromOffset(198, 38)
+	strip.BackgroundTransparency = 1
+	strip.ZIndex = 6
+	strip.Parent = refs.Header
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = strip
+	for order, tab in { { "RebirthTab", "REBIRTH", "Rebirth" }, { "StatsTab", "STATS", "Stats" } } do
+		local button = categoryButton(tab[1], tab[2], 96, strip)
+		button.LayoutOrder = order
+		button.BackgroundColor3 = tab[3] == selected and palette.Tile or palette.PanelDeep
+		button.Activated:Connect(function()
+			if tab[3] ~= selected then
+				UiFeedback.Play("TabSwitch")
+				PanelSwitch.Toggle(tab[3])
+			end
+		end)
+		if tab[3] == "Stats" then
+			local badge = Instance.new("TextLabel")
+			badge.Name = "Badge"
+			badge.AnchorPoint = Vector2.new(0.5, 0.5)
+			badge.Position = UDim2.new(1, -4, 0, 4)
+			badge.Size = UDim2.fromOffset(22, 22)
+			badge.BackgroundColor3 = palette.Danger
+			badge.Font = UiTheme.Font
+			badge.TextSize = 14
+			badge.TextColor3 = Color3.new(1, 1, 1)
+			badge.ZIndex = 8
+			badge.Visible = false
+			Instance.new("UICorner", badge).CornerRadius = UDim.new(1, 0)
+			badge.Parent = button
+			table.insert(statsTabBadges, badge)
+		end
+	end
+end
+rebirthTabs(rebirth, "Rebirth")
+rebirthTabs(stats, "Stats")
+-- The HUD tile answers for the whole panel: it closes it from either tab.
+PanelSwitch.SetAction("Rebirth", function()
+	if PanelSwitch.IsOpen("Stats") then
+		PanelSwitch.Close("Stats")
+	else
+		PanelSwitch.Toggle("Rebirth")
+	end
+end)
 -- The Rebirth moment's title. Hidden at rest, never Active; no number, so nothing here can run ahead of the server.
 local rebirthSlam = Instance.new("TextLabel")
 rebirthSlam.Name = "RebirthSlam"
@@ -831,6 +888,10 @@ require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 local function refreshStats()
 	local free = player:GetAttribute("StatPoints") or 0
 	stats.Points.Text = string.format("%d FREE POINT%s", free, free == 1 and "" or "S")
+	for _, badge in statsTabBadges do
+		badge.Visible = free > 0
+		badge.Text = tostring(free)
+	end
 	local allocations = {}
 	for _, stat in ipairs(config.STATS) do
 		allocations[stat] = player:GetAttribute("Alloc_" .. stat) or 0
@@ -871,7 +932,7 @@ end
 player:GetAttributeChangedSignal("StatPoints"):Connect(refreshStats)
 refreshStats()
 
--- The Auto toggle lives in HudChrome/TopRight/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
+-- The Auto toggle lives in HudChrome/AutoSlot/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
 -- the Toast read; the generated fit() sets Visible back to true on every resize.
 local raceAnchor = hud.Race.Parent
 raceAnchor:GetPropertyChangedSignal("Visible"):Connect(function()
