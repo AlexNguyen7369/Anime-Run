@@ -22,6 +22,11 @@
     "potion_money_pack_gift": 3728396311,
     "potion_speed_pack_gift": 3728396315,
     "potion_stamina_pack_gift": 3728396319,
-    "potion_bundle_gift": 3728396326
+    "potion_bundle_gift": 3728396326,
+    "boss_spawn": 3728728633,
+    "gems_1000": 3728728637,
+    "gems_2500": 3728728638,
+    "gems_10000": 3728728641,
+    "gems_30000": 3728728643
   }
 }

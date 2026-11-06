@@ -395,7 +395,7 @@ before any Studio work.
 
 ### 4.35 Gamepasses (owner 2026-11-04)
 - Passes are permanent and account-bound; nothing here is random. Prices are placeholders except Saitamo's. Effects, numbers and code paths: `docs/MONETIZATION_SPEC.md`.
-- VIP: a VIP title, +10% Money, +10% Luck. Planned, not built: -10% Sidekick roll cost, when the owner adds Sidekick rolls in a later update.
+- VIP: a VIP title, +10% Money, +10% Luck. -10% Sidekick summon cost (owner confirmed 2026-11-05, replacing "no VIP discount" on `feature/alex/boss-event`), built with the summons; not built on this branch.
 - 2x Auto-Roll: halves the roll interval, so the 2 s floor of Roll Speed tiers (`MIN_ROLL_INTERVAL`) becomes 1 s for its owners.
 - Extra Roll I and II: +1 roll each per roll tick (3 in total).
 - 2x Money: doubles race payouts.

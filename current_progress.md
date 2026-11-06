@@ -84,6 +84,7 @@
 81. 2026-11-04 — Alex Nguyen — Created the 11 gamepasses off sale through Open Cloud and put their ids in MonetizationConfig.
 82. 2026-11-04 — Alex Nguyen — Built the Saitamo model, atlas and portrait locally with its evidence record, not uploaded, pending the owner's review and licensing decision.
 83. 2026-11-05 — Alex Nguyen — Recorded the owner's ruling, uploaded the Saitamo model, portrait and head, and drafted its spawn pedestal in Blender for review.
+84. 2026-11-05 — Alex Nguyen — Created the Boss Spawn and 4 gem pack developer products off sale for the boss event and recorded the owner's -10% VIP discount on Sidekick summons.
 
 ## What's next
 **Get the owner's look at the Saitamo pedestal draft, then build it in game with its pass prompt and test the new UI in Studio.**

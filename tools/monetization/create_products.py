@@ -42,6 +42,14 @@ POTIONS = [
 ]
 # Separate ids keep a delayed ordinary receipt from consuming a gift reservation (MonetizationConfig).
 PRODUCTS = POTIONS + [(i + "_gift", "Gift: " + n, p, "Gift to a friend: " + d) for i, n, p, d in POTIONS]
+# Ids go in MonetizationConfig on feature/alex/boss-event (SIDEKICK_SPEC, BOSS_EVENT_SPEC); prices are placeholders.
+PRODUCTS += [
+    ("boss_spawn", "Boss Spawn", 149, "Start a Big Raga boss event for your server"),
+    ("gems_1000", "1,000 Gems", 199, "1,000 Gems for Sidekick summons"),
+    ("gems_2500", "2,500 Gems", 449, "2,500 Gems for Sidekick summons"),
+    ("gems_10000", "10,000 Gems", 1499, "10,000 Gems for Sidekick summons"),
+    ("gems_30000", "30,000 Gems", 3999, "30,000 Gems for Sidekick summons"),
+]
 
 KINDS = {
     "passes": ("game-passes/v1/universes/%d/game-passes" % UNIVERSE, "gamePassId", PASSES),

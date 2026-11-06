@@ -61,4 +61,5 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 
 - `tools/monetization/create_products.py` creates what is missing, off sale, and records ids in `product_ids.json`. Roblox has no delete for these. Its key needs `developer-product:write` and `game-pass:write`.
 - The same script with `--on-sale` puts everything in the ledger on sale. Run it only after the branch is merged and published: an on-sale pass shows on the game's Store page.
+- The ledger also holds `boss_spawn` and the 4 `gems_*` products (owner 2026-11-05); their ids go in `MonetizationConfig` on `feature/alex/boss-event`.
 - Pass ids go in `MonetizationConfig`. Icons are in-house art only. Saitamo goes on sale only once its model is in.
