@@ -14,7 +14,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.35, 4.36, 4.13, 6 and section 5. 
 | 10,000 | 1,499 |
 | 30,000 | 3,999 |
 
-The owner creates the 4 developer products and gives their ids. Prices come from the owner's reference image and stay placeholder.
+The monetization session creates the 4 developer products and gives their ids (owner 2026-11-05). Prices come from the owner's reference image and stay placeholder.
 
 ## Paid random item rules (design doc section 6)
 - Bought Gems make summons paid random items, so the rules apply to every summon.
@@ -23,7 +23,7 @@ The owner creates the 4 developer products and gives their ids. Prices come from
 - Sidekicks stay untradable. No luck and no potion change the odds; only pity does, as below, and Details shows it.
 
 ## Summons
-- Summon 1x costs 50 Gems; Summon 10x costs 500 and gives 10 independent rolls.
+- Summon 1x costs 50 Gems; Summon 10x costs 500 and gives 10 independent rolls. VIP pays 45 and 450 (owner 2026-11-05: 10% off).
 - A new pure roll takes a passed list. `GachaService.Roll` and `GachaService.Luck` are not used, so roll counters, turbo and every luck source stay out.
 - Rebirth 2 unlocks the vendor. A saved flag marks the tutorial's one free summon as used. Saves already past rebirth 2 get it too.
 
@@ -72,7 +72,7 @@ Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Mo
 - Below: **Auto-Sell** (one toggle per rarity, off by default), Summon 1x and Summon 10x. The cost shows large above them.
 - More Gems column: Small, Medium, Large and Huge, biggest first. A "+N% More!" badge is calculated from the listed prices against the smallest pack and rounded down.
 - A blur covers the world while the page is open.
-- Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, rate up, extra banners.
+- Left out of the reference on purpose: luck potions, Shiny Hunter, rate up, extra banners.
 - Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
 - Uploaded models and images are listed in the generated `src/shared/SidekickArt.luau`, never in the character registries (`CharacterModelAssets`, `CharacterPortraits`, `CharacterHeads`), so no Sidekick reaches character code.
 
