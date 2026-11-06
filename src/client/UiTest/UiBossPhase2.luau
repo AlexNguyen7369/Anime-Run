@@ -33,6 +33,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Dodge = require(Shared:WaitForChild("BossDodge"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
+local Spec = require(script.Parent.UiSpec)
 
 local ROOT = "RacerBossEvent"
 local BAR = ROOT .. "/BossBar"
@@ -69,6 +70,7 @@ local HEIGHT_RATIO_MIN = 1.1 -- wheel top over feet, late against early in the s
 local FEET_SLACK = 8 -- studs, as UiBossVfx
 local FEET_FROM = 0.2 -- of the scream: past the pose's change into the shout
 local CAMERA_MOVED, CAMERA_STILL, CAMERA_HOME_SLACK = 1, 1, 5 -- studs
+local CAMERA_SETTLE_HOLD, CAMERA_SETTLE_MAX = 0.5, 4 -- s: Roblox eases the zoom to the event's locked minimum
 local BUILD_WAIT = 8 -- s: the arena builds over frames
 local GATE_HOLD = 0.6 -- s a held popup must stay hidden
 local CLOSED_HOLD = 0.7 -- s: longer than the button's 0.6 s pulse period
@@ -242,7 +244,7 @@ function Module.Build(h)
 					Scale = bossScale(),
 					Feet = feet,
 					Height = wheel and feet and wheel.Position.Y + verticalHalf(wheel) - feet,
-					Camera = workspace.CurrentCamera.CFrame.Position,
+					Reach = Spec.CameraReach(workspace.CurrentCamera), -- the runner moves: from the subject, not the world
 				})
 				task.wait()
 			end
@@ -318,6 +320,19 @@ function Module.Build(h)
 		h.check(res, "stage1_timer_to_ends_at", textOf(BAR .. "/BossTimer"), "about 1:30", left == true)
 	end
 
+	-- The camera's reach once it holds still for CAMERA_SETTLE_HOLD: an earlier read catches the zoom still easing (RunnerView locks it).
+	local function settledReach(camera)
+		local reach, stillSince, deadline = Spec.CameraReach(camera), os.clock(), os.clock() + CAMERA_SETTLE_MAX
+		while os.clock() - stillSince < CAMERA_SETTLE_HOLD and os.clock() < deadline do
+			task.wait(0.05)
+			local now = Spec.CameraReach(camera)
+			if math.abs(now - reach) > CAMERA_STILL then
+				reach, stillSince = now, os.clock()
+			end
+		end
+		return reach
+	end
+
 	-- The scream and the cascade after it, read in one pass: it is one stretch of time.
 	local function checkScreamAndCascade(res, hp)
 		local scream = Cfg.ScreamSeconds
@@ -325,7 +340,7 @@ function Module.Build(h)
 		local fill = h.find(BAR .. "/Track/Fill")
 		check(res, "scream_fill_present", fill ~= nil, true)
 		local camera = workspace.CurrentCamera
-		local cameraHome, cameraType = camera.CFrame.Position, camera.CameraType
+		local cameraHome, cameraType = settledReach(camera), camera.CameraType
 		stage(res, 2, 200, scream, Cfg.IntroSeconds - scream)
 		local fullAt = screamEndClock(scream)
 		local samples = {}
@@ -380,14 +395,20 @@ function Module.Build(h)
 		local moved = 0
 		for _, sample in samples do
 			if sample.At <= 1 then
-				moved = math.max(moved, (sample.Camera - cameraHome).Magnitude)
+				moved = math.max(moved, math.abs(sample.Reach - cameraHome))
 			end
 		end
 		h.check(res, "growth_camera_frames_boss", moved, ">= " .. CAMERA_MOVED, moved >= CAMERA_MOVED)
 		local homeBack = waitIs(function()
-			return (camera.CFrame.Position - cameraHome).Magnitude <= CAMERA_HOME_SLACK
+			return math.abs(Spec.CameraReach(camera) - cameraHome) <= CAMERA_HOME_SLACK
 		end, true)
-		check(res, "growth_camera_returns", homeBack, true)
+		h.check(
+			res,
+			"growth_camera_returns",
+			("reach %.1f"):format(Spec.CameraReach(camera)),
+			("%.1f +- %d"):format(cameraHome, CAMERA_HOME_SLACK),
+			homeBack == true
+		)
 		check(res, "growth_camera_type_returns", camera.CameraType, cameraType)
 		if baseFlat then
 			local flat = flatBoss()
@@ -478,7 +499,7 @@ function Module.Build(h)
 		h.player:SetAttribute("ReduceEffects", true)
 		local camera = workspace.CurrentCamera
 		task.wait(0.2)
-		local home = camera.CFrame.Position
+		local home = Spec.CameraReach(camera)
 		local scream = Cfg.ScreamSeconds
 		stage(res, 2, 200, scream, Cfg.IntroSeconds - scream)
 		local fullAt = screamEndClock(scream)
@@ -488,7 +509,7 @@ function Module.Build(h)
 		checkGrowth(res, "reduced_growth", samples)
 		local moved = 0
 		for _, sample in samples do
-			moved = math.max(moved, (sample.Camera - home).Magnitude)
+			moved = math.max(moved, math.abs(sample.Reach - home))
 		end
 		h.check(res, "reduced_camera_still", moved, "<= " .. CAMERA_STILL, moved <= CAMERA_STILL)
 		h.player:SetAttribute("ReduceEffects", saved)

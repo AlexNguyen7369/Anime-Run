@@ -78,6 +78,7 @@ local scrim = make("TextButton", "Scrim", root, {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundColor3 = UiTheme.Outline,
 	BackgroundTransparency = 0.55,
+	Font = UiTheme.Font,
 	Text = "",
 	AutoButtonColor = false,
 })

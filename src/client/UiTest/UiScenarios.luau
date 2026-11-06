@@ -284,7 +284,7 @@ UiScenarios.Needs = {
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
-UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll" }
+UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
 UiScenarios.SETUP_WAIT = 10 -- s for a requested state to replicate
 
 -- Asks the server for setup `id` for this player. Returns ok, error.
@@ -1744,6 +1744,26 @@ local function fmtNum(n)
 	return ("%g"):format(n)
 end
 
+-- The roll fixtures leave room (Server/CarTest/UiTestSetup makeBagRoom): a full bag stops every roll (design doc 4.41).
+function K.checkBagRoom(res, tag)
+	check(
+		res,
+		"bag_has_room_" .. tag,
+		tostring(attr("BagUsed")) .. "/" .. tostring(attr("BagCap")),
+		"BagFull false",
+		attr("BagFull") ~= true
+	)
+end
+
+-- A pass owner's rolls (2x Auto-Roll, Extra Rolls) refill the bag within one long scenario, so its waits ask for room again: the
+-- fixture's makeBagRoom leaves a bag below half full alone and never touches one a bag fixture holds on purpose.
+function K.keepBagRoom(res)
+	local ok, err = UiScenarios.RequestSetup("auto_roll_on")
+	if not ok then
+		check(res, "bag_room_setup", tostring(err), "ok", false)
+	end
+end
+
 -- HudFormat.Multi(n) ("x1.5", docs/HUD_LAYOUT_SPEC.md section 8) appears in text and is not followed by another digit
 -- or point (so "x1.50" or "x1.375" never pass for x1.5 / x1.38).
 local function multiIn(text, n)
@@ -1810,7 +1830,8 @@ function UiScenarios.SampleTurbo(ev)
 	table.insert(events.turbos, rec)
 	task.wait(UiSpec.Waits.TurboPopShow)
 	rec.shownText, rec.shown = popState()
-	task.wait(UiSpec.Waits.TurboPopHide - UiSpec.Waits.TurboPopShow)
+	local hideBy = math.min(UiSpec.Waits.TurboPopHide, (ev.interval or math.huge) - UiSpec.Waits.TurboBeforeNext)
+	task.wait(hideBy - UiSpec.Waits.TurboPopShow)
 	local _, _, gone = popState()
 	rec.gone = gone
 	rec.fill = fillFraction()
@@ -2935,6 +2956,17 @@ function UiScenarios.SampleRoll(ev)
 	local playing = findPath("RollToast/Toast")
 	local midPlay = { Spin = true, Land = true, Hold = true, Exit = true }
 	local behind = playing and midPlay[playing:GetAttribute("Phase")] and playing:GetAttribute("RollSerial") or nil
+	-- At a fast roll interval the rise to LAND_POP takes about 2 frames (TimeScale; 2x Auto-Roll), so land_pop_peak reads every
+	-- write of the compact Body's Size while the card shows, not only a Heartbeat's AbsoluteSize.
+	local landBody = playing and compactBody(playing)
+	rec.landSize = 0
+	local landConn = landBody
+		and landBody:GetPropertyChangedSignal("Size"):Connect(function()
+			local mine = not (behind and playing:GetAttribute("RollSerial") == behind)
+			if mine and playing:GetAttribute("Phase") == "Land" and effectivelyVisible(playing) then
+				rec.landSize = math.max(rec.landSize, landBody.Size.X.Scale)
+			end
+		end)
 	local function sampleFly(now)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
@@ -3106,6 +3138,9 @@ function UiScenarios.SampleRoll(ev)
 			toastShown = toastShown,
 			flyShown = flyShown,
 		}
+	end
+	if landConn then
+		landConn:Disconnect()
 	end
 	rec.done = true
 end
@@ -4392,6 +4427,10 @@ function S.ui_layout(res)
 			for _, panelPath in state.Open do
 				local panel = panelBody(panelPath)
 				for _, key in not UiSpec.FullScreenPanels[panelPath] and { "Race", "Settings" } or {} do
+					-- Design doc 4.40, Client/HudChrome: stacked on a phone, Auto hides under any open panel, so nothing is covered.
+					if hiddenByPanel(UiSpec.TopControls[key], state.Open, vp) then
+						continue
+					end
 					local name = "panel_clear_of_top_controls_" .. panelPath .. "_" .. key .. "_" .. vpSpec.Name
 					local control = findPath(UiSpec.TopControls[key])
 					if panel and control then
@@ -5641,6 +5680,7 @@ function S.ui_toast(res)
 		stateMissing(res, "autoroll_on_for_toast", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "toast")
 
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the 2026-10-20 wording): the compact roll HIDES
 	-- while a panel is open, so it never covers a panel or takes its clicks: hidden and not clickable in every sampled
@@ -5667,6 +5707,7 @@ function S.ui_toast(res)
 	local want = table.concat(UiSpec.RollAnim.Phases, ",")
 	for _, p in allPanels() do
 		local restorePanel = setPanels({})
+		K.keepBagRoom(res)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
 			local ev0 = events.rolls[#events.rolls]
 			waitCardPhase(toast, { Spin = true }, animNum("POP") + 0.5)
@@ -5739,7 +5780,7 @@ function S.ui_toast(res)
 				type(serial0) == "number" and serial1 == serial0 and hold.rollId == ev0.id
 			)
 		else
-			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, true)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
@@ -5756,7 +5797,7 @@ function S.ui_toast(res)
 				not shown and not clickable
 			)
 		else
-			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, false)
 		restorePanel()
@@ -5764,10 +5805,11 @@ function S.ui_toast(res)
 
 	-- With no panel open: shown on a roll (clickable), landed on the roll's truth at its contract rect, then gone
 	-- (Visible = false, not clickable) once the roll's animation is over. Uses a roll with no other roll before
-	-- that (3 tries).
+	-- that (8 tries: with Extra Rolls the rarest of each tick plays, and a Rare or better leaves no gap at the 2x interval).
 	local restore = setPanels({})
+	K.keepBagRoom(res)
 	local ev, shownRec, holdRec, goneRec = nil, nil, nil, nil
-	for _ = 1, 3 do
+	for _ = 1, 8 do
 		if not waitNewRoll(UiSpec.Waits.RollToast) then
 			break
 		end
@@ -5799,9 +5841,12 @@ function S.ui_toast(res)
 			layout = compactLayoutProblems(toast),
 			placement = liveVsNominal(toast),
 		}
+		-- Idle ends the wait: at the 2x interval the next roll comes before the grace is over
 		local goneAt = mine.t + durationFor(rarity, mine.emphasized, mine.interval) + UiSpec.Waits.ToastGoneGrace
-		task.wait(math.max(0, goneAt - os.clock()))
-		renderFrame()
+		while os.clock() < goneAt and toast:GetAttribute("Phase") ~= "Idle" do
+			RunService.Heartbeat:Wait()
+		end
+		frames(3) -- GetGuiObjectsAtPosition keeps listing a just-hidden gui for ~2 frames, though it takes no input
 		local hit = false
 		for _, h in hitsAt(x, y) do
 			hit = hit or h == toast or h:IsDescendantOf(toast)
@@ -5818,7 +5863,7 @@ function S.ui_toast(res)
 			res,
 			"roll_result_received",
 			"auto_racing",
-			"no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s"
+			UiSpec.NoRollWhy(player, "no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s")
 		)
 		restore()
 		return
@@ -5952,6 +5997,7 @@ function S.ui_rolls(res)
 	end
 	local rec = isolatedTurbo()
 	if not rec then
+		K.keepBagRoom(res)
 		player:SetAttribute("UiTestWaiting", "turbo_roll")
 		print(
 			("[UITEST] WAIT turbo_roll up to %d s (ServerSetup turbo_next makes it quick)"):format(
@@ -5985,12 +6031,16 @@ function S.ui_rolls(res)
 		rec.shown == true and string.find(rec.shownText or "", wantPop, 1, true) ~= nil
 	)
 	check(res, "turbo_pop_hidden_after_turbo", rec.gone, true, rec.gone == true)
+	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
+	-- roll's RollResult, so the bar may already hold them.
+	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
+	local fillLimit = extras / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
 		res,
 		"turbo_fill_empty_after_turbo",
 		rec.fill or "missing",
-		("0 +- %.2f"):format(UiSpec.Turbo.FillTolerance),
-		rec.fill ~= nil and rec.fill <= UiSpec.Turbo.FillTolerance
+		("<= %.2f (%d extras)"):format(fillLimit, extras),
+		rec.fill ~= nil and rec.fill <= fillLimit
 	)
 end
 
@@ -6070,6 +6120,7 @@ function S.ui_roll_anim(res)
 		stateMissing(res, "autoroll_on_for_anim", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "anim")
 	local restore = setPanels({})
 
 	-- 1. A whole compact roll, uninterrupted, started after this point
@@ -6098,7 +6149,7 @@ function S.ui_roll_anim(res)
 			"roll_animation_completed",
 			lastDone
 					and (seqNames(phaseSeq(lastDone, "Compact")) .. (lastDone.interruptedAt and " (interrupted)" or ""))
-				or "no RollResult",
+				or UiSpec.NoRollWhy(player, "no RollResult"),
 			"PopIn,Spin,Land,Hold,Exit,Idle on RollToast/Toast before the next roll",
 			false
 		)
@@ -6108,14 +6159,15 @@ function S.ui_roll_anim(res)
 	local ev = rec.ev
 	local spec = CharacterCatalog.Get(ev.id)
 	-- The server sends the player's roll interval as RollResult's last argument (spec "Fit to the roll interval")
+	local intervalPass = attr("Pass_auto_roll_2x") == true and 2 or 1 -- docs/MONETIZATION_SPEC.md: Interval / 2
+	local intervalLow, intervalHigh =
+		UiSpec.RollAnim.IntervalMin / intervalPass, GachaConfig.ROLL_INTERVAL / intervalPass
 	check(
 		res,
 		"roll_result_sends_interval",
 		tostring(ev.interval),
-		("%g..%g"):format(UiSpec.RollAnim.IntervalMin, GachaConfig.ROLL_INTERVAL),
-		type(ev.interval) == "number"
-			and ev.interval >= UiSpec.RollAnim.IntervalMin
-			and ev.interval <= GachaConfig.ROLL_INTERVAL
+		("%g..%g"):format(intervalLow, intervalHigh),
+		type(ev.interval) == "number" and ev.interval >= intervalLow and ev.interval <= intervalHigh
 	)
 	phaseChecks(res, rec, "Compact", "")
 	K.shownChecks(res, rec, "Compact", "")
@@ -6186,9 +6238,9 @@ function S.ui_roll_anim(res)
 	check(
 		res,
 		"land_pop_peak",
-		peakLand,
-		("%.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
-		math.abs(peakLand - pop) <= UiSpec.RollAnim.LandPopTolerance
+		("Size %.3f, Heartbeat AbsoluteSize %.3f"):format(rec.landSize, peakLand),
+		("Size %.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
+		math.abs(rec.landSize - pop) <= UiSpec.RollAnim.LandPopTolerance
 	)
 	check(
 		res,
@@ -6470,6 +6522,11 @@ function S.ui_showcase(res)
 		if
 			name ~= cfg.Gui
 			and not UiSpec.Guis[name].Overlay
+			-- Closed popups, opened from the roll view on purpose (docs/BAG_AND_AUTOSELL_SPEC.md "UI"; Client/ItemMenu): nothing of theirs is drawn here.
+			and name ~= "RollOptions"
+			and name ~= "RacerItemMenu"
+			-- Closed too: Enabled false until a boss event's return to spawn (Client/BossRewardPopup).
+			and name ~= "RacerBossRewards"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -6579,7 +6636,14 @@ function S.ui_loser(res)
 	local highest, who = -math.huge, "none"
 	for _, name in declaredGuis() do
 		local other = playerGui:FindFirstChild(name)
-		if name ~= "LoserScreen" and other and other:IsA("ScreenGui") and other.DisplayOrder >= highest then
+		-- RacerBossRewards: closed popup (Client/BossRewardPopup); loser_draws_above_all_guis judges it live if it is open.
+		if
+			name ~= "LoserScreen"
+			and name ~= "RacerBossRewards"
+			and other
+			and other:IsA("ScreenGui")
+			and other.DisplayOrder >= highest
+		then
 			highest, who = other.DisplayOrder, name
 		end
 	end
@@ -8244,6 +8308,16 @@ function UiScenarios.ManualScenarios()
 	return UiSpec.ManualScenarios or {}
 end
 
+-- A run plays as a player with no gamepasses (UiTestSetup no_passes; RestoreSetups gives them back). Roll records from
+-- before it may hold a pass owner's rolls, so the scenarios only judge the rolls after it. No scenario needs a pass.
+function UiScenarios.PlayWithoutPasses()
+	local ok, err = UiScenarios.RequestSetup("no_passes")
+	if not ok then
+		warn("[UITEST] no_passes setup failed, the run keeps this player's passes: " .. tostring(err))
+	end
+	table.clear(events.recs)
+end
+
 function UiScenarios.Run(name)
 	local res = newResult(name)
 	local fn = S[name]
@@ -9509,7 +9583,7 @@ function UiScenarios.RunClick(id)
 				local later = toast ~= nil and not effectivelyVisible(toast)
 				check(res, cond .. "_on_roll", toast and effectivelyVisible(toast), false, later)
 			else
-				stateMissing(res, cond .. "_on_roll", "auto_racing", "no Remotes.RollResult")
+				stateMissing(res, cond .. "_on_roll", "auto_racing", UiSpec.NoRollWhy(player))
 			end
 		elseif cond == "showcase_updates_live_turbo" then
 			-- The open card plays a TURBO roll that arrives after the click and lands on it, badge and flames shown

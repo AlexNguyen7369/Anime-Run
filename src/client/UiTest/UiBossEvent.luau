@@ -1597,9 +1597,11 @@ function Module.Build(h)
 		waitShown(BAR, true)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
-		local homeBefore = camera.CFrame.Position
+		-- The camera follows a moving runner (BossWaitCamera.homeFrame carries its offset from the subject), so a world position
+		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 550 in the wait's view.
+		local homeBefore = Spec.CameraReach(camera)
 		local function atHome()
-			return (camera.CFrame.Position - homeBefore).Magnitude < WAIT_CAMERA_SLACK
+			return math.abs(Spec.CameraReach(camera) - homeBefore) < WAIT_CAMERA_SLACK
 		end
 		local function checkRestored(tag, fov)
 			check(res, tag .. "_panel_gone", waitShown(PANEL, false), false)

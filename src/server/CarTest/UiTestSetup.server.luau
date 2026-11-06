@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -553,6 +553,43 @@ function setups.bag_spares_clear(player)
 	live("GachaService").RefreshBag(player)
 end
 
+-- A full bag stops every roll (design doc 4.41) and a full run's rolls fill it, so auto_racing and auto_roll_on empty the
+-- spares from half full (placeholder: a scenario's rolls must fit). Not while a bag fixture holds the bag on purpose.
+-- Still full: an error, which the run shows as setup_error and bag_has_room_*. restoreBagRoom gives the copies back.
+local bagRoomBefore = {}
+local function makeBagRoom(player)
+	local G = live("GachaService")
+	if sparesBefore[player] or G.BagUsed(player) * 2 < G.BagCap(player) then
+		return
+	end
+	local before = bagRoomBefore[player] or {}
+	bagRoomBefore[player] = before
+	for _, entry in player:WaitForChild("GachaData"):GetChildren() do
+		before[entry.Name] = before[entry.Name] or entry:GetAttribute("Copies") or 0
+		entry:SetAttribute("Copies", 0)
+	end
+	G.RefreshBag(player)
+	if G.BagFull(player) then
+		error(("bag full with no spares: %d/%d"):format(G.BagUsed(player), G.BagCap(player)))
+	end
+end
+
+local function restoreBagRoom(player)
+	local before = bagRoomBefore[player]
+	if not before then
+		return
+	end
+	bagRoomBefore[player] = nil
+	local data = player:FindFirstChild("GachaData")
+	for name, copies in before do
+		local entry = data and data:FindFirstChild(name)
+		if entry then
+			entry:SetAttribute("Copies", copies)
+		end
+	end
+	live("GachaService").RefreshBag(player)
+end
+
 function setups.restore(player)
 	setups.bag_spares_clear(player)
 	restoreBossUi(player)
@@ -567,6 +604,7 @@ function setups.restore(player)
 		)
 	end
 	live("GachaService").Apply(player, snap.gacha)
+	restoreBagRoom(player) -- after Apply: a snapshot taken once the spares were gone would not hold them
 	local progression = progressionSnapshots[player]
 	if progression then
 		live("UpgradeService").Apply(player, progression.upgrades)
@@ -653,6 +691,7 @@ function setups.auto_racing(player)
 		end
 		task.wait(0.25)
 	end
+	makeBagRoom(player)
 end
 
 -- UiSpec.ServerSetup on_foot (ui_speed_dial at rest): auto race stopped through the real Stop path, avatar on foot
@@ -962,6 +1001,7 @@ end
 
 function setups.auto_roll_on(player)
 	setAutoRoll(player, true)
+	makeBagRoom(player)
 end
 
 local function progressionSnapshot(player)
@@ -1630,7 +1670,37 @@ function setups.sidekick_tutorial_restore(player)
 	end
 end
 
+-- UI specs describe a player with no gamepasses, and Studio's creator owns them all: a UI run takes every Pass_<id> off, so
+-- the server's effects follow, and restore:no_passes puts them back. Ownership is never saved (PassService).
+local passesBefore = {} -- [Player] = { Pass_<id> = value }
+
+function setups.no_passes(player)
+	-- shortcut: no pass for every player while on, make it per player if multi-client UI runs appear.
+	live("PassService").SetOwnerCheck(function()
+		return false
+	end)
+	local before = passesBefore[player] or {}
+	passesBefore[player] = before
+	for name, value in player:GetAttributes() do
+		if string.sub(name, 1, 5) == "Pass_" then
+			before[name] = value
+			player:SetAttribute(name, nil)
+		end
+	end
+	player:SetAttribute("UiTestNoPasses", true) -- last: once the client sees it, the passes are gone there too
+end
+
+local function restoreNoPasses(player)
+	live("PassService").SetOwnerCheck(nil)
+	for name, value in passesBefore[player] or {} do
+		player:SetAttribute(name, value)
+	end
+	passesBefore[player] = nil
+	player:SetAttribute("UiTestNoPasses", nil)
+end
+
 local CLIENT_SETUPS = {
+	no_passes = true,
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
@@ -1732,7 +1802,9 @@ setupRequest.OnServerInvoke = function(player, request)
 		end
 		local before = clientBefore[player] or {}
 		clientBefore[player] = before
-		if restoreId == "run_visual" then
+		if restoreId == "no_passes" then
+			restoreNoPasses(player)
+		elseif restoreId == "run_visual" then
 			RUN_VISUAL.clear()
 			local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
 			local route = routes and routes:FindFirstChild(RUN_VISUAL.ROUTE)
@@ -1745,11 +1817,13 @@ setupRequest.OnServerInvoke = function(player, request)
 				live("CarService").SetAutoRace(player, false)
 			end
 			before.auto_racing = nil
+			restoreBagRoom(player)
 		elseif restoreId == "auto_roll_on" then
 			if before.auto_roll_on ~= nil then
 				setAutoRoll(player, before.auto_roll_on)
 			end
 			before.auto_roll_on = nil
+			restoreBagRoom(player)
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
 		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then

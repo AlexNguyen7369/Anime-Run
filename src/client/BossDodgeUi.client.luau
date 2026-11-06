@@ -79,6 +79,7 @@ local dodge = make(
 local barScale = make("UIScale", { Name = "BarScale", Scale = 0 }, dodge)
 local bar = make("TextButton", {
 	Name = "Bar",
+	Font = UiTheme.Font,
 	Text = "",
 	AutoButtonColor = false,
 	BackgroundColor3 = Color3.fromRGB(24, 18, 12),

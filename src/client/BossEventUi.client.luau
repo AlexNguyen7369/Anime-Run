@@ -27,6 +27,7 @@ local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
+local HEAVY = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy) -- as RollToast's BOLD: heavy, in the game's family
 local PanelBand = require(script.Parent:WaitForChild("PanelBand"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
@@ -42,7 +43,7 @@ local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
 local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
 local BOSS_BUTTON_SIZE = Vector2.new(128, 40) -- at most: the width follows the screen
-local BOSS_BUTTON_WIDTH = 0.15 -- of the screen: at 667 wide, with the pulse and glow it ends at x 329, clear of Auto at 333
+local BOSS_BUTTON_WIDTH = 0.095 -- of the screen: on a small phone it ends clear of the roll toast
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
@@ -102,7 +103,9 @@ end
 
 local function label(name, parent, props, maxSize)
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or UiTheme.Font
+	if not props.FontFace then
+		props.Font = UiTheme.Font
+	end
 	props.TextColor3 = props.TextColor3 or Palette.White
 	props.TextScaled = true
 	local text = make("TextLabel", name, parent, props)
@@ -229,7 +232,7 @@ local teamWarning = label("TeamWarning", hud, {
 	Position = UDim2.fromScale(0.5, 1),
 	Size = UDim2.new(1, -16, 0, 34),
 	Text = TEAM_WARNING_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	Visible = false,
 	ZIndex = 5,
@@ -270,7 +273,7 @@ local warning = make("Frame", "Warning", root, {
 local warningLabel = label("Text", warning, {
 	Size = UDim2.fromScale(1, 1),
 	Text = WARNING_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	TextWrapped = true,
 }, 72)
@@ -280,13 +283,13 @@ local bar =
 	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
 local bossTimer = label("BossTimer", bar, {
 	Text = "",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = Palette.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
 	Text = TITLE_STAGE_1,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 }, TITLE_HEIGHT)
 local track = make("Frame", "Track", bar, {
 	BackgroundColor3 = Palette.TeamTired,
@@ -377,7 +380,7 @@ make("UIListLayout", "List", dropList, {
 local dropHeading = label("Heading", dropList, {
 	LayoutOrder = 1,
 	Text = "Drop:",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 }, DROP_HEADING)
 local dropRule = make("Frame", "Rule", dropList, {
 	LayoutOrder = 2,
@@ -403,7 +406,7 @@ local function dropRow(id, text, color, stroke)
 		LayoutOrder = 3 + #dropRows,
 		Text = text,
 		TextColor3 = color,
-		Font = Enum.Font.GothamBlack,
+		FontFace = HEAVY,
 	}, DROP_ROW)
 	UiTheme.Stroke(row, 2, stroke)
 	table.insert(dropRows, row)
@@ -568,12 +571,12 @@ make("Frame", "Dim", exhausted, {
 local exhaustedMessage = label("Message", exhausted, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Text = EXHAUSTED_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 }, EXHAUSTED_MESSAGE)
 local exhaustedCount = label("Countdown", exhausted, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Text = "",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = Palette.Gold,
 }, EXHAUSTED_COUNT)
 local loading = make("Frame", "Loading", exhausted, {
