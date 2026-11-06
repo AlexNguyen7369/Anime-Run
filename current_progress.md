@@ -111,8 +111,10 @@
 108. 2026-11-05 — Alex Nguyen — On the owner's word, stopped the harness and merged monetization and the checkout's commits into feature/alex/boss-event with VIP 10% off summons live; a boot and one live event show no errors, but the full server and UI harness have not run on the merged code.
 109. 2026-11-05 — Alex Nguyen — Merged the HUD Auto slot work from worktree hud-auto on the owner's word; stylua, selene and rojo build pass and no game test has run on it.
 110. 2026-11-06 — Alex Nguyen — Added the Boss Dodge bar with per-player move effects, a lane-changing side dash, gold and red result text and star effects, and replaced the Sealing Cube with Raga's Wheel; targeted tests ran with 6 known reds and the full harness has not run.
+111. 2026-11-06 — Alex Nguyen — Made enemies faster so a Common does not outrun the Track 1 enemy and a Rare is about level, not run in Studio.
+112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 
 ## What's next
-**Run the full server and UI harness and a rules re-audit on the merged code, then open a PR into main.**
+**Clear the open red checks (`ui_boss` minibar and Invite overlap, `ui_bag_full` setups), run `ui_sidekicks`, the click tests and the rules audit, then run the full harness.**
 
-**Why this is next:** the owner put tests after playable; `main` needs a reviewed PR, and known red checks must be cleared first.
+**Why this is next:** the owner landed this for playtest with those checks open, and a reviewed PR into `main` needs them cleared first.
