@@ -3,7 +3,7 @@
 -- ui-test-writer. ui_boss_vfx drives the published attributes through UiTestSetup boss_ui_*, as ui_boss does.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   workspace.BossArenaPreview holds, at any depth, a Model BigRaga with parts Head, LeftFoot and RightFoot, built with the
+--   workspace.BossArenaPreview holds, at any depth, a Model BigRaga with parts Wheel, LeftFoot and RightFoot, built with the
 --   arena, and no BossStandIn or WheelStandIn. Before the spawn every BigRaga part has Transparency 1.
 --   workspace.BossArenaPreview holds, at any depth, a Folder BossEffects; every effect lives in it.
 --   Client-local ReplicatedStorage attribute BossVfxForce: not nil holds off scheduled effects; a change to an event name
@@ -21,7 +21,7 @@ local BUILD_WAIT = 8 -- s: the arena builds over frames, and the state replicate
 local SETTLE_WAIT = 2 -- s
 local EVENTS = { "Impact", "Roar", "WheelClick" }
 local HEIGHT_SLACK = 8 -- studs, the brief's +-8
-local FULL_HEIGHT = 804 -- owner value: 0.66 x the arena's radius, feet to head top
+local FULL_HEIGHT = 804 -- owner value, feet to wheel top. The head top is about 560; the mesh named Head reads higher, it holds the wings
 local IDLE_NEEDED = 2 -- s of idle kept for the height read
 local IDLE_SEARCH = 120 -- s after the rise
 local PEAK_WATCH = 1 -- s an effect is watched for its peak
@@ -76,9 +76,9 @@ function Module.Build(h)
 		local cf, s = part.CFrame, part.Size
 		return (math.abs(cf.RightVector.Y) * s.X + math.abs(cf.UpVector.Y) * s.Y + math.abs(cf.LookVector.Y) * s.Z) / 2
 	end
-	local function headTop(model)
-		local head = model:FindFirstChild("Head", true)
-		return head and head.Position.Y + verticalHalf(head)
+	local function wheelTop(model)
+		local wheel = model:FindFirstChild("Wheel", true)
+		return wheel and wheel.Position.Y + verticalHalf(wheel)
 	end
 	local function feetBottom(model)
 		local left, right = model:FindFirstChild("LeftFoot", true), model:FindFirstChild("RightFoot", true)
@@ -134,7 +134,7 @@ function Module.Build(h)
 				return shownParts(model) > 0
 			end, SETTLE_WAIT)
 			h.check(res, "boss_shown_in_rise", shown, true, shown == true)
-			local top = headTop(model)
+			local top = wheelTop(model)
 			h.check(
 				res,
 				"boss_below_full_height_in_rise",
@@ -148,10 +148,10 @@ function Module.Build(h)
 		h.check(res, "schedule_has_idle_spell", spell ~= nil, true, spell ~= nil)
 		state(res, "Fight", Cfg.PrepSeconds + (spell or Cfg.IntroSeconds + 5))
 		task.wait(0.5)
-		local top, bottom = headTop(model), feetBottom(model)
+		local top, bottom = wheelTop(model), feetBottom(model)
 		h.check(
 			res,
-			"boss_head_at_full_height",
+			"boss_wheel_at_full_height",
 			top and top - Arena.Y,
 			FULL_HEIGHT .. " +-" .. HEIGHT_SLACK,
 			top ~= nil and math.abs(top - fullTop) <= HEIGHT_SLACK

@@ -146,8 +146,8 @@ local ARENA = Kit.Atmosphere({
 		ExposureCompensation = 0,
 	},
 	Atmosphere = {
-		Density = 0.25,
-		Offset = 0.5,
+		Density = 0.06, -- thin: Big Raga stands about 900 studs from the lanes and more haze drains his colour
+		Offset = 0.1,
 		Color = Kit.hex("EAF6FF"),
 		Decay = Kit.hex("BFE4FA"),
 		Glare = 0,
