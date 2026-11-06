@@ -123,8 +123,9 @@
 120. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
 121. 2026-11-06 — Alex Nguyen — Merged the playtest fixes and bake lookup, baked 181 models and meshes in Studio pending the owner's save, stripped test code from live servers, and fixed audit and full harness findings; `[CARTEST] END pass=64 fail=1` and `[UITEST] END pass=54 fail=2`, each red since fixed and passing alone.
 122. 2026-11-06 — Alex Nguyen — Fixed late joiners taking statuses from moves before their join, found by fresh review of PR #5; red first, then `[CARTEST] END pass=6 fail=0`.
+123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
 
 ## What's next
-**Get a fresh reviewer's verdict on PR #5 at its current head, and merge it to `main` on APPROVE.**
+**Owner: File > Save to Roblox to keep the 181 baked models, then play a real event with a collaborator.**
 
-**Why this is next:** the owner asked for everything on `main`, and the last review's blocker, the unrecorded result, is now recorded.
+**Why this is next:** the bake is lost when Studio closes without a save, and collaborators' missing models and tonight's visuals have only been checked on the owner's account.
