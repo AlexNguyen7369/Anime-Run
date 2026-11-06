@@ -756,7 +756,7 @@ function Tests.relics()
 			-- At most 1 short: the first hit may wait a whole base interval after the intro.
 			local function close(got, multi)
 				local want = WINDOW * multi / Cfg.HitEverySeconds
-				return got <= want + 1e-6 and got >= math.floor(want) - 1
+				return got <= want + 1e-6 and got >= math.floor(want) - 1 - 1e-6
 			end
 			local attack = 1 + bonus(secret, "AttackSpeed")
 			flag("attack_setup_faster", math.floor(WINDOW * attack / Cfg.HitEverySeconds) - 1 > wantBase)

@@ -27,11 +27,22 @@ The owner creates the 4 developer products and gives their ids. Prices come from
 - A new pure roll takes a passed list. `GachaService.Roll` and `GachaService.Luck` are not used, so roll counters, turbo and every luck source stay out.
 - Rebirth 2 unlocks the vendor. A saved flag marks the tutorial's one free summon as used. Saves already past rebirth 2 get it too.
 
-| Id | Based on | Proposed name | Rarity (proposed) | Odds | Run gain | Hit every 1.5 s | Sells for |
-|---|---|---|---|---|---|---|---|
-| `side_chain` | Pochita | Pochito | Rare | 60% | +12% stamina | 10 | 5 Gems |
-| `side_wyvern` | Kaisel | Kaizel | Epic | 30% | +8% cruise | 14 | 10 Gems |
-| `side_knight` | Igris | Igriz | Legendary | 10% | +3% cruise, +3% stamina | 22 | 20 Gems |
+| Id | Based on | Name | Rarity | Listed odds | Movement | Run gain | Hit every 1.5 s | Sells for |
+|---|---|---|---|---|---|---|---|---|
+| `side_chain` | Pochita | Pochito | Common | 24.166% | Walk | +5% stamina | 6 | 2 Gems |
+| `side_pig` | Hawk | Hawke | Common | 24.166% | Walk | +5% stamina | 6 | 2 Gems |
+| `side_crow` | Kasugai crows | Kasugay | Common | 24.166% | Fly | +5% stamina | 6 | 2 Gems |
+| `side_dogs` | Divine Dogs | Gyokan | Rare | 12% | Walk | +12% stamina | 10 | 5 Gems |
+| `side_reindeer` | Chopper | Choppa | Rare | 12% | Walk | +12% stamina | 10 | 5 Gems |
+| `side_ant` | Beru | Beroo | Legendary | 1% | Walk | +10% cruise, +5% stamina | 22 | 20 Gems |
+| `side_reaper` | Ryuk | Ryuuk | Legendary | 1% | Fly | +10% cruise, +5% stamina | 22 | 20 Gems |
+| `side_fist` | Star Platinum | Purple Platina | Mythic | 0.5% | Fly | +15% cruise, +10% stamina | 35 | 25 Gems |
+| `side_knight` | Igris | Igriz | Mythic | 0.5% | Walk | +15% cruise, +10% stamina | 35 | 25 Gems |
+| `side_wyvern` | Kaisel | Kaizel | Mythic | 0.5% | Fly | +15% cruise, +10% stamina | 35 | 25 Gems |
+| `side_curse` | Rika | Rikka | Secret | 0.001% | Fly | +20% cruise, +20% stamina | 55 | 30 Gems |
+| `side_fox` | Kurama | Kurami | Secret | 0.001% | Walk | +20% cruise, +20% stamina | 55 | 30 Gems |
+
+Owner-confirmed (2026-11-05): the Legendary, Mythic and Secret odds, and the name Purple Platina. Every other name and number in this table is **proposed**.
 
 Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell values **proposed**):
 
@@ -42,7 +53,7 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 ## Rotation (owner 2026-11-05)
 - Every 30 minutes, from UTC time, every server computes the same rotation from the time slot alone: no store, no messaging. It holds 1 Mythic, 2 Legendaries, 2 Rares, all Commons and 1 hidden Secret.
 - The server rolls only against the current rotation, and judges a summon by the slot when it arrives.
-- A Sidekick's odds stay as listed. Those out of rotation leave a remainder (1.001% with today's 12), split evenly across Commons (**proposed**), so the shown odds sum to 100%.
+- A Sidekick's odds stay as listed. Those out of rotation leave a remainder (1.001% with today's 12), split evenly across Commons (owner-approved 2026-11-05), so the shown odds sum to 100%.
 - Details and the page show the rotation and a countdown (**proposed**). The Secret's row reads "Secret: one of Rikka, Kurami, 0.001%": which one is hidden, but each possible outcome is still disclosed, since bought Gems make summons paid random items (section 6). The reveal shows it when it drops.
 - A Mythic, Legendary or Rare row with no uploaded model stays out of the rotation.
 
@@ -50,7 +61,7 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.
 - Left: 4 gem pack tiles, then **Details** and **Settings** buttons. Settings holds the auto-sell filter: one toggle per rarity, off by default.
 - Right: one banner with the Sidekicks' actual 3D models (owner 2026-11-05), names and rarities; Gem balance; Summon 1x and Summon 10x. Summon results show the models too.
-- Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, pity bars, extra banners, banner timer.
+- Left out of the reference on purpose: luck potions, VIP, Shiny Hunter, pity bars, extra banners.
 - Drawn portraits appear only in the Sidekick index and Bag equip (owner 2026-11-05). `render_portrait.py --blend` renders them.
 - Uploaded models and images are listed in the generated `src/shared/SidekickArt.luau`, never in the character registries (`CharacterModelAssets`, `CharacterPortraits`, `CharacterHeads`), so no Sidekick reaches character code.
 

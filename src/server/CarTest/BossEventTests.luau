@@ -748,10 +748,13 @@ function Tests.make(deps)
 				flag("auto_ties_by_cruise", H.same(S.AutoTeam(tieOnly), { high, low }))
 
 				wear(p, low, "side_chain")
-				wear(p, others[1], "side_wyvern")
+				wear(p, others[1], "side_dogs")
 				wear(p, high, "side_chain")
 				wear(p, others[2], "side_knight")
-				flag("test_damage_ordered", damageOf("side_knight") > damageOf("side_wyvern"))
+				flag(
+					"test_damage_ordered",
+					damageOf("side_knight") > damageOf("side_dogs") and damageOf("side_dogs") > damageOf("side_chain")
+				)
 				local normal = p:GetAttribute("Team")
 				flag("auto_by_damage_then_cruise_max_3", H.same(S.AutoTeam(p), { others[2], others[1], high }))
 				eq("auto_team_sets_nothing", p:GetAttribute("Team"), normal)
@@ -930,8 +933,16 @@ function Tests.make(deps)
 			serviceSection("rewards_list", function()
 				begin()
 				local big, exact, under, none = fighter(), newPlayer(), newPlayer(), newPlayer()
+				-- A Sidekick whose damage divides the 4-player threshold, so "exactly 1 percent" is reachable in whole hits.
+				local wantNeed, evenSide = Cfg.MinDamageShare * 4 * HP, SidekickConfig.List[1]
+				for _, row in SidekickConfig.List do
+					if approx(wantNeed / row.Damage, math.round(wantNeed / row.Damage)) then
+						evenSide = row
+						break
+					end
+				end
 				for _, p in { exact, under, none } do
-					wear(p, chars[1], "side_chain")
+					wear(p, chars[1], evenSide.Id)
 				end
 				for _, p in { big, exact, under, none } do
 					S.Join(p)

@@ -3,6 +3,11 @@
 -- ui_sidekicks judges models, Details odds, the Gem icons, the Index page and the desktop fit. Its fixture is
 -- sidekick_states (UiScenarios.Needs). A press cannot be faked here, so the Bag art and the reveal are judged after the
 -- real clicks sidekicks_bag_art and sidekicks_reveal_models.
+-- Rotation (design doc 4.36, SIDEKICK_SPEC "Rotation"). Contract beyond the brief (implementer: report a change, do not loosen):
+--   Banner holds one cell per Public id, named its id, and the mystery cell named Secret; anything else in it is RotationTimer.
+--   RotationTimer is a TextLabel anywhere on the page, showing m:ss to EndsAt. DetailsSheet/List has a row per Public id and
+--   one row named Secret; each has a label Odds reading "%.3f%%". Page and Details follow the attribute when the slot changes.
+--   The page reads the attribute, so a live Secret never reaches a tile.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("SidekickConfig"))
@@ -11,12 +16,15 @@ local Spec = require(script.Parent.UiSpec)
 local Client = script.Parent.Parent
 local View = require(Client:WaitForChild("SidekickView"))
 local Icons = require(Client:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+local HttpService = game:GetService("HttpService")
 
 local PANEL = "RacerSidekicks/Panel"
 local RIGHT = PANEL .. "/Body/Right"
 local LEFT = PANEL .. "/Body/Left"
 local WAIT = 5 -- s: model and bag art may arrive a moment after the panel opens
 local PHONE_MAX_HEIGHT = 500
+local MIN_CELL = 40 -- px at desktop: a banner model can still be told apart
+local TIMER_SLACK = 3 -- s
 
 local Module = {}
 
@@ -82,28 +90,142 @@ function Module.Build(h)
 		check(res, name .. "_image", icon and icon:IsA("ImageLabel") and icon.Image or "missing", Icons.Gem.Image)
 	end
 
+	local function public()
+		local raw = ReplicatedStorage:GetAttribute("SidekickRotation")
+		local ok, value = pcall(HttpService.JSONDecode, HttpService, raw)
+		return ok and type(value) == "table" and type(value.Ids) == "table" and value or nil
+	end
+	local function secretRows()
+		local rows = {}
+		for _, row in Config.List do
+			if row.Rarity == "Secret" then
+				table.insert(rows, row)
+			end
+		end
+		return rows
+	end
+	local function bannerCells(banner)
+		local cells = {}
+		for _, child in banner:GetChildren() do
+			if child:IsA("GuiObject") and child.Name ~= "RotationTimer" then
+				table.insert(cells, child)
+			end
+		end
+		return cells
+	end
+
+	-- The mystery tile: no model, no drawn face, no Secret's name; and no Secret's id anywhere in the banner.
+	local function checkMystery(res, banner)
+		local tile = banner:FindFirstChild("Secret")
+		check(res, "sidekick_banner_mystery_present", tile ~= nil, true)
+		if not tile then
+			return
+		end
+		check(res, "sidekick_mystery_no_model", tile:FindFirstChildWhichIsA("ViewportFrame", true) == nil, true)
+		for _, row in secretRows() do
+			check(res, "sidekick_banner_hides_id_" .. row.Id, banner:FindFirstChild(row.Id, true) == nil, true)
+			local shows = false
+			for _, d in tile:GetDescendants() do
+				shows = shows
+					or (d:IsA("ImageLabel") and d.Image == Art[row.Id].Portrait)
+					or ((d:IsA("TextLabel") or d:IsA("TextButton")) and string.find(d.Text, row.Name, 1, true) ~= nil)
+			end
+			check(res, "sidekick_mystery_hides_" .. row.Id, shows, false)
+		end
+	end
+
 	local function checkBanner(res)
 		local banner = h.find(RIGHT .. "/Banner")
 		check(res, "sidekick_banner_present", banner ~= nil, true)
-		if not banner then
+		local view = public()
+		check(res, "sidekick_rotation_attribute_readable", view ~= nil, true)
+		if not (banner and view) then
 			return
 		end
-		local cells = 0
-		for _, child in banner:GetChildren() do
-			if child:IsA("GuiObject") then
-				cells += 1
-			end
-		end
-		check(res, "sidekick_banner_cells_are_the_pool", cells, #Config.List)
+		check(res, "sidekick_banner_cells_are_the_rotation", #bannerCells(banner), #view.Ids + 1)
 		for _, row in Config.BossDrops do
 			check(res, "sidekick_banner_no_boss_drop_" .. row.Id, banner:FindFirstChild(row.Id, true) == nil, true)
 		end
 		for _, row in Config.List do
-			local problem = waitFor(function()
-				return modelProblem(banner:FindFirstChild(row.Id))
-			end)
-			check(res, "sidekick_banner_model_" .. row.Id, problem or "shown", "shown")
+			if row.Rarity ~= "Secret" and not table.find(view.Ids, row.Id) then
+				check(res, "sidekick_banner_out_of_rotation_" .. row.Id, banner:FindFirstChild(row.Id) == nil, true)
+			end
 		end
+		for _, id in view.Ids do
+			local problem = waitFor(function()
+				return modelProblem(banner:FindFirstChild(id))
+			end)
+			check(res, "sidekick_banner_model_" .. id, problem or "shown", "shown")
+		end
+		checkMystery(res, banner)
+	end
+
+	local function checkTimer(res, page)
+		local timer = page:FindFirstChild("RotationTimer", true)
+		check(res, "sidekick_timer_present", timer ~= nil and timer:IsA("TextLabel"), true)
+		local view = public()
+		if not (timer and timer:IsA("TextLabel") and view) then
+			return
+		end
+		check(res, "sidekick_timer_shown", h.visible(timer), true)
+		local function seconds()
+			local minutes, rest = string.match(timer.Text, "(%d+):(%d%d)")
+			return minutes and tonumber(minutes) * 60 + tonumber(rest) or nil
+		end
+		local got = seconds()
+		local want = view.EndsAt - workspace:GetServerTimeNow()
+		h.check(
+			res,
+			"sidekick_timer_counts_to_slot_end",
+			got or timer.Text,
+			("%d +- %d"):format(want, TIMER_SLACK),
+			got ~= nil and math.abs(got - want) <= TIMER_SLACK
+		)
+		local text = timer.Text
+		task.wait(2.1)
+		check(res, "sidekick_timer_ticks", timer.Text ~= text, true)
+	end
+
+	-- The slot turns while the page is open: tiles and Details follow, with nobody reopening it.
+	local function checkSlotChange(res)
+		local request = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
+		local banner, list = h.find(RIGHT .. "/Banner"), h.find(PANEL .. "/Body/DetailsSheet/List")
+		check(res, "sidekick_slot_change_parts", request ~= nil and banner ~= nil and list ~= nil, true)
+		local function mythic()
+			for _, id in (public() or { Ids = {} }).Ids do
+				if Config.Get(id).Rarity == "Mythic" then
+					return id
+				end
+			end
+			return nil
+		end
+		local before = mythic()
+		if not (request and banner and list and before) then
+			return
+		end
+		request:InvokeServer("sidekick_ui_clock:next")
+		local nextMythic = before
+		local problem = waitFor(function()
+			nextMythic = mythic()
+			if nextMythic == before then
+				return "attribute did not change"
+			end
+			if banner:FindFirstChild(before) or list:FindFirstChild(before) then
+				return "old Mythic still shown"
+			end
+			if not list:FindFirstChild(nextMythic) then
+				return "new Mythic not in Details"
+			end
+			return modelProblem(banner:FindFirstChild(nextMythic))
+		end)
+		check(res, "sidekick_slot_change_followed", problem or "followed", "followed")
+		checkMystery(res, banner)
+		request:InvokeServer("sidekick_ui_clock:real")
+		local back = waitFor(function()
+			return not banner:FindFirstChild(before) and "old Mythic not back"
+				or modelProblem(banner:FindFirstChild(before))
+		end)
+		check(res, "sidekick_slot_change_back", back or "back", "back")
 	end
 
 	-- Section 6: every summon outcome, read from the shown labels, sums to 100%.
@@ -114,14 +236,51 @@ function Module.Build(h)
 		if not list then
 			return
 		end
-		local sum = 0
-		for _, row in Config.List do
-			local odds = list:FindFirstChild(row.Id) and list[row.Id]:FindFirstChild("Odds")
-			local shown = odds and tonumber(string.match(odds.Text, "^([%d%.]+)%%$"))
-			check(res, "sidekick_details_odds_" .. row.Id, shown or "missing", row.Odds)
-			sum += shown or 0
+		local view = public()
+		if not view then
+			return -- sidekick_rotation_attribute_readable already failed
 		end
-		check(res, "sidekick_details_sum_100", sum, 100)
+		-- What the player must see, from the replicated view alone: listed odds, the rest split across Commons.
+		local secrets = secretRows()
+		local secretOdds = secrets[1] and secrets[1].Odds or 0
+		local rest, commons = 100 - secretOdds, 0
+		for _, id in view.Ids do
+			local row = Config.Get(id)
+			rest -= row.Odds
+			commons += row.Rarity == "Common" and 1 or 0
+		end
+		local sum = 0
+		local function shownOdds(name, want)
+			local line = list:FindFirstChild(name)
+			local odds = line and line:FindFirstChild("Odds")
+			check(res, "sidekick_details_odds_" .. name, odds and odds.Text or "missing", string.format("%.3f%%", want))
+			sum += odds and tonumber(string.match(odds.Text, "^(%d+%.%d%d%d)%%$")) or 0
+		end
+		for _, id in view.Ids do
+			local row = Config.Get(id)
+			shownOdds(id, row.Odds + (row.Rarity == "Common" and rest / commons or 0))
+		end
+		shownOdds("Secret", secretOdds)
+		local rounding = 0.0005 * (#view.Ids + 1) + 1e-6
+		h.check(res, "sidekick_details_sum_100", sum, "100 +- " .. rounding, math.abs(sum - 100) <= rounding)
+		-- The Secret row names every outcome (section 6) and no row tells which one is live.
+		local secretLine = list:FindFirstChild("Secret")
+		local words = {}
+		for _, d in secretLine and secretLine:GetDescendants() or {} do
+			if d:IsA("TextLabel") then
+				table.insert(words, d.Text)
+			end
+		end
+		local text = table.concat(words, " ")
+		for _, row in secrets do
+			check(res, "sidekick_details_secret_names_" .. row.Id, string.find(text, row.Name, 1, true) ~= nil, true)
+			check(res, "sidekick_details_hides_id_" .. row.Id, list:FindFirstChild(row.Id, true) == nil, true)
+		end
+		for _, row in Config.List do
+			if row.Rarity ~= "Secret" and not table.find(view.Ids, row.Id) then
+				check(res, "sidekick_details_out_of_rotation_" .. row.Id, list:FindFirstChild(row.Id) == nil, true)
+			end
+		end
 		local total = list:FindFirstChild("Total")
 		check(res, "sidekick_details_total_text", total and total.Text or "missing", "Total: 100%")
 		for _, row in Config.BossDrops do
@@ -163,14 +322,42 @@ function Module.Build(h)
 				table.insert(parts, part)
 			end
 		end
+		local banner, timer = h.find(RIGHT .. "/Banner"), panel:FindFirstChild("RotationTimer", true)
+		if timer then
+			table.insert(parts, timer)
+		end
 		local outside, overlaps, covered = {}, {}, {}
+		-- 9 cells where 3 were: each stays in the banner, clear of the others and of the timer.
+		local cellsOutside, cellsCrossing, cellsSmall = {}, {}, {}
+		local cells = banner and bannerCells(banner) or {}
+		local bannerRect = banner and h.rect(banner)
+		for i, cell in cells do
+			local r = h.rect(cell)
+			if not within(bannerRect, r) then
+				table.insert(cellsOutside, cell.Name)
+			end
+			if r.w < MIN_CELL or r.h < MIN_CELL then
+				table.insert(cellsSmall, cell.Name)
+			end
+			for j = i + 1, #cells do
+				if crossing(r, h.rect(cells[j])) then
+					table.insert(cellsCrossing, cell.Name .. " x " .. cells[j].Name)
+				end
+			end
+			if timer and not cell:IsAncestorOf(timer) and crossing(r, h.rect(timer)) then
+				table.insert(cellsCrossing, cell.Name .. " x RotationTimer")
+			end
+		end
+		h.checkList(res, "sidekick_banner_cells_in_banner_desktop", cellsOutside)
+		h.checkList(res, "sidekick_banner_cells_no_overlap_desktop", cellsCrossing)
+		h.checkList(res, "sidekick_banner_cells_big_enough_desktop", cellsSmall)
 		for i, part in parts do
 			local r = h.rect(part)
 			if not within(bodyRect, r) then
 				table.insert(outside, h.pathOf(part))
 			end
 			for j = i + 1, #parts do
-				if crossing(r, h.rect(parts[j])) then
+				if not part:IsAncestorOf(parts[j]) and crossing(r, h.rect(parts[j])) then
 					table.insert(overlaps, part.Name .. " x " .. parts[j].Name)
 				end
 			end
@@ -212,6 +399,7 @@ function Module.Build(h)
 
 	function scenarios.ui_sidekicks(res)
 		h.waitGuis()
+		check(res, "sidekick_rotation_not_on_client", ReplicatedStorage:FindFirstChild("SidekickRotation", true), nil)
 		checkModelsFolder(res)
 		checkGemIcon(res, "sidekick_hud_gem_icon", h.find("RacerHud/Gems/GemIcon"))
 		local page = h.find(PANEL)
@@ -222,8 +410,10 @@ function Module.Build(h)
 		local restore = h.setPanels({ PANEL })
 		checkGemIcon(res, "sidekick_page_gem_icon", page:FindFirstChild("GemIcon", true))
 		checkBanner(res)
+		checkTimer(res, page)
 		checkDetails(res)
 		checkDesktopFit(res)
+		checkSlotChange(res)
 		restore()
 		restore = h.setPanels({ "RacerIndex/Panel" })
 		checkIndex(res)

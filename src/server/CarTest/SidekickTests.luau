@@ -8,6 +8,7 @@
 --   Sell, SetAutoSell and Equip return a true / false first value. Roll may return the row or its id.
 --   Snapshot returns exactly the 4 save fields; SidekickAutoSell maps rarity to true; Apply takes the whole save record.
 --   Any remote cooldown lives on SidekickService.REMOTE_COOLDOWN, as in QuestService.
+--   The clock is held in one slot; real summons are judged against that slot's Rotation.Odds. SidekickRotationTests holds the rotation.
 -- Runs on Folder players and an isolated PlayerData clone, like GemTests.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "sidekicks", then CarTestRun = true.
 local HttpService = game:GetService("HttpService")
@@ -17,6 +18,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 local UID = 990136000
 local VERSION = 16 -- 16: Relics (RelicTests)
+local CLOCK = 1800000123 -- one fixed rotation slot for the whole scenario
 local SOURCE_NAMES = { "pochita", "igris", "kaisel" } -- design doc 4.36: the real names no id or name may show
 
 local function gems(p)
@@ -42,6 +44,11 @@ function Tests.sidekicks()
 		oldCooldown = S.REMOTE_COOLDOWN
 		S.REMOTE_COOLDOWN = 0
 		rebirth.REMOTE_COOLDOWN = 0
+		local Rotation = require(Server.SidekickRotation)
+		S.SetClock(function()
+			return CLOCK
+		end)
+		local slotOdds = Rotation.Odds(Rotation.Slot(CLOCK))
 		Admin.AllowStudio = true
 		local RaceService, money = require(Server.RaceService), require(Server.MoneyService)
 		local factory, catalog = require(Shared.RunnerFactory), require(Shared.CharacterCatalog)
@@ -68,7 +75,7 @@ function Tests.sidekicks()
 			flag("movement_valid_" .. row.Id, row.Movement == "Walk" or row.Movement == "Fly")
 			flag("sells_under_cost_" .. row.Id, row.SellGems > 0 and row.SellGems < Cfg.SummonCost)
 		end
-		flag("odds_sum_100", odds == 100, odds, 100)
+		flag("odds_sum_100", approx(odds, 100), odds, 100)
 		flag("config_costs_positive", Cfg.SummonCost > 0 and Cfg.TenCost > 0 and Cfg.BagSize >= 10)
 		flag("config_unlock_positive", Cfg.UnlockRebirth >= 1, Cfg.UnlockRebirth)
 		flag("kaizel_flies", rowOf.side_wyvern ~= nil and rowOf.side_wyvern.Movement == "Fly")
@@ -232,7 +239,13 @@ function Tests.sidekicks()
 		flag("luck_summons_ran", summonsOk and summons == 10000, summons, 10000)
 		for _, row in List do
 			local share = (summonTally[row.Id] or 0) / math.max(summons, 1) * 100
-			flag("luck_summon_odds_" .. row.Id, math.abs(share - row.Odds) < 3, share, row.Odds)
+			local want = slotOdds[row.Id]
+			flag(
+				"luck_summon_odds_" .. row.Id,
+				want ~= nil and math.abs(share - want) < 3 or want == nil and share == 0,
+				share,
+				want or 0
+			)
 		end
 		flag("summon_never_touches_luck_or_roll", touched == 0, touched, 0)
 		flag("summon_keeps_rolls", lucky:GetAttribute("Rolls") == 7, lucky:GetAttribute("Rolls"), 7)
@@ -291,7 +304,7 @@ function Tests.sidekicks()
 			flag("summon_results_" .. count, type(results) == "table" and #results == count)
 			local known = true
 			for _, result in results or {} do
-				known = known and rowOf[result.Id] ~= nil
+				known = known and slotOdds[result.Id] ~= nil
 			end
 			flag("summon_results_known_" .. count, known)
 
@@ -745,6 +758,9 @@ function Tests.sidekicks()
 	rebirth.REMOTE_COOLDOWN = oldRebirthCooldown
 	if S then
 		S.REMOTE_COOLDOWN = oldCooldown
+		if S.SetClock then
+			S.SetClock()
+		end
 	end
 	for _, run in runs do
 		pcall(run.Destroy, run)

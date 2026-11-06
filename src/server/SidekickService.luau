@@ -1,7 +1,8 @@
 --!nonstrict
 -- Sidekicks (design doc 4.36, docs/SIDEKICK_SPEC.md): summons for Gems, the Bag, auto-sell, the free summon, per-character
 -- equip and the run gain. The server decides everything; nothing a client sends is trusted. Clients only read the player
--- attributes SidekickBag, SidekickGear, SidekickAutoSell (JSON) and SidekickFreeUsed. Saved by PlayerData (Snapshot/Apply).
+-- attributes SidekickBag, SidekickGear, SidekickAutoSell (JSON) and SidekickFreeUsed, and the ReplicatedStorage attribute
+-- SidekickRotation (JSON of SidekickRotation.Public). Saved by PlayerData (Snapshot/Apply).
 -- Summons never touch GachaService.Roll, Luck or the roll counters: odds are the listed ones for everyone.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.SidekickConfig)
 local CharacterCatalog = require(ReplicatedStorage.Shared.CharacterCatalog)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
+local Rotation = require(script.Parent.SidekickRotation)
 
 local SidekickService = {}
 SidekickService.REMOTE_COOLDOWN = 0.25
@@ -17,6 +19,7 @@ SidekickService.REMOTE_COOLDOWN = 0.25
 local state = setmetatable({}, { __mode = "k" })
 local lastRequest = setmetatable({}, { __mode = "k" })
 local rng = Random.new()
+local clock = os.time
 
 local RARITIES = {}
 for _, row in Config.List do
@@ -64,12 +67,31 @@ local function wearerOf(current, entry)
 	return nil
 end
 
+-- The current slot's rows, each with its odds for that slot.
+local function slotRows()
+	local odds = Rotation.Odds(Rotation.Slot(clock()))
+	local rows = {}
+	for _, row in Config.List do
+		if odds[row.Id] then
+			local inSlot = table.clone(row)
+			inSlot.Odds = odds[row.Id]
+			table.insert(rows, inSlot)
+		end
+	end
+	return rows
+end
+
+local function publishRotation()
+	ReplicatedStorage:SetAttribute("SidekickRotation", HttpService:JSONEncode(Rotation.Public(Rotation.Slot(clock()))))
+end
+
 -- count rolls: each one is sold (rarity on auto-sell) or kept. Refused, with nothing changed, when the bag cannot hold what
 -- would be kept. `cost` is taken here so the check and the spend happen together; nothing yields.
 local function summon(player, current, count, cost)
 	local kept, soldValue, results = 0, 0, {}
+	local rows = slotRows() -- one clock reading: the slot when the request arrives, for all of a 10x
 	for i = 1, count do
-		local row = Config.Roll(rng, Config.List)
+		local row = Config.Roll(rng, rows)
 		local sold = current.SidekickAutoSell[row.Rarity] == true
 		results[i] = { Id = row.Id, Sold = sold }
 		if sold then
@@ -98,6 +120,17 @@ end
 
 local function unlocked(player)
 	return (player:GetAttribute("RebirthLevel") or 0) >= Config.UnlockRebirth
+end
+
+-- One roll on the clock's slot; the row carries that slot's odds.
+function SidekickService.Roll(random)
+	return Config.Roll(random, slotRows())
+end
+
+-- Replaces os.time and publishes at once; no argument puts the real clock back.
+function SidekickService.SetClock(fn)
+	clock = fn or os.time
+	publishRotation()
 end
 
 -- Summon 1x or 10x for Gems. Returns true, results ({ Id, Sold, Entry }, sold ones listed too) or false, reason.
@@ -350,6 +383,13 @@ function SidekickService.Start()
 	bind(remotes, "SidekickSell", SidekickService.Sell)
 	bind(remotes, "SidekickAutoSell", SidekickService.SetAutoSell)
 	bind(remotes, "SidekickEquip", SidekickService.Equip)
+	publishRotation()
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			publishRotation() -- an unchanged value replicates nothing
+		end
+	end)
 end
 
 return SidekickService
