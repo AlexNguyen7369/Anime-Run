@@ -577,3 +577,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: Mythic pity 300 and Legendary pity 100 approved, with a Legendary pity bar; Details shows the live Secret's silhouette, rarity and chance, with no name column; the live Secret's id may reach clients (4.36).
 - 2026-11-05: owner: Rare models join the summon poster with rates shown in it; the Secret moves to Details; a summon reveal in the style of anime tower defense games, original effects (4.36).
 - 2026-11-05: owner: the spawn warning is flashing text with no border or background; Roblox chat notes each Big Raga attack, shout and wheel turn for players in the event; in the plaza the invite shows for 3 seconds, then teleporting stays open from the top-left Boss button, reading (Active), glowing and pulsing in size (4.37).
+- 2026-11-05: owner: boss bar layout with a colour-coded Drop list of Relic rates and Big Raga's rate in black (4.37, `BOSS_EVENT_SPEC`).
