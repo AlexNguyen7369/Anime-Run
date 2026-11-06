@@ -296,6 +296,7 @@ end
 
 local cameraOnRunner = false
 local followed = nil -- { Part, Position }: where the camera last framed the local runner
+local fovBefore = nil -- the camera's own FOV while the event's wider one is on
 RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function(dt)
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
@@ -304,6 +305,19 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		local look = camera.CFrame.LookVector
 		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
 		savedPitch = nil
+	end
+	-- The event's wider view (BOSS_EVENT_SPEC "Run rules"). Top-down keeps its own FOV and saves the normal one: it runs after this
+	-- step, so the normal one is back first. It holds the camera Scriptable until its restore, which brings that FOV back.
+	local wide = camera
+		and player:GetAttribute("BossEvent") == true
+		and camera.CameraType == Enum.CameraType.Custom
+		and not (player:GetAttribute("TopDownView") == true and player:GetAttribute("AutoRacing") == true)
+	if wide and not fovBefore then
+		fovBefore = camera.FieldOfView
+		camera.FieldOfView = BossCfg.CameraFov
+	elseif camera and not wide and fovBefore then
+		camera.FieldOfView = fovBefore
+		fovBefore = nil
 	end
 	local rising = camera and riseCameraOn(camera)
 	local mine = player:GetAttribute("AutoRacing") == true and RunnerVisual.LocalRunner()

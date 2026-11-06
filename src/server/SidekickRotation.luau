@@ -1,6 +1,6 @@
 --!nonstrict
 -- The 30 minute summon rotation (design doc 4.36, docs/SIDEKICK_SPEC.md "Rotation"): computed from the UTC slot alone, so every
--- server agrees with no store. Server only, because a shared copy would let an exploiter compute the live Secret. Clients read
+-- server agrees with no store. Server only, so a client learns the current slot's Secret and never a future one. Clients read
 -- only the ReplicatedStorage attribute SidekickRotation (Public). SidekickArt is read at call time: no Model, out of the tier.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -28,7 +28,7 @@ function Rotation.Slot(utc)
 	return math.floor(utc / Rotation.SLOT_SECONDS)
 end
 
--- { Mythic, Legendary, Rare, Common = id arrays, Secret = id }. Holds the live Secret: never send it to a client.
+-- { Mythic, Legendary, Rare, Common = id arrays, Secret = id }. Holds the whole rotation of any slot: only Public goes to clients.
 function Rotation.For(slot)
 	local rng = Random.new(slot * SEED_STEP)
 	local rotation = { Common = idsOf("Common") }
@@ -68,7 +68,7 @@ function Rotation.Odds(slot)
 	return odds
 end
 
--- All a client may see: no Secret id, and SecretChoices is the same every slot.
+-- All a client may see. SecretChoices is the same every slot; SecretId is this slot's Secret, for the Details silhouette (owner 2026-11-05).
 function Rotation.Public(slot)
 	local choices = {}
 	for _, row in Config.List do
@@ -76,9 +76,11 @@ function Rotation.Public(slot)
 			table.insert(choices, { Name = row.Name, Odds = row.Odds })
 		end
 	end
+	local rotation = Rotation.For(slot)
 	return {
-		Ids = publicIds(Rotation.For(slot)),
+		Ids = publicIds(rotation),
 		SecretChoices = choices,
+		SecretId = rotation.Secret,
 		EndsAt = (slot + 1) * Rotation.SLOT_SECONDS,
 	}
 end

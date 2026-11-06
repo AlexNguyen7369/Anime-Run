@@ -33,7 +33,10 @@ local LOW_HP = 0.25 -- owner: below this, a red aura and embers only; the schedu
 local MOUTH = Vector3.new(0, -0.9, 0.75) -- units from the Head's joint
 local HUB_UP = 1700 -- studs of the wheel's beam
 local SHAFTS, SHAFTS_REDUCED = 6, 3
-local RISE_PULSE = 5 -- s between the rise's cracks and jolts
+local RISE_PULSES = 3 -- the rise's cracks and jolts, evenly through it
+local RISE_DUST, RISE_DUST_REDUCED = 15, 3 -- a second of the rise; with the debris, the bursts and the pulses: budget 150, reduced 30
+local RISE_DEBRIS = 15 -- a second of the rise
+local RISE_PULSE_DUST, RISE_PULSE_DUST_REDUCED = 10, 3
 
 local BossVfx = {}
 
@@ -712,11 +715,13 @@ local function startRise()
 		Drag = 0.8,
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-30, 30),
-		Rate = few and 1.5 or 5,
+		Rate = few and RISE_DUST_REDUCED or RISE_DUST,
 		Enabled = true,
 	})
 	play.Dust = dust
-	local total = burst(dust, few and 8 or 30) + (few and 30 or 100)
+	local total = burst(dust, few and 8 or 30)
+		+ math.ceil((few and RISE_DUST_REDUCED or RISE_DUST) * Event.IntroSeconds)
+		+ RISE_PULSES * (few and RISE_PULSE_DUST_REDUCED or RISE_PULSE_DUST)
 	if not few then
 		local debris = emitter(spot, {
 			Name = "Debris",
@@ -733,11 +738,11 @@ local function startRise()
 			Acceleration = Vector3.new(0, -420, 0),
 			Rotation = NumberRange.new(0, 360),
 			RotSpeed = NumberRange.new(-260, 260),
-			Rate = 4,
+			Rate = RISE_DEBRIS,
 			Enabled = true,
 		})
 		play.Debris = debris
-		total += 80
+		total += math.ceil(RISE_DEBRIS * Event.IntroSeconds)
 	end
 	-- Cracks that spread in stages across the dais, a jolt on each. Only the dais: past it is open air.
 	local crack = holder("Cracks", CFrame.new(daisTop()), Vector3.new(160, 0.2, 160))
@@ -775,12 +780,12 @@ end
 local function stepRise(play, since)
 	local rumble = 1.6 * (0.45 + 0.55 * math.clamp(1 - since / Event.IntroSeconds, 0, 1))
 	BossShake.Hold("BossRise", rumble, 16)
-	local stage = math.floor(since / RISE_PULSE)
+	local stage = math.floor(since / (Event.IntroSeconds / (RISE_PULSES + 1)))
 	if stage ~= play.Stage then
 		play.Stage = stage
 		local size = math.min(160 + stage * 60, 2 * Arena.DaisRadius)
 		tween(play.Crack, 0.25, { Size = Vector3.new(size, 0.2, size) }, Enum.EasingStyle.Back)
-		burst(play.Dust, reduced() and 3 or 10)
+		burst(play.Dust, reduced() and RISE_PULSE_DUST_REDUCED or RISE_PULSE_DUST)
 		BossShake.Kick(2.8, 13, 0.8)
 	end
 end

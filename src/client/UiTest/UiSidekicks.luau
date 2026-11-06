@@ -7,7 +7,7 @@
 --   Banner holds one cell per Public id, named its id, and the mystery cell named Secret; anything else in it is RotationTimer.
 --   RotationTimer is a TextLabel anywhere on the page, showing m:ss to EndsAt. DetailsSheet/List has a row per Public id and
 --   one row named Secret; each has a label Odds reading "%.3f%%". Page and Details follow the attribute when the slot changes.
---   The page reads the attribute, so a live Secret never reaches a tile.
+--   The attribute carries SecretId (owner ruling, for the Details silhouette); the banner's mystery tile still never shows it.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("SidekickConfig"))
@@ -263,7 +263,12 @@ function Module.Build(h)
 		shownOdds("Secret", secretOdds)
 		local rounding = 0.0005 * (#view.Ids + 1) + 1e-6
 		h.check(res, "sidekick_details_sum_100", sum, "100 +- " .. rounding, math.abs(sum - 100) <= rounding)
-		-- The Secret row names every outcome (section 6) and no row tells which one is live.
+		local liveIsAChoice = false
+		for _, row in secrets do
+			liveIsAChoice = liveIsAChoice or row.Id == view.SecretId
+		end
+		check(res, "sidekick_view_secret_id_is_a_choice", liveIsAChoice, true)
+		-- The Secret row names every outcome (section 6); its text does not tell which one is live.
 		local secretLine = list:FindFirstChild("Secret")
 		local words = {}
 		for _, d in secretLine and secretLine:GetDescendants() or {} do

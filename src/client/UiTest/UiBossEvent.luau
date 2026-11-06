@@ -12,6 +12,10 @@
 --   Decline lasts for one event (one BossEventStart): a new start shows the Invite again.
 --   Remotes are found when pressed (WaitForChild in Activated): progression_spy swaps them for logging proxies.
 --   The Fill follows BossEventStart, not a local tween from the moment it showed: a late joiner sees the right width.
+--   BossBar has a Status row anywhere inside it, with one Status_<Id> per BossStatus entry (attribute JSON, EndsAt in server time):
+--     an ImageLabel icon, the name and a countdown. It goes when EndsAt passes. ui_boss sets BossStatus locally, client side.
+--   The arena camera: workspace.CurrentCamera.FieldOfView is Cfg.CameraFov while player attribute BossEvent is true; the value it
+--     had before comes back when the attribute goes, not a fixed default.
 --   The BossBar pops through UiMotion.Pop (UIScale MotionScale). LeaveButton hides while a PanelSwitch panel is open.
 --   The Warning frame is the plate: red and opaque, its flash stays red, white heavy text on it. No flash with reduced motion.
 --   The Invite waits while a save is in the starter pick or the roll tutorial (boss_ui_gear sets a save past both).
@@ -46,7 +50,9 @@ local WARNING_QUIET = 1 -- s hidden in a row before a flashing Warning counts as
 local FLASH_SAMPLE = 3 -- s the Warning and the intro fill are watched
 local COUNTDOWN_SLACK = 2 -- s
 local RATIO_SLACK = 0.02
-local BUDGET = 40 -- s: the whole scenario
+local FILL_SLACK = 0.1 -- of the bar: the fill against the server clock while it moves
+local FOV_OUTSIDE = 63 -- a value no script sets, so a restore to a fixed default shows
+local BUDGET = 54 -- s: the whole scenario
 local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
 local BAR_CENTRE_SLACK = 0.05 -- of the screen width
@@ -536,7 +542,7 @@ function Module.Build(h)
 			local bar = h.find(BAR)
 			check(res, "bar_pops_in", bar ~= nil and bar:FindFirstChild("MotionScale") ~= nil, true)
 		end
-		local looks, ratios, leftDrift = {}, {}, 0
+		local looks = {}
 		local red, bright, readable, heavy = true, false, true, true
 		local stop = os.clock() + FLASH_SAMPLE
 		while os.clock() < stop do
@@ -546,12 +552,6 @@ function Module.Build(h)
 			bright = bright or plate.Bright
 			readable = readable and plate.Readable
 			heavy = heavy and plate.Heavy
-			local ratio = fillRatio()
-			if ratio then
-				table.insert(ratios, ratio)
-				local fill = named(BAR, "Fill")
-				leftDrift = math.max(leftDrift, math.abs(fill.AbsolutePosition.X - fill.Parent.AbsolutePosition.X))
-			end
 			task.wait(0.05)
 		end
 		local count = 0
@@ -565,16 +565,6 @@ function Module.Build(h)
 		checkFit(res, "fight")
 		if not reduced then
 			h.check(res, "warning_flashes", count, ">= 2 looks", count >= 2)
-			local first, last = ratios[1] or 1, ratios[#ratios] or 0
-			-- Three seconds into the 20 s fill, with a little room for a curve.
-			h.check(res, "bar_starts_nearly_empty", first, "< 0.35", first < 0.35)
-			h.check(res, "bar_fill_grows", last - first, "> 0", last > first)
-			local falls = 0
-			for i = 2, #ratios do
-				falls += ratios[i] < ratios[i - 1] - 0.001 and 1 or 0
-			end
-			check(res, "bar_fill_never_falls", falls, 0)
-			h.check(res, "bar_fills_from_the_left", leftDrift, "<= " .. Spec.Tolerance, leftDrift <= Spec.Tolerance)
 		end
 
 		-- An HP change is not a new spawn: the Warning ends once and does not come back.
@@ -584,6 +574,139 @@ function Module.Build(h)
 		state(res, "Fight", "keep", hp - 1, hp, true, 100)
 		task.wait(0.4)
 		check(res, "warning_not_back_on_hp_change", shown(WARNING), false)
+	end
+
+	-- Owner 2026-11-05: the bar fills with the rise, in 2-3 s, on the server's clock.
+	local function checkIntroFill(res)
+		local intro = Cfg.IntroSeconds
+		h.check(res, "intro_is_2_to_3_seconds", intro, "2 to 3", intro >= 2 and intro <= 3)
+		if reducedNow() then
+			return
+		end
+		local hp = Cfg.HpPerPlayer
+		state(res, "Idle", 0, 0, 0, false)
+		check(res, "fill_bar_clear", waitShown(BAR, false), false)
+		state(res, "Fight", Cfg.PrepSeconds, hp, hp, true, 100)
+		check(res, "fill_bar_shown", waitShown(BAR, true), true)
+		local ratios, worst, leftDrift = {}, 0, 0
+		local stop = os.clock() + intro + 0.5
+		while os.clock() < stop do
+			local ratio = fillRatio()
+			local start = ReplicatedStorage:GetAttribute("BossEventStart")
+			if ratio and start then
+				table.insert(ratios, ratio)
+				local want = math.clamp((workspace:GetServerTimeNow() - start - Cfg.PrepSeconds) / intro, 0, 1)
+				worst = math.max(worst, math.abs(ratio - want))
+				local fill = named(BAR, "Fill")
+				leftDrift = math.max(leftDrift, math.abs(fill.AbsolutePosition.X - fill.Parent.AbsolutePosition.X))
+			end
+			task.wait(0.05)
+		end
+		local first, last = ratios[1] or 1, ratios[#ratios] or 0
+		h.check(res, "bar_starts_nearly_empty", first, "< 0.5", first < 0.5)
+		h.check(res, "bar_fill_follows_the_intro", worst, "<= " .. FILL_SLACK, worst <= FILL_SLACK)
+		h.check(res, "bar_full_when_the_intro_ends", last, ">= " .. 1 - RATIO_SLACK, last >= 1 - RATIO_SLACK)
+		local falls = 0
+		for i = 2, #ratios do
+			falls += ratios[i] < ratios[i - 1] - 0.001 and 1 or 0
+		end
+		check(res, "bar_fill_never_falls", falls, 0)
+		h.check(res, "bar_fills_from_the_left", leftDrift, "<= " .. Spec.Tolerance, leftDrift <= Spec.Tolerance)
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
+	-- Owner 2026-11-05: Shouted and Adapted under the boss bar, for event players.
+	local function checkStatusRow(res)
+		local hp = Cfg.HpPerPlayer
+		local function setStatus(rows)
+			ReplicatedStorage:SetAttribute("BossStatus", rows and HttpService:JSONEncode(rows) or nil)
+		end
+		local function cell(id)
+			local found = named(BAR, "Status_" .. id)
+			return found and found:IsA("GuiObject") and h.visible(found) and found or nil
+		end
+		local function cellShown(id)
+			return cell(id) ~= nil
+		end
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+		check(res, "status_bar_shown", waitShown(BAR, true), true)
+		local now = workspace:GetServerTimeNow()
+		setStatus({ { Id = "Shouted", EndsAt = now + 2 }, { Id = "Adapted", EndsAt = now + 12 } })
+		local row = named(BAR, "Status")
+		check(res, "status_row_present", row ~= nil, true)
+		for id, ends in { Shouted = 2, Adapted = 12 } do
+			check(
+				res,
+				"status_shows_" .. id,
+				waitIs(function()
+					return cellShown(id)
+				end, true),
+				true
+			)
+			local item = cell(id)
+			local icon, words = false, {}
+			for _, d in item and item:GetDescendants() or {} do
+				icon = icon or d:IsA("ImageLabel")
+				if d:IsA("TextLabel") then
+					table.insert(words, d.Text)
+				end
+			end
+			local text = table.concat(words, " ")
+			check(res, "status_icon_" .. id, icon, true)
+			check(res, "status_name_" .. id, string.find(text, id, 1, true) ~= nil, true)
+			local left = secondsIn(text)
+			h.check(res, "status_countdown_" .. id, left, "<= " .. ends, left ~= nil and left <= ends + COUNTDOWN_SLACK)
+		end
+		check(
+			res,
+			"status_gone_when_expired",
+			waitIs(function()
+				return cellShown("Shouted")
+			end, false, 3.5),
+			false
+		)
+		check(res, "status_other_stays", cellShown("Adapted"), true)
+		state(res, "Fight", "keep", hp, hp, false)
+		check(
+			res,
+			"status_hidden_outside_event",
+			waitIs(function()
+				return cellShown("Adapted")
+			end, false),
+			false
+		)
+		setStatus(nil)
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
+	-- Owner 2026-11-05: the wider event camera, in the arena only.
+	local function checkCameraFov(res)
+		local camera = workspace.CurrentCamera
+		local function fov()
+			return math.round(camera.FieldOfView * 100) / 100
+		end
+		local hp = Cfg.HpPerPlayer
+		local before = camera.FieldOfView
+		state(res, "Idle", 0, 0, 0, false)
+		task.wait(0.2)
+		camera.FieldOfView = FOV_OUTSIDE
+		state(res, "Prep", 5, hp, hp, false)
+		task.wait(0.3)
+		check(res, "fov_outsider_in_prep_unchanged", fov(), FOV_OUTSIDE)
+		state(res, "Prep", "keep", hp, hp, true, 100)
+		check(res, "fov_wide_in_prep", waitIs(fov, Cfg.CameraFov), Cfg.CameraFov)
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+		task.wait(0.3)
+		check(res, "fov_wide_in_fight", fov(), Cfg.CameraFov)
+		state(res, "Fight", "keep", hp, hp, false)
+		check(res, "fov_restored_on_leave", waitIs(fov, FOV_OUTSIDE), FOV_OUTSIDE)
+		task.wait(0.3)
+		check(res, "fov_outsider_in_fight_unchanged", fov(), FOV_OUTSIDE)
+		state(res, "Fight", "keep", hp, hp, true, 100)
+		check(res, "fov_wide_on_late_join", waitIs(fov, Cfg.CameraFov), Cfg.CameraFov)
+		state(res, "Idle", 0, 0, 0, false)
+		check(res, "fov_restored_on_event_end", waitIs(fov, FOV_OUTSIDE), FOV_OUTSIDE)
+		camera.FieldOfView = before
 	end
 
 	local function checkBarValues(res)
@@ -630,11 +753,11 @@ function Module.Build(h)
 		-- Near the intro's end the fill is nearly done, whenever the client first drew it.
 		state(res, "Idle", 0, 0, 0, false)
 		check(res, "late_intro_bar_clear", waitShown(BAR, false), false)
-		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds - 2, 3000, 4000, true, 100)
+		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds - 0.5, 3000, 4000, true, 100)
 		check(res, "late_intro_bar_shown", waitShown(BAR, true), true)
 		local early = fillRatio() or 0
 		h.check(res, "late_intro_fill_follows_the_clock", early, "> 0.5 of 0.75", early > 0.5)
-		task.wait(2.2)
+		task.wait(0.7)
 		checkRatio(res, "late_intro_fill_ends_at_hp", 3000 / 4000)
 	end
 
@@ -702,13 +825,17 @@ function Module.Build(h)
 			checkInvite(res)
 			checkLocked(res)
 			checkTeamHud(res)
+			checkIntroFill(res)
 			checkSpawn(res)
 			checkBarValues(res)
 			checkLateJoin(res)
 			checkOutsider(res)
+			checkCameraFov(res)
+			checkStatusRow(res)
 			checkReduced(res)
 		end, debug.traceback)
 		h.check(res, "boss_checks_completed", ok and "yes" or tostring(err), "yes", ok)
+		ReplicatedStorage:SetAttribute("BossStatus", nil)
 		h.player:SetAttribute("ReduceEffects", savedReduce)
 		setup(res, "restore:boss_ui")
 		local spent = os.clock() - started

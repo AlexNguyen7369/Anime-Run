@@ -10,7 +10,13 @@ BossEventConfig.TotalSeconds = 480
 BossEventConfig.RefillWaitSeconds = 5
 BossEventConfig.ChatMessage = "BIG RAGA HAS SPAWNED, TAKE HIM DOWN FOR REWARDS"
 
-BossEventConfig.IntroSeconds = 20 -- placeholder: the rise, no damage
+BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: 2 to 3 s, the rise, no damage
+BossEventConfig.AttackStaminaCost = 5 -- owner: percent of a full bar, per attack Impact, on the running character
+BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
+BossEventConfig.ShoutSeconds = 5 -- owner
+BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
+BossEventConfig.AdaptedSeconds = 5 -- owner
+BossEventConfig.CameraFov = 100 -- placeholder
 BossEventConfig.HpPerPlayer = 4000 -- placeholder
 BossEventConfig.HitEverySeconds = 1.5 -- placeholder: SidekickConfig.HitInterval
 BossEventConfig.MinDamageShare = 0.01 -- placeholder: of max HP, for a reward

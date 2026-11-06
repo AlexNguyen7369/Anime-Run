@@ -3,10 +3,11 @@
 -- WeatherService shape), or at once for a paid start. The server decides every hit; no remote reaches the damage. Contract:
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
--- BossEventHp and BossEventMaxHp, and the player attributes BossEvent (true while in the event) and BossTeamDamage (TeamDamage,
--- nil outside the event). They call the RemoteFunctions
+-- BossEventHp, BossEventMaxHp and BossStatus (JSON list of { Id, EndsAt in server time }, nil when empty), and the player attributes
+-- BossEvent (true while in the event) and BossTeamDamage (TeamDamage, nil outside the event). They call the RemoteFunctions
 -- Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids) and Remotes.BossEventLeave(); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message to Client/BossEventChat.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
+local Poses = require(Shared.BossRagaPoses)
 local StaminaConfig = require(Shared.StaminaConfig)
 local CarService = require(script.Parent.CarService)
 local DuelService = require(script.Parent.DuelService)
@@ -27,6 +29,12 @@ local BossEventService = {}
 
 local REMOTE_COOLDOWN = 0.25
 local DAMAGE_EPSILON = 1e-6 -- exactly the minimum share still earns the reward, whatever the float sum
+local TIME_EPSILON = 1e-6 -- s: a clock a float's hair before a schedule moment is on it
+local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
+local STATUSES = {
+	{ Id = "Shouted", Event = "Roar", Seconds = Cfg.ShoutSeconds, Cut = Cfg.ShoutDamageCut },
+	{ Id = "Adapted", Event = "WheelClick", Seconds = Cfg.AdaptedSeconds, Cut = Cfg.AdaptedCut },
+}
 
 local clock = nil
 local event = nil -- { StartAt, Source, Phase, Hp, MaxHp, Spawned, IntroDone, Members = { [player] = member } }
@@ -54,9 +62,104 @@ local function publish()
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
 	ReplicatedStorage:SetAttribute("BossEventMaxHp", event and event.MaxHp or nil)
+	if not event then
+		ReplicatedStorage:SetAttribute("BossStatus", nil)
+	end
+end
+
+-- Event name -> its moments in one schedule cycle, seconds after the intro's end. Read off the shared schedule, so every client's
+-- animation and the server agree. Rounded to the 3 places the schedule's times are written in.
+local moments = {}
+do
+	for _, move in Poses.Moves do
+		for _, moveEvent in move.Events do
+			moments[moveEvent.Name] = {}
+		end
+	end
+	local lastMove, lastLocal = nil, 0
+	for k = 0, math.ceil(Poses.CycleSeconds / SCAN_STEP) - 1 do
+		local since = k * SCAN_STEP
+		local move, localTime = Poses.Schedule(-Cfg.IntroSeconds, since)
+		if move ~= lastMove or localTime < lastLocal then
+			for _, moveEvent in Poses.Moves[move].Events do
+				local at = since - localTime + moveEvent.Time
+				table.insert(moments[moveEvent.Name], math.round(at * 1000) / 1000)
+			end
+		end
+		lastMove, lastLocal = move, localTime
+	end
+end
+
+-- t in seconds since the spawn -> whole cycles past the intro's end, and seconds into this cycle. Nil before the intro's end.
+local function cycleAt(t)
+	local since = t + TIME_EPSILON - Cfg.IntroSeconds
+	if since < 0 then
+		return nil
+	end
+	local cycles = math.floor(since / Poses.CycleSeconds)
+	return cycles, since - cycles * Poses.CycleSeconds
+end
+
+local function countUpTo(name, t)
+	local cycles, inCycle = cycleAt(t)
+	if not cycles then
+		return 0
+	end
+	local count = cycles * #moments[name]
+	for _, at in moments[name] do
+		count += at <= inCycle and 1 or 0
+	end
+	return count
+end
+
+-- How many attack Impacts fall in fromT < t <= toT, in seconds since the spawn. Pure.
+function BossEventService.AttackImpactsBetween(fromT, toT)
+	return math.max(0, countUpTo("Impact", toT) - countUpTo("Impact", fromT))
+end
+
+-- When a status running at t ends, in seconds since the spawn, or nil. A new moment refreshes it: statuses never stack.
+local function statusEnd(status, t)
+	local cycles, inCycle = cycleAt(t)
+	if not cycles then
+		return nil
+	end
+	local list = moments[status.Event]
+	local at = nil
+	for i = #list, 1, -1 do
+		if list[i] <= inCycle then
+			at = cycles * Poses.CycleSeconds + list[i]
+			break
+		end
+	end
+	if not at and cycles > 0 then
+		at = (cycles - 1) * Poses.CycleSeconds + list[#list]
+	end
+	local ends = at and Cfg.IntroSeconds + at + status.Seconds
+	return ends and t + TIME_EPSILON < ends and ends or nil
+end
+
+local function statusJson(t)
+	local rows = {}
+	for _, status in STATUSES do
+		local ends = statusEnd(status, t)
+		if ends then
+			table.insert(rows, { Id = status.Id, EndsAt = event.StartAt + Cfg.PrepSeconds + ends })
+		end
+	end
+	return #rows > 0 and HttpService:JSONEncode(rows) or nil
 end
 
 BossEventService.Hooks = {
+	-- What the running statuses leave of a hit, t in seconds since the spawn. Pure.
+	DamageMulti = function(t)
+		local multi = 1
+		for _, status in STATUSES do
+			if statusEnd(status, t) then
+				multi *= 1 - status.Cut
+			end
+		end
+		return multi
+	end,
 	Arrive = function(player, lane)
 		local cf = RaceService.RouteStartCFrame(Arena.LaneRoute(lane))
 		assert(CarService.HoldAt(player, cf), "no living avatar")
@@ -224,7 +327,8 @@ function BossEventService.RecordHit(player)
 	if not (member and member.Run) or member.Run.Waiting then
 		return 0
 	end
-	local dealt = math.min(BossEventService.TeamDamage(player), event.Hp)
+	local multi = BossEventService.Hooks.DamageMulti(now() - event.StartAt - Cfg.PrepSeconds)
+	local dealt = math.min(BossEventService.TeamDamage(player) * multi, event.Hp)
 	member.Damage += dealt
 	event.Hp -= dealt
 	if event.Hp <= 0 then
@@ -245,6 +349,17 @@ local function hitSpacing(player, member)
 		end
 	end
 	return count > 0 and Cfg.HitEverySeconds / (total / count) or Cfg.HitEverySeconds
+end
+
+-- The attacks since this member's last charge, on the character running now. At 0 the run's own next frame swaps or starts the
+-- wait, exactly as for a drain to 0. Impacts during the wait are passed over, never owed.
+local function chargeAttacks(member, t)
+	local impacts = BossEventService.AttackImpactsBetween(member.ChargedTo, t)
+	member.ChargedTo = math.max(member.ChargedTo, t)
+	local run = member.Run
+	if impacts > 0 and run and not run.Waiting then
+		run.Stamina[run.Slot] = math.max(0, run.Stamina[run.Slot] - impacts * Cfg.AttackStaminaCost)
+	end
 end
 
 local function startRun(player, member)
@@ -310,6 +425,7 @@ function BossEventService.Join(player)
 		Team = elapsed >= Cfg.PrepSeconds and auto or nil, -- after preparation the team is chosen for the joiner
 		Damage = 0,
 		JoinedAt = joinedAt,
+		ChargedTo = elapsed - Cfg.PrepSeconds, -- nothing at or before the join is owed
 		Equipped = player:GetAttribute("EquippedCar"),
 	}
 	current.Members[player] = member
@@ -412,7 +528,10 @@ local function tick(at)
 			startRun(player, member)
 		end
 	end
+	local t = elapsed - Cfg.PrepSeconds
+	ReplicatedStorage:SetAttribute("BossStatus", statusJson(t))
 	for player, member in table.clone(current.Members) do
+		chargeAttacks(member, t)
 		if not player.Parent then
 			BossEventService.Leave(player, "Left")
 		elseif member.Run and member.Run.Waiting then

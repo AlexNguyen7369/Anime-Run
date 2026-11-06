@@ -3,10 +3,11 @@
 -- rest of the Sidekick rules. POOL is the 12-row table; only the Legendary, Mythic and Secret odds are owner-confirmed, the
 -- other values are proposed: tune them here and in the spec together. Names are read from config.
 -- Contract these tests assume beyond the brief (implementer: report a change, do not loosen):
---   Server/SidekickRotation (server only, so no client can compute the live Secret) reads SidekickArt at call time, so a row losing its Model leaves the rotation.
+--   Server/SidekickRotation (server only; a client learns only the current slot's Secret, never a future one) reads SidekickArt at call time, so a row losing its Model leaves the rotation.
 --     A tier with too few rows that have a Model holds the ones it has.
 --   Rotation.Odds maps only in-rotation ids.
---   Rotation.Public(slot) has exactly: Ids (array), SecretChoices (array of { Name, Odds }), EndsAt ((slot + 1) * 1800).
+--   Rotation.Public(slot) has exactly: Ids (array), SecretChoices (array of { Name, Odds }), SecretId (the slot's
+--     live Secret, owner ruling: Details shows it as a black silhouette), EndsAt ((slot + 1) * 1800).
 --   SidekickService.Roll(rng): the row or id of one roll on the clock's slot, one rng:NextNumber() per roll (Config.Roll),
 --     which lets the sweep below judge exact odds without any luck. SetClock(fn) replaces os.time and publishes at once;
 --     SetClock() puts the real clock back. A summon reads the clock once. Start keeps the attribute current within 2 s.
@@ -138,6 +139,7 @@ function Tests.sidekick_rotation()
 		local seen, mythicChanges, secretChanges = {}, 0, 0
 		local countsOk, ranksOk, commonsOk, noRaga, oddsKeysOk, oddsSumOk, keepOk, commonOk =
 			true, true, true, true, true, true, true, true
+		local publicSecretOk, publicSecretChoice = true, true
 		local publicKeysOk, publicIdsOk, publicEndsOk, publicHidden, choicesSame = true, true, true, true, true
 		local firstChoices
 		local previous
@@ -192,14 +194,21 @@ function Tests.sidekick_rotation()
 			for key in public do
 				publicKeys[key] = true
 			end
-			publicKeysOk = publicKeysOk and H.same(publicKeys, { Ids = true, SecretChoices = true, EndsAt = true })
+			publicKeysOk = publicKeysOk
+				and H.same(publicKeys, { Ids = true, SecretChoices = true, SecretId = true, EndsAt = true })
 			publicIdsOk = publicIdsOk and H.same(setOf(public.Ids or {}), setOf(members(rotation)))
 			publicEndsOk = publicEndsOk and public.EndsAt == (slot + 1) * 1800
 			local raw = HttpService:JSONEncode(public)
-			for _, id in secretIds do
-				publicHidden = publicHidden and string.find(raw, id, 1, true) == nil
+			publicSecretOk = publicSecretOk and public.SecretId == rotation.Secret
+			local liveChoice = false
+			for _, choice in public.SecretChoices do
+				liveChoice = liveChoice or choice.Name == Cfg.Get(rotation.Secret).Name
 			end
-			-- The same every slot, so nothing in it tells the live Secret apart.
+			publicSecretChoice = publicSecretChoice and liveChoice
+			for _, id in secretIds do
+				publicHidden = publicHidden and (id == rotation.Secret or string.find(raw, id, 1, true) == nil)
+			end
+			-- The same every slot: SecretId alone tells the live Secret.
 			local choices = HttpService:JSONEncode(public.SecretChoices)
 			firstChoices = firstChoices or choices
 			choicesSame = choicesSame and choices == firstChoices
@@ -224,7 +233,9 @@ function Tests.sidekick_rotation()
 		flag("public_keys_exact", publicKeysOk)
 		flag("public_ids_without_secret", publicIdsOk)
 		flag("public_ends_at_slot_end", publicEndsOk)
-		flag("public_hides_every_secret_id", publicHidden)
+		flag("public_secret_id_is_the_slots", publicSecretOk)
+		flag("public_secret_id_is_a_choice", publicSecretChoice)
+		flag("public_hides_the_other_secret_ids", publicHidden)
 		flag("public_choices_same_every_slot", choicesSame)
 		local choices = Rotation.Public(SLOT0).SecretChoices
 		local names = {}
@@ -484,7 +495,7 @@ function Tests.sidekick_rotation()
 		S.Summon(moving, 10)
 		flag("ten_reads_clock_once", reads == 1, reads, 1)
 
-		-- The replicated attribute: the client's whole view, and never the live Secret.
+		-- The replicated attribute: the client's whole view, and of the Secrets only the live one.
 		local function attribute()
 			local raw = ReplicatedStorage:GetAttribute("SidekickRotation")
 			local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
@@ -497,15 +508,15 @@ function Tests.sidekick_rotation()
 			same = same and H.same(decoded, Rotation.Public(check))
 			local rawText = type(raw) == "string" and raw or ""
 			for _, id in secretIds do
-				hidden = hidden and string.find(rawText, id, 1, true) == nil
+				hidden = hidden and (id == Rotation.For(check).Secret or string.find(rawText, id, 1, true) == nil)
 			end
-			hidden = hidden and string.find(rawText, Rotation.For(check).Secret, 1, true) == nil
+			hidden = hidden and type(decoded) == "table" and decoded.SecretId == Rotation.For(check).Secret
 			for _, name in secretNames do
 				named = named and string.find(rawText, name, 1, true) ~= nil
 			end
 		end
 		flag("attribute_is_public_json", same)
-		flag("attribute_no_secret_id", hidden)
+		flag("attribute_only_the_live_secret_id", hidden)
 		flag("attribute_names_both_choices", named)
 
 		-- The running service follows the clock into the next slot with nobody summoning.

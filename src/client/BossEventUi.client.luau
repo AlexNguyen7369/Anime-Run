@@ -1,11 +1,12 @@
 --!nonstrict
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
--- it follows the server's attributes (ReplicatedStorage BossEvent*, player BossEvent and BossTeamDamage) and asks through
+-- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent and BossTeamDamage) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
@@ -38,6 +39,13 @@ local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too 
 local BAR_LOW_TOP = 58 -- px: under the top row and Roblox's reserved top-left (x 0..360, y 0..58)
 local BAR_HIGH_TOP = 10 -- px: where the bar fits between those two
 local RESERVED_RIGHT = 360
+local STATUS_GAP = 4 -- px under the bar
+local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 28, 22
+-- The icon is a plain in-house shape with a glyph on it; no image upload. No digit in these texts: the countdown is the number.
+local STATUS_LOOKS = {
+	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
+	{ Id = "Adapted", Glyph = "O", Color = Palette.Gold },
+}
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -231,6 +239,53 @@ local fill = make("Frame", "Fill", track, {
 UiTheme.Corner(fill, "S")
 UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep)
 
+-- Under the bar, with it on screen and off: the Warning sits below this row.
+local statusRow = make("Frame", "Status", bar, { BackgroundTransparency = 1 })
+make("UIListLayout", "List", statusRow, {
+	FillDirection = Enum.FillDirection.Horizontal,
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 4),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local statusCells = {}
+for order, look in STATUS_LOOKS do
+	local cell = make("Frame", "Status_" .. look.Id, statusRow, {
+		LayoutOrder = order,
+		Size = UDim2.new(0.5, -2, 1, 0),
+		BackgroundColor3 = Palette.Row,
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+		Visible = false,
+	})
+	UiTheme.Corner(cell, "S")
+	local icon = make("ImageLabel", "Icon", cell, {
+		Position = UDim2.fromOffset(1, 1),
+		Size = UDim2.new(1, -2, 1, -2),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		BackgroundColor3 = look.Color,
+		BorderSizePixel = 0,
+	})
+	UiTheme.Corner(icon, "S")
+	label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 20)
+	label("Name", cell, {
+		Position = UDim2.fromOffset(STATUS_HEIGHT + 2, 0),
+		Size = UDim2.new(0.68, -STATUS_HEIGHT - 2, 1, 0),
+		Text = look.Id,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	}, 18)
+	statusCells[look.Id] = {
+		Frame = cell,
+		Left = label("Countdown", cell, {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 0),
+			Size = UDim2.new(0.32, -6, 1, 0),
+			Text = "",
+			TextColor3 = Palette.Gold,
+			TextXAlignment = Enum.TextXAlignment.Right,
+		}, 18),
+	}
+end
+
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
 local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 	AnchorPoint = Vector2.new(1, 0),
@@ -306,7 +361,10 @@ local function placeTop(phone, size, row)
 	local height = phone and 42 or 58
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
-	warning.Position = UDim2.new(0.5, 0, 0, barTop + height + 8)
+	local statusHeight = phone and STATUS_HEIGHT_PHONE or STATUS_HEIGHT
+	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
+	statusRow.Size = UDim2.new(1, 0, 0, statusHeight)
+	warning.Position = UDim2.new(0.5, 0, 0, barTop + height + STATUS_GAP + statusHeight + 8)
 	warning.Size = UDim2.fromOffset(math.min(size.X * 0.8, 1000), phone and 48 or 84)
 end
 
@@ -536,6 +594,29 @@ local function clockText(seconds)
 	return string.format("%d:%02d", whole // 60, whole % 60)
 end
 
+local statusRaw = nil
+local statusEnds = {} -- id -> EndsAt
+
+-- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time.
+local function drawStatus()
+	local raw = ReplicatedStorage:GetAttribute("BossStatus")
+	if raw ~= statusRaw then
+		statusRaw = raw
+		statusEnds = {}
+		local ok, rows = pcall(HttpService.JSONDecode, HttpService, raw or "[]")
+		for _, row in ok and rows or {} do
+			statusEnds[row.Id] = row.EndsAt
+		end
+	end
+	for id, cell in statusCells do
+		local left = (statusEnds[id] or 0) - workspace:GetServerTimeNow()
+		cell.Frame.Visible = left > 0
+		if left > 0 then
+			cell.Left.Text = math.ceil(left) .. "s"
+		end
+	end
+end
+
 local function endWarning()
 	warningUntil = 0
 	if stopFlash then
@@ -620,6 +701,7 @@ local function render()
 		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.IntroSeconds, 0, 1)
 		fill.Size = UDim2.fromScale(max > 0 and math.clamp(hp / max, 0, 1) * intro or 0, 1)
 		barValue.Text = HudFormat.SpeedText(math.ceil(hp)) .. " / " .. HudFormat.SpeedText(math.ceil(max))
+		drawStatus()
 	end
 end
 
