@@ -55,6 +55,7 @@ local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
+local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 
 local ROOT = "RacerBossEvent"
 local INVITE = ROOT .. "/Invite"
@@ -96,6 +97,9 @@ local BUDGET = 84 -- s: the whole scenario
 local DIM_MIN, DIM_MAX = 0.5, 0.85 -- BackgroundTransparency: "slightly dimmed"
 local WAIT_CENTRE_SLACK = 0.1 -- of the screen
 local WAIT_CAMERA_SLACK = 40 -- studs: a boss shake may be on top of the framing
+-- Copies of BossWaitCamera's locals, plus a margin: its drift is part of the view, and BossShake only rotates.
+local WAIT_PULL_SECONDS = 0.6 + 0.1
+local WAIT_VIEW_SLACK = 3 + 1 -- studs: DRIFT_STUDS and a small tolerance
 local WAIT_COUNT_SLACK = 0.15 -- s around a whole-second change
 local PHONE_MAX_HEIGHT = 500
 local MIN_WARNING_HEIGHT = 40 -- px at desktop: "big"
@@ -1227,7 +1231,7 @@ function Module.Build(h)
 		waitShown(BUTTON, false)
 	end
 
-	-- Owner 2026-11-05: the team is exhausted. Aerial camera, dim, centred countdown, a loading sign full at the end time.
+	-- Owner 2026-11-05: the team is exhausted. Camera behind the runner, dim, centred countdown, a loading sign full at the end time.
 	local function checkWaitView(res)
 		local camera = workspace.CurrentCamera
 		local wait = Cfg.RefillWaitSeconds
@@ -1248,11 +1252,18 @@ function Module.Build(h)
 		if not (panel and message and countdown and fill and dim) or type(Cfg.WaitCameraCFrame) ~= "function" then
 			return
 		end
-		local function atAerial()
-			local character = h.player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
-			local frame = Cfg.WaitCameraCFrame(Arena.Center, root and root.Position)
-			return (camera.CFrame.Position - frame.Position).Magnitude < WAIT_CAMERA_SLACK
+		local function runnerPosition()
+			local runner = RunnerVisual.LocalRunner()
+			return runner and runner.PrimaryPart and runner.PrimaryPart.Position or nil
+		end
+		local caughtClock, caughtRunner, caughtTravel = nil, nil, nil
+		-- After the pull-out, on the spot for the runner (or the fallback without one) as the wait began.
+		local function atRunnerView()
+			if not caughtTravel or os.clock() - caughtClock < WAIT_PULL_SECONDS then
+				return false
+			end
+			local frame = Cfg.WaitCameraCFrame(Arena.Center, caughtRunner)
+			return (camera.CFrame.Position - frame.Position).Magnitude <= WAIT_VIEW_SLACK + caughtTravel
 		end
 
 		state(res, "Idle", 0, 0, 0, false)
@@ -1285,12 +1296,21 @@ function Module.Build(h)
 		check(res, "wait_other_camera_free", camera.CameraType, inEventType)
 		ReplicatedStorage:SetAttribute("BossWaitEndsAt", nil)
 
+		-- BossWaitCamera catches the runner on its first step after this attribute arrives, so a moving runner's one frame counts.
+		h.player:GetAttributeChangedSignal("BossWaitEndsAt"):Once(function()
+			local clock, at = os.clock(), runnerPosition()
+			task.wait()
+			local later = runnerPosition()
+			caughtClock, caughtRunner = clock, at
+			caughtTravel = at and later and (later - at).Magnitude or 0
+		end)
+
 		-- A whole wait, sampled to its end.
 		waitSet(wait)
 		local waitStart = os.clock()
 		check(res, "wait_panel_shown", waitShown(PANEL, true), true)
 		check(res, "wait_camera_scriptable", waitIs(scriptable, true), true)
-		check(res, "wait_camera_at_aerial", waitIs(atAerial, true), true)
+		check(res, "wait_camera_at_runner_view", waitIs(atRunnerView, true, WAIT_PULL_SECONDS + SHOW_WAIT), true)
 		check(res, "wait_fov", math.round(camera.FieldOfView), math.round(Cfg.WaitCameraFov))
 		check(res, "wait_message_shown", h.visible(message), true)
 		check(

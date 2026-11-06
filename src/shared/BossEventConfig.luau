@@ -27,11 +27,11 @@ BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while 
 BossEventConfig.AdaptedSeconds = 5 -- owner
 BossEventConfig.CameraFov = 100 -- placeholder
 BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view zooms in on the boss and the runner
--- Placeholders. At WaitCameraFov on a 907 px screen: a 5 stud runner is about 27 px at y near 750, clear of the bottom
+-- Placeholders. At WaitCameraFov on a 907 px screen: a 5 stud runner is about 25 px at y near 655, above the bottom
 -- bars; the boss is about 530 px tall, wheel top to feet, all in view.
-local WAIT_CAMERA_OUT = 120 -- behind the runner, away from the boss
-local WAIT_CAMERA_UP = 30
-local WAIT_CAMERA_LOOK_HEIGHT = 200 -- on the boss, above the deck
+local WAIT_CAMERA_OUT = 140 -- behind the runner, away from the boss
+local WAIT_CAMERA_UP = 20
+local WAIT_CAMERA_LOOK_HEIGHT = 150 -- on the boss, above the deck
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
 BossEventConfig.HpPerPlayer = 4000 -- placeholder

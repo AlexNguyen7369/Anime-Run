@@ -417,7 +417,7 @@ make("Frame", "Dim", exhausted, {
 label("Message", exhausted, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.43),
-	Size = UDim2.fromScale(0.8, 0.11),
+	Size = UDim2.fromScale(0.44, 0.11), -- stops short of the drop list on the right
 	Text = EXHAUSTED_TEXT,
 	Font = Enum.Font.GothamBlack,
 }, 48)
