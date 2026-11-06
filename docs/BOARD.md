@@ -10,7 +10,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
-- 2026-11-06 boss-phase2 Phase 2, line run, chests, rewards popup, Relic art, phone load fixes: `[CARTEST] END pass=64 fail=1` (fixed, `scrap` pass after), `[UITEST] END pass=54 fail=2` (exempted, those pass alone); rules audit 3 rounds, findings fixed, not re-audited after the last; fresh PR review
+- 2026-11-06 boss-phase2 Phase 2, line run, chests, rewards popup, Relic art, phone load fixes: `[CARTEST] END pass=64 fail=1` (fixed, `scrap` pass after), `[UITEST] END pass=54 fail=2` (exempted, those pass alone); rules audit 3 rounds, findings fixed, not re-audited after the last
 - 2026-11-05 boss-event b4 arena blockout: boss_arena 154, race 52, npc 117 checks pass; owner approved size; rules audit deferred to b11
 - 2026-11-05 boss-event b3 Sidekicks (a661c4f): `[CARTEST]` pass=7 fail=0, sidekicks 212 checks; ui_layout 962 checks, ui_backpack_characters 24, ui_buttons 9, all pass; rules audit deferred to b11
 - 2026-11-05 boss-event b2 Gems: `[CARTEST]` pass=6 fail=0; b1 models owner-approved (5ec6ae0), not uploaded

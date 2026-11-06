@@ -121,8 +121,9 @@
 118. 2026-11-06 — Alex Nguyen — Wrote the rule for Raga growing 25% in the Phase 2 scream cutscene, with no code yet.
 119. 2026-11-06 — Alex Nguyen — Landed the boss Phase 2 client, growth cutscene, wheel stop, rewards popup, chest opening, FOV lock and individual character hits; targeted scenarios passed, with the full harness not yet run.
 120. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
+121. 2026-11-06 — Alex Nguyen — Merged the playtest fixes and bake lookup, baked 181 models and meshes in Studio pending the owner's save, stripped test code from live servers, and fixed audit and full harness findings; `[CARTEST] END pass=64 fail=1` and `[UITEST] END pass=54 fail=2`, each red since fixed and passing alone.
 
 ## What's next
-**Run the full harness and rules audit on `feature/alex/boss-phase2`, then open its PR to `main` with a fresh review.**
+**Open the PR from `feature/alex/boss-phase2` to `main` and get a fresh reviewer's verdict.**
 
-**Why this is next:** the goal's last deliverable depends on them, and no full run covers this code yet.
+**Why this is next:** the owner asked for everything on `main`, and a merge there needs an approving fresh review.
