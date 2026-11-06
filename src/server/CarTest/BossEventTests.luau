@@ -48,7 +48,7 @@
 --       at or before its joining, is never charged.
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
 --     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
---     eye about 500 outward of and 350 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
+--     eye about 450 outward of and 320 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
 --     runner shows at least 5 px tall with y at most 790, above the bottom HUD, the wheel top and feet show, and the boss is at least
 --     400 px tall. The whole ring need not fit.
 --     No runnerPosition: a fixed spot on the boss's front (-Z).
@@ -2002,7 +2002,7 @@ function Tests.make(deps)
 					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
 					-- Placeholders set from the geometry (owner 2026-11-05).
 					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 5, 400, 790
-					local EYE_OUT, EYE_UP, EYE_SLACK = 500, 350, 50 -- studs from the runner: "about"
+					local EYE_OUT, EYE_UP, EYE_SLACK = 450, 320, 50 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
 					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT

@@ -30,7 +30,7 @@ BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view
 -- Placeholders. At WaitCameraFov on a 907 px screen: the runner is at y near 775, about 6 px tall; the boss is 430 to 455 px
 -- tall, wheel top at y 43 to 56, feet at y 489 to 498.
 local WAIT_CAMERA_OUT = 450 -- past the runner, away from the boss
-local WAIT_CAMERA_UP = 350
+local WAIT_CAMERA_UP = 320
 local WAIT_CAMERA_DOWN_ANGLE = math.rad(11) -- the view's axis, below horizontal
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
