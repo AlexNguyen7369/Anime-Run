@@ -115,8 +115,12 @@
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
 114. 2026-11-06 — Alex Nguyen — Wrote boss Phase 2 rules into the design doc, boss and Relic specs and the goals file, with no code yet.
+115. 2026-11-06 — Alex Nguyen — Added small white floating particles to the boss arena's zone profile, not yet seen in Studio.
+116. 2026-11-06 — Alex Nguyen — Drew and uploaded art for 5 Relics and 2 chests after owner approval and set the Relic rows' images.
+117. 2026-11-06 — Alex Nguyen — Built the boss Phase 2 server and the line run; `[CARTEST] END pass=2 fail=0` on `boss_event` and `relics`, with client visuals not yet seen.
+118. 2026-11-06 — Alex Nguyen — Wrote the rule for Raga growing 25% in the Phase 2 scream cutscene, with no code yet.
 
 ## What's next
-**Draw the 5 Relic and 2 chest images and show the owner a contact sheet, while the Phase 2 server tests and code start.**
+**Build the Phase 2 presentation, rewards popup and chest opening on the client.**
 
-**Why this is next:** the owner asked for the art first and approves it before upload, and the Phase 2 line run, presentation and rewards popup all build on the server's phase and chest work.
+**Why this is next:** players cannot yet see Phase 2's state or open chests, and the full harness and PR wait on it.

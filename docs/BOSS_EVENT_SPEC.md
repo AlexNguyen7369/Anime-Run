@@ -66,6 +66,8 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 ## Phase 2 (owner 2026-11-06)
 - First HP 0: Phase 1's rewards are processed at once. Scream of 3 s: no damage and no moves; runs and stamina continue (**proposed**). HP = Phase 1's max + 50,000, the bar filling during the scream. Title "Fully Adapted Raga".
 - The scream holds the approved `shout` pose at its Roar peak with a sustained, larger `playRoar` (**proposed**: no new key frames). The owner reviews the effects from a Studio capture.
+- Growth cutscene (owner 2026-11-06): over the 3 s scream Big Raga grows smoothly to 1.25 x, feet staying on the dais, and keeps that size for the phase. Client only, timed from `BossScreamEndsAt`, so a client arriving late snaps to the right size. The local camera eases to frame the boss and returns as the scream ends (**proposed**); REDUCED EFFECTS keeps the camera still and the growth. The growth must also apply to the low-graphics flat boss.
+- Exhausted teams (owner 2026-11-06): the cutscene skips exhaustion. A team in the wait when it starts leaves the exhaustion view and panel, watches the cutscene, and revives in full when the scream ends, whatever its timer read. A team that empties during the scream does the same (**proposed**).
 - The move schedule restarts from its beginning when the scream ends; statuses and Vulnerable clear when the scream starts (**proposed**). Attributes: `BossEventStage`, `BossEventEndsAt`, `BossScreamEndsAt`, `BossScheduleStart`.
 - The wheel spins continuously for the whole phase, on top of the baked track.
 - Once the bar is full, the drop list's rates change to Phase 2's one row at a time, top to bottom.
