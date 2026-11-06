@@ -427,7 +427,7 @@ before any Studio work.
   screen. It cannot be bought while an event is active.
 - The first boss is Big Raga, based on Mahoraga (Jujutsu Kaisen). It stands huge in the middle of a separate circular sky arena: clouds,
   heaven and Olympus style. Inspired by Pokemon GO raid battles, it scales with the arena: far larger than any Legend or pedestal figure.
-  It cycles idle moves. Each time it attacks, every running character in the arena loses 5% stamina (owner 2026-11-05); its other moves are visual only. A later boss may use an enclosed underground arena.
+  It cycles idle moves. Each time it attacks, every running character in the arena loses 5% stamina (owner 2026-11-05); each shout lowers players' damage for 5 seconds, and each wheel turn makes it take 10% less damage. Both show as status effects under its HP bar (owner 2026-11-05). A later boss may use an enclosed underground arena.
 - Teams auto-run around the ring with real cruise and stamina, in lanes for up to 7 players, seeing each other's characters and Sidekicks.
   When a team is exhausted, it waits 5 seconds, then the full team respawns and continues. This overrides 4.3's run end inside the arena.
 - A team deals one team damage: the average damage of its Sidekicks, times a gentle speed scale that adds at most +100% (owner 2026-11-05). The HUD shows it. The running character's Sidekick fires its own themed attack at the boss (flame breath, slash, and so on). The server decides every
@@ -570,3 +570,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: the Big Raga Sidekick drop may overflow the Sidekick bag (4.37). Summon screen accepted as a placeholder; its visuals follow a 30 minute rotation of the characters in the gacha pool, not yet specified.
 - 2026-11-05: owner: 12-Sidekick pool (roster session's table) and a global 30 minute summon rotation with a hidden Secret (4.36).
 - 2026-11-05: owner: Big Raga's spawn takes 2-3 seconds with the HP bar; each of its attacks takes 5% stamina from running characters; players get a wider FOV in the event and Sidekicks and their attacks must read clearly (4.37). Pity and banner work belong to the summon redesign session.
+- 2026-11-05: owner: Big Raga's shout lowers players' damage for 5 seconds; its wheel turn gives it 10% damage reduction; both show as status effects under the HP bar (4.37).
