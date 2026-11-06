@@ -20,7 +20,7 @@ The owner creates the 4 developer products and gives their ids. Prices come from
 - Bought Gems make summons paid random items, so the rules apply to every summon.
 - Before any summon, a button labelled **Details** shows every outcome as a percentage summing to 100%. The reference image's "Rates" label is not used, because section 6 names "Info" or "Details".
 - `ArePaidRandomItemsRestricted` players cannot buy gem packs and see an error. Tracks and tasks remain their free earnable path to summons.
-- Sidekicks stay untradable. Nothing changes the displayed odds: no luck, no potion, no pity.
+- Sidekicks stay untradable. No luck and no potion change the odds; only pity does, as below, and Details shows it.
 
 ## Summons
 - Summon 1x costs 50 Gems; Summon 10x costs 500 and gives 10 independent rolls.
@@ -56,6 +56,11 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 - A Sidekick's odds stay as listed. Those out of rotation leave a remainder (1.001% with today's 12), split evenly across Commons (owner-approved 2026-11-05), so the shown odds sum to 100%.
 - Details and the page show the rotation and a countdown (**proposed**). The Secret's row reads "Secret: one of Rikka, Kurami, 0.001%": each possible outcome is disclosed, since bought Gems make summons paid random items (section 6). Details shows the current rotation's one Secret as a black silhouette; the id reaches clients (owner 2026-11-05). The reveal shows it when it drops.
 - A Mythic, Legendary or Rare row with no uploaded model stays out of the rotation.
+
+## Pity (owner 2026-11-05)
+- Summon 300 without a Mythic gives the rotation's Mythic. Summon 100 without a Legendary or better gives one of the rotation's Legendaries. Counts carry across rotations, saved per player. A refused summon moves neither count.
+- **Proposed:** a random Legendary; a Mythic resets both counts; if both land on one summon the Mythic wins and the Legendary pays on the next; the free tutorial summon counts; a Secret resets neither.
+- Attributes `SidekickPity`, `SidekickLegendaryPity`; config `PityCount`, `LegendaryPityCount`.
 
 ## Summon page
 Layout ideas from the owner's reference, no copied art. Motion through `Client/UiMotion`.

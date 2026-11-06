@@ -400,7 +400,7 @@ before any Studio work.
 - First three Sidekicks, for testing: based on Pochita (Chainsaw Man), Igris and Kaisel (Solo Leveling). Tweaked names follow section 5,
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
 - Luck never affects summons (owner 2026-11-04). Luck, luck potions and every luck source apply only to the character auto-roll, which is
-  fully separate from Sidekicks. Summons have no luck potions, VIP discount, shiny pass or pity.
+  fully separate from Sidekicks. Summons have no luck potions, VIP discount or shiny pass.
 - The summon page (owner's reference, layout ideas only, no copied art): gem packs and buttons on the left; on the right one banner showing
   the Sidekicks, the Gem balance, and Summon 1x and Summon 10x. Odds sit behind a button labelled "Details" (section 6).
 - The Bag has its own Sidekicks category, holding 50 Sidekicks (owner 2026-11-04). Each summon is its own bag entry. A summon needs room for
@@ -408,7 +408,8 @@ before any Studio work.
 - Selling a Sidekick pays a small Gem refund, always well under a summon's cost (owner 2026-11-04). The summon page has an auto-sell filter
   by rarity. An equipped Sidekick is never sold.
 - Ground Sidekicks walk beside their character. Flying Sidekicks hover around the character's shoulder and have a flapping animation (owner 2026-11-04). Kaizel flies; Pochito and Igriz walk. Every future flying Sidekick follows this rule.
-- Summon pool rotation (owner 2026-11-05): the pool rotates every 30 minutes, identical on all servers. Each rotation holds 1 Mythic, 2 Legendaries, 2 Rares and all Commons, plus 1 Secret that players are not told. A Sidekick's odds do not change with the rotation. Exact numbers: `docs/SIDEKICK_SPEC.md`.
+- Summon pool rotation (owner 2026-11-05): the pool rotates every 30 minutes, identical on all servers. Each rotation holds 1 Mythic, 2 Legendaries, 2 Rares and all Commons, plus 1 Secret, shown in Details as a black silhouette (owner 2026-11-05; its id reaches clients, and rolls stay on the server). A Sidekick's odds do not change with the rotation. Exact numbers: `docs/SIDEKICK_SPEC.md`.
+- Summon pity (owner 2026-11-05): summon 300 without a Mythic gives the rotation's Mythic; summon 100 without a Legendary or better gives one of the rotation's Legendaries. Counts carry across rotations and are saved per player. Details shows the updated odds when the next summon is guaranteed (section 6).
 - Sidekick index (owner 2026-11-05): a Sidekicks page in the existing Index panel.
 - Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
@@ -571,3 +572,4 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: 12-Sidekick pool (roster session's table) and a global 30 minute summon rotation with a hidden Secret (4.36).
 - 2026-11-05: owner: Big Raga's spawn takes 2-3 seconds with the HP bar; each of its attacks takes 5% stamina from running characters; players get a wider FOV in the event and Sidekicks and their attacks must read clearly (4.37). Pity and banner work belong to the summon redesign session.
 - 2026-11-05: owner: Big Raga's shout lowers players' damage for 5 seconds; its wheel turn gives it 10% damage reduction; both show as status effects under the HP bar (4.37).
+- 2026-11-05: owner: Sidekick summon pity, Mythic at 300 and Legendary at 100 (4.36), relayed by the summon redesign session; replaces the spec's no-pity line for Sidekicks only.
