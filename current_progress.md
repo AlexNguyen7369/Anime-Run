@@ -126,6 +126,6 @@
 123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
 
 ## What's next
-**Owner: File > Save to Roblox to keep the 181 baked models, then play a real event with a collaborator.**
+**Play a real boss event with a collaborator to check baked models load and the Phase 2 visuals.**
 
-**Why this is next:** the bake is lost when Studio closes without a save, and collaborators' missing models and tonight's visuals have only been checked on the owner's account.
+**Why this is next:** the owner saved the bake, and collaborators' loading beyond Narito and the Phase 2 visuals have only been seen on the owner's account.
