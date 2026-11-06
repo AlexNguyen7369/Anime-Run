@@ -180,7 +180,7 @@ RunService.Heartbeat:Connect(function()
 	if inEvent and seen then
 		close()
 	end
-	local show = message ~= nil and not inEvent and not PanelSwitch.AnyOpen()
+	local show = message ~= nil and not inEvent -- above any panel the return opens, such as Daily
 	seen = seen or show
 	if show and not panel.Visible then
 		UiMotion.Pop(panel)

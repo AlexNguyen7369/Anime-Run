@@ -17,8 +17,9 @@ BossEventConfig.IntroSeconds = 3 -- owner 2026-11-05: the rise and the cutscene,
 BossEventConfig.RiseSeconds = 1.5 -- owner 2026-11-05: the first part of it, Big Raga rising with the HP bar
 BossEventConfig.ShoutDamageCut = 0.25 -- proposed: players' damage while Shouted
 BossEventConfig.AdaptedCut = 0.10 -- owner: Big Raga takes this much less while Adapted
-BossEventConfig.CameraFov = 100 -- placeholder
-BossEventConfig.WaitCameraFov = 64 -- placeholder: the exhaustion view
+BossEventConfig.CameraFov = 100 -- owner 2026-11-06: locked for the whole event
+BossEventConfig.CameraZoom = 40 -- owner 2026-11-06: studs, the wide view's distance
+BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
 -- Placeholders. At WaitCameraFov on a 907 px screen: the runner is at y near 775, about 6 px tall; the boss is 430 to 455 px
 -- tall, wheel top at y 43 to 56, feet at y 489 to 498.
 local WAIT_CAMERA_OUT = 450 -- past the runner, away from the boss

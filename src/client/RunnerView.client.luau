@@ -317,6 +317,7 @@ end
 local cameraOnRunner = false
 local followed = nil -- { Part, Position }: where the camera last framed the local runner
 local fovBefore = nil -- the camera's own FOV while the event's wider one is on
+local zoomBefore = nil
 RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function(dt)
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
@@ -340,10 +341,13 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		wide = fovBefore ~= nil
 	end
 	if wide and not fovBefore then
-		fovBefore = camera.FieldOfView
+		fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
 		camera.FieldOfView = BossCfg.CameraFov
+		player.CameraMinZoomDistance = BossCfg.CameraZoom
+		player.CameraMaxZoomDistance = BossCfg.CameraZoom
 	elseif camera and not wide and fovBefore then
 		camera.FieldOfView = fovBefore
+		player.CameraMinZoomDistance = zoomBefore
 		fovBefore = nil
 	end
 	local rising = camera and riseCameraOn(camera)

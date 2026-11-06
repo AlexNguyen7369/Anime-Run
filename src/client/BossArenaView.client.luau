@@ -207,8 +207,11 @@ local function addFlat()
 	flat = { Anchor = anchor, Gui = gui, Image = image, Home = anchor.CFrame }
 end
 
-local function aimFlat(rise, below, growth)
-	flat.Gui.Enabled = rise ~= nil
+local function aimFlat(rise, below, growth, moving)
+	-- A static image behind a moving model reads as a second Raga; a low saved level has no model to hide it.
+	local level = UserSettings().GameSettings.SavedQualityLevel.Value
+	local explicitLow = level >= 1 and level <= 3
+	flat.Gui.Enabled = rise ~= nil and (explicitLow or not moving)
 	if not rise then
 		return
 	end
@@ -404,7 +407,7 @@ local function step()
 	end
 	raga:Step(rise, below, move, localTime, now, growth, spin, screamLeft and not UiMotion.Reduced() and 1 or 0)
 	if flat then
-		aimFlat(rise, below, growth)
+		aimFlat(rise, below, growth, move ~= "idle")
 	end
 	BossVfx.Step(since, move, localTime, screamLeft)
 end
