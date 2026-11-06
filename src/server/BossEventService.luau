@@ -11,7 +11,7 @@
 -- RemoteFunctions Remotes.BossEventTeleport(), Remotes.BossEventSetTeam(ids), Remotes.BossEventLeave() and
 -- Remotes.BossDodge(index, stamp); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message and each member's move lines to Client/BossEventChat.
--- Remotes.BossHits carries each hit, batched, to the players in the event: { UserId, SidekickId, Damage }, for Client/SidekickAttackView.
+-- Remotes.BossHits carries each hit, batched, to the players in the event: { UserId, SidekickId, Damage, Slot, CharacterId }, for Client/SidekickAttackView.
 -- Remotes.RunEvent carries Kind "BossRewards" (the summary below) to a player back at spawn.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -392,24 +392,29 @@ local function lineOf(member, team)
 	return all
 end
 
--- The live number: the average of the line's Sidekicks, each scaled by its wearer's Relic, times the speed scale of the front character's cruise.
+-- One hit from `slot` of `team` before statuses, and the Sidekick dealing it: 0 and nil for a character without one.
+local function slotHit(player, team, slot)
+	local id = team[slot]
+	local spec = id and SidekickService.Worn(player, id)
+	if not spec then
+		return 0, nil
+	end
+	local cruise = GachaService.CruiseFor(player, id, slot, team)
+	return spec.Damage * RelicService.Multi(player, id, "Damage") * Cfg.SpeedScale(cruise), spec
+end
+
+-- The live number: one hit from each character in the line, before statuses.
 function BossEventService.TeamDamage(player)
 	local member = event and event.Members[player]
 	if not member then
 		return 0
 	end
 	local team = member.Team or BossEventService.AutoTeam(player)
-	local damages = {}
+	local total = 0
 	for _, slot in lineOf(member, team) do
-		local id = team[slot]
-		local spec = SidekickService.Worn(player, id)
-		if spec then
-			table.insert(damages, spec.Damage * RelicService.Multi(player, id, "Damage"))
-		end
+		total += (slotHit(player, team, slot))
 	end
-	local cruise = member.Run and member.Run.TargetSpeed
-		or (team[1] and GachaService.CruiseFor(player, team[1], 1, team) or 0)
-	return Cfg.TeamDamage(damages, cruise)
+	return total
 end
 
 local function userIdOf(player)
@@ -427,16 +432,16 @@ local function sendHits(members, at, final)
 	end
 end
 
--- Seconds between hits. The team hits as one (design doc 4.37), so Relic attack speed counts as the team's average.
-local function hitSpacing(player, member)
-	local total, count = 0, 0
-	for _, id in member.Team do
-		if SidekickService.Worn(player, id) then
-			total += RelicService.Multi(player, id, "AttackSpeed")
-			count += 1
-		end
+-- Seconds between a character's hits: each acts on its own Relic's attack speed (design doc 4.37).
+local function hitSpacing(player, id)
+	return Cfg.HitEverySeconds / RelicService.Multi(player, id, "AttackSpeed")
+end
+
+-- Every slot's next hit, counted from `from` and spread over one beat so a team never fires on one frame.
+local function armHits(player, member, from)
+	for slot, id in member.Team do
+		member.NextHits[slot] = from + hitSpacing(player, id) + (slot - 1) * Cfg.HitEverySeconds / #member.Team
 	end
-	return count > 0 and Cfg.HitEverySeconds / (total / count) or Cfg.HitEverySeconds
 end
 
 -- Pays a defeated stage to each member over the share of `maxHp`, from that stage's damage alone. Each stage comes here once, so
@@ -476,7 +481,7 @@ local function startStage2(current)
 	current.EndsAt += Cfg.ScreamSeconds + Cfg.Phase2ExtraSeconds
 	for player, member in current.Members do
 		member.Spared, member.Pressed, member.ChargedTo, member.Vulnerable = {}, {}, 0, false
-		member.NextHit = current.ScreamEndsAt + hitSpacing(player, member) -- no hit is owed for the scream
+		armHits(player, member, current.ScreamEndsAt) -- no hit is owed for the scream
 		player:SetAttribute("BossStatus", nil)
 		if member.Run and member.Run.Waiting then
 			member.Run:ReviveAt(Cfg.ScreamSeconds) -- the cutscene skips exhaustion
@@ -487,8 +492,8 @@ local function startStage2(current)
 	payStage(current, 1, current.Phase1MaxHp)
 end
 
--- One hit, of the server's own number: this reads nothing from a client.
-function BossEventService.RecordHit(player)
+-- One hit from a slot, the front by default, of the server's own number: this reads nothing from a client.
+function BossEventService.RecordHit(player, slot)
 	local member = event and event.Members[player]
 	if not (member and member.Run) or member.Run.Waiting then
 		return 0
@@ -496,20 +501,26 @@ function BossEventService.RecordHit(player)
 	if event.ScreamEndsAt and now() < event.ScreamEndsAt then
 		return 0
 	end
-	-- Counted before the check: a slot whose Sidekick came off must not hold up the others' turns.
-	local line = lineOf(member, member.Team)
-	member.HitTurn += 1
-	local sidekick = member.Team[line[(member.HitTurn - 1) % #line + 1]]
-	local spec = sidekick and SidekickService.Worn(player, sidekick)
+	slot = slot or member.Run.Slot
+	if not table.find(lineOf(member, member.Team), slot) then
+		return 0
+	end
+	local hit, spec = slotHit(player, member.Team, slot)
 	if not spec then
 		return 0 -- design doc 4.36: the Sidekick deals the damage
 	end
 	local multi = BossEventService.Hooks.DamageMulti(now() - event.ScheduleStart, member.Spared, event.Stage)
-	local dealt = math.min(BossEventService.TeamDamage(player) * multi, event.Hp)
+	local dealt = math.min(hit * multi, event.Hp)
 	member.Damage += dealt
 	member.StageDamage[event.Stage] += dealt
 	event.Hp -= dealt
-	local entry = { UserId = userIdOf(player), SidekickId = spec.Id, Damage = dealt }
+	local entry = {
+		UserId = userIdOf(player),
+		SidekickId = spec.Id,
+		Damage = dealt,
+		Slot = slot,
+		CharacterId = member.Team[slot],
+	}
 	for _, other in event.Members do
 		table.insert(other.Hits, entry)
 	end
@@ -550,8 +561,7 @@ end
 
 local function startRun(player, member)
 	local introEnd = event.StartAt + Cfg.PrepSeconds + Cfg.IntroSeconds
-	member.NextHit = math.max(introEnd, member.JoinedAt) + Cfg.HitEverySeconds
-	member.HitTurn = 0
+	armHits(player, member, math.max(introEnd, member.JoinedAt))
 	local ok, run = safely(BossEventService.Hooks.StartRun, player, member.Team, member.Lane)
 	member.Run = ok and run or nil
 end
@@ -625,6 +635,7 @@ function BossEventService.Join(player)
 		Short = false, -- missed a defeated stage's pay for being under the share
 		Vulnerable = false,
 		Hits = {}, -- waiting for the next batch
+		NextHits = {}, -- slot -> when it next fires
 		HitsSentAt = -math.huge,
 		JoinedAt = joinedAt,
 		ChargedTo = elapsed - Cfg.PrepSeconds, -- nothing at or before the join is owed
@@ -832,11 +843,20 @@ local function tick(at)
 			BossEventService.Leave(player, "Left")
 		elseif member.Run and member.Run.Waiting then
 			-- The wait owes nothing afterward, nor does a scream it ran into.
-			member.NextHit = math.max(at, current.ScreamEndsAt or at) + hitSpacing(player, member)
+			armHits(player, member, math.max(at, current.ScreamEndsAt or at))
 		elseif member.Run then
-			while event == current and current.Members[player] == member and member.NextHit <= at do
-				member.NextHit += hitSpacing(player, member) -- first: a hit that starts stage 2 sets NextHit itself
-				BossEventService.RecordHit(player)
+			for slot, id in member.Team do
+				while
+					event == current
+					and current.Members[player] == member
+					and member.NextHits[slot] <= at + TIME_EPSILON
+				do
+					member.NextHits[slot] += hitSpacing(player, id) -- first: a hit that starts stage 2 rearms the timers itself
+					-- A slot out of the line lets its beat pass: it keeps its place in the spread and owes nothing.
+					if table.find(lineOf(member, member.Team), slot) then
+						BossEventService.RecordHit(player, slot)
+					end
+				end
 			end
 		end
 	end

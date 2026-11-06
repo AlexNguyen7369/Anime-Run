@@ -81,18 +81,6 @@ function BossEventConfig.SpeedScale(cruise)
 	return 1 + math.min(1, cruise / FULL_SCALE_CRUISE)
 end
 
--- The average of the team's Sidekick damages, times the speed scale. No rounding.
-function BossEventConfig.TeamDamage(damages, cruise)
-	if #damages == 0 then
-		return 0
-	end
-	local total = 0
-	for _, damage in damages do
-		total += damage
-	end
-	return total / #damages * BossEventConfig.SpeedScale(cruise)
-end
-
 -- The exhaustion view: hovers above and outward of the runner, tilted down toward the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
 function BossEventConfig.WaitCameraCFrame(center, runnerPosition)
 	local flat = runnerPosition and (runnerPosition - center) * Vector3.new(1, 0, 1)
