@@ -92,8 +92,9 @@
 89. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
 90. 2026-11-05 — Alex Nguyen — Uploaded the 9 new Sidekick models, portraits and heads to Roblox and added them to the generated SidekickArt registry, not yet in live odds.
 91. 2026-11-05 — Alex Nguyen — Recorded the roster goal and the owner's rulings: characters wait for speed balance, Eternal and Void base Speed set, Void Saitamo ships with the Void characters.
+92. 2026-11-05 — Alex Nguyen — Applied the 12-Sidekick pool and the global 30 minute summon rotation with a server-only Secret, and fixed the event UI's live findings (`[CARTEST]` sidekick_rotation 231, sidekicks 316, boss_event 461, relics 374 pass; `ui_sidekicks` 144, `ui_boss` 159, `ui_layout` 962 pass).
 
 ## What's next
-**Fix the event UI's live findings, then apply the 12-Sidekick pool and the 30 minute rotation (goal `boss-event`).**
+**Land the boss motion, real model and VFX (goal `boss-event`, deliverable b7b).**
 
-**Why this is next:** the owner confirmed the pool and rotation, and the event's first impression depends on seeing Big Raga rise.
+**Why this is next:** the owner approved the key frames and asked for very dynamic motion and VFX that show boss urgency.
