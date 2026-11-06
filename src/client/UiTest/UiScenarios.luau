@@ -284,7 +284,7 @@ UiScenarios.Needs = {
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
-UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll" }
+UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
 UiScenarios.SETUP_WAIT = 10 -- s for a requested state to replicate
 
 -- Asks the server for setup `id` for this player. Returns ok, error.
@@ -5846,6 +5846,7 @@ function S.ui_toast(res)
 		while os.clock() < goneAt and toast:GetAttribute("Phase") ~= "Idle" do
 			RunService.Heartbeat:Wait()
 		end
+		frames(3) -- GetGuiObjectsAtPosition keeps listing a just-hidden gui for ~2 frames, though it takes no input
 		local hit = false
 		for _, h in hitsAt(x, y) do
 			hit = hit or h == toast or h:IsDescendantOf(toast)
@@ -8296,6 +8297,16 @@ end
 -- The UiSpec.ManualScenarios entries ({ Name, Manual }), in order.
 function UiScenarios.ManualScenarios()
 	return UiSpec.ManualScenarios or {}
+end
+
+-- A run plays as a player with no gamepasses (UiTestSetup no_passes; RestoreSetups gives them back). Roll records from
+-- before it may hold a pass owner's rolls, so the scenarios only judge the rolls after it. No scenario needs a pass.
+function UiScenarios.PlayWithoutPasses()
+	local ok, err = UiScenarios.RequestSetup("no_passes")
+	if not ok then
+		warn("[UITEST] no_passes setup failed, the run keeps this player's passes: " .. tostring(err))
+	end
+	table.clear(events.recs)
 end
 
 function UiScenarios.Run(name)
