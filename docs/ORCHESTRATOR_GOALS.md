@@ -166,8 +166,9 @@ Out of scope: gameplay, tests, git history rewrite.
 
 ## roster: New characters, tiers above Secret and the 12-Sidekick pool (owner 2026-11-05)
 Release: owner 2026-11-05, relayed by the summon redesign session: "These unreleased characters will be projected for world 2, note these changes down." They are planned for the World 2 update, "coming soon".
-Open questions (owner): is `punch_void` included in World 2? Does the wait for `feature/alex/speed-balance` still apply?
-Status: paused for characters until `feature/alex/speed-balance` lands and `speed_probe` has run; Sidekick rows are with the boss-event session
+World 2 ruling, owner 2026-11-05, relayed by the summon redesign session: "Void ships with world 2, 12 characters should be their own speed balance within world 2". This replaces the wait on `feature/alex/speed-balance` and `speed_probe`, and `punch_void` shipping with the Void characters. `orch/roster/chars1` must not merge into the current world.
+Open questions (owner): what else does World 2 contain? Do Eternal 5e16, Void 5e19 and curve anchor 7e37 = 1000 carry over?
+Status: paused for characters until World 2; Sidekick rows are with the boss-event session
 Owner-confirmed: 2026-11-05
 Branch: orch/roster/art1 (art committed, bca9b6e)
 Deliverables:
