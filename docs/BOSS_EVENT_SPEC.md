@@ -20,7 +20,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Run rules
 - Real cruise and real stamina. At all empty: wait 5 s, full team refills, continue.
 - Each Big Raga attack's `Impact` costs the running character 5% of a full bar, for every running player, decided by the server from the shared move schedule. A character in the 5 s wait loses nothing (**proposed**). Shout and wheel turn cost no stamina.
-- `Roar` starts Shouted: players deal 25% less damage for 5 s (amount **proposed**; the owner set the 5 s). Each `WheelClick` step in a wheel turn starts or refreshes Adapted: Big Raga takes 10% less damage for 15 s (duration **proposed**, no stacking; the owner set the 10%). Both are server state from the shared schedule and multiply damage at hit time.
+- `Roar` starts Shouted: players deal 25% less damage for 5 s (amount **proposed**; the owner set the 5 s). Each `WheelClick` step in a wheel turn starts or refreshes Adapted: Big Raga takes 10% less damage for 5 s (owner 2026-11-05; no stacking is **proposed**). Both are server state from the shared schedule and multiply damage at hit time.
 - Status row under the HP bar: an icon, name and countdown for each active effect, from a server attribute.
 - Camera: wider event FOV, 100 (**placeholder**), so surrounding players show. Sidekicks stay within their 30-40% size rule (4.36) and read through placement and a soft outline (**proposed**).
 - The team hits every 1.5 s for its team damage: the average of its Sidekicks' damage (`SIDEKICK_SPEC`), scaled by Relics, x speed scale. Speed scale (**placeholder**) = 1 + min(1, cruise / 800), from the running character's cruise, so at most +100%. Only the running character's Sidekick draws the attack.
