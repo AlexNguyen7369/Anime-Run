@@ -1,12 +1,30 @@
 --!nonstrict
 -- Starter daily and weekly quests. IDs are permanent save keys.
+local GemConfig = require(script.Parent.GemConfig)
+
 local QuestConfig = {}
 
 QuestConfig.DAILY_SECONDS = 86400
 QuestConfig.WEEKLY_SECONDS = 604800
 QuestConfig.Daily = {
-	{ Id = "daily_races", Metric = "Races", Target = 3, Name = "Finish 3 races", Reward = "LuckI", RewardCount = 1 },
-	{ Id = "daily_rolls", Metric = "Rolls", Target = 5, Name = "Complete 5 rolls", Reward = "MoneyI", RewardCount = 1 },
+	{
+		Id = "daily_races",
+		Metric = "Races",
+		Target = 3,
+		Name = "Finish 3 races",
+		Reward = "LuckI",
+		RewardCount = 1,
+		Gems = GemConfig.Daily,
+	},
+	{
+		Id = "daily_rolls",
+		Metric = "Rolls",
+		Target = 5,
+		Name = "Complete 5 rolls",
+		Reward = "MoneyI",
+		RewardCount = 1,
+		Gems = GemConfig.Daily,
+	},
 	{
 		Id = "daily_discover",
 		Metric = "Discoveries",
@@ -14,6 +32,7 @@ QuestConfig.Daily = {
 		Name = "Discover 1 character",
 		Reward = "SpeedI",
 		RewardCount = 1,
+		Gems = GemConfig.Daily,
 	},
 }
 QuestConfig.Weekly = {
@@ -24,6 +43,7 @@ QuestConfig.Weekly = {
 		Name = "Finish 20 races",
 		Reward = "MoneyI",
 		RewardCount = 2,
+		Gems = GemConfig.Weekly,
 	},
 	{
 		Id = "weekly_discover",
@@ -32,6 +52,7 @@ QuestConfig.Weekly = {
 		Name = "Discover 5 characters",
 		Reward = "LuckI",
 		RewardCount = 2,
+		Gems = GemConfig.Weekly,
 	},
 	{
 		Id = "weekly_potions",
@@ -40,6 +61,7 @@ QuestConfig.Weekly = {
 		Name = "Use 3 potions",
 		Reward = "SpeedI",
 		RewardCount = 2,
+		Gems = GemConfig.Weekly,
 	},
 }
 

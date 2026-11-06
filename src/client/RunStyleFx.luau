@@ -1,9 +1,11 @@
 --!nonstrict
--- Client-side particles of a character's RunStyle (design doc 4.23), on the drawn copy only (Client/RunnerView). They
+-- Client-side run particles (design doc 4.23, 4.34), on the drawn copy only (Client/RunnerView). They
 -- go away with the copy, so a tag-in or re-skin swaps them. Values are placeholders; textures are the uploaded set.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local VehicleEffects = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("VehicleEffects"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+local VehicleEffects = require(Shared:WaitForChild("VehicleEffects"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -34,30 +36,28 @@ local function dustProps(color, rate)
 		Color = ColorSequence.new(color),
 		Rate = rate,
 		Lifetime = NumberRange.new(0.4, 0.6),
-		Speed = NumberRange.new(1, 3),
-		EmissionDirection = Enum.NormalId.Top,
-		SpreadAngle = Vector2.new(30, 30),
+		Speed = NumberRange.new(10, 18),
+		EmissionDirection = Enum.NormalId.Back,
+		SpreadAngle = Vector2.new(20, 20),
+		LockedToPart = true, -- at 700 studs/s, 10 world-space puffs a second land 70 studs apart and never read
 		Rotation = NumberRange.new(0, 360),
-		Size = seq(0.8, 3),
-		Transparency = seq(0.35, 1),
+		Size = seq(1.2, 3.5),
+		Transparency = seq(0.1, 1),
 	}
 end
 
--- Adds the style's emitters to a freshly drawn copy (nothing for the default swing).
+-- Adds the emitters to a freshly drawn copy.
 function RunStyleFx.Attach(copy)
-	if RunnerVisual.StyleOf(copy) ~= "NinjaRun" then
+	local torso = copy:FindFirstChild("Torso")
+	if not torso then
 		return
 	end
-	local torso, left, right =
-		copy:FindFirstChild("Torso"), copy:FindFirstChild("LeftLeg"), copy:FindFirstChild("RightLeg")
-	if not (torso and left and right) then
-		return
-	end
-	-- the Torso leans 45 deg (RunnerVisual NINJA.LEAN); this keeps the streaks level with the ground
+	local lean = RunnerVisual.LeanOf(copy)
+	-- the Torso leans while running; this keeps the streaks level with the ground
 	local level = Instance.new("Attachment")
 	level.Name = "RunStyleLevel"
 	level.Position = Vector3.new(0, 0, torso.Size.Z / 2)
-	level.Orientation = Vector3.new(45, 0, 0)
+	level.Orientation = Vector3.new(lean, 0, 0)
 	level.Parent = torso
 	emitter(level, false, {
 		Texture = TEX.CoreStreak,
@@ -73,9 +73,16 @@ function RunStyleFx.Attach(copy)
 		Size = seq(0.5, 0.15),
 		Transparency = seq(0.3, 1),
 	})
-	emitter(left, true, dustProps(TAN, 10))
-	emitter(right, true, dustProps(TAN, 10))
-	emitter(left, true, dustProps(BROWN, 4))
+	-- dust host: just above the ground behind the feet, given in the unleaned root's frame
+	local hip = torso.Size.Y / 2
+	local upper = CFrame.new(0, -hip, 0) * CFrame.Angles(math.rad(-lean), 0, 0) * CFrame.new(0, hip, 0)
+	local feet = Instance.new("Attachment")
+	feet.Name = "RunStyleFeet"
+	feet.Position = upper:PointToObjectSpace(Vector3.new(0, 0.2 - RunnerFactory.HIP_HEIGHT, 0.8))
+	feet.Orientation = level.Orientation
+	feet.Parent = torso
+	emitter(feet, true, dustProps(TAN, 20))
+	emitter(feet, true, dustProps(BROWN, 4))
 end
 
 -- Turns the copy's emitters on while it moves; dust stays off under Reduced Motion / REDUCED EFFECTS. Writes only on a change.

@@ -152,11 +152,35 @@ UiScenarios.Names = {
 	"ui_backpack_characters",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
+	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
+	"ui_sidekicks",
+	-- Backpack Relics tab (UiRelics; design doc 4.38)
+	"ui_relics",
+	-- The full bag's red text (UiBoostsRebirth; design doc 4.41)
+	"ui_bag_full",
 	-- no player-facing "car" wording anywhere in the game's GUIs (docs/WORLD_REDESIGN_SPEC.md section 1)
 	"ui_no_car_wording",
 	-- At rest here (no duel message yet); after each duel_* server fixture it runs again through
 	-- UiSpec.Duel.FixtureChecks (UiTestScenario) and judges that message.
 	"ui_duel",
+	-- Boss event UI (UiBossEvent; design doc 4.37). After ui_duel: it sends a real Duel message, and ui_duel's at-rest run
+	-- wants none before it.
+	"ui_boss",
+	-- The Dodge bar (UiBossEvent; docs/BOSS_EVENT_SPEC.md "Dodge bar")
+	"ui_boss_dodge",
+	-- The live boss and its effects (UiBossVfx; docs/BOSS_EVENT_SPEC.md "Boss and attacks")
+	"ui_boss_vfx",
+	-- The paid spawn's buttons and Details (UiBossPaid; docs/BOSS_EVENT_SPEC.md "Paid spawn")
+	"ui_boss_paid",
+	-- Phase 2's presentation and the rewards popup (UiBossPhase2; docs/BOSS_EVENT_SPEC.md "Phase 2", "Rewards")
+	"ui_boss_phase2",
+	"ui_boss_rewards",
+	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
+	"ui_sidekick_follow",
+	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
+	"ui_sidekick_attack",
+	-- Sidekick tutorial (UiSidekickTutorial; design doc 4.36). It stops a real run, and puts it back
+	"ui_sidekick_tutorial",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -254,10 +278,13 @@ UiScenarios.Needs = {
 	ui_roll_anim = { "auto_roll_on" },
 	ui_billboards = { "auto_racing" }, -- the main run judges the racing part (win pads, NPC label)
 	ui_roll_emphasized = { "auto_roll_on" },
+	ui_sidekicks = { "sidekick_states" },
+	ui_relics = { "relic_states" },
+	ui_bag_full = { "auto_roll_on" },
 }
 UiScenarios.Applied = {} -- setup id -> true once asked for (restored by RestoreSetups)
 -- The attribute each state shows on the LocalPlayer once it holds (waited for after the request)
-UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll" }
+UiScenarios.SetupAttr = { auto_racing = "AutoRacing", auto_roll_on = "AutoRoll", no_passes = "UiTestNoPasses" }
 UiScenarios.SETUP_WAIT = 10 -- s for a requested state to replicate
 
 -- Asks the server for setup `id` for this player. Returns ok, error.
@@ -705,6 +732,15 @@ local function sameSize(a, b)
 	return math.abs(a.X - b.X) < 0.5 and math.abs(a.Y - b.Y) < 0.5
 end
 
+-- The gap BackpackUi fitTabs sets on its rail at ctx.vp, nil for other layouts: the live Padding describes the real
+-- window, not a simulated viewport.
+local function backpackRailGap(rail, ctx)
+	if pathOf(rail) ~= UiSpec.Backpack.Tabs then
+		return nil
+	end
+	return ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and UiSpec.Backpack.TabFit.PhoneGap or UiSpec.Backpack.TabFit.Gap
+end
+
 -- MarketUi's and BackpackUi's per-tab fit (Client/MarketUi and Client/BackpackUi fitTabs, the same formula, mirrored in
 -- UiSpec.Market.TabFit): each side tab's UIScale "Scale" = clamp((rail height / rail scale - (n - 1) x gap) / (n x
 -- tab size), Min, Max), the rail scale being its rendered width / design width. nil for any other UIScale.
@@ -727,7 +763,8 @@ local function marketTabScale(obj, child, ctx)
 		end
 	end
 	local min = ctx.vp.Y <= UiSpec.Market.PhoneMaxHeight and fit.PhoneMin or fit.Min
-	return math.clamp((rr.h / railScale - (n - 1) * fit.Gap) / (n * fit.TabSize), min, fit.Max)
+	local gap = backpackRailGap(rail, ctx) or fit.Gap
+	return math.clamp((rr.h / railScale - (n - 1) * gap) / (n * fit.TabSize), min, fit.Max)
 end
 
 -- The visible HudChrome bottom-pair blockers (Money) at ctx.vp: { [path] = rect }.
@@ -797,11 +834,36 @@ local function inheritedScale(obj, ctx)
 	return s
 end
 
+-- InventoryTabs' copied Index tabs at a variant, nil for other nodes. They exist only at runtime, so the live properties
+-- describe the live variant. ENEMIES: the retired tab's position, CHARACTERS' size. SIDEKICKS and RELICS: sideTabs' place().
+local function indexTabProps(path, variant)
+	local head = "RacerIndex/Panel/Face/Header/Face/"
+	if path ~= head .. "EnemiesTab" and path ~= head .. "SidekicksTab" and path ~= head .. "RelicsTab" then
+		return nil
+	end
+	local position = UiResponsive.Nodes[head .. "ConsumablesTab"][variant].Position
+	local size = UiResponsive.Nodes[head .. "CharactersTab"][variant].Size
+	if path == head .. "EnemiesTab" then
+		return { Position = position, Size = size }
+	end
+	local x = position.X.Offset + size.X.Offset + 8
+	local room = UiResponsive.Nodes[head .. "Close"][variant].Position.X.Offset - x - 8
+	local width = math.min(size.X.Offset, math.floor((room - 8) / 2))
+	return {
+		Position = UDim2.fromOffset(path == head .. "RelicsTab" and x + width + 8 or x, position.Y.Offset),
+		Size = UDim2.fromOffset(width, size.Y.Offset),
+	}
+end
+
 -- The layout props a node uses at ctx.vp: on the other variant than the live one a generated node takes the model's
 -- variant props (UiResponsive.Nodes), else its live properties.
 local function variantProps(obj, ctx)
-	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[pathOf(obj)]
+	local path = pathOf(obj)
+	local node = otherVariant(ctx.vp) and UiResponsive.Nodes[path]
 	local props = node and node[UiResponsive.VariantOf(ctx.vp)] or {}
+	if otherVariant(ctx.vp) then
+		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
+	end
 	return props.Size or obj.Size, props.Position or obj.Position, props.AnchorPoint or obj.AnchorPoint
 end
 
@@ -988,7 +1050,9 @@ local function listCell(obj, parent, list, base, ctx, scale)
 	end
 	local vertical = list.FillDirection == Enum.FillDirection.Vertical
 	local items = layoutItems(parent, list)
-	local gap = (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
+	local railGap = backpackRailGap(parent, ctx)
+	local gap = railGap and scale * railGap
+		or (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
 	local sizes, total, before = {}, 0, nil
 	for k, item in items do
 		local size = variantProps(item, ctx)
@@ -1041,7 +1105,9 @@ autoHeight = function(obj, w, h, ctx, c)
 	elseif list then
 		local items = layoutItems(obj, list)
 		local vertical = list.FillDirection == Enum.FillDirection.Vertical
-		local gap = (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
+		local railGap = backpackRailGap(obj, ctx)
+		local gap = railGap and c * railGap
+			or (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
 		for k, item in items do
 			local _, ih = sizeIn(item, variantProps(item, ctx), inner, ctx, c)
 			content = vertical and content + ih + (k < #items and gap or 0) or math.max(content, ih)
@@ -1207,7 +1273,7 @@ simRect = function(obj, ctx)
 					missing = true
 				end
 			end
-			-- The column's right edge includes its visible descendants (the STATS PointsBadge), as the game reads
+			-- The column's right edge includes its visible descendants (the Rebirth PointsBadge), as the game reads
 			-- it: each GuiObject descendant whose own Visible is true (UiResponsive.ColumnRight).
 			if dependencies.Navigation then
 				local parts = {}
@@ -1678,6 +1744,26 @@ local function fmtNum(n)
 	return ("%g"):format(n)
 end
 
+-- The roll fixtures leave room (Server/CarTest/UiTestSetup makeBagRoom): a full bag stops every roll (design doc 4.41).
+function K.checkBagRoom(res, tag)
+	check(
+		res,
+		"bag_has_room_" .. tag,
+		tostring(attr("BagUsed")) .. "/" .. tostring(attr("BagCap")),
+		"BagFull false",
+		attr("BagFull") ~= true
+	)
+end
+
+-- A pass owner's rolls (2x Auto-Roll, Extra Rolls) refill the bag within one long scenario, so its waits ask for room again: the
+-- fixture's makeBagRoom leaves a bag below half full alone and never touches one a bag fixture holds on purpose.
+function K.keepBagRoom(res)
+	local ok, err = UiScenarios.RequestSetup("auto_roll_on")
+	if not ok then
+		check(res, "bag_room_setup", tostring(err), "ok", false)
+	end
+end
+
 -- HudFormat.Multi(n) ("x1.5", docs/HUD_LAYOUT_SPEC.md section 8) appears in text and is not followed by another digit
 -- or point (so "x1.50" or "x1.375" never pass for x1.5 / x1.38).
 local function multiIn(text, n)
@@ -1692,7 +1778,7 @@ local function allText(obj)
 		return ""
 	end
 	local list = {}
-	-- The Stats tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
+	-- The Rebirth tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
 	local badge = findPath(UiSpec.Hud.PointsBadge)
 	for _, o in { obj, table.unpack(obj:GetDescendants()) } do
 		local inBadge = o.Name == "PointsBadge" or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
@@ -1744,7 +1830,8 @@ function UiScenarios.SampleTurbo(ev)
 	table.insert(events.turbos, rec)
 	task.wait(UiSpec.Waits.TurboPopShow)
 	rec.shownText, rec.shown = popState()
-	task.wait(UiSpec.Waits.TurboPopHide - UiSpec.Waits.TurboPopShow)
+	local hideBy = math.min(UiSpec.Waits.TurboPopHide, (ev.interval or math.huge) - UiSpec.Waits.TurboBeforeNext)
+	task.wait(hideBy - UiSpec.Waits.TurboPopShow)
 	local _, _, gone = popState()
 	rec.gone = gone
 	rec.fill = fillFraction()
@@ -2617,21 +2704,45 @@ local function distToRect(x, y, r)
 	return math.sqrt(dx * dx + dy * dy)
 end
 
--- docs/ROLL_ANIMATION_SPEC.md "Auto toggle": green while AutoRacing, Daily's dark pill colour while off. Nil when right.
+-- Design doc 4.40 (owner 2026-11-05): green in both states; while AutoRacing the arrows spin round the still triangle, or a ring
+-- shows on Reduced Motion. The ids come from HudIcons: they change with an upload. Nil when right.
 function K.autoTintProblem(toggle)
-	if not toggle then
-		return "no " .. UiSpec.Hud.Auto
+	local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+	local icon, arrows = toggle and toggle:FindFirstChild("Icon"), toggle and toggle:FindFirstChild("Arrows")
+	local ring = toggle and toggle:FindFirstChild("OnRing")
+	if not (icon and arrows and ring) then
+		return "no Icon, Arrows and OnRing on " .. UiSpec.Hud.Auto
 	end
-	local c = toggle.BackgroundColor3
-	local green = c.G >= 0.4 and c.G > 1.25 * c.R and c.G > 1.25 * c.B
-	if attr("AutoRacing") == true then
-		return not green and ("%s not green while AutoRacing"):format(tostring(c)) or nil
+	if toggle:FindFirstChild("Glow") then
+		return "the retired Glow is back on " .. UiSpec.Hud.Auto
 	end
-	local daily = findPath(UiSpec.Hud.Daily)
-	if green or not (daily and sameColour(c, daily.BackgroundColor3)) then
-		return ("%s not Daily's pill colour while off"):format(tostring(c))
+	if icon.Image ~= Icons.AutoPlay.Image or arrows.Image ~= Icons.AutoArrows.Image then
+		return ("icon %s arrows %s, want AutoPlay and AutoArrows"):format(icon.Image, arrows.Image)
+	end
+	local on, reduced = attr("AutoRacing") == true, K.reducedNow()
+	local spinning, ringShown = toggle:GetAttribute("Spinning") == true, ring.Visible
+	if spinning ~= (on and not reduced) or ringShown ~= (on and reduced) then
+		return ("Spinning %s OnRing %s while AutoRacing %s, reduced %s"):format(
+			tostring(spinning),
+			tostring(ringShown),
+			tostring(on),
+			tostring(reduced)
+		)
 	end
 	return nil
+end
+
+-- The arrows really turn while Spinning, and hold still otherwise. Nil when right.
+function K.autoSpinProblem(toggle)
+	local arrows = toggle and toggle:FindFirstChild("Arrows")
+	if not arrows then
+		return "no Arrows on " .. UiSpec.Hud.Auto
+	end
+	local from = arrows.Rotation
+	task.wait(0.2)
+	local turned = arrows.Rotation ~= from
+	local want = toggle:GetAttribute("Spinning") == true
+	return turned ~= want and ("arrows turned %s while Spinning %s"):format(tostring(turned), tostring(want)) or nil
 end
 
 -- The tint may still show the 1 s pending lock: judged once that is over.
@@ -2845,6 +2956,17 @@ function UiScenarios.SampleRoll(ev)
 	local playing = findPath("RollToast/Toast")
 	local midPlay = { Spin = true, Land = true, Hold = true, Exit = true }
 	local behind = playing and midPlay[playing:GetAttribute("Phase")] and playing:GetAttribute("RollSerial") or nil
+	-- At a fast roll interval the rise to LAND_POP takes about 2 frames (TimeScale; 2x Auto-Roll), so land_pop_peak reads every
+	-- write of the compact Body's Size while the card shows, not only a Heartbeat's AbsoluteSize.
+	local landBody = playing and compactBody(playing)
+	rec.landSize = 0
+	local landConn = landBody
+		and landBody:GetPropertyChangedSignal("Size"):Connect(function()
+			local mine = not (behind and playing:GetAttribute("RollSerial") == behind)
+			if mine and playing:GetAttribute("Phase") == "Land" and effectivelyVisible(playing) then
+				rec.landSize = math.max(rec.landSize, landBody.Size.X.Scale)
+			end
+		end)
 	local function sampleFly(now)
 		local fly = findFly()
 		if fly and effectivelyVisible(fly) then
@@ -3016,6 +3138,9 @@ function UiScenarios.SampleRoll(ev)
 			toastShown = toastShown,
 			flyShown = flyShown,
 		}
+	end
+	if landConn then
+		landConn:Disconnect()
 	end
 	rec.done = true
 end
@@ -4159,28 +4284,7 @@ function S.ui_layout(res)
 					check(res, "settings_top_right_" .. vpSpec.Name, "missing", "present", false)
 				end
 				-- retired: speed_group_centred_* (no Speed read-out, design doc 4.13, owner 2026-11-01)
-				-- The Auto pill: immediately left of Daily, at its height, and the whole row on screen at every size
-				local autoPill, dailyPill = findPath(UiSpec.Hud.Auto), findPath(UiSpec.Hud.Daily)
-				if autoPill and dailyPill then
-					local ar, dr = rectOf(autoPill), rectOf(dailyPill)
-					local gapToDaily = dr.x - (ar.x + ar.w)
-					check(
-						res,
-						"auto_left_of_daily_" .. vpSpec.Name,
-						gapToDaily,
-						("0..%g"):format(UiSpec.Hud.AutoMaxGap),
-						gapToDaily >= -TOL and gapToDaily <= UiSpec.Hud.AutoMaxGap + TOL
-					)
-					check(
-						res,
-						"auto_at_daily_height_" .. vpSpec.Name,
-						rstr(ar),
-						"y and h of " .. rstr(dr),
-						math.abs(ar.y - dr.y) <= TOL and math.abs(ar.h - dr.h) <= TOL
-					)
-				else
-					check(res, "auto_left_of_daily_" .. vpSpec.Name, "missing", "present", false)
-				end
+				-- retired: auto_left_of_daily_*, auto_at_daily_height_* (Auto left the row, design doc 4.40)
 				local offRow = {}
 				for _, path in UiSpec.Hud.TopRow do
 					local pill = findPath(path)
@@ -4323,6 +4427,10 @@ function S.ui_layout(res)
 			for _, panelPath in state.Open do
 				local panel = panelBody(panelPath)
 				for _, key in not UiSpec.FullScreenPanels[panelPath] and { "Race", "Settings" } or {} do
+					-- Design doc 4.40, Client/HudChrome: stacked on a phone, Auto hides under any open panel, so nothing is covered.
+					if hiddenByPanel(UiSpec.TopControls[key], state.Open, vp) then
+						continue
+					end
 					local name = "panel_clear_of_top_controls_" .. panelPath .. "_" .. key .. "_" .. vpSpec.Name
 					local control = findPath(UiSpec.TopControls[key])
 					if panel and control then
@@ -4363,7 +4471,7 @@ function S.ui_layout(res)
 							"<= " .. maxBottom,
 							r.y + r.h <= maxBottom + TOL
 						)
-						-- the grid includes what sticks out of it (the STATS PointsBadge): every GuiObject descendant
+						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
 						-- with Visible = true, as PanelBand.Rect reads it
 						local parts = {}
 						for _, d in nav:GetDescendants() do
@@ -5323,7 +5431,7 @@ end
 
 function S.ui_stats(res)
 	waitGuis()
-	local open = findPath(UiSpec.Hud.NavButtons[2])
+	local open = findPath(UiSpec.Hud.StatsTab)
 	local panel = findPath("RacerStats/Panel")
 	check(
 		res,
@@ -5572,6 +5680,7 @@ function S.ui_toast(res)
 		stateMissing(res, "autoroll_on_for_toast", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "toast")
 
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the 2026-10-20 wording): the compact roll HIDES
 	-- while a panel is open, so it never covers a panel or takes its clicks: hidden and not clickable in every sampled
@@ -5598,6 +5707,7 @@ function S.ui_toast(res)
 	local want = table.concat(UiSpec.RollAnim.Phases, ",")
 	for _, p in allPanels() do
 		local restorePanel = setPanels({})
+		K.keepBagRoom(res)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
 			local ev0 = events.rolls[#events.rolls]
 			waitCardPhase(toast, { Spin = true }, animNum("POP") + 0.5)
@@ -5670,7 +5780,7 @@ function S.ui_toast(res)
 				type(serial0) == "number" and serial1 == serial0 and hold.rollId == ev0.id
 			)
 		else
-			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, true)
 		if waitNewRoll(UiSpec.Waits.RollToast) then
@@ -5687,7 +5797,7 @@ function S.ui_toast(res)
 				not shown and not clickable
 			)
 		else
-			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", "no Remotes.RollResult")
+			stateMissing(res, "toast_hidden_on_roll_while_" .. p .. "_open", "auto_racing", UiSpec.NoRollWhy(player))
 		end
 		setPanel(p, false)
 		restorePanel()
@@ -5695,10 +5805,11 @@ function S.ui_toast(res)
 
 	-- With no panel open: shown on a roll (clickable), landed on the roll's truth at its contract rect, then gone
 	-- (Visible = false, not clickable) once the roll's animation is over. Uses a roll with no other roll before
-	-- that (3 tries).
+	-- that (8 tries: with Extra Rolls the rarest of each tick plays, and a Rare or better leaves no gap at the 2x interval).
 	local restore = setPanels({})
+	K.keepBagRoom(res)
 	local ev, shownRec, holdRec, goneRec = nil, nil, nil, nil
-	for _ = 1, 3 do
+	for _ = 1, 8 do
 		if not waitNewRoll(UiSpec.Waits.RollToast) then
 			break
 		end
@@ -5730,9 +5841,12 @@ function S.ui_toast(res)
 			layout = compactLayoutProblems(toast),
 			placement = liveVsNominal(toast),
 		}
+		-- Idle ends the wait: at the 2x interval the next roll comes before the grace is over
 		local goneAt = mine.t + durationFor(rarity, mine.emphasized, mine.interval) + UiSpec.Waits.ToastGoneGrace
-		task.wait(math.max(0, goneAt - os.clock()))
-		renderFrame()
+		while os.clock() < goneAt and toast:GetAttribute("Phase") ~= "Idle" do
+			RunService.Heartbeat:Wait()
+		end
+		frames(3) -- GetGuiObjectsAtPosition keeps listing a just-hidden gui for ~2 frames, though it takes no input
 		local hit = false
 		for _, h in hitsAt(x, y) do
 			hit = hit or h == toast or h:IsDescendantOf(toast)
@@ -5749,7 +5863,7 @@ function S.ui_toast(res)
 			res,
 			"roll_result_received",
 			"auto_racing",
-			"no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s"
+			UiSpec.NoRollWhy(player, "no isolated Remotes.RollResult in " .. UiSpec.Waits.RollToast .. " s")
 		)
 		restore()
 		return
@@ -5883,6 +5997,7 @@ function S.ui_rolls(res)
 	end
 	local rec = isolatedTurbo()
 	if not rec then
+		K.keepBagRoom(res)
 		player:SetAttribute("UiTestWaiting", "turbo_roll")
 		print(
 			("[UITEST] WAIT turbo_roll up to %d s (ServerSetup turbo_next makes it quick)"):format(
@@ -5916,12 +6031,16 @@ function S.ui_rolls(res)
 		rec.shown == true and string.find(rec.shownText or "", wantPop, 1, true) ~= nil
 	)
 	check(res, "turbo_pop_hidden_after_turbo", rec.gone, true, rec.gone == true)
+	-- Extra rolls count for Turbo (docs/MONETIZATION_SPEC.md "Extra rolls"), and GachaService.RollTick makes them before this
+	-- roll's RollResult, so the bar may already hold them.
+	local extras = (attr("Pass_extra_roll_1") == true and 1 or 0) + (attr("Pass_extra_roll_2") == true and 1 or 0)
+	local fillLimit = extras / turboEvery() + UiSpec.Turbo.FillTolerance
 	check(
 		res,
 		"turbo_fill_empty_after_turbo",
 		rec.fill or "missing",
-		("0 +- %.2f"):format(UiSpec.Turbo.FillTolerance),
-		rec.fill ~= nil and rec.fill <= UiSpec.Turbo.FillTolerance
+		("<= %.2f (%d extras)"):format(fillLimit, extras),
+		rec.fill ~= nil and rec.fill <= fillLimit
 	)
 end
 
@@ -6001,6 +6120,7 @@ function S.ui_roll_anim(res)
 		stateMissing(res, "autoroll_on_for_anim", "auto_roll_on", "AutoRoll is " .. tostring(attr("AutoRoll")))
 		return
 	end
+	K.checkBagRoom(res, "anim")
 	local restore = setPanels({})
 
 	-- 1. A whole compact roll, uninterrupted, started after this point
@@ -6029,7 +6149,7 @@ function S.ui_roll_anim(res)
 			"roll_animation_completed",
 			lastDone
 					and (seqNames(phaseSeq(lastDone, "Compact")) .. (lastDone.interruptedAt and " (interrupted)" or ""))
-				or "no RollResult",
+				or UiSpec.NoRollWhy(player, "no RollResult"),
 			"PopIn,Spin,Land,Hold,Exit,Idle on RollToast/Toast before the next roll",
 			false
 		)
@@ -6039,14 +6159,15 @@ function S.ui_roll_anim(res)
 	local ev = rec.ev
 	local spec = CharacterCatalog.Get(ev.id)
 	-- The server sends the player's roll interval as RollResult's last argument (spec "Fit to the roll interval")
+	local intervalPass = attr("Pass_auto_roll_2x") == true and 2 or 1 -- docs/MONETIZATION_SPEC.md: Interval / 2
+	local intervalLow, intervalHigh =
+		UiSpec.RollAnim.IntervalMin / intervalPass, GachaConfig.ROLL_INTERVAL / intervalPass
 	check(
 		res,
 		"roll_result_sends_interval",
 		tostring(ev.interval),
-		("%g..%g"):format(UiSpec.RollAnim.IntervalMin, GachaConfig.ROLL_INTERVAL),
-		type(ev.interval) == "number"
-			and ev.interval >= UiSpec.RollAnim.IntervalMin
-			and ev.interval <= GachaConfig.ROLL_INTERVAL
+		("%g..%g"):format(intervalLow, intervalHigh),
+		type(ev.interval) == "number" and ev.interval >= intervalLow and ev.interval <= intervalHigh
 	)
 	phaseChecks(res, rec, "Compact", "")
 	K.shownChecks(res, rec, "Compact", "")
@@ -6117,9 +6238,9 @@ function S.ui_roll_anim(res)
 	check(
 		res,
 		"land_pop_peak",
-		peakLand,
-		("%.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
-		math.abs(peakLand - pop) <= UiSpec.RollAnim.LandPopTolerance
+		("Size %.3f, Heartbeat AbsoluteSize %.3f"):format(rec.landSize, peakLand),
+		("Size %.2f +- %.2f"):format(pop, UiSpec.RollAnim.LandPopTolerance),
+		math.abs(rec.landSize - pop) <= UiSpec.RollAnim.LandPopTolerance
 	)
 	check(
 		res,
@@ -6401,6 +6522,11 @@ function S.ui_showcase(res)
 		if
 			name ~= cfg.Gui
 			and not UiSpec.Guis[name].Overlay
+			-- Closed popups, opened from the roll view on purpose (docs/BAG_AND_AUTOSELL_SPEC.md "UI"; Client/ItemMenu): nothing of theirs is drawn here.
+			and name ~= "RollOptions"
+			and name ~= "RacerItemMenu"
+			-- Closed too: Enabled false until a boss event's return to spawn (Client/BossRewardPopup).
+			and name ~= "RacerBossRewards"
 			and other
 			and other:IsA("ScreenGui")
 			and other.DisplayOrder >= highest
@@ -6510,7 +6636,14 @@ function S.ui_loser(res)
 	local highest, who = -math.huge, "none"
 	for _, name in declaredGuis() do
 		local other = playerGui:FindFirstChild(name)
-		if name ~= "LoserScreen" and other and other:IsA("ScreenGui") and other.DisplayOrder >= highest then
+		-- RacerBossRewards: closed popup (Client/BossRewardPopup); loser_draws_above_all_guis judges it live if it is open.
+		if
+			name ~= "LoserScreen"
+			and name ~= "RacerBossRewards"
+			and other
+			and other:IsA("ScreenGui")
+			and other.DisplayOrder >= highest
+		then
 			highest, who = other.DisplayOrder, name
 		end
 	end
@@ -7794,6 +7927,7 @@ do
 	S[name] = fn
 end
 local extras = UiBoostsRebirth.Build({
+	requestSetup = UiScenarios.RequestSetup,
 	check = check,
 	checkList = checkList,
 	find = findPath,
@@ -7924,6 +8058,138 @@ do
 	S[name] = fn
 end
 
+-- Sidekick art wiring (design doc 4.36, 4.37). No new local: the chunk is at the 200-local limit.
+K.sidekicks = require(script.Parent.UiSidekicks).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	pathOf = pathOf,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	player = player,
+})
+for name, fn in K.sidekicks.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.sidekicks.After do
+	access.After[cond] = fn
+end
+-- Backpack Relics tab (design doc 4.38).
+K.relics = require(script.Parent.UiRelics).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	pathOf = pathOf,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	player = player,
+})
+for name, fn in K.relics.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.relics.After do
+	access.After[cond] = fn
+end
+
+-- Boss event UI (design doc 4.37). No new local: the chunk is at the 200-local limit.
+K.boss = require(script.Parent.UiBossEvent).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	waitGuis = waitGuis,
+	setPanels = setPanels,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.boss.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.boss.After do
+	access.After[cond] = fn
+end
+K.bossVfx = require(script.Parent.UiBossVfx).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossVfx.Scenarios do
+	S[name] = fn
+end
+
+K.bossPaid = require(script.Parent.UiBossPaid).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+})
+for name, fn in K.bossPaid.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossPaid.After do
+	access.After[cond] = fn
+end
+
+K.bossPhase2 = require(script.Parent.UiBossPhase2).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossPhase2.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossPhase2.After do
+	access.After[cond] = fn
+end
+
+K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickFollow.Scenarios do
+	S[name] = fn
+end
+
+K.sidekickAttack = require(script.Parent.UiSidekickAttack).Build({
+	check = check,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickAttack.Scenarios do
+	S[name] = fn
+end
+K.sidekickTutorial = require(script.Parent.UiSidekickTutorial).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.sidekickTutorial.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.sidekickTutorial.After do
+	access.After[cond] = fn
+end
+
 -- BoostDailyUi now owns Daily Rewards plus a reference-driven Daily/Weekly
 -- quest browser; Backpack moved to RacerBackpack and its old Bag view is not a
 -- valid contract anymore.
@@ -8040,6 +8306,16 @@ end
 -- The UiSpec.ManualScenarios entries ({ Name, Manual }), in order.
 function UiScenarios.ManualScenarios()
 	return UiSpec.ManualScenarios or {}
+end
+
+-- A run plays as a player with no gamepasses (UiTestSetup no_passes; RestoreSetups gives them back). Roll records from
+-- before it may hold a pass owner's rolls, so the scenarios only judge the rolls after it. No scenario needs a pass.
+function UiScenarios.PlayWithoutPasses()
+	local ok, err = UiScenarios.RequestSetup("no_passes")
+	if not ok then
+		warn("[UITEST] no_passes setup failed, the run keeps this player's passes: " .. tostring(err))
+	end
+	table.clear(events.recs)
 end
 
 function UiScenarios.Run(name)
@@ -8407,27 +8683,57 @@ function UiScenarios.RunClick(id)
 			path = string.gsub(path, token, UiSpec.WorkshopShowcase.RowPrefix .. showcaseId)
 		end
 	end
+	-- A bag tile's Entry (UiSpec.Backpack.EntryTokens) or the picker's first card: known only at the click.
+	for token, source in UiSpec.Backpack.EntryTokens do
+		if string.find(path, token, 1, true) then
+			local entry = nil
+			local deadline = os.clock() + UiScenarios.SETUP_WAIT
+			repeat
+				entry = source(player)
+				if not entry then
+					task.wait(0.1)
+				end
+			until entry or os.clock() > deadline
+			if not entry then
+				stateMissing(res, "target_entry", previous, "nothing for " .. token)
+				return res
+			end
+			path = string.gsub(path, token, entry)
+		end
+	end
 	local rowStat = spec.Gui == "RacerStats" and splitPath(path)[5] or nil
 	-- A tree tile: RacerUpgrades Panel/Canvas/TreeWorld/<tile id> (scrolled into the canvas window below)
 	local upgradeId = spec.Gui == "RacerUpgrades"
 			and pathMatches(UiSpec.Progression.TreeWorld .. "/*", spec.Gui .. "/" .. path)
 			and splitPath(path)[4]
 		or nil
+	-- Prepare.OpenFirst: the target only exists once its panel has opened and drawn (a bag tile named by its Entry).
+	local earlyPanels = prep.OpenFirst and preparePanels(prep) or nil
 	local button = findPath(spec.Gui .. "/" .. path)
+	if prep.OpenFirst then
+		local deadline = os.clock() + UiSpec.Waits.ClickSettle
+		while not button and os.clock() < deadline do
+			task.wait(0.05)
+			button = findPath(spec.Gui .. "/" .. path)
+		end
+	end
 	if not button and spec.Gui == UiSpec.Showcase.Gui and #splitPath(path) == 1 then
 		local sg = playerGui:FindFirstChild(spec.Gui)
 		button = sg and sg:FindFirstChild(path, true) -- the card may sit inside the backdrop
 	end
 	check(res, "target_exists", spec.Gui .. "/" .. path, "present", button ~= nil)
 	if not button then
+		if earlyPanels then
+			earlyPanels()
+		end
 		return res
 	end
 
 	-- Prepare panels and scroll
 	-- Prepare.KeepPanels: the panels stay exactly as the previous click left them (no close / reopen, which would reset
-	-- a view such as the Checkpoints detail pane) and are not restored; Prepare.LeavePanels: prepared as usual but left
+	-- a view such as the Market detail pane) and are not restored; Prepare.LeavePanels: prepared as usual but left
 	-- that way after the click, so the next KeepPanels click starts from it.
-	local restorePanels = prep.KeepPanels and function() end or preparePanels(prep)
+	local restorePanels = earlyPanels or prep.KeepPanels and function() end or preparePanels(prep)
 	if prep.LeavePanels then
 		restorePanels = function() end
 	end
@@ -8472,8 +8778,19 @@ function UiScenarios.RunClick(id)
 			check(res, "set_text_target_exists", textPath, "TextBox or TextLabel", false)
 		end
 	end
+	-- Prepare.Before: a function run here, on this client (a client copy of a config, a watcher); what it returns runs at restore.
+	local undoBefore = prep.Before and prep.Before() or nil
 	local function restore()
 		restorePanels()
+		-- Prepare.EndPanels: the last click of a KeepPanels chain leaves exactly these panels open.
+		if prep.EndPanels then
+			applyPanelState(prep.EndPanels)
+			frames(1)
+		end
+		if undoBefore then
+			undoBefore()
+			undoBefore = nil
+		end
 		if grid and savedCanvas then
 			grid.CanvasPosition = savedCanvas
 		end
@@ -8492,6 +8809,51 @@ function UiScenarios.RunClick(id)
 	if prep.WaitSeconds then
 		task.wait(prep.WaitSeconds)
 	end
+	-- Prepare.PressFirst: a popup only a real press opens. Its one press goes out like a retry and is judged by the popup showing.
+	if prep.PressFirst and not Click.shownNow(findPath(prep.PressFirst.Until)) then
+		local opener = findPath(prep.PressFirst.Path)
+		local done = id .. "#0"
+		if not (opener and Click.shownNow(opener)) then
+			stateMissing(res, "press_first_shown", previous, prep.PressFirst.Path .. " is not shown")
+			restore()
+			return res
+		end
+		ReplicatedStorage:SetAttribute("UiTestClickDone", nil)
+		local ox, oy = centre(realRect(opener))
+		local tl = inset()
+		local tx, ty = math.floor(ox - tl.X + 0.5), math.floor(oy - tl.Y + 0.5)
+		player:SetAttribute(
+			"UiTestClickTarget",
+			HttpService:JSONEncode({
+				id = id,
+				x = tx,
+				y = ty,
+				screenX = math.floor(ox + 0.5),
+				screenY = math.floor(oy + 0.5),
+				viewportX = math.floor(viewport().X + 0.5),
+				viewportY = math.floor(viewport().Y + 0.5),
+				insetY = math.floor(tl.Y + 0.5),
+				done = done,
+			})
+		)
+		print(("[UITEST] RETRY %s x=%d y=%d done=%s"):format(id, tx, ty, done))
+		local deadline = os.clock() + UiSpec.Waits.ClickDone
+		while ReplicatedStorage:GetAttribute("UiTestClickDone") ~= done and os.clock() < deadline do
+			task.wait(0.1)
+		end
+		player:SetAttribute("UiTestClickTarget", nil)
+		local openBy = os.clock() + UiSpec.Waits.ClickSettle
+		while not Click.shownNow(findPath(prep.PressFirst.Until)) and os.clock() < openBy do
+			task.wait(0.05)
+		end
+		local opened = Click.shownNow(findPath(prep.PressFirst.Until))
+		check(res, "press_first_opens", opened, true, opened)
+		if not opened then
+			restore()
+			return res
+		end
+		task.wait(UiSpec.Waits.PanelMotion) -- its pop has ended: the click point below is where it stays
+	end
 	if prep.LabelIs ~= nil then
 		local actual = allText(button)
 		if actual ~= prep.LabelIs then
@@ -8501,6 +8863,7 @@ function UiScenarios.RunClick(id)
 				previous,
 				("%s shows %q, want %q"):format(pathOf(button), actual, prep.LabelIs)
 			)
+			restore()
 			return res
 		end
 	end
@@ -8894,6 +9257,15 @@ function UiScenarios.RunClick(id)
 				ok = ok and fired[1].args[i] == v
 			end
 		end
+		if expect.Remote.ArgsJson then
+			-- A table argument (BossEventSetTeam's id list): the whole argument list compared as JSON
+			want = expect.Remote.Name .. expect.Remote.ArgsJson
+			names = {}
+			for _, f in fired do
+				table.insert(names, f.name .. HttpService:JSONEncode(f.args))
+			end
+			ok = #fired == 1 and names[1] == want
+		end
 		if type(wantArg) == "table" then
 			-- SetShowcase(ids): exactly one argument, the promised id list (Progression.SameShowcase)
 			names = {}
@@ -8945,7 +9317,7 @@ function UiScenarios.RunClick(id)
 		elseif cond == "autorace_label_follows_server" then
 			check(res, cond, allText(button), UiSpec.Hud.AutoLabel, allText(button) == UiSpec.Hud.AutoLabel)
 		elseif cond == "auto_pill_tint_follows_server" then
-			local tint = K.autoTintSettled(button)
+			local tint = K.autoTintSettled(button) or K.autoSpinProblem(button)
 			check(res, cond, tint or "right", "right", tint == nil)
 		elseif cond == "autoracing_is_arg" then
 			check(res, cond, attr("AutoRacing") == true, wantArg, (attr("AutoRacing") == true) == wantArg)
@@ -9211,7 +9583,7 @@ function UiScenarios.RunClick(id)
 				local later = toast ~= nil and not effectivelyVisible(toast)
 				check(res, cond .. "_on_roll", toast and effectivelyVisible(toast), false, later)
 			else
-				stateMissing(res, cond .. "_on_roll", "auto_racing", "no Remotes.RollResult")
+				stateMissing(res, cond .. "_on_roll", "auto_racing", UiSpec.NoRollWhy(player))
 			end
 		elseif cond == "showcase_updates_live_turbo" then
 			-- The open card plays a TURBO roll that arrives after the click and lands on it, badge and flames shown

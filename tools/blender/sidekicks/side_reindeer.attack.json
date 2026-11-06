@@ -1,0 +1,63 @@
+{
+	"movement": "Walk",
+	"title": "Choppa: hoof punch (proposed)",
+	"end": 1.2,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Twists away, punching arm far back, head tips back",
+			"root": {
+				"Body": [0, 0.2, 0]
+			},
+			"parts": {
+				"Body": [-10, 6, -38],
+				"Head": [-10, 0, 16],
+				"ArmRight": [70, 40, 0],
+				"ArmLeft": [-70, -22, 0],
+				"LegLeft": [-28, -6, 0],
+				"LegRight": [30, 6, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.5,
+			"desc": "Lunges, body turns hard, hoof straight out under the hat brim",
+			"root": {
+				"Body": [0, -0.45, 0]
+			},
+			"parts": {
+				"Body": [-8, -4, 32],
+				"Head": [-12, 0, -26],
+				"ArmRight": [-92, 0, -32],
+				"ArmLeft": [50, -40, 0],
+				"LegLeft": [-46, -8, 0],
+				"LegRight": [44, 8, 0]
+			},
+			"markers": [
+				{
+					"label": "hoof impact",
+					"shape": "burst",
+					"on": "ArmRight",
+					"at": [-0.1, 0, -1.5],
+					"r": 0.55,
+					"rgb": [1, 0.85, 0.15]
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 0.8,
+			"desc": "Pulls back upright, both hooves up in a guard",
+			"parts": {
+				"Body": [2, 0, 8],
+				"Head": [-4, 8, -6],
+				"ArmRight": [-52, 12, 0],
+				"ArmLeft": [-44, -12, 0],
+				"LegLeft": [-10, 0, 0],
+				"LegRight": [12, 0, 0]
+			}
+		}
+	],
+	"view": [-0.9, -0.45, 0.18]
+}

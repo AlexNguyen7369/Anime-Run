@@ -1,0 +1,37 @@
+{
+	"chest_adapted": {
+		"Decal": "77490510912336",
+		"Hash": "465d9cecf1cf5dbb3e89203fae7ba3ca0451aec8e999ada9d69ef4111e2abc01",
+		"Image": "81070324097920"
+	},
+	"chest_raga": {
+		"Decal": "94459247503086",
+		"Hash": "a3acba09d2321eac102a29f73a7d874ddfecdc61e7d1ad611a3078787c62eb91",
+		"Image": "129792034295199"
+	},
+	"relic_eyes": {
+		"Decal": "123310089371389",
+		"Hash": "b5fb1a1818b54b48b0e4c2fe2972d8ab087adcfc17411b73bb881616128f1016",
+		"Image": "109441811086116"
+	},
+	"relic_finger": {
+		"Decal": "123110181034924",
+		"Hash": "35dc741c4295423965948c67e92e273d73cb101245e1784a0834644c5744ae9d",
+		"Image": "104879331110597"
+	},
+	"relic_nail": {
+		"Decal": "105080399498954",
+		"Hash": "f46547aab772f64e320941fece0bca198e65a511d9cb201513a1de969b67f92d",
+		"Image": "116058098442275"
+	},
+	"relic_talisman": {
+		"Decal": "138952351214190",
+		"Hash": "ebcc022ddb000013bfc4094796a9cfde7ff474ac61e7e7dca6c7da15966bf14f",
+		"Image": "112073311599626"
+	},
+	"relic_world_core": {
+		"Decal": "138640306652432",
+		"Hash": "6c361405c0deb03953bef89d9b56432d5e39bcf27ddd6041a7d244b2d4f2fa3e",
+		"Image": "90225252879253"
+	}
+}

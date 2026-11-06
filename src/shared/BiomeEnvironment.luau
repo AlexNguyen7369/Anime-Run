@@ -31,6 +31,7 @@ BiomeEnvironment.ONESHOT_VOLUME = NumberRange.new(0.15, 0.25)
 BiomeEnvironment.DETAIL_DISTANCE = 400 -- placeholder: REDUCED EFFECTS hides BiomeDetail past this (8)
 BiomeEnvironment.ForcedZone = nil -- client tests: a zone number here overrides detection (no hold)
 BiomeEnvironment.CurrentZone = nil -- set by the client: the zone it last blended to
+BiomeEnvironment.ARENA_ZONE = -1 -- the boss arena (4.37): chosen by Client/BiomeEnvironment, since ZoneAt ignores height
 
 local biomeOf = {} -- track number -> biome key
 for _, spec in TrackRegistry.Chain() do
@@ -134,10 +135,50 @@ local PLAZA_SKY = {
 		Dn = "rbxassetid://137365666705594",
 	},
 }
+-- The boss arena (docs/BOSS_EVENT_SPEC.md "Arena"): Track 8's clear noon and cloud wisps with no terrain clouds or haze.
+-- Values are placeholders.
+local ARENA = Kit.Atmosphere({
+	Lighting = {
+		ClockTime = 12,
+		Brightness = 2.5,
+		Ambient = Kit.hex("5A6878"),
+		OutdoorAmbient = Kit.hex("A8BCD0"),
+		ExposureCompensation = 0,
+	},
+	Atmosphere = {
+		Density = 0.06, -- thin: Big Raga stands about 900 studs from the lanes and more haze drains his colour
+		Offset = 0.1,
+		Color = Kit.hex("EAF6FF"),
+		Decay = Kit.hex("BFE4FA"),
+		Glare = 0,
+		Haze = 0,
+	},
+	Grade = { TintColor = Kit.hex("F6FBFF"), Saturation = 0.1, Contrast = 0.05, Brightness = 0 },
+	Bloom = { Intensity = 0.3, Threshold = 1.8 },
+	SunRays = { Intensity = 0.05 },
+	Sky = { SunAngularSize = 21, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
+	Clouds = { Cover = 0 },
+	Particles = {
+		Themes.Snow.Atmosphere.Particles[1],
+		{
+			Texture = "MoteParticle", -- small white motes floating through the clouds (owner 2026-11-06)
+			Color = Kit.hex("FFFFFF"),
+			Size = 0.8,
+			Rate = 40,
+			Lifetime = 8,
+			Speed = 1.5,
+			SpreadAngle = 180,
+			LightEmission = 0.3,
+		},
+	},
+})
+
 -- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline
 function BiomeEnvironment.Profile(zone)
 	if zone == 0 then
 		return PLAZA
+	elseif zone == BiomeEnvironment.ARENA_ZONE then
+		return ARENA
 	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Atmosphere or baseline
@@ -146,6 +187,8 @@ end
 function BiomeEnvironment.Audio(zone)
 	if zone == 0 then
 		return PLAZA_AUDIO
+	elseif zone == BiomeEnvironment.ARENA_ZONE then
+		return Themes.Snow.Audio
 	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Audio or {}
@@ -172,6 +215,8 @@ function BiomeEnvironment.Asset(zone, key, kind)
 			return PLAZA_PETAL
 		end
 		return BiomeEnvironment.Row("Speedway", key, kind)
+	elseif zone == BiomeEnvironment.ARENA_ZONE then
+		return BiomeEnvironment.Row("Snow", key, kind)
 	end
 	return BiomeEnvironment.Row(biomeOf[zone], key, kind)
 end

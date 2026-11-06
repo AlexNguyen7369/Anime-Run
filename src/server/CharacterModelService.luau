@@ -7,24 +7,40 @@
 local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
+local BossRagaPoses = require(Shared.BossRagaPoses)
 local RunnerFactory = require(Shared.RunnerFactory)
+local SidekickArt = require(Shared.SidekickArt)
 
 local CharacterModelService = {}
 
-local function load(id, row, root)
+local NEON_BLUE = Color3.fromRGB(82, 216, 250) -- side_wyvern's "glow" ramp (tools/blender/build_boss_event.py)
+
+local function fetch(assetId)
+	-- LoadAsset needs the assets' owner in Studio, so collaborators load a copy saved in the place (named by asset id)
+	local baked = ServerStorage:FindFirstChild("BakedModels")
+	local copy = baked and baked:FindFirstChild(tostring(assetId))
+	if copy then
+		return true, copy:Clone()
+	end
 	local ok, asset
 	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
 		ok, asset = pcall(function()
-			return InsertService:LoadAsset(row.Asset)
+			return InsertService:LoadAsset(assetId)
 		end)
 		if ok then
 			break
 		end
 		task.wait(attempt)
 	end
+	return ok, asset
+end
+
+local function load(id, row, root)
+	local ok, asset = fetch(row.Asset)
 	if not ok then
 		warn("[CharacterModels] " .. id .. " failed to load, using the placeholder rig: " .. tostring(asset))
 		return
@@ -47,7 +63,105 @@ local function load(id, row, root)
 	folder.Parent = root
 end
 
+-- A Sidekick's whole Model, in ReplicatedStorage.SidekickModels/<id> (docs/SIDEKICK_SPEC.md). It keeps its authored layout,
+-- unlike a runner's parts, and meshes named *Neon* get Material Neon (docs/char_evidence/side_wyvern.md).
+local function loadSidekick(id, assetId, root)
+	local ok, asset = fetch(assetId)
+	if not ok then
+		warn("[SidekickModels] " .. id .. " failed to load: " .. tostring(asset))
+		return
+	end
+	local model = asset:FindFirstChildOfClass("Model") or asset
+	model.Name = id
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+			if string.find(d.Name, "Neon", 1, true) then
+				-- The import gives every part a grey SurfaceAppearance, which overrides Color on an untextured mesh.
+				local surface = d:FindFirstChildOfClass("SurfaceAppearance")
+				if surface then
+					surface:Destroy()
+				end
+				d.Material = Enum.Material.Neon
+				d.Color = NEON_BLUE
+			end
+		end
+	end
+	model.Parent = root
+	if model ~= asset then
+		asset:Destroy()
+	end
+end
+
+local function startSidekicks()
+	local root = Instance.new("Folder")
+	root.Name = "SidekickModels"
+	root.Parent = ReplicatedStorage
+	task.spawn(function()
+		local pending = 0
+		for id, art in SidekickArt do
+			if art.Model then
+				pending += 1
+				task.spawn(function()
+					pcall(loadSidekick, id, art.Model, root)
+					pending -= 1
+				end)
+			end
+		end
+		while pending > 0 do
+			task.wait()
+		end
+		root:SetAttribute("Ready", true)
+	end)
+end
+
+-- Big Raga's loose parts, in ReplicatedStorage.BossModels/boss_raga, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks").
+-- Each client clones and poses them. Its parts keep the import's SurfaceAppearance: it holds the texture.
+local function loadBoss(assetId, root)
+	local ok, asset = fetch(assetId)
+	if not ok then
+		warn("[BossModels] boss_raga failed to load: " .. tostring(asset))
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "boss_raga"
+	for _, d in asset:GetDescendants() do
+		local bind = d:IsA("MeshPart") and BossRagaPoses.Bind[d.Name]
+		if bind then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+			d.Massless = true
+			d.Material = Enum.Material.SmoothPlastic
+			d.Size = Vector3.new(bind.Size[1], bind.Size[2], bind.Size[3])
+			d.Parent = folder
+		end
+	end
+	asset:Destroy()
+	folder.Parent = root
+end
+
+local function startBoss()
+	local root = Instance.new("Folder")
+	root.Name = "BossModels"
+	root.Parent = ReplicatedStorage
+	task.spawn(function()
+		local art = SidekickArt.boss_raga
+		if art and art.BossModel then
+			pcall(loadBoss, art.BossModel, root)
+		end
+		root:SetAttribute("Ready", true)
+	end)
+end
+
 function CharacterModelService.Start()
+	startSidekicks()
+	startBoss()
 	local root = Instance.new("Folder")
 	root.Name = "CharacterModels"
 	root.Parent = ReplicatedStorage

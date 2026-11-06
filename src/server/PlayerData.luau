@@ -25,11 +25,13 @@ local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 local GiftMailbox = require(script.Parent.GiftMailbox)
 local RaceTimeService = require(script.Parent.RaceTimeService)
+local SidekickService = require(script.Parent.SidekickService)
+local RelicService = require(script.Parent.RelicService)
 
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 13 -- 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 18 -- 18: BossCredit (docs/BOSS_EVENT_SPEC.md "Paid spawn"); 17: SidekickPity, SidekickLegendaryPity (design doc 4.36); 16: Relics, RelicGear (design doc 4.38); 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
@@ -146,6 +148,13 @@ function PlayerData.Load(player, userId)
 
 	local function apply(data)
 		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
+		player:SetAttribute("Gems", cleanInt(data.Gems, 0, MAX_MONEY, 0))
+		player:SetAttribute("BossCredit", cleanInt(data.BossCredit, 0, MAX_DUEL_WINS, 0)) -- version 17 and older: none
+		-- Additive, older saves have none. Ids are judged at each join (BossEventService).
+		player:SetAttribute(
+			"LastBossTeam",
+			type(data.LastBossTeam) == "string" and string.sub(data.LastBossTeam, 1, 200) or ""
+		)
 		GachaService.Apply(player, data) -- older saves have no gacha fields: starter car, nothing allocated
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
@@ -156,6 +165,8 @@ function PlayerData.Load(player, userId)
 		BoostService.Apply(player, data)
 		DailyLoginService.Apply(player, data)
 		QuestService.Apply(player, data)
+		SidekickService.Apply(player, data) -- version 14 and older: an empty bag, free summon unused; version 16 and older: pity counts 0
+		RelicService.Apply(player, data) -- version 15 and older: no Relics
 		RaceTimeService.Apply(player, data)
 		ShopService.Apply(player, data) -- version 8 and older: no receipts, no codes
 		giftReceipts[player] = type(data.GiftReceipts) == "table" and table.clone(data.GiftReceipts) or {}
@@ -259,8 +270,21 @@ local function save(player, userId, release)
 	local daily = DailyLoginService.Snapshot(player)
 	local quests = QuestService.Snapshot(player)
 	local shop = ShopService.Snapshot(player)
+	local sidekicks = SidekickService.Snapshot(player)
+	local relics = RelicService.Snapshot(player)
 	local payload = {
 		Money = cleanInt(money.Value, 0, MAX_MONEY, 0),
+		Gems = cleanInt(player:GetAttribute("Gems"), 0, MAX_MONEY, 0),
+		BossCredit = cleanInt(player:GetAttribute("BossCredit"), 0, MAX_DUEL_WINS, 0),
+		LastBossTeam = player:GetAttribute("LastBossTeam") or "",
+		Sidekicks = sidekicks.Sidekicks,
+		CharacterGear = sidekicks.CharacterGear,
+		SidekickAutoSell = sidekicks.SidekickAutoSell,
+		SidekickFreeUsed = sidekicks.SidekickFreeUsed,
+		SidekickPity = sidekicks.SidekickPity,
+		SidekickLegendaryPity = sidekicks.SidekickLegendaryPity,
+		Relics = relics.Relics,
+		RelicGear = relics.RelicGear,
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
 		Showcase = gacha.Showcase,
@@ -268,6 +292,8 @@ local function save(player, userId, release)
 		Equipped = gacha.Equipped,
 		Rolls = gacha.Rolls,
 		StatAlloc = gacha.StatAlloc,
+		AutoSell = gacha.AutoSell,
+		AutoSellChance = gacha.AutoSellChance,
 		Upgrades = upgrades.Upgrades,
 		BestTrack = upgrades.BestTrack,
 		TurboCount = upgrades.TurboCount,
@@ -340,6 +366,41 @@ function PlayerData.Save(player, userId, release)
 		return false
 	end
 	return result
+end
+
+-- Admin /newplayer: replaces the save with an empty record and stops this session's saves, so the next load is a brand
+-- new save. Pending gifts and their receipts stay (paid for). No lock is left, so a rejoin need not wait. The caller
+-- removes the player. Returns true if the save was reset. Yields.
+function PlayerData.ResetToNew(player, userId)
+	if player:GetAttribute("DataFailed") or not player:GetAttribute("DataLoaded") then
+		return false
+	end
+	local dataStore = getStore()
+	if not dataStore then
+		return false
+	end
+	userId = userId or player.UserId
+	while saving[player] do
+		task.wait()
+	end
+	saving[player] = true
+	local refused = false
+	local ok, result = pcall(function()
+		return dataStore:UpdateAsync(PlayerData.KeyFor(userId), function(current)
+			refused = lockedElsewhere(current, clock())
+			if refused then
+				return nil
+			end
+			local record = type(current) == "table" and current or {}
+			return { GiftMailbox = record.GiftMailbox, GiftReceipts = record.GiftReceipts }
+		end)
+	end)
+	local reset = ok and not refused and type(result) == "table"
+	if reset then
+		player:SetAttribute("DataLoaded", nil) -- blocks every later save, the leave save included
+	end
+	saving[player] = nil
+	return reset
 end
 
 -- Waits until the player's stats finished loading (or failed). Returns true if loaded.

@@ -1,0 +1,574 @@
+{
+ "id": "side_dogs",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "BlackBody": [
+   -1.62,
+   0.5,
+   2.0
+  ],
+  "BlackHead": [
+   -1.62,
+   -1.5,
+   3.05
+  ],
+  "BlackHeadJaw": [
+   -1.62,
+   -2.02,
+   2.92
+  ],
+  "BlackLegBackLeft": [
+   -1.1,
+   1.72,
+   1.5
+  ],
+  "BlackLegBackRight": [
+   -2.14,
+   1.72,
+   1.5
+  ],
+  "BlackLegFrontLeft": [
+   -1.12,
+   -0.72,
+   1.6
+  ],
+  "BlackLegFrontRight": [
+   -2.12,
+   -0.72,
+   1.6
+  ],
+  "BlackTail": [
+   -1.62,
+   2.32,
+   2.6
+  ],
+  "WhiteBody": [
+   1.62,
+   0.5,
+   2.0
+  ],
+  "WhiteHead": [
+   1.62,
+   -1.5,
+   3.05
+  ],
+  "WhiteHeadJaw": [
+   1.62,
+   -2.02,
+   2.92
+  ],
+  "WhiteLegBackLeft": [
+   2.14,
+   1.72,
+   1.5
+  ],
+  "WhiteLegBackRight": [
+   1.1,
+   1.72,
+   1.5
+  ],
+  "WhiteLegFrontLeft": [
+   2.12,
+   -0.72,
+   1.6
+  ],
+  "WhiteLegFrontRight": [
+   1.12,
+   -0.72,
+   1.6
+  ],
+  "WhiteTail": [
+   1.62,
+   2.32,
+   2.6
+  ]
+ },
+ "rest": {
+  "BlackBody": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackHead": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackHeadJaw": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackLegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackLegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackLegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackLegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BlackTail": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteBody": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteHead": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteHeadJaw": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteLegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteLegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteLegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteLegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WhiteTail": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Gyokan: shadow bite, White then Black (proposed)",
+   "end": 1.35,
+   "Release": 0.5,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.25,
+     "desc": "White crouches, jaw parting; Black a beat later, barely dipped",
+     "root_offset": {
+      "BlackBody": [
+       0,
+       0.15,
+       0.128
+      ],
+      "WhiteBody": [
+       0,
+       0.3,
+       0.324
+      ]
+     },
+     "rotations": {
+      "BlackBody": [
+       6,
+       0,
+       0
+      ],
+      "BlackHead": [
+       4,
+       0,
+       0
+      ],
+      "BlackHeadJaw": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "BlackLegBackLeft": [
+       -6,
+       0,
+       0
+      ],
+      "BlackLegBackRight": [
+       -6,
+       0,
+       0
+      ],
+      "BlackLegFrontLeft": [
+       -6,
+       0,
+       0
+      ],
+      "BlackLegFrontRight": [
+       -6,
+       0,
+       0
+      ],
+      "BlackTail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WhiteBody": [
+       16,
+       0,
+       0
+      ],
+      "WhiteHead": [
+       14,
+       0,
+       0
+      ],
+      "WhiteHeadJaw": [
+       22,
+       0,
+       0
+      ],
+      "WhiteLegBackLeft": [
+       -16,
+       0,
+       0
+      ],
+      "WhiteLegBackRight": [
+       -16,
+       0,
+       0
+      ],
+      "WhiteLegFrontLeft": [
+       -16,
+       0,
+       0
+      ],
+      "WhiteLegFrontRight": [
+       -16,
+       0,
+       0
+      ],
+      "WhiteTail": [
+       -30,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.5,
+     "desc": "White lunges high, jaw wide; Black crouches low, loading",
+     "root_offset": {
+      "BlackBody": [
+       0,
+       0.3,
+       0.36
+      ],
+      "WhiteBody": [
+       0,
+       -0.5,
+       0.554
+      ]
+     },
+     "rotations": {
+      "BlackBody": [
+       18,
+       0,
+       0
+      ],
+      "BlackHead": [
+       14,
+       0,
+       0
+      ],
+      "BlackHeadJaw": [
+       26,
+       0,
+       0
+      ],
+      "BlackLegBackLeft": [
+       -18,
+       0,
+       0
+      ],
+      "BlackLegBackRight": [
+       -18,
+       0,
+       0
+      ],
+      "BlackLegFrontLeft": [
+       -18,
+       0,
+       0
+      ],
+      "BlackLegFrontRight": [
+       -18,
+       0,
+       0
+      ],
+      "BlackTail": [
+       -32,
+       0,
+       0
+      ],
+      "WhiteBody": [
+       -26,
+       0,
+       0
+      ],
+      "WhiteHead": [
+       30,
+       0,
+       0
+      ],
+      "WhiteHeadJaw": [
+       58,
+       0,
+       0
+      ],
+      "WhiteLegBackLeft": [
+       52,
+       0,
+       0
+      ],
+      "WhiteLegBackRight": [
+       52,
+       0,
+       0
+      ],
+      "WhiteLegFrontLeft": [
+       -42,
+       0,
+       0
+      ],
+      "WhiteLegFrontRight": [
+       -20,
+       0,
+       0
+      ],
+      "WhiteTail": [
+       34,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Second bite",
+     "t": 0.75,
+     "desc": "Black lunges, jaw wide; White's jaw snaps shut as it drops back",
+     "root_offset": {
+      "BlackBody": [
+       0,
+       -0.5,
+       0.554
+      ],
+      "WhiteBody": [
+       0,
+       -0.2,
+       0.27
+      ]
+     },
+     "rotations": {
+      "BlackBody": [
+       -26,
+       0,
+       0
+      ],
+      "BlackHead": [
+       30,
+       0,
+       0
+      ],
+      "BlackHeadJaw": [
+       58,
+       0,
+       0
+      ],
+      "BlackLegBackLeft": [
+       52,
+       0,
+       0
+      ],
+      "BlackLegBackRight": [
+       52,
+       0,
+       0
+      ],
+      "BlackLegFrontLeft": [
+       -20,
+       0,
+       0
+      ],
+      "BlackLegFrontRight": [
+       -42,
+       0,
+       0
+      ],
+      "BlackTail": [
+       34,
+       0,
+       0
+      ],
+      "WhiteBody": [
+       12,
+       0,
+       0
+      ],
+      "WhiteHead": [
+       18,
+       0,
+       0
+      ],
+      "WhiteHeadJaw": [
+       0,
+       0,
+       0
+      ],
+      "WhiteLegBackLeft": [
+       -6,
+       0,
+       0
+      ],
+      "WhiteLegBackRight": [
+       -6,
+       0,
+       0
+      ],
+      "WhiteLegFrontLeft": [
+       -20,
+       0,
+       0
+      ],
+      "WhiteLegFrontRight": [
+       -10,
+       0,
+       0
+      ],
+      "WhiteTail": [
+       -12,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.05,
+     "desc": "Both land, Black's jaw shuts, heads up and alert",
+     "root_offset": {
+      "BlackBody": [
+       0,
+       -0.2,
+       0.169
+      ],
+      "WhiteBody": [
+       0,
+       0,
+       0.087
+      ]
+     },
+     "rotations": {
+      "BlackBody": [
+       8,
+       0,
+       0
+      ],
+      "BlackHead": [
+       10,
+       0,
+       0
+      ],
+      "BlackHeadJaw": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "BlackLegBackLeft": [
+       -8,
+       0,
+       0
+      ],
+      "BlackLegBackRight": [
+       -8,
+       0,
+       0
+      ],
+      "BlackLegFrontLeft": [
+       -8,
+       0,
+       0
+      ],
+      "BlackLegFrontRight": [
+       -8,
+       0,
+       0
+      ],
+      "BlackTail": [
+       -12,
+       0,
+       0
+      ],
+      "WhiteBody": [
+       -4,
+       0,
+       0
+      ],
+      "WhiteHead": [
+       -8,
+       0,
+       0
+      ],
+      "WhiteHeadJaw": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WhiteLegBackLeft": [
+       4,
+       0,
+       0
+      ],
+      "WhiteLegBackRight": [
+       4,
+       0,
+       0
+      ],
+      "WhiteLegFrontLeft": [
+       4,
+       0,
+       0
+      ],
+      "WhiteLegFrontRight": [
+       4,
+       0,
+       0
+      ],
+      "WhiteTail": [
+       20,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

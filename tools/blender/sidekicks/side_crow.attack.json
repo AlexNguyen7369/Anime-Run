@@ -1,0 +1,73 @@
+{
+	"movement": "Fly",
+	"title": "Kasugay: wing gust (proposed)",
+	"end": 1.2,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.3,
+			"desc": "Leans back, wings lifted high and behind the body",
+			"root": {
+				"Body": [0, 0.25, 0.2]
+			},
+			"parts": {
+				"Body": [-26, 0, 0],
+				"Head": [18, 0, 0],
+				"WingLeft": [0, -52, 20],
+				"WingRight": [0, 52, -20],
+				"Tail": [20, 0, 0],
+				"LegLeft": [-30, 0, 0],
+				"LegRight": [-30, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.5,
+			"desc": "Both wings clap forward and down, body pitches in, gust",
+			"root": {
+				"Body": [0, -0.2, -0.15]
+			},
+			"parts": {
+				"Body": [20, 0, 0],
+				"Head": [-14, 0, 0],
+				"WingLeft": [0, 42, -52],
+				"WingRight": [0, -42, 52],
+				"Tail": [-30, 0, 0],
+				"LegLeft": [40, 0, 0],
+				"LegRight": [40, 0, 0]
+			},
+			"markers": [
+				{
+					"label": "gust",
+					"shape": "crescent",
+					"at": [0, -6.2, 2.0],
+					"r": 2.0,
+					"rgb": [0.55, 0.85, 1],
+					"sx": 0.8
+				},
+				{
+					"label": "",
+					"shape": "crescent",
+					"at": [0, -8.0, 2.0],
+					"r": 1.4,
+					"rgb": [0.75, 0.92, 1],
+					"sx": 0.8
+				}
+			]
+		},
+		{
+			"name": "Recovery",
+			"t": 0.8,
+			"desc": "Wings open flat to catch the hover, head comes up",
+			"parts": {
+				"Body": [-6, 0, 0],
+				"Head": [4, 0, 0],
+				"WingLeft": [0, -6, 4],
+				"WingRight": [0, 6, -4],
+				"Tail": [8, 0, 0],
+				"LegLeft": [10, 0, 0],
+				"LegRight": [10, 0, 0]
+			}
+		}
+	]
+}

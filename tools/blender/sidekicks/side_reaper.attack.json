@@ -1,0 +1,103 @@
+{
+	"movement": "Fly",
+	"title": "Ryuuk: falling notebook pages (proposed)",
+	"end": 1.4,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.35,
+			"desc": "Hunches, wings folded in, both hands low at the belly",
+			"root": {
+				"Torso": [0, 0, -0.25]
+			},
+			"parts": {
+				"Torso": [24, 0, 0],
+				"Head": [14, 0, 0],
+				"LeftArm": [-40, 25, 0],
+				"RightArm": [-40, -25, 0],
+				"WingLeft": [0, 34, 38],
+				"WingRight": [0, -34, -38],
+				"LeftLeg": [-34, 0, 0],
+				"RightLeg": [-34, 0, 0]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.7,
+			"desc": "Flings arms overhead, wings burst open, pages scatter up",
+			"root": {
+				"Torso": [0, 0, 0.35]
+			},
+			"parts": {
+				"Torso": [-20, 0, 0],
+				"Head": [-16, 0, 0],
+				"LeftArm": [-165, 28, 0],
+				"RightArm": [-165, -28, 0],
+				"WingLeft": [0, -30, 8],
+				"WingRight": [0, 30, -8],
+				"LeftLeg": [24, -6, 0],
+				"RightLeg": [24, 6, 0]
+			},
+			"markers": [
+				{
+					"label": "notebook pages",
+					"shape": "rect",
+					"at": [0, -2.0, 10.8],
+					"r": 0.6,
+					"sx": 0.8,
+					"rgb": [0.98, 0.97, 0.88],
+					"spin": 15
+				},
+				{
+					"label": "",
+					"shape": "rect",
+					"at": [-2.6, -2.0, 10.0],
+					"r": 0.6,
+					"sx": 0.8,
+					"rgb": [0.98, 0.97, 0.88],
+					"spin": -28
+				},
+				{
+					"label": "",
+					"shape": "rect",
+					"at": [2.6, -2.0, 9.6],
+					"r": 0.6,
+					"sx": 0.8,
+					"rgb": [0.98, 0.97, 0.88],
+					"spin": 40
+				}
+			]
+		},
+		{
+			"name": "Watch them fall",
+			"t": 0.95,
+			"desc": "Arms spread out and down, head tips forward, grin at the pages",
+			"root": {
+				"Torso": [0, 0, 0.15]
+			},
+			"parts": {
+				"Torso": [8, 0, 0],
+				"Head": [30, 8, 0],
+				"LeftArm": [-30, -88, 0],
+				"RightArm": [-30, 88, 0],
+				"WingLeft": [0, -6, 2],
+				"WingRight": [0, 6, -2],
+				"LeftLeg": [6, -4, 0],
+				"RightLeg": [6, 4, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.2,
+			"desc": "Settles into the hover, arms dangle, one wing beat",
+			"parts": {
+				"Torso": [2, 0, 0],
+				"Head": [6, 0, 0],
+				"LeftArm": [-12, -14, 0],
+				"RightArm": [-12, 14, 0],
+				"WingLeft": [0, 18, 10],
+				"WingRight": [0, -18, -10]
+			}
+		}
+	]
+}

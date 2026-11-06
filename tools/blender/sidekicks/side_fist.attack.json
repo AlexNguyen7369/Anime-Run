@@ -1,0 +1,80 @@
+{
+	"movement": "Fly",
+	"title": "Purple Platina: rapid punch barrage (proposed)",
+	"end": 1.35,
+	"keys": [
+		{
+			"name": "Wind-up",
+			"t": 0.2,
+			"desc": "Twists right, right fist pulled far back, left at guard",
+			"root": { "Torso": [0, 0.3, 0] },
+			"parts": {
+				"Torso": [-8, 0, -36],
+				"Head": [6, 0, 26],
+				"RightArm": [55, 28, 0],
+				"LeftArm": [-92, -12, 0],
+				"FloatHips": [10, 0, 10]
+			}
+		},
+		{
+			"name": "Release",
+			"t": 0.38,
+			"desc": "Right straight: arm full out, torso turned hard into it",
+			"root": { "Torso": [0, -0.45, 0] },
+			"parts": {
+				"Torso": [20, 0, 36],
+				"Head": [-16, 0, -28],
+				"RightArm": [-92, -14, 0],
+				"LeftArm": [58, -22, 0],
+				"FloatHips": [-18, 0, -14],
+				"Hair": [14, 0, 0]
+			},
+			"markers": [
+				{ "label": "barrage fists", "shape": "burst", "at": [-1.0, -4.8, 4.0], "r": 0.8, "rgb": [0.72, 0.35, 1] },
+				{ "label": "", "shape": "burst", "at": [0.9, -5.6, 3.1], "r": 0.6, "rgb": [0.72, 0.35, 1] },
+				{ "label": "", "shape": "burst", "at": [0.5, -4.4, 5.1], "r": 0.6, "rgb": [0.72, 0.35, 1] }
+			]
+		},
+		{
+			"name": "Left straight",
+			"t": 0.55,
+			"desc": "Left arm full out, right snapped back, torso turned opposite",
+			"root": { "Torso": [0, -0.5, 0] },
+			"parts": {
+				"Torso": [22, 0, -36],
+				"Head": [-18, 0, 28],
+				"RightArm": [60, 22, 0],
+				"LeftArm": [-92, 14, 0],
+				"FloatHips": [-18, 0, 14],
+				"Hair": [14, 0, 0]
+			}
+		},
+		{
+			"name": "Both fists",
+			"t": 0.72,
+			"desc": "Peak speed: both arms forward, one high, one low",
+			"root": { "Torso": [0, -0.55, 0] },
+			"parts": {
+				"Torso": [24, 0, 8],
+				"Head": [-20, 0, -6],
+				"RightArm": [-122, -8, 0],
+				"LeftArm": [-62, 8, 0],
+				"FloatHips": [-28, 0, -4],
+				"Hair": [20, 0, 0]
+			}
+		},
+		{
+			"name": "Recovery",
+			"t": 1.05,
+			"desc": "Upright, arms back to the signature pose, hair settling",
+			"parts": {
+				"Torso": [-6, 0, 0],
+				"Head": [2, 0, 0],
+				"RightArm": [-50, 6, 0],
+				"LeftArm": [-14, -10, 0],
+				"FloatHips": [6, 0, 0],
+				"Hair": [-8, 0, 0]
+			}
+		}
+	]
+}

@@ -1,35 +1,34 @@
 --!nonstrict
--- Tracks panel (design doc 4.15, owner 2026-11-02): opened by the plaza sensei's OpenCheckpoints prompt. One card
--- per track (number, biome name, lock); the detail pane shows the clicked track's biome, status, length, NPC rival
--- speed and time, the player's cruise and time, payout and checkpoint bonus. START HERE picks the checkpoint; the
--- server decides (Remotes.SetCheckpoint), the panel only shows the attributes Checkpoint, BestTrack and Cruise.
+-- Tracks panel (design doc 4.15, owner 2026-11-04): opened by the plaza sensei's OpenCheckpoints prompt. One scrolling
+-- list of long cards, one per track (number, road screenshot, biome name, definition, recommended speed, enemy, lock).
+-- Clicking an open card picks it as the checkpoint; the server decides (Remotes.SetCheckpoint), the panel only shows
+-- the attributes Checkpoint and BestTrack.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local TrackRegistry = require(shared.TrackRegistry)
+local TrackCards = require(shared.TrackCards)
 local CheckpointConfig = require(shared.CheckpointConfig)
 local Themes = require(shared.BiomeThemes)
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local TrackBuilder = require(shared.TrackBuilder)
 local HudFormat = require(shared.HudFormat)
 local NpcConfig = require(shared.NpcConfig)
 local UiTheme = require(shared.UiTheme)
-local RunService = game:GetService("RunService")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
-local BiomePreview = require(script.Parent:WaitForChild("BiomePreview"))
+local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 
--- Same vocabulary as the Backpack and Market (HUD_LAYOUT_SPEC section 3): dark body, navy tiles, blue glow
--- border, green border on the selected tile, Fredoka outlined text.
+-- Owner reference (placeholder colours): dark violet card, number in a diamond, violet title, green stats.
 local OUTLINE = UiTheme.Outline
-local CARD = UiTheme.Palette.TileDeep
-local TILE_BLUE = UiTheme.Palette.Tile
+local CARD = Color3.fromRGB(28, 18, 48)
+local CARD_DEEP = Color3.fromRGB(16, 10, 30)
+local VIOLET = Color3.fromRGB(170, 130, 255)
 local SELECTED = UiTheme.Palette.Money
-local GOOD, BAD = UiTheme.Palette.Ahead, UiTheme.Palette.Behind
+local STAT = UiTheme.Palette.Money
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -62,7 +61,7 @@ local root = make("ScreenGui", "CheckpointUi", gui, {
 local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromOffset(760, 480),
+	Size = UDim2.fromOffset(760, 560),
 	Visible = false,
 	Active = true,
 })
@@ -73,7 +72,7 @@ PanelSwitch.Register("Checkpoints", panel)
 local close = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Tracks", MaxWidth = 760 }).Close
 -- No HudIcons art for tracks: a finish flag glyph fills the header's icon slot.
 caption("Flag", panel.Header.Icon, { Size = UDim2.fromScale(1, 1), Text = "🏁", ZIndex = 4 })
-local HINT = "Pick a checkpoint: your runs start there. Tracks past it in one run pay a bonus."
+local HINT = "Click a track: your runs start there. Tracks past it in one run pay a bonus."
 local hint = caption("Hint", panel, {
 	Position = UDim2.fromOffset(16, 70),
 	Size = UDim2.new(1, -32, 0, 24),
@@ -81,167 +80,174 @@ local hint = caption("Hint", panel, {
 	TextColor3 = Color3.fromRGB(210, 200, 230),
 })
 
--- Section 4 (owner 2026-10-27): the card grid on the left, the detail pane of the shown track on the right.
 local list = make("ScrollingFrame", "Cards", panel, {
 	Position = UDim2.fromOffset(16, 102),
-	Size = UDim2.new(0.58, -24, 1, -114),
+	Size = UDim2.new(1, -32, 1, -114),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
 })
-make("UIPadding", "Pad", list, { PaddingTop = UDim.new(0, 4), PaddingRight = UDim.new(0, 8) })
-local grid = make("UIGridLayout", "Grid", list, {
-	CellSize = UDim2.new(1 / 3, -8, 0, 132),
-	CellPadding = UDim2.fromOffset(10, 10),
+-- Left, top and bottom leave room for the card's border stroke, which the list would clip.
+make("UIPadding", "Pad", list, {
+	PaddingTop = UDim.new(0, 4),
+	PaddingBottom = UDim.new(0, 4),
+	PaddingLeft = UDim.new(0, 2),
+	PaddingRight = UDim.new(0, 8),
+})
+make("UIListLayout", "List", list, {
+	FillDirection = Enum.FillDirection.Vertical,
+	Padding = UDim.new(0, 10),
 	SortOrder = Enum.SortOrder.LayoutOrder,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 })
-list:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-	local columns = list.AbsoluteSize.X < 330 and 2 or 3
-	grid.CellSize = UDim2.new(1 / columns, -8, 0, columns == 2 and 120 or 132)
-end)
-
-local DETAIL_HOME = UDim2.new(1, -16, 0, 102)
-local detail = make("Frame", "Detail", panel, {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = DETAIL_HOME,
-	Size = UDim2.new(0.42, -8, 1, -114),
-})
-UiTheme.Plate(detail, TILE_BLUE)
-detail.BackgroundTransparency = 0
-local detailPreview = make("ViewportFrame", "Preview", detail, {
-	Position = UDim2.fromOffset(10, 10),
-	Size = UDim2.new(1, -20, 0.32, 0),
-	BorderSizePixel = 0,
-})
-corner(detailPreview, UiTheme.Radius.S)
-local function row(name, y, h, color)
-	return caption(name, detail, {
-		Position = UDim2.new(0, 12, y, 0),
-		Size = UDim2.new(1, -24, h, 0),
-		Text = "",
-		TextColor3 = color,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-end
-local title = row("Title", 0.345, 0.07)
-local status = caption("Status", detail, {
-	Position = UDim2.new(0, 12, 0.42, 0),
-	Size = UDim2.fromScale(0.7, 0.055),
-	Text = "",
-})
-status.BackgroundTransparency = 0 -- caption() makes labels transparent; this one is a chip
-corner(status, 999)
-make("UIPadding", "Pad", status, { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) })
-local lengthLabel = row("Length", 0.49, 0.05)
-local rival = row("Rival", 0.55, 0.05, UiTheme.Palette.Speed)
-local you = row("You", 0.61, 0.05)
-local cash = row("Cash", 0.67, 0.05, GOOD)
-local bonusLabel = row("Bonus", 0.73, 0.05, Color3.fromRGB(255, 215, 90))
-local start = make("TextButton", "Start", detail, {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.new(1, -24, 0.11, 0),
-	Text = "START HERE",
-	Font = UiTheme.Font,
-	TextScaled = true,
-	TextColor3 = Color3.new(1, 1, 1),
-	BackgroundColor3 = SELECTED,
-	AutoButtonColor = false,
-})
-corner(start, UiTheme.Radius.S)
-UiTheme.Stroke(start, 2)
-make("UIPadding", "Pad", start, { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) })
 
 -- The biome's in-game name (the welcome popup's, design doc 4.17), e.g. "Shibuyo Underground"
 local function biomeName(spec)
 	local theme = Themes[spec.Biome or ""]
 	return theme and theme.DisplayName or spec.Name or ""
 end
-local function seconds(t)
-	local whole = math.ceil(t)
-	return whole < 60 and string.format("%d s", whole) or string.format("%d:%02d", whole // 60, whole % 60)
-end
 
 local chain = TrackRegistry.Chain()
 local cards = {}
-local shown -- track number in the detail pane
-local turnDetail
-local showTrack
+local picking = false
+
+local function pick(n, card)
+	local best = player:GetAttribute("BestTrack")
+	if not CheckpointConfig.IsOpen(n, best, #chain) then
+		UiFeedback.Play("Denied", card)
+		hint.Text = "Beat Track " .. (n - 1) .. " first"
+		return
+	end
+	if picking or n == CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), best, #chain) then
+		return
+	end
+	picking = true
+	-- pcall: a failed call must not leave the guard set, or no card could be picked again.
+	local called, ok, reason = pcall(function()
+		return remotes:WaitForChild("SetCheckpoint"):InvokeServer(n)
+	end)
+	picking = false
+	if called and ok then
+		UiFeedback.Play("Equip", card)
+	else
+		hint.Text = tostring(called and reason or "Try again")
+		UiFeedback.Play("Denied", card)
+	end
+end
 
 for _, spec in chain do
 	local n = spec.Number
+	local enemy = NpcConfig.For(n)
 	local card = make("TextButton", "Track_" .. n, list, {
 		LayoutOrder = n,
-		BackgroundColor3 = Color3.new(1, 1, 1),
+		Size = UDim2.new(1, -18, 0, 108), -- leaves room for the 1.035 hover scale (RacerMotion), which grows rightward
+		BackgroundColor3 = CARD,
 		Text = "",
 		AutoButtonColor = false,
 	})
 	corner(card, UiTheme.Radius.M)
-	-- Subtle navy gradient (Backpack tiles); the white background lets the gradient set the colour.
-	UiTheme.Gradient(card, UiTheme.Palette.Row, CARD)
 	local edge = make("UIStroke", "Stroke", card, {
-		Color = TILE_BLUE,
-		Thickness = 4,
+		Color = VIOLET,
+		Thickness = 2,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
-	local preview = make("ViewportFrame", "Preview", card, {
-		Position = UDim2.fromScale(0.06, 0.05),
-		Size = UDim2.fromScale(0.88, 0.56),
+	local diamond = make("Frame", "Diamond", card, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 46, 0.5, 0),
+		Size = UDim2.fromOffset(58, 58),
+		Rotation = 45,
+		BackgroundColor3 = CARD_DEEP,
 		BorderSizePixel = 0,
+		Active = false,
 	})
-	corner(preview, UiTheme.Radius.S)
-	caption(
-		"Number",
-		card,
-		{ Position = UDim2.fromScale(0.05, 0.63), Size = UDim2.fromScale(0.9, 0.19), Text = "TRACK " .. n }
-	)
-	caption("Biome", card, {
-		Position = UDim2.fromScale(0.05, 0.81),
-		Size = UDim2.fromScale(0.9, 0.14),
+	make("UIStroke", "Stroke", diamond, { Color = VIOLET, Thickness = 2 })
+	caption("Number", card, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 46, 0.5, 0),
+		Size = UDim2.fromOffset(44, 34),
+		Text = tostring(n),
+		ZIndex = 2,
+	})
+	local road = make("ImageLabel", "Road", card, {
+		Position = UDim2.fromOffset(92, 10),
+		Size = UDim2.fromOffset(158, 88),
+		ScaleType = Enum.ScaleType.Crop,
+		Image = TrackCards[n].Road or "",
+		BackgroundColor3 = CARD_DEEP,
+	})
+	corner(road, UiTheme.Radius.S)
+	caption("Title", card, {
+		Position = UDim2.fromOffset(262, 8),
+		Size = UDim2.new(1, -274, 0, 24),
 		Text = biomeName(spec),
-		TextColor3 = Color3.fromRGB(170, 190, 255),
+		TextColor3 = VIOLET,
+		TextXAlignment = Enum.TextXAlignment.Left,
 	})
+	local blurb = caption("Blurb", card, {
+		Position = UDim2.fromOffset(262, 34),
+		Size = UDim2.new(1, -274, 0, 42),
+		Text = TrackCards[n].Blurb,
+		TextColor3 = Color3.fromRGB(235, 230, 245),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+	})
+	blurb.Outline.Thickness = 1 -- the helper's 2 px closes up text this small
+	make("UITextSizeConstraint", "Fit", blurb, { MaxTextSize = 15, MinTextSize = 9 })
+	-- Speed and Enemy split the (1, -274) text column, 8 px apart.
+	caption("Speed", card, {
+		Position = UDim2.fromOffset(262, 80),
+		Size = UDim2.new(0.5, -141, 0, 20),
+		Text = "RECOMMENDED SPEED " .. HudFormat.SpeedText(NpcConfig.RecommendedSpeed(n)),
+		TextColor3 = STAT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	caption("Enemy", card, {
+		Position = UDim2.new(0.5, 129, 0, 80),
+		Size = UDim2.new(0.5, -141, 0, 20),
+		Text = "ENEMY " .. enemy.Label,
+		TextColor3 = STAT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	-- Over the Road's bottom right corner: nothing else sits there, so it never covers text.
+	local chip = caption("Chip", card, {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.fromOffset(246, 94),
+		Size = UDim2.fromOffset(112, 20),
+		Text = "YOUR CHECKPOINT",
+		BackgroundColor3 = UiTheme.Palette.MoneyDeep,
+		Visible = false,
+		ZIndex = 2,
+	})
+	chip.BackgroundTransparency = 0 -- caption() makes labels transparent; this one is a chip
+	corner(chip, 999)
+	make("UIPadding", "Pad", chip, { PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6) })
 	local lock = make("Frame", "Lock", card, {
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.4,
 		ZIndex = 3,
+		Active = false,
 	})
 	corner(lock, UiTheme.Radius.M)
-	caption(
-		"Icon",
-		lock,
-		{ Position = UDim2.fromScale(0.3, 0.1), Size = UDim2.fromScale(0.4, 0.4), Text = "🔒", ZIndex = 4 }
-	)
+	caption("Icon", lock, {
+		-- Over the Road image, clear of the card's text
+		Position = UDim2.fromOffset(151, 14),
+		Size = UDim2.fromOffset(40, 40),
+		Text = "🔒",
+		ZIndex = 4,
+	})
 	caption("Need", lock, {
-		Position = UDim2.fromScale(0.05, 0.5),
-		Size = UDim2.fromScale(0.9, 0.15),
+		Position = UDim2.fromOffset(92, 60),
+		Size = UDim2.fromOffset(158, 24),
 		Text = "Beat Track " .. (n - 1),
 		ZIndex = 4,
 	})
 	card.Activated:Connect(function()
-		showTrack(n)
+		pick(n, card)
 	end)
-	cards[n] = {
-		Card = card,
-		Edge = edge,
-		Lock = lock,
-		Preview = preview,
-		Spec = spec,
-		Length = TrackBuilder.Layout(spec).Length,
-	}
-end
-
--- Previews are built on the first open, once the server's TrackPreviews bake has replicated.
-local function buildPreviews()
-	for _, refs in cards do
-		if not refs.Turn then
-			refs.Turn = BiomePreview.FromTrack(refs.Preview, refs.Spec.Name, refs.Spec.Biome)
-		end
-	end
+	cards[n] = { Edge = edge, Chip = chip, Lock = lock }
 end
 
 local function render()
@@ -249,84 +255,10 @@ local function render()
 	local current = CheckpointConfig.Effective(player:GetAttribute("Checkpoint"), best, #chain)
 	for n, refs in cards do
 		refs.Lock.Visible = not CheckpointConfig.IsOpen(n, best, #chain)
-		UiMotion.Mark(
-			refs.Edge,
-			{ Color = n == current and SELECTED or (n == shown and Color3.new(1, 1, 1) or TILE_BLUE) }
-		)
+		refs.Chip.Visible = n == current
+		UiMotion.Mark(refs.Edge, { Color = n == current and SELECTED or VIOLET })
 	end
-	local refs = shown and cards[shown]
-	if not refs then
-		return
-	end
-	local open = CheckpointConfig.IsOpen(shown, best, #chain)
-	local beaten = (tonumber(best) or 0) >= shown
-	title.Text = string.format("TRACK %d · %s", shown, string.upper(biomeName(refs.Spec)))
-	status.Text = shown == current and "YOUR CHECKPOINT"
-		or (beaten and "BEATEN" or (open and "NEXT TO BEAT" or ("LOCKED · BEAT TRACK " .. (shown - 1))))
-	status.BackgroundColor3 = open and UiTheme.Palette.MoneyDeep or UiTheme.Palette.DangerDeep
-	lengthLabel.Text = "LENGTH " .. HudFormat.SpeedText(math.floor(refs.Length + 0.5)) .. " studs"
-	-- shortcut: times are length / speed; the NPC slows on tight corners, so its real time can be a little longer
-	local enemy = NpcConfig.For(shown)
-	local npc = enemy.Speed
-	rival.Text =
-		string.format("%s %d studs/s · about %s", enemy.Label, math.floor(npc + 0.5), seconds(refs.Length / npc))
-	local cruise = tonumber(player:GetAttribute("Cruise")) or 0
-	you.Text = cruise > 0
-			and string.format(
-				"YOUR RUNNER %d studs/s · about %s",
-				math.floor(cruise + 0.5),
-				seconds(refs.Length / cruise)
-			)
-		or "YOUR RUNNER -"
-	you.TextColor3 = cruise > npc and GOOD or BAD
-	cash.Text = "PAYOUT " .. HudFormat.MoneyText(TrackBuilder.CashFor(shown))
-	local bonus = CheckpointConfig.Bonus(shown - current)
-	bonusLabel.Text = shown > current
-			and string.format(
-				"BONUS %s past your checkpoint: %s",
-				HudFormat.Multi(bonus),
-				HudFormat.MoneyText(math.floor(TrackBuilder.CashFor(shown) * bonus))
-			)
-		or "BONUS x1 · tracks after your checkpoint pay more"
-	local selected = shown == current
-	start.Text = selected and "SELECTED" or (open and "START HERE" or "LOCKED")
-	start.Active = open and not selected
-	start.BackgroundColor3 = start.Active and SELECTED or UiTheme.Palette.Muted
 end
-
-function showTrack(n)
-	local changed = shown ~= n
-	shown = n
-	if changed then
-		turnDetail = BiomePreview.FromTrack(detailPreview, cards[n].Spec.Name, cards[n].Spec.Biome)
-		detail.Position = DETAIL_HOME -- a click mid-slide must not move the pane's home
-		UiMotion.SlideIn(detail, Vector2.new(16, 0), 0.2)
-	end
-	render()
-end
-
-start.Activated:Connect(function()
-	if not start.Active or not shown then
-		return
-	end
-	local ok, reason = remotes:WaitForChild("SetCheckpoint"):InvokeServer(shown)
-	if not ok then
-		hint.Text = tostring(reason or "Try again")
-	end
-end)
-
--- The shown track's previews turn slowly while the panel is open (not while motion is reduced).
-local angle = math.rad(35)
-RunService.RenderStepped:Connect(function(dt)
-	if not panel.Visible or UiMotion.Reduced() or not shown then
-		return
-	end
-	angle += dt * 0.35
-	turnDetail(angle)
-	if cards[shown].Turn then
-		cards[shown].Turn(angle)
-	end
-end)
 
 local function closePanel()
 	PanelSwitch.Close("Checkpoints")
@@ -334,20 +266,10 @@ end
 close.Activated:Connect(closePanel)
 PanelFrame.CloseOnOutsideClick(panel, closePanel)
 panel:GetPropertyChangedSignal("Visible"):Connect(function()
-	if panel.Visible then
-		buildPreviews()
-		showTrack(
-			shown
-				or CheckpointConfig.Effective(
-					player:GetAttribute("Checkpoint"),
-					player:GetAttribute("BestTrack"),
-					#chain
-				)
-		)
-	end
+	hint.Text = HINT
 end)
 player.AttributeChanged:Connect(function(attr)
-	if attr == "Checkpoint" or attr == "BestTrack" or attr == "Cruise" then
+	if attr == "Checkpoint" or attr == "BestTrack" then
 		hint.Text = HINT
 		render()
 	end

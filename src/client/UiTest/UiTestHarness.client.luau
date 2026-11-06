@@ -29,6 +29,7 @@ local function runAll()
 	end
 	busy = true
 	print("[UITEST] START")
+	pcall(UiScenarios.PlayWithoutPasses)
 	local results, pass, fail = {}, 0, 0
 	for _, name in UiScenarios.Names do
 		local ok, res = pcall(UiScenarios.Run, name)
@@ -108,6 +109,7 @@ ReplicatedStorage:GetAttributeChangedSignal("UiTestScenario"):Connect(function()
 			task.wait(0.1)
 		end
 		busy = true
+		pcall(UiScenarios.PlayWithoutPasses)
 		local ok, res = pcall(UiScenarios.Run, name)
 		if not ok then
 			res = {

@@ -1,9 +1,11 @@
 --!nonstrict
 -- The Index header's tabs. Index is character discovery only (docs/HUD_LAYOUT_SPEC.md sections 1 and 3): consumables are
 -- used from the Backpack's Misc tab, so the generated CONSUMABLES tab and its host are held hidden and stay empty.
--- ENEMIES (design doc 4.29) takes that tab's place: a copy, as generated code owns the original.
+-- ENEMIES (design doc 4.29) takes that tab's place: a copy, as generated code owns the original. SIDEKICKS (design doc 4.36) and
+-- RELICS (design doc 4.38) are more copies, after ENEMIES. A press on an owned Sidekick or Relic opens Client/ItemMenu.
 local Tabs = {}
 local Components = require(script.Parent.RacerComponents)
+local ItemMenu = require(script.Parent.Parent.Parent:WaitForChild("ItemMenu"))
 local UiFeedback = require(script.Parent.Parent.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent.Parent.Parent:WaitForChild("UiMotion"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
@@ -27,36 +29,75 @@ local function markTab(button, active)
 	end
 end
 
--- A copy of the retired tab that keeps following its desktop / phone layout. Returns the copy's Face button.
-local function enemiesTab(refs)
+local function follow(from, to, property)
+	from:GetPropertyChangedSignal(property):Connect(function()
+		to[property] = from[property]
+	end)
+end
+
+-- A copy of the retired tab named `name`, without hover (RacerMotion gives it its own). Returns the copy and its caption.
+local function copyTab(refs, name, text)
 	local source = refs.ConsumablesTab.Parent
 	local tab = source:Clone()
-	tab.Name = "EnemiesTab"
+	tab.Name = name .. "Tab"
 	tab.Visible = true
 	local caption = tab.Face.ConsumablesTabLabel
-	caption.Name = "EnemiesTabLabel"
-	caption.Text = "ENEMIES"
+	caption.Name = name .. "TabLabel"
+	caption.Text = text
 	local hover = tab.Face:FindFirstChild("HoverScale") -- RacerMotion gives the copy its own
 	if hover then
 		hover:Destroy()
 	end
 	tab.Parent = source.Parent
-	local function follow(from, to, property)
-		from:GetPropertyChangedSignal(property):Connect(function()
-			to[property] = from[property]
-		end)
-	end
+	return tab, caption
+end
+
+-- The ENEMIES copy keeps following its desktop / phone layout. Returns the tab.
+local function enemiesTab(refs)
+	local source = refs.ConsumablesTab.Parent
+	local tab, caption = copyTab(refs, "Enemies", "ENEMIES")
 	follow(source, tab, "Position")
 	-- As wide as CHARACTERS: the retired tab's longer width reaches Close on phones
 	local sized = refs.CharactersTab.Parent
 	tab.Size = sized.Size
 	follow(sized, tab, "Size")
 	follow(refs.ConsumablesTabLabel, caption, "TextSize")
-	return tab.Face
+	return tab
+end
+
+-- Right after ENEMIES, narrowed to stop short of Close and share the room: on phones only about 100 of the design pixels are left.
+local function sideTabs(refs, enemies)
+	local function copy(name, text)
+		local tab, caption = copyTab(refs, name, text)
+		caption.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 22
+		limit.Parent = caption
+		return tab
+	end
+	local sidekicks, relics = copy("Sidekicks", "SIDEKICKS"), copy("Relics", "RELICS")
+	local close = refs.Close.Parent
+	local function place()
+		local x = enemies.Position.X.Offset + enemies.Size.X.Offset + 8
+		local room = close.Position.X.Offset - x - 8
+		local width = math.min(enemies.Size.X.Offset, math.floor((room - 8) / 2))
+		sidekicks.Position = UDim2.fromOffset(x, enemies.Position.Y.Offset)
+		sidekicks.Size = UDim2.fromOffset(width, enemies.Size.Y.Offset)
+		relics.Position = UDim2.fromOffset(x + width + 8, enemies.Position.Y.Offset)
+		relics.Size = sidekicks.Size
+	end
+	enemies:GetPropertyChangedSignal("Position"):Connect(place)
+	enemies:GetPropertyChangedSignal("Size"):Connect(place)
+	close:GetPropertyChangedSignal("Position"):Connect(place)
+	place()
+	return sidekicks, relics
 end
 
 function Tabs.Attach(refs, player, refreshCars)
-	local enemiesFace = enemiesTab(refs)
+	local enemies = enemiesTab(refs)
+	local enemiesFace = enemies.Face
+	local sidekicksTab, relicsTab = sideTabs(refs, enemies)
+	local sidekicksFace, relicsFace = sidekicksTab.Face, relicsTab.Face
 	-- The generated fit re-applies the authored Visible = true on every refit. refs.ConsumablesTab is the tab's
 	-- Face button; its wrapper Frame (Header/Face/ConsumablesTab) is the visible tab.
 	for _, retired in { refs.ConsumablesTab.Parent, refs.ConsumablesHost } do
@@ -69,13 +110,23 @@ function Tabs.Attach(refs, player, refreshCars)
 	end
 	local gallery = refs.GridHost:WaitForChild("Gallery")
 	local enemiesPage, enemyTiles = Components.EnemiesPage(refs, player)
+	local sidekicksPage, sidekickTiles = Components.SidekicksPage(refs, player, function(id, tile)
+		ItemMenu.OpenId("Sidekick", id, tile)
+	end)
+	local relicsPage, relicTiles = Components.RelicsPage(refs, player, function(id, tile)
+		ItemMenu.OpenId("Relic", id, tile)
+	end)
 	local function show(tab)
 		refs.Gui:SetAttribute("InventoryTab", tab)
 		refs.GridHost.Visible = true
 		gallery.Visible = tab == "Characters"
 		enemiesPage.Visible = tab == "Enemies"
+		sidekicksPage.Visible = tab == "Sidekicks"
+		relicsPage.Visible = tab == "Relics"
 		markTab(refs.CharactersTab, tab == "Characters")
 		markTab(enemiesFace, tab == "Enemies")
+		markTab(sidekicksFace, tab == "Sidekicks")
+		markTab(relicsFace, tab == "Relics")
 		refreshCars()
 	end
 	refs.CharactersTab.Activated:Connect(function()
@@ -90,6 +141,20 @@ function Tabs.Attach(refs, player, refreshCars)
 		end
 		show("Enemies")
 		UiMotion.Cascade(enemyTiles, "Stroke")
+	end)
+	sidekicksFace.Activated:Connect(function()
+		if refs.Gui:GetAttribute("InventoryTab") ~= "Sidekicks" then
+			UiFeedback.Play("TabSwitch")
+		end
+		show("Sidekicks")
+		UiMotion.Cascade(sidekickTiles, "Stroke")
+	end)
+	relicsFace.Activated:Connect(function()
+		if refs.Gui:GetAttribute("InventoryTab") ~= "Relics" then
+			UiFeedback.Play("TabSwitch")
+		end
+		show("Relics")
+		UiMotion.Cascade(relicTiles, "Stroke")
 	end)
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
 		task.defer(function()

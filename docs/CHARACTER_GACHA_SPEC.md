@@ -20,7 +20,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3, 4.1, 4.5, 4.8, 5 and 6.
 | `Series` | id of the character's series in `Shared/SeriesCatalog` (design doc 4.8) |
 | `Archetype` | ninja, swordsman, mage, brawler, idol, mecha pilot, beast-kin, gunslinger, monk, spirit |
 | `Model` | name under `ReplicatedStorage.CharacterModels`; nil shows the "?" placeholder |
-| `RunStyle` | optional animation set: `Sprint`, `NinjaRun`, `Glide`, `Float`; nil = the default swing. Only `NinjaRun` is built (design doc 4.23) |
+| `RunStyle` | optional animation set: `Sprint`, `NinjaRun`, `Glide`, `Float`; nil = the universal run (design doc 4.34). Only `NinjaRun` is built (design doc 4.23) |
 | `Event` | optional: `rain`, `night` or `gold`; the character is rollable only during that weather event (IVS `WEATHER_EVENTS_SPEC.md`) |
 
 - `starter` is built in: not rollable, not in the Index, `Balanced`, no Series. Kept for old saves.
@@ -120,6 +120,12 @@ Villains (owner 2026-11-04, design doc 4.32; `Chance`, `SpeedMulti`, Cat. are pr
 | Jujitsu Kaisan | Mahitoh | Mahito | Legendary | B | `jk_patch` | 5e8 | 90 | `foe_jk2` |
 | My Hero Akademia | Shigaraky | Tomura Shigaraki | Legendary | S | `mha_decay` | 1.5e8 | 65 | `foe_mha` |
 
+Robux-exclusive runner (owner 2026-11-04, design doc 4.35; never rolled, not in the Index, no Series, not counted in the rows below):
+
+| Character | Based on | Rarity | Cat. | Id | Base cruise | Model |
+|---|---|---|---|---|---|---|
+| Saitamo | Saitama (One-Punch Man) | Mythic (proposed) | B | `punch_hero` | 350 | `punch_hero` |
+
 Counts per rarity: Common 1, Uncommon 7, Rare 7, Epic 9, Legendary 9, Mythic 9, Secret 2.
 
 Placeholder `Chance` (1 in N) and `SpeedMulti` per id (within the bands above; tunable):
@@ -169,6 +175,10 @@ Preset trios (the anime's famous team):
 
 - Art follows design doc section 5 safeguards: in-house models only, no ripped assets, no official logos or audio.
 
+Named in text but not in the cast (design doc section 5, one list): Mahoraka (Mahoraga, Jujutsu Kaisen), Track 5's card definition only (`TRACKS_AND_BIOMES_SPEC`).
+
+Sidekicks and boss (design doc section 5, one list): Pochito (Pochita, Chainsaw Man), Hawke (Hawk, The Seven Deadly Sins), Kasugay (Kasugai crows, Demon Slayer), Gyokan (Divine Dogs, Jujutsu Kaisen), Choppa (Chopper, One Piece), Beroo (Beru, Solo Leveling), Ryuuk (Ryuk, Death Note), Purple Platina (Star Platinum, JoJo's Bizarre Adventure), Igriz (Igris, Solo Leveling), Kaizel (Kaisel, Solo Leveling), Rikka (Rika, Jujutsu Kaisen), Kurami (Kurama, Naruto), Big Raga (Mahoraga, Jujutsu Kaisen). Relics: Nobora's Nail (Nobara's nails), Sukana's Finger (Sukuna's fingers), Gojio's Sixfold Eyes (Gojo's Six Eyes), Raga's Wheel (Mahoraga's wheel), all Jujutsu Kaisen.
+
 ## Art
 
 - R15-compatible rig, Roblox avatar proportions and lighting (owner 2026-11-03, design doc 5): blocky body, big mesh hair;
@@ -190,6 +200,10 @@ Preset trios (the anime's famous team):
   `tools/blender/avatar_assets.json`, generated `Shared/CharacterModelAssets`). `Server/CharacterModelService` loads
   them into `ReplicatedStorage.CharacterModels/<id>/<part>` at start; `RunnerFactory` clones those, and falls back to
   the placeholder block rig for anything without a model (`starter`, event-only characters).
+- Baked copies (owner 2026-11-06): `LoadAsset` refuses collaborators in Studio because the assets are under the owner's
+  account, so each model is also saved in the place at `ServerStorage.BakedModels/<asset id>`. The game clones that copy
+  first and calls `LoadAsset` only when there is none. A newly uploaded model must be baked by the owner, or collaborators
+  see the placeholder.
 
 ### Target look (owner 2026-11-03; design doc 5)
 

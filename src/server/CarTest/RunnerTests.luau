@@ -610,6 +610,10 @@ function Tests.scrap()
 	local named =
 		{ CarFactory = 0, CarPhysics = 0, CarConfig = 0, RacingGarage = 0, RaceStartPavilion = 0, CarModels = 0 }
 	local seats, wheels = 0, 0
+	-- Big Raga's approved divine wheel lives in these two model folders; it is not a leftover vehicle wheel.
+	local sidekickModels = ReplicatedStorage:FindFirstChild("SidekickModels")
+	local bossModels = ReplicatedStorage:FindFirstChild("BossModels")
+	local bakedModels = game:GetService("ServerStorage"):FindFirstChild("BakedModels")
 	for _, d in placeDescendants() do
 		if named[d.Name] then
 			named[d.Name] += 1
@@ -617,7 +621,13 @@ function Tests.scrap()
 		if d:IsA("VehicleSeat") then
 			seats += 1
 		end
-		if d:IsA("BasePart") and string.find(string.lower(d.Name), "wheel", 1, true) then
+		if
+			d:IsA("BasePart")
+			and string.find(string.lower(d.Name), "wheel", 1, true)
+			and not (sidekickModels and d:IsDescendantOf(sidekickModels))
+			and not (bossModels and d:IsDescendantOf(bossModels))
+			and not (bakedModels and d:IsDescendantOf(bakedModels))
+		then
 			wheels += 1
 		end
 	end

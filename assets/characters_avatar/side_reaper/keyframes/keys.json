@@ -1,0 +1,314 @@
+{
+ "id": "side_reaper",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Head": [
+   0.0,
+   0.0,
+   4.08
+  ],
+  "LeftArm": [
+   1.52,
+   0.0,
+   3.9
+  ],
+  "LeftLeg": [
+   0.52,
+   0.0,
+   2.0
+  ],
+  "RightArm": [
+   -1.52,
+   0.0,
+   3.9
+  ],
+  "RightLeg": [
+   -0.52,
+   0.0,
+   2.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   3.0
+  ],
+  "WingLeft": [
+   0.52,
+   0.72,
+   3.72
+  ],
+  "WingRight": [
+   -0.52,
+   0.72,
+   3.72
+  ]
+ },
+ "rest": {
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLeg": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Ryuuk: falling notebook pages (proposed)",
+   "end": 1.4,
+   "Release": 0.7,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.35,
+     "desc": "Hunches, wings folded in, both hands low at the belly",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       -0.25
+      ]
+     },
+     "rotations": {
+      "Head": [
+       14,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -40,
+       25,
+       0
+      ],
+      "LeftLeg": [
+       -34,
+       0,
+       0
+      ],
+      "RightArm": [
+       -40,
+       -25,
+       0
+      ],
+      "RightLeg": [
+       -34,
+       0,
+       0
+      ],
+      "Torso": [
+       24,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       34,
+       38
+      ],
+      "WingRight": [
+       0,
+       -34,
+       -38
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.7,
+     "desc": "Flings arms overhead, wings burst open, pages scatter up",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.35
+      ]
+     },
+     "rotations": {
+      "Head": [
+       -16,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -165,
+       28,
+       0
+      ],
+      "LeftLeg": [
+       24,
+       -6,
+       0
+      ],
+      "RightArm": [
+       -165,
+       -28,
+       0
+      ],
+      "RightLeg": [
+       24,
+       6,
+       0
+      ],
+      "Torso": [
+       -20,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -30,
+       8
+      ],
+      "WingRight": [
+       0,
+       30,
+       -8
+      ]
+     }
+    },
+    {
+     "name": "Watch them fall",
+     "t": 0.95,
+     "desc": "Arms spread out and down, head tips forward, grin at the pages",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0.15
+      ]
+     },
+     "rotations": {
+      "Head": [
+       30,
+       8,
+       0
+      ],
+      "LeftArm": [
+       -30,
+       -88,
+       0
+      ],
+      "LeftLeg": [
+       6,
+       -4,
+       0
+      ],
+      "RightArm": [
+       -30,
+       88,
+       0
+      ],
+      "RightLeg": [
+       6,
+       4,
+       0
+      ],
+      "Torso": [
+       8,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       -6,
+       2
+      ],
+      "WingRight": [
+       0,
+       6,
+       -2
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.2,
+     "desc": "Settles into the hover, arms dangle, one wing beat",
+     "root_offset": {
+      "Torso": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "Head": [
+       6,
+       0,
+       0
+      ],
+      "LeftArm": [
+       -12,
+       -14,
+       0
+      ],
+      "LeftLeg": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "RightArm": [
+       -12,
+       14,
+       0
+      ],
+      "RightLeg": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Torso": [
+       2,
+       0,
+       0
+      ],
+      "WingLeft": [
+       0,
+       18,
+       10
+      ],
+      "WingRight": [
+       0,
+       -18,
+       -10
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

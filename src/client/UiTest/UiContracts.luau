@@ -6,7 +6,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Catalog = require(Shared.CharacterCatalog)
 local Portraits = require(Shared.CharacterPortraits)
 local TrackRegistry = require(Shared.TrackRegistry)
-local TrackBuilder = require(Shared.TrackBuilder)
+local TrackCards = require(Shared.TrackCards)
+local NpcConfig = require(Shared.NpcConfig)
 local Format = require(Shared.HudFormat)
 local Market = require(Shared.MarketConfig)
 local RaceConfig = require(Shared.RaceConfig)
@@ -59,63 +60,6 @@ function Contracts.Build(h)
 		local theme = require(ReplicatedStorage.Shared.BiomeThemes)[biome or ""]
 		return theme and theme.DisplayName or ""
 	end
-	local function startText(n, best, current)
-		local C = Spec.Checkpoints
-		if n > best then
-			return C.StartLocked, false
-		elseif n == current then
-			return C.StartSelected, false
-		end
-		return C.StartOpen, true
-	end
-
-	-- The detail pane (design doc 4.15) showing track n: title, status chip, payout and START HERE.
-	local function detailChecks(res, prefix, n)
-		local C = Spec.Checkpoints
-		local tracks, best, current = checkpointState()
-		local spec = tracks[n]
-		local detail = required(res, C.Detail, "Frame")
-		if not (detail and spec) then
-			return
-		end
-		check(res, prefix .. "_shown", h.visible(detail), true)
-		required(res, C.Detail .. "/Preview", "ViewportFrame")
-		local function label(name)
-			local l = detail:FindFirstChild(name)
-			return l and l:IsA("TextLabel") and l.Text or "missing"
-		end
-		check(
-			res,
-			prefix .. "_title",
-			label("Title"),
-			("TRACK %d · %s"):format(n, string.upper(biomeTitle(spec.Biome)))
-		)
-		check(res, prefix .. "_cash", label("Cash"), C.CashPrefix .. Format.MoneyText(TrackBuilder.CashFor(n)))
-		local wantStatus = n == current and C.StatusCheckpoint
-			or (n < best and C.StatusBeaten or (n == best and C.StatusNext or C.LockedFormat:format(n - 1)))
-		check(res, prefix .. "_status", label("Status"), wantStatus)
-		for _, name in { "Length", "Rival", "You", "Bonus" } do
-			check(
-				res,
-				prefix .. "_" .. string.lower(name) .. "_filled",
-				label(name) ~= "missing" and label(name) ~= "",
-				true
-			)
-		end
-		local start = detail:FindFirstChild("Start")
-		local wantText, wantActive = startText(n, best, current)
-		h.check(
-			res,
-			prefix .. "_start_button",
-			start and ("%s %q Active=%s"):format(start.ClassName, h.allText(start), tostring(start.Active)) or "missing",
-			("TextButton %q Active=%s"):format(wantText, tostring(wantActive)),
-			start ~= nil
-				and start:IsA("TextButton")
-				and h.allText(start) == wantText
-				and start.Active == wantActive
-				and (wantActive or start.AutoButtonColor == false)
-		)
-	end
 
 	function scenarios.ui_checkpoints(res)
 		local restore = h.setPanels({ Spec.Checkpoints.Panel })
@@ -126,6 +70,9 @@ function Contracts.Build(h)
 			restore()
 			return
 		end
+		-- A click's ScrollIntoView can leave the list scrolled; h.geometry would then flag cards clipped out of view
+		cards.CanvasPosition = Vector2.zero
+		h.frames(1)
 		check(res, "checkpoint_panel_shown", h.visible(panel), true)
 		-- HUD_LAYOUT_SPEC section 2 + CHECKPOINT_SPEC section 3 (owner 2026-10-20): the panel uses PanelFrame.Attach
 		check(res, "checkpoint_panel_frame_attached", panel:GetAttribute("PanelFrame"), true)
@@ -135,8 +82,8 @@ function Contracts.Build(h)
 		local tracks, best, current = checkpointState()
 		local expected, shown = {}, 0
 		local previous
-		-- CHECKPOINT_SPEC section 4 (owner 2026-10-27): each card shows a biome Preview, TRACK n and the biome; locked
-		-- cards keep the dim and lock of section 3 but stay clickable (a click only shows the track in Detail).
+		-- Design doc 4.15 (owner 2026-11-04): a vertical list of long cards showing only the number, road screenshot, biome
+		-- name, definition, recommended speed and enemy. Locked cards stay dimmed and clickable; the click picks nothing.
 		for _, track in tracks do
 			local n = track.Number
 			local prefix = "checkpoint_track_" .. n
@@ -150,15 +97,50 @@ function Contracts.Build(h)
 				local a, b = previous.AbsolutePosition, card.AbsolutePosition
 				check(
 					res,
-					prefix .. "_reading_order",
-					b.Y > a.Y + Spec.Tolerance or (math.abs(b.Y - a.Y) <= Spec.Tolerance and b.X > a.X),
+					prefix .. "_below_previous",
+					b.Y > a.Y + Spec.Tolerance and b.Y >= a.Y + previous.AbsoluteSize.Y - Spec.Tolerance,
 					true
 				)
+				h.check(res, prefix .. "_same_x", b.X, a.X, math.abs(b.X - a.X) <= Spec.Tolerance)
 			end
 			previous = card
-			required(res, h.pathOf(card) .. "/Preview", "ViewportFrame")
-			check(res, prefix .. "_number", text(card:FindFirstChild("Number")), "TRACK " .. n)
-			check(res, prefix .. "_biome", text(card:FindFirstChild("Biome")), biomeTitle(track.Biome))
+			local size = card.AbsoluteSize
+			h.check(
+				res,
+				prefix .. "_width_of_list",
+				size.X,
+				cards.AbsoluteSize.X * Spec.Checkpoints.CardMinWidthShare,
+				size.X >= cards.AbsoluteSize.X * Spec.Checkpoints.CardMinWidthShare
+			)
+			check(res, prefix .. "_long", size.Y > 0 and size.X > size.Y, true)
+			local function label(name)
+				return text(required(res, h.pathOf(card) .. "/" .. name, "TextLabel"))
+			end
+			required(res, h.pathOf(card) .. "/Diamond", "Frame")
+			check(res, prefix .. "_number", label("Number"), tostring(n))
+			local road = required(res, h.pathOf(card) .. "/Road", "ImageLabel")
+			check(
+				res,
+				prefix .. "_road_image",
+				road ~= nil and string.match(road.Image, "^rbxassetid://%d+$") ~= nil,
+				true
+			)
+			check(res, prefix .. "_title", label("Title"), biomeTitle(track.Biome))
+			local blurb = label("Blurb")
+			check(res, prefix .. "_blurb", blurb, (TrackCards[n] or {}).Blurb)
+			check(res, prefix .. "_blurb_filled", blurb ~= "" and blurb ~= "missing", true)
+			check(
+				res,
+				prefix .. "_speed",
+				label("Speed"),
+				Spec.Checkpoints.SpeedPrefix .. Format.SpeedText(NpcConfig.RecommendedSpeed(n))
+			)
+			check(res, prefix .. "_enemy", label("Enemy"), Spec.Checkpoints.EnemyPrefix .. NpcConfig.For(n).Label)
+			local chip = card:FindFirstChild("Chip")
+			check(res, prefix .. "_chip_only_on_current", chip ~= nil and chip.Visible == true, n == current)
+			if n == current then
+				check(res, prefix .. "_chip_text", label("Chip"), Spec.Checkpoints.ChipText)
+			end
 			local lock = required(res, h.pathOf(card) .. "/Lock", "Frame")
 			local unlocked = n <= best
 			if lock then
@@ -174,7 +156,7 @@ function Contracts.Build(h)
 				check(res, prefix .. "_lock_reason", text(lock:FindFirstChild("Need")), "Beat Track " .. (n - 1))
 				local icon = required(res, h.pathOf(lock) .. "/Icon", "TextLabel")
 				check(res, prefix .. "_lock_icon", icon ~= nil and icon.Text ~= "", true)
-				-- The lock must not take the click from its card (locked cards are clickable now)
+				-- The lock must not take the click from its card (the click lands on the card and picks nothing)
 				local swallows = {}
 				for _, o in { lock, table.unpack(lock:GetDescendants()) } do
 					if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
@@ -184,6 +166,28 @@ function Contracts.Build(h)
 				h.checkList(res, prefix .. "_lock_click_through", swallows)
 			end
 			check(res, prefix .. "_clickable", card.Active, true)
+			-- The card holds no other text (design doc 4.15: no payout, length or time)
+			local allowed = {}
+			for _, name in { "Number", "Title", "Blurb", "Speed", "Enemy", "Chip" } do
+				local object = card:FindFirstChild(name)
+				if object then
+					allowed[object] = true
+				end
+			end
+			for _, name in { "Icon", "Need" } do
+				local object = lock and lock:FindFirstChild(name)
+				if object then
+					allowed[object] = true
+				end
+			end
+			local strays = {}
+			for _, o in { card, table.unpack(card:GetDescendants()) } do
+				local hasText = o:IsA("TextLabel") or o:IsA("TextButton") or o:IsA("TextBox")
+				if hasText and o.Text ~= "" and h.visible(o) and not allowed[o] then
+					table.insert(strays, h.pathOf(o) .. " = " .. o.Text)
+				end
+			end
+			h.checkList(res, prefix .. "_only_card_text", strays)
 		end
 		local extras = {}
 		for _, child in cards:GetChildren() do
@@ -196,16 +200,23 @@ function Contracts.Build(h)
 		end
 		check(res, "checkpoint_exact_card_count", shown, #tracks)
 		h.checkList(res, "checkpoint_no_extra_cards", extras)
-		-- On open the detail pane shows the current checkpoint (section 4)
-		detailChecks(res, "checkpoint_detail_on_open", current)
+		-- No 3D render, detail pane or START HERE (design doc 4.15)
+		local viewports = {}
+		for _, object in panel:GetDescendants() do
+			if object:IsA("ViewportFrame") then
+				table.insert(viewports, h.pathOf(object))
+			end
+		end
+		h.checkList(res, "checkpoint_no_viewport", viewports)
+		check(res, "checkpoint_no_detail_pane", panel:FindFirstChild("Detail", true) == nil, true)
+		check(res, "checkpoint_no_start_button", panel:FindFirstChild("Start", true) == nil, true)
 		h.geometry.Panel(res, "checkpoint", panel)
 		h.geometry.Topmost(res, "checkpoint", panel, cards)
 		local header = required(res, Spec.Checkpoints.Panel .. "/Header", "Frame")
 		local hint = required(res, Spec.Checkpoints.Panel .. "/Hint", "TextLabel")
-		local detail = h.find(Spec.Checkpoints.Detail)
 		if header and hint then
-			-- Grid and detail pane side by side (phones: pane under the header row): no section overlaps another
-			h.geometry.Group(res, "checkpoint_sections", panel, { header, hint, cards, detail })
+			-- No section overlaps another
+			h.geometry.Group(res, "checkpoint_sections", panel, { header, hint, cards })
 		end
 		local remote = ReplicatedStorage:FindFirstChild("Remotes")
 		remote = remote and remote:FindFirstChild("SetCheckpoint")
@@ -220,7 +231,7 @@ function Contracts.Build(h)
 		check(res, "checkpoint_exactly_one_prompt", #prompts, 1)
 		if #prompts == 1 then
 			check(res, "checkpoint_prompt_key", prompts[1].KeyboardKeyCode, Enum.KeyCode.E)
-			check(res, "checkpoint_prompt_action", prompts[1].ActionText, "Checkpoints")
+			check(res, "checkpoint_prompt_action", prompts[1].ActionText, "Tracks")
 			check(res, "checkpoint_prompt_distance", prompts[1].MaxActivationDistance, 10)
 		end
 		restore()
@@ -229,16 +240,6 @@ function Contracts.Build(h)
 	function after.checkpoint_not_optimistic(res, ctx)
 		check(res, "checkpoint_unchanged_after_refused_pick", h.player:GetAttribute("Checkpoint"), ctx.pre.Checkpoint)
 		scenarios.ui_checkpoints(res)
-	end
-
-	-- After a card click: the panel stays open, the detail pane shows THAT card's track (locked ones too), and the
-	-- Start button's text / Active follow the server attributes (CHECKPOINT_SPEC section 4).
-	function after.checkpoint_detail_shows_card(res, ctx)
-		local n = tonumber(string.match(ctx.path or "", "Track_(%d+)$"))
-		check(res, "checkpoint_card_click_target", n ~= nil, true)
-		if n then
-			detailChecks(res, "checkpoint_detail_after_card", n)
-		end
 	end
 
 	-- docs/CHARACTER_GACHA_SPEC.md "Launch cast": every catalog character has its Index tile with its public odds and
@@ -839,7 +840,7 @@ function Contracts.Build(h)
 		local charactersTab = h.find(B.CharactersTab)
 		local tabEdge = charactersTab and charactersTab:FindFirstChildOfClass("UIStroke")
 		check(res, "backpack_opens_on_characters", tabEdge ~= nil and tabEdge.Color == Color3.new(1, 1, 1), true)
-		-- Exactly the four tabs, top to bottom in the spec's order, each labelled with its name
+		-- Exactly the tabs of B.TabOrder, top to bottom in the spec's order, each labelled with its name
 		local buttons = {}
 		for _, child in rail:GetChildren() do
 			if child:IsA("GuiButton") then

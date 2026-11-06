@@ -7,16 +7,16 @@ safeguards) and 4.9 (this map redesign). Numbers are placeholders unless stated.
 
 - Owner 2026-10-30: track n target length = `984 x F x 1.25^(n-1)` studs, F = 3 (owner confirmed 2026-10-30), within
   +-5%. Measured along the centre line by `TrackValidator` (check `TARGET_LENGTH`).
-- Table at F = 3; NPC speeds `16 x 1.51^(n-1)`:
+- Table at F = 3; NPC speeds `48 x 1.363^(n-1)`:
 
 | Track | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Length (studs) | 2,952 | 3,690 | 4,612 | 5,766 | 7,207 | 9,009 | 11,261 | 14,076 | 17,595 | 21,994 |
-| NPC speed (studs/s) | 16 | 24.2 | 36.5 | 55.1 | 83.2 | 125.6 | 189.7 | 286.4 | 432.4 | 653 |
-| NPC time (s) | 184.5 | 152.7 | 126.4 | 104.7 | 86.6 | 71.7 | 59.4 | 49.2 | 40.7 | 33.7 |
+| NPC speed (studs/s) | 48 | 65.4 | 89.2 | 121.5 | 165.7 | 225.8 | 307.8 | 419.5 | 571.8 | 779.3 |
+| NPC time (s) | 61.5 | 56.4 | 51.7 | 47.4 | 43.5 | 39.9 | 36.6 | 33.6 | 30.8 | 28.2 |
 
 - Cruise speed is fixed for a runner during a run, so a team that wins Track 10 runs the whole chain in at most about
-  101 s. A Legendary trio clears it in about 90 s using about all its stamina (owner 2026-10-30,
+  126 s. A Legendary trio clears it in about 90 s using about all its stamina (owner 2026-10-30,
   `TEAM_AND_STAMINA_SPEC.md` balance check).
 - All IVS track rules still hold: numbered chain, point-to-point, first and last segments level straights >= 40,
   wide checkpoint area, WinPad on the left apron, right-hand racing lane, min radius, no overlap with any track or the
@@ -69,6 +69,24 @@ never closer than `CLEARANCE` to any road, wall, checkpoint, pad or the spawn ar
 
 1. Track tests first (one `TrackTests/<Track>.luau` per track: target length +-5%, validator rules, chain no-overlap,
    0 flips / 0 off-track at normal and max stat speed, pad paid once).
+
+## Track card definitions (owner 2026-11-04, design doc 4.15)
+Copy is proposed and lives in `Shared/TrackCards`, with each track's road screenshot. Tweaked names only (design doc
+section 5). The "Based on" notes stay in docs and never ship. "Mahoraka" is this list's tweak of Mahoraga, who is not
+in the cast.
+
+| Track | Definition | Based on |
+|---|---|---|
+| 1 | Hidden ninja village of Narito's youth, left a crater by Paine's assault. | Konoha, Pain's assault |
+| 2 | Selle's tournament ring on the wasteland, where the fate of the world is fought. | Cell Games |
+| 3 | Island harbor ruled by Arlon's fish-man crew, until Lufy's pirates land. | Arlong Park |
+| 4 | Wisteria-ringed mountain where slayers train and demons like Akazo hunt by moonlight. | Final Selection mountain, Akaza |
+| 5 | Sukana fights Jogoh and Mahoraka here, and the streets burn to molten rock. | Sukuna vs Jogo and Mahoraga |
+| 6 | Home of the hero academy, where Shigaraky's villains strike at the next generation. | U.A., League of Villains |
+| 7 | Subway station packed with crowds trapped on Halloween night, with Mahitoh waiting below. | Shibuya Station, Mahito |
+| 8 | Sky island above the clouds, ruled by the self-made god Enelu and his golden bell. | Skypiea, Enel |
+| 9 | Endless white sand under a black sky, where Ulquiorro guards the dome palace. | Hueco Mundo, Ulquiorra |
+| 10 | Green planet where Freezo hunts the wish-granting orbs. | Namek, Frieza |
 
 ## References
 

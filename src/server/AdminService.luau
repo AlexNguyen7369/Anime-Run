@@ -15,10 +15,16 @@ local CharacterCatalog = require(Shared.CharacterCatalog)
 local WeatherConfig = require(Shared.WeatherConfig)
 local VfxArea = require(Shared.VfxArea)
 local AdminConfig = require(script.Parent.AdminConfig)
+local BossEventService = require(script.Parent.BossEventService)
 local CarService = require(script.Parent.CarService)
 local GachaService = require(script.Parent.GachaService)
 local MoneyService = require(script.Parent.MoneyService)
+local PlayerData = require(script.Parent.PlayerData)
 local RebirthConfig = require(Shared.RebirthConfig)
+local SidekickConfig = require(Shared.SidekickConfig)
+local SidekickService = require(script.Parent.SidekickService)
+local RelicConfig = require(Shared.RelicConfig)
+local RelicService = require(script.Parent.RelicService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local WeatherService = require(script.Parent.WeatherService)
 
@@ -209,6 +215,88 @@ AdminService.Commands = {
 			return true, "Money = " .. money.Value
 		end,
 	},
+	gems = {
+		Usage = "/gems <amount> [player]",
+		Help = "set Gems (1.5k, 2m, 3b work)",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local n = amount(args)
+			return n and n >= 0 and n <= MAX_MONEY and math.floor(n) or nil
+		end,
+		Apply = function(p, n)
+			p:SetAttribute("Gems", n)
+			return true, "Gems = " .. n
+		end,
+	},
+	sidekick = {
+		Usage = "/sidekick <id> [player]",
+		Help = "add one Sidekick to the bag",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local id = args[1]:lower()
+			return SidekickConfig.Get(id) and id or nil
+		end,
+		Apply = function(p, id)
+			local ok, message = SidekickService.Grant(p, id)
+			return ok, ok and ("added " .. id) or message
+		end,
+	},
+	relic = {
+		Usage = "/relic <id> [player]",
+		Help = "add one Relic to the bag",
+		Min = 1,
+		Max = 1,
+		Check = function(args)
+			local id = args[1]:lower()
+			return RelicConfig.Get(id) and id or nil
+		end,
+		Apply = function(p, id)
+			local ok, message = RelicService.Grant(p, id)
+			return ok, ok and ("added " .. id) or message
+		end,
+	},
+	relics = {
+		Usage = "/relics [player]",
+		Help = "add one of every Relic to the bag",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			local added = 0
+			local seen = {} -- a universal Relic sits on every boss's list
+			for _, list in RelicConfig.Bosses do
+				for _, row in list do
+					if not seen[row.Id] and RelicService.Grant(p, row.Id) then
+						added += 1
+					end
+					seen[row.Id] = true
+				end
+			end
+			return true, "added " .. added .. " Relics"
+		end,
+	},
+	boss = {
+		Usage = "/boss",
+		Help = "start a boss event now, or end the running one",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function()
+			if BossEventService.State().Phase ~= "Idle" then
+				BossEventService.End("Timeout") -- pays nothing
+				return true, "boss event ended"
+			end
+			BossEventService.Start("Admin")
+			return true, "boss event started"
+		end,
+	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
 		Help = "set the rebirth level (Money is not reset)",
@@ -311,6 +399,18 @@ AdminService.Commands = {
 			return true, isNew and ("gave " .. id) or (id .. " already owned")
 		end,
 	},
+	narito = {
+		Usage = "/narito [player]",
+		Help = "add Narito to the index",
+		Min = 0,
+		Max = 0,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			return AdminService.Commands.give.Apply(p, "leaf_hero")
+		end,
+	},
 	kami = {
 		Usage = "/kami [player]",
 		Help = "give and equip Kami, the admin test runner (800 studs/s, this session only)",
@@ -367,7 +467,7 @@ AdminService.Commands = {
 	},
 	wipe = {
 		Usage = "/wipe [player]",
-		Help = "reset Money, characters, stat points and upgrades",
+		Help = "reset Money, Gems, characters, Sidekicks, summon pity, Relics, stat points and upgrades",
 		Min = 0,
 		Max = 0,
 		Check = function()
@@ -375,6 +475,8 @@ AdminService.Commands = {
 		end,
 		Apply = function(p)
 			moneyValue(p).Value = 0
+			p:SetAttribute("Gems", 0)
+			p:SetAttribute("BossCredit", 0)
 			p:SetAttribute("RebirthLevel", 0)
 			local stats = p:FindFirstChild("leaderstats")
 			local rebirth = stats and stats:FindFirstChild("Rebirth")
@@ -389,7 +491,28 @@ AdminService.Commands = {
 			p:SetAttribute("DailyLast", -1)
 			GachaService.Apply(p, {})
 			UpgradeService.Apply(p, {}) -- after the gacha reset, so TurboCount starts from Rolls = 0
+			SidekickService.Apply(p, {})
+			RelicService.Apply(p, {})
 			return true, "wiped"
+		end,
+	},
+	-- No target: this erases a save, so it never reaches another player or "all" (design doc 4.13).
+	newplayer = {
+		Usage = "/newplayer",
+		Help = "erase your own save and leave; your next join is a brand new player",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function(p)
+			if not PlayerData.ResetToNew(p) then
+				return false, "Could not reset the save"
+			end
+			-- deferred so the command's reply goes out first
+			task.defer(p.Kick, p, "Save erased. Rejoin (in Studio: Stop, then Play) to start as a new player.")
+			return true, "save erased"
 		end,
 	},
 	tp = {
@@ -430,16 +553,23 @@ local ORDER = {
 	"money",
 	"addmoney",
 	"givemoney",
+	"gems",
+	"sidekick",
+	"relic",
+	"relics",
+	"boss",
 	"setrebirth",
 	"luck",
 	"giveluck",
 	"resetluck",
 	"weather",
 	"give",
+	"narito",
 	"kami",
 	"equip",
 	"roll",
 	"wipe",
+	"newplayer",
 	"tp",
 }
 

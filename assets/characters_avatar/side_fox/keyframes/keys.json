@@ -1,0 +1,524 @@
+{
+ "id": "side_fox",
+ "movement": "Walk",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.4,
+   1.5
+  ],
+  "Head": [
+   0.0,
+   -1.0,
+   1.9
+  ],
+  "LegBackLeft": [
+   0.68,
+   1.0,
+   1.4
+  ],
+  "LegBackRight": [
+   -0.68,
+   1.0,
+   1.4
+  ],
+  "LegFrontLeft": [
+   0.62,
+   -0.5,
+   1.4
+  ],
+  "LegFrontRight": [
+   -0.62,
+   -0.5,
+   1.4
+  ],
+  "Tail1": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail2": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail3": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail4": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail5": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail6": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail7": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail8": [
+   0.0,
+   1.5,
+   1.9
+  ],
+  "Tail9": [
+   0.0,
+   1.5,
+   1.9
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegBackRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegFrontRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail1": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail2": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail3": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail4": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail5": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail6": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail7": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail8": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail9": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Kurami: tailed beast ball (proposed)",
+   "end": 1.45,
+   "Release": 0.95,
+   "keys": [
+    {
+     "name": "Wind-up",
+     "t": 0.35,
+     "desc": "Rears up on hind legs, head high, all tails arch forward",
+     "root_offset": {
+      "Body": [
+       0,
+       0.3,
+       0.235
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -24,
+       0,
+       0
+      ],
+      "Head": [
+       -14,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       24,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       24,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -20,
+       -10,
+       0
+      ],
+      "LegFrontRight": [
+       -20,
+       10,
+       0
+      ],
+      "Tail1": [
+       16,
+       0,
+       24
+      ],
+      "Tail2": [
+       16,
+       0,
+       24
+      ],
+      "Tail3": [
+       16,
+       0,
+       24
+      ],
+      "Tail4": [
+       16,
+       0,
+       24
+      ],
+      "Tail5": [
+       28,
+       0,
+       0
+      ],
+      "Tail6": [
+       16,
+       0,
+       -24
+      ],
+      "Tail7": [
+       16,
+       0,
+       -24
+      ],
+      "Tail8": [
+       16,
+       0,
+       -24
+      ],
+      "Tail9": [
+       16,
+       0,
+       -24
+      ]
+     }
+    },
+    {
+     "name": "Charge",
+     "t": 0.7,
+     "desc": "Mouth raised to the sky, tails fully fanned over the head",
+     "root_offset": {
+      "Body": [
+       0,
+       0.35,
+       0.318
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -34,
+       0,
+       0
+      ],
+      "Head": [
+       -30,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       34,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       34,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -36,
+       -14,
+       0
+      ],
+      "LegFrontRight": [
+       -36,
+       14,
+       0
+      ],
+      "Tail1": [
+       50,
+       0,
+       38
+      ],
+      "Tail2": [
+       50,
+       0,
+       38
+      ],
+      "Tail3": [
+       50,
+       0,
+       38
+      ],
+      "Tail4": [
+       50,
+       0,
+       38
+      ],
+      "Tail5": [
+       62,
+       0,
+       0
+      ],
+      "Tail6": [
+       50,
+       0,
+       -38
+      ],
+      "Tail7": [
+       50,
+       0,
+       -38
+      ],
+      "Tail8": [
+       50,
+       0,
+       -38
+      ],
+      "Tail9": [
+       50,
+       0,
+       -38
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.95,
+     "desc": "Slams nose-down and fires, tails whip back and flare out",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.25,
+       0.026
+      ]
+     },
+     "rotations": {
+      "Body": [
+       20,
+       0,
+       0
+      ],
+      "Head": [
+       -10,
+       0,
+       0
+      ],
+      "LegBackLeft": [
+       -6,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       -6,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       -44,
+       -12,
+       0
+      ],
+      "LegFrontRight": [
+       -44,
+       12,
+       0
+      ],
+      "Tail1": [
+       -30,
+       0,
+       -24
+      ],
+      "Tail2": [
+       -30,
+       0,
+       -24
+      ],
+      "Tail3": [
+       -30,
+       0,
+       -24
+      ],
+      "Tail4": [
+       -30,
+       0,
+       -24
+      ],
+      "Tail5": [
+       -30,
+       0,
+       0
+      ],
+      "Tail6": [
+       -30,
+       0,
+       24
+      ],
+      "Tail7": [
+       -30,
+       0,
+       24
+      ],
+      "Tail8": [
+       -30,
+       0,
+       24
+      ],
+      "Tail9": [
+       -30,
+       0,
+       24
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.2,
+     "desc": "Rises back level, head shakes, tails drift in",
+     "root_offset": {
+      "Body": [
+       0,
+       0.1,
+       0.042
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -4,
+       0,
+       0
+      ],
+      "Head": [
+       4,
+       0,
+       8
+      ],
+      "LegBackLeft": [
+       4,
+       0,
+       0
+      ],
+      "LegBackRight": [
+       4,
+       0,
+       0
+      ],
+      "LegFrontLeft": [
+       4,
+       0,
+       0
+      ],
+      "LegFrontRight": [
+       4,
+       0,
+       0
+      ],
+      "Tail1": [
+       -12,
+       0,
+       0
+      ],
+      "Tail2": [
+       -12,
+       0,
+       0
+      ],
+      "Tail3": [
+       -12,
+       0,
+       0
+      ],
+      "Tail4": [
+       -12,
+       0,
+       0
+      ],
+      "Tail5": [
+       -12,
+       0,
+       0
+      ],
+      "Tail6": [
+       -12,
+       0,
+       0
+      ],
+      "Tail7": [
+       -12,
+       0,
+       0
+      ],
+      "Tail8": [
+       -12,
+       0,
+       0
+      ],
+      "Tail9": [
+       -12,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

@@ -319,6 +319,18 @@ function SpawnArea.Build(startCFrame)
 
 	-- Service row (same panels and remotes as before): hub-local = world + (118, -80), so stall origins at world x -77 put
 	-- their fronts on world x -72
+	-- Sixth service, the row's south end (design doc 4.36, docs/SIDEKICK_SPEC.md "Display"): no mesh yet, the stand-in shows.
+	stall(
+		model,
+		startCFrame,
+		"SidekickStall",
+		41,
+		-178.75,
+		Color3.fromRGB(30, 130, 150),
+		"SIDEKICKS",
+		"OpenSidekicks",
+		"Sidekicks"
+	)
 	stall(model, startCFrame, "ShopStall", 41, -150, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
 	stall(
 		model,

@@ -33,6 +33,7 @@ return {
 	mha_hero = "rbxassetid://117097611507569",
 	mha_icefire = "rbxassetid://97170126138293",
 	mha_symbol = "rbxassetid://83018071556826",
+	punch_hero = "rbxassetid://138408988862084",
 	sea_captain = "rbxassetid://76266086001329",
 	sea_cook = "rbxassetid://137938772423604",
 	sea_flame = "rbxassetid://125838739009956",

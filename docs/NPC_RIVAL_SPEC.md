@@ -4,8 +4,8 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 (`IVS docs/NPC_RACER_SPEC.md`), with anime runners instead of cars.
 
 - One enemy per track, from the anime of that track's biome (design doc 4.26, section 5): `Shared/NpcConfig.Tracks[n]`, its own name (`Label`), colour and `Model`.
-- Speed (placeholder): Track 1 = 16 studs/s, x1.51 per later track (Track 10 = 653 studs/s), always below
-  `RaceConfig.MAX_CRUISE`.
+- Speed (placeholder; owner 2026-11-05, design doc 4.13): Track 1 = 48 studs/s, about level with a Rare, so a Common
+  does not outrun it; x1.363 per later track (Track 10 = 779 studs/s), always below `RaceConfig.MAX_CRUISE`.
 - NPC rivals have no stamina: they run the whole track at their speed.
 - Runs the LEFT lane; the player's runner keeps the right lane.
 - Pure maths (`NpcRacer.LanePath`, `Profile`, `PoseAt`): its track time is known when the track starts.

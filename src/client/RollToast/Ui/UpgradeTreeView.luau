@@ -139,6 +139,9 @@ function View.Create(gui, Tree, Format)
 	local function description(tile)
 		for _, branch in Tree.Config.Branches do
 			if branch.Id == tile.Branch then
+				if branch.Effect == "Inventory" then
+					return "+" .. branch.Bonus[tile.Tier] .. " bag spaces"
+				end
 				if branch.Bonus then
 					local effect = branch.Effect == "Speed" and "cruise speed" or branch.Effect
 					return "+" .. math.floor(branch.Bonus[tile.Tier] * 100 + 0.5) .. "% " .. effect

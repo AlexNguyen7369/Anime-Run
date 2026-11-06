@@ -29,7 +29,14 @@ Nothing car-shaped stays in the game:
   interpolating along the path from the server's distance and speed, so players see no stutter. The IVS
   `rail_never_snaps` check is replaced by a client-side smoothness check.
 - Run animation is procedural and client-side (limb swing and bob from speed); it never changes the server pose.
-  A character's optional `RunStyle` replaces the default swing and may add a client-side particle effect (design doc 4.23).
+  A character's optional `RunStyle` replaces the universal run (design doc 4.34). Both add the same client-side particle
+  effect on each player's drawn runner (design doc 4.23): 3 emitters, 36 particles/s per runner (**proposed**), existing textures only.
+  Dust is locked to the runner and blown back from behind the feet: at 700 studs/s world-space puffs land 70 studs apart.
+- Universal run pose, all **proposed** placeholders. Sources give no reliable angles for this style, so these are tuned by eye:
+  - Torso 30 deg forward about the hips (supported: a faster run leans more; the angle is the owner's look choice).
+  - Arms pump +-50 deg opposite the legs, 10 deg back bias, 6 deg outward (supported: arm opposite leg; the angles are inferred).
+  - Head 24 deg back from the torso, keeps the bob (inferred: eyes ahead, the ninja run's ratio).
+  - Legs swing 65 deg (inferred: larger swing at speed). Cadence unchanged. A torso-only lean is the rig's limit: guides prefer leaning the whole body.
 - The player's avatar is hidden while racing, as before; the Humanoid stays for camera and respawn.
 - Auras and trails attach to the runner's Torso instead of the car.
 - Kept from IVS: exact cruise speed at once on every start / checkpoint / restart, stays within
@@ -120,9 +127,9 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
 - **Legends** (owner 2026-11-04): at most 2 pedestals, one each side of the Race Start gate, clear of its posts, the path and Plot 7; about 9 studs tall. Client-only, like the sky-loop runners. `db_hero` and `mha_symbol` (their orange and blue match the logo; owner approved 2026-11-04).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
-- **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the two floating labels from `PlazaAssets.Landmarks`
+- **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the floating labels (Race Start from `PlazaAssets.Landmarks`)
   as client-only attachments, so streaming never hides them.
-- **Service headers** (owner 2026-11-04): `Shared/PlazaHeader` builds every floating header, plain GUI Instances with no image asset. Emblems and colours (proposed): RACE START green star, MARKET purple gem, SHOP blue gem, POTIONS magenta gem, INDEX gold star, SENSEI orange star, YOUR DOJO orange-red gem. Client/PlazaWayfinding draws Race Start, Market, Shop, Potions and Index; Shop, Potions and Index show out to about 150 studs and hide within about 10. SpawnArea builds Sensei on the server; Client/DojoExtras builds YOUR DOJO.
+- **Service headers** (owner 2026-11-04): `Shared/PlazaHeader` builds every floating header, plain GUI Instances with no image asset. Emblems and colours (proposed): RACE START green star, MARKET purple gem, SHOP blue gem, POTIONS magenta gem, INDEX gold star, SENSEI orange star, YOUR DOJO orange-red gem. Client/PlazaWayfinding draws Race Start, Market, Shop, Potions and Index; Market, Shop, Potions and Index share one size, show out to about 150 studs and hide within about 10. SpawnArea builds Sensei on the server; Client/DojoExtras builds YOUR DOJO.
 - **Reveal** (Client/ArrivalFlow): first join, after the loading screen, a skippable camera sweep of about 5 s that ends, skipped or not, behind the player looking at the gate; Reduced Motion: a still of the plaza, then a cut.
 - **Starter pick**: popup with a lighter dim, opens after the reveal, with a watchdog so it always opens. A pick plays a petal burst and the character's hero pose beside the spawn for about 4 s; the first auto-roll waits about 5 s so its result card does not cover it.
 - **Trail**: 12 flat neon discs along the path pulsing in a wave toward the gate, with petals drifting the same way, until the first run. Reduced Motion: steady discs, no petals.

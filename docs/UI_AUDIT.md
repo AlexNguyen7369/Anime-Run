@@ -108,6 +108,7 @@ All volumes are placeholders. Roll rows use no Burst and no speed streaks (ROLL_
 | toast high (duel result) | `DuelUi:279-290` | Fade + SlideIn + Pop | SlideIn + Slam, results only; cancel toasts are `ToastLow` | `ToastHigh` | Thunk | 0.5 | rare |
 | checkpoint bonus | `CheckpointBonusPopup:42`, `:72` | fade + Back | Pop + Fly if it pays | `CheckpointBonus` | Chime | 2 | often |
 | starter pick | `StarterPick:148`, `ArrivalFlow:226` | panel Pop; in-world reveal | Slam on card | `StarterPick` | Crack | 0.36 | rare |
+| auto-roll tutorial, AUTO on | `AutoRollTutorial` | card Pop, dim fades | Burst from AUTO, skipped over a running roll | `AutoOn` | Chime | 2.25 | rare |
 | duel countdown | `DuelUi:241` | not read in detail | Pop per number | `DuelTick` | Tap | 0.3 | rare |
 | duel invite | `DuelUi:223` | panel open | Pop | `DuelInvite` | Chime | 2 | rare |
 | duel result win / lose | `DuelUi:353` via `:279` | toast | Slam + Burst on win, Shake on lose | `DuelWin`, `DuelLose` | Boom, Thunk | 0.7, 0.5 | rare |

@@ -1,7 +1,7 @@
 --!nonstrict
--- HUD entry points (docs/HUD_LAYOUT_SPEC.md): the left 2 x 3 icon grid and the top-right Auto / Daily / Market
--- pills with the round Settings button. Each entry only opens a panel (the panels' scripts own everything else), but
--- Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
+-- HUD entry points (docs/HUD_LAYOUT_SPEC.md): the left icon grid, the bottom Auto / Upgrade pair and the top-right
+-- Daily / Market pills with the round Settings button. Each entry only opens a panel (the panels' scripts own
+-- everything else), but Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
@@ -129,7 +129,6 @@ local PANEL = {
 	Items = "Backpack",
 	Index = "Index",
 	Upgrade = "Upgrades",
-	Stats = "Stats",
 	Rebirth = "Rebirth",
 }
 local CELL = Vector2.new(TILE + 12, TILE + LABEL)
@@ -146,20 +145,20 @@ end
 local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
 local shopColumn =
 	holder("ShopColumn", 2, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
--- Items and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
+-- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
 local ICON_MID = TILE / 2 / (TILE + LABEL)
-local itemsSlot = holder("ItemsSlot", 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
+local autoSlot = holder("AutoSlot", 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
 local upgradeSlot = holder("UpgradeSlot", 1, { AnchorPoint = Vector2.new(0, ICON_MID) })
 local BOTTOM_SCALE = 0.75 -- the bottom pair is smaller than the edge tiles (owner, 2026-10-15)
 local STACK_MAX_HEIGHT = 400 -- phone_small: the pair stacks above the bars (owner, 2026-10-28)
 local SLOTS = {
 	{ "Index", grid },
-	{ "Stats", grid },
+	{ "Items", grid },
 	{ "Rebirth", grid },
 	{ "Quests", shopColumn },
 	{ "Shop", shopColumn },
-	{ "Items", itemsSlot },
+	{ "Auto", autoSlot },
 	{ "Upgrade", upgradeSlot },
 }
 local tiles = {}
@@ -192,9 +191,11 @@ for order, slot in SLOTS do
 		}),
 		2.5
 	)
-	tile.Activated:Connect(function()
-		PanelSwitch.Action(PANEL[name])
-	end)
+	if PANEL[name] then
+		tile.Activated:Connect(function()
+			PanelSwitch.Action(PANEL[name])
+		end)
+	end
 	tiles[name] = { Button = tile, Badge = badge(tile) }
 end
 
@@ -216,9 +217,8 @@ make("UIListLayout", "Layout", bar, {
 })
 local PILL_COLOR = Color3.fromRGB(18, 18, 21)
 local PILL_TRANSPARENCY = 0.12 -- placeholder: nearly solid, so the see-through world signs do not read as HUD
-local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never pushes Auto left
--- With `onClick` it is an action pill: no icon, the caption centred, no panel.
-local function pill(name, order, caption, onClick)
+local DAILY_WIDTH = 146 -- px, placeholder: fits "23:59:59", so the countdown never resizes the row
+local function pill(name, order, caption)
 	local b = make("TextButton", name, bar, {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(caption and 0 or 44, 44),
@@ -229,23 +229,16 @@ local function pill(name, order, caption, onClick)
 		AutoButtonColor = false,
 	})
 	make("UICorner", "Corner", b, { CornerRadius = UDim.new(1, 0) })
-	if not onClick then
-		icon(name, b, {
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = caption and UDim2.new(0, 12, 0.5, 0) or UDim2.new(0.5, -13, 0.5, 0),
-			Size = UDim2.fromOffset(26, 26),
-		})
-	end
+	icon(name, b, {
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = caption and UDim2.new(0, 12, 0.5, 0) or UDim2.new(0.5, -13, 0.5, 0),
+		Size = UDim2.fromOffset(26, 26),
+	})
 	local text
 	if caption then
-		make(
-			"UIPadding",
-			"Padding",
-			b,
-			{ PaddingLeft = UDim.new(0, onClick and 16 or 0), PaddingRight = UDim.new(0, 16) }
-		)
+		make("UIPadding", "Padding", b, { PaddingRight = UDim.new(0, 16) })
 		text = make("TextLabel", "Caption", b, {
-			Position = UDim2.fromOffset(onClick and 0 or 46, 0),
+			Position = UDim2.fromOffset(46, 0),
 			Size = UDim2.fromScale(0, 1),
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
@@ -256,40 +249,11 @@ local function pill(name, order, caption, onClick)
 		})
 		outlined(text, 1.5)
 	end
-	b.Activated:Connect(onClick or function()
+	b.Activated:Connect(function()
 		PanelSwitch.Action(name)
 	end)
 	return b, text
 end
--- Auto race toggle: it only asks; the AutoRacing attribute the server sets decides its colour.
-local AUTO_ON = UiTheme.Palette.Money
-local AUTO_PENDING = UiTheme.Palette.Muted
-local AUTO_LOCK = 1 -- s a press stays locked, greyed
-local autoPending = false
-local autoPill
-local function refreshAuto()
-	local racing = player:GetAttribute("AutoRacing") == true
-	autoPill.BackgroundColor3 = autoPending and AUTO_PENDING or (racing and AUTO_ON or PILL_COLOR)
-	autoPill.BackgroundTransparency = (autoPending or racing) and 0 or PILL_TRANSPARENCY
-	autoPill.Active = not autoPending
-end
-autoPill = pill("Auto", 0, "Auto", function()
-	if autoPending then
-		return
-	end
-	autoPending = true
-	refreshAuto()
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("Remotes")
-		:WaitForChild("SetAutoRace")
-		:FireServer(player:GetAttribute("AutoRacing") ~= true)
-	task.delay(AUTO_LOCK, function()
-		autoPending = false
-		refreshAuto()
-	end)
-end)
-player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshAuto)
-refreshAuto()
 local daily, dailyText = pill("Daily", 1, "Daily")
 daily.AutomaticSize = Enum.AutomaticSize.None
 daily.Size = UDim2.fromOffset(DAILY_WIDTH, 44)
@@ -328,6 +292,85 @@ end
 game:GetService("GuiService"):GetPropertyChangedSignal("ReducedMotionEnabled"):Connect(restartPulses)
 player:GetAttributeChangedSignal("ReduceEffects"):Connect(restartPulses)
 
+-- Auto race toggle: it only asks; the AutoRacing attribute the server sets decides its look (design doc 4.40).
+local AUTO_LOCK = 1 -- s a press stays locked, with no spin
+local autoTile = tiles.Auto.Button
+local autoIcon = autoTile.Icon
+-- The arrows go over the still triangle (design doc 4.40). Green in both states; on Reduced Motion a ring replaces the spin.
+autoIcon.Image = Icons.AutoPlay.Image
+local autoArrows = autoIcon:Clone()
+autoArrows.Name = "Arrows"
+autoArrows.Image = Icons.AutoArrows.Image
+autoArrows.Parent = autoTile
+local autoRing = make("Frame", "OnRing", autoTile, {
+	AnchorPoint = autoIcon.AnchorPoint,
+	Position = autoIcon.Position,
+	Size = autoIcon.Size,
+	BackgroundTransparency = 1,
+	Visible = false,
+	ZIndex = autoIcon.ZIndex - 1,
+})
+make("UICorner", "Corner", autoRing, { CornerRadius = UDim.new(1, 0) })
+make("UIStroke", "Ring", autoRing, { Color = UiTheme.Palette.Money, Thickness = 2 })
+local autoBeat = make("UIScale", "Beat", autoIcon, {})
+-- Placeholders.
+local AUTO_SPIN = 200 -- degrees a second at full speed
+local AUTO_EASE = 3.5 -- per second: spins up and winds down instead of snapping
+local AUTO_BEAT, AUTO_BEAT_RATE = 0.08, 4 -- the triangle's breathing while on: size, radians a second
+local autoSpeed, autoClock = 0, 0
+local autoPending = false
+local autoWasOn = false
+local function refreshAuto()
+	local on = player:GetAttribute("AutoRacing") == true and not autoPending
+	autoTile.Active = not autoPending
+	if on ~= autoWasOn then
+		autoWasOn = on
+		UiMotion.Pop(autoTile, 0.1)
+	end
+	autoTile:SetAttribute("Spinning", on and not UiMotion.Reduced())
+	if UiMotion.Reduced() then
+		autoSpeed = 0
+		autoBeat.Scale = 1
+	end
+	autoRing.Visible = on and UiMotion.Reduced()
+end
+RunService.RenderStepped:Connect(function(dt)
+	local goal = autoTile:GetAttribute("Spinning") and AUTO_SPIN or 0
+	if autoSpeed == goal then
+		return
+	end
+	autoSpeed += (goal - autoSpeed) * (1 - math.exp(-AUTO_EASE * dt))
+	if math.abs(goal - autoSpeed) < 1 then
+		autoSpeed = goal
+	end
+end)
+RunService.RenderStepped:Connect(function(dt)
+	if autoSpeed > 0 then
+		autoClock += dt
+		autoArrows.Rotation = (autoArrows.Rotation + autoSpeed * dt) % 360
+		autoBeat.Scale = 1 + AUTO_BEAT * math.sin(autoClock * AUTO_BEAT_RATE) * autoSpeed / AUTO_SPIN
+	end
+end)
+autoTile.Activated:Connect(function()
+	if autoPending then
+		return
+	end
+	autoPending = true
+	refreshAuto()
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("Remotes")
+		:WaitForChild("SetAutoRace")
+		:FireServer(player:GetAttribute("AutoRacing") ~= true)
+	task.delay(AUTO_LOCK, function()
+		autoPending = false
+		refreshAuto()
+	end)
+end)
+player:GetAttributeChangedSignal("AutoRacing"):Connect(refreshAuto)
+game:GetService("GuiService"):GetPropertyChangedSignal("ReducedMotionEnabled"):Connect(refreshAuto)
+player:GetAttributeChangedSignal("ReduceEffects"):Connect(refreshAuto)
+refreshAuto()
+
 -- Section 10: a red badge pops when its count changes (never every refresh).
 local function setBadge(b, count)
 	local text = tostring(count)
@@ -365,7 +408,7 @@ end
 local function refresh()
 	setBadge(tiles.Upgrade.Badge, player:GetAttribute("UpgradesBuyable") or 0)
 	setBadge(tiles.Quests.Badge, claimableQuests)
-	setBadge(tiles.Stats.Badge, player:GetAttribute("StatPoints") or 0)
+	setBadge(tiles.Rebirth.Badge, player:GetAttribute("StatPoints") or 0)
 	-- Same UTC day key the daily reward panel and DailyLoginService use.
 	local now = os.time()
 	local claimed = (player:GetAttribute("DailyLast") or -1) == math.floor(now / 86400)
@@ -384,7 +427,7 @@ local function refresh()
 	local camera = workspace.CurrentCamera
 	local phone = camera and camera.ViewportSize.Y <= 500
 	for _, scale in scales do
-		local bottomPair = scale.Parent == itemsSlot or scale.Parent == upgradeSlot
+		local bottomPair = scale.Parent == autoSlot or scale.Parent == upgradeSlot
 		scale.Scale = (phone and 0.68 or 1) * (bottomPair and BOTTOM_SCALE or 1)
 	end
 	local pairScale = (phone and 0.68 or 1) * BOTTOM_SCALE
@@ -399,9 +442,9 @@ local function refresh()
 	local level = hud and hud:FindFirstChild("Level")
 	local turbo = hud and hud:FindFirstChild("Turbo")
 	local stacked = camera ~= nil and camera.ViewportSize.Y <= STACK_MAX_HEIGHT
-	itemsSlot.Visible = level ~= nil and turbo ~= nil and not (stacked and PanelSwitch.AnyOpen())
-	upgradeSlot.Visible = itemsSlot.Visible
-	if itemsSlot.Visible then
+	autoSlot.Visible = level ~= nil and turbo ~= nil and not (stacked and PanelSwitch.AnyOpen())
+	upgradeSlot.Visible = autoSlot.Visible
+	if autoSlot.Visible then
 		-- AbsolutePosition starts below the top bar; these ScreenGuis ignore the inset, so add it back.
 		local inset = GuiService:GetGuiInset().Y
 		local left = math.min(level.AbsolutePosition.X, turbo.AbsolutePosition.X)
@@ -417,7 +460,7 @@ local function refresh()
 			return nil
 		end
 		local blockers = {}
-		for _, name in { "Money", "Speed" } do
+		for _, name in { "Money", "Gems", "Speed" } do
 			table.insert(blockers, rect(name))
 		end
 		if stacked then
@@ -426,21 +469,21 @@ local function refresh()
 			local speed = rect("Speed")
 			local money = rect("Money")
 			local y = math.min(level.AbsolutePosition.Y + inset, money and money[2] or math.huge) - 6
-			itemsSlot.AnchorPoint = Vector2.new(1, 1)
+			autoSlot.AnchorPoint = Vector2.new(1, 1)
 			upgradeSlot.AnchorPoint = Vector2.new(0, 1)
-			itemsSlot.Position = UDim2.fromOffset(math.min(left, speed and speed[1] or left) - 6, y)
+			autoSlot.Position = UDim2.fromOffset(math.min(left, speed and speed[1] or left) - 6, y)
 			upgradeSlot.Position = UDim2.fromOffset(math.max(right, speed and speed[3] or right) + 6, y)
 		else
-			itemsSlot.AnchorPoint = Vector2.new(1, ICON_MID)
+			autoSlot.AnchorPoint = Vector2.new(1, ICON_MID)
 			upgradeSlot.AnchorPoint = Vector2.new(0, ICON_MID)
-			itemsSlot.Position = UDim2.fromOffset(left - 10, gap)
+			autoSlot.Position = UDim2.fromOffset(left - 10, gap)
 			upgradeSlot.Position = UDim2.fromOffset(right + 10, gap)
 		end
 		-- Owner 2026-10-28 (section 6): on narrow screens the pair shrinks (about its anchor) until it clears the
 		-- Money and Speed read-outs; where they are already clear (desktop) the scale is unchanged.
 		local function clear(k)
 			local w, h = CELL.X * k, CELL.Y * k
-			for _, slot in { itemsSlot, upgradeSlot } do
+			for _, slot in { autoSlot, upgradeSlot } do
 				local x = slot.Position.X.Offset - slot.AnchorPoint.X * w
 				local y = slot.Position.Y.Offset - slot.AnchorPoint.Y * h
 				for _, b in blockers do
@@ -456,13 +499,13 @@ local function refresh()
 		while k > pairScale * 0.3 and not clear(k) do
 			k -= pairScale * 0.02
 		end
-		itemsSlot.Scale.Scale = k
+		autoSlot.Scale.Scale = k
 		upgradeSlot.Scale.Scale = k
 	end
 	-- The roll showcase takes the whole screen; every HUD entry hides with the rest of the HUD.
 	local showcase = gui:FindFirstChild("RollShowcase")
 	root.Enabled = not (showcase and showcase.Enabled)
-	-- The full-screen Upgrades tree shows no HUD through it. The Items / Upgrade pair stays: design doc 4.27 keeps it
+	-- The full-screen Upgrades tree shows no HUD through it. The Auto / Upgrade pair stays: design doc 4.27 keeps it
 	-- drawn while a panel is open, and it hides by itself where it stacks.
 	local inTree = PanelSwitch.IsOpen("Upgrades")
 	grid.Visible, shopColumn.Visible, bar.Visible = not inTree, not inTree, not inTree

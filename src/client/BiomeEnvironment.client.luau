@@ -17,6 +17,7 @@ local SoundService = game:GetService("SoundService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Arena = require(Shared.BossArenaConfig)
 local Env = require(Shared.BiomeEnvironment)
 local WeatherConfig = require(Shared.WeatherConfig)
 
@@ -206,7 +207,8 @@ local function target(e)
 	end
 	if v == nil then
 		return e.Server
-	elseif e.Mix and weatherActive() and not profile.Underground then -- no weather underground (spec 3.5)
+	-- no weather underground (spec 3.5) or in the arena's clean sky
+	elseif e.Mix and weatherActive() and not profile.Underground and zone ~= Env.ARENA_ZONE then
 		return lerp(v, e.Server, Env.WEATHER_MIX)
 	end
 	return v
@@ -394,7 +396,17 @@ end)
 -- Zone check every POLL at the camera focus; a new zone must hold for HOLD (Env.ForcedZone overrides, for tests).
 -- High speed (design doc 4.18): hold and blend shrink with the focus speed (HOLD_STUDS, BLEND_STUDS). While racing
 -- the zone is the server's RunTrack on this player's runner rig (switches at the finish pad, no hold); ZoneAt (nearest
--- centre line) only while walking, where a neighbouring track can be nearer.
+-- centre line) only while walking, where a neighbouring track can be nearer. The boss arena beats both: in the event, in
+-- its preview, or with the focus still over it, since the server clears BossEvent before the teleport home and ZoneAt
+-- would call that moment Track 8.
+local ARENA_MARGIN = 100 -- placeholder: studs past the ring's outer edge
+local function inArena(focus)
+	if player:GetAttribute("BossEvent") == true or ReplicatedStorage:GetAttribute("BossArenaPreview") == true then
+		return true
+	end
+	local reach = Arena.InnerRadius + Arena.Width + ARENA_MARGIN
+	return ((focus - Arena.Center) * Vector3.new(1, 0, 1)).Magnitude < reach
+end
 local function runTrack()
 	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/CarService.RUNNER_TAG
 		if rig:GetAttribute("Owner") == player.UserId then
@@ -424,9 +436,13 @@ task.spawn(function()
 				hold = math.min(Env.HOLD, Env.HOLD_STUDS / speed)
 				blend = math.clamp(Env.BLEND_STUDS / speed, Env.BLEND_MIN, Env.BLEND_SECONDS)
 			end
-			z = runTrack()
-			racing = z ~= nil
-			z = z or Env.ZoneAt(focus)
+			local arena = inArena(focus)
+			if arena then
+				blend = Env.BLEND_MIN -- the sky is set before the teleport lands
+			end
+			z = not arena and runTrack() or nil
+			racing = arena or z ~= nil
+			z = arena and Env.ARENA_ZONE or z or Env.ZoneAt(focus)
 		end
 		if z ~= nil and z ~= zone then
 			if zone == nil or racing or Env.ForcedZone ~= nil or (pending == z and now - since >= hold) then

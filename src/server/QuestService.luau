@@ -150,6 +150,7 @@ function QuestService.Claim(player, weekly, id)
 	end
 	claimed[id] = 1
 	BoostService.Add(player, quest.Reward, quest.RewardCount)
+	require(script.Parent.MoneyService).AddGems(player, quest.Gems) -- late: MoneyService -> GachaService -> QuestService
 	publish(player)
 	return true, quest.Reward
 end

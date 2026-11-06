@@ -409,6 +409,13 @@ function ShopMarket.Build(h)
 			if not has(h.allText(c), pass.Name) then
 				table.insert(cardBad, ("Gamepasses/%s: text has no %q"):format(pass.Id, pass.Name))
 			end
+			-- Client/ShopUi refreshBlocked: an owned pass reads OWNED, and Studio's creator owns them all. Only that pass's own attribute excuses the price.
+			if attr("Pass_" .. pass.Id) == true then
+				if not has(h.allText(buy), "OWNED") then
+					table.insert(priceBad, ("Gamepasses/%s: owned, shows %s"):format(pass.Id, h.allText(buy)))
+				end
+				return
+			end
 			priceProblems(priceBad, "Gamepasses/" .. pass.Id, buy, pass.RobuxPrice, pass.GamepassId or 0, false)
 		end)
 		local bySection = { Potions = {}, Bundle = {}, ServerLuck = {} }

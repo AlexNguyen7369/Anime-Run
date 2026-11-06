@@ -1,0 +1,554 @@
+{
+ "id": "side_wyvern",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Body": [
+   0.0,
+   0.3,
+   3.7
+  ],
+  "BodyNeon": [
+   0.0,
+   0.3,
+   3.7
+  ],
+  "Head": [
+   0.0,
+   -1.55,
+   6.05
+  ],
+  "HeadNeon": [
+   0.0,
+   -1.55,
+   6.05
+  ],
+  "LegLeft": [
+   0.3,
+   0.6,
+   3.42
+  ],
+  "LegNeonLeft": [
+   0.3,
+   0.6,
+   3.42
+  ],
+  "LegNeonRight": [
+   -0.3,
+   0.6,
+   3.42
+  ],
+  "LegRight": [
+   -0.3,
+   0.6,
+   3.42
+  ],
+  "Neck": [
+   0.0,
+   -0.42,
+   4.18
+  ],
+  "NeckNeon": [
+   0.0,
+   -0.42,
+   4.18
+  ],
+  "Tail": [
+   0.0,
+   1.0,
+   3.3
+  ],
+  "TailNeon": [
+   0.0,
+   1.0,
+   3.3
+  ],
+  "WingLeft": [
+   0.36,
+   -0.05,
+   4.12
+  ],
+  "WingNeonLeft": [
+   0.36,
+   -0.05,
+   4.12
+  ],
+  "WingNeonRight": [
+   -0.36,
+   -0.05,
+   4.12
+  ],
+  "WingRight": [
+   -0.36,
+   -0.05,
+   4.12
+  ]
+ },
+ "rest": {
+  "Body": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "BodyNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Head": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "HeadNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegNeonLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegNeonRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LegRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Neck": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "NeckNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Tail": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "TailNeon": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingNeonLeft": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingNeonRight": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "WingRight": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "Kaizel: rears back and breathes a flame burst (proposed)",
+   "end": 1.4,
+   "Release": 0.75,
+   "keys": [
+    {
+     "name": "Rear back",
+     "t": 0.45,
+     "desc": "Chest up, neck thrown back, wings high and swept back",
+     "root_offset": {
+      "Body": [
+       0,
+       0.3,
+       0.25
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -28,
+       0,
+       0
+      ],
+      "BodyNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Head": [
+       -10,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       20,
+       0,
+       0
+      ],
+      "LegNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegRight": [
+       20,
+       0,
+       0
+      ],
+      "Neck": [
+       -30,
+       0,
+       0
+      ],
+      "NeckNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       18,
+       0,
+       0
+      ],
+      "TailNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingLeft": [
+       0,
+       -38,
+       28
+      ],
+      "WingNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingRight": [
+       0,
+       38,
+       -28
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.75,
+     "desc": "Neck strikes forward, wings slam down, flame bursts",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.25,
+       -0.15
+      ]
+     },
+     "rotations": {
+      "Body": [
+       12,
+       0,
+       0
+      ],
+      "BodyNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Head": [
+       -30,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       -30,
+       0,
+       0
+      ],
+      "LegNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegRight": [
+       -30,
+       0,
+       0
+      ],
+      "Neck": [
+       40,
+       0,
+       0
+      ],
+      "NeckNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       -20,
+       0,
+       0
+      ],
+      "TailNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingLeft": [
+       0,
+       42,
+       -6
+      ],
+      "WingNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingRight": [
+       0,
+       -42,
+       6
+      ]
+     }
+    },
+    {
+     "name": "Hold",
+     "t": 1.0,
+     "desc": "Still breathing: neck low, wings rising from the beat",
+     "root_offset": {
+      "Body": [
+       0,
+       -0.1,
+       0
+      ]
+     },
+     "rotations": {
+      "Body": [
+       6,
+       0,
+       0
+      ],
+      "BodyNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Head": [
+       -20,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       -12,
+       0,
+       0
+      ],
+      "LegNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegRight": [
+       -12,
+       0,
+       0
+      ],
+      "Neck": [
+       30,
+       0,
+       0
+      ],
+      "NeckNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       -10,
+       0,
+       0
+      ],
+      "TailNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingLeft": [
+       0,
+       -4,
+       -6
+      ],
+      "WingNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingRight": [
+       0,
+       4,
+       6
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.2,
+     "desc": "Head lifts, wings open wide to steady the hover",
+     "root_offset": {
+      "Body": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotations": {
+      "Body": [
+       -4,
+       0,
+       0
+      ],
+      "BodyNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Head": [
+       -4,
+       0,
+       0
+      ],
+      "HeadNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "LegRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Neck": [
+       -6,
+       0,
+       0
+      ],
+      "NeckNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "Tail": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "TailNeon": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingLeft": [
+       0,
+       -20,
+       8
+      ],
+      "WingNeonLeft": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingNeonRight": [
+       0.0,
+       0.0,
+       0.0
+      ],
+      "WingRight": [
+       0,
+       20,
+       -8
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

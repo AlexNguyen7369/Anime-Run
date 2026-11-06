@@ -76,7 +76,7 @@ local CHECKS = {
 	"attachments_on_part",
 	"attachments_near_part",
 	"trails_on",
-	"ninja_fx_on",
+	"run_fx_on",
 	-- slot swap (design doc 4.13: each slot's own aura and trail)
 	"swap_no_pop",
 	"swap_settled",
@@ -152,7 +152,7 @@ end
 
 -- What the pose itself says for this rig, measured on an unparented clone with the real RunnerVisual.Pose so the
 -- placeholder angles (SWING, BOB, NINJA) are never copied here:
---   Lean: the Torso in the root's space (identity in the default swing, the 45 degree lean in NinjaRun)
+--   Lean: the Torso in the root's space (the lean of the universal run or of NinjaRun; design doc 4.34)
 --   Rate / PosRate: a limb's largest change against the Torso per radian of stride phase
 --   FootLow / FootHigh: lowest leg point above the ground over a stride; RestLow: the same standing still
 --   PitchRange, PitchMid: the swing of RightLeg against the Torso
@@ -367,8 +367,7 @@ local function checkRow(out, label, row, copy, rig)
 	if math.abs(pose.RestLow) > cfg.FootRestTolerance then
 		add("feet_rest_on_ground", ("%.3f studs above the ground standing"):format(pose.RestLow))
 	end
-	local leans = pose.Lean.UpVector.Y < PhysicsTargets.lap.MinUpYStrict
-	if leans ~= (row.Style == "NinjaRun") then
+	if pose.Lean.UpVector.Y >= PhysicsTargets.lap.MinUpYStrict then
 		add("style_pose_matches", ("style %s, torso up y %.3f"):format(tostring(row.Style), pose.Lean.UpVector.Y))
 	end
 	-- Effects
@@ -388,10 +387,8 @@ local function checkRow(out, label, row, copy, rig)
 		end
 	end
 	local state = copy:GetAttribute("RunFxState")
-	if row.Style == "NinjaRun" and (runFx == 0 or (state ~= "all" and state ~= "streaks")) then
-		add("ninja_fx_on", ("%d emitters, state %s"):format(runFx, tostring(state)))
-	elseif row.Style ~= "NinjaRun" and runFx > 0 then
-		add("ninja_fx_on", ("%d emitters without the style"):format(runFx))
+	if runFx == 0 or (state ~= "all" and state ~= "streaks") then
+		add("run_fx_on", ("%d emitters, state %s"):format(runFx, tostring(state)))
 	end
 end
 
@@ -771,6 +768,9 @@ function UiRunVisual.Build(deps)
 							table.insert(out.swap_settled, label .. ": no settled copy")
 						else
 							swaps += 1
+							if copy.PrimaryPart ~= copy:FindFirstChild("Torso") then
+								table.insert(out.swap_settled, label .. ": drawn copy's PrimaryPart is not its Torso")
+							end
 							local off = deps.stepsOff(steps, dts, ctx.Speed, smooth)
 							if off > cfg.SwapMaxBadFrames then
 								table.insert(

@@ -1,5 +1,5 @@
 --!nonstrict
--- Shop (docs/GAMEPASS_SHOP_SPEC.md): Gamepasses, Potions + bundle, Server Luck, Codes.
+-- Shop (docs/MONETIZATION_SPEC.md): Gamepasses, Potions + bundle, Server Luck, Codes.
 -- Display and purchase prompts only; Roblox owns prices and ownership, Server/ShopService grants products and codes.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -206,8 +206,21 @@ player.AttributeChanged:Connect(function(attribute)
 	end
 end)
 
--- The green price button. kind = "pass" | "product"; id 0 shows "Coming soon" and never prompts.
-local function buyButton(parent, kind, id, robuxPrice, props)
+-- Grey, disabled, with a word instead of the price: an owned pass, or paid luck for a restricted player (design doc 6).
+local function setBlocked(button, price, word)
+	button.Active = word == nil
+	button:FindFirstChild("Robux").Visible = word == nil
+	if word then
+		price.Text = word
+		button.Gradient.Color = ColorSequence.new(PALETTE.Muted, PALETTE.Disabled)
+	else
+		button.Gradient.Color = ColorSequence.new(PALETTE.Money, PALETTE.MoneyDeep)
+	end
+end
+
+-- The green price button. kind = "pass" | "product"; id 0 shows "Coming soon" and never prompts. `item` is the catalogue
+-- entry: it decides the blocked states.
+local function buyButton(parent, kind, id, robuxPrice, props, item)
 	props.Text = ""
 	props.BackgroundColor3 = Color3.new(1, 1, 1)
 	props.AutoButtonColor = false
@@ -246,14 +259,32 @@ local function buyButton(parent, kind, id, robuxPrice, props)
 		UiFeedback.DeniedPress(button)
 		return button
 	end
+	local listed = commas(robuxPrice)
+	local function refreshBlocked()
+		local owned = kind == "pass" and player:GetAttribute("Pass_" .. item.Id) == true
+		local restricted = config.PaidLuck[item.Id] and player:GetAttribute("PaidRandomRestricted") ~= false
+		setBlocked(button, price, owned and "OWNED" or restricted and "Not available" or nil)
+		if not (owned or restricted) then
+			price.Text = listed
+		end
+	end
 	task.spawn(function()
 		local infoType = kind == "pass" and Enum.InfoType.GamePass or Enum.InfoType.Product
 		local ok, info = pcall(MarketplaceService.GetProductInfo, MarketplaceService, id, infoType)
 		if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then
-			price.Text = commas(info.PriceInRobux)
+			listed = commas(info.PriceInRobux)
+			refreshBlocked()
 		end
 	end)
+	player:GetAttributeChangedSignal("PaidRandomRestricted"):Connect(refreshBlocked)
+	if kind == "pass" then
+		player:GetAttributeChangedSignal("Pass_" .. item.Id):Connect(refreshBlocked)
+	end
+	refreshBlocked()
 	button.Activated:Connect(function()
+		if not button.Active then
+			return
+		end
 		if kind == "pass" then
 			passCards[id] = parent
 			MarketplaceService:PromptGamePassPurchase(player, id)
@@ -263,6 +294,24 @@ local function buyButton(parent, kind, id, robuxPrice, props)
 		end
 	end)
 	return button
+end
+
+-- Odds are shown before purchase behind a word, never a bare icon (design doc 6).
+local function detailsButton(box)
+	local b = make("TextButton", "Details", box, {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -6, 0.33, 0),
+		Size = UDim2.fromOffset(62, 24),
+		BackgroundColor3 = PALETTE.PanelDeep,
+		Font = UiTheme.Font,
+		Text = "Details",
+		TextColor3 = PALETTE.White,
+		TextSize = 14,
+		ZIndex = 3,
+	})
+	corner(b, 6)
+	b.Activated:Connect(require(script.Parent:WaitForChild("RollOptions")).OpenDetails)
+	return b
 end
 
 -- 2. Gamepasses grid.
@@ -308,7 +357,10 @@ for order, item in config.Gamepasses do
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -8),
 		Size = UDim2.fromScale(0.62, 0.22),
-	})
+	}, item)
+	if config.PaidLuck[item.Id] or item.Id == "vip" then
+		detailsButton(box)
+	end
 end
 
 -- 3. Potions: packs and the bundle (developer products).
@@ -368,7 +420,10 @@ for order, product in config.Products do
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.new(0.5, 0, 1, -8),
 			Size = UDim2.fromScale(0.62, 0.23),
-		})
+		}, product)
+		if config.PaidLuck[product.Id] then
+			detailsButton(box)
+		end
 	end
 end
 for _, product in config.Products do
@@ -444,7 +499,8 @@ for _, product in config.Products do
 			AnchorPoint = Vector2.new(1, 1),
 			Position = UDim2.new(1, -16, 1, -12),
 			Size = UDim2.fromScale(0.3, 0.38),
-		})
+		}, product)
+		detailsButton(banner).Position = UDim2.new(1, -16, 0.06, 0)
 	end
 end
 
@@ -481,7 +537,7 @@ for order, product in config.Products do
 			AnchorPoint = Vector2.new(0.5, 1),
 			Position = UDim2.fromScale(0.5, 1),
 			Size = UDim2.fromScale(0.8, 0.62),
-		})
+		}, product)
 	end
 end
 

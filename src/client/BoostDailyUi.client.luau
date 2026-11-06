@@ -577,7 +577,12 @@ local function selectQuest(quest, current, weekly)
 		HudFormat.Short(quest.Target),
 		math.floor(current / math.max(1, quest.Target) * 100 + 0.5)
 	)
-	questReward.Text = string.format("REWARD  •  x%s %s", HudFormat.Short(quest.RewardCount or 1), rewardName(quest))
+	questReward.Text = string.format(
+		"REWARD  •  x%s %s  •  %s Gems",
+		HudFormat.Short(quest.RewardCount or 1),
+		rewardName(quest),
+		HudFormat.Short(quest.Gems)
+	)
 end
 
 local function showQuests()

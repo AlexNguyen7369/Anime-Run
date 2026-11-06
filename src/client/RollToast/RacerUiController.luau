@@ -42,6 +42,7 @@ local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
 local NpcConfig = require(Shared.NpcConfig)
+local BossWaitCamera = require(client.BossWaitCamera)
 local RunnerVisual = require(client.RunnerVisual)
 local hud = require(Ui.RacerHud).Bind(playerGui)
 require(client.RaceProgressMap).Attach(hud)
@@ -63,6 +64,48 @@ UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDee
 UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
 hud.Unbanked.TextColor3 = Color3.new(1, 1, 1)
+-- Gems read-out (design doc 4.35): a new plate just above the Money plate; RacerHud is generated, so it is built here.
+local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
+local gemsPlate = UiTheme.Plate(Instance.new("Frame"), GEM_DEEP)
+gemsPlate.Name = "Gems"
+gemsPlate.AnchorPoint = Vector2.new(0, 1)
+gemsPlate.Parent = hud.Gui
+local gemIcon = Instance.new("ImageLabel")
+gemIcon.Name = "GemIcon"
+gemIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+gemIcon.Position = UDim2.fromScale(0.17, 0.5)
+gemIcon.Size = UDim2.fromScale(0.8, 0.8)
+gemIcon.SizeConstraint = Enum.SizeConstraint.RelativeYY
+gemIcon.BackgroundTransparency = 1
+gemIcon.Image = require(Ui.HudIcons).Gem.Image
+gemIcon.ZIndex = 3
+gemIcon.Parent = gemsPlate
+local gemsValue = Instance.new("TextLabel")
+gemsValue.Name = "GemsValue"
+gemsValue.Position = UDim2.fromScale(0.33, 0.1)
+gemsValue.Size = UDim2.fromScale(0.62, 0.8)
+gemsValue.BackgroundTransparency = 1
+gemsValue.Font = UiTheme.Font
+gemsValue.TextSize = 26
+gemsValue.TextColor3 = Color3.new(1, 1, 1)
+gemsValue.TextXAlignment = Enum.TextXAlignment.Left
+gemsValue.Text = "0"
+gemsValue.ZIndex = 3
+UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
+UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
+gemsValue.Parent = gemsPlate
+-- Follows the Money plate's desktop and phone layouts, so it needs no phone branch of its own.
+local function placeGems()
+	local plate = hud.MoneyPlate
+	local width, height = plate.Size.X.Offset, plate.Size.Y.Offset
+	gemsPlate.Size = UDim2.fromOffset(width * 0.62, height * 0.38)
+	gemsPlate.Position = UDim2.new(
+		0,
+		hud.Money.Position.X.Offset + plate.Position.X.Offset,
+		1,
+		hud.Money.Position.Y.Offset - hud.Money.Size.Y.Offset + plate.Position.Y.Offset - 4
+	)
+end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
 local index = require(Ui.RacerIndex).Bind(playerGui)
@@ -157,19 +200,30 @@ settings.AutoRow.Visible = true
 -- TRACK CAMERA row (docs/CAMERA_SPEC.md): a copy of the generated AutoRow one row lower, with the panel one row taller.
 -- shortcut: built at runtime because the generated RacerSettings has no spec in this repo; move it into the UI spec when one exists.
 local trackCameraRow = settings.AutoRow.Parent:Clone()
-local twins = {} -- AutoRow GuiObject -> its copy
+local twins = {} -- { AutoRow GuiObject, its copy }
 local function pair(original, copy)
 	for _, child in original:GetChildren() do
 		local twin = copy:FindFirstChild(child.Name)
 		if twin then
 			if child:IsA("GuiObject") then
-				twins[child] = twin
+				table.insert(twins, { child, twin })
 			end
 			pair(child, twin)
 		end
 	end
 end
 pair(settings.AutoRow.Parent, trackCameraRow)
+-- AUTO SELL row (design doc 4.36), built the same way, one row lower still. Its toggle opens the popup.
+local autoSellRow = settings.AutoRow.Parent:Clone()
+pair(settings.AutoRow.Parent, autoSellRow)
+autoSellRow.Name = "AutoSellRow"
+for _, d in autoSellRow:GetDescendants() do
+	d.Name = string.gsub(d.Name, "^Auto", "AutoSell")
+end
+autoSellRow.Parent = settings.AutoRow.Parent.Parent
+settings.AutoSellRow = autoSellRow.Face
+settings.AutoSellName = settings.AutoSellRow.AutoSellName
+settings.AutoSellToggle = settings.AutoSellRow.AutoSellToggle.Face
 trackCameraRow.Name = "TrackCameraRow"
 for _, d in trackCameraRow:GetDescendants() do
 	d.Name = string.gsub(d.Name, "^Auto", "TrackCamera")
@@ -185,7 +239,8 @@ do
 	local function relayout()
 		queued = false
 		local step = autoRow.Position.Y.Offset - effectsRow.Position.Y.Offset
-		for d, twin in twins do
+		for _, row in twins do
+			local d, twin = row[1], row[2]
 			twin.Position, twin.Size = d.Position, d.Size
 			if d:IsA("TextLabel") or d:IsA("TextButton") then
 				twin.TextSize = d.TextSize
@@ -193,10 +248,12 @@ do
 		end
 		trackCameraRow.Size = autoRow.Size
 		trackCameraRow.Position = autoRow.Position + UDim2.fromOffset(0, step)
+		autoSellRow.Size = autoRow.Size
+		autoSellRow.Position = autoRow.Position + UDim2.fromOffset(0, 2 * step)
 		if panel.Size ~= grown then
 			authored = panel.Size
 		end
-		grown = authored + UDim2.fromOffset(0, step)
+		grown = authored + UDim2.fromOffset(0, 2 * step)
 		panel.Size = grown
 	end
 	local function queue()
@@ -315,7 +372,7 @@ categoryLayout.VerticalAlignment = Enum.VerticalAlignment.Center
 categoryLayout.Padding = UDim.new(0, 6)
 categoryLayout.Parent = categoryTabs
 
-local function categoryButton(name, text, width)
+local function categoryButton(name, text, width, parent)
 	local button = Instance.new("TextButton")
 	button.Name = name
 	button.Size = UDim2.fromOffset(width, 38)
@@ -332,12 +389,12 @@ local function categoryButton(name, text, width)
 	edge.Color = UiTheme.Outline
 	edge.Thickness = 2
 	edge.Parent = button
-	button.Parent = categoryTabs
+	button.Parent = parent
 	return button
 end
 
-local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84)
-local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136)
+local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84, categoryTabs)
+local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136, categoryTabs)
 local profileHost = Instance.new("ScrollingFrame")
 profileHost.Name = "PlayerProfile"
 profileHost.Position = UDim2.fromOffset(16, 96)
@@ -488,6 +545,63 @@ rebirth.RewardsTitle.Text = "NEXT REBIRTH"
 local rebirthTitlePad = Instance.new("UIPadding")
 rebirthTitlePad.PaddingLeft = UDim.new(0, 84)
 rebirthTitlePad.Parent = rebirth.Title
+
+-- Stats is a category of the Rebirth panel (design doc 4.40): two generated panels, one tab strip in each header.
+-- The tabs replace the titles; the generated fit() forces Title.Visible, so the text is what goes.
+local statsTabBadges = {}
+local function rebirthTabs(refs, selected)
+	refs.Title.Text = ""
+	local strip = Instance.new("Frame")
+	strip.Name = "RebirthTabs"
+	strip.AnchorPoint = Vector2.new(0, 0.5)
+	strip.Position = UDim2.new(0, 12, 0.5, 0)
+	strip.Size = UDim2.fromOffset(198, 38)
+	strip.BackgroundTransparency = 1
+	strip.ZIndex = 6
+	strip.Parent = refs.Header
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = strip
+	for order, tab in { { "RebirthTab", "REBIRTH", "Rebirth" }, { "StatsTab", "STATS", "Stats" } } do
+		local button = categoryButton(tab[1], tab[2], 96, strip)
+		button.LayoutOrder = order
+		button.BackgroundColor3 = tab[3] == selected and palette.Tile or palette.PanelDeep
+		button.Activated:Connect(function()
+			if tab[3] ~= selected then
+				UiFeedback.Play("TabSwitch")
+				PanelSwitch.Toggle(tab[3])
+			end
+		end)
+		if tab[3] == "Stats" then
+			local badge = Instance.new("TextLabel")
+			badge.Name = "Badge"
+			badge.AnchorPoint = Vector2.new(0.5, 0.5)
+			badge.Position = UDim2.new(1, -4, 0, 4)
+			badge.Size = UDim2.fromOffset(22, 22)
+			badge.BackgroundColor3 = palette.Danger
+			badge.Font = UiTheme.Font
+			badge.TextSize = 14
+			badge.TextColor3 = Color3.new(1, 1, 1)
+			badge.ZIndex = 8
+			badge.Visible = false
+			Instance.new("UICorner", badge).CornerRadius = UDim.new(1, 0)
+			badge.Parent = button
+			table.insert(statsTabBadges, badge)
+		end
+	end
+end
+rebirthTabs(rebirth, "Rebirth")
+rebirthTabs(stats, "Stats")
+-- The HUD tile answers for the whole panel: it closes it from either tab.
+PanelSwitch.SetAction("Rebirth", function()
+	if PanelSwitch.IsOpen("Stats") then
+		PanelSwitch.Close("Stats")
+	else
+		PanelSwitch.Toggle("Rebirth")
+	end
+end)
 -- The Rebirth moment's title. Hidden at rest, never Active; no number, so nothing here can run ahead of the server.
 local rebirthSlam = Instance.new("TextLabel")
 rebirthSlam.Name = "RebirthSlam"
@@ -589,6 +703,14 @@ local function refreshTrackCamera()
 	label(settings.TrackCameraName, "TRACK CAMERA")
 	switch(settings.TrackCameraToggle, player:GetAttribute("TrackCamera") ~= false)
 end
+-- AUTO SELL row (design doc 4.36): the toggle shows the setting and opens the popup, where N is typed.
+label(settings.AutoSellName, "AUTO SELL")
+local function refreshAutoSellRow()
+	switch(settings.AutoSellToggle, player:GetAttribute("AutoSell") == true)
+end
+player:GetAttributeChangedSignal("AutoSell"):Connect(refreshAutoSellRow)
+refreshAutoSellRow()
+settings.AutoSellToggle.Activated:Connect(require(script.Parent.Parent:WaitForChild("RollOptions")).OpenAutoSell)
 settings.TrackCameraToggle.Activated:Connect(function()
 	player:SetAttribute("TrackCamera", player:GetAttribute("TrackCamera") == false)
 	refreshTrackCamera()
@@ -632,9 +754,14 @@ local function autoRaceCar()
 end
 
 RunService.RenderStepped:Connect(function(dt)
+	if BossWaitCamera.Held() then
+		return -- the exhaustion view holds the camera Scriptable, and gives it back as it found it
+	end
 	local camera = workspace.CurrentCamera
 	local autoRacing = player:GetAttribute("AutoRacing") == true
-	local car = autoRacing and player:GetAttribute("TopDownView") == true and autoRaceCar() or nil
+	-- A boss event locks its view (design doc 4.37), whatever the saved top-down setting.
+	local topDown = player:GetAttribute("TopDownView") == true and player:GetAttribute("BossEvent") ~= true
+	local car = autoRacing and topDown and autoRaceCar() or nil
 	if car and camera then
 		if not topDownWasActive then
 			topDownWasActive = true
@@ -714,6 +841,14 @@ local function refreshIndex()
 			string.format("%d / %d DEFEATED", math.clamp(player:GetAttribute("BestTrack") or 0, 0, total), total)
 		return
 	end
+	if index.Gui:GetAttribute("InventoryTab") == "Sidekicks" then
+		index.IndexProgress.Text = index.Gui:GetAttribute("SidekicksProgress") or ""
+		return
+	end
+	if index.Gui:GetAttribute("InventoryTab") == "Relics" then
+		index.IndexProgress.Text = index.Gui:GetAttribute("RelicsProgress") or ""
+		return
+	end
 	index.IndexProgress.Text = string.format(
 		"%d / %d DISCOVERED · NEXT POINT IN %d",
 		count,
@@ -752,12 +887,18 @@ data.ChildRemoved:Connect(refreshIndex)
 player:GetAttributeChangedSignal("EquippedCar"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("Team"):Connect(refreshIndex)
 player:GetAttributeChangedSignal("BestTrack"):Connect(refreshIndex)
+index.Gui:GetAttributeChangedSignal("SidekicksProgress"):Connect(refreshIndex)
+index.Gui:GetAttributeChangedSignal("RelicsProgress"):Connect(refreshIndex)
 refreshIndex()
 require(Ui.InventoryTabs).Attach(index, player, refreshIndex)
 
 local function refreshStats()
 	local free = player:GetAttribute("StatPoints") or 0
 	stats.Points.Text = string.format("%d FREE POINT%s", free, free == 1 and "" or "S")
+	for _, badge in statsTabBadges do
+		badge.Visible = free > 0
+		badge.Text = tostring(free)
+	end
 	local allocations = {}
 	for _, stat in ipairs(config.STATS) do
 		allocations[stat] = player:GetAttribute("Alloc_" .. stat) or 0
@@ -798,7 +939,7 @@ end
 player:GetAttributeChangedSignal("StatPoints"):Connect(refreshStats)
 refreshStats()
 
--- The Auto toggle lives in HudChrome/TopRight/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
+-- The Auto toggle lives in HudChrome/AutoSlot/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
 -- the Toast read; the generated fit() sets Visible back to true on every resize.
 local raceAnchor = hud.Race.Parent
 raceAnchor:GetPropertyChangedSignal("Visible"):Connect(function()
@@ -875,6 +1016,7 @@ end)
 hud.Level.Visible = false
 
 local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
+local shownGems = player:GetAttribute("Gems") or 0
 local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
@@ -918,6 +1060,9 @@ local function refreshReadouts(dt)
 	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
 	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
+	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
+	gemsValue.Text = format.Short(shownGems)
+	placeGems()
 end
 -- MoneyBig's threshold (placeholders): a gain of at least this share of the new balance, and at least this much.
 local MONEY_BIG_SHARE, MONEY_BIG_MIN = 0.05, 1000
@@ -1020,7 +1165,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, index.IndexProgress, stats.Points }) do
+for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress, stats.Points }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14

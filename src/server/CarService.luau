@@ -230,6 +230,7 @@ local standUp -- forward declaration (defined below)
 -- duel), the hidden avatar is welded to its Torso, and RaceService starts the run. RaceEvent goes "Racing".
 -- Duel mode (duel = { Track, Slot, OnSeated }, docs/DUEL_SPEC.md): the runner waits at the picked track's start;
 -- OnSeated() is called and CarService.ReleaseDuel starts the race. Slot 2 waits DUEL_SLOT_GAP studs to the left.
+-- A hold (CarService.HoldAt) has At = cframe in place of Track and Slot.
 local function spawnCar(player, character, gen, duel)
 	removeCar(player)
 	character:WaitForChild("Humanoid")
@@ -241,7 +242,8 @@ local function spawnCar(player, character, gen, duel)
 
 	local start = RaceService.TrackStartCFrame(1) or CarService.WalkSpawnCFrame()
 	if duel then
-		start = RaceService.TrackStartCFrame(duel.Track) * CFrame.new(-DUEL_SLOT_GAP * ((duel.Slot or 1) - 1), 0, 0)
+		start = duel.At
+			or RaceService.TrackStartCFrame(duel.Track) * CFrame.new(-DUEL_SLOT_GAP * ((duel.Slot or 1) - 1), 0, 0)
 	end
 	local car = RunnerFactory.build(characterIdOf(player))
 	car.Name = "Runner_" .. tostring(player.Name)
@@ -250,6 +252,9 @@ local function spawnCar(player, character, gen, duel)
 	VehicleEffects.Apply(car, player, activeSlot(player))
 	car:PivotTo(start)
 	car:SetAttribute("Owner", userIdOf(player) or 0) -- 0: a test's fake player (no client draws it)
+	if duel and duel.At then
+		car.ModelStreamingMode = Enum.ModelStreamingMode.Persistent -- spec: the arena is wider than the streaming target
+	end
 	CollectionService:AddTag(car, CarService.RUNNER_TAG)
 	car.Parent = Workspace
 	cars[player] = car
@@ -400,10 +405,26 @@ end
 function CarService.ReleaseDuel(player, duel)
 	local car = cars[player]
 	local route = RaceService.GetRoute()
-	if not (car and car.PrimaryPart and route and racing[player] == true) or runs[player] then
+	if not (car and car.PrimaryPart and route) then
 		return nil
 	end
-	local run = RaceService.NewRun(car, route, player, { Duel = duel })
+	return CarService.RunHeld(player, route, { Duel = duel })
+end
+
+-- Stops any run through the normal stop, then holds a fresh runner at cf, its avatar carried (boss event arrival; the arena
+-- has no server-side deck to stand on). True if held; false when there is no live avatar.
+function CarService.HoldAt(player, cf)
+	CarService.SetAutoRace(player, false)
+	return CarService.SetAutoRace(player, true, { At = cf, OnSeated = function() end })
+end
+
+-- Starts a run on the held runner. Returns the run, or nil when nothing is held.
+function CarService.RunHeld(player, route, options)
+	local car = cars[player]
+	if not (car and car.PrimaryPart and racing[player] == true) or runs[player] then
+		return nil
+	end
+	local run = RaceService.NewRun(car, route, player, options)
 	runs[player] = run
 	player:SetAttribute("RaceEvent", "Racing")
 	return run
@@ -413,6 +434,9 @@ end
 -- starts (unless the player stopped or started less than SpawnArea.START_COOLDOWN ago). Returns true if it started.
 function CarService.PadTouched(player, hit)
 	if player == nil or racing[player] == true or typeof(hit) ~= "Instance" then
+		return false
+	end
+	if player:GetAttribute("BossEvent") == true then
 		return false
 	end
 	local character = characters[player]
@@ -473,8 +497,8 @@ function CarService.Start()
 		remote.Parent = remotes
 	end
 	remote.OnServerEvent:Connect(function(player, enabled)
-		if type(enabled) ~= "boolean" then
-			return
+		if type(enabled) ~= "boolean" or player:GetAttribute("BossEvent") == true then
+			return -- an event's runner is the event's: BossEventLeave or dying is the way out
 		end
 		local now = os.clock()
 		if lastToggle[player] and now - lastToggle[player] < CarService.TOGGLE_COOLDOWN then

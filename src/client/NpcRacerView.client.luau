@@ -160,7 +160,7 @@ end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "LoserScreen"
-gui.DisplayOrder = 20 -- the overlay draws above every other game GUI, including DuelUi
+gui.DisplayOrder = 61 -- the overlay draws above every other game GUI, including DuelUi and RollOptions (60)
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.Enabled = false

@@ -1,0 +1,47 @@
+{
+ "Cracks": {
+  "Decal": "79475793388094",
+  "Hash": "15893e0bd75c3c2cd8eb9874ef7aa1fc69867cdb2e9145235bd0396b4d2af589",
+  "Image": "135208168225584"
+ },
+ "Dust": {
+  "Decal": "102985667818743",
+  "Hash": "fd2926576260a0509e72b62ac2b4af2199b6b3223dbc94c0bccf427ef0b20f99",
+  "Image": "93746240774179"
+ },
+ "Flare": {
+  "Decal": "121515991396648",
+  "Hash": "769c7c2c3956f42c0c47ae1c03fe06114317f21e63e9af37b81e41cc4fde628f",
+  "Image": "130773046294708"
+ },
+ "FlatFront": {
+  "Decal": "74520644725257",
+  "Hash": "2eccbbd8810ff275fad4670a4cf2204f16a069c52721635412cf1999867f4307",
+  "Image": "92708684136917"
+ },
+ "FlatSide": {
+  "Decal": "114919560332810",
+  "Hash": "008fc908e74c2d2d992b51db4c0b4f5c7f73fca4380e0284d82e2957cceec8c2",
+  "Image": "94913736094229"
+ },
+ "Ring": {
+  "Decal": "71508052021010",
+  "Hash": "4b1af557ff973a4f8754523123dc5b4bc5604f09e6a14f5219eb761b6bae938d",
+  "Image": "115884628820912"
+ },
+ "Shaft": {
+  "Decal": "137137861667966",
+  "Hash": "8c27015820c1fbe045e0cf1fd489bd1ce9a688f999ffddcd250004bcda47ff6c",
+  "Image": "114383042922209"
+ },
+ "Shard": {
+  "Decal": "124436369450523",
+  "Hash": "d1b535a5e176f57b933ba506937fea42813589eb3aa9bf0965f0f2dc60c54e24",
+  "Image": "97421080203443"
+ },
+ "Spark": {
+  "Decal": "116705266034557",
+  "Hash": "0511375bcb2d2c349308ae79d6a78e0e45ad845b7f012497fcba64c4379c9b22",
+  "Image": "111305053361481"
+ }
+}

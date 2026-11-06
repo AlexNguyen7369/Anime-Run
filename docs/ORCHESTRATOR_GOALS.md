@@ -119,6 +119,44 @@ Deliverables:
 - r4 | Drawn portraits for every character (owner 2026-11-04, CHARACTER_GACHA_SPEC Digital art portrait), in the roll, Index and Enemies page, Backpack, starter card and showdown banner, with head-only art for the Team minibar | every rollable id in `CharacterPortraits` and `CharacterHeads`; roll and Index scenarios green; Studio capture; rules audit PASS
 Out of scope: odds, economy, new dependencies.
 
+## boss-event: Boss events, Relics, Gems and Sidekicks (owner 2026-11-04)
+Status: active
+Owner-confirmed: 2026-11-04 (plan approved)
+Branch: feature/alex/boss-event (from aaf4b80, because it needs the unmerged universal run)
+Spec: design doc 4.35-4.38, docs/BOSS_EVENT_SPEC.md, docs/SIDEKICK_SPEC.md, docs/RELIC_SPEC.md
+Deliverables:
+- b0 | Rules and research written | owner reads back and confirms
+- b1 | Contact sheet: Big Raga and 3 miniature Sidekicks, no upload | owner approves designs
+- b2 | Gems, quest rewards, save fields, HUD, admin | `gems` green: win and quests pay, duel and exhaustion do not
+- b3 | Sidekick roll, summon page, gem packs, Bag of 50, auto-sell, equip, followers | `sidekicks`, `ui_sidekicks` green: luck cannot change odds, odds sum to 100%, full bag refuses without spending, equipped never sold
+- b4 | Arena blockout, lanes, closed rail | owner reviews a size screenshot
+- b5 | Event server: scheduler, teleport, prep and late join, team damage, boss run, HP, end, chat message | `boss_event` covers the full loop with 7 fake players
+- b6 | Sky arena dressing | owner look, asset ledger signed
+- b7a | Boss key frames: 3 moves, sliced renders | owner approves each move
+- b7b | In-betweens, bake, in-game idle cycle | approved keys unchanged, owner look in Studio
+- b7c | Team HUD, red header, spawn rise, HP bar, popups, VFX, SFX | `ui_boss` green, owner look
+- b7d | Sidekick attacks: key frames, in-betweens, effects | owner approves each attack; `ui_sidekick_attack` green with 7 players
+- b8 | Relics: data, drops, equip, UI, icons | `relics` green, odds sum to 100%
+- b9 | Paid spawn | receipt test green: retry, active event, two buyers
+- b10 | Sidekick tutorial | `ui_sidekick_tutorial` green
+- b11 | Compatibility check | full harness and rules audit results reported
+Out of scope: Relic or Sidekick trading, a second boss, an underground arena, pity, luck on summons, summon potions, VIP, shiny pass, extra banners.
+
+## boss-phase2: Fully Adapted Raga, line run, chests and rewards popup (owner 2026-11-06)
+Status: active
+Owner-confirmed: 2026-11-06 (plan approved: `~/.claude/plans/squishy-wishing-cook.md`)
+Branch: feature/alex/boss-phase2 (from e87b19d, because `main` lacks the boss event and PR #4 is still open)
+Spec: design doc 4.35, 4.37, 4.38, docs/BOSS_EVENT_SPEC.md, docs/RELIC_SPEC.md
+Deliverables:
+- p0 | Rules written | design doc and specs updated with the date
+- p1 | Art for 5 Relics and 2 chests, uploaded | owner approves the contact sheet before upload
+- p2 | Server: phases, stacks, Vulnerable, rewards, chests | `boss_event`, `relics` green
+- p3 | Line run, 8.5 s wait, smoke | `boss_event`, `ui_boss` green
+- p4 | Phase 2 presentation: title, wheel, scream, drop spill, faster bar | `ui_boss` green, owner look at a Studio capture
+- p5 | Rewards popup, chest opening | `ui_relics`, `ui_boss_rewards` green
+- p6 | Compatibility check | full harness and rules audit results reported, then a PR with a fresh review
+Out of scope: 3D chests, new Raga key frames, moves faster than today's schedule, a chest screen outside the Relics inventory.
+
 ## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
 Status: done on the owner's word 2026-11-04 (u5 gaps accepted: last full server run 49/1, see handoff)
 Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)
@@ -133,6 +171,14 @@ Deliverables:
 - u5 | Compatibility check, owner 2026-11-04 "ensure ui and sfx are completely green, run compat check after the plan is fully finished": merge `orch/core/c3t`, full UI and server harness | `[UITEST] END fail=0`, `[CARTEST] END fail=0`, rules audit PASS; owner listens and looks. Status 2026-11-04: not met, stopped on the owner's word: UI pass=44 fail=0; server pass=49 fail=1 (`data`, fix not run), final server run skipped; audit FAIL, not re-audited
 Out of scope: camera shake, per-category volume, music, gameplay and economy.
 
+## sensei-cards: Sensei Tracks panel as one list of road-screenshot cards (owner 2026-11-04, design doc 4.15)
+Status: active
+Owner-confirmed: 2026-11-04 (owner's request, reference image of a numbered horizontal card list)
+Branch: feature/alex/anime-world
+Deliverables:
+- s1 | Tracks panel: long horizontal clickable cards with road screenshot, definition, recommended speed, enemy name | `ui_checkpoints` and the checkpoint_* clicks green; stylua / selene; rules audit PASS
+Out of scope: checkpoint rules, bonus, server code.
+
 ## trim: Context and repo bloat removed (owner 2026-11-03)
 Status: active
 Owner-confirmed: 2026-11-03 ("delete old rules that don't matter anymore and unnecessary text; files, folders, assets unused by current gameplay")
@@ -140,3 +186,15 @@ Branch: feature/alex/anime-world
 Deliverables:
 - t1 | Stale docs shortened, unused assets and files removed | `rojo build`, `stylua --check src`, `selene src` clean; rules audit finds no live rule lost
 Out of scope: gameplay, tests, git history rewrite.
+
+## roster: New characters, tiers above Secret and the 12-Sidekick pool (owner 2026-11-05)
+Status: paused for characters until `feature/alex/speed-balance` lands and `speed_probe` has run; Sidekick rows are with the boss-event session
+Owner-confirmed: 2026-11-05
+Branch: orch/roster/art1 (art committed, bca9b6e)
+Deliverables:
+- art1: models, portraits, evidence for 12 Chainsaw Mann and Solo Levelin characters, 9 Sidekicks, Void Saitamo; done: owner approved all 22 on 2026-11-05.
+- side1: 12-Sidekick pool live; done when boss-event merges the art and applies the table, and each Sidekick is seen following a runner in Studio.
+- tier1: Eternal tier (base Speed 5e16, proposed, owner OK 2026-11-05) and a curve anchor Speed 7e37 = 1000 studs/s, once `speed_probe` supports `MAX_CRUISE` 1000; done when `catalog`, `gacha` and the stamina and workshop scenarios are green.
+- char1: 12 characters uploaded and rollable, rules in the design doc first; done when `catalog` and `gacha` are green and an Eternal roll and run are seen in Studio.
+- void1: Void tier (base Speed 5e19) with Overspeed passives; Void Saitamo (`punch_void`) ships with the Void characters in a later update, after the monetization branch is merged.
+Out of scope: backlog characters and Attack animation before key-frame approval.

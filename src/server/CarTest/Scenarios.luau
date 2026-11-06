@@ -3025,7 +3025,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 13 -- docs/SAVE_SPEC.md: VERSION 13 adds Team; 12 Copies and Showcase; 11 RaceBestTimes
+	local DATA_VERSION = 18 -- docs/SAVE_SPEC.md: VERSION 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local Money = serverModule("MoneyService")
@@ -3230,6 +3230,55 @@ function Scenarios.data()
 	local p3 = newPlayer("CarTestDataP3")
 	PlayerData.Load(p3, 9002) -- a different user does not see it
 	check(checks, "other_user_isolated", val(p3, "Money") or -1, 0, val(p3, "Money") == 0)
+
+	-- docs/BOSS_EVENT_SPEC.md "Paid spawn": BossCredit round trip (VERSION 18), cleaned to a whole number, absent on old saves
+	local pCredit = newPlayer("CarTestDataCredit")
+	PlayerData.Load(pCredit, 9031)
+	pCredit:SetAttribute("BossCredit", 2)
+	PlayerData.Save(pCredit, 9031)
+	local pCreditBack = newPlayer("CarTestDataCreditBack")
+	PlayerData.Load(pCreditBack, 9031)
+	local creditBack = pCreditBack:GetAttribute("BossCredit")
+	check(checks, "boss_credit_roundtrip", creditBack or -1, 2, creditBack == 2)
+	local pCreditFresh = newPlayer("CarTestDataCreditFresh")
+	PlayerData.Load(pCreditFresh, 9032)
+	local creditFresh = pCreditFresh:GetAttribute("BossCredit")
+	check(checks, "boss_credit_default_zero", creditFresh or -1, 0, creditFresh == 0)
+
+	-- /newplayer: the next load is a brand new save; gifts stay; the old session can not write the old stats back
+	local pOld = newPlayer("CarTestDataResetOld")
+	PlayerData.Load(pOld, 9003)
+	stat(pOld, "Money").Value = 500
+	serverModule("GachaService").Grant(pOld, "leaf_hero")
+	pOld:SetAttribute("Rolls", 3)
+	PlayerData.Save(pOld, 9003)
+	store.data[PlayerData.KeyFor(9003)].GiftReceipts = { gift1 = true }
+	local didReset = PlayerData.ResetToNew(pOld, 9003)
+	local savedAfter = PlayerData.Save(pOld, 9003, true)
+	check(checks, "reset_ok", didReset and 1 or 0, 1, didReset == true)
+	check(checks, "reset_blocks_later_save", savedAfter and 1 or 0, 0, savedAfter == false)
+	local resetRec = store.data[PlayerData.KeyFor(9003)]
+	check(checks, "reset_no_lock", resetRec.Lock and 1 or 0, 0, resetRec.Lock == nil)
+	check(checks, "reset_keeps_gift_receipts", resetRec.GiftReceipts and 1 or 0, 1, resetRec.GiftReceipts ~= nil)
+	local pNew = newPlayer("CarTestDataResetNew")
+	PlayerData.Load(pNew, 9003)
+	check(checks, "reset_money_zero", val(pNew, "Money") or -1, 0, val(pNew, "Money") == 0)
+	local startsNew = pNew:GetAttribute("NeedsStarter") == true and pNew:GetAttribute("Rolls") == 0
+	check(checks, "reset_needs_starter", startsNew and 1 or 0, 1, startsNew)
+	check(
+		checks,
+		"new_save_auto_roll_off",
+		pNew:GetAttribute("AutoRoll") == false and 1 or 0,
+		1,
+		pNew:GetAttribute("AutoRoll") == false
+	)
+	-- a save that has rolled keeps auto-roll on (Setup's default) and gets no popup
+	store.data[PlayerData.KeyFor(9004)] = { Rolls = 2, Version = DATA_VERSION }
+	local pRolled = newPlayer("CarTestDataRolled")
+	serverModule("GachaService").Setup(pRolled)
+	PlayerData.Load(pRolled, 9004)
+	local keptOn = pRolled:GetAttribute("AutoRoll") == true and pRolled:GetAttribute("NeedsStarter") ~= true
+	check(checks, "rolled_save_auto_roll_on", keptOn and 1 or 0, 1, keptOn)
 
 	-- retired: leaderstats.Speed / base Speed display and save checks (no Speed stat, design doc 4.13, owner 2026-11-01)
 
@@ -6407,7 +6456,10 @@ function Scenarios.npc()
 			check(checks, "npc_speed_increasing_1_to_5", increasing and 1 or 0, 1, increasing)
 			local s1 = isFiniteNumber(infos[1].Speed) and infos[1].Speed or math.huge
 			-- retired: npc_track1_beats_beginner (Track 1 NPC faster than a fresh player, NPC_RACER_SPEC 2026-10-20).
-			-- Design doc 4.13: a Common wins Track 1 (24 > 16 studs/s); owner 2026-11-03: Track 1 balance kept as is.
+			-- Design doc 4.13 (owner 2026-11-05): a Common does not outrun Track 1; a Rare is about level with it.
+			local common, rare = RaceConfig.RARITY_BASE.Common, RaceConfig.RARITY_BASE.Rare
+			check(checks, "npc_track1_above_common", s1, common, s1 > common)
+			check(checks, "npc_track1_near_rare", s1, rare, math.abs(s1 - rare) <= rare * 0.1)
 			-- Owner 2026-10-21 ("lower track requirements", replaces "substantially harder" >= 3x BASE_SPEED and the
 			-- fixed x2.5 growth): Track 1 = NpcConfig.BASE_SPEED, x SPEED_GROWTH per track (placeholders, read live),
 			-- and Track 1 must not need ~10M Speed: its recommended shown Speed is below 10,000.
@@ -8530,7 +8582,7 @@ local ADMIN_ORIGIN = Vector3.new(0, 0, -40000)
 local ADMIN_UID = 914200001 -- listed in AdminConfig.UserIds for the duration of the test
 local ADMIN_STRANGER_UID = 914200002 -- never listed: not an admin
 -- /speed and /addspeed are gone with the Speed stat (design doc 4.13, owner 2026-11-01)
-local ADMIN_COMMANDS = { "help", "money", "addmoney", "give", "equip", "roll", "wipe", "tp" }
+local ADMIN_COMMANDS = { "help", "money", "addmoney", "give", "narito", "equip", "roll", "wipe", "newplayer", "tp" }
 local ADMIN_MAX_MONEY = 1e30 -- AdminService MAX_MONEY (owner 2026-10-27; was 1e15)
 local ADMIN_TP_SETTLE = 1 -- s driven on Track 1 before the jump (a race is in progress in NPC mode)
 local ADMIN_TP_DRIVE = 4 -- s driven after the jump
@@ -8841,6 +8893,8 @@ function Scenarios.admin()
 			"/roll 5",
 			"/wipe",
 			"/wipe me",
+			"/narito",
+			"/newplayer",
 			"/tp 2",
 		}
 		local before = adminSnap(stranger)
@@ -9096,6 +9150,11 @@ function Scenarios.admin()
 		)
 		ls.Money.Value = 5
 		rejected("admin_wipe_unknown_target_false", "/wipe zzqx_nobody_here")
+
+		-- narito (the wipe above left nothing owned). /newplayer is never run here: the save scenario tests its reset.
+		accepted("admin_narito", "/narito", ownedCount, 1, function()
+			return ownedCount() == 1 and ownsId("leaf_hero")
+		end)
 
 		-- help / unknown / not a command
 		local okHelp, helpMsg = admin(p, "/help")
@@ -9382,9 +9441,9 @@ function Scenarios.admin()
 	return result("admin", checks, metrics)
 end
 
--- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02): "A roll is emphasized when the car is
--- undiscovered AND its odds are rarer than the player's 5th-rarest discovered car (while the player has discovered
--- fewer than 5 cars, any undiscovered car counts). The rarity name alone never triggers it. Every emphasized roll is
+-- Roll animation, server side (docs/ROLL_ANIMATION_SPEC.md, design doc 4.31). BRIEF (owner, 2026-10-02; bar changed 2026-11-05, design doc 4.40): "A roll is emphasized when the car is
+-- undiscovered AND its odds are at least 100x the player's 3rd-rarest discovered car (while the player has discovered
+-- fewer than 3 cars, 100x the starter, which counts as 1). The rarity name alone never triggers it. Every emphasized roll is
 -- announced in global chat." Every number below is copied from the spec, never from an implementation.
 local ROLL_ANIM_TIMES = { POP = 0.12, SPIN = 1.5, LAND = 0.2, EXIT = 0.2, SWITCH = 0.3, FIT_INTERVAL = 2.8 }
 local ROLL_ANIM_HOLD = {
@@ -9875,15 +9934,17 @@ function Scenarios.roll_anim()
 		for _, c in GACHA_CATALOG do
 			table.insert(allIds, c.Id)
 		end
-		local rare5 = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat" } -- 5th-rarest = leaf_copycat (Rare)
-		local rare5w = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } -- 5th = leaf_medic (Uncommon)
-		local common5 = { "sea_navigator", "leaf_medic", "leaf_copycat", "db_tyrant", "leaf_hero" } -- 5th = catch-all
-		local six = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_copycat", "sea_navigator" }
+		-- Odds: db_hero 1.6e16, leaf_crow 5e9, leaf_hero 1e7, db_tyrant 5e4, leaf_copycat 500, leaf_medic 10, sea_navigator 1
+		local top3 = { "db_hero", "leaf_crow", "db_tyrant" } -- 3rd = 5e4, bar 5e6
+		local low3 = { "db_hero", "leaf_crow", "leaf_medic" } -- 3rd = 10, bar 1000
+		local common3 = { "sea_navigator", "leaf_medic", "leaf_copycat" } -- 3rd = catch-all, bar 100
+		local four = { "db_hero", "leaf_crow", "db_tyrant", "sea_navigator" } -- 3rd = 5e4, not the least rare
+		local two = { "db_hero", "leaf_crow" } -- fewer than 3: the starter's 1, bar 100
 		local newCases = {}
 		for _, id in allIds do
-			table.insert(newCases, { id, {}, true })
+			table.insert(newCases, { id, {}, (CharacterCatalog.Get(id).Chance or 0) >= 100 })
 		end
-		expectAll("emph_nothing_owned_any_new_true", newCases)
+		expectAll("emph_nothing_owned_needs_100x_starter", newCases)
 		local ownedCases = {}
 		for _, id in allIds do
 			table.insert(ownedCases, { id, { id }, false })
@@ -9897,40 +9958,41 @@ function Scenarios.roll_anim()
 			{ nil, {}, false },
 			{ 5, {}, false },
 		})
-		local four = { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }
-		expectAll("emph_under_five_any_new_true", {
-			{ "sea_navigator", four, true },
-			{ "leaf_medic", four, true },
-			{ "leaf_copycat", four, true },
+		expectAll("emph_under_three_needs_100x_starter", {
+			{ "sea_navigator", two, false },
+			{ "leaf_medic", two, false },
+			{ "leaf_copycat", two, true },
 		})
 		expectAll("emph_only_distinct_rollable_owned_count", {
-			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "starter" }, true },
-			{ "sea_navigator", { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "no_such_car" }, true },
-			{ "leaf_medic", { "db_hero", "db_hero", "leaf_crow", "leaf_hero", "db_tyrant" }, true },
+			{ "leaf_medic", { "db_hero", "leaf_crow", "starter" }, false },
+			{ "leaf_medic", { "db_hero", "leaf_crow", "no_such_car" }, false },
+			{ "leaf_copycat", { "db_hero", "db_hero", "leaf_crow" }, true },
 		})
-		expectAll("emph_five_owned_catch_all_is_least_rare", {
-			{ "leaf_crow", common5, true },
-			{ "db_hero", common5, true },
+		expectAll("emph_three_owned_catch_all_is_least_rare", {
+			{ "db_tyrant", common3, true },
+			{ "db_hero", common3, true },
+			{ "leaf_crow", common3, true },
 		})
-		expectAll("emph_not_rarer_than_fifth_false", {
-			{ "leaf_medic", rare5, false },
-			{ "sea_navigator", rare5, false },
-			{ "sea_navigator", rare5w, false },
+		expectAll("emph_under_100x_third_false", {
+			{ "leaf_medic", top3, false },
+			{ "leaf_copycat", top3, false },
+			{ "leaf_copycat", low3, false }, -- rarer than the 3rd, but only 50x
 		})
-		expectAll("emph_rarer_than_fifth_true", {
-			{ "leaf_copycat", rare5w, true },
+		expectAll("emph_at_least_100x_third_true", {
+			{ "leaf_hero", top3, true },
+			{ "db_tyrant", { "db_hero", "leaf_crow", "leaf_copycat" }, true }, -- exactly 100x
 		})
-		-- with 6 owned the 5th-rarest decides (leaf_copycat here), not the least rare one
-		expectAll("emph_uses_fifth_rarest_not_least", {
-			{ "leaf_medic", six, false },
+		-- with 4 owned the 3rd-rarest decides, not the least rare one
+		expectAll("emph_uses_third_rarest_not_least", {
+			{ "leaf_copycat", four, false },
 		})
-		local reversed = table.clone(rare5w)
+		local reversed = table.clone(low3)
 		for i = 1, #reversed // 2 do
 			reversed[i], reversed[#reversed + 1 - i] = reversed[#reversed + 1 - i], reversed[i]
 		end
 		expectAll("emph_owned_order_ignored", {
-			{ "leaf_copycat", reversed, true },
-			{ "sea_navigator", reversed, false },
+			{ "leaf_hero", reversed, true },
+			{ "leaf_copycat", reversed, false },
 		})
 		-- Rarity names never matter: relabel cars (restored afterwards) so two cars share a rarity name but only
 		-- the one with the rarer odds passes, and a "Secret"-named common car never passes.
@@ -9943,9 +10005,9 @@ function Scenarios.roll_anim()
 				spec.Rarity = rarity
 			end
 			expectAll("emph_rarity_names_ignored", {
-				{ "leaf_copycat", rare5w, true }, -- now labelled Common, still passes on odds
-				{ "sea_navigator", rare5w, false }, -- now labelled Rare like the real leaf_copycat, still fails
-				{ "leaf_medic", rare5, false }, -- labelled Secret, odds of an Uncommon: fails
+				{ "leaf_copycat", two, true }, -- now labelled Common, still passes on odds
+				{ "sea_navigator", two, false }, -- now labelled Rare like the real leaf_copycat, still fails
+				{ "leaf_medic", two, false }, -- labelled Secret, odds of an Uncommon: fails
 			})
 		end)
 		for id, rarity in saved do
@@ -10010,29 +10072,30 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- 5 rarer cars owned (5th-rarest leaf_medic, Uncommon): Go-Kart (Rare) is emphasized, the catch-all is not
+		-- Design doc 4.40: 3rd-rarest owned is leaf_medic (1 in 10), bar 1 in 1000: db_scholar, exactly on it, is
+		-- emphasized; the catch-all is not
 		local r2 = newTestPlayer(cleanup, "CarTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } do
+		for _, id in { "db_hero", "leaf_crow", "leaf_medic" } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
-		local kartDraws = {}
-		local kartChance = CharacterCatalog.Get("leaf_copycat").Chance -- the least rare Rare (odds rev. 2026-10-27)
+		local barDraws = {}
+		local barChance = CharacterCatalog.Get("db_scholar").Chance
 		for _, spec in GACHA_CATALOG do
-			if not spec.Event and spec.Chance and spec.Chance > kartChance then
-				table.insert(kartDraws, 0.99)
+			if not spec.Event and spec.Chance and spec.Chance > barChance then
+				table.insert(barDraws, 0.99)
 			end
 		end
-		table.insert(kartDraws, 0)
-		local okK, idK, newK, _, emphK = pcall(GachaService.Roll, r2, seqRoller(kartDraws))
-		local kart = okK and idK == "leaf_copycat" and newK == true and emphK == true
-		check(checks, "service_roll_rarer_than_fifth_emphasized", kart and 1 or 0, 1, kart)
-		local annK = #calls == before + 1
+		table.insert(barDraws, 0)
+		local okB, idB, newB, _, emphB = pcall(GachaService.Roll, r2, seqRoller(barDraws))
+		local atBar = okB and idB == "db_scholar" and newB == true and emphB == true
+		check(checks, "service_roll_100x_third_rarest_emphasized", atBar and 1 or 0, 1, atBar)
+		local annB = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "leaf_copycat"
+			and calls[#calls].id == "db_scholar"
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
-		check(checks, "announce_rarer_than_fifth", #calls - before, 1, annK)
+		check(checks, "announce_100x_third_rarest", #calls - before, 1, annB)
 		before = #calls
 		local okH, idH, newH, _, emphH = pcall(GachaService.Roll, r2, seqRoller({ 0.99 }))
 		local hatch = okH and idH == catchAllId and newH == true and emphH == false
@@ -10044,7 +10107,19 @@ function Scenarios.roll_anim()
 			local r3 = newTestPlayer(cleanup, "CarTestRollAnimP3")
 			GachaService.Setup(r3)
 			before = #calls
-			local rng = Random.new(ROLL_ANIM_SERVICE_SEED)
+			-- The first draw hits the rarest, so the run always holds an emphasized roll: 4.40 makes them too rare to
+			-- count on from a seed.
+			local seeded = Random.new(ROLL_ANIM_SERVICE_SEED)
+			local firstDraw = true
+			local rng = {
+				NextNumber = function(_self)
+					if firstDraw then
+						firstDraw = false
+						return 0
+					end
+					return seeded:NextNumber()
+				end,
+			}
 			local mismatch, flagged, rollErr = 0, 0, 0
 			for _ = 1, ROLL_ANIM_SERVICE_ROLLS do
 				local ownedBefore = {}
@@ -10260,8 +10335,9 @@ end
 local UPG = {} -- upgrade tree test constants and helpers (one local: the chunk has a 200-local limit)
 -- design doc 4.13 (owner 2026-11-01): "Speed Gain" becomes "Speed", +10 % cruise per tier (placeholder); design doc
 -- 4.6 (owner 2026-11-03): the Stamina branch, +10 % stamina per tier, Weight 1 (placeholders)
-UPG.BRANCH_ORDER = { "money", "luck", "rollspeed", "turbo", "speed", "walkspeed", "stamina" }
-UPG.BRANCH_TIERS = { money = 5, luck = 5, rollspeed = 5, turbo = 4, speed = 5, walkspeed = 5, stamina = 5 }
+UPG.BRANCH_ORDER = { "money", "luck", "rollspeed", "turbo", "speed", "walkspeed", "stamina", "inventory" }
+UPG.BRANCH_TIERS =
+	{ money = 5, luck = 5, rollspeed = 5, turbo = 4, speed = 5, walkspeed = 5, stamina = 5, inventory = 5 }
 UPG.BRANCH_NAMES = {
 	money = "Money",
 	luck = "Luck",
@@ -10270,14 +10346,17 @@ UPG.BRANCH_NAMES = {
 	speed = "Speed",
 	walkspeed = "Walkspeed",
 	stamina = "Stamina",
+	inventory = "Inventory",
 }
-UPG.BRANCH_WEIGHTS = { money = 1, luck = 1.2, rollspeed = 1.5, turbo = 2, speed = 1, walkspeed = 0.5, stamina = 1 }
+UPG.BRANCH_WEIGHTS =
+	{ inventory = 1, money = 1, luck = 1.2, rollspeed = 1.5, turbo = 2, speed = 1, walkspeed = 0.5, stamina = 1 }
 UPG.BONUS = {
 	money = { 0.10, 0.10, 0.10, 0.10, 0.10 }, -- owner 2026-11-03: +10 % per Money tier (was +50 %)
 	luck = { 0.50, 0.50, 0.50, 0.50, 0.50 },
 	rollspeed = { 0.15, 0.15, 0.15, 0.15, 0.15 },
 	speed = { 0.10, 0.10, 0.10, 0.10, 0.10 },
 	stamina = { 0.10, 0.10, 0.10, 0.10, 0.10 },
+	inventory = { 50, 50, 50, 50, 50 }, -- bag spaces (design doc 4.36)
 }
 -- Owner 2026-10-27 (spec section 2, design doc "payout and price curves"): NiceRound(150 * Ratio(depth) ^ 1.5 * weight)
 -- with depth base prices 150, 4.7k, 97k, 3.1m, 63m, 2.0b, 41b (replaces 150 * 50 ^ (depth - 1) * weight)
@@ -10288,6 +10367,7 @@ UPG.PRICES = {
 	speed = { 150, 4700, 97000, 3100000, 63000000 },
 	walkspeed = { 75, 2400, 49000, 1500000, 32000000 },
 	stamina = { 150, 4700, 97000, 3100000, 63000000 }, -- Weight 1, like money and speed
+	inventory = { 4700, 97000, 3100000, 63000000, 2000000000 }, -- Weight 1, forks at depth 1
 	turbo = { 9500, 6200000, 4000000000, 82000000000 }, -- PriceDepth 2, 4, 6, 7
 }
 -- Owner, 2026-10-12 (docs/UPGRADE_TREE_SPEC.md section 4; replaces x10/15, x50/25, x100/40, x1000/100)
@@ -11207,7 +11287,7 @@ function Scenarios.upgrades()
 			and b.Weight == UPG.BRANCH_WEIGHTS[id]
 			and (UPG.BONUS[id] == nil or UPG.deepEqual(b.Bonus, UPG.BONUS[id]))
 			and (id ~= "turbo" or (UPG.deepEqual(b.Tiers, UPG.TURBO) and UPG.deepEqual(b.PriceDepth, { 2, 4, 6, 7 })))
-			and b.Parent == (id == "turbo" and "rollspeed_1" or "start")
+			and b.Parent == (id == "turbo" and "rollspeed_1" or id == "inventory" and "walkspeed_1" or "start")
 			and (id ~= "walkspeed" or UPG.deepEqual(b.WalkSpeed, UPG.WALKSPEED))
 		cfgOk = cfgOk and branchOk
 	end
@@ -12487,7 +12567,8 @@ end
 
 -- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
 -- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
-local STAMINA_SCENARIOS = { team = true, stamina = true, team_bonus = true }
+local STAMINA_SCENARIOS =
+	{ team = true, stamina = true, team_bonus = true, sidekicks = true, boss_event = true, relics = true }
 function Scenarios.Run(name)
 	local trackTest = string.match(name, "^track:(.+)$")
 	if trackTest then
@@ -12542,9 +12623,27 @@ do
 	Scenarios.assets_ip = env.assets_ip
 	Scenarios.tunnel_clear = env.tunnel_clear
 end
+Scenarios.passes = require(script.Parent.MonetizationTests).passes -- docs/MONETIZATION_SPEC.md
+Scenarios.odds = require(script.Parent.MonetizationTests).odds
+Scenarios.bag = require(script.Parent.MonetizationTests).bag -- docs/BAG_AND_AUTOSELL_SPEC.md
 Scenarios.gifting = require(script.Parent.GiftTests).gifting
 Scenarios.gift_mailbox = require(script.Parent.GiftTests).gift_mailbox
 Scenarios.slot_items = require(script.Parent.SlotItemTests).slot_items -- design doc 4.13 per-slot aura / trail (u4)
+Scenarios.gems = require(script.Parent.GemTests).gems -- design doc 4.35, docs/SIDEKICK_SPEC.md "Gems"
+Scenarios.sidekicks = require(script.Parent.SidekickTests).sidekicks -- design doc 4.36, docs/SIDEKICK_SPEC.md
+Scenarios.sidekick_rotation = require(script.Parent.SidekickRotationTests).sidekick_rotation -- design doc 4.36 rotation
+Scenarios.sidekick_follow = require(script.Parent.SidekickFollowTests).sidekick_follow -- design doc 4.36, SIDEKICK_SPEC "Display"
+Scenarios.sidekick_pity = require(script.Parent.SidekickPityTests).sidekick_pity -- design doc 4.36 "Summon pity"
+Scenarios.sidekick_tutorial = require(script.Parent.SidekickTutorialTests).sidekick_tutorial -- design doc 4.36 free summon
+Scenarios.relics = require(script.Parent.RelicTests).relics -- design doc 4.38, docs/RELIC_SPEC.md
+Scenarios.boss_arena = require(script.Parent.BossArenaTests).boss_arena -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"
+-- design doc 4.37, docs/BOSS_EVENT_SPEC.md: the event server (b5)
+Scenarios.boss_paid = require(script.Parent.BossPaidTests).boss_paid -- docs/BOSS_EVENT_SPEC.md "Paid spawn" (b9)
+Scenarios.boss_event = require(script.Parent.BossEventTests).make({ newFakeCharacter = newFakeCharacter }).boss_event
+-- docs/BOSS_EVENT_SPEC.md "Boss and attacks": pose data, timing and rise, client visuals only (b7b)
+Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
+-- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
+Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog

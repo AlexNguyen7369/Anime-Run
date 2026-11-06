@@ -11,8 +11,11 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Arena = require(Shared.BossArenaConfig)
+local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
+local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
 
@@ -20,11 +23,13 @@ local SERVER_TAG = "RunnerRig" -- Server/CarService.RUNNER_TAG
 local CORRECT_RATE = 2 -- 1/s: how fast the drawn distance closes on the published one (no visible jump)
 local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at once
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
+local LANE_SLIDE_SECONDS = 0.35 -- placeholder: the drawn runner's side dash into the next lane on a dodge
 local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns to the runner's travel (docs/CAMERA_SPEC.md)
+-- The boss event camera turns inward (docs/BOSS_EVENT_SPEC.md "Arena"), angles from the arena draft's GAME_YAW, GAME_PITCH.
+local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
-local routes = {} -- RunRoutes folder name -> { Wps, Arc }
 
 local EFFECTS = { "ParticleEmitter", "Trail", "Beam", "BillboardGui" }
 local function isEffect(d)
@@ -45,32 +50,11 @@ local function hide(d)
 	end
 end
 
--- The route's waypoints once every one has replicated, else nil.
-local function routeOf(name)
-	if type(name) ~= "string" then
-		return nil
-	end
-	local cached = routes[name]
-	if cached then
-		return cached
-	end
-	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
-	local folder = root and root:FindFirstChild(name)
-	local count = folder and folder:GetAttribute("Count")
-	if not (folder and type(count) == "number" and #folder:GetChildren() >= count and count >= 2) then
-		return nil
-	end
-	local wps = table.create(count)
-	for i = 1, count do
-		local v = folder:FindFirstChild(tostring(i))
-		if not v then
-			return nil
-		end
-		wps[i] = v.Value
-	end
-	cached = { Wps = wps, Arc = PathDriver.Arc(wps) }
-	routes[name] = cached
-	return cached
+-- A team with no one left in the line: the held body is gone too, until the refill (BOSS_EVENT_SPEC "Line run").
+local function teamGone(rig)
+	local id = rig:GetAttribute("Owner")
+	local owner = type(id) == "number" and Players:GetPlayerByUserId(id)
+	return owner and owner:GetAttribute("BossEvent") == true and owner:GetAttribute("BossLine") == "" or false
 end
 
 -- (Re)builds the drawn copy from the server rig (its look, aura and trail), keeping the run state.
@@ -96,10 +80,17 @@ local function rebuild(view)
 		end
 	end
 	copy.Name = rig.Name .. "_Visible"
+	-- the rig's PrimaryPart can replicate nil after a re-skin (first tag-in), which would drop the camera to the hidden avatar
+	copy.PrimaryPart = copy:FindFirstChild("Torso") or copy.PrimaryPart
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
 	view.Copy = copy
+	if view.Gone then
+		for _, d in copy:GetDescendants() do
+			hide(d)
+		end
+	end
 end
 
 local function add(rig)
@@ -173,19 +164,41 @@ local function step(view, now)
 		rebuild(view)
 		copy = view.Copy
 	end
+	local gone = teamGone(rig)
+	if gone ~= (view.Gone == true) then
+		view.Gone = gone
+		rebuild(view) -- hides it, or brings it back with its effects as they were
+		copy = view.Copy
+	end
 	local dt = math.max(0, now - (view.At or now))
 	view.At = now
 	local rd, rs = rig:GetAttribute("RunDistance"), rig:GetAttribute("RunSpeed")
-	local route = routeOf(rig:GetAttribute("RunRoute"))
+	local route = RunnerVisual.RouteOf(rig:GetAttribute("RunRoute"))
 	if not (route and type(rd) == "number" and type(rs) == "number") then
 		-- not running (a held duel start): show it where the server holds it
 		view.Dist = nil
 		view.Moving = false
 		RunStyleFx.SetMoving(copy, false)
-		RunnerVisual.Pose(copy, rig:GetPivot(), 0, 0)
+		-- Client/BossPrepRun's display-only run: nothing here moves the rig
+		local held = copy:GetAttribute("HeldPose")
+		RunnerVisual.Pose(
+			copy,
+			held or rig:GetPivot(),
+			held and copy:GetAttribute("HeldPhase") or 0,
+			held and copy:GetAttribute("HeldAmount") or 0
+		)
 		return
 	end
-	local arcEnd = route.Arc[#route.Arc]
+	if view.Route and view.Route ~= route and view.Route.Closed and route.Closed and view.Dist then -- a dodge (design doc 4.37): same lap angle, sliding over from the old lane
+		local scaled = view.Dist * route.Arc[#route.Arc] / view.Route.Arc[#view.Route.Arc]
+		local old = PathDriver.PoseAt(view.Route.Wps, view.Route.Arc, view.Dist, nil, view.Route.Closed)
+		local new = PathDriver.PoseAt(route.Wps, route.Arc, scaled, nil, route.Closed)
+		view.Dist, view.Hint = scaled, nil
+		view.Slide, view.SlideLeft = old.Position - new.Position, LANE_SLIDE_SECONDS
+		view.SlideSide = new.RightVector:Dot(new.Position - old.Position) >= 0 and 1 or -1
+	end
+	view.Route = route
+	local arcEnd = route.Closed and math.huge or route.Arc[#route.Arc] -- a lap route's distance keeps growing; PoseAt wraps it
 	local target = math.min(rd + rs * (now - view.ChangedAt), arcEnd)
 	local dist = view.Dist
 	if not dist or math.abs(target - dist) > math.max(SNAP_STUDS, rs * SNAP_SECONDS) then
@@ -198,10 +211,24 @@ local function step(view, now)
 	view.Dist = dist
 	view.Moving = rs > 0
 	RunStyleFx.SetMoving(copy, view.Moving)
-	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint)
+	local feet, k = PathDriver.PoseAt(route.Wps, route.Arc, dist, view.Hint, route.Closed)
 	view.Hint = k
+	local dashAt = nil
+	if view.Slide then
+		view.SlideLeft -= dt
+		if view.SlideLeft > 0 then
+			feet += view.Slide * (view.SlideLeft / LANE_SLIDE_SECONDS) ^ 2
+			dashAt = 1 - view.SlideLeft / LANE_SLIDE_SECONDS
+		else
+			view.Slide = nil
+		end
+	end
 	view.Phase = RunnerVisual.Advance(view.Phase, rs, dt)
-	RunnerVisual.Pose(copy, feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0), view.Phase, rs > 0 and 1 or 0)
+	local root = feet * CFrame.new(0, RunnerFactory.HIP_HEIGHT, 0)
+	RunnerVisual.Pose(copy, root, view.Phase, rs > 0 and 1 or 0)
+	if dashAt then
+		RunnerVisual.PoseDash(copy, root, dashAt, view.SlideSide)
+	end
 end
 
 local function stepAll()
@@ -213,19 +240,63 @@ end
 
 -- Track camera (docs/CAMERA_SPEC.md): turns the camera yaw toward the runner's travel, keeping the player's pitch and
 -- zoom. Runs before the default camera, which builds its next frame from this look direction.
+local savedPitch = nil -- the player's pitch from before the boss event; the event sets it once and the player keeps control
+
+local function setAngles(camera, pitch, yaw)
+	local focus = camera.Focus.Position
+	local distance = (camera.CFrame.Position - focus).Magnitude
+	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, distance)
+end
+
+-- The rise (docs/BOSS_EVENT_SPEC.md "Arena"): through the intro the camera looks at the arena centre, so the boss is seen
+-- coming up from under the track. It orbits the focus, which keeps the player's character on screen.
+local function riseCameraOn(camera)
+	if
+		player:GetAttribute("BossEvent") ~= true
+		or ReplicatedStorage:GetAttribute("BossEventPhase") ~= "Fight"
+		or player:GetAttribute("TrackCamera") == false
+		or player:GetAttribute("TopDownView") == true
+		or camera.CameraType ~= Enum.CameraType.Custom
+	then
+		return false
+	end
+	local start = ReplicatedStorage:GetAttribute("BossEventStart")
+	return start ~= nil and Workspace:GetServerTimeNow() - start < BossCfg.PrepSeconds + BossCfg.IntroSeconds
+end
+
+local function faceArena(camera, dt)
+	local inward = (Arena.Center - camera.Focus.Position) * Vector3.new(1, 0, 1)
+	if inward.Magnitude < 1e-3 then
+		return
+	end
+	local look = camera.CFrame.LookVector
+	local yaw = math.atan2(-look.X, -look.Z)
+	local turn = (math.atan2(-inward.X, -inward.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
+	local ease = 1 - math.exp(-TRACK_CAMERA_RATE * dt)
+	local pitch = math.asin(math.clamp(look.Y, -1, 1))
+	savedPitch = savedPitch or pitch
+	setAngles(camera, pitch + (ARENA_PITCH - pitch) * ease, yaw + turn * ease)
+end
+
 local function alignYaw(camera, torso, dt)
 	local dir = torso.CFrame.LookVector
+	local inEvent = player:GetAttribute("BossEvent") == true
+	if inEvent then
+		local inward = ((Arena.Center - torso.Position) * Vector3.new(1, 0, 1)).Unit
+		dir = dir * math.cos(ARENA_YAW) + inward * math.sin(ARENA_YAW)
+	end
 	if Vector2.new(dir.X, dir.Z).Magnitude < 1e-3 then
 		return
 	end
-	local focus = camera.Focus.Position
-	local offset = camera.CFrame.Position - focus
 	local look = camera.CFrame.LookVector
 	local yaw = math.atan2(-look.X, -look.Z)
 	local turn = (math.atan2(-dir.X, -dir.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
 	yaw += turn * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
 	local pitch = math.asin(math.clamp(look.Y, -1, 1))
-	camera.CFrame = CFrame.new(focus) * CFrame.fromOrientation(pitch, yaw, 0) * CFrame.new(0, 0, offset.Magnitude)
+	if inEvent and not savedPitch then
+		savedPitch, pitch = pitch, ARENA_PITCH
+	end
+	setAngles(camera, pitch, yaw)
 end
 
 local function trackCameraOn(camera, mine)
@@ -245,10 +316,37 @@ end
 
 local cameraOnRunner = false
 local followed = nil -- { Part, Position }: where the camera last framed the local runner
+local fovBefore = nil -- the camera's own FOV while the event's wider one is on
+local zoomBefore = nil
 RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function(dt)
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
 	local camera = Workspace.CurrentCamera
+	if camera then
+		BossWaitCamera.Step(camera, dt)
+	end
+	local waitView = BossWaitCamera.Held() -- it owns the camera and its FOV until it has given them back
+	if camera and savedPitch and player:GetAttribute("BossEvent") ~= true then
+		local look = camera.CFrame.LookVector
+		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
+		savedPitch = nil
+	end
+	-- The event's locked view (BOSS_EVENT_SPEC "Run rules"). A saved top-down setting does not apply in an event. Outside one,
+	-- top-down runs after this step and restores the normal FOV itself.
+	local wide = camera and player:GetAttribute("BossEvent") == true and camera.CameraType == Enum.CameraType.Custom
+	if waitView then
+		wide = fovBefore ~= nil
+	end
+	if wide and not fovBefore then
+		fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
+		camera.FieldOfView = BossCfg.CameraFov
+		player.CameraMinZoomDistance = BossCfg.CameraZoom
+	elseif camera and not wide and fovBefore then
+		camera.FieldOfView = fovBefore
+		player.CameraMinZoomDistance = zoomBefore
+		fovBefore = nil
+	end
+	local rising = camera and riseCameraOn(camera)
 	local mine = player:GetAttribute("AutoRacing") == true and RunnerVisual.LocalRunner()
 	local torso = mine and mine.PrimaryPart
 	followed = nil
@@ -257,16 +355,19 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 			camera.CameraSubject = torso
 		end
 		cameraOnRunner = true
-		if trackCameraOn(camera, mine) then
+		if not rising and trackCameraOn(camera, mine) then
 			alignYaw(camera, torso, dt)
 		end
-		followed = { Part = torso, Position = torso.Position }
+		followed = not waitView and { Part = torso, Position = torso.Position } or nil
 	elseif camera and cameraOnRunner then
 		cameraOnRunner = false
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			camera.CameraSubject = humanoid
 		end
+	end
+	if rising then
+		faceArena(camera, dt)
 	end
 end)
 

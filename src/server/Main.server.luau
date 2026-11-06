@@ -1,4 +1,17 @@
 --!nonstrict
+-- Test code never reaches a live server or phone: it is about a third of the client's script bytes and samples GUI every frame.
+if not game:GetService("RunService"):IsStudio() then
+	local tests = script.Parent:FindFirstChild("CarTest")
+	local uiTests = game:GetService("StarterPlayer").StarterPlayerScripts:FindFirstChild("Client")
+	uiTests = uiTests and uiTests:FindFirstChild("UiTest")
+	if tests then
+		tests:Destroy()
+	end
+	if uiTests then
+		uiTests:Destroy()
+	end
+end
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -99,7 +112,6 @@ do
 	ReplicatedStorage:SetAttribute("PlazaRadius", TerrainShape.PlazaRadius())
 end
 BiomeDressing.SnapToTerrain(trackModels)
-require(Shared.TrackPreviews).Bake(trackModels) -- checkpoint card previews (docs/CHECKPOINT_SPEC.md section 4)
 
 local plate
 -- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
@@ -150,7 +162,11 @@ BoostService.Start()
 DailyLoginService.Start()
 DuelService.Start() -- player vs player duels, no stake (docs/DUEL_SPEC.md)
 CheckpointService.Start() -- pick the starting track at the plaza sensei (design doc 4.15)
+require(script.Parent.SidekickService).Start() -- summons, bag and equip remotes (design doc 4.36)
+require(script.Parent.RelicService).Start() -- the Relic equip remote (design doc 4.38)
+require(script.Parent.BossEventService).Init() -- the 30 minute boss event (design doc 4.37)
 QuestService.Start() -- UTC daily and weekly quest tracking (docs/QUESTS_SPEC.md)
-ShopService.Start() -- Robux potion receipts and redeem codes (docs/SHOP_PURCHASES_SPEC.md)
+require(script.Parent.PassService).Start() -- gamepass ownership and the paid random items policy
+ShopService.Start() -- Robux potion receipts and redeem codes (docs/MONETIZATION_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)
 LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)

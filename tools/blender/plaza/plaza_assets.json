@@ -1,4 +1,32 @@
 {
+ "AutoIcon": {
+  "Asset": 122355836258114,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIcon.png, decal 91116410833696"
+ },
+ "AutoIconArrows": {
+  "Asset": 110966439139915,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIconArrows.png, decal 125954104177492"
+ },
+ "AutoIconOff": {
+  "Asset": 83629554083032,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIconOff.png, decal 81798273067588"
+ },
+ "AutoIconPlay": {
+  "Asset": 121841618485883,
+  "Hash": "image",
+  "Kind": "Texture",
+  "Lane": "B",
+  "Notes": "Owner's icon, tools/blender/plaza/auto_icon.py, assets/ui/AutoIconPlay.png, decal 109990791488127"
+ },
  "Bench": {
   "Asset": "95857922612768",
   "Hash": "2a643f3915d5ba08",

@@ -1,5 +1,5 @@
 --!nonstrict
--- The floating headers over Race Start, the Market and the service row (design doc 4.24 Wayfinding, Service headers): client
+-- The floating headers over Race Start and the service row, Market included (design doc 4.24 Wayfinding, Service headers): client
 -- display only. Each hangs on an attachment in Terrain at a fixed world position, so streaming never hides it. Shown on foot
 -- only, and not up close where the landmark's own sign reads. Sizes and distances are proposed placeholders.
 local Players = game:GetService("Players")
@@ -16,7 +16,7 @@ local HIDE_WITHIN = 20
 local ROW_MAX_DISTANCE = 150
 local ROW_HIDE_WITHIN = 10
 local ROW_SIZE = UDim2.new(11, 60, 4, 24) -- studs plus pixels: grows as you get closer, still reads far away
--- y clears each roof (PlazaAssets: stalls 15.05, Index 17.25) by the emblem's half height
+-- y clears each roof (PlazaAssets: stalls 15.05, Market 17, Index 17.25) by the emblem's half height
 local LABELS = {
 	{
 		Key = "RaceStart",
@@ -33,10 +33,20 @@ local LABELS = {
 		Text = "MARKET",
 		Shape = "Gem",
 		Color = Color3.fromRGB(122, 63, 184),
-		At = Layout.Landmarks.Market,
-		Size = UDim2.fromOffset(230, 100),
-		MaxDistance = MAX_DISTANCE,
-		HideWithin = HIDE_WITHIN,
+		At = Vector3.new(-72, 20, -12.5),
+		Size = ROW_SIZE,
+		MaxDistance = ROW_MAX_DISTANCE,
+		HideWithin = ROW_HIDE_WITHIN,
+	},
+	{
+		Key = "Sidekicks",
+		Text = "SIDEKICKS",
+		Shape = "Star",
+		Color = Color3.fromRGB(30, 150, 170),
+		At = Vector3.new(-72, 18, -98.75),
+		Size = ROW_SIZE,
+		MaxDistance = ROW_MAX_DISTANCE,
+		HideWithin = ROW_HIDE_WITHIN,
 	},
 	{
 		Key = "Shop",
