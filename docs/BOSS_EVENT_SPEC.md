@@ -44,6 +44,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Boss and attacks
 - Built in Blender with named parts, outside `RunnerFactory`: a separate wheel and split upper and lower limbs. Client-side pose data in a `DojoExtras` style loop, moves timed from a server start time.
 - Three moves (**proposed**): attack, shout, wheel turn. 4-6 key frames each. The spawn rise comes up through the dais from under the track, reviewed from a Studio capture.
+- Owner approved all three moves' key frames 2026-11-05 (`assets/characters_avatar/boss_raga/keyframes/`, data in `keys.json`) and asked for very dynamic motion and VFX that show boss urgency.
 - **Owner gate (design doc 4.37):** render key frames as labelled slices, show one move at a time, and revise until approved. Only then fill and bake, leaving approved keys unchanged. Sidekick attacks follow the same gate; effects are approved from a Studio capture.
 - Hits are batched from the server. Local attacks draw at full strength, others lighter. Impact is about 0.4 s after the hit. REDUCED EFFECTS keeps a simple shot. Cues go through `UiFeedback`; audio follows section 5 with ledger rows.
 
