@@ -816,16 +816,19 @@ function sidekickFollowSteps.crowd(_, arg)
 end
 
 -- A batch as Remotes.BossHits carries it, to this client only (ui_sidekick_attack). No damage is dealt.
--- arg: <userId|me>:<sidekick id>:<damage>, comma separated.
+-- arg: <userId|me>:<sidekick id>:<damage>:<character id>:<slot>, comma separated.
 function sidekickFollowSteps.hits(player, arg)
 	local remote = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("BossHits")
 	assert(remote, "Remotes.BossHits is missing")
 	local entries = {}
-	for user, id, damage in string.gmatch(arg, "([^:,]+):([^:,]+):([^:,]+)") do
+	for _, text in string.split(arg, ",") do
+		local user, id, damage, character, slot = table.unpack(string.split(text, ":"))
 		table.insert(entries, {
 			UserId = user == "me" and player.UserId or tonumber(user),
 			SidekickId = id,
 			Damage = tonumber(damage),
+			Slot = tonumber(slot),
+			CharacterId = character,
 		})
 	end
 	remote:FireClient(player, entries)

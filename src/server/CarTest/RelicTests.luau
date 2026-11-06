@@ -35,10 +35,11 @@
 --     MoneyService.AddGems in stage 2. GrantDefeat stays for its existing callers.
 --   GachaService.MoneyMulti and Luck: each Team character's Multi - 1 is added like the tree bonus (GachaConfig.Multis).
 --   CruiseFor and the run's stamina seconds: multiplied by the wearer's Multi, like the Sidekick's.
---   Boss TeamDamage: each Sidekick's Damage x its wearer's Multi, then averaged. Hit spacing = HitEverySeconds / attack multi.
+--   Boss hit (owner 2026-11-06): a character's Sidekick Damage x its Multi x the speed scale of its own cruise. TeamDamage: the sum over
+--   the line. Hit spacing = HitEverySeconds / attack multi.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
---   team attack speed: the team hits as one (4.37), so its attack multi is the average of the team's multis.
+--   attack speed: each slot spaces its own hits by its own Relic's multi (4.37, owner 2026-11-06); no team average.
 --   relic bag: no rule gives it a cap, so a defeat's Relic is never refused.
 --   rebirth keeps Relics, like Sidekicks.
 -- NOT covered: icons (in-house art, none yet), the Details sheet showing these odds (the paid spawn's task).
@@ -990,6 +991,10 @@ function Tests.relics()
 				return p
 			end
 			local side = SidekickConfig.Get("side_chain").Damage
+			-- side_chain's hit from `slot` of `team`, before statuses, at `multi`.
+			local function hitOf(p, team, slot, multi)
+				return side * multi * Cfg.SpeedScale(gacha.CruiseFor(p, team[slot], slot, team))
+			end
 
 			begin()
 			local plain = fighter({ charA }, {})
@@ -1003,29 +1008,26 @@ function Tests.relics()
 			B.SetTeam(strong, { charA })
 			-- Before a run the speed scale reads CruiseFor, so a Speed bonus reaches it.
 			local gain = 1 + bonus(secret, "Damage")
-			local wantBefore = Cfg.TeamDamage({ side * gain }, gacha.CruiseFor(strong, charA, 1))
+			local wantBefore = hitOf(strong, { charA }, 1, gain)
 			flag("damage_before_run", approx(B.TeamDamage(strong), wantBefore), B.TeamDamage(strong), wantBefore)
 			to(FIGHT)
 			for _, p in { plain, strong, pair, offTeam } do
-				runOf[p].TargetSpeed = 400
+				runOf[p].TargetSpeed = 400 -- not read: the speed scale is each character's own cruise
 			end
-			flag("damage_plain", approx(B.TeamDamage(plain), Cfg.TeamDamage({ side }, 400)))
+			flag("damage_plain", approx(B.TeamDamage(plain), hitOf(plain, B.TeamOf(plain), 1, 1)))
+			local wantStrong = hitOf(strong, { charA }, 1, gain)
+			flag("damage_relic", approx(B.TeamDamage(strong), wantStrong), B.TeamDamage(strong), wantStrong)
+			local wantPair = hitOf(pair, { charA, charB }, 1, gain) + hitOf(pair, { charA, charB }, 2, 1)
+			flag("damage_sum_of_scaled", approx(B.TeamDamage(pair), wantPair), B.TeamDamage(pair), wantPair)
 			flag(
-				"damage_relic",
-				approx(B.TeamDamage(strong), Cfg.TeamDamage({ side * gain }, 400)),
-				B.TeamDamage(strong)
+				"damage_off_team_relic_nothing",
+				approx(B.TeamDamage(offTeam), hitOf(offTeam, B.TeamOf(offTeam), 1, 1))
 			)
-			local wantPair = Cfg.TeamDamage({ side * gain, side }, 400)
-			flag("damage_average_of_scaled", approx(B.TeamDamage(pair), wantPair), B.TeamDamage(pair), wantPair)
-			flag("damage_off_team_relic_nothing", approx(B.TeamDamage(offTeam), Cfg.TeamDamage({ side }, 400)))
-			flag("hit_uses_relic_damage", approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400)))
+			flag("hit_uses_relic_damage", approx(B.RecordHit(strong), wantStrong))
 			B.Hooks.DamageMulti = function()
 				return 0.75 * 0.9
 			end
-			flag(
-				"status_cut_keeps_relic_bonus",
-				approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400) * 0.75 * 0.9)
-			)
+			flag("status_cut_keeps_relic_bonus", approx(B.RecordHit(strong), wantStrong * 0.75 * 0.9))
 			B.Hooks.DamageMulti = function()
 				return 1
 			end
@@ -1058,14 +1060,29 @@ function Tests.relics()
 			flag("attack_setup_faster", math.floor(WINDOW * attack / Cfg.HitEverySeconds) - 1 > wantBase)
 			local fastHits = hits({ charA }, { [charA] = secret.Id })
 			flag("attack_secret_faster", close(fastHits, attack), fastHits, WINDOW * attack / Cfg.HitEverySeconds)
-			local averaged = 1 + bonus(secret, "AttackSpeed") / 2
-			local pairHits = hits({ charA, charB }, { [charA] = secret.Id })
+			-- Each slot on its own Relic's speed: the same window, counted per slot from the hits sent.
+			begin()
+			local slotHits = {}
+			local oldBossHits = B.Hooks.BossHits
+			B.Hooks.BossHits = function(_, entries)
+				for _, entry in entries do
+					slotHits[entry.Slot] = (slotHits[entry.Slot] or 0) + 1
+				end
+			end
+			local duo = fighter({ charA, charB }, { [charA] = secret.Id })
+			B.Join(duo)
+			B.SetTeam(duo, { charA, charB })
+			to(FIGHT)
+			to(FIGHT + WINDOW)
+			B.Hooks.BossHits = oldBossHits
+			local fastSlot, plainSlot = slotHits[1] or 0, slotHits[2] or 0
 			flag(
-				"reading_attack_speed_team_average",
-				close(pairHits, averaged),
-				pairHits,
-				WINDOW * averaged / Cfg.HitEverySeconds
+				"reading_attack_speed_own_slot",
+				close(fastSlot, attack),
+				fastSlot,
+				WINDOW * attack / Cfg.HitEverySeconds
 			)
+			flag("reading_attack_speed_not_shared", close(plainSlot, 1), plainSlot, WINDOW / Cfg.HitEverySeconds)
 
 			-- The real PayStage and RewardPopup defaults, through real defeats; a timeout still pays nothing (design doc 4.37).
 			begin()
