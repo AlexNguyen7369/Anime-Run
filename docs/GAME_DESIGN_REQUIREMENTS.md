@@ -412,7 +412,7 @@ before any Studio work.
 - Daily login's guaranteed reward (owner 2026-11-05; replaces "rarest unowned character" of 2026-10-28): the rarest unowned
   character of Legendary or below, since players progress past that. `DailyLoginConfig.MAX_GUARANTEED_RARITY`, tunable by the owner.
 
-- World 2 (owner 2026-11-05): the unreleased characters are projected for the World 2 update, "coming soon". **Open question:** is `punch_void` included, and does the wait for `feature/alex/speed-balance` still apply?
+- World 2 (owner 2026-11-05): the unreleased characters are projected for the World 2 update, "coming soon". Void Saitamo ships with World 2, and the 12 characters get their own speed balance within World 2. This branch does not merge into the current world. **Open question:** what else World 2 contains, and whether the Eternal and Void base Speed and the curve anchor above carry over.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -474,6 +474,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-05: owner: Void Saitamo ships with World 2; the 12 characters get their own speed balance within World 2 (4.39).
 - 2026-11-05: owner: unreleased characters projected for the World 2 update, "coming soon" (4.39); 2 open questions.
 - 2026-11-05: owner: display names Jinhu, Golioth, Sha Hain and series name Solo Levelup (4.39).
 - 2026-11-05: owner: Daily login's guaranteed reward gives at most a Legendary; series name Saw Man (4.39).

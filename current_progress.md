@@ -88,8 +88,9 @@
 85. 2026-11-05 — Alex Nguyen — Fixed three stale lines the rules audit found on orch/roster/chars1.
 86. 2026-11-05 — Alex Nguyen — Applied the owner's rulings on orch/roster/chars1: Daily reward capped at Legendary, series names Saw Man and Solo Levelup, display names Jinhu, Golioth and Sha Hain, with tests updated.
 87. 2026-11-05 — Alex Nguyen — Recorded in design doc 4.39 that the unreleased characters are projected for the World 2 update.
+88. 2026-11-05 — Alex Nguyen — Recorded in design doc 4.39 that Void Saitamo and the 12 characters ship in World 2 with their own speed balance.
 
 ## What's next
-**Run `speed_probe` and the `catalog`, `gacha`, stamina, workshop and `rarest_board` scenarios in Studio on `orch/roster/chars1`, once the owner releases `feature/alex/speed-balance`.**
+**Hold `orch/roster/chars1` until the owner defines World 2, including whether the Eternal and Void numbers carry over.**
 
-**Why this is next:** every Eternal and new-cast test is unverified until then, and raising `MAX_CRUISE` to 1000 depends on the probe.
+**Why this is next:** the 12 characters and Void Saitamo ship in World 2 with their own speed balance, so no integration work can be specified before that.
