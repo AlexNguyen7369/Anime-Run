@@ -364,6 +364,8 @@ local hint = caption("Hint", panel, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 5,
 })
+make("UITextSizeConstraint", "MaxSize", hint, { MaxTextSize = 16 })
+hint.TextScaled = true -- a long line shrinks to fit: on the Characters tab it shares its row with Bag and Sell
 local hintHome = hint.Position
 local GRID_SIZE = grid.Size
 local pickSlot -- set below
@@ -418,6 +420,7 @@ local selected = {} -- character id -> true
 local render -- set below
 local function refreshBag()
 	local onCharacters = toolbar.Visible
+	hint.Size = UDim2.new(1, onCharacters and -412 or -132, 0, 22) -- ends short of the Bag label
 	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
 	bagLabel.Visible = onCharacters
 	bagLabel.Text = "Bag " .. used .. "/" .. cap
@@ -555,7 +558,7 @@ end
 
 local function characterFacts(spec)
 	return string.format(
-		"%s (%s, %s): %s, %.1f s stamina. Pick a team slot below.",
+		"%s (%s, %s): %s, %.1f s stamina.",
 		spec.Name,
 		spec.Rarity,
 		spec.Category or "Balanced",

@@ -564,6 +564,11 @@ function Extras.Build(h)
 			set(name, name == "AutoRoll" or nil) -- back to on, on, off: the base state set above
 			h.check(res, "auto_sell_button_back_after_" .. name, settle(true), true, h.visible(button))
 		end
+		-- Clear of the boss invite (owner 2026-11-06): any event, the player outside it too. Set on this client only.
+		ReplicatedStorage:SetAttribute("BossEventPhase", "Prep")
+		h.check(res, "auto_sell_button_hidden_in_a_boss_event", settle(false), false, not h.visible(button))
+		ReplicatedStorage:SetAttribute("BossEventPhase", nil)
+		h.check(res, "auto_sell_button_back_after_boss_event", settle(true), true, h.visible(button))
 		local restore = h.setPanels({ RB.Panel })
 		h.check(res, "auto_sell_button_hidden_under_a_panel", settle(false), false, not h.visible(button))
 		restore()
