@@ -58,8 +58,8 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 - A Mythic, Legendary or Rare row with no uploaded model stays out of the rotation.
 
 ## Pity (owner 2026-11-05)
-- Summon 300 without a Mythic gives the rotation's Mythic. Summon 100 without a Legendary or better gives one of the rotation's Legendaries. Counts carry across rotations, saved per player. A refused summon moves neither count.
-- **Proposed:** a random Legendary; a Mythic resets both counts; if both land on one summon the Mythic wins and the Legendary pays on the next; the free tutorial summon counts; a Secret resets neither.
+- Summon 300 without a Mythic gives the rotation's Mythic. Summon 100 without a Legendary gives one of the rotation's Legendaries. Counts carry across rotations, saved per player. A refused summon moves neither count.
+- Owner: a Mythic resets only its own count; if both land on one summon the Mythic wins and the Legendary pays on the next; the free tutorial summon counts; Secrets have no pity and reset nothing. **Proposed:** which Legendary is random.
 - Attributes `SidekickPity`, `SidekickLegendaryPity`; config `PityCount`, `LegendaryPityCount`.
 
 ## Summon page
