@@ -27,13 +27,31 @@
 --     Hooks, a table of replaceable functions; the defaults are the real game:
 --       Arrive(player, lane): stops a normal run through the normal stop, stands the player on the lane.
 --       StartRun(player, team, lane): returns the run. Called at the intro's end, or at once for a joiner after it. The service
---         reads only run.TargetSpeed and run.Waiting, and calls run:Destroy().
+--         reads only run.TargetSpeed, run.Waiting, run.Slot and run.Stamina, writes run.Stamina[run.Slot], and calls run:Destroy().
 --       Depart(player): back to spawn. Chat(text): to the whole server, default fires RemoteEvent Remotes.BossEventChat.
 --       Rewards(players): on a defeat only, once. A stub until b8 (Relics).
+--       MoveChat(player, text) (owner 2026-11-05): one Big Raga move, to one event player; default fires Remotes.BossEventChat
+--         to that player only. Once per attack, shout and wheel_turn move of the shared schedule, inside that move, whatever
+--         the Advance step. No move chat in the intro, and never to anyone outside the event.
 --     Remotes.BossEventLeave: the client's leave option, no arguments, runs Leave(player, "Left") (owner 2026-11-05).
 --     Join during a duel's Countdown or Racing: succeeds and ends the duel through DuelService.PlayerLeft (owner 2026-11-05).
 --     Init(): boot. Makes the remote, starts the 1 s loop. Called by Main.server. Not `Start`, which starts an event here.
 --     Hits: a member's first hit comes one HitEverySeconds after the intro's end, or after joining if later.
+--     Hooks.DamageMulti(t): pure, t in seconds since the spawn; the default is the real Shouted x Adapted. RecordHit deals
+--       TeamDamage x DamageMulti(now - spawn). TeamDamage and attribute BossTeamDamage stay uncut. Other sections stub it to 1
+--       so their damage sums stay exact.
+--     ReplicatedStorage attribute BossStatus: JSON list of { Id = "Shouted"|"Adapted", EndsAt (server time) }; nil outside an event.
+--     An effect starts on its moment and is over at EndsAt. A hit in a long frame's catch-up is not pinned to a moment.
+--     AttackImpactsBetween(fromT, toT): pure. How many Big Raga attack Impacts fall in fromT < t <= toT, t in seconds since the
+--       spawn (BossRagaPoses.Schedule's now - startTime), 0 for an empty or reversed span. Advance charges each running
+--       member AttackStaminaCost per impact, floored at 0, on the slot running at that frame. An impact in a member's wait, or
+--       at or before its joining, is never charged.
+--   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
+--     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
+--     eye about 450 outward of and 320 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
+--     runner shows at least 5 px tall with y at most 790, above the bottom HUD, the wheel top and feet show, and the boss is at least
+--     400 px tall. The whole ring need not fit.
+--     No runnerPosition: a fixed spot on the boss's front (-Z).
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
 --   RaceService.NewRun option Boss = true, with Team = { ids }, on { Path = BossArenaConfig.LaneRoute(n), Pads = {}, Tracks = {} }:
 --     stamina without npcMode, distance wraps the closed route. At all empty: run.Waiting = true, RunSpeed 0, runner still,
@@ -392,7 +410,9 @@ function Tests.make(deps)
 				eq("refill_wait_5", Cfg.RefillWaitSeconds, 5)
 				eq("chat_message_text", Cfg.ChatMessage, CHAT)
 				-- Spec placeholders: the only literal checks of them, retune here
-				eq("spec_intro_20", Cfg.IntroSeconds, 20)
+				flag("owner_intro_2_to_3", Cfg.IntroSeconds >= 2 and Cfg.IntroSeconds <= 3, Cfg.IntroSeconds, "2 to 3")
+				eq("owner_attack_cost_5", Cfg.AttackStaminaCost, 5)
+				eq("spec_camera_fov_100", Cfg.CameraFov, 100)
 				eq("spec_hp_per_player_4000", Cfg.HpPerPlayer, 4000)
 				eq("spec_hit_every_1_5", Cfg.HitEverySeconds, 1.5)
 				eq("spec_min_share_1_percent", Cfg.MinDamageShare, 0.01)
@@ -420,7 +440,10 @@ function Tests.make(deps)
 
 			local log
 			local function install()
-				log = { Arrive = {}, Depart = {}, Chat = {}, Rewards = {}, Started = {}, Runs = {} }
+				log = { Arrive = {}, Depart = {}, Chat = {}, MoveChat = {}, Rewards = {}, Started = {}, Runs = {} }
+				S.Hooks.DamageMulti = function()
+					return 1
+				end
 				S.Hooks.Arrive = function(p, lane)
 					log.Arrive[p] = lane
 				end
@@ -430,11 +453,22 @@ function Tests.make(deps)
 				S.Hooks.Chat = function(text)
 					table.insert(log.Chat, text)
 				end
+				S.Hooks.MoveChat = function(p, text)
+					table.insert(log.MoveChat, { Player = p, Text = text, At = clock - T0 })
+				end
 				S.Hooks.Rewards = function(players)
 					table.insert(log.Rewards, players)
 				end
 				S.Hooks.StartRun = function(p, team, lane)
-					local run = { TargetSpeed = 0, Waiting = false, Team = team, Lane = lane, Destroyed = 0 }
+					local run = {
+						TargetSpeed = 0,
+						Waiting = false,
+						Team = team,
+						Lane = lane,
+						Destroyed = 0,
+						Slot = 1,
+						Stamina = { 100, 100, 100 },
+					}
 					function run:Destroy()
 						self.Destroyed += 1
 					end
@@ -482,7 +516,7 @@ function Tests.make(deps)
 				eq("phase_0_prep", S.PhaseAt(0), "Prep")
 				eq("phase_before_spawn_prep", S.PhaseAt(PREP - 0.01), "Prep")
 				eq("phase_spawn_fight", S.PhaseAt(PREP), "Fight")
-				eq("phase_intro_is_fight", S.PhaseAt(PREP + 1), "Fight")
+				eq("phase_intro_is_fight", S.PhaseAt(PREP + INTRO / 2), "Fight")
 				eq("phase_before_8_00_fight", S.PhaseAt(TOTAL - 0.01), "Fight")
 				eq("phase_8_00_end", S.PhaseAt(TOTAL), "End")
 				eq("phase_past_end", S.PhaseAt(TOTAL + 100), "End")
@@ -764,7 +798,7 @@ function Tests.make(deps)
 				begin()
 				local first = fighter()
 				S.Join(first)
-				to(PREP + 10)
+				to(PREP + INTRO / 2)
 				S.Join(p)
 				flag("late_joiner_gets_auto_team", H.same(S.TeamOf(p), S.AutoTeam(p)))
 				eq("late_joiner_cannot_choose", S.SetTeam(p, { low }), false)
@@ -854,6 +888,412 @@ function Tests.make(deps)
 				near("late_first_hit", S.DamageOf(late), S.TeamDamage(late))
 			end)
 
+			-- Owner 2026-11-05 (design doc 4.37, spec "Run rules"). Real runs from RaceService.NewRun; the 1e6 s seam makes the
+			-- run's own drain too small to see, so every change below is the attack's. Times are seconds into the event.
+			serviceSection("attack_stamina", function()
+				local Poses = require(Shared.BossRagaPoses)
+				local race = require(Server.RaceService)
+				local factory = require(Shared.RunnerFactory)
+				local Arena = require(Shared.BossArenaConfig)
+				if type(S.AttackImpactsBetween) ~= "function" then
+					flag("impacts_function_exists", false)
+					return
+				end
+				local COST = Cfg.AttackStaminaCost
+				local MARGIN = 0.01 -- s either side of an impact the scan found, which is rounded to 3 places
+
+				-- Impact times, seconds since the spawn, read off the shared schedule and not from the service.
+				local impactAt = Poses.Moves.attack.Events[1].Time
+				eq("attack_event_is_impact", Poses.Moves.attack.Events[1].Name, "Impact")
+				local CYCLE = Poses.CycleSeconds
+				local impacts, gapMoves, perCycle = {}, {}, 0
+				local lastName, lastLocal = nil, 0
+				for k = 0, math.ceil(2 * CYCLE / 0.01) do
+					local t = INTRO + k * 0.01
+					local name, localTime = Poses.Schedule(0, t)
+					if
+						name == "attack"
+						and localTime >= impactAt
+						and (lastName ~= "attack" or lastLocal < impactAt)
+					then
+						table.insert(impacts, math.round((t - (localTime - impactAt)) * 1000) / 1000)
+						perCycle += impacts[#impacts] < INTRO + CYCLE and 1 or 0
+					end
+					gapMoves[#impacts] = gapMoves[#impacts] or {}
+					gapMoves[#impacts][name] = true
+					lastName, lastLocal = name, localTime
+				end
+				flag("scan_finds_impacts", #impacts >= 6, #impacts, 6)
+				local FIRST = impacts[1]
+				local function at(i)
+					return PREP + impacts[i]
+				end
+
+				-- The pure count: fromT < impact <= toT, in seconds since the spawn. No event is running here.
+				local count = S.AttackImpactsBetween
+				eq("impacts_none_in_the_rise", count(0, INTRO), 0)
+				eq("impacts_none_before_the_spawn", count(-100, INTRO), 0)
+				eq("impacts_first_counted_on_its_moment", count(INTRO, FIRST), 1)
+				eq("impacts_first_not_counted_again", count(FIRST, FIRST + MARGIN), 0)
+				eq("impacts_empty_span", count(FIRST, FIRST), 0)
+				eq("impacts_reversed_span", count(FIRST + 1, FIRST - 1), 0)
+				eq("impacts_one_cycle", count(INTRO, INTRO + CYCLE), perCycle)
+				eq("impacts_ten_cycles", count(INTRO, INTRO + 10 * CYCLE), 10 * perCycle)
+				eq("impacts_same_when_asked_again", count(INTRO, INTRO + CYCLE), perCycle)
+				-- perCycle is one per attack: wheel turn and shout, which play in the gaps, add none.
+				local quiet, wheel, shout = true, false, false
+				for i = 1, #impacts - 1 do
+					quiet = quiet and count(impacts[i] + MARGIN, impacts[i + 1] - MARGIN) == 0
+					wheel = wheel or gapMoves[i].wheel_turn == true
+					shout = shout or gapMoves[i].shout == true
+				end
+				flag("impacts_none_between_attacks", quiet)
+				flag("scan_gaps_hold_wheel_and_shout", wheel and shout)
+
+				local kinds = {}
+				local function newRun(p, team, lane)
+					local car = factory.build(team[1])
+					car.Name, car.Parent = "CarTestBossRunner", p
+					kinds[p] = {}
+					local run = race.NewRun(car, { Path = Arena.LaneRoute(lane), Pads = {}, Tracks = {} }, p, {
+						Boss = true,
+						Team = team,
+						StaminaSeconds = { 1e6, 1e6, 1e6 },
+						OnRunEvent = function(event)
+							table.insert(kinds[p], event.Kind)
+						end,
+					})
+					table.insert(liveRuns, run)
+					return run
+				end
+				local function beginReal()
+					begin()
+					S.Hooks.StartRun = function(p, team, lane)
+						local run = newRun(p, team, lane)
+						log.Runs[p] = run
+						return run
+					end
+				end
+				local function teamOf(n)
+					local p = newPlayer()
+					for i = 1, n do
+						wear(p, chars[i], "side_knight")
+					end
+					return p
+				end
+				local function close(name, actual, expected)
+					flag(name, type(actual) == "number" and math.abs(actual - expected) < 0.05, actual, expected)
+				end
+				local function kindCount(p, kind)
+					local n = 0
+					for _, seen in kinds[p] do
+						n += seen == kind and 1 or 0
+					end
+					return n
+				end
+
+				-- Each impact once, the running slot only, and no damage to the boss.
+				beginReal()
+				local p = teamOf(3)
+				eq("stamina_join_ok", S.Join(p), true)
+				walk(FIGHT)
+				local run = log.Runs[p]
+				if not run then
+					flag("stamina_run_started", false)
+					return
+				end
+				walk(at(1) - STEP)
+				close("full_before_first_impact", run.Stamina[1], 100)
+				local hp, dealt = S.State().Hp, S.DamageOf(p)
+				to(at(1))
+				close("first_impact_costs_5", run.Stamina[1], 100 - COST)
+				close("other_slot_2_untouched", run.Stamina[2], 100)
+				close("other_slot_3_untouched", run.Stamina[3], 100)
+				eq("impact_no_boss_damage", S.State().Hp, hp)
+				eq("impact_no_player_damage", S.DamageOf(p), dealt)
+				eq("impact_keeps_slot", run.Slot, 1)
+				eq("impact_no_wait", run.Waiting, false)
+				S.Advance(clock)
+				S.Advance(clock)
+				close("advance_twice_no_double_hit", run.Stamina[1], 100 - COST)
+				walk(at(2) - MARGIN)
+				close("wheel_and_shout_cost_nothing", run.Stamina[1], 100 - COST)
+				to(at(2) + MARGIN)
+				close("second_impact_costs_5", run.Stamina[1], 100 - 2 * COST)
+				to(at(4) + MARGIN)
+				close("long_frame_counts_each_impact", run.Stamina[1], 100 - 4 * COST)
+				run.Stamina[1] = 50
+				to(at(5) + MARGIN)
+				close("cost_is_of_a_full_bar", run.Stamina[1], 50 - COST)
+
+				-- One long first frame, from the preparation to past two impacts.
+				beginReal()
+				local caught = teamOf(1)
+				S.Join(caught)
+				to(at(2) + MARGIN)
+				close("catch_up_from_prep_counts_each", log.Runs[caught].Stamina[1], 100 - 2 * COST)
+
+				-- Under 5% goes to 0; the run's own exhaustion then swaps.
+				beginReal()
+				local low = teamOf(3)
+				S.Join(low)
+				to(FIGHT)
+				local lowRun = log.Runs[low]
+				lowRun.Stamina[1] = 3
+				to(at(1))
+				eq("under_cost_goes_to_0", lowRun.Stamina[1], 0)
+				flag(
+					"zero_swaps_as_normal",
+					waitFor(1, function()
+						return lowRun.Slot == 2
+					end)
+				)
+				eq("zero_one_swap", kindCount(low, "Swap"), 1)
+				close("swap_target_untouched", lowRun.Stamina[2], 100)
+				to(at(2) + MARGIN)
+				close("next_impact_costs_new_runner", lowRun.Stamina[2], 100 - COST)
+				eq("swapped_runner_kept_at_0", lowRun.Stamina[1], 0)
+
+				-- reading_: two impacts in one frame fall on the slot running at that frame; the rest of the cost is not moved on.
+				beginReal()
+				local over = teamOf(3)
+				S.Join(over)
+				to(FIGHT)
+				log.Runs[over].Stamina[1] = 7
+				to(at(2) + MARGIN)
+				eq("reading_catch_up_floors_at_0", log.Runs[over].Stamina[1], 0)
+				close("reading_catch_up_next_slot_untouched", log.Runs[over].Stamina[2], 100)
+
+				-- The last character at 0 means the wait, never a cash-out.
+				beginReal()
+				local solo = teamOf(1)
+				S.Join(solo)
+				to(FIGHT)
+				local soloRun = log.Runs[solo]
+				soloRun.Stamina[1] = 3
+				to(at(1))
+				flag(
+					"zero_waits_as_normal",
+					waitFor(1, function()
+						return soloRun.Waiting == true
+					end)
+				)
+				eq("zero_wait_once", kindCount(solo, "BossWait"), 1)
+				eq("zero_never_exhausted", kindCount(solo, "Exhausted"), 0)
+				flag("zero_run_alive", soloRun.Connection ~= nil and S.IsIn(solo))
+
+				-- A team in the wait loses nothing, then or afterward. No yield while Waiting is set by hand: the run cannot see it.
+				beginReal()
+				local waiter = teamOf(1)
+				S.Join(waiter)
+				to(FIGHT)
+				local waitRun = log.Runs[waiter]
+				waitRun.Stamina[1] = 40
+				waitRun.Waiting = true
+				to(at(1))
+				close("wait_loses_nothing", waitRun.Stamina[1], 40)
+				waitRun.Waiting = false
+				S.Advance(clock)
+				close("wait_owes_nothing_afterward", waitRun.Stamina[1], 40)
+				to(at(2) + MARGIN)
+				close("after_wait_next_impact_costs", waitRun.Stamina[1], 40 - COST)
+
+				-- Every running member, each on their own; outsiders and later joiners are apart from it.
+				beginReal()
+				local a, b = teamOf(1), teamOf(1)
+				local outsider = teamOf(1)
+				S.Join(a)
+				S.Join(b)
+				local outsiderRun = newRun(outsider, { chars[1] }, Arena.Lanes)
+				to(at(1))
+				close("every_member_a_pays", log.Runs[a].Stamina[1], 100 - COST)
+				close("every_member_b_pays", log.Runs[b].Stamina[1], 100 - COST)
+				local onImpact = teamOf(1)
+				S.Join(onImpact)
+				S.Advance(clock)
+				close("joiner_on_the_impact_pays_nothing", log.Runs[onImpact].Stamina[1], 100)
+				to(at(1) + STEP)
+				local later = teamOf(1)
+				S.Join(later)
+				S.Advance(clock)
+				close("late_joiner_skips_past_impacts", log.Runs[later].Stamina[1], 100)
+				to(at(2) + MARGIN)
+				close("member_pays_both", log.Runs[a].Stamina[1], 100 - 2 * COST)
+				close("joiner_on_the_impact_pays_later_one", log.Runs[onImpact].Stamina[1], 100 - COST)
+				close("late_joiner_pays_later_one", log.Runs[later].Stamina[1], 100 - COST)
+				close("outsider_unaffected", outsiderRun.Stamina[1], 100)
+				outsiderRun:Destroy()
+				S.Reset(T0)
+			end)
+
+			-- Owner 2026-11-05 (spec "Run rules"): Shouted and Adapted, from the shared schedule. Times are seconds since the spawn.
+			serviceSection("boss_status", function()
+				local Poses = require(Shared.BossRagaPoses)
+				local HttpService = game:GetService("HttpService")
+				eq("status_shout_cut", Cfg.ShoutDamageCut, 0.25)
+				eq("status_shout_seconds", Cfg.ShoutSeconds, 5)
+				eq("status_adapted_cut", Cfg.AdaptedCut, 0.1)
+				eq("status_adapted_seconds", Cfg.AdaptedSeconds, 5)
+				if type(realHooks.DamageMulti) ~= "function" then
+					flag("status_damage_hook_exists", false)
+					return
+				end
+				-- Event moments off the schedule, not from the service.
+				local function moments(moveName, eventName)
+					local at, list, lastName, lastLocal = nil, {}, nil, 0
+					for _, event in Poses.Moves[moveName].Events do
+						if event.Name == eventName then
+							at = event.Time
+						end
+					end
+					for k = 0, math.ceil(3 * Poses.CycleSeconds / 0.01) do
+						local t = INTRO + k * 0.01
+						local name, localTime = Poses.Schedule(0, t)
+						if name == moveName and localTime >= at and (lastName ~= moveName or lastLocal < at) then
+							table.insert(list, math.round((t - (localTime - at)) * 1000) / 1000)
+						end
+						lastName, lastLocal = name, localTime
+					end
+					return list
+				end
+				local roars, clicks = moments("shout", "Roar"), moments("wheel_turn", "WheelClick")
+				flag("status_scan_found", #roars >= 2 and #clicks >= 2, #roars, 2)
+				local MARGIN = 0.02
+				local function active(list, duration, t)
+					for _, at in list do
+						if at <= t and t < at + duration then
+							return true
+						end
+					end
+					return false
+				end
+				local function expected(t)
+					return (active(roars, Cfg.ShoutSeconds, t) and 0.75 or 1)
+						* (active(clicks, Cfg.AdaptedSeconds, t) and 0.9 or 1)
+				end
+				-- A clear moment and a moment for each state, past the edges by MARGIN.
+				local function findTime(wantShout, wantAdapted)
+					for k = 0, math.ceil(3 * Poses.CycleSeconds / 0.05) do
+						local t = INTRO + k * 0.05
+						local same = true
+						for _, probe in { t - MARGIN, t, t + MARGIN } do
+							same = same
+								and active(roars, Cfg.ShoutSeconds, probe) == wantShout
+								and active(clicks, Cfg.AdaptedSeconds, probe) == wantAdapted
+						end
+						if same then
+							return t
+						end
+					end
+					return nil
+				end
+				local both, shoutOnly, adaptedOnly = findTime(true, true), findTime(true, false), findTime(false, true)
+				flag("status_scan_has_each_state", both ~= nil and shoutOnly ~= nil and adaptedOnly ~= nil)
+
+				local function status()
+					local raw = ReplicatedStorage:GetAttribute("BossStatus")
+					if raw == nil then
+						return {}
+					end
+					local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
+					return ok and decoded or { "bad json" }
+				end
+				local function statusOf(id)
+					local found, n = nil, 0
+					for _, row in status() do
+						if row.Id == id then
+							found, n = row, n + 1
+						end
+					end
+					return found, n
+				end
+
+				-- Fresh event at each moment: the hit's number and the HP both take the cut.
+				local function hitAt(tag, t, multi)
+					begin()
+					S.Hooks.DamageMulti = realHooks.DamageMulti
+					local p = fighter()
+					S.Join(p)
+					to(t + PREP)
+					local base, hp, before = S.TeamDamage(p), S.State().Hp, S.DamageOf(p)
+					local dealt = S.RecordHit(p)
+					near(tag .. "_dealt", dealt, base * multi)
+					near(tag .. "_hp", hp - S.State().Hp, dealt)
+					near(tag .. "_reward_share", S.DamageOf(p) - before, dealt)
+					near(tag .. "_hud_number_not_cut", p:GetAttribute("BossTeamDamage"), base)
+				end
+				hitAt("status_none_at_intro_end", INTRO, 1)
+				eq("status_list_empty_at_intro_end", #status(), 0)
+				hitAt("status_shouted", shoutOnly, 0.75)
+				eq("status_shouted_listed", (select(2, statusOf("Shouted"))), 1)
+				eq("status_shouted_only", (select(2, statusOf("Adapted"))), 0)
+				hitAt("status_adapted", adaptedOnly, 0.9)
+				eq("status_adapted_listed", (select(2, statusOf("Adapted"))), 1)
+				eq("status_adapted_only", (select(2, statusOf("Shouted"))), 0)
+				hitAt("status_both", both, 0.75 * 0.9)
+				eq("status_both_listed", #status(), 2)
+
+				-- Edges and EndsAt, in server time, off the injected clock.
+				begin()
+				S.Hooks.DamageMulti = realHooks.DamageMulti
+				local spawnAt = T0 + PREP
+				local roar, click = roars[1], clicks[1]
+				to(PREP + roar - MARGIN)
+				eq(
+					"status_not_before_roar",
+					(select(2, statusOf("Shouted"))),
+					active(roars, Cfg.ShoutSeconds, roar - MARGIN) and 1 or 0
+				)
+				to(PREP + roar + MARGIN)
+				local row = statusOf("Shouted")
+				flag("status_roar_starts", row ~= nil)
+				near(
+					"status_shouted_ends_at",
+					row and math.round(row.EndsAt * 100) / 100,
+					math.round((spawnAt + roar + 5) * 100) / 100
+				)
+				to(PREP + roar + 5 + MARGIN)
+				eq(
+					"status_shouted_expires",
+					(select(2, statusOf("Shouted"))),
+					active(roars, 5, roar + 5 + MARGIN) and 1 or 0
+				)
+				begin()
+				S.Hooks.DamageMulti = realHooks.DamageMulti
+				to(PREP + click + MARGIN)
+				local adapted = statusOf("Adapted")
+				near(
+					"status_adapted_ends_at",
+					adapted and math.round(adapted.EndsAt * 100) / 100,
+					math.round((spawnAt + click + 5) * 100) / 100
+				)
+				S.Advance(clock)
+				eq("status_no_stacking", (select(2, statusOf("Adapted"))), 1)
+				to(PREP + click + 5 + MARGIN)
+				eq(
+					"status_adapted_expires",
+					(select(2, statusOf("Adapted"))),
+					active(clicks, 5, click + 5 + MARGIN) and 1 or 0
+				)
+
+				-- The pure multiplier, every moment of the schedule, so a refresh (if the schedule ever gives one) is judged too.
+				local worst = 0
+				for k = 0, math.ceil(3 * Poses.CycleSeconds / 0.25) do
+					local t = INTRO + k * 0.25 + 0.03
+					if expected(t - MARGIN) == expected(t + MARGIN) then
+						worst = math.max(worst, math.abs(realHooks.DamageMulti(t) - expected(t)))
+					end
+				end
+				flag("status_multi_matches_schedule", worst < 1e-6, worst, 0)
+				eq("status_multi_none_in_rise", realHooks.DamageMulti(INTRO / 2), 1)
+
+				-- Nothing is left behind by the event's end.
+				begin()
+				to(PREP + both)
+				S.End("Timeout")
+				eq("status_cleared_at_end", ReplicatedStorage:GetAttribute("BossStatus"), nil)
+			end)
+
 			serviceSection("hp", function()
 				begin()
 				local players = {}
@@ -865,7 +1305,7 @@ function Tests.make(deps)
 					eq("prep_max_grows_" .. i, S.State().MaxHp, i * HP)
 					eq("prep_current_grows_" .. i, S.State().Hp, i * HP)
 				end
-				to(PREP + 5)
+				to(PREP + INTRO / 2)
 				S.Join(players[4])
 				eq("intro_join_grows_max", S.State().MaxHp, 4 * HP)
 				to(FIGHT)
@@ -1249,6 +1689,113 @@ function Tests.make(deps)
 				flag("chat_remote_exists_for_all_players", remote ~= nil and remote:IsA("RemoteEvent"))
 			end)
 
+			-- Owner 2026-11-05. The moves are read off the shared schedule; a line may come anywhere inside its move.
+			serviceSection("move_chat", function()
+				flag("move_chat_default_hook_exists", type(realHooks.MoveChat) == "function")
+				local Poses = require(Shared.BossRagaPoses)
+				local WORDS = {
+					attack = "Big Raga attacks! -5% stamina",
+					shout = "Big Raga shouts! Damage down for 5 s",
+					wheel_turn = "Big Raga turns its wheel! It takes 10% less damage for 5 s",
+				}
+				local SCAN = 0.01
+				local SLACK = 2 * SCAN
+				local SPAN_END = FIGHT + 2 * Poses.CycleSeconds + 1 -- 1 s into the next cycle's opening idle
+				local moves, current = {}, nil
+				for k = 0, math.floor((SPAN_END - FIGHT) / SCAN) do
+					local t = FIGHT + k * SCAN
+					local name = Poses.Schedule(PREP, t) -- t is on the event clock, where the spawn is at PREP
+					if current and current.Move ~= name then
+						current.End = t
+						current = nil
+					end
+					if WORDS[name] and not current then
+						current = { Move = name, Start = t }
+						table.insert(moves, current)
+					end
+				end
+				flag("move_chat_scan_finds_moves", #moves >= 6, #moves, 6)
+				local function heard(p)
+					local lines = {}
+					for _, line in log.MoveChat do
+						if line.Player == p then
+							table.insert(lines, line)
+						end
+					end
+					return lines
+				end
+				-- The player heard exactly moves[from] onward, each line inside its move. `tick` is the Advance step.
+				local function heardMoves(tag, p, from, tick)
+					local lines = heard(p)
+					eq(tag .. "_exact_count", #lines, #moves - from + 1)
+					for i = from, #moves do
+						local line, move = lines[i - from + 1], moves[i]
+						eq(tag .. "_text_" .. i, line and line.Text, WORDS[move.Move])
+						flag(
+							tag .. "_inside_move_" .. i,
+							line ~= nil and line.At >= move.Start - SLACK and line.At <= (move.End or SPAN_END) + tick,
+							line and line.At,
+							move.Start
+						)
+					end
+				end
+
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 0 -- nothing may defeat the boss in this span
+				end
+				local member, introJoiner, leaver, outsider = fighter(), fighter(), fighter(), fighter()
+				S.Join(member)
+				S.Join(leaver)
+				walk(PREP - STEP)
+				eq("move_chat_none_in_prep", #log.MoveChat, 0)
+				walk(PREP + INTRO / 2)
+				S.Join(introJoiner)
+				walk(FIGHT)
+				eq("move_chat_none_in_intro", #log.MoveChat, 0)
+				-- A quiet moment in the idle after the second move, before the third.
+				local gapAt = math.ceil((moves[2].End + STEP) / STEP) * STEP
+				flag("move_chat_gap_is_idle", gapAt + STEP < moves[3].Start, gapAt, moves[3].Start)
+				walk(gapAt)
+				S.Leave(leaver, "Left")
+				local late = fighter()
+				S.Join(late)
+				walk(SPAN_END)
+				eq("move_chat_event_still_running", phase(), "Fight")
+				heardMoves("move_chat_member", member, 1, STEP)
+				heardMoves("move_chat_intro_joiner", introJoiner, 1, STEP)
+				heardMoves("move_chat_late_joiner", late, 3, STEP)
+				eq("move_chat_leaver_only_before", #heard(leaver), 2)
+				eq("move_chat_outsider_none", #heard(outsider), 0)
+				local wheels, wheelLines = 0, 0
+				for _, move in moves do
+					wheels += move.Move == "wheel_turn" and 1 or 0
+				end
+				for _, line in heard(member) do
+					wheelLines += line.Text == WORDS.wheel_turn and 1 or 0
+				end
+				flag("move_chat_schedule_has_wheel_turns", wheels >= 2, wheels, 2)
+				eq("move_chat_wheel_turn_once_per_move", wheelLines, wheels)
+				eq("move_chat_spawn_chat_stays_single", #log.Chat, 1)
+				eq("move_chat_spawn_chat_stays_server_wide", log.Chat[1], CHAT)
+				local total = #log.MoveChat
+				S.End("Timeout")
+				walk(SPAN_END + Poses.CycleSeconds)
+				eq("move_chat_none_after_end", #log.MoveChat, total)
+
+				-- The live loop ticks once a second: still each move once.
+				begin()
+				S.Hooks.DamageMulti = function()
+					return 0
+				end
+				local ticked = fighter()
+				S.Join(ticked)
+				for t = 1, math.ceil(SPAN_END) do
+					to(t)
+				end
+				heardMoves("move_chat_one_second_ticks", ticked, 1, 1)
+			end)
+
 			serviceSection("hud_attribute", function()
 				begin()
 				local a, b = chars[1], chars[2]
@@ -1440,6 +1987,212 @@ function Tests.make(deps)
 					end)
 				)
 				eq("real_leave_after_death_safe", (pcall(S.Leave, p, "Left")), true)
+				S.Reset(T0)
+				SpawnArea.START_COOLDOWN = oldCooldown
+			end)
+
+			-- Owner 2026-11-05, BOSS_EVENT_SPEC "Exhaustion view": the framing, and the end time the client's view runs from.
+			section("wait_view", function()
+				local CarService = require(Server.CarService)
+				local Arena = require(Shared.BossArenaConfig)
+				local RunnerFactory = require(Shared.RunnerFactory)
+				local makeFrame = Cfg.WaitCameraCFrame
+				flag("wait_cframe_is_function", type(makeFrame) == "function")
+				if type(makeFrame) == "function" then
+					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
+					-- Placeholders set from the geometry (owner 2026-11-05).
+					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 5, 400, 790
+					local EYE_OUT, EYE_UP, EYE_SLACK = 450, 320, 50 -- studs from the runner: "about"
+					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
+					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
+					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT
+					local function flat(point)
+						return Vector3.new(point.X - Arena.Center.X, 0, point.Z - Arena.Center.Z)
+					end
+					-- Screen height in px from the view's middle, and whether the point shows.
+					local function project(frame, point)
+						local at = frame:PointToObjectSpace(point)
+						local depth = -at.Z
+						if depth <= 0 then
+							return 0, false
+						end
+						local y, x = at.Y / depth, at.X / depth
+						return y / halfTall * VIEW_HEIGHT / 2, math.abs(y) <= halfTall and math.abs(x) <= halfWide
+					end
+					local feetOfBoss, wheelTop = Arena.Center, Arena.Center + Vector3.yAxis * Arena.BossTotalHeight
+					local bad = { side = {}, runner = {}, boss = {}, spot = {} }
+					local smallestRunner, smallestBoss, lowestRunner = math.huge, math.huge, -math.huge
+					for _, lane in { 1, Arena.Lanes } do
+						for i = 0, Arena.Segments - 1, Arena.Segments / 8 do
+							local tag = lane .. "@" .. i
+							local feet = Arena.RingPoint(Arena.LaneRadius(lane), i)
+							local root = feet + Vector3.yAxis * RunnerFactory.HIP_HEIGHT
+							local frame = makeFrame(Arena.Center, root)
+							local inward = -flat(frame.Position)
+							if
+								flat(frame.Position).Magnitude <= flat(root).Magnitude
+								or frame.Position.Y <= root.Y
+								or frame.LookVector:Dot(inward) <= 0
+								or frame.LookVector.Y >= 0
+							then
+								table.insert(bad.side, tag)
+							end
+							local out = flat(frame.Position).Magnitude - flat(root).Magnitude
+							local up = frame.Position.Y - root.Y
+							if math.abs(out - EYE_OUT) > EYE_SLACK or math.abs(up - EYE_UP) > EYE_SLACK then
+								table.insert(bad.spot, tag)
+							end
+							local feetY, feetShow = project(frame, feet)
+							local headY, headShow = project(frame, feet + Vector3.yAxis * RIG_HEIGHT)
+							if not (feetShow and headShow) then
+								table.insert(bad.runner, tag)
+							end
+							smallestRunner = math.min(smallestRunner, headY - feetY)
+							lowestRunner = math.max(lowestRunner, VIEW_HEIGHT / 2 - feetY) -- y from the top
+							local bottomY, bottomShow = project(frame, feetOfBoss)
+							local topY, topShow = project(frame, wheelTop)
+							if not (bottomShow and topShow) then
+								table.insert(bad.boss, tag)
+							end
+							smallestBoss = math.min(smallestBoss, topY - bottomY)
+						end
+					end
+					flag("wait_camera_outer_above_looking_in", #bad.side == 0, table.concat(bad.side, " "), "none")
+					flag("wait_camera_eye_spot", #bad.spot == 0, table.concat(bad.spot, " "), "none")
+					flag("wait_runner_in_view", #bad.runner == 0, table.concat(bad.runner, " "), "none")
+					flag("wait_runner_above_hud", lowestRunner <= MAX_RUNNER_Y, lowestRunner, MAX_RUNNER_Y)
+					flag("wait_runner_tall_enough", smallestRunner >= MIN_RUNNER_PX, smallestRunner, MIN_RUNNER_PX)
+					flag("wait_boss_in_view", #bad.boss == 0, table.concat(bad.boss, " "), "none")
+					flag("wait_boss_tall_enough", smallestBoss >= MIN_BOSS_PX, smallestBoss, MIN_BOSS_PX)
+
+					local root = Arena.RingPoint(Arena.LaneRadius(1), 12) + Vector3.yAxis * RunnerFactory.HIP_HEIGHT
+					local moved = Vector3.new(100, 50, -300)
+					local frame, shifted = makeFrame(Arena.Center, root), makeFrame(Arena.Center + moved, root + moved)
+					flag(
+						"wait_cframe_pure",
+						(shifted.Position - frame.Position - moved).Magnitude < 0.01
+							and shifted.LookVector:FuzzyEq(frame.LookVector, 0.001)
+					)
+					local fine, fallback = pcall(makeFrame, Arena.Center)
+					flag(
+						"wait_fallback_no_error",
+						fine and typeof(fallback) == "CFrame",
+						tostring(fallback),
+						"a CFrame"
+					)
+					if fine and typeof(fallback) == "CFrame" then
+						flag(
+							"wait_fallback_in_front",
+							fallback.Position.Z < Arena.Center.Z,
+							fallback.Position.Z,
+							"< centre"
+						) -- Big Raga faces -Z (Client/BossRaga)
+					end
+				end
+
+				S.SetClock(function()
+					return clock
+				end)
+				SpawnArea.START_COOLDOWN = 0
+				local function realEvent(...)
+					begin()
+					for name, fn in realHooks do
+						S.Hooks[name] = fn
+					end
+					S.Hooks.Rewards = function() end
+					for _, p in { ... } do
+						S.Join(p)
+					end
+					to(FIGHT)
+				end
+				local function arrive()
+					local p = fighter()
+					local character = deps.newFakeCharacter(CarService.WalkSpawnCFrame())
+					character.Parent = character.Parent or workspace
+					table.insert(cleanup, character)
+					CarService.OnCharacter(p, character)
+					return p
+				end
+				-- Empties the team of a running player, and waits for the wait to start.
+				local function exhaust(p)
+					waitFor(1, function()
+						return CarService.GetRun(p) ~= nil
+					end)
+					local run = CarService.GetRun(p)
+					if not run then
+						return nil
+					end
+					waitFor(2, function()
+						for i in run.Stamina do
+							run.Stamina[i] = 0.01
+						end
+						return run.Waiting == true
+					end)
+					return run.Waiting == true and run or nil
+				end
+				local function ends(p)
+					return p:GetAttribute("BossWaitEndsAt")
+				end
+
+				local tired, other = arrive(), arrive()
+				realEvent(tired, other)
+				eq("wait_attr_none_while_running", ends(tired), nil)
+				local run = exhaust(tired)
+				flag("wait_run_waits", run ~= nil)
+				if not run then
+					S.Reset(T0)
+					SpawnArea.START_COOLDOWN = oldCooldown
+					return
+				end
+				local endsAt = ends(tired)
+				flag("wait_attr_published", type(endsAt) == "number", endsAt, "number")
+				-- Either clock: the client reads GetServerTimeNow, and in this test the event's own clock is a fake.
+				local left = type(endsAt) == "number"
+						and math.min(
+							math.abs(endsAt - workspace:GetServerTimeNow() - Cfg.RefillWaitSeconds),
+							math.abs(endsAt - clock - Cfg.RefillWaitSeconds)
+						)
+					or math.huge
+				flag("wait_attr_is_end_time", left < 0.5, left, "< 0.5 from now + wait")
+				eq("wait_other_player_untouched", ends(other), nil)
+				flag(
+					"wait_attr_clears_at_refill",
+					waitFor(Cfg.RefillWaitSeconds + 1, function()
+						return ends(tired) == nil
+					end)
+				)
+				flag(
+					"wait_attr_lasts_to_refill",
+					waitFor(0.2, function()
+						return run.Waiting == false
+					end),
+					run.Waiting,
+					false
+				)
+
+				-- Leaving mid-wait, and the event's end mid-wait: the attribute goes and stays gone.
+				local left2 = exhaust(tired)
+				flag("wait_second_wait_starts", left2 ~= nil)
+				flag("wait_second_wait_publishes", type(ends(tired)) == "number")
+				S.Leave(tired, "Left")
+				flag(
+					"wait_attr_clears_on_leave",
+					waitFor(0.5, function()
+						return ends(tired) == nil
+					end)
+				)
+				task.wait(0.3)
+				eq("wait_attr_stays_clear_after_leave", ends(tired), nil)
+
+				realEvent(tired)
+				flag("wait_end_case_waits", exhaust(tired) ~= nil)
+				S.End("Timeout")
+				flag(
+					"wait_attr_clears_on_event_end",
+					waitFor(0.5, function()
+						return ends(tired) == nil
+					end)
+				)
 				S.Reset(T0)
 				SpawnArea.START_COOLDOWN = oldCooldown
 			end)

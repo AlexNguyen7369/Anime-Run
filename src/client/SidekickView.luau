@@ -49,7 +49,7 @@ function SidekickView.RelicGear(player)
 end
 
 function SidekickView.Rotation()
-	return decode(ReplicatedStorage, "SidekickRotation") -- { Ids, SecretChoices, EndsAt }; {} before the server publishes
+	return decode(ReplicatedStorage, "SidekickRotation") -- { Ids, SecretChoices, SecretId, EndsAt }; {} before the server publishes
 end
 
 -- The Bag row of `entry`, or nil.

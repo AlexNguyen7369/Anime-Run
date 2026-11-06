@@ -15,6 +15,7 @@ local function commas(n)
 	until replaced == 0
 	return text
 end
+HudFormat.Commas = commas
 
 HudFormat.SUFFIX_FROM = 1e3 -- placeholder: from 1k Money switches to suffixes (owner 2026-10-27)
 HudFormat.SPEED_SUFFIX_FROM = 1e6 -- placeholder: Speed keeps full digits to 1m so each second's gain shows (owner 2026-10-27)

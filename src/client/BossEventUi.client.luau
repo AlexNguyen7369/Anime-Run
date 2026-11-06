@@ -1,17 +1,20 @@
 --!nonstrict
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
--- it follows the server's attributes (ReplicatedStorage BossEvent*, player BossEvent and BossTeamDamage) and asks through
+-- it follows the server's attributes (ReplicatedStorage BossEvent* and BossStatus, player BossEvent, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
+local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
+local GachaConfig = require(shared:WaitForChild("GachaConfig"))
+local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local CharacterHeads = require(shared:WaitForChild("CharacterHeads"))
 local CharacterPortraits = require(shared:WaitForChild("CharacterPortraits"))
@@ -32,12 +35,41 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" --
 local WARNING_SECONDS = 6
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
+local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
+local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
+local BOSS_BUTTON_SIZE = Vector2.new(128, 40) -- at most: the width follows the screen
+local BOSS_BUTTON_WIDTH = 0.15 -- of the screen: at 667 wide, with the pulse and glow it ends at x 329, clear of Auto at 333
+local PULSE_SCALE = 1.08
+local PULSE_PERIOD = 0.6
+local GLOW_THICK = 5
+local PROMPT_SECONDS = 3
+local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESEND_GAP = 0.3 -- s between team sends: the server refuses a request inside its 0.25 s cooldown
 local PHONE_MAX_HEIGHT = 500 -- the HUD's phone rule
 local PHONE_TOP = 56 -- px: under the top row. On a phone the band's top is too low, and the roll it clears is hidden or below
 local BAR_LOW_TOP = 58 -- px: under the top row and Roblox's reserved top-left (x 0..360, y 0..58)
 local BAR_HIGH_TOP = 10 -- px: where the bar fits between those two
 local RESERVED_RIGHT = 360
+local EXHAUSTED_TEXT = "Exhausted, reviving"
+-- px at full scale. 360 wide stays left of the drop list on 1920 x 907.
+local EXHAUSTED_WIDTH, EXHAUSTED_MESSAGE, EXHAUSTED_COUNT, EXHAUSTED_LOADING = 360, 36, 48, 14
+local DIM_TRANSPARENCY = 0.65 -- "slightly dims" (BOSS_EVENT_SPEC "Exhaustion view")
+local STATUS_GAP = 4 -- px under the bar
+local STATUS_HEIGHT, STATUS_HEIGHT_PHONE = 40, 22
+local STATUS_SECONDS, STATUS_SECONDS_PHONE = 20, 12
+local BAR_WIDTH = 0.62 -- of the screen
+local BAR_SIDE_CLEAR = 78 -- px each side, for the LeaveButton (right edge -8, 62 wide) and its gap
+local TOP_FULL_HEIGHT = 900 -- px: a shorter screen scales the bar and the drop list down
+local TOP_MIN_SCALE = 0.4
+local TITLE_HEIGHT, TRACK_HEIGHT = 40, 60 -- px at full scale
+local DROP_WIDTH, DROP_WIDTH_MIN = 400, 190
+local DROP_HEADING, DROP_HEADING_MIN = 32, 14
+local DROP_ROW, DROP_ROW_MIN = 26, 13
+-- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
+local STATUS_LOOKS = {
+	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
+	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
+}
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -188,48 +220,145 @@ local listGrid = make("UIGridLayout", "Grid", list, {
 })
 
 -- Warning, BossBar, LeaveButton -------------------------------------------------------------------------------------------
-local warning = make("Frame", "Warning", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
-warning.BackgroundColor3 = WARNING_BRIGHT
-warning.BorderSizePixel = 0
-UiTheme.Corner(warning, "M")
-UiTheme.Stroke(warning, 3, Palette.White, true)
+local warning = make("Frame", "Warning", root, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	Visible = false,
+})
 local warningLabel = label("Text", warning, {
-	Position = UDim2.fromScale(0.02, 0.06),
-	Size = UDim2.fromScale(0.96, 0.88),
+	Size = UDim2.fromScale(1, 1),
 	Text = WARNING_TEXT,
 	Font = Enum.Font.GothamBlack,
-}, 56)
-UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
+	TextColor3 = WARNING_BRIGHT,
+	TextWrapped = true,
+}, 72)
+local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
 
-local bar = make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), Visible = false })
-UiTheme.Plate(bar, Palette.Danger)
-label("Name", bar, {
-	Position = UDim2.new(0, 10, 0.06, 0),
-	Size = UDim2.new(0.4, -10, 0.44, 0),
+local bar =
+	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
+local barTitle = label("Title", bar, {
 	Text = "Big Raga",
-	TextXAlignment = Enum.TextXAlignment.Left,
-}, 24)
-local barValue = label("Value", bar, {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -10, 0.06, 0),
-	Size = UDim2.new(0.6, -10, 0.44, 0),
-	Text = "",
-	TextXAlignment = Enum.TextXAlignment.Right,
-}, 24)
+	Font = Enum.Font.GothamBlack,
+}, TITLE_HEIGHT)
 local track = make("Frame", "Track", bar, {
-	Position = UDim2.new(0, 10, 0.54, 0),
-	Size = UDim2.new(1, -20, 0.36, 0),
 	BackgroundColor3 = Palette.TeamTired,
 	BorderSizePixel = 0,
 })
 UiTheme.Corner(track, "S")
+UiTheme.Stroke(track, 2, Palette.Gold, true)
 local fill = make("Frame", "Fill", track, {
 	Size = UDim2.fromScale(0, 1),
 	BackgroundColor3 = Palette.White,
 	BorderSizePixel = 0,
 })
 UiTheme.Corner(fill, "S")
-UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep)
+-- Two bands with a hard edge, bright over deep.
+UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Palette.Danger),
+	ColorSequenceKeypoint.new(0.5, Palette.Danger),
+	ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
+	ColorSequenceKeypoint.new(1, Palette.DangerDeep),
+})
+local barValue = label("Value", bar, { Text = "", ZIndex = 2 }, 36) -- above the Track and its Fill
+
+-- Under the bar's left side, with the bar on screen and off: the Warning sits below this row.
+local statusRow = make("Frame", "Status", bar, { BackgroundTransparency = 1 })
+make("UIListLayout", "List", statusRow, {
+	FillDirection = Enum.FillDirection.Horizontal,
+	Padding = UDim.new(0, 4),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local statusCells = {}
+for order, look in STATUS_LOOKS do
+	local cell = make("Frame", "Status_" .. look.Id, statusRow, {
+		LayoutOrder = order,
+		BackgroundTransparency = 1,
+		Visible = false,
+	})
+	local icon = make("ImageLabel", "Icon", cell, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		BackgroundColor3 = look.Color,
+		BorderSizePixel = 0,
+	})
+	UiTheme.Corner(icon, "S")
+	UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	if look.Glyph then
+		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 30)
+	else
+		local wheel = make("Frame", "Wheel", icon, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.62, 0.62),
+			BackgroundTransparency = 1,
+		})
+		make("UICorner", "Round", wheel, { CornerRadius = UDim.new(1, 0) })
+		UiTheme.Stroke(wheel, 2, UiTheme.Outline, true)
+		for name, size in { Across = UDim2.new(1, 0, 0, 2), Down = UDim2.new(0, 2, 1, 0) } do
+			make("Frame", name, wheel, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = size,
+				BackgroundColor3 = UiTheme.Outline,
+				BorderSizePixel = 0,
+			})
+		end
+	end
+	statusCells[look.Id] = {
+		Frame = cell,
+		Icon = icon,
+		Left = label("Seconds", cell, { Text = "", TextColor3 = Palette.Gold }, STATUS_SECONDS),
+	}
+end
+
+-- Hangs from the bar's bottom-right corner, after the Warning (BOSS_EVENT_SPEC "Boss bar"). Display only, nothing in it is Active.
+local dropList = make("Frame", "DropList", root, { BackgroundTransparency = 1, Visible = false })
+make("UIListLayout", "List", dropList, {
+	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	Padding = UDim.new(0, 1),
+	SortOrder = Enum.SortOrder.LayoutOrder,
+})
+local dropHeading = label("Heading", dropList, {
+	LayoutOrder = 1,
+	Text = "Drop:",
+	Font = Enum.Font.GothamBlack,
+}, DROP_HEADING)
+local dropRule = make("Frame", "Rule", dropList, {
+	LayoutOrder = 2,
+	BackgroundColor3 = Palette.SoftText,
+	BorderSizePixel = 0,
+})
+local dropRows = {}
+local function dropRow(id, text, color, stroke)
+	local row = label("Row_" .. id, dropList, {
+		LayoutOrder = 3 + #dropRows,
+		Text = text,
+		TextColor3 = color,
+		Font = Enum.Font.GothamBlack,
+	}, DROP_ROW)
+	UiTheme.Stroke(row, 2, stroke)
+	table.insert(dropRows, row)
+end
+local dropOdds = RelicConfig.Odds("big_raga")
+table.sort(dropOdds, function(a, b)
+	return a.Odds > b.Odds
+end)
+for _, row in dropOdds do
+	-- Secret's near-black needs the light outline Big Raga's black has.
+	dropRow(
+		row.Id,
+		("%s %s%%"):format(row.Name, tostring(row.Odds)),
+		GachaConfig.RARITY_COLORS[row.Rarity],
+		row.Rarity == "Secret" and Palette.White or nil
+	)
+end
+dropRow(
+	"side_raga",
+	("Big Raga %.3f%%"):format(RelicConfig.RagaSidekickChance * 100),
+	Color3.new(0, 0, 0),
+	Palette.White
+)
 
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
 local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
@@ -239,6 +368,76 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 	TextSize = 18,
 	Visible = false,
 })
+
+-- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
+-- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
+local bossButton = button("BossButton", nil, "Boss (Active)", Palette.Danger, {
+	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
+	TextSize = 14,
+	Visible = false,
+})
+make("UISizeConstraint", "MaxWidth", bossButton, { MaxSize = BOSS_BUTTON_SIZE })
+make("UIScale", "PulseScale", bossButton, {})
+local bossGlow = bossButton.ThemeStroke
+bossGlow.Name = "Glow"
+bossGlow.Color = Palette.Gold
+bossButton.Parent = root
+local bossPrompt = label("BossPrompt", root, {
+	Size = UDim2.fromOffset(300, 24),
+	Text = LOCKED_TEXT,
+	TextColor3 = Palette.Gold,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Visible = false,
+}, 18)
+
+local function placeBossButton()
+	local inset = GuiService.TopbarInset
+	local x = inset.Min.X + BOSS_BUTTON_GAP
+	local y = math.max(2, (inset.Max.Y - BOSS_BUTTON_SIZE.Y) / 2)
+	bossButton.Position = UDim2.fromOffset(x, y)
+	bossPrompt.Position = UDim2.fromOffset(x, y + BOSS_BUTTON_SIZE.Y + 6)
+end
+GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
+placeBossButton()
+
+-- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
+local exhausted = make("Frame", "ExhaustedPanel", root, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundTransparency = 1,
+	ZIndex = 0,
+	Visible = false,
+})
+make("Frame", "Dim", exhausted, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = DIM_TRANSPARENCY,
+	BorderSizePixel = 0,
+	ZIndex = 0,
+})
+local exhaustedMessage = label("Message", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Text = EXHAUSTED_TEXT,
+	Font = Enum.Font.GothamBlack,
+}, EXHAUSTED_MESSAGE)
+local exhaustedCount = label("Countdown", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Text = "",
+	Font = Enum.Font.GothamBlack,
+	TextColor3 = Palette.Gold,
+}, EXHAUSTED_COUNT)
+local loading = make("Frame", "Loading", exhausted, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundColor3 = Palette.TeamTired,
+	BorderSizePixel = 0,
+})
+UiTheme.Corner(loading, "S")
+UiTheme.Stroke(loading, 2, UiTheme.Outline, true)
+local loadingFill = make("Frame", "Fill", loading, {
+	Size = UDim2.fromScale(0, 1),
+	BackgroundColor3 = Palette.Gold,
+	BorderSizePixel = 0,
+})
+UiTheme.Corner(loadingFill, "S")
 
 -- Layout ------------------------------------------------------------------------------------------------------------------
 local lastLayout = nil
@@ -298,16 +497,75 @@ local function placeHud(phone, left, top, right, bottom)
 	end
 end
 
-local function placeTop(phone, size, row)
-	local width = math.clamp(size.X * 0.42, 280, 620)
+local function placeTop(size, row)
+	local scale = math.clamp(size.Y / TOP_FULL_HEIGHT, TOP_MIN_SCALE, 1)
+	local width = math.min(math.max(size.X * BAR_WIDTH, 280), size.X - 2 * BAR_SIDE_CLEAR)
 	local barLeft = (size.X - width) / 2
 	local fits = barLeft >= RESERVED_RIGHT and row and barLeft + width + 8 <= row.AbsolutePosition.X
 	local barTop = fits and BAR_HIGH_TOP or BAR_LOW_TOP
-	local height = phone and 42 or 58
+	local titleHeight, trackHeight = math.round(TITLE_HEIGHT * scale), math.round(TRACK_HEIGHT * scale)
+	local height = titleHeight + 2 + trackHeight
 	bar.Position = UDim2.new(0.5, 0, 0, barTop)
 	bar.Size = UDim2.fromOffset(width, height)
-	warning.Position = UDim2.new(0.5, 0, 0, barTop + height + 8)
-	warning.Size = UDim2.fromOffset(math.min(size.X * 0.8, 1000), phone and 48 or 84)
+	barTitle.Size = UDim2.new(1, 0, 0, titleHeight)
+	track.Position = UDim2.fromOffset(0, titleHeight + 2)
+	track.Size = UDim2.new(1, 0, 0, trackHeight)
+	barValue.Position = UDim2.fromOffset(8, titleHeight + 3)
+	barValue.Size = UDim2.new(1, -16, 0, trackHeight - 2)
+
+	local iconSize = math.max(STATUS_HEIGHT_PHONE, math.round(STATUS_HEIGHT * scale))
+	local secondsHeight = math.max(STATUS_SECONDS_PHONE, math.round(STATUS_SECONDS * scale))
+	local statusHeight = iconSize + secondsHeight
+	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
+	statusRow.Size = UDim2.new(0.5, -4, 0, statusHeight)
+	for _, cell in statusCells do
+		cell.Frame.Size = UDim2.fromOffset(iconSize + 8, statusHeight)
+		cell.Icon.Size = UDim2.fromOffset(iconSize, iconSize)
+		cell.Left.Position = UDim2.fromOffset(0, iconSize)
+		cell.Left.Size = UDim2.new(1, 0, 0, secondsHeight)
+	end
+
+	-- A short screen takes smaller rows, never fewer.
+	local listTop = barTop + height + STATUS_GAP
+	local headingHeight = math.max(DROP_HEADING_MIN, math.round(DROP_HEADING * scale))
+	local ruleHeight = scale < 0.6 and 1 or 2
+	local rowRoom = size.Y - listTop - 8 - headingHeight - ruleHeight - #dropRows - 1
+	local rowHeight =
+		math.clamp(math.floor(rowRoom / #dropRows), 8, math.max(DROP_ROW_MIN, math.round(DROP_ROW * scale)))
+	local listHeight = headingHeight + ruleHeight + #dropRows * (rowHeight + 1) + 1
+	local listWidth = math.max(DROP_WIDTH_MIN, DROP_WIDTH * scale)
+	local listLeft = barLeft + width - listWidth
+	dropList.Position = UDim2.fromOffset(listLeft, listTop)
+	dropList.Size = UDim2.fromOffset(listWidth, listHeight)
+	dropHeading.Size = UDim2.new(1, 0, 0, headingHeight)
+	dropRule.Size = UDim2.new(0.6, 0, 0, ruleHeight)
+	for _, row in dropRows do
+		row.Size = UDim2.new(1, 0, 0, rowHeight)
+	end
+
+	-- The list is hidden while this shows, so only the status row is in its way.
+	local warningEnd = size.Y / 2 - 8
+	local warningTop = listTop + statusHeight + 8
+	warning.Position = UDim2.fromOffset(size.X / 2, warningTop)
+	warning.Size = UDim2.fromOffset(
+		math.min(size.X * 0.86, 1100),
+		math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop))
+	)
+
+	-- Centred: beside the list where it fits between the screen's middle and the list, else under the list.
+	local panelWidth = math.round(EXHAUSTED_WIDTH * scale)
+	local panelTop = listTop + statusHeight + 8
+	if panelWidth / 2 + 8 > listLeft - size.X / 2 then
+		panelTop = listTop + listHeight + 8
+	end
+	local messageHeight = math.round(EXHAUSTED_MESSAGE * scale)
+	local countHeight = math.round(EXHAUSTED_COUNT * scale)
+	exhaustedMessage.Position = UDim2.new(0.5, 0, 0, panelTop)
+	exhaustedMessage.Size = UDim2.fromOffset(panelWidth, messageHeight)
+	exhaustedCount.Position = UDim2.new(0.5, 0, 0, panelTop + messageHeight)
+	exhaustedCount.Size = UDim2.fromOffset(panelWidth, countHeight)
+	loading.Position = UDim2.new(0.5, 0, 0, panelTop + messageHeight + countHeight + 4)
+	loading.Size = UDim2.fromOffset(panelWidth, math.round(EXHAUSTED_LOADING * scale))
 end
 
 -- Follows the HUD while a part shows (PanelBand.Fit's way); the writes run only when a number changed.
@@ -335,7 +593,7 @@ local function layout()
 	lastLayout = key
 	placeInvite(phone, left, top, right, bottom)
 	placeHud(phone, left, top, right, bottom)
-	placeTop(phone, size, row)
+	placeTop(size, row)
 end
 
 -- Team --------------------------------------------------------------------------------------------------------------------
@@ -487,8 +745,7 @@ local function refreshGear()
 	local locked = #rows == 0 -- READING in UiBossEvent: a Sidekick only in the Bag locks it, the server refuses that join
 	teleport.Active = not locked
 	teleport.BackgroundColor3 = locked and Palette.Disabled or Palette.MoneyDeep
-	inviteHint.Text = locked and "Get a Sidekick and equip it to teleport"
-		or "Teleport to fight Big Raga before the timer ends"
+	inviteHint.Text = locked and LOCKED_TEXT or "Teleport to fight Big Raga before the timer ends"
 end
 player:GetAttributeChangedSignal("SidekickGear"):Connect(refreshGear)
 player:GetAttributeChangedSignal("SidekickBag"):Connect(refreshGear)
@@ -496,6 +753,7 @@ refreshGear()
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
 local declinedStart = nil
+local promptUntil = 0
 local busy = false
 
 -- Remotes are found when pressed (UiBossEvent): progression_spy swaps them.
@@ -520,6 +778,13 @@ end)
 decline.Activated:Connect(function()
 	declinedStart = ReplicatedStorage:GetAttribute("BossEventStart")
 end)
+bossButton.Activated:Connect(function()
+	if teleport.Active then
+		ask("BossEventTeleport", bossButton)
+	else
+		promptUntil = os.clock() + PROMPT_SECONDS
+	end
+end)
 leave.Activated:Connect(function()
 	ask("BossEventLeave", leave)
 end)
@@ -530,10 +795,36 @@ local wasFight = false
 local teamKey = nil
 local warningUntil = 0
 local stopFlash = nil
+local stopPulse = nil
+local invitedStart = nil
+local inviteUntil = 0
 
 local function clockText(seconds)
 	local whole = math.ceil(math.max(0, seconds))
 	return string.format("%d:%02d", whole // 60, whole % 60)
+end
+
+local statusRaw = nil
+local statusEnds = {} -- id -> EndsAt
+
+-- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time.
+local function drawStatus()
+	local raw = ReplicatedStorage:GetAttribute("BossStatus")
+	if raw ~= statusRaw then
+		statusRaw = raw
+		statusEnds = {}
+		local ok, rows = pcall(HttpService.JSONDecode, HttpService, raw or "[]")
+		for _, row in ok and rows or {} do
+			statusEnds[row.Id] = row.EndsAt
+		end
+	end
+	for id, cell in statusCells do
+		local left = (statusEnds[id] or 0) - workspace:GetServerTimeNow()
+		cell.Frame.Visible = left > 0
+		if left > 0 then
+			cell.Left.Text = math.ceil(left) .. "s"
+		end
+	end
 end
 
 local function endWarning()
@@ -582,7 +873,12 @@ local function render()
 			bar.Visible = true
 			UiMotion.Pop(bar)
 			warningUntil = os.clock() + WARNING_SECONDS
-			stopFlash = UiMotion.Pulse(warning, { BackgroundColor3 = Palette.DangerDeep }, FLASH_PERIOD)
+			local stopText = UiMotion.Pulse(warningLabel, { TextTransparency = 1 }, FLASH_PERIOD)
+			local stopStroke = UiMotion.Pulse(warningStroke, { Transparency = 1 }, FLASH_PERIOD)
+			stopFlash = function()
+				stopText()
+				stopStroke()
+			end
 			-- cue: ToastHigh
 		end
 	end
@@ -590,21 +886,47 @@ local function render()
 		endWarning()
 	end
 
-	local joinable = phase ~= nil
-		and not inEvent
-		and declinedStart ~= start
-		and elapsed < Cfg.JoinSeconds
-		and not tutorialActive()
-	if joinable and not invite.Visible then
-		invite.Visible = true
+	local joinable = phase ~= nil and not inEvent and elapsed < Cfg.JoinSeconds and not tutorialActive()
+	-- Once per event, for its own seconds: after that the Boss button carries teleporting.
+	if joinable and invitedStart ~= start then
+		invitedStart = start
+		inviteUntil = os.clock() + Cfg.InviteSeconds
+		invite.Visible = declinedStart ~= start
 		UiMotion.Pop(invite) -- cue: DuelInvite
-	elseif not joinable then
+	elseif not joinable or declinedStart == start or os.clock() >= inviteUntil then
 		invite.Visible = false
 	end
+
+	if joinable ~= bossButton.Visible then
+		bossButton.Visible = joinable
+		if stopPulse then
+			stopPulse()
+			stopPulse = nil
+		end
+		if joinable then
+			local stopSize = UiMotion.Pulse(bossButton.PulseScale, { Scale = PULSE_SCALE }, PULSE_PERIOD)
+			local stopGlow = UiMotion.Pulse(bossGlow, { Thickness = GLOW_THICK }, PULSE_PERIOD)
+			stopPulse = function()
+				stopSize()
+				stopGlow()
+			end
+		end
+	end
+	bossPrompt.Visible = joinable and not invite.Visible and not teleport.Active and os.clock() < promptUntil
 	hud.Visible = inEvent and phase == "Prep" and not panelOpen
 	bar.Visible = inFight
+	dropList.Visible = inFight and warningUntil == 0 and not panelOpen
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
+
+	-- From the server's end time, so a late view is as far along. Past it, full at 1 until the server revives the team.
+	local waitEnds = player:GetAttribute("BossWaitEndsAt")
+	exhausted.Visible = inEvent and type(waitEnds) == "number"
+	if exhausted.Visible then
+		local left = waitEnds - workspace:GetServerTimeNow()
+		exhaustedCount.Text = tostring(math.clamp(math.ceil(left), 1, Cfg.RefillWaitSeconds))
+		loadingFill.Size = UDim2.fromScale(math.clamp(1 - left / Cfg.RefillWaitSeconds, 0, 1), 1)
+	end
 
 	if invite.Visible then
 		inviteCountdown.Text = clockText(Cfg.JoinSeconds - elapsed)
@@ -619,7 +941,8 @@ local function render()
 		-- Left to right over the intro, from the server's start: a late joiner sees the same width as everyone.
 		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.IntroSeconds, 0, 1)
 		fill.Size = UDim2.fromScale(max > 0 and math.clamp(hp / max, 0, 1) * intro or 0, 1)
-		barValue.Text = HudFormat.SpeedText(math.ceil(hp)) .. " / " .. HudFormat.SpeedText(math.ceil(max))
+		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
+		drawStatus()
 	end
 end
 

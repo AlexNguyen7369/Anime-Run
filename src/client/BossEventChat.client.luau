@@ -1,5 +1,6 @@
 --!nonstrict
--- The bright red server-wide message when Big Raga spawns (design doc 4.37, Server/BossEventService). Display only.
+-- Big Raga's bright red chat lines (design doc 4.37, Server/BossEventService): the server-wide spawn message and, for players
+-- in the event, each move. Display only.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 

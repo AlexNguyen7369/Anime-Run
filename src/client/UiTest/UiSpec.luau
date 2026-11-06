@@ -49,7 +49,7 @@ UiSpec.Viewports = {
 -- (Client/RollToast/Ui/RacerMotion, 1.035 on hover, 0.97 while pressed) and Client/UiMotion's MotionScale (Pop, the
 -- PanelSwitch open scale 0.92 -> 1; docs/HUD_LAYOUT_SPEC.md section 10). Geometry is measured with them at 1x, after
 -- the open motion settled (UiSpec.Waits.PanelMotion).
-UiSpec.TransientScales = { HoverScale = true, MotionScale = true }
+UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerBossEvent/BossButton
 
 -- Roblox's own top-bar buttons. The Racer UI guis ignore the inset (IgnoreGuiInset = true), so nothing of theirs may
 -- sit on the area Roblox's buttons use: the live GuiService.TopbarInset (everything left of Min.X / right of Max.X in
@@ -1171,7 +1171,7 @@ UiSpec.Remotes =
 -- Parts of a panel a phone does not show when it opens (K.phoneHidden in UiScenarios). The phone Market detail view
 -- (its own layout, after a tap) is not solved here: it needs a real phone-height view (Prepare.PhoneOnly clicks).
 UiSpec.PhoneViewsHidden = { "MarketUi/Backdrop/Panel/Detail" }
-UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true }
+UiSpec.TransientGuis = { LoadingScreen = true, ArrivalReveal = true, RacerSidekickReveal = true }
 
 UiSpec.IgnoreGuis = {
 	Freecam = true,
@@ -1382,6 +1382,20 @@ UiSpec.ServerSetup = {
 		When = "asked for by ui_sidekicks; first after 'spy' in the sidekicks_* clicks' NeedSetup",
 		What = "Bag holds one of every Sidekick in List and BossDrops, nothing worn, auto-sell off, Gems for a 10x, "
 			.. "rebirth at the unlock. 'restore' (or restore:sidekick_states) puts all of it back.",
+	},
+	{
+		Id = "sidekick_big_reveal",
+		When = "before click sidekicks_reveal_big, after 'spy'",
+		What = "sidekick_states, and the next 10 server rolls are scripted: the rotation's Mythic 5th, its Secret 9th, the rest its "
+			.. "first Common. Player attribute UiTestRevealIds lists them. 'restore' (or restore:sidekick_states) puts it back.",
+	},
+	{
+		Id = "sidekick_follow_*",
+		When = "asked for by ui_sidekick_follow, one step at a time",
+		What = "Stops this player's run, then builds a rig of theirs (Owner = UserId) far above the world, drawn by "
+			.. "the real RunnerView, and Sidekicks worn per character. Steps: start, wear:<character>:<id|none>, swap:<character>, "
+			.. "run:<speed>, stop, crowd:<n> (rigs with no Player, attribute FollowerFixtureId), end. "
+			.. "restore:sidekick_follow puts all of it back and restarts a run it stopped.",
 	},
 	{
 		Id = "relic_states",
@@ -3363,26 +3377,20 @@ UiSpec.Guis.RacerSidekicks = {
 	Panels = { "Panel" },
 	Buttons = {
 		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerSidekicks/Panel", Text = "X" },
-		{ Path = "Panel/Body/Left/Details", Does = "local", ClickCoverage = "ui_sidekicks" },
-		{ Path = "Panel/Body/Left/Settings", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/Main/Banner/Poster/Details", Does = "local" },
+		{ Path = "Panel/Body/Main/Banner/Poster/Tap", Does = "local" },
+		{ Path = "Panel/Body/Main/AutoSell", Does = "local", ClickCoverage = "ui_sidekicks" },
 		{ Path = "Panel/Body/DetailsSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
-		{ Path = "Panel/Body/SettingsSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/AutoSellSheet/Back", Does = "local", ClickCoverage = "ui_sidekicks" },
 		{
-			Path = "Panel/Body/SettingsSheet/List/*/Toggle",
+			Path = "Panel/Body/AutoSellSheet/List/*/Toggle",
 			Does = "remote",
 			Remote = "SidekickAutoSell",
 			Count = "dynamic",
 			ClickCoverage = "ui_sidekicks",
 		},
-		{ Path = "Panel/Body/Right/Summon1", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
-		{
-			Path = "Panel/Body/Right/Summon10",
-			Does = "remote",
-			Remote = "SidekickSummon",
-			Arg = "count",
-			ClickCoverage = "ui_sidekicks",
-		},
-		{ Path = "Panel/Body/Right/Reveal/Ok", Does = "local", ClickCoverage = "ui_sidekicks" },
+		{ Path = "Panel/Body/Main/Summon1", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
+		{ Path = "Panel/Body/Main/Summon10", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
 	},
 }
 UiSpec.Guis.CheckpointUi = {
@@ -3844,12 +3852,29 @@ table.insert(UiSpec.Clicks, {
 	Prepare = only("RacerSidekicks/Panel"),
 	Expect = { Panels = { ["RacerSidekicks/Panel"] = false }, Remote = false },
 })
+-- The poster's tap and its Details button both open Details (SIDEKICK_SPEC "Summon page").
+for id, path in { sidekicks_details_button = "Details", sidekicks_details_tap = "Tap" } do
+	table.insert(UiSpec.Clicks, {
+		Id = id,
+		Gui = "RacerSidekicks",
+		Path = "Panel/Body/Main/Banner/Poster/" .. path,
+		Prepare = only("RacerSidekicks/Panel"),
+		NeedSetup = { "spy", "sidekick_states" },
+		Expect = {
+			Panels = { ["RacerSidekicks/Panel"] = true },
+			Remote = false,
+			After = { "sidekicks_details_open" },
+		},
+	})
+end
 -- A real summon on fixture Gems: the reveal needs its results. SidekickSummon is deliberately not in
--- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here.
+-- UiSpec.RemoteFunctions (progression_spy would block it), so the spy logs no remote here. Each reveal stays until its
+-- Tap is pressed at the end, so each summon click has a close click right after it. The page closes behind the reveal.
+local REVEAL_CLOSE = { KeepPanels = true, Showcase = false }
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_reveal_models",
 	Gui = "RacerSidekicks",
-	Path = "Panel/Body/Right/Summon1",
+	Path = "Panel/Body/Main/Summon1",
 	Prepare = only("RacerSidekicks/Panel"),
 	NeedSetup = { "spy", "sidekick_states" },
 	Expect = {
@@ -3858,20 +3883,50 @@ table.insert(UiSpec.Clicks, {
 		After = { "sidekicks_reveal_models" },
 	},
 })
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_reveal_close",
+	Gui = "RacerSidekickReveal",
+	Path = "Tap",
+	Prepare = REVEAL_CLOSE,
+	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_reveal_big",
+	Gui = "RacerSidekicks",
+	Path = "Panel/Body/Main/Summon10",
+	Prepare = only("RacerSidekicks/Panel"),
+	NeedSetup = { "spy", "sidekick_big_reveal" },
+	Expect = {
+		Panels = { ["RacerSidekicks/Panel"] = true },
+		Remote = false,
+		After = { "sidekicks_reveal_big" },
+	},
+})
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_reveal_big_close",
+	Gui = "RacerSidekickReveal",
+	Path = "Tap",
+	Prepare = REVEAL_CLOSE,
+	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
+})
 
 -- Boss event UI (Client/BossEventUi; design doc 4.37, docs/BOSS_EVENT_SPEC.md). UiBossEvent holds the contract. Only the
 -- LeaveButton is AlwaysOn, for ui_layout's every-viewport fit: Panels must be PanelSwitch ones, and the Invite must not close
--- with them, so Invite and TeamHud are judged by ui_boss.
+-- with them, so Invite and TeamHud are judged by ui_boss. BossButton is AlwaysOn too (owner 2026-11-05): its top-left place
+-- is kept free of every always-on element even while it is hidden. BossBar and DropList are not AlwaysOn: BossEventUi sizes them
+-- for the live screen, so the solver cannot place them at another viewport, and the bar takes the hidden roll's place by design.
+-- ui_boss judges their overlap on the engine's rects (checkDropList, checkFit).
 UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
 }
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton" },
-	NonInteractiveParts = { "Warning", "BossBar" },
+	AlwaysOn = { "LeaveButton", "BossButton" },
+	NonInteractiveParts = { "Warning", "BossBar", "DropList" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
+		{ Path = "BossButton", Does = "remote", Remote = "BossEventTeleport", Label = "Boss (Active)" },
 		{
 			Path = "TeamHud/List/*",
 			Does = "remote",
@@ -3908,7 +3963,8 @@ do
 	item.When = "before the boss_* clicks (NeedSetup); ui_boss uses boss_ui_gear:<n> and boss_ui_state:<...> instead"
 	table.insert(UiSpec.ServerSetup, item)
 end
--- Run in this order: Teleport is refused by the spy so the Invite stays, then Decline hides it.
+-- The Invite is up for 3 s of its own (BossEventConfig.InviteSeconds): BOSS_PREPARE presses inside that. The spy refuses Teleport, so
+-- nobody joins and the BossButton stays.
 local BOSS_PREPARE = { Showcase = false, RequireShown = true, WaitSeconds = 0.5 }
 for _, click in
 	{
@@ -3923,14 +3979,14 @@ for _, click in
 				Intercept = "BossEventTeleport",
 			},
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
-			Expect = { Remote = false, After = { "boss_invite_shown" } },
+			Expect = { Remote = false, After = { "boss_refused_keeps_button" } },
 		},
 		{
 			Id = "boss_teleport",
 			Path = "Invite/TeleportButton",
 			Prepare = BOSS_PREPARE,
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
-			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_invite_shown" } },
+			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
 		},
 		{
 			Id = "boss_decline",
@@ -3943,6 +3999,26 @@ for _, click in
 			},
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
 			Expect = { Remote = false, After = { "boss_invite_hidden" } },
+		},
+		{
+			Id = "boss_button",
+			Path = "BossButton",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
+			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
+		},
+		{
+			-- Pressed after the Invite closed by itself, so its own locked prompt is not what the After sees.
+			Id = "boss_button_locked",
+			Path = "BossButton",
+			Prepare = {
+				Showcase = false,
+				RequireShown = true,
+				WaitSeconds = 3.5,
+				Intercept = "BossEventTeleport",
+			},
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_locked" },
+			Expect = { Remote = false, After = { "boss_button_prompts_for_sidekick" } },
 		},
 		{
 			Id = "boss_pick_character",

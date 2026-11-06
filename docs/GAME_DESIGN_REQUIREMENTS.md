@@ -401,8 +401,7 @@ before any Studio work.
   **proposed**: Pochito, Igriz, Kaizel. Each model is 30-40% of a character's size and made with the character design skill.
 - Luck never affects summons (owner 2026-11-04). Luck, luck potions and every luck source apply only to the character auto-roll, which is
   fully separate from Sidekicks. Summons have no luck potions, VIP discount or shiny pass.
-- The summon page (owner's reference, layout ideas only, no copied art): gem packs and buttons on the left; on the right one banner showing
-  the Sidekicks, the Gem balance, and Summon 1x and Summon 10x. Odds sit behind a button labelled "Details" (section 6).
+- The summon page (owner's reference, layout ideas only, no copied art; redesign owner 2026-11-05): the Gem balance, rotation timer, Mythic Pity and Legendary Pity at the top; a poster with the Mythic in the centre, the Legendaries and Rares beside it, and each one's rate under its name; the cost; Auto-Sell, Summon 1x and Summon 10x; and a More Gems column of gem bundles with calculated bonus badges. Commons and the Secret appear only in Details. Results play a summon reveal (`docs/SIDEKICK_SPEC.md`). Tapping the poster or its button labelled "Details" shows the odds (section 6). This gacha look is on this page only: moving it to any other HUD or panel needs the owner's approval.
 - The Bag has its own Sidekicks category, holding 50 Sidekicks (owner 2026-11-04). Each summon is its own bag entry. A summon needs room for
   everything it would add, after auto-sell (orchestrator default).
 - Selling a Sidekick pays a small Gem refund, always well under a summon's cost (owner 2026-11-04). The summon page has an auto-sell filter
@@ -574,5 +573,8 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: Big Raga's shout lowers players' damage for 5 seconds; its wheel turn gives it 10% damage reduction; both show as status effects under the HP bar (4.37).
 - 2026-11-05: owner: Sidekick summon pity, Mythic at 300 and Legendary at 100 (4.36), relayed by the summon redesign session; replaces the spec's no-pity line for Sidekicks only.
 - 2026-11-05: owner: pity details (Mythic resets only its own count, Mythic wins a tie, the tutorial summon counts, Secrets are independent); boss exhaustion view (4.36, 4.37).
+- 2026-11-05: owner: summon page redesign from a new reference, this page only; Mythic pity at 300 carrying across rotations (replaces no pity); the Secret shows as a silhouette; rotation timer on the page (4.36).
+- 2026-11-05: owner: Mythic pity 300 and Legendary pity 100 approved, with a Legendary pity bar; Details shows the live Secret's silhouette, rarity and chance, with no name column; the live Secret's id may reach clients (4.36).
+- 2026-11-05: owner: Rare models join the summon poster with rates shown in it; the Secret moves to Details; a summon reveal in the style of anime tower defense games, original effects (4.36).
 - 2026-11-05: owner: the spawn warning is flashing text with no border or background; Roblox chat notes each Big Raga attack, shout and wheel turn for players in the event; in the plaza the invite shows for 3 seconds, then teleporting stays open from the top-left Boss button, reading (Active), glowing and pulsing in size (4.37).
 - 2026-11-05: owner: boss bar layout with a colour-coded Drop list of Relic rates and Big Raga's rate in black (4.37, `BOSS_EVENT_SPEC`).

@@ -1,0 +1,37 @@
+{
+	"Flare": {
+		"Decal": "111294261934329",
+		"Hash": "c17abb77f3c15c4fb3f0c86c5f615c834eb0fe94eb094352d6f8c3a0b8412b28",
+		"Image": "90675872332302"
+	},
+	"Glow": {
+		"Decal": "104690041623049",
+		"Hash": "7c318fabaaf67db13759a6c8fe370a0aec88e2ad54e51b86e2dd979831d3ad57",
+		"Image": "87567001235917"
+	},
+	"Impact": {
+		"Decal": "101421371654297",
+		"Hash": "d79589c3b6cd63ecc3f5e3ebe9186d0cae20f314799d31e44cc233d65ef5934e",
+		"Image": "132733406310246"
+	},
+	"Rays": {
+		"Decal": "109716012857323",
+		"Hash": "09994f0e6485b502ce40e1f2fb4379df7e2fe2ccd6b2d457b1dc6e7084167c66",
+		"Image": "136507228397919"
+	},
+	"Ring": {
+		"Decal": "87828686185772",
+		"Hash": "2fdbb8448c5c91aaa86e5738e444ea8f55d7686f10a632ed52a0b26e652d2009",
+		"Image": "138039615347256"
+	},
+	"SpeedLines": {
+		"Decal": "138239053231945",
+		"Hash": "413d0f1a5ceee52a233d06bf2bbb5210134cd905573deb5011b7c0d4aa228504",
+		"Image": "137127744790592"
+	},
+	"Vortex": {
+		"Decal": "104406767547368",
+		"Hash": "5ad390a1d75bdeee7d8ed815e15e6b3a0bddd8a504d5653b72bd2b02d8fbfa6a",
+		"Image": "112820698671575"
+	}
+}

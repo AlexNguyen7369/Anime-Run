@@ -1,6 +1,7 @@
 --!nonstrict
 -- BRIEF: design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks" (task b7b). Owner approved the key frames 2026-11-05
--- (assets/characters_avatar/boss_raga/keyframes/keys.json); approved keys stay unchanged. Moves are client-side visuals.
+-- (assets/characters_avatar/boss_raga/keyframes/keys.json); approved keys stay unchanged. Moves are client-side visuals; the server reads only Schedule and Events, for attack stamina
+-- (owner 2026-11-05, boss_event attack_stamina).
 -- Contract these tests assume beyond the brief (implementer: report a change, do not loosen):
 --   Shared/BossRagaPoses, generated:
 --     Moves[name] = { Duration, Keys = { { Time, Parts = { [part] = ... } } }, Events = { { Time, Name } }, Approved = { times } };
@@ -109,18 +110,6 @@ function Tests.boss_anim()
 		local ok, err = xpcall(body, debug.traceback)
 		flag(name .. "_completed", ok, ok and 1 or tostring(err))
 	end
-
-	-- The server decides no pose: moves are visual only. Source reads only with plugin rights, not in a play server.
-	section("server_independent", function()
-		local readable, source = pcall(function()
-			return script.Parent.Parent.BossEventService.Source
-		end)
-		if readable then
-			flag("service_does_not_require_poses", not string.find(source, "BossRagaPoses", 1, true))
-		else
-			r.metrics.service_source_unreadable = true
-		end
-	end)
 
 	local Poses = H.module(Shared, "BossRagaPoses")
 	flag("poses_module_loads", Poses ~= nil)

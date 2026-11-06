@@ -45,7 +45,7 @@ local Server = script.Parent.Parent
 local Tests = {}
 
 local UID = 990138000
-local VERSION = 16
+local VERSION = 17
 local BOSS = "big_raga"
 local STATS = { "Damage", "AttackSpeed", "Luck", "Money", "Speed", "Stamina" }
 local STAT_COUNT = { Common = 1, Rare = 1, Epic = 2, Legendary = 3, Mythic = 4, Secret = 6 } -- design doc 4.38
@@ -672,11 +672,21 @@ function Tests.relics()
 			B.SetClock(function()
 				return clock
 			end)
+			B.Hooks.DamageMulti = function()
+				return 1
+			end
 			B.Hooks.Arrive = function() end
 			B.Hooks.Depart = function() end
 			B.Hooks.Chat = function() end
 			B.Hooks.StartRun = function(p, team, lane)
-				local run = { TargetSpeed = 0, Waiting = false, Team = team, Lane = lane }
+				local run = {
+					TargetSpeed = 0,
+					Waiting = false,
+					Team = team,
+					Lane = lane,
+					Slot = 1,
+					Stamina = { 100, 100, 100 },
+				}
 				function run:Destroy() end
 				runOf[p] = run
 				return run
@@ -733,6 +743,16 @@ function Tests.relics()
 			flag("damage_average_of_scaled", approx(B.TeamDamage(pair), wantPair), B.TeamDamage(pair), wantPair)
 			flag("damage_off_team_relic_nothing", approx(B.TeamDamage(offTeam), Cfg.TeamDamage({ side }, 400)))
 			flag("hit_uses_relic_damage", approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400)))
+			B.Hooks.DamageMulti = function()
+				return 0.75 * 0.9
+			end
+			flag(
+				"status_cut_keeps_relic_bonus",
+				approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400) * 0.75 * 0.9)
+			)
+			B.Hooks.DamageMulti = function()
+				return 1
+			end
 
 			-- Attack speed: the same fight window, more hits. Team damage is held still, so damage / team damage = hits.
 			local function hits(list, relics, team)

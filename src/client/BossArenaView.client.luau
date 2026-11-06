@@ -38,7 +38,11 @@ local ARCH_PIECES = 8 -- the draft's 12, for phones
 local BAY_OFFSETS = { math.rad(20), math.rad(40) } -- colonnade bays after each arch
 local BAY_HALF, BAY_COLUMNS, BAY_HEIGHT = math.rad(8), 7, 62 -- the draft's 13 columns, for phones
 local CLOUD_Y = Cfg.Y - 720 -- the draft's cloud sea
-local TILE, TILES = 2040, 3 -- deck slabs: 2048 is the largest part; a 7 x 7 grid, the edge fades into the Atmosphere
+local TILE, TILES = 2040, 3 -- deck slabs: 2048 is the largest part; a 7 x 7 grid without its corners
+-- A ring of big puffs hides the deck's edge. The arena's Atmosphere is too thin to, and at FOV 100 the aerial camera sees the
+-- horizon, so the upper row tops out above that camera (850 over the ring, placeholder values, all studs).
+local BANK_RADIUS, BANK_PUFFS, BANK_PUFF = 6900, 31, 1024
+local BANK_LOW, BANK_HIGH = 0, 1300 -- row centres above the deck
 local PUFFS, WISPS = 60, 12
 
 local function look(hex, material, shadow)
@@ -219,8 +223,9 @@ local function aimFlat(rise, below)
 end
 
 -- A flattened sphere, an engine primitive.
-local function addPuff(x, y, z, radius, style)
-	local part = addPart("Cloud", Vector3.new(2 * radius, 0.9 * radius, 2 * radius), CFrame.new(x, y, z), style)
+local function addPuff(x, y, z, radius, style, height)
+	local part =
+		addPart("Cloud", Vector3.new(2 * radius, height or 0.9 * radius, 2 * radius), CFrame.new(x, y, z), style)
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Sphere
 	mesh.Parent = part
@@ -235,8 +240,22 @@ local function addClouds(mine)
 			if not pace(mine) then
 				return false
 			end
-			local at = CFrame.new(center.X + ix * TILE, CLOUD_Y - 10, center.Z + iz * TILE)
-			addPart("CloudDeck", Vector3.new(2048, 20, 2048), at, CLOUD2)
+			-- The corners lie wholly behind the bank.
+			if math.abs(ix) < TILES or math.abs(iz) < TILES then
+				local at = CFrame.new(center.X + ix * TILE, CLOUD_Y - 10, center.Z + iz * TILE)
+				addPart("CloudDeck", Vector3.new(2048, 20, 2048), at, CLOUD2)
+			end
+		end
+	end
+	for i = 1, BANK_PUFFS do
+		if not pace(mine) then
+			return false
+		end
+		local a = 2 * math.pi * i / BANK_PUFFS
+		for row, above in { BANK_LOW, BANK_HIGH } do
+			local turn = a + (row - 1) * math.pi / BANK_PUFFS -- staggered, so one row's dips meet the other's tops
+			local x, z = center.X + BANK_RADIUS * math.cos(turn), center.Z + BANK_RADIUS * math.sin(turn)
+			addPuff(x, CLOUD_Y + above, z, BANK_PUFF, row == 1 and CLOUD2 or CLOUD, 2 * BANK_PUFF)
 		end
 	end
 	local rng = Random.new(7) -- the same sky for everyone

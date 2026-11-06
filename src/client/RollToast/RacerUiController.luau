@@ -42,6 +42,7 @@ local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
 local NpcConfig = require(Shared.NpcConfig)
+local BossWaitCamera = require(client.BossWaitCamera)
 local RunnerVisual = require(client.RunnerVisual)
 local hud = require(Ui.RacerHud).Bind(playerGui)
 require(client.RaceProgressMap).Attach(hud)
@@ -674,6 +675,9 @@ local function autoRaceCar()
 end
 
 RunService.RenderStepped:Connect(function(dt)
+	if BossWaitCamera.Held() then
+		return -- the exhaustion view holds the camera Scriptable, and gives it back as it found it
+	end
 	local camera = workspace.CurrentCamera
 	local autoRacing = player:GetAttribute("AutoRacing") == true
 	local car = autoRacing and player:GetAttribute("TopDownView") == true and autoRaceCar() or nil
