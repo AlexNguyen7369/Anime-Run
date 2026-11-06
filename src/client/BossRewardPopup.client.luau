@@ -44,7 +44,7 @@ end
 
 local root = make("ScreenGui", "RacerBossRewards", player:WaitForChild("PlayerGui"), {
 	ResetOnSpawn = false,
-	DisplayOrder = 13, -- with the boss event's own UI, above the HUD
+	DisplayOrder = 62, -- above every panel and popup the return may open
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
 local panel = make("Frame", "Panel", root, {
