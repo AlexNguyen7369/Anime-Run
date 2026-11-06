@@ -916,6 +916,26 @@ MODELS = {"boss_raga": boss_raga, "side_chain": side_chain, "side_knight": side_
 BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga")}
 
 
+# One file per later Sidekick in tools/blender/sidekicks/: ID, NAME and build(k), where k is this script's namespace (k.Model).
+def load_sidekick_files():
+	import importlib.util
+	import types
+
+	folder = os.path.join(HERE, "sidekicks")
+	kit = types.SimpleNamespace(**globals())
+	for fname in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
+		if not fname.endswith(".py"):
+			continue
+		spec = importlib.util.spec_from_file_location(fname[:-3], os.path.join(folder, fname))
+		mod = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(mod)
+		NAMES[mod.ID] = mod.NAME
+		MODELS[mod.ID] = lambda build=mod.build: build(kit)
+
+
+load_sidekick_files()
+
+
 # ---- rendering
 
 

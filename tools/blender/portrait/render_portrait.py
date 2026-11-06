@@ -11,6 +11,7 @@
 # to just under the chin, for the Team minibar), and on a no-ids run also assets/portraits/_heads_sheet.png.
 # Cycles only renders raw data (atlas colour, normal, depth, part id) with no lights; the drawing is done in numpy.
 import glob
+import json
 import os
 import re
 import struct
@@ -74,6 +75,17 @@ SIDEKICK_VIEWS = {
 		"head": {"show": ("Head", "Wheel"), "frame": ("Head", "Wheel"), "cut": 4.8, "turn": 15},
 	},
 }
+
+
+# A later Sidekick's views live next to its model: tools/blender/sidekicks/<id>.views.json, same shape as a row above.
+_views_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sidekicks")
+for _f in sorted(os.listdir(_views_dir)) if os.path.isdir(_views_dir) else []:
+	if _f.endswith(".views.json"):
+		with open(os.path.join(_views_dir, _f)) as _h:
+			_row = json.load(_h)
+		for _view in _row.values():  # str.startswith needs tuples; JSON gives lists
+			_view.update({k: tuple(_view[k]) for k in ("show", "frame")})
+		SIDEKICK_VIEWS[_f[: -len(".views.json")]] = _row
 
 
 def camera_axes(turn=TURN):

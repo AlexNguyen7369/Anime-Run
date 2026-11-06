@@ -89,6 +89,9 @@
 86. 2026-11-05 — Alex Nguyen — Played the boss event live in Studio (teleport, chat, run, refill, leave) and added the arena's sky dressing and big raga key frames for owner review (`[CARTEST]` pass=2 fail=0 on `boss_arena`, `boss_event`; flat boss fallback still shows beside the stand-in at max quality).
 87. 2026-11-05 — Alex Nguyen — Merged Relics (b8) into the boss event UI (b7c), keeping the arena's sky dressing with the spawn rise and adding the flat fallback to it (selene and rojo build pass; not run in Studio).
 88. 2026-11-05 — Alex Nguyen — Landed Relics, the event UI and the Big Raga bag overflow, and recorded the 30 minute summon rotation rule (`[CARTEST]` pass=5 fail=0 including `boss_event` 461 and `relics` 374; `ui_boss` 151, `ui_relics`, `ui_layout`, `ui_buttons`, `ui_sidekicks`, `ui_backpack_characters` pass; live: warning flash dim, camera misses the rise).
+89. 2026-11-05 — Alex Nguyen — Drew and committed owner-approved models, portraits and evidence for 12 new-series characters, 9 Sidekicks and Void Saitamo, local only with no upload or catalog entry.
+90. 2026-11-05 — Alex Nguyen — Uploaded the 9 new Sidekick models, portraits and heads to Roblox and added them to the generated SidekickArt registry, not yet in live odds.
+91. 2026-11-05 — Alex Nguyen — Recorded the roster goal and the owner's rulings: characters wait for speed balance, Eternal and Void base Speed set, Void Saitamo ships with the Void characters.
 
 ## What's next
 **Fix the event UI's live findings, then apply the 12-Sidekick pool and the 30 minute rotation (goal `boss-event`).**
