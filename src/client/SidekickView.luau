@@ -48,6 +48,10 @@ function SidekickView.RelicGear(player)
 	return decode(player, "RelicGear") -- character id -> entry
 end
 
+function SidekickView.Rotation()
+	return decode(ReplicatedStorage, "SidekickRotation") -- { Ids, SecretChoices, EndsAt }; {} before the server publishes
+end
+
 -- The Bag row of `entry`, or nil.
 function SidekickView.Row(player, entry)
 	for _, row in SidekickView.Bag(player) do

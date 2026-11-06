@@ -265,7 +265,28 @@ end
 
 -- Sidekick fixture (UiSpec.ServerSetup sidekick_states): what it replaced, until 'restore' or restore:sidekick_states.
 local sidekickSnapshots = {}
+local sidekickClockMoved = false
+-- Moves the rotation clock by whole seconds (0 puts the real clock back), so ui_sidekicks sees a slot change.
+-- Only the server can tell which later slot has another Mythic: the client has the attribute alone.
+local function nextMythicOffset()
+	local rotation = live("SidekickRotation")
+	local slot = rotation.Slot(os.time())
+	local steps = 1
+	while steps < 200 and rotation.For(slot + steps).Mythic[1] == rotation.For(slot).Mythic[1] do
+		steps += 1
+	end
+	return steps * rotation.SLOT_SECONDS
+end
+local function sidekickUiClock(offset)
+	sidekickClockMoved = offset ~= 0
+	live("SidekickService").SetClock(offset ~= 0 and function()
+		return os.time() + offset
+	end or nil)
+end
 local function restoreSidekicks(player)
+	if sidekickClockMoved then
+		sidekickUiClock(0)
+	end
 	local saved = sidekickSnapshots[player]
 	if saved then
 		live("SidekickService").Apply(player, saved.state)
@@ -311,6 +332,8 @@ local function restoreBossUi(player)
 	if saved then
 		live("GachaService").Apply(player, saved.gacha)
 		live("SidekickService").Apply(player, saved.sidekicks)
+		player:SetAttribute("NeedsStarter", saved.needsStarter)
+		setAutoRoll(player, saved.autoRoll == true)
 		bossUiSnapshots[player] = nil
 	end
 end
@@ -320,8 +343,16 @@ local function bossUiGear(player, how)
 	local G, service = live("GachaService"), live("SidekickService")
 	if not bossUiSnapshots[player] then
 		live("BossEventService").Reset() -- no real event, and no timed one due during the fixture
-		bossUiSnapshots[player] = { gacha = G.Snapshot(player), sidekicks = service.Snapshot(player) }
+		bossUiSnapshots[player] = {
+			gacha = G.Snapshot(player),
+			sidekicks = service.Snapshot(player),
+			autoRoll = player:GetAttribute("AutoRoll"),
+			needsStarter = player:GetAttribute("NeedsStarter"),
+		}
 	end
+	-- Past the starter pick and the roll tutorial: Client/BossEventUi holds the Invite back during them.
+	player:SetAttribute("NeedsStarter", nil)
+	player:SetAttribute("Rolls", math.max(player:GetAttribute("Rolls") or 0, 1))
 	service.Apply(player, {})
 	local rollable = require(Shared.CharacterCatalog).Rollable()
 	if how == "bag" then
@@ -334,6 +365,17 @@ local function bossUiGear(player, how)
 		assert(service.Equip(player, rollable[i].Id, entry))
 	end
 	G.Grant(player, rollable[how + 1].Id)
+end
+
+-- The roll tutorial as a 0-roll save has it (on), or finished (off). Needs bossUiGear first; restoreBossUi undoes it.
+local function bossUiTutorial(player, on)
+	if on then
+		setAutoRoll(player, false)
+		player:SetAttribute("Rolls", 0)
+	else
+		player:SetAttribute("Rolls", 1)
+		setAutoRoll(player, bossUiSnapshots[player].autoRoll == true)
+	end
 end
 
 -- elapsed "keep" leaves BossEventStart as it is; phase "Idle" clears the event; inEvent and damage are the player's.
@@ -1282,6 +1324,18 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
 		if bossGear then
 			bossUiGear(player, tonumber(bossGear) or bossGear)
+			return
+		end
+		local bossTutorial = string.match(request, "^boss_ui_tutorial:(%a+)$")
+		if bossTutorial then
+			bossUiTutorial(player, bossTutorial == "on")
+			return
+		end
+		if request == "sidekick_ui_clock:next" then
+			sidekickUiClock(nextMythicOffset())
+			return
+		elseif request == "sidekick_ui_clock:real" then
+			sidekickUiClock(0)
 			return
 		end
 		local phase, elapsed, hp, max, inEvent, damage =

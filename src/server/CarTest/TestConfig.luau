@@ -47,6 +47,7 @@ return {
 		"slot_items",
 		"gems",
 		"sidekicks",
+		"sidekick_rotation",
 		"relics",
 		"boss_arena",
 		"boss_event",
