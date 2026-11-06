@@ -862,13 +862,27 @@ function Tests.make(deps)
 				local clientHit = false
 				for _, item in remotes and remotes:GetChildren() or {} do
 					local name = string.lower(item.Name)
+					-- BossHits is exempt by exact name: server-to-client only, clients read it to draw (checked below).
 					clientHit = clientHit
 						or (
-							string.find(name, "boss", 1, true)
+							item.Name ~= "BossHits"
+							and string.find(name, "boss", 1, true)
 							and (string.find(name, "hit", 1, true) or string.find(name, "damage", 1, true))
 						)
 				end
 				flag("no_remote_deals_damage", not clientHit)
+				local hitsRemote = remotes and remotes:FindFirstChild("BossHits")
+				flag("boss_hits_is_remote_event", hitsRemote ~= nil and hitsRemote:IsA("RemoteEvent"))
+				local hpBefore = S.State().Hp
+				near("hit_after_boss_hits_is_server_number", S.RecordHit(p, 1e9, "cheat"), expected)
+				near("hit_after_boss_hits_takes_server_hp", S.State().Hp, hpBefore - expected)
+				-- Source is not readable in every context; only checked where it is.
+				local readable, source = pcall(function()
+					return Server.BossEventService.Source
+				end)
+				if readable and type(source) == "string" and source ~= "" then
+					flag("boss_hits_no_server_listener", not string.find(source, "OnServerEvent", 1, true))
+				end
 			end)
 
 			serviceSection("hit_cadence", function()
