@@ -352,6 +352,14 @@ function Module.Build(h)
 		local first = fill.Size.X.Scale
 		h.check(res, "scream_fill_starts_low", first, "<= " .. FILL_LOW, first <= FILL_LOW)
 		checkTextSoon(res, "scream_title", BAR .. "/Title", TITLE_STAGE_2)
+		local titleColor = h.find(BAR .. "/Title").TextColor3
+		h.check(
+			res,
+			"scream_title_red",
+			titleColor,
+			"red",
+			titleColor.R > 0.8 and titleColor.G < 0.2 and titleColor.B < 0.2
+		)
 		-- BossEventEndsAt again, in the new stage.
 		local timerOk = waitIs(function()
 			local minutes, seconds = string.match(textOf(BAR .. "/BossTimer"), "^(%d+):(%d%d)$")

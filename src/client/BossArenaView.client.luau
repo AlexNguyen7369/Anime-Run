@@ -28,11 +28,11 @@ local LINE_WIDTH, LINE_THICK = 1, 0.1
 -- The flat fallback (spec "Arena"): front image from his front and back, side image otherwise, sized so that it sits inside the
 -- model's outline from the lanes and behind the model along the view line. Images are 9.42 units square, framed on his box.
 local FLAT_FRAME = 9.42 * Poses.Scale
-local GROWTH = 1.25 -- owner 2026-11-06
+local GROWTH = Event.ScreamGrowth
 local ROAR_AT = Poses.Moves.shout.Events[1].Time
 local FLAT_INSIDE = 0.92 -- of the image's true size
 local FLAT_CENTER_Y = 9.237 / 2 * Poses.Scale
-local LANES = 890 -- studs from the boss, for the size the billboard's push back would lose
+local LANES = Cfg.InnerRadius + Cfg.Width / 2 -- studs from the boss, for the size the billboard's push back would lose
 local FLAT_FRONT = { Image = VfxArt.FlatFront, Back = 260, Side = 0 }
 local FLAT_SIDE = { Image = VfxArt.FlatSide, Back = 400, Side = -58 } -- his box is 0.67 units behind his centre
 local ARCH_COUNT, ARCH_START, SECTOR = 6, math.rad(15), math.rad(60) -- the draft's ARCH_START and SECTOR
@@ -170,7 +170,7 @@ local function addBay(angle)
 end
 
 local function addDais()
-	local y, center = Cfg.Y, Cfg.Center
+	local y, center = Cfg.DaisY, Cfg.Center
 	local radius = Cfg.DaisRadius
 	local function drum(name, top, height, r, style)
 		-- A cylinder's axis is its X: this turn stands it on end.
@@ -188,8 +188,12 @@ end
 -- the track and runners. shortcut: 2 still images at rest, drawn from his front and his right, so his back and left show the same
 -- image the wrong way round; animated frames only if a real phone at low graphics shows the owner they are worth it.
 local function addFlat()
-	local anchor =
-		addPart("LowGraphicsAnchor", Vector3.one, CFrame.new(Cfg.Center.X, Cfg.Y + FLAT_CENTER_Y, Cfg.Center.Z), MARBLE)
+	local anchor = addPart(
+		"LowGraphicsAnchor",
+		Vector3.one,
+		CFrame.new(Cfg.Center.X, Cfg.DaisY + FLAT_CENTER_Y, Cfg.Center.Z),
+		MARBLE
+	)
 	anchor.Transparency = 1
 	anchor.CastShadow = false
 	local gui = Instance.new("BillboardGui")
@@ -280,7 +284,7 @@ local function addClouds(mine)
 		if not pace(mine) then
 			return false
 		end
-		local x, z = polar(760, 1120)
+		local x, z = polar(Cfg.InnerRadius - 90, Cfg.InnerRadius + 270)
 		addPuff(x, Cfg.Y - rng:NextNumber(130, 260), z, rng:NextNumber(50, 110), CLOUD2)
 	end
 	return true
