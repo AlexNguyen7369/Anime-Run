@@ -1598,7 +1598,7 @@ function Module.Build(h)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
 		-- The camera follows a moving runner (BossWaitCamera.homeFrame carries its offset from the subject), so a world position
-		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 550 in the wait's view.
+		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 144 in the wait's view (120 out, 80 up).
 		local homeBefore = Spec.CameraReach(camera)
 		local function atHome()
 			return math.abs(Spec.CameraReach(camera) - homeBefore) < WAIT_CAMERA_SLACK
@@ -1700,7 +1700,7 @@ function Module.Build(h)
 		-- The live camera sees the whole boss, wheel top to feet (BossEventTests judges the runner and the sizes, purely).
 		local outside = 0
 		for _, height in { 0, Arena.BossTotalHeight } do
-			local at = camera:WorldToViewportPoint(Arena.Center + Vector3.yAxis * height)
+			local at = camera:WorldToViewportPoint(Vector3.new(Arena.Center.X, Arena.DaisY + height, Arena.Center.Z))
 			if at.Z <= 0 or at.X < 0 or at.Y < 0 or at.X > view.X or at.Y > view.Y then
 				outside += 1
 			end

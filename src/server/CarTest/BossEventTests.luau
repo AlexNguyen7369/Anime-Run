@@ -73,9 +73,9 @@
 --     members only. ReplicatedStorage attribute BossEventNextAt mirrors State().NextAt.
 --   Exhaustion view (owner 2026-11-05): player attribute BossWaitEndsAt, server time, set when the team starts its wait,
 --     cleared at refill and on leaving. BossEventConfig.WaitCameraCFrame(center, runnerPosition), pure (owner 2026-11-05): the
---     eye about 450 outward of and 320 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
---     runner shows at least 5 px tall with y at most 790, above the bottom HUD, the wheel top and feet show, and the boss is at least
---     400 px tall. The whole ring need not fit.
+--     eye about 120 outward of and 80 above the local runner, looking down on the arena. In a 907 px high view at WaitCameraFov the
+--     runner shows at least 2.5 px tall with y at most 790, above the bottom HUD, the wheel top and feet show, and the boss is at least
+--     225 px tall. The whole ring need not fit.
 --     No runnerPosition: a fixed spot on the boss's front (-Z).
 --   CarService.PadTouched refuses a player whose attribute BossEvent is true. GachaService.StartAutoRoll does not roll while it is.
 --   RaceService.NewRun option Boss = true, with Team = { ids }, on { Path = BossArenaConfig.LaneRoute(n), Pads = {}, Tracks = {} }:
@@ -676,7 +676,31 @@ function Tests.make(deps)
 				eq("old_adapted_seconds_removed", Cfg.AdaptedSeconds, nil)
 				eq("owner_phase2_extra_hp", Cfg.Phase2ExtraHp, 50000)
 				eq("owner_phase2_extra_seconds", Cfg.Phase2ExtraSeconds, 120)
-				eq("owner_scream_seconds", Cfg.ScreamSeconds, 3)
+				eq("owner_scream_seconds", Cfg.ScreamSeconds, 6)
+				do -- VehicleEffects.Boost scales an effect about the body
+					local Effects = require(Shared.VehicleEffects)
+					local function boosted(kind, id)
+						local car = Instance.new("Model")
+						car.PrimaryPart = Instance.new("Part")
+						car.PrimaryPart.Parent = car
+						Effects.ApplyProfile(car, kind, id)
+						return car
+					end
+					local aura = boosted("Aura", "ember_aura")
+					local at = aura.PrimaryPart:FindFirstChildWhichIsA("Attachment")
+					local emitter = aura.PrimaryPart:FindFirstChildWhichIsA("ParticleEmitter", true)
+					local position, size = at.Position, emitter.Size.Keypoints[1].Value
+					Effects.Boost(aura, 2)
+					eq("boost_moves_attachment", (at.Position - position * 2).Magnitude < 1e-3, true)
+					eq("boost_scales_emitter", math.abs(emitter.Size.Keypoints[1].Value - size * 2) < 1e-3, true)
+					local wake = boosted("Trail", "void_trail")
+					local trail = wake.MarketEffects:FindFirstChildWhichIsA("Trail")
+					local life = trail.Lifetime
+					Effects.Boost(wake, 2)
+					eq("boost_longer_trail", trail.Lifetime > life, true)
+					aura:Destroy()
+					wake:Destroy()
+				end
 				eq("owner_phase1_money", Cfg.Phase1Money, 100000)
 				eq("owner_phase2_gems", Cfg.Phase2Gems, 1000)
 				eq("owner_vulnerable_multi", Cfg.VulnerableMulti, 1.5)
@@ -4405,9 +4429,9 @@ function Tests.make(deps)
 				if type(makeFrame) == "function" then
 					local VIEW_HEIGHT, VIEW_WIDTH = 907, 1920
 					-- Placeholders set from the geometry (owner 2026-11-05).
-					-- Owner locked the event FOV at 100 (2026-11-06): measured runner 2.71 px, boss 237 px on a 907 px screen.
+					-- These floors are the old 450 by 320 view's (owner 2026-11-06 zoomed in a lot); the zoomed view only exceeds them.
 					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 2.5, 225, 790
-					local EYE_OUT, EYE_UP, EYE_SLACK = 450, 320, 50 -- studs from the runner: "about"
+					local EYE_OUT, EYE_UP, EYE_SLACK = 120, 80, 20 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
 					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT
@@ -4424,7 +4448,8 @@ function Tests.make(deps)
 						local y, x = at.Y / depth, at.X / depth
 						return y / halfTall * VIEW_HEIGHT / 2, math.abs(y) <= halfTall and math.abs(x) <= halfWide
 					end
-					local feetOfBoss, wheelTop = Arena.Center, Arena.Center + Vector3.yAxis * Arena.BossTotalHeight
+					local feetOfBoss = Vector3.new(Arena.Center.X, Arena.DaisY, Arena.Center.Z)
+					local wheelTop = feetOfBoss + Vector3.yAxis * Arena.BossTotalHeight
 					local bad = { side = {}, runner = {}, boss = {}, spot = {} }
 					local smallestRunner, smallestBoss, lowestRunner = math.huge, math.huge, -math.huge
 					for _, lane in { 1, Arena.Lanes } do

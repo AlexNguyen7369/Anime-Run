@@ -127,7 +127,7 @@ function Module.Build(h)
 		local hidden = shownParts(model)
 		h.check(res, "boss_hidden_before_spawn", hidden, 0, hidden == 0)
 
-		local fullTop = Arena.Y + FULL_HEIGHT
+		local fullTop = Arena.DaisY + FULL_HEIGHT
 		if not GuiService.ReducedMotionEnabled then
 			state(res, "Fight", Cfg.PrepSeconds + Cfg.RiseSeconds / 4) -- early: the rise is over in RiseSeconds, well inside the intro
 			local shown = waitFor(function()
@@ -152,16 +152,16 @@ function Module.Build(h)
 		h.check(
 			res,
 			"boss_wheel_at_full_height",
-			top and top - Arena.Y,
+			top and top - Arena.DaisY,
 			FULL_HEIGHT .. " +-" .. HEIGHT_SLACK,
 			top ~= nil and math.abs(top - fullTop) <= HEIGHT_SLACK
 		)
 		h.check(
 			res,
 			"boss_feet_on_dais",
-			bottom and bottom - Arena.Y,
+			bottom and bottom - Arena.DaisY,
 			"0 +-" .. HEIGHT_SLACK,
-			bottom ~= nil and math.abs(bottom - Arena.Y) <= HEIGHT_SLACK
+			bottom ~= nil and math.abs(bottom - Arena.DaisY) <= HEIGHT_SLACK
 		)
 		noPhysics(res, "boss", model)
 		return model

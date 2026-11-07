@@ -124,8 +124,9 @@
 121. 2026-11-06 — Alex Nguyen — Merged the playtest fixes and bake lookup, baked 181 models and meshes in Studio pending the owner's save, stripped test code from live servers, and fixed audit and full harness findings; `[CARTEST] END pass=64 fail=1` and `[UITEST] END pass=54 fail=2`, each red since fixed and passing alone.
 122. 2026-11-06 — Alex Nguyen — Fixed late joiners taking statuses from moves before their join, found by fresh review of PR #5; red first, then `[CARTEST] END pass=6 fail=0`.
 123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
+124. 2026-11-06 — Alex Nguyen — Boss polish: Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera; server harness 55 of 55, UI 50 of 56, re-run stopped on the owner's word.
 
 ## What's next
-**Play a real boss event with a collaborator to check baked models load and the Phase 2 visuals.**
+**Run `ui_boss`, `ui_rolls`, `ui_toast`, `ui_index`, `ui_inventory` and `ui_hitboxes` on a save past the roll tutorial, and play a real Phase 2 to its end.**
 
-**Why this is next:** the owner saved the bake, and collaborators' loading beyond Narito and the Phase 2 visuals have only been seen on the owner's account.
+**Why this is next:** the last UI harness left 6 reds whose fixes or causes no run has confirmed, and the 6 s scream, the wheel stop and the return to the run have not been watched in real time, so later boss tuning builds on them unproven.

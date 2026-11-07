@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Follow = require(Shared:WaitForChild("SidekickFollow"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+local VehicleEffects = require(Shared:WaitForChild("VehicleEffects"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -56,6 +57,8 @@ function BossTeamRig.New(who, slot, id)
 		"FollowerFixtureId",
 		Follow.WornId(who:GetAttribute("SidekickGear"), who:GetAttribute("SidekickBag"), id)
 	)
+	VehicleEffects.Apply(rig, who, slot)
+	VehicleEffects.Boost(rig, VehicleEffects.EVENT_BOOST)
 	rig.Parent = BossTeamRig.Holder
 	CollectionService:AddTag(rig, RunnerVisual.TAG)
 	return rig
