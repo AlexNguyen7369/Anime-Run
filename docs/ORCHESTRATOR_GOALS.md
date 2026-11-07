@@ -158,7 +158,7 @@ Deliverables:
 Out of scope: 3D chests, new Raga key frames, moves faster than today's schedule, a chest screen outside the Relics inventory.
 
 ## boss-polish: Phase 2 cutscene, tone, closer arena, visible effects (owner 2026-11-06)
-Status: active (q5's UI harness stopped on the owner's word 2026-11-06, reds in handoff)
+Status: done 2026-11-06 (PR #7 merged, 685b452; q5's UI harness stopped on the owner's word, reds in handoff)
 Owner-confirmed: 2026-11-06 (plan approved: `~/.claude/plans/imperative-dazzling-grove.md`; "orchestrate all of the above tasks")
 Branch: feature/alex/boss-polish
 Spec: design doc 4.37, docs/BOSS_EVENT_SPEC.md

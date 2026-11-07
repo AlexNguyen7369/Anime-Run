@@ -125,6 +125,7 @@
 122. 2026-11-06 — Alex Nguyen — Fixed late joiners taking statuses from moves before their join, found by fresh review of PR #5; red first, then `[CARTEST] END pass=6 fail=0`.
 123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
 124. 2026-11-06 — Alex Nguyen — Boss polish: Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera; server harness 55 of 55, UI 50 of 56, re-run stopped on the owner's word.
+125. 2026-11-06 — Alex Nguyen — Merged PR #7 (boss polish) to `main` at 685b452 after a fresh reviewer's approval, on the owner's word with the UI re-run stopped.
 
 ## What's next
 **Run `ui_boss`, `ui_rolls`, `ui_toast`, `ui_index`, `ui_inventory` and `ui_hitboxes` on a save past the roll tutorial, and play a real Phase 2 to its end.**

@@ -2,7 +2,7 @@
 
 History: `current_progress.md`, `git log`.
 
-## Boss polish (2026-11-06, owner; branch `feature/alex/boss-polish`, worktree `../AnimeRun-orch/p2`, Rojo `34873`)
+## Boss polish (2026-11-06, owner; PR #7 merged to `main` at 685b452 after a fresh APPROVE, first review CHANGES on a stale 10:03; branch `feature/alex/boss-polish`, worktree `../AnimeRun-orch/p2`, Rojo `34873`)
 - From `origin/main`. Rules: design doc 4.37 and change log, `BOSS_EVENT_SPEC` "Phase 2", "Arena". Plan: `~/.claude/plans/imperative-dazzling-grove.md`.
 - Built: ring radius 550 (boss size fixed), `DaisY` 50 studs lower, scream 6 s, `ScreamCameraCFrame`, `BossPhase2Tone` grade (dim, then blood red), red title, `VehicleEffects.Boost` 2.5x, line rigs wear their slot's items.
 - "Initiation" means the Phase 2 scream, the owner's ruling. Phase 1's spawn is unchanged.
