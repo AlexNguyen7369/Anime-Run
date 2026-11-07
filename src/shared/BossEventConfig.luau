@@ -33,16 +33,17 @@ end
 BossEventConfig.CameraFov = 100 -- owner 2026-11-06: locked for the whole event
 BossEventConfig.CameraZoom = 40 -- proposed: studs while running, the distance in the owner's 2026-11-06 screenshot; also the game's max
 BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
--- Placeholders. At WaitCameraFov on a 907 px screen: the runner is about 2.7 px tall and the boss about 237 px.
-local WAIT_CAMERA_OUT = 450 -- past the runner, away from the boss
-local WAIT_CAMERA_UP = 320
-local WAIT_CAMERA_DOWN_ANGLE = math.rad(11) -- the view's axis, below horizontal
+-- Placeholders (owner 2026-11-06: zoomed in a lot, was 450 out, 320 up, 11 deg).
+local WAIT_CAMERA_OUT = 120 -- past the runner, away from the boss
+local WAIT_CAMERA_UP = 80
+local WAIT_CAMERA_DOWN_ANGLE = math.rad(4) -- the view's axis, below horizontal
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
 BossEventConfig.HpPerPlayer = 7500 -- owner 2026-11-06
 BossEventConfig.Phase2ExtraHp = 50000 -- owner 2026-11-06: Phase 2's HP is Phase 1's max plus this
 BossEventConfig.Phase2ExtraSeconds = 120 -- owner 2026-11-06
-BossEventConfig.ScreamSeconds = 3 -- owner 2026-11-06
+BossEventConfig.ScreamSeconds = 6 -- owner 2026-11-06, was 3
+BossEventConfig.ScreamGrowth = 1.25 -- owner 2026-11-06
 BossEventConfig.Phase1Money = 100000 -- owner 2026-11-06
 BossEventConfig.Phase2Gems = 1000 -- owner 2026-11-06
 BossEventConfig.VulnerableMulti = 1.5 -- owner 2026-11-06: the next undodged Impact's cost
@@ -78,6 +79,14 @@ end
 -- 1 + min(1, cruise / 800): at most +100% (owner 2026-11-05).
 function BossEventConfig.SpeedScale(cruise)
 	return 1 + math.min(1, cruise / FULL_SCALE_CRUISE)
+end
+
+-- The scream's close view (BOSS_EVENT_SPEC "Phase 2"): still, on the boss's front (it faces -Z), inside the ring, so it visibly fills
+-- the frame as it grows. At the locked FOV the view spans about 512 studs up and down from this distance. Proposed. Pure.
+local SCREAM_CAMERA_BACK, SCREAM_CAMERA_UP = 430, 400
+function BossEventConfig.ScreamCameraCFrame()
+	local middle = Vector3.new(Arena.Center.X, Arena.DaisY + SCREAM_CAMERA_UP, Arena.Center.Z)
+	return CFrame.lookAt(middle - Vector3.zAxis * SCREAM_CAMERA_BACK, middle)
 end
 
 -- The exhaustion view: hovers above and outward of the runner, tilted down toward the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.

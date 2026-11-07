@@ -108,7 +108,7 @@ function BossRaga:Step(rise, below, move, localTime, now, growth, spin, tremble)
 	if not shown then
 		return
 	end
-	local anchor = CFrame.new(Arena.Center.X, Arena.Y - below, Arena.Center.Z)
+	local anchor = CFrame.new(Arena.Center.X, Arena.DaisY - below, Arena.Center.Z)
 	if rise < 1 then
 		local amount = math.min(1, (1 - rise) * 8)
 		local studs, turn = RUMBLE_STUDS * amount, math.rad(RUMBLE_DEGREES) * amount
@@ -165,7 +165,7 @@ end
 
 -- A point of the unposed model, in units and Blender axes, standing on the dais.
 function BossRaga.RestPoint(units)
-	return (CFrame.new(Arena.Center) * C):PointToWorldSpace(units * SCALE)
+	return (CFrame.new(Arena.Center.X, Arena.DaisY, Arena.Center.Z) * C):PointToWorldSpace(units * SCALE)
 end
 
 return BossRaga

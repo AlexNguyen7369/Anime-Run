@@ -15,6 +15,7 @@ local Arena = require(Shared.BossArenaConfig)
 local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
+local VehicleEffects = require(Shared.VehicleEffects)
 local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
@@ -50,10 +51,14 @@ local function hide(d)
 	end
 end
 
+local function ownerOf(rig)
+	local id = rig:GetAttribute("Owner")
+	return type(id) == "number" and Players:GetPlayerByUserId(id) or nil
+end
+
 -- A team with no one left in the line: the held body is gone too, until the refill (BOSS_EVENT_SPEC "Line run").
 local function teamGone(rig)
-	local id = rig:GetAttribute("Owner")
-	local owner = type(id) == "number" and Players:GetPlayerByUserId(id)
+	local owner = ownerOf(rig)
 	return owner and owner:GetAttribute("BossEvent") == true and owner:GetAttribute("BossLine") == "" or false
 end
 
@@ -82,6 +87,11 @@ local function rebuild(view)
 	copy.Name = rig.Name .. "_Visible"
 	-- the rig's PrimaryPart can replicate nil after a re-skin (first tag-in), which would drop the camera to the hidden avatar
 	copy.PrimaryPart = copy:FindFirstChild("Torso") or copy.PrimaryPart
+	local owner = ownerOf(rig)
+	view.Boosted = owner ~= nil and owner:GetAttribute("BossEvent") == true
+	if view.Boosted then
+		VehicleEffects.Boost(copy, VehicleEffects.EVENT_BOOST)
+	end
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
@@ -122,6 +132,21 @@ local function add(rig)
 			view.Dirty = true
 		end)
 	)
+	-- entering or leaving an event resizes the aura and trail, on the same copy: the camera follows it
+	local owner = ownerOf(rig)
+	if owner then
+		table.insert(
+			view.Connections,
+			owner:GetAttributeChangedSignal("BossEvent"):Connect(function()
+				local boosted = owner:GetAttribute("BossEvent") == true
+				if view.Copy and boosted ~= view.Boosted then
+					view.Boosted = boosted
+					local factor = VehicleEffects.EVENT_BOOST
+					VehicleEffects.Boost(view.Copy, boosted and factor or 1 / factor)
+				end
+			end)
+		)
+	end
 	view.ChangedAt = os.clock()
 	table.insert(
 		view.Connections,
@@ -381,6 +406,18 @@ RunService.PreSimulation:Connect(function()
 		camera.CFrame += delta
 		camera.Focus += delta
 	end
+end)
+
+-- The event's locked distance (BOSS_EVENT_SPEC "Run rules"), after the default camera: ARENA_PITCH looks up from a low runner, so the
+-- default camera would pop in front of the deck, to about 10 studs. Same view line, moved up to stay on top of the deck.
+local ABOVE_DECK = 2 -- studs, placeholder
+RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value + 1, function()
+	local camera = Workspace.CurrentCamera
+	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
+		return
+	end
+	local eye = camera.Focus.Position - camera.CFrame.LookVector * BossCfg.CameraZoom
+	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, Arena.Y + ABOVE_DECK), eye.Z)
 end)
 
 -- Tunnel camera clamp (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), after the default camera: while a tunnel part is straight

@@ -58,6 +58,7 @@ local DETAILS_ROW = 18 -- px per odds row
 local DETAILS_ROWS = 8 -- a chest's title, its six Relics and its Sidekick
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
+local TITLE_STAGE_2_COLOR = Color3.fromRGB(235, 20, 30) -- owner 2026-11-06: bold red; HEAVY is already the title's font
 local CASCADE_GAP = 0.25 -- s between the drop list's rows, placeholder
 local TEAM_WARNING_TEXT = "Select a character first"
 local TEAM_WARNING_SECONDS = 1 -- placeholder
@@ -1266,6 +1267,7 @@ local function render()
 		bossTimer.Text = clockText(endsAt and endsAt - now or Cfg.TotalSeconds - elapsed)
 		local stage = ReplicatedStorage:GetAttribute("BossEventStage") or 1
 		barTitle.Text = stage == 2 and TITLE_STAGE_2 or TITLE_STAGE_1
+		barTitle.TextColor3 = stage == 2 and TITLE_STAGE_2_COLOR or Palette.White
 		drawDrops(stage, now)
 		drawStatus()
 	end

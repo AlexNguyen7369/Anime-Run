@@ -38,8 +38,12 @@ local RISE_PULSES = 3 -- the rise's cracks and jolts, evenly through it
 local RISE_DUST, RISE_DUST_REDUCED = 15, 3 -- a second of the rise; with the debris, the bursts and the pulses: budget 150, reduced 30
 local RISE_DEBRIS = 15 -- a second of the rise
 local RISE_PULSE_DUST, RISE_PULSE_DUST_REDUCED = 10, 3
-local SCREAM_PULSES, SCREAM_PULSES_REDUCED = 6, 3 -- budget: 6 x (20 + 14) + 4 = 208, reduced 3 x (6 + 5) + 2 = 35
+local SCREAM_PULSES, SCREAM_PULSES_REDUCED = 10, 3 -- budget: 10 x (20 + 14) + 4 = 344, reduced 3 x (6 + 5) + 2 = 35
 local SCREAM_LATE = 0.5 -- s into the scream: a client later than this skips its effects
+-- Phase 2's look (BOSS_EVENT_SPEC "Phase 2"), proposed: the screen dims in the scream, then stays blood red and darkish.
+local TONE_SCREAM = { TintColor = Color3.fromRGB(255, 70, 70), Brightness = -0.22 }
+local TONE_PHASE = { TintColor = Color3.fromRGB(225, 95, 90), Brightness = -0.08 }
+local TONE_SECONDS = 0.8
 
 local BossVfx = {}
 
@@ -47,6 +51,7 @@ local effects, raga = nil, nil
 local tracked = {} -- part -> { Joint, or a function } moved to the boss each frame
 local previousMove, previousTime = nil, nil
 local screaming = false
+local tone, toneGoal = nil, nil -- Phase 2's ColorCorrectionEffect and the look it is heading for
 local risePlay, aura = nil, nil
 local impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
 
@@ -171,6 +176,27 @@ local function regrade(goal, inSeconds, hold, outSeconds)
 			grade = nil
 		end
 	end)
+end
+
+-- Own effect, as regrade's. Stepped every frame from server attributes, so a late client gets it too.
+local function stepTone(screamLeft)
+	local goal = ReplicatedStorage:GetAttribute("BossEventStage") == 2 and (screamLeft and TONE_SCREAM or TONE_PHASE)
+	if not goal then
+		if tone then
+			tone:Destroy()
+			tone, toneGoal = nil, nil
+		end
+		return
+	end
+	if goal ~= toneGoal then
+		toneGoal = goal
+		if not tone then
+			tone = Instance.new("ColorCorrectionEffect")
+			tone.Name = "BossPhase2Tone"
+			tone.Parent = Lighting
+		end
+		tween(tone, reduced() and 0 or TONE_SECONDS, goal)
+	end
 end
 
 local edges = nil
@@ -631,12 +657,12 @@ local function playScream(seconds)
 	local breath = emitter(spot, {
 		Name = "Breath",
 		Texture = Art.Dust,
-		Color = ColorSequence.new(DARK, RED),
+		Color = ColorSequence.new(RED),
 		LightInfluence = 0.2,
 		Shape = Enum.ParticleEmitterShape.Sphere,
 		ShapeInOut = Enum.ParticleEmitterShapeInOut.Outward,
 		Size = sequence(0, 50, 1, 100),
-		Transparency = sequence(0, 0.25, 0.6, 0.55, 1, 1),
+		Transparency = sequence(0, 0.6, 0.6, 0.8, 1, 1), -- thin: the close camera must see the head through it
 		Lifetime = NumberRange.new(1.2, 2.4),
 		Speed = NumberRange.new(200, 420),
 		Drag = 1.8,
@@ -780,7 +806,7 @@ end
 -- The rise --------------------------------------------------------------------------------------------------------------------
 
 local function daisTop()
-	return Arena.Center + Vector3.new(0, 0.6, 0)
+	return Vector3.new(Arena.Center.X, Arena.DaisY + 0.6, Arena.Center.Z)
 end
 
 local function startRise()
@@ -975,6 +1001,10 @@ local function clear()
 		risePlay = nil
 	end
 	BossShake.Hold("BossRise", 0)
+	if tone then
+		tone:Destroy()
+		tone, toneGoal = nil, nil
+	end
 	aura = nil
 	table.clear(tracked)
 	blade = nil
@@ -1003,6 +1033,7 @@ function BossVfx.Step(since, move, localTime, screamLeft)
 	for part, source in tracked do
 		part.CFrame = source()
 	end
+	stepTone(screamLeft)
 	if ReplicatedStorage:GetAttribute(FORCE) ~= nil then
 		return
 	end
