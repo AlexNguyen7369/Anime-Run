@@ -7,10 +7,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
-local HudFormat = require(shared:WaitForChild("HudFormat"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
-local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
-local RollOptions = require(script.Parent:WaitForChild("RollOptions"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
@@ -47,8 +44,10 @@ remotes:WaitForChild("ExtraRolls").OnClientEvent:Connect(function(rolls)
 	for _, roll in type(rolls) == "table" and rolls or {} do
 		local spec = CharacterCatalog.Get(roll.Id)
 		if spec then
-			local suffix = roll.IsNew and " NEW!" or (roll.SoldFor > 0 and " +$" .. HudFormat.Short(roll.SoldFor) or "")
-			table.insert(parts, spec.Name .. suffix)
+			-- An auto sold roll shows nothing: only Money moves (owner 2026-11-09).
+			if roll.SoldFor <= 0 then
+				table.insert(parts, spec.Name .. (roll.IsNew and " NEW!" or ""))
+			end
 		end
 	end
 	if #parts == 0 then
@@ -105,38 +104,5 @@ remotes:WaitForChild("BagFullHit").OnClientEvent:Connect(function()
 		end
 	end)
 end)
-
--- The auto sell filter, under the roll (design doc 4.41): the roll view that also holds it does not open while a full bag blocks rolls.
-local autoSell = Instance.new("TextButton")
-autoSell.Name = "AutoSell"
-autoSell.AnchorPoint = Vector2.new(0.5, 0)
-autoSell.Position = UDim2.new(0.5, 0, 0, 204) -- under the roll's odds and the extra rolls' toast
-autoSell.Size = UDim2.fromOffset(170, 26)
-autoSell.BackgroundColor3 = PALETTE.Muted
-autoSell.Font = UiTheme.Font
-autoSell.TextColor3 = PALETTE.White
-autoSell.TextSize = 14
-autoSell.Parent = root
-UiTheme.Corner(autoSell, "S")
-autoSell.Activated:Connect(RollOptions.OpenAutoSell)
-
-local function refreshAutoSell()
-	local on = player:GetAttribute("AutoSell") == true
-	local chance = player:GetAttribute("AutoSellChance")
-	autoSell.Text = on and type(chance) == "number" and "Auto Sell: 1 in " .. HudFormat.Short(chance)
-		or "Auto Sell: OFF"
-	autoSell.BackgroundColor3 = on and PALETTE.MoneyDeep or PALETTE.Muted
-	autoSell.Visible = player:GetAttribute("AutoRoll") ~= false
-		and player:GetAttribute("NeedsStarter") ~= true
-		and player:GetAttribute("BossEvent") ~= true
-		and ReplicatedStorage:GetAttribute("BossEventPhase") == nil -- clear of the boss invite
-		and not PanelSwitch.AnyOpen()
-end
-for _, name in { "AutoSell", "AutoSellChance", "AutoRoll", "NeedsStarter", "BossEvent" } do
-	player:GetAttributeChangedSignal(name):Connect(refreshAutoSell)
-end
-ReplicatedStorage:GetAttributeChangedSignal("BossEventPhase"):Connect(refreshAutoSell)
-PanelSwitch.OnChange(refreshAutoSell)
-refreshAutoSell()
 
 UiTheme.Apply(root)

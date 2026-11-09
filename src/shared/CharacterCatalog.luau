@@ -22,7 +22,8 @@ local STARTER = {
 }
 
 -- Admin-only test runner (owner 2026-11-01, docs/GAME_DESIGN_REQUIREMENTS.md 4.13): granted for the session by /kami,
--- never saved, never rolled, not in the index. Its AdminCruise is used as-is (no cap applied).
+-- never saved, never rolled, not in the index. Its AdminCruise is used as-is (no cap applied). Infinite stamina and
+-- Narito's model (owner 2026-11-09).
 CharacterCatalog.KAMI_ID = "kami"
 local KAMI = {
 	Id = CharacterCatalog.KAMI_ID,
@@ -31,9 +32,10 @@ local KAMI = {
 	Chance = nil,
 	SpeedMulti = 1,
 	AdminCruise = 800, -- studs/s, equal to RaceConfig.MAX_CRUISE (owner 2026-11-01)
+	Stamina = math.huge, -- drains 100 / inf = 0 per second
 	Order = 0,
 	Category = "Balanced",
-	Model = nil,
+	Model = "leaf_hero",
 	Rollable = false,
 }
 

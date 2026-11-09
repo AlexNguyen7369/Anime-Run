@@ -232,7 +232,7 @@ local function showCard(slot)
 	local seconds = teamStat("Stamina", slot)
 	stats.Text = (cruise and string.format("%d studs/s", math.floor(cruise + 0.5)) or "-")
 		.. "  ·  "
-		.. (seconds and string.format("%.1f s stamina", seconds) or "-")
+		.. (seconds == math.huge and "∞ stamina" or seconds and string.format("%.1f s stamina", seconds) or "-")
 	hint.Text = CATEGORY_HINT[category] or ""
 	-- Centred on the portrait, but kept on screen (the row sits mid-screen on desktop, near the edges on a phone)
 	local half = card.AbsoluteSize.X / 2 + 8
@@ -532,7 +532,7 @@ RunService.RenderStepped:Connect(function(dt)
 			local seconds = total and math.ceil(total * shown) or nil
 			if seconds ~= circle.Seconds then
 				circle.Seconds = seconds
-				circle.Number.Text = seconds and tostring(seconds) or ""
+				circle.Number.Text = seconds == math.huge and "∞" or seconds and tostring(seconds) or "" -- Kami
 			end
 		end
 	end

@@ -118,8 +118,10 @@
 115. 2026-11-08 — Alex Nguyen — Committed the baked-model fallback (CharacterModelService, PlazaDressing, BiomeAssets clone ServerStorage.BakedModels/<asset id> before loading), its spec notes and the art/model contact sheet.
 116. 2026-11-08 — Alex Nguyen — Verified the model bake in Studio: all 181 expected asset ids are in ServerStorage.BakedModels with the right class and content; pushed every local branch except main.
 117. 2026-11-09 — Alex Nguyen — Made Market auras and trails lighter in the boss event (0.5x aura rate, 0.6x trail opacity on runner copies, client only); rule in design doc 4.37 and BOSS_EVENT_SPEC, not run in Studio.
+118. 2026-11-09 — Alex Nguyen — Moved auto sell to Settings only and removed all sale UI from sold rolls (only Money moves).
+119. 2026-11-09 — Alex Nguyen — Gave admin runner Kami infinite stamina and Narito's model.
 
 ## What's next
-**Merge `feature/alex/anime-world` into `feature/alex/boss-phase2` and run the full server and UI harness on it, including `ui_boss` and `ui_bag_full`, and look at the lighter event auras and trails in a live event.**
+**Owner playtests `feature/alex/anime-world` in Studio (Settings auto sell row, a sold roll, a `/kami` run, the lighter event auras), then merge it into `feature/alex/boss-phase2` and run the full harness, including `ui_boss` and `ui_bag_full`.**
 
-**Why this is next:** the bake is in the place, so collaborators can playtest; the owner's route to `main` is the boss phase 2 PR, and `main` only takes a PR a fresh reviewer approved on green tests.
+**Why this is next:** none of today's changes have been run in Studio, and the route to `main` is the boss phase 2 PR, which needs green tests and a fresh review.
