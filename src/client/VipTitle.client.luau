@@ -1,5 +1,6 @@
 --!nonstrict
--- The VIP pass's title (design doc 4.35): a label over the head on foot and a chat tag. Display only.
+-- The VIP pass's title (design doc 4.35): a label over the head on foot and a chat tag. Display only. Hidden while the
+-- player runs (auto race or a boss event): the avatar is hidden then, so the tag would float alone (owner 2026-11-09).
 local Players = game:GetService("Players")
 local TextChatService = game:GetService("TextChatService")
 
@@ -30,12 +31,18 @@ local function refresh(player)
 	if head and player:GetAttribute(PASS) == true and not head:FindFirstChild("VipTitle") then
 		title(head)
 	end
+	local board = head and head:FindFirstChild("VipTitle")
+	if board then
+		board.Enabled = player:GetAttribute("AutoRacing") ~= true and player:GetAttribute("BossEvent") ~= true
+	end
 end
 
 local function watch(player)
-	player:GetAttributeChangedSignal(PASS):Connect(function()
-		refresh(player)
-	end)
+	for _, name in { PASS, "AutoRacing", "BossEvent" } do
+		player:GetAttributeChangedSignal(name):Connect(function()
+			refresh(player)
+		end)
+	end
 	player.CharacterAdded:Connect(function(character)
 		character:WaitForChild("Head", 10)
 		refresh(player)

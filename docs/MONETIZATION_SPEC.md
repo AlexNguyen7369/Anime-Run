@@ -9,7 +9,7 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 
 | Id | Name | R$ | Effect | Where |
 |---|---|---|---|---|
-| `vip` | VIP | 499 | Title, +0.10 Money, +0.10 Luck (owner) | `GachaService` bonuses; `Client/VipTitle` |
+| `vip` | VIP | 499 | Title (hidden while `AutoRacing` or `BossEvent`), +0.10 Money, +0.10 Luck (owner) | `GachaService` bonuses; `Client/VipTitle` |
 | `auto_roll_2x` | 2x Auto-Roll | 199 | Interval / 2 | `GachaService.RollInterval` |
 | `extra_roll_1` | Extra Roll I | 299 | +1 roll per tick | `GachaService.StartAutoRoll` |
 | `extra_roll_2` | Extra Roll II | 599 | +1 more roll per tick | `GachaService.StartAutoRoll` |
