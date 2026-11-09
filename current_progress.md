@@ -131,6 +131,7 @@
 128. 2026-11-09 — Alex Nguyen — Made Market auras and trails lighter in the boss event (0.5x aura rate, 0.6x trail opacity on runner copies, client only); rule in design doc 4.37 and BOSS_EVENT_SPEC, not run in Studio.
 129. 2026-11-09 — Alex Nguyen — Moved auto sell to Settings only and removed all sale UI from sold rolls (only Money moves).
 130. 2026-11-09 — Alex Nguyen — Gave admin runner Kami infinite stamina and Narito's model.
+131. 2026-11-09 — Alex Nguyen — Merged boss-polish and main into anime-world on one Rojo port (34873) and landed the Phase 2 red tint removal (darken only).
 
 ## What's next
 **Owner playtests `feature/alex/anime-world` on Rojo 34873 (Settings auto sell row, a sold roll, a `/kami` run, lighter event auras on the boosted ones), then run `ui_boss`, `ui_rolls`, `ui_toast`, `ui_index`, `ui_inventory`, `ui_hitboxes` and `ui_bag_full` on a save past the roll tutorial and play a real Phase 2 to its end.**
