@@ -2,6 +2,12 @@
 
 History: `current_progress.md`, `git log`.
 
+## Auto sell in Settings, Kami (2026-11-09, owner)
+- Branch `feature/alex/autosell-settings` (from `feature/alex/anime-world` at `bc4f693`), pushed, not merged. Worktree `.claude/worktrees/autosell-settings`.
+- Auto sell: only the Settings AUTO SELL row opens the popup. The under-roll `RollExtras/AutoSell` and the roll view's `AutoSellButton` are removed. A sold roll plays the normal roll animation with no SOLD badge and is left out of the extra rolls' toast; only Money moves. Design doc 4.41, `BAG_AND_AUTOSELL_SPEC`, `UiSpec` (click `roll_auto_sell_open` now presses the Settings toggle), `ui_bag_full` updated. This should also clear the `ui_boss` Invite x `RollExtras/AutoSell` reds.
+- Kami: `Stamina = math.huge`, `Model = "leaf_hero"`; boss hits skip Kami; TeamHud shows the infinity sign. Design doc 4.13.
+- Not run in Studio: no harness, no Play. Not checked: that a Roblox attribute stores inf (`TeamStamina<n>`, `RunSeconds<n>`); the Details button now sits off centre with AUTO SELL gone.
+
 ## Art and model contact sheet (2026-11-06, owner)
 - `assets/characters_avatar/review/art_and_models_contact_sheet.png`, committed: 75 entries, digital art beside the model's front and three-quarter review renders. No art or model exists for `ds_water`, `jk_night`, `sea_gold`; `boss_raga` has no art. The 9 catalog rows with `Model = "foe_*"` show that foe model. Built from existing PNGs; nothing re-rendered, and uploaded assets not compared.
 
