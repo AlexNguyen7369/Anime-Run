@@ -79,6 +79,7 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 - Diameter exceeds streaming target 1024: arena and boss build on the client; runner rigs need persistent streaming during events.
 - `ZoneAt` ignores height, so a new arena zone overrides it, reusing Track 8's cloud profile and particles.
 - Low graphics (measured in Studio 2026-11-05): from the lanes, about 890 studs out, a part-built boss does not draw at quality 1 or on this machine's Automatic setting, and does at 8 and 21; at quality 1 it draws at 500. The owner kept radius 850. A flat BillboardGui boss drew at quality 1 from the lanes, so one sits behind the 3D model (**proposed**), playing pre-rendered frames. Check that the model hides it at high quality, and check on a real phone.
+- Lighter auras and trails (owner 2026-11-09): while the local player is in the event, `Client/RunnerView` draws every runner copy's Market aura emitters at 0.5 x Rate and its trails at 0.6 x opacity (**placeholder**). Client only; the server rig keeps the full values, and copies rebuild when `BossEvent` changes.
 - Closed rail: 7 lane routes built once, distance wraps with no hitch. A boss run mode separates stamina from `npcMode`.
 
 ## Boss and attacks

@@ -51,6 +51,20 @@ local function hide(d)
 	end
 end
 
+-- Boss event (docs/BOSS_EVENT_SPEC.md "Arena"): Market auras and trails draw lighter on the copy. Placeholders.
+local EVENT_AURA_RATE, EVENT_TRAIL_OPACITY = 0.5, 0.6
+local function lighten(d)
+	if d:IsA("ParticleEmitter") and d.Parent:GetAttribute("MarketEffect") then
+		d.Rate *= EVENT_AURA_RATE
+	elseif d:IsA("Trail") and d.Parent.Name == "MarketEffects" then
+		local keys = {}
+		for i, k in d.Transparency.Keypoints do
+			keys[i] = NumberSequenceKeypoint.new(k.Time, 1 - (1 - k.Value) * EVENT_TRAIL_OPACITY, k.Envelope)
+		end
+		d.Transparency = NumberSequence.new(keys)
+	end
+end
+
 -- The route's waypoints once every one has replicated, else nil.
 local function routeOf(name)
 	if type(name) ~= "string" then
@@ -95,11 +109,15 @@ local function rebuild(view)
 		return
 	end
 	CollectionService:RemoveTag(copy, SERVER_TAG)
+	local lighter = player:GetAttribute("BossEvent") == true
 	for _, d in copy:GetDescendants() do
 		if d:IsA("BasePart") or d:IsA("Decal") then
 			d.LocalTransparencyModifier = 0
 		elseif isEffect(d) then
 			d.Enabled = true -- VehicleEffects never adds a disabled effect; hide() turned them off on the rig
+			if lighter then
+				lighten(d)
+			end
 		end
 	end
 	copy.Name = rig.Name .. "_Visible"
@@ -163,6 +181,12 @@ local function remove(rig)
 		view.Copy:Destroy()
 	end
 end
+
+player:GetAttributeChangedSignal("BossEvent"):Connect(function() -- lighter auras and trails on or off
+	for _, view in views do
+		view.Dirty = true
+	end
+end)
 
 CollectionService:GetInstanceAddedSignal(SERVER_TAG):Connect(add)
 CollectionService:GetInstanceRemovedSignal(SERVER_TAG):Connect(remove)
