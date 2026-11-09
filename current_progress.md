@@ -124,6 +124,8 @@
 121. 2026-11-06 — Alex Nguyen — Merged the playtest fixes and bake lookup, baked 181 models and meshes in Studio pending the owner's save, stripped test code from live servers, and fixed audit and full harness findings; `[CARTEST] END pass=64 fail=1` and `[UITEST] END pass=54 fail=2`, each red since fixed and passing alone.
 122. 2026-11-06 — Alex Nguyen — Fixed late joiners taking statuses from moves before their join, found by fresh review of PR #5; red first, then `[CARTEST] END pass=6 fail=0`.
 123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
+124. 2026-11-08 — Alex Nguyen — Verified the model bake in Studio: all 181 expected asset ids are in ServerStorage.BakedModels with the right class and content; pushed every local branch except main.
+125. 2026-11-09 — Alex Nguyen — Merged `feature/alex/anime-world` into `feature/alex/boss-phase2` after the owner saved the place; only handoff and progress notes differed.
 
 ## What's next
 **Play a real boss event with a collaborator to check baked models load and the Phase 2 visuals.**
