@@ -40,9 +40,9 @@ local RISE_DEBRIS = 15 -- a second of the rise
 local RISE_PULSE_DUST, RISE_PULSE_DUST_REDUCED = 10, 3
 local SCREAM_PULSES, SCREAM_PULSES_REDUCED = 10, 3 -- budget: 10 x (20 + 14) + 4 = 344, reduced 3 x (6 + 5) + 2 = 35
 local SCREAM_LATE = 0.5 -- s into the scream: a client later than this skips its effects
--- Phase 2's look (BOSS_EVENT_SPEC "Phase 2"), proposed: the screen dims in the scream, then stays blood red and darkish.
-local TONE_SCREAM = { TintColor = Color3.fromRGB(255, 70, 70), Brightness = -0.22 }
-local TONE_PHASE = { TintColor = Color3.fromRGB(225, 95, 90), Brightness = -0.08 }
+-- Phase 2's look (BOSS_EVENT_SPEC "Phase 2"), proposed: the screen dims in the scream, then stays darkish. No tint (owner 2026-11-06).
+local TONE_SCREAM = { Brightness = -0.22 }
+local TONE_PHASE = { Brightness = -0.08 }
 local TONE_SECONDS = 0.8
 
 local BossVfx = {}
