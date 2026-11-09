@@ -446,7 +446,6 @@ function Extras.Build(h)
 		return bad
 	end
 
-	local checkAutoSellButton -- below ui_bag_full, which ends with it
 	-- Design doc 4.41, owner 2026-11-05: red text, no background, gone within 1 s, for each blocked try. BagFullHit is what the loop fires.
 	function scenarios.ui_bag_full(res)
 		local gui = h.find("RollExtras")
@@ -468,8 +467,8 @@ function Extras.Build(h)
 		h.check(res, "bag_full_red", rgb(c), "red", c.R >= 0.5 and c.G < 0.3 and c.B < 0.3)
 		local buttons = {}
 		for _, d in gui:GetDescendants() do
-			if d:IsA("GuiButton") and d.Name ~= "AutoSell" then
-				table.insert(buttons, d.Name) -- the old banner's SELL SPARES and AUTO SELL
+			if d:IsA("GuiButton") then
+				table.insert(buttons, d.Name) -- auto sell is in Settings only (owner 2026-11-09)
 			end
 		end
 		h.checkList(res, "bag_full_no_buttons", buttons)
@@ -516,66 +515,6 @@ function Extras.Build(h)
 		h.check(res, "bag_full_autoroll_stays_on", attr("AutoRoll"), true, attr("AutoRoll") == true)
 		h.requestSetup("bag_spares_clear")
 		untilShown(false, 1.5)
-		checkAutoSellButton(res)
-	end
-
-	-- Auto Sell under the roll (owner 2026-11-06). Attributes set here stay on this client: the button only reads them.
-	checkAutoSellButton = function(res)
-		local button = h.find("RollExtras/AutoSell")
-		h.check(
-			res,
-			"auto_sell_button",
-			button and button.ClassName,
-			"TextButton",
-			button ~= nil and button:IsA("TextButton")
-		)
-		if not button then
-			return
-		end
-		local names = { "AutoSell", "AutoSellChance", "AutoRoll", "NeedsStarter", "BossEvent" }
-		local saved = {}
-		for _, name in names do
-			saved[name] = attr(name)
-		end
-		local function settle(want)
-			local deadline = os.clock() + 2
-			while h.visible(button) ~= want and os.clock() < deadline do
-				task.wait()
-			end
-			return h.visible(button)
-		end
-		local function set(name, value)
-			h.player:SetAttribute(name, value)
-			task.wait()
-		end
-		set("AutoRoll", true)
-		set("NeedsStarter", nil)
-		set("BossEvent", nil)
-		set("AutoSell", false)
-		h.check(res, "auto_sell_button_shown", settle(true), true, h.visible(button))
-		h.check(res, "auto_sell_button_off", button.Text, "Auto Sell: OFF", button.Text == "Auto Sell: OFF")
-		set("AutoSell", true)
-		set("AutoSellChance", 1000)
-		local on = "Auto Sell: 1 in " .. HudFormat.Short(1000)
-		h.check(res, "auto_sell_button_on", button.Text, on, button.Text == on)
-		for name, value in { AutoRoll = false, NeedsStarter = true, BossEvent = true } do
-			set(name, value)
-			h.check(res, "auto_sell_button_hidden_by_" .. name, settle(false), false, not h.visible(button))
-			set(name, name == "AutoRoll" or nil) -- back to on, on, off: the base state set above
-			h.check(res, "auto_sell_button_back_after_" .. name, settle(true), true, h.visible(button))
-		end
-		-- Clear of the boss invite (owner 2026-11-06): any event, the player outside it too. Set on this client only.
-		ReplicatedStorage:SetAttribute("BossEventPhase", "Prep")
-		h.check(res, "auto_sell_button_hidden_in_a_boss_event", settle(false), false, not h.visible(button))
-		ReplicatedStorage:SetAttribute("BossEventPhase", nil)
-		h.check(res, "auto_sell_button_back_after_boss_event", settle(true), true, h.visible(button))
-		local restore = h.setPanels({ RB.Panel })
-		h.check(res, "auto_sell_button_hidden_under_a_panel", settle(false), false, not h.visible(button))
-		restore()
-		h.check(res, "auto_sell_button_back_after_panel", settle(true), true, h.visible(button))
-		for _, name in names do
-			h.player:SetAttribute(name, saved[name])
-		end
 	end
 
 	-- After the real press: it opens the Auto Sell popup and sends nothing; its Close shuts it.

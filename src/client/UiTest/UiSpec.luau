@@ -228,6 +228,11 @@ UiSpec.Guis = {
 				Effect = "attr:TrackCamera",
 				Label = "TRACK CAMERA [TrackCamera]",
 			},
+			{
+				-- Opens Client/RollOptions' Auto Sell popup, the only way in (owner 2026-11-09)
+				Path = "Panel/Face/AutoSellRow/Face/AutoSellToggle/Face",
+				Does = "local",
+			},
 		},
 	},
 	-- REBIRTH modal, rebuilt (owner 2026-10-15, docs/REBIRTH_SPEC.md "Panel"): every node comes from
@@ -4068,14 +4073,13 @@ UiSpec.Guis.RacerItemMenu = {
 		{ Path = "Picker/Characters/*", Does = "remote", Remote = "RelicEquip|SidekickEquip", Count = "dynamic" },
 	},
 }
--- The extra rolls' toast, the full bag's red text and the Auto Sell button under the roll (Client/RollExtras; ui_bag_full).
+-- The extra rolls' toast and the full bag's red text (Client/RollExtras; ui_bag_full). Auto sell is in Settings only (owner 2026-11-09).
 UiSpec.Guis.RollExtras = {
 	Source = "Client/RollExtras",
-	AlwaysOn = { "AutoSell" },
 	NonInteractiveParts = { "Toast", "BagFull" },
-	Buttons = { { Path = "AutoSell", Does = "local" } },
+	Buttons = {},
 }
--- Its popups (Client/RollOptions): Auto Sell, opened by that button, Settings and the roll view; the roll odds Details.
+-- Its popups (Client/RollOptions): Auto Sell, opened from Settings only; the roll odds Details.
 UiSpec.Guis.RollOptions = {
 	Source = "Client/RollOptions",
 	Buttons = {
@@ -4091,10 +4095,10 @@ for _, click in
 	{
 		{
 			Id = "roll_auto_sell_open",
-			Gui = "RollExtras",
-			Path = "AutoSell",
-			Prepare = { Showcase = false, RequireShown = true, AttrIs = { AutoRoll = true } },
-			NeedSetup = { "spy", "auto_roll_on" },
+			Gui = "RacerSettings",
+			Path = "Panel/Face/AutoSellRow/Face/AutoSellToggle/Face",
+			Prepare = only("RacerSettings/Panel"),
+			NeedSetup = { "spy" },
 			Expect = { Remote = false, After = { "auto_sell_popup_open" } },
 		},
 		{
