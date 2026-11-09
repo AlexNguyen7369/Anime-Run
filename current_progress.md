@@ -115,8 +115,9 @@
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
 114. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
+115. 2026-11-08 — Alex Nguyen — Committed the baked-model fallback (CharacterModelService, PlazaDressing, BiomeAssets clone ServerStorage.BakedModels/<asset id> before loading), its spec notes and the art/model contact sheet.
 
 ## What's next
-**Merge `feature/alex/anime-world` into `feature/alex/boss-phase2` and run the full server and UI harness on it, including `ui_boss` and `ui_bag_full`.**
+**With Studio in Edit, bake every model into `ServerStorage.BakedModels/<asset id>` (CharacterModelAssets, PlazaAssets, SidekickArt Model and BossModel, reviewed BiomeThemes Mesh rows), get the new code into Studio, and have the owner save the place.**
 
-**Why this is next:** the owner's route to `main` is now the boss phase 2 PR, and `main` only takes a PR a fresh reviewer approved on green tests.
+**Why this is next:** the committed fallback only helps collaborators once the copies exist in the place; until then they still see placeholders, which blocks collaborator playtests of the boss phase 2 PR.
