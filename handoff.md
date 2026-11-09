@@ -3,6 +3,7 @@
 History: `current_progress.md`, `git log`.
 
 ## Auto sell in Settings, Kami (2026-11-09, owner)
+- Owner 2026-11-09: merge everything onto one port. `feature/alex/anime-world` now holds `feature/alex/boss-polish` and `origin/main` (merge 4816af4). Rojo `34873` serves the main checkout; 34874 (`b4`) and 34875 are stopped. Older notes saying 34873 serves `p2` are history. `../AnimeRun-orch/p2` still holds the uncommitted "remove red tint" edit (BossVfx, docs), NOT merged: the auto mode classifier blocked committing another session's work. Not run in Studio.
 - Branch `feature/alex/autosell-settings` (from `feature/alex/anime-world` at `bc4f693`), pushed, not merged. Worktree `.claude/worktrees/autosell-settings`.
 - Auto sell: only the Settings AUTO SELL row opens the popup. The under-roll `RollExtras/AutoSell` and the roll view's `AutoSellButton` are removed. A sold roll plays the normal roll animation with no SOLD badge and is left out of the extra rolls' toast; only Money moves. Design doc 4.41, `BAG_AND_AUTOSELL_SPEC`, `UiSpec` (click `roll_auto_sell_open` now presses the Settings toggle), `ui_bag_full` updated. This should also clear the `ui_boss` Invite x `RollExtras/AutoSell` reds.
 - Kami: `Stamina = math.huge`, `Model = "leaf_hero"`; boss hits skip Kami; TeamHud shows the infinity sign. Design doc 4.13.
