@@ -175,7 +175,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing a Speed requirement. Saved `Speed` is ignored (kept in old saves, never read).
 - Saitamo's base cruise is 350 (owner 2026-11-04, 4.35), the one exception to rarity x category. The speed multi applies as usual.
 - Admin test runner Kami: admin command `/kami [player]` gives and equips Kami for the session only (never saved, never
-  rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`.
+  rolled, not in the index). Kami cruises at 800 studs/s, equal to `MAX_CRUISE`. Kami has infinite stamina and
+  wears Narito's (`leaf_hero`) model (owner 2026-11-09).
 - Admin test commands (owner 2026-11-04): `/narito [player]` adds Narito (`leaf_hero`) to the index. `/newplayer` erases
   the sender's own save and kicks them, so the next join is a brand new player (starter popup, 4.21; arrival flow, 4.24).
   It takes no target. Only pending gifts and their receipts stay, so a paid gift is not lost or paid twice. `/wipe` stays
@@ -636,6 +637,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-05: owner: exhaustion camera hovers above the runner, replacing the front aerial view (4.37).
 - 2026-11-06: owner: auto sell takes everything at or under N, new discoveries too; a full bag keeps auto selling and keeps warning (4.41).
 - 2026-11-06: owner: a team bonus depends on the team alone, so an event's bonus comes from the event team (4.37); an auto sell button under the roll, with auto roll (4.41).
+- 2026-11-09: owner: admin runner Kami has infinite stamina and wears Narito's model (4.13).
 - 2026-11-09: owner: auto sell lives in Settings only, the roll view and under-roll buttons are removed; a sold roll shows no sale UI, only the Money gain (4.41).
 - 2026-11-05: owner: boss start: team saved from the last event, average stamina on the team HUD, X to close with at least 1 character, red warning, display-only team run, Edit Team button, jump and smoke cutscene with the fight at 3 s, no team edits for late joiners, 5,000 HP per player, event timer, red and yellow animated damage numbers (4.37).
 - 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).

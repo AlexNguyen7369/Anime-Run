@@ -432,7 +432,7 @@ local function chargeMoves(player, member, t)
 		end
 		if not member.Spared[index] then
 			local _, name = BossDodge.Moment(index)
-			if name == "Impact" and run then
+			if name == "Impact" and run and run.Team[run.Slot] ~= CharacterCatalog.KAMI_ID then -- Kami never tires
 				run.Stamina[run.Slot] = math.max(0, run.Stamina[run.Slot] - Cfg.AttackStaminaCost)
 			end
 			safely(BossEventService.Hooks.MoveChat, player, Cfg.MoveChat[name])
