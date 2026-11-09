@@ -332,6 +332,8 @@ Owner 2026-10-31: Track 7 runs inside a tunnel for its whole length. The biome m
   `AssetService:CreateMeshPartAsync(Content.fromUri(id))` (pcall) on first use. It caches one template per key and
   clones it per placement. It applies `TextureContent` from the ledger, sizes the clone to the def's `Size` and
   anchors it. `CanCollide`, `CanTouch` and `CanQuery` are off.
+- Baked copies (owner 2026-11-06): a copy saved in the place at `ServerStorage.BakedModels/<asset id>` is used before
+  `CreateMeshPartAsync`, so collaborators in Studio see the mesh (`CHARACTER_GACHA_SPEC` "Avatar pipeline").
 - A load failure, or an unreviewed asset, builds the def's `Parts` instead. Every mesh def keeps a parts fallback, so
   the world is complete with zero assets.
 - `RenderFidelity = Automatic`, `CollisionFidelity = Box`. `CastShadow` follows section 8.

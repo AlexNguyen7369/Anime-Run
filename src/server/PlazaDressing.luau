@@ -6,6 +6,7 @@
 local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -33,10 +34,13 @@ local IMPORT_TURN = CFrame.Angles(0, math.pi, 0) -- the glTF import turns a mesh
 local templates = {} -- key -> { part name -> { Part, Center } }
 
 local function loadAsset(key, row)
+	-- LoadAsset needs the assets' owner in Studio, so collaborators load a copy saved in the place (named by asset id)
+	local baked = ServerStorage:FindFirstChild("BakedModels")
+	local copy = baked and baked:FindFirstChild(tostring(row.Asset))
 	local ok, asset
 	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
 		ok, asset = pcall(function()
-			return InsertService:LoadAsset(row.Asset)
+			return copy and copy:Clone() or InsertService:LoadAsset(row.Asset)
 		end)
 		if ok then
 			break

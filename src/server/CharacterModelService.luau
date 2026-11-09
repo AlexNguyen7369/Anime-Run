@@ -7,6 +7,7 @@
 local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
@@ -19,6 +20,12 @@ local CharacterModelService = {}
 local NEON_BLUE = Color3.fromRGB(82, 216, 250) -- side_wyvern's "glow" ramp (tools/blender/build_boss_event.py)
 
 local function fetch(assetId)
+	-- LoadAsset needs the assets' owner in Studio, so collaborators load a copy saved in the place (named by asset id)
+	local baked = ServerStorage:FindFirstChild("BakedModels")
+	local copy = baked and baked:FindFirstChild(tostring(assetId))
+	if copy then
+		return true, copy:Clone()
+	end
 	local ok, asset
 	for attempt = 1, 3 do -- all load at once, so a throttled request gets another try
 		ok, asset = pcall(function()
