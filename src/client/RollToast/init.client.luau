@@ -845,6 +845,7 @@ local function refreshToast()
 		compact.Body.Size = UDim2.fromScale(1, 1)
 		if not latest then
 			compact.Odds.Text = "?"
+			compact.CharacterName.Text = "?" -- no blank band for a dead click area before the first roll
 		end
 	end
 	drawShown()

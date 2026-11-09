@@ -169,7 +169,8 @@ end
 --          { Duel = { Track = n, OnFinish = fn(run, seconds) } } is a duel run (docs/DUEL_SPEC.md): no NPC, starts
 --          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
 --          { Boss = true, Team = { ids } } is a boss event run (design doc 4.37, docs/BOSS_EVENT_SPEC.md): real stamina on the
---          closed lane route, no NPC, no pads, never a cash-out. At all empty: run.Waiting, then the full team refills.
+--          closed lane route, no NPC, no pads, never a cash-out. run.Line: slots still running, all draining at once.
+--          At an empty line: run.Waiting, then the full team refills.
 function RaceService.NewRun(car, raceRoute, player, options)
 	options = options or {}
 	car:SetAttribute("AutoRace", true)
@@ -363,6 +364,11 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			publish()
 		end
 	end
+	local function publishLine()
+		if typeof(player) == "Instance" then
+			player:SetAttribute("BossLine", table.concat(run.Line, ","))
+		end
+	end
 	local function refill()
 		if snapshotCruise then
 			snapshotCruise() -- a loss reset starts a new run
@@ -370,6 +376,13 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		for slot in team do
 			run.Stamina[slot] = 100
+		end
+		if boss then
+			run.Line = {}
+			for slot in team do
+				table.insert(run.Line, slot)
+			end
+			publishLine()
 		end
 		setSlot(1)
 		publishStamina()
@@ -659,6 +672,39 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				refill()
 				runEvent({ Kind = "BossRefill" })
 			end
+		elseif boss and not run.Finished then
+			sinceStamina += railDt
+			-- Every slot, each frame: a charge from BossEventService can empty any of them between frames.
+			local gone = {}
+			for i = #run.Line, 1, -1 do
+				local slot = run.Line[i]
+				run.Stamina[slot] -= 100 / seconds[slot] * railDt
+				if run.Stamina[slot] <= 0 then
+					run.Stamina[slot] = 0
+					table.remove(run.Line, i)
+					table.insert(gone, 1, slot)
+				end
+			end
+			if #gone > 0 then
+				local front = run.Line[1]
+				if front and front ~= run.Slot then
+					setSlot(front)
+				end
+				publishLine()
+				publishStamina()
+				if not front then
+					run.Waiting, waitLeft = true, BossEventConfig.RefillWaitSeconds
+					publish()
+				end
+				for _, slot in gone do
+					runEvent({ Kind = "BossGone", Slot = slot })
+				end
+				if not front then
+					runEvent({ Kind = "BossWait" })
+				end
+			elseif sinceStamina >= RaceService.PUBLISH_INTERVAL then
+				publishStamina()
+			end
 		elseif staminaMode and not run.Finished then
 			local slot = run.Slot
 			run.Stamina[slot] -= 100 / seconds[slot] * railDt
@@ -669,11 +715,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 					setSlot(slot + 1)
 					publishStamina()
 					runEvent({ Kind = "Swap", From = team[slot], To = team[slot + 1], Slot = slot + 1 })
-				elseif boss then
-					publishStamina()
-					run.Waiting, waitLeft = true, BossEventConfig.RefillWaitSeconds
-					publish()
-					runEvent({ Kind = "BossWait" })
 				else
 					publishStamina()
 					bankShare()
@@ -741,6 +782,13 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		publish()
 	end
 
+	-- Boss run: ends the wait `seconds` from now, whatever was left of it (BOSS_EVENT_SPEC "Phase 2"). Its refill is the wait's own.
+	function run:ReviveAt(seconds)
+		if run.Waiting then
+			waitLeft = seconds
+		end
+	end
+
 	-- Pays the bank into leaderstats.Money and empties it. Returns the amount paid (0 if none).
 	function run:CashOut()
 		local amount = run.Unbanked
@@ -764,6 +812,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			self:CashOut() -- stopping, dying or leaving never loses won money
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
+				player:SetAttribute("BossLine", nil)
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)
 					player:SetAttribute("RunSeconds" .. slot, nil)

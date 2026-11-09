@@ -27,6 +27,7 @@ local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
+local HEAVY = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy) -- as RollToast's BOLD: heavy, in the game's family
 local PanelBand = require(script.Parent:WaitForChild("PanelBand"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
@@ -42,7 +43,7 @@ local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
 local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
 local BOSS_BUTTON_SIZE = Vector2.new(128, 40) -- at most: the width follows the screen
-local BOSS_BUTTON_WIDTH = 0.15 -- of the screen: at 667 wide, with the pulse and glow it ends at x 329, clear of Auto at 333
+local BOSS_BUTTON_WIDTH = 0.095 -- of the screen: on a small phone it ends clear of the roll toast
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
@@ -51,9 +52,14 @@ local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESTRICTED_TEXT = "Paid spawns are not available on your account"
 local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweaked name only
 local CLOSED_TEXT = "Teleporting closed"
-local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a Relic!"
-local BOSSES_WIDTH = 340 -- px
-local DETAILS_ROW = 20 -- px per odds row
+local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a treasure chest!"
+local BOSSES_WIDTH = 420 -- px: two odds tables side by side
+local DETAILS_ROW = 18 -- px per odds row
+local DETAILS_ROWS = 8 -- a chest's title, its six Relics and its Sidekick
+local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
+local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
+local TITLE_STAGE_2_COLOR = Color3.fromRGB(235, 20, 30) -- owner 2026-11-06: bold red; HEAVY is already the title's font
+local CASCADE_GAP = 0.25 -- s between the drop list's rows, placeholder
 local TEAM_WARNING_TEXT = "Select a character first"
 local TEAM_WARNING_SECONDS = 1 -- placeholder
 local EDIT_TEAM_SIZE = Vector2.new(120, 34) -- px
@@ -83,6 +89,7 @@ local DROP_ROW, DROP_ROW_MIN = 26, 13
 local STATUS_LOOKS = {
 	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
 	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
+	{ Id = "Vulnerable", Glyph = "V", Color = Palette.MoneyDeep }, -- no end time: it goes with its row
 }
 
 local function make(class, name, parent, props)
@@ -97,7 +104,9 @@ end
 
 local function label(name, parent, props, maxSize)
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or UiTheme.Font
+	if not props.FontFace then
+		props.Font = UiTheme.Font
+	end
 	props.TextColor3 = props.TextColor3 or Palette.White
 	props.TextScaled = true
 	local text = make("TextLabel", name, parent, props)
@@ -224,7 +233,7 @@ local teamWarning = label("TeamWarning", hud, {
 	Position = UDim2.fromScale(0.5, 1),
 	Size = UDim2.new(1, -16, 0, 34),
 	Text = TEAM_WARNING_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	Visible = false,
 	ZIndex = 5,
@@ -265,7 +274,7 @@ local warning = make("Frame", "Warning", root, {
 local warningLabel = label("Text", warning, {
 	Size = UDim2.fromScale(1, 1),
 	Text = WARNING_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	TextWrapped = true,
 }, 72)
@@ -275,13 +284,13 @@ local bar =
 	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
 local bossTimer = label("BossTimer", bar, {
 	Text = "",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = Palette.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
-	Text = "Big Raga",
-	Font = Enum.Font.GothamBlack,
+	Text = TITLE_STAGE_1,
+	FontFace = HEAVY,
 }, TITLE_HEIGHT)
 local track = make("Frame", "Track", bar, {
 	BackgroundColor3 = Palette.TeamTired,
@@ -351,6 +360,14 @@ for order, look in STATUS_LOOKS do
 		Frame = cell,
 		Icon = icon,
 		Left = label("Seconds", cell, { Text = "", TextColor3 = Palette.Gold }, STATUS_SECONDS),
+		Stack = label("Stack", cell, {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(1, 0),
+			Size = UDim2.fromScale(0.6, 0.35),
+			Text = "",
+			ZIndex = 2,
+			Visible = false,
+		}, STATUS_SECONDS),
 	}
 end
 
@@ -364,7 +381,7 @@ make("UIListLayout", "List", dropList, {
 local dropHeading = label("Heading", dropList, {
 	LayoutOrder = 1,
 	Text = "Drop:",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 }, DROP_HEADING)
 local dropRule = make("Frame", "Rule", dropList, {
 	LayoutOrder = 2,
@@ -372,15 +389,29 @@ local dropRule = make("Frame", "Rule", dropList, {
 	BorderSizePixel = 0,
 })
 local dropRows = {}
+local dropTexts = {} -- row -> { Phase 1's text, Phase 2's }
+local function oddsText(row)
+	return ("%s %s%%"):format(row.Name, tostring(row.Odds))
+end
+local adaptedOdds = RelicConfig.ChestOdds(ADAPTED_CHEST)
+local function adaptedText(id)
+	for _, row in adaptedOdds do
+		if row.Id == id then
+			return oddsText(row)
+		end
+	end
+	return ("Big Raga %.2f%%"):format(RelicConfig.Chests[ADAPTED_CHEST].SidekickChance * 100)
+end
 local function dropRow(id, text, color, stroke)
 	local row = label("Row_" .. id, dropList, {
 		LayoutOrder = 3 + #dropRows,
 		Text = text,
 		TextColor3 = color,
-		Font = Enum.Font.GothamBlack,
+		FontFace = HEAVY,
 	}, DROP_ROW)
 	UiTheme.Stroke(row, 2, stroke)
 	table.insert(dropRows, row)
+	dropTexts[row] = { text, adaptedText(id) }
 end
 local dropOdds = RelicConfig.Odds("big_raga")
 table.sort(dropOdds, function(a, b)
@@ -390,7 +421,7 @@ for _, row in dropOdds do
 	-- Secret's near-black needs the light outline Big Raga's black has.
 	dropRow(
 		row.Id,
-		("%s %s%%"):format(row.Name, tostring(row.Odds)),
+		oddsText(row),
 		GachaConfig.RARITY_COLORS[row.Rarity],
 		row.Rarity == "Secret" and Palette.White or nil
 	)
@@ -467,20 +498,35 @@ local bossDetailsHeading = label("DetailsHeading", bossesPanel, {
 	Text = "Details",
 	TextColor3 = Palette.Gold,
 }, 18)
--- The Drop list's own rows, so the two can not disagree. Display only.
+-- Both chests' tables (BOSS_EVENT_SPEC "Paid spawn"), side by side, from the Drop list's own rows, so they can not disagree. Display only.
 local bossDetails = make("Frame", "BossDetails", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, #dropRows * DETAILS_ROW),
+	Size = UDim2.new(1, 0, 0, DETAILS_ROWS * DETAILS_ROW),
 	LayoutOrder = 3,
 	BackgroundTransparency = 1,
 })
-make("UIListLayout", "List", bossDetails, {
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+make("UIGridLayout", "Grid", bossDetails, {
+	CellSize = UDim2.new(0.5, -2, 0, DETAILS_ROW),
+	CellPadding = UDim2.fromOffset(4, 0),
+	FillDirection = Enum.FillDirection.Vertical,
+	FillDirectionMaxCells = DETAILS_ROWS,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-for _, row in dropRows do
-	local copy = row:Clone()
-	copy.Size = UDim2.new(1, 0, 0, DETAILS_ROW)
-	copy.Parent = bossDetails
+for column, chest in { RAGA_CHEST, ADAPTED_CHEST } do
+	local first = column * 100
+	label("Title_" .. chest, bossDetails, {
+		LayoutOrder = first,
+		Text = RelicConfig.Chests[chest].Name,
+		TextColor3 = Palette.Gold,
+	}, 16)
+	for order, row in dropRows do
+		local copy = row:Clone()
+		copy.LayoutOrder = first + order
+		if column == 2 then
+			copy.Name = string.gsub(row.Name, "^Row_", "Adapted_")
+			copy.Text = dropTexts[row][2]
+		end
+		copy.Parent = bossDetails
+	end
 end
 local bossNext = label("NextEvent", bossesPanel, {
 	Size = UDim2.new(1, 0, 0, 22),
@@ -526,12 +572,12 @@ make("Frame", "Dim", exhausted, {
 local exhaustedMessage = label("Message", exhausted, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Text = EXHAUSTED_TEXT,
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 }, EXHAUSTED_MESSAGE)
 local exhaustedCount = label("Countdown", exhausted, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Text = "",
-	Font = Enum.Font.GothamBlack,
+	FontFace = HEAVY,
 	TextColor3 = Palette.Gold,
 }, EXHAUSTED_COUNT)
 local loading = make("Frame", "Loading", exhausted, {
@@ -991,24 +1037,42 @@ local function clockText(seconds)
 end
 
 local statusRaw = nil
-local statusEnds = {} -- id -> EndsAt
+local statusRows = {} -- id -> { EndsAt, Count }
 
--- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time.
+-- One cell per active effect, each gone at its own EndsAt, on this client's clock of the server's time. A row with no EndsAt shows until it goes.
 local function drawStatus()
 	local raw = player:GetAttribute("BossStatus")
 	if raw ~= statusRaw then
 		statusRaw = raw
-		statusEnds = {}
+		statusRows = {}
 		local ok, rows = pcall(HttpService.JSONDecode, HttpService, raw or "[]")
 		for _, row in ok and rows or {} do
-			statusEnds[row.Id] = row.EndsAt
+			statusRows[row.Id] = row
 		end
 	end
 	for id, cell in statusCells do
-		local left = (statusEnds[id] or 0) - workspace:GetServerTimeNow()
-		cell.Frame.Visible = left > 0
-		if left > 0 then
-			cell.Left.Text = math.ceil(left) .. "s"
+		local row = statusRows[id]
+		local left = row and row.EndsAt and row.EndsAt - workspace:GetServerTimeNow()
+		cell.Frame.Visible = row ~= nil and (left == nil or left > 0)
+		cell.Left.Text = left and left > 0 and math.ceil(left) .. "s" or ""
+		cell.Stack.Visible = row ~= nil and (row.Count or 1) > 1
+		cell.Stack.Text = cell.Stack.Visible and "x" .. row.Count or ""
+	end
+end
+
+-- Phase 2's rates, top to bottom one row at a time from the moment the bar is full (BOSS_EVENT_SPEC "Phase 2"). From time alone, so a late
+-- view has them all, and stage 1 has Phase 1's.
+local function drawDrops(stage, now)
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart")
+	local since = stage == 2 and schedule and now - schedule - Cfg.IntroSeconds or -1
+	local final = since < 0 and 0 or UiMotion.Reduced() and #dropRows or math.floor(since / CASCADE_GAP) + 1
+	for i, row in dropRows do
+		local text = dropTexts[row][i <= final and 2 or 1]
+		if row.Text ~= text then
+			row.Text = text
+			if i <= final then
+				UiMotion.Pop(row)
+			end
 		end
 	end
 end
@@ -1140,7 +1204,11 @@ local function render()
 		endWarning()
 	end
 
-	local joinable = phase ~= nil and not inEvent and elapsed < Cfg.JoinSeconds and not tutorialActive()
+	local joinable = phase ~= nil
+		and not inEvent
+		and elapsed < Cfg.JoinSeconds
+		and ReplicatedStorage:GetAttribute("BossEventStage") ~= 2 -- Phase 1's defeat closes teleporting (design doc 4.37)
+		and not tutorialActive()
 	-- Once per event, for its own seconds: after that the Bosses popup carries teleporting.
 	if joinable and invitedStart ~= start then
 		invitedStart = start
@@ -1160,11 +1228,16 @@ local function render()
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
 	-- From the server's end time, so a late view is as far along. Past it, full at 1 until the server revives the team.
+	local now = workspace:GetServerTimeNow()
+	local screamEnds = ReplicatedStorage:GetAttribute("BossScreamEndsAt")
+	local screamLeft = type(screamEnds) == "number" and screamEnds > now and screamEnds - now or nil
 	local waitEnds = player:GetAttribute("BossWaitEndsAt")
-	exhausted.Visible = inEvent and type(waitEnds) == "number"
+	exhausted.Visible = inEvent and type(waitEnds) == "number" and not screamLeft
 	if exhausted.Visible then
-		local left = waitEnds - workspace:GetServerTimeNow()
-		exhaustedCount.Text = tostring(math.clamp(math.ceil(left), 1, Cfg.RefillWaitSeconds))
+		local left = waitEnds - now
+		-- 8.5 until the first whole second is reached, then by whole seconds.
+		exhaustedCount.Text = left > math.floor(Cfg.RefillWaitSeconds) and tostring(Cfg.RefillWaitSeconds)
+			or tostring(math.max(1, math.ceil(left)))
 		loadingFill.Size = UDim2.fromScale(math.clamp(1 - left / Cfg.RefillWaitSeconds, 0, 1), 1)
 	end
 
@@ -1186,11 +1259,19 @@ local function render()
 		local max = ReplicatedStorage:GetAttribute("BossEventMaxHp") or 0
 		-- Left to right over the intro, from the server's start: a late joiner sees the same width as everyone.
 		local intro = UiMotion.Reduced() and 1 or math.clamp((elapsed - Cfg.PrepSeconds) / Cfg.RiseSeconds, 0, 1)
-		fill.Size = UDim2.fromScale(max > 0 and math.clamp(hp / max, 0, 1) * intro or 0, 1)
+		local width = max > 0 and math.clamp(hp / max, 0, 1) * intro or 0
+		-- The scream fills the new bar from empty, from its end time, for a late view too.
+		fill.Size = UDim2.fromScale(screamLeft and math.clamp(1 - screamLeft / Cfg.ScreamSeconds, 0, 1) or width, 1)
 		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
-		bossTimer.Text = clockText(Cfg.TotalSeconds - elapsed)
+		local endsAt = ReplicatedStorage:GetAttribute("BossEventEndsAt")
+		bossTimer.Text = clockText(endsAt and endsAt - now or Cfg.TotalSeconds - elapsed)
+		local stage = ReplicatedStorage:GetAttribute("BossEventStage") or 1
+		barTitle.Text = stage == 2 and TITLE_STAGE_2 or TITLE_STAGE_1
+		barTitle.TextColor3 = stage == 2 and TITLE_STAGE_2_COLOR or Palette.White
+		drawDrops(stage, now)
 		drawStatus()
 	end
 end
 
 RunService.Heartbeat:Connect(render)
+ReplicatedStorage:GetAttributeChangedSignal("BossScreamEndsAt"):Connect(render) -- the fill is low from the scream's first frame

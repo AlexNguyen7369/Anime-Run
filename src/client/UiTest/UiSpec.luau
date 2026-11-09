@@ -811,6 +811,7 @@ UiSpec.Band = {
 UiSpec.HudPair = {
 	-- The slot holders (one CELL each, scaled by their UIScale "Scale"), not the buttons inside
 	Auto = "HudChrome/AutoSlot",
+	Items = "HudChrome/AutoSlot", -- design doc 4.40: Auto took the slot Items left; hudPairChecks still reads it under this key
 	Upgrade = "HudChrome/UpgradeSlot",
 	Level = "RacerHud/Level",
 	Turbo = "RacerHud/Turbo",
@@ -1126,7 +1127,9 @@ UiSpec.RollAnim = {
 	Phases = { "PopIn", "Spin", "Land", "Hold", "Exit", "Idle" }, -- one roll, in this order
 	PhaseTolerance = 0.1, -- s, per phase length (frame quantisation at both ends)
 	PhaseStart = 0.2, -- s from the RollResult to PopIn (+ SWITCH for an emphasized roll)
-	IntervalMin = 2, -- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL
+	-- s: RollResult's last argument, the player's roll interval, is in IntervalMin..ROLL_INTERVAL, both halved by the 2x Auto-Roll pass
+	-- (docs/MONETIZATION_SPEC.md, GachaService.RollInterval)
+	IntervalMin = 2,
 	ShownAttr = "ShownId", -- body attribute: the character on screen in every phase after PopIn
 	SpinMinShown = 2, -- distinct ShownId values during Spin (not under reduced motion)
 	SlotJitter = 0.04, -- s: two frames' slack when comparing the length of two Spin slots
@@ -1306,6 +1309,7 @@ UiSpec.Waits = {
 	TurboRoll = 35, -- a turbo roll comes every TurboEvery (10) rolls x ROLL_INTERVAL (3 s) = 30 s at most
 	TurboPopShow = 0.5, -- the TURBO label must show "TURBO x<multi>!" this soon after a turbo RollResult
 	TurboPopHide = 2, -- and be back to "TURBO LUCK 0/<every>" (bar empty) this soon after it
+	TurboBeforeNext = 0.1, -- s: a faster roll interval (2x Auto-Roll) reads that this long before its next roll: the pop lasts 1.2 s
 	TurboStable = 6, -- ui_turbo waits at most this long for a moment HudSettle s after the last turbo change
 	WorkshopPlot = 15, -- the player's plot (attribute Plot) and its Workshop must exist within this
 }
@@ -1352,7 +1356,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "auto_racing",
 		When = "before UiTestRun and the showcase clicks (NPC on track, auto-rolls)",
-		What = "Puts the player in auto race (AutoRacing == true).",
+		What = "Puts the player in auto race (AutoRacing == true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
 	},
 	{
 		Id = "run_visual",
@@ -1450,7 +1454,7 @@ UiSpec.ServerSetup = {
 	{
 		Id = "auto_roll_on",
 		When = "before UiTestRun if AutoRoll is false (a scenario fails with state_missing:auto_roll_on)",
-		What = "Turns auto-rolling back on (AutoRoll = true).",
+		What = "Turns auto-rolling back on (AutoRoll = true). Empties spares if the bag is half full (design doc 4.41), until its restore.",
 	},
 	{
 		Id = "restore",
@@ -4064,6 +4068,7 @@ UiSpec.Guis.RacerItemMenu = {
 		{ Path = "Scrim", Does = "local" },
 		{ Path = "Menu/Equip", Does = "local" },
 		{ Path = "Menu/Sell", Does = "local" },
+		{ Path = "Menu/Open", Does = "remote", Remote = "RelicOpenChest" },
 		{ Path = "Confirm/Yes", Does = "remote", Remote = "RelicSell|SidekickSell|SellSpares|SellSparesMany" },
 		{ Path = "Confirm/Cancel", Does = "local" },
 		{ Path = "Confirm/Stepper/Less", Does = "local", ClickCoverage = "ui_relics" },
@@ -4358,7 +4363,7 @@ for _, click in
 			Path = "BossButton",
 			Prepare = bossButtonPrepare(0.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+			Expect = { Remote = false, After = { "boss_paid_details_open", "boss_details_both_tables" } },
 		},
 		{
 			Id = "boss_paid_use_credit",
@@ -4421,6 +4426,99 @@ for _, click in
 do
 	click.Gui = "RacerBossEvent"
 	table.insert(UiSpec.Clicks, click)
+end
+
+-- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
+UiSpec.Guis.RacerBossRewards = {
+	Source = "Client/BossRewardPopup",
+	Buttons = { { Path = "Panel/Header/CloseButton", Does = "local" } },
+}
+-- The dodge prompt (Client/BossDodgeUi; docs/BOSS_EVENT_SPEC.md "Dodge bar"), shown only at an attack's moment: ui_boss_dodge judges it.
+UiSpec.Guis.RacerBossDodge = {
+	Source = "Client/BossDodgeUi",
+	Buttons = { { Path = "DodgeBar/Bar", Does = "remote", Remote = "BossDodge", ClickCoverage = "ui_boss_dodge" } },
+}
+-- How far the camera is from what it follows. A runner in a full run moves 24 studs/s (and BossWaitCamera.homeFrame carries the
+-- camera with it), so the boss camera checks read this, not a world position. No subject: math.huge, which no home check accepts.
+function UiSpec.CameraReach(camera)
+	local subject = camera.CameraSubject
+	local part = subject and (subject:IsA("Humanoid") and subject.RootPart or subject:IsA("BasePart") and subject)
+	return part and (camera.CFrame.Position - part.Position).Magnitude or math.huge
+end
+-- A missing RollResult's reason: a full bag stops every roll (design doc 4.41), so a failure names it instead of only the silence.
+function UiSpec.NoRollWhy(player, text)
+	local why = text or "no Remotes.RollResult"
+	if player:GetAttribute("BagFull") == true then
+		why ..= (": bag full %s/%s, design doc 4.41"):format(
+			tostring(player:GetAttribute("BagUsed")),
+			tostring(player:GetAttribute("BagCap"))
+		)
+	end
+	return why
+end
+UiSpec.RelicChest = {
+	Watch = {}, -- what the chest open click's Prepare.Before saw of the reveal's chest: a press's After comes too late for its first moves
+}
+table.insert(UiSpec.ServerSetup, {
+	Id = "relic_chest_states",
+	When = "first after 'spy' in the relics_chest_tab click's NeedSetup",
+	What = "As relic_states_bare, plus 2 relic_chest_raga and 1 relic_chest_adapted. 'restore' puts all of it back.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_rewards_open",
+	When = "before the boss_rewards_close click (NeedSetup)",
+	What = "One BossRewards message to this client: Defeated, both stages paid. Display only, nothing is granted.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_phase2_*",
+	When = "asked for by ui_boss_phase2 and ui_boss_rewards, one step at a time",
+	What = "boss_phase2_stage:<stage>:<ends in s|none>:<scream ends in s|none>:<schedule start s ago|none>, the attributes only; "
+		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>, one BossRewards message. "
+		.. "restore:boss_ui clears the attributes.",
+})
+do
+	-- A reveal's chest image: on every frame from the press, where it stands.
+	local function watchChest()
+		local watch = UiSpec.RelicChest.Watch
+		table.clear(watch)
+		local gui = game:GetService("Players").LocalPlayer.PlayerGui
+		local connection = game:GetService("RunService").Heartbeat:Connect(function()
+			local reveal = gui:FindFirstChild("RacerSidekickReveal")
+			local chest = reveal and reveal:FindFirstChild("Chest", true)
+			if chest and chest:IsA("ImageLabel") and chest.Visible then
+				local at = chest.AbsolutePosition
+				watch.First = watch.First or at
+				watch.Image = chest.Image
+				watch.Samples = (watch.Samples or 0) + 1
+				watch.Drift = math.max(watch.Drift or 0, (at - watch.First).Magnitude)
+			end
+		end)
+		return function()
+			connection:Disconnect()
+		end
+	end
+	UiSpec.AddMenuChain({ "spy", "relic_chest_states" }, BAG_PANEL, {
+		{ "relics_chest_tab", "RacerBackpack", "Panel/Tabs/RelicsTab", "chest_tiles" },
+		{ "relics_chest_tile", "RacerBackpack", "Panel/Items/relic_chest_raga", "chest_menu" },
+		{ "relics_chest_open", MENU, "Menu/Open", "chest_opening", { Before = watchChest } },
+	})
+	table.insert(UiSpec.Clicks, {
+		Id = "relics_chest_reveal_close",
+		Gui = "RacerSidekickReveal",
+		Path = "Tap",
+		Prepare = { KeepPanels = true, Showcase = false },
+		Expect = { Remote = false, After = { "chest_reveal_closed" } },
+	})
+	local rewardsPrepare = only()
+	rewardsPrepare.RequireShown, rewardsPrepare.WaitSeconds = true, 0.5
+	table.insert(UiSpec.Clicks, {
+		Id = "boss_rewards_close",
+		Gui = "RacerBossRewards",
+		Path = "Panel/Header/CloseButton",
+		Prepare = rewardsPrepare,
+		NeedSetup = { "spy", "boss_rewards_open" },
+		Expect = { Remote = false, After = { "boss_rewards_closed" } },
+	})
 end
 
 return UiSpec

@@ -84,8 +84,9 @@ local function landCue(rarity)
 	return SidekickView.LAND_CUES[rarity] or "RollLand1"
 end
 
--- Plays `results` ({ Id, Sold }) over the game world. onClose runs when the player clicks to continue.
-function Reveal.Play(results, onClose)
+-- Plays `results` ({ Id, Sold }, or { Row } for a catalog row of another kind) over the game world. onClose runs when the player clicks
+-- to continue. With `chestImage`, a chest opening (docs/RELIC_SPEC.md "Chests"): results play one after another on the 1x sequence.
+function Reveal.Play(results, onClose, chestImage)
 	local player = Players.LocalPlayer
 	local gui = make("ScreenGui", "RacerSidekickReveal", player:WaitForChild("PlayerGui"), {
 		ResetOnSpawn = false,
@@ -437,13 +438,20 @@ function Reveal.Play(results, onClose)
 		})
 		UiMotion.Pulse(glow, { Size = UDim2.fromScale(0.85, 0.85) }, 0.7)
 		local home = CENTRE
-		local view = modelView(layer, row, {
+		local viewProps = {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = home,
 			Size = UDim2.fromScale(skip and 0.56 or 0.12, skip and 0.56 or 0.12),
 			SizeConstraint = Enum.SizeConstraint.RelativeYY,
 			ZIndex = 5,
-		})
+		}
+		local view
+		if row and row.Image then
+			viewProps.ScaleType = Enum.ScaleType.Fit
+			view = image("Art", layer, row.Image, viewProps)
+		else
+			view = modelView(layer, row, viewProps)
+		end
 		UiMotion.Create(view, TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 			Size = UDim2.fromScale(0.56, 0.56),
 		}):Play()
@@ -533,10 +541,31 @@ function Reveal.Play(results, onClose)
 	end
 
 	local function playOne()
-		local result = results[1]
-		local row = Config.Get(result.Id)
-		charge(row and row.Rarity)
-		showcase(row, result)
+		-- On the gui, not Stage: the charge shakes Stage, and the chest stays still.
+		local chest = chestImage
+			and not skip
+			and image("Chest", gui, chestImage, {
+				Position = CENTRE,
+				Size = UDim2.fromScale(0.42, 0.42),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = 3,
+			})
+		local layer = nil
+		for i, result in results do
+			local row = result.Row or Config.Get(result.Id)
+			if i == 1 then
+				charge(row and row.Rarity)
+				if chest then
+					chest:Destroy()
+				end
+			else
+				pause(SHOWCASE_HOLD)
+				layer:Destroy()
+				doFlash(0.2)
+			end
+			layer = showcase(row, result)
+		end
 	end
 
 	local function playMany()
@@ -751,7 +780,7 @@ function Reveal.Play(results, onClose)
 
 	UiTheme.Apply(gui)
 	task.spawn(function()
-		if #results > 1 then
+		if #results > 1 and not chestImage then
 			playMany()
 		else
 			playOne()

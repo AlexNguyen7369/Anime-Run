@@ -1,6 +1,6 @@
 --!nonstrict
 -- BRIEF: design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena" (task b4): the arena's numbers, 7 lanes and the closed rail.
--- Owner values (radius 850, width 80, 7 lanes, y about 1,200, boss 0.66 x radius / 804, dais 190) are asserted literally.
+-- Owner values (radius 550, width 80, 7 lanes, y about 1,200, boss fixed 561 / 804, dais 190) are asserted literally.
 -- The draft's direction comes from tools/blender/arena/build_arena.py. Everything else is read from the config.
 -- Contract these tests assume beyond the brief:
 --   Shared/BossArenaConfig: Center, InnerRadius, Width, Lanes, Y, BossHeight, BossTotalHeight, DaisRadius,
@@ -15,7 +15,7 @@ local Shared = game:GetService("ReplicatedStorage").Shared
 local PathDriver = require(Shared.PathDriver)
 local Tests = {}
 
-local LAP_TOLERANCE = 50 -- spec rounds lane 4's lap to the nearest hundred: "about 5,600"
+local LAP_TOLERANCE = 50 -- spec rounds lane 4's lap to the nearest hundred: "about 3,700"
 local Y_TOLERANCE = 100 -- "y about 1,200", final value set by a Studio read
 local RUNNER_ROOM = 5.75 -- the draft's runner height, wider than the rig: lanes this far apart cannot touch
 local DAIS_DEPTH = 120 -- the draft's dais stem hangs this far under the track top
@@ -91,18 +91,18 @@ function Tests.boss_arena()
 	end
 
 	section("owner_values", function()
-		flag("inner_radius_850", Cfg.InnerRadius == 850, Cfg.InnerRadius, 850)
+		flag("inner_radius_550", Cfg.InnerRadius == 550, Cfg.InnerRadius, 550) -- owner 2026-11-06
 		flag("width_80", Cfg.Width == 80, Cfg.Width, 80)
 		flag("lanes_7", Cfg.Lanes == 7, Cfg.Lanes, 7)
 		flag("y_about_1200", near(Cfg.Y, 1200, Y_TOLERANCE), Cfg.Y, 1200)
 		flag("center_is_at_y", typeof(Cfg.Center) == "Vector3" and near(Cfg.Center.Y, Cfg.Y, 0.01))
-		flag("boss_height_066", near(Cfg.BossHeight, 0.66 * 850, 1.5), Cfg.BossHeight, 561) -- 561; the draft measures 560
+		flag("boss_height_fixed", near(Cfg.BossHeight, 561, 1.5), Cfg.BossHeight, 561) -- the draft measures 560; the ring does not scale it
 		flag("boss_height_about_560", near(Cfg.BossHeight, 560, 2), Cfg.BossHeight, 560)
 		flag("boss_total_804", near(Cfg.BossTotalHeight, 804, 1), Cfg.BossTotalHeight, 804) -- the draft measures 804.4
 		flag("dais_190", Cfg.DaisRadius == 190, Cfg.DaisRadius, 190)
 		flag("dais_clears_inner_edge", Cfg.DaisRadius < Cfg.InnerRadius, Cfg.DaisRadius, Cfg.InnerRadius)
 		local lap = Cfg.LaneLength(4)
-		flag("lap_lane4_about_5600", near(lap, 5600, LAP_TOLERANCE), lap, 5600)
+		flag("lap_lane4_about_3700", near(lap, 3700, LAP_TOLERANCE), lap, 3700)
 	end)
 
 	section("lanes", function()

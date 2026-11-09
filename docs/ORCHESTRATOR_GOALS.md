@@ -142,6 +142,34 @@ Deliverables:
 - b11 | Compatibility check | full harness and rules audit results reported
 Out of scope: Relic or Sidekick trading, a second boss, an underground arena, pity, luck on summons, summon potions, VIP, shiny pass, extra banners.
 
+## boss-phase2: Fully Adapted Raga, line run, chests and rewards popup (owner 2026-11-06)
+Status: done 2026-11-06 (PR #5 merged, d2450c6)
+Owner-confirmed: 2026-11-06 (plan approved: `~/.claude/plans/squishy-wishing-cook.md`)
+Branch: feature/alex/boss-phase2 (from e87b19d, because `main` lacks the boss event and PR #4 is still open)
+Spec: design doc 4.35, 4.37, 4.38, docs/BOSS_EVENT_SPEC.md, docs/RELIC_SPEC.md
+Deliverables:
+- p0 | Rules written | design doc and specs updated with the date
+- p1 | Art for 5 Relics and 2 chests, uploaded | owner approves the contact sheet before upload
+- p2 | Server: phases, stacks, Vulnerable, rewards, chests | `boss_event`, `relics` green
+- p3 | Line run, 8.5 s wait, smoke | `boss_event`, `ui_boss` green
+- p4 | Phase 2 presentation: title, wheel, scream, drop spill, faster bar | `ui_boss` green, owner look at a Studio capture
+- p5 | Rewards popup, chest opening | `ui_relics`, `ui_boss_rewards` green
+- p6 | Compatibility check | full harness and rules audit results reported, then a PR with a fresh review
+Out of scope: 3D chests, new Raga key frames, moves faster than today's schedule, a chest screen outside the Relics inventory.
+
+## boss-polish: Phase 2 cutscene, tone, closer arena, visible effects (owner 2026-11-06)
+Status: done 2026-11-06 (PR #7 merged, 685b452; q5's UI harness stopped on the owner's word, reds in handoff)
+Owner-confirmed: 2026-11-06 (plan approved: `~/.claude/plans/imperative-dazzling-grove.md`; "orchestrate all of the above tasks")
+Branch: feature/alex/boss-polish
+Spec: design doc 4.37, docs/BOSS_EVENT_SPEC.md
+Deliverables:
+- q1 | Scream 6 s, zoomed in, screen dimmed, Phase 2 blood red, bold red title | `ui_boss_phase2`, `ui_boss_vfx` green, Studio capture
+- q2 | Ring radius 550, dais lower, boss size fixed | `boss_arena`, `boss_event` green, Studio capture
+- q3 | Auras and trails more visible in events | `boss_event` Boost checks green, Studio capture
+- q4 | Exhaustion view zoomed in a lot | `ui_boss` green, Studio capture
+- q5 | Compatibility check | full harness and rules audit results reported, then a PR with a fresh review
+Out of scope: Phase 1's spawn cutscene, new Raga key frames, a raised running camera pitch.
+
 ## ui-juice: The UI feels lively, consistent and smooth, with sound on every moment (owner 2026-11-04)
 Status: done on the owner's word 2026-11-04 (u5 gaps accepted: last full server run 49/1, see handoff)
 Owner-confirmed: 2026-11-04 (plan approved; ServerStorage folder plus copy, up to 4 extra sounds)

@@ -759,7 +759,9 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 	local camera = workspace.CurrentCamera
 	local autoRacing = player:GetAttribute("AutoRacing") == true
-	local car = autoRacing and player:GetAttribute("TopDownView") == true and autoRaceCar() or nil
+	-- A boss event locks its view (design doc 4.37), whatever the saved top-down setting.
+	local topDown = player:GetAttribute("TopDownView") == true and player:GetAttribute("BossEvent") ~= true
+	local car = autoRacing and topDown and autoRaceCar() or nil
 	if car and camera then
 		if not topDownWasActive then
 			topDownWasActive = true

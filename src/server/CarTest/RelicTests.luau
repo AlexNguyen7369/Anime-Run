@@ -27,13 +27,19 @@
 --   Saved fields `Relics` and `RelicGear`, PlayerData VERSION 16. CharacterGear stays Sidekick-only: its value is one entry
 --     string that SidekickService.Apply and the sidekicks tests read, so nesting Relics there would change a saved shape.
 --     docs/RELIC_SPEC.md and BOSS_EVENT_SPEC likewise save Relic wear in the separate `RelicGear`.
---   BossEventService.Hooks.Rewards default: GrantDefeat(player, "big_raga", its own Random) for each player.
+--     Chests (owner 2026-11-06, design doc 4.38, RELIC_SPEC "Chests", task p2): RelicConfig.Chests[id] = { Id, Name, Chest = true,
+--     Bonuses = {}, Boss, SidekickChance, Table = rows of { Id, Name, Rarity, Odds } }, apart from Bosses; Get(id) returns it;
+--     ChestOdds(id): a copy of its rows, {} if unknown. GrantChest(player, id): true, entry or false, reason. OpenChest(player, entry,
+--     rng): true, relicRow, wonSidekick or false, reason; draw 1 picks the Relic, draw 2 the Sidekick. Remote RelicOpenChest(entry).
+--   BossEventService.Hooks.PayStage default: GrantChest plus Phase1Money through MoneyService.Award in stage 1, Phase2Gems through
+--     MoneyService.AddGems in stage 2. GrantDefeat stays for its existing callers.
 --   GachaService.MoneyMulti and Luck: each Team character's Multi - 1 is added like the tree bonus (GachaConfig.Multis).
 --   CruiseFor and the run's stamina seconds: multiplied by the wearer's Multi, like the Sidekick's.
---   Boss TeamDamage: each Sidekick's Damage x its wearer's Multi, then averaged. Hit spacing = HitEverySeconds / attack multi.
+--   Boss hit (owner 2026-11-06): a character's Sidekick Damage x its Multi x the speed scale of its own cruise. TeamDamage: the sum over
+--   the line. Hit spacing = HitEverySeconds / attack multi.
 --
 -- READINGS the docs leave open, each pinned by a check and for the owner to confirm (names start with reading_):
---   team attack speed: the team hits as one (4.37), so its attack multi is the average of the team's multis.
+--   attack speed: each slot spaces its own hits by its own Relic's multi (4.37, owner 2026-11-06); no team average.
 --   relic bag: no rule gives it a cap, so a defeat's Relic is never refused.
 --   rebirth keeps Relics, like Sidekicks.
 -- NOT covered: icons (in-house art, none yet), the Details sheet showing these odds (the paid spawn's task).
@@ -526,17 +532,20 @@ function Tests.relics()
 			local sellRemote = remotes and remotes:FindFirstChild("RelicSell")
 			flag("remote_exists", equipRemote ~= nil and equipRemote:IsA("RemoteFunction"))
 			flag("sell_remote_exists", sellRemote ~= nil and sellRemote:IsA("RemoteFunction"))
+			local openRemote = remotes and remotes:FindFirstChild("RelicOpenChest")
+			flag("open_chest_remote_exists", openRemote ~= nil and openRemote:IsA("RemoteFunction"))
 			local others = {}
 			for _, item in remotes and remotes:GetChildren() or {} do
 				if
 					string.find(string.lower(item.Name), "relic", 1, true)
 					and item ~= equipRemote
 					and item ~= sellRemote
+					and item ~= openRemote
 				then
 					table.insert(others, item.Name)
 				end
 			end
-			flag("only_remotes_are_equip_and_sell", #others == 0, table.concat(others, ","), "")
+			flag("only_remotes_are_equip_sell_and_open", #others == 0, table.concat(others, ","), "")
 		end)
 
 		-- Owner 2026-11-05 (design doc 4.38, docs/RELIC_SPEC.md "Selling"): by rarity, for Money, never a worn one.
@@ -587,6 +596,216 @@ function Tests.relics()
 			local ran, result = pcall(S.Sell, p, entry)
 			money.Award = realAward
 			flag("sell_refused_payment_keeps_relic", ran and result == false and has(p, entry), tostring(result))
+		end)
+
+		-- Owner 2026-11-06 (design doc 4.37, 4.38, docs/RELIC_SPEC.md "Chests"): sealed spins, saved as rows of Relics.
+		section("chests", function()
+			local RAGA, ADAPTED = "relic_chest_raga", "relic_chest_adapted"
+			local NEVER = 0.5
+			local raga, adapted = C.Chests[RAGA], C.Chests[ADAPTED]
+			flag("chest_rows_exist", raga ~= nil and adapted ~= nil)
+			flag("chest_names", raga.Name == "Raga's Treasure" and adapted.Name == "Adapted Raga's Treasure")
+			flag("chest_raga_chance", raga.SidekickChance == 0.00001, raga.SidekickChance, 0.00001)
+			flag("chest_adapted_chance", adapted.SidekickChance == 0.0001, adapted.SidekickChance, 0.0001)
+			flag("chest_raga_chance_is_the_old_one", raga.SidekickChance == C.RagaSidekickChance)
+			for id, chest in { [RAGA] = raga, [ADAPTED] = adapted } do
+				flag("chest_id_" .. id, chest.Id == id)
+				flag("chest_flag_" .. id, chest.Chest == true)
+				flag("chest_no_bonuses_" .. id, type(chest.Bonuses) == "table" and next(chest.Bonuses) == nil)
+				flag("chest_boss_" .. id, chest.Boss == BOSS)
+				flag("chest_get_" .. id, C.Get(id) == chest)
+				flag("chest_not_in_bosses_" .. id, C.Bosses[id] == nil)
+				local inLists = false
+				for _, list in C.Bosses do
+					for _, row in list do
+						inLists = inLists or row.Id == id or row.Chest == true
+					end
+				end
+				flag("chest_no_row_in_bosses_" .. id, not inLists)
+				local letters = string.gsub(string.lower(chest.Id .. " " .. chest.Name), "%A", "")
+				local clean = catalogTests.realNameIn(string.lower(chest.Id)) == nil
+					and catalogTests.realNameIn(string.lower(chest.Name)) == nil
+				for _, name in SOURCE_NAMES do
+					clean = clean and string.find(letters, name, 1, true) == nil
+				end
+				flag("chest_no_real_name_" .. id, clean, chest.Name)
+				local sum = 0
+				for _, row in chest.Table do
+					sum += row.Odds
+					local fields = 0
+					for _ in row do
+						fields += 1
+					end
+					flag("chest_row_shape_" .. id .. "_" .. row.Rarity, fields == 4 and C.Get(row.Id) ~= nil, fields, 4)
+				end
+				flag("chest_sums_100_" .. id, math.abs(sum - 100) < 1e-9, sum, 100)
+				local shown = C.ChestOdds(id)
+				flag("chest_odds_same_" .. id, H.same(shown, chest.Table))
+				flag("chest_odds_is_a_copy_" .. id, shown ~= chest.Table and shown[1] ~= chest.Table[1])
+			end
+			flag("chest_odds_unknown_empty", #C.ChestOdds("no_such") == 0 and #C.ChestOdds(rows[1].Id) == 0)
+			flag("chest_odds_nil_empty", #C.ChestOdds(nil) == 0)
+			flag("chest_raga_table_is_phase_1", H.same(raga.Table, C.Odds(BOSS)))
+			-- Design doc 4.38: Phase 2 raises every rarity above Common, World Core at 0.5.
+			flag("chest_adapted_six_rows", #adapted.Table == #raga.Table, #adapted.Table, #raga.Table)
+			for i, row in adapted.Table do
+				local old = raga.Table[i]
+				flag("chest_adapted_same_relic_" .. old.Rarity, row.Id == old.Id and row.Rarity == old.Rarity)
+				if old.Rarity == "Common" then
+					flag("chest_adapted_common_lower", row.Odds < old.Odds, row.Odds, old.Odds)
+				else
+					flag("chest_adapted_higher_" .. old.Rarity, row.Odds > old.Odds, row.Odds, old.Odds)
+				end
+				if old.Rarity == "Secret" then
+					flag("chest_adapted_world_core_owner_value", row.Odds == 0.5, row.Odds, 0.5)
+				end
+			end
+
+			-- Grant: only a chest id.
+			local p = loaded(nil)
+			local fine, entry = S.GrantChest(p, RAGA)
+			flag("grant_chest_ok", fine == true and type(entry) == "string")
+			flag("grant_chest_row", bag(p)[1] ~= nil and bag(p)[1].Id == RAGA and bag(p)[1].Entry == entry)
+			flag("grant_chest_published", H.same(HttpService:JSONDecode(p:GetAttribute("RelicBag")), bag(p)))
+			local before = H.copy(snap(p))
+			for label, junk in { relic = rows[1].Id, unknown = "no_such", number = 5, table = {}, missing = false } do
+				local ran, result = pcall(S.GrantChest, p, junk ~= false and junk or nil)
+				flag(
+					"grant_chest_refuses_" .. label,
+					ran and result == false and unchanged(p, before),
+					tostring(result)
+				)
+			end
+
+			-- Open: each draw lands on its own chest's table; draw 2 is the Sidekick.
+			local function freshChest(id)
+				local who = loaded(nil)
+				local _, chestEntry = S.GrantChest(who, id)
+				return who, chestEntry
+			end
+			for id, chest in { [RAGA] = raga, [ADAPTED] = adapted } do
+				local cumulative = 0
+				for _, row in chest.Table do
+					local who, chestEntry = freshChest(id)
+					local rng = scripted({ (cumulative + row.Odds / 2) / 100, NEVER })
+					local done, relicRow, won = S.OpenChest(who, chestEntry, rng)
+					local tag = id .. "_" .. row.Rarity
+					flag("open_ok_" .. tag, done == true)
+					flag(
+						"open_returns_row_" .. tag,
+						relicRow ~= nil and relicRow.Id == row.Id,
+						relicRow and relicRow.Id,
+						row.Id
+					)
+					flag("open_two_draws_" .. tag, rng.Draws == 2, rng.Draws, 2)
+					flag("open_no_sidekick_" .. tag, not won and ragas(who) == 0)
+					flag("open_removes_chest_" .. tag, not has(who, chestEntry))
+					flag("open_adds_relic_" .. tag, #bag(who) == 1 and bag(who)[1].Id == row.Id)
+					cumulative += row.Odds
+				end
+				local who, chestEntry = freshChest(id)
+				local chance = chest.SidekickChance
+				local done, _, won = S.OpenChest(who, chestEntry, scripted({ NEVER, chance }))
+				flag(
+					"open_sidekick_at_threshold_" .. id,
+					done == true and won == true and ragas(who) == 1,
+					ragas(who),
+					1
+				)
+				flag("open_sidekick_keeps_relic_" .. id, #bag(who) == 1, #bag(who), 1)
+				who, chestEntry = freshChest(id)
+				_, _, won = S.OpenChest(who, chestEntry, scripted({ NEVER, chance * 1.0001 }))
+				flag("open_sidekick_misses_above_" .. id, not won and ragas(who) == 0, ragas(who), 0)
+				who, chestEntry = freshChest(id)
+				S.OpenChest(who, chestEntry, scripted({ chance, NEVER }))
+				flag("open_relic_draw_grants_no_sidekick_" .. id, ragas(who) == 0, ragas(who), 0)
+			end
+			-- The richer chance belongs to the Adapted chest alone.
+			local BETWEEN = (raga.SidekickChance + adapted.SidekickChance) / 2
+			local who, chestEntry = freshChest(RAGA)
+			S.OpenChest(who, chestEntry, scripted({ NEVER, BETWEEN }))
+			flag("raga_chest_misses_between", ragas(who) == 0, ragas(who), 0)
+			who, chestEntry = freshChest(ADAPTED)
+			S.OpenChest(who, chestEntry, scripted({ NEVER, BETWEEN }))
+			flag("adapted_chest_hits_between", ragas(who) == 1, ragas(who), 1)
+
+			-- May overflow the Sidekick bag (design doc 4.37).
+			local full = loaded(nil)
+			for _ = 1, SidekickConfig.BagSize do
+				Sidekick.Grant(full, SidekickConfig.List[1].Id)
+			end
+			local _, fullChest = S.GrantChest(full, ADAPTED)
+			S.OpenChest(full, fullChest, scripted({ NEVER, 0 }))
+			flag(
+				"open_overflows_sidekick_bag",
+				#Sidekick.Snapshot(full).Sidekicks == SidekickConfig.BagSize + 1 and ragas(full) == 1,
+				#Sidekick.Snapshot(full).Sidekicks,
+				SidekickConfig.BagSize + 1
+			)
+
+			-- Luck never reaches it (RELIC_SPEC).
+			local touched = 0
+			local function touch(original)
+				return function(...)
+					touched += 1
+					return original(...)
+				end
+			end
+			who, chestEntry = freshChest(RAGA)
+			gacha.Luck, gacha.Roll, GachaConfig.Roll = touch(oldLuck), touch(oldRoll), touch(oldConfigRoll)
+			local rolled, opened = pcall(S.OpenChest, who, chestEntry, scripted({ NEVER, NEVER }))
+			gacha.Luck, gacha.Roll, GachaConfig.Roll = oldLuck, oldRoll, oldConfigRoll
+			flag("open_no_error_under_watch", rolled and opened == true, tostring(opened))
+			flag("open_never_touches_luck_or_gacha_roll", touched == 0, touched, 0)
+
+			-- Refusals leave the bag unchanged.
+			local owner = dressed()
+			local chestE = select(2, S.GrantChest(owner, RAGA))
+			local relicE = grant(owner, rows[1].Id)
+			local held = H.copy(snap(owner))
+			for label, junk in
+				{ unknown = "no_such_entry", relic = relicE, number = 5, table = {}, bool = true, missing = false }
+			do
+				local ran, result = pcall(S.OpenChest, owner, junk ~= false and junk or nil, scripted({ NEVER, 0 }))
+				flag("open_refuses_" .. label, ran and result == false and unchanged(owner, held), tostring(result))
+			end
+			flag("open_refused_grants_no_sidekick", ragas(owner) == 0, ragas(owner), 0)
+			local stranger = dressed()
+			flag("open_other_players_chest_refused", (S.OpenChest(stranger, chestE, scripted({ NEVER, 0 }))) == false)
+
+			-- Never worn, never sold.
+			flag("equip_refuses_chest", (S.Equip(owner, charA, chestE)) == false and unchanged(owner, held))
+			local cash = money.Setup(owner)
+			local start = cash.Value
+			flag("sell_refuses_chest", (S.Sell(owner, chestE)) == false and unchanged(owner, held))
+			flag("sell_chest_pays_nothing", cash.Value == start, cash.Value, start)
+			for _, stat in STATS do
+				flag("multi_chest_in_bag_" .. stat, S.Multi(owner, charA, stat) == 1, S.Multi(owner, charA, stat), 1)
+			end
+			-- A save that somehow wears one: no error, no gain.
+			local odd = dressed()
+			S.Apply(odd, { Relics = { { Id = RAGA, Entry = "c" } }, RelicGear = { [charA] = "c" } })
+			local ran, multi = pcall(S.Multi, odd, charA, "Damage")
+			flag("multi_chest_worn_no_error", ran and multi == 1, tostring(multi), 1)
+
+			-- Saved rows: Snapshot and Apply, and a whole save round trip that can still open it.
+			local saver, saverId = dressed()
+			local savedChest = select(2, S.GrantChest(saver, ADAPTED))
+			local want = H.copy(snap(saver))
+			local copy = dressed()
+			S.Apply(copy, H.copy(want))
+			flag("apply_keeps_chest_rows", H.same(snap(copy), want))
+			flag("chest_save_ok", data.Save(saver, saverId, true) == true)
+			local record = store.data[data.KeyFor(saverId)]
+			flag("chest_saved", H.same(record.Relics, want.Relics))
+			flag(
+				"chest_save_json_safe",
+				H.same(HttpService:JSONDecode(HttpService:JSONEncode(record.Relics)), record.Relics)
+			)
+			local back, _, backOk = loaded(H.copy(record))
+			flag("chest_load_keeps", backOk == true and H.same(snap(back), want))
+			local openedBack, backRow = S.OpenChest(back, savedChest, scripted({ NEVER, NEVER }))
+			flag("chest_opens_after_load", openedBack == true and backRow ~= nil and not has(back, savedChest))
 		end)
 
 		section("multi", function()
@@ -772,6 +991,10 @@ function Tests.relics()
 				return p
 			end
 			local side = SidekickConfig.Get("side_chain").Damage
+			-- side_chain's hit from `slot` of `team`, before statuses, at `multi`.
+			local function hitOf(p, team, slot, multi)
+				return side * multi * Cfg.SpeedScale(gacha.CruiseFor(p, team[slot], slot, team))
+			end
 
 			begin()
 			local plain = fighter({ charA }, {})
@@ -785,29 +1008,26 @@ function Tests.relics()
 			B.SetTeam(strong, { charA })
 			-- Before a run the speed scale reads CruiseFor, so a Speed bonus reaches it.
 			local gain = 1 + bonus(secret, "Damage")
-			local wantBefore = Cfg.TeamDamage({ side * gain }, gacha.CruiseFor(strong, charA, 1))
+			local wantBefore = hitOf(strong, { charA }, 1, gain)
 			flag("damage_before_run", approx(B.TeamDamage(strong), wantBefore), B.TeamDamage(strong), wantBefore)
 			to(FIGHT)
 			for _, p in { plain, strong, pair, offTeam } do
-				runOf[p].TargetSpeed = 400
+				runOf[p].TargetSpeed = 400 -- not read: the speed scale is each character's own cruise
 			end
-			flag("damage_plain", approx(B.TeamDamage(plain), Cfg.TeamDamage({ side }, 400)))
+			flag("damage_plain", approx(B.TeamDamage(plain), hitOf(plain, B.TeamOf(plain), 1, 1)))
+			local wantStrong = hitOf(strong, { charA }, 1, gain)
+			flag("damage_relic", approx(B.TeamDamage(strong), wantStrong), B.TeamDamage(strong), wantStrong)
+			local wantPair = hitOf(pair, { charA, charB }, 1, gain) + hitOf(pair, { charA, charB }, 2, 1)
+			flag("damage_sum_of_scaled", approx(B.TeamDamage(pair), wantPair), B.TeamDamage(pair), wantPair)
 			flag(
-				"damage_relic",
-				approx(B.TeamDamage(strong), Cfg.TeamDamage({ side * gain }, 400)),
-				B.TeamDamage(strong)
+				"damage_off_team_relic_nothing",
+				approx(B.TeamDamage(offTeam), hitOf(offTeam, B.TeamOf(offTeam), 1, 1))
 			)
-			local wantPair = Cfg.TeamDamage({ side * gain, side }, 400)
-			flag("damage_average_of_scaled", approx(B.TeamDamage(pair), wantPair), B.TeamDamage(pair), wantPair)
-			flag("damage_off_team_relic_nothing", approx(B.TeamDamage(offTeam), Cfg.TeamDamage({ side }, 400)))
-			flag("hit_uses_relic_damage", approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400)))
+			flag("hit_uses_relic_damage", approx(B.RecordHit(strong), wantStrong))
 			B.Hooks.DamageMulti = function()
 				return 0.75 * 0.9
 			end
-			flag(
-				"status_cut_keeps_relic_bonus",
-				approx(B.RecordHit(strong), Cfg.TeamDamage({ side * gain }, 400) * 0.75 * 0.9)
-			)
+			flag("status_cut_keeps_relic_bonus", approx(B.RecordHit(strong), wantStrong * 0.75 * 0.9))
 			B.Hooks.DamageMulti = function()
 				return 1
 			end
@@ -840,32 +1060,78 @@ function Tests.relics()
 			flag("attack_setup_faster", math.floor(WINDOW * attack / Cfg.HitEverySeconds) - 1 > wantBase)
 			local fastHits = hits({ charA }, { [charA] = secret.Id })
 			flag("attack_secret_faster", close(fastHits, attack), fastHits, WINDOW * attack / Cfg.HitEverySeconds)
-			local averaged = 1 + bonus(secret, "AttackSpeed") / 2
-			local pairHits = hits({ charA, charB }, { [charA] = secret.Id })
+			-- Each slot on its own Relic's speed: the same window, counted per slot from the hits sent.
+			begin()
+			local slotHits = {}
+			local oldBossHits = B.Hooks.BossHits
+			B.Hooks.BossHits = function(_, entries)
+				for _, entry in entries do
+					slotHits[entry.Slot] = (slotHits[entry.Slot] or 0) + 1
+				end
+			end
+			local duo = fighter({ charA, charB }, { [charA] = secret.Id })
+			B.Join(duo)
+			B.SetTeam(duo, { charA, charB })
+			to(FIGHT)
+			to(FIGHT + WINDOW)
+			B.Hooks.BossHits = oldBossHits
+			local fastSlot, plainSlot = slotHits[1] or 0, slotHits[2] or 0
 			flag(
-				"reading_attack_speed_team_average",
-				close(pairHits, averaged),
-				pairHits,
-				WINDOW * averaged / Cfg.HitEverySeconds
+				"reading_attack_speed_own_slot",
+				close(fastSlot, attack),
+				fastSlot,
+				WINDOW * attack / Cfg.HitEverySeconds
 			)
+			flag("reading_attack_speed_not_shared", close(plainSlot, 1), plainSlot, WINDOW / Cfg.HitEverySeconds)
 
-			-- The real Rewards default, through a real defeat; a timeout still pays nothing (design doc 4.37).
-			B.Hooks.Rewards = oldHooks.Rewards
+			-- The real PayStage and RewardPopup defaults, through real defeats; a timeout still pays nothing (design doc 4.37).
 			begin()
 			local winner, idler = fighter({ charA }, {}), fighter({ charA }, {})
+			local cash = money.Setup(winner)
+			local startMoney, startGems = cash.Value, winner:GetAttribute("Gems") or 0
 			B.Join(winner)
 			B.Join(idler)
 			to(FIGHT)
 			runOf[winner].TargetSpeed = 800
 			local guard = 0
-			while B.IsIn(winner) and guard < 5000 do
+			while B.IsIn(winner) and B.State().Stage ~= 2 and guard < 5000 do
 				B.RecordHit(winner)
 				guard += 1
 			end
-			flag("defeat_reached", B.State().LastEnd == "Defeated", B.State().LastEnd, "Defeated")
+			flag("defeat_reached", B.State().Stage == 2, B.State().Stage, 2)
 			flag("rewards_hook_gives_winner_one", #bag(winner) == 1, #bag(winner), 1)
 			flag("rewards_hook_skips_no_damage", #bag(idler) == 0, #bag(idler), 0)
-			flag("rewards_hook_big_raga_relic", bag(winner)[1] ~= nil and rowOf[C.Get(bag(winner)[1].Id).Rarity] ~= nil)
+			flag("rewards_hook_raga_chest", bag(winner)[1] ~= nil and bag(winner)[1].Id == "relic_chest_raga")
+			flag(
+				"rewards_hook_phase_1_money",
+				cash.Value == startMoney + Cfg.Phase1Money,
+				cash.Value,
+				startMoney + Cfg.Phase1Money
+			)
+			flag("rewards_hook_phase_1_no_gems", (winner:GetAttribute("Gems") or 0) == startGems)
+			to(B.State().ScreamEndsAt - T0)
+			B.Hooks.DamageMulti = function()
+				return 1e9
+			end
+			B.RecordHit(winner)
+			B.Hooks.DamageMulti = function()
+				return 1
+			end
+			flag("final_defeat_reached", B.State().LastEnd == "Defeated", B.State().LastEnd, "Defeated")
+			flag("rewards_hook_second_chest", #bag(winner) == 2 and bag(winner)[2].Id == "relic_chest_adapted")
+			flag(
+				"rewards_hook_phase_2_gems",
+				winner:GetAttribute("Gems") == startGems + Cfg.Phase2Gems,
+				winner:GetAttribute("Gems"),
+				startGems + Cfg.Phase2Gems
+			)
+			flag(
+				"rewards_hook_phase_2_no_money",
+				cash.Value == startMoney + Cfg.Phase1Money,
+				cash.Value,
+				startMoney + Cfg.Phase1Money
+			)
+			flag("rewards_hook_idler_still_nothing", #bag(idler) == 0, #bag(idler), 0)
 
 			begin()
 			local late = fighter({ charA }, {})

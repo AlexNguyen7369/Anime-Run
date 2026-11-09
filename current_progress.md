@@ -114,14 +114,25 @@
 111. 2026-11-06 — Alex Nguyen — Made enemies faster so a Common does not outrun the Track 1 enemy and a Rare is about level, not run in Studio.
 112. 2026-11-06 — Alex Nguyen — Landed the owner's playtest fixes, boss start flow, Bosses popup, selling and item menus, full-bag auto sell and the merged Dodge bar with known red checks left open, for the owner's playtest.
 113. 2026-11-06 — Alex Nguyen — Fixed PR #4 review items: added Sidekicks, Big Raga and Relics to the parody list, removed a stale Relic spec line, stopped the boss tick after a defeat and refreshed the handoff.
-114. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
-115. 2026-11-08 — Alex Nguyen — Committed the baked-model fallback (CharacterModelService, PlazaDressing, BiomeAssets clone ServerStorage.BakedModels/<asset id> before loading), its spec notes and the art/model contact sheet.
-116. 2026-11-08 — Alex Nguyen — Verified the model bake in Studio: all 181 expected asset ids are in ServerStorage.BakedModels with the right class and content; pushed every local branch except main.
-117. 2026-11-09 — Alex Nguyen — Made Market auras and trails lighter in the boss event (0.5x aura rate, 0.6x trail opacity on runner copies, client only); rule in design doc 4.37 and BOSS_EVENT_SPEC, not run in Studio.
-118. 2026-11-09 — Alex Nguyen — Moved auto sell to Settings only and removed all sale UI from sold rolls (only Money moves).
-119. 2026-11-09 — Alex Nguyen — Gave admin runner Kami infinite stamina and Narito's model.
+114. 2026-11-06 — Alex Nguyen — Wrote boss Phase 2 rules into the design doc, boss and Relic specs and the goals file, with no code yet.
+115. 2026-11-06 — Alex Nguyen — Added small white floating particles to the boss arena's zone profile, not yet seen in Studio.
+116. 2026-11-06 — Alex Nguyen — Drew and uploaded art for 5 Relics and 2 chests after owner approval and set the Relic rows' images.
+117. 2026-11-06 — Alex Nguyen — Built the boss Phase 2 server and the line run; `[CARTEST] END pass=2 fail=0` on `boss_event` and `relics`, with client visuals not yet seen.
+118. 2026-11-06 — Alex Nguyen — Wrote the rule for Raga growing 25% in the Phase 2 scream cutscene, with no code yet.
+119. 2026-11-06 — Alex Nguyen — Landed the boss Phase 2 client, growth cutscene, wheel stop, rewards popup, chest opening, FOV lock and individual character hits; targeted scenarios passed, with the full harness not yet run.
+120. 2026-11-06 — Alex Nguyen — Fixed playtest audit items: the Backpack hint fits its row, Auto Sell hides during a boss event and the UI tests were updated, with `ui_boss` and `ui_bag_full` not rerun.
+121. 2026-11-06 — Alex Nguyen — Merged the playtest fixes and bake lookup, baked 181 models and meshes in Studio pending the owner's save, stripped test code from live servers, and fixed audit and full harness findings; `[CARTEST] END pass=64 fail=1` and `[UITEST] END pass=54 fail=2`, each red since fixed and passing alone.
+122. 2026-11-06 — Alex Nguyen — Fixed late joiners taking statuses from moves before their join, found by fresh review of PR #5; red first, then `[CARTEST] END pass=6 fail=0`.
+123. 2026-11-06 — Alex Nguyen — Merged PR #5 to `main` at d2450c6 after a fresh reviewer's approval, carrying boss Phase 2 and PR #4.
+124. 2026-11-06 — Alex Nguyen — Boss polish: Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera; server harness 55 of 55, UI 50 of 56, re-run stopped on the owner's word.
+125. 2026-11-06 — Alex Nguyen — Merged PR #7 (boss polish) to `main` at 685b452 after a fresh reviewer's approval, on the owner's word with the UI re-run stopped.
+126. 2026-11-08 — Alex Nguyen — Committed the baked-model fallback (CharacterModelService, PlazaDressing, BiomeAssets clone ServerStorage.BakedModels/<asset id> before loading), its spec notes and the art/model contact sheet.
+127. 2026-11-08 — Alex Nguyen — Verified the model bake in Studio: all 181 expected asset ids are in ServerStorage.BakedModels with the right class and content; pushed every local branch except main.
+128. 2026-11-09 — Alex Nguyen — Made Market auras and trails lighter in the boss event (0.5x aura rate, 0.6x trail opacity on runner copies, client only); rule in design doc 4.37 and BOSS_EVENT_SPEC, not run in Studio.
+129. 2026-11-09 — Alex Nguyen — Moved auto sell to Settings only and removed all sale UI from sold rolls (only Money moves).
+130. 2026-11-09 — Alex Nguyen — Gave admin runner Kami infinite stamina and Narito's model.
 
 ## What's next
-**Owner playtests `feature/alex/anime-world` in Studio (Settings auto sell row, a sold roll, a `/kami` run, the lighter event auras), then merge it into `feature/alex/boss-phase2` and run the full harness, including `ui_boss` and `ui_bag_full`.**
+**Owner playtests `feature/alex/anime-world` on Rojo 34873 (Settings auto sell row, a sold roll, a `/kami` run, lighter event auras on the boosted ones), then run `ui_boss`, `ui_rolls`, `ui_toast`, `ui_index`, `ui_inventory`, `ui_hitboxes` and `ui_bag_full` on a save past the roll tutorial and play a real Phase 2 to its end.**
 
-**Why this is next:** none of today's changes have been run in Studio, and the route to `main` is the boss phase 2 PR, which needs green tests and a fresh review.
+**Why this is next:** every branch Rojo served is now in this one branch, none of the merged result has run in Studio, and the last UI harness left 6 reds no run has confirmed.

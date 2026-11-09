@@ -15,6 +15,7 @@ local Arena = require(Shared.BossArenaConfig)
 local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
+local VehicleEffects = require(Shared.VehicleEffects)
 local BossWaitCamera = require(script.Parent.BossWaitCamera)
 local RunnerVisual = require(script.Parent.RunnerVisual)
 local RunStyleFx = require(script.Parent.RunStyleFx)
@@ -30,7 +31,6 @@ local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
-local routes = {} -- RunRoutes folder name -> { Wps, Arc, Closed }
 
 local EFFECTS = { "ParticleEmitter", "Trail", "Beam", "BillboardGui" }
 local function isEffect(d)
@@ -51,47 +51,31 @@ local function hide(d)
 	end
 end
 
--- Boss event (docs/BOSS_EVENT_SPEC.md "Arena"): Market auras and trails draw lighter on the copy. Placeholders.
+-- Boss event (docs/BOSS_EVENT_SPEC.md "Arena"): Market auras and trails draw lighter on the copy, on top of the event boost.
+-- Applied in place, so the camera keeps following the same copy. `on` false undoes it. Placeholders.
 local EVENT_AURA_RATE, EVENT_TRAIL_OPACITY = 0.5, 0.6
-local function lighten(d)
+local function lighten(d, on)
 	if d:IsA("ParticleEmitter") and d.Parent:GetAttribute("MarketEffect") then
-		d.Rate *= EVENT_AURA_RATE
+		d.Rate *= on and EVENT_AURA_RATE or 1 / EVENT_AURA_RATE
 	elseif d:IsA("Trail") and d.Parent.Name == "MarketEffects" then
+		local opacity = on and EVENT_TRAIL_OPACITY or 1 / EVENT_TRAIL_OPACITY
 		local keys = {}
 		for i, k in d.Transparency.Keypoints do
-			keys[i] = NumberSequenceKeypoint.new(k.Time, 1 - (1 - k.Value) * EVENT_TRAIL_OPACITY, k.Envelope)
+			keys[i] = NumberSequenceKeypoint.new(k.Time, math.clamp(1 - (1 - k.Value) * opacity, 0, 1), k.Envelope)
 		end
 		d.Transparency = NumberSequence.new(keys)
 	end
 end
 
--- The route's waypoints once every one has replicated, else nil.
-local function routeOf(name)
-	if type(name) ~= "string" then
-		return nil
-	end
-	local cached = routes[name]
-	if cached then
-		return cached
-	end
-	local root = ReplicatedStorage:FindFirstChild("RunRoutes")
-	local folder = root and root:FindFirstChild(name)
-	local count = folder and folder:GetAttribute("Count")
-	if not (folder and type(count) == "number" and #folder:GetChildren() >= count and count >= 2) then
-		return nil
-	end
-	local wps = table.create(count)
-	for i = 1, count do
-		local v = folder:FindFirstChild(tostring(i))
-		if not v then
-			return nil
-		end
-		wps[i] = v.Value
-	end
-	-- Closed: a lap route (design doc 4.37). The folder attribute is set by whoever publishes the route.
-	cached = { Wps = wps, Arc = PathDriver.Arc(wps), Closed = folder:GetAttribute("Closed") == true }
-	routes[name] = cached
-	return cached
+local function ownerOf(rig)
+	local id = rig:GetAttribute("Owner")
+	return type(id) == "number" and Players:GetPlayerByUserId(id) or nil
+end
+
+-- A team with no one left in the line: the held body is gone too, until the refill (BOSS_EVENT_SPEC "Line run").
+local function teamGone(rig)
+	local owner = ownerOf(rig)
+	return owner and owner:GetAttribute("BossEvent") == true and owner:GetAttribute("BossLine") == "" or false
 end
 
 -- (Re)builds the drawn copy from the server rig (its look, aura and trail), keeping the run state.
@@ -110,23 +94,34 @@ local function rebuild(view)
 	end
 	CollectionService:RemoveTag(copy, SERVER_TAG)
 	local lighter = player:GetAttribute("BossEvent") == true
+	view.Lighter = lighter
 	for _, d in copy:GetDescendants() do
 		if d:IsA("BasePart") or d:IsA("Decal") then
 			d.LocalTransparencyModifier = 0
 		elseif isEffect(d) then
 			d.Enabled = true -- VehicleEffects never adds a disabled effect; hide() turned them off on the rig
 			if lighter then
-				lighten(d)
+				lighten(d, true)
 			end
 		end
 	end
 	copy.Name = rig.Name .. "_Visible"
 	-- the rig's PrimaryPart can replicate nil after a re-skin (first tag-in), which would drop the camera to the hidden avatar
 	copy.PrimaryPart = copy:FindFirstChild("Torso") or copy.PrimaryPart
+	local owner = ownerOf(rig)
+	view.Boosted = owner ~= nil and owner:GetAttribute("BossEvent") == true
+	if view.Boosted then
+		VehicleEffects.Boost(copy, VehicleEffects.EVENT_BOOST)
+	end
 	CollectionService:AddTag(copy, RunnerVisual.TAG)
 	RunStyleFx.Attach(copy)
 	copy.Parent = Workspace
 	view.Copy = copy
+	if view.Gone then
+		for _, d in copy:GetDescendants() do
+			hide(d)
+		end
+	end
 end
 
 local function add(rig)
@@ -158,6 +153,21 @@ local function add(rig)
 			view.Dirty = true
 		end)
 	)
+	-- entering or leaving an event resizes the aura and trail, on the same copy: the camera follows it
+	local owner = ownerOf(rig)
+	if owner then
+		table.insert(
+			view.Connections,
+			owner:GetAttributeChangedSignal("BossEvent"):Connect(function()
+				local boosted = owner:GetAttribute("BossEvent") == true
+				if view.Copy and boosted ~= view.Boosted then
+					view.Boosted = boosted
+					local factor = VehicleEffects.EVENT_BOOST
+					VehicleEffects.Boost(view.Copy, boosted and factor or 1 / factor)
+				end
+			end)
+		)
+	end
 	view.ChangedAt = os.clock()
 	table.insert(
 		view.Connections,
@@ -182,9 +192,15 @@ local function remove(rig)
 	end
 end
 
-player:GetAttributeChangedSignal("BossEvent"):Connect(function() -- lighter auras and trails on or off
+player:GetAttributeChangedSignal("BossEvent"):Connect(function() -- lighter auras and trails on or off, in place
+	local lighter = player:GetAttribute("BossEvent") == true
 	for _, view in views do
-		view.Dirty = true
+		if view.Copy and view.Lighter ~= lighter then
+			view.Lighter = lighter
+			for _, d in view.Copy:GetDescendants() do
+				lighten(d, lighter)
+			end
+		end
 	end
 end)
 
@@ -206,10 +222,16 @@ local function step(view, now)
 		rebuild(view)
 		copy = view.Copy
 	end
+	local gone = teamGone(rig)
+	if gone ~= (view.Gone == true) then
+		view.Gone = gone
+		rebuild(view) -- hides it, or brings it back with its effects as they were
+		copy = view.Copy
+	end
 	local dt = math.max(0, now - (view.At or now))
 	view.At = now
 	local rd, rs = rig:GetAttribute("RunDistance"), rig:GetAttribute("RunSpeed")
-	local route = routeOf(rig:GetAttribute("RunRoute"))
+	local route = RunnerVisual.RouteOf(rig:GetAttribute("RunRoute"))
 	if not (route and type(rd) == "number" and type(rs) == "number") then
 		-- not running (a held duel start): show it where the server holds it
 		view.Dist = nil
@@ -353,6 +375,7 @@ end
 local cameraOnRunner = false
 local followed = nil -- { Part, Position }: where the camera last framed the local runner
 local fovBefore = nil -- the camera's own FOV while the event's wider one is on
+local zoomBefore = nil
 RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, function(dt)
 	stepAll()
 	-- the camera follows the local player's visible runner while racing, and goes back to the avatar after
@@ -366,20 +389,19 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		setAngles(camera, savedPitch, math.atan2(-look.X, -look.Z))
 		savedPitch = nil
 	end
-	-- The event's wider view (BOSS_EVENT_SPEC "Run rules"). Top-down keeps its own FOV and saves the normal one: it runs after this
-	-- step, so the normal one is back first. It holds the camera Scriptable until its restore, which brings that FOV back.
-	local wide = camera
-		and player:GetAttribute("BossEvent") == true
-		and camera.CameraType == Enum.CameraType.Custom
-		and not (player:GetAttribute("TopDownView") == true and player:GetAttribute("AutoRacing") == true)
+	-- The event's locked view (BOSS_EVENT_SPEC "Run rules"). A saved top-down setting does not apply in an event. Outside one,
+	-- top-down runs after this step and restores the normal FOV itself.
+	local wide = camera and player:GetAttribute("BossEvent") == true and camera.CameraType == Enum.CameraType.Custom
 	if waitView then
 		wide = fovBefore ~= nil
 	end
 	if wide and not fovBefore then
-		fovBefore = camera.FieldOfView
+		fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
 		camera.FieldOfView = BossCfg.CameraFov
+		player.CameraMinZoomDistance = BossCfg.CameraZoom
 	elseif camera and not wide and fovBefore then
 		camera.FieldOfView = fovBefore
+		player.CameraMinZoomDistance = zoomBefore
 		fovBefore = nil
 	end
 	local rising = camera and riseCameraOn(camera)
@@ -417,6 +439,18 @@ RunService.PreSimulation:Connect(function()
 		camera.CFrame += delta
 		camera.Focus += delta
 	end
+end)
+
+-- The event's locked distance (BOSS_EVENT_SPEC "Run rules"), after the default camera: ARENA_PITCH looks up from a low runner, so the
+-- default camera would pop in front of the deck, to about 10 studs. Same view line, moved up to stay on top of the deck.
+local ABOVE_DECK = 2 -- studs, placeholder
+RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value + 1, function()
+	local camera = Workspace.CurrentCamera
+	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
+		return
+	end
+	local eye = camera.Focus.Position - camera.CFrame.LookVector * BossCfg.CameraZoom
+	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, Arena.Y + ABOVE_DECK), eye.Z)
 end)
 
 -- Tunnel camera clamp (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), after the default camera: while a tunnel part is straight

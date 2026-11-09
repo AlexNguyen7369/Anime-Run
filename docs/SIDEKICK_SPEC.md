@@ -48,7 +48,7 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 
 | Id | Based on | Name | Rarity | Odds | Run gain | Hit every 1.5 s | Sells for |
 |---|---|---|---|---|---|---|---|
-| `side_raga` | Mahoraga | Big Raga | Secret | 0.001% per eligible player on a defeat | +10% cruise, +10% stamina | 40 | 30 Gems |
+| `side_raga` | Mahoraga | Big Raga | Secret | 0.001% from Raga's Treasure, 0.01% from Adapted Raga's Treasure, a separate roll when a chest opens | +10% cruise, +10% stamina | 40 | 30 Gems |
 
 ## Rotation (owner 2026-11-05)
 - Every 30 minutes, from UTC time, every server computes the same rotation from the time slot alone: no store, no messaging. It holds 1 Mythic, 2 Legendaries, 2 Rares, all Commons and 1 Secret.

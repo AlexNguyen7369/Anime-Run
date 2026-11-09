@@ -419,6 +419,7 @@ local function render()
 	local team = teamIds()
 	local running = player:GetAttribute("RunSlot")
 	local waiting = waitLeft() ~= nil
+	local bossLine = player:GetAttribute("BossLine")
 	if wasWaiting and not waiting and not UiMotion.Reduced() then
 		lastSlot = nil -- revived: the first runner takes the tag-in pop, even in a team of 1
 	end
@@ -439,7 +440,10 @@ local function render()
 		end
 		local stamina = tonumber(player:GetAttribute("Stamina" .. slot))
 		local active = running == slot and spec ~= nil and not waiting
-		local tired = spec ~= nil and (waiting or (running ~= nil and (stamina or 1) <= 0))
+		local gone = inEvent()
+			and type(bossLine) == "string"
+			and not table.find(string.split(bossLine, ","), tostring(slot))
+		local tired = spec ~= nil and (waiting or gone or (running ~= nil and (stamina or 1) <= 0))
 		local state = active and "active" or tired and "tired" or "idle"
 		-- on foot every runner shows full stamina
 		circle.Target = running ~= nil and stamina and math.clamp(stamina / 100, 0, 1) or 1
@@ -568,6 +572,7 @@ player.AttributeChanged:Connect(function(name)
 		name == "Team"
 		or name == "BossEvent"
 		or name == "BossWaitEndsAt"
+		or name == "BossLine"
 		or (string.sub(name, 1, 8) == "BossTeam" and name ~= "BossTeamDamage")
 		or name == "RunSlot"
 		or name == "TeamBonus"

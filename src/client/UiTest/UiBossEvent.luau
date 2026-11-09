@@ -1298,7 +1298,7 @@ function Module.Build(h)
 	end
 
 	-- Owner 2026-11-05: in the event the minibar is the event team. During the wait: all grey, none active, bars refilling by the end
-	-- time. Attributes set here stay on this client: TeamHud only reads them. The 5 s wait's start and end are sampled, not all of it.
+	-- time. Attributes set here stay on this client: TeamHud only reads them. The wait's start and end are sampled, not all of it.
 	local function checkWaitMinibar(res)
 		local hud = h.find("RacerHud")
 		local row = hud and hud:FindFirstChild("Team", true)
@@ -1597,9 +1597,11 @@ function Module.Build(h)
 		waitShown(BAR, true)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
-		local homeBefore = camera.CFrame.Position
+		-- The camera follows a moving runner (BossWaitCamera.homeFrame carries its offset from the subject), so a world position
+		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 144 in the wait's view (120 out, 80 up).
+		local homeBefore = Spec.CameraReach(camera)
 		local function atHome()
-			return (camera.CFrame.Position - homeBefore).Magnitude < WAIT_CAMERA_SLACK
+			return math.abs(Spec.CameraReach(camera) - homeBefore) < WAIT_CAMERA_SLACK
 		end
 		local function checkRestored(tag, fov)
 			check(res, tag .. "_panel_gone", waitShown(PANEL, false), false)
@@ -1698,7 +1700,7 @@ function Module.Build(h)
 		-- The live camera sees the whole boss, wheel top to feet (BossEventTests judges the runner and the sizes, purely).
 		local outside = 0
 		for _, height in { 0, Arena.BossTotalHeight } do
-			local at = camera:WorldToViewportPoint(Arena.Center + Vector3.yAxis * height)
+			local at = camera:WorldToViewportPoint(Vector3.new(Arena.Center.X, Arena.DaisY + height, Arena.Center.Z))
 			if at.Z <= 0 or at.X < 0 or at.Y < 0 or at.X > view.X or at.Y > view.Y then
 				outside += 1
 			end
@@ -1740,9 +1742,14 @@ function Module.Build(h)
 		check(res, "wait_leave_usable", h.find(LEAVE).Active and h.find(LEAVE).Interactable, true)
 		h.player:SetAttribute("BossStatus", nil)
 
-		-- Both follow the end time. Past 5 s the panel holds at 1 and full until the server clears the attribute.
+		-- Both follow the end time. The count reads the whole wait (8.5) until the first whole second, then whole seconds.
+		-- Past the wait the panel holds at 1 and full until the server clears the attribute.
 		local endsAt = h.player:GetAttribute("BossWaitEndsAt")
 		local worstFill, badCount, lastFill, shrank, loose, lost, seen = 0, 0, 0, false, false, false, {}
+		local overWait = false
+		local function countAt(left)
+			return left > math.floor(wait) and wait or math.max(1, math.ceil(left))
+		end
 		while endsAt and endsAt - workspace:GetServerTimeNow() > 0.03 do
 			local remaining = endsAt - workspace:GetServerTimeNow()
 			local size = fill.Size.X
@@ -1752,10 +1759,11 @@ function Module.Build(h)
 			loose = loose or size.Offset ~= 0
 			local shownCount = tonumber(countdown.Text)
 			seen[shownCount or "bad"] = true
+			overWait = overWait or (shownCount ~= nil and shownCount > wait)
 			if
-				shownCount ~= math.ceil(remaining)
-				and shownCount ~= math.ceil(remaining + WAIT_COUNT_SLACK)
-				and shownCount ~= math.ceil(remaining - WAIT_COUNT_SLACK)
+				shownCount ~= countAt(remaining)
+				and shownCount ~= countAt(remaining + WAIT_COUNT_SLACK)
+				and shownCount ~= countAt(remaining - WAIT_COUNT_SLACK)
 			then
 				badCount += 1
 			end
@@ -1767,7 +1775,7 @@ function Module.Build(h)
 		check(res, "wait_fill_uses_scale", loose, false)
 		check(res, "wait_countdown_follows_end_time", badCount, 0)
 		check(res, "wait_countdown_reaches_1", seen[1] == true, true)
-		check(res, "wait_countdown_never_0_or_more_than_5", seen[0] or seen[6] or seen.bad or false, false)
+		check(res, "wait_countdown_never_0_or_over_the_wait", seen[0] or overWait or seen.bad or false, false)
 		check(res, "wait_view_held_throughout", lost, false)
 		task.wait(0.1)
 		h.check(res, "wait_fill_complete_at_end", fill.Size.X.Scale, ">= 0.98", fill.Size.X.Scale >= 0.98)

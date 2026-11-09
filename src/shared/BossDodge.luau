@@ -7,10 +7,12 @@ local Poses = require(script.Parent.BossRagaPoses)
 
 local BossDodge = {}
 
-BossDodge.SweepSeconds = 1.5 -- owner: 1 to 2 s
-BossDodge.SpotWidth = 0.14 -- of the bar
--- The window ends at least 0.35 s before the moment: a press in it reaches the server before the moment is charged.
-local SPOT_MIN, SPOT_MAX = 0.25, 0.69 -- the spot's centre, of the bar; the start is the owner's "a couple meters" clear
+local SWEEPS = { 1.5, 1.1 } -- by stage. Owner: 1 to 2 s, faster in Phase 2
+BossDodge.SweepSeconds = SWEEPS[1]
+BossDodge.SpotWidth = 0.125 -- of the bar
+-- The window ends about 0.35 s before the moment: a press in it reaches the server before the moment is charged.
+-- The spot's centre by stage, of the bar; the start is the owner's "a couple meters" clear.
+local SPOTS = { { 0.25, 0.69 }, { 0.25, 0.62 } }
 BossDodge.ResultSeconds = 1.5
 BossDodge.HitText = {
 	Impact = "You were hit by Raga's Slice",
@@ -49,6 +51,10 @@ do
 	end)
 end
 
+function BossDodge.SweepFor(stage)
+	return SWEEPS[stage]
+end
+
 -- Moment `index` -> its time and event name.
 function BossDodge.Moment(index)
 	local cycles = (index - 1) // #list
@@ -71,17 +77,18 @@ function BossDodge.IndexAtOrBefore(since)
 end
 
 -- Where the spot's centre sits on the bar for this player and moment, 0 to 1.
-function BossDodge.Spot(userId, startAt, index)
+function BossDodge.Spot(userId, startAt, index, stage)
 	local random = Random.new((userId % 1e6) * 31337 + (math.floor(startAt) % 1e6) * 613 + index * 7919)
 	random:NextNumber() -- nearby seeds start alike
-	return SPOT_MIN + random:NextNumber() * (SPOT_MAX - SPOT_MIN)
+	local low, high = SPOTS[stage][1], SPOTS[stage][2]
+	return low + random:NextNumber() * (high - low)
 end
 
 -- The spot as times, for a bar reaching its end at `momentAt`, on momentAt's clock.
-function BossDodge.Window(spot, momentAt)
-	local start = momentAt - BossDodge.SweepSeconds
-	return start + (spot - BossDodge.SpotWidth / 2) * BossDodge.SweepSeconds,
-		start + (spot + BossDodge.SpotWidth / 2) * BossDodge.SweepSeconds
+function BossDodge.Window(spot, momentAt, stage)
+	local sweep = SWEEPS[stage]
+	local start = momentAt - sweep
+	return start + (spot - BossDodge.SpotWidth / 2) * sweep, start + (spot + BossDodge.SpotWidth / 2) * sweep
 end
 
 return BossDodge

@@ -512,6 +512,15 @@ function Extras.Build(h)
 		local rolled = attr("Rolls") ~= rollsBefore
 		h.check(res, "bag_full_sold_tick_counts", attr("Rolls"), "not " .. tostring(rollsBefore), rolled)
 		h.check(res, "bag_full_stays_full", attr("BagFull"), true, attr("BagFull") == true)
+		-- A missing roll's failure reads the cause (ui_toast, ui_roll_anim), proved on this really full bag.
+		local noRoll = Spec.NoRollWhy(h.player)
+		h.check(
+			res,
+			"no_roll_reason_names_full_bag",
+			noRoll,
+			"bag full",
+			string.find(noRoll, "bag full", 1, true) ~= nil
+		)
 		h.check(res, "bag_full_autoroll_stays_on", attr("AutoRoll"), true, attr("AutoRoll") == true)
 		h.requestSetup("bag_spares_clear")
 		untilShown(false, 1.5)

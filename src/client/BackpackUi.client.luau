@@ -191,7 +191,6 @@ tab("Sidekicks", 5, function(b)
 	SidekickView.Art(b, SidekickConfig.List[1], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible =
 		false
 end)
--- shortcut: Relic art is SidekickView's text tile (rarity colour, name), in-house icons need art and an upload; replace them then.
 tab("Relics", 6, function(b)
 	local list = RelicConfig.Bosses.big_raga
 	SidekickView.Art(b, list[#list], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible = false
@@ -714,9 +713,46 @@ local function relicWearers()
 	return wearers
 end
 
+-- One tile per chest id, ahead of the Relics, its entries counted on it (docs/RELIC_SPEC.md "Chests").
+local function chestTile(chest, order, copies)
+	local b = tile(chest.Id, order, false)
+	SidekickView.Art(b, chest, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
+	caption("Count", b, {
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -6, 1, -2),
+		Size = UDim2.new(1, -12, 0, 30),
+		Text = count(copies),
+		TextSize = 26,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 5,
+	})
+	local words = chest.Name .. ": open it for a Relic."
+	b.MouseEnter:Connect(function()
+		hint.Text = words
+	end)
+	b.Activated:Connect(function()
+		hint.Text = words -- touch has no hover
+		UiMotion.Pop(b, 0.06)
+		ItemMenu.OpenChest(chest.Id, b)
+	end)
+end
+
 local function renderRelics()
 	local bag = SidekickView.RelicBag(player)
-	entryTiles(bag, relicWearers(), "Relic", RelicConfig.Get, relicFacts)
+	local relics, chests = {}, {}
+	for at, item in bag do
+		if not RelicConfig.Chests[item.Id] then
+			table.insert(relics, item)
+		elseif chests[item.Id] then
+			chests[item.Id].Copies += 1
+		else
+			chests[item.Id] = { Copies = 1, Order = at - #bag - 1 } -- below every Relic's order, in the bag's order
+		end
+	end
+	for id, row in chests do
+		chestTile(RelicConfig.Chests[id], row.Order, row.Copies)
+	end
+	entryTiles(relics, relicWearers(), "Relic", RelicConfig.Get, relicFacts)
 	bagCount.Text = tostring(#bag) -- no cap: no rule gives this bag one
 	empty.Text = "No Relics yet. Defeat a boss to earn one!"
 	return #bag

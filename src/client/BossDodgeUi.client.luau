@@ -79,6 +79,7 @@ local dodge = make(
 local barScale = make("UIScale", { Name = "BarScale", Scale = 0 }, dodge)
 local bar = make("TextButton", {
 	Name = "Bar",
+	Font = UiTheme.Font,
 	Text = "",
 	AutoButtonColor = false,
 	BackgroundColor3 = Color3.fromRGB(24, 18, 12),
@@ -129,7 +130,7 @@ local resultScale = make("UIScale", { Name = "ResultScale" }, result)
 make("UIStroke", { Thickness = 2.5, Color = Color3.fromRGB(45, 15, 5) }, result) -- gold and red both need it over a bright sky
 
 local prompt = nil -- { Index, At, Name, Pending, Missed, Dodged }
-local doneIndex, doneStart = 0, nil -- no second bar for a moment; a new event starts over
+local doneIndex, doneSchedule = 0, nil -- no second bar for a moment; a new event or stage starts over
 local resultUntil = 0
 local stopFlash = nil
 
@@ -291,11 +292,15 @@ local function place()
 	dodge.Visible = true
 end
 
+local function currentStage()
+	return ReplicatedStorage:GetAttribute("BossEventStage") or 1
+end
+
 local function openPrompt(index, at, name, startAt)
 	prompt = { Index = index, At = at, Name = name }
-	doneIndex, doneStart = index, startAt
+	doneIndex = index
 	slider.BackgroundColor3 = WHITE
-	spot.Position = UDim2.fromScale(BossDodge.Spot(player.UserId, startAt, index), 0.5)
+	spot.Position = UDim2.fromScale(BossDodge.Spot(player.UserId, startAt, index, currentStage()), 0.5)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 	subtitle.Text = touch and "Tap when the bar hits the white!" or "Press SPACE when the bar hits the white!"
 	subtitle.TextTransparency = 0
@@ -336,10 +341,16 @@ local function render()
 		end
 		return
 	end
-	if doneStart ~= startAt then
-		doneIndex, doneStart = 0, startAt
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
+	if doneSchedule ~= schedule then
+		doneIndex, doneSchedule = 0, schedule
+		if prompt then
+			closePrompt() -- no hit: the schedule it belonged to is over (BOSS_EVENT_SPEC "Phase 2")
+			return
+		end
 	end
-	local since = workspace:GetServerTimeNow() - startAt - Cfg.PrepSeconds - Cfg.IntroSeconds
+	-- Below 0 through the scream: the new schedule's moments start at its end.
+	local since = workspace:GetServerTimeNow() - schedule - Cfg.IntroSeconds
 	if prompt then
 		if prompt.Dodged then
 			closePrompt()
@@ -349,12 +360,13 @@ local function render()
 			closePrompt()
 			showHit(BossDodge.HitText[name])
 		else
-			slider.Position = UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepSeconds, 0, 1), 0.5)
+			slider.Position =
+				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
 		end
 	elseif since >= 0 then
 		local index = BossDodge.IndexAtOrBefore(since) + 1
 		local at, name = BossDodge.Moment(index)
-		if index > doneIndex and at - since <= BossDodge.SweepSeconds + BAR_ANIM_SECONDS then
+		if index > doneIndex and at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
 			openPrompt(index, at, name, startAt)
 		end
 	end

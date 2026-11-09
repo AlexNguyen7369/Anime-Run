@@ -10072,29 +10072,30 @@ function Scenarios.roll_anim()
 		check(checks, "service_roll_owned_not_emphasized", second and 1 or 0, 1, second)
 		check(checks, "announce_not_on_owned_roll", #calls, 1, #calls == 1)
 
-		-- 5 rarer cars owned (5th-rarest leaf_medic, Uncommon): Go-Kart (Rare) is emphasized, the catch-all is not
+		-- Design doc 4.40: 3rd-rarest owned is leaf_medic (1 in 10), bar 1 in 1000: db_scholar, exactly on it, is
+		-- emphasized; the catch-all is not
 		local r2 = newTestPlayer(cleanup, "CarTestRollAnimP2")
 		GachaService.Setup(r2)
-		for _, id in { "db_hero", "leaf_crow", "leaf_hero", "db_tyrant", "leaf_medic" } do
+		for _, id in { "db_hero", "leaf_crow", "leaf_medic" } do
 			GachaService.Grant(r2, id)
 		end
 		local before = #calls
-		local kartDraws = {}
-		local kartChance = CharacterCatalog.Get("leaf_copycat").Chance -- the least rare Rare (odds rev. 2026-10-27)
+		local barDraws = {}
+		local barChance = CharacterCatalog.Get("db_scholar").Chance
 		for _, spec in GACHA_CATALOG do
-			if not spec.Event and spec.Chance and spec.Chance > kartChance then
-				table.insert(kartDraws, 0.99)
+			if not spec.Event and spec.Chance and spec.Chance > barChance then
+				table.insert(barDraws, 0.99)
 			end
 		end
-		table.insert(kartDraws, 0)
-		local okK, idK, newK, _, emphK = pcall(GachaService.Roll, r2, seqRoller(kartDraws))
-		local kart = okK and idK == "leaf_copycat" and newK == true and emphK == true
-		check(checks, "service_roll_rarer_than_fifth_emphasized", kart and 1 or 0, 1, kart)
-		local annK = #calls == before + 1
+		table.insert(barDraws, 0)
+		local okB, idB, newB, _, emphB = pcall(GachaService.Roll, r2, seqRoller(barDraws))
+		local atBar = okB and idB == "db_scholar" and newB == true and emphB == true
+		check(checks, "service_roll_100x_third_rarest_emphasized", atBar and 1 or 0, 1, atBar)
+		local annB = #calls == before + 1
 			and calls[#calls].player == r2
-			and calls[#calls].id == "leaf_copycat"
+			and calls[#calls].id == "db_scholar"
 			and calls[#calls].rolls == r2:GetAttribute("Rolls")
-		check(checks, "announce_rarer_than_fifth", #calls - before, 1, annK)
+		check(checks, "announce_100x_third_rarest", #calls - before, 1, annB)
 		before = #calls
 		local okH, idH, newH, _, emphH = pcall(GachaService.Roll, r2, seqRoller({ 0.99 }))
 		local hatch = okH and idH == catchAllId and newH == true and emphH == false
@@ -10106,7 +10107,19 @@ function Scenarios.roll_anim()
 			local r3 = newTestPlayer(cleanup, "CarTestRollAnimP3")
 			GachaService.Setup(r3)
 			before = #calls
-			local rng = Random.new(ROLL_ANIM_SERVICE_SEED)
+			-- The first draw hits the rarest, so the run always holds an emphasized roll: 4.40 makes them too rare to
+			-- count on from a seed.
+			local seeded = Random.new(ROLL_ANIM_SERVICE_SEED)
+			local firstDraw = true
+			local rng = {
+				NextNumber = function(_self)
+					if firstDraw then
+						firstDraw = false
+						return 0
+					end
+					return seeded:NextNumber()
+				end,
+			}
 			local mismatch, flagged, rollErr = 0, 0, 0
 			for _ = 1, ROLL_ANIM_SERVICE_ROLLS do
 				local ownedBefore = {}

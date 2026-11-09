@@ -17,11 +17,17 @@
 --   DamageNumber: a BillboardGui or TextLabel of that name under AttackEffects or PlayerGui, shown at the impact, its text holding the
 --   damage. An entry whose id or owner is unknown draws no follower pose and raises no error. An entry whose id is not the one its
 --   follower wears still fires its shot, with no pose.
+--   Characters act individually (owner 2026-11-06; design doc 4.37, BOSS_EVENT_SPEC "Run rules", "Damage numbers"): an entry is
+--   { UserId, SidekickId, Damage, Slot, CharacterId }. One attack and one number per entry, for any member, never summed. The attack
+--   leaves that character's own follower: Follower_<BossTeamRig.Owner(UserId, Slot)> where that rig exists, else the front's. The number's
+--   TextColor3 is GachaConfig.RARITY_COLORS[CharacterCatalog.Get(CharacterId).Rarity], with no UIGradient. A member whose follower is
+--   hidden or absent still shows the number. Fixture: UiTestSetup sidekick_follow_hits takes <userId|me>:<id>:<damage>:<character>:<slot>.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
+local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 
 local WAIT = 5 -- s: a follower may need a frame or a model load
 local MODELS_WAIT = 30 -- s
@@ -37,6 +43,7 @@ local POSE_WAIT = 2 -- s: an attack is at most 1.45 s
 local TOTAL_PARTICLES, REDUCED_PARTICLES = 400, 60 -- 400 the brief's, 60 proposed
 local CROWD = 6 -- with the local player, the 7 lanes
 local FAKE_ID = -1001 -- UiTestSetup's first crowd runner
+local LINE_USER = 100 -- BossTeamRig.Owner(100, n) is -(1000 + n): UiTestSetup's crowd runner n stands in for that player's slot n rig
 local LOCAL_DAMAGE, OTHER_DAMAGE = 77, 88
 local GROUP = 3 -- entries per batch when comparing others against local
 local BUDGET = 120 -- s: the whole scenario
@@ -93,6 +100,13 @@ function Module.Build(h)
 	local function effects()
 		return workspace:FindFirstChild("AttackEffects")
 	end
+	-- One entry of the fixture's batch; the front's character by default.
+	local function entry(user, id, damage, character, slot)
+		return ("%s:%s:%d:%s:%d"):format(tostring(user), id, damage, character or Catalog.Rollable()[1].Id, slot or 1)
+	end
+	local function rarityColor(character)
+		return GachaConfig.RARITY_COLORS[Catalog.Get(character).Rarity]
+	end
 	local function followerOf(userId)
 		local holder = workspace:FindFirstChild("SidekickFollowers")
 		return holder and holder:FindFirstChild("Follower_" .. tostring(userId))
@@ -140,6 +154,10 @@ function Module.Build(h)
 		local label = gui:IsA("TextLabel") and gui or gui:FindFirstChildWhichIsA("TextLabel", true)
 		return label and label.Text or ""
 	end
+	local function numberColor(gui)
+		local label = gui:IsA("TextLabel") and gui or gui:FindFirstChildWhichIsA("TextLabel", true)
+		return label and label.TextColor3 or nil
+	end
 
 	local function emitterParticles(root)
 		local total = 0
@@ -186,7 +204,10 @@ function Module.Build(h)
 			AttrPeakAtRate = 0,
 			Solid = 0,
 			NumberTexts = {},
+			NumberColors = {}, -- text -> colour
+			NumberGradients = 0,
 			NumbersAtOnce = 0,
+			ShotList = {}, -- each shot once: { Owner, Id, First }
 		}
 		local received = nil
 		local connection = remote.OnClientEvent:Connect(function()
@@ -212,6 +233,17 @@ function Module.Build(h)
 				local at = pivotOf(child)
 				if kind == "Shot" then
 					w.ShotAt = w.ShotAt or now
+					if not w.Seen then
+						w.Seen = {}
+					end
+					if not w.Seen[child] then
+						w.Seen[child] = true
+						table.insert(w.ShotList, {
+							Owner = child:GetAttribute("OwnerId"),
+							Id = child:GetAttribute("SidekickId"),
+							First = at,
+						})
+					end
 					local shot = w.Shots[key]
 					if not shot then
 						shot = {
@@ -238,6 +270,10 @@ function Module.Build(h)
 			for _, gui in shown do
 				w.NumberAt = w.NumberAt or now
 				w.NumberTexts[numberText(gui)] = true
+				w.NumberColors[numberText(gui)] = numberColor(gui)
+				if gui:FindFirstChildWhichIsA("UIGradient", true) then
+					w.NumberGradients += 1
+				end
 			end
 			for _, pose in poses or {} do
 				local current = pose.Follower
@@ -253,7 +289,7 @@ function Module.Build(h)
 			else
 				quietSince = nil
 			end
-			if w.ShotAt and quietSince and now - quietSince >= QUIET then
+			if (w.ShotAt or w.NumberAt) and quietSince and now - quietSince >= QUIET then
 				w.GoneAt = quietSince
 				break
 			end
@@ -309,7 +345,7 @@ function Module.Build(h)
 		check(res, tag .. "_parts_in_model", table.concat(missing, ","), "")
 
 		local pose = spot.Part and watchPose(follower, spot) or nil
-		local w = watch(res, remote, ("me:%s:%d"):format(id, LOCAL_DAMAGE), pose and { pose })
+		local w = watch(res, remote, entry("me", id, LOCAL_DAMAGE, character), pose and { pose })
 		checkCommon(res, tag, w)
 		local shot = w.Shots[("%s:%s"):format(tostring(h.player.UserId), id)]
 		check(res, tag .. "_shot_tagged", shot ~= nil, true)
@@ -340,6 +376,8 @@ function Module.Build(h)
 		check(res, tag .. "_shot_before_impact", w.ShotAt ~= nil and w.ImpactAt ~= nil and w.ShotAt < w.ImpactAt, true)
 		inRange(res, tag .. "_number_at_impact", since(w, w.NumberAt), ARRIVE_MIN, ARRIVE_MAX + 0.1)
 		check(res, tag .. "_number_one", w.NumbersAtOnce, 1)
+		check(res, tag .. "_number_rarity_colour", w.NumberColors[tostring(LOCAL_DAMAGE)], rarityColor(character))
+		check(res, tag .. "_number_no_gradient", w.NumberGradients, 0)
 		local text = next(w.NumberTexts) or ""
 		h.check(
 			res,
@@ -377,7 +415,7 @@ function Module.Build(h)
 		return full
 	end
 
-	-- Others draw lighter than the local player, id by id, and get no number.
+	-- Others draw lighter than the local player, id by id, and each entry has its number (owner 2026-11-06).
 	local function checkOthersLighter(res, remote, full)
 		setup(res, "sidekick_follow_crowd:1")
 		check(res, "lighter_crowd_follower", waitUntil(function()
@@ -391,10 +429,11 @@ function Module.Build(h)
 		while i <= #ids do
 			local entries = {}
 			for k = i, math.min(i + GROUP - 1, #ids) do
-				table.insert(entries, ("%d:%s:%d"):format(FAKE_ID, ids[k], OTHER_DAMAGE))
+				table.insert(entries, entry(FAKE_ID, ids[k], OTHER_DAMAGE))
 			end
 			local w = watch(res, remote, table.concat(entries, ","))
-			check(res, ("others_no_number_%d"):format(i), w.NumberAt, nil)
+			check(res, ("others_number_per_entry_%d"):format(i), w.NumbersAtOnce, #entries)
+			check(res, ("others_number_text_%d"):format(i), w.NumberTexts[tostring(OTHER_DAMAGE)], true)
 			for k = i, math.min(i + GROUP - 1, #ids) do
 				local id = ids[k]
 				local shot = w.Shots[("%d:%s"):format(FAKE_ID, id)]
@@ -411,9 +450,9 @@ function Module.Build(h)
 
 	-- The local player and 6 others at once, all different ids: side_fox is worn, the first fake fires the crowd's own side_chain.
 	local function burstEntries()
-		local entries = { ("me:side_fox:%d"):format(LOCAL_DAMAGE), ("%d:side_chain:%d"):format(FAKE_ID, OTHER_DAMAGE) }
+		local entries = { entry("me", "side_fox", LOCAL_DAMAGE), entry(FAKE_ID, "side_chain", OTHER_DAMAGE) }
 		for i = 2, CROWD do
-			table.insert(entries, ("%d:%s:%d"):format(FAKE_ID - i + 1, ATTACKS[i].Id, OTHER_DAMAGE))
+			table.insert(entries, entry(FAKE_ID - i + 1, ATTACKS[i].Id, OTHER_DAMAGE))
 		end
 		return table.concat(entries, ",")
 	end
@@ -444,23 +483,25 @@ function Module.Build(h)
 		checkCommon(res, "burst", w)
 		check(res, "burst_every_player_shoots", countShots(w), CROWD + 1)
 		inRange(res, "burst_particle_budget", w.Peak, 1, TOTAL_PARTICLES)
-		check(res, "burst_number_only_local", w.NumbersAtOnce, 1)
-		check(res, "burst_number_only_local_text", w.NumberTexts[tostring(OTHER_DAMAGE)], nil)
-		h.check(
-			res,
-			"burst_number_is_local_damage",
-			next(w.NumberTexts) or "",
-			tostring(LOCAL_DAMAGE),
-			string.find(next(w.NumberTexts) or "", tostring(LOCAL_DAMAGE), 1, true) ~= nil
-		)
+		check(res, "burst_number_per_entry", w.NumbersAtOnce, CROWD + 1)
+		check(res, "burst_number_others_text", w.NumberTexts[tostring(OTHER_DAMAGE)], true)
+		check(res, "burst_number_is_local_damage", w.NumberTexts[tostring(LOCAL_DAMAGE)], true)
 		inRange(res, "burst_other_follower_plays_attack", poses[2].Peak, MIN_POSE, 360)
 		checkLeftAtRest(res, "burst", poses)
 
-		-- Two hits of one follower in a catch-up batch still end at rest.
+		-- Two hits of one follower in a catch-up batch: two attacks, two numbers, never summed, and it still ends at rest.
 		local twice = burstPoses()
-		local again =
-			watch(res, remote, ("me:side_fox:%d,me:side_fox:%d"):format(LOCAL_DAMAGE, LOCAL_DAMAGE), { twice[1] })
+		local again = watch(
+			res,
+			remote,
+			entry("me", "side_fox", LOCAL_DAMAGE) .. "," .. entry("me", "side_fox", OTHER_DAMAGE),
+			{ twice[1] }
+		)
 		check(res, "catch_up_shot", again.ShotAt ~= nil, true)
+		check(res, "catch_up_one_attack_per_entry", #again.ShotList, 2)
+		check(res, "catch_up_one_number_per_entry", again.NumbersAtOnce, 2)
+		check(res, "catch_up_first_number", again.NumberTexts[tostring(LOCAL_DAMAGE)], true)
+		check(res, "catch_up_second_number", again.NumberTexts[tostring(OTHER_DAMAGE)], true)
 		inRange(res, "catch_up_gone", since(again, again.GoneAt), 0, GONE_LIMIT + 1)
 		checkLeftAtRest(res, "catch_up", { twice[1] })
 
@@ -475,14 +516,18 @@ function Module.Build(h)
 			check(res, "reduced_simple_shot_" .. key, shot.Effect, "Simple")
 			check(res, "reduced_shot_shows_" .. key, shot.Shows, true)
 		end
-		check(res, "reduced_number_only_local", reduced.NumbersAtOnce, 1)
+		check(res, "reduced_number_per_entry", reduced.NumbersAtOnce, CROWD + 1)
 		checkLeftAtRest(res, "reduced", reducedPoses)
 		h.player:SetAttribute("ReduceEffects", nil)
 	end
 
 	-- A batch the view cannot place draws no pose, breaks nothing, and leaves nothing.
 	local function checkUnknown(res)
-		setup(res, ("sidekick_follow_hits:424242:side_chain:5,%d:side_nope:5"):format(FAKE_ID))
+		setup(res, "sidekick_follow_hits:" .. entry(424242, "side_chain", 5) .. "," .. entry(FAKE_ID, "side_nope", 5))
+		-- No follower is no reason to lose the number (owner 2026-11-06).
+		check(res, "unknown_owner_shows_number", waitUntil(function()
+			return #numbers() > 0
+		end, NO_SHOT_WAIT) == true, true)
 		task.wait(NO_SHOT_WAIT)
 		local folder = effects()
 		local odd = 0
@@ -494,6 +539,115 @@ function Module.Build(h)
 			local now = effects()
 			return now ~= nil and #now:GetChildren() == 0
 		end, GONE_LIMIT) == true, true)
+	end
+
+	-- Two characters of two rarities: 2 numbers, 2 colours, each on its own damage, whoever fired.
+	local function checkRarity(res, remote, character)
+		local first = Catalog.Rollable()[1]
+		local other = nil
+		for _, row in Catalog.Rollable() do
+			if GachaConfig.RARITY_COLORS[row.Rarity] ~= GachaConfig.RARITY_COLORS[first.Rarity] then
+				other = row
+				break
+			end
+		end
+		check(res, "rarity_setup_two_rarities", other ~= nil, true)
+		if not other then
+			return
+		end
+		setup(res, ("sidekick_follow_wear:%s:side_fox"):format(character))
+		waitWearing("side_fox")
+		setup(res, "sidekick_follow_crowd:1")
+		check(res, "rarity_crowd_ready", waitUntil(function()
+			return followerOf(FAKE_ID)
+		end) ~= nil, true)
+		local function checkPair(tag, a, b)
+			local w = watch(res, remote, a .. "," .. b)
+			check(res, tag .. "_two_numbers", w.NumbersAtOnce, 2)
+			check(res, tag .. "_first_colour", w.NumberColors[tostring(LOCAL_DAMAGE)], rarityColor(first.Id))
+			check(res, tag .. "_second_colour", w.NumberColors[tostring(OTHER_DAMAGE)], rarityColor(other.Id))
+			check(res, tag .. "_no_gradient", w.NumberGradients, 0)
+		end
+		checkPair(
+			"rarity_two_players",
+			entry("me", "side_fox", LOCAL_DAMAGE, first.Id, 1),
+			entry(FAKE_ID, "side_chain", OTHER_DAMAGE, other.Id, 1)
+		)
+		-- By the character, not its Sidekick: one Sidekick id, two characters.
+		checkPair(
+			"rarity_one_sidekick",
+			entry("me", "side_fox", LOCAL_DAMAGE, first.Id, 1),
+			entry("me", "side_fox", OTHER_DAMAGE, other.Id, 2)
+		)
+	end
+
+	-- Slot n's attack leaves slot n's follower, also when two wear the same Sidekick.
+	local function checkOwnFollower(res, remote)
+		setup(res, "sidekick_follow_crowd:3")
+		local two, three = FAKE_ID - 1, FAKE_ID - 2
+		check(res, "own_follower_rigs_ready", waitUntil(function()
+			return followerOf(two) ~= nil and followerOf(three) ~= nil
+		end) == true, true)
+		local function distanceTo(owner, at)
+			return (followerOf(owner):FindFirstChildWhichIsA("BasePart", true).Position - at).Magnitude
+		end
+		local spot = ATTACKS[1] -- side_chain, which the crowd wears
+		local poses = { watchPose(followerOf(two), spot), watchPose(followerOf(three), spot) }
+		local w = watch(res, remote, entry(LINE_USER, "side_chain", OTHER_DAMAGE, nil, 3), poses)
+		local shot = w.ShotList[1]
+		check(res, "own_follower_slot_3_one_shot", #w.ShotList, 1)
+		if shot and shot.First then
+			local near, far = distanceTo(three, shot.First), distanceTo(two, shot.First)
+			h.check(res, "own_follower_slot_3_leaves_its_own", near, "under " .. far, near < far)
+		end
+		inRange(res, "own_follower_slot_3_plays_attack", poses[2].Peak, MIN_POSE, 360)
+		inRange(res, "own_follower_slot_2_stays_still", poses[1].Peak, 0, MIN_POSE)
+		checkLeftAtRest(res, "own_follower", poses)
+		local both = watch(
+			res,
+			remote,
+			entry(LINE_USER, "side_chain", LOCAL_DAMAGE, nil, 2)
+				.. ","
+				.. entry(LINE_USER, "side_chain", OTHER_DAMAGE, nil, 3)
+		)
+		check(res, "own_follower_both_two_shots", #both.ShotList, 2)
+		check(res, "own_follower_both_two_numbers", both.NumbersAtOnce, 2)
+		local fromTwo, fromThree = false, false
+		for _, row in both.ShotList do
+			if row.First then
+				local toTwo, toThree = distanceTo(two, row.First), distanceTo(three, row.First)
+				fromTwo = fromTwo or toTwo < toThree
+				fromThree = fromThree or toThree < toTwo
+			end
+		end
+		check(res, "own_follower_both_from_slot_2", fromTwo, true)
+		check(res, "own_follower_both_from_slot_3", fromThree, true)
+	end
+
+	-- The runner hidden, so its follower is: the number still shows, in its colour.
+	local function checkHidden(res, remote)
+		setup(res, "sidekick_follow_crowd:1")
+		local follower = waitUntil(function()
+			return followerOf(FAKE_ID)
+		end)
+		local rig = workspace:FindFirstChild("FollowCrowd1")
+		local torso = rig and rig:FindFirstChild("Torso")
+		check(res, "hidden_setup_ready", follower ~= nil and torso ~= nil, true)
+		if not (follower and torso) then
+			return
+		end
+		local was = torso.Transparency
+		torso.Transparency = 1 -- local only: Client/SidekickFollower hides on this
+		check(res, "hidden_follower_hidden", waitUntil(function()
+			local part = follower:FindFirstChildWhichIsA("BasePart", true)
+			return part and part.LocalTransparencyModifier >= 1
+		end) == true, true)
+		local character = Catalog.Rollable()[1].Id
+		local w = watch(res, remote, entry(FAKE_ID, "side_chain", OTHER_DAMAGE, character, 1))
+		check(res, "hidden_number_shows", w.NumbersAtOnce, 1)
+		check(res, "hidden_number_text", w.NumberTexts[tostring(OTHER_DAMAGE)], true)
+		check(res, "hidden_number_colour", w.NumberColors[tostring(OTHER_DAMAGE)], rarityColor(character))
+		torso.Transparency = was
 	end
 
 	function scenarios.ui_sidekick_attack(res)
@@ -528,6 +682,9 @@ function Module.Build(h)
 			checkOthersLighter(res, remote, full)
 			checkUnknown(res)
 			checkBurst(res, remote, character)
+			checkRarity(res, remote, character)
+			checkOwnFollower(res, remote)
+			checkHidden(res, remote)
 		end, debug.traceback)
 		h.check(res, "attack_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		h.player:SetAttribute("ReduceEffects", savedReduce)

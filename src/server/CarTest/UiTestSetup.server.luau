@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -347,7 +347,16 @@ end
 -- Boss event UI fixtures (UiSpec.ServerSetup boss_ui_*, Client/UiTest/UiBossEvent): the published attributes only, so
 -- nobody really joins and the UI runs in seconds. The characters and Sidekicks they replace come back with restoreBossUi.
 local bossUiSnapshots = {}
-local BOSS_UI_ATTRIBUTES = { "BossEventPhase", "BossEventStart", "BossEventHp", "BossEventMaxHp" }
+local BOSS_UI_ATTRIBUTES = {
+	"BossEventPhase",
+	"BossEventStart",
+	"BossEventHp",
+	"BossEventMaxHp",
+	"BossEventStage",
+	"BossEventEndsAt",
+	"BossScreamEndsAt",
+	"BossScheduleStart",
+}
 local function clearBossUi(player)
 	for _, name in BOSS_UI_ATTRIBUTES do
 		ReplicatedStorage:SetAttribute(name, nil)
@@ -544,6 +553,43 @@ function setups.bag_spares_clear(player)
 	live("GachaService").RefreshBag(player)
 end
 
+-- A full bag stops every roll (design doc 4.41) and a full run's rolls fill it, so auto_racing and auto_roll_on empty the
+-- spares from half full (placeholder: a scenario's rolls must fit). Not while a bag fixture holds the bag on purpose.
+-- Still full: an error, which the run shows as setup_error and bag_has_room_*. restoreBagRoom gives the copies back.
+local bagRoomBefore = {}
+local function makeBagRoom(player)
+	local G = live("GachaService")
+	if sparesBefore[player] or G.BagUsed(player) * 2 < G.BagCap(player) then
+		return
+	end
+	local before = bagRoomBefore[player] or {}
+	bagRoomBefore[player] = before
+	for _, entry in player:WaitForChild("GachaData"):GetChildren() do
+		before[entry.Name] = before[entry.Name] or entry:GetAttribute("Copies") or 0
+		entry:SetAttribute("Copies", 0)
+	end
+	G.RefreshBag(player)
+	if G.BagFull(player) then
+		error(("bag full with no spares: %d/%d"):format(G.BagUsed(player), G.BagCap(player)))
+	end
+end
+
+local function restoreBagRoom(player)
+	local before = bagRoomBefore[player]
+	if not before then
+		return
+	end
+	bagRoomBefore[player] = nil
+	local data = player:FindFirstChild("GachaData")
+	for name, copies in before do
+		local entry = data and data:FindFirstChild(name)
+		if entry then
+			entry:SetAttribute("Copies", copies)
+		end
+	end
+	live("GachaService").RefreshBag(player)
+end
+
 function setups.restore(player)
 	setups.bag_spares_clear(player)
 	restoreBossUi(player)
@@ -558,6 +604,7 @@ function setups.restore(player)
 		)
 	end
 	live("GachaService").Apply(player, snap.gacha)
+	restoreBagRoom(player) -- after Apply: a snapshot taken once the spares were gone would not hold them
 	local progression = progressionSnapshots[player]
 	if progression then
 		live("UpgradeService").Apply(player, progression.upgrades)
@@ -644,6 +691,7 @@ function setups.auto_racing(player)
 		end
 		task.wait(0.25)
 	end
+	makeBagRoom(player)
 end
 
 -- UiSpec.ServerSetup on_foot (ui_speed_dial at rest): auto race stopped through the real Stop path, avatar on foot
@@ -808,16 +856,19 @@ function sidekickFollowSteps.crowd(_, arg)
 end
 
 -- A batch as Remotes.BossHits carries it, to this client only (ui_sidekick_attack). No damage is dealt.
--- arg: <userId|me>:<sidekick id>:<damage>, comma separated.
+-- arg: <userId|me>:<sidekick id>:<damage>:<character id>:<slot>, comma separated.
 function sidekickFollowSteps.hits(player, arg)
 	local remote = ReplicatedStorage:WaitForChild("Remotes"):FindFirstChild("BossHits")
 	assert(remote, "Remotes.BossHits is missing")
 	local entries = {}
-	for user, id, damage in string.gmatch(arg, "([^:,]+):([^:,]+):([^:,]+)") do
+	for _, text in string.split(arg, ",") do
+		local user, id, damage, character, slot = table.unpack(string.split(text, ":"))
 		table.insert(entries, {
 			UserId = user == "me" and player.UserId or tonumber(user),
 			SidekickId = id,
 			Damage = tonumber(damage),
+			Slot = tonumber(slot),
+			CharacterId = character,
 		})
 	end
 	remote:FireClient(player, entries)
@@ -950,6 +1001,7 @@ end
 
 function setups.auto_roll_on(player)
 	setAutoRoll(player, true)
+	makeBagRoom(player)
 end
 
 local function progressionSnapshot(player)
@@ -1507,6 +1559,7 @@ end
 
 local function runSetup(request)
 	local id = string.match(request, "^([^:]+):")
+	local arg = string.match(request, "^[^:]+:(.*):[^:]*$") -- "<id>:<args>:<nonce>"; nil for "<id>:<nonce>"
 	ReplicatedStorage:SetAttribute("UiTestSetupError", nil)
 	local ok, err = pcall(function()
 		if id == "spy" then
@@ -1526,7 +1579,7 @@ local function runSetup(request)
 			error("unknown setup id " .. tostring(id))
 		end
 		for _, player in Players:GetPlayers() do
-			fn(player)
+			fn(player, arg)
 		end
 	end)
 	if not ok then
@@ -1617,7 +1670,37 @@ function setups.sidekick_tutorial_restore(player)
 	end
 end
 
+-- UI specs describe a player with no gamepasses, and Studio's creator owns them all: a UI run takes every Pass_<id> off, so
+-- the server's effects follow, and restore:no_passes puts them back. Ownership is never saved (PassService).
+local passesBefore = {} -- [Player] = { Pass_<id> = value }
+
+function setups.no_passes(player)
+	-- shortcut: no pass for every player while on, make it per player if multi-client UI runs appear.
+	live("PassService").SetOwnerCheck(function()
+		return false
+	end)
+	local before = passesBefore[player] or {}
+	passesBefore[player] = before
+	for name, value in player:GetAttributes() do
+		if string.sub(name, 1, 5) == "Pass_" then
+			before[name] = value
+			player:SetAttribute(name, nil)
+		end
+	end
+	player:SetAttribute("UiTestNoPasses", true) -- last: once the client sees it, the passes are gone there too
+end
+
+local function restoreNoPasses(player)
+	live("PassService").SetOwnerCheck(nil)
+	for name, value in passesBefore[player] or {} do
+		player:SetAttribute(name, value)
+	end
+	passesBefore[player] = nil
+	player:SetAttribute("UiTestNoPasses", nil)
+end
+
 local CLIENT_SETUPS = {
+	no_passes = true,
 	sidekick_tutorial_ready = true,
 	auto_racing = true,
 	auto_roll_on = true,
@@ -1691,6 +1774,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			player:SetAttribute("BossWaitEndsAt", seconds and workspace:GetServerTimeNow() + seconds or nil)
 			return
 		end
+		local phase2Step, phase2Arg = string.match(request, "^boss_phase2_(%a+):(.*)$")
+		if phase2Step then
+			assert(setups["boss_phase2_" .. phase2Step], "unknown step " .. phase2Step)(player, phase2Arg)
+			return
+		end
 		local pityMythic, pityLegendary = string.match(request, "^sidekick_ui_pity:(%d+):(%d+)$")
 		if pityMythic then -- through the service, so the published attributes and the saved counts agree
 			local service = live("SidekickService")
@@ -1714,7 +1802,9 @@ setupRequest.OnServerInvoke = function(player, request)
 		end
 		local before = clientBefore[player] or {}
 		clientBefore[player] = before
-		if restoreId == "run_visual" then
+		if restoreId == "no_passes" then
+			restoreNoPasses(player)
+		elseif restoreId == "run_visual" then
 			RUN_VISUAL.clear()
 			local routes = ReplicatedStorage:FindFirstChild("RunRoutes")
 			local route = routes and routes:FindFirstChild(RUN_VISUAL.ROUTE)
@@ -1727,11 +1817,13 @@ setupRequest.OnServerInvoke = function(player, request)
 				live("CarService").SetAutoRace(player, false)
 			end
 			before.auto_racing = nil
+			restoreBagRoom(player)
 		elseif restoreId == "auto_roll_on" then
 			if before.auto_roll_on ~= nil then
 				setAutoRoll(player, before.auto_roll_on)
 			end
 			before.auto_roll_on = nil
+			restoreBagRoom(player)
 		elseif restoreId == "sidekick_states" then
 			restoreSidekicks(player)
 		elseif restoreId == "sidekick_tutorial" or restoreId == "sidekick_tutorial_ready" then
@@ -1758,4 +1850,72 @@ setupRequest.OnServerInvoke = function(player, request)
 		end
 	end)
 	return ok, ok and nil or tostring(err)
+end
+
+-- Boss Phase 2 fixtures (Client/UiTest/UiBossPhase2, UiRelics; UiSpec.ServerSetup boss_phase2_*, boss_rewards_open,
+-- relic_chest_states). Published attributes and one real-hook message only. Below the handler on purpose: it reads `setups` when called.
+function setups.boss_phase2_stage(_, arg)
+	local stage, endsIn, screamIn, scheduleAgo = table.unpack(string.split(arg, ":"))
+	local now = workspace:GetServerTimeNow()
+	ReplicatedStorage:SetAttribute("BossEventStage", tonumber(stage))
+	ReplicatedStorage:SetAttribute("BossEventEndsAt", tonumber(endsIn) and now + tonumber(endsIn) or nil)
+	ReplicatedStorage:SetAttribute("BossScreamEndsAt", tonumber(screamIn) and now + tonumber(screamIn) or nil)
+	ReplicatedStorage:SetAttribute("BossScheduleStart", tonumber(scheduleAgo) and now - tonumber(scheduleAgo) or nil)
+end
+
+function setups.boss_phase2_rewards(player, arg)
+	local outcome, damage, stage1, stage2, short = table.unpack(string.split(arg, ":"))
+	live("BossEventService").Hooks.RewardPopup(player, {
+		Outcome = outcome,
+		Damage = tonumber(damage),
+		Stage1 = stage1 == "true",
+		Stage2 = stage2 == "true",
+		Short = short == "true",
+	})
+end
+
+function setups.boss_rewards_open(player)
+	setups.boss_phase2_rewards(player, "Defeated:1234567:true:true:false")
+end
+
+function setups.relic_chest_states(player)
+	setups.relic_states_bare(player)
+	local service = live("RelicService")
+	for _, id in { "relic_chest_raga", "relic_chest_raga", "relic_chest_adapted" } do
+		assert(service.GrantChest(player, id), "could not grant " .. id)
+	end
+end
+
+-- Real boss run, nothing faked past the gear; restore:boss_ui gives the characters and Sidekicks back.
+function setups.boss_live(player)
+	bossUiGear(player, 3)
+	local service = live("BossEventService")
+	if service.State().Phase == "Idle" then
+		assert(service.Start("Admin"))
+	end
+	if not service.IsIn(player) then
+		assert(service.Join(player))
+	end
+end
+
+-- arg "stage1": hits until Stage 2. "stage2": hits until the event ends. Real RecordHit calls, so real pay.
+function setups.boss_live_hits(player, arg)
+	assert(arg == "stage1" or arg == "stage2", "boss_live_hits: stage1 or stage2")
+	local service = live("BossEventService")
+	local function reached()
+		local state = service.State()
+		if arg == "stage1" then
+			return state.Stage == 2
+		end
+		return state.Phase == "Idle"
+	end
+	local calls = 0
+	-- IsIn: out of the event no hit can land, so stop rather than wait out the cap.
+	while calls < 200000 and not reached() and service.IsIn(player) do
+		calls += 1
+		if service.RecordHit(player) == 0 or calls % 200 == 0 then
+			task.wait()
+		end
+	end
+	assert(reached(), "boss_live_hits " .. arg .. " not reached after " .. calls .. " calls")
 end

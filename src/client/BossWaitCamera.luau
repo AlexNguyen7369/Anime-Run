@@ -1,6 +1,7 @@
 --!nonstrict
 -- The exhaustion view's camera (docs/BOSS_EVENT_SPEC.md "Exhaustion view"), stepped by Client/RunnerView. It follows only the
--- local player's own BossWaitEndsAt while BossEvent is true, and holds the camera Scriptable until it has brought it back.
+-- local player's own BossWaitEndsAt while BossEvent is true, and holds the camera Scriptable until it has brought it back. The growth
+-- cutscene ("Phase 2") takes a closer view of the boss, back as the scream ends; REDUCED EFFECTS keeps the camera still through it.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -20,7 +21,7 @@ local DRIFT_RATE = 0.5 -- radians a second
 
 local BossWaitCamera = {}
 
-local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back, RunnerAt }: what comes back, and where this move started
+local held = nil -- { Type, Fov, View, SubjectAt, From, Age, Back, RunnerAt, Scream }: what comes back, and where this move started
 
 local function subjectPosition(camera)
 	local subject = camera.CameraSubject
@@ -56,9 +57,15 @@ function BossWaitCamera.Held()
 	return held ~= nil
 end
 
+local function screamView()
+	local ends = ReplicatedStorage:GetAttribute("BossScreamEndsAt")
+	return type(ends) == "number" and not UiMotion.Reduced() and ends > workspace:GetServerTimeNow() -- holds to the wheel's stop
+end
+
 function BossWaitCamera.Step(camera, dt)
 	local inEvent = player:GetAttribute("BossEvent") == true
-	if inEvent and type(player:GetAttribute("BossWaitEndsAt")) == "number" then
+	local scream = screamView()
+	if inEvent and (type(player:GetAttribute("BossWaitEndsAt")) == "number" or scream) then
 		if not held then
 			held = {
 				Type = camera.CameraType,
@@ -68,18 +75,22 @@ function BossWaitCamera.Step(camera, dt)
 				From = camera.CFrame,
 				Age = 0,
 				RunnerAt = runnerPosition(),
+				Scream = scream,
 			}
 		elseif held.Back then -- a new wait during the return
 			held.Back, held.From, held.Age, held.RunnerAt = nil, camera.CFrame, 0, runnerPosition()
 		end
+		if scream ~= held.Scream then -- the view changes during the hold: ease over, no cut
+			held.Scream, held.From, held.Age = scream, camera.CFrame, 0
+		end
 		held.Age += dt
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = Cfg.WaitCameraFov
-		local view = Cfg.WaitCameraCFrame(Arena.Center, held.RunnerAt)
+		local view = scream and Cfg.ScreamCameraCFrame() or Cfg.WaitCameraCFrame(Arena.Center, held.RunnerAt)
 		if UiMotion.Reduced() then
 			camera.CFrame = view
 		else
-			local drifted = view * CFrame.new(math.sin(held.Age * DRIFT_RATE) * DRIFT_STUDS, 0, 0)
+			local drifted = scream and view or view * CFrame.new(math.sin(held.Age * DRIFT_RATE) * DRIFT_STUDS, 0, 0)
 			camera.CFrame = held.From:Lerp(drifted, smooth(held.Age / PULL_SECONDS))
 		end
 	elseif held then
