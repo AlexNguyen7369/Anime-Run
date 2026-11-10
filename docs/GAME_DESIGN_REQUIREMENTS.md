@@ -339,8 +339,8 @@ before any Studio work.
 - Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
 
 ### 4.25 Track loading (owner 2026-11-03)
-- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
-- Proposed answer (orchestrator, 2026-11-10, awaiting the owner): Tracks 6-10 build one per frame right after terrain starts, nearest the players first (a track a player is on or headed to jumps the queue). A run that would start on, or a runner who would cross into, a track not built yet holds at the spawn gate or that finish line, with a "Loading next track" label, until it is built; nothing is paid or lost while holding. Today the server builds all 10 tracks before terrain starts (`Main.server.luau`), which adds to the fresh-server load.
+- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. A run must never reach a track that is not built yet.
+- Build after join (owner 2026-11-10): players can join once Tracks 1-5 are built; Tracks 6-10 then build one per frame, nearest the players first (a track a player is on or headed to jumps the queue). A run that would start on, or a runner who would cross into, a track not built yet holds at the spawn gate or that finish line, with a "Loading next track" label, until it is built; nothing is paid or lost while holding. Label text and timings are **proposed**.
 
 ### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
 - Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
@@ -580,14 +580,14 @@ before any Studio work.
   `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`, `AutoSell`, `AutoSellChance`. Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
   Boss-event fields (owner 2026-11-04): `docs/BOSS_EVENT_SPEC.md`.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
-- Join size (**proposed**, orchestrator 2026-11-10, awaiting the owner): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
+- Join size (owner 2026-11-10): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
 
 ## 8. Open questions (owner)
 
 None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-10: owner: the Sidekicks stall becomes a summon altar whose top shows the current rotation's Mythic model, turning slowly (4.36); owner: plaza Layout C, Two wings, replacing Clear plaza's service row, Best Roll gap, Legends beside the gate and the Dojo sight rule (4.24, WORLD_REDESIGN_SPEC 4). Orchestrator proposals, not yet rules: Tracks 6-10 build behind the game with a finish-line hold (4.25), late-phase client data loads on first need (7).
+- 2026-11-10: owner: the Sidekicks stall becomes a summon altar whose top shows the current rotation's Mythic model, turning slowly (4.36); owner: plaza Layout C, Two wings, replacing Clear plaza's service row, Best Roll gap, Legends beside the gate and the Dojo sight rule (4.24, WORLD_REDESIGN_SPEC 4). Owner, same day: Tracks 6-10 build after players join, nearest first, with a hold at the gate or finish line (4.25); boss poses and Sidekick attack frames load on first need, not at join (7).
 - 2026-11-06: owner: boss arena ring radius 550, replacing 850, with Big Raga's size unchanged and its dais lower; the scream cutscene is 6 s, zoomed in, with the screen dimmed; the exhaustion view is zoomed in a lot; Phase 2 is darkish, with no red tint after the owner removed it the same day, and a bold red title; auras and trails more visible in the event (4.37, BOSS_EVENT_SPEC).
 - 2026-11-06: owner: characters act individually with their own projectiles and damage numbers coloured by rarity, replacing one team damage (2026-11-05) and red and yellow numbers; Raga grows 25% in the scream cutscene; exhausted teams skip to the cutscene and revive after it; the wheel spins very fast then stops abruptly; FOV locked for the whole event; no duplicate Raga on attacks; white motes in the arena (4.37).
 - 2026-11-06: owner: boss Phase 2 (Fully Adapted Raga), team runs in a line with no revive until an 8.5 s team timer, 7,500 HP per player, stacking statuses of 15 s and 20 s, Slice 15% and 30%, Vulnerable, 5% damage for rewards, chests, rewards popup, 100,000 Money, 1,000 Gems as a fifth Gem source, art for every Relic (4.35, 4.37, 4.38, BOSS_EVENT_SPEC, RELIC_SPEC).
