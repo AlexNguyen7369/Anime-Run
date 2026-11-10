@@ -8,6 +8,10 @@ local gui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local Band = {}
 local GAP = 8
+-- Owner 2026-11-10: panels run larger. The band keeps the HUD clear at its sides (GAP) but the panel may rise over the
+-- hidden Race anchor and the top strip by REACH_UP, and sit this close to the TURBO bar.
+local REACH_UP = 24
+local REACH_DOWN = 4
 
 -- left, top, right, bottom in IgnoreGuiInset screen offsets, or nil before the HUD exists.
 function Band.Rect()
@@ -48,7 +52,8 @@ function Band.Rect()
 	then
 		bottom = math.min(bottom, money.AbsolutePosition.Y)
 	end
-	return margin, race.AbsolutePosition.Y + race.AbsoluteSize.Y + inset + GAP, right, bottom + inset - GAP
+	local top = math.max(inset + GAP, race.AbsolutePosition.Y + race.AbsoluteSize.Y + inset + GAP - REACH_UP)
+	return margin, top, right, bottom + inset - REACH_DOWN
 end
 
 local function shown(object)

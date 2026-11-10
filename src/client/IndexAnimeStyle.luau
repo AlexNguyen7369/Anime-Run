@@ -191,10 +191,11 @@ function Style.Apply(gui)
   local name=tile.CharacterName
   name.Position=UDim2.new(0,9,1,-50) name.Size=UDim2.new(1,-18,0,20)
   name.TextXAlignment=Enum.TextXAlignment.Center text(name,16)
+  -- Owner 2026-11-10: the odds and multi read at the caption size in the card's own heavy font, the letter circle is gone.
   local info=tile:FindFirstChild("Info")
-  if info then info.Position=UDim2.new(0,7,1,-69) info.Size=UDim2.new(1,-14,0,16) info.TextSize=11 end
-  local odds=tile:FindFirstChild("Odds") if odds then odds.TextSize=11 odds.Position=UDim2.fromOffset(8,6) end
-  local category=tile:FindFirstChild("Category") if category then category.Rotation=-12 category.Size=UDim2.fromOffset(19,19) category.TextSize=13 category.Position=UDim2.new(1,-27,0,7) end
+  if info then info.Position=UDim2.new(0,7,1,-72) info.Size=UDim2.new(1,-14,0,18) text(info,14) end
+  local odds=tile:FindFirstChild("Odds") if odds then odds.Position=UDim2.fromOffset(8,6) odds.Size=UDim2.new(1,-16,0,18) text(odds,14) end
+  local category=tile:FindFirstChild("Category") if category then category.Visible=false end
   local equip=tile:FindFirstChild("Equip")
   if equip then
    equip.Position=UDim2.new(0,8,1,-28) equip.Size=UDim2.new(1,-16,0,22)

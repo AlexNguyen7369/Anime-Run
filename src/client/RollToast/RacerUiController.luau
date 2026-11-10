@@ -1122,30 +1122,45 @@ indexFrame(stats, HudIcons.Rebirth.Image, function(g)
 	for _, side in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
 		padding[side] = UDim.new()
 	end
-	local rowH = math.floor((g.Height - (#config.STATS - 1) * gap) / #config.STATS)
-	local artSize = rowH - 2 * inner
-	local plusSize = math.min(u(SPACE.Button), rowH - 6)
-	local x = inner + artSize + inner
-	local areaW = width - x - plusSize - pad - inner
-	local nameH, lineH = math.floor(rowH * 0.45), math.floor(rowH * 0.4)
-	local descW = math.floor(areaW * 0.45)
+	-- Owner 2026-11-10: rows 12 apart on a padded plate: the art 12 in, the text column starts clear of it, the plate's
+	-- slanted ends are kept clear (24), the + button 12 from the right. Name on its own line, the rule and the multi
+	-- on the next, the accent bar last, each 4 apart.
+	-- Row height from its text: the name at the Item size, the rule / multi line at the Body size, the accent bar, 8
+	-- between, 8 of padding above and below. Four rows then share the content with what gap is left (at least 4).
+	-- The four rows and three 12-unit gaps share the content height exactly, so none spills under the footer;
+	-- the text lines scale with the row (TextScaled under their role's size).
+	local rowGap = gap
+	local rowH = math.floor((g.Height - rowGap * (#config.STATS - 1)) / #config.STATS)
+	local rowPad, lineGap, barH = inner, u(4), u(6)
+	local textH = rowH - 2 * rowPad - 2 * lineGap - barH
+	local nameH = math.floor(textH * 0.55)
+	local lineH = textH - nameH
+	list:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, rowGap)
+	pad = rowPad -- the row's own padding, 8, in place of the card token
+	local slant = u(24)
+	local artSize = rowH - 2 * pad
+	local plusSize = math.min(u(SPACE.Button), rowH - 2 * inner)
+	local x = slant + artSize + pad
+	local areaW = width - x - slant - plusSize - pad
+	local descW = math.floor(areaW * 0.5)
 	for _, row in pairs(rows) do
 		local frame = row.Frame
 		frame.Size = UDim2.new(1, 0, 0, rowH)
-		place(frame.Art, inner, inner, artSize, artSize)
+		place(frame.Art, slant, pad, artSize, artSize)
 		row.Plus.AnchorPoint = Vector2.zero
-		row.Plus.Position = UDim2.new(1, -(plusSize + pad), 0, math.floor((rowH - plusSize) / 2))
+		row.Plus.Position = UDim2.new(1, -(plusSize + slant), 0, math.floor((rowH - plusSize) / 2))
 		row.Plus.Size = UDim2.fromOffset(plusSize, plusSize)
-		place(frame.StatName, x, 0, areaW, nameH)
-		place(frame.Description, x, nameH, descW, lineH)
-		place(row.Value, x + descW, nameH, areaW - descW, lineH)
-		place(frame.Accent, x, nameH + lineH + 2, areaW, math.max(4, rowH - nameH - lineH - 2 - inner // 2))
+		place(frame.StatName, x, pad, areaW, nameH)
+		place(frame.Description, x, pad + nameH + lineGap, descW, lineH)
+		place(row.Value, x + descW, pad + nameH + lineGap, areaW - descW, lineH)
+		place(frame.Accent, x, pad + nameH + lineGap + lineH + lineGap, areaW, barH)
 		frame.StatName.TextXAlignment = Enum.TextXAlignment.Left
 		frame.Description.TextXAlignment = Enum.TextXAlignment.Left
 		row.Value.TextXAlignment = Enum.TextXAlignment.Right
 		g.Role(frame.StatName, "Item")
 		g.Role(frame.Description, "Caption")
-		g.Role(row.Value, "Body", true) -- no outline under 16 px (UI audit G12)
+		g.Role(row.Value, "Body") -- the multi in the card's heavy font (owner 2026-11-10), one step under the name
+		row.Value.FontFace = AnimeSkin.Font
 	end
 end)
 

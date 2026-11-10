@@ -758,19 +758,7 @@ function Components.BindStats(refs, config)
 		local row = list:WaitForChild(stat)
 		rows[stat] = { Frame = row, Value = row.Value, Plus = row.Plus }
 	end
-	local function fit()
-		local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-		for _, row in pairs(rows) do
-			row.Frame.StatName.TextSize = phone and 17 or 21
-			row.Value.TextSize = phone and 13 or 15
-			local description = row.Frame:FindFirstChild("Description")
-			if description then
-				description.TextSize = phone and 12 or 15
-			end
-		end
-	end
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
-	fit()
+	-- Text sizes come from the Index-frame roles in RacerUiController (design doc 4.42); nothing here overrides them.
 	return rows
 end
 

@@ -142,8 +142,9 @@
 139. 2026-11-10 — Alex Nguyen — Trimmed bloat: deleted about 72 KB of dead client scripts, made the admin VfxArea build on /tp vfxarea with a 1 s client poll, and guarded 5 upload scripts so importing uploads nothing.
 140. 2026-11-10 — Alex Nguyen — Recorded the owner's plaza Layout C (two wings) and the Sidekick summon altar in the design doc and specs, plus proposals for Tracks 6-10 building behind the game and late-phase client data loading on first need.
 141. 2026-11-10 — Alex Nguyen — Built plaza Layout C (economy wing right of the path, summon wing left) and replaced the Sidekicks stall with a Parts-built summon altar showing the rotation's Mythic model; spawn_area 171 and world_layout 18 checks pass in Studio.
+138. 2026-11-10 — Alex Nguyen — Enlarged every panel's band (PanelBand REACH_UP 24 / REACH_DOWN 4), removed the Index cards' category letter circles, put the odds and speed multi in the card font, and re-spaced the Stats rows (name / rule + multi / bar, 12 gaps, heavy multi); design doc 4.42; 5 screenshots to the owner, committed, not pushed.
 
 ## What's next
-**Owner reviews Layout C in Studio (altar look, Mythic model facing, Sensei dais clipping a gate lantern, Index board set 5 studs behind the stall fronts) and rules on the 4.25 and section 7 load proposals.**
+**Owner reviews the round-3 screenshots; on approval push `feature/alex/anime-world` to origin and main, then retarget the stale UI tests (band Gap 8 in UiResponsive / UiSpec.Band, Market tab rail, Racer panel rects, Backpack rail, boss header text) and run the UI harness; then the phone layout.**
 
-**Why this is next:** the altar and wings were checked only by the spawn_area / world_layout harness and one in-game shot; the two load proposals gate the biggest remaining join-time wins (Tracks 6-10 after join, about 519 KB of boss and Sidekick data at join).
+**Why this is next:** the band and the Racer panels' geometry changed again, which the layout tests pin; the harness gates the merge and the phone view is still unseen.
