@@ -46,6 +46,7 @@ local UpgradeService = require(script.Parent.UpgradeService)
 local BoostConfig = require(Shared.BoostConfig)
 local BoostService = require(script.Parent.BoostService)
 local RaceTimeService = require(script.Parent.RaceTimeService)
+local TrackBuild = require(script.Parent.TrackBuild)
 
 local RaceService = {}
 
@@ -204,6 +205,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		Losses = 0,
 		Resets = 0,
 		Waiting = false, -- boss run: the exhausted team's wait before its refill
+		Holding = nil, -- the unbuilt track the runner waits on (design doc 4.25), nil when free
 	}
 
 	local function rewardTrackWin(trackNumber)
@@ -259,9 +261,17 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	local function publish()
 		sincePublish = 0
 		car:SetAttribute("RunRoute", routeId)
-		car:SetAttribute("RunSpeed", (run.Finished or run.Waiting) and 0 or run.TargetSpeed)
+		car:SetAttribute("RunSpeed", (run.Finished or run.Waiting or run.Holding ~= nil) and 0 or run.TargetSpeed)
 		car:SetAttribute("RunDistance", dist)
 		car:SetAttribute("RunTrack", trackAt())
+	end
+	-- Design doc 4.25: wait for unbuilt track `number` (nil releases); `resume` runs once it is built. The rail, stamina
+	-- and race clock stand still meanwhile; RunHold drives the client's "Loading next track" label.
+	local holdResume = nil
+	local function hold(number, resume)
+		run.Holding, holdResume = number, resume
+		car:SetAttribute("RunHold", number)
+		publish()
 	end
 	-- Puts the runner `ahead` studs past waypoint `index` (a start, restart or jump; clients snap there).
 	local function moveTo(index, ahead)
@@ -390,6 +400,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 
 	local function startRace(i)
 		local track = raceRoute.Tracks[i]
+		if not TrackBuild.IsBuilt(track.Number) then
+			hold(track.Number, function()
+				startRace(i)
+			end)
+			return
+		end
 		local cfg = track.Npc.Config
 		local speed = options.NpcSpeeds and options.NpcSpeeds[track.Number] or cfg.Speed
 		speed *= require(script.Parent.WeatherService).Multipliers().NpcSpeed
@@ -588,6 +604,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		local s = math.clamp(raceRoute.Tracks[index].StartIndex, 1, n - 1)
 		run.Finished = false
+		if run.Holding then
+			hold(nil) -- a jump replaces the wait; an unbuilt target holds again below
+		end
 		moveTo(s, RaceService.START_AHEAD)
 		paid = {}
 		for _, entry in raceRoute.Pads do
@@ -597,7 +616,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		if npcMode then
 			race = nil
-			startRace(index)
+			startRace(index) -- holds at this gate while the track is unbuilt
+		elseif not TrackBuild.IsBuilt(number) then
+			hold(number, function() end)
 		end
 		return true
 	end
@@ -644,11 +665,16 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		local now = os.clock()
 		local railDt = now - lastTick
 		lastTick = now
+		if run.Holding and TrackBuild.IsBuilt(run.Holding) then
+			local resume = holdResume
+			hold(nil)
+			resume()
+		end
 		-- The rail: a test or admin that set driver.Index moves the runner there; then exactly cruise x time along it
 		if driver.Index ~= lastIndex then
 			dist = arc[math.clamp(driver.Index, 1, n)]
 		end
-		if not run.Finished and not run.Waiting then
+		if not run.Finished and not run.Waiting and not run.Holding then
 			local moved = dist + run.TargetSpeed * railDt
 			dist = closed and moved or math.min(moved, arc[n])
 		end
@@ -657,7 +683,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		driver.Index = driver.Done and n or nearestIndex(k)
 		lastIndex = driver.Index
 		run.MinUpY = math.min(run.MinUpY, car.PrimaryPart.CFrame.UpVector.Y)
-		runTime += railDt
+		if not run.Holding then
+			runTime += railDt -- a duel's or race's time never counts the wait
+		end
 		if npcMode and race then
 			local track = raceRoute.Tracks[race.Index]
 			local last = race.Index == #raceRoute.Tracks
@@ -705,7 +733,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			elseif sinceStamina >= RaceService.PUBLISH_INTERVAL then
 				publishStamina()
 			end
-		elseif staminaMode and not run.Finished then
+		elseif staminaMode and not run.Finished and not run.Holding then
 			local slot = run.Slot
 			run.Stamina[slot] -= 100 / seconds[slot] * railDt
 			sinceStamina += railDt
@@ -766,7 +794,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		sincePublish += railDt
 		if
 			sincePublish >= RaceService.PUBLISH_INTERVAL
-			or (run.Finished or run.Waiting) ~= (car:GetAttribute("RunSpeed") == 0)
+			or (run.Finished or run.Waiting or run.Holding ~= nil) ~= (car:GetAttribute("RunSpeed") == 0)
 		then
 			publish()
 		end
@@ -809,6 +837,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		if alive then
 			alive = false
 			car:SetAttribute("RunTrack", nil) -- walking again: clients go back to ZoneAt
+			car:SetAttribute("RunHold", nil)
 			self:CashOut() -- stopping, dying or leaving never loses won money
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
