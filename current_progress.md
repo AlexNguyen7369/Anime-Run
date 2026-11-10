@@ -138,8 +138,11 @@
 135. 2026-11-10 — Alex Nguyen — Applied the Index anime look game-wide through Client/AnimeSkin and PanelFrame (every panel, popup, tab, button and card, boss event included); design doc 4.42; screenshots to the owner, not pushed.
 136. 2026-11-10 — Alex Nguyen — Audited every panel's margins and spacing (docs/UI_SPACING_AUDIT.md), got the standard approved into design doc 4.42, and redrafted all panels to it (AnimeSkin tokens, one header, toolbar row, five text roles, footers); 14 screenshots to the owner, not pushed.
 137. 2026-11-10 — Alex Nguyen — Round 2 of the UI redraft after the owner approved only Quests and Stats: AnimeSkin.IndexFrame puts every panel and popup in the Index's exact frame and one font family (UiTheme no longer resets AnimeSkin text), gamepass art fills its card, Settings and Rebirth get margins and smaller text, Upgrades tree reverted to its first pass; 15 screenshots to the owner, not pushed.
+138. 2026-11-10 — Alex Nguyen — Cut join time: the loading screen, starter pick and pick reveal wait only for their own characters' models (Loaded_<id>), only visible HUD images preload, and the rest preload in chunks after the screen.
+139. 2026-11-10 — Alex Nguyen — Trimmed bloat: deleted about 72 KB of dead client scripts, made the admin VfxArea build on /tp vfxarea with a 1 s client poll, and guarded 5 upload scripts so importing uploads nothing.
+140. 2026-11-10 — Alex Nguyen — Recorded the owner's plaza Layout C (two wings) and the Sidekick summon altar in the design doc and specs, plus proposals for Tracks 6-10 building behind the game and late-phase client data loading on first need.
 
 ## What's next
-**Owner reviews the round-2 screenshots; on approval push `feature/alex/anime-world`, retarget the stale UI tests (Market tab rail, Racer panel rects in UiResponsive, Backpack rail scale, boss header text) and run the UI harness, then look at the phone layout.**
+**Build plaza Layout C and the Sidekick summon altar (worktree `../AnimeRun-orch/plaza-c`), then show the owner Studio screenshots and run `spawn_area`, `world_layout` and the plaza UI tests.**
 
-**Why this is next:** every panel's geometry changed to the Index frame's units, which the UI tests pin; the harness gates the merge to main and the phone view has not been looked at.
+**Why this is next:** the owner picked Layout C and the altar on 2026-11-10; the plaza is the first thing a new player sees, and the 4.25 and section 7 load proposals wait on the owner after it.
