@@ -314,18 +314,19 @@ before any Studio work.
   reveal: a petal burst and the chosen character's hero pose. The first auto-roll waits about 5 s (proposed) so its result card does not cover it.
 - **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open by itself until their
   first run ends (its button still works). The gate plays a burst when they first cross it.
-- **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, next to the Race Start gate (owner 2026-11-04), and 2-3 client-only runners with
+- **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, in the summon wing (Two wings, owner 2026-11-10; was next to the Race Start gate), and 2-3 client-only runners with
   trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
-- **Exclusive pedestal** (owner 2026-11-04, 4.35): one pedestal near the spawn advertises Saitamo. It does not count toward the 2 Legends and follows Clear plaza: every Dojo stays visible from the spawn.
+- **Exclusive pedestal** (owner 2026-11-04, 4.35): one pedestal near the spawn advertises Saitamo. It does not count toward the 2 Legends and never hides a Dojo from the spawn (it is not a service building).
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
 - **Wayfinding**: the Market and the Race Start area are clearly marked, in bold, and placed so a player can always
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
-  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch). Race Start also has a floating bold label high above it, seen across the plaza; the Market's floating header follows the service row (Service headers, owner 2026-11-04).
+  torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch). Race Start also has a floating bold label high above it, seen across the plaza; the Market's floating header follows the economy wing (Service headers, owner 2026-11-04; Two wings 2026-11-10).
   Labels show only on foot and hide up close (proposed for Race Start: within 20 studs, out to 260 studs).
-- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the service row: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
-- **Clear plaza** (owner 2026-11-04): a player at the spawn can clearly see every Dojo; no service building stands in front of one. Shop, Potions, Market and Index stand in one straight row in the west opening of the Dojo ring; the Rebirth shrine is removed (Rebirth opens from its HUD tile); the Best Roll pedestal stands in a gap between Dojos. The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii, 4 stone lanterns framing its gate end and at most 2 Legend pedestals beside the gate (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
+- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sidekicks (the summon altar, 2026-11-10), Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the economy wing: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
+- **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule): the Dojo ring, the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the 2 Legends on the gate side. The Sensei stands beside the gate. A service building may hide part of a Dojo from the spawn. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
+- **Clear plaza** (owner 2026-11-04; placement parts replaced by Two wings 2026-11-10): the Rebirth shrine is removed (Rebirth opens from its HUD tile). The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii and 4 stone lanterns framing its gate end (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
 - **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
   level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
@@ -339,6 +340,7 @@ before any Studio work.
 
 ### 4.25 Track loading (owner 2026-11-03)
 - The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
+- Proposed answer (orchestrator, 2026-11-10, awaiting the owner): Tracks 6-10 build one per frame right after terrain starts, nearest the players first (a track a player is on or headed to jumps the queue). A run that would start on, or a runner who would cross into, a track not built yet holds at the spawn gate or that finish line, with a "Loading next track" label, until it is built; nothing is paid or lost while holding. Today the server builds all 10 tracks before terrain starts (`Main.server.luau`), which adds to the fresh-server load.
 
 ### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
 - Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
@@ -406,7 +408,7 @@ before any Studio work.
   items under section 6. Rebirth keeps Gems. Amounts are in `docs/SIDEKICK_SPEC.md`, **placeholder**.
 
 ### 4.36 Sidekicks (owner 2026-11-04)
-- A Sidekick is a small companion rolled from a gacha at a plaza vendor, Sidekicks, for Gems. It is equipped per character, follows
+- A Sidekick is a small companion rolled from a gacha at the plaza's Sidekick summon altar (owner 2026-11-10; replaces the Sidekicks stall) for Gems. It is equipped per character, follows
   that character, deals its damage in boss events (4.37) and gives that character a speed or stamina gain while racing. Speed gain
   counts as an entry in the 4.13 speed multi, inside `MAX_CRUISE`.
 - The vendor unlocks at rebirth 2. A tutorial then gives one free summon (4.21 style spotlight), so a player at rebirth 2 can join events. The free summon's Sidekick is never auto-sold (**proposed**), and the tutorial's last step points the player to equip it in the Bag, since only an equipped Sidekick unlocks events. The tutorial may show during a normal track run; it waits only for a duel, a boss event, a showdown and a short transition (owner 2026-11-05).
@@ -426,6 +428,7 @@ before any Studio work.
 - Click menu (owner 2026-11-05): clicking a Sidekick or Relic, in the Bag or in the Index, opens a small menu with Equip and Sell. Equip opens a picker of the player's own characters; one item per character still holds, so choosing a character that already wears one replaces it, and the old item returns to the bag. Sell asks "Are you sure?" first. This replaces the Bag's character stepper and second-press sale.
 - Art in UI (owner 2026-11-05): the summon page and its results show the Sidekicks' actual 3D models. Drawn portraits are used only in the Sidekick index and for Sidekick equip in the Bag. This is an exception to the UI's portrait art rule.
 - Odds, cost, buffs, sell values: `docs/SIDEKICK_SPEC.md`, **placeholder**. Sidekicks cannot be traded.
+- Summon altar (owner 2026-11-10): the Sidekicks stall becomes a summon altar in the plaza, built in-house with an original look (no copied art). The altar's top shows the current rotation's Mythic as its actual 3D model, turning slowly, and swaps when the pool rotates. Walking up opens the same summon page (its prompt replaces the stall's); results still play in the UI reveal, and Details still shows the odds before any summon (section 6). Size, height and effects are **proposed**: three stone tiers about 32 studs across with a glowing ring and a halo around the model. It stands in the middle of the summon wing (4.24 Two wings). Before rebirth 2 the altar shows a locked look with "Rebirth 2" (**proposed**).
 - Art rulings (owner 2026-11-04; override section 5's target look for these models): Pochito is polished and closer to its source, with smooth rounded surfaces rather than hard facets. Kaizel is a thin wyvern, not a bulky dragon, with neon blue parts. Igriz keeps its red version; Kaizel stays black and cyan. Models are still made in-house, with no ripped art.
 
 ### 4.37 Boss events (owner 2026-11-04)
@@ -577,12 +580,14 @@ before any Studio work.
   `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`, `AutoSell`, `AutoSellChance`. Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
   Boss-event fields (owner 2026-11-04): `docs/BOSS_EVENT_SPEC.md`.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
+- Join size (**proposed**, orchestrator 2026-11-10, awaiting the owner): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
 
 ## 8. Open questions (owner)
 
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-10: owner: the Sidekicks stall becomes a summon altar whose top shows the current rotation's Mythic model, turning slowly (4.36); owner: plaza Layout C, Two wings, replacing Clear plaza's service row, Best Roll gap, Legends beside the gate and the Dojo sight rule (4.24, WORLD_REDESIGN_SPEC 4). Orchestrator proposals, not yet rules: Tracks 6-10 build behind the game with a finish-line hold (4.25), late-phase client data loads on first need (7).
 - 2026-11-06: owner: boss arena ring radius 550, replacing 850, with Big Raga's size unchanged and its dais lower; the scream cutscene is 6 s, zoomed in, with the screen dimmed; the exhaustion view is zoomed in a lot; Phase 2 is darkish, with no red tint after the owner removed it the same day, and a bold red title; auras and trails more visible in the event (4.37, BOSS_EVENT_SPEC).
 - 2026-11-06: owner: characters act individually with their own projectiles and damage numbers coloured by rarity, replacing one team damage (2026-11-05) and red and yellow numbers; Raga grows 25% in the scream cutscene; exhausted teams skip to the cutscene and revive after it; the wheel spins very fast then stops abruptly; FOV locked for the whole event; no duplicate Raga on attacks; white motes in the arena (4.37).
 - 2026-11-06: owner: boss Phase 2 (Fully Adapted Raga), team runs in a line with no revive until an 8.5 s team timer, 7,500 HP per player, stacking statuses of 15 s and 20 s, Slice 15% and 30%, Vulnerable, 5% damage for rewards, chests, rewards popup, 100,000 Money, 1,000 Gems as a fifth Gem source, art for every Relic (4.35, 4.37, 4.38, BOSS_EVENT_SPEC, RELIC_SPEC).
