@@ -103,4 +103,5 @@ def main():
 	print("REGISTRY", len(layout["Assets"]), "assets; NOT REVIEWED:", [k for k in layout["Assets"] if "Reviewed" not in ledger[k]])
 
 
-main()
+if __name__ == "__main__":
+	main()

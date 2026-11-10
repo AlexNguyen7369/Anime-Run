@@ -530,6 +530,9 @@ AdminService.Commands = {
 		end,
 		Apply = function(p, n)
 			if n == "vfxarea" or n == "home" then
+				if n == "vfxarea" and not workspace:FindFirstChild("VfxArea") then
+					VfxArea.Build().Parent = workspace -- built lazily: no live server pays for it until an admin goes there
+				end
 				local cf = n == "vfxarea" and VfxArea.SpawnCFrame() or CarService.WalkSpawnCFrame()
 				if CarService.Teleport(p, cf) then
 					return true, n == "vfxarea" and "in the VFX showcase area" or "back at the spawn"

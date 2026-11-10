@@ -79,8 +79,6 @@ local trackModels = {}
 for _, entry in entries do
 	table.insert(trackModels, entry.Model)
 end
-local vfxArea = VfxArea.Build()
-vfxArea.Parent = Workspace -- the admin-only VFX showcase floor (/tp vfxarea)
 
 -- The lighting baseline goes in before WeatherService snapshots it (docs/RENDERING_SPEC.md)
 require(Shared.LightingConfig).Apply()
@@ -100,7 +98,10 @@ require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo mesh
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
 do
-	local clear = { vfxArea }
+	-- the VFX floor is built on the first `/tp vfxarea` (AdminService), so its ground is cleared as an XZ box
+	local half = Vector2.new(VfxArea.FLOOR_SIZE.X, VfxArea.FLOOR_SIZE.Z) / 2
+	local centre = Vector2.new(VfxArea.CENTER.X, VfxArea.CENTER.Z)
+	local clear = { { Min = centre - half, Max = centre + half } }
 	for _, model in trackModels do
 		table.insert(clear, model:FindFirstChild("Checkpoint"))
 		table.insert(clear, model:FindFirstChild("WinPad", true))

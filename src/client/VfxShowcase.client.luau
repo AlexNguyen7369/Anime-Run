@@ -40,17 +40,7 @@ local function clear()
 	showcase, cars = nil, {}
 end
 
-RunService.Heartbeat:Connect(function(dt)
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local near = root ~= nil and (root.Position - VfxArea.CENTER).Magnitude <= VfxArea.SHOW_RADIUS
-	if near and not showcase then
-		build()
-	elseif not near and showcase then
-		clear()
-	end
-	if not showcase then
-		return
-	end
+local function step(dt)
 	clock += dt
 	phase = RunnerVisual.Advance(phase, SPEED, dt)
 	for _, c in cars do
@@ -58,4 +48,20 @@ RunService.Heartbeat:Connect(function(dt)
 		local pos = c.centre + Vector3.new(math.cos(a) * c.radius, RunnerFactory.HIP_HEIGHT, math.sin(a) * c.radius)
 		RunnerVisual.Pose(c.model, CFrame.lookAt(pos, pos + Vector3.new(-math.sin(a), 0, math.cos(a))), phase, 1) -- forward is -Z
 	end
-end)
+end
+
+-- A 1 s poll, not a per-frame check: the Heartbeat that drives the loops runs only while the showcase is built.
+local heartbeat = nil
+while true do
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local near = root ~= nil and (root.Position - VfxArea.CENTER).Magnitude <= VfxArea.SHOW_RADIUS
+	if near and not showcase then
+		build()
+		heartbeat = RunService.Heartbeat:Connect(step)
+	elseif not near and showcase then
+		heartbeat:Disconnect()
+		heartbeat = nil
+		clear()
+	end
+	task.wait(1)
+end

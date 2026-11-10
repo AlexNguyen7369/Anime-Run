@@ -1,5 +1,5 @@
 --!nonstrict
--- Pure helpers for the HUD (Client/SpeedHud, Client/AutoRaceButton), kept here so they can be tested.
+-- Pure helpers for the HUD (Client/RollToast, Client/AutoRaceButton), kept here so they can be tested.
 
 local HudFormat = {}
 
