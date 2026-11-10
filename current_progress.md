@@ -134,8 +134,9 @@
 131. 2026-11-09 — Alex Nguyen — Merged boss-polish and main into anime-world on one Rojo port (34873) and landed the Phase 2 red tint removal (darken only).
 132. 2026-11-09 — Alex Nguyen — Hid the VIP title while the player runs (auto race or boss event) and gave Kami Narito's NinjaRun.
 133. 2026-11-09 — Alex Nguyen — Synced Issac's Studio-only Index UI edits (AnimeBanner, AnimeChrome, grid/progress plates, tab and close art, text limits, HUD IndexIcon) into assets/studio/StarterGui.rbxm; additions only, Rojo build passes.
+134. 2026-11-10 — Alex Nguyen — Gave Quests the Index anime look (QuestAnimeStyle: chrome, banner, art tabs, state-tinted plates, detail card, footer) and committed Issac's Studio-only Index scripts; design doc 4.42; owner approved from screenshots.
 
 ## What's next
-**Owner playtests `feature/alex/anime-world` on Rojo 34873 (Settings auto sell row, a sold roll, a `/kami` run, lighter event auras on the boosted ones, Issac's new Index art), then run `ui_boss`, `ui_rolls`, `ui_toast`, `ui_index`, `ui_inventory`, `ui_hitboxes` and `ui_bag_full` on a save past the roll tutorial and play a real Phase 2 to its end.**
+**Apply the Index anime look to every panel game-wide (Daily, Shop, Market, Backpack, Rebirth and Stats, Settings, Upgrades, Checkpoints, Sidekicks, Duel, boss event UI), then screenshots of each for owner approval.**
 
-**Why this is next:** every branch Rojo served is now in this one branch, none of the merged result has run in Studio, the last UI harness left 6 reds no run has confirmed, and `ui_index` has not run against Issac's added Index instances.
+**Why this is next:** the owner asked for one consistent GUI across all panels after approving the Quests look; every later UI change builds on that shared skin.

@@ -31,6 +31,8 @@ end
 
 local function follow(from, to, property)
 	from:GetPropertyChangedSignal(property):Connect(function()
+		local gui = to:FindFirstAncestorWhichIsA("ScreenGui")
+		if gui and gui:GetAttribute("IndexCustomLayout") then return end
 		to[property] = from[property]
 	end)
 end
@@ -78,6 +80,7 @@ local function sideTabs(refs, enemies)
 	local sidekicks, relics = copy("Sidekicks", "SIDEKICKS"), copy("Relics", "RELICS")
 	local close = refs.Close.Parent
 	local function place()
+		if refs.Gui:GetAttribute("IndexCustomLayout") then return end
 		local x = enemies.Position.X.Offset + enemies.Size.X.Offset + 8
 		local room = close.Position.X.Offset - x - 8
 		local width = math.min(enemies.Size.X.Offset, math.floor((room - 8) / 2))

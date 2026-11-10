@@ -63,7 +63,7 @@ end
 
 local function icon(name, parent, props)
 	local art = Icons[name]
-	props.Image = art.Image
+	props.Image = if name == "Index" then "rbxassetid://79149512473529" else art.Image
 	props.BackgroundTransparency = 1
 	props.ScaleType = Enum.ScaleType.Fit
 	if art.Offset then
@@ -191,6 +191,9 @@ for order, slot in SLOTS do
 		}),
 		2.5
 	)
+	if name == "Index" then
+		require(client:WaitForChild("IndexHudAppearance")).Apply(tile)
+	end
 	if PANEL[name] then
 		tile.Activated:Connect(function()
 			PanelSwitch.Action(PANEL[name])

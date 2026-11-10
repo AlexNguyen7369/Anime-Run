@@ -16,6 +16,7 @@ local HudFormat = require(ReplicatedStorage.Shared:WaitForChild("HudFormat"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
+local QuestAnimeStyle = require(script.Parent:WaitForChild("QuestAnimeStyle"))
 
 local screen = Instance.new("ScreenGui")
 screen.Name = "DailyBoosts"
@@ -209,6 +210,29 @@ local progressText = make("TextLabel", "Progress", progressTrack, {
 	TextSize = 13,
 })
 local questReward = detailText("Reward", UDim2.fromOffset(14, 184), UDim2.new(1, -28, 0, 48), 15, PALETTE.Gold)
+-- Quests wear the Index look (design doc 4.42); the Daily view keeps PanelFrame's.
+local anime = QuestAnimeStyle.Attach({
+	Modal = modal,
+	Header = header,
+	Title = title,
+	Close = close,
+	Tabs = questTabs,
+	TabLayout = questTabLayout,
+	Daily = dailyQuestTab,
+	Weekly = weeklyQuestTab,
+	Content = content,
+	Detail = questDetail,
+	Type = questType,
+	Name = questName,
+	Track = progressTrack,
+	Fill = progressFill,
+	ProgressText = progressText,
+	Reward = questReward,
+	Logo = HudIcons.Quests.Image,
+	OnClose = function()
+		PanelSwitch.Close("Daily")
+	end,
+})
 
 local status = make("TextLabel", "Status", screen, {
 	AnchorPoint = Vector2.new(1, 0),
@@ -314,12 +338,7 @@ local function layoutView()
 	questTabs.Visible = quests
 	questDetail.Visible = quests and not phone
 	if quests then
-		local tabTop = phone and 56 or 72
-		questTabs.Position = UDim2.fromOffset(14, tabTop)
-		content.Position = UDim2.fromOffset(14, tabTop + 46)
-		content.Size = phone and UDim2.new(1, -28, 1, -tabTop - 60) or UDim2.new(0.53, -18, 1, -tabTop - 60)
-		questDetail.Position = UDim2.new(0.55, 0, 0, tabTop + 46)
-		questDetail.Size = UDim2.new(0.45, -14, 1, -tabTop - 60)
+		anime:Layout()
 	else
 		content.Position = UDim2.fromOffset(14, 88)
 		content.Size = UDim2.new(1, -28, 1, -100)
@@ -441,6 +460,7 @@ local function showDaily()
 	end
 	backdrop.Visible = true
 	refreshChrome()
+	anime:SetActive(false)
 	layoutView()
 	title.Text = "DAILY REWARDS • 7 DAYS"
 	clearContent()
@@ -567,6 +587,7 @@ local function selectQuest(quest, current, weekly)
 	for id, refs in questRows do
 		refs.Edge.Color = id == quest.Id and Color3.new(1, 1, 1) or TILE_BLUE
 	end
+	anime:Select(questRows, quest.Id)
 	questType.Text = weekly and "WEEKLY QUEST" or "DAILY QUEST"
 	questName.Text = quest.Name
 	questGoal.Text = "" -- the quest's name already says its goal
@@ -594,6 +615,7 @@ local function showQuests()
 	end
 	backdrop.Visible = true
 	refreshChrome()
+	anime:SetActive(true)
 	layoutView()
 	title.Text = "QUESTS"
 	clearContent()
@@ -603,12 +625,14 @@ local function showQuests()
 		UiMotion.Mark(tab, { BackgroundColor3 = selected and TILE_BLUE or TAB })
 		UiMotion.Mark(tab.Edge, { Color = selected and Color3.new(1, 1, 1) or OUTLINE })
 	end
+	anime:Tab(questCategory)
 	local weekly = questCategory == "Weekly"
 	local quests = weekly and questConfig.Weekly or questConfig.Daily
 	local progress = decode(weekly and "QuestWeeklyProgress" or "QuestDailyProgress")
 	local claimed = decode(weekly and "QuestWeeklyClaimed" or "QuestDailyClaimed")
 	local selectedQuest, selectedCurrent = nil, 0
 	local rows = {}
+	local ready, claimedCount = 0, 0
 	for _, quest in quests do
 		local current = math.min(quest.Target, progress[quest.Id] or 0)
 		local done = claimed[quest.Id] == 1
@@ -664,6 +688,10 @@ local function showQuests()
 			shineWhileClaimable(claim)
 		end
 		questRows[quest.Id] = { Button = row, Edge = rowEdge }
+		local state = done and "Claimed" or claim.Active and "Ready" or "Progress"
+		anime:Row(row, state)
+		ready += state == "Ready" and 1 or 0
+		claimedCount += done and 1 or 0
 		if not selectedQuest then
 			selectedQuest, selectedCurrent = quest, current
 		end
@@ -685,6 +713,7 @@ local function showQuests()
 			end)
 		end)
 	end
+	anime:Footer(string.format("%d READY · %d / %d CLAIMED", ready, claimedCount, #quests))
 	if selectedQuest then
 		selectQuest(selectedQuest, selectedCurrent, weekly)
 	end

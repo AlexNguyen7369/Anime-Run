@@ -507,6 +507,11 @@ before any Studio work.
 - Mass sell (owner 2026-11-05): the Backpack's Characters tab has a select mode to sell all spares of several characters at once, after one confirmation. The last copy of each stays.
 - Sale prices are not scaled by Money multis. Spec: `docs/BAG_AND_AUTOSELL_SPEC.md`.
 
+### 4.42 Anime panel look: Index and Quests (owner 2026-11-09)
+- The Index panel wears a collaborator's anime skin (Issac, made in Studio, synced 2026-11-09): a framed body image, a raised banner with the panel's HUD icon as a big logo and a heavy italic title, slanted art tabs, an art close button, angular rarity-tinted cards and a footer line. Code: `Client/IndexAnimeStyle` (art ids and text treatment), `IndexAnimeController`, `IndexHudAppearance`.
+- Quests uses the same look with the same art and text treatment (owner 2026-11-09): the Quests logo and title in the banner, DAILY and WEEKLY as art tabs, quests as slanted plates tinted by state (ready, in progress, claimed), the detail on an angular card, and a footer counting ready and claimed quests. Same footprint and proportions as the Index. Code: `Client/QuestAnimeStyle`. The Daily rewards view of the same panel keeps its current look.
+- Display only: the server still decides every quest number and claim.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -649,6 +654,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-06: owner: auto sell takes everything at or under N, new discoveries too; a full bag keeps auto selling and keeps warning (4.41).
 - 2026-11-06: owner: a team bonus depends on the team alone, so an event's bonus comes from the event team (4.37); an auto sell button under the roll, with auto roll (4.41).
 - 2026-11-09: owner: admin runner Kami has infinite stamina, wears Narito's model and runs NinjaRun (4.13); the VIP title is hidden while running (4.39).
+- 2026-11-09: owner: the Index anime skin is recorded, and Quests takes the same look (4.42).
 - 2026-11-09: owner: auto sell lives in Settings only, the roll view and under-roll buttons are removed; a sold roll shows no sale UI, only the Money gain (4.41).
 - 2026-11-05: owner: boss start: team saved from the last event, average stamina on the team HUD, X to close with at least 1 character, red warning, display-only team run, Edit Team button, jump and smoke cutscene with the fight at 3 s, no team edits for late joiners, 5,000 HP per player, event timer, red and yellow animated damage numbers (4.37).
 - 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).
