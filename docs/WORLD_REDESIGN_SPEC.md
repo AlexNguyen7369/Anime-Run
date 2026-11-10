@@ -77,7 +77,11 @@ Nothing car-shaped stays in the game:
 - One `SpawnLocation` at the plaza centre (the only one in the place).
 - **Start gate**: a large torii-style gate; walking through it starts the run (the
   IVS `StartPad` rules and cooldown, tag `StartPad`).
-- **Service row** (owner 2026-11-04): Shop, Potions, Market and Index in one straight row (section 7; same panels and remotes as now).
+- **Two wings** (owner 2026-11-10, design doc 4.24; replaces the service row): same panels, prompts and remotes as now. Positions are Roblox world (x, z) at the floor, **proposed**, from the Blender draft `assets/plaza_draft/Layout_C.png`. The path axis runs from the spawn (0, 0) to the gate pad (-84, 78).
+  - Economy wing, each front facing (0.68, 0.73): Shop (-13.7, -50.0), Potions (-29.8, -35.1), Market (-46.0, -20.1), Index (-62.1, -5.1).
+  - Summon wing, each front facing (-0.68, -0.73): Best Roll (43.3, 14.3), Sidekick summon altar (26.8, 40.6), Legends (0.8, 53.8) and (-7.6, 53.5).
+  - Sensei (-80.0, 57.9), facing the path. The Great Sakura stays at (80, 118). The Sidekicks stall is removed.
+  - Floating headers move with their buildings; the altar gets a SIDEKICKS header like the row's.
 - **Index board** (scroll wall) and the checkpoint NPC as a **sensei**
   (same `CheckpointService` rules).
 - Look: a few lanterns, one cherry tree, stone paving, wooden roofs; no logos or real names (design doc section 5).
@@ -119,13 +123,13 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
   from the spawn to the StartPad. The SpawnLocation stays at the plaza centre and the StartPad stays where it is.
 - **Start gate**: torii about 2x taller and turned to face the spawn along the path. Footprint stays clear of the road.
 - **Path** (owner 2026-11-04): 12 wide and plain, with 2 stone lanterns on each side at its gate end. No small torii, lantern strings or banners.
-- **Service row** (owner 2026-11-04), world positions with the spawn at the origin: fronts on one straight line at x = -72, facing +x, in the west opening of the Dojo ring so no Dojo stands behind it. South to north, evenly spaced between z -70 and z 45: Shop, Potions, Market, Index, sensei (proposed). Nothing stands between the spawn and a Dojo.
+- **Service positions**: section 4 Two wings (owner 2026-11-10; replaces the x = -72 service row).
 - **Market** (owner 2026-11-04): one in-house stall built from the plaza kit in `build_plaza.py`, with auras and trails on display; it opens the same Market panel. No fork art (`SpawnMarketplace`, `MarketplaceBuilder` retired), no vendor stalls, no courtyard.
 - **Rebirth** (owner 2026-11-04): the shrine is removed; Rebirth opens from its HUD tile.
-- **Best Roll** (owner 2026-11-04): pedestal at (-8.5, -75), between Plots 1 and 2, radius 9.
+- **Best Roll**: pedestal of radius 9 in the summon wing (section 4 Two wings, owner 2026-11-10; was (-8.5, -75)).
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
-- **Legends** (owner 2026-11-04): at most 2 pedestals, one each side of the Race Start gate, clear of its posts, the path and Plot 7; about 9 studs tall. Client-only, like the sky-loop runners. `db_hero` and `mha_symbol` (their orange and blue match the logo; owner approved 2026-11-04).
+- **Legends** (owner 2026-11-04; moved to the summon wing 2026-11-10, section 4 Two wings): at most 2 pedestals, about 9 studs tall. Client-only, like the sky-loop runners. `db_hero` and `mha_symbol` (their orange and blue match the logo; owner approved 2026-11-04).
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the floating labels (Race Start from `PlazaAssets.Landmarks`)
   as client-only attachments, so streaming never hides them.
@@ -137,8 +141,8 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Gate burst**: petals and gold at the pad when a new player's first run starts within 40 studs of the gate.
 - **Dojo extras** (Client/DojoExtras): a petal burst on a level rise; squad rigs play an idle jab within 80 studs; `Glow_lamp` parts take the colour of the owner's `WorkshopStat`; a bold YOUR DOJO label for a new player until they walk within 30 studs or race. All client display; Reduced Motion stops the burst and the training.
 - **Fresh-save checks**: in Studio only, ReplicatedStorage attribute `TestSaveKey` = "<name>" (set in Edit before Play) plays on a separate save `Test_<name>_<userId>`; a new name is a new save. Read once at server start; leaderboards skip these sessions. Clear it afterwards: the `data` scenario expects real keys. Do not send gifts in a test session: `GiftRoutes_v1` still uses the real buyer id.
-- **Load**: the loading screen waits for `TerrainNearReady` (plaza and Track 1 terrain, their stand-in ground cleared), `CharacterModels` Ready and `PlazaReady`, then preloads what is on screen in 4 streams. Other characters and Dojo tiers (`ReplicatedStorage.PlazaTierMeshes`) preload behind the game.
-- **Sensei**: ends the service row, beside the path (`CheckpointConfig.NPC_POS`).
+- **Load** (2026-11-10): the loading screen waits for `TerrainNearReady` (plaza and Track 1 terrain, their stand-in ground cleared), `PlazaReady` and, per on-screen character (team, Legends, starters), the `CharacterModels` attribute `Loaded_<id>` (set after each model's load, failed or not). It then preloads what is on screen in 4 streams: images only from HUD ScreenGuis visible at join; hidden panels load behind the game. After the screen closes and `CharacterModels` Ready is set, the other characters and Dojo tiers (`ReplicatedStorage.PlazaTierMeshes`) preload `LATER_CHUNK` (4) at a time with `LATER_PAUSE` (0.5 s) between calls (placeholders). The starter pick and the pick reveal wait on their own ids' `Loaded_<id>`.
+- **Sensei**: beside the gate (section 4 Two wings; `CheckpointConfig.NPC_POS`).
 - **Trees** (owner 2026-11-04): one Great Sakura, outside the Dojo ring behind the gap between Plots 5 and 6, clear of the road and the plots, with a solid invisible trunk. No smaller trees, planters or benches.
 - **Atmosphere**: zone 0 has a petal emitter (Rate 10, Reduced Effects rules as other zones) and `AmbForest` + `SfxWindChime` at volume 0.2.
 - **Index icon**: a fan of three cards, in-house (`tools/blender/plaza/index_icon.py`), replaces the car (section 1).
