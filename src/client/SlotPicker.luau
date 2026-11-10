@@ -14,7 +14,6 @@ local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
-local OUTLINE = UiTheme.Outline
 local FREE = UiTheme.Palette.Row -- the slot takes the item; not the money green, so equip and pay look different
 local HERE = UiTheme.Palette.SlotHere -- the item is on this slot: tapping removes it
 
@@ -30,14 +29,11 @@ local function make(class, name, parent, props)
 	return object
 end
 
-local function caption(name, parent, props)
+-- A one-line label in one of AnimeSkin's text roles (design doc 4.42).
+local function caption(name, parent, props, role)
 	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
-	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
-	props.TextScaled = true
-	local label = make("TextLabel", name, parent, props)
-	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
-	return label
+	props.TextTruncate = Enum.TextTruncate.AtEnd
+	return AnimeSkin.Label(make("TextLabel", name, parent, props), role)
 end
 
 -- The Team ids in slot order (the player attribute Team).
@@ -72,41 +68,36 @@ end
 function SlotPicker.new(name, parent, props, onPick)
 	local frame = make("Frame", name, parent, props)
 	frame.BackgroundTransparency = 1
+	-- Buttons 40 tall, 12 apart (design doc 4.42), centred in whatever row the caller gives.
+	local gap, height = AnimeSkin.Px(AnimeSkin.Space.Gap), AnimeSkin.Px(AnimeSkin.Space.Button)
 	make("UIListLayout", "Layout", frame, {
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Padding = UDim.new(0, 6),
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+		Padding = UDim.new(0, gap),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
 	local picker = { Frame = frame, Buttons = {}, Kind = nil, Id = nil }
 	for slot = 1, Market.SLOTS do
 		local b = make("TextButton", "Slot" .. slot, frame, {
 			LayoutOrder = slot,
-			Size = UDim2.new(1 / Market.SLOTS, -4, 1, 0),
+			Size = UDim2.new(1 / Market.SLOTS, -math.ceil(gap * (Market.SLOTS - 1) / Market.SLOTS), 0, height),
 			BackgroundColor3 = FREE,
 			Text = "",
 			AutoButtonColor = false,
 		})
 		UiTheme.Corner(b, "S")
-		make(
-			"UIStroke",
-			"Stroke",
-			b,
-			{ Color = UiTheme.Palette.White, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
-		)
-		local title = caption("Title", b, {
-			Position = UDim2.fromOffset(4, 2),
-			Size = UDim2.new(1, -8, 0.5, -2),
-			Text = "SLOT " .. slot,
-		})
 		AnimeSkin.Button(b, "Idle") -- the anime look (design doc 4.42); Update keeps its own free / here fills
-		AnimeSkin.Title(title, 18)
+		local title = caption("Title", b, {
+			Position = UDim2.fromOffset(8, 2),
+			Size = UDim2.new(1, -16, 0.5, -2),
+			Text = "SLOT " .. slot,
+		}, "Body")
 		local items = caption("Items", b, {
-			Position = UDim2.new(0, 4, 0.5, 0),
-			Size = UDim2.new(1, -8, 0.5, -3),
+			Position = UDim2.new(0, 8, 0.5, 0),
+			Size = UDim2.new(1, -16, 0.5, -2),
 			Text = "",
-			TextColor3 = UiTheme.Palette.SoftText,
-		})
+		}, "Caption")
 		picker.Buttons[slot] = { Button = b, Title = title, Items = items }
 		b.Activated:Connect(function()
 			if not (picker.Kind and picker.Id) then

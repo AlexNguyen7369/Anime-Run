@@ -149,7 +149,7 @@ end
 -- Loser screen (docs/NPC_RACER_SPEC.md "Loser screen", docs/HUD_LAYOUT_SPEC.md sections 8 and 10): built once,
 -- only its texts change per loss. Non-interactive; the shade is the first GuiObject child and covers the screen.
 local Palette = UiTheme.Palette
-local CARD_W, CARD_H, OVERHANG = 460, 330, 14
+local CARD_W, CARD_H, OVERHANG = 460, 310, 14
 local ROW_STAGGER = 0.06
 
 local Themes = require(Shared.BiomeThemes)
@@ -196,20 +196,21 @@ end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 refit()
 
-local function label(name, parent, y, height, textSize, color)
+-- Design doc 4.42 spacing standard: one of the five text roles, 16 px side insets (Client/AnimeSkin tokens; the card
+-- is drawn at desktop px and FitScale shrinks it whole on small screens).
+local INSET = AnimeSkin.Space.Inset
+local function label(name, parent, y, height, role)
 	local text = Instance.new("TextLabel")
 	text.Name = name
 	text.AnchorPoint = Vector2.new(0.5, 0)
 	text.Position = UDim2.new(0.5, 0, 0, y)
-	text.Size = UDim2.new(1, -40, 0, height)
+	text.Size = UDim2.new(1, -2 * INSET, 0, height)
 	text.BackgroundTransparency = 1
-	text.Font = UiTheme.Font
-	text.TextSize = textSize
-	text.TextColor3 = color or Palette.White
 	text.TextTruncate = Enum.TextTruncate.AtEnd
 	text.Text = ""
 	UiTheme.Stroke(text, 2)
 	text.Parent = parent
+	AnimeSkin.Label(text, role)
 	return text
 end
 
@@ -224,28 +225,27 @@ UiTheme.Corner(ribbon, "M")
 UiTheme.Gradient(ribbon, Palette.Danger, Palette.DangerDeep)
 UiTheme.Stroke(ribbon, 3, nil, true)
 ribbon.Parent = card
-local banner = label("Banner", ribbon, 0, 64, 44)
-banner.Size = UDim2.fromScale(1, 1)
+local banner = label("Banner", ribbon, 0, 64, "Title")
+banner.Size = UDim2.new(1, -2 * INSET, 1, 0)
 banner.Text = "YOU LOST"
-UiTheme.Stroke(banner, 3)
-AnimeSkin.Title(banner, 44)
 
+-- Rows from 12 below the ribbon, 8 apart inside a group and 12 between groups (who, times, gap, what next).
 local rows = {
-	label("NpcName", card, 62, 30, 26),
-	label("TrackTitle", card, 94, 22, 18, Palette.Unbanked),
-	label("YourTime", card, 128, 30, 26, Palette.Behind),
-	label("NpcTime", card, 160, 30, 26),
-	label("Gap", card, 194, 34, 32, Palette.Danger),
-	label("Pb", card, 234, 24, 20, Palette.Speed),
-	label("BackTo", card, 264, 24, 20),
+	label("NpcName", card, 62, 24, "Item"),
+	label("TrackTitle", card, 94, 16, "Caption"),
+	label("YourTime", card, 122, 20, "Body"),
+	label("NpcTime", card, 150, 20, "Body"),
+	label("Gap", card, 182, 32, "Section"),
+	label("Pb", card, 226, 20, "Body"),
+	label("BackTo", card, 254, 16, "Caption"),
 }
 local npcName, trackTitle, yourTime, npcTime, gap, pb, backTo = table.unpack(rows)
 
 local countdown = Instance.new("Frame")
 countdown.Name = "Countdown"
 countdown.AnchorPoint = Vector2.new(0.5, 0)
-countdown.Position = UDim2.new(0.5, 0, 0, 298)
-countdown.Size = UDim2.new(1, -60, 0, 12)
+countdown.Position = UDim2.new(0.5, 0, 0, 282) -- 12 under the last row, 16 above the card's bottom
+countdown.Size = UDim2.new(1, -2 * INSET, 0, 12)
 countdown.BackgroundColor3 = Palette.PanelDeep
 countdown.BorderSizePixel = 0
 UiTheme.Corner(countdown, "S")

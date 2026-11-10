@@ -73,21 +73,43 @@ local function text(parent, name, value, size, pos, height)
 	return l
 end
 
-AnimeSkin.Title(text(panel, "Title", "CHOOSE YOUR STARTER", 34, UDim2.fromScale(0.5, 0.03), 0.11), 34)
-text(panel, "Subtitle", "Roll the next two to fill your team", 20, UDim2.fromScale(0.5, 0.14), 0.07)
+-- Design doc 4.42: the standard header (strip, ALL CAPS title). No close: a new player must pick. HudIcons has no
+-- starter icon, so there is no logo and the title starts at the 16 inset.
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.BackgroundTransparency = 1
+header.Parent = panel
+local title = text(header, "Title", "CHOOSE YOUR STARTER", 38, UDim2.new(), 1)
+title.AnchorPoint = Vector2.zero -- AnimeSkin.Header places it from its top-left
+AnimeSkin.Header(panel, { Header = header, Title = title })
+local subtitle =
+	AnimeSkin.Label(text(panel, "Subtitle", "Roll the next two to fill your team", 16, UDim2.new(), 0), "Body")
 
 local row = Instance.new("Frame")
 row.Name = "Cards"
 row.BackgroundTransparency = 1
-row.Position = UDim2.fromScale(0.02, 0.23)
-row.Size = UDim2.fromScale(0.96, 0.74)
 row.Parent = panel
 local layout = Instance.new("UIListLayout")
 layout.FillDirection = Enum.FillDirection.Horizontal
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0.015, 0)
+layout.Padding = UDim.new(0, 12)
 layout.Parent = row
+
+-- The subtitle one Body line 12 under the header, the cards 12 under it; 16 in at the sides and the bottom.
+local function place()
+	local inset, top = AnimeSkin.Px(AnimeSkin.Space.Inset), AnimeSkin.Top(false)
+	local line = AnimeSkin.Px(AnimeSkin.Size.Body) + 4
+	subtitle.AnchorPoint = Vector2.zero
+	subtitle.Position, subtitle.Size = UDim2.fromOffset(inset, top), UDim2.new(1, -2 * inset, 0, line)
+	local cardsTop = top + line + AnimeSkin.Px(AnimeSkin.Space.Gap)
+	row.Position = UDim2.fromOffset(inset, cardsTop)
+	row.Size = UDim2.new(1, -2 * inset, 1, -cardsTop - AnimeSkin.Px(AnimeSkin.Space.Bottom))
+end
+place()
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
+end
 
 local views = {}
 local picking = false -- a pick is out, or its card is slamming: the popup stays even though NeedsStarter is gone
@@ -115,17 +137,19 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	local card = Instance.new("Frame")
 	card.Name = id
 	card.LayoutOrder = i
-	card.Size = UDim2.fromScale(0.32, 1)
+	card.Size = UDim2.new(1 / 3, -8, 1, 0) -- three cards and two 12 gaps fill the row
 	UiTheme.Plate(card, UiTheme.Palette.Tile).BackgroundTransparency = 0
 	AnimeSkin.Card(card, GachaConfig.RARITY_COLORS[spec.Rarity] or AnimeSkin.Tint.Default)
 	card.Parent = row
 
+	-- Inside the card, 12 padding: the art, 8, the name (20), 8, Choose (40).
 	-- The drawn portrait; with none yet, the live model (refill keeps it current).
 	local image = Components.PortraitImage(spec)
 	local view = Instance.new(image and "ImageLabel" or "ViewportFrame")
 	view.Name = "Art"
 	view.BackgroundTransparency = 1
-	view.Size = UDim2.fromScale(1, 0.68)
+	view.Position = UDim2.fromOffset(12, 12)
+	view.Size = UDim2.new(1, -24, 1, -100)
 	if image then
 		view.Image = image
 		view.ImageColor3 = Color3.new(1, 1, 1)
@@ -138,22 +162,23 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	end
 	view.Parent = card
 
-	AnimeSkin.Title(text(card, "CharacterName", spec.Name, 24, UDim2.fromScale(0.5, 0.68), 0.12), 24)
+	local name = text(card, "CharacterName", spec.Name, 20, UDim2.new(0.5, 0, 1, -80), 0)
+	name.Size = UDim2.new(1, -24, 0, 20)
+	AnimeSkin.Label(name, "Item")
 
 	local button = Instance.new("TextButton")
 	button.Name = "Choose"
 	button.AnchorPoint = Vector2.new(0.5, 1)
-	button.Position = UDim2.new(0.5, 0, 1, -8)
-	button.Size = UDim2.new(1, -16, 0.15, 0)
+	button.Position = UDim2.new(0.5, 0, 1, -12)
+	button.Size = UDim2.new(1, -24, 0, 40)
 	button.BackgroundColor3 = UiTheme.Palette.MoneyDeep
 	button.AutoButtonColor = false
-	UiTheme.Stroke(button, 2)
 	button.Font = UiTheme.Font
 	button.Text = "CHOOSE"
 	button.TextColor3 = UiTheme.Palette.White
 	button.TextScaled = true
 	local buttonText = Instance.new("UITextSizeConstraint")
-	buttonText.MaxTextSize = 24
+	buttonText.MaxTextSize = AnimeSkin.Size.Item
 	buttonText.Parent = button
 	button.Parent = card
 	UiTheme.Corner(button, "S")

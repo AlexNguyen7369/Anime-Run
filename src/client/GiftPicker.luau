@@ -6,8 +6,11 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Palette = UiTheme.Palette
-local TILE_BLUE = Color3.fromRGB(47, 107, 255)
-local SELECTED = Color3.fromRGB(60, 220, 90)
+local ICON = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons")).Shop.Image
+local SPACE = AnimeSkin.Space
+local px = AnimeSkin.Px
+local SUMMARY_HEIGHT = 24 -- one Item line
+local STATUS_HEIGHT = 20 -- one Body line
 local Picker = {}
 local function make(class, name, parent, props)
 	local obj = Instance.new(class)
@@ -20,72 +23,63 @@ local function make(class, name, parent, props)
 end
 local function label(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
-	props.TextColor3 = Palette.White
-	props.TextSize = 16
 	props.TextWrapped = true
-	local object = make("TextLabel", name, parent, props)
-	UiTheme.Stroke(object, 1.5)
-	return object
+	return make("TextLabel", name, parent, props)
 end
--- Navy tile with a coloured glow edge and outlined white text (Backpack look, docs/HUD_LAYOUT_SPEC.md section 8).
-local function skin(button, glow)
-	UiTheme.Corner(button, "S")
-	UiTheme.Stroke(button, 1.5)
-	local edge = button:FindFirstChild("Edge") or make("UIStroke", "Edge", button, {})
-	edge.Color = glow
-	edge.Thickness = 2
-	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	return button
-end
+-- A popup over the whole Shop panel with the standard header (design doc 4.42): its Back is the header's art close.
 function Picker.Create(panel, items, backdrop)
 	local root = make("Frame", "GiftPicker", panel, {
-		Position = UDim2.fromOffset(12, 76),
-		Size = UDim2.new(1, -24, 1, -88),
+		Size = UDim2.fromScale(1, 1),
 		Visible = false,
 		Active = true,
+		ZIndex = 10, -- over the Shop's own header and close
 	})
-	UiTheme.Plate(root, TILE_BLUE).BackgroundTransparency = 0
 	AnimeSkin.Body(root)
-	local summary =
-		label("Summary", root, { Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -16, 0, 40), Text = "" })
+	local title = label("Title", root, { Text = "Send a gift" })
+	local cancel = make("TextButton", "Cancel", root, { Text = "Back", AutoButtonColor = false })
+	AnimeSkin.Header(root, {
+		Header = make("Frame", "Header", root, { BackgroundTransparency = 1 }),
+		Title = title,
+		Icon = make("ImageLabel", "Icon", root, { Image = ICON }),
+		Close = cancel,
+	})
+	local summary = label("Summary", root, { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
 	local recipients = make("ScrollingFrame", "Recipients", root, {
-		Position = UDim2.fromOffset(8, 44),
-		Size = UDim2.new(1, -16, 1, -116),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 5,
+		ScrollBarThickness = 6,
+		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the rows, not on them
 	})
-	make("UIListLayout", "Layout", recipients, { Padding = UDim.new(0, 5), SortOrder = Enum.SortOrder.LayoutOrder })
-	local status = label(
-		"Status",
-		root,
-		{ Position = UDim2.new(0, 8, 1, -70), Size = UDim2.new(1, -16, 0, 24), Text = "Choose a player" }
-	)
-	local cancel = make("TextButton", "Cancel", root, {
-		Position = UDim2.new(0, 8, 1, -40),
-		Size = UDim2.new(0.35, -12, 0, 34),
-		Text = "Back",
-		Font = UiTheme.Font,
-		TextSize = 16,
-		BackgroundColor3 = Palette.Muted,
-		TextColor3 = Palette.White,
-	})
-	skin(cancel, Palette.Row)
+	local list = make("UIListLayout", "Layout", recipients, { SortOrder = Enum.SortOrder.LayoutOrder })
+	local status = label("Status", root, { Text = "Choose a player", TextXAlignment = Enum.TextXAlignment.Left })
 	local confirm = make("TextButton", "Confirm", root, {
-		Position = UDim2.new(0.35, 4, 1, -40),
-		Size = UDim2.new(0.65, -12, 0, 34),
 		Text = "Confirm gift",
-		Font = UiTheme.Font,
-		TextSize = 16,
 		BackgroundColor3 = Palette.MoneyDeep,
-		TextColor3 = Palette.White,
 		Active = false,
 		AutoButtonColor = false,
 	})
-	skin(confirm, Palette.Money)
+	-- 16 insets, 12 gaps, 40 tall rows and button; the list ends on a whole row; Confirm spans the bottom-left, so it
+	-- keeps 24 clear of the stripe art.
+	local function layout()
+		local inset, gap, row = px(SPACE.Inset), px(SPACE.Gap), px(SPACE.Button)
+		local top = AnimeSkin.Top(false)
+		local width = UDim2.new(1, -2 * inset, 0, 0)
+		summary.Position, summary.Size = UDim2.fromOffset(inset, top), width + UDim2.fromOffset(0, px(SUMMARY_HEIGHT))
+		local listTop = top + px(SUMMARY_HEIGHT) + gap
+		local bottom = px(SPACE.BottomClear) + row + gap + px(STATUS_HEIGHT) + gap
+		local rows = math.max(1, math.floor((root.AbsoluteSize.Y - listTop - bottom + gap) / (row + gap)))
+		recipients.Position = UDim2.fromOffset(inset, listTop)
+		recipients.Size = width + UDim2.fromOffset(0, rows * (row + gap) - gap)
+		list.Padding = UDim.new(0, gap)
+		status.Position = UDim2.new(0, inset, 1, -bottom + gap)
+		status.Size = width + UDim2.fromOffset(0, px(STATUS_HEIGHT))
+		confirm.Position = UDim2.new(0, inset, 1, -px(SPACE.BottomClear) - row)
+		confirm.Size = width + UDim2.fromOffset(0, row)
+		confirm.TextSize = px(AnimeSkin.Size.Body)
+	end
+	root:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	local product, selected, submitting, generation, price = nil, nil, false, 0, nil
 	local function update()
 		confirm.Active = selected ~= nil and not submitting
@@ -111,15 +105,13 @@ function Picker.Create(panel, items, backdrop)
 			if recipient ~= Players.LocalPlayer then
 				count += 1
 				local button = make("TextButton", tostring(recipient.UserId), recipients, {
-					Size = UDim2.new(1, -8, 0, 36),
+					Size = UDim2.new(1, 0, 0, px(SPACE.Button)),
 					LayoutOrder = count,
 					BackgroundColor3 = Palette.Row,
 					Text = recipient.DisplayName .. " (@" .. recipient.Name .. ")",
-					TextSize = 15,
-					Font = UiTheme.Font,
-					TextColor3 = Palette.White,
+					TextSize = px(AnimeSkin.Size.Body),
+					TextTruncate = Enum.TextTruncate.AtEnd,
 				})
-				skin(button, selected == recipient and SELECTED or TILE_BLUE)
 				-- Again next frame: UiTheme.Apply's DescendantAdded puts new text back on Fredoka.
 				local tone = selected == recipient and "Go" or "Idle"
 				AnimeSkin.Button(button, tone)
@@ -189,8 +181,10 @@ function Picker.Create(panel, items, backdrop)
 	end)
 	UiTheme.Apply(root)
 	-- After UiTheme.Apply, which would put the fonts back on Fredoka (design doc 4.42).
-	AnimeSkin.Button(cancel, "Idle")
 	AnimeSkin.Button(confirm, "Go")
+	AnimeSkin.Label(summary, "Item")
+	AnimeSkin.Label(status, "Body")
+	layout()
 	backdrop:GetPropertyChangedSignal("Visible"):Connect(function()
 		if not backdrop.Visible then
 			close()

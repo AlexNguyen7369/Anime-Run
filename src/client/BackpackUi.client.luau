@@ -41,12 +41,16 @@ local PALETTE = UiTheme.Palette
 local TILE_BLUE = PALETTE.Tile
 local TILE_GREEN = PALETTE.Money
 local GOLD = PALETTE.Unbanked
--- Characters grid (design doc 4.22; placeholders): as many columns as fit cells at least this wide.
+-- Grid cells (design doc 4.22, 4.42; placeholders): as many columns as fit cells at least this wide, as many whole
+-- rows as fit near this height. Desktop px; AnimeSkin.Px scales them on phones.
 local CARD_MIN_WIDTH = 112
 local CARD_HEIGHT = 128
-local CARD_GAP = 10
-local TILE_SIZE = UDim2.fromOffset(104, 104)
-local TILE_GAP = UDim2.fromOffset(12, 12)
+local TILE_MIN = 104
+local CARD_ART = 3 -- the card art reaches 3 px past a cell: the grid pads it so no edge is clipped
+local RAIL_WIDTH = 120 -- "Characters" at the 16 px Body role
+local SORT_WIDTH, MASS_WIDTH, SEARCH_WIDTH, SPARES_WIDTH = 120, 120, 200, 176
+local SPACE = AnimeSkin.Space
+local px = AnimeSkin.Px
 local SORTS = { "Rarity", "Speed", "Stamina" }
 
 local function make(class, name, parent, props)
@@ -74,6 +78,17 @@ local function caption(name, parent, props)
 	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
 	local label = make("TextLabel", name, parent, props)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round })
+	return label
+end
+-- One of AnimeSkin's five text roles; `color` (a rarity or state) wins over the role's colour, after its deferred pass.
+local function role(label, name, color)
+	AnimeSkin.Label(label, name)
+	if color then
+		label.TextColor3 = color
+		task.defer(function()
+			label.TextColor3 = color
+		end)
+	end
 	return label
 end
 local function count(n)
@@ -141,69 +156,26 @@ local close = make("TextButton", "Close", header, {
 })
 caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X", TextSize = 40 })
 
--- Side tabs.
-local rail = make("Frame", "Tabs", panel, {
-	Position = UDim2.fromOffset(12, 76),
-	Size = UDim2.new(0, 96, 1, -88),
-	BackgroundTransparency = 1,
-})
-make("UIListLayout", "Layout", rail, { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder })
+-- Side tabs: a rail of six art tabs, top aligned with the grid (design doc 4.42). Placed by layout() below.
+local rail = make("Frame", "Tabs", panel, { BackgroundTransparency = 1 })
+local railLayout = make("UIListLayout", "Layout", rail, { SortOrder = Enum.SortOrder.LayoutOrder })
 local tabs = {}
-local function tab(name, order, art)
+local TAB_NAMES = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }
+for order, name in TAB_NAMES do
 	local b = make("TextButton", name .. "Tab", rail, {
 		LayoutOrder = order,
-		Size = UDim2.fromOffset(96, 96),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		Text = "",
 		AutoButtonColor = false,
 	})
-	corner(b, 12)
-	UiTheme.Gradient(b, PALETTE.TabIdle, PALETTE.TabIdleDeep)
 	local edge = stroke(b, OUTLINE, 4)
-	art(b)
-	local label = caption("Label", b, {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.new(1, -6, 0, 24),
-		Text = name,
-		TextSize = 20,
-		TextScaled = true, -- "Characters" is wider than the tab at 20 px
-	})
-	make("UITextSizeConstraint", "MaxSize", label, { MaxTextSize = 20 })
-	-- Per-tab scale: a UIScale on the rail would shrink the rail with the tabs and never make them fit.
-	tabs[name] = { Button = b, Edge = edge, Scale = make("UIScale", "Scale", b, {}) }
-	return b
+	caption("Label", b, { Position = UDim2.fromOffset(6, 0), Size = UDim2.new(1, -12, 1, 0), Text = name })
+	tabs[name] = { Button = b, Edge = edge }
 end
 -- Same original art as Market tiles, tabs and detail previews.
 local function swatch(parent, item, kind, pos, size)
 	return MarketArt.Draw(parent, item, pos, kind == "Trail" and UDim2.new(size.X, size.X) or size)
 end
-tab("Misc", 1, function(b)
-	make("ImageLabel", "Art", b, {
-		Position = UDim2.fromOffset(18, 6),
-		Size = UDim2.fromOffset(60, 60),
-		BackgroundTransparency = 1,
-		Image = PotionIcons.Luck,
-		ScaleType = Enum.ScaleType.Fit,
-	})
-end)
-tab("Trails", 2, function(b)
-	swatch(b, Market.Items.Trail[1], "Trail", UDim2.fromOffset(48, 36), UDim2.fromOffset(66, 22))
-end)
-tab("Auras", 3, function(b)
-	swatch(b, Market.Items.Aura[1], "Aura", UDim2.fromOffset(48, 36), UDim2.fromOffset(48, 48))
-end)
-tab("Characters", 4, function(b)
-	Components.PortraitArt(b, "Art", CharacterCatalog.All()[1], UDim2.fromOffset(8, 2), UDim2.fromOffset(80, 66))
-end)
-tab("Sidekicks", 5, function(b)
-	SidekickView.Art(b, SidekickConfig.List[1], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible =
-		false
-end)
-tab("Relics", 6, function(b)
-	local list = RelicConfig.Bosses.big_raga
-	SidekickView.Art(b, list[#list], UDim2.fromOffset(48, 36), UDim2.fromOffset(56, 56)).Label.Visible = false
-end)
 
 -- Owned cars, least rare first, then catalog order.
 local rarityRank = {}
@@ -240,178 +212,92 @@ local function ownedCars()
 end
 
 local grid = make("ScrollingFrame", "Items", panel, {
-	Position = UDim2.fromOffset(120, 76),
-	Size = UDim2.new(1, -132, 1, -88),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
+	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the cards, not on them
 	CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	ScrollingDirection = Enum.ScrollingDirection.Y,
 })
 make("UIPadding", "Padding", grid, {
-	PaddingTop = UDim.new(0, 4),
-	PaddingLeft = UDim.new(0, 4),
-	PaddingRight = UDim.new(0, 10),
+	PaddingTop = UDim.new(0, CARD_ART),
+	PaddingBottom = UDim.new(0, CARD_ART),
+	PaddingLeft = UDim.new(0, CARD_ART),
+	PaddingRight = UDim.new(0, CARD_ART),
 })
-local gridLayout = make("UIGridLayout", "Layout", grid, {
-	CellSize = TILE_SIZE,
-	CellPadding = TILE_GAP,
-	SortOrder = Enum.SortOrder.LayoutOrder,
-})
+local gridLayout = make("UIGridLayout", "Layout", grid, { SortOrder = Enum.SortOrder.LayoutOrder })
 
--- Sort and search live in the header band, Characters tab only: the grid keeps its height on short screens.
-local toolbar = make("Frame", "Toolbar", header, {
-	AnchorPoint = Vector2.new(1, 0.5),
-	Position = UDim2.new(1, -76, 0.5, 0),
-	Size = UDim2.new(0.5, 0, 0, 40),
-	BackgroundTransparency = 1,
-	Visible = false,
-	ZIndex = 5,
-})
-make("UIListLayout", "Layout", toolbar, {
+-- Sort, mass sell and search: the toolbar row under the header (design doc 4.42), Characters tab only. It stays a
+-- child of the Header (UI tests pin Header/Toolbar/*); the header sits at the panel's top left, so its rect is the
+-- panel's toolbar rect.
+local toolbar = make("Frame", "Toolbar", header, { BackgroundTransparency = 1, Visible = false, ZIndex = 5 })
+local toolbarLayout = make("UIListLayout", "Layout", toolbar, {
 	FillDirection = Enum.FillDirection.Horizontal,
-	HorizontalAlignment = Enum.HorizontalAlignment.Right,
 	VerticalAlignment = Enum.VerticalAlignment.Center,
-	Padding = UDim.new(0, 8),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-local sortButton = make("TextButton", "Sort", toolbar, {
-	LayoutOrder = 1,
-	Size = UDim2.new(0, 112, 1, 0),
-	BackgroundColor3 = Color3.new(1, 1, 1),
-	Text = "",
-	AutoButtonColor = false,
-})
-corner(sortButton, UiTheme.Radius.M)
-UiTheme.Gradient(sortButton, PALETTE.Row, PALETTE.PanelDeep)
-stroke(sortButton, PALETTE.White, 2)
-local sortLabel = caption("Label", sortButton, {
-	Size = UDim2.fromScale(1, 1),
-	Text = "Sort: " .. sortMode,
-	TextSize = 15,
-})
+local sortButton = make("TextButton", "Sort", toolbar, { LayoutOrder = 1, Text = "", AutoButtonColor = false })
+local sortLabel = caption("Label", sortButton, { Size = UDim2.fromScale(1, 1), Text = "Sort: " .. sortMode })
 local massSell = make("TextButton", "MassSell", toolbar, {
 	LayoutOrder = 2,
-	Size = UDim2.new(0, 84, 1, 0),
-	BackgroundColor3 = PALETTE.Danger,
-	Font = UiTheme.Font,
 	Text = "Mass sell",
-	TextColor3 = PALETTE.White,
-	TextSize = 15,
 	AutoButtonColor = false,
 })
-corner(massSell, UiTheme.Radius.M)
-stroke(massSell, PALETTE.White, 2)
 local search = make("TextBox", "Search", toolbar, {
 	LayoutOrder = 3,
-	Size = UDim2.new(1, -212, 1, 0),
 	BackgroundColor3 = OUTLINE,
 	BackgroundTransparency = 0.25,
 	ClearTextOnFocus = false,
-	Font = UiTheme.Font,
 	PlaceholderText = "Search",
 	PlaceholderColor3 = PALETTE.SoftText,
 	Text = "",
-	TextColor3 = Color3.new(1, 1, 1),
-	TextSize = 18,
+	TextXAlignment = Enum.TextXAlignment.Left,
 	TextTruncate = Enum.TextTruncate.AtEnd,
 })
-corner(search, 10)
-stroke(search, OUTLINE, 3)
-make("UIPadding", "Padding", search, { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) })
-local bagCount = caption("BagCount", header, {
-	AnchorPoint = Vector2.new(1, 0.5),
-	Position = UDim2.new(1, -76, 0.5, 0),
-	Size = UDim2.fromOffset(120, 40),
-	Text = "",
-	TextSize = 24,
-	TextXAlignment = Enum.TextXAlignment.Right,
-	Visible = false,
-	ZIndex = 5,
-})
--- Bag space and selling a chosen character's spares (docs/BAG_AND_AUTOSELL_SPEC.md). Characters tab only.
-local bagLabel = caption("Bag", panel, {
-	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -176, 1, -6),
-	Size = UDim2.fromOffset(110, 22),
-	Text = "",
-	TextSize = 16,
-	TextXAlignment = Enum.TextXAlignment.Right,
-	ZIndex = 8,
-	Visible = false,
-})
+make("UIPadding", "Padding", search, { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
+-- The count line (bag space, Sidekick and Relic counts) sits in the footer bar under the content column.
+local footerHost = make("Frame", "FooterHost", panel, { BackgroundTransparency = 1 })
+local footerLine = AnimeSkin.Footer(footerHost, "")
+-- Selling a chosen character's spares (docs/BAG_AND_AUTOSELL_SPEC.md): Characters tab, right of the slot buttons.
 local sellSpares = make("TextButton", "SellSpares", panel, {
-	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -4),
-	Size = UDim2.fromOffset(156, 28),
+	AnchorPoint = Vector2.new(1, 0),
 	BackgroundColor3 = PALETTE.Muted,
-	Font = UiTheme.Font,
 	Text = "",
-	TextColor3 = PALETTE.White,
-	TextSize = 15,
 	AutoButtonColor = true,
 	ZIndex = 8,
 	Visible = false,
 })
-corner(sellSpares, UiTheme.Radius.S)
-stroke(sellSpares, OUTLINE, 2)
-local empty = caption("Empty", panel, {
-	Position = UDim2.fromOffset(120, 140),
-	Size = UDim2.new(1, -132, 0, 40),
-	Text = "",
-	TextSize = 22,
-	Visible = false,
-})
+local empty = caption("Empty", panel, { Text = "", Visible = false })
 local hint = caption("Hint", panel, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 120, 1, -6),
-	Size = UDim2.new(1, -132, 0, 22),
 	Text = "",
-	TextSize = 16,
-	TextColor3 = PALETTE.Gold,
+	TextWrapped = true,
+	TextTruncate = Enum.TextTruncate.AtEnd,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 5,
 })
-make("UITextSizeConstraint", "MaxSize", hint, { MaxTextSize = 16 })
-hint.TextScaled = true -- a long line shrinks to fit: on the Characters tab it shares its row with Bag and Sell
-local hintHome = hint.Position
-local GRID_SIZE = grid.Size
+local hintHome = UDim2.new()
 local pickSlot -- set below
-local slots = SlotPicker.new("Slots", panel, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 120, 1, -32),
-	Size = UDim2.new(1, -132, 0, 44),
-	Visible = false,
-}, function(...)
+local slots = SlotPicker.new("Slots", panel, { Visible = false }, function(...)
 	pickSlot(...)
 end)
 -- Select mode's row, where the Slots show otherwise (design doc 4.41).
-local massBar = make("Frame", "MassBar", panel, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 120, 1, -32),
-	Size = UDim2.new(1, -132, 0, 44),
-	BackgroundTransparency = 1,
-	Visible = false,
+local massBar = make("Frame", "MassBar", panel, { BackgroundTransparency = 1, Visible = false })
+local massLayout = make("UIListLayout", "Layout", massBar, {
+	FillDirection = Enum.FillDirection.Horizontal,
+	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-local function barButton(name, text, x, width, color)
-	local b = make("TextButton", name, massBar, {
-		Position = UDim2.fromScale(x, 0),
-		Size = UDim2.fromScale(width, 1),
+local function barButton(name, text, order, color)
+	return make("TextButton", name, massBar, {
+		LayoutOrder = order,
 		BackgroundColor3 = color,
-		Font = UiTheme.Font,
 		Text = text,
-		TextColor3 = PALETTE.White,
-		TextSize = 17,
 		AutoButtonColor = false,
 	})
-	corner(b, UiTheme.Radius.M)
-	stroke(b, OUTLINE, 3)
-	return b
 end
-local massAll = barButton("SelectAll", "Select all", 0, 0.24, PALETTE.Row)
-local massGo = barButton("Sell", "", 0.26, 0.5, PALETTE.Danger)
-local massCancel = barButton("Cancel", "Cancel", 0.78, 0.22, PALETTE.Row)
+local massAll = barButton("SelectAll", "Select all", 1, PALETTE.Row)
+local massGo = barButton("Sell", "", 2, PALETTE.Danger)
+local massCancel = barButton("Cancel", "Cancel", 3, PALETTE.Row)
 -- A server answer (equip / use) slides in from the bottom edge; hover text just appears.
 local function notify(text)
 	hint.Text = text
@@ -426,13 +312,63 @@ local relicOf = {} -- character id -> the Relic row it wears (filled per render)
 local selecting = false -- select mode: a card marks itself for the mass sale
 local selected = {} -- character id -> true
 local render -- set below
+
+-- The spacing standard (design doc 4.42): rail and content column under the toolbar row, 16 insets, 12 gaps; the
+-- slot row 12 under the grid, the footer bar 12 under that, 16 from the bottom; the rail's last tab 24 clear of the
+-- body art's bottom-left stripes.
+local function layout()
+	local inset, gap = px(SPACE.Inset), px(SPACE.Gap)
+	local top = AnimeSkin.Top(true)
+	local railWidth = px(RAIL_WIDTH)
+	rail.Position = UDim2.fromOffset(inset, top)
+	rail.Size = UDim2.new(0, railWidth, 1, -top - px(SPACE.BottomClear))
+	railLayout.Padding = UDim.new(0, gap)
+	for _, refs in tabs do
+		refs.Button.Size = UDim2.new(1, 0, 1 / #TAB_NAMES, -math.ceil(gap * (#TAB_NAMES - 1) / #TAB_NAMES))
+	end
+	local barPosition, barSize = AnimeSkin.ToolbarRect()
+	toolbar.Position, toolbar.Size = barPosition, barSize
+	toolbarLayout.Padding = UDim.new(0, gap)
+	sortButton.Size = UDim2.new(0, px(SORT_WIDTH), 1, 0)
+	massSell.Size = UDim2.new(0, px(MASS_WIDTH), 1, 0)
+	search.Size = UDim2.new(0, px(SEARCH_WIDTH), 1, 0)
+	-- The hint takes the toolbar row, after the Characters tab's controls.
+	local hintLeft = toolbar.Visible and px(SORT_WIDTH) + px(MASS_WIDTH) + px(SEARCH_WIDTH) + 3 * gap or 0
+	hintHome = barPosition + UDim2.fromOffset(hintLeft, 0)
+	hint.Position = hintHome
+	hint.Size = UDim2.new(1, -2 * inset - hintLeft, 0, px(SPACE.Toolbar))
+	local left = inset + railWidth + gap
+	local footer = current == "Characters" or current == "Sidekicks" or current == "Relics"
+	-- The host only spans the footer band, so it never lies over the grid's cards.
+	local band = px(SPACE.Footer) + px(SPACE.Bottom)
+	footerHost.Position, footerHost.Size = UDim2.new(0, left, 1, -band), UDim2.new(1, -left - inset, 0, band)
+	footerHost.AnimeFooter.Visible = footer
+	local bottom = px(SPACE.Bottom) + (footer and px(SPACE.Footer) + gap or 0)
+	local row = px(SPACE.Button)
+	local rowPosition = UDim2.new(0, left, 1, -bottom - row)
+	local spares = current == "Characters" and px(SPARES_WIDTH) + gap or 0
+	slots.Frame.Position, slots.Frame.Size = rowPosition, UDim2.new(1, -left - inset - spares, 0, row)
+	massBar.Position, massBar.Size = rowPosition, UDim2.new(1, -left - inset, 0, row)
+	massLayout.Padding = UDim.new(0, gap)
+	massAll.Size, massCancel.Size = UDim2.new(0.25, -gap / 2, 1, 0), UDim2.new(0.25, -gap / 2, 1, 0)
+	massGo.Size = UDim2.new(0.5, -gap, 1, 0)
+	sellSpares.Position, sellSpares.Size =
+		UDim2.new(1, -inset, 1, -bottom - row), UDim2.fromOffset(px(SPARES_WIDTH), row)
+	for _, button in { massSell, sellSpares, massAll, massGo, massCancel } do
+		button.TextSize = px(AnimeSkin.Size.Body)
+	end
+	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
+	local gridBottom = bottom + (cosmetic and row + gap or 0)
+	grid.Position, grid.Size = UDim2.fromOffset(left, top), UDim2.new(1, -left - inset, 1, -top - gridBottom)
+	empty.Position, empty.Size = UDim2.fromOffset(left, top), UDim2.new(1, -left - inset, 0, row)
+end
+
 local function refreshBag()
-	local onCharacters = toolbar.Visible
-	hint.Size = UDim2.new(1, onCharacters and -412 or -132, 0, 22) -- ends short of the Bag label
 	local used, cap = player:GetAttribute("BagUsed") or 0, player:GetAttribute("BagCap") or 0
-	bagLabel.Visible = onCharacters
-	bagLabel.Text = "Bag " .. used .. "/" .. cap
-	bagLabel.TextColor3 = used >= cap and PALETTE.DangerDeep or PALETTE.White
+	if current == "Characters" then
+		footerLine.Text = "Bag " .. used .. "/" .. cap
+	end
+	local onCharacters = toolbar.Visible
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and chosenCharacter and data:FindFirstChild(chosenCharacter)
 	local spares = entry and entry:GetAttribute("Copies") or 0
@@ -510,60 +446,69 @@ local function characterTile(spec, order)
 	Components.CardArt(b, spec)
 	local worn = gearOf[spec.Id]
 	if worn then
-		caption("SidekickBadge", b, {
-			Position = UDim2.fromOffset(9, 28),
-			Size = UDim2.new(1, -18, 0, 16),
-			Text = worn.Name,
-			TextSize = 13,
-			TextColor3 = SidekickView.RarityColor(worn.Rarity),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 7,
-		})
+		role(
+			caption("SidekickBadge", b, {
+				Position = UDim2.fromOffset(9, 28),
+				Size = UDim2.new(1, -18, 0, 16),
+				Text = worn.Name,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 7,
+			}),
+			"Caption",
+			SidekickView.RarityColor(worn.Rarity)
+		)
 	end
 	local relic = relicOf[spec.Id]
 	if relic then
-		caption("RelicBadge", b, {
-			Position = UDim2.fromOffset(9, worn and 44 or 28),
-			Size = UDim2.new(1, -18, 0, 16),
-			Text = relic.Name,
-			TextSize = 13,
-			TextColor3 = SidekickView.RarityColor(relic.Rarity),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 7,
-		})
+		role(
+			caption("RelicBadge", b, {
+				Position = UDim2.fromOffset(9, worn and 44 or 28),
+				Size = UDim2.new(1, -18, 0, 16),
+				Text = relic.Name,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ZIndex = 7,
+			}),
+			"Caption",
+			SidekickView.RarityColor(relic.Rarity)
+		)
 	end
 	local data = player:FindFirstChild("GachaData")
 	local entry = data and data:FindFirstChild(spec.Id)
 	local copies = entry and entry:GetAttribute("Copies") or 1
-	caption("Badge", b, {
-		Position = UDim2.fromOffset(9, 7),
-		Size = UDim2.new(1, -42, 0, 22),
-		Text = slot and ("TEAM " .. slot) or (copies > 1 and count(copies) or ""),
-		TextSize = 16,
-		TextColor3 = slot and TILE_GREEN or GOLD,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		ZIndex = 7,
-	})
-	caption("Multi", b, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -8, 1, -28),
-		Size = UDim2.new(1, -16, 0, 16),
-		Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
-		TextSize = 14,
-		TextColor3 = GOLD,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 7,
-	})
-	local nameLabel = caption("Name", b, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -8, 1, -6),
-		Size = UDim2.new(1, -16, 0, 22),
-		Text = spec.Name,
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 7,
-	})
-	make("UITextSizeConstraint", "MaxSize", nameLabel, { MaxTextSize = 19 })
+	role(
+		caption("Badge", b, {
+			Position = UDim2.fromOffset(9, 7),
+			Size = UDim2.new(1, -42, 0, 22),
+			Text = slot and ("TEAM " .. slot) or (copies > 1 and count(copies) or ""),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 7,
+		}),
+		"Body",
+		slot and TILE_GREEN or GOLD
+	)
+	role(
+		caption("Multi", b, {
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -8, 1, -28),
+			Size = UDim2.new(1, -16, 0, 16),
+			Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			ZIndex = 7,
+		}),
+		"Caption",
+		GOLD
+	)
+	role(
+		caption("Name", b, {
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -8, 1, -6),
+			Size = UDim2.new(1, -16, 0, 22),
+			Text = spec.Name,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			ZIndex = 7,
+		}),
+		"Item"
+	)
 	return b
 end
 
@@ -587,15 +532,20 @@ local function applySearch()
 	end
 end
 
+-- Cells fill the width, and the visible height holds whole rows only (no card cut at the frame, design doc 4.42).
 local function fitCards()
-	if current ~= "Characters" then
-		gridLayout.CellSize, gridLayout.CellPadding = TILE_SIZE, TILE_GAP
+	local gap = px(SPACE.Gap)
+	local width = grid.AbsoluteSize.X - grid.ScrollBarThickness - 2 * CARD_ART
+	local height = grid.AbsoluteSize.Y - 2 * CARD_ART
+	if width <= 0 or height <= 0 then
 		return
 	end
-	local width = grid.AbsoluteSize.X - 14 - grid.ScrollBarThickness
-	local columns = math.max(2, math.floor((width + CARD_GAP) / (CARD_MIN_WIDTH + CARD_GAP)))
-	gridLayout.CellSize = UDim2.fromOffset(math.floor((width - (columns - 1) * CARD_GAP) / columns), CARD_HEIGHT)
-	gridLayout.CellPadding = UDim2.fromOffset(CARD_GAP, CARD_GAP)
+	local characters = current == "Characters"
+	local columns = math.max(2, math.floor((width + gap) / (px(characters and CARD_MIN_WIDTH or TILE_MIN) + gap)))
+	local rows = math.max(1, math.floor((height + gap) / (px(characters and CARD_HEIGHT or TILE_MIN) + gap) + 0.5))
+	gridLayout.CellSize =
+		UDim2.fromOffset(math.floor((width - (columns - 1) * gap) / columns), math.floor((height + gap) / rows) - gap)
+	gridLayout.CellPadding = UDim2.fromOffset(gap, gap)
 end
 grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCards)
 
@@ -687,15 +637,17 @@ local function entryTiles(bag, wearers, kind, rowOf, facts)
 		local b = tile(item.Entry, order, wearers[item.Entry] ~= nil)
 		SidekickView.Art(b, row, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
 		if wearers[item.Entry] then
-			caption("Worn", b, {
-				Position = UDim2.fromOffset(8, 4),
-				Size = UDim2.new(1, -16, 0, 18),
-				Text = "WORN",
-				TextSize = 15,
-				TextColor3 = TILE_GREEN,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				ZIndex = 5,
-			})
+			role(
+				caption("Worn", b, {
+					Position = UDim2.fromOffset(8, 4),
+					Size = UDim2.new(1, -16, 0, 18),
+					Text = "WORN",
+					TextXAlignment = Enum.TextXAlignment.Left,
+					ZIndex = 5,
+				}),
+				"Caption",
+				TILE_GREEN
+			)
 		end
 		b.MouseEnter:Connect(function()
 			hint.Text = facts(row)
@@ -711,7 +663,7 @@ end
 local function renderSidekicks(wearers)
 	local bag = SidekickView.Bag(player)
 	entryTiles(bag, wearers, "Sidekick", SidekickConfig.Get, sidekickFacts)
-	bagCount.Text = #bag .. " / " .. SidekickConfig.BagSize
+	footerLine.Text = "Sidekicks " .. #bag .. " / " .. SidekickConfig.BagSize
 	empty.Text = "No Sidekicks yet. Summon them at the Sidekicks stall!"
 	return #bag
 end
@@ -728,15 +680,17 @@ end
 local function chestTile(chest, order, copies)
 	local b = tile(chest.Id, order, false)
 	SidekickView.Art(b, chest, UDim2.fromScale(0.5, 0.5), UDim2.new(1, -12, 1, -12))
-	caption("Count", b, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -6, 1, -2),
-		Size = UDim2.new(1, -12, 0, 30),
-		Text = count(copies),
-		TextSize = 26,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 5,
-	})
+	role(
+		caption("Count", b, {
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.new(1, -8, 1, -8),
+			Size = UDim2.new(1, -16, 0, 24),
+			Text = count(copies),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			ZIndex = 5,
+		}),
+		"Item"
+	)
 	local words = chest.Name .. ": open it for a Relic."
 	b.MouseEnter:Connect(function()
 		hint.Text = words
@@ -764,7 +718,7 @@ local function renderRelics()
 		chestTile(RelicConfig.Chests[id], row.Order, row.Copies)
 	end
 	entryTiles(relics, relicWearers(), "Relic", RelicConfig.Get, relicFacts)
-	bagCount.Text = tostring(#bag) -- no cap: no rule gives this bag one
+	footerLine.Text = "Relics " .. #bag -- no cap: no rule gives this bag one
 	empty.Text = "No Relics yet. Defeat a boss to earn one!"
 	return #bag
 end
@@ -818,10 +772,8 @@ function render()
 	selecting = selecting and current == "Characters"
 	slots.Frame.Visible = cosmetic and not selecting
 	massBar.Visible = selecting
-	bagCount.Visible = inBag or inRelics
-	-- ends above the Slots row
-	grid.Size = cosmetic and (GRID_SIZE - UDim2.fromOffset(0, 72)) or GRID_SIZE
 	toolbar.Visible = current == "Characters"
+	layout() -- the grid ends 12 above the Slots row and the footer bar
 	fitCards()
 	local wearers = {} -- entry -> character id
 	for character, entry in SidekickView.Gear(player) do
@@ -862,16 +814,18 @@ function render()
 			local entry = selecting and player.GachaData:FindFirstChild(spec.Id)
 			local spares = entry and entry:GetAttribute("Copies") or 0
 			if selecting then
-				caption("Picked", b, {
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromScale(0.5, 0.4),
-					Size = UDim2.new(1, -8, 0, 30),
-					Text = "SELL",
-					TextSize = 26,
-					TextColor3 = PALETTE.Danger,
-					Visible = false,
-					ZIndex = 8,
-				})
+				role(
+					caption("Picked", b, {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(0.5, 0.4),
+						Size = UDim2.new(1, -8, 0, 30),
+						Text = "SELL",
+						Visible = false,
+						ZIndex = 8,
+					}),
+					"Section",
+					PALETTE.Danger
+				)
 				if spares > 0 then
 					setSelected(b, spec.Id, selected[spec.Id] == true)
 				else
@@ -923,16 +877,17 @@ function render()
 				shown += 1
 				chosen = chosen or item.Id
 				local b = tile(item.Id, order, SlotPicker.Equipped(kind, item.Id))
-				caption("Copies", b, {
-					Position = UDim2.fromOffset(6, 2),
-					Size = UDim2.new(1, -12, 0, 20),
-					Text = "x" .. copies,
-					TextSize = 15,
-					TextScaled = true,
-					TextColor3 = PALETTE.Gold,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					ZIndex = 5,
-				})
+				role(
+					caption("Copies", b, {
+						Position = UDim2.fromOffset(8, 4),
+						Size = UDim2.new(1, -16, 0, 20),
+						Text = "x" .. copies,
+						TextXAlignment = Enum.TextXAlignment.Left,
+						ZIndex = 5,
+					}),
+					"Body",
+					PALETTE.Gold
+				)
 				if item.Id == chosen then
 					b.Stroke.Color = Color3.new(1, 1, 1)
 					b.AnimeCard.ImageColor3 = Color3.new(1, 1, 1)
@@ -944,15 +899,16 @@ function render()
 					UDim2.new(0.5, 0, 0.5, -10),
 					kind == "Trail" and UDim2.fromOffset(78, 26) or UDim2.fromOffset(56, 56)
 				)
-				caption("Name", b, {
-					AnchorPoint = Vector2.new(0.5, 1),
-					Position = UDim2.new(0.5, 0, 1, -4),
-					Size = UDim2.new(1, -8, 0, 22),
-					Text = item.Name,
-					TextSize = 15,
-					TextScaled = true,
-					ZIndex = 5,
-				})
+				role(
+					caption("Name", b, {
+						AnchorPoint = Vector2.new(0.5, 1),
+						Position = UDim2.new(0.5, 0, 1, -8),
+						Size = UDim2.new(1, -16, 0, 22),
+						Text = item.Name,
+						ZIndex = 5,
+					}),
+					"Item"
+				)
 				b.MouseEnter:Connect(function()
 					hint.Text = (item.Description or item.Name) .. " Pick a team slot below."
 				end)
@@ -980,23 +936,27 @@ function render()
 						Image = PotionIcons[category] or "",
 						ScaleType = Enum.ScaleType.Fit,
 					})
-					caption("Tier", b, {
-						Position = UDim2.fromOffset(8, 4),
-						Size = UDim2.fromOffset(40, 24),
-						Text = item.Roman,
-						TextSize = 20,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						ZIndex = 5,
-					})
-					caption("Count", b, {
-						AnchorPoint = Vector2.new(1, 1),
-						Position = UDim2.new(1, -6, 1, -2),
-						Size = UDim2.new(1, -12, 0, 30),
-						Text = count(n),
-						TextSize = 26,
-						TextXAlignment = Enum.TextXAlignment.Right,
-						ZIndex = 5,
-					})
+					role(
+						caption("Tier", b, {
+							Position = UDim2.fromOffset(8, 4),
+							Size = UDim2.fromOffset(40, 24),
+							Text = item.Roman,
+							TextXAlignment = Enum.TextXAlignment.Left,
+							ZIndex = 5,
+						}),
+						"Item"
+					)
+					role(
+						caption("Count", b, {
+							AnchorPoint = Vector2.new(1, 1),
+							Position = UDim2.new(1, -8, 1, -8),
+							Size = UDim2.new(1, -16, 0, 24),
+							Text = count(n),
+							TextXAlignment = Enum.TextXAlignment.Right,
+							ZIndex = 5,
+						}),
+						"Item"
+					)
 					b.MouseEnter:Connect(function()
 						hint.Text = string.format(
 							"%s: %s %s for %ds. Click to use.",
@@ -1132,7 +1092,7 @@ task.spawn(function()
 	end
 	changed()
 end)
--- Same band as the other panels; short panels (phones) shrink the six tabs to fit.
+-- Same band as the other panels, with the one standard header (design doc 4.42).
 require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Theme = "Backpack",
 	Title = "Backpack",
@@ -1140,41 +1100,29 @@ require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	TitleObject = header.Title,
 	Close = close,
 	MaxWidth = 760,
-	TitleEnd = UDim.new(0.5, -80), -- the Toolbar starts at 0.5, -76
 })
 require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(panel, function()
 	PanelSwitch.Close("Backpack")
 end)
-local function fitTabs()
-	local ancestor = rail.AbsoluteSize.X / 96 -- PanelBand scale; the rail is 96 design px wide
-	if ancestor <= 0 then
-		return
-	end
-	-- As Client/MarketUi: on phones the tabs may shrink below 0.4 so all stay inside the rail (owner 2026-10-28).
-	local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-	local gap = phone and 2 or 6 -- six tabs need the phone rail's gaps too
-	rail.Layout.Padding = UDim.new(0, gap)
-	local scale = math.clamp((rail.AbsoluteSize.Y / ancestor - 5 * gap) / (6 * 96), phone and 0.1 or 0.4, 1)
-	for _, refs in tabs do
-		refs.Scale.Scale = scale
-	end
-end
-rail:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTabs)
-fitTabs()
+panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+layout()
 UiTheme.Apply(root)
 -- The anime look (design doc 4.42), after UiTheme.Apply, which would put these fonts back on Fredoka.
 for _, refs in tabs do
 	refs.SetLit = AnimeSkin.Tab(refs.Button, refs.Button.LayoutOrder)
-	for _, d in refs.Button:GetChildren() do
-		if d:IsA("GuiObject") and d.Name ~= "AnimeTabArt" and d.ZIndex < 2 then
-			d.ZIndex = 2 -- the tab's icon over its art
-		end
-	end
+	AnimeSkin.Label(refs.Button.Label, "Body") -- one size on every tab, never truncated
 end
-AnimeSkin.Button(sortButton, "Idle")
-AnimeSkin.Title(sortLabel, 15)
-AnimeSkin.Button(massSell, "Danger")
-AnimeSkin.Button(sellSpares, "Idle")
-AnimeSkin.Button(massAll, "Idle")
-AnimeSkin.Button(massGo, "Danger")
-AnimeSkin.Button(massCancel, "Idle")
+for _, button in { sortButton, massSell, sellSpares, massAll, massGo, massCancel } do
+	button.BorderSizePixel = 0
+	AnimeSkin.Button(button, (button == massSell or button == massGo) and "Danger" or "Idle")
+end
+AnimeSkin.Label(sortLabel, "Body")
+AnimeSkin.Label(search, "Body")
+corner(search, 4) -- after UiTheme.Apply, which snaps corners to its own radii
+AnimeSkin.Label(hint, "Caption")
+AnimeSkin.Label(empty, "Body")
+AnimeSkin.Label(footerLine, "Body")
+for _, refs in slots.Buttons do
+	AnimeSkin.Label(refs.Title, "Body")
+	AnimeSkin.Label(refs.Items, "Caption")
+end

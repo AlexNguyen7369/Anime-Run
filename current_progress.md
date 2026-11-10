@@ -136,8 +136,9 @@
 133. 2026-11-09 — Alex Nguyen — Synced Issac's Studio-only Index UI edits (AnimeBanner, AnimeChrome, grid/progress plates, tab and close art, text limits, HUD IndexIcon) into assets/studio/StarterGui.rbxm; additions only, Rojo build passes.
 134. 2026-11-10 — Alex Nguyen — Gave Quests the Index anime look (QuestAnimeStyle: chrome, banner, art tabs, state-tinted plates, detail card, footer) and committed Issac's Studio-only Index scripts; design doc 4.42; owner approved from screenshots.
 135. 2026-11-10 — Alex Nguyen — Applied the Index anime look game-wide through Client/AnimeSkin and PanelFrame (every panel, popup, tab, button and card, boss event included); design doc 4.42; screenshots to the owner, not pushed.
+136. 2026-11-10 — Alex Nguyen — Audited every panel's margins and spacing (docs/UI_SPACING_AUDIT.md), got the standard approved into design doc 4.42, and redrafted all panels to it (AnimeSkin tokens, one header, toolbar row, five text roles, footers); 14 screenshots to the owner, not pushed.
 
 ## What's next
-**Owner reviews the 13 game-wide screenshots; then push `feature/alex/anime-world` and run `ui_layout`, `ui_index`, `ui_boss`, `ui_inventory`, `ui_market` and `ui_shop` on a save past the roll tutorial.**
+**Owner reviews the 14 redraft screenshots; on approval push `feature/alex/anime-world`, then retarget and run the UI harness (`ui_layout`, `ui_market`, `ui_inventory`, `ui_boss`, `ui_boss_rewards`, Racer panel rects in UiResponsive) and look at the phone layout.**
 
-**Why this is next:** the restyle changed every panel's chrome and many buttons; owner approval gates the push, and the UI harness pins rects, colours and paths these panels use.
+**Why this is next:** the redraft moved tabs, toolbars and the Racer panels' geometry, which the UI tests pin; those tests gate the merge to main and the phone pass is the one view no one has looked at.

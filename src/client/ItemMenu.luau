@@ -23,12 +23,18 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local Palette = UiTheme.Palette
-local MENU_WIDTH = 170 -- px
-local MENU_ROW = 40 -- px
-local MENU_GAP = 6 -- px
-local CHEST_WIDTH = 230 -- px: its odds rows need more than an item's menu
-local ODDS_ROW = 16 -- px
-local CARD_SIZE = UDim2.fromOffset(112, 128)
+local ICON = require(script.Parent.RollToast.Ui:WaitForChild("HudIcons")).Items.Image -- the Backpack's logo
+local SPACE = AnimeSkin.Space
+local px = AnimeSkin.Px
+-- Desktop px (AnimeSkin.Px scales them on phones).
+local MENU_WIDTH = 240 -- room for the logo and a title after it
+local CHEST_WIDTH = 260 -- its odds rows need more than an item's menu
+local CONFIRM_WIDTH = 380
+local QUESTION_HEIGHT = 60 -- three Body lines
+local NOTE_HEIGHT = 16 -- one Caption line
+local ODDS_ROW = 16
+local MAX_WIDTH = 64
+local CARD_SIZE = Vector2.new(112, 128)
 local PICKER_MAX = Vector2.new(640, 460) -- px: a phone gets its screen's share instead
 
 local KINDS = {
@@ -84,29 +90,27 @@ local scrim = make("TextButton", "Scrim", root, {
 	AutoButtonColor = false,
 })
 
-local function caption(name, parent, props)
+-- A label in one of AnimeSkin's five text roles; `color` (a rarity or state) wins over the role's colour.
+local function caption(name, parent, props, role, color)
 	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
-	props.TextColor3 = props.TextColor3 or Palette.White
-	props.TextScaled = true
-	local label = make("TextLabel", name, parent, props)
-	make("UITextSizeConstraint", "Max", label, { MaxTextSize = props.TextSize or 20 })
-	UiTheme.Stroke(label, 2)
+	local label = AnimeSkin.Label(make("TextLabel", name, parent, props), role)
+	if color then
+		label.TextColor3 = color
+		task.defer(function() -- after the role's own deferred pass
+			label.TextColor3 = color
+		end)
+	end
 	return label
 end
 
 -- `tone`: an AnimeSkin.Button tone (Go, Idle, Danger, Gold).
 local function action(name, parent, text, tone, props)
 	props = props or {}
-	props.Font = UiTheme.Font
 	props.Text = text
-	props.TextColor3 = Palette.White
-	props.TextSize = props.TextSize or 18
+	props.TextSize = props.TextSize or px(AnimeSkin.Size.Body)
 	props.AutoButtonColor = false
 	props.BorderSizePixel = 0
 	local button = make("TextButton", name, parent, props)
-	UiTheme.Corner(button, "M")
-	UiTheme.Stroke(button, 3, UiTheme.Outline, true)
 	AnimeSkin.Button(button, tone)
 	return button
 end
@@ -119,146 +123,128 @@ local function setEnabled(button, on, tone)
 	end
 end
 
-local function card(name, size)
+-- The standard header on a popup (design doc 4.42): strip, the Backpack's logo, ALL CAPS title, art close if any.
+local function header(frame, title, close)
+	AnimeSkin.Header(frame, {
+		Header = make("Frame", "Header", frame, { BackgroundTransparency = 1 }),
+		Title = title,
+		Icon = make("ImageLabel", "Icon", frame, { Image = ICON }),
+		Close = close,
+	})
+end
+
+local function card(name)
 	local frame = make("Frame", name, root, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = size,
 		Active = true,
 		Visible = false,
 		ZIndex = 2,
 	})
-	UiTheme.Body(frame)
-	UiTheme.Corner(frame, "L")
-	UiTheme.Stroke(frame, 3, UiTheme.Outline, true)
 	AnimeSkin.Body(frame)
 	return frame
 end
 
 -- The small menu ---------------------------------------------------------------------------------------------------------
-local menu =
-	make("Frame", "Menu", root, { Size = UDim2.fromOffset(MENU_WIDTH, 0), Active = true, Visible = false, ZIndex = 2 })
-UiTheme.Body(menu)
-UiTheme.Corner(menu, "M")
-UiTheme.Stroke(menu, 3, UiTheme.Outline, true)
+local menu = make("Frame", "Menu", root, { Active = true, Visible = false, ZIndex = 2 })
 AnimeSkin.Body(menu)
-local menuTitle = caption("Title", menu, {
-	Position = UDim2.fromOffset(8, 6),
-	Size = UDim2.new(1, -16, 0, 24),
-	Text = "",
-	TextSize = 18,
-})
-local menuEquip = action("Equip", menu, "Equip", "Go", {
-	Position = UDim2.fromOffset(8, 36),
-	Size = UDim2.new(1, -16, 0, MENU_ROW),
-})
-local menuSell = action("Sell", menu, "Sell", "Danger", {
-	Position = UDim2.fromOffset(8, 36 + MENU_ROW + MENU_GAP),
-	Size = UDim2.new(1, -16, 0, MENU_ROW),
-})
-local menuNote = caption("Note", menu, {
-	Position = UDim2.fromOffset(8, 36 + 2 * (MENU_ROW + MENU_GAP)),
-	Size = UDim2.new(1, -16, 0, 18),
-	Text = "",
-	TextColor3 = Palette.Gold,
-	TextSize = 14,
-	Visible = false,
-})
-
+local menuTitle = caption("Title", menu, { Text = "" }, "Title")
+header(menu, menuTitle, nil)
+local menuEquip = action("Equip", menu, "Equip", "Go")
+local menuSell = action("Sell", menu, "Sell", "Danger")
+local menuNote = caption("Note", menu, { Text = "", Visible = false }, "Caption")
 -- A chest's own: Open and its odds (docs/RELIC_SPEC.md "Chests").
-local menuOpen = action("Open", menu, "Open", "Go", {
-	Position = UDim2.fromOffset(8, 36),
-	Size = UDim2.new(1, -16, 0, MENU_ROW),
-	Visible = false,
-})
-local menuOdds = make("Frame", "Odds", menu, {
-	Position = UDim2.fromOffset(8, 36 + MENU_ROW + MENU_GAP),
-	Size = UDim2.new(1, -16, 0, 0),
-	BackgroundTransparency = 1,
-	Visible = false,
-})
+local menuOpen = action("Open", menu, "Open", "Go", { Visible = false })
+local menuOdds = make("Frame", "Odds", menu, { BackgroundTransparency = 1, Visible = false })
 make("UIListLayout", "List", menuOdds, { SortOrder = Enum.SortOrder.LayoutOrder })
-AnimeSkin.Title(menuTitle, 18)
+
+-- Rows under the header: 16 insets, 12 gaps, 40 tall buttons. Returns the menu's height. Laid out at each open, so a
+-- phone / desktop switch takes the right tokens.
+local function layMenu(lines, note)
+	local inset, gap, row = px(SPACE.Inset), px(SPACE.Gap), px(SPACE.Button)
+	local y = AnimeSkin.Top(false)
+	for _, button in { menuEquip, menuOpen } do
+		button.Position, button.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, row)
+	end
+	y += row + gap
+	menuSell.Position, menuSell.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, row)
+	menuOdds.Position, menuOdds.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, lines * px(ODDS_ROW))
+	if lines > 0 then
+		return y + lines * px(ODDS_ROW) + px(SPACE.BottomClear)
+	end
+	y += row
+	menuNote.Position, menuNote.Size = UDim2.fromOffset(inset, y + gap), UDim2.new(1, -2 * inset, 0, px(NOTE_HEIGHT))
+	return y + (note and gap + px(NOTE_HEIGHT) or 0) + px(SPACE.BottomClear) -- Sell sits at the bottom-left
+end
 
 -- The confirmation -------------------------------------------------------------------------------------------------------
-local confirm = card("Confirm", UDim2.fromOffset(340, 190))
-local confirmText = caption("Question", confirm, {
-	Position = UDim2.fromOffset(14, 10),
-	Size = UDim2.new(1, -28, 0, 70),
-	Text = "",
-	TextWrapped = true,
-	TextSize = 22,
-})
-local stepper = make("Frame", "Stepper", confirm, {
-	Position = UDim2.fromOffset(14, 84),
-	Size = UDim2.new(1, -28, 0, 36),
-	BackgroundTransparency = 1,
-	Visible = false,
-})
-local stepLess = action("Less", stepper, "-", "Idle", { Size = UDim2.fromOffset(48, 36), TextSize = 24 })
-local stepCount = caption("Count", stepper, {
-	Position = UDim2.fromOffset(52, 0),
-	Size = UDim2.new(1, -176, 1, 0),
-	Text = "",
-	TextSize = 24,
-})
-local stepMore = action("More", stepper, "+", "Idle", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -68, 0, 0),
-	Size = UDim2.fromOffset(48, 36),
-	TextSize = 24,
-})
-local stepMax = action("Max", stepper, "Max", "Idle", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.fromScale(1, 0),
-	Size = UDim2.fromOffset(62, 36),
-	TextSize = 16,
-})
-local confirmYes = action("Yes", confirm, "Sell", "Danger", {
-	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -14, 1, -12),
-	Size = UDim2.new(0.5, -20, 0, 44),
-})
-local confirmNo = action("Cancel", confirm, "Cancel", "Idle", {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 14, 1, -12),
-	Size = UDim2.new(0.5, -20, 0, 44),
-})
+local confirm = card("Confirm")
+local confirmTitle = caption("Title", confirm, { Text = "" }, "Title")
+local confirmNo = make("TextButton", "Cancel", confirm, { Text = "Cancel", AutoButtonColor = false })
+header(confirm, confirmTitle, confirmNo)
+local confirmText = caption("Question", confirm, { Text = "", TextWrapped = true }, "Body")
+local stepper = make("Frame", "Stepper", confirm, { BackgroundTransparency = 1, Visible = false })
+local stepLess = action("Less", stepper, "-", "Idle", { TextSize = px(AnimeSkin.Size.Item) })
+local stepCount = caption("Count", stepper, { Text = "" }, "Item")
+local stepMore =
+	action("More", stepper, "+", "Idle", { AnchorPoint = Vector2.new(1, 0), TextSize = px(AnimeSkin.Size.Item) })
+local stepMax = action("Max", stepper, "Max", "Idle", { AnchorPoint = Vector2.new(1, 0) })
+local confirmYes = action("Yes", confirm, "Sell", "Danger")
+
+local function layConfirm()
+	local inset, gap, row = px(SPACE.Inset), px(SPACE.Gap), px(SPACE.Button)
+	local y = AnimeSkin.Top(false)
+	local question = px(QUESTION_HEIGHT)
+	confirmText.Position, confirmText.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, question)
+	y += question + gap
+	stepper.Position, stepper.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, row)
+	local maxWidth = px(MAX_WIDTH)
+	stepLess.Size, stepMore.Size = UDim2.fromOffset(row, row), UDim2.fromOffset(row, row)
+	stepMore.Position = UDim2.new(1, -maxWidth - gap, 0, 0)
+	stepMax.Position, stepMax.Size = UDim2.fromScale(1, 0), UDim2.fromOffset(maxWidth, row)
+	stepCount.Position = UDim2.fromOffset(row + gap, 0)
+	stepCount.Size = UDim2.new(1, -2 * (row + gap) - maxWidth - gap, 1, 0)
+	if stepper.Visible then
+		y += row + gap
+	end
+	confirmYes.Position, confirmYes.Size = UDim2.fromOffset(inset, y), UDim2.new(1, -2 * inset, 0, row)
+	confirm.Size = UDim2.fromOffset(px(CONFIRM_WIDTH), y + row + px(SPACE.BottomClear)) -- Yes spans the bottom-left
+end
 
 -- The character picker ---------------------------------------------------------------------------------------------------
-local picker = card("Picker", UDim2.fromScale(0.86, 0.86))
+local picker = card("Picker")
+picker.Size = UDim2.fromScale(0.86, 0.86)
 make("UISizeConstraint", "Max", picker, { MaxSize = PICKER_MAX })
-local pickerTitle = caption("Title", picker, {
-	Position = UDim2.fromOffset(14, 8),
-	Size = UDim2.new(1, -90, 0, 34),
-	Text = "",
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextSize = 24,
-})
-local pickerClose = action("Close", picker, "X", "Danger", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -10, 0, 8),
-	Size = UDim2.fromOffset(44, 36),
-})
-AnimeSkin.Title(pickerTitle, 24)
-AnimeSkin.Close(pickerClose)
+local pickerTitle = caption("Title", picker, { Text = "" }, "Title")
+local pickerClose = make("TextButton", "Close", picker, { Text = "X", AutoButtonColor = false })
+header(picker, pickerTitle, pickerClose)
 local pickerGrid = make("ScrollingFrame", "Characters", picker, {
-	Position = UDim2.fromOffset(10, 50),
-	Size = UDim2.new(1, -20, 1, -60),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
-	ScrollBarThickness = 6,
 	CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	ScrollingDirection = Enum.ScrollingDirection.Y,
 })
-make("UIGridLayout", "Layout", pickerGrid, {
-	CellSize = CARD_SIZE,
-	CellPadding = UDim2.fromOffset(8, 8),
+AnimeSkin.Content(pickerGrid)
+local pickerLayout = make("UIGridLayout", "Layout", pickerGrid, {
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-make("UIPadding", "Padding", pickerGrid, { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) })
+local CARD_ART = 3 -- the card art reaches 3 px past a cell: padded so the frame never clips it
+make("UIPadding", "Padding", pickerGrid, { PaddingTop = UDim.new(0, CARD_ART), PaddingBottom = UDim.new(0, CARD_ART) })
+-- 12 between cards, and the visible height holds whole rows only (design doc 4.42).
+local function fitPicker()
+	local gap = px(SPACE.Gap)
+	local height = pickerGrid.AbsoluteSize.Y - 2 * CARD_ART
+	if height <= 0 then
+		return
+	end
+	local rows = math.max(1, math.floor((height + gap) / (px(CARD_SIZE.Y) + gap) + 0.5))
+	pickerLayout.CellSize = UDim2.fromOffset(px(CARD_SIZE.X), math.floor((height + gap) / rows) - gap)
+	pickerLayout.CellPadding = UDim2.fromOffset(gap, gap)
+end
+pickerGrid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPicker)
+fitPicker()
 
 -- Flow -------------------------------------------------------------------------------------------------------------------
 local ItemMenu = {}
@@ -334,7 +320,9 @@ function ItemMenu.Confirm(options, yes)
 	hideAll()
 	root.Enabled = true
 	confirmYes.Text = options.Label or "Sell"
+	confirmTitle.Text = options.Label or "Sell"
 	stepper.Visible = options.Limit ~= nil
+	layConfirm()
 	if options.Limit then
 		stepLimit, stepValue, stepWords = options.Limit, options.Limit, options.Words
 		drawStep()
@@ -413,24 +401,21 @@ local function openPicker(kindName, entry)
 		tile.Rim.Visible = false
 		caption("CharacterName", tile, {
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -6, 1, -6),
-			Size = UDim2.new(1, -12, 0, 22),
+			Position = UDim2.new(1, -8, 1, -8),
+			Size = UDim2.new(1, -16, 0, 22),
 			Text = spec.Name,
 			TextXAlignment = Enum.TextXAlignment.Right,
-			TextSize = 18,
 			ZIndex = 7,
-		})
+		}, "Item")
 		if worn then
 			local wornRow = rows[worn]
 			caption("Worn", tile, {
-				Position = UDim2.fromOffset(6, 6),
-				Size = UDim2.new(1, -12, 0, 16),
+				Position = UDim2.fromOffset(8, 8),
+				Size = UDim2.new(1, -16, 0, 16),
 				Text = worn == entry and "WEARING" or (wornRow and wornRow.Name or kind.Noun),
 				TextXAlignment = Enum.TextXAlignment.Left,
-				TextColor3 = worn == entry and Palette.Money or SidekickView.RarityColor(wornRow and wornRow.Rarity),
-				TextSize = 14,
 				ZIndex = 7,
-			})
+			}, "Caption", worn == entry and Palette.Money or SidekickView.RarityColor(wornRow and wornRow.Rarity))
 		end
 		tile.Activated:Connect(function()
 			local refused = function(message)
@@ -442,6 +427,7 @@ local function openPicker(kindName, entry)
 		end)
 	end
 	picker.Visible = true
+	fitPicker()
 	UiMotion.Pop(picker)
 end
 
@@ -454,21 +440,25 @@ local function openSale(kindName, entry, row)
 	end)
 end
 
--- Beside `anchor`, kept on screen. Works in screen pixels: this gui ignores the inset, so a gui that does not is shifted by it.
+-- Beside `anchor`, kept on screen with room for the logo that overhangs the top left. Works in screen pixels: this gui
+-- ignores the inset, so a gui that does not is shifted by it.
 local function placeMenu(anchor, height, width)
-	width = width or MENU_WIDTH
+	width = px(width or MENU_WIDTH)
+	local logoLeft = math.floor(px(SPACE.Header) * 0.2) + 4 -- AnimeSkin.Header's logo offset
+	local logoTop = math.floor(px(SPACE.Header) * 0.45) + 4
 	local gui = anchor:FindFirstAncestorOfClass("ScreenGui")
 	local inset = gui and not gui.IgnoreGuiInset and GuiService:GetGuiInset().Y or 0
 	local screen = workspace.CurrentCamera.ViewportSize
-	local x = anchor.AbsolutePosition.X + anchor.AbsoluteSize.X + MENU_GAP
+	local gap = px(SPACE.Gap)
+	local x = anchor.AbsolutePosition.X + anchor.AbsoluteSize.X + gap + logoLeft
 	if x + width > screen.X then
-		x = anchor.AbsolutePosition.X - width - MENU_GAP
+		x = anchor.AbsolutePosition.X - width - gap
 	end
 	local y = anchor.AbsolutePosition.Y + inset
 	menu.Size = UDim2.fromOffset(width, height)
 	menu.Position = UDim2.fromOffset(
-		math.clamp(x, 4, math.max(4, screen.X - width - 4)),
-		math.clamp(y, 4, math.max(4, screen.Y - height - 4))
+		math.clamp(x, logoLeft, math.max(logoLeft, screen.X - width - 4)),
+		math.clamp(y, logoTop, math.max(logoTop, screen.Y - height - 4))
 	)
 end
 
@@ -529,7 +519,7 @@ function ItemMenu.Open(kindName, entry, anchor)
 	menuAct.Sell = function()
 		openSale(kindName, entry, row)
 	end
-	placeMenu(anchor, 36 + 2 * MENU_ROW + MENU_GAP + (wearer and 26 or 10))
+	placeMenu(anchor, layMenu(0, wearer ~= nil))
 	menu.Visible = true
 	UiMotion.Pop(menu, 0.06)
 end
@@ -559,13 +549,10 @@ function ItemMenu.OpenChest(id, anchor)
 	for order, line in lines do
 		caption("Row" .. order, menuOdds, {
 			LayoutOrder = order,
-			Size = UDim2.new(1, 0, 0, ODDS_ROW),
+			Size = UDim2.new(1, 0, 0, px(ODDS_ROW)),
 			Text = line[1],
-			TextColor3 = line[2],
-			TextSize = 14,
-		})
+		}, "Caption", line[2])
 	end
-	menuOdds.Size = UDim2.new(1, -16, 0, #lines * ODDS_ROW)
 	menuAct.Open = function()
 		local entry = nil
 		for _, item in SidekickView.RelicBag(player) do
@@ -588,7 +575,7 @@ function ItemMenu.OpenChest(id, anchor)
 			SidekickReveal.Play(results, function() end, chest.Image)
 		end
 	end
-	placeMenu(anchor, 36 + MENU_ROW + MENU_GAP + #lines * ODDS_ROW + 8, CHEST_WIDTH)
+	placeMenu(anchor, layMenu(#lines, false), CHEST_WIDTH)
 	menu.Visible = true
 	UiMotion.Pop(menu, 0.06)
 end

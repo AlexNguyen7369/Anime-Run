@@ -198,25 +198,11 @@ for _, retired in { hud.RollControls, hud.Gui:FindFirstChild("Navigation"), hud.
 end
 settings.AutoRow.Visible = true
 
--- TRACK CAMERA row (docs/CAMERA_SPEC.md): a copy of the generated AutoRow one row lower, with the panel one row taller.
+-- TRACK CAMERA row (docs/CAMERA_SPEC.md): a copy of the generated AutoRow; indexFrame places every Settings row.
 -- shortcut: built at runtime because the generated RacerSettings has no spec in this repo; move it into the UI spec when one exists.
 local trackCameraRow = settings.AutoRow.Parent:Clone()
-local twins = {} -- { AutoRow GuiObject, its copy }
-local function pair(original, copy)
-	for _, child in original:GetChildren() do
-		local twin = copy:FindFirstChild(child.Name)
-		if twin then
-			if child:IsA("GuiObject") then
-				table.insert(twins, { child, twin })
-			end
-			pair(child, twin)
-		end
-	end
-end
-pair(settings.AutoRow.Parent, trackCameraRow)
--- AUTO SELL row (design doc 4.36), built the same way, one row lower still. Its toggle opens the popup.
+-- AUTO SELL row (design doc 4.36), built the same way. Its toggle opens the popup.
 local autoSellRow = settings.AutoRow.Parent:Clone()
-pair(settings.AutoRow.Parent, autoSellRow)
 autoSellRow.Name = "AutoSellRow"
 for _, d in autoSellRow:GetDescendants() do
 	d.Name = string.gsub(d.Name, "^Auto", "AutoSell")
@@ -233,40 +219,6 @@ trackCameraRow.Parent = settings.AutoRow.Parent.Parent
 settings.TrackCameraRow = trackCameraRow.Face
 settings.TrackCameraName = settings.TrackCameraRow.TrackCameraName
 settings.TrackCameraToggle = settings.TrackCameraRow.TrackCameraToggle.Face
-do
-	-- the generated fit re-applies authored sizes per viewport; follow it so the copy matches AutoRow on desktop and phone
-	local autoRow, effectsRow, panel = settings.AutoRow.Parent, settings.EffectsRow.Parent, settings.Panel.Parent
-	local authored, grown, queued = panel.Size, nil, false
-	local function relayout()
-		queued = false
-		local step = autoRow.Position.Y.Offset - effectsRow.Position.Y.Offset
-		for _, row in twins do
-			local d, twin = row[1], row[2]
-			twin.Position, twin.Size = d.Position, d.Size
-			if d:IsA("TextLabel") or d:IsA("TextButton") then
-				twin.TextSize = d.TextSize
-			end
-		end
-		trackCameraRow.Size = autoRow.Size
-		trackCameraRow.Position = autoRow.Position + UDim2.fromOffset(0, step)
-		autoSellRow.Size = autoRow.Size
-		autoSellRow.Position = autoRow.Position + UDim2.fromOffset(0, 2 * step)
-		if panel.Size ~= grown then
-			authored = panel.Size
-		end
-		grown = authored + UDim2.fromOffset(0, 2 * step)
-		panel.Size = grown
-	end
-	local function queue()
-		if not queued then
-			queued = true
-			task.defer(relayout)
-		end
-	end
-	panel:GetPropertyChangedSignal("Size"):Connect(queue)
-	autoRow:GetPropertyChangedSignal("Position"):Connect(queue)
-	relayout()
-end
 
 hud.Gui.DisplayOrder = 1
 local racerPanels = { Index = index, Stats = stats, Settings = settings, Rebirth = rebirth }
@@ -280,7 +232,7 @@ for name, refs in pairs(racerPanels) do
 	end
 	refs.Close.Activated:Connect(closePanel)
 	PanelFrame.CloseOnOutsideClick(refs.Panel.Parent, closePanel)
-	-- The shared look; the generated geometry stays (see PanelFrame.PaintGenerated).
+	-- The shared look (PanelFrame.PaintGenerated); Rebirth, Stats and Settings then take the Index frame (indexFrame).
 	PanelFrame.PaintGenerated({
 		Panel = refs.Panel,
 		Header = refs.Header,
@@ -294,7 +246,7 @@ local function label(button, value)
 	HudButtonStyle.SetCaption(button, value)
 end
 
--- Settings look (docs/HUD_LAYOUT_SPEC.md section 4): the shared header with the gear, and every toggle an ON / OFF
+-- Settings look (docs/HUD_LAYOUT_SPEC.md section 4): every toggle an ON / OFF
 -- pill on a dark track (green ON on the right, muted OFF on the left: off is no error). The whole track stays the hitbox.
 local function switch(toggle, on)
 	local knob = toggle:FindFirstChild("Knob")
@@ -326,50 +278,24 @@ local function switch(toggle, on)
 	local caption = knob:FindFirstChildWhichIsA("TextLabel")
 	if caption then
 		caption.Text = on and "ON" or "OFF"
+		caption.TextScaled = true -- "OFF" fits the knob at every size (UI audit: "OF" clipped)
+		caption.TextTruncate = Enum.TextTruncate.None
 	end
 	toggle:SetAttribute("On", on)
 end
-settings.Title.Text = "Settings"
-settings.Title.TextXAlignment = Enum.TextXAlignment.Left
-local function fitSettingsTitle()
-	-- Reserve the right side of the generated header for both category tabs and
-	-- the close button at desktop and phone sizes.
-	settings.Title.Size = UDim2.new(1, -302, 1, 0)
-end
-fitSettingsTitle()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
-		task.defer(fitSettingsTitle)
-	end)
-end
-local titlePad = Instance.new("UIPadding")
-titlePad.PaddingLeft = UDim.new(0, 58)
-titlePad.Parent = settings.Title
-local gear = Instance.new("ImageLabel")
-gear.Name = "Gear"
-gear.AnchorPoint = Vector2.new(0, 0.5)
-gear.Position = UDim2.new(0, -54, 0.5, 0)
-gear.Size = UDim2.fromOffset(46, 46)
-gear.BackgroundTransparency = 1
-gear.Image = require(Ui.HudIcons).Settings.Image
-gear.ScaleType = Enum.ScaleType.Fit
-gear.Parent = settings.Title
+settings.Title.Text = "SETTINGS" -- the header (logo, title, close) is laid out by indexFrame below
 
 -- Settings owns the read-only Player Profile category from the reference. The
 -- separate Stats panel remains exclusively for spending rebirth/index points.
 local categoryTabs = Instance.new("Frame")
 categoryTabs.Name = "CategoryTabs"
-categoryTabs.AnchorPoint = Vector2.new(1, 0)
-categoryTabs.Position = UDim2.new(1, -72, 0, 8) -- a gap before Close
-categoryTabs.Size = UDim2.fromOffset(226, 48)
-categoryTabs.BackgroundTransparency = 1
+categoryTabs.BackgroundTransparency = 1 -- placed in the tabs row by indexFrame
 categoryTabs.ZIndex = 6
 categoryTabs.Parent = settings.Header
 local categoryLayout = Instance.new("UIListLayout")
 categoryLayout.FillDirection = Enum.FillDirection.Horizontal
-categoryLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 categoryLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-categoryLayout.Padding = UDim.new(0, 6)
+categoryLayout.Padding = UDim.new(0, 8) -- the Index's tab gap
 categoryLayout.Parent = categoryTabs
 
 local function categoryButton(name, text, width, parent)
@@ -404,9 +330,7 @@ local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136, categoryT
 local settingsTabLit, profileTabLit = animeTab(settingsTab, 1), animeTab(profileTab, 2)
 local profileHost = Instance.new("ScrollingFrame")
 profileHost.Name = "PlayerProfile"
-profileHost.Position = UDim2.fromOffset(16, 96)
-profileHost.Size = UDim2.new(1, -32, 1, -112)
-profileHost.BackgroundTransparency = 1
+profileHost.BackgroundTransparency = 1 -- placed in the content area by indexFrame
 profileHost.BorderSizePixel = 0
 profileHost.ScrollBarThickness = 5
 profileHost.ScrollBarImageColor3 = palette.Muted
@@ -417,13 +341,7 @@ profileHost.ClipsDescendants = true
 profileHost.Visible = false
 profileHost.ZIndex = 3
 profileHost.Parent = settings.Panel
-local profilePadding = Instance.new("UIPadding")
-profilePadding.PaddingBottom = UDim.new(0, 8)
-profilePadding.PaddingLeft = UDim.new(0, 4)
-profilePadding.PaddingRight = UDim.new(0, 10)
-profilePadding.Parent = profileHost
 local profileLayout = Instance.new("UIListLayout")
-profileLayout.Padding = UDim.new(0, 8)
 profileLayout.SortOrder = Enum.SortOrder.LayoutOrder
 profileLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 profileLayout.Parent = profileHost
@@ -437,46 +355,32 @@ local profileRows = {
 	{ "SessionTime", "TIME THIS SESSION", "0m 00s" },
 }
 local profileValues = {}
+local profileLabels = {} -- row -> { Name, Value }
 for order, spec in profileRows do
 	local row = Instance.new("Frame")
 	row.Name = spec[1]
-	row.Size = UDim2.new(1, -8, 0, 48)
-	row.BackgroundColor3 = palette.Row
+	row.BackgroundTransparency = 1
 	row.BorderSizePixel = 0
 	row.LayoutOrder = order
 	row.ZIndex = 3
-	Instance.new("UICorner", row).CornerRadius = UDim.new(0, 10)
-	local rowEdge = Instance.new("UIStroke")
-	rowEdge.Color = UiTheme.Outline
-	rowEdge.Thickness = 3
-	rowEdge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	rowEdge.Parent = row
+	AnimeSkin.Plate(row) -- design doc 4.42: a slanted plate like the Settings rows; indexFrame sizes it
 	local name = Instance.new("TextLabel")
 	name.Name = "Name"
-	name.Position = UDim2.fromOffset(16, 0)
-	name.Size = UDim2.fromScale(0.58, 1)
 	name.BackgroundTransparency = 1
-	name.Font = UiTheme.Font
 	name.Text = spec[2]
-	name.TextColor3 = palette.White
-	name.TextSize = 18
 	name.TextXAlignment = Enum.TextXAlignment.Left
 	name.ZIndex = 4
 	name.Parent = row
 	local value = Instance.new("TextLabel")
 	value.Name = "Value"
-	value.Position = UDim2.fromScale(0.58, 0)
-	value.Size = UDim2.new(0.38, -12, 1, 0)
 	value.BackgroundTransparency = 1
-	value.Font = UiTheme.Font
 	value.Text = spec[3]
-	value.TextColor3 = palette.Gold
-	value.TextSize = 18
 	value.TextXAlignment = Enum.TextXAlignment.Right
 	value.ZIndex = 4
 	value.Parent = row
 	row.Parent = profileHost
 	profileValues[spec[1]] = value
+	profileLabels[row] = { name, value }
 end
 
 local settingsCategory = "Settings"
@@ -487,6 +391,7 @@ local function setSettingsCategory(category)
 	settings.EffectsRow.Parent.Visible = showSettings
 	settings.AutoRow.Parent.Visible = showSettings
 	settings.TrackCameraRow.Parent.Visible = showSettings
+	settings.AutoSellRow.Parent.Visible = showSettings
 	profileHost.Visible = not showSettings
 	settingsTabLit(showSettings)
 	profileTabLit(not showSettings)
@@ -545,31 +450,26 @@ rebirth.PointRewardCaption.Text = string.format(
 	rebirthConfig.POINTS_PER_REBIRTH
 )
 -- The place's saved StarterGui copy still says "Money and Speed"; Rebirth resets only Money (design doc 4.14)
-rebirth.WarningText.Text = "Rebirth resets your Money\n(Robux purchases stay)"
+rebirth.WarningText.Text = "Rebirth resets your Money (Robux purchases stay)"
 -- These are the next rebirth's rewards, not unlocked ones.
 rebirth.RewardsTitle.Text = "NEXT REBIRTH"
--- The generated Title rect stops at Close: padding puts the text's centre on the panel's, the rect stays.
-local rebirthTitlePad = Instance.new("UIPadding")
-rebirthTitlePad.PaddingLeft = UDim.new(0, 84)
-rebirthTitlePad.Parent = rebirth.Title
+rebirth.Title.Text = "REBIRTH"
+stats.Title.Text = "STATS"
 
--- Stats is a category of the Rebirth panel (design doc 4.40): two generated panels, one tab strip in each header.
--- The tabs replace the titles; the generated fit() forces Title.Visible, so the text is what goes.
+-- Stats is a category of the Rebirth panel (design doc 4.40): two generated panels, one tab strip in each. The strip
+-- stays a child of the header face (UI tests pin the path); indexFrame places it in the tabs row under the header.
 local statsTabBadges = {}
 local function rebirthTabs(refs, selected)
-	refs.Title.Text = ""
 	local strip = Instance.new("Frame")
 	strip.Name = "RebirthTabs"
-	strip.AnchorPoint = Vector2.new(0, 0.5)
-	strip.Position = UDim2.new(0, 12, 0.5, 0)
-	strip.Size = UDim2.fromOffset(198, 38)
 	strip.BackgroundTransparency = 1
 	strip.ZIndex = 6
 	strip.Parent = refs.Header
 	local layout = Instance.new("UIListLayout")
 	layout.FillDirection = Enum.FillDirection.Horizontal
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Padding = UDim.new(0, 6)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 8) -- the Index's tab gap
 	layout.Parent = strip
 	for order, tab in { { "RebirthTab", "REBIRTH", "Rebirth" }, { "StatsTab", "STATS", "Stats" } } do
 		local button = categoryButton(tab[1], tab[2], 96, strip)
@@ -586,10 +486,8 @@ local function rebirthTabs(refs, selected)
 			badge.Name = "Badge"
 			badge.AnchorPoint = Vector2.new(0.5, 0.5)
 			badge.Position = UDim2.new(1, -4, 0, 4)
-			badge.Size = UDim2.fromOffset(22, 22)
 			badge.BackgroundColor3 = palette.Danger
 			badge.Font = UiTheme.Font
-			badge.TextSize = 14
 			badge.TextColor3 = Color3.new(1, 1, 1)
 			badge.ZIndex = 8
 			badge.Visible = false
@@ -637,14 +535,8 @@ local function playRebirthMoment()
 	end)
 end
 -- The reply ("REBIRTH COMPLETE", a server message) is wider than the button at its resting size: it shrinks to fit.
+-- indexFrame gives it the Item role (scaled, at most the token size).
 local rebirthCaption = rebirth.RebirthButton:FindFirstChild("RebirthButtonLabel", true)
-if rebirthCaption then
-	local captionSize = Instance.new("UITextSizeConstraint")
-	captionSize.MaxTextSize = rebirthCaption.TextSize
-	captionSize.Parent = rebirthCaption
-	rebirthCaption.TextScaled = true
-	AnimeSkin.Title(rebirthCaption, rebirthCaption.TextSize)
-end
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
 	local level = player:GetAttribute("RebirthLevel") or 0
@@ -920,7 +812,7 @@ local function refreshStats()
 		local available = free > 0
 		row.Frame.Accent.Fill.Size = UDim2.fromScale(earned > 0 and allocations[stat] / earned or 0, 1)
 		row.Value.Text = string.format(
-			"%d pts  %s  >  %s",
+			"%d pts · %s > %s",
 			allocations[stat],
 			format.Multi(multis[stat]),
 			format.Multi(multis[stat] + config.PER_POINT[stat])
@@ -956,8 +848,6 @@ for _, row in pairs(rows) do
 	local frame = row.Frame
 	AnimeSkin.Plate(frame, frame:GetAttribute("AccentColor"))
 	frame.Lift.Visible = false
-	AnimeSkin.Title(frame.StatName, 21)
-	frame.Description.TextColor3 = Color3.fromRGB(200, 210, 230)
 	frame.Accent.BackgroundColor3 = Color3.fromRGB(20, 24, 40)
 end
 for _, row in settings.Panel:GetDescendants() do
@@ -985,6 +875,320 @@ for _, name in { "LuckReward", "SpeedReward", "PointReward" } do
 		end
 	end
 end
+
+-- Design doc 4.42 spacing standard: Rebirth, Stats and Settings wear the Index's frame in its design units, as
+-- Client/IndexAnimeStyle and Client/QuestAnimeStyle lay it out (920 x 620, phone 500 x 420): logo, title and close in
+-- the header band, art tabs in the row at y 98, content from y 164 to 82 above the bottom, a count line in the footer.
+-- fitPanels draws the panels at a UIScale (BaseScale), so a px token becomes design units through `units`. The
+-- generated fit() re-applies the authored rects on every resize; those writes queue this layout again (as the Index).
+local HudIcons = require(Ui.HudIcons)
+local TOKEN, SPACE = AnimeSkin.Size, AnimeSkin.Space
+local HEAVY = { Title = true, Section = true, Item = true }
+local function phoneView()
+	local camera = workspace.CurrentCamera
+	return camera ~= nil and camera.ViewportSize.Y <= 500
+end
+local function baseScale(frame)
+	local scale = frame:GetAttribute("BaseScale")
+	return type(scale) == "number" and scale > 0 and scale or 0.57 -- before the first fit: the Index's desktop scale
+end
+-- A px token (AnimeSkin.Px, so phones scale it too) in `frame`'s design units.
+local function units(frame, px)
+	return math.floor(AnimeSkin.Px(px) / baseScale(frame) + 0.5)
+end
+-- One of the five text roles (AnimeSkin.Label) at its px size on screen, after Label's own deferred pass. `fit`: a
+-- Body or Caption line may shrink to the Caption size to stay on its line.
+local function role(frame, text, name, fit)
+	AnimeSkin.Label(text, name)
+	local function scaled()
+		local size = math.min(units(frame, TOKEN[name]), 100)
+		local floor = math.min(size, units(frame, TOKEN.Caption))
+		if HEAVY[name] or fit then
+			text.TextScaled = true
+			local limit = text:FindFirstChildOfClass("UITextSizeConstraint") or Instance.new("UITextSizeConstraint")
+			limit.MaxTextSize, limit.MinTextSize = size, floor
+			limit.Parent = text
+		else
+			text.TextSize = size
+		end
+	end
+	scaled()
+	task.defer(scaled)
+end
+local function place(gui, x, y, w, h)
+	gui.AnchorPoint = Vector2.zero
+	gui.Position, gui.Size = UDim2.fromOffset(x, y), UDim2.fromOffset(w, h)
+end
+-- The panel's tab strip into the tabs row: art tabs of one size, captions on one line, 14 px or more on screen.
+local function tabsRow(strip, g)
+	place(strip, 56, g.Tabs, g.W - 112, 40)
+	local width = math.min(300, math.floor((g.W - 120) / 2)) -- two tabs; "PLAYER PROFILE" fits on one line
+	for _, tab in strip:GetChildren() do
+		if tab:IsA("TextButton") then
+			tab.Size = UDim2.fromOffset(width, 40)
+			local caption = tab:FindFirstChild("AnimeCaption")
+			caption.Position, caption.Size = UDim2.fromOffset(8, 0), UDim2.new(1, -16, 1, 0)
+			local size = g.u(TOKEN.Body)
+			AnimeSkin.Text(caption, size)
+			caption:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize =
+				math.min(size, math.ceil(14 / baseScale(g.Frame)))
+			local badge = tab:FindFirstChild("Badge")
+			if badge then
+				badge.Size = UDim2.fromOffset(g.u(24), g.u(24))
+				badge.TextSize = g.u(TOKEN.Caption)
+			end
+		end
+	end
+end
+local function indexFrame(refs, icon, content)
+	local frame, face, header = refs.Panel.Parent, refs.Panel, refs.Header
+	local band, close = header.Parent, refs.Close.Parent
+	local chrome = Instance.new("ImageLabel")
+	chrome.Name = "AnimeChrome"
+	chrome.BackgroundTransparency = 1
+	chrome.Image = AnimeSkin.Art.Chrome
+	chrome.ScaleType = Enum.ScaleType.Stretch
+	chrome.Position, chrome.Size = UDim2.fromOffset(-40, -70), UDim2.new(1, 80, 1, 100)
+	chrome.ZIndex = 1
+	chrome.Parent = face
+	-- The Index chrome replaces the shared body art and strip PanelFrame.PaintGenerated put on.
+	local body, strip = face:FindFirstChild("AnimeBody"), header:FindFirstChild("AnimeStrip")
+	if body then
+		body.Visible = false
+	end
+	if strip then
+		strip.Visible = false
+	end
+	local logo = Instance.new("ImageLabel")
+	logo.Name = "AnimeLogo"
+	logo.BackgroundTransparency = 1
+	logo.Image = icon
+	logo.ScaleType = Enum.ScaleType.Fit
+	logo.ZIndex = 11
+	logo.Parent = header
+	band.ZIndex = 8
+	refs.Title.ZIndex = 10
+	refs.Title.TextXAlignment = Enum.TextXAlignment.Left
+	close.ZIndex = 10
+	local closeArt = refs.Close:FindFirstChild("AnimeCloseArt")
+	local g = {
+		Frame = frame,
+		u = function(px)
+			return units(frame, px)
+		end,
+		Role = function(text, name, fit)
+			role(frame, text, name, fit)
+		end,
+	}
+	local function layout()
+		local small = phoneView()
+		local W, H = small and 500 or 920, small and 420 or 620
+		if frame.Size ~= UDim2.fromOffset(W, H) then
+			frame.Size = UDim2.fromOffset(W, H)
+		end
+		-- The header band spans the panel's top at its origin, so its parts sit in panel coordinates.
+		place(band, 0, 0, W, 64)
+		place(refs.Title, 168, -23, W - 266, 76)
+		refs.Title.Rotation = -2
+		AnimeSkin.Text(refs.Title, 72)
+		place(logo, -19, -72, 188, 186)
+		place(close, W - 74, 4, 58, 54)
+		if closeArt then
+			closeArt.AnchorPoint = Vector2.zero
+			closeArt.Position, closeArt.Size = UDim2.fromOffset(-8, -10), UDim2.new(1, 16, 1, 20)
+		end
+		g.W, g.H, g.Tabs = W, H, small and 90 or 98
+		g.Top = small and 144 or 164
+		g.Height = H - g.Top - 82
+		content(g)
+	end
+	local queued = false
+	local function queue()
+		if not queued then
+			queued = true
+			task.defer(function()
+				queued = false
+				layout()
+			end)
+		end
+	end
+	for _, object in { frame, band, close } do
+		object:GetPropertyChangedSignal("Position"):Connect(queue)
+		object:GetPropertyChangedSignal("Size"):Connect(queue)
+	end
+	frame:GetAttributeChangedSignal("BaseScale"):Connect(queue)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(queue)
+	end
+	layout()
+	queue() -- after the deferred passes of AnimeSkin.Tab / Title and UiTheme.Apply
+end
+
+-- The Index chrome art draws a footer plate: a count line fills it on every Racer panel, as the Index does (G1).
+-- The line lives on the panel Face (same coordinates as the Index's IndexProgress), under the header band.
+local function footerLine(refs, g, value)
+	local face = refs.Panel
+	local line = face:FindFirstChild("AnimeFooterLine")
+	if not line then
+		line = Instance.new("TextLabel")
+		line.Name = "AnimeFooterLine"
+		line.BackgroundTransparency = 1
+		line.ZIndex = 4
+		line.Parent = face
+	end
+	line.Text = value
+	place(line, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
+	line.TextXAlignment = Enum.TextXAlignment.Center
+	g.Role(line, "Body", true)
+end
+
+indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
+	tabsRow(rebirth.Header.RebirthTabs, g)
+	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
+	local u, left, width = g.u, 56, g.W - 112
+	local gap, inner, pad = u(SPACE.Gap), u(SPACE.Inner), u(SPACE.Pad)
+	local headH, lineH = u(TOKEN.Section + 4), u(TOKEN.Body + 4)
+	local bottom = g.Top + g.Height
+	for _, part in { rebirth.Warning, rebirth.Rewards, rebirth.Requirements, rebirth.RebirthButton.Parent } do
+		part.ZIndex = 3
+	end
+	-- WARNING and its rule side by side.
+	local warnH, headW = 2 * lineH, u(150)
+	place(rebirth.Warning, left, g.Top, width, warnH)
+	place(rebirth.WarningTitle, 0, math.floor((warnH - headH) / 2), headW, headH)
+	place(rebirth.WarningText, headW + gap, 0, width - headW - gap, warnH)
+	-- REQUIREMENTS and its bar on the left of the bottom row, REBIRTH on the right: both inside the Index's content area,
+	-- clear of the frame's stripe art.
+	local buttonW, buttonH, barH = u(160), u(SPACE.Button), u(SPACE.ButtonSmall)
+	local reqW, reqH = width - buttonW - gap, headH + inner + barH
+	local reqTop = bottom - reqH
+	place(rebirth.Requirements, left, reqTop, reqW, reqH)
+	place(rebirth.RequirementsTitle, 0, 0, reqW, headH)
+	place(rebirth.Bar.Parent, 0, headH + inner, reqW, barH)
+	place(rebirth.BarText, 0, 0, reqW, barH)
+	place(rebirth.RebirthButton.Parent, left + width - buttonW, bottom - buttonH, buttonW, buttonH)
+	-- NEXT REBIRTH: three cards across, between the warning and the bottom row.
+	local rewardsTop = g.Top + warnH + gap
+	local cardH = math.max(0, reqTop - gap - rewardsTop - headH - inner)
+	local cardW = math.floor((width - 2 * gap) / 3)
+	local iconSize = math.max(0, cardH - 2 * inner)
+	place(rebirth.Rewards, left, rewardsTop, width, headH + inner + cardH)
+	place(rebirth.RewardsTitle, 0, 0, width, headH)
+	for i, name in { "LuckReward", "SpeedReward", "PointReward" } do
+		place(rebirth[name].Parent, (i - 1) * (cardW + gap), headH + inner, cardW, cardH)
+		local icon, caption = rebirth[name .. "Icon"], rebirth[name .. "Caption"]
+		place(icon, pad, inner, iconSize, iconSize)
+		local x = pad + iconSize + inner
+		place(caption, x, 0, cardW - x - pad, cardH)
+		caption.TextXAlignment = Enum.TextXAlignment.Left
+		caption.TextWrapped = true
+		g.Role(caption, "Body", true)
+	end
+	for _, heading in { rebirth.WarningTitle, rebirth.RewardsTitle, rebirth.RequirementsTitle } do
+		heading.TextXAlignment = Enum.TextXAlignment.Left
+		g.Role(heading, "Section") -- one heading colour, gold (UI audit G11)
+	end
+	rebirth.WarningText.TextXAlignment = Enum.TextXAlignment.Left
+	rebirth.WarningText.TextWrapped = true
+	g.Role(rebirth.WarningText, "Body", true)
+	g.Role(rebirth.BarText, "Body", true)
+	if rebirthCaption then
+		g.Role(rebirthCaption, "Item")
+	end
+end)
+
+indexFrame(stats, HudIcons.Rebirth.Image, function(g)
+	tabsRow(stats.Header.RebirthTabs, g)
+	local u, width = g.u, g.W - 112
+	local gap, inner, pad = u(SPACE.Gap), u(SPACE.Inner), u(SPACE.Pad)
+	place(stats.StatsHost, 56, g.Top, width, g.Height)
+	stats.StatsHost.ZIndex = 3
+	-- The free points line sits in the footer, where the Index counts its cards (UI audit G10).
+	place(stats.Points, math.floor(g.W * 303 / 920), g.H - 60, math.floor(g.W * 312 / 920), 28)
+	stats.Points.TextXAlignment = Enum.TextXAlignment.Center
+	AnimeSkin.Text(stats.Points, u(TOKEN.Body))
+	stats.Points:FindFirstChildOfClass("UIStroke").Thickness = 1.5
+	-- The four stat rows fill the content area exactly: whole rows, 12 px apart, nothing to scroll.
+	local list = stats.StatsHost:FindFirstChild("Rows")
+	list:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, gap)
+	local padding = list:FindFirstChildOfClass("UIPadding")
+	for _, side in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
+		padding[side] = UDim.new()
+	end
+	local rowH = math.floor((g.Height - (#config.STATS - 1) * gap) / #config.STATS)
+	local artSize = rowH - 2 * inner
+	local plusSize = math.min(u(SPACE.Button), rowH - 6)
+	local x = inner + artSize + inner
+	local areaW = width - x - plusSize - pad - inner
+	local nameH, lineH = math.floor(rowH * 0.45), math.floor(rowH * 0.4)
+	local descW = math.floor(areaW * 0.45)
+	for _, row in pairs(rows) do
+		local frame = row.Frame
+		frame.Size = UDim2.new(1, 0, 0, rowH)
+		place(frame.Art, inner, inner, artSize, artSize)
+		row.Plus.AnchorPoint = Vector2.zero
+		row.Plus.Position = UDim2.new(1, -(plusSize + pad), 0, math.floor((rowH - plusSize) / 2))
+		row.Plus.Size = UDim2.fromOffset(plusSize, plusSize)
+		place(frame.StatName, x, 0, areaW, nameH)
+		place(frame.Description, x, nameH, descW, lineH)
+		place(row.Value, x + descW, nameH, areaW - descW, lineH)
+		place(frame.Accent, x, nameH + lineH + 2, areaW, math.max(4, rowH - nameH - lineH - 2 - inner // 2))
+		frame.StatName.TextXAlignment = Enum.TextXAlignment.Left
+		frame.Description.TextXAlignment = Enum.TextXAlignment.Left
+		row.Value.TextXAlignment = Enum.TextXAlignment.Right
+		g.Role(frame.StatName, "Item")
+		g.Role(frame.Description, "Caption")
+		g.Role(row.Value, "Body", true) -- no outline under 16 px (UI audit G12)
+	end
+end)
+
+indexFrame(settings, HudIcons.Settings.Image, function(g)
+	tabsRow(categoryTabs, g)
+	local u, width = g.u, g.W - 112
+	local showSettings = settings.Gui:GetAttribute("Category") ~= "Profile" -- fit() sets the rows Visible again
+	-- Five rows, 8 px apart, fill the content area; each toggle stays inside its plate's slanted ends (UI audit).
+	local keys = { "Sound", "Effects", "Auto", "TrackCamera", "AutoSell" }
+	local gap = u(SPACE.Inner)
+	local rowH = math.floor((g.Height - (#keys - 1) * gap) / #keys)
+	local toggleH = math.min(u(SPACE.ButtonSmall), rowH - 6)
+	local toggleW = 2 * toggleH
+	local slant = math.floor(rowH / 2) + u(SPACE.Inner)
+	settingsTabLit(showSettings)
+	profileTabLit(not showSettings)
+	profileHost.Visible = not showSettings
+	for i, key in keys do
+		local wrapper = settings[key .. "Row"].Parent
+		place(wrapper, 56, g.Top + (i - 1) * (rowH + gap), width, rowH)
+		wrapper.ZIndex = 3
+		wrapper.Visible = showSettings
+		local name = settings[key .. "Name"]
+		place(name, slant, 0, width - 2 * slant - toggleW - u(SPACE.Inner), rowH)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		g.Role(name, "Item")
+		local toggle = settings[key .. "Toggle"]
+		place(toggle.Parent, width - slant - toggleW, math.floor((rowH - toggleH) / 2), toggleW, toggleH)
+		local knob = toggle:FindFirstChild("Knob")
+		local caption = knob and knob:FindFirstChildWhichIsA("TextLabel")
+		if caption then
+			g.Role(caption, "Body", true) -- fits "OFF" inside the knob
+		end
+	end
+	footerLine(settings, g, showSettings and (#keys .. " SETTINGS") or (#profileRows .. " PROFILE LINES"))
+	-- PLAYER PROFILE: six plates in the same area, 12 px apart.
+	place(profileHost, 56, g.Top, width, g.Height)
+	local rowGap = u(SPACE.Gap)
+	profileLayout.Padding = UDim.new(0, rowGap)
+	local plateH = math.floor((g.Height - (#profileRows - 1) * rowGap) / #profileRows)
+	local plateSlant = math.floor(plateH / 2) + u(SPACE.Inner)
+	local textW = width - 2 * plateSlant
+	for row, labels in profileLabels do
+		row.Size = UDim2.new(1, 0, 0, plateH)
+		place(labels[1], plateSlant, 0, math.floor(textW * 0.55), plateH)
+		place(labels[2], plateSlant + math.floor(textW * 0.55), 0, textW - math.floor(textW * 0.55), plateH)
+		g.Role(labels[1], "Item")
+		g.Role(labels[2], "Body", true)
+	end
+end)
 
 -- The Auto toggle lives in HudChrome/AutoSlot/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
 -- the Toast read; the generated fit() sets Visible back to true on every resize.
@@ -1093,8 +1297,13 @@ local function fitPanels()
 		local base = frame.Size
 		if scale and base.X.Offset > 0 and base.Y.Offset > 0 then
 			local motion = frame:FindFirstChild("MotionK") -- PanelSwitch's open / close scale
-			scale.Scale = math.max(0.3, math.min(k, width / base.X.Offset, height / base.Y.Offset))
-				* (motion and motion.Value or 1)
+			local fitted = math.max(0.3, math.min(k, width / base.X.Offset, height / base.Y.Offset))
+			scale.Scale = fitted * (motion and motion.Value or 1)
+			-- The resting scale, for the px tokens of the Index-frame layout (indexFrame); 0.01 steps, no per-frame churn.
+			local rounded = math.floor(fitted * 100 + 0.5) / 100
+			if frame:GetAttribute("BaseScale") ~= rounded then
+				frame:SetAttribute("BaseScale", rounded)
+			end
 			frame.AnchorPoint = Vector2.new(0.5, 0.5)
 			frame.Position = UDim2.fromOffset((side + right) / 2, top + height / 2)
 		end
@@ -1212,7 +1421,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress, stats.Points }) do
+for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14
@@ -1222,7 +1431,12 @@ end
 
 for _, root in ipairs({ hud.Gui, settings.Gui }) do
 	for _, object in ipairs(root:GetDescendants()) do
-		if object:IsA("TextLabel") and object.Parent:IsA("TextButton") then
+		-- A label that already has a size limit (art tab captions, styled in indexFrame) keeps that one.
+		if
+			object:IsA("TextLabel")
+			and object.Parent:IsA("TextButton")
+			and not object:FindFirstChildOfClass("UITextSizeConstraint")
+		then
 			object.TextScaled = true
 			local limit = Instance.new("UITextSizeConstraint")
 			limit.MinTextSize = 14

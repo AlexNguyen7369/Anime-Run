@@ -89,17 +89,24 @@ function View.Create(gui, Tree, Format)
 	for _, line in { refs.DetailTitle, refs.DetailBonus, refs.DetailStatus } do
 		AnimeSkin.Title(line, line.TextSize)
 	end
-	-- Title and Money read clear of the hexes that pan under them.
+	-- The title and Balance sit on the header strip now, not on their own dark pills.
 	for _, line in { refs.TreeTitle, refs.Balance } do
-		line.BackgroundColor3 = UiTheme.Palette.PanelDeep
-		line.BackgroundTransparency = 0.15
-		UiTheme.Corner(line, "M")
-		AnimeSkin.Title(line, line.TextSize)
+		line.BackgroundTransparency = 1
 	end
 	PanelFrame.PaintClose(refs.Close, refs.CloseLabel)
-	local closeShadow = refs.Close.Parent:FindFirstChild("Shadow")
-	if closeShadow then
-		closeShadow.Visible = false
+	-- Zoom - / +: Index-style Idle buttons (flat fill, 4 px corners) without the generated shadow and lift.
+	for _, zoomButton in { refs.ZoomIn, refs.ZoomOut } do
+		AnimeSkin.Button(zoomButton, "Idle")
+	end
+	for _, line in { refs.ZoomInLabel, refs.ZoomOutLabel } do
+		AnimeSkin.Label(line, "Item")
+	end
+	for _, face in { refs.Close, refs.ZoomIn, refs.ZoomOut } do
+		for _, part in { face.Parent:FindFirstChild("Shadow") or false, face:FindFirstChild("Lift") or false } do
+			if part then
+				part.Visible = false
+			end
+		end
 	end
 	-- One way out (UI audit A30): X. The generated fit re-applies Exit's authored Visible, so hold it hidden.
 	local exit = refs.Exit.Parent
@@ -118,11 +125,9 @@ function View.Create(gui, Tree, Format)
 		ZIndex = 0,
 		Active = true,
 	}, screen)
-	-- The canvas starts right of ZoomTools (x 22 + 120 wide, ui/specs/RacerUpgrades.ui.json), so a panned node is
-	-- clipped there instead of sliding under the + / - / EXIT buttons.
+	-- The canvas starts under the toolbar row (layout below), so a panned node is clipped there instead of sliding
+	-- under the header or the + / - buttons.
 	local canvas = make("ScrollingFrame", "Canvas", {
-		Position = UDim2.fromOffset(150, 0),
-		Size = UDim2.new(1, -150, 1, 0),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 0,
@@ -138,6 +143,89 @@ function View.Create(gui, Tree, Format)
 		canvas
 	)
 	local scale = make("UIScale", "TreeZoom", { Scale = 0.8 }, world)
+	-- Design doc 4.42 spacing standard (Client/AnimeSkin tokens): the standard header strip across the top (Upgrade
+	-- logo, ALL CAPS title, Balance on its right, the art close at 6 / 6), the zoom buttons in the toolbar row under it,
+	-- the tree below both. Balance left the bottom edge, where it covered the TURBO LUCK bar. The generated fit()
+	-- re-applies the authored rects and scales on every resize; those writes queue this layout again.
+	local titleBar = make("Frame", "TitleBar", { BackgroundTransparency = 1, ZIndex = 2 }, screen)
+	local strip = AnimeSkin.Strip(titleBar)
+	local logo = make("ImageLabel", "Logo", {
+		BackgroundTransparency = 1,
+		Image = require(script.Parent.HudIcons).Upgrade.Image,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 4,
+	}, titleBar)
+	local closeBox = refs.Close.Parent
+	for object, z in { [refs.TreeTitle] = 3, [refs.Balance] = 3, [closeBox] = 4, [refs.ZoomTools] = 3 } do
+		object.ZIndex = z
+	end
+	local function layout()
+		local px, space = AnimeSkin.Px, AnimeSkin.Space
+		local inset, gap, inner, h = px(space.Inset), px(space.Gap), px(space.Inner), px(space.Header)
+		local closeGap, logoSize, button = px(space.CloseGap), px(space.Logo), px(space.Button)
+		local closeSize = h - 2 * closeGap
+		-- The logo overhangs the strip by 45 % of its height: the strip starts that far below the top-bar inset.
+		local top = game:GetService("GuiService"):GetGuiInset().Y + math.floor(h * 0.45)
+		titleBar.Position, titleBar.Size = UDim2.fromOffset(inset, top), UDim2.new(1, -2 * inset, 0, h)
+		local stripLeft = math.floor(h * 0.5)
+		strip.Position, strip.Size = UDim2.fromOffset(stripLeft, 4), UDim2.new(1, -stripLeft, 1, -8)
+		logo.Position = UDim2.fromOffset(-math.floor(h * 0.2), -math.floor(h * 0.45))
+		logo.Size = UDim2.fromOffset(logoSize, logoSize)
+		for _, object in { refs.TreeTitle, closeBox, refs.Balance, refs.ZoomTools } do
+			local fit = object:FindFirstChildOfClass("UIScale")
+			if fit then
+				fit.Scale = 1 -- px tokens, not the generated zoom
+			end
+		end
+		local title = refs.TreeTitle
+		title.AnchorPoint = Vector2.zero
+		title.Position = UDim2.fromOffset(inset + logoSize - math.floor(h * 0.15), top + 4)
+		title.Size = UDim2.fromOffset(px(320), h - 8)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		AnimeSkin.Label(title, "Title")
+		closeBox.AnchorPoint = Vector2.new(1, 0)
+		closeBox.Position = UDim2.new(1, -inset - closeGap, 0, top + closeGap)
+		closeBox.Size = UDim2.fromOffset(closeSize, closeSize)
+		local balance = refs.Balance
+		balance.AnchorPoint = Vector2.new(1, 0)
+		balance.Position = UDim2.new(1, -inset - closeSize - 2 * closeGap - gap, 0, top + 4)
+		balance.Size = UDim2.fromOffset(px(260), h - 8)
+		balance.TextXAlignment = Enum.TextXAlignment.Right
+		AnimeSkin.Label(balance, "Item")
+		local zoomTop = top + h + gap
+		local tools = refs.ZoomTools
+		tools.AnchorPoint = Vector2.zero
+		tools.Position, tools.Size = UDim2.fromOffset(inset, zoomTop), UDim2.fromOffset(2 * button + inner, button)
+		for i, zoomButton in { refs.ZoomOut, refs.ZoomIn } do
+			local box = zoomButton.Parent
+			box.Position, box.Size = UDim2.fromOffset((i - 1) * (button + inner), 0), UDim2.fromOffset(button, button)
+		end
+		local contentTop = zoomTop + button + gap
+		canvas.Position, canvas.Size = UDim2.fromOffset(0, contentTop), UDim2.new(1, 0, 1, -contentTop)
+	end
+	local queued = false
+	local function queue()
+		if not queued then
+			queued = true
+			task.defer(function()
+				queued = false
+				layout()
+			end)
+		end
+	end
+	for _, object in { refs.TreeTitle, closeBox, refs.Balance, refs.ZoomTools } do
+		object:GetPropertyChangedSignal("Position"):Connect(queue)
+		object:GetPropertyChangedSignal("Size"):Connect(queue)
+		local fit = object:FindFirstChildOfClass("UIScale")
+		if fit then
+			fit:GetPropertyChangedSignal("Scale"):Connect(queue)
+		end
+	end
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(queue)
+	end
+	layout()
+	queue() -- after the generated fit's own deferred pass
 	local feedback = make("TextLabel", "Result", { BackgroundTransparency = 1, Visible = false, Text = "" }, panel)
 	local tiles = {}
 	local view = { Panel = panel, Canvas = canvas, Tiles = tiles, Feedback = feedback, Refs = refs }

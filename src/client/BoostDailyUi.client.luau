@@ -339,10 +339,16 @@ local function layoutView()
 	questTabs.Visible = quests
 	questDetail.Visible = quests and not phone
 	if quests then
+		content.ScrollBarThickness = 5
+		content.VerticalScrollBarInset = Enum.ScrollBarInset.None
 		anime:Layout()
 	else
-		content.Position = UDim2.fromOffset(14, 88)
-		content.Size = UDim2.new(1, -28, 1, -100)
+		-- Design doc 4.42 content area: insets 16, 12 under the header, 16 bottom; the scrollbar inside the area.
+		local inset, top = AnimeSkin.Px(AnimeSkin.Space.Inset), AnimeSkin.Top()
+		content.Position = UDim2.fromOffset(inset, top)
+		content.Size = UDim2.new(1, -2 * inset, 1, -top - AnimeSkin.Px(AnimeSkin.Space.Bottom))
+		content.ScrollBarThickness = 6
+		content.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
 	end
 end
 
@@ -383,10 +389,8 @@ local function rewardArt(reward)
 	return PotionIcons[reward.Boost] or HudIcons.Daily.Image
 end
 
-local function dailyCard(parent, day, reward, done, featured, position, size)
+local function dailyCard(parent, day, reward, done, featured)
 	local card = make("Frame", "Day" .. day, parent, {
-		Position = position,
-		Size = size,
 		BackgroundColor3 = done and PALETTE.Done or Color3.new(1, 1, 1),
 		BorderSizePixel = 0,
 	})
@@ -402,21 +406,15 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	-- Design doc 4.42: the angular card; only today's card keeps its glowing edge (set in showDaily).
 	AnimeSkin.Card(card, done and AnimeSkin.Tint.Muted or featured and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
 	edge.Enabled = false
-	make("TextLabel", "Label", card, {
-		Position = UDim2.fromOffset(8, 8),
-		Size = UDim2.new(1, -16, 0, featured and 32 or 25),
+	local align = featured and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left
+	local label = make("TextLabel", "Label", card, {
 		BackgroundTransparency = 1,
 		Text = "DAY " .. day,
-		TextColor3 = done and PALETTE.DoneText or Color3.new(1, 1, 1),
-		Font = UiTheme.Font,
-		TextSize = featured and 24 or 17,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = Color3.new(0, 0, 0),
+		TextXAlignment = align,
+		TextTransparency = done and 0.35 or 0,
 	})
+	AnimeSkin.Label(label, "Item")
 	make("ImageLabel", "RewardIcon", card, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, featured and 0.54 or 0.57),
-		Size = UDim2.fromScale(featured and 0.62 or 0.48, featured and 0.58 or 0.48),
 		BackgroundTransparency = 1,
 		Image = rewardArt(reward),
 		ScaleType = Enum.ScaleType.Fit,
@@ -424,21 +422,16 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	})
 	local detail = reward.GuaranteedRare and "GUARANTEED RARE"
 		or string.format("x%s %s POTION", HudFormat.Short(reward.BoostCount or 1), (reward.Boost or ""):upper())
-	make("TextLabel", "RewardText", card, {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -8),
-		Size = UDim2.new(1, -12, 0, 22),
+	local caption = make("TextLabel", "RewardText", card, {
+		AnchorPoint = Vector2.new(0, 1),
 		BackgroundTransparency = 1,
 		Text = detail,
-		TextColor3 = done and PALETTE.DoneText or PALETTE.SoftText,
-		Font = UiTheme.Font,
-		TextSize = featured and 15 or 11,
-		TextScaled = false,
+		TextXAlignment = align,
+		TextTransparency = done and 0.35 or 0,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
+	AnimeSkin.Label(caption, "Caption")
 	make("TextLabel", "Completion", card, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.55),
-		Size = UDim2.fromScale(0.55, 0.45),
 		BackgroundTransparency = 1,
 		Text = done and "✓" or "",
 		TextColor3 = PALETTE.Money,
@@ -450,9 +443,73 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	return card
 end
 
--- Height of the 7 days. From the modal's Size, which Band.Fit keeps in px: AbsoluteSize carries the panel's MotionScale.
-local function dailyHeight()
-	return math.max(180, modal.Size.Y.Offset + content.Size.Y.Offset - 34 - 42 - 2 * layout.Padding.Offset)
+-- Inside a card (design doc 4.42): 12 padding, DAY n (Item) top, reward (Caption) bottom, 8 between. A small card puts
+-- its icon top-right beside DAY n; Day 7 centres it between the two lines.
+local function placeCard(card, featured, height)
+	local px = AnimeSkin.Px
+	local pad, inner, item, caption = px(AnimeSkin.Space.Pad), px(AnimeSkin.Space.Inner), px(20), px(13)
+	local icon = height - 2 * pad - caption - inner
+	local iconPos, iconSize = UDim2.new(1, -pad - icon, 0, pad), UDim2.fromOffset(icon, icon)
+	if featured then
+		local band = pad + item + inner
+		iconPos, iconSize = UDim2.fromOffset(pad, band), UDim2.new(1, -2 * pad, 1, -2 * band)
+	end
+	card.Label.Position = UDim2.fromOffset(pad, pad)
+	card.Label.Size = UDim2.new(1, -2 * pad - (featured and 0 or icon + inner), 0, item)
+	card.RewardIcon.Position, card.RewardIcon.Size = iconPos, iconSize
+	card.Completion.Position, card.Completion.Size = iconPos, iconSize
+	card.RewardText.Position, card.RewardText.Size = UDim2.new(0, pad, 1, -pad), UDim2.new(1, -2 * pad, 0, caption)
+end
+
+-- The Daily view on the 4.42 grid: 12 between cards and rows, Claim 40 tall. Desktop: days 1-6 in three columns, Day 7
+-- the fourth, NEXT REWARD (Body) and Claim on the last row, all inside the content area (Band.Fit keeps the modal's
+-- Size in px; AbsoluteSize carries the panel's MotionScale). Phones: two columns in the scroll list.
+local function placeDaily()
+	local area, nextLine, claim =
+		content:FindFirstChild("RewardCards"), content:FindFirstChild("NextReward"), content:FindFirstChild("Claim")
+	if not (area and nextLine and claim) then
+		return
+	end
+	local px = AnimeSkin.Px
+	local gap, buttonH = px(AnimeSkin.Space.Gap), px(AnimeSkin.Space.Button)
+	local phone = AnimeSkin.Compact()
+	local cols = phone and 2 or 4
+	-- x of column `col` (0-based) and the width of `span` columns, gaps included.
+	local function x(col, y)
+		return UDim2.new(col / cols, math.floor(col * gap / cols), 0, y)
+	end
+	local function w(span, h)
+		return UDim2.new(span / cols, math.floor(gap * (span - cols) / cols), 0, h)
+	end
+	local cardH, areaH, featuredH
+	if phone then
+		cardH, featuredH = px(97), px(120)
+		areaH = 3 * (cardH + gap) + featuredH
+	else
+		local height = modal.Size.Y.Offset - AnimeSkin.Top() - px(AnimeSkin.Space.Bottom)
+		areaH = math.max(px(180), height) - gap - buttonH
+		cardH = math.floor((areaH - gap) / 2)
+		featuredH = areaH
+	end
+	area.Position, area.Size = UDim2.new(), UDim2.new(1, 0, 0, areaH)
+	for day = 1, #dailyConfig.Rewards do
+		local card = area:FindFirstChild("Day" .. day)
+		if card then
+			local featured = day == #dailyConfig.Rewards
+			local i = day - 1
+			if featured then
+				card.Position = phone and x(0, 3 * (cardH + gap)) or x(3, 0)
+				card.Size = w(phone and 2 or 1, featuredH)
+			else
+				local perRow = phone and 2 or 3
+				card.Position, card.Size = x(i % perRow, math.floor(i / perRow) * (cardH + gap)), w(1, cardH)
+			end
+			placeCard(card, featured, featured and featuredH or cardH)
+		end
+	end
+	local rowY = areaH + gap
+	nextLine.Position, nextLine.Size = x(0, rowY), w(cols - 1, buttonH)
+	claim.Position, claim.Size = x(cols - 1, rowY), w(1, buttonH)
 end
 
 local function showDaily()
@@ -468,73 +525,33 @@ local function showDaily()
 	layoutView()
 	title.Text = "DAILY REWARDS • 7 DAYS"
 	clearContent()
+	content:FindFirstChildOfClass("UIListLayout"):Destroy() -- placeDaily sets every rect; Quests make a new one
 	local streak = math.clamp(player:GetAttribute("DailyStreak") or 0, 0, 7)
 	local last = player:GetAttribute("DailyLast") or -1
 	local claimedToday = last == math.floor(os.time() / 86400)
-	local camera = workspace.CurrentCamera
-	local phone = camera and camera.ViewportSize.Y <= 500
-	-- Desktop: the 7 days fit the panel with no scroll, under them only the next-reward line and the Claim button.
-	local area = make("Frame", "RewardCards", content, {
-		Size = UDim2.new(1, -8, 0, phone and 530 or dailyHeight()),
-		BackgroundTransparency = 1,
-	})
+	local area = make("Frame", "RewardCards", content, { BackgroundTransparency = 1 })
 	for day, reward in ipairs(dailyConfig.Rewards) do
-		local done = day <= streak
-		if phone then
-			if day < 7 then
-				local column = (day - 1) % 2
-				local row = math.floor((day - 1) / 2)
-				dailyCard(
-					area,
-					day,
-					reward,
-					done,
-					false,
-					UDim2.new(column * 0.5, column == 0 and 0 or 4, 0, row * 122),
-					UDim2.new(0.5, -8, 0, 114)
-				)
-			else
-				dailyCard(area, day, reward, done, true, UDim2.fromOffset(0, 372), UDim2.new(1, -8, 0, 148))
-			end
-		elseif day < 7 then
-			local column = (day - 1) % 3
-			local row = math.floor((day - 1) / 3)
-			dailyCard(
-				area,
-				day,
-				reward,
-				done,
-				false,
-				UDim2.new(column * 0.25, column == 0 and 0 or 4, row * 0.5, row * 4),
-				UDim2.new(0.25, -8, 0.5, -4)
-			)
-		else
-			dailyCard(area, day, reward, done, true, UDim2.new(0.75, 8, 0, 0), UDim2.new(0.245, -8, 1, 0))
-		end
+		dailyCard(area, day, reward, day <= streak, day == #dailyConfig.Rewards)
 	end
+	local nextLine = make("TextLabel", "NextReward", content, {
+		BackgroundTransparency = 1,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = claimedToday and "NEXT REWARD IN: calculating..." or "CLAIM TODAY'S REWARD!",
+	})
+	AnimeSkin.Label(nextLine, "Body")
+	local claim = button(
+		"Claim",
+		content,
+		UDim2.new(),
+		UDim2.new(),
+		claimedToday and "CLAIMED TODAY" or "CLAIM DAY " .. tostring(math.min(streak + 1, 7))
+	)
+	placeDaily()
 	if opening then -- cards rise in, each a little later (section 10)
 		for day = 1, #dailyConfig.Rewards do
 			UiMotion.SlideIn(area["Day" .. day], Vector2.new(0, 24), 0.22 + 0.03 * day)
 		end
 	end
-	make("TextLabel", "NextReward", content, {
-		Size = UDim2.new(1, -8, 0, 34),
-		BackgroundTransparency = 1,
-		TextColor3 = PALETTE.Lime,
-		Font = UiTheme.Font,
-		TextSize = phone and 16 or 21,
-		TextStrokeTransparency = 0,
-		TextStrokeColor3 = PALETTE.PanelDeep,
-		Text = claimedToday and "NEXT REWARD IN: calculating..." or "CLAIM TODAY'S REWARD!",
-	})
-	local claim = button(
-		"Claim",
-		content,
-		UDim2.fromOffset(0, 0),
-		UDim2.new(1, -8, 0, 42),
-		claimedToday and "CLAIMED TODAY" or "CLAIM DAY " .. tostring(math.min(streak + 1, 7))
-	)
-	claim.LayoutOrder = 20
 	claim.Active = not claimedToday
 	AnimeSkin.Button(claim, claim.Active and "Go" or "Idle")
 	if claim.Active then
@@ -811,13 +828,10 @@ task.spawn(function()
 	end
 end)
 
--- Band.Fit sizes the modal after it opens: the 7 days re-fit to the real height. In place (the cards are fractions of
--- their area), so Claim and the cards' rise survive.
+-- Band.Fit sizes the modal after it opens: the 7 days re-fit to the real height in place, so Claim survives.
 modal:GetPropertyChangedSignal("Size"):Connect(function()
-	local area = content:FindFirstChild("RewardCards")
-	local camera = workspace.CurrentCamera
-	if view == "Daily" and area and not (camera and camera.ViewportSize.Y <= 500) then
-		area.Size = UDim2.new(1, -8, 0, dailyHeight())
+	if view == "Daily" then
+		placeDaily()
 	end
 end)
 -- A real resize can cross the phone line, which lays the days out differently: that one rebuilds.

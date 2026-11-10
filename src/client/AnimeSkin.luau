@@ -173,11 +173,15 @@ function Skin.Button(button, tone)
 	end
 	button.BackgroundColor3 = FILL[tone or "Go"] or FILL.Go
 	local corner = button:FindFirstChildOfClass("UICorner") or child(button, "UICorner", "Corner")
-	corner.CornerRadius = UDim.new(0, 4)
-	if button:IsA("TextButton") then
-		button.FontFace = Skin.Font
-		button.TextColor3 = Color3.new(1, 1, 1)
+	local function style()
+		corner.CornerRadius = UDim.new(0, 4) -- UiTheme.Apply snaps new corners to 8: set again after it
+		if button:IsA("TextButton") then
+			button.FontFace = Skin.Font
+			button.TextColor3 = Color3.new(1, 1, 1)
+		end
 	end
+	style()
+	task.defer(style)
 end
 
 -- The angular card art behind a tile, tinted (rarity colour, state, or the Index's blue).
@@ -187,6 +191,226 @@ function Skin.Card(frame, tint)
 		or image(frame, "AnimeCard", ART.Card, UDim2.fromOffset(-3, -3), UDim2.new(1, 6, 1, 6), 0)
 	card.ImageColor3 = tint or Skin.Tint.Default
 	return card
+end
+
+-- Spacing standard (design doc 4.42, owner 2026-11-10): desktop px on a 4 px grid. Phones (viewport height <= 500)
+-- take the same tokens through Skin.Px.
+Skin.Space = {
+	Inset = 16, -- left, right
+	Gap = 12, -- header to toolbar, toolbar to content, between cards and rows
+	Inner = 8, -- inside a card
+	Pad = 12, -- card padding
+	Header = 64,
+	Toolbar = 40,
+	Bottom = 16,
+	BottomClear = 24, -- a control at the bottom-left keeps clear of the body art's stripes
+	Close = 52,
+	CloseGap = 6,
+	Logo = 90,
+	Button = 40,
+	ButtonSmall = 32,
+	Footer = 32,
+	Scrollbar = 8,
+}
+Skin.Size = { Title = 38, Section = 26, Item = 20, Body = 16, Caption = 13 }
+Skin.Color = {
+	Section = Color3.fromRGB(255, 205, 60),
+	White = Color3.new(1, 1, 1),
+	Caption = Color3.fromRGB(200, 210, 230),
+}
+local PHONE_SCALE = 0.75 -- placeholder
+
+local function compact()
+	local camera = workspace.CurrentCamera
+	return camera ~= nil and camera.ViewportSize.Y <= 500
+end
+Skin.Compact = compact
+
+-- A token in px for this screen.
+function Skin.Px(value)
+	return compact() and math.floor(value * PHONE_SCALE + 0.5) or value
+end
+
+local BODY_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+local function applyRole(label, role)
+	local size = Skin.Px(Skin.Size[role] or Skin.Size.Body)
+	local heavy = role == "Title" or role == "Section" or role == "Item"
+	label.FontFace = heavy and Skin.Font or BODY_FONT
+	label.TextColor3 = role == "Section" and Skin.Color.Section
+		or role == "Caption" and Skin.Color.Caption
+		or Skin.Color.White
+	label.TextStrokeTransparency = 1
+	local stroke = label:FindFirstChildOfClass("UIStroke")
+	if heavy then
+		stroke = stroke or child(label, "UIStroke", "AnimeOutline")
+		stroke.Color, stroke.Thickness, stroke.Enabled = INK, role == "Title" and 2.5 or 2, true
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+		label.TextScaled = true
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+			or child(label, "UITextSizeConstraint", "AnimeLimit")
+		limit.MaxTextSize, limit.MinTextSize = size, math.min(size, Skin.Px(Skin.Size.Caption))
+	else
+		if stroke then
+			stroke.Enabled = false -- no outline under 16 px: it blurs the letters
+		end
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+		if limit then
+			limit:Destroy()
+		end
+		label.TextScaled = false
+		label.TextSize = size
+	end
+end
+
+-- One of the five text roles: "Title", "Section", "Item", "Body", "Caption". Again next frame (UiTheme.Apply's deferred
+-- handler resets fonts on new text).
+function Skin.Label(label, role)
+	applyRole(label, role)
+	task.defer(function()
+		if label.Parent then
+			applyRole(label, role)
+		end
+	end)
+	return label
+end
+
+-- The standard header on any panel or popup: strip, overhanging logo, ALL CAPS title, art close. parts: Header (Frame),
+-- Title (TextLabel), Icon (ImageLabel, optional), Close (GuiButton, optional), TitleEnd (UDim, optional). Returns a
+-- function that re-lays it out; it also follows the panel's size.
+function Skin.Header(panel, parts)
+	local header, titleLabel, icon, close = parts.Header, parts.Title, parts.Icon, parts.Close
+	panel.ClipsDescendants = false
+	header.AnchorPoint = Vector2.zero
+	header.Position = UDim2.new()
+	header.ZIndex = math.max(header.ZIndex, 2)
+	local strip = Skin.Strip(header)
+	if close then
+		Skin.Close(close)
+		close.AnchorPoint = Vector2.new(1, 0)
+		close.ZIndex = header.ZIndex + 3
+	end
+	if icon then
+		icon.BackgroundTransparency = 1
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.ZIndex = header.ZIndex + 1
+	end
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Rotation = 0
+	titleLabel.ZIndex = header.ZIndex + 2
+	local function upper()
+		local wanted = string.upper(titleLabel.Text)
+		if titleLabel.Text ~= wanted then
+			titleLabel.Text = wanted
+		end
+	end
+	upper()
+	titleLabel:GetPropertyChangedSignal("Text"):Connect(upper)
+	local function layout()
+		local h = Skin.Px(Skin.Space.Header)
+		header.Size = UDim2.new(1, 0, 0, h)
+		local gap = Skin.Px(Skin.Space.CloseGap)
+		local closeSize = h - 2 * gap
+		if close then
+			close.Position = UDim2.new(1, -gap, 0, gap)
+			close.Size = UDim2.fromOffset(closeSize, closeSize)
+		end
+		local left = Skin.Px(Skin.Space.Inset)
+		if icon then
+			local logo = Skin.Px(Skin.Space.Logo)
+			icon.Position = UDim2.fromOffset(-math.floor(h * 0.2), -math.floor(h * 0.45))
+			icon.Size = UDim2.fromOffset(logo, logo)
+			left = logo - math.floor(h * 0.15)
+		end
+		local stripLeft = icon and math.floor(h * 0.5) or 0
+		strip.Position, strip.Size = UDim2.fromOffset(stripLeft, 4), UDim2.new(1, -stripLeft, 1, -8)
+		titleLabel.Position = UDim2.fromOffset(left, 4)
+		local stop = parts.TitleEnd or UDim.new(1, -(close and closeSize + 2 * gap or gap))
+		titleLabel.Size = UDim2.new(stop.Scale, stop.Offset - left, 0, h - 8)
+		applyRole(titleLabel, "Title")
+	end
+	layout()
+	task.defer(layout)
+	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+	return layout
+end
+
+-- Top of the area under the header, in px (toolbar: also under the toolbar row).
+function Skin.Top(withToolbar)
+	local top = Skin.Px(Skin.Space.Header) + Skin.Px(Skin.Space.Gap)
+	if withToolbar then
+		top += Skin.Px(Skin.Space.Toolbar) + Skin.Px(Skin.Space.Gap)
+	end
+	return top
+end
+
+-- The toolbar row under the header: a transparent Frame of the standard height and insets, laid out left to right.
+-- Callers parent their tabs and controls to it (or place them on its rect: Skin.ToolbarRect).
+function Skin.ToolbarRect()
+	local inset = Skin.Px(Skin.Space.Inset)
+	return UDim2.fromOffset(inset, Skin.Px(Skin.Space.Header) + Skin.Px(Skin.Space.Gap)),
+		UDim2.new(1, -2 * inset, 0, Skin.Px(Skin.Space.Toolbar))
+end
+
+-- Places `gui` in the content area: insets 16, under the header (and toolbar), above the footer or bottom inset.
+-- opts: Toolbar, Footer, BottomClear (bools). Follows phone / desktop switches.
+function Skin.Content(gui, opts)
+	opts = opts or {}
+	local function place()
+		local inset = Skin.Px(Skin.Space.Inset)
+		local top = Skin.Top(opts.Toolbar)
+		local bottom = Skin.Px(opts.BottomClear and Skin.Space.BottomClear or Skin.Space.Bottom)
+		if opts.Footer then
+			bottom += Skin.Px(Skin.Space.Footer) + Skin.Px(Skin.Space.Gap)
+		end
+		gui.AnchorPoint = Vector2.zero
+		gui.Position = UDim2.fromOffset(inset, top)
+		gui.Size = UDim2.new(1, -2 * inset, 1, -top - bottom)
+		if gui:IsA("ScrollingFrame") then
+			gui.ScrollBarThickness = 6
+			gui.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar -- the bar sits inside the area, not on cards
+		end
+	end
+	place()
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
+	end
+	return place
+end
+
+-- Index's footer bar at the bottom of a list panel: a slanted plate with one centred caption line. Returns the label.
+function Skin.Footer(panel, value)
+	local bar = panel:FindFirstChild("AnimeFooter")
+	if not bar then
+		bar = Instance.new("Frame")
+		bar.Name = "AnimeFooter"
+		bar.BackgroundTransparency = 1
+		bar.ZIndex = 3
+		bar.Parent = panel
+		local plate = image(bar, "Plate", ART.Plate, UDim2.new(), UDim2.fromScale(1, 1), 3)
+		plate.ImageColor3 = Skin.Tint.Default
+		local line = Instance.new("TextLabel")
+		line.Name = "Line"
+		line.BackgroundTransparency = 1
+		line.Size = UDim2.fromScale(1, 1)
+		line.ZIndex = 4
+		line.Parent = bar
+	end
+	local function place()
+		local inset = Skin.Px(Skin.Space.Inset)
+		local h = Skin.Px(Skin.Space.Footer)
+		bar.AnchorPoint = Vector2.new(0.5, 1)
+		bar.Position = UDim2.new(0.5, 0, 1, -Skin.Px(Skin.Space.Bottom))
+		bar.Size = UDim2.new(1, -2 * inset - 2 * Skin.Px(Skin.Space.Logo), 0, h)
+	end
+	place()
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
+	end
+	bar.Line.Text = value or ""
+	bar.Line.TextXAlignment = Enum.TextXAlignment.Center
+	Skin.Label(bar.Line, "Body")
+	return bar.Line
 end
 
 -- The slanted name plate behind a wide row, tinted.

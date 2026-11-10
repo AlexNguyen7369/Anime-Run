@@ -27,7 +27,6 @@ local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
 local TILE_BLUE = PALETTE.Tile
 local TILE_GREEN = PALETTE.Money
-local TILE_GOLD = PALETTE.Gold
 local KINDS = { { "Trail", "Trails" }, { "Aura", "Auras" }, { "Potion", "Potions" } }
 
 local function make(class, name, parent, props)
@@ -49,14 +48,18 @@ local function stroke(parent, color, thickness)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 end
-local function caption(name, parent, props)
+-- A text in one of the five roles (design doc 4.42): Title, Section, Item, Body, Caption.
+local function caption(name, parent, role, props)
 	props.BackgroundTransparency = 1
-	props.Font = props.Font or UiTheme.Font
-	props.TextColor3 = props.TextColor3 or Color3.new(1, 1, 1)
-	local label = make("TextLabel", name, parent, props)
-	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2.5, LineJoinMode = Enum.LineJoinMode.Round })
-	return label
+	return AnimeSkin.Label(make("TextLabel", name, parent, props), role)
 end
+-- Spacing tokens (design doc 4.42, Client/AnimeSkin), in px for this screen.
+local P = AnimeSkin.Px
+local function space(name)
+	return P(AnimeSkin.Space[name])
+end
+local RAIL_W = 96 -- design px (UiSpec.Market.TabFit.RailWidth)
+local TILE_MIN = 104 -- narrowest tile before the grid drops a column
 local function cascade(tiles)
 	UiMotion.Cascade(tiles, "Stroke")
 end
@@ -100,13 +103,7 @@ make("ImageLabel", "Icon", header, {
 	Image = Icons.Market.Image,
 	ScaleType = Enum.ScaleType.Fit,
 })
-caption("Title", header, {
-	Position = UDim2.fromOffset(78, 0),
-	Size = UDim2.new(1, -160, 1, 0),
-	Text = "Market",
-	TextSize = 36,
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
+caption("Title", header, "Title", { Text = "Market" }) -- AnimeSkin.Header places it
 local close = make("TextButton", "Close", header, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.fromScale(1, 0),
@@ -114,14 +111,11 @@ local close = make("TextButton", "Close", header, {
 	Text = "",
 	AutoButtonColor = false,
 })
-caption("X", close, { Size = UDim2.fromScale(1, 1), Text = "X", TextSize = 40 })
+make("TextLabel", "X", close, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "X" })
 
--- Side tabs.
-local rail = make("Frame", "Tabs", panel, {
-	Position = UDim2.fromOffset(12, 76),
-	Size = UDim2.new(0, 96, 1, -88),
-	BackgroundTransparency = 1,
-})
+-- Side tabs: a left rail of art tabs, inset 16, 12 from the grid, clear of the body art's bottom-left stripes.
+-- applyLayout places it.
+local rail = make("Frame", "Tabs", panel, { BackgroundTransparency = 1 })
 make("UIListLayout", "Layout", rail, { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder })
 
 -- Potions retain their bottle artwork; cosmetics share the authored vector renderer.
@@ -153,45 +147,35 @@ for order, entry in KINDS do
 	corner(b, 12)
 	UiTheme.Gradient(b, PALETTE.TabIdle, PALETTE.TabIdleDeep)
 	local edge = stroke(b, OUTLINE, 4)
-	swatch(b, Market.Items[kind][1], kind, UDim2.fromOffset(48, 38), UDim2.fromOffset(56, 56))
-	caption("Label", b, {
+	swatch(b, Market.Items[kind][1], kind, UDim2.fromOffset(48, 36), UDim2.fromOffset(52, 52)) -- above the label
+	caption("Label", b, "Item", {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -4),
-		Size = UDim2.new(1, 0, 0, 24),
+		Position = UDim2.new(0.5, 0, 1, -8),
+		Size = UDim2.new(1, -16, 0, 24),
 		Text = label,
-		TextSize = 20,
 	})
 	-- Per-tab scale: a UIScale on the rail would shrink the rail with the tabs and never make them fit.
 	tabs[kind] = { Button = b, Edge = edge, Scale = make("UIScale", "Scale", b, {}), Lit = AnimeSkin.Tab(b, order) }
 end
 
--- Tile grid.
+-- Tile grid, from the rail to 12 before the detail card. fitGrid sizes the tiles to fill it.
 local grid = make("ScrollingFrame", "Grid", panel, {
-	Position = UDim2.fromOffset(120, 76),
-	Size = UDim2.new(0.58, -132, 1, -88),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
+	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the tiles, not on them
 	CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	ScrollingDirection = Enum.ScrollingDirection.Y,
 })
-make("UIPadding", "Padding", grid, {
-	PaddingTop = UDim.new(0, 4),
-	PaddingLeft = UDim.new(0, 4),
-	PaddingRight = UDim.new(0, 10),
-})
 make("UIGridLayout", "Layout", grid, {
-	CellSize = UDim2.fromOffset(104, 104),
+	CellSize = UDim2.fromOffset(TILE_MIN, TILE_MIN),
 	CellPadding = UDim2.fromOffset(12, 12),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 
--- Detail pane (like the Items reference): rarity line, name, big preview, price, description, action.
+-- Detail pane (like the Items reference): rarity line, name, big preview, price, description, action. 12 padding.
 local detail = make("Frame", "Detail", panel, {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, 76),
-	Size = UDim2.new(0.42, -12, 1, -88),
 	BackgroundColor3 = Color3.new(1, 1, 1),
 })
 corner(detail, 12)
@@ -201,68 +185,37 @@ make("UIGradient", "Gradient", detail, {
 	Rotation = 90,
 })
 AnimeSkin.Card(detail, AnimeSkin.Tint.Default) -- the Quests detail card (design doc 4.42)
-local rarity = caption("Rarity", detail, {
-	Position = UDim2.fromOffset(12, 6),
-	Size = UDim2.new(1, -24, 0, 20),
-	Text = "",
-	TextSize = 16,
-	TextColor3 = PALETTE.Gold,
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
-local nameLabel = caption("Name", detail, {
-	Position = UDim2.fromOffset(12, 26),
-	Size = UDim2.new(1, -24, 0, 30),
-	Text = "",
-	TextSize = 26,
-	TextScaled = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
-AnimeSkin.Title(nameLabel, 26)
+-- applyLayout places every part (desktop: the rows below; phones: two columns).
+local rarity = caption("Rarity", detail, "Body", { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
+local nameLabel = caption("Name", detail, "Item", { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
 local viewport = make("ViewportFrame", "Preview", detail, {
-	Position = UDim2.fromOffset(12, 60),
-	Size = UDim2.new(1, -24, 1, -178),
 	BackgroundColor3 = PALETTE.TileDeep,
 	BackgroundTransparency = 0.5,
 	Ambient = Color3.fromRGB(130, 140, 190),
 	LightColor = Color3.new(1, 1, 1),
 })
-corner(viewport, 10)
+corner(viewport, 4)
 -- Desktop rows, bottom up. The bottom band holds the slot buttons on an owned item and the description otherwise, so
--- BUY never moves when the first copy arrives (a double tap cannot land on a slot). Above it: the reply, then price + BUY.
+-- BUY never moves when the first copy arrives (a double tap cannot land on a slot). Above it: price + BUY; the reply
+-- sits on the preview's bottom edge.
 local priceRow = make("Frame", "Price", detail, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 12, 1, -76),
-	Size = UDim2.new(0.5, -16, 0, 38),
 	BackgroundColor3 = PALETTE.PanelDeep,
 	BackgroundTransparency = 0.3,
 })
-corner(priceRow, 6)
-local priceText = caption("Value", priceRow, {
-	Position = UDim2.fromOffset(10, 0),
-	Size = UDim2.new(1, -20, 1, 0),
+corner(priceRow, 4)
+local priceText = caption("Value", priceRow, "Item", { -- scaled: "$1.2m • Owned x2" stays on the row
+	Position = UDim2.fromOffset(8, 0),
+	Size = UDim2.new(1, -16, 1, 0),
 	Text = "",
-	TextSize = 18,
-	TextScaled = true, -- a short row: "$1.2m • Owned x2" stays on it
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
-make("UITextSizeConstraint", "Max", priceText, { MaxTextSize = 18 })
-local description = make("TextLabel", "Description", detail, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 12, 1, -10),
-	Size = UDim2.new(1, -24, 0, 44),
-	BackgroundTransparency = 1,
+local description = caption("Description", detail, "Caption", {
 	Text = "",
-	Font = UiTheme.Font,
-	TextSize = 13,
 	TextWrapped = true,
-	TextColor3 = PALETTE.SoftText,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Top,
 })
 local action = make("TextButton", "Action", detail, {
-	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -76),
-	Size = UDim2.new(0.5, -16, 0, 38),
 	Text = "",
 	BackgroundColor3 = TILE_GREEN,
 	AutoButtonColor = false,
@@ -271,30 +224,22 @@ corner(action, 8)
 stroke(action, OUTLINE, 3)
 UiTheme.Gradient(action, Color3.new(1, 1, 1), PALETTE.SoftText) -- depth on whatever colour it shows
 AnimeSkin.Button(action, "Go") -- the Index EQUIP look; drops the gradient above
-local actionLabel = caption("Label", action, { Size = UDim2.fromScale(1, 1), Text = "BUY", TextSize = 22 })
-AnimeSkin.Title(actionLabel, 22)
+local actionLabel = caption("Label", action, "Item", { Size = UDim2.fromScale(1, 1), Text = "BUY" })
 local pickSlot -- set below: equips the shown item on a team slot
 local slots = SlotPicker.new("Slots", detail, {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10),
-	Size = UDim2.new(1, -24, 0, 44),
+	Size = UDim2.new(1, -24, 0, 40),
 	Visible = false,
 }, function(...)
 	pickSlot(...)
 end)
--- The server's reply, right under BUY.
-local status = caption("Status", detail, {
+-- The server's reply, on the preview's bottom edge just above BUY.
+local status = caption("Status", detail, "Body", {
 	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 12, 1, -56),
-	Size = UDim2.new(1, -24, 0, 18),
 	Text = "",
-	TextSize = 16,
-	TextScaled = true,
-	TextColor3 = TILE_GOLD,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	ZIndex = 5,
 })
-make("UITextSizeConstraint", "Max", status, { MaxTextSize = 16 })
 -- A purchase / equip answer slides in from the bottom edge.
 local statusHome -- set by applyLayout: the status row of the view on screen
 local function notify(text, color)
@@ -379,38 +324,114 @@ local back = make("TextButton", "Back", detail, {
 corner(back, 8)
 stroke(back, OUTLINE, 3)
 AnimeSkin.Button(back, "Idle")
-AnimeSkin.Title(caption("Label", back, { Size = UDim2.fromScale(1, 1), Text = "BACK", TextSize = 18 }), 18)
-local DESKTOP = {
-	[rail] = { Position = rail.Position, Size = rail.Size },
-	[grid] = { Position = grid.Position, Size = grid.Size },
-	[detail] = { AnchorPoint = detail.AnchorPoint, Position = detail.Position, Size = detail.Size },
-}
-for _, part in { rarity, nameLabel, viewport, priceRow, description, action, slots.Frame, status } do
-	DESKTOP[part] = { AnchorPoint = part.AnchorPoint, Position = part.Position, Size = part.Size }
+caption("Label", back, "Item", { Size = UDim2.fromScale(1, 1), Text = "BACK" })
+-- Desktop: rail, grid and detail card side by side under the header; inside the card 12 padding, 8 between rows.
+local function desktopLayout()
+	local top, inset, gap = AnimeSkin.Top(false), space("Inset"), space("Gap")
+	local pad, inner, btn = space("Pad"), space("Inner"), space("Button")
+	local bottom = space("Bottom")
+	local gridLeft = inset + RAIL_W + gap
+	local textRow, nameRow = P(20), P(24)
+	local previewTop = pad + textRow + inner + nameRow + inner
+	local rowBottom = -(pad + btn + inner) -- price + BUY, above the bottom band
+	local half = UDim2.new(0.5, -(pad + inner / 2), 0, btn)
+	return {
+		-- The rail stops clear of the body art's bottom-left stripes.
+		[rail] = {
+			Position = UDim2.fromOffset(inset, top),
+			Size = UDim2.new(0, RAIL_W, 1, -top - space("BottomClear")),
+		},
+		[grid] = {
+			Position = UDim2.fromOffset(gridLeft, top),
+			Size = UDim2.new(0.58, -gridLeft - gap, 1, -top - bottom),
+		},
+		[detail] = {
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -inset, 0, top),
+			Size = UDim2.new(0.42, -inset, 1, -top - bottom),
+		},
+		[rarity] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.fromOffset(pad, pad),
+			Size = UDim2.new(1, -2 * pad, 0, textRow),
+		},
+		[nameLabel] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.fromOffset(pad, pad + textRow + inner),
+			Size = UDim2.new(1, -2 * pad, 0, nameRow),
+		},
+		[viewport] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.fromOffset(pad, previewTop),
+			Size = UDim2.new(1, -2 * pad, 1, -previewTop - pad - 2 * (btn + inner)),
+		},
+		[priceRow] = { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, pad, 1, rowBottom), Size = half },
+		[action] = { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -pad, 1, rowBottom), Size = half },
+		[description] = {
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, pad, 1, -pad),
+			Size = UDim2.new(1, -2 * pad, 0, btn),
+		},
+		[slots.Frame] = {
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -pad),
+			Size = UDim2.new(1, -2 * pad, 0, btn),
+		},
+		[status] = { -- on the preview's bottom edge, 8 inside it
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, pad + inner, 1, rowBottom - btn - 2 * inner),
+			Size = UDim2.new(1, -2 * (pad + inner), 0, textRow),
+		},
+	}
 end
 -- Phone detail: the preview on the left, the text rows and BACK / action on the right, in fractions of the pane so
 -- nothing overlaps however short the band is.
-local function column(y, h)
-	return { AnchorPoint = Vector2.zero, Position = UDim2.new(0.4, 6, y, 0), Size = UDim2.new(0.6, -12, h, 0) }
+local function phoneLayout()
+	local top, inset, gap, pad = AnimeSkin.Top(false), space("Inset"), space("Gap"), space("Pad")
+	local left = inset + RAIL_W + gap
+	local function column(y, h)
+		return {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.new(0.4, pad, y, 0),
+			Size = UDim2.new(0.6, -2 * pad, h, 0),
+		}
+	end
+	local pane =
+		{ Position = UDim2.fromOffset(left, top), Size = UDim2.new(1, -left - inset, 1, -top - space("Bottom")) }
+	return {
+		[rail] = {
+			Position = UDim2.fromOffset(inset, top),
+			Size = UDim2.new(0, RAIL_W, 1, -top - space("BottomClear")),
+		},
+		[grid] = pane,
+		[detail] = { AnchorPoint = Vector2.zero, Position = pane.Position, Size = pane.Size },
+		[viewport] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.fromOffset(pad, pad),
+			Size = UDim2.new(0.4, -pad, 1, -2 * pad),
+		},
+		[rarity] = column(0.03, 0.13),
+		[nameLabel] = column(0.17, 0.18),
+		[priceRow] = column(0.37, 0.15),
+		[description] = column(0.54, 0.2),
+		[action] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.fromScale(0.7, 0.77),
+			Size = UDim2.new(0.3, -pad, 0.2, 0),
+		},
+		[slots.Frame] = column(0.54, 0.21), -- over the description, which an owned aura / trail hides on phones
+		[back] = {
+			AnchorPoint = Vector2.zero,
+			Position = UDim2.new(0.4, pad, 0.77, 0),
+			Size = UDim2.new(0.3, -2 * pad, 0.2, 0),
+		},
+		[status] = { -- on the preview
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 2 * pad, 1, -2 * pad),
+			Size = UDim2.new(0.4, -3 * pad, 0, P(20)),
+		},
+	}
 end
-local PHONE = {
-	[rail] = { Position = UDim2.fromOffset(8, 56), Size = UDim2.new(0, 96, 1, -64) },
-	[grid] = { Position = UDim2.fromOffset(112, 56), Size = UDim2.new(1, -120, 1, -64) },
-	[detail] = { AnchorPoint = Vector2.zero, Position = UDim2.fromOffset(112, 56), Size = UDim2.new(1, -120, 1, -64) },
-	[viewport] = { AnchorPoint = Vector2.zero, Position = UDim2.fromOffset(6, 6), Size = UDim2.new(0.4, -6, 1, -12) },
-	[rarity] = column(0.03, 0.13),
-	[nameLabel] = column(0.17, 0.18),
-	[priceRow] = column(0.37, 0.15),
-	[description] = column(0.54, 0.2),
-	[action] = { AnchorPoint = Vector2.zero, Position = UDim2.fromScale(0.7, 0.77), Size = UDim2.new(0.3, -6, 0.2, 0) },
-	[slots.Frame] = column(0.54, 0.21), -- over the description, which an owned aura / trail hides on phones
-	[back] = { AnchorPoint = Vector2.zero, Position = UDim2.new(0.4, 6, 0.77, 0), Size = UDim2.new(0.3, -12, 0.2, 0) },
-	[status] = {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 10, 1, -8),
-		Size = UDim2.new(0.4, -14, 0, 18),
-	}, -- on the preview
-}
 local showingDetail = false
 -- An owned aura / trail: the slot buttons take the description's band, in both views.
 local function fitDetail()
@@ -419,18 +440,34 @@ end
 local function applyLayout()
 	local camera = workspace.CurrentCamera
 	local phone = camera ~= nil and camera.ViewportSize.Y <= 500
-	for part, props in phone and PHONE or DESKTOP do
+	local layout = phone and phoneLayout() or desktopLayout()
+	for part, props in layout do
 		for key, value in props do
 			part[key] = value
 		end
 	end
-	description.TextScaled = phone
-	statusHome = (phone and PHONE or DESKTOP)[status].Position
+	statusHome = layout[status].Position
 	fitDetail()
 	grid.Visible = not (phone and showingDetail)
 	detail.Visible = not phone or showingDetail
 	back.Visible = phone
 end
+-- Tiles fill the grid up to the detail card, 12 apart, and as tall as a whole number of rows of its window.
+local function fitGrid()
+	local gap = space("Gap")
+	local w, h = grid.AbsoluteSize.X - grid.ScrollBarThickness, grid.AbsoluteSize.Y
+	if w <= 0 or h <= 0 then
+		return
+	end
+	local columns = math.max(1, math.floor((w + gap) / (P(TILE_MIN) + gap)))
+	local tile = (w - gap * (columns - 1)) / columns
+	local rows = math.max(1, math.floor((h + gap) / (tile + gap)))
+	grid.Layout.CellPadding = UDim2.fromOffset(gap, gap)
+	grid.Layout.CellSize =
+		UDim2.new(1 / columns, -gap * (columns - 1) / columns, 0, math.floor((h - gap * (rows - 1)) / rows))
+end
+grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitGrid)
+fitGrid()
 back.Activated:Connect(function()
 	showingDetail = false
 	applyLayout()
@@ -572,7 +609,8 @@ function render()
 			b,
 			item.Id == selected and Color3.new(1, 1, 1) or onSlot and AnimeSkin.Tint.Ready or AnimeSkin.Tint.Default
 		)
-		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -8), UDim2.fromOffset(60, 60))
+		-- Inside the tile, 8 padding: count / price on top, the name at the bottom, the swatch between.
+		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -2), UDim2.fromOffset(P(56), P(56)))
 		local badge = owned(selectedKind, item.Id)
 				and "x" .. (selectedKind == "Potion" and Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0) or Market.Copies(
 					player,
@@ -580,26 +618,20 @@ function render()
 					item.Id
 				))
 			or Format.MoneyText(item.Price)
-		caption("Badge", b, {
-			Position = UDim2.fromOffset(6, 2),
-			Size = UDim2.new(1, -12, 0, 20),
+		caption("Badge", b, "Body", {
+			Position = UDim2.fromOffset(8, 8),
+			Size = UDim2.new(1, -16, 0, P(20)),
 			Text = badge,
-			TextSize = 15,
-			TextScaled = true,
-			TextColor3 = TILE_GOLD,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 5,
 		})
-		caption("Name", b, {
+		caption("Name", b, "Item", {
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -4),
-			Size = UDim2.new(1, -8, 0, 20),
+			Position = UDim2.new(0.5, 0, 1, -8),
+			Size = UDim2.new(1, -16, 0, P(24)),
 			Text = item.Name,
-			TextSize = 15,
-			TextScaled = true,
 			ZIndex = 5,
 		})
-		AnimeSkin.Title(b:FindFirstChild("Name"), 15)
 		b.Activated:Connect(function()
 			selected = item.Id
 			showingDetail = true

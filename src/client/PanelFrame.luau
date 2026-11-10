@@ -150,27 +150,10 @@ function Frame.Attach(panel, options)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.ZIndex = 5
 	Frame.PaintClose(close)
-	-- Design doc 4.42: the framed body, the slanted strip, the HUD icon as an overhanging logo, the outlined title.
+	-- Design doc 4.42: the framed body and the one standard header (Client/AnimeSkin.Header).
 	Skin.Body(panel)
-	local strip = Skin.Strip(header)
-	panel.ClipsDescendants = false
-	local function layout()
-		local compact = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y <= 500
-		local h = compact and 48 or 64
-		header.Size = UDim2.new(1, 0, 0, h)
-		close.Position = UDim2.new(1, -6, 0, 6)
-		close.Size = UDim2.fromOffset(h - 12, h - 12)
-		local logo = math.floor(h * 1.4)
-		icon.Position = UDim2.fromOffset(-math.floor(h * 0.2), -math.floor(h * 0.45))
-		icon.Size = UDim2.fromOffset(logo, logo)
-		local left = logo - math.floor(h * 0.15)
-		strip.Position, strip.Size = UDim2.fromOffset(math.floor(h * 0.5), 4), UDim2.new(1, -math.floor(h * 0.5), 1, -8)
-		title.Position = UDim2.fromOffset(left, 4)
-		-- A header toolbar (options.TitleEnd: where it starts) keeps the title's whole rect clear of its buttons.
-		local stop = options.TitleEnd or UDim.new(1, -h - 12)
-		title.Size = UDim2.new(stop.Scale, stop.Offset - left, 0, h - 8)
-		Skin.Title(title, math.floor(h * 0.6))
-	end
+	local layout =
+		Skin.Header(panel, { Header = header, Title = title, Icon = icon, Close = close, TitleEnd = options.TitleEnd })
 	local controller = {}
 	function controller:SetTheme(theme, text, image)
 		local colors = Frame.Themes[theme] or Frame.Themes.Backpack

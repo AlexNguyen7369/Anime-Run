@@ -40,7 +40,7 @@ local root = make("ScreenGui", "DuelUi", playerGui, {
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
 
-local function panel(name, title)
+local function panel(name, title, close)
 	local frame = make("Frame", name, root, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		-- Leave a fixed lower band for the responsive Race control. The desktop HUD
@@ -55,20 +55,12 @@ local function panel(name, title)
 	UiTheme.Plate(frame, Color3.fromRGB(108, 132, 204))
 	frame.BackgroundTransparency = 0
 	UiTheme.Corner(frame, "L")
-	local heading = make("TextLabel", "Title", frame, {
-		Position = UDim2.fromOffset(18, 12),
-		Size = UDim2.new(1, -36, 0, 30),
-		Text = title,
-		Font = Enum.Font.GothamBlack,
-		TextSize = 21,
-		TextColor3 = Color3.new(1, 1, 1),
-		BackgroundTransparency = 1,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-	UiTheme.Stroke(heading, 2)
-	-- Design doc 4.42: the framed body art and the outlined title.
+	local heading = make("TextLabel", "Title", frame, { Text = title, BackgroundTransparency = 1 })
+	-- Design doc 4.42: the framed body art and the standard header (strip, ALL CAPS title, art close if any). There
+	-- is no Duel HUD icon, so the header has no logo.
 	AnimeSkin.Body(frame)
-	AnimeSkin.Title(heading, 24)
+	local header = make("Frame", "Header", frame, { BackgroundTransparency = 1 })
+	AnimeSkin.Header(frame, { Header = header, Title = heading, Close = close })
 	return frame
 end
 
@@ -87,61 +79,56 @@ local function button(name, parent, text, properties)
 	return object
 end
 
-local pickPanel = panel("PickPanel", "PICK A TRACK")
+-- Spacing standard (design doc 4.42, Client/AnimeSkin tokens): the opponent line in the toolbar row, the tracks as
+-- 40 px buttons under it; the invite's line under the header and its two 40 px buttons at the bottom insets.
+local px, space = AnimeSkin.Px, AnimeSkin.Space
+local pickClose = button("Close", root, "X")
+local pickPanel = panel("PickPanel", "PICK A TRACK", pickClose)
+pickClose.Parent = pickPanel
 local pickOpponent = make("TextLabel", "Opponent", pickPanel, {
-	Position = UDim2.fromOffset(18, 48),
-	Size = UDim2.new(1, -76, 0, 24),
 	Text = "vs opponent",
-	Font = Enum.Font.Gotham,
-	TextSize = 14,
-	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
-UiTheme.Stroke(pickOpponent, 1.5)
-local pickClose = button("Close", pickPanel, "X", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -12, 0, 10),
-	Size = UDim2.fromOffset(38, 30),
-	TextSize = 14,
-})
-AnimeSkin.Close(pickClose)
-local pickTracks = make("Frame", "Tracks", pickPanel, {
-	Position = UDim2.fromOffset(18, 84),
-	Size = UDim2.new(1, -36, 1, -102),
-	BackgroundTransparency = 1,
-})
-make("UIGridLayout", "Layout", pickTracks, {
-	CellSize = UDim2.new(0.31, -6, 0, 42),
-	CellPadding = UDim2.fromOffset(8, 8),
-	SortOrder = Enum.SortOrder.Name,
-})
+AnimeSkin.Label(pickOpponent, "Body")
+local pickTracks = make("Frame", "Tracks", pickPanel, { BackgroundTransparency = 1 })
+local pickGrid = make("UIGridLayout", "Layout", pickTracks, { SortOrder = Enum.SortOrder.Name })
+AnimeSkin.Content(pickTracks, { Toolbar = true })
 
 local invitePanel = panel("InvitePanel", "DUEL REQUEST")
 local inviteText = make("TextLabel", "Text", invitePanel, {
-	Position = UDim2.fromOffset(18, 58),
-	Size = UDim2.new(1, -36, 0, 42),
 	Text = "A racer challenges you.",
-	Font = Enum.Font.Gotham,
-	TextSize = 15,
-	TextColor3 = Palette.SoftText,
 	BackgroundTransparency = 1,
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextYAlignment = Enum.TextYAlignment.Center,
 })
-UiTheme.Stroke(inviteText, 1.5)
-local inviteAccept = button("Accept", invitePanel, "ACCEPT", {
-	Position = UDim2.new(0, 18, 1, -58),
-	Size = UDim2.new(0.5, -22, 0, 40),
-})
+AnimeSkin.Label(inviteText, "Body")
+local inviteAccept = button("Accept", invitePanel, "ACCEPT")
 AnimeSkin.Button(inviteAccept, "Go")
-local inviteDecline = button("Decline", invitePanel, "DECLINE", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -18, 1, -58),
-	Size = UDim2.new(0.5, -22, 0, 40),
-})
+local inviteDecline = button("Decline", invitePanel, "DECLINE")
+inviteDecline.AnchorPoint = Vector2.new(1, 0)
 AnimeSkin.Button(inviteDecline, "Danger")
+local function placeDuel()
+	local inset, gap, buttonH = px(space.Inset), px(space.Gap), px(space.Button)
+	pickOpponent.Position, pickOpponent.Size = AnimeSkin.ToolbarRect()
+	pickGrid.CellSize = UDim2.new(1 / 3, -math.ceil(2 * gap / 3), 0, buttonH) -- three across, `gap` apart
+	pickGrid.CellPadding = UDim2.fromOffset(gap, gap)
+	inviteText.Position = UDim2.fromOffset(inset, AnimeSkin.Top())
+	inviteText.Size = UDim2.new(1, -2 * inset, 0, 2 * (px(AnimeSkin.Size.Body) + 4))
+	-- ACCEPT sits bottom-left: the larger bottom inset keeps it clear of the stripe art.
+	local y = UDim.new(1, -px(space.BottomClear) - buttonH)
+	inviteAccept.Position = UDim2.new(UDim.new(0, inset), y)
+	inviteDecline.Position = UDim2.new(UDim.new(1, -inset), y)
+	for _, choice in { inviteAccept, inviteDecline } do
+		choice.Size = UDim2.new(0.5, -inset - gap / 2, 0, buttonH)
+		choice.TextSize = px(AnimeSkin.Size.Body)
+	end
+end
+placeDuel()
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeDuel)
+end
 
 local countdown = make("TextLabel", "Countdown", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
@@ -213,7 +200,7 @@ local function showPick(message)
 	for _, trackNumber in message.Tracks or {} do
 		if type(trackNumber) == "number" then
 			local n = math.floor(trackNumber)
-			local trackButton = button("Track" .. n, pickTracks, "TRACK " .. n)
+			local trackButton = button("Track" .. n, pickTracks, "TRACK " .. n, { TextSize = px(AnimeSkin.Size.Body) })
 			AnimeSkin.Button(trackButton, "Go")
 			trackButton.Activated:Connect(function()
 				duelRemote:FireServer("Pick", n)

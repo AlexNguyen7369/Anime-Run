@@ -511,7 +511,16 @@ before any Studio work.
 - The Index panel wears a collaborator's anime skin (Issac, made in Studio, synced 2026-11-09): a framed body image, a raised banner with the panel's HUD icon as a big logo and a heavy italic title, slanted art tabs, an art close button, angular rarity-tinted cards and a footer line. Code: `Client/IndexAnimeStyle` (art ids and text treatment), `IndexAnimeController`, `IndexHudAppearance`.
 - Quests uses the same look with the same art and text treatment (owner 2026-11-09): the Quests logo and title in the banner, DAILY and WEEKLY as art tabs, quests as slanted plates tinted by state (ready, in progress, claimed), the detail on an angular card, and a footer counting ready and claimed quests. Same footprint and proportions as the Index. Code: `Client/QuestAnimeStyle`. The Daily rewards view of the same panel keeps its current look.
 - Display only: the server still decides every quest number and claim.
-- Game-wide (owner 2026-11-10, after approving Quests): every panel and popup takes the same look, boss event UI included. Shared parts in `Client/AnimeSkin`: the framed body art, the slanted header strip with the panel's HUD icon as an overhanging logo and the heavy italic white title with a dark outline, the art close button, art tabs, Index-style action buttons and angular cards tinted by rarity or state. This replaces the PanelFrame gradient headers and the single red close of the UI audit. Layout, sizes and what each panel shows stay as they are. Index and Quests keep their own exact layouts.
+- Game-wide (owner 2026-11-10, after approving Quests): every panel and popup takes the same look, boss event UI included. Shared parts in `Client/AnimeSkin`: the framed body art, the slanted header strip with the panel's HUD icon as an overhanging logo and the heavy italic white title with a dark outline, the art close button, art tabs, Index-style action buttons and angular cards tinted by rarity or state. This replaces the PanelFrame gradient headers and the single red close of the UI audit. Index and Quests keep their own exact layouts.
+- Spacing standard (owner 2026-11-10, approved from `docs/UI_SPACING_AUDIT.md` section 3; replaces "layout stays as it is"). Desktop px on a 4 px grid; phones scale the same tokens (`Client/AnimeSkin` Space and Size):
+  - One frame for every panel and popup: Index's chrome, body art, overhanging logo, slanted title strip, art close.
+  - Header 64 tall; logo 90 overhanging up-left; title ALL CAPS, 38 px, heavy italic, after the logo; close 52 px, 6 px from top and right.
+  - Tabs, sort, search and counters sit in one 40 px toolbar row under the header, never in the strip. Art tabs of one height; text 14 px or more.
+  - Insets: 16 left and right, 12 header to toolbar, 12 toolbar to content, 16 bottom (24 where a control sits at the bottom-left, clear of the stripe art).
+  - 12 between cards and rows, 8 inside a card, 12 card padding. Buttons 40 tall (32 small), 4 px corners, no pills.
+  - Five text sizes: 38 title, 26 section heading, 20 item name, 16 body, 13 caption. Section headings gold; names and body white; captions soft white. Nothing under 13 px; no outline under 16 px.
+  - List panels put their count line in Index's footer bar, not floating text.
+  - A scroll list never cuts a card at the frame: it ends on a whole row or fades over 16 px; scrollbar 8 px inside the frame.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -656,6 +665,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-06: owner: a team bonus depends on the team alone, so an event's bonus comes from the event team (4.37); an auto sell button under the roll, with auto roll (4.41).
 - 2026-11-09: owner: admin runner Kami has infinite stamina, wears Narito's model and runs NinjaRun (4.13); the VIP title is hidden while running (4.39).
 - 2026-11-10: owner: the Index anime look goes game-wide, boss event UI included (4.42).
+- 2026-11-10: owner: spacing standard for every panel: one header, toolbar row, 16/12 insets, five text sizes, footer bar (4.42, `docs/UI_SPACING_AUDIT.md`).
 - 2026-11-09: owner: the Index anime skin is recorded, and Quests takes the same look (4.42).
 - 2026-11-09: owner: auto sell lives in Settings only, the roll view and under-roll buttons are removed; a sold roll shows no sale UI, only the Money gain (4.41).
 - 2026-11-05: owner: boss start: team saved from the last event, average stamina on the team HUD, X to close with at least 1 character, red warning, display-only team run, Edit Team button, jump and smoke cutscene with the fight at 3 s, no team edits for late joiners, 5,000 HP per player, event timer, red and yellow animated damage numbers (4.37).

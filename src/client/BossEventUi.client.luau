@@ -55,7 +55,7 @@ local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweak
 local CLOSED_TEXT = "Teleporting closed"
 local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a treasure chest!"
 local BOSSES_WIDTH = 420 -- px: two odds tables side by side
-local DETAILS_ROW = 18 -- px per odds row
+local DETAILS_ROW = 20 -- px per odds row
 local DETAILS_ROWS = 8 -- a chest's title, its six Relics and its Sidekick
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
@@ -132,36 +132,46 @@ local function button(name, parent, text, tone, props)
 	return object
 end
 
--- PanelFrame's look without its Close and its band fit: neither part closes with an X, and each lays itself out here.
-local function panel(name, title)
+-- The standard header (design doc 4.42, Client/AnimeSkin.Header): strip, overhanging logo, ALL CAPS title, the
+-- countdown (Section, gold) before the art close. HudIcons has no boss icon, so Big Raga's chest art is the logo.
+-- withClose adds Header/CloseButton; the Invite has none (Decline is its way out). Each part lays out its body here.
+local LOGO = RelicConfig.Chests[RAGA_CHEST].Image
+local COUNTDOWN_WIDTH = 80 -- px, "m:ss" at the Section size
+local function panel(name, title, withClose)
 	local frame = make("Frame", name, nil, { Visible = false, Active = true, AnchorPoint = Vector2.new(0.5, 0.5) })
 	UiTheme.Body(frame)
-	UiTheme.Corner(frame, "L")
-	UiTheme.Stroke(frame, 3, UiTheme.Outline, true)
-	local header = make("Frame", "Header", frame, { BackgroundColor3 = Palette.White, BorderSizePixel = 0 })
-	UiTheme.Corner(header, "L")
-	local colors = PanelFrame.Themes.Daily
-	make("UIGradient", "Gradient", header, { Color = ColorSequence.new(colors[1], colors[2]) })
-	label("Title", header, {
-		Position = UDim2.fromScale(0.03, 0.14),
-		Size = UDim2.fromScale(0.62, 0.72),
-		Text = title,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}, 28)
-	label("Countdown", header, {
+	local header = make("Frame", "Header", frame, { BackgroundTransparency = 1, BorderSizePixel = 0 })
+	local titleLabel = make("TextLabel", "Title", header, { Text = title })
+	local countdown = make("TextLabel", "Countdown", header, {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.fromScale(0.97, 0.14),
-		Size = UDim2.fromScale(0.28, 0.72),
+		BackgroundTransparency = 1,
 		Text = "",
-		TextColor3 = Palette.Gold,
 		TextXAlignment = Enum.TextXAlignment.Right,
-	}, 28)
-	-- Design doc 4.42: the slanted strip under the header's words (it clears the Daily gradient), outlined title.
-	AnimeSkin.Strip(header)
-	header.Title.ZIndex, header.Countdown.ZIndex = 2, 2
-	header.Countdown.FontFace = AnimeSkin.Font -- stays gold
-	AnimeSkin.Title(header.Title, 28)
-	return frame, header, header.Countdown
+	})
+	local logo = make("ImageLabel", "Logo", header, { Image = LOGO })
+	local close = withClose and button("CloseButton", header, "X", "Danger", {}) or nil
+	local space = AnimeSkin.Space
+	-- Desktop px: on a phone every token is smaller, so the title still ends before the countdown.
+	local right = withClose and space.Close + 2 * space.CloseGap or space.CloseGap
+	AnimeSkin.Header(frame, {
+		Header = header,
+		Title = titleLabel,
+		Icon = logo,
+		Close = close,
+		TitleEnd = UDim.new(1, -(right + COUNTDOWN_WIDTH + space.Inner)),
+	})
+	AnimeSkin.Label(countdown, "Section")
+	countdown.ZIndex = titleLabel.ZIndex
+	local function placeCountdown()
+		local px = AnimeSkin.Px
+		local gap = px(space.CloseGap)
+		local closeSize = px(space.Header) - 2 * gap
+		countdown.Position = UDim2.new(1, -(withClose and closeSize + 2 * gap or gap), 0, 4)
+		countdown.Size = UDim2.new(0, px(COUNTDOWN_WIDTH), 1, -8)
+	end
+	placeCountdown()
+	frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeCountdown)
+	return frame, header, countdown, close
 end
 
 -- AnimeSkin.Body for a panel whose UIListLayout would take the art as a row: the art hangs from the header instead (header
@@ -202,29 +212,25 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 })
 
 -- Invite ------------------------------------------------------------------------------------------------------------------
-local invite, inviteHeader, inviteCountdown = panel("Invite", "BIG RAGA EVENT")
+local invite, _, inviteCountdown = panel("Invite", "BIG RAGA EVENT")
 invite.Parent = root
 AnimeSkin.Body(invite)
-local inviteHint = label("Hint", invite, { Text = "", TextWrapped = true }, 22)
-local teleport = button("TeleportButton", invite, "Teleport", "Go", {
-	Position = UDim2.fromOffset(8, 0),
-})
+local inviteHint = label("Hint", invite, {
+	Text = "",
+	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextYAlignment = Enum.TextYAlignment.Top,
+}, 22)
+AnimeSkin.Label(inviteHint, "Body")
+local teleport = button("TeleportButton", invite, "Teleport", "Go", {})
 local decline = button("DeclineButton", invite, "Decline", "Idle", {
 	AnchorPoint = Vector2.new(1, 0),
 })
 
 -- Team HUD ----------------------------------------------------------------------------------------------------------------
-local hud, hudHeader, hudCountdown = panel("TeamHud", "CHOOSE YOUR TEAM")
+local hud, _, hudCountdown, hudClose = panel("TeamHud", "CHOOSE YOUR TEAM", true)
 hud.Parent = root
 AnimeSkin.Body(hud)
-hudCountdown.Position = UDim2.fromScale(0.87, 0.14) -- room for the X
-hudCountdown.Size = UDim2.fromScale(0.2, 0.72) -- clear of the title
-local hudClose = button("CloseButton", hudHeader, "X", "Danger", {
-	AnchorPoint = Vector2.new(1, 0.5),
-	Position = UDim2.fromScale(0.99, 0.5),
-	Size = UDim2.fromScale(0.09, 0.8),
-})
-AnimeSkin.Close(hudClose)
 local slots = {}
 for i = 1, StaminaConfig.TEAM_SIZE do
 	-- RacerHover before parenting: Ui/RacerMotion owes a Frame with a CharacterId its HoverScale, and looks only when it is added.
@@ -261,18 +267,18 @@ for i = 1, StaminaConfig.TEAM_SIZE do
 end
 local teamDamage = label("TeamDamage", hud, {
 	Text = "",
-	TextColor3 = Palette.Gold,
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, 26)
+AnimeSkin.Label(teamDamage, "Section")
 local avgStamina = label("AverageStamina", hud, {
 	Text = "",
-	TextColor3 = Palette.White,
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, 22)
+AnimeSkin.Label(avgStamina, "Body")
 local teamWarning = label("TeamWarning", hud, {
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.fromScale(0.5, 1),
-	Size = UDim2.new(1, -16, 0, 34),
+	Position = UDim2.new(0.5, 0, 1, -AnimeSkin.Px(AnimeSkin.Space.Bottom)),
+	Size = UDim2.new(1, -2 * AnimeSkin.Px(AnimeSkin.Space.Inset), 0, 34),
 	Text = TEAM_WARNING_TEXT,
 	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
@@ -281,10 +287,11 @@ local teamWarning = label("TeamWarning", hud, {
 }, 28)
 local note = label("Note", hud, {
 	Text = NOTE_TEXT,
-	TextColor3 = Palette.SoftText,
 	TextWrapped = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
+	TextYAlignment = Enum.TextYAlignment.Top,
 }, 16)
+AnimeSkin.Label(note, "Caption")
 local list = make("ScrollingFrame", "List", hud, {
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
@@ -293,15 +300,16 @@ local list = make("ScrollingFrame", "List", hud, {
 	ScrollingDirection = Enum.ScrollingDirection.Y,
 	ScrollBarThickness = 6,
 	ScrollBarImageColor3 = Palette.Muted,
+	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits inside the area, not on cells
 })
+local LIST_BLEED = 4 -- px: the card art reaches 3 px past each cell
 make("UIPadding", "Padding", list, {
-	PaddingTop = UDim.new(0, 4),
-	PaddingBottom = UDim.new(0, 4),
-	PaddingLeft = UDim.new(0, 4),
-	PaddingRight = UDim.new(0, 10), -- clear of the scroll bar
+	PaddingTop = UDim.new(0, LIST_BLEED),
+	PaddingBottom = UDim.new(0, LIST_BLEED),
+	PaddingLeft = UDim.new(0, LIST_BLEED),
+	PaddingRight = UDim.new(0, LIST_BLEED),
 })
 local listGrid = make("UIGridLayout", "Grid", list, {
-	CellPadding = UDim2.fromOffset(6, 6),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
 
@@ -431,6 +439,7 @@ local dropRule = make("Frame", "Rule", dropList, {
 })
 local dropRows = {}
 local dropTexts = {} -- row -> { Phase 1's text, Phase 2's }
+local dropOutlines = {} -- row -> the light outline a near-black colour needs, or nil
 local function oddsText(row)
 	return ("%s %s%%"):format(row.Name, tostring(row.Odds))
 end
@@ -453,6 +462,7 @@ local function dropRow(id, text, color, stroke)
 	UiTheme.Stroke(row, 2, stroke)
 	table.insert(dropRows, row)
 	dropTexts[row] = { text, adaptedText(id) }
+	dropOutlines[row] = stroke
 end
 local dropOdds = RelicConfig.Odds("big_raga")
 table.sort(dropOdds, function(a, b)
@@ -504,63 +514,68 @@ bossGlow.Color = Palette.Gold
 bossButton.Parent = root
 -- The popup. Rows stack in LayoutOrder and a hidden row takes no room, so it fits its state.
 -- Centred, with a header and an X, as the other popups (owner 2026-11-06).
-local bossesPanel, bossesHeader = panel("BossesPanel", "BOSSES")
+local bossesPanel, bossesHeader, _, bossesClose = panel("BossesPanel", "BOSSES", true)
 bossesPanel.Position = UDim2.fromScale(0.5, 0.5)
-bossesPanel.Size = UDim2.fromOffset(BOSSES_WIDTH, 0)
 bossesPanel.AutomaticSize = Enum.AutomaticSize.Y
 bossesPanel.Parent = root
-bossesHeader.Size = UDim2.new(1, 0, 0, 42)
 bossesHeader.LayoutOrder = 0
-listBody(bossesPanel, bossesHeader)
-local bossesClose = button("CloseButton", bossesHeader, "X", "Danger", {
-	AnchorPoint = Vector2.new(1, 0.5),
-	Position = UDim2.new(1, -4, 0.5, 0),
-	Size = UDim2.fromOffset(38, 34),
-})
-AnimeSkin.Close(bossesClose)
-make("UIPadding", "Padding", bossesPanel, {
-	PaddingTop = UDim.new(0, 8),
-	PaddingBottom = UDim.new(0, 8),
-	PaddingLeft = UDim.new(0, 10),
-	PaddingRight = UDim.new(0, 10),
-})
-make("UIListLayout", "List", bossesPanel, {
+listBody(bossesPanel, bossesHeader) -- after AnimeSkin.Header: the header goes back to ZIndex 0 under the rows
+-- Design doc 4.42 rhythm: the header full width at the top, rows 16 in from the sides and 12 apart, 24 above the bottom
+-- (BossAction is full width, so its left end keeps clear of the body art's stripes).
+local bossesPadding = make("UIPadding", "Padding", bossesPanel, {})
+local bossesList = make("UIListLayout", "List", bossesPanel, {
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	Padding = UDim.new(0, 4),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
-local bossStatus = label("Status", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, 40),
+local bossStatus = make("TextLabel", "Status", bossesPanel, {
+	BackgroundTransparency = 1,
+	AutomaticSize = Enum.AutomaticSize.Y,
 	LayoutOrder = 1,
 	Text = ABOUT_TEXT,
 	TextWrapped = true,
-}, 16)
-local bossDetailsHeading = label("DetailsHeading", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, 22),
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+AnimeSkin.Label(bossStatus, "Body")
+local bossDetailsHeading = make("TextLabel", "DetailsHeading", bossesPanel, {
+	BackgroundTransparency = 1,
 	LayoutOrder = 2,
 	Text = "Details",
-	TextColor3 = Palette.Gold,
-}, 18)
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+AnimeSkin.Label(bossDetailsHeading, "Section")
 -- Both chests' tables (BOSS_EVENT_SPEC "Paid spawn"), side by side, from the Drop list's own rows, so they can not disagree. Display only.
 local bossDetails = make("Frame", "BossDetails", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, DETAILS_ROWS * DETAILS_ROW),
 	LayoutOrder = 3,
 	BackgroundTransparency = 1,
 })
-make("UIGridLayout", "Grid", bossDetails, {
-	CellSize = UDim2.new(0.5, -2, 0, DETAILS_ROW),
-	CellPadding = UDim2.fromOffset(4, 0),
+local detailsGrid = make("UIGridLayout", "Grid", bossDetails, {
 	FillDirection = Enum.FillDirection.Vertical,
 	FillDirectionMaxCells = DETAILS_ROWS,
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
+-- One treatment for every odds row: Caption, in its rarity colour, no outline except the thin light one a near-black
+-- colour (Secret, the Sidekick's black) needs to read on the dark body. Again after Label's deferred pass.
+local function oddsRow(copy, color, outline)
+	local function paint()
+		copy.TextColor3 = color
+		copy.TextXAlignment = Enum.TextXAlignment.Left
+		local stroke = copy:FindFirstChildOfClass("UIStroke")
+		if stroke and outline then
+			stroke.Color, stroke.Thickness, stroke.Enabled = outline, 1, true
+		end
+	end
+	AnimeSkin.Label(copy, "Caption")
+	paint()
+	task.defer(paint)
+end
 for column, chest in { RAGA_CHEST, ADAPTED_CHEST } do
 	local first = column * 100
-	label("Title_" .. chest, bossDetails, {
+	local heading = label("Title_" .. chest, bossDetails, {
 		LayoutOrder = first,
 		Text = RelicConfig.Chests[chest].Name,
-		TextColor3 = Palette.Gold,
+		TextXAlignment = Enum.TextXAlignment.Left,
 	}, 16)
+	AnimeSkin.Label(heading, "Item")
 	for order, row in dropRows do
 		local copy = row:Clone()
 		copy.LayoutOrder = first + order
@@ -569,25 +584,50 @@ for column, chest in { RAGA_CHEST, ADAPTED_CHEST } do
 			copy.Text = dropTexts[row][2]
 		end
 		copy.Parent = bossDetails
+		oddsRow(copy, row.TextColor3, dropOutlines[row])
 	end
 end
-local bossNext = label("NextEvent", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, 22),
+local bossNext = make("TextLabel", "NextEvent", bossesPanel, {
+	BackgroundTransparency = 1,
 	LayoutOrder = 4,
 	Text = "",
-}, 16)
+	TextXAlignment = Enum.TextXAlignment.Left,
+})
+AnimeSkin.Label(bossNext, "Body")
 local bossAction = button("BossAction", bossesPanel, "Go", "Go", {
-	Size = UDim2.new(1, 0, 0, 40),
 	LayoutOrder = 5,
 })
-local bossPrompt = label("BossPrompt", bossesPanel, {
-	Size = UDim2.new(1, 0, 0, 22),
+local bossPrompt = make("TextLabel", "BossPrompt", bossesPanel, {
+	BackgroundTransparency = 1,
+	AutomaticSize = Enum.AutomaticSize.Y,
 	LayoutOrder = 6,
 	Text = "",
-	TextColor3 = Palette.Gold,
 	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
 	Visible = false,
-}, 15)
+})
+AnimeSkin.Label(bossPrompt, "Body")
+
+-- Every rect of the popup from the tokens, again when the screen crosses the phone line.
+local function placeBosses()
+	local px, space = AnimeSkin.Px, AnimeSkin.Space
+	local inset, gap, row = px(space.Inset), px(space.Gap), px(DETAILS_ROW)
+	local width = UDim2.new(1, -2 * inset, 0, 0)
+	bossesPanel.Size = UDim2.fromOffset(px(BOSSES_WIDTH), 0)
+	bossesPadding.PaddingBottom = UDim.new(0, px(space.BottomClear))
+	bossesList.Padding = UDim.new(0, gap)
+	bossStatus.Size, bossPrompt.Size = width, width
+	bossDetailsHeading.Size = width + UDim2.fromOffset(0, px(32))
+	bossDetails.Size = width + UDim2.fromOffset(0, DETAILS_ROWS * row)
+	detailsGrid.CellSize = UDim2.new(0.5, -math.floor(gap / 2), 0, row)
+	detailsGrid.CellPadding = UDim2.fromOffset(gap, 0)
+	bossNext.Size = width + UDim2.fromOffset(0, px(20))
+	bossAction.Size = width + UDim2.fromOffset(0, px(space.Button))
+end
+placeBosses()
+if workspace.CurrentCamera then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBosses)
+end
 
 local function placeBossButton()
 	local inset = GuiService.TopbarInset
@@ -640,63 +680,71 @@ UiTheme.Corner(loadingFill, "S")
 -- Layout ------------------------------------------------------------------------------------------------------------------
 local lastLayout = nil
 
+-- Design doc 4.42: content 16 in from the sides and 12 under the header; Teleport sits at the bottom-left, so the
+-- buttons keep 24 above the bottom (clear of the body art's stripes).
 local function placeInvite(phone, left, top, right, bottom)
+	local px, space = AnimeSkin.Px, AnimeSkin.Space
 	local width = math.min(right - left, phone and 400 or 460)
 	local height = math.min(bottom - top, phone and 150 or 210)
-	local head = phone and 34 or 46
-	local press = phone and 44 or 52
+	local inset, gap, press, foot = px(space.Inset), px(space.Gap), px(space.Button), px(space.BottomClear)
+	local contentTop = AnimeSkin.Top()
 	invite.Position = UDim2.fromOffset((left + right) / 2, (top + bottom) / 2)
 	invite.Size = UDim2.fromOffset(width, height)
-	inviteHeader.Size = UDim2.new(1, 0, 0, head)
-	inviteHint.Position = UDim2.fromOffset(12, head + 4)
-	inviteHint.Size = UDim2.new(1, -24, 0, math.max(0, height - head - press - 20))
-	teleport.Position = UDim2.new(0, 8, 1, -press - 8)
-	teleport.Size = UDim2.new(0.5, -12, 0, press)
-	decline.Position = UDim2.new(1, -8, 1, -press - 8)
-	decline.Size = UDim2.new(0.5, -12, 0, press)
+	inviteHint.Position = UDim2.fromOffset(inset, contentTop)
+	inviteHint.Size = UDim2.new(1, -2 * inset, 0, math.max(0, height - contentTop - gap - press - foot))
+	local half = UDim2.new(0.5, -inset - math.ceil(gap / 2), 0, press)
+	teleport.Position, teleport.Size = UDim2.new(0, inset, 1, -foot - press), half
+	decline.Position, decline.Size = UDim2.new(1, -inset, 1, -foot - press), half
 end
 
+-- Design doc 4.42 rhythm: slots and cells 12 apart, 8 between lines that belong together, insets 16. The list's cells
+-- take a height that ends its visible area on a whole row.
 local function placeHud(phone, left, top, right, bottom)
+	local px, space = AnimeSkin.Px, AnimeSkin.Space
 	local width = math.min(right - left, phone and 560 or 640)
 	local height = math.min(bottom - top, 410)
-	local head = phone and 30 or 46
-	local side = phone and 48 or 72
-	local gap = phone and 6 or 8
+	local inset, gap, inner, foot = px(space.Inset), px(space.Gap), px(space.Inner), px(space.Bottom)
+	local side = px(72)
+	local damageH, staminaH, noteH = px(32), px(20), px(16)
 	hud.Position = UDim2.fromOffset((left + right) / 2, (top + bottom) / 2)
 	hud.Size = UDim2.fromOffset(width, height)
-	hudHeader.Size = UDim2.new(1, 0, 0, head)
-	local slotTop = head + gap
+	local slotTop = AnimeSkin.Top()
 	for i, slot in slots do
-		slot.Frame.Position = UDim2.fromOffset(8 + (i - 1) * (side + gap), slotTop)
+		slot.Frame.Position = UDim2.fromOffset(inset + (i - 1) * (side + gap), slotTop)
 		slot.Frame.Size = UDim2.fromOffset(side, side)
 	end
-	local slotsEnd = 8 + #slots * (side + gap)
+	local slotsEnd = inset + #slots * side + (#slots - 1) * gap
+	local listLeft, listTop
 	if phone then
 		-- Two columns: the band is short and wide, and the list keeps its own scroll.
 		local column = math.floor(width * 0.46)
-		local belowSlots = slotTop + side + 2
-		teamDamage.Position = UDim2.fromOffset(8, belowSlots)
-		teamDamage.Size = UDim2.fromOffset(column - 8, 20)
-		avgStamina.Position = UDim2.fromOffset(8, belowSlots + 20)
-		avgStamina.Size = UDim2.fromOffset(column - 8, 18)
-		note.Position = UDim2.fromOffset(8, belowSlots + 40)
-		note.Size = UDim2.fromOffset(column - 8, math.max(0, height - belowSlots - 46))
-		list.Position = UDim2.fromOffset(column + 4, slotTop)
-		list.Size = UDim2.fromOffset(width - column - 12, math.max(0, height - slotTop - 6))
-		listGrid.CellSize = UDim2.fromOffset(58, 58)
+		local below = slotTop + side + inner
+		teamDamage.Position = UDim2.fromOffset(inset, below)
+		teamDamage.Size = UDim2.fromOffset(column - inset, damageH)
+		avgStamina.Position = UDim2.fromOffset(inset, below + damageH + inner)
+		avgStamina.Size = UDim2.fromOffset(column - inset, staminaH)
+		local noteTop = below + damageH + staminaH + 2 * inner
+		note.Position = UDim2.fromOffset(inset, noteTop)
+		note.Size = UDim2.fromOffset(column - inset, math.max(0, height - noteTop - foot))
+		listLeft, listTop = column + gap, slotTop
 	else
-		teamDamage.Position = UDim2.fromOffset(slotsEnd + 8, slotTop)
-		teamDamage.Size = UDim2.fromOffset(width - slotsEnd - 20, side * 0.55)
-		avgStamina.Position = UDim2.fromOffset(slotsEnd + 8, slotTop + side * 0.55)
-		avgStamina.Size = UDim2.fromOffset(width - slotsEnd - 20, side * 0.45)
-		local noteTop = slotTop + side + 4
-		note.Position = UDim2.fromOffset(12, noteTop)
-		note.Size = UDim2.fromOffset(width - 24, 22)
-		local listTop = noteTop + 26
-		list.Position = UDim2.fromOffset(8, listTop)
-		list.Size = UDim2.fromOffset(width - 16, math.max(0, height - listTop - 8))
-		listGrid.CellSize = UDim2.fromOffset(88, 100)
+		local textLeft = slotsEnd + gap
+		teamDamage.Position = UDim2.fromOffset(textLeft, slotTop)
+		teamDamage.Size = UDim2.fromOffset(width - textLeft - inset, damageH)
+		avgStamina.Position = UDim2.fromOffset(textLeft, slotTop + damageH + inner)
+		avgStamina.Size = UDim2.fromOffset(width - textLeft - inset, staminaH)
+		local noteTop = slotTop + side + gap
+		note.Position = UDim2.fromOffset(inset, noteTop)
+		note.Size = UDim2.fromOffset(width - 2 * inset, noteH)
+		listLeft, listTop = inset, noteTop + noteH + gap
 	end
+	local listHeight = math.max(0, height - listTop - foot)
+	list.Position = UDim2.fromOffset(listLeft, listTop)
+	list.Size = UDim2.fromOffset(width - listLeft - inset, listHeight)
+	local room = listHeight - 2 * LIST_BLEED
+	local rows = math.max(1, math.floor((room + gap) / (px(88) + gap)))
+	listGrid.CellSize = UDim2.fromOffset(px(96), math.max(px(88), math.floor((room - (rows - 1) * gap) / rows)))
+	listGrid.CellPadding = UDim2.fromOffset(gap, gap)
 end
 
 local function placeTop(size, row)
@@ -894,8 +942,9 @@ local function newCell(id, spec)
 	local edge = cell.ThemeStroke
 	edge.Thickness = 2
 	AnimeSkin.Card(cell)
+	local nameH = AnimeSkin.Px(28) -- two Caption lines
 	make("ImageLabel", "Head", cell, {
-		Size = UDim2.fromScale(1, 0.72),
+		Size = UDim2.new(1, 0, 1, -nameH - AnimeSkin.Px(4)),
 		BackgroundTransparency = 1,
 		ScaleType = Enum.ScaleType.Fit,
 		Image = art(id),
@@ -908,11 +957,14 @@ local function newCell(id, spec)
 		ScaleType = Enum.ScaleType.Fit,
 		Visible = false,
 	})
-	label("CharacterName", cell, {
-		Position = UDim2.new(0, 2, 0.72, 0),
-		Size = UDim2.new(1, -4, 0.26, 0),
+	local name = label("CharacterName", cell, {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, AnimeSkin.Px(4), 1, -AnimeSkin.Px(4)),
+		Size = UDim2.new(1, -AnimeSkin.Px(8), 0, nameH),
 		Text = spec.Name or id,
+		TextWrapped = true,
 	}, 14)
+	AnimeSkin.Label(name, "Caption")
 	cell.Activated:Connect(function()
 		press(id)
 	end)
