@@ -149,7 +149,7 @@ end
 -- Loser screen (docs/NPC_RACER_SPEC.md "Loser screen", docs/HUD_LAYOUT_SPEC.md sections 8 and 10): built once,
 -- only its texts change per loss. Non-interactive; the shade is the first GuiObject child and covers the screen.
 local Palette = UiTheme.Palette
-local CARD_W, CARD_H, OVERHANG = 460, 310, 14
+local CARD_W, CARD_H, OVERHANG = 640, 431, 14 -- the Index frame's 920 x 620 aspect
 local ROW_STAGGER = 0.06
 
 local Themes = require(Shared.BiomeThemes)
@@ -181,7 +181,6 @@ card.AnchorPoint = Vector2.new(0.5, 0.5)
 card.Position = UDim2.new(0.5, 0, 0.5, OVERHANG // 2)
 card.Size = UDim2.fromOffset(CARD_W, CARD_H)
 UiTheme.Plate(card, Palette.Danger)
-AnimeSkin.Body(card) -- design doc 4.42: the framed body art
 card.Parent = shade
 -- Layout scale (not MotionScale): the card keeps 16 px margins down to a 600 x 390 phone viewport.
 local fit = Instance.new("UIScale")
@@ -190,27 +189,23 @@ fit.Parent = card
 local function refit()
 	local size = gui.AbsoluteSize
 	if size.X > 0 and size.Y > 0 then
-		fit.Scale = math.min(1, (size.X - 32) / CARD_W, (size.Y - 32) / (CARD_H + OVERHANG))
+		-- The Index chrome reaches 40 units past each side, 70 above and 30 below (Client/AnimeSkin.IndexFrame).
+		fit.Scale = math.min(1, (size.X - 32) / (CARD_W * 1000 / 920), (size.Y - 32) / (CARD_H * 720 / 620))
 	end
 end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)
 refit()
 
--- Design doc 4.42 spacing standard: one of the five text roles, 16 px side insets (Client/AnimeSkin tokens; the card
--- is drawn at desktop px and FitScale shrinks it whole on small screens).
-local INSET = AnimeSkin.Space.Inset
-local function label(name, parent, y, height, role)
+-- Design doc 4.42: the card is the Index frame (no close, no logo); every row sits in its content area in the frame's
+-- units (OnLayout below), and FitScale shrinks the whole card on small screens.
+local function label(name, parent)
 	local text = Instance.new("TextLabel")
 	text.Name = name
-	text.AnchorPoint = Vector2.new(0.5, 0)
-	text.Position = UDim2.new(0.5, 0, 0, y)
-	text.Size = UDim2.new(1, -2 * INSET, 0, height)
 	text.BackgroundTransparency = 1
 	text.TextTruncate = Enum.TextTruncate.AtEnd
 	text.Text = ""
 	UiTheme.Stroke(text, 2)
 	text.Parent = parent
-	AnimeSkin.Label(text, role)
 	return text
 end
 
@@ -225,27 +220,29 @@ UiTheme.Corner(ribbon, "M")
 UiTheme.Gradient(ribbon, Palette.Danger, Palette.DangerDeep)
 UiTheme.Stroke(ribbon, 3, nil, true)
 ribbon.Parent = card
-local banner = label("Banner", ribbon, 0, 64, "Title")
-banner.Size = UDim2.new(1, -2 * INSET, 1, 0)
+local banner = label("Banner", ribbon)
 banner.Text = "YOU LOST"
+-- The ribbon is the frame's header anchor (it still slides in); the banner is the frame's slanted title.
+local frame = AnimeSkin.IndexFrame(card, { Header = ribbon, Title = banner })
 
--- Rows from 12 below the ribbon, 8 apart inside a group and 12 between groups (who, times, gap, what next).
-local rows = {
-	label("NpcName", card, 62, 24, "Item"),
-	label("TrackTitle", card, 94, 16, "Caption"),
-	label("YourTime", card, 122, 20, "Body"),
-	label("NpcTime", card, 150, 20, "Body"),
-	label("Gap", card, 182, 32, "Section"),
-	label("Pb", card, 226, 20, "Body"),
-	label("BackTo", card, 254, 16, "Caption"),
+-- Rows: 8 apart inside a group and 12 between groups (who, times, gap, what next), centred in the content area.
+local ROWS = {
+	{ "NpcName", "Item", 0 },
+	{ "TrackTitle", "Caption", 8 },
+	{ "YourTime", "Body", 12 },
+	{ "NpcTime", "Body", 8 },
+	{ "Gap", "Section", 12 },
+	{ "Pb", "Body", 12 },
+	{ "BackTo", "Caption", 8 },
 }
+local rows = {}
+for i, spec in ROWS do
+	rows[i] = label(spec[1], card)
+end
 local npcName, trackTitle, yourTime, npcTime, gap, pb, backTo = table.unpack(rows)
 
 local countdown = Instance.new("Frame")
 countdown.Name = "Countdown"
-countdown.AnchorPoint = Vector2.new(0.5, 0)
-countdown.Position = UDim2.new(0.5, 0, 0, 282) -- 12 under the last row, 16 above the card's bottom
-countdown.Size = UDim2.new(1, -2 * INSET, 0, 12)
 countdown.BackgroundColor3 = Palette.PanelDeep
 countdown.BorderSizePixel = 0
 UiTheme.Corner(countdown, "S")
@@ -260,10 +257,28 @@ UiTheme.Corner(fill, "S")
 UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep)
 fill.Parent = countdown
 
-local homes = { [ribbon] = ribbon.Position }
-for _, row in rows do
-	homes[row] = row.Position
+-- The countdown bar 12 above the content's bottom; the rows centred above it (a phone's short area shrinks them all).
+local BAR = 12
+local function placeRows()
+	local c, U = frame.Content, AnimeSkin.Units
+	local room = c.H - BAR - 2 * U.Gap
+	local total = 0
+	for _, spec in ROWS do
+		total += AnimeSkin.UnitSize[spec[2]] + spec[3]
+	end
+	local s = math.min(1, room / total)
+	local y = c.Y + math.max(0, (room - total) / 2)
+	for i, spec in ROWS do
+		y += spec[3] * s
+		local h = AnimeSkin.UnitSize[spec[2]] * s
+		frame.Place(rows[i], c.X, y, c.W, h)
+		frame.Role(rows[i], spec[2])
+		y += h
+	end
+	frame.Place(countdown, c.X, c.Y + c.H - U.Gap - BAR, c.W, BAR)
+	ribbon.Position = UDim2.new()
 end
+frame.OnLayout(placeRows)
 
 local runStart = nil -- the run's start track: the Reset's Track, else the run's first Start
 local lastBest = {} -- track -> best time from the Start event
@@ -294,9 +309,7 @@ local function showLoser(event)
 	pb.Text = best and "PB " .. RouteMath.FormatTime(best) or "PB --"
 	backTo.Text = backToText(runStart or 1)
 
-	for gui_, home in homes do
-		gui_.Position = home
-	end
+	placeRows() -- every row back home: a cut-short slide leaves its offset
 	if drain then
 		drain:Cancel()
 	end
@@ -308,7 +321,7 @@ local function showLoser(event)
 	UiMotion.SlideIn(ribbon, Vector2.new(0, -80), 0.25)
 	task.delay(0.25, function()
 		if loseToken == token then
-			UiFeedback.Play("LoseRibbon", ribbon, { Color = Palette.Danger })
+			UiFeedback.Play("LoseRibbon", banner, { Color = Palette.Danger })
 		end
 	end)
 	local reduced = UiMotion.Reduced()

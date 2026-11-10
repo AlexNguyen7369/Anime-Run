@@ -31,12 +31,6 @@ local PALETTE = UiTheme.Palette
 local OUTLINE = UiTheme.Outline
 local BLACK = Color3.new(0, 0, 0)
 local NEAR_BLACK = Color3.fromRGB(10, 10, 18)
-local CARD_SHEEN = ColorSequence.new({ -- placeholder
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 110, 75)),
-	ColorSequenceKeypoint.new(0.55, Color3.fromRGB(18, 26, 30)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(165, 60, 40)),
-})
-local RIBBON_RED = Color3.fromRGB(235, 45, 55) -- placeholder
 local RAINBOW = ColorSequence.new({
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 110)),
 	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 220, 90)),
@@ -83,28 +77,21 @@ local function caption(name, parent, props)
 	make("UITextSizeConstraint", "Max", label, { MaxTextSize = props.TextSize or 20 })
 	return label
 end
--- One of AnimeSkin's five text roles (design doc 4.42). color: replaces the role's colour. fit: long words shrink to the
--- Caption floor on one line instead of running out of their box. Again next frame, after AnimeSkin.Label's own pass.
-local function role(label, name, color, fit)
-	AnimeSkin.Label(label, name)
-	local function after()
-		if color then
-			label.TextColor3 = color
-		end
-		if fit then
-			label.TextScaled = true
-			label.TextWrapped = false
-			local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
-				or make("UITextSizeConstraint", "Fit", label, {})
-			limit.MaxTextSize = AnimeSkin.Px(AnimeSkin.Size[name])
-			limit.MinTextSize = AnimeSkin.Px(AnimeSkin.Size.Caption)
-		end
+-- The Index frame (design doc 4.42) that PanelFrame.Attach gives the panel, below: every size is in its units.
+local g
+-- Labels by text role (design doc 4.42); OnLayout sizes them again at the frame's scale. color: a rarity or gold
+-- caption. Weak keys: rows come and go.
+local roles = setmetatable({}, { __mode = "k" })
+local function role(label, name, color)
+	roles[label] = { name, color }
+	label.TextWrapped = false
+	g.Role(label, name)
+	if color then
+		label.TextColor3 = color
 	end
-	after()
-	task.defer(after)
 	return label
 end
--- Design doc 4.42: the Index's action button (AnimeSkin tone, default Idle): flat fill, 4 px corners, white Body words
+-- Design doc 4.42: the Index's action button (AnimeSkin tone, default Idle): flat fill, 4 px corners, white Item words
 -- on one line, no dark edge. The Stroke stays (disabled) for the Auto-Sell toggles' state colour.
 local function button(name, parent, props, text, tone)
 	props.Text = ""
@@ -118,11 +105,11 @@ local function button(name, parent, props, text, tone)
 		Enabled = false,
 	})
 	local label = caption("Label", b, {
-		Position = UDim2.fromOffset(8, 0),
-		Size = UDim2.new(1, -16, 1, 0),
+		Position = UDim2.fromScale(0.06, 0),
+		Size = UDim2.fromScale(0.88, 1),
 		Text = text,
 	})
-	role(label, "Body", nil, true)
+	role(label, "Item")
 	return b
 end
 -- Rainbow rarity text is for Mythic and Secret; every other rarity keeps its one colour.
@@ -133,31 +120,24 @@ local function paintRarity(label, rarity)
 		make("UIGradient", "Rainbow", label, { Color = RAINBOW })
 	end
 end
--- A dark bar with a label at each end; `fill` set: a coloured share behind them.
-local function statusBar(name, parent, props, text, fillColor)
-	props.BackgroundColor3 = NEAR_BLACK
-	local bar = make("Frame", name, parent, props)
-	UiTheme.Corner(bar, "S")
+-- A slanted plate in the tabs row (design doc 4.42) with its Tab label; `fillColor` set: a thin bar of that colour
+-- along its foot, inside the plate.
+local function statusBar(name, parent, text, fillColor)
+	local bar = make("Frame", name, parent, { BackgroundTransparency = 1 })
+	AnimeSkin.Plate(bar, AnimeSkin.Tint.Default)
 	local fill = fillColor
 		and make("Frame", "Fill", bar, {
-			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = fillColor,
 			BorderSizePixel = 0,
+			ZIndex = 1,
 		})
-	if fill then
-		UiTheme.Corner(fill, "S")
-	end
 	role(
 		caption("Label", bar, {
-			Position = UDim2.fromOffset(8, 0),
-			Size = UDim2.new(0.62, -8, 1, 0),
 			Text = text,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 2,
 		}),
-		"Body",
-		nil,
-		true
+		"Tab"
 	)
 	return bar, fill
 end
@@ -179,8 +159,10 @@ PanelSwitch.Register("Sidekicks", panel)
 local chrome = PanelFrame.Attach(panel, {
 	Theme = "Sidekicks",
 	Title = "Sidekicks",
+	Icon = Icons.Gem.Image, -- HudIcons has no Sidekicks icon: the Gem is the logo
 	MaxWidth = 760,
 })
+g = chrome.Frame
 chrome.Close.Activated:Connect(function()
 	PanelSwitch.Close("Sidekicks")
 end)
@@ -188,114 +170,74 @@ PanelFrame.CloseOnOutsideClick(panel, function()
 	PanelSwitch.Close("Sidekicks")
 end)
 
--- This page only: near black with a turning rainbow edge. HudIcons has no Sidekicks icon, so the logo slot stays empty
--- and the title keeps the logo panels' position (AnimeSkin.Header).
-UiTheme.Gradient(panel, Color3.fromRGB(22, 22, 34), NEAR_BLACK)
-local panelEdge = panel:FindFirstChild("FrameOutline") or panel:FindFirstChildOfClass("UIStroke")
-panelEdge.Thickness = 4
-panelEdge.Color = PALETTE.White
-local panelEdgeRainbow = make("UIGradient", "Rainbow", panelEdge, { Color = RAINBOW })
-chrome.Header.BackgroundTransparency = 1
-chrome.Header.ClipsDescendants = false
-chrome.Header.Icon.Visible = false
-
 local blur = make("BlurEffect", "SidekickSummonBlur", Lighting, { Size = 14, Enabled = false }) -- placeholder size
 
--- The toolbar row (design doc 4.42): Gems, then the timer and both pity bars, all 40 tall with 12 gaps. It stays a child
--- of the Header (the UI tests pin Header/StatusBlock) and sits on AnimeSkin.ToolbarRect, under the strip.
-local status = make("Frame", "StatusBlock", chrome.Header, {
-	BackgroundTransparency = 1,
-	ZIndex = 3,
-})
-local function placeStatus()
-	status.Position, status.Size = AnimeSkin.ToolbarRect()
-end
-placeStatus()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeStatus)
-end
-local balance = make("Frame", "Balance", status, {
-	Size = UDim2.fromScale(0.16, 1),
-	BackgroundTransparency = 1,
-})
+-- The tabs row (design doc 4.42): four 40 tall plates, Gems, the rotation timer and both pity counts. It stays a child
+-- of the Header (the UI tests pin Header/StatusBlock); the Index frame collapses the Header to the panel's origin, so
+-- the plates are placed in panel units.
+local status = make("Frame", "StatusBlock", chrome.Header, { BackgroundTransparency = 1, Size = UDim2.new() })
+local balance = statusBar("Balance", status, "GEMS")
 make("ImageLabel", "GemIcon", balance, {
-	AnchorPoint = Vector2.new(0, 0.5),
-	Position = UDim2.fromScale(0, 0.5),
-	Size = UDim2.fromOffset(32, 32),
 	BackgroundTransparency = 1,
 	Image = Icons.Gem.Image,
+	ScaleType = Enum.ScaleType.Fit,
+	ZIndex = 2,
 })
 local gemsValue = role(
 	caption("GemsValue", balance, {
-		Position = UDim2.fromOffset(40, 0),
-		Size = UDim2.new(1, -40, 1, 0),
 		Text = "0",
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		ZIndex = 2,
 	}),
-	"Item"
+	"Tab"
 )
 make("UIGradient", "Rainbow", gemsValue, { Color = RAINBOW })
-local bars = make("Frame", "Bars", status, {
-	Position = UDim2.new(0.16, 12, 0, 0),
-	Size = UDim2.new(0.84, -12, 1, 0),
-	BackgroundTransparency = 1,
-})
--- Bar i of 3 across Bars: (W - 24) / 3 wide, 12 apart.
-local function barRect(i)
-	return { Position = UDim2.new(i / 3, 4 * i, 0, 0), Size = UDim2.new(1 / 3, -8, 1, 0) }
-end
+local bars = make("Frame", "Bars", status, { BackgroundTransparency = 1, Size = UDim2.new() })
 local function barValue(name, bar)
 	return role(
 		caption(name, bar, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -8, 0, 0),
-			Size = UDim2.new(0.38, -8, 1, 0),
 			Text = "",
 			TextXAlignment = Enum.TextXAlignment.Right,
 			ZIndex = 2,
 		}),
-		"Body",
-		nil,
-		true
+		"Tab"
 	)
 end
-local timerBar, timerFill = statusBar("TimerBar", bars, barRect(0), "Next rotation:", Color3.fromRGB(60, 150, 240))
+local timerBar, timerFill = statusBar("TimerBar", bars, "ROTATION", Color3.fromRGB(60, 150, 240))
 local rotationTimer = barValue("RotationTimer", timerBar)
-local pityValue = barValue("Value", (statusBar("PityBar", bars, barRect(1), "Mythic Pity:")))
-local legendaryPityValue = barValue("Value", (statusBar("LegendaryPityBar", bars, barRect(2), "Legendary Pity:")))
+local pityBar, pityFill = statusBar("PityBar", bars, "MYTHIC", SidekickView.RarityColor("Mythic"))
+local pityValue = barValue("Value", pityBar)
+local legendaryBar, legendaryFill =
+	statusBar("LegendaryPityBar", bars, "LEGENDARY", SidekickView.RarityColor("Legendary"))
+local legendaryPityValue = barValue("Value", legendaryBar)
+-- Each plate's share of the row and its label's share of the plate, from the longest words at the Tab size, so all
+-- four plates scale their text alike. Fill: the bar's share, set by refresh / showTimer.
+local plates = {
+	{ Frame = balance, Row = 0.22, Label = 0.42, Value = gemsValue, Icon = balance.GemIcon },
+	{ Frame = timerBar, Row = 0.26, Label = 0.55, Value = rotationTimer, Fill = timerFill, Share = 1 },
+	{ Frame = pityBar, Row = 0.24, Label = 0.5, Value = pityValue, Fill = pityFill, Share = 0 },
+	{ Frame = legendaryBar, Row = 0.28, Label = 0.58, Value = legendaryPityValue, Fill = legendaryFill, Share = 0 },
+}
+local function placeFill(entry)
+	local w = entry.W or 0
+	g.Place(entry.Fill, 24, 32, math.max(0, (w - 48) * math.clamp(entry.Share, 0, 1)), 4)
+end
 
--- 12 under the toolbar, 16 L/R, 24 at the bottom: Auto-Sell sits at the bottom-left, clear of the stripe art.
+-- The content area (design doc 4.42): Main on the left 56%, the gem packs on the right, 12 apart.
 local body = make("Frame", "Body", panel, { BackgroundTransparency = 1 })
-AnimeSkin.Content(body, { Toolbar = true, BottomClear = true })
 
--- More Gems: the bundles scroll, biggest first.
-local gemColumn = make("Frame", "GemColumn", body, {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.fromScale(1, 0),
-	Size = UDim2.fromScale(0.3, 1),
-	BackgroundColor3 = BLACK,
-})
-UiTheme.Corner(gemColumn, "M")
-make(
-	"UIStroke",
-	"Edge",
-	gemColumn,
-	{ Thickness = 2, Color = PALETTE.White, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
-)
-local gemEdgeRainbow = make("UIGradient", "Rainbow", gemColumn.Edge, { Color = RAINBOW })
-role(
+-- More Gems: whole bundle cards, biggest first.
+local gemColumn = make("Frame", "GemColumn", body, { BackgroundTransparency = 1 })
+local gemHeading = role(
 	caption("Heading", gemColumn, {
-		Position = UDim2.fromOffset(12, 8),
-		Size = UDim2.new(1, -24, 0, 26),
-		Text = "More Gems",
+		Text = "MORE GEMS",
+		TextXAlignment = Enum.TextXAlignment.Left,
 	}),
 	"Section"
 )
--- 8 under the heading, 12 at the bottom. 4 px padding keeps the cards' art edge (3 px) inside the clip.
-local PACK_GAP, PACK_PAD = 12, 4
+-- 4 px padding keeps the cards' art edge (3 px) inside the clip.
+local PACK_PAD = 4
 local packs = make("ScrollingFrame", "Packs", gemColumn, {
-	Position = UDim2.fromOffset(8, 42),
-	Size = UDim2.new(1, -16, 1, -54),
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	ScrollBarThickness = 6,
@@ -304,8 +246,7 @@ local packs = make("ScrollingFrame", "Packs", gemColumn, {
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	ScrollingDirection = Enum.ScrollingDirection.Y,
 })
-make("UIListLayout", "Layout", packs, {
-	Padding = UDim.new(0, PACK_GAP),
+local packLayout = make("UIListLayout", "Layout", packs, {
 	SortOrder = Enum.SortOrder.LayoutOrder,
 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
 })
@@ -313,33 +254,12 @@ make("UIPadding", "Padding", packs, {
 	PaddingTop = UDim.new(0, PACK_PAD),
 	PaddingBottom = UDim.new(0, PACK_PAD),
 })
--- Two whole cards fill the visible area, so the list never ends on a cut card.
-local function fitPacks()
-	local tall = math.max(56, math.floor((packs.AbsoluteSize.Y - 2 * PACK_PAD - PACK_GAP) / 2))
-	for _, tile in packs:GetChildren() do
-		if tile:IsA("Frame") then
-			tile.Size = UDim2.new(1, -2 * PACK_PAD, 0, tall)
-		end
-	end
-end
-packs:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPacks)
 local smallest = Monetization.GemPacks[1]
 for order, pack in Monetization.GemPacks do
 	local tile = make("Frame", pack.Id, packs, {
 		LayoutOrder = -order,
-		Size = UDim2.new(1, -2 * PACK_PAD, 0, 62),
 		BackgroundColor3 = PALETTE.White,
 	})
-	UiTheme.Corner(tile, "L")
-	UiTheme.Gradient(tile, PALETTE.White, PALETTE.White).Color = CARD_SHEEN
-	tile.ThemeGradient.Rotation = 35
-	make(
-		"UIStroke",
-		"Edge",
-		tile,
-		{ Thickness = 2, Color = PALETTE.White, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
-	)
-	make("UIGradient", "Rainbow", tile.Edge, { Color = RAINBOW })
 	AnimeSkin.Card(tile, AnimeSkin.Tint.Default)
 	make("ImageLabel", "GemArt", tile, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -351,86 +271,60 @@ for order, pack in Monetization.GemPacks do
 		ImageTransparency = 0.45,
 		ScaleType = Enum.ScaleType.Fit,
 	})
-	-- Three lines, 8 in from the card's sides: name and ribbon, the Gems, then "Coming soon" and the price.
-	role(
-		caption("Name", tile, {
-			Position = UDim2.fromOffset(8, 4),
-			Size = UDim2.new(0.5, -8, 0, 16),
-			Text = pack.Name,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 2,
-		}),
-		"Body",
-		nil,
-		true
-	)
-	local gems = role(
-		caption("Gems", tile, {
-			Position = UDim2.new(0, 8, 0.5, -10),
-			Size = UDim2.new(1, -16, 0, 20),
-			Text = "+" .. HudFormat.Short(pack.Gems),
-			ZIndex = 2,
-		}),
-		"Item"
-	)
+	-- Three lines, 12 in from the card's edges: name and ribbon, the Gems, then "Coming soon" and the price.
+	role(caption("Name", tile, { Text = pack.Name, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2 }), "Item")
+	local gems = role(caption("Gems", tile, { Text = "+" .. HudFormat.Short(pack.Gems), ZIndex = 2 }), "Item")
 	make("UIGradient", "Rainbow", gems, { Color = RAINBOW })
 	role(
-		caption("Soon", tile, {
-			Position = UDim2.new(0, 8, 1, -20),
-			Size = UDim2.new(0.5, -8, 0, 16),
-			Text = "Coming soon",
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 2,
-		}),
+		caption("Soon", tile, { Text = "Coming soon", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2 }),
 		"Caption"
 	)
 	role(
 		caption("Price", tile, {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -8, 1, -20),
-			Size = UDim2.new(0.5, -8, 0, 16),
 			Text = pack.RobuxPrice .. " R$",
 			TextXAlignment = Enum.TextXAlignment.Right,
 			ZIndex = 2,
 		}),
-		"Body",
-		nil,
-		true
+		"Body"
 	)
 	-- Rounded down, so a badge never overstates: computed from the listed prices.
 	local bonus = math.floor(((pack.Gems / pack.RobuxPrice) / (smallest.Gems / smallest.RobuxPrice) - 1) * 100)
 	if bonus > 0 then
 		role(
 			caption("Ribbon", tile, {
-				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -8, 0, 4),
-				Size = UDim2.new(0.5, -8, 0, 16),
 				Text = string.format("+%d%% More!", bonus),
 				TextXAlignment = Enum.TextXAlignment.Right,
 				ZIndex = 3,
 			}),
-			"Body",
-			RIBBON_RED,
-			true
+			"Caption",
+			AnimeSkin.Color.Section
 		)
 	end
 end
-fitPacks()
+-- One pack card's parts, 12 padding, 8 between lines; w, h in units.
+local function placePack(tile, w, h)
+	local inner = w - 24
+	g.Place(tile:FindFirstChild("Name"), 12, 12, inner * 0.55, 34) -- tile.Name is the property
+	if tile:FindFirstChild("Ribbon") then
+		g.Place(tile.Ribbon, 12 + inner * 0.55 + 8, 12, inner * 0.45 - 8, 22)
+	end
+	g.Place(tile.Gems, 12, (h - 34) / 2, inner, 34)
+	g.Place(tile.Soon, 12, h - 12 - 22, inner * 0.5, 22)
+	g.Place(tile.Price, 12 + inner * 0.5, h - 12 - 28, inner * 0.5, 28)
+end
 
--- Main: the stage takes what the buttons leave.
--- Main and the gem column are 12 apart. Main, top down: the poster, 8, the cost row (24), 8, the summon row (40).
+-- Main, top down: the poster, 12, the cost line (Caption), 8, the summon row (44), 12 above the content's foot.
 local main = make("Frame", "Main", body, {
-	Size = UDim2.new(0.7, -12, 1, 0),
 	BackgroundTransparency = 1,
 })
 local banner = make("Frame", "Banner", main, {
-	Size = UDim2.new(1, 0, 1, -80),
 	BackgroundTransparency = 1,
 })
 
 -- The actual 3D models (owner 2026-11-05). The poster and the Secrets in Details: one Heartbeat turns them all.
 local views = {} -- ViewportFrame -> { Row or Rows, Focus, Distance }
 local turnAngle = 0
+local edgeTurn = 0 -- the poster edge's rainbow, in degrees
 local turning = nil
 
 -- The camera sways around the front, so the model always faces the player, and the light follows it.
@@ -468,11 +362,10 @@ end
 local function turnViews(dt)
 	local reduced = UiMotion.Reduced()
 	if not reduced then
-		panelEdgeRainbow.Rotation = (panelEdgeRainbow.Rotation + dt * EDGE_SPEED) % 360
-		gemEdgeRainbow.Rotation = panelEdgeRainbow.Rotation
+		edgeTurn = (edgeTurn + dt * EDGE_SPEED) % 360
 		local posterEdge = banner:FindFirstChild("PosterEdge", true)
 		if posterEdge then
-			posterEdge.Rotation = panelEdgeRainbow.Rotation
+			posterEdge.Rotation = edgeTurn
 		end
 		local rays = banner:FindFirstChild("Rays", true)
 		if rays then
@@ -646,25 +539,19 @@ local function buildPoster(featured)
 	tap.Activated:Connect(function()
 		openDetails()
 	end)
-	local details = button("Details", poster, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(84, 32),
-		ZIndex = 6,
-	}, "Details")
+	local details = button("Details", poster, { ZIndex = 6 }, "Details") -- placed by the layout, 32 tall
 	details.Activated:Connect(function()
 		openDetails()
 	end)
-	-- Text only, tilted, inside the poster's top-left corner: the -5 degree turn still clears the top edge by 4 px.
-	local sticker = caption("Sticker", banner, {
-		Position = UDim2.fromOffset(8, 12),
-		Size = UDim2.fromOffset(168, 32),
-		Rotation = -5,
-		Text = "FEATURED!!!",
-		TextSize = 38,
-		ZIndex = 7,
-	})
-	sticker.Outline.Thickness = 4
+	-- Text only, tilted, inside the poster's top-left corner (the layout keeps the turned box inside the poster).
+	local sticker = role(
+		caption("Sticker", banner, {
+			Rotation = -5,
+			Text = "FEATURED!!!",
+			ZIndex = 7,
+		}),
+		"Item"
+	)
 	make("UIGradient", "Gold", sticker, {
 		Rotation = 90,
 		Color = ColorSequence.new(Color3.fromRGB(255, 240, 130), Color3.fromRGB(255, 150, 30)),
@@ -687,75 +574,49 @@ local function renderBanner(rotation)
 	buildPoster(featured)
 end
 
--- The cost, large under the poster, as the rates sit in it.
-local costRow = make("Frame", "Cost", main, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0, 0, 1, -48),
-	Size = UDim2.new(1, 0, 0, 24),
-	BackgroundTransparency = 1,
-})
+-- The cost line under the poster, one Caption: the price, its gem, then the hint or the status.
+local costRow = make("Frame", "Cost", main, { BackgroundTransparency = 1 })
 make("ImageLabel", "GemIcon", costRow, {
-	AnchorPoint = Vector2.new(0, 0.5),
-	Position = UDim2.new(0, 44, 0.5, 0),
-	Size = UDim2.fromOffset(20, 20),
 	BackgroundTransparency = 1,
 	Image = Icons.Gem.Image,
+	ScaleType = Enum.ScaleType.Fit,
 })
 make(
 	"UIGradient",
 	"Rainbow",
 	role(
 		caption("Value", costRow, {
-			Size = UDim2.new(0, 40, 1, 0),
 			Text = tostring(Config.SummonCost),
 			TextXAlignment = Enum.TextXAlignment.Right,
 		}),
-		"Item"
+		"Caption"
 	),
 	{ Color = RAINBOW }
 )
 role(
 	caption("Hint", costRow, {
-		Position = UDim2.fromOffset(72, 0),
-		Size = UDim2.new(1, -72, 1, 0),
 		Text = "Spend Gems for new Sidekicks. Tap the banner for Details!",
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}),
 	"Caption"
 )
 
--- Status takes the hint's place in the cost row, so it never covers the rates.
+-- Status takes the hint's place in the cost line, so it never covers the rates.
 local statusText = role(
 	caption("Status", costRow, {
-		Position = UDim2.fromOffset(72, 0),
-		Size = UDim2.new(1, -72, 1, 0),
 		Text = "",
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}),
-	"Body",
-	PALETTE.Gold,
-	true
+	"Caption"
 )
 statusText:GetPropertyChangedSignal("Text"):Connect(function()
 	costRow.Hint.Visible = statusText.Text == ""
 end)
 
--- The summon row: 40 tall, 12 apart; Auto-Sell takes 0.2 of the width and the two summons 0.4 each.
-local autoSellButton = button("AutoSell", main, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.fromScale(0, 1),
-	Size = UDim2.new(0.2, -8, 0, 40),
-}, "Auto-Sell")
-local summon1 = button("Summon1", main, {
-	AnchorPoint = Vector2.new(0, 1),
-	Position = UDim2.new(0.2, 4, 1, 0),
-	Size = UDim2.new(0.4, -8, 0, 40),
-}, string.format("Summon 1x: %d Gems", Config.SummonCost), "Go")
-local summon10 = button("Summon10", main, {
-	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.fromScale(1, 1),
-	Size = UDim2.new(0.4, -8, 0, 40),
-}, string.format("Summon 10x: %d Gems", Config.TenCost), "Go")
+-- The summon row: 44 tall, 12 apart; Auto-Sell takes 20% of the width and the two summons 40% each.
+local autoSellButton = button("AutoSell", main, {}, "Auto-Sell")
+local summon1 = button("Summon1", main, {}, string.format("Summon 1x: %d Gems", Config.SummonCost), "Go")
+local summon10 = button("Summon10", main, {}, string.format("Summon 10x: %d Gems", Config.TenCost), "Go")
 -- VIP pays less (design doc 4.36); the server publishes what this player pays.
 local function showCosts()
 	local one = player:GetAttribute("SidekickCost1") or Config.SummonCost
@@ -769,9 +630,6 @@ player:GetAttributeChangedSignal("SidekickCost10"):Connect(showCosts)
 showCosts()
 -- Client/SidekickTutorial's spotlight lands here. On the poster, above the names and rates, so it covers no rate.
 local freeSummon = button("FreeSummon", main, {
-	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 0.58, -58), -- 8 above the poster's names (the Banner is 80 short of Main)
-	Size = UDim2.new(0.5, 0, 0, 40),
 	Visible = false,
 	ZIndex = 2,
 }, "FREE SUMMON", "Go")
@@ -1041,6 +899,10 @@ local function refresh()
 	pityValue.Text = string.format("%d/%d", player:GetAttribute("SidekickPity") or 0, PITY_COUNT)
 	legendaryPityValue.Text =
 		string.format("%d/%d", player:GetAttribute("SidekickLegendaryPity") or 0, LEGENDARY_PITY_COUNT)
+	plates[3].Share = (player:GetAttribute("SidekickPity") or 0) / PITY_COUNT
+	plates[4].Share = (player:GetAttribute("SidekickLegendaryPity") or 0) / LEGENDARY_PITY_COUNT
+	placeFill(plates[3])
+	placeFill(plates[4])
 	showOdds()
 	local locked = (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth
 	for _, summonButton in { summon1, summon10 } do
@@ -1167,7 +1029,8 @@ local function showTimer()
 	local seconds = math.floor(math.max(0, rotationEndsAt - workspace:GetServerTimeNow()))
 	local text = string.format("%d:%02d", seconds // 60, seconds % 60)
 	rotationTimer.Text = text
-	timerFill.Size = UDim2.fromScale(math.clamp(seconds / ROTATION_SECONDS, 0, 1), 1)
+	plates[2].Share = seconds / ROTATION_SECONDS
+	placeFill(plates[2])
 	detailsSheet.Heading.Text = "Details: summon odds. Next rotation " .. text
 end
 local function renderRotation()
@@ -1178,6 +1041,7 @@ local function renderRotation()
 	rotationEndsAt = rotation.EndsAt
 	renderBanner(rotation)
 	renderDetails(rotation)
+	g.Relayout() -- the new poster's sticker and Details button
 	fillViews()
 	showTimer()
 end
@@ -1195,6 +1059,80 @@ task.spawn(function()
 		models:GetAttributeChangedSignal("Ready"):Wait()
 	end
 	fillViews()
+end)
+-- Every rect in the Index frame's units (design doc 4.42): the plates in the tabs row, Body on the content area.
+g.OnLayout(function()
+	local c = g.Content
+	for label, entry in roles do
+		g.Role(label, entry[1])
+		if entry[2] then
+			label.TextColor3 = entry[2]
+		end
+	end
+	-- The tabs row: four plates, 8 apart as the Index's tabs; text 24 clear of each plate's slanted ends.
+	local x, room = c.X, c.W - 3 * 8
+	for _, entry in plates do
+		local w = room * entry.Row
+		entry.W = w
+		g.Place(entry.Frame, x, c.TabsY, w, 40)
+		local left = entry.Icon and 24 + 28 + 8 or 24
+		if entry.Icon then
+			g.Place(entry.Icon, 24, 6, 28, 28)
+		end
+		local inner = w - 24 - left
+		g.Place(entry.Frame.Label, left, 0, inner * entry.Label - 4, 40)
+		g.Place(entry.Value, left + inner * entry.Label + 4, 0, inner * (1 - entry.Label) - 4, 40)
+		if entry.Fill then
+			placeFill(entry)
+		end
+		x += w + 8
+	end
+	g.Place(body, c.X, c.Y, c.W, c.H)
+	-- Main: the left 56%. Top down: the poster, 12, the cost line, 8, the summon row, 12 above the area's foot.
+	local mainW = math.floor(c.W * 0.56)
+	g.Place(main, 0, 0, mainW, c.H)
+	local rowY = c.H - 12 - 44
+	local costY = rowY - 8 - 22
+	local posterH = costY - 12
+	g.Place(banner, 0, 0, mainW, posterH)
+	g.Place(costRow, 0, costY, mainW, 22)
+	g.Place(costRow.Value, 0, 0, 48, 22)
+	g.Place(costRow.GemIcon, 52, 1, 20, 20)
+	g.Place(costRow.Hint, 80, 0, mainW - 80, 22)
+	g.Place(statusText, 80, 0, mainW - 80, 22)
+	local share = (mainW - 24) / 5 -- Auto-Sell 1 share, each summon 2
+	g.Place(autoSellButton, 0, rowY, share, 44)
+	g.Place(summon1, share + 12, rowY, 2 * share, 44)
+	g.Place(summon10, 3 * share + 24, rowY, 2 * share, 44)
+	-- On the poster, 12 above its names (the poster's lower 42%).
+	g.Place(freeSummon, mainW / 4, math.max(12, posterH * 0.58 - 12 - 44), mainW / 2, 44)
+	local poster = banner:FindFirstChild("Poster")
+	local details = poster and poster:FindFirstChild("Details")
+	if details then
+		g.Place(details, mainW - 12 - 100, 12, 100, 32)
+	end
+	local sticker = banner:FindFirstChild("Sticker")
+	if sticker then
+		g.Place(sticker, 16, 22, 190, 40) -- a -5 degree turn lifts a corner about 8: still 12 inside the top
+	end
+	-- The gem column: the right 44%, MORE GEMS then as many whole pack cards as fit, 12 apart.
+	local colX = mainW + 12
+	local colW = c.W - colX
+	g.Place(gemColumn, colX, 0, colW, c.H)
+	g.Place(gemHeading, 0, 0, colW, 40)
+	local listY = 52
+	g.Place(packs, 0, listY, colW, c.H - listY)
+	packLayout.Padding = UDim.new(0, g.px(12))
+	local roomH = c.H - listY - 2 * PACK_PAD / g.k
+	local count = math.max(1, math.floor((roomH + 12) / (136 + 12))) -- 136: three lines and the padding
+	local tall = (roomH - (count - 1) * 12) / count
+	local tileW = colW - 8 / g.k - 2 * PACK_PAD / g.k -- the scrollbar's 6 px and the clip pad, in units
+	for _, tile in packs:GetChildren() do
+		if tile:IsA("Frame") then
+			tile.Size = UDim2.fromOffset(g.px(tileW), g.px(tall))
+			placePack(tile, tileW, tall)
+		end
+	end
 end)
 refresh()
 UiTheme.Apply(root)

@@ -100,14 +100,13 @@ local function panel(name, title, icon)
 		Active = true,
 	})
 	plate(p)
-	-- Design doc 4.42: the framed body art and the standard header (strip, overhanging logo, ALL CAPS title, art close).
-	Skin.Body(p)
+	-- Design doc 4.42: the Index frame (chrome, overhanging logo, ALL CAPS title, art close); content in its units.
 	local header = make("Frame", "Header", p, { BackgroundTransparency = 1 })
 	local heading = text("Title", p, UDim2.new(), UDim2.new(), title)
 	local logo = make("ImageLabel", "Icon", p, { Image = icon })
 	local close = button("Close", p, UDim2.new(), UDim2.new(), "×")
 	Frame.PaintClose(close)
-	Skin.Header(p, { Header = header, Title = heading, Icon = logo, Close = close })
+	local g = Skin.IndexFrame(p, { Title = heading, Icon = logo, Logo = icon, Close = close, Header = header })
 	Switch.Register(name, p)
 	-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
 	Band.Fit(p, 700)
@@ -117,7 +116,7 @@ local function panel(name, title, icon)
 	close.Activated:Connect(closePanel)
 	Frame.CloseOnOutsideClick(p, closePanel)
 	panels[name] = p
-	return p
+	return p, g
 end
 local hud = screen("RacerProgression", 1)
 -- Weather icon, bottom right (docs/WEATHER_EVENTS_SPEC.md, "Weather icon"): hover or tap shows the card.
@@ -322,12 +321,11 @@ for _, tile in Tree.Tiles() do
 		UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", b)
 	end)
 end
-local workshopPanel = panel("Workshop", "WORKSHOP UPGRADE", require(script.Parent.RollToast.Ui.HudIcons).Upgrade.Image)
--- Design doc 4.42 spacing standard (Client/AnimeSkin tokens): under the header, the stat tabs in the toolbar row; then
--- the level column on the left (BUY at its foot, clear of the stripe art) and the showcase on the right. Rows are
--- anchored to the top or the bottom of the band-sized panel, so they follow its height; place() redoes the px tokens
--- when the phone / desktop size changes.
-local px = Skin.Px
+local workshopPanel, wg =
+	panel("Workshop", "WORKSHOP UPGRADE", require(script.Parent.RollToast.Ui.HudIcons).Upgrade.Image)
+-- Design doc 4.42, in the Index frame's units (wg): the stat tabs in the tabs row; in the content area the level
+-- column (the left 40%, BUY at its foot) and the showcase (the rest, 12 apart). placeWorkshop runs on every size change.
+local wsRoles = {} -- label -> text role, given again at each layout (the role's size follows the frame's scale)
 local boostLabel = text("Boost", workshopPanel, UDim2.new(), UDim2.new(), "")
 local levelLabel = text("Level", workshopPanel, UDim2.new(), UDim2.new(), "")
 local priceLabel = text("Price", workshopPanel, UDim2.new(), UDim2.new(), "")
@@ -335,22 +333,15 @@ local workshopResult = text("Result", workshopPanel, UDim2.new(), UDim2.new(), "
 for label, role in { [boostLabel] = "Item", [levelLabel] = "Body", [priceLabel] = "Body", [workshopResult] = "Caption" } do
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextYAlignment = Enum.TextYAlignment.Top
-	Skin.Label(label, role)
+	wsRoles[label] = role
 end
--- The boosted stat picker (design doc 4.19): the server validates the pick; the chosen one is lit.
-local statRow = make("Frame", "Stats", workshopPanel, { BackgroundTransparency = 1 })
-local statLit = {}
+-- The boosted stat picker (design doc 4.19): the server validates the pick; the chosen one is lit. The buttons stay
+-- in Stats (UI tests pin the path), a frame at the panel's origin, so the tabs row places them in panel units.
+local statRow = make("Frame", "Stats", workshopPanel, { BackgroundTransparency = 1, Size = UDim2.new() })
+local statButtons = {}
 for i, stat in Workshop.Config.STATS do
-	local count = #Workshop.Config.STATS
-	local gap = px(Skin.Space.Inner)
-	local b = button(
-		stat,
-		statRow,
-		UDim2.new((i - 1) / count, gap / 2, 0, 0),
-		UDim2.new(1 / count, -gap, 1, 0),
-		string.upper(stat)
-	)
-	statLit[stat] = Skin.Tab(b, i)
+	local b = button(stat, statRow, UDim2.new(), UDim2.new(), string.upper(stat))
+	statButtons[i] = b
 	b.Activated:Connect(function()
 		local ok, applied, reason = pcall(function()
 			return remotes:WaitForChild("SetWorkshopStat"):InvokeServer(stat)
@@ -359,16 +350,18 @@ for i, stat in Workshop.Config.STATS do
 			or "Connection error; try again"
 	end)
 end
+local statLit = {}
+for i, lit in wg.Tabs(statButtons) do
+	statLit[Workshop.Config.STATS[i]] = lit
+end
 local buyWorkshop = button("Buy", workshopPanel, UDim2.new(), UDim2.new(), "BUY NEXT LEVEL")
-Skin.Button(buyWorkshop, "Idle")
 -- Showcase (docs/WORKSHOP_SPEC.md "Showcase"): the right part of the Workshop panel. The server validates every pick.
 local showcaseFrame = make("Frame", "Showcase", workshopPanel, { BackgroundTransparency = 1 })
 local squadPoints = text("Points", showcaseFrame, UDim2.new(), UDim2.new(), "")
 squadPoints.TextXAlignment = Enum.TextXAlignment.Left
-Skin.Label(squadPoints, "Caption")
--- The squad slots and BEST 3: one row of 40 px buttons.
+wsRoles[squadPoints] = "Caption"
+-- The squad slots and BEST 3: one row of 44 tall buttons, 12 apart.
 local best3 = button("Best3", showcaseFrame, UDim2.new(), UDim2.new(), "BEST 3")
-Skin.Button(best3, "Go")
 local slots = {}
 for i = 1, GachaConfig.SHOWCASE_SLOTS do
 	local slot = make("Frame", "Slot" .. i, showcaseFrame, {})
@@ -379,79 +372,77 @@ for i = 1, GachaConfig.SHOWCASE_SLOTS do
 		label.TextXAlignment = Enum.TextXAlignment.Left
 		label.TextWrapped = false
 		label.TextTruncate = Enum.TextTruncate.AtEnd
-		Skin.Label(label, role)
+		wsRoles[label] = role
 	end
 	local clear = button("Clear", slot, UDim2.new(), UDim2.new(), "×")
-	Skin.Button(clear, "Danger")
 	slots[i] = { Frame = slot, Name = name, Info = info, Clear = clear }
 end
 local showcaseList = make("ScrollingFrame", "List", showcaseFrame, {
 	BackgroundTransparency = 1,
-	ScrollBarThickness = px(Skin.Space.Scrollbar) - 2,
+	ScrollBarThickness = 6,
 	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the rows, not on their buttons
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
 })
 local showcaseLayout = make("UIListLayout", "Layout", showcaseList, { SortOrder = Enum.SortOrder.LayoutOrder })
-local function placeWorkshop()
-	local inset, gap, inner = px(Skin.Space.Inset), px(Skin.Space.Gap), px(Skin.Space.Inner)
-	local buttonH, top = px(Skin.Space.Button), Skin.Top(true)
-	local split = 0.36 -- the level column's share of the width
-	statRow.Position, statRow.Size = Skin.ToolbarRect()
-	-- Left column: boost, level, price from the top; the result line and BUY from the bottom.
-	local function left(label, y, h)
-		label.Position, label.Size = UDim2.fromOffset(inset, y), UDim2.new(split, -inset - gap / 2, 0, h)
+local ROW_H, SHOW_W = 44, 80 -- candidate rows and their SHOW button, in units
+-- One candidate row: name (Body) and rarity (Caption) on the left, a 32 tall SHOW button on the right.
+local function placeRow(row)
+	local px = wg.px
+	row.Size = UDim2.new(1, 0, 0, px(ROW_H))
+	local name, info = row:FindFirstChild("Name"), row.Info -- row.Name is the property
+	name.Position, name.Size = UDim2.new(), UDim2.new(0.5, -px(8), 1, 0)
+	info.Position, info.Size = UDim2.fromScale(0.5, 0), UDim2.new(0.5, -px(SHOW_W + 8), 1, 0)
+	wg.Role(name, "Body")
+	wg.Role(info, "Caption")
+	row.Show.Position, row.Show.Size = UDim2.new(1, -px(SHOW_W), 0.5, -px(16)), wg.at(SHOW_W, 32)
+	wg.Button(row.Show, row.Show:GetAttribute("Tone"))
+end
+wg.OnLayout(function(g)
+	local c, gap, inner = g.Content, 12, 8
+	for label, role in wsRoles do
+		g.Role(label, role)
 	end
-	local itemH, bodyH = px(Skin.Size.Item) + 4, px(Skin.Size.Body) + 4
-	left(boostLabel, top, itemH)
-	left(levelLabel, top + itemH + inner, bodyH)
-	left(priceLabel, top + itemH + inner + bodyH + inner, 2 * bodyH) -- price may wrap to two lines
-	local bottom = px(Skin.Space.BottomClear) -- BUY sits bottom-left, clear of the stripe art
-	buyWorkshop.Position = UDim2.new(0, inset, 1, -bottom - buttonH)
-	buyWorkshop.Size = UDim2.new(split, -inset - gap / 2, 0, buttonH)
-	local resultH = px(Skin.Size.Caption) + 4
-	workshopResult.Position = UDim2.new(0, inset, 1, -bottom - buttonH - inner - resultH)
-	workshopResult.Size = UDim2.new(split, -inset - gap / 2, 0, resultH)
-	-- Right column: the squad line, the slots row, then the candidates list down to the bottom inset.
-	showcaseFrame.Position = UDim2.new(split, gap / 2, 0, top)
-	showcaseFrame.Size = UDim2.new(1 - split, -inset - gap / 2, 1, -top - px(Skin.Space.Bottom))
-	squadPoints.Position, squadPoints.Size = UDim2.new(), UDim2.new(1, 0, 0, resultH)
-	local rowTop = resultH + inner
-	local best3W = px(76) -- narrower, so each slot shows its full name ("EMPTY", a character) beside the clear button
-	best3.Position, best3.Size = UDim2.new(1, -best3W, 0, rowTop), UDim2.fromOffset(best3W, buttonH)
-	local count = GachaConfig.SHOWCASE_SLOTS
+	-- Left column, top down: boost, level, price; from the foot: BUY, then the result line 8 above it.
+	local leftW = math.floor(c.W * 0.4)
+	local bottom = c.Y + c.H
+	g.Place(boostLabel, c.X, c.Y, leftW, 34)
+	g.Place(levelLabel, c.X, c.Y + 34 + inner, leftW, 28)
+	local priceY = c.Y + 34 + inner + 28 + inner
+	local resultY = bottom - 44 - inner - 22
+	g.Place(priceLabel, c.X, priceY, leftW, math.min(56, resultY - inner - priceY)) -- two lines when there is room
+	g.Place(workshopResult, c.X, resultY, leftW, 22)
+	g.Place(buyWorkshop, c.X, bottom - 44, leftW, 44)
+	g.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
+	-- Right column: the squad line, the slots row, then as many whole candidate rows as fit.
+	local rightW = c.W - leftW - gap
+	g.Place(showcaseFrame, c.X + leftW + gap, c.Y, rightW, c.H)
+	g.Place(squadPoints, 0, 0, rightW, 22)
+	local rowY, count = 22 + inner, GachaConfig.SHOWCASE_SLOTS
+	local slotW = (rightW - count * gap) / (count + 1)
 	for i, slot in slots do
-		-- count slots and BEST 3 share the row, `inner` apart: slot width (row - BEST 3 - count * inner) / count
-		slot.Frame.Position = UDim2.new((i - 1) / count, -(i - 1) * best3W / count, 0, rowTop)
-		slot.Frame.Size = UDim2.new(1 / count, -(best3W + count * inner) / count, 0, buttonH)
-		local small = px(Skin.Space.ButtonSmall)
-		slot.Clear.Position = UDim2.new(1, -small - (buttonH - small) / 2, 0.5, -small / 2)
-		slot.Clear.Size = UDim2.fromOffset(small, small)
-		local textW = UDim.new(1, -small - inner - inner) -- up to the clear button, 8 from it
-		slot.Name.Position, slot.Name.Size = UDim2.fromOffset(inner, 2), UDim2.new(textW, UDim.new(0, bodyH))
-		slot.Info.Position = UDim2.fromOffset(inner, buttonH - resultH - 2)
-		slot.Info.Size = UDim2.new(textW, UDim.new(0, resultH))
+		g.Place(slot.Frame, (i - 1) * (slotW + gap), rowY, slotW, 44)
+		Skin.Button(slot.Frame, "Idle")
+		g.Place(slot.Clear, slotW - 6 - 32, 6, 32, 32)
+		g.Button(slot.Clear, "Danger")
+		-- The name takes the whole slot while it is EMPTY (no clear button), so "EMPTY" always fits.
+		local textW = slotW - 12 - (slot.Clear.Visible and 32 + 6 + 4 or 0)
+		g.Place(slot.Name, 6, 2, textW, 24)
+		g.Place(slot.Info, 6, 26, textW, 16)
+		slot.Name:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = g.px(8)
 	end
-	showcaseList.Position = UDim2.fromOffset(0, rowTop + buttonH + gap)
-	showcaseLayout.Padding = UDim.new(0, gap)
-	buyWorkshop.TextSize, best3.TextSize = px(Skin.Size.Body), px(Skin.Size.Body)
-end
--- The list ends on a whole row: its height is cut to a multiple of row + gap (design doc 4.42).
-local function fitShowcaseList()
-	local rowH, gap = px(Skin.Space.Button), px(Skin.Space.Gap)
-	local room = math.max(0, showcaseFrame.AbsoluteSize.Y - showcaseList.Position.Y.Offset)
-	local whole = math.max(1, math.floor((room + gap) / (rowH + gap)))
-	showcaseList.Size = UDim2.new(1, 0, 0, math.min(room, whole * (rowH + gap) - gap))
-end
-local function placeAll()
-	placeWorkshop()
-	fitShowcaseList()
-end
-placeAll()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeAll)
-end
-showcaseFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitShowcaseList)
+	g.Place(best3, count * (slotW + gap), rowY, slotW, 44)
+	g.Button(best3, "Go")
+	local listY = rowY + 44 + gap
+	local whole = math.max(1, math.floor((c.H - listY + gap) / (ROW_H + gap)))
+	g.Place(showcaseList, 0, listY, rightW, whole * (ROW_H + gap) - gap)
+	showcaseLayout.Padding = UDim.new(0, g.px(gap))
+	for _, row in showcaseList:GetChildren() do
+		if row:IsA("Frame") then
+			placeRow(row)
+		end
+	end
+end)
 
 local function shownIds()
 	local ids = {}
@@ -510,6 +501,7 @@ local function refreshShowcase()
 		slot.Clear.Visible = spec ~= nil
 	end
 	squadPoints.Text = string.format("SQUAD  %d rarity points", Workshop.Points(specs))
+	wg.Relayout() -- a slot name takes the clear button's room while it is EMPTY
 	for _, row in showcaseList:GetChildren() do
 		if row:IsA("Frame") then
 			row:Destroy()
@@ -517,38 +509,21 @@ local function refreshShowcase()
 	end
 	local full = #ids >= GachaConfig.SHOWCASE_SLOTS
 	for order, c in candidates do
-		-- 40 px rows: name (Body) and rarity (Caption) on the left, a 32 px SHOW button on the right.
-		local rowH, small, inner = px(Skin.Space.Button), px(Skin.Space.ButtonSmall), px(Skin.Space.Inner)
-		local showW = px(80)
 		local row = make("Frame", "Character_" .. c.Spec.Id, showcaseList, {
-			Size = UDim2.new(1, 0, 0, rowH),
 			BackgroundTransparency = 1,
 			LayoutOrder = order,
 		})
-		local label = text("Name", row, UDim2.new(), UDim2.new(0.5, -inner, 1, 0), c.Spec.Name)
-		local info = text(
-			"Info",
-			row,
-			UDim2.fromScale(0.5, 0),
-			UDim2.new(0.5, -showW - inner, 1, 0),
-			string.format("%s · %d pts", c.Spec.Rarity, c.Points)
-		)
-		for object, role in { [label] = "Body", [info] = "Caption" } do
+		local label = text("Name", row, UDim2.new(), UDim2.new(), c.Spec.Name)
+		local info = text("Info", row, UDim2.new(), UDim2.new(), string.format("%s · %d pts", c.Spec.Rarity, c.Points))
+		for _, object in { label, info } do
 			object.TextXAlignment = Enum.TextXAlignment.Left
 			object.TextWrapped = false
 			object.TextTruncate = Enum.TextTruncate.AtEnd
-			Skin.Label(object, role)
 		end
 		local shown = table.find(ids, c.Spec.Id) ~= nil
-		local show = button(
-			"Show",
-			row,
-			UDim2.new(1, -showW, 0.5, -small / 2),
-			UDim2.fromOffset(showW, small),
-			shown and "SHOWN" or "SHOW"
-		)
-		show.TextSize = px(Skin.Size.Caption)
-		Skin.Button(show, shown and "Go" or "Idle")
+		local show = button("Show", row, UDim2.new(), UDim2.new(), shown and "SHOWN" or "SHOW")
+		show:SetAttribute("Tone", shown and "Go" or "Idle")
+		placeRow(row)
 		setActive(show, shown or not full)
 		show.Activated:Connect(function()
 			if not show.Active then
@@ -630,7 +605,7 @@ local function refresh()
 		or "MAX LEVEL"
 	setActive(buyWorkshop, nextLevel ~= nil and balance >= nextLevel.Price)
 	buyWorkshop.Selectable = buyWorkshop.Active
-	Skin.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
+	wg.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
 	-- Server numbers (WorkshopBoost, WorkshopStat); "+35% Luck", one decimal at most
 	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
 	boostLabel.Text = "+"

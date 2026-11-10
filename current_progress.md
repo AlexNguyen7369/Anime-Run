@@ -137,8 +137,9 @@
 134. 2026-11-10 — Alex Nguyen — Gave Quests the Index anime look (QuestAnimeStyle: chrome, banner, art tabs, state-tinted plates, detail card, footer) and committed Issac's Studio-only Index scripts; design doc 4.42; owner approved from screenshots.
 135. 2026-11-10 — Alex Nguyen — Applied the Index anime look game-wide through Client/AnimeSkin and PanelFrame (every panel, popup, tab, button and card, boss event included); design doc 4.42; screenshots to the owner, not pushed.
 136. 2026-11-10 — Alex Nguyen — Audited every panel's margins and spacing (docs/UI_SPACING_AUDIT.md), got the standard approved into design doc 4.42, and redrafted all panels to it (AnimeSkin tokens, one header, toolbar row, five text roles, footers); 14 screenshots to the owner, not pushed.
+137. 2026-11-10 — Alex Nguyen — Round 2 of the UI redraft after the owner approved only Quests and Stats: AnimeSkin.IndexFrame puts every panel and popup in the Index's exact frame and one font family (UiTheme no longer resets AnimeSkin text), gamepass art fills its card, Settings and Rebirth get margins and smaller text, Upgrades tree reverted to its first pass; 15 screenshots to the owner, not pushed.
 
 ## What's next
-**Owner reviews the 14 redraft screenshots; on approval push `feature/alex/anime-world`, then retarget and run the UI harness (`ui_layout`, `ui_market`, `ui_inventory`, `ui_boss`, `ui_boss_rewards`, Racer panel rects in UiResponsive) and look at the phone layout.**
+**Owner reviews the round-2 screenshots; on approval push `feature/alex/anime-world`, retarget the stale UI tests (Market tab rail, Racer panel rects in UiResponsive, Backpack rail scale, boss header text) and run the UI harness, then look at the phone layout.**
 
-**Why this is next:** the redraft moved tabs, toolbars and the Racer panels' geometry, which the UI tests pin; those tests gate the merge to main and the phone pass is the one view no one has looked at.
+**Why this is next:** every panel's geometry changed to the Index frame's units, which the UI tests pin; the harness gates the merge to main and the phone view has not been looked at.

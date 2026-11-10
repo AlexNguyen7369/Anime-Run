@@ -3,7 +3,9 @@
 -- shared modal, laid out in the Index's design units (920 x 620, phone 500 x 420) scaled to the modal. Display only.
 local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
 local ART, image, text = IndexStyle.Art, IndexStyle.Image, IndexStyle.Text
+local BODY_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 
 local Style = {}
 -- Plate colours by quest state (placeholders). In progress uses the Index's default card blue.
@@ -130,6 +132,9 @@ function Style.Attach(refs)
 		limit.MaxTextSize = px(20)
 	end
 
+	local controller = {}
+	local view = "Quests"
+	local active = false
 	local function layout()
 		local small = phone()
 		local W, H = small and 500 or 920, small and 420 or 620
@@ -138,16 +143,29 @@ function Style.Attach(refs)
 		if k <= 0 then
 			return
 		end
+		local daily = view == "Daily"
 		body.Position, body.Size = at(-40, -70), UDim2.new(1, px(80), 1, px(100))
 		banner.Position, banner.Size = at(-34, -18), UDim2.new(1, px(68), 0, px(86))
 		logo.Position, logo.Size = at(15, -54), at(188, 186)
-		title.Position, title.Size = at(202, -5), at(250, 76)
+		title.Position, title.Size = at(202, -5), at(daily and W - 312 or 250, 76)
 		text(title, px(72))
 		close.Position, close.Size = at(W - 82, -6), at(74, 74)
 		footer.Position, footer.Size = at(W * 303 / 920, H - 60), at(W * 312 / 920, 28)
 		text(footer, px(20))
 		local stroke = footer:FindFirstChildOfClass("UIStroke")
 		stroke.Thickness = 1.5
+
+		local top = small and 144 or 164
+		local gridW, gridH = W - 112, H - top - 82
+		if daily then
+			-- The Daily view: same chrome, its own content in the grid area (Client/BoostDailyUi lays it out).
+			controller.Rect =
+				{ X = px(56), Y = px(top), W = px(gridW), H = px(gridH), k = k, Units = { W = gridW, H = gridH } }
+			if controller.OnDaily then
+				controller.OnDaily(controller.Rect)
+			end
+			return
+		end
 
 		-- Same tab size as the Index's four.
 		refs.Tabs.Position, refs.Tabs.Size = at(56, small and 90 or 98), at(W - 112, 40)
@@ -160,8 +178,6 @@ function Style.Attach(refs)
 		end
 
 		-- The Index grid's area: the list on the left, the detail card on the right (phones: the list only).
-		local top = small and 144 or 164
-		local gridW, gridH = W - 112, H - top - 82
 		local listW = small and gridW or math.floor(gridW * 0.56)
 		refs.Content.Position, refs.Content.Size = at(56, top), at(listW, gridH)
 		local layoutObject = refs.Content:FindFirstChildOfClass("UIListLayout")
@@ -187,8 +203,46 @@ function Style.Attach(refs)
 		refs.Reward.TextColor3 = UiTheme.Palette.Gold
 	end
 
-	local controller = {}
-	local active = false
+	controller.px, controller.at = px, at
+	-- A text role in design units (Client/AnimeSkin.UnitSize, the same treatment as AnimeSkin.IndexFrame's g.Role).
+	function controller.Role(label, role)
+		local size = px(Skin.UnitSize[role] or Skin.UnitSize.Body)
+		local heavy = role == "Title" or role == "Section" or role == "Item"
+		label:SetAttribute("AnimeRole", role)
+		label.FontFace = heavy and Skin.Font or BODY_FONT
+		label.TextColor3 = role == "Section" and Skin.Color.Section
+			or role == "Caption" and Skin.Color.Caption
+			or Skin.Color.White
+		label.TextStrokeTransparency = 1
+		local stroke = label:FindFirstChild("AnimeOutline") -- by name: a button's border Edge stays its own
+		if heavy then
+			stroke = stroke or make("UIStroke", "AnimeOutline", label, {})
+			stroke.Color, stroke.Thickness, stroke.Enabled = IndexStyle.Ink, 2, true
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+		elseif stroke then
+			stroke.Enabled = false
+		end
+		label.TextScaled = true
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+			or make("UITextSizeConstraint", "AnimeLimit", label, {})
+		limit.MaxTextSize = math.max(1, size)
+		limit.MinTextSize = math.max(1, math.min(size, px(10)))
+	end
+	function controller.Button(button, tone)
+		Skin.Button(button, tone)
+		controller.Role(button, "Item")
+	end
+	-- "Quests": tabs, list, detail, as approved. "Daily": the same chrome with the Daily title and logo; the caller
+	-- lays its content in controller.Rect (px) from controller.OnDaily(rect), called on every layout.
+	function controller:SetView(name)
+		view = name
+		title.Text = name == "Daily" and "DAILY REWARDS" or "QUESTS"
+		logo.Image = name == "Daily" and (refs.DailyLogo or refs.Logo) or refs.Logo
+		if active then
+			layout()
+		end
+		return controller.Rect
+	end
 	function controller:SetActive(on)
 		active = on
 		aspect.Parent = on and modal or nil

@@ -7,10 +7,10 @@ local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("U
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Palette = UiTheme.Palette
 local ICON = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons")).Shop.Image
-local SPACE = AnimeSkin.Space
-local px = AnimeSkin.Px
-local SUMMARY_HEIGHT = 24 -- one Item line
-local STATUS_HEIGHT = 20 -- one Body line
+-- Design units (AnimeSkin.IndexFrame): rows and the button 44 tall, 12 apart.
+local U = AnimeSkin.Units
+local SUMMARY_HEIGHT = 40 -- one Item line
+local STATUS_HEIGHT = 32 -- one Body line
 local Picker = {}
 local function make(class, name, parent, props)
 	local obj = Instance.new(class)
@@ -26,30 +26,23 @@ local function label(name, parent, props)
 	props.TextWrapped = true
 	return make("TextLabel", name, parent, props)
 end
--- A popup over the whole Shop panel with the standard header (design doc 4.42): its Back is the header's art close.
+-- A popup over the whole Shop panel in the Index frame (design doc 4.42): its Back is the frame's art close.
 function Picker.Create(panel, items, backdrop)
 	local root = make("Frame", "GiftPicker", panel, {
 		Size = UDim2.fromScale(1, 1),
 		Visible = false,
 		Active = true,
-		ZIndex = 10, -- over the Shop's own header and close
+		ZIndex = 20, -- over the Shop's own header, logo and close
 	})
-	AnimeSkin.Body(root)
 	local title = label("Title", root, { Text = "Send a gift" })
 	local cancel = make("TextButton", "Cancel", root, { Text = "Back", AutoButtonColor = false })
-	AnimeSkin.Header(root, {
-		Header = make("Frame", "Header", root, { BackgroundTransparency = 1 }),
-		Title = title,
-		Icon = make("ImageLabel", "Icon", root, { Image = ICON }),
-		Close = cancel,
-	})
+	local g = AnimeSkin.IndexFrame(root, { Title = title, Close = cancel, Logo = ICON })
 	local summary = label("Summary", root, { Text = "", TextXAlignment = Enum.TextXAlignment.Left })
 	local recipients = make("ScrollingFrame", "Recipients", root, {
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollBarThickness = 6,
 		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the rows, not on them
 	})
 	local list = make("UIListLayout", "Layout", recipients, { SortOrder = Enum.SortOrder.LayoutOrder })
@@ -60,26 +53,29 @@ function Picker.Create(panel, items, backdrop)
 		Active = false,
 		AutoButtonColor = false,
 	})
-	-- 16 insets, 12 gaps, 40 tall rows and button; the list ends on a whole row; Confirm spans the bottom-left, so it
-	-- keeps 24 clear of the stripe art.
+	-- In the content area: the summary line, the list (whole rows only), the status line and Confirm at the bottom.
 	local function layout()
-		local inset, gap, row = px(SPACE.Inset), px(SPACE.Gap), px(SPACE.Button)
-		local top = AnimeSkin.Top(false)
-		local width = UDim2.new(1, -2 * inset, 0, 0)
-		summary.Position, summary.Size = UDim2.fromOffset(inset, top), width + UDim2.fromOffset(0, px(SUMMARY_HEIGHT))
-		local listTop = top + px(SUMMARY_HEIGHT) + gap
-		local bottom = px(SPACE.BottomClear) + row + gap + px(STATUS_HEIGHT) + gap
-		local rows = math.max(1, math.floor((root.AbsoluteSize.Y - listTop - bottom + gap) / (row + gap)))
-		recipients.Position = UDim2.fromOffset(inset, listTop)
-		recipients.Size = width + UDim2.fromOffset(0, rows * (row + gap) - gap)
-		list.Padding = UDim.new(0, gap)
-		status.Position = UDim2.new(0, inset, 1, -bottom + gap)
-		status.Size = width + UDim2.fromOffset(0, px(STATUS_HEIGHT))
-		confirm.Position = UDim2.new(0, inset, 1, -px(SPACE.BottomClear) - row)
-		confirm.Size = width + UDim2.fromOffset(0, row)
-		confirm.TextSize = px(AnimeSkin.Size.Body)
+		local c = g.Content
+		g.Place(summary, c.X, c.Y, c.W, SUMMARY_HEIGHT)
+		local confirmY = c.Y + c.H - U.Button
+		local statusY = confirmY - U.Gap - STATUS_HEIGHT
+		local listTop = c.Y + SUMMARY_HEIGHT + U.Gap
+		local rows = math.max(1, math.floor((statusY - U.Gap - listTop + U.Gap) / (U.Button + U.Gap)))
+		g.Place(recipients, c.X, listTop, c.W, rows * (U.Button + U.Gap) - U.Gap)
+		recipients.ScrollBarThickness = g.px(8)
+		list.Padding = UDim.new(0, g.px(U.Gap))
+		for _, row in recipients:GetChildren() do
+			if row:IsA("TextButton") then
+				row.Size = UDim2.new(1, 0, 0, g.px(U.Button))
+				g.Role(row, "Item")
+			end
+		end
+		g.Place(status, c.X, statusY, c.W, STATUS_HEIGHT)
+		g.Place(confirm, c.X, confirmY, c.W, U.Button)
+		g.Role(summary, "Item")
+		g.Role(status, "Body")
+		g.Role(confirm, "Item")
 	end
-	root:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	local product, selected, submitting, generation, price = nil, nil, false, 0, nil
 	local function update()
 		confirm.Active = selected ~= nil and not submitting
@@ -105,17 +101,13 @@ function Picker.Create(panel, items, backdrop)
 			if recipient ~= Players.LocalPlayer then
 				count += 1
 				local button = make("TextButton", tostring(recipient.UserId), recipients, {
-					Size = UDim2.new(1, 0, 0, px(SPACE.Button)),
+					Size = UDim2.new(1, 0, 0, g.px(U.Button)),
 					LayoutOrder = count,
 					BackgroundColor3 = Palette.Row,
 					Text = recipient.DisplayName .. " (@" .. recipient.Name .. ")",
-					TextSize = px(AnimeSkin.Size.Body),
 					TextTruncate = Enum.TextTruncate.AtEnd,
 				})
-				-- Again next frame: UiTheme.Apply's DescendantAdded puts new text back on Fredoka.
-				local tone = selected == recipient and "Go" or "Idle"
-				AnimeSkin.Button(button, tone)
-				task.defer(AnimeSkin.Button, button, tone)
+				g.Button(button, selected == recipient and "Go" or "Idle") -- its role keeps UiTheme.Apply off it
 				button.Activated:Connect(function()
 					if submitting then
 						return
@@ -180,11 +172,8 @@ function Picker.Create(panel, items, backdrop)
 		end)
 	end)
 	UiTheme.Apply(root)
-	-- After UiTheme.Apply, which would put the fonts back on Fredoka (design doc 4.42).
-	AnimeSkin.Button(confirm, "Go")
-	AnimeSkin.Label(summary, "Item")
-	AnimeSkin.Label(status, "Body")
-	layout()
+	g.Button(confirm, "Go") -- after UiTheme.Apply's corner snap (design doc 4.42)
+	g.OnLayout(layout)
 	backdrop:GetPropertyChangedSignal("Visible"):Connect(function()
 		if not backdrop.Visible then
 			close()

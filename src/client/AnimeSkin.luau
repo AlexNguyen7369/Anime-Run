@@ -233,6 +233,7 @@ end
 
 local BODY_FONT = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
 local function applyRole(label, role)
+	label:SetAttribute("AnimeRole", role) -- UiTheme.Apply leaves this text alone
 	local size = Skin.Px(Skin.Size[role] or Skin.Size.Body)
 	local heavy = role == "Title" or role == "Section" or role == "Item"
 	label.FontFace = heavy and Skin.Font or BODY_FONT
@@ -411,6 +412,253 @@ function Skin.Footer(panel, value)
 	bar.Line.TextXAlignment = Enum.TextXAlignment.Center
 	Skin.Label(bar.Line, "Body")
 	return bar.Line
+end
+
+-- The Index frame (owner 2026-11-10: every panel matches the reference, as the approved Quests and Stats do). Geometry in
+-- Issac's design units, 920 x 620 (phone 500 x 420), drawn at k = panel px / units: the chrome art, the overhanging logo,
+-- the slanted ALL CAPS title, the art close, art tabs in the row at y 98, content from y 164 to 82 above the bottom, and
+-- the footer line on the plate the chrome draws. Same numbers as Client/QuestAnimeStyle and the Index itself.
+Skin.Units = {
+	W = 920,
+	H = 620,
+	PhoneW = 500,
+	PhoneH = 420,
+	Left = 56, -- content inset, left and right
+	TabsY = 98,
+	PhoneTabsY = 90,
+	Top = 164, -- content top
+	PhoneTop = 144,
+	Bottom = 82, -- content ends this far above the bottom (the footer plate sits there)
+	TabH = 40,
+	TabGap = 8,
+	Gap = 12, -- between cards and rows
+	Inner = 8, -- inside a card
+	Pad = 12, -- card padding
+	Button = 44,
+	ButtonSmall = 32,
+}
+-- Text sizes in units: Title and Tab as the Index; Item / Body / Caption read 20 / 16 / 13 px at the Index's own scale.
+Skin.UnitSize = { Title = 72, Section = 40, Item = 34, Body = 28, Caption = 22, Tab = 22, Footer = 20 }
+local HEAVY = { Title = 2.5, Section = 2.5, Item = 2, Tab = 2, Footer = 1.5 } -- outline thickness per heavy role
+
+-- parts: Title (TextLabel), Icon (ImageLabel, optional; Logo = image id to put on it), Close (GuiButton, optional),
+-- Header (Frame to collapse into a transparent anchor at the panel's origin, optional).
+-- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
+-- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
+-- OnLayout(fn(g)) runs now and on every size change; Relayout().
+function Skin.IndexFrame(panel, parts)
+	parts = parts or {}
+	panel.ClipsDescendants = false
+	clear(panel)
+	local aspect = panel:FindFirstChild("AnimeAspect") or child(panel, "UIAspectRatioConstraint", "AnimeAspect")
+	aspect.AspectType = Enum.AspectType.FitWithinMaxSize
+	aspect.DominantAxis = Enum.DominantAxis.Height
+	for _, name in { "AnimeBody", "AnimeStrip" } do
+		local old = panel:FindFirstChild(name, true)
+		if old then
+			old.Visible = false
+		end
+	end
+	local header = parts.Header
+	if header then
+		clear(header)
+		header.AnchorPoint = Vector2.zero
+		header.Position, header.Size = UDim2.new(), UDim2.new(1, 0, 0, 0)
+		header.BackgroundTransparency = 1
+		header.ClipsDescendants = false
+		header.ZIndex = 8
+	end
+	local chrome = panel:FindFirstChild("AnimeChrome")
+		or image(panel, "AnimeChrome", ART.Chrome, UDim2.new(), UDim2.new(), 0)
+	chrome.ZIndex = 0
+	local titleLabel = parts.Title or child(header or panel, "TextLabel", "Title")
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.AnchorPoint = Vector2.zero
+	titleLabel.ZIndex = 10
+	local function upper()
+		local wanted = string.upper(titleLabel.Text)
+		if titleLabel.Text ~= wanted then
+			titleLabel.Text = wanted
+		end
+	end
+	upper()
+	titleLabel:GetPropertyChangedSignal("Text"):Connect(upper)
+	local icon = parts.Icon
+	if not icon and parts.Logo then
+		icon = child(header or panel, "ImageLabel", "Icon")
+	end
+	if icon then
+		icon.BackgroundTransparency = 1
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.AnchorPoint = Vector2.zero
+		icon.ZIndex = 11
+		if parts.Logo then
+			icon.Image = parts.Logo
+		end
+	end
+	local close = parts.Close
+	local closeArt
+	if close then
+		closeArt = Skin.Close(close)
+		close.AnchorPoint = Vector2.zero
+		close.ZIndex = 10
+		closeArt.AnchorPoint = Vector2.zero
+	end
+	local footer = panel:FindFirstChild("AnimeFooterLine") or child(panel, "TextLabel", "AnimeFooterLine")
+	footer.BackgroundTransparency = 1
+	footer.TextXAlignment = Enum.TextXAlignment.Center
+	footer.ZIndex = 4
+	if footer.Text == "Label" then
+		footer.Text = "" -- a new TextLabel's default text; empty until the panel sets its count line
+	end
+
+	local g = { k = 1, W = Skin.Units.W, H = Skin.Units.H, Small = false, Content = {} }
+	function g.px(units)
+		return math.floor(units * g.k + 0.5)
+	end
+	function g.at(x, y)
+		return UDim2.fromOffset(g.px(x), g.px(y))
+	end
+	function g.Place(gui, x, y, w, h)
+		gui.AnchorPoint = Vector2.zero
+		gui.Position, gui.Size = g.at(x, y), g.at(w, h)
+	end
+	-- One of the text roles at its unit size: Title, Section, Item, Tab, Footer heavy italic with the dark outline;
+	-- Body and Caption upright bold with no outline (they read under 16 px).
+	function g.Role(label, role)
+		role = Skin.UnitSize[role] and role or "Body"
+		label:SetAttribute("AnimeRole", role)
+		local size = g.px(Skin.UnitSize[role])
+		local thick = HEAVY[role]
+		label.FontFace = thick and Skin.Font or BODY_FONT
+		label.TextColor3 = role == "Section" and Skin.Color.Section
+			or role == "Caption" and Skin.Color.Caption
+			or Skin.Color.White
+		label.TextStrokeTransparency = 1
+		local stroke = label:FindFirstChildOfClass("UIStroke")
+		if thick then
+			stroke = stroke or child(label, "UIStroke", "AnimeOutline")
+			stroke.Color, stroke.Thickness, stroke.Enabled = INK, thick, true
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+		elseif stroke then
+			stroke.Enabled = false
+		end
+		label.TextScaled = true
+		local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+			or child(label, "UITextSizeConstraint", "AnimeLimit")
+		limit.MaxTextSize = math.max(1, size)
+		limit.MinTextSize = math.max(1, math.min(size, g.px(10)))
+		return label
+	end
+	-- An Index-style button with its caption on the Item size.
+	function g.Button(button, tone)
+		Skin.Button(button, tone)
+		if button:IsA("TextButton") then
+			g.Role(button, "Item")
+			button.TextColor3 = Skin.Color.White
+		end
+	end
+	-- Art tabs across the row at y 98: up to 4 at the Index's width, more share the row. Returns the lit setters.
+	local tabSets = {}
+	function g.Tabs(buttons)
+		local setters = {}
+		for i, button in buttons do
+			setters[i] = Skin.Tab(button, i)
+			local caption = button:FindFirstChild("AnimeCaption") or button:FindFirstChildWhichIsA("TextLabel")
+			if caption then
+				g.Role(caption, "Tab")
+			end
+		end
+		table.insert(tabSets, buttons)
+		g.Relayout()
+		return setters
+	end
+	local footerText = ""
+	function g.Footer(value)
+		footerText = value or ""
+		footer.Text = footerText
+		return footer
+	end
+	function g.SetTitle(value)
+		titleLabel.Text = value
+	end
+	function g.SetLogo(id)
+		if icon then
+			icon.Image = id
+		end
+	end
+	local hooks = {}
+	local function layout()
+		local small = compact()
+		local W, H = small and Skin.Units.PhoneW or Skin.Units.W, small and Skin.Units.PhoneH or Skin.Units.H
+		aspect.AspectRatio = W / H
+		local wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
+		local hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
+		local k = math.min(wPx / W, hPx / H)
+		if k <= 0 then
+			return
+		end
+		g.k, g.W, g.H, g.Small = k, W, H, small
+		chrome.Position, chrome.Size = g.at(-40, -70), UDim2.new(1, g.px(80), 1, g.px(100))
+		if icon then
+			g.Place(icon, -19, -72, 188, 186)
+		end
+		local titleLeft = icon and 168 or 56
+		g.Place(titleLabel, titleLeft, -23, W - titleLeft - 110, 76)
+		titleLabel.Rotation = -2
+		g.Role(titleLabel, "Title")
+		if close then
+			g.Place(close, W - 82, -6, 74, 74)
+			closeArt.Position, closeArt.Size = UDim2.new(), UDim2.fromScale(1, 1)
+		end
+		g.Place(footer, W * 303 / 920, H - 60, W * 312 / 920, 28)
+		g.Role(footer, "Footer")
+		local tabsY = small and Skin.Units.PhoneTabsY or Skin.Units.TabsY
+		for _, buttons in tabSets do
+			local n = #buttons
+			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
+			for i, button in buttons do
+				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)
+				local art, caption = button:FindFirstChild("AnimeTabArt"), button:FindFirstChild("AnimeCaption")
+				if art then
+					art.Position, art.Size = g.at(-7, -5), UDim2.new(1, g.px(14), 1, g.px(10))
+				end
+				if caption and caption.Name == "AnimeCaption" then
+					caption.Position, caption.Size = g.at(8, 0), UDim2.new(1, -g.px(16), 1, 0)
+				end
+			end
+		end
+		local top = small and Skin.Units.PhoneTop or Skin.Units.Top
+		g.Content.X, g.Content.Y, g.Content.W, g.Content.H = 56, top, W - 112, H - top - Skin.Units.Bottom
+		g.Content.TabsY = tabsY
+		for _, hook in hooks do
+			hook(g)
+		end
+	end
+	local queued = false
+	function g.Relayout()
+		if not queued then
+			queued = true
+			task.defer(function()
+				queued = false
+				layout()
+			end)
+		end
+	end
+	function g.OnLayout(fn)
+		table.insert(hooks, fn)
+		layout()
+		g.Relayout() -- after UiTheme.Apply's and Skin.Tab's deferred passes
+	end
+	panel:GetPropertyChangedSignal("Size"):Connect(g.Relayout)
+	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(g.Relayout)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(g.Relayout)
+	end
+	layout()
+	g.Relayout()
+	return g
 end
 
 -- The slanted name plate behind a wide row, tinted.

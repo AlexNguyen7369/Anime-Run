@@ -454,8 +454,8 @@ function Module.Build(h)
 		if not (request and sheet and list and mythicBar and legendaryBar and view) then
 			return
 		end
-		check(res, "sidekick_pity_bar_label", labelText(mythicBar, "Label"), "Mythic Pity:")
-		check(res, "sidekick_legendary_pity_bar_label", labelText(legendaryBar, "Label"), "Legendary Pity:")
+		check(res, "sidekick_pity_bar_label", labelText(mythicBar, "Label"), "MYTHIC")
+		check(res, "sidekick_legendary_pity_bar_label", labelText(legendaryBar, "Label"), "LEGENDARY")
 		sheet.Visible = true
 		local M, L = Config.PityCount, Config.LegendaryPityCount
 		for _, step in

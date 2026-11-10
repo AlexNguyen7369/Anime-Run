@@ -42,14 +42,14 @@ local panel = Instance.new("Frame")
 panel.Name = "Panel"
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.fromScale(0.5, 0.5)
-panel.Size = UDim2.fromScale(0.92, 0.84)
+-- Room around the frame for its chrome and logo, which stand out past the panel's top and sides.
+panel.Size = UDim2.fromScale(0.8, 0.72)
 UiTheme.Body(panel)
 panel.Parent = dim
 UiTheme.Corner(panel, "L")
 UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
-AnimeSkin.Body(panel) -- design doc 4.42: the Index's framed body
 local limit = Instance.new("UISizeConstraint")
-limit.MaxSize = Vector2.new(860, 520)
+limit.MaxSize = Vector2.new(920, 620) -- the Index's size
 limit.Parent = panel
 
 local function text(parent, name, value, size, pos, height)
@@ -73,17 +73,18 @@ local function text(parent, name, value, size, pos, height)
 	return l
 end
 
--- Design doc 4.42: the standard header (strip, ALL CAPS title). No close: a new player must pick. HudIcons has no
--- starter icon, so there is no logo and the title starts at the 16 inset.
+-- Design doc 4.42: the Index frame, its logo the Index icon. No close: a new player must pick.
 local header = Instance.new("Frame")
 header.Name = "Header"
 header.BackgroundTransparency = 1
 header.Parent = panel
 local title = text(header, "Title", "CHOOSE YOUR STARTER", 38, UDim2.new(), 1)
-title.AnchorPoint = Vector2.zero -- AnimeSkin.Header places it from its top-left
-AnimeSkin.Header(panel, { Header = header, Title = title })
-local subtitle =
-	AnimeSkin.Label(text(panel, "Subtitle", "Roll the next two to fill your team", 16, UDim2.new(), 0), "Body")
+local g = AnimeSkin.IndexFrame(panel, {
+	Header = header,
+	Title = title,
+	Logo = require(script.Parent.RollToast.Ui.HudIcons).Index.Image,
+})
+local subtitle = text(panel, "Subtitle", "Roll the next two to fill your team", 16, UDim2.new(), 0)
 
 local row = Instance.new("Frame")
 row.Name = "Cards"
@@ -93,23 +94,7 @@ local layout = Instance.new("UIListLayout")
 layout.FillDirection = Enum.FillDirection.Horizontal
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 12)
 layout.Parent = row
-
--- The subtitle one Body line 12 under the header, the cards 12 under it; 16 in at the sides and the bottom.
-local function place()
-	local inset, top = AnimeSkin.Px(AnimeSkin.Space.Inset), AnimeSkin.Top(false)
-	local line = AnimeSkin.Px(AnimeSkin.Size.Body) + 4
-	subtitle.AnchorPoint = Vector2.zero
-	subtitle.Position, subtitle.Size = UDim2.fromOffset(inset, top), UDim2.new(1, -2 * inset, 0, line)
-	local cardsTop = top + line + AnimeSkin.Px(AnimeSkin.Space.Gap)
-	row.Position = UDim2.fromOffset(inset, cardsTop)
-	row.Size = UDim2.new(1, -2 * inset, 1, -cardsTop - AnimeSkin.Px(AnimeSkin.Space.Bottom))
-end
-place()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
-end
 
 local views = {}
 local picking = false -- a pick is out, or its card is slamming: the popup stays even though NeedsStarter is gone
@@ -137,19 +122,16 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	local card = Instance.new("Frame")
 	card.Name = id
 	card.LayoutOrder = i
-	card.Size = UDim2.new(1 / 3, -8, 1, 0) -- three cards and two 12 gaps fill the row
 	UiTheme.Plate(card, UiTheme.Palette.Tile).BackgroundTransparency = 0
 	AnimeSkin.Card(card, GachaConfig.RARITY_COLORS[spec.Rarity] or AnimeSkin.Tint.Default)
 	card.Parent = row
 
-	-- Inside the card, 12 padding: the art, 8, the name (20), 8, Choose (40).
-	-- The drawn portrait; with none yet, the live model (refill keeps it current).
+	-- Inside the card, 12 padding: the art, 8, the name, 8, Choose (44). The drawn portrait; with none yet, the live
+	-- model (refill keeps it current). Placed by the layout below.
 	local image = Components.PortraitImage(spec)
 	local view = Instance.new(image and "ImageLabel" or "ViewportFrame")
 	view.Name = "Art"
 	view.BackgroundTransparency = 1
-	view.Position = UDim2.fromOffset(12, 12)
-	view.Size = UDim2.new(1, -24, 1, -100)
 	if image then
 		view.Image = image
 		view.ImageColor3 = Color3.new(1, 1, 1)
@@ -162,27 +144,15 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	end
 	view.Parent = card
 
-	local name = text(card, "CharacterName", spec.Name, 20, UDim2.new(0.5, 0, 1, -80), 0)
-	name.Size = UDim2.new(1, -24, 0, 20)
-	AnimeSkin.Label(name, "Item")
+	text(card, "CharacterName", spec.Name, 20, UDim2.new(), 0)
 
 	local button = Instance.new("TextButton")
 	button.Name = "Choose"
-	button.AnchorPoint = Vector2.new(0.5, 1)
-	button.Position = UDim2.new(0.5, 0, 1, -12)
-	button.Size = UDim2.new(1, -24, 0, 40)
 	button.BackgroundColor3 = UiTheme.Palette.MoneyDeep
 	button.AutoButtonColor = false
-	button.Font = UiTheme.Font
 	button.Text = "CHOOSE"
-	button.TextColor3 = UiTheme.Palette.White
-	button.TextScaled = true
-	local buttonText = Instance.new("UITextSizeConstraint")
-	buttonText.MaxTextSize = AnimeSkin.Size.Item
-	buttonText.Parent = button
 	button.Parent = card
 	UiTheme.Corner(button, "S")
-	AnimeSkin.Button(button, "Go")
 	local busy = false
 	button.Activated:Connect(function()
 		if busy then
@@ -207,6 +177,27 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 		busy = false
 	end)
 end
+
+-- In the frame's units: the subtitle at the content top, the three cards under it, 12 apart.
+g.OnLayout(function()
+	local c = g.Content
+	g.Place(subtitle, c.X, c.Y, c.W, 28)
+	g.Role(subtitle, "Body")
+	local top = c.Y + 28 + 12
+	local w, h = (c.W - 2 * 12) / 3, c.Y + c.H - top
+	g.Place(row, c.X, top, c.W, h)
+	layout.Padding = UDim.new(0, g.px(12))
+	for _, card in row:GetChildren() do
+		if card:IsA("Frame") then
+			card.Size = g.at(w, h)
+			g.Place(card.Art, 12, 12, w - 24, h - 12 - 34 - 8 - 44 - 8 - 12)
+			g.Place(card.CharacterName, 12, h - 12 - 44 - 8 - 34, w - 24, 34)
+			g.Role(card.CharacterName, "Item")
+			g.Place(card.Choose, 12, h - 12 - 44, w - 24, 44)
+			g.Button(card.Choose, "Go")
+		end
+	end
+end)
 
 local function refill()
 	for id, view in views do

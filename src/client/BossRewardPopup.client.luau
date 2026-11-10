@@ -18,8 +18,8 @@ local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
--- Placeholders, px.
-local WIDTH, ROW, ART, AMOUNT = 400, 32, 64, 96
+-- Placeholders, in the Index frame's units: the chest art and the amount beside it.
+local WIDTH, ART, AMOUNT = 640, 200, 160 -- WIDTH in px at most, the Index's 920 x 620 aspect
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 
 local function make(class, name, parent, props)
@@ -48,27 +48,16 @@ local root = make("ScreenGui", "RacerBossRewards", player:WaitForChild("PlayerGu
 	DisplayOrder = 62, -- above every panel and popup the return may open
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
-local px, space = AnimeSkin.Px, AnimeSkin.Space
 local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromOffset(px(WIDTH), 0),
-	AutomaticSize = Enum.AutomaticSize.Y,
 	Active = true,
 	Visible = false,
 })
 UiTheme.Body(panel)
 UiTheme.Corner(panel, "L")
 UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
--- Design doc 4.42 rhythm: the header full width at the top, rows 16 in from the sides, 12 apart, 16 above the bottom.
-local list = make("UIListLayout", "List", panel, {
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	Padding = UDim.new(0, px(space.Gap)),
-	SortOrder = Enum.SortOrder.LayoutOrder,
-})
-local padding = make("UIPadding", "Padding", panel, { PaddingBottom = UDim.new(0, px(space.Bottom)) })
 local header = make("Frame", "Header", panel, {
-	LayoutOrder = 0,
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 })
@@ -96,37 +85,11 @@ local closeButton = make("TextButton", "CloseButton", header, {
 })
 UiTheme.Corner(closeButton, "M")
 UiTheme.Stroke(closeButton, 3, UiTheme.Outline, true)
--- Design doc 4.42: framed body and the standard header (strip, chest logo: HudIcons has no boss icon, ALL CAPS title,
--- art close). The panel's UIListLayout would take the body art as a row, so it hangs from the header (ZIndex 0: every row
--- draws over it), sized to the whole panel in the header's unscaled px (a pop scales both).
-AnimeSkin.Header(panel, { Header = header, Title = heading, Icon = logo, Close = closeButton })
-AnimeSkin.Clear(panel)
-header.ZIndex = 0
-local body = AnimeSkin.Body(header)
-local function fitBody()
-	local scale = header.AbsoluteSize.Y / math.max(1, header.Size.Y.Offset)
-	if scale <= 0 then
-		return
-	end
-	local at = (panel.AbsolutePosition - header.AbsolutePosition) / scale
-	local size = panel.AbsoluteSize / scale
-	body.Position = UDim2.fromOffset(at.X - 8, at.Y - 8)
-	body.Size = UDim2.fromOffset(size.X + 16, size.Y + 16)
-end
-for _, signal in
-	{
-		panel:GetPropertyChangedSignal("AbsoluteSize"),
-		header:GetPropertyChangedSignal("AbsoluteSize"),
-		header:GetPropertyChangedSignal("AbsolutePosition"),
-	}
-do
-	signal:Connect(fitBody)
-end
-fitBody()
-local damage = label("Damage", panel, { LayoutOrder = 1, Text = "" }, 24)
-AnimeSkin.Label(damage, "Item")
+-- Design doc 4.42: the Index frame (chest logo: HudIcons has no boss icon, ALL CAPS title, art close); the rows sit
+-- in its content area, in its units (place below).
+local g = AnimeSkin.IndexFrame(panel, { Header = header, Title = heading, Icon = logo, Close = closeButton })
+local damage = label("Damage", panel, { Text = "" }, 24)
 local rewards = make("Frame", "Rewards", panel, {
-	LayoutOrder = 2,
 	BackgroundTransparency = 1,
 })
 local tiles = make("UIListLayout", "List", rewards, {
@@ -152,14 +115,6 @@ local gems = label("Gems", rewards, {
 	LayoutOrder = 4,
 	Text = HudFormat.Commas(Cfg.Phase2Gems),
 }, 22)
-for _, amount in { money, gems } do
-	AnimeSkin.Label(amount, "Item")
-end
--- Money keeps the game's cash green over the Item role's white (set again after Label's deferred pass).
-money.TextColor3 = Palette.Money
-task.defer(function()
-	money.TextColor3 = Palette.Money
-end)
 local gemPad = make("UIPadding", "Padding", gems, {})
 local gemIcon = make("ImageLabel", "Icon", gems, {
 	AnchorPoint = Vector2.new(1, 0.5),
@@ -169,31 +124,41 @@ local gemIcon = make("ImageLabel", "Icon", gems, {
 	ScaleType = Enum.ScaleType.Fit,
 })
 local note = make("TextLabel", "Note", panel, {
-	LayoutOrder = 3,
 	BackgroundTransparency = 1,
 	Text = "Deal 5% for rewards",
 })
-AnimeSkin.Label(note, "Body")
 
--- Every rect from the tokens, again when the screen crosses the phone line.
-local function place()
-	local inset, row, art, amount = px(space.Inset), px(ROW), px(ART), px(AMOUNT)
-	panel.Size = UDim2.fromOffset(px(WIDTH), 0)
-	list.Padding = UDim.new(0, px(space.Gap))
-	padding.PaddingBottom = UDim.new(0, px(space.Bottom))
-	damage.Size = UDim2.new(1, -2 * inset, 0, px(24))
-	rewards.Size = UDim2.new(1, -2 * inset, 0, art)
-	tiles.Padding = UDim.new(0, px(space.Gap))
-	ragaChest.Size, adaptedChest.Size = UDim2.fromOffset(art, art), UDim2.fromOffset(art, art)
-	money.Size, gems.Size = UDim2.fromOffset(amount, row), UDim2.fromOffset(amount, row)
-	gemPad.PaddingLeft = UDim.new(0, row)
-	gemIcon.Size = UDim2.fromOffset(row, row)
-	note.Size = UDim2.new(1, -2 * inset, 0, px(20))
+-- The popup's px size keeps the frame's aspect and its chrome on screen; k follows from it.
+local function size()
+	local view = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280, 720)
+	local U = AnimeSkin.Units
+	local w, h = AnimeSkin.Compact() and U.PhoneW or U.W, AnimeSkin.Compact() and U.PhoneH or U.H
+	local width = math.min(WIDTH, (view.X - 32) * w / (w + 80), (view.Y - 32) * w / (h + 100))
+	panel.Size = UDim2.fromOffset(math.floor(width), math.floor(width * h / w))
 end
-place()
+size()
 if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(size)
 end
+-- Damage (Item) on top, the chest tiles 12 apart under it, the note (Body) at the content's bottom.
+g.OnLayout(function()
+	local c, U = g.Content, AnimeSkin.Units
+	local item = AnimeSkin.UnitSize.Item
+	local art = math.min(ART, c.H - 2 * item - 2 * U.Gap)
+	g.Place(damage, c.X, c.Y, c.W, item)
+	g.Place(rewards, c.X, c.Y + item + U.Gap, c.W, c.H - 2 * (item + U.Gap))
+	tiles.Padding = UDim.new(0, g.px(U.Gap))
+	ragaChest.Size, adaptedChest.Size = g.at(art, art), g.at(art, art)
+	money.Size, gems.Size = g.at(AMOUNT, item), g.at(AMOUNT, item)
+	gemPad.PaddingLeft = UDim.new(0, g.px(item))
+	gemIcon.Size = g.at(item, item)
+	g.Place(note, c.X, c.Y + c.H - AnimeSkin.UnitSize.Body, c.W, AnimeSkin.UnitSize.Body)
+	for _, text in { damage, money, gems } do
+		g.Role(text, "Item")
+	end
+	g.Role(note, "Body")
+	money.TextColor3 = Palette.Money -- the game's cash green over the Item white
+end)
 
 local message = nil -- what waits to show, or shows
 local seen = false -- it has been on screen: the next event takes it away

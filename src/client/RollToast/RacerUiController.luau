@@ -266,6 +266,10 @@ local function switch(toggle, on)
 		if caption then
 			caption.Parent = knob
 			caption.ZIndex = 4
+			caption.AnchorPoint = Vector2.zero
+			caption.Position, caption.Size = UDim2.new(), UDim2.fromScale(1, 1) -- fills the knob: "OFF" never clips
+			caption.TextXAlignment = Enum.TextXAlignment.Center
+			caption.TextTruncate = Enum.TextTruncate.None
 		end
 		local lift = toggle:FindFirstChild("Lift")
 		if lift then
@@ -1045,7 +1049,9 @@ end
 indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	tabsRow(rebirth.Header.RebirthTabs, g)
 	footerLine(rebirth, g, string.format("REBIRTH LEVEL %d", player:GetAttribute("RebirthLevel") or 0))
-	local u, left, width = g.u, 56, g.W - 112
+	-- Owner 2026-11-10: real margins, 16 px in from the content edges like Settings.
+	local u = g.u
+	local left, width = 56 + u(SPACE.Inset), g.W - 112 - 2 * u(SPACE.Inset)
 	local gap, inner, pad = u(SPACE.Gap), u(SPACE.Inner), u(SPACE.Pad)
 	local headH, lineH = u(TOKEN.Section + 4), u(TOKEN.Body + 4)
 	local bottom = g.Top + g.Height
@@ -1090,6 +1096,7 @@ indexFrame(rebirth, HudIcons.Rebirth.Image, function(g)
 	end
 	rebirth.WarningText.TextXAlignment = Enum.TextXAlignment.Left
 	rebirth.WarningText.TextWrapped = true
+	rebirth.WarningText.TextTruncate = Enum.TextTruncate.None -- two lines, never cut
 	g.Role(rebirth.WarningText, "Body", true)
 	g.Role(rebirth.BarText, "Body", true)
 	if rebirthCaption then
@@ -1144,13 +1151,14 @@ end)
 
 indexFrame(settings, HudIcons.Settings.Image, function(g)
 	tabsRow(categoryTabs, g)
-	local u, width = g.u, g.W - 112
+	-- Owner 2026-11-10: smaller text and real margins: rows 16 px in from the content edges, 12 px apart.
+	local u = g.u
+	local left, width = 56 + u(SPACE.Inset), g.W - 112 - 2 * u(SPACE.Inset)
 	local showSettings = settings.Gui:GetAttribute("Category") ~= "Profile" -- fit() sets the rows Visible again
-	-- Five rows, 8 px apart, fill the content area; each toggle stays inside its plate's slanted ends (UI audit).
 	local keys = { "Sound", "Effects", "Auto", "TrackCamera", "AutoSell" }
-	local gap = u(SPACE.Inner)
+	local gap = u(SPACE.Gap)
 	local rowH = math.floor((g.Height - (#keys - 1) * gap) / #keys)
-	local toggleH = math.min(u(SPACE.ButtonSmall), rowH - 6)
+	local toggleH = math.min(u(SPACE.ButtonSmall), rowH - u(SPACE.Inner))
 	local toggleW = 2 * toggleH
 	local slant = math.floor(rowH / 2) + u(SPACE.Inner)
 	settingsTabLit(showSettings)
@@ -1158,24 +1166,24 @@ indexFrame(settings, HudIcons.Settings.Image, function(g)
 	profileHost.Visible = not showSettings
 	for i, key in keys do
 		local wrapper = settings[key .. "Row"].Parent
-		place(wrapper, 56, g.Top + (i - 1) * (rowH + gap), width, rowH)
+		place(wrapper, left, g.Top + (i - 1) * (rowH + gap), width, rowH)
 		wrapper.ZIndex = 3
 		wrapper.Visible = showSettings
 		local name = settings[key .. "Name"]
 		place(name, slant, 0, width - 2 * slant - toggleW - u(SPACE.Inner), rowH)
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		g.Role(name, "Item")
+		g.Role(name, "Body") -- 16 px, down from the Item size
 		local toggle = settings[key .. "Toggle"]
 		place(toggle.Parent, width - slant - toggleW, math.floor((rowH - toggleH) / 2), toggleW, toggleH)
 		local knob = toggle:FindFirstChild("Knob")
 		local caption = knob and knob:FindFirstChildWhichIsA("TextLabel")
 		if caption then
-			g.Role(caption, "Body", true) -- fits "OFF" inside the knob
+			g.Role(caption, "Caption", true) -- fits "OFF" inside the knob
 		end
 	end
 	footerLine(settings, g, showSettings and (#keys .. " SETTINGS") or (#profileRows .. " PROFILE LINES"))
 	-- PLAYER PROFILE: six plates in the same area, 12 px apart.
-	place(profileHost, 56, g.Top, width, g.Height)
+	place(profileHost, left, g.Top, width, g.Height)
 	local rowGap = u(SPACE.Gap)
 	profileLayout.Padding = UDim.new(0, rowGap)
 	local plateH = math.floor((g.Height - (#profileRows - 1) * rowGap) / #profileRows)

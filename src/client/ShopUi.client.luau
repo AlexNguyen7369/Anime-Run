@@ -23,13 +23,12 @@ local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
 local ROBUX_ICON = "rbxasset://textures/ui/common/robux.png"
--- Spacing tokens (design doc 4.42, Client/AnimeSkin), in px for this screen.
-local P = AnimeSkin.Px
-local PAD, INNER, GAP = P(AnimeSkin.Space.Pad), P(AnimeSkin.Space.Inner), P(AnimeSkin.Space.Gap)
-local BTN, SMALL = P(AnimeSkin.Space.Button), P(AnimeSkin.Space.ButtonSmall)
-local CAP, BODY, ITEM, SECTION = P(13), P(20), P(24), P(32) -- row heights of the Caption, Body, Item, Section roles
-local DETAILS_W = P(80)
 local HINT = "Follow the socials on the game page for codes!"
+-- Layout in the Index frame's design units (design doc 4.42, Client/AnimeSkin.IndexFrame); OnLayout below places all.
+local CARD_H = 272 -- gamepass and potion cards: a card and its section heading fit the 374-unit content once
+local BANNER_H = 120 -- bundle and Server Luck plates
+local DETAILS_W = 96
+local ROW_TOP = 12 + 22 + 12 + 44 -- a card's Buy / Gift row starts this far above its bottom
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -50,10 +49,15 @@ local function stroke(parent, thickness)
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 end
--- A text in one of the five roles (design doc 4.42): Title, Section, Item, Body, Caption.
-local function caption(name, parent, role, props)
+-- Every text keeps one of the frame's roles (design doc 4.42); OnLayout sizes them in units.
+local roles = {}
+local function role(object, name)
+	roles[object] = name
+	return object
+end
+local function caption(name, parent, roleName, props)
 	props.BackgroundTransparency = 1
-	return AnimeSkin.Label(make("TextLabel", name, parent, props), role)
+	return role(make("TextLabel", name, parent, props), roleName)
 end
 local function gradient(parent, a, b)
 	make("UIGradient", "Gradient", parent, { Color = ColorSequence.new(a, b), Rotation = 90 })
@@ -70,7 +74,8 @@ local function commas(n)
 	until count == 0
 	return s
 end
--- A section: its heading row (Section role, an optional caption on the right), then its cards 8 below.
+-- A section: its heading on its own 40-unit line (Section role, an optional caption on the right), then its cards.
+local sections = {}
 local function section(name, order, title, subtitle)
 	local frame = make("Frame", name, nil, {
 		LayoutOrder = order,
@@ -79,14 +84,12 @@ local function section(name, order, title, subtitle)
 		BackgroundTransparency = 1,
 	})
 	make("UIListLayout", "Layout", frame, {
-		Padding = UDim.new(0, INNER),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	})
 	if title then
 		local heading = caption("Title", frame, "Section", {
 			LayoutOrder = 0,
-			Size = UDim2.new(1, 0, 0, SECTION),
 			Text = title,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		})
@@ -100,6 +103,7 @@ local function section(name, order, title, subtitle)
 			})
 		end
 	end
+	table.insert(sections, frame)
 	return frame
 end
 
@@ -124,8 +128,8 @@ local panel = make("Frame", "Panel", backdrop, {
 })
 corner(panel, 16)
 stroke(panel, 4)
--- AnimeSkin.Header (through PanelFrame.Attach below) places and styles the title and the close.
-local title = caption("Title", panel, "Title", { Text = "Shop", ZIndex = 3 })
+-- The Index frame (through PanelFrame.Attach below) places and styles the title and the close.
+local title = make("TextLabel", "Title", panel, { Text = "Shop", ZIndex = 3 })
 local close = make("TextButton", "Close", panel, {
 	AnchorPoint = Vector2.new(1, 0),
 	Size = UDim2.fromOffset(46, 46),
@@ -135,6 +139,7 @@ local close = make("TextButton", "Close", panel, {
 })
 make("TextLabel", "X", close, { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "X", ZIndex = 3 })
 
+-- The one scrolling list, in the frame's content area; the bar sits inside it, beside the cards.
 local list = make("ScrollingFrame", "Items", panel, {
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
@@ -142,13 +147,11 @@ local list = make("ScrollingFrame", "Items", panel, {
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
 	ScrollingDirection = Enum.ScrollingDirection.Y,
+	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
+	ZIndex = 3,
 })
-AnimeSkin.Content(list, { Footer = true }) -- insets 16, under the header, above the codes footer
-make("UIListLayout", "Layout", list, { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder })
--- The scrollbar keeps 8 px off the cards.
-make("UIPadding", "Padding", list, { PaddingRight = UDim.new(0, INNER) })
--- The codes reply line (and the codes hint until a reply), in the footer bar.
-local footer = AnimeSkin.Footer(panel, HINT)
+make("UIListLayout", "Layout", list, { SortOrder = Enum.SortOrder.LayoutOrder })
+make("UIPadding", "Padding", list, {})
 
 -- A colour card: the anime card art (a wide banner: the slanted plate) tinted in its colour (design doc 4.42).
 -- The fill, gradient and Stroke stay for the cascade; AnimeSkin hides them.
@@ -166,29 +169,18 @@ local function card(name, parent, color, props, plate)
 	return frame
 end
 
--- A tile card's text and icon rows (12 padding, 8 between rows): name (beside Details, if any), description, then
--- the icon down to 8 above the Buy / Gift row that giftButton places.
-local BOTTOM_ROWS = PAD + CAP + PAD + BTN -- caption 12 from the bottom, buttons 12 above it
-local function tileText(box, name, text, details)
-	caption("Name", box, "Item", {
-		Position = UDim2.fromOffset(PAD, PAD),
-		Size = UDim2.new(1, -2 * PAD - (details and DETAILS_W + INNER or 0), 0, ITEM),
-		Text = name,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
-	caption("Description", box, "Body", {
-		Position = UDim2.fromOffset(PAD, PAD + ITEM + INNER),
-		Size = UDim2.new(1, -2 * PAD, 0, BODY),
+-- A tile card's name, description and art; layoutTile places them.
+local tiles = {}
+local function tileText(box, name, text)
+	caption("Name", box, "Item", { Text = name, TextXAlignment = Enum.TextXAlignment.Left })
+	caption("Description", box, "Caption", {
 		Text = text,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	})
+	table.insert(tiles, box)
 end
-local ICON_TOP = PAD + ITEM + INNER + BODY + INNER
 local function tileIcon(box, props)
-	props.AnchorPoint = Vector2.new(0.5, 0)
-	props.Position = UDim2.new(0.5, 0, 0, ICON_TOP)
-	props.Size = UDim2.new(1, -2 * PAD, 1, -ICON_TOP - BOTTOM_ROWS - INNER)
 	props.BackgroundTransparency = 1
 	props.ScaleType = Enum.ScaleType.Fit
 	return make("ImageLabel", "Icon", box, props)
@@ -242,7 +234,7 @@ local function setBlocked(button, price, word)
 end
 
 -- The green price button. kind = "pass" | "product"; id 0 shows "Coming soon" and never prompts. `item` is the catalogue
--- entry: it decides the blocked states. giftButton places it.
+-- entry: it decides the blocked states. The card's layout places it.
 local function buyButton(parent, kind, id, robuxPrice, item)
 	local button = make("TextButton", "Buy", parent, {
 		Text = "",
@@ -268,16 +260,16 @@ local function buyButton(parent, kind, id, robuxPrice, item)
 		ImageColor3 = PALETTE.White,
 		ScaleType = Enum.ScaleType.Fit,
 	})
-	-- Id 0: the price over a "Coming soon" caption line, both inside the 40 px button.
+	-- Id 0: the price over a "Coming soon" caption line, both inside the button.
 	local price = caption("Price", button, "Item", {
-		Position = id > 0 and UDim2.new(0.32, 0, 0, INNER) or UDim2.new(0.32, 0, 0, 2),
-		Size = UDim2.new(0.62, 0, 0, id > 0 and BTN - 2 * INNER or BTN - CAP - 4),
+		Position = UDim2.fromScale(0.32, id > 0 and 0.15 or 0.04),
+		Size = UDim2.fromScale(0.62, id > 0 and 0.7 or 0.5),
 		Text = commas(robuxPrice),
 	})
 	if id <= 0 then
 		caption("Soon", button, "Caption", {
-			Position = UDim2.new(0.05, 0, 1, -CAP - 2),
-			Size = UDim2.new(0.9, 0, 0, CAP),
+			Position = UDim2.fromScale(0.05, 0.55),
+			Size = UDim2.fromScale(0.9, 0.42),
 			Text = "Coming soon",
 		})
 		UiFeedback.DeniedPress(button)
@@ -324,22 +316,18 @@ end
 -- top-right corner, beside the name.
 local function detailsButton(box)
 	local b = make("TextButton", "Details", box, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -PAD, 0, PAD),
-		Size = UDim2.fromOffset(DETAILS_W, SMALL),
 		BackgroundColor3 = PALETTE.PanelDeep,
 		Text = "Details",
-		TextColor3 = PALETTE.White,
-		TextSize = P(AnimeSkin.Size.Body),
 		ZIndex = 3,
 	})
 	corner(b, 4)
 	AnimeSkin.Button(b, "Idle")
+	role(b, "Item")
 	b.Activated:Connect(require(script.Parent:WaitForChild("RollOptions")).OpenDetails)
 	return b
 end
 
--- 2. Gamepasses grid. Cell sizes: fitCells (below).
+-- 2. Gamepasses grid.
 local passes = section("Gamepasses", 2, "Gamepasses", nil)
 passes.Parent = list
 local grid = make("Frame", "Grid", passes, {
@@ -348,15 +336,10 @@ local grid = make("Frame", "Grid", passes, {
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 })
-make("UIGridLayout", "Layout", grid, {
-	CellSize = UDim2.new(1 / 3, -8, 0, 214),
-	CellPadding = UDim2.fromOffset(GAP, GAP),
-	SortOrder = Enum.SortOrder.LayoutOrder,
-})
+make("UIGridLayout", "Layout", grid, { SortOrder = Enum.SortOrder.LayoutOrder })
 for order, item in config.Gamepasses do
 	local box = card(item.Id, grid, item.Color or PALETTE.ShopSky, { LayoutOrder = order })
-	local details = config.PaidLuck[item.Id] or item.Id == "vip"
-	tileText(box, item.Name, item.Description, details)
+	tileText(box, item.Name, item.Description)
 	local icon = Icons[item.Icon] or Icons.Shop
 	tileIcon(box, {
 		Image = icon.Image,
@@ -364,7 +347,7 @@ for order, item in config.Gamepasses do
 		ImageRectSize = icon.Size or Vector2.zero,
 	})
 	buyButton(box, "pass", item.GamepassId, item.RobuxPrice, item)
-	if details then
+	if config.PaidLuck[item.Id] or item.Id == "vip" then
 		detailsButton(box)
 	end
 end
@@ -380,11 +363,7 @@ local packRow = make("Frame", "Packs", potions, {
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 })
-make("UIGridLayout", "Layout", packRow, {
-	CellSize = UDim2.new(0.25, -9, 0, 214),
-	CellPadding = UDim2.fromOffset(GAP, GAP),
-	SortOrder = Enum.SortOrder.LayoutOrder,
-})
+make("UIGridLayout", "Layout", packRow, { SortOrder = Enum.SortOrder.LayoutOrder })
 local POTION_COLORS = {
 	Luck = PALETTE.ShopMint,
 	Money = PALETTE.ShopAmber,
@@ -402,23 +381,20 @@ for order, product in config.Products do
 	if product.Section == "Potions" then
 		local category = grantCategory(product.Grants)
 		local box = card(product.Id, packRow, POTION_COLORS[category], { LayoutOrder = order })
-		local details = config.PaidLuck[product.Id]
-		tileText(box, product.Name, product.Description, details)
+		tileText(box, product.Name, product.Description)
 		tileIcon(box, { Image = PotionIcons[category] })
 		buyButton(box, "product", product.ProductId, product.RobuxPrice, product)
-		if details then
+		if config.PaidLuck[product.Id] then
 			detailsButton(box)
 		end
 	end
 end
--- The bundle banner: name, description and the bottles on the left; Details, total and Buy / Gift on the right.
+-- The bundle plate: the bottles on the left; name, description and total in the middle; Details and Buy / Gift on
+-- the right.
 local bundleBanner
 for _, product in config.Products do
 	if product.Section == "Bundle" then
-		local banner = card("Bundle", potions, PALETTE.ShopPink, {
-			LayoutOrder = 3,
-			Size = UDim2.new(1, 0, 0, 214),
-		}, true)
+		local banner = card("Bundle", potions, PALETTE.ShopPink, { LayoutOrder = 3 }, true)
 		bundleBanner = banner
 		banner.Gradient.Rotation = 0
 		banner.Gradient.Color = ColorSequence.new({
@@ -426,26 +402,15 @@ for _, product in config.Products do
 			ColorSequenceKeypoint.new(0.5, PALETTE.ShopAmber),
 			ColorSequenceKeypoint.new(1, PALETTE.ShopPink),
 		})
-		caption("Name", banner, "Item", {
-			Position = UDim2.fromOffset(PAD, PAD),
-			Size = UDim2.new(0.55, -PAD, 0, ITEM),
-			Text = product.Name,
-			TextXAlignment = Enum.TextXAlignment.Left,
-		})
-		caption("Description", banner, "Body", {
-			Position = UDim2.fromOffset(PAD, PAD + ITEM + INNER),
-			Size = UDim2.new(0.55, -PAD, 0, BODY),
+		caption("Name", banner, "Item", { Text = product.Name, TextXAlignment = Enum.TextXAlignment.Left })
+		caption("Description", banner, "Caption", {
 			Text = product.Description,
 			TextXAlignment = Enum.TextXAlignment.Left,
+			TextTruncate = Enum.TextTruncate.AtEnd,
 		})
-		local bottles = make("Frame", "Contents", banner, {
-			Position = UDim2.fromOffset(PAD, ICON_TOP),
-			Size = UDim2.new(0.55, -PAD, 1, -ICON_TOP - PAD),
-			BackgroundTransparency = 1,
-		})
+		local bottles = make("Frame", "Contents", banner, { BackgroundTransparency = 1 })
 		make("UIListLayout", "Layout", bottles, {
 			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, INNER),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		})
 		local total, perCategory = 0, {}
@@ -459,7 +424,6 @@ for _, product in config.Products do
 		for order, category in Boosts.Order do
 			local bottle = make("ImageLabel", category, bottles, {
 				LayoutOrder = order,
-				Size = UDim2.new(0.25, -INNER, 1, 0),
 				BackgroundTransparency = 1,
 				Image = PotionIcons[category],
 				ScaleType = Enum.ScaleType.Fit,
@@ -467,78 +431,65 @@ for _, product in config.Products do
 			caption("Count", bottle, "Item", {
 				AnchorPoint = Vector2.new(0.5, 1),
 				Position = UDim2.fromScale(0.5, 1),
-				Size = UDim2.new(1, 0, 0, ITEM),
+				Size = UDim2.fromScale(1, 0.36),
 				Text = "x" .. HudFormat.Short(perCategory[category] or 0),
 			})
 		end
-		caption("Total", banner, "Item", {
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -PAD, 0, PAD + SMALL + INNER),
-			Size = UDim2.new(0.4, -PAD, 0, ITEM),
+		caption("Total", banner, "Body", {
 			Text = "x" .. HudFormat.Short(total) .. " Potions!",
-			TextXAlignment = Enum.TextXAlignment.Right,
+			TextXAlignment = Enum.TextXAlignment.Left,
 		})
 		buyButton(banner, "product", product.ProductId, product.RobuxPrice, product)
 		detailsButton(banner)
 	end
 end
 
--- 4. DOUBLE Server Luck banner (display only until the Server Luck feature exists).
+-- 4. DOUBLE Server Luck plate (display only until the Server Luck feature exists): the art on the left, the title and
+-- its note, then the three tiers.
 local luck = section("ServerLuck", 4, nil, nil)
 luck.Parent = list
-local luckBanner = card("Banner", luck, PALETTE.ShopLime, {
-	LayoutOrder = 1,
-	Size = UDim2.new(1, 0, 0, 214),
-}, true)
-caption("Title", luckBanner, "Section", {
-	Position = UDim2.fromOffset(PAD, PAD),
-	Size = UDim2.new(1, -2 * PAD, 0, SECTION),
-	Text = "DOUBLE Server Luck!",
-})
-local TIERS_TOP = PAD + SECTION + INNER
-local tiers = make("Frame", "Tiers", luckBanner, {
-	Position = UDim2.fromOffset(PAD, TIERS_TOP),
-	Size = UDim2.new(1, -2 * PAD, 1, -TIERS_TOP - PAD),
+local luckBanner = card("Banner", luck, PALETTE.ShopLime, { LayoutOrder = 1 }, true)
+make("ImageLabel", "Art", luckBanner, {
 	BackgroundTransparency = 1,
+	Image = PotionIcons.Luck,
+	ScaleType = Enum.ScaleType.Fit,
 })
-make("UIGridLayout", "Layout", tiers, {
-	CellSize = UDim2.new(1 / 3, -8, 1, 0),
-	CellPadding = UDim2.fromOffset(GAP, 0),
-	SortOrder = Enum.SortOrder.LayoutOrder,
+caption("Title", luckBanner, "Section", {
+	Text = "DOUBLE Server Luck!",
+	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
 })
+caption("Note", luckBanner, "Caption", {
+	Text = "Server-wide • no gifting",
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextTruncate = Enum.TextTruncate.AtEnd,
+})
+local tiers = make("Frame", "Tiers", luckBanner, { BackgroundTransparency = 1 })
+make("UIGridLayout", "Layout", tiers, { SortOrder = Enum.SortOrder.LayoutOrder })
 for order, product in config.Products do
 	if product.Section == "ServerLuck" then
 		local tier = make("Frame", product.Id, tiers, { LayoutOrder = order, BackgroundTransparency = 1 })
-		caption("Name", tier, "Item", { Size = UDim2.new(1, 0, 0, ITEM), Text = product.Name })
+		caption("Name", tier, "Item", { Text = product.Name })
 		buyButton(tier, "product", product.ProductId, product.RobuxPrice, product)
 	end
 end
 
--- 5. Codes: the box, then the reply in the footer bar.
+-- 5. Codes: the box and Redeem on one row; the hint and the reply on the footer plate.
 local codes = section("Codes", 5, "Codes", nil)
 codes.Parent = list
-local codeBox = card("Box", codes, PALETTE.ShopIce, {
-	LayoutOrder = 2,
-	Size = UDim2.new(1, 0, 0, PAD + BTN + PAD + BTN + PAD),
-})
+local codeBox = make("Frame", "Box", codes, { LayoutOrder = 2, BackgroundTransparency = 1 })
 local input = make("TextBox", "Input", codeBox, {})
-input.AnchorPoint = Vector2.new(0.5, 0)
-input.Position = UDim2.new(0.5, 0, 0, PAD)
-input.Size = UDim2.new(0.5, 0, 0, BTN)
 input.BackgroundColor3 = PALETTE.ShopField
 input.PlaceholderText = "Enter code here.."
 input.PlaceholderColor3 = PALETTE.SoftText
 input.Text = ""
 input.ClearTextOnFocus = false
-input.Font = UiTheme.Font
-input.TextSize = P(AnimeSkin.Size.Body)
-input.TextColor3 = Color3.new(1, 1, 1)
+input.TextXAlignment = Enum.TextXAlignment.Left
+role(input, "Body")
 corner(input, 4)
 stroke(input, 3)
+make("UIPadding", "Padding", input, {})
 local redeem = make("TextButton", "Redeem", codeBox, {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, PAD + BTN + PAD),
-	Size = UDim2.fromOffset(P(160), BTN),
 	Text = "",
 	BackgroundColor3 = Color3.new(1, 1, 1),
 	AutoButtonColor = false,
@@ -548,16 +499,14 @@ stroke(redeem, 3)
 gradient(redeem, PALETTE.ShopSky, PALETTE.ShopRedeem)
 AnimeSkin.Button(redeem, "Go")
 caption("Label", redeem, "Item", { Size = UDim2.fromScale(1, 1), Text = "Redeem" })
--- Status keeps the server's reply (its path is the UI tests'); the footer bar shows it.
-local status = make("TextLabel", "Status", codeBox, { BackgroundTransparency = 1, Text = "", Visible = false })
+-- Status keeps the server's reply (its path is the UI tests'); the footer plate shows it.
+local status = caption("Status", codeBox, "Caption", { Text = "", Visible = false })
+local chrome -- PanelFrame's controller (below): its Frame is the Index frame
 redeem.Activated:Connect(function()
 	redeem.Active = false
 	local ok, message = remotes:WaitForChild("RedeemCode"):InvokeServer(input.Text)
 	status.Text = tostring(message or (ok and "Code redeemed!" or "Try again"))
-	footer.Text = status.Text
-	footer.TextColor3 = ok and PALETTE.Money or PALETTE.Reject -- bright: readable on the footer plate
-	footer.Position = UDim2.new()
-	UiMotion.SlideIn(footer, Vector2.new(0, 12)) -- the answer slides in from the bottom edge (section 10)
+	UiMotion.SlideIn(chrome.Frame.Footer(status.Text), Vector2.new(0, chrome.Frame.px(12))) -- the answer slides in (section 10)
 	if ok then
 		input.Text = ""
 	else
@@ -569,33 +518,20 @@ end)
 -- 6. Thanks.
 caption("Thanks", list, "Body", {
 	LayoutOrder = 6,
-	Size = UDim2.new(1, 0, 0, ITEM),
 	Text = "♥  Thanks for your support!  ♥",
 })
 
 -- The HudChrome Shop tile opens it (PanelSwitch.Toggle("Shop")).
 local openGift = require(script.Parent:WaitForChild("GiftPicker")).Create(panel, list, backdrop)
--- Places the card's Buy and adds Gift beside it (8 apart), 12 above the reason caption, which sits 12 above the bottom.
--- pad: the card padding (0 in a Server Luck tier, which sits inside its banner's padding). left: where the pair starts.
-local function giftButton(box, product, reason, pad, left)
+-- Adds Gift beside the card's Buy and, when gifting is off, the reason caption (reason false: none). The card's
+-- layout places them.
+local function giftButton(box, product, reason)
 	local enabled = product and (product.GiftProductId or 0) > 0 and (product.ProductId or 0) > 0
-	local buy = box:FindFirstChild("Buy")
-	if not buy then
+	if not box:FindFirstChild("Buy") then
 		return
 	end
-	pad, left = pad or PAD, left or 0
-	local rowBottom = -(pad + CAP + PAD)
-	local width = UDim2.new((1 - left) / 2, -(pad + INNER) / 2 - (left > 0 and 0 or pad / 2), 0, BTN)
-	buy.AnchorPoint = Vector2.new(0, 1)
-	buy.Position = UDim2.new(left, left > 0 and 0 or pad, 1, rowBottom)
-	buy.Size = width
 	local gift = make("TextButton", "Gift", box, {
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -pad, 1, rowBottom),
-		Size = width,
 		Text = "Gift",
-		TextSize = P(AnimeSkin.Size.Item),
-		TextColor3 = Color3.new(1, 1, 1),
 		BackgroundColor3 = PALETTE.ShopGift,
 		BackgroundTransparency = enabled and 0 or 0.45,
 		Active = enabled == true,
@@ -604,16 +540,16 @@ local function giftButton(box, product, reason, pad, left)
 	corner(gift, 4)
 	stroke(gift, 3)
 	AnimeSkin.Button(gift, enabled and "Gold" or "Idle")
+	role(gift, "Item")
 	if not enabled then
 		UiFeedback.DeniedPress(gift)
-		caption("GiftReason", box, "Caption", {
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(left, left > 0 and 0 or pad, 1, -pad),
-			Size = UDim2.new(1 - left, -pad - (left > 0 and 0 or pad), 0, CAP),
-			Text = reason or "Gift unavailable • coming soon",
-			TextXAlignment = Enum.TextXAlignment.Left,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-		})
+		if reason ~= false then
+			caption("GiftReason", box, "Caption", {
+				Text = reason or "Gift unavailable • coming soon",
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+			})
+		end
 	end
 	gift.Activated:Connect(function()
 		if enabled then
@@ -628,9 +564,9 @@ for _, product in config.Products do
 	if product.Section == "Potions" then
 		giftButton(packRow[product.Id], product)
 	elseif product.Section == "Bundle" then
-		giftButton(potions.Bundle, product, nil, PAD, 0.6)
+		giftButton(potions.Bundle, product)
 	elseif product.Section == "ServerLuck" then
-		giftButton(tiers[product.Id], nil, "Server-wide • no gifting", 0)
+		giftButton(tiers[product.Id], nil, false) -- the plate's Note says why
 	end
 end
 close.Activated:Connect(function()
@@ -640,8 +576,80 @@ require(script.Parent:WaitForChild("PanelFrame")).CloseOnOutsideClick(backdrop, 
 	PanelSwitch.Close("Shop")
 end)
 
--- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
-require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
+-- Buy and Gift side by side, 8 apart, 44 tall, in the row at (x, y) of width w (UDims, px).
+local function placePair(g, box, x, y, w)
+	local buy, gift = box:FindFirstChild("Buy"), box:FindFirstChild("Gift")
+	local half = UDim.new(w.Scale / 2, math.floor((w.Offset - g.px(8)) / 2))
+	buy.AnchorPoint = Vector2.zero
+	buy.Position, buy.Size = UDim2.new(x, y), UDim2.new(half, UDim.new(0, g.px(44)))
+	if gift then
+		gift.AnchorPoint = Vector2.zero
+		gift.Position, gift.Size = UDim2.new(x + half + UDim.new(0, g.px(8)), y), buy.Size
+	end
+end
+local function place(object, position, size)
+	object.AnchorPoint = Vector2.zero
+	object.Position, object.Size = position, size
+end
+-- A tile card, 12 padding: the name with Details at the top-right, the description, then the art filling everything
+-- down to 8 above the Buy / Gift row, which ends 12 above the caption line, 12 above the bottom.
+local function layoutTile(g, box)
+	local P = g.px
+	local details = box:FindFirstChild("Details")
+	local reason = box:FindFirstChild("GiftReason")
+	place(box:FindFirstChild("Name"), g.at(12, 12), UDim2.new(1, -P(details and 32 + DETAILS_W or 24), 0, P(34)))
+	if details then
+		place(details, UDim2.new(1, -P(12 + DETAILS_W), 0, P(12)), g.at(DETAILS_W, 32))
+	end
+	place(box:FindFirstChild("Description"), g.at(12, 54), UDim2.new(1, -P(24), 0, P(22)))
+	local rowTop = reason and ROW_TOP or 12 + 44 -- no caption line: the row drops to 12 above the bottom
+	place(box:FindFirstChild("Icon"), g.at(12, 84), UDim2.new(1, -P(24), 1, -P(84 + 8 + rowTop)))
+	placePair(g, box, UDim.new(0, P(12)), UDim.new(1, -P(rowTop)), UDim.new(1, -P(24)))
+	if reason then
+		place(reason, UDim2.new(0, P(12), 1, -P(34)), UDim2.new(1, -P(24), 0, P(22)))
+	end
+end
+-- A plate keeps everything 24 clear of its slanted ends.
+local function layoutBundle(g, banner)
+	local P = g.px
+	local bottles = banner.Contents
+	place(bottles, g.at(24, 12), UDim2.new(0.38, -P(24), 0, P(96)))
+	bottles.Layout.Padding = UDim.new(0, P(8))
+	for _, bottle in bottles:GetChildren() do
+		if bottle:IsA("ImageLabel") then
+			bottle.Size = UDim2.new(0.25, -P(6), 1, 0)
+		end
+	end
+	-- The middle column: name, description, total.
+	for name, row in { Name = { 12, 34 }, Description = { 54, 22 }, Total = { 80, 28 } } do
+		place(banner:FindFirstChild(name), UDim2.new(0.38, P(12), 0, P(row[1])), UDim2.new(0.24, -P(24), 0, P(row[2])))
+	end
+	-- The right column: Details at the top, Buy / Gift 12 above the bottom.
+	place(banner:FindFirstChild("Details"), UDim2.new(1, -P(24 + DETAILS_W), 0, P(12)), g.at(DETAILS_W, 32))
+	placePair(g, banner, UDim.new(0.62, P(12)), UDim.new(1, -P(56)), UDim.new(0.38, -P(36)))
+	local reason = banner:FindFirstChild("GiftReason")
+	if reason then
+		place(reason, UDim2.new(0.62, P(12), 0, P(17)), UDim2.new(0.38, -P(44 + DETAILS_W), 0, P(22)))
+	end
+end
+local function layoutLuck(g)
+	local P = g.px
+	place(luckBanner.Art, g.at(24, 12), g.at(96, 96))
+	place(luckBanner.Title, g.at(132, 12), UDim2.new(0.45, -P(144), 0, P(62)))
+	place(luckBanner.Note, g.at(132, 86), UDim2.new(0.45, -P(144), 0, P(22)))
+	place(tiers, UDim2.new(0.45, 0, 0, P(12)), UDim2.new(0.55, -P(24), 0, P(96)))
+	tiers.Layout.CellPadding = UDim2.fromOffset(P(12), 0)
+	tiers.Layout.CellSize = UDim2.new(1 / 3, -P(8), 1, 0)
+	for _, tier in tiers:GetChildren() do
+		if tier:IsA("Frame") then
+			place(tier:FindFirstChild("Name"), UDim2.new(), UDim2.new(1, 0, 0, P(34)))
+			placePair(g, tier, UDim.new(), UDim.new(1, -P(44)), UDim.new(1, 0))
+		end
+	end
+end
+
+-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6), in the Index frame.
+chrome = require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Theme = "Shop",
 	Title = "Shop",
 	Icon = Icons.Shop.Image,
@@ -649,22 +657,43 @@ require(script.Parent:WaitForChild("PanelFrame")).Attach(panel, {
 	Close = close,
 	MaxWidth = 900,
 })
--- One card row is as tall as the list's window, so a card scrolled to the top is never cut at the frame.
-local function fitCells()
-	local columns = panel.AbsoluteSize.X < 560 and 2 or 3
-	local packs = columns == 3 and 4 or 2 -- 4 potion packs: one row of 4 or 2 x 2
-	-- The window minus the section's heading row above the cards.
-	local height = math.clamp(math.floor(list.AbsoluteSize.Y) - SECTION - INNER, P(160), P(260))
-	grid.Layout.CellSize = UDim2.new(1 / columns, -GAP * (columns - 1) / columns, 0, height)
-	packRow.Layout.CellSize = UDim2.new(1 / packs, -GAP * (packs - 1) / packs, 0, height)
-	luckBanner.Size = UDim2.new(1, 0, 0, height)
-	if bundleBanner then
-		bundleBanner.Size = UDim2.new(1, 0, 0, height)
+chrome.Frame.Footer(HINT)
+chrome.Frame.OnLayout(function(g)
+	local P, c = g.px, g.Content
+	g.Place(list, c.X, c.Y, c.W, c.H)
+	list.ScrollBarThickness = P(6)
+	list.Padding.PaddingRight = UDim.new(0, P(4))
+	list.Layout.Padding = UDim.new(0, P(12))
+	for _, frame in sections do
+		frame.Layout.Padding = UDim.new(0, P(12))
+		local heading = frame:FindFirstChild("Title")
+		if heading then
+			heading.Size = UDim2.new(1, 0, 0, P(40))
+		end
 	end
-end
-panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCells)
-list:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCells)
-fitCells()
+	-- Gamepasses 3 across, potion packs 4 (phones: 2 and 2).
+	for row, columns in { [grid] = g.Small and 2 or 3, [packRow] = g.Small and 2 or 4 } do
+		row.Layout.CellPadding = UDim2.fromOffset(P(12), P(12))
+		row.Layout.CellSize = UDim2.new(1 / columns, -math.ceil(P(12) * (columns - 1) / columns), 0, P(CARD_H))
+	end
+	for _, box in tiles do
+		layoutTile(g, box)
+	end
+	luckBanner.Size = UDim2.new(1, 0, 0, P(BANNER_H))
+	layoutLuck(g)
+	if bundleBanner then
+		bundleBanner.Size = UDim2.new(1, 0, 0, P(BANNER_H))
+		layoutBundle(g, bundleBanner)
+	end
+	codeBox.Size = UDim2.new(1, 0, 0, P(44))
+	place(input, UDim2.new(), UDim2.new(1, -P(160 + 12), 1, 0))
+	input.Padding.PaddingLeft, input.Padding.PaddingRight = UDim.new(0, P(12)), UDim.new(0, P(12))
+	place(redeem, UDim2.new(1, -P(160), 0, 0), UDim2.new(0, P(160), 1, 0))
+	list.Thanks.Size = UDim2.new(1, 0, 0, P(34))
+	for object, name in roles do
+		g.Role(object, name)
+	end
+end)
 
 -- Section 10: on open, the first cards light up one after another (background and edge fade in). Grid and list
 -- layouts own the card positions, so a slide would not show.

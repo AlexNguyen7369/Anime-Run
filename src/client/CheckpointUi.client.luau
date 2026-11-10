@@ -52,25 +52,17 @@ local function caption(name, parent, props)
 	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
 	return label
 end
--- A label in one of AnimeSkin's five text roles (design doc 4.42). color: replaces the role's colour. fit: long words
--- shrink to the Caption floor on one line. Again next frame, after AnimeSkin.Label's own pass.
-local function role(label, name, color, fit)
-	AnimeSkin.Label(label, name)
-	local function after()
-		if color then
-			label.TextColor3 = color
-		end
-		if fit then
-			label.TextScaled = true
-			label.TextWrapped = false
-			local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
-				or make("UITextSizeConstraint", "Fit", label, {})
-			limit.MaxTextSize = AnimeSkin.Px(AnimeSkin.Size[name])
-			limit.MinTextSize = AnimeSkin.Px(AnimeSkin.Size.Caption)
-		end
+-- The Index frame (design doc 4.42) PanelFrame.Attach gives the panel, below: every size is in its units.
+local g
+-- Labels by text role; the layout sizes them again at the frame's scale. color: replaces the role's colour.
+local roles = {}
+local function role(label, name, color)
+	roles[label] = { name, color }
+	label.TextWrapped = false
+	g.Role(label, name)
+	if color then
+		label.TextColor3 = color
 	end
-	after()
-	task.defer(after)
 	return label
 end
 
@@ -91,64 +83,29 @@ corner(panel, 16)
 make("UIStroke", "Stroke", panel, { Color = OUTLINE, Thickness = 4 })
 PanelSwitch.Register("Checkpoints", panel)
 
-local close = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Tracks", MaxWidth = 760 }).Close
--- No HudIcons art for tracks: a finish flag glyph fills the standard header's logo slot (AnimeSkin.Header places it).
-caption("Flag", panel.Header.Icon, { Size = UDim2.fromScale(1, 1), Text = "🏁", ZIndex = 4 }).Outline.Enabled = false
+local chrome = PanelFrame.Attach(panel, { Theme = "Checkpoints", Title = "Tracks", MaxWidth = 760 })
+local close = chrome.Close
+g = chrome.Frame
+-- No HudIcons art for tracks: a finish flag glyph fills the frame's logo slot.
+caption("Flag", panel.Header.Icon, { Size = UDim2.fromScale(1, 1), Text = "🏁", ZIndex = 12 }).Outline.Enabled = false
+-- The hint is the frame's footer line; two lines on the plate, as it is long.
 local HINT = "Click a track: your runs start there. Tracks past it in one run pay a bonus."
-local hint = role(
-	caption("Hint", panel, {
-		Text = HINT,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	"Body",
-	nil,
-	true
-)
+local hint = g.Footer(HINT)
+hint.TextWrapped = true
 
 local list = make("ScrollingFrame", "Cards", panel, {
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	AutomaticCanvasSize = Enum.AutomaticSize.Y,
 	CanvasSize = UDim2.new(),
+	ScrollBarThickness = 6,
+	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
 })
--- 2 px top and bottom: the plate has no edge for the list to clip. Cards are 12 apart.
-local CARD_GAP, CARD_PAD, CARD_MIN = 12, 2, 100
-make("UIPadding", "Pad", list, {
-	PaddingTop = UDim.new(0, CARD_PAD),
-	PaddingBottom = UDim.new(0, CARD_PAD),
-})
-make("UIListLayout", "List", list, {
+local CARD_GAP, CARD_MIN = 12, 124 -- units; 124 holds title, one blurb line and the stats with 12 padding
+local listLayout = make("UIListLayout", "List", list, {
 	FillDirection = Enum.FillDirection.Vertical,
-	Padding = UDim.new(0, CARD_GAP),
 	SortOrder = Enum.SortOrder.LayoutOrder,
 })
--- Design doc 4.42: the hint 12 under the header (one Body line), the list 12 under it, 16 in and 16 from the bottom.
-local function place()
-	local inset, top = AnimeSkin.Px(AnimeSkin.Space.Inset), AnimeSkin.Top(false)
-	local line = AnimeSkin.Px(AnimeSkin.Size.Body) + 4
-	hint.Position, hint.Size = UDim2.fromOffset(inset, top), UDim2.new(1, -2 * inset, 0, line)
-	local listTop = top + line + AnimeSkin.Px(AnimeSkin.Space.Gap)
-	list.Position = UDim2.fromOffset(inset, listTop)
-	list.Size = UDim2.new(1, -2 * inset, 1, -listTop - AnimeSkin.Px(AnimeSkin.Space.Bottom))
-	list.ScrollBarThickness = 6
-	list.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
-end
-place()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
-end
--- As many whole cards as fit (at least CARD_MIN tall) fill the visible area, so no card is cut at the frame.
-local function fitCards()
-	local room = list.AbsoluteSize.Y - 2 * CARD_PAD
-	local count = math.max(1, math.floor((room + CARD_GAP) / (CARD_MIN + CARD_GAP)))
-	local tall = math.max(CARD_MIN, math.floor((room - (count - 1) * CARD_GAP) / count))
-	for _, card in list:GetChildren() do
-		if card:IsA("GuiButton") then
-			card.Size = UDim2.new(1, -18, 0, tall)
-		end
-	end
-end
-list:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitCards)
 
 -- The biome's in-game name (the welcome popup's, design doc 4.17), e.g. "Shibuyo Underground"
 local function biomeName(spec)
@@ -187,12 +144,9 @@ end
 for _, spec in chain do
 	local n = spec.Number
 	local enemy = NpcConfig.For(n)
-	-- Card layout (design doc 4.42), left to right: the diamond, 12, the road shot, 12, the text column. The plate's
-	-- slanted ends take about 16 px, so content starts 28 in from the left and stops 32 in from the right (12 clear of
-	-- the art). Top to bottom in the text column: title, 8, description, 8, stats, each 12 from the card's top and bottom.
+	-- Card layout (design doc 4.42), placed by placeCard in frame units.
 	local card = make("TextButton", "Track_" .. n, list, {
 		LayoutOrder = n,
-		Size = UDim2.new(1, -18, 0, 108), -- leaves room for the 1.035 hover scale (RacerMotion), which grows rightward
 		BackgroundColor3 = CARD,
 		Text = "",
 		AutoButtonColor = false,
@@ -205,11 +159,8 @@ for _, spec in chain do
 	})
 	-- Design doc 4.42: the slanted plate replaces the card's fill and edge; its tint marks the checkpoint.
 	local plate = AnimeSkin.Plate(card, VIOLET)
-	-- 40 square turned 45 degrees: 57 across, its left tip 28 in, inside the plate.
 	local diamond = make("Frame", "Diamond", card, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0, 56, 0.5, 0),
-		Size = UDim2.fromOffset(40, 40),
 		Rotation = 45,
 		BackgroundColor3 = CARD_DEEP,
 		BorderSizePixel = 0,
@@ -219,26 +170,19 @@ for _, spec in chain do
 	role(
 		caption("Number", card, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0, 56, 0.5, 0),
-			Size = UDim2.fromOffset(32, 24),
 			Text = tostring(n),
 			ZIndex = 2,
 		}),
 		"Item"
 	)
 	local road = make("ImageLabel", "Road", card, {
-		Position = UDim2.fromOffset(96, 12),
-		Size = UDim2.new(0, 150, 1, -24),
 		ScaleType = Enum.ScaleType.Crop,
 		Image = TrackCards[n].Road or "",
 		BackgroundColor3 = CARD_DEEP,
 	})
 	corner(road, UiTheme.Radius.S)
-	local TEXT_X, TEXT_W = 258, -290 -- 96 + 150 + 12; ends 32 from the card's right
 	role(
 		caption("Title", card, {
-			Position = UDim2.fromOffset(TEXT_X, 12),
-			Size = UDim2.new(1, TEXT_W, 0, 20),
 			Text = biomeName(spec),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}),
@@ -246,52 +190,40 @@ for _, spec in chain do
 	)
 	role(
 		caption("Blurb", card, {
-			Position = UDim2.fromOffset(TEXT_X, 40),
-			Size = UDim2.new(1, TEXT_W, 1, -76),
 			Text = TrackCards[n].Blurb,
-			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 		}),
 		"Caption"
-	)
-	-- Speed and Enemy split the text column, 12 apart.
+	).TextWrapped =
+		true
 	role(
 		caption("Speed", card, {
-			Position = UDim2.new(0, TEXT_X, 1, -28),
-			Size = UDim2.new(0.5, TEXT_W / 2 - 6, 0, 16),
 			Text = "RECOMMENDED SPEED " .. HudFormat.SpeedText(NpcConfig.RecommendedSpeed(n)),
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}),
 		"Body",
-		STAT,
-		true
+		STAT
 	)
 	role(
 		caption("Enemy", card, {
-			Position = UDim2.new(0.5, TEXT_X + TEXT_W / 2 + 6, 1, -28),
-			Size = UDim2.new(0.5, TEXT_W / 2 - 6, 0, 16),
 			Text = "ENEMY " .. enemy.Label,
 			TextXAlignment = Enum.TextXAlignment.Left,
 		}),
 		"Body",
-		STAT,
-		true
+		STAT
 	)
-	-- Over the Road's bottom right corner, 4 in: nothing else sits there, so it never covers text.
+	-- Over the Road's bottom right corner: nothing else sits there, so it never covers text.
 	local chip = role(
 		caption("Chip", card, {
 			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(0, 242, 1, -16),
-			Size = UDim2.fromOffset(130, 20),
 			Text = "YOUR CHECKPOINT",
 			BackgroundColor3 = UiTheme.Palette.MoneyDeep,
 			Visible = false,
 			ZIndex = 2,
 		}),
 		"Caption",
-		Color3.new(1, 1, 1),
-		true
+		Color3.new(1, 1, 1)
 	)
 	chip.BackgroundTransparency = 0 -- caption() makes labels transparent; this one is a chip
 	corner(chip, 4) -- design doc 4.42: 4 px corners, no pills
@@ -304,31 +236,78 @@ for _, spec in chain do
 		Active = false,
 	})
 	corner(lock, UiTheme.Radius.M)
-	-- Both over the Road image (x 96 to 246), clear of the card's text.
+	-- Both over the Road image, clear of the card's text.
 	caption("Icon", lock, {
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0, 171, 0.5, 0),
-		Size = UDim2.fromOffset(36, 36),
 		Text = "🔒",
 		ZIndex = 4,
 	}).Outline.Enabled =
 		false
 	role(
 		caption("Need", lock, {
-			Position = UDim2.new(0, 96, 0.5, 4),
-			Size = UDim2.fromOffset(150, 20),
 			Text = "Beat Track " .. (n - 1),
 			ZIndex = 4,
 		}),
-		"Body",
-		nil,
-		true
+		"Body"
 	)
 	card.Activated:Connect(function()
 		pick(n, card)
 	end)
 	cards[n] = { Edge = edge, Plate = plate, Chip = chip, Lock = lock }
 end
+
+-- One card, h units tall. Left to right: the number diamond (its tip 24 in from the plate's left end), 12, the road
+-- shot, 12, the text column, which stops 24 from the plate's right end. Text column, top down: title, 8, description,
+-- 8, speed and enemy (12 apart), 12 padding at the top and bottom.
+local function placeCard(card, h, roadW)
+	local px = g.px
+	g.Place(card.Diamond, 24 + 28, h / 2, 40, 40) -- 40 square turned 45 degrees: 57 across
+	g.Place(card.Number, 24 + 28, h / 2, 40, 34)
+	card.Diamond.AnchorPoint, card.Number.AnchorPoint = Vector2.new(0.5, 0.5), Vector2.new(0.5, 0.5)
+	local roadX = 24 + 57 + 12
+	g.Place(card.Road, roadX, 12, roadW, h - 24)
+	local x = roadX + roadW + 12
+	local textW = UDim.new(1, -px(x + 24))
+	card.Title.Position, card.Title.Size = g.at(x, 12), UDim2.new(textW, UDim.new(0, px(34)))
+	local blurbH = h - 12 - 34 - 8 - 8 - 28 - 12
+	card.Blurb.Visible = blurbH >= 22
+	card.Blurb.Position, card.Blurb.Size = g.at(x, 54), UDim2.new(textW, UDim.new(0, px(math.max(0, blurbH))))
+	-- Speed and Enemy split the text column, 12 apart.
+	local half = UDim.new(0.5, -px((x + 24) / 2 + 6))
+	card.Speed.Position, card.Speed.Size = g.at(x, h - 12 - 28), UDim2.new(half, UDim.new(0, px(28)))
+	card.Enemy.Position = UDim2.new(0.5, px(x - (x + 24) / 2 + 6), 0, px(h - 12 - 28))
+	card.Enemy.Size = card.Speed.Size
+	local chip = card.Chip
+	chip.AnchorPoint = Vector2.new(1, 1)
+	chip.Position, chip.Size = g.at(roadX + roadW - 4, h - 16), g.at(math.min(150, roadW - 8), 22)
+	local lock = card.Lock
+	lock.Icon.AnchorPoint = Vector2.new(0.5, 1)
+	lock.Icon.Position, lock.Icon.Size = g.at(roadX + roadW / 2, h / 2), g.at(36, 36)
+	g.Place(lock.Need, roadX, h / 2 + 4, roadW, 28)
+end
+
+-- The cards fill the content area: as many whole cards as fit at CARD_MIN, 12 apart, so none is cut at the frame.
+g.OnLayout(function()
+	local c = g.Content
+	for label, entry in roles do
+		g.Role(label, entry[1])
+		if entry[2] then
+			label.TextColor3 = entry[2]
+		end
+	end
+	g.Place(list, c.X, c.Y, c.W, c.H)
+	listLayout.Padding = UDim.new(0, g.px(CARD_GAP))
+	local count = math.max(1, math.floor((c.H + CARD_GAP) / (CARD_MIN + CARD_GAP)))
+	local h = math.floor((c.H - (count - 1) * CARD_GAP) / count)
+	local roadW = math.floor(c.W * 0.2)
+	for _, card in list:GetChildren() do
+		if card:IsA("GuiButton") then
+			-- 18 px short: room for the 1.035 hover scale (RacerMotion), which grows rightward
+			card.Size = UDim2.new(1, -18, 0, g.px(h))
+			placeCard(card, h, roadW)
+		end
+	end
+end)
 
 local function render()
 	local best = player:GetAttribute("BestTrack")
@@ -362,5 +341,4 @@ game:GetService("ProximityPromptService").PromptTriggered:Connect(function(promp
 	end
 end)
 UiTheme.Apply(root)
-fitCards()
 render()

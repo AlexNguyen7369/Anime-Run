@@ -137,6 +137,9 @@ local function snapRadius(px)
 end
 
 local function themeOne(object)
+	if object:GetAttribute("AnimeRole") then
+		return -- Client/AnimeSkin owns this text's font (design doc 4.42): never put it back on Fredoka
+	end
 	if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
 		if not object.FontFace.Family:find("Fredoka") then
 			object.Font = UiTheme.Font

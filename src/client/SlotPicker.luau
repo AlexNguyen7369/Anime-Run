@@ -29,11 +29,18 @@ local function make(class, name, parent, props)
 	return object
 end
 
--- A one-line label in one of AnimeSkin's text roles (design doc 4.42).
-local function caption(name, parent, props, role)
+-- A one-line label; picker:Layout(g) gives it its text role (design doc 4.42).
+local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
 	props.TextTruncate = Enum.TextTruncate.AtEnd
-	return AnimeSkin.Label(make("TextLabel", name, parent, props), role)
+	return make("TextLabel", name, parent, props)
+end
+
+-- Slot buttons are 44 design units tall (design doc 4.42). In px for an AnimeSkin.IndexFrame's g (or its k).
+SlotPicker.Units = AnimeSkin.Units.Button
+function SlotPicker.Height(g)
+	local k = type(g) == "number" and g or g.k
+	return math.floor(SlotPicker.Units * k + 0.5)
 end
 
 -- The Team ids in slot order (the player attribute Team).
@@ -64,40 +71,31 @@ local function wearing(aura, trail)
 end
 
 -- A Frame named `name` under `parent` with `props`; onPick(slot, id) gets the tapped slot and the id to send (nil =
--- take it off). Call :Update(kind, id) with the item the screen shows (id nil: nothing picked yet).
+-- take it off). Call :Update(kind, id) with the item the screen shows (id nil: nothing picked yet), and
+-- :Layout(g) from the caller's g.OnLayout (an AnimeSkin.IndexFrame's g). The buttons fill the row the caller gives
+-- (make it SlotPicker.Height(g) tall).
 function SlotPicker.new(name, parent, props, onPick)
 	local frame = make("Frame", name, parent, props)
 	frame.BackgroundTransparency = 1
-	-- Buttons 40 tall, 12 apart (design doc 4.42), centred in whatever row the caller gives.
-	local gap, height = AnimeSkin.Px(AnimeSkin.Space.Gap), AnimeSkin.Px(AnimeSkin.Space.Button)
-	make("UIListLayout", "Layout", frame, {
+	local list = make("UIListLayout", "Layout", frame, {
 		FillDirection = Enum.FillDirection.Horizontal,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
-		Padding = UDim.new(0, gap),
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	})
 	local picker = { Frame = frame, Buttons = {}, Kind = nil, Id = nil }
 	for slot = 1, Market.SLOTS do
 		local b = make("TextButton", "Slot" .. slot, frame, {
 			LayoutOrder = slot,
-			Size = UDim2.new(1 / Market.SLOTS, -math.ceil(gap * (Market.SLOTS - 1) / Market.SLOTS), 0, height),
+			Size = UDim2.fromScale(1 / Market.SLOTS, 1),
 			BackgroundColor3 = FREE,
 			Text = "",
 			AutoButtonColor = false,
 		})
 		UiTheme.Corner(b, "S")
 		AnimeSkin.Button(b, "Idle") -- the anime look (design doc 4.42); Update keeps its own free / here fills
-		local title = caption("Title", b, {
-			Position = UDim2.fromOffset(8, 2),
-			Size = UDim2.new(1, -16, 0.5, -2),
-			Text = "SLOT " .. slot,
-		}, "Body")
-		local items = caption("Items", b, {
-			Position = UDim2.new(0, 8, 0.5, 0),
-			Size = UDim2.new(1, -16, 0.5, -2),
-			Text = "",
-		}, "Caption")
+		local title = caption("Title", b, { Text = "SLOT " .. slot })
+		local items = caption("Items", b, { Text = "" })
 		picker.Buttons[slot] = { Button = b, Title = title, Items = items }
 		b.Activated:Connect(function()
 			if not (picker.Kind and picker.Id) then
@@ -107,6 +105,20 @@ function SlotPicker.new(name, parent, props, onPick)
 			local here = isHere(picker.Kind, slot, picker.Id)
 			onPick(slot, if here then nil else picker.Id, true)
 		end)
+	end
+	-- 12 units apart; "SLOT n" on the Body role over the item on the Caption role, 12 units in from the edges.
+	function picker:Layout(g)
+		local gap = g.px(AnimeSkin.Units.Gap)
+		list.Padding = UDim.new(0, gap)
+		for _, refs in self.Buttons do
+			refs.Button.Size = UDim2.new(1 / Market.SLOTS, -math.ceil(gap * (Market.SLOTS - 1) / Market.SLOTS), 1, 0)
+			refs.Title.Position, refs.Title.Size = g.at(12, 2), UDim2.new(1, -g.px(24), 0, g.px(22))
+			refs.Items.Position, refs.Items.Size = g.at(12, 23), UDim2.new(1, -g.px(24), 0, g.px(19))
+			refs.Title.TextXAlignment, refs.Items.TextXAlignment = Enum.TextXAlignment.Left, Enum.TextXAlignment.Left
+			g.Role(refs.Title, "Body")
+			g.Role(refs.Items, "Caption")
+		end
+		self.Height = SlotPicker.Height(g)
 	end
 	function picker:Update(kind, id)
 		self.Kind, self.Id = kind, id

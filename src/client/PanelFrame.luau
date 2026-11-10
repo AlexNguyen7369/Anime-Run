@@ -150,11 +150,16 @@ function Frame.Attach(panel, options)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.ZIndex = 5
 	Frame.PaintClose(close)
-	-- Design doc 4.42: the framed body and the one standard header (Client/AnimeSkin.Header).
-	Skin.Body(panel)
-	local layout =
+	-- Design doc 4.42 (owner 2026-11-10): every panel is the Index frame (Client/AnimeSkin.IndexFrame); the caller lays
+	-- its content out in the frame's units through controller.Frame. IndexFrame = false keeps the old flat header.
+	local frame
+	if options.IndexFrame == false then
+		Skin.Body(panel)
 		Skin.Header(panel, { Header = header, Title = title, Icon = icon, Close = close, TitleEnd = options.TitleEnd })
-	local controller = {}
+	else
+		frame = Skin.IndexFrame(panel, { Header = header, Title = title, Icon = icon, Close = close })
+	end
+	local controller = { Frame = frame }
 	function controller:SetTheme(theme, text, image)
 		local colors = Frame.Themes[theme] or Frame.Themes.Backpack
 		gradient.Color = ColorSequence.new(colors[1], colors[2])
@@ -167,9 +172,8 @@ function Frame.Attach(panel, options)
 		panel:SetAttribute("PanelTheme", theme)
 	end
 	controller:SetTheme(options.Theme, options.Title, options.Icon)
-	layout()
-	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	Band.Fit(panel, options.MaxWidth or 760)
+	-- The band's height sets the size; the frame's aspect keeps the Index's proportions (max width = the Index's 920).
+	Band.Fit(panel, frame and 920 or options.MaxWidth or 760)
 	controller.Header, controller.Close = header, close
 	return controller
 end
