@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared.HudFormat)
 local UiTheme = require(Shared.UiTheme)
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -31,11 +32,11 @@ local label = Instance.new("TextLabel")
 label.Name = "Bonus"
 label.BackgroundTransparency = 1
 label.Size = UDim2.fromScale(1, 1)
-label.Font = UiTheme.Font
+label.FontFace = AnimeSkin.Font -- design doc 4.42: heavy italic, dark outline; the text stays gold
 label.TextSize = 30
 label.TextColor3 = Color3.fromRGB(255, 215, 90)
 label.Text = ""
-UiTheme.Stroke(label, 2.5)
+UiTheme.Stroke(label, 2.5, AnimeSkin.Ink)
 label.Parent = group
 root.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 

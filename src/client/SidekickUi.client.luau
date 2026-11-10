@@ -17,6 +17,7 @@ local Config = require(shared:WaitForChild("SidekickConfig"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local Monetization = require(shared:WaitForChild("MonetizationConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
@@ -30,7 +31,6 @@ local PALETTE = UiTheme.Palette
 local OUTLINE = UiTheme.Outline
 local BLACK = Color3.new(0, 0, 0)
 local NEAR_BLACK = Color3.fromRGB(10, 10, 18)
-local SUMMON_TOP, SUMMON_DEEP = Color3.fromRGB(125, 240, 85), Color3.fromRGB(25, 150, 55) -- placeholders
 local CARD_SHEEN = ColorSequence.new({ -- placeholder
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 110, 75)),
 	ColorSequenceKeypoint.new(0.55, Color3.fromRGB(18, 26, 30)),
@@ -83,19 +83,21 @@ local function caption(name, parent, props)
 	make("UITextSizeConstraint", "Max", label, { MaxTextSize = props.TextSize or 20 })
 	return label
 end
-local function button(name, parent, props, text, top, deep)
-	props.BackgroundColor3 = PALETTE.White
+-- Design doc 4.42: the Index's action button (AnimeSkin tone, default Idle) with outlined heavy italic words.
+local function button(name, parent, props, text, tone)
 	props.Text = ""
 	props.AutoButtonColor = false
 	local b = make("TextButton", name, parent, props)
-	UiTheme.Corner(b, "M")
-	UiTheme.Gradient(b, top or PALETTE.Row, deep or PALETTE.PanelDeep)
+	AnimeSkin.Button(b, tone or "Idle")
 	make("UIStroke", "Stroke", b, { Color = OUTLINE, Thickness = 3, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
-	caption("Label", b, {
-		Position = UDim2.fromScale(0.05, 0.12),
-		Size = UDim2.fromScale(0.9, 0.76),
-		Text = text,
-	})
+	AnimeSkin.Title(
+		caption("Label", b, {
+			Position = UDim2.fromScale(0.05, 0.12),
+			Size = UDim2.fromScale(0.9, 0.76),
+			Text = text,
+		}),
+		20
+	)
 	return b
 end
 -- Rainbow rarity text is for Mythic and Secret; every other rarity keeps its one colour.
@@ -306,6 +308,7 @@ for order, pack in Monetization.GemPacks do
 		{ Thickness = 2, Color = PALETTE.White, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }
 	)
 	make("UIGradient", "Rainbow", tile.Edge, { Color = RAINBOW })
+	AnimeSkin.Card(tile, AnimeSkin.Tint.Default)
 	make("ImageLabel", "GemArt", tile, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
@@ -690,12 +693,12 @@ local summon1 = button("Summon1", main, {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.fromScale(0.2, 1),
 	Size = UDim2.new(0.4, -4, 0, 46),
-}, string.format("Summon 1x: %d Gems", Config.SummonCost), SUMMON_TOP, SUMMON_DEEP)
+}, string.format("Summon 1x: %d Gems", Config.SummonCost), "Go")
 local summon10 = button("Summon10", main, {
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.fromScale(1, 1),
 	Size = UDim2.new(0.4, 0, 0, 46),
-}, string.format("Summon 10x: %d Gems", Config.TenCost), SUMMON_TOP, SUMMON_DEEP)
+}, string.format("Summon 10x: %d Gems", Config.TenCost), "Go")
 -- VIP pays less (design doc 4.36); the server publishes what this player pays.
 local function showCosts()
 	local one = player:GetAttribute("SidekickCost1") or Config.SummonCost
@@ -714,7 +717,7 @@ local freeSummon = button("FreeSummon", main, {
 	Size = UDim2.new(0.5, 0, 0, 46),
 	Visible = false,
 	ZIndex = 2,
-}, "FREE SUMMON", SUMMON_TOP, SUMMON_DEEP)
+}, "FREE SUMMON", "Go")
 
 -- A full-body sheet with its Back button: Details and Auto-Sell.
 local function sheet(name, heading)
@@ -723,18 +726,23 @@ local function sheet(name, heading)
 	UiTheme.Gradient(frame, Color3.fromRGB(26, 26, 40), NEAR_BLACK)
 	frame.BackgroundColor3 = PALETTE.White
 	UiTheme.Corner(frame, "M")
-	caption("Heading", frame, {
-		Position = UDim2.fromOffset(10, 4),
-		Size = UDim2.new(1, -96, 0, 34),
-		Text = heading,
-		TextSize = 24,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
+	AnimeSkin.Body(frame) -- design doc 4.42: the framed body, outlined heading, art Back
+	AnimeSkin.Title(
+		caption("Heading", frame, {
+			Position = UDim2.fromOffset(10, 4),
+			Size = UDim2.new(1, -96, 0, 34),
+			Text = heading,
+			TextSize = 24,
+			TextXAlignment = Enum.TextXAlignment.Left,
+		}),
+		24
+	)
 	local back = button("Back", frame, {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -4, 0, 4),
 		Size = UDim2.fromOffset(76, 36),
 	}, "Back")
+	AnimeSkin.Close(back, back.Label)
 	back.Activated:Connect(function()
 		frame.Visible = false
 	end)
@@ -768,6 +776,7 @@ local function detailsLine(name, order, columns)
 		BackgroundColor3 = PALETTE.Row,
 	})
 	UiTheme.Corner(line, "S")
+	AnimeSkin.Plate(line, AnimeSkin.Tint.Default)
 	for _, column in columns do
 		local label = caption(column.Key, line, {
 			Position = UDim2.new(column.X, 6, 0.12, 0),
@@ -935,6 +944,7 @@ for order, row in Config.List do
 			BackgroundColor3 = PALETTE.Row,
 		})
 		UiTheme.Corner(line, "S")
+		AnimeSkin.Plate(line, AnimeSkin.Tint.Default)
 		caption("Rarity", line, {
 			Position = UDim2.new(0, 10, 0.15, 0),
 			Size = UDim2.new(0.6, -10, 0.7, 0),
@@ -991,6 +1001,7 @@ local function refresh()
 	for rarity, toggle in toggles do
 		toggle.Label.Text = on[rarity] == true and "On" or "Off"
 		toggle.Stroke.Color = on[rarity] == true and PALETTE.Money or OUTLINE
+		AnimeSkin.Button(toggle, on[rarity] == true and "Go" or "Idle")
 	end
 end
 

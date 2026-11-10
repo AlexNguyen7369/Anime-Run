@@ -21,6 +21,7 @@ local Switch = require(script.Parent.PanelSwitch)
 local UiFeedback = require(script.Parent.UiFeedback)
 local Band = require(script.Parent.PanelBand)
 local Frame = require(script.Parent.PanelFrame)
+local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local BLUE = Color3.fromRGB(61, 151, 219)
 local GREEN = Color3.fromRGB(89, 225, 138)
@@ -99,7 +100,9 @@ local function panel(name, title)
 		Active = true,
 	})
 	plate(p)
-	text("Title", p, UDim2.fromOffset(12, 4), UDim2.new(1, -74, 0, 34), title)
+	-- Design doc 4.42: the framed body art and the outlined title.
+	Skin.Body(p)
+	Skin.Title(text("Title", p, UDim2.fromOffset(12, 4), UDim2.new(1, -74, 0, 34), title), 24)
 	local close = button("Close", p, UDim2.new(1, -48, 0, 6), UDim2.fromOffset(38, 30), "×")
 	Frame.PaintClose(close)
 	Switch.Register(name, p)
@@ -351,13 +354,13 @@ local statRow = make("Frame", "Stats", workshopPanel, {
 	Size = rowSize,
 	BackgroundTransparency = 1,
 })
-local statButtons = {}
+local statLit = {}
 for i, stat in Workshop.Config.STATS do
 	local count = #Workshop.Config.STATS
 	local b =
 		button(stat, statRow, UDim2.new((i - 1) / count, 2, 0, 0), UDim2.new(1 / count, -4, 1, 0), string.upper(stat))
 	b.TextSize = 11
-	statButtons[stat] = b
+	statLit[stat] = Skin.Tab(b, i)
 	b.Activated:Connect(function()
 		local ok, applied, reason = pcall(function()
 			return remotes:WaitForChild("SetWorkshopStat"):InvokeServer(stat)
@@ -380,6 +383,7 @@ squadPoints.TextSize = 13
 squadPoints.TextXAlignment = Enum.TextXAlignment.Left
 local best3 = button("Best3", showcaseFrame, UDim2.new(1, -84, 0, 0), UDim2.fromOffset(84, 20), "BEST 3")
 best3.TextSize = 12
+Skin.Button(best3, "Go")
 local slots = {}
 for i = 1, GachaConfig.SHOWCASE_SLOTS do
 	local slot = make("Frame", "Slot" .. i, showcaseFrame, {
@@ -394,7 +398,7 @@ for i = 1, GachaConfig.SHOWCASE_SLOTS do
 	info.TextColor3 = Color3.fromRGB(160, 174, 195)
 	name.TextSize = 11
 	local clear = button("Clear", slot, UDim2.new(1, -24, 0.5, -11), UDim2.fromOffset(22, 22), "×")
-	clear.BackgroundColor3 = RED
+	Skin.Button(clear, "Danger")
 	slots[i] = { Name = name, Info = info, Clear = clear }
 end
 local showcaseList = make("ScrollingFrame", "List", showcaseFrame, {
@@ -491,7 +495,7 @@ local function refreshShowcase()
 		local shown = table.find(ids, c.Spec.Id) ~= nil
 		local show = button("Show", row, UDim2.new(1, -64, 0, 1), UDim2.fromOffset(62, 24), shown and "SHOWN" or "SHOW")
 		show.TextSize = 11
-		show.BackgroundColor3 = shown and GREEN or BLUE
+		Skin.Button(show, shown and "Go" or "Idle")
 		setActive(show, shown or not full)
 		show.Activated:Connect(function()
 			if not show.Active then
@@ -573,15 +577,15 @@ local function refresh()
 		or "MAX LEVEL"
 	setActive(buyWorkshop, nextLevel ~= nil and balance >= nextLevel.Price)
 	buyWorkshop.Selectable = buyWorkshop.Active
-	buyWorkshop.BackgroundColor3 = buyWorkshop.Active and GREEN or DARK
+	Skin.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
 	-- Server numbers (WorkshopBoost, WorkshopStat); "+35% Luck", one decimal at most
 	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
 	boostLabel.Text = "+"
 		.. tostring(math.round((player:GetAttribute("WorkshopBoost") or 0) * 1000) / 10)
 		.. "% "
 		.. stat
-	for name, b in statButtons do
-		b.BackgroundColor3 = name == stat and GREEN or BLUE
+	for name, lit in statLit do
+		lit(name == stat)
 	end
 end
 buyWorkshop.Activated:Connect(function()

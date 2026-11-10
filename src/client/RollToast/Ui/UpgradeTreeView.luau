@@ -4,6 +4,7 @@ local View = {}
 local Components = require(script.Parent.RacerComponents)
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local PanelFrame = require(script.Parent.Parent.Parent:WaitForChild("PanelFrame"))
+local AnimeSkin = require(script.Parent.Parent.Parent:WaitForChild("AnimeSkin"))
 local UserInputService = game:GetService("UserInputService")
 local WORLD, MIN_ZOOM, MAX_ZOOM, ZOOM_STEP = 1800, 0.15, 1.6, 0.16
 -- The click box is one row step tall so neighbouring tiles never overlap; the hex art is sized from the width.
@@ -76,19 +77,24 @@ function View.Create(gui, Tree, Format)
 	local refs = chrome.Bind(gui)
 	local screen = refs.Gui
 	screen.DisplayOrder = 8
-	-- The detail card is a white plate: dark text, no stroke.
-	for _, line in { refs.DetailTitle, refs.DetailBonus, refs.DetailStatus } do
-		line.TextColor3 = UiTheme.Palette.PanelDeep
-		local glyph = line:FindFirstChildOfClass("UIStroke")
-		if glyph then
-			glyph:Destroy()
+	-- Design doc 4.42: the detail card is the angular card art (its white plate, lift and shadow go), the text the
+	-- outlined white title.
+	AnimeSkin.Card(refs.Details)
+	for _, name in { "Lift", "Shadow" } do
+		local part = refs.Details:FindFirstChild(name) or refs.Details.Parent:FindFirstChild(name)
+		if part then
+			part.Visible = false
 		end
+	end
+	for _, line in { refs.DetailTitle, refs.DetailBonus, refs.DetailStatus } do
+		AnimeSkin.Title(line, line.TextSize)
 	end
 	-- Title and Money read clear of the hexes that pan under them.
 	for _, line in { refs.TreeTitle, refs.Balance } do
 		line.BackgroundColor3 = UiTheme.Palette.PanelDeep
 		line.BackgroundTransparency = 0.15
 		UiTheme.Corner(line, "M")
+		AnimeSkin.Title(line, line.TextSize)
 	end
 	PanelFrame.PaintClose(refs.Close, refs.CloseLabel)
 	local closeShadow = refs.Close.Parent:FindFirstChild("Shadow")

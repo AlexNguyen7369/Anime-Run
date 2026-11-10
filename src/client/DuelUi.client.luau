@@ -13,6 +13,7 @@ local duelRemote = remotes:WaitForChild("Duel")
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
 local DuelConfig = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("DuelConfig"))
@@ -65,6 +66,9 @@ local function panel(name, title)
 		TextXAlignment = Enum.TextXAlignment.Left,
 	})
 	UiTheme.Stroke(heading, 2)
+	-- Design doc 4.42: the framed body art and the outlined title.
+	AnimeSkin.Body(frame)
+	AnimeSkin.Title(heading, 24)
 	return frame
 end
 
@@ -99,9 +103,9 @@ local pickClose = button("Close", pickPanel, "X", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 10),
 	Size = UDim2.fromOffset(38, 30),
-	BackgroundColor3 = Palette.Danger,
 	TextSize = 14,
 })
+AnimeSkin.Close(pickClose)
 local pickTracks = make("Frame", "Tracks", pickPanel, {
 	Position = UDim2.fromOffset(18, 84),
 	Size = UDim2.new(1, -36, 1, -102),
@@ -130,14 +134,14 @@ UiTheme.Stroke(inviteText, 1.5)
 local inviteAccept = button("Accept", invitePanel, "ACCEPT", {
 	Position = UDim2.new(0, 18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Palette.MoneyDeep,
 })
+AnimeSkin.Button(inviteAccept, "Go")
 local inviteDecline = button("Decline", invitePanel, "DECLINE", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -18, 1, -58),
 	Size = UDim2.new(0.5, -22, 0, 40),
-	BackgroundColor3 = Palette.Danger,
 })
+AnimeSkin.Button(inviteDecline, "Danger")
 
 local countdown = make("TextLabel", "Countdown", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
@@ -210,6 +214,7 @@ local function showPick(message)
 		if type(trackNumber) == "number" then
 			local n = math.floor(trackNumber)
 			local trackButton = button("Track" .. n, pickTracks, "TRACK " .. n)
+			AnimeSkin.Button(trackButton, "Go")
 			trackButton.Activated:Connect(function()
 				duelRemote:FireServer("Pick", n)
 				PanelSwitch.Close("DuelPick")

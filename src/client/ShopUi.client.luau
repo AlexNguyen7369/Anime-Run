@@ -18,6 +18,7 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -46,9 +47,9 @@ end
 local function caption(name, parent, props)
 	props.BackgroundTransparency = 1
 	props.Font = props.Font or UiTheme.Font
-	-- No stroke under 16 px (below), so small text on the light cards goes dark to stay readable.
+	-- No stroke under 16 px (below); the dark anime card art keeps small white text readable (design doc 4.42).
 	local small = (props.TextSize or 24) < 16
-	props.TextColor3 = props.TextColor3 or (small and PALETTE.PanelDeep or PALETTE.White)
+	props.TextColor3 = props.TextColor3 or PALETTE.White
 	props.TextScaled = true
 	local label = make("TextLabel", name, parent, props)
 	if not small then
@@ -85,7 +86,10 @@ local function section(name, order, title, subtitle)
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	})
 	if title then
-		caption("Title", frame, { LayoutOrder = 0, Size = UDim2.new(1, 0, 0, 40), Text = title, TextSize = 36 })
+		AnimeSkin.Title(
+			caption("Title", frame, { LayoutOrder = 0, Size = UDim2.new(1, 0, 0, 40), Text = title, TextSize = 36 }),
+			36
+		)
 	end
 	if subtitle then
 		make("TextLabel", "Subtitle", frame, {
@@ -162,13 +166,19 @@ make("UIPadding", "Padding", list, {
 	PaddingRight = UDim.new(0, 12),
 })
 
--- A colour card with the dark outline and a light-to-colour gradient.
-local function card(name, parent, color, props)
+-- A colour card: the anime card art (a wide banner: the slanted plate) tinted in its colour (design doc 4.42).
+-- The fill, gradient and Stroke stay for the cascade; AnimeSkin hides them.
+local function card(name, parent, color, props, plate)
 	props.BackgroundColor3 = Color3.new(1, 1, 1)
 	local frame = make("Frame", name, parent, props)
 	corner(frame, 14)
 	stroke(frame, 3)
 	gradient(frame, lighter(color, 0.55), color)
+	if plate then
+		AnimeSkin.Plate(frame, color)
+	else
+		AnimeSkin.Card(frame, color)
+	end
 	return frame
 end
 
@@ -216,6 +226,7 @@ local function setBlocked(button, price, word)
 	else
 		button.Gradient.Color = ColorSequence.new(PALETTE.Money, PALETTE.MoneyDeep)
 	end
+	AnimeSkin.Button(button, word and "Idle" or "Go")
 end
 
 -- The green price button. kind = "pass" | "product"; id 0 shows "Coming soon" and never prompts. `item` is the catalogue
@@ -234,13 +245,14 @@ local function buyButton(parent, kind, id, robuxPrice, props, item)
 	else
 		gradient(button, PALETTE.Muted, PALETTE.Disabled)
 	end
+	AnimeSkin.Button(button, id > 0 and "Go" or "Idle")
 	make("ImageLabel", "Robux", button, {
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.fromScale(0.1, id > 0 and 0.5 or 0.38),
 		Size = UDim2.fromScale(0.22, 0.6),
 		BackgroundTransparency = 1,
 		Image = ROBUX_ICON,
-		ImageColor3 = OUTLINE,
+		ImageColor3 = PALETTE.White,
 		ScaleType = Enum.ScaleType.Fit,
 	})
 	local price = caption("Price", button, {
@@ -249,6 +261,7 @@ local function buyButton(parent, kind, id, robuxPrice, props, item)
 		Text = commas(robuxPrice),
 		TextSize = 28,
 	})
+	AnimeSkin.Title(price, 28)
 	if id <= 0 then
 		caption("Soon", button, {
 			Position = UDim2.fromScale(0.05, 0.64),
@@ -310,6 +323,7 @@ local function detailsButton(box)
 		ZIndex = 3,
 	})
 	corner(b, 6)
+	AnimeSkin.Button(b, "Idle")
 	b.Activated:Connect(require(script.Parent:WaitForChild("RollOptions")).OpenDetails)
 	return b
 end
@@ -330,12 +344,15 @@ make("UIGridLayout", "Layout", grid, {
 })
 for order, item in config.Gamepasses do
 	local box = card(item.Id, grid, item.Color or PALETTE.ShopSky, { LayoutOrder = order })
-	caption("Name", box, {
-		Position = UDim2.fromScale(0.05, 0.04),
-		Size = UDim2.fromScale(0.9, 0.17),
-		Text = item.Name,
-		TextSize = 28,
-	})
+	AnimeSkin.Title(
+		caption("Name", box, {
+			Position = UDim2.fromScale(0.05, 0.04),
+			Size = UDim2.fromScale(0.9, 0.17),
+			Text = item.Name,
+			TextSize = 28,
+		}),
+		28
+	)
 	caption("Description", box, {
 		Position = UDim2.fromScale(0.05, 0.21),
 		Size = UDim2.fromScale(0.9, 0.11),
@@ -396,12 +413,15 @@ for order, product in config.Products do
 	if product.Section == "Potions" then
 		local category = grantCategory(product.Grants)
 		local box = card(product.Id, packRow, POTION_COLORS[category], { LayoutOrder = order })
-		caption("Name", box, {
-			Position = UDim2.fromScale(0.05, 0.04),
-			Size = UDim2.fromScale(0.9, 0.16),
-			Text = product.Name,
-			TextSize = 24,
-		})
+		AnimeSkin.Title(
+			caption("Name", box, {
+				Position = UDim2.fromScale(0.05, 0.04),
+				Size = UDim2.fromScale(0.9, 0.16),
+				Text = product.Name,
+				TextSize = 24,
+			}),
+			24
+		)
 		caption("Description", box, {
 			Position = UDim2.fromScale(0.05, 0.2),
 			Size = UDim2.fromScale(0.9, 0.1),
@@ -431,7 +451,7 @@ for _, product in config.Products do
 		local banner = card("Bundle", potions, PALETTE.ShopPink, {
 			LayoutOrder = 3,
 			Size = UDim2.new(1, 0, 0, 170),
-		})
+		}, true)
 		banner.Gradient.Rotation = 0
 		banner.Gradient.Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, PALETTE.ShopSky),
@@ -510,7 +530,7 @@ luck.Parent = list
 local luckBanner = card("Banner", luck, PALETTE.ShopLime, {
 	LayoutOrder = 1,
 	Size = UDim2.new(1, 0, 0, 150),
-})
+}, true)
 local luckTitle = caption("Title", luckBanner, {
 	Position = UDim2.fromScale(0.03, 0.06),
 	Size = UDim2.fromScale(0.94, 0.24),
@@ -582,7 +602,8 @@ local redeem = make("TextButton", "Redeem", codeBox, {
 corner(redeem, 8)
 stroke(redeem, 3)
 gradient(redeem, PALETTE.ShopSky, PALETTE.ShopRedeem)
-caption("Label", redeem, { Size = UDim2.fromScale(1, 1), Text = "Redeem", TextSize = 26 })
+AnimeSkin.Button(redeem, "Go")
+AnimeSkin.Title(caption("Label", redeem, { Size = UDim2.fromScale(1, 1), Text = "Redeem", TextSize = 26 }), 26)
 local status = make("TextLabel", "Status", codeBox, {
 	Position = UDim2.fromScale(0.04, 0.83),
 	Size = UDim2.fromScale(0.92, 0.13),
@@ -597,7 +618,7 @@ redeem.Activated:Connect(function()
 	redeem.Active = false
 	local ok, message = remotes:WaitForChild("RedeemCode"):InvokeServer(input.Text)
 	status.Text = tostring(message or (ok and "Code redeemed!" or "Try again"))
-	status.TextColor3 = ok and PALETTE.MoneyDeep or PALETTE.DangerDeep
+	status.TextColor3 = ok and PALETTE.Money or PALETTE.Reject -- bright: readable on the dark card art
 	status.Position = statusHome
 	UiMotion.SlideIn(status, Vector2.new(0, 12)) -- the answer slides in from the bottom edge (section 10)
 	if ok then
@@ -646,6 +667,7 @@ local function giftButton(box, product, reason)
 	})
 	corner(gift, 8)
 	stroke(gift, 3)
+	AnimeSkin.Button(gift, enabled and "Gold" or "Idle")
 	if not enabled then
 		UiFeedback.DeniedPress(gift)
 		local note = make("TextLabel", "GiftReason", box, {
@@ -656,7 +678,7 @@ local function giftButton(box, product, reason)
 			BackgroundTransparency = 1,
 			Font = UiTheme.Font,
 			TextSize = 10,
-			TextColor3 = OUTLINE,
+			TextColor3 = PALETTE.SoftText,
 			TextScaled = true,
 		})
 		make("UITextSizeConstraint", "Max", note, { MaxTextSize = 11 })

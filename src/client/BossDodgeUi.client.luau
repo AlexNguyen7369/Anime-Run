@@ -14,6 +14,7 @@ local BossDodge = require(Shared:WaitForChild("BossDodge"))
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
@@ -64,7 +65,7 @@ local function text(name, parent)
 	return make("TextLabel", {
 		Name = name,
 		BackgroundTransparency = 1,
-		Font = UiTheme.Font,
+		FontFace = AnimeSkin.Font, -- design doc 4.42: heavy italic
 		TextColor3 = WHITE,
 		TextScaled = true,
 		Visible = false,

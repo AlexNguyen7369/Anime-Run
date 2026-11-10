@@ -21,6 +21,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 -- Owner reference (placeholder colours): dark violet card, number in a diamond, violet title, green stats.
 local OUTLINE = UiTheme.Outline
@@ -152,6 +153,8 @@ for _, spec in chain do
 		Thickness = 2,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
+	-- Design doc 4.42: the slanted plate replaces the card's fill and edge; its tint marks the checkpoint.
+	local plate = AnimeSkin.Plate(card, VIOLET)
 	local diamond = make("Frame", "Diamond", card, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, 46, 0.5, 0),
@@ -177,13 +180,15 @@ for _, spec in chain do
 		BackgroundColor3 = CARD_DEEP,
 	})
 	corner(road, UiTheme.Radius.S)
-	caption("Title", card, {
-		Position = UDim2.fromOffset(262, 8),
-		Size = UDim2.new(1, -274, 0, 24),
-		Text = biomeName(spec),
-		TextColor3 = VIOLET,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	})
+	AnimeSkin.Title(
+		caption("Title", card, {
+			Position = UDim2.fromOffset(262, 8),
+			Size = UDim2.new(1, -274, 0, 24),
+			Text = biomeName(spec),
+			TextXAlignment = Enum.TextXAlignment.Left,
+		}),
+		24
+	)
 	local blurb = caption("Blurb", card, {
 		Position = UDim2.fromOffset(262, 34),
 		Size = UDim2.new(1, -274, 0, 42),
@@ -247,7 +252,7 @@ for _, spec in chain do
 	card.Activated:Connect(function()
 		pick(n, card)
 	end)
-	cards[n] = { Edge = edge, Chip = chip, Lock = lock }
+	cards[n] = { Edge = edge, Plate = plate, Chip = chip, Lock = lock }
 end
 
 local function render()
@@ -257,6 +262,7 @@ local function render()
 		refs.Lock.Visible = not CheckpointConfig.IsOpen(n, best, #chain)
 		refs.Chip.Visible = n == current
 		UiMotion.Mark(refs.Edge, { Color = n == current and SELECTED or VIOLET })
+		refs.Plate.ImageColor3 = n == current and SELECTED or VIOLET
 	end
 end
 

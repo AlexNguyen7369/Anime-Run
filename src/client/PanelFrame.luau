@@ -2,6 +2,7 @@
 -- Shared Backpack-style chrome; adopts existing controls so fixtures/remotes keep their paths.
 local Band = require(script.Parent.PanelBand)
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
+local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Frame = {}
 -- Header gradients (placeholders).
 Frame.Themes = {
@@ -27,8 +28,14 @@ local function child(parent, class, name)
 	return value
 end
 
--- The one close button: Danger, radius M, Outline edge, stroked X. Geometry stays with the caller.
+-- The one close button: the Index's art close (design doc 4.42). Geometry stays with the caller.
 function Frame.PaintClose(close, labelObject)
+	Frame.PaintFlatClose(close, labelObject)
+	Skin.Close(close, labelObject or close:FindFirstChild("X"))
+end
+
+-- The older flat close (Danger, radius M, Outline edge, stroked X), under the art.
+function Frame.PaintFlatClose(close, labelObject)
 	local gradient = close:FindFirstChildOfClass("UIGradient")
 	if gradient then
 		gradient:Destroy()
@@ -86,6 +93,24 @@ function Frame.PaintGenerated(parts)
 		lift.Visible = false
 	end
 	Frame.PaintClose(parts.Close, parts.CloseLabel)
+	if parts.Theme == "Index" then
+		return -- Client/IndexAnimeStyle dresses the Index in its own layout
+	end
+	-- Design doc 4.42: the framed body and the header strip; the generated shadows and lifts go.
+	Skin.Body(parts.Panel)
+	Skin.Strip(header)
+	for _, face in { parts.Panel, header } do
+		for _, name in { "Shadow", "Lift" } do
+			local part = face:FindFirstChild(name) or (face.Parent and face.Parent:FindFirstChild(name))
+			if part and part:IsA("GuiObject") then
+				part.Visible = false
+			end
+		end
+	end
+	local heading = header:FindFirstChild("Title")
+	if heading and heading:IsA("TextLabel") then
+		Skin.Title(heading, 30)
+	end
 end
 
 function Frame.Attach(panel, options)
@@ -125,18 +150,26 @@ function Frame.Attach(panel, options)
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.ZIndex = 5
 	Frame.PaintClose(close)
+	-- Design doc 4.42: the framed body, the slanted strip, the HUD icon as an overhanging logo, the outlined title.
+	Skin.Body(panel)
+	local strip = Skin.Strip(header)
+	panel.ClipsDescendants = false
 	local function layout()
 		local compact = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize.Y <= 500
 		local h = compact and 48 or 64
 		header.Size = UDim2.new(1, 0, 0, h)
 		close.Position = UDim2.new(1, -6, 0, 6)
 		close.Size = UDim2.fromOffset(h - 12, h - 12)
-		title.Position = UDim2.fromOffset(h + 8, 6)
+		local logo = math.floor(h * 1.4)
+		icon.Position = UDim2.fromOffset(-math.floor(h * 0.2), -math.floor(h * 0.45))
+		icon.Size = UDim2.fromOffset(logo, logo)
+		local left = logo - math.floor(h * 0.15)
+		strip.Position, strip.Size = UDim2.fromOffset(math.floor(h * 0.5), 4), UDim2.new(1, -math.floor(h * 0.5), 1, -8)
+		title.Position = UDim2.fromOffset(left, 4)
 		-- A header toolbar (options.TitleEnd: where it starts) keeps the title's whole rect clear of its buttons.
 		local stop = options.TitleEnd or UDim.new(1, -h - 12)
-		title.Size = UDim2.new(stop.Scale, stop.Offset - h - 8, 0, h - 12)
-		icon.Position = UDim2.fromOffset(10, 6)
-		icon.Size = UDim2.fromOffset(h - 12, h - 12)
+		title.Size = UDim2.new(stop.Scale, stop.Offset - left, 0, h - 8)
+		Skin.Title(title, math.floor(h * 0.6))
 	end
 	local controller = {}
 	function controller:SetTheme(theme, text, image)

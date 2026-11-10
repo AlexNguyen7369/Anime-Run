@@ -34,6 +34,7 @@ local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local ItemMenu = require(script.Parent:WaitForChild("ItemMenu"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -77,6 +78,14 @@ local function caption(name, parent, props)
 end
 local function count(n)
 	return "x" .. HudFormat.Short(n)
+end
+-- A card's art tint (design doc 4.42): white when picked, else its rarity (Secret's black would not read: white, as the Index).
+local chosenCharacter = nil -- the character id the slot buttons put on the Team
+local function cardTint(spec)
+	if spec.Id == chosenCharacter or spec.Rarity == "Secret" then
+		return Color3.new(1, 1, 1)
+	end
+	return GachaConfig.RARITY_COLORS[spec.Rarity] or AnimeSkin.Tint.Default
 end
 local function cascade(tiles)
 	UiMotion.Cascade(tiles, "Stroke")
@@ -412,7 +421,6 @@ end
 
 local current = "Characters" -- the common job; Misc is usually empty
 local chosen = nil -- the trail / aura id the slot buttons equip
-local chosenCharacter = nil -- the character id the slot buttons put on the Team
 local gearOf = {} -- character id -> the Sidekick row it wears (filled per render)
 local relicOf = {} -- character id -> the Relic row it wears (filled per render)
 local selecting = false -- select mode: a card marks itself for the mass sale
@@ -478,6 +486,7 @@ local function tile(id, order, highlighted)
 	corner(b, 12)
 	UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
 	stroke(b, highlighted and TILE_GREEN or TILE_BLUE, 4)
+	AnimeSkin.Card(b, highlighted and AnimeSkin.Tint.Ready or AnimeSkin.Tint.Default)
 	table.insert(shownTiles, b)
 	return b
 end
@@ -495,6 +504,8 @@ local function characterTile(spec, order)
 	if spec.Id == chosenCharacter then
 		b.Stroke.Color = Color3.new(1, 1, 1)
 	end
+	AnimeSkin.Card(b, cardTint(spec))
+	b.Rim.Visible = false -- the card art carries the rarity, as in the Index
 	table.insert(shownTiles, b)
 	Components.CardArt(b, spec)
 	local worn = gearOf[spec.Id]
@@ -771,7 +782,7 @@ local function drawMassBar()
 	end
 	massGo.Text = string.format("Sell %d spare%s +$%s", spares, spares == 1 and "" or "s", HudFormat.Short(money))
 	massGo.Active = spares > 0
-	massGo.BackgroundColor3 = spares > 0 and PALETTE.Danger or PALETTE.Disabled
+	AnimeSkin.Button(massGo, spares > 0 and "Danger" or "Idle")
 	return spares, money
 end
 
@@ -779,6 +790,8 @@ local function setSelected(card, id, on)
 	selected[id] = on or nil
 	card.Picked.Visible = on
 	card.Stroke.Color = on and PALETTE.Danger or OUTLINE
+	local spec = CharacterCatalog.Get(id)
+	card.AnimeCard.ImageColor3 = on and AnimeSkin.Tint.Danger or (spec and cardTint(spec) or AnimeSkin.Tint.Default)
 end
 
 local function leaveSelect()
@@ -795,6 +808,7 @@ function render()
 	end
 	for name, refs in tabs do
 		UiMotion.Mark(refs.Edge, { Color = name == current and Color3.new(1, 1, 1) or OUTLINE })
+		refs.SetLit(name == current)
 	end
 	local shown = 0
 	table.clear(shownTiles)
@@ -921,6 +935,7 @@ function render()
 				})
 				if item.Id == chosen then
 					b.Stroke.Color = Color3.new(1, 1, 1)
+					b.AnimeCard.ImageColor3 = Color3.new(1, 1, 1)
 				end
 				swatch(
 					b,
@@ -1147,3 +1162,19 @@ end
 rail:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTabs)
 fitTabs()
 UiTheme.Apply(root)
+-- The anime look (design doc 4.42), after UiTheme.Apply, which would put these fonts back on Fredoka.
+for _, refs in tabs do
+	refs.SetLit = AnimeSkin.Tab(refs.Button, refs.Button.LayoutOrder)
+	for _, d in refs.Button:GetChildren() do
+		if d:IsA("GuiObject") and d.Name ~= "AnimeTabArt" and d.ZIndex < 2 then
+			d.ZIndex = 2 -- the tab's icon over its art
+		end
+	end
+end
+AnimeSkin.Button(sortButton, "Idle")
+AnimeSkin.Title(sortLabel, 15)
+AnimeSkin.Button(massSell, "Danger")
+AnimeSkin.Button(sellSpares, "Idle")
+AnimeSkin.Button(massAll, "Idle")
+AnimeSkin.Button(massGo, "Danger")
+AnimeSkin.Button(massCancel, "Idle")

@@ -17,6 +17,7 @@ local UiTheme = require(Shared.UiTheme)
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("NpcRace")
 
 local player = Players.LocalPlayer
@@ -180,6 +181,7 @@ card.AnchorPoint = Vector2.new(0.5, 0.5)
 card.Position = UDim2.new(0.5, 0, 0.5, OVERHANG // 2)
 card.Size = UDim2.fromOffset(CARD_W, CARD_H)
 UiTheme.Plate(card, Palette.Danger)
+AnimeSkin.Body(card) -- design doc 4.42: the framed body art
 card.Parent = shade
 -- Layout scale (not MotionScale): the card keeps 16 px margins down to a 600 x 390 phone viewport.
 local fit = Instance.new("UIScale")
@@ -226,6 +228,7 @@ local banner = label("Banner", ribbon, 0, 64, 44)
 banner.Size = UDim2.fromScale(1, 1)
 banner.Text = "YOU LOST"
 UiTheme.Stroke(banner, 3)
+AnimeSkin.Title(banner, 44)
 
 local rows = {
 	label("NpcName", card, 62, 30, 26),

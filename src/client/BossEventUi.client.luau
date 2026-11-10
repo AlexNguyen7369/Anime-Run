@@ -30,6 +30,7 @@ local Palette = UiTheme.Palette
 local HEAVY = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWeight.Heavy) -- as RollToast's BOLD: heavy, in the game's family
 local PanelBand = require(script.Parent:WaitForChild("PanelBand"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -116,17 +117,18 @@ local function label(name, parent, props, maxSize)
 end
 
 -- Fixed text size, no size constraint: the LeaveButton is one of ui_layout's solved elements at every viewport.
-local function button(name, parent, text, color, props)
+-- tone: an AnimeSkin.Button tone (design doc 4.42).
+local function button(name, parent, text, tone, props)
 	props.Text = text
 	props.Font = UiTheme.Font
 	props.TextSize = props.TextSize or 20
 	props.TextColor3 = Palette.White
-	props.BackgroundColor3 = color
 	props.AutoButtonColor = false
 	props.BorderSizePixel = 0
 	local object = make("TextButton", name, parent, props)
 	UiTheme.Corner(object, "M")
 	UiTheme.Stroke(object, 3, UiTheme.Outline, true)
+	AnimeSkin.Button(object, tone)
 	return object
 end
 
@@ -154,7 +156,42 @@ local function panel(name, title)
 		TextColor3 = Palette.Gold,
 		TextXAlignment = Enum.TextXAlignment.Right,
 	}, 28)
+	-- Design doc 4.42: the slanted strip under the header's words (it clears the Daily gradient), outlined title.
+	AnimeSkin.Strip(header)
+	header.Title.ZIndex, header.Countdown.ZIndex = 2, 2
+	header.Countdown.FontFace = AnimeSkin.Font -- stays gold
+	AnimeSkin.Title(header.Title, 28)
 	return frame, header, header.Countdown
+end
+
+-- AnimeSkin.Body for a panel whose UIListLayout would take the art as a row: the art hangs from the header instead (header
+-- ZIndex 0, so every later row draws over it) and is sized to the whole panel, in the header's unscaled px.
+local function listBody(frame, header, inset)
+	AnimeSkin.Clear(frame)
+	header.ZIndex = 0
+	local body = AnimeSkin.Body(header, inset)
+	body.ZIndex = -1 -- under the header's own strip
+	local pad = inset or 8
+	local function fit()
+		local scale = header.AbsoluteSize.Y / math.max(1, header.Size.Y.Offset) -- a pop's UIScale
+		if scale <= 0 then
+			return
+		end
+		local at = (frame.AbsolutePosition - header.AbsolutePosition) / scale
+		local size = frame.AbsoluteSize / scale
+		body.Position = UDim2.fromOffset(at.X - pad, at.Y - pad)
+		body.Size = UDim2.fromOffset(size.X + 2 * pad, size.Y + 2 * pad)
+	end
+	for _, signal in
+		{
+			frame:GetPropertyChangedSignal("AbsoluteSize"),
+			header:GetPropertyChangedSignal("AbsoluteSize"),
+			header:GetPropertyChangedSignal("AbsolutePosition"),
+		}
+	do
+		signal:Connect(fit)
+	end
+	fit()
 end
 
 local root = make("ScreenGui", "RacerBossEvent", playerGui, {
@@ -167,24 +204,27 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 -- Invite ------------------------------------------------------------------------------------------------------------------
 local invite, inviteHeader, inviteCountdown = panel("Invite", "BIG RAGA EVENT")
 invite.Parent = root
+AnimeSkin.Body(invite)
 local inviteHint = label("Hint", invite, { Text = "", TextWrapped = true }, 22)
-local teleport = button("TeleportButton", invite, "Teleport", Palette.MoneyDeep, {
+local teleport = button("TeleportButton", invite, "Teleport", "Go", {
 	Position = UDim2.fromOffset(8, 0),
 })
-local decline = button("DeclineButton", invite, "Decline", Palette.TabIdle, {
+local decline = button("DeclineButton", invite, "Decline", "Idle", {
 	AnchorPoint = Vector2.new(1, 0),
 })
 
 -- Team HUD ----------------------------------------------------------------------------------------------------------------
 local hud, hudHeader, hudCountdown = panel("TeamHud", "CHOOSE YOUR TEAM")
 hud.Parent = root
+AnimeSkin.Body(hud)
 hudCountdown.Position = UDim2.fromScale(0.87, 0.14) -- room for the X
 hudCountdown.Size = UDim2.fromScale(0.2, 0.72) -- clear of the title
-local hudClose = button("CloseButton", hudHeader, "X", Palette.Danger, {
+local hudClose = button("CloseButton", hudHeader, "X", "Danger", {
 	AnchorPoint = Vector2.new(1, 0.5),
 	Position = UDim2.fromScale(0.99, 0.5),
 	Size = UDim2.fromScale(0.09, 0.8),
 })
+AnimeSkin.Close(hudClose)
 local slots = {}
 for i = 1, StaminaConfig.TEAM_SIZE do
 	-- RacerHover before parenting: Ui/RacerMotion owes a Frame with a CharacterId its HoverScale, and looks only when it is added.
@@ -196,6 +236,7 @@ for i = 1, StaminaConfig.TEAM_SIZE do
 	UiTheme.Corner(slot, "M")
 	UiTheme.Stroke(slot, 2, Palette.Muted, true)
 	slot.Parent = hud
+	AnimeSkin.Card(slot, AnimeSkin.Tint.Muted)
 	local number = label("Number", slot, {
 		Position = UDim2.fromScale(0.2, 0.2),
 		Size = UDim2.fromScale(0.6, 0.6),
@@ -434,13 +475,13 @@ dropRow(
 )
 
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
-local editTeam = button("EditTeamButton", root, "Edit Team", Palette.MoneyDeep, {
+local editTeam = button("EditTeamButton", root, "Edit Team", "Go", {
 	AnchorPoint = Vector2.new(0.5, 1),
 	Size = UDim2.fromOffset(EDIT_TEAM_SIZE.X, EDIT_TEAM_SIZE.Y),
 	TextSize = 18,
 	Visible = false,
 })
-local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
+local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -8, 0, 56),
 	Size = UDim2.fromOffset(62, 44),
@@ -450,7 +491,7 @@ local leave = button("LeaveButton", root, "LEAVE", Palette.Danger, {
 
 -- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
 -- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
-local bossButton = button("BossButton", nil, "Bosses", Palette.Danger, {
+local bossButton = button("BossButton", nil, "Bosses", "Danger", {
 	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
 	TextSize = 14,
 	Visible = false,
@@ -470,11 +511,13 @@ bossesPanel.AutomaticSize = Enum.AutomaticSize.Y
 bossesPanel.Parent = root
 bossesHeader.Size = UDim2.new(1, 0, 0, 42)
 bossesHeader.LayoutOrder = 0
-local bossesClose = button("CloseButton", bossesHeader, "X", Palette.Danger, {
+listBody(bossesPanel, bossesHeader)
+local bossesClose = button("CloseButton", bossesHeader, "X", "Danger", {
 	AnchorPoint = Vector2.new(1, 0.5),
 	Position = UDim2.new(1, -4, 0.5, 0),
 	Size = UDim2.fromOffset(38, 34),
 })
+AnimeSkin.Close(bossesClose)
 make("UIPadding", "Padding", bossesPanel, {
 	PaddingTop = UDim.new(0, 8),
 	PaddingBottom = UDim.new(0, 8),
@@ -533,7 +576,7 @@ local bossNext = label("NextEvent", bossesPanel, {
 	LayoutOrder = 4,
 	Text = "",
 }, 16)
-local bossAction = button("BossAction", bossesPanel, "Go", Palette.MoneyDeep, {
+local bossAction = button("BossAction", bossesPanel, "Go", "Go", {
 	Size = UDim2.new(1, 0, 0, 40),
 	LayoutOrder = 5,
 })
@@ -798,9 +841,11 @@ local function drawPicks()
 		slot.Head.Image = id and art(id) or ""
 		setBadge(slot.Badge, id and sidekickHead(gear[id]) or "")
 		slot.Frame.ThemeStroke.Color = id and Palette.Gold or Palette.Muted
+		AnimeSkin.Card(slot.Frame, id and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Muted)
 	end
 	for id, cell in cells do
 		cell.Edge.Color = table.find(picks, id) and Palette.Gold or UiTheme.Outline
+		AnimeSkin.Card(cell.Button, table.find(picks, id) and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
 	end
 end
 
@@ -844,10 +889,11 @@ local function press(id)
 end
 
 local function newCell(id, spec)
-	local cell = button(id, list, "", Palette.Row, {})
+	local cell = button(id, list, "", "Idle", {})
 	UiTheme.Corner(cell, "S")
 	local edge = cell.ThemeStroke
 	edge.Thickness = 2
+	AnimeSkin.Card(cell)
 	make("ImageLabel", "Head", cell, {
 		Size = UDim2.fromScale(1, 0.72),
 		BackgroundTransparency = 1,
@@ -911,7 +957,10 @@ local function refreshGear()
 
 	local locked = #rows == 0 -- READING in UiBossEvent: a Sidekick only in the Bag locks it, the server refuses that join
 	teleport.Active = not locked
-	teleport.BackgroundColor3 = locked and Palette.Disabled or Palette.MoneyDeep
+	AnimeSkin.Button(teleport, "Go")
+	if locked then
+		teleport.BackgroundColor3 = Palette.Disabled
+	end
 	inviteHint.Text = locked and LOCKED_TEXT or "Teleport to fight Big Raga before the timer ends"
 end
 player:GetAttributeChangedSignal("SidekickGear"):Connect(refreshGear)
@@ -1127,7 +1176,10 @@ local function drawBossButton(phase, inEvent, joinable)
 	if active then
 		bossAction.Text = "Go"
 		bossAction.Active = joinable and armed
-		bossAction.BackgroundColor3 = bossAction.Active and Palette.MoneyDeep or Palette.Disabled
+		AnimeSkin.Button(bossAction, "Go")
+		if not bossAction.Active then
+			bossAction.BackgroundColor3 = Palette.Disabled
+		end
 		steady = not joinable and CLOSED_TEXT or not armed and LOCKED_TEXT or ""
 	else
 		local sale = Monetization.BossSpawn
@@ -1138,10 +1190,11 @@ local function drawBossButton(phase, inEvent, joinable)
 			or sale.ProductId > 0 and ("Spawn boss %d R$"):format(sale.Robux)
 			or "Coming soon"
 		bossAction.Active = armed and (credit or buyable)
-		bossAction.BackgroundColor3 = not armed and Palette.Disabled
-			or credit and Palette.MoneyDeep
-			or buyable and Palette.Danger
-			or Palette.Disabled
+		-- Active is armed and (credit or buyable): an inactive action is the Disabled grey.
+		AnimeSkin.Button(bossAction, not credit and buyable and "Danger" or "Go")
+		if not bossAction.Active then
+			bossAction.BackgroundColor3 = Palette.Disabled
+		end
 		steady = not armed and LOCKED_TEXT or ""
 		local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
 		bossNext.Text = nextAt and "Next event in " .. clockText(nextAt - workspace:GetServerTimeNow()) or ""

@@ -20,6 +20,7 @@ local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local Palette = UiTheme.Palette
 local MENU_WIDTH = 170 -- px
@@ -94,9 +95,9 @@ local function caption(name, parent, props)
 	return label
 end
 
-local function action(name, parent, text, color, props)
+-- `tone`: an AnimeSkin.Button tone (Go, Idle, Danger, Gold).
+local function action(name, parent, text, tone, props)
 	props = props or {}
-	props.BackgroundColor3 = color
 	props.Font = UiTheme.Font
 	props.Text = text
 	props.TextColor3 = Palette.White
@@ -106,12 +107,16 @@ local function action(name, parent, text, color, props)
 	local button = make("TextButton", name, parent, props)
 	UiTheme.Corner(button, "M")
 	UiTheme.Stroke(button, 3, UiTheme.Outline, true)
+	AnimeSkin.Button(button, tone)
 	return button
 end
 
-local function setEnabled(button, on, color)
+local function setEnabled(button, on, tone)
 	button.Active = on
-	button.BackgroundColor3 = on and color or Palette.Disabled
+	AnimeSkin.Button(button, tone)
+	if not on then
+		button.BackgroundColor3 = Palette.Disabled
+	end
 end
 
 local function card(name, size)
@@ -126,6 +131,7 @@ local function card(name, size)
 	UiTheme.Body(frame)
 	UiTheme.Corner(frame, "L")
 	UiTheme.Stroke(frame, 3, UiTheme.Outline, true)
+	AnimeSkin.Body(frame)
 	return frame
 end
 
@@ -135,17 +141,18 @@ local menu =
 UiTheme.Body(menu)
 UiTheme.Corner(menu, "M")
 UiTheme.Stroke(menu, 3, UiTheme.Outline, true)
+AnimeSkin.Body(menu)
 local menuTitle = caption("Title", menu, {
 	Position = UDim2.fromOffset(8, 6),
 	Size = UDim2.new(1, -16, 0, 24),
 	Text = "",
 	TextSize = 18,
 })
-local menuEquip = action("Equip", menu, "Equip", Palette.MoneyDeep, {
+local menuEquip = action("Equip", menu, "Equip", "Go", {
 	Position = UDim2.fromOffset(8, 36),
 	Size = UDim2.new(1, -16, 0, MENU_ROW),
 })
-local menuSell = action("Sell", menu, "Sell", Palette.Danger, {
+local menuSell = action("Sell", menu, "Sell", "Danger", {
 	Position = UDim2.fromOffset(8, 36 + MENU_ROW + MENU_GAP),
 	Size = UDim2.new(1, -16, 0, MENU_ROW),
 })
@@ -159,7 +166,7 @@ local menuNote = caption("Note", menu, {
 })
 
 -- A chest's own: Open and its odds (docs/RELIC_SPEC.md "Chests").
-local menuOpen = action("Open", menu, "Open", Palette.MoneyDeep, {
+local menuOpen = action("Open", menu, "Open", "Go", {
 	Position = UDim2.fromOffset(8, 36),
 	Size = UDim2.new(1, -16, 0, MENU_ROW),
 	Visible = false,
@@ -171,6 +178,7 @@ local menuOdds = make("Frame", "Odds", menu, {
 	Visible = false,
 })
 make("UIListLayout", "List", menuOdds, { SortOrder = Enum.SortOrder.LayoutOrder })
+AnimeSkin.Title(menuTitle, 18)
 
 -- The confirmation -------------------------------------------------------------------------------------------------------
 local confirm = card("Confirm", UDim2.fromOffset(340, 190))
@@ -187,31 +195,31 @@ local stepper = make("Frame", "Stepper", confirm, {
 	BackgroundTransparency = 1,
 	Visible = false,
 })
-local stepLess = action("Less", stepper, "-", Palette.Row, { Size = UDim2.fromOffset(48, 36), TextSize = 24 })
+local stepLess = action("Less", stepper, "-", "Idle", { Size = UDim2.fromOffset(48, 36), TextSize = 24 })
 local stepCount = caption("Count", stepper, {
 	Position = UDim2.fromOffset(52, 0),
 	Size = UDim2.new(1, -176, 1, 0),
 	Text = "",
 	TextSize = 24,
 })
-local stepMore = action("More", stepper, "+", Palette.Row, {
+local stepMore = action("More", stepper, "+", "Idle", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -68, 0, 0),
 	Size = UDim2.fromOffset(48, 36),
 	TextSize = 24,
 })
-local stepMax = action("Max", stepper, "Max", Palette.Row, {
+local stepMax = action("Max", stepper, "Max", "Idle", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.fromScale(1, 0),
 	Size = UDim2.fromOffset(62, 36),
 	TextSize = 16,
 })
-local confirmYes = action("Yes", confirm, "Sell", Palette.Danger, {
+local confirmYes = action("Yes", confirm, "Sell", "Danger", {
 	AnchorPoint = Vector2.new(1, 1),
 	Position = UDim2.new(1, -14, 1, -12),
 	Size = UDim2.new(0.5, -20, 0, 44),
 })
-local confirmNo = action("Cancel", confirm, "Cancel", Palette.Row, {
+local confirmNo = action("Cancel", confirm, "Cancel", "Idle", {
 	AnchorPoint = Vector2.new(0, 1),
 	Position = UDim2.new(0, 14, 1, -12),
 	Size = UDim2.new(0.5, -20, 0, 44),
@@ -227,11 +235,13 @@ local pickerTitle = caption("Title", picker, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 	TextSize = 24,
 })
-local pickerClose = action("Close", picker, "X", Palette.Danger, {
+local pickerClose = action("Close", picker, "X", "Danger", {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -10, 0, 8),
 	Size = UDim2.fromOffset(44, 36),
 })
+AnimeSkin.Title(pickerTitle, 24)
+AnimeSkin.Close(pickerClose)
 local pickerGrid = make("ScrollingFrame", "Characters", picker, {
 	Position = UDim2.fromOffset(10, 50),
 	Size = UDim2.new(1, -20, 1, -60),
@@ -393,6 +403,14 @@ local function openPicker(kindName, entry)
 		Components.CardFace(tile, spec, GachaConfig)
 		Components.CardArt(tile, spec)
 		UiTheme.Stroke(tile, 3, worn == entry and Palette.Money or UiTheme.Outline, true)
+		-- Angular art (design doc 4.42): white for the one wearing it (and Secret, as the Index), else the rarity.
+		AnimeSkin.Card(
+			tile,
+			(worn == entry or spec.Rarity == "Secret") and Color3.new(1, 1, 1)
+				or GachaConfig.RARITY_COLORS[spec.Rarity]
+				or AnimeSkin.Tint.Default
+		)
+		tile.Rim.Visible = false
 		caption("CharacterName", tile, {
 			AnchorPoint = Vector2.new(1, 1),
 			Position = UDim2.new(1, -6, 1, -6),
@@ -491,8 +509,8 @@ function ItemMenu.Open(kindName, entry, anchor)
 	menuTitle.Text = row and row.Name or kind.Noun
 	menuEquip.Text = wearer and "Take off" or "Equip"
 	menuSell.Text = price and "Sell " .. price or "Sell"
-	setEnabled(menuEquip, true, wearer and Palette.Row or Palette.MoneyDeep)
-	setEnabled(menuSell, price ~= nil and wearer == nil, Palette.Danger)
+	setEnabled(menuEquip, true, wearer and "Idle" or "Go")
+	setEnabled(menuSell, price ~= nil and wearer == nil, "Danger")
 	menuNote.Visible = wearer ~= nil
 	menuNote.Text = wearer and "Take it off first" or ""
 	menuAct.Equip = wearer
@@ -524,7 +542,7 @@ function ItemMenu.OpenChest(id, anchor)
 	menuTitle.Text = chest.Name
 	menuEquip.Visible, menuSell.Visible, menuNote.Visible = false, false, false
 	menuOpen.Visible, menuOdds.Visible = true, true
-	setEnabled(menuOpen, true, Palette.MoneyDeep)
+	setEnabled(menuOpen, true, "Go")
 	for _, child in menuOdds:GetChildren() do
 		if child:IsA("GuiObject") then
 			child:Destroy()
@@ -556,11 +574,11 @@ function ItemMenu.OpenChest(id, anchor)
 				break
 			end
 		end
-		setEnabled(menuOpen, false, Palette.MoneyDeep)
+		setEnabled(menuOpen, false, "Go")
 		local fine, won = ask("RelicOpenChest", menuOpen, "Equip", function(message)
 			menuTitle.Text = message
 		end, entry)
-		setEnabled(menuOpen, true, Palette.MoneyDeep)
+		setEnabled(menuOpen, true, "Go")
 		if fine then
 			hideAll()
 			local results = { { Row = RelicConfig.Get(won.Relic) } }

@@ -21,6 +21,7 @@ local UiTheme = require(shared:WaitForChild("UiTheme"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
@@ -161,7 +162,7 @@ for order, entry in KINDS do
 		TextSize = 20,
 	})
 	-- Per-tab scale: a UIScale on the rail would shrink the rail with the tabs and never make them fit.
-	tabs[kind] = { Button = b, Edge = edge, Scale = make("UIScale", "Scale", b, {}) }
+	tabs[kind] = { Button = b, Edge = edge, Scale = make("UIScale", "Scale", b, {}), Lit = AnimeSkin.Tab(b, order) }
 end
 
 -- Tile grid.
@@ -199,6 +200,7 @@ make("UIGradient", "Gradient", detail, {
 	Color = ColorSequence.new(PALETTE.Row, PALETTE.PanelDeep),
 	Rotation = 90,
 })
+AnimeSkin.Card(detail, AnimeSkin.Tint.Default) -- the Quests detail card (design doc 4.42)
 local rarity = caption("Rarity", detail, {
 	Position = UDim2.fromOffset(12, 6),
 	Size = UDim2.new(1, -24, 0, 20),
@@ -215,6 +217,7 @@ local nameLabel = caption("Name", detail, {
 	TextScaled = true,
 	TextXAlignment = Enum.TextXAlignment.Left,
 })
+AnimeSkin.Title(nameLabel, 26)
 local viewport = make("ViewportFrame", "Preview", detail, {
 	Position = UDim2.fromOffset(12, 60),
 	Size = UDim2.new(1, -24, 1, -178),
@@ -267,7 +270,9 @@ local action = make("TextButton", "Action", detail, {
 corner(action, 8)
 stroke(action, OUTLINE, 3)
 UiTheme.Gradient(action, Color3.new(1, 1, 1), PALETTE.SoftText) -- depth on whatever colour it shows
+AnimeSkin.Button(action, "Go") -- the Index EQUIP look; drops the gradient above
 local actionLabel = caption("Label", action, { Size = UDim2.fromScale(1, 1), Text = "BUY", TextSize = 22 })
+AnimeSkin.Title(actionLabel, 22)
 local pickSlot -- set below: equips the shown item on a team slot
 local slots = SlotPicker.new("Slots", detail, {
 	AnchorPoint = Vector2.new(0.5, 1),
@@ -373,7 +378,8 @@ local back = make("TextButton", "Back", detail, {
 })
 corner(back, 8)
 stroke(back, OUTLINE, 3)
-caption("Label", back, { Size = UDim2.fromScale(1, 1), Text = "BACK", TextSize = 18 })
+AnimeSkin.Button(back, "Idle")
+AnimeSkin.Title(caption("Label", back, { Size = UDim2.fromScale(1, 1), Text = "BACK", TextSize = 18 }), 18)
 local DESKTOP = {
 	[rail] = { Position = rail.Position, Size = rail.Size },
 	[grid] = { Position = grid.Position, Size = grid.Size },
@@ -451,7 +457,7 @@ end
 local money = player:WaitForChild("leaderstats"):WaitForChild("Money")
 local function paintBuy()
 	local item = selected and Market.Get(selectedKind, selected)
-	action.BackgroundColor3 = (item and item.Price > money.Value) and PALETTE.Muted or TILE_GREEN
+	AnimeSkin.Button(action, (item and item.Price > money.Value) and "Idle" or "Go")
 end
 money.Changed:Connect(paintBuy)
 
@@ -542,6 +548,7 @@ function render()
 	end
 	for kind, refs in tabs do
 		UiMotion.Mark(refs.Edge, { Color = kind == selectedKind and Color3.new(1, 1, 1) or OUTLINE })
+		refs.Lit(kind == selectedKind)
 	end
 	local items = Market.Items[selectedKind]
 	if not (selected and Market.Get(selectedKind, selected)) then
@@ -560,6 +567,11 @@ function render()
 		UiTheme.Gradient(b, PALETTE.Row, PALETTE.PanelDeep)
 		local onSlot = selectedKind ~= "Potion" and SlotPicker.Equipped(selectedKind, item.Id)
 		stroke(b, item.Id == selected and Color3.new(1, 1, 1) or onSlot and TILE_GREEN or TILE_BLUE, 4)
+		-- The card art takes the edge's colours (the Stroke stays, hidden, for the cascade): picked white, on a slot green.
+		AnimeSkin.Card(
+			b,
+			item.Id == selected and Color3.new(1, 1, 1) or onSlot and AnimeSkin.Tint.Ready or AnimeSkin.Tint.Default
+		)
 		swatch(b, item, selectedKind, UDim2.new(0.5, 0, 0.5, -8), UDim2.fromOffset(60, 60))
 		local badge = owned(selectedKind, item.Id)
 				and "x" .. (selectedKind == "Potion" and Format.Short(player:GetAttribute("Boost_" .. item.Id) or 0) or Market.Copies(
@@ -587,6 +599,7 @@ function render()
 			TextScaled = true,
 			ZIndex = 5,
 		})
+		AnimeSkin.Title(b:FindFirstChild("Name"), 15)
 		b.Activated:Connect(function()
 			selected = item.Id
 			showingDetail = true

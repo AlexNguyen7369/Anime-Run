@@ -41,6 +41,7 @@ local UiMotion = require(client.UiMotion)
 local UiFeedback = require(client.UiFeedback)
 local PanelBand = require(client.PanelBand)
 local PanelFrame = require(client.PanelFrame)
+local AnimeSkin = require(client:WaitForChild("AnimeSkin"))
 local NpcConfig = require(Shared.NpcConfig)
 local BossWaitCamera = require(client.BossWaitCamera)
 local RunnerVisual = require(client.RunnerVisual)
@@ -295,7 +296,6 @@ end
 
 -- Settings look (docs/HUD_LAYOUT_SPEC.md section 4): the shared header with the gear, and every toggle an ON / OFF
 -- pill on a dark track (green ON on the right, muted OFF on the left: off is no error). The whole track stays the hitbox.
-local OFF_TONE = palette.Muted
 local function switch(toggle, on)
 	local knob = toggle:FindFirstChild("Knob")
 	if not knob then
@@ -322,7 +322,7 @@ local function switch(toggle, on)
 		Components.Tint(toggle, Color3.fromRGB(16, 16, 20))
 	end
 	UiMotion.Mark(knob, { Position = on and UDim2.fromScale(0.4, 0) or UDim2.fromScale(0, 0) })
-	Components.Tint(knob, on and GREEN or OFF_TONE)
+	AnimeSkin.Button(knob, on and "Go" or "Idle")
 	local caption = knob:FindFirstChildWhichIsA("TextLabel")
 	if caption then
 		caption.Text = on and "ON" or "OFF"
@@ -392,9 +392,16 @@ local function categoryButton(name, text, width, parent)
 	button.Parent = parent
 	return button
 end
+-- Design doc 4.42: an art tab; returns its lit setter. The flat outline would stroke the hidden text.
+local function animeTab(button, art)
+	local setLit = AnimeSkin.Tab(button, art)
+	button.Outline.Enabled = false
+	return setLit
+end
 
 local settingsTab = categoryButton("SettingsTab", "SETTINGS", 84, categoryTabs)
 local profileTab = categoryButton("ProfileTab", "PLAYER PROFILE", 136, categoryTabs)
+local settingsTabLit, profileTabLit = animeTab(settingsTab, 1), animeTab(profileTab, 2)
 local profileHost = Instance.new("ScrollingFrame")
 profileHost.Name = "PlayerProfile"
 profileHost.Position = UDim2.fromOffset(16, 96)
@@ -481,8 +488,8 @@ local function setSettingsCategory(category)
 	settings.AutoRow.Parent.Visible = showSettings
 	settings.TrackCameraRow.Parent.Visible = showSettings
 	profileHost.Visible = not showSettings
-	UiMotion.Mark(settingsTab, { BackgroundColor3 = showSettings and palette.Tile or palette.PanelDeep })
-	UiMotion.Mark(profileTab, { BackgroundColor3 = showSettings and palette.PanelDeep or palette.Tile })
+	settingsTabLit(showSettings)
+	profileTabLit(not showSettings)
 	settings.Gui:SetAttribute("Category", settingsCategory)
 end
 settingsTab.Activated:Connect(function()
@@ -567,7 +574,7 @@ local function rebirthTabs(refs, selected)
 	for order, tab in { { "RebirthTab", "REBIRTH", "Rebirth" }, { "StatsTab", "STATS", "Stats" } } do
 		local button = categoryButton(tab[1], tab[2], 96, strip)
 		button.LayoutOrder = order
-		button.BackgroundColor3 = tab[3] == selected and palette.Tile or palette.PanelDeep
+		animeTab(button, order)(tab[3] == selected)
 		button.Activated:Connect(function()
 			if tab[3] ~= selected then
 				UiFeedback.Play("TabSwitch")
@@ -636,6 +643,7 @@ if rebirthCaption then
 	captionSize.MaxTextSize = rebirthCaption.TextSize
 	captionSize.Parent = rebirthCaption
 	rebirthCaption.TextScaled = true
+	AnimeSkin.Title(rebirthCaption, rebirthCaption.TextSize)
 end
 local rebirthBusy, rebirthReply = false, nil
 local function refreshRebirth()
@@ -656,7 +664,7 @@ local function refreshRebirth()
 	local active = eligible and not rebirthBusy
 	rebirth.RebirthButton.Active = active
 	label(rebirth.RebirthButton, rebirthReply or (maxed and "MAX" or "REBIRTH"))
-	Components.Tint(rebirth.RebirthButton, active and GREEN or GRAY)
+	AnimeSkin.Button(rebirth.RebirthButton, active and "Go" or "Idle")
 end
 rebirth.RebirthButton.Activated:Connect(function()
 	if not rebirth.RebirthButton.Active or rebirthBusy then
@@ -919,7 +927,11 @@ local function refreshStats()
 		)
 		row.Plus.Active = available
 		row.Plus.Selectable = available
-		Components.Tint(row.Plus, available and (row.Frame:GetAttribute("AccentColor") or GREEN) or GRAY)
+		AnimeSkin.Button(row.Plus, available and "Go" or "Idle")
+		local accent = row.Frame:GetAttribute("AccentColor")
+		if available and accent then
+			row.Plus.BackgroundColor3 = accent -- the stat's own colour, as before
+		end
 	end
 	label(hud.Stats, "STATS")
 	local badge = hud.Stats:FindFirstChild("PointsBadge")
@@ -938,6 +950,41 @@ for stat, row in pairs(rows) do
 end
 player:GetAttributeChangedSignal("StatPoints"):Connect(refreshStats)
 refreshStats()
+
+-- Design doc 4.42: stat rows on slanted plates in their own colour, rebirth rewards on angular cards.
+for _, row in pairs(rows) do
+	local frame = row.Frame
+	AnimeSkin.Plate(frame, frame:GetAttribute("AccentColor"))
+	frame.Lift.Visible = false
+	AnimeSkin.Title(frame.StatName, 21)
+	frame.Description.TextColor3 = Color3.fromRGB(200, 210, 230)
+	frame.Accent.BackgroundColor3 = Color3.fromRGB(20, 24, 40)
+end
+for _, row in settings.Panel:GetDescendants() do
+	local face = row:IsA("Frame") and row.Name:match("Row$") and row:FindFirstChild("Face")
+	if face then
+		AnimeSkin.Plate(face)
+		for _, partName in { "Shadow", "Lift" } do
+			local part = row:FindFirstChild(partName) or face:FindFirstChild(partName)
+			if part then
+				part.Visible = false
+			end
+		end
+	end
+end
+for _, name in { "LuckReward", "SpeedReward", "PointReward" } do
+	local reward = rebirth.Gui:FindFirstChild(name, true)
+	local face = reward and reward:FindFirstChild("Face")
+	if face then
+		AnimeSkin.Card(face)
+		for _, partName in { "Shadow", "Lift" } do
+			local part = reward:FindFirstChild(partName) or face:FindFirstChild(partName)
+			if part then
+				part.Visible = false
+			end
+		end
+	end
+end
 
 -- The Auto toggle lives in HudChrome/AutoSlot/Auto now. RacerHud/Race stays as the invisible layout anchor PanelBand and
 -- the Toast read; the generated fit() sets Visible back to true on every resize.

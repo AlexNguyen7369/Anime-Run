@@ -6,8 +6,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local CharacterCatalog = require(Shared.CharacterCatalog)
+local GachaConfig = require(Shared.GachaConfig)
 local RunnerFactory = require(Shared.RunnerFactory)
 local UiTheme = require(Shared.UiTheme)
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
@@ -45,6 +47,7 @@ UiTheme.Body(panel)
 panel.Parent = dim
 UiTheme.Corner(panel, "L")
 UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
+AnimeSkin.Body(panel) -- design doc 4.42: the Index's framed body
 local limit = Instance.new("UISizeConstraint")
 limit.MaxSize = Vector2.new(860, 520)
 limit.Parent = panel
@@ -70,7 +73,7 @@ local function text(parent, name, value, size, pos, height)
 	return l
 end
 
-text(panel, "Title", "CHOOSE YOUR STARTER", 34, UDim2.fromScale(0.5, 0.03), 0.11)
+AnimeSkin.Title(text(panel, "Title", "CHOOSE YOUR STARTER", 34, UDim2.fromScale(0.5, 0.03), 0.11), 34)
 text(panel, "Subtitle", "Roll the next two to fill your team", 20, UDim2.fromScale(0.5, 0.14), 0.07)
 
 local row = Instance.new("Frame")
@@ -114,6 +117,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	card.LayoutOrder = i
 	card.Size = UDim2.fromScale(0.32, 1)
 	UiTheme.Plate(card, UiTheme.Palette.Tile).BackgroundTransparency = 0
+	AnimeSkin.Card(card, GachaConfig.RARITY_COLORS[spec.Rarity] or AnimeSkin.Tint.Default)
 	card.Parent = row
 
 	-- The drawn portrait; with none yet, the live model (refill keeps it current).
@@ -134,7 +138,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	end
 	view.Parent = card
 
-	text(card, "CharacterName", spec.Name, 24, UDim2.fromScale(0.5, 0.68), 0.12)
+	AnimeSkin.Title(text(card, "CharacterName", spec.Name, 24, UDim2.fromScale(0.5, 0.68), 0.12), 24)
 
 	local button = Instance.new("TextButton")
 	button.Name = "Choose"
@@ -153,6 +157,7 @@ for i, id in CharacterCatalog.STARTER_PICKS do
 	buttonText.Parent = button
 	button.Parent = card
 	UiTheme.Corner(button, "S")
+	AnimeSkin.Button(button, "Go")
 	local busy = false
 	button.Activated:Connect(function()
 		if busy then

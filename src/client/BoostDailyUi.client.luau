@@ -17,6 +17,7 @@ local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local ArrivalState = require(script.Parent:WaitForChild("ArrivalState"))
 local QuestAnimeStyle = require(script.Parent:WaitForChild("QuestAnimeStyle"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local screen = Instance.new("ScreenGui")
 screen.Name = "DailyBoosts"
@@ -398,6 +399,9 @@ local function dailyCard(parent, day, reward, done, featured, position, size)
 	edge.Color = done and PALETTE.MoneyDeep or (featured and PALETTE.Featured or PALETTE.Tile)
 	edge.Thickness = 3
 	edge.Parent = card
+	-- Design doc 4.42: the angular card; only today's card keeps its glowing edge (set in showDaily).
+	AnimeSkin.Card(card, done and AnimeSkin.Tint.Muted or featured and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
+	edge.Enabled = false
 	make("TextLabel", "Label", card, {
 		Position = UDim2.fromOffset(8, 8),
 		Size = UDim2.new(1, -16, 0, featured and 32 or 25),
@@ -532,14 +536,15 @@ local function showDaily()
 	)
 	claim.LayoutOrder = 20
 	claim.Active = not claimedToday
+	AnimeSkin.Button(claim, claim.Active and "Go" or "Idle")
 	if claim.Active then
-		claim.BackgroundColor3 = GREEN
 		UiTheme.Stroke(claim, 2)
 		claim.Edge.Color = PALETTE.Speed
 		stopClaimPulse = UiMotion.Pulse(claim.Edge, { Transparency = 0.75 }, 0.7)
 		-- Today's tile: the same glow, so the prize waiting now is plain to see.
 		local today = area:FindFirstChild("Day" .. math.min(streak + 1, 7))
 		if today then
+			today.Edge.Enabled = true
 			UiMotion.Mark(today.Edge, { Color = PALETTE.Speed })
 			stopTodayPulse = UiMotion.Pulse(today.Edge, { Transparency = 0.6 }, 0.7)
 		end

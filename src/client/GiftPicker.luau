@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Palette = UiTheme.Palette
 local TILE_BLUE = Color3.fromRGB(47, 107, 255)
 local SELECTED = Color3.fromRGB(60, 220, 90)
@@ -45,6 +46,7 @@ function Picker.Create(panel, items, backdrop)
 		Active = true,
 	})
 	UiTheme.Plate(root, TILE_BLUE).BackgroundTransparency = 0
+	AnimeSkin.Body(root)
 	local summary =
 		label("Summary", root, { Position = UDim2.fromOffset(8, 0), Size = UDim2.new(1, -16, 0, 40), Text = "" })
 	local recipients = make("ScrollingFrame", "Recipients", root, {
@@ -118,6 +120,10 @@ function Picker.Create(panel, items, backdrop)
 					TextColor3 = Palette.White,
 				})
 				skin(button, selected == recipient and SELECTED or TILE_BLUE)
+				-- Again next frame: UiTheme.Apply's DescendantAdded puts new text back on Fredoka.
+				local tone = selected == recipient and "Go" or "Idle"
+				AnimeSkin.Button(button, tone)
+				task.defer(AnimeSkin.Button, button, tone)
 				button.Activated:Connect(function()
 					if submitting then
 						return
@@ -182,6 +188,9 @@ function Picker.Create(panel, items, backdrop)
 		end)
 	end)
 	UiTheme.Apply(root)
+	-- After UiTheme.Apply, which would put the fonts back on Fredoka (design doc 4.42).
+	AnimeSkin.Button(cancel, "Idle")
+	AnimeSkin.Button(confirm, "Go")
 	backdrop:GetPropertyChangedSignal("Visible"):Connect(function()
 		if not backdrop.Visible then
 			close()

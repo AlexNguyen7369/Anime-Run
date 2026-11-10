@@ -196,14 +196,11 @@ function Style.Attach(refs)
 		refs.Header.Visible = not on
 		refs.Title.Visible = not on
 		refs.Close.Visible = not on
-		-- The modal's own dark body and edge give way to the chrome art. Fades only move BackgroundTransparency.
-		local gradient = modal:FindFirstChildOfClass("UIGradient")
-		if gradient then
-			gradient.Transparency = NumberSequence.new(on and 1 or 0)
-		end
-		local edge = modal:FindFirstChildOfClass("UIStroke")
-		if edge then
-			edge.Enabled = not on
+		-- The modal's own fill and edge are already clear (Client/AnimeSkin via PanelFrame); the Index chrome covers
+		-- the shared body art while Quests show.
+		local body = modal:FindFirstChild("AnimeBody")
+		if body then
+			body.Visible = not on
 		end
 		if on then
 			layout()

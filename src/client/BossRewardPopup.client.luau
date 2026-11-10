@@ -13,6 +13,7 @@ local RelicConfig = require(shared:WaitForChild("RelicConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
 local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -98,6 +99,36 @@ local closeButton = make("TextButton", "CloseButton", header, {
 })
 UiTheme.Corner(closeButton, "M")
 UiTheme.Stroke(closeButton, 3, UiTheme.Outline, true)
+-- Design doc 4.42: framed body, slanted strip under the outlined title (it clears the Daily gradient), art close.
+-- The panel's UIListLayout would take the body art as a row, so it hangs from the header (ZIndex 0: every row draws over it),
+-- sized to the whole panel in the header's unscaled px (a pop scales both).
+AnimeSkin.Clear(panel)
+header.ZIndex = 0
+local body = AnimeSkin.Body(header)
+local function fitBody()
+	local scale = header.AbsoluteSize.Y / HEADER
+	if scale <= 0 then
+		return
+	end
+	local at = (panel.AbsolutePosition - header.AbsolutePosition) / scale
+	local size = panel.AbsoluteSize / scale
+	body.Position = UDim2.fromOffset(at.X - 8, at.Y - 8)
+	body.Size = UDim2.fromOffset(size.X + 16, size.Y + 16)
+end
+for _, signal in
+	{
+		panel:GetPropertyChangedSignal("AbsoluteSize"),
+		header:GetPropertyChangedSignal("AbsoluteSize"),
+		header:GetPropertyChangedSignal("AbsolutePosition"),
+	}
+do
+	signal:Connect(fitBody)
+end
+fitBody()
+AnimeSkin.Strip(header)
+title.ZIndex = 2
+AnimeSkin.Title(title, 28)
+AnimeSkin.Close(closeButton)
 local damage = label("Damage", panel, {
 	Size = UDim2.new(1, 0, 0, ROW),
 	LayoutOrder = 1,

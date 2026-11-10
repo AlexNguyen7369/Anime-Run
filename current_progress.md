@@ -135,8 +135,9 @@
 132. 2026-11-09 — Alex Nguyen — Hid the VIP title while the player runs (auto race or boss event) and gave Kami Narito's NinjaRun.
 133. 2026-11-09 — Alex Nguyen — Synced Issac's Studio-only Index UI edits (AnimeBanner, AnimeChrome, grid/progress plates, tab and close art, text limits, HUD IndexIcon) into assets/studio/StarterGui.rbxm; additions only, Rojo build passes.
 134. 2026-11-10 — Alex Nguyen — Gave Quests the Index anime look (QuestAnimeStyle: chrome, banner, art tabs, state-tinted plates, detail card, footer) and committed Issac's Studio-only Index scripts; design doc 4.42; owner approved from screenshots.
+135. 2026-11-10 — Alex Nguyen — Applied the Index anime look game-wide through Client/AnimeSkin and PanelFrame (every panel, popup, tab, button and card, boss event included); design doc 4.42; screenshots to the owner, not pushed.
 
 ## What's next
-**Apply the Index anime look to every panel game-wide (Daily, Shop, Market, Backpack, Rebirth and Stats, Settings, Upgrades, Checkpoints, Sidekicks, Duel, boss event UI), then screenshots of each for owner approval.**
+**Owner reviews the 13 game-wide screenshots; then push `feature/alex/anime-world` and run `ui_layout`, `ui_index`, `ui_boss`, `ui_inventory`, `ui_market` and `ui_shop` on a save past the roll tutorial.**
 
-**Why this is next:** the owner asked for one consistent GUI across all panels after approving the Quests look; every later UI change builds on that shared skin.
+**Why this is next:** the restyle changed every panel's chrome and many buttons; owner approval gates the push, and the UI harness pins rects, colours and paths these panels use.

@@ -12,6 +12,7 @@ local shared = ReplicatedStorage:WaitForChild("Shared")
 local Market = require(shared:WaitForChild("MarketConfig"))
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
+local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 
 local OUTLINE = UiTheme.Outline
 local FREE = UiTheme.Palette.Row -- the slot takes the item; not the money green, so equip and pay look different
@@ -98,6 +99,8 @@ function SlotPicker.new(name, parent, props, onPick)
 			Size = UDim2.new(1, -8, 0.5, -2),
 			Text = "SLOT " .. slot,
 		})
+		AnimeSkin.Button(b, "Idle") -- the anime look (design doc 4.42); Update keeps its own free / here fills
+		AnimeSkin.Title(title, 18)
 		local items = caption("Items", b, {
 			Position = UDim2.new(0, 4, 0.5, 0),
 			Size = UDim2.new(1, -8, 0.5, -3),
