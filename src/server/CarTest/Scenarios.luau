@@ -7489,7 +7489,8 @@ local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor t
 -- Anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4, owner 2026-10-28). Names are the test contract:
 --   SpawnArea.StartGate (Model, the torii) over SpawnArea.StartPad; stalls SpawnArea.ShopStall / Marketplace /
 --   PotionsStall, SpawnArea.IndexBoard, the sensei
---   SpawnArea.CheckpointNpc. Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
+--   SpawnArea.CheckpointNpc, the summon altar SpawnArea.SidekickAltar (no SpawnArea.SidekickStall since 2026-11-10).
+--   Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
 --   No SpawnArea.RebirthShrine since 2026-11-04 (design doc 4.24 "Clear plaza"): Rebirth opens from its HUD tile.
 local SPAWN_PLAZA = {
 	STONE = {
@@ -7505,16 +7506,37 @@ local SPAWN_PLAZA = {
 		[Enum.Material.Brick] = true,
 	},
 	GATE_MIN_HEIGHT = 16, -- studs: "a large torii-style gate" (test reading: about three avatars tall)
-	-- Spread in x of the row's reference points (WORLD_REDESIGN_SPEC 7): fronts share a line, but each point lies
-	-- somewhere inside its footprint, so they can differ by the deepest footprint, the Market stall's 11 (build_plaza market_stall), plus room.
-	ROW_X_SPREAD = 14,
+	-- ROW_X_SPREAD (the x = -72 service row) retired 2026-11-10: design doc 4.24 "Two wings" replaced the row.
 	FEATURES = {
 		{ Name = "ShopStall", Prompt = "OpenShop" },
 		{ Name = "Marketplace", Prompt = "OpenMarket" }, -- the Market stall keeps MarketService's prompt
 		{ Name = "PotionsStall", Prompt = "OpenPotions" },
 		{ Name = "IndexBoard", Prompt = "OpenIndex" },
 		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
+		-- the summon altar replaces SidekickStall and keeps its prompt (design doc 4.36, SIDEKICK_SPEC "Summon altar")
+		{ Name = "SidekickAltar", Prompt = "OpenSidekicks" },
 	},
+	-- Two wings (design doc 4.24, owner 2026-11-10; WORLD_REDESIGN_SPEC section 4). World (x, z) at the floor and
+	-- fronts are proposed: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
+	POS_TOL = 2.5, -- about 2, plus room for a footprint centre that is not the build origin (a stall roof's overhang)
+	FACE_TOL = 10,
+	SPAWN_XZ = Vector2.new(0, 0),
+	PAD_XZ = Vector2.new(-84, 78),
+	ECONOMY_FACE = Vector2.new(0.68, 0.73),
+	SUMMON_FACE = Vector2.new(-0.68, -0.73),
+	-- spawn end toward the gate (design doc 4.24: Shop, Potions, Market, Index)
+	ECONOMY = {
+		{ Name = "ShopStall", At = Vector2.new(-13.7, -50.0) },
+		{ Name = "PotionsStall", At = Vector2.new(-29.8, -35.1) },
+		{ Name = "Marketplace", At = Vector2.new(-46.0, -20.1) },
+		{ Name = "IndexBoard", At = Vector2.new(-62.1, -5.1) },
+	},
+	BEST_ROLL_XZ = Vector2.new(43.3, 14.3),
+	ALTAR_XZ = Vector2.new(26.8, 40.6),
+	LEGENDS_XZ = { Vector2.new(0.8, 53.8), Vector2.new(-7.6, 53.5) },
+	SENSEI_XZ = Vector2.new(-80.0, 57.9),
+	ROW_STRAIGHT = 4, -- studs: spread of the economy row's distances from the path axis (proposed reading of "straight")
+	SENSEI_FACE_MIN = 0.5, -- "facing the path": front within 60 degrees of the direction to the path axis
 }
 
 -- Horizontal footprint of a part as a convex polygon: its 8 corners projected on XZ and the projected axes.
@@ -7834,39 +7856,143 @@ function Scenarios.spawn_area()
 	end
 	check(checks, "plaza_checkpoint_npc_is_sensei", sensei and 1 or 0, 1, sensei)
 
-	-- Clear plaza (design doc 4.24, owner 2026-11-04): no shrine, and one straight service row, south (low z) to north
+	-- Clear plaza (design doc 4.24, owner 2026-11-04): no shrine
 	local noShrine = area:FindFirstChild("RebirthShrine") == nil
 	check(checks, "plaza_no_rebirth_shrine", noShrine and 1 or 0, 1, noShrine)
-	local hubFrame = type(A.Base) == "function" and A.Base(base) or base
-	local rowOk, prevZ, minX, maxX = true, -math.huge, math.huge, -math.huge
-	for _, name in { "ShopStall", "PotionsStall", "Marketplace", "IndexBoard", "CheckpointNpc" } do
-		local model = area:FindFirstChild(name)
-		local at = model and model:IsA("Model") and model:GetPivot().Position
-		if name == "Marketplace" then
-			-- the Market's PrimaryPart is the counter holding the prompt: read the prompt's parent, that same part
-			at = nil
-			for _, d in model and model:GetDescendants() or {} do
-				if d:IsA("ProximityPrompt") and d.Name == "OpenMarket" and d.Parent:IsA("BasePart") then
-					at = d.Parent.Position
-				end
-			end
+	-- plaza_service_row_straight (one row south to north at x = -72, the sensei at its end) retired 2026-11-10: design
+	-- doc 4.24 "Two wings" replaced Clear plaza's service row and put the sensei beside the gate.
+
+	-- Two wings (design doc 4.24, owner 2026-11-10; WORLD_REDESIGN_SPEC section 4, positions and fronts proposed).
+	-- Facing the gate from the spawn: the economy wing on the right, the summon wing on the left, both facing the path.
+	local W = SPAWN_PLAZA
+	local axis = (W.PAD_XZ - W.SPAWN_XZ).Unit
+	local right = Vector2.new(-axis.Y, axis.X) -- Roblox: looking along (x, z), right is (-z, x)
+	local function side(p) -- > 0: right of the path, facing the gate from the spawn
+		return (p - W.SPAWN_XZ):Dot(right)
+	end
+	local function along(p) -- distance from the spawn toward the gate
+		return (p - W.SPAWN_XZ):Dot(axis)
+	end
+	-- the footprint centre (bounding box), so the reading does not depend on where the pivot sits
+	local function centreOf(model)
+		if not (model and model:IsA("Model")) then
+			return nil
 		end
+		local ok, cf = pcall(model.GetBoundingBox, model)
+		return ok and Vector2.new(cf.Position.X, cf.Position.Z) or nil
+	end
+	-- the front: the pivot's LookVector (stall counters, the Market counter, the Index scroll, the sensei's prompt)
+	local function frontOf(model)
+		local look = model and model:IsA("Model") and model:GetPivot().LookVector
+		local f = look and Vector2.new(look.X, look.Z)
+		return f and f.Magnitude > 1e-3 and f.Unit or nil
+	end
+	local function degBetween(a, b)
+		return math.deg(math.acos(math.clamp(a:Dot(b.Unit), -1, 1)))
+	end
+	local function placed(name, at, want)
+		local err = at and (at - want).Magnitude or -1
+		check(checks, "plaza_" .. name .. "_at_two_wings_spot", err, W.POS_TOL, at ~= nil and err <= W.POS_TOL)
+	end
+	local function faces(name, front, want)
+		local deg = front and degBetween(front, want) or -1
+		check(checks, "plaza_" .. name .. "_faces_path", deg, W.FACE_TOL, front ~= nil and deg <= W.FACE_TOL)
+	end
+
+	-- Economy wing: one straight row parallel to the path, Shop, Potions, Market, Index from the spawn end
+	local econSides, rowOrdered, prevAlong = {}, true, -math.huge
+	local minSide, maxSide = math.huge, -math.huge
+	for _, e in W.ECONOMY do
+		local model = area:FindFirstChild(e.Name)
+		local at = centreOf(model)
+		placed(e.Name, at, e.At)
+		faces(e.Name, frontOf(model), W.ECONOMY_FACE)
 		if at then
-			local l = hubFrame:PointToObjectSpace(at)
-			rowOk = rowOk and l.Z > prevZ
-			prevZ, minX, maxX = l.Z, math.min(minX, l.X), math.max(maxX, l.X)
+			rowOrdered = rowOrdered and along(at) > prevAlong
+			prevAlong = along(at)
+			minSide, maxSide = math.min(minSide, side(at)), math.max(maxSide, side(at))
+			table.insert(econSides, side(at))
 		else
-			rowOk = false
+			rowOrdered = false
 		end
 	end
-	local rowSpread = maxX - minX
+	check(checks, "plaza_economy_row_order_spawn_to_gate", rowOrdered and 1 or 0, 1, rowOrdered)
+	local rowSpread = #econSides == #W.ECONOMY and maxSide - minSide or -1
 	check(
 		checks,
-		"plaza_service_row_straight",
+		"plaza_economy_row_straight",
 		rowSpread,
-		SPAWN_PLAZA.ROW_X_SPREAD,
-		rowOk and rowSpread <= SPAWN_PLAZA.ROW_X_SPREAD
+		W.ROW_STRAIGHT,
+		rowSpread >= 0 and rowSpread <= W.ROW_STRAIGHT
 	)
+
+	-- Summon wing: Best Roll on the spawn side, the altar in the middle, the 2 Legends on the gate side
+	local noStall = area:FindFirstChild("SidekickStall") == nil
+	check(checks, "plaza_no_sidekick_stall", noStall and 1 or 0, 1, noStall)
+	local bestAt = centreOf(area:FindFirstChild("BestRoll"))
+	placed("BestRoll", bestAt, W.BEST_ROLL_XZ)
+	local altarAt = centreOf(area:FindFirstChild("SidekickAltar"))
+	placed("SidekickAltar", altarAt, W.ALTAR_XZ)
+	-- Legends are client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Legends
+	local PlazaAssets = sharedModule("PlazaAssets")
+	local legends = PlazaAssets and PlazaAssets.Legends or {}
+	check(checks, "plaza_legends_at_most_2", #legends, 2, #legends >= 1 and #legends <= 2)
+	local legendSides, legendMinAlong = {}, math.huge
+	for i, row in legends do
+		local at = typeof(row.Pos) == "Vector3" and Vector2.new(row.Pos.X, row.Pos.Z) or nil
+		local want = W.LEGENDS_XZ[1]
+		for _, spot in W.LEGENDS_XZ do
+			if at and (at - spot).Magnitude < (at - want).Magnitude then
+				want = spot
+			end
+		end
+		placed("legend_" .. i, at, want)
+		local face = typeof(row.Face) == "Vector3" and Vector2.new(row.Face.X, row.Face.Z)
+		faces("legend_" .. i, face and face.Magnitude > 1e-3 and face.Unit or nil, W.SUMMON_FACE)
+		-- its pedestal mesh moves with it (WORLD_REDESIGN_SPEC 7 Legends: the rig stands on its pedestal)
+		local onPedestal = false
+		for _, p in PlazaAssets and PlazaAssets.Placed or {} do
+			if
+				at
+				and type(p.Key) == "string"
+				and string.sub(p.Key, 1, 14) == "LegendPedestal"
+				and (Vector2.new(p.Pos.X, p.Pos.Z) - at).Magnitude <= W.POS_TOL
+			then
+				onPedestal = true
+			end
+		end
+		check(checks, "plaza_legend_" .. i .. "_on_pedestal", onPedestal and 1 or 0, 1, onPedestal)
+		if at then
+			table.insert(legendSides, side(at))
+			legendMinAlong = math.min(legendMinAlong, along(at))
+		end
+	end
+	local summonOrdered = bestAt ~= nil
+		and altarAt ~= nil
+		and #legendSides > 0
+		and along(bestAt) < along(altarAt)
+		and along(altarAt) < legendMinAlong
+	check(checks, "plaza_summon_wing_order_spawn_to_gate", summonOrdered and 1 or 0, 1, summonOrdered)
+
+	-- the wings on opposite sides of the spawn-gate axis: economy on the right, summon on the left
+	local opposite = #econSides == #W.ECONOMY and bestAt ~= nil and altarAt ~= nil and #legendSides > 0
+	for _, s in econSides do
+		opposite = opposite and s > 0
+	end
+	for _, s in legendSides do
+		opposite = opposite and s < 0
+	end
+	opposite = opposite and side(bestAt) < 0 and side(altarAt) < 0
+	check(checks, "plaza_wings_opposite_sides_economy_right", opposite and 1 or 0, 1, opposite)
+
+	-- The sensei beside the gate, facing the path (CheckpointConfig.NPC_POS)
+	local npcModel = area:FindFirstChild("CheckpointNpc")
+	local senseiAt = centreOf(npcModel)
+	placed("CheckpointNpc", senseiAt, W.SENSEI_XZ)
+	local senseiFront = frontOf(npcModel)
+	local toPath = senseiAt and (side(senseiAt) > 0 and -right or right)
+	local senseiDot = senseiFront and toPath and senseiFront:Dot(toPath) or -1
+	check(checks, "plaza_sensei_faces_path", senseiDot, W.SENSEI_FACE_MIN, senseiDot >= W.SENSEI_FACE_MIN)
 
 	-- SpawnArea.Bounds(start): world boxes of the plaza floor (Area) and the pad (Pad), Y = TOP_Y. Was compared with the
 	-- IVS constant rects; since 2026-10-30 (spec section 3, coordinates chosen by the world build) with the live parts.

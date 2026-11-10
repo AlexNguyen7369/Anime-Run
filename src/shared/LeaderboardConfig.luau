@@ -25,8 +25,8 @@ LeaderboardConfig.SIGN_Z = { -32, -64, -96, -128 }
 -- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, in the gap between Plots 1 and 2
 -- (WORLD_REDESIGN_SPEC 7).
 LeaderboardConfig.BEST_ROLL = {
-	X = 109.5,
-	Z = -155,
+	X = 161.34, -- hub-local: world (43.3, 14.3), the summon wing's spawn end (design doc 4.24 Two wings, proposed)
+	Z = -65.658,
 	RADIUS = 9,
 	HEIGHT = 2,
 	CAR_SCALE = 3.5, -- the car stands at this scale, so it reads from across the hub
