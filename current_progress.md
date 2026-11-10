@@ -141,8 +141,9 @@
 138. 2026-11-10 — Alex Nguyen — Cut join time: the loading screen, starter pick and pick reveal wait only for their own characters' models (Loaded_<id>), only visible HUD images preload, and the rest preload in chunks after the screen.
 139. 2026-11-10 — Alex Nguyen — Trimmed bloat: deleted about 72 KB of dead client scripts, made the admin VfxArea build on /tp vfxarea with a 1 s client poll, and guarded 5 upload scripts so importing uploads nothing.
 140. 2026-11-10 — Alex Nguyen — Recorded the owner's plaza Layout C (two wings) and the Sidekick summon altar in the design doc and specs, plus proposals for Tracks 6-10 building behind the game and late-phase client data loading on first need.
+141. 2026-11-10 — Alex Nguyen — Built plaza Layout C (economy wing right of the path, summon wing left) and replaced the Sidekicks stall with a Parts-built summon altar showing the rotation's Mythic model; spawn_area 171 and world_layout 18 checks pass in Studio.
 
 ## What's next
-**Build plaza Layout C and the Sidekick summon altar (worktree `../AnimeRun-orch/plaza-c`), then show the owner Studio screenshots and run `spawn_area`, `world_layout` and the plaza UI tests.**
+**Owner reviews Layout C in Studio (altar look, Mythic model facing, Sensei dais clipping a gate lantern, Index board set 5 studs behind the stall fronts) and rules on the 4.25 and section 7 load proposals.**
 
-**Why this is next:** the owner picked Layout C and the altar on 2026-11-10; the plaza is the first thing a new player sees, and the 4.25 and section 7 load proposals wait on the owner after it.
+**Why this is next:** the altar and wings were checked only by the spawn_area / world_layout harness and one in-game shot; the two load proposals gate the biggest remaining join-time wins (Tracks 6-10 after join, about 519 KB of boss and Sidekick data at join).
