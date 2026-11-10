@@ -143,8 +143,10 @@
 140. 2026-11-10 — Alex Nguyen — Recorded the owner's plaza Layout C (two wings) and the Sidekick summon altar in the design doc and specs, plus proposals for Tracks 6-10 building behind the game and late-phase client data loading on first need.
 141. 2026-11-10 — Alex Nguyen — Built plaza Layout C (economy wing right of the path, summon wing left) and replaced the Sidekicks stall with a Parts-built summon altar showing the rotation's Mythic model; spawn_area 171 and world_layout 18 checks pass in Studio.
 138. 2026-11-10 — Alex Nguyen — Enlarged every panel's band (PanelBand REACH_UP 24 / REACH_DOWN 4), removed the Index cards' category letter circles, put the odds and speed multi in the card font, and re-spaced the Stats rows (name / rule + multi / bar, 12 gaps, heavy multi); design doc 4.42; 5 screenshots to the owner, committed, not pushed.
+142. 2026-11-10 — Alex Nguyen — Recorded the owner's rulings: Tracks 6-10 build after join with a hold (4.25), and boss poses and Sidekick attack frames load on first need (7).
+143. 2026-11-10 — Alex Nguyen — Tracks 6-10 now build after players join, nearest first, and runs hold with a "Loading next track" label until their track exists; track_loading, race, checkpoints, duel, npc, chain, world_layout and terrain_built pass in Studio.
 
 ## What's next
-**Owner reviews the round-3 screenshots; on approval push `feature/alex/anime-world` to origin and main, then retarget the stale UI tests (band Gap 8 in UiResponsive / UiSpec.Band, Market tab rail, Racer panel rects, Backpack rail, boss header text) and run the UI harness; then the phone layout.**
+**Merge `orch/first-impression/lazy-data` (cea790c: boss poses and Sidekick attacks out of the join download) once the boss-audit session commits `BossArenaView`, `BossRaga`, `BossVfx` and `UiBossVfx`, then run `late_data`, `boss_event`, `boss_anim`, `sidekick_attacks` and the boss UI tests in Studio.**
 
-**Why this is next:** the band and the Racer panels' geometry changed again, which the layout tests pin; the harness gates the merge and the phone view is still unseen.
+**Why this is next:** it is the last owner-approved load cut (about 519 KB off every join); it touches the same four files as the boss session's unapproved edits, so it cannot land before those are committed.
