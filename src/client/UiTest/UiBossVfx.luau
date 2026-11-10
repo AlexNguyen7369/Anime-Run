@@ -224,17 +224,21 @@ function Module.Build(h)
 	end
 
 	function scenarios.ui_boss_vfx(res)
+		local started = os.clock()
+		local savedReduce = h.player:GetAttribute("ReduceEffects")
+		setup(res, "boss_ui_gear:2")
 		local loaded, Poses = pcall(function()
-			return require(Shared:FindFirstChild("BossRagaPoses"))
+			-- Design doc 7 "Join size": not at join; the boss setup publishes it, as a real event does.
+			return require(
+				ReplicatedStorage:WaitForChild("LateData", BUILD_WAIT):WaitForChild("BossRagaPoses", BUILD_WAIT)
+			)
 		end)
 		h.check(res, "poses_module_loads", loaded, true, loaded)
 		if not loaded then
+			setup(res, "restore:boss_ui")
 			return
 		end
-		local started = os.clock()
-		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
-			setup(res, "boss_ui_gear:2")
 			-- The height and the full-strength limits are judged with the toggle off, whatever the player had.
 			h.player:SetAttribute("ReduceEffects", nil)
 			if checkRise(res, Poses) then

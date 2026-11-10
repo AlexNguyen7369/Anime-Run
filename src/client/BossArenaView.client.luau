@@ -11,13 +11,17 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossArenaConfig"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local Poses = require(Shared:WaitForChild("BossRagaPoses"))
+local ATTRIBUTE = "BossArenaPreview"
+-- Join size (design doc 7): the pose data reaches this client with the first event, so the view starts with one.
+while Players.LocalPlayer:GetAttribute("BossEvent") ~= true and ReplicatedStorage:GetAttribute(ATTRIBUTE) ~= true do
+	RunService.Heartbeat:Wait()
+end
+local Poses = require(Shared:WaitForChild("LateData")).Get("BossRagaPoses")
 local VfxArt = require(Shared:WaitForChild("BossVfxArt"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local ATTRIBUTE = "BossArenaPreview"
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
 -- Every second ring point: 72 pieces of about 78 studs on each ring. The draft's 144 would be about 1,200 more parts.
 local RING_STEP = 2

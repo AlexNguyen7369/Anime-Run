@@ -3,7 +3,8 @@
 -- the same spot, so a prompt needs no network traffic. Times are seconds after the intro's end. A moment's index counts every
 -- attack, shout and wheel turn of the event from 1. Numbers are placeholders.
 local Cfg = require(script.Parent.BossEventConfig)
-local Poses = require(script.Parent.BossRagaPoses)
+local LateData = require(script.Parent.LateData)
+local RunService = game:GetService("RunService")
 
 local BossDodge = {}
 
@@ -26,13 +27,23 @@ BossDodge.StarArt = "rbxassetid://103522228947626" -- assets/ui/dodge_star.png
 -- agree. Rounded to the 3 places the schedule's times are written in.
 BossDodge.Events = {}
 local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
-for _, move in Poses.Moves do
-	for _, moveEvent in move.Events do
-		BossDodge.Events[moveEvent.Name] = {}
+local Poses, list -- list: every moment of one cycle, in time order: { At, Name }
+-- Join size (design doc 7): the pose data reaches a client with its first event, so it is read on first use.
+local function load()
+	if list then
+		return
 	end
-end
-local list = {} -- every moment of one cycle, in time order: { At, Name }
-do
+	local poses = LateData.Get("BossRagaPoses")
+	if list then
+		return -- another caller built it while this one waited
+	end
+	Poses = poses
+	for _, move in Poses.Moves do
+		for _, moveEvent in move.Events do
+			BossDodge.Events[moveEvent.Name] = {}
+		end
+	end
+	list = {}
 	local lastMove, lastLocal = nil, 0
 	for k = 0, math.ceil(Poses.CycleSeconds / SCAN_STEP) - 1 do
 		local since = k * SCAN_STEP
@@ -57,6 +68,7 @@ end
 
 -- Moment `index` -> its time and event name.
 function BossDodge.Moment(index)
+	load()
 	local cycles = (index - 1) // #list
 	local row = list[index - cycles * #list]
 	return cycles * Poses.CycleSeconds + row.At, row.Name
@@ -64,6 +76,7 @@ end
 
 -- The index of the last moment at or before `since`, 0 if none.
 function BossDodge.IndexAtOrBefore(since)
+	load()
 	if since < 0 then
 		return 0
 	end
@@ -89,6 +102,10 @@ function BossDodge.Window(spot, momentAt, stage)
 	local sweep = SWEEPS[stage]
 	local start = momentAt - sweep
 	return start + (spot - BossDodge.SpotWidth / 2) * sweep, start + (spot + BossDodge.SpotWidth / 2) * sweep
+end
+
+if RunService:IsServer() then
+	load()
 end
 
 return BossDodge

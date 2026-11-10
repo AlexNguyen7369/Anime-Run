@@ -22,6 +22,7 @@ local Arena = require(Shared.BossArenaConfig)
 local BossDodge = require(Shared.BossDodge)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
+local LateData = require(Shared.LateData)
 local StaminaConfig = require(Shared.StaminaConfig)
 local CarService = require(script.Parent.CarService)
 local DuelService = require(script.Parent.DuelService)
@@ -71,6 +72,9 @@ local function safely(fn, ...)
 end
 
 local function publish()
+	if event then
+		LateData.Deliver("BossRagaPoses", "SidekickAttacks") -- before the phase, so a client never waits for it (design doc 7)
+	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
@@ -945,6 +949,9 @@ function BossEventService.Init()
 	end)
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
+	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
+		LateData.Deliver("BossRagaPoses", "SidekickAttacks") -- the test preview builds the arena with no event
+	end)
 	nextAt = now() + Cfg.IntervalSeconds
 	publish()
 	task.spawn(function()

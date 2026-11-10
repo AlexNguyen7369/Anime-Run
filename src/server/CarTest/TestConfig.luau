@@ -60,6 +60,7 @@ return {
 		"boss_anim",
 		"boss_paid",
 		"sidekick_attacks",
+		"late_data",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

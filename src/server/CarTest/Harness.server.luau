@@ -9,6 +9,17 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TestConfig = require(script.Parent.TestConfig)
+-- Design doc 7 "Join size": what a joining client gets, read at load, before any boss event can publish (LateDataTests).
+do
+	local LateData = require(script.Parent.LateDataTests)
+	local snapshot = {}
+	for _, service in LateData.JOIN_CONTAINERS do
+		for _, name in LateData.NAMES do
+			snapshot[service .. "." .. name] = game:GetService(service):FindFirstChild(name, true) ~= nil
+		end
+	end
+	require(script.Parent.AcceptanceSupport).JoinSnapshot = snapshot
+end
 local Scenarios = require(script.Parent.Scenarios)
 
 local running = false
