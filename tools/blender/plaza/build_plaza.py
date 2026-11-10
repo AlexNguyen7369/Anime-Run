@@ -35,17 +35,6 @@ PLOTS = {  # centre (x, z), front (x, z)
 	6: ((25, 107), (0, -1)),
 	7: ((-42, 91), (0, -1)),
 }
-# Service row (WORLD_REDESIGN_SPEC 7): every front stands on the line x = -72, facing +x. South to north, spaced 28.75:
-# the spec's z 53 end would put the sensei's dais on the path edge, so the row ends at z 45.
-ROW_X, ROW_FACE = -72, (1, 0)
-SHOP = (ROW_X - 5, -70)  # stall origin: the deck front is 5 ahead
-POTIONS = (ROW_X - 5, -41.25)
-MARKET_STALL = (ROW_X - 5.5, -12.5)  # stall origin: the deck front is 5.5 ahead
-MARKET = (MARKET_STALL[0] + 3.8, -12.5)  # the sign's plane, on the stall's lower roof
-MARKET_SIGN_Y = 11.7  # board centre above the floor
-INDEX = (ROW_X, 16.25)
-SENSEI = (ROW_X, 45)
-BEST_ROLL = (-8.5, -75)
 GREAT_SAKURA = (80, 118)  # outside the ring, behind the gap between Plots 5 and 6
 GROUND_Y = -2  # past the floor edge the terrain top is -1 (TerrainShape.GROUND_TOP): the trunk stands a stud into it
 AXIS_LEN = math.hypot(*PAD)
@@ -53,6 +42,26 @@ AXIS = (PAD[0] / AXIS_LEN, PAD[1] / AXIS_LEN)
 PERP = (AXIS[1], -AXIS[0])  # the side of the path toward Plot 7 is +PERP after the sign below
 if PERP[0] * -42 + PERP[1] * 91 < 0:
 	PERP = (-PERP[0], -PERP[1])
+
+
+def _on_path(t, off):
+	return (round(AXIS[0] * t + PERP[0] * off, 3), round(AXIS[1] * t + PERP[1] * off, 3))
+
+
+# Two wings (owner 2026-11-10, design doc 4.24, WORLD_REDESIGN_SPEC 4; positions proposed). Each is (t along the path from
+# the spawn, offset to the Plot 7 side). Economy wing: one row 46 studs to the right of the path, fronts facing it
+# (+PERP, about (0.68, 0.73)); asset origins on the row line, spaced 22. Summon wing: left of the path, facing it (-PERP).
+ECON_FACE = PERP
+SUMMON_FACE = (-PERP[0], -PERP[1])
+SHOP = _on_path(-24, -46)  # (-13.7, -50.0); stall origin: the deck front is 5 ahead
+POTIONS = _on_path(-2, -46)  # (-29.8, -35.1)
+MARKET_STALL = _on_path(20, -46)  # (-46.0, -20.1); stall origin: the deck front is 5.5 ahead
+MARKET = (MARKET_STALL[0] + ECON_FACE[0] * 3.8, MARKET_STALL[1] + ECON_FACE[1] * 3.8)  # the sign's plane, on the lower roof
+MARKET_SIGN_Y = 11.7  # board centre above the floor
+INDEX = _on_path(42, -46)  # (-62.1, -5.1)
+SENSEI = _on_path(98, -12)  # (-80.0, 57.9), beside the gate, facing the path
+BEST_ROLL = _on_path(-22, 40)  # (43.3, 14.3), the summon wing's spawn end
+SIDEKICK_ALTAR = _on_path(8, 48)  # (26.8, 40.6), the summon wing's middle; built from Parts in SpawnArea, no mesh
 
 
 def rb(x, y, z):
@@ -298,7 +307,7 @@ def hero_torii():
 
 def market_sign():
 	"""A merchant's roof sign: it stands on the stall's lower roof, braced back to the upper storey."""
-	m = M("MarketSign", place(MARKET[0], MARKET[1], TOP, ROW_FACE))
+	m = M("MarketSign", place(MARKET[0], MARKET[1], TOP, ECON_FACE))
 	bw, bh = 16, 4.1
 	for s in (-1, 1):
 		m.box((0.5, 2, 0.5), (s * 5.5, 1, MARKET_SIGN_Y), "dark")
@@ -311,7 +320,7 @@ def market_sign():
 def market_stall():
 	"""The row's main building: a two-tier merchant house, open at the front, showing auras and a trail."""
 	w, d = 20, 11
-	m = M("MarketStall", place(MARKET_STALL[0], MARKET_STALL[1], TOP, ROW_FACE))
+	m = M("MarketStall", place(MARKET_STALL[0], MARKET_STALL[1], TOP, ECON_FACE))
 	front, back = -d / 2, d / 2
 	m.box((w, d, 0.25), (0, 0, 0.125), "dark")
 	m.box((w - 0.5, d - 0.5, 0.3), (0, 0, 0.35), "plank")
@@ -405,7 +414,7 @@ def sakura(x, z, r, h, name):
 
 
 def stall(x, z, title, cloth, goods):
-	m = M(title + "Stall", place(x, z, TOP, ROW_FACE))
+	m = M(title + "Stall", place(x, z, TOP, ECON_FACE))
 	w, d = 14, 10
 	m.box((w, d, 0.4), (0, 0, 0.2), "plank")
 	m.box((w - 1, 2, 3.6), (0, -d / 2 + 1.5, 2.2), "wood")
@@ -434,7 +443,7 @@ def stall(x, z, title, cloth, goods):
 
 
 def index_board():
-	m = M("IndexBoard", place(INDEX[0], INDEX[1], TOP, ROW_FACE))
+	m = M("IndexBoard", place(INDEX[0], INDEX[1], TOP, ECON_FACE))
 	for sx in (-1, 1):
 		m.cyl(0.8, 13, (sx * 12, 0, 0), "dark", n=6)
 		m.box((2, 2, 0.8), (sx * 12, 0, 0.4), "stone")
@@ -448,8 +457,8 @@ def index_board():
 	return m
 
 
-def pedestal(i, x, z, glow, look=None):
-	m = M(f"LegendPedestal_{i}", place(x, z, TOP, facing_point(x, z, *(look or LEGEND_LOOK))))
+def pedestal(i, x, z, glow, face=SUMMON_FACE):
+	m = M(f"LegendPedestal_{i}", place(x, z, TOP, face))
 	m.cyl(3.8, 0.8, (0, 0, 0), "slab", n=8)
 	m.cyl(3.2, 1.0, (0, 0, 0.8), "stone", n=8)
 	m.cyl(3.5, 0.3, (0, 0, 1.8), glow, n=8)
@@ -725,8 +734,9 @@ def context(col):
 		h = rng.uniform(110, 210)
 		c.cyl(h * 0.95, h, tuple(p), rng.choice(("mtn", "mtn2")), n=7, r2=h * 0.06)
 	c.build(col)
-	k = M("Ctx_Kept")  # what stays: the Best Roll pedestal
+	k = M("Ctx_Kept")  # what stays: the Best Roll pedestal, and the Sidekick altar (Parts in SpawnArea)
 	k.cyl(9, 2, tuple(rb(BEST_ROLL[0], TOP, BEST_ROLL[1])), "ctx", n=16)
+	k.cyl(16, 3, tuple(rb(SIDEKICK_ALTAR[0], TOP, SIDEKICK_ALTAR[1])), "ctx", n=8)
 	k.box((16, 16, 0.4), tuple(rb(PAD[0], TOP + 0.2, PAD[1])), "pad")
 	k.box((12, 12, 0.1), tuple(rb(0, TOP + 0.06, 0)), "slab")
 	k.build(col)
@@ -874,14 +884,13 @@ def shoot(cam, eye, look, name, fov=70):
 	print("SHOT", name)
 
 
-LEGENDS = [  # one each side of the gate (x, z), glow ring in a logo colour
-	("db_hero", -71.5, 94, "so"),
-	("mha_symbol", -89.5, 61.5, "sb"),
+LEGENDS = [  # the summon wing's gate end (Two wings, owner 2026-11-10), facing the path; glow ring in a logo colour
+	("db_hero", *_on_path(36, 40), "so"),  # (0.8, 53.8)
+	("mha_symbol", *_on_path(42, 34), "sb"),  # (-7.6, 53.5)
 ]
 # The Robux-exclusive runner's pedestal (design doc 4.35), not a Legend: in the gap between Plots 6 and 7 as seen from the
 # spawn, so every Dojo stays visible (4.24 Clear plaza), facing the spawn. Position proposed.
 EXCLUSIVE = ("punch_hero", -4.5, 36, "so")
-LEGEND_LOOK = along(75)  # both turn toward a player coming up the path
 LEGEND_H = 9.0  # studs; about 1.6x a runner (proposed)
 RUNNER_H = 5.6
 
@@ -917,9 +926,9 @@ def build(scene):
 	add(sky_loop())
 	for i, (cid, x, z, glow) in enumerate(LEGENDS):
 		add(pedestal(i, x, z, glow))
-		put_char(world, cid, x, TOP + 2.6, z, facing_point(x, z, *LEGEND_LOOK), LEGEND_H, "Legend_" + cid)
+		put_char(world, cid, x, TOP + 2.6, z, SUMMON_FACE, LEGEND_H, "Legend_" + cid)
 	cid, x, z, glow = EXCLUSIVE
-	add(pedestal(len(LEGENDS), x, z, glow, look=SPAWN))
+	add(pedestal(len(LEGENDS), x, z, glow, facing_point(x, z, *SPAWN)))
 	put_char(world, cid, x, TOP + 2.6, z, facing_point(x, z, *SPAWN), LEGEND_H, "Exclusive_" + cid)
 	# Sky-loop runners: the 3 starters' models, racing with blue and orange trails
 	runners = [(205, "neonb", 0, "leaf_hero"), (20, "neono", 1, "sea_captain"), (95, "neonb", 0, "db_hero")]
@@ -930,7 +939,7 @@ def build(scene):
 		# tangent, running toward decreasing angle
 		put_char(world, cid, x, LOOP_H + 0.05, z, (math.sin(a), -math.cos(a)), RUNNER_H, f"Runner_{cid}")
 	# Sensei stand-in
-	put_char(ctx, "leaf_copycat", SENSEI[0], TOP + 0.6, SENSEI[1], ROW_FACE, 5.8, "Ctx_Sensei")
+	put_char(ctx, "leaf_copycat", SENSEI[0], TOP + 0.6, SENSEI[1], ECON_FACE, 5.8, "Ctx_Sensei")
 	# The Dojo ring as a new player sees it: their own level 1, the rest free
 	for i, (c, f) in PLOTS.items():
 		level = 1 if i == 1 else 0
@@ -940,14 +949,14 @@ def build(scene):
 			add_text(world, "FREE DOJO", mx, 0.95, "dark", f"Sign_Plot{i}")
 	# Signs
 	for txt, (x, z), w in (("SHOP", SHOP, 1.6), ("POTIONS", POTIONS, 1.25)):
-		mx = place(x, z, TOP, ROW_FACE) @ Matrix.Translation((0, -5.85, 11.2))
+		mx = place(x, z, TOP, ECON_FACE) @ Matrix.Translation((0, -5.85, 11.2))
 		add_text(world, txt, mx, w, "paper", "Sign_" + txt)
-	mx = place(INDEX[0], INDEX[1], TOP, ROW_FACE) @ Matrix.Translation((0, -0.45, 10.6))
+	mx = place(INDEX[0], INDEX[1], TOP, ECON_FACE) @ Matrix.Translation((0, -0.45, 10.6))
 	add_text(world, "RUNNER INDEX", mx, 0.85, "verm2", "Sign_Index")
 	# Wayfinding: the bold signs on the two landmarks
 	mx = place(PAD[0], PAD[1], TOP, (-AXIS[0], -AXIS[1])) @ Matrix.Translation((0, -0.45, 21.6))
 	add_text(world, "RACE START", mx, 2.4, "gold", "Sign_RaceStart")
-	mx = place(MARKET[0], MARKET[1], TOP, ROW_FACE) @ Matrix.Translation((0, -0.45, MARKET_SIGN_Y))
+	mx = place(MARKET[0], MARKET[1], TOP, ECON_FACE) @ Matrix.Translation((0, -0.45, MARKET_SIGN_Y))
 	add_text(world, "MARKET", mx, 3.0, "gold", "Sign_Market")
 	# Tier lineup, far from the plaza
 	lx, lz = 1600, 0
@@ -1081,7 +1090,7 @@ def export_all():
 			placed.append({"Key": key, "Pos": [p.x, p.z, -p.y], "Face": [front.x, -front.y]})
 	legends = []
 	for cid, x, z, _ in LEGENDS:
-		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *LEGEND_LOOK))})
+		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(SUMMON_FACE)})
 	cid, x, z, _ = EXCLUSIVE
 	exclusive = {"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *SPAWN))}
 	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Exclusive": exclusive, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
@@ -1118,13 +1127,14 @@ def main():
 		"04_reveal_start": ((-185, 95, 170), (-20, 8, 15)),
 		"06_dojo_ring": ((-5, TOP + 7, -5), (-42, TOP + 9, -91)),
 		"07_dojo_tiers": ((1600, 34, 205), (1600, 20, 0)),
-		"08_shops": ((-42, TOP + 8, -40), (ROW_X, TOP + 7, -41)),
+		"08_shops": ((along(-13, -20)[0], TOP + 8, along(-13, -20)[1]), (POTIONS[0], TOP + 7, POTIONS[1])),
 		"09_top": ((0, 240, 0), (0, 0, 0.01)),
-		"10_row": ((0, TOP + 8, 0), (ROW_X, TOP + 8, -12.5)),
-		"11_market": ((ROW_X + 21, TOP + 6, MARKET[1] + 13), (MARKET_STALL[0], TOP + 8, MARKET[1])),
+		"10_row": ((0, TOP + 8, 0), (MARKET_STALL[0], TOP + 8, MARKET_STALL[1])),
+		"11_market": ((along(30, -25)[0], TOP + 6, along(30, -25)[1]), (MARKET_STALL[0], TOP + 8, MARKET_STALL[1])),
 		"12_gate": ((along(AXIS_LEN - 40)[0], TOP + 7, along(AXIS_LEN - 40)[1]), (PAD[0], TOP + 13, PAD[1])),
-		"13_market_back": ((ROW_X - 26, TOP + 7, MARKET[1] + 14), (MARKET_STALL[0], TOP + 8, MARKET[1])),
-		"14_market_side": ((ROW_X - 3, TOP + 7, MARKET[1] - 18.5), (MARKET_STALL[0], TOP + 8, MARKET[1])),
+		"13_market_back": ((along(30, -72)[0], TOP + 7, along(30, -72)[1]), (MARKET_STALL[0], TOP + 8, MARKET_STALL[1])),
+		"14_market_side": ((along(1.5, -43)[0], TOP + 7, along(1.5, -43)[1]), (MARKET_STALL[0], TOP + 8, MARKET_STALL[1])),
+		"15_summon_wing": ((along(8, 10)[0], TOP + 8, along(8, 10)[1]), (SIDEKICK_ALTAR[0], TOP + 8, SIDEKICK_ALTAR[1])),
 	}
 	for name, (eye, look) in shots.items():
 		if not argv or name in argv:

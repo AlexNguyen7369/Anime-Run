@@ -6,8 +6,9 @@
 local CheckpointConfig = {}
 
 CheckpointConfig.PICK_COOLDOWN = 0.5 -- seconds between accepted SetCheckpoint calls per player
-CheckpointConfig.NPC_POS = Vector2.new(46, -35) -- hub-local (x, z): the sensei ends the service row (WORLD_REDESIGN_SPEC 7)
-CheckpointConfig.NPC_FACE = Vector2.new(118, -35) -- hub-local point the NPC faces (+x, as the rest of the row)
+-- hub-local (x, z) = world + (118, -80): world (-80.0, 57.9), beside the gate (WORLD_REDESIGN_SPEC 4 Two wings, proposed)
+CheckpointConfig.NPC_POS = Vector2.new(38.021, -22.109)
+CheckpointConfig.NPC_FACE = Vector2.new(106.066, 51.170) -- hub-local point the NPC faces: across the path, (0.68, 0.73)
 CheckpointConfig.PROMPT_DISTANCE = 10
 CheckpointConfig.TEXT_DISTANCE = 80
 CheckpointConfig.BONUS_PER_TRACK = 0.1 -- placeholder: +10% pad cash per track past the checkpoint in one run

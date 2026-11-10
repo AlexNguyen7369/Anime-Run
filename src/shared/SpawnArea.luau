@@ -1,8 +1,9 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), the service row (Shop, Potions, Market, Index, the Checkpoints sensei: fronts on one line facing
--- +x, WORLD_REDESIGN_SPEC 7) and the Best Roll pedestal. Players join and respawn here on foot, and Stop sends them back
+-- Server/CarService), and the two wings either side of the spawn-gate path (design doc 4.24 Two wings, WORLD_REDESIGN_SPEC
+-- 4): the economy wing (Shop, Potions, Market, Index on one row facing the path), the summon wing (Best Roll, the Sidekick
+-- summon altar, the Legends) and the Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
 -- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
 -- the Market included. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
@@ -45,6 +46,29 @@ local DARK_WOOD = Color3.fromRGB(82, 52, 36)
 local ROOF_TILE = Color3.fromRGB(58, 62, 72)
 local PAPER = Color3.fromRGB(246, 236, 210)
 local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
+
+-- Two wings (owner 2026-11-10, WORLD_REDESIGN_SPEC 4; positions proposed): hub-local (x, z) = world + (118, -80), mesh
+-- origins from tools/blender/plaza/build_plaza.py. Each wing's fronts face the path.
+local ECON_FACE = Vector2.new(0.6805, 0.7328) -- economy wing fronts (world (0.68, 0.73))
+local SUMMON_FACE = -ECON_FACE -- summon wing fronts (world (-0.68, -0.73))
+local SHOP_POS = Vector2.new(104.286, -130.039) -- world (-13.7, -50.0)
+local POTIONS_POS = Vector2.new(88.165, -115.069) -- world (-29.8, -35.1)
+local MARKET_POS = Vector2.new(72.043, -100.099) -- world (-46.0, -20.1)
+local INDEX_POS = Vector2.new(55.922, -85.13) -- world (-62.1, -5.1)
+local ALTAR_POS = Vector2.new(144.799, -39.382) -- world (26.8, 40.6), the summon wing's middle
+
+-- The Sidekick summon altar (design doc 4.36, docs/SIDEKICK_SPEC.md "Summon altar"): sizes proposed placeholders.
+local ALTAR_TIERS = { 30, 23, 16 } -- octagon widths across the flats, bottom to top (about 32; 30 clears the sky-loop leg)
+local ALTAR_TIER_HEIGHT = 1.2 -- per tier; a runner walks up them
+local ALTAR_PILLAR_RADIUS = 7 -- pillars on the top tier's diagonals, outside the ring and clear of the stairs
+local ALTAR_PILLAR_HEIGHT = 10
+local ALTAR_HALO_RADIUS = 5 -- the client shows the rotation's Mythic inside it (Client/SidekickAltarView)
+local ALTAR_HALO_HEIGHT = 7.5 -- halo centre above the top tier
+local ALTAR_PROMPT_DISTANCE = 16 -- from the top tier's centre: reaches the bottom step
+local ALTAR_STONE = Color3.fromRGB(176, 170, 160)
+local ALTAR_DARK = Color3.fromRGB(46, 42, 52)
+local ALTAR_GOLD = Color3.fromRGB(232, 178, 60)
+local ALTAR_NEON = Color3.fromRGB(46, 200, 208)
 
 -- Track 1's start, flattened: yaw only, at ground level (the local space every plaza and plot position uses)
 local function base(startCFrame)
@@ -197,12 +221,12 @@ local function prompt(parent, cframe, name, action, object, distance)
 	return addPrompt(anchor, name, action, object, distance)
 end
 
--- A wooden market stall on the service row, facing +x: counter (with the prompt), posts, a tiled roof, a cloth curtain
+-- A wooden market stall in the economy wing, facing the path: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
 	local m = Instance.new("Model")
 	m.Name = name
-	local f = facing(startCFrame, x, z, x + 1, z)
+	local f = facing(startCFrame, x, z, x + ECON_FACE.X, z + ECON_FACE.Y)
 	local counter =
 		block(m, "Counter", Vector3.new(10, 3.6, 2), f * CFrame.new(0, 1.8, -2), WOOD, Enum.Material.WoodPlanks)
 	for _, px in { -4.8, 4.8 } do
@@ -258,6 +282,106 @@ local function torii(startCFrame)
 	end
 	gate.PrimaryPart = kasagi
 	return gate
+end
+
+-- The Sidekick summon altar (design doc 4.36), plain Parts so it adds nothing to load, an original design: three
+-- octagonal stone tiers with steps on the path side, 4 dark pillars with gold caps, a neon ring on the top tier and a
+-- vertical gold halo facing the path. Its prompt is the old stall's (Client/PlazaPrompts opens the summon page, which
+-- shows the rebirth lock); Client/SidekickAltarView shows the rotation's Mythic at the ModelSpot attachment.
+local function altar(startCFrame)
+	local m = Instance.new("Model")
+	m.Name = "SidekickAltar"
+	local af =
+		facing(startCFrame, ALTAR_POS.X, ALTAR_POS.Y, ALTAR_POS.X + SUMMON_FACE.X, ALTAR_POS.Y + SUMMON_FACE.Y, 0)
+	local h, side = ALTAR_TIER_HEIGHT, math.tan(math.pi / 8)
+	local top = SpawnArea.TOP_Y
+	local topPart
+	for i, width in ALTAR_TIERS do
+		local tierY = top + (i - 1) * h
+		-- An octagon is 4 bars of its width by its edge length, turned 45 degrees apart
+		for k = 0, 3 do
+			local bar = block(
+				m,
+				"Tier" .. i,
+				Vector3.new(width, h, width * side),
+				af * CFrame.new(0, tierY + h / 2, 0) * CFrame.Angles(0, k * math.pi / 4, 0),
+				i == 2 and STONE or ALTAR_STONE,
+				Enum.Material.Slate
+			)
+			if i == #ALTAR_TIERS and k == 0 then
+				topPart = bar
+			end
+		end
+		-- A half step in front of the tier's path-side flat (its front is -Z)
+		block(
+			m,
+			"Step",
+			Vector3.new(width * side, h / 2, 2),
+			af * CFrame.new(0, tierY + h / 4, -width / 2 - 1),
+			ALTAR_STONE,
+			Enum.Material.Slate
+		)
+	end
+	local deck = top + #ALTAR_TIERS * h
+	local r = ALTAR_PILLAR_RADIUS
+	for k = 0, 3 do
+		local spot = af * CFrame.Angles(0, math.pi / 4 + k * math.pi / 2, 0) * CFrame.new(0, 0, -r)
+		block(
+			m,
+			"Pillar",
+			Vector3.new(1.6, ALTAR_PILLAR_HEIGHT, 1.6),
+			spot * CFrame.new(0, deck + ALTAR_PILLAR_HEIGHT / 2, 0),
+			ALTAR_DARK,
+			Enum.Material.Basalt
+		)
+		block(
+			m,
+			"Cap",
+			Vector3.new(2.3, 0.8, 2.3),
+			spot * CFrame.new(0, deck + ALTAR_PILLAR_HEIGHT + 0.4, 0),
+			ALTAR_GOLD,
+			Enum.Material.Metal,
+			false
+		)
+	end
+	local ringApothem = ALTAR_TIERS[#ALTAR_TIERS] / 2 - 2.4
+	for k = 0, 7 do
+		local seg = block(
+			m,
+			"Ring",
+			Vector3.new(2 * ringApothem * side + 0.4, 0.1, 0.5),
+			af * CFrame.Angles(0, k * math.pi / 4, 0) * CFrame.new(0, deck + 0.05, -ringApothem),
+			ALTAR_NEON,
+			Enum.Material.Neon,
+			false
+		)
+		seg.CastShadow = false
+	end
+	local haloY, segments = deck + ALTAR_HALO_HEIGHT, 20
+	for i = 0, segments - 1 do
+		local a = i * 2 * math.pi / segments
+		local seg = block(
+			m,
+			"Halo",
+			Vector3.new(2 * ALTAR_HALO_RADIUS * math.tan(math.pi / segments) + 0.1, 0.5, 0.5),
+			af
+				* CFrame.new(0, haloY, 0)
+				* CFrame.Angles(0, 0, a)
+				* CFrame.new(ALTAR_HALO_RADIUS, 0, 0)
+				* CFrame.Angles(0, 0, math.pi / 2),
+			ALTAR_GOLD,
+			Enum.Material.Neon,
+			false
+		)
+		seg.CastShadow = false
+	end
+	local modelSpot = Instance.new("Attachment")
+	modelSpot.Name = "ModelSpot"
+	modelSpot.Parent = topPart
+	modelSpot.WorldCFrame = af * CFrame.new(0, haloY, 0) -- -Z faces the path
+	glow(topPart, 20)
+	m.PrimaryPart = addPrompt(topPart, "OpenSidekicks", "Sidekicks", "SIDEKICKS", ALTAR_PROMPT_DISTANCE)
+	return m
 end
 
 function SpawnArea.Build(startCFrame)
@@ -317,37 +441,36 @@ function SpawnArea.Build(startCFrame)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
 
-	-- Service row (same panels and remotes as before): hub-local = world + (118, -80), so stall origins at world x -77 put
-	-- their fronts on world x -72
-	-- Sixth service, the row's south end (design doc 4.36, docs/SIDEKICK_SPEC.md "Display"): no mesh yet, the stand-in shows.
+	-- Economy wing (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
+	-- The Sidekicks stall became the summon altar in the summon wing (design doc 4.36).
+	altar(startCFrame).Parent = model
 	stall(
 		model,
 		startCFrame,
-		"SidekickStall",
-		41,
-		-178.75,
-		Color3.fromRGB(30, 130, 150),
-		"SIDEKICKS",
-		"OpenSidekicks",
-		"Sidekicks"
+		"ShopStall",
+		SHOP_POS.X,
+		SHOP_POS.Y,
+		Color3.fromRGB(40, 90, 170),
+		"SHOP",
+		"OpenShop",
+		"Open Shop"
 	)
-	stall(model, startCFrame, "ShopStall", 41, -150, Color3.fromRGB(40, 90, 170), "SHOP", "OpenShop", "Open Shop")
 	stall(
 		model,
 		startCFrame,
 		"PotionsStall",
-		41,
-		-121.25,
+		POTIONS_POS.X,
+		POTIONS_POS.Y,
 		Color3.fromRGB(120, 60, 160),
 		"POTIONS",
 		"OpenPotions",
 		"Potions"
 	)
-	-- The Market, sized to its MarketStall mesh (origin world x -77.5: the deck front is 5.5 ahead, on world x -72). Deck,
-	-- counter, front posts and the closed rear collide; the curtains are cloth and the roof is out of reach.
+	-- The Market, sized to its MarketStall mesh (same origin; the deck front is 5.5 ahead). Deck, counter, front posts and
+	-- the closed rear collide; the curtains are cloth and the roof is out of reach.
 	local marketplace = Instance.new("Model")
 	marketplace.Name = "Marketplace"
-	local mf = facing(startCFrame, 40.5, -92.5, 41.5, -92.5)
+	local mf = facing(startCFrame, MARKET_POS.X, MARKET_POS.Y, MARKET_POS.X + ECON_FACE.X, MARKET_POS.Y + ECON_FACE.Y)
 	block(marketplace, "Deck", Vector3.new(20, 0.5, 11), mf * CFrame.new(0, 0.25, 0), WOOD, Enum.Material.WoodPlanks)
 	local marketCounter = block(
 		marketplace,
@@ -408,10 +531,10 @@ function SpawnArea.Build(startCFrame)
 	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
 	marketplace.Parent = model
 
-	-- Index board: a wooden frame holding a paper scroll, on the service row
+	-- Index board: a wooden frame holding a paper scroll, the economy wing's gate end
 	local index = Instance.new("Model")
 	index.Name = "IndexBoard"
-	local xf = facing(startCFrame, 46, -63.75, 47, -63.75)
+	local xf = facing(startCFrame, INDEX_POS.X, INDEX_POS.Y, INDEX_POS.X + ECON_FACE.X, INDEX_POS.Y + ECON_FACE.Y)
 	for _, px in { -10.5, 10.5 } do
 		block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
 	end
