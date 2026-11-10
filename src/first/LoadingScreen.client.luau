@@ -17,6 +17,8 @@ local QUEUE_QUIET = 1 -- proposed: seconds the content queue stays empty before 
 local QUEUE_GRACE = 4 -- proposed: most seconds to wait for the queue once everything wanted is preloaded
 local WORKERS = 4 -- proposed: PreloadAsync calls running at once
 local CHUNK = 16 -- assets per PreloadAsync call, so the bar moves as they land
+local LATER_CHUNK = 4 -- placeholder: character folders per PreloadAsync call once the screen has opened
+local LATER_PAUSE = 0.5 -- placeholder: seconds between those calls, so they do not crowd Track 1 streaming on phones
 local LOGO = "rbxassetid://127883918864517" -- assets/logo/AnimeRunLogo.png, owner's art
 
 local root = Instance.new("ScreenGui")
@@ -97,6 +99,20 @@ label.Parent = back
 -- image around the plaza, on the HUD and on the characters on screen, then the content queue (with a short grace).
 local preloadTotal, preloadDone, preloadFinished = 0, 0, false
 local preloadEndedAt = nil
+local modelsReady = false -- the on-screen characters' models are in place (CharacterModelService Loaded_<id>)
+local wanted = {} -- character ids on screen at once; the others load once the screen has opened
+
+-- Client/PanelSwitch's test: a closed panel is a hidden GuiObject above it; a ScreenGui can also be switched off.
+-- Hidden panels load behind the game.
+local function onScreen(inst)
+	while inst do
+		if (inst:IsA("GuiObject") and not inst.Visible) or (inst:IsA("LayerCollector") and not inst.Enabled) then
+			return false
+		end
+		inst = inst.Parent
+	end
+	return true
+end
 
 local function collect(found, seen, source)
 	for _, d in source:GetDescendants() do
@@ -106,7 +122,7 @@ local function collect(found, seen, source)
 		elseif d:IsA("Sky") or d:IsA("Decal") or d:IsA("Texture") then
 			key = d
 		elseif (d:IsA("ImageLabel") or d:IsA("ImageButton")) and not d:FindFirstAncestor("Gallery") then
-			key = d.Image -- the Index's portraits load behind the game (RollToast)
+			key = onScreen(d) and d.Image -- the Index's portraits load behind the game (RollToast)
 		end
 		if key and key ~= "" and key ~= "|" and not seen[key] then
 			seen[key] = true
@@ -119,7 +135,6 @@ local function serverReady()
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
 	return ReplicatedStorage:GetAttribute("TerrainNearReady") == true
 		and models ~= nil
-		and models:GetAttribute("Ready") == true
 		and ReplicatedStorage:GetAttribute("PlazaReady") == true
 end
 
@@ -137,8 +152,6 @@ task.spawn(function()
 	local found, seen = {}, {}
 	-- Character models: only those on screen at once (the Legends, the sky-loop runners, this player's team). Their folder
 	-- names are character ids; a new player's team is empty until the starter pick.
-	local later = {}
-	local wanted = {}
 	for _, id in string.split(Players.LocalPlayer:GetAttribute("Team") or "", ",") do
 		wanted[id] = true
 	end
@@ -151,13 +164,19 @@ task.spawn(function()
 	for _, id in { "leaf_hero", "sea_captain", "db_hero" } do -- starters' models: the pick and the sky loop show them
 		wanted[id] = true
 	end
-	for _, character in ReplicatedStorage:WaitForChild("CharacterModels"):GetChildren() do
-		if wanted[character.Name] then
+	-- Wait only for these models, not all of them (a failed one still turns Loaded_<id> true)
+	local models = ReplicatedStorage:WaitForChild("CharacterModels")
+	local Assets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CharacterModelAssets"))
+	for id in wanted do
+		while Assets[id] and models:GetAttribute("Loaded_" .. id) ~= true and models:GetAttribute("Ready") ~= true do
+			task.wait(0.1)
+		end
+		local character = models:FindFirstChild(id)
+		if character then
 			collect(found, seen, character)
-		else
-			table.insert(later, character)
 		end
 	end
+	modelsReady = true
 	-- The plaza's sky faces: the client may not have swapped them into Lighting yet (image ids preload as strings)
 	pcall(function()
 		local sky =
@@ -205,13 +224,6 @@ task.spawn(function()
 	end
 	preloadEndedAt = os.clock()
 	preloadFinished = true
-	-- Characters nobody on screen wears and the other Dojo tiers load behind the game
-	task.spawn(function()
-		pcall(function()
-			table.insert(later, ReplicatedStorage:FindFirstChild("PlazaTierMeshes"))
-			ContentProvider:PreloadAsync(later)
-		end)
-	end)
 end)
 
 -- Real progress, 0..1, and whether everything is done.
@@ -221,10 +233,9 @@ local function realProgress(now)
 	local queue = ContentProvider.RequestQueueSize
 	peak = math.max(peak, queue)
 	queueEmptySince = queue == 0 and (queueEmptySince or now) or nil
-	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
 	local server = (
 		(ReplicatedStorage:GetAttribute("TerrainNearReady") == true and 1 or 0)
-		+ (models and models:GetAttribute("Ready") == true and 1 or 0)
+		+ (modelsReady and 1 or 0)
 		+ (ReplicatedStorage:GetAttribute("PlazaReady") == true and 1 or 0)
 	) / 3
 	local preload = preloadFinished and 1 or (preloadTotal > 0 and preloadDone / preloadTotal or 0)
@@ -275,3 +286,22 @@ fadeOut(fill, { BackgroundTransparency = 1 })
 fadeOut(label, { TextTransparency = 1 })
 task.wait(0.4)
 root:Destroy()
+
+-- Characters nobody on screen wears and the other Dojo tiers load behind the game, a few at a time
+local models = ReplicatedStorage:WaitForChild("CharacterModels")
+while models:GetAttribute("Ready") ~= true do
+	task.wait(1)
+end
+local later = {}
+for _, character in models:GetChildren() do
+	if not wanted[character.Name] then
+		table.insert(later, character)
+	end
+end
+table.insert(later, ReplicatedStorage:FindFirstChild("PlazaTierMeshes"))
+for first = 1, #later, LATER_CHUNK do
+	pcall(function()
+		ContentProvider:PreloadAsync(table.move(later, first, math.min(first + LATER_CHUNK - 1, #later), 1, {}))
+	end)
+	task.wait(LATER_PAUSE)
+end

@@ -246,8 +246,17 @@ update()
 -- The models load in the background: show them once they arrive.
 task.spawn(function()
 	local models = ReplicatedStorage:WaitForChild("CharacterModels")
-	if models:GetAttribute("Ready") ~= true then
-		models:GetAttributeChangedSignal("Ready"):Wait()
+	-- only the starters' models (CharacterModelService Loaded_<id>), not all of them
+	local function starters()
+		for _, id in CharacterCatalog.STARTER_PICKS do
+			if models:GetAttribute("Loaded_" .. id) ~= true then
+				return false
+			end
+		end
+		return true
+	end
+	while not starters() and models:GetAttribute("Ready") ~= true do
+		models.AttributeChanged:Wait()
 	end
 	if root.Enabled then
 		refill()
