@@ -210,7 +210,10 @@ local function pickReveal(id)
 	burst(at + Vector3.new(0, 3, 0), PETAL, 70)
 	local waited = os.clock()
 	local models = ReplicatedStorage:FindFirstChild("CharacterModels")
-	while not (models and models:GetAttribute("Ready") == true) and os.clock() - waited < FIGURE_MODEL_WAIT do
+	while
+		not (models and (models:GetAttribute("Loaded_" .. id) == true or models:GetAttribute("Ready") == true))
+		and os.clock() - waited < FIGURE_MODEL_WAIT
+	do
 		task.wait(0.1) -- past this the placeholder rig stands in
 		models = ReplicatedStorage:FindFirstChild("CharacterModels")
 	end

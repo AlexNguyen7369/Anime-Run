@@ -3,7 +3,7 @@
 -- ReplicatedStorage.CharacterModels/<id>/<part> so RunnerFactory can clone them on server and clients. Runs in the
 -- background: rigs built before it finishes (runners, Dojo squad, Best Roll) are placeholders and get re-skinned at
 -- the end. A failed load only leaves that character on the placeholder rig. The root's Ready attribute turns true
--- when done.
+-- when done; its Loaded_<id> attribute turns true as each character finishes (loaded or failed), for the loading screen.
 local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -172,6 +172,7 @@ function CharacterModelService.Start()
 			pending += 1
 			task.spawn(function()
 				pcall(load, id, row, root)
+				root:SetAttribute("Loaded_" .. id, true)
 				pending -= 1
 			end)
 		end
