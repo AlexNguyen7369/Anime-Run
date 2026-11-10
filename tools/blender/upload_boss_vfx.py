@@ -50,4 +50,5 @@ def main():
 		f.write("\n".join(lines + ["}\n"]))
 
 
-main()
+if __name__ == "__main__":
+	main()

@@ -85,4 +85,5 @@ def main():
 		write_registry(ledger)
 
 
-main()
+if __name__ == "__main__":
+	main()
