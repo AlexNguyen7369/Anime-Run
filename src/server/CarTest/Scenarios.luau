@@ -12771,6 +12771,8 @@ Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
 Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
+-- design doc 4.25 "Build after join" (owner 2026-11-10): Tracks 6-10 after join, nearest first, hold until built
+Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
 -- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals

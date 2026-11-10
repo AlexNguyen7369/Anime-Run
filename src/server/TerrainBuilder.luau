@@ -138,6 +138,14 @@ local function finish(trackModels, baseplate, keep)
 	end
 end
 
+-- The loading screen may let players in; TerrainNearReadyAt = os.clock() of the first time (Server/CarTest/TrackLoadTests)
+local function nearReady()
+	if not ReplicatedStorage:GetAttribute("TerrainNearReady") then
+		ReplicatedStorage:SetAttribute("TerrainNearReadyAt", os.clock())
+	end
+	ReplicatedStorage:SetAttribute("TerrainNearReady", true)
+end
+
 -- Call after TerrainShape.Prepare (task.spawn it: it yields once per chunk)
 function TerrainBuilder.Build(trackModels, baseplate)
 	local t0 = os.clock()
@@ -173,7 +181,7 @@ function TerrainBuilder.Build(trackModels, baseplate)
 				finish(trackModels, baseplate, function(tile)
 					return TerrainShape.Zone(tile.Position.X, tile.Position.Z) <= 1
 				end)
-				ReplicatedStorage:SetAttribute("TerrainNearReady", true)
+				nearReady()
 			end
 			writeChunk(terrain, c[1], c[2])
 			ReplicatedStorage:SetAttribute("TerrainProgress", i / #chunks)
@@ -183,12 +191,12 @@ function TerrainBuilder.Build(trackModels, baseplate)
 	end)
 	if not ok then
 		warn("[TERRAIN] build failed, far stand-in ground kept: " .. tostring(err))
-		ReplicatedStorage:SetAttribute("TerrainNearReady", true) -- nothing more is coming: do not hold the loading screen
+		nearReady() -- nothing more is coming: do not hold the loading screen
 		return false
 	end
 	finish(trackModels, baseplate)
 	print(string.format("[TERRAIN] built in %.1fs, chunks=%d", os.clock() - t0, err))
-	ReplicatedStorage:SetAttribute("TerrainNearReady", true)
+	nearReady()
 	ReplicatedStorage:SetAttribute("TerrainReady", true)
 	return true
 end
