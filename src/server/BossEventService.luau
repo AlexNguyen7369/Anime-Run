@@ -161,6 +161,7 @@ BossEventService.Hooks = {
 		return CarService.RunHeld(player, route, {
 			Boss = true,
 			Team = team,
+			MaxSpeed = arenaNow().MaxRunSpeed,
 			OnRunEvent = function(fired)
 				if fired.Kind == "BossWait" then
 					local member = event and event.Members[player]
