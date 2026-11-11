@@ -209,7 +209,8 @@ K.STATES = {
 	-- If exclusivity ever breaks, ui_panels fails, and this state must be added back here.
 }
 -- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect; a
--- UIAspectRatioConstraint named AnimeAspect on a UiSpec.BandPanels panel is solved in UiShopMarket.BandFit).
+-- UIAspectRatioConstraint named AnimeAspect on a UiSpec.BandPanels panel is solved in UiShopMarket.BandFit, on a duel
+-- panel in simRect).
 K.UNSUPPORTED_LAYOUT = {
 	UIAspectRatioConstraint = true,
 	UIScale = true,
@@ -820,7 +821,25 @@ local function ownScale(obj, ctx)
 	return s
 end
 
--- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by).
+-- An Index-frame panel (AnimeSkin.IndexFrame: a UiSpec.BandPanels panel or a duel panel) writes its children's pixel
+-- offsets and sizes from its own k = panel width / frame width (g.px / g.Place) for the live window. At a simulated
+-- viewport they follow the simulated k: the factor k sim / k live (1 on the live viewport and for any other node).
+local function frameK(obj, ctx)
+	local path = pathOf(obj)
+	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
+		return 1
+	end
+	local liveW = UiResponsive.FrameSize(viewport())
+	local simW = UiResponsive.FrameSize(ctx.vp)
+	local liveK = obj.AbsoluteSize.X / liveW
+	if liveK <= 0 then
+		return 1
+	end
+	return simRect(obj, ctx).w / simW / liveK
+end
+
+-- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by),
+-- times an Index-frame panel's frameK.
 local function inheritedScale(obj, ctx)
 	ctx.scales = ctx.scales or {}
 	local cached = ctx.scales[obj]
@@ -829,7 +848,7 @@ local function inheritedScale(obj, ctx)
 	end
 	local s = 1
 	if obj:IsA("GuiObject") then
-		s = ownScale(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
+		s = ownScale(obj, ctx) * frameK(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
 	end
 	ctx.scales[obj] = s
 	return s
@@ -1229,7 +1248,7 @@ simRect = function(obj, ctx)
 			local solved = sibling:IsA("UIScale") and parent:IsA("GuiObject")
 				or sibling:IsA("UIAspectRatioConstraint")
 					and sibling.Name == "AnimeAspect"
-					and UiSpec.BandPanels[pathOf(parent)] ~= nil
+					and (UiSpec.BandPanels[pathOf(parent)] ~= nil or UiSpec.Duel.Panels[pathOf(parent)] ~= nil)
 			if K.UNSUPPORTED_LAYOUT[sibling.ClassName] and not solved then
 				ctx.unsupported[pathOf(parent)] = sibling.ClassName
 			end
@@ -1351,6 +1370,13 @@ simRect = function(obj, ctx)
 				position = UDim2.new(position.X.Scale, position.X.Offset, 0, compactTop - base.y)
 			end
 			local w, h = sizeIn(obj, size, base, ctx, c)
+			-- A duel panel's AnimeAspect (AnimeSkin.IndexFrame, FitWithinMaxSize at the frame's W / H): the largest
+			-- rect of that aspect inside its Size, placed by its AnchorPoint
+			if UiSpec.Duel.Panels[path] and obj:FindFirstChild("AnimeAspect") then
+				local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+				w = math.min(w, h * frameW / frameH)
+				h = w * frameH / frameW
+			end
 			if compactTop then
 				local level = findPath(UiSpec.HudPair.Level)
 				local top = compactTop
@@ -3521,7 +3547,9 @@ local function elementsFor(open, vp)
 		local g = UiSpec.Guis[guiName]
 		for _, p in g.AlwaysOn or {} do
 			local obj = findPath(guiName .. "/" .. p)
-			if obj and not hiddenByPanel(guiName .. "/" .. p, open, vp) then
+			local maxHidden = UiSpec.HiddenAtHeight[guiName .. "/" .. p]
+			local hiddenAtHeight = maxHidden ~= nil and vp ~= nil and vp.Y <= maxHidden
+			if obj and not hiddenAtHeight and not hiddenByPanel(guiName .. "/" .. p, open, vp) then
 				table.insert(list, { path = guiName .. "/" .. p, obj = obj })
 			end
 		end
@@ -4160,7 +4188,7 @@ function K.textScale(label, ctx)
 	local s, node = 1, label
 	while node and not node:IsA("LayerCollector") do
 		if ctx.vp then
-			s *= ownScale(node, ctx)
+			s *= ownScale(node, ctx) * frameK(node, ctx) -- an Index frame's TextSizes are g.px too
 		else
 			for _, child in node:GetChildren() do
 				if child:IsA("UIScale") and not UiSpec.TransientScales[child.Name] then
@@ -4684,6 +4712,18 @@ function S.ui_layout(res)
 		repeat
 			renderFrame()
 		until not moving() or os.clock() > restBy
+		-- The real mouse may rest on a HUD button: its HoverScale (RacerMotion, 1.035) is feedback the model counts as 1
+		-- (UiSpec.TransientScales), so the engine is measured at 1 too and the hover is put back after
+		local hovered = {}
+		for _, o in playerGui:GetDescendants() do
+			if o.Name == "HoverScale" and o:IsA("UIScale") and o.Scale ~= 1 then
+				hovered[o] = o.Scale
+				o.Scale = 1
+			end
+		end
+		if next(hovered) then
+			renderFrame()
+		end
 		local sim = provider({ Name = "current_sim", Size = viewport() })
 		local worst, worstPath = 0, "none"
 		for _, e in elementsFor(state.Open) do
@@ -4700,6 +4740,11 @@ function S.ui_layout(res)
 		check(res, "layout_model_matches_engine_" .. state.Name, worst, TOL, worst <= TOL)
 		if worst > TOL then
 			check(res, "layout_model_worst_" .. state.Name, worstPath, "none", false)
+		end
+		for scale, value in hovered do
+			if scale.Parent and scale.Scale == 1 then
+				scale.Scale = value
+			end
 		end
 		restore()
 	end
