@@ -1,10 +1,8 @@
 --!nonstrict
--- The plaza meshes kept by the enclosed cyber dojo (design doc 4.24 "Enclosed cyber dojo", owner 2026-11-10: the
--- Legend pedestals, the sky loop and the Market's flat sign), the flat signs and the Dojo look (Server/CyberDojo).
--- The old look is gone: the Great Sakura, the stone lanterns, the wood torii, stalls, path and spawn mosaic and the
--- wooden Dojo tiers are not loaded (Server/CyberWall, CyberGate and CyberLook build their replacements).
+-- The plaza and Dojo meshes (design doc 4.24, WORLD_REDESIGN_SPEC 7), drafted in tools/blender/plaza/build_plaza.py.
 -- Runs in the background after the world is built. SpawnArea and WorkshopBuilder still build the gameplay parts:
--- prompts, pads, zones and collision stay on them. ReplicatedStorage attribute PlazaReady turns true when done.
+-- prompts, pads, zones and collision stay on them. A loaded mesh only turns its stand-in invisible, so a failed
+-- load leaves the plain stand-in working. ReplicatedStorage attribute PlazaReady turns true when done.
 local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,15 +13,21 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared.PlazaAssets)
 local UiTheme = require(Shared.UiTheme)
 local WorkshopConfig = require(Shared.WorkshopConfig)
-local CyberDojo = require(script.Parent.CyberDojo)
 
 local PlazaDressing = {}
 
 local TOP = 1 -- SpawnArea.TOP_Y
+local TRUNK_RADIUS = { GreatSakura = 3.2 }
 local SIGN_HEIGHT = { [1] = 24, [4] = 32, [7] = 38, [10] = 44 } -- owner's sign above each tier's roof (studs)
-local KEEP = { LegendPedestal = true, LegendPedestalx = true, SkyLoop = true, MarketSign = true } -- meshes still placed
-local SIGN_SKIP = { ["RACE START"] = true } -- the blast door's header carries it now (Server/CyberGate)
-local SIGN_COLOR = { ["RUNNER INDEX"] = "#F2FBFF" } -- readable on the Index's dark wall screen
+-- Stand-ins a mesh replaces: SpawnArea child -> mesh key
+local REPLACES = {
+	StartGate = "HeroTorii",
+	ShopStall = "SHOPStall",
+	PotionsStall = "POTIONSStall",
+	Marketplace = "MarketStall",
+	IndexBoard = "IndexBoard",
+	Spawn = "SpawnMosaic",
+}
 
 local IMPORT_TURN = CFrame.Angles(0, math.pi, 0) -- the glTF import turns a mesh 180 degrees, as it does the runner rigs
 
@@ -96,6 +100,17 @@ local function frameOf(position, face)
 	return CFrame.lookAt(position, position - face)
 end
 
+local function hide(root)
+	for _, d in (root:IsA("BasePart") and { root } or root:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.Transparency = 1
+			d.CastShadow = false
+		elseif d:IsA("SurfaceGui") or (d:IsA("BillboardGui") and d.Name == "Title") then
+			d.Enabled = false -- the mesh has its own sign
+		end
+	end
+end
+
 -- Text on a board: a thin invisible part facing `face`, carrying a SurfaceGui.
 local function sign(text, position, face, size, color, parent)
 	local holder = Instance.new("Part")
@@ -149,14 +164,26 @@ local function dressPlot(plot)
 	end
 	local position = Vector3.new(base.Position.X, TOP, base.Position.Z)
 	local look = base.CFrame.LookVector
-	local model = CyberDojo.Build(tier, CFrame.lookAt(position, position + look), plot)
-	if not workshop then
+	local model = place(Layout.Tiers[tier], frameOf(position, look), plot, "DojoMesh")
+	if not model then
+		return -- keep the plain stand-in
+	end
+	hide(base)
+	if workshop then
+		for _, d in workshop:GetDescendants() do
+			-- The Workshop's own parts only: the Dojo squad's rigs on the pedestals stay visible
+			if d:IsA("BasePart") and d:FindFirstAncestorOfClass("Model") == workshop then
+				d.Transparency = 1
+				d.CastShadow = false
+			end
+		end
+	else
 		sign(
 			WorkshopConfig.EMPTY_TEXT,
 			position + look * 18.4 + Vector3.new(0, 8.6, 0),
 			look,
 			1,
-			Color3.fromRGB(242, 251, 255),
+			Color3.fromRGB(76, 48, 34),
 			model
 		)
 	end
@@ -178,14 +205,11 @@ local function watchPlot(plot)
 	plot.ChildRemoved:Connect(changed)
 end
 
-function PlazaDressing.Start()
+function PlazaDressing.Start(spawnArea)
 	task.spawn(function()
 		local ok, err = pcall(function()
 			local pending = 0
 			for key, row in Layout.Assets do
-				if not KEEP[key] then
-					continue
-				end
 				pending += 1
 				task.spawn(function()
 					local loaded, problem = pcall(loadAsset, key, row)
@@ -204,23 +228,45 @@ function PlazaDressing.Start()
 			for _, row in Layout.Placed do
 				place(row.Key, frameOf(row.Pos, row.Face), folder)
 			end
-			for _, row in Layout.Signs do
-				if not SIGN_SKIP[row.Text] then
-					sign(
-						row.Text,
-						row.Pos,
-						row.Face,
-						row.Size,
-						Color3.fromHex(SIGN_COLOR[row.Text] or row.Color),
-						folder
-					)
+			-- The trees' meshes do not collide: a solid trunk under each (radius proposed, from build_plaza.py)
+			for _, row in Layout.Placed do
+				local radius = TRUNK_RADIUS[row.Key]
+				if radius and templates[row.Key] then -- no mesh, no unseen wall
+					local trunk = Instance.new("Part")
+					trunk.Name = "SakuraTrunk"
+					trunk.Shape = Enum.PartType.Cylinder
+					trunk.Size = Vector3.new(24, radius * 2, radius * 2)
+					trunk.CFrame = CFrame.new(row.Pos + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90))
+					trunk.Anchored = true
+					trunk.Transparency = 1
+					trunk.CastShadow = false
+					trunk.CanTouch = false
+					trunk.Parent = folder
 				end
+			end
+			for _, row in Layout.Signs do
+				sign(row.Text, row.Pos, row.Face, row.Size, Color3.fromHex(row.Color), folder)
 			end
 			folder.Parent = Workspace
 
+			for name, key in REPLACES do
+				local standIn = spawnArea:FindFirstChild(name)
+				if standIn and templates[key] then
+					hide(standIn)
+				end
+			end
 			for _, plot in CollectionService:GetTagged(WorkshopConfig.TAG) do
 				watchPlot(plot)
 			end
+			-- Every Dojo tier in ReplicatedStorage: the client preloads them behind the game, so a level-up shows no gap
+			local tiers = Instance.new("Folder")
+			tiers.Name = "PlazaTierMeshes"
+			for tier, key in Layout.Tiers do
+				if tier > 0 then
+					place(key, CFrame.identity, tiers)
+				end
+			end
+			tiers.Parent = ReplicatedStorage
 		end)
 		if not ok then
 			warn("[PlazaDressing] failed, keeping what is built: " .. tostring(err))

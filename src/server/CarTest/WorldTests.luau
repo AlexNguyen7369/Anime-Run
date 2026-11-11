@@ -223,21 +223,12 @@ function Tests.make(helpers)
 			m.plot_hub_overlap = name
 		end
 		flag("world_plots_clear_of_hub_buildings", #plotParts > 0 and hits == 0, hits, 0)
-		-- The hub includes the enclosed cyber dojo round it (design doc 4.24, owner 2026-11-10): wall, gate, floor and
-		-- look. Its floor's corner discs are Cylinders, whose box overstates the disc (CyberPlazaTests checks them)
-		local hubAll = parts(area)
-		for _, d in parts(Workspace:FindFirstChild("CyberPlaza")) do
-			if not (d:IsA("Part") and d.Shape == Enum.PartType.Cylinder) then
-				table.insert(hubAll, d)
-			end
-		end
-		m.hub_cyber_parts = #hubAll - #parts(area)
-		hits, worst, name = overlaps(hubAll, roads)
+		hits, worst, name = overlaps(parts(area), roads)
 		m.hub_road_gap = worst == math.huge and -1 or worst
 		if hits > 0 then
 			m.hub_road_overlap = name
 		end
-		flag("world_hub_clear_of_tracks", #roads > 0 and m.hub_cyber_parts > 0 and hits == 0, hits, 0)
+		flag("world_hub_clear_of_tracks", #roads > 0 and hits == 0, hits, 0)
 
 		-- 4. Track 1 starts at the start gate
 		local pad = area:FindFirstChild("StartPad")
@@ -274,7 +265,7 @@ function Tests.make(helpers)
 		-- shortcut: samples the margin-grown corners of each part's world box, not the whole area; enough for the
 		-- convex tiles a baseplate is made of, upgrade if tiles leave holes between sample points
 		local uncovered, checked, firstMiss = 0, 0, nil
-		for _, root in { area, plotFolder, Workspace:FindFirstChild("Track"), Workspace:FindFirstChild("CyberPlaza") } do
+		for _, root in { area, plotFolder, Workspace:FindFirstChild("Track") } do
 			for i, p in parts(root) do
 				if i % 500 == 0 then
 					task.wait() -- yield only: tens of thousands of parts x 5 points x every tile
@@ -302,7 +293,7 @@ function Tests.make(helpers)
 		-- 6. No real names on the hub or the Dojos (spec 4 "no logos or real names", design doc section 5)
 		local realNameIn = require(script.Parent.CatalogTests).realNameIn
 		local named = {}
-		for _, root in { area, plotFolder, Workspace:FindFirstChild("CyberPlaza") } do
+		for _, root in { area, plotFolder } do
 			for _, d in root and root:GetDescendants() or {} do
 				local text = (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text or d.Name
 				local key = string.gsub(string.lower(text), "[^%w]+", "_")
@@ -313,9 +304,6 @@ function Tests.make(helpers)
 		end
 		m.real_name_at = named[1]
 		flag("world_no_real_names_in_hub_or_dojos", #named == 0, #named, 0)
-
-		-- 7. The enclosed cyber dojo (design doc 4.24): its own scenario once Scenarios.luau registers one
-		require(script.Parent.CyberPlazaTests).checks(flag, m)
 		return r
 	end
 
