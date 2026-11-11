@@ -152,8 +152,9 @@
 148. 2026-11-11 — Alex Nguyen — Sized the Bosses button like the HUD column buttons (right of Roblox's buttons where it would reach the left column) and set the loading screen backdrop to intro draft B3 Sakura gate (pushed to 0cbba12; ui_boss 501/0, ui_hud 16/0, ui_buttons 15/0).
 149. 2026-11-11 — Alex Nguyen — Wrote the rules and evidence for the second boss The Elf Mage (goal boss-mage m0: design doc 4.37 Second boss, BOSS_EVENT_SPEC section, char_evidence, open owner questions) on feature/alex/boss-mage.
 150. 2026-11-11 — Alex Nguyen — Drew the Elf Mage and golem models, colosseum draft with a size comparison, UI digital art and key frames for 4 moves on task branches (not merged) and published them for the owner's approval.
+151. 2026-11-11 — Alex Nguyen — Verified the Elf Mage in Studio (targeted server and UI scenarios, one live event per boss) and fixed her descent time, the Dodge bar icon on a boss change and the golem's broken FistL appearance (fd8c141, c7b7ed8 on orch/boss-mage/verify).
 
 ## What's next
-**Get the owner's decisions on the Elf Mage review page (boss size, models, colosseum, art, key frames, 8 open rules), then merge the art branches and make the in-betweens (boss-mage m9).**
+**Hand the verify results to the orchestrator: the test-writer fixes `ui_boss_rewards` share-mark float check, and the owner rules on the small-ring camera at high run speed and the proposed Elf Mage values.**
 
-**Why this is next:** the key frames need the approved models, and no in-betweens or game code start before the owner approves the renders and key frames (design doc 4.37 gate).
+**Why this is next:** merging `orch/boss-mage/verify` into `feature/alex/boss-mage` waits on a green targeted run and the owner's camera and tuning rulings.

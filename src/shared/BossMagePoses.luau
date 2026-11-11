@@ -879,10 +879,10 @@ end
 function Poses.RiseAt(t)
 	if t <= 0 then
 		return 0
-	elseif t >= Event.IntroSeconds then
+	elseif t >= Event.RiseSeconds then
 		return 1
 	end
-	return 1 - (1 - t / Event.IntroSeconds) ^ 3
+	return 1 - (1 - t / Event.RiseSeconds) ^ 3
 end
 
 Poses.RootStuds = ROOT_STUDS -- studs per keys.json root_offset unit (the 4x size it was approved at): Keys' Root is already studs
