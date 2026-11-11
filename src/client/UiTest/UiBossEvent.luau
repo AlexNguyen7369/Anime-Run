@@ -1598,7 +1598,7 @@ function Module.Build(h)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
 		-- The camera follows a moving runner (BossWaitCamera.homeFrame carries its offset from the subject), so a world position
-		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 144 in the wait's view (120 out, 80 up).
+		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, 200 in the wait's view (120 out, 160 up).
 		local homeBefore = Spec.CameraReach(camera)
 		local function atHome()
 			return math.abs(Spec.CameraReach(camera) - homeBefore) < WAIT_CAMERA_SLACK
