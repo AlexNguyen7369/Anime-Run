@@ -86,6 +86,25 @@ Nothing car-shaped stays in the game:
   (same `CheckpointService` rules).
 - Look: a few lanterns, one cherry tree, stone paving, wooden roofs; no logos or real names (design doc section 5).
 
+### 4.1 Cyber accents (owner 2026-11-10, design doc 4.24 "Dojo with cyber accents")
+Added on top of the plaza as built; nothing is moved, hidden or relit, and there is no wall, door or enclosure.
+`Server/PlazaAccents` builds them once at start (Workspace folder `PlazaAccents`, called from `Main` in a `pcall`, so
+a failure only warns). Places come from `Shared/PlazaAssets` `Placed` and the Blender draft's geometry. Every part is
+anchored, non-colliding (CanCollide, CanTouch and CanQuery off) and casts no shadow. Sizes, colours, amounts and
+positions are **proposed**; warm gold, amber and paper, one pink accent, matching the HUD.
+- **Torii** (pad (-84, 78)): a gold neon line on both faces of the tie beam (26 wide, 27 up) and an amber line up the
+  inner side of each post (22 tall, 3 to 25 up). 4 parts.
+- **RACE START scanning ring**: a vertical gold holo ring (radius 7, centre 8.5 up, 14 bars, 25% clear) in the gate's
+  opening, turning about its vertical axis on near clients (tag `BiomeSpin`, `Client/BiomeAmbience`). 14 parts.
+- **Stall roofs**: a neon line under the lower roof's front eave of Shop (gold, 14.5 wide), Potions (pink, 14.5) and
+  Market (amber, 20). 3 parts.
+- **Wall screens**: one small lit screen per stall on the back wall's inner face, seen through the open front, a neon
+  frame in the stall's colour round a paper-to-amber glow: Shop and Potions 4 x 2.2 at 6.2 up, Market 5 x 1.6 at
+  6.8 up. 6 parts.
+- **Drones**: 4 warm steel discs (4 across) with a gold rim (one pink) and an amber lamp with a soft light, 15 to 18
+  above the 4 stone lanterns by the gate, bobbing on near clients (tag `BiomeBob`). 12 parts.
+- Total 39 parts, 4 lights. No new client script, asset or sound.
+
 ## 5. Player plots: the Dojo (name proposed)
 
 - The 7 workshop plots become **Dojos** (48 x 48, same assignment rules: lowest free plot on join, freed on leave).
