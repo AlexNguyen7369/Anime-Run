@@ -145,8 +145,9 @@
 138. 2026-11-10 — Alex Nguyen — Enlarged every panel's band (PanelBand REACH_UP 24 / REACH_DOWN 4), removed the Index cards' category letter circles, put the odds and speed multi in the card font, and re-spaced the Stats rows (name / rule + multi / bar, 12 gaps, heavy multi); design doc 4.42; 5 screenshots to the owner, committed, not pushed.
 142. 2026-11-10 — Alex Nguyen — Recorded the owner's rulings: Tracks 6-10 build after join with a hold (4.25), and boss poses and Sidekick attack frames load on first need (7).
 143. 2026-11-10 — Alex Nguyen — Tracks 6-10 now build after players join, nearest first, and runs hold with a "Loading next track" label until their track exists; track_loading, race, checkpoints, duel, npc, chain, world_layout and terrain_built pass in Studio.
+144. 2026-11-10 — Alex Nguyen — Recorded the owner's hud-tech rules (original icons in gold frame tiles, L2 left HUD block, 1200 x 620 panels, enclosed Full Cyber dojo spawn with the door opening on walk-in or Auto race, Versus boss team HUD, R1 rewards popup), goal h1-h5, the Blender cyber draft script and the tile and Boss art (06b5410).
 
 ## What's next
-**Merge `orch/first-impression/lazy-data` (cea790c: boss poses and Sidekick attacks out of the join download) once the boss-audit session commits `BossArenaView`, `BossRaga`, `BossVfx` and `UiBossVfx`, then run `late_data`, `boss_event`, `boss_anim`, `sidekick_attacks` and the boss UI tests in Studio.**
+**Build hud-tech h1: the gold frame HUD tiles with the original icons in the L2 left block (Index, Items, Rebirth, Quests, Shop, Market; Daily and Settings pills; Auto and Upgrade in the same tile), upload `HudTile.png` and `Boss.png`, and run `ui_buttons`, `ui_hud` and `ui_layout`.**
 
-**Why this is next:** it is the last owner-approved load cut (about 519 KB off every join); it touches the same four files as the boss session's unapproved edits, so it cannot land before those are committed.
+**Why this is next:** h2's wider 1200 x 620 panels centre in the space right of the L2 block, and h3's boss popups use the new Boss icon, so both depend on h1.
