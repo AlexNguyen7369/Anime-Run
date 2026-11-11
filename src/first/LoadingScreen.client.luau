@@ -20,6 +20,10 @@ local CHUNK = 16 -- assets per PreloadAsync call, so the bar moves as they land
 local LATER_CHUNK = 4 -- placeholder: character folders per PreloadAsync call once the screen has opened
 local LATER_PAUSE = 0.5 -- placeholder: seconds between those calls, so they do not crowd Track 1 streaming on phones
 local LOGO = "rbxassetid://127883918864517" -- assets/logo/AnimeRunLogo.png, owner's art
+-- assets/ui/loading/HybridBackdrop.png, the hybrid draft's dusk scene (owner 2026-11-10). Decal 107942407857363.
+local BACKDROP = "rbxassetid://115739952562422" -- resolved in Studio 2026-11-10
+local CYAN = Color3.fromRGB(0, 240, 255) -- the draft's bar
+local PINK = Color3.fromRGB(255, 110, 180)
 
 local root = Instance.new("ScreenGui")
 root.Name = "LoadingScreen"
@@ -41,11 +45,28 @@ gradient.Rotation = 90
 gradient.Color = ColorSequence.new(Color3.fromRGB(10, 14, 34), Color3.fromRGB(28, 22, 54))
 gradient.Parent = back
 
+-- Behind the logo and bar (ZIndex 0); Crop fills any aspect. Preloaded before anything else so it shows at once.
+local backdrop = Instance.new("ImageLabel")
+backdrop.Name = "Backdrop"
+backdrop.Size = UDim2.fromScale(1, 1)
+backdrop.BackgroundTransparency = 1
+backdrop.ScaleType = Enum.ScaleType.Crop
+backdrop.ZIndex = 0
+backdrop.Parent = back
+if BACKDROP ~= "rbxassetid://0" then
+	backdrop.Image = BACKDROP
+	task.spawn(function() -- queued first; not awaited, so a slow fetch never holds up the bar or the 90 s limit
+		pcall(function()
+			ContentProvider:PreloadAsync({ backdrop })
+		end)
+	end)
+end
+
 local logo = Instance.new("ImageLabel")
 logo.Name = "Logo"
 logo.AnchorPoint = Vector2.new(0.5, 0.5)
-logo.Position = UDim2.fromScale(0.5, 0.42)
-logo.Size = UDim2.fromScale(0.72, 0.6)
+logo.Position = UDim2.fromScale(0.5, 0.3) -- proposed, as in the draft
+logo.Size = UDim2.fromScale(0.5, 0.36)
 logo.BackgroundTransparency = 1
 logo.Image = LOGO
 logo.ScaleType = Enum.ScaleType.Fit
@@ -57,41 +78,38 @@ end)
 local track = Instance.new("Frame")
 track.Name = "Track"
 track.AnchorPoint = Vector2.new(0.5, 0.5)
-track.Position = UDim2.fromScale(0.5, 0.78)
-track.Size = UDim2.new(0.5, 0, 0, 20)
-track.BackgroundColor3 = Color3.fromRGB(38, 42, 72)
+track.Position = UDim2.fromScale(0.5, 0.86) -- proposed, as in the draft
+track.Size = UDim2.new(0.38, 0, 0, 22)
+track.BackgroundColor3 = Color3.fromRGB(28, 20, 26) -- dark track
 track.BorderSizePixel = 0
 track.Parent = back
-Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
+local outline = Instance.new("UIStroke")
+outline.Color = PINK
+outline.Thickness = 2
+outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+outline.Parent = track
 local trackLimit = Instance.new("UISizeConstraint")
-trackLimit.MaxSize = Vector2.new(640, 20)
-trackLimit.MinSize = Vector2.new(220, 20)
+trackLimit.MaxSize = Vector2.new(640, 22)
+trackLimit.MinSize = Vector2.new(220, 22)
 trackLimit.Parent = track
 
 local fill = Instance.new("Frame")
 fill.Name = "Fill"
 fill.Size = UDim2.fromScale(0, 1)
-fill.BackgroundColor3 = Color3.new(1, 1, 1)
+fill.BackgroundColor3 = CYAN
 fill.BorderSizePixel = 0
 fill.Parent = track
-Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-local fillColor = Instance.new("UIGradient")
-fillColor.Color = ColorSequence.new({ -- the logo's blue to orange
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(57, 200, 255)),
-	ColorSequenceKeypoint.new(0.55, Color3.fromRGB(235, 245, 255)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 138, 30)),
-})
-fillColor.Parent = fill
 
 local label = Instance.new("TextLabel")
 label.Name = "Status"
 label.AnchorPoint = Vector2.new(0.5, 0)
-label.Position = UDim2.new(0.5, 0, 0.78, 18)
+label.Position = UDim2.new(0.5, 0, 0.86, 16) -- under the bar
 label.Size = UDim2.new(0.6, 0, 0, 26)
 label.BackgroundTransparency = 1
 label.Font = Enum.Font.FredokaOne
 label.TextSize = 20
-label.TextColor3 = Color3.fromRGB(220, 226, 245)
+label.TextColor3 = Color3.new(1, 1, 1)
+label.TextStrokeTransparency = 0.6
 label.Text = "Loading 0%"
 label.Parent = back
 
@@ -278,10 +296,12 @@ pcall(function()
 	end
 end)
 fadeOut(back, { BackgroundTransparency = 1 })
+fadeOut(backdrop, { ImageTransparency = 1 })
 fadeOut(logo, { ImageTransparency = 1 })
 fadeOut(track, { BackgroundTransparency = 1 })
+fadeOut(outline, { Transparency = 1 })
 fadeOut(fill, { BackgroundTransparency = 1 })
-fadeOut(label, { TextTransparency = 1 })
+fadeOut(label, { TextTransparency = 1, TextStrokeTransparency = 1 })
 task.wait(0.4)
 root:Destroy()
 

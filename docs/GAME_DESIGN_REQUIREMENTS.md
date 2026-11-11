@@ -308,6 +308,9 @@ before any Studio work.
   world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
   of grace, proposed), and it stays up at least 8 seconds. Keep the load short; far biomes and other characters load
   behind the game. Safety limit 90 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
+  Backdrop (owner 2026-11-10): the hybrid draft's dusk scene (`assets/ui/loading/HybridBackdrop.png`, from
+  `assets/plaza_draft/Hybrid_6_Loading.png`) fills the screen behind the logo and the real loading bar; the bar is cyan
+  with a pink outline as in the draft. Sizes **proposed**.
 - **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
   to the spawn. Reduced Motion replaces it with a cut.
 - **Starter pick**: stays a popup (4.21) with a lighter dim so the plaza shows behind it. The pick plays an in-world
@@ -597,6 +600,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-10: owner: the loading screen uses the hybrid draft: its dusk scene fills the screen behind the logo and the real loading bar, and the bar turns cyan with a pink outline (4.24 Loading screen).
 - 2026-11-10: owner: no run bank; each won track pays into Money at its finish with a "Cashed out" notice, a loss keeps earlier payouts (3, 4.x run end); Money and Gems lose their boxes, Gems sits under Money, UNBANKED removed (4.40).
 - 2026-11-10: owner: Market becomes a top-right pill like Daily; the Bosses button takes the Tab tilt Boss icon (4.40).
 - 2026-11-10: owner, last pick of the day: no enclosed area; the plaza keeps its dojo look with hybrid cyber accents (4.24 Dojo with cyber accents). HUD icons become "Tab tilt", layout split L/R (Index, Items, Rebirth left; Quests, Shop, Market right); keybind letters, the 1200 x 620 panels and the parallelogram stamina arc stay; the gold Turbo and minibar look is dropped (4.40). Owner, same day: during a boss event both HUD columns hide; the pills, Auto and Upgrade and the event UI stay; Leave keeps its place (4.40, BOSS_EVENT_SPEC).
