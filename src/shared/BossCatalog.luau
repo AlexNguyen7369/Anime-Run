@@ -58,7 +58,9 @@ local ROWS = {
 		ModelName = "ElfMage",
 		TargetPart = "Torso",
 		Camera = { Yaw = 75, Pitch = 14, Zoom = 40 }, -- proposed: pitch 14 for a 44-stud boss
-		WaitCamera = { Out = 28, Up = 40, Down = 32 }, -- proposed: inside the wall, under its 70 studs
+		-- proposed: inside the wall, under its 70 studs. Down 22 (was 32, Studio verify 2026-11-11): at 32 her top sat behind the HP
+		-- bar from every lane; at 22 her top is >= 20 px under it and the runner above the Team row at 1271 x 601.
+		WaitCamera = { Out = 28, Up = 40, Down = 22 },
 	},
 }
 

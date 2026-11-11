@@ -11,7 +11,7 @@ local SCALE = 7.0308 -- studs per model unit: 8 x a 5.5-stud character, 44 studs
 local ROOT_STUDS = 3.5154
 local HOVER = 8
 local GOLEM_SCALE = 8.4983 -- 1.6 x her height
-local GOLEM_ANCHOR = { -80, 24, -7.514 }
+local GOLEM_ANCHOR = { -40, 12, -7.514 }
 local GOLEM_YAW = -25
 -- stylua: ignore
 local BIND = {

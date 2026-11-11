@@ -25,6 +25,10 @@ KEYS = os.path.join(ROOT, "assets", "characters_avatar", "boss_mage", "keyframes
 BLEND = {cid: os.path.join(ROOT, "assets", "characters_avatar", cid, cid + ".blend") for cid in ("boss_mage", "boss_golem")}
 GLB = {cid: os.path.join(ROOT, "build", "avatar_glb", cid + ".glb") for cid in BLEND}
 LUAU = os.path.join(ROOT, "src", "shared", "BossMagePoses.luau")
+# The golem's feet in game, studs in her frame (Blender axes). Not keys.json's GOLEM_SPOT x the size: at 8x that put it on lanes
+# 1-2 (83 studs out), where runners passed through it. 42 out keeps its ~27-stud half width inside the kerb (70) and clear of
+# her ~12-stud half width (proposed, Studio verify 2026-11-11).
+GAME_GOLEM_SPOT = (-40.0, 12.0)
 
 SIZE = 8  # her height in runner heights (owner 2026-11-11)
 RATE = 120  # samples a second before thinning
@@ -682,8 +686,7 @@ def main():
 			assert all(set(f[1]) == set(bind) for f in frames), f"{name}: a part without keys"
 		# her floor offset: her lowest point sits on the arena floor plus the hover; the golem stands on that floor beside her
 		yaw = -25.0  # boss_mage_keyframes.load_scene: turned a little toward the arena centre
-		s = SIZE / 4
-		anchor = (mk.GOLEM_SPOT[0] * s, mk.GOLEM_SPOT[1] * s, -mk.HOVER - golem_low * golem_scale)
+		anchor = (GAME_GOLEM_SPOT[0], GAME_GOLEM_SPOT[1], -mk.HOVER - golem_low * golem_scale)
 		consts = {
 			"scale": scale,
 			"height": height,
