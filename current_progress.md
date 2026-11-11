@@ -153,8 +153,9 @@
 149. 2026-11-11 — Alex Nguyen — Wrote the rules and evidence for the second boss The Elf Mage (goal boss-mage m0: design doc 4.37 Second boss, BOSS_EVENT_SPEC section, char_evidence, open owner questions) on feature/alex/boss-mage.
 150. 2026-11-11 — Alex Nguyen — Drew the Elf Mage and golem models, colosseum draft with a size comparison, UI digital art and key frames for 4 moves on task branches (not merged) and published them for the owner's approval.
 151. 2026-11-11 — Alex Nguyen — Verified the Elf Mage in Studio (targeted server and UI scenarios, one live event per boss) and fixed her descent time, the Dodge bar icon on a boss change and the golem's broken FistL appearance (fd8c141, c7b7ed8 on orch/boss-mage/verify).
+152. 2026-11-11 — Alex Nguyen — Studio round 2 on the Elf Mage: camera carried round her small ring (in frame at 46 and 800 studs/s), exhaustion view Down 22, smaller hit effects without smoke at her, golem moved inside the kerb (6aaf79c, 226d6bd).
 
 ## What's next
-**Hand the verify results to the orchestrator: the test-writer fixes `ui_boss_rewards` share-mark float check, and the owner rules on the small-ring camera at high run speed and the proposed Elf Mage values.**
+**Test-writer updates `boss_mage_arena` `wait_camera_down_32` to the proposed Down 22, then the owner rules on the round-2 proposed values (camera spin at 800 studs/s, Down 22, hit effects 0.4 x, golem 42 studs out).**
 
-**Why this is next:** merging `orch/boss-mage/verify` into `feature/alex/boss-mage` waits on a green targeted run and the owner's camera and tuning rulings.
+**Why this is next:** `boss_mage_arena` is the only red check left on `orch/boss-mage/verify`, and the merge into `feature/alex/boss-mage` waits on it and the owner's look rulings.

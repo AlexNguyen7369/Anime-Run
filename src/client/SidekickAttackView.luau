@@ -38,7 +38,9 @@ local SURFACE = 110 -- studs from the boss's chest toward the shooter: the hit s
 local JITTER = 30 -- studs, so that hits do not stack
 -- Per boss when its BossCatalog row has AttackSurface / AttackJitter, else these (proposed: The Elf Mage's chest is about 12 studs
 -- deep and her torso 21 tall); a boss with neither gets Big Raga's SURFACE and JITTER.
-local AIM = { boss_mage = { Surface = 7, Jitter = 6 } }
+-- Impact: the size of every hit's effect at her; Smoke = false leaves out the unlit puffs (proposed, Studio verify 2026-11-11: a
+-- 100-stud dark puff every 1.5 s, 7 studs in front of her 21-stud torso, hid her for most of the fight).
+local AIM = { boss_mage = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false } }
 local FLAP_OVERRIDE = 12 -- degrees off rest at which an attack's key has taken the wing from the flap
 local TEXT_COLOR = Color3.fromRGB(255, 244, 200)
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- Blender's axes to Roblox's
@@ -413,8 +415,12 @@ function SidekickAttackView.Particles(id, mine, simple)
 	return particlesOf(recipe.Muzzle, mine), particlesOf(recipe.Impact, mine)
 end
 
-local function addLayers(part, layers, mine)
+local function addLayers(part, layers, mine, look)
+	local grow = look and look.Impact or 1
 	for _, layer in layers or {} do
+		if look and look.Smoke == false and (layer.Props.LightEmission or 0) == 0 then
+			continue
+		end
 		local e = Instance.new("ParticleEmitter")
 		e.Enabled = layer.Rate ~= nil
 		e.Rate = layer.Rate and layer.Rate * (mine and 1 or OTHERS) or 0
@@ -426,7 +432,7 @@ local function addLayers(part, layers, mine)
 		end
 		local size, keys = layer.Props.Size, {}
 		for i = 1, #size, 2 do
-			table.insert(keys, NumberSequenceKeypoint.new(size[i], size[i + 1] * (mine and 1 or OTHERS_SIZE)))
+			table.insert(keys, NumberSequenceKeypoint.new(size[i], size[i + 1] * (mine and 1 or OTHERS_SIZE) * grow))
 		end
 		e.Size = NumberSequence.new(keys)
 		e.Parent = part
@@ -517,13 +523,14 @@ local function numberAlone(hit)
 	damageNumber(impact, hit)
 end
 
-local function addRing(impact, row, mine)
+local function addRing(impact, row, mine, grow)
 	task.delay(row[5] or 0, function()
 		if not impact.Parent then
 			return
 		end
-		local to, seconds = row[2] * (mine and 1 or OTHERS_SIZE), row[3]
-		local part = newPart("Ring", faceCamera(impact.Position), Vector3.new(row[1], row[1], 0.2), impact)
+		local to, seconds = row[2] * (mine and 1 or OTHERS_SIZE) * grow, row[3]
+		local part =
+			newPart("Ring", faceCamera(impact.Position), Vector3.new(row[1] * grow, row[1] * grow, 0.2), impact)
 		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 			local d = Instance.new("Decal")
 			d.Texture = Art.Ring
@@ -536,12 +543,12 @@ local function addRing(impact, row, mine)
 	end)
 end
 
-local function addStreak(impact, row, mine)
+local function addStreak(impact, row, mine, grow)
 	task.delay(row[5] or 0, function()
 		if not impact.Parent then
 			return
 		end
-		local scale = mine and 1 or OTHERS_SIZE
+		local scale = (mine and 1 or OTHERS_SIZE) * grow
 		local length, width = row[2] * scale, row[3] * scale
 		local base = faceCamera(impact.Position) * CFrame.Angles(0, 0, math.rad(row[1]))
 		local part =
@@ -562,15 +569,17 @@ local function land(shot)
 	local impact = newPart("Impact", CFrame.new(point), Vector3.new(30, 30, 30))
 	tagged(impact, "Impact", hit, particlesOf(particles, mine))
 	impact.Parent = folder
-	addLayers(impact, particles, mine)
+	local look = AIM[BossCatalog.Current().Id]
+	local grow = look and look.Impact or 1
+	addLayers(impact, particles, mine, look)
 	for i, row in recipe.Rings or {} do
 		if mine or i == 1 then
-			addRing(impact, row, mine)
+			addRing(impact, row, mine, grow)
 		end
 	end
 	for i, row in recipe.Streaks or {} do
 		if mine or i == 1 then
-			addStreak(impact, row, mine)
+			addStreak(impact, row, mine, grow)
 		end
 	end
 	if shot.Number then
