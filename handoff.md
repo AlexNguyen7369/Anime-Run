@@ -2,6 +2,14 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-11 night, orchestrator): boss-mage built, Studio verify loop running
+- Owner 2026-11-11: size 8x, all renders and key frames approved, Big Raga's rules as proposed defaults, one random boss every 30 minutes, upload allowed (design doc 4.37 Second boss, change log). Owner asked for end-to-end implementation overnight.
+- `feature/alex/boss-mage` (worktree `../AnimeRun-orch/mage-m0`): pushed up to the m9 merge (bake, `BossMagePoses.luau`, `BossMageArt.luau`, 13 uploads: models boss_mage 71771432759364, boss_golem 112976086043908, 11 images, ledgers `avatar_assets.json`, `mage_art_assets.json`). LOCAL ONLY on top (not pushed until tests are green): server and shared (`BossCatalog`, `BossOsu`, `BossArenaConfig.For`, `BossEventService.Osu`, `/boss [raga|mage]`), client UI (`BossOsuUi`, staff icon, per-boss texts), client world (`BossColosseum` 1,028 parts, `BossMage`, `BossMageVfx`, cameras), tests (`BossMageTests.luau`, `UiBossMage.luau`). Lint: selene 0 errors.
+- The MAIN CHECKOUT is on `orch/boss-mage/verify` (from the integration branch) so Rojo `34873` serves the new code; a Studio agent runs `boss_mage_*`, the Raga boss scenarios, the `ui_boss_mage*` / `ui_boss_osu` scenarios and a live `/boss mage`, fixing feature code and committing there. After it: merge `orch/boss-mage/verify` into `feature/alex/boss-mage`, push, and switch the main checkout back to `feature/alex/anime-world`.
+- Code plan with exact interfaces: `../AnimeRun-orch/boss-mage-code-plan.md`. Proposed build defaults taken while the owner was away: `docs/OWNER_QUESTIONS.md` (2026-11-11 "build defaults": wall radius 164, lap feel on the small ring, Vulnerable on all 3 moves, first circle at 1.35 s, entrance from the dome, idle Bosses text).
+- Known open: golem anchor sits about 83 studs from the centre, on lanes 1-2 (runners pass through it); no hit flash art used (`StatusShocked`, `StatusBlasted` unused); Sidekick impact effect sizes not scaled for the 44-stud boss; golem portrait not uploaded; rules audit result and Studio results: see the next entry or the session report.
+- Worktrees to remove when merged: `../AnimeRun-orch/mage-m1`, `mage-m3`, `mage-m8`, `mage-t4` and their `orch/boss-mage/*` branches.
+
 ## RESUME HERE (2026-11-11, orchestrator): boss-mage (The Elf Mage), art shown, waiting for the owner
 - Goal `boss-mage` (docs/ORCHESTRATOR_GOALS.md), integration branch `feature/alex/boss-mage` (from `feature/alex/anime-world`), worktree `../AnimeRun-orch/mage-m0`. Plan: `~/.claude/plans/i-would-like-to-unified-moore.md`. Rules m0 merged and pushed (design doc 4.37 Second boss, BOSS_EVENT_SPEC "The Elf Mage", docs/char_evidence/boss_mage.md).
 - Review page for the owner (private): https://claude.ai/artifact/BygXxD81JK8PDNywDAZFCj (slug 58e566b4-fe69-456e-9326-182abbff5330). Source `index.html` and images were in the session scratchpad; rebuild from the files below if it is gone.
