@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # Draws the Relic and chest art into assets/ui/ (design doc 4.38, docs/RELIC_SPEC.md "Names and art"): in-house digital art in the
 # look of draw_raga_wheel.py, plus the contact sheet relic_art_sheet.png. Blender's Python has numpy:
-# /Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 tools/blender/portrait/draw_relics.py
+# /Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 tools/blender/portrait/draw_relics.py [raga] [mage]
 import colorsys
 import os
 import struct
+import sys
 import zlib
 
 import numpy as np
@@ -441,6 +442,252 @@ def draw_chest_adapted():
 	c.save("chest_adapted.png")
 
 
+# The Elf Mage's Relics (owner approval drafts): an adventuring party's keepsakes. Rarity treatment as Big Raga's set:
+# Common and Epic plain, Rare a blue glow, Legendary a warm glow, Mythic a strong glow in the item's own colour.
+STEEL = palette((200, 206, 216), (138, 146, 160), (88, 94, 110), (26, 26, 36))
+HORN = palette((246, 234, 200), (214, 196, 150), (156, 136, 96), (48, 34, 20))
+SILVER = palette((246, 250, 255), (196, 206, 222), (130, 142, 166), (22, 28, 48))
+PEWTER = palette((196, 196, 186), (142, 142, 134), (96, 96, 92), (32, 30, 28))
+CORK = palette((224, 184, 128), (184, 138, 84), (132, 92, 54), (52, 30, 14))
+LEATHER = palette((150, 88, 176), (104, 54, 132), (66, 32, 90), (24, 10, 36))
+STONE = palette((196, 192, 204), (146, 142, 158), (100, 96, 114), (32, 28, 42))
+GEM = palette((236, 176, 255), (170, 86, 236), (104, 36, 168), (30, 8, 52))
+GREEN = palette((150, 220, 110), (92, 170, 70), (52, 116, 48), (16, 40, 18))
+
+
+def draw_helmet():
+	c = Canvas()
+	# Front view: a dented iron dome on a riveted brim, cheek guards and a nose guard round a dark inside, ivory horns.
+	dome = np.maximum(circle(frame(0, 0.28), 1.08), frame(0, 0.28)[1])
+	brim = box(frame(0, 0.36), 1.18, 0.15, 0.06)
+	cheeks = [box(frame(side * 0.9, 0.86), 0.22, 0.44, 0.12) for side in (-1, 1)]
+	nose = poly(P, [(-0.13, 0.45), (0.13, 0.45), (0.11, 1.12), (0, 1.26), (-0.11, 1.12)])
+	for side in (-1, 1):
+		horn = [(side * 0.92, -0.02), (side * 1.38, -0.26), (side * 1.56, -0.7), (side * 1.44, -1.2)]
+		shape = union(*[bar(P, a, b, 0.24 - 0.07 * i, 0.17 - 0.07 * i) for i, (a, b) in enumerate(zip(horn, horn[1:]))])
+		c.part(shape, HORN)
+		# Growth rings across the horn.
+		for ring_x, ring_y in horn[1:3]:
+			c.fill(ring(frame(ring_x - side * 0.5, ring_y + 0.1), 0.52, 0.018), HORN[2], clip=shape + 0.02)
+	c.fill(box(frame(0, 0.8), 0.72, 0.42, 0.2), rgb(54, 34, 26))
+	c.part(dome, STEEL)
+	# A raised ridge over the crown.
+	c.part(np.maximum(box(frame(0, -0.3), 0.13, 0.9), dome + 0.02), STEEL)
+	# Dents: a dark crescent with a lit lip under it.
+	for dx, dy, r in ((-0.55, -0.15, 0.13), (0.5, -0.5, 0.1), (0.42, 0.05, 0.08)):
+		dent = frame(dx, dy)
+		c.fill(np.maximum(circle(dent, r), -circle((dent[0] + r * 0.4, dent[1] + r * 0.4), r)), STEEL[2])
+		c.fill(np.maximum(ring(dent, r, 0.018), -dent[1]), STEEL[0])
+	for cheek in cheeks:
+		c.part(cheek, STEEL)
+	c.part(brim, STEEL)
+	c.part(nose, STEEL)
+	for rivet_x in (-0.9, -0.45, 0.45, 0.9):
+		c.part(circle(frame(rivet_x, 0.36), 0.065), STEEL, outline=0.03)
+	c.save("relic_helmet.png")
+
+
+def lotus(c, cx, cy, scale):
+	# Five petals from a gold heart: a small engraved flower, not any crest.
+	parts = []
+	for degrees, length in ((0, 1.0), (-38, 0.86), (38, 0.86), (-74, 0.66), (74, 0.66)):
+		petal = frame(cx, cy, degrees)
+		petal = (petal[0] / scale, petal[1] / scale + 0.5 * length)
+		parts.append(almond((petal[1], petal[0]), 0.5 * length, 0.2) * scale)
+	c.part(union(*parts), BLUE, outline=0.035)
+	c.part(circle(frame(cx, cy - 0.02 * scale), 0.15 * scale), GOLD, outline=0.03)
+
+
+def draw_bracelet():
+	c = Canvas()
+	# A wide bangle seen from above the front: the top rim's oval, the far wall's inside, the front face with the flower.
+	a, b, top, bottom = 1.42, 0.62, -0.44, 0.3
+	outer = union(ellipse(frame(0, top), a, b), ellipse(frame(0, bottom), a, b), box(frame(0, (top + bottom) / 2), a, (bottom - top) / 2))
+	hole = ellipse(frame(0, top), a - 0.24, b - 0.17)
+	through = np.maximum(hole, ellipse(frame(0, bottom), a - 0.24, b - 0.17))
+	body = np.maximum(outer, -through)
+	c.glow(outer, BLUE[1], 0.2, 0.6)
+	c.part(body, SILVER)
+	# The far wall's inside, in shade.
+	c.fill(np.maximum(hole, -through), SILVER[2])
+	c.fill(np.abs(through), SILVER[3], clip=hole - 0.001)
+	c.fill(np.abs(hole) - 0.025, SILVER[3])
+	# The front face below the top rim's oval, with a groove along each edge.
+	face = np.maximum(outer, -ellipse(frame(0, top), a, b))
+	c.fill(np.abs(ellipse(frame(0, top), a, b)) - 0.022, SILVER[3], clip=outer)
+	for y in (top + 0.12, bottom - 0.12):
+		c.fill(np.abs(ellipse(frame(0, y), a - 0.04, b)) - 0.016, SILVER[2], clip=np.maximum(face, -frame(0, y)[1]))
+	lotus(c, 0, bottom + b - 0.36, 0.62)
+	c.save("relic_bracelet.png")
+
+
+def draw_staff_relic():
+	# The Dodge bar's staff icon, drawn by draw_mage_ui.py on the same 512 px, 3x grid, saved through this file's writer.
+	import draw_mage_ui
+
+	c = Canvas()
+	art = draw_mage_ui.draw_staff(SIZE)
+	c.premul, c.alpha = art[..., :3].astype(float) * 255, art[..., 3].astype(float)
+	c.save("relic_staff.png")
+
+
+def draw_flask():
+	c = Canvas()
+	flask = frame(0.04, 0.1, -12)
+	body = box((flask[0], flask[1] - 0.38), 0.86, 0.98, 0.42)
+	shoulder = poly(flask, [(-0.62, -0.48), (-0.3, -0.92), (0.3, -0.92), (0.62, -0.48)])
+	neck = box((flask[0], flask[1] + 1.02), 0.24, 0.13, 0.04)
+	cork = poly(flask, [(-0.2, -1.12), (-0.26, -1.56), (0.26, -1.56), (0.2, -1.12)])
+	whole = union(body, shoulder, neck, cork)
+	c.glow(whole, rgb(255, 160, 50), 0.24, 0.75)
+	c.part(cork, CORK)
+	for dot in ((-0.08, -1.3), (0.1, -1.44), (0.06, -1.24)):
+		c.fill(circle((flask[0] - dot[0], flask[1] - dot[1]), 0.03), CORK[2])
+	c.part(union(body, shoulder), PEWTER)
+	c.part(neck, PEWTER)
+	c.part(box((flask[0], flask[1] + 0.84), 0.36, 0.07, 0.03), GOLD, outline=0.04)
+	# Worn: a dent and scratches.
+	dent = (flask[0] - 0.5, flask[1] - 0.95)
+	c.fill(np.maximum(circle(dent, 0.14), -circle((dent[0] + 0.06, dent[1] + 0.06), 0.14)), PEWTER[2])
+	for scratch in ([(-0.62, 0.6), (-0.38, 0.86)], [(0.4, -0.3), (0.62, -0.12)], [(0.46, 0.92), (0.64, 0.78)]):
+		c.fill(line(flask, scratch, 0.014), PEWTER[0], clip=body)
+	# A plain holy emblem: a gold ring round a four-point star.
+	emblem = (flask[0], flask[1] - 0.3)
+	c.part(ring(emblem, 0.46, 0.07), GOLD, outline=0.04)
+	c.part(poly(emblem, [(0, -0.36), (0.08, -0.08), (0.36, 0), (0.08, 0.08), (0, 0.36), (-0.08, 0.08), (-0.36, 0), (-0.08, -0.08)]), GOLD, outline=0.035)
+	c.save("relic_flask.png")
+
+
+def draw_grimoire():
+	c = Canvas()
+	pink, page_glow = rgb(255, 110, 200), rgb(255, 236, 170)
+	cover_c, depth = (-0.2, -0.16), np.array((0.36, 0.32))
+	cover = box(frame(*cover_c), 1.06, 1.32, 0.08)
+	back = box(frame(cover_c[0] + depth[0], cover_c[1] + depth[1]), 1.06, 1.32, 0.08)
+	# The page block: the cover swept back to the back cover.
+	block = union(*[box(frame(cover_c[0] + t * depth[0], cover_c[1] + t * depth[1]), 1.0, 1.26, 0.04) for t in np.linspace(0.1, 0.9, 17)])
+	whole = union(cover, back, block)
+	c.glow(whole, pink, 0.16, 0.8)
+	c.part(back, LEATHER)
+	# Glowing page edges: the page block lit from within, its light spilling over the back cover.
+	c.glow(block, page_glow, 0.09, 1.0)
+	c.part(block, palette((255, 252, 226), (255, 238, 170), (240, 196, 110), (92, 54, 20)))
+	pages = np.maximum(block, -cover)
+	for t in np.linspace(0.25, 0.75, 4):
+		c.fill(np.abs(box(frame(cover_c[0] + t * depth[0], cover_c[1] + t * depth[1]), 1.0, 1.26, 0.04)) - 0.012, rgb(236, 180, 96), clip=pages)
+	c.part(cover, LEATHER)
+	# Spine band and gold corners.
+	spine = np.maximum(box(frame(cover_c[0] - 0.96, cover_c[1]), 0.12, 1.32), cover)
+	c.fill(spine, LEATHER[2])
+	for sx in (-1, 1):
+		for sy in (-1, 1):
+			x, y = cover_c[0] + sx * 1.06, cover_c[1] + sy * 1.32
+			c.part(np.maximum(poly(P, [(x, y), (x - sx * 0.42, y), (x, y - sy * 0.42)]), cover), GOLD, outline=0.04)
+	# The cover panel: a field of flowers under a dusk sky, in a gold frame.
+	panel_c = (cover_c[0] + 0.06, cover_c[1] - 0.04)
+	panel = box(frame(*panel_c), 0.68, 0.94, 0.06)
+	c.part(box(frame(*panel_c), 0.78, 1.04, 0.08), GOLD)
+	c.fill(panel, rgb(150, 136, 214))
+	c.fill(panel, rgb(196, 176, 236), clip=grid_y - (panel_c[1] - 0.2))
+	field = grid_y - (panel_c[1] + 0.08 + 0.1 * np.sin((grid_x - panel_c[0]) * 3.2))
+	c.fill(np.maximum(panel, -field), GREEN[1])
+	c.fill(np.maximum(panel, -(grid_y - (panel_c[1] + 0.5 + 0.08 * np.sin((grid_x - panel_c[0]) * 4 + 1)))), GREEN[2])
+	c.fill(np.maximum(panel, circle(frame(panel_c[0] + 0.32, panel_c[1] - 0.5), 0.16)), rgb(255, 246, 200))
+	flowers = [(-0.42, 0.2, 0), (0.0, 0.3, 1), (0.4, 0.16, 2), (-0.22, 0.56, 1), (0.24, 0.62, 0), (-0.5, 0.78, 2), (0.5, 0.8, 1), (0.02, 0.84, 2)]
+	colours = (rgb(255, 255, 255), rgb(255, 150, 200), rgb(255, 222, 90))
+	for fx, fy, k in flowers:
+		center = (panel_c[0] + fx, panel_c[1] + fy)
+		petals = union(*[circle(frame(center[0] + 0.07 * np.cos(a), center[1] + 0.07 * np.sin(a)), 0.062) for a in np.arange(5) * 2 * np.pi / 5 - np.pi / 2])
+		c.fill(np.maximum(petals - 0.02, panel), GREEN[3])
+		c.fill(np.maximum(petals, panel), colours[k])
+		c.fill(np.maximum(circle(frame(*center), 0.04), panel), rgb(255, 176, 40) if k != 2 else rgb(220, 110, 30))
+	c.fill(np.abs(panel) - 0.02, LEATHER[3])
+	# The clasp: a leather strap from the pages onto the cover, held by a gold plate with a pink stone.
+	strap = box(frame(cover_c[0] + 1.06, cover_c[1] + 0.12), 0.34, 0.16, 0.05)
+	c.part(strap, LEATHER)
+	plate = box(frame(cover_c[0] + 0.86, cover_c[1] + 0.12), 0.18, 0.26, 0.06)
+	c.part(plate, GOLD)
+	c.glow(circle(frame(cover_c[0] + 0.86, cover_c[1] + 0.12), 0.09), pink, 0.06, 0.8, clip=plate)
+	c.part(circle(frame(cover_c[0] + 0.86, cover_c[1] + 0.12), 0.09), palette((255, 200, 236), (255, 110, 200), (196, 50, 140), (60, 10, 40)), outline=0.035)
+	c.save("relic_grimoire.png")
+
+
+def draw_chest_mage():
+	# Big Raga's chest build in carved stone, with the staff's gold crescent round a purple gem for a lock.
+	c = Canvas()
+	half_w = 1.42
+	body, lid = chest_shapes(half_w, 0.02, 1.12, -0.04)
+	c.part(body, STONE)
+	c.part(lid, STONE)
+	# Stone blocks: staggered seams.
+	seams = [box(frame(0, y), half_w, 0.016) for y in (0.46, 0.78, 1.1)]
+	for row, y in enumerate((0.3, 0.62, 0.94, 1.26)):
+		for x in (-0.5, 0.5) if row % 2 else (-1.0, 0.0, 1.0):
+			seams.append(box(frame(x, y), 0.016, 0.16))
+	c.fill(union(*seams), STONE[2], clip=body + 0.02)
+	c.fill(np.abs(ellipse(frame(0, 0.02), half_w - 0.42, 0.62)) - 0.016, STONE[2], clip=lid + 0.03)
+	for x in (-0.62, 0.62):
+		c.fill(np.maximum(bar(P, (x * 0.5, -0.6), (x * 1.6, 0.02), 0.016), lid), STONE[2])
+	for side in (-1, 1):
+		c.part(np.maximum(box(frame(side * 0.98, 0.2), 0.14, 1.4), union(body, lid)), GOLD)
+		c.part(poly(P, [(side * (half_w + 0.03), 1.06), (side * (half_w + 0.03), 1.53), (side * (half_w - 0.44), 1.53)]), GOLD)
+	c.part(box(frame(0, 0.02), half_w + 0.1, 0.1), GOLD)
+	# The lock: a gold plate, the staff's crescent, the purple gem.
+	lock = frame(0, 0.36)
+	c.part(box(lock, 0.52, 0.6, 0.16), GOLD)
+	crescent = np.maximum(circle(lock, 0.44), -circle((lock[0] - 0.12, lock[1] + 0.1), 0.38))
+	c.part(crescent, GOLD)
+	gem = almond((lock[1], lock[0]), 0.3, 0.22)
+	c.glow(gem, GEM[1], 0.08, 0.7, clip=box(lock, 0.52, 0.6, 0.16))
+	c.part(gem, GEM)
+	c.fill(np.maximum(gem + BEVEL, -lock[0]), GEM[2])
+	c.fill(circle((lock[0] + 0.06, lock[1] + 0.12), 0.05), GEM[0])
+	c.part(box(frame(0, 0.84), 0.07, 0.12, 0.03), GOLD, outline=0.035)
+	c.save("chest_mage.png")
+
+
+MAGE_SHEET = (
+	("relic_helmet.png", "Dwarf's Helmet", "Common"),
+	("relic_bracelet.png", "Hero's Bracelet", "Rare"),
+	("relic_staff.png", "Elf Staff", "Epic"),
+	("relic_flask.png", "Priest's Flask", "Legendary"),
+	("relic_grimoire.png", "Master's Grimoire", "Mythic"),
+	("chest_mage.png", "Elf Mage's Treasure", "Chest"),
+)
+# GachaConfig's rarity colours; the chest takes gold.
+RARITY_COLOURS = {"Common": (180, 180, 180), "Rare": (70, 140, 255), "Epic": (170, 80, 230), "Legendary": (255, 170, 40), "Mythic": (255, 70, 110), "Chest": (250, 197, 72)}
+
+
+def draw_mage_sheet():
+	# relic_art_sheet.png's cells (256 px and 64 px) with a label under each; text through draw_mage_ui's CoreText helper.
+	import draw_mage_ui
+
+	columns, gap, label_h = 3, 16, 56
+	cell_w, cell_h = 256 + 64 + gap, 256 + label_h
+	width, height = gap + columns * (cell_w + gap), gap + 2 * (cell_h + gap)
+	sheet = np.empty((height, width, 3))
+	sheet[:] = (58, 62, 76)
+	requests = [(draw_mage_ui.ROUND, 22, words) for _, name, rarity in MAGE_SHEET for words in (name, rarity)]
+	masks = draw_mage_ui.text_masks(requests)
+	for index, (file, name, rarity) in enumerate(MAGE_SHEET):
+		left = gap + (index % columns) * (cell_w + gap)
+		top = gap + (index // columns) * (cell_h + gap)
+		image = read_png(file)
+		assert image.shape == (SIZE, SIZE, 4), file
+		for factor, (x0, y0) in ((2, (left, top)), (8, (left + 256 + gap, top + 96))):
+			premul, coverage = shrink(image, factor)
+			view = sheet[y0 : y0 + premul.shape[0], x0 : x0 + premul.shape[1]]
+			view[:] = premul + view * (1 - coverage)
+		for row, (words, colour) in enumerate(((name, (255, 255, 255)), (rarity, RARITY_COLOURS[rarity]))):
+			mask = masks[(draw_mage_ui.ROUND, 22, words)][..., None]
+			x0 = left + (cell_w - mask.shape[1]) // 2
+			y0 = top + 256 + row * 26 - 2
+			view = sheet[y0 : y0 + mask.shape[0], x0 : x0 + mask.shape[1]]
+			view[:] = np.array(colour) * mask[: view.shape[0], : view.shape[1]] + view * (1 - mask[: view.shape[0], : view.shape[1]])
+	alpha = np.full((height, width, 1), 255.0)
+	write_png("relic_mage_art_sheet.png", np.dstack([sheet, alpha]).round().astype(np.uint8))
+
+
 SHEET_ORDER = (
 	"relic_talisman.png",
 	"relic_nail.png",
@@ -482,12 +729,27 @@ def draw_sheet():
 	write_png("relic_art_sheet.png", np.dstack([sheet, alpha]).round().astype(np.uint8))
 
 
+def main(sets):
+	# Sets to draw: "raga", "mage", or both when none is named. Big Raga's files redraw byte for byte.
+	sets = sets or ("raga", "mage")
+	if "raga" in sets:
+		draw_talisman()
+		draw_nail()
+		draw_finger()
+		draw_eyes()
+		draw_world_core()
+		draw_chest_raga()
+		draw_chest_adapted()
+		draw_sheet()
+	if "mage" in sets:
+		draw_helmet()
+		draw_bracelet()
+		draw_staff_relic()
+		draw_flask()
+		draw_grimoire()
+		draw_chest_mage()
+		draw_mage_sheet()
+
+
 if __name__ == "__main__":
-	draw_talisman()
-	draw_nail()
-	draw_finger()
-	draw_eyes()
-	draw_world_core()
-	draw_chest_raga()
-	draw_chest_adapted()
-	draw_sheet()
+	main(sys.argv[1:])
