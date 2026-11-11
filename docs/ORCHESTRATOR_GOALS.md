@@ -212,15 +212,15 @@ Deliverables:
 - void1: Void tier (base Speed 5e19) with Overspeed passives; Void Saitamo (`punch_void`) ships with the Void characters in a later update, after the monetization branch is merged.
 Out of scope: backlog characters and Attack animation before key-frame approval.
 
-## hud-tech: New icons, wider panels, enclosed cyber dojo spawn, boss screens (owner 2026-11-10)
+## hud-tech: New icons, wider panels, dojo with cyber accents, boss screens (owner 2026-11-10)
 Status: active
 Owner-confirmed: 2026-11-10 (proposals https://claude.ai/artifact/ABuVWYy2pXgR58nSH3k79c: panels A, spawn E + F, team T2, rewards R1; icons in round 2 https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty)
 Branch: feature/alex/anime-world
-Spec: design doc 4.24 Enclosed cyber dojo, 4.42 Wider panels, BOSS_EVENT_SPEC Team HUD and Rewards
+Spec: design doc 4.24 Dojo with cyber accents, 4.40 Tab tilt split L/R HUD, 4.42 Wider panels, BOSS_EVENT_SPEC Team HUD and Rewards
 Deliverables:
-- h1 | Icon set: original icons in the gold frame tile, L2 layout (owner 2026-11-10); tile frame and layout picked from https://claude.ai/artifact/BsGoBYpDW5AKTsmoFzDHjv; 13 source PNGs (512 px), uploaded, wired through `HudIcons` (Boss icon for the boss popups) | owner approves the PNGs; `ui_buttons`, `ui_hud` green; stylua / selene
+- h1 | Icon set: Tab tilt icons, HUD split L/R with keybind letters (owner 2026-11-10, final pick after the gold tile and Gold badge rounds; approved from https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG) | `ui_buttons`, `ui_hud` green; stylua / selene
 - h2 | Wider frame 1200 x 620 for every panel and popup | `ui_layout` green at every viewport; Studio shots desktop and phone
 - h3 | Boss Team HUD Versus look and rewards popup R1 | `ui_boss_event`, `ui_boss_phase2` green; Studio shots
-- h4 | Enclosed cyber dojo: Blender draft of the plaza, Dojo tiers and loading screen | owner approves the renders. Done 2026-11-10: owner approved the Full Cyber draft (`assets/plaza_draft/Cyber_*.png`, `tools/blender/plaza/build_cyber_plaza.py`) over the Hybrid
-- h5 | Draft built in Studio, door opening on race start | `world_layout`, `spawn_area`, `dojo`, `workshop` green; Studio shots; rules audit PASS
+- h4 | Spawn look: owner rejected the full cyber and hybrid enclosed builds 2026-11-10; plaza keeps its dojo look | done (superseded by h5)
+- h5 | Dojo with cyber accents (no enclosure): torii trim, scanning ring, stall trim and screens, drones; owner approved 2026-11-10 | `world_layout`, `spawn_area` green; rules audit PASS
 Out of scope: gameplay and economy numbers, track biomes, Market panel contents.
