@@ -42,6 +42,9 @@
 --   attack speed: each slot spaces its own hits by its own Relic's multi (4.37, owner 2026-11-06); no team average.
 --   relic bag: no rule gives it a cap, so a defeat's Relic is never refused.
 --   rebirth keeps Relics, like Sidekicks.
+--   Her list (boss-mage-2-code-plan.md A7): Bosses.boss_mage, World Core shared by rawequal, Order = { "big_raga", "boss_mage" },
+--     Chests.relic_chest_mage { Boss = "boss_mage", SidekickChance = 0, Table = Odds("boss_mage") }; OpenChest draws once when
+--     the chest has no Sidekick chance. BossEventService.Start("Test", "boss_mage") pays it at her defeat.
 -- NOT covered: icons (in-house art, none yet), the Details sheet showing these odds (the paid spawn's task).
 --
 -- Runs on Folder players and an isolated PlayerData clone, like SidekickTests.
@@ -281,6 +284,97 @@ function Tests.relics()
 			flag("raga_chance_owner_value", C.RagaSidekickChance == 0.00001, C.RagaSidekickChance, 0.00001)
 			local raga = SidekickConfig.Get("side_raga")
 			flag("raga_row_agrees", raga ~= nil and approx(C.RagaSidekickChance * 100, raga.Odds))
+		end)
+
+		-- The Elf Mage's own 6 (owner 2026-11-11, design doc 4.38, RELIC_SPEC "The Elf Mage's drops"; values proposed as written).
+		section("mage_config", function()
+			local MageArt = require(Shared.BossMageArt)
+			local mage = C.Bosses.boss_mage
+			flag("mage_list_exists", type(mage) == "table")
+			if type(mage) ~= "table" then
+				return
+			end
+			flag("mage_lists_six", #mage == 6, #mage, 6)
+			local want = {
+				{ "relic_helmet", "Dwarf's Helmet", "Common", 55, { AttackSpeed = 0.03 } },
+				{ "relic_bracelet", "Hero's Bracelet", "Rare", 28, { Luck = 0.06 } },
+				{ "relic_staff", "Elf Staff", "Epic", 12, { AttackSpeed = 0.10, Luck = 0.10 } },
+				{ "relic_flask", "Priest's Flask", "Legendary", 4, { AttackSpeed = 0.15, Luck = 0.15, Damage = 0.04 } },
+				{
+					"relic_grimoire",
+					"Master's Grimoire",
+					"Mythic",
+					0.9,
+					{ AttackSpeed = 0.22, Luck = 0.22, Damage = 0.06, Money = 0.06 },
+				},
+			}
+			local sum = 0
+			for i, row in mage do
+				sum += row.Odds
+				local spec = want[i]
+				if spec then
+					local tag = spec[1]
+					flag("mage_row_id_" .. i, row.Id == spec[1], row.Id, spec[1])
+					flag("mage_row_name_" .. tag, row.Name == spec[2], row.Name, spec[2])
+					flag("mage_row_rarity_" .. tag, row.Rarity == spec[3], row.Rarity, spec[3])
+					flag("mage_row_odds_" .. tag, row.Odds == spec[4], row.Odds, spec[4])
+					local same = true
+					for stat, value in spec[5] do
+						same = same and approx(row.Bonuses[stat], value)
+					end
+					for stat in row.Bonuses do
+						same = same and spec[5][stat] ~= nil
+					end
+					flag("mage_row_bonuses_" .. tag, same)
+					flag(
+						"mage_row_stat_count_" .. tag,
+						(function()
+							local n = 0
+							for _ in row.Bonuses do
+								n += 1
+							end
+							return n == STAT_COUNT[row.Rarity]
+						end)()
+					)
+					flag("mage_get_" .. tag, C.Get(row.Id) == row)
+					local clean = catalogTests.realNameIn(string.lower(row.Id)) == nil
+						and catalogTests.realNameIn(string.lower(row.Name)) == nil
+					flag("mage_no_real_name_" .. tag, clean, row.Name)
+					if tag == "relic_staff" then
+						flag(
+							"mage_staff_art_is_dodge_staff",
+							row.Image == MageArt.StaffIcon,
+							row.Image,
+							MageArt.StaffIcon
+						)
+					else
+						local image = type(row.Image) == "string" and row.Image or ""
+						flag("mage_art_id_" .. tag, string.match(image, "^rbxassetid://%d+$") ~= nil, row.Image)
+					end
+				end
+			end
+			flag("mage_last_is_world_core", rawequal(mage[6], secret), mage[6] and mage[6].Id)
+			flag("mage_sum_100", math.abs(sum - 100) < 1e-9, sum, 100)
+			local odds = C.Odds("boss_mage")
+			flag("mage_odds_lists_all", #odds == 6, #odds, 6)
+			-- Her priority: attack speed and luck on Epic to Mythic, above every other stat.
+			for i = 3, 5 do
+				local row = mage[i]
+				local attack, luck = bonus(row, "AttackSpeed"), bonus(row, "Luck")
+				local highestOther = 0
+				for stat, value in row.Bonuses do
+					if stat ~= "AttackSpeed" and stat ~= "Luck" then
+						highestOther = math.max(highestOther, value)
+					end
+				end
+				flag(
+					"mage_priority_" .. row.Rarity,
+					attack > 0 and luck > 0 and math.min(attack, luck) > highestOther,
+					math.min(attack, luck),
+					highestOther
+				)
+			end
+			flag("relic_order", H.same(C.Order, { "big_raga", "boss_mage" }))
 		end)
 
 		section("roll", function()
@@ -743,6 +837,29 @@ function Tests.relics()
 				SidekickConfig.BagSize + 1
 			)
 
+			-- Her chest (owner 2026-11-11, RELIC_SPEC "Chests"): her table, no Sidekick roll (proposed).
+			local MAGE_CHEST = "relic_chest_mage"
+			local mageChest = C.Chests[MAGE_CHEST]
+			flag("chest_mage_exists", mageChest ~= nil)
+			if mageChest then
+				flag("chest_mage_name", mageChest.Name == "Elf Mage's Treasure", mageChest.Name)
+				flag("chest_mage_id", mageChest.Id == MAGE_CHEST)
+				flag("chest_mage_flag", mageChest.Chest == true)
+				flag("chest_mage_boss", mageChest.Boss == "boss_mage", mageChest.Boss)
+				flag("chest_mage_no_sidekick", mageChest.SidekickChance == 0, mageChest.SidekickChance, 0)
+				flag("chest_mage_table", H.same(mageChest.Table, C.Odds("boss_mage")))
+				flag("chest_mage_get", C.Get(MAGE_CHEST) == mageChest)
+				local opener, mageEntry = freshChest(MAGE_CHEST)
+				flag("chest_mage_granted", mageEntry ~= nil)
+				local rng = scripted({ 0 })
+				local done, relicRow, won = S.OpenChest(opener, mageEntry, rng)
+				flag("chest_mage_opens", done == true)
+				local first = mageChest.Table[1]
+				flag("chest_mage_first_draw_relic", relicRow ~= nil and first ~= nil and relicRow.Id == first.Id)
+				flag("chest_mage_never_sidekick", not won and ragas(opener) == 0, ragas(opener), 0)
+				flag("chest_mage_one_draw", rng.Draws == 1, rng.Draws, 1)
+			end
+
 			-- Luck never reaches it (RELIC_SPEC).
 			local touched = 0
 			local function touch(original)
@@ -1132,6 +1249,36 @@ function Tests.relics()
 				startMoney + Cfg.Phase1Money
 			)
 			flag("rewards_hook_idler_still_nothing", #bag(idler) == 0, #bag(idler), 0)
+
+			-- Her defeat pays her own chest and Phase 1's Money, and no Phase 2 (design doc 4.37).
+			clock = T0
+			B.Reset(T0)
+			B.Start("Test", "boss_mage")
+			local mageWinner = fighter({ charA }, {})
+			local mageCash = money.Setup(mageWinner)
+			local mageStart = mageCash.Value
+			B.Join(mageWinner)
+			to(FIGHT)
+			B.Hooks.DamageMulti = function()
+				return 1e9
+			end
+			B.RecordHit(mageWinner)
+			B.Hooks.DamageMulti = function()
+				return 1
+			end
+			flag("mage_defeat_reached", B.State().LastEnd == "Defeated", B.State().LastEnd, "Defeated")
+			flag(
+				"rewards_hook_mage_chest",
+				#bag(mageWinner) == 1 and bag(mageWinner)[1].Id == "relic_chest_mage",
+				bag(mageWinner)[1] and bag(mageWinner)[1].Id,
+				"relic_chest_mage"
+			)
+			flag(
+				"rewards_hook_mage_money",
+				mageCash.Value == mageStart + Cfg.Phase1Money,
+				mageCash.Value,
+				mageStart + Cfg.Phase1Money
+			)
 
 			begin()
 			local late = fighter({ charA }, {})

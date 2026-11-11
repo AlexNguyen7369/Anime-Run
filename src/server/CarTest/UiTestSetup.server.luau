@@ -357,9 +357,13 @@ local BOSS_UI_ATTRIBUTES = {
 	"BossScreamEndsAt",
 	"BossScheduleStart",
 	"BossEventBoss", -- which boss (boss_ui_boss:<id>); nil reads as boss_raga
+	"BossMinionHp", -- the Stone Golem (boss_ui_minion:<hp>,<max>)
+	"BossMinionMaxHp",
+	"BossMinionStart",
+	"BossEventNextBoss", -- the next timed event's boss (boss_ui_next:<id>)
 }
 -- boss_ui_osu_spy (ui_boss_osu): a stand-in Remotes.BossOsu that logs { index, circle, stamp } into ReplicatedStorage attribute
--- UiTestBossOsuLog and answers true, or true, "Dodged" for circle 4. restoreBossUi puts the real remote back.
+-- UiTestBossOsuLog and answers true, or true, "Dodged" for circle 3 (the last of BossOsu.Count, owner 2026-11-11). restoreBossUi puts the real remote back.
 local bossOsuSpy = nil
 local function removeBossOsuSpy()
 	if bossOsuSpy then
@@ -388,7 +392,7 @@ local function installBossOsuSpy()
 		local log = HttpService:JSONDecode(ReplicatedStorage:GetAttribute("UiTestBossOsuLog") or "[]")
 		table.insert(log, { index, circle, stamp })
 		ReplicatedStorage:SetAttribute("UiTestBossOsuLog", HttpService:JSONEncode(log))
-		if circle == 4 then
+		if circle == 3 then
 			return true, "Dodged"
 		end
 		return true
@@ -504,6 +508,11 @@ end
 function setups.boss_ui_invite_mage(player)
 	setups.boss_ui_invite(player)
 	ReplicatedStorage:SetAttribute("BossEventBoss", "boss_mage")
+end
+-- As boss_ui_idle, The Elf Mage announced next (boss_cards_next_mage, BOSS_EVENT_SPEC "Bosses cards").
+function setups.boss_ui_idle_next_mage(player)
+	setups.boss_ui_idle(player)
+	ReplicatedStorage:SetAttribute("BossEventNextBoss", "boss_mage")
 end
 function setups.boss_ui_invite_locked(player)
 	bossUiGear(player, 0)
@@ -1823,6 +1832,24 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossId = string.match(request, "^boss_ui_boss:([%w_]+)$")
 		if bossId then -- "none" clears it: the clients read nil as boss_raga
 			ReplicatedStorage:SetAttribute("BossEventBoss", bossId ~= "none" and bossId or nil)
+			return
+		end
+		local minionHp, minionMax = string.match(request, "^boss_ui_minion:(%d+),(%d+)$")
+		if minionHp then -- the Stone Golem stands from now; boss_ui_minion:none clears it
+			ReplicatedStorage:SetAttribute("BossMinionHp", tonumber(minionHp))
+			ReplicatedStorage:SetAttribute("BossMinionMaxHp", tonumber(minionMax))
+			ReplicatedStorage:SetAttribute("BossMinionStart", workspace:GetServerTimeNow())
+			return
+		end
+		if request == "boss_ui_minion:none" then
+			for _, name in { "BossMinionHp", "BossMinionMaxHp", "BossMinionStart" } do
+				ReplicatedStorage:SetAttribute(name, nil)
+			end
+			return
+		end
+		local nextBoss = string.match(request, "^boss_ui_next:([%w_]+)$")
+		if nextBoss then -- "none" clears it
+			ReplicatedStorage:SetAttribute("BossEventNextBoss", nextBoss ~= "none" and nextBoss or nil)
 			return
 		end
 		if request == "boss_ui_osu_spy" then

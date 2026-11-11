@@ -4194,6 +4194,10 @@ UiSpec.Guis.RacerBossEvent = {
 		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
 		{ Path = "BossesPanel/BossAction", Does = "remote", Remote = "BossEventTeleport|BossUseCredit|BossBuy" },
 		{ Path = "BossesPanel/Header/CloseButton", Does = "local" },
+		-- Bosses cards (owner 2026-11-11, draft B): Go on the live boss's card, Details on every card, Back over the cards.
+		{ Path = "BossesPanel/Cards/*/Go", Does = "remote", Remote = "BossEventTeleport", Count = "dynamic" },
+		{ Path = "BossesPanel/Cards/*/Details", Does = "local", Count = "dynamic" },
+		{ Path = "BossesPanel/BossDetails/Back", Does = "local" },
 		{ Path = "TeamHud/Header/CloseButton", Does = "remote", Remote = "BossEventPrepRun" },
 		{ Path = "EditTeamButton", Does = "local" },
 		{
@@ -4352,7 +4356,7 @@ for _, click in
 		},
 		{
 			Id = "boss_action_locked",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({
 				WaitSeconds = 3.5,
 				LabelIs = "Go",
@@ -4364,14 +4368,14 @@ for _, click in
 		},
 		{
 			Id = "boss_action_go",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({ WaitSeconds = 3.5, LabelIs = "Go", TargetActive = true }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
 			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
 		},
 		{
 			Id = "boss_action_past_close",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({ LabelIs = "Go", TargetActive = false, Intercept = "BossEventTeleport" }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_past_close" },
 			Expect = { Remote = false, After = { "boss_go_closed" } },
@@ -4420,7 +4424,22 @@ for _, click in
 			Path = "BossButton",
 			Prepare = bossButtonPrepare(0.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = false, After = { "boss_paid_details_open", "boss_details_both_tables" } },
+			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+		},
+		-- Owner 2026-11-11 (Bosses cards): the odds open from a card's Details, over the cards, and Back closes them.
+		{
+			Id = "boss_paid_details_press",
+			Path = "BossesPanel/Cards/Card_boss_raga/Details",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false, After = { "boss_paid_details_shown", "boss_details_both_tables" } },
+		},
+		{
+			Id = "boss_paid_details_back",
+			Path = "BossesPanel/BossDetails/Back",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_details_closed" } },
 		},
 		{
 			Id = "boss_paid_use_credit",
@@ -4501,6 +4520,36 @@ for _, click in
 			NeedSetup = { "spy", "progression_spy" },
 			Expect = { Remote = false, After = { "boss_panel_closed" } },
 		},
+		-- Bosses cards, no event, The Elf Mage next (ui_boss_cards; BOSS_EVENT_SPEC "Bosses cards"): her card large, then her
+		-- Details over the cards, then Back. The last click closes the popup for what runs next.
+		{
+			Id = "boss_cards_next_mage",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle_next_mage" },
+			Expect = { Remote = false, After = { "boss_cards_next_mage" } },
+		},
+		{
+			Id = "boss_mage_details",
+			Path = "BossesPanel/Cards/Card_boss_mage/Details",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_mage_details_open" } },
+		},
+		{
+			Id = "boss_mage_details_back",
+			Path = "BossesPanel/BossDetails/Back",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_details_closed" } },
+		},
+		{
+			Id = "boss_cards_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
 	}
 do
 	click.Gui = "RacerBossEvent"
@@ -4520,8 +4569,24 @@ table.insert(UiSpec.ServerSetup, {
 table.insert(UiSpec.ServerSetup, {
 	Id = "boss_ui_osu_spy",
 	When = "asked for by ui_boss_osu",
-	What = "Replaces Remotes.BossOsu with a logging stand-in: { index, circle, stamp } per call into ReplicatedStorage attribute "
-		.. "UiTestBossOsuLog; it answers true, and true, Dodged for circle 4. restore:boss_ui puts the real remote back.",
+	What = "Replaces Remotes.BossOsu with a logging stand-in: { k, circle, stamp } per call into ReplicatedStorage attribute "
+		.. "UiTestBossOsuLog; it answers true, and true, Dodged for circle 3. restore:boss_ui puts the real remote back.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_minion:<hp>,<max>",
+	When = "asked for by ui_boss_golem, ui_boss_osu, ui_boss_mage_dodge and ui_boss_mage_vfx",
+	What = "Sets ReplicatedStorage BossMinionHp, BossMinionMaxHp and BossMinionStart (now): the Stone Golem stands. "
+		.. "boss_ui_minion:none, boss_ui_state:Idle and restore:boss_ui clear them.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_next:<id>",
+	When = "asked for by ui_boss_cards",
+	What = "Sets ReplicatedStorage BossEventNextBoss to <id> ('none' clears it). boss_ui_state:Idle and restore:boss_ui clear it.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_idle_next_mage",
+	When = "before the boss_cards_next_mage click (NeedSetup)",
+	What = "As boss_ui_idle, with ReplicatedStorage BossEventNextBoss = boss_mage. 'restore' clears it.",
 })
 
 -- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
@@ -4534,14 +4599,15 @@ UiSpec.Guis.RacerBossDodge = {
 	Source = "Client/BossDodgeUi",
 	Buttons = { { Path = "DodgeBar/Bar", Does = "remote", Remote = "BossDodge", ClickCoverage = "ui_boss_dodge" } },
 }
--- The rhythm circles (Client/BossOsuUi; BOSS_EVENT_SPEC "The Elf Mage"), shown only before a Slam: ui_boss_osu judges them (UiBossMage).
+-- The rhythm circles (Client/BossOsuUi; BOSS_EVENT_SPEC "The Elf Mage"), shown only before a golem attack: ui_boss_osu judges them
+-- (UiBossMage). 3 circles since the owner's 2026-11-11 easing.
 UiSpec.Guis.RacerBossOsu = {
 	Source = "Client/BossOsuUi",
 	NonInteractiveParts = { "Timer", "Caption" },
 	Buttons = {},
 }
 table.insert(UiSpec.ClientScripts, "BossOsuUi")
-for k = 1, 4 do -- shown only around a Slam, so "dynamic": ui_boss_osu counts them
+for k = 1, 3 do -- shown only around a golem attack, so "dynamic": ui_boss_osu counts them
 	table.insert(
 		UiSpec.Guis.RacerBossOsu.Buttons,
 		{ Path = "Circle" .. k, Does = "remote", Remote = "BossOsu", Count = "dynamic", ClickCoverage = "ui_boss_osu" }
