@@ -486,7 +486,7 @@ before any Studio work.
 - A Relic is a boss drop equipped on a character, one per character. Stats: damage, attack speed, luck, money gain, speed gain, stamina gain.
 - A Relic can be sold for Money by rarity, never for Gems (owner 2026-11-05; prices **proposed** in `docs/RELIC_SPEC.md`). An equipped Relic is not sold. The Index has a Relics page, and Relics use the click menu in 4.36 (owner 2026-11-05).
 - Each boss drops 6 Relics, one per rarity: Common, Rare, Epic, Legendary, Mythic, Secret. Each Relic ties to its boss's anime. Common has 1 stat,
-  Rare has 1 higher stat, Epic 2, Legendary 3, Mythic 4, Secret all. Future bosses bring their own 6, with a different stat priority.
+  Rare has 1 higher stat, Epic 2, Legendary 3, Mythic 4, Secret all. Future bosses bring their own 6, with a different stat priority. The Elf Mage pays Raga's Treasure until the owner rules on her own 6 (4.37 Second boss, owner 2026-11-11, **proposed**).
 - The Secret is one universal Relic shared by every boss.
 - Big Raga prioritises stamina and damage on its Epic to Mythic Relics, with lower everything else. Named Relics follow section 5: **proposed** in
   `docs/RELIC_SPEC.md`, with bonuses and odds **placeholder**. Relics cannot be traded.
