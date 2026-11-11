@@ -300,6 +300,20 @@ AdminService.Commands = {
 			return ok, ok and "boss event started" or message
 		end,
 	},
+	elfboss = {
+		Usage = "/elfboss",
+		Help = "start The Elf Mage's boss event now (owner 2026-11-11)",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function()
+			local ok, message = BossEventService.Start("Admin", "boss_mage")
+			return ok, ok and "boss event started" or message
+		end,
+	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
 		Help = "set the rebirth level (Money is not reset)",
@@ -564,6 +578,7 @@ local ORDER = {
 	"relic",
 	"relics",
 	"boss",
+	"elfboss",
 	"setrebirth",
 	"luck",
 	"giveluck",
