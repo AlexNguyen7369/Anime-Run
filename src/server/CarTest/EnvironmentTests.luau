@@ -907,12 +907,29 @@ function Tests.environment()
 			end
 		end
 		if n == 1 then
-			-- Owner 2026-10-30: Track 1 builds no biome gate; the plaza torii StartGate near its start is its gate
-			local torii = spawnModel and spawnModel:FindFirstChild("StartGate")
-			local dist = torii
-					and torii:IsA("Model")
-					and ((torii:GetPivot().Position - startCF.Position) * Vector3.new(1, 0, 1)).Magnitude
-				or -1
+			-- Owner 2026-10-30: Track 1 builds no biome gate; the plaza's RACE START gate near its start is its gate. Since
+			-- design doc 4.24 "Enclosed cyber dojo" (owner 2026-11-10) that is Workspace.CyberPlaza.Gate, the holo arch and
+			-- the blast door (the torii StartGate stays only as a hidden stand-in). The door is placed from the world origin,
+			-- so this reads the live gate against the live Track 1 Start, not this scenario's chain.
+			local cyber = Workspace:FindFirstChild("CyberPlaza")
+			local gate = cyber and cyber:FindFirstChild("Gate")
+			local liveStart = nil
+			for _, live in Workspace:FindFirstChild("Track") and Workspace.Track:GetChildren() or {} do
+				if live:GetAttribute("Number") == 1 then
+					liveStart = live:FindFirstChild("Start", true)
+				end
+			end
+			local dist = -1
+			if
+				gate
+				and gate:IsA("Model")
+				and gate:FindFirstChild("HoloArch")
+				and gate:FindFirstChild("DoorHeader")
+				and liveStart
+			then
+				local gateCF = gate:GetBoundingBox()
+				dist = ((gateCF.Position - liveStart.Position) * Vector3.new(1, 0, 1)).Magnitude
+			end
 			flag("gate_at_start_1", dist >= 0 and dist <= TORII_NEAR, math.round(dist * 100) / 100, TORII_NEAR)
 			flag("gate_none_in_biome_1", env ~= nil and env:FindFirstChild("Gate") == nil)
 		else

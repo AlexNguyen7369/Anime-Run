@@ -1,7 +1,7 @@
 --!nonstrict
 -- The Dojo's small touches (design doc 4.24 Dojos), client display only: a petal burst when an owned Dojo levels up, idle
--- training on the squad rigs near the camera, lanterns in the owner's WorkshopStat colour and the YOUR DOJO marker on
--- first join. The server's rig positions are never read back for gameplay. All numbers are proposed placeholders.
+-- training on the squad rigs near the camera, screens and rim lights in the owner's WorkshopStat colour and the YOUR
+-- DOJO marker on first join. The server's rig positions are never read back for gameplay. All numbers are proposed placeholders.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -83,12 +83,18 @@ end
 
 -- Lanterns ------------------------------------------------------------------------------------------------------------
 
+-- Every Glow_lamp of the Dojo look: its screens and rim lights (Server/CyberDojo, design doc 4.24 "Enclosed cyber dojo")
 local function paintLanterns(plot)
 	local mesh = plot:FindFirstChild("DojoMesh")
-	local lamp = mesh and mesh:FindFirstChild("Glow_lamp")
-	local owner = lamp and Players:GetPlayerByUserId(plot:GetAttribute("Owner") or 0)
-	if owner then
-		lamp.Color = LANTERN_COLORS[Workshop.CleanStat(owner:GetAttribute("WorkshopStat"))]
+	local owner = mesh and Players:GetPlayerByUserId(plot:GetAttribute("Owner") or 0)
+	if not owner then
+		return
+	end
+	local color = LANTERN_COLORS[Workshop.CleanStat(owner:GetAttribute("WorkshopStat"))]
+	for _, lamp in mesh:GetChildren() do
+		if lamp.Name == "Glow_lamp" and lamp:IsA("BasePart") then
+			lamp.Color = color
+		end
 	end
 end
 

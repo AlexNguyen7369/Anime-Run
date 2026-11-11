@@ -181,6 +181,10 @@ UiScenarios.Names = {
 	"ui_sidekick_attack",
 	-- Sidekick tutorial (UiSidekickTutorial; design doc 4.36). It stops a real run, and puts it back
 	"ui_sidekick_tutorial",
+	-- The enclosed cyber dojo (UiCyberPlaza; design doc 4.24, owner 2026-11-10): Dojo screens in the WorkshopStat colour,
+	-- then the blast door. Each stops and starts real runs, and puts AutoRacing (and the stat) back
+	"ui_cyber_dojo_glow",
+	"ui_cyber_door",
 	-- retired: ui_offline_welcome / ui_offline_zero / ui_offline_double (design doc 4.19, owner 2026-11-03)
 	"ui_weather",
 	-- Last: its server setup (emphasized_next) takes the cars away until the emphasized roll happened
@@ -8339,6 +8343,13 @@ K.sidekickTutorial = require(script.Parent.UiSidekickTutorial).Build({
 	player = player,
 })
 for name, fn in K.sidekickTutorial.Scenarios do
+	S[name] = fn
+end
+
+-- The enclosed cyber dojo (design doc 4.24). No new local: the chunk is at the 200-local limit.
+for name, fn in
+	require(script.Parent.UiCyberPlaza).Build({ check = check, player = player, playerGui = playerGui }).Scenarios
+do
 	S[name] = fn
 end
 for cond, fn in K.sidekickTutorial.After do
