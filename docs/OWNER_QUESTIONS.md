@@ -84,7 +84,7 @@ Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for 
 
 ## 2026-11-11 boss-mage: build defaults taken while you were away (all proposed, change any)
 1. Wall moved out to radius 164 (was 132 in the approved draft): the event camera sits 40 studs behind and outside the runner, which put it behind the wall on lanes 4 to 7. The room is 328 studs across; the look is unchanged.
-2. Small ring lap feel: a lap is 465 to 767 studs, under 1 second at 800 studs/s. No speed cap was added, because 4.37 says real cruise. Look in Studio and say if a cap or a larger ring is wanted.
+2. Small ring lap feel: a lap is 465 to 767 studs, under 1 second at 800 studs/s. No speed cap was added, because 4.37 says real cruise. Look in Studio and say if a cap or a larger ring is wanted. Answered by the owner 2026-11-11: cap the run speed in her arena so the background does not spin. Cap 100 studs/s is proposed.
 3. Vulnerable applies to all three of her moves (your Raga-defaults answer): after one undodged move every later hit costs 30 / 45 / 22.5%. Three undodged barrages empty a team.
 4. Rhythm circles: the first circle appears 1.35 s into the golem move, 0.65 s before the 2 s wind-up, so that 4 beats with a 1 s ring fit before the slam.
 5. A dodged slam dashes to the next lane like a Dodge bar dodge.

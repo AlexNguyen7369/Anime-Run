@@ -121,7 +121,7 @@ local function startSidekicks()
 end
 
 -- A boss's loose parts, in ReplicatedStorage.BossModels/<name>, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks",
--- "The Elf Mage"). Each client clones and poses them. Each part draws its own TextureID.
+-- "The Elf Mage"). Each client clones and poses them. Big Raga's parts keep the import's SurfaceAppearance; the golem's draw TextureID.
 local function loadBoss(name, assetId, binds, root)
 	local ok, asset = fetch(assetId)
 	if not ok then

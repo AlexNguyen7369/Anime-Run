@@ -91,6 +91,9 @@ colosseum.BossTotalHeight = colosseum.BossHeight + colosseum.HoverY + colosseum.
 colosseum.WallHeight = 70
 -- The wall's inner face: the locked 40-stud camera at yaw 75 puts the eye up to 157 studs out on lane 7.
 colosseum.WallRadius = 164
+-- Owner 2026-11-11: travel speed is capped here so the room does not spin around her; the value is proposed. About 77 deg/s on
+-- lane 1, as the sky arena turns at 800 studs/s. The sky arena has none.
+colosseum.MaxRunSpeed = 100
 build(colosseum)
 
 -- "boss_mage": the colosseum; anything else: this module, the sky arena.

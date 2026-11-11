@@ -814,6 +814,54 @@ function Tests.make()
 			eq("raga_pays_stage_1", timesPaid(p, 1), 1)
 		end)
 
+		-- Run speed cap (design doc 4.37): her colosseum caps the travel at 100 studs/s, the Cruise attribute keeps the real
+		-- cruise; the sky arena has no cap. The service's own StartRun hook, a real run on a test runner.
+		local CarService = require(Server.CarService)
+		local realRunHeld = CarService.RunHeld
+		local capRuns = {}
+		serviceSection("run_speed_cap", function()
+			local race = require(Server.RaceService)
+			local factory = require(Shared.RunnerFactory)
+			local RaceConfig = require(Shared.RaceConfig)
+			CarService.RunHeld = function(p, route, options)
+				local car = factory.build(options.Team[1])
+				car.Name, car.Parent = "CarTestBossRunner", p
+				local run = race.NewRun(car, route, p, options)
+				table.insert(capRuns, run)
+				return run
+			end
+			local fast = chars[1]
+			for _, id in chars do
+				if RaceConfig.Cruise(catalog.Get(id), 1) > RaceConfig.Cruise(catalog.Get(fast), 1) then
+					fast = id
+				end
+			end
+			for _, boss in { MAGE, RAGA } do
+				local tag = boss == MAGE and "mage" or "raga"
+				local p, team = newPlayer(), { fast }
+				wear(p, fast, "side_knight")
+				p:SetAttribute("EquippedCar", fast)
+				local cruise = gacha.CruiseFor(p, fast, 1, team)
+				flag("cap_" .. tag .. "_cruise_above_100", cruise > 100, cruise, 100)
+				begin(boss)
+				local run = realHooks.StartRun(p, team, 1)
+				flag("cap_" .. tag .. "_run_started", type(run) == "table")
+				if type(run) == "table" then
+					local want = boss == MAGE and math.min(cruise, 100) or cruise
+					eq("cap_" .. tag .. "_target_speed", run.TargetSpeed, want)
+					eq("cap_" .. tag .. "_cruise_attribute_real", p:GetAttribute("Cruise"), cruise)
+					local shown = run.Car:GetAttribute("RunSpeed")
+					if boss == MAGE then
+						flag("cap_mage_runner_speed_at_most_100", type(shown) == "number" and shown <= 100, shown, 100)
+					end
+				end
+			end
+		end)
+		CarService.RunHeld = realRunHeld
+		for _, run in capRuns do
+			pcall(run.Destroy, run)
+		end
+
 		pcall(function()
 			for name in table.clone(S.Hooks) do
 				S.Hooks[name] = realHooks[name]
@@ -885,6 +933,8 @@ function Tests.make()
 			eq("wait_camera_out_28", wait.Out, 28)
 			eq("wait_camera_up_40", wait.Up, 40)
 			eq("wait_camera_down_22", wait.Down, 22)
+			eq("max_run_speed_100", M.MaxRunSpeed, 100) -- run speed cap (design doc 4.37)
+			eq("raga_max_run_speed_none", Arena.For(RAGA).MaxRunSpeed, nil)
 			local worstOut, worstUp = 0, -math.huge
 			local function judge(eye)
 				worstOut = math.max(worstOut, ((eye - M.Center) * Vector3.new(1, 0, 1)).Magnitude)

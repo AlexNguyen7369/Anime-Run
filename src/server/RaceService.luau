@@ -559,10 +559,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	function setCruise()
 		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
 		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
-		run.TargetSpeed = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
+		local cruise = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
+		-- options.MaxSpeed caps the travel only (The Elf Mage's small ring, BOSS_EVENT_SPEC "Run speed cap"); the HUD keeps the cruise
+		run.TargetSpeed = math.min(cruise, options.MaxSpeed or math.huge)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
-			player:SetAttribute("Cruise", run.TargetSpeed)
+			player:SetAttribute("Cruise", cruise)
 		end
 	end
 	setCruise()
