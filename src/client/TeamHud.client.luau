@@ -46,9 +46,6 @@ local ACTIVE_SCALE = 1.18 -- placeholders
 local TIRED_SCALE = 0.88
 local GOLD = Palette.Gold
 local DIM = Palette.TeamDim
--- Design doc 4.40 "Turbo bar and Team minibar look" (proposed): the HUD tiles' navy inside and gold bevel rim.
-local NAVY = Color3.fromRGB(20, 30, 72)
-local RIM = Color3.fromRGB(240, 190, 70)
 local RING = Palette.TeamRing
 local GREY = Palette.TeamGrey
 local CATEGORY_COLORS = {
@@ -317,7 +314,7 @@ for slot = 1, SLOTS do
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, (slot - 2) * SPACING, 0.5, 0),
 		Size = UDim2.fromOffset(CIRCLE, CIRCLE),
-		BackgroundColor3 = NAVY,
+		BackgroundColor3 = DIM,
 		BorderSizePixel = 0,
 		ZIndex = 5,
 	}, row)
@@ -333,15 +330,11 @@ for slot = 1, SLOTS do
 	}, c)
 	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, glow)
 	local ring = make("UIStroke", {
-		Thickness = 3,
-		Color = RIM,
+		Thickness = 2,
+		Color = RING,
+		Transparency = 0.6,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, c)
-	-- Bevel shading that works on every ring colour (gold, or grey when tired)
-	make("UIGradient", {
-		Rotation = 90,
-		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(170, 140, 110)),
-	}, ring)
 	local scale = make("UIScale", { Scale = 1 }, c)
 	local arc = make("Frame", { Name = "Arc", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 8 }, c)
 	-- Track: the dark outline and the empty part, the Fill's shape grown by ARC_OUTLINE on every side
@@ -363,20 +356,12 @@ for slot = 1, SLOTS do
 		Size = UDim2.fromOffset(34, 24),
 		Font = UiTheme.Font,
 		TextSize = 22,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		BackgroundTransparency = 0.1,
-		BackgroundColor3 = Palette.TeamPlate, -- the dark plate under the number
+		TextXAlignment = Enum.TextXAlignment.Left,
 		ZIndex = 10,
 	})
 	number:FindFirstChildOfClass("UIStroke").Thickness = 2.5
-	number:FindFirstChildOfClass("UIStroke").Color = UiTheme.Outline
+	number:FindFirstChildOfClass("UIStroke").Color = DIM
 	number:FindFirstChildOfClass("UIStroke").Transparency = 0
-	make("UICorner", { CornerRadius = UDim.new(0, 6) }, number)
-	make("UIStroke", {
-		Thickness = 1.5,
-		Color = RIM,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-	}, number)
 	-- Hover / tap on the circle itself (no invisible button: the row is display-only, not a control)
 	c.MouseEnter:Connect(function()
 		showCard(slot)
@@ -523,9 +508,9 @@ local function render()
 		if circle.State ~= state then
 			circle.State = state
 			tween(circle.Ring, 0.25, {
-				Color = active and GOLD or tired and GREY or RIM,
-				Thickness = active and 4 or 3,
-				Transparency = tired and 0.4 or 0,
+				Color = active and GOLD or tired and GREY or RING,
+				Thickness = active and 3.5 or 2,
+				Transparency = active and 0 or tired and 0.4 or 0.6,
 			})
 			if circle.Art then
 				tween(circle.Art, 0.35, {
@@ -533,7 +518,7 @@ local function render()
 					ImageTransparency = tired and 0.45 or 0,
 				})
 			end
-			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Palette.TeamTired or NAVY })
+			tween(circle.Frame, 0.35, { BackgroundColor3 = tired and Palette.TeamTired or DIM })
 			if not active then
 				tween(circle.Glow, 0.25, { BackgroundTransparency = 1 })
 				tween(circle.Scale, 0.35, { Scale = tired and TIRED_SCALE or 1 }, Enum.EasingStyle.Quint)

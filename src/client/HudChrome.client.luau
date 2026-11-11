@@ -1,5 +1,5 @@
 --!nonstrict
--- HUD entry points (docs/HUD_LAYOUT_SPEC.md, design doc 4.40 layout L2): the left 2-column tile block, the bottom
+-- HUD entry points (docs/HUD_LAYOUT_SPEC.md, design doc 4.40 "split L/R"): the left and right icon columns, the bottom
 -- Auto / Upgrade pair and the top-right Daily pill with the round Settings button. Each entry only opens a panel (the panels' scripts own
 -- everything else), but Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
 local Players = game:GetService("Players")
@@ -39,14 +39,11 @@ task.spawn(function()
 end)
 
 local RED = UiTheme.Palette.Danger
--- Design doc 4.40 "HUD tiles and layout": every button is the same gold-rim navy tile. Sizes are proposed.
-local TILE = 84 -- px, square
-local GAP = 8 -- px between tiles in the block
-local ICON = 56 -- px, about 66 % of the tile
-local ICON_TOP = 6 -- px from the tile's top to the icon
-local LABEL = 20 -- px, the label band inside the tile's bottom
-local NAVY = Color3.fromRGB(20, 30, 72)
-local GOLD = Color3.fromRGB(240, 190, 70)
+-- Design doc 4.40: no tile frame, the Tab tilt icon with its label under it. Sizes are proposed.
+local ICON = 72 -- px, square
+local LABEL = 22 -- px, the label band under the icon
+local GAP = 8 -- px between buttons in a column
+local CELL = Vector2.new(ICON + 12, ICON + LABEL) -- one button
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -70,7 +67,7 @@ end
 
 local function icon(name, parent, props)
 	local art = Icons[name]
-	props.Image = art.Image -- 4.40 Gold badge set for every tile, Index included (owner 2026-11-10)
+	props.Image = art.Image -- 4.40 Tab tilt set for every button, Index included (owner 2026-11-10)
 	props.BackgroundTransparency = 1
 	props.ScaleType = Enum.ScaleType.Fit
 	if art.Offset then
@@ -82,7 +79,7 @@ end
 local function badge(parent)
 	local b = make("TextLabel", "Badge", parent, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromOffset(6, 8), -- top-left corner (design doc 4.40)
+		Position = UDim2.fromOffset(12, 8), -- the icon's top-left corner (design doc 4.40)
 		Size = UDim2.fromOffset(26, 26),
 		BackgroundColor3 = RED,
 		Font = UiTheme.Font,
@@ -140,40 +137,36 @@ local PANEL = {
 	Rebirth = "Rebirth",
 }
 local scales = {}
--- A transparent holder with a grid of tiles, `columns` wide; its UIScale shrinks it on phones.
-local function holder(name, columns, rows, props)
-	props.Size = UDim2.fromOffset(columns * TILE + (columns - 1) * GAP, rows * TILE + (rows - 1) * GAP)
+-- A transparent holder with a vertical list of buttons; its UIScale shrinks it on phones (design doc 4.27).
+local function holder(name, count, props)
+	props.Size = UDim2.fromOffset(CELL.X, count * CELL.Y + (count - 1) * GAP)
 	props.BackgroundTransparency = 1
 	local frame = make("Frame", name, root, props)
 	table.insert(scales, make("UIScale", "Scale", frame, {}))
-	make("UIGridLayout", "Layout", frame, {
-		CellSize = UDim2.fromOffset(TILE, TILE),
-		CellPadding = UDim2.fromOffset(GAP, GAP),
-		FillDirectionMaxCells = columns,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	})
+	make("UIListLayout", "Layout", frame, { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder })
 	return frame
 end
--- Layout L2: one 2-column block on the left edge, read row by row. The right edge has no HUD buttons.
-local grid = holder("Grid", 2, 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
+-- Split L/R: Index, Items, Rebirth on the left edge; Quests, Shop, Market on the right edge, top to bottom.
+local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
+local shopColumn =
+	holder("ShopColumn", 3, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
--- The anchor sits on the icon's centre (not the whole tile), so the icon lines up with the gap.
-local ICON_MID = (ICON_TOP + ICON / 2) / TILE
-local autoSlot = holder("AutoSlot", 1, 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
-local upgradeSlot = holder("UpgradeSlot", 1, 1, { AnchorPoint = Vector2.new(0, ICON_MID) })
+-- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
+local ICON_MID = ICON / 2 / CELL.Y
+local autoSlot = holder("AutoSlot", 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
+local upgradeSlot = holder("UpgradeSlot", 1, { AnchorPoint = Vector2.new(0, ICON_MID) })
 local BOTTOM_SCALE = 0.75 -- the bottom pair is smaller than the edge tiles (owner, 2026-10-15)
 local STACK_MAX_HEIGHT = 400 -- phone_small: the pair stacks above the bars (owner, 2026-10-28)
 local SLOTS = {
 	{ "Index", grid },
 	{ "Items", grid },
 	{ "Rebirth", grid },
-	{ "Quests", grid },
-	{ "Shop", grid },
-	{ "Market", grid },
+	{ "Quests", shopColumn },
+	{ "Shop", shopColumn },
+	{ "Market", shopColumn },
 	{ "Auto", autoSlot },
 	{ "Upgrade", upgradeSlot },
 }
-local TILE_ART = Icons.Tile.Image
 -- Shop and Index are not S and I: S walks backward and I zooms the camera (owner 2026-11-10).
 local KEYS = {
 	Index = Enum.KeyCode.X,
@@ -186,40 +179,34 @@ local KEYS = {
 local tiles = {}
 for order, slot in SLOTS do
 	local name = slot[1]
-	-- The square tile art stretches exactly, so no 9-slice. Without its id, a drawn tile of the same look stands in.
+	-- A transparent button: the Tab tilt icon, the label under it (design doc 4.40).
 	local tile = make("ImageButton", name, slot[2], {
 		LayoutOrder = order,
-		Size = UDim2.fromOffset(TILE, TILE),
-		BackgroundColor3 = NAVY,
-		BackgroundTransparency = if TILE_ART == "" then 0 else 1,
-		Image = TILE_ART,
-		ScaleType = Enum.ScaleType.Stretch,
+		Size = UDim2.fromOffset(CELL.X, CELL.Y),
+		BackgroundTransparency = 1,
+		Image = "",
 		AutoButtonColor = false,
 	})
-	if TILE_ART == "" then
-		make("UICorner", "Corner", tile, { CornerRadius = UDim.new(0.18, 0) })
-		make("UIStroke", "Rim", tile, { Color = GOLD, Thickness = 4, ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
-	end
 	tile:SetAttribute("Panel", PANEL[name])
 	icon(name, tile, {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromOffset(TILE / 2, ICON_TOP),
+		Position = UDim2.fromScale(0.5, 0),
 		Size = UDim2.fromOffset(ICON, ICON),
 		ZIndex = 2,
 	})
 	outlined(
 		make("TextLabel", "Label", tile, {
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -4),
-			Size = UDim2.new(1, -8, 0, LABEL),
+			Position = UDim2.new(0.5, 0, 1, 2),
+			Size = UDim2.new(1, 8, 0, LABEL + 4),
 			BackgroundTransparency = 1,
 			Font = UiTheme.Font,
-			TextSize = 16,
+			TextSize = 19,
 			TextColor3 = Color3.new(1, 1, 1),
 			Text = name,
 			ZIndex = 3,
 		}),
-		2
+		2.5
 	)
 	if PANEL[name] then
 		tile.Activated:Connect(function()
@@ -230,7 +217,7 @@ for order, slot in SLOTS do
 		outlined(
 			make("TextLabel", "Key", tile, {
 				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, -7, 0, 5),
+				Position = UDim2.new(1, -2, 0, 2),
 				Size = UDim2.fromOffset(18, 18),
 				BackgroundTransparency = 1,
 				Font = UiTheme.Font,
@@ -262,7 +249,7 @@ end
 UserInputService.LastInputTypeChanged:Connect(refreshKeys)
 refreshKeys()
 UserInputService.InputBegan:Connect(function(input, processed)
-	-- a key does only what a click could: not while the HUD or the block is hidden (showcase, Upgrades tree)
+	-- a key does only what a click could: not while the HUD or the columns are hidden (showcase, Upgrades tree)
 	if processed or UserInputService:GetFocusedTextBox() or not (root.Enabled and grid.Visible) then
 		return
 	end
@@ -375,10 +362,12 @@ autoIcon.Image = Icons.AutoPlay.Image
 local autoArrows = autoIcon:Clone()
 autoArrows.Name = "Arrows"
 autoArrows.Image = Icons.AutoArrows.Image
+-- The arrows art is centred on its image; the triangle stands 10/120 of the icon above centre, on the tab.
+autoArrows.Position -= UDim2.fromOffset(0, ICON * 10 / 120)
 autoArrows.Parent = autoTile
 local autoRing = make("Frame", "OnRing", autoTile, {
 	AnchorPoint = autoIcon.AnchorPoint,
-	Position = autoIcon.Position,
+	Position = autoArrows.Position,
 	Size = autoIcon.Size,
 	BackgroundTransparency = 1,
 	Visible = false,
@@ -507,6 +496,7 @@ local function refresh()
 	local pairScale = (phone and 0.68 or 1) * BOTTOM_SCALE
 	barScale.Scale = phone and 0.8 or 1
 	grid.Position = phone and UDim2.new(0, 8, 0.5, -20) or UDim2.new(0, 14, 0.5, -24)
+	shopColumn.Position = phone and UDim2.new(1, -8, 0.5, -20) or UDim2.new(1, -14, 0.5, -24)
 	-- Bottom pair: right beside the LEVEL / TURBO LUCK bars, each icon centred on the gap between the bars. That
 	-- is below the Speed readout, so the wider Speed group never touches them. Where the pair stacks above the bars
 	-- (height <= STACK_MAX_HEIGHT) an open panel fills its place, so there it hides while any panel is open (the
@@ -555,7 +545,7 @@ local function refresh()
 		-- Owner 2026-10-28 (section 6): on narrow screens the pair shrinks (about its anchor) until it clears the
 		-- Money and Speed read-outs; where they are already clear (desktop) the scale is unchanged.
 		local function clear(k)
-			local w, h = TILE * k, TILE * k
+			local w, h = CELL.X * k, CELL.Y * k
 			for _, slot in { autoSlot, upgradeSlot } do
 				local x = slot.Position.X.Offset - slot.AnchorPoint.X * w
 				local y = slot.Position.Y.Offset - slot.AnchorPoint.Y * h
@@ -581,7 +571,7 @@ local function refresh()
 	-- The full-screen Upgrades tree shows no HUD through it. The Auto / Upgrade pair stays: design doc 4.27 keeps it
 	-- drawn while a panel is open, and it hides by itself where it stacks.
 	local inTree = PanelSwitch.IsOpen("Upgrades")
-	grid.Visible, bar.Visible = not inTree, not inTree
+	grid.Visible, shopColumn.Visible, bar.Visible = not inTree, not inTree, not inTree
 	setHudDimmed(PanelSwitch.AnyOpen())
 end
 
