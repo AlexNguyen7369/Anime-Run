@@ -1713,6 +1713,7 @@ local CLIENT_SETUPS = {
 	auto_racing = true,
 	auto_roll_on = true,
 	lose_event = true,
+	cash_out_notice = true, -- ui_hud: fake CashOut RunEvent, no state to restore
 	emphasized_next = true,
 	showdown_start = true,
 	showdown_win = true,
