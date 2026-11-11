@@ -20,6 +20,8 @@ sys.path.insert(0, HERE)
 import bake_boss_raga as raga  # noqa: E402  (guarded main: easing, thinning, sampling, number format, GLB export)
 import boss_mage_keyframes as mk  # noqa: E402  (guarded main: the key pose solver and the stage constants)
 
+ease, eout, ein = raga.inout, raga.eout, raga.ein
+
 ROOT = os.path.dirname(os.path.dirname(HERE))
 KEYS = os.path.join(ROOT, "assets", "characters_avatar", "boss_mage", "keyframes", "keys.json")
 BLEND = {cid: os.path.join(ROOT, "assets", "characters_avatar", cid, cid + ".blend") for cid in ("boss_mage", "boss_golem")}
@@ -48,11 +50,18 @@ CYCLE = (
 	("idle", 0, 3),
 	("idle", 0, 3),
 	("golem_in",),
-	("golem",),
+	("golem_fall",),  # the golem's slot is the end of golem_in: her clock stops there until it falls (GOLEM_SLOT_AT)
 	("idle", 0, 3),
 )
+WINDOW_PLAN = (  # proposed: the 2 s sustain window, 2.0 -> 2.5 -> 3.25 -> 4.0
+	{"ease": ease(1.8), "carry": 0.05},
+	{"ease": ease(1.8), "carry": 0.05},
+	{"ease": ease(1.8), "carry": 0.05},
+)
+GOLEM_EVERY = 5  # proposed: s between two golem hits on its own clock (BossMinionStart)
+OSU_OPEN = 2.94  # BossOsu.OpenSeconds: a hit's circles open this long before it
+WATCH_LEAD = 0.75  # proposed: watch_in, idle key 0 -> watch key 0
 EVENTS = {"lightning": "Lightning", "golem": "Slam", "barrage": "Barrage"}
-ease, eout, ein = raga.inout, raga.eout, raga.ein
 # One row per segment between stops (approved keys, then the hover at the move's end). ease, hold (s stopped at its start),
 # carry (overshoot past its first key, a share of the segment before), anticipate (a pull the wrong way first, a share of it).
 PLAN = {
@@ -60,6 +69,7 @@ PLAN = {
 		{"ease": ease(2.0)},  # the coil climbs into the charge
 		{"ease": ein(2.4), "hold": 0.05},  # the orb builds, then the thrust
 		{"ease": eout(2.5), "carry": 0.15},  # thrown into the strike
+		*WINDOW_PLAN,
 		{"ease": ease(1.7), "carry": 0.08},
 		{"ease": ease(2.0)},
 	),
@@ -75,6 +85,7 @@ PLAN = {
 		{"ease": ease(2.2)},
 		{"ease": ease(2.2), "carry": 0.08},
 		{"ease": ein(2.5)},
+		*WINDOW_PLAN,
 		{"ease": eout(2.5), "hold": 0.12, "carry": 0.12},  # beams fire and hold, then she is pushed back
 		{"ease": ease(2.0)},
 	),
@@ -153,6 +164,36 @@ def secondary(grid, samples, follow, trembles, knots, seed):
 	return out
 
 
+def merged(data):
+	"""A *_window move folded into its parent: the parent's keys to after_key_t, the window keys, then the parent's later keys
+	2.0 s later (the owner's rule, 2026-11-11: only the recover key's time moves, never a pose)."""
+	moves = {n: m for n, m in data["moves"].items() if "extends" not in m}
+	for name, w in data["moves"].items():
+		if "extends" in w:
+			parent, shift = data["moves"][w["extends"]], w["window"][1] - w["window"][0]
+			keys = [k for k in parent["keys"] if k["t"] <= w["after_key_t"]] + w["keys"]
+			keys += [dict(k, t=round(k["t"] + shift, 6)) for k in parent["keys"] if k["t"] > w["after_key_t"]]
+			assert [k["t"] for k in keys] == sorted({k["t"] for k in keys}), name
+			moves[w["extends"]] = dict(parent, keys=keys, end=w["end"], Window=list(w["window"]))
+	return dict(data, moves=moves)
+
+
+def her(data):
+	"""Her rig's moves (the golem-only ones have no rotations)."""
+	return [n for n, m in data["moves"].items() if "rotations" in m["keys"][0]]
+
+
+def loop2(keys, period):
+	"""A 2-key loop: a cosine from key 0 to key 1 (at half the period) and back, so it meets both keys exactly."""
+	assert len(keys) == 2 and keys[0]["t"] == 0 and abs(keys[1]["t"] - period / 2) < 1e-9
+
+	def at(t, a, b):
+		w = (1 - math.cos(2 * math.pi * t / period)) / 2
+		return {k: a[k] + (b[k] - a[k]) * w for k in a}
+
+	return at
+
+
 class Mage:
 	def __init__(self, data):
 		self.data = data
@@ -204,15 +245,27 @@ class Mage:
 		values = [self.channels(k) for k in keys] + [self.channels(self.idle0)]  # it ends in the hover's first key
 		frames = self.sample(name, times, values, PLAN[name], move["end"], times)
 		holds = [t + PLAN[name][i].get("hold", 0) for i, t in enumerate(times[:-1])]
-		events = [{"Time": k["t"], "Name": k["event"]} for k in keys if "event" in k]
+		at = move["Window"][0] if "Window" in move else None  # a windowed move charges at the window's start
+		events = [{"Time": at if at is not None else k["t"], "Name": k["event"]} for k in keys if "event" in k]
 		return self.pin(frames, keys, name), [k["t"] for k in keys], events, move["end"], sorted(set(times + holds))
 
-	def lead(self, name):
-		length = LEAD[name]
-		values = [self.channels(self.idle0), self.channels(self.data["moves"][name]["keys"][0])]
-		frames = self.sample(name + "_in", [0, length], values, LEAD_PLAN, length, [0, length])
+	def lead(self, name, a, b, length, plan=LEAD_PLAN):
+		"""From key a to key b over length s (a <move>_in lead, watch_in, her part of golem_fall)."""
+		values = [self.channels(a), self.channels(b)]
+		frames = self.sample(name, [0, length], values, plan, length, [0, length])
 		frames[0], frames[-1] = self.frame(0, values[0]), self.frame(length, values[1])
 		return frames, [], [], length, [0, length]
+
+	def watch(self):
+		"""Her loop while the golem stands: a cosine between its 2 approved keys."""
+		move = self.data["moves"]["watch"]
+		keys, period = move["keys"], move["end"]
+		assert move["loop"]
+		a, b = self.channels(keys[0]), self.channels(keys[1])
+		at = loop2(keys, period)
+		frames = [self.frame(s / RATE, at(s / RATE, a, b)) for s in range(int(round(period * RATE)) + 1)]
+		frames = self.pin(frames[:-1], keys, "watch") + [self.frame(period, a)]
+		return frames, [k["t"] for k in keys], [], period, [k["t"] for k in keys] + [period]
 
 	def idle(self):
 		"""The hover loop: a periodic Catmull-Rom through the 4 keys; the bob is a cosine, which meets the keys exactly."""
@@ -260,67 +313,188 @@ def golem_top(gbind, verts, rot, loc):
 	return max(float((np.array(world[n])[:3, :3] @ verts[n].T).T[:, 2].max() + np.array(world[n])[2, 3]) for n in gbind)
 
 
-def golem_track(data, gbind, verts):
-	move = data["moves"]["golem"]
-	keys = [k for k in move["keys"] if k.get("golem")]
-	parts = sorted(gbind)
-
-	def values(g, root_z, scale):
-		c = {"root": float(root_z), "scale": float(scale)}
-		for p in parts:
-			for i in range(3):
-				c["%s:r%d" % (p, i)] = float(g[p]["rot"][i])
-				c["%s:l%d" % (p, i)] = float(g[p]["loc"][i])
-		return c
-
-	def pose(g):
-		return {p: g[p]["rot"] for p in parts}, {p: g[p]["loc"] for p in parts}
-
-	scatter, crumble = keys[0]["golem"], keys[-1]["golem"]
-	rise = golem_top(gbind, verts, *pose(scatter)) + GOLEM_SINK
-	fall = golem_top(gbind, verts, *pose(crumble)) + GOLEM_SINK
-	rng = random.Random("golem")
-	start = values(scatter, -rise, 0)
-	for p in parts:
+def golem_values(gbind, g, root_z, scale):
+	c = {"root": float(root_z), "scale": float(scale)}
+	for p in sorted(gbind):
 		for i in range(3):
-			start["%s:r%d" % (p, i)] += rng.uniform(-GOLEM_TUMBLE, GOLEM_TUMBLE)
-	end = values(crumble, -fall, 0)
-	times = [0] + [k["t"] for k in keys] + [move["end"]]
-	stops = [start] + [values(k["golem"], k.get("golem_root_z", 0), 1) for k in keys] + [end]
-	segments = (
-		{"ease": eout(2.2)},  # rubble rises out of the floor, tumbling, and grows
-		{"ease": eout(2.6)},  # flies together and locks
-		{"ease": ease(2.0), "carry": 0.08},
-		{"ease": ein(3.0), "hold": 2.0},  # wind-up held to 4.0 s, then the slam
-		{"ease": ein(1.5), "hold": 0.08},  # stuck on the slam, then it falls apart
-		{"ease": ease(2.0)},  # the rubble sinks back into the floor
-	)
-	assert [k["t"] for k in keys] == [0.7, 1.4, 2.0, 4.2, 4.8] and keys[2].get("hold_until") == 4.0
-	at = track(times, stops, segments)
-	grid = np.linspace(0, move["end"], int(round(move["end"] * RATE)) + 1)
+			c["%s:r%d" % (p, i)] = float(g[p]["rot"][i])
+			c["%s:l%d" % (p, i)] = float(g[p]["loc"][i])
+	return c
+
+
+def golem_pose(gbind, g):
+	return {p: g[p]["rot"] for p in gbind}, {p: g[p]["loc"] for p in gbind}
+
+
+def golem_key(gbind, k):
+	return golem_values(gbind, k["golem"], k.get("golem_root_z", 0), 1)
+
+
+def golem_idle_at(data, gbind):
+	"""The golem's breathing loop: a cosine between golem_idle's 2 approved keys."""
+	move = data["moves"]["golem_idle"]
+	assert move["loop"]
+	a, b = (golem_key(gbind, k) for k in move["keys"])
+	at = loop2(move["keys"], move["end"])
+	return lambda t: at(t % move["end"], a, b)
+
+
+def golem_track(gbind, name, duration, stops, segments, keep=(), trembles=()):
+	"""One golem track through its stops [(t, channels)]. The stops (approved keys among them) come out verbatim at their times."""
+	stops = [(round(t, 6), v) for t, v in stops]  # 0.6 + 3.2 is not 3.8: the stop must land on its grid sample
+	keep = [round(t, 6) for t in keep]
+	times = [t for t, _ in stops]
+	values = [v for _, v in stops]
+	at = track(times, values, segments)
+	grid = np.linspace(0, duration, int(round(duration * RATE)) + 1)
 	samples = [at(t) for t in grid]
-	sec = secondary(grid, samples, (), [TREMBLE["golem_track"]], times, "golem_track")
+	sec = secondary(grid, samples, (), list(trembles), times, name)
 	frames = []
 	for i, t in enumerate(grid):
 		c = dict(samples[i])
 		for channel, curve in sec.items():
 			c[channel] += float(curve[i])
 		frames.append(c)
-	for k, v in zip(times, stops):  # the keys.json values verbatim at their times
+	for k, v in stops:
 		i = int(round(k * RATE))
-		assert abs(grid[i] - k) < 1e-9 and max(abs(frames[i][c] - v[c]) for c in v) < 1e-6, f"golem track off its key at {k}"
+		assert abs(grid[i] - k) < 1e-9 and max(abs(frames[i][c] - v[c]) for c in v) < 1e-6, f"{name} off its stop at {k}"
 		frames[i] = dict(v)
+	return thin_golem(gbind, grid, frames, sorted(set(times) | set(keep))), times
+
+
+def thin_golem(gbind, grid, frames, keep):
 	# thinned as raga frames: (t, {pseudo part: 3 numbers}, (scale, 0, root)); locations x100, so its 0.2 tolerance is 0.002 units
 	packed, by_time = [], {}
 	for t, c in zip(grid, frames):
 		body = {}
-		for p in parts:
+		for p in sorted(gbind):
 			body[p] = tuple(c["%s:r%d" % (p, i)] for i in range(3))
 			body[p + "@"] = tuple(c["%s:l%d" % (p, i)] * 100 for i in range(3))
 		packed.append((float(t), body, (c["scale"], 0.0, c["root"])))
 		by_time[float(t)] = c
-	keep = sorted(set(times + [keys[2]["hold_until"], 4.2 + segments[4]["hold"]]))
-	return [(f[0], by_time[f[0]]) for f in raga.thin(packed, sorted(packed[0][1]), keep)], times
+	return [(f[0], by_time[f[0]]) for f in raga.thin(packed, sorted(packed[0][1]), keep)]
+
+
+def golem_tracks(data, gbind, verts):
+	"""Every golem track: name -> (frames, approved stop times, events, duration, snaps). golem and golem_fall play beside her
+	moves of those names; golem_idle, golem_slam and golem_sweep are GolemMoves, on the golem's own clock."""
+	moves = data["moves"]
+	g = [k for k in moves["golem"]["keys"] if k.get("golem")]
+	sw, fall = moves["golem_sweep"]["keys"], moves["golem_fall"]["keys"]
+	assert [k["t"] for k in g] == [0.7, 1.4, 2.0, 4.2, 4.8] and g[2].get("hold_until") == 4.0 and g[3].get("event") == "Slam"
+	assert [k["t"] for k in sw] == [0, 0.6, 2.0, 2.4, 3.2] and sw[1].get("hold_until") == 1.8 and sw[2].get("event") == "Sweep"
+	assert [k["t"] for k in fall] == [0, 0.6, 1.4]
+	idle_at = golem_idle_at(data, gbind)
+	idle0 = golem_key(gbind, moves["golem_idle"]["keys"][0])
+	first, hold_slam = g[3]["t"], 0.08
+	out = {}
+
+	# golem: rises, stands, the first slam (hit 1), then into golem_idle key 0 at its end. The 4.8 crumble key is golem_fall's now.
+	scatter = g[0]["golem"]
+	start = golem_values(gbind, scatter, -(golem_top(gbind, verts, *golem_pose(gbind, scatter)) + GOLEM_SINK), 0)
+	rng = random.Random("golem")
+	for p in sorted(gbind):
+		for i in range(3):
+			start["%s:r%d" % (p, i)] += rng.uniform(-GOLEM_TUMBLE, GOLEM_TUMBLE)
+	end = moves["golem"]["end"]
+	frames, times = golem_track(
+		gbind,
+		"golem_track",
+		end,
+		[(0, start)] + [(k["t"], golem_key(gbind, k)) for k in g[:4]] + [(end, idle0)],
+		(
+			{"ease": eout(2.2)},  # rubble rises out of the floor, tumbling, and grows
+			{"ease": eout(2.6)},  # flies together and locks
+			{"ease": ease(2.0), "carry": 0.08},
+			{"ease": ein(3.0), "hold": 2.0},  # wind-up held to 4.0 s, then the slam
+			{"ease": ease(2.0), "hold": hold_slam},  # stuck on the slam, then back to its breathing stance
+		),
+		(g[2]["hold_until"], first + hold_slam),
+		[TREMBLE["golem_track"]],
+	)
+	out["golem"] = (frames, times[1:-1], [{"Time": first, "Name": "Slam"}], end, [(g[2]["hold_until"], first + SNAP)], times)
+
+	# The attack tracks after hit 1. Each starts from golem_idle at the phase the schedule reaches it with (so no pop), leads
+	# into the approved keys, and recovers to golem_idle key 0, where the next idle phase starts.
+	lead, recover = 0.6, 0.8
+	slam_hit = round(lead + (first - g[2]["t"]), 6)  # 2.8: the slam's wind-up key at the lead's end, its hit 2.2 s later as approved
+	slam_len = round(slam_hit + recover, 6)
+	sweep_hit, sweep_len = round(lead + sw[2]["t"], 6), round(lead + sw[-1]["t"] + 0.4, 6)
+	lengths = {"golem_slam": (slam_len, slam_hit), "golem_sweep": (sweep_len, sweep_hit)}
+	phase = {}
+	for k in range(2, 14):
+		name, s, _ = golem_window(k, first, end, lengths)
+		_, _, prev_end = golem_window(k - 1, first, end, lengths)
+		ph = (s - prev_end) % moves["golem_idle"]["end"]
+		assert abs(phase.setdefault(name, ph) - ph) < 1e-9, f"{name}: the idle phase it starts from changes with k"
+
+	shift = slam_hit - first
+	frames, times = golem_track(
+		gbind,
+		"golem_slam",
+		slam_len,
+		[(0, idle_at(phase["golem_slam"])), (lead, golem_key(gbind, g[2])), (slam_hit, golem_key(gbind, g[3])), (slam_len, idle0)],
+		(
+			{"ease": ease(2.0)},
+			{"ease": ein(3.0), "hold": g[2]["hold_until"] - g[2]["t"]},  # wind-up held, then the slam
+			{"ease": ease(2.0), "hold": hold_slam},
+		),
+		(g[2]["hold_until"] + shift, slam_hit + hold_slam),
+		[tuple([a + shift for a in TREMBLE["golem_track"][:2]]) + TREMBLE["golem_track"][2:]],
+	)
+	out["golem_slam"] = (frames, times[1:3], [{"Time": slam_hit, "Name": "Slam"}], slam_len, [(g[2]["hold_until"] + shift, slam_hit + SNAP)], times)
+
+	sweep_hold = round(sw[1]["hold_until"] + lead, 6)
+	frames, times = golem_track(
+		gbind,
+		"golem_sweep",
+		sweep_len,
+		[(0, idle_at(phase["golem_sweep"]))] + [(lead + k["t"], golem_key(gbind, k)) for k in sw] + [(sweep_len, idle0)],
+		(
+			{"ease": ease(2.0)},
+			{"ease": ease(2.0)},  # into the wind-up
+			{"ease": ein(3.0), "hold": sw[1]["hold_until"] - sw[1]["t"]},  # wind-up held, then the sweep
+			{"ease": eout(2.0), "carry": 0.1},  # the arm carries through
+			{"ease": ease(2.0)},
+			{"ease": ease(2.0)},  # its stance, into golem_idle key 0
+		),
+		(sweep_hold,),
+		[(lead + sw[1]["t"], sweep_hold, 1.5, TREMBLE["golem_track"][3])],
+	)
+	out["golem_sweep"] = (frames, times[1:-1], [{"Time": sweep_hit, "Name": "Sweep"}], sweep_len, [(sweep_hold, sweep_hit + SNAP)], times)
+
+	# golem_idle: 2 approved keys, cosine between them
+	period = moves["golem_idle"]["end"]
+	grid = np.linspace(0, period, int(round(period * RATE)) + 1)
+	gk = [golem_key(gbind, k) for k in moves["golem_idle"]["keys"]]
+	frames = [idle_at(t) for t in grid[:-1]] + [dict(gk[0])]
+	for k, v in zip(moves["golem_idle"]["keys"], gk):
+		frames[int(round(k["t"] * RATE))] = dict(v)
+	out["golem_idle"] = (thin_golem(gbind, grid, frames, [k["t"] for k in moves["golem_idle"]["keys"]] + [period]), [0, period / 2], [], period, [], [0, period / 2, period])
+
+	# golem_fall: the approved fall keys, then its rubble shrinks and sinks into the floor (scale 0) by 2.0 s
+	heap = fall[-1]["golem"]
+	sunk = golem_values(gbind, heap, -(golem_top(gbind, verts, *golem_pose(gbind, heap)) + GOLEM_SINK), 0)
+	fall_end = moves["golem_fall"]["end"]
+	frames, times = golem_track(
+		gbind,
+		"golem_fall",
+		fall_end,
+		[(k["t"], golem_key(gbind, k)) for k in fall] + [(fall_end, sunk)],
+		({"ease": ease(2.0)}, {"ease": ease(2.0)}, {"ease": ein(2.0)}),
+	)
+	out["golem_fall"] = (frames, times[:-1], [], fall_end, [], times)
+	return out, lengths
+
+
+def golem_window(k, first, summon_end, lengths):
+	"""Golem hit k's track: (name, start, end) on the golem clock. Hit 1 is the golem move's slam, inside the summon."""
+	if k < 2:
+		return "golem", 0.0, summon_end
+	name = "golem_slam" if k % 2 == 1 else "golem_sweep"
+	duration, event = lengths[name]
+	start = first + GOLEM_EVERY * (k - 1) - event
+	return name, start, start + duration
 
 
 def golem_rotations(track, parts):
@@ -362,21 +536,74 @@ def check_cycle(moves):
 		_, _, events, duration, _ = moves[row[0]]
 		hits += [at + e["Time"] for e in events]
 		at += row[2] if row[0] == "idle" else duration
+		if row[0] == "golem_in":
+			slot = at  # the golem stands here: her clock stops until it falls
 	gaps = [b - a for a, b in zip(hits, hits[1:] + [hits[0] + at])]
-	print(f"BAKE cycle {at:.2f} s, hit events at {[round(h, 2) for h in hits]}, shortest gap {min(gaps):.2f} s")
+	print(f"BAKE cycle {at:.2f} s, hit events at {[round(h, 2) for h in hits]}, shortest gap {min(gaps):.2f} s, golem slot {slot:.2f} s")
 	assert min(gaps) >= MIN_HIT_GAP, f"two hit events {min(gaps)} s apart"
-	assert {r[0] for r in CYCLE} == set(moves), "a move missing from the cycle"
+	assert min(slot - h for h in hits if h < slot) >= MIN_HIT_GAP, "a Dodge bar would still be open at the golem slot"
+	assert {r[0] for r in CYCLE} | {"golem", "watch", "watch_in"} == set(moves), "a move missing from the cycle"
+	led = {"lightning_in": "lightning", "barrage_in": "barrage", "golem_in": "golem_fall"}
 	for i, row in enumerate(CYCLE):
-		if row[0].endswith("_in"):
-			assert CYCLE[i + 1][0] == row[0][:-3], "a lead not right before its move"
+		if row[0] in led:
+			assert CYCLE[i + 1][0] == led[row[0]], "a lead not right before its move"
 		elif row[0] != "idle":
-			assert CYCLE[i - 1][0] == row[0] + "_in", "an attack not led into"
+			assert led.get(CYCLE[i - 1][0]) == row[0], "an attack not led into"
+	return slot, at
 
 
-def check_bind(mage, bind):
+def golem_at(tau, tracks, lengths, first):
+	"""Poses.GolemAt in Python (the Luau mirrors it): her move and time, the golem's move and time, tau s after BossMinionStart."""
+	summon, lead_in = tracks["golem"][3], WATCH_LEAD
+	if tau < summon:
+		return "golem", tau, "golem", tau
+	h = ("watch_in", tau - summon) if tau < summon + lead_in else ("watch", (tau - summon - lead_in) % 3.0)
+	k = int((tau - first) // GOLEM_EVERY) + 1
+	name, start, _ = golem_window(k + 1, first, summon, lengths)
+	if tau >= start:
+		return h + (name, tau - start)
+	name, start, finish = golem_window(k, first, summon, lengths)
+	if tau < finish:
+		return h + (name, tau - start)
+	return h + ("golem_idle", (tau - finish) % tracks["golem_idle"][3])
+
+
+def check_golem(tracks, lengths, first, parts):
+	"""The golem clock: tracks never overlap, every hit's circles open after the track before it ends, Slam and Sweep take turns,
+	and the golem's joints stay inside the frame limit across track seams, 0 to 60 s."""
+	summon = tracks["golem"][3]
+	for k in range(1, 14):
+		name, start, finish = golem_window(k, first, summon, lengths)
+		hit = first + GOLEM_EVERY * (k - 1)
+		assert abs(start + (tracks[name][2][0]["Time"]) - hit) < 1e-9, k
+		assert tracks[name][2][0]["Name"] == ("Slam" if k % 2 == 1 else "Sweep"), k
+		if k > 1:
+			_, _, prev_end = golem_window(k - 1, first, summon, lengths)
+			assert prev_end <= start + 1e-9, f"golem tracks {k - 1} and {k} overlap"
+			assert hit - prev_end >= OSU_OPEN + 0.3 - 1e-9, f"hit {k}: circles open before track {k - 1} ends"
+	rot = {n: golem_rotations(t[0], parts) for n, t in tracks.items()}
+	free = []
+	for k in range(1, 14):
+		name, start, _ = golem_window(k, first, summon, lengths)
+		free += [(start + a, start + b) for a, b in tracks[name][4]]
+	worst, prev = 0, None
+	for i in range(0, 60 * 60 + 1):
+		tau = i / 60
+		_, _, name, t = golem_at(tau, tracks, lengths, first)
+		cur = raga.lerp_frame(rot[name], t, parts)[0]
+		if prev is not None and not any(a <= tau <= b + 1e-9 for a, b in free) and tau > 1 / 60 + 1e-9:
+			worst = max(worst, max(float(np.abs(cur[p] - prev[p]).max()) for p in parts))
+		prev = cur
+	print(f"BAKE golem clock: hits every {GOLEM_EVERY} s from {first}, worst {worst:.2f} deg/frame over 60 s")
+	assert worst <= LIMIT_DEGREES, f"golem clock: {worst} degrees in a frame"
+
+
+def check_bind(mage, raw, bind):
 	"""The joint chain the client builds reproduces the approved key poses of boss_mage_keyframes.solve exactly."""
-	for name, move in mk.MOVES.items():
-		for key, approved in zip(move["keys"], mage.data["moves"][name]["keys"]):
+	for name in her(raw):
+		move = mk.MOVES[name]
+		assert len(move["keys"]) == len(raw["moves"][name]["keys"]), name
+		for key, approved in zip(move["keys"], raw["moves"][name]["keys"]):
 			m, record, grip = mk.solve(key)
 			for p, v in record.items():  # keys.json is still what the approved solver makes
 				assert max(abs(a - b) for a, b in zip(v, approved["rotations"][p])) < 1e-3, f"keys.json {name} {key['t']} {p} is not the solver's"
@@ -418,10 +645,10 @@ def mage_bind(data, scale):
 	"""Her parts as the client wants them. A part's joint is its keys.json pivot (the staff's sits on the fist: pivot + grip)."""
 	objs = {o.name.replace("_merged", ""): o for o in bpy.data.objects if o.type == "MESH"}
 	assert sorted(objs) == sorted(p for p in data["pivots"] if p != "Body"), sorted(objs)
-	grips = {tuple(round(v, 3) + 0 for v in k["staff_grip_offset"]) for m in data["moves"].values() for k in m["keys"]}
+	grips = {tuple(round(v, 3) + 0 for v in k["staff_grip_offset"]) for n in her(data) for k in data["moves"][n]["keys"]}
 	assert len(grips) == 1, grips
-	for m in data["moves"].values():
-		for k in m["keys"]:
+	for n in her(data):
+		for k in data["moves"][n]["keys"]:
 			assert k["rotations"]["Body"] == [0, 0, 0], "Body turns: the bind would need it"
 	parents = {p: (q if q != "Body" else None) for p, q in data["parents"].items() if p != "Body"}
 	joint = {p: Vector(data["pivots"][p]) + (Vector(next(iter(grips))) if p == "Staff" else Vector()) for p in objs}
@@ -481,21 +708,40 @@ Poses.GolemScale = GOLEM_SCALE -- studs per golem unit
 Poses.GolemAnchor = Vector3.new(GOLEM_ANCHOR[1], GOLEM_ANCHOR[2], GOLEM_ANCHOR[3])
 Poses.GolemYaw = GOLEM_YAW
 
-local golemKeys = MOVES.golem.Golem
-for _, key in golemKeys do
-	for part, v in key.Parts do
-		key.Parts[part] = Vector3.new(v[1], v[2], v[3])
+Poses.GolemMoves = GOLEM_MOVES -- the golem's own tracks on its clock (BossMinionStart): Duration, Events, Golem frames
+Poses.GolemSlotAt = GOLEM_SLOT_AT -- her cycle time where the golem stands (the end of golem_in): her clock stops there
+Poses.GolemFirstHit = GOLEM_FIRST_HIT -- golem hit 1, s after BossMinionStart: the golem move's Slam
+Poses.GolemEvery = GOLEM_EVERY -- s between two golem hits
+
+local function golemVectors(keys)
+	for _, key in keys do
+		for part, v in key.Parts do
+			key.Parts[part] = Vector3.new(v[1], v[2], v[3])
+		end
+		for part, v in key.Locs do
+			key.Locs[part] = Vector3.new(v[1], v[2], v[3])
+		end
+		key.Root = Vector3.new(key.Root[1], key.Root[2], key.Root[3])
 	end
-	for part, v in key.Locs do
-		key.Locs[part] = Vector3.new(v[1], v[2], v[3])
+end
+for _, move in MOVES do
+	if move.Golem then
+		golemVectors(move.Golem)
 	end
-	key.Root = Vector3.new(key.Root[1], key.Root[2], key.Root[3])
+end
+for _, move in GOLEM_MOVES do
+	golemVectors(move.Golem)
 end
 
--- The golem at golem-move time t, clamped: scale (0 = absent: hide it; else each block's size times it, about its own centre),
--- parts[part] (XYZ Euler degrees) and locs[part] (golem units from its parent's joint) for joint = CFrame.new(loc) * rotation, and
--- the root offset in golem units. Outside the golem move there is no golem.
-function Poses.SampleGolem(t)
+-- The golem at time t of a move (golem or golem_fall in Moves, or any GolemMoves track), clamped: scale (0 = absent: hide it;
+-- else each block's size times it, about its own centre), parts[part] (XYZ Euler degrees) and locs[part] (golem units from its
+-- parent's joint) for joint = CFrame.new(loc) * rotation, and the root offset in golem units. A move without golem frames: scale 0.
+function Poses.SampleGolem(name, t)
+	local move = MOVES[name] or GOLEM_MOVES[name]
+	local golemKeys = move and move.Golem
+	if not golemKeys then
+		return 0, {}, {}, Vector3.zero
+	end
 	local low, high = 1, #golemKeys
 	if t <= golemKeys[1].Time then
 		high = 1
@@ -520,6 +766,47 @@ function Poses.SampleGolem(t)
 	return a.Scale + (b.Scale - a.Scale) * u, parts, locs, a.Root:Lerp(b.Root, u)
 end
 
+-- Golem hit k (1, 2, ...): its time, s after BossMinionStart, and its name (Slam on odd k, Sweep on even k).
+function Poses.GolemHit(k)
+	return GOLEM_FIRST_HIT + GOLEM_EVERY * (k - 1), k % 2 == 1 and "Slam" or "Sweep"
+end
+
+-- Hit k's track (k >= 2): its name, start and end on the golem clock.
+local function golemTrack(k)
+	local name = k % 2 == 1 and "golem_slam" or "golem_sweep"
+	local move = GOLEM_MOVES[name]
+	local start = Poses.GolemHit(k) - move.Events[1].Time
+	return name, start, start + move.Duration
+end
+
+-- While the golem stands, tau s after BossMinionStart: her move and time, the golem's move and time (SampleGolem's arguments).
+-- Pure, like Schedule: every client shows the same pose at the same moment.
+function Poses.GolemAt(tau)
+	local summon, lead = MOVES.golem.Duration, MOVES.watch_in.Duration
+	if tau < summon then
+		return "golem", tau, "golem", tau
+	end
+	local herMove, herTime = "watch", (tau - summon - lead) % MOVES.watch.Duration
+	if tau < summon + lead then
+		herMove, herTime = "watch_in", tau - summon
+	end
+	local k = (tau - GOLEM_FIRST_HIT) // GOLEM_EVERY + 1
+	local name, start = golemTrack(k + 1)
+	if tau >= start then
+		return herMove, herTime, name, tau - start
+	end
+	local last = summon
+	if k >= 2 then
+		local finish
+		name, start, finish = golemTrack(k)
+		if tau < finish then
+			return herMove, herTime, name, tau - start
+		end
+		last = finish
+	end
+	return herMove, herTime, "golem_idle", (tau - last) % GOLEM_MOVES.golem_idle.Duration
+end
+
 return Poses
 """
 
@@ -539,6 +826,17 @@ def bind_lines(bind, extra=()):
 		more = "".join(", %s = %s" % (k, raga.vec(b[k], 3)) for k in extra if k in b)
 		parent = '"%s"' % b["Parent"] if b["Parent"] else "nil"
 		out.append("\t%s = { Parent = %s, Offset = %s, Center = %s, Size = %s%s }," % (name, parent, raga.vec(b["Offset"], 4), raga.vec(b["Center"], 4), raga.vec(b["Size"], 2), more))
+	return out
+
+
+def golem_lines(gbind, frames, pinned):
+	out = ["\t\tGolem = {"]
+	for t, c in frames:
+		places = 3 if any(abs(t - p) < 1e-9 for p in pinned) else 1
+		rot = ",".join("%s=%s" % (p, raga.vec([c["%s:r%d" % (p, i)] for i in range(3)], places)) for p in sorted(gbind))
+		loc = ",".join("%s=%s" % (p, raga.vec([c["%s:l%d" % (p, i)] for i in range(3)], 3)) for p in sorted(gbind))
+		out.append("\t\t\t{Time=%s,Scale=%s,Root={0,0,%s},Parts={%s},Locs={%s}}," % (raga.fmt(t, 4), raga.fmt(c["scale"], 3), raga.fmt(c["root"], 3), rot, loc))
+	out.append("\t\t},")
 	return out
 
 
@@ -562,6 +860,9 @@ def write_luau(mage, bind, moves, golem, consts):
 		"local GOLEM_SCALE = %s -- %s x her height" % (fmt(consts["golem_scale"], 4), mk.GOLEM_RATIO),
 		"local GOLEM_ANCHOR = %s" % vec(consts["golem_anchor"], 3),
 		"local GOLEM_YAW = %s" % fmt(consts["golem_yaw"], 3),
+		"local GOLEM_SLOT_AT = %s" % fmt(consts["slot_at"], 3),
+		"local GOLEM_FIRST_HIT = %s" % fmt(consts["first_hit"], 3),
+		"local GOLEM_EVERY = %s" % fmt(GOLEM_EVERY, 3),
 		"-- stylua: ignore",
 		"local BIND = {",
 		*bind_lines(bind, ("Tip",)),
@@ -582,6 +883,8 @@ def write_luau(mage, bind, moves, golem, consts):
 		lines.append("\t\tDuration = %s," % fmt(duration, 3))
 		lines.append("\t\tApproved = {%s}," % ", ".join(fmt(t, 3) for t in approved))
 		lines.append("\t\tEvents = {%s}," % ", ".join('{ Time = %s, Name = "%s" }' % (fmt(e["Time"], 3), e["Name"]) for e in events))
+		if "Window" in mage.data["moves"].get(name, {}):
+			lines.append("\t\tWindow = { %s }," % ", ".join(fmt(v, 3) for v in mage.data["moves"][name]["Window"]))
 		lines.append("\t\tHeld = { %s }," % ", ".join("%s = %s" % (p, vec(frames[0][1][p], 3)) for p in held))
 		lines.append("\t\tKeys = {")
 		for f in frames:
@@ -589,17 +892,20 @@ def write_luau(mage, bind, moves, golem, consts):
 			body = ",".join("%s=%s" % (p, vec(f[1][p], places)) for p in moved)
 			lines.append("\t\t\t{Time=%s,Root=%s,Parts={%s}}," % (fmt(f[0], 4), vec([v * root_studs for v in f[2]], 4), body))
 		lines.append("\t\t},")
-		if name == "golem":
-			lines.append("\t\tGolem = {")
-			for t, c in golem["frames"]:
-				places = 3 if t in golem["pinned"] else 1
-				rot = ",".join("%s=%s" % (p, vec([c["%s:r%d" % (p, i)] for i in range(3)], places)) for p in sorted(golem["bind"]))
-				loc = ",".join("%s=%s" % (p, vec([c["%s:l%d" % (p, i)] for i in range(3)], 3)) for p in sorted(golem["bind"]))
-				lines.append("\t\t\t{Time=%s,Scale=%s,Root={0,0,%s},Parts={%s},Locs={%s}}," % (fmt(t, 4), fmt(c["scale"], 3), fmt(c["root"], 3), rot, loc))
-			lines.append("\t\t},")
+		if name in ("golem", "golem_fall"):
+			lines += golem_lines(golem["bind"], golem["tracks"][name][0], golem["tracks"][name][5])
+		lines.append("\t},")
+	lines += ["}", "-- stylua: ignore", "local GOLEM_MOVES = {"]
+	for name in ("golem_idle", "golem_slam", "golem_sweep"):
+		frames, _, events, duration, _, stops = golem["tracks"][name]
+		lines.append("\t%s = {" % name)
+		lines.append("\t\tDuration = %s," % fmt(duration, 3))
+		lines.append("\t\tEvents = {%s}," % ", ".join('{ Time = %s, Name = "%s" }' % (fmt(e["Time"], 3), e["Name"]) for e in events))
+		lines += golem_lines(golem["bind"], frames, stops)
 		lines.append("\t},")
 	lines += ["}", "-- stylua: ignore", "local APPROVED = {"]
-	for name, m in mage.data["moves"].items():
+	for name in her(mage.data):
+		m = mage.data["moves"][name]
 		lines.append("\t%s = {" % name)
 		for k in m["keys"]:
 			assert all(float(fmt(v, 4)) == v for v in k["root_offset"]), f"{name} {k['t']}: a root would not print verbatim"
@@ -614,12 +920,13 @@ def write_luau(mage, bind, moves, golem, consts):
 	text = "\n".join(lines) + "\n" + functions()
 	with open(LUAU, "w") as f:
 		f.write(text)
-	print(f"BAKE wrote {LUAU}: {len(text)} bytes, {sum(len(m[0]) for m in moves.values())} keys, golem {len(golem['frames'])} keys")
+	print(f"BAKE wrote {LUAU}: {len(text)} bytes, {sum(len(m[0]) for m in moves.values())} keys, golem {sum(len(t[0]) for t in golem['tracks'].values())} keys")
 
 
 def check_verbatim(mage, moves):
 	"""Every approved key of keys.json sits in its move's baked keys unchanged, at its time."""
-	for name, m in mage.data["moves"].items():
+	for name in her(mage.data):
+		m = mage.data["moves"][name]
 		frames = {f[0]: f for f in moves[name][0]}
 		assert moves[name][1] == [k["t"] for k in m["keys"]], name
 		for k in m["keys"]:
@@ -627,22 +934,26 @@ def check_verbatim(mage, moves):
 			assert all(list(f[1][p]) == k["rotations"][p] for p in mage.parts) and list(f[2]) == k["root_offset"], f"{name} {k['t']} not verbatim"
 		if name in EVENTS:
 			assert [e["Name"] for e in moves[name][2]] == [EVENTS[name]], name
+			if "Window" in m:  # a windowed move charges at the window's start
+				assert [e["Time"] for e in moves[name][2]] == [m["Window"][0]], name
 
 
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	wanted = [a for a in argv if a in ("poses", "glb")] or ["poses", "glb"]
 	with open(KEYS) as f:
-		data = json.load(f)
+		raw = json.load(f)
+	data = merged(raw)
 	mage = Mage(data)
 	height = SIZE * mk.CHAR_H
 	scale = height / data["scale"]["model_height_units"]
 	root_studs = data["scale"]["studs_per_model_unit_at_4x"]
 	assert abs(root_studs - 4 * mk.CHAR_H / data["scale"]["model_height_units"]) < 1e-3
+	assert data["moves"]["watch"]["end"] == 3.0  # golem_at's watch period
 
 	bpy.ops.wm.open_mainfile(filepath=BLEND["boss_mage"])
 	bind, objs = mage_bind(data, scale)
-	check_bind(mage, bind)
+	check_bind(mage, raw, bind)
 	if "glb" in wanted:
 		for p, o in objs.items():
 			o.name = o.data.name = p
@@ -650,7 +961,7 @@ def main():
 
 	bpy.ops.wm.open_mainfile(filepath=BLEND["boss_golem"])
 	gbind, gobjs, gverts, golem_h, golem_low, golem_scale = golem_bind(lambda h: mk.GOLEM_RATIO * height / h)
-	g_frames, g_times = golem_track(data, gbind, gverts)
+	tracks, lengths = golem_tracks(data, gbind, gverts)
 	if "glb" in wanted:
 		raga.write_glb(gobjs, GLB["boss_golem"])
 
@@ -658,30 +969,47 @@ def main():
 		gkeys = data["moves"]["golem"]["keys"]
 		slam = next(k["t"] for k in gkeys if k.get("event") == "Slam")
 		slam_from = next(k["hold_until"] for k in gkeys if "hold_until" in k)
-		moves = {"idle": mage.idle()}
+		idle0, watch0 = mage.idle0, data["moves"]["watch"]["keys"][0]
+		moves = {"idle": mage.idle(), "watch": mage.watch()}
 		for name in PLAN:
 			moves[name] = mage.attack(name)
-			moves[name + "_in"] = mage.lead(name)
+			moves[name + "_in"] = mage.lead(name + "_in", idle0, data["moves"][name]["keys"][0], LEAD[name])
+		moves["watch_in"] = mage.lead("watch_in", idle0, watch0, WATCH_LEAD)
+		moves["golem_fall"] = mage.lead("golem_fall", watch0, idle0, data["moves"]["golem_fall"]["end"], ({"ease": ease(2.0)},))
 		for name, (frames, approved, events, duration, keep) in list(moves.items()):
 			thinned = raga.thin(frames, mage.parts, keep)
 			snaps = [(slam_from, slam + SNAP)] if name == "golem" else []  # the slam, from the end of the held wind-up to the hit
 			check(name, thinned, mage.parts, [e["Time"] for e in events], duration, snaps)
 			moves[name] = (thinned, approved, events, duration, keep)
 		check_verbatim(mage, moves)
-		check_cycle(moves)
+		slot_at, cycle_s = check_cycle(moves)
 		gparts = sorted(gbind)
-		check("golem track", golem_rotations(g_frames, gparts), gparts, [slam], data["moves"]["golem"]["end"], [(slam_from, slam + SNAP)], root=False)
-		g_pinned = set(g_times)
-		gk = dict(g_frames)
-		for k in data["moves"]["golem"]["keys"]:
-			if k.get("golem"):
-				c = gk[k["t"]]
+		for name, (frames, _, events, duration, snaps, _) in tracks.items():
+			check(name + " (golem)", golem_rotations(frames, gparts), gparts, [e["Time"] for e in events], duration, snaps, root=False)
+			assert all(len([c for c in f if c.endswith(":r0")]) == 15 for _, f in frames), f"{name}: a golem block without keys"
+		check_golem(tracks, lengths, slam, gparts)
+		# every approved golem key verbatim at its (track) time
+		m = data["moves"]
+		g = [k for k in gkeys if k.get("golem")]
+		placed = {
+			"golem": [(k["t"], k) for k in g[:4]],
+			"golem_slam": [(0.6, g[2]), (2.8, g[3])],
+			"golem_sweep": [(0.6 + k["t"], k) for k in m["golem_sweep"]["keys"]],
+			"golem_fall": [(k["t"], k) for k in m["golem_fall"]["keys"]],
+			"golem_idle": [(k["t"], k) for k in m["golem_idle"]["keys"]],
+		}
+		for name, keyed in placed.items():
+			gk = {round(t, 6): c for t, c in tracks[name][0]}
+			for t, k in keyed:
+				c = gk[round(t, 6)]
 				for p in gparts:
-					assert [c["%s:r%d" % (p, i)] for i in range(3)] == k["golem"][p]["rot"], (k["t"], p)
-					assert [c["%s:l%d" % (p, i)] for i in range(3)] == k["golem"][p]["loc"], (k["t"], p)
-				assert c["scale"] == 1 and c["root"] == k.get("golem_root_z", 0), k["t"]
-		assert gk[0]["scale"] == 0 and gk[data["moves"]["golem"]["end"]]["scale"] == 0, "the golem shows outside its move"
-		assert all(len([c for c in f if c.endswith(":r0")]) == 15 for _, f in g_frames), "a golem block without keys"
+					assert [c["%s:r%d" % (p, i)] for i in range(3)] == k["golem"][p]["rot"], (name, t, p)
+					assert [c["%s:l%d" % (p, i)] for i in range(3)] == k["golem"][p]["loc"], (name, t, p)
+				assert c["scale"] == 1 and c["root"] == k.get("golem_root_z", 0), (name, t)
+		first = lambda n: tracks[n][0][0][1]["scale"]  # noqa: E731
+		last = lambda n: tracks[n][0][-1][1]["scale"]  # noqa: E731
+		assert first("golem") == 0 and last("golem") == 1 and first("golem_fall") == 1 and last("golem_fall") == 0, "golem scale ends"
+		assert tracks["golem_slam"][3] == 3.6 and tracks["golem_sweep"][3] == 4.2 and tracks["golem_idle"][3] == 2.4
 		for name, (frames, *_rest) in moves.items():
 			assert all(set(f[1]) == set(bind) for f in frames), f"{name}: a part without keys"
 		# her floor offset: her lowest point sits on the arena floor plus the hover; the golem stands on that floor beside her
@@ -695,9 +1023,12 @@ def main():
 			"golem_scale": golem_scale,
 			"golem_anchor": anchor,
 			"golem_yaw": yaw,
+			"slot_at": slot_at,
+			"first_hit": slam,
 		}
 		print(f"BAKE scale {scale:.4f} studs/unit, golem {golem_h:.3f} units x {golem_scale:.4f} = {golem_h * golem_scale:.1f} studs, anchor {anchor}")
-		write_luau(mage, bind, moves, {"bind": gbind, "frames": g_frames, "pinned": g_pinned}, consts)
+		print(f"BAKE cycle {cycle_s:.3f} s, golem slot {slot_at:.3f} s")
+		write_luau(mage, bind, moves, {"bind": gbind, "tracks": tracks}, consts)
 		print("BAKE self-check passed")
 
 
