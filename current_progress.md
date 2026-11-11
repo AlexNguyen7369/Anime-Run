@@ -154,8 +154,9 @@
 150. 2026-11-11 — Alex Nguyen — Drew the Elf Mage and golem models, colosseum draft with a size comparison, UI digital art and key frames for 4 moves on task branches (not merged) and published them for the owner's approval.
 151. 2026-11-11 — Alex Nguyen — Verified the Elf Mage in Studio (targeted server and UI scenarios, one live event per boss) and fixed her descent time, the Dodge bar icon on a boss change and the golem's broken FistL appearance (fd8c141, c7b7ed8 on orch/boss-mage/verify).
 152. 2026-11-11 — Alex Nguyen — Studio round 2 on the Elf Mage: camera carried round her small ring (in frame at 46 and 800 studs/s), exhaustion view Down 22, smaller hit effects without smoke at her, golem moved inside the kerb (6aaf79c, 226d6bd).
+153. 2026-11-11 — Alex Nguyen — Built the Elf Mage boss end to end (bake and uploads, server pick and rhythm-circle judge, colosseum, rig, VFX, UI, tests), fixed the small-ring camera, exhaustion view, hit smoke and golem spot from Studio captures, and pushed feature/alex/boss-mage with targeted boss scenarios green.
 
 ## What's next
-**Test-writer updates `boss_mage_arena` `wait_camera_down_32` to the proposed Down 22, then the owner rules on the round-2 proposed values (camera spin at 800 studs/s, Down 22, hit effects 0.4 x, golem 42 studs out).**
+**Owner plays `/boss mage` and rules on the open Elf Mage questions (`docs/OWNER_QUESTIONS.md` 2026-11-11), then run the full harness and open the boss-mage PR into main (m12).**
 
-**Why this is next:** `boss_mage_arena` is the only red check left on `orch/boss-mage/verify`, and the merge into `feature/alex/boss-mage` waits on it and the owner's look rulings.
+**Why this is next:** real key and click dodges, the spin at high speed and phones were not confirmed by a person, and the PR needs the goal-level harness and the owner's rulings on the proposed defaults.

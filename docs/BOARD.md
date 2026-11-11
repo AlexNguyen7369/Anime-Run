@@ -6,10 +6,12 @@
 - boss-event b5: event server
 
 ## Next
+- boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio
 - 2026-11-10 hud-tech h1 gold frame tiles, L2 left block, Tile and Boss icons (c722398, 0a2ef57): ui_buttons 14/0, ui_hud 16/0, ui_layout 838/95 (pre-h1 reds), audit PASS; exhaustion eye 160 up, 13 deg (74eb084, boss_event not run)
 - 2026-11-10 boss audit: flat boss image removed, running camera 75 / 26 / 6, boss mesh preload, BossScale 0.75; owner approved from Studio screenshots; no harness run (owner: targeted tests only); exhaustion-view arch post (OWNER_QUESTIONS item 4) open
 - 2026-11-06 boss-polish Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera: `[CARTEST]` 55 of 55, `[UITEST]` pass=50 fail=6 (reds in handoff, re-run stopped on the owner's word), audit PASS round 3
