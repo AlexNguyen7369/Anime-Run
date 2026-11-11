@@ -26,6 +26,7 @@ local UiLegacyControls = require(script.Parent:WaitForChild("UiLegacyControls"))
 local UiDuel = require(script.Parent:WaitForChild("UiDuel"))
 local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
+local AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
@@ -823,19 +824,79 @@ end
 
 -- An Index-frame panel (AnimeSkin.IndexFrame: a UiSpec.BandPanels panel or a duel panel) writes its children's pixel
 -- offsets and sizes from its own k = panel width / frame width (g.px / g.Place) for the live window. At a simulated
--- viewport they follow the simulated k: the factor k sim / k live (1 on the live viewport and for any other node).
-local function frameK(obj, ctx)
+-- viewport: k sim / k live (nil on the live viewport and for any other node).
+local function frameRatio(obj, ctx)
 	local path = pathOf(obj)
 	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
-		return 1
+		return nil
 	end
 	local liveW = UiResponsive.FrameSize(viewport())
 	local simW = UiResponsive.FrameSize(ctx.vp)
 	local liveK = obj.AbsoluteSize.X / liveW
 	if liveK <= 0 then
-		return 1
+		return nil
 	end
 	return simRect(obj, ctx).w / simW / liveK
+end
+
+-- What an Index frame's layout hooks write. Scaling the live values by k sim / k live is not enough: the hooks place
+-- content in frame units from g.W / g.Small (1200 wide live, 650 on a phone), so the model reads the frame laid out
+-- at the simulated size instead (AnimeSkin g.MeasureAt), into ctx.measured[instance][property].
+local MEASURED = {
+	GuiObject = { "Size", "Position", "AnchorPoint", "Visible" },
+	UIGridLayout = { "CellSize", "CellPadding" },
+	UIListLayout = { "Padding" },
+	UIPadding = { "PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom" },
+}
+
+-- obj's property `name` at ctx.vp: the measured value inside a measured Index frame, else the live one.
+local function prop(obj, name, ctx)
+	local values = ctx.measured and ctx.measured[obj]
+	local value = values and values[name]
+	if value == nil then
+		return obj[name]
+	end
+	return value
+end
+
+-- True when obj is an Index-frame panel measured at ctx.vp (measured on first use, once per ctx).
+local function measuredFrame(obj, ctx)
+	ctx.measuredPanels = ctx.measuredPanels or {}
+	local done = ctx.measuredPanels[obj]
+	if done ~= nil then
+		return done
+	end
+	ctx.measuredPanels[obj] = false
+	local g = AnimeSkin.Frames[obj]
+	if not g or frameRatio(obj, ctx) == nil then
+		return false
+	end
+	local r = simRect(obj, ctx)
+	ctx.measured = ctx.measured or {}
+	g.MeasureAt(ctx.vp, r.w, r.h, function()
+		for _, d in obj:GetDescendants() do
+			for class, names in MEASURED do
+				if d:IsA(class) then
+					local values = {}
+					for _, name in names do
+						values[name] = d[name]
+					end
+					ctx.measured[d] = values
+				end
+			end
+		end
+	end)
+	ctx.measuredPanels[obj] = true
+	return true
+end
+
+-- The factor on an Index-frame panel's children's offsets at ctx.vp: 1 once measured there (they are its px), else
+-- k sim / k live (1 on the live viewport and for any other node).
+local function frameK(obj, ctx)
+	if measuredFrame(obj, ctx) then
+		return 1
+	end
+	return frameRatio(obj, ctx) or 1
 end
 
 -- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by),
@@ -884,7 +945,9 @@ local function variantProps(obj, ctx)
 	if otherVariant(ctx.vp) then
 		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
 	end
-	return props.Size or obj.Size, props.Position or obj.Position, props.AnchorPoint or obj.AnchorPoint
+	return props.Size or prop(obj, "Size", ctx),
+		props.Position or prop(obj, "Position", ctx),
+		props.AnchorPoint or prop(obj, "AnchorPoint", ctx)
 end
 
 -- UiResponsive.LiveAutoSize: an AutomaticSize node whose content does not depend on the viewport.
@@ -956,7 +1019,7 @@ end
 -- The area children are laid out in: a ScrollingFrame's canvas (moved by CanvasPosition; as wide and tall as the
 -- window, AutomaticCanvasSize only grows it downwards) minus the parent's UIPadding (its offsets are design pixels
 -- scaled by the parent's inherited UIScale c, its scales relative to that area).
-local function contentBox(parent, pr, c)
+local function contentBox(parent, pr, c, ctx)
 	local base = pr
 	if parent:IsA("ScrollingFrame") then
 		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, pr.w, pr.h)
@@ -966,18 +1029,18 @@ local function contentBox(parent, pr, c)
 		local function px(u, extent)
 			return extent * u.Scale + c * u.Offset
 		end
-		local l, r = px(pad.PaddingLeft, base.w), px(pad.PaddingRight, base.w)
-		local t, b = px(pad.PaddingTop, base.h), px(pad.PaddingBottom, base.h)
+		local l, r = px(prop(pad, "PaddingLeft", ctx), base.w), px(prop(pad, "PaddingRight", ctx), base.w)
+		local t, b = px(prop(pad, "PaddingTop", ctx), base.h), px(prop(pad, "PaddingBottom", ctx), base.h)
 		base = R(base.x + l, base.y + t, base.w - l - r, base.h - t - b)
 	end
 	return base
 end
 
 -- The visible GuiObject children a layout arranges, in its order.
-local function layoutItems(parent, layout)
+local function layoutItems(parent, layout, ctx)
 	local items = {}
 	for _, ch in parent:GetChildren() do
-		if ch:IsA("GuiObject") and ch.Visible then
+		if ch:IsA("GuiObject") and prop(ch, "Visible", ctx) then
 			table.insert(items, ch)
 		end
 	end
@@ -1023,7 +1086,7 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 	end
 	-- Offsets are design pixels: the inherited UIScale factor `scale` applies to them. On the other variant than the live
 	-- one the cell size comes from the model (UiResponsive.Grids), else from the live UIGridLayout.
-	local cellSize = grid.CellSize
+	local cellSize = prop(grid, "CellSize", ctx)
 	local gridModel = UiResponsive.Grids[pathOf(parent)]
 	if gridModel and otherVariant(ctx.vp) then
 		local variant = UiResponsive.VariantOf(ctx.vp)
@@ -1036,9 +1099,10 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 	end
 	local cw = base.w * cellSize.X.Scale + scale * cellSize.X.Offset
 	local ch = base.h * cellSize.Y.Scale + scale * cellSize.Y.Offset
-	local px = base.w * grid.CellPadding.X.Scale + scale * grid.CellPadding.X.Offset
-	local py = base.h * grid.CellPadding.Y.Scale + scale * grid.CellPadding.Y.Offset
-	local items = layoutItems(parent, grid)
+	local padding = prop(grid, "CellPadding", ctx)
+	local px = base.w * padding.X.Scale + scale * padding.X.Offset
+	local py = base.h * padding.Y.Scale + scale * padding.Y.Offset
+	local items = layoutItems(parent, grid, ctx)
 	local idx = table.find(items, obj)
 	if not idx then
 		return R(base.x, base.y, 0, 0)
@@ -1071,10 +1135,11 @@ local function listCell(obj, parent, list, base, ctx, scale)
 		ctx.unsupported[pathOf(list)] = "UIListLayout Wraps / flex"
 	end
 	local vertical = list.FillDirection == Enum.FillDirection.Vertical
-	local items = layoutItems(parent, list)
+	local items = layoutItems(parent, list, ctx)
 	local railGap = backpackRailGap(parent, ctx)
 	local gap = railGap and scale * railGap
-		or (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
+		or (vertical and base.h or base.w) * prop(list, "Padding", ctx).Scale
+			+ scale * prop(list, "Padding", ctx).Offset
 	local sizes, total, before = {}, 0, nil
 	for k, item in items do
 		local size = variantProps(item, ctx)
@@ -1106,17 +1171,18 @@ autoHeight = function(obj, w, h, ctx, c)
 	if cached then
 		return cached
 	end
-	local inner = contentBox(obj, R(0, 0, w, h), c)
+	local inner = contentBox(obj, R(0, 0, w, h), c, ctx)
 	local content = 0
 	local grid = obj:FindFirstChildWhichIsA("UIGridLayout")
 	local list = obj:FindFirstChildWhichIsA("UIListLayout")
 	if grid then
-		local items = layoutItems(obj, grid)
+		local items = layoutItems(obj, grid, ctx)
 		if #items > 0 then
-			local cw = inner.w * grid.CellSize.X.Scale + c * grid.CellSize.X.Offset
-			local ch = inner.h * grid.CellSize.Y.Scale + c * grid.CellSize.Y.Offset
-			local px = inner.w * grid.CellPadding.X.Scale + c * grid.CellPadding.X.Offset
-			local py = inner.h * grid.CellPadding.Y.Scale + c * grid.CellPadding.Y.Offset
+			local cell, padding = prop(grid, "CellSize", ctx), prop(grid, "CellPadding", ctx)
+			local cw = inner.w * cell.X.Scale + c * cell.X.Offset
+			local ch = inner.h * cell.Y.Scale + c * cell.Y.Offset
+			local px = inner.w * padding.X.Scale + c * padding.X.Offset
+			local py = inner.h * padding.Y.Scale + c * padding.Y.Offset
 			local cols = math.max(1, math.floor((inner.w + px) / (cw + px) + K.GRID_FIT_EPS))
 			if grid.FillDirectionMaxCells > 0 then
 				cols = math.min(cols, grid.FillDirectionMaxCells)
@@ -1125,18 +1191,19 @@ autoHeight = function(obj, w, h, ctx, c)
 			content = rows * ch + (rows - 1) * py
 		end
 	elseif list then
-		local items = layoutItems(obj, list)
+		local items = layoutItems(obj, list, ctx)
 		local vertical = list.FillDirection == Enum.FillDirection.Vertical
 		local railGap = backpackRailGap(obj, ctx)
 		local gap = railGap and c * railGap
-			or (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
+			or (vertical and inner.h or inner.w) * prop(list, "Padding", ctx).Scale
+				+ c * prop(list, "Padding", ctx).Offset
 		for k, item in items do
 			local _, ih = sizeIn(item, variantProps(item, ctx), inner, ctx, c)
 			content = vertical and content + ih + (k < #items and gap or 0) or math.max(content, ih)
 		end
 	else
 		for _, child in obj:GetChildren() do
-			if child:IsA("GuiObject") and child.Visible then
+			if child:IsA("GuiObject") and prop(child, "Visible", ctx) then
 				local size, position, anchor = variantProps(child, ctx)
 				local _, ih = sizeIn(child, size, inner, ctx, c)
 				content = math.max(content, inner.h * position.Y.Scale + c * position.Y.Offset - anchor.Y * ih + ih)
@@ -1263,7 +1330,7 @@ simRect = function(obj, ctx)
 		if obj.AutomaticSize ~= Enum.AutomaticSize.None and not liveAutoSized(obj) and not solvedAutoY(obj) then
 			ctx.unsupported[pathOf(obj)] = "AutomaticSize"
 		end
-		local base = parent:IsA("GuiObject") and contentBox(parent, pr, c) or pr
+		local base = parent:IsA("GuiObject") and contentBox(parent, pr, c, ctx) or pr
 		local grid = parent:FindFirstChildWhichIsA("UIGridLayout")
 		local list = parent:FindFirstChildWhichIsA("UIListLayout")
 		if grid then
@@ -4207,7 +4274,7 @@ function K.textScale(label, ctx)
 	local s, node = 1, label
 	while node and not node:IsA("LayerCollector") do
 		if ctx.vp then
-			s *= ownScale(node, ctx) * frameK(node, ctx) -- an Index frame's TextSizes are g.px too
+			s *= ownScale(node, ctx) * (frameRatio(node, ctx) or 1) -- an Index frame's TextSizes are g.px too (live)
 		else
 			for _, child in node:GetChildren() do
 				if child:IsA("UIScale") and not UiSpec.TransientScales[child.Name] then
@@ -4383,8 +4450,8 @@ function S.ui_layout(res)
 				end
 				checkList(res, "toast_clear_of_top_right_row_" .. vpSpec.Name, overRow)
 				-- Design doc 4.40 "HUD layout" (split L/R): NavButtons 1..ColumnSize are the left column (Index, Items,
-				-- Rebirth) at most NavMaxLeftGap from the screen's left edge, the rest the right column (Quests, Shop,
-				-- Market) at most NavMaxLeftGap from its right edge. Each column shares one x and stacks top to bottom
+				-- Rebirth) at most NavMaxLeftGap from the screen's left edge, the next RightColumnSize the right column (Quests,
+				-- Shop; Market is a top-right pill) at most NavMaxLeftGap from its right edge. Each column shares one x and stacks top to bottom
 				-- 0..ColumnGap apart (a phone's UIScale only shrinks it); every button is Cell x its holder's UIScale.
 				local colSize, colGap = UiSpec.Hud.ColumnSize, UiSpec.Hud.ColumnGap
 				local tileRects, gridWrong = {}, {}
@@ -4399,8 +4466,23 @@ function S.ui_layout(res)
 				local function gapOk(g)
 					return g >= -TOL and g <= colGap + TOL
 				end
-				if #UiSpec.Hud.NavButtons ~= 2 * colSize then
-					table.insert(gridWrong, ("%d NavButtons, want %d"):format(#UiSpec.Hud.NavButtons, 2 * colSize))
+				local wantButtons = colSize + UiSpec.Hud.RightColumnSize
+				if #UiSpec.Hud.NavButtons ~= wantButtons then
+					table.insert(gridWrong, ("%d NavButtons, want %d"):format(#UiSpec.Hud.NavButtons, wantButtons))
+				end
+				-- each column holds exactly its buttons (Market left the right column, design doc 4.40)
+				for holderPath, want in
+					{ [UiSpec.Hud.Grid] = colSize, [UiSpec.Hud.ShopColumn] = UiSpec.Hud.RightColumnSize }
+				do
+					local count = 0
+					for _, c in findPath(holderPath) and findPath(holderPath):GetChildren() or {} do
+						if c:IsA("GuiButton") then
+							count += 1
+						end
+					end
+					if count ~= want then
+						table.insert(gridWrong, ("%s holds %d buttons, want %d"):format(holderPath, count, want))
+					end
 				end
 				if #gridWrong == 0 then
 					for i, r in tileRects do
@@ -4411,7 +4493,7 @@ function S.ui_layout(res)
 						if math.abs(r.w - want.X) > TOL or math.abs(r.h - want.Y) > TOL then
 							table.insert(gridWrong, ("%s%s not the %gx%g cell"):format(path, rstr(r), want.X, want.Y))
 						end
-						if (i - 1) % colSize ~= 0 then
+						if i ~= 1 and i ~= colSize + 1 then -- not the top of a column
 							local above = tileRects[i - 1]
 							local g = r.y - (above.y + above.h)
 							if math.abs(r.x - above.x) > TOL or not gapOk(g) then
@@ -5012,7 +5094,7 @@ function S.ui_buttons(res)
 	-- Design doc 4.40 (owner 2026-11-10): on keyboard each column button shows its keybind letter in a TextLabel Key, in
 	-- the tile's top-right quarter, clear of the tile's label text
 	if UserInputService.KeyboardEnabled then
-		local keyLetters = { "X", "B", "R", "Q", "P", "M" }
+		local keyLetters = { "X", "B", "R", "Q", "P" }
 		local badKeys = {}
 		for index, path in UiSpec.Hud.NavButtons do
 			local tile = findPath(path)
@@ -5059,25 +5141,67 @@ function S.ui_buttons(res)
 		end
 		checkList(res, "hud_tile_keys", badKeys)
 	end
-	-- Design doc 4.40: TopRight holds exactly the Daily pill and the Settings button (Market is in the right column)
+	-- Design doc 4.40 "Market pill and Bosses button": TopRight holds exactly the Daily and Market pills and the
+	-- Settings button, in that LayoutOrder (left to right)
 	local topRight = findPath(UiSpec.Hud.TopRight)
-	local topNames = {}
+	local topItems = {}
 	for _, c in topRight and topRight:GetChildren() or {} do
 		if c:IsA("GuiObject") then
-			table.insert(topNames, c.Name)
+			table.insert(topItems, c)
 		end
 	end
-	table.sort(topNames)
-	local wantTop = table.clone(UiSpec.Hud.TopRightButtons)
-	table.sort(wantTop)
+	table.sort(topItems, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	local topNames = {}
+	for _, c in topItems do
+		table.insert(topNames, c.Name)
+	end
+	local wantTop = table.concat(UiSpec.Hud.TopRightButtons, ", ")
 	local gotTop = topRight and table.concat(topNames, ", ") or "missing"
-	check(
-		res,
-		"top_right_only_daily_settings",
-		gotTop,
-		table.concat(wantTop, ", "),
-		gotTop == table.concat(wantTop, ", ")
-	)
+	check(res, "top_right_only_daily_market_settings", gotTop, wantTop, gotTop == wantTop)
+	-- The Market pill is built as the Daily pill: same class, size, colour, icon size, caption font and size; its icon
+	-- HudIcons.Market, its caption "Market", no key letter shown (as Daily; the M key still opens it)
+	local daily, market = findPath(UiSpec.Hud.Daily), findPath(UiSpec.Hud.Market)
+	local pillWrong = {}
+	if not (daily and market) then
+		table.insert(pillWrong, (daily and "" or "Daily missing ") .. (market and "" or "Market missing"))
+	else
+		local function same(what, a, b)
+			if a ~= b then
+				table.insert(pillWrong, ("%s: Market %s, Daily %s"):format(what, tostring(b), tostring(a)))
+			end
+		end
+		same("class", daily.ClassName, market.ClassName)
+		same("Size", daily.Size, market.Size)
+		same("BackgroundColor3", daily.BackgroundColor3, market.BackgroundColor3)
+		same("BackgroundTransparency", daily.BackgroundTransparency, market.BackgroundTransparency)
+		local di, mi = daily:FindFirstChild("Icon"), market:FindFirstChild("Icon")
+		local dc, mc = daily:FindFirstChild("Caption"), market:FindFirstChild("Caption")
+		if not (di and mi and dc and mc) then
+			table.insert(pillWrong, "Icon / Caption missing on Daily or Market")
+		else
+			same("Icon Size", di.Size, mi.Size)
+			same("Icon Position", di.Position, mi.Position)
+			same("Caption Font", dc.Font, mc.Font)
+			same("Caption TextSize", dc.TextSize, mc.TextSize)
+			same("Caption TextColor3", dc.TextColor3, mc.TextColor3)
+			if mi.Image ~= HudIcons.Market.Image then
+				table.insert(
+					pillWrong,
+					("Icon Image %s, want HudIcons.Market %s"):format(mi.Image, HudIcons.Market.Image)
+				)
+			end
+			if mc.Text ~= "Market" then
+				table.insert(pillWrong, ("Caption %q, want %q"):format(mc.Text, "Market"))
+			end
+		end
+		local key = market:FindFirstChild("Key", true)
+		if key and effectivelyVisible(key) then
+			table.insert(pillWrong, "Market shows a key letter (Daily shows none)")
+		end
+	end
+	checkList(res, "market_pill_like_daily", pillWrong)
 	local close = findPath("RacerIndex/Panel/Face/Header/Face/Close/Face")
 	check(
 		res,
