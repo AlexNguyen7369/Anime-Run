@@ -26,8 +26,20 @@ The table above is Raga's Treasure, Phase 1's chest. Adapted Raga's Treasure, Ph
 
 Each table sums to 100%. Luck, potions and pity do not change them. Duplicates stack as copies; one copy on one character.
 
+## The Elf Mage's drops (owner 2026-11-11; names, bonuses, odds and art all **proposed**, waiting for approval)
+Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_mage`, paid at her defeat; no Sidekick roll.
+
+| Rarity | Odds | Id | Name (proposed) | Bonuses |
+|---|---|---|---|---|
+| Common | 55% | `relic_helmet` | Dwarf's Helmet | +3% Attack Speed |
+| Rare | 28% | `relic_bracelet` | Hero's Bracelet | +6% Luck |
+| Epic | 12% | `relic_staff` | Elf Staff (the Dodge bar's staff art) | +10% Attack Speed, +10% Luck |
+| Legendary | 4% | `relic_flask` | Priest's Flask | +15% Attack Speed, +15% Luck, +4% Damage |
+| Mythic | 0.9% | `relic_grimoire` | Master's Grimoire | +22% Attack Speed, +22% Luck, +6% Damage, +6% Money |
+| Secret | 0.1% | `relic_world_core` | World Core (universal) | +15% in all 6 stats |
+
 ## Chests (owner 2026-11-06)
-Saved as rows of `Relics`, ids `relic_chest_raga` and `relic_chest_adapted`, in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic and the Sidekick chance at its table on the server. The Sidekick may overflow the bag, as before.
+Saved as rows of `Relics`, ids `relic_chest_raga`, `relic_chest_adapted` and `relic_chest_mage` (owner 2026-11-11), in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic and the Sidekick chance at its table on the server (`relic_chest_mage` has no Sidekick chance, **proposed**). The Sidekick may overflow the bag, as before.
 
 In the Relics tab a chest shows its art and quantity; its menu offers Open and its odds. No equip, sale or Index tile (**proposed**). Opening uses the 1x summon reveal (`Client/SidekickReveal`), with the chest image still (no shake) and the Relic's drawn art as the result.
 

@@ -95,3 +95,14 @@ Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for 
 10. Load at join: her pose data (269 KB) loads at join, like Big Raga's today, against section 7 "Join size". The fix rides on the unmerged lazy-data branch. Merge that next, or accept for now?
 11. Gamepad players cannot press the rhythm circles (click or tap only), so they always take the golem slam. Add a gamepad path?
 
+
+## 2026-11-11 boss-mage-2: defaults taken for the Stone Golem miniboss and the cards (all proposed, change any)
+1. Golem HP is a flat 1,000, not per player. Her HP is 7,500 per player, so the golem falls in a few seconds with a full arena. Flat, or 1,000 per player?
+2. The golem attacks every 5 s, slam then sweep.
+3. The event's 8 minute timer keeps running while the golem stands, and a timeout with it standing pays nothing.
+4. Vulnerable applies to golem hits, as on her moves.
+5. Her HP bar dims while she is immune; the golem's bar is about 60% of her bar's size.
+6. Rhythm: 3 circles, +/- 0.28 s, circle 14.5% of the screen height (19% on phones), all 3 needed.
+7. Lightning and barrage keep their 10 strikes (4 under REDUCED EFFECTS), now spread over the 2 s window. More strikes?
+8. Bosses cards: the server picks the next boss when it schedules the event, so one dimmed card can show "Next event in m:ss". Without that, no card can name the next boss.
+9. Her Relics favour attack speed and luck. Names: Dwarf's Helmet, Hero's Bracelet, Elf Staff, Priest's Flask, Master's Grimoire. Odds as Big Raga's Phase 1 table. Her chest has no Sidekick roll.

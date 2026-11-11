@@ -4,8 +4,10 @@
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
+- boss-mage-2 g0-g3: rules, card drafts, key-frame slices, Relic art (2026-11-11)
 
 ## Next
+- boss-mage-2 g1-g3: owner approves the Bosses card draft, the new key-frame slices and her Relic art; then g4-g6 (server, client, bake)
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity

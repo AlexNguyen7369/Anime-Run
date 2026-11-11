@@ -245,3 +245,18 @@ Deliverables:
 - m11 | Client: colosseum, hovering boss, golem, staff Dodge bar, rhythm circles, VFX | `boss_anim`, `ui_boss_dodge`, `ui_boss_osu` green; owner look in Studio
 - m12 | Compatibility check | boss scenarios and rules audit reported, then a PR with a fresh review
 Out of scope: Phase 2, her Relics, chest and Sidekick until the owner rules on them, changes to Big Raga's event.
+
+## boss-mage-2: Elf Mage fixes: 2 s attacks, Stone Golem miniboss, boss cards, her Relics (owner 2026-11-11)
+Status: active
+Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/peaceful-fluttering-mist.md`)
+Branch: feature/alex/boss-mage
+Spec: design doc 4.37 Second boss, 4.38, docs/BOSS_EVENT_SPEC.md "The Elf Mage" and "Bosses cards", docs/RELIC_SPEC.md "The Elf Mage's drops"
+Deliverables:
+- g0 | Rules written, dated | design doc and specs updated; rules audit PASS
+- g1 | Bosses card screen: 3 drafts | owner picks one
+- g2 | Key-frame slices: lightning and barrage 2 s windows, golem idle, sweep, fall, her watch | owner approves each move
+- g3 | Relic proposal and art sheet (5 Relics, 1 chest) | owner approves names, stats and art; no upload before that
+- g4 | Server: 2 s windows, golem with HP, sweep, easier rhythm, her chest | `boss_mage_event`, `boss_mage_anim`, `relics` green, tests red first
+- g5 | Client: strikes over 2 s, golem HP bar and moves, card screen | `ui_boss_mage*`, `ui_boss_osu`, `ui_boss_paid` green; owner look in Studio
+- g6 | In-betweens, bake, uploads | approved keys unchanged; upload scripts' `main()` guards checked first
+Out of scope: Phase 2, her Sidekick, Big Raga's event rules, m12's PR.
