@@ -1,5 +1,6 @@
 --!nonstrict
 -- Test-first progression UI contract. No gameplay calls; state comes from the server.
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
@@ -275,7 +276,7 @@ function Progression.Build(h)
 			local rect, vp = h.provider(vpSpec)
 			for _, name in { "Upgrades", "Workshop" } do
 				local panel = h.find("Racer" .. name .. "/Panel")
-				local race, turbo = h.find(Spec.Hud.Race), h.find(Spec.Hud.Turbo)
+				local race, turbo = h.find(Spec.Band.Race), h.find(Spec.Hud.Turbo)
 				local lower = string.lower(name) .. "_" .. vpSpec.Name
 				if Spec.FullScreenPanels["Racer" .. name .. "/Panel"] then
 					-- Owner 2026-10-26 (HUD_LAYOUT_SPEC sections 1 and 6): a full-screen overlay, exempt from the band
@@ -296,8 +297,13 @@ function Progression.Build(h)
 					local p, a, t = rect(panel), rect(race), rect(turbo)
 					-- Owner 2026-10-28 (HUD_LAYOUT_SPEC section 6): the compact roll HIDES while a panel is open, so
 					-- the panel no longer has to clear it (ui_toast checks the hiding). The panel opens in the
-					-- PanelBand: top at least Band.Gap below the Race button (Client/PanelBand.Rect).
-					local bandTop = a.y + a.h + Spec.Band.Gap
+					-- PanelBand (Client/PanelBand.Rect, design doc 4.42 "Panel size"): top ReachUp above the hidden Race
+					-- anchor's bottom + Band.Gap, never above inset + Band.Gap; bottom ReachDown above the TURBO bar.
+					local bandTop = math.max(
+						GuiService:GetGuiInset().Y + Spec.Band.Gap,
+						a.y + a.h + Spec.Band.Gap - Spec.Band.ReachUp
+					)
+					local bandBottom = t.y - Spec.Band.ReachDown
 					h.check(
 						res,
 						"panel_in_band_top_" .. string.lower(name) .. "_" .. vpSpec.Name,
@@ -309,15 +315,15 @@ function Progression.Build(h)
 						res,
 						"panel_below_race_" .. string.lower(name) .. "_" .. vpSpec.Name,
 						p.y,
-						a.y + a.h + Spec.PanelTopMargin,
-						p.y >= a.y + a.h + Spec.PanelTopMargin - Spec.Tolerance
+						">= " .. bandTop,
+						p.y >= bandTop - Spec.Tolerance
 					)
 					h.check(
 						res,
 						"panel_above_turbo_" .. string.lower(name) .. "_" .. vpSpec.Name,
 						p.y + p.h,
-						t.y,
-						p.y + p.h <= t.y - Spec.PanelTopMargin + Spec.Tolerance
+						"<= " .. bandBottom,
+						p.y + p.h <= bandBottom + Spec.Tolerance
 					)
 					h.check(
 						res,

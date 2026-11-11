@@ -1780,7 +1780,10 @@ local function allText(obj)
 	-- The Rebirth tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
 	local badge = findPath(UiSpec.Hud.PointsBadge)
 	for _, o in { obj, table.unpack(obj:GetDescendants()) } do
-		local inBadge = o.Name == "PointsBadge" or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
+		-- HudChrome badge(): every tile's red count badge is a TextLabel named Badge, not the label either
+		local inBadge = o.Name == "PointsBadge"
+			or o.Name == "Badge"
+			or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
 		if not inBadge and (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text ~= "" and o.Visible then
 			table.insert(list, o.Text)
 		end
@@ -4211,6 +4214,7 @@ function S.ui_layout(res)
 						if
 							(l:IsA("TextLabel") or l:IsA("TextBox"))
 							and effectivelyVisible(l)
+							and not UiSpec.TransientLabels[l.Name] -- owner 2026-11-10: the "+$" float is exempt
 							and not l:FindFirstAncestorWhichIsA("GuiButton")
 							and not K.phoneHidden(pathOf(l), vp)
 						then
@@ -4508,20 +4512,8 @@ function S.ui_layout(res)
 					if p and race and turbo and nav and raceBox and money then
 						local gap = UiSpec.RacerPanelBand.Gap
 						local r, root = rectOf(p), rootRect(guiOf(p), vp)
-						local ar, br = rectOf(race), rectOf(turbo)
+						local br, anchor = rectOf(turbo), rectOf(raceBox)
 						local cx, cy = centre(r)
-						local dx = math.abs(cx - (root.x + root.w / 2))
-						check(res, prefix .. "_centred_x" .. tagV, dx, TOL, dx <= TOL)
-						local minTop = ar.y + ar.h + gap
-						check(res, prefix .. "_below_autorace" .. tagV, r.y, ">= " .. minTop, r.y >= minTop - TOL)
-						local maxBottom = br.y - gap
-						check(
-							res,
-							prefix .. "_above_turbo" .. tagV,
-							r.y + r.h,
-							"<= " .. maxBottom,
-							r.y + r.h <= maxBottom + TOL
-						)
 						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
 						-- with Visible = true, as PanelBand.Rect reads it
 						local parts = {}
@@ -4531,13 +4523,27 @@ function S.ui_layout(res)
 							end
 						end
 						local left, top, right, bottom = UiShopMarket.Band(vp, {
-							Race = rectOf(raceBox),
+							Race = anchor,
 							Turbo = br,
 							Navigation = rectOf(nav),
 							NavigationParts = parts,
 							Money = rectOf(money),
 							MoneyShown = money:IsA("GuiObject") and money.Visible,
 						})
+						-- Design doc 4.40: panels centre in the band right of the block, not on the screen
+						local dx = math.abs(cx - (left + right) / 2)
+						check(res, prefix .. "_centred_x" .. tagV, dx, TOL, dx <= TOL)
+						-- Design doc 4.42 "Panel size": the band top (ReachUp over the Race anchor + Gap, PanelBand.Rect)
+						local minTop = math.max(inset().Y + gap, anchor.y + anchor.h + gap - UiSpec.Band.ReachUp)
+						check(res, prefix .. "_below_autorace" .. tagV, r.y, ">= " .. minTop, r.y >= minTop - TOL)
+						local maxBottom = br.y - UiSpec.Band.ReachDown
+						check(
+							res,
+							prefix .. "_above_turbo" .. tagV,
+							r.y + r.h,
+							"<= " .. maxBottom,
+							r.y + r.h <= maxBottom + TOL
+						)
 						check(
 							res,
 							prefix .. "_clear_of_nav" .. tagV,
@@ -5007,7 +5013,13 @@ function S.ui_hud(res)
 		local pr = realRect(hudPanel)
 		local outside = {}
 		for _, l in hudPanel:GetDescendants() do
-			if l:IsA("TextLabel") and l.Visible and not contains(pr, realRect(l)) then
+			-- owner 2026-11-10: the transient "+$" float (UiSpec.TransientLabels) is exempt
+			if
+				l:IsA("TextLabel")
+				and l.Visible
+				and not UiSpec.TransientLabels[l.Name]
+				and not contains(pr, realRect(l))
+			then
 				table.insert(outside, pathOf(l) .. rstr(realRect(l)) .. " outside " .. rstr(pr))
 			end
 		end

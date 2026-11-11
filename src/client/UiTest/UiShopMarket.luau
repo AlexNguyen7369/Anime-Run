@@ -4,6 +4,7 @@
 -- their geometry at every UiSpec viewport, and the post-conditions of the shop_* / market_* clicks. Owned by
 -- ui-test-writer. Nothing here invokes a remote; the clicks do (UiSpec.Clicks, purchases only through the spy proxy).
 
+local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -17,11 +18,13 @@ local ShopMarket = {}
 
 -- The PanelBand rect (left, top, right, bottom; screen px, inset included) from the HUD rects, as Client/PanelBand
 -- computes it: from Gap past the left tile block (and what sticks out of it) to Gap from the screen's right edge, which
--- has no HUD buttons (design doc 4.40 layout L2); Gap below the Race button; Gap above the TURBO bar, and above Money
--- when Money reaches past the band's left edge.
+-- has no HUD buttons (design doc 4.40 layout L2); top ReachUp above the Race anchor's bottom + Gap (never above
+-- inset + Gap); bottom ReachDown above the TURBO bar, and above Money when Money reaches past the band's left edge
+-- (design doc 4.42 "Panel size").
 -- d: Race, Turbo, Navigation, NavigationParts (rects of the grid's visible descendants), Money, MoneyShown.
 function ShopMarket.Band(vp, d)
 	local gap = Spec.Band.Gap
+	local inset = GuiService:GetGuiInset().Y
 	local gridRight = d.Navigation.x + d.Navigation.w
 	for _, r in d.NavigationParts or {} do
 		gridRight = math.max(gridRight, r.x + r.w)
@@ -31,7 +34,8 @@ function ShopMarket.Band(vp, d)
 	if d.MoneyShown and d.Money and d.Money.x + d.Money.w > left then
 		bottom = math.min(bottom, d.Money.y)
 	end
-	return left, d.Race.y + d.Race.h + gap, vp.X - gap, bottom - gap
+	local top = math.max(inset + gap, d.Race.y + d.Race.h + gap - Spec.Band.ReachUp)
+	return left, top, vp.X - gap, bottom - Spec.Band.ReachDown
 end
 
 -- Client/PanelBand.Fit for the layout solver: centred in the band, at most maxWidth wide, never larger than the band.
