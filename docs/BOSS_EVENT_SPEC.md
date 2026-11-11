@@ -142,7 +142,7 @@ Design doc 4.37 "Second boss". Ids `boss_mage` (model), `boss_golem` (her golem)
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.
 
 ## Saved data
-`VERSION` 14 to 18 add `Gems`, `Sidekicks`, `CharacterGear`, `Relics`, `RelicGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/relic`, `/relics` (one of every Relic, owner 2026-11-06).
+`VERSION` 14 to 18 add `Gems`, `Sidekicks`, `CharacterGear`, `Relics`, `RelicGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/elfboss` (starts The Elf Mage's event, owner 2026-11-11), `/relic`, `/relics` (one of every Relic, owner 2026-11-06).
 
 ## Analytics
 Custom events: invite shown, teleported, defeated or timed out, spawn bought, first summon.
