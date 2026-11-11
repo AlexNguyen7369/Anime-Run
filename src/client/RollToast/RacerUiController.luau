@@ -1229,24 +1229,6 @@ task.spawn(function()
 	refreshShowcase()
 end)
 
--- Design doc 4.40 "Turbo bar and Team minibar look" (proposed): the HUD tiles' gold bevel rim around a navy track.
--- Restyled here because RacerHud is generated; names, sizes and the fill's colour stay.
-do
-	local face = hud.Turbo
-	face:FindFirstChildOfClass("UIGradient").Color =
-		ColorSequence.new(Color3.fromRGB(27, 42, 106), Color3.fromRGB(7, 11, 29))
-	local rim = face:FindFirstChildOfClass("UIStroke")
-	rim.Color = Color3.new(1, 1, 1)
-	rim.Thickness = 3.5
-	local bevel = Instance.new("UIGradient")
-	bevel.Rotation = 90
-	bevel.Color = ColorSequence.new(Color3.fromRGB(255, 230, 128), Color3.fromRGB(194, 122, 0))
-	bevel.Parent = rim
-	local outline = hud.TurboLabel:FindFirstChildOfClass("UIStroke")
-	outline.Color = UiTheme.Outline
-	outline.Thickness = 3.5
-end
-
 local turboTween
 local turboPopUntil = 0
 -- Rolls done towards the next turbo roll and how many it takes: the server's TurboCount / TurboEvery (upgrade tree),
