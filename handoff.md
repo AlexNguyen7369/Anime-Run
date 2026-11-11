@@ -2,6 +2,12 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-11, orchestrator): hud-tech pushed up to 76325db
+- Pushed on `feature/alex/anime-world`: Tab tilt icons, split L/R HUD (Index/Items/Rebirth left; Quests/Shop right), Market as a top-right pill, Bosses button with the Boss icon, key letters X B R Q P M, columns hide in boss events, 1200x620 panels, boss Versus HUD + R1 rewards, dojo with cyber accents (PlazaAccents), Saitamo pedestal (32a043c, committed on the owner's word) + label fix, no run bank (pay at each checkpoint, "Cashed out" notice), Money/Gems unboxed with Gems under Money, hybrid loading backdrop + cyan/pink bar.
+- Owner approved: dojo accents, Tab tilt split HUD, Market pill + Bosses icon (artifacts R2rirais8VST2kr1PcKjwG, BXmkHjXQaPcXy4xod9fPKD). Money/loading shots: https://claude.ai/artifact/RKmrkv3yp5KWLauU4UbDEq (not yet approved).
+- Studio: bank 33, stamina 33, world_layout 18, spawn_area 169, boss_event 1862, ui_hud 16, ui_buttons 15, ui_boss 458, ui_boss_phase2 119 pass; ui_layout 903/29 (older model drift + panel-internal text, hover transients, Quests panel phone model). `npc` not finished: Play dropped twice during its long run.
+- Open: loading backdrop image 115739952562422 (Decal 107942407857363) fails to load (likely moderation pending); navy fallback shows. Saitamo MYTHIC label and SAITAMO header overlap ("SMYTHICO"). Bosses icon small (~26 px). Old worktrees under ../AnimeRun-orch (h5, hud2, accents, tests2, fixband, fixtabs, regs, cashout, loading, rules2, badges) can be removed.
+
 ## RESUME HERE (2026-11-10 late, orchestrator): hud-tech h2/h3 pushed, badges + h5 local only
 - Pushed on `feature/alex/anime-world`: h2 1200x620 panels (d0a0256), h3 boss Versus HUD + R1 rewards + phase Share (6c3fd69). Studio: boss_event 1862, boss_arena 155 pass; ui_buttons 14/0, ui_hud 16/0, ui_layout 865/68 (older groups + h2 model 1 px, Duel aspect); ui_boss_phase2 110/8 (growth scale checks still expect 1.25, need x BossScale 0.75: test-writer).
 - LOCAL ONLY, not pushed (owner: "don't push" until approval): badges branch merged (Gold badge icons, keys X B R Q P M, Turbo/minibar gold look, minibar arc curved parallelogram, Auto triangle green). Owner APPROVED this look 2026-11-10 (artifact EBGivrQCsR7UVunb4XWNwH): may push after tests.
