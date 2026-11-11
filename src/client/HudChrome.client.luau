@@ -571,11 +571,13 @@ local function refresh()
 	-- The full-screen Upgrades tree shows no HUD through it. The Auto / Upgrade pair stays: design doc 4.27 keeps it
 	-- drawn while a panel is open, and it hides by itself where it stacks.
 	local inTree = PanelSwitch.IsOpen("Upgrades")
-	grid.Visible, shopColumn.Visible, bar.Visible = not inTree, not inTree, not inTree
+	-- Owner 2026-11-10 (design doc 4.40): in a boss event both columns hide; the pills, the pair and the event UI stay.
+	local columns = not inTree and player:GetAttribute("BossEvent") ~= true
+	grid.Visible, shopColumn.Visible, bar.Visible = columns, columns, not inTree
 	setHudDimmed(PanelSwitch.AnyOpen())
 end
 
-for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast" } do
+for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast", "BossEvent" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
 end
 for _, attr in { "QuestDailyProgress", "QuestDailyClaimed", "QuestWeeklyProgress", "QuestWeeklyClaimed" } do

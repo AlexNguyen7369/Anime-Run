@@ -922,6 +922,9 @@ UiSpec.HiddenWhilePanelOpen = {
 	["HudChrome/AutoSlot/Auto"] = "stacked",
 	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
+-- Design doc 4.40 (owner 2026-11-10, docs/BOSS_EVENT_SPEC.md): while the local player's attribute BossEvent is true,
+-- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay.
+UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/" }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
 

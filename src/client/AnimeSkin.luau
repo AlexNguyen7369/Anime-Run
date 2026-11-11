@@ -603,22 +603,34 @@ function Skin.IndexFrame(panel, parts)
 		if icon then
 			g.Place(icon, -19, -72, 188, 186)
 		end
+		-- Parts held to the right or bottom edge use Scale + offset, not W / H units: the same px here, and a layout
+		-- read at another viewport (the UI tests' model scales offsets by k) stays inside the frame.
 		local titleLeft = icon and 168 or 56
-		g.Place(titleLabel, titleLeft, -23, W - titleLeft - 110, 76)
+		titleLabel.AnchorPoint = Vector2.zero
+		titleLabel.Position = g.at(titleLeft, -23)
+		titleLabel.Size = UDim2.new(1, -g.px(titleLeft + 110), 0, g.px(76))
 		titleLabel.Rotation = -2
 		g.Role(titleLabel, "Title")
 		if close then
-			g.Place(close, W - 82, -6, 74, 74)
+			close.AnchorPoint = Vector2.zero
+			close.Position, close.Size = UDim2.new(1, -g.px(82), 0, -g.px(6)), g.at(74, 74)
 			closeArt.Position, closeArt.Size = UDim2.new(), UDim2.fromScale(1, 1)
 		end
-		g.Place(footer, W * 303 / 920, H - 60, W * 312 / 920, 28)
+		footer.AnchorPoint = Vector2.zero
+		footer.Position = UDim2.new(303 / 920, 0, 1, -g.px(60))
+		footer.Size = UDim2.new(312 / 920, 0, 0, g.px(28))
 		g.Role(footer, "Footer")
 		local tabsY = small and Skin.Units.PhoneTabsY or Skin.Units.TabsY
 		for _, buttons in tabSets do
 			local n = #buttons
-			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
+			-- Tab width = share * W + extra units (Scale + offset, as the title and close above).
+			local share = n <= 4 and 1 / 4 or 1 / n
+			local extra = n <= 4 and -34 or -(112 + Skin.Units.TabGap * (n - 1)) / n
 			for i, button in buttons do
-				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)
+				button.AnchorPoint = Vector2.zero
+				button.Position =
+					UDim2.new((i - 1) * share, g.px(56 + (i - 1) * (extra + Skin.Units.TabGap)), 0, g.px(tabsY))
+				button.Size = UDim2.new(share, g.px(extra), 0, g.px(Skin.Units.TabH))
 				local art, caption = button:FindFirstChild("AnimeTabArt"), button:FindFirstChild("AnimeCaption")
 				if art then
 					art.Position, art.Size = g.at(-7, -5), UDim2.new(1, g.px(14), 1, g.px(10))

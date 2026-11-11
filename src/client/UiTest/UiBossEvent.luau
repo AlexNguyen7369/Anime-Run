@@ -20,7 +20,9 @@
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
 --   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
---     the HP bar's right edge and its top just under the bar's bottom, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
+--     the HP bar's right edge and its top just under the bar's bottom, clear of Leave and the bar.
+--   HUD columns (design doc 4.40, owner 2026-11-10): while BossEvent is true HudChrome/Grid and HudChrome/ShopColumn are hidden;
+--     TopRight, AutoSlot and UpgradeSlot stay shown. Once BossEvent clears both columns show again (unless the Upgrades tree is open).
 --   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
 --     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
 --     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. It stays hidden until the spawn Warning has gone, for late
@@ -1176,12 +1178,12 @@ function Module.Build(h)
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
 		local barRect = h.rect(h.find(BAR))
 		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
-		for _, tile in { "Quests", "Shop" } do
-			local found = h.find("HudChrome/ShopColumn/" .. tile)
-			check(res, "drop_tile_exists_" .. tile, found ~= nil, true)
-			if found and h.visible(found) then
-				others[tile] = h.rect(found)
-			end
+		-- Design doc 4.40 (owner 2026-11-10): both columns hide in the event; TopRight and Auto / Upgrade stay.
+		for _, column in { "Grid", "ShopColumn" } do
+			check(res, "boss_column_hidden_" .. column, waitShown("HudChrome/" .. column, false), false)
+		end
+		for _, keep in { "TopRight", "AutoSlot", "UpgradeSlot" } do
+			check(res, "boss_hud_kept_" .. keep, waitShown("HudChrome/" .. keep, true), true)
 		end
 		local status = h.find(BAR .. "/Status/Status_Shouted")
 		if status then
@@ -1278,6 +1280,12 @@ function Module.Build(h)
 		state(res, "Fight", "keep", hp, hp, false)
 		check(res, "drop_hidden_on_leave", waitShown(DROP, false), false)
 		state(res, "Idle", 0, 0, 0, false)
+		-- The columns come back once BossEvent clears (the Upgrades tree hides them on its own).
+		if not shown("RacerUpgrades/Panel") then
+			for _, column in { "Grid", "ShopColumn" } do
+				check(res, "boss_column_back_" .. column, waitShown("HudChrome/" .. column, true), true)
+			end
+		end
 	end
 
 	-- Owner 2026-11-05: the time left in the event, top left above the HP bar, sharing the Title's row with no text on text.

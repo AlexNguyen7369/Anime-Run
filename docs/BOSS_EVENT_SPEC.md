@@ -17,7 +17,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 
 - Scheduler: fixed per server, `WeatherService` shape, every 30 minutes. A due time inside an event skips to the next 30-minute mark. A purchase does not move the timer.
 - Auto-roll pauses for participants only, through a per-player `BossEvent` attribute gate at `GachaService.StartAutoRoll`; `AutoRoll` itself is never changed. The roll card hides through `refreshToast`.
-- `PadTouched` cannot start a race for a player in the event. A death or leave mid-event does not break the player's return. A Leave button (b7c) and a server leave remote take a player back to spawn; a leaver gets no reward for a phase not yet defeated, and keeps what an earlier phase paid (owner 2026-11-06).
+- `PadTouched` cannot start a race for a player in the event. A death or leave mid-event does not break the player's return. A Leave button (b7c) and a server leave remote take a player back to spawn; a leaver gets no reward for a phase not yet defeated, and keeps what an earlier phase paid (owner 2026-11-06). While the local player is in the event, both HUD columns (Index, Items, Rebirth; Quests, Shop, Market) hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay, and Leave keeps its place at the top right (owner 2026-11-10, design doc 4.40).
 
 ## Run rules
 - Real cruise and real stamina. See "Line run". At all gone: wait 8.5 s, full team refills, continue (owner 2026-11-06).
