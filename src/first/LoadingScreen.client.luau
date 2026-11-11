@@ -150,16 +150,14 @@ task.spawn(function()
 		Players.LocalPlayer:RequestStreamAroundAsync(Vector3.zero)
 	end)
 	local found, seen = {}, {}
-	-- Character models: only those on screen at once (the Legends, the sky-loop runners, this player's team). Their folder
-	-- names are character ids; a new player's team is empty until the starter pick.
+	-- Character models: only those on screen at once (the exclusive pedestal, the sky-loop runners, this player's team).
+	-- Their folder names are character ids; a new player's team is empty until the starter pick.
 	for _, id in string.split(Players.LocalPlayer:GetAttribute("Team") or "", ",") do
 		wanted[id] = true
 	end
 	pcall(function()
 		local Layout = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("PlazaAssets"))
-		for _, row in Layout.Legends do
-			wanted[row.Id] = true
-		end
+		wanted[Layout.Exclusive.Id] = true
 	end)
 	for _, id in { "leaf_hero", "sea_captain", "db_hero" } do -- starters' models: the pick and the sky loop show them
 		wanted[id] = true

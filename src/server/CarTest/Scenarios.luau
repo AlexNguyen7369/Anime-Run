@@ -7533,7 +7533,7 @@ local SPAWN_PLAZA = {
 	},
 	BEST_ROLL_XZ = Vector2.new(43.3, 14.3),
 	ALTAR_XZ = Vector2.new(26.8, 40.6),
-	LEGENDS_XZ = { Vector2.new(0.8, 53.8), Vector2.new(-7.6, 53.5) },
+	EXCLUSIVE_XZ = Vector2.new(-3.4, 53.7), -- the Saitamo pedestal (owner 2026-11-10; replaces the 2 Legends)
 	SENSEI_XZ = Vector2.new(-80.0, 57.9),
 	ROW_STRAIGHT = 4, -- studs: spread of the economy row's distances from the path axis (proposed reading of "straight")
 	SENSEI_FACE_MIN = 0.5, -- "facing the path": front within 60 degrees of the direction to the path axis
@@ -7926,63 +7926,52 @@ function Scenarios.spawn_area()
 		rowSpread >= 0 and rowSpread <= W.ROW_STRAIGHT
 	)
 
-	-- Summon wing: Best Roll on the spawn side, the altar in the middle, the 2 Legends on the gate side
+	-- Summon wing: Best Roll on the spawn side, the altar in the middle, the Saitamo exclusive pedestal on the gate side
 	local noStall = area:FindFirstChild("SidekickStall") == nil
 	check(checks, "plaza_no_sidekick_stall", noStall and 1 or 0, 1, noStall)
 	local bestAt = centreOf(area:FindFirstChild("BestRoll"))
 	placed("BestRoll", bestAt, W.BEST_ROLL_XZ)
 	local altarAt = centreOf(area:FindFirstChild("SidekickAltar"))
 	placed("SidekickAltar", altarAt, W.ALTAR_XZ)
-	-- Legends are client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Legends
+	-- The exclusive pedestal is client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Exclusive; no Legends
+	-- remain (design doc 4.24, owner 2026-11-10)
 	local PlazaAssets = sharedModule("PlazaAssets")
+	local CharacterCatalog = sharedModule("CharacterCatalog")
 	local legends = PlazaAssets and PlazaAssets.Legends or {}
-	check(checks, "plaza_legends_at_most_2", #legends, 2, #legends >= 1 and #legends <= 2)
-	local legendSides, legendMinAlong = {}, math.huge
-	for i, row in legends do
-		local at = typeof(row.Pos) == "Vector3" and Vector2.new(row.Pos.X, row.Pos.Z) or nil
-		local want = W.LEGENDS_XZ[1]
-		for _, spot in W.LEGENDS_XZ do
-			if at and (at - spot).Magnitude < (at - want).Magnitude then
-				want = spot
-			end
-		end
-		placed("legend_" .. i, at, want)
-		local face = typeof(row.Face) == "Vector3" and Vector2.new(row.Face.X, row.Face.Z)
-		faces("legend_" .. i, face and face.Magnitude > 1e-3 and face.Unit or nil, W.SUMMON_FACE)
-		-- its pedestal mesh moves with it (WORLD_REDESIGN_SPEC 7 Legends: the rig stands on its pedestal)
-		local onPedestal = false
-		for _, p in PlazaAssets and PlazaAssets.Placed or {} do
-			if
-				at
-				and type(p.Key) == "string"
-				and string.sub(p.Key, 1, 14) == "LegendPedestal"
-				and (Vector2.new(p.Pos.X, p.Pos.Z) - at).Magnitude <= W.POS_TOL
-			then
-				onPedestal = true
-			end
-		end
-		check(checks, "plaza_legend_" .. i .. "_on_pedestal", onPedestal and 1 or 0, 1, onPedestal)
-		if at then
-			table.insert(legendSides, side(at))
-			legendMinAlong = math.min(legendMinAlong, along(at))
+	check(checks, "plaza_no_legends", #legends, 0, #legends == 0)
+	local exclusive = PlazaAssets and PlazaAssets.Exclusive or {}
+	local isExclusive = CharacterCatalog ~= nil and exclusive.Id == CharacterCatalog.EXCLUSIVE_ID
+	check(checks, "plaza_exclusive_is_saitamo", isExclusive and 1 or 0, 1, isExclusive)
+	local exclusiveAt = typeof(exclusive.Pos) == "Vector3" and Vector2.new(exclusive.Pos.X, exclusive.Pos.Z) or nil
+	placed("exclusive", exclusiveAt, W.EXCLUSIVE_XZ)
+	local front = typeof(exclusive.Face) == "Vector3" and Vector2.new(exclusive.Face.X, exclusive.Face.Z)
+	faces("exclusive", front and front.Magnitude > 1e-3 and front.Unit or nil, W.SUMMON_FACE)
+	-- its pedestal mesh moves with it (WORLD_REDESIGN_SPEC 7: the rig stands on its pedestal)
+	local onPedestal = false
+	for _, p in PlazaAssets and PlazaAssets.Placed or {} do
+		if
+			exclusiveAt
+			and type(p.Key) == "string"
+			and string.sub(p.Key, 1, 14) == "LegendPedestal"
+			and (Vector2.new(p.Pos.X, p.Pos.Z) - exclusiveAt).Magnitude <= W.POS_TOL
+		then
+			onPedestal = true
 		end
 	end
+	check(checks, "plaza_exclusive_on_pedestal", onPedestal and 1 or 0, 1, onPedestal)
 	local summonOrdered = bestAt ~= nil
 		and altarAt ~= nil
-		and #legendSides > 0
+		and exclusiveAt ~= nil
 		and along(bestAt) < along(altarAt)
-		and along(altarAt) < legendMinAlong
+		and along(altarAt) < along(exclusiveAt)
 	check(checks, "plaza_summon_wing_order_spawn_to_gate", summonOrdered and 1 or 0, 1, summonOrdered)
 
 	-- the wings on opposite sides of the spawn-gate axis: economy on the right, summon on the left
-	local opposite = #econSides == #W.ECONOMY and bestAt ~= nil and altarAt ~= nil and #legendSides > 0
+	local opposite = #econSides == #W.ECONOMY and bestAt ~= nil and altarAt ~= nil and exclusiveAt ~= nil
 	for _, s in econSides do
 		opposite = opposite and s > 0
 	end
-	for _, s in legendSides do
-		opposite = opposite and s < 0
-	end
-	opposite = opposite and side(bestAt) < 0 and side(altarAt) < 0
+	opposite = opposite and side(bestAt) < 0 and side(altarAt) < 0 and side(exclusiveAt) < 0
 	check(checks, "plaza_wings_opposite_sides_economy_right", opposite and 1 or 0, 1, opposite)
 
 	-- The sensei beside the gate, facing the path (CheckpointConfig.NPC_POS)

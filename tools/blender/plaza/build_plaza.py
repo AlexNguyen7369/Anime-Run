@@ -884,13 +884,10 @@ def shoot(cam, eye, look, name, fov=70):
 	print("SHOT", name)
 
 
-LEGENDS = [  # the summon wing's gate end (Two wings, owner 2026-11-10), facing the path; glow ring in a logo colour
-	("db_hero", *_on_path(36, 40), "so"),  # (0.8, 53.8)
-	("mha_symbol", *_on_path(42, 34), "sb"),  # (-7.6, 53.5)
-]
-# The Robux-exclusive runner's pedestal (design doc 4.35), not a Legend: in the gap between Plots 6 and 7 as seen from the
-# spawn, so every Dojo stays visible (4.24 Clear plaza), facing the spawn. Position proposed.
-EXCLUSIVE = ("punch_hero", -4.5, 36, "so")
+LEGENDS = []  # removed (owner 2026-11-10): the exclusive pedestal took the Legends' place
+# The Robux-exclusive runner's pedestal (design doc 4.35): the summon wing's gate end, between the 2 old Legend spots,
+# facing the path (Two wings, owner 2026-11-10). Glow ring in the Mythic colour.
+EXCLUSIVE = ("punch_hero", -3.4, 53.65, "so")
 LEGEND_H = 9.0  # studs; about 1.6x a runner (proposed)
 RUNNER_H = 5.6
 
@@ -928,8 +925,8 @@ def build(scene):
 		add(pedestal(i, x, z, glow))
 		put_char(world, cid, x, TOP + 2.6, z, SUMMON_FACE, LEGEND_H, "Legend_" + cid)
 	cid, x, z, glow = EXCLUSIVE
-	add(pedestal(len(LEGENDS), x, z, glow, facing_point(x, z, *SPAWN)))
-	put_char(world, cid, x, TOP + 2.6, z, facing_point(x, z, *SPAWN), LEGEND_H, "Exclusive_" + cid)
+	add(pedestal(len(LEGENDS), x, z, glow))
+	put_char(world, cid, x, TOP + 2.6, z, SUMMON_FACE, LEGEND_H, "Exclusive_" + cid)
 	# Sky-loop runners: the 3 starters' models, racing with blue and orange trails
 	runners = [(205, "neonb", 0, "leaf_hero"), (20, "neono", 1, "sea_captain"), (95, "neonb", 0, "db_hero")]
 	add(trails([(d, c, o) for d, c, o, _ in runners]), False)
@@ -1092,7 +1089,7 @@ def export_all():
 	for cid, x, z, _ in LEGENDS:
 		legends.append({"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(SUMMON_FACE)})
 	cid, x, z, _ = EXCLUSIVE
-	exclusive = {"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(facing_point(x, z, *SPAWN))}
+	exclusive = {"Id": cid, "Pos": [x, TOP + 2.6, z], "Face": list(SUMMON_FACE)}
 	layout = {"Assets": assets, "Placed": placed, "Tiers": tiers, "Legends": legends, "Exclusive": exclusive, "Signs": SIGNS, "LoopRadius": 62, "LoopHeight": LOOP_H, "Landmarks": {"RaceStart": [PAD[0], 60, PAD[1]], "Market": [MARKET_STALL[0], 50, MARKET_STALL[1]]}, "SenseiLocal": [SENSEI[0] + 118, SENSEI[1] - 80]}
 	with open(os.path.join(ROOT, "build", "plaza", "layout.json"), "w") as f:
 		json.dump(layout, f, indent=1)

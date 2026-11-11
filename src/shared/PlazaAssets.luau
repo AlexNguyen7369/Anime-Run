@@ -127,18 +127,7 @@ return {
 				Glow_so = {
 					Size = Vector3.new(7.000, 0.300, 7.000),
 					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#FF9A2E",
-				},
-			},
-		},
-		LegendPedestalx = {
-			Asset = 93217066984565,
-			Parts = {
-				Body = { Size = Vector3.new(7.600, 2.600, 7.600), Center = Vector3.new(0.000, 1.300, -0.000) },
-				Glow_sb = {
-					Size = Vector3.new(7.000, 0.300, 7.000),
-					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#3C7BFF",
+					Glow = "#FF466E", -- Mythic (GachaConfig.RARITY_COLORS): the Saitamo exclusive pedestal
 				},
 			},
 		},
@@ -273,14 +262,11 @@ return {
 		{ Key = "MarketStall", Pos = Vector3.new(-45.957, 1.000, -20.099), Face = Vector3.new(0.6805, 0, 0.7328) },
 		{ Key = "IndexBoard", Pos = Vector3.new(-62.078, 1.000, -5.130), Face = Vector3.new(0.6805, 0, 0.7328) },
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
-		{ Key = "LegendPedestal", Pos = Vector3.new(0.837, 1.000, 53.808), Face = Vector3.new(-0.6805, 0, -0.7328) },
-		{ Key = "LegendPedestalx", Pos = Vector3.new(-7.642, 1.000, 53.494), Face = Vector3.new(-0.6805, 0, -0.7328) },
+		{ Key = "LegendPedestal", Pos = Vector3.new(-3.400, 1.000, 53.650), Face = Vector3.new(-0.6805, 0, -0.7328) },
 	},
 	Tiers = { [0] = "DojoKit_L0", [1] = "DojoKit_L1", [4] = "DojoKit_L4", [7] = "DojoKit_L7", [10] = "DojoKit_L10" },
-	Legends = {
-		{ Id = "db_hero", Pos = Vector3.new(0.837, 3.600, 53.808), Face = Vector3.new(-0.6805, 0, -0.7328) },
-		{ Id = "mha_symbol", Pos = Vector3.new(-7.642, 3.600, 53.494), Face = Vector3.new(-0.6805, 0, -0.7328) },
-	},
+	-- The Saitamo exclusive pedestal (design doc 4.35, WORLD_REDESIGN_SPEC 7): where the 2 Legends stood (owner 2026-11-10)
+	Exclusive = { Id = "punch_hero", Pos = Vector3.new(-3.400, 3.600, 53.650), Face = Vector3.new(-0.6805, 0, -0.7328) },
 	Signs = {
 		{
 			Text = "SHOP",

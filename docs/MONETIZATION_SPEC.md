@@ -55,7 +55,7 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 - Catalog id `punch_hero`, display name Saitamo. The real name appears in no display name, id, pass name, icon or asset name (design doc 5). Parody row: `CHARACTER_GACHA_SPEC`.
 - `Rollable = false`, built in like the starters, not from `Shared/Characters`. `BaseCruise = 350` (owner), Balanced, Rarity Mythic (proposed).
 - Owned as a `GachaData` entry from the first grant. The grant ignores the bag cap. The entry takes 1 space. A refunded pass ends its effects at the next join; the runner stays in the save (shortcut, see `GachaService.GrantExclusive`).
-- Pedestal near the spawn, client-only, with a prompt that opens the pass. Drafted in Blender and shown to the owner first (design doc 4.24).
+- Pedestal at the summon wing's gate end (owner 2026-11-10; replaces the 2 Legends), client-only, showing the model, a header with rarity and hero name, and a prompt that opens the pass and shows 350 studs/s (design doc 4.24, WORLD_REDESIGN_SPEC 7).
 
 ## Going live
 

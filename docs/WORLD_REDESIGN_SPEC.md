@@ -79,7 +79,7 @@ Nothing car-shaped stays in the game:
   IVS `StartPad` rules and cooldown, tag `StartPad`).
 - **Two wings** (owner 2026-11-10, design doc 4.24; replaces the service row): same panels, prompts and remotes as now. Positions are Roblox world (x, z) at the floor, **proposed**, from the Blender draft `assets/plaza_draft/Layout_C.png`. The path axis runs from the spawn (0, 0) to the gate pad (-84, 78).
   - Economy wing, each front facing (0.68, 0.73): Shop (-13.7, -50.0), Potions (-29.8, -35.1), Market (-46.0, -20.1), Index (-62.1, -5.1).
-  - Summon wing, each front facing (-0.68, -0.73): Best Roll (43.3, 14.3), Sidekick summon altar (26.8, 40.6), Legends (0.8, 53.8) and (-7.6, 53.5).
+  - Summon wing, each front facing (-0.68, -0.73): Best Roll (43.3, 14.3), Sidekick summon altar (26.8, 40.6), Saitamo exclusive pedestal (-3.4, 53.7) (owner 2026-11-10; was Legends (0.8, 53.8) and (-7.6, 53.5)).
   - Sensei (-80.0, 57.9), facing the path. The Great Sakura stays at (80, 118). The Sidekicks stall is removed.
   - Floating headers move with their buildings; the altar gets a SIDEKICKS header like the row's.
 - **Index board** (scroll wall) and the checkpoint NPC as a **sensei**
@@ -148,7 +148,7 @@ before any Studio work. All values below are **proposed**. Mesh and tri counts: 
 - **Best Roll**: pedestal of radius 9 in the summon wing (section 4 Two wings, owner 2026-11-10; was (-8.5, -75)).
 - **Spawn**: a circular stone mosaic with an abstract pattern, no symbol.
 - **Sky loop legs**: the leg in front of the MARKET sign moves to about 200 degrees (owner 2026-11-04).
-- **Legends** (owner 2026-11-04; moved to the summon wing 2026-11-10, section 4 Two wings): at most 2 pedestals, about 9 studs tall. Client-only, like the sky-loop runners. `db_hero` and `mha_symbol` (their orange and blue match the logo; owner approved 2026-11-04).
+- **Exclusive pedestal** (owner 2026-11-10; replaces the 2 Legends, design doc 4.24 and 4.35): one pedestal about 9 studs tall at the summon wing's gate end, facing the path, glow ring in the Mythic colour. Client-only (`Client/PlazaSkyLoop`, `PlazaAssets.Exclusive`): Saitamo's model, a `Shared/PlazaHeader` header SAITAMO over a MYTHIC label, and a prompt that opens the 999 Robux pass and names 350 studs/s; the prompt is off once owned. No Legends remain.
 - **Sky loop**: a raised ribbon above the plaza at radius about 62, height about 30, carrying the client-only runners.
 - **Wayfinding**: RACE START banner on the torii under its tie beam; large flat MARKET sign on the Market, facing +x (owner 2026-11-04; no arch). Client/PlazaWayfinding draws the floating labels (Race Start from `PlazaAssets.Landmarks`)
   as client-only attachments, so streaming never hides them.

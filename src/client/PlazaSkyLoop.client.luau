@@ -1,7 +1,10 @@
 --!nonstrict
--- The plaza's Legends and the runners lapping its sky loop (design doc 4.24): client display only, not players or NPC
--- rivals. The Legends stand on their pedestals; the runners are
--- removed while the camera is away from the plaza, so a race pays nothing for them. Numbers are placeholders.
+-- The plaza's Saitamo exclusive pedestal and the runners lapping its sky loop (design doc 4.24, 4.35): client display
+-- only, not players or NPC rivals. Saitamo stands on the pedestal under a rarity and name header, with a prompt that
+-- opens its gamepass; the runners are removed while the camera is away from the plaza, so a race pays nothing for them.
+-- Numbers are placeholders.
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -9,11 +12,16 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared:WaitForChild("PlazaAssets"))
 local RunnerFactory = require(Shared:WaitForChild("RunnerFactory"))
+local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
+local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
+local MonetizationConfig = require(Shared:WaitForChild("MonetizationConfig"))
+local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local LEGEND_SCALE = 1.9 -- placeholder: about 9 studs tall (WORLD_REDESIGN_SPEC 7)
-local LEGEND_LABEL_DISTANCE = 30
+local EXCLUSIVE_SCALE = 1.9 -- placeholder: about 9 studs tall (WORLD_REDESIGN_SPEC 7)
+local EXCLUSIVE_LABEL_DISTANCE = 60
+local EXCLUSIVE_PASS = "exclusive_runner" -- MonetizationConfig.Gamepasses id
 local SPEED = 70 -- studs/s; a lap takes about 5.6 s
 local ACTIVE_DISTANCE = 450 -- studs from the plaza centre
 local RUNNERS = {
@@ -29,21 +37,60 @@ if models:GetAttribute("Ready") ~= true then
 	models:GetAttributeChangedSignal("Ready"):Wait()
 end
 
-local legends = Instance.new("Folder")
-legends.Name = "PlazaLegends"
-for _, row in Layout.Legends do
-	local rig = RunnerFactory.build(row.Id)
-	rig.Name = "Legend_" .. row.Id
-	rig:ScaleTo(LEGEND_SCALE)
-	rig:PivotTo(CFrame.lookAt(row.Pos, row.Pos + row.Face) * CFrame.new(0, RunnerFactory.HIP_HEIGHT * LEGEND_SCALE, 0))
+-- The exclusive pedestal: the rarity label where the rig's name was, the hero name as a plaza header above it
+do
+	local row = Layout.Exclusive
+	local spec = CharacterCatalog.Get(row.Id)
+	local color = GachaConfig.RARITY_COLORS[spec.Rarity]
+	local pass
+	for _, p in MonetizationConfig.Gamepasses do
+		if p.Id == EXCLUSIVE_PASS then
+			pass = p
+		end
+	end
+	local rig = RunnerFactory.build(row.Id, { Label = string.upper(spec.Rarity) })
+	rig.Name = "Exclusive_" .. row.Id
+	rig:ScaleTo(EXCLUSIVE_SCALE)
+	rig:PivotTo(
+		CFrame.lookAt(row.Pos, row.Pos + row.Face) * CFrame.new(0, RunnerFactory.HIP_HEIGHT * EXCLUSIVE_SCALE, 0)
+	)
 	local label = rig:FindFirstChild("NameLabel")
 	if label then
-		label.MaxDistance = LEGEND_LABEL_DISTANCE
-		label.Size = UDim2.fromOffset(120, 24)
+		label.MaxDistance = EXCLUSIVE_LABEL_DISTANCE
+		label.Name.TextColor3 = color
 	end
-	rig.Parent = legends
+	local header = PlazaHeader.Build(
+		rig.Head,
+		"ExclusiveHeader",
+		string.upper(spec.Name),
+		"Star",
+		color,
+		UDim2.fromOffset(340, 80),
+		EXCLUSIVE_LABEL_DISTANCE
+	)
+	header.StudsOffset = Vector3.new(0, 4.6, 0) -- above the rarity label (NameLabel sits 2.2 over the head)
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "BuyExclusive"
+	prompt.ObjectText = spec.Name .. ": " .. spec.BaseCruise .. " studs/s"
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	local player = Players.LocalPlayer
+	local function refresh()
+		local owned = player:GetAttribute("Pass_" .. EXCLUSIVE_PASS) == true
+		prompt.ActionText = owned and "Owned" or ("Buy for " .. pass.RobuxPrice .. " Robux")
+		prompt.Enabled = not owned and pass.GamepassId ~= 0
+	end
+	player:GetAttributeChangedSignal("Pass_" .. EXCLUSIVE_PASS):Connect(refresh)
+	refresh()
+	prompt.Triggered:Connect(function()
+		MarketplaceService:PromptGamePassPurchase(player, pass.GamepassId)
+	end)
+	prompt.Parent = rig.Torso
+	rig.Parent = Workspace
 end
-legends.Parent = Workspace
 
 local folder = Instance.new("Folder")
 folder.Name = "PlazaRunners"
