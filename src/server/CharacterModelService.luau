@@ -121,7 +121,7 @@ local function startSidekicks()
 end
 
 -- A boss's loose parts, in ReplicatedStorage.BossModels/<name>, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks",
--- "The Elf Mage"). Each client clones and poses them. Its parts keep the import's SurfaceAppearance: it holds the texture.
+-- "The Elf Mage"). Each client clones and poses them. Each part draws its own TextureID.
 local function loadBoss(name, assetId, binds, root)
 	local ok, asset = fetch(assetId)
 	if not ok then
@@ -130,6 +130,7 @@ local function loadBoss(name, assetId, binds, root)
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = name
+	local texture = ""
 	for _, d in asset:GetDescendants() do
 		local bind = d:IsA("MeshPart") and binds[d.Name]
 		if bind then
@@ -140,7 +141,21 @@ local function loadBoss(name, assetId, binds, root)
 			d.Massless = true
 			d.Material = Enum.Material.SmoothPlastic
 			d.Size = Vector3.new(bind.Size[1], bind.Size[2], bind.Size[3])
+			-- The golem import put one stray SurfaceAppearance on FistL, its EmissiveMap rbxassetid://17 never loads (a script
+			-- cannot read its ColorMap): drop it, and the part takes the one atlas its siblings use.
+			local surface = d:FindFirstChildOfClass("SurfaceAppearance")
+			if surface then
+				surface:Destroy()
+			end
+			if d.TextureID ~= "" then
+				texture = d.TextureID
+			end
 			d.Parent = folder
+		end
+	end
+	for _, part in folder:GetChildren() do
+		if part.TextureID == "" then
+			part.TextureID = texture
 		end
 	end
 	asset:Destroy()
