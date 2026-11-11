@@ -15,6 +15,8 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
+local BossCatalog = require(shared:WaitForChild("BossCatalog"))
+local BossMageArt = require(shared:WaitForChild("BossMageArt"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local GachaConfig = require(shared:WaitForChild("GachaConfig"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
@@ -36,7 +38,8 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local WARNING_TEXT = "Big Raga has emerged, take him down!!!" -- design doc 4.37
+-- The boss's own texts and portrait (warning, invite, bar title, Bosses line, versus card) are BossCatalog.Current()'s, read at
+-- use time and again when ReplicatedStorage's BossEventBoss changes; nil is Big Raga (design doc 4.37 "Second boss").
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" -- BOSS_EVENT_SPEC
 -- Placeholders.
 local WARNING_SECONDS = 6
@@ -62,7 +65,6 @@ local GLOW_THICK = 5
 local PROMPT_SECONDS = 3
 local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESTRICTED_TEXT = "Paid spawns are not available on your account"
-local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweaked name only
 local CLOSED_TEXT = "Teleporting closed"
 local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a treasure chest!"
 -- Popup widths in px at most: the old widths at 920 units wide, stretched to the frame's width (design doc 4.42) so the
@@ -70,7 +72,7 @@ local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it 
 local WIDE = AnimeSkin.Units.W / 920
 local INVITE_WIDTH, HUD_WIDTH, BOSSES_WIDTH = 560 * WIDE, 820 * WIDE, 700 * WIDE
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
-local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
+local TITLE_STAGE_2 = "Fully Adapted Raga"
 local TITLE_STAGE_2_COLOR = Color3.fromRGB(235, 20, 30) -- owner 2026-11-06: bold red; HEAVY is already the title's font
 local CASCADE_GAP = 0.25 -- s between the drop list's rows, placeholder
 local TEAM_WARNING_TEXT = "Select a character first"
@@ -98,11 +100,13 @@ local TITLE_HEIGHT, TRACK_HEIGHT = 40, 60 -- px at full scale
 local DROP_WIDTH, DROP_WIDTH_MIN = 400, 190
 local DROP_HEADING, DROP_HEADING_MIN = 32, 14
 local DROP_ROW, DROP_ROW_MIN = 26, 13
--- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
+-- The icon is a plain in-house shape, a text glyph or a drawn wheel, or the boss's drawn status art (Image). No digit in these
+-- texts: the countdown is the number.
 local STATUS_LOOKS = {
 	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
 	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
 	{ Id = "Vulnerable", Glyph = "V", Color = Palette.MoneyDeep }, -- no end time: it goes with its row
+	{ Id = "Crushed", Image = BossMageArt.StatusCrushed, Color = Palette.Danger }, -- the Elf Mage's golem slam
 }
 
 local function make(class, name, parent, props)
@@ -198,7 +202,7 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 })
 
 -- Invite ------------------------------------------------------------------------------------------------------------------
-local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", "BIG RAGA EVENT")
+local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", BossCatalog.Current().InviteTitle)
 invite.Parent = root
 local inviteHint = label("Hint", invite, {
 	Text = "",
@@ -264,7 +268,7 @@ local ragaCard = make("Frame", "RagaCard", hud, { BackgroundTransparency = 1 })
 AnimeSkin.Card(ragaCard, AnimeSkin.Tint.Danger)
 local ragaPortrait = make("ImageLabel", "RagaPortrait", hud, {
 	BackgroundTransparency = 1,
-	Image = SidekickArt.side_raga and SidekickArt.side_raga.Portrait or "",
+	Image = BossCatalog.Current().Portrait or "",
 	ScaleType = Enum.ScaleType.Fit,
 	ZIndex = 2,
 })
@@ -372,7 +376,7 @@ local warning = make("Frame", "Warning", root, {
 })
 local warningLabel = label("Text", warning, {
 	Size = UDim2.fromScale(1, 1),
-	Text = WARNING_TEXT,
+	Text = BossCatalog.Current().WarningText,
 	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	TextWrapped = true,
@@ -388,7 +392,7 @@ local bossTimer = label("BossTimer", bar, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
-	Text = TITLE_STAGE_1,
+	Text = BossCatalog.Current().Name,
 	FontFace = HEAVY,
 }, TITLE_HEIGHT)
 local track = make("Frame", "Track", bar, {
@@ -430,13 +434,18 @@ for order, look in STATUS_LOOKS do
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
 		BackgroundColor3 = look.Color,
+		BackgroundTransparency = look.Image and 1 or 0, -- drawn art carries its own shape
 		BorderSizePixel = 0,
+		Image = look.Image or "",
+		ScaleType = Enum.ScaleType.Fit,
 	})
-	UiTheme.Corner(icon, "S")
-	UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	if not look.Image then
+		UiTheme.Corner(icon, "S")
+		UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	end
 	if look.Glyph then
 		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 30)
-	else
+	elseif not look.Image then
 		local wheel = make("Frame", "Wheel", icon, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -1032,11 +1041,20 @@ local function refreshGear()
 	if locked then
 		teleport.BackgroundColor3 = Palette.Disabled
 	end
-	inviteHint.Text = locked and LOCKED_TEXT or "Teleport to fight Big Raga before the timer ends"
+	inviteHint.Text = locked and LOCKED_TEXT or BossCatalog.Current().InviteHint
 end
 player:GetAttributeChangedSignal("SidekickGear"):Connect(refreshGear)
 player:GetAttributeChangedSignal("SidekickBag"):Connect(refreshGear)
 refreshGear()
+
+-- The texts and art built once above, again for the boss now named (the bar title and Bosses line are read each frame).
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	local boss = BossCatalog.Current()
+	warningLabel.Text = boss.WarningText
+	inviteFrame.SetTitle(boss.InviteTitle)
+	ragaPortrait.Image = boss.Portrait or ""
+	inviteHint.Text = teleport.Active and boss.InviteHint or LOCKED_TEXT
+end)
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
 local declinedStart = nil
@@ -1239,7 +1257,7 @@ local function drawBossButton(phase, inEvent, joinable)
 	end
 	local active = phase ~= nil
 	local armed = teleport.Active -- has a Sidekick: both Go and the spawn need one
-	bossStatus.Text = active and RAGING_TEXT or ABOUT_TEXT
+	bossStatus.Text = active and BossCatalog.Current().ActiveText or ABOUT_TEXT
 	bossDetailsHeading.Visible = not active
 	bossDetails.Visible = not active
 	bossNext.Visible = not active
@@ -1390,8 +1408,10 @@ local function render()
 		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
 		local endsAt = ReplicatedStorage:GetAttribute("BossEventEndsAt")
 		bossTimer.Text = clockText(endsAt and endsAt - now or Cfg.TotalSeconds - elapsed)
-		local stage = ReplicatedStorage:GetAttribute("BossEventStage") or 1
-		barTitle.Text = stage == 2 and TITLE_STAGE_2 or TITLE_STAGE_1
+		local boss = BossCatalog.Current()
+		-- A one-stage boss has no Phase 2: no red title, no spill of Phase 2's rates.
+		local stage = boss.Stages > 1 and ReplicatedStorage:GetAttribute("BossEventStage") or 1
+		barTitle.Text = stage == 2 and TITLE_STAGE_2 or boss.Name
 		barTitle.TextColor3 = stage == 2 and TITLE_STAGE_2_COLOR or Palette.White
 		drawDrops(stage, now)
 		drawStatus()
