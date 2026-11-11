@@ -26,7 +26,7 @@ The table above is Raga's Treasure, Phase 1's chest. Adapted Raga's Treasure, Ph
 
 Each table sums to 100%. Luck, potions and pity do not change them. Duplicates stack as copies; one copy on one character.
 
-## The Elf Mage's drops (owner 2026-11-11; names, bonuses, odds and art all **proposed**, waiting for approval)
+## The Elf Mage's drops (owner 2026-11-11: names and art approved from `assets/ui/relic_mage_art_sheet.png`; bonuses and odds **placeholder** as Big Raga's)
 Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_mage`, paid at her defeat; no Sidekick roll.
 
 | Rarity | Odds | Id | Name (proposed) | Bonuses |
