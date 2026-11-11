@@ -29,6 +29,7 @@ TILES = 32  # motif repeats around the wall
 TILE_W = math.tau * R_WALL / TILES
 CHAR_H = 5.5
 BOSS_H, BOSS_HOVER = 4 * CHAR_H, 8.0
+KEY_W = 3.6e6  # the lightning look's key light, watts
 TH0 = math.radians(-41)  # the followed runner, rear of the three on lane 4; puts its pulled-in camera between two pillars
 GAME_YAW, GAME_PITCH, CAM_BACK = 75, 4, 40.0  # yaw: BOSS_EVENT_SPEC's proposed inward turn; distance locked at 40
 DOOR_A, DISC_A = math.radians(90), math.radians(-90)
@@ -41,7 +42,7 @@ ba.PAL.update(
 		"floorA": "#CDBFA6", "floorB": "#8C7A68", "laneA": "#B89A78", "laneB": "#AA8C6C", "laneLine": "#E2CFAE", "walk": "#A88763",
 		"bronze": "#6E5634", "gold": "#C99A4A", "iron": "#2F2F33", "iron2": "#5E5D62", "iron3": "#1E1E22", "rivet": "#77736A",
 		"dome": "#2E2C35", "dome2": "#3A3742", "crack": "#24180F", "rubble": "#A07A55", "rubble2": "#7D6047",
-		"dress": "#F2F0EA", "trim": "#C9A04A", "skin": "#F1D6C0", "hair": "#E6E6EC", "tights": "#2B2830", "staff": "#7A4B2A", "gem": "#C0242C",
+		"dress": "#F2F0EA", "trim": "#C9A04A", "skin": "#F1D6C0", "spellOrb": "#F2EEFF", "hair": "#E6E6EC", "tights": "#2B2830", "staff": "#7A4B2A", "gem": "#C0242C",
 		"run1": "#E05A3A", "run2": "#3A7BE0", "run3": "#45B060", "runSkin": "#E8C2A0", "runDark": "#2A2A33",
 	}
 )
@@ -104,7 +105,8 @@ def draw_tile():
 	"""One motif repeat, drawn in sRGB: rows 0-33 studs the motif wall, rows 33-41 the diamond frieze. 16 px per stud."""
 	px = 16
 	w, h = round(TILE_W * px), 41 * px
-	u = (np.arange(w) + 0.5) / px
+	TW = max(TILE_W, 26.0)  # drawn at least 26 studs wide; a smaller room squeezes the motif rather than crowding it
+	u = (np.arange(w) + 0.5) / px * TW / TILE_W
 	v = (np.arange(h) + 0.5) / px
 	U, V = np.meshgrid(u, v)
 	mask = np.zeros((h, w), bool)
@@ -122,29 +124,34 @@ def draw_tile():
 	def diamond(cx, cy, dw, dh):
 		mask[:] |= np.abs(U - cx) / (dw / 2) + np.abs(V - cy) / (dh / 2) <= 1
 
-	cx = TILE_W / 2
-	side = [(0.1, 0), (0.55, 0.07), (0.88, 0.22), (1, 0.4), (0.9, 0.58), (0.6, 0.76), (0.26, 0.89), (0.06, 0.97), (0, 1)]
-	for scale, v0, hh, a in ((1.0, 14, 17, 7.6), (0.62, 16.2, 11.5, 4.7)):  # the onion and its inner line
+	cx = TW / 2
+	side = [(0.14, 0), (0.5, 0.05), (0.82, 0.16), (0.98, 0.3), (1.0, 0.4), (0.9, 0.53), (0.68, 0.64), (0.42, 0.73), (0.24, 0.81), (0.13, 0.88), (0.06, 0.94), (0, 1)]
+	for v0, hh, a in ((12.5, 19.5, 7.2), (14.4, 14.6, 5.0)):  # the onion head (ogee tip) and its inner line
 		right = [(cx + x * a, v0 + y * hh) for x, y in side]
 		left = [(cx - x * a, v0 + y * hh) for x, y in side]
 		poly(right[::-1] + left)
 		poly([right[0], left[0]])
-	poly([(cx, 17.5), (cx, 25)], 0.6)  # leaf vein inside
-	for k in range(4):
-		y = 18.5 + k * 1.8
-		poly([(cx, y), (cx - 1.8 + k * 0.25, y + 1.3)], 0.55)
-		poly([(cx, y), (cx + 1.8 - k * 0.25, y + 1.3)], 0.55)
-	diamond(cx, 26.6, 1.8, 2.6)  # the eye
-	poly([(cx, 14), (cx, 1)], 0.9)  # stem and foot
+	eye = [(cx + 3.3 * math.cos(t), 21.6 + s * 1.9 * math.sin(t)) for s in (1, -1) for t in np.linspace(0, math.pi, 9)]
+	poly(eye[:9], 0.7)  # the eye: an almond of two arcs round a round iris
+	poly(eye[9:], 0.7)
+	mask[:] |= (U - cx) ** 2 + (V - 21.6) ** 2 <= 1.05**2
+	poly([(cx, 14.4), (cx, 19.0)], 0.6)
+	for s in (-1, 1):
+		poly([(cx, 16.4), (cx + s * 1.6, 17.6)], 0.5)
+	poly([(cx, 12.5), (cx, 1)], 0.9)  # stem and foot
 	poly([(cx - 2.5, 1), (cx + 2.5, 1)], 0.8)
-	for s in (-1, 1):  # curling branches with the hanging diamond clusters
-		poly([(cx, 10.5), (cx + s * 2.6, 12.6), (cx + s * 5.4, 12.6), (cx + s * 7.2, 11.0), (cx + s * 7.6, 8.6), (cx + s * 7.4, 7.4)], 0.8)
-		poly([(cx + s * 0.4, 14.3), (cx + s * 3.0, 15.4), (cx + s * 4.6, 14.8)], 0.7)
+	for s in (-1, 1):  # arms that curl out and down into a spiral, a diamond cluster hanging under each
+		arm = [(cx, 10.6), (cx + s * 1.6, 12.0), (cx + s * 3.6, 12.6), (cx + s * 5.6, 11.9), (cx + s * 7.0, 10.3), (cx + s * 7.4, 8.6)]
+		c, r0 = (cx + s * 6.0, 8.6), 1.4
+		arm += [(c[0] + s * r0 * (1 - 0.4 * t / 4.2) * math.cos(-t), c[1] + r0 * (1 - 0.4 * t / 4.2) * math.sin(-t)) for t in np.linspace(0.3, 4.2, 9)]
+		poly(arm, 0.8)
+		poly([(cx + s * 0.6, 13.6), (cx + s * 2.6, 14.4), (cx + s * 3.6, 13.6), (cx + s * 3.4, 12.9)], 0.6)  # small tendril at the head's foot
+		poly([(cx + s * 6.0, 7.2), (cx + s * 6.0, 6.2)], 0.6)
 		for ox, oy in ((0, 1.25), (-0.95, 0), (0.95, 0), (0, -1.25)):
-			diamond(cx + s * 7.4 + ox, 5.2 + oy, 1.7, 2.3)
-	for ex in (0, TILE_W):  # small diamonds between the motifs, split across the tile edge so they wrap
-		diamond(ex, 25.5, 2.6, 3.6)
-		diamond(ex, 31.0, 1.6, 2.2)
+			diamond(cx + s * 6.0 + ox, 4.7 + oy, 1.7, 2.3)
+	for ex in (0, TW):  # small diamonds between the motifs, split across the tile edge so they wrap
+		diamond(ex, 24.0, 2.6, 3.6)
+		diamond(ex, 30.0, 1.6, 2.2)
 		diamond(ex, 7.0, 1.6, 2.2)
 	motif = mask.copy()
 
@@ -153,10 +160,10 @@ def draw_tile():
 	rng = np.random.default_rng(3)
 	for row in range(5):  # masonry: shaded blocks, staggered joints, in the motif zone only
 		y0, y1 = row * 6.6, (row + 1) * 6.6
-		off = (row % 2) * TILE_W / 4
+		off = (row % 2) * TW / 4
 		for col in range(-1, 3):
-			x0 = off + col * TILE_W / 2
-			sel = (V >= y0) & (V < y1) & (U >= x0) & (U < x0 + TILE_W / 2)
+			x0 = off + col * TW / 2
+			sel = (V >= y0) & (V < y1) & (U >= x0) & (U < x0 + TW / 2)
 			img[sel] *= rng.uniform(0.9, 1.07)
 			img[(np.abs(U - x0) < 0.12) & (V >= y0) & (V < y1)] *= 0.8
 		img[np.abs(V - y0) < 0.12] *= 0.8
@@ -167,7 +174,7 @@ def draw_tile():
 	fz = V >= 33
 	img[fz] = np.array([0x8E, 0x74, 0x6A], float) / 255
 	mask[:] = False
-	dw = TILE_W / 8
+	dw = TW / 8
 	for k in range(-1, 9):
 		diamond((k + 0.5) * dw, 35.0, dw * 0.86, 3.3)
 		diamond(k * dw, 39.0, dw * 0.86, 3.3)
@@ -240,7 +247,7 @@ def ring(m, r1, r2, z, material_pair, n=N, uv=None):
 def floor():
 	m = MU("ColosseumFloor", "floor")
 	# Centre: a polar checker of two stones, like the reference's spell floor
-	rings = [20, 30, 40, 50, 60, R_IN] if R_IN > 60 else [20, 28, 36, 44, R_IN]
+	rings = [20 + (R_IN - 20) * k / max(1, round((R_IN - 20) / 10)) for k in range(max(1, round((R_IN - 20) / 10)) + 1)]  # about 10 studs each
 	for i, (r1, r2) in enumerate(zip(rings, rings[1:])):
 		n = 24 + 8 * i
 		for k in range(n):
@@ -364,20 +371,21 @@ def pillar():
 def great_doors():
 	"""The double doors at +X: a pale portal, two dark metal leaves with square and diamond panels, rivets."""
 	m = MU("ColosseumDoors", "doors")
-	R, hw, hh = R_WALL, 15.0, 42.0
+	R, hw, hh = R_WALL, 15.0, 59.0  # 1.4 x the first draft (owner round 2)
+	k = hh / 42
 	for s in (-1, 1):
 		m.box((5, 6, hh + 4), (R - 2.5, s * (hw + 3), (hh + 4) / 2), "pale2")  # jambs
 	m.box((6, 2 * hw + 12, 6), (R - 3, 0, hh + 5), "pale")  # lintel
-	m.box((4, 2 * hw + 8, 4), (R - 2, 0, hh + 10), "ochre2")
+	m.box((4, 2 * hw + 8, 3.5), (R - 2, 0, hh + 9.6), "ochre2")
 	for s in (-1, 1):
 		cy = s * hw / 2
 		x = R - 1.2
 		m.box((1.2, hw - 0.2, hh), (x, cy, hh / 2), "iron2")
-		for z in (6.5, 21, 35.5):  # deep square panels
-			m.box((0.4, hw * 0.62, 9.5), (x - 0.75, cy, z), "iron3")
-			m.box((0.3, hw * 0.74, 0.8), (x - 0.75, cy, z + 5.4), "iron")
-		for z in (13.75, 28.25):  # diamond panels between them
-			m.obox((0.5, 5.2, 5.2), Matrix.Translation((x - 0.8, cy, z)) @ Matrix.Rotation(math.pi / 4, 4, "X"), "iron3")
+		for z in (6.5 * k, 21 * k, 35.5 * k):  # deep square panels
+			m.box((0.4, hw * 0.62, 9.5 * k), (x - 0.75, cy, z), "iron3")
+			m.box((0.3, hw * 0.74, 0.8), (x - 0.75, cy, z + 4.75 * k + 0.6), "iron")
+		for z in (13.75 * k, 28.25 * k):  # diamond panels between them
+			m.obox((0.5, 6.2, 6.2), Matrix.Translation((x - 0.8, cy, z)) @ Matrix.Rotation(math.pi / 4, 4, "X"), "iron3")
 			for t in (-1, 1):
 				m.obox((0.4, 3.0, 3.0), Matrix.Translation((x - 0.75, cy + t * hw * 0.32, z)) @ Matrix.Rotation(math.pi / 4, 4, "X"), "iron")
 		m.box((0.5, 0.8, hh), (x - 0.7, s * (hw - 0.4), hh / 2), "iron")  # outer stile
@@ -385,7 +393,7 @@ def great_doors():
 			m.box((0.5, 0.6, 0.6), (x - 0.9, s * (hw - 0.4), z), "rivet")
 	m.box((0.6, 0.5, hh), (R - 1.9, 0, hh / 2), "iron3")  # the meeting line
 	for s in (-1, 1):
-		m.cylx(0.9, R - 2.4, R - 1.8, s * 1.6, 20, "rivet", n=8)  # ring pulls
+		m.cylx(1.1, R - 2.4, R - 1.8, s * 1.6, 20 * k, "rivet", n=8)  # ring pulls
 	return m
 
 
@@ -397,16 +405,16 @@ def disc_door():
 		m.box((5, 5, 36), (R - 2.5, s * (r + 4.5), 18), "pale2")
 		m.box((6, 6, 3), (R - 3, s * (r + 4.5), 37.5), "pale")
 	m.box((6, 2 * r + 15, 4), (R - 3, 0, 33), "pale")
-	m.cylx(r + 1.2, R - 1.6, R, 0, cz, "pale", n=24)
-	m.cylx(r, R - 2.0, R - 1.6, 0, cz, "bronze", n=24)
-	m.cylx(r - 2.5, R - 2.2, R - 2.0, 0, cz, "iron", n=24)
+	m.cylx(r + 1.2, R - 2.6, R, 0, cz, "pale", n=24)  # stands proud of the wall's ledge
+	m.cylx(r, R - 3.0, R - 2.6, 0, cz, "bronze", n=24)
+	m.cylx(r - 2.5, R - 3.2, R - 3.0, 0, cz, "iron", n=24)
 	for k in range(16):
 		a = k / 16 * math.tau
 		w, tip = (0.2, r - 0.6) if k % 2 == 0 else (0.13, r - 4)
-		p = lambda rr, aa: (R - 2.35, rr * math.cos(aa), cz + rr * math.sin(aa))
+		p = lambda rr, aa: (R - 3.35, rr * math.cos(aa), cz + rr * math.sin(aa))
 		m.face([p(3, a - w), p(tip, a), p(3, a + w)], "gold")
 		m.parts += 1
-	m.cylx(3.2, R - 2.8, R - 2.0, 0, cz, "gold", n=12)
+	m.cylx(3.2, R - 3.8, R - 3.0, 0, cz, "gold", n=12)
 	# Lunette: half a rayed disc over the portal
 	m.cylx(8, R - 1.4, R - 0.6, 0, 42, "pale2", n=16)
 	for k in range(7):
@@ -472,12 +480,12 @@ def rubble(parent):
 	"""Fallen blocks: piles at the wall foot and on the centre floor, clear of the lanes."""
 	rng = random.Random(9)
 	piles = [(R_WALL - 3, a, 10) for a in (math.radians(40), math.radians(200), math.radians(-120))]
-	piles += [(R_IN * 0.62, math.radians(a), 14) for a in (20, 140, 260)]
+	piles += [((20 + R_IN) / 2 + 1, math.radians(a), 14) for a in (20, 140, 260)]  # on the checker, clear of the rayed disc
 	for r0, a0, n in piles:
 		m = MU("ColosseumRubble", "rubble")
 		for _ in range(n):
 			s = rng.uniform(1.4, 4.5) * (0.7 if r0 > R_IN else 1)
-			rr = r0 + rng.uniform(-4, 4) * (0.4 if r0 > R_IN else 1.5)
+			rr = r0 + rng.uniform(-4, 4) * (0.4 if r0 > R_IN else min(1.5, (R_IN - 20) / 20))
 			c = pol(min(rr, R_WALL - s / 2), a0 + rng.uniform(-6, 6) / r0, s * 0.35)
 			mt = Matrix.Translation(c) @ Matrix.Rotation(rng.uniform(0, math.tau), 4, "Z") @ Matrix.Rotation(rng.uniform(-0.5, 0.5), 4, "X")
 			m.obox((s * rng.uniform(0.8, 1.4), s, s * rng.uniform(0.6, 1.0)), mt, rng.choice(("rubble", "rubble2", "ochre")))
@@ -507,11 +515,18 @@ def boss(parent):
 	staff.beam((4.6, -0.8, f + 1.0), (4.6, -0.8, f + 24.5), 0.6, "staff")
 	staff.cyl(1.4, 0.5, (4.6, -0.8, f + 24.2), "trim", n=8)
 	staff.box((1.1, 1.1, 1.6), (4.6, -0.8, f + 25.3), "gem")
-	turn = Matrix.Rotation(TH0 + math.pi / 2, 4, "Z")  # front toward the followed runner
-	obs = [put(b, parent), put(staff, parent)]
-	for o in obs:
-		o.matrix_world = turn
+	orb = MU("MageSpellOrb", "boss stand-in")  # the bright source of the lightning look; hidden in the warm look
+	orb.box((2.4, 2.4, 2.4), (4.6, -0.8, f + 28.0), "spellOrb")
+	obs = [put(b, parent), put(staff, parent), put(orb, parent)]
+	set_boss(obs, 4)
 	return obs
+
+
+def set_boss(obs, mult):
+	"""mult x a character's height (4 is the owner's size), scaled about her feet so the hover height stays."""
+	turn = Matrix.Rotation(TH0 + math.pi / 2, 4, "Z")  # front toward the followed runner
+	for o in obs:
+		o.matrix_world = turn @ Matrix.Translation((0, 0, BOSS_HOVER)) @ Matrix.Scale(mult / 4, 4) @ Matrix.Translation((0, 0, -BOSS_HOVER))
 
 
 def runners(parent):
@@ -572,6 +587,20 @@ def setup(scene):
 			light.data.shadow_soft_size = 1.5
 			scene.collection.objects.link(light)
 			LIGHTS.append((light, kind))
+	key = bpy.data.objects.new("Key", bpy.data.lights.new("Key", "POINT"))  # the spell: lightning look only
+	key.location, key.data.shadow_soft_size = (0, 0, BOSS_HOVER + 28), 3
+	scene.collection.objects.link(key)
+	LIGHTS.append((key, "key"))
+	ng = bpy.data.node_groups.new("ColosseumComp", "CompositorNodeTree")  # bloom for the lightning look
+	ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+	rl, glare, out = ng.nodes.new("CompositorNodeRLayers"), ng.nodes.new("CompositorNodeGlare"), ng.nodes.new("NodeGroupOutput")
+	glare.name = "Bloom"
+	glare.inputs["Type"].default_value = "Bloom"
+	glare.inputs["Threshold"].default_value = 0.8
+	glare.inputs["Size"].default_value = 0.9
+	ng.links.new(rl.outputs["Image"], glare.inputs["Image"])
+	ng.links.new(glare.outputs["Image"], out.inputs["Image"])
+	scene.compositing_node_group = ng
 	top = bpy.data.objects.new("Fill", bpy.data.lights.new("Fill", "AREA"))
 	top.data.shape, top.data.size = "DISK", R_WALL * 1.4
 	top.location = (0, 0, 100)
@@ -585,18 +614,26 @@ def lighting(mode):
 	warm = mode == "warm"
 	nt = bpy.context.scene.world.node_tree
 	mix = nt.nodes["SkyMix"]
-	mix.inputs["A"].default_value = ba.rgb("#4A3426" if warm else "#2C2490")
-	mix.inputs["B"].default_value = ba.rgb("#0E1322" if warm else "#2A2060")
-	next(n for n in nt.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value = 0.5 if warm else 1.3
+	mix.inputs["A"].default_value = ba.rgb("#4A3426" if warm else "#2A1280")
+	mix.inputs["B"].default_value = ba.rgb("#0E1322" if warm else "#1A1050")
+	next(n for n in nt.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value = 0.5 if warm else 0.45
 	for ob, kind in LIGHTS:
 		d = ob.data
 		if kind == "torch":
-			d.color, d.energy = ((1.0, 0.55, 0.22), 26000) if warm else ((0.45, 0.32, 1.0), 30000)
+			d.color, d.energy = ((1.0, 0.55, 0.22), 26000) if warm else ((0.35, 0.18, 1.0), 20000)
 		elif kind == "door":
-			d.color, d.energy = ((1.0, 0.65, 0.3), 4000) if warm else ((0.7, 0.6, 1.0), 3000)
+			d.color, d.energy = ((1.0, 0.65, 0.3), 4000) if warm else ((0.6, 0.45, 1.0), 3000)
+		elif kind == "key":
+			d.color, d.energy = (0.55, 0.4, 1.0), 0 if warm else KEY_W
 		else:
-			d.color, d.energy = ((1.0, 0.78, 0.55), 170000) if warm else ((0.48, 0.38, 1.0), 650000)
-	for name, (wc, lc) in {"flame": ("#FFB04A", "#D9C8FF"), "glowDoor": ("#FFB45A", "#C6B4FF")}.items():
+			d.color, d.energy = ((1.0, 0.78, 0.55), 170000) if warm else ((0.3, 0.12, 1.0), 0)
+	sc = bpy.context.scene
+	sc.view_settings.look = "None" if warm else "AgX - Punchy"  # punchier: keeps the violet saturated under the bright key
+	sc.compositing_node_group.nodes["Bloom"].inputs["Strength"].default_value = 0 if warm else 1.0
+	for ob, _ in PLACED:
+		if ob.name.startswith("MageSpellOrb"):
+			ob.hide_render = warm
+	for name, (wc, lc) in {"flame": ("#FFB04A", "#D9C8FF"), "glowDoor": ("#FFB45A", "#C6B4FF"), "spellOrb": ("#F2EEFF", "#F2EEFF")}.items():
 		bsdf = next(n for n in ba._mats[name].node_tree.nodes if n.type == "BSDF_PRINCIPLED")
 		c = ba.rgb(wc if warm else lc)
 		bsdf.inputs["Base Color"].default_value = c
@@ -615,21 +652,33 @@ def player_pose(lane, yaw=GAME_YAW, pitch=GAME_PITCH):
 	return eye, eye + d * 100 + Vector((0, 0, 100 * math.tan(math.radians(pitch)))), back
 
 
+SIZES = (4, 6, 8, 12)  # boss height in characters, for the owner's size comparison
+
+
+def overview():
+	k = R_WALL / 132
+	return pol(250 * k, math.radians(-155), 230 * k), Vector((0, 25 * k, 0)), 50, "warm", True, 4
+
+
 def shots():
+	"""(name, eye, look, fov, look mode, cutaway, boss size in characters)"""
+	e4, l4, _ = player_pose(4)
+	if R_IN == 35:
+		return [("colosseum_07_small_room_4x", e4, l4, 100, "warm", False, 4), ("colosseum_07_small_room_overview", *overview())]
 	if R_IN != 70:
-		e, l, _ = player_pose(4)
-		return [(f"colosseum_02d_player_view_r{R_IN:.0f}", e, l, 100, "warm", False)]
-	(e4, l4, _), (e1, l1, _), (e7, l7, _) = player_pose(4), player_pose(1), player_pose(7)
+		return [(f"colosseum_02d_player_view_r{R_IN:.0f}", e4, l4, 100, "warm", False, 4)]
+	(e1, l1, _), (e7, l7, _) = player_pose(1), player_pose(7)
 	pa = PILLAR_AS[7]  # -22.5 degrees
 	return [
-		("colosseum_01_overview", pol(250, math.radians(-155), 230), Vector((0, 25, 0)), 50, "warm", True),
-		("colosseum_02_player_view", e4, l4, 100, "warm", False),
-		("colosseum_02b_player_view_lane1", e1, l1, 100, "warm", False),
-		("colosseum_02c_player_view_lane7", e7, l7, 100, "warm", False),
-		("colosseum_03_door", Vector((0, 22, 12)), pol(R_WALL, DOOR_A, 24), 62, "warm", False),
-		("colosseum_04_wall_detail", pol(R_WALL - 42, pa - math.radians(14), 26), pol(R_WALL - 6, pa - math.radians(4), 34), 60, "warm", False),
-		("colosseum_05_lightning", e4, l4, 100, "lightning", False),
-	]
+		("colosseum_01_overview", *overview()),
+		("colosseum_02_player_view", e4, l4, 100, "warm", False, 4),
+		("colosseum_02b_player_view_lane1", e1, l1, 100, "warm", False, 4),
+		("colosseum_02c_player_view_lane7", e7, l7, 100, "warm", False, 4),
+		("colosseum_03_door", Vector((0, 22, 14)), pol(R_WALL, DOOR_A, 30), 66, "warm", False, 4),
+		("colosseum_03b_disc_door", Vector((0, -56, 13)), pol(R_WALL, DISC_A, 22), 66, "warm", False, 4),
+		("colosseum_04_wall_detail", pol(R_WALL - 42, pa - math.radians(14), 26), pol(R_WALL - 6, pa - math.radians(4), 34), 60, "warm", False, 4),
+		("colosseum_05_lightning", e4, l4, 100, "lightning", False, 4),
+	] + [(f"colosseum_06_size_{n}x", e4, l4, 100, "warm", False, n) for n in SIZES]
 
 
 def cutaway(cam_eye, on):
@@ -664,6 +713,7 @@ def main():
 	textured("wallTex", draw_tile())
 	glow("flame", "#FFB04A", 40)
 	glow("glowDoor", "#FFB45A", 12)
+	glow("spellOrb", "#F2EEFF", 60)
 
 	put(floor(), coll)
 	piece_as = [k / PIECES * math.tau for k in range(PIECES)]
@@ -689,22 +739,83 @@ def main():
 	cam = setup(scene)
 	bpy.context.preferences.filepaths.save_version = 0
 	bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ba.BUILD, f"colosseum_draft_r{R_IN:.0f}.blend"))
+	print(f"LAP lane 4 (r {lane_r(4):.1f}): {math.tau * lane_r(4):.0f} studs; inner radius {R_IN:.0f}, wall {R_WALL:.0f}")
 	for lane in (1, 4, 7):
 		e, l, back = player_pose(lane)
 		aim(cam, e, l, 100)
 		h, ok, top = boss_px(cam, [body])
-		hs, oks, tops = boss_px(cam, boss_obs)
+		hs, oks, tops = boss_px(cam, boss_obs[:2])
 		print(f"PX R_IN {R_IN:.0f} lane {lane}: camera {back:.1f} studs back (wall pull-in from {CAM_BACK:.0f}); boss body {h:.0f}px tall at {RES[0]}x{RES[1]}, top at {1 - top:.0%} from the frame top, clear of the bar {ok}; with staff {hs:.0f}px, clear {oks}")
-	for name, eye, look, fov, mode, cut in shots():
+	labels = {}
+	e, l, _ = player_pose(4)
+	aim(cam, e, l, 100)
+	for n in SIZES:
+		set_boss(boss_obs, n)
+		h, ok, top = boss_px(cam, [body])
+		labels[n] = f"{n}x ({n * CHAR_H:g} studs): {h:.0f} px, {h / RES[1]:.1%} of frame height, top {1 - top:.0%} from frame top, {'clear of' if ok else 'UNDER'} the HP bar"
+		print("SIZE", labels[n])
+	for name, eye, look, fov, mode, cut, size in shots():
 		if argv and name not in argv:
 			continue
-		lighting(mode)
+		set_boss(boss_obs, size)
 		cutaway(Vector(eye), cut)
+		lighting(mode)  # after the cutaway: it hides the spell orb in the warm look
 		aim(cam, eye, look, fov)
 		scene.render.filepath = os.path.join(ba.OUT, name + ".png")
 		bpy.ops.render.render(write_still=True)
 		print("SHOT", scene.render.filepath)
+	paths = [os.path.join(ba.OUT, f"colosseum_06_size_{n}x.png") for n in SIZES]
+	if R_IN == 70 and all(os.path.exists(p) for p in paths):
+		sheet([(p, labels[n]) for p, n in zip(paths, SIZES)], os.path.join(ba.OUT, "colosseum_06_size_compare.png"))
 
+
+def sheet(entries, path):
+	"""A 2x2 contact sheet: each render with its label underneath, drawn by an orthographic camera over image planes."""
+	sc = bpy.data.scenes.new("Sheet")
+	sc.render.engine = bpy.context.scene.render.engine
+	sc.render.resolution_x, sc.render.resolution_y = 2560, 1600
+	sc.view_settings.view_transform = "Standard"
+	sc.world = bpy.data.worlds.new("SheetBg")
+	next(n for n in sc.world.node_tree.nodes if n.type == "BACKGROUND").inputs["Color"].default_value = (0.02, 0.02, 0.025, 1)
+	cam = bpy.data.objects.new("SheetCam", bpy.data.cameras.new("SheetCam"))
+	cam.data.type, cam.data.ortho_scale = "ORTHO", 25.6
+	cam.location = (12.8, 8, 10)
+	sc.collection.objects.link(cam)
+	sc.camera = cam
+
+	def emit(name, image=None, color=(1, 1, 1, 1)):
+		m = bpy.data.materials.new(name)
+		nt = m.node_tree
+		for n in list(nt.nodes):
+			if n.type != "OUTPUT_MATERIAL":
+				nt.nodes.remove(n)
+		em = nt.nodes.new("ShaderNodeEmission")
+		em.inputs["Color"].default_value = color
+		if image:
+			tex = nt.nodes.new("ShaderNodeTexImage")
+			tex.image = bpy.data.images.load(image)
+			nt.links.new(tex.outputs["Color"], em.inputs["Color"])
+		nt.links.new(em.outputs[0], next(n for n in nt.nodes if n.type == "OUTPUT_MATERIAL").inputs["Surface"])
+		return m
+
+	for i, (img, label) in enumerate(entries):
+		x0, y0 = (i % 2) * 12.8, 16 - (i // 2) * 8
+		me = bpy.data.meshes.new("SheetImg")
+		me.from_pydata([(x0, y0 - 7.2, 0), (x0 + 12.8, y0 - 7.2, 0), (x0 + 12.8, y0, 0), (x0, y0, 0)], [], [(0, 1, 2, 3)])
+		uv = me.uv_layers.new()
+		for li, q in zip(me.polygons[0].loop_indices, ((0, 0), (1, 0), (1, 1), (0, 1))):
+			uv.data[li].uv = q
+		me.materials.append(emit("SheetImg", img))
+		sc.collection.objects.link(bpy.data.objects.new("SheetImg", me))
+		cu = bpy.data.curves.new("SheetLabel", "FONT")
+		cu.body, cu.size, cu.align_x = label, 0.34, "CENTER"
+		cu.materials.append(emit("SheetText", color=(1, 0.95, 0.85, 1)))
+		t = bpy.data.objects.new("SheetLabel", cu)
+		t.location = (x0 + 6.4, y0 - 7.75, 0)
+		sc.collection.objects.link(t)
+	sc.render.filepath = path
+	bpy.ops.render.render(write_still=True, scene=sc.name)
+	print("SHOT", path)
 
 if __name__ == "__main__":
 	main()
