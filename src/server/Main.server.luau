@@ -110,9 +110,22 @@ GachaService.Start() -- free auto-rolls (after each save loads), the car index a
 MoneyService.Start()
 CarService.Start()
 WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
-require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo meshes, in the background (design doc 4.24)
--- scenery keeps clear of every road, the plaza and the Dojos
-BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
+-- The enclosed cyber dojo round the plaza (design doc 4.24): wall, floor, gate and look, before the scenery prune
+local cyberPlaza = Instance.new("Model")
+cyberPlaza.Name = "CyberPlaza"
+-- Persistent: the whole wall streams in, so it hides the tracks from anywhere inside
+cyberPlaza.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+for _, slice in { "CyberWall", "CyberGate", "CyberLook" } do
+	local ok, err = pcall(require(script.Parent[slice]).Build, cyberPlaza, spawnArea)
+	if not ok then
+		warn("[CyberPlaza] " .. slice .. " failed, the plaza still works: " .. tostring(err))
+	end
+	task.wait()
+end
+cyberPlaza.Parent = Workspace
+require(script.Parent.PlazaDressing).Start() -- kept plaza meshes, signs and Dojo looks, in the background (4.24)
+-- scenery keeps clear of every road, the plaza, the Dojos and the compound
+BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops"), cyberPlaza })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
 do
 	-- the VFX floor is built on the first `/tp vfxarea` (AdminService), so its ground is cleared as an XZ box
@@ -127,6 +140,7 @@ do
 			table.insert(clear, TrackBuilder.CheckpointBox(entry.Layout, entry.Origin)) -- not built yet
 		end
 	end
+	table.insert(clear, cyberPlaza.Floor) -- flat ground under the compound's floor
 	TerrainShape.Prepare(entries, clear, { spawnArea, Workspace.Workshops })
 	for _, entry in entries do
 		ReplicatedStorage:SetAttribute("BiomeZone_" .. entry.Number, TerrainShape.ZonePolyline(entry.Number))
