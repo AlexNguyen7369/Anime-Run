@@ -22,6 +22,8 @@ local ROWS = {
 			{ Id = "Shouted", Event = "Roar", Cut = Cfg.ShoutDamageCut },
 			{ Id = "Adapted", Event = "WheelClick", Cut = Cfg.AdaptedCut },
 		},
+		Chests = { "relic_chest_raga", "relic_chest_adapted" }, -- by stage
+		Relics = "big_raga", -- RelicConfig.Bosses key
 		ChatMessage = Cfg.ChatMessage,
 		WarningText = "Big Raga has emerged, take him down!!!",
 		ActiveText = "Big Raga is raging right now",
@@ -44,9 +46,21 @@ local ROWS = {
 		Moves = {
 			Lightning = { Cost = 20, Chat = "The Elf Mage calls lightning! -20% stamina" },
 			Barrage = { Cost = 30, Chat = "The Elf Mage fires a barrage! -30% stamina" },
-			Slam = { Cost = 15, Osu = true, Chat = "The Elf Mage's golem slams! -15% stamina, damage down for 15 s" },
 		},
-		Statuses = { { Id = "Crushed", Event = "Slam", Cut = 0.20 } }, -- owner 2026-11-11
+		Statuses = { { Id = "Crushed", Minion = true, Cut = 0.20 } }, -- owner 2026-11-11; stacks from golem hits
+		-- The Stone Golem miniboss (owner 2026-11-11), replacing her golem move. Hp and chat lines proposed.
+		Minion = {
+			Id = "boss_golem",
+			Name = "Stone Golem",
+			Hp = 1000, -- flat, not per player
+			Attacks = { -- event names from BossMagePoses.GolemHit
+				Slam = { Cost = 15, Chat = "The Elf Mage's golem slams! -15% stamina, damage down for 15 s" },
+				Sweep = { Cost = 15, Chat = "The Stone Golem sweeps! -15% stamina, damage down for 15 s" },
+			},
+			Caption = { Slam = "Golem Slam! Hit every circle!", Sweep = "Golem Sweep! Hit every circle!" },
+		},
+		Chests = { "relic_chest_mage" }, -- by stage
+		Relics = "boss_mage", -- RelicConfig.Bosses key
 		ChatMessage = "THE ELF MAGE HAS AWAKENED, TAKE HER DOWN FOR REWARDS", -- proposed
 		WarningText = "The Elf Mage has awakened, take her down!!!", -- proposed
 		ActiveText = "The Elf Mage is casting right now", -- proposed

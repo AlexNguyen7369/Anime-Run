@@ -363,9 +363,17 @@ local function stepMage()
 	local since = sinceSpawn(now)
 	local rise = since and (UiMotion.Reduced() and 1 or 1 - (1 - math.min(1, since / Event.RiseSeconds)) ^ 3)
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
-	local move, localTime = MagePoses.Schedule(schedule, now)
-	mage:Step(rise, move, localTime, now)
-	BossMageVfx.Step(since, move, localTime)
+	local minionStart = ReplicatedStorage:GetAttribute("BossMinionStart")
+	local move, localTime, golemMove, golemTime
+	if minionStart then
+		move, localTime, golemMove, golemTime = MagePoses.GolemAt(now - minionStart)
+	else
+		-- only her golem_fall row has golem frames: the fall plays on her clock after the golem's HP reaches 0
+		move, localTime = MagePoses.Schedule(schedule, now)
+		golemMove, golemTime = move, localTime
+	end
+	mage:Step(rise, move, localTime, now, golemMove, golemTime)
+	BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
 end
 
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.

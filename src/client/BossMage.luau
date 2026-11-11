@@ -2,7 +2,8 @@
 -- The Elf Mage and her golem (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"): two Client/BossRaga rigs from
 -- ReplicatedStorage.BossModels (boss_mage, boss_golem), posed every frame from BossMagePoses. She hovers HoverStuds over the arena
 -- floor at its centre, facing as Big Raga does; the idle bob is in the pose data's root. Her entrance lowers her from the broken
--- dome. The golem stands at GolemAnchor from her rest feet and shows only inside the golem move, while its track's scale is above 0.
+-- dome. The golem stands at GolemAnchor from her rest feet and shows only while its track's scale is above 0: while a
+-- golem stands (BossMinionStart) and during her golem_fall row.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -45,8 +46,9 @@ function BossMage.new(parent)
 	return self
 end
 
--- rise: nil before the spawn (hidden), then 0 to 1 as she comes down. move, localTime: BossMagePoses.Schedule's.
-function BossMage:Step(rise, move, localTime, _now)
+-- rise: nil before the spawn (hidden), then 0 to 1 as she comes down. move, localTime: her move (Schedule's or GolemAt's);
+-- golemMove, golemTime: the golem's (GolemAt's, or her move while no golem stands).
+function BossMage:Step(rise, move, localTime, _now, golemMove, golemTime)
 	local her = self.Her
 	if her.Parts and her:Show(rise ~= nil) then
 		local parts, root = Poses.Sample(move, localTime)
@@ -55,8 +57,8 @@ function BossMage:Step(rise, move, localTime, _now)
 	local golem = self.Golem
 	if golem.Parts then
 		local scale, parts, locs, root = 0, nil, nil, nil
-		if rise ~= nil and move == "golem" then
-			scale, parts, locs, root = Poses.SampleGolem(localTime)
+		if rise ~= nil and golemMove then
+			scale, parts, locs, root = Poses.SampleGolem(golemMove, golemTime)
 		end
 		if golem:Show(scale > 0) then
 			golem:Pose(self.GolemRest, parts, root, 1, 0, locs, scale)
