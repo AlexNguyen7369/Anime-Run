@@ -146,6 +146,7 @@
 142. 2026-11-10 — Alex Nguyen — Recorded the owner's rulings: Tracks 6-10 build after join with a hold (4.25), and boss poses and Sidekick attack frames load on first need (7).
 143. 2026-11-10 — Alex Nguyen — Tracks 6-10 now build after players join, nearest first, and runs hold with a "Loading next track" label until their track exists; track_loading, race, checkpoints, duel, npc, chain, world_layout and terrain_built pass in Studio.
 144. 2026-11-10 — Alex Nguyen — Recorded the owner's hud-tech rules (original icons in gold frame tiles, L2 left HUD block, 1200 x 620 panels, enclosed Full Cyber dojo spawn with the door opening on walk-in or Auto race, Versus boss team HUD, R1 rewards popup), goal h1-h5, the Blender cyber draft script and the tile and Boss art (06b5410).
+145. 2026-11-10 — Alex Nguyen — Committed the owner-approved boss audit (9c68725): flat low-graphics boss removed, running camera 75 / 26 / 6, boss mesh preload, Big Raga at BossScale 0.75 with the scream camera scaled.
 
 ## What's next
 **Build hud-tech h1: the gold frame HUD tiles with the original icons in the L2 left block (Index, Items, Rebirth, Quests, Shop, Market; Daily and Settings pills; Auto and Upgrade in the same tile), upload `HudTile.png` and `Boss.png`, and run `ui_buttons`, `ui_hud` and `ui_layout`.**
