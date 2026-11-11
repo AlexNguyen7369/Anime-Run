@@ -1,22 +1,27 @@
 --!nonstrict
 -- Slice 1 of the enclosed cyber dojo (design doc 4.24, owner 2026-11-10): the tech wall round the plaza, both wings and
--- the Dojo ring (Shared/CyberPlaza's rounded rectangle, a gap for the blast door), a steel floor over the whole
--- compound with a neon grid, and the spawn-to-gate path. The wall collides, so no one walks out on foot; it is
--- WALL_HEIGHT tall, so no track shows from inside. Sizes and colours are proposed.
+-- the Dojo ring (Shared/CyberPlaza's rounded rectangle, a gap for the blast door), a warm stone floor over the whole
+-- compound and the spawn-to-gate path. Hybrid look (4.24, owner 2026-11-10): no neon grid on the floor or the wall; the
+-- wall is wood and steel panels with gold trim and a few wall screens, the path is wood planks on a stone border with
+-- soft lantern lights along its edges. The wall collides, so no one walks out on foot; it is WALL_HEIGHT tall, so no
+-- track shows from inside. Sizes and colours are proposed.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local CyberPlaza = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CyberPlaza"))
 
 local C = CyberPlaza.Colors
-local Part, Neon = CyberPlaza.Part, CyberPlaza.Neon
+local Part, Neon, Light = CyberPlaza.Part, CyberPlaza.Neon, CyberPlaza.Light
 local TOP, H, T, R = CyberPlaza.TOP, CyberPlaza.WALL_HEIGHT, CyberPlaza.WALL_THICKNESS, CyberPlaza.RADIUS
 local LO, HI = CyberPlaza.CORNER_MIN, CyberPlaza.CORNER_MAX
 
 local PIECE = 12 -- longest wall piece (studs)
 local ARC_STEP = 10 -- degrees per corner piece
 local FLOOR_THICKNESS = 3 -- down to the Baseplate top, like the plaza floor
-local GRID_STEP = 8
 local PATH_WIDTH = 18
+local PATH_BORDER = 2 -- stone kerb either side of the planks
+local PATH_LAMP_STEP = 16 -- studs between the path's edge lanterns
+local PILASTER_EVERY = 3 -- wall pieces between steel pilasters
+local SCREEN_EVERY = 9 -- wall pieces between wall screens
 
 local CyberWall = {}
 
@@ -60,51 +65,62 @@ local function buildWall(parent, door)
 				"Wall",
 				Vector3.new(T, H, len),
 				base + Vector3.new(0, H / 2, 0),
-				C.Steel,
-				Enum.Material.Metal,
+				C.Wood,
+				Enum.Material.WoodPlanks,
 				true
 			)
-			Neon(
+			local inner = base + face * (T / 2 + 0.2)
+			-- A steel base course, a gold rail at its top and a gold cap rail under the coping
+			Part(folder, "Panel", Vector3.new(0.4, 8, len), inner + Vector3.new(0, 4, 0), C.Steel, Enum.Material.Metal)
+			Part(
 				folder,
-				"Rim",
-				Vector3.new(0.8, 0.8, len),
-				base + face * (T / 2 + 0.4) + Vector3.new(0, H - 1, 0),
-				C.Cyan
+				"Trim",
+				Vector3.new(0.6, 0.6, len),
+				inner + Vector3.new(0, 8.3, 0),
+				C.Gold,
+				Enum.Material.Metal
 			)
-			if i % 2 == 0 then
-				Neon(
+			Part(
+				folder,
+				"Trim",
+				Vector3.new(0.6, 0.8, len),
+				inner + Vector3.new(0, H - 3, 0),
+				C.Gold,
+				Enum.Material.Metal
+			)
+			Part(
+				folder,
+				"Coping",
+				Vector3.new(T + 0.6, 1, len), -- 0.3 overhang: Track 1's side walls stand 2 studs out
+				base + Vector3.new(0, H + 0.5, 0),
+				C.DarkWood,
+				Enum.Material.Wood
+			)
+			if i % PILASTER_EVERY == 0 then
+				Part(
 					folder,
-					"Strip",
-					Vector3.new(0.3, H * 0.8, 0.6),
-					base + face * (T / 2 + 0.15) + Vector3.new(0, H * 0.45, 0),
-					i % 4 == 0 and C.Cyan or C.Magenta
+					"Pilaster",
+					Vector3.new(1, H - 4, 1.6),
+					inner + face * 0.4 + Vector3.new(0, (H - 4) / 2, 0),
+					C.Steel,
+					Enum.Material.Metal
 				)
 			end
-			if i % 6 == 0 then
-				Neon(
-					folder,
-					"Panel",
-					Vector3.new(0.3, 10, len * 0.6),
-					base + face * (T / 2 + 0.15) + Vector3.new(0, 22, 0),
-					C.Panel
-				)
+			if i % SCREEN_EVERY == 0 then
+				-- A wall screen: a dark face in a steel frame, lit warm (one in three a soft cyan or pink accent)
+				local at = inner + face * 0.3 + Vector3.new(0, 20, 0)
+				local tint = (i // SCREEN_EVERY) % 3 == 1 and C.Cyan
+					or (i // SCREEN_EVERY) % 3 == 2 and C.Pink
+					or C.Paper
+				Part(folder, "ScreenFrame", Vector3.new(0.4, 9, len * 0.75), at, C.Steel, Enum.Material.Metal)
+				Neon(folder, "ScreenGlow", Vector3.new(0.2, 7.6, len * 0.75 - 1.2), at + face * 0.25, tint).Transparency =
+					0.25
 			end
 		end
 		if k % 10 == 0 then
 			task.wait() -- chunks: no long frame at server start
 		end
 	end
-end
-
--- Z (or X) extent of the compound's floor at x (or z), inset by `inset`; nil outside.
-local function span(c, lo, hi, loOther, hiOther, inset)
-	local r = R - inset
-	local d = math.max(lo - c, 0, c - hi)
-	if d >= r then
-		return nil
-	end
-	local h = math.sqrt(r * r - d * d)
-	return loOther - h, hiOther + h
 end
 
 local function buildFloor(parent, spawnArea)
@@ -119,8 +135,8 @@ local function buildFloor(parent, spawnArea)
 			"Floor",
 			Vector3.new(x1 - x0, FLOOR_THICKNESS, z1 - z0),
 			CFrame.new((x0 + x1) / 2, y, (z0 + z1) / 2),
-			C.Gunmetal,
-			nil,
+			C.Paving,
+			Enum.Material.Slate,
 			true
 		)
 	end
@@ -133,8 +149,8 @@ local function buildFloor(parent, spawnArea)
 			"Floor",
 			Vector3.new(FLOOR_THICKNESS, 2 * R, 2 * R),
 			CFrame.new(c.X, y, c.Y) * CFrame.Angles(0, 0, math.pi / 2),
-			C.Gunmetal,
-			nil,
+			C.Paving,
+			Enum.Material.Slate,
 			true
 		)
 		disc.Shape = Enum.PartType.Cylinder
@@ -145,26 +161,8 @@ local function buildFloor(parent, spawnArea)
 		plazaFloor.Transparency = 1
 	end
 
-	-- Grid: thin lines, tops below the Dojo bases (TOP + 0.05) so they never z-fight
-	local inset = T / 2 + 0.5
-	for x = math.ceil(west / GRID_STEP) * GRID_STEP, east, GRID_STEP do
-		local z0, z1 = span(x, LO.X, HI.X, LO.Y, HI.Y, inset)
-		if z0 then
-			local line =
-				Neon(folder, "Grid", Vector3.new(0.3, 0.04, z1 - z0), CFrame.new(x, TOP + 0.02, (z0 + z1) / 2), C.Cyan)
-			line.Transparency = 0.45
-		end
-	end
-	for z = math.ceil((LO.Y - R) / GRID_STEP) * GRID_STEP, HI.Y + R, GRID_STEP do
-		local x0, x1 = span(z, LO.Y, HI.Y, LO.X, HI.X, inset)
-		if x0 then
-			local line =
-				Neon(folder, "Grid", Vector3.new(x1 - x0, 0.04, 0.3), CFrame.new((x0 + x1) / 2, TOP + 0.02, z), C.Cyan)
-			line.Transparency = 0.45
-		end
-	end
-
-	-- The path: steel with neon edges from the spawn's edge to the pad's
+	-- The path: wood planks on a stone kerb from the spawn's edge to the pad's, a soft lantern on each edge every
+	-- PATH_LAMP_STEP studs
 	local pad = spawnArea:FindFirstChild("StartPad")
 	if pad then
 		local to = Vector3.new(pad.Position.X, 0, pad.Position.Z)
@@ -173,20 +171,37 @@ local function buildFloor(parent, spawnArea)
 		local frame = CFrame.lookAt(mid, mid + to)
 		Part(
 			folder,
+			"PathKerb",
+			Vector3.new(PATH_WIDTH + 2 * PATH_BORDER, 0.1, t1 - t0),
+			frame + Vector3.new(0, 0.04, 0),
+			C.Stone,
+			Enum.Material.Cobblestone
+		)
+		Part(
+			folder,
 			"Path",
 			Vector3.new(PATH_WIDTH, 0.1, t1 - t0),
-			frame + Vector3.new(0, 0.05, 0),
-			C.Steel,
-			Enum.Material.Metal
+			frame + Vector3.new(0, 0.08, 0),
+			C.Wood,
+			Enum.Material.WoodPlanks
 		)
-		for _, side in { -1, 1 } do
-			Neon(
-				folder,
-				"PathEdge",
-				Vector3.new(0.5, 0.15, t1 - t0),
-				frame * CFrame.new(side * (PATH_WIDTH / 2 + 0.25), 0.075, 0),
-				C.Cyan
-			)
+		local lamps = math.floor((t1 - t0) / PATH_LAMP_STEP)
+		for k = 0, lamps do
+			local z = -(t1 - t0) / 2 + (t1 - t0) * k / math.max(lamps, 1)
+			for _, side in { -1, 1 } do
+				local at = frame * CFrame.new(side * (PATH_WIDTH / 2 + PATH_BORDER / 2), 0, z)
+				Part(
+					folder,
+					"PathLamp",
+					Vector3.new(0.8, 1.6, 0.8),
+					at * CFrame.new(0, 0.8, 0),
+					C.DarkWood,
+					Enum.Material.Wood
+				)
+				local glow =
+					Neon(folder, "PathLampGlow", Vector3.new(0.9, 0.7, 0.9), at * CFrame.new(0, 1.95, 0), C.Paper)
+				Light(glow, C.Amber, 0.8, 10)
+			end
 		end
 	end
 end
