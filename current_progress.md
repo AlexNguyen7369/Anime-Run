@@ -149,8 +149,9 @@
 145. 2026-11-10 — Alex Nguyen — Committed the owner-approved boss audit (9c68725): flat low-graphics boss removed, running camera 75 / 26 / 6, boss mesh preload, Big Raga at BossScale 0.75 with the scream camera scaled.
 146. 2026-11-10 — Alex Nguyen — Landed hud-tech h1 (c722398, 0a2ef57): gold frame HUD tiles in the L2 left block with the Tile and Boss icons uploaded, UI tests updated (ui_buttons 14/0, ui_hud 16/0), and the boss exhaustion view raised to 160 up at 13 deg (74eb084).
 147. 2026-11-11 — Alex Nguyen — Landed hud-tech: Tab tilt split HUD with Market pill and Bosses icon, 1200x620 panels, boss Versus HUD and R1 rewards, dojo cyber accents, Saitamo pedestal, pay-at-each-checkpoint with a Cashed out notice and unboxed Money/Gems, and the hybrid loading backdrop (pushed to 243aea8).
+148. 2026-11-11 — Alex Nguyen — Sized the Bosses button like the HUD column buttons (right of Roblox's buttons where it would reach the left column) and set the loading screen backdrop to intro draft B3 Sakura gate (pushed to 0cbba12; ui_boss 501/0, ui_hud 16/0, ui_buttons 15/0).
 
 ## What's next
-**Get the owner's approval of the money and loading screenshots (https://claude.ai/artifact/RKmrkv3yp5KWLauU4UbDEq), confirm the loading backdrop image loads once Roblox clears it, finish the `npc` harness run, then open the hud-tech PR into main with a fresh merge review.**
+**Confirm the loading backdrop (image 81384921997104) shows once Roblox finishes reviewing it, finish the `npc` harness run, then open the hud-tech PR into main with a fresh merge review.**
 
-**Why this is next:** every hud-tech deliverable is on the integration branch; the PR into main needs the remaining owner approval and green goal-level checks first.
+**Why this is next:** every hud-tech deliverable is pushed on the integration branch; the PR into main needs the backdrop seen in game and green goal-level checks first.
