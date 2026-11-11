@@ -616,7 +616,7 @@ def write_luau(bake, objs):
 	print(f"BAKE wrote {LUAU}: {len(text)} bytes, {sum(len(m[0]) for m in moves.values())} keys")
 
 
-def write_glb(objs):
+def write_glb(objs, path=GLB):
 	tris = 0
 	bind = bind_data(objs)
 	for o in list(bpy.data.objects):
@@ -633,9 +633,9 @@ def write_glb(objs):
 		mesh.update()
 		tris += len(mesh.polygons)
 		assert len(mesh.polygons) <= 20000, name
-	os.makedirs(os.path.dirname(GLB), exist_ok=True)
-	bpy.ops.export_scene.gltf(filepath=GLB, export_format="GLB", export_yup=True, export_apply=True, export_animations=False)
-	print(f"BAKE wrote {GLB}: {len(objs)} parts, {tris} tris, {os.path.getsize(GLB)} bytes")
+	os.makedirs(os.path.dirname(path), exist_ok=True)
+	bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_yup=True, export_apply=True, export_animations=False)
+	print(f"BAKE wrote {path}: {len(objs)} parts, {tris} tris, {os.path.getsize(path)} bytes")
 
 
 def write_images(blend, objs):

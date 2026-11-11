@@ -1,0 +1,57 @@
+{
+	"head": {
+		"Decal": "87262812101587",
+		"Hash": "8d4499409f6769cfc038cbc930ca3e634ca0428626f7ee7c43d202e322d2a8fe",
+		"Image": "100378164806183"
+	},
+	"magic_circle": {
+		"Decal": "104979681953773",
+		"Hash": "a454dc66ed8a97ae8c43c25e4da3422f99fbbc4cf3fa6394279706b28c9fe82f",
+		"Image": "117488151322544"
+	},
+	"osu_circle": {
+		"Decal": "124588659320380",
+		"Hash": "51bb7f79ed565603096aae85c485a1265bbdc308813389fcc5966c0612d2821e",
+		"Image": "90729210350468"
+	},
+	"osu_hit": {
+		"Decal": "70929031771040",
+		"Hash": "d367602e3f320bdeb383dabb29dad6258955cf4650623e3ea6d1ef1b946b71f9",
+		"Image": "105192850891921"
+	},
+	"osu_miss": {
+		"Decal": "124535501370816",
+		"Hash": "b0c33615a8c25acf1303d1b1959ac84a667d76ba6cc663b8ce27e2ff306aa315",
+		"Image": "85527567292576"
+	},
+	"osu_ring": {
+		"Decal": "117860946240808",
+		"Hash": "e403cd458b2c45729ec6bfea9646188e5fdfcacc0c5e1ca0fa1ad97e20aa90d4",
+		"Image": "128343156847735"
+	},
+	"portrait": {
+		"Decal": "137113034019060",
+		"Hash": "48dff347c0f1de9355c37e8fc36f751ba4d6a01442fc66e0cdb6035107ddfeb4",
+		"Image": "102713310622646"
+	},
+	"staff_icon": {
+		"Decal": "92335346281618",
+		"Hash": "ae8447e690a15047cd4f26bf5f255602f7adb27f207840f34cd4abcb92146fbe",
+		"Image": "120215179675269"
+	},
+	"status_blasted": {
+		"Decal": "118582344574427",
+		"Hash": "2f8fcc5a507c21af5f0efbe5d7ed2815acc63c775e6eeee2cb0af2c91fcd9120",
+		"Image": "94629420037863"
+	},
+	"status_crushed": {
+		"Decal": "125340618005956",
+		"Hash": "3b11ed78e7a5b60c97ea8994b0d3a3314aa897af50d5526a0ba26bf288186fbb",
+		"Image": "137165535581545"
+	},
+	"status_shocked": {
+		"Decal": "140679918124315",
+		"Hash": "3e6f84c7da65d6dd0f3e3227069d37b7cef5c72b5819d5be2a47c2cd4363f2d9",
+		"Image": "140354720408592"
+	}
+}
