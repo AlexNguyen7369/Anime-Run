@@ -799,7 +799,7 @@ local EVENTS = { Impact = playImpact, Roar = playRoar, WheelClick = playClick }
 
 local function playEvent(name)
 	local play = EVENTS[name]
-	if not (play and effects) then
+	if not (play and effects and raga) then
 		return
 	end
 	effects:SetAttribute("LastParticles", play())
@@ -1084,6 +1084,24 @@ function BossVfx.Step(since, move, localTime, screamLeft)
 	end
 	previousMove, previousTime = move, localTime
 end
+
+-- The helpers, for another boss's effects (Client/BossMageVfx): they write to the folder of the last BossVfx.Start, which that
+-- module starts with no Raga, so none of Raga's own effects play into it.
+BossVfx.Kit = {
+	holder = holder,
+	emitter = emitter,
+	burst = burst,
+	tween = tween,
+	decal = decal,
+	growingRing = growingRing,
+	pulseEdges = pulseEdges,
+	shakeAt = shakeAt,
+	expire = expire,
+	sequence = sequence,
+	regrade = regrade,
+	FlatFaces = FLAT_FACES,
+	UprightFaces = UPRIGHT_FACES,
+}
 
 ReplicatedStorage:GetAttributeChangedSignal(FORCE):Connect(function()
 	local value = ReplicatedStorage:GetAttribute(FORCE)

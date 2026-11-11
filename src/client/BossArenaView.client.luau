@@ -2,16 +2,22 @@
 -- The boss sky arena (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena"). Client-only: the diameter exceeds the streaming
 -- target. Marble and gold parts from BossArenaConfig, matching tools/blender/arena/build_arena.py's approved draft, over a
 -- cloud deck; the sky is the arena zone of Client/BiomeEnvironment. Engine primitives only, no uploaded meshes. Built while
--- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on.
+-- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on. While the event's boss
+-- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Cfg = require(Shared:WaitForChild("BossArenaConfig"))
+local ArenaConfig = require(Shared:WaitForChild("BossArenaConfig"))
+local Cfg = ArenaConfig -- the standing arena's numbers; Big Raga's sky arena unless the colosseum stands
 local Event = require(Shared:WaitForChild("BossEventConfig"))
+local MagePoses = require(Shared:WaitForChild("BossMagePoses"))
 local Poses = require(Shared:WaitForChild("BossRagaPoses"))
+local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
+local BossMage = require(script.Parent:WaitForChild("BossMage"))
+local BossMageVfx = require(script.Parent:WaitForChild("BossMageVfx"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -54,6 +60,8 @@ local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
 local folder = nil -- the built arena, nil when off
 local added = 0
 local raga = nil -- the boss, while the arena stands
+local mage = nil -- or The Elf Mage, while the colosseum stands
+local builtBoss = nil -- the boss id the standing arena was built for
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
 local function pace(mine)
@@ -88,16 +96,17 @@ end
 
 -- A ring of straight pieces, each as long as the chord at the outer edge so the ring has no gaps. With style2 the pieces
 -- alternate, as the draft's lanes do; those stand a hair higher because neighbours overlap at their inner corners.
--- Returns false if the build was cancelled.
-local function addRing(mine, name, radius, width, height, top, style, style2)
-	local length = (Cfg.RingPoint(radius + width / 2, 0) - Cfg.RingPoint(radius + width / 2, RING_STEP)).Magnitude
-	for k = 0, Cfg.Segments / RING_STEP - 1 do
+-- step: ring points a piece, default RING_STEP. Returns false if the build was cancelled.
+local function addRing(mine, name, radius, width, height, top, style, style2, step)
+	step = step or RING_STEP
+	local length = (Cfg.RingPoint(radius + width / 2, 0) - Cfg.RingPoint(radius + width / 2, step)).Magnitude
+	for k = 0, Cfg.Segments / step - 1 do
 		if not pace(mine) then
 			return false
 		end
 		local other = style2 ~= nil and k % 2 == 1
 		local y = top - height / 2 + (other and 0.02 or 0)
-		local a, b = Cfg.RingPoint(radius, k * RING_STEP, y), Cfg.RingPoint(radius, (k + 1) * RING_STEP, y)
+		local a, b = Cfg.RingPoint(radius, k * step, y), Cfg.RingPoint(radius, (k + 1) * step, y)
 		addPart(name, Vector3.new(width, height, length), CFrame.lookAt((a + b) / 2, b), other and style2 or style)
 	end
 	return true
@@ -282,20 +291,39 @@ end
 local function refresh()
 	local want = ReplicatedStorage:GetAttribute(ATTRIBUTE) == true
 		or Players.LocalPlayer:GetAttribute("BossEvent") == true
-	if want == (folder ~= nil) then
+	local boss = ReplicatedStorage:GetAttribute("BossEventBoss") == "boss_mage" and "boss_mage" or "boss_raga"
+	if want == (folder ~= nil) and (not want or boss == builtBoss) then
 		return
 	end
 	if folder then
-		BossVfx.Stop()
+		if mage then
+			BossMageVfx.Stop()
+		else
+			BossVfx.Stop()
+		end
 		folder:Destroy()
 		folder = nil
 		raga = nil
+		mage = nil
+		builtBoss = nil
 	end
 	if want then
 		local mine = Instance.new("Folder")
 		mine.Name = "BossArenaPreview"
 		mine.Parent = Workspace
 		folder = mine
+		builtBoss = boss
+		Cfg = ArenaConfig.For(boss)
+		if boss == "boss_mage" then
+			mage = BossMage.new(mine)
+			local effects = Instance.new("Folder")
+			effects.Name = "BossEffects"
+			effects.Parent = mine
+			BossMageVfx.Start(effects, mage)
+			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
+			BossColosseum.Build(mine, kit)
+			return
+		end
 		raga = BossRaga.new(mine)
 		local effects = Instance.new("Folder")
 		effects.Name = "BossEffects"
@@ -329,8 +357,23 @@ local function stage2At(now)
 	return 1 + (GROWTH - 1) * done * done * (3 - 2 * done), Event.WheelSpinAt(now - started), left
 end
 
+-- Her entrance (BOSS_EVENT_SPEC "The Elf Mage"): lowered from the broken dome over RiseSeconds, easing to a stop. No stage 2.
+local function stepMage()
+	local now = Workspace:GetServerTimeNow()
+	local since = sinceSpawn(now)
+	local rise = since and (UiMotion.Reduced() and 1 or 1 - (1 - math.min(1, since / Event.RiseSeconds)) ^ 3)
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
+	local move, localTime = MagePoses.Schedule(schedule, now)
+	mage:Step(rise, move, localTime, now)
+	BossMageVfx.Step(since, move, localTime)
+end
+
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
 local function step()
+	if mage then
+		stepMage()
+		return
+	end
 	if not raga then
 		return
 	end
@@ -351,4 +394,5 @@ end
 RunService.Heartbeat:Connect(step)
 ReplicatedStorage:GetAttributeChangedSignal(ATTRIBUTE):Connect(refresh)
 Players.LocalPlayer:GetAttributeChangedSignal("BossEvent"):Connect(refresh)
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(refresh)
 refresh()

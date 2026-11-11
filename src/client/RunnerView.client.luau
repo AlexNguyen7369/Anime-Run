@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
+local BossCatalog = require(Shared.BossCatalog)
 local BossCfg = require(Shared.BossEventConfig)
 local PathDriver = require(Shared.PathDriver)
 local RunnerFactory = require(Shared.RunnerFactory)
@@ -30,6 +31,17 @@ local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns t
 -- Proposed 2026-11-10 (were 55 and 12): at 75 the boss sits near the screen's centre line and at 26 its wheel top, grown 1.25x,
 -- clears the HP bar from every lane; the damage numbers over its chest land mid-screen instead of behind the bar.
 local ARENA_YAW, ARENA_PITCH = math.rad(75), math.rad(26)
+
+-- The running boss's view: Big Raga's the constants above, another boss its BossCatalog row's Camera (degrees, studs), and the
+-- arena of that boss. Returns yaw, pitch (radians), zoom and the arena's numbers.
+local function arenaView()
+	local boss = BossCatalog.Current()
+	local view = boss.Camera
+	if boss.Id == BossCatalog.Default or not view then
+		return ARENA_YAW, ARENA_PITCH, BossCfg.CameraZoom, Arena
+	end
+	return math.rad(view.Yaw), math.rad(view.Pitch), view.Zoom, Arena.For(boss.Id)
+end
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
@@ -325,7 +337,8 @@ local function riseCameraOn(camera)
 end
 
 local function faceArena(camera, dt)
-	local inward = (Arena.Center - camera.Focus.Position) * Vector3.new(1, 0, 1)
+	local _, arenaPitch, _, arena = arenaView()
+	local inward = (arena.Center - camera.Focus.Position) * Vector3.new(1, 0, 1)
 	if inward.Magnitude < 1e-3 then
 		return
 	end
@@ -335,15 +348,16 @@ local function faceArena(camera, dt)
 	local ease = 1 - math.exp(-TRACK_CAMERA_RATE * dt)
 	local pitch = math.asin(math.clamp(look.Y, -1, 1))
 	savedPitch = savedPitch or pitch
-	setAngles(camera, pitch + (ARENA_PITCH - pitch) * ease, yaw + turn * ease)
+	setAngles(camera, pitch + (arenaPitch - pitch) * ease, yaw + turn * ease)
 end
 
 local function alignYaw(camera, torso, dt)
 	local dir = torso.CFrame.LookVector
 	local inEvent = player:GetAttribute("BossEvent") == true
+	local arenaYaw, arenaPitch, _, arena = arenaView()
 	if inEvent then
-		local inward = ((Arena.Center - torso.Position) * Vector3.new(1, 0, 1)).Unit
-		dir = dir * math.cos(ARENA_YAW) + inward * math.sin(ARENA_YAW)
+		local inward = ((arena.Center - torso.Position) * Vector3.new(1, 0, 1)).Unit
+		dir = dir * math.cos(arenaYaw) + inward * math.sin(arenaYaw)
 	end
 	if Vector2.new(dir.X, dir.Z).Magnitude < 1e-3 then
 		return
@@ -354,7 +368,7 @@ local function alignYaw(camera, torso, dt)
 	yaw += turn * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
 	local pitch = math.asin(math.clamp(look.Y, -1, 1))
 	if inEvent and not savedPitch then
-		savedPitch, pitch = pitch, ARENA_PITCH
+		savedPitch, pitch = pitch, arenaPitch
 	end
 	setAngles(camera, pitch, yaw)
 end
@@ -400,7 +414,7 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 	if wide and not fovBefore then
 		fovBefore, zoomBefore = camera.FieldOfView, player.CameraMinZoomDistance
 		camera.FieldOfView = BossCfg.CameraFov
-		player.CameraMinZoomDistance = BossCfg.CameraZoom
+		player.CameraMinZoomDistance = select(3, arenaView())
 	elseif camera and not wide and fovBefore then
 		camera.FieldOfView = fovBefore
 		player.CameraMinZoomDistance = zoomBefore
@@ -451,8 +465,9 @@ RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value 
 	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then
 		return
 	end
-	local eye = camera.Focus.Position - camera.CFrame.LookVector * BossCfg.CameraZoom
-	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, Arena.Y + ABOVE_DECK), eye.Z)
+	local _, _, zoom, arena = arenaView()
+	local eye = camera.Focus.Position - camera.CFrame.LookVector * zoom
+	camera.CFrame = camera.CFrame.Rotation + Vector3.new(eye.X, math.max(eye.Y, arena.Y + ABOVE_DECK), eye.Z)
 end)
 
 -- Tunnel camera clamp (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), after the default camera: while a tunnel part is straight
