@@ -910,6 +910,9 @@ UiSpec.RacerPanelBand = {
 -- state, and ui_panels proves they really are hidden (Visible false) then.
 -- When = "any": any PanelSwitch panel open; "other_than:<panel>": any panel but that one; "stacked": any panel open at
 -- a viewport where the Items / Upgrade pair stacks.
+-- Elements hidden at a viewport height at or under the value whatever is open: Client/BoostDailyUi refreshChrome shows
+-- Status only while ViewportSize.Y > 500 and no panel is open (the panel half is HiddenWhilePanelOpen below).
+UiSpec.HiddenAtHeight = { ["DailyBoosts/Status"] = 500 }
 UiSpec.HiddenWhilePanelOpen = {
 	["DailyBoosts/Status"] = "any",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the compact roll hides under every panel
