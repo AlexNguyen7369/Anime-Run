@@ -5,6 +5,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 local client = script.Parent
@@ -173,6 +174,15 @@ local SLOTS = {
 	{ "Upgrade", upgradeSlot },
 }
 local TILE_ART = Icons.Tile.Image
+-- Shop and Index are not S and I: S walks backward and I zooms the camera (owner 2026-11-10).
+local KEYS = {
+	Index = Enum.KeyCode.X,
+	Items = Enum.KeyCode.B,
+	Rebirth = Enum.KeyCode.R,
+	Quests = Enum.KeyCode.Q,
+	Shop = Enum.KeyCode.P,
+	Market = Enum.KeyCode.M,
+}
 local tiles = {}
 for order, slot in SLOTS do
 	local name = slot[1]
@@ -216,8 +226,52 @@ for order, slot in SLOTS do
 			PanelSwitch.Action(PANEL[name])
 		end)
 	end
+	if KEYS[name] then
+		outlined(
+			make("TextLabel", "Key", tile, {
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -7, 0, 5),
+				Size = UDim2.fromOffset(18, 18),
+				BackgroundTransparency = 1,
+				Font = UiTheme.Font,
+				TextSize = 16,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = KEYS[name].Name,
+				ZIndex = 3,
+			}),
+			2
+		)
+	end
 	tiles[name] = { Button = tile, Badge = badge(tile) }
 end
+
+-- Keybind letters (design doc 4.40): keyboard only; the key does exactly what a click on the tile does.
+local function keyboardInUse()
+	local last = UserInputService:GetLastInputType()
+	return UserInputService.KeyboardEnabled
+		and last ~= Enum.UserInputType.Touch
+		and string.sub(last.Name, 1, 7) ~= "Gamepad"
+end
+local function refreshKeys()
+	local shown = keyboardInUse()
+	for name in KEYS do
+		tiles[name].Button.Key.Visible = shown
+	end
+end
+UserInputService.LastInputTypeChanged:Connect(refreshKeys)
+refreshKeys()
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or UserInputService:GetFocusedTextBox() then
+		return
+	end
+	for name, key in KEYS do
+		if input.KeyCode == key then
+			PanelSwitch.Action(PANEL[name])
+			return
+		end
+	end
+end)
 
 -- Top-right pills (Roblox top-bar style) -------------------------------------------------------------------------
 local bar = make("Frame", "TopRight", root, {
