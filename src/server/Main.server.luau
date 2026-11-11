@@ -111,6 +111,14 @@ MoneyService.Start()
 CarService.Start()
 WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
 require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo meshes, in the background (design doc 4.24)
+do -- cyber accents on top of the plaza (4.24 "Dojo with cyber accents"); a failure only warns
+	local ok, err = pcall(function()
+		require(script.Parent.PlazaAccents).Build()
+	end)
+	if not ok then
+		warn("[PlazaAccents] skipped: " .. tostring(err))
+	end
+end
 -- scenery keeps clear of every road, the plaza and the Dojos
 BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
 -- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
