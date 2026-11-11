@@ -20,7 +20,7 @@
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
 --   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
---     the HP bar's right edge and its top just under the bar's bottom, clear of Grid/Quests, Grid/Shop, Leave and the bar.
+--     the HP bar's right edge and its top just under the bar's bottom, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
 --   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
 --     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
 --     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. It stays hidden until the spawn Warning has gone, for late
@@ -1177,7 +1177,7 @@ function Module.Build(h)
 		local barRect = h.rect(h.find(BAR))
 		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
 		for _, tile in { "Quests", "Shop" } do
-			local found = h.find("HudChrome/Grid/" .. tile)
+			local found = h.find("HudChrome/ShopColumn/" .. tile)
 			check(res, "drop_tile_exists_" .. tile, found ~= nil, true)
 			if found and h.visible(found) then
 				others[tile] = h.rect(found)

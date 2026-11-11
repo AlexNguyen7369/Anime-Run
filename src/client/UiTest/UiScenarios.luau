@@ -1266,6 +1266,7 @@ simRect = function(obj, ctx)
 					Race = UiSpec.Band.Race,
 					Turbo = UiSpec.Band.Turbo,
 					Navigation = UiSpec.Band.Grid,
+					ShopColumn = UiSpec.Band.ShopColumn,
 					Money = UiSpec.Band.Money,
 				}
 			end
@@ -1288,6 +1289,16 @@ simRect = function(obj, ctx)
 					end
 				end
 				dependencies.NavigationParts = parts
+			end
+			-- The right column's left edge includes its visible descendants likewise (Client/PanelBand shopLeft).
+			if dependencies.ShopColumn then
+				local parts = {}
+				for _, d in findPath(wanted.ShopColumn):GetDescendants() do
+					if d:IsA("GuiObject") and d.Visible then
+						table.insert(parts, simRect(d, ctx))
+					end
+				end
+				dependencies.ShopColumnParts = parts
 			end
 			local fitted = nil
 			if missing then
@@ -4324,10 +4335,11 @@ function S.ui_layout(res)
 					overRow = { "no RollToast/Toast" }
 				end
 				checkList(res, "toast_clear_of_top_right_row_" .. vpSpec.Name, overRow)
-				-- Design doc 4.40 layout L2: the left block is GridColumns wide, filled row by row in NavButtons order
-				-- (Index | Items, Rebirth | Quests, Shop | Market). Every tile is the same square size, the left column
-				-- shares one x, each row one y, and neighbours are 0..GridGap apart (a phone's UIScale only shrinks it).
-				local cols, gridGap = UiSpec.Hud.GridColumns, UiSpec.Hud.GridGap
+				-- Design doc 4.40 "HUD layout" (split L/R): NavButtons 1..ColumnSize are the left column (Index, Items,
+				-- Rebirth) at most NavMaxLeftGap from the screen's left edge, the rest the right column (Quests, Shop,
+				-- Market) at most NavMaxLeftGap from its right edge. Each column shares one x and stacks top to bottom
+				-- 0..ColumnGap apart (a phone's UIScale only shrinks it); every button is Cell x its holder's UIScale.
+				local colSize, colGap = UiSpec.Hud.ColumnSize, UiSpec.Hud.ColumnGap
 				local tileRects, gridWrong = {}, {}
 				for i, path in UiSpec.Hud.NavButtons do
 					local t = findPath(path)
@@ -4338,37 +4350,22 @@ function S.ui_layout(res)
 					end
 				end
 				local function gapOk(g)
-					return g >= -TOL and g <= gridGap + TOL
+					return g >= -TOL and g <= colGap + TOL
+				end
+				if #UiSpec.Hud.NavButtons ~= 2 * colSize then
+					table.insert(gridWrong, ("%d NavButtons, want %d"):format(#UiSpec.Hud.NavButtons, 2 * colSize))
 				end
 				if #gridWrong == 0 then
-					local first = tileRects[1]
 					for i, r in tileRects do
 						local path = UiSpec.Hud.NavButtons[i]
-						if
-							math.abs(r.w - first.w) > TOL
-							or math.abs(r.h - first.h) > TOL
-							or math.abs(r.w - r.h) > TOL
-						then
-							table.insert(gridWrong, path .. rstr(r) .. " not the square size of " .. rstr(first))
+						local isLeft = i <= colSize
+						local holder = isLeft and UiSpec.Hud.Grid or UiSpec.Hud.ShopColumn
+						local want = UiSpec.Hud.Cell * (UiResponsive.HudChromeScale(holder, vp) or 1)
+						if math.abs(r.w - want.X) > TOL or math.abs(r.h - want.Y) > TOL then
+							table.insert(gridWrong, ("%s%s not the %gx%g cell"):format(path, rstr(r), want.X, want.Y))
 						end
-						if (i - 1) % cols ~= 0 then
-							local left = tileRects[i - 1]
-							local g = r.x - (left.x + left.w)
-							if math.abs(r.y - left.y) > TOL or not gapOk(g) then
-								table.insert(
-									gridWrong,
-									("%s%s not right of %s%s (gap %g)"):format(
-										path,
-										rstr(r),
-										UiSpec.Hud.NavButtons[i - 1],
-										rstr(left),
-										g
-									)
-								)
-							end
-						end
-						if i > cols then
-							local above = tileRects[i - cols]
+						if (i - 1) % colSize ~= 0 then
+							local above = tileRects[i - 1]
 							local g = r.y - (above.y + above.h)
 							if math.abs(r.x - above.x) > TOL or not gapOk(g) then
 								table.insert(
@@ -4376,15 +4373,30 @@ function S.ui_layout(res)
 									("%s%s not below %s%s (gap %g)"):format(
 										path,
 										rstr(r),
-										UiSpec.Hud.NavButtons[i - cols],
+										UiSpec.Hud.NavButtons[i - 1],
 										rstr(above),
 										g
 									)
 								)
 							end
 						end
-						if not contains(rootOf(path), r) then
+						local root = rootOf(path)
+						if not contains(root, r) then
 							table.insert(gridWrong, path .. rstr(r) .. " off screen")
+						else
+							local edgeGap = isLeft and r.x - root.x or root.x + root.w - (r.x + r.w)
+							if edgeGap > UiSpec.Hud.NavMaxLeftGap + TOL then
+								table.insert(
+									gridWrong,
+									("%s%s %g px from the %s edge, max %g"):format(
+										path,
+										rstr(r),
+										edgeGap,
+										isLeft and "left" or "right",
+										UiSpec.Hud.NavMaxLeftGap
+									)
+								)
+							end
 						end
 					end
 				end
@@ -4512,39 +4524,44 @@ function S.ui_layout(res)
 			end
 			-- The four Racer panels sit in the PanelBand (docs/HUD_LAYOUT_SPEC.md sections 1 and 6, Client/PanelBand.Rect,
 			-- read by RacerUiController.fitPanels): centred horizontally, Gap below the Race Face, Gap above the TURBO
-			-- LUCK bar, inside the band (from Gap past the left tile block and what sticks out of it to Gap from the
-			-- screen's right edge, design doc 4.40 layout L2; above Money when Money reaches into it), centred vertically in the band.
+			-- LUCK bar, inside the band (Gap clear of both icon columns and what sticks out of them, the wider margin on
+			-- both sides, design doc 4.40 split L/R; above Money when Money reaches into it), centred vertically in the band.
 			for _, panelPath in state.Open do
 				local prefix = UiSpec.RacerPanelBand.Panels[panelPath]
 				if prefix then
 					local p = findPath(panelPath)
 					local race, turbo = findPath(UiSpec.Hud.Race), findPath(UiSpec.Hud.Turbo)
 					local nav = findPath(UiSpec.RacerPanelBand.Navigation)
-					local raceBox = findPath(UiSpec.Band.Race)
+					local raceBox, shop = findPath(UiSpec.Band.Race), findPath(UiSpec.RacerPanelBand.ShopColumn)
 					local money = findPath(UiSpec.Band.Money)
 					local tagV = "_" .. vpSpec.Name
-					if p and race and turbo and nav and raceBox and money then
+					if p and race and turbo and nav and raceBox and shop and money then
 						local gap = UiSpec.RacerPanelBand.Gap
 						local r, root = rectOf(p), rootRect(guiOf(p), vp)
 						local br, anchor = rectOf(turbo), rectOf(raceBox)
 						local cx, cy = centre(r)
 						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
 						-- with Visible = true, as PanelBand.Rect reads it
-						local parts = {}
-						for _, d in nav:GetDescendants() do
-							if d:IsA("GuiObject") and d.Visible then
-								table.insert(parts, rectOf(d))
+						local function partsOf(holder)
+							local parts = {}
+							for _, d in holder:GetDescendants() do
+								if d:IsA("GuiObject") and d.Visible then
+									table.insert(parts, rectOf(d))
+								end
 							end
+							return parts
 						end
 						local left, top, right, bottom = UiShopMarket.Band(vp, {
 							Race = anchor,
 							Turbo = br,
 							Navigation = rectOf(nav),
-							NavigationParts = parts,
+							NavigationParts = partsOf(nav),
+							ShopColumn = rectOf(shop),
+							ShopColumnParts = partsOf(shop),
 							Money = rectOf(money),
 							MoneyShown = money:IsA("GuiObject") and money.Visible,
 						})
-						-- Design doc 4.40: panels centre in the band right of the block, not on the screen
+						-- Design doc 4.40: panels centre in the band between the two columns
 						local dx = math.abs(cx - (left + right) / 2)
 						check(res, prefix .. "_centred_x" .. tagV, dx, TOL, dx <= TOL)
 						-- Design doc 4.42 "Panel size": the band top (ReachUp over the Race anchor + Gap, PanelBand.Rect)
@@ -4585,7 +4602,13 @@ function S.ui_layout(res)
 							)
 						end
 					else
-						check(res, prefix .. "_centred_x" .. tagV, "missing", "panel, Race, Turbo, Grid, Money", false)
+						check(
+							res,
+							prefix .. "_centred_x" .. tagV,
+							"missing",
+							"panel, Race, Turbo, Grid, ShopColumn, Money",
+							false
+						)
 					end
 				end
 			end
@@ -4895,23 +4918,34 @@ function S.ui_buttons(res)
 		local text = b and allText(b) or "missing"
 		check(res, "label_" .. item[1], text, item[2], text == item[2])
 	end
-	-- Design doc 4.40: every block tile and the Auto / Upgrade pair show the same gold-frame tile art
+	-- Design doc 4.40 "Icon style" (Tab tilt): no tile frame. Every column button and the Auto / Upgrade pair is a
+	-- transparent ImageButton (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows its HudIcons entry
 	local HudIcons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
-	local tileArt = HudIcons.Tile and HudIcons.Tile.Image or ""
 	local wrongArt = {}
-	if tileArt == "" then
-		table.insert(wrongArt, "HudIcons.Tile.Image is empty")
-	end
-	for _, path in UiSpec.Hud.GoldTiles do
+	for _, path in UiSpec.Hud.IconButtons do
 		local t = findPath(path)
+		local name = string.match(path, "[^/]+$")
+		local art = HudIcons[name] and HudIcons[name].Image or ""
+		local icon = t and t:FindFirstChild("Icon")
 		if not t then
 			table.insert(wrongArt, path .. " missing")
-		elseif not t:IsA("ImageButton") or t.Image ~= tileArt then
-			table.insert(wrongArt, ("%s Image %s"):format(path, t:IsA("ImageButton") and t.Image or t.ClassName))
+		elseif not t:IsA("ImageButton") then
+			table.insert(wrongArt, ("%s is a %s, not an ImageButton"):format(path, t.ClassName))
+		elseif t.BackgroundTransparency ~= 1 or t.Image ~= "" then
+			table.insert(
+				wrongArt,
+				('%s BackgroundTransparency %g Image %q, want 1 and ""'):format(path, t.BackgroundTransparency, t.Image)
+			)
+		elseif art == "" then
+			table.insert(wrongArt, ("HudIcons.%s.Image is empty"):format(name))
+		elseif not (icon and icon:IsA("ImageLabel")) then
+			table.insert(wrongArt, path .. " has no ImageLabel Icon")
+		elseif icon.Image ~= art then
+			table.insert(wrongArt, ("%s/Icon Image %s, want HudIcons.%s %s"):format(path, icon.Image, name, art))
 		end
 	end
-	checkList(res, "hud_tiles_gold_frame", wrongArt)
-	-- Design doc 4.40 (owner 2026-11-10): on keyboard each block tile shows its keybind letter in a TextLabel Key, in
+	checkList(res, "hud_icon_buttons_transparent", wrongArt)
+	-- Design doc 4.40 (owner 2026-11-10): on keyboard each column button shows its keybind letter in a TextLabel Key, in
 	-- the tile's top-right quarter, clear of the tile's label text
 	if UserInputService.KeyboardEnabled then
 		local keyLetters = { "X", "B", "R", "Q", "P", "M" }
@@ -4961,7 +4995,7 @@ function S.ui_buttons(res)
 		end
 		checkList(res, "hud_tile_keys", badKeys)
 	end
-	-- Design doc 4.40: TopRight holds exactly the Daily pill and the Settings button (Market moved to the block)
+	-- Design doc 4.40: TopRight holds exactly the Daily pill and the Settings button (Market is in the right column)
 	local topRight = findPath(UiSpec.Hud.TopRight)
 	local topNames = {}
 	for _, c in topRight and topRight:GetChildren() or {} do

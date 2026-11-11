@@ -126,8 +126,10 @@ function BossRaga:Step(rise, below, move, localTime, now, growth, spin, tremble)
 		anchor *= CFrame.new(studs * math.noise(now * 19, 6.5), 0, studs * math.noise(now * 23, 7.5))
 	end
 	self.Anchor = anchor
-	if growth ~= self.Growth then
-		self.Growth = growth
+	self.Growth = growth
+	-- SizedAt starts nil, so the first shown frame applies BossScale even at growth 1 (and a late join's growth)
+	if growth ~= self.SizedAt then
+		self.SizedAt = growth
 		for i, part in self.Parts do
 			part.Size = self.Sizes[i] * growth
 		end

@@ -13,7 +13,9 @@
 --     shows Phase 1's rates again.
 --   BossBar/Status/Status_<Id>/Stack: a TextLabel, "x2" at Count 2, not shown at Count 1. Seconds stays "<n>s".
 --   BossBar/Status/Status_Vulnerable: Icon, shown until the row goes, with no digit showing in its Seconds.
---   Growth cutscene (owner 2026-11-06): scale is read from the size of workspace.BossArenaPreview's BigRaga/Wheel against stage 1: near 1 at
+--   Growth cutscene (owner 2026-11-06): scale is read from the size of workspace.BossArenaPreview's BigRaga/Wheel against stage 1's drawn
+--     size, ReplicatedStorage.BossModels.boss_raga's Wheel x BossArenaConfig.BossScale (owner 2026-11-10, BOSS_EVENT_SPEC "Arena"; stage 1
+--     is drawn at exactly that, so a part left at the model's own size fails growth_boss_drawn_at_boss_scale): near 1 at
 --     the scream's start, between at its middle, GROWTH at its end and after, for a late view too, and 1 again in the next event; height
 --     up, feet still. The camera moves during the scream and is back by its end; ReduceEffects keeps the camera still, and the growth.
 --     LowGraphicsBoss (BillboardGui) grows by the same factor where it is enabled. The exhausted panel hides with BossWaitEndsAt nil.
@@ -34,6 +36,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
+local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Dodge = require(Shared:WaitForChild("BossDodge"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
@@ -212,7 +215,7 @@ function Module.Build(h)
 			+ math.abs(cf.LookVector.Y) * size.Z
 		) / 2
 	end
-	local baseWheel, baseFlat = nil, nil -- stage 1's sizes
+	local baseWheel, baseFlat = nil, nil -- stage 1's sizes: the Wheel's is the model's x BossScale, not the one measured
 	local function flatBoss()
 		local arena = workspace:FindFirstChild("BossArenaPreview")
 		return arena and arena:FindFirstChild("LowGraphicsBoss", true)
@@ -226,8 +229,10 @@ function Module.Build(h)
 				task.wait(0.1)
 			end
 		end
-		local wheel = bossPart("Wheel")
-		baseWheel = wheel and wheel.Size.Magnitude
+		local models = ReplicatedStorage:FindFirstChild("BossModels")
+		local source = models and models:FindFirstChild("boss_raga")
+		local sourceWheel = source and source:FindFirstChild("Wheel")
+		baseWheel = found and sourceWheel and sourceWheel.Size.Magnitude * Arena.BossScale or nil
 		local flat = flatBoss()
 		baseFlat = flat and flat.Enabled and flat.Size.Y.Scale + flat.Size.Y.Offset or nil
 	end
@@ -313,6 +318,17 @@ function Module.Build(h)
 		check(res, "stage1_bar_shown", waitShown(BAR, true), true)
 		takeBase()
 		check(res, "growth_boss_present", baseWheel ~= nil, true)
+		-- Owner 2026-11-10: stage 1 draws every part at the model's size x BossScale (growth 1)
+		local drawn = waitIs(function()
+			return math.abs((bossScale() or 0) - 1) <= GROWTH_SLACK
+		end, true)
+		h.check(
+			res,
+			"growth_boss_drawn_at_boss_scale",
+			bossScale(),
+			("1 (Wheel = model x BossScale %g)"):format(Arena.BossScale),
+			drawn == true
+		)
 		checkTextSoon(res, "stage1_title", BAR .. "/Title", TITLE_STAGE_1)
 		checkRowsAre(res, "stage1_rate", "Old")
 		-- BossEventEndsAt, not TotalSeconds: this event's elapsed would read well over 90.
