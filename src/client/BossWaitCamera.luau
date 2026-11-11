@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
+local BossCatalog = require(Shared.BossCatalog)
 local Cfg = require(Shared.BossEventConfig)
 local RunnerVisual = require(script.Parent:WaitForChild("RunnerVisual"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -86,7 +87,9 @@ function BossWaitCamera.Step(camera, dt)
 		held.Age += dt
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.FieldOfView = Cfg.WaitCameraFov
-		local view = scream and Cfg.ScreamCameraCFrame() or Cfg.WaitCameraCFrame(Arena.Center, held.RunnerAt)
+		local boss = BossCatalog.Current() -- Big Raga's row has no WaitCamera: Cfg's own view
+		local view = scream and Cfg.ScreamCameraCFrame()
+			or Cfg.WaitCameraCFrame(Arena.For(boss.Id).Center, held.RunnerAt, boss.WaitCamera)
 		if UiMotion.Reduced() then
 			camera.CFrame = view
 		else

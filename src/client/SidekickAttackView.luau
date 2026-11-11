@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
 local Attacks = require(Shared:WaitForChild("SidekickAttacks"))
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
@@ -35,6 +36,9 @@ local OTHERS = 0.3 -- of the counts for someone else's attack
 local OTHERS_SIZE = 0.7
 local SURFACE = 110 -- studs from the boss's chest toward the shooter: the hit shows on its near side
 local JITTER = 30 -- studs, so that hits do not stack
+-- Per boss when its BossCatalog row has AttackSurface / AttackJitter, else these (proposed: The Elf Mage's chest is about 12 studs
+-- deep and her torso 21 tall); a boss with neither gets Big Raga's SURFACE and JITTER.
+local AIM = { boss_mage = { Surface = 7, Jitter = 6 } }
 local FLAP_OVERRIDE = 12 -- degrees off rest at which an attack's key has taken the wing from the flap
 local TEXT_COLOR = Color3.fromRGB(255, 244, 200)
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- Blender's axes to Roblox's
@@ -455,15 +459,19 @@ local function tagged(part, kind, hit, particles)
 	end)
 end
 
--- Where the attack lands now: BigRaga's chest when it is shown, else the arena's centre.
+-- Where the attack lands now: the boss's target part (BigRaga's chest) when it is shown, else the arena's centre.
 local function bossPoint(from)
+	local row = BossCatalog.Current()
+	local aim = AIM[row.Id] or {}
+	local surface = row.AttackSurface or aim.Surface or SURFACE
+	local jitter = row.AttackJitter or aim.Jitter or JITTER
 	local arena = Workspace:FindFirstChild("BossArenaPreview")
-	local boss = arena and arena:FindFirstChild("BigRaga")
-	local chest = boss and boss:FindFirstChild("UpperTorso")
-	local point = chest and chest.Transparency < 1 and chest.Position or Arena.Center
+	local boss = arena and arena:FindFirstChild(row.ModelName)
+	local chest = boss and boss:FindFirstChild(row.TargetPart)
+	local point = chest and chest.Transparency < 1 and chest.Position or Arena.For(row.Id).Center
 	local flat = (from - point) * Vector3.new(1, 0, 1)
-	local near = flat.Magnitude > 1 and flat.Unit * SURFACE or Vector3.zero
-	return point + near + Vector3.new(0, math.random(-JITTER, JITTER), 0)
+	local near = flat.Magnitude > 1 and flat.Unit * surface or Vector3.zero
+	return point + near + Vector3.new(0, math.random(-jitter, jitter), 0)
 end
 
 -- Impact ---------------------------------------------------------------------------------------------------------------------------
@@ -502,7 +510,8 @@ end
 
 -- The number of a hit with no follower to draw it from: at the boss, when a shot would have landed.
 local function numberAlone(hit)
-	local impact = newPart("Impact", CFrame.new(bossPoint(Arena.Center)), Vector3.new(30, 30, 30))
+	local impact =
+		newPart("Impact", CFrame.new(bossPoint(Arena.For(BossCatalog.Current().Id).Center)), Vector3.new(30, 30, 30))
 	tagged(impact, "Impact", hit, 0)
 	impact.Parent = folder
 	damageNumber(impact, hit)

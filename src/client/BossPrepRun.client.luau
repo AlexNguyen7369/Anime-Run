@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
 local PathDriver = require(Shared:WaitForChild("PathDriver"))
@@ -86,20 +87,24 @@ local function rootAt(route, dist, since, hint)
 	end
 	local turned = math.clamp(since / JUMP_SECONDS, 0, 1)
 	local position = feet.Position
-	local center = Vector3.new(Arena.Center.X, position.Y, Arena.Center.Z)
+	local arenaCenter = Arena.For(BossCatalog.Current().Id).Center
+	local center = Vector3.new(arenaCenter.X, position.Y, arenaCenter.Z)
 	local facing = feet.Rotation:Lerp(CFrame.lookAt(position, center).Rotation, turned)
 	local jump = UiMotion.Reduced() and 0 or JUMP_HEIGHT * math.sin(math.pi * turned)
 	return CFrame.new(position + Vector3.new(0, RunnerFactory.HIP_HEIGHT + jump, 0)) * facing, k
 end
 
-local routes = {}
+local routes = {} -- boss id -> lane -> route
 local function routeOf(lane)
-	if not routes[lane] then
-		local wps = Arena.LaneRoute(lane).WorldWaypoints
+	local boss = BossCatalog.Current().Id
+	routes[boss] = routes[boss] or {}
+	local byLane = routes[boss]
+	if not byLane[lane] then
+		local wps = Arena.For(boss).LaneRoute(lane).WorldWaypoints
 		local arc = PathDriver.Arc(wps)
-		routes[lane] = { Wps = wps, Arc = arc, Length = arc[#arc] }
+		byLane[lane] = { Wps = wps, Arc = arc, Length = arc[#arc] }
 	end
-	return routes[lane]
+	return byLane[lane]
 end
 
 local function stepPlayer(who, since, dt)
