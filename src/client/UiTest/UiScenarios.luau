@@ -26,7 +26,8 @@ local UiLegacyControls = require(script.Parent:WaitForChild("UiLegacyControls"))
 local UiDuel = require(script.Parent:WaitForChild("UiDuel"))
 local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
-local AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
+local FX = {} -- frame-model helpers in one table: UiScenarios is near Luau's 200 local limit
+FX.AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
@@ -825,7 +826,7 @@ end
 -- An Index-frame panel (AnimeSkin.IndexFrame: a UiSpec.BandPanels panel or a duel panel) writes its children's pixel
 -- offsets and sizes from its own k = panel width / frame width (g.px / g.Place) for the live window. At a simulated
 -- viewport: k sim / k live (nil on the live viewport and for any other node).
-local function frameRatio(obj, ctx)
+function FX.frameRatio(obj, ctx)
 	local path = pathOf(obj)
 	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
 		return nil
@@ -842,7 +843,7 @@ end
 -- What an Index frame's layout hooks write. Scaling the live values by k sim / k live is not enough: the hooks place
 -- content in frame units from g.W / g.Small (1200 wide live, 650 on a phone), so the model reads the frame laid out
 -- at the simulated size instead (AnimeSkin g.MeasureAt), into ctx.measured[instance][property].
-local MEASURED = {
+FX.MEASURED = {
 	GuiObject = { "Size", "Position", "AnchorPoint", "Visible" },
 	UIGridLayout = { "CellSize", "CellPadding" },
 	UIListLayout = { "Padding" },
@@ -850,7 +851,7 @@ local MEASURED = {
 }
 
 -- obj's property `name` at ctx.vp: the measured value inside a measured Index frame, else the live one.
-local function prop(obj, name, ctx)
+function FX.prop(obj, name, ctx)
 	local values = ctx.measured and ctx.measured[obj]
 	local value = values and values[name]
 	if value == nil then
@@ -860,22 +861,22 @@ local function prop(obj, name, ctx)
 end
 
 -- True when obj is an Index-frame panel measured at ctx.vp (measured on first use, once per ctx).
-local function measuredFrame(obj, ctx)
+function FX.measuredFrame(obj, ctx)
 	ctx.measuredPanels = ctx.measuredPanels or {}
 	local done = ctx.measuredPanels[obj]
 	if done ~= nil then
 		return done
 	end
 	ctx.measuredPanels[obj] = false
-	local g = AnimeSkin.Frames[obj]
-	if not g or frameRatio(obj, ctx) == nil then
+	local g = FX.AnimeSkin.Frames[obj]
+	if not g or FX.frameRatio(obj, ctx) == nil then
 		return false
 	end
 	local r = simRect(obj, ctx)
 	ctx.measured = ctx.measured or {}
 	g.MeasureAt(ctx.vp, r.w, r.h, function()
 		for _, d in obj:GetDescendants() do
-			for class, names in MEASURED do
+			for class, names in FX.MEASURED do
 				if d:IsA(class) then
 					local values = {}
 					for _, name in names do
@@ -892,11 +893,11 @@ end
 
 -- The factor on an Index-frame panel's children's offsets at ctx.vp: 1 once measured there (they are its px), else
 -- k sim / k live (1 on the live viewport and for any other node).
-local function frameK(obj, ctx)
-	if measuredFrame(obj, ctx) then
+function FX.frameK(obj, ctx)
+	if FX.measuredFrame(obj, ctx) then
 		return 1
 	end
-	return frameRatio(obj, ctx) or 1
+	return FX.frameRatio(obj, ctx) or 1
 end
 
 -- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by),
@@ -909,7 +910,7 @@ local function inheritedScale(obj, ctx)
 	end
 	local s = 1
 	if obj:IsA("GuiObject") then
-		s = ownScale(obj, ctx) * frameK(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
+		s = ownScale(obj, ctx) * FX.frameK(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
 	end
 	ctx.scales[obj] = s
 	return s
@@ -945,9 +946,9 @@ local function variantProps(obj, ctx)
 	if otherVariant(ctx.vp) then
 		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
 	end
-	return props.Size or prop(obj, "Size", ctx),
-		props.Position or prop(obj, "Position", ctx),
-		props.AnchorPoint or prop(obj, "AnchorPoint", ctx)
+	return props.Size or FX.prop(obj, "Size", ctx),
+		props.Position or FX.prop(obj, "Position", ctx),
+		props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
 end
 
 -- UiResponsive.LiveAutoSize: an AutomaticSize node whose content does not depend on the viewport.
@@ -1029,8 +1030,8 @@ local function contentBox(parent, pr, c, ctx)
 		local function px(u, extent)
 			return extent * u.Scale + c * u.Offset
 		end
-		local l, r = px(prop(pad, "PaddingLeft", ctx), base.w), px(prop(pad, "PaddingRight", ctx), base.w)
-		local t, b = px(prop(pad, "PaddingTop", ctx), base.h), px(prop(pad, "PaddingBottom", ctx), base.h)
+		local l, r = px(FX.prop(pad, "PaddingLeft", ctx), base.w), px(FX.prop(pad, "PaddingRight", ctx), base.w)
+		local t, b = px(FX.prop(pad, "PaddingTop", ctx), base.h), px(FX.prop(pad, "PaddingBottom", ctx), base.h)
 		base = R(base.x + l, base.y + t, base.w - l - r, base.h - t - b)
 	end
 	return base
@@ -1040,7 +1041,7 @@ end
 local function layoutItems(parent, layout, ctx)
 	local items = {}
 	for _, ch in parent:GetChildren() do
-		if ch:IsA("GuiObject") and prop(ch, "Visible", ctx) then
+		if ch:IsA("GuiObject") and FX.prop(ch, "Visible", ctx) then
 			table.insert(items, ch)
 		end
 	end
@@ -1086,7 +1087,7 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 	end
 	-- Offsets are design pixels: the inherited UIScale factor `scale` applies to them. On the other variant than the live
 	-- one the cell size comes from the model (UiResponsive.Grids), else from the live UIGridLayout.
-	local cellSize = prop(grid, "CellSize", ctx)
+	local cellSize = FX.prop(grid, "CellSize", ctx)
 	local gridModel = UiResponsive.Grids[pathOf(parent)]
 	if gridModel and otherVariant(ctx.vp) then
 		local variant = UiResponsive.VariantOf(ctx.vp)
@@ -1099,7 +1100,7 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 	end
 	local cw = base.w * cellSize.X.Scale + scale * cellSize.X.Offset
 	local ch = base.h * cellSize.Y.Scale + scale * cellSize.Y.Offset
-	local padding = prop(grid, "CellPadding", ctx)
+	local padding = FX.prop(grid, "CellPadding", ctx)
 	local px = base.w * padding.X.Scale + scale * padding.X.Offset
 	local py = base.h * padding.Y.Scale + scale * padding.Y.Offset
 	local items = layoutItems(parent, grid, ctx)
@@ -1138,8 +1139,8 @@ local function listCell(obj, parent, list, base, ctx, scale)
 	local items = layoutItems(parent, list, ctx)
 	local railGap = backpackRailGap(parent, ctx)
 	local gap = railGap and scale * railGap
-		or (vertical and base.h or base.w) * prop(list, "Padding", ctx).Scale
-			+ scale * prop(list, "Padding", ctx).Offset
+		or (vertical and base.h or base.w) * FX.prop(list, "Padding", ctx).Scale
+			+ scale * FX.prop(list, "Padding", ctx).Offset
 	local sizes, total, before = {}, 0, nil
 	for k, item in items do
 		local size = variantProps(item, ctx)
@@ -1178,7 +1179,7 @@ autoHeight = function(obj, w, h, ctx, c)
 	if grid then
 		local items = layoutItems(obj, grid, ctx)
 		if #items > 0 then
-			local cell, padding = prop(grid, "CellSize", ctx), prop(grid, "CellPadding", ctx)
+			local cell, padding = FX.prop(grid, "CellSize", ctx), FX.prop(grid, "CellPadding", ctx)
 			local cw = inner.w * cell.X.Scale + c * cell.X.Offset
 			local ch = inner.h * cell.Y.Scale + c * cell.Y.Offset
 			local px = inner.w * padding.X.Scale + c * padding.X.Offset
@@ -1195,15 +1196,15 @@ autoHeight = function(obj, w, h, ctx, c)
 		local vertical = list.FillDirection == Enum.FillDirection.Vertical
 		local railGap = backpackRailGap(obj, ctx)
 		local gap = railGap and c * railGap
-			or (vertical and inner.h or inner.w) * prop(list, "Padding", ctx).Scale
-				+ c * prop(list, "Padding", ctx).Offset
+			or (vertical and inner.h or inner.w) * FX.prop(list, "Padding", ctx).Scale
+				+ c * FX.prop(list, "Padding", ctx).Offset
 		for k, item in items do
 			local _, ih = sizeIn(item, variantProps(item, ctx), inner, ctx, c)
 			content = vertical and content + ih + (k < #items and gap or 0) or math.max(content, ih)
 		end
 	else
 		for _, child in obj:GetChildren() do
-			if child:IsA("GuiObject") and prop(child, "Visible", ctx) then
+			if child:IsA("GuiObject") and FX.prop(child, "Visible", ctx) then
 				local size, position, anchor = variantProps(child, ctx)
 				local _, ih = sizeIn(child, size, inner, ctx, c)
 				content = math.max(content, inner.h * position.Y.Scale + c * position.Y.Offset - anchor.Y * ih + ih)
@@ -3594,7 +3595,7 @@ local function hiddenByPanel(path, open, vp)
 end
 
 -- True when UiSpec.HiddenWhileBossEvent hides `path` now (the player's BossEvent attribute is true).
-local function hiddenByBossEvent(path)
+function FX.hiddenByBossEvent(path)
 	if not player:GetAttribute("BossEvent") then
 		return false
 	end
@@ -3630,7 +3631,7 @@ local function elementsFor(open, vp)
 			local maxHidden = UiSpec.HiddenAtHeight[guiName .. "/" .. p]
 			local hiddenAtHeight = maxHidden ~= nil and vp ~= nil and vp.Y <= maxHidden
 			local path = guiName .. "/" .. p
-			if obj and not hiddenAtHeight and not hiddenByPanel(path, open, vp) and not hiddenByBossEvent(path) then
+			if obj and not hiddenAtHeight and not hiddenByPanel(path, open, vp) and not FX.hiddenByBossEvent(path) then
 				table.insert(list, { path = guiName .. "/" .. p, obj = obj })
 			end
 		end
@@ -4274,7 +4275,7 @@ function K.textScale(label, ctx)
 	local s, node = 1, label
 	while node and not node:IsA("LayerCollector") do
 		if ctx.vp then
-			s *= ownScale(node, ctx) * (frameRatio(node, ctx) or 1) -- an Index frame's TextSizes are g.px too (live)
+			s *= ownScale(node, ctx) * (FX.frameRatio(node, ctx) or 1) -- an Index frame's TextSizes are g.px too (live)
 		else
 			for _, child in node:GetChildren() do
 				if child:IsA("UIScale") and not UiSpec.TransientScales[child.Name] then
