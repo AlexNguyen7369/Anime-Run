@@ -30,7 +30,15 @@ local CIRCLE = 52 -- px (placeholder)
 local SPACING = 78 -- px between slot centres (placeholder)
 local ARC_THICK = 8 -- px (placeholder)
 local ARC_START, ARC_SWEEP = 125, 155 -- degrees clockwise from east: empty end at lower left, full end at the right
-local ARC_DOTS = 24 -- overlapping circles; shortcut: no ring image asset, upload one if the edge ever looks scalloped
+local ARC_DOTS = 24 -- straight band segments per Track and per Fill; shortcut: no ring image asset, upload one if the edge ever looks faceted
+-- Design doc 4.40: a curved parallelogram, both ends cut on the same slant off the radial (proposed)
+local ARC_SLANT = math.tan(math.rad(30))
+local ARC_LANES = 4 -- strips across the band at each slanted end: the cut is a fine staircase
+local ARC_OUTLINE = 1.5 -- px of the dark Track beyond the Fill on every side
+local ARC_RADIUS = CIRCLE / 2 - 1
+local ARC_LEN = ARC_RADIUS * math.rad(ARC_SWEEP) -- px along the centre line
+local FILL_CUT = ARC_THICK / 2 * ARC_SLANT -- px the slanted cut leans from the centre line to an edge
+local FILL_STEP = (ARC_LEN - 2 * FILL_CUT) / ARC_DOTS
 local EASE = 10 -- per second, arc and number easing (placeholder)
 local HEAD_FIT = 0.95 -- camera distance factor for the head (placeholder)
 local CARD_WIDTH = 240 -- px (placeholder)
@@ -250,24 +258,57 @@ local function showCard(slot)
 	shownSlot = slot
 end
 
-local function arcPoint(t)
-	local angle = math.rad(ARC_START - ARC_SWEEP * t)
-	local radius = CIRCLE / 2 - 1
-	return UDim2.new(0.5, radius * math.cos(angle), 0.5, radius * math.sin(angle))
+-- Angle (radians, clockwise from east) at `s` px along the arc's centre line; on the lane `rho` px off the centre
+-- (outward positive) it lands on the slanted cut through that point.
+local function arcAngle(s, rho)
+	rho = rho or 0
+	return math.rad(ARC_START) - s / ARC_RADIUS - rho * ARC_SLANT / (ARC_RADIUS + rho)
 end
 
-local function dot(parent, name, at, size, color, z)
-	local frame = make("Frame", {
+local function piece(parent, name, color, z)
+	return make("Frame", {
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = at,
-		Size = UDim2.fromOffset(size, size),
 		BackgroundColor3 = color,
 		BorderSizePixel = 0,
 		ZIndex = z,
 	}, parent)
-	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, frame)
-	return frame
+end
+
+-- A straight piece of the band from angle a0 to a1 at radius r, laid along the arc's tangent (flat sides, no corner).
+local function place(frame, a0, a1, r, thick, extra)
+	local mid = (a0 + a1) / 2
+	local len = 2 * (r + thick / 2) * math.sin(math.abs(a1 - a0) / 2) + extra -- outer chord: no gap on the outside
+	frame.Position = UDim2.new(0.5, r * math.cos(mid), 0.5, r * math.sin(mid))
+	frame.Size = UDim2.fromOffset(len, thick)
+	frame.Rotation = math.deg(mid) + 90
+end
+
+-- ARC_DOTS segments along the centre line from `from` to `to` px: the band's square-cut body.
+local function arcBody(parent, name, from, to, thick, color, z)
+	local list, step = {}, (to - from) / ARC_DOTS
+	for i = 1, ARC_DOTS do
+		list[i] = piece(parent, name, color, z)
+		place(list[i], arcAngle(from + (i - 1) * step), arcAngle(from + i * step), ARC_RADIUS, thick, 1) -- 1 px overlap hides seams
+	end
+	return list
+end
+
+local function arcLanes(parent, name, color, z)
+	local list = {}
+	for k = 1, ARC_LANES do
+		list[k] = piece(parent, name, color, z)
+	end
+	return list
+end
+
+-- A slanted end: every lane runs from the cut through `cut` px back `len` px (negative: forward), so the end piece is
+-- itself a small parallelogram that covers the body's square end.
+local function placeEnd(lanes, cut, len, thick)
+	for k, lane in lanes do
+		local rho = (k - 0.5) * thick / ARC_LANES - thick / 2
+		place(lane, arcAngle(cut, rho), arcAngle(cut - len, rho), ARC_RADIUS + rho, thick / ARC_LANES + 0.5, 0)
+	end
 end
 
 for slot = 1, SLOTS do
@@ -303,13 +344,19 @@ for slot = 1, SLOTS do
 	}, ring)
 	local scale = make("UIScale", { Scale = 1 }, c)
 	local arc = make("Frame", { Name = "Arc", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 8 }, c)
-	local dots = {}
-	for i = 0, ARC_DOTS do
-		local at = arcPoint(i / ARC_DOTS)
-		dot(arc, "Track", at, ARC_THICK + 3, DIM, 8) -- dark outline and the empty part
-		dots[i] = dot(arc, "Fill", at, ARC_THICK, StaminaConfig.COLORS.Full, 9)
-	end
-	local tip = dot(arc, "Tip", arcPoint(0), ARC_THICK, StaminaConfig.COLORS.Full, 9) -- slides between dots
+	-- Track: the dark outline and the empty part, the Fill's shape grown by ARC_OUTLINE on every side
+	local trackThick = ARC_THICK + 2 * ARC_OUTLINE
+	local trackCut = trackThick / 2 * ARC_SLANT
+	arcBody(arc, "Track", trackCut - ARC_OUTLINE, ARC_LEN + ARC_OUTLINE - trackCut, trackThick, DIM, 8)
+	placeEnd(arcLanes(arc, "Track", DIM, 8), -ARC_OUTLINE, -(2 * trackCut + 1), trackThick)
+	placeEnd(arcLanes(arc, "Track", DIM, 8), ARC_LEN + ARC_OUTLINE, 2 * trackCut + 1, trackThick)
+	local dots = arcBody(arc, "Fill", FILL_CUT, ARC_LEN - FILL_CUT, ARC_THICK, StaminaConfig.COLORS.Full, 9)
+	local fillStart = arcLanes(arc, "FillStart", StaminaConfig.COLORS.Full, 9) -- the empty end's slanted cut
+	placeEnd(fillStart, 0, -(2 * FILL_CUT + 1), ARC_THICK)
+	-- The moving end: its lanes slide with the stamina, cut on the same slant
+	local tip =
+		make("Frame", { Name = "Tip", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 9 }, arc)
+	local tipLanes = arcLanes(tip, "Lane", StaminaConfig.COLORS.Full, 9)
 	local number = text(c, "Seconds", {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, -12, 1, 6),
@@ -358,7 +405,9 @@ for slot = 1, SLOTS do
 		Scale = scale,
 		Arc = arc,
 		Dots = dots,
+		FillStart = fillStart,
 		Tip = tip,
+		TipLanes = tipLanes,
 		Number = number,
 		Id = nil,
 		Art = nil,
@@ -370,21 +419,27 @@ for slot = 1, SLOTS do
 	}
 end
 
--- Draws the arc at `t` (0-1): dots up to t, the tip exactly at t.
+-- Draws the arc at `t` (0-1): Fill segments up to t (their share of all Fill is t, to one segment), the slanted tip
+-- just past the last one. At t = 1 the tip's cut meets the Track's full end.
 local function drawArc(circle, t)
-	local last = t * ARC_DOTS
-	for i = 0, ARC_DOTS do
-		circle.Dots[i].Visible = t > 0 and i <= last
+	local last = t * ARC_DOTS + 1e-6
+	for i, d in circle.Dots do
+		d.Visible = t > 0 and i <= last
+	end
+	for _, lane in circle.FillStart do
+		lane.Visible = t > 0
 	end
 	circle.Tip.Visible = t > 0
-	circle.Tip.Position = arcPoint(t)
+	local cut = 2 * FILL_CUT + t * (ARC_LEN - 2 * FILL_CUT) -- segment i ends behind this cut's inner edge once i <= t * ARC_DOTS
+	placeEnd(circle.TipLanes, cut, math.min(2 * FILL_CUT + FILL_STEP + 1, cut), ARC_THICK)
 end
 
 local function paintArc(circle, color)
-	for i = 0, ARC_DOTS do
-		circle.Dots[i].BackgroundColor3 = color
+	for _, list in { circle.Dots, circle.FillStart, circle.TipLanes } do
+		for _, d in list do
+			d.BackgroundColor3 = color
+		end
 	end
-	circle.Tip.BackgroundColor3 = color
 end
 
 -- The drawn portrait, or with none yet the live model cut to its head: the body (and its rarity belt) never shows, so
