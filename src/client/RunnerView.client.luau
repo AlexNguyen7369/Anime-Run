@@ -351,21 +351,46 @@ local function faceArena(camera, dt)
 	setAngles(camera, pitch + (arenaPitch - pitch) * ease, yaw + turn * ease)
 end
 
+local followedYaw = nil -- the last frame's target yaw on a small boss ring (see alignYaw)
+
+local function wrapAngle(a)
+	return (a + math.pi) % (2 * math.pi) - math.pi
+end
+
 local function alignYaw(camera, torso, dt)
 	local dir = torso.CFrame.LookVector
 	local inEvent = player:GetAttribute("BossEvent") == true
 	local arenaYaw, arenaPitch, _, arena = arenaView()
+	-- Big Raga's ring (radius 550+) turns at most 800 / 550 = 1.45 rad/s, well under TRACK_CAMERA_RATE's pull: his view keeps
+	-- the eased chase below. Another boss's ring can be small (the Elf Mage's lane 1 is 74 studs: 10.8 rad/s at 800 studs/s), where
+	-- the chase falls behind until the camera faces the wall. There the yaw is carried round with the runner's angle about the
+	-- centre each frame and only the leftover offset eases, so no lag builds up at any speed.
+	local carry = inEvent and arena ~= Arena
 	if inEvent then
 		local inward = ((arena.Center - torso.Position) * Vector3.new(1, 0, 1)).Unit
-		dir = dir * math.cos(arenaYaw) + inward * math.sin(arenaYaw)
+		if carry then
+			-- the tangent in the travel's sense, not the torso's look, which the run pose swings
+			local side = Vector3.new(-inward.Z, 0, inward.X)
+			dir = (dir:Dot(side) < 0 and -side or side) * math.cos(arenaYaw) + inward * math.sin(arenaYaw)
+		else
+			dir = dir * math.cos(arenaYaw) + inward * math.sin(arenaYaw)
+		end
 	end
 	if Vector2.new(dir.X, dir.Z).Magnitude < 1e-3 then
 		return
 	end
 	local look = camera.CFrame.LookVector
 	local yaw = math.atan2(-look.X, -look.Z)
-	local turn = (math.atan2(-dir.X, -dir.Z) - yaw + math.pi) % (2 * math.pi) - math.pi
-	yaw += turn * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
+	local target = math.atan2(-dir.X, -dir.Z)
+	if carry then
+		if followedYaw then
+			yaw += wrapAngle(target - followedYaw)
+		end
+		followedYaw = target
+	else
+		followedYaw = nil
+	end
+	yaw += wrapAngle(target - yaw) * (1 - math.exp(-TRACK_CAMERA_RATE * dt))
 	local pitch = math.asin(math.clamp(look.Y, -1, 1))
 	if inEvent and not savedPitch then
 		savedPitch, pitch = pitch, arenaPitch
@@ -431,9 +456,12 @@ RunService:BindToRenderStep("RunnerView", Enum.RenderPriority.Camera.Value - 1, 
 		cameraOnRunner = true
 		if not rising and trackCameraOn(camera, mine) then
 			alignYaw(camera, torso, dt)
+		else
+			followedYaw = nil
 		end
 		followed = not waitView and { Part = torso, Position = torso.Position } or nil
 	elseif camera and cameraOnRunner then
+		followedYaw = nil
 		cameraOnRunner = false
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
