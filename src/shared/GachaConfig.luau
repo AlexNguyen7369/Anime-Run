@@ -34,12 +34,9 @@ GachaConfig.RARITY_COLORS = {
 	Secret = Color3.fromRGB(20, 20, 20),
 }
 
--- Workshop Showcase (docs/WORKSHOP_SPEC.md "Showcase", owner 2026-10-22): duplicates are never sold, they add a
--- copy; the 3 characters the player shows in their workshop set the workshop stat boost by rarity (design doc 4.19,
--- Shared/Workshop.Boost; copies no longer count).
-GachaConfig.SHOWCASE_SLOTS = 3
+-- Duplicates are never sold, they add a copy (the bag, design doc 4.41). The workshop Showcase that once used them is
+-- gone (design doc 4.43).
 GachaConfig.MAX_SAVED_COPIES = 1e9
-GachaConfig.SHOWCASE_COOLDOWN = 0.5 -- seconds between accepted SetShowcase requests
 
 local function count(n)
 	if type(n) ~= "number" or n ~= n or n < 0 or n == math.huge then

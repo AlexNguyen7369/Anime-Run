@@ -6,7 +6,7 @@
 --   * target length 984 x F x 1.25^(n-1) studs, F = 3, within +-5 %, measured along the centre line (layout.Length);
 --   * TrackValidator rejects an off-target track (its new TARGET_LENGTH check), probed with a plain L-shaped spec;
 --   * no overlap with any other chained track (centre line and race path, the IVS chain rule), the plaza (live
---     Workspace.SpawnArea) or the Dojo plots (live Workspace.Workshops);
+--     Workspace.SpawnArea);
 --   * driven by the real RaceService on the live route from this track's start to its finish at a normal (Epic) and
 --     a max (Secret) character cruise (design doc 4.13; was HALF_STAT / MAX_STAT stat speed): 0 flips (upright,
 --     up Y >= 0.999), 0 off-track (feet within PhysicsTargets.race.MaxPathDeviation of the route), this track's pad
@@ -436,12 +436,12 @@ function M.make(helpers)
 			end
 			check("no_overlap_other_tracks", near or -1, (layout.Width or 0) + CLEAR_PAD, index ~= nil and ok)
 			metrics.nearest_other_track = pair
-			-- the live plaza and Dojos (Main.server builds them beside the live chain)
+			-- the live plaza (Main.server builds it beside the live chain)
 			local folder = Workspace:FindFirstChild("Track")
 			local model = folder and folder:FindFirstChild(spec.Name)
-			local hub, plots = Workspace:FindFirstChild("SpawnArea"), Workspace:FindFirstChild("Workshops")
+			local hub = Workspace:FindFirstChild("SpawnArea")
 			check("live_track_built", model and 1 or 0, 1, model ~= nil)
-			for _, case in { { "no_overlap_plaza", hub }, { "no_overlap_dojo_plots", plots } } do
+			for _, case in { { "no_overlap_plaza", hub } } do
 				if model and case[2] then
 					local hits, worst, name = liveOverlap(model, { case[2] }, helpers.partPoly, helpers.polySeparation)
 					check(case[1], hits, 0, hits == 0)

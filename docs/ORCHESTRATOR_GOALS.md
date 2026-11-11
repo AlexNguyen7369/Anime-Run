@@ -207,7 +207,7 @@ Branch: orch/roster/art1 (art committed, bca9b6e)
 Deliverables:
 - art1: models, portraits, evidence for 12 Chainsaw Mann and Solo Levelin characters, 9 Sidekicks, Void Saitamo; done: owner approved all 22 on 2026-11-05.
 - side1: 12-Sidekick pool live; done when boss-event merges the art and applies the table, and each Sidekick is seen following a runner in Studio.
-- tier1: Eternal tier (base Speed 5e16, proposed, owner OK 2026-11-05) and a curve anchor Speed 7e37 = 1000 studs/s, once `speed_probe` supports `MAX_CRUISE` 1000; done when `catalog`, `gacha` and the stamina and workshop scenarios are green.
+- tier1: Eternal tier (base Speed 5e16, proposed, owner OK 2026-11-05) and a curve anchor Speed 7e37 = 1000 studs/s, once `speed_probe` supports `MAX_CRUISE` 1000; done when `catalog`, `gacha` and the stamina scenarios are green.
 - char1: 12 characters uploaded and rollable, rules in the design doc first; done when `catalog` and `gacha` are green and an Eternal roll and run are seen in Studio.
 - void1: Void tier (base Speed 5e19) with Overspeed passives; Void Saitamo (`punch_void`) ships with the Void characters in a later update, after the monetization branch is merged.
 Out of scope: backlog characters and Attack animation before key-frame approval.
@@ -224,3 +224,15 @@ Deliverables:
 - h4 | Spawn look: owner rejected the full cyber and hybrid enclosed builds 2026-11-10; plaza keeps its dojo look | done (superseded by h5)
 - h5 | Dojo with cyber accents (no enclosure): torii trim, scanning ring, stall trim and screens, drones; owner approved 2026-11-10 | `world_layout`, `spawn_area` green; rules audit PASS
 Out of scope: gameplay and economy numbers, track biomes, Market panel contents.
+
+## dojo-removal: Dojos removed, Spawn showpiece in their place (owner 2026-11-11, design doc 4.43)
+Status: active
+Owner-confirmed: 2026-11-11
+Branch: orch/dojo-removal/r1
+Spec: design doc 4.43 (and 4.10, 4.19, 4.24, passes list), WORLD_REDESIGN_SPEC 4 and 5, MONETIZATION_SPEC
+Deliverables:
+- r1 | Rules: design doc 4.43 and every spec updated, Dojo Master off the pass list | rules audit PASS
+- r2 | Code and refund: plots, Dojo squad, workshop boost and levels, WORKSHOP panel, `WorkshopService`, YOUR DOJO marker and Dojo Master removed; one-time refund of paid workshop levels, save VERSION 19 | `stylua` / `selene` clean; Studio `world_layout,spawn_area,passes,gacha,team,team_bonus,data,upgrades,environment` and UI `ui_layout,ui_buttons,ui_panels,ui_upgrades,ui_progression_layout,ui_progression_hud,ui_billboards` green
+- r3 | Spawn showpiece drafts A, B and C rendered in Blender (`tools/blender/plaza/draft_showpiece.py`) and shown to the owner | renders in `assets/plaza_draft/`; owner pick
+- r4 | Picked draft built in Studio; Two wings positions replaced only then | owner pick first; same gates as r2; Studio shots from the spawn
+Out of scope: Max Players (stays 7 for boss lanes, 4.37), gameplay numbers, track biomes.

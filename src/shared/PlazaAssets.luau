@@ -3,96 +3,6 @@
 -- WORLD_REDESIGN_SPEC 7). Do not edit by hand. Part Center / Size are studs in the asset's local frame.
 return {
 	Assets = {
-		DojoKit_L0 = {
-			Asset = 111842336600077,
-			Parts = {
-				Body = { Size = Vector3.new(48.000, 22.650, 48.000), Center = Vector3.new(0.000, 11.225, -0.000) },
-			},
-		},
-		DojoKit_L1 = {
-			Asset = 77995950375896,
-			Parts = {
-				Body = { Size = Vector3.new(48.000, 22.650, 48.000), Center = Vector3.new(0.000, 11.225, -0.000) },
-				Glow_lamp = {
-					Size = Vector3.new(21.600, 1.700, 1.386),
-					Center = Vector3.new(0.000, 9.450, 17.800),
-					Glow = "#FFB765",
-				},
-				Glow_up = {
-					Size = Vector3.new(10.000, 0.250, 6.000),
-					Center = Vector3.new(0.000, 0.200, 21.000),
-					Glow = "#46BEFF",
-				},
-				Glow_zone = {
-					Size = Vector3.new(32.300, 0.050, 32.300),
-					Center = Vector3.new(0.000, 0.360, -0.000),
-					Glow = "#DC3C28",
-				},
-			},
-		},
-		DojoKit_L10 = {
-			Asset = 118329644855637,
-			Parts = {
-				Body = { Size = Vector3.new(48.000, 43.823, 48.000), Center = Vector3.new(0.000, 21.188, -0.000) },
-				Glow_lamp = {
-					Size = Vector3.new(43.200, 7.100, 5.012),
-					Center = Vector3.new(0.000, 6.750, 15.987),
-					Glow = "#FFB765",
-				},
-				Glow_up = {
-					Size = Vector3.new(10.000, 0.250, 6.000),
-					Center = Vector3.new(0.000, 0.200, 21.000),
-					Glow = "#46BEFF",
-				},
-				Glow_zone = {
-					Size = Vector3.new(32.300, 0.050, 32.300),
-					Center = Vector3.new(0.000, 0.360, -0.000),
-					Glow = "#DC3C28",
-				},
-			},
-		},
-		DojoKit_L4 = {
-			Asset = 86145851224710,
-			Parts = {
-				Body = { Size = Vector3.new(48.000, 28.950, 48.000), Center = Vector3.new(0.000, 14.375, -0.000) },
-				Glow_lamp = {
-					Size = Vector3.new(21.600, 1.700, 1.386),
-					Center = Vector3.new(0.000, 9.450, 17.800),
-					Glow = "#FFB765",
-				},
-				Glow_up = {
-					Size = Vector3.new(10.000, 0.250, 6.000),
-					Center = Vector3.new(0.000, 0.200, 21.000),
-					Glow = "#46BEFF",
-				},
-				Glow_zone = {
-					Size = Vector3.new(32.300, 0.050, 32.300),
-					Center = Vector3.new(0.000, 0.360, -0.000),
-					Glow = "#DC3C28",
-				},
-			},
-		},
-		DojoKit_L7 = {
-			Asset = 112651178328177,
-			Parts = {
-				Body = { Size = Vector3.new(48.000, 34.768, 48.000), Center = Vector3.new(0.000, 16.866, -0.000) },
-				Glow_lamp = {
-					Size = Vector3.new(43.200, 7.100, 5.012),
-					Center = Vector3.new(0.000, 6.750, 15.987),
-					Glow = "#FFB765",
-				},
-				Glow_up = {
-					Size = Vector3.new(10.000, 0.250, 6.000),
-					Center = Vector3.new(0.000, 0.200, 21.000),
-					Glow = "#46BEFF",
-				},
-				Glow_zone = {
-					Size = Vector3.new(32.300, 0.050, 32.300),
-					Center = Vector3.new(0.000, 0.360, -0.000),
-					Glow = "#DC3C28",
-				},
-			},
-		},
 		GreatSakura = {
 			Asset = 81417765020310,
 			Parts = {
@@ -264,7 +174,6 @@ return {
 		{ Key = "SkyLoop", Pos = Vector3.new(0.000, 0.000, -0.000), Face = Vector3.new(0.0000, 0, 1.0000) },
 		{ Key = "LegendPedestal", Pos = Vector3.new(-3.400, 1.000, 53.650), Face = Vector3.new(-0.6805, 0, -0.7328) },
 	},
-	Tiers = { [0] = "DojoKit_L0", [1] = "DojoKit_L1", [4] = "DojoKit_L4", [7] = "DojoKit_L7", [10] = "DojoKit_L10" },
 	-- The Saitamo exclusive pedestal (design doc 4.35, WORLD_REDESIGN_SPEC 7): where the 2 Legends stood (owner 2026-11-10)
 	Exclusive = { Id = "punch_hero", Pos = Vector3.new(-3.400, 3.600, 53.650), Face = Vector3.new(-0.6805, 0, -0.7328) },
 	Signs = {

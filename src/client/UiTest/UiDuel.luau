@@ -24,7 +24,7 @@ local function textOf(path)
 	return o and (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text or "missing"
 end
 
--- Every other PanelSwitch panel that is open (Index, Stats, Settings, Rebirth, Upgrades, Workshop).
+-- Every other PanelSwitch panel that is open (Index, Stats, Settings, Rebirth, Upgrades).
 local function othersOpen()
 	local list = {}
 	for path in Spec.PanelSwitch.Names do

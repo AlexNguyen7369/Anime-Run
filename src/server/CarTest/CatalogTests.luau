@@ -448,7 +448,7 @@ function Tests.catalog()
 	return r
 end
 
--- Shared with WorldTests (hub / Dojo text never shows a real name, design doc section 5)
+-- Shared with WorldTests (hub text never shows a real name, design doc section 5)
 Tests.realNameIn = realNameIn
 
 return Tests

@@ -1,7 +1,6 @@
 --!nonstrict
--- BRIEF: Workshop phase 2: guarded next-level purchase; a failed load never saves.
--- retired: workshop_offline and the offline credit checks (design doc 4.19, owner 2026-11-03: no offline workshop
--- credit, no passive gain).
+-- BRIEF: Phase 2 scenarios (weather, rebirth, daily login, checkpoints).
+-- retired: workshop_phase2 and workshop_offline (Dojos removed, design doc 4.43, owner 2026-11-11).
 -- Weather: rain luck 2, night NPC speed 1.25/money 2, gold money 3, expiry,
 -- actual rolls/payouts and Event-only catalog eligibility. No owner prices assumed.
 -- Weather, owner 2026-10-13 (design doc "Weather events", WEATHER_EVENTS_SPEC "Schedule"): a weather every
@@ -47,225 +46,6 @@ local function fake(name, data, gacha)
 	data.Setup(p)
 	gacha.Setup(p)
 	return p
-end
-
-function Tests.workshop_phase2()
-	local r, flag = report("workshop_phase2")
-	local service = module(Server, "WorkshopService")
-	local data = module(Server, "PlayerData")
-	local gacha = module(Server, "GachaService")
-	local carService = module(Server, "CarService")
-	local workshop = module(Shared, "Workshop")
-	local config = module(Shared, "WorkshopConfig")
-	local api = service and data and gacha and carService and config
-	flag("workshop_phase2_dependencies", api ~= nil)
-	if not api then
-		return r
-	end
-	flag("workshop_buy_upgrade_api_exists", type(service.BuyUpgrade) == "function")
-	local players = {}
-	local function player(name)
-		local p = fake(name, data, gacha)
-		table.insert(players, p)
-		return p
-	end
-	local oldLevels, oldMax = config.Levels, config.MAX_LEVEL
-	local oldCharacter = carService.GetCharacter
-	local character = Instance.new("Model")
-	local humanoid = Instance.new("Humanoid")
-	humanoid.Parent = character
-	local root = Instance.new("Part")
-	root.Name = "HumanoidRootPart"
-	root.Anchored = true
-	root.Parent = character
-	character.Parent = Workspace
-	local buyer
-	local ownedPlot, originalOwner
-	local ok, err = pcall(function()
-		if type(service.BuyUpgrade) == "function" then
-			-- Synthetic uneven prices catch charging current tier, double debits and stale quotes.
-			-- They are test fixtures, never a requirement on owner-approved prices.
-			config.Levels = { { Multi = 1, Price = 0 }, { Multi = 3, Price = 137 }, { Multi = 7, Price = 419 } }
-			config.MAX_LEVEL = #config.Levels
-			buyer = player("Buyer")
-			buyer:SetAttribute("DataLoaded", true)
-			buyer:SetAttribute("WorkshopLevel", 1)
-			local index = service.Assign(buyer)
-			local folder = Workspace:FindFirstChild("Workshops")
-			local plot = folder and folder:FindFirstChild("Plot_" .. tostring(index))
-			local pad = plot and plot:FindFirstChild("UpgradePad", true)
-			flag("upgrade_fixture_has_owned_plot_and_pad", index > 0 and pad ~= nil)
-			if pad then
-				root.CFrame = pad.CFrame + Vector3.new(0, 3, 0)
-				carService.GetCharacter = function(p)
-					return p == buyer and character or oldCharacter(p)
-				end
-				local money = buyer.leaderstats.Money
-				money.Value = 10000
-				local function rejection(label, change, restore)
-					local balance, level = money.Value, buyer:GetAttribute("WorkshopLevel")
-					change()
-					local accepted = service.BuyUpgrade(buyer)
-					flag(
-						label,
-						not accepted and money.Value == balance and buyer:GetAttribute("WorkshopLevel") == level
-					)
-					restore()
-				end
-				rejection("upgrade_reject_unloaded", function()
-					buyer:SetAttribute("DataLoaded", false)
-				end, function()
-					buyer:SetAttribute("DataLoaded", true)
-				end)
-				rejection("upgrade_reject_failed_load", function()
-					buyer:SetAttribute("DataFailed", true)
-				end, function()
-					buyer:SetAttribute("DataFailed", nil)
-				end)
-				rejection("upgrade_reject_dead", function()
-					humanoid.Health = 0
-				end, function()
-					humanoid.Health = humanoid.MaxHealth
-				end)
-				local close = root.CFrame
-				rejection("upgrade_reject_far", function()
-					root.CFrame = close + Vector3.new(1000, 0, 0)
-				end, function()
-					root.CFrame = close
-				end)
-				local owner = plot:GetAttribute("Owner")
-				ownedPlot, originalOwner = plot, owner
-				rejection("upgrade_reject_forged_owner", function()
-					plot:SetAttribute("Owner", owner - 1)
-				end, function()
-					plot:SetAttribute("Owner", owner)
-				end)
-				money.Value = config.Levels[2].Price - 1
-				rejection("upgrade_reject_insufficient", function() end, function() end)
-				money.Value = config.Levels[2].Price
-				local accepted = service.BuyUpgrade(buyer)
-				flag(
-					"upgrade_exact_balance_buys_next_level_once",
-					accepted == true and money.Value == 0 and buyer:GetAttribute("WorkshopLevel") == 2
-				)
-				money.Value = config.Levels[3].Price
-				accepted = service.BuyUpgrade(buyer)
-				flag(
-					"upgrade_next_price_changes_with_level",
-					accepted == true and money.Value == 0 and buyer:GetAttribute("WorkshopLevel") == 3
-				)
-				money.Value = 10000
-				rejection("upgrade_reject_max_level", function() end, function() end)
-				service.Release(buyer)
-				buyer:SetAttribute("WorkshopLevel", 1)
-				rejection("upgrade_reject_without_owned_plot", function() end, function() end)
-			end
-		end
-		config.Levels, config.MAX_LEVEL = oldLevels, oldMax
-		-- retired: the offline credit checks (design doc 4.19, owner 2026-11-03: no offline workshop credit)
-		flag(
-			"offline_api_removed",
-			workshop ~= nil
-				and workshop.OfflineMoney == nil
-				and workshop.OfflineGain == nil
-				and workshop.Rate == nil
-				and config.OFFLINE_MONEY_FRACTION == nil
-				and config.OFFLINE_FRACTION == nil
-				and config.OFFLINE_CAP == nil
-				and config.BASE_RATE == nil
-		)
-		for _, mode in { "missing_atomic_api", "failed_atomic_claim" } do
-			local initial = { Money = 41, WorkshopLevel = 1 }
-			local badStore = {}
-			function badStore:GetAsync(_key)
-				return initial
-			end
-			function badStore:SetAsync(_key, _payload)
-				error("must not save after failed claim")
-			end
-			if mode == "failed_atomic_claim" then
-				function badStore:UpdateAsync(_key, _transform)
-					error("injected atomic failure")
-				end
-			end
-			data.SetStore(badStore)
-			local failedClaim = player(mode)
-			local loaded = data.Load(failedClaim, 74005)
-			flag(
-				"load_reject_" .. mode,
-				loaded == false
-					and failedClaim:GetAttribute("DataFailed") == true
-					and failedClaim:GetAttribute("DataLoaded") ~= true
-					and failedClaim.leaderstats.Money.Value == 0
-					and data.Save(failedClaim, 74005) == false
-					and initial.Money == 41
-			)
-		end
-		local store = {}
-		function store:GetAsync(_key)
-			error("injected load failure")
-		end
-		function store:UpdateAsync(_key, _transform) -- VERSION 8: the load is this call
-			error("injected load failure")
-		end
-		data.SetStore(store)
-		local failed = player("Failed")
-		flag(
-			"load_failed_no_save",
-			data.Load(failed, 74004) == false
-				and failed.leaderstats.Money.Value == 0
-				and data.Save(failed, 74004) == false
-		)
-	end)
-	config.Levels, config.MAX_LEVEL = oldLevels, oldMax
-	carService.GetCharacter = oldCharacter
-	-- Undo a forged Owner left by a failure mid-rejection, but ONLY while the buyer still holds the plot: once the
-	-- scenario released it the service already wrote Owner 0 and the EMPTY sign, and writing the old owner back
-	-- would leak the plot to the fake player (a later `workshop` run then sees one owned plot too many).
-	if ownedPlot and ownedPlot.Parent and buyer and service.PlotOf(buyer) > 0 then
-		ownedPlot:SetAttribute("Owner", originalOwner)
-	end
-	data.SetStore(nil)
-	-- Every plot this scenario assigned goes back through the service's real release path (frees owners/plotOf,
-	-- removes the workshop, Owner 0, EMPTY sign), whether or not the body failed.
-	for _, p in players do
-		pcall(service.Release, p)
-		p:Destroy()
-	end
-	character:Destroy()
-	flag("workshop_phase2_no_runtime_error", ok, nil, ok and 1 or tostring(err))
-	-- Isolation: after the scenario only real players own plots; every other plot is EMPTY with no workshop.
-	local realIds = {}
-	for _, plr in game:GetService("Players"):GetPlayers() do
-		realIds[plr.UserId] = true
-	end
-	local folder = Workspace:FindFirstChild("Workshops")
-	local leaked = 0
-	for i = 1, config.PLOT_COUNT do
-		local plot = folder and folder:FindFirstChild("Plot_" .. i)
-		if plot then
-			local owner = plot:GetAttribute("Owner")
-			local base = plot:FindFirstChild("Base")
-			local sign = base and base:FindFirstChild("Sign")
-			local text = sign and sign:FindFirstChild("Text")
-			local empty = owner == nil or owner == 0
-			if empty then
-				if plot:FindFirstChild("Workshop") ~= nil or (text and text.Text ~= config.EMPTY_TEXT) then
-					leaked += 1
-				end
-			elseif not realIds[owner] then
-				leaked += 1
-			end
-		end
-	end
-	local fakeHolds = 0
-	for _, p in players do
-		if service.PlotOf(p) > 0 then
-			fakeHolds += 1
-		end
-	end
-	flag("workshop_phase2_releases_every_plot", folder ~= nil and leaked == 0 and fakeHolds == 0, leaked + fakeHolds, 0)
-	return r
 end
 
 function Tests.weather()
@@ -1040,7 +820,7 @@ end
 
 -- BRIEF (owner, 2026-10-12; docs/GAME_DESIGN_REQUIREMENTS.md "Rebirth system", docs/SAVE_SPEC.md sections 2 and 3):
 -- "Rebirthing resets Money" (design doc 4.14: there is no Speed stat). RebirthService.Rebirth(player) needs the Money
--- requirement (owner 2026-11-01: Level/XP removed) and sets leaderstats.Money to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades, workshop level,
+-- requirement (owner 2026-11-01: Level/XP removed) and sets leaderstats.Money to 0. A refused rebirth changes nothing. The rebirth level, cars, upgrades,
 -- MoneyEarned and DuelWins survive.
 function Tests.rebirth()
 	local r, flag = report("rebirth")
@@ -1161,7 +941,6 @@ function Tests.rebirth()
 			local p = fake("Rebirth" .. name, data, gacha)
 			table.insert(players, p)
 			p:SetAttribute("DataLoaded", true)
-			p:SetAttribute("WorkshopLevel", 1)
 			p:SetAttribute("MoneyEarned", 9000)
 			p:SetAttribute("DuelWins", 3)
 			p.leaderstats.Money.Value = money
@@ -1217,9 +996,8 @@ function Tests.rebirth()
 		local pointsBefore = p:GetAttribute("StatPoints")
 		local carsBefore = gacha.Snapshot(p)
 		local upgradesBefore = upgrades.Snapshot(p)
-		-- docs/WORKSHOP_SPEC.md 5b (owner 2026-10-22): a rebirth keeps cars, so it keeps copies and the showcase
+		-- owner 2026-10-22: a rebirth keeps cars, so it keeps copies (the showcase is removed, design doc 4.43)
 		gacha.Grant(p, "leaf_copycat") -- a duplicate: 1 copy, no Money
-		local showcaseSet = type(gacha.SetShowcase) == "function" and gacha.SetShowcase(p, { "leaf_medic" }) -- not leaf_copycat: the Team member can not join the squad (owner 2026-10-30)
 		local accepted, newLevel = service.Rebirth(p)
 		flag("rebirth_accepted_at_required_money", accepted == true and newLevel == 1)
 		flag("rebirth_level_raised", p:GetAttribute("RebirthLevel") == 1, p:GetAttribute("RebirthLevel"), 1)
@@ -1245,13 +1023,7 @@ function Tests.rebirth()
 				and carsAfter.Equipped == "leaf_copycat"
 				and p:GetAttribute("EquippedCar") == "leaf_copycat"
 		)
-		flag(
-			"rebirth_keeps_copies_and_showcase",
-			showcaseSet == true
-				and type(gacha.Copies) == "function"
-				and gacha.Copies(p, "leaf_copycat") == 1
-				and p:GetAttribute("Showcase") == "leaf_medic"
-		)
+		flag("rebirth_keeps_copies", type(gacha.Copies) == "function" and gacha.Copies(p, "leaf_copycat") == 1)
 		local upgradesAfter = upgrades.Snapshot(p)
 		flag(
 			"rebirth_keeps_upgrades",
@@ -1261,7 +1033,6 @@ function Tests.rebirth()
 				and upgradesAfter.BestTrack == 2
 				and upgradesAfter.TurboCount == 7
 		)
-		flag("rebirth_keeps_workshop_level", p:GetAttribute("WorkshopLevel") == 1)
 		flag("rebirth_keeps_money_earned", p:GetAttribute("MoneyEarned") == 9000, p:GetAttribute("MoneyEarned"), 9000)
 		flag("rebirth_keeps_duel_wins", p:GetAttribute("DuelWins") == 3, p:GetAttribute("DuelWins"), 3)
 

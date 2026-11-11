@@ -16,10 +16,11 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 | `money_2x` | 2x Money | 249 | x2, multiplied | `GachaService.MoneyMulti` |
 | `luck_1` | Lucky | 149 | +1 Luck, added | `GachaService` bonuses |
 | `luck_2` | ULTRA Lucky | 299 | +2 Luck, added | `GachaService` bonuses |
-| `dojo_master` | Dojo Master | 299 | Workshop boost x1.5 | `GachaService.WorkshopBoost` |
 | `deep_stamina` | Deep Stamina | 199 | +0.25 stamina, added | `GachaService` bonuses |
 | `inventory` | + Inventory | 199 | +100 bag spaces (owner) | `Shared/BagConfig` |
 | `exclusive_runner` | Saitamo | 999 (owner) | Grants `punch_hero` | `PassService` |
+
+`dojo_master` (Dojo Master, 299) was removed 2026-11-11 with the Dojos (design doc 4.43): off sale (Creator Dashboard, by hand), not in `MonetizationConfig`; id 2071362782 stays as a comment there and in `tools/monetization/create_products.py` so it is never reused.
 
 ## Ownership
 

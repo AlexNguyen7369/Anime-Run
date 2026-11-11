@@ -39,7 +39,6 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money, unless sold (owner 2026-11-04, 4.36) | IVS 2026-10-22 |
-| Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); chosen stat boost instead of passive gain (4.19) | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
@@ -139,10 +138,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Only this remains: the save store is `PlayerStats_v2`; pre-scale test saves were wiped, older stores stay untouched.
 
 ### 4.10 World redesign (owner 2026-10-28)
-- Anime town plaza hub at the centre, 7 player plots (Dojos) around it, the track chain spiralling out from the hub's
+- Anime town plaza hub at the centre, the track chain spiralling out from the hub's
   start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
-- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the racing
-  Team (their effect: 4.19). A character is in the Team or the Dojo squad, never both.
+- Owner 2026-11-11: the plots and the Dojo squad are removed (4.43).
 
 ### 4.12 Track camera (owner 2026-10-31)
 - While the local player's runner is racing, the camera yaw follows the runner's direction of travel along the track,
@@ -232,22 +230,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
   while walking. There is no speed look-ahead.
 
-### 4.19 Workshop stat boost (owner 2026-11-03; replaces the workshop / Dojo idle gain)
-- There is no passive gain: standing in the Dojo earns nothing, there is no offline workshop credit and no extra luck
-  while standing in the zone.
-- The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina. The choice is saved
-  (`WorkshopStat`, default Money) and can be changed at any time.
-- The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
-  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
-  sum x 5% (placeholders) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
-  Copies do not count (proposed).
-- Workshop levels stay (bought with Money, same prices) and scale the boost: boost x (1 + 0.1 x (level - 1)) (proposed
-  placeholder; level 10 = x1.9).
-- The boost applies always, everywhere, runs included. It is added to the chosen stat like the upgrade tree bonus
-  (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's `1 + points + tree` part
-  (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree` part (4.6). Speed and
-  Stamina are fixed at run start, like every other run multi.
-- The `Workshop` stat point is retired: allocated Workshop points are refunded as free points.
+### 4.19 Workshop stat boost (owner 2026-11-03) - RETIRED 2026-11-11 with the Dojos (4.43)
+- Only this remains: the Money paid for workshop levels is refunded once at the first load after the change (4.43).
 
 ### 4.20 UI animations across the board (owner 2026-11-03)
 - Every player-facing UI animates. Display only; every animation goes through `Client/UiMotion`, so Roblox Reduced
@@ -301,11 +285,11 @@ when all 3 are empty, or when the player loses a track to the NPC.
 
 ### 4.24 First impression: arrival, plaza and Dojo look (owner 2026-11-03)
 Display only; no gameplay number changes. Sizes, timings and positions are **proposed** placeholders unless stated.
-Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza and Dojos are drafted in Blender first and shown to the owner
+Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza is drafted in Blender first and shown to the owner
 before any Studio work.
 - **Loading screen**: the game's logo (`assets/logo/AnimeRunLogo.png`, owner's art) and a loading bar showing real
   progress. It does not finish until the assets a player sees first have loaded on their client (the plaza and Track 1
-  world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
+  world ready; plaza, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
   of grace, proposed), and it stays up at least 8 seconds. Keep the load short; far biomes and other characters load
   behind the game. Safety limit 90 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
   Backdrop (owner 2026-11-11, replaces the hybrid dusk scene of 2026-11-10): intro draft B3 "Distant crowd"
@@ -322,7 +306,7 @@ before any Studio work.
 - **Sky loop**: 2-3 client-only runners with trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
   The 2 Legend pedestals are removed (owner 2026-11-10; the exclusive pedestal takes their place).
 - **Exclusive pedestal** (owner 2026-11-04, 4.35; moved 2026-11-10): one pedestal in the summon wing's gate end, where the 2 Legends stood, advertises Saitamo: its model on
-  the pedestal, a floating header with its rarity and hero name, and a prompt that opens the 999 Robux pass and shows 350 studs/s. Client-only. It never hides a Dojo from the spawn (it is not a service building).
+  the pedestal, a floating header with its rarity and hero name, and a prompt that opens the 999 Robux pass and shows 350 studs/s. Client-only.
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
@@ -330,14 +314,12 @@ before any Studio work.
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
   torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch). Race Start also has a floating bold label high above it, seen across the plaza; the Market's floating header follows the economy wing (Service headers, owner 2026-11-04; Two wings 2026-11-10).
   Labels show only on foot and hide up close (proposed for Race Start: within 20 studs, out to 260 studs).
-- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sidekicks (the summon altar, 2026-11-10), Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the economy wing: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
-- **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule): the Dojo ring, the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the Saitamo exclusive pedestal on the gate side (owner 2026-11-10; was the 2 Legends). The Sensei stands beside the gate. A service building may hide part of a Dojo from the spawn. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
+- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sidekicks (the summon altar, 2026-11-10), Sensei and Race Start each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the economy wing: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
+- **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule): the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the Saitamo exclusive pedestal on the gate side (owner 2026-11-10; was the 2 Legends). The Sensei stands beside the gate. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
 - **Clear plaza** (owner 2026-11-04; placement parts replaced by Two wings 2026-11-10): the Rebirth shrine is removed (Rebirth opens from its HUD tile). The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii and 4 stone lanterns framing its gate end (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
-- **Dojo with cyber accents** (owner 2026-11-10, after rejecting the full cyber and the hybrid Studio builds; replaces the "Enclosed cyber dojo" of the same day): no enclosed area, no wall and no blast door. The plaza keeps its look (golden-hour lighting, the Great Sakura, stone lanterns, petals and forest ambience, the wood torii, the stalls and Dojos as built, Two wings positions, wayfinding, service headers and sky loop). Hybrid cyber elements are added on top: neon trim on the torii and stall roofs, small wall screens on the stalls, a holo scanning ring at the RACE START gate, and a few warm-lit drones. Owner approved the accents from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG); sizes, colours and amounts stay **proposed**.
-- **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
-  level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
-  poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
+- **Dojo with cyber accents** (owner 2026-11-10, after rejecting the full cyber and the hybrid Studio builds; replaces the "Enclosed cyber dojo" of the same day): no enclosed area, no wall and no blast door. The plaza keeps its look (golden-hour lighting, the Great Sakura, stone lanterns, petals and forest ambience, the wood torii, the stalls as built, Two wings positions, wayfinding, service headers and sky loop). Hybrid cyber elements are added on top: neon trim on the torii and stall roofs, small wall screens on the stalls, a holo scanning ring at the RACE START gate, and a few warm-lit drones. Owner approved the accents from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG); sizes, colours and amounts stay **proposed**.
+- **Spawn showpiece** (owner 2026-11-11): the Dojos are gone; the freed ring's new use is in 4.43.
 
 ### 4.27 Phone and tablet HUD (owner 2026-11-03)
 - Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Auto / Upgrade pair (4.40) may shrink on 4:3 tablets.
@@ -493,7 +475,7 @@ before any Studio work.
 - Extra Roll I and II: +1 roll each per roll tick (3 in total).
 - 2x Money: doubles race payouts.
 - Lucky and ULTRA Lucky: +1 and +2 Luck, added to the additive Luck part (+3 with both, **proposed**).
-- Dojo Master: workshop boost x1.5. It replaces the Gold, Diamond and Void Workshop passes, which are removed.
+- Dojo Master: removed 2026-11-11 with the Dojos (4.43), off sale; it had replaced the Gold, Diamond and Void Workshop passes, also gone.
 - Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
 - + Inventory: +100 bag spaces (4.36).
 - Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
@@ -539,6 +521,18 @@ before any Studio work.
   - Five text sizes: 38 title, 26 section heading, 20 item name, 16 body, 13 caption. Section headings gold; names and body white; captions soft white. Nothing under 13 px; no outline under 16 px.
   - List panels put their count line in Index's footer bar, not floating text.
   - A scroll list never cuts a card at the frame: it ends on a whole row or fades over 16 px; scrollbar 8 px inside the frame.
+
+### 4.43 Dojos removed; Spawn showpiece (owner 2026-11-11)
+- The Dojos are removed entirely: the 7 player plots, the Dojo squad (the Showcase of 3 characters), workshop levels and the workshop stat boost, the WORKSHOP panel and its plot prompt, `WorkshopService`, the YOUR DOJO marker and the Dojo Master pass. This replaces the plots of 4.10, all of 4.19 and the Dojo parts of 4.24.
+- Refund (fixed, not a placeholder): at the first load after the change, a save with `WorkshopLevel` above 1 gets Money += the sum of `PayoutCurve.Cost(500, level - 1)` for levels 2 to `WorkshopLevel` (level 5 = 10,336,500), once. The save goes from VERSION 18 to 19; `WorkshopLevel`, `WorkshopStat` and `Showcase` are dropped at the next save.
+- Dojo Master is removed and taken off sale in the Creator Dashboard by hand. Its id 2071362782 stays as a comment in `MonetizationConfig` and `tools/monetization/create_products.py` and is never reused.
+- Max Players stays 7: the boss arena lanes need it (4.37).
+- **Spawn showpiece** (**proposed**, open until the owner picks a draft): the freed ring (radius about 110 round the spawn) becomes a raised spawn platform and landmark at (0, 0), with a petal fountain ring and the Saitamo exclusive pedestal on the platform, and the service buildings ringed round it. Per 4.24 it is drafted in Blender first: `tools/blender/plaza/draft_showpiece.py` renders 3 drafts to `assets/plaza_draft/Showpiece_{A,B,C}_*.png`. Fixed in all drafts: the spawn (0, 0), the gate pad (-84, 78), the path, the torii and its 4 lanterns, the Sensei (-80.0, 57.9), the Great Sakura (80, 118) and the sky loop; every building front faces the spawn.
+  - A "Fountain spawn, wings kept": platform radius 16 with 2 steps, a moat at radius 10 to 13, the Saitamo pedestal on the platform rim at (8.2, 8.8); Two wings unchanged; 7 lanterns at radius 100 on the old plot angles.
+  - B "Ring court": platform as in A, pedestal on it; six buildings on radius 60 every 45 degrees with the gap on the gate axis: Shop (-60.0, -2.2), Potions (-40.8, -44.0), Market (2.2, -60.0), Index (44.0, -40.8), Best Roll (60.0, 2.2), Altar (40.8, 44.0); a spare slot at (-2.2, 60.0).
+  - C "Terrace, wide court": a 3-tier terrace of radius 26, 20 and 14, the pedestal on the middle tier at (11.6, 12.5); six buildings on radius 88: Shop (-87.9, -3.3), Potions (-59.9, -64.5), Market (3.3, -87.9), Index (64.5, -59.9), Best Roll (87.9, 3.3), Altar (59.9, 64.5). The Shop and Best Roll backs touch the floor edge (x +-94), so the build would widen the floor or pull the radius in to 84.
+  - Two wings (4.24) stay as built until the pick is approved and built.
+- Tests `dojo`, `workshop`, `workshop_phase2`, `workshop_boost`, `showcase`, `ui_workshop_modal` and `ui_workshop_showcase` are retired; a `data` check covers the refund.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -592,7 +586,7 @@ before any Studio work.
 
 - Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
 - Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
-  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`, `AutoSell`, `AutoSellChance`. Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
+  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `AutoSell`, `AutoSellChance` (`Showcase`, `WorkshopLevel` and `WorkshopStat` dropped 2026-11-11, 4.43). Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
   Boss-event fields (owner 2026-11-04): `docs/BOSS_EVENT_SPEC.md`.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
 - Join size (owner 2026-11-10): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
@@ -602,6 +596,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-11: owner: Dojos removed entirely (plots, Dojo squad, workshop boost and levels, WORKSHOP panel, Dojo Master off sale); paid workshop levels refunded once (save VERSION 19); the freed ring becomes a Spawn showpiece, 3 Blender drafts first (4.43; 4.10, 4.19, 4.24 and the passes list edited).
 - 2026-11-11: owner: the loading screen backdrop is intro draft B3 "Distant crowd" (Sakura gate with a small blended roster crowd), replacing the hybrid dusk scene (4.24 Loading screen).
 - 2026-11-11: owner: the Bosses button takes the column buttons' exact cell, icon and label sizes and moves just below Roblox's top bar, left-aligned with the left column, or right of Roblox's buttons where it would reach the column (phones, short windows) (4.40).
 - 2026-11-10: owner: the loading screen uses the hybrid draft: its dusk scene fills the screen behind the logo and the real loading bar, and the bar turns cyan with a pink outline (4.24 Loading screen).
