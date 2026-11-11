@@ -2,8 +2,8 @@
 -- The Dodge bar's clock (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"). Pure: server and client read the same moments and
 -- the same spot, so a prompt needs no network traffic. Times are seconds after the intro's end. A moment's index counts every
 -- attack, shout and wheel turn of the event from 1. Numbers are placeholders.
+local BossCatalog = require(script.Parent.BossCatalog)
 local Cfg = require(script.Parent.BossEventConfig)
-local Poses = require(script.Parent.BossRagaPoses)
 
 local BossDodge = {}
 
@@ -18,21 +18,24 @@ BossDodge.HitText = {
 	Impact = "You were hit by Raga's Slice",
 	Roar = "Raga yelled, you are intimidated",
 	WheelClick = "Raga has adapted to you",
+	Lightning = "You were struck by her lightning", -- proposed
+	Barrage = "You were blasted by her barrage", -- proposed
+	Slam = "The golem crushed you", -- proposed
 }
 BossDodge.DodgeText = "Nice Dodge!"
 BossDodge.StarArt = "rbxassetid://103522228947626" -- assets/ui/dodge_star.png
 
--- Event name -> its moments in one schedule cycle. Read off the shared schedule, so every client's animation and the server
--- agree. Rounded to the 3 places the schedule's times are written in.
-BossDodge.Events = {}
+-- A boss's schedule, read once: Events (event name -> its moments in one cycle), List (every moment of one cycle, in time order:
+-- { At, Name }) and Cycle. Read off the shared schedule, so every client's animation and the server agree. Rounded to the 3 places
+-- the schedule's times are written in.
 local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
-for _, move in Poses.Moves do
-	for _, moveEvent in move.Events do
-		BossDodge.Events[moveEvent.Name] = {}
+local function scan(Poses)
+	local events, list = {}, {}
+	for _, move in Poses.Moves do
+		for _, moveEvent in move.Events do
+			events[moveEvent.Name] = {}
+		end
 	end
-end
-local list = {} -- every moment of one cycle, in time order: { At, Name }
-do
 	local lastMove, lastLocal = nil, 0
 	for k = 0, math.ceil(Poses.CycleSeconds / SCAN_STEP) - 1 do
 		local since = k * SCAN_STEP
@@ -40,7 +43,7 @@ do
 		if move ~= lastMove or localTime < lastLocal then
 			for _, moveEvent in Poses.Moves[move].Events do
 				local at = math.round((since - localTime + moveEvent.Time) * 1000) / 1000
-				table.insert(BossDodge.Events[moveEvent.Name], at)
+				table.insert(events[moveEvent.Name], at)
 				table.insert(list, { At = at, Name = moveEvent.Name })
 			end
 		end
@@ -49,26 +52,47 @@ do
 	table.sort(list, function(a, b)
 		return a.At < b.At
 	end)
+	return { List = list, Events = events, Cycle = Poses.CycleSeconds }
+end
+
+local schedules = {}
+for _, id in BossCatalog.Order do
+	schedules[id] = scan(require(script.Parent[BossCatalog.Get(id).Poses]))
+end
+
+-- boss: an id, nil for Big Raga.
+local function scheduleOf(boss)
+	return schedules[BossCatalog.Get(boss).Id]
+end
+
+BossDodge.Events = schedules[BossCatalog.Default].Events
+
+function BossDodge.EventsOf(boss)
+	return scheduleOf(boss).Events
 end
 
 function BossDodge.SweepFor(stage)
 	return SWEEPS[stage]
 end
 
--- Moment `index` -> its time and event name.
-function BossDodge.Moment(index)
+-- Moment `index` of the boss's schedule -> its time and event name.
+function BossDodge.Moment(index, boss)
+	local schedule = scheduleOf(boss)
+	local list = schedule.List
 	local cycles = (index - 1) // #list
 	local row = list[index - cycles * #list]
-	return cycles * Poses.CycleSeconds + row.At, row.Name
+	return cycles * schedule.Cycle + row.At, row.Name
 end
 
 -- The index of the last moment at or before `since`, 0 if none.
-function BossDodge.IndexAtOrBefore(since)
+function BossDodge.IndexAtOrBefore(since, boss)
 	if since < 0 then
 		return 0
 	end
-	local cycles = math.floor(since / Poses.CycleSeconds)
-	local inCycle = since - cycles * Poses.CycleSeconds
+	local schedule = scheduleOf(boss)
+	local list = schedule.List
+	local cycles = math.floor(since / schedule.Cycle)
+	local inCycle = since - cycles * schedule.Cycle
 	local count = 0
 	for _, row in list do
 		count += row.At <= inCycle and 1 or 0

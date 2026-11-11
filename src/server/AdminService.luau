@@ -280,21 +280,24 @@ AdminService.Commands = {
 		end,
 	},
 	boss = {
-		Usage = "/boss",
-		Help = "start a boss event now, or end the running one",
+		Usage = "/boss [raga|mage]",
+		Help = "start a boss event now (a random boss, or the one named), or end the running one",
 		Min = 0,
-		Max = 0,
+		Max = 1,
 		NoTarget = true,
-		Check = function()
-			return true
+		Check = function(args)
+			if not args[1] then
+				return true -- the random pick
+			end
+			return ({ raga = "boss_raga", mage = "boss_mage" })[args[1]:lower()]
 		end,
-		Apply = function()
+		Apply = function(_, id)
 			if BossEventService.State().Phase ~= "Idle" then
 				BossEventService.End("Timeout") -- pays nothing
 				return true, "boss event ended"
 			end
-			BossEventService.Start("Admin")
-			return true, "boss event started"
+			local ok, message = BossEventService.Start("Admin", id ~= true and id or nil)
+			return ok, ok and "boss event started" or message
 		end,
 	},
 	setrebirth = {
@@ -598,7 +601,7 @@ local function execute(sender, text)
 		return true, helpText()
 	end
 	if cmd.NoTarget then
-		if #args ~= cmd.Min then
+		if #args < cmd.Min or #args > cmd.Max then
 			return false, "Usage: " .. cmd.Usage
 		end
 		local value = cmd.Check(args)
