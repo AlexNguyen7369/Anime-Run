@@ -306,21 +306,8 @@ local generated = {
 				Visible = true,
 			},
 		},
-		-- Money plate behind MoneyValue and Unbanked (owner brief 2026-10-27, HUD spec section 9)
-		["RacerHud/Money/MoneyPlate"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(94, 22),
-				Size = UDim2.fromOffset(188, 92),
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(62, 12),
-				Size = UDim2.fromOffset(138, 72),
-				Visible = true,
-			},
-		},
+		-- retired: RacerHud/Money/MoneyPlate and RacerHud/Money/Unbanked (owner 2026-11-10, design doc 4.40; ui_hud
+		-- checks they stay absent)
 		["RacerHud/Money/MoneyValue"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
@@ -334,22 +321,6 @@ local generated = {
 				Position = UDim2.fromOffset(68, 17),
 				Size = UDim2.fromOffset(132, 34),
 				TextSize = 32,
-				Visible = true,
-			},
-		},
-		["RacerHud/Money/Unbanked"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(102, 80),
-				Size = UDim2.fromOffset(180, 24),
-				TextSize = 20,
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(68, 58),
-				Size = UDim2.fromOffset(132, 20),
-				TextSize = 16,
 				Visible = true,
 			},
 		},

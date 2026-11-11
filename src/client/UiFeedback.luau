@@ -172,13 +172,6 @@ function UiFeedback.MoneyCounter()
 	return money and money:FindFirstChild("MoneyValue")
 end
 
--- The HUD's Unbanked read-out, the far end of a Fly for pay not banked yet; nil before the HUD exists.
-function UiFeedback.UnbankedCounter()
-	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
-	local hud = playerGui and playerGui:FindFirstChild("RacerHud")
-	return hud and hud:FindFirstChild("Unbanked", true)
-end
-
 -- The roll card's Phase: anything but "Idle" means a roll is running.
 function UiFeedback.RollPhase()
 	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")

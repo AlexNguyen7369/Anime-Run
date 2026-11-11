@@ -19,11 +19,11 @@ when all 3 are empty, or when the player loses a track to the NPC.
 1. Auto-spin characters (free, every `ROLL_INTERVAL` seconds) and discover them in the Index.
 2. Build a team of up to 3 characters (order matters).
 3. Start a run on the start pad: the team auto-runs Track 1, 2, 3 ... against each track's NPC rival.
-4. Each track won adds its pad value to the run's bank (UNBANKED).
+4. Each track won pays its pad value straight into Money as the team crosses that track's finish (checkpoint), with a short "Cashed out +$X" notice (owner 2026-11-10, replaces the run bank / UNBANKED).
 5. The run ends:
-   - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
-   - **Player stops** (Stop button, death, leave): the bank is cashed out.
-   - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
+   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn.
+   - **Player stops** (Stop button, death, leave): nothing more is paid; every track already won was paid at its finish.
+   - **Loss** (NPC reaches a track's finish first): loser screen; back to the start track. Money already paid at earlier checkpoints stays (owner 2026-11-10: there is no bank to empty).
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
 7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
 
@@ -34,7 +34,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | Numbered, point-to-point track chain; each track starts on the previous finish; loops back to Track 1 after the last | `TrackBuilder`, `TrackValidator` |
 | Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
-| Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
+| Each won track pays into Money at its finish with a cash-out notice (owner 2026-11-10; no run bank) | `RaceService` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
@@ -80,9 +80,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
   current runner gets a clear animated indicator (enlarged, glowing ring, a bobbing marker); every portrait shows its
   stamina on a thick arc, with its stamina seconds left as a number (orchestrator default); tired runners grey out with
   an animation; the tag-in plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
-- When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
+- When the last character reaches 0 the run ends as a **soft end** (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
-  `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
+  `PayoutCurve.Cash(n) x distance covered / track length` straight into Money, with the cash-out notice (share placeholder 1.0; no bank since 2026-11-10).
   Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
   Common speed, stamina or Track 1 length (owner 2026-11-03).
 
@@ -257,7 +257,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
   - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
     1.035 / 0.97, orchestrator default); disabled buttons do not move.
   - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
-  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+  - Numbers: HUD counters (Money, Gems) count up / down over ~0.3 s; panel numbers update at once so no number
     is ever shown wrong (orchestrator default).
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
@@ -503,7 +503,8 @@ before any Studio work.
 - Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
 - Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
 - HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
-- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**.
+- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD).
+- Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems; the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
@@ -596,6 +597,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-10: owner: no run bank; each won track pays into Money at its finish with a "Cashed out" notice, a loss keeps earlier payouts (3, 4.x run end); Money and Gems lose their boxes, Gems sits under Money, UNBANKED removed (4.40).
 - 2026-11-10: owner: Market becomes a top-right pill like Daily; the Bosses button takes the Tab tilt Boss icon (4.40).
 - 2026-11-10: owner, last pick of the day: no enclosed area; the plaza keeps its dojo look with hybrid cyber accents (4.24 Dojo with cyber accents). HUD icons become "Tab tilt", layout split L/R (Index, Items, Rebirth left; Quests, Shop, Market right); keybind letters, the 1200 x 620 panels and the parallelogram stamina arc stay; the gold Turbo and minibar look is dropped (4.40). Owner, same day: during a boss event both HUD columns hide; the pills, Auto and Upgrade and the event UI stay; Leave keeps its place (4.40, BOSS_EVENT_SPEC).
 - 2026-11-10: owner, later the same day: the HUD tile, Gem and Boss icons become the Gold badge rendition (gold octagon badge, navy inside), replacing "today's art, no badge"; the Turbo bar and Team minibar restyle to the HUD tiles' gold rim, navy inside and outlined white text, look proposed; the left-block tiles show keybind letters and open on Index X, Items B, Rebirth R, Quests Q, Shop P, Market M, keyboard only, replacing "no keybind letters"; the minibar stamina arc becomes a curved parallelogram, a smooth band with both ends cut on a slant, replacing the round ends, slant proposed (4.40).

@@ -332,7 +332,7 @@ function Tests.weather()
 			flag("weather_reaches_gacha_luck_" .. id, near(gacha.Luck(p), baseLuck * values[1]))
 			flag("weather_reaches_money_multi_" .. id, near(gacha.MoneyMulti(p), baseMoney * values[2]))
 			local quote = math.floor(113 * baseMoney * values[2])
-			flag("weather_reaches_banked_quote_" .. id, money.Quote(p, pad) == quote)
+			flag("weather_reaches_checkpoint_quote_" .. id, money.Quote(p, pad) == quote)
 			local balance = p.leaderstats.Money.Value
 			flag(
 				"weather_reaches_paid_collect_" .. id,

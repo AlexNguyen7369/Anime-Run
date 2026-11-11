@@ -179,7 +179,7 @@ function Tests.gems()
 		flag("pad_payout_pays_zero", padRun.Payouts == 1 and gems(walker) == 0, gems(walker), 0)
 		padRun:Destroy()
 
-		-- Exhaustion pays nothing (it banks a share of Money only).
+		-- Exhaustion pays nothing (it pays a share of Money only).
 		local tired, exhausted = newPlayer(), false
 		startRun(tired, {
 			Npc = true,

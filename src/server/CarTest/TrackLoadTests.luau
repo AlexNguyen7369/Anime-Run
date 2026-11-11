@@ -17,7 +17,7 @@
 --       ascending. Test-side reading of "nearest": tracks spiral outward in Number order (TrackChainTests).
 --   RaceService NPC runs poll TrackBuild.IsBuilt: while holding, run.Holding = the awaited track number (nil otherwise),
 --     car attribute RunHold = that number (the client's "Loading next track" label; nil otherwise), car RunSpeed = 0,
---     the rail does not move, stamina does not drain, nothing banks; on release the held track's race starts.
+--     the rail does not move, stamina does not drain, nothing is paid; on release the held track's race starts.
 --   RaceService.GetRoute().Tracks: all 10 tracks, each Pad the WinPad of its built Track model (a late track still pays).
 -- On demand: ReplicatedStorage attributes CarTestOnly = "track_loading", then CarTestRun = true.
 local CollectionService = game:GetService("CollectionService")
@@ -214,10 +214,10 @@ local function holdChecks(flag, TrackBuild, cleanup, runs)
 		end
 		return false
 	end
-	-- Watches a hold for HOLD_SECONDS: rail, stamina, bank, Gems and results all still.
+	-- Watches a hold for HOLD_SECONDS: rail, stamina, payouts, Gems and results all still.
 	local function watchHold(prefix, run, car, p, number)
 		local d0, s0 = car:GetAttribute("RunDistance"), run.Stamina[run.Slot]
-		local bank0, gems0, results0 = run.BankedTotal, p:GetAttribute("Gems"), #run.Results
+		local bank0, gems0, results0 = run.PaidTotal, p:GetAttribute("Gems"), #run.Results
 		task.wait(HOLD_SECONDS)
 		local held = run.Holding == number
 		flag(prefix .. "_holding", held, run.Holding or 0, number)
@@ -226,13 +226,13 @@ local function holdChecks(flag, TrackBuild, cleanup, runs)
 		local d1 = car:GetAttribute("RunDistance")
 		flag(prefix .. "_rail_still", type(d0) == "number" and type(d1) == "number" and math.abs(d1 - d0) <= STILL)
 		flag(prefix .. "_stamina_kept", math.abs((run.Stamina[run.Slot] or 0) - (s0 or -1)) <= STILL)
-		flag(prefix .. "_nothing_banked", run.BankedTotal == bank0, run.BankedTotal - bank0, 0)
+		flag(prefix .. "_nothing_paid", run.PaidTotal == bank0, run.PaidTotal - bank0, 0)
 		flag(prefix .. "_no_gems", p:GetAttribute("Gems") == gems0)
 		flag(prefix .. "_no_result", #run.Results == results0, #run.Results, results0)
 		return d1
 	end
 
-	-- 1. Finish line: Track 1 won, Track 2 unbuilt. Track 1's win banks; the runner then waits at its finish.
+	-- 1. Finish line: Track 1 won, Track 2 unbuilt. Track 1's win pays at its finish; the runner then waits at its finish.
 	TrackBuild.SetBuiltOverride(2, false)
 	local run, car, p, events = startRun({ StartTrack = 1 })
 	run.Driver.Index = route.Tracks[1].FinishIndex
@@ -241,7 +241,7 @@ local function holdChecks(flag, TrackBuild, cleanup, runs)
 	end)
 	local first = run.Results[1]
 	flag("finish_track1_won", first ~= nil and first.Track == 1 and first.Result == "Win")
-	flag("finish_track1_banked", run.BankedTotal > 0, run.BankedTotal)
+	flag("finish_track1_paid", run.PaidTotal > 0, run.PaidTotal)
 	flag("finish_no_track2_race", not started(events, 2) and run.RaceTrack ~= 2)
 	local at = watchHold("finish", run, car, p, 2)
 	local finishArc = (route.Tracks[1].FinishIndex - 1) * 20
