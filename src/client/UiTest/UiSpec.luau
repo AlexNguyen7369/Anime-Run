@@ -2528,6 +2528,8 @@ UiSpec.RemoteFunctions = {
 	-- Paid spawn: the boss_paid_* clicks must never really prompt or start
 	"BossBuy",
 	"BossUseCredit",
+	-- The Elf Mage's rhythm circles (Client/BossOsuUi): never a real press
+	"BossOsu",
 }
 table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
@@ -4482,6 +4484,45 @@ do
 	click.Gui = "RacerBossEvent"
 	table.insert(UiSpec.Clicks, click)
 end
+-- The Elf Mage's Bosses popup line (design doc 4.37 "Second boss"; UiBossMage). Opens, then closes, so nothing stays open after.
+for _, click in
+	{
+		{
+			Id = "boss_mage_button",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(3.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_mage" },
+			Expect = { Remote = false, After = { "boss_mage_panel_casting" } },
+		},
+		{
+			Id = "boss_mage_panel_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+	}
+do
+	click.Gui = "RacerBossEvent"
+	table.insert(UiSpec.Clicks, click)
+end
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_invite_mage",
+	When = "before the boss_mage_button click (NeedSetup)",
+	What = "As boss_ui_invite, with ReplicatedStorage attribute BossEventBoss = boss_mage. 'restore' clears it.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_boss:<id>",
+	When = "asked for by ui_boss_mage, ui_boss_mage_dodge, ui_boss_osu and ui_boss_mage_vfx",
+	What = "Sets ReplicatedStorage attribute BossEventBoss to <id> ('none' clears it). boss_ui_state:Idle and restore:boss_ui "
+		.. "clear it too.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_osu_spy",
+	When = "asked for by ui_boss_osu",
+	What = "Replaces Remotes.BossOsu with a logging stand-in: { index, circle, stamp } per call into ReplicatedStorage attribute "
+		.. "UiTestBossOsuLog; it answers true, and true, Dodged for circle 4. restore:boss_ui puts the real remote back.",
+})
 
 -- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
 UiSpec.Guis.RacerBossRewards = {
@@ -4493,6 +4534,19 @@ UiSpec.Guis.RacerBossDodge = {
 	Source = "Client/BossDodgeUi",
 	Buttons = { { Path = "DodgeBar/Bar", Does = "remote", Remote = "BossDodge", ClickCoverage = "ui_boss_dodge" } },
 }
+-- The rhythm circles (Client/BossOsuUi; BOSS_EVENT_SPEC "The Elf Mage"), shown only before a Slam: ui_boss_osu judges them (UiBossMage).
+UiSpec.Guis.RacerBossOsu = {
+	Source = "Client/BossOsuUi",
+	NonInteractiveParts = { "Timer", "Caption" },
+	Buttons = {},
+}
+table.insert(UiSpec.ClientScripts, "BossOsuUi")
+for k = 1, 4 do -- shown only around a Slam, so "dynamic": ui_boss_osu counts them
+	table.insert(
+		UiSpec.Guis.RacerBossOsu.Buttons,
+		{ Path = "Circle" .. k, Does = "remote", Remote = "BossOsu", Count = "dynamic", ClickCoverage = "ui_boss_osu" }
+	)
+end
 -- How far the camera is from what it follows. A runner in a full run moves 24 studs/s (and BossWaitCamera.homeFrame carries the
 -- camera with it), so the boss camera checks read this, not a world position. No subject: math.huge, which no home check accepts.
 function UiSpec.CameraReach(camera)
@@ -4529,7 +4583,7 @@ table.insert(UiSpec.ServerSetup, {
 	When = "asked for by ui_boss_phase2 and ui_boss_rewards, one step at a time",
 	What = "boss_phase2_stage:<stage>:<ends in s|none>:<scream ends in s|none>:<schedule start s ago|none>, the attributes only; "
 		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>[:<share 0..1>], one BossRewards message "
-		.. "(no share part: no Share in it). "
+		.. "(no share part: no Share in it; an optional 7th part sets the summary's Boss id). "
 		.. "restore:boss_ui clears the attributes.",
 })
 do

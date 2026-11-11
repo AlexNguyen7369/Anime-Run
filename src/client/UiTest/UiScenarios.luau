@@ -177,6 +177,12 @@ UiScenarios.Names = {
 	-- Phase 2's presentation and the rewards popup (UiBossPhase2; docs/BOSS_EVENT_SPEC.md "Phase 2", "Rewards")
 	"ui_boss_phase2",
 	"ui_boss_rewards",
+	-- The Elf Mage (UiBossMage; design doc 4.37 "Second boss", BOSS_EVENT_SPEC "The Elf Mage")
+	"ui_boss_mage",
+	"ui_boss_mage_dodge",
+	"ui_boss_osu",
+	"ui_boss_mage_rewards",
+	"ui_boss_mage_vfx",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
@@ -8596,6 +8602,22 @@ for name, fn in K.bossPhase2.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.bossPhase2.After do
+	access.After[cond] = fn
+end
+-- The Elf Mage, the second boss (UiBossMage; design doc 4.37 "Second boss"). No new local: K.bossMage.
+K.bossMage = require(script.Parent.UiBossMage).Build({
+	check = check,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossMage.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossMage.After do
 	access.After[cond] = fn
 end
 
