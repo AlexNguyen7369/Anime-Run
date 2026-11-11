@@ -17,11 +17,12 @@ local Spec = require(script.Parent.UiSpec)
 local ShopMarket = {}
 
 -- The PanelBand rect (left, top, right, bottom; screen px, inset included) from the HUD rects, as Client/PanelBand
--- computes it: from Gap past the left tile block (and what sticks out of it) to Gap from the screen's right edge, which
--- has no HUD buttons (design doc 4.40 layout L2); top ReachUp above the Race anchor's bottom + Gap (never above
--- inset + Gap); bottom ReachDown above the TURBO bar, and above Money when Money reaches past the band's left edge
--- (design doc 4.42 "Panel size").
--- d: Race, Turbo, Navigation, NavigationParts (rects of the grid's visible descendants), Money, MoneyShown.
+-- computes it: Gap clear of the left column (and what sticks out of it) and of the right column (and what sticks out
+-- of it), the wider margin on both sides so the panel stays centred (design doc 4.40 split L/R); top ReachUp above the
+-- Race anchor's bottom + Gap (never above inset + Gap); bottom ReachDown above the TURBO bar, and above Money when
+-- Money reaches past the band's left edge (design doc 4.42 "Panel size").
+-- d: Race, Turbo, Navigation, NavigationParts (rects of the left column's visible descendants), ShopColumn,
+-- ShopColumnParts (the right column's), Money, MoneyShown.
 function ShopMarket.Band(vp, d)
 	local gap = Spec.Band.Gap
 	local inset = GuiService:GetGuiInset().Y
@@ -29,13 +30,17 @@ function ShopMarket.Band(vp, d)
 	for _, r in d.NavigationParts or {} do
 		gridRight = math.max(gridRight, r.x + r.w)
 	end
-	local left = gridRight + gap
+	local shopLeft = d.ShopColumn.x
+	for _, r in d.ShopColumnParts or {} do
+		shopLeft = math.min(shopLeft, r.x)
+	end
+	local margin = math.max(gridRight, vp.X - shopLeft) + gap
 	local bottom = d.Turbo.y
-	if d.MoneyShown and d.Money and d.Money.x + d.Money.w > left then
+	if d.MoneyShown and d.Money and d.Money.x + d.Money.w > margin then
 		bottom = math.min(bottom, d.Money.y)
 	end
 	local top = math.max(inset + gap, d.Race.y + d.Race.h + gap - Spec.Band.ReachUp)
-	return left, top, vp.X - gap, bottom - Spec.Band.ReachDown
+	return margin, top, vp.X - margin, bottom - Spec.Band.ReachDown
 end
 
 -- Client/PanelBand.Fit for the layout solver: centred in the band, at most maxWidth wide, never larger than the band.
@@ -124,6 +129,7 @@ function ShopMarket.Build(h)
 				Race = Spec.Band.Race,
 				Turbo = Spec.Band.Turbo,
 				Navigation = Spec.Band.Grid,
+				ShopColumn = Spec.Band.ShopColumn,
 				Money = Spec.Band.Money,
 			}
 		do
@@ -137,10 +143,12 @@ function ShopMarket.Build(h)
 		if #missing > 0 then
 			return nil, missing
 		end
-		d.NavigationParts = {}
-		for _, part in h.find(Spec.Band.Grid):GetDescendants() do
-			if part:IsA("GuiObject") and part.Visible then
-				table.insert(d.NavigationParts, rectOf(part))
+		d.NavigationParts, d.ShopColumnParts = {}, {}
+		for key, path in { NavigationParts = Spec.Band.Grid, ShopColumnParts = Spec.Band.ShopColumn } do
+			for _, part in h.find(path):GetDescendants() do
+				if part:IsA("GuiObject") and part.Visible then
+					table.insert(d[key], rectOf(part))
+				end
 			end
 		end
 		local money = h.find(Spec.Band.Money)
