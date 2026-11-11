@@ -2,7 +2,9 @@
 #   python3 tools/blender/paint/atlas.py boss_mage
 #   Blender -b --factory-startup --python tools/blender/build_boss_event.py -- build boss_golem
 #   Blender -b --factory-startup --python tools/blender/build_boss_mage.py
-# Writes assets/characters_avatar/boss_mage/review/{front,side,back,three_quarter,hover,lineup}.png and boss_mage.blend.
+#   Blender -b --factory-startup --python tools/blender/build_boss_mage.py -- portraits
+# Writes assets/characters_avatar/boss_mage/review/{front,side,back,three_quarter,hover,hover_three_quarter,lineup}.png,
+# boss_mage.blend and boss_golem/review/slam_pose.png; portraits: boss_mage and boss_golem portrait.png and head.png.
 # She is a painted R15 character (paint/char_boss_mage.py) merged into the 6 runner parts; the staff and the two twin tails stay
 # their own objects, origin at their grip or root, so they animate on their own. Nothing here uploads.
 import math
@@ -22,9 +24,11 @@ import build_boss_event as be  # noqa: E402
 CID = "boss_mage"
 SCALE = 4.0  # drawn at 4x a runner in game, built at runner size
 GOLEM_RATIO = 1.6  # golem height over the scaled mage's height
+SLAM_BEND = 55  # forearms bent in over the head so the fists meet
+HOVER = 1.5  # her feet above the ground in game, in runner heights
 RDIR = os.path.join(build_avatar.OUT, CID, "review")
 # own object: name prefix of its built pieces, pivot (tail root, staff grip)
-LOOSE = {"TailL": ("Head_TailL", (0.86, 0.36, 5.86)), "TailR": ("Head_TailR", (-0.86, 0.36, 5.86)), "Staff": ("RightHand_Staff", (0, 0, 2.2))}
+LOOSE = {"TailL": ("Head_TailL", (0.86, 0.36, 5.86)), "TailR": ("Head_TailR", (-0.86, 0.36, 5.86)), "Staff": ("RightHand_Staff", (-1.5, -0.62, 2.05))}
 JOINT = {"LeftArm": (1.5, 0, 3.8), "RightArm": (-1.5, 0, 3.8), "LeftLeg": (0.5, 0, 2.0), "RightLeg": (-0.5, 0, 2.0)}
 HAND = {"LeftArm": Vector((1.5, 0, 2.05)), "RightArm": Vector((-1.5, 0, 2.05))}
 
@@ -94,17 +98,21 @@ def pose(objs, rest, kind):
 		hand = m["RightArm"] @ HAND["RightArm"]
 		objs["Staff"].matrix_world = Matrix.Translation(hand)
 	else:
-		# hovering as in the key art: the staff across the body in both hands, feet together and pointed down, tails spread
+		# hovering as in the key art: the staff across the body in both hands, a slight forward lean, legs together and swung
+		# back so the toes point down (the leg is one block: no ankle), tails spread wide and high
 		targets = {"RightArm": Vector((-0.95, -1.3, 2.2)), "LeftArm": Vector((1.05, -1.35, 3.25))}
 		for side, t in targets.items():
 			m[side] = turn(JOINT[side], direction=t - Vector(JOINT[side]))
 		low, high = m["RightArm"] @ HAND["RightArm"], m["LeftArm"] @ HAND["LeftArm"]
 		r = Vector((0, 0, 1)).rotation_difference((high - low).normalized()).to_matrix().to_4x4()
-		objs["Staff"].matrix_world = Matrix.Translation(low) @ r
-		m["LeftLeg"] = turn(JOINT["LeftLeg"], euler=(16, 0, -3))
-		m["RightLeg"] = turn(JOINT["RightLeg"], euler=(10, 0, 3))
-		m["TailL"] = turn(LOOSE["TailL"][1], euler=(8, -20, 0))
-		m["TailR"] = turn(LOOSE["TailR"][1], euler=(8, 20, 0))
+		m["Staff"] = Matrix.Translation(low) @ r @ rest["Staff"].inverted()
+		m["TailL"] = turn(LOOSE["TailL"][1], euler=(-4, -30, 0))
+		m["TailR"] = turn(LOOSE["TailR"][1], euler=(-4, 30, 0))
+		lean = turn((0, 0, 2.0), euler=(8, 0, 0))
+		for n in ("Head", "Torso", "LeftArm", "RightArm", "TailL", "TailR", "Staff"):
+			m[n] = lean @ m.get(n, Matrix())
+		m["LeftLeg"] = turn(JOINT["LeftLeg"], euler=(24, 0, -2))
+		m["RightLeg"] = turn(JOINT["RightLeg"], euler=(18, 0, 2))
 	for n, mat in m.items():
 		objs[n].matrix_world = mat @ rest[n]
 	bpy.context.view_layer.update()
@@ -159,10 +167,11 @@ def lineup(cam, mage_root):
 		be.stand(root, h, x + wide / 2, spin=-20)
 		spans.append((x + wide / 2, h))
 		x += wide + gap
+	mage_root.location.z += HOVER * runner_h  # she hovers: feet this many runner heights up
 	width = x - gap
 	ground = build_avatar.avatar_base.rbox("Ground", (width + 8, 6, 0.3), (width / 2, 0, -0.15), "#3a3e4a", bevel=0)
 	size = golem_h * 0.035
-	names = ("Runner (db_hero), 1x", f"boss_mage at {SCALE:.0f}x", f"boss_golem, {GOLEM_RATIO}x the mage")
+	names = ("Runner (db_hero), 1x", f"boss_mage at {SCALE:.0f}x, hovering", f"boss_golem, {GOLEM_RATIO}x the mage")
 	for (cx, h), text in zip(spans, names):
 		label(text, cx, -size * 2.2, size)
 		label(f"{h / runner_h:.1f} runner heights", cx, -size * 3.6, size * 0.8)
@@ -176,7 +185,43 @@ def lineup(cam, mage_root):
 	print("LINEUP runner", round(runner_h, 3), "mage", round(mage_h, 3), "golem", round(golem_h, 3), "ground", ground.name)
 
 
+def golem_slam():
+	"""Both arms raised overhead, fists together: the joints pose cleanly. Rotations replace the rest pose's, about each joint."""
+	build_avatar.reset()
+	root = be.append_model("boss_golem")
+	slam = {"Torso": (-6, 0, 0), "Head": (6, 0, 0), "ShoulderL": (0, -14, 0), "ShoulderR": (0, 14, 0), "UpperArmL": (-172, 8, 0), "UpperArmR": (-172, -8, 0), "ForearmL": (0, SLAM_BEND, 0), "ForearmR": (0, -SLAM_BEND, 0)}
+	for o in root.children_recursive:
+		if o.name in slam:
+			o.rotation_euler = [math.radians(d) for d in slam[o.name]]
+	cam = build_avatar.setup_render(bpy.context.scene)
+	scene = bpy.context.scene
+	scene.render.resolution_x = scene.render.resolution_y = 1024
+	be.fit(cam, be.world_verts(list(root.children_recursive)), (0.35, -1, 0.12), 1.0, margin=0.9)
+	scene.render.filepath = os.path.join(build_avatar.OUT, "boss_golem", "review", "slam_pose.png")
+	bpy.ops.render.render(write_still=True)
+
+
+def portraits():
+	"""The drawn UI portraits (portrait.png, head.png): the mage by the character pipeline, the golem by its non-humanoid path."""
+	sys.path.insert(0, os.path.join(HERE, "portrait"))
+	import render_portrait as rp
+
+	rp.render(CID, CID, build_avatar.load_data()[CID], False)
+	rp.SIDEKICK_VIEWS["boss_golem"] = {
+		# close crops round the small head, sunk between the shoulders (world centre in the hunched rest pose)
+		"portrait": {"show": ("Head", "Torso", "Shoulder", "UpperArm"), "focus": (0, -1.6, 6.2), "side": 6.4, "turn": 20},
+		"head": {"show": ("Head", "Torso", "Shoulder"), "focus": (0, -1.9, 6.75), "side": 3.0, "turn": 15},
+	}
+	rp.render_sidekick("boss_golem", build_avatar.OUT)
+
+
 def main():
+	if sys.argv[-1] == "slam":
+		golem_slam()
+		return
+	if sys.argv[-1] == "portraits":
+		portraits()
+		return
 	root, objs, tris = build()
 	bpy.ops.wm.save_as_mainfile(filepath=os.path.join(build_avatar.OUT, CID, CID + ".blend"))
 	os.makedirs(RDIR, exist_ok=True)
@@ -187,10 +232,11 @@ def main():
 	for view, d in build_avatar.VIEWS.items():
 		render(cam, os.path.join(RDIR, view + ".png"), d)
 	pose(objs, rest, "hover")
-	render(cam, os.path.join(RDIR, "hover.png"), (0.22, -1, 0.04), target=(0, 0, 3.4))
-	pose(objs, rest, "stand")
+	render(cam, os.path.join(RDIR, "hover.png"), (0.12, -1, 0.04), target=(0, 0, 3.4))
+	render(cam, os.path.join(RDIR, "hover_three_quarter.png"), build_avatar.VIEWS["three_quarter"], target=(0, 0, 3.4))
 	print("TRIS", CID, sum(tris.values()), tris)
 	lineup(cam, root)
+	golem_slam()
 
 
 if __name__ == "__main__":

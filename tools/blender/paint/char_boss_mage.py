@@ -20,6 +20,7 @@ GOLD = "#d6a838"
 DEFAULT = WHITE
 R = Ramps(
 	hair=["#8c88a2", "#b2aec6", "#d4d2e4", "#ecebf5", "#ffffff"],
+	parting=["#6e6a86", "#7e7a96", "#8e8aa6", "#9e9ab6"],
 	skin=["#c49c88", "#e8c6b4", "#fde8dc", "#fff4ec"],
 	white=["#9c9fb2", "#c6c9d6", "#e6e7ee", "#f8f8fb", "#ffffff"],
 	gold=["#8a6210", "#c39028", "#e8be4c", "#fff0a8"],
@@ -34,6 +35,8 @@ R = Ramps(
 )
 HAIR = {"colour": "#D4D2E4", "locks": []}
 PROPS = []
+# the staff is drawn upright at the origin, then moved so its grip (2.2 above the butt) sits in the right hand, a little in front
+STAFF_AT = (-1.5, -0.62, 2.05 - 2.2)
 
 
 def rod(k, part, name, pts, r, ramp, n=6, **bk):
@@ -84,22 +87,28 @@ def wrap(k, part, name, rows, ramp, t=0.05, n=12, **bk):
 def _hair(k):
 	crown(k, [(1.0, 5.46), (1.06, 5.66), (0.96, 5.92), (0.58, 6.14), (0.16, 6.22)])
 	block(k, "Head", "Cap", 0, 0.02, 5.76, 5.3, 1.03, 0.89, "hair", ch=0.09, corner=0.4, jit=0.015, a=0.46, b=0.44)
-	block(k, "Head", "Back", 0, 0.3, 5.5, 4.12, 0.98, 0.62, "hair", ch=0.06, corner=0.3, jit=0.015, a=0.44, b=0.42)
+	# the back of the head: four chunky vertical clumps to the nape, split down the middle
+	for i, (x, r, end) in enumerate(((-0.66, 0.34, 3.98), (-0.22, 0.32, 3.86), (0.22, 0.32, 3.9), (0.66, 0.34, 4.0))):
+		gem(k, "Head", f"Back{i}", (x * 0.9, 0.86, 6.0), (x * 1.04, 1.0, end), r, flat=0.6, twist=0.0, a=0.5 - 0.05 * (i % 2), across=(1, 0, 0))
+	# the centre part line, front to nape, over the crown
+	part = [(-0.9, 5.96), (-0.56, 6.17), (-0.16, 6.25), (0.2, 6.25), (0.6, 6.16), (0.92, 5.9), (1.0, 5.5), (0.96, 5.0)]
+	slab(k, "Part", part + [(y - 0.06 * (1 if y > 0 else -1), z - 0.04) for y, z in reversed(part)], -0.025, 0.025, "parting", a=0.5, b=0.2)
 	for s in (1, -1):
 		# the sides stop above the ear root so the ears stand clear
 		slab(k, f"Side{s}", [(-0.8, 5.46), (-0.8, 5.0), (-0.5, 4.9), (0.2, 4.9), (0.9, 4.6), (0.9, 5.46)], s * 0.84, s * 1.02, "hair", a=0.44, b=0.46)
 		# long locks framing the face, in front of the ears, to the jaw
 		gem(k, "Head", f"Lock{s}", (s * 0.84, -0.66, 5.5), (s * 0.86, -0.78, 3.92), 0.26, flat=0.42, twist=0.2, across=(1, 0, 0), a=0.52)
-		# straight bangs from the middle part, the eyes left clear
-		root = (s * 0.05, -0.78, 5.84)
-		for i, (t, r) in enumerate((((s * 0.3, -0.96, 4.98), 0.24), ((s * 0.7, -0.95, 4.88), 0.26))):
-			gem(k, "Head", f"Bang{s}{i}", root, t, r, flat=0.42, twist=0.2 + 0.15 * i, a=0.54, across=(0, 0, 1))
+		# straight blunt bangs to the brow, parted in the middle, the eyes left clear
+		fringe = [(0.03, 5.92), (0.62, 5.78), (0.96, 5.5), (0.96, 4.96), (0.74, 4.9), (0.7, 5.0), (0.46, 4.94), (0.42, 5.04), (0.18, 4.98), (0.03, 5.1)]
+		prism(k, "Head", f"Fringe{s}", [(s * x, z) for x, z in fringe], -0.99, -0.84, "hair", a=0.56, b=0.4)
 
 
 def _tails(k):
 	"""Two high twin tails, chunky clumps splayed out past the arms and down past the waist. Named Tail*: kept out of the merge."""
 	for s, tag in ((1, "L"), (-1, "R")):
 		root = (s * 0.86, 0.36, 5.86)
+		tie = [(s * (0.86 + 0.13 * math.cos(math.pi * j / 4)), 5.86 + 0.13 * math.sin(math.pi * j / 4)) for j in range(8)]
+		prism(k, "Head", f"Tail{tag}Tie", tie, 0.2, 0.52, "red", a=0.54, b=0.4)
 		gem(k, "Head", f"Tail{tag}0", root, (s * 1.65, 0.74, 4.5), 0.38, flat=0.62, twist=0.25, a=0.52)
 		gem(k, "Head", f"Tail{tag}1", (s * 1.45, 0.72, 4.95), (s * 2.85, 1.0, 1.6), 0.42, flat=0.55, twist=0.35, a=0.5)
 		gem(k, "Head", f"Tail{tag}2", (s * 1.3, 0.64, 5.2), (s * 2.4, 1.08, 2.0), 0.3, flat=0.6, twist=0.6, a=0.44)
@@ -118,12 +127,12 @@ def _top(k):
 	t = "UpperTorso"
 	torso_core(k, hem=2.0)
 	# the capelet over shoulders and upper arms, closed at the collar, opening down the front onto the striped shirt
-	wrap(k, t, "Cape", [(4.2, 0.82, 0.62, 0.02), (4.06, 2.06, 0.72, 0.12), (3.38, 2.2, 0.82, 0.42)], "white", t=0.06, a=0.56, b=0.42, g=0.1)
-	for name, z1, z0, gx in (("CapeHem", 3.52, 3.34, 0.36), ("CapeBand", 3.8, 3.72, 0.26)):
-		rows = [(z, 2.06 + 0.14 * (4.06 - z) / 0.68 + 0.035, 0.72 + 0.1 * (4.06 - z) / 0.68 + 0.035, gx) for z in (z1, z0)]
-		wrap(k, t, name, rows, "gold", t=0.09, a=0.56, b=0.4)
+	# the middle of the capelet; the parts over the arms ride the arms (_arm), so a raised arm lifts its side
+	wrap(k, t, "Cape", [(4.2, 0.82, 0.62, 0.02), (4.06, 1.12, 0.72, 0.12), (3.38, 1.18, 0.82, 0.42)], "white", t=0.06, a=0.56, b=0.42, g=0.1)
+	wrap(k, t, "CapeHem", [(3.52, 1.2, 0.84, 0.36), (3.34, 1.21, 0.86, 0.38)], "gold", t=0.09, n=10, a=0.56, b=0.4)
 	collar(k, "white", 4.22, 4.38, z0=3.98, rx=0.64, ry=0.6, n=12)
-	block(k, t, "Clasp", 0, -0.7, 4.16, 3.94, 0.1, 0.04, "gem", ch=0.025, a=0.62, b=0.4)
+	block(k, t, "CollarBand", 0, 0, 4.29, 4.2, 0.7, 0.66, "gold", ch=0.02, corner=0.4, a=0.58, b=0.4)
+	block(k, t, "Clasp", 0, -0.72, 4.2, 3.92, 0.11, 0.05, "gem", ch=0.03, a=0.62, b=0.4)
 	block(k, t, "Belt", 0, 0, 2.5, 2.3, 1.08, 0.6, "belt", ch=0.02, corner=0.14, a=0.5, b=0.5)
 	block(k, t, "Buckle", 0, -0.62, 2.53, 2.27, 0.15, 0.025, "buckle", ch=0.015, a=0.56, b=0.4)
 
@@ -146,6 +155,8 @@ def _arm(k, side, s):
 	"""White sleeve widening to a broad gold-hemmed cuff, and the plain block hand."""
 	arm, ax = f"{side}UpperArm", s * 1.5
 	k.reshape(arm, f"{side}Arm", [(ax, 0, 3.9, 0.42, 0.42), (ax, 0, 2.05, 0.42, 0.42)], corner=0.1, nc=1)
+	block(k, arm, "Mantle", s * 1.62, 0.04, 4.12, 3.4, 0.6, 0.74, "white", ch=0.08, flare=0.06, corner=0.3, a=0.56, b=0.42)
+	block(k, arm, "MantleHem", s * 1.62, 0.04, 3.52, 3.34, 0.68, 0.84, "gold", ch=0.03, corner=0.3, a=0.56, b=0.4)
 	block(k, arm, "Sleeve", ax, 0, 4.03, 2.36, 0.515, 0.515, "white", ch=0.08, flare=0.12, corner=0.18, jit=0.02, mids=(3.1,), a=0.54, b=0.44)
 	block(k, arm, "CuffHem", ax, 0, 2.5, 2.3, 0.655, 0.655, "gold", ch=0.03, corner=0.18, a=0.56, b=0.4)
 	block(k, arm, "Hand", ax, 0, 2.32, 1.78, 0.5, 0.5, "skin", ch=0.06, a=0.6, b=0.32)
@@ -163,8 +174,13 @@ def _leg(k, side, s):
 
 
 def _staff(k):
-	"""Upright at x 0, butt on z 0. Named Staff*: build_boss_mage.py joins these into one object held in the right hand."""
+	"""Upright in the right hand, grip at the hand's centre. Named Staff*: build_boss_mage.py joins these into one object;
+	the portrait keeps it merged in the right arm, beside her."""
+	import bpy
+	from mathutils import Vector
+
 	p = "RightHand"
+	before = set(bpy.data.objects)
 	block(k, p, "StaffButt", 0, 0, 0.42, 0.0, 0.1, 0.1, "gold", ch=0.04, a=0.56, b=0.44)
 	block(k, p, "StaffShaft", 0, 0, 5.3, 0.38, 0.07, 0.07, "shaft", ch=0.02, a=0.5, b=0.4)
 	block(k, p, "StaffWrap", 0, 0, 5.0, 4.58, 0.095, 0.095, "red", ch=0.02, a=0.52, b=0.44)
@@ -181,6 +197,9 @@ def _staff(k):
 		rad = 0.5 - 0.06 * max(0, j - 6)
 		arc.append((c[0] + rad * math.cos(a), 0, c[2] + rad * math.sin(a)))
 	rod(k, p, "StaffMoon", arc, [0.06, 0.09, 0.11, 0.12, 0.12, 0.11, 0.1, 0.09, 0.09, 0.1], "gold", n=4, a=0.56, b=0.44)
+	for o in set(bpy.data.objects) - before:
+		for v in o.data.vertices:
+			v.co += Vector(STAFF_AT)
 
 
 def model(parts, kit):
