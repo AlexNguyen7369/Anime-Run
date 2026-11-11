@@ -4431,7 +4431,7 @@ function Tests.make(deps)
 					-- Placeholders set from the geometry (owner 2026-11-05).
 					-- These floors are the old 450 by 320 view's (owner 2026-11-06 zoomed in a lot); the zoomed view only exceeds them.
 					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 2.5, 225, 790
-					local EYE_OUT, EYE_UP, EYE_SLACK = 120, 80, 20 -- studs from the runner: "about"
+					local EYE_OUT, EYE_UP, EYE_SLACK = 120, 160, 20 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
 					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT
