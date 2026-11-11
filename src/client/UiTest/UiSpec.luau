@@ -50,6 +50,9 @@ UiSpec.Viewports = {
 -- PanelSwitch open scale 0.92 -> 1; docs/HUD_LAYOUT_SPEC.md section 10). Geometry is measured with them at 1x, after
 -- the open motion settled (UiSpec.Waits.PanelMotion).
 UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerBossEvent/BossButton
+-- Labels that are transient feedback, not layout: Client/UiMotion.Float's "+$" float (MotionFloat, gone after 1.15 s).
+-- Owner 2026-11-10: exempt from text_clear_of_buttons and hud_labels_inside_panel. Only MotionFloat.
+UiSpec.TransientLabels = { MotionFloat = true }
 
 -- Roblox's own top-bar buttons. The Racer UI guis ignore the inset (IgnoreGuiInset = true), so nothing of theirs may
 -- sit on the area Roblox's buttons use: the live GuiService.TopbarInset (everything left of Min.X / right of Max.X in
@@ -818,6 +821,10 @@ UiSpec.Band = {
 	-- retired: the right Shop column (the right edge has no HUD buttons, design doc 4.40 layout L2): the band runs to Gap from the right edge
 	Money = "RacerHud/Money",
 	Gap = 8,
+	-- Design doc 4.42 "Panel size" (Client/PanelBand REACH_UP / REACH_DOWN): the band top rises this far over the
+	-- hidden Race anchor's bottom + Gap (never above inset + Gap), and its bottom sits this far above the TURBO bar.
+	ReachUp = 24,
+	ReachDown = 4,
 	-- No minimum size: PanelBand.Fit never makes a panel larger than the band (HUD_LAYOUT_SPEC section 6, no overlap;
 	-- the old 240x160 floor pushed panels over the Race button on short phones, e72e9fc).
 }
@@ -851,15 +858,15 @@ UiSpec.HudPair = {
 		-- 844x390 is <= StackMaxHeight, so it stacks like 667x375 (it was listed in Beside against this table's own rule).
 		{
 			Viewport = "phone_landscape",
-			Items = { x0 = 273, x1 = 316, y0 = 228, y1 = 276 },
-			Upgrade = { x0 = 528, x1 = 571, y0 = 228, y1 = 276 },
+			Items = { x0 = 273, x1 = 316, y0 = 233, y1 = 276 },
+			Upgrade = { x0 = 528, x1 = 571, y0 = 233, y1 = 276 },
 		},
 		-- Upgrade x was outside the Speed read-out (482..525); Speed is retired (design doc 4.13, owner 2026-11-01), so
 		-- it sits StackGap outside the bars.
 		{
 			Viewport = "phone_small_landscape",
-			Items = { x0 = 187, x1 = 229, y0 = 217, y1 = 264 },
-			Upgrade = { x0 = 435, x1 = 478, y0 = 217, y1 = 264 },
+			Items = { x0 = 187, x1 = 229, y0 = 221, y1 = 264 },
+			Upgrade = { x0 = 435, x1 = 478, y0 = 221, y1 = 264 },
 		},
 	},
 	Beside = { "hd_720p", "tablet_4x3" },
