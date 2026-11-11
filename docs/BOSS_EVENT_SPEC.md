@@ -120,7 +120,9 @@ Design doc 4.37 (owner 2026-11-05). Numbers are **placeholders** tuned in `Share
 ## The Elf Mage (second boss, owner 2026-11-11)
 Design doc 4.37 "Second boss". Ids `boss_mage` (model), `boss_golem` (her golem). Everything not listed here follows Big Raga's rules above until the owner rules otherwise.
 - Arena (**proposed**, from the owner's 4x size ruling): enclosed round colosseum, lane ring inner radius 70, width 56, 7 lanes, wall about 70 studs high; ochre stone with an inlaid motif, 8 relief pillars, great doors, broken dome. Built from primitives on the client like the sky arena. Draft renders `assets/arena_draft/colosseum_*.png` (`tools/blender/arena/build_colosseum.py`).
-- Boss: about 22 studs tall (4 x a character), hovering about 6-10 studs over the floor with a slow bob (**proposed** 1.5 studs, 3 s period). The golem stands beside her only during its move.
+- Boss: about 44 studs tall (8 x a character, owner 2026-11-11), hovering about 6-10 studs over the floor with a slow bob (**proposed** 1.5 studs, 3 s period). The golem stands beside her only during its move.
+- Owner approved the models, colosseum, digital art and all 4 moves' key frames 2026-11-11 (`assets/characters_avatar/boss_mage/keyframes/keys.json`); in-betweens leave those keys unchanged.
+- Defaults (owner 2026-11-11, **proposed**): `HpPerPlayer`, event length, late join, Vulnerable and Phase 1 rewards as Big Raga; no Phase 2 (the event ends at her defeat); the pick is uniform random per event.
 - Moves (key counts **proposed**): `idle` hover 4 keys, `lightning` 5, `golem` 6, `barrage` 5. Same owner gate as Big Raga: labelled slices, one move at a time, approved before in-betweens (`assets/characters_avatar/boss_mage/keyframes/`).
 - Costs (owner 2026-11-11): lightning 20% of a full bar; golem slam 15% and a 20% damage cut; barrage 30%. The damage cut lasts the stage's status time, 15 s (**proposed**) and stacks like Shouted (**proposed**).
 - Dodge: lightning and barrage use the Dodge bar unchanged, with `assets/ui/boss_mage/staff_icon.png` at its left end.

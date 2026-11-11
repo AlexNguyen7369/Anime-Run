@@ -80,3 +80,4 @@ None of these block the renders and key frames. All of them block the server wor
 6. Rhythm circles: 4 circles in 2 seconds, +/- 0.18 s, any miss counts as hit. On phones, is the same count fair, or fewer circles?
 7. Spawn texts: "The Elf Mage has awakened, take her down!!!" and the chat line.
 8. Upload: no license was found for the source; uploading her model, golem and art needs your word, as for Saitamo (4.35).
+Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for items 2-7 (4 circles on every device), one random boss every 30 minutes, upload allowed. Size 8x; all renders and key frames approved.
