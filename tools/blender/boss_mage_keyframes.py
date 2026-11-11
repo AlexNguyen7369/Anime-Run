@@ -113,6 +113,89 @@ MOVES = {
 		],
 	},
 }
+APPROVED = tuple(MOVES)  # owner approved 2026-11-11: their keys never change; overview() shows only these
+# boss-mage-2 g2 (owner 2026-11-11). Sustain moves: times on the parent move's clock, inserted after its strike/fire key (2.00 s);
+# the parent's recover key then plays 2.0 s later than approved. window: 5 effect panels at window time 0, 0.5, 1, 1.5, 2 s.
+GOLEM_FRONT = (-0.42, -0.91, 0.1)  # the golem's front in her frame (it is turned 25 degrees toward the arena centre)
+MOVES.update(
+	{
+		"lightning_window": {
+			"title": "Attack: purple lightning, 2 s strike window (sustain after key 4)",
+			"extends": "lightning",
+			"window": "lightning",
+			"window_start": 2.0,
+			"window_key": 0,
+			"end": 5.2,
+			"keys": [
+				{"t": 2.5, "cap": "Sustain: staff held high, bolts keep falling", "fx": ["sustain"], "arena": "violet", "root": (0, 0, 0.6), "torso": (-14, 0, 0), "head": (-20, 0, 0), "RightArm": {"aim": (-1.6, -0.2, 5.6)}, "staff": ONE, "LeftArm": {"aim": (3.2, -0.4, 3.6)}, "TailL": (-30, -80, 0), "TailR": (-30, 80, 0), "LeftLeg": (34, 0, -4), "RightLeg": (28, 0, 4)},
+				{"t": 3.25, "cap": "Sway: hips swing right, staff stays up", "fx": ["sustain"], "arena": "violet", "root": (-0.25, 0, 0.5), "torso": (-8, -10, -10), "head": (-14, 0, 8), "RightArm": {"aim": (-1.9, -0.5, 5.6)}, "staff": ONE, "LeftArm": {"aim": (3.0, 0.4, 3.0)}, "TailL": (-20, -60, 10), "TailR": (-36, 90, -10), "LeftLeg": (20, 0, 4), "RightLeg": (40, 0, -4)},
+				{"t": 4.0, "cap": "Release: staff comes down, last bolts", "fx": ["embers"], "root": (0, 0, 0.3), "torso": (12, 0, 6), "head": (8, 0, -4), "RightArm": {"aim": (-2.4, -1.4, 3.6)}, "staff": ONE, "LeftArm": {"aim": (2.8, -0.8, 2.6)}, "TailL": (6, -20, 0), "TailR": (6, 20, 0), "LeftLeg": (30, 0, -4), "RightLeg": (16, 0, 4)},
+			],
+		},
+		"barrage_window": {
+			"title": "Attack: barrage, 2 s beam window (sustain after key 4)",
+			"extends": "barrage",
+			"window": "barrage",
+			"window_start": 2.0,
+			"window_key": 0,
+			"end": 5.4,
+			"keys": [
+				{"t": 2.5, "cap": "Sustain: circles held open, beams keep firing", "fx": ["circles_bright", "beams_room"], "arena": "blue", "root": (0, 0.3, 0.35), "torso": (-14, 0, 0), "head": (-10, 0, 0), "RightArm": {"aim": (-0.9, -2.0, 4.4)}, "LeftArm": {"aim": (0.9, -2.0, 4.4)}, "staff": "two", "TailL": (60, -30, 0), "TailR": (60, 30, 0), "LeftLeg": (44, 0, -4), "RightLeg": (36, 0, 4)},
+				{"t": 3.25, "cap": "Sway: staff tilts, beams sweep the floor", "fx": ["circles_bright", "beams_room"], "arena": "blue", "root": (0.35, 0.3, 0.3), "torso": (-10, -12, 16), "head": (-6, 4, -10), "RightArm": {"aim": (-1.5, -1.8, 3.2)}, "LeftArm": {"aim": (0.4, -2.0, 5.4)}, "staff": "two", "TailL": (50, -40, 6), "TailR": (66, 24, -6), "LeftLeg": (36, 0, -6), "RightLeg": (44, 0, 6)},
+				{"t": 4.0, "cap": "Release: last beams, circles start to fade", "fx": ["circles_fade"], "arena": "blue", "root": (0, 0.1, 0.2), "torso": (4, 0, 0), "head": (0, 0, 0), "RightArm": {"aim": (-1.0, -1.8, 3.4)}, "LeftArm": {"aim": (1.0, -1.8, 3.4)}, "staff": "two", "TailL": (30, -24, 0), "TailR": (30, 24, 0), "LeftLeg": (30, 0, -2), "RightLeg": (24, 0, 2)},
+			],
+		},
+		"golem_idle": {
+			"title": "Stone Golem (miniboss): idle, heavy breathing",
+			"solo": "golem",
+			"end": 2.4,
+			"loop": True,
+			"view": (0.05, -1, 0.2),
+			"front": GOLEM_FRONT,
+			"keys": [
+				{"t": 0.0, "cap": "Breathe in: chest lifts, shoulders up", "golem": {"ground": True, "pose": {"Torso": (6, 0, 0), "Head": (-18, 0, 0), "ShoulderL": (0, -6, 0), "ShoulderR": (0, 6, 0), "UpperArmL": (-12, 0, 4), "UpperArmR": (-12, 0, -4), "ForearmL": (-10, 0, 0), "ForearmR": (-10, 0, 0)}}},
+				{"t": 1.2, "cap": "Breathe out: chest sinks, fists swing forward", "golem": {"ground": True, "pose": {"Hip": (4, 0, 0), "Torso": (18, 0, 0), "Head": (-8, 0, 0), "ShoulderL": (0, 4, 0), "ShoulderR": (0, -4, 0), "UpperArmL": (-26, 0, 4), "UpperArmR": (-26, 0, -4), "ForearmL": (-20, 0, 0), "ForearmR": (-20, 0, 0), "ThighL": (-6, 0, 0), "ThighR": (-6, 0, 0), "ShinL": (8, 0, 0), "ShinR": (8, 0, 0)}}},
+			],
+		},
+		"golem_sweep": {
+			"title": "Stone Golem (miniboss): arm sweep across the lanes",
+			"solo": "golem",
+			"end": 3.6,
+			"view": (-0.3, -0.65, 0.75),  # high, from its front: the arm's arc across the lanes reads from above
+			"front": GOLEM_FRONT,
+			"keys": [
+				{"t": 0.0, "cap": "Turns to its right, arm starts back", "golem": {"ground": True, "pose": {"Hip": (4, 0, -6), "Torso": (14, 0, -16), "Head": (-14, 0, 10), "ShoulderR": (0, 6, 0), "UpperArmR": (-10, 50, -20), "UpperArmL": (-30, 0, 6), "ForearmL": (-24, 0, 0), "ForearmR": (-10, 0, 0)}}},
+				{"t": 0.6, "hold": 1.8, "cap": "Wind-up held: 2 s rhythm circles", "fx": ["dust"], "arena": "warm", "golem": {"ground": True, "pose": {"Hip": (6, 0, -12), "Torso": (14, 0, -32), "Head": (-14, 0, 22), "ShoulderR": (0, 12, 0), "UpperArmR": (0, 82, -42), "ForearmR": (0, 0, 0), "UpperArmL": (-44, 0, 10), "ForearmL": (-34, 0, 0), "ThighL": (-16, 0, 0), "ShinL": (12, 0, 0), "ThighR": (8, 0, 0)}}},
+				{"t": 2.0, "event": "Sweep", "cap": "Sweep: the arm crosses the lanes", "fx": ["sweep"], "arena": "warm", "golem": {"ground": True, "pose": {"Hip": (10, 0, 4), "Torso": (22, 0, 10), "Head": (-24, 0, -4), "ShoulderR": (0, 4, 0), "UpperArmR": (0, 88, 90), "ForearmR": (0, 0, 0), "UpperArmL": (-10, 0, 10), "ForearmL": (-10, 0, 0), "ThighL": (6, 0, 0), "ThighR": (-14, 0, 0), "ShinR": (12, 0, 0)}}},
+				{"t": 2.4, "cap": "Follow-through: arm past its left", "fx": ["dust_low"], "golem": {"ground": True, "pose": {"Hip": (8, 0, 14), "Torso": (16, 0, 36), "Head": (-14, 0, -24), "UpperArmR": (-20, 70, 110), "ForearmR": (0, 0, 0), "UpperArmL": (0, -10, 10), "ForearmL": (0, 0, 0), "ThighL": (10, 0, 0), "ThighR": (-18, 0, 0), "ShinR": (16, 0, 0)}}},
+				{"t": 3.2, "cap": "Recover to its stance", "golem": {"ground": True, "pose": {}}},
+			],
+		},
+		"golem_fall": {
+			"title": "Stone Golem (miniboss): falls at 0 HP",
+			"solo": "golem",
+			"end": 2.0,
+			"view": (0.8, -0.9, 0.25),  # from its front-left side: the knees and the forward fall read
+			"front": GOLEM_FRONT,
+			"keys": [
+				{"t": 0.0, "cap": "HP 0: knees buckle, head drops", "golem": {"ground": True, "pose": {"Hip": (16, 0, 0), "Torso": (30, 0, 8), "Head": (24, 0, 0), "UpperArmL": (-4, -6, 0), "UpperArmR": (-4, 6, 0), "ForearmL": (0, 0, 0), "ForearmR": (0, 0, 0), "ThighL": (-44, 0, 0), "ThighR": (-34, 0, 0), "ShinL": (56, 0, 0), "ShinR": (44, 0, 0)}}},
+				{"t": 0.6, "cap": "Magic fails: blocks split apart", "fx": ["seams"], "golem": {"ground": True, "break": True, "pose": {"Hip": (24, 0, 0), "Torso": (40, 0, 14), "Head": (34, 0, 10), "UpperArmL": (10, -14, 0), "UpperArmR": (10, 14, 0), "ThighL": (-60, 0, 0), "ThighR": (-52, 0, 0), "ShinL": (74, 0, 0), "ShinR": (66, 0, 0)}}},
+				{"t": 1.4, "cap": "Rubble heap: the golem is gone", "fx": ["dust_low"], "golem": {"crumble": True}},
+			],
+		},
+		"watch": {
+			"title": "The Elf Mage: watch (while the golem stands)",
+			"end": 3.0,
+			"loop": True,
+			"golem_context": True,  # the golem is drawn for context only: its pose is in golem_idle, not here
+			"view": (0.3, -1, 0.22),
+			"keys": [
+				hover(t=0.0, cap="Calm hover, staff low, eyes on the golem", golem={"ground": True, "pose": {}}, root=(0, 0, 0), torso=(6, 0, -10), head=(4, 0, -30), RightArm={"aim": (-0.9, -1.2, 1.5)}, LeftArm={"aim": (0.7, -1.4, 2.4)}),
+				hover(t=1.5, cap="Hover high, head tilts, still watching", golem={"ground": True, "pose": {}}, root=(0, 0, 0.426), torso=(8, 0, -12), head=(2, 0, -34), RightArm={"aim": (-0.9, -1.2, 1.4)}, LeftArm={"aim": (0.7, -1.4, 2.3)}, TailL=(-2, -26, 0), TailR=(-2, 26, 0)),
+			],
+		},
+	}
+)
 # shortcut: circle layout is hand placed for the 4x frame (her model units); retune if a larger size crowds the arena view
 CIRCLES = [  # centre in her model space, diameter, tilt (X, Y, Z degrees from facing her front)
 	((0.0, 1.2, 4.6), 5.2, (0, 0, 0)),
@@ -452,13 +535,17 @@ def pose_golem(rig, spec, rng):
 			o.rotation_euler = [math.radians(v) for v in spec["pose"][n]]
 	bpy.context.view_layer.update()
 	order = sorted(rig.gparts.values(), key=lambda o: sum(1 for _ in iter_parents(o)))
-	if spec.get("scatter") or spec.get("crumble"):
+	if spec.get("scatter") or spec.get("crumble") or spec.get("break"):
 		centre = rig.golem.matrix_world.translation
 		targets = {}
 		for o in order:
 			c = Vector(be.world_verts([o]).mean(axis=0).tolist())
 			flat = Vector((c.x - centre.x, c.y - centre.y, 0))
-			if spec.get("scatter"):
+			if spec.get("break"):
+				# blocks shift apart and sag where they stand: the pose still reads, the magic no longer holds it
+				p = c + flat * 0.25 + Vector((rng.uniform(-2, 2), rng.uniform(-2, 2), -c.z * 0.1 + rng.uniform(-1, 1)))
+				r = Euler([rng.uniform(-0.35, 0.35) for _ in range(3)])
+			elif spec.get("scatter"):
 				# blocks rise off the floor and drift in toward where the golem forms, spread and tumbling
 				p = centre + flat * 1.7 + Vector((rng.uniform(-4, 4), rng.uniform(-4, 4), c.z * 0.45 + rng.uniform(4, 12)))
 				r = Euler([rng.uniform(-0.8, 0.8) for _ in range(3)])
@@ -480,6 +567,10 @@ def pose_golem(rig, spec, rng):
 		rig.golem.location.z -= low
 		bpy.context.view_layer.update()
 		print(f"SLAM root moved {-low:.2f} studs; feet lowest now {float(be.world_verts([rig.gparts[n] for n in ('ShinL', 'ShinR')])[:, 2].min()):.2f}")
+		bpy.context.view_layer.update()
+	if spec.get("ground"):
+		# the lowest block rests on the floor (bent knees would otherwise float or sink it)
+		rig.golem.location.z -= float(be.world_verts(list(rig.gparts.values()))[:, 2].min())
 		bpy.context.view_layer.update()
 	return {n: {"loc": [round(v, 3) for v in o.location], "rot": [round(math.degrees(v), 2) for v in o.rotation_euler]} for n, o in rig.gparts.items()}
 
@@ -576,6 +667,33 @@ def build_fx(rig, names, seed):
 			for _ in range(30):
 				block(hit + Vector((rng.uniform(-22, 22) * s, rng.uniform(-22, 22) * s, rng.uniform(1, 20) * s)), rng.uniform(0.8, 2.8) * s, matte_mat("Rubble", (0.55, 0.45, 0.33)), rng)
 			lamp(hit + Vector((0, 0, 6)), (1.0, 0.8, 0.55), 1.5e5 * s * s, 6)
+		elif name in ("sustain", "beams_room"):
+			# the 2 s windows' keys: room-wide hits drawn for the arena view only, so the close views keep her readable
+			if name == "sustain":
+				ball(gem, 0.5 * k, glow_mat("OrbCore", WHITE, 50))
+				ball(gem, 0.9 * k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
+				for _ in range(5):
+					d = Vector([rng.uniform(-1, 1) for _ in range(3)]).normalized()
+					bolt(gem, gem + d * rng.uniform(1.5, 3.0) * k, 0.06 * k, rng, branches=1)
+			before = set(FX.objects)
+			for p, ci, h in win_spots("lightning" if name == "sustain" else "barrage", seed):
+				if name == "sustain":
+					bolt(Vector((p.x * 0.8, p.y * 0.8, h)), p, 0.9, rng, branches=2, lamp_w=6e4)
+					disc(p, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
+				else:
+					beam(to_world(rig, CIRCLES[ci][0]), p, 0.5 * s * 1.6)
+			for o in set(FX.objects) - before:
+				o["wide_only"] = True
+		elif name == "sweep":
+			# the fist's trail: an arc round the golem at fist height, from its right side to where the fist is now
+			fist = Vector(be.world_verts([rig.gparts["FistR"]]).mean(axis=0).tolist())
+			rad = math.hypot(fist.x - g.x, fist.y - g.y)
+			a1 = math.atan2(fist.y - g.y, fist.x - g.x)
+			pts = [Vector((g.x + rad * math.cos(a1 - math.radians(110) * (1 - i / 16)), g.y + rad * math.sin(a1 - math.radians(110) * (1 - i / 16)), fist.z)) for i in range(17)]
+			tube(pts, 1.6 * s, glow_mat("SweepTrail", (1.0, 0.85, 0.6), 1.4, 0.45))
+			tube(pts[6:], 0.6 * s, glow_mat("SweepCore", (1.0, 0.95, 0.85), 4, 0.9))
+			for p in pts[::2]:
+				block(Vector((p.x, p.y, rng.uniform(0.5, 4) * s)), rng.uniform(0.6, 1.6) * s, matte_mat("Dust", (0.72, 0.64, 0.52)), rng)
 		elif name.startswith("circles"):
 			bright, fade = name == "circles_bright", name == "circles_fade"
 			yaw = Matrix.Rotation(FACE, 3, "Z")
@@ -617,6 +735,88 @@ def clear_fx():
 		bpy.data.objects.remove(o, do_unlink=True)
 
 
+# ---- the 2 s windows: effect timing drafts (not final VFX) ----
+
+WIN_N, WIN_FADE = 6, 3  # (proposed) new hits per half second; how many of the last panel's still show, fading
+
+
+def win_spots(kind, j):
+	"""Set j of floor spots (one set per half second of the window), half on the lane ring, half anywhere in the room."""
+	rng = random.Random((700 if kind == "lightning" else 750) + j)
+	out = []
+	for i in range(WIN_N):
+		a = rng.uniform(0, math.tau)
+		r = rng.uniform(R_IN, R_IN + 7 * LANE_W) if i % 2 == 0 else rng.uniform(22, R_WALL - 8)
+		out.append((Vector((r * math.cos(a), r * math.sin(a), 0.2)), rng.randrange(len(CIRCLES)), rng.uniform(95, 140)))
+	return out
+
+
+def beam(a, b, w, dim=False):
+	if dim:
+		tube([a, b], w * 0.6, glow_mat("BeamFade", (0.35, 0.62, 1.0), 0.8, 0.25))
+		ring(b, w * 6, w * 0.6, glow_mat("HitFade", ICE, 0.8, 0.3))
+		return
+	tube([a, b], w, glow_mat("BeamCore", WHITE, 14))
+	tube([a, b], w * 2.2, glow_mat("BeamGlow", (0.35, 0.62, 1.0), 2.0, 0.45))
+	ball(b, w * 3, glow_mat("HitCore", WHITE, 14))
+	ring(b, w * 6, w * 0.8, glow_mat("HitRing", ICE, 4, 0.8))
+	lamp(b + Vector((0, 0, 4)), (0.6, 0.8, 1.0), 2e4, 4)
+
+
+def window_fx(rig, kind, k):
+	"""Panel k (window time 0.5 k s). Lightning: strikes on the spots marked half a second before, new white-core marks for
+	the next half second, the last strikes fading. Barrage: circles open, beams from random circles to random floor spots."""
+	rng = random.Random(900 + k)
+	t = 0.5 * k
+	now, nxt, old = win_spots(kind, k), (win_spots(kind, k + 1) if k < 4 else []), (win_spots(kind, k - 1)[:WIN_FADE] if k else [])
+	if kind == "lightning":
+		gem = rig.parts["Staff"].matrix_world @ rig.gem
+		ball(gem, 0.5 * rig.k, glow_mat("OrbCore", WHITE, 50))
+		ball(gem, 0.9 * rig.k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
+		for p, _, h in now:
+			bolt(Vector((p.x * 0.8, p.y * 0.8, h)), p, 0.9, rng, branches=2, lamp_w=6e4)
+			disc(p, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
+			ring(p, 9, 0.5, glow_mat("MarkRing", VIOLET, 4, 0.7))
+		for p, _, _ in nxt:  # telegraph: white core on the floor, no bolt yet
+			disc(p, 5, glow_mat("Tele", WHITE, 6, 0.95))
+			ring(p, 8, 0.7, glow_mat("TeleRing", VIOLET, 6, 0.95))
+		for p, _, h in old:
+			tube(jag(Vector((p.x * 0.8, p.y * 0.8, h)), p, 10, 3, rng), 0.4, glow_mat("BoltFade", (0.62, 0.08, 1.0), 0.8, 0.25))
+			ring(p, 9, 0.4, glow_mat("ScorchFade", VIOLET, 1.0, 0.3))
+		when = "wind-up marks" if k == 0 else f"marked at {t - 0.5:.1f} s"
+		return [f"{len(now)} bolts strike ({when})", f"{len(nxt)} new marks for {t + 0.5:.1f} s" if nxt else "no new marks: window ends", f"{len(old)} fading from {t - 0.5:.1f} s" if old else "none fading yet"]
+	build_fx(rig, ["circles_bright"], seed=900 + k)
+	w = 0.5 * SIZE / 4 * 1.6
+	for p, ci, _ in now:
+		beam(to_world(rig, CIRCLES[ci][0]), p, w)
+	for p, ci, _ in old:
+		beam(to_world(rig, CIRCLES[ci][0]), p, w, dim=True)
+	return [f"{len(now)} beams fire", "circles stay open", f"{len(old)} fading from {t - 0.5:.1f} s" if old else "none fading yet"]
+
+
+WIN, MAP = (744, 418), 418
+
+
+def window_row(scene, rig, move):
+	kind = move["window"]
+	pose_mage(rig, move["keys"][move["window_key"]])
+	look(scene, rig, "violet" if kind == "lightning" else "blue")
+	cam = rig.cam
+	out = []
+	for k in range(5):
+		clear_fx()
+		lines = window_fx(rig, kind, k)
+		player_view(cam)
+		wide = shot(scene, os.path.join(TMP, f"{kind}_window_{k}_wide.png"), WIN)
+		cam.data.type, cam.data.ortho_scale = "ORTHO", 2 * R_WALL + 10
+		cam.location, cam.rotation_euler = (0, 0, 400), (0, 0, FACE)  # top view, the runner's side of the room at the bottom
+		cam.data.clip_start, cam.data.clip_end = 400 - 80, 500  # only below 80 studs: no roof, bolt tops cut
+		top = shot(scene, os.path.join(TMP, f"{kind}_window_{k}_top.png"), (MAP, MAP))
+		out.append((0.5 * k, lines, wide, top))
+	clear_fx()
+	return out
+
+
 # ---- renders and the sheet ----
 
 MAIN, FRONT, WIDE = (700, 820), (540, 380), (540, 304)
@@ -641,8 +841,8 @@ def player_view(cam):
 	cam.data.angle_y = math.radians(100 if SIZE <= 4 else 110)
 
 
-def figure_pts(rig, golem_on, extra=()):
-	objs = list(rig.parts.values()) + (list(rig.gparts.values()) if golem_on else []) + list(extra)
+def figure_pts(rig, golem_on, extra=(), mage_on=True):
+	objs = (list(rig.parts.values()) if mage_on else []) + (list(rig.gparts.values()) if golem_on else []) + list(extra)
 	return be.world_verts(objs)
 
 
@@ -656,6 +856,10 @@ def shot(scene, path, size):
 def run_move(scene, rig, name, move):
 	keys = move["keys"]
 	has_golem = any("golem" in kk for kk in keys)
+	solo = move.get("solo") == "golem"  # the golem alone: she is hidden and her parts are not recorded
+	hidden = {o: o.hide_render for o in rig.parts.values()}
+	for o in rig.parts.values():
+		o.hide_render = o.hide_render or solo
 	g_z = rig.golem.location.z
 	records, union = [], []
 	for i, key in enumerate(keys):  # pass 1: framing over every key of the move
@@ -665,7 +869,7 @@ def run_move(scene, rig, name, move):
 		extra = []
 		if key.get("fx") and any(f.startswith("circles") for f in key["fx"]):
 			extra = [to_world(rig, c) for c, d, _ in CIRCLES]
-		pts = figure_pts(rig, has_golem and key.get("golem") is not None)
+		pts = figure_pts(rig, has_golem and key.get("golem") is not None, mage_on=not solo)
 		if extra:
 			pts = np.vstack([pts] + [np.array([[p.x, p.y, p.z + dz]]) for p in extra for dz in (-3 * rig.k, 3 * rig.k)])
 		union.append(pts)
@@ -674,7 +878,7 @@ def run_move(scene, rig, name, move):
 	cam.data.sensor_fit = "AUTO"  # bk.fit sizes ortho_scale to the longer side
 	yaw = Matrix.Rotation(FACE, 3, "Z")
 	three = bk.fit(cam, union, yaw @ Vector(move.get("view", (0.65, -0.75, 0.18))), MAIN[0] / MAIN[1], margin=0.9)
-	front = bk.fit(cam, union, yaw @ Vector((0, -1, 0.1)), FRONT[0] / FRONT[1], margin=0.9)
+	front = bk.fit(cam, union, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.9)
 	span = float(np.linalg.norm(union.max(axis=0) - union.min(axis=0)))
 	clip = span * 3 - span * 0.75
 	marker = None
@@ -692,8 +896,8 @@ def run_move(scene, rig, name, move):
 		rig.golem.location.z = g_z
 		grec = pose_golem(rig, key.get("golem") if has_golem else None, random.Random(i))
 		build_fx(rig, key.get("fx", []), seed=100 + i)
-		dark = name in ("lightning", "barrage")
-		look(scene, rig, ("dark" if name == "lightning" else "darkblue") if dark else "flat", floor=has_golem)
+		dark = (move.get("window") or name) in ("lightning", "barrage")
+		look(scene, rig, ("dark" if (move.get("window") or name) == "lightning" else "darkblue") if dark else "flat", floor=has_golem)
 		cell = {}
 		wide_only = [o for o in FX.objects if o.get("wide_only")]
 		for o in wide_only:  # halos are for the room-scale view; close up they bury her
@@ -712,34 +916,42 @@ def run_move(scene, rig, name, move):
 			# a full-size copy of the wide view, for checking
 			shot(scene, os.path.join(TMP, f"{name}_{i}_wide_big.png"), (1280, 720))
 		cells.append(cell)
-		rec = {"t": key["t"], "caption": key["cap"], "root_offset": list(key.get("root", (0, 0, 0))), "rotations": record, "staff_grip_offset": grip}
+		rec = {"t": key["t"], "caption": key["cap"]}
+		if not solo:
+			rec.update({"root_offset": list(key.get("root", (0, 0, 0))), "rotations": record, "staff_grip_offset": grip})
 		for f in ("hold", "event"):
 			if f in key:
 				rec["hold_until" if f == "hold" else f] = key[f]
 		rec["effects"] = key.get("fx", [])
-		if has_golem:
+		if has_golem and not move.get("golem_context"):
 			rec["golem"] = grec
 			if grec:
 				rec["golem_root_z"] = round((rig.golem.location.z - g_z) / rig.kg, 3)
 		records.append(rec)
+	win = window_row(scene, rig, move) if move.get("window") else None
 	clear_fx()
 	rig.golem.location.z = g_z
+	for o, h in hidden.items():
+		o.hide_render = h
 	if marker:
 		bpy.data.objects.remove(marker, do_unlink=True)
-	sheet(name, move, cells)
+	sheet(name, move, cells, win)
 	return records
 
 
-def sheet(name, move, cells):
+def sheet(name, move, cells, win=None):
 	keys = move["keys"]
 	rows = math.ceil(len(keys) / COLS)
 	cell_h = MAIN[1] + STRIP_H
-	px = np.ones((HEAD_H + rows * cell_h + 8, COLS * CELL_W, 4), dtype=np.float32)
+	win_h = 60 + 40 + WIN[1] + 8 + MAP + 16 if win else 0
+	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h, COLS * CELL_W, 4), dtype=np.float32)
 	px[:, :, :3] = bk.BG
 	total = f"{move['end']:.1f} s" + (" loop" if move.get("loop") else "")
 	note = f"Times proposed. Wide views: colosseum draft from a runner's camera on lane 4, her at {SIZE:g}x a runner ({SIZE * CHAR_H:g} studs), feet {HOVER:g} studs up"
-	if name == "golem":
+	if "golem" in name or move.get("golem_context"):
 		note += f", golem {GOLEM_RATIO}x her height"
+	if move.get("extends"):
+		note += f". Times on the {move['extends']} clock: these keys follow its approved key 4 (2.00 s); its recover key moves 2.0 s later"
 	if name == "idle":
 		note += ". Dark bar: her feet at the low point (render mark only). Rise 1.5 studs at 4x = 0.43 model units"
 	paste_txt = [(f"{move['title']}  |  The Elf Mage  |  {total}  |  (proposed) key frames for approval, no in-betweens", 40, 48, 24, bk.INK), (note + ".", 24, 90, 24, bk.DIM)]
@@ -754,6 +966,19 @@ def sheet(name, move, cells):
 		head = f"{i + 1}   {key['t']:.2f} s" + (f" - {key['hold']:.2f} s" if "hold" in key else "") + (f"   event {key['event']}" if "event" in key else "")
 		bk.paste(px, bk.text_px([(head, 34, 40, 18, bk.INK), (key["cap"], 28, 80, 18, bk.DIM)], CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
 		px[y : y + cell_h, x : x + 2] = (0.5, 0.5, 0.52, 1)
+	if win:
+		y0 = HEAD_H + rows * cell_h + 8
+		what = "bolts strike on spots marked 0.5 s before (white core); last strikes fade" if move["window"] == "lightning" else "circles stay open; beams hit random floor spots; last beams fade"
+		bk.paste(px, bk.text_px([(f"The 2 s window from {move['window_start']:.2f} s, timing draft (proposed): {what}", 34, 40, 18, bk.INK)], COLS * CELL_W, 60, bk.BG), 0, y0)
+		pw = COLS * CELL_W // 5
+		for k, (t, lines, wide, top) in enumerate(win):
+			x, y = k * pw, y0 + 60
+			bk.paste(px, bk.text_px([(f"window {t:.1f} s   (move {move['window_start'] + t:.2f} s)", 22, 28, 10, bk.INK)], pw, 40, bk.BG), x, y)
+			bk.paste(px, wide, x, y + 40)
+			bk.paste(px, top, x, y + 40 + WIN[1] + 8)
+			txt = [("top view", 18, 26, 12, bk.DIM)] + [(s, 19, 70 + 34 * j, 12, bk.INK) for j, s in enumerate(lines)] + [("runner's side at the bottom", 16, MAP - 20, 12, bk.DIM)]
+			bk.paste(px, bk.text_px(txt, pw - MAP, MAP, bk.BG), x + MAP, y + 40 + WIN[1] + 8)
+			px[y : y + win_h - 60, x : x + 2] = (0.5, 0.5, 0.52, 1)
 	path = os.path.join(OUT, name + "_slices.png")
 	bk.save_px(px, path)
 	print("SHEET", path)
@@ -762,12 +987,13 @@ def sheet(name, move, cells):
 def overview():
 	"""Every move's main views at half size, one row per move."""
 	w, h = MAIN[0] // 2, MAIN[1] // 2
-	cols = max(len(m["keys"]) for m in MOVES.values())
+	moves = {n: MOVES[n] for n in APPROVED}  # the approved overview stays as it is
+	cols = max(len(m["keys"]) for m in moves.values())
 	row_h = h + 50 + 56
-	px = np.ones((90 + row_h * len(MOVES), cols * w, 4), dtype=np.float32)
+	px = np.ones((90 + row_h * len(moves), cols * w, 4), dtype=np.float32)
 	px[:, :, :3] = bk.BG
 	bk.paste(px, bk.text_px([("The Elf Mage: all moves, (proposed) key frames for approval, no in-betweens", 36, 54, 20, bk.INK)], cols * w, 90, bk.BG), 0, 0)
-	for r, (name, move) in enumerate(MOVES.items()):
+	for r, (name, move) in enumerate(moves.items()):
 		y = 90 + r * row_h
 		bk.paste(px, bk.text_px([(f"{move['title']}  ({move['end']:.1f} s)", 30, 40, 16, bk.INK)], cols * w, 50, bk.BG), 0, y)
 		for i, key in enumerate(move["keys"]):
@@ -803,14 +1029,19 @@ def main():
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, **SHOULDER, **LEG, **TAIL, "Staff": list(GRIP)},
 			"staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right arm's space, model units",
 			"golem": "per part: loc (golem units, parent space) and rot (degrees, XYZ), the object's own values; golem_root_z: drop of its root, golem units",
+			"layout": "Move golem (the slam) stores the golem's parts per key next to her own rotations. golem_* moves hold the golem alone (no rotations of hers). lightning_window and barrage_window are sustain keys on their parent move's clock, inserted after its 2.00 s key; the parent's recover key then plays 2.0 s later. watch draws the golem for context only and records her alone.",
 			"scale": {"studs_per_model_unit_at_4x": round(4 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4), "hover_feet_studs": HOVER, "golem_ratio": GOLEM_RATIO},
 		}
 	)
 	for name in wanted:
-		data["moves"][name] = {"end": MOVES[name]["end"], "loop": MOVES[name].get("loop", False), "keys": run_move(scene, rig, name, MOVES[name])}
+		m = MOVES[name]
+		data["moves"][name] = {"end": m["end"], "loop": m.get("loop", False), "keys": run_move(scene, rig, name, m)}
+		if m.get("extends"):
+			data["moves"][name].update({"extends": m["extends"], "after_key_t": m["window_start"], "window": [m["window_start"], m["window_start"] + 2.0]})
 	with open(path, "w") as f:
 		json.dump(data, f, indent=1)
-	overview()
+	if any(n in APPROVED for n in wanted):
+		overview()
 
 
 if __name__ == "__main__":
