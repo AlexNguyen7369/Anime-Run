@@ -541,16 +541,38 @@ local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 
 -- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
 -- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
-local bossButton = button("BossButton", nil, "Bosses", "Danger", {
+-- Design doc 4.40 "Market pill and Bosses button": the HUD column buttons' look, a transparent button with the Tab tilt
+-- Boss icon and its label "Bosses" (the button's own Text, white with the dark outline) under it.
+local BOSS_LABEL = 14 -- px, the label band under the icon (proposed)
+local bossButton = make("TextButton", "BossButton", nil, {
 	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
-	TextSize = 14,
+	BackgroundTransparency = 1,
+	BorderSizePixel = 0,
+	AutoButtonColor = false,
+	Text = "Bosses",
+	Font = UiTheme.Font,
+	TextSize = BOSS_LABEL,
+	TextColor3 = Palette.White,
+	TextYAlignment = Enum.TextYAlignment.Bottom,
 	Visible = false,
+})
+make("ImageLabel", "Icon", bossButton, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.fromScale(0.5, 0),
+	Size = UDim2.new(1, 0, 1, -BOSS_LABEL),
+	BackgroundTransparency = 1,
+	Image = Icons.Boss.Image,
+	ScaleType = Enum.ScaleType.Fit,
 })
 make("UISizeConstraint", "MaxWidth", bossButton, { MaxSize = BOSS_BUTTON_SIZE })
 make("UIScale", "PulseScale", bossButton, {})
-local bossGlow = bossButton.ThemeStroke
-bossGlow.Name = "Glow"
-bossGlow.Color = Palette.Gold
+-- The label's dark outline (Contextual: the text only); the join pulse thickens it.
+local bossGlow = make("UIStroke", "Glow", bossButton, {
+	Color = UiTheme.Outline,
+	Thickness = 2,
+	LineJoinMode = Enum.LineJoinMode.Round,
+	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+})
 bossButton.Parent = root
 -- The popup: the Index frame at a fixed size; a hidden row leaves its place empty.
 -- Centred, with a header and an X, as the other popups (owner 2026-11-06).

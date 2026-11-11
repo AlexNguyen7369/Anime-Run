@@ -33,7 +33,8 @@
 --   Decline lasts for one event (one BossEventStart): a new start shows the Invite again.
 --   Plaza flow (owner 2026-11-05): the Invite closes by itself after Cfg.InviteSeconds. BossButton shows for anyone outside the event
 --     and outside a tutorial, past teleport close too, Invite up or not, declined or not, in a duel too, locked too. Its Text is
---     exactly "Bosses". Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
+--     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
+--     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
 --     Scale changes until teleporting closes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every
 --     pulse scale. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
@@ -529,6 +530,27 @@ function Module.Build(h)
 		check(res, tag .. "_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
 		check(res, tag .. "_button_active", h.find(BUTTON) and h.find(BUTTON).Active, true)
 		check(res, tag .. "_button_glows", waitIs(glowing, true), true)
+		-- Design doc 4.40 "Market pill and Bosses button": the HUD column look, a transparent button with the Tab tilt Boss
+		-- icon (ImageLabel Icon, HudIcons.Boss) and its label under it
+		local b = h.find(BUTTON)
+		check(res, tag .. "_button_transparent", b and b.BackgroundTransparency, 1)
+		local bossIcon = b and b:FindFirstChild("Icon")
+		check(
+			res,
+			tag .. "_button_boss_icon",
+			bossIcon and bossIcon:IsA("ImageLabel") and bossIcon.Image,
+			Icons.Boss.Image
+		)
+		check(
+			res,
+			tag .. "_button_label_under_icon",
+			b
+				and b:IsA("TextButton")
+				and b.TextYAlignment == Enum.TextYAlignment.Bottom
+				and bossIcon ~= nil
+				and bossIcon.Position.Y.Scale == 0,
+			true
+		)
 	end
 	local function checkButtonPlace(res)
 		local inset = GuiService.TopbarInset

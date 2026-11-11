@@ -220,9 +220,11 @@ Skin.Color = {
 }
 local PHONE_SCALE = 0.75 -- placeholder
 
-local function compact()
+-- The phone layout: this screen, or the viewport size given (the UI tests' simulated viewports).
+local function compact(viewportSize)
 	local camera = workspace.CurrentCamera
-	return camera ~= nil and camera.ViewportSize.Y <= 500
+	local size = viewportSize or (camera and camera.ViewportSize)
+	return size ~= nil and size.Y <= 500
 end
 Skin.Compact = compact
 
@@ -446,7 +448,8 @@ local HEAVY = { Title = 2.5, Section = 2.5, Item = 2, Tab = 2, Footer = 1.5 } --
 -- Header (Frame to collapse into a transparent anchor at the panel's origin, optional).
 -- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
 -- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
--- OnLayout(fn(g)) runs now and on every size change; Relayout().
+-- OnLayout(fn(g)) runs now and on every size change; Relayout(); MeasureAt (UI tests). Skin.Frames[panel] = g.
+Skin.Frames = setmetatable({}, { __mode = "k" })
 function Skin.IndexFrame(panel, parts)
 	parts = parts or {}
 	panel.ClipsDescendants = false
@@ -588,12 +591,20 @@ function Skin.IndexFrame(panel, parts)
 		end
 	end
 	local hooks = {}
+	local measuring = nil -- g.MeasureAt's { Small, W, H } while it lays the frame out at another size
 	local function layout()
-		local small = compact()
+		local small, wPx, hPx
+		if measuring then
+			small, wPx, hPx = measuring.Small, measuring.W, measuring.H
+		else
+			small = compact()
+			wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
+			hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
+		end
 		local W, H = small and Skin.Units.PhoneW or Skin.Units.W, small and Skin.Units.PhoneH or Skin.Units.H
-		aspect.AspectRatio = W / H
-		local wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
-		local hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
+		if not measuring then
+			aspect.AspectRatio = W / H
+		end
 		local k = math.min(wPx / W, hPx / H)
 		if k <= 0 then
 			return
@@ -623,14 +634,10 @@ function Skin.IndexFrame(panel, parts)
 		local tabsY = small and Skin.Units.PhoneTabsY or Skin.Units.TabsY
 		for _, buttons in tabSets do
 			local n = #buttons
-			-- Tab width = share * W + extra units (Scale + offset, as the title and close above).
-			local share = n <= 4 and 1 / 4 or 1 / n
-			local extra = n <= 4 and -34 or -(112 + Skin.Units.TabGap * (n - 1)) / n
+			-- Units, not Scale: the tabs sit in zero-size holders (Backpack Panel/Tabs, Workshop Stats), where Scale is 0.
+			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
 			for i, button in buttons do
-				button.AnchorPoint = Vector2.zero
-				button.Position =
-					UDim2.new((i - 1) * share, g.px(56 + (i - 1) * (extra + Skin.Units.TabGap)), 0, g.px(tabsY))
-				button.Size = UDim2.new(share, g.px(extra), 0, g.px(Skin.Units.TabH))
+				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)
 				local art, caption = button:FindFirstChild("AnimeTabArt"), button:FindFirstChild("AnimeCaption")
 				if art then
 					art.Position, art.Size = g.at(-7, -5), UDim2.new(1, g.px(14), 1, g.px(10))
@@ -662,6 +669,19 @@ function Skin.IndexFrame(panel, parts)
 		layout()
 		g.Relayout() -- after UiTheme.Apply's and Skin.Tab's deferred passes
 	end
+	-- UI tests: lay the frame and its hooks out at another viewport (phone layout or not) and frame size in px, call
+	-- read() on that layout, then lay it out for this screen again, all in one go (no frame is drawn in between).
+	function g.MeasureAt(viewportSize, wPx, hPx, read)
+		measuring = { Small = compact(viewportSize), W = wPx, H = hPx }
+		layout()
+		local ok, err = pcall(read)
+		measuring = nil
+		layout()
+		if not ok then
+			error(err, 0)
+		end
+	end
+	Skin.Frames[panel] = g
 	panel:GetPropertyChangedSignal("Size"):Connect(g.Relayout)
 	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(g.Relayout)
 	if workspace.CurrentCamera then

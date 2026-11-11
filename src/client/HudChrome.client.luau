@@ -1,6 +1,6 @@
 --!nonstrict
 -- HUD entry points (docs/HUD_LAYOUT_SPEC.md, design doc 4.40 "split L/R"): the left and right icon columns, the bottom
--- Auto / Upgrade pair and the top-right Daily pill with the round Settings button. Each entry only opens a panel (the panels' scripts own
+-- Auto / Upgrade pair and the top-right Daily and Market pills with the round Settings button. Each entry only opens a panel (the panels' scripts own
 -- everything else), but Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -146,10 +146,11 @@ local function holder(name, count, props)
 	make("UIListLayout", "Layout", frame, { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder })
 	return frame
 end
--- Split L/R: Index, Items, Rebirth on the left edge; Quests, Shop, Market on the right edge, top to bottom.
+-- Split L/R: Index, Items, Rebirth on the left edge; Quests, Shop on the right edge, top to bottom (Market is a
+-- top-right pill, design doc 4.40 "Market pill and Bosses button").
 local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
 local shopColumn =
-	holder("ShopColumn", 3, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
+	holder("ShopColumn", 2, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
 local ICON_MID = ICON / 2 / CELL.Y
@@ -163,7 +164,6 @@ local SLOTS = {
 	{ "Rebirth", grid },
 	{ "Quests", shopColumn },
 	{ "Shop", shopColumn },
-	{ "Market", shopColumn },
 	{ "Auto", autoSlot },
 	{ "Upgrade", upgradeSlot },
 }
@@ -243,26 +243,32 @@ end
 local function refreshKeys()
 	local shown = keyboardInUse()
 	for name in KEYS do
-		tiles[name].Button.Key.Visible = shown
+		if tiles[name] then -- the Market pill shows no letter, as the Daily pill
+			tiles[name].Button.Key.Visible = shown
+		end
 	end
 end
 UserInputService.LastInputTypeChanged:Connect(refreshKeys)
 refreshKeys()
+local bar -- the top-right pills row (below)
 UserInputService.InputBegan:Connect(function(input, processed)
-	-- a key does only what a click could: not while the HUD or the columns are hidden (showcase, Upgrades tree)
-	if processed or UserInputService:GetFocusedTextBox() or not (root.Enabled and grid.Visible) then
+	-- a key does only what a click could: not while the HUD or its button's row is hidden (showcase, Upgrades tree,
+	-- the columns in a boss event)
+	if processed or UserInputService:GetFocusedTextBox() or not root.Enabled then
 		return
 	end
 	for name, key in KEYS do
 		if input.KeyCode == key then
-			PanelSwitch.Action(PANEL[name])
+			if (tiles[name] and grid or bar).Visible then
+				PanelSwitch.Action(PANEL[name])
+			end
 			return
 		end
 	end
 end)
 
 -- Top-right pills (Roblox top-bar style) -------------------------------------------------------------------------
-local bar = make("Frame", "TopRight", root, {
+bar = make("Frame", "TopRight", root, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 7),
 	Size = UDim2.fromOffset(0, 44),
@@ -325,6 +331,10 @@ dailyBadge.Text = "!"
 dailyBadge.Position = UDim2.fromOffset(38, 9)
 dailyBadge.Size = UDim2.fromOffset(18, 18)
 dailyBadge.TextSize = 13
+-- Design doc 4.40 "Market pill and Bosses button": the Daily pill's frame, size and fonts; no key letter, as Daily.
+local market = pill("Market", 2, "Market")
+market.AutomaticSize = Enum.AutomaticSize.None
+market.Size = daily.Size
 pill("Settings", 4)
 
 -- Live state -----------------------------------------------------------------------------------------------------
