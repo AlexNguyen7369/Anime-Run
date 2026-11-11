@@ -157,8 +157,9 @@
 153. 2026-11-11 — Alex Nguyen — Built the Elf Mage boss end to end (bake and uploads, server pick and rhythm-circle judge, colosseum, rig, VFX, UI, tests), fixed the small-ring camera, exhaustion view, hit smoke and golem spot from Studio captures, and pushed feature/alex/boss-mage with targeted boss scenarios green.
 154. 2026-11-11 — Alex Nguyen — Capped run speed at 100 studs/s (proposed) in the Elf Mage's colosseum by the owner's ruling, keeping the damage speed scale and shown cruise, with checks in `boss_mage_arena` and `boss_mage_event`.
 155. 2026-11-11 — Alex Nguyen — Added the admin command `/elfboss`, which starts The Elf Mage's boss event.
+156. 2026-11-11 — Alex Nguyen — Wrote the owner's Elf Mage rule changes into the design doc and specs (2 s strike windows, Stone Golem miniboss with 1,000 HP and a sweep, easier rhythm circles, Bosses cards, her 6 Relics and chest) and drew the card, key-frame and Relic drafts for approval.
 
 ## What's next
-**Run the full harness on `feature/alex/boss-mage`, then open the boss-mage PR into main and get a fresh merge review (m12).**
+**Get the owner's approval of the Bosses card draft, the new key-frame slices and the Elf Mage Relic art (https://claude.ai/artifact/6ryNwFYrmU1C5EmpWwqT2b), then build the server side (boss-mage-2 g4).**
 
-**Why this is next:** the owner said to finish end to end, and the goal's merge gate is the full harness plus a fresh reviewer's approval.
+**Why this is next:** the owner asked to approve the drafts and frames before any build, and the server, client and bake (g4-g6) all depend on the approved keys, card layout and Relic list.
