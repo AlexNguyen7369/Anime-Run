@@ -156,6 +156,7 @@
 152. 2026-11-11 — Alex Nguyen — Studio round 2 on the Elf Mage: camera carried round her small ring (in frame at 46 and 800 studs/s), exhaustion view Down 22, smaller hit effects without smoke at her, golem moved inside the kerb (6aaf79c, 226d6bd).
 153. 2026-11-11 — Alex Nguyen — Built the Elf Mage boss end to end (bake and uploads, server pick and rhythm-circle judge, colosseum, rig, VFX, UI, tests), fixed the small-ring camera, exhaustion view, hit smoke and golem spot from Studio captures, and pushed feature/alex/boss-mage with targeted boss scenarios green.
 154. 2026-11-11 — Alex Nguyen — Capped run speed at 100 studs/s (proposed) in the Elf Mage's colosseum by the owner's ruling, keeping the damage speed scale and shown cruise, with checks in `boss_mage_arena` and `boss_mage_event`.
+155. 2026-11-11 — Alex Nguyen — Added the admin command `/elfboss`, which starts The Elf Mage's boss event.
 
 ## What's next
 **Run the full harness on `feature/alex/boss-mage`, then open the boss-mage PR into main and get a fresh merge review (m12).**
