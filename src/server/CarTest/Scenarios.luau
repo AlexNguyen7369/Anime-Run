@@ -12724,6 +12724,10 @@ Scenarios.boss_paid = require(script.Parent.BossPaidTests).boss_paid -- docs/BOS
 Scenarios.boss_event = require(script.Parent.BossEventTests).make({ newFakeCharacter = newFakeCharacter }).boss_event
 -- docs/BOSS_EVENT_SPEC.md "Boss and attacks": pose data, timing and rise, client visuals only (b7b)
 Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
+-- design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage": the second boss (boss-mage T1). No new local here.
+Scenarios.boss_mage_event = require(script.Parent.BossMageTests).make().boss_mage_event
+Scenarios.boss_mage_arena = require(script.Parent.BossMageTests).make().boss_mage_arena
+Scenarios.boss_mage_anim = require(script.Parent.BossMageTests).make().boss_mage_anim
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
 Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map

@@ -356,7 +356,46 @@ local BOSS_UI_ATTRIBUTES = {
 	"BossEventEndsAt",
 	"BossScreamEndsAt",
 	"BossScheduleStart",
+	"BossEventBoss", -- which boss (boss_ui_boss:<id>); nil reads as boss_raga
 }
+-- boss_ui_osu_spy (ui_boss_osu): a stand-in Remotes.BossOsu that logs { index, circle, stamp } into ReplicatedStorage attribute
+-- UiTestBossOsuLog and answers true, or true, "Dodged" for circle 4. restoreBossUi puts the real remote back.
+local bossOsuSpy = nil
+local function removeBossOsuSpy()
+	if bossOsuSpy then
+		bossOsuSpy.proxy:Destroy()
+		if bossOsuSpy.original then
+			bossOsuSpy.original.Name = bossOsuSpy.name
+		end
+		bossOsuSpy = nil
+	end
+	ReplicatedStorage:SetAttribute("UiTestBossOsuLog", nil)
+end
+local function installBossOsuSpy()
+	ReplicatedStorage:SetAttribute("UiTestBossOsuLog", "[]")
+	if bossOsuSpy then
+		return
+	end
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	local original = remotes:FindFirstChild("BossOsu")
+	if original then
+		original.Name = "UiTestOriginal_BossOsu"
+	end
+	local proxy = Instance.new("RemoteFunction")
+	proxy.Name = "BossOsu"
+	proxy:SetAttribute("UiTestIntercepted", true) -- progression_spy leaves it alone
+	proxy.OnServerInvoke = function(_, index, circle, stamp)
+		local log = HttpService:JSONDecode(ReplicatedStorage:GetAttribute("UiTestBossOsuLog") or "[]")
+		table.insert(log, { index, circle, stamp })
+		ReplicatedStorage:SetAttribute("UiTestBossOsuLog", HttpService:JSONEncode(log))
+		if circle == 4 then
+			return true, "Dodged"
+		end
+		return true
+	end
+	proxy.Parent = remotes
+	bossOsuSpy = { original = original, proxy = proxy, name = "BossOsu" }
+end
 local function clearBossUi(player)
 	for _, name in BOSS_UI_ATTRIBUTES do
 		ReplicatedStorage:SetAttribute(name, nil)
@@ -369,6 +408,7 @@ local function clearBossUi(player)
 end
 local function restoreBossUi(player)
 	clearBossUi(player)
+	removeBossOsuSpy()
 	local saved = bossUiSnapshots[player]
 	if saved then
 		live("GachaService").Apply(player, saved.gacha)
@@ -459,6 +499,11 @@ function setups.boss_ui_invite(player)
 	bossUiGear(player, 2)
 	clearBossUi(player)
 	bossUiState(player, "Prep", 5, 0, 0, false)
+end
+-- As boss_ui_invite, for The Elf Mage (boss_mage_button, design doc 4.37 "Second boss").
+function setups.boss_ui_invite_mage(player)
+	setups.boss_ui_invite(player)
+	ReplicatedStorage:SetAttribute("BossEventBoss", "boss_mage")
 end
 function setups.boss_ui_invite_locked(player)
 	bossUiGear(player, 0)
@@ -1461,6 +1506,7 @@ local function progressionSpy()
 			"BossEventPrepRun",
 			"BossBuy",
 			"BossUseCredit",
+			"BossOsu",
 		}
 	do
 		local target = remotes:FindFirstChild(name)
@@ -1485,6 +1531,13 @@ local function progressionSpy()
 				-- "UITEST-", never a real code) goes to the real ShopService.Redeem, which answers and saves nothing.
 				if name == "BossEventSetTeam" then
 					return true -- boss_pick_character judges the slot it fills; the real handler knows no fixture member
+				end
+				if name == "BossOsu" then -- a circle press: accepted, the 4th dodges (ui_boss_osu)
+					local _, circle = ...
+					if circle == 4 then
+						return true, "Dodged"
+					end
+					return true
 				end
 				local text = ...
 				if name == "RedeemCode" and type(text) == "string" and string.sub(text, 1, 7) == "UITEST-" then
@@ -1767,6 +1820,15 @@ setupRequest.OnServerInvoke = function(player, request)
 			bossUiGear(player, tonumber(bossGear) or bossGear)
 			return
 		end
+		local bossId = string.match(request, "^boss_ui_boss:([%w_]+)$")
+		if bossId then -- "none" clears it: the clients read nil as boss_raga
+			ReplicatedStorage:SetAttribute("BossEventBoss", bossId ~= "none" and bossId or nil)
+			return
+		end
+		if request == "boss_ui_osu_spy" then
+			installBossOsuSpy()
+			return
+		end
 		local bossCredit = string.match(request, "^boss_ui_credit:(%d+)$")
 		if bossCredit then
 			player:SetAttribute("BossCredit", tonumber(bossCredit))
@@ -1873,7 +1935,7 @@ function setups.boss_phase2_stage(_, arg)
 end
 
 function setups.boss_phase2_rewards(player, arg)
-	local outcome, damage, stage1, stage2, short, share = table.unpack(string.split(arg, ":"))
+	local outcome, damage, stage1, stage2, short, share, boss = table.unpack(string.split(arg, ":"))
 	live("BossEventService").Hooks.RewardPopup(player, {
 		Outcome = outcome,
 		Damage = tonumber(damage),
@@ -1881,6 +1943,7 @@ function setups.boss_phase2_rewards(player, arg)
 		Stage1 = stage1 == "true",
 		Stage2 = stage2 == "true",
 		Short = short == "true",
+		Boss = boss ~= "" and boss or nil, -- 7th part: the boss id (ui_boss_mage_rewards); none = no Boss field
 	})
 end
 
