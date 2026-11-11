@@ -107,3 +107,10 @@ Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for 
 8. Bosses cards: the server picks the next boss when it schedules the event, so one dimmed card can show "Next event in m:ss". Without that, no card can name the next boss.
 9. Her Relics favour attack speed and luck. Names: Dwarf's Helmet, Hero's Bracelet, Elf Staff, Priest's Flask, Master's Grimoire. Odds as Big Raga's Phase 1 table. Her chest has no Sidekick roll.
 Answered by the owner 2026-11-11: "approved, go with draft B" on the review page (cards B, all new key frames, Relics and chest). Items 1-9 stay as proposed values. Not answered one by one: golem HP flat or per player (built flat), strike rate (built as today's 10 per move), a boss portrait for Big Raga (not drawn). Upload of the new art: asked before g6's upload step.
+
+## 2026-11-11 boss-mage-2: found while building (all proposed, change any)
+1. Her pose data grew from 269 KB to 511 KB with the golem's own moves, and it still loads at join (section 7 "Join size"). Fix by merging the lazy-data branch, or by storing golem block positions only when they change. Which, and when?
+2. Golem damage shows in a player's total but does not count toward the 5% share that earns rewards.
+3. A paid spawn picks a fresh random boss; the announced next boss is unchanged.
+4. The approved golem crumble inside the old slam move (4.8 s) is no longer played; the new approved `golem_fall` is the crumble.
+5. Lightning's cost moved from 1.6 s to 2.0 s into the move, the start of the 2 s window.
