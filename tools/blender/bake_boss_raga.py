@@ -684,4 +684,5 @@ def main():
 		write_glb(objs)
 
 
-main()
+if __name__ == "__main__":
+	main()
