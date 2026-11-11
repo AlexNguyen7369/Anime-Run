@@ -40,7 +40,10 @@ local JITTER = 30 -- studs, so that hits do not stack
 -- deep and her torso 21 tall); a boss with neither gets Big Raga's SURFACE and JITTER.
 -- Impact: the size of every hit's effect at her; Smoke = false leaves out the unlit puffs (proposed, Studio verify 2026-11-11: a
 -- 100-stud dark puff every 1.5 s, 7 studs in front of her 21-stud torso, hid her for most of the fight).
-local AIM = { boss_mage = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false } }
+local AIM = {
+	boss_mage = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false },
+	boss_golem = { Surface = 8, Jitter = 6 }, -- proposed: her Stone Golem, the target while it stands
+}
 local FLAP_OVERRIDE = 12 -- degrees off rest at which an attack's key has taken the wing from the flap
 local TEXT_COLOR = Color3.fromRGB(255, 244, 200)
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- Blender's axes to Roblox's
@@ -465,15 +468,17 @@ local function tagged(part, kind, hit, particles)
 	end)
 end
 
--- Where the attack lands now: the boss's target part (BigRaga's chest) when it is shown, else the arena's centre.
+-- Where the attack lands now: the boss's target part (BigRaga's chest) when it is shown, else the arena's centre. While a Stone
+-- Golem stands (BossMinionHp) the hits go to it.
 local function bossPoint(from)
 	local row = BossCatalog.Current()
-	local aim = AIM[row.Id] or {}
-	local surface = row.AttackSurface or aim.Surface or SURFACE
-	local jitter = row.AttackJitter or aim.Jitter or JITTER
+	local golem = ReplicatedStorage:GetAttribute("BossMinionHp") ~= nil
+	local aim = AIM[golem and "boss_golem" or row.Id] or {}
+	local surface = not golem and row.AttackSurface or aim.Surface or SURFACE
+	local jitter = not golem and row.AttackJitter or aim.Jitter or JITTER
 	local arena = Workspace:FindFirstChild("BossArenaPreview")
-	local boss = arena and arena:FindFirstChild(row.ModelName)
-	local chest = boss and boss:FindFirstChild(row.TargetPart)
+	local boss = arena and arena:FindFirstChild(golem and "Golem" or row.ModelName)
+	local chest = boss and boss:FindFirstChild(golem and "Torso" or row.TargetPart)
 	local point = chest and chest.Transparency < 1 and chest.Position or Arena.For(row.Id).Center
 	local flat = (from - point) * Vector3.new(1, 0, 1)
 	local near = flat.Magnitude > 1 and flat.Unit * surface or Vector3.zero

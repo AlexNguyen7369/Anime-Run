@@ -1,8 +1,8 @@
 --!nonstrict
 -- The Dodge bar (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"): before each boss move a slider sweeps a bar above the
 -- roster minibar, from Shared/BossDodge and the event's server time. A press asks the server, which decides. Contract:
--- Client/UiTest/UiBossEvent, UiBossMage. A move with rhythm circles (BossCatalog Moves[name].Osu) has no bar: BossOsuUi owns it
--- and shows its result through this gui's ShowResult event.
+-- Client/UiTest/UiBossEvent, UiBossMage. No bar while a Stone Golem stands (BossMinionStart): BossOsuUi owns its attacks
+-- and shows their result through this gui's ShowResult event.
 local ContextActionService = game:GetService("ContextActionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -374,17 +374,14 @@ local function render()
 			slider.Position =
 				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
 		end
-	elseif since >= 0 then
+	elseif since >= 0 and ReplicatedStorage:GetAttribute("BossMinionStart") == nil then -- the golem's attacks are BossOsuUi's
 		local boss = ReplicatedStorage:GetAttribute("BossEventBoss") -- nil: Big Raga
 		local index = BossDodge.IndexAtOrBefore(since, boss) + 1
 		if index <= doneIndex then
 			return
 		end
 		local at, name = BossDodge.Moment(index, boss)
-		local move = BossCatalog.Current().Moves[name]
-		if move and move.Osu then
-			doneIndex = index -- no bar and no hit text here: BossOsuUi owns this moment
-		elseif at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
+		if at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
 			openPrompt(index, at, name, startAt)
 		end
 	end

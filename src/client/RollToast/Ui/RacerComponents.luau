@@ -577,9 +577,13 @@ function Components.RelicsPage(refs, player, onPress)
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}, page)
 	fitCells(refs.GridHost, layout)
-	local frames, rows = {}, {}
-	for _, list in RelicConfig.Bosses do
-		for _, row in list do
+	local frames, rows, seen = {}, {}, {}
+	for _, boss in RelicConfig.Order do
+		for _, row in RelicConfig.Bosses[boss] do
+			if seen[row.Id] then
+				continue -- World Core ends every list: one tile
+			end
+			seen[row.Id] = true
 			local tile = make(
 				"TextButton",
 				{ Name = row.Id, LayoutOrder = #frames + 1, ZIndex = 3, Text = "", AutoButtonColor = false },

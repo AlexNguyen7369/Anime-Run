@@ -109,8 +109,13 @@ local function chestArt(id)
 		BackgroundTransparency = 1,
 		Image = RelicConfig.Chests[id].Image,
 		ScaleType = Enum.ScaleType.Fit,
+		Visible = false,
 		ZIndex = 3,
 	})
+end
+local arts = {} -- every chest's art; the boss shown picks the card's
+for id in RelicConfig.Chests do
+	arts[id] = chestArt(id)
 end
 local money = label("Money", rewards, { Text = "$" .. HudFormat.Commas(Cfg.Phase1Money), ZIndex = 3 })
 local gems = label("Gems", rewards, { Text = HudFormat.Commas(Cfg.Phase2Gems), ZIndex = 3 })
@@ -124,9 +129,9 @@ local gemIcon = make("ImageLabel", "Icon", gems, {
 	ZIndex = 3,
 })
 local cards = { -- in order: the part on the card, and whether it is art (square) or an amount
-	{ Card = card(1), Part = chestArt(RAGA_CHEST), Art = true },
+	{ Card = card(1), Part = arts[RAGA_CHEST], Art = true },
 	{ Card = card(2), Part = money },
-	{ Card = card(3), Part = chestArt(ADAPTED_CHEST), Art = true },
+	{ Card = card(3), Part = arts[ADAPTED_CHEST], Art = true },
 	{ Card = card(4), Part = gems },
 }
 local note = label("Note", panel, { Text = "Deal 5% for rewards" })
@@ -229,8 +234,15 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 	-- Share: of the phase this popup reports (owner 2026-11-10); a message without one hides the bar
 	shareBar.Visible, shareText.Visible = share ~= nil, share ~= nil
 	shareText.Text = share and string.format("%.1f%%", share * 100) or ""
+	local boss = BossCatalog.Get(ev.Boss)
+	for _, art in arts do
+		art.Visible = false
+	end
+	cards[1].Part = arts[boss.Chests[1]]
+	cards[3].Part = arts[boss.Chests[2] or ADAPTED_CHEST] -- hidden for a boss with one phase
+	local stage2 = ev.Stage2 == true and boss.Chests[2] ~= nil
 	cards[1].Part.Visible, money.Visible = ev.Stage1 == true, ev.Stage1 == true
-	cards[3].Part.Visible, gems.Visible = ev.Stage2 == true, ev.Stage2 == true
+	cards[3].Part.Visible, gems.Visible = stage2, stage2
 	rewards.Visible = ev.Stage1 == true or ev.Stage2 == true
 	note.Visible = ev.Short == true
 	layout()

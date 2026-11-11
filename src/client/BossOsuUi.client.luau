@@ -1,8 +1,8 @@
 --!nonstrict
--- Rhythm circles (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"): before a move with BossCatalog
--- Moves[name].Osu, 4 numbered circles show one by one, each with a ring closing onto it at its beat, from Shared/BossOsu and the
--- event's server time. A click or tap on a circle sends its stamp once (Remotes.BossOsu); the server judges the times and
--- decides the dodge. The local judge only picks the hit or miss art. Mouse and touch only: a gamepad has no pointer here.
+-- Rhythm circles (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"): before each attack of the standing
+-- Stone Golem (BossMinionStart; BossCatalog Minion), 3 numbered circles show one by one, each with a ring closing onto it at its
+-- beat, from Shared/BossOsu and the golem's clock. A click or tap on a circle sends its stamp once (Remotes.BossOsu(k, circle,
+-- stamp), k the golem's attack number); the server judges the times and decides the dodge. The local judge only picks the hit or miss art. Mouse and touch only: a gamepad has no pointer here.
 -- Test seam: each Circle<k> holds a BindableEvent Press; firing it runs what a click on the circle runs.
 -- The result text and stars are the Dodge bar's (RacerBossDodge.ShowResult). Contract: Client/UiTest/UiBossMage.
 local Players = game:GetService("Players")
@@ -15,14 +15,12 @@ local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
 local BossDodge = require(Shared:WaitForChild("BossDodge"))
 local BossMageArt = require(Shared:WaitForChild("BossMageArt"))
 local BossOsu = require(Shared:WaitForChild("BossOsu"))
-local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local CAPTION_TEXT = "Golem Slam! Hit every circle!" -- approved mock-ups
 local SMALL_SCREEN = 500 -- px of height: a phone, as the Dodge bar's
 local RING_FROM = 3 -- the ring's scale of the circle when it shows; 1 at the beat
 local RING_COLORS = { Color3.fromRGB(176, 120, 255), Color3.fromRGB(110, 205, 240) } -- violet, cyan, in turn (mock-ups)
@@ -58,7 +56,6 @@ local caption = make("TextLabel", {
 	AnchorPoint = Vector2.new(0.5, 0),
 	BackgroundTransparency = 1,
 	FontFace = AnimeSkin.Font,
-	Text = CAPTION_TEXT,
 	TextColor3 = Color3.new(1, 1, 1),
 	TextScaled = true,
 	Visible = false,
@@ -272,9 +269,11 @@ local function place(rows)
 	local event = playerGui:FindFirstChild("RacerBossEvent")
 	local bar = event and event:FindFirstChild("BossBar")
 	local status = bar and bar:FindFirstChild("Status")
+	local minionBar = bar and bar:FindFirstChild("MinionBar")
 	local dropList = event and event:FindFirstChild("DropList")
 	addRect(bar)
 	addRect(status)
+	addRect(minionBar)
 	addRect(dropList)
 	addRect(event and event:FindFirstChild("LeaveButton"))
 	local hud = playerGui:FindFirstChild("RacerHud")
@@ -283,8 +282,8 @@ local function place(rows)
 
 	-- Caption and timer under the bar's status row, centred, left of the drop list where it hangs beside them.
 	local top = size.Y * 0.08
-	for _, gui in { bar, status } do
-		if gui then
+	for _, gui in { bar, status, minionBar } do
+		if gui and gui.Visible then
 			top = math.max(top, gui.AbsolutePosition.Y - root.AbsolutePosition.Y + gui.AbsoluteSize.Y)
 		end
 	end
@@ -321,9 +320,11 @@ local function close()
 	end
 end
 
-local function openCircles(index, at, momentAt, startAt)
+local function openCircles(index, at, momentAt, startAt, name)
 	local rows = BossOsu.Circles(player.UserId, startAt, index)
-	open = { Index = index, At = at, MomentAt = momentAt, Rows = rows, Pending = 0, Dodged = false }
+	open = { Index = index, At = at, MomentAt = momentAt, Rows = rows, Pending = 0, Dodged = false, Name = name }
+	local minion = BossCatalog.Current().Minion
+	caption.Text = minion and minion.Caption[name] or ""
 	caption.Visible = true
 	place(rows)
 	timer.Visible = true
@@ -347,40 +348,39 @@ local function showResult(kind, words)
 	end
 end
 
-local doneIndex, doneSchedule = 0, nil -- no second set for a moment; a new event or stage starts over
+local doneIndex, doneStart = 0, nil -- no second set for an attack; a new golem starts over
 
 local function render()
-	local startAt = ReplicatedStorage:GetAttribute("BossEventStart")
+	local minionStart = ReplicatedStorage:GetAttribute("BossMinionStart")
 	local active = player:GetAttribute("BossEvent") == true
 		and ReplicatedStorage:GetAttribute("BossEventPhase") == "Fight"
-		and startAt ~= nil
+		and minionStart ~= nil
 		and player:GetAttribute("BossWaitEndsAt") == nil
 	if not active then
 		if open then
-			close() -- no hit: a player in the wait is not hit by this move
+			close() -- no hit: a player in the wait, or a fallen golem, hits no one
 		end
 		return
 	end
-	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
-	if doneSchedule ~= schedule then
-		doneIndex, doneSchedule = 0, schedule
+	if doneStart ~= minionStart then
+		doneIndex, doneStart = 0, minionStart
 		if open then
 			close()
 			return
 		end
 	end
 	local now = workspace:GetServerTimeNow()
-	local since = now - schedule - Cfg.IntroSeconds
+	local tau = now - minionStart
 	local shown = open
 	if shown then
 		if shown.Dodged then
 			close()
 			showResult("Dodged")
-		elseif since >= shown.At and shown.Pending == 0 then
+		elseif tau >= shown.At and shown.Pending == 0 then
 			close()
-			showResult("Hit", BossDodge.HitText.Slam)
+			showResult("Hit", BossDodge.HitText[shown.Name])
 		else
-			timerFill.Size = UDim2.fromScale(math.clamp((shown.At - since) / BossOsu.OpenSeconds, 0, 1), 1)
+			timerFill.Size = UDim2.fromScale(math.clamp((shown.At - tau) / BossOsu.OpenSeconds, 0, 1), 1)
 			for _, circle in circles do
 				local left = circle.Beat - now
 				circle.Button.Visible = left <= BossOsu.ApproachSeconds
@@ -392,17 +392,16 @@ local function render()
 				end
 			end
 		end
-	elseif since >= 0 then
+	else
 		local boss = ReplicatedStorage:GetAttribute("BossEventBoss")
-		local index = BossDodge.IndexAtOrBefore(since, boss) + 1
+		local index = BossDodge.MinionIndexAtOrBefore(tau, boss) + 1
 		if index <= doneIndex then
 			return
 		end
-		local at, name = BossDodge.Moment(index, boss)
-		local move = BossCatalog.Current().Moves[name]
-		if move and move.Osu and at - since <= BossOsu.OpenSeconds then
+		local at, name = BossDodge.MinionMoment(index, boss)
+		if at - tau <= BossOsu.OpenSeconds then
 			doneIndex = index
-			openCircles(index, at, schedule + Cfg.IntroSeconds + at, startAt)
+			openCircles(index, at, minionStart + at, minionStart, name)
 		end
 	end
 end
