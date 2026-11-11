@@ -3526,6 +3526,19 @@ local function hiddenByPanel(path, open, vp)
 	return false
 end
 
+-- True when UiSpec.HiddenWhileBossEvent hides `path` now (the player's BossEvent attribute is true).
+local function hiddenByBossEvent(path)
+	if not player:GetAttribute("BossEvent") then
+		return false
+	end
+	for _, prefix in UiSpec.HiddenWhileBossEvent do
+		if string.sub(path, 1, #prefix) == prefix then
+			return true
+		end
+	end
+	return false
+end
+
 -- Every element that is interactive or always on in the given state: AlwaysOn elements (minus the ones declared hidden
 -- while that panel is open, UiSpec.HiddenWhilePanelOpen: ui_panels / ui_toast prove they really are hidden then), the
 -- open panels and every button inside an open panel that is shown now (it and every ancestor up to the panel Visible:
@@ -3549,7 +3562,8 @@ local function elementsFor(open, vp)
 			local obj = findPath(guiName .. "/" .. p)
 			local maxHidden = UiSpec.HiddenAtHeight[guiName .. "/" .. p]
 			local hiddenAtHeight = maxHidden ~= nil and vp ~= nil and vp.Y <= maxHidden
-			if obj and not hiddenAtHeight and not hiddenByPanel(guiName .. "/" .. p, open, vp) then
+			local path = guiName .. "/" .. p
+			if obj and not hiddenAtHeight and not hiddenByPanel(path, open, vp) and not hiddenByBossEvent(path) then
 				table.insert(list, { path = guiName .. "/" .. p, obj = obj })
 			end
 		end
@@ -3646,6 +3660,11 @@ local function overlapAllowed(a, b, ra, rb, rectOf)
 	if panelPath then
 		local problem = panelCoverProblem(panelPath, readout, ra and rb and intersection(ra, rb), rectOf)
 		return problem == nil, problem
+	end
+	-- Leave shows only in the boss event, where the columns hide (design doc 4.40): never shown together
+	local other = (a == "RacerBossEvent/LeaveButton" and b) or (b == "RacerBossEvent/LeaveButton" and a)
+	if other and (string.find(other, "^HudChrome/Grid/") or string.find(other, "^HudChrome/ShopColumn/")) then
+		return true
 	end
 	for _, pair in UiSpec.AllowOverlap do
 		if (pair[1] == a and pair[2] == b) or (pair[1] == b and pair[2] == a) then
