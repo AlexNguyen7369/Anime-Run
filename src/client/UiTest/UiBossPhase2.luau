@@ -748,7 +748,9 @@ function Module.Build(h)
 		if withShare then
 			checkTextSoon(res, tag .. "_share_text", POPUP .. "/Share", string.format("%.1f%%", want.Share * 100))
 			local mark = h.find(POPUP .. "/ShareBar/Mark")
-			check(res, tag .. "_share_mark_at_min", mark and mark.Position.X.Scale, Cfg.MinDamageShare)
+			local markX = mark and mark.Position.X.Scale
+			-- UDim Scale is a float32, never exactly the 0.05 double
+			h.check(res, tag .. "_share_mark_at_min", markX, Cfg.MinDamageShare, near(markX, Cfg.MinDamageShare))
 			local fill = waitIs(function()
 				local gui = h.find(POPUP .. "/ShareBar/Fill")
 				return gui ~= nil and near(gui.Size.X.Scale, want.Share)
