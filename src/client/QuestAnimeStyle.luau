@@ -1,6 +1,6 @@
 --!nonstrict
 -- Quests in the Index look (design doc 4.42): Client/IndexAnimeStyle's art and text treatment on BoostDailyUi's
--- shared modal, laid out in the Index's design units (920 x 620, phone 500 x 420) scaled to the modal. Display only.
+-- shared modal, laid out in the Index's design units (Client/AnimeSkin.Units) scaled to the modal. Display only.
 local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
 local UiTheme = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("UiTheme"))
 local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
@@ -47,7 +47,7 @@ function Style.Attach(refs)
 		modal,
 		{ BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Visible = false }
 	)
-	local body = image(layer, "Body", ART.Chrome, UDim2.new(), UDim2.new(), 1)
+	local _, placeBody = Skin.Chrome(layer, "Body", 1)
 	local banner = make("Frame", "Banner", layer, { BackgroundTransparency = 1, ZIndex = 6 })
 	local logo = image(banner, "Logo", refs.Logo, UDim2.new(), UDim2.new(), 11)
 	logo.ScaleType = Enum.ScaleType.Fit
@@ -137,14 +137,15 @@ function Style.Attach(refs)
 	local active = false
 	local function layout()
 		local small = phone()
-		local W, H = small and 500 or 920, small and 420 or 620
+		local U = Skin.Units
+		local W, H = small and U.PhoneW or U.W, small and U.PhoneH or U.H
 		aspect.AspectRatio = W / H
 		k = math.min(modal.Size.X.Offset / W, modal.Size.Y.Offset / H)
 		if k <= 0 then
 			return
 		end
 		local daily = view == "Daily"
-		body.Position, body.Size = at(-40, -70), UDim2.new(1, px(80), 1, px(100))
+		placeBody(-px(40), -px(70), px(W) + px(80), px(H) + px(100))
 		banner.Position, banner.Size = at(-34, -18), UDim2.new(1, px(68), 0, px(86))
 		logo.Position, logo.Size = at(15, -54), at(188, 186)
 		title.Position, title.Size = at(202, -5), at(daily and W - 312 or 250, 76)

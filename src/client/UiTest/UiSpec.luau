@@ -803,15 +803,17 @@ UiSpec.Market = {
 
 -- Panels fitted by Client/PanelBand.Fit (docs/HUD_LAYOUT_SPEC.md: between the left grid and the Shop column, below the
 -- Race button, above the TURBO LUCK bar and the Money read-out). Value = the panel's max width (mirrored from the
--- client's Band.Fit call; the band rule itself is the spec). The layout solver fits them like PanelBand does.
+-- client's Band.Fit call; the band rule itself is the spec). The layout solver fits them like PanelBand does, and an
+-- AnimeAspect constraint on one of them like the engine does (UiShopMarket.BandFit ratio).
+-- PanelFrame.Attach: the frame's width, AnimeSkin.Units.W (design doc 4.42 "Wider panels"); BoostDailyUi: MaxWidth 1200.
 UiSpec.BandPanels = {
-	["ShopUi/Backdrop/Panel"] = 900,
-	["MarketUi/Backdrop/Panel"] = 900,
-	["CheckpointUi/Panel"] = 760,
-	["DailyBoosts/ModalBackdrop/Modal"] = 760,
-	["RacerBackpack/Panel"] = 760,
-	-- Client/ProgressionUi panel(): Band.Fit(p, 700)
-	["RacerWorkshop/Panel"] = 700,
+	["ShopUi/Backdrop/Panel"] = 1200,
+	["MarketUi/Backdrop/Panel"] = 1200,
+	["CheckpointUi/Panel"] = 1200,
+	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
+	["RacerBackpack/Panel"] = 1200,
+	-- Client/ProgressionUi panel(): Band.Fit(p, 910)
+	["RacerWorkshop/Panel"] = 910,
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {

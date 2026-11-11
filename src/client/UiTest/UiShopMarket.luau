@@ -39,12 +39,19 @@ function ShopMarket.Band(vp, d)
 end
 
 -- Client/PanelBand.Fit for the layout solver: centred in the band, at most maxWidth wide, never larger than the band.
-function ShopMarket.BandFit(vp, d, maxWidth)
+-- ratio (width / height, optional): the panel's AnimeAspect (AnimeSkin.IndexFrame / QuestAnimeStyle, FitWithinMaxSize)
+-- shrinks that rect to the largest one of the frame's aspect inside it, about the centre (design doc 4.42 "Wider panels").
+function ShopMarket.BandFit(vp, d, maxWidth, ratio)
 	local left, top, right, bottom = ShopMarket.Band(vp, d)
+	local w, h = math.max(0, math.min(maxWidth, right - left)), math.max(0, bottom - top)
+	if ratio then
+		w = math.min(w, h * ratio)
+		h = w / ratio
+	end
 	return {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset((left + right) / 2, (top + bottom) / 2),
-		Size = UDim2.fromOffset(math.max(0, math.min(maxWidth, right - left)), math.max(0, bottom - top)),
+		Size = UDim2.fromOffset(w, h),
 	}
 end
 

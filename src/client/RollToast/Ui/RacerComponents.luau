@@ -36,7 +36,7 @@ local CATEGORY_COLORS = {
 local PORTRAIT_FIT = 0.72 -- view height, as a share of feet-to-head height
 local PORTRAIT_DROP = 0.2 -- camera aim below the head, same share
 local CARD_PORTRAIT_HEIGHT = 0.75 -- drawn portrait's height on a card (placeholder): keeps the face above the card's text
-local INDEX_COLUMNS = { Desktop = 4, Phone = 3 }
+local INDEX_COLUMNS = { Desktop = 7, Phone = 3 } -- design doc 4.42 "Wider panels": 7 across (proposed)
 local INDEX_GAP = 12
 local INDEX_CELL_HEIGHT = 168
 local ICONS = {

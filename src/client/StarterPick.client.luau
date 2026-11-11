@@ -49,7 +49,7 @@ panel.Parent = dim
 UiTheme.Corner(panel, "L")
 UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
 local limit = Instance.new("UISizeConstraint")
-limit.MaxSize = Vector2.new(920, 620) -- the Index's size
+limit.MaxSize = Vector2.new(AnimeSkin.Units.W, AnimeSkin.Units.H) -- the Index's size
 limit.Parent = panel
 
 local function text(parent, name, value, size, pos, height)

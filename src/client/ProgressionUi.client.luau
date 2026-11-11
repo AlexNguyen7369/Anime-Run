@@ -109,7 +109,7 @@ local function panel(name, title, icon)
 	local g = Skin.IndexFrame(p, { Title = heading, Icon = logo, Logo = icon, Close = close, Header = header })
 	Switch.Register(name, p)
 	-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
-	Band.Fit(p, 700)
+	Band.Fit(p, 910) -- 1.3 x the old 700: the wider frame at the same height (design doc 4.42)
 	local function closePanel()
 		Switch.Close(name)
 	end
