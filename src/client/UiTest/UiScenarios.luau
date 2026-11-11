@@ -1431,6 +1431,8 @@ simRect = function(obj, ctx)
 				else
 					ctx.unsupported[path] = "missing runtime layout dependency"
 				end
+			elseif path == UiResponsive.BossButton.Path then
+				size, position = UiResponsive.BossButtonPlace(ctx.vp, GuiService.TopbarInset)
 			end
 			-- The compact roll's top and height are fitCompact's for the live screen: both follow the simulated one
 			local compactTop = path == "RollToast/Toast" and not liveVp and K.compactTop(base, ctx.vp, ctx)

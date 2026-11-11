@@ -43,9 +43,19 @@ local WARNING_SECONDS = 6
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
-local BOSS_BUTTON_GAP = 8 -- px past Roblox's buttons
-local BOSS_BUTTON_SIZE = Vector2.new(128, 40) -- at most: the width follows the screen
-local BOSS_BUTTON_WIDTH = 0.095 -- of the screen: on a small phone it ends clear of the roll toast
+-- Design doc 4.40 "Market pill and Bosses button" (owner 2026-11-11): the column buttons' exact cell, icon and label
+-- (Client/HudChrome CELL, ICON, label TextSize and outline), x BOSS_PHONE_SCALE on a phone as HudChrome's UIScale.
+local BOSS_CELL = Vector2.new(84, 94)
+local BOSS_ICON = 72
+local BOSS_LABEL_SIZE = 19
+local BOSS_OUTLINE = 2.5
+local BOSS_PHONE_SCALE = 0.68
+local BOSS_PHONE_MAX_HEIGHT = 500 -- HudChrome's phone: viewport height at most this
+-- HudChrome Grid: x and centre offset per variant, its height at scale 1 (3 cells and 2 gaps of 8).
+local GRID_X = { Desktop = 14, Phone = 8 }
+local GRID_MID = { Desktop = -24, Phone = -20 }
+local GRID_HEIGHT = 3 * BOSS_CELL.Y + 2 * 8
+local BOSS_BUTTON_GAP = 6 -- px under Roblox's top bar and right of Roblox's buttons (proposed)
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
@@ -539,37 +549,35 @@ local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 	Visible = false,
 })
 
--- The top-left button. Its pulse grows right and down from a fixed corner, so it never reaches Roblox's buttons. PulseScale goes in
--- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws.
+-- The top-left button, under Roblox's top bar. Its pulse grows right and down from a fixed corner. PulseScale goes in
+-- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws, so the
+-- phone scale is written into the sizes (placeBossButton) instead of a UIScale.
 -- Design doc 4.40 "Market pill and Bosses button": the HUD column buttons' look, a transparent button with the Tab tilt
 -- Boss icon and its label "Bosses" (the button's own Text, white with the dark outline) under it.
-local BOSS_LABEL = 14 -- px, the label band under the icon (proposed)
 local bossButton = make("TextButton", "BossButton", nil, {
-	Size = UDim2.new(BOSS_BUTTON_WIDTH, 0, 0, BOSS_BUTTON_SIZE.Y), -- scale, not a live write: ui_layout solves it at every viewport
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	AutoButtonColor = false,
 	Text = "Bosses",
 	Font = UiTheme.Font,
-	TextSize = BOSS_LABEL,
 	TextColor3 = Palette.White,
 	TextYAlignment = Enum.TextYAlignment.Bottom,
 	Visible = false,
 })
+-- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
 make("ImageLabel", "Icon", bossButton, {
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0),
-	Size = UDim2.new(1, 0, 1, -BOSS_LABEL),
+	Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
 	BackgroundTransparency = 1,
 	Image = Icons.Boss.Image,
 	ScaleType = Enum.ScaleType.Fit,
 })
-make("UISizeConstraint", "MaxWidth", bossButton, { MaxSize = BOSS_BUTTON_SIZE })
 make("UIScale", "PulseScale", bossButton, {})
 -- The label's dark outline (Contextual: the text only); the join pulse thickens it.
 local bossGlow = make("UIStroke", "Glow", bossButton, {
 	Color = UiTheme.Outline,
-	Thickness = 2,
+	Thickness = BOSS_OUTLINE,
 	LineJoinMode = Enum.LineJoinMode.Round,
 	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 })
@@ -679,13 +687,26 @@ end
 placeBosses()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBosses)
 
+-- Design doc 4.40 (owner 2026-11-11): just under Roblox's top bar (this ScreenGui ignores the inset), at the left column's
+-- x when its bottom at the biggest pulse stays above the column's top, else right of Roblox's buttons and of the column.
 local function placeBossButton()
+	local view = workspace.CurrentCamera.ViewportSize
+	local variant = view.Y <= BOSS_PHONE_MAX_HEIGHT and "Phone" or "Desktop"
+	local k = variant == "Phone" and BOSS_PHONE_SCALE or 1
+	bossButton.Size = UDim2.fromOffset(BOSS_CELL.X * k, BOSS_CELL.Y * k)
+	bossButton.TextSize = BOSS_LABEL_SIZE * k
+	bossGlow.Thickness = BOSS_OUTLINE * k
 	local inset = GuiService.TopbarInset
-	local x = inset.Min.X + BOSS_BUTTON_GAP
-	local y = math.max(2, (inset.Max.Y - BOSS_BUTTON_SIZE.Y) / 2)
+	local y = inset.Max.Y + BOSS_BUTTON_GAP
+	local gridTop = view.Y / 2 + GRID_MID[variant] - GRID_HEIGHT * k / 2
+	local x = GRID_X[variant]
+	if y + BOSS_CELL.Y * k * PULSE_SCALE > gridTop then
+		x = math.max(inset.Min.X, GRID_X[variant] + BOSS_CELL.X * k) + BOSS_BUTTON_GAP
+	end
 	bossButton.Position = UDim2.fromOffset(x, y)
 end
 GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBossButton)
 placeBossButton()
 
 -- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
