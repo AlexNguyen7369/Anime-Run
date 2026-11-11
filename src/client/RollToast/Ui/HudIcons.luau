@@ -16,4 +16,8 @@ return {
 	Auto = { Image = "rbxassetid://122355836258114" }, -- owner's icon, tools/blender/plaza/auto_icon.py
 	AutoArrows = { Image = "rbxassetid://110966439139915" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
 	AutoPlay = { Image = "rbxassetid://121841618485883" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
+	-- Design doc 4.40 gold frame tile, assets/ui/hud_badges/HudTile.png (Decal 120579636552953, 2026-11-10).
+	Tile = { Image = "rbxassetid://78500532311163" },
+	-- Design doc 4.40 boss popup icon, assets/ui/hud_badges/Boss.png (Decal 102103768337911, 2026-11-10).
+	Boss = { Image = "rbxassetid://118962130215054" },
 }

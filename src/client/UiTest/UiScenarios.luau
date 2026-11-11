@@ -1260,7 +1260,6 @@ simRect = function(obj, ctx)
 					Race = UiSpec.Band.Race,
 					Turbo = UiSpec.Band.Turbo,
 					Navigation = UiSpec.Band.Grid,
-					ShopColumn = UiSpec.Band.ShopColumn,
 					Money = UiSpec.Band.Money,
 				}
 			end
@@ -4307,22 +4306,74 @@ function S.ui_layout(res)
 					overRow = { "no RollToast/Toast" }
 				end
 				checkList(res, "toast_clear_of_top_right_row_" .. vpSpec.Name, overRow)
-				-- Quests: the Shop tile's twin, directly above it, on screen
-				local questsTile, shopTile = findPath(UiSpec.Hud.Quests), findPath(UiSpec.Hud.Shop)
-				if questsTile and shopTile then
-					local qr, sr = rectOf(questsTile), rectOf(shopTile)
-					local gapToShop = sr.y - (qr.y + qr.h)
-					check(
-						res,
-						"quests_above_shop_" .. vpSpec.Name,
-						rstr(qr) .. " over " .. rstr(sr),
-						("same x and size, gap 0..%g"):format(UiSpec.Hud.ColumnMaxGap),
-						math.abs(qr.x - sr.x) <= TOL
-							and math.abs(qr.w - sr.w) <= TOL
-							and math.abs(qr.h - sr.h) <= TOL
-							and gapToShop >= -TOL
-							and gapToShop <= UiSpec.Hud.ColumnMaxGap + TOL
-					)
+				-- Design doc 4.40 layout L2: the left block is GridColumns wide, filled row by row in NavButtons order
+				-- (Index | Items, Rebirth | Quests, Shop | Market). Every tile is the same square size, the left column
+				-- shares one x, each row one y, and neighbours are 0..GridGap apart (a phone's UIScale only shrinks it).
+				local cols, gridGap = UiSpec.Hud.GridColumns, UiSpec.Hud.GridGap
+				local tileRects, gridWrong = {}, {}
+				for i, path in UiSpec.Hud.NavButtons do
+					local t = findPath(path)
+					if t then
+						tileRects[i] = rectOf(t)
+					else
+						table.insert(gridWrong, path .. " missing")
+					end
+				end
+				local function gapOk(g)
+					return g >= -TOL and g <= gridGap + TOL
+				end
+				if #gridWrong == 0 then
+					local first = tileRects[1]
+					for i, r in tileRects do
+						local path = UiSpec.Hud.NavButtons[i]
+						if
+							math.abs(r.w - first.w) > TOL
+							or math.abs(r.h - first.h) > TOL
+							or math.abs(r.w - r.h) > TOL
+						then
+							table.insert(gridWrong, path .. rstr(r) .. " not the square size of " .. rstr(first))
+						end
+						if (i - 1) % cols ~= 0 then
+							local left = tileRects[i - 1]
+							local g = r.x - (left.x + left.w)
+							if math.abs(r.y - left.y) > TOL or not gapOk(g) then
+								table.insert(
+									gridWrong,
+									("%s%s not right of %s%s (gap %g)"):format(
+										path,
+										rstr(r),
+										UiSpec.Hud.NavButtons[i - 1],
+										rstr(left),
+										g
+									)
+								)
+							end
+						end
+						if i > cols then
+							local above = tileRects[i - cols]
+							local g = r.y - (above.y + above.h)
+							if math.abs(r.x - above.x) > TOL or not gapOk(g) then
+								table.insert(
+									gridWrong,
+									("%s%s not below %s%s (gap %g)"):format(
+										path,
+										rstr(r),
+										UiSpec.Hud.NavButtons[i - cols],
+										rstr(above),
+										g
+									)
+								)
+							end
+						end
+						if not contains(rootOf(path), r) then
+							table.insert(gridWrong, path .. rstr(r) .. " off screen")
+						end
+					end
+				end
+				checkList(res, "hud_grid_two_columns_" .. vpSpec.Name, gridWrong)
+				local questsTile = findPath(UiSpec.Hud.Quests)
+				if questsTile then
+					local qr = rectOf(questsTile)
 					check(
 						res,
 						"quests_on_screen_" .. vpSpec.Name,
@@ -4331,7 +4382,7 @@ function S.ui_layout(res)
 						contains(rootOf(UiSpec.Hud.Quests), qr)
 					)
 				else
-					check(res, "quests_above_shop_" .. vpSpec.Name, "missing", "present", false)
+					check(res, "quests_on_screen_" .. vpSpec.Name, "missing", "present", false)
 				end
 				-- RacerHud/Race is hidden: this only holds the anchor the Toast and the panel bands read in place
 				local toggle = findPath(UiSpec.Hud.Race)
@@ -4443,18 +4494,18 @@ function S.ui_layout(res)
 			end
 			-- The four Racer panels sit in the PanelBand (docs/HUD_LAYOUT_SPEC.md sections 1 and 6, Client/PanelBand.Rect,
 			-- read by RacerUiController.fitPanels): centred horizontally, Gap below the Race Face, Gap above the TURBO
-			-- LUCK bar, inside the band (past the icon grid and what sticks out of it and the Shop column, the wider
-			-- margin on both sides; above Money when Money reaches into it), centred vertically in the band.
+			-- LUCK bar, inside the band (from Gap past the left tile block and what sticks out of it to Gap from the
+			-- screen's right edge, design doc 4.40 layout L2; above Money when Money reaches into it), centred vertically in the band.
 			for _, panelPath in state.Open do
 				local prefix = UiSpec.RacerPanelBand.Panels[panelPath]
 				if prefix then
 					local p = findPath(panelPath)
 					local race, turbo = findPath(UiSpec.Hud.Race), findPath(UiSpec.Hud.Turbo)
 					local nav = findPath(UiSpec.RacerPanelBand.Navigation)
-					local raceBox, shop = findPath(UiSpec.Band.Race), findPath(UiSpec.Band.ShopColumn)
+					local raceBox = findPath(UiSpec.Band.Race)
 					local money = findPath(UiSpec.Band.Money)
 					local tagV = "_" .. vpSpec.Name
-					if p and race and turbo and nav and raceBox and shop and money then
+					if p and race and turbo and nav and raceBox and money then
 						local gap = UiSpec.RacerPanelBand.Gap
 						local r, root = rectOf(p), rootRect(guiOf(p), vp)
 						local ar, br = rectOf(race), rectOf(turbo)
@@ -4484,7 +4535,6 @@ function S.ui_layout(res)
 							Turbo = br,
 							Navigation = rectOf(nav),
 							NavigationParts = parts,
-							ShopColumn = rectOf(shop),
 							Money = rectOf(money),
 							MoneyShown = money:IsA("GuiObject") and money.Visible,
 						})
@@ -4515,13 +4565,7 @@ function S.ui_layout(res)
 							)
 						end
 					else
-						check(
-							res,
-							prefix .. "_centred_x" .. tagV,
-							"missing",
-							"panel, Race, Turbo, Grid, ShopColumn, Money",
-							false
-						)
+						check(res, prefix .. "_centred_x" .. tagV, "missing", "panel, Race, Turbo, Grid, Money", false)
 					end
 				end
 			end
@@ -4831,6 +4875,41 @@ function S.ui_buttons(res)
 		local text = b and allText(b) or "missing"
 		check(res, "label_" .. item[1], text, item[2], text == item[2])
 	end
+	-- Design doc 4.40: every block tile and the Auto / Upgrade pair show the same gold-frame tile art
+	local HudIcons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+	local tileArt = HudIcons.Tile and HudIcons.Tile.Image or ""
+	local wrongArt = {}
+	if tileArt == "" then
+		table.insert(wrongArt, "HudIcons.Tile.Image is empty")
+	end
+	for _, path in UiSpec.Hud.GoldTiles do
+		local t = findPath(path)
+		if not t then
+			table.insert(wrongArt, path .. " missing")
+		elseif not t:IsA("ImageButton") or t.Image ~= tileArt then
+			table.insert(wrongArt, ("%s Image %s"):format(path, t:IsA("ImageButton") and t.Image or t.ClassName))
+		end
+	end
+	checkList(res, "hud_tiles_gold_frame", wrongArt)
+	-- Design doc 4.40: TopRight holds exactly the Daily pill and the Settings button (Market moved to the block)
+	local topRight = findPath(UiSpec.Hud.TopRight)
+	local topNames = {}
+	for _, c in topRight and topRight:GetChildren() or {} do
+		if c:IsA("GuiObject") then
+			table.insert(topNames, c.Name)
+		end
+	end
+	table.sort(topNames)
+	local wantTop = table.clone(UiSpec.Hud.TopRightButtons)
+	table.sort(wantTop)
+	local gotTop = topRight and table.concat(topNames, ", ") or "missing"
+	check(
+		res,
+		"top_right_only_daily_settings",
+		gotTop,
+		table.concat(wantTop, ", "),
+		gotTop == table.concat(wantTop, ", ")
+	)
 	local close = findPath("RacerIndex/Panel/Face/Header/Face/Close/Face")
 	check(
 		res,
