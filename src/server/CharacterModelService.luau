@@ -143,7 +143,8 @@ local function loadBoss(name, assetId, binds, root)
 			d.Size = Vector3.new(bind.Size[1], bind.Size[2], bind.Size[3])
 			-- The golem import put one stray SurfaceAppearance on FistL, its EmissiveMap rbxassetid://17 never loads (a script
 			-- cannot read its ColorMap): drop it, and the part takes the one atlas its siblings use.
-			local surface = d:FindFirstChildOfClass("SurfaceAppearance")
+			-- Golem only: Big Raga's parts keep the import's SurfaceAppearance, it holds his texture.
+			local surface = name == "boss_golem" and d:FindFirstChildOfClass("SurfaceAppearance")
 			if surface then
 				surface:Destroy()
 			end
@@ -153,9 +154,11 @@ local function loadBoss(name, assetId, binds, root)
 			d.Parent = folder
 		end
 	end
-	for _, part in folder:GetChildren() do
-		if part.TextureID == "" then
-			part.TextureID = texture
+	if name == "boss_golem" then
+		for _, part in folder:GetChildren() do
+			if part.TextureID == "" then
+				part.TextureID = texture
+			end
 		end
 	end
 	asset:Destroy()
