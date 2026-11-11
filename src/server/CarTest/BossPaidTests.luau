@@ -366,7 +366,7 @@ function Tests.boss_paid()
 			local purchaseId = purchase()
 			eq("rejoin_granted", receipt(p, BOSS_PRODUCT, purchaseId), GRANTED)
 			eq("rejoin_record_credit", store.data[data.KeyFor(id)].BossCredit, 1)
-			eq("rejoin_record_version", store.data[data.KeyFor(id)].Version, 18)
+			eq("rejoin_record_version", store.data[data.KeyFor(id)].Version, 19)
 			data.Save(p, id, true)
 			S.End("test")
 			online[id] = nil

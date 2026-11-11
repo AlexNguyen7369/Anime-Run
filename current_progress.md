@@ -150,8 +150,9 @@
 146. 2026-11-10 — Alex Nguyen — Landed hud-tech h1 (c722398, 0a2ef57): gold frame HUD tiles in the L2 left block with the Tile and Boss icons uploaded, UI tests updated (ui_buttons 14/0, ui_hud 16/0), and the boss exhaustion view raised to 160 up at 13 deg (74eb084).
 147. 2026-11-11 — Alex Nguyen — Landed hud-tech: Tab tilt split HUD with Market pill and Bosses icon, 1200x620 panels, boss Versus HUD and R1 rewards, dojo cyber accents, Saitamo pedestal, pay-at-each-checkpoint with a Cashed out notice and unboxed Money/Gems, and the hybrid loading backdrop (pushed to 243aea8).
 148. 2026-11-11 — Alex Nguyen — Sized the Bosses button like the HUD column buttons (right of Roblox's buttons where it would reach the left column) and set the loading screen backdrop to intro draft B3 Sakura gate (pushed to 0cbba12; ui_boss 501/0, ui_hud 16/0, ui_buttons 15/0).
+149. 2026-11-11 — Alex Nguyen — Removed the Dojos entirely (plots, Dojo squad, workshop boost and levels, WORKSHOP panel, Dojo Master off sale) with a one-time Money refund at save VERSION 19 (design doc 4.43), retired their tests, and rendered 3 Spawn showpiece plaza drafts for the owner's pick (29faa0e; 9 server scenarios and 4 UI scenarios pass, the ui_layout / ui_upgrades / ui_panels reds match the pre-change baseline).
 
 ## What's next
-**Confirm the loading backdrop (image 81384921997104) shows once Roblox finishes reviewing it, finish the `npc` harness run, then open the hud-tech PR into main with a fresh merge review.**
+**Owner picks a Spawn showpiece draft (A, B or C at https://claude.ai/artifact/TKTVuDfuvuZCCmWMntTgRx), then build it: positions in build_plaza.py, SpawnArea, LeaderboardConfig, CheckpointConfig, PlazaWayfinding and the spawn_area test constants, PlazaAssets regenerated, and design doc 4.43 flipped from proposed to approved.**
 
-**Why this is next:** every hud-tech deliverable is pushed on the integration branch; the PR into main needs the backdrop seen in game and green goal-level checks first.
+**Why this is next:** the Dojo ring is gone but the plaza still sits in the Two wings layout; the showpiece build and its Studio shots depend on the owner's choice, and rule 4.24 requires the Blender draft to be picked before any Studio layout work.

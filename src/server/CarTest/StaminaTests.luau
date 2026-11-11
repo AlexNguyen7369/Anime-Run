@@ -167,7 +167,7 @@ function Tests.team()
 		for i, case in cases do
 			case.Uid = base + i
 			if case.Record then
-				case.Record.Money, case.Record.Speed, case.Record.WorkshopLevel = 10, 1000, 1
+				case.Record.Money, case.Record.Speed = 10, 1000
 				records[data.KeyFor(case.Uid)] = case.Record
 			end
 		end

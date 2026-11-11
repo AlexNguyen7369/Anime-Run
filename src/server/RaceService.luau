@@ -543,7 +543,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 
 	-- Each team slot's cruise is fixed when the run starts (design doc 4.13 / 4.19): swaps read this snapshot, so a
-	-- workshop stat, potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
+	-- potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
 	local fixedCruise = {}
 	function snapshotCruise()
 		table.clear(fixedCruise)

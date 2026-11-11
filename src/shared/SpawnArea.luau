@@ -5,7 +5,7 @@
 -- 4): the economy wing (Shop, Potions, Market, Index on one row facing the path), the summon wing (Best Roll, the Sidekick
 -- summon altar, the Legends) and the Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
 -- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
--- the Market included. The 7 Dojo plots (Shared/WorkshopConfig) ring the plaza; this floor runs under them.
+-- the Market included.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
 -- Track 1 starts west of the plaza (local x 0) heading -Z and Track 2 runs along local z 90, so the plaza stays east
 -- of x 22 and south of z 68, clear of the Track 1 / Track 2 biome gates at (34, -204) and (79, 56), and the start
@@ -22,7 +22,7 @@ local UiTheme = require(script.Parent.UiTheme)
 local SpawnArea = {}
 
 SpawnArea.CENTRE = Vector2.new(118, -80) -- local (x, z) of the plaza centre (the Floor's centre and the Spawn)
-SpawnArea.FLOOR_SIZE = Vector2.new(188, 220) -- studs (x, z); runs under part of the Dojo ring (placeholder)
+SpawnArea.FLOOR_SIZE = Vector2.new(188, 220) -- studs (x, z) (placeholder; the old Dojo ring is gone, design doc 4.43)
 SpawnArea.PAD_CENTRE = Vector2.new(34, -2) -- local (x, z) of the StartPad, under the torii
 SpawnArea.PAD_SIZE = 16
 SpawnArea.TOP_Y = 1 -- floor top = road top

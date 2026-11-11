@@ -138,13 +138,10 @@ UiScenarios.Names = {
 	-- Racing part (win pads, NPC label) here; its hub pedestal part runs in the on_foot fixture run
 	-- (UiSpec.Progression.FixtureChecks: StreamingEnabled streams the hub out while the main run races)
 	"ui_billboards",
-	-- (ui_workshop_modal reads the owned plot near the hub: it runs only through the on_foot fixture run)
 	"ui_panels",
 	"ui_upgrades",
 	"ui_progression_layout",
 	"ui_progression_hud",
-	-- Workshop Showcase (docs/WORKSHOP_SPEC.md "5b. Showcase"); also after showcase_filled (UiSpec.Progression.FixtureChecks)
-	"ui_workshop_showcase",
 	"ui_rebirth",
 	"ui_daily_boosts",
 	"ui_shop",
@@ -199,7 +196,6 @@ K.STATES = {
 	{ Name = "settings_open", Open = { "RacerSettings/Panel" } },
 	{ Name = "rebirth_open", Open = { "RacerRebirth/Panel" } },
 	{ Name = "upgrades_open", Open = { "RacerUpgrades/Panel" } },
-	{ Name = "workshop_open", Open = { "RacerWorkshop/Panel" } },
 	{ Name = "backpack_open", Open = { "RacerBackpack/Panel" } },
 	{ Name = "shop_open", Open = { "ShopUi/Backdrop" } },
 	{ Name = "market_open", Open = { "MarketUi/Backdrop" } },
@@ -1341,8 +1337,7 @@ simRect = function(obj, ctx)
 		else
 			local path = pathOf(obj)
 			local dependencies = {}
-			-- RacerWorkshop panels are Band.Fit panels (UiSpec.BandPanels); RacerUpgrades/Panel is the
-			-- full-screen hex tree (UpgradeTreeView: Size (1, 0, 1, 0), no runtime fit), solved like any node.
+			-- RacerUpgrades/Panel is the full-screen hex tree (UpgradeTreeView: Size (1, 0, 1, 0), no runtime fit), solved like any node.
 			-- (The workshop rate label RacerProgression/WorkshopRate is retired: no idle gain, design doc 4.19, owner 2026-11-03.)
 			local isRacerPanel = UiResponsive.IsRacerPanel(path)
 			local bandMax = UiSpec.BandPanels[path] -- Client/PanelBand.Fit panels (Shop, Market)
@@ -8822,8 +8817,6 @@ function Click.attrSnapshot()
 		TrackCamera = attr("TrackCamera") ~= false, -- unset = ON (docs/CAMERA_SPEC.md)
 		EquippedCar = attr("EquippedCar"),
 		StatPoints = attr("StatPoints") or 0,
-		WorkshopLevel = attr("WorkshopLevel"),
-		Showcase = attr("Showcase"), -- Workshop Showcase ids joined by "," (showcase_* clicks)
 		Checkpoint = attr("Checkpoint"), -- checkpoint_not_optimistic (was never captured: the check compared to nil)
 		ProgressionMoney = player:FindFirstChild("leaderstats") and player.leaderstats.Money.Value,
 		ProgressionOwned = player:FindFirstChild("Upgrades") and #player.Upgrades:GetChildren() or 0,
@@ -8861,7 +8854,7 @@ function Click.firedSince(preSpy)
 	return fired
 end
 
--- A key press from UiSpec.Clicks (Key = "Escape", ...), other than the workshop E prompt (Progression.RunInput).
+-- A key press from UiSpec.Clicks (Key = "Escape", ...).
 -- A LocalScript can not send a key (VirtualInputManager needs plugin security), so ui-tester presses it (KEY
 -- protocol in UiSpec.Clicks). Prepare is honoured like a click (AttrIs / AttrNot / Showcase are required, Open /
 -- Closed panels are set); the harness records the REAL InputBegan for that key, then checks Expect exactly: every
@@ -9017,18 +9010,8 @@ function UiScenarios.RunClick(id)
 	end
 	-- A MANUAL check (UiSpec.Clicks Manual) run by hand: same checks; the result says it is the manual one
 	res.manual = spec.Manual
-	if spec.Key and spec.Expect.WorkshopOpen == nil then
+	if spec.Key then
 		return Click.runKey(spec, res)
-	elseif spec.Key then
-		-- The workshop E prompt contracts (Expect.WorkshopOpen) keep their own fixture-checked runner
-		return Progression.RunInput(spec, res, {
-			check = check,
-			find = findPath,
-			frames = frames,
-			player = player,
-			setPanels = setPanels,
-			allPanels = allPanels,
-		})
 	end
 	waitGuis()
 	local prep = spec.Prepare or {}
@@ -9112,19 +9095,6 @@ function UiScenarios.RunClick(id)
 		end
 		tileId = team[1]
 		path = string.gsub(path, "{equipped}", tileId)
-	end
-	-- Workshop Showcase rows (UiSpec.WorkshopShowcase): {showcase_unshown} = the highest-bonus owned rollable car not
-	-- shown, {showcase_shown} = the first shown id. Kept apart from tileId (that one scrolls the Index grid).
-	local showcaseId = nil
-	for _, token in { "{showcase_unshown}", "{showcase_shown}" } do
-		if string.find(path, token, 1, true) then
-			showcaseId = Progression.ShowcaseTarget(token == "{showcase_shown}")
-			if not showcaseId then
-				stateMissing(res, "target_row", "showcase_owned", "no " .. token .. " car")
-				return res
-			end
-			path = string.gsub(path, token, UiSpec.WorkshopShowcase.RowPrefix .. showcaseId)
-		end
 	end
 	-- A bag tile's Entry (UiSpec.Backpack.EntryTokens) or the picker's first card: known only at the click.
 	for token, source in UiSpec.Backpack.EntryTokens do
@@ -9379,16 +9349,6 @@ function UiScenarios.RunClick(id)
 			ready == true
 		)
 		if not ready then
-			restore()
-			return res
-		end
-	end
-	-- Showcase clicks: Remotes.SetShowcase must be the showcase_spy pass-through proxy (logs, then the real handler)
-	if spec.Gui == "RacerWorkshop" and string.find(spec.Path, "^Panel/Showcase/") then
-		local proxy = ReplicatedStorage.Remotes:FindFirstChild(UiSpec.WorkshopShowcase.Remote)
-		local spied = proxy ~= nil and proxy:GetAttribute("UiTestSpied") == true
-		check(res, "showcase_spy_before_click", spied, true, spied)
-		if not spied then
 			restore()
 			return res
 		end
@@ -9670,8 +9630,6 @@ function UiScenarios.RunClick(id)
 			wantArg = rowStat
 		elseif argSpec == "upgrade_id" then
 			wantArg = upgradeId
-		elseif type(argSpec) == "string" and string.sub(argSpec, 1, 9) == "showcase_" then
-			wantArg = Progression.ShowcaseWant(argSpec, pre.Showcase, showcaseId) -- the id list SetShowcase gets
 		end
 		local names = {}
 		for _, f in fired do
@@ -9709,22 +9667,6 @@ function UiScenarios.RunClick(id)
 			end
 			ok = #fired == 1 and names[1] == want
 		end
-		if type(wantArg) == "table" then
-			-- SetShowcase(ids): exactly one argument, the promised id list (Progression.SameShowcase)
-			names = {}
-			for _, f in fired do
-				local a = f.args[1]
-				table.insert(
-					names,
-					f.name .. "(" .. (type(a) == "table" and table.concat(a, ",") or tostring(a)) .. ")"
-				)
-			end
-			want = expect.Remote.Name .. "(" .. table.concat(wantArg, ",") .. ")"
-			ok = #fired == 1
-				and fired[1].name == expect.Remote.Name
-				and #fired[1].args == 1
-				and Progression.SameShowcase(expect.Remote.Arg, fired[1].args[1], wantArg)
-		end
 		if ok and (expect.Remote.Arg == "upgrade_id" or expect.Remote.Arg == "none") then
 			ok = #fired[1].args == (expect.Remote.Arg == "none" and 0 or 1)
 		end
@@ -9742,7 +9684,7 @@ function UiScenarios.RunClick(id)
 	for _, cond in expect.After or {} do
 		if cond == "progression_not_optimistic" then
 			local now = Click.attrSnapshot()
-			for _, key in { "WorkshopLevel", "ProgressionMoney", "ProgressionOwned" } do
+			for _, key in { "ProgressionMoney", "ProgressionOwned" } do
 				check(res, "unchanged_" .. string.lower(key), now[key], pre[key], now[key] == pre[key])
 			end
 		elseif cond == "tree_zoomed_in" or cond == "tree_zoomed_out" then
@@ -9753,10 +9695,6 @@ function UiScenarios.RunClick(id)
 				and type(was) == "number"
 				and (if cond == "tree_zoomed_in" then now > was else now < was)
 			check(res, cond, now or "missing", (cond == "tree_zoomed_in" and "> " or "< ") .. tostring(was), ok)
-		elseif cond == "workshop_rejection_shown" then
-			local result = findPath("RacerWorkshop/Panel/Result")
-			local text = result and allText(result) or ""
-			check(res, cond, text, "server rejection money", string.find(string.lower(text), "money", 1, true) ~= nil)
 		elseif cond == "autorace_label_follows_server" then
 			check(res, cond, allText(button), UiSpec.Hud.AutoLabel, allText(button) == UiSpec.Hud.AutoLabel)
 		elseif cond == "auto_pill_tint_follows_server" then
@@ -10230,7 +10168,7 @@ function UiScenarios.RunClick(id)
 		elseif shopMarket.After[cond] then
 			shopMarket.After[cond](res, { pre = pre, spec = spec, path = path })
 		elseif Progression.After[cond] then
-			-- weather icon / card (UiSpec.Weather), Workshop Showcase (UiSpec.WorkshopShowcase)
+			-- weather icon / card (UiSpec.Weather)
 			Progression.After[cond](
 				res,
 				{ pre = pre, wantArg = wantArg, argSpec = expect.Remote and expect.Remote.Arg }

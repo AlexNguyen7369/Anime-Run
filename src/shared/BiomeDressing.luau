@@ -1057,7 +1057,7 @@ end
 
 -- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
 -- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
--- tree's canopy above the floor or a workshop plot): its parts block as vertical columns.
+-- tree's canopy above the floor): its parts block as vertical columns.
 -- `targets` (default trackModels): only their props are tested, against the roads of trackModels (a late-built track,
 -- design doc 4.25).
 function BiomeDressing.Prune(trackModels, extra, targets)

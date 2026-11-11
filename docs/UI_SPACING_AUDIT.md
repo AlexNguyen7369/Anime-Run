@@ -11,15 +11,15 @@ at about 0.56 scale, numbers below are on-screen px). Screenshots read side by s
 
 | # | Finding | Where | Effect |
 |---|---|---|---|
-| G1 | Three different header systems: Index/Quests (overhanging logo, title above the strip, tabs in their own row, footer bar); PanelFrame panels (logo plus full-width strip, close inside the strip); Racer panels (Rebirth, Stats, Settings: tabs inside the strip, no logo or title); plus Workshop, Duel, Bosses and Upgrades with no strip or logo at all | every panel | The game does not read as one UI |
+| G1 | Three different header systems: Index/Quests (overhanging logo, title above the strip, tabs in their own row, footer bar); PanelFrame panels (logo plus full-width strip, close inside the strip); Racer panels (Rebirth, Stats, Settings: tabs inside the strip, no logo or title); plus Workshop (panel removed 2026-11-11), Duel, Bosses and Upgrades with no strip or logo at all | every panel | The game does not read as one UI |
 | G2 | Header-to-content gap varies: 2 (Sidekicks), 6 (Tracks hint), 12 (Shop, Market, Backpack), 24 (Daily), about 38 (Index, Quests) | all | Uneven top rhythm |
 | G3 | Side margins vary: 10 (Rebirth), 11 (Settings), 12 (Shop, Backpack, Stats), 14 (Daily), 16 (Tracks), 32 (Index, Quests) | all | Content does not line up with the frame art the same way twice |
 | G4 | Content runs into or past the bottom: Daily cards cut off (bottom margin -10), Backpack second row hidden under the slot bar, Sidekicks gem column cut, Shop/Tracks rows cut mid-card at the scroll edge | Daily, Backpack, Sidekicks, Shop, Tracks | Looks broken, not scrolled |
 | G5 | No type scale: 7 to 17 different text heights per panel (Shop 17, Index 10, Backpack 10, Sidekicks 11) | all | Busy, inconsistent hierarchy |
-| G6 | Title casing mixed: "Shop", "Market", "Backpack", "Tracks", "Settings" vs "INDEX", "QUESTS", "BOSSES", "DAILY REWARDS", "WORKSHOP UPGRADE" | all | Inconsistent |
-| G7 | Close button: 52 px inside the strip (PanelFrame), 42 px overhanging the top edge (Index, Quests), small inside the strip (Racer), plain red square (Duel, Bosses, Workshop) | all | Four close styles |
+| G6 | Title casing mixed: "Shop", "Market", "Backpack", "Tracks", "Settings" vs "INDEX", "QUESTS", "BOSSES", "DAILY REWARDS", "WORKSHOP UPGRADE" (panel removed 2026-11-11) | all | Inconsistent |
+| G7 | Close button: 52 px inside the strip (PanelFrame), 42 px overhanging the top edge (Index, Quests), small inside the strip (Racer), plain red square (Duel, Bosses, Workshop (panel removed 2026-11-11)) | all | Four close styles |
 | G8 | The body art's baked diagonal stripes (bottom-left) cross content: Market Potions tab, Backpack Relics tab, Rebirth requirements bar, Bosses spawn button | Market, Backpack, Rebirth, Bosses | Art collides with controls |
-| G9 | Button shapes mixed: 4 px Index buttons, 8 px snapped corners (Sidekicks, Tracks chip), pills (Sort, Search, Settings knob, Workshop BEST 3), rounded light Upgrades zoom buttons | all | Inconsistent |
+| G9 | Button shapes mixed: 4 px Index buttons, 8 px snapped corners (Sidekicks, Tracks chip), pills (Sort, Search, Settings knob, Workshop BEST 3 (panel removed 2026-11-11)), rounded light Upgrades zoom buttons | all | Inconsistent |
 | G10 | Header toolbars squeezed into the strip: Backpack (Sort, Mass sell, Search), Sidekicks (gems, rotation, pity bars), Settings (tabs), Rebirth (tabs), Stats (free points) | 5 panels | Cramped, unequal heights |
 | G11 | Heading colours differ for the same role: WARNING red, NEXT REBIRTH yellow, REQUIREMENTS purple, Daily green, Bosses "Details" gold | Rebirth, Daily, Bosses | No single section-heading style |
 | G12 | Small outlined text turns to blobs: Stats value "0 pts x1 > x1.02", Shop "Account-bound", Backpack rail labels at 6-8 px ("Charac", "Sidekic" truncated) | Stats, Shop, Backpack | Unreadable |
@@ -52,7 +52,7 @@ at about 0.56 scale, numbers below are on-screen px). Screenshots read side by s
 
 **Tracks** (760 x 350). Hint 6 px under the header; flag logo overhangs 28 px; number diamond sticks out past the plate's left end; description reaches the plate's right edge.
 
-**Workshop**. No strip or logo, centred title; plain text rows; four button styles (pill BEST 3, outline EMPTY slots, flat SHOW, full-width BUY); stat tabs squeezed at the bottom-left.
+**Workshop** (panel removed 2026-11-11). No strip or logo, centred title; plain text rows; four button styles (pill BEST 3, outline EMPTY slots, flat SHOW, full-width BUY); stat tabs squeezed at the bottom-left.
 
 **Duel pick / invite**. No strip or logo, plain title, small close; subtitle 10 px; empty space (needs an opponent to fill).
 
@@ -76,5 +76,5 @@ Desktop design px on a 4 px grid. Phones scale the same tokens.
 1. `AnimeSkin.Frame` (header, toolbar row, insets, footer) and the type tokens in `AnimeSkin`.
 2. Panels on PanelFrame: Shop, Market, Backpack, Daily, Sidekicks, Tracks.
 3. Racer panels: Rebirth, Stats, Settings (header rebuilt to the standard; UI tests pin these rects, so tests move with them).
-4. Own-built panels: Workshop, Upgrades title bar, Duel, Bosses, boss Invite and Team picker, Reward popup, StarterPick, Item menu, Gift picker, Loser screen.
+4. Own-built panels: Workshop (panel removed 2026-11-11), Upgrades title bar, Duel, Bosses, boss Invite and Team picker, Reward popup, StarterPick, Item menu, Gift picker, Loser screen.
 5. Screenshots of every panel, desktop and phone, to the owner.

@@ -265,7 +265,7 @@ local function obstacleGrid(trackModels, extra)
 			add(pad)
 		end
 	end
-	-- extra: one root Instance or a list of roots (spawn area, Dojos)
+	-- extra: one root Instance or a list of roots (the spawn area)
 	for _, root in (typeof(extra) == "Instance" and { extra } or extra or {}) do
 		for _, part in baseParts(root) do
 			add(part)
@@ -1870,7 +1870,7 @@ function Tests.assets_ip()
 	end
 	flag("live_tracks", #models == #BIOMES, #models, #BIOMES)
 	local extra = {}
-	for _, name in { "SpawnArea", "Workshops" } do
+	for _, name in { "SpawnArea" } do
 		local root = Workspace:FindFirstChild(name)
 		flag(("live_%s"):format(string.lower(name)), root ~= nil)
 		table.insert(extra, root)
