@@ -155,8 +155,9 @@
 151. 2026-11-11 — Alex Nguyen — Verified the Elf Mage in Studio (targeted server and UI scenarios, one live event per boss) and fixed her descent time, the Dodge bar icon on a boss change and the golem's broken FistL appearance (fd8c141, c7b7ed8 on orch/boss-mage/verify).
 152. 2026-11-11 — Alex Nguyen — Studio round 2 on the Elf Mage: camera carried round her small ring (in frame at 46 and 800 studs/s), exhaustion view Down 22, smaller hit effects without smoke at her, golem moved inside the kerb (6aaf79c, 226d6bd).
 153. 2026-11-11 — Alex Nguyen — Built the Elf Mage boss end to end (bake and uploads, server pick and rhythm-circle judge, colosseum, rig, VFX, UI, tests), fixed the small-ring camera, exhaustion view, hit smoke and golem spot from Studio captures, and pushed feature/alex/boss-mage with targeted boss scenarios green.
+154. 2026-11-11 — Alex Nguyen — Capped run speed at 100 studs/s (proposed) in the Elf Mage's colosseum by the owner's ruling, keeping the damage speed scale and shown cruise, with checks in `boss_mage_arena` and `boss_mage_event`.
 
 ## What's next
-**Owner plays `/boss mage` and rules on the open Elf Mage questions (`docs/OWNER_QUESTIONS.md` 2026-11-11), then run the full harness and open the boss-mage PR into main (m12).**
+**Run the full harness on `feature/alex/boss-mage`, then open the boss-mage PR into main and get a fresh merge review (m12).**
 
-**Why this is next:** real key and click dodges, the spin at high speed and phones were not confirmed by a person, and the PR needs the goal-level harness and the owner's rulings on the proposed defaults.
+**Why this is next:** the owner said to finish end to end, and the goal's merge gate is the full harness plus a fresh reviewer's approval.
