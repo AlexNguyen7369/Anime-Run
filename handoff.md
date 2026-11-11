@@ -2,6 +2,18 @@
 
 History: `current_progress.md`, `git log`.
 
+## UI icons, wider panels, techy dojo spawn, boss screens: proposals (2026-11-10, orchestrator)
+- Owner asked for: a button icon redesign, wider panels ("Panels wider", same height), a techy dojo spawn (both hybrid and full cyber references; reach: plaza, player Dojos, loading screen), an enclosed spawn as one direction (tracks hidden until auto racing), and boss team selection plus boss rewards screens.
+- Proposal page (concept drawings, nothing built): https://claude.ai/artifact/ABuVWYy2pXgR58nSH3k79c. Options: Icons A glossy / B anime emblem / C neon; Panels A 1200x620 / B fill to the side columns; Spawn H hybrid / F full cyber / E enclosed; Team T1 lineup / T2 versus; Rewards R1 banner / R2 chest reveal.
+- Owner 2026-11-10 approved: panels A (1200 x 620), spawn E + F (enclosed cyber dojo), team T2 Versus, rewards R1. These are recorded in design doc 4.24 and 4.42, BOSS_EVENT_SPEC and goal `hud-tech`. Not committed: the same files hold another session's uncommitted boss-audit edits.
+- Icons: the owner asked for more renditions mixing the current icons with the Index look. Round 2 has 6 options: https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty. Owner picked Gold badge (rendition 5), recorded in 4.40. Tile frames and layout (6 tiles, L1-L3, keybind and NEW extras), from the owner's reference shot: https://claude.ai/artifact/BsGoBYpDW5AKTsmoFzDHjv. Owner 2026-11-10 picked Tile 1 gold frame (not colour coded) and layout L2, recorded in 4.40; no keybinds and no NEW tag. Next: h1, source PNGs for owner review.
+- h1 sources drawn: `assets/ui/hud_badges/` holds 15 Gold badge PNGs (512 px, today's art inside the badge, a new Boss icon; Auto is split into AutoBase plus AutoArrows) and HudTile.png. Shown to the owner, not uploaded or wired yet.
+- h4 draft: `tools/blender/plaza/build_cyber_plaza.py` (headless; it never touches the live Blender, which holds another session's layouts.blend) renders `assets/plaza_draft/Cyber_*.png`. Review page: https://claude.ai/artifact/174Ko7zqGQcVzJyLEeEdzb. Waiting on the owner's notes.
+- Hybrid variant of the same enclosure (`THEME=hybrid`, renders `assets/plaza_draft/Hybrid_*.png`), compared side by side with full cyber: https://claude.ai/artifact/9zTN4a94vQkGDZAeZWadN3. Owner 2026-11-10: Full Cyber, draft approved (h4 done). Next: h5 Studio build.
+- Owner 2026-11-10: walking into the gate and turning on Auto race both open the door (4.24). Icons: original art inside the gold frame tile, with no badge (4.40). `assets/ui/hud_badges/` now holds only Boss.png and HudTile.png.
+- `Client/BossRewardPopup` still has the old PanelFrame header and the red X, against 4.42 (game-wide skin). This is a fix that needs no new rule.
+- Inventory: HUD icon ids are in `RollToast/Ui/HudIcons.luau`; only Auto and Index have source PNGs (`assets/ui/`).
+
 ## Auto sell in Settings, Kami (2026-11-09, owner)
 - Owner 2026-11-09: merge everything onto one port. `feature/alex/anime-world` now holds `feature/alex/boss-polish` and `origin/main` (merge 4816af4). Rojo `34873` serves the main checkout; 34874 (`b4`) and 34875 are stopped. Older notes saying 34873 serves `p2` are history. The "remove red tint" edit is committed on `boss-polish` (a7ea4e4) and merged, owner approved 2026-11-09. Not run in Studio.
 - Branch `feature/alex/autosell-settings` (from `feature/alex/anime-world` at `bc4f693`), pushed, not merged. Worktree `.claude/worktrees/autosell-settings`.
