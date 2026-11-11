@@ -1,7 +1,7 @@
 --!nonstrict
--- Builds the Dojo plots (docs/WORLD_REDESIGN_SPEC.md section 5; the car garage kit is scrapped, section 1): a steel
--- shell with a plated training floor (design doc 4.24 "Enclosed cyber dojo", owner 2026-11-10; Server/CyberDojo adds
--- the level tier's roof, screens and rim lights), and unchanged gameplay targets.
+-- Builds the Dojo plots (docs/WORLD_REDESIGN_SPEC.md section 5; the car garage kit is scrapped, section 1): a warm wood
+-- shell with a plank training floor on a stone plot (design doc 4.24 "Hybrid look", owner 2026-11-10; Server/CyberDojo
+-- adds the level tier's roof, screens and rim lights), and unchanged gameplay targets.
 -- Every part is anchored. A plot CFrame
 -- (Workshop.PlotCFrame) sits at the plot centre on the floor top, LookVector = the open front (toward the hub), so in
 -- plot space the front edge is at z = -PLOT_SIZE / 2 and the back at +PLOT_SIZE / 2.
@@ -13,13 +13,13 @@ local UiTheme = require(script.Parent.UiTheme)
 
 local WorkshopBuilder = {}
 
--- Steel palette (proposed; Shared/CyberPlaza)
-local PLOT_COLOR = Color3.fromRGB(30, 32, 44) -- the plot's slab
-local FLOOR_COLOR = Color3.fromRGB(58, 62, 78) -- plated training floor
-local WALL_COLOR = Color3.fromRGB(44, 47, 62) -- steel walls
-local BEAM_COLOR = Color3.fromRGB(70, 74, 90)
-local TILE_COLOR = Color3.fromRGB(36, 38, 50)
-local TRIM_COLOR = Color3.fromRGB(220, 60, 40)
+-- Warm palette (proposed; Shared/CyberPlaza Colors)
+local PLOT_COLOR = Color3.fromRGB(168, 142, 112) -- the plot's stone slab
+local FLOOR_COLOR = Color3.fromRGB(176, 128, 82) -- plank training floor
+local WALL_COLOR = Color3.fromRGB(122, 74, 42) -- wood walls
+local BEAM_COLOR = Color3.fromRGB(78, 46, 28)
+local TILE_COLOR = Color3.fromRGB(96, 54, 44)
+local TRIM_COLOR = Color3.fromRGB(255, 196, 70) -- gold
 local UPGRADE_COLOR = Color3.fromRGB(70, 190, 255)
 
 local BASE_HEIGHT = 0.2
@@ -106,7 +106,7 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 	end
 
 	local floor =
-		part(model, "Floor", Vector3.new(SHELL, 0.2, SHELL), at(0, 0.1, 0), FLOOR_COLOR, Enum.Material.DiamondPlate)
+		part(model, "Floor", Vector3.new(SHELL, 0.2, SHELL), at(0, 0.1, 0), FLOOR_COLOR, Enum.Material.WoodPlanks)
 	-- Three plain walls (front open toward the hub).
 	local walls = {
 		BackWall = { Vector3.new(SHELL, 12, 1), Vector3.new(0, 6.2, half - 0.5) },
@@ -114,16 +114,16 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 		RightWall = { Vector3.new(1, 12, SHELL), Vector3.new(half - 0.5, 6.2, 0) },
 	}
 	for name, spec in walls do
-		part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), WALL_COLOR, Enum.Material.Metal)
+		part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), WALL_COLOR, Enum.Material.WoodPlanks)
 	end
-	-- A steel eave over the back wall and a lintel over the open front (decoration: no collision)
+	-- A tiled eave over the back wall and a lintel over the open front (decoration: no collision)
 	for name, spec in
 		{
 			EaveBack = { Vector3.new(SHELL + 4, 0.8, 4), Vector3.new(0, 12.8, half) },
 			EaveFront = { Vector3.new(SHELL + 4, 0.8, 4), Vector3.new(0, 12.8, -half) },
 		}
 	do
-		local eave = part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), TILE_COLOR, Enum.Material.Metal)
+		local eave = part(model, name, spec[1], at(spec[2].X, spec[2].Y, spec[2].Z), TILE_COLOR, Enum.Material.Slate)
 		eave.CanCollide = false
 		eave.CanQuery = false
 	end
@@ -191,7 +191,7 @@ function WorkshopBuilder.BuildWorkshop(level, plotCFrame)
 			Vector3.new(7, 0.4, 9),
 			at(x, 0.4, WorkshopConfig.SHOWCASE_Z),
 			BEAM_COLOR,
-			Enum.Material.Metal
+			Enum.Material.WoodPlanks
 		)
 		pedestal.CanCollide = false
 		pedestal.CanTouch = false

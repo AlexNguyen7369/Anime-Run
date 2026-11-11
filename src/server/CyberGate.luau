@@ -3,7 +3,9 @@
 -- scanning ring over the StartPad, and a closed blast door in the wall behind it, on the spawn-to-pad axis. The run
 -- still starts as before (CarService: the StartPad touch or Remotes.SetAutoRace, both through SetAutoRace, which sets
 -- the player attribute AutoRacing); Client/CyberPlaza opens the door for that player from AutoRacing. The torii stand-in
--- (SpawnArea.StartGate) stays for its collision and test contract, unseen. Sizes and colours are proposed.
+-- (SpawnArea.StartGate) stays for its collision and test contract, unseen. Hybrid look (4.24, owner 2026-11-10): a gold
+-- arch with a soft cyan scanning ring, red lacquer door leaves with gold bands in a dark wood frame, a lacquer RACE
+-- START board on the header. Sizes and colours are proposed.
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -46,14 +48,14 @@ local function arch(parent, pad)
 			"HoloArch",
 			Vector3.new(length, ARCH_THICKNESS, ARCH_THICKNESS),
 			frame * CFrame.Angles(0, 0, a) * CFrame.new(0, ARCH_RADIUS, 0),
-			C.Cyan
+			C.Gold
 		)
 	end
 	-- The scanning ring turns about its vertical axis on clients near it (Client/BiomeAmbience, tag BiomeSpin)
 	local ring = Instance.new("Model")
 	ring.Name = "ScanRing"
 	local centre = frame * CFrame.new(0, SCAN_HEIGHT, 0)
-	CyberPlaza.Ring(ring, "Scan", centre, SCAN_RADIUS, 0.4, C.Magenta, 16)
+	CyberPlaza.Ring(ring, "Scan", centre, SCAN_RADIUS, 0.4, C.Cyan, 16)
 	ring.WorldPivot = centre
 	ring:SetAttribute("BasePivot", centre)
 	ring.Parent = parent
@@ -69,8 +71,8 @@ local function door(parent, pad)
 			"DoorFrame",
 			Vector3.new(FRAME, H + 6, T + 2),
 			d * CFrame.new(side * (W + FRAME) / 2, (H + 6) / 2, 0),
-			C.Steel,
-			Enum.Material.Metal,
+			C.DarkWood,
+			Enum.Material.Wood,
 			true
 		)
 		Neon(
@@ -78,7 +80,7 @@ local function door(parent, pad)
 			"DoorFrameGlow",
 			Vector3.new(0.6, H, 0.4),
 			d * CFrame.new(side * (W / 2 + 1), H / 2, front - 0.2),
-			C.Magenta
+			C.Amber
 		)
 
 		-- A leaf: a Model the client slides by its Slide attribute (world studs) into the frame and the wall
@@ -90,18 +92,19 @@ local function door(parent, pad)
 			"Leaf",
 			Vector3.new(W / 2, DH, T * 0.8),
 			d * CFrame.new(x, DH / 2, 0),
-			C.DoorSteel,
-			Enum.Material.Metal,
+			C.Lacquer,
+			Enum.Material.SmoothPlastic,
 			true
 		)
-		Neon(leaf, "Seam", Vector3.new(0.5, DH, 0.2), d * CFrame.new(side * 0.25, DH / 2, -0.85), C.Magenta)
+		Neon(leaf, "Seam", Vector3.new(0.5, DH, 0.2), d * CFrame.new(side * 0.25, DH / 2, -0.85), C.Gold)
 		for k = 1, CHEVRONS do
-			Neon(
+			Part(
 				leaf,
 				"Chevron",
-				Vector3.new(W / 2 - 2, 1, 0.2),
+				Vector3.new(W / 2 - 2, 0.8, 0.2),
 				d * CFrame.new(x, k * DH / (CHEVRONS + 1), -0.85),
-				C.Gold
+				C.Gold,
+				Enum.Material.Metal
 			)
 		end
 		leaf:SetAttribute("Slide", d.RightVector * side * W / 2)
@@ -113,11 +116,30 @@ local function door(parent, pad)
 		"DoorHeader",
 		Vector3.new(W, H + 6 - DH, T + 2),
 		d * CFrame.new(0, DH + (H + 6 - DH) / 2, 0),
-		C.Steel,
-		Enum.Material.Metal,
+		C.DarkWood,
+		Enum.Material.Wood,
 		true
 	)
-	CyberPlaza.Sign(parent, "RACE START", (d * CFrame.new(0, DH + 9, front - 0.1)).Position, d.LookVector, 4.5, C.Cyan)
+	-- A lacquer sign board behind the header's text, gold-edged
+	local board = d * CFrame.new(0, DH + 9, front - 0.05)
+	Part(parent, "SignBoard", Vector3.new(W + 2 * FRAME, 8, 0.2), board, C.Lacquer) -- spans the frame posts: the text is 32 wide
+	Part(
+		parent,
+		"SignTrim",
+		Vector3.new(W + 2 * FRAME + 1, 0.5, 0.25),
+		board * CFrame.new(0, 4.1, 0),
+		C.Gold,
+		Enum.Material.Metal
+	)
+	Part(
+		parent,
+		"SignTrim",
+		Vector3.new(W + 2 * FRAME + 1, 0.5, 0.25),
+		board * CFrame.new(0, -4.1, 0),
+		C.Gold,
+		Enum.Material.Metal
+	)
+	CyberPlaza.Sign(parent, "RACE START", (d * CFrame.new(0, DH + 9, front - 0.2)).Position, d.LookVector, 4.5, C.Gold)
 end
 
 function CyberGate.Build(parent, spawnArea)
