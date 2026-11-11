@@ -22,7 +22,7 @@
 --     barrage_in with no events), Approved, Bind, Scale (studs per unit), Sample(move, t) -> parts, root (studs), Schedule,
 --     RiseAt, CycleSeconds, SampleGolem(t) -> scale (0 = hidden), parts, locs, root; GolemBind (15 blocks).
 -- Proposed values the plan fixes and these tests assert literally (owner may retune): her move chat lines, camera pitch 14,
---   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 32 }.
+--   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }.
 -- NOT reachable from the schedule: two Crushed stacks. Her cycle (31.55 s) has one Slam, so no two fall within 15 s; the
 --   stacking check runs only if a schedule ever has them (metric crushed_two_stacks_found).
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_mage_event,boss_mage_arena,boss_mage_anim", then CarTestRun = true.
@@ -884,7 +884,7 @@ function Tests.make()
 			end
 			eq("wait_camera_out_28", wait.Out, 28)
 			eq("wait_camera_up_40", wait.Up, 40)
-			eq("wait_camera_down_32", wait.Down, 32)
+			eq("wait_camera_down_22", wait.Down, 22)
 			local worstOut, worstUp = 0, -math.huge
 			local function judge(eye)
 				worstOut = math.max(worstOut, ((eye - M.Center) * Vector3.new(1, 0, 1)).Magnitude)
