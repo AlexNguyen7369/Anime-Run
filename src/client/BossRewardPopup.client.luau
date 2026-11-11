@@ -18,9 +18,14 @@ local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
--- Placeholders, in the Index frame's units: the chest art and the amount beside it.
-local WIDTH, ART, AMOUNT = 640, 200, 160 -- WIDTH in px at most, the Index's 920 x 620 aspect
+-- R1 "Victory banner" (BOSS_EVENT_SPEC "Rewards", owner 2026-11-10). Proposed: sizes in the Index frame's units, rows
+-- for its 374 unit tall content area (scaled to the area it gets), and the count-up time.
+local WIDTH = 640 * AnimeSkin.Units.W / 920 -- px at most: the old 640 at 920 units wide, so the height stays as before
+local COUNT_SECONDS = 1.2
+local ROWS = { Caption = 40, Damage = 72, Bar = 24, Note = 28 } -- with 8 under the caption and 12 between the others
+local CARD_W = 200
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
+local SHARE_MARK = Color3.fromRGB(235, 20, 30)
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -32,15 +37,10 @@ local function make(class, name, parent, props)
 	return object
 end
 
-local function label(name, parent, props, maxSize)
+local function label(name, parent, props)
 	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
 	props.TextColor3 = props.TextColor3 or Palette.White
-	props.TextScaled = true
-	local text = make("TextLabel", name, parent, props)
-	make("UITextSizeConstraint", "Max", text, { MaxTextSize = maxSize })
-	UiTheme.Stroke(text, 2)
-	return text
+	return make("TextLabel", name, parent, props)
 end
 
 local root = make("ScreenGui", "RacerBossRewards", player:WaitForChild("PlayerGui"), {
@@ -51,16 +51,11 @@ local root = make("ScreenGui", "RacerBossRewards", player:WaitForChild("PlayerGu
 local panel = make("Frame", "Panel", root, {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
+	BackgroundTransparency = 1,
 	Active = true,
 	Visible = false,
 })
-UiTheme.Body(panel)
-UiTheme.Corner(panel, "L")
-UiTheme.Stroke(panel, 3, UiTheme.Outline, true)
-local header = make("Frame", "Header", panel, {
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-})
+local header = make("Frame", "Header", panel, { BackgroundTransparency = 1, BorderSizePixel = 0 })
 -- Title keeps the server's words for the UI tests (UiBossPhase2 reads them exactly); Heading shows them in the standard
 -- header's ALL CAPS, as AnimeSkin.Tab's caption does.
 local title = make("TextLabel", "Title", header, {
@@ -73,48 +68,51 @@ local heading = make("TextLabel", "Heading", header, { Text = "" })
 title:GetPropertyChangedSignal("Text"):Connect(function()
 	heading.Text = title.Text
 end)
-local logo = make("ImageLabel", "Logo", header, { Image = RelicConfig.Chests[RAGA_CHEST].Image })
-local closeButton = make("TextButton", "CloseButton", header, {
-	Text = "X",
-	Font = UiTheme.Font,
-	TextSize = 20,
-	TextColor3 = Palette.White,
-	BackgroundColor3 = Palette.Danger,
-	AutoButtonColor = false,
+local logo = make("ImageLabel", "Logo", header, {})
+local closeButton = make("TextButton", "CloseButton", header, { Text = "" })
+-- Design doc 4.42 and 4.40: the Index frame with the Boss icon as its logo, the ALL CAPS title and the art close.
+local g = AnimeSkin.IndexFrame(
+	panel,
+	{ Header = header, Title = heading, Icon = logo, Logo = Icons.Boss.Image, Close = closeButton }
+)
+local caption = label("DamageCaption", panel, { Text = "TOTAL DAMAGE" })
+local damage = label("Damage", panel, { Text = "" })
+local shareBar =
+	make("Frame", "ShareBar", panel, { BackgroundColor3 = Color3.fromRGB(20, 24, 44), BorderSizePixel = 0 })
+make("UICorner", "Round", shareBar, { CornerRadius = UDim.new(0.5, 0) })
+make("UIStroke", "Edge", shareBar, { Color = AnimeSkin.Ink, Thickness = 2 })
+local shareFill = make("Frame", "Fill", shareBar, {
+	BackgroundColor3 = AnimeSkin.Tint.Gold,
 	BorderSizePixel = 0,
+	Size = UDim2.fromScale(0, 1),
 })
-UiTheme.Corner(closeButton, "M")
-UiTheme.Stroke(closeButton, 3, UiTheme.Outline, true)
--- Design doc 4.42: the Index frame (chest logo: HudIcons has no boss icon, ALL CAPS title, art close); the rows sit
--- in its content area, in its units (place below).
-local g = AnimeSkin.IndexFrame(panel, { Header = header, Title = heading, Icon = logo, Close = closeButton })
-local damage = label("Damage", panel, { Text = "" }, 24)
-local rewards = make("Frame", "Rewards", panel, {
-	BackgroundTransparency = 1,
+make("UICorner", "Round", shareFill, { CornerRadius = UDim.new(0.5, 0) })
+make("Frame", "Mark", shareBar, { -- the share that pays (BossEventConfig.MinDamageShare)
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Position = UDim2.fromScale(Cfg.MinDamageShare, 0.5),
+	Size = UDim2.new(0, 4, 1, 8),
+	BackgroundColor3 = SHARE_MARK,
+	BorderSizePixel = 0,
+	ZIndex = 2,
 })
-local tiles = make("UIListLayout", "List", rewards, {
-	FillDirection = Enum.FillDirection.Horizontal,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	VerticalAlignment = Enum.VerticalAlignment.Center,
-	SortOrder = Enum.SortOrder.LayoutOrder,
-})
-local function chestArt(id, order)
+local shareText = label("Share", panel, { Text = "", TextXAlignment = Enum.TextXAlignment.Right })
+local rewards = make("Frame", "Rewards", panel, { BackgroundTransparency = 1 })
+-- One angular card per reward; each part stays directly in Rewards (UiBossPhase2 reads Rewards/<part>), above its card.
+local function card(order)
+	local frame = make("Frame", "Card" .. order, rewards, { BackgroundTransparency = 1, ZIndex = 1 })
+	AnimeSkin.Card(frame, order % 2 == 1 and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Default)
+	return frame
+end
+local function chestArt(id)
 	return make("ImageLabel", "Chest_" .. id, rewards, {
-		LayoutOrder = order,
 		BackgroundTransparency = 1,
 		Image = RelicConfig.Chests[id].Image,
 		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 3,
 	})
 end
-local ragaChest, adaptedChest = chestArt(RAGA_CHEST, 1), chestArt(ADAPTED_CHEST, 3)
-local money = label("Money", rewards, {
-	LayoutOrder = 2,
-	Text = "$" .. HudFormat.Commas(Cfg.Phase1Money),
-}, 22)
-local gems = label("Gems", rewards, {
-	LayoutOrder = 4,
-	Text = HudFormat.Commas(Cfg.Phase2Gems),
-}, 22)
+local money = label("Money", rewards, { Text = "$" .. HudFormat.Commas(Cfg.Phase1Money), ZIndex = 3 })
+local gems = label("Gems", rewards, { Text = HudFormat.Commas(Cfg.Phase2Gems), ZIndex = 3 })
 local gemPad = make("UIPadding", "Padding", gems, {})
 local gemIcon = make("ImageLabel", "Icon", gems, {
 	AnchorPoint = Vector2.new(1, 0.5),
@@ -122,11 +120,15 @@ local gemIcon = make("ImageLabel", "Icon", gems, {
 	BackgroundTransparency = 1,
 	Image = Icons.Gem.Image,
 	ScaleType = Enum.ScaleType.Fit,
+	ZIndex = 3,
 })
-local note = make("TextLabel", "Note", panel, {
-	BackgroundTransparency = 1,
-	Text = "Deal 5% for rewards",
-})
+local cards = { -- in order: the part on the card, and whether it is art (square) or an amount
+	{ Card = card(1), Part = chestArt(RAGA_CHEST), Art = true },
+	{ Card = card(2), Part = money },
+	{ Card = card(3), Part = chestArt(ADAPTED_CHEST), Art = true },
+	{ Card = card(4), Part = gems },
+}
+local note = label("Note", panel, { Text = "Deal 5% for rewards" })
 
 -- The popup's px size keeps the frame's aspect and its chrome on screen; k follows from it.
 local function size()
@@ -140,25 +142,64 @@ size()
 if workspace.CurrentCamera then
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(size)
 end
--- Damage (Item) on top, the chest tiles 12 apart under it, the note (Body) at the content's bottom.
-g.OnLayout(function()
+-- Top down in the content area: TOTAL DAMAGE (Section), the count (Title), the share bar with the share right of it,
+-- the shown cards centred in a row, the note (Body) at the bottom.
+local function layout()
 	local c, U = g.Content, AnimeSkin.Units
+	local s = c.H / 374
+	local y = c.Y
+	g.Place(caption, c.X, y, c.W, ROWS.Caption * s)
+	y += (ROWS.Caption + 8) * s
+	g.Place(damage, c.X, y, c.W, ROWS.Damage * s)
+	y += (ROWS.Damage + U.Gap) * s
+	local shareW = 160
+	g.Place(shareBar, c.X, y, c.W - shareW - U.Gap, ROWS.Bar * s)
+	g.Place(shareText, c.X + c.W - shareW, y - 4, shareW, ROWS.Bar * s + 8)
+	y += (ROWS.Bar + U.Gap) * s
+	local noteH = ROWS.Note * s
+	local cardsH = c.Y + c.H - noteH - U.Gap * s - y
+	g.Place(rewards, c.X, y, c.W, cardsH)
+	g.Place(note, c.X, c.Y + c.H - noteH, c.W, noteH)
+	local shown = {}
+	for _, entry in cards do
+		if entry.Part.Visible then
+			table.insert(shown, entry)
+		end
+	end
+	local n = math.max(1, #shown)
+	local w = math.min(CARD_W, (c.W - (n - 1) * U.Gap) / n)
+	local x = (c.W - n * w - (n - 1) * U.Gap) / 2
+	for _, entry in cards do
+		entry.Card.Visible = entry.Part.Visible
+	end
+	for _, entry in shown do
+		g.Place(entry.Card, x, 0, w, cardsH)
+		local side = math.min(w, cardsH) - 2 * U.Pad
+		if entry.Art then
+			g.Place(entry.Part, x + (w - side) / 2, (cardsH - side) / 2, side, side)
+		else
+			g.Place(
+				entry.Part,
+				x + U.Pad,
+				(cardsH - AnimeSkin.UnitSize.Item) / 2,
+				w - 2 * U.Pad,
+				AnimeSkin.UnitSize.Item
+			)
+		end
+		x += w + U.Gap
+	end
 	local item = AnimeSkin.UnitSize.Item
-	local art = math.min(ART, c.H - 2 * item - 2 * U.Gap)
-	g.Place(damage, c.X, c.Y, c.W, item)
-	g.Place(rewards, c.X, c.Y + item + U.Gap, c.W, c.H - 2 * (item + U.Gap))
-	tiles.Padding = UDim.new(0, g.px(U.Gap))
-	ragaChest.Size, adaptedChest.Size = g.at(art, art), g.at(art, art)
-	money.Size, gems.Size = g.at(AMOUNT, item), g.at(AMOUNT, item)
 	gemPad.PaddingLeft = UDim.new(0, g.px(item))
 	gemIcon.Size = g.at(item, item)
-	g.Place(note, c.X, c.Y + c.H - AnimeSkin.UnitSize.Body, c.W, AnimeSkin.UnitSize.Body)
-	for _, text in { damage, money, gems } do
-		g.Role(text, "Item")
-	end
+	g.Role(caption, "Section")
+	g.Role(damage, "Title")
+	g.Role(shareText, "Item")
+	g.Role(money, "Item")
+	g.Role(gems, "Item")
 	g.Role(note, "Body")
 	money.TextColor3 = Palette.Money -- the game's cash green over the Item white
-end)
+end
+g.OnLayout(layout)
 
 local message = nil -- what waits to show, or shows
 local seen = false -- it has been on screen: the next event takes it away
@@ -169,17 +210,29 @@ end
 closeButton.Activated:Connect(close)
 PanelFrame.CloseOnOutsideClick(panel, close)
 
+local total, share = 0, nil -- the message's damage, and its share of the phase's HP (0..1) when it holds one
+local countAt = nil -- os.clock() the count-up started, while it runs
+local function count(f)
+	damage.Text = HudFormat.Commas(math.floor(total * f + 0.5))
+	shareFill.Size = UDim2.fromScale(math.clamp((share or 0) * f, 0, 1), 1)
+end
+
 ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent:Connect(function(ev)
 	if type(ev) ~= "table" or ev.Kind ~= "BossRewards" then
 		return
 	end
 	message, seen = ev, false
 	title.Text = ev.Outcome == "Survived" and "Fully Adapted Raga survived" or "Raga Defeated!"
-	damage.Text = "Total damage: " .. HudFormat.Commas(tonumber(ev.Damage) or 0)
-	ragaChest.Visible, money.Visible = ev.Stage1 == true, ev.Stage1 == true
-	adaptedChest.Visible, gems.Visible = ev.Stage2 == true, ev.Stage2 == true
+	total, share, countAt = tonumber(ev.Damage) or 0, tonumber(ev.Share), nil
+	count(1)
+	-- Share: of the phase this popup reports (owner 2026-11-10); a message without one hides the bar
+	shareBar.Visible, shareText.Visible = share ~= nil, share ~= nil
+	shareText.Text = share and string.format("%.1f%%", share * 100) or ""
+	cards[1].Part.Visible, money.Visible = ev.Stage1 == true, ev.Stage1 == true
+	cards[3].Part.Visible, gems.Visible = ev.Stage2 == true, ev.Stage2 == true
 	rewards.Visible = ev.Stage1 == true or ev.Stage2 == true
 	note.Visible = ev.Short == true
+	layout()
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -192,6 +245,12 @@ RunService.Heartbeat:Connect(function()
 	if show and not panel.Visible then
 		UiMotion.Pop(panel)
 		UiFeedback.Play("ToastHigh")
+		countAt = os.clock()
+	end
+	if countAt then
+		local f = math.min(1, (os.clock() - countAt) / COUNT_SECONDS)
+		count(f)
+		countAt = f < 1 and countAt or nil
 	end
 	panel.Visible = show
 	root.Enabled = show -- never above the showcase or loser screens while closed

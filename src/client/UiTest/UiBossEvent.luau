@@ -9,6 +9,8 @@
 --   Team HUD (owner 2026-11-05): TeamHud/Header/CloseButton closes it with at least 1 pick, and invokes BossEventPrepRun; with none, red
 --     TeamHud/TeamWarning "Select a character first" fades within 1 s and the HUD stays. EditTeamButton reopens it until the spawn.
 --     TeamHud/AverageStamina reads "Average stamina: <n> s", from BossTeamStamina<n> of the picks. The HUD opens on LastBossTeam's ids.
+--   Versus (BOSS_EVENT_SPEC "Team HUD", owner 2026-11-10): TeamHud/Versus "VS", TeamHud/RagaPortrait (ImageLabel, SidekickArt.side_raga
+--     Portrait), TeamHud/Header/Logo the HudIcons.Boss image (design doc 4.40). TeamHud/Note hides while TeamWarning shows, and back.
 --   BossBar/BossTimer: left of the Title's text, above the track, counting to TotalSeconds.
 --   Minibar (owner 2026-11-05): RacerHud's Team/Slot<n> read BossTeam while BossEvent is true. While BossWaitEndsAt is set every filled
 --     slot is tired grey and none active, and its Arc's Fill dots run from empty to full by that time.
@@ -68,6 +70,8 @@ local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
+local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
+local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 
 local ROOT = "RacerBossEvent"
 local INVITE = ROOT .. "/Invite"
@@ -743,6 +747,16 @@ function Module.Build(h)
 		local note = hasText(HUD, NOTE_TEXT)
 		check(res, "hud_note_exact_and_shown", note ~= nil and h.visible(note), true)
 		check(res, "hud_team_damage_shown", shown(HUD .. "/TeamDamage"), true)
+		local versus = h.find(HUD .. "/Versus")
+		check(res, "hud_versus_shown", versus ~= nil and h.visible(versus), true)
+		check(res, "hud_versus_text", versus and versus.Text, "VS") -- checkFit below judges it with the other texts
+		local raga = h.find(HUD .. "/RagaPortrait")
+		check(res, "hud_raga_portrait_shown", raga ~= nil and h.visible(raga), true)
+		check(res, "hud_raga_portrait_is_image", raga ~= nil and raga:IsA("ImageLabel"), true)
+		check(res, "hud_raga_portrait_image", raga and raga.Image, SidekickArt.side_raga.Portrait)
+		local logo = h.find(HUD .. "/Header/Logo")
+		check(res, "hud_logo_shown", logo ~= nil and h.visible(logo), true)
+		check(res, "hud_logo_boss_icon", logo and logo.Image, Icons.Boss.Image)
 		local function damageShows(number)
 			return function()
 				local label = h.find(HUD .. "/TeamDamage")
@@ -1973,6 +1987,8 @@ function Module.Build(h)
 		check(res, "boss_warning_appeared", watch.ShownAt ~= nil, true)
 		check(res, "boss_warning_solid_at_first", watch.Transparency, 0)
 		check(res, "boss_warning_shown_text", watch.Text, TEAM_WARNING_TEXT)
+		check(res, "boss_warning_hides_note", watch.NoteShown, false)
+		check(res, "boss_note_back_after_warning", waitShown(HUD .. "/Note", true), true)
 		local seconds = watch.ShownAt and watch.HiddenAt and watch.HiddenAt - watch.ShownAt
 		h.check(
 			res,

@@ -22,7 +22,10 @@
 --   BossesPanel/BossDetails, beside its Row_<id> and Row_side_raga (UiBossPaid): Title_<chest id> with the chest's Name,
 --     Adapted_<id> per RelicConfig.ChestOdds("relic_chest_adapted"), Adapted_side_raga "Big Raga 0.01%". Static, whatever the stage.
 --   RacerBossRewards (Client/BossRewardPopup; DisplayOrder above the HUD), its Panel hidden until a BossRewards message:
---     Panel/Header/Title, Panel/Header/CloseButton, Panel/Damage (holds the total with commas), Panel/Note ("Deal 5% for rewards", shown
+--     Panel/Header/Title, Panel/Header/CloseButton, Panel/DamageCaption ("TOTAL DAMAGE"), Panel/Damage (the total with commas only,
+--     after its count-up), Panel/ShareBar and Panel/Share (shown only when the message holds a Share, owner 2026-11-10): ShareBar/Fill
+--     ends at Share of the bar's width, ShareBar/Mark stands at MinDamageShare, Share reads the percent with one decimal ("12.0%"),
+--     Panel/Note ("Deal 5% for rewards", shown
 --     only with Short), Panel/Rewards/Chest_<chest id> (ImageLabel, the chest's Image), Panel/Rewards/Money ("100,000" in its Text),
 --     Panel/Rewards/Gems ("1,000" in its Text). A reward not paid is not shown.
 --   Title: Outcome Survived "Fully Adapted Raga survived", otherwise "Raga Defeated!". Only the player's BossEvent holds it back: a
@@ -33,6 +36,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Dodge = require(Shared:WaitForChild("BossDodge"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
+local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local Spec = require(script.Parent.UiSpec)
 
 local ROOT = "RacerBossEvent"
@@ -701,15 +705,17 @@ function Module.Build(h)
 		setup(res, "restore:boss_ui")
 	end
 
-	local function fire(res, outcome, damage, stage1, stage2, short)
+	-- share nil sends a message without a Share.
+	local function fire(res, outcome, damage, stage1, stage2, short, share)
 		setup(
 			res,
-			("boss_phase2_rewards:%s:%s:%s:%s:%s"):format(
+			("boss_phase2_rewards:%s:%s:%s:%s:%s:%s"):format(
 				outcome,
 				tostring(damage),
 				tostring(stage1),
 				tostring(stage2),
-				tostring(short)
+				tostring(short),
+				share and tostring(share) or ""
 			)
 		)
 	end
@@ -718,10 +724,21 @@ function Module.Build(h)
 		if want.Title then
 			checkTextSoon(res, tag .. "_title", POPUP .. "/Header/Title", want.Title)
 		end
-		local damage = waitIs(function()
-			return string.find(textOf(POPUP .. "/Damage"), want.Damage, 1, true) ~= nil
-		end, true)
-		h.check(res, tag .. "_damage", textOf(POPUP .. "/Damage"), "holds " .. want.Damage, damage == true)
+		checkTextSoon(res, tag .. "_damage", POPUP .. "/Damage", want.Damage) -- the count-up ends at the total, nothing else
+		check(res, tag .. "_damage_caption", textOf(POPUP .. "/DamageCaption"), "TOTAL DAMAGE")
+		local withShare = want.Share ~= nil
+		check(res, tag .. "_share_bar_shown", waitShown(POPUP .. "/ShareBar", withShare), withShare)
+		check(res, tag .. "_share_text_shown", waitShown(POPUP .. "/Share", withShare), withShare)
+		if withShare then
+			checkTextSoon(res, tag .. "_share_text", POPUP .. "/Share", string.format("%.1f%%", want.Share * 100))
+			local mark = h.find(POPUP .. "/ShareBar/Mark")
+			check(res, tag .. "_share_mark_at_min", mark and mark.Position.X.Scale, Cfg.MinDamageShare)
+			local fill = waitIs(function()
+				local gui = h.find(POPUP .. "/ShareBar/Fill")
+				return gui ~= nil and near(gui.Size.X.Scale, want.Share)
+			end, true)
+			check(res, tag .. "_share_fill", fill, true)
+		end
 		local function rewardShown(name, part, wanted)
 			local value = waitIs(function()
 				return shown(POPUP .. "/Rewards/" .. part)
@@ -757,6 +774,8 @@ function Module.Build(h)
 	local function checkPopupFit(res)
 		local panel, close = h.find(POPUP), h.find(POPUP .. "/Header/CloseButton")
 		check(res, "popup_close_present", close ~= nil and close:IsA("GuiButton"), true)
+		local logo = h.find(POPUP .. "/Header/Logo")
+		check(res, "popup_logo_boss_icon", logo and logo.Image, Icons.Boss.Image) -- design doc 4.40
 		if not (panel and close) then
 			return
 		end
@@ -778,31 +797,40 @@ function Module.Build(h)
 
 			-- Held while in the event, from any message, until BossEvent clears.
 			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true)
-			fire(res, "Defeated", DAMAGE, true, true, false)
+			fire(res, "Defeated", DAMAGE, true, true, false, 0.12)
 			task.wait(GATE_HOLD)
 			check(res, "popup_held_in_event", shown(POPUP), false)
 			state(res, "Idle", 0, 0, 0, false)
-			checkPopup(res, "defeated", { Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true, Adapted = true })
+			checkPopup(
+				res,
+				"defeated",
+				{ Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true, Adapted = true, Share = 0.12 }
+			)
+			check(res, "defeated_share_text_exact", textOf(POPUP .. "/Share"), "12.0%")
 			checkPopupFit(res)
 
-			fire(res, "Survived", DAMAGE, true, false, false)
-			checkPopup(res, "survived", { Title = "Fully Adapted Raga survived", Damage = DAMAGE_TEXT, Raga = true })
+			fire(res, "Survived", DAMAGE, true, false, false, 0.03)
+			checkPopup(
+				res,
+				"survived",
+				{ Title = "Fully Adapted Raga survived", Damage = DAMAGE_TEXT, Raga = true, Share = 0.03 }
+			)
 
 			-- Left during Phase 2: the event still runs, this player is out of it.
 			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, false)
-			fire(res, "Left", DAMAGE, true, false, false)
-			checkPopup(res, "left", { Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true })
+			fire(res, "Left", DAMAGE, true, false, false, 1)
+			checkPopup(res, "left", { Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true, Share = 1 })
 			state(res, "Idle", 0, 0, 0, false)
 
 			fire(res, "Survived", SHORT_DAMAGE, false, false, true)
-			checkPopup(res, "short_none", { Damage = SHORT_DAMAGE_TEXT, Note = true })
+			checkPopup(res, "short_none", { Damage = SHORT_DAMAGE_TEXT, Note = true }) -- no Share: bar and text hidden
 
 			-- Short of Phase 2's share only: Phase 1's pay stands.
-			fire(res, "Defeated", DAMAGE, true, false, true)
+			fire(res, "Defeated", DAMAGE, true, false, true, 0)
 			checkPopup(
 				res,
 				"short_stage2",
-				{ Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true, Note = true }
+				{ Title = "Raga Defeated!", Damage = DAMAGE_TEXT, Raga = true, Note = true, Share = 0 }
 			)
 
 			-- A shown popup does not cover the next event.
