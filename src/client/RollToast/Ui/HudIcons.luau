@@ -14,9 +14,9 @@ return {
 	Market = { Image = "rbxassetid://115473354417773" }, -- 4.40 Gold badge assets/ui/hud_badges/Market.png: Decal 79892612715732 (2026-11-10)
 	Settings = { Image = "rbxassetid://138402665878793" }, -- 4.40 Gold badge assets/ui/hud_badges/Settings.png: Decal 127539530133565 (2026-11-10)
 	Gem = { Image = "rbxassetid://75353099813345" }, -- 4.40 Gold badge assets/ui/hud_badges/Gem.png: Decal 93686066876265 (2026-11-10)
-	Auto = { Image = "rbxassetid://130918500722406" }, -- 4.40 Gold badge assets/ui/hud_badges/Auto.png: Decal 127527493270108 (2026-11-10)
+	Auto = { Image = "rbxassetid://118798450419767" }, -- 4.40 Gold badge assets/ui/hud_badges/Auto.png: Decal 118184071030187 (2026-11-10)
 	AutoArrows = { Image = "rbxassetid://82519829706306" }, -- 4.40 Gold badge assets/ui/hud_badges/AutoArrows.png: Decal 78144269919105 (2026-11-10)
-	AutoPlay = { Image = "rbxassetid://84110801797923" }, -- 4.40 Gold badge assets/ui/hud_badges/AutoPlay.png: Decal 104910609434684 (2026-11-10)
+	AutoPlay = { Image = "rbxassetid://131179221147510" }, -- 4.40 Gold badge assets/ui/hud_badges/AutoPlay.png: Decal 74175030285782 (2026-11-10)
 	-- Design doc 4.40 gold frame tile, assets/ui/hud_badges/HudTile.png (Decal 120579636552953, 2026-11-10).
 	Tile = { Image = "rbxassetid://78500532311163" },
 	-- Design doc 4.40 boss popup icon, in the Gold badge set.
