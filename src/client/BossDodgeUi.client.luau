@@ -125,6 +125,10 @@ local wheel = make("ImageLabel", {
 	Position = UDim2.fromScale(0, 0.5),
 	ZIndex = 3,
 }, dodge)
+-- The icon follows the boss at once, so a bar still closing never shows the last boss's icon.
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	wheel.Image = BossCatalog.Current().DodgeIcon or RelicConfig.WheelArt
+end)
 local subtitle = text("Subtitle", dodge)
 subtitle.AnchorPoint = Vector2.new(0.5, 1)
 local result = text("Result", root)
