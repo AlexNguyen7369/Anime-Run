@@ -67,7 +67,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_helmet",
 			Name = "Dwarf's Helmet",
-			Image = "rbxassetid://0", -- tools/blender/relic_art_assets.json
+			Image = "rbxassetid://125164800672073", -- assets/ui/relic_helmet.png
 			Rarity = "Common",
 			Odds = 55,
 			Bonuses = { AttackSpeed = 0.03 },
@@ -75,7 +75,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_bracelet",
 			Name = "Hero's Bracelet",
-			Image = "rbxassetid://0", -- tools/blender/relic_art_assets.json
+			Image = "rbxassetid://97483480150926", -- assets/ui/relic_bracelet.png
 			Rarity = "Rare",
 			Odds = 28,
 			Bonuses = { Luck = 0.06 },
@@ -91,7 +91,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_flask",
 			Name = "Priest's Flask",
-			Image = "rbxassetid://0", -- tools/blender/relic_art_assets.json
+			Image = "rbxassetid://79563216957049", -- assets/ui/relic_flask.png
 			Rarity = "Legendary",
 			Odds = 4,
 			Bonuses = { AttackSpeed = 0.15, Luck = 0.15, Damage = 0.04 },
@@ -99,7 +99,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_grimoire",
 			Name = "Master's Grimoire",
-			Image = "rbxassetid://0", -- tools/blender/relic_art_assets.json
+			Image = "rbxassetid://87657515215586", -- assets/ui/relic_grimoire.png
 			Rarity = "Mythic",
 			Odds = 0.9,
 			Bonuses = { AttackSpeed = 0.22, Luck = 0.22, Damage = 0.06, Money = 0.06 },
@@ -160,7 +160,7 @@ RelicConfig.Chests = {
 	relic_chest_mage = {
 		Id = "relic_chest_mage",
 		Name = "Elf Mage's Treasure",
-		Image = "rbxassetid://0", -- tools/blender/relic_art_assets.json, row chest_mage
+		Image = "rbxassetid://118852320501133", -- assets/ui/chest_mage.png
 		Chest = true,
 		Bonuses = {},
 		Boss = "boss_mage",
