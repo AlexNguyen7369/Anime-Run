@@ -147,8 +147,9 @@
 143. 2026-11-10 — Alex Nguyen — Tracks 6-10 now build after players join, nearest first, and runs hold with a "Loading next track" label until their track exists; track_loading, race, checkpoints, duel, npc, chain, world_layout and terrain_built pass in Studio.
 144. 2026-11-10 — Alex Nguyen — Recorded the owner's hud-tech rules (original icons in gold frame tiles, L2 left HUD block, 1200 x 620 panels, enclosed Full Cyber dojo spawn with the door opening on walk-in or Auto race, Versus boss team HUD, R1 rewards popup), goal h1-h5, the Blender cyber draft script and the tile and Boss art (06b5410).
 145. 2026-11-10 — Alex Nguyen — Committed the owner-approved boss audit (9c68725): flat low-graphics boss removed, running camera 75 / 26 / 6, boss mesh preload, Big Raga at BossScale 0.75 with the scream camera scaled.
+146. 2026-11-10 — Alex Nguyen — Landed hud-tech h1 (c722398, 0a2ef57): gold frame HUD tiles in the L2 left block with the Tile and Boss icons uploaded, UI tests updated (ui_buttons 14/0, ui_hud 16/0), and the boss exhaustion view raised to 160 up at 13 deg (74eb084).
 
 ## What's next
-**Build hud-tech h1: the gold frame HUD tiles with the original icons in the L2 left block (Index, Items, Rebirth, Quests, Shop, Market; Daily and Settings pills; Auto and Upgrade in the same tile), upload `HudTile.png` and `Boss.png`, and run `ui_buttons`, `ui_hud` and `ui_layout`.**
+**Build hud-tech h2: widen every panel and popup frame to 1200 x 620 (`Client/AnimeSkin.IndexFrame`), give the Index and Backpack grids 7 columns, and teach the `ui_layout` solver the frame's aspect and the PanelBand reach so `ui_layout` goes green at every viewport.**
 
-**Why this is next:** h2's wider 1200 x 620 panels centre in the space right of the L2 block, and h3's boss popups use the new Boss icon, so both depend on h1.
+**Why this is next:** h1's L2 block freed the right edge that the wider panels centre into, and h3's boss screens use the same frame.
