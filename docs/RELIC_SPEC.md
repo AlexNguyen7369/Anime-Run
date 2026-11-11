@@ -39,7 +39,7 @@ Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_ma
 | Secret | 0.1% | `relic_world_core` | World Core (universal) | +15% in all 6 stats |
 
 ## Chests (owner 2026-11-06)
-Saved as rows of `Relics`, ids `relic_chest_raga` and `relic_chest_adapted`, in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic and the Sidekick chance at its table on the server. The Sidekick may overflow the bag, as before.
+Saved as rows of `Relics`, ids `relic_chest_raga`, `relic_chest_adapted` and `relic_chest_mage` (owner 2026-11-11), in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic and the Sidekick chance at its table on the server (`relic_chest_mage` has no Sidekick chance, **proposed**). The Sidekick may overflow the bag, as before.
 
 In the Relics tab a chest shows its art and quantity; its menu offers Open and its odds. No equip, sale or Index tile (**proposed**). Opening uses the 1x summon reveal (`Client/SidekickReveal`), with the chest image still (no shake) and the Relic's drawn art as the result.
 
