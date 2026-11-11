@@ -2,6 +2,17 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-11, orchestrator): boss-mage-2 drafts shown, waiting for the owner
+- Goal `boss-mage-2` (docs/ORCHESTRATOR_GOALS.md), plan `~/.claude/plans/peaceful-fluttering-mist.md`, integration branch `feature/alex/boss-mage`. g0 rules merged and pushed (58f808c; rules audit PASS round 2): 2 s strike windows, Stone Golem miniboss (1,000 HP, slam and sweep), rhythm 3 circles +/- 0.28 s, Bosses cards, her 6 Relics.
+- Review page (private): https://claude.ai/artifact/6ryNwFYrmU1C5EmpWwqT2b (slug 2f77e1e0-390d-450b-bfd1-fe1293fc36c4).
+- NOT merged, not pushed, not uploaded, waiting for approval, each committed on its task branch:
+  - g1 `orch/boss-mage-2/g1` (worktree `../AnimeRun-orch/mage2-g1`, 17bbea2): Bosses card drafts A, B, C in `assets/ui/boss_cards_draft/`, script `tools/blender/portrait/draw_boss_cards.py` (run with Blender's Python; no system PIL).
+  - g2 `orch/boss-mage-2/g2` (`mage2-g2`, 1727d8d): sheets `lightning_window`, `barrage_window`, `golem_idle`, `golem_sweep`, `golem_fall`, `watch` `_slices.png` and new keys in `keys.json`; the 4 approved moves unchanged. `boss_mage.blend` / `boss_golem.blend` copied from `mage-m1`, git-ignored.
+  - g3 `orch/boss-mage-2/g3` (`mage2-g3`, 5145dcd): `relic_helmet`, `relic_bracelet`, `relic_staff`, `relic_flask`, `relic_grimoire`, `chest_mage` PNGs and `relic_mage_art_sheet.png` in `assets/ui/`; `draw_relics.py` takes `raga` / `mage`.
+- Owner must decide (on the page): card layout A, B or C; next boss picked early (`BossEventNextBoss`); text for a card that is not live or next; a boss portrait for Big Raga (drafts use his Sidekick portrait); each new move's keys; strike rate (drafts show 6 per 0.5 s, the game draws 10 per move); Relic names, stats, art; the defaults in `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), first of all golem HP flat 1,000 or per player.
+- Next after approval: merge g1-g3, then g4 server and g5 client with tests written red first, g6 in-betweens, bake and uploads (check each upload script's `main()` guard). Rhythm beat times and the move cycle length in BOSS_EVENT_SPEC are marked stale: recompute in g4 / g6.
+- The main checkout is still on `orch/boss-mage/verify` (9b93981), behind the integration branch by docs only.
+
 ## RESUME HERE (2026-11-11 late night, orchestrator): boss-mage built, verified in Studio, pushed
 - `feature/alex/boss-mage` pushed (282695b plus bookkeeping). Goal `boss-mage` m0-m11 built. Not done: m12 (full harness, PR into main); no PR opened.
 - The MAIN CHECKOUT is on `orch/boss-mage/verify` (same commit as the integration branch) so Rojo `34873` serves the boss and the owner can play `/boss mage` at once. To go back: `git switch feature/alex/anime-world` in the main checkout (tree clean). Studio left in Edit, `TestSaveKey` / `CarTestOnly` cleared (the Studio agent's word).
