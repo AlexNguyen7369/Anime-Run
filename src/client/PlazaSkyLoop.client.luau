@@ -57,7 +57,10 @@ do
 	local label = rig:FindFirstChild("NameLabel")
 	if label then
 		label.MaxDistance = EXCLUSIVE_LABEL_DISTANCE
-		label.Name.TextColor3 = color
+		local text = label:FindFirstChild("Name") -- the child label, not the Name property
+		if text then
+			text.TextColor3 = color
+		end
 	end
 	local header = PlazaHeader.Build(
 		rig.Head,
