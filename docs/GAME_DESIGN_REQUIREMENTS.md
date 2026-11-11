@@ -308,8 +308,10 @@ before any Studio work.
   world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
   of grace, proposed), and it stays up at least 8 seconds. Keep the load short; far biomes and other characters load
   behind the game. Safety limit 90 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
-  Backdrop (owner 2026-11-10): the hybrid draft's dusk scene (`assets/ui/loading/HybridBackdrop.png`, from
-  `assets/plaza_draft/Hybrid_6_Loading.png`) fills the screen behind the logo and the real loading bar; the bar is cyan
+  Backdrop (owner 2026-11-11, replaces the hybrid dusk scene of 2026-11-10): intro draft B3 "Distant crowd"
+  (`assets/ui/loading/SakuraGateBackdrop.png`, source `tools/intro_screen/`): the dusk sky and mountains, a red torii with
+  sakura branches, lanterns and falling petals, and a small crowd of roster characters beyond the gate in shadow and mist,
+  tinted into the scene with no cut-out outlines; it fills the screen behind the logo and the real loading bar; the bar is cyan
   with a pink outline as in the draft. Sizes **proposed**.
 - **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
   to the spawn. Reduced Motion replaces it with a cut.
@@ -600,6 +602,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-11: owner: the loading screen backdrop is intro draft B3 "Distant crowd" (Sakura gate with a small blended roster crowd), replacing the hybrid dusk scene (4.24 Loading screen).
 - 2026-11-11: owner: the Bosses button takes the column buttons' exact cell, icon and label sizes and moves just below Roblox's top bar, left-aligned with the left column, or right of Roblox's buttons where it would reach the column (phones, short windows) (4.40).
 - 2026-11-10: owner: the loading screen uses the hybrid draft: its dusk scene fills the screen behind the logo and the real loading bar, and the bar turns cyan with a pink outline (4.24 Loading screen).
 - 2026-11-10: owner: no run bank; each won track pays into Money at its finish with a "Cashed out" notice, a loss keeps earlier payouts (3, 4.x run end); Money and Gems lose their boxes, Gems sits under Money, UNBANKED removed (4.40).
