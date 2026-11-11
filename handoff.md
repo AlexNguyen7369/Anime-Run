@@ -2,6 +2,18 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-11, orchestrator): boss-mage (The Elf Mage), art shown, waiting for the owner
+- Goal `boss-mage` (docs/ORCHESTRATOR_GOALS.md), integration branch `feature/alex/boss-mage` (from `feature/alex/anime-world`), worktree `../AnimeRun-orch/mage-m0`. Plan: `~/.claude/plans/i-would-like-to-unified-moore.md`. Rules m0 merged and pushed (design doc 4.37 Second boss, BOSS_EVENT_SPEC "The Elf Mage", docs/char_evidence/boss_mage.md).
+- Review page for the owner (private): https://claude.ai/artifact/BygXxD81JK8PDNywDAZFCj (slug 58e566b4-fe69-456e-9326-182abbff5330). Source `index.html` and images were in the session scratchpad; rebuild from the files below if it is gone.
+- NOT merged, not pushed, waiting for approval (nothing uploaded, no `src/` change):
+  - `orch/boss-mage/m4` (worktree `../AnimeRun-orch/mage-m1`; holds m1 too): models `boss_mage` (3,352 tris, over the 3,000 target) and `boss_golem` (1,436), portraits, key-frame sheets and `keys.json` in `assets/characters_avatar/boss_mage/keyframes/`. Scripts `tools/blender/build_boss_mage.py`, `boss_mage_keyframes.py` (`--size` = boss scale in runner heights), `paint/char_boss_mage.py`; golem in `build_boss_event.py` `BUILDS`. `main()` guards added to `build_boss_event.py` and `bake_boss_raga.py`. Do not rebuild her with `build_avatar.py` (drops the separate staff and tails).
+  - `orch/boss-mage/m3` (worktree `../AnimeRun-orch/mage-m3`): `tools/blender/arena/build_colosseum.py`; renders in `assets/arena_draft/` (untracked).
+  - `orch/boss-mage/m8` (worktree `../AnimeRun-orch/mage-m8`): `tools/blender/portrait/draw_mage_ui.py`, art in `assets/ui/boss_mage/` (staff icon, rhythm circle set, 3 status icons, magic circle, mock-ups). Mock-up text needs macOS `swift`.
+- Owner must decide (on the page): boss size (4x is 53 px of 720; 6x 80, 8x 106 recommended, 12x 160), approval of model, golem, colosseum, art and each move's key frames, and the 8 open rules in `docs/OWNER_QUESTIONS.md` (2026-11-11 entry). The server work (m10) is blocked on those rules.
+- Findings: in the enclosed room the 40-stud camera does not fit; the wall pulls it to 32 studs on lane 4 and 7.5 on lane 7 (needs a wider walkway or fewer lanes). `Model.add` in `build_boss_event.py` turned the golem's block faces inside out (golem works around it); boss_raga and Sidekicks built by the same code were not checked.
+- The owner asked for end-to-end implementation overnight after approving the renders; no approval has arrived. Next after approval: merge m4, m3, m8 into the integration branch, re-render wide views at the chosen size, in-betweens and bake (m9), then server and client (m10, m11) with tests written red first.
+- Owner reference images: `../AnimeRun-orch/art-backup/anime_refs/boss_mage/` (look-only).
+
 ## RESUME HERE (2026-11-11, orchestrator): hud-tech pushed up to 76325db
 - Pushed on `feature/alex/anime-world`: Tab tilt icons, split L/R HUD (Index/Items/Rebirth left; Quests/Shop right), Market as a top-right pill, Bosses button with the Boss icon, key letters X B R Q P M, columns hide in boss events, 1200x620 panels, boss Versus HUD + R1 rewards, dojo with cyber accents (PlazaAccents), Saitamo pedestal (32a043c, committed on the owner's word) + label fix, no run bank (pay at each checkpoint, "Cashed out" notice), Money/Gems unboxed with Gems under Money, hybrid loading backdrop + cyan/pink bar.
 - Owner approved: dojo accents, Tab tilt split HUD, Market pill + Bosses icon (artifacts R2rirais8VST2kr1PcKjwG, BXmkHjXQaPcXy4xod9fPKD). Money/loading shots: https://claude.ai/artifact/RKmrkv3yp5KWLauU4UbDEq (not yet approved).

@@ -151,8 +151,9 @@
 147. 2026-11-11 — Alex Nguyen — Landed hud-tech: Tab tilt split HUD with Market pill and Bosses icon, 1200x620 panels, boss Versus HUD and R1 rewards, dojo cyber accents, Saitamo pedestal, pay-at-each-checkpoint with a Cashed out notice and unboxed Money/Gems, and the hybrid loading backdrop (pushed to 243aea8).
 148. 2026-11-11 — Alex Nguyen — Sized the Bosses button like the HUD column buttons (right of Roblox's buttons where it would reach the left column) and set the loading screen backdrop to intro draft B3 Sakura gate (pushed to 0cbba12; ui_boss 501/0, ui_hud 16/0, ui_buttons 15/0).
 149. 2026-11-11 — Alex Nguyen — Wrote the rules and evidence for the second boss The Elf Mage (goal boss-mage m0: design doc 4.37 Second boss, BOSS_EVENT_SPEC section, char_evidence, open owner questions) on feature/alex/boss-mage.
+150. 2026-11-11 — Alex Nguyen — Drew the Elf Mage and golem models, colosseum draft with a size comparison, UI digital art and key frames for 4 moves on task branches (not merged) and published them for the owner's approval.
 
 ## What's next
-**Get the owner's approval of the Elf Mage and golem model renders, the colosseum draft and the digital art (boss-mage m1-m3, m8), then draw the hover idle and 3 move key frames (m4-m7).**
+**Get the owner's decisions on the Elf Mage review page (boss size, models, colosseum, art, key frames, 8 open rules), then merge the art branches and make the in-betweens (boss-mage m9).**
 
 **Why this is next:** the key frames need the approved models, and no in-betweens or game code start before the owner approves the renders and key frames (design doc 4.37 gate).
