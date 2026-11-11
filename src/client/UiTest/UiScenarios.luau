@@ -1800,10 +1800,36 @@ function UiScenarios.Init()
 	end)
 end
 
+-- Design doc 4.24: while the loading screen is up, note its backdrop's layout and every bar reading (fill, Status text)
+FX.loading = { seen = false, backdrop = nil, readings = {} }
+function FX.sampleLoading(gui)
+	local back = gui:FindFirstChild("Back")
+	local backdrop, logo = back and back:FindFirstChild("Backdrop"), back and back:FindFirstChild("Logo")
+	local track = back and back:FindFirstChild("Track")
+	local fill, status = track and track:FindFirstChild("Fill"), back and back:FindFirstChild("Status")
+	FX.loading.seen = true
+	if not FX.loading.backdrop and backdrop and logo and track then
+		local size, at = gui.AbsoluteSize, backdrop.AbsolutePosition
+		FX.loading.backdrop = {
+			isImage = backdrop:IsA("ImageLabel"),
+			crop = backdrop:IsA("ImageLabel") and backdrop.ScaleType == Enum.ScaleType.Crop,
+			covers = at.X <= 0.5
+				and at.Y <= 0.5
+				and backdrop.AbsoluteSize.X >= size.X - 1
+				and backdrop.AbsoluteSize.Y >= size.Y - 1,
+			behind = backdrop.ZIndex < logo.ZIndex and backdrop.ZIndex < track.ZIndex,
+		}
+	end
+	if fill and status then
+		table.insert(FX.loading.readings, { fill = fill.Size.X.Scale, text = status.Text })
+	end
+end
+
 local function waitGuis()
 	-- The loading screen draws over everything and swallows every click until the game has loaded
 	local loading = os.clock() + UiSpec.Waits.LoadingScreen
 	while playerGui:FindFirstChild("LoadingScreen") and os.clock() < loading do
+		pcall(FX.sampleLoading, playerGui:FindFirstChild("LoadingScreen"))
 		task.wait(0.2)
 	end
 	local deadline = os.clock() + UiSpec.Waits.GuiAppear
@@ -3887,6 +3913,25 @@ function S.ui_inventory(res)
 	checkList(res, "every_screengui_in_spec", unknown)
 	local loadingLeft = playerGui:FindFirstChild("LoadingScreen") == nil
 	check(res, "loading_screen_closed", loadingLeft, true, loadingLeft)
+	-- Only when the harness caught the screen up (it closes after 8 s or more, usually before the harness starts)
+	if FX.loading.seen then
+		local b = FX.loading.backdrop or {}
+		check(res, "loading_backdrop_image", b.isImage, true, b.isImage == true)
+		check(res, "loading_backdrop_crop", b.crop, true, b.crop == true)
+		check(res, "loading_backdrop_full_screen", b.covers, true, b.covers == true)
+		check(res, "loading_backdrop_behind_logo_and_bar", b.behind, true, b.behind == true)
+		-- The bar follows real progress: never goes back, and the text always says the fill's own percent
+		local bad, last = {}, -1
+		for i, r in FX.loading.readings do
+			local want = string.format("Loading %d%%", math.floor(r.fill * 100))
+			if r.fill < last or r.text ~= want then
+				table.insert(bad, string.format("#%d %.3f %q", i, r.fill, r.text))
+			end
+			last = r.fill
+		end
+		check(res, "loading_bar_readings", #FX.loading.readings, ">= 1", #FX.loading.readings >= 1)
+		checkList(res, "loading_bar_tracks_progress", bad)
+	end
 	-- Client scripts without a ScreenGui (UiSpec.ClientScripts), e.g. Client/RollAnnounce
 	local folder = script.Parent.Parent
 	for _, name in UiSpec.ClientScripts do
