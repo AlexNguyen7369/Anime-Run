@@ -3,6 +3,7 @@
 -- Moves[name].Osu, 4 numbered circles show one by one, each with a ring closing onto it at its beat, from Shared/BossOsu and the
 -- event's server time. A click or tap on a circle sends its stamp once (Remotes.BossOsu); the server judges the times and
 -- decides the dodge. The local judge only picks the hit or miss art. Mouse and touch only: a gamepad has no pointer here.
+-- Test seam: each Circle<k> holds a BindableEvent Press; firing it runs what a click on the circle runs.
 -- The result text and stars are the Dodge bar's (RacerBossDodge.ShowResult). Contract: Client/UiTest/UiBossMage.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -33,7 +34,7 @@ local CAPTION_SHARE = 0.045 -- of the screen's height
 local TIMER_HEIGHT = 6 -- px
 local GAP = 6 -- px between the HUD, the caption and the timer
 local HUD_CLEAR = 8 -- px between a circle and a HUD part
-local BURST_POP, BURST_SECONDS = 1.35, 0.25
+local BURST_GROW, BURST_SECONDS = 1.8, 0.35
 
 local function make(class, props, parent)
 	local inst = Instance.new(class)
@@ -80,7 +81,7 @@ local timerFill = make("Frame", {
 }, timer)
 make("UICorner", { CornerRadius = UDim.new(1, 0) }, timerFill)
 
-local circles = {} -- k -> { Button, Ring, Number, Pop, Beat, State }; State nil (open), "Sent", "Hit", "Miss"
+local circles = {} -- k -> { Button, Ring, Number, Burst, Beat, State }; State nil (open), "Sent", "Hit", "Miss"
 local open = nil -- { Index, At, MomentAt, Rows, Pending, Dodged } while the circles of one moment show
 
 local function judged(circle, hit)
@@ -88,9 +89,22 @@ local function judged(circle, hit)
 	circle.Button.Image = hit and BossMageArt.OsuHit or BossMageArt.OsuMiss
 	circle.Ring.Visible = false
 	circle.Number.Visible = false
-	if not UiMotion.Reduced() then -- REDUCED EFFECTS: the art swaps, no burst
-		circle.Pop.Scale = BURST_POP
-		UiMotion.Create(circle.Pop, TweenInfo.new(BURST_SECONDS, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	-- A hit bursts out of the circle; under REDUCED EFFECTS only the art swaps. The burst is its own image, so the circle's
+	-- rect never grows.
+	local burst = circle.Burst
+	if hit and not UiMotion.Reduced() then
+		burst.Size = UDim2.fromScale(1, 1)
+		burst.ImageTransparency = 0
+		burst.Visible = true
+		local grow = UiMotion.Create(
+			burst,
+			TweenInfo.new(BURST_SECONDS, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Size = UDim2.fromScale(BURST_GROW, BURST_GROW), ImageTransparency = 1 }
+		)
+		grow.Completed:Once(function()
+			burst.Visible = false
+		end)
+		grow:Play()
 	end
 end
 
@@ -168,12 +182,24 @@ for k = 1, BossOsu.Count do
 		Button = button,
 		Ring = ring,
 		Number = number,
-		Pop = make("UIScale", { Name = "Pop" }, button),
+		Burst = make("ImageLabel", {
+			Name = "Burst",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundTransparency = 1,
+			Image = BossMageArt.OsuHit,
+			Position = UDim2.fromScale(0.5, 0.5),
+			ScaleType = Enum.ScaleType.Fit,
+			Visible = false,
+			ZIndex = 5,
+		}, button),
 		Beat = 0,
 		State = nil,
 	}
 	button.Activated:Connect(function(input)
 		press(k, input)
+	end)
+	make("BindableEvent", { Name = "Press" }, button).Event:Connect(function()
+		press(k, nil) -- no position: the press is on the circle
 	end)
 end
 
@@ -212,14 +238,24 @@ local function clearOf(x, y, radius, placed, size, diameter)
 	if free(x, y) then
 		return x, y
 	end
-	local best, bestX, bestY = math.huge, x, y
+	local spots = {}
 	for _, r in hudRects do
 		local grow = radius + HUD_CLEAR + 1
-		for _, spot in { { r[1] - grow, y }, { r[3] + grow, y }, { x, r[2] - grow }, { x, r[4] + grow } } do
-			local away = math.abs(spot[1] - x) + math.abs(spot[2] - y)
-			if away < best and free(spot[1], spot[2]) then
-				best, bestX, bestY = away, spot[1], spot[2]
-			end
+		table.insert(spots, { r[1] - grow, y })
+		table.insert(spots, { r[3] + grow, y })
+		table.insert(spots, { x, r[2] - grow })
+		table.insert(spots, { x, r[4] + grow })
+	end
+	for _, other in placed do -- a circle pushed before this one: one diameter straight away from it
+		local away = Vector2.new(x, y) - other
+		local spot = other + (away.Magnitude > 0 and away.Unit or Vector2.xAxis) * (diameter + 1)
+		table.insert(spots, { spot.X, spot.Y })
+	end
+	local best, bestX, bestY = math.huge, x, y
+	for _, spot in spots do
+		local away = math.abs(spot[1] - x) + math.abs(spot[2] - y)
+		if away < best and free(spot[1], spot[2]) then
+			best, bestX, bestY = away, spot[1], spot[2]
 		end
 	end
 	return bestX, bestY
@@ -299,7 +335,7 @@ local function openCircles(index, at, momentAt, startAt)
 		circle.Ring.Visible = true
 		circle.Ring.Size = UDim2.fromScale(RING_FROM, RING_FROM)
 		circle.Number.Visible = true
-		circle.Pop.Scale = 1
+		circle.Burst.Visible = false
 	end
 end
 
