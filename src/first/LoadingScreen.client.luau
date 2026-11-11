@@ -30,6 +30,7 @@ root.Name = "LoadingScreen"
 root.ResetOnSpawn = false
 root.IgnoreGuiInset = true
 root.DisplayOrder = 1000 -- over everything, the starter popup included
+root.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- children draw over Back's navy; the Backdrop (ZIndex 0) under the logo and bar
 root.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
 ReplicatedFirst:RemoveDefaultLoadingScreen()
 
