@@ -1793,8 +1793,10 @@ local function allText(obj)
 	local badge = findPath(UiSpec.Hud.PointsBadge)
 	for _, o in { obj, table.unpack(obj:GetDescendants()) } do
 		-- HudChrome badge(): every tile's red count badge is a TextLabel named Badge, not the label either
+		-- Design doc 4.40: the tile's keybind letter (a TextLabel named Key) is not its label either
 		local inBadge = o.Name == "PointsBadge"
 			or o.Name == "Badge"
+			or o.Name == "Key"
 			or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
 		if not inBadge and (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text ~= "" and o.Visible then
 			table.insert(list, o.Text)
@@ -4909,6 +4911,56 @@ function S.ui_buttons(res)
 		end
 	end
 	checkList(res, "hud_tiles_gold_frame", wrongArt)
+	-- Design doc 4.40 (owner 2026-11-10): on keyboard each block tile shows its keybind letter in a TextLabel Key, in
+	-- the tile's top-right quarter, clear of the tile's label text
+	if UserInputService.KeyboardEnabled then
+		local keyLetters = { "X", "B", "R", "Q", "P", "M" }
+		local badKeys = {}
+		for index, path in UiSpec.Hud.NavButtons do
+			local tile = findPath(path)
+			local key = tile and tile:FindFirstChild("Key", true)
+			if not key or not key:IsA("TextLabel") then
+				table.insert(badKeys, path .. " has no Key TextLabel")
+			elseif not effectivelyVisible(key) or key.Text ~= keyLetters[index] then
+				table.insert(
+					badKeys,
+					("%s Key %q visible %s, want %q"):format(
+						path,
+						key.Text,
+						tostring(effectivelyVisible(key)),
+						keyLetters[index]
+					)
+				)
+			else
+				local tr, kr = realRect(tile), realRect(key)
+				local quarter = R(tr.x + tr.w / 2, tr.y, tr.w / 2, tr.h / 2)
+				if not contains(quarter, kr) then
+					table.insert(
+						badKeys,
+						("%s Key %s outside top-right quarter %s"):format(path, rstr(kr), rstr(quarter))
+					)
+				end
+				for _, o in tile:GetDescendants() do
+					if
+						o ~= key
+						and o.Name ~= "Badge"
+						and o.Name ~= "PointsBadge"
+						and (o:IsA("TextLabel") or o:IsA("TextButton"))
+						and effectivelyVisible(o)
+					then
+						local lr = textRect(o, realRect(o), K.textScale(o, {}))
+						if lr and intersects(lr, kr) then
+							table.insert(
+								badKeys,
+								("%s Key %s overlaps label %s text %s"):format(path, rstr(kr), o.Name, rstr(lr))
+							)
+						end
+					end
+				end
+			end
+		end
+		checkList(res, "hud_tile_keys", badKeys)
+	end
 	-- Design doc 4.40: TopRight holds exactly the Daily pill and the Settings button (Market moved to the block)
 	local topRight = findPath(UiSpec.Hud.TopRight)
 	local topNames = {}

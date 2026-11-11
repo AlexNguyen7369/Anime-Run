@@ -262,7 +262,8 @@ end
 UserInputService.LastInputTypeChanged:Connect(refreshKeys)
 refreshKeys()
 UserInputService.InputBegan:Connect(function(input, processed)
-	if processed or UserInputService:GetFocusedTextBox() then
+	-- a key does only what a click could: not while the HUD or the block is hidden (showcase, Upgrades tree)
+	if processed or UserInputService:GetFocusedTextBox() or not (root.Enabled and grid.Visible) then
 		return
 	end
 	for name, key in KEYS do
