@@ -62,6 +62,10 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - The player fills and swaps the 3 slots on foot (owner 2026-11-02): pick a character in the Backpack, then tap slot
   1, 2 or 3 to put it there (a character already on another slot swaps places; tapping its own slot takes it off).
   The single equip (Index, roll toast) puts a character on slot 1.
+- Backpack Characters layout (owner 2026-11-10): three team slots above the owned-character collection. Equipped
+  characters appear as large head-and-upper-body 3D previews with distinct poses and gentle bobbing and turning.
+  Names overlay the previews; they do not crop the model. Each slot has one continuous angular landscape card,
+  round background dots and a subtle glowing rarity outline; the background artwork is not stretched or tiled.
 
 ### 4.3 Stamina
 - Every character has a stamina bar (0-100%). It drains only while that character is running.

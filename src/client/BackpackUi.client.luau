@@ -1,7 +1,7 @@
 --!nonstrict
 -- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Characters tabs with item tiles.
 -- Clicking a potion asks the server to use one; clicking a character, trail or aura picks it, and the team slot
--- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
+-- controls (SlotPicker) put it on a slot or take it off; Characters shows 3D team previews above the grid (design
 -- doc 4.2). The server
 -- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
 -- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks and Relics tabs are bags (design doc 4.36,
@@ -232,7 +232,8 @@ local pickSlot -- set below
 local slots = SlotPicker.new("Slots", panel, { Visible = false }, function(...)
 	pickSlot(...)
 end)
--- Select mode's row, where the Slots show otherwise (design doc 4.41).
+require(script.Parent:WaitForChild("BackpackTeamSlots")).Attach(slots)
+-- Select mode's bottom action row (design doc 4.41).
 local massBar = make("Frame", "MassBar", panel, { BackgroundTransparency = 1, Visible = false })
 local massLayout = make("UIListLayout", "Layout", massBar, {
 	FillDirection = Enum.FillDirection.Horizontal,
@@ -317,21 +318,33 @@ local function layout()
 		g.Role(label, "Tab")
 	end
 	local top, bottom = c.Y, c.Y + c.H
+	local right = c.X + c.W
+	-- Characters: 3D team slots first, then the owned-character toolbar and collection.
+	local teamHeight = math.clamp(c.H * 0.44, 140, 190)
+	if characters and not selecting then
+		g.Place(slots.Frame, c.X, top, c.W, teamHeight)
+		top += teamHeight + gap
+	end
 	toolbar.Visible = current ~= "Relics"
 	sortButton.Visible, massSell.Visible = characters, characters
-	local right = c.X + c.W
-	g.Place(massSell, right - MASS_WIDTH, c.Y, MASS_WIDTH, row)
-	g.Place(sortButton, right - MASS_WIDTH - gap - SORT_WIDTH, c.Y, SORT_WIDTH, row)
-	g.Place(search, c.X, c.Y, characters and c.W - MASS_WIDTH - SORT_WIDTH - 2 * gap or c.W, row)
+	g.Place(massSell, right - MASS_WIDTH, top, MASS_WIDTH, row)
+	g.Place(sortButton, right - MASS_WIDTH - gap - SORT_WIDTH, top, SORT_WIDTH, row)
+	g.Place(search, c.X, top, characters and c.W - MASS_WIDTH - SORT_WIDTH - 2 * gap or c.W, row)
 	searchPadding.PaddingLeft, searchPadding.PaddingRight = UDim.new(0, g.px(U.Pad)), UDim.new(0, g.px(U.Pad))
 	if toolbar.Visible then
 		top += row + gap
 	end
 	local rowY = bottom - gap - row
-	if cosmetic then
+	if cosmetic and not characters then
+		bottom = rowY - gap
+		g.Place(slots.Frame, c.X, rowY, c.W, row)
+	elseif characters and selecting then
 		bottom = rowY - gap
 	end
-	g.Place(slots.Frame, c.X, rowY, characters and c.W - SPARES_WIDTH - gap or c.W, row)
+	-- The optional spares action keeps its own bottom row when shown.
+	if characters and not selecting and sellSpares.Visible then
+		bottom = rowY - gap
+	end
 	g.Place(sellSpares, right - SPARES_WIDTH, rowY, SPARES_WIDTH, row)
 	g.Place(massBar, c.X, rowY, c.W, row)
 	local gapPx = g.px(gap)
@@ -756,8 +769,8 @@ function render()
 	massBar.Visible = selecting
 	renderedK = g.k
 	setCount("") -- each tab sets its own count line below
-	layout() -- the grid ends 12 above the Slots row
 	refreshBag()
+	layout() -- reserve the current optional spare-selling row before sizing the grid
 	local wearers = {} -- entry -> character id
 	for character, entry in SidekickView.Gear(player) do
 		wearers[entry] = character

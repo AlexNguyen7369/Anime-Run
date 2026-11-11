@@ -2,6 +2,20 @@
 
 History: `current_progress.md`, `git log`.
 
+## Backpack team previews (2026-11-10, owner; Codex)
+- Branch `codex/backpack-team-previews`, based on `origin/main` at fe1289c. Owner requested committing and pushing
+  the Backpack Characters redesign from Studio. Scope: three upper-body 3D team slots above owned characters,
+  distinct poses, staggered bobbing/turning, names over the model, one continuous angular background per slot.
+- `BackpackTeamSlots` wraps only this Backpack's SlotPicker instance. Existing server equip, Trails/Auras and selling
+  flows remain in place. Image `107913096286813`; source PNG and reproducible PowerShell drawing script included.
+- Seen in Studio Play: three models, equip updates the model, tab switching, mass-sell mode hiding the slots, and
+  visible motion pausing when hidden. The final single-image backgrounds were visually checked and read back as
+  Fit with no tiled children. Original team restored after the equip test. Phone and full UI/server harness not run.
+- Delivery checks: StyLua on both changed Luau files passed; Selene passed with 0 errors/warnings/parse errors
+  using its cached Roblox standard library; `git diff --check` passed; Rojo 7.7.0 built the full project successfully.
+- `current_progress.md` left untouched: this Windows environment does not contain the repo-required global
+  `progress-tracker` skill (searched installed Codex/Claude skill directories).
+
 ## Auto sell in Settings, Kami (2026-11-09, owner)
 - Owner 2026-11-09: merge everything onto one port. `feature/alex/anime-world` now holds `feature/alex/boss-polish` and `origin/main` (merge 4816af4). Rojo `34873` serves the main checkout; 34874 (`b4`) and 34875 are stopped. Older notes saying 34873 serves `p2` are history. The "remove red tint" edit is committed on `boss-polish` (a7ea4e4) and merged, owner approved 2026-11-09. Not run in Studio.
 - Branch `feature/alex/autosell-settings` (from `feature/alex/anime-world` at `bc4f693`), pushed, not merged. Worktree `.claude/worktrees/autosell-settings`.

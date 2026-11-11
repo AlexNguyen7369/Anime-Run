@@ -44,6 +44,13 @@ Branch `inventory`, Parent `walkspeed_1`, Origin `{ -1, 1 }`, Direction `{ -1, 0
 
 ## UI
 
+- Backpack Characters (owner 2026-11-10): three 3D team slots at the top, then Search/Sort/Mass sell and the owned
+  character grid. Pick an owned character and tap a team slot using the existing server-authoritative equip flow.
+  The upper-body previews use distinct poses, staggered bobbing and gentle turning, paused while the panel is hidden.
+  Names overlay the model. `Client/BackpackTeamSlots` attaches only to this Backpack's SlotPicker, leaving the Market
+  and Trails/Auras compact controls unchanged; mass-sell mode hides team previews.
+  The single landscape card is `assets/index/team-slot-landscape.png`, Roblox image `107913096286813`, rebuilt by
+  `assets/build-team-slot-art.ps1`. Uniform Fit scaling keeps the dots circular without tiled seams.
 - `Client/RollOptions` holds one Auto Sell popup: an on/off toggle and "1 in [ ]". Only the AUTO SELL row in Settings opens it (owner 2026-11-09: the roll view and under-roll buttons are gone).
 - A sold roll has no sale UI (owner 2026-11-09): the roll animation plays with no SOLD or +1 COPY badge, the extra rolls' toast leaves it out, and only the Money counter moves.
 - The Backpack's Characters tab shows `Bag used/cap`. A Sell button acts on the chosen character when it has spares. A Mass sell button enters select mode: tiles with spares toggle a check mark, tiles with none dim, and a bar offers Select all, Sell and Cancel.
