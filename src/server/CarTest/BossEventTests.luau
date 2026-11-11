@@ -416,7 +416,6 @@ function Tests.make(deps)
 				eq("run_never_exhausted", (count("Exhausted")), 0)
 				flag("run_alive_after_exhaustions", run.Connection ~= nil and car.Parent ~= nil)
 				eq("run_pays_nothing", run.PaidTotal, 0)
-				eq("run_banks_nothing", run.BankedTotal, 0)
 				run:Destroy()
 				eq("run_destroy_clears_stamina", p:GetAttribute("Stamina1"), nil)
 				eq("run_destroy_clears_slot", p:GetAttribute("RunSlot"), nil)
@@ -4317,9 +4316,16 @@ function Tests.make(deps)
 					end)
 				)
 				local normalRun = CarService.GetRun(p)
-				normalRun.Unbanked = 100
+				local paidBefore = normalRun.PaidTotal
+				local function cash()
+					local stats = p:FindFirstChild("leaderstats")
+					local money = stats and stats:FindFirstChild("Money")
+					return money and money.Value
+				end
+				local moneyBefore = cash()
 
-				-- A run in progress cashes out through the normal stop when the player teleports.
+				-- A run in progress stops when the player teleports; its checkpoints were paid at each finish, so the stop
+				-- pays nothing more (owner 2026-11-10: no run bank).
 				S.Start("Test")
 				eq("default_join_ok", S.Join(p), true)
 				flag(
@@ -4328,8 +4334,9 @@ function Tests.make(deps)
 						return CarService.GetRun(p) ~= normalRun
 					end)
 				)
-				eq("normal_run_cashed_out", normalRun.PaidTotal, 100)
-				eq("normal_bank_empty", normalRun.Unbanked, 0)
+				eq("normal_run_stop_pays_nothing", normalRun.PaidTotal, paidBefore)
+				eq("normal_run_money_unchanged", cash(), moneyBefore)
+				eq("no_unbanked_attribute", p:GetAttribute("Unbanked"), nil)
 				eq("spec_no_warm_up_laps", CarService.GetRun(p), nil)
 				task.wait(0.3) -- long enough for an unanchored avatar to fall: the deck builds on the client
 				local lane = S.LaneOf(p)

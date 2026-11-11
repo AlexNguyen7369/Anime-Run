@@ -4,7 +4,7 @@
 -- declines. The challenger is asked at once which track to race, and both players must have unlocked that track.
 -- No stake." Spec section 4: "`duel` harness scenario: every refusal of rule 1, the unlock list of rule 2 and a
 -- rejected out-of-list pick, both timeouts, decline, forfeit by stop and by leaving, winner by finish order, Money
--- and `Unbanked` unchanged for both players, `DuelWins` saved and loaded, stability rules on both cars."
+-- unchanged and no `Unbanked` for both players (owner 2026-11-10: no run bank), `DuelWins` saved and loaded, stability rules on both cars."
 -- Written before Shared/DuelConfig, Server/DuelService, options.Duel in RaceService.NewRun and Remotes.Duel exist:
 -- red by design.
 --
@@ -285,7 +285,6 @@ local function duelRunAlone(r, flag, M)
 		player:SetAttribute("AdminKami", true) -- Kami runs at MAX_CRUISE (design doc 4.13)
 		M.Gacha.Equip(player, M.CharacterCatalog.KAMI_ID)
 		player.leaderstats.Money.Value = 500
-		player:SetAttribute("Unbanked", 0) -- as CarService.OnCharacter leaves it
 		local earned0 = player:GetAttribute("MoneyEarned") or 0
 
 		-- the runner body (docs/WORLD_REDESIGN_SPEC.md section 2); +3 is the start pose only, RaceService places the rig
@@ -325,8 +324,12 @@ local function duelRunAlone(r, flag, M)
 				if run.Finished and #finishes == 0 and run.Driver.Index < track.FinishIndex then
 					early += 1
 				end
-				maxUnbanked =
-					math.max(maxUnbanked, tonumber(run.Unbanked) or 1, tonumber(player:GetAttribute("Unbanked")) or 1)
+				-- owner 2026-11-10: no run bank; nothing is paid mid-duel and the Unbanked attribute never appears
+				maxUnbanked = math.max(
+					maxUnbanked,
+					tonumber(run.PaidTotal) or 1,
+					player:GetAttribute("Unbanked") ~= nil and 1 or 0
+				)
 				if #finishes > 0 or run.Finished then
 					finishedAt = finishedAt or elapsed
 					return elapsed - finishedAt >= RUN_AFTER
@@ -364,7 +367,12 @@ local function duelRunAlone(r, flag, M)
 			tonumber(run.PaidTotal) or -1,
 			0
 		)
-		flag("duel_run_unbanked_stays_zero", started and finishedAt ~= nil and maxUnbanked == 0, maxUnbanked, 0)
+		flag(
+			"duel_run_no_payout_or_unbanked_while_racing",
+			started and finishedAt ~= nil and maxUnbanked == 0,
+			maxUnbanked,
+			0
+		)
 		local strict = M.Targets.lap.MinUpYStrict
 		local worstUp = math.min(minUp, tonumber(run.MinUpY) or -1)
 		flag(
@@ -382,7 +390,7 @@ local function duelRunAlone(r, flag, M)
 			"duel_run_money_unchanged_after_destroy",
 			money == 500
 				and (player:GetAttribute("MoneyEarned") or 0) == earned0
-				and player:GetAttribute("Unbanked") == 0,
+				and player:GetAttribute("Unbanked") == nil,
 			money,
 			500
 		)
@@ -565,10 +573,10 @@ function Tests.duel()
 				Earned = f.Player:GetAttribute("MoneyEarned") or 0,
 			}
 		end
-		-- Money and MoneyEarned as before, Unbanked 0
+		-- Money and MoneyEarned as before, no Unbanked attribute (owner 2026-11-10: no run bank)
 		local function sameWallet(f, before)
 			local w = wallet(f)
-			return w.Money == before.Money and w.Earned == before.Earned and f.Player:GetAttribute("Unbanked") == 0
+			return w.Money == before.Money and w.Earned == before.Earned and f.Player:GetAttribute("Unbanked") == nil
 		end
 		-- Messages to fake f (of one Type) sent after index `from`
 		local function msgs(from, f, typ)
@@ -1174,8 +1182,8 @@ function Tests.duel()
 						end
 						s.Unbanked = math.max(
 							s.Unbanked,
-							tonumber(s.Run.Unbanked) or 1,
-							tonumber(s.Fake.Player:GetAttribute("Unbanked")) or 1
+							tonumber(s.Run.PaidTotal) or 1,
+							s.Fake.Player:GetAttribute("Unbanked") ~= nil and 1 or 0
 						)
 					end
 					return state(A) ~= "Racing"
@@ -1208,11 +1216,11 @@ function Tests.duel()
 					tonumber(resA.OpponentTime) or -1,
 					tonumber(resB.Time) or -1
 				)
-				-- no stake: the winner drove past Track 1's pad and nothing was paid or banked
+				-- no stake: the winner drove past Track 1's pad and nothing was paid, mid-race or after
 				local paid = runA.Payouts + runA.PaidTotal + runB.Payouts + runB.PaidTotal
 				flag("duel_race_pays_no_pad", paid == 0, paid, 0)
 				local banked = math.max(sides[1].Unbanked, sides[2].Unbanked)
-				flag("duel_race_unbanked_stays_zero", banked == 0, banked, 0)
+				flag("duel_race_no_payout_or_unbanked_while_racing", banked == 0, banked, 0)
 				-- retired: duel_race_both_gain_speed (design doc 4.13, owner 2026-11-01: no Speed stat, no gain)
 				-- stability rules on both cars
 				for _, s in sides do

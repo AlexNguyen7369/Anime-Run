@@ -58,24 +58,24 @@ end
 hud.MoneyIcon.ImageRectOffset = Vector2.new(0, 0)
 hud.MoneyIcon.ImageRectSize = Vector2.new(256, 256)
 hud.MoneyValue.TextXAlignment = Enum.TextXAlignment.Left
-hud.Unbanked.TextXAlignment = Enum.TextXAlignment.Left
--- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): Money plate, gradient numbers.
-UiTheme.Plate(hud.MoneyPlate, palette.MoneyDeep)
+-- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): gradient numbers. Owner 2026-11-10 (design doc 4.40): no box or
+-- border behind Money or Gems and no UNBANKED line, so the generated plate and row are removed.
+hud.MoneyPlate:Destroy()
+hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
-UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
-hud.Unbanked.TextColor3 = Color3.new(1, 1, 1)
--- Gems read-out (design doc 4.35): a new plate just above the Money plate; RacerHud is generated, so it is built here.
+-- Gems read-out (design doc 4.35, 4.40): a row directly under the Money number, inside Money so it follows its layout
+-- and scale; RacerHud is generated, so it is built here.
 local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
-local gemsPlate = UiTheme.Plate(Instance.new("Frame"), GEM_DEEP)
+local gemsPlate = Instance.new("Frame")
 gemsPlate.Name = "Gems"
-gemsPlate.AnchorPoint = Vector2.new(0, 1)
-gemsPlate.Parent = hud.Gui
+gemsPlate.BackgroundTransparency = 1
+gemsPlate.Parent = hud.Money
 local gemIcon = Instance.new("ImageLabel")
 gemIcon.Name = "GemIcon"
-gemIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-gemIcon.Position = UDim2.fromScale(0.17, 0.5)
-gemIcon.Size = UDim2.fromScale(0.8, 0.8)
+gemIcon.AnchorPoint = Vector2.new(0, 0.5)
+gemIcon.Position = UDim2.fromScale(0, 0.5)
+gemIcon.Size = UDim2.fromScale(1, 1)
 gemIcon.SizeConstraint = Enum.SizeConstraint.RelativeYY
 gemIcon.BackgroundTransparency = 1
 gemIcon.Image = require(Ui.HudIcons).Gem.Image
@@ -83,8 +83,8 @@ gemIcon.ZIndex = 3
 gemIcon.Parent = gemsPlate
 local gemsValue = Instance.new("TextLabel")
 gemsValue.Name = "GemsValue"
-gemsValue.Position = UDim2.fromScale(0.33, 0.1)
-gemsValue.Size = UDim2.fromScale(0.62, 0.8)
+gemsValue.Position = UDim2.fromScale(0.2, 0)
+gemsValue.Size = UDim2.fromScale(0.8, 1)
 gemsValue.BackgroundTransparency = 1
 gemsValue.Font = UiTheme.Font
 gemsValue.TextSize = 26
@@ -95,17 +95,12 @@ gemsValue.ZIndex = 3
 UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
 UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
 gemsValue.Parent = gemsPlate
--- Follows the Money plate's desktop and phone layouts, so it needs no phone branch of its own.
+-- Follows MoneyValue's desktop and phone layouts, so it needs no phone branch of its own.
 local function placeGems()
-	local plate = hud.MoneyPlate
-	local width, height = plate.Size.X.Offset, plate.Size.Y.Offset
-	gemsPlate.Size = UDim2.fromOffset(width * 0.62, height * 0.38)
-	gemsPlate.Position = UDim2.new(
-		0,
-		hud.Money.Position.X.Offset + plate.Position.X.Offset,
-		1,
-		hud.Money.Position.Y.Offset - hud.Money.Size.Y.Offset + plate.Position.Y.Offset - 4
-	)
+	local value = hud.MoneyValue
+	local x, y, height = value.Position.X.Offset, value.Position.Y.Offset, value.Size.Y.Offset
+	gemsPlate.Size = UDim2.fromOffset(value.Size.X.Offset, height * 0.7)
+	gemsPlate.Position = UDim2.fromOffset(x, y + height + 4)
 end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
@@ -1285,9 +1280,8 @@ end)
 -- places the Items / Upgrade pair from its position; delete it with a HUD layout pass.
 hud.Level.Visible = false
 
-local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
+local shownMoney = money.Value
 local shownGems = player:GetAttribute("Gems") or 0
-local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
 end
@@ -1332,9 +1326,7 @@ end
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
 local function refreshReadouts(dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
-	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
-	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
 	gemsValue.Text = format.Short(shownGems)
 	placeGems()
@@ -1358,9 +1350,34 @@ task.spawn(function()
 		end
 	end)
 end)
+local function floatAtMoney(text)
+	UiMotion.Float(
+		hud.MoneyValue.Parent,
+		text,
+		palette.Money,
+		UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
+	)
+end
+-- Owner 2026-11-10 (design doc 4.40): a checkpoint payout floats "Cashed out +$X", the server's amount, by Money while
+-- it counts up, in place of that gain's plain "+$X".
+local CASH_OUT_COVER = 0.5 -- s: a gain this close to a cash-out notice is that payout (either may replicate first)
+local lastCashOut = -math.huge
+remotes:WaitForChild("RunEvent").OnClientEvent:Connect(function(ev)
+	if type(ev) == "table" and ev.Kind == "CashOut" and type(ev.Amount) == "number" and ev.Amount > 0 then
+		lastCashOut = os.clock()
+		floatAtMoney("Cashed out +" .. format.MoneyText(ev.Amount))
+	end
+end)
 local lastMoney = money.Value
 money.Changed:Connect(function(value)
 	if value > lastMoney then
+		local gain = value - lastMoney
+		-- shortcut: another gain inside the cover window of a cash-out also skips its "+$X"; fine for a 1 s float.
+		task.delay(0.2, function()
+			if os.clock() - lastCashOut > CASH_OUT_COVER then
+				floatAtMoney("+" .. format.MoneyText(gain))
+			end
+		end)
 		if value - lastMoney < math.max(MONEY_BIG_MIN, value * MONEY_BIG_SHARE) then
 			UiFeedback.Play("MoneySmall")
 		elseif rollPhase() == "Idle" then
@@ -1369,34 +1386,8 @@ money.Changed:Connect(function(value)
 			moneyBigOwed = true
 		end
 		UiMotion.Pop(hud.MoneyValue)
-		UiMotion.Float(
-			hud.MoneyValue.Parent,
-			"+" .. format.MoneyText(value - lastMoney),
-			palette.Money,
-			UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
-		)
 	end
 	lastMoney = value
-end)
-local function refreshBank()
-	local banked = (player:GetAttribute("Unbanked") or 0) > 0
-	if banked and not stopBankPulse then
-		UiMotion.Pop(hud.Unbanked)
-		stopBankPulse = UiMotion.Pulse(hud.Unbanked, { TextTransparency = 0.35 }, 0.7)
-	elseif not banked and stopBankPulse then
-		stopBankPulse()
-		stopBankPulse = nil
-	end
-end
-player:GetAttributeChangedSignal("Unbanked"):Connect(refreshBank)
-refreshBank()
-task.spawn(function()
-	while true do
-		task.wait(6)
-		if hud.Gui.Enabled then
-			UiMotion.Shine(hud.MoneyPlate)
-		end
-	end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
@@ -1440,7 +1431,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress }) do
+for _, object in ipairs({ hud.MoneyValue, gemsValue, index.IndexProgress }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14

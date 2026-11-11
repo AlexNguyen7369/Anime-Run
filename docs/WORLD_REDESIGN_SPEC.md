@@ -40,7 +40,7 @@ Nothing car-shaped stays in the game:
 - The player's avatar is hidden while racing, as before; the Humanoid stays for camera and respawn.
 - Auras and trails attach to the runner's Torso instead of the car.
 - Kept from IVS: exact cruise speed at once on every start / checkpoint / restart, stays within
-  `MaxPathDeviation` of the path, pad paid once per pass, NPC race and banked money unchanged.
+  `MaxPathDeviation` of the path, pad paid once per pass, NPC race and checkpoint payouts unchanged (owner 2026-11-10: no run bank, pay at each checkpoint).
 - Retired with the car: flip recovery (a rail runner cannot flip), car physics scenarios (`static_settle`, `accel`,
   `brake`, `skidpad`, `car_size`, `flip_recovery`, car lap bots). Replaced by `runner` scenarios (below).
   The non-flip checks inside `flip_recovery` (live aura re-target, fastest character at max stat) move to `runner`.

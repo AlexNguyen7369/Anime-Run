@@ -13,13 +13,13 @@
 -- Shared/NpcRacer). If the NPC reaches a checkpoint first, the player loses at that checkpoint and is immediately
 -- teleported back to the start of the run's checkpoint track (design doc 4.15); the client is told which track was
 -- lost. Tracks won past the checkpoint track in the same run pay the checkpoint bonus (CheckpointConfig.Bonus).
--- Banked winnings (owner 2026-10-30, TEAM_AND_STAMINA_SPEC "Run end"): winning a track adds its pad's value
--- (MoneyService.Quote x checkpoint bonus) to the run's bank (run.Unbanked, mirrored in the player attribute Unbanked)
--- instead of paying; a loss empties the bank; run:CashOut() (also done by run:Destroy, so Stop, death and leaving)
--- pays it. Team and stamina (docs/TEAM_AND_STAMINA_SPEC.md): an NPC run reads the player's Team at start. The active
--- runner's stamina drains 100 / seconds percent per second; at 0 the next slot tags in at its own cruise; when the
--- last one is empty the current track's per-distance share is banked, the bank is cashed out, the run stops and the
--- player goes back on foot. A loss reset refills stamina from slot 1 at the checkpoint.
+-- Checkpoint payouts (owner 2026-11-10, design doc 3 steps 4-5; no run bank): winning a track pays its pad's value
+-- (MoneyService.Quote x checkpoint bonus) straight into Money at that track's finish, and RunEvent
+-- { Kind = "CashOut", Amount, Track } tells the owner for the "Cashed out +$X" notice. A loss keeps earlier payouts;
+-- stop, death and leaving pay nothing more. Team and stamina (docs/TEAM_AND_STAMINA_SPEC.md): an NPC run reads the
+-- player's Team at start. The active runner's stamina drains 100 / seconds percent per second; at 0 the next slot tags
+-- in at its own cruise; when the last one is empty the current track's per-distance share is paid into Money, the run
+-- stops and the player goes back on foot. A loss reset refills stamina from slot 1 at the checkpoint.
 -- Race events go to the owning player only (Remotes.NpcRace:FireClient), whose client draws the NPC.
 
 local PhysicsService = game:GetService("PhysicsService")
@@ -168,9 +168,9 @@ end
 --          LoseScreenSeconds, OnRaceEvent(event), StaminaSeconds = { s1, s2, s3 }, OnRunEvent(event).
 --          { StartTrack = n } (NPC mode) starts on track n, and a loss or the loop goes back to it (checkpoints).
 --          { Duel = { Track = n, OnFinish = fn(run, seconds) } } is a duel run (docs/DUEL_SPEC.md): no NPC, starts
---          on track n, pays no pad, banks nothing, and is Finished (OnFinish called once) at that track's finish.
+--          on track n, pays no pad or checkpoint, and is Finished (OnFinish called once) at that track's finish.
 --          { Boss = true, Team = { ids } } is a boss event run (design doc 4.37, docs/BOSS_EVENT_SPEC.md): real stamina on the
---          closed lane route, no NPC, no pads, never a cash-out. run.Line: slots still running, all draining at once.
+--          closed lane route, no NPC, no pads, no checkpoint payout. run.Line: slots still running, all draining at once.
 --          At an empty line: run.Waiting, then the full team refills.
 function RaceService.NewRun(car, raceRoute, player, options)
 	options = options or {}
@@ -189,8 +189,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		Finished = false,
 		Payouts = 0,
 		PaidTotal = 0,
-		Unbanked = 0, -- NPC mode: won, not yet paid (paid by CashOut)
-		BankedTotal = 0, -- NPC mode: everything wins (and the exhaustion share) added to the bank
 		Gained = 0, -- kept for old callers: there is no Speed stat to gain
 		MinUpY = 1,
 		MaxPathDeviation = 0,
@@ -285,16 +283,6 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	-- Every run starts START_AHEAD studs onto the road of Track 1 (the first waypoint is the road's very edge)
 	moveTo(1, RaceService.START_AHEAD)
 
-	local function setUnbanked(amount)
-		run.Unbanked = amount
-		if typeof(player) == "Instance" then
-			player:SetAttribute("Unbanked", amount)
-		end
-	end
-	if npcMode then
-		setUnbanked(0)
-	end
-
 	local function emit(event)
 		if options.OnRaceEvent then
 			local ok, err = pcall(options.OnRaceEvent, event)
@@ -358,8 +346,20 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			runRemote:FireClient(player, event)
 		end
 	end
+	-- Pays `amount` straight into Money (owner 2026-11-10: no run bank) and tells the owner for the "Cashed out +$X"
+	-- notice by the Money counter. Returns what was paid (0 if nothing).
+	local function payOut(amount, trackNumber)
+		if amount <= 0 or MoneyService.Award(player, amount) == nil then
+			return 0
+		end
+		amount = math.floor(amount)
+		run.Payouts += 1
+		run.PaidTotal += amount
+		runEvent({ Kind = "CashOut", Amount = amount, Track = trackNumber })
+		return amount
+	end
 	local showdownToken = 0
-	local setCruise, bankShare, snapshotCruise -- forward declarations (defined below)
+	local setCruise, payShare, snapshotCruise -- forward declarations (defined below)
 	-- Makes `slot` the active runner: EquippedCar follows (CarService re-skins the runner) and its cruise applies at once
 	local function setSlot(slot)
 		run.Slot = slot
@@ -463,9 +463,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			bestTime, newBest = RaceTimeService.Record(player, track.Number, playerTime)
 			QuestService.Progress(player, "Races")
 			bonus = CheckpointConfig.Bonus(race.Index - startIndex) -- tracks past the checkpoint (design doc 4.15)
-			amount = track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0
-			run.BankedTotal += amount
-			setUnbanked(run.Unbanked + amount)
+			amount = payOut(track.Pad and math.floor(MoneyService.Quote(player, track.Pad) * bonus) or 0, track.Number)
 			-- Gems are paid here, not in rewardTrackWin: payPads shares it and beats no NPC (design doc 4.35).
 			local firstClear = track.Number > (player:GetAttribute("BestTrack") or 0)
 			reachTrack(player, track.Number)
@@ -474,9 +472,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 				player,
 				GemConfig.TrackWin(track.Number) + (firstClear and GemConfig.FirstClear(track.Number) or 0)
 			)
-		else
-			setUnbanked(0) -- a lost race loses what was not cashed out yet
-		end
+		end -- a loss pays nothing and keeps earlier payouts (owner 2026-11-10)
 		local event = {
 			Type = "Result",
 			Track = track.Number,
@@ -484,8 +480,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			PlayerTime = playerTime,
 			NpcTime = race.NpcTime,
 			Bonus = bonus,
-			Banked = amount,
-			Unbanked = run.Unbanked,
+			Banked = amount, -- paid into Money at this finish (name kept for old readers)
 			BestTime = bestTime,
 			NewBest = newBest,
 		}
@@ -635,9 +630,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		run:JumpToTrack(raceRoute.Tracks[startIndex].Number)
 	end
 
-	-- Exhaustion share (owner 2026-11-01, design doc 4.3): the track being raced when the team tires banks its pad cash
-	-- x covered / track length (x the checkpoint bonus, design doc 4.15) before the cash-out.
-	function bankShare()
+	-- Exhaustion share (owner 2026-11-01, design doc 4.3): the track being raced when the team tires pays its pad cash
+	-- x covered / track length (x the checkpoint bonus, design doc 4.15) straight into Money (owner 2026-11-10).
+	function payShare()
 		local track = race and raceRoute.Tracks[race.Index]
 		if not (track and track.Pad) then
 			return 0
@@ -650,9 +645,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		local share = math.clamp((dist - from) / length, 0, 1) * StaminaConfig.EXHAUSTION_SHARE
 		local amount =
 			math.floor(MoneyService.Quote(player, track.Pad) * share * CheckpointConfig.Bonus(race.Index - startIndex))
-		run.BankedTotal += amount
-		setUnbanked(run.Unbanked + amount)
-		return amount
+		return payOut(amount, track.Number)
 	end
 
 	local lastTick = os.clock()
@@ -745,9 +738,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 					runEvent({ Kind = "Swap", From = team[slot], To = team[slot + 1], Slot = slot + 1 })
 				else
 					publishStamina()
-					bankShare()
-					local banked = run:CashOut()
-					runEvent({ Kind = "Exhausted", Banked = banked })
+					runEvent({ Kind = "Exhausted", Banked = payShare() }) -- Banked: the share just paid
 					run:Destroy()
 					if isPlayer(player) then
 						task.defer(function()
@@ -817,28 +808,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 	end
 
-	-- Pays the bank into leaderstats.Money and empties it. Returns the amount paid (0 if none).
-	function run:CashOut()
-		local amount = run.Unbanked
-		if amount <= 0 then
-			return 0
-		end
-		setUnbanked(0)
-		if MoneyService.Award(player, amount) == nil then
-			return 0
-		end
-		run.Payouts += 1
-		run.PaidTotal += amount
-		return amount
-	end
-
-	-- Stops the run and cashes out the bank.
+	-- Stops the run. Nothing is left to pay: every checkpoint paid at its finish (owner 2026-11-10).
 	function run:Destroy()
 		if alive then
 			alive = false
 			car:SetAttribute("RunTrack", nil) -- walking again: clients go back to ZoneAt
 			car:SetAttribute("RunHold", nil)
-			self:CashOut() -- stopping, dying or leaving never loses won money
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
 				player:SetAttribute("BossLine", nil)

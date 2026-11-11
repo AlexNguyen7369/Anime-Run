@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, turbo_next,
+-- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -895,8 +895,7 @@ function setups.lose_event(player)
 		Result = "Lose",
 		PlayerTime = 31.5,
 		NpcTime = 30,
-		Banked = 0, -- SPAWN_AND_ROLLS_SPEC section 3: a loss banks nothing...
-		Unbanked = 0, -- ...and clears the bank
+		Banked = 0, -- a loss pays nothing (earlier checkpoints stay paid, owner 2026-11-10)
 	})
 	task.delay(NpcConfig.LOSE_SCREEN_SECONDS, function()
 		if player.Parent ~= Players then
@@ -914,6 +913,16 @@ function setups.lose_event(player)
 			Model = cfg.Model,
 		})
 	end)
+end
+
+-- A fake checkpoint payout notice to this client only (UiSpec ui_hud): shaped like RaceService's RunEvent CashOut;
+-- Money is not touched. Amount: UiSpec.Hud.CashOutNotice.Amount.
+function setups.cash_out_notice(player)
+	ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent"):FireClient(player, {
+		Kind = "CashOut",
+		Amount = 1234,
+		Track = 1,
+	})
 end
 
 -- Enemy showdown (UiSpec ui_showdown, design doc 4.28): fake events to this client only, shaped like RaceService's;
@@ -950,7 +959,6 @@ function setups.showdown_win(player)
 		NpcTime = 31.5,
 		Bonus = 1,
 		Banked = 0,
-		Unbanked = 0,
 		BestTime = live("RaceTimeService").Best(player, track),
 		NewBest = false,
 	})

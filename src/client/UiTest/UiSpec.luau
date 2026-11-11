@@ -554,12 +554,18 @@ UiSpec.Hud = {
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
 	MoneyValue = "RacerHud/Money/MoneyValue",
-	-- Rounded navy plate behind MoneyValue and Unbanked (section 9): lower ZIndex than both, non-interactive, holds both.
-	MoneyPlate = "RacerHud/Money/MoneyPlate",
+	-- Owner 2026-11-10 (design doc 4.40): no box or border behind Money or Gems, no UNBANKED line (the run bank is
+	-- gone); the Gems row sits directly under MoneyValue, inside Money. Retired paths must stay absent.
+	Gems = "RacerHud/Money/Gems",
+	GemsValue = "RacerHud/Money/Gems/GemsValue",
+	RetiredMoneyParts = { "RacerHud/Money/MoneyPlate", "RacerHud/Money/Unbanked", "RacerHud/Gems" },
+	RetiredMoneyText = "UNBANKED", -- no HUD label starts with it
+	GemsUnderGap = 16, -- px: most the Gems row's top may sit below MoneyValue's bottom
+	GemsLeftTolerance = 8, -- px: Gems row's left edge vs MoneyValue's left edge
+	-- The checkpoint payout notice (UiTestSetup cash_out_notice): a MotionFloat under Money with this text.
+	CashOutNotice = { Amount = 1234, Prefix = "Cashed out +", Wait = 1 },
 	-- Counters with a text gradient (section 9): a UIGradient child on each.
-	GradientLabels = { "RacerHud/Money/MoneyValue", "RacerHud/Money/Unbanked" },
-	Unbanked = "RacerHud/Money/Unbanked",
-	UnbankedPrefix = "UNBANKED ",
+	GradientLabels = { "RacerHud/Money/MoneyValue", "RacerHud/Money/Gems/GemsValue" },
 	Turbo = "RacerHud/Turbo",
 	TurboFill = "RacerHud/Turbo/Face/TurboFill",
 	TurboLabel = "RacerHud/Turbo/Face/TurboLabel",
@@ -1002,7 +1008,7 @@ end
 -- Panel; Daily: ModalBackdrop -> Modal), so a full-screen transparent Backdrop is never read as the surface.
 -- A read-out drawn above a panel button is never allowed.
 UiSpec.PanelCoversReadouts = {
-	-- Money (and MoneyValue / Unbanked inside it) is a display-only read-out like Speed (2026-10-08, gate run 5).
+	-- Money (and MoneyValue / Gems inside it) is a display-only read-out like Speed (2026-10-08, gate run 5).
 	Readouts = { "RacerHud/Money" },
 	Surfaces = { "Panel", "Modal", "Face" },
 	MaxSurfaceTransparency = 0.05,
@@ -1413,6 +1419,12 @@ UiSpec.ServerSetup = {
 			.. "it mid-check); needs 'snapshot' first",
 		What = "Stops auto race (AutoRacing == false, avatar on foot at the walk spawn, no car). 'restore' puts "
 			.. "AutoRacing back.",
+	},
+	{
+		Id = "cash_out_notice",
+		When = "during ui_hud (asked for by the scenario)",
+		What = "Fires RunEvent { Kind = 'CashOut', Amount = UiSpec.Hud.CashOutNotice.Amount, Track = 1 } to this "
+			.. "client only, shaped like RaceService's checkpoint payout; Money is not touched.",
 	},
 	{
 		Id = "lose_event",

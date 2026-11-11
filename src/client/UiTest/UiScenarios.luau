@@ -5282,21 +5282,54 @@ function S.ui_hud(res)
 	local speedHud = findPath("RacerHud/Speed")
 	check(res, "hud_no_speed_readout", speedHud and pathOf(speedHud) or "absent", "absent", speedHud == nil)
 	check(res, "hud_labels_present", moneyValue ~= nil, true, moneyValue ~= nil)
-	-- Unbanked row (spec section 5): title "UNBANKED" and the smoothed player attribute Unbanked, under Money
-	local unbankedValue = findPath(UiSpec.Hud.Unbanked)
+	-- Owner 2026-11-10 (design doc 4.40): no run bank, so no UNBANKED line and no Unbanked attribute; no box or border
+	-- behind Money or Gems; the Gems row sits directly under the Money number.
+	local retired = {}
+	for _, p in UiSpec.Hud.RetiredMoneyParts do
+		if findPath(p) then
+			table.insert(retired, p)
+		end
+	end
+	local hudRoot = findPath("RacerHud")
+	for _, l in hudRoot and hudRoot:GetDescendants() or {} do
+		if l:IsA("TextLabel") and string.find(string.upper(l.Text), UiSpec.Hud.RetiredMoneyText, 1, true) then
+			table.insert(retired, pathOf(l) .. " " .. l.Text)
+		end
+	end
+	checkList(res, "unbanked_label_absent", retired)
+	check(res, "unbanked_attribute_absent", tostring(attr("Unbanked")), "nil", attr("Unbanked") == nil)
+	local gemsRow, gemsValue = findPath(UiSpec.Hud.Gems), findPath(UiSpec.Hud.GemsValue)
 	check(
 		res,
-		"unbanked_value_present",
-		unbankedValue ~= nil,
-		true,
-		unbankedValue ~= nil and unbankedValue:IsA("TextLabel")
+		"gems_value_present",
+		gemsValue and gemsValue.ClassName or "missing",
+		"TextLabel",
+		gemsRow ~= nil and gemsValue ~= nil and gemsValue:IsA("TextLabel")
 	)
-	check(res, "unbanked_attribute_present", typeof(attr("Unbanked")), "number", type(attr("Unbanked")) == "number")
 	local hudPanel = findPath(UiSpec.Hud.Money)
-	if hudPanel and moneyValue and unbankedValue then
-		renderFrame()
-		local mv, uv = realRect(moneyValue), realRect(unbankedValue)
-		check(res, "unbanked_under_money", uv.y, ">= " .. (mv.y + mv.h), uv.y >= mv.y + mv.h - TOL)
+	if hudPanel and moneyValue and gemsRow then
+		-- Measured at rest: a payout Pops MoneyValue (UiMotion MotionScale, +12% for ~0.18 s, HUD_LAYOUT_SPEC section
+		-- 10), the spec'd motion, not its layout. Waits (at most Waits.MotionRest s) until no MotionScale is off 1.
+		local restBy = os.clock() + UiSpec.Waits.MotionRest
+		repeat
+			renderFrame()
+			local m = moneyValue:FindFirstChild("MotionScale")
+		until not (m and m:IsA("UIScale") and math.abs(m.Scale - 1) > 1e-3) or os.clock() > restBy
+		local mv, gv = realRect(moneyValue), realRect(gemsRow)
+		check(
+			res,
+			"gems_under_money",
+			("gems y %d, x %d"):format(gv.y, gv.x),
+			("y in [%d, %d], x %d +- %d"):format(
+				mv.y + mv.h,
+				mv.y + mv.h + UiSpec.Hud.GemsUnderGap,
+				mv.x,
+				UiSpec.Hud.GemsLeftTolerance
+			),
+			gv.y >= mv.y + mv.h - TOL
+				and gv.y <= mv.y + mv.h + UiSpec.Hud.GemsUnderGap + TOL
+				and math.abs(gv.x - mv.x) <= UiSpec.Hud.GemsLeftTolerance
+		)
 		local pr = realRect(hudPanel)
 		local outside = {}
 		for _, l in hudPanel:GetDescendants() do
@@ -5311,6 +5344,20 @@ function S.ui_hud(res)
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
+		-- No box: Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
+		local boxed, clickable = {}, {}
+		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
+			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
+			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
+				table.insert(boxed, pathOf(o) .. " border stroke")
+			end
+			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
+				table.insert(clickable, pathOf(o))
+			end
+		end
+		checkList(res, "money_gems_no_box", boxed)
+		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then
 		return
@@ -5346,62 +5393,33 @@ function S.ui_hud(res)
 		until os.clock() > deadline
 		return false, label.Text, want
 	end
-	if unbankedValue then
-		local ok, shownText, want = followsServer(unbankedValue, function()
-			return attr("Unbanked")
-		end, HudFormat.MoneyText, UiSpec.Hud.UnbankedPrefix, "")
-		check(res, "hud_unbanked_matches_server", shownText, want, ok)
+	if gemsValue then
+		local ok, shownText, want = followsServer(gemsValue, function()
+			return attr("Gems") or 0
+		end, HudFormat.Short, "", "")
+		check(res, "hud_gems_matches_server", shownText, want, ok)
 	end
 	local okMoney, moneyText, wantMoney = followsServer(moneyValue, function()
 		return money.Value
 	end, HudFormat.MoneyText, "", "")
 	check(res, "hud_money_matches_server", moneyText, wantMoney, okMoney)
-	-- Money plate (docs/HUD_LAYOUT_SPEC.md section 9): behind both labels, holds both, never takes a click
-	local plate = findPath(UiSpec.Hud.MoneyPlate)
-	check(
-		res,
-		"money_plate_present",
-		plate and plate.ClassName or "missing",
-		"Frame",
-		plate ~= nil and plate:IsA("Frame")
-	)
-	if plate and plate:IsA("GuiObject") then
-		local behind = {}
-		for _, l in { moneyValue, unbankedValue } do
-			if l and not (plate.ZIndex < l.ZIndex) then
-				table.insert(behind, ("%s ZIndex %d <= plate %d"):format(pathOf(l), l.ZIndex, plate.ZIndex))
-			end
-		end
-		checkList(res, "money_plate_behind_labels", behind)
-		-- Measured at rest: a payout Pops MoneyValue (UiMotion MotionScale, +12% for ~0.18 s, HUD_LAYOUT_SPEC section
-		-- 10), the spec'd motion, not its layout. Waits (at most Waits.MotionRest s) until no MotionScale is off 1.
-		local function popping()
-			for _, l in { plate, moneyValue, unbankedValue } do
-				local m = l and l:FindFirstChild("MotionScale")
-				if m and m:IsA("UIScale") and math.abs(m.Scale - 1) > 1e-3 then
-					return true
+	-- Checkpoint payout notice (design doc 4.40): a RunEvent CashOut floats "Cashed out +$X" (the server's amount) by
+	-- Money. Skipped with ReduceEffects (UiMotion.Float shows nothing then).
+	if attr("ReduceEffects") ~= true then
+		local notice = UiSpec.Hud.CashOutNotice
+		local want = notice.Prefix .. HudFormat.MoneyText(notice.Amount)
+		local ok, err = UiScenarios.RequestSetup("cash_out_notice")
+		local seen = nil
+		local deadline = os.clock() + notice.Wait
+		while ok and not seen and os.clock() < deadline do
+			renderFrame()
+			for _, l in hudPanel and hudPanel:GetChildren() or {} do
+				if l.Name == "MotionFloat" and l:IsA("TextLabel") and l.Text == want then
+					seen = l
 				end
 			end
-			return false
 		end
-		local restBy = os.clock() + UiSpec.Waits.MotionRest
-		repeat
-			renderFrame()
-		until not popping() or os.clock() > restBy
-		local pr, outside = realRect(plate), {}
-		for _, l in { moneyValue, unbankedValue } do
-			if l and not contains(pr, realRect(l)) then
-				table.insert(outside, pathOf(l) .. rstr(realRect(l)) .. " outside " .. rstr(pr))
-			end
-		end
-		checkList(res, "money_labels_inside_plate", outside)
-		local clickable = {}
-		for _, o in { plate, table.unpack(plate:GetDescendants()) } do
-			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
-				table.insert(clickable, pathOf(o))
-			end
-		end
-		checkList(res, "money_plate_non_interactive", clickable)
+		check(res, "cash_out_notice_by_money", seen and seen.Text or tostring(err or "none"), want, seen ~= nil)
 	end
 	local noGradient = {}
 	for _, p in UiSpec.Hud.GradientLabels do

@@ -11,7 +11,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` sections 3 and 4.4. Same rules as t
 - Pure maths (`NpcRacer.LanePath`, `Profile`, `PoseAt`): its track time is known when the track starts.
 - A race starts every time the player starts a track. The player wins if their runner reaches the finish before the
   NPC's time. A loss plays out to the finish, then the loser screen shows for `LOSE_SCREEN_SECONDS` (3) and the player
-  goes back to the start track; the bank is emptied.
+  goes back to the start track; earlier checkpoint payouts stay in Money (owner 2026-11-10: no run bank, pay at each checkpoint).
 - Per player: the NPC exists only in the owner's client; race events go only to the owner. Players pass through each
   other; NPC parts never collide.
 - Indicator (owner 2026-11-03, design doc 4.26): above the enemy's head, the name over a down arrow, in the client's
@@ -44,6 +44,6 @@ character wearing its `Model` (CHARACTER_GACHA_SPEC "Digital art portrait"), or 
 
 ## Tests
 
-- `npc`: rival time = path length / speed; loss empties the bank; the NPC exists on one client only; its rig has no label.
+- `npc`: rival time = path length / speed; a loss keeps earlier payouts (owner 2026-11-10: no run bank, pay at each checkpoint); the NPC exists on one client only; its rig has no label.
 - `ui_billboards`: the indicator has the enemy's name and an arrow and tracks its head; off screen the pointer shows instead,
   stays on screen and aims at the enemy.

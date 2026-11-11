@@ -5,7 +5,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.37, 4.36, 4.38, 6 and section 5. 
 ## Flow
 | Time | What happens |
 |---|---|
-| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. It shows during duels too, and teleporting leaves the duel. Leaving a run cashes out its bank through the normal stop. |
+| 0:00 | Popup offers Teleport. Players with no Sidekick see it locked, with a prompt to get one. It shows during duels too, and teleporting leaves the duel. Leaving a run stops it; its checkpoints were already paid (owner 2026-11-10: no run bank, pay at each checkpoint). |
 | 0:00-3:00, plaza | The invite shows for 3 s (owner 2026-11-05), then closes. Until teleporting closes, the Bosses button at the very top left glows and pulses in size. |
 | 0:00-1:00 | Preparation. Arrivals stand at their lane on the track with the team HUD and a countdown. Closing the HUD starts the display-only team run (see "Preparation run"). A player with no valid saved team who picks nothing gets the auto-chosen team at 1:00. |
 | 1:00 | Big Raga rises from under the track to full height; the HP bar pops in and fills left to right. The rise is 1.5 s (`RiseSeconds`, owner 2026-11-05). The intro, the rise plus the cutscene, is 3 s (`IntroSeconds`, owner 2026-11-05), no damage either way. Red flashing warning text; red chat message to the whole server. Everyone starts running when the intro ends. If nobody is in the arena, the boss still waits for joiners. |
