@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
+local BossCatalog = require(shared:WaitForChild("BossCatalog"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
@@ -222,7 +223,7 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 		return
 	end
 	message, seen = ev, false
-	title.Text = ev.Outcome == "Survived" and "Fully Adapted Raga survived" or "Raga Defeated!"
+	title.Text = ev.Outcome == "Survived" and "Fully Adapted Raga survived" or BossCatalog.Get(ev.Boss).DefeatedTitle
 	total, share, countAt = tonumber(ev.Damage) or 0, tonumber(ev.Share), nil
 	count(1)
 	-- Share: of the phase this popup reports (owner 2026-11-10); a message without one hides the bar
