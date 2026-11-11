@@ -148,8 +148,9 @@
 144. 2026-11-10 — Alex Nguyen — Recorded the owner's hud-tech rules (original icons in gold frame tiles, L2 left HUD block, 1200 x 620 panels, enclosed Full Cyber dojo spawn with the door opening on walk-in or Auto race, Versus boss team HUD, R1 rewards popup), goal h1-h5, the Blender cyber draft script and the tile and Boss art (06b5410).
 145. 2026-11-10 — Alex Nguyen — Committed the owner-approved boss audit (9c68725): flat low-graphics boss removed, running camera 75 / 26 / 6, boss mesh preload, Big Raga at BossScale 0.75 with the scream camera scaled.
 146. 2026-11-10 — Alex Nguyen — Landed hud-tech h1 (c722398, 0a2ef57): gold frame HUD tiles in the L2 left block with the Tile and Boss icons uploaded, UI tests updated (ui_buttons 14/0, ui_hud 16/0), and the boss exhaustion view raised to 160 up at 13 deg (74eb084).
+147. 2026-11-11 — Alex Nguyen — Landed hud-tech: Tab tilt split HUD with Market pill and Bosses icon, 1200x620 panels, boss Versus HUD and R1 rewards, dojo cyber accents, Saitamo pedestal, pay-at-each-checkpoint with a Cashed out notice and unboxed Money/Gems, and the hybrid loading backdrop (pushed to 243aea8).
 
 ## What's next
-**Build hud-tech h2: widen every panel and popup frame to 1200 x 620 (`Client/AnimeSkin.IndexFrame`), give the Index and Backpack grids 7 columns, and teach the `ui_layout` solver the frame's aspect and the PanelBand reach so `ui_layout` goes green at every viewport.**
+**Get the owner's approval of the money and loading screenshots (https://claude.ai/artifact/RKmrkv3yp5KWLauU4UbDEq), confirm the loading backdrop image loads once Roblox clears it, finish the `npc` harness run, then open the hud-tech PR into main with a fresh merge review.**
 
-**Why this is next:** h1's L2 block freed the right edge that the wider panels centre into, and h3's boss screens use the same frame.
+**Why this is next:** every hud-tech deliverable is on the integration branch; the PR into main needs the remaining owner approval and green goal-level checks first.
