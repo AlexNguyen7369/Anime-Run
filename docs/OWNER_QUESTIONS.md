@@ -81,3 +81,14 @@ None of these block the renders and key frames. All of them block the server wor
 7. Spawn texts: "The Elf Mage has awakened, take her down!!!" and the chat line.
 8. Upload: no license was found for the source; uploading her model, golem and art needs your word, as for Saitamo (4.35).
 Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for items 2-7 (4 circles on every device), one random boss every 30 minutes, upload allowed. Size 8x; all renders and key frames approved.
+
+## 2026-11-11 boss-mage: build defaults taken while you were away (all proposed, change any)
+1. Wall moved out to radius 164 (was 132 in the approved draft): the event camera sits 40 studs behind and outside the runner, which put it behind the wall on lanes 4 to 7. The room is 328 studs across; the look is unchanged.
+2. Small ring lap feel: a lap is 465 to 767 studs, under 1 second at 800 studs/s. No speed cap was added, because 4.37 says real cruise. Look in Studio and say if a cap or a larger ring is wanted.
+3. Vulnerable applies to all three of her moves (your Raga-defaults answer): after one undodged move every later hit costs 30 / 45 / 22.5%. Three undodged barrages empty a team.
+4. Rhythm circles: the first circle appears 1.35 s into the golem move, 0.65 s before the 2 s wind-up, so that 4 beats with a 1 s ring fit before the slam.
+5. A dodged slam dashes to the next lane like a Dodge bar dodge.
+6. She enters by lowering from the broken dome in 1.5 s (Big Raga rises from below).
+7. The Bosses popup's idle text names Big Raga and the sky arena today. Proposed for both bosses: "Every 30 minutes a boss awakens. Defeat it for a treasure chest!"
+8. During her event the drop list still shows Raga's Treasure with "Big Raga 0.001%" (her rewards are Raga's until her own exist).
+
