@@ -208,7 +208,8 @@ K.STATES = {
 	-- through the real mechanism (PanelSwitch) and the Clicks open_*_while_*_open prove it through the buttons.
 	-- If exclusivity ever breaks, ui_panels fails, and this state must be added back here.
 }
--- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect).
+-- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect; a
+-- UIAspectRatioConstraint named AnimeAspect on a UiSpec.BandPanels panel is solved in UiShopMarket.BandFit).
 K.UNSUPPORTED_LAYOUT = {
 	UIAspectRatioConstraint = true,
 	UIScale = true,
@@ -1002,15 +1003,17 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 		ctx.unsupported[pathOf(grid)] = "UIGridLayout options"
 	end
 	-- Offsets are design pixels: the inherited UIScale factor `scale` applies to them. On the other variant than the live
-	-- one the cell size comes from the model (Components.BindIndex fit()), else from the live UIGridLayout.
+	-- one the cell size comes from the model (UiResponsive.Grids), else from the live UIGridLayout.
 	local cellSize = grid.CellSize
 	local gridModel = UiResponsive.Grids[pathOf(parent)]
 	if gridModel and otherVariant(ctx.vp) then
 		local variant = UiResponsive.VariantOf(ctx.vp)
-		local host = UiResponsive.Nodes[gridModel.Host][variant]
 		local cols = gridModel.Columns[variant]
-		local width = host.Size.X.Offset - gridModel.Inset
-		cellSize = UDim2.fromOffset(math.floor((width - (cols - 1) * gridModel.Gap) / cols), gridModel.CellHeight)
+		local width = UiResponsive.FrameSize(ctx.vp) - gridModel.HostMargin - gridModel.Inset
+		cellSize = UDim2.fromOffset(
+			math.min(gridModel.MaxWidth, math.floor((width - (cols - 1) * gridModel.Gap) / cols)),
+			gridModel.CellHeight[variant]
+		)
 	end
 	local cw = base.w * cellSize.X.Scale + scale * cellSize.X.Offset
 	local ch = base.h * cellSize.Y.Scale + scale * cellSize.Y.Offset
@@ -1224,6 +1227,9 @@ simRect = function(obj, ctx)
 		for _, sibling in parent:GetChildren() do
 			-- A UIScale under a GuiObject is solved (ownScale / inheritedScale); under a ScreenGui it is not
 			local solved = sibling:IsA("UIScale") and parent:IsA("GuiObject")
+				or sibling:IsA("UIAspectRatioConstraint")
+					and sibling.Name == "AnimeAspect"
+					and UiSpec.BandPanels[pathOf(parent)] ~= nil
 			if K.UNSUPPORTED_LAYOUT[sibling.ClassName] and not solved then
 				ctx.unsupported[pathOf(parent)] = sibling.ClassName
 			end
@@ -1290,10 +1296,16 @@ simRect = function(obj, ctx)
 				local money = findPath(UiSpec.Band.Money)
 				dependencies.MoneyShown = money ~= nil and money:IsA("GuiObject") and money.Visible
 				if bandMax then
-					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax)
+					-- the frame's AnimeAspect (AnimeSkin.IndexFrame; QuestAnimeStyle parents it only while Quests show)
+					local aspect = obj:FindFirstChild("AnimeAspect")
+					local ratio = nil
+					if aspect and aspect:IsA("UIAspectRatioConstraint") then
+						local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+						ratio = frameW / frameH
+					end
+					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax, ratio)
 				else
-					local size = variantProps(obj, ctx)
-					fitted = UiResponsive.RacerPanelFit(ctx.vp, { UiShopMarket.Band(ctx.vp, dependencies) }, size)
+					fitted = UiResponsive.RacerPanelFit(ctx.vp, { UiShopMarket.Band(ctx.vp, dependencies) })
 					ctx.scaleOverride[obj] = fitted.Scale
 				end
 			elseif path == UiSpec.Weather.Icon then

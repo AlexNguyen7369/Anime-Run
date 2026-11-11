@@ -149,7 +149,7 @@ end
 -- Loser screen (docs/NPC_RACER_SPEC.md "Loser screen", docs/HUD_LAYOUT_SPEC.md sections 8 and 10): built once,
 -- only its texts change per loss. Non-interactive; the shade is the first GuiObject child and covers the screen.
 local Palette = UiTheme.Palette
-local CARD_W, CARD_H, OVERHANG = 640, 431, 14 -- the Index frame's 920 x 620 aspect
+local CARD_W, CARD_H, OVERHANG = 834, 431, 14 -- the frame's 1200 x 620 aspect (design doc 4.42)
 local ROW_STAGGER = 0.06
 
 local Themes = require(Shared.BiomeThemes)
@@ -190,7 +190,11 @@ local function refit()
 	local size = gui.AbsoluteSize
 	if size.X > 0 and size.Y > 0 then
 		-- The Index chrome reaches 40 units past each side, 70 above and 30 below (Client/AnimeSkin.IndexFrame).
-		fit.Scale = math.min(1, (size.X - 32) / (CARD_W * 1000 / 920), (size.Y - 32) / (CARD_H * 720 / 620))
+		fit.Scale = math.min(
+			1,
+			(size.X - 32) / (CARD_W * (AnimeSkin.Units.W + 80) / AnimeSkin.Units.W),
+			(size.Y - 32) / (CARD_H * (AnimeSkin.Units.H + 100) / AnimeSkin.Units.H)
+		)
 	end
 end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refit)

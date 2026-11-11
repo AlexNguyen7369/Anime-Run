@@ -6,7 +6,7 @@ local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 
 local ART, INK, image, text = IndexStyle.Art, IndexStyle.Ink, IndexStyle.Image, IndexStyle.Text
-local Skin = { Art = ART, Ink = INK, Text = text }
+local Skin = { Art = ART, Ink = INK, Text = text, Chrome = IndexStyle.Chrome }
 Skin.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 -- Card and plate tints (placeholders); Default is the Index's card blue.
 Skin.Tint = {
@@ -415,14 +415,15 @@ function Skin.Footer(panel, value)
 end
 
 -- The Index frame (owner 2026-11-10: every panel matches the reference, as the approved Quests and Stats do). Geometry in
--- Issac's design units, 920 x 620 (phone 500 x 420), drawn at k = panel px / units: the chrome art, the overhanging logo,
+-- Issac's design units, 1200 x 620 (phone 650 x 420; design doc 4.42 "Wider panels", 1.3 x the old 920 and 500
+-- wide), drawn at k = panel px / units: the chrome art (IndexStyle.Chrome stretches only its plain runs), the logo,
 -- the slanted ALL CAPS title, the art close, art tabs in the row at y 98, content from y 164 to 82 above the bottom, and
 -- the footer line on the plate the chrome draws. Same numbers as Client/QuestAnimeStyle and the Index itself.
 Skin.Units = {
-	W = 920,
-	H = 620,
-	PhoneW = 500,
-	PhoneH = 420,
+	W = IndexStyle.Frame.W,
+	H = IndexStyle.Frame.H,
+	PhoneW = IndexStyle.Frame.PhoneW,
+	PhoneH = IndexStyle.Frame.PhoneH,
 	Left = 56, -- content inset, left and right
 	TabsY = 98,
 	PhoneTabsY = 90,
@@ -468,9 +469,7 @@ function Skin.IndexFrame(panel, parts)
 		header.ClipsDescendants = false
 		header.ZIndex = 8
 	end
-	local chrome = panel:FindFirstChild("AnimeChrome")
-		or image(panel, "AnimeChrome", ART.Chrome, UDim2.new(), UDim2.new(), 0)
-	chrome.ZIndex = 0
+	local _, placeChrome = IndexStyle.Chrome(panel, "AnimeChrome", 0)
 	local titleLabel = parts.Title or child(header or panel, "TextLabel", "Title")
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -600,7 +599,7 @@ function Skin.IndexFrame(panel, parts)
 			return
 		end
 		g.k, g.W, g.H, g.Small = k, W, H, small
-		chrome.Position, chrome.Size = g.at(-40, -70), UDim2.new(1, g.px(80), 1, g.px(100))
+		placeChrome(-g.px(40), -g.px(70), g.px(W) + g.px(80), g.px(H) + g.px(100))
 		if icon then
 			g.Place(icon, -19, -72, 188, 186)
 		end

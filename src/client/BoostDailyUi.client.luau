@@ -128,7 +128,7 @@ local panelFrame = require(script.Parent:WaitForChild("PanelFrame")).Attach(moda
 	TitleObject = title,
 	IconObject = header.CalendarIcon,
 	Close = close,
-	MaxWidth = 760,
+	MaxWidth = 1200, -- the frame's width (design doc 4.42 "Wider panels")
 })
 local content = make("ScrollingFrame", "Content", modal, {
 	Position = UDim2.fromOffset(14, 88),

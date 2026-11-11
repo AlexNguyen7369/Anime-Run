@@ -20,6 +20,8 @@
 -- UIScale (ScaleAt) at every simulated viewport; hover / press UIScales (UiSpec.TransientScales) count as 1.
 
 local Model = {}
+-- Client/IndexAnimeStyle.Frame (design doc 4.42 "Wider panels"): every panel frame's size in design units.
+local Units = require(script.Parent.Parent:WaitForChild("AnimeSkin")).Units
 
 -- The generated fit(): phone = ViewportSize.Y <= PHONE_MAX_HEIGHT;
 -- k = phone and clamp(Y / 390, 0.85, 1.15) or clamp(Y / 720, 0.6, 1.4); UIScale.Scale = k x the node's zoom.
@@ -1694,15 +1696,23 @@ function Model.ColumnRight(navigation, parts)
 	return right
 end
 
--- band = { left, top, right, bottom } (UiShopMarket.Band); size = the panel's generated variant Size (UDim2).
+-- The panel frame's width and height in design units at a viewport (AnimeSkin.Units: 1200 x 620, phone 650 x 420).
+function Model.FrameSize(viewport)
+	if Model.VariantOf(viewport) == "Phone" then
+		return Units.PhoneW, Units.PhoneH
+	end
+	return Units.W, Units.H
+end
+
+-- band = { left, top, right, bottom } (UiShopMarket.Band). The panel's Size is the frame's (IndexAnimeStyle layout and
+-- RacerUiController indexFrame set it to AnimeSkin.Units at runtime, not the generated variant Size).
 -- Returns { AnchorPoint, Position, Size, Scale, Band = { top, bottom, side } }.
-function Model.RacerPanelFit(viewport, band, size)
+function Model.RacerPanelFit(viewport, band)
 	local left, top, right, bottom = band[1], band[2], band[3], band[4]
 	local width, height = right - left, bottom - top
-	local scale = Model.K(viewport)
-	if size.X.Offset > 0 and size.Y.Offset > 0 then
-		scale = math.max(Model.RacerPanels.MinScale, math.min(scale, width / size.X.Offset, height / size.Y.Offset))
-	end
+	local frameW, frameH = Model.FrameSize(viewport)
+	local size = UDim2.fromOffset(frameW, frameH)
+	local scale = math.max(Model.RacerPanels.MinScale, math.min(Model.K(viewport), width / frameW, height / frameH))
 	return {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset((left + right) / 2, top + height / 2),
@@ -1733,17 +1743,31 @@ Model.Animated = {
 }
 -- RollShowcase/Card is tweened from the compact roll's rect to its layout rect when the view opens (SWITCH) and
 -- back when it closes; the solver places it at its layout rect (Nodes) once settled.
--- Components.BindIndex sizes the Index grid cells per viewport: cell width =
--- floor((GridHost design width - Inset - (columns - 1) * Gap) / columns), columns 4 on desktop and 3 on a phone, cell
--- height CellHeight (design pixels: the panel's generated UIScale applies on top).
+-- The Index grid cells per viewport, in design pixels (the panel's generated UIScale applies on top). The GridHost is
+-- Client/IndexAnimeStyle's: the frame width (FrameSize) - HostMargin. Cell width =
+-- min(MaxWidth, floor((host width - Inset - (columns - 1) * Gap) / columns)), height CellHeight.
+-- Gallery: IndexAnimeStyle fitGallery (7 across, 3 on a phone). The other tabs' pages: RacerComponents fitCells
+-- (INDEX_COLUMNS, INDEX_GAP, INDEX_CELL_HEIGHT, no MaxWidth).
+local PAGE_CELLS = {
+	HostMargin = 112,
+	Inset = 14,
+	Gap = 12,
+	MaxWidth = math.huge,
+	CellHeight = { Desktop = 168, Phone = 168 },
+	Columns = { Desktop = 7, Phone = 3 },
+}
 Model.Grids = {
 	["RacerIndex/Panel/Face/GridHost/Gallery"] = {
-		Host = "RacerIndex/Panel/Face/GridHost",
+		HostMargin = 112,
 		Inset = 14,
-		Gap = 12,
-		CellHeight = 168,
-		Columns = { Desktop = 4, Phone = 3 },
+		Gap = 16,
+		MaxWidth = 178,
+		CellHeight = { Desktop = 176, Phone = 150 },
+		Columns = { Desktop = 7, Phone = 3 },
 	},
+	["RacerIndex/Panel/Face/GridHost/EnemiesPage"] = PAGE_CELLS,
+	["RacerIndex/Panel/Face/GridHost/SidekicksPage"] = PAGE_CELLS,
+	["RacerIndex/Panel/Face/GridHost/RelicsPage"] = PAGE_CELLS,
 }
 
 -- Which generated variant a viewport uses (the generated fit(): phone = ViewportSize.Y <= PHONE_MAX_HEIGHT).

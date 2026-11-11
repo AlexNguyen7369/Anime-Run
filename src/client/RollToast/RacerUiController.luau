@@ -881,8 +881,9 @@ for _, name in { "LuckReward", "SpeedReward", "PointReward" } do
 end
 
 -- Design doc 4.42 spacing standard: Rebirth, Stats and Settings wear the Index's frame in its design units, as
--- Client/IndexAnimeStyle and Client/QuestAnimeStyle lay it out (920 x 620, phone 500 x 420): logo, title and close in
--- the header band, art tabs in the row at y 98, content from y 164 to 82 above the bottom, a count line in the footer.
+-- Client/IndexAnimeStyle and Client/QuestAnimeStyle lay it out (AnimeSkin.Units: 1200 x 620, phone 650 x 420): logo,
+-- title and close in the header band, art tabs in the row at y 98, content from y 164 to 82 above the bottom, a count
+-- line in the footer.
 -- fitPanels draws the panels at a UIScale (BaseScale), so a px token becomes design units through `units`. The
 -- generated fit() re-applies the authored rects on every resize; those writes queue this layout again (as the Index).
 local HudIcons = require(Ui.HudIcons)
@@ -947,14 +948,7 @@ end
 local function indexFrame(refs, icon, content)
 	local frame, face, header = refs.Panel.Parent, refs.Panel, refs.Header
 	local band, close = header.Parent, refs.Close.Parent
-	local chrome = Instance.new("ImageLabel")
-	chrome.Name = "AnimeChrome"
-	chrome.BackgroundTransparency = 1
-	chrome.Image = AnimeSkin.Art.Chrome
-	chrome.ScaleType = Enum.ScaleType.Stretch
-	chrome.Position, chrome.Size = UDim2.fromOffset(-40, -70), UDim2.new(1, 80, 1, 100)
-	chrome.ZIndex = 1
-	chrome.Parent = face
+	local _, placeChrome = AnimeSkin.Chrome(face, "AnimeChrome", 1)
 	-- The Index chrome replaces the shared body art and strip PanelFrame.PaintGenerated put on.
 	local body, strip = face:FindFirstChild("AnimeBody"), header:FindFirstChild("AnimeStrip")
 	if body then
@@ -986,7 +980,9 @@ local function indexFrame(refs, icon, content)
 	}
 	local function layout()
 		local small = phoneView()
-		local W, H = small and 500 or 920, small and 420 or 620
+		local U = AnimeSkin.Units
+		local W, H = small and U.PhoneW or U.W, small and U.PhoneH or U.H
+		placeChrome(-40, -70, W + 80, H + 100)
 		if frame.Size ~= UDim2.fromOffset(W, H) then
 			frame.Size = UDim2.fromOffset(W, H)
 		end

@@ -172,8 +172,8 @@ function Frame.Attach(panel, options)
 		panel:SetAttribute("PanelTheme", theme)
 	end
 	controller:SetTheme(options.Theme, options.Title, options.Icon)
-	-- The band's height sets the size; the frame's aspect keeps the Index's proportions (max width = the Index's 920).
-	Band.Fit(panel, frame and 920 or options.MaxWidth or 760)
+	-- The band's height sets the size; the frame's aspect keeps the Index's proportions (max width = the frame's units).
+	Band.Fit(panel, frame and Skin.Units.W or options.MaxWidth or 760)
 	controller.Header, controller.Close = header, close
 	return controller
 end
