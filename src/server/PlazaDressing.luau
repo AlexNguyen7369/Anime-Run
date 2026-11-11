@@ -1,9 +1,8 @@
 --!nonstrict
--- The plaza meshes kept by the enclosed dojo (design doc 4.24 "Enclosed cyber dojo" and "Hybrid look", owner
--- 2026-11-10: the Legend pedestals, the sky loop, the Market's flat sign, the stone lanterns and the reviewed Sakura,
--- the Great Sakura at its row and the same mesh on every other Sakura spot of Server/CyberLook's garden), the flat signs
--- and the Dojo look (Server/CyberDojo). The wood torii, stalls, path and spawn mosaic and the old Dojo tier meshes are
--- not loaded (Server/CyberWall, CyberGate and CyberLook build their replacements).
+-- The plaza meshes kept by the enclosed cyber dojo (design doc 4.24 "Enclosed cyber dojo", owner 2026-11-10: the
+-- Legend pedestals, the sky loop and the Market's flat sign), the flat signs and the Dojo look (Server/CyberDojo).
+-- The old look is gone: the Great Sakura, the stone lanterns, the wood torii, stalls, path and spawn mosaic and the
+-- wooden Dojo tiers are not loaded (Server/CyberWall, CyberGate and CyberLook build their replacements).
 -- Runs in the background after the world is built. SpawnArea and WorkshopBuilder still build the gameplay parts:
 -- prompts, pads, zones and collision stay on them. ReplicatedStorage attribute PlazaReady turns true when done.
 local CollectionService = game:GetService("CollectionService")
@@ -22,16 +21,7 @@ local PlazaDressing = {}
 
 local TOP = 1 -- SpawnArea.TOP_Y
 local SIGN_HEIGHT = { [1] = 24, [4] = 32, [7] = 38, [10] = 44 } -- owner's sign above each tier's roof (studs)
-local TRUNK_RADIUS = 3.2 -- the Sakura mesh does not collide: a solid trunk under each tree (from build_plaza.py)
--- meshes still placed
-local KEEP = {
-	LegendPedestal = true,
-	LegendPedestalx = true,
-	SkyLoop = true,
-	MarketSign = true,
-	GreatSakura = true,
-	Lantern = true,
-}
+local KEEP = { LegendPedestal = true, LegendPedestalx = true, SkyLoop = true, MarketSign = true } -- meshes still placed
 local SIGN_SKIP = { ["RACE START"] = true } -- the blast door's header carries it now (Server/CyberGate)
 local SIGN_COLOR = { ["RUNNER INDEX"] = "#F2FBFF" } -- readable on the Index's dark wall screen
 
@@ -166,7 +156,7 @@ local function dressPlot(plot)
 			position + look * 18.4 + Vector3.new(0, 8.6, 0),
 			look,
 			1,
-			Color3.fromRGB(255, 226, 160), -- warm gold on the wood sign board (Server/CyberDojo ClosedSign)
+			Color3.fromRGB(242, 251, 255),
 			model
 		)
 	end
@@ -211,38 +201,8 @@ function PlazaDressing.Start()
 
 			local folder = Instance.new("Folder")
 			folder.Name = "PlazaDressing"
-			local trees = {}
 			for _, row in Layout.Placed do
-				if place(row.Key, frameOf(row.Pos, row.Face), folder) and row.Key == "GreatSakura" then
-					table.insert(trees, row.Pos)
-				end
-			end
-			-- The same reviewed Sakura on the garden's other spots (its first bed is the Great Sakura's), each turned
-			-- differently so the copies do not read as one tree
-			local garden = Workspace:FindFirstChild("CyberPlaza")
-			garden = garden and garden:FindFirstChild("Look") and garden.Look:FindFirstChild("Garden")
-			local great = trees[1]
-			for i, bed in garden and garden:GetChildren() or {} do
-				if bed.Name == "SakuraBed" and great then
-					local at = Vector3.new(bed.Position.X, great.Y, bed.Position.Z)
-					if (at - great).Magnitude > 1 then
-						local a = i * 2.4
-						place("GreatSakura", frameOf(at, Vector3.new(math.sin(a), 0, math.cos(a))), folder)
-						table.insert(trees, at)
-					end
-				end
-			end
-			for _, at in trees do
-				local trunk = Instance.new("Part")
-				trunk.Name = "SakuraTrunk"
-				trunk.Shape = Enum.PartType.Cylinder
-				trunk.Size = Vector3.new(24, TRUNK_RADIUS * 2, TRUNK_RADIUS * 2)
-				trunk.CFrame = CFrame.new(at + Vector3.new(0, 12, 0)) * CFrame.Angles(0, 0, math.rad(90))
-				trunk.Anchored = true
-				trunk.Transparency = 1
-				trunk.CastShadow = false
-				trunk.CanTouch = false
-				trunk.Parent = folder
+				place(row.Key, frameOf(row.Pos, row.Face), folder)
 			end
 			for _, row in Layout.Signs do
 				if not SIGN_SKIP[row.Text] then

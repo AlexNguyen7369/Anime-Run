@@ -1,27 +1,22 @@
 --!nonstrict
--- The enclosed dojo on this client (design doc 4.24, owner 2026-11-10; "Hybrid look"), display only. The blast door
--- opens while this player races and shuts once they are back on foot; the far pagoda towers beyond the wall show only
--- on foot (they stand over the track chain, which the wall hides from inside); in Zone 0 the city hum plays low under
--- the forest ambience. The server decides the race start: CarService sets the player attribute AutoRacing from the
--- StartPad touch or Remotes.SetAutoRace. Timings and sizes are proposed.
+-- The enclosed cyber dojo on this client (design doc 4.24, owner 2026-11-10), display only. The blast door opens while
+-- this player races and shuts once they are back on foot; the city skyline beyond the wall shows only on foot (it
+-- stands over the track chain, which the wall hides from inside). The server decides the race start: CarService sets
+-- the player attribute AutoRacing from the StartPad touch or Remotes.SetAutoRace. Timings and sizes are proposed.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
-local Shared = ReplicatedStorage:WaitForChild("Shared")
-local BiomeEnvironment = require(Shared:WaitForChild("BiomeEnvironment"))
-local CyberPlaza = require(Shared:WaitForChild("CyberPlaza"))
+local CyberPlaza = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("CyberPlaza"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local OPEN_TIME = 1.2 -- seconds
 local CLOSE_DELAY = 1 -- seconds back on foot before the door shuts
-local SKYLINE_COUNT = 70
+local SKYLINE_COUNT = 140
 local SKYLINE_NEAR, SKYLINE_FAR = 300, 680 -- studs from the compound's centre
-local SKYLINE_HEIGHT = NumberRange.new(90, 240)
-local HUM_FADE = 2 -- seconds
+local SKYLINE_HEIGHT = NumberRange.new(90, 300)
 local SKYLINE_WIDTH = NumberRange.new(20, 55)
 
 local C = CyberPlaza.Colors
@@ -81,7 +76,7 @@ skyline.Name = "CyberSkyline"
 local function buildSkyline()
 	local rng = Random.new(11)
 	local centre = (CyberPlaza.CORNER_MIN + CyberPlaza.CORNER_MAX) / 2
-	local bands = { C.Paper, C.Amber, C.Gold, C.Pink }
+	local bands = { C.Cyan, C.Magenta, C.Panel }
 	for i = 1, SKYLINE_COUNT do
 		local a = rng:NextNumber(0, 2 * math.pi)
 		local d = rng:NextNumber(SKYLINE_NEAR, SKYLINE_FAR)
@@ -89,61 +84,20 @@ local function buildSkyline()
 		local h = rng:NextNumber(SKYLINE_HEIGHT.Min, SKYLINE_HEIGHT.Max)
 		local base = CFrame.new(centre.X + d * math.cos(a), CyberPlaza.TOP, centre.Y + d * math.sin(a))
 			* CFrame.Angles(0, -a, 0)
-		local tower = CyberPlaza.Part(skyline, "Tower", Vector3.new(w, h, w), base * CFrame.new(0, h / 2, 0), C.Dusk)
+		local tower = CyberPlaza.Part(skyline, "Tower", Vector3.new(w, h, w), base * CFrame.new(0, h / 2, 0), C.City)
 		tower.CastShadow = false
-		-- A pagoda: dark eaves wider than the tower, each with a lit warm band under it
-		local floors = rng:NextInteger(2, 5)
-		for k = 1, floors do
-			local y = h * k / (floors + 0.5)
-			CyberPlaza.Part(skyline, "Eave", Vector3.new(w + 8, 1.6, w + 8), base * CFrame.new(0, y, 0), C.Dusk).CastShadow =
-				false
+		for _ = 1, rng:NextInteger(1, 4) do
 			CyberPlaza.Neon(
 				skyline,
 				"Band",
-				Vector3.new(w + 0.4, 1, w + 0.4),
-				base * CFrame.new(0, y - 1.4, 0),
+				Vector3.new(w + 0.4, 0.8, w + 0.4),
+				base * CFrame.new(0, rng:NextNumber(10, h - 4), 0),
 				bands[rng:NextInteger(1, #bands)]
 			)
 		end
 		if i % 20 == 0 then
 			task.wait() -- chunks: no hitch while the game loads
 		end
-	end
-end
-
--- City hum ------------------------------------------------------------------------------------------------------------
-
--- Zone 0's Bed loop (Shared/BiomeEnvironment), in the Ambience group so the SOUND toggle mutes it; the fade is on its
--- own group, so the Sound keeps its volume for that toggle.
-local function startHum()
-	local audio = BiomeEnvironment.Audio(0)
-	local row = audio.Bed and BiomeEnvironment.Asset(0, audio.Bed, "Sound")
-	if not row then
-		return
-	end
-	local ambience = SoundService:WaitForChild("Ambience", 30)
-	if not ambience then
-		return
-	end
-	local group = Instance.new("SoundGroup")
-	group.Name = "AmbienceBed"
-	group.Volume = 0
-	group.Parent = ambience
-	local sound = Instance.new("Sound")
-	sound.Name = "CityHum"
-	sound.SoundId = row.Id
-	sound.Looped = true
-	sound.SoundGroup = group
-	sound.Parent = group
-	sound:Play()
-	local was = nil
-	while true do
-		local inside = BiomeEnvironment.CurrentZone == 0
-		if inside ~= was then
-			was = inside
-			TweenService:Create(group, TweenInfo.new(HUM_FADE), { Volume = inside and audio.BedVolume or 0 }):Play()
-		end
-		task.wait(0.5)
 	end
 end
 
@@ -169,4 +123,3 @@ player:GetAttributeChangedSignal("AutoRacing"):Connect(onRacing)
 
 buildSkyline()
 onRacing()
-task.spawn(startHum)

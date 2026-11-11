@@ -84,72 +84,46 @@ function BiomeEnvironment.ZoneAt(p)
 end
 
 local baseline = Kit.Atmosphere()
--- Zone 0, the plaza: the hybrid dojo's warm dusk (owner 2026-11-10, design doc 4.24 "Hybrid look", replaces the cyber
--- night; spec 2.1): a low gold sun on the reviewed golden gradient sky, amber and pink haze, warm ambient, brighter than
--- the night build, so the warm wood and the gold and navy HUD sit together. Values are placeholders.
+-- Zone 0, the plaza: the enclosed cyber dojo's magenta and purple night (owner 2026-11-10, design doc 4.24, replaces
+-- the golden hour; spec 2.1). Values are placeholders, after Track 5's reviewed night (BiomeThemes/Suburb).
 local PLAZA = Kit.Atmosphere({
 	Lighting = {
-		ClockTime = 17.4,
-		Brightness = 2.4,
-		Ambient = Kit.hex("6E5248"),
-		OutdoorAmbient = Kit.hex("C29A86"),
-		ColorShift_Top = Kit.hex("FFB070"),
-		ExposureCompensation = 0.1,
+		ClockTime = 0,
+		Brightness = 2.5,
+		Ambient = Kit.hex("5A3E8E"),
+		OutdoorAmbient = Kit.hex("7A4EB0"),
+		ColorShift_Top = Kit.hex("C04CFF"),
+		ExposureCompensation = 0.5,
 	},
 	Atmosphere = {
-		Density = 0.22,
+		Density = 0.3,
 		Offset = 0.1,
-		Haze = 1,
-		Glare = 0.3,
-		Color = Kit.hex("FFC8A0"),
-		Decay = Kit.hex("D98AA0"),
+		Haze = 1.2,
+		Glare = 0,
+		Color = Kit.hex("C2349E"),
+		Decay = Kit.hex("2A0E52"),
 	},
-	Grade = { Saturation = 0.22, TintColor = Kit.hex("FFEAD6") },
-	SunRays = { Intensity = 0.12 },
-	Bloom = { Intensity = 0.6, Size = 24, Threshold = 1.4 }, -- the neon accents glow softly
-	Sky = { Skybox = "SkyGolden", SunAngularSize = 10, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
-	Clouds = { Cover = 0.32, Density = 0.35, Color = Kit.hex("FFD2C4") },
+	Grade = { Saturation = 0.2, TintColor = Kit.hex("F0DCFF") },
+	SunRays = { Intensity = 0 },
+	Bloom = { Intensity = 1.2, Size = 24, Threshold = 1.15 }, -- the neon glows
+	Sky = { SunAngularSize = 0, MoonAngularSize = 0, StarCount = 3000, CelestialBodiesShown = false },
+	Clouds = { Cover = 0 },
 	Particles = {
 		{
-			Texture = "PlazaPetal", -- falling Sakura petals (the golden-hour plaza's reviewed petal)
-			Color = Kit.hex("FFFFFF"),
-			Size = 0.7,
-			Rate = 12,
+			Texture = "MoteParticle", -- data motes in place of petals (Snow's reviewed mote, tinted cyan to magenta)
+			Color = ColorSequence.new(Kit.hex("00F0FF"), Kit.hex("FF3CD2")),
+			Size = 0.35,
+			Rate = 14,
 			Lifetime = 7,
-			Speed = 2,
-			SpreadAngle = 50,
-			LightEmission = 0,
+			Speed = 1,
+			SpreadAngle = 180,
+			LightEmission = 1,
 			Area = Kit.v(90, 35, 90),
 		},
 	},
 })
--- Track 1's reviewed forest ambience (rows in BiomeThemes/Speedway) with the city hum under it (Bed: City's reviewed
--- AmbCityPark via Asset below, played low by Client/CyberPlaza, since the blend runs one loop per zone)
-local PLAZA_AUDIO =
-	{ Loop = "AmbForest", OneShots = { "SfxWindChime" }, Volume = 0.2, Bed = "AmbCityHum", BedVolume = 0.06 }
-local PLAZA_PETAL = {
-	Kind = "Texture",
-	Id = "rbxassetid://130260166899982",
-	Lane = "B",
-	Reviewed = "2026-11-03 rules-auditor",
-	Notes = "In-house numpy teardrop, tools/blender/plaza/plaza_petal.py",
-}
--- Drawn in-house (tools/blender/plaza/plaza_sky.py, assets/biomes/Plaza/sky): a plain gradient, the same image on the 4 sides.
-local PLAZA_SKY = {
-	Kind = "Skybox",
-	Id = "rbxassetid://103670338630976",
-	Lane = "A",
-	Reviewed = "2026-11-03 rules-auditor",
-	Notes = "In-house numpy gradient, no prompt",
-	Faces = {
-		Bk = "rbxassetid://103670338630976",
-		Ft = "rbxassetid://103670338630976",
-		Lf = "rbxassetid://103670338630976",
-		Rt = "rbxassetid://103670338630976",
-		Up = "rbxassetid://75892213251440",
-		Dn = "rbxassetid://137365666705594",
-	},
-}
+-- City hum (design doc 4.24): City's reviewed Creator Store ambience (BiomeThemes/City AmbCityPark), via Asset below
+local PLAZA_AUDIO = { Loop = "AmbCityHum", Volume = 0.2 }
 -- The boss arena (docs/BOSS_EVENT_SPEC.md "Arena"): Track 8's clear noon and cloud wisps with no terrain clouds or haze.
 -- Values are placeholders.
 local ARENA = Kit.Atmosphere({
@@ -224,12 +198,10 @@ end
 
 function BiomeEnvironment.Asset(zone, key, kind)
 	if zone == 0 then
-		if key == "SkyGolden" then
-			return PLAZA_SKY
-		elseif key == "PlazaPetal" then
-			return PLAZA_PETAL
-		elseif key == "AmbCityHum" then
+		if key == "AmbCityHum" then
 			return BiomeEnvironment.Row("City", "AmbCityPark", kind)
+		elseif key == "MoteParticle" then
+			return BiomeEnvironment.Row("Snow", key, kind)
 		end
 		return BiomeEnvironment.Row("Speedway", key, kind)
 	elseif zone == BiomeEnvironment.ARENA_ZONE then
