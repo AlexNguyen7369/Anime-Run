@@ -150,8 +150,9 @@
 146. 2026-11-10 — Alex Nguyen — Landed hud-tech h1 (c722398, 0a2ef57): gold frame HUD tiles in the L2 left block with the Tile and Boss icons uploaded, UI tests updated (ui_buttons 14/0, ui_hud 16/0), and the boss exhaustion view raised to 160 up at 13 deg (74eb084).
 147. 2026-11-11 — Alex Nguyen — Landed hud-tech: Tab tilt split HUD with Market pill and Bosses icon, 1200x620 panels, boss Versus HUD and R1 rewards, dojo cyber accents, Saitamo pedestal, pay-at-each-checkpoint with a Cashed out notice and unboxed Money/Gems, and the hybrid loading backdrop (pushed to 243aea8).
 148. 2026-11-11 — Alex Nguyen — Sized the Bosses button like the HUD column buttons (right of Roblox's buttons where it would reach the left column) and set the loading screen backdrop to intro draft B3 Sakura gate (pushed to 0cbba12; ui_boss 501/0, ui_hud 16/0, ui_buttons 15/0).
+149. 2026-11-11 — Alex Nguyen — Wrote the rules and evidence for the second boss The Elf Mage (goal boss-mage m0: design doc 4.37 Second boss, BOSS_EVENT_SPEC section, char_evidence, open owner questions) on feature/alex/boss-mage.
 
 ## What's next
-**Confirm the loading backdrop (image 81384921997104) shows once Roblox finishes reviewing it, finish the `npc` harness run, then open the hud-tech PR into main with a fresh merge review.**
+**Get the owner's approval of the Elf Mage and golem model renders, the colosseum draft and the digital art (boss-mage m1-m3, m8), then draw the hover idle and 3 move key frames (m4-m7).**
 
-**Why this is next:** every hud-tech deliverable is pushed on the integration branch; the PR into main needs the backdrop seen in game and green goal-level checks first.
+**Why this is next:** the key frames need the approved models, and no in-betweens or game code start before the owner approves the renders and key frames (design doc 4.37 gate).
