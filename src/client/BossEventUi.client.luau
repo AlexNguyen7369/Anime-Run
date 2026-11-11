@@ -31,6 +31,7 @@ local HEAVY = Font.new("rbxasset://fonts/families/FredokaOne.json", Enum.FontWei
 local PanelBand = require(script.Parent:WaitForChild("PanelBand"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
+local Icons = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -54,8 +55,10 @@ local RESTRICTED_TEXT = "Paid spawns are not available on your account"
 local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweaked name only
 local CLOSED_TEXT = "Teleporting closed"
 local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a treasure chest!"
--- Popup widths in px at most, at the Index frame's 920 x 620 aspect (design doc 4.42); k follows from the size.
-local INVITE_WIDTH, HUD_WIDTH, BOSSES_WIDTH = 560, 820, 700
+-- Popup widths in px at most: the old widths at 920 units wide, stretched to the frame's width (design doc 4.42) so the
+-- heights stay as before; k follows from the size.
+local WIDE = AnimeSkin.Units.W / 920
+local INVITE_WIDTH, HUD_WIDTH, BOSSES_WIDTH = 560 * WIDE, 820 * WIDE, 700 * WIDE
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
 local TITLE_STAGE_2_COLOR = Color3.fromRGB(235, 20, 30) -- owner 2026-11-06: bold red; HEAVY is already the title's font
@@ -132,10 +135,10 @@ local function button(name, parent, text, tone, props)
 end
 
 -- The Index frame (design doc 4.42, Client/AnimeSkin.IndexFrame): chrome, overhanging logo, ALL CAPS title, art close,
--- content in the frame's units. HudIcons has no boss icon, so Big Raga's chest art is the logo. The countdown (Section,
+-- content in the frame's units. The Boss icon is the logo (design doc 4.40). The countdown (Section,
 -- gold) sits on a plate at the right of the tabs row. withClose adds Header/CloseButton; the Invite has none (Decline is
 -- its way out). Returns the frame's g too: each popup lays its content out in g.OnLayout.
-local LOGO = RelicConfig.Chests[RAGA_CHEST].Image
+local LOGO = Icons.Boss.Image
 local COUNTDOWN_WIDTH = 160 -- units, "m:ss" at the Section size with the plate's 24 clear at each end
 local function panel(name, title, withClose)
 	local frame = make("Frame", name, nil, { Visible = false, Active = true, AnchorPoint = Vector2.new(0.5, 0.5) })
@@ -245,6 +248,16 @@ for i = 1, StaminaConfig.TEAM_SIZE do
 	})
 	slots[i] = { Frame = slot, Number = number, Head = head, Badge = badge }
 end
+-- Versus (BOSS_EVENT_SPEC "Team HUD", T2): the red VS mark, then Big Raga's drawn portrait (side_raga is his art) on a red card.
+local versus = make("TextLabel", "Versus", hud, { BackgroundTransparency = 1, Text = "VS" })
+local ragaCard = make("Frame", "RagaCard", hud, { BackgroundTransparency = 1 })
+AnimeSkin.Card(ragaCard, AnimeSkin.Tint.Danger)
+local ragaPortrait = make("ImageLabel", "RagaPortrait", hud, {
+	BackgroundTransparency = 1,
+	Image = SidekickArt.side_raga and SidekickArt.side_raga.Portrait or "",
+	ScaleType = Enum.ScaleType.Fit,
+	ZIndex = 2,
+})
 local teamDamage = label("TeamDamage", hud, {
 	Text = "",
 	TextXAlignment = Enum.TextXAlignment.Left,
@@ -261,65 +274,83 @@ local teamWarning = label("TeamWarning", hud, {
 local note = label("Note", hud, {
 	Text = NOTE_TEXT,
 	TextWrapped = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
 }, 16)
 local list = make("ScrollingFrame", "List", hud, {
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
 	CanvasSize = UDim2.new(),
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	ScrollingDirection = Enum.ScrollingDirection.Y,
+	AutomaticCanvasSize = Enum.AutomaticSize.X,
+	ScrollingDirection = Enum.ScrollingDirection.X,
 	ScrollBarThickness = 6,
 	ScrollBarImageColor3 = Palette.Muted,
-	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits inside the area, not on cells
+	HorizontalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits inside the area, not on cells
 })
 local LIST_BLEED = 4 -- units: the card art reaches 3 px past each cell
 local listPadding = make("UIPadding", "Padding", list, {})
-local listGrid = make("UIGridLayout", "Grid", list, {
+local listGrid = make("UIGridLayout", "Grid", list, { -- one row: columns of one cell, left to right
 	SortOrder = Enum.SortOrder.LayoutOrder,
+	FillDirection = Enum.FillDirection.Vertical,
+	FillDirectionMaxCells = 1,
 })
--- Design doc 4.42: TeamDamage (Section), AverageStamina (Body) and the Note (Caption) on one line, the three slots (96
--- square cards, 12 apart) under it, the character grid under them in whole rows, 12 apart. Phones (a 194 unit tall area)
--- stack the slots down the left and put the line and the grid beside them. The red TeamWarning shows on the footer plate.
+-- Versus (BOSS_EVENT_SPEC "Team HUD", owner 2026-11-10, positions and sizes proposed): a band over a one-row grid. In the
+-- band, left to right: the slots (square, as big as fits), the red VS, Big Raga's portrait, then TeamDamage (Section) over
+-- AverageStamina (Body). The grid runs along the bottom and scrolls sideways. The Note (Caption) and the red TeamWarning take the
+-- footer plate's line in turn.
 local CELL_W, CELL_H, LINE_H = 96, 100, 40
+local PHONE_CELL_W, PHONE_CELL_H, PHONE_LINE_H = 64, 68, 28
+local VS_W, PHONE_VS_W, STATS_W, PHONE_STATS_W = 72, 32, 220, 96
+local RAGA_SHARE = 0.2 -- of the content width at most
 hudFrame.OnLayout(function(g)
 	local c, U = g.Content, AnimeSkin.Units
 	local gap = U.Gap
-	local side, left, lineY = 96, c.X, c.Y
-	if g.Small then
-		side = math.floor((c.H - (#slots - 1) * gap) / #slots)
-		left = c.X + side + gap
-	end
-	local lineW = c.X + c.W - left
-	local damageW, staminaW = lineW * 0.32, lineW * 0.28
-	g.Place(teamDamage, left, lineY, damageW, LINE_H)
-	g.Place(avgStamina, left + damageW + gap, lineY, staminaW, LINE_H)
-	local noteX = left + damageW + staminaW + 2 * gap
-	g.Place(note, noteX, lineY, c.X + c.W - noteX, LINE_H)
-	g.Role(teamDamage, "Section")
-	g.Role(avgStamina, "Body")
-	g.Role(note, "Caption")
+	local cellW, cellH = g.Small and PHONE_CELL_W or CELL_W, g.Small and PHONE_CELL_H or CELL_H
+	local lineH = g.Small and PHONE_LINE_H or LINE_H
+	local vsW, statsW = g.Small and PHONE_VS_W or VS_W, g.Small and PHONE_STATS_W or STATS_W
+	local gridH = cellH + 2 * LIST_BLEED + U.Inner -- the cells and the sideways scrollbar
+	local band = c.H - gridH - gap
+	local raga = math.min(band, math.floor(c.W * RAGA_SHARE))
+	local n = #slots
+	local side = math.max(1, math.min(band, (c.W - statsW - vsW - raga - 3 * gap - (n - 1) * gap) / n))
 	for i, slot in slots do
-		if g.Small then
-			g.Place(slot.Frame, c.X, c.Y + (i - 1) * (side + gap), side, side)
-		else
-			g.Place(slot.Frame, c.X + (i - 1) * (side + gap), lineY + LINE_H + gap, side, side)
-		end
+		g.Place(slot.Frame, c.X + (i - 1) * (side + gap), c.Y + (band - side) / 2, side, side)
 		g.Role(slot.Number, "Item")
 	end
-	local listY = lineY + LINE_H + gap + (g.Small and 0 or side + gap)
-	local listH = c.Y + c.H - listY
-	g.Place(list, left, listY, c.X + c.W - left, listH)
+	local x = c.X + n * side + n * gap
+	g.Place(versus, x, c.Y, vsW, band)
+	g.Role(versus, "Title")
+	versus.TextColor3 = WARNING_BRIGHT
+	x += vsW + gap
+	g.Place(ragaCard, x, c.Y + (band - raga) / 2, raga, raga)
+	g.Place(ragaPortrait, x + U.Inner, c.Y + (band - raga) / 2 + U.Inner, raga - 2 * U.Inner, raga - 2 * U.Inner)
+	x += raga + gap
+	local statsRight = c.X + c.W
+	g.Place(teamDamage, x, c.Y + band / 2 - lineH - gap / 2, statsRight - x, lineH)
+	g.Place(avgStamina, x, c.Y + band / 2 + gap / 2, statsRight - x, lineH)
+	g.Role(teamDamage, "Section")
+	g.Role(avgStamina, "Body")
+
+	local listY = c.Y + band + gap
+	g.Place(list, c.X, listY, c.W, gridH)
 	for _, edge in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
 		listPadding[edge] = UDim.new(0, g.px(LIST_BLEED))
 	end
-	local room = listH - 2 * LIST_BLEED
-	local rows = math.max(1, math.floor((room + gap) / (CELL_H + gap)))
-	listGrid.CellSize = g.at(CELL_W, math.max(CELL_H, (room - (rows - 1) * gap) / rows))
+	listGrid.CellSize = g.at(cellW, cellH)
 	listGrid.CellPadding = g.at(gap, gap)
-	g.Place(teamWarning, g.W * 303 / 920, g.H - 60, g.W * 312 / 920, 28)
+	-- The footer line's rect, as the frame placed it this pass (hooks run after it).
+	local footer = hud:FindFirstChild("AnimeFooterLine")
+	for _, text in { note, teamWarning } do
+		if footer then
+			text.AnchorPoint, text.Position, text.Size = footer.AnchorPoint, footer.Position, footer.Size
+		end
+		text.ZIndex = 5
+	end
+	g.Role(note, "Caption")
 	g.Role(teamWarning, "Item")
 	teamWarning.TextColor3 = WARNING_BRIGHT -- the refusal's red, as design doc 4.37 asks
+end)
+-- One line on the plate: the warning stands in for the note while it shows.
+teamWarning:GetPropertyChangedSignal("Visible"):Connect(function()
+	note.Visible = not teamWarning.Visible
 end)
 
 -- Warning, BossBar, LeaveButton -------------------------------------------------------------------------------------------
@@ -797,6 +828,13 @@ local function art(id)
 	return CharacterHeads[id] or CharacterHeads[model] or CharacterPortraits[id] or CharacterPortraits[model] or ""
 end
 
+-- A slot's drawn portrait (Versus look), else the drawn head.
+local function portrait(id)
+	local spec = CharacterCatalog.Get(id)
+	local model = spec and spec.Model or id
+	return CharacterPortraits[id] or CharacterPortraits[model] or art(id)
+end
+
 -- The drawn head of the Sidekick `entry`, or "" while it has no upload.
 local function sidekickHead(entry)
 	local row = entry and SidekickView.Row(player, entry)
@@ -816,7 +854,7 @@ local function drawPicks()
 		slot.Frame:SetAttribute("CharacterId", id)
 		slot.Number.Visible = id == nil
 		slot.Head.Visible = id ~= nil
-		slot.Head.Image = id and art(id) or ""
+		slot.Head.Image = id and portrait(id) or ""
 		setBadge(slot.Badge, id and sidekickHead(gear[id]) or "")
 		slot.Frame.ThemeStroke.Color = id and Palette.Gold or Palette.Muted
 		AnimeSkin.Card(slot.Frame, id and AnimeSkin.Tint.Gold or AnimeSkin.Tint.Muted)

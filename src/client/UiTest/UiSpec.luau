@@ -4241,6 +4241,9 @@ local function watchTeamWarning()
 	local connection = label:GetPropertyChangedSignal("Visible"):Connect(function()
 		if label.Visible then
 			watch.ShownAt, watch.Text, watch.Transparency = os.clock(), label.Text, label.TextTransparency
+			task.defer(function() -- after BossEventUi's own Visible handler, whatever the connection order
+				watch.NoteShown = label.Visible and label.Parent.Note.Visible or nil
+			end)
 		else
 			watch.HiddenAt = os.clock()
 		end
@@ -4492,13 +4495,14 @@ table.insert(UiSpec.ServerSetup, {
 table.insert(UiSpec.ServerSetup, {
 	Id = "boss_rewards_open",
 	When = "before the boss_rewards_close click (NeedSetup)",
-	What = "One BossRewards message to this client: Defeated, both stages paid. Display only, nothing is granted.",
+	What = "One BossRewards message to this client: Defeated, both stages paid, Share 0.12. Display only, nothing is granted.",
 })
 table.insert(UiSpec.ServerSetup, {
 	Id = "boss_phase2_*",
 	When = "asked for by ui_boss_phase2 and ui_boss_rewards, one step at a time",
 	What = "boss_phase2_stage:<stage>:<ends in s|none>:<scream ends in s|none>:<schedule start s ago|none>, the attributes only; "
-		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>, one BossRewards message. "
+		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>[:<share 0..1>], one BossRewards message "
+		.. "(no share part: no Share in it). "
 		.. "restore:boss_ui clears the attributes.",
 })
 do

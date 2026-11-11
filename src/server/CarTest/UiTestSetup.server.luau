@@ -1864,10 +1864,11 @@ function setups.boss_phase2_stage(_, arg)
 end
 
 function setups.boss_phase2_rewards(player, arg)
-	local outcome, damage, stage1, stage2, short = table.unpack(string.split(arg, ":"))
+	local outcome, damage, stage1, stage2, short, share = table.unpack(string.split(arg, ":"))
 	live("BossEventService").Hooks.RewardPopup(player, {
 		Outcome = outcome,
 		Damage = tonumber(damage),
+		Share = tonumber(share), -- nil when the 6th part is missing: the popup hides its share bar
 		Stage1 = stage1 == "true",
 		Stage2 = stage2 == "true",
 		Short = short == "true",
@@ -1875,7 +1876,7 @@ function setups.boss_phase2_rewards(player, arg)
 end
 
 function setups.boss_rewards_open(player)
-	setups.boss_phase2_rewards(player, "Defeated:1234567:true:true:false")
+	setups.boss_phase2_rewards(player, "Defeated:1234567:true:true:false:0.12")
 end
 
 function setups.relic_chest_states(player)

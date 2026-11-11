@@ -459,10 +459,12 @@ local function payStage(current, stage, maxHp)
 	end
 end
 
-local function rewardPopup(player, member, outcome)
+-- Share (owner 2026-11-10): of the phase this popup reports, that phase's damage over that phase's max HP, 0..1.
+local function rewardPopup(player, member, outcome, stage, maxHp)
 	safely(BossEventService.Hooks.RewardPopup, player, {
 		Outcome = outcome,
 		Damage = member.Damage,
+		Share = maxHp > 0 and math.clamp(member.StageDamage[stage] / maxHp, 0, 1) or 0,
 		Stage1 = member.Paid[1],
 		Stage2 = member.Paid[2],
 		Short = member.Short,
@@ -746,7 +748,7 @@ function BossEventService.Leave(player, reason)
 	publish()
 	release(player, member, reason ~= "Death")
 	if member.Paid[1] then
-		rewardPopup(player, member, "Left")
+		rewardPopup(player, member, "Left", 1, event.Phase1MaxHp or event.MaxHp)
 	end
 end
 
@@ -793,7 +795,7 @@ function BossEventService.End(reason)
 			payStage(ending, 2, ending.MaxHp)
 		end
 		for player, member in ending.Members do
-			rewardPopup(player, member, reason == "Defeated" and "Defeated" or "Survived")
+			rewardPopup(player, member, reason == "Defeated" and "Defeated" or "Survived", 2, ending.MaxHp)
 		end
 	end
 	return true
