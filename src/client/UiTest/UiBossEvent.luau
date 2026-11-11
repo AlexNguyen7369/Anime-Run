@@ -35,8 +35,12 @@
 --     and outside a tutorial, past teleport close too, Invite up or not, declined or not, in a duel too, locked too. Its Text is
 --     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
 --     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
---     Scale changes until teleporting closes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every
---     pulse scale. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
+--     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. It sits just
+--     under Roblox's top bar (top within BUTTON_MAX_GAP px under GuiService.TopbarInset.Max.Y). Its left edge, at every pulse
+--     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
+--     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
+--     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
@@ -154,7 +158,12 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_PAST_INSET = 40 -- px from TopbarInset.Min.X: "very top left"
+local BUTTON_MAX_GAP = 12 -- px under TopbarInset.Max.Y / past Roblox's buttons: "just below", "right of"
+local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
+local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
+local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
+local GRID = "HudChrome/Grid"
+local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
 local OUTLINE_MIN_LUMINANCE = 0.5 -- the Big Raga row's outline: "light", against its black text
 
 local Module = {}
@@ -509,21 +518,68 @@ function Module.Build(h)
 		end
 		return glow ~= nil and glow:IsA("GuiObject") and h.visible(glow)
 	end
-	-- The biggest Scale difference over `seconds` and the leftmost the button reached; nil without its PulseScale.
+	-- The biggest Scale difference over `seconds`, the leftmost and lowest edge the button reached; nil without its PulseScale.
 	local function watchPulse(seconds)
 		local button = h.find(BUTTON)
 		local scale = button and button:FindFirstChild("PulseScale")
 		if not (scale and scale:IsA("UIScale")) then
 			return nil
 		end
-		local low, high, left = scale.Scale, scale.Scale, h.rect(button).x
+		local r = h.rect(button)
+		local low, high, left, bottom = scale.Scale, scale.Scale, r.x, r.y + r.h
 		local stop = os.clock() + seconds
 		while os.clock() < stop do
 			low, high = math.min(low, scale.Scale), math.max(high, scale.Scale)
-			left = math.min(left, h.rect(button).x)
+			r = h.rect(button)
+			left, bottom = math.min(left, r.x), math.max(bottom, r.y + r.h)
 			task.wait(0.03)
 		end
-		return high - low, left
+		return high - low, left, bottom
+	end
+	-- Owner 2026-11-11 (design doc 4.40): the Bosses button is drawn at a HUD column button's exact sizes, read on screen
+	-- (HudChrome's UIScale included) at the same viewport. The pulse is read at rest: PulseScale is transient.
+	local function checkColumnSizes(res, tag, b, bossIcon)
+		local column = h.find(COLUMN_BUTTON)
+		local columnIcon = column and column:FindFirstChild("Icon")
+		local columnLabel = column and column:FindFirstChild("Label")
+		local wrong = {}
+		if not (b and bossIcon and column and columnIcon and columnLabel) then
+			table.insert(wrong, "BossButton/Icon or " .. COLUMN_BUTTON .. " Icon / Label missing")
+		else
+			local pulse = b:FindFirstChild("PulseScale")
+			local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
+			local function near(what, got, want)
+				if math.abs(got - want) > 1 then
+					table.insert(wrong, ("%s: Bosses %.1f, column %.1f"):format(what, got, want))
+				end
+			end
+			near("cell width", b.AbsoluteSize.X / p, column.AbsoluteSize.X)
+			near("cell height", b.AbsoluteSize.Y / p, column.AbsoluteSize.Y)
+			near("icon width", bossIcon.AbsoluteSize.X / p, columnIcon.AbsoluteSize.X)
+			near("icon height", bossIcon.AbsoluteSize.Y / p, columnIcon.AbsoluteSize.Y)
+			near(
+				"icon top offset",
+				(bossIcon.AbsolutePosition.Y - b.AbsolutePosition.Y) / p,
+				columnIcon.AbsolutePosition.Y - column.AbsolutePosition.Y
+			)
+			-- On-screen text size: TextSize x the object's draw scale (AbsoluteSize / Size offset).
+			local columnScale = column.AbsoluteSize.Y / column.Size.Y.Offset
+			local bossScale = b.AbsoluteSize.Y / p / b.Size.Y.Offset
+			near("label TextSize", b.TextSize * bossScale, columnLabel.TextSize * columnScale)
+			if b.Font ~= columnLabel.Font then
+				table.insert(
+					wrong,
+					("label Font: Bosses %s, column %s"):format(tostring(b.Font), tostring(columnLabel.Font))
+				)
+			end
+		end
+		h.check(
+			res,
+			tag .. "_button_column_sizes",
+			#wrong == 0 and "same" or table.concat(wrong, "; "),
+			"same as " .. COLUMN_BUTTON,
+			#wrong == 0
+		)
 	end
 	local function checkButtonShows(res, tag)
 		check(res, tag .. "_button_shown", waitShown(BUTTON, true), true)
@@ -551,10 +607,11 @@ function Module.Build(h)
 				and bossIcon.Position.Y.Scale == 0,
 			true
 		)
+		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)
 		local inset = GuiService.TopbarInset
-		local spread, left = watchPulse(PULSE_SAMPLE)
+		local spread, left, bottom = watchPulse(PULSE_SAMPLE)
 		h.check(
 			res,
 			"button_pulses",
@@ -562,22 +619,63 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
+		-- Owner 2026-11-11 (design doc 4.40): just under Roblox's top bar; at the left column's x when its bottom at the
+		-- biggest pulse stays above the column's top, else right of Roblox's buttons (and of the column); clear of both
+		-- the column and the roll, and of the Money / Gems readout
+		local button = h.find(BUTTON)
+		local rest = button and h.rect(button)
+		local pulse = button and button:FindFirstChild("PulseScale")
+		local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
+		local top = rest and rest.y or 0
+		local restW, restH = rest and rest.w / p or 0, rest and rest.h / p or 0
+		local grid = h.find(GRID)
+		local gridRect = grid and h.rect(grid)
+		local room = gridRect ~= nil and top + restH * BUTTON_PULSE <= gridRect.y
+		local wantX = gridRect and (room and gridRect.x or math.max(inset.Min.X, gridRect.x + gridRect.w))
 		h.check(
 			res,
-			"button_past_roblox_buttons",
+			"button_left_column_x",
 			left or "no PulseScale",
-			">= " .. inset.Min.X,
-			left ~= nil and left >= inset.Min.X - 1
+			wantX and (room and tostring(wantX) or ("%.1f..%.1f"):format(wantX, wantX + BUTTON_MAX_GAP))
+				or "no " .. GRID,
+			left ~= nil
+				and wantX ~= nil
+				and (
+					room and math.abs(left - wantX) <= 1
+					or not room and left >= wantX and left <= wantX + BUTTON_MAX_GAP
+				)
 		)
 		h.check(
 			res,
-			"button_very_left",
-			left or "no PulseScale",
-			"<= " .. inset.Min.X + BUTTON_MAX_PAST_INSET,
-			left ~= nil and left <= inset.Min.X + BUTTON_MAX_PAST_INSET
+			"button_under_top_bar",
+			top,
+			("%.1f..%.1f"):format(inset.Max.Y, inset.Max.Y + BUTTON_MAX_GAP),
+			top >= inset.Max.Y - 1 and top <= inset.Max.Y + BUTTON_MAX_GAP
 		)
-		local top = h.rect(h.find(BUTTON)).y
-		h.check(res, "button_very_top", top, "<= " .. inset.Max.Y, top <= inset.Max.Y)
+		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
+		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
+		local function overlaps(a, b)
+			return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+		end
+		h.check(
+			res,
+			"button_clear_of_left_column",
+			big and gridRect and (overlaps(big, gridRect) and "overlaps" or "clear") or "no PulseScale / " .. GRID,
+			"clear",
+			big ~= nil and gridRect ~= nil and not overlaps(big, gridRect)
+		)
+		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
+		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
+			local o = h.find(part[2])
+			local r = o and o:IsA("GuiObject") and o.Visible and h.rect(o)
+			h.check(
+				res,
+				part[1],
+				not big and "no PulseScale" or not r and "not shown" or overlaps(big, r) and "overlaps" or "clear",
+				"clear",
+				big ~= nil and (not r or not overlaps(big, r))
+			)
+		end
 	end
 
 	local function checkInvite(res)
