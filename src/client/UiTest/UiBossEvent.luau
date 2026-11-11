@@ -41,7 +41,7 @@
 --     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
 --     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
 --     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
---     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
+--     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
 --   A popup's rows draw only while it shows and only a real press opens it, so they are judged after the clicks.
@@ -111,7 +111,8 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
 local BOSS_NAME = "Big Raga"
 local BUTTON_TEXT = "Bosses"
-local RAGING_TEXT = "Big Raga is raging right now"
+-- Bosses cards (owner 2026-11-11, draft B; BOSS_EVENT_SPEC "Bosses cards"): the live boss's card, with Go on it.
+local LIVE_CARD = "RacerBossEvent/BossesPanel/Cards/Card_boss_raga"
 local TEAM_WARNING_TEXT = "Select a character first"
 local TEAM_WARNING_SECONDS = 1 -- owner 2026-11-05
 local WARNING_SLACK = 0.3 -- s around it
@@ -2085,15 +2086,16 @@ function Module.Build(h)
 		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
 		check(
 			res,
-			"boss_panel_status",
+			"boss_panel_live_card",
 			waitIs(function()
-				return textOf(BOSSES, "Status")
-			end, RAGING_TEXT),
-			RAGING_TEXT
+				local card = h.find(LIVE_CARD)
+				return card and card:GetAttribute("State")
+			end, "Live"),
+			"Live"
 		)
-		check(res, "boss_panel_go", textOf(BOSSES, "BossAction"), "Go")
+		check(res, "boss_panel_go", textOf(LIVE_CARD, "Go"), "Go")
+		check(res, "boss_panel_go_shown", shown(LIVE_CARD .. "/Go"), true)
 		check(res, "boss_panel_no_details_in_event", shown(BOSSES .. "/BossDetails"), false)
-		check(res, "boss_panel_no_heading_in_event", shown(BOSSES .. "/DetailsHeading"), false)
 		check(res, "boss_panel_no_next_in_event", shown(BOSSES .. "/NextEvent"), false)
 		check(res, "boss_panel_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
 		checkFit(res, "boss_panel")
@@ -2103,10 +2105,11 @@ function Module.Build(h)
 		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_go_closed(res)
-		local action = h.find(BOSSES .. "/BossAction")
-		check(res, "boss_go_stays_past_close", action ~= nil and h.visible(action), true)
-		check(res, "boss_go_disabled_past_close", action ~= nil and action.Active, false)
-		check(res, "boss_status_past_close", textOf(BOSSES, "Status"), RAGING_TEXT)
+		local go = h.find(LIVE_CARD .. "/Go")
+		check(res, "boss_go_stays_past_close", go ~= nil and h.visible(go), true)
+		check(res, "boss_go_disabled_past_close", go ~= nil and go.Active, false)
+		local card = h.find(LIVE_CARD)
+		check(res, "boss_card_live_past_close", card and card:GetAttribute("State"), "Live")
 		check(res, "boss_prompt_past_close", textOf(BOSSES, "BossPrompt"), "Teleporting closed")
 	end
 	-- The warning has faded by the time an After runs (Waits.ClickSettle): UiSpec's watcher saw it.
