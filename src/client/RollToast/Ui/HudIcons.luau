@@ -1,23 +1,24 @@
 --!nonstrict
--- Approved simple HUD art (2026-10-27), source PNGs: ui/icons/simple-20261027/.
+-- HUD icons: the Gold badge set (design doc 4.40, owner 2026-11-10), source PNGs assets/ui/hud_badges/; Stats keeps
+-- the simple art of 2026-10-27 (ui/icons/simple-20261027/).
 -- Standalone transparent images, no atlas rectangles.
 return {
-	Shop = { Image = "rbxassetid://122477634476364" },
-	Items = { Image = "rbxassetid://129493708099921" },
-	Index = { Image = "rbxassetid://109858472680311" }, -- in-house card fan, tools/blender/plaza/index_icon.py
-	Upgrade = { Image = "rbxassetid://91603574230764" },
+	Shop = { Image = "rbxassetid://78167538726476" }, -- 4.40 Gold badge assets/ui/hud_badges/Shop.png: Decal 114178950200094 (2026-11-10)
+	Items = { Image = "rbxassetid://121604561045749" }, -- 4.40 Gold badge assets/ui/hud_badges/Items.png: Decal 78679824188182 (2026-11-10)
+	Index = { Image = "rbxassetid://76609932858640" }, -- 4.40 Gold badge assets/ui/hud_badges/Index.png: Decal 82532866948432 (2026-11-10)
+	Upgrade = { Image = "rbxassetid://83503478943449" }, -- 4.40 Gold badge assets/ui/hud_badges/Upgrade.png: Decal 126978235831816 (2026-11-10)
 	Stats = { Image = "rbxassetid://122191050291444" },
-	Rebirth = { Image = "rbxassetid://126025259967772" },
-	Daily = { Image = "rbxassetid://130197364777330" },
-	Quests = { Image = "rbxassetid://73247739778799" },
-	Market = { Image = "rbxassetid://123121209984440" },
-	Settings = { Image = "rbxassetid://131875159358960" },
-	Gem = { Image = "rbxassetid://136869552622521" }, -- owner's icon 2026-11-05, assets/ui/gem.png
-	Auto = { Image = "rbxassetid://122355836258114" }, -- owner's icon, tools/blender/plaza/auto_icon.py
-	AutoArrows = { Image = "rbxassetid://110966439139915" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
-	AutoPlay = { Image = "rbxassetid://121841618485883" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
+	Rebirth = { Image = "rbxassetid://119027540579917" }, -- 4.40 Gold badge assets/ui/hud_badges/Rebirth.png: Decal 70707547854827 (2026-11-10)
+	Daily = { Image = "rbxassetid://131358342353706" }, -- 4.40 Gold badge assets/ui/hud_badges/Daily.png: Decal 137395099040772 (2026-11-10)
+	Quests = { Image = "rbxassetid://89743917855219" }, -- 4.40 Gold badge assets/ui/hud_badges/Quests.png: Decal 82855157055023 (2026-11-10)
+	Market = { Image = "rbxassetid://115473354417773" }, -- 4.40 Gold badge assets/ui/hud_badges/Market.png: Decal 79892612715732 (2026-11-10)
+	Settings = { Image = "rbxassetid://138402665878793" }, -- 4.40 Gold badge assets/ui/hud_badges/Settings.png: Decal 127539530133565 (2026-11-10)
+	Gem = { Image = "rbxassetid://75353099813345" }, -- 4.40 Gold badge assets/ui/hud_badges/Gem.png: Decal 93686066876265 (2026-11-10)
+	Auto = { Image = "rbxassetid://130918500722406" }, -- 4.40 Gold badge assets/ui/hud_badges/Auto.png: Decal 127527493270108 (2026-11-10)
+	AutoArrows = { Image = "rbxassetid://82519829706306" }, -- 4.40 Gold badge assets/ui/hud_badges/AutoArrows.png: Decal 78144269919105 (2026-11-10)
+	AutoPlay = { Image = "rbxassetid://84110801797923" }, -- 4.40 Gold badge assets/ui/hud_badges/AutoPlay.png: Decal 104910609434684 (2026-11-10)
 	-- Design doc 4.40 gold frame tile, assets/ui/hud_badges/HudTile.png (Decal 120579636552953, 2026-11-10).
 	Tile = { Image = "rbxassetid://78500532311163" },
-	-- Design doc 4.40 boss popup icon, assets/ui/hud_badges/Boss.png (Decal 102103768337911, 2026-11-10).
-	Boss = { Image = "rbxassetid://118962130215054" },
+	-- Design doc 4.40 boss popup icon, in the Gold badge set.
+	Boss = { Image = "rbxassetid://119483602450557" }, -- 4.40 Gold badge assets/ui/hud_badges/Boss.png: Decal 82836444507201 (2026-11-10)
 }
