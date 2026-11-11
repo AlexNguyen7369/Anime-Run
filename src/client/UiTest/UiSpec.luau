@@ -96,12 +96,12 @@ UiSpec.Guis = {
 			"Grid/Items",
 			"Grid/Rebirth",
 			"Grid/Rebirth/Badge",
-			"ShopColumn/Shop",
+			"Grid/Quests",
+			"Grid/Shop",
+			"Grid/Market",
 			"AutoSlot/Auto",
 			"UpgradeSlot/Upgrade",
 			"TopRight/Daily",
-			"ShopColumn/Quests",
-			"TopRight/Market",
 			"TopRight/Settings",
 		},
 		Readouts = { "Grid/Rebirth/Badge" },
@@ -109,7 +109,7 @@ UiSpec.Guis = {
 			{ Path = "Grid/Index", Does = "toggle_panel", Panel = "RacerIndex/Panel", Text = "Index" },
 			{ Path = "Grid/Items", Does = "toggle_panel", Panel = "RacerBackpack/Panel", Text = "Items" },
 			{ Path = "Grid/Rebirth", Does = "toggle_panel", Panel = "RacerRebirth/Panel", Text = "Rebirth" },
-			{ Path = "ShopColumn/Shop", Does = "toggle_panel", Panel = "ShopUi/Backdrop", Text = "Shop" },
+			{ Path = "Grid/Shop", Does = "toggle_panel", Panel = "ShopUi/Backdrop", Text = "Shop" },
 			{ Path = "UpgradeSlot/Upgrade", Does = "toggle_panel", Panel = "RacerUpgrades/Panel", Text = "Upgrade" },
 			{
 				Path = "AutoSlot/Auto",
@@ -124,8 +124,8 @@ UiSpec.Guis = {
 				Panel = "DailyBoosts/ModalBackdrop",
 				Label = "Daily before claim; countdown after claim",
 			},
-			{ Path = "ShopColumn/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
-			{ Path = "TopRight/Market", Does = "toggle_panel", Panel = "MarketUi/Backdrop", Text = "Market" },
+			{ Path = "Grid/Quests", Does = "toggle_panel", Panel = "DailyBoosts/ModalBackdrop", Text = "Quests" },
+			{ Path = "Grid/Market", Does = "toggle_panel", Panel = "MarketUi/Backdrop", Text = "Market" },
 			{ Path = "TopRight/Settings", Does = "toggle_panel", Panel = "RacerSettings/Panel" },
 		},
 	},
@@ -504,15 +504,30 @@ UiSpec.Hud = {
 	Daily = "HudChrome/TopRight/Daily",
 	AutoLabel = "Auto",
 	AutoTintWait = 2, -- s: past the 1 s pending lock, the icon shows AutoRacing
-	-- docs/ROLL_ANIMATION_SPEC.md "Quests button": the Shop tile's twin, directly above it
-	Shop = "HudChrome/ShopColumn/Shop",
-	Quests = "HudChrome/ShopColumn/Quests",
-	ColumnMaxGap = 8, -- px between the two tiles (ShopColumn's UIListLayout padding; a phone's UIScale only shrinks it)
+	-- Design doc 4.40 layout L2: Quests, Shop and Market are tiles of the left 2-column block
+	Shop = "HudChrome/Grid/Shop",
+	Quests = "HudChrome/Grid/Quests",
+	Market = "HudChrome/Grid/Market",
+	Grid = "HudChrome/Grid",
+	GridColumns = 2, -- NavButtons fill the block row by row, GridColumns per row
+	GridGap = 8, -- px between neighbouring tiles (the Grid's UIGridLayout CellPadding; a phone's UIScale only shrinks it)
+	-- Design doc 4.40: every block tile and the Auto / Upgrade pair are the same gold-frame tile (HudIcons.Tile.Image)
+	GoldTiles = {
+		"HudChrome/Grid/Index",
+		"HudChrome/Grid/Items",
+		"HudChrome/Grid/Rebirth",
+		"HudChrome/Grid/Quests",
+		"HudChrome/Grid/Shop",
+		"HudChrome/Grid/Market",
+		"HudChrome/AutoSlot/Auto",
+		"HudChrome/UpgradeSlot/Upgrade",
+	},
+	TopRight = "HudChrome/TopRight",
+	TopRightButtons = { "Daily", "Settings" }, -- exactly these GuiObjects, nothing else (design doc 4.40)
 	-- Design doc 4.40: Stats is a tab of the Rebirth panel, one strip in each panel's header
 	StatsTab = "RacerRebirth/Panel/Face/Header/Face/RebirthTabs/StatsTab",
 	TopRow = {
 		"HudChrome/TopRight/Daily",
-		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
 	},
 	RaceLabel = "RacerHud/Race/Face/RaceLabel",
@@ -521,8 +536,12 @@ UiSpec.Hud = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
 		"HudChrome/Grid/Rebirth",
+		"HudChrome/Grid/Quests",
+		"HudChrome/Grid/Shop",
+		"HudChrome/Grid/Market",
 	},
-	NavLabels = { "Index", "Items", "Rebirth" }, -- stacked top to bottom on the LEFT edge
+	-- Design doc 4.40 layout L2, row by row on the LEFT edge: Index | Items, Rebirth | Quests, Shop | Market
+	NavLabels = { "Index", "Items", "Rebirth", "Quests", "Shop", "Market" },
 	NavMaxLeftGap = 32, -- px from the screen's left edge to the column
 	-- retired: Speed, SpeedIcon, SpeedDial, SpeedValue (the speedometer and cruise read-out, design doc 4.13, owner 2026-11-01)
 	Money = "RacerHud/Money",
@@ -796,7 +815,7 @@ UiSpec.Band = {
 	Race = "RacerHud/Race", -- hidden: stays the band's anchor (docs/ROLL_ANIMATION_SPEC.md "Auto toggle")
 	Turbo = "RacerHud/Turbo",
 	Grid = "HudChrome/Grid",
-	ShopColumn = "HudChrome/ShopColumn",
+	-- retired: the right Shop column (the right edge has no HUD buttons, design doc 4.40 layout L2): the band runs to Gap from the right edge
 	Money = "RacerHud/Money",
 	Gap = 8,
 	-- No minimum size: PanelBand.Fit never makes a panel larger than the band (HUD_LAYOUT_SPEC section 6, no overlap;
@@ -822,12 +841,11 @@ UiSpec.HudPair = {
 		"RacerHud/Level",
 		"RacerHud/Turbo",
 		"HudChrome/Grid",
-		"HudChrome/ShopColumn",
 	},
 	StackMaxHeight = 400,
 	SlotGap = 10,
 	BottomScale = 0.75,
-	IconMid = 36 / 94,
+	IconMid = 34 / 84, -- HudChrome ICON_MID = (ICON_TOP 6 + ICON 56 / 2) / TILE 84
 	Tol = 2,
 	Stacked = {
 		-- 844x390 is <= StackMaxHeight, so it stacks like 667x375 (it was listed in Beside against this table's own rule).
@@ -913,12 +931,12 @@ UiSpec.PanelDimmers = {
 		"HudChrome/Grid/Index",
 		"HudChrome/Grid/Items",
 		"HudChrome/Grid/Rebirth",
-		"HudChrome/ShopColumn/Shop",
-		"HudChrome/ShopColumn/Quests",
+		"HudChrome/Grid/Quests",
+		"HudChrome/Grid/Shop",
+		"HudChrome/Grid/Market",
 		"HudChrome/AutoSlot/Auto",
 		"HudChrome/UpgradeSlot/Upgrade",
 		"HudChrome/TopRight/Daily",
-		"HudChrome/TopRight/Market",
 		"HudChrome/TopRight/Settings",
 		"RacerProgression/WeatherIcon",
 	},
@@ -1587,7 +1605,7 @@ UiSpec.Clicks = {
 	{
 		Id = "open_market",
 		Gui = "HudChrome",
-		Path = "TopRight/Market",
+		Path = "Grid/Market",
 		Prepare = { Closed = CLOSED },
 		Expect = { Panels = { ["MarketUi/Backdrop"] = true }, Remote = false },
 	},
@@ -1693,14 +1711,14 @@ UiSpec.Clicks = {
 	{
 		Id = "open_market_while_stats_open",
 		Gui = "HudChrome",
-		Path = "TopRight/Market",
+		Path = "Grid/Market",
 		Prepare = only("RacerStats/Panel"),
 		Expect = { Panels = { ["MarketUi/Backdrop"] = true, ["RacerStats/Panel"] = false }, Remote = false },
 	},
 	{
 		Id = "open_shop",
 		Gui = "HudChrome",
-		Path = "ShopColumn/Shop",
+		Path = "Grid/Shop",
 		Prepare = { Closed = CLOSED, Showcase = false },
 		Expect = { Panels = { ["ShopUi/Backdrop"] = true }, Remote = false },
 	},
@@ -1723,7 +1741,7 @@ UiSpec.Clicks = {
 	{
 		Id = "open_shop_while_index_open",
 		Gui = "HudChrome",
-		Path = "ShopColumn/Shop",
+		Path = "Grid/Shop",
 		Prepare = only("RacerIndex/Panel"),
 		Expect = { Panels = { ["ShopUi/Backdrop"] = true, ["RacerIndex/Panel"] = false }, Remote = false },
 	},
@@ -2374,7 +2392,7 @@ UiSpec.Weather = {
 	-- The bottom limit is unchanged. Gap is the spec's 8 px edge gap (the solver's model, UiResponsive.Progression).
 	PhoneRight = 140,
 	Gap = 8,
-	MarketButton = "HudChrome/TopRight/Market",
+	MarketButton = "HudChrome/Grid/Market",
 	ClearId = "clear", -- shown for WeatherEvent "" as well
 	ClearTitle = "CLEAR",
 	-- Stats = WeatherConfig.Describe(id): every multiplier that is not 1, in this order, joined by Separator
@@ -2973,7 +2991,7 @@ UiSpec.ClickThroughBackdrops = { "ShopUi/Backdrop", "MarketUi/Backdrop", "DailyB
 UiSpec.EmptyClickStep = 40 -- px grid for ClickAt = "empty"
 UiSpec.DailyBoosts = {
 	Daily = "HudChrome/TopRight/Daily",
-	Quests = "HudChrome/ShopColumn/Quests",
+	Quests = "HudChrome/Grid/Quests",
 	Status = "DailyBoosts/Status",
 	Panel = "DailyBoosts/ModalBackdrop",
 	Title = "DailyBoosts/ModalBackdrop/Modal/Title",
@@ -3211,7 +3229,7 @@ table.insert(UiSpec.Clicks, {
 table.insert(UiSpec.Clicks, {
 	Id = "open_quests",
 	Gui = "HudChrome",
-	Path = "ShopColumn/Quests",
+	Path = "Grid/Quests",
 	Prepare = { Closed = CLOSED, Showcase = false },
 	NeedSetup = { "spy" },
 	Expect = { Panels = { [DAILY] = true }, Remote = false, After = { "quests_daily_view" } },

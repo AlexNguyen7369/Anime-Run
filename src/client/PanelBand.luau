@@ -1,6 +1,7 @@
 --!nonstrict
 -- The band every hand-built panel opens in (docs/HUD_LAYOUT_SPEC.md section 6): below the Race button, above the
--- TURBO LUCK bar, and between the left icon grid and the right Shop column, so a panel never covers a HUD entry.
+-- TURBO LUCK bar, and right of the left tile block, so a panel never covers a HUD entry. The right edge has no HUD
+-- buttons (design doc 4.40 layout L2), so the band runs to GAP from the screen's right edge.
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
@@ -21,23 +22,21 @@ function Band.Rect()
 	local race = hud and hud:FindFirstChild("Race")
 	local turbo = hud and hud:FindFirstChild("Turbo")
 	local grid = chrome and chrome:FindFirstChild("Grid")
-	local shop = chrome and chrome:FindFirstChild("ShopColumn")
-	if not (camera and race and turbo and grid and shop) then
+	if not (camera and race and turbo and grid) then
 		return nil
 	end
 	-- AbsolutePosition starts below the top bar; the HUD ScreenGuis ignore the inset, so add it back.
 	local inset = GuiService:GetGuiInset().Y
 	local viewport = camera.ViewportSize
-	-- The grid's right edge includes what sticks out of it (the Stats badge).
+	-- The block's right edge includes anything that sticks out of it.
 	local gridRight = grid.AbsolutePosition.X + grid.AbsoluteSize.X
 	for _, child in grid:GetDescendants() do
 		if child:IsA("GuiObject") and child.Visible then
 			gridRight = math.max(gridRight, child.AbsolutePosition.X + child.AbsoluteSize.X)
 		end
 	end
-	-- Both edges use the wider margin so the panel stays centred.
-	local margin = math.max(gridRight, viewport.X - shop.AbsolutePosition.X) + GAP
-	local right = viewport.X - margin
+	local margin = gridRight + GAP
+	local right = viewport.X - GAP
 	-- RaceMap is presentation-only and has a fixed anchor. Do not reserve space
 	-- for it here: doing so re-centres the open Backpack/Shop panels whenever a
 	-- race starts, which makes the persistent HUD appear to move.

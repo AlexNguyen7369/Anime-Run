@@ -1793,9 +1793,9 @@ function Model.CardRect(viewport, root)
 end
 
 -- Client/HudChrome refresh() (docs/HUD_LAYOUT_SPEC.md section 1), every 0.25 s and on every PanelSwitch change:
---   each tile holder (Grid, ShopColumn, AutoSlot, UpgradeSlot) has a UIScale "Scale" = (phone and Phone or 1) x
+--   each tile holder (Grid, AutoSlot, UpgradeSlot) has a UIScale "Scale" = (phone and Phone or 1) x
 --   (BottomScale for the bottom pair); TopRight's UIScale "Scale" = phone and BarPhone or 1 (phone = viewport height
---   <= PHONE_MAX_HEIGHT). Grid / ShopColumn take HolderPositions[variant]. AutoSlot's Position =
+--   <= PHONE_MAX_HEIGHT). Grid takes HolderPositions[variant]. AutoSlot's Position =
 --   fromOffset(left - SlotGap, gap), UpgradeSlot's = fromOffset(right + SlotGap, gap), where left / right are the
 --   outer edges of RacerHud/Level and RacerHud/Turbo together and gap = (Level bottom + Turbo top) / 2, in screen
 --   pixels (HudChrome ignores the inset). The pair is Visible only when Level and Turbo exist.
@@ -1810,7 +1810,6 @@ Model.HudChrome = {
 	ScaleName = "Scale",
 	HolderPositions = {
 		["HudChrome/Grid"] = { Desktop = UDim2.new(0, 14, 0.5, -24), Phone = UDim2.new(0, 8, 0.5, -20) },
-		["HudChrome/ShopColumn"] = { Desktop = UDim2.new(1, -14, 0.5, -24), Phone = UDim2.new(1, -8, 0.5, -20) },
 	},
 	Slots = { ["HudChrome/AutoSlot"] = "left", ["HudChrome/UpgradeSlot"] = "right" },
 	Level = "RacerHud/Level",
@@ -1818,8 +1817,8 @@ Model.HudChrome = {
 	Bar = "HudChrome/TopRight",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the bottom pair shrinks about its anchor until its cell
 	-- (Cell x k, anchored at (1 | 0, IconMid)) clears every visible Blocker; steps of Step x base, floor Floor x base.
-	Cell = Vector2.new(84, 94), -- HudChrome CELL = (TILE + 12, TILE + LABEL), TILE 72, LABEL 22
-	IconMid = 36 / 94, -- ICON_MID = TILE / 2 / (TILE + LABEL)
+	Cell = Vector2.new(84, 84), -- HudChrome holder of one tile: TILE x TILE, TILE 84 (design doc 4.40)
+	IconMid = 34 / 84, -- ICON_MID = (ICON_TOP 6 + ICON 56 / 2) / TILE
 	Step = 0.02,
 	Floor = 0.3,
 	Blockers = { "RacerHud/Money" },
