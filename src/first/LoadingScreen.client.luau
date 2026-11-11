@@ -20,8 +20,8 @@ local CHUNK = 16 -- assets per PreloadAsync call, so the bar moves as they land
 local LATER_CHUNK = 4 -- placeholder: character folders per PreloadAsync call once the screen has opened
 local LATER_PAUSE = 0.5 -- placeholder: seconds between those calls, so they do not crowd Track 1 streaming on phones
 local LOGO = "rbxassetid://127883918864517" -- assets/logo/AnimeRunLogo.png, owner's art
--- assets/ui/loading/HybridBackdrop.png, the hybrid draft's dusk scene (owner 2026-11-10). Decal 107942407857363.
-local BACKDROP = "rbxassetid://115739952562422" -- resolved in Studio 2026-11-10
+-- assets/ui/loading/SakuraGateBackdrop.png, intro draft B3 "Distant crowd" (owner 2026-11-11). Decal 77191663094973.
+local BACKDROP = "rbxassetid://81384921997104" -- resolved in Studio 2026-11-11
 local CYAN = Color3.fromRGB(0, 240, 255) -- the draft's bar
 local PINK = Color3.fromRGB(255, 110, 180)
 
