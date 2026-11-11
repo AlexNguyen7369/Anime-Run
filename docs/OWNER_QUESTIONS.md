@@ -69,3 +69,14 @@ Uncommitted in the main checkout. Screenshots are in the session report.
 3. Owner 2026-11-10, from the screenshots: "still should see mahoraga a bit more, can downscale overall size of boss if needed". From the ring the camera alone cannot shrink the boss, so it is drawn at 0.75 x (`BossArenaConfig.BossScale`, proposed): 421 studs to the head top, 603 to the wheel top, 754 in Phase 2 (was 561 / 804 / 1005). The scream's close camera scales with it. Approve 0.75, or give another factor?
 4. Seen while screenshotting the scale (not changed): the exhaustion view's eye (placeholders 120 studs out, 80 up, spec "Exhaustion view") can sit behind an outer arch post, which then hides the boss for the whole 8.5 s wait (screenshot 8). A higher eye (about 160 up) or a shorter reach (about 60 out) would clear the posts. Want it changed, and which way?
 Answered by the owner 2026-11-10: items 1-3 approved and committed (angles 75 / 26 / 6, flat boss deleted, 0.75 x). Item 4: owner 2026-11-10 chose the higher eye, 160 up.
+
+## 2026-11-11 boss-mage: rules still open for The Elf Mage
+None of these block the renders and key frames. All of them block the server work (m10).
+1. Interval: you answered "random, either or every 60 minutes". Is it one random boss every 30 minutes (today's timer), or every 60 minutes?
+2. HP, time limit and late join: the same as Big Raga (7,500 HP per player, 8 minutes)?
+3. Rewards: her own chest and 6 Relics (4.38 says every boss brings 6), a boss-drop Sidekick, Money amount. Until ruled, should she pay Big Raga's Phase 1 rewards, or nothing?
+4. Vulnerable (next hit costs 50% more after an undodged move): does it apply to her moves?
+5. Golem slam's 20% damage cut: 15 seconds and stacking, like Shouted?
+6. Rhythm circles: 4 circles in 2 seconds, +/- 0.18 s, any miss counts as hit. On phones, is the same count fair, or fewer circles?
+7. Spawn texts: "The Elf Mage has awakened, take her down!!!" and the chat line.
+8. Upload: no license was found for the source; uploading her model, golem and art needs your word, as for Saitamo (4.35).
