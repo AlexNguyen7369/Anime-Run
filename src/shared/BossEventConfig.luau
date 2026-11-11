@@ -82,8 +82,9 @@ function BossEventConfig.SpeedScale(cruise)
 end
 
 -- The scream's close view (BOSS_EVENT_SPEC "Phase 2"): still, on the boss's front (it faces -Z), inside the ring, so it visibly fills
--- the frame as it grows. At the locked FOV the view spans about 512 studs up and down from this distance. Proposed. Pure.
-local SCREAM_CAMERA_BACK, SCREAM_CAMERA_UP = 430, 400
+-- the frame as it grows. At the locked FOV the view spans about 512 studs up and down from this distance, at the model's own size;
+-- both scale with the boss (Arena.BossScale), so the framing stays. Proposed. Pure.
+local SCREAM_CAMERA_BACK, SCREAM_CAMERA_UP = 430 * Arena.BossScale, 400 * Arena.BossScale
 function BossEventConfig.ScreamCameraCFrame()
 	local middle = Vector3.new(Arena.Center.X, Arena.DaisY + SCREAM_CAMERA_UP, Arena.Center.Z)
 	return CFrame.lookAt(middle - Vector3.zAxis * SCREAM_CAMERA_BACK, middle)

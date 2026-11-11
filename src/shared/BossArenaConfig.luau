@@ -12,8 +12,11 @@ BossArenaConfig.Y = 1200 -- track top; spec: "about 1,200, confirmed by a Studio
 -- studs from its edge, so the streaming target (1024) brings none of it under the arena; the test origins start at
 -- +-20000. Kept under 8192 because PoseAt's heading picks up float noise that doubles past that coordinate.
 BossArenaConfig.Center = Vector3.new(0, BossArenaConfig.Y, 7000)
-BossArenaConfig.BossHeight = 561 -- feet to head top; fixed by the model's Poses.Scale, not by the ring
-BossArenaConfig.BossWheelHeight = 243 -- placeholder until the model is placed (b7): the draft's wheel, above the head
+-- Proposed 2026-11-10 (owner: the whole boss must fit the frame, and from the ring the camera alone cannot do it): the model is drawn
+-- this much smaller. 1 is the model's own size (561 to the head top, owner 2026-11-04).
+BossArenaConfig.BossScale = 0.75
+BossArenaConfig.BossHeight = 561 * BossArenaConfig.BossScale -- feet to head top; the model's Poses.Scale times BossScale, not the ring
+BossArenaConfig.BossWheelHeight = 243 * BossArenaConfig.BossScale -- the draft's wheel, above the head
 BossArenaConfig.BossTotalHeight = BossArenaConfig.BossHeight + BossArenaConfig.BossWheelHeight
 BossArenaConfig.DaisRadius = 190
 BossArenaConfig.DaisY = BossArenaConfig.Y - 50 -- proposed: the dais's top, where the boss's feet stand (owner 2026-11-06: lower)
