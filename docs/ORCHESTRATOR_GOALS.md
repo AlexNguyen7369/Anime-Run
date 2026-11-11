@@ -224,3 +224,24 @@ Deliverables:
 - h4 | Spawn look: owner rejected the full cyber and hybrid enclosed builds 2026-11-10; plaza keeps its dojo look | done (superseded by h5)
 - h5 | Dojo with cyber accents (no enclosure): torii trim, scanning ring, stall trim and screens, drones; owner approved 2026-11-10 | `world_layout`, `spawn_area` green; rules audit PASS
 Out of scope: gameplay and economy numbers, track biomes, Market panel contents.
+
+## boss-mage: The Elf Mage, second boss event, Phase 1 (owner 2026-11-11)
+Status: active
+Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/i-would-like-to-unified-moore.md`)
+Branch: feature/alex/boss-mage (from feature/alex/anime-world)
+Spec: design doc 4.37 Second boss, docs/BOSS_EVENT_SPEC.md "The Elf Mage", docs/char_evidence/boss_mage.md
+Deliverables:
+- m0 | Rules and evidence written | owner reads back and confirms
+- m1 | Elf Mage model renders, no upload | owner approves the design
+- m2 | Stone golem model renders, no upload | owner approves the design
+- m3 | Colosseum draft renders and size check | owner approves look and size
+- m4 | Hover idle key frames | owner approves the slices
+- m5 | Purple lightning key frames | owner approves the slices
+- m6 | Golem slam key frames | owner approves the slices
+- m7 | Barrage key frames | owner approves the slices
+- m8 | Digital art: staff icon, rhythm circles, status icons, portrait, screen mock-ups | owner approves the sheet
+- m9 | In-betweens, bake, upload | approved keys unchanged; owner's upload word (unlicensed, section 5)
+- m10 | Server: boss id, random pick, per-move costs, rhythm circle judge | `boss_event` green, tests written red first
+- m11 | Client: colosseum, hovering boss, golem, staff Dodge bar, rhythm circles, VFX | `boss_anim`, `ui_boss_dodge`, `ui_boss_osu` green; owner look in Studio
+- m12 | Compatibility check | boss scenarios and rules audit reported, then a PR with a fresh review
+Out of scope: Phase 2, her Relics, chest and Sidekick until the owner rules on them, changes to Big Raga's event.
