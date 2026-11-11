@@ -911,9 +911,76 @@ def side_wyvern():
 	return m
 
 
+# ---- boss_golem
+
+
+GOLEM_RAMPS = {
+	"stone": ["#6e5a42", "#a48a66", "#cdb48c", "#e6d3ac", "#f8eed6"],
+	"crack": ["#1e1610", "#2c2118", "#3a2c20", "#4a3a2a"],
+}
+# part: (joint, parent, block (x, y, z1, z0, hw, hd), extra block kwargs). Every block is its own part: it assembles from
+# rubble and crumbles apart. L is +X, the golem's left, the viewer's right in the front view.
+GOLEM_BLOCKS = {
+	"Hip": ((0, 0, 3.3), None, (0, 0, 3.85, 2.9, 1.35, 0.86), dict(ch=0.12, jit=0.03)),
+	"Torso": ((0, 0, 3.9), "Hip", (0, 0.1, 7.45, 3.92, 1.8, 1.34), dict(ch=0.34, flare=-0.24, mids=(6.6, 5.2), jit=0.06)),
+	"Head": ((0, -0.4, 7.25), "Torso", (0, -0.5, 8.02, 7.12, 0.64, 0.62), dict(ch=0.14, jit=0.025)),
+	"ShoulderL": ((2.55, 0, 7.2), "Torso", (2.58, 0, 8.15, 6.22, 1.06, 1.12), dict(ch=0.16, mids=(7.2,), jit=0.045)),
+	"UpperArmL": ((2.65, 0, 6.1), "ShoulderL", (2.68, 0.02, 6.16, 4.06, 0.8, 0.86), dict(ch=0.12, jit=0.035)),
+	"ForearmL": ((2.65, 0, 4.0), "UpperArmL", (2.68, -0.04, 3.99, 2.2, 0.82, 0.88), dict(ch=0.12, flare=0.08, jit=0.035)),
+	"FistL": ((2.65, -0.1, 2.15), "ForearmL", (2.7, -0.1, 2.13, 0.92, 0.92, 0.96), dict(ch=0.18, mids=(1.55,), jit=0.045)),
+	"ThighL": ((0.95, 0, 2.95), "Hip", (0.95, 0, 2.88, 1.66, 0.7, 0.76), dict(ch=0.1, jit=0.03)),
+	"ShinL": ((0.95, 0, 1.62), "ThighL", (0.97, -0.04, 1.6, 0.0, 0.76, 0.82), dict(ch=0.12, flare=0.07, jit=0.035)),
+}
+for _n, (_j, _p, _b, _kw) in list(GOLEM_BLOCKS.items()):
+	if _n.endswith("L"):
+		GOLEM_BLOCKS[_n[:-1] + "R"] = ((-_j[0], _j[1], _j[2]), _p[:-1] + "R" if _p.endswith("L") else _p, (-_b[0], *_b[1:]), _kw)
+# crack lines on a block face: part, face normal, points (x, y, z). An L part's crack is mirrored onto its R twin.
+GOLEM_CRACKS = (
+	("Torso", (0, -1, 0), ((-1.1, -1.12, 7.1), (-0.7, -1.12, 6.75), (-0.8, -1.12, 6.2), (-0.35, -1.12, 5.85), (-0.5, -1.12, 5.2), (-0.1, -1.12, 4.9))),
+	("Torso", (0, -1, 0), ((-0.7, -1.12, 6.75), (-0.15, -1.12, 6.9), (0.25, -1.12, 6.6))),
+	("Torso", (0, -1, 0), ((1.45, -1.08, 5.6), (1.05, -1.08, 5.3), (1.15, -1.08, 4.8), (0.7, -1.08, 4.45))),
+	("Torso", (0, 1, 0), ((0.4, 1.28, 7.2), (0.1, 1.28, 6.2), (0.6, 1.28, 5.3), (0.3, 1.28, 4.4))),
+	("Hip", (0, -1, 0), ((-0.9, -0.88, 3.7), (-0.5, -0.88, 3.35), (-0.7, -0.88, 3.0))),
+	("Head", (0, -1, 0), ((-0.35, -1.11, 7.9), (-0.1, -1.11, 7.65), (-0.2, -1.11, 7.42), (0.15, -1.11, 7.24))),
+	("ShoulderL", (0, -1, 0), ((1.85, -1.13, 7.95), (2.3, -1.13, 7.6), (2.15, -1.13, 7.1), (2.6, -1.13, 6.8), (2.45, -1.13, 6.4))),
+	("ShoulderL", (1, 0, 0), ((3.65, 0.6, 7.8), (3.65, 0.1, 7.2), (3.65, 0.4, 6.5))),
+	("UpperArmL", (0, -1, 0), ((2.9, -0.86, 5.9), (2.6, -0.86, 5.2), (2.85, -0.86, 4.5))),
+	("FistL", (0, -1, 0), ((2.2, -1.08, 1.95), (2.55, -1.08, 1.7), (2.45, -1.08, 1.35), (2.85, -1.08, 1.1))),
+	("ShinL", (0, -1, 0), ((0.7, -0.88, 1.4), (1.05, -0.88, 0.9), (0.85, -0.88, 0.35))),
+)
+
+
+def golem_crack(m, part, n, pts, w=0.045):
+	"""A dark zigzag line just proud of a block face, pointed at both ends. Points snap onto the block along -n."""
+	from mathutils.bvhtree import BVHTree
+
+	n = Vector(n)
+	tree = BVHTree.FromBMesh(m.bm[part])
+	pts = [tree.ray_cast(Vector(p) + n * 2, -n)[0] + n * 0.025 for p in pts]
+	left, right = [], []
+	for i, p in enumerate(pts):
+		d = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+		s = n.cross(d) * (w * 0.2 if i in (0, len(pts) - 1) else w)
+		left.append(p + s)
+		right.append(p - s)
+	m.plate(part, "crack", left + right[::-1], n * 0.03, a=0.5, b=0.1, g=0.0, tone=0.0)
+
+
+def boss_golem():
+	parts = {n: (j, p) for n, (j, p, _, _) in GOLEM_BLOCKS.items()}
+	m = Model("boss_golem", GOLEM_RAMPS, parts, a=0.56, b=0.5, atlas_h=128)
+	for n, (_, _, (x, y, z1, z0, hw, hd), kw) in GOLEM_BLOCKS.items():
+		m.block(n, "stone", x, y, z1, z0, hw, hd, tone=0.05, **kw)
+	for part, n, pts in GOLEM_CRACKS:
+		golem_crack(m, part, n, pts)
+		if part.endswith("L"):
+			golem_crack(m, part[:-1] + "R", (-n[0], n[1], n[2]), [(-p[0], p[1], p[2]) for p in pts])
+	return m
+
+
 MODELS = {"boss_raga": boss_raga, "side_chain": side_chain, "side_knight": side_knight, "side_wyvern": side_wyvern}
 # Outside MODELS so the b1 contact sheet stays as the owner approved it.
-BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga")}
+BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga"), "boss_golem": boss_golem}
 
 
 # One file per later Sidekick in tools/blender/sidekicks/: ID, NAME and build(k), where k is this script's namespace (k.Model).
@@ -1294,4 +1361,5 @@ def main():
 			export_glb(cid)
 
 
-main()
+if __name__ == "__main__":
+	main()
