@@ -70,7 +70,7 @@ end
 
 local function icon(name, parent, props)
 	local art = Icons[name]
-	props.Image = if name == "Index" then "rbxassetid://79149512473529" else art.Image
+	props.Image = art.Image -- 4.40 Gold badge set for every tile, Index included (owner 2026-11-10)
 	props.BackgroundTransparency = 1
 	props.ScaleType = Enum.ScaleType.Fit
 	if art.Offset then
