@@ -183,16 +183,12 @@ def draw_staff(size=512):
 	ribbon = ((214, 44, 48), (255, 112, 104), (140, 18, 32))
 	gy, gu = 0.0, 1.0  # gem centre
 
-	# Ribbon tails behind the shaft, falling to the lower right of the screen.
-	for path, r0, r1 in (
-		([(0.06, -0.06), (0.22, -0.34), (0.18, -0.6), (0.3, -0.84)], 0.085, 0.075),
-		([(0.08, 0.04), (0.42, -0.12), (0.52, -0.44), (0.8, -0.68)], 0.115, 0.1),
-	):
-		(ax, ay), (bx, by) = path[-2], path[-1]
-		dx, dy = (bx - ax) / np.hypot(bx - ax, by - ay), (by - ay) / np.hypot(bx - ax, by - ay)
-		end = (bx + dx * r1, by + dy * r1)
-		notch = [(end[0] - dx * r1 * 1.1, end[1] - dy * r1 * 1.1), (end[0] + dy * r1 * 1.3, end[1] - dx * r1 * 1.3), (end[0] - dy * r1 * 1.3, end[1] + dx * r1 * 1.3)]
-		tail = np.maximum(polyline(s, u, path, r0, r1), -polygon(s, u, notch))  # swallowtail end
+	# Two short flat ribbon tails hanging from the wrap, thinner than the shaft, with swallowtail ends.
+	for (ox, oy), (dx, dy), length in (((0.1, 0.06), (0.5, -0.87), 0.5), ((0.1, 0.18), (0.72, -0.69), 0.62)):
+		nx, ny = -dy, dx
+		ex, ey = ox + dx * length, oy + dy * length
+		w0, w1 = 0.055, 0.075
+		tail = polygon(s, u, [(ox + nx * w0, oy + ny * w0), (ex + nx * w1, ey + ny * w1), (ex - dx * 0.09, ey - dy * 0.09), (ex - nx * w1, ey - ny * w1), (ox - nx * w0, oy - ny * w0)])
 		part(img, tail, ribbon, OL, BAND)
 	# Shaft and its gold butt band.
 	part(img, segment(s, u, 0, -2.05, 0, 0.5, 0.1), maroon, OL, BAND)
@@ -377,18 +373,20 @@ def draw_magic_circle(size=512):
 	]
 	rune = np.select([kind == i for i in range(5)], marks)
 	d = np.minimum(d, rune)
-	# Inner ring with small notches, a pentagon of chords, 5 round lobes with a pupil each, the hub.
+	# Inner ring, 5 round lobes with a pupil each, each joined to the hub by a spoke, curved petals between them, the hub.
 	d = np.minimum(d, ring(x, y, 0, 0, 0.7, line))
 	for i in range(5):
 		t = -np.pi / 2 + i * 2 * np.pi / 5
-		t2 = t + 2 * np.pi / 5 * 2
-		d = np.minimum(d, segment(x, y, np.cos(t) * 0.7, np.sin(t) * 0.7, np.cos(t2) * 0.7, np.sin(t2) * 0.7, line * 0.7))
+		d = np.minimum(d, segment(x, y, np.cos(t) * 0.16, np.sin(t) * 0.16, np.cos(t) * 0.28, np.sin(t) * 0.28, line * 0.9))
+		pm = t + np.pi / 5  # petal: an ellipse outline between two lobes
+		pa = x * np.cos(pm) + y * np.sin(pm) - 0.4
+		pb = -x * np.sin(pm) + y * np.cos(pm)
+		d = np.minimum(d, np.abs(np.hypot(pa / 0.19, pb / 0.065) - 1) * 0.065 - line * 0.7)
 		lx, ly = np.cos(t) * 0.43, np.sin(t) * 0.43
 		d = np.minimum(d, ring(x, y, lx, ly, 0.15, line * 1.3))
 		d = np.minimum(d, ring(x, y, lx, ly, 0.105, line * 0.7))
 		d = np.minimum(d, circle(x, y, lx, ly, 0.06))
-		m = t + np.pi / 5
-		d = np.minimum(d, circle(x, y, np.cos(m) * 0.62, np.sin(m) * 0.62, 0.028))
+		d = np.minimum(d, circle(x, y, np.cos(pm) * 0.66, np.sin(pm) * 0.66, 0.026))
 	d = np.minimum(d, ring(x, y, 0, 0, 0.16, line * 1.2))
 	d = np.minimum(d, ring(x, y, 0, 0, 0.09, line * 0.8))
 	d = np.minimum(d, circle(x, y, 0, 0, 0.04))
@@ -586,6 +584,8 @@ def mock_osu(art, masks, w, h, phone, t=1.0):
 	diameter = 68 if phone else 104  # image size; the white rim's outer edge is 0.9 of it
 	for i, (px, py) in enumerate(SPOTS):
 		cx, cy2 = px * k, py * k
+		if phone:  # pack the rows tighter and lower, so the largest ring stays below the timer strip
+			cy2 = 175 + (py - 260) * 0.48
 		due = DUE[i]
 		shown = due - APPROACH
 		if t < shown:
