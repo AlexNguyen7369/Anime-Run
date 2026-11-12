@@ -7,6 +7,8 @@ rule, and every change is recorded here with its date.
 Created 2026-10-28 by the owner (Alex Nguyen), derived from Idle Vehicle Simulator (IVS). Research notes:
 `docs/RESEARCH.md`.
 
+Owner update 2026-11-12: Sidekick summoning uses the full-screen galaxy model stage and individually styled character auras, with Igriz as the featured Mythic. Existing costs, tier odds, pity, unlocks and server-authoritative outcomes remain unchanged. Presentation details are in SIDEKICK_SPEC.md.
+
 ## 1. Concept
 
 An idle running simulator on Roblox. The player spins (gacha) for **anime characters based on real anime, with tweaked names** (section 5), puts up to
