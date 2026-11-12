@@ -4,6 +4,7 @@
 -- their geometry at every UiSpec viewport, and the post-conditions of the shop_* / market_* clicks. Owned by
 -- ui-test-writer. Nothing here invokes a remote; the clicks do (UiSpec.Clicks, purchases only through the spy proxy).
 
+local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -16,30 +17,46 @@ local Spec = require(script.Parent.UiSpec)
 local ShopMarket = {}
 
 -- The PanelBand rect (left, top, right, bottom; screen px, inset included) from the HUD rects, as Client/PanelBand
--- computes it: past the grid (and what sticks out of it) and the Shop column, with the wider margin on both sides;
--- Gap below the Race button; Gap above the TURBO bar, and above Money when Money reaches into the band.
--- d: Race, Turbo, Navigation, NavigationParts (rects of the grid's visible descendants), ShopColumn, Money, MoneyShown.
+-- computes it: Gap clear of the left column (and what sticks out of it) and of the right column (and what sticks out
+-- of it), the wider margin on both sides so the panel stays centred (design doc 4.40 split L/R); top ReachUp above the
+-- Race anchor's bottom + Gap (never above inset + Gap); bottom ReachDown above the TURBO bar, and above Money when
+-- Money reaches past the band's left edge (design doc 4.42 "Panel size").
+-- d: Race, Turbo, Navigation, NavigationParts (rects of the left column's visible descendants), ShopColumn,
+-- ShopColumnParts (the right column's), Money, MoneyShown.
 function ShopMarket.Band(vp, d)
 	local gap = Spec.Band.Gap
+	local inset = GuiService:GetGuiInset().Y
 	local gridRight = d.Navigation.x + d.Navigation.w
 	for _, r in d.NavigationParts or {} do
 		gridRight = math.max(gridRight, r.x + r.w)
 	end
-	local margin = math.max(gridRight, vp.X - d.ShopColumn.x) + gap
+	local shopLeft = d.ShopColumn.x
+	for _, r in d.ShopColumnParts or {} do
+		shopLeft = math.min(shopLeft, r.x)
+	end
+	local margin = math.max(gridRight, vp.X - shopLeft) + gap
 	local bottom = d.Turbo.y
 	if d.MoneyShown and d.Money and d.Money.x + d.Money.w > margin then
 		bottom = math.min(bottom, d.Money.y)
 	end
-	return margin, d.Race.y + d.Race.h + gap, vp.X - margin, bottom - gap
+	local top = math.max(inset + gap, d.Race.y + d.Race.h + gap - Spec.Band.ReachUp)
+	return margin, top, vp.X - margin, bottom - Spec.Band.ReachDown
 end
 
 -- Client/PanelBand.Fit for the layout solver: centred in the band, at most maxWidth wide, never larger than the band.
-function ShopMarket.BandFit(vp, d, maxWidth)
+-- ratio (width / height, optional): the panel's AnimeAspect (AnimeSkin.IndexFrame / QuestAnimeStyle, FitWithinMaxSize)
+-- shrinks that rect to the largest one of the frame's aspect inside it, about the centre (design doc 4.42 "Wider panels").
+function ShopMarket.BandFit(vp, d, maxWidth, ratio)
 	local left, top, right, bottom = ShopMarket.Band(vp, d)
+	local w, h = math.max(0, math.min(maxWidth, right - left)), math.max(0, bottom - top)
+	if ratio then
+		w = math.min(w, h * ratio)
+		h = w / ratio
+	end
 	return {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset((left + right) / 2, (top + bottom) / 2),
-		Size = UDim2.fromOffset(math.max(0, math.min(maxWidth, right - left)), math.max(0, bottom - top)),
+		Size = UDim2.fromOffset(w, h),
 	}
 end
 
@@ -126,10 +143,12 @@ function ShopMarket.Build(h)
 		if #missing > 0 then
 			return nil, missing
 		end
-		d.NavigationParts = {}
-		for _, part in h.find(Spec.Band.Grid):GetDescendants() do
-			if part:IsA("GuiObject") and part.Visible then
-				table.insert(d.NavigationParts, rectOf(part))
+		d.NavigationParts, d.ShopColumnParts = {}, {}
+		for key, path in { NavigationParts = Spec.Band.Grid, ShopColumnParts = Spec.Band.ShopColumn } do
+			for _, part in h.find(path):GetDescendants() do
+				if part:IsA("GuiObject") and part.Visible then
+					table.insert(d[key], rectOf(part))
+				end
 			end
 		end
 		local money = h.find(Spec.Band.Money)

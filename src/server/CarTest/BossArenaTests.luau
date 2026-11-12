@@ -1,6 +1,7 @@
 --!nonstrict
 -- BRIEF: design doc 4.37, docs/BOSS_EVENT_SPEC.md "Arena" (task b4): the arena's numbers, 7 lanes and the closed rail.
--- Owner values (radius 550, width 80, 7 lanes, y about 1,200, boss fixed 561 / 804, dais 190) are asserted literally.
+-- Owner values (radius 550, width 80, 7 lanes, y about 1,200, dais 190) are asserted literally. The boss is the
+-- model's 561 / 804 times BossScale (owner 2026-11-10: drawn smaller so the whole boss fits the frame).
 -- The draft's direction comes from tools/blender/arena/build_arena.py. Everything else is read from the config.
 -- Contract these tests assume beyond the brief:
 --   Shared/BossArenaConfig: Center, InnerRadius, Width, Lanes, Y, BossHeight, BossTotalHeight, DaisRadius,
@@ -96,9 +97,13 @@ function Tests.boss_arena()
 		flag("lanes_7", Cfg.Lanes == 7, Cfg.Lanes, 7)
 		flag("y_about_1200", near(Cfg.Y, 1200, Y_TOLERANCE), Cfg.Y, 1200)
 		flag("center_is_at_y", typeof(Cfg.Center) == "Vector3" and near(Cfg.Center.Y, Cfg.Y, 0.01))
-		flag("boss_height_fixed", near(Cfg.BossHeight, 561, 1.5), Cfg.BossHeight, 561) -- the draft measures 560; the ring does not scale it
-		flag("boss_height_about_560", near(Cfg.BossHeight, 560, 2), Cfg.BossHeight, 560)
-		flag("boss_total_804", near(Cfg.BossTotalHeight, 804, 1), Cfg.BossTotalHeight, 804) -- the draft measures 804.4
+		local scale = Cfg.BossScale
+		flag("boss_scale_in_range", type(scale) == "number" and scale > 0 and scale <= 1, scale)
+		scale = type(scale) == "number" and scale or 1
+		-- The model's own heights (561 head top, 804 wheel top) times BossScale; the ring does not scale it.
+		flag("boss_height_fixed", near(Cfg.BossHeight, 561 * scale, 1.5 * scale), Cfg.BossHeight, 561 * scale) -- the draft measures 560
+		flag("boss_height_about_560", near(Cfg.BossHeight, 560 * scale, 2 * scale), Cfg.BossHeight, 560 * scale)
+		flag("boss_total_804", near(Cfg.BossTotalHeight, 804 * scale, 1 * scale), Cfg.BossTotalHeight, 804 * scale) -- the draft measures 804.4
 		flag("dais_190", Cfg.DaisRadius == 190, Cfg.DaisRadius, 190)
 		flag("dais_clears_inner_edge", Cfg.DaisRadius < Cfg.InnerRadius, Cfg.DaisRadius, Cfg.InnerRadius)
 		local lap = Cfg.LaneLength(4)

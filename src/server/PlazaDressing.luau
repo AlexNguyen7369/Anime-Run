@@ -1,9 +1,8 @@
 --!nonstrict
--- The plaza and Dojo meshes (design doc 4.24, WORLD_REDESIGN_SPEC 7), drafted in tools/blender/plaza/build_plaza.py.
--- Runs in the background after the world is built. SpawnArea and WorkshopBuilder still build the gameplay parts:
+-- The plaza meshes (design doc 4.24, WORLD_REDESIGN_SPEC 7), drafted in tools/blender/plaza/build_plaza.py.
+-- Runs in the background after the world is built. SpawnArea still builds the gameplay parts:
 -- prompts, pads, zones and collision stay on them. A loaded mesh only turns its stand-in invisible, so a failed
 -- load leaves the plain stand-in working. ReplicatedStorage attribute PlazaReady turns true when done.
-local CollectionService = game:GetService("CollectionService")
 local InsertService = game:GetService("InsertService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -12,13 +11,10 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Layout = require(Shared.PlazaAssets)
 local UiTheme = require(Shared.UiTheme)
-local WorkshopConfig = require(Shared.WorkshopConfig)
 
 local PlazaDressing = {}
 
-local TOP = 1 -- SpawnArea.TOP_Y
 local TRUNK_RADIUS = { GreatSakura = 3.2 }
-local SIGN_HEIGHT = { [1] = 24, [4] = 32, [7] = 38, [10] = 44 } -- owner's sign above each tier's roof (studs)
 -- Stand-ins a mesh replaces: SpawnArea child -> mesh key
 local REPLACES = {
 	StartGate = "HeroTorii",
@@ -26,7 +22,11 @@ local REPLACES = {
 	PotionsStall = "POTIONSStall",
 	Marketplace = "MarketStall",
 	IndexBoard = "IndexBoard",
-	Spawn = "SpawnMosaic",
+	-- the terrace mesh carries the spawn disc; the steps keep the collision (design doc 4.43)
+	Spawn = "Showpiece",
+	Terrace1 = "Showpiece",
+	Terrace2 = "Showpiece",
+	Terrace3 = "Showpiece",
 }
 
 local IMPORT_TURN = CFrame.Angles(0, math.pi, 0) -- the glTF import turns a mesh 180 degrees, as it does the runner rigs
@@ -140,71 +140,6 @@ local function sign(text, position, face, size, color, parent)
 	label.Parent = gui
 end
 
--- The Dojo look of a plot follows its Workshop's level; a free plot gets the closed shell.
-local function tierOf(level)
-	local best = 1
-	for tier in Layout.Tiers do
-		if tier > 0 and tier <= level and tier > best then
-			best = tier
-		end
-	end
-	return best
-end
-
-local function dressPlot(plot)
-	local base = plot:FindFirstChild("Base")
-	if not base then
-		return
-	end
-	local workshop = plot:FindFirstChild("Workshop")
-	local tier = workshop and tierOf(workshop:GetAttribute("Level") or 1) or 0
-	local old = plot:FindFirstChild("DojoMesh")
-	if old then
-		old:Destroy()
-	end
-	local position = Vector3.new(base.Position.X, TOP, base.Position.Z)
-	local look = base.CFrame.LookVector
-	local model = place(Layout.Tiers[tier], frameOf(position, look), plot, "DojoMesh")
-	if not model then
-		return -- keep the plain stand-in
-	end
-	hide(base)
-	if workshop then
-		for _, d in workshop:GetDescendants() do
-			-- The Workshop's own parts only: the Dojo squad's rigs on the pedestals stay visible
-			if d:IsA("BasePart") and d:FindFirstAncestorOfClass("Model") == workshop then
-				d.Transparency = 1
-				d.CastShadow = false
-			end
-		end
-	else
-		sign(
-			WorkshopConfig.EMPTY_TEXT,
-			position + look * 18.4 + Vector3.new(0, 8.6, 0),
-			look,
-			1,
-			Color3.fromRGB(76, 48, 34),
-			model
-		)
-	end
-	local billboard = base:FindFirstChild("Sign")
-	if billboard then
-		billboard.Enabled = workshop ~= nil -- a free plot's text is on its board
-		billboard.StudsOffsetWorldSpace = Vector3.new(0, SIGN_HEIGHT[tier] or 24, 0) -- clears that tier's roof
-	end
-end
-
-local function watchPlot(plot)
-	dressPlot(plot)
-	local function changed(child)
-		if child.Name == "Workshop" then
-			task.defer(dressPlot, plot) -- an upgrade swaps the Workshop model: read the state after it settled
-		end
-	end
-	plot.ChildAdded:Connect(changed)
-	plot.ChildRemoved:Connect(changed)
-end
-
 function PlazaDressing.Start(spawnArea)
 	task.spawn(function()
 		local ok, err = pcall(function()
@@ -255,18 +190,6 @@ function PlazaDressing.Start(spawnArea)
 					hide(standIn)
 				end
 			end
-			for _, plot in CollectionService:GetTagged(WorkshopConfig.TAG) do
-				watchPlot(plot)
-			end
-			-- Every Dojo tier in ReplicatedStorage: the client preloads them behind the game, so a level-up shows no gap
-			local tiers = Instance.new("Folder")
-			tiers.Name = "PlazaTierMeshes"
-			for tier, key in Layout.Tiers do
-				if tier > 0 then
-					place(key, CFrame.identity, tiers)
-				end
-			end
-			tiers.Parent = ReplicatedStorage
 		end)
 		if not ok then
 			warn("[PlazaDressing] failed, keeping what is built: " .. tostring(err))

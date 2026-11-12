@@ -26,8 +26,10 @@ local SNAP_STUDS = 40 -- a larger gap (restart, jump, late join) is snapped at o
 local SNAP_SECONDS = 0.5 -- ...as is a gap of more than this many seconds of running
 local LANE_SLIDE_SECONDS = 0.35 -- placeholder: the drawn runner's side dash into the next lane on a dodge
 local TRACK_CAMERA_RATE = 4 -- 1/s, placeholder: how fast the camera yaw turns to the runner's travel (docs/CAMERA_SPEC.md)
--- The boss event camera turns inward (docs/BOSS_EVENT_SPEC.md "Arena"), angles from the arena draft's GAME_YAW, GAME_PITCH.
-local ARENA_YAW, ARENA_PITCH = math.rad(55), math.rad(12)
+-- The boss event camera turns inward (docs/BOSS_EVENT_SPEC.md "Arena").
+-- Proposed 2026-11-10 (were 55 and 12): at 75 the boss sits near the screen's centre line and at 26 its wheel top, grown 1.25x,
+-- clears the HP bar from every lane; the damage numbers over its chest land mid-screen instead of behind the bar.
+local ARENA_YAW, ARENA_PITCH = math.rad(75), math.rad(26)
 
 local player = Players.LocalPlayer
 local views = {} -- server rig -> view state
@@ -443,7 +445,7 @@ end)
 
 -- The event's locked distance (BOSS_EVENT_SPEC "Run rules"), after the default camera: ARENA_PITCH looks up from a low runner, so the
 -- default camera would pop in front of the deck, to about 10 studs. Same view line, moved up to stay on top of the deck.
-local ABOVE_DECK = 2 -- studs, placeholder
+local ABOVE_DECK = 6 -- studs, placeholder (2 until 2026-11-10: at the steeper pitch the deck filled the lower frame)
 RunService:BindToRenderStep("BossEventCamera", Enum.RenderPriority.Camera.Value + 1, function()
 	local camera = Workspace.CurrentCamera
 	if not camera or camera.CameraType ~= Enum.CameraType.Custom or player:GetAttribute("BossEvent") ~= true then

@@ -179,7 +179,7 @@ function Tests.gems()
 		flag("pad_payout_pays_zero", padRun.Payouts == 1 and gems(walker) == 0, gems(walker), 0)
 		padRun:Destroy()
 
-		-- Exhaustion pays nothing (it banks a share of Money only).
+		-- Exhaustion pays nothing (it pays a share of Money only).
 		local tired, exhausted = newPlayer(), false
 		startRun(tired, {
 			Npc = true,
@@ -240,7 +240,7 @@ function Tests.gems()
 		flag("save_ok", data.Save(saver, saverId, true) == true)
 		flag(
 			"save_writes_field",
-			store.data[key].Gems == 456 and store.data[key].Version == 18,
+			store.data[key].Gems == 456 and store.data[key].Version == 19,
 			store.data[key].Gems,
 			456
 		)

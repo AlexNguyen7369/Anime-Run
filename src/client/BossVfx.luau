@@ -442,7 +442,9 @@ end
 local function playCharge()
 	-- cue: BossCharge (a rising whine)
 	local few = reduced()
-	local tip = Vector3.new(Poses.Bind.Sword.Tip[1], Poses.Bind.Sword.Tip[3], Poses.Bind.Sword.Tip[2]) * Poses.Scale
+	local tip = Vector3.new(Poses.Bind.Sword.Tip[1], Poses.Bind.Sword.Tip[3], Poses.Bind.Sword.Tip[2])
+		* Poses.Scale
+		* Arena.BossScale
 	tip = Vector3.new(-tip.X, tip.Y, tip.Z)
 	local part = holder("BladeCharge", bladeCFrame())
 	tracked[part] = bladeCFrame
@@ -936,9 +938,9 @@ local function startAura()
 	-- cue: BossEnraged
 	local few = reduced()
 	local bodyFrame = function()
-		return raga:Frame("UpperTorso") * CFrame.new(0, 60, 0)
+		return raga:Frame("UpperTorso") * CFrame.new(0, 60 * Arena.BossScale, 0)
 	end
-	local part = holder("LowHpAura", bodyFrame(), Vector3.new(300, 440, 150))
+	local part = holder("LowHpAura", bodyFrame(), Vector3.new(300, 440, 150) * Arena.BossScale)
 	tracked[part] = bodyFrame
 	emitter(part, {
 		Name = "Tongues",

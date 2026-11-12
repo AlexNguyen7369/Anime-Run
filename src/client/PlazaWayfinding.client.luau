@@ -1,5 +1,5 @@
 --!nonstrict
--- The floating headers over Race Start and the service row, Market included (design doc 4.24 Wayfinding, Service headers): client
+-- The floating headers over Race Start, the economy wing (Market included) and the Sidekick summon altar (design doc 4.24 Wayfinding, Service headers): client
 -- display only. Each hangs on an attachment in Terrain at a fixed world position, so streaming never hides it. Shown on foot
 -- only, and not up close where the landmark's own sign reads. Sizes and distances are proposed placeholders.
 local Players = game:GetService("Players")
@@ -12,11 +12,13 @@ local PlazaHeader = require(Shared:WaitForChild("PlazaHeader"))
 
 local MAX_DISTANCE = 260
 local HIDE_WITHIN = 20
--- The row's headers stay near it and hide sooner: its prompts open within 10-12 studs and no Dojo may lose sight of the spawn.
+-- The wings' headers stay near them and hide sooner: their prompts open within 10-16 studs.
 local ROW_MAX_DISTANCE = 150
 local ROW_HIDE_WITHIN = 10
 local ROW_SIZE = UDim2.new(11, 60, 4, 24) -- studs plus pixels: grows as you get closer, still reads far away
--- y clears each roof (PlazaAssets: stalls 15.05, Market 17, Index 17.25) by the emblem's half height
+-- y clears each roof (PlazaAssets: stalls 15.05, Market 17, Index 17.25; altar halo 16.1) by the emblem's half height.
+-- (x, z): each front (stall origin + 5 along its face, Market + 5.5, Index and the altar at their origins) on the showpiece
+-- ring, design doc 4.43, WORLD_REDESIGN_SPEC 4 (heights proposed).
 local LABELS = {
 	{
 		Key = "RaceStart",
@@ -33,7 +35,7 @@ local LABELS = {
 		Text = "MARKET",
 		Shape = "Gem",
 		Color = Color3.fromRGB(122, 63, 184),
-		At = Vector3.new(-72, 20, -12.5),
+		At = Vector3.new(2.905, 20, -78.446),
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
@@ -43,7 +45,7 @@ local LABELS = {
 		Text = "SIDEKICKS",
 		Shape = "Star",
 		Color = Color3.fromRGB(30, 150, 170),
-		At = Vector3.new(-72, 18, -98.75),
+		At = Vector3.new(57.158, 21, 61.555), -- the summon altar
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
@@ -53,7 +55,7 @@ local LABELS = {
 		Text = "SHOP",
 		Shape = "Gem",
 		Color = Color3.fromRGB(40, 110, 220),
-		At = Vector3.new(-72, 18, -70),
+		At = Vector3.new(-78.945, 18, -2.924),
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
@@ -63,7 +65,7 @@ local LABELS = {
 		Text = "POTIONS",
 		Shape = "Gem",
 		Color = Color3.fromRGB(214, 52, 170),
-		At = Vector3.new(-72, 18, -41.25),
+		At = Vector3.new(-53.755, 18, -57.891),
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,
@@ -73,7 +75,7 @@ local LABELS = {
 		Text = "INDEX",
 		Shape = "Star",
 		Color = Color3.fromRGB(240, 180, 30),
-		At = Vector3.new(-72, 20, 16.25),
+		At = Vector3.new(61.555, 20, -57.158),
 		Size = ROW_SIZE,
 		MaxDistance = ROW_MAX_DISTANCE,
 		HideWithin = ROW_HIDE_WITHIN,

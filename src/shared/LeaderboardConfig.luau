@@ -22,11 +22,11 @@ LeaderboardConfig.SIGN_SIZE = Vector3.new(32, 20, 1)
 LeaderboardConfig.SIGN_X = 40
 LeaderboardConfig.SIGN_Z = { -32, -64, -96, -128 }
 
--- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, in the gap between Plots 1 and 2
--- (WORLD_REDESIGN_SPEC 7).
+-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md 3a): local (X, Z) of its centre, on the showpiece ring (design doc
+-- 4.43, WORLD_REDESIGN_SPEC 4).
 LeaderboardConfig.BEST_ROLL = {
-	X = 109.5,
-	Z = -155,
+	X = 201.942, -- hub-local: world (83.9, 3.1), the ring slot opposite the Shop
+	Z = -76.891,
 	RADIUS = 9,
 	HEIGHT = 2,
 	CAR_SCALE = 3.5, -- the car stands at this scale, so it reads from across the hub

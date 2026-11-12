@@ -10,6 +10,10 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-11 powerups p1 Track power-ups (752cf76): Speed x1.5 for 3 s and Stamina +5 s rings on the path, H2 badge, overfill seconds; `powerups` 22, `stamina` 33, `race` 52, `track_loading` 82 fail=0; rules audit PASS round 2; shots https://claude.ai/artifact/JEqy1rJqA7gCLrfZ4gdy1d
+- 2026-11-11 dojo-removal r4 Spawn showpiece C in game (2c70abd): terrace, ring of radius 84, pedestal on the middle step; `world_layout`, `spawn_area`, `environment` pass=3 fail=0, `ui_billboards` pass; rules audit PASS round 2; Studio shots https://claude.ai/artifact/3Cw9qTVqJwKKpB71S84xDS
+- 2026-11-10 hud-tech h1 gold frame tiles, L2 left block, Tile and Boss icons (c722398, 0a2ef57): ui_buttons 14/0, ui_hud 16/0, ui_layout 838/95 (pre-h1 reds), audit PASS; exhaustion eye 160 up, 13 deg (74eb084, boss_event not run)
+- 2026-11-10 boss audit: flat boss image removed, running camera 75 / 26 / 6, boss mesh preload, BossScale 0.75; owner approved from Studio screenshots; no harness run (owner: targeted tests only); exhaustion-view arch post (OWNER_QUESTIONS item 4) open
 - 2026-11-06 boss-polish Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera: `[CARTEST]` 55 of 55, `[UITEST]` pass=50 fail=6 (reds in handoff, re-run stopped on the owner's word), audit PASS round 3
 - 2026-11-06 boss-phase2 Phase 2, line run, chests, rewards popup, Relic art, phone load fixes: `[CARTEST] END pass=64 fail=1` (fixed, `scrap` pass after), `[UITEST] END pass=54 fail=2` (exempted, those pass alone); rules audit 3 rounds, findings fixed, not re-audited after the last
 - 2026-11-05 boss-event b4 arena blockout: boss_arena 154, race 52, npc 117 checks pass; owner approved size; rules audit deferred to b11

@@ -99,18 +99,20 @@ Stamina = Base(rarity or override)
 
 ## Run end by exhaustion
 
-- When the last slot reaches 0: `run:CashOut()` pays the bank, then the player is sent to the walk spawn.
-- `RunEvent { Kind = "Exhausted", Banked = n }` to the owner; the client shows a short "TEAM EXHAUSTED" result with the
-  amount banked.
-- Exhaustion is not a loss: the bank is paid, and no loser screen shows.
-- Per-distance share (owner 2026-11-01): before the cash-out, the bank gains `PayoutCurve.Cash(n) x covered / length`
-  of the track being run (share placeholder 1.0; `covered` clamped 0..length).
+- When the last slot reaches 0: the per-distance share is paid straight into Money, then the player is sent to the
+  walk spawn (owner 2026-11-10: no run bank, pay at each checkpoint).
+- `RunEvent { Kind = "Exhausted", Banked = n }` to the owner, `n` the share just paid; the client shows a short "TEAM
+  EXHAUSTED" result with that amount (owner 2026-11-10: no run bank, pay at each checkpoint).
+- Exhaustion is not a loss: the share is paid, earlier checkpoint payouts stay, and no loser screen shows (owner 2026-11-10: no run bank, pay at each checkpoint).
+- Per-distance share (owner 2026-11-01): `PayoutCurve.Cash(n) x covered / length` of the track being run (share
+  placeholder 1.0; `covered` clamped 0..length), paid straight into Money with the "Cashed out +$X" notice (owner 2026-11-10: no run bank, pay at each checkpoint).
 - If the NPC finish time and exhaustion happen in the same tick, the NPC result is decided first (loss wins).
 - Owner 2026-11-03: a loss is decided only when the runner reaches the finish. A team that tires partway down a track
-  the NPC has already finished ends by exhaustion (bank + per-distance share paid), not a loss.
-- Owner 2026-10-30 (design doc sections 2-4.3): each track win adds its payout (x the
-  checkpoint bonus, design doc 4.15) to the run's unbanked pot (not paid at once); exhaustion cashes it out once; a
-  loss empties it; Stop, death and leaving cash it out.
+  the NPC has already finished ends by exhaustion (per-distance share paid), not a loss (owner 2026-11-10: no run bank, pay at each checkpoint).
+- Each track win pays its payout (x the checkpoint bonus, design doc 4.15) straight into Money as the team crosses
+  that track's finish, with `RunEvent { Kind = "CashOut", Amount = n, Track = t }` to the owner for the "Cashed out
+  +$X" notice; a loss keeps earlier payouts; Stop, death and leaving pay nothing more (owner 2026-11-10: no run bank, pay at each checkpoint). Replaces the owner
+  2026-10-30 run bank (unbanked pot, loss empties it, Stop cashes it out).
 - Owner 2026-10-30: a loss reset starts a new run: stamina refills to 100% and the team restarts at slot 1 (on the
   checkpoint track, design doc 4.15).
 
@@ -120,7 +122,8 @@ Stamina = Base(rarity or override)
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
-- Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
+- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 3 s
+  boost and a Stamina power-up's +5 s (design doc 4.44, `docs/POWERUP_SPEC.md`).
 - Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
@@ -164,6 +167,7 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
+  Power-ups (design doc 4.44, POWERUP_SPEC): the seconds number shows `Stamina<n> / 100 x RunSeconds<n>` and turns blue while `Stamina<n>` is above 100 (the arc stays capped); a Speed badge sits on the running portrait while `PowerSpeedUntil` is in the future.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
@@ -181,5 +185,6 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
 - `team_bonus`: preset in any order beats Series; 2-member teams get nothing; preset cruise stays under the cap.
 - `team`: `SetTeam` validation (unowned, duplicate, 4 ids, mid-run), save round-trip, fallback to starter.
 - `stamina`: drain rate per rarity within 1%; category, stat point, potion and team-bonus multipliers each applied
-  once (and a potion expiring mid-run changes nothing); swap at 0 to the next slot; empty slots skipped; exhaustion cashes out
-  once; loss in the same tick empties the bank; stamina is 100% on every run start.
+  once (and a potion expiring mid-run changes nothing); swap at 0 to the next slot; empty slots skipped; exhaustion pays the
+  per-distance share once; loss in the same tick pays nothing and keeps earlier payouts (owner 2026-11-10: no run bank, pay at each checkpoint); Money rises at each won
+  track's finish by that track's payout; a stop pays nothing; stamina is 100% on every run start.

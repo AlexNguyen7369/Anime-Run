@@ -66,7 +66,7 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 ## Summon altar (owner 2026-11-10, design doc 4.36)
 - Replaces the Sidekicks stall. Its prompt opens this summon page; nothing else about summons changes.
 - The top shows the current rotation's Mythic as its actual 3D model, turning slowly; it swaps on each 30-minute rotation. The client reads the rotation the summon page already gets. Turn speed and model size are **placeholders**.
-- **Proposed**: three stone tiers about 32 studs across, a glowing ring and a halo around the model, a "SIDEKICKS" header like the economy wing's, a locked "Rebirth 2" look before the vendor unlocks. Plaza position: the middle of the summon wing, (26.8, 40.6) (`docs/WORLD_REDESIGN_SPEC.md` section 4 Two wings).
+- **Proposed**: three stone tiers about 32 studs across, a glowing ring and a halo around the model, a "SIDEKICKS" header like the economy wing's, a locked "Rebirth 2" look before the vendor unlocks. Plaza position: the showpiece ring at (57.2, 61.6), facing the spawn (`docs/WORLD_REDESIGN_SPEC.md` section 4, design doc 4.43; was the summon wing's middle (26.8, 40.6)).
 
 ## Summon page
 Layout ideas from the owner's reference (redesign 2026-11-05), no copied art. Motion through `Client/UiMotion`. This look stays on this page; moving it elsewhere needs the owner's approval.
@@ -97,7 +97,7 @@ In the style common to anime tower defense games: all effects original, no copie
 ## Display
 - Height is 30-40% of a character: 1.7-2.3 studs. Client-only follower attached to the visible runner. It needs a scale-aware pose, since `RunnerVisual.Pose` breaks on scaled rigs.
 - A catalog field `Movement` is `Walk` or `Fly`. `Walk` stays on the ground beside the character. `Fly` hovers around the shoulder with a gentle bob and loops its flap animation. Flying models keep wings as separate named parts.
-- The vendor is the summon altar in the summon wing (section "Summon altar"; owner 2026-11-10, replacing the stall at the row end z -98.75).
+- The vendor is the summon altar on the plaza ring (section "Summon altar"; owner 2026-11-10, replacing the stall at the row end z -98.75).
 
 | Sidekick | Follow motion (proposed) | Event attack (proposed) | Effect (proposed) |
 |---|---|---|---|

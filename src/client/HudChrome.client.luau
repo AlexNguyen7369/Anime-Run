@@ -1,10 +1,11 @@
 --!nonstrict
--- HUD entry points (docs/HUD_LAYOUT_SPEC.md): the left icon grid, the bottom Auto / Upgrade pair and the top-right
--- Daily / Market pills with the round Settings button. Each entry only opens a panel (the panels' scripts own
+-- HUD entry points (docs/HUD_LAYOUT_SPEC.md, design doc 4.40 "split L/R"): the left and right icon columns, the bottom
+-- Auto / Upgrade pair and the top-right Daily and Market pills with the round Settings button. Each entry only opens a panel (the panels' scripts own
 -- everything else), but Auto, which asks the server to toggle auto race (docs/ROLL_ANIMATION_SPEC.md "Auto toggle").
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui")
 local client = script.Parent
@@ -38,8 +39,11 @@ task.spawn(function()
 end)
 
 local RED = UiTheme.Palette.Danger
-local TILE = 72
-local LABEL = 22
+-- Design doc 4.40: no tile frame, the Tab tilt icon with its label under it. Sizes are proposed.
+local ICON = 72 -- px, square
+local LABEL = 22 -- px, the label band under the icon
+local GAP = 8 -- px between buttons in a column
+local CELL = Vector2.new(ICON + 12, ICON + LABEL) -- one button
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -63,7 +67,7 @@ end
 
 local function icon(name, parent, props)
 	local art = Icons[name]
-	props.Image = if name == "Index" then "rbxassetid://79149512473529" else art.Image
+	props.Image = art.Image -- 4.40 Tab tilt set for every button, Index included (owner 2026-11-10)
 	props.BackgroundTransparency = 1
 	props.ScaleType = Enum.ScaleType.Fit
 	if art.Offset then
@@ -75,7 +79,7 @@ end
 local function badge(parent)
 	local b = make("TextLabel", "Badge", parent, {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -6, 0, 8),
+		Position = UDim2.fromOffset(12, 8), -- the icon's top-left corner (design doc 4.40)
 		Size = UDim2.fromOffset(26, 26),
 		BackgroundColor3 = RED,
 		Font = UiTheme.Font,
@@ -126,28 +130,30 @@ end
 local PANEL = {
 	Quests = "Quests",
 	Shop = "Shop",
+	Market = "Market",
 	Items = "Backpack",
 	Index = "Index",
 	Upgrade = "Upgrades",
 	Rebirth = "Rebirth",
 }
-local CELL = Vector2.new(TILE + 12, TILE + LABEL)
 local scales = {}
--- A transparent holder with a vertical list of tiles; its UIScale shrinks it on phones.
+-- A transparent holder with a vertical list of buttons; its UIScale shrinks it on phones (design doc 4.27).
 local function holder(name, count, props)
-	props.Size = UDim2.fromOffset(CELL.X, count * CELL.Y + (count - 1) * 8)
+	props.Size = UDim2.fromOffset(CELL.X, count * CELL.Y + (count - 1) * GAP)
 	props.BackgroundTransparency = 1
 	local frame = make("Frame", name, root, props)
 	table.insert(scales, make("UIScale", "Scale", frame, {}))
-	make("UIListLayout", "Layout", frame, { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder })
+	make("UIListLayout", "Layout", frame, { Padding = UDim.new(0, GAP), SortOrder = Enum.SortOrder.LayoutOrder })
 	return frame
 end
+-- Split L/R: Index, Items, Rebirth on the left edge; Quests, Shop on the right edge, top to bottom (Market is a
+-- top-right pill, design doc 4.40 "Market pill and Bosses button").
 local grid = holder("Grid", 3, { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 14, 0.5, -24) })
 local shopColumn =
 	holder("ShopColumn", 2, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, -24) })
 -- Auto and Upgrade flank the LEVEL / TURBO LUCK bars at the bottom centre; placed every refresh.
 -- The anchor sits on the icon's centre (not the icon + label), so the icon lines up with the gap.
-local ICON_MID = TILE / 2 / (TILE + LABEL)
+local ICON_MID = ICON / 2 / CELL.Y
 local autoSlot = holder("AutoSlot", 1, { AnchorPoint = Vector2.new(1, ICON_MID) })
 local upgradeSlot = holder("UpgradeSlot", 1, { AnchorPoint = Vector2.new(0, ICON_MID) })
 local BOTTOM_SCALE = 0.75 -- the bottom pair is smaller than the edge tiles (owner, 2026-10-15)
@@ -161,9 +167,19 @@ local SLOTS = {
 	{ "Auto", autoSlot },
 	{ "Upgrade", upgradeSlot },
 }
+-- Shop and Index are not S and I: S walks backward and I zooms the camera (owner 2026-11-10).
+local KEYS = {
+	Index = Enum.KeyCode.X,
+	Items = Enum.KeyCode.B,
+	Rebirth = Enum.KeyCode.R,
+	Quests = Enum.KeyCode.Q,
+	Shop = Enum.KeyCode.P,
+	Market = Enum.KeyCode.M,
+}
 local tiles = {}
 for order, slot in SLOTS do
 	local name = slot[1]
+	-- A transparent button: the Tab tilt icon, the label under it (design doc 4.40).
 	local tile = make("ImageButton", name, slot[2], {
 		LayoutOrder = order,
 		Size = UDim2.fromOffset(CELL.X, CELL.Y),
@@ -175,7 +191,8 @@ for order, slot in SLOTS do
 	icon(name, tile, {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
-		Size = UDim2.fromOffset(TILE, TILE),
+		Size = UDim2.fromOffset(ICON, ICON),
+		ZIndex = 2,
 	})
 	outlined(
 		make("TextLabel", "Label", tile, {
@@ -191,19 +208,67 @@ for order, slot in SLOTS do
 		}),
 		2.5
 	)
-	if name == "Index" then
-		require(client:WaitForChild("IndexHudAppearance")).Apply(tile)
-	end
 	if PANEL[name] then
 		tile.Activated:Connect(function()
 			PanelSwitch.Action(PANEL[name])
 		end)
 	end
+	if KEYS[name] then
+		outlined(
+			make("TextLabel", "Key", tile, {
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -2, 0, 2),
+				Size = UDim2.fromOffset(18, 18),
+				BackgroundTransparency = 1,
+				Font = UiTheme.Font,
+				TextSize = 16,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Text = KEYS[name].Name,
+				ZIndex = 3,
+			}),
+			2
+		)
+	end
 	tiles[name] = { Button = tile, Badge = badge(tile) }
 end
 
+-- Keybind letters (design doc 4.40): keyboard only; the key does exactly what a click on the tile does.
+local function keyboardInUse()
+	local last = UserInputService:GetLastInputType()
+	return UserInputService.KeyboardEnabled
+		and last ~= Enum.UserInputType.Touch
+		and string.sub(last.Name, 1, 7) ~= "Gamepad"
+end
+local function refreshKeys()
+	local shown = keyboardInUse()
+	for name in KEYS do
+		if tiles[name] then -- the Market pill shows no letter, as the Daily pill
+			tiles[name].Button.Key.Visible = shown
+		end
+	end
+end
+UserInputService.LastInputTypeChanged:Connect(refreshKeys)
+refreshKeys()
+local bar -- the top-right pills row (below)
+UserInputService.InputBegan:Connect(function(input, processed)
+	-- a key does only what a click could: not while the HUD or its button's row is hidden (showcase, Upgrades tree,
+	-- the columns in a boss event)
+	if processed or UserInputService:GetFocusedTextBox() or not root.Enabled then
+		return
+	end
+	for name, key in KEYS do
+		if input.KeyCode == key then
+			if (tiles[name] and grid or bar).Visible then
+				PanelSwitch.Action(PANEL[name])
+			end
+			return
+		end
+	end
+end)
+
 -- Top-right pills (Roblox top-bar style) -------------------------------------------------------------------------
-local bar = make("Frame", "TopRight", root, {
+bar = make("Frame", "TopRight", root, {
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -12, 0, 7),
 	Size = UDim2.fromOffset(0, 44),
@@ -266,7 +331,10 @@ dailyBadge.Text = "!"
 dailyBadge.Position = UDim2.fromOffset(38, 9)
 dailyBadge.Size = UDim2.fromOffset(18, 18)
 dailyBadge.TextSize = 13
-pill("Market", 3, "Market")
+-- Design doc 4.40 "Market pill and Bosses button": the Daily pill's frame, size and fonts; no key letter, as Daily.
+local market = pill("Market", 2, "Market")
+market.AutomaticSize = Enum.AutomaticSize.None
+market.Size = daily.Size
 pill("Settings", 4)
 
 -- Live state -----------------------------------------------------------------------------------------------------
@@ -304,10 +372,12 @@ autoIcon.Image = Icons.AutoPlay.Image
 local autoArrows = autoIcon:Clone()
 autoArrows.Name = "Arrows"
 autoArrows.Image = Icons.AutoArrows.Image
+-- The arrows art is centred on its image; the triangle stands 10/120 of the icon above centre, on the tab.
+autoArrows.Position -= UDim2.fromOffset(0, ICON * 10 / 120)
 autoArrows.Parent = autoTile
 local autoRing = make("Frame", "OnRing", autoTile, {
 	AnchorPoint = autoIcon.AnchorPoint,
-	Position = autoIcon.Position,
+	Position = autoArrows.Position,
 	Size = autoIcon.Size,
 	BackgroundTransparency = 1,
 	Visible = false,
@@ -511,11 +581,13 @@ local function refresh()
 	-- The full-screen Upgrades tree shows no HUD through it. The Auto / Upgrade pair stays: design doc 4.27 keeps it
 	-- drawn while a panel is open, and it hides by itself where it stacks.
 	local inTree = PanelSwitch.IsOpen("Upgrades")
-	grid.Visible, shopColumn.Visible, bar.Visible = not inTree, not inTree, not inTree
+	-- Owner 2026-11-10 (design doc 4.40): in a boss event both columns hide; the pills, the pair and the event UI stay.
+	local columns = not inTree and player:GetAttribute("BossEvent") ~= true
+	grid.Visible, shopColumn.Visible, bar.Visible = columns, columns, not inTree
 	setHudDimmed(PanelSwitch.AnyOpen())
 end
 
-for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast" } do
+for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast", "BossEvent" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
 end
 for _, attr in { "QuestDailyProgress", "QuestDailyClaimed", "QuestWeeklyProgress", "QuestWeeklyClaimed" } do

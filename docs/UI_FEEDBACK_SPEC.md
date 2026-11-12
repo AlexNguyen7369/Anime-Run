@@ -26,7 +26,7 @@ lives in `docs/UI_AUDIT.md` (SFX audit) and in the `UiFeedback` table, which mus
 - `Impact`: Pop, Shake, one flash and one ring from the gui. A roll land leaves out the Shake: Legendary and Mythic shake once, on the figure.
 - `Burst`: radial shards and anime speed lines from a point. Never in the roll (ROLL_ANIMATION_SPEC bans speed streaks), nor over a running roll or another open panel (DEFEATED skips it then). It may play over the panel the moment happens in: Daily, Quest, Rebirth, Duel win (owner 2026-11-04).
 - `Fly`: coin pieces travel to the counter for a gain and from it for a spend; whatever they reach then pops. The counter is
-  Money, or the Unbanked read-out for pay not banked yet (checkpoint bonus). The number itself counts as in 4.20.
+  Money (the checkpoint bonus too) (owner 2026-11-10: no run bank, pay at each checkpoint). The number itself counts as in 4.20.
 - `Fill`: a bar tween, 0.2 s (proposed). The text beside it updates at once.
 - Overlay pieces live in one pooled ScreenGui `UiFx`: never `Active`, at most 24 pieces (proposed), Frames with UICorner and
   UIGradient, no new art. Nothing is left behind after a preset ends.

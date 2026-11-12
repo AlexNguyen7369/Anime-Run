@@ -13,16 +13,19 @@
 --   GachaService.Setup sets Team = STARTER_ID for a new player; PlayerData.Load / Save keep `Team = { ids }`
 --   Remotes.SetTeam (RemoteFunction or RemoteEvent), Remotes.RunEvent (RemoteEvent)
 --   Shared/StaminaConfig: BASE[rarity] (seconds), Base(spec) -> spec.Stamina or BASE[spec.Rarity]
---   Owner 2026-11-02: Commons tire at about 12-15 s, Secrets at 30 s; exhaustion also banks the per-distance share.
+--   Owner 2026-11-02: Commons tire at about 12-15 s, Secrets at 30 s; exhaustion also pays the per-distance share.
 --   RaceService.NewRun(car, route, player, options): the run reads the player's Team at start and holds
 --     run.Slot (1-3) and run.Stamina[slot] (0-100); player attributes RunSlot, Stamina1..3.
 --     options.StaminaSeconds = { s1, s2, s3 } (seam, like NpcSpeeds): effective stamina seconds per slot.
 --     options.OnRunEvent(event) (seam, like OnRaceEvent): every RunEvent payload, called after the server applied
---       it (new slot and cruise speed already set, bank already paid).
+--       it (new slot and cruise speed already set, payouts already in Money).
 --     Tests may set run.Stamina[slot] (as they may set Driver.Index); the next tick drains from that value.
---   Run bank (owner 2026-10-30, spec "Run end by exhaustion"): a win adds its payout to run.Unbanked (not paid);
---     exhaustion cashes it out once; a loss empties it. A loss reset is a new run: by the time the "Reset" race
---     event is emitted, run.Slot = 1, RunSlot = 1 and every slot's stamina is 100.
+--   Checkpoint payouts (owner 2026-11-10, design doc 3 steps 4-5; no run bank): a win pays
+--     floor(MoneyService.Quote(pad) x CheckpointConfig.Bonus(tracks past the start)) into Money at that track's
+--     finish, RunEvent { Kind = "CashOut", Amount, Track } first; exhaustion pays the per-distance share of the
+--     current track the same way (Exhausted.Banked = that share); a loss and a stop pay nothing and keep earlier
+--     payouts. A loss reset is a new run: by the time the "Reset" race event is emitted, run.Slot = 1, RunSlot = 1
+--     and every slot's stamina is 100.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -164,7 +167,7 @@ function Tests.team()
 		for i, case in cases do
 			case.Uid = base + i
 			if case.Record then
-				case.Record.Money, case.Record.Speed, case.Record.WorkshopLevel = 10, 1000, 1
+				case.Record.Money, case.Record.Speed = 10, 1000
 				records[data.KeyFor(case.Uid)] = case.Record
 			end
 		end
@@ -438,8 +441,13 @@ function Tests.stamina()
 		upgrade = H.module(Server, "UpgradeService"),
 		boost = H.module(Server, "BoostService"),
 		series = H.module(Shared, "SeriesCatalog"),
+		checkpoint = H.module(Shared, "CheckpointConfig"),
 	}
 	local api = mods.catalog
+		and mods.checkpoint
+		and type(mods.checkpoint.Bonus) == "function"
+		and mods.money
+		and type(mods.money.Quote) == "function"
 		and mods.config
 		and mods.raceConfig
 		and mods.upgrade
@@ -579,6 +587,7 @@ function Tests.stamina()
 		ctx.Run = okRun and type(run) == "table" and run or nil
 		ctx.err = not okRun and tostring(run) or nil
 		ctx.T0 = os.clock()
+		ctx.Money0 = moneyOf(p)
 		table.insert(ctxs, ctx)
 		-- stamina is 100% on every run start, slot 1 first
 		local st = ctx.Run and ctx.Run.Stamina
@@ -630,6 +639,13 @@ function Tests.stamina()
 		local swap = start("Swap", trio, { Seconds = { 0.5, 0.5, 0.5 } })
 		local duo = start("Duo", { trio[1], trio[2] }, { Seconds = { 0.4, 0.4 } })
 		local solo = start("Solo", { trio[1] }, { Seconds = { 0.4 } })
+		-- Pay: two wins in a row, then a loss on Track 3 (fast NPC), then a stop (owner 2026-11-10)
+		local track3 = route.Tracks[3]
+		local pay = start(
+			"Pay",
+			{ trio[1] },
+			{ Seconds = { 30 }, NpcSpeeds = { [track3 and track3.Number or -1] = FAST_NPC } }
+		)
 		local tie = start("Tie", { trio[1] }, { Seconds = { 30 }, NpcSpeeds = { [track2.Number] = FAST_NPC } })
 		local refill = start(
 			"Refill",
@@ -654,7 +670,7 @@ function Tests.stamina()
 		})
 		drains.Multi = multi
 
-		-- drive: drain samples, a track-1 win for Swap (so a bank may exist), the same-tick loss for Tie
+		-- drive: drain samples, a track-1 win for Swap (paid before the exhaustion), the same-tick loss for Tie
 		local drainA, drainB = 0.3, 2.8
 		local tieStep = 0
 		local t0 = os.clock()
@@ -666,7 +682,7 @@ function Tests.stamina()
 				if run then
 					local exhausted = #runEvents(ctx, "Exhausted") > 0
 					if not exhausted then
-						ctx.MoneyBefore, ctx.UnbankedBefore = moneyOf(ctx.Player), run.Unbanked
+						ctx.MoneyBefore = moneyOf(ctx.Player)
 					elseif not ctx.ExhaustedDist then
 						ctx.ExhaustedDist = ctx.Car:GetAttribute("RunDistance")
 					end
@@ -701,6 +717,21 @@ function Tests.stamina()
 				refill.Jumped = true
 				refill.Run.Driver.Index = track1.FinishIndex -- fast NPC: a loss while slot 2 runs
 			end
+			local pr = pay.Run
+			if pr and track3 then
+				local step = pay.Step or 0
+				local target = step == 0 and now - pay.T0 >= 0.15 and track1
+					or step == 1 and pr.RaceTrack == track2.Number and track2
+					or step == 2 and pr.RaceTrack == track3.Number and track3
+					or nil
+				if target then
+					pay.Step = step + 1
+					pay["MoneyBefore" .. pay.Step] = moneyOf(pay.Player)
+					pr.Driver.Index = target.FinishIndex
+				elseif step == 3 and not pay.LossMoney and pr.Resets >= 1 then
+					pay.LossMoney = moneyOf(pay.Player)
+				end
+			end
 			local tr = tie.Run
 			if tr then
 				if tieStep == 0 and now - tie.T0 >= 0.15 then
@@ -709,7 +740,7 @@ function Tests.stamina()
 				elseif tieStep == 1 and tr.RaceTrack == track2.Number then
 					tieStep = 2
 					tie.MoneyAtTie = moneyOf(tie.Player)
-					tie.PotAtTie = tr.Unbanked
+					tie.PaidAtTie = tr.PaidTotal
 					tie.TieAt = #tie.Log
 					tr.Stamina[1] = 1e-9 -- empties on the same tick the runner reaches Track 2's finish
 					tr.Driver.Index = track2.FinishIndex
@@ -793,21 +824,35 @@ function Tests.stamina()
 			swap.Run ~= nil and swap.Run.Losses == 0 and swap.Run.Resets == 0 and swap.Run.Wins >= 1
 		)
 
-		-- 5. Exhaustion: once, pays the bank (filled by the Track 1 win, so > 0) once, not a loss, the run stops
+		-- 5. Exhaustion: once, pays only the per-distance share of the track being run (design doc 4.3) straight into
+		-- Money (owner 2026-11-10): the Track 1 win was already paid at its finish, so it is not paid again.
 		local ex = runEvents(swap, "Exhausted")
 		flag("stamina_exhausted_once", #ex == 1, #ex, 1)
 		local banked = ex[1] and ex[1].Event.Banked
 		local paid = moneyOf(swap.Player) - (swap.MoneyBefore or 0)
+		local fullShare = track2.Pad
+				and math.floor(mods.money.Quote(swap.Player, track2.Pad) * mods.checkpoint.Bonus(1))
+			or 0
+		local shareEvents = 0
+		for _, e in runEvents(swap, "CashOut") do
+			shareEvents += (e.Event.Track == track2.Number and e.Event.Amount == banked) and 1 or 0
+		end
 		flag(
-			"stamina_exhaustion_cashes_out_bank_once",
-			-- the bank before plus the per-distance share of the track being run (design doc 4.3)
+			"stamina_exhaustion_pays_distance_share",
 			type(banked) == "number"
 				and banked > 0
-				and banked >= (swap.UnbankedBefore or 0)
-				and banked - (swap.UnbankedBefore or 0) <= (track2.Pad and track2.Pad:GetAttribute("Cash") or math.huge) * 10
-				and paid == banked,
+				and banked < fullShare -- part of Track 2 was run, not all of it
+				and paid == banked
+				and shareEvents == 1,
 			paid,
 			banked or -1
+		)
+		local w1 = track1.Pad and math.floor(mods.money.Quote(swap.Player, track1.Pad) * mods.checkpoint.Bonus(0)) or 0
+		flag(
+			"stamina_exhaustion_keeps_track1_payout",
+			w1 > 0 and (swap.MoneyBefore or 0) - swap.Money0 == w1 and moneyOf(swap.Player) - swap.Money0 == w1 + paid,
+			(swap.MoneyBefore or 0) - swap.Money0,
+			w1
 		)
 		local lost = firstIndex(swap, function(e)
 			return e.Kind == "Race" and e.Event.Type == "Result" and e.Event.Result == "Lose"
@@ -830,7 +875,8 @@ function Tests.stamina()
 			1
 		)
 
-		-- 7. NPC finish and exhaustion on the same tick: the loss is decided first and the bank is emptied
+		-- 7. NPC finish and exhaustion on the same tick: the loss is decided first; it pays nothing and keeps the
+		-- Track 1 payout already in Money (owner 2026-11-10)
 		local lose = firstIndex(tie, function(e)
 			return e.Kind == "Race"
 				and e.Event.Type == "Result"
@@ -849,16 +895,63 @@ function Tests.stamina()
 			cashed = cashed or e.Event.Banked ~= 0
 		end
 		flag(
-			"stamina_same_tick_loss_empties_bank",
+			"stamina_same_tick_loss_keeps_payouts",
 			tieStep == 2
-				and type(tie.PotAtTie) == "number"
-				and tie.PotAtTie > 0
+				and type(tie.PaidAtTie) == "number"
+				and tie.PaidAtTie > 0
+				and tie.MoneyAtTie - tie.Money0 == tie.PaidAtTie
 				and moneyOf(tie.Player) == tie.MoneyAtTie
-				and not cashed
-				and (tie.Run.Unbanked or 0) == 0,
+				and tie.Run.PaidTotal == tie.PaidAtTie
+				and not cashed,
 			moneyOf(tie.Player) - (tie.MoneyAtTie or 0),
 			0
 		)
+
+		-- 7b. Checkpoint payouts (owner 2026-11-10): Money rises at each won track's finish by exactly that track's
+		-- payout (with its checkpoint bonus), each with one CashOut notice event; a loss keeps both; a stop pays nothing.
+		flag("stamina_pay_route_has_3_tracks", track3 ~= nil and pay.Step == 3, pay.Step or 0, 3)
+		local cumulative, rises, notices = 0, {}, true
+		for i, t in { track1, track2 } do
+			local want = t.Pad and math.floor(mods.money.Quote(pay.Player, t.Pad) * mods.checkpoint.Bonus(i - 1)) or 0
+			cumulative += want
+			local res = pay.Log[firstIndex(pay, function(e)
+				return e.Kind == "Race" and e.Event.Type == "Result" and e.Event.Track == t.Number
+			end) or 0]
+			local cash = 0
+			for _, e in runEvents(pay, "CashOut") do
+				cash += e.Event.Track == t.Number and 1 or 0
+				notices = notices and (e.Event.Track ~= t.Number or e.Event.Amount == want)
+			end
+			local good = want > 0
+				and res ~= nil
+				and res.Event.Result == "Win"
+				and res.Event.Banked == want
+				and res.Money - pay["MoneyBefore" .. i] == want
+				and res.Money - pay.Money0 == cumulative
+				and cash == 1
+			table.insert(rises, good and "ok" or ("track %d: want +%d"):format(t.Number, want))
+			notices = notices and cash == 1
+		end
+		flag("checkpoint_money_rises_at_each_finish", rises[1] == "ok" and rises[2] == "ok", table.concat(rises, ","))
+		flag("checkpoint_cash_out_event_per_win", notices)
+		flag(
+			"checkpoint_loss_keeps_earlier_payouts",
+			pay.LossMoney ~= nil and pay.LossMoney - pay.Money0 == cumulative and #runEvents(pay, "CashOut") == 2,
+			(pay.LossMoney or -1) - pay.Money0,
+			cumulative
+		)
+		if pay.Run then
+			local before = moneyOf(pay.Player)
+			pay.Run:Destroy()
+			flag("checkpoint_stop_pays_nothing", moneyOf(pay.Player) == before, moneyOf(pay.Player) - before, 0)
+		end
+		local attrSet = {}
+		for _, ctx in ctxs do
+			if ctx.Player:GetAttribute("Unbanked") ~= nil then
+				table.insert(attrSet, ctx.Name)
+			end
+		end
+		flag("no_unbanked_attribute", #attrSet == 0, table.concat(attrSet, ","))
 
 		-- 8. A loss reset starts a new run (owner 2026-10-30): slot 1, every slot back to 100
 		local reset = nil

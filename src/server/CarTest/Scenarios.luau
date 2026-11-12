@@ -94,7 +94,7 @@ local PAYOUT = {
 	-- Ratio(n) and Cash(n) for tracks 1..10: $100, then x10 / x7.5 alternating from Track 2
 	RATIO = { 1, 10, 75, 750, 5625, 56250, 421875, 4218750, 31640625, 316406250 },
 	CASH = { 100, 1000, 7500, 75000, 562500, 5625000, 42187500, 421875000, 3164062500, 31640625000 },
-	-- WorkshopConfig.Levels[2..10].Price = Cost(500, L - 1)
+	-- retired WorkshopConfig.Levels[2..10].Price = Cost(500, L - 1); PlayerData VERSION 19 refunds them (design doc 4.43)
 	WORKSHOP = { 500, 16000, 320000, 10000000, 210000000, 6700000000, 140000000000, 4300000000000, 89000000000000 },
 	MONEY_CAP = 1e30, -- PlayerData MAX_MONEY, MoneyService MAX_MONEY / MAX_AWARD (owner 2026-10-27; was 1e15)
 }
@@ -690,7 +690,7 @@ function Scenarios.track(trackName)
 	local validation = TrackValidator.Validate(spec, layout)
 	check(checks, "track_valid", #validation.Issues, 0, validation.Ok)
 
-	-- target length, chain / plaza / Dojo no-overlap, runner at normal and max stat speed (TrackChainTests.luau)
+	-- target length, chain / plaza no-overlap, runner at normal and max stat speed (TrackChainTests.luau)
 	local metrics = validation.Ok and {} or { issues = validation.Issues }
 	local trackChain = Scenarios._trackChain
 	if trackChain then
@@ -1688,8 +1688,7 @@ function Scenarios.race()
 		)
 		-- SPAWN_AND_ROLLS_SPEC section 3: banking is NPC mode only; a run without NPC pays pads directly, so it
 		-- never banks and its Destroy has nothing left to pay
-		local noBank = (fast.unbanked == nil or fast.unbanked == 0)
-			and (fast.unbankedAttr == nil or fast.unbankedAttr == 0)
+		local noBank = fast.unbanked == nil and fast.unbankedAttr == nil -- no run bank (owner 2026-11-10)
 		check(checks, "race_no_bank_without_npc", type(fast.unbanked) == "number" and fast.unbanked or 0, 0, noBank)
 		check(
 			checks,
@@ -1801,9 +1800,9 @@ local AUTO_SEAT_TIMEOUT = 3 -- s a start may take (was the IVS seat timeout; the
 local AUTO_SPAWN_KEEP_OUT = 60 -- studs (horizontal): a fresh run's car never comes this close to the walk spawn
 local AUTO_EVENT_WATCH = 1 -- seconds of a fresh run watched for drifting towards the spawn area
 local AUTO_RAPID_CYCLES = 4 -- Stop -> Auto Race cycles with no wait between them
--- The whole spawn floor, local (x, z) of Track 1's flattened Start. Owner brief 2026-10-06 (docs/WORKSHOP_SPEC.md
--- section 1) grew it from (24, -100)..(184, 44) to hold the 7 workshop plots: a fresh run's car must never be over
--- ANY of it (hub or plots), so the check uses the full floor.
+-- The whole spawn floor, local (x, z) of Track 1's flattened Start. Owner brief 2026-10-06 grew it from
+-- (24, -100)..(184, 44) for the plots (removed since, design doc 4.43): a fresh run's car must never be over ANY of
+-- it, so the check uses the full floor.
 local AUTO_AREA_MIN = Vector2.new(24, -188)
 local AUTO_AREA_MAX = Vector2.new(252, 44)
 local AUTO_JUMP_HEIGHT = 7.2
@@ -2306,7 +2305,7 @@ function Scenarios.auto_toggle()
 		local atSpawn = hdist(root.Position, walkCF.Position)
 		check(checks, "stop_at_walk_spawn", atSpawn, AUTO_SPAWN_MATCH, atSpawn <= AUTO_SPAWN_MATCH)
 		local ub = player:GetAttribute("Unbanked")
-		check(checks, "stop_unbanked_zero", type(ub) == "number" and ub or -1, 0, ub == 0)
+		check(checks, "stop_unbanked_zero", type(ub) == "number" and ub or 0, 0, ub == nil) -- no run bank (owner 2026-11-10)
 
 		-- The walk spawn: off every road of the live chain (and its checkpoint aprons), beside Track 1's start,
 		-- on the baseplate, a few studs above it
@@ -3025,7 +3024,7 @@ end
 -- The current save version is 11 (docs/SAVE_SPEC.md: RaceBestTimes; 10 was GiftMailbox/GiftReceipts; 9 was Receipts/Codes; 8 was session lock,
 -- MoneyEarned, DuelWins; 7 was market, rebirth/boosts/daily login, and level/XP); older versions still load.
 function Scenarios.data()
-	local DATA_VERSION = 18 -- docs/SAVE_SPEC.md: VERSION 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
+	local DATA_VERSION = 19 -- docs/SAVE_SPEC.md: VERSION 19 refunds and drops WorkshopLevel, WorkshopStat, Showcase (design doc 4.43); 18 adds BossCredit; 17 adds SidekickPity, SidekickLegendaryPity; 16 adds Relics, RelicGear; 15 adds Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed; 14 Gems; 13 Team; 12 Copies and Showcase; 11 RaceBestTimes
 	local checks = {}
 	local PlayerData = serverModule("PlayerData")
 	local Money = serverModule("MoneyService")
@@ -3811,17 +3810,12 @@ function Scenarios.data()
 	end
 
 	-- Version 4 (2026-10-06): the upgrade tree (Upgrades = sorted owned tile ids, BestTrack, TurboCount; through
-	-- Server/UpgradeService Snapshot/Apply) and the workshop level (WorkshopLevel, player attribute of the same name)
-	-- are saved. docs/UPGRADE_TREE_DESIGN.md "Data and save" + "Phase 2 plan" step 7, docs/WORKSHOP_SPEC.md section 5.
-	-- A version-3 save loads with TurboCount = Rolls % 10, BestTrack 0, no tiles, WorkshopLevel 1. WorkshopLevel is
-	-- clamped to 1 .. WorkshopConfig.MAX_LEVEL (missing or garbage = 1).
+	-- Server/UpgradeService Snapshot/Apply) is saved. docs/UPGRADE_TREE_DESIGN.md "Data and save" + "Phase 2 plan" step 7.
+	-- A version-3 save loads with TurboCount = Rolls % 10, BestTrack 0, no tiles. The workshop level is retired
+	-- (Dojos removed, design doc 4.43): VERSION 19 refunds it once (data_workshop_refund_* below).
 	local UpgradeService = serverModule("UpgradeService")
-	local WorkshopConfig = sharedModule("WorkshopConfig")
 	local v4ApiOk = gachaApiOk
 		and UpgradeService ~= nil
-		and WorkshopConfig ~= nil
-		and type(WorkshopConfig.MAX_LEVEL) == "number"
-		and WorkshopConfig.MAX_LEVEL >= 1
 		and type(UpgradeService.Setup) == "function"
 		and type(UpgradeService.Owned) == "function"
 		and type(UpgradeService.Snapshot) == "function"
@@ -3829,7 +3823,6 @@ function Scenarios.data()
 	check(checks, "data_v4_api_exists", v4ApiOk and 1 or 0, 1, v4ApiOk)
 	if v4ApiOk then
 		local okV4, errV4 = pcall(function()
-			local MAXL = WorkshopConfig.MAX_LEVEL
 			local function sameArray(a, b)
 				if type(a) ~= "table" or type(b) ~= "table" or #a ~= #b then
 					return false
@@ -3867,15 +3860,6 @@ function Scenarios.data()
 				table.sort(names)
 				return f ~= nil, names
 			end
-			-- WORKSHOP_SPEC.md section 5: invalid numbers (non-number, NaN, +inf, -inf) load as level 1;
-			-- finite levels floor, then clamp to 1 .. MAX_LEVEL.
-			local function wantLevel(v)
-				if type(v) ~= "number" or v ~= v or v == math.huge or v == -math.huge then
-					return 1
-				end
-				return math.clamp(math.floor(v), 1, MAXL)
-			end
-
 			-- round trip through the store
 			local wantTiles = { "luck_1", "luck_2", "money_1", "retired_tile" } -- sorted; retired_tile = unknown id, kept
 			local st = makeStore()
@@ -3895,8 +3879,8 @@ function Scenarios.data()
 				and sameArray(rec4.Upgrades, wantTiles)
 				and rec4.BestTrack == 2
 				and rec4.TurboCount == 7
-				and rec4.WorkshopLevel == 1
-			check(checks, "v4_save_has_upgrade_and_workshop_fields", type(rec4) == "table" and 1 or 0, 1, recOk)
+				and rec4.WorkshopLevel == nil
+			check(checks, "v4_save_has_upgrade_fields", type(rec4) == "table" and 1 or 0, 1, recOk)
 			local u2 = newPlayer("CarTestDataV4B")
 			PlayerData.Load(u2, 9601)
 			local s2 = upg(u2)
@@ -3916,33 +3900,8 @@ function Scenarios.data()
 				and owned2.luck_2 == true
 				and owned2.money_1 == true
 			check(checks, "v4_roundtrip_upgrades", rtOk and 1 or 0, 1, rtOk)
-			check(
-				checks,
-				"v4_roundtrip_workshop_level",
-				tonumber(u2:GetAttribute("WorkshopLevel")) or -1,
-				1,
-				u2:GetAttribute("WorkshopLevel") == 1
-			)
-			-- the top level round-trips too (MAX_LEVEL is 1 until the owner sets prices, the check follows it)
-			local stTop =
-				makeStore({ ["Player_9602"] = { Money = 1, Speed = 0, Version = DATA_VERSION, WorkshopLevel = MAXL } })
-			PlayerData.SetStore(stTop)
-			local uTop = newPlayer("CarTestDataV4Top")
-			PlayerData.Load(uTop, 9602)
-			PlayerData.Save(uTop, 9602)
-			local recTop = stTop.data["Player_9602"]
-			local topOk = uTop:GetAttribute("WorkshopLevel") == MAXL
-				and type(recTop) == "table"
-				and recTop.WorkshopLevel == MAXL
-			check(
-				checks,
-				"v4_workshop_level_max_roundtrip",
-				tonumber(uTop:GetAttribute("WorkshopLevel")) or -1,
-				MAXL,
-				topOk
-			)
 
-			-- a version-3 save loads: TurboCount = Rolls % 10, BestTrack 0, no tiles, WorkshopLevel 1; the next save is v4
+			-- a version-3 save loads: TurboCount = Rolls % 10, BestTrack 0, no tiles; the next save is the current version
 			local v3Bad = 0
 			for i, c in { { rolls = 23, turbo = 3 }, { rolls = 30, turbo = 0 }, { rolls = 9, turbo = 9 } } do
 				local id = 9610 + i
@@ -3968,7 +3927,7 @@ function Scenarios.data()
 					and u3:GetAttribute("TurboCount") == c.turbo
 					and u3:GetAttribute("BestTrack") == 0
 					and #names3 == 0
-					and u3:GetAttribute("WorkshopLevel") == 1
+					and u3:GetAttribute("WorkshopLevel") == nil
 					and s3 ~= nil
 					and sameArray(s3.Upgrades, {})
 					and s3.BestTrack == 0
@@ -3981,7 +3940,7 @@ function Scenarios.data()
 					and r3.TurboCount == c.turbo
 					and r3.BestTrack == 0
 					and sameArray(r3.Upgrades, {})
-					and r3.WorkshopLevel == 1
+					and r3.WorkshopLevel == nil
 					and r3.Rolls == c.rolls
 				if not (loadOk and upOk) then
 					v3Bad += 1
@@ -4001,35 +3960,6 @@ function Scenarios.data()
 				5,
 				u4:GetAttribute("TurboCount") == 5
 			)
-
-			-- WorkshopLevel: missing / garbage / NaN / +-inf = 1, finite out of range clamped to 1 .. MAX_LEVEL (attribute and next save)
-			local levelBad = 0
-			local levelCases =
-				table.pack(nil, 0, -3, 1, 2.5, MAXL, MAXL + 1, 1e9, math.huge, -math.huge, 0 / 0, "3", true, {})
-			for i = 1, levelCases.n do
-				local v = levelCases[i]
-				local id = 9630 + i
-				local stL = makeStore({
-					["Player_" .. id] = { Money = 0, Speed = 0, Version = DATA_VERSION, WorkshopLevel = v },
-				})
-				PlayerData.SetStore(stL)
-				local uL = newPlayer("CarTestDataV4Level" .. i)
-				local okL, loadedL = pcall(PlayerData.Load, uL, id)
-				local want = wantLevel(v)
-				local okS = okL and PlayerData.Save(uL, id)
-				local rL = stL.data["Player_" .. id]
-				if
-					not okL
-					or loadedL ~= true
-					or uL:GetAttribute("WorkshopLevel") ~= want
-					or okS ~= true
-					or type(rL) ~= "table"
-					or rL.WorkshopLevel ~= want
-				then
-					levelBad += 1
-				end
-			end
-			check(checks, "v4_workshop_level_clamped", levelBad, 0, levelBad == 0)
 
 			-- junk upgrade fields load as a fresh tree, never an error
 			PlayerData.SetStore(makeStore({
@@ -4063,7 +3993,6 @@ function Scenarios.data()
 				Upgrades = { "money_1" },
 				BestTrack = 2,
 				TurboCount = 4,
-				WorkshopLevel = 1,
 			}
 			local guard4 = makeStore({ ["Player_9660"] = v4Rec })
 			PlayerData.SetStore(guard4)
@@ -4168,7 +4097,7 @@ function Scenarios.data()
 			)
 
 			-- an existing (older-version) record is written back unchanged plus the lock
-			local original = { Money = 640, Speed = 12.5, Version = 7, WorkshopLevel = 1, Mystery = { Keep = "yes" } }
+			local original = { Money = 640, Speed = 12.5, Version = 7, Mystery = { Keep = "yes" } }
 			local sOld = makeStore({ ["Player_9802"] = deepCopy(original) })
 			PlayerData.SetStore(sOld)
 			local pOld = newPlayer("CarTestDataV8Old")
@@ -4408,7 +4337,6 @@ function Scenarios.data()
 				Money = 777,
 				Speed = 100,
 				Version = 7,
-				WorkshopLevel = 1,
 				OfflineAt = now - 3600,
 				Lock = { Id = SESSION_B, At = now - (LOCK_TIMEOUT - 1) },
 			}
@@ -4495,6 +4423,64 @@ function Scenarios.data()
 		if not okV8 then
 			check(checks, "data_v8_no_error", 0, tostring(errV8), false)
 		end
+	end
+
+	-- VERSION 19 (Dojos removed, design doc 4.43, owner 2026-11-11): a record below 19 with a numeric WorkshopLevel
+	-- gets the prices of levels 2 .. that level back once (PAYOUT.WORKSHOP, literal Cost(500, L - 1)); the next save
+	-- is VERSION 19 and drops WorkshopLevel, WorkshopStat and Showcase.
+	local okRefund, errRefund = pcall(function()
+		local refund5 = PAYOUT.WORKSHOP[1] + PAYOUT.WORKSHOP[2] + PAYOUT.WORKSHOP[3] + PAYOUT.WORKSHOP[4] -- 10,336,500
+		local sR = makeStore({
+			["Player_9901"] = {
+				Money = 100,
+				Version = 18,
+				WorkshopLevel = 5,
+				WorkshopStat = "Money",
+				Showcase = { "leaf_crow" },
+			},
+		})
+		PlayerData.SetStore(sR)
+		local pR = newPlayer("CarTestDataRefundA")
+		local loadedR = PlayerData.Load(pR, 9901)
+		local moneyR = val(pR, "Money")
+		check(
+			checks,
+			"data_workshop_refund_once",
+			moneyR or -1,
+			100 + refund5,
+			loadedR == true and moneyR == 100 + refund5
+		)
+		local savedR = PlayerData.Save(pR, 9901)
+		local recR = sR.data["Player_9901"]
+		local droppedOk = savedR == true
+			and type(recR) == "table"
+			and recR.Version == 19
+			and recR.Money == 100 + refund5
+			and recR.WorkshopLevel == nil
+			and recR.WorkshopStat == nil
+			and recR.Showcase == nil
+		check(checks, "data_workshop_refund_keys_dropped", droppedOk and 1 or 0, 1, droppedOk)
+		-- the saved VERSION 19 record loads again with no second refund
+		local pR2 = newPlayer("CarTestDataRefundB")
+		local loadedR2 = PlayerData.Load(pR2, 9901)
+		local moneyR2 = val(pR2, "Money")
+		check(
+			checks,
+			"data_workshop_refund_not_repeated",
+			moneyR2 or -1,
+			100 + refund5,
+			loadedR2 == true and moneyR2 == 100 + refund5
+		)
+		-- an older record with no WorkshopLevel gets nothing
+		local sN = makeStore({ ["Player_9902"] = { Money = 100, Version = 18 } })
+		PlayerData.SetStore(sN)
+		local pN = newPlayer("CarTestDataRefundNone")
+		local loadedN = PlayerData.Load(pN, 9902)
+		local moneyN = val(pN, "Money")
+		check(checks, "data_workshop_no_level_no_refund", moneyN or -1, 100, loadedN == true and moneyN == 100)
+	end)
+	if not okRefund then
+		check(checks, "data_workshop_refund_no_error", 0, tostring(errRefund), false)
 	end
 
 	for _, inst in cleanup do
@@ -6234,7 +6220,6 @@ local function newNpcRacer(api, route, startCF, tag, charId, speeds, carGroup)
 				Pos = chassis and chassis.Position or Vector3.zero,
 				UpY = chassis and chassis.CFrame.UpVector.Y or -1,
 				Money = r.Money and r.Money.Value or -1,
-				RunUnbanked = r.Run and r.Run.Unbanked or nil, -- the run's bank as the event is emitted
 			})
 		end,
 	}
@@ -6305,9 +6290,7 @@ local function endNpcRacer(r)
 			Resets = run.Resets,
 			RaceTrack = run.RaceTrack,
 			Results = type(run.Results) == "table" and #run.Results or -1,
-			-- compatibility payout fields, read before Destroy (NPC wins are already paid at each finish)
-			Unbanked = run.Unbanked,
-			BankedTotal = run.BankedTotal,
+			-- read before Destroy (NPC wins are already paid at each finish; the Unbanked attribute is gone)
 			UnbankedAttr = r.Player:GetAttribute("Unbanked"),
 			BalanceBeforeDestroy = r.Money and r.Money.Value or -1,
 		}
@@ -6934,9 +6917,9 @@ function Scenarios.npc()
 		local tFast1 = laneOk and npcTime(lane, NPC_FAST) or nil
 		local tFast2 = npcTime(lane2, NPC_FAST)
 		local C1, C2 = TrackBuilder.CashFor(1), TrackBuilder.CashFor(2)
-		-- Run bank (owner 2026-10-30, TEAM_AND_STAMINA_SPEC "Run end by exhaustion"; design doc 2-4.3): a win adds
-		-- its pad payout x the checkpoint bonus (design doc 4.15: CheckpointConfig.Bonus(tracks past the run's start
-		-- track)) to the run's unbanked pot; Stop / death / leaving cash it out; a loss empties it.
+		-- No run bank (owner 2026-11-10, design doc 3 steps 4-5): a win pays its pad payout x the checkpoint bonus
+		-- (design doc 4.15: CheckpointConfig.Bonus(tracks past the run's start track)) into Money at its finish;
+		-- Stop / death / leaving pay nothing more; a loss keeps earlier payouts.
 		local Checkpoint = sharedModule("CheckpointConfig")
 		local W1 = math.floor(C1 * Checkpoint.Bonus(0))
 		local W2 = math.floor(C2 * Checkpoint.Bonus(1))
@@ -7043,33 +7026,28 @@ function Scenarios.npc()
 				r1 and starts[1] and r1.T - starts[1].T or -1,
 				timeMatches(r1, starts[1])
 			)
-			-- Run bank: each win banks its payout x the checkpoint bonus once (Track 2 is one track past the start)
+			-- No run bank: each win pays its payout x the checkpoint bonus once (Track 2 is one track past the start)
 			local bankedEach = r1 ~= nil
 				and r2 ~= nil
 				and r1.Event.Banked == W1
 				and r2.Event.Banked == W2
 				and r1.Event.Bonus == Checkpoint.Bonus(0)
 				and r2.Event.Bonus == Checkpoint.Bonus(1)
-				and r1.Event.Unbanked == W1
-				and r2.Event.Unbanked == W1 + W2
-			check(checks, "npc_win_banked_each_track_once", num(r2 and r2.Event.Unbanked), W1 + W2, bankedEach)
-			-- nothing is paid at a finish: the pot grows until the run stops
-			local notPaid = r1 ~= nil
+			check(checks, "npc_win_banked_each_track_once", num(r2 and r2.Event.Banked), W2, bankedEach)
+			-- each win is in Money by the time its Result is emitted
+			local paidAtFinish = r1 ~= nil
 				and r2 ~= nil
-				and r1.Money == 0
-				and r2.Money == 0
-				and a.snap.BalanceBeforeDestroy == 0
-				and a.snap.PaidTotal == 0
-				and a.snap.Payouts == 0
-			check(checks, "npc_win_not_paid_at_finish", num(a.snap.BalanceBeforeDestroy), 0, notPaid)
-			local pot = a.snap.Unbanked == W1 + W2 and a.snap.BankedTotal == W1 + W2 and a.snap.UnbankedAttr == W1 + W2
-			check(checks, "npc_win_banked_pot", num(a.snap.Unbanked), W1 + W2, pot)
-			-- Stop (run:Destroy) cashes the whole pot out once
+				and r1.Money == W1
+				and r2.Money == W1 + W2
+				and a.snap.BalanceBeforeDestroy == W1 + W2
+				and a.snap.PaidTotal == W1 + W2
+				and a.snap.Payouts == 2
+			check(checks, "npc_win_paid_at_finish", num(r2 and r2.Money), W1 + W2, paidAtFinish)
+			local noBankAttr = a.snap.UnbankedAttr == nil and a.snap.UnbankedAttrAfter == nil
+			check(checks, "npc_win_banked_pot", num(a.snap.UnbankedAttr), 0, noBankAttr)
+			-- Stop (run:Destroy) adds nothing
 			local pt = a.snap.PaidTotalAfter
-			local totalOk = pt == W1 + W2
-				and a.balance == W1 + W2
-				and a.snap.PayoutsAfter == 1
-				and a.snap.UnbankedAttrAfter == 0
+			local totalOk = pt == W1 + W2 and a.balance == W1 + W2 and a.snap.PayoutsAfter == 2
 			check(checks, "npc_win_cash_out_total", type(pt) == "number" and pt or -1, W1 + W2, totalOk)
 			local noLoss = a.snap.Losses == 0 and a.snap.Resets == 0 and #npcAll(a, "Reset") == 0
 			check(checks, "npc_win_no_losses_no_resets", noLoss and 1 or 0, 1, noLoss)
@@ -7139,9 +7117,7 @@ function Scenarios.npc()
 			check(checks, "npc_lose_player_time_measured", num(pT), arrival, timeMatches(r1, s1))
 			local paidNothing = r1 ~= nil
 				and r1.Event.Banked == 0
-				and r1.Event.Unbanked == 0
-				and b.snap.BankedTotal == 0
-				and b.snap.Unbanked == 0
+				and b.snap.PaidTotal == 0
 				and b.snap.PaidTotalAfter == 0
 				and b.balance == 0
 				and b.snap.PayoutsAfter == 0
@@ -7155,7 +7131,7 @@ function Scenarios.npc()
 			check(checks, "npc_lose_not_in_server_workspace", b.npcSeen and 1 or 0, 0, not b.npcSeen)
 		end
 
-		-- (c) WIN THEN LOSE: Track 1 is banked; losing Track 2 empties the pot, so nothing is ever paid (run bank).
+		-- (c) WIN THEN LOSE: Track 1 is paid at its finish; losing Track 2 pays nothing and keeps that payout.
 		local c = race(
 			"WinLose",
 			nil,
@@ -7195,19 +7171,19 @@ function Scenarios.npc()
 				isFiniteNumber(nT) and nT or -1,
 				slower
 			)
-			local bankedWin = r1 ~= nil and r1.Event.Banked == W1 and r1.Event.Unbanked == W1 and r1.Money == 0
+			local bankedWin = r1 ~= nil and r1.Event.Banked == W1 and r1.Money == W1
 			check(checks, "npc_win_lose_track1_banked", num(r1 and r1.Event.Banked), W1, bankedWin)
-			local cleared = r2 ~= nil
+			local kept = r2 ~= nil
 				and r2.Event.Banked == 0
-				and r2.Event.Unbanked == 0
-				and r2.RunUnbanked == 0
-				and r2.Money == 0
-				and c.snap.Unbanked == 0
-				and c.snap.UnbankedAttr == 0
-			check(checks, "npc_win_lose_loss_empties_bank", num(r2 and r2.Event.Unbanked), 0, cleared)
-			-- the lost pot is gone: the stop pays nothing (BankedTotal still counts the Track 1 win)
-			local nothing = c.balance == 0 and c.snap.PaidTotalAfter == 0 and c.snap.BankedTotal == W1
-			check(checks, "npc_win_lose_nothing_paid", c.balance, 0, nothing)
+				and r2.Money == W1
+				and c.snap.BalanceBeforeDestroy == W1
+				and c.snap.PaidTotal == W1
+				and c.snap.Payouts == 1
+				and c.snap.UnbankedAttr == nil
+			check(checks, "npc_win_lose_loss_keeps_payout", num(c.snap.PaidTotal), W1, kept)
+			-- the stop pays nothing more: the balance is still the Track 1 payout
+			local nothing = c.balance == W1 and c.snap.PaidTotalAfter == W1 and c.snap.PayoutsAfter == 1
+			check(checks, "npc_win_lose_nothing_paid", c.balance, W1, nothing)
 			local counts = c.snap.Wins == 1 and c.snap.Losses == 1
 			check(checks, "npc_win_lose_counted", type(c.snap.Wins) == "number" and c.snap.Wins or -1, 1, counts)
 			checkNpcLoseReset(checks, "npc_win_lose", c, 2, wps)
@@ -7436,15 +7412,14 @@ function Scenarios.multiplayer()
 			NPC_RESET_RADIUS,
 			resetPose ~= nil and dB <= NPC_RESET_RADIUS
 		)
-		-- Run bank per player (owner 2026-10-30, TEAM_AND_STAMINA_SPEC; design doc 4.15 bonus): A's Track 1 win is
-		-- banked, not paid, and its stop cashes it out; B's loss emptied B's pot. No bank is shared.
+		-- Money per player (owner 2026-11-10, no run bank; design doc 4.15 bonus): A's Track 1 win is paid at its
+		-- finish and its stop adds nothing; B's loss paid B nothing. No payout is shared.
 		local W1 = math.floor(C1 * sharedModule("CheckpointConfig").Bonus(0))
 		local money = A.balance == W1
-			and A.snap.BankedTotal == W1
-			and A.snap.PaidTotal == 0
+			and A.snap.PaidTotal == W1
 			and A.snap.PaidTotalAfter == W1
 			and B.balance == 0
-			and B.snap.BankedTotal == 0
+			and B.snap.PaidTotal == 0
 			and B.snap.PaidTotalAfter == 0
 		check(checks, "mp_money_per_player", A.balance, W1, money)
 		check(checks, "mp_no_npc_in_server_workspace", npcSeen and 1 or 0, 0, not npcSeen)
@@ -7473,6 +7448,7 @@ end
 -- Track 1's Start space) were retired 2026-10-30: docs/WORLD_REDESIGN_SPEC.md section 3 "Exact coordinates are chosen
 -- by the world build". The plaza is read from the live Workspace.SpawnArea instead.
 local SPAWN_TOP_Y = 1
+local SPAWN_TERRACE_TOP = 3.4 -- TOP_Y + 3 steps of 0.8: the SpawnLocation and the walk spawn (design doc 4.43)
 local SPAWN_PAD_TOP = 1.2 -- TOP_Y + 0.2
 local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
@@ -7489,7 +7465,8 @@ local SPAWN_STAND_MIN, SPAWN_STAND_MAX = 1.5, 5 -- root height above the floor t
 -- Anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4, owner 2026-10-28). Names are the test contract:
 --   SpawnArea.StartGate (Model, the torii) over SpawnArea.StartPad; stalls SpawnArea.ShopStall / Marketplace /
 --   PotionsStall, SpawnArea.IndexBoard, the sensei
---   SpawnArea.CheckpointNpc. Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
+--   SpawnArea.CheckpointNpc, the summon altar SpawnArea.SidekickAltar (no SpawnArea.SidekickStall since 2026-11-10).
+--   Each opens its panel through the ProximityPrompt named in `Prompt` (nil = none needed).
 --   No SpawnArea.RebirthShrine since 2026-11-04 (design doc 4.24 "Clear plaza"): Rebirth opens from its HUD tile.
 local SPAWN_PLAZA = {
 	STONE = {
@@ -7505,16 +7482,37 @@ local SPAWN_PLAZA = {
 		[Enum.Material.Brick] = true,
 	},
 	GATE_MIN_HEIGHT = 16, -- studs: "a large torii-style gate" (test reading: about three avatars tall)
-	-- Spread in x of the row's reference points (WORLD_REDESIGN_SPEC 7): fronts share a line, but each point lies
-	-- somewhere inside its footprint, so they can differ by the deepest footprint, the Market stall's 11 (build_plaza market_stall), plus room.
-	ROW_X_SPREAD = 14,
+	-- ROW_X_SPREAD (the x = -72 service row) retired 2026-11-10: design doc 4.24 "Two wings" replaced the row.
 	FEATURES = {
 		{ Name = "ShopStall", Prompt = "OpenShop" },
 		{ Name = "Marketplace", Prompt = "OpenMarket" }, -- the Market stall keeps MarketService's prompt
 		{ Name = "PotionsStall", Prompt = "OpenPotions" },
 		{ Name = "IndexBoard", Prompt = "OpenIndex" },
 		{ Name = "CheckpointNpc", Prompt = "OpenCheckpoints" }, -- the sensei (same CheckpointService rules)
+		-- the summon altar replaces SidekickStall and keeps its prompt (design doc 4.36, SIDEKICK_SPEC "Summon altar")
+		{ Name = "SidekickAltar", Prompt = "OpenSidekicks" },
 	},
+	-- Spawn showpiece (design doc 4.43, owner 2026-11-11, draft C "Terrace, wide court"; WORLD_REDESIGN_SPEC section 4).
+	-- World (x, z) at the floor: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
+	POS_TOL = 2.5, -- about 2, plus room for a footprint centre that is not the build origin (a stall roof's overhang)
+	FACE_TOL = 10,
+	SPAWN_XZ = Vector2.new(0, 0),
+	PAD_XZ = Vector2.new(-84, 78),
+	-- the ring of radius 84 round the spawn, one slot every 45 degrees from the gate's angle (build_plaza.py ring_spot);
+	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
+	RING = {
+		{ Name = "ShopStall", At = Vector2.new(-83.9, -3.1), Front = true },
+		{ Name = "PotionsStall", At = Vector2.new(-57.2, -61.6), Front = true },
+		{ Name = "Marketplace", At = Vector2.new(3.1, -83.9), Front = true },
+		{ Name = "IndexBoard", At = Vector2.new(61.6, -57.2), Front = true },
+		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
+		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
+	},
+	EXCLUSIVE_XZ = Vector2.new(11.6, 12.5), -- the Saitamo pedestal, on the terrace's middle step
+	TERRACE = { 26, 20, 14 }, -- step radii bottom up
+	TERRACE_STEP = 0.8, -- studs tall
+	SENSEI_XZ = Vector2.new(-80.0, 57.9),
+	SENSEI_FACE_MIN = 0.5, -- "facing the path": front within 60 degrees of the direction to the path axis
 }
 
 -- Horizontal footprint of a part as a convex polygon: its 8 corners projected on XZ and the projected axes.
@@ -7531,30 +7529,6 @@ local function spawnPartPoly(part)
 	end
 	local dirs = {}
 	for _, v in { cf.RightVector, cf.UpVector, cf.LookVector } do
-		local d = Vector2.new(v.X, v.Z)
-		if d.Magnitude > 1e-3 then
-			table.insert(dirs, d.Unit)
-		end
-	end
-	return { Points = pts, Dirs = dirs }
-end
-
--- A local (x, z) rectangle in the space of `base`, as a world footprint polygon.
-local function spawnRectPoly(base, minV, maxV)
-	local pts = {}
-	for _, c in
-		{
-			Vector3.new(minV.X, 0, minV.Y),
-			Vector3.new(maxV.X, 0, minV.Y),
-			Vector3.new(maxV.X, 0, maxV.Y),
-			Vector3.new(minV.X, 0, maxV.Y),
-		}
-	do
-		local w = base:PointToWorldSpace(c)
-		table.insert(pts, Vector2.new(w.X, w.Z))
-	end
-	local dirs = {}
-	for _, v in { base.RightVector, base.LookVector } do
 		local d = Vector2.new(v.X, v.Z)
 		if d.Magnitude > 1e-3 then
 			table.insert(dirs, d.Unit)
@@ -7601,10 +7575,6 @@ local function spawnLocalBounds(base, part)
 		end
 	end
 	return Vector2.new(minX, minZ), Vector2.new(maxX, maxZ), top
-end
-
-local function spawnV2Err(a, b)
-	return math.max(math.abs(a.X - b.X), math.abs(a.Y - b.Y))
 end
 
 function Scenarios.spawn_area()
@@ -7688,11 +7658,11 @@ function Scenarios.spawn_area()
 
 	-- Floor: the plaza, anchored, walkable, stone paving (spec section 4), top at TOP_Y. Its centre is the plaza centre.
 	-- Retired 2026-10-30 with the IVS purple floor (WORLD_REDESIGN_SPEC sections 3 and 4: coordinates chosen by the
-	-- world build, stone paving, the 7 plots in a ring around the hub): spawn_floor_covers_area,
+	-- world build, stone paving): spawn_floor_covers_area,
 	-- spawn_floor_228_by_232, spawn_floor_purple, spawn_floor_smooth_plastic, and the floor edge walls
 	-- (spawn_edges_exist, spawn_edges_low_and_anchored, spawn_edges_cover_three_outer_sides,
 	-- spawn_near_curb_open_at_pad, spawn_no_edge_on_pad_side, spawn_no_edge_inside_floor), which walled the IVS floor
-	-- on the sides where the Dojos now stand.
+	-- on its open sides (the Dojo plots that stood there are removed, design doc 4.43).
 	local plazaCentre = floorOk and Vector3.new(floor.Position.X, 0, floor.Position.Z) or Vector3.zero
 	-- true if a world position lies over the plaza floor (in the floor's own space)
 	local function onPlaza(pos)
@@ -7727,7 +7697,13 @@ function Scenarios.spawn_area()
 		check(checks, "spawn_location_size", sizeErr, 0.01, sizeErr <= 0.01)
 		-- spawn_location_purple retired 2026-10-30 (spec section 4 look)
 		local _, _, sTop = spawnLocalBounds(base, spawn)
-		check(checks, "spawn_location_top", sTop, SPAWN_TOP_Y, math.abs(sTop - SPAWN_TOP_Y) <= SPAWN_TOP_TOL)
+		check(
+			checks,
+			"spawn_location_top",
+			sTop,
+			SPAWN_TERRACE_TOP,
+			math.abs(sTop - SPAWN_TERRACE_TOP) <= SPAWN_TOP_TOL
+		)
 		-- spec section 4: "One SpawnLocation at the plaza centre"
 		local dMid = hdist(spawn.Position, plazaCentre)
 		check(checks, "spawn_location_in_middle", dMid, SPAWN_MIDDLE, floorOk and dMid <= SPAWN_MIDDLE)
@@ -7834,39 +7810,120 @@ function Scenarios.spawn_area()
 	end
 	check(checks, "plaza_checkpoint_npc_is_sensei", sensei and 1 or 0, 1, sensei)
 
-	-- Clear plaza (design doc 4.24, owner 2026-11-04): no shrine, and one straight service row, south (low z) to north
+	-- Clear plaza (design doc 4.24, owner 2026-11-04): no shrine
 	local noShrine = area:FindFirstChild("RebirthShrine") == nil
 	check(checks, "plaza_no_rebirth_shrine", noShrine and 1 or 0, 1, noShrine)
-	local hubFrame = type(A.Base) == "function" and A.Base(base) or base
-	local rowOk, prevZ, minX, maxX = true, -math.huge, math.huge, -math.huge
-	for _, name in { "ShopStall", "PotionsStall", "Marketplace", "IndexBoard", "CheckpointNpc" } do
-		local model = area:FindFirstChild(name)
-		local at = model and model:IsA("Model") and model:GetPivot().Position
-		if name == "Marketplace" then
-			-- the Market's PrimaryPart is the counter holding the prompt: read the prompt's parent, that same part
-			at = nil
-			for _, d in model and model:GetDescendants() or {} do
-				if d:IsA("ProximityPrompt") and d.Name == "OpenMarket" and d.Parent:IsA("BasePart") then
-					at = d.Parent.Position
-				end
-			end
+	-- plaza_service_row_straight (one row south to north at x = -72, the sensei at its end) retired 2026-11-10: design
+	-- doc 4.24 "Two wings" replaced Clear plaza's service row and put the sensei beside the gate.
+
+	-- Spawn showpiece (design doc 4.43, owner 2026-11-11, draft C; WORLD_REDESIGN_SPEC section 4): the six service
+	-- buildings on a ring of radius 84 round the spawn, every front facing it; the Saitamo pedestal on the terrace.
+	local W = SPAWN_PLAZA
+	local axis = (W.PAD_XZ - W.SPAWN_XZ).Unit
+	local right = Vector2.new(-axis.Y, axis.X) -- Roblox: looking along (x, z), right is (-z, x)
+	local function side(p) -- > 0: right of the path, facing the gate from the spawn
+		return (p - W.SPAWN_XZ):Dot(right)
+	end
+	-- the footprint centre (bounding box), so the reading does not depend on where the pivot sits
+	local function centreOf(model)
+		if not (model and model:IsA("Model")) then
+			return nil
 		end
-		if at then
-			local l = hubFrame:PointToObjectSpace(at)
-			rowOk = rowOk and l.Z > prevZ
-			prevZ, minX, maxX = l.Z, math.min(minX, l.X), math.max(maxX, l.X)
-		else
-			rowOk = false
+		local ok, cf = pcall(model.GetBoundingBox, model)
+		return ok and Vector2.new(cf.Position.X, cf.Position.Z) or nil
+	end
+	-- the front: the pivot's LookVector (stall counters, the Market counter, the Index scroll, the sensei's prompt)
+	local function frontOf(model)
+		local look = model and model:IsA("Model") and model:GetPivot().LookVector
+		local f = look and Vector2.new(look.X, look.Z)
+		return f and f.Magnitude > 1e-3 and f.Unit or nil
+	end
+	local function degBetween(a, b)
+		return math.deg(math.acos(math.clamp(a:Dot(b.Unit), -1, 1)))
+	end
+	local function placed(name, at, want)
+		local err = at and (at - want).Magnitude or -1
+		check(checks, "plaza_" .. name .. "_at_showpiece_spot", err, W.POS_TOL, at ~= nil and err <= W.POS_TOL)
+	end
+	local function faces(name, front, want)
+		local deg = front and degBetween(front, want) or -1
+		check(checks, "plaza_" .. name .. "_faces_spawn", deg, W.FACE_TOL, front ~= nil and deg <= W.FACE_TOL)
+	end
+
+	-- The ring: each building at its slot, its front toward the spawn
+	for _, e in W.RING do
+		local model = area:FindFirstChild(e.Name)
+		placed(e.Name, centreOf(model), e.At)
+		if e.Front then
+			faces(e.Name, frontOf(model), (W.SPAWN_XZ - e.At).Unit)
 		end
 	end
-	local rowSpread = maxX - minX
+	local noStall = area:FindFirstChild("SidekickStall") == nil
+	check(checks, "plaza_no_sidekick_stall", noStall and 1 or 0, 1, noStall)
+
+	-- The terrace: one stone cylinder per step, centred on the spawn, radius and top as the spec, walkable
+	for i, radius in W.TERRACE do
+		local step = area:FindFirstChild("Terrace" .. i)
+		local okStep = step ~= nil and step:IsA("BasePart") and step.Shape == Enum.PartType.Cylinder and step.CanCollide
+		local r = okStep and step.Size.Y / 2 or -1
+		check(checks, "spawn_terrace_" .. i .. "_radius", r, radius, okStep and math.abs(r - radius) <= SPAWN_GEOM_TOL)
+		local stepTop = okStep and step.Position.Y + step.Size.X / 2 or -1
+		local wantTop = SPAWN_TOP_Y + i * W.TERRACE_STEP
+		check(
+			checks,
+			"spawn_terrace_" .. i .. "_top",
+			stepTop,
+			wantTop,
+			okStep and math.abs(stepTop - wantTop) <= SPAWN_TOP_TOL
+		)
+		local dStep = okStep and hdist(step.Position, plazaCentre) or -1
+		check(checks, "spawn_terrace_" .. i .. "_centred", dStep, SPAWN_GEOM_TOL, okStep and dStep <= SPAWN_GEOM_TOL)
+	end
+
+	-- The exclusive pedestal is client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Exclusive, on the
+	-- terrace's middle step facing the spawn; no Legends remain (design doc 4.43; 4.24, owner 2026-11-10)
+	local PlazaAssets = sharedModule("PlazaAssets")
+	local CharacterCatalog = sharedModule("CharacterCatalog")
+	local legends = PlazaAssets and PlazaAssets.Legends or {}
+	check(checks, "plaza_no_legends", #legends, 0, #legends == 0)
+	local exclusive = PlazaAssets and PlazaAssets.Exclusive or {}
+	local isExclusive = CharacterCatalog ~= nil and exclusive.Id == CharacterCatalog.EXCLUSIVE_ID
+	check(checks, "plaza_exclusive_is_saitamo", isExclusive and 1 or 0, 1, isExclusive)
+	local exclusiveAt = typeof(exclusive.Pos) == "Vector3" and Vector2.new(exclusive.Pos.X, exclusive.Pos.Z) or nil
+	placed("exclusive", exclusiveAt, W.EXCLUSIVE_XZ)
+	local front = typeof(exclusive.Face) == "Vector3" and Vector2.new(exclusive.Face.X, exclusive.Face.Z)
+	faces("exclusive", front and front.Magnitude > 1e-3 and front.Unit or nil, (W.SPAWN_XZ - W.EXCLUSIVE_XZ).Unit)
+	local exclusiveY = typeof(exclusive.Pos) == "Vector3" and exclusive.Pos.Y or -1
+	local wantExclusiveY = SPAWN_TOP_Y + 2 * W.TERRACE_STEP + 2.6 -- the middle step's top plus the pedestal's height
 	check(
 		checks,
-		"plaza_service_row_straight",
-		rowSpread,
-		SPAWN_PLAZA.ROW_X_SPREAD,
-		rowOk and rowSpread <= SPAWN_PLAZA.ROW_X_SPREAD
+		"plaza_exclusive_on_terrace",
+		exclusiveY,
+		wantExclusiveY,
+		math.abs(exclusiveY - wantExclusiveY) <= SPAWN_TOP_TOL
 	)
+	-- its pedestal mesh moves with it (WORLD_REDESIGN_SPEC 7: the rig stands on its pedestal)
+	local onPedestal = false
+	for _, p in PlazaAssets and PlazaAssets.Placed or {} do
+		if
+			exclusiveAt
+			and type(p.Key) == "string"
+			and string.sub(p.Key, 1, 14) == "LegendPedestal"
+			and (Vector2.new(p.Pos.X, p.Pos.Z) - exclusiveAt).Magnitude <= W.POS_TOL
+		then
+			onPedestal = true
+		end
+	end
+	check(checks, "plaza_exclusive_on_pedestal", onPedestal and 1 or 0, 1, onPedestal)
+
+	-- The sensei beside the gate, facing the path (CheckpointConfig.NPC_POS)
+	local npcModel = area:FindFirstChild("CheckpointNpc")
+	local senseiAt = centreOf(npcModel)
+	placed("CheckpointNpc", senseiAt, W.SENSEI_XZ)
+	local senseiFront = frontOf(npcModel)
+	local toPath = senseiAt and (side(senseiAt) > 0 and -right or right)
+	local senseiDot = senseiFront and toPath and senseiFront:Dot(toPath) or -1
+	check(checks, "plaza_sensei_faces_path", senseiDot, W.SENSEI_FACE_MIN, senseiDot >= W.SENSEI_FACE_MIN)
 
 	-- SpawnArea.Bounds(start): world boxes of the plaza floor (Area) and the pad (Pad), Y = TOP_Y. Was compared with the
 	-- IVS constant rects; since 2026-10-30 (spec section 3, coordinates chosen by the world build) with the live parts.
@@ -7923,7 +7980,7 @@ function Scenarios.spawn_area()
 	end
 	local dCentre = hdist(walkCF.Position, plazaCentre)
 	check(checks, "spawn_walk_at_area_centre", dCentre, SPAWN_GEOM_TOL, floorOk and dCentre <= SPAWN_GEOM_TOL)
-	local wantY = SPAWN_TOP_Y + SPAWN_WALK_ROOT_HEIGHT
+	local wantY = SPAWN_TERRACE_TOP + SPAWN_WALK_ROOT_HEIGHT
 	check(checks, "spawn_walk_root_height", walkCF.Position.Y, wantY, math.abs(walkCF.Position.Y - wantY) <= 0.05)
 	local insideHub = onPlaza(walkCF.Position)
 	check(checks, "spawn_walk_inside_area", insideHub and 1 or 0, 1, insideHub)
@@ -8140,7 +8197,7 @@ function Scenarios.spawn_area()
 		-- the walk spawn is on the plaza, so an avatar sent there stands on the plaza
 		local inArea = onPlaza(c.Root.Position)
 		check(checks, pre .. "_inside_area", inArea and 1 or 0, 1, inArea)
-		local h = c.Root.Position.Y - SPAWN_TOP_Y
+		local h = c.Root.Position.Y - SPAWN_TERRACE_TOP
 		check(
 			checks,
 			pre .. "_standing_height",
@@ -8157,7 +8214,7 @@ function Scenarios.spawn_area()
 			and math.abs(c.Humanoid.JumpHeight - jumpHeight) <= 1e-3
 		check(checks, pre .. "_walks_and_jumps", c.Humanoid.WalkSpeed, walkSpeed, walks)
 		local ub = player:GetAttribute("Unbanked")
-		check(checks, pre .. "_unbanked_zero", type(ub) == "number" and ub or 0, 0, ub == nil or ub == 0)
+		check(checks, pre .. "_unbanked_zero", type(ub) == "number" and ub or 0, 0, ub == nil) -- no run bank
 		-- SPAWN_AND_ROLLS_SPEC section 2: "Start is an event": on foot the event is "Off"
 		local ev = player:GetAttribute("RaceEvent")
 		check(checks, pre .. "_race_event_off", ev == "Off" and 1 or 0, 1, ev == "Off")
@@ -8229,7 +8286,7 @@ function Scenarios.spawn_area()
 		local same = unchangedRacing(car1, run1)
 		check(checks, "pad_touch_while_racing_ignored", same and 1 or 0, 1, same)
 
-		-- 4. Stop: avatar at the walk spawn in the area, visible and walking; Unbanked back to 0
+		-- 4. Stop: avatar at the walk spawn in the area, visible and walking; no Unbanked attribute (no run bank)
 		local tStop0 = os.clock()
 		local okS, rS = pcall(CarService.SetAutoRace, player, false)
 		local tStop1 = os.clock()
@@ -8239,7 +8296,7 @@ function Scenarios.spawn_area()
 		-- (refuses_at_once samples at wait + 0.6 s, which must stay under the 2 s cooldown)
 		checkOnFoot("stop", c1, 0.8)
 		local ubStop = player:GetAttribute("Unbanked")
-		check(checks, "stop_unbanked_attribute_zero", num(ubStop), 0, ubStop == 0)
+		check(checks, "stop_unbanked_attribute_zero", num(ubStop), 0, ubStop == nil)
 
 		-- 5. START_COOLDOWN after a stop: a touch right away and one just before the end do nothing...
 		touch(c1.Model:FindFirstChild("Left Leg"))
@@ -8356,8 +8413,9 @@ function Scenarios.spawn_area()
 end
 
 -- Current/last-track payout (contract: docs/SPAWN_AND_ROLLS_SPEC.md, section 3).
--- NPC mode awards MoneyService.Quote(player, pad) immediately on a win. There is no bank; CashOut is a deprecated
--- no-op and Destroy never adds a second payout. Non-NPC runs still pay pads directly in `race`.
+-- NPC mode pays floor(MoneyService.Quote(player, pad) x CheckpointConfig.Bonus) into Money at each won finish (owner
+-- 2026-11-10). There is no bank: no run:CashOut, no Unbanked attribute, and Destroy pays nothing more. Non-NPC runs
+-- still pay pads directly in `race`.
 local BANK_ORIGIN = Vector3.new(0, 0, 40000)
 local BANK_ATTR_WAIT = 0.2 -- s after a Result before the mirrored attribute is read
 
@@ -8454,10 +8512,11 @@ function Scenarios.bank()
 		local function attr()
 			return player:GetAttribute("Unbanked")
 		end
-		check(checks, "bank_starts_empty", num(run.Unbanked), 0, run.Unbanked == 0)
-		check(checks, "bank_attribute_starts_zero", num(attr()), 0, attr() == 0)
-		local hasCashOut = type(run.CashOut) == "function"
-		check(checks, "bank_run_has_cash_out", hasCashOut and 1 or 0, 1, hasCashOut)
+		-- No run bank (owner 2026-11-10, design doc 3 steps 4-5): no pot, no attribute, no CashOut method
+		check(checks, "bank_starts_empty", num(run.Unbanked), 0, run.Unbanked == nil)
+		check(checks, "bank_attribute_starts_zero", num(attr()), 0, attr() == nil)
+		local noCashOut = run.CashOut == nil
+		check(checks, "bank_run_has_cash_out", noCashOut and 0 or 1, 0, noCashOut)
 		local cap = totalLen / (0.5 * cruiseOfChar("ds_sister")) + 30
 		local function driveUntil(track, seconds)
 			return frames(seconds, function()
@@ -8467,7 +8526,7 @@ function Scenarios.bank()
 			end)
 		end
 
-		-- Win Track 1: banked, not paid
+		-- Win Track 1: paid at its finish
 		driveUntil(n1, cap)
 		local res1 = npcFind(r, "Result", n1)
 		local win1 = res1 ~= nil and res1.Event.Result == "Win"
@@ -8475,42 +8534,25 @@ function Scenarios.bank()
 		if not win1 then
 			return
 		end
-		-- Run bank (owner 2026-10-30, TEAM_AND_STAMINA_SPEC "Run end by exhaustion"; design doc 2-4.3): a win adds
-		-- pad payout x the checkpoint bonus (design doc 4.15, CheckpointConfig.Bonus of the tracks past the run's
-		-- start track) to the unbanked pot; nothing is paid at the finish; CashOut / Stop pay the pot once.
+		-- a win pays floor(Quote(pad) x the checkpoint bonus) (design doc 4.15, CheckpointConfig.Bonus of the tracks
+		-- past the run's start track) into Money at its finish; Result.Banked is what this finish paid
 		local Checkpoint = sharedModule("CheckpointConfig")
 		local W1 = math.floor(C1 * Checkpoint.Bonus(0))
 		local W2 = math.floor(C2 * Checkpoint.Bonus(1))
 		local e1 = res1.Event
 		check(checks, "bank_result_banked_field", num(e1.Banked), W1, e1.Banked == W1)
-		check(checks, "bank_result_unbanked_field", num(e1.Unbanked), W1, e1.Unbanked == W1)
+		check(checks, "bank_result_unbanked_field", num(e1.Unbanked), 0, e1.Unbanked == nil)
 		check(checks, "bank_result_bonus_field", num(e1.Bonus), Checkpoint.Bonus(0), e1.Bonus == Checkpoint.Bonus(0))
-		check(checks, "bank_win_not_paid_at_finish", res1.Money, 0, res1.Money == 0)
+		check(checks, "bank_win_paid_at_finish", res1.Money, W1, res1.Money == W1)
 		frames(BANK_ATTR_WAIT)
-		check(checks, "bank_run_unbanked_after_win", num(run.Unbanked), W1, run.Unbanked == W1)
-		check(checks, "bank_attribute_after_win", num(attr()), W1, attr() == W1)
-		check(checks, "bank_money_unpaid_after_win", money.Value, 0, money.Value == 0)
-		check(checks, "bank_banked_total_after_win", num(run.BankedTotal), W1, run.BankedTotal == W1)
-		local unpaid = run.Payouts == 0 and run.PaidTotal == 0
-		check(checks, "bank_no_payout_at_finish", num(run.Payouts), 0, unpaid)
+		check(checks, "bank_run_unbanked_after_win", num(run.Unbanked), 0, run.Unbanked == nil)
+		check(checks, "bank_attribute_after_win", num(attr()), 0, attr() == nil)
+		check(checks, "bank_money_paid_after_win", money.Value, W1, money.Value == W1)
+		check(checks, "bank_banked_total_after_win", num(run.BankedTotal), 0, run.BankedTotal == nil)
+		local paidOnce = run.Payouts == 1 and run.PaidTotal == W1
+		check(checks, "bank_one_payout_at_finish", num(run.PaidTotal), W1, paidOnce)
 
-		-- CashOut pays the pot once and empties it
-		if hasCashOut then
-			local okC, amount = pcall(run.CashOut, run)
-			check(checks, "cash_out_returns_pot", okC and num(amount) or -1, W1, okC and amount == W1)
-			check(checks, "cash_out_pays_pot", money.Value, W1, money.Value == W1)
-			check(checks, "cash_out_zeroes_bank", num(run.Unbanked), 0, run.Unbanked == 0)
-			RunService.Heartbeat:Wait()
-			check(checks, "cash_out_zeroes_attribute", num(attr()), 0, attr() == 0)
-			local counted = run.Payouts == 1 and run.PaidTotal == W1 and run.BankedTotal == W1
-			check(checks, "cash_out_counted", num(run.PaidTotal), W1, counted)
-			local okC2, again = pcall(run.CashOut, run)
-			local once = okC2 and again == 0 and money.Value == W1 and run.Payouts == 1 and run.PaidTotal == W1
-			check(checks, "cash_out_twice_pays_once", money.Value, W1, once)
-		end
-
-		-- Win Track 2 (one track past the start: the bonus applies): banked into the emptied pot, not paid
-		local money2 = money.Value
+		-- Win Track 2 (one track past the start: the bonus applies): paid at its finish on top of Track 1
 		driveUntil(n2, cap)
 		local res2 = npcFind(r, "Result", n2)
 		local win2 = res2 ~= nil and res2.Event.Result == "Win"
@@ -8519,35 +8561,29 @@ function Scenarios.bank()
 			return
 		end
 		local e2 = res2.Event
-		local pot2 = hasCashOut and W2 or W1 + W2
 		check(checks, "bank_track2_banked", num(e2.Banked), W2, e2.Banked == W2)
 		check(checks, "bank_track2_bonus", num(e2.Bonus), Checkpoint.Bonus(1), e2.Bonus == Checkpoint.Bonus(1))
-		check(checks, "bank_track2_unbanked", num(e2.Unbanked), pot2, e2.Unbanked == pot2)
-		check(checks, "bank_track2_not_paid_at_finish", res2.Money, money2, res2.Money == money2)
+		check(checks, "bank_track2_paid_at_finish", res2.Money, W1 + W2, res2.Money == W1 + W2)
 		frames(BANK_ATTR_WAIT)
-		check(checks, "bank_attribute_after_track2", num(attr()), pot2, attr() == pot2)
-		check(checks, "bank_banked_total", num(run.BankedTotal), W1 + W2, run.BankedTotal == W1 + W2)
+		check(checks, "bank_attribute_after_track2", num(attr()), 0, attr() == nil)
+		local paid2 = run.Payouts == 2 and run.PaidTotal == W1 + W2
+		check(checks, "bank_paid_total", num(run.PaidTotal), W1 + W2, paid2)
 
-		-- Destroy cashes out (Stop, death and leaving all go through it), and only once
+		-- Destroy (Stop, death and leaving all go through it) pays nothing more, once or twice
 		local before = money.Value
 		local payoutsBefore = run.Payouts
 		local okD = pcall(function()
 			run:Destroy()
 		end)
 		check(checks, "destroy_no_error", okD and 1 or 0, 1, okD)
-		check(checks, "destroy_cashes_out_pot", money.Value - before, pot2, money.Value - before == pot2)
-		check(checks, "destroy_zeroes_bank", num(run.Unbanked), 0, run.Unbanked == 0)
-		check(checks, "destroy_zeroes_attribute", num(attr()), 0, attr() == 0)
-		local counted = run.Payouts == payoutsBefore + 1
-		check(checks, "destroy_payout_counted", num(run.Payouts), payoutsBefore + 1, counted)
-		local afterOnce = money.Value
+		check(checks, "destroy_pays_nothing", money.Value - before, 0, money.Value == before)
+		check(checks, "destroy_no_bank", num(run.Unbanked), 0, run.Unbanked == nil and attr() == nil)
+		local counted = run.Payouts == payoutsBefore and run.PaidTotal == W1 + W2
+		check(checks, "destroy_no_payout_counted", num(run.Payouts), payoutsBefore, counted)
 		pcall(function()
 			run:Destroy()
 		end)
-		if hasCashOut then
-			pcall(run.CashOut, run)
-		end
-		check(checks, "destroy_twice_pays_once", money.Value, afterOnce, money.Value == afterOnce)
+		check(checks, "destroy_twice_pays_nothing", money.Value, before, money.Value == before)
 		check(checks, "bank_total_paid", money.Value, W1 + W2, money.Value == W1 + W2)
 	end)
 	if racer then
@@ -9273,7 +9309,7 @@ function Scenarios.admin()
 
 			-- Bad jumps and refused /tp: all in one frame (no yield), so the car can not have moved
 			local pos0, idx0, paid0, ev0, money0 = chassis.Position, driver.Index, run.PaidTotal, #events, money.Value
-			local bank0 = run.Unbanked
+			local bank0 = run.PaidTotal
 			local badJumps = 0
 			if hasJump then
 				for _, bad in { 0, -1, 99, n2 + 0.5, 0 / 0, math.huge, "x" } do
@@ -9334,9 +9370,9 @@ function Scenarios.admin()
 			local paidNow = run.PaidTotal == paid0 and money.Value == money0
 			check(checks, pre .. "jump_pays_nothing", run.PaidTotal - paid0, 0, paidNow)
 			if npcMode then
-				-- SPAWN_AND_ROLLS_SPEC section 3: admin /tp does not change the bank
-				local bankSame = type(bank0) == "number" and run.Unbanked == bank0
-				check(checks, pre .. "jump_bank_unchanged", num(run.Unbanked), num(bank0), bankSame)
+				-- SPAWN_AND_ROLLS_SPEC section 3: admin /tp pays nothing (no run bank, owner 2026-11-10)
+				local bankSame = type(bank0) == "number" and run.PaidTotal == bank0
+				check(checks, pre .. "jump_bank_unchanged", num(run.PaidTotal), num(bank0), bankSame)
 			end
 
 			-- Drive on from Track 2's start
@@ -11710,862 +11746,7 @@ function Scenarios.upgrades()
 	return result("upgrades", checks, metrics)
 end
 
--- Mechanical Workshop, PHASE 1 (docs/WORKSHOP_SPEC.md, owner brief 2026-10-06; numbers Shared/WorkshopConfig).
--- BRIEF (owner, 2026-10-06): "Start the Mechanical Workshop, with a dedicated area in the spawn area for players'
--- workshops. Every player in the server has their own plot of land in the spawn area. 7 plots, all in the spawn area;
--- servers hold at most 7 players. A player's workshop loads when they join. With one player in the server: 1 plot with
--- their workshop, 6 empty plots. For now everyone gets the starter workshop (level 1)."
--- Design doc 4.19 (owner 2026-11-03): no passive gain, no offline credit; the workshop boosts one chosen stat
--- (Workshop.Boost, WorkshopService.SetStat). retired: the idle-gain rate / Tick / LevelMulti / Workshop point checks.
---
--- What the checks read:
---   * pure rules: Shared/Workshop (PlotCFrame, ZoneBounds, InZone, FreePlot, CleanLevel)
---   * the LIVE plots: Workspace.Workshops.Plot_1 .. Plot_7, built by WorkshopService.Start (Main, after the spawn area)
---   * WorkshopService with fake players: Folders with the attributes UserId and DisplayName (the convention of
---     AdminService; a real Player uses .UserId / .DisplayName). Plot Owner = that UserId.
--- Nothing here may change the live game: every fake player is released and destroyed, and the live plot owners are
--- compared with the start of the test at the end.
-local WSHOP = {} -- workshop test constants and helpers (one local: the chunk has a 200-local limit)
--- The IVS plot table (local (x, z) of Track 1's flattened Start). Since 2026-10-30 only a fallback when the config is
--- malformed (WORLD_REDESIGN_SPEC section 3: plot coordinates are chosen by the world build).
-WSHOP.PLOTS = {
-	{ Min = Vector2.new(200, -12), Max = Vector2.new(248, 36), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -68), Max = Vector2.new(248, -20), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -124), Max = Vector2.new(248, -76), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(200, -180), Max = Vector2.new(248, -132), Front = Vector2.new(-1, 0) },
-	{ Min = Vector2.new(144, -180), Max = Vector2.new(192, -132), Front = Vector2.new(0, 1) },
-	{ Min = Vector2.new(88, -180), Max = Vector2.new(136, -132), Front = Vector2.new(0, 1) },
-	{ Min = Vector2.new(32, -180), Max = Vector2.new(80, -132), Front = Vector2.new(0, 1) },
-}
-WSHOP.PLOT_COUNT = 7
-WSHOP.PLOT_SIZE = 48
-WSHOP.GAP = 8 -- studs between neighbouring plots
-WSHOP.FRONT_DOT = math.cos(math.rad(45)) -- open front within 45 degrees of the plaza centre (2026-10-30, ring layout)
-WSHOP.ZONE = Vector3.new(32, 12, 32)
-WSHOP.EMPTY = "FREE DOJO"
-WSHOP.TAG = "WorkshopPlot"
-WSHOP.BASE_RAISE = 0.5 -- the plot Base top is "a hair above the floor": (TOP_Y, TOP_Y + this]
-WSHOP.TOL = 0.5 -- studs: footprints match the spec within this
--- scratch builds / pure geometry, far from the live world: yawed 90 degrees, and a pitched copy that must flatten
-WSHOP.TEST_START = CFrame.new(30000, 9, 30000) * CFrame.Angles(0, math.rad(90), 0)
-WSHOP.TEST_START_PITCHED = WSHOP.TEST_START * CFrame.Angles(math.rad(8), 0, 0)
-WSHOP.UID = 914400000
-
-function WSHOP.workshopFlatBase(startCF)
-	local look = startCF.LookVector
-	local flat = Vector3.new(look.X, 0, look.Z)
-	flat = flat.Magnitude > 1e-3 and flat.Unit or Vector3.new(0, 0, -1)
-	local p = Vector3.new(startCF.Position.X, 0, startCF.Position.Z)
-	return CFrame.lookAt(p, p + flat)
-end
-
-function WSHOP.workshopCentre(plot)
-	return (plot.Min + plot.Max) / 2
-end
-
--- Gap between two local rects (> 0 apart, <= 0 overlapping): the larger of the x and z gaps.
-function WSHOP.workshopRectGap(aMin, aMax, bMin, bMax)
-	return math.max(bMin.X - aMax.X, aMin.X - bMax.X, bMin.Y - aMax.Y, aMin.Y - bMax.Y)
-end
-
-function WSHOP.workshopSign(plot)
-	for _, d in plot:GetDescendants() do
-		if d:IsA("BillboardGui") and d.Name == "Sign" then
-			local label = d:FindFirstChildWhichIsA("TextLabel", true)
-			return d, label and label.Text or nil
-		end
-	end
-	return nil, nil
-end
-
-function Scenarios.workshop()
-	local checks = {}
-	local metrics = {}
-	local Players = game:GetService("Players")
-	local WorkshopConfig = sharedModule("WorkshopConfig")
-	local Workshop = sharedModule("Workshop")
-	local SpawnArea = sharedModule("SpawnArea")
-	local RaceConfig = sharedModule("RaceConfig")
-	local GachaConfig = sharedModule("GachaConfig")
-	local WorkshopService = serverModule("WorkshopService")
-	local GachaService = serverModule("GachaService")
-	local UpgradeService = serverModule("UpgradeService")
-	local PlayerData = serverModule("PlayerData")
-	local Money = serverModule("MoneyService")
-	local CarService = serverModule("CarService")
-	local function flag(name, ok)
-		check(checks, name, ok and 1 or 0, 1, ok == true)
-	end
-	local errorCount = 0
-	local function try(label, fn, ...)
-		if type(fn) ~= "function" then
-			return false, nil, nil
-		end
-		local res = table.pack(pcall(fn, ...))
-		if not res[1] then
-			errorCount += 1
-			if errorCount <= 4 then
-				metrics["error_" .. errorCount] = label .. ": " .. tostring(res[2])
-			end
-			return false, nil, nil
-		end
-		return true, res[2], res[3]
-	end
-
-	-- API
-	local pureFns = { "PlotCFrame", "ZoneBounds", "InZone", "FreePlot", "CleanLevel", "CleanStat", "Boost" }
-	local serviceFns = { "BuildPlots", "Assign", "Release", "PlotOf", "SetStat", "Snapshot", "Apply", "Start" }
-	local pureOk = Workshop ~= nil and WorkshopConfig ~= nil
-	for _, f in pureFns do
-		pureOk = pureOk and type(Workshop[f]) == "function"
-	end
-	local serviceOk = WorkshopService ~= nil
-	for _, f in serviceFns do
-		serviceOk = serviceOk and type(WorkshopService[f]) == "function"
-	end
-	local depsOk = SpawnArea ~= nil
-		and RaceConfig ~= nil
-		and GachaConfig ~= nil
-		and GachaService ~= nil
-		and PlayerData ~= nil
-		and Money ~= nil
-		and CarService ~= nil
-	flag("workshop_module_api_exists", pureOk)
-	flag("workshop_service_api_exists", serviceOk)
-	flag("workshop_dependencies_exist", depsOk)
-	-- design doc 4.19 (owner 2026-11-03): no passive gain and no offline credit, so their API is gone
-	local idleGone = Workshop ~= nil
-		and WorkshopService ~= nil
-		and WorkshopConfig ~= nil
-		and Workshop.LevelMulti == nil
-		and Workshop.Rate == nil
-		and Workshop.OfflineGain == nil
-		and Workshop.OfflineMoney == nil
-		and WorkshopService.Rate == nil
-		and WorkshopService.Tick == nil
-		and WorkshopConfig.BASE_RATE == nil
-		and WorkshopConfig.TICK == nil
-	flag("workshop_no_passive_gain_api", idleGone)
-	if not (WorkshopConfig and depsOk) then
-		return result("workshop", checks, metrics)
-	end
-	local C = WorkshopConfig
-	local TOP_Y = SPAWN_TOP_Y
-
-	-- 1. Config holds the spec's numbers
-	-- 2026-10-30: the plot rects are chosen by the world build (docs/WORLD_REDESIGN_SPEC.md section 3), so the IVS
-	-- table (WSHOP.PLOTS, the L-shape beside the old hub) is no longer the oracle: the config must hold 7 well-formed
-	-- rects with a unit front, and the geometry below is checked against the config and the live plots.
-	local plotsOk = type(C.Plots) == "table" and #C.Plots == WSHOP.PLOT_COUNT
-	if plotsOk then
-		for i = 1, WSHOP.PLOT_COUNT do
-			local got = C.Plots[i]
-			plotsOk = plotsOk
-				and type(got) == "table"
-				and typeof(got.Min) == "Vector2"
-				and typeof(got.Max) == "Vector2"
-				and typeof(got.Front) == "Vector2"
-				and math.abs(got.Front.Magnitude - 1) <= 1e-6
-		end
-	end
-	check(checks, "workshop_config_plots_match_spec", type(C.Plots) == "table" and #C.Plots or -1, 7, plotsOk)
-	local levelsOk = type(C.Levels) == "table"
-		and type(C.Levels[1]) == "table"
-		and C.Levels[1].Price == 0
-		and C.MAX_LEVEL == #C.Levels
-	local cfgOk = C.PLOT_COUNT == WSHOP.PLOT_COUNT
-		and C.PLOT_SIZE == WSHOP.PLOT_SIZE
-		and C.ZONE_SIZE == WSHOP.ZONE
-		and C.EMPTY_TEXT == WSHOP.EMPTY
-		and C.TAG == WSHOP.TAG
-		and type(C.SIGN_DISTANCE) == "number"
-		and C.SIGN_DISTANCE > 0
-		and C.SIGN_DISTANCE < math.huge
-		and levelsOk
-	flag("workshop_config_numbers_match_spec", cfgOk)
-	-- WORKSHOP_SPEC section 5 (owner 2026-10-27): Levels[L].Price = PayoutCurve.Cost(500, L - 1), ten levels (replaces
-	-- $500 x 5 ^ (L - 2)); retired: the idle-gain level Multi (design doc 4.19)
-	local priceCurveBad = (type(C.Levels) == "table" and #C.Levels == 10) and 0 or 1
-	local PayoutCurve = PAYOUT.module()
-	for L = 2, 10 do
-		local lv = type(C.Levels) == "table" and C.Levels[L]
-		local curve = PayoutCurve and type(PayoutCurve.Cost) == "function" and PayoutCurve.Cost(500, L - 1)
-		if type(lv) ~= "table" or lv.Price ~= PAYOUT.WORKSHOP[L - 1] or lv.Price ~= curve then
-			priceCurveBad += 1
-		end
-	end
-	check(checks, "workshop_level_prices_payout_curve", priceCurveBad, 0, priceCurveBad == 0)
-	-- workshop_spawn_area_layout_constants retired 2026-10-30 (WORLD_REDESIGN_SPEC section 3: coordinates chosen by the
-	-- world build; the same constants checks were retired from spawn_area).
-	local MAXL = type(C.MAX_LEVEL) == "number" and C.MAX_LEVEL or 1
-	local function levelWant(level)
-		if type(level) ~= "number" or level ~= level then
-			level = 1
-		end
-		return math.clamp(math.floor(math.clamp(level, -1e9, 1e9)), 1, MAXL)
-	end
-
-	-- 2. Layout rules on the config's plots: 48 x 48 and 8-stud gaps. Clear of the hub and the StartPad, and open
-	-- toward the hub, are checked on the LIVE plots in section 4 (2026-10-30: were checked against the IVS hub / pad
-	-- rects). workshop_plots_inside_floor retired: the plots now ring the hub instead of sharing its floor
-	-- (WORLD_REDESIGN_SPEC section 3 "The 7 player plots form a ring around it"); the ground under them is
-	-- world_layout's world_baseplate_covers_everything.
-	local plots = plotsOk and C.Plots or WSHOP.PLOTS
-	local squareOk, gapOk = plotsOk, plotsOk
-	local minGap = math.huge
-	for i, p in plots do
-		local size = p.Max - p.Min
-		squareOk = squareOk and size.X == WSHOP.PLOT_SIZE and size.Y == WSHOP.PLOT_SIZE
-		for j = i + 1, #plots do
-			local g = WSHOP.workshopRectGap(p.Min, p.Max, plots[j].Min, plots[j].Max)
-			minGap = math.min(minGap, g)
-		end
-	end
-	gapOk = gapOk and minGap >= WSHOP.GAP
-	flag("workshop_plots_48_square", squareOk)
-	check(checks, "workshop_plots_no_overlap_gap_8", minGap == math.huge and -1 or minGap, WSHOP.GAP, gapOk)
-
-	-- 3. Pure geometry (Shared/Workshop) at a yawed test start, a pitched copy of it and the live start
-	local trackFolder = Workspace:FindFirstChild("Track")
-	local specs = type(TrackRegistry.Chain) == "function" and TrackRegistry.Chain() or {}
-	local track1 = trackFolder and specs[1] and trackFolder:FindFirstChild(specs[1].Name)
-	local startPart = track1 and track1:FindFirstChild("Start")
-	local liveOk = startPart ~= nil and startPart:IsA("BasePart")
-	flag("workshop_live_chain_present", liveOk)
-	local starts = { WSHOP.TEST_START, WSHOP.TEST_START_PITCHED }
-	if liveOk then
-		table.insert(starts, startPart.CFrame)
-	end
-	local function worldAt(base, x, z, y)
-		local w = base:PointToWorldSpace(Vector3.new(x, 0, z))
-		return Vector3.new(w.X, y, w.Z)
-	end
-	if pureOk then
-		local cfBad, boundsBad, zoneBad = 0, 0, 0
-		for _, start in starts do
-			local base = WSHOP.workshopFlatBase(start)
-			for i, p in plots do
-				local c = WSHOP.workshopCentre(p)
-				local wantPos = worldAt(base, c.X, c.Y, TOP_Y)
-				local wantLook = base:VectorToWorldSpace(Vector3.new(p.Front.X, 0, p.Front.Y))
-				local okc, cf = try("PlotCFrame", Workshop.PlotCFrame, start, i)
-				if
-					not okc
-					or typeof(cf) ~= "CFrame"
-					or (cf.Position - wantPos).Magnitude > 0.01
-					or cf.LookVector:Dot(wantLook) < 0.999
-				then
-					cfBad += 1
-				end
-				-- zone: the centred 32 x 32 rect, from the floor top to ZONE_SIZE.Y above it
-				local hx, hz = WSHOP.ZONE.X / 2, WSHOP.ZONE.Z / 2
-				local lo, hi = Vector3.new(math.huge, 0, math.huge), Vector3.new(-math.huge, 0, -math.huge)
-				for _, dx in { -hx, hx } do
-					for _, dz in { -hz, hz } do
-						local w = worldAt(base, c.X + dx, c.Y + dz, 0)
-						lo = Vector3.new(math.min(lo.X, w.X), 0, math.min(lo.Z, w.Z))
-						hi = Vector3.new(math.max(hi.X, w.X), 0, math.max(hi.Z, w.Z))
-					end
-				end
-				local okb, b = try("ZoneBounds", Workshop.ZoneBounds, start, i)
-				if
-					not okb
-					or type(b) ~= "table"
-					or typeof(b.Min) ~= "Vector3"
-					or typeof(b.Max) ~= "Vector3"
-					or math.abs(b.Min.X - lo.X) > 0.01
-					or math.abs(b.Min.Z - lo.Z) > 0.01
-					or math.abs(b.Max.X - hi.X) > 0.01
-					or math.abs(b.Max.Z - hi.Z) > 0.01
-					or math.abs(b.Min.Y - TOP_Y) > 0.01
-					or math.abs(b.Max.Y - (TOP_Y + WSHOP.ZONE.Y)) > 0.01
-				then
-					boundsBad += 1
-				end
-				-- InZone: inside / just inside / just outside / plot but not zone / above / below / another plot
-				local other = plots[i % #plots + 1]
-				local oc = WSHOP.workshopCentre(other)
-				local cases = {
-					{ worldAt(base, c.X, c.Y, TOP_Y + 3), true },
-					{ worldAt(base, c.X + hx - 0.5, c.Y, TOP_Y + 1), true },
-					{ worldAt(base, c.X, c.Y - hz + 0.5, TOP_Y + WSHOP.ZONE.Y - 0.5), true },
-					{ worldAt(base, c.X + hx + 0.5, c.Y, TOP_Y + 3), false },
-					{ worldAt(base, c.X, c.Y + hz + 0.5, TOP_Y + 3), false },
-					{ worldAt(base, c.X - 20, c.Y, TOP_Y + 3), false }, -- on the plot, outside the zone
-					{ worldAt(base, c.X, c.Y, TOP_Y + WSHOP.ZONE.Y + 0.5), false },
-					{ worldAt(base, c.X, c.Y, TOP_Y - 0.5), false },
-					{ worldAt(base, oc.X, oc.Y, TOP_Y + 3), false },
-				}
-				for _, case in cases do
-					local okz, inside = try("InZone", Workshop.InZone, start, i, case[1])
-					if not okz or inside ~= case[2] then
-						zoneBad += 1
-					end
-				end
-			end
-		end
-		check(checks, "workshop_plot_cframe", cfBad, 0, cfBad == 0)
-		check(checks, "workshop_zone_bounds", boundsBad, 0, boundsBad == 0)
-		check(checks, "workshop_in_zone_points", zoneBad, 0, zoneBad == 0)
-		local badIdx = table.pack(0, 8, -1, 1.5, "1", nil)
-		local nilOk = true
-		for k = 1, badIdx.n do
-			local okc, cf = try("PlotCFrame", Workshop.PlotCFrame, WSHOP.TEST_START, badIdx[k])
-			local okz, inside = try("InZone", Workshop.InZone, WSHOP.TEST_START, badIdx[k], WSHOP.TEST_START.Position)
-			nilOk = nilOk and okc and cf == nil and okz and inside == false
-		end
-		local okJunk, junkIn = try("InZone", Workshop.InZone, WSHOP.TEST_START, 1, "nowhere")
-		flag("workshop_bad_index_nil_and_outside", nilOk and okJunk and junkIn == false)
-
-		-- FreePlot: lowest free index, 0 when all 7 are taken
-		local function taken(list)
-			local s = {}
-			for _, i in list do
-				s[i] = true
-			end
-			return s
-		end
-		local freeOk = true
-		for _, c in
-			{
-				{ {}, 1 },
-				{ { 1 }, 2 },
-				{ { 2 }, 1 },
-				{ { 1, 2, 4 }, 3 },
-				{ { 1, 2, 3, 4, 5, 6 }, 7 },
-				{ { 1, 2, 3, 4, 5, 6, 7 }, 0 },
-				{ { 8, 9 }, 1 },
-			}
-		do
-			local okf, v = try("FreePlot", Workshop.FreePlot, taken(c[1]))
-			freeOk = freeOk and okf and v == c[2]
-		end
-		flag("workshop_free_plot_lowest", freeOk)
-
-		-- CleanLevel: level 1 = 1, everything clamped to 1 .. MAX_LEVEL (was LevelMulti; the level multi is retired)
-		local lmOk = true
-		local lmCases = table.pack(1, 0, -5, MAXL, MAXL + 3, 1e9, 2.7, 0 / 0, nil, "2")
-		for k = 1, lmCases.n do
-			local okl, v = try("CleanLevel", Workshop.CleanLevel, lmCases[k])
-			lmOk = lmOk and okl and v == levelWant(lmCases[k])
-		end
-		local okOne, one = try("CleanLevel", Workshop.CleanLevel, 1)
-		flag("workshop_level_clamped", lmOk and okOne and one == 1)
-		-- retired: Workshop.Rate formula / bad-input checks (no passive gain, design doc 4.19, owner 2026-11-03)
-	end
-
-	-- 4. The live plots: Workspace.Workshops built by WorkshopService.Start (Main, after the spawn area)
-	local folder = Workspace:FindFirstChild("Workshops")
-	local folderOk = folder ~= nil and folder:IsA("Folder")
-	flag("workshop_live_folder_exists", folderOk)
-	local livePlots = {}
-	if folderOk then
-		for i = 1, WSHOP.PLOT_COUNT do
-			local m = folder:FindFirstChild("Plot_" .. i)
-			livePlots[i] = (m and m:IsA("Model")) and m or nil
-		end
-	end
-	local liveCount, taggedCount = 0, 0
-	if folderOk then
-		for _, d in folder:GetChildren() do
-			if d:IsA("Model") and string.match(d.Name, "^Plot_%d+$") then
-				liveCount += 1
-				if CollectionService:HasTag(d, WSHOP.TAG) then
-					taggedCount += 1
-				end
-			end
-		end
-	end
-	local allSeven = true
-	for i = 1, WSHOP.PLOT_COUNT do
-		allSeven = allSeven and livePlots[i] ~= nil
-	end
-	check(checks, "workshop_live_seven_plots", liveCount, 7, allSeven and liveCount == WSHOP.PLOT_COUNT)
-	check(checks, "workshop_live_plots_tagged", taggedCount, 7, taggedCount == WSHOP.PLOT_COUNT)
-
-	local function ownerOf(i)
-		local m = livePlots[i]
-		return m and m:GetAttribute("Owner") or nil
-	end
-	-- Checks one plot's static parts (Base, sign, anchoring) against the rect, in the space of `base`
-	local function plotShapeBad(m, i, base)
-		local bad = {}
-		local baseP = m:FindFirstChild("Base")
-		if not (baseP and baseP:IsA("BasePart")) then
-			table.insert(bad, "base")
-		else
-			local bMin, bMax, bTop = spawnLocalBounds(base, baseP)
-			local p = plots[i]
-			if math.max(spawnV2Err(bMin, p.Min), spawnV2Err(bMax, p.Max)) > WSHOP.TOL then
-				table.insert(bad, "base_rect")
-			end
-			if not (bTop > TOP_Y and bTop <= TOP_Y + WSHOP.BASE_RAISE) then
-				table.insert(bad, "base_top")
-			end
-		end
-		for _, d in m:GetDescendants() do
-			if d:IsA("BasePart") and not d.Anchored then
-				table.insert(bad, "unanchored:" .. d.Name)
-				break
-			end
-		end
-		local gui = WSHOP.workshopSign(m)
-		if
-			not gui
-			or not (gui.MaxDistance > 0 and gui.MaxDistance < math.huge)
-			or gui.MaxDistance ~= C.SIGN_DISTANCE
-		then
-			table.insert(bad, "sign")
-		end
-		if type(m:GetAttribute("Owner")) ~= "number" then
-			table.insert(bad, "owner_attr")
-		end
-		return bad
-	end
-	local function expectedSign(owner)
-		if owner == 0 then
-			return WSHOP.EMPTY
-		end
-		local real = Players:GetPlayerByUserId(owner)
-		return real and (real.DisplayName .. "'s Workshop") or nil
-	end
-	local baselineOwners = {}
-	if liveOk and allSeven then
-		local base = WSHOP.workshopFlatBase(startPart.CFrame)
-		local shapeBad, signBad = 0, 0
-		for i = 1, WSHOP.PLOT_COUNT do
-			local bad = plotShapeBad(livePlots[i], i, base)
-			if #bad > 0 then
-				shapeBad += 1
-				metrics["live_plot_" .. i] = table.concat(bad, ",")
-			end
-			local owner = ownerOf(i)
-			baselineOwners[i] = owner
-			local _, text = WSHOP.workshopSign(livePlots[i])
-			local want = type(owner) == "number" and expectedSign(owner) or nil
-			if want == nil or text ~= want then
-				signBad += 1
-			end
-			local hasWorkshop = livePlots[i]:FindFirstChild("Workshop") ~= nil
-			if owner == 0 and hasWorkshop then
-				signBad += 1
-			end
-		end
-		check(checks, "workshop_live_plot_shapes", shapeBad, 0, shapeBad == 0)
-		check(checks, "workshop_live_signs_match_owners", signBad, 0, signBad == 0)
-
-		-- no part of any plot overlaps a road / wall / checkpoint of any chained track, the Spawn, the StartPad / torii
-		-- StartGate or the hub's buildings (every live SpawnArea part but its Floor; 2026-10-30: was the IVS hub rect,
-		-- WORLD_REDESIGN_SPEC section 3); the config rects themselves stay clear of the tracks too.
-		-- workshop_live_parts_on_floor retired: the plots ring the hub instead of standing on its floor (section 3).
-		local trackParts = {}
-		for _, d in trackFolder:GetDescendants() do
-			if d:IsA("BasePart") and d.Name ~= "Ground" and d.Name ~= "Start" then
-				table.insert(trackParts, d)
-			end
-		end
-		local area = Workspace:FindFirstChild("SpawnArea")
-		local hubFloor = area and area:FindFirstChild("Floor")
-		local spawnPart = area and area:FindFirstChild("Spawn")
-		local padPart = area and area:FindFirstChild("StartPad")
-		local padPolys, hubPolys = {}, {}
-		for _, d in area and area:GetDescendants() or {} do
-			if d:IsA("BasePart") and d ~= hubFloor then
-				local gateModel = area:FindFirstChild("StartGate")
-				local inGate = d == padPart or (gateModel ~= nil and d:IsDescendantOf(gateModel))
-				table.insert(inGate and padPolys or hubPolys, spawnPartPoly(d))
-			end
-		end
-		-- plots x tracks: broad-phased and yielding (TrackChainTests.footprintOverlaps); the hit count is exact, the
-		-- closest gap exact whenever some pair lies within BROAD_MARGIN studs (-1 when none does)
-		local plotParts = {}
-		for _, d in folder:GetDescendants() do
-			if d:IsA("BasePart") then
-				table.insert(plotParts, d)
-			end
-		end
-		local trackHits, worst, worstA, worstB = require(script.Parent.TrackChainTests).footprintOverlaps(
-			plotParts,
-			trackParts,
-			spawnPartPoly,
-			spawnPolySeparation,
-			SPAWN_OVERLAP_TOL
-		)
-		local worstName = worstA and (worstA:GetFullName() .. "/" .. worstB:GetFullName()) or ""
-		local padHits, hubHits = 0, 0
-		for _, d in plotParts do
-			local poly = spawnPartPoly(d)
-			for _, other in padPolys do
-				if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
-					padHits += 1
-				end
-			end
-			for _, other in hubPolys do
-				if spawnPolySeparation(poly, other) < -SPAWN_OVERLAP_TOL then
-					hubHits += 1
-				end
-			end
-		end
-		if trackHits > 0 then
-			metrics.worst_track_overlap = worstName
-		end
-		metrics.closest_track_gap = worst == math.huge and -1 or round(worst)
-		check(checks, "workshop_live_no_track_overlap", trackHits, 0, #trackParts > 0 and trackHits == 0)
-		check(
-			checks,
-			"workshop_live_clear_of_spawn_pad_hub",
-			padHits + hubHits,
-			0,
-			spawnPart ~= nil and padPart ~= nil and padHits + hubHits == 0
-		)
-		check(checks, "workshop_plots_clear_of_hub", hubHits, 0, hubFloor ~= nil and #hubPolys > 0 and hubHits == 0)
-		check(checks, "workshop_plots_clear_of_start_pad", padHits, 0, padPart ~= nil and padHits == 0)
-		-- open toward the hub: each plot's front (PlotCFrame LookVector at the live start) points at the plaza centre,
-		-- within 45 degrees (was: the whole IVS hub rect in front of an axis-aligned front)
-		local worstFront = 1
-		for i = 1, WSHOP.PLOT_COUNT do
-			local okc, cf = try("PlotCFrame", Workshop.PlotCFrame, startPart.CFrame, i)
-			local d = 0
-			if okc and typeof(cf) == "CFrame" and hubFloor then
-				local to = flatV(hubFloor.Position - cf.Position)
-				local look = flatV(cf.LookVector)
-				d = (to.Magnitude > 1e-6 and look.Magnitude > 1e-6) and look.Unit:Dot(to.Unit) or 0
-			end
-			worstFront = math.min(worstFront, d)
-		end
-		check(checks, "workshop_plots_open_toward_hub", worstFront, WSHOP.FRONT_DOT, worstFront >= WSHOP.FRONT_DOT)
-		local rectHits = 0
-		local trackPolys = {} -- trackParts holds BaseParts (for footprintOverlaps), not { Poly } records
-		for i, t in trackParts do
-			trackPolys[i] = spawnPartPoly(t)
-		end
-		for _, p in plots do
-			local rp = spawnRectPoly(base, p.Min, p.Max)
-			for _, tp in trackPolys do
-				if spawnPolySeparation(rp, tp) < -SPAWN_OVERLAP_TOL then
-					rectHits += 1
-				end
-			end
-		end
-		check(checks, "workshop_rects_no_track_overlap", rectHits, 0, rectHits == 0)
-	end
-
-	if not (serviceOk and pureOk and liveOk and allSeven) then
-		return result("workshop", checks, metrics)
-	end
-
-	-- 5. WorkshopService with fake players on the live plots
-	local cleanup = {}
-	local fakes = {}
-	local base = WSHOP.workshopFlatBase(startPart.CFrame)
-	local function fake(name)
-		WSHOP.UID += 1
-		local p = Instance.new("Folder")
-		p.Name = "CarTestWorkshop" .. name
-		p:SetAttribute("UserId", WSHOP.UID)
-		p:SetAttribute("DisplayName", "WS " .. name)
-		p.Parent = Workspace
-		table.insert(fakes, p)
-		pcall(Money.Setup, p)
-		pcall(PlayerData.Setup, p)
-		pcall(GachaService.Setup, p)
-		if UpgradeService and type(UpgradeService.Setup) == "function" then
-			pcall(UpgradeService.Setup, p)
-		end
-		try("Apply", WorkshopService.Apply, p, {})
-		return p
-	end
-	local function svc(fname, ...)
-		return try(fname, WorkshopService[fname], ...)
-	end
-	local function liveTaken()
-		local t = {}
-		for i = 1, WSHOP.PLOT_COUNT do
-			local o = ownerOf(i)
-			if type(o) == "number" and o ~= 0 then
-				t[i] = true
-			end
-		end
-		return t
-	end
-	local function lowestFree(t)
-		for i = 1, WSHOP.PLOT_COUNT do
-			if not t[i] then
-				return i
-			end
-		end
-		return 0
-	end
-	local function ownedCount()
-		local n = 0
-		for _ in liveTaken() do
-			n += 1
-		end
-		return n
-	end
-
-	local function body()
-		metrics.baseline_owned = ownedCount()
-		-- Save fields: Apply / Snapshot (missing = 1, clamped to 1 .. MAX_LEVEL)
-		local pa = fake("Apply")
-		local saveBad = 0
-		local saveCases = table.pack(
-			{},
-			{ WorkshopLevel = 1 },
-			{ WorkshopLevel = 99 },
-			{ WorkshopLevel = -2 },
-			{ WorkshopLevel = "x" },
-			"junk",
-			nil
-		)
-		for k = 1, saveCases.n do
-			local okA = svc("Apply", pa, saveCases[k])
-			local raw = type(saveCases[k]) == "table" and saveCases[k].WorkshopLevel or nil
-			local want = type(raw) == "number" and math.clamp(math.floor(raw), 1, MAXL) or 1
-			local _, snap = svc("Snapshot", pa)
-			if
-				not okA
-				or pa:GetAttribute("WorkshopLevel") ~= want
-				or type(snap) ~= "table"
-				or snap.WorkshopLevel ~= want
-			then
-				saveBad += 1
-			end
-		end
-		check(checks, "workshop_apply_snapshot_level", saveBad, 0, saveBad == 0)
-
-		-- Assign: the lowest free plot, Plot attribute, PlotOf, Owner, the owner's sign, a Workshop model with its Zone
-		local taken0 = liveTaken()
-		local want1 = lowestFree(taken0)
-		local p1 = fake("One")
-		local _, idx1 = svc("Assign", p1)
-		local uid1 = p1:GetAttribute("UserId")
-		local _, plotOf1 = svc("PlotOf", p1)
-		check(
-			checks,
-			"workshop_assign_lowest_free",
-			tonumber(idx1) or -1,
-			want1,
-			want1 ~= 0 and idx1 == want1 and p1:GetAttribute("Plot") == want1 and plotOf1 == want1
-		)
-		local m1 = type(idx1) == "number" and livePlots[idx1] or nil
-		local text1 = nil
-		if m1 then
-			_, text1 = WSHOP.workshopSign(m1)
-		end
-		flag(
-			"workshop_assign_owner_and_sign",
-			m1 ~= nil and m1:GetAttribute("Owner") == uid1 and text1 == "WS One's Workshop"
-		)
-		local wsModel = m1 and m1:FindFirstChild("Workshop")
-		local zone = wsModel and wsModel:FindFirstChild("Zone", true)
-		local zoneOk = wsModel ~= nil and wsModel:IsA("Model") and zone ~= nil and zone:IsA("BasePart")
-		if zoneOk then
-			local c = WSHOP.workshopCentre(plots[idx1])
-			local wantC = worldAt(base, c.X, c.Y, 0)
-			local sizeOk = math.abs(zone.Size.Y - WSHOP.ZONE.Y) <= 0.05
-				and math.abs(math.min(zone.Size.X, zone.Size.Z) - math.min(WSHOP.ZONE.X, WSHOP.ZONE.Z)) <= 0.05
-				and math.abs(math.max(zone.Size.X, zone.Size.Z) - math.max(WSHOP.ZONE.X, WSHOP.ZONE.Z)) <= 0.05
-			zoneOk = sizeOk
-				and hdist(zone.Position, wantC) <= WSHOP.TOL
-				and zone.CanCollide == false
-				and zone.CanTouch == false
-				and zone.CanQuery == false
-				and zone.Transparency == 1
-				and zone.Anchored == true
-		end
-		flag("workshop_model_with_zone_part", zoneOk)
-		local upgradePad = wsModel and wsModel:FindFirstChild("UpgradePad")
-		local upgradeSign = upgradePad and upgradePad:FindFirstChild("UpgradeSign")
-		local upgradeLabel = upgradeSign
-			and upgradeSign:IsA("BillboardGui")
-			and upgradeSign:FindFirstChildWhichIsA("TextLabel", true)
-		flag(
-			"workshop_upgrade_pad",
-			upgradePad ~= nil
-				and CollectionService:HasTag(upgradePad, "UpgradePad")
-				and upgradeLabel ~= nil
-				and upgradeLabel.Text == "UPGRADE"
-		)
-		flag("workshop_no_rate_billboard", m1 == nil or m1:FindFirstChild("Rate", true) == nil)
-		local anchoredOk = m1 ~= nil
-		if m1 then
-			for _, d in m1:GetDescendants() do
-				if d:IsA("BasePart") and not d.Anchored then
-					anchoredOk = false
-				end
-			end
-		end
-		flag("workshop_owned_plot_all_anchored", anchoredOk)
-		-- one more player in the server = exactly one more owned plot, the rest FREE DOJO without a workshop
-		local owned1 = ownedCount()
-		local emptyOk = true
-		for i = 1, WSHOP.PLOT_COUNT do
-			local o = ownerOf(i)
-			local _, t = WSHOP.workshopSign(livePlots[i])
-			if o == 0 and (t ~= WSHOP.EMPTY or livePlots[i]:FindFirstChild("Workshop") ~= nil) then
-				emptyOk = false
-			end
-		end
-		check(
-			checks,
-			"workshop_one_player_one_owned_rest_empty",
-			owned1,
-			metrics.baseline_owned + 1,
-			owned1 == metrics.baseline_owned + 1 and emptyOk
-		)
-		-- assigning again changes nothing (one plot per player)
-		local _, idx1b = svc("Assign", p1)
-		local count1 = 0
-		for i = 1, WSHOP.PLOT_COUNT do
-			if ownerOf(i) == uid1 then
-				count1 += 1
-			end
-		end
-		flag("workshop_assign_idempotent", idx1b == idx1 and count1 == 1 and ownedCount() == owned1)
-
-		-- the next player gets the next lowest free plot
-		local p2 = fake("Two")
-		local want2 = lowestFree(liveTaken())
-		local _, idx2 = svc("Assign", p2)
-		check(checks, "workshop_assign_next_lowest", tonumber(idx2) or -1, want2, want2 ~= 0 and idx2 == want2)
-
-		-- 6. retired: Rate and Tick (the in-zone idle gain, its formula and every no-gain case; no passive gain,
-		-- design doc 4.19, owner 2026-11-03)
-
-		-- 7. Release: the plot goes back to FREE DOJO, Owner 0, no workshop; Plot attribute and PlotOf 0
-		svc("Release", p1)
-		local okR2 = svc("Release", p1) -- twice is harmless
-		local _, plotOfR = svc("PlotOf", p1)
-		local _, textR = WSHOP.workshopSign(livePlots[want1])
-		flag(
-			"workshop_release_frees_plot",
-			okR2
-				and ownerOf(want1) == 0
-				and textR == WSHOP.EMPTY
-				and livePlots[want1]:FindFirstChild("Workshop") == nil
-				and p1:GetAttribute("Plot") == 0
-				and plotOfR == 0
-		)
-		local p3 = fake("Three")
-		local _, idx3 = svc("Assign", p3)
-		flag("workshop_released_plot_reused", idx3 == want1)
-		-- a plot whose owner is gone (left without a Release) is freed on the next assignment
-		local p4 = fake("Gone")
-		local _, idx4 = svc("Assign", p4)
-		p4.Parent = nil
-		local wantNext = lowestFree(liveTaken())
-		if type(idx4) == "number" and idx4 > 0 and (wantNext == 0 or idx4 < wantNext) then
-			wantNext = idx4
-		end
-		local p5 = fake("AfterGone")
-		local _, idx5 = svc("Assign", p5)
-		check(
-			checks,
-			"workshop_gone_owner_freed_on_assign",
-			tonumber(idx5) or -1,
-			wantNext,
-			type(idx4) == "number" and idx4 > 0 and idx5 == wantNext
-		)
-
-		-- 8. Full server: fill every free plot, then one more player gets 0 (Plot attribute 0)
-		local fillOk, filled = true, {}
-		for k = 1, WSHOP.PLOT_COUNT do
-			if lowestFree(liveTaken()) == 0 then
-				break
-			end
-			local pf = fake("Fill" .. k)
-			local _, idf = svc("Assign", pf)
-			if type(idf) ~= "number" or idf < 1 or idf > WSHOP.PLOT_COUNT or filled[idf] then
-				fillOk = false
-				break
-			end
-			filled[idf] = true
-		end
-		local allTaken = ownedCount() == WSHOP.PLOT_COUNT
-		local p8 = fake("Eighth")
-		local okE, idx8 = svc("Assign", p8)
-		check(
-			checks,
-			"workshop_full_server_gets_zero",
-			tonumber(idx8) or -1,
-			0,
-			fillOk and allTaken and okE and idx8 == 0 and p8:GetAttribute("Plot") == 0
-		)
-
-		-- release every fake: the live plots are back to how the test found them
-		for _, p in fakes do
-			svc("Release", p)
-		end
-		local restored = true
-		for i = 1, WSHOP.PLOT_COUNT do
-			if ownerOf(i) ~= baselineOwners[i] then
-				restored = false
-			end
-		end
-		flag("workshop_live_plots_restored", restored)
-
-		-- 9. BuildPlots into a scratch folder far away: 7 empty plots with the spec rects, tags, signs, anchored
-		local scratch = Instance.new("Folder")
-		scratch.Name = "CarTestWorkshopScratch"
-		scratch.Parent = Workspace
-		table.insert(cleanup, scratch)
-		local okBuild, built = svc("BuildPlots", WSHOP.TEST_START, scratch)
-		local container = (typeof(built) == "Instance" and built) or scratch:FindFirstChild("Workshops") or scratch
-		local scratchBase = WSHOP.workshopFlatBase(WSHOP.TEST_START)
-		local buildBad = 0
-		for i = 1, WSHOP.PLOT_COUNT do
-			local m = container:FindFirstChild("Plot_" .. i)
-			if not (m and m:IsA("Model")) then
-				buildBad += 1
-			else
-				local bad = plotShapeBad(m, i, scratchBase)
-				local _, t = WSHOP.workshopSign(m)
-				if
-					#bad > 0
-					or m:GetAttribute("Owner") ~= 0
-					or t ~= WSHOP.EMPTY
-					or not CollectionService:HasTag(m, WSHOP.TAG)
-					or m:FindFirstChild("Workshop") ~= nil
-				then
-					buildBad += 1
-					metrics["scratch_plot_" .. i] = table.concat(bad, ",")
-				end
-			end
-		end
-		check(checks, "workshop_build_plots", buildBad, 0, okBuild and buildBad == 0)
-		scratch:Destroy()
-		-- building plots elsewhere never moves the live game's plots: the next assignment is still a live plot
-		local p9 = fake("AfterBuild")
-		local wantLive = lowestFree(liveTaken())
-		local _, idx9 = svc("Assign", p9)
-		local liveAgain = type(idx9) == "number"
-			and idx9 == wantLive
-			and livePlots[idx9] ~= nil
-			and livePlots[idx9].Parent ~= nil
-			and ownerOf(idx9) == p9:GetAttribute("UserId")
-		svc("Release", p9)
-		flag("workshop_build_plots_does_not_rebind_live", liveAgain and ownerOf(wantLive) == baselineOwners[wantLive])
-	end
-
-	local okBody, err = pcall(body)
-	if not okBody then
-		check(checks, "workshop_no_error", 0, tostring(err), false)
-	end
-	for _, p in fakes do
-		pcall(WorkshopService.Release, p)
-	end
-	for _, inst in cleanup do
-		inst:Destroy()
-	end
-	for _, p in fakes do
-		p:Destroy()
-	end
-	metrics.call_errors = errorCount
-	return result("workshop", checks, metrics)
-end
-
--- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "workshop" | "track:<Track>"
+-- name: "runner" | "scrap" | "economy" | "hud" | "auto_toggle" | "spawn_area" | "gacha" | "index" | "npc" | "bank" | "multiplayer" | "admin" | "roll_anim" | "upgrades" | "track:<Track>"
 -- Scenarios that test stamina itself: they run on the real stamina (docs/TEAM_AND_STAMINA_SPEC.md "Tests").
 local STAMINA_SCENARIOS =
 	{ team = true, stamina = true, team_bonus = true, sidekicks = true, boss_event = true, relics = true }
@@ -12600,7 +11781,6 @@ end
 
 -- Phase-two tests stay in their own module so existing collaborator checks remain intact.
 local Phase2Tests = require(script.Parent.Phase2Tests)
-Scenarios.workshop_phase2 = Phase2Tests.workshop_phase2
 Scenarios.weather = Phase2Tests.weather
 Scenarios.rebirth = Phase2Tests.rebirth
 Scenarios.daily_login = Phase2Tests.daily_login
@@ -12609,7 +11789,7 @@ Scenarios.checkpoints = Phase2Tests.checkpoints
 Scenarios.team = require(script.Parent.StaminaTests).team
 Scenarios.stamina = require(script.Parent.StaminaTests).stamina
 Scenarios.team_bonus = require(script.Parent.StaminaTests).team_bonus -- design doc 4.8 (c2)
-Scenarios.workshop_boost = require(script.Parent.WorkshopBoostTests).workshop_boost -- design doc 4.19 (c4)
+Scenarios.powerups = require(script.Parent.PowerUpTests).powerups -- design doc 4.44, docs/POWERUP_SPEC.md
 -- docs/LEADERBOARD_SPEC.md section 4 retired: leaderboards removed from the plaza (design doc 4.16, owner 2026-11-01)
 Scenarios.duel = require(script.Parent.DuelTests).duel -- docs/DUEL_SPEC.md section 4
 Scenarios.shop_purchases = require(script.Parent.ShopPurchaseTests).shop_purchases -- docs/SHOP_PURCHASES_SPEC.md
@@ -12645,10 +11825,10 @@ Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
 Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
+-- design doc 4.25 "Build after join" (owner 2026-11-10): Tracks 6-10 after join, nearest first, hold until built
+Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading
 -- docs/CHARACTER_GACHA_SPEC.md "Tests": the 44-character cast plus the event-only characters
 Scenarios.catalog = require(script.Parent.CatalogTests).catalog
--- docs/WORKSHOP_SPEC.md "5b. Showcase": copies instead of scrap Money, showcase multi, VERSION 12 save, pedestals
-Scenarios.showcase = require(script.Parent.ShowcaseTests).showcase
 -- docs/WORLDS_SPEC.md section 1: on-demand cruise speed probe for RaceConfig.MAX_CRUISE (TestConfig.OnDemand)
 Scenarios.speed_probe = require(script.Parent.SpeedProbeTests).speed_probe
 -- docs/PANEL_ART_GIFTING_SPEC.md: cosmetic effects on the chassis, no mass/controls change, equip preserved
@@ -12659,7 +11839,7 @@ Scenarios.vehicle_effects = require(script.Parent.VehicleEffectTests).make({
 -- docs/WORLD_REDESIGN_SPEC.md sections 1, 2 and 7: the placeholder anime runner and the car scrap list
 Scenarios.runner = require(script.Parent.RunnerTests).runner
 Scenarios.scrap = require(script.Parent.RunnerTests).scrap
--- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout and the Dojo plots / Dojo squad
+-- docs/WORLD_REDESIGN_SPEC.md sections 3, 5 and 7: the world layout (Dojos removed, design doc 4.43)
 do
 	local world = require(script.Parent.WorldTests).make({
 		newFakeCharacter = newFakeCharacter,
@@ -12667,7 +11847,6 @@ do
 		polySeparation = spawnPolySeparation,
 	})
 	Scenarios.world_layout = world.world_layout
-	Scenarios.dojo = world.dojo
 	-- docs/TRACKS_AND_BIOMES_SPEC.md "Build order and tests" step 1 (a table, so Scenarios.Run never runs it)
 	Scenarios._trackChain = require(script.Parent.TrackChainTests).make({
 		partPoly = spawnPartPoly,

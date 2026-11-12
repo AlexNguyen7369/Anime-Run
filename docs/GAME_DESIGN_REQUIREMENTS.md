@@ -19,11 +19,11 @@ when all 3 are empty, or when the player loses a track to the NPC.
 1. Auto-spin characters (free, every `ROLL_INTERVAL` seconds) and discover them in the Index.
 2. Build a team of up to 3 characters (order matters).
 3. Start a run on the start pad: the team auto-runs Track 1, 2, 3 ... against each track's NPC rival.
-4. Each track won adds its pad value to the run's bank (UNBANKED).
+4. Each track won pays its pad value straight into Money as the team crosses that track's finish (checkpoint), with a short "Cashed out +$X" notice (owner 2026-11-10, replaces the run bank / UNBANKED).
 5. The run ends:
-   - **Team exhausted** (all 3 at 0 stamina): the bank is cashed out into Money; the player returns to the spawn.
-   - **Player stops** (Stop button, death, leave): the bank is cashed out.
-   - **Loss** (NPC reaches a track's finish first): the bank is emptied; loser screen; back to the start track.
+   - **Team exhausted** (all 3 at 0 stamina): the per-distance share of the current track (below) is paid into Money; the player returns to the spawn.
+   - **Player stops** (Stop button, death, leave): nothing more is paid; every track already won was paid at its finish.
+   - **Loss** (NPC reaches a track's finish first): loser screen; back to the start track. Money already paid at earlier checkpoints stays (owner 2026-11-10: there is no bank to empty).
 6. Each character runs at a fixed cruise speed (rarity x category, times the speed multi; 4.13). There is no Speed stat.
 7. Money buys upgrades; rebirth needs and resets Money for luck, speed and a stat point (4.14). There is no player level or XP.
 
@@ -34,12 +34,11 @@ when all 3 are empty, or when the player loses a track to the NPC.
 | Numbered, point-to-point track chain; each track starts on the previous finish; loops back to Track 1 after the last | `TrackBuilder`, `TrackValidator` |
 | Wide checkpoint area and WinPad at each finish; pad `Cash = PayoutCurve.Cash(n)` ($100 on Track 1, then x10 / x7.5 alternating) | `PayoutCurve` |
 | One NPC rival per track, client-side only, left lane; player wins if they reach the finish before the NPC's known time | `NpcRacer`, `NpcConfig` |
-| Banked money in NPC mode; loss empties the bank; cash-out on stop / death / leave | `RaceService` |
+| Each won track pays into Money at its finish with a cash-out notice (owner 2026-11-10; no run bank) | `RaceService` |
 | The runner holds exact cruise speed everywhere (no acceleration, no corner slowing) | `RaceService` rail |
 | Auto-roll every 3 s (placeholder), turbo luck every 10th roll x10 (placeholder), rarest-first roll check `min(1, luck / Chance)` | `GachaConfig` |
 | Index: discovering = owning; stat points from unique discoveries; allocations saved, points derived | `GachaService` |
 | Duplicates add `Copies` and pay no Money, unless sold (owner 2026-11-04, 4.36) | IVS 2026-10-22 |
-| Workshop plots (Dojos) and the Showcase of 3 characters (Dojo squad); chosen stat boost instead of passive gain (4.19) | `WorkshopService` |
 | Weather events (Rain, Night Race, Gold Rush, Clear, Aurora); 3 event-only characters, not rollable for now, listed in the Index as undiscovered tiles, kept in saves that own them (owner 2026-11-03) | IVS `docs/WEATHER_EVENTS_SPEC.md` |
 | Rebirth resets Money (4.14) | `RebirthService` |
 | Session-locked saves through `UpdateAsync` | `PlayerData` |
@@ -73,6 +72,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- A Stamina power-up (4.44, owner 2026-11-11) may push the running character past 100%: the seconds number shows
+  the extra, the bar stays full.
 - Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
   turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
   refills with a flash when the next runner tags in. Display only.
@@ -80,15 +81,16 @@ when all 3 are empty, or when the player loses a track to the NPC.
   current runner gets a clear animated indicator (enlarged, glowing ring, a bobbing marker); every portrait shows its
   stamina on a thick arc, with its stamina seconds left as a number (orchestrator default); tired runners grey out with
   an animation; the tag-in plays a short pop. The team bonus (4.8), if any, shows as a small badge on the row.
-- When the last character reaches 0 the run ends as a **soft end**: the bank is cashed out (owner 2026-10-28).
+- When the last character reaches 0 the run ends as a **soft end** (owner 2026-10-28).
   Exhaustion pays per distance (owner 2026-11-01): the track being run when the team tires adds
-  `PayoutCurve.Cash(n) x distance covered / track length` to the bank before the cash-out (share placeholder 1.0).
+  `PayoutCurve.Cash(n) x distance covered / track length` straight into Money, with the cash-out notice (share placeholder 1.0; no bank since 2026-11-10).
   Track lengths are unchanged; Track 1 is not shortened (owner 2026-11-01). Track 1 balance is fine as is: no retune of
   Common speed, stamina or Track 1 length (owner 2026-11-03).
 
 ### 4.4 Losing stays a speed comparison
 - The NPC's track time is fixed when the track starts; if the player's team reaches the finish later, the player loses.
   A swap to a slower character mid-track can turn a win into a loss: team order is part of the strategy.
+- Track power-ups (owner 2026-11-11, 4.44) change the team's speed and stamina on the way, so they count too.
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
@@ -139,10 +141,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
 - Only this remains: the save store is `PlayerStats_v2`; pre-scale test saves were wiped, older stores stay untouched.
 
 ### 4.10 World redesign (owner 2026-10-28)
-- Anime town plaza hub at the centre, 7 player plots (Dojos) around it, the track chain spiralling out from the hub's
+- Anime town plaza hub at the centre, the track chain spiralling out from the hub's
   start gate through the 10 biomes. Spec: `docs/WORLD_REDESIGN_SPEC.md`.
-- Player plots keep the workshop rules; the IVS Showcase becomes the Dojo squad: 3 owned characters not in the racing
-  Team (their effect: 4.19). A character is in the Team or the Dojo squad, never both.
+- Owner 2026-11-11: the plots and the Dojo squad are removed (4.43).
 
 ### 4.12 Track camera (owner 2026-10-31)
 - While the local player's runner is racing, the camera yaw follows the runner's direction of travel along the track,
@@ -228,26 +229,15 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
+  A Speed power-up (4.44) may run 1.5 x `MAX_CRUISE` for 3 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
+  (4.25) still catches a boosted runner, and a late biome switch during those 3 s is accepted (**proposed**, taken on the
+  owner's standing word 2026-11-11; see OWNER_QUESTIONS).
 - Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
   while walking. There is no speed look-ahead.
 
-### 4.19 Workshop stat boost (owner 2026-11-03; replaces the workshop / Dojo idle gain)
-- There is no passive gain: standing in the Dojo earns nothing, there is no offline workshop credit and no extra luck
-  while standing in the zone.
-- The player picks **one stat** for their workshop to boost: Money, Luck, Speed or Stamina. The choice is saved
-  (`WorkshopStat`, default Money) and can be changed at any time.
-- The boost % comes from the combined rarity of the 3 characters on the Dojo squad (the Showcase, WORLD_REDESIGN_SPEC
-  5): each character gives rarity points, Common 1, Uncommon 2, Rare 3, Epic 4, Legendary 5, Mythic 6, Secret 7; the
-  sum x 5% (placeholders) is the boost. 3 Commons = +15%, 3 Secrets = +105%. Empty slots give 0.
-  Copies do not count (proposed).
-- Workshop levels stay (bought with Money, same prices) and scale the boost: boost x (1 + 0.1 x (level - 1)) (proposed
-  placeholder; level 10 = x1.9).
-- The boost applies always, everywhere, runs included. It is added to the chosen stat like the upgrade tree bonus
-  (proposed): Money and Luck to their `1 + points + tree` part; Speed to the speed multi's `1 + points + tree` part
-  (cruise still capped at `MAX_CRUISE`); Stamina to the stamina multi's `1 + points + tree` part (4.6). Speed and
-  Stamina are fixed at run start, like every other run multi.
-- The `Workshop` stat point is retired: allocated Workshop points are refunded as free points.
+### 4.19 Workshop stat boost (owner 2026-11-03) - RETIRED 2026-11-11 with the Dojos (4.43)
+- Only this remains: the Money paid for workshop levels is refunded once at the first load after the change (4.43).
 
 ### 4.20 UI animations across the board (owner 2026-11-03)
 - Every player-facing UI animates. Display only; every animation goes through `Client/UiMotion`, so Roblox Reduced
@@ -257,7 +247,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
   - Buttons (HUD, panels, tabs): hover grows, press shrinks, release pops back (sizes stay the HUD layout rule's
     1.035 / 0.97, orchestrator default); disabled buttons do not move.
   - Tabs and selections: the active marker slides / tweens to the new tab; selected tiles pop.
-  - Numbers: HUD counters (Money, Unbanked) count up / down over ~0.3 s; panel numbers update at once so no number
+  - Numbers: HUD counters (Money, Gems) count up / down over ~0.3 s; panel numbers update at once so no number
     is ever shown wrong (orchestrator default).
   - Toasts, popups and banners: slide + fade in, hold, fade out; badges pulse while something is claimable.
   - Gameplay feedback stays readable: no animation hides a number or blocks input for more than ~0.2 s.
@@ -301,22 +291,28 @@ when all 3 are empty, or when the player loses a track to the NPC.
 
 ### 4.24 First impression: arrival, plaza and Dojo look (owner 2026-11-03)
 Display only; no gameplay number changes. Sizes, timings and positions are **proposed** placeholders unless stated.
-Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza and Dojos are drafted in Blender first and shown to the owner
+Spec: `docs/WORLD_REDESIGN_SPEC.md` section 7. The plaza is drafted in Blender first and shown to the owner
 before any Studio work.
 - **Loading screen**: the game's logo (`assets/logo/AnimeRunLogo.png`, owner's art) and a loading bar showing real
   progress. It does not finish until the assets a player sees first have loaded on their client (the plaza and Track 1
-  world ready; plaza, Dojo, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
+  world ready; plaza, sky and HUD assets and the characters on screen preloaded; content queue empty, at most 4 s
   of grace, proposed), and it stays up at least 8 seconds. Keep the load short; far biomes and other characters load
   behind the game. Safety limit 90 s (proposed): a stuck asset never traps a player. Shown on every join (proposed).
+  Backdrop (owner 2026-11-11, replaces the hybrid dusk scene of 2026-11-10): intro draft B3 "Distant crowd"
+  (`assets/ui/loading/SakuraGateBackdrop.png`, source `tools/intro_screen/`): the dusk sky and mountains, a red torii with
+  sakura branches, lanterns and falling petals, and a small crowd of roster characters beyond the gate in shadow and mist,
+  tinted into the scene with no cut-out outlines; it fills the screen behind the logo and the real loading bar; the bar is cyan
+  with a pink outline as in the draft. Sizes **proposed**.
 - **Reveal**: on a player's first join, a skippable camera sweep of about 5 s over the plaza, through the torii and down
   to the spawn. Reduced Motion replaces it with a cut.
 - **Starter pick**: stays a popup (4.21) with a lighter dim so the plaza shows behind it. The pick plays an in-world
   reveal: a petal burst and the chosen character's hero pose. The first auto-roll waits about 5 s (proposed) so its result card does not cover it.
 - **First goal**: a petal trail leads a new player from the spawn to the gate. The Daily panel does not open by itself until their
   first run ends (its button still works). The gate plays a burst when they first cross it.
-- **Legends and sky loop**: the plaza shows at most 2 Legend pedestals, in the summon wing (Two wings, owner 2026-11-10; was next to the Race Start gate), and 2-3 client-only runners with
-  trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
-- **Exclusive pedestal** (owner 2026-11-04, 4.35): one pedestal near the spawn advertises Saitamo. It does not count toward the 2 Legends and never hides a Dojo from the spawn (it is not a service building).
+- **Sky loop**: 2-3 client-only runners with trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
+  The 2 Legend pedestals are removed (owner 2026-11-10; the exclusive pedestal takes their place).
+- **Exclusive pedestal** (owner 2026-11-04, 4.35; moved 2026-11-10; moved again 2026-11-11 to the terrace's middle step, 4.43): one pedestal advertises Saitamo: its model on
+  the pedestal, a floating header with its rarity and hero name, and a prompt that opens the 999 Robux pass and shows 350 studs/s. Client-only.
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
   server's `Lighting` stays untouched.
@@ -324,13 +320,12 @@ before any Studio work.
   tell where they are and where to go. Each has a large bold sign on the landmark itself (Race Start: a banner on the
   torii; Market: a large flat sign on the Market itself, owner 2026-11-04, replacing the entrance arch). Race Start also has a floating bold label high above it, seen across the plaza; the Market's floating header follows the economy wing (Service headers, owner 2026-11-04; Two wings 2026-11-10).
   Labels show only on foot and hide up close (proposed for Race Start: within 20 studs, out to 260 studs).
-- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sidekicks (the summon altar, 2026-11-10), Sensei and Race Start, plus the YOUR DOJO marker, each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the economy wing: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
-- **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule): the Dojo ring, the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the 2 Legends on the gate side. The Sensei stands beside the gate. A service building may hide part of a Dojo from the spawn. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
+- **Service headers** (owner 2026-11-04): Index, Shop, Potions, Market, Sidekicks (the summon altar, 2026-11-10), Sensei and Race Start each float a bold white italic label with a dark outline over a coloured emblem behind the word. Display only. Sizes, colours, heights and distances are proposed. Market's header matches Index and the rest of the economy wing: just over its roof, same size and distances (owner 2026-11-04). Race Start keeps its label high above the landmark (Wayfinding); its distances stay as there. The flat signs stay.
+- **Two wings** (owner 2026-11-10, Layout C, `assets/plaza_draft/Layout_C.png`; replaces Clear plaza's service row, Best Roll gap, Legend placement and Dojo sight rule; **positions replaced 2026-11-11 by the Spawn showpiece ring, 4.43**): the spawn and the RACE START gate stay where they are. Facing the gate from the spawn, the economy wing is one straight row on the right, parallel to the spawn-gate path and facing it: Shop, Potions, Market, Index, from the spawn end toward the gate. The summon wing on the left faces the path too: the Sidekick summon altar (4.36) in the middle, Best Roll on the spawn side, the Saitamo exclusive pedestal on the gate side (owner 2026-11-10; was the 2 Legends). The Sensei stands beside the gate. Positions are in `docs/WORLD_REDESIGN_SPEC.md` section 4 and are **proposed** (tunable within this arrangement). The rest of Clear plaza still holds: no Rebirth shrine, one in-house Market stall, plain path, one Great Sakura, the sky loop.
 - **Clear plaza** (owner 2026-11-04; placement parts replaced by Two wings 2026-11-10): the Rebirth shrine is removed (Rebirth opens from its HUD tile). The Market is one in-house stall with no empty structures and no art from the fork. Repeated decoration is removed: the path is plain, with the RACE START torii and 4 stone lanterns framing its gate end (no banners); one Great Sakura is the only plaza tree. The sky loop stays.
 - **Fresh-save checks** (dev tool, Studio only; orchestrator default): the attribute `TestSaveKey` plays a Studio session on a separate save and skips leaderboards, so first-join checks never touch a real save. It has no effect on a live server.
-- **Dojos**: unowned plots show a closed dojo with a small sign, not a bare slab. An owned Dojo's look changes with its
-  level at 4 tiers (proposed: levels 1, 4, 7, 10), with a short effect on level-up. Squad members play idle training
-  poses, lanterns take the colour of the chosen `WorkshopStat`, and a marker shows the player's own Dojo on first join.
+- **Dojo with cyber accents** (owner 2026-11-10, after rejecting the full cyber and the hybrid Studio builds; replaces the "Enclosed cyber dojo" of the same day): no enclosed area, no wall and no blast door. The plaza keeps its look (golden-hour lighting, the Great Sakura, stone lanterns, petals and forest ambience, the wood torii, the stalls as built, the building positions (the showpiece ring since 4.43), wayfinding, service headers and sky loop). Hybrid cyber elements are added on top: neon trim on the torii and stall roofs, small wall screens on the stalls, a holo scanning ring at the RACE START gate, and a few warm-lit drones. Owner approved the accents from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG); sizes, colours and amounts stay **proposed**.
+- **Spawn showpiece** (owner 2026-11-11): the Dojos are gone; the freed ring's new use is in 4.43.
 
 ### 4.27 Phone and tablet HUD (owner 2026-11-03)
 - Phone and tablet HUDs shrink; desktop never does (owner 2026-10-28, confirmed for Anime Run 2026-11-03). The Auto / Upgrade pair (4.40) may shrink on 4:3 tablets.
@@ -339,8 +334,8 @@ before any Studio work.
 - Test rule: a roll that plays behind the loading screen still counts, but its animation timing is not judged, because no player sees it.
 
 ### 4.25 Track loading (owner 2026-11-03)
-- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. Spec to be written before code: a run must never reach a track that is not built yet (details **open question**).
-- Proposed answer (orchestrator, 2026-11-10, awaiting the owner): Tracks 6-10 build one per frame right after terrain starts, nearest the players first (a track a player is on or headed to jumps the queue). A run that would start on, or a runner who would cross into, a track not built yet holds at the spawn gate or that finish line, with a "Loading next track" label, until it is built; nothing is paid or lost while holding. Today the server builds all 10 tracks before terrain starts (`Main.server.luau`), which adds to the fresh-server load.
+- The server builds Tracks 1-5 before a player can load in. Tracks 6-10 then build behind the game, nearest the players first. A run must never reach a track that is not built yet.
+- Build after join (owner 2026-11-10): players can join once Tracks 1-5 are built; Tracks 6-10 then build one per frame, nearest the players first (a track a player is on or headed to jumps the queue). A run that would start on, or a runner who would cross into, a track not built yet holds at the spawn gate or that finish line, with a "Loading next track" label, until it is built; nothing is paid or lost while holding. Label text and timings are **proposed**.
 
 ### 4.26 Track enemies (owner 2026-11-03; replaces the 2026-10-28 rival list)
 - Every track's NPC is an enemy (a villain) from the anime of that track's biome, with a tweaked name (section 5). Cast
@@ -369,7 +364,7 @@ before any Studio work.
   Aizon. Preset trio: Ichigu, Rukiya, Renjy. Ulquiorro is also Track 9's enemy and shares its model. Cast and rarity are the
   owner's; `Chance`, `SpeedMulti` and `Category` are placeholders inside the existing bands. Spec: `CHARACTER_GACHA_SPEC.md`.
 - Art direction, marks and likeness follow section 5. Evidence per character: `docs/char_evidence/`.
-- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`): the 2 Legends stay `db_hero` and `mha_symbol` (4.24).
+- No plaza Legend for this Series (owner 2026-11-04, relayed by `animerun-b3`). The Legend pedestals were removed 2026-11-10 (4.24).
 
 ### 4.32 Villains are rollable (owner 2026-11-04)
 - The track enemies are also rollable characters in their anime's Series, under section 5's rules and look, redesigned with the
@@ -486,7 +481,7 @@ before any Studio work.
 - Extra Roll I and II: +1 roll each per roll tick (3 in total).
 - 2x Money: doubles race payouts.
 - Lucky and ULTRA Lucky: +1 and +2 Luck, added to the additive Luck part (+3 with both, **proposed**).
-- Dojo Master: workshop boost x1.5. It replaces the Gold, Diamond and Void Workshop passes, which are removed.
+- Dojo Master: removed 2026-11-11 with the Dojos (4.43), off sale; it had replaced the Gold, Diamond and Void Workshop passes, also gone.
 - Deep Stamina: +25% stamina, added to the additive stamina part (4.6).
 - + Inventory: +100 bag spaces (4.36).
 - Saitamo (999 Robux): an exclusive runner, only from this pass, never rolled, based on a real character under section 5. No license exists. The owner knows it is a close likeness sold directly through its own pass and advertised at the spawn, and accepts the takedown risk, which can remove the whole game (owner 2026-11-05). Base cruise 350, Balanced, Mythic look and stamina (**proposed**), no Series, not in the Index (**proposed**).
@@ -498,6 +493,11 @@ before any Studio work.
 - A new Auto button takes the bottom slot Items left, beside Upgrade. Its icon is the owner's green play triangle inside two circling arrows, label "Auto". The top-right row is Daily, Market, Settings.
 - Auto state (owner 2026-11-05, replaces the grey icon and pulsing ring): the icon is green in both states; while auto race is on, its arrows spin around the still triangle. No spin during the 1 s press lock. It only asks: the server decides (`Remotes.SetAutoRace`).
 - A roll gets the big popup (emphasized view and server announcement, `GachaConfig.IsEmphasized`) only when the character is undiscovered and at least 100 times rarer (`EMPHASIS_MULTI`) than the player's 3rd-rarest discovered character (`EMPHASIS_RANK`). With fewer than 3 discovered, the bar is 100 times the starter, which counts as 1 in 1: 1 in 100. The first 3 discoveries no longer pop up automatically. This replaces the earlier rule of "rarer than the 5th-rarest; any new character below 5 discovered".
+- Icon style (owner 2026-11-10, third pick of the day; replaces the Gold badge): "Tab tilt", rendition 4 of https://claude.ai/artifact/5QMx5w44ZWhRhMXkNxqJty: each HUD icon is today's object standing on a slanted cyan art tab, the same shape as the Index's tabs and header strip, keeping each object's colour. No tile frame and no badge. Covers Index, Items, Rebirth, Quests, Shop, Auto, Upgrade, Daily, Market, Settings, Stats, Gem and Boss (the Boss icon is the purple horned mask). The label sits under the icon (white, dark outline).
+- Turbo bar and Team minibar (owner 2026-11-10, replaces the gold Turbo and minibar look of the same day): both keep their look from before that change, except the minibar stamina arc, which stays a smooth curved band with both ends cut on a slant, a curved parallelogram (owner 2026-11-10; slant about 30 degrees off the radial, **proposed**). Sizes, positions and behaviour unchanged.
+- HUD layout (owner 2026-11-10, "split L/R"; replaces the gold frame tiles and the L2 block of the same day): one column on the left edge holds Index, Items and Rebirth, top to bottom; one column on the right edge holds Quests, Shop and Market. Daily and Settings stay as the top-right pills, Auto and Upgrade stay as the bottom pair beside the LEVEL / TURBO LUCK bars, all with the Tab tilt icons. The red count badge stays at the icon's top-left. Panels (4.42) centre between the two columns, 8 px clear of each. Phones shrink both columns (4.27). Keybind letters stay (owner 2026-11-10): each column button shows its key letter at its top-right (white heavy text, dark outline), and on keyboard that key opens the panel, the same as a click, only while the button could be clicked: Index X, Items B, Rebirth R, Quests Q, Shop P, Market M (not S and I: S walks backward, I zooms). Letters show only when a keyboard is in use. No NEW tag. Sizes and gaps are **proposed**. Owner approved the Tab tilt icons and this layout from Studio screenshots 2026-11-10 (https://claude.ai/artifact/R2rirais8VST2kr1PcKjwG). During a boss event (the local player in the event) both columns hide; the Daily and Settings pills, Auto and Upgrade and the event UI stay (owner 2026-11-10).
+- Market pill and Bosses button (owner 2026-11-10, after approving split L/R): Market leaves the right column and becomes a top-right pill styled exactly like the Daily pill (small icon and text, no Tab tilt icon), so the top-right row is Daily, Market, Settings; the right column holds Quests and Shop. Its key letter M stays. The Bosses button (top-left) takes the proposed Boss icon (the Tab tilt purple horned mask, `HudIcons.Boss`) in the same Tab tilt style as the column buttons, with its label under it; its behaviour is unchanged. Sizes **proposed**. Owner approved from Studio screenshots 2026-11-10 (https://claude.ai/artifact/BXmkHjXQaPcXy4xod9fPKD). The Bosses button uses the column buttons' exact cell, icon and label sizes, phone scale included (owner 2026-11-11). At that size it no longer fits in Roblox's top bar, so it sits just below the top bar (gap 6 px, **proposed**), left-aligned with the left column when it fits above the column with room for its pulse. Where it would reach the left column (phones, short desktop windows) it starts right of Roblox's buttons instead (TopbarInset.Min.X plus the gap, never over the column) (owner 2026-11-11). It stays clear of the left column, the Money / Gems readout and the roll at the top centre.
+- Money and Gems counters (owner 2026-11-10): no dark box or border behind Money or Gems; the Gems counter sits directly under the Money counter (bottom-left); the UNBANKED line is removed. Each checkpoint payout shows a short "Cashed out +$X" notice by the Money counter as the Money counts up. Sizes and timing **proposed**.
 
 ### 4.41 Character bag and auto sell (owner 2026-11-04)
 - The bag holds 80 characters. + Inventory adds 100. A new upgrade tree Inventory branch adds 50 per tier (5 tiers, **proposed**). Every copy takes 1 space.
@@ -511,12 +511,15 @@ before any Studio work.
 - Sale prices are not scaled by Money multis. Spec: `docs/BAG_AND_AUTOSELL_SPEC.md`.
 
 ### 4.42 Anime panel look: Index and Quests (owner 2026-11-09)
-- The Index panel wears a collaborator's anime skin (Issac, made in Studio, synced 2026-11-09): a framed body image, a raised banner with the panel's HUD icon as a big logo and a heavy italic title, slanted art tabs, an art close button, angular rarity-tinted cards and a footer line. Code: `Client/IndexAnimeStyle` (art ids and text treatment), `IndexAnimeController`, `IndexHudAppearance`.
+- The Index panel wears a collaborator's anime skin (Issac, made in Studio, synced 2026-11-09): a framed body image, a raised banner with the panel's HUD icon as a big logo and a heavy italic title, slanted art tabs, an art close button, angular rarity-tinted cards and a footer line. Code: `Client/IndexAnimeStyle` (art ids and text treatment), `IndexAnimeController` (`IndexHudAppearance` removed 2026-11-10: every HUD button takes the same tile, 4.40).
 - Quests uses the same look with the same art and text treatment (owner 2026-11-09): the Quests logo and title in the banner, DAILY and WEEKLY as art tabs, quests as slanted plates tinted by state (ready, in progress, claimed), the detail on an angular card, and a footer counting ready and claimed quests. Same footprint and proportions as the Index. Code: `Client/QuestAnimeStyle`. The Daily rewards view of the same panel keeps its current look.
 - Display only: the server still decides every quest number and claim.
 - Game-wide (owner 2026-11-10, after approving Quests): every panel and popup takes the same look, boss event UI included. Shared parts in `Client/AnimeSkin`: the framed body art, the slanted header strip with the panel's HUD icon as an overhanging logo and the heavy italic white title with a dark outline, the art close button, art tabs, Index-style action buttons and angular cards tinted by rarity or state. This replaces the PanelFrame gradient headers and the single red close of the UI audit. Index and Quests keep their own exact layouts.
 - Spacing standard (owner 2026-11-10, approved from `docs/UI_SPACING_AUDIT.md` section 3; replaces "layout stays as it is"). Desktop px on a 4 px grid; phones scale the same tokens (`Client/AnimeSkin` Space and Size):
   - One frame for every panel and popup: the Index's exact frame (owner 2026-11-10, second review, replaces the full-width strip header): 920 x 620 design units fitted in the band, the chrome art, the 188 x 186 logo overhanging the top-left, the slanted ALL CAPS title, the art close at the top-right, art tabs in the row at y 98, content 56 in from the sides from y 164 to 82 above the bottom, the count line on the footer plate. `Client/AnimeSkin.IndexFrame`; the approved Quests and Stats are the model. Text in the same units (Title 72, Section 40, Item 34, Body 28, Caption 22, Tab 22, Footer 20), one family: heavy italic with the dark outline for Title, Section, Item, Tab and Footer; upright bold with no outline for Body and Caption. The Upgrades tree keeps its first-pass look with no header (owner 2026-11-10). Shop gamepass art fills its card between the name and the buttons.
+  - Panel size (owner 2026-11-10, "increase overall HUD size"): the band a panel fills reaches 24 px above the hidden Race anchor and 4 px above the TURBO bar (`Client/PanelBand` REACH_UP / REACH_DOWN, placeholders), still 8 px clear of the icon grid and the Shop column; the Index frame's aspect sets the width from that height.
+  - Wider panels (owner 2026-11-10, "extend all HUDs in length", option A; replaces the 920 x 620 aspect above): every panel and popup frame is 1200 x 620 design units, the same height and 1.3 x wider, one fixed aspect. The chrome art stretches by 9-slice or is redrawn at the new aspect. Card grids gain columns (Index and Backpack go from 5 to 7, **proposed**). It stays 8 px clear of the icon grid and the Shop column. Where it cannot, the height shrinks to keep the aspect. Index and Quests keep their layouts, only wider.
+  - Index cards: no category letter circle (owner 2026-11-10); the odds and the speed multi read at 14 px in the card's heavy font. Stats rows: name on one line, the rule and the multi on the next in the Item font, the accent bar under them, 12 of padding, 24 clear of the plate's slanted ends.
   - Header 64 tall; logo 90 overhanging up-left; title ALL CAPS, 38 px, heavy italic, after the logo; close 52 px, 6 px from top and right.
   - Tabs, sort, search and counters sit in one 40 px toolbar row under the header, never in the strip. Art tabs of one height; text 14 px or more.
   - Insets: 16 left and right, 12 header to toolbar, 12 toolbar to content, 16 bottom (24 where a control sits at the bottom-left, clear of the stripe art).
@@ -524,6 +527,37 @@ before any Studio work.
   - Five text sizes: 38 title, 26 section heading, 20 item name, 16 body, 13 caption. Section headings gold; names and body white; captions soft white. Nothing under 13 px; no outline under 16 px.
   - List panels put their count line in Index's footer bar, not floating text.
   - A scroll list never cuts a card at the frame: it ends on a whole row or fades over 16 px; scrollbar 8 px inside the frame.
+
+### 4.43 Dojos removed; Spawn showpiece (owner 2026-11-11)
+- The Dojos are removed entirely: the 7 player plots, the Dojo squad (the Showcase of 3 characters), workshop levels and the workshop stat boost, the WORKSHOP panel and its plot prompt, `WorkshopService`, the YOUR DOJO marker and the Dojo Master pass. This replaces the plots of 4.10, all of 4.19 and the Dojo parts of 4.24.
+- Refund (fixed, not a placeholder): at the first load after the change, a save with `WorkshopLevel` above 1 gets Money += the sum of `PayoutCurve.Cost(500, level - 1)` for levels 2 to `WorkshopLevel` (level 5 = 10,336,500), once. The save goes from VERSION 18 to 19; `WorkshopLevel`, `WorkshopStat` and `Showcase` are dropped at the next save.
+- Dojo Master is removed and taken off sale in the Creator Dashboard by hand. Its id 2071362782 stays as a comment in `MonetizationConfig` and `tools/monetization/create_products.py` and is never reused.
+- Max Players stays 7: the boss arena lanes need it (4.37).
+- **Spawn showpiece** (owner picked draft C "Terrace, wide court" 2026-11-11 from 3 Blender drafts, per 4.24; built the same day): the freed ring round the spawn becomes a raised landmark at (0, 0). A 3-step stone terrace of radius 26, 20 and 14 (each step 0.8 tall, top at y 3.4) carries the SpawnLocation and the walk spawn on its top step, the spawn disc with a neon rim, a petal moat (radius 10 to 13.4) with 8 bloom jets and 8 small lanterns, and the Saitamo exclusive pedestal (4.35) on the middle step at (11.6, 12.5), facing the spawn. The six service buildings stand on a ring of radius 84, one slot every 45 degrees counted from the gate's angle, the slot on the gate axis and the one before it empty, every front facing the spawn: Shop (-83.9, -3.1), Potions (-57.2, -61.6), Market (3.1, -83.9), Index (61.6, -57.2), Best Roll (83.9, 3.1), Sidekick altar (57.2, 61.6). Unchanged: the gate pad (-84, 78), the torii and its 4 lanterns, the Sensei (-80.0, 57.9), the Great Sakura (80, 118), the sky loop, the floor (188 x 220). The path's stones start past the terrace (27 studs out); the spawn mosaic is retired (the terrace's disc replaces it). Sizes are **proposed**; the arrangement is fixed.
+  - The other drafts were A "Fountain spawn, wings kept" and B "Ring court" (ring radius 60). The draft had C's ring at 88, where the Shop and Best Roll backs touched the floor edge (x +-94), so the build pulled it in to 84. The draft script `draft_showpiece.py` was removed with the pick (git history holds it).
+  - This replaces the Two wings positions of 4.24; everything else in 4.24 stays.
+- Tests `dojo`, `workshop`, `workshop_phase2`, `workshop_boost`, `showcase`, `ui_workshop_modal` and `ui_workshop_showcase` are retired; a `data` check covers the refund.
+
+### 4.44 Track power-ups (owner 2026-11-11)
+- Power-ups lie on the runner's path on all 10 tracks. A track win is no longer only the team's cruise against the
+  NPC's fixed time (4.4): power-ups picked up on the way count too. Spec: `docs/POWERUP_SPEC.md`.
+- Per player: each player gets their own set; other players never see or take them. The server rolls the set and
+  decides every pickup; the client only draws them.
+- Every placed power-up is on the runner's path and is always picked up (no steering, no misses; owner 2026-11-11).
+- Count scales with track length: about 1 per 1,000 studs (**placeholder**; Track 1 about 3, Track 10 about 22).
+- Two types for now:
+  - **Speed**: x1.5 cruise for 3 seconds. This boost may pass `MAX_CRUISE` (800) for those 3 seconds (owner
+    2026-11-11). It is the one timed exception to "the runner holds exact cruise everywhere" (3) and "cruise fixed
+    for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in 4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
+  - **Stamina**: +5 seconds of running for the character running at pickup. It may go past a full bar: the seconds
+    number on the team row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
+- Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a
+  **run-through ring** standing across the runner's lane (draft I4); the runner runs through it. Speed is orange with
+  chevrons inside, Stamina the stamina bar's blue with a drop. Idle (owner 2026-11-11): the rim's
+  pattern turns slowly and the glow breathes; REDUCED EFFECTS keeps only the turn.
+- HUD (owner 2026-11-11, draft H2): an active Speed boost shows as a badge on the running portrait's top-right corner
+  with a ring that drains over the 3 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
+- Never saved. Not a paid item and never pays Money.
 
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
@@ -577,17 +611,30 @@ before any Studio work.
 
 - Rojo project, Luau, `--!nonstrict`, tabs, same layout as IVS (`src/shared`, `src/server`, `src/client`).
 - Save (`PlayerData` VERSION 1): `Money`, `Speed`, `Characters` (sorted owned ids), `Copies`, `Team = { id1, id2, id3 }`,
-  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `Showcase`, `WorkshopLevel`, `AutoSell`, `AutoSellChance`. Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
+  `Rolls`, `StatAlloc` (incl. `Stamina`), potion counts, `Rebirths`, `AutoSell`, `AutoSellChance` (`Showcase`, `WorkshopLevel` and `WorkshopStat` dropped 2026-11-11, 4.43). Unknown ids are kept. Stamina is never saved. Pass ownership is never saved: Roblox owns it.
   Boss-event fields (owner 2026-11-04): `docs/BOSS_EVENT_SPEC.md`.
 - The server owns stamina, swaps, the race result and every payout. Clients see attributes and remote events only.
-- Join size (**proposed**, orchestrator 2026-11-10, awaiting the owner): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
+- Join size (owner 2026-11-10): large client-only data that a player needs only in a later phase (the boss pose data `BossRagaPoses`, 264 KB, and the Sidekick attack frames `SidekickAttacks`, 255 KB) is not required at join. It loads on the first boss event or summon reveal that needs it. Generated modules keep their tests as their contract.
 
 ## 8. Open questions (owner)
 
 None open here; 4.25 marks its own open question.
 
 ## Change log
-- 2026-11-10: owner: the Sidekicks stall becomes a summon altar whose top shows the current rotation's Mythic model, turning slowly (4.36); owner: plaza Layout C, Two wings, replacing Clear plaza's service row, Best Roll gap, Legends beside the gate and the Dojo sight rule (4.24, WORLD_REDESIGN_SPEC 4). Orchestrator proposals, not yet rules: Tracks 6-10 build behind the game with a finish-line hold (4.25), late-phase client data loads on first need (7).
+- 2026-11-11: owner: track power-ups on all 10 tracks, per player, always picked up, about 1 per 1,000 studs; Speed x1.5 for 3 s that may pass `MAX_CRUISE`, Stamina +5 s that may overfill the seconds but not the bar; a win now counts power-ups too; look: a run-through ring that turns and glows, HUD draft H2, a badge on the running portrait (4.3, 4.4, 4.44, POWERUP_SPEC).
+- 2026-11-11: owner picked Spawn showpiece draft C "Terrace, wide court"; built: a 3-step terrace under the spawn with the Saitamo pedestal on it, the six service buildings on a ring of radius 84 facing the spawn (4.43; the Two wings positions of 4.24 replaced; WORLD_REDESIGN_SPEC 4 and 7).
+- 2026-11-11: owner: Dojos removed entirely (plots, Dojo squad, workshop boost and levels, WORKSHOP panel, Dojo Master off sale); paid workshop levels refunded once (save VERSION 19); the freed ring becomes a Spawn showpiece, 3 Blender drafts first (4.43; 4.10, 4.19, 4.24 and the passes list edited).
+- 2026-11-11: owner: the loading screen backdrop is intro draft B3 "Distant crowd" (Sakura gate with a small blended roster crowd), replacing the hybrid dusk scene (4.24 Loading screen).
+- 2026-11-11: owner: the Bosses button takes the column buttons' exact cell, icon and label sizes and moves just below Roblox's top bar, left-aligned with the left column, or right of Roblox's buttons where it would reach the column (phones, short windows) (4.40).
+- 2026-11-10: owner: the loading screen uses the hybrid draft: its dusk scene fills the screen behind the logo and the real loading bar, and the bar turns cyan with a pink outline (4.24 Loading screen).
+- 2026-11-10: owner: no run bank; each won track pays into Money at its finish with a "Cashed out" notice, a loss keeps earlier payouts (3, 4.x run end); Money and Gems lose their boxes, Gems sits under Money, UNBANKED removed (4.40).
+- 2026-11-10: owner: Market becomes a top-right pill like Daily; the Bosses button takes the Tab tilt Boss icon (4.40).
+- 2026-11-10: owner, last pick of the day: no enclosed area; the plaza keeps its dojo look with hybrid cyber accents (4.24 Dojo with cyber accents). HUD icons become "Tab tilt", layout split L/R (Index, Items, Rebirth left; Quests, Shop, Market right); keybind letters, the 1200 x 620 panels and the parallelogram stamina arc stay; the gold Turbo and minibar look is dropped (4.40). Owner, same day: during a boss event both HUD columns hide; the pills, Auto and Upgrade and the event UI stay; Leave keeps its place (4.40, BOSS_EVENT_SPEC).
+- 2026-11-10: owner, later the same day: the HUD tile, Gem and Boss icons become the Gold badge rendition (gold octagon badge, navy inside), replacing "today's art, no badge"; the Turbo bar and Team minibar restyle to the HUD tiles' gold rim, navy inside and outlined white text, look proposed; the left-block tiles show keybind letters and open on Index X, Items B, Rebirth R, Quests Q, Shop P, Market M, keyboard only, replacing "no keybind letters"; the minibar stamina arc becomes a curved parallelogram, a smooth band with both ends cut on a slant, replacing the round ends, slant proposed (4.40).
+- 2026-11-10: owner: the boss exhaustion view's eye rises to 160 studs over the runner (was 80), clearing the outer arch posts (BOSS_EVENT_SPEC "Exhaustion view"); `IndexHudAppearance` removed from the 4.42 code list.
+- 2026-11-10: owner approved the boss audit: the flat low-graphics boss image is removed (no duplicate Raga, 4.37), the running camera turns 75 deg inward and 26 deg up with the eye at least 6 studs over the deck, and Big Raga is drawn at 0.75 x (`BossScale`, proposed), the scream's close camera scaled with it (BOSS_EVENT_SPEC "Arena").
+- 2026-11-10: owner: the 2 Legend pedestals are replaced by the Saitamo exclusive pedestal at the summon wing's gate end, with a rarity and hero-name header and a prompt to the 999 Robux pass (4.24, 4.35, WORLD_REDESIGN_SPEC 4 and 7, MONETIZATION_SPEC Saitamo).
+- 2026-11-10: owner: the Sidekicks stall becomes a summon altar whose top shows the current rotation's Mythic model, turning slowly (4.36); owner: plaza Layout C, Two wings, replacing Clear plaza's service row, Best Roll gap, Legends beside the gate and the Dojo sight rule (4.24, WORLD_REDESIGN_SPEC 4). Owner, same day: Tracks 6-10 build after players join, nearest first, with a hold at the gate or finish line (4.25); boss poses and Sidekick attack frames load on first need, not at join (7).
 - 2026-11-06: owner: boss arena ring radius 550, replacing 850, with Big Raga's size unchanged and its dais lower; the scream cutscene is 6 s, zoomed in, with the screen dimmed; the exhaustion view is zoomed in a lot; Phase 2 is darkish, with no red tint after the owner removed it the same day, and a bold red title; auras and trails more visible in the event (4.37, BOSS_EVENT_SPEC).
 - 2026-11-06: owner: characters act individually with their own projectiles and damage numbers coloured by rarity, replacing one team damage (2026-11-05) and red and yellow numbers; Raga grows 25% in the scream cutscene; exhausted teams skip to the cutscene and revive after it; the wheel spins very fast then stops abruptly; FOV locked for the whole event; no duplicate Raga on attacks; white motes in the arena (4.37).
 - 2026-11-06: owner: boss Phase 2 (Fully Adapted Raga), team runs in a line with no revive until an 8.5 s team timer, 7,500 HP per player, stacking statuses of 15 s and 20 s, Slice 15% and 30%, Vulnerable, 5% damage for rewards, chests, rewards popup, 100,000 Money, 1,000 Gems as a fifth Gem source, art for every Relic (4.35, 4.37, 4.38, BOSS_EVENT_SPEC, RELIC_SPEC).
@@ -672,6 +719,7 @@ None open here; 4.25 marks its own open question.
 - 2026-11-10: owner: the Index anime look goes game-wide, boss event UI included (4.42).
 - 2026-11-10: owner: spacing standard for every panel: one header, toolbar row, 16/12 insets, five text sizes, footer bar (4.42, `docs/UI_SPACING_AUDIT.md`).
 - 2026-11-09: owner: the Index anime skin is recorded, and Quests takes the same look (4.42).
+- 2026-11-10: owner: panels 1.3 x wider at 1200 x 620 (4.42); spawn becomes an enclosed cyber dojo that hides the tracks until racing, and its theme reaches the player Dojos and the loading screen (4.24); boss Team HUD in the Versus look and rewards popup as the R1 Victory banner (BOSS_EVENT_SPEC). Button icons: original art in gold-frame tiles (not colour coded) and the L2 left block layout (4.40).
 - 2026-11-09: owner: auto sell lives in Settings only, the roll view and under-roll buttons are removed; a sold roll shows no sale UI, only the Money gain (4.41).
 - 2026-11-05: owner: boss start: team saved from the last event, average stamina on the team HUD, X to close with at least 1 character, red warning, display-only team run, Edit Team button, jump and smoke cutscene with the fight at 3 s, no team edits for late joiners, 5,000 HP per player, event timer, red and yellow animated damage numbers (4.37).
 - 2026-11-05: owner: playtest notes: Big Raga's rise is 1.5 s, replacing 2-3 s; Bosses button and popup; separate event roster on the minibar, greyed with a revive fill during the wait (4.37). Sidekick and Relic click menu, character picker, sale confirmation (4.36). Relics sell for Money; Index Relics page (4.38). Auto icon stays green, arrows spin when on (4.40). Red fading BAG FULL text replaces the banner; click and mass sell of spares (4.41).

@@ -13,7 +13,7 @@ local PASS_IDS = {
 	money_2x = 2071590457,
 	luck_1 = 2071600457,
 	luck_2 = 2071522505,
-	dojo_master = 2071362782,
+	-- dojo_master 2071362782: Dojo Master, removed 2026-11-11 (design doc 4.43); id kept here so it is never reused
 	deep_stamina = 2071540479,
 	inventory = 2067308486,
 	exclusive_runner = 2067692445,
@@ -44,7 +44,6 @@ MonetizationConfig.Gamepasses = {
 	pass("money_2x", "2x Money", 249, "Doubles race payouts!", GOLD, "Shop"),
 	pass("luck_1", "Lucky", 149, "Permanent +1 Luck!", LIME, "Stats"),
 	pass("luck_2", "ULTRA Lucky", 299, "Permanent +2 Luck!", VIOLET, "Stats"),
-	pass("dojo_master", "Dojo Master", 299, "Workshop boost x1.5!", GOLD, "Upgrade"),
 	pass("deep_stamina", "Deep Stamina", 199, "+25% stamina for your team!", SKY, "Stats"),
 	pass("inventory", "+ Inventory", 199, "+100 bag spaces!", MINT, "Items"),
 	pass("exclusive_runner", "Saitamo", 999, "Exclusive runner: 350 studs/s!", VIOLET, "Index"),

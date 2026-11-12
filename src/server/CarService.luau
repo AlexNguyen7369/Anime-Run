@@ -450,14 +450,11 @@ function CarService.PadTouched(player, hit)
 	return CarService.SetAutoRace(player, true)
 end
 
--- A new avatar (join or respawn) is always on foot in the spawn area: any car left is removed (its run cashes out).
+-- A new avatar (join or respawn) is always on foot in the spawn area: any car left is removed (its checkpoints were paid as they were won).
 function CarService.OnCharacter(player, character)
 	adopt(player, character)
 	local gen = setState(player, false)
 	removeCar(player)
-	if player:GetAttribute("Unbanked") == nil then
-		player:SetAttribute("Unbanked", 0) -- the HUD's UNBANKED row reads it from the start
-	end
 	character:WaitForChild("HumanoidRootPart")
 	if generation[player] ~= gen then
 		return

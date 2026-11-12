@@ -36,7 +36,7 @@ local CATEGORY_COLORS = {
 local PORTRAIT_FIT = 0.72 -- view height, as a share of feet-to-head height
 local PORTRAIT_DROP = 0.2 -- camera aim below the head, same share
 local CARD_PORTRAIT_HEIGHT = 0.75 -- drawn portrait's height on a card (placeholder): keeps the face above the card's text
-local INDEX_COLUMNS = { Desktop = 4, Phone = 3 }
+local INDEX_COLUMNS = { Desktop = 7, Phone = 3 } -- design doc 4.42 "Wider panels": 7 across (proposed)
 local INDEX_GAP = 12
 local INDEX_CELL_HEIGHT = 168
 local ICONS = {
@@ -758,19 +758,7 @@ function Components.BindStats(refs, config)
 		local row = list:WaitForChild(stat)
 		rows[stat] = { Frame = row, Value = row.Value, Plus = row.Plus }
 	end
-	local function fit()
-		local phone = workspace.CurrentCamera.ViewportSize.Y <= 500
-		for _, row in pairs(rows) do
-			row.Frame.StatName.TextSize = phone and 17 or 21
-			row.Value.TextSize = phone and 13 or 15
-			local description = row.Frame:FindFirstChild("Description")
-			if description then
-				description.TextSize = phone and 12 or 15
-			end
-		end
-	end
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
-	fit()
+	-- Text sizes come from the Index-frame roles in RacerUiController (design doc 4.42); nothing here overrides them.
 	return rows
 end
 

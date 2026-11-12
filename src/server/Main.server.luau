@@ -32,7 +32,6 @@ local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local RaceService = require(script.Parent.RaceService)
 local UpgradeService = require(script.Parent.UpgradeService)
-local WorkshopService = require(script.Parent.WorkshopService)
 local WeatherService = require(script.Parent.WeatherService)
 local MarketService = require(script.Parent.MarketService)
 local RebirthService = require(script.Parent.RebirthService)
@@ -43,6 +42,7 @@ local CheckpointService = require(script.Parent.CheckpointService)
 local QuestService = require(script.Parent.QuestService)
 local ShopService = require(script.Parent.ShopService)
 local LeaderboardService = require(script.Parent.LeaderboardService)
+local TrackBuild = require(script.Parent.TrackBuild)
 
 -- Props with a Mesh def load it from the asset ledger, or fall back to parts (docs/BIOME_ENVIRONMENT_SPEC.md 4.2)
 BiomeDressing.Assets = require(script.Parent.BiomeAssets)
@@ -55,19 +55,33 @@ local folder = Instance.new("Folder")
 folder.Name = "Track"
 folder.Parent = Workspace
 
+-- Build after join (design doc 4.25): every track's layout now (pure maths: the route, terrain shape and baseplate
+-- span the whole chain), the models of Tracks 1-5 before the join and the rest behind the game (end of this script).
+local JOIN_TRACKS = 5
 local entries = {}
 local origin = TrackBuilder.CHAIN_ORIGIN
 for _, spec in chain do
-	local model, layout = TrackBuilder.Build(spec, origin)
+	local layout = TrackBuilder.Layout(spec)
+	table.insert(entries, { Layout = layout, Origin = origin, Number = spec.Number, Biome = spec.Biome, Spec = spec })
+	TrackBuild.SetPending(spec.Number, true)
+	origin = TrackBuilder.EndCFrame(layout, origin)
+end
+
+local function buildTrack(entry)
+	local spec = entry.Spec
+	local model, layout = TrackBuilder.Build(spec, entry.Origin)
 	model.Name = spec.Name
 	-- an enclosed tunnel over the road when the biome has one (docs/BIOME_ENVIRONMENT_SPEC.md 3.5), before Prune
-	local tunnel, tunnelParts = Tunnel.Build(model, layout, BiomeThemes[spec.Biome], origin)
+	local tunnel, tunnelParts = Tunnel.Build(model, layout, BiomeThemes[spec.Biome], entry.Origin)
 	if tunnel then
 		print(string.format("[TUNNEL] %s: %d parts", spec.Name, tunnelParts))
 	end
 	model.Parent = folder
-	table.insert(entries, { Layout = layout, Origin = origin, Model = model, Number = spec.Number, Biome = spec.Biome })
-	origin = TrackBuilder.EndCFrame(layout, origin)
+	entry.Layout, entry.Model = layout, model
+end
+
+for i = 1, math.min(JOIN_TRACKS, #entries) do
+	buildTrack(entries[i])
 	task.wait() -- ~98k studs of road: one track per frame keeps Studio under its unyielding-script limit
 end
 
@@ -75,9 +89,11 @@ end
 local track1Start = entries[1].Model:FindFirstChild("Start", true).CFrame
 local spawnArea = SpawnArea.Build(track1Start)
 spawnArea.Parent = Workspace
-local trackModels = {}
+local trackModels = {} -- the built models; late tracks join it, so TerrainBuilder's final pass reaches them too
 for _, entry in entries do
-	table.insert(trackModels, entry.Model)
+	if entry.Model then
+		table.insert(trackModels, entry.Model)
+	end
 end
 
 -- The lighting baseline goes in before WeatherService snapshots it (docs/RENDERING_SPEC.md)
@@ -92,35 +108,50 @@ UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPG
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
-require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo meshes, in the background (design doc 4.24)
--- scenery keeps clear of every road, the plaza and the Dojos
-BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
--- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
+require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza meshes, in the background (design doc 4.24)
+do -- cyber accents on top of the plaza (4.24 "Dojo with cyber accents"); a failure only warns
+	local ok, err = pcall(function()
+		require(script.Parent.PlazaAccents).Build()
+	end)
+	if not ok then
+		warn("[PlazaAccents] skipped: " .. tostring(err))
+	end
+end
+-- scenery keeps clear of every road and the plaza
+BiomeDressing.Prune(trackModels, { spawnArea })
+-- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, checkpoints, WinPads and the VFX floor
 do
 	-- the VFX floor is built on the first `/tp vfxarea` (AdminService), so its ground is cleared as an XZ box
 	local half = Vector2.new(VfxArea.FLOOR_SIZE.X, VfxArea.FLOOR_SIZE.Z) / 2
 	local centre = Vector2.new(VfxArea.CENTER.X, VfxArea.CENTER.Z)
 	local clear = { { Min = centre - half, Max = centre + half } }
-	for _, model in trackModels do
-		table.insert(clear, model:FindFirstChild("Checkpoint"))
-		table.insert(clear, model:FindFirstChild("WinPad", true))
+	for _, entry in entries do
+		if entry.Model then
+			table.insert(clear, entry.Model:FindFirstChild("Checkpoint"))
+			table.insert(clear, entry.Model:FindFirstChild("WinPad", true))
+		else
+			table.insert(clear, TrackBuilder.CheckpointBox(entry.Layout, entry.Origin)) -- not built yet
+		end
 	end
-	TerrainShape.Prepare(entries, clear, { spawnArea, Workspace.Workshops })
+	TerrainShape.Prepare(entries, clear, { spawnArea })
 	for _, entry in entries do
 		ReplicatedStorage:SetAttribute("BiomeZone_" .. entry.Number, TerrainShape.ZonePolyline(entry.Number))
 	end
 	ReplicatedStorage:SetAttribute("PlazaRadius", TerrainShape.PlazaRadius())
 end
 BiomeDressing.SnapToTerrain(trackModels)
+for _, model in trackModels do
+	model:SetAttribute("BuiltAt", os.clock())
+	TrackBuild.SetPending(model:GetAttribute("Number"), nil)
+end
 
 local plate
 -- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
--- tracks, the plaza and the Dojos plus a margin (a part can be at most 2048 studs wide).
+-- tracks and the plaza plus a margin (a part can be at most 2048 studs wide).
 do
 	local MARGIN, TILE = 64, 2048
 	local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
-	for _, root in { folder, spawnArea, Workspace.Workshops } do
+	for _, root in { folder, spawnArea } do
 		for _, d in root:GetDescendants() do
 			if d:IsA("BasePart") then
 				local cf, size = d.CFrame, d.Size
@@ -131,6 +162,10 @@ do
 				hi = Vector2.new(math.max(hi.X, d.Position.X + half.X), math.max(hi.Y, d.Position.Z + half.Z))
 			end
 		end
+	end
+	local box = TerrainShape.Box() -- the late tracks' centre lines and skirt: they have no parts yet
+	if box then
+		lo, hi = lo:Min(box.Min), hi:Max(box.Max)
 	end
 	lo -= Vector2.one * MARGIN
 	hi += Vector2.one * MARGIN
@@ -171,3 +206,42 @@ require(script.Parent.PassService).Start() -- gamepass ownership and the paid ra
 ShopService.Start() -- Robux potion receipts and redeem codes (docs/MONETIZATION_SPEC.md)
 AdminService.Start() -- chat admin commands (docs/ADMIN_COMMANDS_SPEC.md)
 LeaderboardService.Start({ "RarestCar" }) -- feeds the Best Roll pedestal only; the boards stay removed (design doc 4.16)
+
+-- Tracks 6-10 behind the game (design doc 4.25), one per frame, a track a player is on or headed to first. Each is
+-- pruned against every built road both ways, then snapped against every built road, pinned hero and pad;
+-- TerrainBuilder writes its far zones well after this.
+local function playerTracks()
+	local list = {}
+	for _, player in game:GetService("Players"):GetPlayers() do
+		local run = CarService.GetRun(player)
+		local car = run and run.Car
+		table.insert(list, car and (car:GetAttribute("RunHold") or car:GetAttribute("RunTrack")) or 1) -- on foot: plaza
+	end
+	return list
+end
+local remaining, byNumber = {}, {}
+for i = JOIN_TRACKS + 1, #entries do
+	table.insert(remaining, entries[i].Number)
+	byNumber[entries[i].Number] = entries[i]
+end
+while #remaining > 0 do
+	local number = TrackBuild.Order(remaining, playerTracks())[1]
+	table.remove(remaining, table.find(remaining, number))
+	local entry = byNumber[number]
+	buildTrack(entry)
+	local others = table.clone(trackModels)
+	table.insert(trackModels, entry.Model)
+	BiomeDressing.Prune(trackModels, { spawnArea }, { entry.Model })
+	BiomeDressing.Prune({ entry.Model }, nil, others)
+	BiomeDressing.SnapToTerrain(trackModels, { entry.Model })
+	for _, list in { RaceService.GetRoute().Tracks, RaceService.GetRoute().Pads } do
+		for _, track in list do
+			if track.Number == number then
+				track.Pad = entry.Model:FindFirstChild("WinPad", true) -- a late track still pays
+			end
+		end
+	end
+	entry.Model:SetAttribute("BuiltAt", os.clock())
+	TrackBuild.SetPending(number, nil)
+	task.wait()
+end

@@ -1,5 +1,5 @@
 --!nonstrict
--- Server-owned prestige reset. Cars, upgrades and workshop ownership survive;
+-- Server-owned prestige reset. Cars and upgrades survive;
 -- Money resets (design doc 4.14; there is no Speed stat), and the permanent rebirth level increases.
 
 local Players = game:GetService("Players")

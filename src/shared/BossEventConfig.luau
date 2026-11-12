@@ -35,8 +35,8 @@ BossEventConfig.CameraZoom = 40 -- proposed: studs while running, the distance i
 BossEventConfig.WaitCameraFov = BossEventConfig.CameraFov
 -- Placeholders (owner 2026-11-06: zoomed in a lot, was 450 out, 320 up, 11 deg).
 local WAIT_CAMERA_OUT = 120 -- past the runner, away from the boss
-local WAIT_CAMERA_UP = 80
-local WAIT_CAMERA_DOWN_ANGLE = math.rad(4) -- the view's axis, below horizontal
+local WAIT_CAMERA_UP = 160 -- owner 2026-11-10: was 80, which sat behind an outer arch post
+local WAIT_CAMERA_DOWN_ANGLE = math.rad(13) -- the view's axis, below horizontal; 2026-11-10 was 4, steeper so the runner stays above the HUD at 160 up
 -- No runner: the same distance from the ring, on the boss's front (it faces -Z).
 BossEventConfig.WaitCameraOffset = Vector3.new(0, WAIT_CAMERA_UP, -Arena.LaneRadius(4) - WAIT_CAMERA_OUT)
 BossEventConfig.HpPerPlayer = 7500 -- owner 2026-11-06
@@ -82,8 +82,9 @@ function BossEventConfig.SpeedScale(cruise)
 end
 
 -- The scream's close view (BOSS_EVENT_SPEC "Phase 2"): still, on the boss's front (it faces -Z), inside the ring, so it visibly fills
--- the frame as it grows. At the locked FOV the view spans about 512 studs up and down from this distance. Proposed. Pure.
-local SCREAM_CAMERA_BACK, SCREAM_CAMERA_UP = 430, 400
+-- the frame as it grows. At the locked FOV the view spans about 512 studs up and down from this distance, at the model's own size;
+-- both scale with the boss (Arena.BossScale), so the framing stays. Proposed. Pure.
+local SCREAM_CAMERA_BACK, SCREAM_CAMERA_UP = 430 * Arena.BossScale, 400 * Arena.BossScale
 function BossEventConfig.ScreamCameraCFrame()
 	local middle = Vector3.new(Arena.Center.X, Arena.DaisY + SCREAM_CAMERA_UP, Arena.Center.Z)
 	return CFrame.lookAt(middle - Vector3.zAxis * SCREAM_CAMERA_BACK, middle)

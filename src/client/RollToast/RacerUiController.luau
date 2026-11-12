@@ -58,24 +58,24 @@ end
 hud.MoneyIcon.ImageRectOffset = Vector2.new(0, 0)
 hud.MoneyIcon.ImageRectSize = Vector2.new(256, 256)
 hud.MoneyValue.TextXAlignment = Enum.TextXAlignment.Left
-hud.Unbanked.TextXAlignment = Enum.TextXAlignment.Left
--- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): Money plate, gradient numbers.
-UiTheme.Plate(hud.MoneyPlate, palette.MoneyDeep)
+-- Read-out look (docs/HUD_LAYOUT_SPEC.md section 9): gradient numbers. Owner 2026-11-10 (design doc 4.40): no box or
+-- border behind Money or Gems and no UNBANKED line, so the generated plate and row are removed.
+hud.MoneyPlate:Destroy()
+hud.Unbanked:Destroy()
 UiTheme.Gradient(hud.MoneyValue, Color3.fromRGB(190, 255, 170), palette.MoneyDeep)
-UiTheme.Gradient(hud.Unbanked, Color3.fromRGB(255, 240, 150), palette.UnbankedDeep)
 hud.MoneyValue.TextColor3 = Color3.new(1, 1, 1)
-hud.Unbanked.TextColor3 = Color3.new(1, 1, 1)
--- Gems read-out (design doc 4.35): a new plate just above the Money plate; RacerHud is generated, so it is built here.
+-- Gems read-out (design doc 4.35, 4.40): a row directly under the Money number, inside Money so it follows its layout
+-- and scale; RacerHud is generated, so it is built here.
 local GEM, GEM_DEEP = Color3.fromRGB(150, 235, 255), Color3.fromRGB(50, 130, 255)
-local gemsPlate = UiTheme.Plate(Instance.new("Frame"), GEM_DEEP)
+local gemsPlate = Instance.new("Frame")
 gemsPlate.Name = "Gems"
-gemsPlate.AnchorPoint = Vector2.new(0, 1)
-gemsPlate.Parent = hud.Gui
+gemsPlate.BackgroundTransparency = 1
+gemsPlate.Parent = hud.Money
 local gemIcon = Instance.new("ImageLabel")
 gemIcon.Name = "GemIcon"
-gemIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-gemIcon.Position = UDim2.fromScale(0.17, 0.5)
-gemIcon.Size = UDim2.fromScale(0.8, 0.8)
+gemIcon.AnchorPoint = Vector2.new(0, 0.5)
+gemIcon.Position = UDim2.fromScale(0, 0.5)
+gemIcon.Size = UDim2.fromScale(1, 1)
 gemIcon.SizeConstraint = Enum.SizeConstraint.RelativeYY
 gemIcon.BackgroundTransparency = 1
 gemIcon.Image = require(Ui.HudIcons).Gem.Image
@@ -83,8 +83,8 @@ gemIcon.ZIndex = 3
 gemIcon.Parent = gemsPlate
 local gemsValue = Instance.new("TextLabel")
 gemsValue.Name = "GemsValue"
-gemsValue.Position = UDim2.fromScale(0.33, 0.1)
-gemsValue.Size = UDim2.fromScale(0.62, 0.8)
+gemsValue.Position = UDim2.fromScale(0.2, 0)
+gemsValue.Size = UDim2.fromScale(0.8, 1)
 gemsValue.BackgroundTransparency = 1
 gemsValue.Font = UiTheme.Font
 gemsValue.TextSize = 26
@@ -95,17 +95,12 @@ gemsValue.ZIndex = 3
 UiTheme.Gradient(gemsValue, GEM, GEM_DEEP)
 UiTheme.Stroke(gemsValue, 2, Color3.fromRGB(18, 22, 43))
 gemsValue.Parent = gemsPlate
--- Follows the Money plate's desktop and phone layouts, so it needs no phone branch of its own.
+-- Follows MoneyValue's desktop and phone layouts, so it needs no phone branch of its own.
 local function placeGems()
-	local plate = hud.MoneyPlate
-	local width, height = plate.Size.X.Offset, plate.Size.Y.Offset
-	gemsPlate.Size = UDim2.fromOffset(width * 0.62, height * 0.38)
-	gemsPlate.Position = UDim2.new(
-		0,
-		hud.Money.Position.X.Offset + plate.Position.X.Offset,
-		1,
-		hud.Money.Position.Y.Offset - hud.Money.Size.Y.Offset + plate.Position.Y.Offset - 4
-	)
+	local value = hud.MoneyValue
+	local x, y, height = value.Position.X.Offset, value.Position.Y.Offset, value.Size.Y.Offset
+	gemsPlate.Size = UDim2.fromOffset(value.Size.X.Offset, height * 0.7)
+	gemsPlate.Position = UDim2.fromOffset(x, y + height + 4)
 end
 -- Owner 2026-11-01: the speedometer and the cruise read-out are removed from the HUD.
 hud.Speed:Destroy()
@@ -881,8 +876,9 @@ for _, name in { "LuckReward", "SpeedReward", "PointReward" } do
 end
 
 -- Design doc 4.42 spacing standard: Rebirth, Stats and Settings wear the Index's frame in its design units, as
--- Client/IndexAnimeStyle and Client/QuestAnimeStyle lay it out (920 x 620, phone 500 x 420): logo, title and close in
--- the header band, art tabs in the row at y 98, content from y 164 to 82 above the bottom, a count line in the footer.
+-- Client/IndexAnimeStyle and Client/QuestAnimeStyle lay it out (AnimeSkin.Units: 1200 x 620, phone 650 x 420): logo,
+-- title and close in the header band, art tabs in the row at y 98, content from y 164 to 82 above the bottom, a count
+-- line in the footer.
 -- fitPanels draws the panels at a UIScale (BaseScale), so a px token becomes design units through `units`. The
 -- generated fit() re-applies the authored rects on every resize; those writes queue this layout again (as the Index).
 local HudIcons = require(Ui.HudIcons)
@@ -947,14 +943,7 @@ end
 local function indexFrame(refs, icon, content)
 	local frame, face, header = refs.Panel.Parent, refs.Panel, refs.Header
 	local band, close = header.Parent, refs.Close.Parent
-	local chrome = Instance.new("ImageLabel")
-	chrome.Name = "AnimeChrome"
-	chrome.BackgroundTransparency = 1
-	chrome.Image = AnimeSkin.Art.Chrome
-	chrome.ScaleType = Enum.ScaleType.Stretch
-	chrome.Position, chrome.Size = UDim2.fromOffset(-40, -70), UDim2.new(1, 80, 1, 100)
-	chrome.ZIndex = 1
-	chrome.Parent = face
+	local _, placeChrome = AnimeSkin.Chrome(face, "AnimeChrome", 1)
 	-- The Index chrome replaces the shared body art and strip PanelFrame.PaintGenerated put on.
 	local body, strip = face:FindFirstChild("AnimeBody"), header:FindFirstChild("AnimeStrip")
 	if body then
@@ -986,7 +975,9 @@ local function indexFrame(refs, icon, content)
 	}
 	local function layout()
 		local small = phoneView()
-		local W, H = small and 500 or 920, small and 420 or 620
+		local U = AnimeSkin.Units
+		local W, H = small and U.PhoneW or U.W, small and U.PhoneH or U.H
+		placeChrome(-40, -70, W + 80, H + 100)
 		if frame.Size ~= UDim2.fromOffset(W, H) then
 			frame.Size = UDim2.fromOffset(W, H)
 		end
@@ -1122,30 +1113,45 @@ indexFrame(stats, HudIcons.Rebirth.Image, function(g)
 	for _, side in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
 		padding[side] = UDim.new()
 	end
-	local rowH = math.floor((g.Height - (#config.STATS - 1) * gap) / #config.STATS)
-	local artSize = rowH - 2 * inner
-	local plusSize = math.min(u(SPACE.Button), rowH - 6)
-	local x = inner + artSize + inner
-	local areaW = width - x - plusSize - pad - inner
-	local nameH, lineH = math.floor(rowH * 0.45), math.floor(rowH * 0.4)
-	local descW = math.floor(areaW * 0.45)
+	-- Owner 2026-11-10: rows 12 apart on a padded plate: the art 12 in, the text column starts clear of it, the plate's
+	-- slanted ends are kept clear (24), the + button 12 from the right. Name on its own line, the rule and the multi
+	-- on the next, the accent bar last, each 4 apart.
+	-- Row height from its text: the name at the Item size, the rule / multi line at the Body size, the accent bar, 8
+	-- between, 8 of padding above and below. Four rows then share the content with what gap is left (at least 4).
+	-- The four rows and three 12-unit gaps share the content height exactly, so none spills under the footer;
+	-- the text lines scale with the row (TextScaled under their role's size).
+	local rowGap = gap
+	local rowH = math.floor((g.Height - rowGap * (#config.STATS - 1)) / #config.STATS)
+	local rowPad, lineGap, barH = inner, u(4), u(6)
+	local textH = rowH - 2 * rowPad - 2 * lineGap - barH
+	local nameH = math.floor(textH * 0.55)
+	local lineH = textH - nameH
+	list:FindFirstChildOfClass("UIListLayout").Padding = UDim.new(0, rowGap)
+	pad = rowPad -- the row's own padding, 8, in place of the card token
+	local slant = u(24)
+	local artSize = rowH - 2 * pad
+	local plusSize = math.min(u(SPACE.Button), rowH - 2 * inner)
+	local x = slant + artSize + pad
+	local areaW = width - x - slant - plusSize - pad
+	local descW = math.floor(areaW * 0.5)
 	for _, row in pairs(rows) do
 		local frame = row.Frame
 		frame.Size = UDim2.new(1, 0, 0, rowH)
-		place(frame.Art, inner, inner, artSize, artSize)
+		place(frame.Art, slant, pad, artSize, artSize)
 		row.Plus.AnchorPoint = Vector2.zero
-		row.Plus.Position = UDim2.new(1, -(plusSize + pad), 0, math.floor((rowH - plusSize) / 2))
+		row.Plus.Position = UDim2.new(1, -(plusSize + slant), 0, math.floor((rowH - plusSize) / 2))
 		row.Plus.Size = UDim2.fromOffset(plusSize, plusSize)
-		place(frame.StatName, x, 0, areaW, nameH)
-		place(frame.Description, x, nameH, descW, lineH)
-		place(row.Value, x + descW, nameH, areaW - descW, lineH)
-		place(frame.Accent, x, nameH + lineH + 2, areaW, math.max(4, rowH - nameH - lineH - 2 - inner // 2))
+		place(frame.StatName, x, pad, areaW, nameH)
+		place(frame.Description, x, pad + nameH + lineGap, descW, lineH)
+		place(row.Value, x + descW, pad + nameH + lineGap, areaW - descW, lineH)
+		place(frame.Accent, x, pad + nameH + lineGap + lineH + lineGap, areaW, barH)
 		frame.StatName.TextXAlignment = Enum.TextXAlignment.Left
 		frame.Description.TextXAlignment = Enum.TextXAlignment.Left
 		row.Value.TextXAlignment = Enum.TextXAlignment.Right
 		g.Role(frame.StatName, "Item")
 		g.Role(frame.Description, "Caption")
-		g.Role(row.Value, "Body", true) -- no outline under 16 px (UI audit G12)
+		g.Role(row.Value, "Body") -- the multi in the card's heavy font (owner 2026-11-10), one step under the name
+		row.Value.FontFace = AnimeSkin.Font
 	end
 end)
 
@@ -1274,9 +1280,8 @@ end)
 -- places the Items / Upgrade pair from its position; delete it with a HUD layout pass.
 hud.Level.Visible = false
 
-local shownMoney, shownBank = money.Value, player:GetAttribute("Unbanked") or 0
+local shownMoney = money.Value
 local shownGems = player:GetAttribute("Gems") or 0
-local stopBankPulse
 local function readable(value, isMoney)
 	return isMoney and format.MoneyText(value) or format.SpeedText(value)
 end
@@ -1321,9 +1326,7 @@ end
 -- The numbers count up towards the server's values (HudFormat.Approach) and pop when they grow (section 9, 10).
 local function refreshReadouts(dt)
 	shownMoney = format.Approach(shownMoney, money.Value, dt)
-	shownBank = format.Approach(shownBank, player:GetAttribute("Unbanked") or 0, dt)
 	hud.MoneyValue.Text = readable(shownMoney, true)
-	hud.Unbanked.Text = "UNBANKED " .. readable(shownBank, true)
 	shownGems = format.Approach(shownGems, player:GetAttribute("Gems") or 0, dt)
 	gemsValue.Text = format.Short(shownGems)
 	placeGems()
@@ -1347,9 +1350,34 @@ task.spawn(function()
 		end
 	end)
 end)
+local function floatAtMoney(text)
+	UiMotion.Float(
+		hud.MoneyValue.Parent,
+		text,
+		palette.Money,
+		UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
+	)
+end
+-- Owner 2026-11-10 (design doc 4.40): a checkpoint payout floats "Cashed out +$X", the server's amount, by Money while
+-- it counts up, in place of that gain's plain "+$X".
+local CASH_OUT_COVER = 0.5 -- s: a gain this close to a cash-out notice is that payout (either may replicate first)
+local lastCashOut = -math.huge
+remotes:WaitForChild("RunEvent").OnClientEvent:Connect(function(ev)
+	if type(ev) == "table" and ev.Kind == "CashOut" and type(ev.Amount) == "number" and ev.Amount > 0 then
+		lastCashOut = os.clock()
+		floatAtMoney("Cashed out +" .. format.MoneyText(ev.Amount))
+	end
+end)
 local lastMoney = money.Value
 money.Changed:Connect(function(value)
 	if value > lastMoney then
+		local gain = value - lastMoney
+		-- shortcut: another gain inside the cover window of a cash-out also skips its "+$X"; fine for a 1 s float.
+		task.delay(0.2, function()
+			if os.clock() - lastCashOut > CASH_OUT_COVER then
+				floatAtMoney("+" .. format.MoneyText(gain))
+			end
+		end)
 		if value - lastMoney < math.max(MONEY_BIG_MIN, value * MONEY_BIG_SHARE) then
 			UiFeedback.Play("MoneySmall")
 		elseif rollPhase() == "Idle" then
@@ -1358,34 +1386,8 @@ money.Changed:Connect(function(value)
 			moneyBigOwed = true
 		end
 		UiMotion.Pop(hud.MoneyValue)
-		UiMotion.Float(
-			hud.MoneyValue.Parent,
-			"+" .. format.MoneyText(value - lastMoney),
-			palette.Money,
-			UDim2.fromOffset(hud.MoneyValue.Position.X.Offset, hud.MoneyValue.Position.Y.Offset)
-		)
 	end
 	lastMoney = value
-end)
-local function refreshBank()
-	local banked = (player:GetAttribute("Unbanked") or 0) > 0
-	if banked and not stopBankPulse then
-		UiMotion.Pop(hud.Unbanked)
-		stopBankPulse = UiMotion.Pulse(hud.Unbanked, { TextTransparency = 0.35 }, 0.7)
-	elseif not banked and stopBankPulse then
-		stopBankPulse()
-		stopBankPulse = nil
-	end
-end
-player:GetAttributeChangedSignal("Unbanked"):Connect(refreshBank)
-refreshBank()
-task.spawn(function()
-	while true do
-		task.wait(6)
-		if hud.Gui.Enabled then
-			UiMotion.Shine(hud.MoneyPlate)
-		end
-	end
 end)
 
 RunService.Heartbeat:Connect(function(dt)
@@ -1429,7 +1431,7 @@ switch(settings.EffectsToggle, player:GetAttribute("ReduceEffects") == true)
 switch(settings.SoundToggle, true)
 
 -- Non-interactive numeric labels must not overflow as saves grow.
-for _, object in ipairs({ hud.MoneyValue, hud.Unbanked, gemsValue, index.IndexProgress }) do
+for _, object in ipairs({ hud.MoneyValue, gemsValue, index.IndexProgress }) do
 	object.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MinTextSize = 14

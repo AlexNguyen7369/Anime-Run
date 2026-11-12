@@ -26,6 +26,8 @@ local UiLegacyControls = require(script.Parent:WaitForChild("UiLegacyControls"))
 local UiDuel = require(script.Parent:WaitForChild("UiDuel"))
 local UiBoostsRebirth = require(script.Parent:WaitForChild("UiBoostsRebirth"))
 local UiShopMarket = require(script.Parent:WaitForChild("UiShopMarket"))
+local FX = {} -- frame-model helpers in one table: UiScenarios is near Luau's 200 local limit
+FX.AnimeSkin = require(script.Parent.Parent:WaitForChild("AnimeSkin"))
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
 local CharacterCatalog = require(Shared:WaitForChild("CharacterCatalog"))
@@ -136,13 +138,10 @@ UiScenarios.Names = {
 	-- Racing part (win pads, NPC label) here; its hub pedestal part runs in the on_foot fixture run
 	-- (UiSpec.Progression.FixtureChecks: StreamingEnabled streams the hub out while the main run races)
 	"ui_billboards",
-	-- (ui_workshop_modal reads the owned plot near the hub: it runs only through the on_foot fixture run)
 	"ui_panels",
 	"ui_upgrades",
 	"ui_progression_layout",
 	"ui_progression_hud",
-	-- Workshop Showcase (docs/WORKSHOP_SPEC.md "5b. Showcase"); also after showcase_filled (UiSpec.Progression.FixtureChecks)
-	"ui_workshop_showcase",
 	"ui_rebirth",
 	"ui_daily_boosts",
 	"ui_shop",
@@ -197,7 +196,6 @@ K.STATES = {
 	{ Name = "settings_open", Open = { "RacerSettings/Panel" } },
 	{ Name = "rebirth_open", Open = { "RacerRebirth/Panel" } },
 	{ Name = "upgrades_open", Open = { "RacerUpgrades/Panel" } },
-	{ Name = "workshop_open", Open = { "RacerWorkshop/Panel" } },
 	{ Name = "backpack_open", Open = { "RacerBackpack/Panel" } },
 	{ Name = "shop_open", Open = { "ShopUi/Backdrop" } },
 	{ Name = "market_open", Open = { "MarketUi/Backdrop" } },
@@ -208,7 +206,9 @@ K.STATES = {
 	-- through the real mechanism (PanelSwitch) and the Clicks open_*_while_*_open prove it through the buttons.
 	-- If exclusivity ever breaks, ui_panels fails, and this state must be added back here.
 }
--- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect).
+-- Layout objects the solver does not model (UIListLayout, UIGridLayout and UIPadding are solved in simRect; a
+-- UIAspectRatioConstraint named AnimeAspect on a UiSpec.BandPanels panel is solved in UiShopMarket.BandFit, on a duel
+-- panel in simRect).
 K.UNSUPPORTED_LAYOUT = {
 	UIAspectRatioConstraint = true,
 	UIScale = true,
@@ -819,7 +819,85 @@ local function ownScale(obj, ctx)
 	return s
 end
 
--- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by).
+-- An Index-frame panel (AnimeSkin.IndexFrame: a UiSpec.BandPanels panel or a duel panel) writes its children's pixel
+-- offsets and sizes from its own k = panel width / frame width (g.px / g.Place) for the live window. At a simulated
+-- viewport: k sim / k live (nil on the live viewport and for any other node).
+function FX.frameRatio(obj, ctx)
+	local path = pathOf(obj)
+	if not (UiSpec.BandPanels[path] or UiSpec.Duel.Panels[path]) or sameSize(ctx.vp, viewport()) then
+		return nil
+	end
+	local liveW = UiResponsive.FrameSize(viewport())
+	local simW = UiResponsive.FrameSize(ctx.vp)
+	local liveK = obj.AbsoluteSize.X / liveW
+	if liveK <= 0 then
+		return nil
+	end
+	return simRect(obj, ctx).w / simW / liveK
+end
+
+-- What an Index frame's layout hooks write. Scaling the live values by k sim / k live is not enough: the hooks place
+-- content in frame units from g.W / g.Small (1200 wide live, 650 on a phone), so the model reads the frame laid out
+-- at the simulated size instead (AnimeSkin g.MeasureAt), into ctx.measured[instance][property].
+FX.MEASURED = {
+	GuiObject = { "Size", "Position", "AnchorPoint", "Visible" },
+	UIGridLayout = { "CellSize", "CellPadding" },
+	UIListLayout = { "Padding" },
+	UIPadding = { "PaddingLeft", "PaddingRight", "PaddingTop", "PaddingBottom" },
+}
+
+-- obj's property `name` at ctx.vp: the measured value inside a measured Index frame, else the live one.
+function FX.prop(obj, name, ctx)
+	local values = ctx.measured and ctx.measured[obj]
+	local value = values and values[name]
+	if value == nil then
+		return obj[name]
+	end
+	return value
+end
+
+-- True when obj is an Index-frame panel measured at ctx.vp (measured on first use, once per ctx).
+function FX.measuredFrame(obj, ctx)
+	ctx.measuredPanels = ctx.measuredPanels or {}
+	local done = ctx.measuredPanels[obj]
+	if done ~= nil then
+		return done
+	end
+	ctx.measuredPanels[obj] = false
+	local g = FX.AnimeSkin.Frames[obj]
+	if not g or FX.frameRatio(obj, ctx) == nil then
+		return false
+	end
+	local r = simRect(obj, ctx)
+	ctx.measured = ctx.measured or {}
+	g.MeasureAt(ctx.vp, r.w, r.h, function()
+		for _, d in obj:GetDescendants() do
+			for class, names in FX.MEASURED do
+				if d:IsA(class) then
+					local values = {}
+					for _, name in names do
+						values[name] = d[name]
+					end
+					ctx.measured[d] = values
+				end
+			end
+		end
+	end)
+	ctx.measuredPanels[obj] = true
+	return true
+end
+
+-- The factor on an Index-frame panel's children's offsets at ctx.vp: 1 once measured there (they are its px), else
+-- k sim / k live (1 on the live viewport and for any other node).
+function FX.frameK(obj, ctx)
+	if FX.measuredFrame(obj, ctx) then
+		return 1
+	end
+	return FX.frameRatio(obj, ctx) or 1
+end
+
+-- The product of the UIScale factors of obj and its GuiObject ancestors (what obj's children's offsets are scaled by),
+-- times an Index-frame panel's frameK.
 local function inheritedScale(obj, ctx)
 	ctx.scales = ctx.scales or {}
 	local cached = ctx.scales[obj]
@@ -828,7 +906,7 @@ local function inheritedScale(obj, ctx)
 	end
 	local s = 1
 	if obj:IsA("GuiObject") then
-		s = ownScale(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
+		s = ownScale(obj, ctx) * FX.frameK(obj, ctx) * (obj.Parent and inheritedScale(obj.Parent, ctx) or 1)
 	end
 	ctx.scales[obj] = s
 	return s
@@ -864,7 +942,9 @@ local function variantProps(obj, ctx)
 	if otherVariant(ctx.vp) then
 		props = indexTabProps(path, UiResponsive.VariantOf(ctx.vp)) or props
 	end
-	return props.Size or obj.Size, props.Position or obj.Position, props.AnchorPoint or obj.AnchorPoint
+	return props.Size or FX.prop(obj, "Size", ctx),
+		props.Position or FX.prop(obj, "Position", ctx),
+		props.AnchorPoint or FX.prop(obj, "AnchorPoint", ctx)
 end
 
 -- UiResponsive.LiveAutoSize: an AutomaticSize node whose content does not depend on the viewport.
@@ -936,7 +1016,7 @@ end
 -- The area children are laid out in: a ScrollingFrame's canvas (moved by CanvasPosition; as wide and tall as the
 -- window, AutomaticCanvasSize only grows it downwards) minus the parent's UIPadding (its offsets are design pixels
 -- scaled by the parent's inherited UIScale c, its scales relative to that area).
-local function contentBox(parent, pr, c)
+local function contentBox(parent, pr, c, ctx)
 	local base = pr
 	if parent:IsA("ScrollingFrame") then
 		base = R(pr.x - parent.CanvasPosition.X, pr.y - parent.CanvasPosition.Y, pr.w, pr.h)
@@ -946,18 +1026,18 @@ local function contentBox(parent, pr, c)
 		local function px(u, extent)
 			return extent * u.Scale + c * u.Offset
 		end
-		local l, r = px(pad.PaddingLeft, base.w), px(pad.PaddingRight, base.w)
-		local t, b = px(pad.PaddingTop, base.h), px(pad.PaddingBottom, base.h)
+		local l, r = px(FX.prop(pad, "PaddingLeft", ctx), base.w), px(FX.prop(pad, "PaddingRight", ctx), base.w)
+		local t, b = px(FX.prop(pad, "PaddingTop", ctx), base.h), px(FX.prop(pad, "PaddingBottom", ctx), base.h)
 		base = R(base.x + l, base.y + t, base.w - l - r, base.h - t - b)
 	end
 	return base
 end
 
 -- The visible GuiObject children a layout arranges, in its order.
-local function layoutItems(parent, layout)
+local function layoutItems(parent, layout, ctx)
 	local items = {}
 	for _, ch in parent:GetChildren() do
-		if ch:IsA("GuiObject") and ch.Visible then
+		if ch:IsA("GuiObject") and FX.prop(ch, "Visible", ctx) then
 			table.insert(items, ch)
 		end
 	end
@@ -1002,21 +1082,24 @@ local function gridCell(obj, parent, grid, base, ctx, scale)
 		ctx.unsupported[pathOf(grid)] = "UIGridLayout options"
 	end
 	-- Offsets are design pixels: the inherited UIScale factor `scale` applies to them. On the other variant than the live
-	-- one the cell size comes from the model (Components.BindIndex fit()), else from the live UIGridLayout.
-	local cellSize = grid.CellSize
+	-- one the cell size comes from the model (UiResponsive.Grids), else from the live UIGridLayout.
+	local cellSize = FX.prop(grid, "CellSize", ctx)
 	local gridModel = UiResponsive.Grids[pathOf(parent)]
 	if gridModel and otherVariant(ctx.vp) then
 		local variant = UiResponsive.VariantOf(ctx.vp)
-		local host = UiResponsive.Nodes[gridModel.Host][variant]
 		local cols = gridModel.Columns[variant]
-		local width = host.Size.X.Offset - gridModel.Inset
-		cellSize = UDim2.fromOffset(math.floor((width - (cols - 1) * gridModel.Gap) / cols), gridModel.CellHeight)
+		local width = UiResponsive.FrameSize(ctx.vp) - gridModel.HostMargin - gridModel.Inset
+		cellSize = UDim2.fromOffset(
+			math.min(gridModel.MaxWidth, math.floor((width - (cols - 1) * gridModel.Gap) / cols)),
+			gridModel.CellHeight[variant]
+		)
 	end
 	local cw = base.w * cellSize.X.Scale + scale * cellSize.X.Offset
 	local ch = base.h * cellSize.Y.Scale + scale * cellSize.Y.Offset
-	local px = base.w * grid.CellPadding.X.Scale + scale * grid.CellPadding.X.Offset
-	local py = base.h * grid.CellPadding.Y.Scale + scale * grid.CellPadding.Y.Offset
-	local items = layoutItems(parent, grid)
+	local padding = FX.prop(grid, "CellPadding", ctx)
+	local px = base.w * padding.X.Scale + scale * padding.X.Offset
+	local py = base.h * padding.Y.Scale + scale * padding.Y.Offset
+	local items = layoutItems(parent, grid, ctx)
 	local idx = table.find(items, obj)
 	if not idx then
 		return R(base.x, base.y, 0, 0)
@@ -1049,10 +1132,11 @@ local function listCell(obj, parent, list, base, ctx, scale)
 		ctx.unsupported[pathOf(list)] = "UIListLayout Wraps / flex"
 	end
 	local vertical = list.FillDirection == Enum.FillDirection.Vertical
-	local items = layoutItems(parent, list)
+	local items = layoutItems(parent, list, ctx)
 	local railGap = backpackRailGap(parent, ctx)
 	local gap = railGap and scale * railGap
-		or (vertical and base.h or base.w) * list.Padding.Scale + scale * list.Padding.Offset
+		or (vertical and base.h or base.w) * FX.prop(list, "Padding", ctx).Scale
+			+ scale * FX.prop(list, "Padding", ctx).Offset
 	local sizes, total, before = {}, 0, nil
 	for k, item in items do
 		local size = variantProps(item, ctx)
@@ -1084,17 +1168,18 @@ autoHeight = function(obj, w, h, ctx, c)
 	if cached then
 		return cached
 	end
-	local inner = contentBox(obj, R(0, 0, w, h), c)
+	local inner = contentBox(obj, R(0, 0, w, h), c, ctx)
 	local content = 0
 	local grid = obj:FindFirstChildWhichIsA("UIGridLayout")
 	local list = obj:FindFirstChildWhichIsA("UIListLayout")
 	if grid then
-		local items = layoutItems(obj, grid)
+		local items = layoutItems(obj, grid, ctx)
 		if #items > 0 then
-			local cw = inner.w * grid.CellSize.X.Scale + c * grid.CellSize.X.Offset
-			local ch = inner.h * grid.CellSize.Y.Scale + c * grid.CellSize.Y.Offset
-			local px = inner.w * grid.CellPadding.X.Scale + c * grid.CellPadding.X.Offset
-			local py = inner.h * grid.CellPadding.Y.Scale + c * grid.CellPadding.Y.Offset
+			local cell, padding = FX.prop(grid, "CellSize", ctx), FX.prop(grid, "CellPadding", ctx)
+			local cw = inner.w * cell.X.Scale + c * cell.X.Offset
+			local ch = inner.h * cell.Y.Scale + c * cell.Y.Offset
+			local px = inner.w * padding.X.Scale + c * padding.X.Offset
+			local py = inner.h * padding.Y.Scale + c * padding.Y.Offset
 			local cols = math.max(1, math.floor((inner.w + px) / (cw + px) + K.GRID_FIT_EPS))
 			if grid.FillDirectionMaxCells > 0 then
 				cols = math.min(cols, grid.FillDirectionMaxCells)
@@ -1103,18 +1188,19 @@ autoHeight = function(obj, w, h, ctx, c)
 			content = rows * ch + (rows - 1) * py
 		end
 	elseif list then
-		local items = layoutItems(obj, list)
+		local items = layoutItems(obj, list, ctx)
 		local vertical = list.FillDirection == Enum.FillDirection.Vertical
 		local railGap = backpackRailGap(obj, ctx)
 		local gap = railGap and c * railGap
-			or (vertical and inner.h or inner.w) * list.Padding.Scale + c * list.Padding.Offset
+			or (vertical and inner.h or inner.w) * FX.prop(list, "Padding", ctx).Scale
+				+ c * FX.prop(list, "Padding", ctx).Offset
 		for k, item in items do
 			local _, ih = sizeIn(item, variantProps(item, ctx), inner, ctx, c)
 			content = vertical and content + ih + (k < #items and gap or 0) or math.max(content, ih)
 		end
 	else
 		for _, child in obj:GetChildren() do
-			if child:IsA("GuiObject") and child.Visible then
+			if child:IsA("GuiObject") and FX.prop(child, "Visible", ctx) then
 				local size, position, anchor = variantProps(child, ctx)
 				local _, ih = sizeIn(child, size, inner, ctx, c)
 				content = math.max(content, inner.h * position.Y.Scale + c * position.Y.Offset - anchor.Y * ih + ih)
@@ -1224,6 +1310,9 @@ simRect = function(obj, ctx)
 		for _, sibling in parent:GetChildren() do
 			-- A UIScale under a GuiObject is solved (ownScale / inheritedScale); under a ScreenGui it is not
 			local solved = sibling:IsA("UIScale") and parent:IsA("GuiObject")
+				or sibling:IsA("UIAspectRatioConstraint")
+					and sibling.Name == "AnimeAspect"
+					and (UiSpec.BandPanels[pathOf(parent)] ~= nil or UiSpec.Duel.Panels[pathOf(parent)] ~= nil)
 			if K.UNSUPPORTED_LAYOUT[sibling.ClassName] and not solved then
 				ctx.unsupported[pathOf(parent)] = sibling.ClassName
 			end
@@ -1238,7 +1327,7 @@ simRect = function(obj, ctx)
 		if obj.AutomaticSize ~= Enum.AutomaticSize.None and not liveAutoSized(obj) and not solvedAutoY(obj) then
 			ctx.unsupported[pathOf(obj)] = "AutomaticSize"
 		end
-		local base = parent:IsA("GuiObject") and contentBox(parent, pr, c) or pr
+		local base = parent:IsA("GuiObject") and contentBox(parent, pr, c, ctx) or pr
 		local grid = parent:FindFirstChildWhichIsA("UIGridLayout")
 		local list = parent:FindFirstChildWhichIsA("UIListLayout")
 		if grid then
@@ -1248,8 +1337,7 @@ simRect = function(obj, ctx)
 		else
 			local path = pathOf(obj)
 			local dependencies = {}
-			-- RacerWorkshop panels are Band.Fit panels (UiSpec.BandPanels); RacerUpgrades/Panel is the
-			-- full-screen hex tree (UpgradeTreeView: Size (1, 0, 1, 0), no runtime fit), solved like any node.
+			-- RacerUpgrades/Panel is the full-screen hex tree (UpgradeTreeView: Size (1, 0, 1, 0), no runtime fit), solved like any node.
 			-- (The workshop rate label RacerProgression/WorkshopRate is retired: no idle gain, design doc 4.19, owner 2026-11-03.)
 			local isRacerPanel = UiResponsive.IsRacerPanel(path)
 			local bandMax = UiSpec.BandPanels[path] -- Client/PanelBand.Fit panels (Shop, Market)
@@ -1284,6 +1372,16 @@ simRect = function(obj, ctx)
 				end
 				dependencies.NavigationParts = parts
 			end
+			-- The right column's left edge includes its visible descendants likewise (Client/PanelBand shopLeft).
+			if dependencies.ShopColumn then
+				local parts = {}
+				for _, d in findPath(wanted.ShopColumn):GetDescendants() do
+					if d:IsA("GuiObject") and d.Visible then
+						table.insert(parts, simRect(d, ctx))
+					end
+				end
+				dependencies.ShopColumnParts = parts
+			end
 			local fitted = nil
 			if missing then
 				ctx.unsupported[path] = "missing runtime layout dependency"
@@ -1291,10 +1389,16 @@ simRect = function(obj, ctx)
 				local money = findPath(UiSpec.Band.Money)
 				dependencies.MoneyShown = money ~= nil and money:IsA("GuiObject") and money.Visible
 				if bandMax then
-					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax)
+					-- the frame's AnimeAspect (AnimeSkin.IndexFrame; QuestAnimeStyle parents it only while Quests show)
+					local aspect = obj:FindFirstChild("AnimeAspect")
+					local ratio = nil
+					if aspect and aspect:IsA("UIAspectRatioConstraint") then
+						local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+						ratio = frameW / frameH
+					end
+					fitted = UiShopMarket.BandFit(ctx.vp, dependencies, bandMax, ratio)
 				else
-					local size = variantProps(obj, ctx)
-					fitted = UiResponsive.RacerPanelFit(ctx.vp, { UiShopMarket.Band(ctx.vp, dependencies) }, size)
+					fitted = UiResponsive.RacerPanelFit(ctx.vp, { UiShopMarket.Band(ctx.vp, dependencies) })
 					ctx.scaleOverride[obj] = fitted.Scale
 				end
 			elseif path == UiSpec.Weather.Icon then
@@ -1322,6 +1426,8 @@ simRect = function(obj, ctx)
 				else
 					ctx.unsupported[path] = "missing runtime layout dependency"
 				end
+			elseif path == UiResponsive.BossButton.Path then
+				size, position = UiResponsive.BossButtonPlace(ctx.vp, GuiService.TopbarInset)
 			end
 			-- The compact roll's top and height are fitCompact's for the live screen: both follow the simulated one
 			local compactTop = path == "RollToast/Toast" and not liveVp and K.compactTop(base, ctx.vp, ctx)
@@ -1329,6 +1435,13 @@ simRect = function(obj, ctx)
 				position = UDim2.new(position.X.Scale, position.X.Offset, 0, compactTop - base.y)
 			end
 			local w, h = sizeIn(obj, size, base, ctx, c)
+			-- A duel panel's AnimeAspect (AnimeSkin.IndexFrame, FitWithinMaxSize at the frame's W / H): the largest
+			-- rect of that aspect inside its Size, placed by its AnchorPoint
+			if UiSpec.Duel.Panels[path] and obj:FindFirstChild("AnimeAspect") then
+				local frameW, frameH = UiResponsive.FrameSize(ctx.vp)
+				w = math.min(w, h * frameW / frameH)
+				h = w * frameH / frameW
+			end
 			if compactTop then
 				local level = findPath(UiSpec.HudPair.Level)
 				local top = compactTop
@@ -1684,10 +1797,36 @@ function UiScenarios.Init()
 	end)
 end
 
+-- Design doc 4.24: while the loading screen is up, note its backdrop's layout and every bar reading (fill, Status text)
+FX.loading = { seen = false, backdrop = nil, readings = {} }
+function FX.sampleLoading(gui)
+	local back = gui:FindFirstChild("Back")
+	local backdrop, logo = back and back:FindFirstChild("Backdrop"), back and back:FindFirstChild("Logo")
+	local track = back and back:FindFirstChild("Track")
+	local fill, status = track and track:FindFirstChild("Fill"), back and back:FindFirstChild("Status")
+	FX.loading.seen = true
+	if not FX.loading.backdrop and backdrop and logo and track then
+		local size, at = gui.AbsoluteSize, backdrop.AbsolutePosition
+		FX.loading.backdrop = {
+			isImage = backdrop:IsA("ImageLabel"),
+			crop = backdrop:IsA("ImageLabel") and backdrop.ScaleType == Enum.ScaleType.Crop,
+			covers = at.X <= 0.5
+				and at.Y <= 0.5
+				and backdrop.AbsoluteSize.X >= size.X - 1
+				and backdrop.AbsoluteSize.Y >= size.Y - 1,
+			behind = backdrop.ZIndex < logo.ZIndex and backdrop.ZIndex < track.ZIndex,
+		}
+	end
+	if fill and status then
+		table.insert(FX.loading.readings, { fill = fill.Size.X.Scale, text = status.Text })
+	end
+end
+
 local function waitGuis()
 	-- The loading screen draws over everything and swallows every click until the game has loaded
 	local loading = os.clock() + UiSpec.Waits.LoadingScreen
 	while playerGui:FindFirstChild("LoadingScreen") and os.clock() < loading do
+		pcall(FX.sampleLoading, playerGui:FindFirstChild("LoadingScreen"))
 		task.wait(0.2)
 	end
 	local deadline = os.clock() + UiSpec.Waits.GuiAppear
@@ -1781,7 +1920,12 @@ local function allText(obj)
 	-- The Rebirth tile's free-points badge (UiSpec.Hud.PointsBadge, HUD_LAYOUT_SPEC section 1) is not its label
 	local badge = findPath(UiSpec.Hud.PointsBadge)
 	for _, o in { obj, table.unpack(obj:GetDescendants()) } do
-		local inBadge = o.Name == "PointsBadge" or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
+		-- HudChrome badge(): every tile's red count badge is a TextLabel named Badge, not the label either
+		-- Design doc 4.40: the tile's keybind letter (a TextLabel named Key) is not its label either
+		local inBadge = o.Name == "PointsBadge"
+			or o.Name == "Badge"
+			or o.Name == "Key"
+			or (badge ~= nil and (o == badge or o:IsDescendantOf(badge)))
 		if not inBadge and (o:IsA("TextLabel") or o:IsA("TextButton")) and o.Text ~= "" and o.Visible then
 			table.insert(list, o.Text)
 		end
@@ -3473,6 +3617,19 @@ local function hiddenByPanel(path, open, vp)
 	return false
 end
 
+-- True when UiSpec.HiddenWhileBossEvent hides `path` now (the player's BossEvent attribute is true).
+function FX.hiddenByBossEvent(path)
+	if not player:GetAttribute("BossEvent") then
+		return false
+	end
+	for _, prefix in UiSpec.HiddenWhileBossEvent do
+		if string.sub(path, 1, #prefix) == prefix then
+			return true
+		end
+	end
+	return false
+end
+
 -- Every element that is interactive or always on in the given state: AlwaysOn elements (minus the ones declared hidden
 -- while that panel is open, UiSpec.HiddenWhilePanelOpen: ui_panels / ui_toast prove they really are hidden then), the
 -- open panels and every button inside an open panel that is shown now (it and every ancestor up to the panel Visible:
@@ -3494,7 +3651,10 @@ local function elementsFor(open, vp)
 		local g = UiSpec.Guis[guiName]
 		for _, p in g.AlwaysOn or {} do
 			local obj = findPath(guiName .. "/" .. p)
-			if obj and not hiddenByPanel(guiName .. "/" .. p, open, vp) then
+			local maxHidden = UiSpec.HiddenAtHeight[guiName .. "/" .. p]
+			local hiddenAtHeight = maxHidden ~= nil and vp ~= nil and vp.Y <= maxHidden
+			local path = guiName .. "/" .. p
+			if obj and not hiddenAtHeight and not hiddenByPanel(path, open, vp) and not FX.hiddenByBossEvent(path) then
 				table.insert(list, { path = guiName .. "/" .. p, obj = obj })
 			end
 		end
@@ -3591,6 +3751,11 @@ local function overlapAllowed(a, b, ra, rb, rectOf)
 	if panelPath then
 		local problem = panelCoverProblem(panelPath, readout, ra and rb and intersection(ra, rb), rectOf)
 		return problem == nil, problem
+	end
+	-- Leave shows only in the boss event, where the columns hide (design doc 4.40): never shown together
+	local other = (a == "RacerBossEvent/LeaveButton" and b) or (b == "RacerBossEvent/LeaveButton" and a)
+	if other and (string.find(other, "^HudChrome/Grid/") or string.find(other, "^HudChrome/ShopColumn/")) then
+		return true
 	end
 	for _, pair in UiSpec.AllowOverlap do
 		if (pair[1] == a and pair[2] == b) or (pair[1] == b and pair[2] == a) then
@@ -3745,6 +3910,25 @@ function S.ui_inventory(res)
 	checkList(res, "every_screengui_in_spec", unknown)
 	local loadingLeft = playerGui:FindFirstChild("LoadingScreen") == nil
 	check(res, "loading_screen_closed", loadingLeft, true, loadingLeft)
+	-- Only when the harness caught the screen up (it closes after 8 s or more, usually before the harness starts)
+	if FX.loading.seen then
+		local b = FX.loading.backdrop or {}
+		check(res, "loading_backdrop_image", b.isImage, true, b.isImage == true)
+		check(res, "loading_backdrop_crop", b.crop, true, b.crop == true)
+		check(res, "loading_backdrop_full_screen", b.covers, true, b.covers == true)
+		check(res, "loading_backdrop_behind_logo_and_bar", b.behind, true, b.behind == true)
+		-- The bar follows real progress: never goes back, and the text always says the fill's own percent
+		local bad, last = {}, -1
+		for i, r in FX.loading.readings do
+			local want = string.format("Loading %d%%", math.floor(r.fill * 100))
+			if r.fill < last or r.text ~= want then
+				table.insert(bad, string.format("#%d %.3f %q", i, r.fill, r.text))
+			end
+			last = r.fill
+		end
+		check(res, "loading_bar_readings", #FX.loading.readings, ">= 1", #FX.loading.readings >= 1)
+		checkList(res, "loading_bar_tracks_progress", bad)
+	end
 	-- Client scripts without a ScreenGui (UiSpec.ClientScripts), e.g. Client/RollAnnounce
 	local folder = script.Parent.Parent
 	for _, name in UiSpec.ClientScripts do
@@ -4133,7 +4317,7 @@ function K.textScale(label, ctx)
 	local s, node = 1, label
 	while node and not node:IsA("LayerCollector") do
 		if ctx.vp then
-			s *= ownScale(node, ctx)
+			s *= ownScale(node, ctx) * (FX.frameRatio(node, ctx) or 1) -- an Index frame's TextSizes are g.px too (live)
 		else
 			for _, child in node:GetChildren() do
 				if child:IsA("UIScale") and not UiSpec.TransientScales[child.Name] then
@@ -4212,6 +4396,7 @@ function S.ui_layout(res)
 						if
 							(l:IsA("TextLabel") or l:IsA("TextBox"))
 							and effectivelyVisible(l)
+							and not UiSpec.TransientLabels[l.Name] -- owner 2026-11-10: the "+$" float is exempt
 							and not l:FindFirstAncestorWhichIsA("GuiButton")
 							and not K.phoneHidden(pathOf(l), vp)
 						then
@@ -4307,22 +4492,90 @@ function S.ui_layout(res)
 					overRow = { "no RollToast/Toast" }
 				end
 				checkList(res, "toast_clear_of_top_right_row_" .. vpSpec.Name, overRow)
-				-- Quests: the Shop tile's twin, directly above it, on screen
-				local questsTile, shopTile = findPath(UiSpec.Hud.Quests), findPath(UiSpec.Hud.Shop)
-				if questsTile and shopTile then
-					local qr, sr = rectOf(questsTile), rectOf(shopTile)
-					local gapToShop = sr.y - (qr.y + qr.h)
-					check(
-						res,
-						"quests_above_shop_" .. vpSpec.Name,
-						rstr(qr) .. " over " .. rstr(sr),
-						("same x and size, gap 0..%g"):format(UiSpec.Hud.ColumnMaxGap),
-						math.abs(qr.x - sr.x) <= TOL
-							and math.abs(qr.w - sr.w) <= TOL
-							and math.abs(qr.h - sr.h) <= TOL
-							and gapToShop >= -TOL
-							and gapToShop <= UiSpec.Hud.ColumnMaxGap + TOL
-					)
+				-- Design doc 4.40 "HUD layout" (split L/R): NavButtons 1..ColumnSize are the left column (Index, Items,
+				-- Rebirth) at most NavMaxLeftGap from the screen's left edge, the next RightColumnSize the right column (Quests,
+				-- Shop; Market is a top-right pill) at most NavMaxLeftGap from its right edge. Each column shares one x and stacks top to bottom
+				-- 0..ColumnGap apart (a phone's UIScale only shrinks it); every button is Cell x its holder's UIScale.
+				local colSize, colGap = UiSpec.Hud.ColumnSize, UiSpec.Hud.ColumnGap
+				local tileRects, gridWrong = {}, {}
+				for i, path in UiSpec.Hud.NavButtons do
+					local t = findPath(path)
+					if t then
+						tileRects[i] = rectOf(t)
+					else
+						table.insert(gridWrong, path .. " missing")
+					end
+				end
+				local function gapOk(g)
+					return g >= -TOL and g <= colGap + TOL
+				end
+				local wantButtons = colSize + UiSpec.Hud.RightColumnSize
+				if #UiSpec.Hud.NavButtons ~= wantButtons then
+					table.insert(gridWrong, ("%d NavButtons, want %d"):format(#UiSpec.Hud.NavButtons, wantButtons))
+				end
+				-- each column holds exactly its buttons (Market left the right column, design doc 4.40)
+				for holderPath, want in
+					{ [UiSpec.Hud.Grid] = colSize, [UiSpec.Hud.ShopColumn] = UiSpec.Hud.RightColumnSize }
+				do
+					local count = 0
+					for _, c in findPath(holderPath) and findPath(holderPath):GetChildren() or {} do
+						if c:IsA("GuiButton") then
+							count += 1
+						end
+					end
+					if count ~= want then
+						table.insert(gridWrong, ("%s holds %d buttons, want %d"):format(holderPath, count, want))
+					end
+				end
+				if #gridWrong == 0 then
+					for i, r in tileRects do
+						local path = UiSpec.Hud.NavButtons[i]
+						local isLeft = i <= colSize
+						local holder = isLeft and UiSpec.Hud.Grid or UiSpec.Hud.ShopColumn
+						local want = UiSpec.Hud.Cell * (UiResponsive.HudChromeScale(holder, vp) or 1)
+						if math.abs(r.w - want.X) > TOL or math.abs(r.h - want.Y) > TOL then
+							table.insert(gridWrong, ("%s%s not the %gx%g cell"):format(path, rstr(r), want.X, want.Y))
+						end
+						if i ~= 1 and i ~= colSize + 1 then -- not the top of a column
+							local above = tileRects[i - 1]
+							local g = r.y - (above.y + above.h)
+							if math.abs(r.x - above.x) > TOL or not gapOk(g) then
+								table.insert(
+									gridWrong,
+									("%s%s not below %s%s (gap %g)"):format(
+										path,
+										rstr(r),
+										UiSpec.Hud.NavButtons[i - 1],
+										rstr(above),
+										g
+									)
+								)
+							end
+						end
+						local root = rootOf(path)
+						if not contains(root, r) then
+							table.insert(gridWrong, path .. rstr(r) .. " off screen")
+						else
+							local edgeGap = isLeft and r.x - root.x or root.x + root.w - (r.x + r.w)
+							if edgeGap > UiSpec.Hud.NavMaxLeftGap + TOL then
+								table.insert(
+									gridWrong,
+									("%s%s %g px from the %s edge, max %g"):format(
+										path,
+										rstr(r),
+										edgeGap,
+										isLeft and "left" or "right",
+										UiSpec.Hud.NavMaxLeftGap
+									)
+								)
+							end
+						end
+					end
+				end
+				checkList(res, "hud_grid_two_columns_" .. vpSpec.Name, gridWrong)
+				local questsTile = findPath(UiSpec.Hud.Quests)
+				if questsTile then
+					local qr = rectOf(questsTile)
 					check(
 						res,
 						"quests_on_screen_" .. vpSpec.Name,
@@ -4331,7 +4584,7 @@ function S.ui_layout(res)
 						contains(rootOf(UiSpec.Hud.Quests), qr)
 					)
 				else
-					check(res, "quests_above_shop_" .. vpSpec.Name, "missing", "present", false)
+					check(res, "quests_on_screen_" .. vpSpec.Name, "missing", "present", false)
 				end
 				-- RacerHud/Race is hidden: this only holds the anchor the Toast and the panel bands read in place
 				local toggle = findPath(UiSpec.Hud.Race)
@@ -4443,27 +4696,50 @@ function S.ui_layout(res)
 			end
 			-- The four Racer panels sit in the PanelBand (docs/HUD_LAYOUT_SPEC.md sections 1 and 6, Client/PanelBand.Rect,
 			-- read by RacerUiController.fitPanels): centred horizontally, Gap below the Race Face, Gap above the TURBO
-			-- LUCK bar, inside the band (past the icon grid and what sticks out of it and the Shop column, the wider
-			-- margin on both sides; above Money when Money reaches into it), centred vertically in the band.
+			-- LUCK bar, inside the band (Gap clear of both icon columns and what sticks out of them, the wider margin on
+			-- both sides, design doc 4.40 split L/R; above Money when Money reaches into it), centred vertically in the band.
 			for _, panelPath in state.Open do
 				local prefix = UiSpec.RacerPanelBand.Panels[panelPath]
 				if prefix then
 					local p = findPath(panelPath)
 					local race, turbo = findPath(UiSpec.Hud.Race), findPath(UiSpec.Hud.Turbo)
 					local nav = findPath(UiSpec.RacerPanelBand.Navigation)
-					local raceBox, shop = findPath(UiSpec.Band.Race), findPath(UiSpec.Band.ShopColumn)
+					local raceBox, shop = findPath(UiSpec.Band.Race), findPath(UiSpec.RacerPanelBand.ShopColumn)
 					local money = findPath(UiSpec.Band.Money)
 					local tagV = "_" .. vpSpec.Name
 					if p and race and turbo and nav and raceBox and shop and money then
 						local gap = UiSpec.RacerPanelBand.Gap
 						local r, root = rectOf(p), rootRect(guiOf(p), vp)
-						local ar, br = rectOf(race), rectOf(turbo)
+						local br, anchor = rectOf(turbo), rectOf(raceBox)
 						local cx, cy = centre(r)
-						local dx = math.abs(cx - (root.x + root.w / 2))
+						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
+						-- with Visible = true, as PanelBand.Rect reads it
+						local function partsOf(holder)
+							local parts = {}
+							for _, d in holder:GetDescendants() do
+								if d:IsA("GuiObject") and d.Visible then
+									table.insert(parts, rectOf(d))
+								end
+							end
+							return parts
+						end
+						local left, top, right, bottom = UiShopMarket.Band(vp, {
+							Race = anchor,
+							Turbo = br,
+							Navigation = rectOf(nav),
+							NavigationParts = partsOf(nav),
+							ShopColumn = rectOf(shop),
+							ShopColumnParts = partsOf(shop),
+							Money = rectOf(money),
+							MoneyShown = money:IsA("GuiObject") and money.Visible,
+						})
+						-- Design doc 4.40: panels centre in the band between the two columns
+						local dx = math.abs(cx - (left + right) / 2)
 						check(res, prefix .. "_centred_x" .. tagV, dx, TOL, dx <= TOL)
-						local minTop = ar.y + ar.h + gap
+						-- Design doc 4.42 "Panel size": the band top (ReachUp over the Race anchor + Gap, PanelBand.Rect)
+						local minTop = math.max(inset().Y + gap, anchor.y + anchor.h + gap - UiSpec.Band.ReachUp)
 						check(res, prefix .. "_below_autorace" .. tagV, r.y, ">= " .. minTop, r.y >= minTop - TOL)
-						local maxBottom = br.y - gap
+						local maxBottom = br.y - UiSpec.Band.ReachDown
 						check(
 							res,
 							prefix .. "_above_turbo" .. tagV,
@@ -4471,23 +4747,6 @@ function S.ui_layout(res)
 							"<= " .. maxBottom,
 							r.y + r.h <= maxBottom + TOL
 						)
-						-- the grid includes what sticks out of it (the Rebirth PointsBadge): every GuiObject descendant
-						-- with Visible = true, as PanelBand.Rect reads it
-						local parts = {}
-						for _, d in nav:GetDescendants() do
-							if d:IsA("GuiObject") and d.Visible then
-								table.insert(parts, rectOf(d))
-							end
-						end
-						local left, top, right, bottom = UiShopMarket.Band(vp, {
-							Race = rectOf(raceBox),
-							Turbo = br,
-							Navigation = rectOf(nav),
-							NavigationParts = parts,
-							ShopColumn = rectOf(shop),
-							Money = rectOf(money),
-							MoneyShown = money:IsA("GuiObject") and money.Visible,
-						})
 						check(
 							res,
 							prefix .. "_clear_of_nav" .. tagV,
@@ -4597,6 +4856,18 @@ function S.ui_layout(res)
 		repeat
 			renderFrame()
 		until not moving() or os.clock() > restBy
+		-- The real mouse may rest on a HUD button: its HoverScale (RacerMotion, 1.035) is feedback the model counts as 1
+		-- (UiSpec.TransientScales), so the engine is measured at 1 too and the hover is put back after
+		local hovered = {}
+		for _, o in playerGui:GetDescendants() do
+			if o.Name == "HoverScale" and o:IsA("UIScale") and o.Scale ~= 1 then
+				hovered[o] = o.Scale
+				o.Scale = 1
+			end
+		end
+		if next(hovered) then
+			renderFrame()
+		end
 		local sim = provider({ Name = "current_sim", Size = viewport() })
 		local worst, worstPath = 0, "none"
 		for _, e in elementsFor(state.Open) do
@@ -4613,6 +4884,11 @@ function S.ui_layout(res)
 		check(res, "layout_model_matches_engine_" .. state.Name, worst, TOL, worst <= TOL)
 		if worst > TOL then
 			check(res, "layout_model_worst_" .. state.Name, worstPath, "none", false)
+		end
+		for scale, value in hovered do
+			if scale.Parent and scale.Scale == 1 then
+				scale.Scale = value
+			end
 		end
 		restore()
 	end
@@ -4831,6 +5107,144 @@ function S.ui_buttons(res)
 		local text = b and allText(b) or "missing"
 		check(res, "label_" .. item[1], text, item[2], text == item[2])
 	end
+	-- Design doc 4.40 "Icon style" (Tab tilt): no tile frame. Every column button and the Auto / Upgrade pair is a
+	-- transparent ImageButton (BackgroundTransparency 1, Image "") whose ImageLabel "Icon" shows its HudIcons entry
+	local HudIcons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
+	local wrongArt = {}
+	for _, path in UiSpec.Hud.IconButtons do
+		local t = findPath(path)
+		local name = string.match(path, "[^/]+$")
+		local art = HudIcons[name] and HudIcons[name].Image or ""
+		local icon = t and t:FindFirstChild("Icon")
+		if not t then
+			table.insert(wrongArt, path .. " missing")
+		elseif not t:IsA("ImageButton") then
+			table.insert(wrongArt, ("%s is a %s, not an ImageButton"):format(path, t.ClassName))
+		elseif t.BackgroundTransparency ~= 1 or t.Image ~= "" then
+			table.insert(
+				wrongArt,
+				('%s BackgroundTransparency %g Image %q, want 1 and ""'):format(path, t.BackgroundTransparency, t.Image)
+			)
+		elseif art == "" then
+			table.insert(wrongArt, ("HudIcons.%s.Image is empty"):format(name))
+		elseif not (icon and icon:IsA("ImageLabel")) then
+			table.insert(wrongArt, path .. " has no ImageLabel Icon")
+		elseif icon.Image ~= art then
+			table.insert(wrongArt, ("%s/Icon Image %s, want HudIcons.%s %s"):format(path, icon.Image, name, art))
+		end
+	end
+	checkList(res, "hud_icon_buttons_transparent", wrongArt)
+	-- Design doc 4.40 (owner 2026-11-10): on keyboard each column button shows its keybind letter in a TextLabel Key, in
+	-- the tile's top-right quarter, clear of the tile's label text
+	if UserInputService.KeyboardEnabled then
+		local keyLetters = { "X", "B", "R", "Q", "P" }
+		local badKeys = {}
+		for index, path in UiSpec.Hud.NavButtons do
+			local tile = findPath(path)
+			local key = tile and tile:FindFirstChild("Key", true)
+			if not key or not key:IsA("TextLabel") then
+				table.insert(badKeys, path .. " has no Key TextLabel")
+			elseif not effectivelyVisible(key) or key.Text ~= keyLetters[index] then
+				table.insert(
+					badKeys,
+					("%s Key %q visible %s, want %q"):format(
+						path,
+						key.Text,
+						tostring(effectivelyVisible(key)),
+						keyLetters[index]
+					)
+				)
+			else
+				local tr, kr = realRect(tile), realRect(key)
+				local quarter = R(tr.x + tr.w / 2, tr.y, tr.w / 2, tr.h / 2)
+				if not contains(quarter, kr) then
+					table.insert(
+						badKeys,
+						("%s Key %s outside top-right quarter %s"):format(path, rstr(kr), rstr(quarter))
+					)
+				end
+				for _, o in tile:GetDescendants() do
+					if
+						o ~= key
+						and o.Name ~= "Badge"
+						and o.Name ~= "PointsBadge"
+						and (o:IsA("TextLabel") or o:IsA("TextButton"))
+						and effectivelyVisible(o)
+					then
+						local lr = textRect(o, realRect(o), K.textScale(o, {}))
+						if lr and intersects(lr, kr) then
+							table.insert(
+								badKeys,
+								("%s Key %s overlaps label %s text %s"):format(path, rstr(kr), o.Name, rstr(lr))
+							)
+						end
+					end
+				end
+			end
+		end
+		checkList(res, "hud_tile_keys", badKeys)
+	end
+	-- Design doc 4.40 "Market pill and Bosses button": TopRight holds exactly the Daily and Market pills and the
+	-- Settings button, in that LayoutOrder (left to right)
+	local topRight = findPath(UiSpec.Hud.TopRight)
+	local topItems = {}
+	for _, c in topRight and topRight:GetChildren() or {} do
+		if c:IsA("GuiObject") then
+			table.insert(topItems, c)
+		end
+	end
+	table.sort(topItems, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	local topNames = {}
+	for _, c in topItems do
+		table.insert(topNames, c.Name)
+	end
+	local wantTop = table.concat(UiSpec.Hud.TopRightButtons, ", ")
+	local gotTop = topRight and table.concat(topNames, ", ") or "missing"
+	check(res, "top_right_only_daily_market_settings", gotTop, wantTop, gotTop == wantTop)
+	-- The Market pill is built as the Daily pill: same class, size, colour, icon size, caption font and size; its icon
+	-- HudIcons.Market, its caption "Market", no key letter shown (as Daily; the M key still opens it)
+	local daily, market = findPath(UiSpec.Hud.Daily), findPath(UiSpec.Hud.Market)
+	local pillWrong = {}
+	if not (daily and market) then
+		table.insert(pillWrong, (daily and "" or "Daily missing ") .. (market and "" or "Market missing"))
+	else
+		local function same(what, a, b)
+			if a ~= b then
+				table.insert(pillWrong, ("%s: Market %s, Daily %s"):format(what, tostring(b), tostring(a)))
+			end
+		end
+		same("class", daily.ClassName, market.ClassName)
+		same("Size", daily.Size, market.Size)
+		same("BackgroundColor3", daily.BackgroundColor3, market.BackgroundColor3)
+		same("BackgroundTransparency", daily.BackgroundTransparency, market.BackgroundTransparency)
+		local di, mi = daily:FindFirstChild("Icon"), market:FindFirstChild("Icon")
+		local dc, mc = daily:FindFirstChild("Caption"), market:FindFirstChild("Caption")
+		if not (di and mi and dc and mc) then
+			table.insert(pillWrong, "Icon / Caption missing on Daily or Market")
+		else
+			same("Icon Size", di.Size, mi.Size)
+			same("Icon Position", di.Position, mi.Position)
+			same("Caption Font", dc.Font, mc.Font)
+			same("Caption TextSize", dc.TextSize, mc.TextSize)
+			same("Caption TextColor3", dc.TextColor3, mc.TextColor3)
+			if mi.Image ~= HudIcons.Market.Image then
+				table.insert(
+					pillWrong,
+					("Icon Image %s, want HudIcons.Market %s"):format(mi.Image, HudIcons.Market.Image)
+				)
+			end
+			if mc.Text ~= "Market" then
+				table.insert(pillWrong, ("Caption %q, want %q"):format(mc.Text, "Market"))
+			end
+		end
+		local key = market:FindFirstChild("Key", true)
+		if key and effectivelyVisible(key) then
+			table.insert(pillWrong, "Market shows a key letter (Daily shows none)")
+		end
+	end
+	checkList(res, "market_pill_like_daily", pillWrong)
 	local close = findPath("RacerIndex/Panel/Face/Header/Face/Close/Face")
 	check(
 		res,
@@ -4910,29 +5324,82 @@ function S.ui_hud(res)
 	local speedHud = findPath("RacerHud/Speed")
 	check(res, "hud_no_speed_readout", speedHud and pathOf(speedHud) or "absent", "absent", speedHud == nil)
 	check(res, "hud_labels_present", moneyValue ~= nil, true, moneyValue ~= nil)
-	-- Unbanked row (spec section 5): title "UNBANKED" and the smoothed player attribute Unbanked, under Money
-	local unbankedValue = findPath(UiSpec.Hud.Unbanked)
+	-- Owner 2026-11-10 (design doc 4.40): no run bank, so no UNBANKED line and no Unbanked attribute; no box or border
+	-- behind Money or Gems; the Gems row sits directly under the Money number.
+	local retired = {}
+	for _, p in UiSpec.Hud.RetiredMoneyParts do
+		if findPath(p) then
+			table.insert(retired, p)
+		end
+	end
+	local hudRoot = findPath("RacerHud")
+	for _, l in hudRoot and hudRoot:GetDescendants() or {} do
+		if l:IsA("TextLabel") and string.find(string.upper(l.Text), UiSpec.Hud.RetiredMoneyText, 1, true) then
+			table.insert(retired, pathOf(l) .. " " .. l.Text)
+		end
+	end
+	checkList(res, "unbanked_label_absent", retired)
+	check(res, "unbanked_attribute_absent", tostring(attr("Unbanked")), "nil", attr("Unbanked") == nil)
+	local gemsRow, gemsValue = findPath(UiSpec.Hud.Gems), findPath(UiSpec.Hud.GemsValue)
 	check(
 		res,
-		"unbanked_value_present",
-		unbankedValue ~= nil,
-		true,
-		unbankedValue ~= nil and unbankedValue:IsA("TextLabel")
+		"gems_value_present",
+		gemsValue and gemsValue.ClassName or "missing",
+		"TextLabel",
+		gemsRow ~= nil and gemsValue ~= nil and gemsValue:IsA("TextLabel")
 	)
-	check(res, "unbanked_attribute_present", typeof(attr("Unbanked")), "number", type(attr("Unbanked")) == "number")
 	local hudPanel = findPath(UiSpec.Hud.Money)
-	if hudPanel and moneyValue and unbankedValue then
-		renderFrame()
-		local mv, uv = realRect(moneyValue), realRect(unbankedValue)
-		check(res, "unbanked_under_money", uv.y, ">= " .. (mv.y + mv.h), uv.y >= mv.y + mv.h - TOL)
+	if hudPanel and moneyValue and gemsRow then
+		-- Measured at rest: a payout Pops MoneyValue (UiMotion MotionScale, +12% for ~0.18 s, HUD_LAYOUT_SPEC section
+		-- 10), the spec'd motion, not its layout. Waits (at most Waits.MotionRest s) until no MotionScale is off 1.
+		local restBy = os.clock() + UiSpec.Waits.MotionRest
+		repeat
+			renderFrame()
+			local m = moneyValue:FindFirstChild("MotionScale")
+		until not (m and m:IsA("UIScale") and math.abs(m.Scale - 1) > 1e-3) or os.clock() > restBy
+		local mv, gv = realRect(moneyValue), realRect(gemsRow)
+		check(
+			res,
+			"gems_under_money",
+			("gems y %d, x %d"):format(gv.y, gv.x),
+			("y in [%d, %d], x %d +- %d"):format(
+				mv.y + mv.h,
+				mv.y + mv.h + UiSpec.Hud.GemsUnderGap,
+				mv.x,
+				UiSpec.Hud.GemsLeftTolerance
+			),
+			gv.y >= mv.y + mv.h - TOL
+				and gv.y <= mv.y + mv.h + UiSpec.Hud.GemsUnderGap + TOL
+				and math.abs(gv.x - mv.x) <= UiSpec.Hud.GemsLeftTolerance
+		)
 		local pr = realRect(hudPanel)
 		local outside = {}
 		for _, l in hudPanel:GetDescendants() do
-			if l:IsA("TextLabel") and l.Visible and not contains(pr, realRect(l)) then
+			-- owner 2026-11-10: the transient "+$" float (UiSpec.TransientLabels) is exempt
+			if
+				l:IsA("TextLabel")
+				and l.Visible
+				and not UiSpec.TransientLabels[l.Name]
+				and not contains(pr, realRect(l))
+			then
 				table.insert(outside, pathOf(l) .. rstr(realRect(l)) .. " outside " .. rstr(pr))
 			end
 		end
 		checkList(res, "hud_labels_inside_panel", outside)
+		-- No box: Money, Gems and everything in them draw no background and no border stroke (text outlines stay).
+		local boxed, clickable = {}, {}
+		for _, o in { hudPanel, table.unpack(hudPanel:GetDescendants()) } do
+			if o:IsA("GuiObject") and o.BackgroundTransparency < 0.999 then
+				table.insert(boxed, pathOf(o) .. " BackgroundTransparency " .. o.BackgroundTransparency)
+			elseif o:IsA("UIStroke") and o.ApplyStrokeMode == Enum.ApplyStrokeMode.Border and o.Enabled then
+				table.insert(boxed, pathOf(o) .. " border stroke")
+			end
+			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
+				table.insert(clickable, pathOf(o))
+			end
+		end
+		checkList(res, "money_gems_no_box", boxed)
+		checkList(res, "money_gems_non_interactive", clickable)
 	end
 	if not (money and moneyValue) then
 		return
@@ -4968,62 +5435,33 @@ function S.ui_hud(res)
 		until os.clock() > deadline
 		return false, label.Text, want
 	end
-	if unbankedValue then
-		local ok, shownText, want = followsServer(unbankedValue, function()
-			return attr("Unbanked")
-		end, HudFormat.MoneyText, UiSpec.Hud.UnbankedPrefix, "")
-		check(res, "hud_unbanked_matches_server", shownText, want, ok)
+	if gemsValue then
+		local ok, shownText, want = followsServer(gemsValue, function()
+			return attr("Gems") or 0
+		end, HudFormat.Short, "", "")
+		check(res, "hud_gems_matches_server", shownText, want, ok)
 	end
 	local okMoney, moneyText, wantMoney = followsServer(moneyValue, function()
 		return money.Value
 	end, HudFormat.MoneyText, "", "")
 	check(res, "hud_money_matches_server", moneyText, wantMoney, okMoney)
-	-- Money plate (docs/HUD_LAYOUT_SPEC.md section 9): behind both labels, holds both, never takes a click
-	local plate = findPath(UiSpec.Hud.MoneyPlate)
-	check(
-		res,
-		"money_plate_present",
-		plate and plate.ClassName or "missing",
-		"Frame",
-		plate ~= nil and plate:IsA("Frame")
-	)
-	if plate and plate:IsA("GuiObject") then
-		local behind = {}
-		for _, l in { moneyValue, unbankedValue } do
-			if l and not (plate.ZIndex < l.ZIndex) then
-				table.insert(behind, ("%s ZIndex %d <= plate %d"):format(pathOf(l), l.ZIndex, plate.ZIndex))
-			end
-		end
-		checkList(res, "money_plate_behind_labels", behind)
-		-- Measured at rest: a payout Pops MoneyValue (UiMotion MotionScale, +12% for ~0.18 s, HUD_LAYOUT_SPEC section
-		-- 10), the spec'd motion, not its layout. Waits (at most Waits.MotionRest s) until no MotionScale is off 1.
-		local function popping()
-			for _, l in { plate, moneyValue, unbankedValue } do
-				local m = l and l:FindFirstChild("MotionScale")
-				if m and m:IsA("UIScale") and math.abs(m.Scale - 1) > 1e-3 then
-					return true
+	-- Checkpoint payout notice (design doc 4.40): a RunEvent CashOut floats "Cashed out +$X" (the server's amount) by
+	-- Money. Skipped with ReduceEffects (UiMotion.Float shows nothing then).
+	if attr("ReduceEffects") ~= true then
+		local notice = UiSpec.Hud.CashOutNotice
+		local want = notice.Prefix .. HudFormat.MoneyText(notice.Amount)
+		local ok, err = UiScenarios.RequestSetup("cash_out_notice")
+		local seen = nil
+		local deadline = os.clock() + notice.Wait
+		while ok and not seen and os.clock() < deadline do
+			renderFrame()
+			for _, l in hudPanel and hudPanel:GetChildren() or {} do
+				if l.Name == "MotionFloat" and l:IsA("TextLabel") and l.Text == want then
+					seen = l
 				end
 			end
-			return false
 		end
-		local restBy = os.clock() + UiSpec.Waits.MotionRest
-		repeat
-			renderFrame()
-		until not popping() or os.clock() > restBy
-		local pr, outside = realRect(plate), {}
-		for _, l in { moneyValue, unbankedValue } do
-			if l and not contains(pr, realRect(l)) then
-				table.insert(outside, pathOf(l) .. rstr(realRect(l)) .. " outside " .. rstr(pr))
-			end
-		end
-		checkList(res, "money_labels_inside_plate", outside)
-		local clickable = {}
-		for _, o in { plate, table.unpack(plate:GetDescendants()) } do
-			if o:IsA("GuiButton") or (o:IsA("GuiObject") and o.Active) then
-				table.insert(clickable, pathOf(o))
-			end
-		end
-		checkList(res, "money_plate_non_interactive", clickable)
+		check(res, "cash_out_notice_by_money", seen and seen.Text or tostring(err or "none"), want, seen ~= nil)
 	end
 	local noGradient = {}
 	for _, p in UiSpec.Hud.GradientLabels do
@@ -8379,8 +8817,6 @@ function Click.attrSnapshot()
 		TrackCamera = attr("TrackCamera") ~= false, -- unset = ON (docs/CAMERA_SPEC.md)
 		EquippedCar = attr("EquippedCar"),
 		StatPoints = attr("StatPoints") or 0,
-		WorkshopLevel = attr("WorkshopLevel"),
-		Showcase = attr("Showcase"), -- Workshop Showcase ids joined by "," (showcase_* clicks)
 		Checkpoint = attr("Checkpoint"), -- checkpoint_not_optimistic (was never captured: the check compared to nil)
 		ProgressionMoney = player:FindFirstChild("leaderstats") and player.leaderstats.Money.Value,
 		ProgressionOwned = player:FindFirstChild("Upgrades") and #player.Upgrades:GetChildren() or 0,
@@ -8418,7 +8854,7 @@ function Click.firedSince(preSpy)
 	return fired
 end
 
--- A key press from UiSpec.Clicks (Key = "Escape", ...), other than the workshop E prompt (Progression.RunInput).
+-- A key press from UiSpec.Clicks (Key = "Escape", ...).
 -- A LocalScript can not send a key (VirtualInputManager needs plugin security), so ui-tester presses it (KEY
 -- protocol in UiSpec.Clicks). Prepare is honoured like a click (AttrIs / AttrNot / Showcase are required, Open /
 -- Closed panels are set); the harness records the REAL InputBegan for that key, then checks Expect exactly: every
@@ -8574,18 +9010,8 @@ function UiScenarios.RunClick(id)
 	end
 	-- A MANUAL check (UiSpec.Clicks Manual) run by hand: same checks; the result says it is the manual one
 	res.manual = spec.Manual
-	if spec.Key and spec.Expect.WorkshopOpen == nil then
+	if spec.Key then
 		return Click.runKey(spec, res)
-	elseif spec.Key then
-		-- The workshop E prompt contracts (Expect.WorkshopOpen) keep their own fixture-checked runner
-		return Progression.RunInput(spec, res, {
-			check = check,
-			find = findPath,
-			frames = frames,
-			player = player,
-			setPanels = setPanels,
-			allPanels = allPanels,
-		})
 	end
 	waitGuis()
 	local prep = spec.Prepare or {}
@@ -8669,19 +9095,6 @@ function UiScenarios.RunClick(id)
 		end
 		tileId = team[1]
 		path = string.gsub(path, "{equipped}", tileId)
-	end
-	-- Workshop Showcase rows (UiSpec.WorkshopShowcase): {showcase_unshown} = the highest-bonus owned rollable car not
-	-- shown, {showcase_shown} = the first shown id. Kept apart from tileId (that one scrolls the Index grid).
-	local showcaseId = nil
-	for _, token in { "{showcase_unshown}", "{showcase_shown}" } do
-		if string.find(path, token, 1, true) then
-			showcaseId = Progression.ShowcaseTarget(token == "{showcase_shown}")
-			if not showcaseId then
-				stateMissing(res, "target_row", "showcase_owned", "no " .. token .. " car")
-				return res
-			end
-			path = string.gsub(path, token, UiSpec.WorkshopShowcase.RowPrefix .. showcaseId)
-		end
 	end
 	-- A bag tile's Entry (UiSpec.Backpack.EntryTokens) or the picker's first card: known only at the click.
 	for token, source in UiSpec.Backpack.EntryTokens do
@@ -8936,16 +9349,6 @@ function UiScenarios.RunClick(id)
 			ready == true
 		)
 		if not ready then
-			restore()
-			return res
-		end
-	end
-	-- Showcase clicks: Remotes.SetShowcase must be the showcase_spy pass-through proxy (logs, then the real handler)
-	if spec.Gui == "RacerWorkshop" and string.find(spec.Path, "^Panel/Showcase/") then
-		local proxy = ReplicatedStorage.Remotes:FindFirstChild(UiSpec.WorkshopShowcase.Remote)
-		local spied = proxy ~= nil and proxy:GetAttribute("UiTestSpied") == true
-		check(res, "showcase_spy_before_click", spied, true, spied)
-		if not spied then
 			restore()
 			return res
 		end
@@ -9227,8 +9630,6 @@ function UiScenarios.RunClick(id)
 			wantArg = rowStat
 		elseif argSpec == "upgrade_id" then
 			wantArg = upgradeId
-		elseif type(argSpec) == "string" and string.sub(argSpec, 1, 9) == "showcase_" then
-			wantArg = Progression.ShowcaseWant(argSpec, pre.Showcase, showcaseId) -- the id list SetShowcase gets
 		end
 		local names = {}
 		for _, f in fired do
@@ -9266,22 +9667,6 @@ function UiScenarios.RunClick(id)
 			end
 			ok = #fired == 1 and names[1] == want
 		end
-		if type(wantArg) == "table" then
-			-- SetShowcase(ids): exactly one argument, the promised id list (Progression.SameShowcase)
-			names = {}
-			for _, f in fired do
-				local a = f.args[1]
-				table.insert(
-					names,
-					f.name .. "(" .. (type(a) == "table" and table.concat(a, ",") or tostring(a)) .. ")"
-				)
-			end
-			want = expect.Remote.Name .. "(" .. table.concat(wantArg, ",") .. ")"
-			ok = #fired == 1
-				and fired[1].name == expect.Remote.Name
-				and #fired[1].args == 1
-				and Progression.SameShowcase(expect.Remote.Arg, fired[1].args[1], wantArg)
-		end
 		if ok and (expect.Remote.Arg == "upgrade_id" or expect.Remote.Arg == "none") then
 			ok = #fired[1].args == (expect.Remote.Arg == "none" and 0 or 1)
 		end
@@ -9299,7 +9684,7 @@ function UiScenarios.RunClick(id)
 	for _, cond in expect.After or {} do
 		if cond == "progression_not_optimistic" then
 			local now = Click.attrSnapshot()
-			for _, key in { "WorkshopLevel", "ProgressionMoney", "ProgressionOwned" } do
+			for _, key in { "ProgressionMoney", "ProgressionOwned" } do
 				check(res, "unchanged_" .. string.lower(key), now[key], pre[key], now[key] == pre[key])
 			end
 		elseif cond == "tree_zoomed_in" or cond == "tree_zoomed_out" then
@@ -9310,10 +9695,6 @@ function UiScenarios.RunClick(id)
 				and type(was) == "number"
 				and (if cond == "tree_zoomed_in" then now > was else now < was)
 			check(res, cond, now or "missing", (cond == "tree_zoomed_in" and "> " or "< ") .. tostring(was), ok)
-		elseif cond == "workshop_rejection_shown" then
-			local result = findPath("RacerWorkshop/Panel/Result")
-			local text = result and allText(result) or ""
-			check(res, cond, text, "server rejection money", string.find(string.lower(text), "money", 1, true) ~= nil)
 		elseif cond == "autorace_label_follows_server" then
 			check(res, cond, allText(button), UiSpec.Hud.AutoLabel, allText(button) == UiSpec.Hud.AutoLabel)
 		elseif cond == "auto_pill_tint_follows_server" then
@@ -9787,7 +10168,7 @@ function UiScenarios.RunClick(id)
 		elseif shopMarket.After[cond] then
 			shopMarket.After[cond](res, { pre = pre, spec = spec, path = path })
 		elseif Progression.After[cond] then
-			-- weather icon / card (UiSpec.Weather), Workshop Showcase (UiSpec.WorkshopShowcase)
+			-- weather icon / card (UiSpec.Weather)
 			Progression.After[cond](
 				res,
 				{ pre = pre, wantArg = wantArg, argSpec = expect.Remote and expect.Remote.Arg }

@@ -5,23 +5,16 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
--- The workshop / Dojo boosts one chosen stat by the squad's rarity (design doc 4.19); there is no idle gain.
 local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local Tree = require(shared.UpgradeTree)
 local Tracks = require(shared.TrackRegistry)
-local Workshop = require(shared.Workshop)
 local Format = require(shared.HudFormat)
 local UiTheme = require(shared.UiTheme)
 local Weather = require(shared.WeatherConfig)
 local Boosts = require(shared.BoostConfig)
-local CharacterCatalog = require(shared.CharacterCatalog)
-local GachaConfig = require(shared.GachaConfig)
 local Switch = require(script.Parent.PanelSwitch)
 local UiFeedback = require(script.Parent.UiFeedback)
-local Band = require(script.Parent.PanelBand)
-local Frame = require(script.Parent.PanelFrame)
-local Skin = require(script.Parent:WaitForChild("AnimeSkin"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local BLUE = Color3.fromRGB(61, 151, 219)
 local GREEN = Color3.fromRGB(89, 225, 138)
@@ -89,35 +82,6 @@ local function setActive(b, active)
 	b.Active = active
 end
 local panels = {}
-local function panel(name, title, icon)
-	local root = screen("Racer" .. name, 2)
-	local p = make("Frame", "Panel", root, {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 254),
-		Size = UDim2.new(0.82, 0, 1, -344),
-		BackgroundColor3 = DARK,
-		Visible = false,
-		Active = true,
-	})
-	plate(p)
-	-- Design doc 4.42: the Index frame (chrome, overhanging logo, ALL CAPS title, art close); content in its units.
-	local header = make("Frame", "Header", p, { BackgroundTransparency = 1 })
-	local heading = text("Title", p, UDim2.new(), UDim2.new(), title)
-	local logo = make("ImageLabel", "Icon", p, { Image = icon })
-	local close = button("Close", p, UDim2.new(), UDim2.new(), "×")
-	Frame.PaintClose(close)
-	local g = Skin.IndexFrame(p, { Title = heading, Icon = logo, Logo = icon, Close = close, Header = header })
-	Switch.Register(name, p)
-	-- Opens in the shared band between the HUD entries (docs/HUD_LAYOUT_SPEC.md section 6).
-	Band.Fit(p, 700)
-	local function closePanel()
-		Switch.Close(name)
-	end
-	close.Activated:Connect(closePanel)
-	Frame.CloseOnOutsideClick(p, closePanel)
-	panels[name] = p
-	return p, g
-end
 local hud = screen("RacerProgression", 1)
 -- Weather icon, bottom right (docs/WEATHER_EVENTS_SPEC.md, "Weather icon"): hover or tap shows the card.
 local weather = button("WeatherIcon", hud, UDim2.new(1, -8, 1, -8), UDim2.fromOffset(44, 44), "")
@@ -321,257 +285,6 @@ for _, tile in Tree.Tiles() do
 		UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", b)
 	end)
 end
-local workshopPanel, wg =
-	panel("Workshop", "WORKSHOP UPGRADE", require(script.Parent.RollToast.Ui.HudIcons).Upgrade.Image)
--- Design doc 4.42, in the Index frame's units (wg): the stat tabs in the tabs row; in the content area the level
--- column (the left 40%, BUY at its foot) and the showcase (the rest, 12 apart). placeWorkshop runs on every size change.
-local wsRoles = {} -- label -> text role, given again at each layout (the role's size follows the frame's scale)
-local boostLabel = text("Boost", workshopPanel, UDim2.new(), UDim2.new(), "")
-local levelLabel = text("Level", workshopPanel, UDim2.new(), UDim2.new(), "")
-local priceLabel = text("Price", workshopPanel, UDim2.new(), UDim2.new(), "")
-local workshopResult = text("Result", workshopPanel, UDim2.new(), UDim2.new(), "")
-for label, role in { [boostLabel] = "Item", [levelLabel] = "Body", [priceLabel] = "Body", [workshopResult] = "Caption" } do
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.TextYAlignment = Enum.TextYAlignment.Top
-	wsRoles[label] = role
-end
--- The boosted stat picker (design doc 4.19): the server validates the pick; the chosen one is lit. The buttons stay
--- in Stats (UI tests pin the path), a frame at the panel's origin, so the tabs row places them in panel units.
-local statRow = make("Frame", "Stats", workshopPanel, { BackgroundTransparency = 1, Size = UDim2.new() })
-local statButtons = {}
-for i, stat in Workshop.Config.STATS do
-	local b = button(stat, statRow, UDim2.new(), UDim2.new(), string.upper(stat))
-	statButtons[i] = b
-	b.Activated:Connect(function()
-		local ok, applied, reason = pcall(function()
-			return remotes:WaitForChild("SetWorkshopStat"):InvokeServer(stat)
-		end)
-		workshopResult.Text = ok and tostring(reason or (applied and "Updated" or "Try again"))
-			or "Connection error; try again"
-	end)
-end
-local statLit = {}
-for i, lit in wg.Tabs(statButtons) do
-	statLit[Workshop.Config.STATS[i]] = lit
-end
-local buyWorkshop = button("Buy", workshopPanel, UDim2.new(), UDim2.new(), "BUY NEXT LEVEL")
--- Showcase (docs/WORKSHOP_SPEC.md "Showcase"): the right part of the Workshop panel. The server validates every pick.
-local showcaseFrame = make("Frame", "Showcase", workshopPanel, { BackgroundTransparency = 1 })
-local squadPoints = text("Points", showcaseFrame, UDim2.new(), UDim2.new(), "")
-squadPoints.TextXAlignment = Enum.TextXAlignment.Left
-wsRoles[squadPoints] = "Caption"
--- The squad slots and BEST 3: one row of 44 tall buttons, 12 apart.
-local best3 = button("Best3", showcaseFrame, UDim2.new(), UDim2.new(), "BEST 3")
-local slots = {}
-for i = 1, GachaConfig.SHOWCASE_SLOTS do
-	local slot = make("Frame", "Slot" .. i, showcaseFrame, {})
-	Skin.Button(slot, "Idle")
-	local name = text("Name", slot, UDim2.new(), UDim2.new(), "EMPTY")
-	local info = text("Info", slot, UDim2.new(), UDim2.new(), "")
-	for label, role in { [name] = "Body", [info] = "Caption" } do
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.TextWrapped = false
-		label.TextTruncate = Enum.TextTruncate.AtEnd
-		wsRoles[label] = role
-	end
-	local clear = button("Clear", slot, UDim2.new(), UDim2.new(), "×")
-	slots[i] = { Frame = slot, Name = name, Info = info, Clear = clear }
-end
-local showcaseList = make("ScrollingFrame", "List", showcaseFrame, {
-	BackgroundTransparency = 1,
-	ScrollBarThickness = 6,
-	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- the bar sits beside the rows, not on their buttons
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	CanvasSize = UDim2.new(),
-})
-local showcaseLayout = make("UIListLayout", "Layout", showcaseList, { SortOrder = Enum.SortOrder.LayoutOrder })
-local ROW_H, SHOW_W = 44, 80 -- candidate rows and their SHOW button, in units
--- One candidate row: name (Body) and rarity (Caption) on the left, a 32 tall SHOW button on the right.
-local function placeRow(row)
-	local px = wg.px
-	row.Size = UDim2.new(1, 0, 0, px(ROW_H))
-	local name, info = row:FindFirstChild("Name"), row.Info -- row.Name is the property
-	name.Position, name.Size = UDim2.new(), UDim2.new(0.5, -px(8), 1, 0)
-	info.Position, info.Size = UDim2.fromScale(0.5, 0), UDim2.new(0.5, -px(SHOW_W + 8), 1, 0)
-	wg.Role(name, "Body")
-	wg.Role(info, "Caption")
-	row.Show.Position, row.Show.Size = UDim2.new(1, -px(SHOW_W), 0.5, -px(16)), wg.at(SHOW_W, 32)
-	wg.Button(row.Show, row.Show:GetAttribute("Tone"))
-end
-wg.OnLayout(function(g)
-	local c, gap, inner = g.Content, 12, 8
-	for label, role in wsRoles do
-		g.Role(label, role)
-	end
-	-- Left column, top down: boost, level, price; from the foot: BUY, then the result line 8 above it.
-	local leftW = math.floor(c.W * 0.4)
-	local bottom = c.Y + c.H
-	g.Place(boostLabel, c.X, c.Y, leftW, 34)
-	g.Place(levelLabel, c.X, c.Y + 34 + inner, leftW, 28)
-	local priceY = c.Y + 34 + inner + 28 + inner
-	local resultY = bottom - 44 - inner - 22
-	g.Place(priceLabel, c.X, priceY, leftW, math.min(56, resultY - inner - priceY)) -- two lines when there is room
-	g.Place(workshopResult, c.X, resultY, leftW, 22)
-	g.Place(buyWorkshop, c.X, bottom - 44, leftW, 44)
-	g.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
-	-- Right column: the squad line, the slots row, then as many whole candidate rows as fit.
-	local rightW = c.W - leftW - gap
-	g.Place(showcaseFrame, c.X + leftW + gap, c.Y, rightW, c.H)
-	g.Place(squadPoints, 0, 0, rightW, 22)
-	local rowY, count = 22 + inner, GachaConfig.SHOWCASE_SLOTS
-	local slotW = (rightW - count * gap) / (count + 1)
-	for i, slot in slots do
-		g.Place(slot.Frame, (i - 1) * (slotW + gap), rowY, slotW, 44)
-		Skin.Button(slot.Frame, "Idle")
-		g.Place(slot.Clear, slotW - 6 - 32, 6, 32, 32)
-		g.Button(slot.Clear, "Danger")
-		-- The name takes the whole slot while it is EMPTY (no clear button), so "EMPTY" always fits.
-		local textW = slotW - 12 - (slot.Clear.Visible and 32 + 6 + 4 or 0)
-		g.Place(slot.Name, 6, 2, textW, 24)
-		g.Place(slot.Info, 6, 26, textW, 16)
-		slot.Name:FindFirstChildOfClass("UITextSizeConstraint").MinTextSize = g.px(8)
-	end
-	g.Place(best3, count * (slotW + gap), rowY, slotW, 44)
-	g.Button(best3, "Go")
-	local listY = rowY + 44 + gap
-	local whole = math.max(1, math.floor((c.H - listY + gap) / (ROW_H + gap)))
-	g.Place(showcaseList, 0, listY, rightW, whole * (ROW_H + gap) - gap)
-	showcaseLayout.Padding = UDim.new(0, g.px(gap))
-	for _, row in showcaseList:GetChildren() do
-		if row:IsA("Frame") then
-			placeRow(row)
-		end
-	end
-end)
-
-local function shownIds()
-	local ids = {}
-	for id in string.gmatch(player:GetAttribute("Showcase") or "", "[^,]+") do
-		table.insert(ids, id)
-	end
-	return ids
-end
--- Owned rollable characters, most rarity points first: { Spec, Points }.
-local function showcaseCandidates()
-	local list = {}
-	local data = player:FindFirstChild("GachaData")
-	local team = string.split(player:GetAttribute("Team") or "", ",")
-	for _, entry in data and data:GetChildren() or {} do
-		local spec = CharacterCatalog.Get(entry.Name)
-		-- Team members can not join the Dojo squad (server rule, WORLD_REDESIGN_SPEC section 5)
-		if
-			spec
-			and spec.Rollable
-			and spec.Id ~= player:GetAttribute("EquippedCar")
-			and not table.find(team, spec.Id)
-		then
-			table.insert(list, { Spec = spec, Points = Workshop.Points({ spec }) })
-		end
-	end
-	table.sort(list, function(a, b)
-		if a.Points ~= b.Points then
-			return a.Points > b.Points
-		end
-		return a.Spec.Id < b.Spec.Id
-	end)
-	return list
-end
-local showcaseBusy = false
-local function sendShowcase(ids)
-	if showcaseBusy then
-		return
-	end
-	showcaseBusy = true
-	local ok, applied, reason = pcall(function()
-		return remotes:WaitForChild("SetShowcase"):InvokeServer(ids)
-	end)
-	workshopResult.Text = ok and tostring(reason or (applied and "Showcase updated" or "Try again"))
-		or "Connection error; try again"
-	showcaseBusy = false
-end
-local function refreshShowcase()
-	local ids = shownIds()
-	local candidates = showcaseCandidates()
-	local specs = {}
-	for i, slot in slots do
-		local spec = ids[i] and CharacterCatalog.Get(ids[i])
-		specs[i] = spec
-		slot.Name.Text = spec and spec.Name or "EMPTY"
-		slot.Info.Text = spec and string.format("%s · %d pts", spec.Rarity, Workshop.Points({ spec })) or ""
-		slot.Clear.Visible = spec ~= nil
-	end
-	squadPoints.Text = string.format("SQUAD  %d rarity points", Workshop.Points(specs))
-	wg.Relayout() -- a slot name takes the clear button's room while it is EMPTY
-	for _, row in showcaseList:GetChildren() do
-		if row:IsA("Frame") then
-			row:Destroy()
-		end
-	end
-	local full = #ids >= GachaConfig.SHOWCASE_SLOTS
-	for order, c in candidates do
-		local row = make("Frame", "Character_" .. c.Spec.Id, showcaseList, {
-			BackgroundTransparency = 1,
-			LayoutOrder = order,
-		})
-		local label = text("Name", row, UDim2.new(), UDim2.new(), c.Spec.Name)
-		local info = text("Info", row, UDim2.new(), UDim2.new(), string.format("%s · %d pts", c.Spec.Rarity, c.Points))
-		for _, object in { label, info } do
-			object.TextXAlignment = Enum.TextXAlignment.Left
-			object.TextWrapped = false
-			object.TextTruncate = Enum.TextTruncate.AtEnd
-		end
-		local shown = table.find(ids, c.Spec.Id) ~= nil
-		local show = button("Show", row, UDim2.new(), UDim2.new(), shown and "SHOWN" or "SHOW")
-		show:SetAttribute("Tone", shown and "Go" or "Idle")
-		placeRow(row)
-		setActive(show, shown or not full)
-		show.Activated:Connect(function()
-			if not show.Active then
-				return
-			end
-			local nextIds = shownIds()
-			local at = table.find(nextIds, c.Spec.Id)
-			if at then
-				table.remove(nextIds, at)
-			elseif #nextIds < GachaConfig.SHOWCASE_SLOTS then
-				table.insert(nextIds, c.Spec.Id)
-			end
-			sendShowcase(nextIds)
-		end)
-	end
-end
-for i, slot in slots do
-	slot.Clear.Activated:Connect(function()
-		local ids = shownIds()
-		if ids[i] then
-			table.remove(ids, i)
-			sendShowcase(ids)
-		end
-	end)
-end
-best3.Activated:Connect(function()
-	local ids = {}
-	for _, c in showcaseCandidates() do
-		if #ids >= GachaConfig.SHOWCASE_SLOTS then
-			break
-		end
-		table.insert(ids, c.Spec.Id)
-	end
-	sendShowcase(ids)
-end)
-local function refreshShowcaseIfOpen()
-	if workshopPanel.Visible then
-		refreshShowcase()
-	end
-end
-player:GetAttributeChangedSignal("Showcase"):Connect(refreshShowcaseIfOpen)
-workshopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShowcaseIfOpen)
-task.spawn(function()
-	local data = player:WaitForChild("GachaData")
-	data.ChildAdded:Connect(refreshShowcaseIfOpen)
-	data.ChildRemoved:Connect(refreshShowcaseIfOpen)
-end)
-
 local function refresh()
 	local money = player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Money")
 	local balance = money and money.Value or 0
@@ -595,47 +308,8 @@ local function refresh()
 		treeView.Paint(refs, owned[id] == true, canBuy, reason, state.TrackCount)
 	end
 	treeView.Balance(balance)
-	local level = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel"))
-	local nextLevel = Workshop.Config.Levels[level + 1]
-	levelLabel.Text = "Level " .. level .. " • " .. Format.Multi(Workshop.LevelScale(level)) .. " boost"
-	priceLabel.Text = nextLevel
-			and ("Level " .. (level + 1) .. " • " .. Format.Multi(Workshop.LevelScale(level + 1)) .. " • " .. Format.MoneyText(
-				nextLevel.Price
-			))
-		or "MAX LEVEL"
-	setActive(buyWorkshop, nextLevel ~= nil and balance >= nextLevel.Price)
-	buyWorkshop.Selectable = buyWorkshop.Active
-	wg.Button(buyWorkshop, buyWorkshop.Active and "Go" or "Idle")
-	-- Server numbers (WorkshopBoost, WorkshopStat); "+35% Luck", one decimal at most
-	local stat = Workshop.CleanStat(player:GetAttribute("WorkshopStat"))
-	boostLabel.Text = "+"
-		.. tostring(math.round((player:GetAttribute("WorkshopBoost") or 0) * 1000) / 10)
-		.. "% "
-		.. stat
-	for name, lit in statLit do
-		lit(name == stat)
-	end
 end
-buyWorkshop.Activated:Connect(function()
-	if not buyWorkshop.Active then
-		return
-	end
-	setActive(buyWorkshop, false)
-	local ok, bought, reason = pcall(function()
-		return remotes:WaitForChild("WorkshopUpgrade"):InvokeServer()
-	end)
-	workshopResult.Text = ok and tostring(reason or (bought and "Upgraded" or "Try again"))
-		or "Connection error; try again"
-	refresh()
-	UiFeedback.Play((ok and bought) and "UpgradeBought" or "Denied", buyWorkshop)
-end)
-remotes:WaitForChild("WorkshopOpen").OnClientEvent:Connect(function()
-	refresh()
-	if not workshopPanel.Visible then
-		Switch.Toggle("Workshop")
-	end
-end)
-for _, attr in { "BestTrack", "UpgradesBuyable", "WorkshopLevel", "WorkshopStat", "WorkshopBoost" } do
+for _, attr in { "BestTrack", "UpgradesBuyable" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
 end
 task.spawn(function()

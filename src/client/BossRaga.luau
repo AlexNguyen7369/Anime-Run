@@ -2,6 +2,7 @@
 -- The live boss (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks"): anchored MeshParts from ReplicatedStorage.BossModels,
 -- posed by CFrame every frame from BossRagaPoses. Client-side only: the same server time gives every player the same pose.
 -- Pose data has Blender's axes (front -Y, Z up); C turns them into Roblox's (front -Z, Y up), which is how a GLB's mesh arrives.
+local ContentProvider = game:GetService("ContentProvider")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -11,7 +12,7 @@ local Poses = require(Shared:WaitForChild("BossRagaPoses"))
 
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
 local C_INVERSE = C:Inverse()
-local SCALE = Poses.Scale
+local SCALE = Poses.Scale * Arena.BossScale -- the meshes arrive at Poses.Scale; BossScale shrinks them and the joints alike
 local RUMBLE_STUDS, RUMBLE_DEGREES = 9, 0.7 -- placeholder: the model's own shake while it rises
 local TREMBLE_STUDS = 5 -- placeholder: the scream's small shake
 local MODEL_WAIT = 30 -- s: the server loads the model at start, so this only matters on a very fresh server
@@ -73,7 +74,7 @@ function BossRaga.new(parent)
 		local parts, sizes = {}, {}
 		for i, row in ORDER do
 			local part = source[row.Name]:Clone()
-			sizes[i] = part.Size
+			sizes[i] = part.Size * Arena.BossScale
 			part.Anchored = true
 			part.CanCollide = false
 			part.CanTouch = false
@@ -83,6 +84,8 @@ function BossRaga.new(parent)
 			parts[i] = part
 		end
 		self.Parts, self.Sizes = parts, sizes
+		-- Hidden parts fetch nothing: ask for the meshes and textures now, so the rise (or a late join) shows a whole boss at once.
+		task.spawn(pcall, ContentProvider.PreloadAsync, ContentProvider, parts)
 	end)
 	return self
 end
@@ -123,8 +126,10 @@ function BossRaga:Step(rise, below, move, localTime, now, growth, spin, tremble)
 		anchor *= CFrame.new(studs * math.noise(now * 19, 6.5), 0, studs * math.noise(now * 23, 7.5))
 	end
 	self.Anchor = anchor
-	if growth ~= self.Growth then
-		self.Growth = growth
+	self.Growth = growth
+	-- SizedAt starts nil, so the first shown frame applies BossScale even at growth 1 (and a late join's growth)
+	if growth ~= self.SizedAt then
+		self.SizedAt = growth
 		for i, part in self.Parts do
 			part.Size = self.Sizes[i] * growth
 		end

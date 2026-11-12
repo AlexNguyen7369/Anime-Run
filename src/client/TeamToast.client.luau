@@ -1,6 +1,6 @@
 --!nonstrict
 -- Team toasts (docs/TEAM_AND_STAMINA_SPEC.md "Swap" / "Run end by exhaustion"), display only: "<Name> TAG IN!" when
--- the next slot takes over and "TEAM EXHAUSTED +$X" with the cashed-out bank, from Remotes.RunEvent.
+-- the next slot takes over and "TEAM EXHAUSTED +$X" with the per-distance share paid into Money, from Remotes.RunEvent.
 -- shortcut: plain text toast, no swap VFX; upgrade with the art pass.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

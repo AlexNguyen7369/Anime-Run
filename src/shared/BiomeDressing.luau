@@ -1057,11 +1057,13 @@ end
 
 -- Removes every Environment prop whose box, grown by CLEARANCE, touches a blocker. Returns how many.
 -- The spawn area (`extra`) is an area on the ground, so a prop also may not hang over it at any height (a giant
--- tree's canopy above the floor or a workshop plot): its parts block as vertical columns.
-function BiomeDressing.Prune(trackModels, extra)
+-- tree's canopy above the floor): its parts block as vertical columns.
+-- `targets` (default trackModels): only their props are tested, against the roads of trackModels (a late-built track,
+-- design doc 4.25).
+function BiomeDressing.Prune(trackModels, extra, targets)
 	local touches = clearance(trackModels, extra)
 	local removed = 0
-	for _, model in trackModels do
+	for _, model in targets or trackModels do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
 			if touches(prop) then
@@ -1321,11 +1323,18 @@ end
 -- SNAP_SLIDE_MAX, never within the track's Width / 2 + CLEARANCE of the road, never onto another prop) or is dropped.
 -- A hero (spec 3.2) is never dropped below HERO_FLOOR per biome, and a pinned hero (At) is never dropped: it stays put
 -- and is warned about instead. Props inside a tunnel (attribute Tunnel, spec 3.5) are left where Build put them.
+-- `targets` (default trackModels): only their props move; every road, pinned hero and pad of trackModels still
+-- blocks them, the other models' props read where they already stand (a late-built track, design doc 4.25).
 -- Returns how many props moved, how many were dropped, and heroes dropped per biome ({ [biome] = count }).
-function BiomeDressing.SnapToTerrain(trackModels)
+function BiomeDressing.SnapToTerrain(trackModels, targets)
 	local TerrainShape = require(script.Parent.TerrainShape)
 	if not TerrainShape.Ready() then
 		return 0, 0, {}
+	end
+	targets = targets or trackModels
+	local isTarget = {}
+	for _, model in targets do
+		isTarget[model] = true
 	end
 	local touches = clearance(trackModels)
 	local moved, dropped = 0, 0
@@ -1334,7 +1343,22 @@ function BiomeDressing.SnapToTerrain(trackModels)
 	-- any other prop samples the ground near it
 	local pinned = {} -- their footprints grown by CLEARANCE, kept clear of every other prop
 	local padded = {} -- padded props' pads (footprint grown by PAD_MARGIN): no later pad may overlap one
+	-- already snapped models: their pinned heroes and pads block as they stand, never moved or padded again
 	for _, model in trackModels do
+		local folder = not isTarget[model] and model:FindFirstChild("Environment")
+		for _, prop in folder and folder:GetChildren() or {} do
+			if prop:IsA("Model") and not prop:GetAttribute("Tunnel") then
+				local cf, size = prop:GetBoundingBox()
+				local half = Vector2.new(size.X / 2, size.Z / 2)
+				if prop:GetAttribute("Pinned") then
+					table.insert(pinned, { CFrame = cf, Half = half + Vector2.one * BiomeDressing.CLEARANCE })
+				elseif prop:GetAttribute("Pad") then
+					table.insert(padded, { CFrame = cf, Half = half + Vector2.one * PAD_MARGIN })
+				end
+			end
+		end
+	end
+	for _, model in targets do
 		local folder = model:FindFirstChild("Environment")
 		for _, prop in folder and folder:GetChildren() or {} do
 			if prop:IsA("Model") and prop:GetAttribute("Pinned") and not prop:GetAttribute("Tunnel") then
@@ -1384,7 +1408,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 			end
 		end
 	end
-	for _, model in trackModels do
+	for _, model in targets do
 		local folder = model:FindFirstChild("Environment")
 		local biome = model:GetAttribute("Biome")
 		for _, prop in folder and biome and folder:GetChildren() or {} do
@@ -1397,7 +1421,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 	-- Two passes: padded props (houses, spec 3.2) first, so every other prop snaps onto ground that already has
 	-- their pads
 	for _, padPass in { true, false } do
-		for _, model in trackModels do
+		for _, model in targets do
 			local folder = model:FindFirstChild("Environment")
 			local trackN = model:GetAttribute("Number")
 			local roadHalf = (model:GetAttribute("Width") or 0) / 2
@@ -1449,6 +1473,7 @@ function BiomeDressing.SnapToTerrain(trackModels)
 			-- Levels a padded prop's pad at its base height y under its box (spec 3.2), moved or not
 			local function padOn(prop, cf, size, y)
 				if prop:GetAttribute("Pad") then
+					-- a late track's pad (design doc 4.25) lands after TerrainBuilder started: its seam chunks are still unwritten
 					TerrainShape.AddPad(cf, size, y, PAD_MARGIN)
 					local grow = Vector2.one * PAD_MARGIN
 					table.insert(padded, { CFrame = cf, Half = Vector2.new(size.X / 2, size.Z / 2) + grow })

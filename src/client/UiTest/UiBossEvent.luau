@@ -9,6 +9,8 @@
 --   Team HUD (owner 2026-11-05): TeamHud/Header/CloseButton closes it with at least 1 pick, and invokes BossEventPrepRun; with none, red
 --     TeamHud/TeamWarning "Select a character first" fades within 1 s and the HUD stays. EditTeamButton reopens it until the spawn.
 --     TeamHud/AverageStamina reads "Average stamina: <n> s", from BossTeamStamina<n> of the picks. The HUD opens on LastBossTeam's ids.
+--   Versus (BOSS_EVENT_SPEC "Team HUD", owner 2026-11-10): TeamHud/Versus "VS", TeamHud/RagaPortrait (ImageLabel, SidekickArt.side_raga
+--     Portrait), TeamHud/Header/Logo the HudIcons.Boss image (design doc 4.40). TeamHud/Note hides while TeamWarning shows, and back.
 --   BossBar/BossTimer: left of the Title's text, above the track, counting to TotalSeconds.
 --   Minibar (owner 2026-11-05): RacerHud's Team/Slot<n> read BossTeam while BossEvent is true. While BossWaitEndsAt is set every filled
 --     slot is tired grey and none active, and its Arc's Fill dots run from empty to full by that time.
@@ -18,7 +20,9 @@
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
 --   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
---     the HP bar's right edge and its top just under the bar's bottom, clear of ShopColumn/Quests, ShopColumn/Shop, Leave and the bar.
+--     the HP bar's right edge and its top just under the bar's bottom, clear of Leave and the bar.
+--   HUD columns (design doc 4.40, owner 2026-11-10): while BossEvent is true HudChrome/Grid and HudChrome/ShopColumn are hidden;
+--     TopRight, AutoSlot and UpgradeSlot stay shown. Once BossEvent clears both columns show again (unless the Upgrades tree is open).
 --   DropList is a GuiObject directly in the ScreenGui, under the bar's right side, shown only to event players in Fight (it may stay
 --     on the exhaustion view). Directly in it: Heading "Drop:", Rule, and one Row_<id> per RelicConfig.Odds("big_raga") row plus
 --     Row_side_raga, top to bottom in descending odds. Nothing in it is Active. It stays hidden until the spawn Warning has gone, for late
@@ -29,9 +33,14 @@
 --   Decline lasts for one event (one BossEventStart): a new start shows the Invite again.
 --   Plaza flow (owner 2026-11-05): the Invite closes by itself after Cfg.InviteSeconds. BossButton shows for anyone outside the event
 --     and outside a tutorial, past teleport close too, Invite up or not, declined or not, in a duel too, locked too. Its Text is
---     exactly "Bosses". Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
---     Scale changes until teleporting closes, still with reduced motion. Its left edge stays past GuiService.TopbarInset.Min.X at every
---     pulse scale. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
+--     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
+--     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
+--     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. It sits just
+--     under Roblox's top bar (top within BUTTON_MAX_GAP px under GuiService.TopbarInset.Max.Y). Its left edge, at every pulse
+--     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
+--     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
+--     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
@@ -68,6 +77,8 @@ local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
+local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
+local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("HudIcons"))
 
 local ROOT = "RacerBossEvent"
 local INVITE = ROOT .. "/Invite"
@@ -147,7 +158,12 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_PAST_INSET = 40 -- px from TopbarInset.Min.X: "very top left"
+local BUTTON_MAX_GAP = 12 -- px under TopbarInset.Max.Y / past Roblox's buttons: "just below", "right of"
+local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
+local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
+local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
+local GRID = "HudChrome/Grid"
+local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
 local OUTLINE_MIN_LUMINANCE = 0.5 -- the Big Raga row's outline: "light", against its black text
 
 local Module = {}
@@ -502,31 +518,100 @@ function Module.Build(h)
 		end
 		return glow ~= nil and glow:IsA("GuiObject") and h.visible(glow)
 	end
-	-- The biggest Scale difference over `seconds` and the leftmost the button reached; nil without its PulseScale.
+	-- The biggest Scale difference over `seconds`, the leftmost and lowest edge the button reached; nil without its PulseScale.
 	local function watchPulse(seconds)
 		local button = h.find(BUTTON)
 		local scale = button and button:FindFirstChild("PulseScale")
 		if not (scale and scale:IsA("UIScale")) then
 			return nil
 		end
-		local low, high, left = scale.Scale, scale.Scale, h.rect(button).x
+		local r = h.rect(button)
+		local low, high, left, bottom = scale.Scale, scale.Scale, r.x, r.y + r.h
 		local stop = os.clock() + seconds
 		while os.clock() < stop do
 			low, high = math.min(low, scale.Scale), math.max(high, scale.Scale)
-			left = math.min(left, h.rect(button).x)
+			r = h.rect(button)
+			left, bottom = math.min(left, r.x), math.max(bottom, r.y + r.h)
 			task.wait(0.03)
 		end
-		return high - low, left
+		return high - low, left, bottom
+	end
+	-- Owner 2026-11-11 (design doc 4.40): the Bosses button is drawn at a HUD column button's exact sizes, read on screen
+	-- (HudChrome's UIScale included) at the same viewport. The pulse is read at rest: PulseScale is transient.
+	local function checkColumnSizes(res, tag, b, bossIcon)
+		local column = h.find(COLUMN_BUTTON)
+		local columnIcon = column and column:FindFirstChild("Icon")
+		local columnLabel = column and column:FindFirstChild("Label")
+		local wrong = {}
+		if not (b and bossIcon and column and columnIcon and columnLabel) then
+			table.insert(wrong, "BossButton/Icon or " .. COLUMN_BUTTON .. " Icon / Label missing")
+		else
+			local pulse = b:FindFirstChild("PulseScale")
+			local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
+			local function near(what, got, want)
+				if math.abs(got - want) > 1 then
+					table.insert(wrong, ("%s: Bosses %.1f, column %.1f"):format(what, got, want))
+				end
+			end
+			near("cell width", b.AbsoluteSize.X / p, column.AbsoluteSize.X)
+			near("cell height", b.AbsoluteSize.Y / p, column.AbsoluteSize.Y)
+			near("icon width", bossIcon.AbsoluteSize.X / p, columnIcon.AbsoluteSize.X)
+			near("icon height", bossIcon.AbsoluteSize.Y / p, columnIcon.AbsoluteSize.Y)
+			near(
+				"icon top offset",
+				(bossIcon.AbsolutePosition.Y - b.AbsolutePosition.Y) / p,
+				columnIcon.AbsolutePosition.Y - column.AbsolutePosition.Y
+			)
+			-- On-screen text size: TextSize x the object's draw scale (AbsoluteSize / Size offset).
+			local columnScale = column.AbsoluteSize.Y / column.Size.Y.Offset
+			local bossScale = b.AbsoluteSize.Y / p / b.Size.Y.Offset
+			near("label TextSize", b.TextSize * bossScale, columnLabel.TextSize * columnScale)
+			if b.Font ~= columnLabel.Font then
+				table.insert(
+					wrong,
+					("label Font: Bosses %s, column %s"):format(tostring(b.Font), tostring(columnLabel.Font))
+				)
+			end
+		end
+		h.check(
+			res,
+			tag .. "_button_column_sizes",
+			#wrong == 0 and "same" or table.concat(wrong, "; "),
+			"same as " .. COLUMN_BUTTON,
+			#wrong == 0
+		)
 	end
 	local function checkButtonShows(res, tag)
 		check(res, tag .. "_button_shown", waitShown(BUTTON, true), true)
 		check(res, tag .. "_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
 		check(res, tag .. "_button_active", h.find(BUTTON) and h.find(BUTTON).Active, true)
 		check(res, tag .. "_button_glows", waitIs(glowing, true), true)
+		-- Design doc 4.40 "Market pill and Bosses button": the HUD column look, a transparent button with the Tab tilt Boss
+		-- icon (ImageLabel Icon, HudIcons.Boss) and its label under it
+		local b = h.find(BUTTON)
+		check(res, tag .. "_button_transparent", b and b.BackgroundTransparency, 1)
+		local bossIcon = b and b:FindFirstChild("Icon")
+		check(
+			res,
+			tag .. "_button_boss_icon",
+			bossIcon and bossIcon:IsA("ImageLabel") and bossIcon.Image,
+			Icons.Boss.Image
+		)
+		check(
+			res,
+			tag .. "_button_label_under_icon",
+			b
+				and b:IsA("TextButton")
+				and b.TextYAlignment == Enum.TextYAlignment.Bottom
+				and bossIcon ~= nil
+				and bossIcon.Position.Y.Scale == 0,
+			true
+		)
+		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)
 		local inset = GuiService.TopbarInset
-		local spread, left = watchPulse(PULSE_SAMPLE)
+		local spread, left, bottom = watchPulse(PULSE_SAMPLE)
 		h.check(
 			res,
 			"button_pulses",
@@ -534,22 +619,63 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
+		-- Owner 2026-11-11 (design doc 4.40): just under Roblox's top bar; at the left column's x when its bottom at the
+		-- biggest pulse stays above the column's top, else right of Roblox's buttons (and of the column); clear of both
+		-- the column and the roll, and of the Money / Gems readout
+		local button = h.find(BUTTON)
+		local rest = button and h.rect(button)
+		local pulse = button and button:FindFirstChild("PulseScale")
+		local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
+		local top = rest and rest.y or 0
+		local restW, restH = rest and rest.w / p or 0, rest and rest.h / p or 0
+		local grid = h.find(GRID)
+		local gridRect = grid and h.rect(grid)
+		local room = gridRect ~= nil and top + restH * BUTTON_PULSE <= gridRect.y
+		local wantX = gridRect and (room and gridRect.x or math.max(inset.Min.X, gridRect.x + gridRect.w))
 		h.check(
 			res,
-			"button_past_roblox_buttons",
+			"button_left_column_x",
 			left or "no PulseScale",
-			">= " .. inset.Min.X,
-			left ~= nil and left >= inset.Min.X - 1
+			wantX and (room and tostring(wantX) or ("%.1f..%.1f"):format(wantX, wantX + BUTTON_MAX_GAP))
+				or "no " .. GRID,
+			left ~= nil
+				and wantX ~= nil
+				and (
+					room and math.abs(left - wantX) <= 1
+					or not room and left >= wantX and left <= wantX + BUTTON_MAX_GAP
+				)
 		)
 		h.check(
 			res,
-			"button_very_left",
-			left or "no PulseScale",
-			"<= " .. inset.Min.X + BUTTON_MAX_PAST_INSET,
-			left ~= nil and left <= inset.Min.X + BUTTON_MAX_PAST_INSET
+			"button_under_top_bar",
+			top,
+			("%.1f..%.1f"):format(inset.Max.Y, inset.Max.Y + BUTTON_MAX_GAP),
+			top >= inset.Max.Y - 1 and top <= inset.Max.Y + BUTTON_MAX_GAP
 		)
-		local top = h.rect(h.find(BUTTON)).y
-		h.check(res, "button_very_top", top, "<= " .. inset.Max.Y, top <= inset.Max.Y)
+		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
+		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
+		local function overlaps(a, b)
+			return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
+		end
+		h.check(
+			res,
+			"button_clear_of_left_column",
+			big and gridRect and (overlaps(big, gridRect) and "overlaps" or "clear") or "no PulseScale / " .. GRID,
+			"clear",
+			big ~= nil and gridRect ~= nil and not overlaps(big, gridRect)
+		)
+		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
+		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
+			local o = h.find(part[2])
+			local r = o and o:IsA("GuiObject") and o.Visible and h.rect(o)
+			h.check(
+				res,
+				part[1],
+				not big and "no PulseScale" or not r and "not shown" or overlaps(big, r) and "overlaps" or "clear",
+				"clear",
+				big ~= nil and (not r or not overlaps(big, r))
+			)
+		end
 	end
 
 	local function checkInvite(res)
@@ -743,6 +869,16 @@ function Module.Build(h)
 		local note = hasText(HUD, NOTE_TEXT)
 		check(res, "hud_note_exact_and_shown", note ~= nil and h.visible(note), true)
 		check(res, "hud_team_damage_shown", shown(HUD .. "/TeamDamage"), true)
+		local versus = h.find(HUD .. "/Versus")
+		check(res, "hud_versus_shown", versus ~= nil and h.visible(versus), true)
+		check(res, "hud_versus_text", versus and versus.Text, "VS") -- checkFit below judges it with the other texts
+		local raga = h.find(HUD .. "/RagaPortrait")
+		check(res, "hud_raga_portrait_shown", raga ~= nil and h.visible(raga), true)
+		check(res, "hud_raga_portrait_is_image", raga ~= nil and raga:IsA("ImageLabel"), true)
+		check(res, "hud_raga_portrait_image", raga and raga.Image, SidekickArt.side_raga.Portrait)
+		local logo = h.find(HUD .. "/Header/Logo")
+		check(res, "hud_logo_shown", logo ~= nil and h.visible(logo), true)
+		check(res, "hud_logo_boss_icon", logo and logo.Image, Icons.Boss.Image)
 		local function damageShows(number)
 			return function()
 				local label = h.find(HUD .. "/TeamDamage")
@@ -1162,12 +1298,12 @@ function Module.Build(h)
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
 		local barRect = h.rect(h.find(BAR))
 		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
-		for _, tile in { "Quests", "Shop" } do
-			local found = h.find("HudChrome/ShopColumn/" .. tile)
-			check(res, "drop_tile_exists_" .. tile, found ~= nil, true)
-			if found and h.visible(found) then
-				others[tile] = h.rect(found)
-			end
+		-- Design doc 4.40 (owner 2026-11-10): both columns hide in the event; TopRight and Auto / Upgrade stay.
+		for _, column in { "Grid", "ShopColumn" } do
+			check(res, "boss_column_hidden_" .. column, waitShown("HudChrome/" .. column, false), false)
+		end
+		for _, keep in { "TopRight", "AutoSlot", "UpgradeSlot" } do
+			check(res, "boss_hud_kept_" .. keep, waitShown("HudChrome/" .. keep, true), true)
 		end
 		local status = h.find(BAR .. "/Status/Status_Shouted")
 		if status then
@@ -1264,6 +1400,12 @@ function Module.Build(h)
 		state(res, "Fight", "keep", hp, hp, false)
 		check(res, "drop_hidden_on_leave", waitShown(DROP, false), false)
 		state(res, "Idle", 0, 0, 0, false)
+		-- The columns come back once BossEvent clears (the Upgrades tree hides them on its own).
+		if not shown("RacerUpgrades/Panel") then
+			for _, column in { "Grid", "ShopColumn" } do
+				check(res, "boss_column_back_" .. column, waitShown("HudChrome/" .. column, true), true)
+			end
+		end
 	end
 
 	-- Owner 2026-11-05: the time left in the event, top left above the HP bar, sharing the Title's row with no text on text.
@@ -1598,7 +1740,7 @@ function Module.Build(h)
 		task.wait(0.2)
 		local inEventType = camera.CameraType
 		-- The camera follows a moving runner (BossWaitCamera.homeFrame carries its offset from the subject), so a world position
-		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, about 144 in the wait's view (120 out, 80 up).
+		-- goes stale. The offset's length, since RunnerView.alignYaw turns it around the runner: 40 studs here, 200 in the wait's view (120 out, 160 up).
 		local homeBefore = Spec.CameraReach(camera)
 		local function atHome()
 			return math.abs(Spec.CameraReach(camera) - homeBefore) < WAIT_CAMERA_SLACK
@@ -1973,6 +2115,8 @@ function Module.Build(h)
 		check(res, "boss_warning_appeared", watch.ShownAt ~= nil, true)
 		check(res, "boss_warning_solid_at_first", watch.Transparency, 0)
 		check(res, "boss_warning_shown_text", watch.Text, TEAM_WARNING_TEXT)
+		check(res, "boss_warning_hides_note", watch.NoteShown, false)
+		check(res, "boss_note_back_after_warning", waitShown(HUD .. "/Note", true), true)
 		local seconds = watch.ShownAt and watch.HiddenAt and watch.HiddenAt - watch.ShownAt
 		h.check(
 			res,

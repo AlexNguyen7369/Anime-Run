@@ -1,6 +1,7 @@
 --!nonstrict
 -- The band every hand-built panel opens in (docs/HUD_LAYOUT_SPEC.md section 6): below the Race button, above the
--- TURBO LUCK bar, and between the left icon grid and the right Shop column, so a panel never covers a HUD entry.
+-- TURBO LUCK bar, and between the left icon column and the right one (design doc 4.40 "split L/R", 4.42), GAP clear
+-- of each, so a panel never covers a HUD entry.
 local Players = game:GetService("Players")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
@@ -8,6 +9,10 @@ local gui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local Band = {}
 local GAP = 8
+-- Owner 2026-11-10: panels run larger. The band keeps the HUD clear at its sides (GAP) but the panel may rise over the
+-- hidden Race anchor and the top strip by REACH_UP, and sit this close to the TURBO bar.
+local REACH_UP = 24
+local REACH_DOWN = 4
 
 -- left, top, right, bottom in IgnoreGuiInset screen offsets, or nil before the HUD exists.
 function Band.Rect()
@@ -24,15 +29,21 @@ function Band.Rect()
 	-- AbsolutePosition starts below the top bar; the HUD ScreenGuis ignore the inset, so add it back.
 	local inset = GuiService:GetGuiInset().Y
 	local viewport = camera.ViewportSize
-	-- The grid's right edge includes what sticks out of it (the Stats badge).
+	-- Each column's inner edge includes anything that sticks out of it (badges, key letters).
 	local gridRight = grid.AbsolutePosition.X + grid.AbsoluteSize.X
 	for _, child in grid:GetDescendants() do
 		if child:IsA("GuiObject") and child.Visible then
 			gridRight = math.max(gridRight, child.AbsolutePosition.X + child.AbsoluteSize.X)
 		end
 	end
+	local shopLeft = shop.AbsolutePosition.X
+	for _, child in shop:GetDescendants() do
+		if child:IsA("GuiObject") and child.Visible then
+			shopLeft = math.min(shopLeft, child.AbsolutePosition.X)
+		end
+	end
 	-- Both edges use the wider margin so the panel stays centred.
-	local margin = math.max(gridRight, viewport.X - shop.AbsolutePosition.X) + GAP
+	local margin = math.max(gridRight, viewport.X - shopLeft) + GAP
 	local right = viewport.X - margin
 	-- RaceMap is presentation-only and has a fixed anchor. Do not reserve space
 	-- for it here: doing so re-centres the open Backpack/Shop panels whenever a
@@ -48,7 +59,8 @@ function Band.Rect()
 	then
 		bottom = math.min(bottom, money.AbsolutePosition.Y)
 	end
-	return margin, race.AbsolutePosition.Y + race.AbsoluteSize.Y + inset + GAP, right, bottom + inset - GAP
+	local top = math.max(inset + GAP, race.AbsolutePosition.Y + race.AbsoluteSize.Y + inset + GAP - REACH_UP)
+	return margin, top, right, bottom + inset - REACH_DOWN
 end
 
 local function shown(object)

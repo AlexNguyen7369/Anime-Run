@@ -16,10 +16,11 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 | `money_2x` | 2x Money | 249 | x2, multiplied | `GachaService.MoneyMulti` |
 | `luck_1` | Lucky | 149 | +1 Luck, added | `GachaService` bonuses |
 | `luck_2` | ULTRA Lucky | 299 | +2 Luck, added | `GachaService` bonuses |
-| `dojo_master` | Dojo Master | 299 | Workshop boost x1.5 | `GachaService.WorkshopBoost` |
 | `deep_stamina` | Deep Stamina | 199 | +0.25 stamina, added | `GachaService` bonuses |
 | `inventory` | + Inventory | 199 | +100 bag spaces (owner) | `Shared/BagConfig` |
 | `exclusive_runner` | Saitamo | 999 (owner) | Grants `punch_hero` | `PassService` |
+
+`dojo_master` (Dojo Master, 299) was removed 2026-11-11 with the Dojos (design doc 4.43): off sale (Creator Dashboard, by hand), not in `MonetizationConfig`; id 2071362782 stays as a comment there and in `tools/monetization/create_products.py` so it is never reused.
 
 ## Ownership
 
@@ -55,7 +56,7 @@ Catalogue: `Shared/MonetizationConfig.Gamepasses`. `GamepassId` 0 keeps a pass v
 - Catalog id `punch_hero`, display name Saitamo. The real name appears in no display name, id, pass name, icon or asset name (design doc 5). Parody row: `CHARACTER_GACHA_SPEC`.
 - `Rollable = false`, built in like the starters, not from `Shared/Characters`. `BaseCruise = 350` (owner), Balanced, Rarity Mythic (proposed).
 - Owned as a `GachaData` entry from the first grant. The grant ignores the bag cap. The entry takes 1 space. A refunded pass ends its effects at the next join; the runner stays in the save (shortcut, see `GachaService.GrantExclusive`).
-- Pedestal near the spawn, client-only, with a prompt that opens the pass. Drafted in Blender and shown to the owner first (design doc 4.24).
+- Pedestal at the summon wing's gate end (owner 2026-11-10; replaces the 2 Legends), client-only, showing the model, a header with rarity and hero name, and a prompt that opens the pass and shows 350 studs/s (design doc 4.24, WORLD_REDESIGN_SPEC 7).
 
 ## Going live
 

@@ -20,6 +20,8 @@
 -- UIScale (ScaleAt) at every simulated viewport; hover / press UIScales (UiSpec.TransientScales) count as 1.
 
 local Model = {}
+-- Client/IndexAnimeStyle.Frame (design doc 4.42 "Wider panels"): every panel frame's size in design units.
+local Units = require(script.Parent.Parent:WaitForChild("AnimeSkin")).Units
 
 -- The generated fit(): phone = ViewportSize.Y <= PHONE_MAX_HEIGHT;
 -- k = phone and clamp(Y / 390, 0.85, 1.15) or clamp(Y / 720, 0.6, 1.4); UIScale.Scale = k x the node's zoom.
@@ -304,21 +306,8 @@ local generated = {
 				Visible = true,
 			},
 		},
-		-- Money plate behind MoneyValue and Unbanked (owner brief 2026-10-27, HUD spec section 9)
-		["RacerHud/Money/MoneyPlate"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(94, 22),
-				Size = UDim2.fromOffset(188, 92),
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(62, 12),
-				Size = UDim2.fromOffset(138, 72),
-				Visible = true,
-			},
-		},
+		-- retired: RacerHud/Money/MoneyPlate and RacerHud/Money/Unbanked (owner 2026-11-10, design doc 4.40; ui_hud
+		-- checks they stay absent)
 		["RacerHud/Money/MoneyValue"] = {
 			Desktop = {
 				AnchorPoint = Vector2.new(0, 0),
@@ -332,22 +321,6 @@ local generated = {
 				Position = UDim2.fromOffset(68, 17),
 				Size = UDim2.fromOffset(132, 34),
 				TextSize = 32,
-				Visible = true,
-			},
-		},
-		["RacerHud/Money/Unbanked"] = {
-			Desktop = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(102, 80),
-				Size = UDim2.fromOffset(180, 24),
-				TextSize = 20,
-				Visible = true,
-			},
-			Phone = {
-				AnchorPoint = Vector2.new(0, 0),
-				Position = UDim2.fromOffset(68, 58),
-				Size = UDim2.fromOffset(132, 20),
-				TextSize = 16,
 				Visible = true,
 			},
 		},
@@ -1694,15 +1667,23 @@ function Model.ColumnRight(navigation, parts)
 	return right
 end
 
--- band = { left, top, right, bottom } (UiShopMarket.Band); size = the panel's generated variant Size (UDim2).
+-- The panel frame's width and height in design units at a viewport (AnimeSkin.Units: 1200 x 620, phone 650 x 420).
+function Model.FrameSize(viewport)
+	if Model.VariantOf(viewport) == "Phone" then
+		return Units.PhoneW, Units.PhoneH
+	end
+	return Units.W, Units.H
+end
+
+-- band = { left, top, right, bottom } (UiShopMarket.Band). The panel's Size is the frame's (IndexAnimeStyle layout and
+-- RacerUiController indexFrame set it to AnimeSkin.Units at runtime, not the generated variant Size).
 -- Returns { AnchorPoint, Position, Size, Scale, Band = { top, bottom, side } }.
-function Model.RacerPanelFit(viewport, band, size)
+function Model.RacerPanelFit(viewport, band)
 	local left, top, right, bottom = band[1], band[2], band[3], band[4]
 	local width, height = right - left, bottom - top
-	local scale = Model.K(viewport)
-	if size.X.Offset > 0 and size.Y.Offset > 0 then
-		scale = math.max(Model.RacerPanels.MinScale, math.min(scale, width / size.X.Offset, height / size.Y.Offset))
-	end
+	local frameW, frameH = Model.FrameSize(viewport)
+	local size = UDim2.fromOffset(frameW, frameH)
+	local scale = math.max(Model.RacerPanels.MinScale, math.min(Model.K(viewport), width / frameW, height / frameH))
 	return {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset((left + right) / 2, top + height / 2),
@@ -1733,17 +1714,31 @@ Model.Animated = {
 }
 -- RollShowcase/Card is tweened from the compact roll's rect to its layout rect when the view opens (SWITCH) and
 -- back when it closes; the solver places it at its layout rect (Nodes) once settled.
--- Components.BindIndex sizes the Index grid cells per viewport: cell width =
--- floor((GridHost design width - Inset - (columns - 1) * Gap) / columns), columns 4 on desktop and 3 on a phone, cell
--- height CellHeight (design pixels: the panel's generated UIScale applies on top).
+-- The Index grid cells per viewport, in design pixels (the panel's generated UIScale applies on top). The GridHost is
+-- Client/IndexAnimeStyle's: the frame width (FrameSize) - HostMargin. Cell width =
+-- min(MaxWidth, floor((host width - Inset - (columns - 1) * Gap) / columns)), height CellHeight.
+-- Gallery: IndexAnimeStyle fitGallery (7 across, 3 on a phone). The other tabs' pages: RacerComponents fitCells
+-- (INDEX_COLUMNS, INDEX_GAP, INDEX_CELL_HEIGHT, no MaxWidth).
+local PAGE_CELLS = {
+	HostMargin = 112,
+	Inset = 14,
+	Gap = 12,
+	MaxWidth = math.huge,
+	CellHeight = { Desktop = 168, Phone = 168 },
+	Columns = { Desktop = 7, Phone = 3 },
+}
 Model.Grids = {
 	["RacerIndex/Panel/Face/GridHost/Gallery"] = {
-		Host = "RacerIndex/Panel/Face/GridHost",
+		HostMargin = 112,
 		Inset = 14,
-		Gap = 12,
-		CellHeight = 168,
-		Columns = { Desktop = 4, Phone = 3 },
+		Gap = 16,
+		MaxWidth = 178,
+		CellHeight = { Desktop = 176, Phone = 150 },
+		Columns = { Desktop = 7, Phone = 3 },
 	},
+	["RacerIndex/Panel/Face/GridHost/EnemiesPage"] = PAGE_CELLS,
+	["RacerIndex/Panel/Face/GridHost/SidekicksPage"] = PAGE_CELLS,
+	["RacerIndex/Panel/Face/GridHost/RelicsPage"] = PAGE_CELLS,
 }
 
 -- Which generated variant a viewport uses (the generated fit(): phone = ViewportSize.Y <= PHONE_MAX_HEIGHT).
@@ -1818,8 +1813,8 @@ Model.HudChrome = {
 	Bar = "HudChrome/TopRight",
 	-- Owner 2026-10-28 (docs/HUD_LAYOUT_SPEC.md section 6): the bottom pair shrinks about its anchor until its cell
 	-- (Cell x k, anchored at (1 | 0, IconMid)) clears every visible Blocker; steps of Step x base, floor Floor x base.
-	Cell = Vector2.new(84, 94), -- HudChrome CELL = (TILE + 12, TILE + LABEL), TILE 72, LABEL 22
-	IconMid = 36 / 94, -- ICON_MID = TILE / 2 / (TILE + LABEL)
+	Cell = Vector2.new(84, 94), -- HudChrome CELL = (ICON + 12, ICON + LABEL), ICON 72, LABEL 22 (design doc 4.40)
+	IconMid = 36 / 94, -- ICON_MID = ICON / 2 / CELL.Y
 	Step = 0.02,
 	Floor = 0.3,
 	Blockers = { "RacerHud/Money" },
@@ -1827,6 +1822,27 @@ Model.HudChrome = {
 	StackGap = 6,
 	Money = "RacerHud/Money",
 }
+-- Client/BossEventUi placeBossButton (design doc 4.40 "Market pill and Bosses button", owner 2026-11-11): BossButton is
+-- HudChrome's Cell x k (k = phone and HudChrome.Phone or 1), written into its Size (its first UIScale is PulseScale),
+-- at y = TopbarInset.Max.Y + Gap (its ScreenGui ignores the inset). x is the Grid's x offset when the button's bottom at
+-- the biggest pulse (Pulse) stays above the Grid's top (screen middle + its Y offset - GridCells x Cell.Y x k / 2 - gaps),
+-- else max(TopbarInset.Min.X, Grid x + Cell.X x k) + Gap: right of Roblox's buttons and of the column. Its Icon is in scale.
+Model.BossButton =
+	{ Path = "RacerBossEvent/BossButton", Grid = "HudChrome/Grid", Gap = 6, Pulse = 1.08, GridCells = 3, GridGap = 8 }
+-- BossButton's Size and Position at a viewport, from the live GuiService.TopbarInset `inset` (a Rect).
+function Model.BossButtonPlace(viewport, inset)
+	local cfg, hud = Model.BossButton, Model.HudChrome
+	local k = viewport.Y <= Model.PHONE_MAX_HEIGHT and hud.Phone or 1
+	local grid = hud.HolderPositions[cfg.Grid][Model.VariantOf(viewport)]
+	local gridH = (cfg.GridCells * hud.Cell.Y + (cfg.GridCells - 1) * cfg.GridGap) * k
+	local gridTop = viewport.Y * grid.Y.Scale + grid.Y.Offset - gridH / 2
+	local y = inset.Max.Y + cfg.Gap
+	local x = grid.X.Offset
+	if y + hud.Cell.Y * k * cfg.Pulse > gridTop then
+		x = math.max(inset.Min.X, grid.X.Offset + hud.Cell.X * k) + cfg.Gap
+	end
+	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k), UDim2.fromOffset(x, y)
+end
 -- HudChrome's UIScale "Scale" factor of the node at `path` at a viewport, or nil when it is not a HudChrome holder.
 function Model.HudChromeScale(path, viewport)
 	local cfg = Model.HudChrome

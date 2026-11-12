@@ -94,7 +94,9 @@
 --     First HP 0: stage 1 pays at once, then MaxHp = Phase 1's max + Phase2ExtraHp at full Hp, ScreamSeconds of scream, EndsAt = old
 --     end + ScreamSeconds + Phase2ExtraSeconds. ReplicatedStorage attributes BossEventStage, BossEventEndsAt, BossScreamEndsAt,
 --     BossScheduleStart. BossScheduleStart is Poses.Schedule's start: moment i comes at scream end + BossDodge.Moment(i).
---     Summary = { Outcome = "Defeated"|"Survived"|"Left", Damage = total, Stage1, Stage2, Short }.
+--     Summary = { Outcome = "Defeated"|"Survived"|"Left", Damage = total, Share, Stage1, Stage2, Short }. Share (owner 2026-11-10):
+--     the reported phase's damage over that phase's max HP, clamped 0..1; "Left" reports Phase 1 (over Phase1MaxHp), "Defeated" and
+--     "Survived" report Phase 2.
 --     Exhausted teams (owner 2026-11-06, BOSS_EVENT_SPEC "Phase 2"): run:ReviveAt(seconds), seconds from now, ends a wait then: full stamina,
 --     full line, BossRefill. The service calls it at the scream's start on a waiting run, and on a run that empties during the scream, each
 --     with the time to the scream's end, and BossWaitEndsAt stays nil.
@@ -110,7 +112,7 @@
 --   after the event: EquippedCar goes back to what it was at Join (a run moves it; only Team is ruled).
 --   joined then left, nobody in at 3:00: same as nobody came.
 -- NOT pinned, no rule found, implementer picks and reports: an arena empty after 3:00; a decliner's pad; changing gear mid-event;
---   a Dojo squad character on the event team; rejoining after leaving.
+--   rejoining after leaving.
 -- NOT reachable from here: a server test cannot fire a client remote, so only the existence of Remotes.BossEventLeave and
 --   Remotes.SetAutoRace is checked, not their handlers (SetAutoRace stays ignored in the event, leave runs Leave).
 --
@@ -414,7 +416,6 @@ function Tests.make(deps)
 				eq("run_never_exhausted", (count("Exhausted")), 0)
 				flag("run_alive_after_exhaustions", run.Connection ~= nil and car.Parent ~= nil)
 				eq("run_pays_nothing", run.PaidTotal, 0)
-				eq("run_banks_nothing", run.BankedTotal, 0)
 				run:Destroy()
 				eq("run_destroy_clears_stamina", p:GetAttribute("Stamina1"), nil)
 				eq("run_destroy_clears_slot", p:GetAttribute("RunSlot"), nil)
@@ -4092,7 +4093,7 @@ function Tests.make(deps)
 
 			serviceSection("stage2_rewards", function()
 				local SHARE = Cfg.MinDamageShare
-				local function popup(tag, p, outcome, stage1, stage2, short, damage)
+				local function popup(tag, p, outcome, stage1, stage2, short, damage, share)
 					local list = popupsOf(p)
 					eq(tag .. "_one_popup", #list, 1)
 					local summary = list[1] or {}
@@ -4103,6 +4104,9 @@ function Tests.make(deps)
 						eq(tag .. "_short", summary.Short, short)
 					end
 					near(tag .. "_damage", summary.Damage, damage)
+					near(tag .. "_share", summary.Share, share)
+					local got = tonumber(summary.Share)
+					flag(tag .. "_share_in_0_1", got ~= nil and got >= 0 and got <= 1, summary.Share)
 				end
 				local function has(list, p)
 					return table.find(list, p) ~= nil
@@ -4131,7 +4135,8 @@ function Tests.make(deps)
 				eq("pay_1_nothing_of_stage_2", #paidIn(2), 0)
 				eq("share_1_against_phase1_max", need1, SHARE * S.State().Phase1MaxHp)
 				pastScream(table.unpack(all))
-				local need2 = SHARE * S.State().MaxHp
+				local max2 = S.State().MaxHp
+				local need2 = SHARE * max2
 				deal(both, need2)
 				deal(second, need2) -- exactly the share of stage 2's own HP
 				deal(first, need2 * 0.99)
@@ -4143,7 +4148,8 @@ function Tests.make(deps)
 				for _, p in all do
 					totals[p] = S.DamageOf(p)
 				end
-				totals[both] += kill(both)
+				local killed = kill(both) -- all of it in stage 2
+				totals[both] += killed
 				eq("pay_2_event_over", phase(), "Idle")
 				eq("pay_2_defeated", S.State().LastEnd, "Defeated")
 				local paid2 = paidIn(2)
@@ -4154,11 +4160,12 @@ function Tests.make(deps)
 				flag("pay_2_not_under", not has(paid2, under))
 				eq("pay_1_still_once", timesPaid(both, 1), 1)
 				eq("pay_2_once", timesPaid(both, 2), 1)
-				popup("popup_both", both, "Defeated", true, true, false, totals[both])
-				popup("popup_first", first, "Defeated", true, false, nil, totals[first])
-				popup("popup_second", second, "Defeated", false, true, nil, totals[second])
-				popup("popup_under", under, "Defeated", false, false, true, totals[under])
-				popup("popup_none", none, "Defeated", false, false, true, 0)
+				-- Share of stage 2's own HP: stage 1's damage never counts in a Defeated popup.
+				popup("popup_both", both, "Defeated", true, true, false, totals[both], (need2 + killed) / max2)
+				popup("popup_first", first, "Defeated", true, false, nil, totals[first], need2 * 0.99 / max2)
+				popup("popup_second", second, "Defeated", false, true, nil, totals[second], SHARE)
+				popup("popup_under", under, "Defeated", false, false, true, totals[under], need2 * 0.5 / max2)
+				popup("popup_none", none, "Defeated", false, false, true, 0, 0) -- no damage, share 0
 
 				-- A timeout in stage 1 pays nothing and shows nothing (the clock's timeout is in "timeline").
 				begin()
@@ -4180,14 +4187,17 @@ function Tests.make(deps)
 				local smallTotal = S.DamageOf(small)
 				local keeperTotal = kill(keeper)
 				pastScream(keeper, small)
-				keeperTotal += deal(keeper, SHARE * S.State().MaxHp) -- over stage 2's share, and a timeout still pays no more
+				local keeperMax2 = S.State().MaxHp
+				local keeper2 = deal(keeper, SHARE * keeperMax2) -- over stage 2's share, and a timeout still pays no more
+				keeperTotal += keeper2
 				log.Runs[keeper].Waiting, log.Runs[small].Waiting = true, true
 				to(S.State().EndsAt - T0)
 				eq("timeout_2_reported", S.State().LastEnd, "Timeout")
 				eq("timeout_2_stage_1_pay_stands", timesPaid(keeper, 1), 1)
 				eq("timeout_2_pays_no_more", #paidIn(2), 0)
-				popup("survived_keeper", keeper, "Survived", true, false, false, keeperTotal)
-				popup("survived_small", small, "Survived", false, false, true, smallTotal)
+				popup("survived_keeper", keeper, "Survived", true, false, false, keeperTotal, keeper2 / keeperMax2)
+				-- stage 1 damage only: a Survived popup reports stage 2, so 0
+				popup("survived_small", small, "Survived", false, false, true, smallTotal, 0)
 
 				-- Leaves: stage 1's leaver gets nothing; stage 2's keeps stage 1's pay and gets "Left" if it was paid.
 				begin()
@@ -4199,9 +4209,12 @@ function Tests.make(deps)
 				deal(earlyLeaver, SHARE * S.State().MaxHp * 2)
 				S.Leave(earlyLeaver, "Left")
 				eq("stage_1_leaver_no_popup", #popupsOf(earlyLeaver), 0)
-				local leaverTotal = deal(paidLeaver, SHARE * S.State().MaxHp)
+				local leaverMax1 = S.State().MaxHp
+				local leaver1 = deal(paidLeaver, SHARE * leaverMax1)
+				local leaverTotal = leaver1
 				deal(unpaidLeaver, 1)
 				local stayerTotal = kill(stayer)
+				eq("left_phase1_max_kept", S.State().Phase1MaxHp, leaverMax1)
 				local paid = paidIn(1)
 				flag("leave_stayer_paid", has(paid, stayer))
 				flag("leave_paid_leaver_paid", has(paid, paidLeaver))
@@ -4212,18 +4225,20 @@ function Tests.make(deps)
 				local hp, max = S.State().Hp, S.State().MaxHp
 				flag("left_test_before_3_00", clock - T0 < CLOSE, clock - T0, CLOSE)
 				S.Leave(paidLeaver, "Left")
-				popup("left_paid", paidLeaver, "Left", true, false, nil, leaverTotal)
+				-- Left reports stage 1: its stage 2 damage never counts
+				popup("left_paid", paidLeaver, "Left", true, false, nil, leaverTotal, leaver1 / leaverMax1)
 				eq("left_paid_returns", log.Depart[paidLeaver], 1)
 				S.Leave(unpaidLeaver, "Left")
 				eq("left_unpaid_no_popup", #popupsOf(unpaidLeaver), 0)
 				eq("left_takes_no_max_back", S.State().MaxHp, max)
 				near("left_takes_no_hp_back", S.State().Hp, hp)
-				stayerTotal += kill(stayer)
+				local stayer2 = kill(stayer) -- stage 2's last hit, all its stage 2 damage
+				stayerTotal += stayer2
 				eq("left_defeat", S.State().LastEnd, "Defeated")
 				eq("left_gets_no_stage_2_pay", timesPaid(paidLeaver, 2), 0)
 				eq("stayer_gets_stage_2_pay", timesPaid(stayer, 2), 1)
 				eq("left_no_second_popup", #popupsOf(paidLeaver), 1)
-				popup("left_stayer", stayer, "Defeated", true, true, false, stayerTotal)
+				popup("left_stayer", stayer, "Defeated", true, true, false, stayerTotal, stayer2 / max)
 
 				-- One player's failure never costs another's, in either stage or at the popup.
 				begin()
@@ -4301,9 +4316,16 @@ function Tests.make(deps)
 					end)
 				)
 				local normalRun = CarService.GetRun(p)
-				normalRun.Unbanked = 100
+				local paidBefore = normalRun.PaidTotal
+				local function cash()
+					local stats = p:FindFirstChild("leaderstats")
+					local money = stats and stats:FindFirstChild("Money")
+					return money and money.Value
+				end
+				local moneyBefore = cash()
 
-				-- A run in progress cashes out through the normal stop when the player teleports.
+				-- A run in progress stops when the player teleports; its checkpoints were paid at each finish, so the stop
+				-- pays nothing more (owner 2026-11-10: no run bank).
 				S.Start("Test")
 				eq("default_join_ok", S.Join(p), true)
 				flag(
@@ -4312,8 +4334,9 @@ function Tests.make(deps)
 						return CarService.GetRun(p) ~= normalRun
 					end)
 				)
-				eq("normal_run_cashed_out", normalRun.PaidTotal, 100)
-				eq("normal_bank_empty", normalRun.Unbanked, 0)
+				eq("normal_run_stop_pays_nothing", normalRun.PaidTotal, paidBefore)
+				eq("normal_run_money_unchanged", cash(), moneyBefore)
+				eq("no_unbanked_attribute", p:GetAttribute("Unbanked"), nil)
 				eq("spec_no_warm_up_laps", CarService.GetRun(p), nil)
 				task.wait(0.3) -- long enough for an unanchored avatar to fall: the deck builds on the client
 				local lane = S.LaneOf(p)
@@ -4431,7 +4454,7 @@ function Tests.make(deps)
 					-- Placeholders set from the geometry (owner 2026-11-05).
 					-- These floors are the old 450 by 320 view's (owner 2026-11-06 zoomed in a lot); the zoomed view only exceeds them.
 					local MIN_RUNNER_PX, MIN_BOSS_PX, MAX_RUNNER_Y = 2.5, 225, 790
-					local EYE_OUT, EYE_UP, EYE_SLACK = 120, 80, 20 -- studs from the runner: "about"
+					local EYE_OUT, EYE_UP, EYE_SLACK = 120, 160, 20 -- studs from the runner: "about"
 					local RIG_HEIGHT = 5 * RunnerFactory.SCALE -- feet to head top
 					local halfTall = math.tan(math.rad(Cfg.WaitCameraFov / 2))
 					local halfWide = halfTall * VIEW_WIDTH / VIEW_HEIGHT

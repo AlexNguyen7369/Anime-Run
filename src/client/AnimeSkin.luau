@@ -6,7 +6,7 @@ local IndexStyle = require(script.Parent:WaitForChild("IndexAnimeStyle"))
 local UiTheme = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("UiTheme"))
 
 local ART, INK, image, text = IndexStyle.Art, IndexStyle.Ink, IndexStyle.Image, IndexStyle.Text
-local Skin = { Art = ART, Ink = INK, Text = text }
+local Skin = { Art = ART, Ink = INK, Text = text, Chrome = IndexStyle.Chrome }
 Skin.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Heavy, Enum.FontStyle.Italic)
 -- Card and plate tints (placeholders); Default is the Index's card blue.
 Skin.Tint = {
@@ -220,9 +220,11 @@ Skin.Color = {
 }
 local PHONE_SCALE = 0.75 -- placeholder
 
-local function compact()
+-- The phone layout: this screen, or the viewport size given (the UI tests' simulated viewports).
+local function compact(viewportSize)
 	local camera = workspace.CurrentCamera
-	return camera ~= nil and camera.ViewportSize.Y <= 500
+	local size = viewportSize or (camera and camera.ViewportSize)
+	return size ~= nil and size.Y <= 500
 end
 Skin.Compact = compact
 
@@ -415,14 +417,15 @@ function Skin.Footer(panel, value)
 end
 
 -- The Index frame (owner 2026-11-10: every panel matches the reference, as the approved Quests and Stats do). Geometry in
--- Issac's design units, 920 x 620 (phone 500 x 420), drawn at k = panel px / units: the chrome art, the overhanging logo,
+-- Issac's design units, 1200 x 620 (phone 650 x 420; design doc 4.42 "Wider panels", 1.3 x the old 920 and 500
+-- wide), drawn at k = panel px / units: the chrome art (IndexStyle.Chrome stretches only its plain runs), the logo,
 -- the slanted ALL CAPS title, the art close, art tabs in the row at y 98, content from y 164 to 82 above the bottom, and
 -- the footer line on the plate the chrome draws. Same numbers as Client/QuestAnimeStyle and the Index itself.
 Skin.Units = {
-	W = 920,
-	H = 620,
-	PhoneW = 500,
-	PhoneH = 420,
+	W = IndexStyle.Frame.W,
+	H = IndexStyle.Frame.H,
+	PhoneW = IndexStyle.Frame.PhoneW,
+	PhoneH = IndexStyle.Frame.PhoneH,
 	Left = 56, -- content inset, left and right
 	TabsY = 98,
 	PhoneTabsY = 90,
@@ -445,7 +448,8 @@ local HEAVY = { Title = 2.5, Section = 2.5, Item = 2, Tab = 2, Footer = 1.5 } --
 -- Header (Frame to collapse into a transparent anchor at the panel's origin, optional).
 -- Returns g: W, H, k, Small; px(units), at(x, y); Place(gui, x, y, w, h); Role(label, role); Tabs({buttons}) -> lit
 -- setters; Button(button, tone); Content = { X, Y, W, H } in units; Footer(text); SetTitle(text); SetLogo(image);
--- OnLayout(fn(g)) runs now and on every size change; Relayout().
+-- OnLayout(fn(g)) runs now and on every size change; Relayout(); MeasureAt (UI tests). Skin.Frames[panel] = g.
+Skin.Frames = setmetatable({}, { __mode = "k" })
 function Skin.IndexFrame(panel, parts)
 	parts = parts or {}
 	panel.ClipsDescendants = false
@@ -468,9 +472,7 @@ function Skin.IndexFrame(panel, parts)
 		header.ClipsDescendants = false
 		header.ZIndex = 8
 	end
-	local chrome = panel:FindFirstChild("AnimeChrome")
-		or image(panel, "AnimeChrome", ART.Chrome, UDim2.new(), UDim2.new(), 0)
-	chrome.ZIndex = 0
+	local _, placeChrome = IndexStyle.Chrome(panel, "AnimeChrome", 0)
 	local titleLabel = parts.Title or child(header or panel, "TextLabel", "Title")
 	titleLabel.BackgroundTransparency = 1
 	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -589,34 +591,50 @@ function Skin.IndexFrame(panel, parts)
 		end
 	end
 	local hooks = {}
+	local measuring = nil -- g.MeasureAt's { Small, W, H } while it lays the frame out at another size
 	local function layout()
-		local small = compact()
+		local small, wPx, hPx
+		if measuring then
+			small, wPx, hPx = measuring.Small, measuring.W, measuring.H
+		else
+			small = compact()
+			wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
+			hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
+		end
 		local W, H = small and Skin.Units.PhoneW or Skin.Units.W, small and Skin.Units.PhoneH or Skin.Units.H
-		aspect.AspectRatio = W / H
-		local wPx = panel.Size.X.Offset > 0 and panel.Size.X.Offset or panel.AbsoluteSize.X
-		local hPx = panel.Size.Y.Offset > 0 and panel.Size.Y.Offset or panel.AbsoluteSize.Y
+		if not measuring then
+			aspect.AspectRatio = W / H
+		end
 		local k = math.min(wPx / W, hPx / H)
 		if k <= 0 then
 			return
 		end
 		g.k, g.W, g.H, g.Small = k, W, H, small
-		chrome.Position, chrome.Size = g.at(-40, -70), UDim2.new(1, g.px(80), 1, g.px(100))
+		placeChrome(-g.px(40), -g.px(70), g.px(W) + g.px(80), g.px(H) + g.px(100))
 		if icon then
 			g.Place(icon, -19, -72, 188, 186)
 		end
+		-- Parts held to the right or bottom edge use Scale + offset, not W / H units: the same px here, and a layout
+		-- read at another viewport (the UI tests' model scales offsets by k) stays inside the frame.
 		local titleLeft = icon and 168 or 56
-		g.Place(titleLabel, titleLeft, -23, W - titleLeft - 110, 76)
+		titleLabel.AnchorPoint = Vector2.zero
+		titleLabel.Position = g.at(titleLeft, -23)
+		titleLabel.Size = UDim2.new(1, -g.px(titleLeft + 110), 0, g.px(76))
 		titleLabel.Rotation = -2
 		g.Role(titleLabel, "Title")
 		if close then
-			g.Place(close, W - 82, -6, 74, 74)
+			close.AnchorPoint = Vector2.zero
+			close.Position, close.Size = UDim2.new(1, -g.px(82), 0, -g.px(6)), g.at(74, 74)
 			closeArt.Position, closeArt.Size = UDim2.new(), UDim2.fromScale(1, 1)
 		end
-		g.Place(footer, W * 303 / 920, H - 60, W * 312 / 920, 28)
+		footer.AnchorPoint = Vector2.zero
+		footer.Position = UDim2.new(303 / 920, 0, 1, -g.px(60))
+		footer.Size = UDim2.new(312 / 920, 0, 0, g.px(28))
 		g.Role(footer, "Footer")
 		local tabsY = small and Skin.Units.PhoneTabsY or Skin.Units.TabsY
 		for _, buttons in tabSets do
 			local n = #buttons
+			-- Units, not Scale: the tabs sit in zero-size holders (Backpack Panel/Tabs), where Scale is 0.
 			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
 			for i, button in buttons do
 				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)
@@ -651,6 +669,19 @@ function Skin.IndexFrame(panel, parts)
 		layout()
 		g.Relayout() -- after UiTheme.Apply's and Skin.Tab's deferred passes
 	end
+	-- UI tests: lay the frame and its hooks out at another viewport (phone layout or not) and frame size in px, call
+	-- read() on that layout, then lay it out for this screen again, all in one go (no frame is drawn in between).
+	function g.MeasureAt(viewportSize, wPx, hPx, read)
+		measuring = { Small = compact(viewportSize), W = wPx, H = hPx }
+		layout()
+		local ok, err = pcall(read)
+		measuring = nil
+		layout()
+		if not ok then
+			error(err, 0)
+		end
+	end
+	Skin.Frames[panel] = g
 	panel:GetPropertyChangedSignal("Size"):Connect(g.Relayout)
 	panel:GetPropertyChangedSignal("AbsoluteSize"):Connect(g.Relayout)
 	if workspace.CurrentCamera then

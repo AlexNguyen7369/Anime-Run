@@ -12,7 +12,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossArenaConfig"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
 local Poses = require(Shared:WaitForChild("BossRagaPoses"))
-local VfxArt = require(Shared:WaitForChild("BossVfxArt"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
@@ -25,16 +24,8 @@ local RING_STEP = 2
 local DECK_THICK = 8
 local DAIS_THICK = 14
 local LINE_WIDTH, LINE_THICK = 1, 0.1
--- The flat fallback (spec "Arena"): front image from his front and back, side image otherwise, sized so that it sits inside the
--- model's outline from the lanes and behind the model along the view line. Images are 9.42 units square, framed on his box.
-local FLAT_FRAME = 9.42 * Poses.Scale
 local GROWTH = Event.ScreamGrowth
 local ROAR_AT = Poses.Moves.shout.Events[1].Time
-local FLAT_INSIDE = 0.92 -- of the image's true size
-local FLAT_CENTER_Y = 9.237 / 2 * Poses.Scale
-local LANES = Cfg.InnerRadius + Cfg.Width / 2 -- studs from the boss, for the size the billboard's push back would lose
-local FLAT_FRONT = { Image = VfxArt.FlatFront, Back = 260, Side = 0 }
-local FLAT_SIDE = { Image = VfxArt.FlatSide, Back = 400, Side = -58 } -- his box is 0.67 units behind his centre
 local ARCH_COUNT, ARCH_START, SECTOR = 6, math.rad(15), math.rad(60) -- the draft's ARCH_START and SECTOR
 local ARCH_PIECES = 8 -- the draft's 12, for phones
 local BAY_OFFSETS = { math.rad(20), math.rad(40) } -- colonnade bays after each arch
@@ -63,7 +54,6 @@ local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
 local folder = nil -- the built arena, nil when off
 local added = 0
 local raga = nil -- the boss, while the arena stands
-local flat = nil -- { Anchor, Gui, Image, Showing }
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
 local function pace(mine)
@@ -183,54 +173,6 @@ local function addDais()
 	drum("DaisStem", y - 60, 60, 40, GOLD2)
 end
 
--- Parts this far off do not draw at low graphics quality but a billboard does (spec "Low graphics"). The offset is along the view
--- line, so it stays behind the model from every side, and the depth test (AlwaysOnTop off) lets the model hide it and keeps it off
--- the track and runners. shortcut: 2 still images at rest, drawn from his front and his right, so his back and left show the same
--- image the wrong way round; animated frames only if a real phone at low graphics shows the owner they are worth it.
-local function addFlat()
-	local anchor = addPart(
-		"LowGraphicsAnchor",
-		Vector3.one,
-		CFrame.new(Cfg.Center.X, Cfg.DaisY + FLAT_CENTER_Y, Cfg.Center.Z),
-		MARBLE
-	)
-	anchor.Transparency = 1
-	anchor.CastShadow = false
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "LowGraphicsBoss"
-	gui.AlwaysOnTop = false
-	gui.Enabled = false -- steps show it from the spawn
-	gui.LightInfluence = 0
-	local image = Instance.new("ImageLabel")
-	image.Size = UDim2.fromScale(1, 1)
-	image.BackgroundTransparency = 1
-	image.ScaleType = Enum.ScaleType.Stretch
-	image.Parent = gui
-	gui.Parent = anchor
-	flat = { Anchor = anchor, Gui = gui, Image = image, Home = anchor.CFrame }
-end
-
-local function aimFlat(rise, below, growth, moving)
-	-- A static image behind a moving model reads as a second Raga; a low saved level has no model to hide it.
-	local level = UserSettings().GameSettings.SavedQualityLevel.Value
-	local explicitLow = level >= 1 and level <= 3
-	flat.Gui.Enabled = rise ~= nil and (explicitLow or not moving)
-	if not rise then
-		return
-	end
-	flat.Anchor.CFrame = flat.Home + Vector3.new(0, FLAT_CENTER_Y * (growth - 1) - below, 0)
-	local camera = Workspace.CurrentCamera
-	local away = camera and (camera.CFrame.Position - Cfg.Center) * Vector3.new(1, 0, 1)
-	local view = (not away or away.Magnitude < 1 or math.abs(away.Unit.Z) > 0.7) and FLAT_FRONT or FLAT_SIDE
-	if flat.Showing ~= view or flat.Growth ~= growth then
-		flat.Showing, flat.Growth = view, growth
-		local size = FLAT_FRAME * FLAT_INSIDE * (LANES + view.Back) / LANES * growth
-		flat.Image.Image = view.Image
-		flat.Gui.Size = UDim2.fromScale(size, size) -- a billboard's scale is in studs
-		flat.Gui.StudsOffset = Vector3.new(view.Side * growth, 0, -view.Back)
-	end
-end
-
 -- A flattened sphere, an engine primitive.
 local function addPuff(x, y, z, radius, style, height)
 	local part =
@@ -334,13 +276,7 @@ local function build(mine)
 		return
 	end
 	addDais()
-	if not addClouds(mine) then
-		return
-	end
-	if not pace(mine) then
-		return
-	end
-	addFlat()
+	addClouds(mine)
 end
 
 local function refresh()
@@ -353,7 +289,7 @@ local function refresh()
 		BossVfx.Stop()
 		folder:Destroy()
 		folder = nil
-		raga, flat = nil, nil
+		raga = nil
 	end
 	if want then
 		local mine = Instance.new("Folder")
@@ -409,9 +345,6 @@ local function step()
 		move, localTime = "shout", ROAR_AT -- the approved pose, held: no new key frames (BOSS_EVENT_SPEC "Phase 2")
 	end
 	raga:Step(rise, below, move, localTime, now, growth, spin, screamLeft and not UiMotion.Reduced() and 1 or 0)
-	if flat then
-		aimFlat(rise, below, growth, move ~= "idle")
-	end
 	BossVfx.Step(since, move, localTime, screamLeft)
 end
 

@@ -46,4 +46,4 @@ HOLD (placeholders): Common 0.5, Uncommon 0.5, Rare 0.6, Epic 0.75, Legendary 1.
 - The old `RacerHud/Race` stays hidden as the layout anchor that `PanelBand` reads, so panel bands do not move.
 
 ## Quests button (owner 2026-11-04)
-- Quests leaves the top-right row and becomes an icon button directly above Shop (`HudChrome/ShopColumn/Quests`), same tile as Shop, opening the same panel. The top-right row is Daily, Market, Settings (design doc 4.40).
+- Quests is a gold tile in the left 2-column block, right of Rebirth (`HudChrome/Grid/Quests`), opening the same panel. Market moves into the block beside Shop; the top-right row is Daily, Settings (design doc 4.40, owner 2026-11-10, layout L2).

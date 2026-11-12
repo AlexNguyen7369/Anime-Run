@@ -25,10 +25,10 @@ local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local Palette = UiTheme.Palette
 local ICON = require(script.Parent.RollToast.Ui:WaitForChild("HudIcons")).Items.Image -- the Backpack's logo
 local U = AnimeSkin.Units
--- Popup sizes in px, the Index's 920 x 620 aspect (the frame draws at k = px / units); a small screen scales them down.
-local MENU_SIZE = Vector2.new(460, 310)
-local CONFIRM_SIZE = Vector2.new(560, 377)
-local PICKER_SIZE = Vector2.new(720, 485)
+-- Popup sizes in px, the frame's 1200 x 620 aspect (design doc 4.42: the old heights, 1.3 x wider) (the frame draws at k = px / units); a small screen scales them down.
+local MENU_SIZE = Vector2.new(600, 310)
+local CONFIRM_SIZE = Vector2.new(730, 377)
+local PICKER_SIZE = Vector2.new(938, 485)
 -- Design units.
 local ODDS_ROW = 28 -- one Caption line
 local NOTE_HEIGHT = 28

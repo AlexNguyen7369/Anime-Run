@@ -2,7 +2,7 @@
 -- Duels, player vs player (docs/DUEL_SPEC.md). A requests (the "Duel" prompt on B's on-foot character), A picks a
 -- track both unlocked, B accepts or declines. Both get a car held at that track's start; COUNTDOWN after both are
 -- seated the cars are released in the same step and auto-race that ONE track. The server decides everything; the
--- winner gets DuelWins + 1. No stake: a duel run has no NPC, pays no pad and banks nothing.
+-- winner gets DuelWins + 1. No stake: a duel run has no NPC, pays no pad and no checkpoint.
 --
 -- One table per pair, in duelOf[player] for both players. Phases: "Picking" -> "Invited" -> "Countdown" ->
 -- "Racing". Tick() (every Heartbeat) handles the timeouts, the release, forfeits and finished races.

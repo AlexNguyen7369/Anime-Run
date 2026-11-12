@@ -1,19 +1,36 @@
 --!nonstrict
--- Approved simple HUD art (2026-10-27), source PNGs: ui/icons/simple-20261027/.
+-- HUD icons: the Tab tilt set (design doc 4.40, owner 2026-11-10), source PNGs assets/ui/hud_tabtilt/; each comment
+-- names its uploaded Decal. Auto uses the AutoPlay art (Tab tilt has no whole Auto icon).
 -- Standalone transparent images, no atlas rectangles.
 return {
-	Shop = { Image = "rbxassetid://122477634476364" },
-	Items = { Image = "rbxassetid://129493708099921" },
-	Index = { Image = "rbxassetid://109858472680311" }, -- in-house card fan, tools/blender/plaza/index_icon.py
-	Upgrade = { Image = "rbxassetid://91603574230764" },
-	Stats = { Image = "rbxassetid://122191050291444" },
-	Rebirth = { Image = "rbxassetid://126025259967772" },
-	Daily = { Image = "rbxassetid://130197364777330" },
-	Quests = { Image = "rbxassetid://73247739778799" },
-	Market = { Image = "rbxassetid://123121209984440" },
-	Settings = { Image = "rbxassetid://131875159358960" },
-	Gem = { Image = "rbxassetid://136869552622521" }, -- owner's icon 2026-11-05, assets/ui/gem.png
-	Auto = { Image = "rbxassetid://122355836258114" }, -- owner's icon, tools/blender/plaza/auto_icon.py
-	AutoArrows = { Image = "rbxassetid://110966439139915" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
-	AutoPlay = { Image = "rbxassetid://121841618485883" }, -- owner's icon, a part of it: tools/blender/plaza/auto_icon.py
+	-- Tab tilt: hud_tabtilt/Shop.png, Decal 110580195719414
+	Shop = { Image = "rbxassetid://77923693818307" },
+	-- Tab tilt: hud_tabtilt/Items.png, Decal 78892919732157
+	Items = { Image = "rbxassetid://136513915327711" },
+	-- Tab tilt: hud_tabtilt/Index.png, Decal 132282595074039
+	Index = { Image = "rbxassetid://91719313688362" },
+	-- Tab tilt: hud_tabtilt/Upgrade.png, Decal 129349138813136
+	Upgrade = { Image = "rbxassetid://118850768375463" },
+	-- Tab tilt: hud_tabtilt/Stats.png, Decal 73954775657229
+	Stats = { Image = "rbxassetid://81847846244460" },
+	-- Tab tilt: hud_tabtilt/Rebirth.png, Decal 85715725860894
+	Rebirth = { Image = "rbxassetid://121256395009677" },
+	-- Tab tilt: hud_tabtilt/Daily.png, Decal 83054825153265
+	Daily = { Image = "rbxassetid://131962436360313" },
+	-- Tab tilt: hud_tabtilt/Quests.png, Decal 79061962625846
+	Quests = { Image = "rbxassetid://90087117762301" },
+	-- Tab tilt: hud_tabtilt/Market.png, Decal 98688871503572
+	Market = { Image = "rbxassetid://105239292796755" },
+	-- Tab tilt: hud_tabtilt/Settings.png, Decal 134508580763362
+	Settings = { Image = "rbxassetid://75526281382537" },
+	-- Tab tilt: hud_tabtilt/Gem.png, Decal 70694025124718
+	Gem = { Image = "rbxassetid://115837117925526" },
+	-- Tab tilt has no whole Auto icon: HudChrome draws AutoPlay under AutoArrows. Point Auto at AutoPlay's Image id.
+	Auto = { Image = "rbxassetid://85172904732896" },
+	-- Tab tilt: hud_tabtilt/AutoArrows.png, Decal 123515801089798 (arrows alone, centred on the image)
+	AutoArrows = { Image = "rbxassetid://71294529066561" },
+	-- Tab tilt: hud_tabtilt/AutoPlay.png, Decal 108577153797017 (tab and still green triangle)
+	AutoPlay = { Image = "rbxassetid://85172904732896" },
+	-- Design doc 4.40 boss popup icon (the purple horned mask). Tab tilt: hud_tabtilt/Boss.png, Decal 101005378032856
+	Boss = { Image = "rbxassetid://137818614263751" },
 }
