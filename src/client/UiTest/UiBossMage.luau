@@ -795,9 +795,17 @@ function Module.Build(h)
 
 	-- Her arena, the golem and her effects.
 	function scenarios.ui_boss_mage_vfx(res)
-		local Poses = optional("BossMagePoses", ReplicatedStorage:WaitForChild("LateData", BUILD_WAIT)) -- design doc 7 "Join size"
+		setup(res, "boss_ui_gear:2")
+		local loaded, Poses = pcall(function()
+			-- Design doc 7 "Join size": not at join; the boss setup publishes it, as a real event does.
+			return require(
+				ReplicatedStorage:WaitForChild("LateData", BUILD_WAIT):WaitForChild("BossMagePoses", BUILD_WAIT)
+			)
+		end)
+		Poses = loaded and type(Poses) == "table" and Poses or nil
 		check(res, "mage_poses_loads", Poses ~= nil, true)
 		if not Poses then
+			setup(res, "restore:boss_ui")
 			return
 		end
 		local function inArena(name)
