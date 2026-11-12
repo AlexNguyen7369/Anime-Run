@@ -31,7 +31,7 @@ change is written on the client only and never replicates.
 ## 2. World structure
 
 ### 2.1 Zones
-- Zone 0 is the plaza: the `SpawnArea` and the 7 Dojos plus a margin of 64 studs (placeholder). It has its own
+- Zone 0 is the plaza: the `SpawnArea` plus a margin of 64 studs (placeholder). It has its own
   client-local golden-hour profile (owner 2026-11-03, design doc 4.24; replaces the `LightingConfig` baseline here).
   The server's `Lighting` stays the `LightingConfig` baseline.
 - Zone n (1-10) covers every point whose nearest track centre line is Track n. Each zone holds its own ring band of
@@ -66,7 +66,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
 - Elevated road (slopes up to Rise 54): biomes with `Embank = true` raise the corridor to road Y - 3 (placeholder)
   under the slope, so hills sit under hills. Supports end up buried, which is fine. City biomes (5, 6) keep
   `Embank = false`: overpasses stay on their supports.
-- Clear areas get flat terrain at `GROUND_TOP`: the plaza, Dojos, checkpoint areas and WinPads, each footprint plus
+- Clear areas get flat terrain at `GROUND_TOP`: the plaza, checkpoint areas and WinPads, each footprint plus
   `BiomeDressing.CLEARANCE`. These are the same roots `BiomeDressing.Prune` already excludes.
 
 ### 2.3 Where zones meet
@@ -78,7 +78,7 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   (section 5.3) covers that change.
 
 ### 2.4 Safety baseplate
-- It keeps its XZ rule (covers tracks, plaza and Dojos plus the margin; `world_layout` still passes). Since Tracks 6-10 build after join (design doc 4.25), its XZ box joins `TerrainShape.Box()` (every track's centre line plus margin and skirt) with the built parts, so it covers the late tracks before they have parts.
+- It keeps its XZ rule (covers tracks and plaza plus the margin; `world_layout` still passes). Since Tracks 6-10 build after join (design doc 4.25), its XZ box joins `TerrainShape.Box()` (every track's centre line plus margin and skirt) with the built parts, so it covers the late tracks before they have parts.
 - Once the terrain is built it moves down to Y = -60 (placeholder), below the deepest terrain floor, and becomes
   `Transparency = 1`. It stays `CanCollide`. It is the last-resort floor under water and the cloud drops.
 - If the terrain build fails, the baseplate stays where it is and stays visible.
@@ -95,12 +95,12 @@ Let `d` be the distance from the nearest road centre line and `W/2 = 20` the roa
   from the track code follows any layout change.
 - No terrain is saved in the place. The builder clears any saved terrain inside the world box first.
 - Build order in `Main.server.luau` (design doc 4.25 Build after join, owner 2026-11-10): every track's layout
-  (`TrackBuilder.Layout`, no parts); build Tracks 1-5; `SpawnArea`, Workshops; `BiomeDressing.Prune`;
+  (`TrackBuilder.Layout`, no parts); build Tracks 1-5; `SpawnArea`; `BiomeDressing.Prune`;
   `TerrainShape.Prepare(entries, clearRoots)` (pure grid, all 10 tracks: an unbuilt track clears its
   `TrackBuilder.CheckpointBox`); `BiomeDressing.SnapToTerrain(trackModels)`; baseplate block over
   `TerrainShape.Box()` and the built parts; `task.spawn(TerrainBuilder.Build)`; the services start while the terrain
   writes. Then Tracks 6-10 build one per frame in `TrackBuild.Order` (nearest the players first). Each late track is
-  pruned against every built road, the plaza and the Dojos (and earlier props against its road), then snapped with
+  pruned against every built road and the plaza (and earlier props against its road), then snapped with
   `SnapToTerrain(trackModels, { track })`: clearance and pinned hero footprints come from every built track, only the
   new track's props move. Its WinPad joins the route, then it gets `BuiltAt`.
 - Chunk order: plaza and Track 1 first, then zones 2..10 outward. `ReplicatedStorage` attribute `TerrainProgress`

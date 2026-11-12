@@ -394,6 +394,9 @@ local function render()
 		end
 	else
 		local boss = ReplicatedStorage:GetAttribute("BossEventBoss")
+		if not BossDodge.Ready(boss) then
+			return
+		end
 		local index = BossDodge.MinionIndexAtOrBefore(tau, boss) + 1
 		if index <= doneIndex then
 			return

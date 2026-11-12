@@ -206,7 +206,7 @@ function RunnerFactory.Restyle(model, characterId)
 			local template = meshes and meshes:FindFirstChild(name)
 			if template then
 				local clone = template:Clone()
-				clone.Size *= model:GetScale() -- a rig already sized by ScaleTo (Dojo squad, Best Roll)
+				clone.Size *= model:GetScale() -- a rig already sized by ScaleTo (Best Roll)
 				swap(model, p, clone)
 			elseif p:IsA("MeshPart") then
 				local plain = part(model, name, row[2] * model:GetScale(), byPart[name])

@@ -30,7 +30,7 @@ Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 3 and 4.36. Numbers are placeholder
 
 - `Remotes.SellSpares(id, count)` (RemoteFunction): lowers that character's `Copies` by `count`, a whole number from 1 to `Copies` (nil = all), pays `count x price`, returns ok, message. Rate limited. It works whatever the auto sell setting is.
 - `Remotes.SellSparesMany(ids)` (RemoteFunction): the same for all spares of each listed character, in one payment. The list has at most one row per catalog character; a repeat counts once; a character with no spares is passed over; nothing to sell is refused. Rate limited.
-- Team and Dojo squad characters can be sold down to 1 copy: the last copy is what they use, so neither can lose a member.
+- Team characters can be sold down to 1 copy: the last copy is what they use, so the Team cannot lose a member.
 - A sale always goes through a confirmation dialog: the Sell button picks how many, Mass sell shows the total.
 - The save runs as usual; a crash before the next save loses the sale and the Money together, because both are in the same save.
 

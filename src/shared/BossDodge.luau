@@ -4,6 +4,8 @@
 -- attack, shout and wheel turn of the event from 1. Numbers are placeholders.
 local BossCatalog = require(script.Parent.BossCatalog)
 local Cfg = require(script.Parent.BossEventConfig)
+local LateData = require(script.Parent.LateData)
+local RunService = game:GetService("RunService")
 
 local BossDodge = {}
 
@@ -34,8 +36,8 @@ local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
 local function isMoment(name)
 	return not string.find(name, "_start$")
 end
-local function scan(Poses)
-	local events, list, timeline = {}, {}, {}
+local function scan(Poses, events)
+	local list, timeline = {}, {}
 	for _, move in Poses.Moves do
 		for _, moveEvent in move.Events do
 			events[moveEvent.Name] = {}
@@ -65,18 +67,32 @@ local function scan(Poses)
 	return { List = list, Timeline = timeline, Events = events, Cycle = Poses.CycleSeconds }
 end
 
+BossDodge.Events = {} -- Big Raga's, filled when his schedule is first read
+
 local schedules, poses = {}, {}
-for _, id in BossCatalog.Order do
-	poses[id] = require(script.Parent[BossCatalog.Get(id).Poses])
-	schedules[id] = scan(poses[id])
+-- Join size (design doc 7): a boss's pose data reaches a client with its first event, so it is read on first use.
+-- boss: an id, nil for Big Raga. Returns the boss's id.
+local function load(boss)
+	local id = BossCatalog.Get(boss).Id
+	if not schedules[id] then
+		local bossPoses = LateData.Get(BossCatalog.Get(id).Poses)
+		if not schedules[id] then -- another caller built it while this one waited
+			poses[id] = bossPoses
+			schedules[id] = scan(bossPoses, id == BossCatalog.Default and BossDodge.Events or {})
+		end
+	end
+	return id
 end
 
--- boss: an id, nil for Big Raga.
+-- Never yields: true once the boss's poses have arrived. Per-frame callers return until then, so no threads wait.
+function BossDodge.Ready(boss)
+	local id = BossCatalog.Get(boss).Id
+	return schedules[id] ~= nil or (LateData.Peek(BossCatalog.Get(id).Poses) ~= nil and load(id) ~= nil)
+end
+
 local function scheduleOf(boss)
-	return schedules[BossCatalog.Get(boss).Id]
+	return schedules[load(boss)]
 end
-
-BossDodge.Events = schedules[BossCatalog.Default].Events
 
 function BossDodge.EventsOf(boss)
 	return scheduleOf(boss).Events
@@ -134,7 +150,7 @@ end
 
 -- The golem slot of the boss's cycle (s after the intro, in its first cycle) and the cycle's length; nil for a boss without one.
 function BossDodge.Slot(boss)
-	local Poses = poses[BossCatalog.Get(boss).Id]
+	local Poses = poses[load(boss)]
 	if Poses.GolemSlotAt then
 		return Poses.GolemSlotAt, Poses.CycleSeconds
 	end
@@ -143,12 +159,12 @@ end
 
 -- Golem attack k (from 1, per golem) -> its time in s since BossMinionStart and its event name.
 function BossDodge.MinionMoment(k, boss)
-	return poses[BossCatalog.Get(boss).Id].GolemHit(k)
+	return poses[load(boss)].GolemHit(k)
 end
 
 -- The number of the last golem attack at or before `tau` s since BossMinionStart, 0 if none.
 function BossDodge.MinionIndexAtOrBefore(tau, boss)
-	local Poses = poses[BossCatalog.Get(boss).Id]
+	local Poses = poses[load(boss)]
 	local since = math.round((tau - Poses.GolemFirstHit) * 1000) / 1000
 	if since < 0 then
 		return 0
@@ -169,6 +185,13 @@ function BossDodge.Window(spot, momentAt, stage)
 	local sweep = SWEEPS[stage]
 	local start = momentAt - sweep
 	return start + (spot - BossDodge.SpotWidth / 2) * sweep, start + (spot + BossDodge.SpotWidth / 2) * sweep
+end
+
+-- The server reads every boss up front: ServerStorage, so no network cost; a client loads only the boss it is shown (load).
+if RunService:IsServer() then
+	for _, id in BossCatalog.Order do
+		load(id)
+	end
 end
 
 return BossDodge

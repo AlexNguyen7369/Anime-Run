@@ -20,7 +20,7 @@
 --     cycle's gates_start (1.6 s before the gates moment) and at the event's end. Hooks.DamageMulti multiplies by 0.6 while set.
 --     Dodge on a costless move's moment -> false, "No bar"; shields charges nothing and sets no Vulnerable; its move chat is the
 --     raise line.
---   Shared/BossKingPoses (the 2026-11-11 bake): Moves idle, gates (events gates_start 0, gates 1.6 = Volleys; Window { 1.6, 3.6 }),
+--   ServerStorage.LateData.BossKingPoses (the 2026-11-11 bake; design doc 7 "Join size", see LateDataTests): Moves idle, gates (events gates_start 0, gates 1.6 = Volleys; Window { 1.6, 3.6 }),
 --     enuma (enuma_start 0, enuma 3.0 = Beam; Window { 3, 5 }; EaShown { 0, 5.6 }), shields (one event shields at 2.2 =
 --     Fortified), lead-ins gates_in, enuma_in, shields_in of 0.75 s; cycle idle, gates_in, gates, idle, idle, enuma_in, enuma,
 --     idle, idle, shields_in, shields, idle = 38.85 s; Approved[move] rows { Time, Parts, RootOffset } (idle 3, gates 6, enuma 8,
@@ -706,7 +706,7 @@ function Tests.make()
 	local function boss_king_anim()
 		local r, flag, section, eq, near = reporter("boss_king_anim")
 		local Event = require(Shared.BossEventConfig)
-		local Poses = H.module(Shared, "BossKingPoses")
+		local Poses = H.lateData("BossKingPoses") -- design doc 7 "Join size"
 		local BossDodge = H.module(Shared, "BossDodge")
 		local Catalog = H.module(Shared, "BossCatalog")
 		local Art = H.module(Shared, "BossKingArt")

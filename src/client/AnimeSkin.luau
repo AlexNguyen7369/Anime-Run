@@ -634,7 +634,7 @@ function Skin.IndexFrame(panel, parts)
 		local tabsY = small and Skin.Units.PhoneTabsY or Skin.Units.TabsY
 		for _, buttons in tabSets do
 			local n = #buttons
-			-- Units, not Scale: the tabs sit in zero-size holders (Backpack Panel/Tabs, Workshop Stats), where Scale is 0.
+			-- Units, not Scale: the tabs sit in zero-size holders (Backpack Panel/Tabs), where Scale is 0.
 			local w = n <= 4 and (W - 136) / 4 or (W - 112 - Skin.Units.TabGap * (n - 1)) / n
 			for i, button in buttons do
 				g.Place(button, 56 + (i - 1) * (w + Skin.Units.TabGap), tabsY, w, Skin.Units.TabH)

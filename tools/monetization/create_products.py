@@ -28,7 +28,7 @@ PASSES = [
     ("money_2x", "2x Money", 249, "Doubles race payouts!"),
     ("luck_1", "Lucky", 149, "Permanent +1 Luck!"),
     ("luck_2", "ULTRA Lucky", 299, "Permanent +2 Luck!"),
-    ("dojo_master", "Dojo Master", 299, "Workshop boost x1.5!"),
+    # dojo_master 2071362782 "Dojo Master" 299: removed 2026-11-11 (design doc 4.43); id kept so it is never reused
     ("deep_stamina", "Deep Stamina", 199, "+25% stamina for your team!"),
     ("inventory", "+ Inventory", 199, "+100 bag spaces!"),
     ("exclusive_runner", "Saitamo", 999, "Exclusive runner: 350 studs/s!"),

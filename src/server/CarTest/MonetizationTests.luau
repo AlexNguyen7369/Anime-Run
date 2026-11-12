@@ -51,7 +51,7 @@ function Tests.passes()
 	for _, pass in Monetization.Gamepasses do
 		byId[pass.Id] = pass
 	end
-	flag("passes_count_11", #Monetization.Gamepasses == 11, #Monetization.Gamepasses, 11)
+	flag("passes_count_10", #Monetization.Gamepasses == 10, #Monetization.Gamepasses, 10)
 	for _, id in
 		{
 			"vip",
@@ -61,7 +61,6 @@ function Tests.passes()
 			"money_2x",
 			"luck_1",
 			"luck_2",
-			"dojo_master",
 			"deep_stamina",
 			"inventory",
 			"exclusive_runner",
@@ -69,6 +68,7 @@ function Tests.passes()
 	do
 		flag("passes_has_" .. id, byId[id] ~= nil)
 	end
+	flag("passes_dojo_master_gone", byId.dojo_master == nil) -- Dojos removed, design doc 4.43 (owner 2026-11-11)
 	flag("passes_workshop_tiers_gone", not (byId.workshop_gold or byId.workshop_diamond or byId.workshop_void))
 	flag("passes_exclusive_999", byId.exclusive_runner and byId.exclusive_runner.RobuxPrice == 999)
 
@@ -135,18 +135,6 @@ function Tests.passes()
 		flag("passes_luck_off_restricted", near(ratio("Restricted", "luck_2", GachaService.Luck), 1))
 		flag("passes_vip_luck_off_restricted", near(ratio("VipRestricted", "vip", GachaService.Luck), 1))
 		flag("passes_deep_stamina", near(ratio("Stamina", "deep_stamina", GachaService.StaminaMulti), 1.25))
-
-		local squad = player("PassSquad")
-		for _, spec in CharacterCatalog.All() do
-			if spec.Rollable and not spec.Event then
-				GachaService.Grant(squad, spec.Id)
-				squad:SetAttribute("Showcase", spec.Id)
-				break
-			end
-		end
-		local boost = GachaService.WorkshopBoost(squad)
-		squad:SetAttribute("Pass_dojo_master", true)
-		flag("passes_dojo_master", boost > 0 and near(GachaService.WorkshopBoost(squad), boost * 1.5))
 
 		-- The exclusive runner
 		local spec = CharacterCatalog.Get(CharacterCatalog.EXCLUSIVE_ID)

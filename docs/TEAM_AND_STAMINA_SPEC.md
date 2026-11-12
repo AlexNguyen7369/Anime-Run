@@ -122,7 +122,8 @@ Stamina = Base(rarity or override)
   RarityBase (proposed): Common 24, Uncommon 33, Rare 48, Epic 90, Legendary 200, Mythic 450, Secret 700.
 - SpeedMulti = (1 + 0.02 x Alloc_Speed + upgrade tree Speed bonus) x SpeedPotion x Preset(1.1) x slot aura x slot
   trail (damped `ItemCruiseMulti`). Each team slot has its own aura and trail; they scale only that slot.
-- Fixed for the whole run at run start (like stamina); no Speed stat, no gain.
+- Fixed for the whole run at run start (like stamina); no Speed stat, no gain. Exception: a Speed power-up's 3 s
+  boost and a Stamina power-up's +5 s (design doc 4.44, `docs/POWERUP_SPEC.md`).
 - Orchestrator defaults 2026-11-01 (gaps the rules do not cover; owner may change):
   - Speed potion factor = the active potion tier's own multi (BoostConfig: I x1.25, II x1.5, III x2), like the other
     potions; no tier = x1.
@@ -166,7 +167,8 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
-- Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
+  Power-ups (design doc 4.44, POWERUP_SPEC): the seconds number shows `Stamina<n> / 100 x RunSeconds<n>` and turns blue while `Stamina<n>` is above 100 (the arc stays capped); a Speed badge sits on the running portrait while `PowerSpeedUntil` is in the future.
+- Team editor (owner 2026-11-12: it moves to the Team panel opened by the HUD's Team button, design doc 4.40, layout A "Line-up"; the Backpack Characters tab keeps its grid, the green TEAM badge and a character's details, without the slot buttons for the team. The flow is unchanged:) (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
 - Runner stamina bar (owner 2026-11-02): a vertical blue bar fixed to the right of every visible running character

@@ -76,8 +76,8 @@
   "Tris": 2786
  },
  "GreatSakura": {
-  "Asset": "81417765020310",
-  "Hash": "a833b505a834aa3d",
+  "Asset": "84953642339595",
+  "Hash": "7eb9636a98b80b78",
   "Kind": "Mesh",
   "Lane": "B",
   "Tris": 2128
@@ -197,11 +197,10 @@
   "Tris": 112
  },
  "MainPath": {
-  "Asset": "108055621203106",
-  "Hash": "df0b1f4b7a36a937",
+  "Asset": "78230432716923",
+  "Hash": "150967aa4f6b7604",
   "Kind": "Mesh",
   "Lane": "B",
-  "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 120
  },
  "MarketGate": {
@@ -305,6 +304,13 @@
   "Lane": "B",
   "Reviewed": "2026-11-03 rules-auditor",
   "Tris": 1072
+ },
+ "Showpiece": {
+  "Asset": "114330955038474",
+  "Hash": "fc9fc985553b5f19",
+  "Kind": "Mesh",
+  "Lane": "B",
+  "Tris": 3632
  },
  "SkyLoop": {
   "Asset": "79709231903591",

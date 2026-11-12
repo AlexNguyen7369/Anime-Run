@@ -3,21 +3,20 @@
 -- ReplicatedStorage.BossModels (boss_king), posed every frame from BossKingPoses. He stands on the vault's gold heap at the centre
 -- (Client/BossColosseum.VaultMoundTop), no hover, no bob, facing as Big Raga does. Ea and the Key are parts of the bind, so the
 -- bake's drum spin plays as pose data. Entrance (an open question in the spec): he rises through the heap over RiseSeconds as Big
--- Raga does, until the owner rules. Until the bake lands, BossKingPoses is the k7 stub (Moves, CycleSeconds and Schedule, no Bind
--- or Sample): then no rig is made and Step draws nothing. With no module at all, Poses is nil and the arena view skips his schedule.
+-- Raga does, until the owner rules. Poses are late data (design doc 7), read when his event or preview first shows him.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig")).For("boss_king")
 local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
-local posesModule = Shared:FindFirstChild("BossKingPoses")
-local Poses = posesModule and require(posesModule) or nil
+-- design doc 7: required only while his event or preview shows, so it waits for his poses alone
+local Poses =
+	require(Shared:WaitForChild("LateData")).Get(require(Shared:WaitForChild("BossCatalog")).Get("boss_king").Poses)
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 
 local BossKing = {}
 BossKing.__index = BossKing
-BossKing.Poses = Poses -- nil until Shared/BossKingPoses exists
 
 function BossKing.new(parent)
 	local self = setmetatable({}, BossKing)

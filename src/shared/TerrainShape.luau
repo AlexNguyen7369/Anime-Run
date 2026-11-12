@@ -17,7 +17,7 @@ TerrainShape.CELL = 8 -- placeholder: grid cell (studs)
 TerrainShape.STAMP = 120 -- placeholder: stamp radius (studs)
 TerrainShape.COARSE = 64 -- studs per coarse cell for nodes past the stamp radius
 TerrainShape.POLY_STEP = 64 -- placeholder: studs between ZonePolyline points
-TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + Dojos + this
+TerrainShape.PLAZA_MARGIN = 64 -- placeholder: zone 0 = plaza + this
 TerrainShape.SKIRT = 900 -- placeholder: terrain past the outermost road edge
 TerrainShape.PAD_BUCKET = 64 -- studs per bucket cell of the pad lookup (AddPad)
 TerrainShape.EMBANK_BELOW = 3 -- placeholder: an Embank corridor sits this far below the road
@@ -157,7 +157,7 @@ local function polyline(pts)
 end
 
 -- entries: { Layout, Origin, Number, Biome } (Main.server's chain entries). clearRoots: Instances (checkpoints,
--- WinPads, the plaza...) or XZ boxes that get flat ground plus CLEARANCE. plazaRoots: the SpawnArea and Workshops
+-- WinPads, the plaza...) or XZ boxes that get flat ground plus CLEARANCE. plazaRoots: the SpawnArea
 -- (also clear), which set PlazaRadius. Yields while it stamps.
 function TerrainShape.Prepare(entries, clearRoots, plazaRoots)
 	local CELL, STAMP = TerrainShape.CELL, TerrainShape.STAMP

@@ -1,6 +1,6 @@
 # The Golden King's in-betweens and game model (design doc 4.37 "Third boss", BOSS_EVENT_SPEC "The Golden King").
 #   Blender -b --factory-startup --python tools/blender/bake_boss_king.py -- [poses] [glb]
-# poses   writes src/shared/BossKingPoses.luau: the owner-approved keys of keyframes/keys.json (pre-approved 2026-11-11) at their
+# poses   writes src/late/BossKingPoses.luau: the owner-approved keys of keyframes/keys.json (pre-approved 2026-11-11) at their
 #         times, everything between them generated here, then self-checked (asserts). Same public shape as BossMagePoses, plus
 #         Sample's third value (locs), Keys' Spin, Moves' EaShown and Poses.EaShown / Poses.EaSpin. Run stylua after.
 # glb     writes build/avatar_glb/boss_king.glb: 11 parts (Torso, Head, arms, legs, Key, Ea = the grip, Ea_Drum1-3), unposed, no
@@ -30,7 +30,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 KEYS = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "keyframes", "keys.json")
 BLEND = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "boss_king.blend")
 GLB = os.path.join(ROOT, "build", "avatar_glb", "boss_king.glb")
-LUAU = os.path.join(ROOT, "src", "shared", "BossKingPoses.luau")
+LUAU = os.path.join(ROOT, "src", "late", "BossKingPoses.luau")
 
 SIZE = 8  # his height in runner heights (spec, proposed)
 RATE, SNAP = bm.RATE, bm.SNAP

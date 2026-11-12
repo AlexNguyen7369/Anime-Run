@@ -5,7 +5,7 @@
 -- Owner decision 2026-10-06: Isaac's Racer UI (Client/RollToast + Client/RollToast/Ui/*, generated from
 -- ui/specs/*.ui.json and baked into StarterGui) is THE UI spec. The old ScreenGuis (SpeedHud, AutoRaceButton,
 -- IndexUi, StatsUi, RollUi) were replaced and must not come back. Numbers come from CLAUDE.md, the config modules
--- (RollAnimConfig, GachaConfig, WorkshopConfig, TrackBuilder, NpcConfig) and the Racer UI spec files
+-- (RollAnimConfig, GachaConfig, TrackBuilder, NpcConfig) and the Racer UI spec files
 -- (ui/specs/*.ui.json, their generated layout is mirrored in UiResponsive), never from measured pixels.
 --
 -- Paths are "/"-separated child names starting at the ScreenGui ("RacerHud/Race/Face"). "*" matches any one child
@@ -49,7 +49,7 @@ UiSpec.Viewports = {
 -- (Client/RollToast/Ui/RacerMotion, 1.035 on hover, 0.97 while pressed) and Client/UiMotion's MotionScale (Pop, the
 -- PanelSwitch open scale 0.92 -> 1; docs/HUD_LAYOUT_SPEC.md section 10). Geometry is measured with them at 1x, after
 -- the open motion settled (UiSpec.Waits.PanelMotion).
-UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerBossEvent/BossButton
+UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerSecondColumn/BossButton
 -- Labels that are transient feedback, not layout: Client/UiMotion.Float's "+$" float (MotionFloat, gone after 1.15 s).
 -- Owner 2026-11-10: exempt from text_clear_of_buttons and hud_labels_inside_panel. Only MotionFloat.
 UiSpec.TransientLabels = { MotionFloat = true }
@@ -174,7 +174,7 @@ UiSpec.Guis = {
 				DisabledWhen = "no_points_or_disabled_stat",
 			},
 		},
-		DisabledStats = {}, -- Every implemented stat, including Workshop, accepts allocation with free points.
+		DisabledStats = {}, -- Every implemented stat accepts allocation with free points.
 		-- The header's free-points read-out (RacerStats.ui.json "1 FREE POINT"): exactly the server's StatPoints,
 		-- singular for 1, plural otherwise ("0 FREE POINTS", "1 FREE POINT", "3 FREE POINTS").
 		PointsLabel = "RacerStats/Panel/Face/Header/Face/Points",
@@ -613,6 +613,7 @@ UiSpec.PanelSwitch = {
 		["MarketUi/Backdrop"] = "Market",
 		["CheckpointUi/Panel"] = "Checkpoints",
 		["RacerSidekicks/Panel"] = "Sidekicks",
+		["RacerTeam/Panel"] = "Team", -- design doc 4.40 (owner 2026-11-12): the Team panel (UiTeam)
 	},
 }
 
@@ -687,8 +688,9 @@ UiSpec.Guis.RacerBackpack = {
 			ClickCoverage = "ui_backpack_characters",
 		},
 		{
-			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); the
-			-- team slot buttons below put it on a slot (u4 / c1, Client/SlotPicker; click backpack_pick_character).
+			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); on the
+			-- Trails / Auras tabs the slot buttons below put it on a slot (u4, Client/SlotPicker). Owner 2026-11-12 (4.40):
+			-- the Characters tab has no team slot buttons; the Team panel (RacerTeam, UiTeam) sets the Team.
 			Path = "Panel/Items/*",
 			Does = "remote",
 			Remote = "UseBoost",
@@ -697,15 +699,38 @@ UiSpec.Guis.RacerBackpack = {
 			ClickCoverage = "ui_motion_dynamic",
 		},
 		{
-			-- Replace the old tile equip: Slot<n> invokes MarketEquip(kind, id or nil, n) (Trails / Auras) or
-			-- SetTeam(team with the picked character on slot n) (Characters). ui_backpack_characters checks their state.
+			-- Replace the old tile equip: Slot<n> invokes MarketEquip(kind, id or nil, n) (Trails / Auras). Owner
+			-- 2026-11-12 (4.40): not shown on the Characters tab (ui_backpack_characters backpack_characters_no_team_slots).
 			Path = "Panel/Slots/*",
 			Does = "remote",
-			Remote = "MarketEquip|SetTeam",
+			Remote = "MarketEquip",
 			Arg = "slot",
 			Count = "dynamic",
 			ClickCoverage = "ui_backpack_characters",
 		},
+	},
+}
+
+-- Team panel (design doc 4.40 Team button, owner 2026-11-12, layout A "Line-up"; docs/TEAM_AND_STAMINA_SPEC.md "Team",
+-- "HUD" Team editor). UiSpec.Team holds the parts and UiTeam the contract; the team_* clicks drive the real SetTeam.
+UiSpec.Guis.RacerTeam = {
+	Source = "Client/TeamUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerTeam/Panel", Text = "X" },
+		-- A roster card only picks the character (no remote); the slots below put it on the Team.
+		{ Path = "Panel/Roster/*", Does = "local", Effect = "team_pick", Count = "dynamic", ClickCoverage = "ui_team" },
+		-- Slot<n>: SetTeam(the Team with the picked character on slot n; its own slot takes it off). A RemoteFunction:
+		-- the team_* clicks judge the Team the server answers with (UiTeam After hooks).
+		{
+			Path = "Panel/Slots/*",
+			Does = "remote",
+			Remote = "SetTeam",
+			Arg = "slot",
+			Count = "dynamic",
+			ClickCoverage = "ui_team",
+		},
+		{ Path = "Panel/Sort", Does = "local", Effect = "team_sort", ClickCoverage = "ui_team" },
 	},
 }
 
@@ -823,8 +848,7 @@ UiSpec.BandPanels = {
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
 	["RacerBackpack/Panel"] = 1200,
-	-- Client/ProgressionUi panel(): Band.Fit(p, 910)
-	["RacerWorkshop/Panel"] = 910,
+	["RacerTeam/Panel"] = 1200, -- the game-wide 1200 x 620 frame (design doc 4.40 Team panel)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
@@ -889,7 +913,7 @@ UiSpec.HudPair = {
 }
 
 -- CLAUDE.md: panels open BELOW the Race (Auto Race) button and end ABOVE the bottom TURBO LUCK bar. The progression
--- panels (Upgrades / Workshop) keep their rule: below the Race button by this margin (and in the PanelBand,
+-- panel (Upgrades) keeps its rule: below the Race button by this margin (and in the PanelBand,
 -- Band.Gap below it; the compact roll hides under panels, owner 2026-10-28), and this far above the TURBO bar
 -- (ui_progression_layout).
 UiSpec.PanelTopMargin = 4
@@ -930,23 +954,29 @@ UiSpec.HiddenWhilePanelOpen = {
 	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
 -- Design doc 4.40 (owner 2026-11-10, docs/BOSS_EVENT_SPEC.md): while the local player's attribute BossEvent is true,
--- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay.
-UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/" }
+-- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay. Owner
+-- 2026-11-12 (4.40): the Team button of the second column hides with them (UiBossEvent mirrors BossButton's states).
+UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/", "RacerSecondColumn/TeamButton" }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
 
 -- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the per-HUD veils): a panel never dims the whole
 -- screen. Client/HudChrome makes ONE ScreenGui `Gui` (DisplayOrder `DisplayOrder`, IgnoreGuiInset) holding the
--- non-interactive full-screen Frame `Dim`; the ScreenGui is Enabled only while PanelSwitch.AnyOpen(). It draws below
+-- non-interactive full-screen Frame `Dim`; the ScreenGui is Enabled only while a panel or popup is open. It draws below
 -- every ScreenGui in `Below` (strictly lower DisplayOrder), so the HUD stays fully bright and clickable. The old
 -- veils in `Retired` must be gone. While a panel is open, no visible GuiObject in an enabled ScreenGui other than
 -- `Gui` (and the declared `VeilExempt` full-screen overlays) may cover at least `Veil.MinCoverage` of the viewport
 -- with BackgroundTransparency below `Veil.MaxTransparency` (that would be a full-screen dark frame over the HUD).
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): the same dim shows for EVERY panel and popup without exception
+-- (the PanelSwitch panels in ui_panels; the Bosses popup in ui_boss_event, the boss rewards popup in ui_boss_rewards)
+-- and is lighter: Dim BackgroundTransparency `Transparency` +- `TransparencySlack` while open (35% black, proposed).
 UiSpec.PanelDimmers = {
 	Gui = "PanelDim",
 	Frame = "PanelDim/Dim",
 	DisplayOrder = 0,
 	Below = { "HudChrome", "RacerHud", "RollToast", "RacerProgression" },
+	Transparency = 0.65, -- 35% black (proposed)
+	TransparencySlack = 0.02,
 	Retired = {
 		"HudChrome/PanelDimmer",
 		"RacerHud/PanelDimmer",
@@ -969,7 +999,6 @@ UiSpec.PanelDimmers = {
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
-	Transparency = { Min = 0.45, Max = 0.75 },
 }
 
 UiSpec.Motion = {
@@ -992,6 +1021,11 @@ UiSpec.Motion = {
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
 UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
+
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
+-- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
+-- when the panel's ScreenGui has the higher DisplayOrder). The first column and the right column stay checked.
+UiSpec.SecondColumnButtons = { "RacerSecondColumn/BossButton", "RacerSecondColumn/TeamButton" }
 
 -- Overlaps that are allowed: a modal panel may cover a read-out (Money), never a button or the TURBO bar.
 UiSpec.AllowOverlap = {}
@@ -1225,7 +1259,7 @@ UiSpec.Remotes = {
 }
 
 -- Created by Roblox, not the game: an explicit list of engine ScreenGui names (never a pattern or wildcard).
--- ProximityPrompts: the engine's default ProximityPrompt UI (the workshop E prompt), created on first prompt shown.
+-- ProximityPrompts: the engine's default ProximityPrompt UI created on first prompt shown.
 -- Game ScreenGuis that exist only for a moment, so gui_exists_* cannot ask for them: Client/first LoadingScreen (every
 -- join, gone once loaded; ui_inventory proves it left) and Client/ArrivalFlow's skip button for the first-join reveal.
 -- Parts of a panel a phone does not show when it opens (K.phoneHidden in UiScenarios). The phone Market detail view
@@ -1306,13 +1340,6 @@ UiSpec.Billboards = {
 		MaxDistance = "TrackBuilder.WIN_TEXT_DISTANCE",
 		Text = "HudFormat.MoneyText(Cash)",
 	},
-	-- Mechanical Workshop (docs/WORKSHOP_SPEC.md section 2): Workspace.Workshops.Plot_1..PLOT_COUNT
-	WorkshopSign = {
-		Path = "Base/Sign", -- BillboardGui, label "Text"
-		EmptyText = "WorkshopConfig.EMPTY_TEXT", -- "FREE DOJO" when the plot's Owner attribute is 0
-		OwnedText = "%s's Workshop", -- the owner's DisplayName
-		MaxDistance = "WorkshopConfig.SIGN_DISTANCE", -- 120
-	},
 	-- Best Roll Ever pedestal (docs/LEADERBOARD_SPEC.md section 3a): Workspace.SpawnArea.BestRoll.Pedestal.Stats.
 	-- Odds / Car / Player follow the RarestCar board (server); here only that they exist. Title is fixed.
 	BestRollStats = {
@@ -1357,7 +1384,6 @@ UiSpec.Waits = {
 	TurboPopHide = 2, -- and be back to "TURBO LUCK 0/<every>" (bar empty) this soon after it
 	TurboBeforeNext = 0.1, -- s: a faster roll interval (2x Auto-Roll) reads that this long before its next roll: the pop lasts 1.2 s
 	TurboStable = 6, -- ui_turbo waits at most this long for a moment HudSettle s after the last turbo change
-	WorkshopPlot = 15, -- the player's plot (attribute Plot) and its Workshop must exist within this
 }
 
 --[[
@@ -1515,8 +1541,7 @@ UiSpec.ServerSetup = {
 			.. "snapshot (deliberately: a kept baseline would survive into a later session and make its 'snapshot' a "
 			.. "no-op, restoring stale money/cars). Any fixture after a restore needs a fresh 'snapshot' first, else "
 			.. "it errors 'snapshot required'. Restore can stop auto race, and CarService then holds the avatar at the "
-			.. "walk spawn for ~2 s: the world fixtures (workshop_*_prompt) re-place the avatar until "
-			.. "it stays put and error if it does not.",
+			.. "walk spawn for ~2 s.",
 	},
 }
 
@@ -2464,24 +2489,6 @@ UiSpec.Guis.RacerUpgrades = {
 		},
 	},
 }
-UiSpec.Guis.RacerWorkshop = {
-	Source = "Client/ProgressionUi",
-	Panels = { "Panel" },
-	Buttons = {
-		{ Path = "Panel/Close", Does = "close_panel", Panel = "RacerWorkshop/Panel" },
-		{ Path = "Panel/Buy", Does = "remote", Remote = "WorkshopUpgrade", Arg = "none" },
-		-- The boosted stat picker (design doc 4.19): one button per WorkshopConfig.STATS, invokes SetWorkshopStat(stat);
-		-- the chosen one (WorkshopStat) highlighted. ui_workshop_modal checks them.
-		{
-			Path = "Panel/Stats/*",
-			Does = "remote",
-			Remote = "SetWorkshopStat",
-			Arg = "stat",
-			Count = "dynamic",
-			ClickCoverage = "ui_workshop_modal",
-		},
-	},
-}
 -- retired: RacerWelcome (the offline welcome) and UiSpec.OfflineDouble: no offline credit and no Robux double (design doc 4.19, owner 2026-11-03)
 UiSpec.Progression = {
 	-- Owner 2026-10-26 (UPGRADE_TREE_SPEC section 5): the click box is 100 x 106 (NODE_HEIGHT = STEP_Y), so
@@ -2492,11 +2499,9 @@ UiSpec.Progression = {
 	TreeWorld = "RacerUpgrades/Panel/Canvas/TreeWorld",
 	UpgradeEntry = "HudChrome/UpgradeSlot/Upgrade",
 	UpgradeBadge = "HudChrome/UpgradeSlot/Upgrade/Badge",
-	-- RacerWorkshop/Panel/Boost shows "+<WorkshopBoost x 100>% <WorkshopStat>", rounded to 0.1 (design doc 4.19, owner 2026-11-03; replaces
-	-- the idle rate label Rate)
-	WorkshopBoostStep = 0.05,
 }
-for _, name in { "Upgrades", "Workshop" } do
+-- retired: RacerWorkshop/Panel (Dojos removed, design doc 4.43, owner 2026-11-11)
+for _, name in { "Upgrades" } do
 	local path = "Racer" .. name .. "/Panel"
 	UiSpec.PanelSwitch.Names[path] = name
 	table.insert(CLOSED, path)
@@ -2507,7 +2512,6 @@ table.insert(UiSpec.ClientScripts, "ProgressionUi")
 -- false, "money" (the real handlers never run): Rebirth, UseBoost and DailyClaim would change saved state.
 UiSpec.RemoteFunctions = {
 	"BuyUpgrade",
-	"WorkshopUpgrade",
 	"Rebirth",
 	"UseBoost",
 	"DailyClaim",
@@ -2531,26 +2535,24 @@ UiSpec.RemoteFunctions = {
 	-- The Elf Mage's rhythm circles (Client/BossOsuUi): never a real press
 	"BossOsu",
 }
-table.insert(UiSpec.Remotes, "WorkshopOpen")
 for _, item in
 	{
 		{
 			Id = "progression_spy",
-			What = "Intercepts BuyUpgrade and WorkshopUpgrade RFs, logs args, returns false, money; real handlers never run. Snapshot first; restore always.",
+			What = "Intercepts BuyUpgrade and the other UiSpec.RemoteFunctions, logs args, returns false, money; real handlers never run. Snapshot first; restore always.",
 		},
 		{
 			Id = "progression_buyable",
 			What = "Unsaved fixture: empty tree, Money 100000, BestTrack 0; refresh badge. Snapshot required.",
 		},
 		{ Id = "progression_no_money", What = "Same tree fixture, Money 0. Snapshot required." },
-		{ Id = "workshop_open", What = "Fires WorkshopOpen only to the owner; no purchase." },
 		-- retired: offline_welcome, offline_double_open (design doc 4.19, owner 2026-11-03)
 	}
 do
 	item.When = "before the corresponding progression scenario/click; restore afterwards"
 	table.insert(UiSpec.ServerSetup, item)
 end
-for _, name in { "Upgrades", "Workshop" } do
+for _, name in { "Upgrades" } do
 	local path = "Racer" .. name .. "/Panel"
 	table.insert(UiSpec.Clicks, {
 		Id = "close_" .. string.lower(name),
@@ -2626,183 +2628,8 @@ table.insert(UiSpec.Clicks, {
 	NeedSetup = { "on_foot", "progression_no_money", "spy", "progression_spy" },
 	Expect = { Remote = false, After = { "progression_not_optimistic" } },
 })
-table.insert(UiSpec.Clicks, {
-	Id = "buy_workshop",
-	Gui = "RacerWorkshop",
-	Path = "Panel/Buy",
-	Prepare = only("RacerWorkshop/Panel"),
-	NeedSetup = { "on_foot", "progression_buyable", "spy", "progression_spy" },
-	Expect = {
-		Remote = { Name = "WorkshopUpgrade", Arg = "none" },
-		After = { "progression_not_optimistic", "workshop_rejection_shown" },
-	},
-})
-
--- Workshop Showcase = the Dojo squad (docs/WORLD_REDESIGN_SPEC.md section 5). Client/ProgressionUi keeps Boost,
--- Level, Price, Result and Buy in the LEFT part of RacerWorkshop/Panel and adds the frame Panel/Showcase on the right.
--- Retired (design doc 4.19, owner 2026-11-03): the Multi label (ShowcaseMulti of idle gain) and the copy bonus.
---   Best3 (TextButton): invokes SetShowcase({ the min(3, owned) owned rollable ids, not in the Team, with the most
---     rarity points Workshop.Points({ spec }) (ties: lower id first) });
---   Slot1..Slot3 (Frame): Name (TextLabel: the car's name, or EmptyText) and Clear (TextButton, shown only while the
---     slot holds a car; invokes SetShowcase(the shown ids without that car));
---   List (ScrollingFrame): one row Character_<id> per owned rollable car not in the Team (never the starter or gamepass
---     cars), sorted by rarity points, highest first; each row has Name (TextLabel) and Show (TextButton: ShowText when not shown,
---     ShownText when shown; a click invokes SetShowcase with the id added / removed; Active false and fires nothing
---     when 3 cars are shown and this one is not one of them).
--- Shown ids: player attribute Showcase (ids joined by ","); slot i shows the i-th id. The labels follow the server's
--- attributes, never the click. ProgressionUi must look Remotes.SetShowcase up when clicked (as WorkshopUpgrade), so
--- the showcase_spy proxy sees the call. Checks: ui_workshop_showcase (UiProgression) and the showcase_* clicks.
-UiSpec.WorkshopShowcase = {
-	Panel = "RacerWorkshop/Panel",
-	Root = "RacerWorkshop/Panel/Showcase",
-	Slots = 3, -- GachaConfig.SHOWCASE_SLOTS
-	EmptyText = "EMPTY",
-	ShowText = "SHOW",
-	ShownText = "SHOWN",
-	RowPrefix = "Character_",
-	-- The old controls: in the left part of the panel (right edge <= LeftShare of its width; brief "~42%", bound
-	-- 45%) and never on the Showcase frame. Close keeps its own place but may not touch any showcase control.
-	LeftControls = { "Boost", "Level", "Price", "Result", "Buy" }, -- Rate (idle rate) retired, Boost replaces it (4.19)
-	LeftShare = 0.45,
-	ShowcaseMinStart = 0.4, -- the Showcase frame starts at >= 40% of the panel width
-	AnswerWait = 3, -- s: the server's Showcase attribute and the panel follow a click within this
-	Remote = "SetShowcase", -- RemoteFunction(ids) -> ok, reason
-}
-table.insert(UiSpec.Remotes, "SetShowcase")
-for _, button in
-	{
-		{ Path = "Panel/Showcase/Best3", Does = "remote", Remote = "SetShowcase", Arg = "showcase_best3" },
-		{ Path = "Panel/Showcase/Slot1/Clear", Does = "remote", Remote = "SetShowcase", Arg = "showcase_clear:1" },
-		-- Slot2 / Slot3 run the same handler as Slot1 (clicked); their state is checked by ui_workshop_showcase
-		{
-			Path = "Panel/Showcase/Slot2/Clear",
-			Does = "remote",
-			Remote = "SetShowcase",
-			Arg = "showcase_clear:2",
-			ClickCoverage = "ui_workshop_showcase",
-		},
-		{
-			Path = "Panel/Showcase/Slot3/Clear",
-			Does = "remote",
-			Remote = "SetShowcase",
-			Arg = "showcase_clear:3",
-			ClickCoverage = "ui_workshop_showcase",
-		},
-		{
-			Path = "Panel/Showcase/List/*/Show",
-			Does = "remote",
-			Remote = "SetShowcase",
-			Arg = "showcase_show|showcase_hide",
-			Count = "dynamic", -- one per owned rollable car (ui_workshop_showcase counts them)
-		},
-	}
-do
-	table.insert(UiSpec.Guis.RacerWorkshop.Buttons, button)
-end
 for _, item in
 	{
-		{
-			Id = "showcase_owned",
-			What = "Snapshot required (GachaService.Snapshot keeps Cars, Copies, Showcase). Unsaved: the player owns "
-				.. "every car it owned plus the first 5 of CharacterCatalog.Rollable(); Showcase '' (no SetShowcase "
-				.. "cooldown left). Copies no longer matter (design doc 4.19).",
-		},
-		{
-			Id = "showcase_filled",
-			What = "showcase_owned, then shows the 3 owned rollable cars not in the Team with the FEWEST rarity points "
-				.. "(Showcase attribute); run ui_workshop_showcase (3 shown: other rows' Show disabled).",
-		},
-		{
-			Id = "showcase_spy",
-			What = "Needs spy. Renames Remotes.SetShowcase to UiTestOriginal_SetShowcase and adds a same-name "
-				.. "RemoteFunction proxy (attribute UiTestSpied = true) that logs { user, args } into the UiTestSpy attribute "
-				.. "SetShowcase, then returns "
-				.. "GachaService.SetShowcase(player, ...) (the REAL validation and cooldown; it only changes state the "
-				.. "snapshot restores). restore removes the proxy.",
-		},
-	}
-do
-	item.When = "before the showcase_* clicks / the ui_workshop_showcase fixture run; restore afterwards"
-	table.insert(UiSpec.ServerSetup, item)
-end
-local function showcaseOpen(extra)
-	local prep = only("RacerWorkshop/Panel")
-	for key, value in extra do
-		prep[key] = value
-	end
-	return prep
-end
--- Run in this order (each starts from the state the one before left). WaitSeconds > GachaConfig.SHOWCASE_COOLDOWN.
-for _, click in
-	{
-		{
-			Id = "showcase_best3",
-			Path = "Panel/Showcase/Best3",
-			Prepare = showcaseOpen({ AttrIs = { Showcase = "" } }),
-			NeedSetup = { "showcase_owned", "spy", "showcase_spy" },
-			Expect = {
-				Remote = { Name = "SetShowcase", Arg = "showcase_best3" },
-				After = { "showcase_attr_follows", "showcase_ui_follows" },
-			},
-		},
-		{
-			Id = "showcase_clear_slot1",
-			Path = "Panel/Showcase/Slot1/Clear",
-			Prepare = showcaseOpen({ AttrNot = { Showcase = "" }, WaitSeconds = 1 }),
-			NeedSetup = { "spy", "showcase_spy" },
-			Expect = {
-				Remote = { Name = "SetShowcase", Arg = "showcase_clear:1" },
-				After = { "showcase_attr_follows", "showcase_ui_follows" },
-			},
-		},
-		{
-			-- {showcase_unshown}: the most-rarity-points owned rollable car that is not shown (resolved by RunClick)
-			Id = "showcase_show_row",
-			Path = "Panel/Showcase/List/{showcase_unshown}/Show",
-			Prepare = showcaseOpen({ ScrollIntoView = true, LabelIs = "SHOW", WaitSeconds = 1 }),
-			-- The list re-renders its rows (a roll changes GachaData): one press was lost on 2026-10-28 (fired nothing)
-			Retries = 1,
-			RetryLostPress = true,
-			NeedSetup = { "spy", "showcase_spy" },
-			Expect = {
-				Remote = { Name = "SetShowcase", Arg = "showcase_show" },
-				After = { "showcase_attr_follows", "showcase_ui_follows" },
-			},
-		},
-		{
-			-- 3 shown now (showcase_owned gives >= 5 cars): another car's Show is disabled and fires nothing
-			Id = "showcase_show_full_disabled",
-			Path = "Panel/Showcase/List/{showcase_unshown}/Show",
-			Prepare = showcaseOpen({ ScrollIntoView = true, LabelIs = "SHOW", WaitSeconds = 1 }),
-			NeedSetup = { "spy", "showcase_spy" },
-			Expect = { Remote = false, After = { "showcase_unchanged", "showcase_ui_follows" } },
-		},
-		{
-			-- {showcase_shown}: the first id of the Showcase attribute; its Show button (SHOWN) removes it
-			Id = "showcase_unshow_row",
-			Path = "Panel/Showcase/List/{showcase_shown}/Show",
-			Prepare = showcaseOpen({ ScrollIntoView = true, LabelIs = "SHOWN", WaitSeconds = 1 }),
-			NeedSetup = { "spy", "showcase_spy" },
-			Expect = {
-				Remote = { Name = "SetShowcase", Arg = "showcase_hide" },
-				After = { "showcase_attr_follows", "showcase_ui_follows" },
-			},
-		},
-	}
-do
-	click.Gui = "RacerWorkshop"
-	table.insert(UiSpec.Clicks, click)
-end
-for _, item in
-	{
-		{
-			Id = "workshop_owner_prompt",
-			What = "Moves the test avatar to its owned UpgradePad. E must open only RacerWorkshop.",
-		},
-		{
-			Id = "workshop_foreign_prompt",
-			What = "Requires second player's owned plot; moves test avatar to that UpgradePad. E must open no panel.",
-		},
 		-- retired: offline_zero (design doc 4.19, owner 2026-11-03)
 		{ Id = "weather_rain", What = "Replicates rain with 180 seconds remaining; run ui_weather." },
 		{ Id = "weather_night", What = "Replicates night with 180 seconds remaining; run ui_weather." },
@@ -2835,19 +2662,8 @@ for _, item in
 	}
 do
 	item.When = "after a FRESH snapshot (restore consumes it); run stated scenario with UiTestScenario attribute, "
-		.. "then restore. The world fixtures only report done once the avatar stayed at the spot (prompt fixtures: "
-		.. "within the prompt's MaxActivationDistance) for 1 s; otherwise UiTestSetupError is set."
+		.. "then restore."
 	table.insert(UiSpec.ServerSetup, item)
-end
-for _, own in { true, false } do
-	table.insert(UiSpec.Clicks, {
-		Id = own and "workshop_owner_e" or "workshop_foreign_e",
-		Key = "E",
-		-- Foreign E needs a second real player's plot: MANUAL (owner decision 2026-10-08)
-		Manual = (not own) and "needs a second real player who owns a plot (a solo Studio session has only one)" or nil,
-		NeedSetup = { own and "workshop_owner_prompt" or "workshop_foreign_prompt" },
-		Expect = { WorkshopOpen = own },
-	})
 end
 -- Required additional fixture runs: UiTestScenario invokes exactly one existing check without the long roll suite.
 --[[
@@ -2868,10 +2684,9 @@ Fixture run protocol (ui-tester), per FixtureChecks entry, in order:
 ]]
 UiSpec.Progression.FixtureChecks = {
 	-- retired: ui_speed_dial and ui_speed_float on foot (no speedometer, no Speed stat: design doc 4.13, owner 2026-11-01)
-	-- World billboards and the workshop modal read parts near the hub: with StreamingEnabled they exist only while the
+	-- World billboards read parts near the hub: with StreamingEnabled they exist only while the
 	-- avatar stands there (on_foot = at the walk spawn in the hub), not while the main run races the chain
 	{ Setup = "on_foot", Scenario = "ui_billboards" },
-	{ Setup = "on_foot", Scenario = "ui_workshop_modal" },
 	-- Design doc 4.29: beaten and locked enemy tiles side by side, with known best times
 	{ Setup = "defeated_states", Scenario = "ui_defeated" },
 	-- retired: ui_offline_welcome, ui_offline_double, ui_offline_zero (design doc 4.19, owner 2026-11-03)
@@ -2888,7 +2703,6 @@ UiSpec.Progression.FixtureChecks = {
 	{ Setup = "roll_odds_luck1", Scenario = "ui_roll_odds" },
 	{ Setup = "roll_odds_no_luck", Scenario = "ui_roll_odds" },
 	{ Setup = "roll_odds_catchall", Scenario = "ui_roll_odds" },
-	{ Setup = "showcase_filled", Scenario = "ui_workshop_showcase" },
 }
 
 --[[
@@ -3202,8 +3016,8 @@ do
 	item.When = "the backpack_* sale clicks and ui_bag_full"
 	table.insert(UiSpec.ServerSetup, item)
 end
--- Backpack Characters tiles (c1 / u4, Client/SlotPicker): a tile click only picks the character, nothing is sent; the
--- team slot buttons below send SetTeam. Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
+-- Backpack Characters tiles (c1 / u4): a tile click only picks the character, nothing is sent (owner 2026-11-12, 4.40: the
+-- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
 -- click backpack_equipped_car (the Team of 3 replaced the single equip, design doc 4.2).
 table.insert(UiSpec.Clicks, {
 	Id = "backpack_pick_character",
@@ -3517,7 +3331,7 @@ UiSpec.Backpack = {
 	TabFit = { Gap = 6, PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
-	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
+	Slots = "RacerBackpack/Panel/Slots", -- slot buttons Slot1..3 (Client/SlotPicker; u4): Trails / Auras only since 2026-11-12
 	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
 	-- Path tokens of the click machinery: a tile's name known only at the click. Each returns it, or nil while it has not arrived.
 	EntryTokens = {
@@ -3556,6 +3370,107 @@ UiSpec.Backpack = {
 	end,
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
+
+-- Team panel (design doc 4.40 "Market pill and Bosses button", owner 2026-11-12, layout A "Line-up",
+-- assets/ui/team_draft/A_desktop.png; docs/TEAM_AND_STAMINA_SPEC.md "Team", "HUD" Team editor). UiTeam holds the contract.
+-- The parts sit directly in Panel; each Slot<n> is a GuiButton holding Order, Portrait (ImageLabel), Name, Category,
+-- Cruise, Stamina, or Empty when no member is on it. The rules of choosing a team are TEAM_AND_STAMINA_SPEC "Team".
+UiSpec.Team = {
+	Button = "RacerSecondColumn/TeamButton",
+	Panel = "RacerTeam/Panel",
+	Title = "RacerTeam/Panel/Header/Title",
+	Close = "RacerTeam/Panel/Header/Close",
+	Slots = "RacerTeam/Panel/Slots",
+	Bonus = "RacerTeam/Panel/Bonus",
+	Roster = "RacerTeam/Panel/Roster",
+	Sort = "RacerTeam/Panel/Sort",
+	Search = "RacerTeam/Panel/Search",
+	Gone = { "BestTeam" }, -- left out by rule (needs a rule, owner 2026-11-12): no descendant of Panel has this name
+	Order = { "RUNS FIRST", "TAGS IN 2ND", "TAGS IN LAST" },
+	SlotParts = { "Order", "Portrait", "Name", "Category", "Cruise", "Stamina" },
+	PanelSwitchName = "Team",
+	Key = "T", -- proposed (owner 2026-11-12)
+	Label = "Team",
+	NoBonus = "No team bonus",
+	-- Notices, word for word as the Backpack showed them (server GachaService.SetTeam / Client/BackpackUi)
+	RunNotice = "Stop running to change your Team",
+	MinNotice = "Your Team needs at least 1 character",
+	FixtureAttr = "UiTestTeamIds", -- ServerSetup team_states: "A,B,C", the Team is A,B
+	StaminaSlack = 0.15, -- s: Total against the summed slot figures (each rounded to 0.1)
+	Hold = 0.6, -- s a refused change must leave the Team as it was
+}
+-- Path tokens of the team_* clicks: the team_states fixture's three ids (A, B on the Team, C off it).
+for i, token in { "{team_a}", "{team_b}", "{team_c}" } do
+	UiSpec.Backpack.EntryTokens[token] = function(player)
+		local ids = player:GetAttribute(UiSpec.Team.FixtureAttr)
+		return type(ids) == "string" and string.split(ids, ",")[i] or nil
+	end
+end
+for _, item in
+	{
+		{
+			Id = "team_states",
+			What = "index_states, then on foot with Team = A,B of three owned rollable ids A,B,C off the Dojo squad; "
+				.. "player attribute UiTestTeamIds = 'A,B,C'. team_states_clear (or restore:team_states) puts the Team back.",
+		},
+		{ Id = "team_states_clear", What = "The Team as it stood before team_states; UiTestTeamIds cleared." },
+	}
+do
+	item.When = "ui_team and the team_* clicks"
+	table.insert(UiSpec.ServerSetup, item)
+end
+local TEAM_PANEL = UiSpec.Team.Panel
+table.insert(UiSpec.Clicks, {
+	Id = "open_team",
+	Gui = "RacerSecondColumn",
+	Path = "TeamButton",
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false, After = { "team_dim_on" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "team_button_closes",
+	Gui = "RacerSecondColumn",
+	Path = "TeamButton",
+	Prepare = only(TEAM_PANEL),
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "close_team",
+	Gui = "RacerTeam",
+	Path = "Panel/Header/Close",
+	Prepare = only(TEAM_PANEL),
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "team_key_t",
+	Key = UiSpec.Team.Key,
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false },
+})
+-- The editor flow (TEAM_AND_STAMINA_SPEC "HUD" Team editor, moved from the Backpack): tap a card, then a slot. Each slot
+-- press invokes the real SetTeam; its After waits for the Team the server answers with and the slots showing it.
+local PICK = { ScrollIntoView = true }
+UiSpec.AddMenuChain({ "spy", "team_states" }, TEAM_PANEL, {
+	{ "team_pick_c", "RacerTeam", "Panel/Roster/{team_c}", "team_pick_sends_nothing", PICK },
+	{ "team_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_is_abc" },
+	{ "team_pick_a", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
+	{ "team_swap_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bac" }, -- A from slot 1 swaps with B
+	{ "team_pick_a_again", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
+	{ "team_remove_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bc" }, -- its own slot takes it off
+	{ "team_pick_c_again", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
+	{ "team_remove_c_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_b" },
+	{ "team_pick_b", "RacerTeam", "Panel/Roster/{team_b}", nil, PICK },
+	{ "team_keep_last_slot1", "RacerTeam", "Panel/Slots/Slot1", "team_keeps_last_member" }, -- never fewer than 1
+})
+-- During a run the Team is locked, with the Backpack's notice (SetTeam refuses it).
+UiSpec.AddMenuChain({ "spy", "team_states", "auto_racing" }, TEAM_PANEL, {
+	{ "team_run_pick_c", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
+	{ "team_run_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_locked_in_run" },
+})
 
 -- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains": 44 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
@@ -3971,7 +3886,6 @@ UiSpec.Theme = {
 	-- owner 2026-11-01): replaced by the labels that still show a multi.
 	MultiLabels = {
 		{ Gui = "RacerRebirth", Name = "LuckRewardCaption" }, -- "x1.5 Luck"
-		{ Gui = "RacerWorkshop", Name = "Level" }, -- "Level 1 • x1 boost"
 		{ Gui = "MarketUi", Name = "Rarity", Under = "Backdrop/Panel/Detail" }, -- "Trail  •  x1.2 cruise for its slot"
 	},
 }
@@ -4184,14 +4098,25 @@ UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
 	WarningWatch = {}, -- what the boss_close_no_pick click's Prepare.Before saw of TeamWarning: it has faded before an After runs
 }
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own ScreenGui
+-- RacerSecondColumn (ResetOnSpawn false, ignores the inset, DisplayOrder below every panel's and above the world dim);
+-- RacerBossEvent keeps one DisplayOrder whether or not a panel is open (UiBossEvent second_column_*, event_gui_order_*).
+UiSpec.Guis.RacerSecondColumn = {
+	Source = "Client/BossEventUi",
+	AlwaysOn = { "BossButton", "TeamButton" },
+	Buttons = {
+		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
+		-- Design doc 4.40 (owner 2026-11-12): the Team button below it opens and closes the Team panel (UiTeam)
+		{ Path = "TeamButton", Does = "toggle_panel", Panel = "RacerTeam/Panel", Label = "Team" },
+	},
+}
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton" },
+	AlwaysOn = { "LeaveButton" },
 	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetails" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
-		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
 		{ Path = "BossesPanel/BossAction", Does = "remote", Remote = "BossEventTeleport|BossUseCredit|BossBuy" },
 		{ Path = "BossesPanel/Header/CloseButton", Does = "local" },
 		-- Bosses cards (owner 2026-11-11, draft B): Go on the live boss's card, Details on every card, Back over the cards.
@@ -4251,7 +4176,7 @@ local function bossPopup(extra)
 		Showcase = false,
 		RequireShown = true,
 		WaitSeconds = 0.5,
-		PressFirst = { Path = "RacerBossEvent/BossButton", Until = "RacerBossEvent/BossesPanel" },
+		PressFirst = { Path = "RacerSecondColumn/BossButton", Until = "RacerBossEvent/BossesPanel" },
 	}
 	for key, value in extra do
 		prepare[key] = value
@@ -4500,7 +4425,7 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
 	table.insert(UiSpec.Clicks, click)
 end
 -- The Elf Mage's Bosses popup line (design doc 4.37 "Second boss"; UiBossMage). Opens, then closes, so nothing stays open after.
@@ -4552,7 +4477,7 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
 	table.insert(UiSpec.Clicks, click)
 end
 table.insert(UiSpec.ServerSetup, {

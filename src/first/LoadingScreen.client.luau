@@ -209,7 +209,6 @@ task.spawn(function()
 	for _, source in
 		{
 			Workspace:FindFirstChild("PlazaDressing"),
-			Workspace:FindFirstChild("Workshops"),
 			Workspace:FindFirstChild("SpawnArea"),
 			Lighting,
 			Players.LocalPlayer:FindFirstChild("PlayerGui"),
@@ -306,7 +305,7 @@ fadeOut(label, { TextTransparency = 1, TextStrokeTransparency = 1 })
 task.wait(0.4)
 root:Destroy()
 
--- Characters nobody on screen wears and the other Dojo tiers load behind the game, a few at a time
+-- Characters nobody on screen wears load behind the game, a few at a time
 local models = ReplicatedStorage:WaitForChild("CharacterModels")
 while models:GetAttribute("Ready") ~= true do
 	task.wait(1)
@@ -317,7 +316,6 @@ for _, character in models:GetChildren() do
 		table.insert(later, character)
 	end
 end
-table.insert(later, ReplicatedStorage:FindFirstChild("PlazaTierMeshes"))
 for first = 1, #later, LATER_CHUNK do
 	pcall(function()
 		ContentProvider:PreloadAsync(table.move(later, first, math.min(first + LATER_CHUNK - 1, #later), 1, {}))

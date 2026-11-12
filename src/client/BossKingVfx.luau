@@ -20,8 +20,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig")).For("boss_king")
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local posesModule = Shared:FindFirstChild("BossKingPoses")
-local Poses = posesModule and require(posesModule) or nil
+-- design doc 7: required only while his event or preview shows, so it waits for his poses alone
+local Poses =
+	require(Shared:WaitForChild("LateData")).Get(require(Shared:WaitForChild("BossCatalog")).Get("boss_king").Poses)
 local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 

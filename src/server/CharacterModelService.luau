@@ -1,7 +1,7 @@
 --!nonstrict
 -- Loads the uploaded runner models (docs/CHARACTER_GACHA_SPEC.md "Avatar pipeline") into
 -- ReplicatedStorage.CharacterModels/<id>/<part> so RunnerFactory can clone them on server and clients. Runs in the
--- background: rigs built before it finishes (runners, Dojo squad, Best Roll) are placeholders and get re-skinned at
+-- background: rigs built before it finishes (runners, Best Roll) are placeholders and get re-skinned at
 -- the end. A failed load only leaves that character on the placeholder rig. The root's Ready attribute turns true
 -- when done; its Loaded_<id> attribute turns true as each character finishes (loaded or failed), for the loading screen.
 local CollectionService = game:GetService("CollectionService")
@@ -11,9 +11,9 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
-local BossKingPoses = require(Shared.BossKingPoses)
-local BossMagePoses = require(Shared.BossMagePoses)
-local BossRagaPoses = require(Shared.BossRagaPoses)
+local BossKingPoses = require(Shared.LateData).Get("BossKingPoses")
+local BossMagePoses = require(Shared.LateData).Get("BossMagePoses")
+local BossRagaPoses = require(Shared.LateData).Get("BossRagaPoses")
 local RunnerFactory = require(Shared.RunnerFactory)
 local SidekickArt = require(Shared.SidekickArt)
 

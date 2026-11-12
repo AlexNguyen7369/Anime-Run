@@ -61,7 +61,7 @@ local SWEEP_HIT = "The golem swept you" -- BOSS_EVENT_SPEC "Texts" (proposed)
 local DODGE_TEXT = "Nice Dodge!"
 local DIAMETER, DIAMETER_PHONE = 0.145, 0.19 -- of the screen height (owner's 2026-11-11 easing, values proposed)
 local GOLEM_NAME = "Stone Golem"
-local GOLEM_FIRST, GOLEM_EVERY = 4.2, 5 -- s after BossMinionStart: attack k at 4.2 + 5 (k - 1), slam then sweep (proposed)
+local GOLEM_FIRST, GOLEM_EVERY = 4.2, 6 -- s after BossMinionStart: attack k at 4.2 + 6 (k - 1), slam then sweep (proposed)
 local CAPTIONS = { Slam = "Golem Slam! Hit every circle!", Sweep = "Golem Sweep! Hit every circle!" } -- proposed
 local SPAWN_NOTE = "Each event picks one boss at random" -- owner 2026-11-11, draft B
 local MAGE_CHEST = "relic_chest_mage"
@@ -85,8 +85,8 @@ local SCAN = 40
 
 local Module = {}
 
-local function optional(name)
-	local source = Shared:FindFirstChild(name)
+local function optional(name, parent)
+	local source = (parent or Shared):FindFirstChild(name)
 	local ok, value = pcall(function()
 		return source and require(source)
 	end)
@@ -805,9 +805,17 @@ function Module.Build(h)
 
 	-- Her arena, the golem and her effects.
 	function scenarios.ui_boss_mage_vfx(res)
-		local Poses = optional("BossMagePoses")
+		setup(res, "boss_ui_gear:2")
+		local loaded, Poses = pcall(function()
+			-- Design doc 7 "Join size": not at join; the boss setup publishes it, as a real event does.
+			return require(
+				ReplicatedStorage:WaitForChild("LateData", BUILD_WAIT):WaitForChild("BossMagePoses", BUILD_WAIT)
+			)
+		end)
+		Poses = loaded and type(Poses) == "table" and Poses or nil
 		check(res, "mage_poses_loads", Poses ~= nil, true)
 		if not Poses then
+			setup(res, "restore:boss_ui")
 			return
 		end
 		local function inArena(name)

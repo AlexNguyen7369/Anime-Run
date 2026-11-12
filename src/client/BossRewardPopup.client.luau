@@ -18,6 +18,7 @@ local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 
 -- R1 "Victory banner" (BOSS_EVENT_SPEC "Rewards", owner 2026-11-10). Proposed: sizes in the Index frame's units, rows
 -- for its 374 unit tall content area (scaled to the area it gets), and the count-up time.
@@ -56,6 +57,7 @@ local panel = make("Frame", "Panel", root, {
 	Active = true,
 	Visible = false,
 })
+PanelSwitch.DimWith(panel) -- design doc 4.42: it dims the world like every panel and popup
 local header = make("Frame", "Header", panel, { BackgroundTransparency = 1, BorderSizePixel = 0 })
 -- Title keeps the server's words for the UI tests (UiBossPhase2 reads them exactly); Heading shows them in the standard
 -- header's ALL CAPS, as AnimeSkin.Tab's caption does.

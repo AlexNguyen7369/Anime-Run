@@ -9,17 +9,22 @@
 ## Next
 - boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
 - boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first
+- hud-team t4: Team icon N3 uploaded and wired (2026-11-12); `ui_team`, `ui_hud` to run inside m12
+- boss-mage-2: owner plays `/elfboss` (slow rhythm, golem 1,000 HP per player) and looks at the Team panel against draft A
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-12 boss-mage-2 follow-ups and hud-team (1b6c59a): golem HP per player, slower rhythm, golem every 6 s, per-boss late data with removal after the event (lazy-data merged), Bosses and Team buttons in a second column, Team panel A, world dim on every panel: `late_data` 90, `boss_mage_event` 291, `boss_mage_anim` 288, `ui_boss` 485, `ui_team` 42, `ui_panels` 1162 and the other targeted boss and HUD scenarios fail=0; rules audit PASS round 2
 - 2026-11-11 boss-king Studio verify: boss_king_arena 56, boss_king_anim 133, boss_king_event 101, relics 702, sidekicks 352, sidekick_attacks 619, boss_mage_event 281, boss_mage_anim 286, boss_event 1862, boss_arena 155; UI ui_boss_king 14, _dodge 13, _vfx 35, _rewards 12, ui_boss_fortified 14, ui_boss_cards 63, ui_boss_dodge 13, ui_boss_mage 16, _dodge 10, _rewards 12, ui_boss 468, ui_relics 30, all fail=0; live /boss king seen; audit round 1 FAIL fixed (64ec107)
 - 2026-11-11 boss-king k4-k8: key frames (pre-approved), art uploaded, server, tests, client, bake; merged up to f947eb7 on `feature/alex/boss-king`; stylua / selene / rojo build green; harness not yet run
 - 2026-11-11 boss-king k1 `/new-boss` skill (ebf9016), k2 models boss_king 2,862 tris, side_king 2,534, side_mage 3,148 (4f98427), k3 vault draft script (88b6867); docs and Blender only, no upload, no Studio
 - 2026-11-11 boss-king k0: The Golden King rules, evidence, goal, Sidekick self-drop rule for every boss (72fafa4 on `feature/alex/boss-king`); rules audit PASS, docs only
 - 2026-11-12 boss-mage-2 g0-g6: Elf Mage spam strikes over 2 s, Stone Golem miniboss, 3-circle rhythm, Bosses cards draft B, her Relics and chest, drop list hidden (3c843fa): `boss_mage_event` 281, `boss_mage_anim` 286, `relics` 674, `ui_boss_mage_vfx` 55, `ui_boss_cards` 45, `ui_boss_golem` 16, `ui_boss` 468, `ui_boss_phase2` 91 and the other targeted boss scenarios fail=0; rules audit PASS
 - 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio
+- 2026-11-11 powerups p1 Track power-ups (752cf76): Speed x1.5 for 3 s and Stamina +5 s rings on the path, H2 badge, overfill seconds; `powerups` 22, `stamina` 33, `race` 52, `track_loading` 82 fail=0; rules audit PASS round 2; shots https://claude.ai/artifact/JEqy1rJqA7gCLrfZ4gdy1d
+- 2026-11-11 dojo-removal r4 Spawn showpiece C in game (2c70abd): terrace, ring of radius 84, pedestal on the middle step; `world_layout`, `spawn_area`, `environment` pass=3 fail=0, `ui_billboards` pass; rules audit PASS round 2; Studio shots https://claude.ai/artifact/3Cw9qTVqJwKKpB71S84xDS
 - 2026-11-10 hud-tech h1 gold frame tiles, L2 left block, Tile and Boss icons (c722398, 0a2ef57): ui_buttons 14/0, ui_hud 16/0, ui_layout 838/95 (pre-h1 reds), audit PASS; exhaustion eye 160 up, 13 deg (74eb084, boss_event not run)
 - 2026-11-10 boss audit: flat boss image removed, running camera 75 / 26 / 6, boss mesh preload, BossScale 0.75; owner approved from Studio screenshots; no harness run (owner: targeted tests only); exhaustion-view arch post (OWNER_QUESTIONS item 4) open
 - 2026-11-06 boss-polish Phase 2 scream 6 s and zoomed, dim and blood red tone, red title, ring radius 550, lower dais, bigger auras and trails, zoomed exhaustion view, 40-stud event camera: `[CARTEST]` 55 of 55, `[UITEST]` pass=50 fail=6 (reds in handoff, re-run stopped on the owner's word), audit PASS round 3
