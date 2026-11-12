@@ -3,7 +3,7 @@
 -- the published attributes through UiTestSetup boss_ui_*, as ui_boss does; the real presses are the boss_paid_* clicks in UiSpec.Clicks.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   RacerBossEvent/BossButton: Text exactly "Bosses", Active, in every state; a press only toggles RacerBossEvent/BossesPanel.
+--   RacerSecondColumn/BossButton: Text exactly "Bosses", Active, in every state; a press only toggles RacerBossEvent/BossesPanel.
 --   BossesPanel/BossAction, drawn only while the popup shows. In an event: as ui_boss. Otherwise, read at each render from player
 --     attributes and MonetizationConfig.BossSpawn.ProductId: with BossCredit >= 1, "Spawn boss (ready)", a press invokes BossUseCredit.
 --     Otherwise, ProductId 0: "Coming soon", Active false, a press fires nothing. Otherwise: "Spawn boss 149 R$", a press invokes
@@ -23,7 +23,7 @@ local Monetization = require(Shared:WaitForChild("MonetizationConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 
 local ROOT = "RacerBossEvent"
-local BUTTON = ROOT .. "/BossButton"
+local BUTTON = "RacerSecondColumn/BossButton" -- design doc 4.42: the second column has its own ScreenGui
 local PANEL = ROOT .. "/BossesPanel"
 local DETAILS = PANEL .. "/BossDetails"
 local ACTION = PANEL .. "/BossAction"

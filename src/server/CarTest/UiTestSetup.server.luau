@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
+-- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -705,6 +705,44 @@ end
 
 function setups.index_states(player)
 	indexStates(player)
+end
+
+-- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
+-- rollable ids A,B,C that are off the Dojo squad, published as UiTestTeamIds = "A,B,C". team_states_clear puts it back.
+local teamBefore = {} -- [Player] = the Team attribute before team_states
+function setups.team_states(player)
+	indexStates(player)
+	local G, C, CarService = live("GachaService"), require(Shared.CharacterCatalog), live("CarService")
+	CarService.SetAutoRace(player, false)
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
+		if player.Parent ~= Players or os.clock() - start > 5 then
+			error("team_states: still racing after 5 s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	if teamBefore[player] == nil then
+		teamBefore[player] = player:GetAttribute("Team") or ""
+	end
+	local data, squad, ids = player:FindFirstChild("GachaData"), G.ShowcaseIds(player), {}
+	for _, spec in C.All() do
+		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not squad[spec.Id] then
+			table.insert(ids, spec.Id)
+		end
+	end
+	assert(#ids == 3, "team_states: fewer than 3 owned characters off the Dojo squad")
+	local ok, why = G.SetTeam(player, { ids[1], ids[2] })
+	assert(ok, "team_states: SetTeam refused: " .. tostring(why))
+	player:SetAttribute("UiTestTeamIds", table.concat(ids, ","))
+end
+
+function setups.team_states_clear(player)
+	local before = teamBefore[player]
+	teamBefore[player] = nil
+	player:SetAttribute("UiTestTeamIds", nil)
+	if before and before ~= "" then
+		live("GachaService").SetTeam(player, string.split(before, ","))
+	end
 end
 
 -- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
@@ -1787,6 +1825,8 @@ local CLIENT_SETUPS = {
 	bag_full_hit = true, -- ui_bag_full
 	bag_full_sold = true,
 	bag_spares_clear = true,
+	team_states = true, -- ui_team
+	team_states_clear = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1813,6 +1853,11 @@ setupRequest.OnServerInvoke = function(player, request)
 		elseif request == "run_visual_clear" then
 			RUN_VISUAL.clear()
 			return
+		end
+		-- A faked boss state stands in for a real event, so it gets the late data a real one publishes (design doc 7 "Join size").
+		local lateData = Shared:FindFirstChild("LateData")
+		if lateData and (string.match(request, "^boss_ui_") or string.match(request, "^sidekick_follow_")) then
+			require(lateData).Deliver("BossRagaPoses", "BossMagePoses", "SidekickAttacks")
 		end
 		local tutorialStep, tutorialArg = string.match(request, "^sidekick_tutorial:(%a+):(%w+)$")
 		if tutorialStep then
@@ -1932,6 +1977,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "team_states" then
+			setups.team_states_clear(player)
 		elseif restoreId == "bag_full_sold" then
 			setups.bag_spares_clear(player)
 		elseif restoreId then

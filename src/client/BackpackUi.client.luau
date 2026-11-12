@@ -1,10 +1,10 @@
 --!nonstrict
 -- Backpack (docs/HUD_LAYOUT_SPEC.md section 3): Misc (potions), Trails, Auras and Characters tabs with item tiles.
--- Clicking a potion asks the server to use one; clicking a character, trail or aura picks it, and the team slot
--- buttons below the grid (SlotPicker) put it on a slot or take it off (characters: Remotes.SetTeam, 3 slots, design
--- doc 4.2). The server
--- decides all of them. Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
--- sort; their cards are the shared collection card (design doc 4.22). The Sidekicks and Relics tabs are bags (design doc 4.36,
+-- Clicking a potion asks the server to use one; clicking a trail or aura picks it, and the team slot buttons below the
+-- grid (SlotPicker) put it on a slot or take it off (Remotes.MarketEquip). The server decides all of them. Clicking a
+-- character picks it for its details and its spares; the Team is set in the Team panel (Client/TeamUi, design doc 4.40,
+-- owner 2026-11-12). Characters are listed least rare first (owner, 2026-10-20) unless the player picks another
+-- sort; their cards are the shared roster card (Client/RosterCard, design doc 4.22). The Sidekicks and Relics tabs are bags (design doc 4.36,
 -- 4.38): a tile opens Client/ItemMenu. Spare characters sell one by one or in select mode (design doc 4.41); the server decides.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,14 +21,13 @@ local PotionIcons = require(Ui.PotionIcons)
 local MarketArt = require(script.Parent:WaitForChild("MarketArt"))
 local BagConfig = require(shared.BagConfig)
 local CharacterCatalog = require(shared.CharacterCatalog)
-local GachaConfig = require(shared.GachaConfig)
-local Components = require(Ui.RacerComponents)
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local SlotPicker = require(script.Parent:WaitForChild("SlotPicker"))
+local RosterCard = require(script.Parent:WaitForChild("RosterCard"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
@@ -40,7 +39,6 @@ local OUTLINE = UiTheme.Outline
 local PALETTE = UiTheme.Palette
 local TILE_BLUE = PALETTE.Tile
 local TILE_GREEN = PALETTE.Money
-local GOLD = PALETTE.Unbanked
 local U = AnimeSkin.Units
 -- Index design units (AnimeSkin.IndexFrame; placeholders). Grid cells: as many columns as fit cells at least this
 -- wide, as many whole rows as fit near this height.
@@ -49,9 +47,9 @@ local CARD_HEIGHT = 120
 local TILE_MIN = 112
 local CARD_ART = 3 -- px: the card art reaches 3 px past a cell, so the grid pads it and no edge is clipped
 local SORT_WIDTH, MASS_WIDTH, SPARES_WIDTH = 220, 180, 220
-local LINE = 28 -- a Body line in a card
-local SMALL_LINE = 22 -- a Caption line in a card
-local SORTS = { "Rarity", "Speed", "Stamina" }
+local LINE = RosterCard.Line
+local SMALL_LINE = RosterCard.SmallLine
+local SORTS = RosterCard.Sorts
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -88,13 +86,9 @@ end
 local function count(n)
 	return "x" .. HudFormat.Short(n)
 end
--- A card's art tint (design doc 4.42): white when picked, else its rarity (Secret's black would not read: white, as the Index).
-local chosenCharacter = nil -- the character id the slot buttons put on the Team
+local chosenCharacter = nil -- the picked character: its details and its spares
 local function cardTint(spec)
-	if spec.Id == chosenCharacter or spec.Rarity == "Secret" then
-		return Color3.new(1, 1, 1)
-	end
-	return GachaConfig.RARITY_COLORS[spec.Rarity] or AnimeSkin.Tint.Default
+	return RosterCard.Tint(spec, spec.Id == chosenCharacter)
 end
 local function cascade(tiles)
 	UiMotion.Cascade(tiles, "Stroke")
@@ -145,38 +139,9 @@ local function swatch(parent, item, kind, pos, size)
 	return MarketArt.Draw(parent, item, pos, kind == "Trail" and UDim2.new(size.X, size.X) or size)
 end
 
--- Owned cars, least rare first, then catalog order.
-local rarityRank = {}
-for i, rarity in GachaConfig.RARITY_ORDER do
-	rarityRank[rarity] = i
-end
 local sortMode = SORTS[1]
 local function ownedCars()
-	local data = player:FindFirstChild("GachaData")
-	local list = {}
-	for _, spec in CharacterCatalog.All() do
-		if data and data:FindFirstChild(spec.Id) then
-			table.insert(list, spec)
-		end
-	end
-	table.sort(list, function(a, b)
-		-- Highest first; a tie falls through to the default order.
-		local va = sortMode == "Speed" and RaceConfig.Cruise(a)
-			or sortMode == "Stamina" and StaminaConfig.Seconds(a)
-			or 0
-		local vb = sortMode == "Speed" and RaceConfig.Cruise(b)
-			or sortMode == "Stamina" and StaminaConfig.Seconds(b)
-			or 0
-		if va ~= vb then
-			return va > vb
-		end
-		local ra, rb = rarityRank[a.Rarity] or 99, rarityRank[b.Rarity] or 99
-		if ra ~= rb then
-			return ra < rb
-		end
-		return (a.Order or 0) < (b.Order or 0)
-	end)
-	return list
+	return RosterCard.Owned(player, sortMode)
 end
 
 local grid = make("ScrollingFrame", "Items", panel, {
@@ -424,24 +389,13 @@ local function tile(id, order, highlighted, name)
 	return b
 end
 
--- A character's collection card; the generic tile's gradient gives way to the rarity tint.
+-- A character's roster card (Client/RosterCard), with the Sidekick and Relic it wears and its copies.
 local function characterTile(spec, order)
-	local b = make("TextButton", spec.Id, grid, {
-		LayoutOrder = order,
-		Text = "",
-		AutoButtonColor = false,
-	})
-	Components.CardFace(b, spec, GachaConfig)
-	local slot = table.find(SlotPicker.Team(), spec.Id)
-	stroke(b, slot and TILE_GREEN or OUTLINE, 3)
-	if spec.Id == chosenCharacter then
-		b.Stroke.Color = Color3.new(1, 1, 1)
-	end
-	AnimeSkin.Card(b, cardTint(spec))
-	b.Rim.Visible = false -- the card art carries the rarity, as in the Index
-	b:SetAttribute("SearchName", spec.Name)
+	local data = player:FindFirstChild("GachaData")
+	local entry = data and data:FindFirstChild(spec.Id)
+	local copies = entry and entry:GetAttribute("Copies") or 1
+	local b = RosterCard.new(grid, spec, order, g, spec.Id == chosenCharacter, copies > 1 and count(copies) or nil)
 	table.insert(shownTiles, b)
-	Components.CardArt(b, spec)
 	local worn = gearOf[spec.Id]
 	if worn then
 		role(
@@ -472,43 +426,6 @@ local function characterTile(spec, order)
 			SidekickView.RarityColor(relic.Rarity)
 		)
 	end
-	local data = player:FindFirstChild("GachaData")
-	local entry = data and data:FindFirstChild(spec.Id)
-	local copies = entry and entry:GetAttribute("Copies") or 1
-	role(
-		caption("Badge", b, {
-			Position = g.at(U.Pad, U.Inner),
-			Size = UDim2.new(1, -g.px(2 * U.Pad + 32), 0, g.px(LINE)), -- clear of the category dot
-			Text = slot and ("TEAM " .. slot) or (copies > 1 and count(copies) or ""),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 7,
-		}),
-		"Body",
-		slot and TILE_GREEN or GOLD
-	)
-	role(
-		caption("Multi", b, {
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -g.px(U.Pad), 1, -g.px(U.Inner + 30)),
-			Size = UDim2.new(0.4, -g.px(U.Pad), 0, g.px(SMALL_LINE)),
-			Text = HudFormat.RateText(RaceConfig.Cruise(spec)),
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 7,
-		}),
-		"Caption",
-		GOLD
-	)
-	role(
-		caption("Name", b, {
-			AnchorPoint = Vector2.new(1, 1),
-			Position = UDim2.new(1, -g.px(U.Pad), 1, -g.px(U.Inner)),
-			Size = UDim2.new(1, -g.px(2 * U.Pad), 0, g.px(30)),
-			Text = spec.Name,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 7,
-		}),
-		"Item"
-	)
 	return b
 end
 
@@ -538,28 +455,8 @@ function pickSlot(slot, id, picked)
 		return
 	end
 	if not picked then
-		notify(
-			current == "Trails" and "Pick a trail first"
-				or (current == "Auras" and "Pick an aura first" or "Pick a character first")
-		)
+		notify(current == "Trails" and "Pick a trail first" or "Pick an aura first")
 		UiFeedback.Play("Denied", slots.Buttons[slot].Button)
-		return
-	end
-	if current == "Characters" then
-		local team = SlotPicker.TeamWith(slot, id)
-		if not team then
-			notify("Your Team needs at least 1 character")
-			UiFeedback.Play("Denied", slots.Buttons[slot].Button)
-			return
-		end
-		busy = true
-		local ok, done, message = pcall(function()
-			return remotes:WaitForChild("SetTeam"):InvokeServer(team)
-		end)
-		busy = false
-		notify(ok and tostring(message or (done and "Team updated" or "Try again")) or "Connection error")
-		render()
-		UiFeedback.Play((ok and done) and "Equip" or "Denied", slots.Buttons[slot].Button)
 		return
 	end
 	busy = true
@@ -748,7 +645,7 @@ function render()
 	end
 	local shown = 0
 	table.clear(shownTiles)
-	local cosmetic = current == "Trails" or current == "Auras" or current == "Characters"
+	local cosmetic = current == "Trails" or current == "Auras" -- the slot row: the Team is set in the Team panel
 	local inBag = current == "Sidekicks"
 	local inRelics = current == "Relics"
 	selecting = selecting and current == "Characters"
@@ -842,7 +739,6 @@ function render()
 				end
 			end)
 		end
-		slots:Update("Character", chosenCharacter)
 		refreshBag()
 		if selecting then
 			drawMassBar()

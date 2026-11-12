@@ -1,7 +1,7 @@
 --!nonstrict
 -- Sidekick attacks at the boss (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks", docs/SIDEKICK_SPEC.md). Contract:
 -- Client/UiTest/UiSidekickAttack. Visual only: it draws what Remotes.BossHits brings and nothing reads back into damage.
--- Poses come from Shared/SidekickAttacks; Client/SidekickFollower lays them over its follow motion. Effects use BossVfxArt's textures,
+-- Poses come from src/late/SidekickAttacks; Client/SidekickFollower lays them over its follow motion. Effects use BossVfxArt's textures,
 -- Neon parts and flat sprites, all in workspace.AttackEffects. All sizes, counts and colours are placeholders for the owner's capture.
 -- A particle tops out near 100 studs and the boss is about 900 away, so shapes that must read at range are parts, and they grow in flight.
 local Players = game:GetService("Players")
@@ -14,7 +14,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
-local Attacks = require(Shared:WaitForChild("SidekickAttacks"))
+local LateData = require(Shared:WaitForChild("LateData"))
+local Attacks -- Shared/LateData's SidekickAttacks, read on the first hits: a hit needs an event, which delivers it
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
@@ -814,6 +815,7 @@ local function onHits(entries)
 	if type(entries) ~= "table" or not folder then
 		return
 	end
+	Attacks = Attacks or LateData.Get("SidekickAttacks")
 	local reduced = UiMotion.Reduced()
 	for _, hit in ordered(entries) do
 		local id = hit.SidekickId

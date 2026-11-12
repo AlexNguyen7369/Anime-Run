@@ -10,6 +10,12 @@ function Support.module(parent, name)
 	return ok and type(value) == "table" and value or nil
 end
 
+-- Design doc 7 "Join size": the big client-only modules wait in ServerStorage.LateData until an event publishes them.
+function Support.lateData(name)
+	local folder = game:GetService("ServerStorage"):FindFirstChild("LateData")
+	return folder and Support.module(folder, name)
+end
+
 function Support.report(name)
 	local result = { scenario = name, pass = true, checks = {}, metrics = {} }
 	local function flag(label, ok, value, limit)

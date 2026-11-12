@@ -114,3 +114,6 @@ Answered by the owner 2026-11-11: "approved, go with draft B" on the review page
 3. A paid spawn picks a fresh random boss; the announced next boss is unchanged.
 4. The approved golem crumble inside the old slam move (4.8 s) is no longer played; the new approved `golem_fall` is the crumble.
 5. Lightning's cost moved from 1.6 s to 2.0 s into the move, the start of the 2 s window.
+Answered by the owner 2026-11-12: golem HP is 1,000 per player; the rhythm is slower (3 s window, 0.9 s apart, 1.5 s rings, +/- 0.35 s). Still open: pose data join size (recommendation given: lazy per-boss load), the Bosses button edit found in Studio.
+Answered by the owner 2026-11-12: boss data loads per boss on announcement (the lazy-load recommendation); the Bosses button moves up next to Roblox's headphone icon. The Studio-only edit hiding the button while the Sidekicks panel is open was not committed: the new position should clear the panel headers; check after the move.
+Superseded 2026-11-12, same day: the Bosses button is not next to Roblox's headphone icon; it sits in a second left column with the Team button (design doc 4.40). Boss data is sent 2 minutes before a boss's event, not at the announcement, and removed after the event (section 7).

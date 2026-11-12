@@ -1,6 +1,6 @@
 # The Elf Mage's in-betweens, her golem's track and both game models (design doc 4.37 "Second boss", BOSS_EVENT_SPEC "The Elf Mage").
 #   Blender -b --factory-startup --python tools/blender/bake_boss_mage.py -- [poses] [glb]
-# poses   writes src/shared/BossMagePoses.luau: the owner-approved keys of keyframes/keys.json verbatim at their times (2026-11-11),
+# poses   writes src/late/BossMagePoses.luau: the owner-approved keys of keyframes/keys.json verbatim at their times (2026-11-11),
 #         everything between them generated here, then self-checked (asserts). Same public shape as BossRagaPoses. Run stylua after.
 # glb     writes build/avatar_glb/boss_mage.glb (9 parts) and boss_golem.glb (15 blocks): unposed, no hierarchy, each centred on its
 #         bounding box (bake_boss_raga.write_glb), so a part's CFrame is joint * Center. Upload with upload_avatar.py.
@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(HERE))
 KEYS = os.path.join(ROOT, "assets", "characters_avatar", "boss_mage", "keyframes", "keys.json")
 BLEND = {cid: os.path.join(ROOT, "assets", "characters_avatar", cid, cid + ".blend") for cid in ("boss_mage", "boss_golem")}
 GLB = {cid: os.path.join(ROOT, "build", "avatar_glb", cid + ".glb") for cid in BLEND}
-LUAU = os.path.join(ROOT, "src", "shared", "BossMagePoses.luau")
+LUAU = os.path.join(ROOT, "src", "late", "BossMagePoses.luau")
 # The golem's feet in game, studs in her frame (Blender axes). Not keys.json's GOLEM_SPOT x the size: at 8x that put it on lanes
 # 1-2 (83 studs out), where runners passed through it. 42 out keeps its ~27-stud half width inside the kerb (70) and clear of
 # her ~12-stud half width (proposed, Studio verify 2026-11-11).
@@ -58,7 +58,7 @@ WINDOW_PLAN = (  # proposed: the 2 s sustain window, 2.0 -> 2.5 -> 3.25 -> 4.0
 	{"ease": ease(1.8), "carry": 0.05},
 	{"ease": ease(1.8), "carry": 0.05},
 )
-GOLEM_EVERY = 5  # proposed: s between two golem hits on its own clock (BossMinionStart)
+GOLEM_EVERY = 6  # proposed: s between two golem hits on its own clock (BossMinionStart)
 OSU_OPEN = 2.94  # BossOsu.OpenSeconds: a hit's circles open this long before it
 WATCH_LEAD = 0.75  # proposed: watch_in, idle key 0 -> watch key 0
 EVENTS = {"lightning": "Lightning", "golem": "Slam", "barrage": "Barrage"}
@@ -852,7 +852,7 @@ def write_luau(mage, bind, moves, golem, consts):
 		"-- Proposed: the 8x Scale's hover %s studs, the leads (<move>_in, %s s), CYCLE, the golem's spot and every in-between."
 		% (fmt(consts["hover"]), "/".join(fmt(LEAD[m]) for m in ("lightning", "golem", "barrage"))),
 		"-- Body never turns, so it is not a part: Torso and the legs are roots, at Offset + Root.",
-		"local Event = require(script.Parent.BossEventConfig)",
+		"local Event = require(game:GetService(\"ReplicatedStorage\").Shared.BossEventConfig)",
 		"",
 		"local SCALE = %s -- studs per model unit: %s x a %s-stud character, %s studs tall" % (fmt(consts["scale"], 4), SIZE, fmt(mk.CHAR_H), fmt(consts["height"], 1)),
 		"local ROOT_STUDS = %s" % fmt(root_studs, 4),

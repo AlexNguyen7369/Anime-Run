@@ -12,6 +12,7 @@ local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -55,11 +56,12 @@ local BOSS_LABEL_SIZE = 19
 local BOSS_OUTLINE = 2.5
 local BOSS_PHONE_SCALE = 0.68
 local BOSS_PHONE_MAX_HEIGHT = 500 -- HudChrome's phone: viewport height at most this
--- HudChrome Grid: x and centre offset per variant, its height at scale 1 (3 cells and 2 gaps of 8).
+-- HudChrome Grid: x and centre offset per variant, and the gap between its cells.
 local GRID_X = { Desktop = 14, Phone = 8 }
 local GRID_MID = { Desktop = -24, Phone = -20 }
-local GRID_HEIGHT = 3 * BOSS_CELL.Y + 2 * 8
-local BOSS_BUTTON_GAP = 6 -- px under Roblox's top bar and right of Roblox's buttons (proposed)
+local GRID_GAP = 8
+local BOSS_BUTTON_GAP = 8 -- px right of the left column (proposed)
+local TEAM_KEY = Enum.KeyCode.T -- the Team button's key letter (proposed, owner 2026-11-12)
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
@@ -197,6 +199,14 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 	ResetOnSpawn = false,
 	IgnoreGuiInset = true,
 	DisplayOrder = 13, -- above the panels and DuelUi (a duel keeps its invite), below the roll view (14)
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+})
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own gui,
+-- under every panel's (DisplayOrder 2 and up) and above the world dim (0).
+local secondColumn = make("ScreenGui", "RacerSecondColumn", playerGui, {
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 1,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
 
@@ -586,45 +596,94 @@ local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 	Visible = false,
 })
 
--- The top-left button, under Roblox's top bar. Its pulse grows right and down from a fixed corner. PulseScale goes in
--- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws, so the
--- phone scale is written into the sizes (placeBossButton) instead of a UIScale.
--- Design doc 4.40 "Market pill and Bosses button": the HUD column buttons' look, a transparent button with the Tab tilt
--- Boss icon and its label "Bosses" (the button's own Text, white with the dark outline) under it.
-local bossButton = make("TextButton", "BossButton", nil, {
+-- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look: a transparent
+-- button with its Tab tilt icon and its label (the button's own Text, white with the dark outline `strokeName`) under
+-- it. The phone scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale
+-- once the button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
+local function columnButton(name, text, image, strokeName)
+	local b = make("TextButton", name, nil, {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = text,
+		Font = UiTheme.Font,
+		TextColor3 = Palette.White,
+		TextYAlignment = Enum.TextYAlignment.Bottom,
+		Visible = false,
+	})
+	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
+	make("ImageLabel", "Icon", b, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
+		BackgroundTransparency = 1,
+		Image = image,
+		ScaleType = Enum.ScaleType.Fit,
+	})
+	local stroke = make("UIStroke", strokeName, b, {
+		Color = UiTheme.Outline,
+		Thickness = BOSS_OUTLINE,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+	})
+	return b, stroke
+end
+-- Its pulse grows right and down from a fixed corner (PulseScale goes in first); the join pulse thickens its outline.
+local bossButton, bossGlow = columnButton("BossButton", "Bosses", Icons.Boss.Image, "Glow")
+make("UIScale", "PulseScale", bossButton, {})
+bossButton.Parent = secondColumn
+-- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
+local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
+local teamLetter = make("TextLabel", "Key", teamButton, {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.fromScale(1 - 2 / BOSS_CELL.X, 2 / BOSS_CELL.Y),
+	Size = UDim2.fromScale(18 / BOSS_CELL.X, 18 / BOSS_CELL.Y),
 	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	AutoButtonColor = false,
-	Text = "Bosses",
 	Font = UiTheme.Font,
 	TextColor3 = Palette.White,
-	TextYAlignment = Enum.TextYAlignment.Bottom,
-	Visible = false,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	Text = TEAM_KEY.Name,
+	ZIndex = 3,
 })
--- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
-make("ImageLabel", "Icon", bossButton, {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.fromScale(0.5, 0),
-	Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
-	BackgroundTransparency = 1,
-	Image = Icons.Boss.Image,
-	ScaleType = Enum.ScaleType.Fit,
-})
-make("UIScale", "PulseScale", bossButton, {})
--- The label's dark outline (Contextual: the text only); the join pulse thickens it.
-local bossGlow = make("UIStroke", "Glow", bossButton, {
+local teamLetterOutline = make("UIStroke", "Outline", teamLetter, {
 	Color = UiTheme.Outline,
-	Thickness = BOSS_OUTLINE,
+	Thickness = 2,
 	LineJoinMode = Enum.LineJoinMode.Round,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 })
-bossButton.Parent = root
+teamButton.Parent = secondColumn
+teamButton.Activated:Connect(function()
+	PanelSwitch.Action("Team")
+end)
+-- Keyboard only, as HudChrome's letters: the key does what a click could, only while the button shows.
+local function keyboardInUse()
+	local last = UserInputService:GetLastInputType()
+	return UserInputService.KeyboardEnabled
+		and last ~= Enum.UserInputType.Touch
+		and string.sub(last.Name, 1, 7) ~= "Gamepad"
+end
+local function refreshTeamKey()
+	teamLetter.Visible = keyboardInUse()
+end
+UserInputService.LastInputTypeChanged:Connect(refreshTeamKey)
+refreshTeamKey()
+UserInputService.InputBegan:Connect(function(input, processed)
+	if
+		input.KeyCode == TEAM_KEY
+		and not processed
+		and not UserInputService:GetFocusedTextBox()
+		and teamButton.Visible
+		and root.Enabled
+	then
+		PanelSwitch.Action("Team")
+	end
+end)
 -- The popup (BOSS_EVENT_SPEC "Bosses cards", draft B, owner 2026-11-11): the Index frame, centred, with a header and an X
 -- (owner 2026-11-06). One card per boss in BossCatalog.Order: the live boss's, else the next boss's, large on the left; the
 -- others small and dimmed in the right strip, over the SpawnBox. A card's Details swaps the cards for that boss's chest tables.
 -- Sizes, colours and "Not this time" proposed.
 local bossesPanel, _, _, bossesClose, bossesFrame = panel("BossesPanel", "BOSSES", true)
 bossesPanel.Parent = root
+PanelSwitch.DimWith(bossesPanel) -- design doc 4.42: it dims the world like every panel
 local CARDS_H = 440 -- units: the cards' area, tabs row to content bottom, at desktop size; a phone scales every size in it
 local OTHER_TEXT = "Not this time"
 local LIVE_TAG, NEXT_TAG = Color3.fromRGB(255, 80, 160), Color3.fromRGB(150, 110, 60)
@@ -923,27 +982,28 @@ end
 placeBosses()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBosses)
 
--- Design doc 4.40 (owner 2026-11-11): just under Roblox's top bar (this ScreenGui ignores the inset), at the left column's
--- x when its bottom at the biggest pulse stays above the column's top, else right of Roblox's buttons and of the column.
-local function placeBossButton()
+-- Design doc 4.40 (owner 2026-11-12): the second column, BOSS_BUTTON_GAP px right of the left column (this ScreenGui
+-- ignores the inset, as HudChrome), its centre `halfRows` half rows (cell + gap) from the Grid's middle, the Items
+-- cell's centre: -1 is the Index / Items gap, 1 the Items / Rebirth gap.
+local function placeColumnButton(b, stroke, halfRows)
 	local view = workspace.CurrentCamera.ViewportSize
 	local variant = view.Y <= BOSS_PHONE_MAX_HEIGHT and "Phone" or "Desktop"
 	local k = variant == "Phone" and BOSS_PHONE_SCALE or 1
-	bossButton.Size = UDim2.fromOffset(BOSS_CELL.X * k, BOSS_CELL.Y * k)
-	bossButton.TextSize = BOSS_LABEL_SIZE * k
-	bossGlow.Thickness = BOSS_OUTLINE * k
-	local inset = GuiService.TopbarInset
-	local y = inset.Max.Y + BOSS_BUTTON_GAP
-	local gridTop = view.Y / 2 + GRID_MID[variant] - GRID_HEIGHT * k / 2
-	local x = GRID_X[variant]
-	if y + BOSS_CELL.Y * k * PULSE_SCALE > gridTop then
-		x = math.max(inset.Min.X, GRID_X[variant] + BOSS_CELL.X * k) + BOSS_BUTTON_GAP
-	end
-	bossButton.Position = UDim2.fromOffset(x, y)
+	b.Size = UDim2.fromOffset(BOSS_CELL.X * k, BOSS_CELL.Y * k)
+	b.TextSize = BOSS_LABEL_SIZE * k
+	stroke.Thickness = BOSS_OUTLINE * k
+	local mid = view.Y / 2 + GRID_MID[variant] + halfRows * (BOSS_CELL.Y + GRID_GAP) * k / 2
+	b.Position = UDim2.fromOffset(GRID_X[variant] + BOSS_CELL.X * k + BOSS_BUTTON_GAP, mid - BOSS_CELL.Y * k / 2)
+	return k
 end
-GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBossButton)
-placeBossButton()
+local function placeSecondColumn()
+	placeColumnButton(bossButton, bossGlow, -1)
+	local k = placeColumnButton(teamButton, teamOutline, 1)
+	teamLetter.TextSize = 16 * k -- HudChrome's key letter
+	teamLetterOutline.Thickness = 2 * k
+end
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeSecondColumn)
+placeSecondColumn()
 
 -- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
 local exhausted = make("Frame", "ExhaustedPanel", root, {
@@ -1515,6 +1575,7 @@ local function drawBossButton(phase, inEvent, joinable)
 		end
 	end
 	bossButton.Visible = shown
+	teamButton.Visible = shown -- the second column shows and hides as one (design doc 4.40)
 	bossesOpen = bossesOpen and shown
 	bossesPanel.Visible = bossesOpen and not PanelSwitch.AnyOpen()
 	if not bossesPanel.Visible then

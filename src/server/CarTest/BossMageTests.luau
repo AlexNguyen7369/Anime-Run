@@ -1,15 +1,15 @@
 --!nonstrict
 -- BRIEF: design doc 4.37 "Second boss" (owner 2026-11-11), docs/BOSS_EVENT_SPEC.md "The Elf Mage": the second boss, picked at
 -- random per event, one stage, 2 moves (lightning 20% of a full bar, barrage 30%, each striking for a 2 s window) and the Stone
--- Golem miniboss (owner 2026-11-11: 1,000 HP, slam then sweep, 15% plus a Crushed 20% damage cut for 15 s each, dodged by 3
--- rhythm circles at +/- 0.28 s; her clock stops while it stands), an enclosed colosseum (inner 70, width 56, 7 lanes, wall 164 by
+-- Golem miniboss (owner 2026-11-11: slam then sweep, 15% plus a Crushed 20% damage cut for 15 s each; owner 2026-11-12: 1,000 HP per
+-- player in the arena at its start, dodged by 3 rhythm circles 0.9 s apart in a 3 s window at +/- 0.35 s; her clock stops while it stands), an enclosed colosseum (inner 70, width 56, 7 lanes, wall 164 by
 -- the orchestrator's 2026-11-11 default). Red first: written before the code (task boss-mage T1; golem miniboss boss-mage-2).
 --
 -- Contract these tests assume beyond the brief (boss-mage-code-plan.md sections 1-3 and 6, boss-mage-2-code-plan.md section A;
 -- implementer: report a change, do not loosen):
 --   Shared/BossCatalog: Default, Order = { "boss_raga", "boss_mage" }, Get(id) (nil or unknown -> the boss_raga row), Current()
 --     (Get of ReplicatedStorage attribute BossEventBoss). Row fields of plan A1: her Moves Lightning and Barrage only, Statuses
---     { { Id = "Crushed", Minion = true, Cut } }, Minion { Id, Name, Hp, Attacks { Slam, Sweep }, Caption }, Chests, Relics.
+--     { { Id = "Crushed", Minion = true, Cut } }, Minion { Id, Name, HpPerPlayer (no Hp), Attacks { Slam, Sweep }, Caption }, Chests, Relics.
 --   Shared/BossOsu: Count, ApproachSeconds, Tolerance, Diameter, DiameterPhone, OpenSeconds, Circles(userId, startAt, k) -> 3 rows
 --     { X, Y, Lead } in click order (named fields), on the golem clock (startAt = BossMinionStart, k = golem attack number),
 --     Judge(lead, momentAt, stamp, slack).
@@ -24,13 +24,13 @@
 --     crushes), Hooks.PayStage(player, stage, boss), Osu(player, k, circle, stamp) -> ok, reason, Dodge while the golem stands ->
 --     false, "No bar", RewardPopup summary field Boss. BossStatus JSON row { Id = "Crushed", EndsAt, Count }. Golem attributes
 --     BossMinionHp, BossMinionMaxHp, BossMinionStart (the slot's schedule time) on ReplicatedStorage while it stands.
---   Shared/BossMagePoses (generated): Moves (idle, lightning, barrage, golem, watch, watch_in, golem_fall, plus lightning_in,
+--   ServerStorage.LateData.BossMagePoses (generated; design doc 7 "Join size"): Moves (idle, lightning, barrage, golem, watch, watch_in, golem_fall, plus lightning_in,
 --     golem_in, barrage_in with no events), GolemMoves (golem_idle, golem_slam, golem_sweep), Approved, Bind, Scale (studs per
 --     unit), Sample(move, t) -> parts, root (studs), Schedule, RiseAt, CycleSeconds, GolemSlotAt, GolemFirstHit, GolemEvery,
 --     GolemHit(k) -> tau, name, GolemAt(tau) -> herMove, herTime, golemMove, golemTime, SampleGolem(move, t) -> scale
 --     (0 = hidden), parts, locs, root; GolemBind (15 blocks).
 -- Proposed values the plan fixes and these tests assert literally (owner may retune): her move chat lines, camera pitch 14,
---   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }, golem HP 1,000, one attack every 5 s,
+--   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }, golem HP 1,000 per player, one attack every 6 s,
 --   cycle 32.55 s, the golem chat lines, circle leads.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_mage_event,boss_mage_arena,boss_mage_anim", then CarTestRun = true.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -46,8 +46,8 @@ local UID = 990158000
 local T0 = 1000000 -- the fake server clock's start
 local COST = { Lightning = 20, Barrage = 30 } -- owner 2026-11-11, % of a full bar (stamina is 0..100)
 local GOLEM_COST = 15 -- owner 2026-11-11: each golem attack
-local GOLEM_HP = 1000 -- proposed: flat, not per player
-local GOLEM_FIRST, GOLEM_EVERY = 4.2, 5 -- approved keys.json golem Slam; proposed: one attack every 5 s
+local GOLEM_HP = 1000 -- owner 2026-11-12: per player in the arena when it rises (one player in most tests)
+local GOLEM_FIRST, GOLEM_EVERY = 4.2, 6 -- approved keys.json golem Slam; proposed: one attack every 6 s (5 s until 2026-11-12)
 local CYCLE_SECONDS = 32.55 -- the 2026-11-11 bake (proposed)
 local CRUSHED_CUT = 0.2 -- owner 2026-11-11
 local STATUS_SECONDS = 15 -- proposed: the stage's status time
@@ -170,7 +170,7 @@ function Tests.make()
 			return r
 		end
 		local realHooks = table.clone(S.Hooks)
-		local Poses = H.module(Shared, "BossMagePoses")
+		local Poses = H.lateData("BossMagePoses") -- design doc 7 "Join size"
 		local SLOT = Poses and Poses.GolemSlotAt -- seconds after the intro: the end of golem_in
 		local CYCLE = Poses and Poses.CycleSeconds
 		flag("golem_slot_exported", type(SLOT) == "number", SLOT)
@@ -553,6 +553,35 @@ function Tests.make()
 			eq("golem_start_her_attribute_unchanged", ReplicatedStorage:GetAttribute("BossEventHp"), hp)
 		end)
 
+		-- Owner 2026-11-12: 1,000 HP per player in the arena when it rises; a join or a leave while it stands changes nothing.
+		golemSection("golem_hp_per_player", function()
+			local players = { fighter(), fighter(), fighter() }
+			begin(MAGE)
+			S.Hooks.DamageMulti = function()
+				return 0
+			end
+			for i, p in players do
+				eq("golem_hp_join_" .. i, S.Join(p), true)
+			end
+			to(FIGHT)
+			for _, p in players do -- every move of hers before the slot passes in the wait: all 3 still in the arena
+				log.Runs[p].Waiting = true
+			end
+			to(FIGHT + SLOT + 0.05)
+			for _, p in players do
+				log.Runs[p].Waiting = false
+			end
+			eq("golem_hp_3_players_3000", minionAttribute("BossMinionHp"), 3 * GOLEM_HP)
+			eq("golem_max_hp_3_players_3000", minionAttribute("BossMinionMaxHp"), 3 * GOLEM_HP)
+			local ms = minionAttribute("BossMinionStart") or T0 + FIGHT + SLOT
+			to(ms - T0 + 1)
+			eq("golem_hp_late_join_ok", S.Join(fighter()), true)
+			S.Leave(players[1], "Left")
+			to(ms - T0 + 1.5)
+			eq("golem_max_hp_join_leave_unchanged", minionAttribute("BossMinionMaxHp"), 3 * GOLEM_HP)
+			eq("golem_hp_join_leave_unchanged", minionAttribute("BossMinionHp"), 3 * GOLEM_HP)
+		end)
+
 		golemSection("golem_takes_damage", function()
 			local p, _, ms = golemFresh()
 			to(ms - T0 + 1)
@@ -789,7 +818,8 @@ function Tests.make()
 		local function osuFresh(k)
 			k = k or 1
 			local p, run, ms = golemFresh()
-			spareUntil(run, ms - T0 + golemTau(k) - Osu.OpenSeconds - 0.2)
+			-- Attack 1's circles open at the golem's start (OpenSeconds 4.2): never step the clock back before it.
+			spareUntil(run, math.max(ms - T0 + golemTau(k) - Osu.OpenSeconds - 0.2, ms - T0 + 0.05))
 			local rows = Osu.Circles(p:GetAttribute("UserId"), ms, k)
 			local M = ms + golemTau(k)
 			local function beat(c)
@@ -861,9 +891,13 @@ function Tests.make()
 			flag("osu_one_miss_crushed", statusRow(p, "Crushed") ~= nil)
 
 			-- Each bad press: refused, and that circle is spent, so the attack hits.
-			p, run, M, beat, pressAt = osuFresh()
+			-- Attack 2: its circles open OpenSeconds before its hit, while the golem stands (attack 1's open at its start).
+			p, run, M, beat, pressAt = osuFresh(2)
 			eq("osu_before_open_refused", pressAt(1, M - Osu.OpenSeconds - 0.1), false)
-			eq("osu_before_open_reason", select(2, S.Osu(p, 1, 1, clock)), "No circles")
+			eq("osu_before_open_reason", select(2, S.Osu(p, 2, 1, clock)), "No circles")
+			to(M - Osu.OpenSeconds - T0 + 0.01)
+			local _, openWhy = S.Osu(p, 2, 2, clock)
+			flag("osu_open_from_open_seconds", openWhy ~= "No circles", openWhy)
 			eq("osu_future_stamp_refused", pressAt(1, beat(1), beat(1) - 0.1), false)
 			p, run, M, beat, pressAt = osuFresh()
 			eq("osu_late_stamp_refused", pressAt(1, beat(1), beat(1) + 0.52), false)
@@ -1286,7 +1320,7 @@ function Tests.make()
 	local function boss_mage_anim()
 		local r, flag, section, eq, near = reporter("boss_mage_anim")
 		local Event = require(Shared.BossEventConfig)
-		local Poses = H.module(Shared, "BossMagePoses")
+		local Poses = H.lateData("BossMagePoses") -- design doc 7 "Join size"
 		local BossDodge = H.module(Shared, "BossDodge")
 		local Osu = H.module(Shared, "BossOsu")
 		local Catalog = H.module(Shared, "BossCatalog")
@@ -1543,7 +1577,7 @@ function Tests.make()
 					local ran, scale = pcall(Poses.SampleGolem, move, t)
 					return ran and scale or nil
 				end
-				-- Shown from its first circles (tau 1.26: 4.2 - OpenSeconds) through its first slam; standing at the move's end.
+				-- Shown through its first slam (owner 2026-11-12: its first circles open at tau 0, 4.2 - OpenSeconds); standing at the move's end.
 				for _, t in { 1.26, 2.0, 3.0, SLAM_AT, 5.0 } do
 					local scale = scaleOf("golem", t)
 					flag("golem_visible_at_" .. t, type(scale) == "number" and scale > 0, scale, "> 0")
@@ -1555,7 +1589,7 @@ function Tests.make()
 				flag("golem_fall_starts_shown", (scaleOf("golem_fall", 0) or 0) > 0, scaleOf("golem_fall", 0))
 				eq("golem_fall_ends_at_scale_0", scaleOf("golem_fall", 2.0), 0)
 				eq("golem_first_hit_4_2", Poses.GolemFirstHit, GOLEM_FIRST)
-				eq("golem_every_5", Poses.GolemEvery, GOLEM_EVERY)
+				eq("golem_every_6", Poses.GolemEvery, GOLEM_EVERY)
 				eq("golem_hit_is_function", type(Poses.GolemHit), "function")
 				eq("golem_at_is_function", type(Poses.GolemAt), "function")
 				if type(Poses.GolemHit) ~= "function" or type(Poses.GolemAt) ~= "function" then
@@ -1566,7 +1600,7 @@ function Tests.make()
 					local tau, name = Poses.GolemHit(k)
 					hitsOk = hitsOk and approx(tau, golemTau(k)) and name == golemName(k)
 				end
-				flag("golem_hits_every_5_alternating", hitsOk)
+				flag("golem_hits_every_6_alternating", hitsOk)
 				-- Her rig: the golem move, a lead into watch, then watch on its 3 s loop.
 				local herMove, herTime = Poses.GolemAt(2)
 				eq("golem_at_her_golem_move", herMove, "golem")
@@ -1578,7 +1612,7 @@ function Tests.make()
 				near("golem_at_her_watch_loops", herTime, 1)
 				-- The golem rig: each hit k >= 2 on its own track, at that track's event; tracks never overlap, and each set of
 				-- circles opens only once the previous track has ended.
-				local open = Osu and Osu.OpenSeconds or 2.94
+				local open = Osu and Osu.OpenSeconds or 4.2
 				local trackOk, lastEnd = true, Poses.Moves.golem and Poses.Moves.golem.Duration or 5
 				local bad = {}
 				for k = 2, 10 do
@@ -1599,6 +1633,15 @@ function Tests.make()
 				end
 				flag("golem_tracks_on_hits", trackOk)
 				eq("golem_tracks_apart", table.concat(bad, ","), "")
+				-- The next attack's circles open only after the longest attack track's follow-through (time after its hit).
+				local follow = 0
+				for _, track in { "golem_slam", "golem_sweep" } do
+					local row = Poses.GolemMoves and Poses.GolemMoves[track]
+					local eventAt = row and row.Events[1] and row.Events[1].Time or 0
+					follow = math.max(follow, (row and row.Duration or 0) - eventAt)
+				end
+				local gap = (Poses.GolemEvery or 0) - open
+				flag("golem_circles_open_after_follow_through", gap >= follow - 1e-6, gap, follow)
 				local _, _, idleMove = Poses.GolemAt(3)
 				eq("golem_idles_between", idleMove, "golem")
 				_, _, idleMove = Poses.GolemAt(golemTau(2) - 3)
@@ -1707,10 +1750,10 @@ function Tests.make()
 						local tau, name = BossDodge.MinionMoment(k, MAGE)
 						same = same and approx(tau, golemTau(k)) and name == golemName(k)
 					end
-					flag("minion_moments_every_5_alternating", same)
+					flag("minion_moments_every_6_alternating", same)
 				end
 				if type(BossDodge.MinionIndexAtOrBefore) == "function" then
-					for _, case in { { 0, 0 }, { 4.19, 0 }, { 4.2, 1 }, { 9.19, 1 }, { 9.21, 2 }, { 50, 10 } } do
+					for _, case in { { 0, 0 }, { 4.19, 0 }, { 4.2, 1 }, { 10.19, 1 }, { 10.21, 2 }, { 60, 10 } } do
 						eq("minion_index_at_" .. case[1], BossDodge.MinionIndexAtOrBefore(case[1], MAGE), case[2])
 					end
 				end
@@ -1720,11 +1763,11 @@ function Tests.make()
 		if Osu then
 			section("osu", function()
 				eq("osu_count_3", Osu.Count, 3)
-				eq("osu_approach_1_0", Osu.ApproachSeconds, 1.0)
-				eq("osu_tolerance_0_28", Osu.Tolerance, 0.28)
+				eq("osu_approach_1_5", Osu.ApproachSeconds, 1.5)
+				eq("osu_tolerance_0_35", Osu.Tolerance, 0.35)
 				eq("osu_diameter_0_145", Osu.Diameter, 0.145)
 				eq("osu_diameter_phone_0_19", Osu.DiameterPhone, 0.19)
-				near("osu_open_seconds", Osu.OpenSeconds, 2.94)
+				near("osu_open_seconds_4_2", Osu.OpenSeconds, 4.2)
 				local bad = {}
 				local function note(label, ok)
 					if not ok and #bad < 10 then
@@ -1740,12 +1783,20 @@ function Tests.make()
 					for k, row in rows do
 						note(tag .. "_x_" .. k, row.X >= 0.295 and row.X <= 0.705)
 						note(tag .. "_y_" .. k, row.Y >= 0.295 and row.Y <= 0.705)
-						-- Every beat inside the 2 s before the golem's attack.
-						note(tag .. "_beat_in_window_" .. k, row.Lead > 0 and row.Lead <= 2.0)
+						-- Every beat inside the 3 s before the golem's attack (owner 2026-11-12).
+						note(tag .. "_beat_in_window_" .. k, row.Lead > 0 and row.Lead <= 3.0)
+						-- Attack 1's circles all show at or after the golem's start (its hit is GOLEM_FIRST after it).
+						if index == 1 then
+							note(
+								tag .. "_first_attack_after_start_" .. k,
+								GOLEM_FIRST - row.Lead - Osu.ApproachSeconds >= -1e-9
+							)
+						end
 						maxLead = math.max(maxLead, row.Lead)
 						if k > 1 then
 							note(tag .. "_lead_order_" .. k, rows[k - 1].Lead > row.Lead)
-							note(tag .. "_gap_" .. k, rows[k - 1].Lead - row.Lead >= 0.56 - 1e-9)
+							-- 0.9 s apart (owner 2026-11-12): more than 2 x Tolerance, so one stamp never fits two circles.
+							note(tag .. "_gap_" .. k, rows[k - 1].Lead - row.Lead >= 0.70 - 1e-9)
 						end
 						-- At least one phone diameter apart, in screen heights, on a 16:9 and a 4:3 screen.
 						for j = 1, k - 1 do
@@ -1768,11 +1819,11 @@ function Tests.make()
 				flag("osu_differs_by_user", not H.same(Osu.Circles(5, 1e6, 1), Osu.Circles(6, 1e6, 1)))
 				flag("osu_differs_by_golem", not H.same(Osu.Circles(5, 1e6, 1), Osu.Circles(5, 1e6 + 40, 1)))
 				eq("osu_judge_on_beat", Osu.Judge(1, 10, 9, 0), true)
-				eq("osu_judge_inside_tolerance", Osu.Judge(1, 10, 9.27, 0), true)
-				eq("osu_judge_early_inside", Osu.Judge(1, 10, 8.73, 0), true)
-				eq("osu_judge_outside_tolerance", Osu.Judge(1, 10, 9.29, 0), false)
-				eq("osu_judge_early_outside", Osu.Judge(1, 10, 8.71, 0), false)
-				eq("osu_judge_slack_widens", Osu.Judge(1, 10, 9.29, 0.03), true)
+				eq("osu_judge_inside_tolerance", Osu.Judge(1, 10, 9.34, 0), true)
+				eq("osu_judge_early_inside", Osu.Judge(1, 10, 8.66, 0), true)
+				eq("osu_judge_outside_tolerance", Osu.Judge(1, 10, 9.36, 0), false)
+				eq("osu_judge_early_outside", Osu.Judge(1, 10, 8.64, 0), false)
+				eq("osu_judge_slack_widens", Osu.Judge(1, 10, 9.36, 0.03), true)
 			end)
 		end
 
@@ -1825,7 +1876,8 @@ function Tests.make()
 				local caption = minion.Caption or {}
 				eq("mage_minion_id", minion.Id, "boss_golem")
 				eq("mage_minion_name", minion.Name, "Stone Golem")
-				eq("mage_minion_hp", minion.Hp, GOLEM_HP)
+				eq("mage_minion_hp_per_player", minion.HpPerPlayer, GOLEM_HP)
+				eq("mage_minion_no_flat_hp", minion.Hp, nil)
 				for name, text in GOLEM_CHAT do
 					local tag = string.lower(name)
 					eq("mage_minion_" .. tag .. "_cost", attacks[name] and attacks[name].Cost, GOLEM_COST)

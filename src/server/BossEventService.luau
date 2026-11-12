@@ -26,6 +26,7 @@ local BossDodge = require(Shared.BossDodge)
 local BossOsu = require(Shared.BossOsu)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
+local LateData = require(Shared.LateData)
 local StaminaConfig = require(Shared.StaminaConfig)
 local CarService = require(script.Parent.CarService)
 local DuelService = require(script.Parent.DuelService)
@@ -72,7 +73,27 @@ local function safely(fn, ...)
 	return ok, result
 end
 
+local previewBoss -- the boss whose poses an on arena preview delivered
+
+-- Design doc 7 "Join size": a boss's pose copy leaves ReplicatedStorage after its event or preview, unless its event runs,
+-- its preview is on, or it is the next timed boss inside LateLeadSeconds of its start.
+local function dropPoses(boss)
+	if
+		(event and event.Boss == boss) or (previewBoss == boss and ReplicatedStorage:GetAttribute("BossArenaPreview"))
+	then
+		return
+	end
+	if nextBoss == boss.Id and nextAt - now() <= Cfg.LateLeadSeconds then
+		return
+	end
+	LateData.Remove(boss.Poses)
+end
+
 local function publish()
+	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it (dropPoses removes it after).
+	if event then
+		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
+	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
@@ -106,7 +127,12 @@ local function startMinion(current, at)
 	if n > (current.Slots or 0) then
 		current.Slots = n
 		local startAt = current.ScheduleStart + Cfg.IntroSeconds + (n - 1) * cycle + slot
-		local hp = current.Boss.Minion.Hp
+		-- Fixed at its start: a join or leave while it stands does not change it.
+		local players = 0
+		for _ in current.Members do
+			players += 1
+		end
+		local hp = current.Boss.Minion.HpPerPlayer * math.max(players, 1)
 		current.Minion = { Hp = hp, MaxHp = hp, StartAt = startAt, PauseT = startAt - current.ScheduleStart }
 		for _, member in current.Members do
 			member.Minion = { ChargedTo = 0, Spared = {}, Osu = {} }
@@ -979,6 +1005,7 @@ function BossEventService.End(reason)
 	event = nil
 	lastEnd = reason
 	publish()
+	dropPoses(ending.Boss)
 	sendHits(ending.Members, now(), true)
 	for player, member in ending.Members do
 		release(player, member, true)
@@ -1102,6 +1129,10 @@ function BossEventService.Advance(at)
 			publish()
 		end
 	end
+	-- Design doc 7 "Join size": the next timed boss's poses go out LateLeadSeconds before its start, not at the announcement.
+	if nextBoss and nextAt - at <= Cfg.LateLeadSeconds then
+		LateData.Deliver(BossCatalog.Get(nextBoss).Poses)
+	end
 end
 
 -- noCooldown: the remote skips the shared cooldown (rhythm circles can come under REMOTE_COOLDOWN apart); its own checks bound it.
@@ -1154,6 +1185,16 @@ function BossEventService.Init()
 	end)
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
+	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
+		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
+			previewBoss = BossCatalog.Current()
+			LateData.Deliver(previewBoss.Poses, "SidekickAttacks")
+		elseif previewBoss then
+			local boss = previewBoss
+			previewBoss = nil
+			dropPoses(boss)
+		end
+	end)
 	nextAt = now() + Cfg.IntervalSeconds
 	nextBoss = BossEventService.Hooks.PickBoss()
 	publish()

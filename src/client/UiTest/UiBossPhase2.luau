@@ -51,7 +51,7 @@ local EXHAUSTED = ROOT .. "/ExhaustedPanel"
 local DODGE_BAR = "RacerBossDodge/DodgeBar"
 local POPUP = "RacerBossRewards/Panel"
 local INVITE = ROOT .. "/Invite"
-local BUTTON = ROOT .. "/BossButton"
+local BUTTON = "RacerSecondColumn/BossButton" -- design doc 4.42: the second column has its own ScreenGui
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
@@ -727,7 +727,14 @@ function Module.Build(h)
 			check(res, tag .. "_note_text", textOf(POPUP .. "/Note"), "Deal 5% for rewards")
 		end
 	end
+	-- The world dim under the HUD (Client/HudChrome, Spec.PanelDimmers): its ScreenGui Enabled and Dim Visible
+	local function dimOn()
+		local gui, frame = h.find(Spec.PanelDimmers.Gui), h.find(Spec.PanelDimmers.Frame)
+		return gui ~= nil and gui:IsA("ScreenGui") and gui.Enabled and frame ~= nil and frame.Visible
+	end
 	local function checkPopupFit(res)
+		-- Design doc 4.42 (owner 2026-11-12): the rewards popup dims the world like every panel and popup
+		check(res, "popup_dim_shown", waitIs(dimOn, true), true)
 		local panel, close = h.find(POPUP), h.find(POPUP .. "/Header/CloseButton")
 		check(res, "popup_close_present", close ~= nil and close:IsA("GuiButton"), true)
 		local logo = h.find(POPUP .. "/Header/Logo")
@@ -801,6 +808,7 @@ function Module.Build(h)
 	-- After the real press of Panel/Header/CloseButton (UiSpec.Clicks boss_rewards_close).
 	function after.boss_rewards_closed(res)
 		check(res, "popup_close_closes", waitShown(POPUP, false), false)
+		check(res, "popup_dim_off_after_close", waitIs(dimOn, false), false)
 	end
 
 	-- After the real press that opens the Bosses popup idle (UiSpec.Clicks boss_paid_details): every line of both tables on screen.

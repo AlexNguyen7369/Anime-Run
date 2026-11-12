@@ -1,5 +1,5 @@
 # Sidekick attacks' in-betweens (design doc 4.37, SIDEKICK_SPEC, BOSS_EVENT_SPEC "Boss and attacks"; owner approved the 12 attacks' keys).
-#   python3 tools/blender/bake_sidekick_attacks.py     writes src/shared/SidekickAttacks.luau, then self-checks against the limits of
+#   python3 tools/blender/bake_sidekick_attacks.py     writes src/late/SidekickAttacks.luau, then self-checks against the limits of
 #                                                      src/server/CarTest/SidekickAttackTests.luau. Run stylua on it after.
 #   Blender -b --factory-startup --python tools/blender/bake_sidekick_attacks.py -- rig <folder holding <id>/<id>.blend>
 #                                                      writes tools/blender/sidekicks/rigs.json: what keys.json does not say.
@@ -12,7 +12,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 RIGS = os.path.join(HERE, "sidekicks", "rigs.json")
-LUAU = os.path.join(ROOT, "src", "shared", "SidekickAttacks.luau")
+LUAU = os.path.join(ROOT, "src", "late", "SidekickAttacks.luau")
 IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox".split()
 RATE = 120  # samples a second before thinning
 MAX_GAP = 1 / 15  # s between baked keys at most
