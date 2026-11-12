@@ -385,7 +385,7 @@ function Tests.relics()
 					highestOther
 				)
 			end
-			flag("relic_order", H.same(C.Order, { "big_raga", "boss_mage" }))
+			flag("relic_order", H.same(C.Order, { "big_raga", "boss_mage", "boss_king" }))
 		end)
 
 		section("roll", function()
