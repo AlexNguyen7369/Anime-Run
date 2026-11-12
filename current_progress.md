@@ -180,8 +180,10 @@
 176. 2026-11-12 — Alex Nguyen — Recorded the owner's rulings for the Golden King's own arena (open-air sunset stadium, he hovers, vault retired), 10 key frames per move, arena-wide flash and shake and lighter runner auras in events; rules audit FAIL round 1, PASS round 2 after the FOV punch was dropped and superseded rules were marked.
 177. 2026-11-12 — Alex Nguyen — Built the jointed Golden King rig (elbows and knees, 2,992 tris, 15 meshes) and rendered the 10 hovering Enuma Elish key frames for owner approval (b94a8ba); no in-betweens, the shipped 6-part build unchanged.
 178. 2026-11-12 — Alex Nguyen — Recorded the owner's notes on the pilot key frames: larger, designed Gates portals instead of plain yellow circles, and swirling, spinning wind lines on the Ea charge.
+179. 2026-11-12 — Alex Nguyen — Landed a5a: runner auras 0.25 x and trails 0.35 x in boss events with the old boost removed, and an arena-wide shake, flash and light pulse on every Elf Mage, golem and Golden King hit (at most 3 full flashes a second, off under REDUCED EFFECTS); Studio boss_event 1861, ui_boss_impact 89, ui_event_auras 6 and the boss VFX scenarios all fail=0, rules audit PASS.
+180. 2026-11-12 — Alex Nguyen — Drew the Golden King arena draft (open-air sunset stadium, gold treasure mound, about 1,178 parts), three Gates portal designs and the swirling Ea wind strip, and published them with the pilot key frames on the review page https://claude.ai/artifact/5ZJxJCKo8XGcDMzXdqbJ7Z.
 
 ## What's next
-**Owner's approval of the jointed Golden King model and the 10 Enuma Elish key frames (`assets/characters_avatar/boss_king/keyframes/rework/enuma_slices.png`), then the in-betweens and bake of that pilot move.**
+**Owner's decisions on the review page: jointed model, the 10 Enuma Elish keys, portal A/B/C, the wind swirl, the arena look, its camera and FOV, lap length; then in-betweens and bake of the approved pilot keys.**
 
-**Why this is next:** the owner gate (design doc 4.37) forbids any in-between before the keys are approved, and the pilot's verdict sets the pattern for every other move of both bosses and the golem.
+**Why this is next:** the owner gate forbids in-betweens, arena building and portal uploads before approval, and every remaining move of both bosses follows the pattern the pilot sets.
