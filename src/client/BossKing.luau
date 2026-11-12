@@ -2,7 +2,7 @@
 -- The Golden King (design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King"): one Client/BossRaga rig from
 -- ReplicatedStorage.BossModels (boss_king), posed every frame from BossKingPoses. He stands on the vault's gold heap at the centre
 -- (Client/BossColosseum.VaultMoundTop), no hover, no bob, facing as Big Raga does. Ea and the Key are parts of the bind, so the
--- bake's drum spin plays as pose data. Entrance (an open question in the spec): he rises through the heap over RiseSeconds as Big
+-- bake's drum spin plays as pose data; the rig has elbows and knees (design doc 4.37 "Animation rework"). Entrance (an open question in the spec): he rises through the heap over RiseSeconds as Big
 -- Raga does, until the owner rules. Poses are late data (design doc 7), read when his event or preview first shows him.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,6 +14,24 @@ local Poses =
 	require(Shared:WaitForChild("LateData")).Get(require(Shared:WaitForChild("BossCatalog")).Get("boss_king").Poses)
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
+local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
+
+-- shortcut: the jointed model (SidekickArt.boss_king_jointed.BossModel, from build/avatar_glb/boss_king_jointed.glb) is not uploaded
+-- yet. Until it is, ReplicatedStorage.BossModels.boss_king is the 6-part model (SidekickArt.boss_king.BossModel, Poses.Bind6;
+-- Server/CharacterModelService picks the same) posed from the jointed data: the upper arm and thigh drive the whole old limb, the
+-- forearm and shin are ignored, and Ea hangs from the upper arm a straight forearm's length down. Drop with the upload.
+local JOINTED = SidekickArt.boss_king_jointed ~= nil
+local SIX_PART =
+	{ LeftArm = "LeftUpperArm", RightArm = "RightUpperArm", LeftLeg = "LeftUpperLeg", RightLeg = "RightUpperLeg" }
+
+local function sixPart(parts, locs)
+	for old, new in SIX_PART do
+		parts[old], locs[old] = parts[new], locs[new]
+	end
+	local elbow = Poses.Bind.RightLowerArm.Offset
+	locs.Ea += Vector3.new(elbow[1], elbow[2], elbow[3])
+	return parts, locs
+end
 
 local BossKing = {}
 BossKing.__index = BossKing
@@ -28,6 +46,7 @@ function BossKing.new(parent)
 	self.Him = BossRaga.new(parent, {
 		Poses = Poses,
 		Source = "boss_king",
+		Bind = JOINTED and Poses.Bind or Poses.Bind6,
 		Name = BossCatalog.Get("boss_king").ModelName,
 		Scale = Poses.Scale,
 		SizeScale = 1,
@@ -41,8 +60,11 @@ end
 function BossKing:Step(rise, move, localTime)
 	local him = self.Him
 	if him and him.Parts and him:Show(rise ~= nil) then
-		-- locs: the legs' offsets move round the hip as his body turns (the beam sweep)
+		-- locs: the hips move round as his body turns (the beam sweep), Ea's grip moves on the forearm (out of the hand at rest)
 		local parts, root, locs = Poses.Sample(move, localTime)
+		if not JOINTED then
+			parts, locs = sixPart(parts, locs)
+		end
 		local below = (1 - rise) * (Arena.BossHeight + BossColosseum.VaultMoundTop)
 		him:Pose(self.Rest - Vector3.new(0, below, 0), parts, root, 1, 0, locs)
 		-- Ea and its drums show only inside a move's EaShown window (enuma): drawn from the vault otherwise. Written every hidden

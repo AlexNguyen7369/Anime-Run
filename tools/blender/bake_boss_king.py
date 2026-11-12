@@ -1,13 +1,19 @@
-# The Golden King's in-betweens and game model (design doc 4.37 "Third boss", BOSS_EVENT_SPEC "The Golden King").
+# The Golden King's in-betweens and game model on his jointed rig (design doc 4.37 "Third boss" and "Animation rework",
+# BOSS_EVENT_SPEC "The Golden King" and "Animation rework").
+#   Blender -b --factory-startup --python tools/blender/build_boss_king.py -- jointed   (boss_king_jointed.blend, git-ignored)
 #   Blender -b --factory-startup --python tools/blender/bake_boss_king.py -- [poses] [glb]
-# poses   writes src/late/BossKingPoses.luau: the owner-approved keys of keyframes/keys.json (pre-approved 2026-11-11) at their
-#         times, everything between them generated here, then self-checked (asserts). Same public shape as BossMagePoses, plus
-#         Sample's third value (locs), Keys' Spin, Moves' EaShown and Poses.EaShown / Poses.EaSpin. Run stylua after.
-# glb     writes build/avatar_glb/boss_king.glb: 11 parts (Torso, Head, arms, legs, Key, Ea = the grip, Ea_Drum1-3), unposed, no
-#         hierarchy, each centred on its bounding box (bake_boss_raga.write_glb), so a part's CFrame is joint * Center. The Ea glow
-#         ribbons' second material is folded into the palette material (one material a mesh). Upload with upload_avatar.py.
-# Body (his hip turn, up to 144 degrees in the beam sweep) is no part: it is folded into Torso's and the legs' rotations, and the
-# leg joints it carries round the hip go out as Keys' Locs (model units), which Sample returns as its third value for BossRaga:Pose.
+# poses   writes src/late/BossKingPoses.luau. enuma: the 10 rework keys of keyframes/rework/keys.json (owner approved 2026-11-12);
+#         idle, gates (+ gates_window) and shields: the old keys of keyframes/keys.json (pre-approved 2026-11-11) mapped onto the
+#         jointed rig with the lower segments straight (upper arm and thigh take the old limb's rotation, forearm and shin 0) until
+#         they are re-keyed. Keys verbatim at their times; everything between them generated here: quaternion interpolation per
+#         part with asymmetric easing, written as Euler keys (each in-between the Euler nearest the frame before it); springs on Ea,
+#         the forearms, the head and the Key; torso and head 1 and 2 frames behind; Big Raga's RECOIL after each hit. Then
+#         self-checked (asserts, the boss_king_anim continuity check with its hit snap included). Run stylua after.
+# glb     writes build/avatar_glb/boss_king_jointed.glb: the 15 jointed parts (Torso, Head, upper and lower arms and legs, Key,
+#         Ea = the grip, Ea_Drum1-3), unposed, no hierarchy, each centred on its box (bake_boss_raga.write_glb). Upload it as
+#         boss_king_jointed (upload_avatar.py, sidekick_art.py): SidekickArt.boss_king_jointed.BossModel. Nothing here uploads.
+# Body (his hip turn, 180 degrees at the Enuma Elish hit) is no part: it is folded into Torso's and the thighs' rotations, and the hip
+# joints it carries round go out as Keys' Locs (model units), as does Ea's grip on the forearm (it leaves the hand at idle key 0).
 import json
 import math
 import os
@@ -15,29 +21,31 @@ import sys
 
 import bpy
 import numpy as np
-from mathutils import Euler, Matrix, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import bake_boss_mage as bm  # noqa: E402  (guarded main: track, secondary, check, local_verts, bind_lines)
-import bake_boss_raga as raga  # noqa: E402  (guarded main: easing, thinning, number format, write_glb)
-import boss_king_keyframes as kk  # noqa: E402  (guarded main: the key pose solver and the stage constants)
-import boss_mage_keyframes as mk  # noqa: E402  (guarded main: eul / degs, the Euler convention of keys.json)
+import bake_boss_mage as bm  # noqa: E402  (guarded main: secondary, local_verts, bind_lines)
+import bake_boss_raga as raga  # noqa: E402  (guarded main: easing, thinning, RECOIL, number format, write_glb)
+import boss_king_keyframes as kk  # noqa: E402  (guarded main: the key pose solvers and the stage constants)
 
 ease, eout, ein = raga.inout, raga.eout, raga.ein
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
-KEYS = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "keyframes", "keys.json")
-BLEND = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "boss_king.blend")
-GLB = os.path.join(ROOT, "build", "avatar_glb", "boss_king.glb")
+KEYDIR = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "keyframes")
+KEYS = os.path.join(KEYDIR, "keys.json")
+REWORK = os.path.join(KEYDIR, "rework", "keys.json")
+BLEND = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "boss_king_jointed.blend")
+GLB = os.path.join(ROOT, "build", "avatar_glb", "boss_king_jointed.glb")
 LUAU = os.path.join(ROOT, "src", "late", "BossKingPoses.luau")
 
 SIZE = 8  # his height in runner heights (spec, proposed)
-RATE, SNAP = bm.RATE, bm.SNAP
-LEAD = 0.75  # proposed (the stub's): idle key 0 into each move's first key
+RATE = bm.RATE
+LIMIT_DEGREES, LIMIT_ROOT, SNAP = 12, 0.05, 0.05  # boss_king_anim "continuous": per 60 Hz frame, the hit snap's tail
+LEAD = 0.75  # fixed (the stub's): idle key 0 into each move's first key
 IDLE_ROW = 4.0  # s of the idle loop a cycle row plays: its whole period, so it never pops
-# Proposed. Rows as BossMagePoses: { "idle", from, seconds } or { move }. The server's expectations (BossEventService, BossCatalog):
-# the events gates_start / gates, enuma_start / enuma, shields and the lead-ins before each move.
+CYCLE_SECONDS = 38.85  # fixed (spec "Animation rework": CycleSeconds does not change)
+# Fixed order. Rows as BossMagePoses: { "idle", from, seconds } or { move }.
 CYCLE = (
 	("idle", 0, IDLE_ROW),
 	("gates_in",),
@@ -54,8 +62,9 @@ CYCLE = (
 )
 # keys.json event -> the schedule event the server charges or sets at; every Dodge bar move also opens with "<move>_start" at 0
 EVENTS = {"gates": ("Volleys", "gates"), "enuma": ("Beam", "enuma"), "shields": ("Fortified", "shields")}
-WINDOW = {"gates": (1.6, 3.6), "enuma": (3.0, 5.0)}  # the volleys, the beam sweep: the cost event is the window's start
-# One row per segment between stops (approved keys, then idle key 0 at the move's end); as bake_boss_mage.PLAN.
+WINDOW = {"gates": (1.6, 3.6), "enuma": (3.0, 5.0)}  # fixed: the volleys, the beam sweep; the cost event is the window's start
+HITS = {"gates": 1.6, "enuma": 3.0}  # RECOIL starts here (shields' event is a status, not a hit)
+# One row per segment between stops (keys, then idle key 0 at the move's end when the last key is earlier). Proposed.
 PLAN = {
 	"gates": (
 		{"ease": ease(2.0)},  # the hand lifts, first ripples
@@ -66,14 +75,15 @@ PLAN = {
 		{"ease": ease(2.0)},
 	),
 	"enuma": (
-		{"ease": ease(2.0)},  # Ea drawn, raised to the sky
-		{"ease": ease(1.8)},  # the charge builds
-		{"ease": ease(1.8)},
-		{"ease": ein(1.6)},  # the swing: Ea comes down, the beam leaves at 3.0
-		{"ease": ease(1.6)},  # the sweep across the lanes
-		{"ease": ease(1.6)},  # the far side of the ring
-		{"ease": ease(2.0), "carry": 0.06},  # Ea lowered
-		{"ease": ease(2.0)},
+		{"ease": ease(1.8)},  # 0 -> 0.45 anticipation: unfolds and curls down
+		{"ease": eout(1.8)},  # 0.45 -> 0.95 Ea flung up fast, slowing into the overshoot
+		{"ease": ease(2.0), "carry": 0.08},  # 0.95 -> 1.45 settles back upright, the fling carried a little past the top
+		{"ease": ease(1.8)},  # 1.45 -> 2.1 the charge strains
+		{"ease": ease(2.2)},  # 2.1 -> 2.75 slow wind-up
+		{"ease": ein(2.6)},  # 2.75 -> 3.0 the swing: fast into the hit (the hit snap)
+		{"ease": eout(1.6), "hold": 0.05},  # 3.0 -> 3.9 hard stop on the hit, then the beam drive
+		{"ease": ease(1.8)},  # 3.9 -> 4.85 the sweep to the far side
+		{"ease": ease(2.2), "carry": 0.05},  # 4.85 -> 5.6 slow recovery into idle key 0
 	),
 	"shields": (
 		{"ease": ease(2.0)},
@@ -83,189 +93,207 @@ PLAN = {
 	),
 }
 IDLE_PLAN = {"ease": ease(2.0)}  # between the breathing keys and back to key 0
-# The Key swings at his belt behind the torso's pitch and his lunges (part axis, drivers, gain, omega, zeta), as the mage's FOLLOW.
-FOLLOW = (("Key:0", {"Torso:0": 1, "rooty": -40}, 0.5, 9, 0.3),)
-TREMBLE = {"enuma": (1.8, 3.0, 0.8, {"Torso:0": 1, "Head:0": 0.7, "LeftArm:0": 0.6, "RightArm:0": 0.6})}  # the held charge
+LEAD_PLAN = bm.LEAD_PLAN
+LAG = {"Torso": 1 / 60, "Head": 2 / 60}  # s behind the limbs mid-segment, back on time at every key
+# Springs (part:axis, drivers {channel: weight}, gain, omega, zeta) as the mage's FOLLOW. Channels: "<part>:<axis>" the part's own
+# turn in degrees (its rotation vector summed frame to frame, so no Euler wrap), "rootx/y/z" model units.
+FOLLOW = (
+	("Key:0", {"Torso:0": 1, "Body:0": 1, "rooty": -40}, 0.5, 9, 0.3),
+	("Head:0", {"Torso:0": 1}, 0.45, 13, 0.34),
+	("Head:2", {"Torso:2": 1, "Body:2": 1}, 0.4, 12, 0.34),
+	("LeftLowerArm:0", {"LeftUpperArm:0": 1}, 0.45, 11, 0.32),
+	("RightLowerArm:0", {"RightUpperArm:0": 1}, 0.25, 13, 0.36),
+	("Ea:0", {"RightUpperArm:0": 1, "RightLowerArm:0": 1}, 0.3, 12, 0.35),
+	("Ea:2", {"RightUpperArm:2": 1}, 0.25, 12, 0.35),
+)
+TREMBLE = {"enuma": (1.45, 2.75, 0.8, {"Torso:0": 1, "Head:0": 0.7, "LeftUpperArm:0": 0.6, "RightUpperArm:0": 0.6})}  # the charge
+RECOIL = tuple((("Torso" if p == "UpperTorso" else p), axis, deg, hz) for p, axis, deg, hz in raga.RECOIL if p in ("UpperTorso", "Head"))
 DRUMS = ("Ea_Drum1", "Ea_Drum2", "Ea_Drum3")
 DRUM_SIGN = {"Ea_Drum1": 1, "Ea_Drum2": -1, "Ea_Drum3": 1}
-LEGS = ("LeftLeg", "RightLeg")
-MESH = {"Torso": "Torso_merged", "Head": "Head_merged", "LeftArm": "LeftArm_merged", "RightArm": "RightArm_merged", "LeftLeg": "LeftLeg_merged", "RightLeg": "RightLeg_merged", "Key": "Key", "Ea": "Ea_Grip"}
+PARTS = kk.JPARTS + ("Key", "Ea") + DRUMS  # the 15 bind parts
+KEYED = kk.JPARTS + ("Key", "Ea")  # the drums come from Spin
+FOLDED = ("Torso", "LeftUpperLeg", "RightUpperLeg")  # Body folds into these
+THIGHS = ("LeftUpperLeg", "RightUpperLeg")
+LOCS = THIGHS + ("Ea",)  # joints that move on their parent: the hips round Body's turn, Ea's grip on the forearm
+OLD = {"LeftArm": "LeftUpperArm", "RightArm": "RightUpperArm", "LeftLeg": "LeftUpperLeg", "RightLeg": "RightUpperLeg"}
+MESH = {**{p: p + "_merged" for p in kk.JPARTS}, "Key": "Key", "Ea": "Ea_Grip", **{d: d for d in DRUMS}}
+GRIP0 = tuple(kk.HAND["RightArm"] - kk.EA_PIVOT)  # Ea's grip in the right fist (keys.json's in-hand ea_grip_offset)
+# shortcut: the 6-part model uploaded 2026-11-11 (SidekickArt.boss_king.BossModel) keeps its old bind, copied from BossKingPoses
+# before the rework; BossKing poses it from the jointed data until boss_king_jointed.glb is uploaded. Delete with that upload.
+BIND6 = """\
+	Ea = { Parent = "RightArm", Offset = {0,0,-1.75}, Center = {0,0,3.49}, Size = {21.24,53.11,14.6} },
+	Ea_Drum1 = { Parent = "Ea", Offset = {0,0,0}, Center = {0.0041,0.0188,2.95}, Size = {9.02,18.59,8.82} },
+	Ea_Drum2 = { Parent = "Ea", Offset = {0,0,0}, Center = {-0.0022,-0.0213,5.87}, Size = {8.33,18.32,8.17} },
+	Ea_Drum3 = { Parent = "Ea", Offset = {0,0,0}, Center = {0,0,9.02}, Size = {8.43,21.64,8.43} },
+	Head = { Parent = "Torso", Offset = {0,0,2.5}, Center = {0,0,0.5}, Size = {15.67,21.51,12.79} },
+	Key = { Parent = "Torso", Offset = {1.2,0.1,0.35}, Center = {-0.25,-0.84,-0.7473}, Size = {3.98,9.46,1.06} },
+	LeftArm = { Parent = "Torso", Offset = {1.5,0,1.8}, Center = {-0.1,0,-0.8}, Size = {15.14,22.57,9.94} },
+	LeftLeg = { Parent = nil, Offset = {0.5,0,2}, Center = {0,0,-1}, Size = {7.58,13.39,12.21} },
+	RightArm = { Parent = "Torso", Offset = {-1.5,0,1.8}, Center = {0.1,0,-0.8}, Size = {15.14,22.57,9.94} },
+	RightLeg = { Parent = nil, Offset = {-0.5,0,2}, Center = {0,0,-1}, Size = {7.58,13.38,12.21} },
+	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {15.93,30.54,9.96} },"""
 
 
 def merged(data):
-	"""gates_window folded into gates (its keys sit on the gates clock, its 1.6 and 3.6 keys are gates' own); enuma_beam continues
-	enuma_charge on one clock. Merged moves are named gates and enuma, as the server knows them."""
-	# fortified_idle (approved) is not baked: the shield ring it shows is BossKingVfx's from BossFortified, its breathing is idle's.
-	moves = {n: m for n, m in data["moves"].items() if "extends" not in m and n != "fortified_idle"}
-	for name, w in data["moves"].items():
-		if "extends" not in w:
-			continue
-		parent = moves.pop(w["extends"])
-		keys = {k["t"]: k for k in parent["keys"]}
-		for k in w["keys"]:
-			if k["t"] in keys:  # the parent's own key (its event stays)
-				assert keys[k["t"]]["rotations"] == k["rotations"] and keys[k["t"]]["root_offset"] == k["root_offset"], f"{name} {k['t']}: not its parent's key"
-			else:
-				keys[k["t"]] = k
-		out = "gates" if w["extends"] == "gates" else "enuma"
-		moves[out] = dict(parent, keys=[keys[t] for t in sorted(keys)], end=w["end"], Window=list(WINDOW[out]))
-	return dict(data, moves=moves)
+	"""gates_window folded into gates (its keys sit on the gates clock, its 1.6 and 3.6 keys are gates' own). The old enuma moves and
+	fortified_idle are not baked: enuma comes from the rework, the shield ring of fortified_idle is BossKingVfx's."""
+	moves = {n: m for n, m in data["moves"].items() if n in ("idle", "gates", "shields")}
+	w = data["moves"]["gates_window"]
+	keys = {k["t"]: k for k in moves["gates"]["keys"]}
+	for k in w["keys"]:
+		if k["t"] in keys:  # the parent's own key (its event stays)
+			assert keys[k["t"]]["rotations"] == k["rotations"] and keys[k["t"]]["root_offset"] == k["root_offset"], f"gates_window {k['t']}: not its parent's key"
+		else:
+			keys[k["t"]] = k
+	moves["gates"] = dict(moves["gates"], keys=[keys[t] for t in sorted(keys)], end=w["end"])
+	return moves
 
 
-def fold(rot):
-	"""Body's hip turn folded away: Torso and the legs turn by Body's rotation then their own; the leg joints move round the hip.
-	Returns rotations per part (no Body, degrees) and the legs' joints (model units from the root)."""
-	rb = mk.eul(rot["Body"])
-	hip = Vector(kk.HIP)
-	out = {p: list(rot[p]) for p in rot if p != "Body"}
-	for p in ("Torso",) + LEGS:
-		out[p] = [math.degrees(v) for v in (rb @ mk.eul(rot[p])).to_euler("XYZ")]
-	locs = {leg: list(hip + rb.to_3x3() @ (Vector(kk.LEG[leg]) - hip)) for leg in LEGS}
-	return out, locs
+# ---- quaternions ----
 
 
-class King:
-	def __init__(self, data):
-		self.data = data
-		self.pivots = dict(data["pivots"])
-		for d in DRUMS:
-			self.pivots[d] = self.pivots["Ea"]  # the drums turn about the grip's axis
-		self.parts = sorted(p for p in self.pivots if p != "Body")  # the 11 bind parts
-		self.channels_of = sorted(set(self.pivots) - set(DRUMS))  # Body folds away, the drums come from Spin
-		self.idle0 = data["moves"]["idle"]["keys"][0]
+def quat(d):
+	return Euler([math.radians(v) for v in d]).to_quaternion()
 
-	def channels(self, key):
-		c = {"root" + "xyz"[i]: float(v) for i, v in enumerate(key["root_offset"])}
-		for p in self.channels_of:
-			r = key["rotations"].get(p, [0, 0, 0])  # Ea absent while he fights bare-handed: upright in the fist
-			for i in range(3):
-				c["%s:%d" % (p, i)] = float(r[i])
-		c["spin"] = float(key.get("ea_drum_spin", 0))
-		return c
 
-	def frame(self, t, c):
-		rot = {p: [c["%s:%d" % (p, i)] for i in range(3)] for p in self.channels_of}
-		folded, locs = fold(rot)
-		for d in DRUMS:
-			folded[d] = [0.0, 0.0, DRUM_SIGN[d] * c["spin"]]
-		body = {p: tuple(folded[p]) for p in self.parts}
-		for leg in LEGS:
-			body[leg + "@"] = tuple((a - b) * 100 for a, b in zip(locs[leg], kk.LEG[leg]))  # thinned to 0.002 units, as the golem's
-		return (float(t), body, (c["rootx"], c["rooty"], c["rootz"]))
+def delta(a, b):
+	"""The shortest turn from a to b, in a's frame."""
+	d = (a.inverted() @ b).normalized()
+	return d if d.w >= 0 else Quaternion((-d.w, -d.x, -d.y, -d.z))
 
-	def key_frame(self, key):
-		"""An approved key as the client sees it: Body folded in, 3 decimals (as printed); the drums from its spin."""
-		f = self.frame(key["t"], self.channels(key))
-		body = {p: tuple(round(v, 3) + 0 for v in f[1][p]) for p in self.parts}
-		for leg in LEGS:
-			body[leg + "@"] = tuple(round(v, 2) + 0 for v in f[1][leg + "@"])
-		return (float(key["t"]), body, tuple(float(v) for v in key["root_offset"]))
 
-	def sample(self, name, times, values, segments, duration, knots, trembles=()):
-		at = bm.track(times, values, segments)
-		grid = np.linspace(0, duration, int(round(duration * RATE)) + 1)
-		samples = [at(t) for t in grid]
-		sec = bm.secondary(grid, samples, FOLLOW, list(trembles), knots, name)
-		spin = np.interp(grid, times, [v["spin"] for v in values])  # the drums turn at a steady rate between keys
-		frames = []
-		for i, t in enumerate(grid):
-			c = dict(samples[i])
-			for channel, curve in sec.items():
-				c[channel] += float(curve[i])
-			c["spin"] = float(spin[i])
-			frames.append(self.frame(t, c))
-		return frames
+def power(q, s):
+	axis, angle = q.to_axis_angle()
+	return Quaternion(axis, angle * s)
 
-	def pin(self, frames, keys, name):
-		"""Approved keys go in verbatim (folded), after proving the curve runs through them."""
-		out = [f for f in frames if all(abs(f[0] - k["t"]) > 1e-6 for k in keys)]
-		for k in keys:
-			f = min(frames, key=lambda f: abs(f[0] - k["t"]))
-			kf = self.key_frame(k)
-			assert abs(f[0] - k["t"]) < 1e-9, f"{name} {k['t']}: not on the sample grid"
-			for p in f[1]:
-				e = max(abs(a - b) for a, b in zip(f[1][p], kf[1][p]))
-				assert e < 0.02, f"{name} {k['t']} {p}: the curve is {e} off its approved key"
-			assert max(abs(a - b) for a, b in zip(f[2], kf[2])) < 1e-6, f"{name} {k['t']}: root off its approved key"
-			out.append(kf)
-		return sorted(out, key=lambda f: f[0])
 
-	def attack(self, name):
-		move = self.data["moves"][name]
-		keys = move["keys"]
-		assert keys[0]["t"] == 0
-		times = [k["t"] for k in keys] + [move["end"]]
-		end = self.channels(self.idle0)
-		end["spin"] = self.channels(keys[-1])["spin"]  # the drums never unwind: Ea is hidden at the move's end
-		values = [self.channels(k) for k in keys] + [end]
-		frames = self.sample(name, times, values, PLAN[name], move["end"], times, [TREMBLE[name]] if name in TREMBLE else ())
-		raw, at = EVENTS[name]
-		hit = next(k["t"] for k in keys if k.get("event") == raw)
-		events = ([{"Time": 0, "Name": at + "_start"}] if "Window" in move else []) + [{"Time": hit, "Name": at}]
-		if "Window" in move:
-			assert hit == move["Window"][0], f"{name}: the cost event is not the window's start"
-		return self.pin(frames, keys, name), [k["t"] for k in keys], events, move["end"], times
+def turn(degrees):
+	"""A small rotation vector (degrees, the part's own axes) as a quaternion."""
+	v = Vector(degrees)
+	return Quaternion(v.normalized(), math.radians(v.length)) if v.length > 1e-9 else Quaternion()
 
-	def lead(self, name, a, b, length):
-		values = [self.channels(a), self.channels(b)]
-		frames = self.sample(name, [0, length], values, bm.LEAD_PLAN, length, [0, length])
-		frames[0], frames[-1] = self.frame(0, values[0]), self.frame(length, values[1])
-		return frames, [], [], length, [0, length]
 
-	def idle(self):
-		"""The breathing loop: eased through its 3 keys and back to key 0 at the period's end, so it loops without a pop."""
-		move = self.data["moves"]["idle"]
-		keys, period = move["keys"], move["end"]
-		assert move["loop"] and keys[0]["t"] == 0 and period == IDLE_ROW
-		times = [k["t"] for k in keys] + [period]
-		values = [self.channels(k) for k in keys] + [self.channels(keys[0])]
-		frames = self.sample("idle", times, values, (IDLE_PLAN,) * len(keys), period, times)
-		frames = self.pin(frames[:-1], keys, "idle") + [(period,) + self.key_frame(keys[0])[1:]]  # the loop's end is its first key
-		return frames, [k["t"] for k in keys], [], period, times
+def matrix64(v):
+	"""XYZ Euler degrees as the client poses them (Z, then Y, then X), in doubles: mathutils is float32."""
+	x, y, z = (math.radians(a) for a in v)
+	rx = np.array(((1, 0, 0), (0, math.cos(x), -math.sin(x)), (0, math.sin(x), math.cos(x))))
+	ry = np.array(((math.cos(y), 0, math.sin(y)), (0, 1, 0), (-math.sin(y), 0, math.cos(y))))
+	rz = np.array(((math.cos(z), -math.sin(z), 0), (math.sin(z), math.cos(z), 0), (0, 0, 1)))
+	return rz @ ry @ rx
+
+
+def apart(a, b):
+	"""Degrees between two XYZ Euler rotations (degrees), as boss_king_anim's rotationApart."""
+	return math.degrees(2 * math.asin(min(1.0, np.linalg.norm(matrix64(a) - matrix64(b)) / (2 * math.sqrt(2)))))
+
+
+# ---- a key as plain state ----
+
+
+def state(key, rework):
+	"""rot: local quaternion per keyed part and Body; euler: the key's own numbers (verbatim); root, grip (Ea's grip offset in the
+	right forearm's space) and spin as the key holds them."""
+	rot = key["rotations"] if rework else {OLD.get(p, p): v for p, v in key["rotations"].items()}
+	euler = {p: [float(v) for v in rot.get(p, (0, 0, 0))] for p in ("Body",) + KEYED}  # an old key's forearms and shins: 0
+	return {
+		"t": float(key["t"]),
+		"euler": euler,
+		"rot": {p: quat(v) for p, v in euler.items()},
+		"root": Vector(key["root_offset"]),
+		"root_offset": tuple(float(v) for v in key["root_offset"]),  # verbatim (Vector is float32)
+		"grip": Vector(key.get("ea_grip_offset", GRIP0)),
+		"spin": float(key.get("ea_drum_spin", 0)),
+	}
+
+
+def track(stops, segments):
+	"""The pose at t through every stop: slerp per part on the segment's easing (hold, carry and anticipate as bake_boss_mage.track),
+	Torso and Head on a lagged clock that is back on time at both ends of the segment."""
+	times = [s["t"] for s in stops]
+	assert len(segments) == len(stops) - 1
+	for t0, t1 in zip(times, times[1:]):
+		assert max(LAG.values()) * math.pi / (t1 - t0) < 1, "a lag that would run the clock backwards"
+
+	def weights(i, t):
+		seg = segments[i]
+		hold = seg.get("hold", 0)
+		t0, t1 = times[i], times[i + 1]
+		u = min(max((t - t0 - hold) / (t1 - t0 - hold), 0.0), 1.0)
+		s, b = seg["ease"](u), raga.bump(u)
+		return s - seg.get("anticipate", 0) * b, (seg.get("carry", 0) * b if i > 0 else 0.0)
+
+	def at(t):
+		i = int(max(0, min(len(times) - 2, np.searchsorted(times, t, side="right") - 1)))
+		a, b = stops[i], stops[i + 1]
+		frac = min(max((t - times[i]) / (times[i + 1] - times[i]), 0.0), 1.0)
+		rot = {}
+		for p in a["rot"]:
+			s, c = weights(i, t - LAG.get(p, 0) * math.sin(math.pi * frac))
+			q = a["rot"][p] @ power(delta(a["rot"][p], b["rot"][p]), s)
+			if c:
+				q = q @ power(delta(stops[i - 1]["rot"][p], a["rot"][p]), c)
+			rot[p] = q
+		s, c = weights(i, t)
+		out = {"rot": rot, "spin": float(np.interp(t, times, [x["spin"] for x in stops]))}  # the drums turn at a steady rate
+		for k in ("root", "grip"):
+			out[k] = a[k].lerp(b[k], s) + ((a[k] - stops[i - 1][k]) * c if c else Vector())
+		return out
+
+	return at
+
+
+def pinned(grid, curve, knots):
+	"""curve less a smooth curve through its values at the knots: 0 at every key, as bake_boss_mage.secondary's."""
+	knots = np.array(sorted(set(knots)))
+	i = np.clip(np.searchsorted(knots, grid, side="right") - 1, 0, len(knots) - 2)
+	u = (grid - knots[i]) / (knots[i + 1] - knots[i])
+	at = np.interp(knots, grid, curve)
+	return curve - (at[i] + (at[i + 1] - at[i]) * u * u * (3 - 2 * u))
 
 
 # ---- the bind from the model ----
 
 
-def king_bind(king, data, scale):
-	"""His parts as the client wants them: a part's joint is its keys.json pivot; Ea's (the grip, with its drums) sits on the fist,
-	pivot + ea_grip_offset. The Ea empty carries its meshes, so their rest origin is the empty's place."""
+def king_bind(data, scale):
+	"""His parts as the client wants them: a part's joint is its rework keys.json pivot; Ea's (the grip, with its drums) sits in the
+	right fist, pivot + the in-hand grip. The Ea empty carries its meshes, so their rest origin is the empty's place."""
 	objs = {o.name: o for o in bpy.data.objects if o.type == "MESH"}
-	assert sorted(objs) == sorted(MESH.get(p, p) for p in king.parts), sorted(objs)
-	grips = {tuple(round(v, 3) + 0 for v in k["ea_grip_offset"]) for m in data["moves"].values() for k in m["keys"] if "ea_grip_offset" in k}
-	assert len(grips) == 1, grips
-	grip = Vector(next(iter(grips)))
-	parents = {p: (q if q != "Body" else None) for p, q in data["parents"].items() if p != "Body"}
-	joint = {p: Vector(king.pivots[p]) + (grip if p in ("Ea",) + DRUMS else Vector()) for p in king.parts}
-	assert max(abs(a - b) for a, b in zip(joint["Ea"], kk.HAND["RightArm"])) < 1e-3, "Ea's joint is not the right fist"
+	assert sorted(objs) == sorted(MESH.values()), sorted(objs)
+	pivots = {p: Vector(v) for p, v in data["pivots"].items()}
+	for d in DRUMS:
+		pivots[d] = pivots["Ea"]
+	grips = {tuple(round(v, 3) + 0 for v in k["ea_grip_offset"]) for k in data["moves"]["enuma"]["keys"]}
+	assert tuple(round(v, 3) + 0 for v in GRIP0) in grips, grips
+	parents = {p: data["parents"][p] for p in PARTS}
+	parents.update({p: None for p in FOLDED})
+	joint = {p: pivots[p] + (Vector(GRIP0) if p in ("Ea",) + DRUMS else Vector()) for p in PARTS}
 	bind = {}
-	for p in king.parts:
-		o = objs[MESH.get(p, p)]
+	for p in PARTS:
+		o = objs[MESH[p]]
 		co = bm.local_verts(o)
 		lo, hi = co.min(axis=0), co.max(axis=0)
-		mesh_origin = Vector(o.matrix_world.translation) - Vector(king.pivots[p])  # a vertex sits at pivot + this + co before posing
+		mesh_origin = Vector(o.matrix_world.translation) - pivots[p]  # a vertex sits at pivot + this + co before posing
 		parent = parents[p]
 		bind[p] = {
 			"Parent": parent,
 			"Offset": tuple(joint[p] - (joint[parent] if parent else Vector())),
 			"Center": tuple(mesh_origin + Vector((lo + hi) / 2)),
 			"Size": tuple(((hi - lo) * scale)[[0, 2, 1]]),
-			"Joint": tuple(joint[p]),
 		}
 		if p == "Ea_Drum3":  # the pillar's chisel tip, from the grip joint: where the beam leaves
 			bind["Ea"]["Tip"] = tuple(mesh_origin + Vector(co[co[:, 2] > co[:, 2].max() - 0.3].mean(axis=0)))
-	return bind, objs
+	return bind, objs, pivots
 
 
 def joints(bind, body, root):
-	"""The client's chain: joint = parent * CFrame(offset) * rotation, the legs' offsets from their Locs."""
+	"""The client's chain (BossRaga:Pose): joint = parent * CFrame(offset or loc) * rotation; the root adds to parentless parts."""
 	out = {}
 
 	def m(n):
 		if n not in out:
 			b = bind[n]
 			base = m(b["Parent"]) if b["Parent"] else Matrix.Translation(root)
-			offset = Vector(kk.LEG[n]) + Vector(body[n + "@"]) / 100 if n in LEGS else Vector(b["Offset"])
+			offset = Vector(b["Offset"]) + Vector(body[n + "@"]) / 100 if n in LOCS else Vector(b["Offset"])
 			out[n] = base @ Matrix.Translation(offset) @ Euler([math.radians(v) for v in body[n]]).to_matrix().to_4x4()
 		return out[n]
 
@@ -274,27 +302,195 @@ def joints(bind, body, root):
 	return out
 
 
-def check_bind(king, raw, bind):
-	"""The joint chain the client builds (Body folded in) reproduces the approved key poses of boss_king_keyframes.solve exactly."""
-	for name, move in raw["moves"].items():
-		assert len(kk.MOVES[name]["keys"]) == len(move["keys"]), name
-		for key, approved in zip(kk.MOVES[name]["keys"], move["keys"]):
-			m, record, grip = kk.solve(key)
-			for p, v in record.items():  # keys.json is still what the approved solver makes
-				assert max(abs(a - b) for a, b in zip(v, approved["rotations"][p])) < 1e-3, f"keys.json {name} {key['t']} {p} is not the solver's"
-			assert ("ea" in key) == approved["ea_shown"] and (grip is None or max(abs(a - b) for a, b in zip(grip, approved["ea_grip_offset"])) < 1e-3)
-			_, body, root = king.frame(key["t"], king.channels(approved))
+# ---- frames ----
+
+
+class King:
+	def __init__(self, old, rework, bind, pivots):
+		self.old, self.rework, self.bind, self.pivots = old, rework, bind, pivots
+		self.idle0 = state(old["idle"]["keys"][0], False)
+		self.verbatim = {"shifted": 0, "rewritten": []}  # key components moved by whole turns, keys written on another Euler branch
+
+	def pose(self, st):
+		"""Body folded in: quaternion per keyed part, the LOCS joints (model units from their parent's joint)."""
+		rb = st["rot"]["Body"]
+		rot = {p: st["rot"][p] for p in KEYED}
+		for p in FOLDED:
+			rot[p] = rb @ st["rot"][p]
+		hip = Vector(kk.HIP)
+		locs = {p: hip + rb @ (self.pivots[p] - hip) for p in THIGHS}
+		locs["Ea"] = self.pivots["Ea"] + st["grip"] - self.pivots["RightLowerArm"]
+		return rot, locs
+
+	def frame(self, t, st, prev, key=None):
+		"""(t, body, root): body has XYZ Euler degrees per bind part, each the Euler nearest prev's, and "<loc>@" the LOCS joints off
+		the bind (units x 100, for thinning). A key's own parts keep its numbers (moved by whole turns to sit next to prev)."""
+		rot, locs = self.pose(st)
+		body = {}
+		for p in KEYED:
+			e = rot[p].to_euler("XYZ", Euler([math.radians(v) for v in prev[p]])) if prev else rot[p].to_euler("XYZ")
+			e = [math.degrees(v) for v in e]
+			if key is not None:
+				if p in FOLDED:
+					e = [round(v, 3) + 0 for v in e]
+				else:
+					v = list(key["euler"][p])
+					if prev:
+						v = [a + 360 * round((b - a) / 360) for a, b in zip(v, e)]
+						self.verbatim["shifted"] += sum(a != b for a, b in zip(v, key["euler"][p]))
+					if prev is None or max(abs(a - b) for a, b in zip(v, e)) < 1.0:
+						e = v
+					else:  # the curve arrives on the other Euler branch: the key's rotation, written as the curve has it
+						e = [round(x, 3) + 0 for x in e]
+						self.verbatim["rewritten"].append((key["t"], p))
+					assert apart(e, key["euler"][p]) < 1e-3, f"{key['t']} {p}: off its key"
+			body[p] = tuple(e)
+		for d in DRUMS:
+			body[d] = (0.0, 0.0, DRUM_SIGN[d] * st["spin"])
+		for p in LOCS:
+			body[p + "@"] = tuple((a - b) * 100 for a, b in zip(locs[p], self.bind[p]["Offset"]))
+		return (float(t), body, key["root_offset"] if key is not None else tuple(st["root"]))
+
+	def bake(self, name, stops, segments, duration, knots, approved=()):
+		"""Sampled at RATE, springs, trembles and recoil added (each back to 0 at every knot), then written as Euler frames."""
+		at = track(stops, segments)
+		grid = np.linspace(0, duration, int(round(duration * RATE)) + 1)
+		for k in knots:  # key times exactly on the grid
+			i = int(np.argmin(np.abs(grid - k)))
+			assert abs(grid[i] - k) < 1e-6, f"{name} {k}: not on the sample grid"
+			grid[i] = k
+		samples = [at(float(t)) for t in grid]
+		turned = {p: np.zeros(3) for p in samples[0]["rot"]}
+		channels = []
+		for i, s in enumerate(samples):
+			if i:
+				for p, q in s["rot"].items():
+					axis, angle = delta(samples[i - 1]["rot"][p], q).to_axis_angle()
+					turned[p] = turned[p] + np.array(axis) * math.degrees(angle)
+			c = {"%s:%d" % (p, j): float(v[j]) for p, v in turned.items() for j in range(3)}
+			c.update({"root" + "xyz"[j]: float(s["root"][j]) for j in range(3)})
+			channels.append(c)
+		sec = bm.secondary(grid, channels, FOLLOW, [TREMBLE[name]] if name in TREMBLE else [], knots, name)
+		if name in HITS:
+			for p, axis, degrees, hz in RECOIL:
+				tau = np.maximum(grid - HITS[name], 0)
+				ch = "%s:%d" % (p, axis)
+				sec[ch] = sec.get(ch, 0) + pinned(grid, degrees * np.exp(-6 * tau) * np.sin(2 * math.pi * hz * tau), knots)
+		keys = {s["t"]: s for s in stops if s["t"] in approved}
+		frames, prev = [], None
+		for i, t in enumerate(grid):
+			s = samples[i]
+			for p in KEYED:
+				v = [float(sec["%s:%d" % (p, j)][i]) if "%s:%d" % (p, j) in sec else 0.0 for j in range(3)]
+				s["rot"][p] = s["rot"][p] @ turn(v)
+			f = self.frame(t, s, prev, keys.get(float(t)))
+			frames.append(f)
+			prev = f[1]
+		return frames
+
+	def attack(self, name):
+		rework = name == "enuma"
+		move = self.rework["moves"]["enuma"] if rework else self.old[name]
+		stops = [state(k, rework) for k in move["keys"]]
+		assert stops[0]["t"] == 0
+		if stops[-1]["t"] < move["end"]:  # back to idle key 0; the drums never unwind (Ea is hidden at the move's end)
+			stops.append(dict(self.idle0, t=float(move["end"]), spin=stops[-1]["spin"]))
+		approved = [k["t"] for k in move["keys"]]
+		knots = [s["t"] for s in stops]
+		frames = self.bake(name, stops, PLAN[name], move["end"], knots, approved)
+		raw, at = EVENTS[name]
+		hit = next(k["t"] for k in move["keys"] if k.get("event") == raw)
+		events = ([{"Time": 0, "Name": at + "_start"}] if name in WINDOW else []) + [{"Time": hit, "Name": at}]
+		if name in WINDOW:
+			assert hit == WINDOW[name][0], f"{name}: the cost event is not the window's start"
+		keep = knots + [t + seg.get("hold", 0) for t, seg in zip(knots, PLAN[name])]
+		return frames, approved, events, move["end"], keep
+
+	def lead(self, name, a, b, length):
+		stops = [dict(a, t=0.0), dict(b, t=float(length))]
+		frames = self.bake(name, stops, LEAD_PLAN, length, [0, length], [0, length])
+		return frames, [], [], length, [0, length]
+
+	def idle(self):
+		"""The breathing loop: eased through its 3 keys and back to key 0 at the period's end, so it loops without a pop."""
+		move = self.old["idle"]
+		keys, period = move["keys"], move["end"]
+		assert move["loop"] and keys[0]["t"] == 0 and period == IDLE_ROW
+		stops = [state(k, False) for k in keys] + [dict(self.idle0, t=float(period))]
+		knots = [s["t"] for s in stops]
+		frames = self.bake("idle", stops, (IDLE_PLAN,) * len(keys), period, knots, knots)
+		bad = {p: (frames[0][1][p], frames[-1][1][p]) for p in frames[0][1] if max(abs(a - b) for a, b in zip(frames[0][1][p], frames[-1][1][p])) > 1e-3}
+		assert not bad, f"idle: the loop's end is not its first key {bad}"
+		frames[-1] = (float(period),) + frames[0][1:]  # float32 noise in the hip locs aside, the same frame: written once
+		return frames, [k["t"] for k in keys], [], period, knots
+
+
+# ---- checks ----
+
+
+def check_bind(king, old_raw, rework, bind):
+	"""The joint chain the client builds reproduces the key poses of the approved solvers: jsolve for the rework keys (and its keys.json
+	is still what jsolve makes), solve for the old keys with the forearms and shins straight."""
+	for name, move in rework["moves"].items():
+		jkeys = kk.JMOVES[name]["keys"]
+		assert [k["t"] for k in jkeys] == [k["t"] for k in move["keys"]], name
+		for jkey, approved in zip(jkeys, move["keys"]):
+			m, record, grip, _ = kk.jsolve(jkey)
+			for p, v in record.items():
+				assert apart(v, approved["rotations"][p]) < 1e-3, f"rework keys.json {name} {jkey['t']} {p} is not jsolve's"
+			assert max(abs(a - b) for a, b in zip(grip, approved["ea_grip_offset"])) < 1e-3
+			_, body, root = king.frame(jkey["t"], state(approved, True), None)
 			world = joints(bind, body, root)
-			for p in king.parts:
+			for p in PARTS:
 				if p in ("Ea",) + DRUMS:
-					if "ea" not in key:
-						continue
 					want = m["Ea"] @ Matrix.Translation(king.pivots["Ea"])
 					if p in DRUMS:
-						want = want @ Matrix.Rotation(math.radians(DRUM_SIGN[p] * key.get("spin", 0)), 4, "Z")
+						want = want @ Matrix.Rotation(math.radians(DRUM_SIGN[p] * jkey.get("spin", 0)), 4, "Z")
 				else:
 					want = m[MESH[p]] @ Matrix.Translation(king.pivots[p])
+				assert max(abs(a - b) for ra, rb in zip(want, world[p]) for a, b in zip(ra, rb)) < 1e-3, f"bind {p} at rework {name} {jkey['t']}"
+	limb = {"LeftUpperArm": "LeftArm", "LeftLowerArm": "LeftArm", "RightUpperArm": "RightArm", "RightLowerArm": "RightArm", "LeftUpperLeg": "LeftLeg", "LeftLowerLeg": "LeftLeg", "RightUpperLeg": "RightLeg", "RightLowerLeg": "RightLeg"}
+	for name, move in old_raw["moves"].items():
+		if name not in ("idle", "gates", "gates_window", "shields"):
+			continue
+		for key, approved in zip(kk.MOVES[name]["keys"], move["keys"]):
+			m, record, _ = kk.solve(key)
+			for p, v in record.items():  # keys.json is still what the approved solver makes
+				assert max(abs(a - b) for a, b in zip(v, approved["rotations"][p])) < 1e-3, f"keys.json {name} {key['t']} {p} is not the solver's"
+			_, body, root = king.frame(key["t"], state(approved, False), None)
+			world = joints(bind, body, root)
+			for p in kk.JPARTS + ("Key",):
+				want = m[limb[p] + "_merged" if p in limb else MESH[p]] @ Matrix.Translation(king.pivots[p])
 				assert max(abs(a - b) for ra, rb in zip(want, world[p]) for a, b in zip(ra, rb)) < 1e-3, f"bind {p} at {name} {key['t']}"
+
+
+def check_continuity(name, frames, events, approved, duration):
+	"""boss_king_anim "continuous" in Python: Sample's lerp at 60 Hz, at most LIMIT_DEGREES per part and LIMIT_ROOT root (units) a
+	frame, outside the hit snap (the key segment that ends on an event, to SNAP s after it). Also the thinning's largest gap."""
+	key_times = list(approved) or [f[0] for f in frames]
+	snaps = []
+	for e in events:
+		before = [k for k in key_times if k < e["Time"] - 1e-6]
+		snaps.append((max(before) if before else e["Time"], e["Time"] + SNAP))
+	parts = list(PARTS)
+	prev = raga.lerp_frame(frames, 0, parts)
+	worst, worst_at, worst_part, worst_root = 0.0, 0.0, None, 0.0
+	for k in range(1, int(math.floor(duration * 60 + 1e-9)) + 1):
+		t = k / 60
+		cur = raga.lerp_frame(frames, t, parts)
+		if not any(a < t <= b for a, b in snaps):
+			for p in parts:
+				d = apart(prev[0][p], cur[0][p])
+				if d > worst:
+					worst, worst_at, worst_part = d, t, p
+			worst_root = max(worst_root, float(np.abs(cur[1] - prev[1]).max()))
+		prev = cur
+	gaps = max(b[0] - a[0] for a, b in zip(frames, frames[1:]))
+	print(f"BAKE {name}: {len(frames)} keys, largest gap {gaps:.4f} s, worst {worst:.2f} deg/frame at {worst_at:.3f} s on {worst_part}, root {worst_root:.4f}/frame")
+	assert worst <= LIMIT_DEGREES, f"{name}: {worst:.2f} degrees in a frame at {worst_at:.3f} s on {worst_part}"
+	assert worst_root <= LIMIT_ROOT, f"{name}: root {worst_root} in a frame"
+	assert gaps <= raga.MAX_GAP + 1e-9, f"{name}: a key gap of {gaps} s"
+	assert frames[0][0] == 0 and abs(frames[-1][0] - duration) < 1e-9, name
 
 
 def check_cycle(moves):
@@ -306,6 +502,7 @@ def check_cycle(moves):
 	gaps = [b - a for a, b in zip(hits, hits[1:] + [hits[0] + at])]
 	print(f"BAKE cycle {at:.2f} s, events at {[round(h, 2) for h in hits]}, shortest gap {min(gaps):.2f} s")
 	assert min(gaps) >= bm.MIN_HIT_GAP, f"two events {min(gaps)} s apart"
+	assert abs(at - CYCLE_SECONDS) < 1e-9, f"cycle {at} s, not {CYCLE_SECONDS}"
 	assert {r[0] for r in CYCLE} == set(moves), "a move missing from the cycle"
 	for i, row in enumerate(CYCLE):
 		if row[0].endswith("_in"):
@@ -316,12 +513,36 @@ def check_cycle(moves):
 
 
 def check_verbatim(king, moves):
-	for name, m in king.data["moves"].items():
+	"""Every approved key at its time, on the thinned frames, is its keys.json pose (Body folded in for Torso and the thighs)."""
+	sources = {"enuma": (king.rework["moves"]["enuma"], True), **{n: (king.old[n], False) for n in ("idle", "gates", "shields")}}
+	for name, (move, rework) in sources.items():
 		frames = {f[0]: f for f in moves[name][0]}
-		assert moves[name][1] == [k["t"] for k in m["keys"]], name
-		for k in m["keys"]:
-			kf = king.key_frame(k)
-			assert frames[k["t"]][1] == kf[1] and tuple(frames[k["t"]][2]) == kf[2], f"{name} {k['t']} not verbatim"
+		assert moves[name][1] == [k["t"] for k in move["keys"]], name
+		for k in move["keys"]:
+			st = state(k, rework)
+			f = frames[float(k["t"])]
+			rot, locs = king.pose(st)
+			for p in KEYED:
+				want = [math.degrees(v) for v in rot[p].to_euler("XYZ")]
+				assert apart(f[1][p], want) < 1e-3, f"{name} {k['t']} {p}: off its approved key"
+			for d in DRUMS:
+				assert f[1][d] == (0.0, 0.0, DRUM_SIGN[d] * st["spin"]), f"{name} {k['t']} {d}"
+			for p in LOCS:
+				assert max(abs(a - b) for a, b in zip(f[1][p + "@"], (locs[p] - Vector(king.bind[p]["Offset"])) * 100)) < 1e-3, f"{name} {k['t']} {p}: loc"
+			assert tuple(f[2]) == tuple(float(v) for v in k["root_offset"]), f"{name} {k['t']}: root"
+
+
+def check_rig(bind, frames):
+	"""ui_boss_king_rig's sanity check on the jointed rig, in Python: at 1.7 s (charge) Ea upright and the right forearm above the upper
+	arm, at 3.05 s (the swing) Ea within 30 degrees of level and the forearm below. Ea's axis: Ea_Drum1's centre to Ea_Drum3's."""
+	for t, upright in ((1.7, True), (3.05, False)):
+		rot, root = raga.lerp_frame(frames, t, list(PARTS) + [p + "@" for p in LOCS])
+		world = joints(bind, {p: tuple(v) for p, v in rot.items()}, Vector(root))
+		at = {p: world[p] @ Vector(bind[p]["Center"]) for p in ("Ea_Drum1", "Ea_Drum3", "RightUpperArm", "RightLowerArm")}
+		ea = (at["Ea_Drum3"] - at["Ea_Drum1"]).normalized().z
+		arm = at["RightLowerArm"].z - at["RightUpperArm"].z
+		print(f"BAKE rig at {t} s: Ea axis up {ea:.2f}, forearm minus upper arm height {arm:.2f} units")
+		assert (ea >= 0.8 and arm > 0) if upright else (abs(ea) <= 0.5 and arm < 0), f"rig at {t} s"
 
 
 # ---- the Luau file ----
@@ -331,6 +552,7 @@ local Poses = {}
 Poses.Moves = MOVES
 Poses.Approved = APPROVED
 Poses.Bind = BIND -- each part: Parent, Offset from its parent's joint, Center of its box from its own joint (units), Size (studs)
+Poses.Bind6 = BIND6 -- the uploaded 6-part model's bind: Client/BossKing's fallback until the jointed model is uploaded
 Poses.Scale = SCALE
 Poses.RootStuds = ROOT_STUDS -- studs per keys.json root_offset unit: Keys' Root is already studs
 Poses.EaTip = Vector3.new(BIND.Ea.Tip[1], BIND.Ea.Tip[2], BIND.Ea.Tip[3]) -- units from the Ea joint, Blender axes: the pillar's tip
@@ -343,7 +565,8 @@ for part, row in BIND do
 	end
 	OFFSETS[part] = Vector3.new(row.Offset[1], row.Offset[2], row.Offset[3])
 end
-local LEGS = { "LeftLeg", "RightLeg" }
+-- Joints that move on their parent: the hips round his body's turn, Ea's grip on the forearm (out of the hand at idle key 0).
+local LOCS = { "LeftUpperLeg", "RightUpperLeg", "Ea" }
 
 -- Plain numbers to Vector3s, once. A part left out of a move's keys holds one value for the whole move.
 for _, move in MOVES do
@@ -366,8 +589,7 @@ for _, move in MOVES do
 end
 
 -- The pose of a move at time t, clamped to the move: parts[part] a Vector3 of XYZ Euler degrees, rootOffset a Vector3 in studs,
--- locs[part] each joint's offset from its parent's joint in model units (the legs move round the hip when his body turns): pass
--- them to BossRaga:Pose as its locs.
+-- locs[part] each joint's offset from its parent's joint in model units: pass them to BossRaga:Pose as its locs.
 function Poses.Sample(name, t)
 	local move = MOVES[name]
 	local keys = move.Keys
@@ -396,9 +618,10 @@ function Poses.Sample(name, t)
 			parts[part] = move.Held[part]
 		end
 	end
-	if a.Locs or b.Locs then
-		for _, leg in LEGS do
-			locs[leg] = (a.Locs and a.Locs[leg] or OFFSETS[leg]):Lerp(b.Locs and b.Locs[leg] or OFFSETS[leg], u)
+	for _, part in LOCS do
+		local from, to = a.Locs and a.Locs[part], b.Locs and b.Locs[part]
+		if from or to then
+			locs[part] = (from or OFFSETS[part]):Lerp(to or OFFSETS[part], u)
 		end
 	end
 	local spin = (a.Spin or 0) + ((b.Spin or 0) - (a.Spin or 0)) * u
@@ -426,13 +649,14 @@ def write_luau(king, bind, moves, scale):
 	fmt, vec = raga.fmt, raga.vec
 	lines = [
 		"--!nonstrict",
-		"-- Generated by tools/blender/bake_boss_king.py from assets/characters_avatar/boss_king/keyframes/keys.json. Do not edit by hand.",
-		'-- The Golden King\'s moves (design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King"), client-side visuals; the',
-		"-- server reads Schedule and Events only. Same shape as BossMagePoses, plus Sample's locs, Keys' Spin, EaShown and EaSpin.",
-		"-- Owner-approved keys (2026-11-11) are verbatim at their times with Body (his hip turn) folded into Torso and the legs, as the",
-		"-- client poses them; Time is seconds, Parts XYZ Euler degrees, Root STUDS, Locs model units. gates holds gates_window's keys,",
-		"-- enuma is enuma_charge then enuma_beam. Proposed: the %s s leads (<move>_in), CYCLE and every in-between." % fmt(LEAD),
-		"local Event = require(game:GetService(\"ReplicatedStorage\").Shared.BossEventConfig)",
+		"-- Generated by tools/blender/bake_boss_king.py from assets/characters_avatar/boss_king/keyframes/rework/keys.json (enuma) and",
+		"-- keyframes/keys.json (idle, gates, shields). Do not edit by hand. The Golden King's moves on his jointed rig (design doc 4.37",
+		'-- "Third boss" and "Animation rework", docs/BOSS_EVENT_SPEC.md "The Golden King"), client-side visuals; the server reads',
+		"-- Schedule and Events only. Same shape as BossMagePoses, plus Sample's locs, Keys' Spin, EaShown and EaSpin. Approved keys are",
+		"-- at their times (enuma: owner 2026-11-12; the others 2026-11-11, mapped with the forearms and shins straight until re-keyed),",
+		"-- with Body (his hip turn) folded into Torso and the thighs. Time is seconds, Parts XYZ Euler degrees, Root STUDS, Locs model",
+		"-- units. gates holds gates_window's keys. Proposed: every in-between.",
+		'local Event = require(game:GetService("ReplicatedStorage").Shared.BossEventConfig)',
 		"",
 		"local SCALE = %s -- studs per model unit: %s x a %s-stud character, %s studs tall" % (fmt(scale, 4), SIZE, fmt(kk.CHAR_H), fmt(SIZE * kk.CHAR_H, 1)),
 		"local ROOT_STUDS = SCALE",
@@ -440,43 +664,49 @@ def write_luau(king, bind, moves, scale):
 		"local BIND = {",
 		*bm.bind_lines(bind, ("Tip",)),
 		"}",
+		"-- shortcut: the 6-part model uploaded 2026-11-11 (SidekickArt.boss_king.BossModel); delete when boss_king_jointed is uploaded.",
+		"-- stylua: ignore",
+		"local BIND6 = {",
+		BIND6,
+		"}",
 		"-- stylua: ignore",
 		"local MOVES = {",
 	]
+	keyed = [p for p in PARTS if p not in DRUMS]
 	for name in sorted(moves):
 		frames, approved, events, duration, _ = moves[name]
-		pinned = set(approved)
-		keyed = [p for p in king.parts if p not in DRUMS]
+		pinned_t = set(approved) | {0.0, float(duration)}
 		moved = [p for p in keyed if any(max(abs(a - b) for a, b in zip(f[1][p], frames[0][1][p])) > 1e-3 for f in frames)]
 		held = [p for p in keyed if p not in moved]
-		shown = [k for k in king.data["moves"].get(name, {}).get("keys", []) if k.get("ea_shown")]
-		turning = any(any(abs(v) > 1e-6 for leg in LEGS for v in f[1][leg + "@"]) for f in frames)
+		shown = name == "enuma"
+		locs = [p for p in LOCS if any(abs(v) > 1e-6 for f in frames for v in f[1][p + "@"])]
 		lines.append("\t%s = {" % name)
 		lines.append("\t\tDuration = %s," % fmt(duration, 3))
 		lines.append("\t\tApproved = {%s}," % ", ".join(fmt(t, 3) for t in approved))
 		lines.append("\t\tEvents = {%s}," % ", ".join('{ Time = %s, Name = "%s" }' % (fmt(e["Time"], 3), e["Name"]) for e in events))
-		if "Window" in king.data["moves"].get(name, {}):
-			lines.append("\t\tWindow = { %s }," % ", ".join(fmt(v, 3) for v in king.data["moves"][name]["Window"]))
+		if name in WINDOW:
+			lines.append("\t\tWindow = { %s }," % ", ".join(fmt(v, 3) for v in WINDOW[name]))
 		if shown:
-			assert all(k.get("ea_shown") for k in king.data["moves"][name]["keys"]), f"{name}: Ea shown for part of the move"
 			lines.append("\t\tEaShown = { 0, %s }," % fmt(duration, 3))
 		lines.append("\t\tHeld = { %s }," % ", ".join("%s = %s" % (p, vec(frames[0][1][p], 3)) for p in held))
 		lines.append("\t\tKeys = {")
 		for f in frames:
-			places = 3 if f[0] in pinned else 1
+			places = 3 if f[0] in pinned_t else 1
 			body = ",".join("%s=%s" % (p, vec(f[1][p], places)) for p in moved)
 			extra = ",Spin=%s" % fmt(f[1]["Ea_Drum1"][2], 2) if shown else ""
-			if turning:
-				extra += ",Locs={%s}" % ",".join("%s=%s" % (leg, vec([a + b / 100 for a, b in zip(kk.LEG[leg], f[1][leg + "@"])], 4)) for leg in LEGS)
+			if locs:
+				extra += ",Locs={%s}" % ",".join("%s=%s" % (p, vec([a + b / 100 for a, b in zip(bind[p]["Offset"], f[1][p + "@"])], 4)) for p in locs)
 			lines.append("\t\t\t{Time=%s,Root=%s,Parts={%s}%s}," % (fmt(f[0], 4), vec([v * scale for v in f[2]], 4), body, extra))
 		lines += ["\t\t},", "\t},"]
 	lines += ["}", "-- stylua: ignore", "local APPROVED = {"]
-	for name, m in king.data["moves"].items():
+	sources = {"idle": king.old["idle"], "gates": king.old["gates"], "enuma": king.rework["moves"]["enuma"], "shields": king.old["shields"]}
+	for name, move in sources.items():
+		frames = {f[0]: f for f in moves[name][0]}
 		lines.append("\t%s = {" % name)
-		for k in m["keys"]:
-			kf = king.key_frame(k)
+		for k in move["keys"]:
+			f = frames[float(k["t"])]
 			assert all(float(fmt(v, 4)) == v for v in k["root_offset"]), f"{name} {k['t']}: a root would not print verbatim"
-			body = ",".join("%s=%s" % (p, vec(kf[1][p], 3)) for p in king.parts)
+			body = ",".join("%s=%s" % (p, vec(f[1][p], 3)) for p in PARTS)
 			lines.append("\t\t{Time=%s,RootOffset=%s,Parts={%s}}," % (fmt(k["t"], 3), vec(k["root_offset"], 4), body))
 		lines.append("\t},")
 	lines += ["}", "-- stylua: ignore", "local CYCLE = {"]
@@ -487,7 +717,7 @@ def write_luau(king, bind, moves, scale):
 	text = "\n".join(lines) + "\n" + FUNCTIONS + "\n" + tail
 	with open(LUAU, "w") as f:
 		f.write(text)
-	print(f"BAKE wrote {LUAU}: {len(text)} bytes, {sum(len(m[0]) for m in moves.values())} keys, " + ", ".join(f"{n} {len(moves[n][0])}" for n in sorted(moves)))
+	print(f"BAKE wrote {LUAU}: {len(text)} bytes ({len(text) / 1024:.1f} KB, was 104 KB), {sum(len(m[0]) for m in moves.values())} keys, " + ", ".join(f"{n} {len(moves[n][0])}" for n in sorted(moves)))
 
 
 def fold_materials(objs):
@@ -503,21 +733,26 @@ def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	wanted = [a for a in argv if a in ("poses", "glb")] or ["poses", "glb"]
 	with open(KEYS) as f:
-		raw = json.load(f)
-	data = merged(raw)
-	king = King(data)
-	scale = SIZE * kk.CHAR_H / data["scale"]["model_height_units"]
-	assert abs(scale - data["scale"]["studs_per_model_unit_at_8x"]) < 1e-3
+		old_raw = json.load(f)
+	with open(REWORK) as f:
+		rework = json.load(f)
+	old = merged(old_raw)
+	scale = SIZE * kk.CHAR_H / rework["scale"]["model_height_units"]
+	assert abs(scale - rework["scale"]["studs_per_model_unit_at_8x"]) < 1e-3
+	assert [k["t"] for k in rework["moves"]["enuma"]["keys"]] == [0, 0.45, 0.95, 1.45, 2.1, 2.75, 3.0, 3.9, 4.85, 5.6]
+	assert rework["moves"]["enuma"]["end"] == 5.6 and all(k["ea_shown"] for k in rework["moves"]["enuma"]["keys"])
 
 	bpy.ops.wm.open_mainfile(filepath=BLEND)
-	bind, objs = king_bind(king, raw, scale)
-	check_bind(king, raw, bind)
+	bind, objs, pivots = king_bind(rework, scale)
+	king = King(old, rework, bind, pivots)
+	check_bind(king, old_raw, rework, bind)
+	print("BAKE bind: the client chain reproduces jsolve (10 rework keys) and solve (old keys, straight forearms and shins)")
 	if "glb" in wanted:
 		fold_materials(objs)
 		for o in list(bpy.data.objects):
 			if o.type != "MESH":
 				bpy.data.objects.remove(o)  # the Ea empty first: the grip mesh takes its name
-		parts = {p: objs[MESH.get(p, p)] for p in king.parts}
+		parts = {p: objs[MESH[p]] for p in PARTS}
 		for p, o in parts.items():
 			o.name = o.data.name = p
 		raga.write_glb(parts, GLB)
@@ -526,22 +761,25 @@ def main():
 		moves = {"idle": king.idle()}
 		for name in PLAN:
 			moves[name] = king.attack(name)
-			moves[name + "_in"] = king.lead(name + "_in", king.idle0, data["moves"][name]["keys"][0], LEAD)
-		thin_parts = king.parts + [leg + "@" for leg in LEGS]
+			first = state(rework["moves"]["enuma"]["keys"][0], True) if name == "enuma" else state(old[name]["keys"][0], False)
+			moves[name + "_in"] = king.lead(name + "_in", king.idle0, first, LEAD)
+		thin_parts = list(PARTS) + [p + "@" for p in LOCS]
 		for name, (frames, approved, events, duration, keep) in list(moves.items()):
 			thinned = raga.thin(frames, thin_parts, keep)
-			hits = [e["Time"] for e in events if not e["Name"].endswith("_start")]
-			bm.check(name, thinned, king.parts, hits, duration)
+			check_continuity(name, thinned, events, approved, duration)
 			assert all(0 <= e["Time"] < duration for e in events), name
 			moves[name] = (thinned, approved, events, duration, keep)
 		check_verbatim(king, moves)
+		check_rig(bind, moves["enuma"][0])
+		print(f"BAKE verbatim: {king.verbatim['shifted']} key Euler components moved by whole turns, other-branch keys {king.verbatim['rewritten']}")
 		cycle_s = check_cycle(moves)
 		for name, (frames, *_rest) in moves.items():
 			assert all(set(f[1]) == set(thin_parts) for f in frames), f"{name}: a part without keys"
 		assert [e["Name"] for e in moves["gates"][2]] == ["gates_start", "gates"] and moves["gates"][2][1]["Time"] == 1.6
 		assert [e["Name"] for e in moves["enuma"][2]] == ["enuma_start", "enuma"] and moves["enuma"][2][1]["Time"] == 3.0
 		assert [(e["Name"], e["Time"]) for e in moves["shields"][2]] == [("shields", 2.2)]
-		assert [len(data["moves"][n]["keys"]) for n in ("idle", "gates", "enuma", "shields")] == [3, 6, 8, 4]
+		assert [len(moves[n][1]) for n in ("idle", "gates", "enuma", "shields")] == [3, 6, 10, 4]
+		assert [moves[n][3] for n in ("idle", "gates", "enuma", "shields")] == [4.0, 4.4, 5.6, 2.6]
 		print(f"BAKE scale {scale:.4f} studs/unit, cycle {cycle_s:.3f} s")
 		write_luau(king, bind, moves, scale)
 		print("BAKE self-check passed")
