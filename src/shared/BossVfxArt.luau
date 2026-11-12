@@ -6,7 +6,8 @@ return {
 	Flare = "rbxassetid://130773046294708",
 	FlatFront = "rbxassetid://92708684136917",
 	FlatSide = "rbxassetid://94913736094229",
-	-- shortcut: empty until assets/ui/boss_king/portal_draft/portal_c.png is uploaded (the king's portals draw Ring meanwhile); filled then
+	-- shortcut: hand-kept and empty until assets/ui/boss_king/portal_draft/portal_c.png is uploaded (portals draw Ring in white meanwhile);
+	-- upload_boss_vfx.py regenerates this file and only globs boss_raga art: add the portal to it (or move the key to BossKingArt) before the next run
 	PortalC = "",
 	Ring = "rbxassetid://115884628820912",
 	Shaft = "rbxassetid://114383042922209",

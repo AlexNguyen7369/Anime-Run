@@ -350,7 +350,7 @@ local function playVolley()
 				local portal = #portals > 0 and portals[(j + k - 2) % #portals + 1]
 				local from = portal and portal.Parent and portal.Position or him() + Vector3.new(0, TIP_HEIGHT, 0)
 				local tip = portal and portalTips[portal]
-				if tip and tip.Parent then -- the firing flash
+				if tip and tip.Parent and not few then -- the firing flash (off under REDUCED EFFECTS)
 					tip.Material = NEON
 					task.delay(0.08, function()
 						tip.Material = Enum.Material.Metal
