@@ -4,7 +4,7 @@
 -- cloud deck; the sky is the arena zone of Client/BiomeEnvironment. Engine primitives only, no uploaded meshes. Built while
 -- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on. While the event's boss
 -- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead;
--- boss_king: the colosseum in its vault dressing (BossArenaConfig.For's Dressing) and Client/BossKing, with Client/BossKingVfx.
+-- boss_king: his own arena (Client/BossKingArena) and Client/BossKing, with Client/BossKingVfx.
 local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -70,6 +70,7 @@ while Players.LocalPlayer:GetAttribute("BossEvent") ~= true and ReplicatedStorag
 end
 local LateData = require(Shared:WaitForChild("LateData"))
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
+local BossKingArena = require(script.Parent:WaitForChild("BossKingArena"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
@@ -108,7 +109,7 @@ local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
 local folder = nil -- the built arena, nil when off
 local added = 0
 local raga = nil -- the boss, while the arena stands
-local mage = nil -- or The Elf Mage or The Golden King (a Client/BossMage or BossKing), while the colosseum stands
+local mage = nil -- or The Elf Mage or The Golden King (a Client/BossMage or BossKing), while her colosseum or his arena stands
 local builtBoss = nil -- the boss id the standing arena was built for
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
@@ -401,7 +402,11 @@ local function refresh()
 		end)
 		if boss ~= "boss_raga" then
 			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
-			BossColosseum.Build(mine, kit, Cfg)
+			if boss == "boss_king" then
+				BossKingArena.Build(mine, kit, Cfg)
+			else
+				BossColosseum.Build(mine, kit, Cfg)
+			end
 			return
 		end
 		build(mine)
@@ -451,7 +456,7 @@ local function stepMage()
 	views.boss_mage.Vfx.Step(since, move, localTime, golemMove, golemTime)
 end
 
--- His entrance (BOSS_EVENT_SPEC "The Golden King", an open question taken as Big Raga's rise): up through the gold heap over
+-- His entrance (BOSS_EVENT_SPEC "The Golden King", an open question taken as Big Raga's rise): up through the mound over
 -- RiseSeconds. One schedule, no golem.
 local function stepKing()
 	local KingPoses = views.boss_king.Poses

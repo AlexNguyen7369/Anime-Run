@@ -94,20 +94,34 @@ colosseum.WallRadius = 164
 -- Owner 2026-11-11: travel speed is capped here so the room does not spin around her; the value is proposed. About 77 deg/s on
 -- lane 1, as the sky arena turns at 800 studs/s. The sky arena has none.
 colosseum.MaxRunSpeed = 100
-colosseum.Dressing = "colosseum" -- the client's dressing of the shell (BossColosseum)
 build(colosseum)
 
--- The Golden King's vault (BOSS_EVENT_SPEC "The Golden King"): the colosseum shell, ring and cap unchanged, dressed as a vault.
-local vault = table.clone(colosseum)
-vault.Dressing = "vault"
-vault.HoverY = 0 -- he stands on the dais (owner 2026-11-11: no hover, no bob)
-vault.BobStuds = 0
-vault.BossTotalHeight = vault.BossHeight
+-- The Golden King's own arena (design doc 4.37 "The Golden King's own arena", BOSS_EVENT_SPEC "The Golden King's arena", owner
+-- 2026-11-12; replaces the 2026-11-11 vault re-dress of the colosseum): an open sandstone stadium built by Client/BossKingArena from
+-- the approved draft tools/blender/arena/build_king_arena.py. All values proposed. The colosseum's site: one arena stands at a time.
+local king = { Y = 1200 }
+king.Center = colosseum.Center
+king.InnerRadius = 110
+king.Width = 56 -- 7 lanes of 8
+king.Lanes = 7
+king.Segments = 144 -- as the sky arena: run:SwitchRoute keeps the waypoint count
+king.DaisY = king.Y
+king.DaisRadius = 67 -- the mound's foot
+king.BossScale = 1
+king.BossHeight = 44 -- 8 x a character, as the mage
+king.MoundTop = 35 -- the gold cap's top over the deck, the highest point of the mound
+king.HoverY = king.MoundTop + 12 -- his feet over the deck: 12 over the mound's top
+king.BobStuds = 1.5
+king.BobSeconds = 3
+king.BossTotalHeight = king.BossHeight + king.HoverY + king.BobStuds
+king.WallRadius = 250 -- the podium's face; the locked camera's eye reaches about 200 on lane 7
+king.MaxRunSpeed = 100 -- the lane cap, unchanged
+build(king)
 
--- "boss_mage": the colosseum; "boss_king": the vault; anything else: this module, the sky arena.
+-- "boss_mage": the colosseum; "boss_king": his own arena; anything else: this module, the sky arena.
 function BossArenaConfig.For(bossId)
 	if bossId == "boss_king" then
-		return vault
+		return king
 	end
 	return bossId == "boss_mage" and colosseum or BossArenaConfig
 end

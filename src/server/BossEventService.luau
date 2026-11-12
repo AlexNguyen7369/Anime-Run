@@ -76,8 +76,8 @@ end
 
 local previewBoss -- the boss whose poses an on arena preview delivered
 
--- Design doc 7 "Join size": a boss's pose copy leaves ReplicatedStorage after its event or preview, unless its event runs,
--- its preview is on, or it is the next timed boss inside LateLeadSeconds of its start.
+-- Design doc 7 "Join size": a boss's pose copy (and its arena's late data, the row's Arena) leaves ReplicatedStorage after its event
+-- or preview, unless its event runs, its preview is on, or it is the next timed boss inside LateLeadSeconds of its start.
 local function dropPoses(boss)
 	if
 		(event and event.Boss == boss) or (previewBoss == boss and ReplicatedStorage:GetAttribute("BossArenaPreview"))
@@ -87,13 +87,13 @@ local function dropPoses(boss)
 	if nextBoss == boss.Id and nextAt - now() <= Cfg.LateLeadSeconds then
 		return
 	end
-	LateData.Remove(boss.Poses)
+	LateData.Remove(boss.Poses, boss.Arena)
 end
 
 local function publish()
 	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it (dropPoses removes it after).
 	if event then
-		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
+		LateData.Deliver(event.Boss.Poses, "SidekickAttacks", event.Boss.Arena)
 	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
@@ -1179,7 +1179,8 @@ function BossEventService.Advance(at)
 	end
 	-- Design doc 7 "Join size": the next timed boss's poses go out LateLeadSeconds before its start, not at the announcement.
 	if nextBoss and nextAt - at <= Cfg.LateLeadSeconds then
-		LateData.Deliver(BossCatalog.Get(nextBoss).Poses)
+		local boss = BossCatalog.Get(nextBoss)
+		LateData.Deliver(boss.Poses, boss.Arena)
 	end
 end
 
@@ -1236,7 +1237,7 @@ function BossEventService.Init()
 	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
 		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
 			previewBoss = BossCatalog.Current()
-			LateData.Deliver(previewBoss.Poses, "SidekickAttacks")
+			LateData.Deliver(previewBoss.Poses, "SidekickAttacks", previewBoss.Arena)
 		elseif previewBoss then
 			local boss = previewBoss
 			previewBoss = nil

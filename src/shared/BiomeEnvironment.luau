@@ -212,52 +212,51 @@ local COLOSSEUM = Kit.Atmosphere({
 	},
 })
 
--- The Golden King's vault (docs/BOSS_EVENT_SPEC.md "The Golden King"; owner 2026-11-11: torch-lit and dark, as the approved pass 2):
--- the colosseum's room with its day light gone (midnight, no sun or moon), warm pools at the wall torches (BossColosseum's vault
--- PointLights) and dark between, a dark cave ceiling, a warm grade; the ambient stays high enough for the lanes to read. All
--- values proposed, to judge from a Studio capture.
-local VAULT = Kit.Atmosphere({
+-- The Golden King's own arena (docs/BOSS_EVENT_SPEC.md "The Golden King's arena", owner 2026-11-12; replaces the vault's dark
+-- profile): open to a sunset sky, a low warm sun with rays behind the stands, an orange-pink haze and a violet grade higher up, so
+-- his gold reads against the sky. All values proposed, to judge from a Studio capture.
+local KING_ARENA = Kit.Atmosphere({
 	Lighting = {
-		ClockTime = 0,
-		Brightness = 0.5,
-		Ambient = Kit.hex("7A6A5A"),
-		OutdoorAmbient = Kit.hex("5E5044"),
+		ClockTime = 17.7,
+		Brightness = 2.2,
+		Ambient = Kit.hex("8A6A6E"),
+		OutdoorAmbient = Kit.hex("B8909A"),
 		ExposureCompensation = 0.1,
 	},
 	Atmosphere = {
-		Density = 0.14,
-		Offset = 0,
-		Color = Kit.hex("5A4634"),
-		Decay = Kit.hex("2A1E16"),
-		Glare = 0,
-		Haze = 0.3,
+		Density = 0.1,
+		Offset = 0.05,
+		Color = Kit.hex("F2A07A"),
+		Decay = Kit.hex("8A4C9C"),
+		Glare = 0.4,
+		Haze = 0.8,
 	},
-	Grade = { TintColor = Kit.hex("FFE6C8"), Saturation = 0.08, Contrast = 0.12, Brightness = 0 },
-	Bloom = { Intensity = 0.6, Threshold = 1.4 },
-	SunRays = { Intensity = 0 },
-	Sky = { SunAngularSize = 0, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = false },
+	Grade = { TintColor = Kit.hex("FFEADC"), Saturation = 0.15, Contrast = 0.08, Brightness = 0 },
+	Bloom = { Intensity = 0.4, Threshold = 1.5 },
+	SunRays = { Intensity = 0.12, Spread = 0.6 },
+	Sky = { SunAngularSize = 14, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = true },
 	Clouds = { Cover = 0 },
 	Particles = {
 		{
 			Texture = "MoteParticle",
-			Color = Kit.hex("FFC890"),
+			Color = Kit.hex("FFD8A0"),
 			Size = 0.5,
 			Rate = 14,
 			Lifetime = 8,
 			Speed = 1,
 			SpreadAngle = 180,
-			LightEmission = 0.5,
+			LightEmission = 0.4,
 		},
 	},
 })
 
 -- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline. In the
--- arena zone, boss (a BossCatalog id, nil for Big Raga) picks the room: boss_mage's colosseum, boss_king's vault, else the sky arena.
+-- arena zone, boss (a BossCatalog id, nil for Big Raga) picks the room: boss_mage's colosseum, boss_king's own arena, else the sky arena.
 function BiomeEnvironment.Profile(zone, boss)
 	if zone == 0 then
 		return PLAZA
 	elseif zone == BiomeEnvironment.ARENA_ZONE then
-		return boss == "boss_mage" and COLOSSEUM or boss == "boss_king" and VAULT or ARENA
+		return boss == "boss_mage" and COLOSSEUM or boss == "boss_king" and KING_ARENA or ARENA
 	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Atmosphere or baseline
