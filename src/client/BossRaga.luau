@@ -9,11 +9,20 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
-local Poses = require(Shared:WaitForChild("LateData")).Get("BossRagaPoses") -- design doc 7: delivered with the first event
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
+local LateData = require(Shared:WaitForChild("LateData"))
+
+-- Design doc 7: Big Raga's poses are read on his own rig only, so another boss's rig (Client/BossMage) never waits for them.
+local function ragaPoses()
+	return LateData.Get(BossCatalog.Get("boss_raga").Poses)
+end
 
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
 local C_INVERSE = C:Inverse()
-local SCALE = Poses.Scale * Arena.BossScale -- the meshes arrive at Poses.Scale; BossScale shrinks them and the joints alike
+-- the meshes arrive at Poses.Scale; BossScale shrinks them and the joints alike
+local function ragaScale()
+	return ragaPoses().Scale * Arena.BossScale
+end
 local RUMBLE_STUDS, RUMBLE_DEGREES = 9, 0.7 -- placeholder: the model's own shake while it rises
 local TREMBLE_STUDS = 5 -- placeholder: the scream's small shake
 local MODEL_WAIT = 30 -- s: the server loads the model at start, so this only matters on a very fresh server
@@ -56,8 +65,8 @@ BossRaga.__index = BossRaga
 function BossRaga.new(parent, options)
 	options = options or {}
 	local self = setmetatable({}, BossRaga)
-	self.Poses = options.Poses or Poses
-	self.Scale = options.Scale or SCALE
+	self.Poses = options.Poses or ragaPoses()
+	self.Scale = options.Scale or ragaScale()
 	self.RootScale = options.RootScale or self.Scale
 	self.Order = orderOf(options.Bind or self.Poses.Bind, self.Scale)
 	local sourceName, sizeScale = options.Source or "boss_raga", options.SizeScale or Arena.BossScale
@@ -192,7 +201,7 @@ end
 
 -- A point of the unposed model, in units and Blender axes, standing on the dais.
 function BossRaga.RestPoint(units)
-	return (CFrame.new(Arena.Center.X, Arena.DaisY, Arena.Center.Z) * C):PointToWorldSpace(units * SCALE)
+	return (CFrame.new(Arena.Center.X, Arena.DaisY, Arena.Center.Z) * C):PointToWorldSpace(units * ragaScale())
 end
 
 return BossRaga

@@ -151,6 +151,7 @@ function BossDodge.Window(spot, momentAt, stage)
 	return start + (spot - BossDodge.SpotWidth / 2) * sweep, start + (spot + BossDodge.SpotWidth / 2) * sweep
 end
 
+-- The server reads every boss up front: ServerStorage, so no network cost; a client loads only the boss it is shown (load).
 if RunService:IsServer() then
 	for _, id in BossCatalog.Order do
 		load(id)

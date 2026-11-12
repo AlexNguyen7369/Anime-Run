@@ -16,7 +16,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local Poses = require(Shared:WaitForChild("LateData")).Get("BossRagaPoses") -- design doc 7: delivered with the first event
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
+local LateData = require(Shared:WaitForChild("LateData"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 local BossShake = require(script.Parent:WaitForChild("BossShake"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
@@ -53,7 +54,8 @@ local previousMove, previousTime = nil, nil
 local screaming = false
 local tone, toneGoal = nil, nil -- Phase 2's ColorCorrectionEffect and the look it is heading for
 local risePlay, aura = nil, nil
-local impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
+-- Big Raga's poses and impact point, read on Start: The Elf Mage's effects use only Kit, so they never wait for his (design doc 7)
+local Poses, impactPoint = nil, nil
 
 local function reduced()
 	return UiMotion.Reduced()
@@ -1017,6 +1019,8 @@ end
 
 -- Call with the arena's BossEffects folder and the boss.
 function BossVfx.Start(folder, boss)
+	Poses = LateData.Get(BossCatalog.Get("boss_raga").Poses)
+	impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
 	effects, raga = folder, boss
 	previousMove, previousTime = nil, nil
 	screaming = false

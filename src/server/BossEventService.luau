@@ -74,8 +74,12 @@ local function safely(fn, ...)
 end
 
 local function publish()
+	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it; a copy stays.
 	if event then
-		LateData.Deliver("BossRagaPoses", "BossMagePoses", "SidekickAttacks") -- before the phase, so a client never waits for it (design doc 7)
+		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
+	end
+	if nextAt < math.huge and nextBoss then
+		LateData.Deliver(BossCatalog.Get(nextBoss).Poses) -- announced as the next boss
 	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
@@ -1164,7 +1168,9 @@ function BossEventService.Init()
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
 	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
-		LateData.Deliver("BossRagaPoses", "BossMagePoses", "SidekickAttacks") -- the test preview builds the arena with no event
+		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
+			LateData.Deliver(BossCatalog.Current().Poses, "SidekickAttacks")
+		end
 	end)
 	nextAt = now() + Cfg.IntervalSeconds
 	nextBoss = BossEventService.Hooks.PickBoss()
