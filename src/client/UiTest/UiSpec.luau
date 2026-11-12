@@ -320,12 +320,6 @@ UiSpec.Guis = {
 		Buttons = {},
 		NonInteractive = true,
 	},
-	-- The world dim behind open panels (UiSpec.PanelDimmers); below the HUD, never takes a click.
-	PanelDim = {
-		Source = "Client/HudChrome",
-		Buttons = {},
-		NonInteractive = true,
-	},
 	-- "<Name> TAG IN!" / "TEAM EXHAUSTED +$X" toast (TEAM_AND_STAMINA_SPEC "HUD"): TextLabel Toast, hidden at rest.
 	TeamToast = {
 		Source = "Client/TeamToast",
@@ -935,19 +929,22 @@ UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/" }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
 
--- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the per-HUD veils): a panel never dims the whole
--- screen. Client/HudChrome makes ONE ScreenGui `Gui` (DisplayOrder `DisplayOrder`, IgnoreGuiInset) holding the
--- non-interactive full-screen Frame `Dim`; the ScreenGui is Enabled only while PanelSwitch.AnyOpen(). It draws below
--- every ScreenGui in `Below` (strictly lower DisplayOrder), so the HUD stays fully bright and clickable. The old
--- veils in `Retired` must be gone. While a panel is open, no visible GuiObject in an enabled ScreenGui other than
--- `Gui` (and the declared `VeilExempt` full-screen overlays) may cover at least `Veil.MinCoverage` of the viewport
--- with BackgroundTransparency below `Veil.MaxTransparency` (that would be a full-screen dark frame over the HUD).
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim", replaces the 2026-10-20 world-only dim below the HUD):
+-- Client/PanelSwitch makes ONE Frame named `Name` for the whole game (counted over every PlayerGui GuiObject): black,
+-- full screen (its ScreenGui IgnoreGuiInset, the frame covering the viewport), BackgroundTransparency `Open` while
+-- any panel is open, 1 and Visible = false while none is (it may be absent before the first open). It draws below
+-- every open panel (the panel's ScreenGui DisplayOrder higher, or in the same ScreenGui a higher sibling ZIndex) and
+-- above every HUD ScreenGui in `Hud` (strictly higher DisplayOrder). Switching from one panel to another keeps it
+-- shown: no sample in between is hidden or at transparency 1. The old dims in `Retired` must be gone. While a panel
+-- is open, no visible GuiObject other than `Name` in an enabled ScreenGui at or above the HUD (and the declared
+-- `VeilExempt` full-screen overlays) may cover at least `Veil.MinCoverage` of the viewport with
+-- BackgroundTransparency below `Veil.MaxTransparency` (that would be a second dim).
 UiSpec.PanelDimmers = {
-	Gui = "PanelDim",
-	Frame = "PanelDim/Dim",
-	DisplayOrder = 0,
-	Below = { "HudChrome", "RacerHud", "RollToast", "RacerProgression" },
+	Name = "PanelDim",
+	Open = 0.65, -- 35% opaque (proposed)
+	Hud = { "HudChrome", "RacerHud", "RollToast", "RacerProgression" },
 	Retired = {
+		"PanelDim/Dim", -- the 2026-10-20 HudChrome world dim
 		"HudChrome/PanelDimmer",
 		"RacerHud/PanelDimmer",
 		"RollToast/PanelDimmer",
@@ -969,7 +966,6 @@ UiSpec.PanelDimmers = {
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
-	Transparency = { Min = 0.45, Max = 0.75 },
 }
 
 UiSpec.Motion = {
@@ -992,6 +988,11 @@ UiSpec.Motion = {
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
 UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
+
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
+-- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
+-- when the panel's ScreenGui has the higher DisplayOrder). The first column and the right column stay checked.
+UiSpec.SecondColumnButtons = { "RacerBossEvent/BossButton" }
 
 -- Overlaps that are allowed: a modal panel may cover a read-out (Money), never a button or the TURBO bar.
 UiSpec.AllowOverlap = {}

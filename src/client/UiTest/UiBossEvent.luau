@@ -42,7 +42,8 @@
 --     scale, 0..BUTTON_MAX_GAP px past the Grid's right edge; its centre within BUTTON_MID_TOL px of the midpoint of the
 --     Index and Items cells' centres. At BUTTON_PULSE it overlaps neither Index, Items, Rebirth (their shown Key letters
 --     and Badges included), the shown roll (RollToast/Toast), the shown Money / Gems readout, the shown HudChrome/TopRight
---     pills, nor a panel frame at its standard place (UiResponsive.RacerPanelFit in UiShopMarket.Band). The cell below
+--     pills. Owner 2026-11-12 (4.42): with RacerIndex/Panel open, the panel draws above it (ScreenGui DisplayOrder, or ZIndex
+--     in one ScreenGui) and the topmost click-taker at its centre is not it (the panel or the PanelDim dim). The cell below
 --     it (Team, later) is not judged. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
@@ -77,8 +78,6 @@ local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Spec = require(script.Parent.UiSpec)
-local Responsive = require(script.Parent.UiResponsive)
-local ShopMarket = require(script.Parent.UiShopMarket)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
@@ -169,6 +168,8 @@ local GRID = "HudChrome/Grid"
 local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
 local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
 local TOP_RIGHT = "HudChrome/TopRight" -- the Daily, Market and Settings pills
+local OVER_PANEL = "RacerIndex/Panel" -- a standard panel opened over the button (owner 2026-11-12, 4.42)
+local DIM = "PanelDim" -- Client/PanelSwitch's one dim Frame (UiSpec.PanelDimmers)
 
 local Module = {}
 
@@ -624,7 +625,7 @@ function Module.Build(h)
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
 		-- Design doc 4.40 (owner 2026-11-12): a second column right of the left column, half a row down; clear of the
-		-- column's cells and badges, the roll, the Money / Gems readout, the top-right pills and a standard panel
+		-- column's cells and badges, the roll, the Money / Gems readout and the top-right pills
 		local button = h.find(BUTTON)
 		local rest = button and h.rect(button)
 		local pulse = button and button:FindFirstChild("PulseScale")
@@ -704,53 +705,25 @@ function Module.Build(h)
 			"clear",
 			big ~= nil and bar ~= nil and not pillHit
 		)
-		-- An open panel's frame at its standard place: the 1200 x 620 frame (phone 650 x 420) fitted in today's
-		-- PanelBand from the live HUD rects (UiShopMarket.Band, UiResponsive.RacerPanelFit)
-		local function rectOf(path)
-			local o = h.find(path)
-			return o and o:IsA("GuiObject") and h.rect(o)
+		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the button and draws above it,
+		-- and the button cannot be pressed through the panel or the dim at its centre
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		local panel = h.find(OVER_PANEL)
+		local above, why = false, "no " .. OVER_PANEL
+		if panel and button then
+			above, why = h.drawsAbove(panel, button)
 		end
-		local function shownParts(holder)
-			local out = {}
-			for _, o in holder and holder:GetDescendants() or {} do
-				if o:IsA("GuiObject") and o.Visible then
-					table.insert(out, h.rect(o))
-				end
-			end
-			return out
-		end
-		local band = {
-			Race = rectOf(Spec.Band.Race),
-			Turbo = rectOf(Spec.Band.Turbo),
-			Navigation = gridRect,
-			NavigationParts = shownParts(grid),
-			ShopColumn = rectOf(Spec.Band.ShopColumn),
-			ShopColumnParts = shownParts(h.find(Spec.Band.ShopColumn)),
-			Money = rectOf(Spec.Band.Money),
-			MoneyShown = h.find(Spec.Band.Money) ~= nil and h.find(Spec.Band.Money).Visible,
-		}
-		local panel = nil
-		if band.Race and band.Turbo and band.Navigation and band.ShopColumn then
-			local vp = workspace.CurrentCamera.ViewportSize
-			local fit = Responsive.RacerPanelFit(vp, { ShopMarket.Band(vp, band) })
-			local w, ht = fit.Size.X.Offset * fit.Scale, fit.Size.Y.Offset * fit.Scale
-			panel = { x = fit.Position.X.Offset - w / 2, y = fit.Position.Y.Offset - ht / 2, w = w, h = ht }
-		end
+		h.check(res, "button_under_panel", why, "panel above the button", above)
+		local hit = button and h.top(h.centre(h.rect(button)))
+		local pressable = hit ~= nil and (hit == button or button:IsAncestorOf(hit))
 		h.check(
 			res,
-			"button_clear_of_panel",
-			not big and "no PulseScale"
-				or not panel and "no HUD band rects"
-				or overlaps(big, panel) and ("overlaps panel %.0f,%.0f %.0fx%.0f"):format(
-					panel.x,
-					panel.y,
-					panel.w,
-					panel.h
-				)
-				or "clear",
-			"clear",
-			big ~= nil and panel ~= nil and not overlaps(big, panel)
+			"button_blocked_under_panel",
+			hit and hit:GetFullName() or "nothing",
+			"the panel or the dim",
+			button ~= nil and panel ~= nil and not pressable
 		)
+		restorePanels()
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
 		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
 			local o = h.find(part[2])
@@ -1920,6 +1893,20 @@ function Module.Build(h)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
 		local DODGE = "RacerBossDodge/DodgeBar"
 		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
+		-- Owner 2026-11-12 (4.42): the HP bar and Dodge bar are not panels; with no panel open the dim is absent or hidden
+		local dimShown = {}
+		for _, d in h.player:WaitForChild("PlayerGui"):GetDescendants() do
+			if d.Name == DIM and d:IsA("GuiObject") and h.visible(d) and d.BackgroundTransparency < 1 - 1e-3 then
+				table.insert(dimShown, d:GetFullName())
+			end
+		end
+		h.check(
+			res,
+			"dodge_no_panel_dim",
+			("hp bar shown=%s, shown dims: %s"):format(tostring(shown(BAR)), table.concat(dimShown, ", ")),
+			"absent or hidden",
+			#dimShown == 0
+		)
 		local bar = h.find(DODGE)
 		if bar then
 			local gui = h.player:WaitForChild("PlayerGui")
