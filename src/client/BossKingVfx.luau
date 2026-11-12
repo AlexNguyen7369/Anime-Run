@@ -151,7 +151,7 @@ local function pooled(name, cframe, size, color, transparency, seconds)
 	else
 		part = Kit.holder(name, cframe, size)
 	end
-	part.Material, part.Shape = NEON, Enum.PartType.Block -- a weapon piece sets its own material after
+	part.Material = NEON -- a weapon piece sets its own after
 	part.Color, part.Transparency = color, transparency
 	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	task.delay(seconds + 0.03, function()
@@ -485,17 +485,18 @@ local function playCharge()
 	task.delay(CHARGE, function()
 		wind.Enabled = false
 	end)
-	if not few then -- the charge ends in a white flash at Ea's tip, just before the beam
-		local mine = effects
-		task.delay(CHARGE - FLASH_LEAD, function()
-			if effects == mine and king then
-				local white = pooled("EnumaChargeFlash", CFrame.new(king:Tip()), Vector3.one * 8, WHITE, 0, 0.3)
-				white.Shape = Enum.PartType.Ball
-				Kit.tween(white, 0.3, { Size = Vector3.one * 34 })
-				roomLight(king:Tip(), WHITE, 5, 0.3)
-			end
-		end)
-	end
+	-- The charge ends in a white flash at Ea's tip, just before the beam: its own part each Enuma (not pooled), REDUCED EFFECTS
+	-- read when it fires.
+	local mine = effects
+	task.delay(CHARGE - FLASH_LEAD, function()
+		if effects == mine and mine and mine.Parent and king and not reduced() then
+			local white = Kit.holder("EnumaChargeFlash", CFrame.new(king:Tip()), Vector3.one * 8)
+			white.Shape, white.Material, white.Color, white.Transparency = Enum.PartType.Ball, NEON, WHITE, 0
+			Kit.tween(white, 0.3, { Size = Vector3.one * 34, Transparency = 1 })
+			Kit.expire(white, 0.3)
+			roomLight(king:Tip(), WHITE, 5, 0.3)
+		end
+	end)
 	Kit.expire(part, CHARGE + 0.8)
 	return math.ceil(rate * CHARGE)
 end
