@@ -270,7 +270,7 @@ Deliverables:
 - t1 | Bosses button in the second left column | `ui_boss`, `ui_buttons`, `ui_hud` green (done 2026-11-12)
 - t2 | Team button and Team panel A, team editor out of Items | `ui_team`, `team` green; owner look (built 2026-11-12, owner look open)
 - t3 | World dim on every panel and popup, lighter | `ui_panels` green (done 2026-11-12)
-- t4 | Team icon in neutral colours, uploaded | owner picks N1 / N2 / N3 and gives the upload word
+- t4 | Team icon in neutral colours, uploaded | owner picks N1 / N2 / N3 and gives the upload word (done 2026-11-12: N3, image 89758623094700; `ui_team`, `ui_hud` not yet rerun)
 Out of scope: Best team button, saved teams, moving the aura and trail slot rows.
 ## dojo-removal: Dojos removed, Spawn showpiece in their place (owner 2026-11-11, design doc 4.43)
 Status: done 2026-11-11 (r4 merged into feature/alex/anime-world at 2c70abd; owner's look at the Studio shots pending)
