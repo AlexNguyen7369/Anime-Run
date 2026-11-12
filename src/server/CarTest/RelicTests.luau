@@ -19,7 +19,8 @@
 --     Multi(player, characterId, stat): 1 + the worn Relic's bonus, 1 with none, an unknown id or junk.
 --     GrantDefeat is gone (k7, no production caller): the drop path is GrantChest then OpenChest; draw 1 picks the Relic,
 --     draw 2 is the Sidekick roll: a draw <= the chest's SidekickChance grants its SidekickId through SidekickService.GrantDrop.
---   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for side_raga only (design doc 4.37: nothing else
+--   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for every SidekickConfig.BossDrops row (design
+--     doc 4.36 Boss Sidekicks: side_raga, side_mage, side_king; design doc 4.37: nothing else
 --     may overflow); any other id is false, reason, with nothing changed.
 --     Start(): makes RemoteFunctions Remotes.RelicEquip, args (characterId, entry or nil), and Remotes.RelicSell, args (entry).
 --     Attributes RelicBag and RelicGear are JSON.

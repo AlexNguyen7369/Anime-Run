@@ -11,7 +11,8 @@
 --     { "relic_chest_king" }, Relics = "boss_king", Poses = "BossKingPoses", DodgeIcon = BossKingArt.KeyIcon, Portrait =
 --     BossKingArt.Portrait, Camera and WaitCamera as the mage's, ModelName "GoldenKing", TargetPart "Torso".
 --   Shared/BossDodge: moments of boss_king named gates, enuma, shields (the cost events of BossKingPoses; the start events
---     gates_start and enuma_start are not moments); HitText.gates, HitText.enuma; Slot("boss_king") = nil.
+--     gates_start and enuma_start are not moments); Slot("boss_king") = nil. Hit texts live in the catalog: Moves.gates.HitText and
+--     Moves.enuma.HitText (what BossDodgeUi reads).
 --   Shared/BossArenaConfig.For("boss_king"): the colosseum table's numbers, routes and MaxRunSpeed with Dressing = "vault" and no
 --     hover (HoverY and BobStuds 0 or nil); For("boss_mage").Dressing is not "vault".
 --   Server/BossEventService: at the shields moment event.Fortified is set (ReplicatedStorage attribute BossFortified true / false
@@ -869,8 +870,9 @@ function Tests.make()
 				end
 				flag("raga_moments_unchanged", raga)
 				flag("mage_moments_unchanged", mage)
-				eq("hit_text_gates", BossDodge.HitText.gates, HIT_TEXT.gates)
-				eq("hit_text_enuma", BossDodge.HitText.enuma, HIT_TEXT.enuma)
+				local kingMoves = Catalog and Catalog.Get(KING).Moves or {}
+				eq("hit_text_gates", kingMoves.gates and kingMoves.gates.HitText, HIT_TEXT.gates)
+				eq("hit_text_enuma", kingMoves.enuma and kingMoves.enuma.HitText, HIT_TEXT.enuma)
 				if type(BossDodge.Slot) == "function" then
 					eq("slot_none_for_king", BossDodge.Slot(KING), nil) -- no miniboss
 				end
