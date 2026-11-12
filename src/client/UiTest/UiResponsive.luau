@@ -1838,6 +1838,19 @@ function Model.BossButtonPlace(viewport, _inset)
 	local x = grid.X.Offset + hud.Cell.X * k + cfg.Gap
 	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k), UDim2.fromOffset(x, mid - hud.Cell.Y * k / 2)
 end
+-- Design doc 4.40 (owner 2026-11-12): the Team button sits in the same second column, directly below the Bosses button,
+-- half a row down from Items: centred on the gap between Items and Rebirth, (GridGap + Cell.Y) x k / 2 below the Grid's
+-- middle; same cell size and left edge as BossButton. Same ScreenGui (RacerBossEvent, ignores the inset).
+Model.TeamButton = { Path = "RacerBossEvent/TeamButton" }
+-- TeamButton's Size and Position at a viewport.
+function Model.TeamButtonPlace(viewport)
+	local cfg, hud = Model.BossButton, Model.HudChrome
+	local k = viewport.Y <= Model.PHONE_MAX_HEIGHT and hud.Phone or 1
+	local grid = hud.HolderPositions[cfg.Grid][Model.VariantOf(viewport)]
+	local mid = viewport.Y * grid.Y.Scale + grid.Y.Offset + (cfg.GridGap + hud.Cell.Y) * k / 2
+	local x = grid.X.Offset + hud.Cell.X * k + cfg.Gap
+	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k), UDim2.fromOffset(x, mid - hud.Cell.Y * k / 2)
+end
 -- HudChrome's UIScale "Scale" factor of the node at `path` at a viewport, or nil when it is not a HudChrome holder.
 function Model.HudChromeScale(path, viewport)
 	local cfg = Model.HudChrome

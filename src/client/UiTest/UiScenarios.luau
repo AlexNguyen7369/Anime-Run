@@ -152,6 +152,8 @@ UiScenarios.Names = {
 	-- Backpack Characters tab and runner-rig icons (UiContracts; owner 2026-10-20, Cars -> Characters and car models
 	-- -> runner rigs per docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29)
 	"ui_backpack_characters",
+	-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12): team selection left the Backpack
+	"ui_team",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
@@ -1442,6 +1444,8 @@ simRect = function(obj, ctx)
 				end
 			elseif path == UiResponsive.BossButton.Path then
 				size, position = UiResponsive.BossButtonPlace(ctx.vp, GuiService.TopbarInset)
+			elseif path == UiResponsive.TeamButton.Path then
+				size, position = UiResponsive.TeamButtonPlace(ctx.vp)
 			end
 			-- The compact roll's top and height are fitCompact's for the live screen: both follow the simulated one
 			local compactTop = path == "RollToast/Toast" and not liveVp and K.compactTop(base, ctx.vp, ctx)
@@ -7748,8 +7752,9 @@ function S.ui_panels(res)
 		end
 	end
 
-	-- UiSpec.PanelDimmers (owner 2026-11-12, design doc 4.42 "Overlap and dim"): ONE black full-screen Frame from
-	-- PanelSwitch under every open panel and above the HUD, shown only while a panel is open; no second dark veil.
+	-- UiSpec.PanelDimmers (owner 2026-10-20, HUD_LAYOUT_SPEC section 6; design doc 4.42 "Overlap and dim", owner
+	-- 2026-11-12): ONE world dim ScreenGui below the HUD, enabled while any panel or popup is open, at 35% black; no
+	-- full-screen dark frame over the HUD; persistent controls stay drawn and pressable.
 	local cfgDim = UiSpec.PanelDimmers
 	setPanels({})
 	local function waitUntil(cond)
@@ -7759,42 +7764,72 @@ function S.ui_panels(res)
 		until cond() or os.clock() >= deadline
 		return cond()
 	end
-	-- Every GuiObject named cfgDim.Name anywhere in PlayerGui
-	local function dims()
-		local list = {}
-		for _, d in playerGui:GetDescendants() do
-			if d.Name == cfgDim.Name and d:IsA("GuiObject") then
-				table.insert(list, d)
-			end
-		end
-		return list
-	end
-	local function dimHidden(d)
-		return not d.Visible and d.BackgroundTransparency >= 1 - 1e-3
-	end
-	local function dimState(d)
-		return d
-				and ("%s Visible=%s T=%.3f"):format(d.ClassName, tostring(d.Visible), d.BackgroundTransparency)
-			or "absent"
-	end
-	-- Before any panel opens it may not exist yet; if it does, it is hidden at transparency 1
-	local restDim = dims()[1]
 	waitUntil(function()
-		return restDim == nil or dimHidden(restDim)
+		return playerGui:FindFirstChild(cfgDim.Gui) ~= nil
 	end)
+	local dimGui = playerGui:FindFirstChild(cfgDim.Gui)
+	local dimFrame = findPath(cfgDim.Frame)
 	check(
 		res,
-		"panel_dim_hidden_at_rest",
-		dimState(restDim),
-		"absent, or Visible=false T=1",
-		restDim == nil or dimHidden(restDim)
+		"panel_dim_gui_present",
+		dimGui and dimGui.ClassName or "missing",
+		"ScreenGui",
+		dimGui ~= nil and dimGui:IsA("ScreenGui")
 	)
-	-- Shown and settled at cfgDim.Open (float32: 0.65 reads back as 0.6499999...)
-	local function dimOpen(d)
-		return d ~= nil
-			and d:IsA("Frame")
-			and effectivelyVisible(d)
-			and math.abs(d.BackgroundTransparency - cfgDim.Open) <= 1e-3
+	check(
+		res,
+		"panel_dim_frame_present",
+		dimFrame and dimFrame.ClassName or "missing",
+		"Frame",
+		dimFrame ~= nil and dimFrame:IsA("Frame")
+	)
+	local isDimGui = dimGui ~= nil and dimGui:IsA("ScreenGui")
+	local function dimShown()
+		return isDimGui and dimGui.Enabled and dimFrame ~= nil and dimFrame:IsA("GuiObject") and dimFrame.Visible
+	end
+	local function dimState()
+		return isDimGui
+				and ("Enabled=%s Dim Visible=%s"):format(
+					tostring(dimGui.Enabled),
+					tostring(dimFrame ~= nil and dimFrame.Visible)
+				)
+			or "no " .. cfgDim.Gui
+	end
+	if isDimGui then
+		local restOff = waitUntil(function()
+			return not dimGui.Enabled
+		end)
+		check(res, "panel_dim_disabled_at_rest", dimGui.Enabled, false, restOff)
+		check(res, "panel_dim_ignores_inset", dimGui.IgnoreGuiInset, true, dimGui.IgnoreGuiInset == true)
+		check(
+			res,
+			"panel_dim_display_order",
+			dimGui.DisplayOrder,
+			cfgDim.DisplayOrder,
+			dimGui.DisplayOrder == cfgDim.DisplayOrder
+		)
+		for _, hudName in cfgDim.Below do
+			local hud = playerGui:FindFirstChild(hudName)
+			local order = hud and hud:IsA("ScreenGui") and hud.DisplayOrder or nil
+			check(
+				res,
+				"panel_dim_below_" .. hudName,
+				order or "missing",
+				"> " .. tostring(dimGui.DisplayOrder),
+				order ~= nil and order > dimGui.DisplayOrder
+			)
+		end
+	end
+	if dimFrame and dimFrame:IsA("GuiObject") then
+		check(
+			res,
+			"panel_dim_non_interactive",
+			("Active=%s Selectable=%s"):format(tostring(dimFrame.Active), tostring(dimFrame.Selectable)),
+			"Active=false Selectable=false",
+			not dimFrame.Active and not dimFrame.Selectable
+		)
+		local full = dimFrame.Size.X.Scale >= 1 and dimFrame.Size.Y.Scale >= 1 and dimFrame.Visible
+		check(res, "panel_dim_full_screen", tostring(dimFrame.Size), "{1, 0}, {1, 0}", full)
 	end
 	local retired = {}
 	for _, path in cfgDim.Retired do
@@ -7824,7 +7859,7 @@ function S.ui_panels(res)
 	end
 	-- The lowest HUD DisplayOrder: a full-screen dark frame at or above it would be drawn over the HUD.
 	local hudFloor = math.huge
-	for _, hudName in cfgDim.Hud do
+	for _, hudName in cfgDim.Below do
 		local hud = playerGui:FindFirstChild(hudName)
 		if hud and hud:IsA("ScreenGui") then
 			hudFloor = math.min(hudFloor, hud.DisplayOrder)
@@ -7835,11 +7870,16 @@ function S.ui_panels(res)
 		local area = math.max(1, vp.X * vp.Y)
 		local found = {}
 		for _, g in playerGui:GetChildren() do
-			if g:IsA("ScreenGui") and g.Enabled and not cfgDim.VeilExempt[g.Name] and g.DisplayOrder >= hudFloor then
+			if
+				g:IsA("ScreenGui")
+				and g.Enabled
+				and g.Name ~= cfgDim.Gui
+				and not cfgDim.VeilExempt[g.Name]
+				and g.DisplayOrder >= hudFloor
+			then
 				for _, d in g:GetDescendants() do
 					if
 						d:IsA("GuiObject")
-						and d.Name ~= cfgDim.Name -- the one allowed dim
 						and effectivelyVisible(d)
 						and d.BackgroundTransparency < cfgDim.Veil.MaxTransparency
 					then
@@ -7853,62 +7893,23 @@ function S.ui_panels(res)
 		end
 		return found
 	end
-	for _, panelPath in registered do
+	for i, panelPath in registered do
 		setPanels({ panelPath })
 		frames(2)
-		waitUntil(function()
-			return dimOpen(dims()[1])
-		end)
-		local found = dims()
-		local dim = found[1]
-		check(
-			res,
-			"panel_dim_single_while_" .. panelPath,
-			#found .. " " .. dimState(dim),
-			"1 Frame",
-			#found == 1 and dim:IsA("Frame")
-		)
-		check(
-			res,
-			"panel_dim_shown_while_" .. panelPath,
-			dimState(dim),
-			("Frame Visible=true T=%.2f"):format(cfgDim.Open),
-			dimOpen(dim)
-		)
-		if dim then
-			local c = dim.BackgroundColor3
-			check(res, "panel_dim_black_while_" .. panelPath, tostring(c), "0, 0, 0", c.R + c.G + c.B <= 1e-3)
-			local g = guiOf(dim)
-			local vp = viewport()
-			local r = realRect(dim)
+		if isDimGui then
+			local on = waitUntil(dimShown)
+			check(res, "panel_dim_enabled_while_" .. panelPath, dimState(), "Enabled, Dim shown", on)
+		end
+		-- Design doc 4.42 (owner 2026-11-12): 35% black while a panel is open (proposed; float32 rounding inside the slack)
+		if i == 1 and dimFrame and dimFrame:IsA("GuiObject") then
+			local t = dimFrame.BackgroundTransparency
 			check(
 				res,
-				"panel_dim_full_screen_while_" .. panelPath,
-				("IgnoreGuiInset=%s %s"):format(tostring(g and g:IsA("ScreenGui") and g.IgnoreGuiInset), rstr(r)),
-				"IgnoreGuiInset=true " .. rstr(R(0, 0, vp.X, vp.Y)),
-				g ~= nil and g:IsA("ScreenGui") and g.IgnoreGuiInset and contains(r, R(0, 0, vp.X, vp.Y))
+				"panel_dim_transparency",
+				t,
+				("%.2f +- %.2f"):format(cfgDim.Transparency, cfgDim.TransparencySlack),
+				math.abs(t - cfgDim.Transparency) <= cfgDim.TransparencySlack + 1e-6
 			)
-			local panel = findPath(panelPath)
-			local below, belowWhy = false, "no panel"
-			if panel then
-				below, belowWhy = K.drawsAbove(panel, dim)
-			end
-			check(res, "panel_dim_below_" .. panelPath, belowWhy, "panel above the dim", below)
-			for _, hudName in cfgDim.Hud do
-				local hud = playerGui:FindFirstChild(hudName)
-				local above, aboveWhy = false, "no " .. hudName
-				if hud and g and g:IsA("ScreenGui") and hud:IsA("ScreenGui") then
-					above = g ~= hud and g.DisplayOrder > hud.DisplayOrder
-					aboveWhy = ("dim DisplayOrder %d vs %s %d"):format(g.DisplayOrder, hudName, hud.DisplayOrder)
-				end
-				check(
-					res,
-					"panel_dim_above_" .. hudName .. "_while_" .. panelPath,
-					aboveWhy,
-					"dim above the HUD",
-					above
-				)
-			end
 		end
 		checkList(res, "no_dark_veil_over_hud_while_" .. panelPath, darkVeils())
 		-- A full-screen overlay (UiSpec.FullScreenPanels) need not leave the HUD entries drawn or clickable
@@ -7945,22 +7946,17 @@ function S.ui_panels(res)
 			end
 		end
 	end
-	-- Panel A open, then B: the dim stays shown through the switch, never hidden or at transparency 1 in between
+	-- Panel A open, then B: the world dim stays enabled through the switch, never off in between
 	for i, b in registered do
 		local a = registered[(i - 2) % #registered + 1]
-		if a ~= b then
+		if a ~= b and isDimGui then
 			setPanels({ a })
-			waitUntil(function()
-				return dimOpen(dims()[1])
-			end)
-			local worst, gaps = 0, 0
+			waitUntil(dimShown)
+			local gaps = 0
 			Switch.Toggle(UiSpec.PanelSwitch.Names[b])
 			local deadline = os.clock() + UiSpec.Waits.PanelMotion + 0.1
 			repeat
-				local d = dims()[1]
-				local t = d and d.BackgroundTransparency or 1
-				worst = math.max(worst, t)
-				if not (d and effectivelyVisible(d)) or t >= 1 - 1e-3 then
+				if not dimShown() then
 					gaps += 1
 				end
 				frames(1)
@@ -7968,24 +7964,19 @@ function S.ui_panels(res)
 			check(
 				res,
 				"panel_dim_no_flash_" .. a .. "_to_" .. b,
-				("hidden samples=%d max T=%.3f"):format(gaps, worst),
-				"hidden samples=0, T < 1",
+				("off samples=%d"):format(gaps),
+				"off samples=0",
 				gaps == 0
 			)
 		end
 	end
 	setPanels({})
-	local closedDim = dims()[1]
-	waitUntil(function()
-		return closedDim ~= nil and dimHidden(closedDim)
-	end)
-	check(
-		res,
-		"panel_dim_hidden_after_close",
-		#dims() .. " " .. dimState(closedDim),
-		"1 Frame Visible=false T=1",
-		#dims() == 1 and closedDim ~= nil and dimHidden(closedDim)
-	)
+	if isDimGui then
+		local off = waitUntil(function()
+			return not dimGui.Enabled
+		end)
+		check(res, "panel_dim_disabled_after_close", dimGui.Enabled, false, off)
+	end
 
 	-- UiSpec.HiddenWhilePanelOpen: each declared element really is hidden while a panel that hides it is open (the
 	-- overlap lists leave it out then), and shown again once no panel is open. ProgressionUi polls every 0.25 s, so
@@ -8713,6 +8704,27 @@ for name, fn in K.bossPhase2.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.bossPhase2.After do
+	access.After[cond] = fn
+end
+-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12). No new local: K.team.
+K.team = require(script.Parent.UiTeam).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	centre = centre,
+	drawsAbove = K.drawsAbove,
+	setPanels = setPanels,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.team.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.team.After do
 	access.After[cond] = fn
 end
 -- The Elf Mage, the second boss (UiBossMage; design doc 4.37 "Second boss"). No new local: K.bossMage.

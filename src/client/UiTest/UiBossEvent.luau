@@ -43,7 +43,8 @@
 --     Index and Items cells' centres. At BUTTON_PULSE it overlaps neither Index, Items, Rebirth (their shown Key letters
 --     and Badges included), the shown roll (RollToast/Toast), the shown Money / Gems readout, the shown HudChrome/TopRight
 --     pills. Owner 2026-11-12 (4.42): with RacerIndex/Panel open, the panel draws above it (ScreenGui DisplayOrder, or ZIndex
---     in one ScreenGui) and the topmost click-taker at its centre is not it (the panel or the PanelDim dim). The cell below
+--     in one ScreenGui) and the topmost click-taker at its centre is the panel (the world dim PanelDim, under the HUD, never
+--     covers it). The Bosses popup turns the world dim on (UiSpec.PanelDimmers, 4.42) and closing it turns it off. The cell below
 --     it (Team, later) is not judged. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
@@ -105,6 +106,8 @@ local PARTS = {
 	LeaveButton = LEAVE,
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
+	-- Design doc 4.40 (owner 2026-11-12): the Team button below it shows and hides with it (the second column)
+	TeamButton = ROOT .. "/TeamButton",
 	DropList = DROP,
 	BossesPanel = BOSSES,
 	EditTeamButton = EDIT_TEAM,
@@ -169,7 +172,17 @@ local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
 local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
 local TOP_RIGHT = "HudChrome/TopRight" -- the Daily, Market and Settings pills
 local OVER_PANEL = "RacerIndex/Panel" -- a standard panel opened over the button (owner 2026-11-12, 4.42)
-local DIM = "PanelDim" -- Client/PanelSwitch's one dim Frame (UiSpec.PanelDimmers)
+-- The world dim under the HUD (Client/HudChrome, UiSpec.PanelDimmers): shown = its ScreenGui Enabled and Dim Visible
+local function dimOn(player)
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild(Spec.PanelDimmers.Gui)
+	local frame = gui and gui:FindFirstChild("Dim")
+	return gui ~= nil
+		and gui:IsA("ScreenGui")
+		and gui.Enabled
+		and frame ~= nil
+		and frame:IsA("GuiObject")
+		and frame.Visible
+end
 
 local Module = {}
 
@@ -706,7 +719,7 @@ function Module.Build(h)
 			big ~= nil and bar ~= nil and not pillHit
 		)
 		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the button and draws above it,
-		-- and the button cannot be pressed through the panel or the dim at its centre
+		-- and the panel itself (not the world dim, which lies under the HUD) covers the button's centre
 		local restorePanels = h.setPanels({ OVER_PANEL })
 		local panel = h.find(OVER_PANEL)
 		local above, why = false, "no " .. OVER_PANEL
@@ -715,13 +728,12 @@ function Module.Build(h)
 		end
 		h.check(res, "button_under_panel", why, "panel above the button", above)
 		local hit = button and h.top(h.centre(h.rect(button)))
-		local pressable = hit ~= nil and (hit == button or button:IsAncestorOf(hit))
 		h.check(
 			res,
 			"button_blocked_under_panel",
 			hit and hit:GetFullName() or "nothing",
-			"the panel or the dim",
-			button ~= nil and panel ~= nil and not pressable
+			"the panel",
+			button ~= nil and panel ~= nil and hit ~= nil and (hit == panel or panel:IsAncestorOf(hit))
 		)
 		restorePanels()
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
@@ -743,7 +755,7 @@ function Module.Build(h)
 		gear(res, 2)
 		local asked = os.clock()
 		state(res, "Prep", 5, 0, 0, false)
-		onlyShown(res, "invite", { Invite = true, BossButton = true })
+		onlyShown(res, "invite", { Invite = true, BossButton = true, TeamButton = true })
 		check(res, "invite_teleport_shown", shown(TELEPORT), true)
 		check(res, "invite_decline_shown", shown(DECLINE), true)
 		local teleport = h.find(TELEPORT)
@@ -1528,7 +1540,7 @@ function Module.Build(h)
 	-- 1:00-3:00: each joiner sees the header too, and a bar already at the right width.
 	local function checkLateJoin(res)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 10, 3000, 4000, false)
-		onlyShown(res, "before_join", { BossButton = true }, { Invite = true })
+		onlyShown(res, "before_join", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", "keep", 3000, 4000, true, 100)
 		check(res, "late_join_warning_shown", waitShown(WARNING, true), true)
 		check(res, "late_join_bar_shown", waitShown(BAR, true), true)
@@ -1558,15 +1570,15 @@ function Module.Build(h)
 
 	local function checkOutsider(res)
 		state(res, "Prep", Cfg.PrepSeconds - 3, 4000, 4000, false)
-		onlyShown(res, "outsider_prep", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_prep", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", Cfg.PrepSeconds, 4000, 4000, false)
 		task.wait(1)
-		onlyShown(res, "outsider_spawn", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_spawn", { BossButton = true, TeamButton = true }, { Invite = true })
 		-- A leave: everything of the arena goes with the attribute.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
 		check(res, "leaver_bar_shown_first", waitShown(BAR, true), true)
 		state(res, "Fight", "keep", 4000, 4000, false)
-		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true }) -- rejoining after leaving: no rule
+		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true, TeamButton = true }) -- rejoining after leaving: no rule
 	end
 
 	-- UiMotion: Roblox's Reduced Motion or the REDUCED EFFECTS toggle. The header stays still and stays readable.
@@ -1599,7 +1611,7 @@ function Module.Build(h)
 		h.checkList(res, "reduced_warning_text_alone", warningBareList())
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
-		onlyShown(res, "event_end", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+		onlyShown(res, "event_end", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
 
 		-- The same order as without reduced motion, here to the Warning's end.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
@@ -1893,19 +1905,14 @@ function Module.Build(h)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
 		local DODGE = "RacerBossDodge/DodgeBar"
 		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
-		-- Owner 2026-11-12 (4.42): the HP bar and Dodge bar are not panels; with no panel open the dim is absent or hidden
-		local dimShown = {}
-		for _, d in h.player:WaitForChild("PlayerGui"):GetDescendants() do
-			if d.Name == DIM and d:IsA("GuiObject") and h.visible(d) and d.BackgroundTransparency < 1 - 1e-3 then
-				table.insert(dimShown, d:GetFullName())
-			end
-		end
+		-- Owner 2026-11-12 (4.42): the HP bar and Dodge bar are not panels; with no panel open the world dim is off
+		local dimmed = dimOn(h.player)
 		h.check(
 			res,
 			"dodge_no_panel_dim",
-			("hp bar shown=%s, shown dims: %s"):format(tostring(shown(BAR)), table.concat(dimShown, ", ")),
-			"absent or hidden",
-			#dimShown == 0
+			("hp bar shown=%s, world dim on=%s"):format(tostring(shown(BAR)), tostring(dimmed)),
+			"world dim off",
+			not dimmed
 		)
 		local bar = h.find(DODGE)
 		if bar then
@@ -1974,7 +1981,7 @@ function Module.Build(h)
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
-			onlyShown(res, "rest", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+			onlyShown(res, "rest", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
 			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
 			checkLocked(res)
@@ -2023,6 +2030,15 @@ function Module.Build(h)
 	-- A press in an event only opens the popup (owner rule): Expect.Remote = false judges that it does not teleport.
 	function after.boss_panel_raging(res)
 		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
+		-- Design doc 4.42 (owner 2026-11-12): the Bosses popup dims the world like every panel
+		check(
+			res,
+			"boss_panel_dim_shown",
+			waitIs(function()
+				return dimOn(h.player)
+			end, true),
+			true
+		)
 		check(
 			res,
 			"boss_panel_live_card",
@@ -2041,6 +2057,14 @@ function Module.Build(h)
 	end
 	function after.boss_panel_closed(res)
 		check(res, "boss_panel_toggles_closed", waitShown(BOSSES, false), false)
+		check(
+			res,
+			"boss_panel_dim_off_after_close",
+			waitIs(function()
+				return dimOn(h.player)
+			end, false),
+			false
+		)
 		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_go_closed(res)
