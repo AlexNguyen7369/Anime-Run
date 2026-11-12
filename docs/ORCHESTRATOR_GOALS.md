@@ -325,5 +325,7 @@ Deliverables:
 - a3 | Key frames, one move at a time (`boss_mage_keyframes.py`, `boss_king_keyframes.py`): mage `idle`, `lightning` + window, `barrage` + window, `golem`, `watch`; golem `golem_idle`, `golem_slam`, `golem_sweep`, `golem_fall`; king `idle`, `gates` + window, `shields`, `fortified_idle` | 10 keys per move; owner approves every move's slices
 - a4 | In-betweens and bakes (`bake_boss_mage.py`, `bake_boss_king.py`) | bake asserts green, approved keys unchanged, sizes reported, durations and events unchanged
 - a5 | Impact layer (arena-wide flash and shake in `BossShake`, trails) and pose-tied effects (`BossMageVfx`, `BossKingVfx`); runners' auras and trails toned down in events (`Client/RunnerView`); tests red first | `boss_mage_anim`, `boss_king_anim`, `ui_boss_mage*`, `ui_boss_king*` green; owner look in Studio, REDUCED EFFECTS on and off
+- a7 | The Golden King's own arena, draft: `tools/blender/arena/build_king_arena.py`, renders in `assets/arena_draft/KingArena_*.png` from the lane cameras and from above, part estimate | owner approves the look and the size before a8
+- a8 | Arena in game: `BossArenaConfig` row, client build, sunset profile, hover and bob, camera row; vault code and tests retired | `boss_king_arena`, `boss_arena`, `boss_mage_arena` green; live captures from lanes 1, 4 and 7; part count and frame time reported
 - a6 | Compatibility: boss scenarios, `late_data`, rules audit, PR with fresh review | reported
 Out of scope: Big Raga, any change to move lengths, hit times, costs or cycles, Phase 2, new moves, Sidekick attacks.
