@@ -72,6 +72,8 @@ when all 3 are empty, or when the player loses a track to the NPC.
   showing the active slot's stamina. Client display of the server's `Stamina<n>` / `RunSlot`.
 - At 0 stamina the next non-empty slot takes over at once, at its own cruise speed. The NPC race timer keeps running.
 - Stamina refills to 100% for every character at the start of every run (owner 2026-10-28). It never carries over.
+- A Stamina power-up (4.44, owner 2026-11-11) may push the running character past 100%: the seconds number shows
+  the extra, the bar stays full.
 - Stamina bar look (owner 2026-11-03): the bar drains smoothly, a lighter trail shows the stamina just lost, the fill
   turns from blue to amber to red as it runs low (thresholds placeholder: 50% / 25%) and pulses when low, and it
   refills with a flash when the next runner tags in. Display only.
@@ -88,6 +90,7 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.4 Losing stays a speed comparison
 - The NPC's track time is fixed when the track starts; if the player's team reaches the finish later, the player loses.
   A swap to a slower character mid-track can turn a win into a loss: team order is part of the strategy.
+- Track power-ups (owner 2026-11-11, 4.44) change the team's speed and stamina on the way, so they count too.
 
 ### 4.5 Runner categories (owner 2026-10-28)
 - Every character has one category that trades speed against stamina (multipliers placeholder):
@@ -534,6 +537,27 @@ before any Studio work.
   - Two wings (4.24) stay as built until the pick is approved and built.
 - Tests `dojo`, `workshop`, `workshop_phase2`, `workshop_boost`, `showcase`, `ui_workshop_modal` and `ui_workshop_showcase` are retired; a `data` check covers the refund.
 
+### 4.44 Track power-ups (owner 2026-11-11)
+- Power-ups lie on the runner's path on all 10 tracks. A track win is no longer only the team's cruise against the
+  NPC's fixed time (4.4): power-ups picked up on the way count too. Spec: `docs/POWERUP_SPEC.md`.
+- Per player: each player gets their own set; other players never see or take them. The server rolls the set and
+  decides every pickup; the client only draws them.
+- Every placed power-up is on the runner's path and is always picked up (no steering, no misses; owner 2026-11-11).
+- Count scales with track length: about 1 per 1,000 studs (**placeholder**; Track 1 about 3, Track 10 about 22).
+- Two types for now:
+  - **Speed**: x1.5 cruise for 3 seconds. This boost may pass `MAX_CRUISE` (800) for those 3 seconds (owner
+    2026-11-11). It is the one timed exception to "the runner holds exact cruise everywhere" (3) and "cruise fixed
+    for the whole run" (TEAM_AND_STAMINA_SPEC). When it ends the runner goes back to its normal cruise.
+  - **Stamina**: +5 seconds of running for the character running at pickup. It may go past a full bar: the seconds
+    number on the team row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
+- Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a
+  **run-through ring** standing across the runner's lane (draft I4); the runner runs through it. Speed is orange with
+  chevrons inside, Stamina the stamina bar's blue with a drop. Idle (owner 2026-11-11): the rim's
+  pattern turns slowly and the glow breathes; REDUCED EFFECTS keeps only the turn.
+- HUD (owner 2026-11-11, draft H2): an active Speed boost shows as a badge on the running portrait's top-right corner
+  with a ring that drains over the 3 seconds; while a runner holds extra stamina seconds its seconds number turns blue.
+- Never saved. Not a paid item and never pays Money.
+
 ## 5. Characters and intellectual property (owner 2026-10-28)
 
 - Characters are **based on real anime characters with tweaked names** (parody look-alikes), e.g. "Narito" for a
@@ -596,6 +620,7 @@ before any Studio work.
 None open here; 4.25 marks its own open question.
 
 ## Change log
+- 2026-11-11: owner: track power-ups on all 10 tracks, per player, always picked up, about 1 per 1,000 studs; Speed x1.5 for 3 s that may pass `MAX_CRUISE`, Stamina +5 s that may overfill the seconds but not the bar; a win now counts power-ups too; look: a run-through ring that turns and glows, HUD draft H2, a badge on the running portrait (4.3, 4.4, 4.44, POWERUP_SPEC).
 - 2026-11-11: owner: Dojos removed entirely (plots, Dojo squad, workshop boost and levels, WORKSHOP panel, Dojo Master off sale); paid workshop levels refunded once (save VERSION 19); the freed ring becomes a Spawn showpiece, 3 Blender drafts first (4.43; 4.10, 4.19, 4.24 and the passes list edited).
 - 2026-11-11: owner: the loading screen backdrop is intro draft B3 "Distant crowd" (Sakura gate with a small blended roster crowd), replacing the hybrid dusk scene (4.24 Loading screen).
 - 2026-11-11: owner: the Bosses button takes the column buttons' exact cell, icon and label sizes and moves just below Roblox's top bar, left-aligned with the left column, or right of Roblox's buttons where it would reach the column (phones, short windows) (4.40).

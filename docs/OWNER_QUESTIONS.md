@@ -69,3 +69,10 @@ Uncommitted in the main checkout. Screenshots are in the session report.
 3. Owner 2026-11-10, from the screenshots: "still should see mahoraga a bit more, can downscale overall size of boss if needed". From the ring the camera alone cannot shrink the boss, so it is drawn at 0.75 x (`BossArenaConfig.BossScale`, proposed): 421 studs to the head top, 603 to the wheel top, 754 in Phase 2 (was 561 / 804 / 1005). The scream's close camera scales with it. Approve 0.75, or give another factor?
 4. Seen while screenshotting the scale (not changed): the exhaustion view's eye (placeholders 120 studs out, 80 up, spec "Exhaustion view") can sit behind an outer arch post, which then hides the boss for the whole 8.5 s wait (screenshot 8). A higher eye (about 160 up) or a shorter reach (about 60 out) would clear the posts. Want it changed, and which way?
 Answered by the owner 2026-11-10: items 1-3 approved and committed (angles 75 / 26 / 6, flat boss deleted, 0.75 x). Item 4: owner 2026-11-10 chose the higher eye, 160 up.
+## 2026-11-11 power-ups: proposed defaults (design doc 4.44, POWERUP_SPEC)
+- Regular track runs only: none in boss arenas or duels.
+- Rolled per player at each track start, fresh every run (a loss reset rerolls).
+- Spots between 10% and 90% of the track, at least 300 studs apart; type 50/50 Speed / Stamina.
+- A second Speed during a boost resets the timer to 3 s (no stacking); the boost carries across a tag-in.
+- Risk: a Secret at 800 boosted to 1,200 studs/s covers 3,600 studs in 3 s; check the `RunHold` on Tracks 6-10 (4.25) still catches it.
+- Ring size 12 studs, 6 over the rail; turn speed one turn per 4 s and glow breath 1.6 s (owner 2026-11-11 picked turning and glowing, no ground ring).
