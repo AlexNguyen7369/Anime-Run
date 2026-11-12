@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
+-- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_pity_due, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -323,6 +323,15 @@ function setups.sidekick_states(player)
 	end
 	player:SetAttribute("Gems", config.TenCost)
 	player:SetAttribute("RebirthLevel", config.UnlockRebirth)
+end
+
+-- sidekick_states with the Mythic due on the next summon, so Details shows the guaranteed odds (design doc section 6).
+function setups.sidekick_pity_due(player)
+	setups.sidekick_states(player)
+	local service = live("SidekickService")
+	local saved = service.Snapshot(player)
+	saved.SidekickPity = require(Shared.SidekickConfig).PityCount - 1
+	service.Apply(player, saved)
 end
 
 -- Real summon path and real reveal, only the rolls scripted: a Secret is too rare to wait for. Solo Studio: one player summons.

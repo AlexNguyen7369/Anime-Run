@@ -1484,6 +1484,12 @@ UiSpec.ServerSetup = {
 			.. "restore:sidekick_tutorial) puts all of it back and restarts a run it stopped.",
 	},
 	{
+		Id = "sidekick_pity_due",
+		When = "before click sidekicks_details_guaranteed, after 'spy'",
+		What = "sidekick_states with SidekickPity at PityCount - 1 (the Mythic is due). 'restore' (or restore:sidekick_states) "
+			.. "puts it back.",
+	},
+	{
 		Id = "sidekick_big_reveal",
 		When = "before click sidekicks_reveal_big, after 'spy'",
 		What = "sidekick_states, and the next 10 server rolls are scripted: the rotation's Mythic 5th, its Secret 9th, the rest its "
@@ -3512,7 +3518,7 @@ UiSpec.Guis.RacerSidekicks = {
 	Panels = { "Canvas" },
 	Buttons = {
 		{ Path = "Canvas/Close", Does = "close_panel", Panel = "RacerSidekicks/Canvas" },
-		{ Path = "Canvas/Chances", Does = "local" }, -- Details (section 6)
+		{ Path = "Canvas/Chances", Does = "local" }, -- "Show Chances": the odds dialog (section 6)
 		{ Path = "Canvas/Banner1", Does = "local" }, -- the featured banner opens Details too
 		{ Path = "Canvas/Info", Does = "local" },
 		{ Path = "Canvas/More", Does = "local" },
@@ -3539,16 +3545,23 @@ UiSpec.Guis.RacerSidekicks = {
 		{ Path = "Canvas/Many", Does = "remote", Remote = "SidekickSummon", Arg = "count" },
 		-- Shown only while the free summon is unused (design doc 4.36)
 		{ Path = "Canvas/AutoFuse", Does = "remote", Remote = "SidekickFreeSummon", Count = "dynamic" },
-		-- The screen's own open button: shown only in tutorial step 1 (UiSidekickTutorial)
-		{ Path = "Reopen", Does = "open_panel", Panel = "RacerSidekicks/Canvas", Count = "dynamic" },
+		-- The rbxm's own open button: always hidden (the galaxy look stays on the summon page, design doc 4.36)
+		{
+			Path = "Reopen",
+			Does = "open_panel",
+			Panel = "RacerSidekicks/Canvas",
+			ClickCoverage = "ui_sidekick_tutorial",
+		},
 	},
 }
 -- Sidekick tutorial (Client/SidekickTutorial; design doc 4.36, 4.21). UiSidekickTutorial holds the contract and judges its fit:
--- it is an overlay, enabled only while showing, with no button of its own (step 1 spotlights RacerSidekicks/Reopen).
+-- it is an overlay, enabled only while showing. GoButton shows in step 1 only (SIDEKICK_SPEC "Tutorial on the galaxy screen").
 UiSpec.Guis.SidekickTutorial = {
 	Source = "Client/SidekickTutorial",
 	Overlay = true,
-	Buttons = {},
+	Buttons = {
+		{ Path = "Layer/Card/GoButton", Does = "open_panel", Panel = "RacerSidekicks/Canvas", Count = "dynamic" },
+	},
 }
 table.insert(UiSpec.ClientScripts, "SidekickTutorial")
 UiSpec.Guis.CheckpointUi = {
@@ -3995,6 +4008,15 @@ for id, path in { sidekicks_details_button = "Chances", sidekicks_details_tap = 
 		Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_details_open" } },
 	})
 end
+-- With the Mythic due: Details shows the guaranteed odds (design doc section 6, pity shows the updated odds).
+table.insert(UiSpec.Clicks, {
+	Id = "sidekicks_details_guaranteed",
+	Gui = "RacerSidekicks",
+	Path = "Canvas/Chances",
+	Prepare = only(SIDEKICKS),
+	NeedSetup = { "spy", "sidekick_pity_due" },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_details_guaranteed" } },
+})
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_autosell_open",
 	Gui = "RacerSidekicks",
@@ -4008,7 +4030,7 @@ table.insert(UiSpec.Clicks, {
 	Gui = "RacerSidekicks",
 	Path = "Canvas/More",
 	Prepare = only(SIDEKICKS),
-	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false },
+	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekicks_more_gems" } },
 })
 table.insert(UiSpec.Clicks, {
 	Id = "sidekicks_info",
@@ -4060,11 +4082,11 @@ table.insert(UiSpec.Clicks, {
 	Prepare = REVEAL_CLOSE,
 	Expect = { Remote = false, After = { "sidekicks_reveal_closed" } },
 })
--- Tutorial (UiSidekickTutorial): step 1's spotlit open button, step 2's free summon, the result's reveal, then the equip step.
+-- Tutorial (UiSidekickTutorial): step 1's GoButton, step 2's free summon, the result's reveal, then the equip step.
 table.insert(UiSpec.Clicks, {
 	Id = "sidekick_tutorial_go",
-	Gui = "RacerSidekicks",
-	Path = "Reopen",
+	Gui = "SidekickTutorial",
+	Path = "Layer/Card/GoButton",
 	Prepare = only(),
 	NeedSetup = { "spy", "sidekick_tutorial_ready" },
 	Expect = { Panels = { [SIDEKICKS] = true }, Remote = false, After = { "sidekick_tutorial_go" } },

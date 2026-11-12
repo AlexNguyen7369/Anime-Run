@@ -1,32 +1,24 @@
 --!nonstrict
 -- Sidekick art wiring (design doc 4.36, 4.37, section 6; docs/SIDEKICK_SPEC.md "Summon presentation", "Summon page"). Owned by
 -- ui-test-writer. ui_sidekicks judges the galaxy summon screen (owner 2026-11-12: "The Sidekick UI tests check the galaxy
--- screen's real elements"): the stage and its featured models, names, rates, Details odds and guarantee, pity cards, Gem balance
--- and icons, costs, Auto-Sell, closing, the Index page and the desktop fit. Its fixture is sidekick_states (UiScenarios.Needs).
--- A press cannot be faked here, so the Bag art, Details and Auto-Sell opening and the reveals are judged after real clicks
+-- screen's real elements"; "The galaxy screen as built is the rule"): the stage and its featured models and names, the odds
+-- button, pity cards, Gem balance and icons, costs, Auto-Sell, More Gems, closing, the Index page and the desktop fit. Its
+-- fixture is sidekick_states (UiScenarios.Needs). A press cannot be faked here, so the Bag art, the odds dialog (and its
+-- guaranteed odds, fixture sidekick_pity_due), Auto-Sell and More Gems dialogs and the reveals are judged after real clicks
 -- (UiSpec.Clicks sidekicks_*). sidekick_big_reveal scripts a 10x holding a Mythic and a Secret.
 -- Screen contract (RacerSidekicks.rbxm, Client/SidekickUi): ScreenGui RacerSidekicks; Canvas is the panel PanelSwitch toggles.
 --   Open: workspace holds the local stage SummoningStageLocal, Units/Unit1..3 each with one ActualSidekick model (Unit2 the
---   rotation's Mythic, Unit1 and Unit3 its Legendaries), labels Canvas/Unit<i> (name) and Canvas/Rarity<i>; the camera is
---   Scriptable, the player cannot walk, Lighting has SummonPreviewActive. Closed: camera, movement, lighting and HUD are as they
---   were and the stage is gone (SIDEKICK_SPEC "Summon presentation").
+--   rotation's Mythic Igriz, Unit1 and Unit3 its Legendaries; no Rares, no rates), labels Canvas/Unit<i> (name) and
+--   Canvas/Rarity<i>; the camera is Scriptable, the player cannot walk, Lighting has SummonPreviewActive. Closed: camera,
+--   movement, lighting and HUD are as they were and the stage is gone (SIDEKICK_SPEC "Summon presentation").
 --   Canvas/Balance shows the Gems (HudFormat.Short) with CurrencyGem; Canvas/Once and Canvas/Many show their cost with
 --   CurrencyGem; Canvas/Timer shows m:ss to EndsAt; Canvas/Pity1+PityCount1+PityCard1 is Legendary pity, Pity2+PityCount2+
 --   PityCard2 Mythic pity ("%d / %d", Track/Progress filled count / limit); Canvas/Featured is the sticker.
--- Contract the implementer must still provide (red until then; implementer: report a change, do not loosen):
---   Canvas/Chances, the odds button, reads "Details" (section 6 names "Info" or "Details"; SIDEKICK_SPEC "Paid random item rules"
---   fixes "Details"). Canvas/Rate<i> (TextLabel) under Canvas/Unit<i> reads that Sidekick's rate "%g%%" (design doc 4.36: "each
---   one's rate under its name"). The rotation's Rares are on the screen by name too (4.36 poster: "the Legendaries and Rares").
---   No drawn portrait anywhere on the screen (4.36 "Art in UI"; Canvas/Banner1/UnitArtwork shows one today).
---   Details list Canvas/Modal/Panel/DetailsScroll/List exists from load, kept current with SidekickRotation and the pity
---   attributes whether shown or not; Details shows it (Modal visible), other dialogs hide it. It has a row per Public id and one
---   named Secret, each with a label Odds reading "%.3f%%", a Rarity label and (not the Secret) a Name label; the Secret row has
---   Shape/Model, black, holding SecretId's model. Rows come from Public.Odds, rounded to 3 decimals by largest remainder, so the
---   shown rows sum to exactly 100.000. List/Total reads "Total: 100%".
--- Guarantee contract (design doc 4.36, section 6): when SidekickPity >= PityCount - 1 the Mythic is due; else when
---   SidekickLegendaryPity >= LegendaryPityCount - 1 a Legendary is due. While one is due the tier's rows share 100% evenly, all
---   others read 0.000%, Total stays "Total: 100%", and List/GuaranteedNote (a shown TextLabel, LayoutOrder below every row, text
---   holding "guaranteed" and the tier) explains it. Nothing due: the note is absent or hidden.
+--   Canvas/Chances ("Show Chances") opens Canvas/Modal, whose Panel/DetailsScroll/Body lists every outcome of the rotation, one
+--   line each holding the Sidekick's name (the Secret as "Secret") and its percent with 3 decimals. While a guarantee is due
+--   (design doc 4.36, section 6: Mythic at SidekickPity >= PityCount - 1, else Legendary) the tier's lines share 100% evenly,
+--   the others read 0.000%, and the text says "guaranteed". No silhouette row and no exact-100% rounding (owner 2026-11-12).
+--   Auto Sell and More open the same Modal with rows under Panel/DetailsScroll/Actions.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("SidekickConfig"))
@@ -44,7 +36,6 @@ local UiMotion = require(Client:WaitForChild("UiMotion"))
 local GUI = "RacerSidekicks"
 local CANVAS = GUI .. "/Canvas"
 local MODAL = CANVAS .. "/Modal"
-local DETAILS = MODAL .. "/Panel/DetailsScroll/List"
 local ACTIONS = MODAL .. "/Panel/DetailsScroll/Actions"
 local STAGE = "SummoningStageLocal"
 local REVEAL = "RacerSidekickReveal"
@@ -149,11 +140,11 @@ function Module.Build(h)
 		end
 		return rows
 	end
-	-- Mythic, Legendaries and Rares of the rotation: what the poster features (design doc 4.36). Commons and the Secret are in
-	-- Details only.
+	-- The Mythic and Legendaries of the rotation: what the stage features (SIDEKICK_SPEC "Summon presentation": "as built is the rule"; no Rares).
+	-- Commons, Rares and the Secret are in the odds dialog only.
 	local function featuredRows(view)
 		local rows = {}
-		for _, rarity in { "Mythic", "Legendary", "Rare" } do
+		for _, rarity in { "Mythic", "Legendary" } do
 			for _, row in rowsOf(view, rarity) do
 				table.insert(rows, row)
 			end
@@ -234,8 +225,8 @@ function Module.Build(h)
 		end
 	end
 
-	-- Design doc 4.36 poster, on the galaxy stage: the Mythic in the centre (Igriz, SIDEKICK_SPEC "Summon presentation"), the
-	-- Legendaries beside it, actual 3D models, each one's name, rarity and rate.
+	-- The galaxy stage: the Mythic Igriz in the centre, the Legendaries beside it, actual 3D models, each one's name and rarity.
+	-- No rates under the names and no Rares (SIDEKICK_SPEC "Summon presentation": "as built is the rule").
 	local function checkFeatured(res, canvas)
 		local view = public()
 		check(res, "sidekick_rotation_attribute_readable", view ~= nil, true)
@@ -254,13 +245,6 @@ function Module.Build(h)
 				check(res, "sidekick_stage_model_" .. row.Id, problem or "shown", "shown")
 				check(res, "sidekick_stage_name_" .. row.Id, labelText(canvas, "Unit" .. index), row.Name)
 				check(res, "sidekick_stage_rarity_" .. row.Id, labelText(canvas, "Rarity" .. index), row.Rarity)
-				-- Design doc 4.36: "each one's rate under its name". Canvas/Rate<i> is new (contract at the top).
-				check(
-					res,
-					"sidekick_stage_rate_" .. row.Id,
-					labelText(canvas, "Rate" .. index),
-					("%g%%"):format(row.Odds)
-				)
 			end
 		end
 		local models = 0
@@ -268,19 +252,16 @@ function Module.Build(h)
 			models += (d:IsA("Model") and d.Name == "ActualSidekick") and 1 or 0
 		end
 		check(res, "sidekick_stage_models_only_featured", models, 3)
-		-- Design doc 4.36 poster: "the Legendaries and Rares beside it". Owner question: the galaxy screen has 3 units.
-		local text = table.concat(shownTexts(canvas, canvas:FindFirstChild("Modal")), " ")
-		for _, row in rowsOf(view, "Rare") do
-			check(res, "sidekick_screen_shows_rare_" .. row.Id, string.find(text, row.Name, 1, true) ~= nil, true)
-		end
 		checkScreenHides(res, canvas, view)
 		local sticker = canvas:FindFirstChild("Featured")
 		check(res, "sidekick_sticker_shown", sticker ~= nil and h.visible(sticker), true)
 		check(res, "sidekick_sticker_no_odds_claim", string.find(labelText(canvas, "Featured"), "[%d%%]") ~= nil, false)
 	end
 
-	-- Models, not portraits, on the page (design doc 4.36 "Art in UI": portraits only in the index and Bag equip).
+	-- Models, not portraits, on the page (design doc 4.36 "Art in UI": portraits only in the index and Bag equip). The banner
+	-- Canvas/Banner1 may show the Mythic's drawn portrait (SIDEKICK_SPEC "Summon presentation": "as built is the rule").
 	local function checkNoPortraits(res, page)
+		local banner = page:FindFirstChild("Banner1")
 		local portraits, found = {}, {}
 		for _, id in allIds() do
 			if Art[id] and Art[id].Portrait then
@@ -288,7 +269,8 @@ function Module.Build(h)
 			end
 		end
 		for _, d in page:GetDescendants() do
-			if (d:IsA("ImageLabel") or d:IsA("ImageButton")) and portraits[d.Image] then
+			local inBanner = banner ~= nil and (d == banner or d:IsDescendantOf(banner))
+			if (d:IsA("ImageLabel") or d:IsA("ImageButton")) and portraits[d.Image] and not inBanner then
 				table.insert(found, h.pathOf(d))
 			end
 		end
@@ -337,7 +319,14 @@ function Module.Build(h)
 				{ "Many", h.player:GetAttribute("SidekickCost10") or Config.TenCost },
 			}
 		do
+			-- The buttons read "Once" and "Many" (SIDEKICK_SPEC "Summon presentation": "as built is the rule"; replaces "Summon 1x / 10x").
 			local button = canvas:FindFirstChild(cost[1])
+			check(
+				res,
+				"sidekick_summon_label_" .. cost[1],
+				string.find(button and button.Text or "", cost[1], 1, true) == 1,
+				true
+			)
 			check(res, "sidekick_summon_button_shown_" .. cost[1], button ~= nil and h.visible(button), true)
 			local text = button and button.Text or ""
 			check(res, "sidekick_cost_shown_" .. cost[1], string.find(text, tostring(cost[2]), 1, true) ~= nil, true)
@@ -350,7 +339,8 @@ function Module.Build(h)
 		end
 	end
 
-	-- More Gems (design doc 4.36, SIDEKICK_SPEC "Summon page"): its entry is on the screen and the bundles shown are real packs.
+	-- More Gems: two pack cards and a "More" button, no badges (SIDEKICK_SPEC "Summon presentation": "as built is the rule"; replaces the four-pack
+	-- column). The More dialog is judged after its real press (after.sidekicks_more_gems).
 	local function checkMoreGems(res, canvas)
 		local more = canvas:FindFirstChild("More")
 		check(res, "sidekick_more_gems_shown", more ~= nil and h.visible(more), true)
@@ -368,36 +358,14 @@ function Module.Build(h)
 		end
 	end
 
-	-- The rotation's one Secret, and only it, as a black shape; "Secret" and its chance, and no name column.
-	local function silhouetteProblem(line, view)
-		local shape = line and line:FindFirstChild("Shape")
-		local model = shape and shape:FindFirstChild("Model")
-		if not (model and model:IsA("ViewportFrame")) then
-			return "no Shape/Model ViewportFrame"
-		end
-		if model.ImageColor3 ~= Color3.new(0, 0, 0) then
-			return "not black: " .. tostring(model.ImageColor3)
-		end
-		local live = model:FindFirstChild(view.SecretId)
-		if not (live and live:FindFirstChildWhichIsA("BasePart", true)) then
-			return "no model of " .. tostring(view.SecretId)
-		end
-		for _, row in secretRows() do
-			if row.Id ~= view.SecretId and model:FindFirstChild(row.Id) then
-				return "shows another Secret " .. row.Id
-			end
-		end
-		return nil
-	end
-
-	-- The slot turns while the screen is open: the timer and Details follow with nobody reopening it, and the featured Mythic
-	-- stays Igriz (SIDEKICK_SPEC "Summon presentation"). The fixture moves to a slot with another Secret.
+	-- The slot turns while the screen is open: the timer follows with nobody reopening it, and the featured Mythic stays Igriz
+	-- (SIDEKICK_SPEC "Summon presentation"). The odds dialog is built on its press, so only the stage and timer can follow.
 	local function checkSlotChange(res, canvas)
 		local request = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
-		local list, timer = h.find(DETAILS), canvas:FindFirstChild("Timer")
-		check(res, "sidekick_slot_change_parts", request ~= nil and list ~= nil and timer ~= nil, true)
+		local timer = canvas:FindFirstChild("Timer")
+		check(res, "sidekick_slot_change_parts", request ~= nil and timer ~= nil, true)
 		local before = public()
-		if not (request and list and timer and before) then
+		if not (request and timer and before) then
 			return
 		end
 		request:InvokeServer("sidekick_ui_clock:next")
@@ -410,7 +378,7 @@ function Module.Build(h)
 			if not (got and math.abs(got - (now.EndsAt - workspace:GetServerTimeNow())) <= TIMER_SLACK) then
 				return "timer still on the old slot: " .. timer.Text
 			end
-			return silhouetteProblem(list:FindFirstChild("Secret"), now)
+			return nil
 		end)
 		check(res, "sidekick_slot_change_followed", problem or "followed", "followed")
 		local mythic = public() and rowsOf(public(), "Mythic")[1]
@@ -424,7 +392,7 @@ function Module.Build(h)
 		check(res, "sidekick_slot_change_back", back or "back", "back")
 	end
 
-	-- Name -> percent each Details row must show. tier: the rarity a due guarantee pays; it shares 100%, the rest read 0.
+	-- Name -> percent each outcome must show. tier: the rarity a due guarantee pays; it shares 100%, the rest read 0.
 	local function wantOdds(view, tier)
 		local odds = {}
 		if tier then
@@ -433,7 +401,7 @@ function Module.Build(h)
 				inTier += Config.Get(id).Rarity == tier and 1 or 0
 			end
 			for _, id in view.Ids do
-				odds[id] = Config.Get(id).Rarity == tier and 100 / inTier or 0
+				odds[Config.Get(id).Name] = Config.Get(id).Rarity == tier and 100 / inTier or 0
 			end
 			odds.Secret = 0
 			return odds
@@ -442,98 +410,88 @@ function Module.Build(h)
 		local served = view.Odds or {}
 		odds.Secret = served[view.SecretId] or 0
 		for _, id in view.Ids do
-			odds[id] = served[id] or 0
+			odds[Config.Get(id).Name] = served[id] or 0
 		end
 		return odds
 	end
-	local function shownOdds(list, name)
-		return labelText(list:FindFirstChild(name), "Odds")
-	end
-	local function shownThousandths(list, name)
-		local number = tonumber(string.match(shownOdds(list, name), "^(%d+%.%d%d%d)%%$"))
-		return number and math.round(number * 1000)
-	end
-	local function shownSum(res, tag, list, view)
-		local sum = 0
-		for name in wantOdds(view) do
-			sum += shownThousandths(list, name) or 0
-		end
-		check(res, tag, sum, 100000)
-	end
-	-- nil when every shown row is its percent rounded by largest remainder: down or up by under 0.001, only the largest remainders up.
-	local function oddsProblem(list, want)
-		local lowestUp, highestDown = math.huge, -math.huge
+	-- nil when the dialog has a line per outcome with its percent to 3 decimals (no exact-sum rule, owner 2026-11-12).
+	local function dialogProblem(text, want)
+		local lines = string.split(text, "\n")
 		for name, percent in want do
-			local shown = shownThousandths(list, name)
-			local exact = percent * 1000 + 1e-6 -- 24.166 * 1000 lands just under 24166
-			local floor = math.floor(exact)
-			local remainder = exact - floor
-			if shown == floor then
-				highestDown = math.max(highestDown, remainder)
-			elseif shown == floor + 1 and remainder > 2e-6 then
-				lowestUp = math.min(lowestUp, remainder)
-			else
-				return name .. " " .. shownOdds(list, name) .. " want about " .. string.format("%.5f%%", percent)
+			local shown = nil
+			for _, line in lines do
+				local starts = string.find(line, name, 1, true) == 1
+				if starts and not (name == "Secret" and string.find(line, "•", 1, true)) then
+					shown = tonumber(string.match(line, "([%d%.]+)%%%s*$"))
+				end
+			end
+			if not shown then
+				return "no line with a percent for " .. name
+			end
+			if math.abs(shown - percent) > 0.0006 then
+				return ("%s shows %.3f%%, want %.3f%%"):format(name, shown, percent)
 			end
 		end
-		return lowestUp < highestDown - 2e-6 and "not largest remainder" or nil
+		return nil
 	end
-
-	-- Section 6: every summon outcome, behind a button labelled "Details", read from the shown labels, sums to 100%.
+	local function dialogText()
+		local body = h.find(MODAL .. "/Panel/DetailsScroll/Body")
+		return body and h.visible(body) and body.Text or ""
+	end
+	-- Section 6: every outcome with its percent before any summon, behind the odds button. It reads "Show Chances"
+	-- (SIDEKICK_SPEC "Summon presentation": "as built is the rule"; replaces the "Details" label); the dialog is judged after its press.
 	local function checkDetails(res, canvas)
 		local button = canvas:FindFirstChild("Chances")
-		check(res, "sidekick_details_button_shown", button ~= nil and h.visible(button), true)
-		check(res, "sidekick_details_button_label", labelText(button, "Caption"), "Details")
-		local list = h.find(DETAILS)
-		check(res, "sidekick_details_present", list ~= nil, true)
-		if not list then
+		check(res, "sidekick_odds_button_shown", button ~= nil and h.visible(button), true)
+		check(res, "sidekick_odds_button_label", labelText(button, "Caption"), "Show Chances")
+		local view = public()
+		check(res, "sidekick_public_has_odds", view and type(view.Odds), "table")
+		if view then
+			local liveIsAChoice = false
+			for _, row in secretRows() do
+				liveIsAChoice = liveIsAChoice or row.Id == view.SecretId
+			end
+			check(res, "sidekick_view_secret_id_is_a_choice", liveIsAChoice, true)
+		end
+	end
+	-- After a real press of the odds button: tier nil, or the guarantee the fixture made due.
+	local function checkDialogOdds(res, tag, tier)
+		local modal, view = h.find(MODAL), public()
+		check(res, "sidekick_odds_dialog_opened" .. tag, modal ~= nil and h.visible(modal), true)
+		check(res, "sidekick_odds_rotation_readable" .. tag, view ~= nil, true)
+		if not view then
 			return
 		end
-		local view = public()
-		if not view then
-			return -- sidekick_rotation_attribute_readable already failed
-		end
-		check(res, "sidekick_public_has_odds", type(view.Odds), "table")
-		local rows = waitFor(function()
-			return oddsProblem(list, wantOdds(view))
-		end)
-		check(res, "sidekick_details_odds_match_server", rows or "right", "right")
-		shownSum(res, "sidekick_details_sum_100", list, view)
-		for _, id in view.Ids do
-			check(res, "sidekick_details_name_" .. id, labelText(list:FindFirstChild(id), "Name"), Config.Get(id).Name)
-		end
-		local secrets = secretRows()
-		local liveIsAChoice = false
-		for _, row in secrets do
-			liveIsAChoice = liveIsAChoice or row.Id == view.SecretId
-		end
-		check(res, "sidekick_view_secret_id_is_a_choice", liveIsAChoice, true)
-		local secretLine = list:FindFirstChild("Secret")
 		local problem = waitFor(function()
-			return silhouetteProblem(secretLine, view)
+			return dialogProblem(dialogText(), wantOdds(view, tier))
 		end)
-		check(res, "sidekick_details_silhouette", problem or "shown", "shown")
-		check(res, "sidekick_details_secret_rarity", labelText(secretLine, "Rarity"), "Secret")
-		check(res, "sidekick_details_secret_no_name_column", labelText(secretLine, "Name"), "missing")
-		-- The Secret row's words never tell which one is live, and it is not a row of its own.
-		local text = secretLine and table.concat(shownTexts(secretLine), " ") or ""
-		for _, row in secrets do
-			check(
-				res,
-				"sidekick_details_secret_hides_name_" .. row.Id,
-				string.find(text, row.Name, 1, true) ~= nil,
-				false
-			)
-			check(res, "sidekick_details_hides_id_" .. row.Id, list:FindFirstChild(row.Id) == nil, true)
+		check(res, "sidekick_odds_dialog_lists_outcomes" .. tag, problem or "right", "right")
+		local text = dialogText()
+		-- The Secret's line never tells which one is live; boss drops and Sidekicks out of the slot are not outcomes.
+		for _, rows in { secretRows(), Config.BossDrops } do
+			for _, row in rows do
+				check(res, "sidekick_odds_hides_" .. row.Id .. tag, string.find(text, row.Name, 1, true) ~= nil, false)
+			end
 		end
 		for _, row in Config.List do
 			if row.Rarity ~= "Secret" and not table.find(view.Ids, row.Id) then
-				check(res, "sidekick_details_out_of_rotation_" .. row.Id, list:FindFirstChild(row.Id) == nil, true)
+				check(
+					res,
+					"sidekick_odds_out_of_rotation_" .. row.Id .. tag,
+					string.find(text, row.Name, 1, true) ~= nil,
+					false
+				)
 			end
 		end
-		check(res, "sidekick_details_total_text", labelText(list, "Total"), "Total: 100%")
-		for _, row in Config.BossDrops do
-			check(res, "sidekick_details_no_boss_drop_" .. row.Id, list:FindFirstChild(row.Id) == nil, true)
+		local says = string.find(string.lower(text), "guaranteed", 1, true) ~= nil
+		check(res, "sidekick_odds_guarantee_note" .. tag, says, tier ~= nil)
+		if tier then
+			check(
+				res,
+				"sidekick_odds_guarantee_tier" .. tag,
+				string.find(text, tier .. " guaranteed", 1, true) ~= nil,
+				true
+			)
 		end
 	end
 
@@ -551,69 +509,33 @@ function Module.Build(h)
 		end
 		return nil
 	end
-	-- Fixture counts drive the pity cards and the Details odds (contract at the top).
+	-- Fixture counts drive the pity cards (design doc 4.36). The guaranteed odds are judged after a real press of the odds
+	-- button on a due fixture (after.sidekicks_details_guaranteed): the dialog is built on its press.
 	local function checkGuarantee(res, canvas)
 		local request = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
-		local list = h.find(DETAILS)
-		local view = public()
-		check(res, "sidekick_guarantee_parts", request ~= nil and list ~= nil, true)
+		check(res, "sidekick_guarantee_parts", request ~= nil, true)
 		check(res, "sidekick_legendary_pity_label", string.lower(labelText(canvas, "Pity1")), "legendary")
 		check(res, "sidekick_mythic_pity_label", string.lower(labelText(canvas, "Pity2")), "mythic")
-		if not (request and view) then
+		if not request then
 			return
 		end
 		local M, L = Config.PityCount, Config.LegendaryPityCount
 		for _, step in
 			{
-				{ "none", 0, 0, nil },
-				{ "one_short", M - 2, L - 2, nil },
-				{ "mythic", M - 1, 0, "Mythic" },
-				{ "legendary", 0, L - 1, "Legendary" },
-				{ "legendary_held_over", 0, L, "Legendary" }, -- a Mythic won the tie: the count stays over
-				{ "both_mythic_wins", M - 1, L - 1, "Mythic" },
-				{ "back_to_none", 0, 0, nil },
+				{ "none", 0, 0 },
+				{ "one_short", M - 2, L - 2 },
+				{ "mythic", M - 1, 0 },
+				{ "legendary", 0, L - 1 },
+				{ "legendary_held_over", 0, L }, -- a Mythic won the tie: the count stays over
+				{ "back_to_none", 0, 0 },
 			}
 		do
-			local tag, mythic, legendary, tier = step[1], step[2], step[3], step[4]
+			local tag, mythic, legendary = step[1], step[2], step[3]
 			request:InvokeServer(("sidekick_ui_pity:%d:%d"):format(mythic, legendary))
 			local bars = waitFor(function()
 				return pityProblem(canvas, 2, mythic, M) or pityProblem(canvas, 1, legendary, L)
 			end)
 			check(res, "sidekick_pity_cards_" .. tag, bars or "follow", "follow")
-			if list then
-				local want = wantOdds(view, tier)
-				local odds = waitFor(function()
-					return oddsProblem(list, want)
-				end)
-				check(res, "sidekick_guarantee_odds_" .. tag, odds or "right", "right")
-				shownSum(res, "sidekick_guarantee_sum_100_" .. tag, list, view)
-				check(res, "sidekick_guarantee_total_" .. tag, labelText(list, "Total"), "Total: 100%")
-				local note = list:FindFirstChild("GuaranteedNote")
-				if tier then
-					local words = note and note:IsA("TextLabel") and string.lower(note.Text) or ""
-					check(res, "sidekick_guarantee_note_present_" .. tag, note ~= nil and note.Visible, true)
-					check(
-						res,
-						"sidekick_guarantee_note_says_" .. tag,
-						string.find(words, "guaranteed", 1, true) ~= nil,
-						true
-					)
-					check(
-						res,
-						"sidekick_guarantee_note_tier_" .. tag,
-						string.find(words, string.lower(tier), 1, true) ~= nil,
-						true
-					)
-					local above = note ~= nil
-					for name in want do
-						local line = list:FindFirstChild(name)
-						above = above and line ~= nil and note.LayoutOrder < line.LayoutOrder
-					end
-					check(res, "sidekick_guarantee_note_above_rows_" .. tag, above, true)
-				else
-					check(res, "sidekick_guarantee_no_note_" .. tag, note ~= nil and note.Visible, false)
-				end
-			end
 		end
 	end
 
@@ -861,13 +783,11 @@ function Module.Build(h)
 		check(res, "sidekick_actions_row_gone", h.find("RacerBackpack/Panel/SidekickActions"), nil)
 	end
 
-	-- After a real press of Details (Canvas/Chances) or the featured banner (Canvas/Banner1): the dialog shows the odds list,
-	-- and no summon can be pressed through it.
+	-- After a real press of the odds button (Canvas/Chances) or the featured banner (Canvas/Banner1), before any summon: the
+	-- dialog lists every outcome with its percent, and no summon can be pressed through it.
 	function after.sidekicks_details_open(res)
-		local modal, list = h.find(MODAL), h.find(DETAILS)
-		check(res, "sidekick_details_opened", modal ~= nil and h.visible(modal), true)
-		check(res, "sidekick_details_list_shown", list ~= nil and h.visible(list), true)
-		local once = h.find(CANVAS .. "/Once")
+		checkDialogOdds(res, "", nil)
+		local modal, once = h.find(MODAL), h.find(CANVAS .. "/Once")
 		local r = once and h.rect(once)
 		local top = r and h.topAt(r.x + r.w / 2, r.y + r.h / 2)
 		check(
@@ -877,13 +797,30 @@ function Module.Build(h)
 			true
 		)
 	end
+	-- The same press with the Mythic due (fixture sidekick_pity_due): the updated odds (section 6).
+	function after.sidekicks_details_guaranteed(res)
+		check(res, "sidekick_pity_due_fixture", h.player:GetAttribute("SidekickPity"), Config.PityCount - 1)
+		checkDialogOdds(res, "_due", "Mythic")
+	end
+
+	-- After a real press of More: the More Gems dialog offers every pack, with its Gems and price.
+	function after.sidekicks_more_gems(res)
+		local modal, actions = h.find(MODAL), h.find(ACTIONS)
+		check(res, "sidekick_more_gems_opened", modal ~= nil and h.visible(modal), true)
+		local text = table.concat(actions and shownTexts(actions) or {}, "\n")
+		for _, pack in Monetization.GemPacks do
+			local line = string.find(text, pack.Name, 1, true) ~= nil
+				and string.find(text, "R$" .. pack.RobuxPrice, 1, true) ~= nil
+			check(res, "sidekick_more_gems_lists_" .. pack.Id, line, true)
+		end
+	end
 
 	-- After a real press of Auto Sell: one line per rarity, each off on the fresh fixture, and no odds list in the way.
 	function after.sidekicks_autosell_open(res)
 		local modal, actions = h.find(MODAL), h.find(ACTIONS)
 		check(res, "sidekick_autosell_opened", modal ~= nil and h.visible(modal), true)
-		local list = h.find(DETAILS)
-		check(res, "sidekick_autosell_hides_details", list ~= nil and h.visible(list), false)
+		local body = h.find(MODAL .. "/Panel/DetailsScroll/Body")
+		check(res, "sidekick_autosell_hides_odds", body ~= nil and h.visible(body), false)
 		local lines = actions and shownTexts(actions) or {}
 		local rarities = {}
 		for _, row in Config.List do
