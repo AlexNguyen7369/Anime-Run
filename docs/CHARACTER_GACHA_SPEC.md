@@ -177,7 +177,7 @@ Preset trios (the anime's famous team):
 
 Named in text but not in the cast (design doc section 5, one list): Mahoraka (Mahoraga, Jujutsu Kaisen), Track 5's card definition only (`TRACKS_AND_BIOMES_SPEC`).
 
-Sidekicks and boss (design doc section 5, one list): Pochito (Pochita, Chainsaw Man), Hawke (Hawk, The Seven Deadly Sins), Kasugay (Kasugai crows, Demon Slayer), Gyokan (Divine Dogs, Jujutsu Kaisen), Choppa (Chopper, One Piece), Beroo (Beru, Solo Leveling), Ryuuk (Ryuk, Death Note), Purple Platina (Star Platinum, JoJo's Bizarre Adventure), Igriz (Igris, Solo Leveling), Kaizel (Kaisel, Solo Leveling), Rikka (Rika, Jujutsu Kaisen), Kurami (Kurama, Naruto), Big Raga (Mahoraga, Jujutsu Kaisen). Relics: Nobora's Nail (Nobara's nails), Sukana's Finger (Sukuna's fingers), Gojio's Sixfold Eyes (Gojo's Six Eyes), Raga's Wheel (Mahoraga's wheel), all Jujutsu Kaisen.
+Sidekicks and boss (design doc section 5, one list): Pochito (Pochita, Chainsaw Man), Hawke (Hawk, The Seven Deadly Sins), Kasugay (Kasugai crows, Demon Slayer), Gyokan (Divine Dogs, Jujutsu Kaisen), Choppa (Chopper, One Piece), Beroo (Beru, Solo Leveling), Ryuuk (Ryuk, Death Note), Purple Platina (Star Platinum, JoJo's Bizarre Adventure), Igriz (Igris, Solo Leveling), Kaizel (Kaisel, Solo Leveling), Rikka (Rika, Jujutsu Kaisen), Kurami (Kurama, Naruto), Big Raga (Mahoraga, Jujutsu Kaisen), The Elf Mage (Frieren, Frieren: Beyond Journey's End; ids `boss_mage`, `boss_golem`). Relics: Nobora's Nail (Nobara's nails), Sukana's Finger (Sukuna's fingers), Gojio's Sixfold Eyes (Gojo's Six Eyes), Raga's Wheel (Mahoraga's wheel), all Jujutsu Kaisen.
 
 ## Art
 

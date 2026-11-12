@@ -5,7 +5,10 @@
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
 --   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton, BossesPanel, EditTeamButton
---     sit directly in the ScreenGui.
+--     sit directly in the ScreenGui; BossButton and TeamButton directly in their own ScreenGui RacerSecondColumn (design doc
+--     4.42, owner 2026-11-12: only they go under panels; ResetOnSpawn false, IgnoreGuiInset, DisplayOrder below every
+--     PanelSwitch panel's ScreenGui and above PanelDim). RacerBossEvent's DisplayOrder never changes with a panel open, and
+--     with a panel open the Invite draws above it and its TeleportButton is the topmost click-taker at its centre.
 --   Team HUD (owner 2026-11-05): TeamHud/Header/CloseButton closes it with at least 1 pick, and invokes BossEventPrepRun; with none, red
 --     TeamHud/TeamWarning "Select a character first" fades within 1 s and the HUD stays. EditTeamButton reopens it until the spawn.
 --     TeamHud/AverageStamina reads "Average stamina: <n> s", from BossTeamStamina<n> of the picks. The HUD opens on LastBossTeam's ids.
@@ -19,6 +22,7 @@
 --     inside the track and drawn over the Fill.
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
+--   DropList hidden for now (owner 2026-11-11, both bosses): never shown during an event; the layout below waits for its return.
 --   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
 --     the HP bar's right edge and its top just under the bar's bottom, clear of Leave and the bar.
 --   HUD columns (design doc 4.40, owner 2026-11-10): while BossEvent is true HudChrome/Grid and HudChrome/ShopColumn are hidden;
@@ -36,12 +40,16 @@
 --     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
 --     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
 --     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
---     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. It sits just
---     under Roblox's top bar (top within BUTTON_MAX_GAP px under GuiService.TopbarInset.Max.Y). Its left edge, at every pulse
---     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
---     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
---     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
---     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
+--     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. Owner
+--     2026-11-12: it sits in a second column right of HudChrome/Grid, at every viewport: its left edge, at every pulse
+--     scale, 0..BUTTON_MAX_GAP px past the Grid's right edge; its centre within BUTTON_MID_TOL px of the midpoint of the
+--     Index and Items cells' centres. At BUTTON_PULSE it overlaps neither Index, Items, Rebirth (their shown Key letters
+--     and Badges included), the shown roll (RollToast/Toast), the shown Money / Gems readout, the shown HudChrome/TopRight
+--     pills. Owner 2026-11-12 (4.42): with RacerIndex/Panel open, the panel draws above it (ScreenGui DisplayOrder, or ZIndex
+--     in one ScreenGui) and the topmost click-taker at its centre is the panel (the world dim PanelDim, under the HUD, never
+--     covers it). The Bosses popup turns the world dim on (UiSpec.PanelDimmers, 4.42) and closing it turns it off. The cell below
+--     it (Team, later) is not judged. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
 --   A popup's rows draw only while it shows and only a real press opens it, so they are judged after the clicks.
@@ -73,7 +81,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
-local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
@@ -90,7 +97,8 @@ local WARNING = ROOT .. "/Warning"
 local BAR = ROOT .. "/BossBar"
 local LEAVE = ROOT .. "/LeaveButton"
 local PANEL = ROOT .. "/ExhaustedPanel"
-local BUTTON = ROOT .. "/BossButton"
+local SECOND_COLUMN = "RacerSecondColumn" -- design doc 4.42 (owner 2026-11-12): Bosses and Team in their own ScreenGui
+local BUTTON = SECOND_COLUMN .. "/BossButton"
 local DROP = ROOT .. "/DropList"
 local BOSSES = ROOT .. "/BossesPanel"
 local EDIT_TEAM = ROOT .. "/EditTeamButton"
@@ -102,6 +110,8 @@ local PARTS = {
 	LeaveButton = LEAVE,
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
+	-- Design doc 4.40 (owner 2026-11-12): the Team button below it shows and hides with it (the second column)
+	TeamButton = SECOND_COLUMN .. "/TeamButton",
 	DropList = DROP,
 	BossesPanel = BOSSES,
 	EditTeamButton = EDIT_TEAM,
@@ -111,7 +121,8 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
 local BOSS_NAME = "Big Raga"
 local BUTTON_TEXT = "Bosses"
-local RAGING_TEXT = "Big Raga is raging right now"
+-- Bosses cards (owner 2026-11-11, draft B; BOSS_EVENT_SPEC "Bosses cards"): the live boss's card, with Go on it.
+local LIVE_CARD = "RacerBossEvent/BossesPanel/Cards/Card_boss_raga"
 local TEAM_WARNING_TEXT = "Select a character first"
 local TEAM_WARNING_SECONDS = 1 -- owner 2026-11-05
 local WARNING_SLACK = 0.3 -- s around it
@@ -146,9 +157,6 @@ local BAR_MIN_HEIGHT = 56 -- px
 local BAR_VALUE_MIN_TEXT = 28 -- px
 local BAR_TITLE_MIN_TEXT = 36 -- px
 local BAR_SIZE_MIN_SCREEN = 1280 -- px of width where those sizes are judged
-local DROP_EDGE_SLACK = 2 -- px: its right edge against the HP bar's, owner 2026-11-05
-local DROP_TOP_MAX_GAP = 16 -- px under the HP bar: "just under", placeholder
-local DROP_ROW_MIN_HEIGHT = 16 -- px at desktop: bigger than the old 15
 local TEXT_GONE = 0.9 -- TextTransparency: the flash's out, "fully disappearing"
 local TEXT_SOLID = 0.1 -- and its in
 local STROKE_SHOWS = 0.5 -- stroke transparency at most, while the text shows
@@ -158,13 +166,27 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_GAP = 12 -- px under TopbarInset.Max.Y / past Roblox's buttons: "just below", "right of"
+local BUTTON_MAX_GAP = 24 -- px past the left column's right edge: "directly right of" it (owner 2026-11-12)
+local BUTTON_MID_TOL = 12 -- px off the Index / Items centres' midpoint: "half a row down" (owner 2026-11-12)
 local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
 local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
 local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
 local GRID = "HudChrome/Grid"
 local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
-local OUTLINE_MIN_LUMINANCE = 0.5 -- the Big Raga row's outline: "light", against its black text
+local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
+local TOP_RIGHT = "HudChrome/TopRight" -- the Daily, Market and Settings pills
+local OVER_PANEL = "RacerIndex/Panel" -- a standard panel opened over the button (owner 2026-11-12, 4.42)
+-- The world dim under the HUD (Client/HudChrome, UiSpec.PanelDimmers): shown = its ScreenGui Enabled and Dim Visible
+local function dimOn(player)
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild(Spec.PanelDimmers.Gui)
+	local frame = gui and gui:FindFirstChild("Dim")
+	return gui ~= nil
+		and gui:IsA("ScreenGui")
+		and gui.Enabled
+		and frame ~= nil
+		and frame:IsA("GuiObject")
+		and frame.Visible
+end
 
 local Module = {}
 
@@ -370,6 +392,7 @@ function Module.Build(h)
 						local other = h.find(guiName .. "/" .. element)
 						if
 							guiName ~= ROOT
+							and guiName ~= SECOND_COLUMN -- in this gui until 2026-11-12 (4.42), never judged against the event parts
 							and guiName ~= "RollToast"
 							and other
 							and other:IsA("GuiObject")
@@ -470,7 +493,8 @@ function Module.Build(h)
 		local left, dropEarly = warningStays(maxSeconds)
 		check(res, tag .. "_warning_goes_away", left, nil)
 		check(res, tag .. "_drop_hidden_during_warning", dropEarly, false)
-		check(res, tag .. "_drop_shown_after_warning", waitShown(DROP, true), true)
+		-- Owner 2026-11-11: the drop list is hidden for now, so it stays hidden after the Warning too.
+		check(res, tag .. "_drop_stays_hidden_after_warning", waitShown(DROP, true), false)
 	end
 	-- Owner 2026-11-05: centred on the screen on any window, nothing moved aside for the list.
 	local function checkWarningCentred(res, tag)
@@ -610,7 +634,6 @@ function Module.Build(h)
 		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)
-		local inset = GuiService.TopbarInset
 		local spread, left, bottom = watchPulse(PULSE_SAMPLE)
 		h.check(
 			res,
@@ -619,51 +642,122 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
-		-- Owner 2026-11-11 (design doc 4.40): just under Roblox's top bar; at the left column's x when its bottom at the
-		-- biggest pulse stays above the column's top, else right of Roblox's buttons (and of the column); clear of both
-		-- the column and the roll, and of the Money / Gems readout
+		-- Design doc 4.40 (owner 2026-11-12): a second column right of the left column, half a row down; clear of the
+		-- column's cells and badges, the roll, the Money / Gems readout and the top-right pills
 		local button = h.find(BUTTON)
 		local rest = button and h.rect(button)
 		local pulse = button and button:FindFirstChild("PulseScale")
 		local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
 		local top = rest and rest.y or 0
-		local restW, restH = rest and rest.w / p or 0, rest and rest.h / p or 0
+		local restW = rest and rest.w / p or 0
 		local grid = h.find(GRID)
 		local gridRect = grid and h.rect(grid)
-		local room = gridRect ~= nil and top + restH * BUTTON_PULSE <= gridRect.y
-		local wantX = gridRect and (room and gridRect.x or math.max(inset.Min.X, gridRect.x + gridRect.w))
+		local cells = {}
+		for i, name in COLUMN_CELLS do
+			local o = grid and grid:FindFirstChild(name)
+			cells[i] = o and o:IsA("GuiObject") and o or nil
+		end
+		-- Owner 2026-11-12 (4.40) replaces "just below the top bar / left-aligned with the left column / right of
+		-- Roblox's buttons": the left edge sits a small gap past the left column's right edge
+		local gridRight = gridRect and gridRect.x + gridRect.w
 		h.check(
 			res,
-			"button_left_column_x",
+			"button_right_of_left_column",
 			left or "no PulseScale",
-			wantX and (room and tostring(wantX) or ("%.1f..%.1f"):format(wantX, wantX + BUTTON_MAX_GAP))
-				or "no " .. GRID,
-			left ~= nil
-				and wantX ~= nil
-				and (
-					room and math.abs(left - wantX) <= 1
-					or not room and left >= wantX and left <= wantX + BUTTON_MAX_GAP
-				)
+			gridRight and ("%.1f..%.1f"):format(gridRight, gridRight + BUTTON_MAX_GAP) or "no " .. GRID,
+			left ~= nil and gridRight ~= nil and left >= gridRight and left <= gridRight + BUTTON_MAX_GAP
 		)
+		-- Owner 2026-11-12 (4.40): half a row down, centred on the gap between the Index and Items cells
+		local index, items = cells[1] and h.rect(cells[1]), cells[2] and h.rect(cells[2])
+		local wantMid = index and items and (index.y + index.h / 2 + items.y + items.h / 2) / 2
+		local mid = rest and rest.y + rest.h / 2
 		h.check(
 			res,
-			"button_under_top_bar",
-			top,
-			("%.1f..%.1f"):format(inset.Max.Y, inset.Max.Y + BUTTON_MAX_GAP),
-			top >= inset.Max.Y - 1 and top <= inset.Max.Y + BUTTON_MAX_GAP
+			"button_between_index_and_items",
+			mid or "no " .. BUTTON,
+			wantMid and ("%.1f +/- %d"):format(wantMid, BUTTON_MID_TOL) or "no " .. GRID .. " Index / Items",
+			mid ~= nil and wantMid ~= nil and math.abs(mid - wantMid) <= BUTTON_MID_TOL
 		)
 		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
 		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
 		local function overlaps(a, b)
 			return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 		end
+		-- Each left column cell with its shown Key letter and Badge (they stick out of the cell)
+		for i, name in COLUMN_CELLS do
+			local cell, hit = cells[i], nil
+			if big and cell then
+				hit = overlaps(big, h.rect(cell)) and name
+				for _, o in cell:GetDescendants() do
+					if not hit and o:IsA("GuiObject") and o.Visible and overlaps(big, h.rect(o)) then
+						hit = name .. "/" .. o.Name
+					end
+				end
+			end
+			h.check(
+				res,
+				"button_clear_of_" .. name:lower(),
+				not big and "no PulseScale"
+					or not cell and "no " .. GRID .. "/" .. name
+					or hit and hit .. " overlaps"
+					or "clear",
+				"clear",
+				big ~= nil and cell ~= nil and not hit
+			)
+		end
+		-- The shown top-right pills (Daily, Market, Settings)
+		local bar = h.find(TOP_RIGHT)
+		local pillHit = nil
+		for _, o in bar and bar:GetChildren() or {} do
+			if big and not pillHit and o:IsA("GuiButton") and o.Visible and overlaps(big, h.rect(o)) then
+				pillHit = o.Name
+			end
+		end
 		h.check(
 			res,
-			"button_clear_of_left_column",
-			big and gridRect and (overlaps(big, gridRect) and "overlaps" or "clear") or "no PulseScale / " .. GRID,
+			"button_clear_of_top_right_pills",
+			not big and "no PulseScale"
+				or not bar and "no " .. TOP_RIGHT
+				or pillHit and pillHit .. " overlaps"
+				or "clear",
 			"clear",
-			big ~= nil and gridRect ~= nil and not overlaps(big, gridRect)
+			big ~= nil and bar ~= nil and not pillHit
 		)
+		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel MAY overlap the button; where it does it
+		-- draws above it and takes the clicks there, where it does not the button stays shown and pressable
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		local panel = h.find(OVER_PANEL)
+		if not (panel and button) then
+			h.check(res, "button_under_panel", not button and "no " .. BUTTON or "no " .. OVER_PANEL, "both", false)
+		else
+			local pr, br = h.rect(panel), h.rect(button)
+			local ix1, iy1 = math.max(pr.x, br.x), math.max(pr.y, br.y)
+			local ix2, iy2 = math.min(pr.x + pr.w, br.x + br.w), math.min(pr.y + pr.h, br.y + br.h)
+			if ix2 > ix1 and iy2 > iy1 then
+				local above, why = h.drawsAbove(panel, button)
+				h.check(res, "button_under_panel_where_covered", why, "panel above the button", above)
+				local hit = h.top((ix1 + ix2) / 2, (iy1 + iy2) / 2)
+				h.check(
+					res,
+					"button_blocked_under_panel_where_covered",
+					hit and hit:GetFullName() or "nothing",
+					"not the button",
+					hit == nil or not (hit == button or button:IsAncestorOf(hit))
+				)
+			else
+				local seen = h.visible(button)
+				h.check(res, "button_shown_clear_of_panel_here", seen, true, seen)
+				local hit = h.top(h.centre(br))
+				h.check(
+					res,
+					"button_pressable_clear_of_panel_here",
+					hit and hit:GetFullName() or "nothing",
+					"the button",
+					hit ~= nil and (hit == button or button:IsAncestorOf(hit))
+				)
+			end
+		end
+		restorePanels()
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
 		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
 			local o = h.find(part[2])
@@ -678,12 +772,99 @@ function Module.Build(h)
 		end
 	end
 
+	-- Design doc 4.42 (owner 2026-11-12): only Bosses and Team go under panels. They sit in their own ScreenGui, below every
+	-- PanelSwitch panel's and above the world dim; RacerBossEvent (Invite, HP bar, Leave, ...) keeps one DisplayOrder.
+	local function checkGuiOrders(res)
+		local playerGui = h.player:WaitForChild("PlayerGui")
+		local column = playerGui:FindFirstChild(SECOND_COLUMN)
+		local isGui = column ~= nil and column:IsA("ScreenGui")
+		check(res, "second_column_gui_present", isGui, true)
+		check(res, "second_column_reset_on_spawn_false", isGui and column.ResetOnSpawn == false, true)
+		-- UiResponsive BossButtonPlace / TeamButtonPlace place the buttons in a gui that ignores the inset
+		check(res, "second_column_ignores_inset", isGui and column.IgnoreGuiInset == true, true)
+		local wrong = {}
+		for panelPath in Spec.PanelSwitch.Names do
+			local guiName = string.match(panelPath, "^[^/]+")
+			local gui = playerGui:FindFirstChild(guiName)
+			local order = gui and gui:IsA("ScreenGui") and gui.DisplayOrder
+			if not (isGui and order and column.DisplayOrder < order) then
+				table.insert(
+					wrong,
+					("%s %s vs %s"):format(
+						guiName,
+						tostring(order or "missing"),
+						isGui and tostring(column.DisplayOrder) or "no " .. SECOND_COLUMN
+					)
+				)
+			end
+		end
+		h.checkList(res, "second_column_below_panels", wrong)
+		local dim = playerGui:FindFirstChild(Spec.PanelDimmers.Gui)
+		h.check(
+			res,
+			"second_column_above_world_dim",
+			("%s vs dim %s"):format(
+				isGui and tostring(column.DisplayOrder) or "missing",
+				dim and tostring(dim.DisplayOrder) or "missing"
+			),
+			"above the dim",
+			isGui and dim ~= nil and dim:IsA("ScreenGui") and column.DisplayOrder > dim.DisplayOrder
+		)
+		local root = playerGui:FindFirstChild(ROOT)
+		local rest = root and root.DisplayOrder
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		task.wait(0.1)
+		local open = root and root.DisplayOrder
+		restorePanels()
+		task.wait(0.1)
+		local closed = root and root.DisplayOrder
+		h.check(
+			res,
+			"event_gui_order_constant_with_panel_open",
+			("rest %s, panel open %s, closed %s"):format(tostring(rest), tostring(open), tostring(closed)),
+			"unchanged",
+			rest ~= nil and rest == open and open == closed
+		)
+	end
+
+	-- Design doc 4.42 (owner 2026-11-12): the event's Invite stays above an open panel, and its Go takes the click.
+	local function checkInviteAbovePanel(res)
+		gear(res, 2)
+		state(res, "Idle", 0, 0, 0, false)
+		state(res, "Prep", 5, 0, 0, false)
+		local up = waitShown(INVITE, true)
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		task.wait(0.1)
+		local invite, panel, go = h.find(INVITE), h.find(OVER_PANEL), h.find(TELEPORT)
+		if not (up and invite and panel and go and shown(INVITE) and shown(OVER_PANEL)) then
+			h.check(
+				res,
+				"invite_above_open_panel",
+				("invite shown=%s, panel shown=%s"):format(tostring(shown(INVITE)), tostring(shown(OVER_PANEL))),
+				"both shown",
+				false
+			)
+		else
+			local above, why = h.drawsAbove(invite, panel)
+			local hit = h.top(h.centre(h.rect(go)))
+			h.check(
+				res,
+				"invite_above_open_panel",
+				why .. "; top at Go: " .. (hit and hit:GetFullName() or "nothing"),
+				"Invite above the panel, Go the topmost click-taker",
+				above and hit ~= nil and (hit == go or go:IsAncestorOf(hit))
+			)
+		end
+		restorePanels()
+		state(res, "Idle", 0, 0, 0, false)
+	end
+
 	local function checkInvite(res)
 		check(res, "invite_seconds_is_3", Cfg.InviteSeconds, 3)
 		gear(res, 2)
 		local asked = os.clock()
 		state(res, "Prep", 5, 0, 0, false)
-		onlyShown(res, "invite", { Invite = true, BossButton = true })
+		onlyShown(res, "invite", { Invite = true, BossButton = true, TeamButton = true })
 		check(res, "invite_teleport_shown", shown(TELEPORT), true)
 		check(res, "invite_decline_shown", shown(DECLINE), true)
 		local teleport = h.find(TELEPORT)
@@ -1011,7 +1192,8 @@ function Module.Build(h)
 		local stays, dropEarly = warningStays(math.max(left, WARNING_QUIET + 0.1))
 		check(res, "warning_goes_away_by_itself", stays, nil)
 		check(res, "spawn_drop_hidden_during_warning", dropWithWarning or dropEarly, false)
-		check(res, "spawn_drop_shown_after_warning", waitShown(DROP, true), true)
+		-- Owner 2026-11-11: the drop list is hidden for now, so it stays hidden after the Warning too.
+		check(res, "spawn_drop_stays_hidden_after_warning", waitShown(DROP, true), false)
 		check(res, "bar_stays_after_warning", shown(BAR), true)
 		state(res, "Fight", "keep", hp - 1, hp, true, 100)
 		task.wait(0.4)
@@ -1226,78 +1408,19 @@ function Module.Build(h)
 	local function checkDropList(res)
 		local hp = Cfg.HpPerPlayer
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
-		check(res, "drop_shown_in_fight", waitShown(DROP, true), true)
-		local list = h.find(DROP)
-		if not list then
-			return
-		end
+		-- Owner 2026-11-11: the drop list is hidden for now; the odds stay in the Bosses popup's Details.
+		check(res, "drop_hidden_in_fight", waitShown(DROP, true), false)
 		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
 		)
 		task.wait(0.5) -- the bar's pop has ended: its size is judged below
 
-		local heading, rule = list:FindFirstChild("Heading"), list:FindFirstChild("Rule")
-		check(res, "drop_heading", heading and h.visible(heading) and heading.Text, "Drop:")
-		check(res, "drop_rule_shown", rule ~= nil and h.visible(rule), true)
-
-		local odds = RelicConfig.Odds("big_raga")
-		table.sort(odds, function(a, b)
-			return a.Odds > b.Odds
-		end)
-		check(res, "drop_has_relics", #odds > 0, true)
 		check(res, "drop_side_chance_is_config", ("%.3f"):format(RelicConfig.RagaSidekickChance * 100), "0.001")
-		local rowCount = 0
-		for _, child in list:GetChildren() do
-			rowCount += string.sub(child.Name, 1, 4) == "Row_" and 1 or 0
-		end
-		check(res, "drop_row_count", rowCount, #odds + 1)
-		local parts, missing = {}, false
-		local function add(part)
-			missing = missing or part == nil
-			if part then
-				table.insert(parts, part)
-			end
-		end
-		add(heading)
-		add(rule)
-		for _, row in odds do
-			local name = "Row_" .. row.Id
-			local label = list:FindFirstChild(name)
-			check(res, "drop_text_" .. name, label and label.Text, ("%s %s%%"):format(row.Name, tostring(row.Odds)))
-			check(res, "drop_colour_" .. name, label and label.TextColor3, GachaConfig.RARITY_COLORS[row.Rarity])
-			add(label)
-		end
-		local side = list:FindFirstChild("Row_side_raga")
-		check(res, "drop_text_Row_side_raga", side and side.Text, "Big Raga 0.001%")
-		check(res, "drop_colour_Row_side_raga", side and side.TextColor3, Color3.new(0, 0, 0))
-		add(side)
-		if side then
-			local color, stroke = textStroke(side)
-			local light = luminance(color)
-			h.check(res, "drop_outline_light", light, ">= " .. OUTLINE_MIN_LUMINANCE, light >= OUTLINE_MIN_LUMINANCE)
-			h.check(res, "drop_outline_shows", stroke, "<= " .. STROKE_SHOWS, stroke <= STROKE_SHOWS)
-		end
-
-		-- Non-interactive, whatever the implementer nests.
-		local active = {}
-		for _, d in { list, table.unpack(list:GetDescendants()) } do
-			if d:IsA("GuiObject") and d.Active then
-				table.insert(active, d.Name)
-			end
-		end
-		h.checkList(res, "drop_not_active", active)
-
-		if missing then -- its own check above already failed
-			state(res, "Idle", 0, 0, 0, false)
-			h.player:SetAttribute("BossStatus", nil)
-			return
-		end
 		local size = workspace.CurrentCamera.ViewportSize
 		local tag = isDesktop() and "desktop" or "phone"
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
 		local barRect = h.rect(h.find(BAR))
-		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
 		-- Design doc 4.40 (owner 2026-11-10): both columns hide in the event; TopRight and Auto / Upgrade stay.
 		for _, column in { "Grid", "ShopColumn" } do
 			check(res, "boss_column_hidden_" .. column, waitShown("HudChrome/" .. column, false), false)
@@ -1305,82 +1428,6 @@ function Module.Build(h)
 		for _, keep in { "TopRight", "AutoSlot", "UpgradeSlot" } do
 			check(res, "boss_hud_kept_" .. keep, waitShown("HudChrome/" .. keep, true), true)
 		end
-		local status = h.find(BAR .. "/Status/Status_Shouted")
-		if status then
-			others.Status = h.rect(status)
-		end
-		local crossed, outOfOrder, outside, clipped = {}, {}, {}, {}
-		for i, a in parts do
-			local ra = h.rect(a)
-			if not within(screen, ra) then
-				table.insert(outside, a.Name)
-			end
-			if a:IsA("TextLabel") and not a.TextFits then
-				table.insert(clipped, a.Name)
-			end
-			for name, r in others do
-				if crossing(ra, r) then
-					table.insert(crossed, a.Name .. " x " .. name)
-				end
-			end
-			for j = i + 1, #parts do
-				local b = parts[j]
-				local rb = h.rect(b)
-				if crossing(ra, rb) then
-					table.insert(crossed, a.Name .. " x " .. b.Name)
-				end
-			end
-			local nextPart = parts[i + 1]
-			if nextPart and h.rect(nextPart).y < ra.y + ra.h - Spec.Tolerance then
-				table.insert(outOfOrder, a.Name .. " before " .. nextPart.Name)
-			end
-		end
-		h.checkList(res, "drop_no_overlap_" .. tag, crossed)
-		h.checkList(res, "drop_in_odds_order_" .. tag, outOfOrder)
-		h.checkList(res, "drop_on_screen_" .. tag, outside)
-		h.checkList(res, "drop_text_fits_" .. tag, clipped)
-		local r = h.rect(list)
-		local hpBar = h.rect(barTrack() or h.find(BAR))
-		local barBottom = hpBar.y + hpBar.h
-		h.check(res, "drop_under_bar_" .. tag, r.y, ">= " .. barBottom, r.y >= barBottom - Spec.Tolerance)
-		h.check(
-			res,
-			"drop_just_under_bar_" .. tag,
-			r.y,
-			"<= " .. barBottom + DROP_TOP_MAX_GAP,
-			r.y <= barBottom + DROP_TOP_MAX_GAP
-		)
-		local middle = hpBar.x + hpBar.w / 2
-		h.check(res, "drop_right_side_" .. tag, r.x, ">= " .. middle, r.x >= middle - Spec.Tolerance)
-		local barRight = hpBar.x + hpBar.w
-		local edgeOff = math.abs(r.x + r.w - barRight)
-		h.check(res, "drop_right_edge_on_bar_" .. tag, edgeOff, "<= " .. DROP_EDGE_SLACK, edgeOff <= DROP_EDGE_SLACK)
-		local centre = r.x + r.w / 2
-
-		-- Owner's reference: a centred column, the rule shorter than the rows.
-		local offCentre, leftAligned, small = {}, {}, {}
-		local widestRow = 0
-		for _, part in parts do
-			local partRect = h.rect(part)
-			if math.abs(partRect.x + partRect.w / 2 - centre) > Spec.Tolerance then
-				table.insert(offCentre, part.Name)
-			end
-			if part:IsA("TextLabel") and part.TextXAlignment ~= Enum.TextXAlignment.Center then
-				table.insert(leftAligned, part.Name)
-			end
-			if string.sub(part.Name, 1, 4) == "Row_" then
-				widestRow = math.max(widestRow, partRect.w)
-				if isDesktop() and partRect.h < DROP_ROW_MIN_HEIGHT then
-					table.insert(small, part.Name)
-				end
-			end
-		end
-		h.checkList(res, "drop_centred_" .. tag, offCentre)
-		h.checkList(res, "drop_centre_aligned_" .. tag, leftAligned)
-		h.checkList(res, "drop_rows_bigger_" .. tag, small)
-		local ruleWidth = h.rect(rule).w
-		h.check(res, "drop_rule_shorter_" .. tag, ruleWidth, "< " .. widestRow, ruleWidth < widestRow)
-
 		h.check(res, "bar_on_screen_" .. tag, barRect, "inside the screen", within(screen, barRect))
 		local topRight = h.find("HudChrome/TopRight")
 		check(res, "bar_clear_of_top_right_" .. tag, topRight ~= nil and crossing(barRect, h.rect(topRight)), false)
@@ -1602,7 +1649,7 @@ function Module.Build(h)
 	-- 1:00-3:00: each joiner sees the header too, and a bar already at the right width.
 	local function checkLateJoin(res)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 10, 3000, 4000, false)
-		onlyShown(res, "before_join", { BossButton = true }, { Invite = true })
+		onlyShown(res, "before_join", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", "keep", 3000, 4000, true, 100)
 		check(res, "late_join_warning_shown", waitShown(WARNING, true), true)
 		check(res, "late_join_bar_shown", waitShown(BAR, true), true)
@@ -1632,15 +1679,15 @@ function Module.Build(h)
 
 	local function checkOutsider(res)
 		state(res, "Prep", Cfg.PrepSeconds - 3, 4000, 4000, false)
-		onlyShown(res, "outsider_prep", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_prep", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", Cfg.PrepSeconds, 4000, 4000, false)
 		task.wait(1)
-		onlyShown(res, "outsider_spawn", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_spawn", { BossButton = true, TeamButton = true }, { Invite = true })
 		-- A leave: everything of the arena goes with the attribute.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
 		check(res, "leaver_bar_shown_first", waitShown(BAR, true), true)
 		state(res, "Fight", "keep", 4000, 4000, false)
-		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true }) -- rejoining after leaving: no rule
+		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true, TeamButton = true }) -- rejoining after leaving: no rule
 	end
 
 	-- UiMotion: Roblox's Reduced Motion or the REDUCED EFFECTS toggle. The header stays still and stays readable.
@@ -1673,7 +1720,7 @@ function Module.Build(h)
 		h.checkList(res, "reduced_warning_text_alone", warningBareList())
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
-		onlyShown(res, "event_end", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+		onlyShown(res, "event_end", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
 
 		-- The same order as without reduced motion, here to the Warning's end.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
@@ -1814,7 +1861,7 @@ function Module.Build(h)
 		-- Judged on rects: the DropList may still be waiting for this fresh spawn's Warning, and its place does not change.
 		local panelCrossed = {}
 		for _, part in { message, countdown, loading } do
-			for name, path in { DropList = DROP, BossBar = BAR } do
+			for name, path in { BossBar = BAR } do -- DropList hidden for now (owner 2026-11-11): nothing to judge
 				if crossing(h.rect(part), h.rect(h.find(path))) then
 					table.insert(panelCrossed, part.Name .. " x " .. name)
 				end
@@ -1962,11 +2009,22 @@ function Module.Build(h)
 	function scenarios.ui_boss_dodge(res)
 		local hp = Cfg.HpPerPlayer
 		local Dodge = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossDodge"))
+		-- A boss_ui_* setup delivers the pose data Moment reads (design doc 7 "Join size"); without one it waits forever.
+		state(res, "Idle", 0, 0, 0, false)
 		local at, name = Dodge.Moment(1)
 		local lead = Dodge.SweepSeconds * 0.5
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
 		local DODGE = "RacerBossDodge/DodgeBar"
 		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
+		-- Owner 2026-11-12 (4.42): the HP bar and Dodge bar are not panels; with no panel open the world dim is off
+		local dimmed = dimOn(h.player)
+		h.check(
+			res,
+			"dodge_no_panel_dim",
+			("hp bar shown=%s, world dim on=%s"):format(tostring(shown(BAR)), tostring(dimmed)),
+			"world dim off",
+			not dimmed
+		)
 		local bar = h.find(DODGE)
 		if bar then
 			local gui = h.player:WaitForChild("PlayerGui")
@@ -2034,9 +2092,11 @@ function Module.Build(h)
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
-			onlyShown(res, "rest", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+			onlyShown(res, "rest", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
+			checkGuiOrders(res)
 			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
+			checkInviteAbovePanel(res)
 			checkLocked(res)
 			checkTeamHud(res)
 			checkIntroFill(res)
@@ -2083,30 +2143,49 @@ function Module.Build(h)
 	-- A press in an event only opens the popup (owner rule): Expect.Remote = false judges that it does not teleport.
 	function after.boss_panel_raging(res)
 		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
+		-- Design doc 4.42 (owner 2026-11-12): the Bosses popup dims the world like every panel
 		check(
 			res,
-			"boss_panel_status",
+			"boss_panel_dim_shown",
 			waitIs(function()
-				return textOf(BOSSES, "Status")
-			end, RAGING_TEXT),
-			RAGING_TEXT
+				return dimOn(h.player)
+			end, true),
+			true
 		)
-		check(res, "boss_panel_go", textOf(BOSSES, "BossAction"), "Go")
+		check(
+			res,
+			"boss_panel_live_card",
+			waitIs(function()
+				local card = h.find(LIVE_CARD)
+				return card and card:GetAttribute("State")
+			end, "Live"),
+			"Live"
+		)
+		check(res, "boss_panel_go", textOf(LIVE_CARD, "Go"), "Go")
+		check(res, "boss_panel_go_shown", shown(LIVE_CARD .. "/Go"), true)
 		check(res, "boss_panel_no_details_in_event", shown(BOSSES .. "/BossDetails"), false)
-		check(res, "boss_panel_no_heading_in_event", shown(BOSSES .. "/DetailsHeading"), false)
 		check(res, "boss_panel_no_next_in_event", shown(BOSSES .. "/NextEvent"), false)
 		check(res, "boss_panel_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
 		checkFit(res, "boss_panel")
 	end
 	function after.boss_panel_closed(res)
 		check(res, "boss_panel_toggles_closed", waitShown(BOSSES, false), false)
+		check(
+			res,
+			"boss_panel_dim_off_after_close",
+			waitIs(function()
+				return dimOn(h.player)
+			end, false),
+			false
+		)
 		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_go_closed(res)
-		local action = h.find(BOSSES .. "/BossAction")
-		check(res, "boss_go_stays_past_close", action ~= nil and h.visible(action), true)
-		check(res, "boss_go_disabled_past_close", action ~= nil and action.Active, false)
-		check(res, "boss_status_past_close", textOf(BOSSES, "Status"), RAGING_TEXT)
+		local go = h.find(LIVE_CARD .. "/Go")
+		check(res, "boss_go_stays_past_close", go ~= nil and h.visible(go), true)
+		check(res, "boss_go_disabled_past_close", go ~= nil and go.Active, false)
+		local card = h.find(LIVE_CARD)
+		check(res, "boss_card_live_past_close", card and card:GetAttribute("State"), "Live")
 		check(res, "boss_prompt_past_close", textOf(BOSSES, "BossPrompt"), "Teleporting closed")
 	end
 	-- The warning has faded by the time an After runs (Waits.ClickSettle): UiSpec's watcher saw it.

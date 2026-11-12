@@ -6,7 +6,7 @@
 -- Player, then ReplicatedStorage UiTestSetupDone = the same string. On error UiTestSetupError =
 -- "<id>:<nonce>:<message>" is set first, and Done is still set.
 --
--- Ids: snapshot, restore, spy, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
+-- Ids: snapshot, restore, spy, team_states, team_states_clear, no_passes, sidekick_states, sidekick_big_reveal, sidekick_tutorial_ready, sidekick_tutorial:*, sidekick_follow_*, boss_ui_*, relic_states, relic_states_bare, index_states, daily_unclaimed, daily_claimed, checkpoint_locked, checkpoint_open, defeated_states, showdown_start, showdown_win, quest_incomplete, quest_complete, stat_points, no_stat_points, auto_racing, on_foot, lose_event, cash_out_notice, turbo_next,
 -- emphasized_next, auto_roll_on, run_visual, rebirth_eligible, rebirth_not_eligible, duel_* (every id: UiSpec.ServerSetup), roll_odds_*, weather_* (rain, night, gold, aurora, clear, clear_event, rain_roll).
 -- (Ported from the ServerSetup snippets in Client/UiTest/UiSpec.luau.)
 
@@ -356,7 +356,50 @@ local BOSS_UI_ATTRIBUTES = {
 	"BossEventEndsAt",
 	"BossScreamEndsAt",
 	"BossScheduleStart",
+	"BossEventBoss", -- which boss (boss_ui_boss:<id>); nil reads as boss_raga
+	"BossMinionHp", -- the Stone Golem (boss_ui_minion:<hp>,<max>)
+	"BossMinionMaxHp",
+	"BossMinionStart",
+	"BossEventNextBoss", -- the next timed event's boss (boss_ui_next:<id>)
 }
+-- boss_ui_osu_spy (ui_boss_osu): a stand-in Remotes.BossOsu that logs { index, circle, stamp } into ReplicatedStorage attribute
+-- UiTestBossOsuLog and answers true, or true, "Dodged" for circle 3 (the last of BossOsu.Count, owner 2026-11-11). restoreBossUi puts the real remote back.
+local bossOsuSpy = nil
+local function removeBossOsuSpy()
+	if bossOsuSpy then
+		bossOsuSpy.proxy:Destroy()
+		if bossOsuSpy.original then
+			bossOsuSpy.original.Name = bossOsuSpy.name
+		end
+		bossOsuSpy = nil
+	end
+	ReplicatedStorage:SetAttribute("UiTestBossOsuLog", nil)
+end
+local function installBossOsuSpy()
+	ReplicatedStorage:SetAttribute("UiTestBossOsuLog", "[]")
+	if bossOsuSpy then
+		return
+	end
+	local remotes = ReplicatedStorage:WaitForChild("Remotes")
+	local original = remotes:FindFirstChild("BossOsu")
+	if original then
+		original.Name = "UiTestOriginal_BossOsu"
+	end
+	local proxy = Instance.new("RemoteFunction")
+	proxy.Name = "BossOsu"
+	proxy:SetAttribute("UiTestIntercepted", true) -- progression_spy leaves it alone
+	proxy.OnServerInvoke = function(_, index, circle, stamp)
+		local log = HttpService:JSONDecode(ReplicatedStorage:GetAttribute("UiTestBossOsuLog") or "[]")
+		table.insert(log, { index, circle, stamp })
+		ReplicatedStorage:SetAttribute("UiTestBossOsuLog", HttpService:JSONEncode(log))
+		if circle == 3 then
+			return true, "Dodged"
+		end
+		return true
+	end
+	proxy.Parent = remotes
+	bossOsuSpy = { original = original, proxy = proxy, name = "BossOsu" }
+end
 local function clearBossUi(player)
 	for _, name in BOSS_UI_ATTRIBUTES do
 		ReplicatedStorage:SetAttribute(name, nil)
@@ -369,6 +412,7 @@ local function clearBossUi(player)
 end
 local function restoreBossUi(player)
 	clearBossUi(player)
+	removeBossOsuSpy()
 	local saved = bossUiSnapshots[player]
 	if saved then
 		live("GachaService").Apply(player, saved.gacha)
@@ -459,6 +503,16 @@ function setups.boss_ui_invite(player)
 	bossUiGear(player, 2)
 	clearBossUi(player)
 	bossUiState(player, "Prep", 5, 0, 0, false)
+end
+-- As boss_ui_invite, for The Elf Mage (boss_mage_button, design doc 4.37 "Second boss").
+function setups.boss_ui_invite_mage(player)
+	setups.boss_ui_invite(player)
+	ReplicatedStorage:SetAttribute("BossEventBoss", "boss_mage")
+end
+-- As boss_ui_idle, The Elf Mage announced next (boss_cards_next_mage, BOSS_EVENT_SPEC "Bosses cards").
+function setups.boss_ui_idle_next_mage(player)
+	setups.boss_ui_idle(player)
+	ReplicatedStorage:SetAttribute("BossEventNextBoss", "boss_mage")
 end
 function setups.boss_ui_invite_locked(player)
 	bossUiGear(player, 0)
@@ -651,6 +705,45 @@ end
 
 function setups.index_states(player)
 	indexStates(player)
+end
+
+-- Team panel (UiSpec.Team, Client/UiTest/UiTeam; design doc 4.40): index_states, on foot, Team = A,B of three owned
+-- rollable ids A,B,C that are off the Dojo squad, published as UiTestTeamIds = "A,B,C". team_states_clear puts it back.
+local teamBefore = {} -- [Player] = the Team attribute before team_states
+function setups.team_states(player)
+	indexStates(player)
+	local G, C, CarService = live("GachaService"), require(Shared.CharacterCatalog), live("CarService")
+	CarService.SetAutoRace(player, false)
+	local start = os.clock()
+	while CarService.IsAutoRacing(player) or player:GetAttribute("AutoRacing") == true do
+		if player.Parent ~= Players or os.clock() - start > 5 then
+			error("team_states: still racing after 5 s")
+		end
+		RunService.Heartbeat:Wait()
+	end
+	if teamBefore[player] == nil then
+		teamBefore[player] = player:GetAttribute("Team") or ""
+	end
+	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
+	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
+	for _, spec in C.All() do
+		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not squad[spec.Id] then
+			table.insert(ids, spec.Id)
+		end
+	end
+	assert(#ids == 3, "team_states: fewer than 3 owned characters off the Dojo squad")
+	local ok, why = G.SetTeam(player, { ids[1], ids[2] })
+	assert(ok, "team_states: SetTeam refused: " .. tostring(why))
+	player:SetAttribute("UiTestTeamIds", table.concat(ids, ","))
+end
+
+function setups.team_states_clear(player)
+	local before = teamBefore[player]
+	teamBefore[player] = nil
+	player:SetAttribute("UiTestTeamIds", nil)
+	if before and before ~= "" then
+		live("GachaService").SetTeam(player, string.split(before, ","))
+	end
 end
 
 -- ui_feedback: clients cannot read ServerStorage, so publish what its sound folder holds (docs/UI_FEEDBACK_SPEC.md 1).
@@ -1368,6 +1461,7 @@ local function progressionSpy()
 			"BossEventPrepRun",
 			"BossBuy",
 			"BossUseCredit",
+			"BossOsu",
 		}
 	do
 		local target = remotes:FindFirstChild(name)
@@ -1392,6 +1486,13 @@ local function progressionSpy()
 				-- "UITEST-", never a real code) goes to the real ShopService.Redeem, which answers and saves nothing.
 				if name == "BossEventSetTeam" then
 					return true -- boss_pick_character judges the slot it fills; the real handler knows no fixture member
+				end
+				if name == "BossOsu" then -- a circle press: accepted, the 4th dodges (ui_boss_osu)
+					local _, circle = ...
+					if circle == 4 then
+						return true, "Dodged"
+					end
+					return true
 				end
 				local text = ...
 				if name == "RedeemCode" and type(text) == "string" and string.sub(text, 1, 7) == "UITEST-" then
@@ -1561,6 +1662,8 @@ local CLIENT_SETUPS = {
 	bag_full_hit = true, -- ui_bag_full
 	bag_full_sold = true,
 	bag_spares_clear = true,
+	team_states = true, -- ui_team
+	team_states_clear = true,
 }
 local clientBefore = {} -- [Player] = { auto_racing = was racing, auto_roll_on = AutoRoll before }
 local setupRequest = ReplicatedStorage:FindFirstChild("UiTestSetupRequest")
@@ -1588,6 +1691,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			RUN_VISUAL.clear()
 			return
 		end
+		-- A faked boss state stands in for a real event, so it gets the late data a real one publishes (design doc 7 "Join size").
+		local lateData = Shared:FindFirstChild("LateData")
+		if lateData and (string.match(request, "^boss_ui_") or string.match(request, "^sidekick_follow_")) then
+			require(lateData).Deliver("BossRagaPoses", "BossMagePoses", "SidekickAttacks")
+		end
 		local tutorialStep, tutorialArg = string.match(request, "^sidekick_tutorial:(%a+):(%w+)$")
 		if tutorialStep then
 			setups.sidekick_tutorial_step(player, tutorialStep, tutorialArg)
@@ -1601,6 +1709,33 @@ setupRequest.OnServerInvoke = function(player, request)
 		local bossGear = string.match(request, "^boss_ui_gear:(%w+)$")
 		if bossGear then
 			bossUiGear(player, tonumber(bossGear) or bossGear)
+			return
+		end
+		local bossId = string.match(request, "^boss_ui_boss:([%w_]+)$")
+		if bossId then -- "none" clears it: the clients read nil as boss_raga
+			ReplicatedStorage:SetAttribute("BossEventBoss", bossId ~= "none" and bossId or nil)
+			return
+		end
+		local minionHp, minionMax = string.match(request, "^boss_ui_minion:(%d+),(%d+)$")
+		if minionHp then -- the Stone Golem stands from now; boss_ui_minion:none clears it
+			ReplicatedStorage:SetAttribute("BossMinionHp", tonumber(minionHp))
+			ReplicatedStorage:SetAttribute("BossMinionMaxHp", tonumber(minionMax))
+			ReplicatedStorage:SetAttribute("BossMinionStart", workspace:GetServerTimeNow())
+			return
+		end
+		if request == "boss_ui_minion:none" then
+			for _, name in { "BossMinionHp", "BossMinionMaxHp", "BossMinionStart" } do
+				ReplicatedStorage:SetAttribute(name, nil)
+			end
+			return
+		end
+		local nextBoss = string.match(request, "^boss_ui_next:([%w_]+)$")
+		if nextBoss then -- "none" clears it
+			ReplicatedStorage:SetAttribute("BossEventNextBoss", nextBoss ~= "none" and nextBoss or nil)
+			return
+		end
+		if request == "boss_ui_osu_spy" then
+			installBossOsuSpy()
 			return
 		end
 		local bossCredit = string.match(request, "^boss_ui_credit:(%d+)$")
@@ -1679,6 +1814,8 @@ setupRequest.OnServerInvoke = function(player, request)
 			restoreBossUi(player)
 		elseif restoreId == "relic_states" then
 			restoreRelics(player)
+		elseif restoreId == "team_states" then
+			setups.team_states_clear(player)
 		elseif restoreId == "bag_full_sold" then
 			setups.bag_spares_clear(player)
 		elseif restoreId then
@@ -1709,7 +1846,7 @@ function setups.boss_phase2_stage(_, arg)
 end
 
 function setups.boss_phase2_rewards(player, arg)
-	local outcome, damage, stage1, stage2, short, share = table.unpack(string.split(arg, ":"))
+	local outcome, damage, stage1, stage2, short, share, boss = table.unpack(string.split(arg, ":"))
 	live("BossEventService").Hooks.RewardPopup(player, {
 		Outcome = outcome,
 		Damage = tonumber(damage),
@@ -1717,6 +1854,7 @@ function setups.boss_phase2_rewards(player, arg)
 		Stage1 = stage1 == "true",
 		Stage2 = stage2 == "true",
 		Short = short == "true",
+		Boss = boss ~= "" and boss or nil, -- 7th part: the boss id (ui_boss_mage_rewards); none = no Boss field
 	})
 end
 

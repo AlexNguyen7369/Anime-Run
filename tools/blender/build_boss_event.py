@@ -45,9 +45,9 @@ def lerp(a, b, t):
 
 
 class Model:
-	def __init__(self, cid, ramps, parts, pose=None, a=0.5, b=0.42, atlas_h=256, neon=()):
-		"""parts = name -> (joint position, parent name or None). pose = name -> display rotation in degrees. a, b = default paint level and facet contrast. neon = parts drawn emissive."""
-		self.cid, self.ramps, self.parts, self.pose, self.a, self.b, self.atlas_h, self.neon = cid, ramps, parts, pose or {}, a, b, atlas_h, neon
+	def __init__(self, cid, ramps, parts, pose=None, a=0.5, b=0.42, atlas_h=256, neon=(), glow=1.25, light=LIGHT):
+		"""parts = name -> (joint position, parent name or None). pose = name -> display rotation in degrees. a, b = default paint level and facet contrast. neon = parts drawn emissive, at glow strength. light = the baked light direction."""
+		self.cid, self.ramps, self.parts, self.pose, self.a, self.b, self.atlas_h, self.neon, self.glow, self.light = cid, ramps, parts, pose or {}, a, b, atlas_h, neon, glow, Vector(light).normalized()
 		self.names = list(ramps)
 		self.bm = {n: bmesh.new() for n in parts}
 		self.uv = {n: b.loops.layers.uv.new("UVMap") for n, b in self.bm.items()}
@@ -75,12 +75,12 @@ class Model:
 		u = (self.names.index(ramp) + 0.5) / len(self.names)
 		vmap = {v: out.verts.new(v.co) for v in tmp.verts}
 		for f in tmp.faces:
-			base = a + b * f.normal.dot(LIGHT) + rng.uniform(-tone, tone)
+			base = a + b * f.normal.dot(self.light) + rng.uniform(-tone, tone)
 			nf = out.faces.new([vmap[v] for v in f.verts])
 			nf.smooth = smooth
 			for l, src in zip(nf.loops, f.loops):
 				if smooth:
-					base = a + b * src.vert.normal.dot(LIGHT)
+					base = a + b * src.vert.normal.dot(self.light)
 				val = base + g * ((src.vert.co.z - lo) / max(hi - lo, 1e-6) - 0.5)
 				if extra:
 					val += extra(src.vert.co)
@@ -236,7 +236,7 @@ class Model:
 			nt.image = tex.image
 			glow.node_tree.links.new(nt.outputs["Color"], nb.inputs["Emission Color"])
 			nb.inputs["Base Color"].default_value = (0, 0, 0, 1)
-			nb.inputs["Emission Strength"].default_value = 1.25
+			nb.inputs["Emission Strength"].default_value = self.glow
 		root = bpy.data.objects.new(self.cid, None)
 		bpy.context.scene.collection.objects.link(root)
 		objs, tris = {}, {}
@@ -911,9 +911,125 @@ def side_wyvern():
 	return m
 
 
+# ---- boss_golem
+
+
+# Cel two-tone sandstone: the ramp steps from shaded to lit near the middle, so side and under faces read clearly darker.
+GOLEM_RAMPS = {
+	"stone": ["#5a4632", "#6c573f", "#9a8162", "#a08767", "#a68d6c", "#ab9271", "#d8c49c", "#e2d0a8", "#ecdcb8", "#f8eed6"],
+	"crack": ["#1a120c", "#241a12", "#2e2218", "#3a2c20"],
+}
+
+
+def golem_box(z1, z0, hw, hd, ch=0.14, flare=0.0, lean=0.0):
+	"""Rows (z, half width, half depth, y shift) of a chamfered box; flare widens the bottom, lean pushes the bottom forward."""
+	return [(z1, hw - ch, hd - ch, 0.0), (z1 - ch, hw, hd, 0.0), (z0 + ch, hw + flare, hd + flare, -lean), (z0, hw + flare - ch, hd + flare - ch, -lean)]
+
+
+# part: (joint, parent, (x, y, rows), tilt in degrees about the block's centre). Every block is its own part: it assembles
+# from rubble and crumbles apart. L is +X, the golem's left, the viewer's right in the front view.
+GOLEM_BLOCKS = {
+	"Hip": ((0, 0.15, 2.7), None, (0, 0.15, golem_box(3.02, 2.36, 0.82, 0.7)), (4, 0, 3)),
+	# the chest: a deep faceted boulder, widest high up, narrowing to the waist, pushed forward at the top
+	"Torso": ((0, 0.1, 3.1), "Hip", (0, 0.1, [(7.0, 0.95, 0.85, -0.3), (6.72, 1.55, 1.3, -0.25), (5.7, 1.78, 1.5, -0.1), (4.5, 1.5, 1.32, 0.05), (3.42, 1.0, 0.95, 0.1), (3.16, 0.78, 0.74, 0.1)]), (0, 0, -3)),
+	"Head": ((0, -1.05, 6.62), "Torso", (0, -1.12, golem_box(7.4, 6.62, 0.5, 0.5, ch=0.1)), (6, 0, 5)),
+	"ShoulderL": ((1.95, 0.05, 7.0), "Torso", (2.05, 0.05, golem_box(8.05, 6.16, 1.02, 1.18, ch=0.18, flare=-0.06)), (0, -8, 4)),
+	"UpperArmL": ((2.3, 0.05, 6.08), "ShoulderL", (2.32, 0.05, golem_box(6.04, 3.1, 0.6, 0.72, ch=0.12, flare=0.04)), (3, 5, -2)),
+	"ForearmL": ((2.32, -0.05, 3.02), "UpperArmL", (2.34, -0.08, golem_box(2.98, 1.76, 0.62, 0.68, ch=0.12, flare=0.05, lean=0.1)), (-6, -4, 3)),
+	"FistL": ((2.34, -0.25, 1.68), "ForearmL", (2.36, -0.28, golem_box(1.66, 0.7, 0.74, 0.8, ch=0.2)), (5, 7, -5)),
+	"ThighL": ((0.6, 0.15, 2.3), "Hip", (0.62, 0.15, golem_box(2.26, 1.3, 0.44, 0.5, ch=0.1)), (-4, 3, 4)),
+	"ShinL": ((0.6, 0.12, 1.24), "ThighL", (0.63, 0.1, golem_box(1.2, 0.0, 0.5, 0.56, ch=0.12, flare=0.05)), (3, -4, -3)),
+}
+for _n, (_j, _p, (_x, _y, _r), _t) in list(GOLEM_BLOCKS.items()):
+	if _n.endswith("L"):
+		GOLEM_BLOCKS[_n[:-1] + "R"] = ((-_j[0], _j[1], _j[2]), _p[:-1] + "R" if _p.endswith("L") else _p, (-_x, _y, _r), (_t[0], -_t[1] * 0.7, -_t[2] * 0.8))
+# hunched rest pose: chest forward, head up, arms hanging forward so the fists sit near the knees
+GOLEM_POSE = {"Torso": (12, 0, 0), "Head": (-14, 0, 0), "UpperArmL": (-18, 0, 4), "UpperArmR": (-18, 0, -4), "ForearmL": (-14, 0, 0), "ForearmR": (-14, 0, 0)}
+# crack lines: part, face normal, points (x, z or y along the face; the third coordinate is filled by a ray onto the block).
+# Long, few, following the faces; an L part's crack is mirrored onto its R twin.
+GOLEM_CRACKS = (
+	("Torso", (0, -1, 0), ((-1.2, 6.7), (-0.75, 6.2), (-0.9, 5.5), (-0.3, 4.9), (-0.45, 4.2), (0.1, 3.6))),
+	("Torso", (0, -1, 0), ((1.5, 5.9), (0.95, 5.5), (1.1, 4.9), (0.6, 4.5))),
+	("Torso", (0, 1, 0), ((0.6, 6.8), (0.2, 6.0), (0.7, 5.2), (0.25, 4.3), (0.55, 3.5))),
+	("Torso", (1, 0, 0), ((0.8, 6.4), (0.2, 5.6), (0.6, 4.8), (-0.1, 4.2))),
+	("Torso", (-1, 0, 0), ((-0.7, 6.2), (-0.1, 5.4), (-0.5, 4.6))),
+	("Hip", (0, -1, 0), ((-0.6, 2.95), (-0.2, 2.7), (-0.4, 2.42))),
+	("ShoulderL", (0, -1, 0), ((1.4, 7.85), (2.0, 7.3), (1.8, 6.8), (2.4, 6.3))),
+	("ShoulderL", (1, 0, 0), ((0.9, 7.9), (0.2, 7.2), (0.6, 6.6), (-0.3, 6.25))),
+	("ShoulderL", (0, 0, 1), ((1.3, -0.8), (2.0, -0.1), (2.6, 0.7))),
+	("UpperArmL", (1, 0, 0), ((-0.4, 5.9), (0.2, 5.0), (-0.2, 4.1), (0.3, 3.3))),
+	("UpperArmL", (0, 1, 0), ((2.2, 5.8), (2.5, 4.8), (2.15, 3.6))),
+	("FistL", (0, -1, 0), ((2.0, 1.55), (2.45, 1.2), (2.3, 0.85))),
+	("ShinL", (0, -1, 0), ((0.4, 1.1), (0.75, 0.6), (0.55, 0.12))),
+)
+
+
+def golem_crack(m, part, n, pts, w=0.05):
+	"""A dark zigzag line laid on a block face, pointed at both ends. Each point is cast onto the block along -n."""
+	from mathutils.bvhtree import BVHTree
+
+	n = Vector(n)
+	tree = BVHTree.FromBMesh(m.bm[part])
+	axes = [i for i in range(3) if n[i] == 0]
+	out = []
+	for a, b in pts:
+		p = Vector((0, 0, 0))
+		p[axes[0]], p[axes[1]] = a, b
+		hit = tree.ray_cast(p + n * 20, -n)[0]
+		if hit is not None:
+			out.append(hit + n * 0.025)
+	assert len(out) == len(pts), f"{part} crack {pts} misses its block"
+	left, right = [], []
+	for i, p in enumerate(out):
+		d = (out[min(i + 1, len(out) - 1)] - out[max(i - 1, 0)]).normalized()
+		s = n.cross(d) * (w * 0.2 if i in (0, len(out) - 1) else w)
+		left.append(p + s)
+		right.append(p - s)
+	m.plate(part, "crack", left + right[::-1], n * 0.03, a=0.5, b=0.1, g=0.0, tone=0.0)
+
+
+def outward(verts, faces):
+	"""Faces of a convex solid wound to face away from its centre. Model.add's recalc_face_normals turns these lofts inside out,
+	which swaps the baked light and dark sides."""
+	vs = [Vector(v) for v in verts]
+	c = sum(vs, Vector()) / len(vs)
+	out = []
+	for f in faces:
+		n = sum(((vs[f[i]] - c).cross(vs[f[(i + 1) % len(f)]] - c) for i in range(len(f))), Vector())
+		mid = sum((vs[i] for i in f), Vector()) / len(f)
+		out.append(list(f) if n.dot(mid - c) >= 0 else list(reversed(f)))
+	return out
+
+
+QUAD = ((1, 1, ((-1, 0), (0, -1))), (-1, 1, ((0, -1), (1, 0))), (-1, -1, ((1, 0), (0, 1))), (1, -1, ((0, 1), (-1, 0))))
+
+
+def boss_golem():
+	from mathutils import Euler, Matrix
+
+	parts = {n: (j, p) for n, (j, p, _, _) in GOLEM_BLOCKS.items()}
+	# drawn emissive at 1.0: the baked two-tone ramp is the whole shading, no scene light on top (cel look)
+	m = Model("boss_golem", GOLEM_RAMPS, parts, GOLEM_POSE, a=0.5, b=0.62, neon=tuple(parts), glow=1.0, light=(-0.62, -0.42, 0.66))
+	for n, (_, _, (x, y, rows), _) in GOLEM_BLOCKS.items():
+		corner = 0.42 if n == "Torso" else 0.24
+		rings = [[(x + qx * w + ax * corner * min(w, d), y + dy + qy * d + ay * corner * min(w, d), z) for qx, qy, cs in QUAD for ax, ay in cs] for z, w, d, dy in rows]
+		verts, faces = m._loft(rings)
+		m.add(n, "stone", verts, outward(verts, faces), jit=0.05 if n == "Torso" else 0.035, tone=0.03, g=0.04, keep=True)
+	for part, n, pts in GOLEM_CRACKS:
+		golem_crack(m, part, n, pts)
+		if part.endswith("L"):
+			golem_crack(m, part[:-1] + "R", (-n[0], n[1], n[2]), [(-a, b) if n[0] == 0 else (a, b) for a, b in pts])
+	# each block sits a little askew, like stacked rubble
+	for n, (_, _, _, tilt) in GOLEM_BLOCKS.items():
+		bm = m.bm[n]
+		c = sum((v.co for v in bm.verts), Vector()) / len(bm.verts)
+		bmesh.ops.rotate(bm, verts=bm.verts[:], cent=c, matrix=Euler([math.radians(t) for t in tilt]).to_matrix())
+	return m
+
+
 MODELS = {"boss_raga": boss_raga, "side_chain": side_chain, "side_knight": side_knight, "side_wyvern": side_wyvern}
 # Outside MODELS so the b1 contact sheet stays as the owner approved it.
-BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga")}
+BUILDS = {**MODELS, "side_raga": lambda: boss_raga("side_raga"), "boss_golem": boss_golem}
 
 
 # One file per later Sidekick in tools/blender/sidekicks/: ID, NAME and build(k), where k is this script's namespace (k.Model).
@@ -1294,4 +1410,5 @@ def main():
 			export_glb(cid)
 
 
-main()
+if __name__ == "__main__":
+	main()

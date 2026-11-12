@@ -2,7 +2,7 @@
 -- BRIEF: design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks", docs/SIDEKICK_SPEC.md (task b7d). The owner approved all 12
 -- attacks' key frames (assets/characters_avatar/<id>/keyframes/keys.json); approved keys stay unchanged. Client-side visuals only.
 -- Contract these tests assume beyond the brief (implementer: report a change, do not loosen):
---   Shared/SidekickAttacks, generated:
+--   ServerStorage.LateData.SidekickAttacks, generated (design doc 7 "Join size": not at join, see LateDataTests):
 --     Attacks[id] = { Duration, Release = { t, ... }, Keys = { { Time, Parts = { [part] = ... }, ... } }, Approved = { ... } }.
 --     Approved = { { Time, Parts = { [part] = { x, y, z } }, RootOffset = { [root] = { x, y, z } } } }, generated from keys.json.
 --     Sample(id, t) returns parts, roots: parts[part] and roots[root] are Vector3s (XYZ Euler degrees, model units), every part and
@@ -320,7 +320,7 @@ function Tests.sidekick_attacks()
 		end
 	end)
 
-	local Attacks = H.module(Shared, "SidekickAttacks")
+	local Attacks = H.lateData("SidekickAttacks") -- design doc 7 "Join size"
 	flag("attacks_module_loads", Attacks ~= nil)
 	if not Attacks then
 		return r

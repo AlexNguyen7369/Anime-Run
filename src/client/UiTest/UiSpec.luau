@@ -49,7 +49,7 @@ UiSpec.Viewports = {
 -- (Client/RollToast/Ui/RacerMotion, 1.035 on hover, 0.97 while pressed) and Client/UiMotion's MotionScale (Pop, the
 -- PanelSwitch open scale 0.92 -> 1; docs/HUD_LAYOUT_SPEC.md section 10). Geometry is measured with them at 1x, after
 -- the open motion settled (UiSpec.Waits.PanelMotion).
-UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerBossEvent/BossButton
+UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerSecondColumn/BossButton
 -- Labels that are transient feedback, not layout: Client/UiMotion.Float's "+$" float (MotionFloat, gone after 1.15 s).
 -- Owner 2026-11-10: exempt from text_clear_of_buttons and hud_labels_inside_panel. Only MotionFloat.
 UiSpec.TransientLabels = { MotionFloat = true }
@@ -613,6 +613,7 @@ UiSpec.PanelSwitch = {
 		["MarketUi/Backdrop"] = "Market",
 		["CheckpointUi/Panel"] = "Checkpoints",
 		["RacerSidekicks/Panel"] = "Sidekicks",
+		["RacerTeam/Panel"] = "Team", -- design doc 4.40 (owner 2026-11-12): the Team panel (UiTeam)
 	},
 }
 
@@ -687,8 +688,9 @@ UiSpec.Guis.RacerBackpack = {
 			ClickCoverage = "ui_backpack_characters",
 		},
 		{
-			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); the
-			-- team slot buttons below put it on a slot (u4 / c1, Client/SlotPicker; click backpack_pick_character).
+			-- Misc tiles invoke UseBoost(id); Trails / Auras / Characters tiles only pick the item (no remote); on the
+			-- Trails / Auras tabs the slot buttons below put it on a slot (u4, Client/SlotPicker). Owner 2026-11-12 (4.40):
+			-- the Characters tab has no team slot buttons; the Team panel (RacerTeam, UiTeam) sets the Team.
 			Path = "Panel/Items/*",
 			Does = "remote",
 			Remote = "UseBoost",
@@ -697,15 +699,38 @@ UiSpec.Guis.RacerBackpack = {
 			ClickCoverage = "ui_motion_dynamic",
 		},
 		{
-			-- Replace the old tile equip: Slot<n> invokes MarketEquip(kind, id or nil, n) (Trails / Auras) or
-			-- SetTeam(team with the picked character on slot n) (Characters). ui_backpack_characters checks their state.
+			-- Replace the old tile equip: Slot<n> invokes MarketEquip(kind, id or nil, n) (Trails / Auras). Owner
+			-- 2026-11-12 (4.40): not shown on the Characters tab (ui_backpack_characters backpack_characters_no_team_slots).
 			Path = "Panel/Slots/*",
 			Does = "remote",
-			Remote = "MarketEquip|SetTeam",
+			Remote = "MarketEquip",
 			Arg = "slot",
 			Count = "dynamic",
 			ClickCoverage = "ui_backpack_characters",
 		},
+	},
+}
+
+-- Team panel (design doc 4.40 Team button, owner 2026-11-12, layout A "Line-up"; docs/TEAM_AND_STAMINA_SPEC.md "Team",
+-- "HUD" Team editor). UiSpec.Team holds the parts and UiTeam the contract; the team_* clicks drive the real SetTeam.
+UiSpec.Guis.RacerTeam = {
+	Source = "Client/TeamUi",
+	Panels = { "Panel" },
+	Buttons = {
+		{ Path = "Panel/Header/Close", Does = "close_panel", Panel = "RacerTeam/Panel", Text = "X" },
+		-- A roster card only picks the character (no remote); the slots below put it on the Team.
+		{ Path = "Panel/Roster/*", Does = "local", Effect = "team_pick", Count = "dynamic", ClickCoverage = "ui_team" },
+		-- Slot<n>: SetTeam(the Team with the picked character on slot n; its own slot takes it off). A RemoteFunction:
+		-- the team_* clicks judge the Team the server answers with (UiTeam After hooks).
+		{
+			Path = "Panel/Slots/*",
+			Does = "remote",
+			Remote = "SetTeam",
+			Arg = "slot",
+			Count = "dynamic",
+			ClickCoverage = "ui_team",
+		},
+		{ Path = "Panel/Sort", Does = "local", Effect = "team_sort", ClickCoverage = "ui_team" },
 	},
 }
 
@@ -823,6 +848,7 @@ UiSpec.BandPanels = {
 	["CheckpointUi/Panel"] = 1200,
 	["DailyBoosts/ModalBackdrop/Modal"] = 1200,
 	["RacerBackpack/Panel"] = 1200,
+	["RacerTeam/Panel"] = 1200, -- the game-wide 1200 x 620 frame (design doc 4.40 Team panel)
 	-- retired: RacerWelcome/Panel, no offline credit (design doc 4.19, owner 2026-11-03)
 }
 UiSpec.Band = {
@@ -928,23 +954,29 @@ UiSpec.HiddenWhilePanelOpen = {
 	["HudChrome/UpgradeSlot/Upgrade"] = "stacked",
 }
 -- Design doc 4.40 (owner 2026-11-10, docs/BOSS_EVENT_SPEC.md): while the local player's attribute BossEvent is true,
--- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay.
-UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/" }
+-- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay. Owner
+-- 2026-11-12 (4.40): the Team button of the second column hides with them (UiBossEvent mirrors BossButton's states).
+UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/", "RacerSecondColumn/TeamButton" }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
 
 -- Owner 2026-10-20 (docs/HUD_LAYOUT_SPEC.md section 6, replaces the per-HUD veils): a panel never dims the whole
 -- screen. Client/HudChrome makes ONE ScreenGui `Gui` (DisplayOrder `DisplayOrder`, IgnoreGuiInset) holding the
--- non-interactive full-screen Frame `Dim`; the ScreenGui is Enabled only while PanelSwitch.AnyOpen(). It draws below
+-- non-interactive full-screen Frame `Dim`; the ScreenGui is Enabled only while a panel or popup is open. It draws below
 -- every ScreenGui in `Below` (strictly lower DisplayOrder), so the HUD stays fully bright and clickable. The old
 -- veils in `Retired` must be gone. While a panel is open, no visible GuiObject in an enabled ScreenGui other than
 -- `Gui` (and the declared `VeilExempt` full-screen overlays) may cover at least `Veil.MinCoverage` of the viewport
 -- with BackgroundTransparency below `Veil.MaxTransparency` (that would be a full-screen dark frame over the HUD).
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): the same dim shows for EVERY panel and popup without exception
+-- (the PanelSwitch panels in ui_panels; the Bosses popup in ui_boss_event, the boss rewards popup in ui_boss_rewards)
+-- and is lighter: Dim BackgroundTransparency `Transparency` +- `TransparencySlack` while open (35% black, proposed).
 UiSpec.PanelDimmers = {
 	Gui = "PanelDim",
 	Frame = "PanelDim/Dim",
 	DisplayOrder = 0,
 	Below = { "HudChrome", "RacerHud", "RollToast", "RacerProgression" },
+	Transparency = 0.65, -- 35% black (proposed)
+	TransparencySlack = 0.02,
 	Retired = {
 		"HudChrome/PanelDimmer",
 		"RacerHud/PanelDimmer",
@@ -967,7 +999,6 @@ UiSpec.PanelDimmers = {
 		"RacerProgression/WeatherIcon",
 	},
 	DynamicPersistentRoots = { "RacerProgression/PotionStatus" },
-	Transparency = { Min = 0.45, Max = 0.75 },
 }
 
 UiSpec.Motion = {
@@ -990,6 +1021,11 @@ UiSpec.Motion = {
 -- (below roll / race, above turbo) do not apply. Overlaps INSIDE its ScreenGui (tile vs tile, tile vs chrome) and
 -- every other panel's rules stay checked.
 UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
+
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
+-- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
+-- when the panel's ScreenGui has the higher DisplayOrder). The first column and the right column stay checked.
+UiSpec.SecondColumnButtons = { "RacerSecondColumn/BossButton", "RacerSecondColumn/TeamButton" }
 
 -- Overlaps that are allowed: a modal panel may cover a read-out (Money), never a button or the TURBO bar.
 UiSpec.AllowOverlap = {}
@@ -2496,6 +2532,8 @@ UiSpec.RemoteFunctions = {
 	-- Paid spawn: the boss_paid_* clicks must never really prompt or start
 	"BossBuy",
 	"BossUseCredit",
+	-- The Elf Mage's rhythm circles (Client/BossOsuUi): never a real press
+	"BossOsu",
 }
 for _, item in
 	{
@@ -2978,8 +3016,8 @@ do
 	item.When = "the backpack_* sale clicks and ui_bag_full"
 	table.insert(UiSpec.ServerSetup, item)
 end
--- Backpack Characters tiles (c1 / u4, Client/SlotPicker): a tile click only picks the character, nothing is sent; the
--- team slot buttons below send SetTeam. Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
+-- Backpack Characters tiles (c1 / u4): a tile click only picks the character, nothing is sent (owner 2026-11-12, 4.40: the
+-- team slot buttons left for the Team panel, UiSpec.Team). Retired: a tile click firing EquipCar and the "equipped tile fires nothing"
 -- click backpack_equipped_car (the Team of 3 replaced the single equip, design doc 4.2).
 table.insert(UiSpec.Clicks, {
 	Id = "backpack_pick_character",
@@ -3293,7 +3331,7 @@ UiSpec.Backpack = {
 	TabFit = { Gap = 6, PhoneGap = 2 },
 	Items = "RacerBackpack/Panel/Items",
 	Empty = "RacerBackpack/Panel/Empty",
-	Slots = "RacerBackpack/Panel/Slots", -- team slot buttons Slot1..3 (Client/SlotPicker; c1 / u4)
+	Slots = "RacerBackpack/Panel/Slots", -- slot buttons Slot1..3 (Client/SlotPicker; u4): Trails / Auras only since 2026-11-12
 	TabOrder = { "Misc", "Trails", "Auras", "Characters", "Sidekicks", "Relics" }, -- top to bottom; button <Name>Tab, label text <Name>
 	-- Path tokens of the click machinery: a tile's name known only at the click. Each returns it, or nil while it has not arrived.
 	EntryTokens = {
@@ -3330,8 +3368,134 @@ UiSpec.Backpack = {
 	Green = function(c)
 		return c.G > c.R + 0.25 and c.G > c.B + 0.25
 	end,
+	-- A character card (Client/RosterCard, Backpack and Team roster alike; owner 2026-11-12, 4.40): a shown Badge with
+	-- text stays clear of the card's category dot (RacerComponents.CardFace TextLabel "Category"), both inside the card.
+	-- rect(gui) -> { x, y, w, h } on screen. Returns a problem line, or nil.
+	BadgeDotProblem = function(card, rect, visible)
+		local badge, dot = card:FindFirstChild("Badge"), card:FindFirstChild("Category")
+		if not (badge and badge:IsA("TextLabel") and visible(badge) and badge.Text ~= "") then
+			return nil
+		end
+		if not (dot and dot:IsA("GuiObject") and visible(dot)) then
+			return card.Name .. ": Badge shown, no shown category dot Category"
+		end
+		local c, b, d = rect(card), rect(badge), rect(dot)
+		local function show(r)
+			return ("(%.0f,%.0f %.0fx%.0f)"):format(r.x, r.y, r.w, r.h)
+		end
+		local function inside(r)
+			return r.x >= c.x - 1 and r.y >= c.y - 1 and r.x + r.w <= c.x + c.w + 1 and r.y + r.h <= c.y + c.h + 1
+		end
+		if b.x < d.x + d.w and d.x < b.x + b.w and b.y < d.y + d.h and d.y < b.y + b.h then
+			return ("%s: Badge%s x Category%s"):format(card.Name, show(b), show(d))
+		elseif not (inside(b) and inside(d)) then
+			return ("%s: Badge%s or Category%s outside the card%s"):format(card.Name, show(b), show(d), show(c))
+		end
+		return nil
+	end,
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
+
+-- Team panel (design doc 4.40 "Market pill and Bosses button", owner 2026-11-12, layout A "Line-up",
+-- assets/ui/team_draft/A_desktop.png; docs/TEAM_AND_STAMINA_SPEC.md "Team", "HUD" Team editor). UiTeam holds the contract.
+-- The parts sit directly in Panel; each Slot<n> is a GuiButton holding Order, Portrait (ImageLabel), Name, Category,
+-- Cruise, Stamina, or Empty when no member is on it. The rules of choosing a team are TEAM_AND_STAMINA_SPEC "Team".
+UiSpec.Team = {
+	Button = "RacerSecondColumn/TeamButton",
+	Panel = "RacerTeam/Panel",
+	Title = "RacerTeam/Panel/Header/Title",
+	Close = "RacerTeam/Panel/Header/Close",
+	Slots = "RacerTeam/Panel/Slots",
+	Bonus = "RacerTeam/Panel/Bonus",
+	Roster = "RacerTeam/Panel/Roster",
+	Sort = "RacerTeam/Panel/Sort",
+	Search = "RacerTeam/Panel/Search",
+	Gone = { "BestTeam" }, -- left out by rule (needs a rule, owner 2026-11-12): no descendant of Panel has this name
+	Order = { "RUNS FIRST", "TAGS IN 2ND", "TAGS IN LAST" },
+	SlotParts = { "Order", "Portrait", "Name", "Category", "Cruise", "Stamina" },
+	PanelSwitchName = "Team",
+	Key = "T", -- proposed (owner 2026-11-12)
+	Label = "Team",
+	NoBonus = "No team bonus",
+	-- Notices, word for word as the Backpack showed them (server GachaService.SetTeam / Client/BackpackUi)
+	RunNotice = "Stop running to change your Team",
+	MinNotice = "Your Team needs at least 1 character",
+	FixtureAttr = "UiTestTeamIds", -- ServerSetup team_states: "A,B,C", the Team is A,B
+	StaminaSlack = 0.15, -- s: Total against the summed slot figures (each rounded to 0.1)
+	Hold = 0.6, -- s a refused change must leave the Team as it was
+}
+-- Path tokens of the team_* clicks: the team_states fixture's three ids (A, B on the Team, C off it).
+for i, token in { "{team_a}", "{team_b}", "{team_c}" } do
+	UiSpec.Backpack.EntryTokens[token] = function(player)
+		local ids = player:GetAttribute(UiSpec.Team.FixtureAttr)
+		return type(ids) == "string" and string.split(ids, ",")[i] or nil
+	end
+end
+for _, item in
+	{
+		{
+			Id = "team_states",
+			What = "index_states, then on foot with Team = A,B of three owned rollable ids A,B,C off the Dojo squad; "
+				.. "player attribute UiTestTeamIds = 'A,B,C'. team_states_clear (or restore:team_states) puts the Team back.",
+		},
+		{ Id = "team_states_clear", What = "The Team as it stood before team_states; UiTestTeamIds cleared." },
+	}
+do
+	item.When = "ui_team and the team_* clicks"
+	table.insert(UiSpec.ServerSetup, item)
+end
+local TEAM_PANEL = UiSpec.Team.Panel
+table.insert(UiSpec.Clicks, {
+	Id = "open_team",
+	Gui = "RacerSecondColumn",
+	Path = "TeamButton",
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false, After = { "team_dim_on" } },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "team_button_closes",
+	Gui = "RacerSecondColumn",
+	Path = "TeamButton",
+	Prepare = only(TEAM_PANEL),
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "close_team",
+	Gui = "RacerTeam",
+	Path = "Panel/Header/Close",
+	Prepare = only(TEAM_PANEL),
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = false }, Remote = false },
+})
+table.insert(UiSpec.Clicks, {
+	Id = "team_key_t",
+	Key = UiSpec.Team.Key,
+	Prepare = { Closed = CLOSED, Showcase = false },
+	NeedSetup = { "spy" },
+	Expect = { Panels = { [TEAM_PANEL] = true }, Remote = false },
+})
+-- The editor flow (TEAM_AND_STAMINA_SPEC "HUD" Team editor, moved from the Backpack): tap a card, then a slot. Each slot
+-- press invokes the real SetTeam; its After waits for the Team the server answers with and the slots showing it.
+local PICK = { ScrollIntoView = true }
+UiSpec.AddMenuChain({ "spy", "team_states" }, TEAM_PANEL, {
+	{ "team_pick_c", "RacerTeam", "Panel/Roster/{team_c}", "team_pick_sends_nothing", PICK },
+	{ "team_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_is_abc" },
+	{ "team_pick_a", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
+	{ "team_swap_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bac" }, -- A from slot 1 swaps with B
+	{ "team_pick_a_again", "RacerTeam", "Panel/Roster/{team_a}", nil, PICK },
+	{ "team_remove_a_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_bc" }, -- its own slot takes it off
+	{ "team_pick_c_again", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
+	{ "team_remove_c_slot2", "RacerTeam", "Panel/Slots/Slot2", "team_is_b" },
+	{ "team_pick_b", "RacerTeam", "Panel/Roster/{team_b}", nil, PICK },
+	{ "team_keep_last_slot1", "RacerTeam", "Panel/Slots/Slot1", "team_keeps_last_member" }, -- never fewer than 1
+})
+-- During a run the Team is locked, with the Backpack's notice (SetTeam refuses it).
+UiSpec.AddMenuChain({ "spy", "team_states", "auto_racing" }, TEAM_PANEL, {
+	{ "team_run_pick_c", "RacerTeam", "Panel/Roster/{team_c}", nil, PICK },
+	{ "team_run_put_c_slot3", "RacerTeam", "Panel/Slots/Slot3", "team_locked_in_run" },
+})
 
 -- docs/CHARACTER_GACHA_SPEC.md "Launch cast" + "Bleech series" + "Villains": 44 rollable characters (the starter is not in the Index)
 UiSpec.CharacterCast = {
@@ -3959,16 +4123,31 @@ UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
 	WarningWatch = {}, -- what the boss_close_no_pick click's Prepare.Before saw of TeamWarning: it has faded before an After runs
 }
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own ScreenGui
+-- RacerSecondColumn (ResetOnSpawn false, ignores the inset, DisplayOrder below every panel's and above the world dim);
+-- RacerBossEvent keeps one DisplayOrder whether or not a panel is open (UiBossEvent second_column_*, event_gui_order_*).
+UiSpec.Guis.RacerSecondColumn = {
+	Source = "Client/BossEventUi",
+	AlwaysOn = { "BossButton", "TeamButton" },
+	Buttons = {
+		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
+		-- Design doc 4.40 (owner 2026-11-12): the Team button below it opens and closes the Team panel (UiTeam)
+		{ Path = "TeamButton", Does = "toggle_panel", Panel = "RacerTeam/Panel", Label = "Team" },
+	},
+}
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton" },
+	AlwaysOn = { "LeaveButton" },
 	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetails" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
-		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
 		{ Path = "BossesPanel/BossAction", Does = "remote", Remote = "BossEventTeleport|BossUseCredit|BossBuy" },
 		{ Path = "BossesPanel/Header/CloseButton", Does = "local" },
+		-- Bosses cards (owner 2026-11-11, draft B): Go on the live boss's card, Details on every card, Back over the cards.
+		{ Path = "BossesPanel/Cards/*/Go", Does = "remote", Remote = "BossEventTeleport", Count = "dynamic" },
+		{ Path = "BossesPanel/Cards/*/Details", Does = "local", Count = "dynamic" },
+		{ Path = "BossesPanel/BossDetails/Back", Does = "local" },
 		{ Path = "TeamHud/Header/CloseButton", Does = "remote", Remote = "BossEventPrepRun" },
 		{ Path = "EditTeamButton", Does = "local" },
 		{
@@ -4022,7 +4201,7 @@ local function bossPopup(extra)
 		Showcase = false,
 		RequireShown = true,
 		WaitSeconds = 0.5,
-		PressFirst = { Path = "RacerBossEvent/BossButton", Until = "RacerBossEvent/BossesPanel" },
+		PressFirst = { Path = "RacerSecondColumn/BossButton", Until = "RacerBossEvent/BossesPanel" },
 	}
 	for key, value in extra do
 		prepare[key] = value
@@ -4127,7 +4306,7 @@ for _, click in
 		},
 		{
 			Id = "boss_action_locked",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({
 				WaitSeconds = 3.5,
 				LabelIs = "Go",
@@ -4139,14 +4318,14 @@ for _, click in
 		},
 		{
 			Id = "boss_action_go",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({ WaitSeconds = 3.5, LabelIs = "Go", TargetActive = true }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_invite" },
 			Expect = { Remote = { Name = "BossEventTeleport", Args = {} }, After = { "boss_refused_keeps_button" } },
 		},
 		{
 			Id = "boss_action_past_close",
-			Path = "BossesPanel/BossAction",
+			Path = "BossesPanel/Cards/Card_boss_raga/Go",
 			Prepare = bossPopup({ LabelIs = "Go", TargetActive = false, Intercept = "BossEventTeleport" }),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_past_close" },
 			Expect = { Remote = false, After = { "boss_go_closed" } },
@@ -4195,7 +4374,22 @@ for _, click in
 			Path = "BossButton",
 			Prepare = bossButtonPrepare(0.5),
 			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
-			Expect = { Remote = false, After = { "boss_paid_details_open", "boss_details_both_tables" } },
+			Expect = { Remote = false, After = { "boss_paid_details_open" } },
+		},
+		-- Owner 2026-11-11 (Bosses cards): the odds open from a card's Details, over the cards, and Back closes them.
+		{
+			Id = "boss_paid_details_press",
+			Path = "BossesPanel/Cards/Card_boss_raga/Details",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle" },
+			Expect = { Remote = false, After = { "boss_paid_details_shown", "boss_details_both_tables" } },
+		},
+		{
+			Id = "boss_paid_details_back",
+			Path = "BossesPanel/BossDetails/Back",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_details_closed" } },
 		},
 		{
 			Id = "boss_paid_use_credit",
@@ -4256,9 +4450,94 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
 	table.insert(UiSpec.Clicks, click)
 end
+-- The Elf Mage's Bosses popup line (design doc 4.37 "Second boss"; UiBossMage). Opens, then closes, so nothing stays open after.
+for _, click in
+	{
+		{
+			Id = "boss_mage_button",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(3.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_mage" },
+			Expect = { Remote = false, After = { "boss_mage_panel_casting" } },
+		},
+		{
+			Id = "boss_mage_panel_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+		-- Bosses cards, no event, The Elf Mage next (ui_boss_cards; BOSS_EVENT_SPEC "Bosses cards"): her card large, then her
+		-- Details over the cards, then Back. The last click closes the popup for what runs next.
+		{
+			Id = "boss_cards_next_mage",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle_next_mage" },
+			Expect = { Remote = false, After = { "boss_cards_next_mage" } },
+		},
+		{
+			Id = "boss_mage_details",
+			Path = "BossesPanel/Cards/Card_boss_mage/Details",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_mage_details_open" } },
+		},
+		{
+			Id = "boss_mage_details_back",
+			Path = "BossesPanel/BossDetails/Back",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_details_closed" } },
+		},
+		{
+			Id = "boss_cards_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+	}
+do
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
+	table.insert(UiSpec.Clicks, click)
+end
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_invite_mage",
+	When = "before the boss_mage_button click (NeedSetup)",
+	What = "As boss_ui_invite, with ReplicatedStorage attribute BossEventBoss = boss_mage. 'restore' clears it.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_boss:<id>",
+	When = "asked for by ui_boss_mage, ui_boss_mage_dodge, ui_boss_osu and ui_boss_mage_vfx",
+	What = "Sets ReplicatedStorage attribute BossEventBoss to <id> ('none' clears it). boss_ui_state:Idle and restore:boss_ui "
+		.. "clear it too.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_osu_spy",
+	When = "asked for by ui_boss_osu",
+	What = "Replaces Remotes.BossOsu with a logging stand-in: { k, circle, stamp } per call into ReplicatedStorage attribute "
+		.. "UiTestBossOsuLog; it answers true, and true, Dodged for circle 3. restore:boss_ui puts the real remote back.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_minion:<hp>,<max>",
+	When = "asked for by ui_boss_golem, ui_boss_osu, ui_boss_mage_dodge and ui_boss_mage_vfx",
+	What = "Sets ReplicatedStorage BossMinionHp, BossMinionMaxHp and BossMinionStart (now): the Stone Golem stands. "
+		.. "boss_ui_minion:none, boss_ui_state:Idle and restore:boss_ui clear them.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_next:<id>",
+	When = "asked for by ui_boss_cards",
+	What = "Sets ReplicatedStorage BossEventNextBoss to <id> ('none' clears it). boss_ui_state:Idle and restore:boss_ui clear it.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_idle_next_mage",
+	When = "before the boss_cards_next_mage click (NeedSetup)",
+	What = "As boss_ui_idle, with ReplicatedStorage BossEventNextBoss = boss_mage. 'restore' clears it.",
+})
 
 -- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
 UiSpec.Guis.RacerBossRewards = {
@@ -4270,6 +4549,20 @@ UiSpec.Guis.RacerBossDodge = {
 	Source = "Client/BossDodgeUi",
 	Buttons = { { Path = "DodgeBar/Bar", Does = "remote", Remote = "BossDodge", ClickCoverage = "ui_boss_dodge" } },
 }
+-- The rhythm circles (Client/BossOsuUi; BOSS_EVENT_SPEC "The Elf Mage"), shown only before a golem attack: ui_boss_osu judges them
+-- (UiBossMage). 3 circles since the owner's 2026-11-11 easing.
+UiSpec.Guis.RacerBossOsu = {
+	Source = "Client/BossOsuUi",
+	NonInteractiveParts = { "Timer", "Caption" },
+	Buttons = {},
+}
+table.insert(UiSpec.ClientScripts, "BossOsuUi")
+for k = 1, 3 do -- shown only around a golem attack, so "dynamic": ui_boss_osu counts them
+	table.insert(
+		UiSpec.Guis.RacerBossOsu.Buttons,
+		{ Path = "Circle" .. k, Does = "remote", Remote = "BossOsu", Count = "dynamic", ClickCoverage = "ui_boss_osu" }
+	)
+end
 -- How far the camera is from what it follows. A runner in a full run moves 24 studs/s (and BossWaitCamera.homeFrame carries the
 -- camera with it), so the boss camera checks read this, not a world position. No subject: math.huge, which no home check accepts.
 function UiSpec.CameraReach(camera)
@@ -4306,7 +4599,7 @@ table.insert(UiSpec.ServerSetup, {
 	When = "asked for by ui_boss_phase2 and ui_boss_rewards, one step at a time",
 	What = "boss_phase2_stage:<stage>:<ends in s|none>:<scream ends in s|none>:<schedule start s ago|none>, the attributes only; "
 		.. "boss_phase2_rewards:<outcome>:<damage>:<stage1>:<stage2>:<short>[:<share 0..1>], one BossRewards message "
-		.. "(no share part: no Share in it). "
+		.. "(no share part: no Share in it; an optional 7th part sets the summary's Boss id). "
 		.. "restore:boss_ui clears the attributes.",
 })
 do

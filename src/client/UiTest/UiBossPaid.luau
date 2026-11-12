@@ -3,15 +3,17 @@
 -- the published attributes through UiTestSetup boss_ui_*, as ui_boss does; the real presses are the boss_paid_* clicks in UiSpec.Clicks.
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
---   RacerBossEvent/BossButton: Text exactly "Bosses", Active, in every state; a press only toggles RacerBossEvent/BossesPanel.
+--   RacerSecondColumn/BossButton: Text exactly "Bosses", Active, in every state; a press only toggles RacerBossEvent/BossesPanel.
 --   BossesPanel/BossAction, drawn only while the popup shows. In an event: as ui_boss. Otherwise, read at each render from player
 --     attributes and MonetizationConfig.BossSpawn.ProductId: with BossCredit >= 1, "Spawn boss (ready)", a press invokes BossUseCredit.
 --     Otherwise, ProductId 0: "Coming soon", Active false, a press fires nothing. Otherwise: "Spawn boss 149 R$", a press invokes
 --     BossBuy. No Sidekick: Active false (with no credit).
 --   Player attribute PaidRandomRestricted (ShopService publishes it): a press does not invoke BossBuy and BossPrompt shows an
 --     error, whatever the ProductId. A refused BossBuy shows its message in BossPrompt too.
---   BossesPanel/BossDetails, a Frame, shown with DetailsHeading and NextEvent outside an event. Directly in it: one TextLabel Row_<id> per
---     RelicConfig.Odds("big_raga"), Text holding that row's percent, and Row_side_raga, Text "Big Raga 0.001%", black.
+--   BossesPanel/BossDetails, a Frame (owner 2026-11-11, Bosses cards): an overlay over BossesPanel/Cards, shown only after a card's
+--     Details press (boss_paid_details_press) and closed by BossDetails/Back. Directly in it: one TextLabel Row_<id> per
+--     RelicConfig.Odds("big_raga"), Text holding that row's percent, and Row_side_raga, Text "Big Raga 0.001%", black. The old
+--     Status line and DetailsHeading are gone; NextEvent stays outside an event.
 --   NextEvent: "Next event in m:ss", from ReplicatedStorage.BossEventNextAt.
 --   BossesPanel is centred, with Header/CloseButton, and closes on a click outside it (owner 2026-11-06; boss_panel_* clicks).
 --   A popup only a real press opens can not be judged by the scenario: its states are the boss_paid_* clicks (UiSpec.Clicks).
@@ -21,7 +23,7 @@ local Monetization = require(Shared:WaitForChild("MonetizationConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 
 local ROOT = "RacerBossEvent"
-local BUTTON = ROOT .. "/BossButton"
+local BUTTON = "RacerSecondColumn/BossButton" -- design doc 4.42: the second column has its own ScreenGui
 local PANEL = ROOT .. "/BossesPanel"
 local DETAILS = PANEL .. "/BossDetails"
 local ACTION = PANEL .. "/BossAction"
@@ -82,9 +84,7 @@ function Module.Build(h)
 
 	function scenarios.ui_boss_paid(res)
 		h.waitGuis()
-		for _, path in
-			{ BUTTON, PANEL, DETAILS, ACTION, PROMPT, NEXT_EVENT, PANEL .. "/Status", PANEL .. "/DetailsHeading" }
-		do
+		for _, path in { BUTTON, PANEL, DETAILS, ACTION, PROMPT, NEXT_EVENT, PANEL .. "/Cards", PANEL .. "/SpawnBox" } do
 			check(res, "paid_part_present_" .. path, h.find(path) ~= nil, true)
 		end
 		for _, gone in { "BossDetails", "BossDetailsPanel", "BossPrompt" } do
@@ -136,17 +136,10 @@ function Module.Build(h)
 			end, true),
 			true
 		)
-		check(res, "details_heading_shown", shown(PANEL .. "/DetailsHeading"), true)
-		check(res, "details_shown", shown(DETAILS), true)
+		check(res, "details_hidden_until_pressed", shown(DETAILS), false)
+		check(res, "cards_shown", shown(PANEL .. "/Cards"), true)
 		local action = h.find(ACTION)
 		check(res, "idle_action_text", action and action.Text, "Spawn boss 149 R$")
-		local status = h.find(PANEL .. "/Status")
-		check(
-			res,
-			"idle_status_is_about",
-			status ~= nil and status.Text ~= "" and status.Text ~= "Big Raga is raging right now",
-			true
-		)
 		local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
 		check(res, "next_at_published", type(nextAt), "number")
 		local nextLabel = h.find(NEXT_EVENT)
@@ -160,6 +153,17 @@ function Module.Build(h)
 			("%d +- %d"):format(want, NEXT_SLACK),
 			left ~= nil and math.abs(left - want) <= NEXT_SLACK
 		)
+	end
+	-- After a card's Details press (UiSpec.Clicks boss_paid_details_press): the odds over the cards.
+	function after.boss_paid_details_shown(res)
+		check(
+			res,
+			"details_shown",
+			waitIs(function()
+				return shown(DETAILS)
+			end, true),
+			true
+		)
 		local panel = h.find(DETAILS)
 		local sum = 0
 		for _, row in RelicConfig.Odds("big_raga") do
@@ -172,6 +176,19 @@ function Module.Build(h)
 		local side = panel and panel:FindFirstChild("Row_side_raga")
 		check(res, "details_raga_text", side and side.Text, "Big Raga 0.001%")
 		check(res, "details_raga_black", side and side.TextColor3, Color3.new(0, 0, 0))
+	end
+	-- After BossDetails/Back (UiSpec.Clicks boss_paid_details_back, boss_mage_details_back): the cards again.
+	function after.boss_details_closed(res)
+		check(
+			res,
+			"details_back_hides",
+			waitIs(function()
+				return shown(DETAILS)
+			end, false),
+			false
+		)
+		check(res, "details_back_keeps_panel", shown(PANEL), true)
+		check(res, "details_back_shows_cards", shown(PANEL .. "/Cards"), true)
 	end
 	function after.boss_paid_refusal_shown(res)
 		check(

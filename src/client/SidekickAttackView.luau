@@ -1,7 +1,7 @@
 --!nonstrict
 -- Sidekick attacks at the boss (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks", docs/SIDEKICK_SPEC.md). Contract:
 -- Client/UiTest/UiSidekickAttack. Visual only: it draws what Remotes.BossHits brings and nothing reads back into damage.
--- Poses come from Shared/SidekickAttacks; Client/SidekickFollower lays them over its follow motion. Effects use BossVfxArt's textures,
+-- Poses come from src/late/SidekickAttacks; Client/SidekickFollower lays them over its follow motion. Effects use BossVfxArt's textures,
 -- Neon parts and flat sprites, all in workspace.AttackEffects. All sizes, counts and colours are placeholders for the owner's capture.
 -- A particle tops out near 100 studs and the boss is about 900 away, so shapes that must read at range are parts, and they grow in flight.
 local Players = game:GetService("Players")
@@ -13,7 +13,9 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local Art = require(Shared:WaitForChild("BossVfxArt"))
-local Attacks = require(Shared:WaitForChild("SidekickAttacks"))
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
+local LateData = require(Shared:WaitForChild("LateData"))
+local Attacks -- Shared/LateData's SidekickAttacks, read on the first hits: a hit needs an event, which delivers it
 local Catalog = require(Shared:WaitForChild("CharacterCatalog"))
 local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local HudFormat = require(Shared:WaitForChild("HudFormat"))
@@ -35,6 +37,14 @@ local OTHERS = 0.3 -- of the counts for someone else's attack
 local OTHERS_SIZE = 0.7
 local SURFACE = 110 -- studs from the boss's chest toward the shooter: the hit shows on its near side
 local JITTER = 30 -- studs, so that hits do not stack
+-- Per boss when its BossCatalog row has AttackSurface / AttackJitter, else these (proposed: The Elf Mage's chest is about 12 studs
+-- deep and her torso 21 tall); a boss with neither gets Big Raga's SURFACE and JITTER.
+-- Impact: the size of every hit's effect at her; Smoke = false leaves out the unlit puffs (proposed, Studio verify 2026-11-11: a
+-- 100-stud dark puff every 1.5 s, 7 studs in front of her 21-stud torso, hid her for most of the fight).
+local AIM = {
+	boss_mage = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false },
+	boss_golem = { Surface = 8, Jitter = 6 }, -- proposed: her Stone Golem, the target while it stands
+}
 local FLAP_OVERRIDE = 12 -- degrees off rest at which an attack's key has taken the wing from the flap
 local TEXT_COLOR = Color3.fromRGB(255, 244, 200)
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- Blender's axes to Roblox's
@@ -409,8 +419,12 @@ function SidekickAttackView.Particles(id, mine, simple)
 	return particlesOf(recipe.Muzzle, mine), particlesOf(recipe.Impact, mine)
 end
 
-local function addLayers(part, layers, mine)
+local function addLayers(part, layers, mine, look)
+	local grow = look and look.Impact or 1
 	for _, layer in layers or {} do
+		if look and look.Smoke == false and (layer.Props.LightEmission or 0) == 0 then
+			continue
+		end
 		local e = Instance.new("ParticleEmitter")
 		e.Enabled = layer.Rate ~= nil
 		e.Rate = layer.Rate and layer.Rate * (mine and 1 or OTHERS) or 0
@@ -422,7 +436,7 @@ local function addLayers(part, layers, mine)
 		end
 		local size, keys = layer.Props.Size, {}
 		for i = 1, #size, 2 do
-			table.insert(keys, NumberSequenceKeypoint.new(size[i], size[i + 1] * (mine and 1 or OTHERS_SIZE)))
+			table.insert(keys, NumberSequenceKeypoint.new(size[i], size[i + 1] * (mine and 1 or OTHERS_SIZE) * grow))
 		end
 		e.Size = NumberSequence.new(keys)
 		e.Parent = part
@@ -455,15 +469,21 @@ local function tagged(part, kind, hit, particles)
 	end)
 end
 
--- Where the attack lands now: BigRaga's chest when it is shown, else the arena's centre.
+-- Where the attack lands now: the boss's target part (BigRaga's chest) when it is shown, else the arena's centre. While a Stone
+-- Golem stands (BossMinionHp) the hits go to it.
 local function bossPoint(from)
+	local row = BossCatalog.Current()
+	local golem = ReplicatedStorage:GetAttribute("BossMinionHp") ~= nil
+	local aim = AIM[golem and "boss_golem" or row.Id] or {}
+	local surface = not golem and row.AttackSurface or aim.Surface or SURFACE
+	local jitter = not golem and row.AttackJitter or aim.Jitter or JITTER
 	local arena = Workspace:FindFirstChild("BossArenaPreview")
-	local boss = arena and arena:FindFirstChild("BigRaga")
-	local chest = boss and boss:FindFirstChild("UpperTorso")
-	local point = chest and chest.Transparency < 1 and chest.Position or Arena.Center
+	local boss = arena and arena:FindFirstChild(golem and "Golem" or row.ModelName)
+	local chest = boss and boss:FindFirstChild(golem and "Torso" or row.TargetPart)
+	local point = chest and chest.Transparency < 1 and chest.Position or Arena.For(row.Id).Center
 	local flat = (from - point) * Vector3.new(1, 0, 1)
-	local near = flat.Magnitude > 1 and flat.Unit * SURFACE or Vector3.zero
-	return point + near + Vector3.new(0, math.random(-JITTER, JITTER), 0)
+	local near = flat.Magnitude > 1 and flat.Unit * surface or Vector3.zero
+	return point + near + Vector3.new(0, math.random(-jitter, jitter), 0)
 end
 
 -- Impact ---------------------------------------------------------------------------------------------------------------------------
@@ -502,19 +522,21 @@ end
 
 -- The number of a hit with no follower to draw it from: at the boss, when a shot would have landed.
 local function numberAlone(hit)
-	local impact = newPart("Impact", CFrame.new(bossPoint(Arena.Center)), Vector3.new(30, 30, 30))
+	local impact =
+		newPart("Impact", CFrame.new(bossPoint(Arena.For(BossCatalog.Current().Id).Center)), Vector3.new(30, 30, 30))
 	tagged(impact, "Impact", hit, 0)
 	impact.Parent = folder
 	damageNumber(impact, hit)
 end
 
-local function addRing(impact, row, mine)
+local function addRing(impact, row, mine, grow)
 	task.delay(row[5] or 0, function()
 		if not impact.Parent then
 			return
 		end
-		local to, seconds = row[2] * (mine and 1 or OTHERS_SIZE), row[3]
-		local part = newPart("Ring", faceCamera(impact.Position), Vector3.new(row[1], row[1], 0.2), impact)
+		local to, seconds = row[2] * (mine and 1 or OTHERS_SIZE) * grow, row[3]
+		local part =
+			newPart("Ring", faceCamera(impact.Position), Vector3.new(row[1] * grow, row[1] * grow, 0.2), impact)
 		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 			local d = Instance.new("Decal")
 			d.Texture = Art.Ring
@@ -527,12 +549,12 @@ local function addRing(impact, row, mine)
 	end)
 end
 
-local function addStreak(impact, row, mine)
+local function addStreak(impact, row, mine, grow)
 	task.delay(row[5] or 0, function()
 		if not impact.Parent then
 			return
 		end
-		local scale = mine and 1 or OTHERS_SIZE
+		local scale = (mine and 1 or OTHERS_SIZE) * grow
 		local length, width = row[2] * scale, row[3] * scale
 		local base = faceCamera(impact.Position) * CFrame.Angles(0, 0, math.rad(row[1]))
 		local part =
@@ -553,15 +575,17 @@ local function land(shot)
 	local impact = newPart("Impact", CFrame.new(point), Vector3.new(30, 30, 30))
 	tagged(impact, "Impact", hit, particlesOf(particles, mine))
 	impact.Parent = folder
-	addLayers(impact, particles, mine)
+	local look = AIM[BossCatalog.Current().Id]
+	local grow = look and look.Impact or 1
+	addLayers(impact, particles, mine, look)
 	for i, row in recipe.Rings or {} do
 		if mine or i == 1 then
-			addRing(impact, row, mine)
+			addRing(impact, row, mine, grow)
 		end
 	end
 	for i, row in recipe.Streaks or {} do
 		if mine or i == 1 then
-			addStreak(impact, row, mine)
+			addStreak(impact, row, mine, grow)
 		end
 	end
 	if shot.Number then
@@ -791,6 +815,7 @@ local function onHits(entries)
 	if type(entries) ~= "table" or not folder then
 		return
 	end
+	Attacks = Attacks or LateData.Get("SidekickAttacks")
 	local reduced = UiMotion.Reduced()
 	for _, hit in ordered(entries) do
 		local id = hit.SidekickId

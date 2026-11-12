@@ -7,7 +7,8 @@
 --   RacerBossEvent/BossBar/Title: "Big Raga" in stage 1, "Fully Adapted Raga" in stage 2, the scream included.
 --   RacerBossEvent/BossBar/BossTimer counts to BossEventEndsAt.
 --   BossBar's Fill: during BossScreamEndsAt follows the time left from low to full; after it, Hp / MaxHp.
---   RacerBossEvent/DropList/Row_<id>, Row_side_raga, top to bottom by LayoutOrder. The rate is the number before "%" in the Text. Bar full is
+--   RacerBossEvent/DropList: hidden for now (owner 2026-11-11, both bosses), so its rate spill is not shown; the rule kept for its
+--     return: RacerBossEvent/DropList/Row_<id>, Row_side_raga, top to bottom by LayoutOrder. The rate is the number before "%" in the Text. Bar full is
 --     BossScheduleStart + IntroSeconds, the scream's end (BossScreamEndsAt is nil after it, so a late view reads this). From there the
 --     rows change one at a time, top first, all final within CASCADE_MAX. A view after that shows all final at once. Stage 1 or no event
 --     shows Phase 1's rates again.
@@ -50,11 +51,10 @@ local EXHAUSTED = ROOT .. "/ExhaustedPanel"
 local DODGE_BAR = "RacerBossDodge/DodgeBar"
 local POPUP = "RacerBossRewards/Panel"
 local INVITE = ROOT .. "/Invite"
-local BUTTON = ROOT .. "/BossButton"
+local BUTTON = "RacerSecondColumn/BossButton" -- design doc 4.42: the second column has its own ScreenGui
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
-local SIDE_RATE_1, SIDE_RATE_2 = 0.001, 0.01 -- percent: design doc 4.37, RELIC_SPEC "Chests"
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
 local COUNTDOWN_SLACK = 2 -- s
 local CASCADE_MAX = 6 -- s after the bar is full, for every row to be final. Not a rule: long enough for any readable pace
@@ -63,7 +63,6 @@ local FILL_LOW = 0.35 -- of the bar, in the scream's first moments
 local FILL_SHRINK = 0.02
 local FILL_END = 0.98
 local FILL_HP_SLACK = 0.02
-local BAR_FULL_SLACK = 0.1 -- s: this sample's replication lag
 local SLIDER_SLACK = 0.06 -- of the bar: a frame of lag; a Phase 1 sweep would read about 0.2 away
 local DODGE_LEAD = 1 -- s before the moment: inside SweepFor(2) + the bar's pop, away from either sweep's end
 local DODGE_SHOW_WAIT = 0.4 -- s: a Phase 1 clock would not open the bar for 0.55 s
@@ -153,35 +152,9 @@ function Module.Build(h)
 		return a ~= nil and b ~= nil and math.abs(a - b) < 1e-6
 	end
 
-	-- { Id, Old, New } top to bottom: the rates each row of the drop list must show.
-	local function dropPlan()
-		local plan = {}
-		local adapted = {}
-		for _, row in RelicConfig.ChestOdds(ADAPTED_CHEST) do
-			adapted[row.Id] = row.Odds
-		end
-		local rows = RelicConfig.Odds("big_raga")
-		table.sort(rows, function(a, b)
-			return a.Odds > b.Odds
-		end)
-		for _, row in rows do
-			table.insert(plan, { Id = row.Id, Old = row.Odds, New = adapted[row.Id] })
-		end
-		table.insert(plan, { Id = "side_raga", Old = SIDE_RATE_1, New = SIDE_RATE_2 })
-		return plan
-	end
-	local function dropRate(id)
-		return rateIn(textOf(DROP .. "/Row_" .. id))
-	end
-	local function checkRowsAre(res, tag, field)
-		for _, row in dropPlan() do
-			local want = row[field]
-			local got = waitIs(function()
-				local rate = dropRate(row.Id)
-				return near(rate, want) and want or rate
-			end, want)
-			check(res, tag .. "_" .. row.Id, got, want)
-		end
+	-- Owner 2026-11-11: the drop list is hidden for now, for both bosses, in either stage.
+	local function checkDropHidden(res, tag)
+		check(res, tag .. "_drop_hidden", waitShown(DROP, true), false)
 	end
 
 	local function checkDetails(res)
@@ -330,7 +303,7 @@ function Module.Build(h)
 			drawn == true
 		)
 		checkTextSoon(res, "stage1_title", BAR .. "/Title", TITLE_STAGE_1)
-		checkRowsAre(res, "stage1_rate", "Old")
+		checkDropHidden(res, "stage1")
 		-- BossEventEndsAt, not TotalSeconds: this event's elapsed would read well over 90.
 		local left = waitIs(function()
 			local minutes, seconds = string.match(textOf(BAR .. "/BossTimer"), "^(%d+):(%d%d)$")
@@ -356,7 +329,6 @@ function Module.Build(h)
 	-- The scream and the cascade after it, read in one pass: it is one stretch of time.
 	local function checkScreamAndCascade(res, hp)
 		local scream = Cfg.ScreamSeconds
-		local plan = dropPlan()
 		local fill = h.find(BAR .. "/Track/Fill")
 		check(res, "scream_fill_present", fill ~= nil, true)
 		local camera = workspace.CurrentCamera
@@ -387,9 +359,8 @@ function Module.Build(h)
 			return value and math.abs(value - 200) <= COUNTDOWN_SLACK
 		end, true, 0.3)
 		h.check(res, "stage2_timer_to_ends_at", textOf(BAR .. "/BossTimer"), "about 3:20", timerOk == true)
-		local worst, shrank, last, oldDuringScream = 0, false, first, {}
-		local changedAt = {}
-		local topFirstLastOld = nil
+		local worst, shrank, last = 0, false, first
+		local dropSeen = false
 		local deadline = fullAt + CASCADE_MAX
 		while os.clock() < deadline do
 			local now = os.clock()
@@ -400,23 +371,9 @@ function Module.Build(h)
 				shrank = shrank or size < last - FILL_SHRINK
 				last = size
 			end
-			local done = true
-			for i, row in plan do
-				local rate = dropRate(row.Id)
-				if not changedAt[row.Id] and not near(rate, row.Old) then
-					changedAt[row.Id] = now
-					if remaining > BAR_FULL_SLACK then
-						table.insert(oldDuringScream, row.Id)
-					end
-					if i == 1 then
-						topFirstLastOld = near(dropRate(plan[#plan].Id), plan[#plan].Old)
-					end
-				end
-				done = done and near(rate, row.New)
-			end
-			if done and remaining <= 0 then
-				break
-			end
+			-- Owner 2026-11-11: the drop list is hidden for now, so Phase 2's rate spill is not shown.
+			-- Read on to the old cascade's deadline, past BossWaitCamera's 0.5 s return, as before the list was hidden.
+			dropSeen = dropSeen or shown(DROP)
 			task.wait()
 		end
 		checkGrowth(res, "growth", samples)
@@ -455,27 +412,8 @@ function Module.Build(h)
 			return fill.Size.X.Scale >= FILL_END
 		end, true)
 		check(res, "scream_fill_full_at_end", atEnd, true)
-		h.checkList(res, "drop_rows_old_until_bar_full", oldDuringScream)
-		for _, row in plan do
-			h.check(res, "cascade_final_" .. row.Id, dropRate(row.Id), row.New, near(dropRate(row.Id), row.New))
-		end
-		check(res, "cascade_top_changes_while_last_is_old", topFirstLastOld, true)
-		local order = {}
-		for i = 2, #plan do
-			local before, this = changedAt[plan[i - 1].Id], changedAt[plan[i].Id]
-			if not (before and this and before <= this) then
-				table.insert(order, plan[i].Id)
-			end
-		end
-		h.checkList(res, "cascade_top_to_bottom", order)
-		local top, bottom = changedAt[plan[1].Id], changedAt[plan[#plan].Id]
-		h.check(
-			res,
-			"cascade_takes_time",
-			(top and bottom) and bottom - top or "no change",
-			"> 0",
-			top and bottom and bottom > top
-		)
+		-- Owner 2026-11-11: the drop list is hidden for now, so Phase 2's rate spill is not shown.
+		check(res, "drop_hidden_through_scream", dropSeen, false)
 		-- After the scream the bar is the HP again.
 		state(res, "Fight", "keep", hp / 2, hp, true)
 		local half = waitIs(function()
@@ -495,7 +433,7 @@ function Module.Build(h)
 			end, TITLE_STAGE_2),
 			TITLE_STAGE_2
 		)
-		checkRowsAre(res, "late_rate", "New")
+		checkDropHidden(res, "late")
 		local fill = h.find(BAR .. "/Track/Fill")
 		check(res, "late_fill_is_hp", fill ~= nil and fill.Size.X.Scale >= FILL_END, true)
 		h.check(res, "late_scale_snaps", bossScale(), GROWTH, math.abs((bossScale() or 0) - GROWTH) <= GROWTH_SLACK)
@@ -514,7 +452,7 @@ function Module.Build(h)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true)
 		stage(res, 1, 90)
 		checkTextSoon(res, "next_event_title", BAR .. "/Title", TITLE_STAGE_1)
-		checkRowsAre(res, "next_event_rate", "Old")
+		checkDropHidden(res, "next_event")
 		local reset = waitIs(function()
 			return math.abs((bossScale() or 0) - 1) <= GROWTH_SLACK
 		end, true)
@@ -748,7 +686,9 @@ function Module.Build(h)
 		if withShare then
 			checkTextSoon(res, tag .. "_share_text", POPUP .. "/Share", string.format("%.1f%%", want.Share * 100))
 			local mark = h.find(POPUP .. "/ShareBar/Mark")
-			check(res, tag .. "_share_mark_at_min", mark and mark.Position.X.Scale, Cfg.MinDamageShare)
+			local markX = mark and mark.Position.X.Scale
+			-- UDim Scale is a float32, never exactly the 0.05 double
+			h.check(res, tag .. "_share_mark_at_min", markX, Cfg.MinDamageShare, near(markX, Cfg.MinDamageShare))
 			local fill = waitIs(function()
 				local gui = h.find(POPUP .. "/ShareBar/Fill")
 				return gui ~= nil and near(gui.Size.X.Scale, want.Share)
@@ -787,7 +727,14 @@ function Module.Build(h)
 			check(res, tag .. "_note_text", textOf(POPUP .. "/Note"), "Deal 5% for rewards")
 		end
 	end
+	-- The world dim under the HUD (Client/HudChrome, Spec.PanelDimmers): its ScreenGui Enabled and Dim Visible
+	local function dimOn()
+		local gui, frame = h.find(Spec.PanelDimmers.Gui), h.find(Spec.PanelDimmers.Frame)
+		return gui ~= nil and gui:IsA("ScreenGui") and gui.Enabled and frame ~= nil and frame.Visible
+	end
 	local function checkPopupFit(res)
+		-- Design doc 4.42 (owner 2026-11-12): the rewards popup dims the world like every panel and popup
+		check(res, "popup_dim_shown", waitIs(dimOn, true), true)
 		local panel, close = h.find(POPUP), h.find(POPUP .. "/Header/CloseButton")
 		check(res, "popup_close_present", close ~= nil and close:IsA("GuiButton"), true)
 		local logo = h.find(POPUP .. "/Header/Logo")
@@ -861,6 +808,7 @@ function Module.Build(h)
 	-- After the real press of Panel/Header/CloseButton (UiSpec.Clicks boss_rewards_close).
 	function after.boss_rewards_closed(res)
 		check(res, "popup_close_closes", waitShown(POPUP, false), false)
+		check(res, "popup_dim_off_after_close", waitIs(dimOn, false), false)
 	end
 
 	-- After the real press that opens the Bosses popup idle (UiSpec.Clicks boss_paid_details): every line of both tables on screen.

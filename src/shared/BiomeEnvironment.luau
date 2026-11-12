@@ -173,12 +173,52 @@ local ARENA = Kit.Atmosphere({
 	},
 })
 
--- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline
-function BiomeEnvironment.Profile(zone)
+-- The Elf Mage's colosseum (docs/BOSS_EVENT_SPEC.md "The Elf Mage"): the same arena zone, an indoor, dusky, faintly violet room
+-- under a broken dome. Its light is mostly ambient so the interior reads at graphics quality 1, where the 8 torch lights carry little.
+-- No sky clouds, haze held low so her 44 studs keep their colour; warm dust motes (Snow's reviewed MoteParticle, as ARENA). All
+-- values proposed, to judge from a Studio capture (the rules leave the room's lighting and motes open).
+local COLOSSEUM = Kit.Atmosphere({
+	Lighting = {
+		ClockTime = 17.6,
+		Brightness = 1.4,
+		Ambient = Kit.hex("8C7686"),
+		OutdoorAmbient = Kit.hex("9E8CB2"),
+		ExposureCompensation = 0.15,
+	},
+	Atmosphere = {
+		Density = 0.12,
+		Offset = 0,
+		Color = Kit.hex("B9A2C8"),
+		Decay = Kit.hex("6E5A80"),
+		Glare = 0,
+		Haze = 0.4,
+	},
+	Grade = { TintColor = Kit.hex("FBF2FF"), Saturation = 0.05, Contrast = 0.08, Brightness = 0.02 },
+	Bloom = { Intensity = 0.4, Threshold = 1.6 },
+	SunRays = { Intensity = 0.04 },
+	Sky = { SunAngularSize = 8, MoonAngularSize = 0, StarCount = 0, CelestialBodiesShown = false },
+	Clouds = { Cover = 0 },
+	Particles = {
+		{
+			Texture = "MoteParticle",
+			Color = Kit.hex("FFE2B8"),
+			Size = 0.5,
+			Rate = 18,
+			Lifetime = 8,
+			Speed = 1,
+			SpreadAngle = 180,
+			LightEmission = 0.4,
+		},
+	},
+})
+
+-- Atmosphere profile (spec 5.2) of a zone; zone 0 has the plaza's, any other zone without one the LightingConfig baseline. In the
+-- arena zone, boss (a BossCatalog id, nil for Big Raga) picks the room: boss_mage's colosseum, else the sky arena.
+function BiomeEnvironment.Profile(zone, boss)
 	if zone == 0 then
 		return PLAZA
 	elseif zone == BiomeEnvironment.ARENA_ZONE then
-		return ARENA
+		return boss == "boss_mage" and COLOSSEUM or ARENA
 	end
 	local theme = Themes[biomeOf[zone]]
 	return theme and theme.Atmosphere or baseline

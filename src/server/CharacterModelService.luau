@@ -11,7 +11,8 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
-local BossRagaPoses = require(Shared.BossRagaPoses)
+local BossMagePoses = require(Shared.LateData).Get("BossMagePoses")
+local BossRagaPoses = require(Shared.LateData).Get("BossRagaPoses")
 local RunnerFactory = require(Shared.RunnerFactory)
 local SidekickArt = require(Shared.SidekickArt)
 
@@ -119,18 +120,19 @@ local function startSidekicks()
 	end)
 end
 
--- Big Raga's loose parts, in ReplicatedStorage.BossModels/boss_raga, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks").
--- Each client clones and poses them. Its parts keep the import's SurfaceAppearance: it holds the texture.
-local function loadBoss(assetId, root)
+-- A boss's loose parts, in ReplicatedStorage.BossModels/<name>, at their game size (docs/BOSS_EVENT_SPEC.md "Boss and attacks",
+-- "The Elf Mage"). Each client clones and poses them. Big Raga's parts keep the import's SurfaceAppearance; the golem's draw TextureID.
+local function loadBoss(name, assetId, binds, root)
 	local ok, asset = fetch(assetId)
 	if not ok then
-		warn("[BossModels] boss_raga failed to load: " .. tostring(asset))
+		warn("[BossModels] " .. name .. " failed to load: " .. tostring(asset))
 		return
 	end
 	local folder = Instance.new("Folder")
-	folder.Name = "boss_raga"
+	folder.Name = name
+	local texture = ""
 	for _, d in asset:GetDescendants() do
-		local bind = d:IsA("MeshPart") and BossRagaPoses.Bind[d.Name]
+		local bind = d:IsA("MeshPart") and binds[d.Name]
 		if bind then
 			d.Anchored = true
 			d.CanCollide = false
@@ -139,7 +141,24 @@ local function loadBoss(assetId, root)
 			d.Massless = true
 			d.Material = Enum.Material.SmoothPlastic
 			d.Size = Vector3.new(bind.Size[1], bind.Size[2], bind.Size[3])
+			-- The golem import put one stray SurfaceAppearance on FistL, its EmissiveMap rbxassetid://17 never loads (a script
+			-- cannot read its ColorMap): drop it, and the part takes the one atlas its siblings use.
+			-- Golem only: Big Raga's parts keep the import's SurfaceAppearance, it holds his texture.
+			local surface = name == "boss_golem" and d:FindFirstChildOfClass("SurfaceAppearance")
+			if surface then
+				surface:Destroy()
+			end
+			if d.TextureID ~= "" then
+				texture = d.TextureID
+			end
 			d.Parent = folder
+		end
+	end
+	if name == "boss_golem" then
+		for _, part in folder:GetChildren() do
+			if part.TextureID == "" then
+				part.TextureID = texture
+			end
 		end
 	end
 	asset:Destroy()
@@ -151,9 +170,13 @@ local function startBoss()
 	root.Name = "BossModels"
 	root.Parent = ReplicatedStorage
 	task.spawn(function()
-		local art = SidekickArt.boss_raga
-		if art and art.BossModel then
-			pcall(loadBoss, art.BossModel, root)
+		for name, bind in
+			{ boss_raga = BossRagaPoses.Bind, boss_mage = BossMagePoses.Bind, boss_golem = BossMagePoses.GolemBind }
+		do
+			local art = SidekickArt[name]
+			if art and art.BossModel then
+				pcall(loadBoss, name, art.BossModel, bind, root)
+			end
 		end
 		root:SetAttribute("Ready", true)
 	end)

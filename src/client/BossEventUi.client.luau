@@ -2,8 +2,9 @@
 -- Boss event UI (design doc 4.37, docs/BOSS_EVENT_SPEC.md Flow and Team HUD). Contract: Client/UiTest/UiBossEvent. Display only:
 -- it follows the server's attributes (ReplicatedStorage BossEvent*, player BossEvent, BossStatus, BossTeamDamage and BossWaitEndsAt) and asks through
 -- Remotes.BossEventTeleport, BossEventSetTeam and BossEventLeave. Every part is built once and only hidden.
--- BossButton only opens the BossesPanel popup (BOSS_EVENT_SPEC "Paid spawn", contract: Client/UiTest/UiBossPaid). Its action is Go in an
--- event, otherwise the paid spawn through Remotes.BossBuy and BossUseCredit; the server judges every press.
+-- BossButton only opens the BossesPanel popup (BOSS_EVENT_SPEC "Paid spawn" and "Bosses cards", contract: Client/UiTest/UiBossPaid).
+-- In an event the live card's Go teleports; BossAction is the paid spawn through Remotes.BossBuy and BossUseCredit, greyed during
+-- an event; the server judges every press.
 -- Sound and effects are not in yet. Hook, when they are approved: UiFeedback.Play with an existing cue where "cue:" is marked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,10 +12,13 @@ local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
+local BossCatalog = require(shared:WaitForChild("BossCatalog"))
+local BossMageArt = require(shared:WaitForChild("BossMageArt"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local GachaConfig = require(shared:WaitForChild("GachaConfig"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
@@ -36,7 +40,8 @@ local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local WARNING_TEXT = "Big Raga has emerged, take him down!!!" -- design doc 4.37
+-- The boss's own texts and portrait (warning, invite, bar title, Bosses line, versus card) are BossCatalog.Current()'s, read at
+-- use time and again when ReplicatedStorage's BossEventBoss changes; nil is Big Raga (design doc 4.37 "Second boss").
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" -- BOSS_EVENT_SPEC
 -- Placeholders.
 local WARNING_SECONDS = 6
@@ -51,26 +56,24 @@ local BOSS_LABEL_SIZE = 19
 local BOSS_OUTLINE = 2.5
 local BOSS_PHONE_SCALE = 0.68
 local BOSS_PHONE_MAX_HEIGHT = 500 -- HudChrome's phone: viewport height at most this
--- HudChrome Grid: x and centre offset per variant, its height at scale 1 (3 cells and 2 gaps of 8).
+-- HudChrome Grid: x and centre offset per variant, and the gap between its cells.
 local GRID_X = { Desktop = 14, Phone = 8 }
 local GRID_MID = { Desktop = -24, Phone = -20 }
-local GRID_HEIGHT = 3 * BOSS_CELL.Y + 2 * 8
-local BOSS_BUTTON_GAP = 6 -- px under Roblox's top bar and right of Roblox's buttons (proposed)
+local GRID_GAP = 8
+local BOSS_BUTTON_GAP = 8 -- px right of the left column (proposed)
+local TEAM_KEY = Enum.KeyCode.T -- the Team button's key letter (proposed, owner 2026-11-12)
 local PULSE_SCALE = 1.08
 local PULSE_PERIOD = 0.6
 local GLOW_THICK = 5
 local PROMPT_SECONDS = 3
 local LOCKED_TEXT = "Get a Sidekick and equip it to teleport"
 local RESTRICTED_TEXT = "Paid spawns are not available on your account"
-local RAGING_TEXT = "Big Raga is raging right now" -- design doc 4.37: the tweaked name only
 local CLOSED_TEXT = "Teleporting closed"
-local ABOUT_TEXT = "Every 30 minutes Big Raga rises in the sky arena. Defeat it for a treasure chest!"
 -- Popup widths in px at most: the old widths at 920 units wide, stretched to the frame's width (design doc 4.42) so the
 -- heights stay as before; k follows from the size.
 local WIDE = AnimeSkin.Units.W / 920
 local INVITE_WIDTH, HUD_WIDTH, BOSSES_WIDTH = 560 * WIDE, 820 * WIDE, 700 * WIDE
-local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
-local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"
+local TITLE_STAGE_2 = "Fully Adapted Raga"
 local TITLE_STAGE_2_COLOR = Color3.fromRGB(235, 20, 30) -- owner 2026-11-06: bold red; HEAVY is already the title's font
 local CASCADE_GAP = 0.25 -- s between the drop list's rows, placeholder
 local TEAM_WARNING_TEXT = "Select a character first"
@@ -98,11 +101,13 @@ local TITLE_HEIGHT, TRACK_HEIGHT = 40, 60 -- px at full scale
 local DROP_WIDTH, DROP_WIDTH_MIN = 400, 190
 local DROP_HEADING, DROP_HEADING_MIN = 32, 14
 local DROP_ROW, DROP_ROW_MIN = 26, 13
--- The icon is a plain in-house shape, a text glyph or a drawn wheel; no image upload. No digit in these texts: the countdown is the number.
+-- The icon is a plain in-house shape, a text glyph or a drawn wheel, or the boss's drawn status art (Image). No digit in these
+-- texts: the countdown is the number.
 local STATUS_LOOKS = {
 	{ Id = "Shouted", Glyph = "!", Color = Palette.Danger },
 	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
 	{ Id = "Vulnerable", Glyph = "V", Color = Palette.MoneyDeep }, -- no end time: it goes with its row
+	{ Id = "Crushed", Image = BossMageArt.StatusCrushed, Color = Palette.Danger }, -- the Elf Mage's golem slam
 }
 
 local function make(class, name, parent, props)
@@ -196,9 +201,17 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 	DisplayOrder = 13, -- above the panels and DuelUi (a duel keeps its invite), below the roll view (14)
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own gui,
+-- under every panel's (DisplayOrder 2 and up) and above the world dim (0).
+local secondColumn = make("ScreenGui", "RacerSecondColumn", playerGui, {
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 1,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+})
 
 -- Invite ------------------------------------------------------------------------------------------------------------------
-local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", "BIG RAGA EVENT")
+local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", BossCatalog.Current().InviteTitle)
 invite.Parent = root
 local inviteHint = label("Hint", invite, {
 	Text = "",
@@ -264,7 +277,7 @@ local ragaCard = make("Frame", "RagaCard", hud, { BackgroundTransparency = 1 })
 AnimeSkin.Card(ragaCard, AnimeSkin.Tint.Danger)
 local ragaPortrait = make("ImageLabel", "RagaPortrait", hud, {
 	BackgroundTransparency = 1,
-	Image = SidekickArt.side_raga and SidekickArt.side_raga.Portrait or "",
+	Image = BossCatalog.Current().Portrait or "",
 	ScaleType = Enum.ScaleType.Fit,
 	ZIndex = 2,
 })
@@ -372,7 +385,7 @@ local warning = make("Frame", "Warning", root, {
 })
 local warningLabel = label("Text", warning, {
 	Size = UDim2.fromScale(1, 1),
-	Text = WARNING_TEXT,
+	Text = BossCatalog.Current().WarningText,
 	FontFace = HEAVY,
 	TextColor3 = WARNING_BRIGHT,
 	TextWrapped = true,
@@ -388,29 +401,52 @@ local bossTimer = label("BossTimer", bar, {
 	TextXAlignment = Enum.TextXAlignment.Left,
 }, TITLE_HEIGHT)
 local barTitle = label("Title", bar, {
-	Text = TITLE_STAGE_1,
+	Text = BossCatalog.Current().Name,
 	FontFace = HEAVY,
 }, TITLE_HEIGHT)
-local track = make("Frame", "Track", bar, {
-	BackgroundColor3 = Palette.TeamTired,
-	BorderSizePixel = 0,
-})
-UiTheme.Corner(track, "S")
-UiTheme.Stroke(track, 2, Palette.Gold, true)
-local fill = make("Frame", "Fill", track, {
-	Size = UDim2.fromScale(0, 1),
-	BackgroundColor3 = Palette.White,
-	BorderSizePixel = 0,
-})
-UiTheme.Corner(fill, "S")
--- Two bands with a hard edge, bright over deep.
-UiTheme.Gradient(fill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Palette.Danger),
-	ColorSequenceKeypoint.new(0.5, Palette.Danger),
-	ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
-	ColorSequenceKeypoint.new(1, Palette.DangerDeep),
-})
+-- An HP track and its fill: two bands with a hard edge, bright over deep.
+local function hpTrack(parent)
+	local frame = make("Frame", "Track", parent, {
+		BackgroundColor3 = Palette.TeamTired,
+		BorderSizePixel = 0,
+	})
+	UiTheme.Corner(frame, "S")
+	UiTheme.Stroke(frame, 2, Palette.Gold, true)
+	local bandFill = make("Frame", "Fill", frame, {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Palette.White,
+		BorderSizePixel = 0,
+	})
+	UiTheme.Corner(bandFill, "S")
+	UiTheme.Gradient(bandFill, Palette.Danger, Palette.DangerDeep).Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Palette.Danger),
+		ColorSequenceKeypoint.new(0.5, Palette.Danger),
+		ColorSequenceKeypoint.new(0.501, Palette.DangerDeep),
+		ColorSequenceKeypoint.new(1, Palette.DangerDeep),
+	})
+	return frame, bandFill
+end
+local track, fill = hpTrack(bar)
 local barValue = label("Value", bar, { Text = "", ZIndex = 2 }, 36) -- above the Track and its Fill
+-- Her bar dims while her Stone Golem stands: she takes no damage then (design doc 4.37 "Second boss").
+local trackDim = make("Frame", "Dim", track, {
+	Size = UDim2.fromScale(1, 1),
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.5,
+	BorderSizePixel = 0,
+	ZIndex = 2, -- above the Fill
+	Visible = false,
+})
+UiTheme.Corner(trackDim, "S")
+-- The Stone Golem's bar (BossMinionHp / BossMinionMaxHp), centred under hers at 0.6 of its size, while it stands.
+local minionBar = make("Frame", "MinionBar", bar, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundTransparency = 1,
+	Visible = false,
+})
+local minionTitle = label("Title", minionBar, { Text = "", FontFace = HEAVY }, TITLE_HEIGHT)
+local minionTrack, minionFill = hpTrack(minionBar)
+local minionValue = label("Value", minionBar, { Text = "", ZIndex = 2 }, 36)
 
 -- Under the bar's left side, with the bar on screen and off: the Warning sits below this row.
 local statusRow = make("Frame", "Status", bar, { BackgroundTransparency = 1 })
@@ -430,13 +466,18 @@ for order, look in STATUS_LOOKS do
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.fromScale(0.5, 0),
 		BackgroundColor3 = look.Color,
+		BackgroundTransparency = look.Image and 1 or 0, -- drawn art carries its own shape
 		BorderSizePixel = 0,
+		Image = look.Image or "",
+		ScaleType = Enum.ScaleType.Fit,
 	})
-	UiTheme.Corner(icon, "S")
-	UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	if not look.Image then
+		UiTheme.Corner(icon, "S")
+		UiTheme.Stroke(icon, 2, UiTheme.Outline, true)
+	end
 	if look.Glyph then
 		label("Glyph", icon, { Size = UDim2.fromScale(1, 1), Text = look.Glyph }, 30)
-	else
+	elseif not look.Image then
 		local wheel = make("Frame", "Wheel", icon, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -489,50 +530,56 @@ local dropRule = make("Frame", "Rule", dropList, {
 })
 local dropRows = {}
 local dropTexts = {} -- row -> { Phase 1's text, Phase 2's }
-local dropOutlines = {} -- row -> the light outline a near-black colour needs, or nil
 local function oddsText(row)
 	return ("%s %s%%"):format(row.Name, tostring(row.Odds))
 end
-local adaptedOdds = RelicConfig.ChestOdds(ADAPTED_CHEST)
-local function adaptedText(id)
-	for _, row in adaptedOdds do
-		if row.Id == id then
-			return oddsText(row)
-		end
+-- A chest's lines by odds, { Id, Text, Color, Outline }, then its Big Raga Sidekick line when it has a chance. The drop list
+-- and the Details tables read these, so they can not disagree. Secret's and the Sidekick's near-black need a light outline.
+local function chestLines(chestId)
+	local odds = RelicConfig.ChestOdds(chestId)
+	table.sort(odds, function(a, b)
+		return a.Odds > b.Odds
+	end)
+	local lines = {}
+	for _, row in odds do
+		table.insert(lines, {
+			Id = row.Id,
+			Text = oddsText(row),
+			Color = GachaConfig.RARITY_COLORS[row.Rarity],
+			Outline = row.Rarity == "Secret" and Palette.White or nil,
+		})
 	end
-	return ("Big Raga %.2f%%"):format(RelicConfig.Chests[ADAPTED_CHEST].SidekickChance * 100)
+	local chance = RelicConfig.Chests[chestId].SidekickChance
+	if chance > 0 then
+		local text = ("Big Raga %g%%"):format(chance * 100)
+		table.insert(lines, { Id = "side_raga", Text = text, Color = Color3.new(0, 0, 0), Outline = Palette.White })
+	end
+	return lines
 end
-local function dropRow(id, text, color, stroke)
-	local row = label("Row_" .. id, dropList, {
-		LayoutOrder = 3 + #dropRows,
-		Text = text,
-		TextColor3 = color,
-		FontFace = HEAVY,
-	}, DROP_ROW)
-	UiTheme.Stroke(row, 2, stroke)
-	table.insert(dropRows, row)
-	dropTexts[row] = { text, adaptedText(id) }
-	dropOutlines[row] = stroke
+-- The rows of this boss's first chest; Phase 2's texts from its second chest, when it has one.
+local function buildDrops(boss)
+	for _, row in dropRows do
+		row:Destroy()
+	end
+	table.clear(dropRows)
+	table.clear(dropTexts)
+	local second = {}
+	for _, line in boss.Chests[2] and chestLines(boss.Chests[2]) or {} do
+		second[line.Id] = line.Text
+	end
+	for _, line in chestLines(boss.Chests[1]) do
+		local row = label("Row_" .. line.Id, dropList, {
+			LayoutOrder = 3 + #dropRows,
+			Text = line.Text,
+			TextColor3 = line.Color,
+			FontFace = HEAVY,
+		}, DROP_ROW)
+		UiTheme.Stroke(row, 2, line.Outline)
+		table.insert(dropRows, row)
+		dropTexts[row] = { line.Text, second[line.Id] or line.Text }
+	end
 end
-local dropOdds = RelicConfig.Odds("big_raga")
-table.sort(dropOdds, function(a, b)
-	return a.Odds > b.Odds
-end)
-for _, row in dropOdds do
-	-- Secret's near-black needs the light outline Big Raga's black has.
-	dropRow(
-		row.Id,
-		oddsText(row),
-		GachaConfig.RARITY_COLORS[row.Rarity],
-		row.Rarity == "Secret" and Palette.White or nil
-	)
-end
-dropRow(
-	"side_raga",
-	("Big Raga %.3f%%"):format(RelicConfig.RagaSidekickChance * 100),
-	Color3.new(0, 0, 0),
-	Palette.White
-)
+buildDrops(BossCatalog.Current())
 
 -- One rect at every viewport (ui_layout solves it there): under the top-right row, above the Shop column, right of the band.
 local editTeam = button("EditTeamButton", root, "Edit Team", "Go", {
@@ -549,118 +596,370 @@ local leave = button("LeaveButton", root, "LEAVE", "Danger", {
 	Visible = false,
 })
 
--- The top-left button, under Roblox's top bar. Its pulse grows right and down from a fixed corner. PulseScale goes in
--- first: RacerMotion adds a HoverScale once the button is in the gui, and the first UIScale is the one that draws, so the
--- phone scale is written into the sizes (placeBossButton) instead of a UIScale.
--- Design doc 4.40 "Market pill and Bosses button": the HUD column buttons' look, a transparent button with the Tab tilt
--- Boss icon and its label "Bosses" (the button's own Text, white with the dark outline) under it.
-local bossButton = make("TextButton", "BossButton", nil, {
+-- Design doc 4.40 (owner 2026-11-12): the second column, Bosses and Team, in the HUD column buttons' look: a transparent
+-- button with its Tab tilt icon and its label (the button's own Text, white with the dark outline `strokeName`) under
+-- it. The phone scale is written into the sizes (placeColumnButton) instead of a UIScale: RacerMotion adds a HoverScale
+-- once the button is in the gui and the first UIScale is the one that draws, so the caller parents it after its own.
+local function columnButton(name, text, image, strokeName)
+	local b = make("TextButton", name, nil, {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		AutoButtonColor = false,
+		Text = text,
+		Font = UiTheme.Font,
+		TextColor3 = Palette.White,
+		TextYAlignment = Enum.TextYAlignment.Bottom,
+		Visible = false,
+	})
+	-- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
+	make("ImageLabel", "Icon", b, {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
+		BackgroundTransparency = 1,
+		Image = image,
+		ScaleType = Enum.ScaleType.Fit,
+	})
+	local stroke = make("UIStroke", strokeName, b, {
+		Color = UiTheme.Outline,
+		Thickness = BOSS_OUTLINE,
+		LineJoinMode = Enum.LineJoinMode.Round,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+	})
+	return b, stroke
+end
+-- Its pulse grows right and down from a fixed corner (PulseScale goes in first); the join pulse thickens its outline.
+local bossButton, bossGlow = columnButton("BossButton", "Bosses", Icons.Boss.Image, "Glow")
+make("UIScale", "PulseScale", bossButton, {})
+bossButton.Parent = secondColumn
+-- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
+local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
+local teamLetter = make("TextLabel", "Key", teamButton, {
+	AnchorPoint = Vector2.new(1, 0),
+	Position = UDim2.fromScale(1 - 2 / BOSS_CELL.X, 2 / BOSS_CELL.Y),
+	Size = UDim2.fromScale(18 / BOSS_CELL.X, 18 / BOSS_CELL.Y),
 	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	AutoButtonColor = false,
-	Text = "Bosses",
 	Font = UiTheme.Font,
 	TextColor3 = Palette.White,
-	TextYAlignment = Enum.TextYAlignment.Bottom,
-	Visible = false,
+	TextXAlignment = Enum.TextXAlignment.Right,
+	Text = TEAM_KEY.Name,
+	ZIndex = 3,
 })
--- In scale of the cell, so it follows the cell's phone size: ICON x ICON at the top, as HudChrome's icon.
-make("ImageLabel", "Icon", bossButton, {
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.fromScale(0.5, 0),
-	Size = UDim2.fromScale(BOSS_ICON / BOSS_CELL.X, BOSS_ICON / BOSS_CELL.Y),
-	BackgroundTransparency = 1,
-	Image = Icons.Boss.Image,
-	ScaleType = Enum.ScaleType.Fit,
-})
-make("UIScale", "PulseScale", bossButton, {})
--- The label's dark outline (Contextual: the text only); the join pulse thickens it.
-local bossGlow = make("UIStroke", "Glow", bossButton, {
+local teamLetterOutline = make("UIStroke", "Outline", teamLetter, {
 	Color = UiTheme.Outline,
-	Thickness = BOSS_OUTLINE,
+	Thickness = 2,
 	LineJoinMode = Enum.LineJoinMode.Round,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 })
-bossButton.Parent = root
--- The popup: the Index frame at a fixed size; a hidden row leaves its place empty.
--- Centred, with a header and an X, as the other popups (owner 2026-11-06).
+teamButton.Parent = secondColumn
+teamButton.Activated:Connect(function()
+	PanelSwitch.Action("Team")
+end)
+-- Keyboard only, as HudChrome's letters: the key does what a click could, only while the button shows.
+local function keyboardInUse()
+	local last = UserInputService:GetLastInputType()
+	return UserInputService.KeyboardEnabled
+		and last ~= Enum.UserInputType.Touch
+		and string.sub(last.Name, 1, 7) ~= "Gamepad"
+end
+local function refreshTeamKey()
+	teamLetter.Visible = keyboardInUse()
+end
+UserInputService.LastInputTypeChanged:Connect(refreshTeamKey)
+refreshTeamKey()
+UserInputService.InputBegan:Connect(function(input, processed)
+	if
+		input.KeyCode == TEAM_KEY
+		and not processed
+		and not UserInputService:GetFocusedTextBox()
+		and teamButton.Visible
+		and root.Enabled
+	then
+		PanelSwitch.Action("Team")
+	end
+end)
+-- The popup (BOSS_EVENT_SPEC "Bosses cards", draft B, owner 2026-11-11): the Index frame, centred, with a header and an X
+-- (owner 2026-11-06). One card per boss in BossCatalog.Order: the live boss's, else the next boss's, large on the left; the
+-- others small and dimmed in the right strip, over the SpawnBox. A card's Details swaps the cards for that boss's chest tables.
+-- Sizes, colours and "Not this time" proposed.
 local bossesPanel, _, _, bossesClose, bossesFrame = panel("BossesPanel", "BOSSES", true)
 bossesPanel.Parent = root
-local bossStatus = make("TextLabel", "Status", bossesPanel, {
-	BackgroundTransparency = 1,
-	Text = ABOUT_TEXT,
-	TextWrapped = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
-local bossDetailsHeading = make("TextLabel", "DetailsHeading", bossesPanel, {
-	BackgroundTransparency = 1,
-	Text = "Details",
-	TextXAlignment = Enum.TextXAlignment.Left,
-})
--- Both chests' tables (BOSS_EVENT_SPEC "Paid spawn"), side by side, from the Drop list's own rows, so they can not disagree. Display only.
--- Each table is a card; its title and rows stay directly in BossDetails (UiBossPaid and UiBossPhase2 read them there).
-local bossDetails = make("Frame", "BossDetails", bossesPanel, {
-	BackgroundTransparency = 1,
-})
-local detailColumns = {} -- { Card, Heading, Rows = { { Label, Color, Outline } } } per chest
-for column, chest in { RAGA_CHEST, ADAPTED_CHEST } do
-	local card = make("Frame", "Card_" .. chest, bossDetails, { BackgroundTransparency = 1, ZIndex = 0 })
+PanelSwitch.DimWith(bossesPanel) -- design doc 4.42: it dims the world like every panel
+local CARDS_H = 440 -- units: the cards' area, tabs row to content bottom, at desktop size; a phone scales every size in it
+local OTHER_TEXT = "Not this time"
+local LIVE_TAG, NEXT_TAG = Color3.fromRGB(255, 80, 160), Color3.fromRGB(150, 110, 60)
+local PILL_DARK = Color3.fromRGB(20, 24, 44)
+local PHASES_COLOR = Color3.fromRGB(110, 205, 240)
+local cardsFrame = make("Frame", "Cards", bossesPanel, { BackgroundTransparency = 1 })
+local cards = {} -- boss id -> its card's parts
+local largeId = BossCatalog.Default -- the large card's boss, as drawBossButton last found it
+local detailsFor = nil -- the boss whose chest tables show, nil while the cards show
+
+-- A reward square: art (an image, or the "$" glyph) with its count at the bottom right.
+local function rewardTile(parent, name, image, count)
+	local tile = make("Frame", name, parent, { BackgroundTransparency = 1 })
+	AnimeSkin.Card(tile)
+	local art = image
+			and make("ImageLabel", "Art", tile, {
+				BackgroundTransparency = 1,
+				Image = image,
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = 2,
+			})
+		or label("Art", tile, { Text = "$", TextColor3 = Palette.Money, FontFace = HEAVY, ZIndex = 2 }, 48)
+	local amount = label("Count", tile, { Text = count, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 3 }, 20)
+	return { Frame = tile, Art = art, Count = amount }
+end
+
+for _, id in BossCatalog.Order do
+	local row = BossCatalog.Get(id)
+	local card = make("Frame", "Card_" .. id, cardsFrame, { BackgroundTransparency = 1 })
 	AnimeSkin.Card(card)
-	local heading = label("Title_" .. chest, bossDetails, {
-		Text = RelicConfig.Chests[chest].Name,
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}, 16)
-	local rows = {}
-	for _, row in dropRows do
-		local copy = row:Clone()
-		if column == 2 then
-			copy.Name = string.gsub(row.Name, "^Row_", "Adapted_")
-			copy.Text = dropTexts[row][2]
-		end
-		copy.Parent = bossDetails
-		table.insert(rows, { copy, row.TextColor3, dropOutlines[row] })
+	local function text(name, props)
+		props.BackgroundTransparency = props.BackgroundTransparency or 1
+		props.ZIndex = props.ZIndex or 2
+		return make("TextLabel", name, card, props)
 	end
-	detailColumns[column] = { Card = card, Heading = heading, Rows = rows }
+	local e = { Card = card, Tiles = {} }
+	e.Portrait = make("ImageLabel", "Portrait", card, {
+		BackgroundTransparency = 1,
+		Image = row.Portrait or "", -- drawn art, never a 3D model
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 2,
+	})
+	e.Title = text("Title", { Text = row.Name, TextXAlignment = Enum.TextXAlignment.Left })
+	e.Phases = text("Phases", {
+		Text = row.Stages == 1 and "1 phase" or row.Stages .. " phases",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	e.Tag = text("Tag", { BackgroundTransparency = 0, BackgroundColor3 = LIVE_TAG, BorderSizePixel = 0, Text = "" })
+	make("UICorner", "Round", e.Tag, { CornerRadius = UDim.new(1, 0) })
+	-- The pill's own Text holds its words; a child label draws them above the Fill, which a parent's text can not be.
+	e.Pill = text("Pill", {
+		BackgroundTransparency = 0,
+		BackgroundColor3 = PILL_DARK,
+		BorderSizePixel = 0,
+		Text = "",
+		TextTransparency = 1,
+		ZIndex = 5,
+	})
+	make("UICorner", "Round", e.Pill, { CornerRadius = UDim.new(1, 0) })
+	UiTheme.Stroke(e.Pill, 2, Palette.Gold, true)
+	e.PillFill = make("Frame", "Fill", e.Pill, {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = AnimeSkin.Tint.Default,
+		BorderSizePixel = 0,
+		Visible = false,
+	})
+	make("UICorner", "Round", e.PillFill, { CornerRadius = UDim.new(1, 0) })
+	e.PillText =
+		make("TextLabel", "Text", e.Pill, { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Text = "" })
+	e.Go = button("Go", card, "Go", "Go", { ZIndex = 5, Visible = false })
+	e.Details = button("Details", card, "Details", "Idle", { ZIndex = 5 })
+	e.Rewards = make("Frame", "Rewards", card, { BackgroundTransparency = 1, ZIndex = 2 })
+	e.RewardsHeading = make("TextLabel", "Heading", e.Rewards, {
+		BackgroundColor3 = PILL_DARK,
+		BackgroundTransparency = 0.2,
+		BorderSizePixel = 0,
+		Text = "Rewards",
+		TextXAlignment = Enum.TextXAlignment.Left,
+	})
+	local rewards = {
+		{ "Reward_" .. row.Chests[1], RelicConfig.Chests[row.Chests[1]].Image, "1x" },
+		{ "Reward_Money", nil, string.upper(HudFormat.Short(Cfg.Phase1Money)) },
+	}
+	if row.Chests[2] then
+		table.insert(rewards, { "Reward_" .. row.Chests[2], RelicConfig.Chests[row.Chests[2]].Image, "1x" })
+	end
+	if row.Stages >= 2 then
+		table.insert(rewards, { "Reward_Gems", Icons.Gem.Image, string.upper(HudFormat.Short(Cfg.Phase2Gems)) })
+	end
+	for _, reward in rewards do
+		table.insert(e.Tiles, rewardTile(e.Rewards, reward[1], reward[2], reward[3]))
+	end
+	e.Dim = make("Frame", "Dim", card, {
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		ZIndex = 4, -- over the art and texts, under the pill and Details
+		Visible = false,
+	})
+	cards[id] = e
+end
+
+-- Under the strip: the random-pick note and Spawn boss (BossAction), greyed with SpawnNote while an event runs.
+local spawnBox = make("Frame", "SpawnBox", bossesPanel, { BackgroundTransparency = 1 })
+AnimeSkin.Card(spawnBox, AnimeSkin.Tint.Muted)
+local spawnNote = make("TextLabel", "Note", spawnBox, {
+	BackgroundTransparency = 1,
+	Text = "Each event picks one boss at random",
+	TextWrapped = true,
+})
+local spawnBusy = make("TextLabel", "SpawnNote", spawnBox, {
+	BackgroundTransparency = 1,
+	Text = "Not during an event",
+	Visible = false,
+})
+
+-- Every chest's table (BOSS_EVENT_SPEC "Paid spawn"), one column per chest of every boss, built once from the drop list's lines;
+-- only the pressed boss's columns show. Titles and rows stay directly in BossDetails (UiBossPaid, UiBossPhase2 read them there).
+local DETAIL_ROWS = { relic_chest_raga = "Row_", relic_chest_adapted = "Adapted_", relic_chest_mage = "Mage_" }
+local bossDetails = make("Frame", "BossDetails", bossesPanel, { BackgroundTransparency = 1, Visible = false })
+local detailsBack = button("Back", bossDetails, "Back", "Idle", {})
+local detailColumns = {} -- { Boss, Card, Heading, Rows = { { Label, Color, Outline } } } per chest
+for _, id in BossCatalog.Order do
+	for _, chest in BossCatalog.Get(id).Chests do
+		local card = make("Frame", "Card_" .. chest, bossDetails, { BackgroundTransparency = 1, ZIndex = 0 })
+		AnimeSkin.Card(card)
+		local heading = label("Title_" .. chest, bossDetails, {
+			Text = RelicConfig.Chests[chest].Name,
+			TextXAlignment = Enum.TextXAlignment.Left,
+		}, 16)
+		local rows = {}
+		for _, line in chestLines(chest) do
+			local copy = label(DETAIL_ROWS[chest] .. line.Id, bossDetails, { Text = line.Text }, DROP_ROW)
+			table.insert(rows, { copy, line.Color, line.Outline })
+		end
+		table.insert(detailColumns, { Boss = id, Card = card, Heading = heading, Rows = rows })
+	end
 end
 local bossNext = make("TextLabel", "NextEvent", bossesPanel, {
 	BackgroundTransparency = 1,
 	Text = "",
 })
-local bossAction = button("BossAction", bossesPanel, "Go", "Go", {})
+local bossAction = button("BossAction", bossesPanel, "Spawn boss", "Go", {})
 local bossPrompt = make("TextLabel", "BossPrompt", bossesPanel, {
 	BackgroundTransparency = 1,
 	Text = "",
 	TextWrapped = true,
-	TextXAlignment = Enum.TextXAlignment.Right,
 	Visible = false,
 })
 
--- Design doc 4.42: Details (Section) and the prompt (Body) in the tabs row; the status (Body) on top of the content, the
--- two chest cards side by side under it (title Item, odds rows Caption in their rarity colours), the spawn button 12
--- above the content's bottom, "Next event in" on the footer plate.
+-- A card in its rect (units, in Cards): large, the draft's left card; otherwise a strip card.
+local function placeCard(g, e, x, y, w, h, s, large)
+	local U = AnimeSkin.Units
+	local pad, gap, inner, stripH = U.Pad * s, U.Gap * s, U.Inner * s, U.ButtonSmall * s
+	g.Place(e.Card, x, y, w, h)
+	g.Place(e.Dim, 0, 0, w, h)
+	if large then
+		-- Tag and Details on the top strip; name, phases and portrait down the left; pill, Go and rewards down the right.
+		local leftW = w * 0.55 - pad
+		local titleY = pad + stripH + inner
+		local portraitY = titleY + 86 * s + inner
+		g.Place(e.Tag, pad, pad, 120 * s, stripH)
+		g.Place(e.Details, w - pad - 160 * s, pad, 160 * s, stripH)
+		g.Place(e.Title, pad, titleY, leftW, 56 * s)
+		g.Place(e.Phases, pad, titleY + 56 * s, leftW, 30 * s)
+		g.Place(e.Portrait, pad, portraitY, leftW, h - portraitY - pad)
+		local rx = w * 0.55
+		local rw = w - rx - pad
+		local ry = pad + stripH + gap
+		g.Place(e.Pill, rx, ry, rw, 40 * s)
+		ry += 40 * s + gap
+		g.Place(e.Go, rx, ry, rw, U.Button * s)
+		ry += U.Button * s + gap
+		local headH = 28 * s
+		g.Place(e.Rewards, rx, ry, rw, h - ry - pad)
+		g.Place(e.RewardsHeading, 0, 0, rw, headH)
+		local side = math.max(1, math.min((rw - inner) / 2, (h - ry - pad - headH - 2 * inner) / 2))
+		for i, tile in e.Tiles do
+			local tx, ty = ((i - 1) % 2) * (side + inner), headH + inner + ((i - 1) // 2) * (side + inner)
+			g.Place(tile.Frame, tx, ty, side, side)
+			g.Place(tile.Art, inner, inner, side - 2 * inner, side - 2 * inner)
+			g.Place(tile.Count, inner, side - inner - side * 0.3, side - 2 * inner, side * 0.3)
+			g.Role(tile.Count, "Item")
+		end
+		g.Role(e.Title, "Title")
+		g.Role(e.RewardsHeading, "Item")
+	else
+		-- Portrait left; name, phases, pill and Details right.
+		local side = math.min(h - 2 * pad, w * 0.45)
+		local rx = pad + side + gap
+		local rw = w - rx - pad
+		g.Place(e.Portrait, pad, (h - side) / 2, side, side)
+		g.Place(e.Title, rx, pad, rw, 40 * s)
+		g.Place(e.Phases, rx, pad + 40 * s, rw, 26 * s)
+		g.Place(e.Pill, rx, pad + 66 * s + gap, rw, 36 * s)
+		g.Place(e.Details, w - pad - 140 * s, h - pad - stripH, 140 * s, stripH)
+		g.Role(e.Title, "Item")
+	end
+	g.Role(e.Phases, "Body")
+	e.Phases.TextColor3 = PHASES_COLOR
+	g.Role(e.Tag, "Item")
+	g.Role(e.PillText, "Item")
+	g.Role(e.Details, "Item")
+	g.Role(e.Go, "Item")
+end
+
+-- Design doc 4.42: the cards fill the tabs row down to the content's bottom; BossPrompt (Body) and Spawn boss in the SpawnBox;
+-- "Next event in" on the footer plate.
 bossesFrame.OnLayout(function(g)
 	local c, U = g.Content, AnimeSkin.Units
-	local gap, pad = U.Gap, U.Pad
-	local statusH = 2 * AnimeSkin.UnitSize.Body + U.Inner -- two lines
-	g.Place(bossDetailsHeading, c.X, c.TabsY, 240, U.TabH)
-	g.Place(bossPrompt, c.X + 240 + gap, c.TabsY, c.W - 240 - gap, U.TabH)
-	g.Place(bossStatus, c.X, c.Y, c.W, statusH)
-	local actionY = c.Y + c.H - gap - U.Button
-	g.Place(bossAction, c.X, actionY, c.W, U.Button)
-	local cardsY = c.Y + statusH + gap
-	local cardsH = actionY - gap - cardsY
-	g.Place(bossDetails, c.X, cardsY, c.W, cardsH)
-	local colW = (c.W - gap) / 2
-	local item = AnimeSkin.UnitSize.Item
-	for column, detail in detailColumns do
-		local x = (column - 1) * (colW + gap)
-		g.Place(detail.Card, x, 0, colW, cardsH)
-		g.Place(detail.Heading, x + pad, pad, colW - 2 * pad, item)
+	local x, y, w, h = c.X, c.TabsY, c.W, c.Y + c.H - c.TabsY
+	local s = h / CARDS_H
+	local gap, pad, inner = U.Gap * s, U.Pad * s, U.Inner * s
+	g.Place(cardsFrame, x, y, w, h)
+	g.Place(bossDetails, x, y, w, h)
+	local largeW = math.floor(0.64 * w)
+	local stripX, stripW = largeW + gap, w - largeW - gap
+	local half = (h - gap) / 2
+	placeCard(g, cards[largeId], 0, 0, largeW, h, s, true)
+	local small = {}
+	for _, id in BossCatalog.Order do
+		if id ~= largeId then
+			table.insert(small, cards[id])
+		end
+	end
+	local smallH = (half - (#small - 1) * gap) / math.max(1, #small)
+	for i, e in small do
+		placeCard(g, e, stripX, (i - 1) * (smallH + gap), stripW, smallH, s, false)
+	end
+
+	local boxX, boxY = x + stripX, y + half + gap
+	local noteH, busyH, buttonH = 64 * s, 28 * s, U.Button * s
+	g.Place(spawnBox, boxX, boxY, stripW, half)
+	g.Place(spawnNote, pad, pad, stripW - 2 * pad, noteH)
+	g.Place(spawnBusy, pad, half - pad - buttonH - inner - busyH, stripW - 2 * pad, busyH)
+	g.Place(bossAction, boxX + pad, boxY + half - pad - buttonH, stripW - 2 * pad, buttonH)
+	local promptY = pad + noteH + inner
+	g.Place(
+		bossPrompt,
+		boxX + pad,
+		boxY + promptY,
+		stripW - 2 * pad,
+		half - promptY - pad - buttonH - inner - busyH - inner
+	)
+	g.Role(spawnNote, "Body")
+	g.Role(spawnBusy, "Body")
+	g.Role(bossAction, "Item")
+	g.Role(bossPrompt, "Body")
+
+	-- The pressed boss's chest tables side by side over the cards, Back under them.
+	local backH = U.ButtonSmall * s
+	g.Place(detailsBack, 0, h - backH, 160 * s, backH)
+	g.Role(detailsBack, "Item")
+	local shown = {}
+	for _, detail in detailColumns do
+		local on = detail.Boss == detailsFor
+		detail.Card.Visible, detail.Heading.Visible = on, on
+		for _, row in detail.Rows do
+			row[1].Visible = on
+		end
+		if on then
+			table.insert(shown, detail)
+		end
+	end
+	local colW = (w - (#shown - 1) * gap) / math.max(1, #shown)
+	local colH = h - backH - gap
+	local item = AnimeSkin.UnitSize.Item * s
+	for column, detail in shown do
+		local cx = (column - 1) * (colW + gap)
+		g.Place(detail.Card, cx, 0, colW, colH)
+		g.Place(detail.Heading, cx + pad, pad, colW - 2 * pad, item)
 		g.Role(detail.Heading, "Item")
-		local rowH = math.min(AnimeSkin.UnitSize.Caption, (cardsH - 2 * pad - item - U.Inner) / #detail.Rows)
+		local rowH = math.min(AnimeSkin.UnitSize.Caption, (colH - 2 * pad - item - inner) / #detail.Rows)
 		for i, row in detail.Rows do
 			local copy, color, outline = row[1], row[2], row[3]
-			g.Place(copy, x + pad, pad + item + U.Inner + (i - 1) * rowH, colW - 2 * pad, rowH)
+			g.Place(copy, cx + pad, pad + item + inner + (i - 1) * rowH, colW - 2 * pad, rowH)
 			g.Role(copy, "Caption")
 			-- The rarity colour; a near-black (Secret, the Sidekick's black) keeps the thin light outline it needs.
 			copy.TextColor3 = color
@@ -675,10 +974,6 @@ bossesFrame.OnLayout(function(g)
 	g.Place(bossNext, g.W * 303 / 920, g.H - 60, g.W * 312 / 920, 28)
 	bossNext.Visible = false
 	g.Footer(bossNext.Text)
-	g.Role(bossStatus, "Body")
-	g.Role(bossDetailsHeading, "Section")
-	g.Role(bossPrompt, "Body")
-	g.Role(bossAction, "Item")
 end)
 local function placeBosses()
 	local view = workspace.CurrentCamera.ViewportSize
@@ -687,27 +982,28 @@ end
 placeBosses()
 workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBosses)
 
--- Design doc 4.40 (owner 2026-11-11): just under Roblox's top bar (this ScreenGui ignores the inset), at the left column's
--- x when its bottom at the biggest pulse stays above the column's top, else right of Roblox's buttons and of the column.
-local function placeBossButton()
+-- Design doc 4.40 (owner 2026-11-12): the second column, BOSS_BUTTON_GAP px right of the left column (this ScreenGui
+-- ignores the inset, as HudChrome), its centre `halfRows` half rows (cell + gap) from the Grid's middle, the Items
+-- cell's centre: -1 is the Index / Items gap, 1 the Items / Rebirth gap.
+local function placeColumnButton(b, stroke, halfRows)
 	local view = workspace.CurrentCamera.ViewportSize
 	local variant = view.Y <= BOSS_PHONE_MAX_HEIGHT and "Phone" or "Desktop"
 	local k = variant == "Phone" and BOSS_PHONE_SCALE or 1
-	bossButton.Size = UDim2.fromOffset(BOSS_CELL.X * k, BOSS_CELL.Y * k)
-	bossButton.TextSize = BOSS_LABEL_SIZE * k
-	bossGlow.Thickness = BOSS_OUTLINE * k
-	local inset = GuiService.TopbarInset
-	local y = inset.Max.Y + BOSS_BUTTON_GAP
-	local gridTop = view.Y / 2 + GRID_MID[variant] - GRID_HEIGHT * k / 2
-	local x = GRID_X[variant]
-	if y + BOSS_CELL.Y * k * PULSE_SCALE > gridTop then
-		x = math.max(inset.Min.X, GRID_X[variant] + BOSS_CELL.X * k) + BOSS_BUTTON_GAP
-	end
-	bossButton.Position = UDim2.fromOffset(x, y)
+	b.Size = UDim2.fromOffset(BOSS_CELL.X * k, BOSS_CELL.Y * k)
+	b.TextSize = BOSS_LABEL_SIZE * k
+	stroke.Thickness = BOSS_OUTLINE * k
+	local mid = view.Y / 2 + GRID_MID[variant] + halfRows * (BOSS_CELL.Y + GRID_GAP) * k / 2
+	b.Position = UDim2.fromOffset(GRID_X[variant] + BOSS_CELL.X * k + BOSS_BUTTON_GAP, mid - BOSS_CELL.Y * k / 2)
+	return k
 end
-GuiService:GetPropertyChangedSignal("TopbarInset"):Connect(placeBossButton)
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeBossButton)
-placeBossButton()
+local function placeSecondColumn()
+	placeColumnButton(bossButton, bossGlow, -1)
+	local k = placeColumnButton(teamButton, teamOutline, 1)
+	teamLetter.TextSize = 16 * k -- HudChrome's key letter
+	teamLetterOutline.Thickness = 2 * k
+end
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeSecondColumn)
+placeSecondColumn()
 
 -- The exhaustion view: under every other part (ZIndex 0), so that the bar, its status row and Leave read and press above the dim.
 local exhausted = make("Frame", "ExhaustedPanel", root, {
@@ -767,11 +1063,23 @@ local function placeTop(size, row)
 	track.Size = UDim2.new(1, 0, 0, trackHeight)
 	barValue.Position = UDim2.fromOffset(8, titleHeight + 3)
 	barValue.Size = UDim2.new(1, -16, 0, trackHeight - 2)
+	-- The golem's bar, 0.6 of hers; everything under her bar drops below it while it shows.
+	local minionHeight = math.round(0.6 * height)
+	local minionTitleHeight = math.round(0.6 * titleHeight)
+	local minionTrackHeight = minionHeight - minionTitleHeight - 2
+	minionBar.Position = UDim2.new(0.5, 0, 1, STATUS_GAP)
+	minionBar.Size = UDim2.new(0.6, 0, 0, minionHeight)
+	minionTitle.Size = UDim2.new(1, 0, 0, minionTitleHeight)
+	minionTrack.Position = UDim2.fromOffset(0, minionTitleHeight + 2)
+	minionTrack.Size = UDim2.new(1, 0, 0, minionTrackHeight)
+	minionValue.Position = UDim2.fromOffset(8, minionTitleHeight + 3)
+	minionValue.Size = UDim2.new(1, -16, 0, minionTrackHeight - 2)
+	local below = ReplicatedStorage:GetAttribute("BossMinionHp") ~= nil and minionHeight + STATUS_GAP or 0
 
 	local iconSize = math.max(STATUS_HEIGHT_PHONE, math.round(STATUS_HEIGHT * scale))
 	local secondsHeight = math.max(STATUS_SECONDS_PHONE, math.round(STATUS_SECONDS * scale))
 	local statusHeight = iconSize + secondsHeight
-	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP)
+	statusRow.Position = UDim2.new(0, 0, 1, STATUS_GAP + below)
 	statusRow.Size = UDim2.new(0.5, -4, 0, statusHeight)
 	for _, cell in statusCells do
 		cell.Frame.Size = UDim2.fromOffset(iconSize + 8, statusHeight)
@@ -781,7 +1089,7 @@ local function placeTop(size, row)
 	end
 
 	-- A short screen takes smaller rows, never fewer.
-	local listTop = barTop + height + STATUS_GAP
+	local listTop = barTop + height + STATUS_GAP + below
 	local headingHeight = math.max(DROP_HEADING_MIN, math.round(DROP_HEADING * scale))
 	local ruleHeight = scale < 0.6 and 1 or 2
 	local rowRoom = size.Y - listTop - 8 - headingHeight - ruleHeight - #dropRows - 1
@@ -841,7 +1149,17 @@ local function layout()
 		bottom = math.min(bottom, pair.AbsolutePosition.Y + GuiService:GetGuiInset().Y - 6)
 	end
 	local row = chrome and chrome:FindFirstChild("TopRight")
-	local key = table.concat({ size.X, size.Y, left, top, right, bottom, row and row.AbsolutePosition.X or -1 }, ",")
+	local key = table.concat({
+		size.X,
+		size.Y,
+		left,
+		top,
+		right,
+		bottom,
+		row and row.AbsolutePosition.X or -1,
+		tostring(ReplicatedStorage:GetAttribute("BossMinionHp") ~= nil), -- the golem's bar moves what is under hers
+		BossCatalog.Current().Id, -- the drop list's row count
+	}, ",")
 	if key == lastLayout then
 		return
 	end
@@ -1032,11 +1350,21 @@ local function refreshGear()
 	if locked then
 		teleport.BackgroundColor3 = Palette.Disabled
 	end
-	inviteHint.Text = locked and LOCKED_TEXT or "Teleport to fight Big Raga before the timer ends"
+	inviteHint.Text = locked and LOCKED_TEXT or BossCatalog.Current().InviteHint
 end
 player:GetAttributeChangedSignal("SidekickGear"):Connect(refreshGear)
 player:GetAttributeChangedSignal("SidekickBag"):Connect(refreshGear)
 refreshGear()
+
+-- The texts and art built once above, again for the boss now named (the bar title and Bosses line are read each frame).
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	local boss = BossCatalog.Current()
+	warningLabel.Text = boss.WarningText
+	inviteFrame.SetTitle(boss.InviteTitle)
+	ragaPortrait.Image = boss.Portrait or ""
+	inviteHint.Text = teleport.Active and boss.InviteHint or LOCKED_TEXT
+	buildDrops(boss)
+end)
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
 local declinedStart = nil
@@ -1080,6 +1408,7 @@ end)
 bossButton.Activated:Connect(function()
 	bossesOpen = not bossesOpen
 	if bossesOpen then
+		detailsFor = nil -- opens on the cards
 		UiMotion.Pop(bossesPanel)
 	end
 end)
@@ -1089,11 +1418,25 @@ end)
 PanelFrame.CloseOnOutsideClick(bossesPanel, function()
 	bossesOpen = false
 end)
+for id, e in cards do
+	e.Go.Activated:Connect(function()
+		if not e.Go.Active then
+			UiMotion.Shake(e.Go, 6, 0.2) -- cue: Denied
+		else
+			ask("BossEventTeleport", e.Go, true)
+		end
+	end)
+	e.Details.Activated:Connect(function()
+		detailsFor = id
+		bossesFrame.Relayout()
+	end)
+end
+detailsBack.Activated:Connect(function()
+	detailsFor = nil
+end)
 bossAction.Activated:Connect(function()
 	if not bossAction.Active then
 		UiMotion.Shake(bossAction, 6, 0.2) -- cue: Denied
-	elseif ReplicatedStorage:GetAttribute("BossEventPhase") ~= nil then
-		ask("BossEventTeleport", bossAction, true)
 	elseif (player:GetAttribute("BossCredit") or 0) >= 1 then
 		ask("BossUseCredit", bossAction, true)
 	elseif player:GetAttribute("PaidRandomRestricted") == true then
@@ -1232,6 +1575,7 @@ local function drawBossButton(phase, inEvent, joinable)
 		end
 	end
 	bossButton.Visible = shown
+	teamButton.Visible = shown -- the second column shows and hides as one (design doc 4.40)
 	bossesOpen = bossesOpen and shown
 	bossesPanel.Visible = bossesOpen and not PanelSwitch.AnyOpen()
 	if not bossesPanel.Visible then
@@ -1239,19 +1583,61 @@ local function drawBossButton(phase, inEvent, joinable)
 	end
 	local active = phase ~= nil
 	local armed = teleport.Active -- has a Sidekick: both Go and the spawn need one
-	bossStatus.Text = active and RAGING_TEXT or ABOUT_TEXT
-	bossDetailsHeading.Visible = not active
-	bossDetails.Visible = not active
+	local now = workspace:GetServerTimeNow()
+	-- The live boss's card is large; with no event, the next boss's (nil or unknown: BossCatalog.Default).
+	local large = active and BossCatalog.Current().Id
+		or BossCatalog.Get(ReplicatedStorage:GetAttribute("BossEventNextBoss")).Id
+	if large ~= largeId then
+		largeId = large
+		bossesFrame.Relayout()
+	end
+	local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+	local endsAt = ReplicatedStorage:GetAttribute("BossEventEndsAt")
+	local start = ReplicatedStorage:GetAttribute("BossEventStart")
+	local left = endsAt and endsAt - now or start and Cfg.TotalSeconds - (now - start) or 0
+	for id, e in cards do
+		local state = id ~= large and "Other" or active and "Live" or "Next"
+		if e.Card:GetAttribute("State") ~= state then
+			e.Card:SetAttribute("State", state)
+			e.Card:SetAttribute("Large", id == large)
+			AnimeSkin.Card(e.Card, state == "Live" and AnimeSkin.Tint.Default or AnimeSkin.Tint.Muted)
+			e.Tag.Visible = state ~= "Other"
+			e.Tag.Text = state == "Live" and "LIVE" or "NEXT"
+			e.Tag.BackgroundColor3 = state == "Live" and LIVE_TAG or NEXT_TAG
+			e.Go.Visible = state == "Live"
+			e.Rewards.Visible = state ~= "Other"
+			e.Dim.Visible = state == "Other"
+			e.PillFill.Visible = state == "Live"
+		end
+		local words = state == "Other" and OTHER_TEXT
+			or state == "Live" and clockText(left) .. " left"
+			or nextAt and "Next event in " .. clockText(nextAt - now)
+			or ""
+		e.Pill.Text, e.PillText.Text = words, words
+		if state == "Live" then
+			e.PillFill.Size = UDim2.fromScale(math.clamp(left / Cfg.TotalSeconds, 0, 1), 1)
+			e.Go.Active = joinable and armed
+			AnimeSkin.Button(e.Go, "Go")
+			if not e.Go.Active then
+				e.Go.BackgroundColor3 = Palette.Disabled
+			end
+		end
+	end
+	cardsFrame.Visible = detailsFor == nil
+	spawnBox.Visible = detailsFor == nil
+	bossAction.Visible = detailsFor == nil
+	bossDetails.Visible = detailsFor ~= nil
+	spawnBusy.Visible = active
 	bossNext.Visible = not active
 	local steady = ""
 	if active then
-		bossAction.Text = "Go"
-		bossAction.Active = joinable and armed
+		bossAction.Text = "Spawn boss"
+		bossAction.Active = false
 		AnimeSkin.Button(bossAction, "Go")
-		if not bossAction.Active then
-			bossAction.BackgroundColor3 = Palette.Disabled
-		end
-		steady = not joinable and CLOSED_TEXT or not armed and LOCKED_TEXT or ""
+		bossAction.BackgroundColor3 = Palette.Disabled
+		steady = not joinable and CLOSED_TEXT or not armed and LOCKED_TEXT or "" -- about the card's Go
+		bossNext.Text = ""
+		bossesFrame.Footer("")
 	else
 		local sale = Monetization.BossSpawn
 		local credit = (player:GetAttribute("BossCredit") or 0) >= 1
@@ -1267,13 +1653,12 @@ local function drawBossButton(phase, inEvent, joinable)
 			bossAction.BackgroundColor3 = Palette.Disabled
 		end
 		steady = not armed and LOCKED_TEXT or ""
-		local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
-		bossNext.Text = nextAt and "Next event in " .. clockText(nextAt - workspace:GetServerTimeNow()) or ""
+		bossNext.Text = nextAt and "Next event in " .. clockText(nextAt - now) or ""
 		bossesFrame.Footer(bossNext.Text)
 	end
 	local passing = os.clock() < promptUntil
 	bossPrompt.Text = passing and promptText or steady
-	bossPrompt.Visible = bossPrompt.Text ~= ""
+	bossPrompt.Visible = bossPrompt.Text ~= "" and detailsFor == nil
 end
 
 local function render()
@@ -1348,7 +1733,7 @@ local function render()
 	hud.Visible = inEvent and phase == "Prep" and not hudClosed and not panelOpen
 	editTeam.Visible = inEvent and phase == "Prep" and hudClosed and not panelOpen
 	bar.Visible = inFight
-	dropList.Visible = inFight and warningUntil == 0 and not panelOpen
+	dropList.Visible = false -- owner 2026-11-11: hidden for now (BOSS_EVENT_SPEC "Drop list"); still built for its return
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
@@ -1390,9 +1775,21 @@ local function render()
 		barValue.Text = HudFormat.Commas(math.ceil(hp)) .. "/" .. HudFormat.Commas(math.ceil(max))
 		local endsAt = ReplicatedStorage:GetAttribute("BossEventEndsAt")
 		bossTimer.Text = clockText(endsAt and endsAt - now or Cfg.TotalSeconds - elapsed)
-		local stage = ReplicatedStorage:GetAttribute("BossEventStage") or 1
-		barTitle.Text = stage == 2 and TITLE_STAGE_2 or TITLE_STAGE_1
+		local boss = BossCatalog.Current()
+		-- A one-stage boss has no Phase 2: no red title, no spill of Phase 2's rates.
+		local stage = boss.Stages > 1 and ReplicatedStorage:GetAttribute("BossEventStage") or 1
+		barTitle.Text = stage == 2 and TITLE_STAGE_2 or boss.Name
 		barTitle.TextColor3 = stage == 2 and TITLE_STAGE_2_COLOR or Palette.White
+		local minionHp = ReplicatedStorage:GetAttribute("BossMinionHp")
+		minionBar.Visible = minionHp ~= nil
+		trackDim.Visible = minionHp ~= nil
+		barTitle.TextTransparency = minionHp and 0.4 or 0
+		if minionHp then
+			local minionMax = ReplicatedStorage:GetAttribute("BossMinionMaxHp") or 0
+			minionFill.Size = UDim2.fromScale(minionMax > 0 and math.clamp(minionHp / minionMax, 0, 1) or 0, 1)
+			minionValue.Text = HudFormat.Commas(math.ceil(minionHp)) .. "/" .. HudFormat.Commas(math.ceil(minionMax))
+			minionTitle.Text = boss.Minion and boss.Minion.Name or ""
+		end
 		drawDrops(stage, now)
 		drawStatus()
 	end

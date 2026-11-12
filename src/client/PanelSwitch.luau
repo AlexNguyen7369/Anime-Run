@@ -41,6 +41,26 @@ function PanelSwitch.AnyOpen()
 	return false
 end
 
+-- Design doc 4.42 (owner 2026-11-12): a popup outside the switch (it neither closes nor yields to the panels) that dims
+-- the world while it shows, as every panel does. Dimmed() is true while a panel or such a popup is open.
+local popups = {}
+function PanelSwitch.DimWith(popup)
+	table.insert(popups, popup)
+	popup:GetPropertyChangedSignal("Visible"):Connect(notify)
+end
+
+function PanelSwitch.Dimmed()
+	if PanelSwitch.AnyOpen() then
+		return true
+	end
+	for _, popup in popups do
+		if popup.Visible then
+			return true
+		end
+	end
+	return false
+end
+
 -- Gamepad focus (docs/HUD_LAYOUT_SPEC.md section 7): an opened panel takes the selection and traps it; closing
 -- gives the previous selection back. Mouse, touch and keyboard are untouched.
 local FOCUS_GROUP, CLOSE_ACTION = "PanelSwitchFocus", "PanelSwitchClose"

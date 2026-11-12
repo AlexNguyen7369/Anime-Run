@@ -6,6 +6,7 @@ local Arena = require(script.Parent.BossArenaConfig)
 local BossEventConfig = {}
 
 BossEventConfig.IntervalSeconds = 1800
+BossEventConfig.LateLeadSeconds = 120 -- proposed: the next boss's late data is sent this long before its timed start (design doc 7)
 BossEventConfig.PrepSeconds = 60
 BossEventConfig.JoinSeconds = 180 -- teleporting closes and HP locks
 BossEventConfig.TotalSeconds = 480
@@ -91,14 +92,22 @@ function BossEventConfig.ScreamCameraCFrame()
 end
 
 -- The exhaustion view: hovers above and outward of the runner, tilted down toward the boss (BOSS_EVENT_SPEC "Exhaustion view"). Pure.
-function BossEventConfig.WaitCameraCFrame(center, runnerPosition)
+-- `wait`: a boss's own { Out, Up, Down (degrees) } (BossCatalog's WaitCamera), nil for these constants.
+function BossEventConfig.WaitCameraCFrame(center, runnerPosition, wait)
+	local out = wait and wait.Out or WAIT_CAMERA_OUT
+	local up = wait and wait.Up or WAIT_CAMERA_UP
+	local down = wait and math.rad(wait.Down) or WAIT_CAMERA_DOWN_ANGLE
 	local flat = runnerPosition and (runnerPosition - center) * Vector3.new(1, 0, 1)
 	local eye = center + BossEventConfig.WaitCameraOffset
+	if wait then
+		-- shortcut: only the colosseum has its own wait view; pass the arena in if another boss gets one.
+		eye = center + Vector3.new(0, up, -Arena.For("boss_mage").LaneRadius(4) - out)
+	end
 	if flat and flat.Magnitude >= 1 then
-		eye = runnerPosition + flat.Unit * WAIT_CAMERA_OUT + Vector3.yAxis * WAIT_CAMERA_UP
+		eye = runnerPosition + flat.Unit * out + Vector3.yAxis * up
 	end
 	local inward = ((center - eye) * Vector3.new(1, 0, 1)).Unit
-	return CFrame.lookAt(eye, eye + inward - Vector3.yAxis * math.tan(WAIT_CAMERA_DOWN_ANGLE))
+	return CFrame.lookAt(eye, eye + inward - Vector3.yAxis * math.tan(down))
 end
 
 return BossEventConfig

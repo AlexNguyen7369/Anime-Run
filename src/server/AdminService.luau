@@ -268,8 +268,8 @@ AdminService.Commands = {
 		Apply = function(p)
 			local added = 0
 			local seen = {} -- a universal Relic sits on every boss's list
-			for _, list in RelicConfig.Bosses do
-				for _, row in list do
+			for _, boss in RelicConfig.Order do
+				for _, row in RelicConfig.Bosses[boss] do
 					if not seen[row.Id] and RelicService.Grant(p, row.Id) then
 						added += 1
 					end
@@ -280,8 +280,29 @@ AdminService.Commands = {
 		end,
 	},
 	boss = {
-		Usage = "/boss",
-		Help = "start a boss event now, or end the running one",
+		Usage = "/boss [raga|mage]",
+		Help = "start a boss event now (a random boss, or the one named), or end the running one",
+		Min = 0,
+		Max = 1,
+		NoTarget = true,
+		Check = function(args)
+			if not args[1] then
+				return true -- the random pick
+			end
+			return ({ raga = "boss_raga", mage = "boss_mage" })[args[1]:lower()]
+		end,
+		Apply = function(_, id)
+			if BossEventService.State().Phase ~= "Idle" then
+				BossEventService.End("Timeout") -- pays nothing
+				return true, "boss event ended"
+			end
+			local ok, message = BossEventService.Start("Admin", id ~= true and id or nil)
+			return ok, ok and "boss event started" or message
+		end,
+	},
+	elfboss = {
+		Usage = "/elfboss",
+		Help = "start The Elf Mage's boss event now (owner 2026-11-11)",
 		Min = 0,
 		Max = 0,
 		NoTarget = true,
@@ -289,12 +310,8 @@ AdminService.Commands = {
 			return true
 		end,
 		Apply = function()
-			if BossEventService.State().Phase ~= "Idle" then
-				BossEventService.End("Timeout") -- pays nothing
-				return true, "boss event ended"
-			end
-			BossEventService.Start("Admin")
-			return true, "boss event started"
+			local ok, message = BossEventService.Start("Admin", "boss_mage")
+			return ok, ok and "boss event started" or message
 		end,
 	},
 	setrebirth = {
@@ -561,6 +578,7 @@ local ORDER = {
 	"relic",
 	"relics",
 	"boss",
+	"elfboss",
 	"setrebirth",
 	"luck",
 	"giveluck",
@@ -598,7 +616,7 @@ local function execute(sender, text)
 		return true, helpText()
 	end
 	if cmd.NoTarget then
-		if #args ~= cmd.Min then
+		if #args < cmd.Min or #args > cmd.Max then
 			return false, "Usage: " .. cmd.Usage
 		end
 		local value = cmd.Check(args)

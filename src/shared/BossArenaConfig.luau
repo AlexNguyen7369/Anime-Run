@@ -22,48 +22,83 @@ BossArenaConfig.DaisRadius = 190
 BossArenaConfig.DaisY = BossArenaConfig.Y - 50 -- proposed: the dais's top, where the boss's feet stand (owner 2026-11-06: lower)
 BossArenaConfig.Segments = 144 -- points on a lane and pieces of the deck; a chord cuts a lane by under 0.25 studs
 
--- Centre-line radius of a lane, 1 (innermost) to Lanes.
-function BossArenaConfig.LaneRadius(lane)
-	return BossArenaConfig.InnerRadius + (lane - 0.5) * BossArenaConfig.Width / BossArenaConfig.Lanes
-end
+-- The ring's functions on an arena's numbers, each arena with its own route cache.
+local function build(arena)
+	-- Centre-line radius of a lane, 1 (innermost) to Lanes.
+	function arena.LaneRadius(lane)
+		return arena.InnerRadius + (lane - 0.5) * arena.Width / arena.Lanes
+	end
 
--- A point on the ring at this radius, height y. Growing i runs counter-clockwise from above, as the draft does.
-function BossArenaConfig.RingPoint(radius, i, y)
-	local a = i / BossArenaConfig.Segments * 2 * math.pi
-	local c = BossArenaConfig.Center
-	return Vector3.new(c.X + radius * math.cos(a), y or BossArenaConfig.Y, c.Z - radius * math.sin(a))
-end
+	-- A point on the ring at this radius, height y. Growing i runs counter-clockwise from above, as the draft does.
+	function arena.RingPoint(radius, i, y)
+		local a = i / arena.Segments * 2 * math.pi
+		local c = arena.Center
+		return Vector3.new(c.X + radius * math.cos(a), y or arena.Y, c.Z - radius * math.sin(a))
+	end
 
-local routes = {}
+	local routes = {}
 
--- The lane's route, built once: { WorldWaypoints, Curvature, Width, Closed, Length }. The last waypoint repeats the first.
-function BossArenaConfig.LaneRoute(lane)
-	local route = routes[lane]
-	if route then
+	-- The lane's route, built once: { WorldWaypoints, Curvature, Width, Closed, Length }. The last waypoint repeats the first.
+	function arena.LaneRoute(lane)
+		local route = routes[lane]
+		if route then
+			return route
+		end
+		local radius = arena.LaneRadius(lane)
+		local waypoints, curvature = {}, {}
+		for i = 0, arena.Segments - 1 do
+			table.insert(waypoints, arena.RingPoint(radius, i))
+			table.insert(curvature, 1 / radius)
+		end
+		table.insert(waypoints, waypoints[1])
+		table.insert(curvature, 1 / radius)
+		route = {
+			WorldWaypoints = waypoints,
+			Curvature = curvature,
+			Width = arena.Width / arena.Lanes,
+			Closed = true,
+			Length = PathDriver.Arc(waypoints)[#waypoints],
+		}
+		routes[lane] = route
 		return route
 	end
-	local radius = BossArenaConfig.LaneRadius(lane)
-	local waypoints, curvature = {}, {}
-	for i = 0, BossArenaConfig.Segments - 1 do
-		table.insert(waypoints, BossArenaConfig.RingPoint(radius, i))
-		table.insert(curvature, 1 / radius)
+
+	-- Studs per lap of the lane.
+	function arena.LaneLength(lane)
+		return arena.LaneRoute(lane).Length
 	end
-	table.insert(waypoints, waypoints[1])
-	table.insert(curvature, 1 / radius)
-	route = {
-		WorldWaypoints = waypoints,
-		Curvature = curvature,
-		Width = BossArenaConfig.Width / BossArenaConfig.Lanes,
-		Closed = true,
-		Length = PathDriver.Arc(waypoints)[#waypoints],
-	}
-	routes[lane] = route
-	return route
+	return arena
 end
 
--- Studs per lap of the lane.
-function BossArenaConfig.LaneLength(lane)
-	return BossArenaConfig.LaneRoute(lane).Length
+build(BossArenaConfig)
+
+-- The Elf Mage's colosseum (BOSS_EVENT_SPEC "The Elf Mage"), the same fields plus the wall and her hover. All proposed. -Z of the
+-- plaza, mirroring the sky arena's site: as clear of the world, and under 8192.
+local colosseum = { Y = 1200 }
+colosseum.Center = Vector3.new(0, colosseum.Y, -7000)
+colosseum.InnerRadius = 70
+colosseum.Width = 56
+colosseum.Lanes = 7
+colosseum.Segments = 144 -- as the sky arena: run:SwitchRoute keeps the waypoint count
+colosseum.DaisY = colosseum.Y
+colosseum.DaisRadius = 40
+colosseum.BossScale = 1
+colosseum.BossHeight = 44 -- 8 x a character (owner 2026-11-11)
+colosseum.HoverY = 8
+colosseum.BobStuds = 1.5
+colosseum.BobSeconds = 3
+colosseum.BossTotalHeight = colosseum.BossHeight + colosseum.HoverY + colosseum.BobStuds
+colosseum.WallHeight = 70
+-- The wall's inner face: the locked 40-stud camera at yaw 75 puts the eye up to 157 studs out on lane 7.
+colosseum.WallRadius = 164
+-- Owner 2026-11-11: travel speed is capped here so the room does not spin around her; the value is proposed. About 77 deg/s on
+-- lane 1, as the sky arena turns at 800 studs/s. The sky arena has none.
+colosseum.MaxRunSpeed = 100
+build(colosseum)
+
+-- "boss_mage": the colosseum; anything else: this module, the sky arena.
+function BossArenaConfig.For(bossId)
+	return bossId == "boss_mage" and colosseum or BossArenaConfig
 end
 
 return BossArenaConfig

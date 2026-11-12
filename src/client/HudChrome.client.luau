@@ -105,7 +105,7 @@ local root = make("ScreenGui", "HudChrome", gui, {
 	DisplayOrder = 1,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
--- Owner 2026-10-20 (HUD_LAYOUT_SPEC section 6): an open panel dims only the world. The dim layer sits below
+-- Owner 2026-10-20 (HUD_LAYOUT_SPEC section 6): an open panel or popup dims only the world. The dim layer sits below
 -- every HUD ScreenGui (DisplayOrder 0), so the HUD entries stay bright and clickable over it.
 local worldDim = make("ScreenGui", "PanelDim", gui, {
 	ResetOnSpawn = false,
@@ -116,7 +116,7 @@ local worldDim = make("ScreenGui", "PanelDim", gui, {
 make("Frame", "Dim", worldDim, {
 	Size = UDim2.fromScale(1, 1),
 	BackgroundColor3 = Color3.fromRGB(8, 10, 18),
-	BackgroundTransparency = 0.45,
+	BackgroundTransparency = 0.65, -- 35% black, light (design doc 4.42, proposed)
 	BorderSizePixel = 0,
 	Active = false,
 	Selectable = false,
@@ -584,7 +584,7 @@ local function refresh()
 	-- Owner 2026-11-10 (design doc 4.40): in a boss event both columns hide; the pills, the pair and the event UI stay.
 	local columns = not inTree and player:GetAttribute("BossEvent") ~= true
 	grid.Visible, shopColumn.Visible, bar.Visible = columns, columns, not inTree
-	setHudDimmed(PanelSwitch.AnyOpen())
+	setHudDimmed(PanelSwitch.Dimmed()) -- every panel and popup (design doc 4.42)
 end
 
 for _, attr in { "UpgradesBuyable", "StatPoints", "DailyLast", "BossEvent" } do

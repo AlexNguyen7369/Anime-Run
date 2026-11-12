@@ -647,7 +647,8 @@ function Contracts.Build(h)
 			backpack_characters_multi_no_float_noise = {},
 			backpack_characters_equipped_green = {},
 			backpack_characters_empty_label = {},
-			backpack_characters_slots = {},
+			backpack_characters_no_team_slots = {},
+			backpack_characters_badge_clear_of_dot = {}, -- owner 2026-11-12 (4.40): the same RosterCard as the Team panel
 		}
 		local grid = h.find(B.Items)
 		if not grid then
@@ -738,6 +739,10 @@ function Contracts.Build(h)
 			if decimals(got) > B.MaxDecimals then
 				table.insert(p.backpack_characters_multi_no_float_noise, tile.Name .. ": " .. got)
 			end
+			local badgeDot = h.visible(tile) and B.BadgeDotProblem(tile, h.realRect, h.visible)
+			if badgeDot then
+				table.insert(p.backpack_characters_badge_clear_of_dot, badgeDot)
+			end
 			local stroke = tileStroke(tile)
 			local green = stroke ~= nil and B.Green(stroke.Color)
 			local inTeam = table.find(team, tile.Name) ~= nil
@@ -754,25 +759,11 @@ function Contracts.Build(h)
 		if picked > 1 then
 			table.insert(p.backpack_characters_equipped_green, picked .. " tiles drawn as picked (white), want <= 1")
 		end
-		-- Team slot buttons (Client/SlotPicker, kind Character): Slot<n> names Team[n] ("-" when empty)
+		-- Owner 2026-11-12 (design doc 4.40, TEAM_AND_STAMINA_SPEC "HUD" Team editor): the team slot buttons left the
+		-- Characters tab for the Team panel (UiTeam judges them there); the TEAM badge and green border stay above.
 		local slotsFrame = h.find(B.Slots)
-		if not (slotsFrame and h.visible(slotsFrame)) then
-			table.insert(p.backpack_characters_slots, B.Slots .. " not shown in the Characters view")
-		else
-			for n = 1, Market.SLOTS do
-				local b = slotsFrame:FindFirstChild("Slot" .. n)
-				local items = b and b:FindFirstChild("Items")
-				local spec = team[n] and Catalog.Get(team[n])
-				local wantName = spec and spec.Name or "-"
-				if not (b and b:IsA("TextButton") and items and items:IsA("TextLabel")) then
-					table.insert(p.backpack_characters_slots, "Slot" .. n .. " missing (TextButton with Items)")
-				elseif items.Text ~= wantName then
-					table.insert(
-						p.backpack_characters_slots,
-						("Slot%d shows %q, want %q"):format(n, items.Text, wantName)
-					)
-				end
-			end
+		if slotsFrame and h.visible(slotsFrame) then
+			table.insert(p.backpack_characters_no_team_slots, B.Slots .. " shown in the Characters view")
 		end
 		local empty = h.find(B.Empty)
 		local emptyShown = empty ~= nil and h.visible(empty)
@@ -960,7 +951,8 @@ function Contracts.Build(h)
 	function after.backpack_characters_grid(res)
 		carsGridChecks(res)
 	end
-	-- retired: backpack_tile_shows_equipped (a Backpack tile no longer equips; the Team slot buttons do, c1 / u4)
+	-- retired: backpack_tile_shows_equipped (a Backpack tile no longer equips; the Team panel's slots do, UiTeam)
+	-- moved: backpack_characters_slots (the Slot<n> names of Team[n]) is UiTeam team_slots_* (owner 2026-11-12, 4.40)
 
 	return { Scenarios = scenarios, After = after }
 end

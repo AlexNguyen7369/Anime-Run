@@ -69,6 +69,56 @@ Uncommitted in the main checkout. Screenshots are in the session report.
 3. Owner 2026-11-10, from the screenshots: "still should see mahoraga a bit more, can downscale overall size of boss if needed". From the ring the camera alone cannot shrink the boss, so it is drawn at 0.75 x (`BossArenaConfig.BossScale`, proposed): 421 studs to the head top, 603 to the wheel top, 754 in Phase 2 (was 561 / 804 / 1005). The scream's close camera scales with it. Approve 0.75, or give another factor?
 4. Seen while screenshotting the scale (not changed): the exhaustion view's eye (placeholders 120 studs out, 80 up, spec "Exhaustion view") can sit behind an outer arch post, which then hides the boss for the whole 8.5 s wait (screenshot 8). A higher eye (about 160 up) or a shorter reach (about 60 out) would clear the posts. Want it changed, and which way?
 Answered by the owner 2026-11-10: items 1-3 approved and committed (angles 75 / 26 / 6, flat boss deleted, 0.75 x). Item 4: owner 2026-11-10 chose the higher eye, 160 up.
+
+## 2026-11-11 boss-mage: rules still open for The Elf Mage
+None of these block the renders and key frames. All of them block the server work (m10).
+1. Interval: you answered "random, either or every 60 minutes". Is it one random boss every 30 minutes (today's timer), or every 60 minutes?
+2. HP, time limit and late join: the same as Big Raga (7,500 HP per player, 8 minutes)?
+3. Rewards: her own chest and 6 Relics (4.38 says every boss brings 6), a boss-drop Sidekick, Money amount. Until ruled, should she pay Big Raga's Phase 1 rewards, or nothing?
+4. Vulnerable (next hit costs 50% more after an undodged move): does it apply to her moves?
+5. Golem slam's 20% damage cut: 15 seconds and stacking, like Shouted?
+6. Rhythm circles: 4 circles in 2 seconds, +/- 0.18 s, any miss counts as hit. On phones, is the same count fair, or fewer circles?
+7. Spawn texts: "The Elf Mage has awakened, take her down!!!" and the chat line.
+8. Upload: no license was found for the source; uploading her model, golem and art needs your word, as for Saitamo (4.35).
+Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for items 2-7 (4 circles on every device), one random boss every 30 minutes, upload allowed. Size 8x; all renders and key frames approved.
+
+## 2026-11-11 boss-mage: build defaults taken while you were away (all proposed, change any)
+1. Wall moved out to radius 164 (was 132 in the approved draft): the event camera sits 40 studs behind and outside the runner, which put it behind the wall on lanes 4 to 7. The room is 328 studs across; the look is unchanged.
+2. Small ring lap feel: a lap is 465 to 767 studs, under 1 second at 800 studs/s. No speed cap was added, because 4.37 says real cruise. Look in Studio and say if a cap or a larger ring is wanted. Answered by the owner 2026-11-11: cap the run speed in her arena so the background does not spin. Cap 100 studs/s is proposed.
+3. Vulnerable applies to all three of her moves (your Raga-defaults answer): after one undodged move every later hit costs 30 / 45 / 22.5%. Three undodged barrages empty a team.
+4. Rhythm circles: the first circle appears 1.35 s into the golem move, 0.65 s before the 2 s wind-up, so that 4 beats with a 1 s ring fit before the slam.
+5. A dodged slam dashes to the next lane like a Dodge bar dodge.
+6. She enters by lowering from the broken dome in 1.5 s (Big Raga rises from below).
+7. The Bosses popup's idle text names Big Raga and the sky arena today. Proposed for both bosses: "Every 30 minutes a boss awakens. Defeat it for a treasure chest!"
+8. During her event the drop list still shows Raga's Treasure with "Big Raga 0.001%" (her rewards are Raga's until her own exist).
+9. Also taken as proposed: camera pitch 14 in her arena; arena centre (0, 1200, -7000); the server judges the click times only, not where the click landed (same trust as the Dodge bar); status name "Crushed"; hit texts "You were struck by her lightning", "You were blasted by her barrage", "The golem crushed you"; "The Elf Mage is casting right now"; the move chat lines, invite title and hint, "The Elf Mage Defeated!" and the caption "Golem Slam! Hit every circle!" (all in BOSS_EVENT_SPEC "The Elf Mage").
+10. Load at join: her pose data (269 KB) loads at join, like Big Raga's today, against section 7 "Join size". The fix rides on the unmerged lazy-data branch. Merge that next, or accept for now?
+11. Gamepad players cannot press the rhythm circles (click or tap only), so they always take the golem slam. Add a gamepad path?
+
+
+## 2026-11-11 boss-mage-2: defaults taken for the Stone Golem miniboss and the cards (all proposed, change any)
+1. Golem HP is a flat 1,000, not per player. Her HP is 7,500 per player, so the golem falls in a few seconds with a full arena. Flat, or 1,000 per player?
+2. The golem attacks every 5 s, slam then sweep.
+3. The event's 8 minute timer keeps running while the golem stands, and a timeout with it standing pays nothing.
+4. Vulnerable applies to golem hits, as on her moves.
+5. Her HP bar dims while she is immune; the golem's bar is about 60% of her bar's size.
+6. Rhythm: 3 circles, +/- 0.28 s, circle 14.5% of the screen height (19% on phones), all 3 needed.
+7. Lightning and barrage keep their 10 strikes (4 under REDUCED EFFECTS), now spread over the 2 s window. More strikes?
+8. Bosses cards: the server picks the next boss when it schedules the event, so one dimmed card can show "Next event in m:ss". Without that, no card can name the next boss.
+9. Her Relics favour attack speed and luck. Names: Dwarf's Helmet, Hero's Bracelet, Elf Staff, Priest's Flask, Master's Grimoire. Odds as Big Raga's Phase 1 table. Her chest has no Sidekick roll.
+Answered by the owner 2026-11-11: "approved, go with draft B" on the review page (cards B, all new key frames, Relics and chest). Items 1-9 stay as proposed values. Not answered one by one: golem HP flat or per player (built flat), strike rate (built as today's 10 per move), a boss portrait for Big Raga (not drawn). Upload of the new art: asked before g6's upload step.
+
+## 2026-11-11 boss-mage-2: found while building (all proposed, change any)
+1. Her pose data grew from 269 KB to 511 KB with the golem's own moves, and it still loads at join (section 7 "Join size"). Fix by merging the lazy-data branch, or by storing golem block positions only when they change. Which, and when?
+2. Golem damage shows in a player's total but does not count toward the 5% share that earns rewards.
+3. A paid spawn picks a fresh random boss; the announced next boss is unchanged.
+4. The approved golem crumble inside the old slam move (4.8 s) is no longer played; the new approved `golem_fall` is the crumble.
+5. Lightning's cost moved from 1.6 s to 2.0 s into the move, the start of the 2 s window.
+Answered by the owner 2026-11-12: golem HP is 1,000 per player; the rhythm is slower (3 s window, 0.9 s apart, 1.5 s rings, +/- 0.35 s). Still open: pose data join size (recommendation given: lazy per-boss load), the Bosses button edit found in Studio.
+Answered by the owner 2026-11-12: boss data loads per boss on announcement (the lazy-load recommendation); the Bosses button moves up next to Roblox's headphone icon. The Studio-only edit hiding the button while the Sidekicks panel is open was not committed: the new position should clear the panel headers; check after the move.
+Superseded 2026-11-12, same day: the Bosses button is not next to Roblox's headphone icon; it sits in a second left column with the Team button (design doc 4.40). Boss data is sent 2 minutes before a boss's event, not at the announcement, and removed after the event (section 7).
+Answered by the owner 2026-11-12: Team icon N3, upload allowed (image 89758623094700, ledger `tools/blender/hud_icon_assets.json`).
+
 ## 2026-11-11 power-ups: proposed defaults (design doc 4.44, POWERUP_SPEC)
 - Rules-audit question, answered with the recommended option on the owner's standing word ("auto approve by recommended", 2026-11-11), change it if wrong: the Speed boost is also the exception to the 4.18 loading budget (budget stays at `MAX_CRUISE`; `RunHold` still catches a boosted runner because holds are not distance look-ahead; a late biome switch during the 3 s is accepted). Alternative: raise the 4.18 budget to 1.5 x `MAX_CRUISE`.
 - Display constants, proposed: pickup pop 1.4x over 0.25 s, rim 16 pieces, glow light range 14, HUD badge 26 px. Stamina ring colour is the stamina bar's Full blue (60, 150, 255), the same as the HUD's blue number.

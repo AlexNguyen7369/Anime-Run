@@ -575,8 +575,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
 		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
 		local cruise = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
-		-- the Speed power-up is applied after the MAX_CRUISE cap: it may pass it (owner 2026-11-11)
-		run.TargetSpeed = cruise * ((run.SpeedLeft or 0) > 0 and PowerUpConfig.SPEED_MULTI or 1)
+		-- options.MaxSpeed caps the travel only (The Elf Mage's small ring, BOSS_EVENT_SPEC "Run speed cap"); the HUD keeps the cruise.
+		-- The Speed power-up is applied after the MAX_CRUISE cap: it may pass it (owner 2026-11-11); boss runs roll none.
+		run.TargetSpeed = math.min(cruise, options.MaxSpeed or math.huge)
+			* ((run.SpeedLeft or 0) > 0 and PowerUpConfig.SPEED_MULTI or 1)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
 			player:SetAttribute("Cruise", cruise) -- the character's own cruise; the boost shows on the team row

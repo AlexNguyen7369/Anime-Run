@@ -18,6 +18,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared.BossArenaConfig)
+local BossCatalog = require(Shared.BossCatalog)
 local Env = require(Shared.BiomeEnvironment)
 local WeatherConfig = require(Shared.WeatherConfig)
 
@@ -336,10 +337,12 @@ local function preloadSky(z)
 end
 
 local swapped = true
+local blendBoss = nil -- the boss whose arena profile the last blend took (Env.Profile's second argument)
 local function startBlend(z, seconds)
 	zone = z
 	Env.CurrentZone = z
-	profile, audio = Env.Profile(z), Env.Audio(z)
+	blendBoss = BossCatalog.Current().Id
+	profile, audio = Env.Profile(z, blendBoss), Env.Audio(z)
 	blendStart = os.clock()
 	blendSeconds = seconds
 	preloadSky(z + 1) -- the run goes through the tracks in Number order
@@ -404,8 +407,9 @@ local function inArena(focus)
 	if player:GetAttribute("BossEvent") == true or ReplicatedStorage:GetAttribute("BossArenaPreview") == true then
 		return true
 	end
-	local reach = Arena.InnerRadius + Arena.Width + ARENA_MARGIN
-	return ((focus - Arena.Center) * Vector3.new(1, 0, 1)).Magnitude < reach
+	local arena = Arena.For(BossCatalog.Current().Id)
+	local reach = arena.InnerRadius + arena.Width + ARENA_MARGIN
+	return ((focus - arena.Center) * Vector3.new(1, 0, 1)).Magnitude < reach
 end
 local function runTrack()
 	for _, rig in CollectionService:GetTagged("RunnerRig") do -- Server/CarService.RUNNER_TAG
@@ -444,7 +448,11 @@ task.spawn(function()
 			racing = arena or z ~= nil
 			z = arena and Env.ARENA_ZONE or z or Env.ZoneAt(focus)
 		end
-		if z ~= nil and z ~= zone then
+		-- In the arena zone a change of boss (a preview, the next event) blends to that boss's room at once
+		local reboss = z == Env.ARENA_ZONE and zone == z and BossCatalog.Current().Id ~= blendBoss
+		if reboss then
+			startBlend(z, Env.BLEND_MIN)
+		elseif z ~= nil and z ~= zone then
 			if zone == nil or racing or Env.ForcedZone ~= nil or (pending == z and now - since >= hold) then
 				startBlend(z, blend)
 				pending = nil

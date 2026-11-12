@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
+local BossCatalog = require(shared:WaitForChild("BossCatalog"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RelicConfig = require(shared:WaitForChild("RelicConfig"))
@@ -17,6 +18,7 @@ local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
 local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
 local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
+local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
 
 -- R1 "Victory banner" (BOSS_EVENT_SPEC "Rewards", owner 2026-11-10). Proposed: sizes in the Index frame's units, rows
 -- for its 374 unit tall content area (scaled to the area it gets), and the count-up time.
@@ -55,6 +57,7 @@ local panel = make("Frame", "Panel", root, {
 	Active = true,
 	Visible = false,
 })
+PanelSwitch.DimWith(panel) -- design doc 4.42: it dims the world like every panel and popup
 local header = make("Frame", "Header", panel, { BackgroundTransparency = 1, BorderSizePixel = 0 })
 -- Title keeps the server's words for the UI tests (UiBossPhase2 reads them exactly); Heading shows them in the standard
 -- header's ALL CAPS, as AnimeSkin.Tab's caption does.
@@ -108,8 +111,13 @@ local function chestArt(id)
 		BackgroundTransparency = 1,
 		Image = RelicConfig.Chests[id].Image,
 		ScaleType = Enum.ScaleType.Fit,
+		Visible = false,
 		ZIndex = 3,
 	})
+end
+local arts = {} -- every chest's art; the boss shown picks the card's
+for id in RelicConfig.Chests do
+	arts[id] = chestArt(id)
 end
 local money = label("Money", rewards, { Text = "$" .. HudFormat.Commas(Cfg.Phase1Money), ZIndex = 3 })
 local gems = label("Gems", rewards, { Text = HudFormat.Commas(Cfg.Phase2Gems), ZIndex = 3 })
@@ -123,9 +131,9 @@ local gemIcon = make("ImageLabel", "Icon", gems, {
 	ZIndex = 3,
 })
 local cards = { -- in order: the part on the card, and whether it is art (square) or an amount
-	{ Card = card(1), Part = chestArt(RAGA_CHEST), Art = true },
+	{ Card = card(1), Part = arts[RAGA_CHEST], Art = true },
 	{ Card = card(2), Part = money },
-	{ Card = card(3), Part = chestArt(ADAPTED_CHEST), Art = true },
+	{ Card = card(3), Part = arts[ADAPTED_CHEST], Art = true },
 	{ Card = card(4), Part = gems },
 }
 local note = label("Note", panel, { Text = "Deal 5% for rewards" })
@@ -222,14 +230,21 @@ ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RunEvent").OnClientEvent
 		return
 	end
 	message, seen = ev, false
-	title.Text = ev.Outcome == "Survived" and "Fully Adapted Raga survived" or "Raga Defeated!"
+	title.Text = ev.Outcome == "Survived" and "Fully Adapted Raga survived" or BossCatalog.Get(ev.Boss).DefeatedTitle
 	total, share, countAt = tonumber(ev.Damage) or 0, tonumber(ev.Share), nil
 	count(1)
 	-- Share: of the phase this popup reports (owner 2026-11-10); a message without one hides the bar
 	shareBar.Visible, shareText.Visible = share ~= nil, share ~= nil
 	shareText.Text = share and string.format("%.1f%%", share * 100) or ""
+	local boss = BossCatalog.Get(ev.Boss)
+	for _, art in arts do
+		art.Visible = false
+	end
+	cards[1].Part = arts[boss.Chests[1]]
+	cards[3].Part = arts[boss.Chests[2] or ADAPTED_CHEST] -- hidden for a boss with one phase
+	local stage2 = ev.Stage2 == true and boss.Chests[2] ~= nil
 	cards[1].Part.Visible, money.Visible = ev.Stage1 == true, ev.Stage1 == true
-	cards[3].Part.Visible, gems.Visible = ev.Stage2 == true, ev.Stage2 == true
+	cards[3].Part.Visible, gems.Visible = stage2, stage2
 	rewards.Visible = ev.Stage1 == true or ev.Stage2 == true
 	note.Visible = ev.Short == true
 	layout()

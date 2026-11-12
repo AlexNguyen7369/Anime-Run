@@ -1,7 +1,8 @@
 --!nonstrict
--- The Dodge bar (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"): before each Big Raga move a slider sweeps a bar above the
+-- The Dodge bar (design doc 4.37, docs/BOSS_EVENT_SPEC.md "Dodge bar"): before each boss move a slider sweeps a bar above the
 -- roster minibar, from Shared/BossDodge and the event's server time. A press asks the server, which decides. Contract:
--- Client/UiTest/UiBossEvent.
+-- Client/UiTest/UiBossEvent, UiBossMage. No bar while a Stone Golem stands (BossMinionStart): BossOsuUi owns its attacks
+-- and shows their result through this gui's ShowResult event.
 local ContextActionService = game:GetService("ContextActionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
@@ -10,6 +11,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
 local BossDodge = require(Shared:WaitForChild("BossDodge"))
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
@@ -123,12 +125,19 @@ local wheel = make("ImageLabel", {
 	Position = UDim2.fromScale(0, 0.5),
 	ZIndex = 3,
 }, dodge)
+-- The icon follows the boss at once, so a bar still closing never shows the last boss's icon.
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	wheel.Image = BossCatalog.Current().DodgeIcon or RelicConfig.WheelArt
+end)
 local subtitle = text("Subtitle", dodge)
 subtitle.AnchorPoint = Vector2.new(0.5, 1)
 local result = text("Result", root)
 result.AnchorPoint = Vector2.new(0.5, 0.5)
 local resultScale = make("UIScale", { Name = "ResultScale" }, result)
 make("UIStroke", { Thickness = 2.5, Color = Color3.fromRGB(45, 15, 5) }, result) -- gold and red both need it over a bright sky
+
+-- BossOsuUi fires ("Dodged") or ("Hit", words): the same result text and stars as the bar's.
+local showResultEvent = make("BindableEvent", { Name = "ShowResult" }, root)
 
 local prompt = nil -- { Index, At, Name, Pending, Missed, Dodged }
 local doneIndex, doneSchedule = 0, nil -- no second bar for a moment; a new event or stage starts over
@@ -290,7 +299,6 @@ local function place()
 	subtitle.Size = UDim2.new(1, 0, 0, words)
 	result.Position = UDim2.fromOffset(size.X / 2, bottom - height / 2)
 	result.Size = UDim2.fromOffset(width, (small and 30 or 46))
-	dodge.Visible = true
 end
 
 local function currentStage()
@@ -307,7 +315,9 @@ local function openPrompt(index, at, name, startAt)
 	subtitle.TextTransparency = 0
 	subtitle.Visible = true
 	result.Visible = false
+	wheel.Image = BossCatalog.Current().DodgeIcon or RelicConfig.WheelArt
 	place()
+	dodge.Visible = true
 	UiMotion.Create(
 		barScale,
 		TweenInfo.new(BAR_ANIM_SECONDS, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
@@ -330,6 +340,14 @@ local function render()
 			stopResultFlash = nil
 		end
 		result.Visible = false
+	end
+	if ReplicatedStorage:GetAttribute("BossMinionStart") ~= nil then
+		-- Her clock is stopped while the golem stands: no bar, not even one still closing (BossOsuUi owns the golem's attacks).
+		if prompt then
+			closePrompt()
+		end
+		dodge.Visible = false
+		return
 	end
 	local startAt = ReplicatedStorage:GetAttribute("BossEventStart")
 	local active = player:GetAttribute("BossEvent") == true
@@ -365,12 +383,28 @@ local function render()
 				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
 		end
 	elseif since >= 0 then
-		local index = BossDodge.IndexAtOrBefore(since) + 1
-		local at, name = BossDodge.Moment(index)
-		if index > doneIndex and at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
+		local boss = ReplicatedStorage:GetAttribute("BossEventBoss") -- nil: Big Raga
+		if not BossDodge.Ready(boss) then
+			return
+		end
+		local index = BossDodge.IndexAtOrBefore(since, boss) + 1
+		if index <= doneIndex then
+			return
+		end
+		local at, name = BossDodge.Moment(index, boss)
+		if at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
 			openPrompt(index, at, name, startAt)
 		end
 	end
 end
+
+showResultEvent.Event:Connect(function(kind, words)
+	place()
+	if kind == "Dodged" then
+		showDodged()
+	else
+		showHit(words)
+	end
+end)
 
 RunService.Heartbeat:Connect(render)

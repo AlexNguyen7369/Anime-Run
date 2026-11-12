@@ -225,6 +225,54 @@ Deliverables:
 - h5 | Dojo with cyber accents (no enclosure): torii trim, scanning ring, stall trim and screens, drones; owner approved 2026-11-10 | `world_layout`, `spawn_area` green; rules audit PASS
 Out of scope: gameplay and economy numbers, track biomes, Market panel contents.
 
+## boss-mage: The Elf Mage, second boss event, Phase 1 (owner 2026-11-11)
+Status: active
+Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/i-would-like-to-unified-moore.md`)
+Branch: feature/alex/boss-mage (from feature/alex/anime-world)
+Spec: design doc 4.37 Second boss, docs/BOSS_EVENT_SPEC.md "The Elf Mage", docs/char_evidence/boss_mage.md
+Deliverables:
+- m0 | Rules and evidence written | owner reads back and confirms
+- m1 | Elf Mage model renders, no upload | owner approves the design
+- m2 | Stone golem model renders, no upload | owner approves the design
+- m3 | Colosseum draft renders and size check | owner approves look and size
+- m4 | Hover idle key frames | owner approves the slices
+- m5 | Purple lightning key frames | owner approves the slices
+- m6 | Golem slam key frames | owner approves the slices
+- m7 | Barrage key frames | owner approves the slices
+- m8 | Digital art: staff icon, rhythm circles, status icons, portrait, screen mock-ups | owner approves the sheet
+- m9 | In-betweens, bake, upload | approved keys unchanged; owner's upload word (unlicensed, section 5)
+- m10 | Server: boss id, random pick, per-move costs, rhythm circle judge | `boss_event` green, tests written red first
+- m11 | Client: colosseum, hovering boss, golem, staff Dodge bar, rhythm circles, VFX | `boss_anim`, `ui_boss_dodge`, `ui_boss_osu` green; owner look in Studio
+- m12 | Compatibility check | boss scenarios and rules audit reported, then a PR with a fresh review (2026-11-11: full harness WAIVED by the owner; anime-world merged in 481a82d, merge audit PASS; PR #9 fresh review next)
+Out of scope: Phase 2, her Relics, chest and Sidekick until the owner rules on them, changes to Big Raga's event.
+
+## boss-mage-2: Elf Mage fixes: 2 s attacks, Stone Golem miniboss, boss cards, her Relics (owner 2026-11-11)
+Status: active (g0-g6 built and verified 2026-11-12 with targeted scenarios; waits for the owner's look in Studio; the PR is m12's)
+Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/peaceful-fluttering-mist.md`)
+Branch: feature/alex/boss-mage
+Spec: design doc 4.37 Second boss, 4.38, docs/BOSS_EVENT_SPEC.md "The Elf Mage" and "Bosses cards", docs/RELIC_SPEC.md "The Elf Mage's drops"
+Deliverables:
+- g0 | Rules written, dated | design doc and specs updated; rules audit PASS
+- g1 | Bosses card screen: 3 drafts | owner picks one
+- g2 | Key-frame slices: lightning and barrage 2 s windows, golem idle, sweep, fall, her watch | owner approves each move
+- g3 | Relic proposal and art sheet (5 Relics, 1 chest) | owner approves names, stats and art; no upload before that
+- g4 | Server: 2 s windows, golem with HP, sweep, easier rhythm, her chest | `boss_mage_event`, `boss_mage_anim`, `relics` green, tests red first
+- g5 | Client: strikes over 2 s, golem HP bar and moves, card screen | `ui_boss_mage*`, `ui_boss_osu`, `ui_boss_paid` green; owner look in Studio
+- g6 | In-betweens, bake, uploads | approved keys unchanged; upload scripts' `main()` guards checked first
+Out of scope: Phase 2, her Sidekick, Big Raga's event rules, m12's PR.
+
+## hud-team: Team button and Team panel; Bosses button in a second column (owner 2026-11-12)
+Status: active
+Owner-confirmed: 2026-11-12 (screenshot of the placement; drafts https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp: icon 1 in neutral colours, panel A)
+Branch: feature/alex/boss-mage
+Spec: design doc 4.40 (Bosses and Team buttons), 4.42 Overlap and dim, docs/TEAM_AND_STAMINA_SPEC.md HUD
+Deliverables:
+- t1 | Bosses button in the second left column | `ui_boss`, `ui_buttons`, `ui_hud` green (done 2026-11-12)
+- t2 | Team button and Team panel A, team editor out of Items | `ui_team`, `team` green; owner look (built 2026-11-12, owner look open)
+- t3 | World dim on every panel and popup, lighter | `ui_panels` green (done 2026-11-12)
+- t4 | Team icon in neutral colours, uploaded | owner picks N1 / N2 / N3 and gives the upload word (done 2026-11-12: N3, image 89758623094700; `ui_team`, `ui_hud` not yet rerun)
+- t5 | Team panel matches draft A (owner 2026-11-12): slot numbers, coloured borders, stamina pills, arrows, 8 roster cards per row | `ui_team`, `team`, `ui_panels` green; rules audit PASS (done 2026-11-12: 52/52, 28/28, 1044/1044; picked-slot lighting and the empty-slot "+" proposed, owner page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar)
+Out of scope: Best team button, saved teams, moving the aura and trail slot rows.
 ## dojo-removal: Dojos removed, Spawn showpiece in their place (owner 2026-11-11, design doc 4.43)
 Status: done 2026-11-11 (r4 merged into feature/alex/anime-world at 2c70abd; owner's look at the Studio shots pending)
 Owner-confirmed: 2026-11-11
