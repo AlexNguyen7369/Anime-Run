@@ -49,6 +49,10 @@ Boss drop only, never summoned (owner 2026-11-05; rarity, gain, hit and sell val
 | Id | Based on | Name | Rarity | Odds | Run gain | Hit every 1.5 s | Sells for |
 |---|---|---|---|---|---|---|---|
 | `side_raga` | Mahoraga | Big Raga | Secret | 0.001% from Raga's Treasure, 0.01% from Adapted Raga's Treasure, a separate roll when a chest opens | +10% cruise, +10% stamina | 40 | 30 Gems |
+| `side_mage` | Frieren | The Elf Mage | Secret | 0.001% from Elf Mage's Treasure, a separate roll when a chest opens (owner 2026-11-11) | +10% cruise, +10% stamina (**proposed**, as `side_raga`) | 40 (**proposed**) | 30 Gems (**proposed**) |
+| `side_king` | Gilgamesh | The Golden King | Secret | 0.001% from Golden King's Treasure, a separate roll when a chest opens (owner 2026-11-11) | +10% cruise, +10% stamina (**proposed**, as `side_raga`) | 40 (**proposed**) | 30 Gems (**proposed**) |
+
+Every boss drops its own downsized Sidekick this way (owner 2026-11-11, design doc 4.36 Boss Sidekicks; `SidekickConfig.BossDrops` holds all three). Evidence: `docs/char_evidence/side_raga.md`, `side_mage.md`, `side_king.md`. Their names are their bosses' titles, so only the tweaked title appears (section 5).
 
 ## Rotation (owner 2026-11-05)
 - Every 30 minutes, from UTC time, every server computes the same rotation from the time slot alone: no store, no messaging. It holds 1 Mythic, 2 Legendaries, 2 Rares, all Commons and 1 Secret.
@@ -104,3 +108,5 @@ In the style common to anime tower defense games: all effects original, no copie
 | Pochito | Fast scamper, pull-cord tail bouncing | Revs its head saw and hurls a spinning saw blade | Sparks, orange saw arc, blade spin |
 | Kaizel | Flying: hovers around the runner's shoulder, wings flapping | Rears back and breathes a flame burst | Flame stream, embers, heat flash at impact |
 | Igriz | Armoured sprint | Sword swing launches a crimson slash wave | Crescent slash, red trail, cut flash at impact |
+| The Elf Mage (`side_mage`, owner 2026-11-11) | Flying: hovers as her boss does, staff across the body | A small purple lightning bolt from the staff | Purple bolt, small spark burst at impact |
+| The Golden King (`side_king`, owner 2026-11-11) | Walk: short armoured stride, arms folded when still | A small Gate volley: 2 or 3 tiny ripple portals fire weapon projectiles | Gold ripples, straight gold trails, clink flash at impact |

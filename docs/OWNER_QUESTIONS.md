@@ -105,7 +105,7 @@ Answered by the owner 2026-11-11: use Big Raga's rules as proposed defaults for 
 6. Rhythm: 3 circles, +/- 0.28 s, circle 14.5% of the screen height (19% on phones), all 3 needed.
 7. Lightning and barrage keep their 10 strikes (4 under REDUCED EFFECTS), now spread over the 2 s window. More strikes?
 8. Bosses cards: the server picks the next boss when it schedules the event, so one dimmed card can show "Next event in m:ss". Without that, no card can name the next boss.
-9. Her Relics favour attack speed and luck. Names: Dwarf's Helmet, Hero's Bracelet, Elf Staff, Priest's Flask, Master's Grimoire. Odds as Big Raga's Phase 1 table. Her chest has no Sidekick roll.
+9. Her Relics favour attack speed and luck. Names: Dwarf's Helmet, Hero's Bracelet, Elf Staff, Priest's Flask, Master's Grimoire. Odds as Big Raga's Phase 1 table. Her chest has no Sidekick roll (superseded 2026-11-11: every boss chest rolls its own Sidekick, design doc 4.37; see boss-king item 11).
 Answered by the owner 2026-11-11: "approved, go with draft B" on the review page (cards B, all new key frames, Relics and chest). Items 1-9 stay as proposed values. Not answered one by one: golem HP flat or per player (built flat), strike rate (built as today's 10 per move), a boss portrait for Big Raga (not drawn). Upload of the new art: asked before g6's upload step.
 
 ## 2026-11-11 boss-mage-2: found while building (all proposed, change any)
@@ -114,3 +114,19 @@ Answered by the owner 2026-11-11: "approved, go with draft B" on the review page
 3. A paid spawn picks a fresh random boss; the announced next boss is unchanged.
 4. The approved golem crumble inside the old slam move (4.8 s) is no longer played; the new approved `golem_fall` is the crumble.
 5. Lightning's cost moved from 1.6 s to 2.0 s into the move, the start of the 2 s window.
+
+## 2026-11-11 boss-king: proposed values for The Golden King (all proposed, change any)
+1. Size: 8 x a character (about 44 studs), standing on a gold mound, arms folded, no hover.
+2. Arena dressing on the colosseum shell: sandstone pointed arches, 8 pillars, treasure mounds, urns, swords and spears stuck in gold, red drapes, warm gold light. Ring, wall, camera and the 100 studs/s cap unchanged.
+3. Entrance: he rises from the floor with his mound over `RiseSeconds`, like Big Raga (open question in BOSS_EVENT_SPEC; the other option is standing there already).
+4. Gates of Babylon: 12 to 20 portals; 2.0 s of volleys, one every 0.15 s, 7 to 10 projectiles or beams each, across the arena; one Dodge bar before; hit 20% of a full bar, once per move.
+5. Enuma Elish: 3 s red charge as the Dodge window, then a 2 s red-black beam over the whole arena; hit 40% of a full bar, once per move.
+6. Shield Gates: 5 to 7 shields; no Dodge bar, no cost; boss-side `Fortified`, 40% less damage from everyone until his next move starts; the shields shatter then.
+7. Fortified notice "The Golden King has fortified his defenses" in the red header style; chat "The Golden King raises his shields! He takes 40% less damage until his next move"; status icon with no seconds.
+8. Defaults as Big Raga: HP per player, 8 minutes, late join, Vulnerable on Gates and Enuma Elish, Phase 1 Money, no Phase 2, no miniboss, uniform random pick over the 3 bosses; the move order Gates, Enuma Elish, Shield Gates with idles between, repeating.
+9. Texts (the two move chat lines and "Enuma Elish tore through you" are fixed by the plan; the rest proposed): warning "The Golden King has arrived, take him down!!!"; chat "THE GOLDEN KING HAS ARRIVED, TAKE HIM DOWN FOR REWARDS"; move chat "The Golden King opens his vault! -20% stamina", "The Golden King unleashes Enuma Elish! -40% stamina"; hit texts "The King's treasures struck you" (Gates; my wording, not in the plan) and "Enuma Elish tore through you"; invite "THE GOLDEN KING EVENT" and hint "Teleport to fight The Golden King before the timer ends"; rewards "The Golden King Defeated!"; Bosses card "The Golden King is judging you right now".
+10. Relics, priority damage and money gain: Common Gold Coin, Rare Royal Goblet, Epic Chain of Heaven, Legendary Golden Armor, Mythic Key of Babylon (the Dodge bar's key art), Secret World Core; bonuses follow Big Raga's pattern with Damage and Money first, then Attack Speed and Luck; ids `relic_coin`, `relic_goblet`, `relic_chain`, `relic_armor`, `relic_key`; odds Big Raga's Phase 1 table.
+11. Chest "Golden King's Treasure", id `relic_chest_king`, with a separate 0.001% roll of `side_king`.
+12. Sidekicks `side_king` and `side_mage`: Secret, +10% cruise +10% stamina, hit 40 every 1.5 s, sell 30 Gems (all as `side_raga`); `side_king` walks and fires a small Gate volley, `side_mage` flies and fires a small lightning bolt.
+13. Key frames: `idle` 3, `gates` 5, `gates_window` 3, `enuma_charge` 4, `enuma_beam` 4, `shields` 5, `fortified_idle` 3; REDUCED EFFECTS 3 per volley, shields kept, sky tint dropped.
+14. Please drop the 10 reference images (vault x3, Gilgamesh x2, Gates x3, Ea raised x1, key x1) into `../AnimeRun-orch/art-backup/anime_refs/boss_king/` before k2; they were pasted in chat only and are not saved.
