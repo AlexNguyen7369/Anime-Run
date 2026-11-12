@@ -4,7 +4,7 @@
 -- cloud deck; the sky is the arena zone of Client/BiomeEnvironment. Engine primitives only, no uploaded meshes. Built while
 -- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on. While the event's boss
 -- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead;
--- boss_king: his own arena (Client/BossKingArena) and Client/BossKing, with Client/BossKingVfx.
+-- boss_king: his own arena (Client/BossKingArenaView) and Client/BossKing, with Client/BossKingVfx.
 local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -70,7 +70,7 @@ while Players.LocalPlayer:GetAttribute("BossEvent") ~= true and ReplicatedStorag
 end
 local LateData = require(Shared:WaitForChild("LateData"))
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
-local BossKingArena = require(script.Parent:WaitForChild("BossKingArena"))
+local BossKingArenaView = require(script.Parent:WaitForChild("BossKingArenaView"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
@@ -403,7 +403,7 @@ local function refresh()
 		if boss ~= "boss_raga" then
 			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
 			if boss == "boss_king" then
-				BossKingArena.Build(mine, kit, Cfg)
+				BossKingArenaView.Build(mine, kit, Cfg)
 			else
 				BossColosseum.Build(mine, kit, Cfg)
 			end

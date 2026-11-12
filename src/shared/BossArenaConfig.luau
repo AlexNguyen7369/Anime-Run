@@ -97,7 +97,7 @@ colosseum.MaxRunSpeed = 100
 build(colosseum)
 
 -- The Golden King's own arena (design doc 4.37 "The Golden King's own arena", BOSS_EVENT_SPEC "The Golden King's arena", owner
--- 2026-11-12; replaces the 2026-11-11 vault re-dress of the colosseum): an open sandstone stadium built by Client/BossKingArena from
+-- 2026-11-12; replaces the 2026-11-11 vault re-dress of the colosseum): an open sandstone stadium built by Client/BossKingArenaViewrena from
 -- the approved draft tools/blender/arena/build_king_arena.py. All values proposed. The colosseum's site: one arena stands at a time.
 local king = { Y = 1200 }
 king.Center = colosseum.Center

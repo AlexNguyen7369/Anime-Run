@@ -27,11 +27,11 @@ local AISLE_DEG = { 45, 81, 117, 153, -45, -81, -117, -153, 180 }
 local STAIR_DEG = { -17, 17, 163, 197 }
 local LION_SCALE = 1.45
 
-local BossKingArena = {}
+local BossKingArenaView = {} -- not named BossKingArena: that name is his late data, which must never be on the client at join
 
 -- kit: Client/BossArenaView's { addPart, ringFrame, pace, look }. Arena: BossArenaConfig.For("boss_king"). Returns false if the
 -- build was cancelled.
-function BossKingArena.Build(mine, kit, Arena)
+function BossKingArenaView.Build(mine, kit, Arena)
 	local addPart, ringFrame, pace, look = kit.addPart, kit.ringFrame, kit.pace, kit.look
 	local Sandstone, Brick, Plastic, Metal =
 		Enum.Material.Sandstone, Enum.Material.Brick, Enum.Material.SmoothPlastic, Enum.Material.Metal
@@ -602,4 +602,4 @@ function BossKingArena.Build(mine, kit, Arena)
 	return true
 end
 
-return BossKingArena
+return BossKingArenaView
