@@ -59,7 +59,7 @@ local SWEEP_HIT = "The golem swept you" -- BOSS_EVENT_SPEC "Texts" (proposed)
 local DODGE_TEXT = "Nice Dodge!"
 local DIAMETER, DIAMETER_PHONE = 0.145, 0.19 -- of the screen height (owner's 2026-11-11 easing, values proposed)
 local GOLEM_NAME = "Stone Golem"
-local GOLEM_FIRST, GOLEM_EVERY = 4.2, 5 -- s after BossMinionStart: attack k at 4.2 + 5 (k - 1), slam then sweep (proposed)
+local GOLEM_FIRST, GOLEM_EVERY = 4.2, 6 -- s after BossMinionStart: attack k at 4.2 + 6 (k - 1), slam then sweep (proposed)
 local CAPTIONS = { Slam = "Golem Slam! Hit every circle!", Sweep = "Golem Sweep! Hit every circle!" } -- proposed
 local SPAWN_NOTE = "Each event picks one boss at random" -- owner 2026-11-11, draft B
 local MAGE_CHEST = "relic_chest_mage"
