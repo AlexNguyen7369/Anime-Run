@@ -29,6 +29,10 @@
 --     unit), Sample(move, t) -> parts, root (studs), Schedule, RiseAt, CycleSeconds, GolemSlotAt, GolemFirstHit, GolemEvery,
 --     GolemHit(k) -> tau, name, GolemAt(tau) -> herMove, herTime, golemMove, golemTime, SampleGolem(move, t) -> scale
 --     (0 = hidden), parts, locs, root; GolemBind (15 blocks).
+--   The rework (task a4-mage, design doc 4.37 "Animation rework"): Bind names the jointed parts (MAGE_JOINTED below, no LeftArm,
+--     RightArm, LeftLeg, RightLeg, TailL, TailR); every rework move's row (Moves, and GolemMoves for the golem's tracks) has
+--     Approved = its 10 rework/keys.json key times; Poses.Approved[move] has those 10 rows for her moves; RootStuds divides
+--     Sample's root back to keys.json root_offset units.
 -- Proposed values the plan fixes and these tests assert literally (owner may retune): her move chat lines, camera pitch 14,
 --   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }, golem HP 1,000 per player, one attack every 6 s,
 --   cycle 32.55 s, the golem chat lines, circle leads.
@@ -83,6 +87,183 @@ local REAL_NAMES = {
 	{ 6, 35734055 },
 	{ 6, 143515654 },
 }
+
+-- The rework (design doc 4.37 "Animation rework" and "Rework approvals", owner 2026-11-12; BOSS_EVENT_SPEC "Animation rework"):
+-- the jointed Elf Mage and 10 key frames per move, copied by hand from assets/characters_avatar/boss_mage/keyframes/rework/keys.json.
+local MAGE_LIMBS = {
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"RightUpperArm",
+	"RightLowerArm",
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"RightUpperLeg",
+	"RightLowerLeg",
+	"TailL1",
+	"TailL2",
+	"TailL3",
+	"TailR1",
+	"TailR2",
+	"TailR3",
+	"Staff",
+}
+local MAGE_JOINTED = table.clone(MAGE_LIMBS)
+table.insert(MAGE_JOINTED, "Torso")
+table.insert(MAGE_JOINTED, "Head")
+local MAGE_UNJOINTED = { "LeftArm", "RightArm", "LeftLeg", "RightLeg", "TailL", "TailR" }
+-- keys.json golem part names: the golem's rig is unchanged by the rework (BOSS_EVENT_SPEC "Animation rework" Rigs).
+local GOLEM_PARTS = {
+	"FistL",
+	"FistR",
+	"ForearmL",
+	"ForearmR",
+	"Head",
+	"Hip",
+	"ShinL",
+	"ShinR",
+	"ShoulderL",
+	"ShoulderR",
+	"ThighL",
+	"ThighR",
+	"Torso",
+	"UpperArmL",
+	"UpperArmR",
+}
+-- The 10 key times of every rework move (her moves in Moves, golem_fall in Moves, the golem's tracks in GolemMoves).
+local KEY_TIMES = {
+	lightning = { 0, 0.45, 0.95, 1.4, 1.8, 2, 2.6, 3.35, 4, 5.2 },
+	idle = { 0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7 },
+	watch = { 0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1, 2.4, 2.7 },
+	barrage = { 0, 0.5, 1, 1.45, 1.85, 2, 2.6, 3.35, 4, 5.4 },
+	golem = { 0, 0.4, 0.8, 1.3, 1.9, 2.5, 3, 3.6, 4.2, 5 },
+	golem_idle = { 0, 0.24, 0.48, 0.72, 0.96, 1.2, 1.44, 1.68, 1.92, 2.16 },
+	golem_slam = { 0, 0.4, 0.9, 1.5, 2.25, 2.6, 2.8, 3, 3.3, 3.6 },
+	golem_sweep = { 0, 0.4, 1, 1.6, 2.2, 2.6, 2.85, 3.2, 3.7, 4.2 },
+	golem_fall = { 0, 0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.45, 1.7, 2 },
+}
+local GOLEM_TRACKS = { "golem_idle", "golem_slam", "golem_sweep", "golem_fall" }
+-- { move, key number, part, keys.json rotation }: keys 1, the hit (key 6, the window's first strike at 2.0 s) and 10. Body (her
+-- hip turn) folds into Torso and the upper legs as the king's does, so those are spotted only on keys where Body is 0.
+local MAGE_SPOTS = {
+	{ "lightning", 1, "Torso", Vector3.new(8, 0, 2) },
+	{ "lightning", 1, "Head", Vector3.new(-4, 0, -4) },
+	{ "lightning", 1, "RightUpperArm", Vector3.new(-33.204, -0.647, 31.13) },
+	{ "lightning", 1, "RightLowerArm", Vector3.new(-20.985, 0, 0) },
+	{ "lightning", 1, "Staff", Vector3.new(102.64, 51.4, 59.752) },
+	{ "lightning", 1, "LeftLowerLeg", Vector3.new(28, 0, 0) },
+	{ "lightning", 1, "TailL1", Vector3.new(-4, -26, 0) },
+	{ "lightning", 6, "RightUpperArm", Vector3.new(-15.526, 21.346, 17.577) },
+	{ "lightning", 6, "RightLowerArm", Vector3.new(-76.126, 0, 0) },
+	{ "lightning", 6, "LeftUpperArm", Vector3.new(-58.988, 43.359, -45.023) },
+	{ "lightning", 6, "Staff", Vector3.new(103.007, 61.477, -97.861) },
+	{ "lightning", 6, "Head", Vector3.new(-14, 0, -30) },
+	{ "lightning", 6, "TailR2", Vector3.new(22, 6, 0) },
+	{ "lightning", 6, "RightLowerLeg", Vector3.new(48, 0, 0) },
+	{ "lightning", 10, "Torso", Vector3.new(8, 0, 2) },
+	{ "lightning", 10, "RightUpperArm", Vector3.new(-33.204, -0.647, 31.13) },
+	{ "lightning", 10, "LeftLowerArm", Vector3.new(-83.653, 0, 0) },
+	{ "lightning", 10, "Staff", Vector3.new(102.64, 51.4, 59.752) },
+	{ "lightning", 10, "LeftUpperLeg", Vector3.new(22, 0, -3) },
+	{ "lightning", 10, "TailL3", Vector3.new(8, -6, 0) },
+	{ "barrage", 1, "Torso", Vector3.new(8, 0, 2) },
+	{ "barrage", 1, "RightUpperArm", Vector3.new(-33.204, -0.647, 31.13) },
+	{ "barrage", 1, "LeftUpperArm", Vector3.new(-22.705, -0.724, -30.778) },
+	{ "barrage", 1, "Staff", Vector3.new(102.64, 51.4, 59.752) },
+	{ "barrage", 1, "Head", Vector3.new(-4, 0, -4) },
+	{ "barrage", 6, "RightUpperArm", Vector3.new(-15.526, 21.346, 17.577) },
+	{ "barrage", 6, "RightLowerArm", Vector3.new(-76.126, 0, 0) },
+	{ "barrage", 6, "LeftUpperArm", Vector3.new(-61.912, 46.328, -46.596) },
+	{ "barrage", 6, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
+	{ "barrage", 6, "Staff", Vector3.new(100.804, 53.861, -104.511) },
+	{ "barrage", 6, "TailL2", Vector3.new(20, 0, 0) },
+	{ "barrage", 6, "LeftLowerLeg", Vector3.new(72, 0, 0) },
+	{ "barrage", 10, "Torso", Vector3.new(8, 0, 2) },
+	{ "barrage", 10, "RightLowerArm", Vector3.new(-20.985, 0, 0) },
+	{ "barrage", 10, "Staff", Vector3.new(102.64, 51.4, 59.752) },
+	{ "barrage", 10, "RightUpperLeg", Vector3.new(10, 0, 3) },
+	{ "barrage", 10, "TailR1", Vector3.new(-4, 26, 0) },
+}
+-- { move, key number, Torso rotation, UpperArmR rotation, Torso loc } through SampleGolem: golem_slam keys 1, the hit (7, 2.8 s)
+-- and 10, and a few keys of the other tracks and of her golem move (4: the blocks gathering, 9: the 4.2 s Slam).
+local GOLEM_SPOTS = {
+	{ "golem_slam", 1, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_slam", 7, Vector3.new(56, 0, 0), Vector3.new(-141, -14, 0), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_slam", 10, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_sweep", 1, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_sweep", 6, Vector3.new(22, 0, 10), Vector3.new(0, 88, 90), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_sweep", 10, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_idle", 1, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
+	{ "golem_fall", 1, Vector3.new(-16, 0, 0), Vector3.new(-30, 14, 0), Vector3.new(0, -0.05, 0.4) },
+	{
+		"golem_fall",
+		10,
+		Vector3.new(-125.61, 12.27, 73.39),
+		Vector3.new(-171.19, -8.41, -40.03),
+		Vector3.new(1.208, -1.234, 1.528),
+	},
+	{
+		"golem",
+		4,
+		Vector3.new(28.62, -16.34, 10.79),
+		Vector3.new(17.34, 34.21, 13.7),
+		Vector3.new(1.123, -0.699, -1.668),
+	},
+	{ "golem", 9, Vector3.new(56, 0, 0), Vector3.new(-141, -14, 0), Vector3.new(0, -0.05, 0.4) },
+}
+local KEY_DEGREES = 0.01
+local FRAME = 1 / 60
+local MAX_DEGREES_PER_FRAME = 12 -- BOSS_EVENT_SPEC "Animation rework" Tests, as BossAnimTests for Big Raga
+local MAX_OFFSET_PER_FRAME = 0.05 -- root, in key units (her root_offset model units; the golem's golem units)
+local SNAP_WINDOW = 0.05 -- s after an event where the hit snap still runs (with the key segment into it)
+
+-- XYZ Euler degrees as the client poses them (Z, then Y, then X), in doubles: CFrame is float32.
+local function matrixOf(v)
+	local x, y, z = math.rad(v.X), math.rad(v.Y), math.rad(v.Z)
+	local cx, sx, cy, sy, cz, sz = math.cos(x), math.sin(x), math.cos(y), math.sin(y), math.cos(z), math.sin(z)
+	return {
+		cz * cy,
+		cz * sy * sx - sz * cx,
+		cz * sy * cx + sz * sx,
+		sz * cy,
+		sz * sy * sx + cz * cx,
+		sz * sy * cx - cz * sx,
+		-sy,
+		cy * sx,
+		cy * cx,
+	}
+end
+
+-- Degrees between two Euler rotations: ||A - B|| = 2 sqrt(2) sin(angle / 2), exact for small angles.
+local function rotationApart(a, b)
+	local ma, mb, sum = matrixOf(a), matrixOf(b), 0
+	for i = 1, 9 do
+		sum += (ma[i] - mb[i]) ^ 2
+	end
+	return math.deg(2 * math.asin(math.min(1, math.sqrt(sum) / (2 * math.sqrt(2)))))
+end
+
+-- The hit snap (BOSS_EVENT_SPEC "Animation rework" Tests, 2026-11-12): for each event, the key segment that ends on it (from the
+-- last key frame before it) plus SNAP_WINDOW after it. Returns a function t -> inside a snap.
+local function snapsOf(events, keyTimes)
+	local snaps = {}
+	for _, event in events or {} do
+		local from = nil
+		for _, k in keyTimes do
+			if k < event.Time - 1e-6 and (from == nil or k > from) then
+				from = k
+			end
+		end
+		table.insert(snaps, { from or event.Time, event.Time + SNAP_WINDOW })
+	end
+	return function(t)
+		for _, snap in snaps do
+			if t > snap[1] and t <= snap[2] then
+				return true
+			end
+		end
+		return false
+	end
+end
 
 local function approx(a, b, tolerance)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (tolerance or 1e-6)
@@ -1399,9 +1580,11 @@ function Tests.make()
 				end
 			end)
 
-			-- Approved keys (owner 2026-11-11): Sample at each approved time gives the approved pose.
+			-- Approved keys: Sample at each approved time gives the approved pose. 10 per move (was idle 4, lightning 8, golem 6,
+			-- barrage 8, watch 2, the golem tracks fewer): design doc 4.37 "Animation rework" (owner 2026-11-12: 10 key frames per
+			-- move, replacing 3 to 5) and "Rework approvals" (a move's 2 s window counts inside its 10).
 			section("approved", function()
-				local counts = { idle = 4, lightning = 8, golem = 6, barrage = 8, watch = 2 }
+				local counts = { idle = 10, lightning = 10, golem = 10, barrage = 10, watch = 10 }
 				for name, want in counts do
 					local worst = 0
 					local keys = Poses.Approved[name] or {}
@@ -1423,146 +1606,159 @@ function Tests.make()
 					end
 				end
 				eq("approved_no_window_names", table.concat(stale, ","), "")
-				-- Copied by hand from assets/characters_avatar/boss_mage/keyframes/keys.json; window keys at their own times, the
-				-- recover keys 2.0 s later (the window's length).
-				for _, spot in
-					{
-						{ "lightning", 1.6, "RightArm", Vector3.new(-172.694, 0, 0) },
-						{ "golem", 4.2, "RightArm", Vector3.new(75.964, 33.702, 26.611) },
-						{ "barrage", 2.0, "RightArm", Vector3.new(-111.801, -15.565, 22.825) },
-						{ "idle", 0.75, "Torso", Vector3.new(5, 0, 0) },
-						{ "golem", 1.4, "Torso", Vector3.new(2, -4, -24) },
-						{ "lightning", 2.5, "RightArm", Vector3.new(-173.66, 3.16, -52.955) },
-						{ "lightning", 3.25, "RightArm", Vector3.new(-164.476, 12.085, -75.666) },
-						{ "lightning", 4.0, "RightArm", Vector3.new(-81.87, 32.473, -28.349) },
-						{ "lightning", 4.8, "RightArm", Vector3.new(-39.094, -14.938, 5.33) },
-						{ "barrage", 2.5, "RightArm", Vector3.new(-106.699, -16.032, 21.435) },
-						{ "barrage", 3.25, "RightArm", Vector3.new(-71.565, 0, 0) },
-						{ "barrage", 4.0, "RightArm", Vector3.new(-77.471, -15.172, 12.196) },
-						{ "barrage", 4.9, "RightArm", Vector3.new(-39.094, -14.938, 5.33) },
-						{ "watch", 0, "RightArm", Vector3.new(-27.553, -13.023, 3.206) },
-						{ "watch", 1.5, "RightArm", Vector3.new(-26.565, -12.604, 2.987) },
-					}
-				do
-					local parts = Poses.Sample(spot[1], spot[2])
-					local got = parts[spot[3]]
-					local e = got
-							and math.max(
-								math.abs(got.X - spot[4].X),
-								math.abs(got.Y - spot[4].Y),
-								math.abs(got.Z - spot[4].Z)
-							)
-						or math.huge
-					flag(("keys_json_%s_%s_%s"):format(spot[1], spot[2], spot[3]), e <= 0.01, e, 0.01)
+			end)
+
+			-- The rework keys (design doc 4.37 "Animation rework"): every move's 10 key times equal rework/keys.json (her moves and
+			-- golem_fall in Moves, the golem's tracks in GolemMoves, each with Approved = its key times as the king's moves), and spot
+			-- poses at keys 1, the hit and 10, compared as rotations (Euler wraps do not matter), so a bake drifting from the keys is
+			-- caught. Replaces the hand-copied spot checks of the 2026-11-11 keys (keyframes/keys.json), which the rework supersedes.
+			section("mage_rework_keys", function()
+				for name, want in KEY_TIMES do
+					local move = Poses.Moves[name] or (Poses.GolemMoves and Poses.GolemMoves[name])
+					local times = move and move.Approved or {}
+					eq(name .. "_rework_key_count", #times, #want)
+					local same = #times == #want
+					for i, t in want do
+						same = same and approx(times[i], t)
+					end
+					flag(name .. "_rework_key_times", same, table.concat(times, ","), table.concat(want, ","))
+					local rows = Poses.Approved[name]
+					if Poses.Moves[name] and name ~= "golem_fall" then
+						local rowsSame = rows ~= nil and #rows == #want
+						for i, t in want do
+							rowsSame = rowsSame and approx(rows[i].Time, t)
+						end
+						flag(name .. "_rework_expected_times", rowsSame, rows and #rows, #want)
+					end
 				end
-				-- The golem's approved keys through SampleGolem(move, t): Torso and UpperArmR rotation, Torso loc (keys.json
-				-- "golem", verbatim). golem_slam carries the slam keys 2.0 and 4.2 at 0.6 and 2.8, golem_sweep its keys 0.6 later.
-				for _, spot in
-					{
-						{
-							"golem",
-							0.7,
-							Vector3.new(56.85, 24.04, 10.75),
-							Vector3.new(-9.24, -57.84, -26.09),
-							Vector3.new(0.489, -0.988, -1.921),
-						},
-						{ "golem", 1.4, Vector3.new(12, 0, 0), Vector3.new(-18, 0, -4), Vector3.new(0, -0.05, 0.4) },
-						{ "golem", 2.0, Vector3.new(-22, 0, 0), Vector3.new(-172, -8, 0), Vector3.new(0, -0.05, 0.4) },
-						{ "golem", 4.2, Vector3.new(56, 0, 0), Vector3.new(-141, -14, 0), Vector3.new(0, -0.05, 0.4) },
-						{
-							"golem_slam",
-							0.6,
-							Vector3.new(-22, 0, 0),
-							Vector3.new(-172, -8, 0),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_slam",
-							2.8,
-							Vector3.new(56, 0, 0),
-							Vector3.new(-141, -14, 0),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{ "golem_idle", 0, Vector3.new(6, 0, 0), Vector3.new(-12, 0, -4), Vector3.new(0, -0.05, 0.4) },
-						{
-							"golem_idle",
-							1.2,
-							Vector3.new(18, 0, 0),
-							Vector3.new(-26, 0, -4),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_sweep",
-							0.6,
-							Vector3.new(14, 0, -16),
-							Vector3.new(-10, 50, -20),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_sweep",
-							1.2,
-							Vector3.new(14, 0, -32),
-							Vector3.new(0, 82, -42),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_sweep",
-							2.6,
-							Vector3.new(22, 0, 10),
-							Vector3.new(0, 88, 90),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_sweep",
-							3.0,
-							Vector3.new(16, 0, 36),
-							Vector3.new(-20, 70, 110),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{
-							"golem_sweep",
-							3.8,
-							Vector3.new(12, 0, 0),
-							Vector3.new(-18, 0, -4),
-							Vector3.new(0, -0.05, 0.4),
-						},
-						{ "golem_fall", 0, Vector3.new(30, 0, 8), Vector3.new(-4, 6, 0), Vector3.new(0, -0.05, 0.4) },
-						{
-							"golem_fall",
-							0.6,
-							Vector3.new(59.74, 6.28, 8.98),
-							Vector3.new(-2.41, -6.03, 11.37),
-							Vector3.new(0.354, -0.885, 0.806),
-						},
-						{
-							"golem_fall",
-							1.4,
-							Vector3.new(32.77, 70.76, -28.54),
-							Vector3.new(95.16, -1.74, -60.28),
-							Vector3.new(-0.694, 1.137, -1.127),
-						},
-					}
-				do
-					local ran, _, parts, locs = pcall(Poses.SampleGolem, spot[1], spot[2])
-					local function off(got, want)
+				for _, spot in MAGE_SPOTS do
+					local name, key, part, want = spot[1], spot[2], spot[3], spot[4]
+					local got = (Poses.Sample(name, KEY_TIMES[name][key]))[part]
+					local off = typeof(got) == "Vector3" and rotationApart(got, want) or 1e9
+					flag(("rework_%s_key_%d_%s"):format(name, key, part), off <= KEY_DEGREES, off, KEY_DEGREES)
+				end
+				for _, spot in GOLEM_SPOTS do
+					local name, key = spot[1], spot[2]
+					local ran, _, parts, locs = pcall(Poses.SampleGolem, name, KEY_TIMES[name][key])
+					local function turn(got, want)
+						return typeof(got) == "Vector3" and rotationApart(got, want) or 1e9
+					end
+					local function loc(got, want)
 						return typeof(got) == "Vector3"
 								and math.max(
 									math.abs(got.X - want.X),
 									math.abs(got.Y - want.Y),
 									math.abs(got.Z - want.Z)
 								)
-							or math.huge
+							or 1e9
 					end
-					local e = ran
-							and type(parts) == "table"
-							and type(locs) == "table"
-							and math.max(
-								off(parts.Torso, spot[3]),
-								off(parts.UpperArmR, spot[4]),
-								off(locs.Torso, spot[5])
-							)
-						or math.huge
-					flag(("golem_keys_json_%s_%s"):format(spot[1], spot[2]), e <= 0.01, e, 0.01)
+					local ok = ran and type(parts) == "table" and type(locs) == "table"
+					local degrees = ok and math.max(turn(parts.Torso, spot[3]), turn(parts.UpperArmR, spot[4])) or 1e9
+					local offset = ok and loc(locs.Torso, spot[5]) or 1e9
+					flag(
+						("rework_golem_%s_key_%d_turn"):format(name, key),
+						degrees <= KEY_DEGREES,
+						degrees,
+						KEY_DEGREES
+					)
+					flag(("rework_golem_%s_key_%d_loc"):format(name, key), offset <= 0.01, offset, 0.01)
+				end
+			end)
+
+			-- The jointed rig (BOSS_EVENT_SPEC "Animation rework" Rigs): elbows, knees and 3 segments per tail, in the bind and in
+			-- every key of every move of hers (Parts or Held). The golem's rig stays (its 15 keys.json parts).
+			section("jointed_rig", function()
+				local bind = Poses.Bind or {}
+				for _, part in MAGE_JOINTED do
+					flag("bind_has_" .. part, bind[part] ~= nil)
+				end
+				for _, part in MAGE_UNJOINTED do
+					eq("bind_no_unjointed_" .. part, bind[part], nil)
+				end
+				for name, move in Poses.Moves do
+					local missing = {}
+					for _, key in move.Keys or {} do
+						for _, part in MAGE_LIMBS do
+							if key.Parts[part] == nil and (move.Held or {})[part] == nil then
+								missing[part] = true
+							end
+						end
+					end
+					flag(name .. "_keys_carry_limbs", next(missing) == nil and #(move.Keys or {}) > 0, next(missing))
+				end
+				local golemMissing = {}
+				for _, part in GOLEM_PARTS do
+					if (Poses.GolemBind or {})[part] == nil then
+						table.insert(golemMissing, part)
+					end
+				end
+				eq("golem_bind_unchanged", table.concat(golemMissing, ","), "")
+			end)
+
+			-- Per-frame continuity, as BossAnimTests has for Big Raga (BOSS_EVENT_SPEC "Animation rework" Tests): at most 12 degrees
+			-- of any part and 0.05 root (key units) per 60 Hz frame, outside the hit snap. Her moves through Sample (root in studs,
+			-- / RootStuds), the golem's tracks through SampleGolem (root already golem units).
+			section("continuous", function()
+				local function keyTimesOf(name, move)
+					if KEY_TIMES[name] then
+						return KEY_TIMES[name]
+					end
+					local times = {}
+					for _, key in move.Keys or {} do
+						table.insert(times, key.Time)
+					end
+					return (move.Approved and #move.Approved > 0) and move.Approved or times
+				end
+				local function judge(name, duration, nearEvent, sample)
+					local worstDegrees, worstOffset, worstAt, worstPart = 0, 0, 0, nil
+					local parts, root = sample(0)
+					for k = 1, math.floor(duration / FRAME) do
+						local t = k * FRAME
+						local nextParts, nextRoot = sample(t)
+						if not nearEvent(t) then
+							for part, v in nextParts do
+								local before = parts[part]
+								local d = typeof(before) == "Vector3" and rotationApart(before, v) or 0
+								if d > worstDegrees then
+									worstDegrees, worstAt, worstPart = d, t, part
+								end
+							end
+							local step = nextRoot - root
+							worstOffset = math.max(worstOffset, math.abs(step.X), math.abs(step.Y), math.abs(step.Z))
+						end
+						parts, root = nextParts, nextRoot
+					end
+					r.metrics[name .. "_worst_frame_at"] = worstAt
+					r.metrics[name .. "_worst_frame_part"] = worstPart
+					flag(
+						name .. "_frame_degrees",
+						worstDegrees <= MAX_DEGREES_PER_FRAME,
+						worstDegrees,
+						MAX_DEGREES_PER_FRAME
+					)
+					flag(
+						name .. "_frame_offset",
+						worstOffset <= MAX_OFFSET_PER_FRAME,
+						worstOffset,
+						MAX_OFFSET_PER_FRAME
+					)
+				end
+				local rootUnit = Poses.RootStuds or 1
+				for name, move in Poses.Moves do
+					judge(name, move.Duration, snapsOf(move.Events, keyTimesOf(name, move)), function(t)
+						local parts, root = Poses.Sample(name, t)
+						return parts, root / rootUnit
+					end)
+				end
+				for _, name in GOLEM_TRACKS do
+					local move = Poses.Moves[name] or (Poses.GolemMoves and Poses.GolemMoves[name])
+					flag(name .. "_track_exists", move ~= nil)
+					if move then
+						judge("golem_track_" .. name, move.Duration, snapsOf(move.Events, KEY_TIMES[name]), function(t)
+							local _, parts, _, root = Poses.SampleGolem(name, t)
+							return parts, root
+						end)
+					end
 				end
 			end)
 

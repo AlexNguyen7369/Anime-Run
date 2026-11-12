@@ -182,6 +182,7 @@ UiScenarios.Names = {
 	"ui_boss_osu",
 	"ui_boss_mage_rewards",
 	"ui_boss_mage_vfx",
+	"ui_boss_mage_rig", -- the jointed rig playing lightning (task a4-mage)
 	-- The Stone Golem's bar and the Bosses cards (UiBossMage; BOSS_EVENT_SPEC "The Elf Mage", "Bosses cards")
 	"ui_boss_golem",
 	"ui_boss_cards",
