@@ -20,6 +20,14 @@
 --     (ScrollingFrame): one card per owned catalog character, named by its id, with a TextLabel Badge "TEAM n" in green on
 --     members. Sort (GuiButton), Search (TextBox). No BestTeam anywhere in it. The world dim (UiSpec.PanelDimmers) is on
 --     while it is open.
+--   Draft A, closely (owner 2026-11-12, after seeing the first build): each Slot<n> also holds Number (TextLabel "1" / "2" /
+--     "3", shown, in the card's top-left quarter), Border (UIStroke, shown; its hue gold / purple / green for slots 1 / 2 / 3,
+--     SLOT_HUES, never grey) and StaminaBar (Frame below the Portrait, inside the card, holding a shown Fill and the
+--     Stamina text). An empty slot keeps Number and Border and hides StaminaBar. Slots/Arrow1 and Slots/Arrow2 sit
+--     horizontally between Slot1 / Slot2 and Slot2 / Slot3, level with them, overlapping neither. Number, Order, Name,
+--     Category, Cruise fit their card (TextFits, inside it) and no two of them or StaminaBar overlap, at either variant.
+--     Desktop roster: at least ROW_CARDS cards fully inside Roster in the first row and ROWS rows at the top. Every card's
+--     shown Badge stays clear of its category dot (UiSpec.Backpack.BadgeDotProblem), both inside the card.
 --   Editing: tap a card, then a slot; a member put on another slot swaps; a member's own slot takes it off; never fewer than
 --     1 member (the Backpack's notice); during a run the server refuses it and the panel shows the same notice as the Backpack.
 local Players = game:GetService("Players")
@@ -42,6 +50,13 @@ local X_TOL = 1 -- px: "the same column"
 local MID_TOL = 12 -- px off the Items / Rebirth centres' midpoint: "level with the gap" (owner 2026-11-12)
 local BOSS_PULSE = 1.08 -- BossButton's biggest pulse Scale (UiBossEvent BUTTON_PULSE)
 local SHOW_WAIT = 2 -- s: an attribute change has replicated and the UI has followed
+-- Draft A (assets/ui/team_draft/A_desktop.png; owner 2026-11-12): slot borders gold, purple, green as hue bands (0..1)
+local SLOT_HUES = { { 0.06, 0.18, "gold" }, { 0.7, 0.88, "purple" }, { 0.22, 0.47, "green" } }
+local MIN_SATURATION, MIN_VALUE = 0.25, 0.3 -- below either: grey
+local HUE_APART = 0.05 -- the three border hues differ pairwise by at least this much
+local FIT_PARTS = { "Number", "Order", "Name", "Category", "Cruise" }
+local ROW_CARDS, ROWS = 8, 2 -- desktop roster: two rows of eight (owner 2026-11-12)
+local TOL = 1 -- px
 
 local Module = {}
 
@@ -146,7 +161,7 @@ function Module.Build(h)
 			if not (cruise and string.find(cruise, "studs/s", 1, true)) or (exact and cruise ~= wantCruise) then
 				table.insert(wrong, ("%s Cruise %q, want %q"):format(tag, tostring(cruise), wantCruise))
 			end
-			local stamina = number(textOf(slot:FindFirstChild("Stamina")))
+			local stamina = number(textOf(slot:FindFirstChild("Stamina", true))) -- in StaminaBar since draft A
 			if not (stamina and stamina > 0) then
 				table.insert(wrong, tag .. " Stamina holds no seconds")
 			else
@@ -441,6 +456,216 @@ function Module.Build(h)
 		return wrong
 	end
 
+	-- Draft A, closely (owner 2026-11-12, after seeing the first build). Geometry checks carry the live variant.
+	local function variant()
+		return workspace.CurrentCamera.ViewportSize.Y <= Spec.PhoneMaxHeight and "_phone" or "_desktop"
+	end
+	local function inside(outer, r)
+		return r.x >= outer.x - TOL
+			and r.y >= outer.y - TOL
+			and r.x + r.w <= outer.x + outer.w + TOL
+			and r.y + r.h <= outer.y + outer.h + TOL
+	end
+	local function rstr(r)
+		return ("(%.0f,%.0f %.0fx%.0f)"):format(r.x, r.y, r.w, r.h)
+	end
+
+	-- The slot cards with the Team `ids` on them (slot n empty when ids[n] is nil).
+	local function checkSlotCards(res, ids)
+		local v = variant()
+		local p = { numbers = {}, borders = {}, bars = {}, arrows = {}, fit = {}, overlap = {} }
+		local slots = h.find(T.Slots)
+		local cardRects, hues = {}, {}
+		for n = 1, 3 do
+			local tag = "Slot" .. n
+			local slot = slots and slots:FindFirstChild(tag)
+			if not (slot and slot:IsA("GuiObject") and shown(slot)) then
+				table.insert(p.numbers, tag .. " missing or hidden")
+				continue
+			end
+			local sr = h.rect(slot)
+			cardRects[n] = sr
+			local num = slot:FindFirstChild("Number")
+			if not (num and num:IsA("TextLabel")) then
+				table.insert(p.numbers, tag .. ": no TextLabel Number")
+			elseif num.Text ~= tostring(n) or not shown(num) then
+				table.insert(
+					p.numbers,
+					("%s: Number %q shown=%s, want %q shown"):format(tag, num.Text, tostring(shown(num)), tostring(n))
+				)
+			elseif not inside({ x = sr.x, y = sr.y, w = sr.w / 2, h = sr.h / 2 }, h.rect(num)) then
+				table.insert(
+					p.numbers,
+					("%s: Number%s not in the top-left quarter of %s"):format(tag, rstr(h.rect(num)), rstr(sr))
+				)
+			end
+			local border = slot:FindFirstChild("Border")
+			if
+				not (
+					border
+					and border:IsA("UIStroke")
+					and border.Enabled
+					and border.Thickness > 0
+					and border.Transparency < 1
+				)
+			then
+				table.insert(p.borders, tag .. ": no shown UIStroke Border")
+			else
+				local hue, sat, val = border.Color:ToHSV()
+				local band = SLOT_HUES[n]
+				if sat < MIN_SATURATION or val < MIN_VALUE then
+					table.insert(p.borders, ("%s: Border %s is grey"):format(tag, tostring(border.Color)))
+				elseif hue < band[1] or hue > band[2] then
+					table.insert(
+						p.borders,
+						("%s: Border hue %.2f, want %s %.2f..%.2f"):format(tag, hue, band[3], band[1], band[2])
+					)
+				else
+					hues[n] = hue
+				end
+			end
+			local bar = slot:FindFirstChild("StaminaBar")
+			if not ids[n] then
+				if shown(bar) then
+					table.insert(p.bars, tag .. ": empty, StaminaBar shown")
+				end
+			elseif not (bar and bar:IsA("Frame") and shown(bar)) then
+				table.insert(p.bars, tag .. ": no shown Frame StaminaBar")
+			else
+				local br = h.rect(bar)
+				local fill, text = bar:FindFirstChild("Fill"), bar:FindFirstChild("Stamina")
+				local portrait = slot:FindFirstChild("Portrait")
+				if not inside(sr, br) then
+					table.insert(p.bars, ("%s: StaminaBar%s outside the card%s"):format(tag, rstr(br), rstr(sr)))
+				end
+				if shown(portrait) and br.y < h.rect(portrait).y + h.rect(portrait).h - TOL then
+					table.insert(
+						p.bars,
+						("%s: StaminaBar%s not below Portrait%s"):format(tag, rstr(br), rstr(h.rect(portrait)))
+					)
+				end
+				if not (fill and fill:IsA("GuiObject") and shown(fill)) then
+					table.insert(p.bars, tag .. ": StaminaBar has no shown Fill")
+				elseif not inside(br, h.rect(fill)) then
+					table.insert(p.bars, tag .. ": Fill outside StaminaBar")
+				end
+				if not (text and text:IsA("TextLabel") and shown(text) and number(text.Text)) then
+					table.insert(p.bars, tag .. ": StaminaBar has no shown Stamina seconds")
+				elseif not inside(br, h.rect(text)) then
+					table.insert(p.bars, tag .. ": Stamina text outside StaminaBar")
+				end
+			end
+			local parts = {}
+			for _, name in FIT_PARTS do
+				local o = slot:FindFirstChild(name)
+				if o and o:IsA("TextLabel") and shown(o) then
+					local r = h.rect(o)
+					if not inside(sr, r) then
+						table.insert(p.fit, ("%s/%s%s outside the card%s"):format(tag, name, rstr(r), rstr(sr)))
+					elseif not o.TextFits then
+						table.insert(p.fit, ("%s/%s %q does not fit"):format(tag, name, o.Text))
+					end
+					table.insert(parts, { name, r })
+				end
+			end
+			if ids[n] and shown(bar) then
+				table.insert(parts, { "StaminaBar", h.rect(bar) })
+			end
+			for i = 1, #parts do
+				for j = i + 1, #parts do
+					if overlaps(parts[i][2], parts[j][2]) then
+						table.insert(
+							p.overlap,
+							("%s: %s%s x %s%s"):format(
+								tag,
+								parts[i][1],
+								rstr(parts[i][2]),
+								parts[j][1],
+								rstr(parts[j][2])
+							)
+						)
+					end
+				end
+			end
+		end
+		for n = 1, 2 do
+			local arrow = slots and slots:FindFirstChild("Arrow" .. n)
+			local a, b = cardRects[n], cardRects[n + 1]
+			if not (arrow and arrow:IsA("GuiObject") and shown(arrow)) then
+				table.insert(p.arrows, "Arrow" .. n .. " missing or hidden")
+			elseif a and b then
+				local r = h.rect(arrow)
+				local mid = r.y + r.h / 2
+				if r.x < a.x + a.w - TOL or r.x + r.w > b.x + TOL then
+					table.insert(
+						p.arrows,
+						("Arrow%d%s not between Slot%d%s and Slot%d%s"):format(n, rstr(r), n, rstr(a), n + 1, rstr(b))
+					)
+				elseif mid < math.max(a.y, b.y) or mid > math.min(a.y + a.h, b.y + b.h) then
+					table.insert(p.arrows, ("Arrow%d%s not level with the slots"):format(n, rstr(r)))
+				end
+			end
+		end
+		local apart = {}
+		for i = 1, 3 do
+			for j = i + 1, 3 do
+				local d = hues[i] and hues[j] and math.abs(hues[i] - hues[j])
+				d = d and math.min(d, 1 - d)
+				if not (d and d >= HUE_APART) then
+					table.insert(
+						apart,
+						("Slot%d / Slot%d hues %s"):format(i, j, d and ("%.2f apart"):format(d) or "not both coloured")
+					)
+				end
+			end
+		end
+		h.checkList(res, "team_slot_numbers" .. v, p.numbers)
+		h.checkList(res, "team_slot_borders" .. v, p.borders)
+		h.checkList(res, "team_slot_borders_differ" .. v, apart)
+		h.checkList(res, "team_slot_stamina_bars" .. v, p.bars)
+		h.checkList(res, "team_slot_arrows" .. v, p.arrows)
+		h.checkList(res, "team_slot_text_fits" .. v, p.fit)
+		h.checkList(res, "team_slot_parts_no_overlap" .. v, p.overlap)
+	end
+
+	-- The roster: every shown Badge clear of its category dot; on desktop two rows of eight at the top.
+	local function checkRosterDraft(res)
+		local v = variant()
+		local roster = h.find(T.Roster)
+		local cards, wrong = {}, {}
+		for _, card in roster and roster:GetChildren() or {} do
+			if card:IsA("GuiButton") and shown(card) then
+				table.insert(cards, card)
+				local problem = Spec.Backpack.BadgeDotProblem(card, h.rect, h.visible)
+				if problem then
+					table.insert(wrong, problem)
+				end
+			end
+		end
+		h.checkList(res, "team_roster_badge_clear_of_dot" .. v, wrong)
+		if v ~= "_desktop" or not (roster and roster:IsA("ScrollingFrame")) then
+			return
+		end
+		roster.CanvasPosition = Vector2.zero
+		task.wait(0.1)
+		local rr, rows, tops = h.rect(roster), {}, {}
+		for _, card in cards do
+			local r = h.rect(card)
+			if inside(rr, r) then
+				local y = math.floor(r.y + 0.5)
+				if not rows[y] then
+					rows[y] = 0
+					table.insert(tops, y)
+				end
+				rows[y] += 1
+			end
+		end
+		table.sort(tops)
+		local first = tops[1] and rows[tops[1]] or 0
+		h.check(res, "team_roster_first_row_cards_desktop", first, ">= " .. ROW_CARDS, first >= ROW_CARDS)
+		h.check(res, "team_roster_rows_shown_desktop", #tops, ">= " .. ROWS, #tops >= ROWS)
+	end
+
 	function scenarios.ui_team(res)
 		h.waitGuis()
 		checkButton(res)
@@ -480,6 +705,8 @@ function Module.Build(h)
 				return #rosterProblems({ ids[1], ids[2] }) == 0
 			end, true)
 			h.checkList(res, "team_ab_roster", wrong and {} or rosterProblems({ ids[1], ids[2] }))
+			checkSlotCards(res, { ids[1], ids[2] }) -- slot 3 empty
+			checkRosterDraft(res)
 			setup(res, "team_states_clear")
 		end
 		restore()
