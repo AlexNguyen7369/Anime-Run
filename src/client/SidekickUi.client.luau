@@ -704,6 +704,7 @@ local function requestSummon(count, free)
 		return
 	end
 	busy = true
+	gui:SetAttribute("Summoning", true) -- SidekickTutorial waits on it from the request to the reveal's end
 	lastAuto = os.clock()
 	local ok, done, results = pcall(function()
 		if free then
@@ -713,6 +714,7 @@ local function requestSummon(count, free)
 	end)
 	if not (ok and done == true and type(results) == "table") then
 		busy = false
+		gui:SetAttribute("Summoning", nil)
 		setAuto(false)
 		toast(ok and tostring(results or "Summon unavailable") or "Connection error. Please try again.")
 		return
@@ -728,6 +730,7 @@ local function requestSummon(count, free)
 			PanelSwitch.Action("Sidekicks")
 			setAuto(continueAuto)
 		end
+		gui:SetAttribute("Summoning", nil)
 		refresh()
 	end)
 	refresh()
