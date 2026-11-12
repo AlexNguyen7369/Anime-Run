@@ -112,6 +112,8 @@ function BossColosseum.Build(mine, kit, Arena)
 	local RUBBLE, RUBBLE2 = look("A07A55", Sand), look("7D6047", Sand)
 	local FLAME = look("FFB060", Enum.Material.Neon)
 
+	-- The vault's room is dark (BiomeEnvironment's VAULT profile): its torches carry the light, so they reach further and brighter.
+	local torchRange, torchBrightness = vault and 70 or TORCH_RANGE, vault and 3.5 or TORCH_BRIGHTNESS
 	local y, center = Arena.Y, Arena.Center
 	local inner, width = Arena.InnerRadius, Arena.Width
 	local outer, wall, wallTop = inner + width, Arena.WallRadius, Arena.WallHeight
@@ -348,8 +350,8 @@ function BossColosseum.Build(mine, kit, Arena)
 					addPart("WallTorch", Vector3.new(1.2, 1.6, 1.2), at * CFrame.new(wall - 2.6, 26.6, 0), FLAME)
 				local light = Instance.new("PointLight")
 				light.Color = Color3.fromRGB(255, 158, 64)
-				light.Range = TORCH_RANGE
-				light.Brightness = TORCH_BRIGHTNESS
+				light.Range = torchRange
+				light.Brightness = torchBrightness
 				light.Shadows = false
 				light.Parent = torch
 			elseif free[k] ~= nextFree then
@@ -382,8 +384,8 @@ function BossColosseum.Build(mine, kit, Arena)
 		local torch = addPart("Torch", Vector3.new(1, 1.6, 1), at * CFrame.new(wall - 3.6, 25, 0), FLAME)
 		local light = Instance.new("PointLight")
 		light.Color = Color3.fromRGB(255, 170, 90)
-		light.Range = TORCH_RANGE
-		light.Brightness = TORCH_BRIGHTNESS
+		light.Range = torchRange
+		light.Brightness = torchBrightness
 		light.Shadows = false
 		light.Parent = torch
 	end
@@ -468,13 +470,21 @@ function BossColosseum.Build(mine, kit, Arena)
 	end
 
 	if vault then
+		-- The vault's own props below are grouped in a Folder "Vault" once built (the shell's parts stay flat under the folder).
+		local shell = {}
+		for _, child in mine:GetChildren() do
+			shell[child] = true
+		end
 		-- The centre: a round stepped stone dais with the gold heap he stands on, a chest and two swords in it ------------------
 		if not pace(mine) then
 			return false
 		end
 		disc("DaisStep", y + 2.4, 2.4, 27, PALE)
 		disc("DaisStep", y + 4.8, 2.4, 22, PALE2)
-		heap("GoldHeap", CFrame.new(center.X, y + MOUND_TOP - 8, center.Z), 19, 16)
+		local goldHeap = heap("GoldHeap", CFrame.new(center.X, y + MOUND_TOP - 8, center.Z), 19, 16)
+		local glow = Instance.new("PointLight") -- the heap's warm glow: he and the centre read in the dark room
+		glow.Color, glow.Range, glow.Brightness, glow.Shadows = Color3.fromRGB(255, 200, 110), 80, 1.5, false
+		glow.Parent = goldHeap
 		chest(ringFrame(math.rad(30)) * CFrame.new(13, 10.5, 0), true)
 		weapon(ringFrame(math.rad(195)) * CFrame.new(14, 9.5, 0), 0.35, false, 1.3)
 		weapon(ringFrame(math.rad(320)) * CFrame.new(15.5, 8.5, 0), -0.3, false, 1.2)
@@ -507,12 +517,18 @@ function BossColosseum.Build(mine, kit, Arena)
 			)
 			chest(at * CFrame.new(MOUND_RADIUS - 2.5, 1.8, -9) * CFrame.Angles(0, a + 1.2, 0), false)
 		end
+		local group = Instance.new("Folder")
+		group.Name = "Vault"
 		local count = 0
 		for _, child in mine:GetChildren() do
 			if child:IsA("BasePart") then
 				count += 1
+				if not shell[child] then
+					child.Parent = group
+				end
 			end
 		end
+		group.Parent = mine
 		mine:SetAttribute("PartCount", count) -- the measured number, for the Studio verify
 		return true
 	end

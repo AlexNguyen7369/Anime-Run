@@ -11,6 +11,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
+local BossKingPoses = require(Shared.BossKingPoses)
 local BossMagePoses = require(Shared.BossMagePoses)
 local BossRagaPoses = require(Shared.BossRagaPoses)
 local RunnerFactory = require(Shared.RunnerFactory)
@@ -171,7 +172,12 @@ local function startBoss()
 	root.Parent = ReplicatedStorage
 	task.spawn(function()
 		for name, bind in
-			{ boss_raga = BossRagaPoses.Bind, boss_mage = BossMagePoses.Bind, boss_golem = BossMagePoses.GolemBind }
+			{
+				boss_raga = BossRagaPoses.Bind,
+				boss_mage = BossMagePoses.Bind,
+				boss_golem = BossMagePoses.GolemBind,
+				boss_king = BossKingPoses.Bind,
+			}
 		do
 			local art = SidekickArt[name]
 			if art and art.BossModel then

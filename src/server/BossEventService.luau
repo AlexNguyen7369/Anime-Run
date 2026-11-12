@@ -175,11 +175,10 @@ local function crushedCount(member, at)
 	return count, latest
 end
 
--- A Self status (on the boss, BOSS_EVENT_SPEC "The Golden King": Fortified) holds while the last moment at or before t is its
--- move's event; the next moment, the following move's start event, ends it. 1 or 0 stacks, read off the schedule. Pure.
+-- A Self status (on the boss, BOSS_EVENT_SPEC "The Golden King": Fortified) holds while the last event at or before t is its
+-- move's event; the next event, the following move's "<move>_start" opener, ends it. 1 or 0 stacks, read off the schedule. Pure.
 local function selfStacks(status, t, boss)
-	local index = indexAt(t, boss)
-	return index > 0 and select(2, BossDodge.Moment(index, boss)) == status.Event and 1 or 0
+	return BossDodge.EventAtOrBefore(t + TIME_EPSILON - Cfg.IntroSeconds, boss) == status.Event and 1 or 0
 end
 
 -- The Self status holding at t, nil with none.
@@ -216,13 +215,16 @@ end
 
 BossEventService.Hooks = {
 	-- What the running stacks leave of a hit, `spared` the member's dodged moments, boss nil for Big Raga, `crushes` the running
-	-- stacks of a Minion status (nil: none). A Self status (Fortified, x 0.6) cuts every player's hit while it holds. Pure.
+	-- stacks of a Minion status (nil: none). A Self status (Fortified, x 0.6) cuts every player's hit while the running event holds
+	-- it (event.Fortified, set off the schedule in the tick): his schedule alone cuts nothing. Pure otherwise.
 	DamageMulti = function(t, spared, stage, boss, crushes)
 		local multi = 1
 		for _, status in BossCatalog.Get(boss).Statuses do
 			local stacks = if status.Minion
 				then crushes or 0
-				elseif status.Self then selfStacks(status, t, boss)
+				elseif status.Self then (event and event.Fortified and event.Boss.Id == BossCatalog.Get(boss).Id)
+						and 1
+					or 0
 				else stacksAt(status, t, spared, stage, boss)
 			multi *= (1 - status.Cut) ^ stacks
 		end

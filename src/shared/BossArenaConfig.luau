@@ -100,6 +100,9 @@ build(colosseum)
 -- The Golden King's vault (BOSS_EVENT_SPEC "The Golden King"): the colosseum shell, ring and cap unchanged, dressed as a vault.
 local vault = table.clone(colosseum)
 vault.Dressing = "vault"
+vault.HoverY = 0 -- he stands on the dais (owner 2026-11-11: no hover, no bob)
+vault.BobStuds = 0
+vault.BossTotalHeight = vault.BossHeight
 
 -- "boss_mage": the colosseum; "boss_king": the vault; anything else: this module, the sky arena.
 function BossArenaConfig.For(bossId)
