@@ -565,7 +565,9 @@ function ItemMenu.OpenChest(id, anchor)
 			row.Rarity ~= "Secret" and SidekickView.RarityColor(row.Rarity) or nil, -- Secret's black would not read here
 		}
 	end
-	table.insert(lines, { ("Big Raga %g%%"):format(chest.SidekickChance * 100) })
+	if chest.SidekickChance > 0 then
+		table.insert(lines, { ("Big Raga %g%%"):format(chest.SidekickChance * 100) })
+	end
 	for order, line in lines do
 		caption(mg, "Row" .. order, menuOdds, {
 			LayoutOrder = order,

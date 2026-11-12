@@ -3,25 +3,28 @@
 # Ledger: tools/blender/relic_art_assets.json (name -> Hash, Decal, Image). A name already resolved there is skipped, even if its
 # PNG has changed; delete its row to upload again. Writes no Luau: the ids are wired by hand.
 #   python3 tools/blender/portrait/upload_relic_art.py [<name> ...]
-# With no names: the 5 relic_* images. Chests go up only when named. ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required.
+# With no names: Big Raga's 5 relic_* images. The Elf Mage's art and chests go up only when named (relic_staff has none: it
+# reuses the Dodge bar's StaffIcon). ROBLOX_OPEN_CLOUD_KEY + ROBLOX_CREATOR_ID required.
 import hashlib
 import json
 import os
 import sys
 
-RELICS = ("relic_talisman", "relic_nail", "relic_finger", "relic_eyes", "relic_world_core")
-CHESTS = ("chest_raga", "chest_adapted")
+RAGA_RELICS = ("relic_talisman", "relic_nail", "relic_finger", "relic_eyes", "relic_world_core")
+RELICS = RAGA_RELICS + ("relic_helmet", "relic_bracelet", "relic_flask", "relic_grimoire")  # + The Elf Mage's (owner 2026-11-11)
+CHESTS = ("chest_raga", "chest_adapted", "chest_mage")
 
 
 def names_from(args):
 	unknown = [name for name in args if name not in RELICS + CHESTS]
 	if unknown:
 		raise SystemExit(f"unknown art names: {unknown}")
-	return list(dict.fromkeys(args)) or list(RELICS)
+	return list(dict.fromkeys(args)) or list(RAGA_RELICS)
 
 
 def main():
-	assert names_from([]) == list(RELICS) and names_from(["chest_raga", "chest_raga"]) == ["chest_raga"]
+	assert names_from([]) == list(RAGA_RELICS) and names_from(["chest_raga", "chest_raga"]) == ["chest_raga"]
+	assert names_from(["relic_grimoire", "chest_mage"]) == ["relic_grimoire", "chest_mage"] and "relic_staff" not in RELICS
 	names = names_from(sys.argv[1:])
 	for key in ("ROBLOX_OPEN_CLOUD_KEY", "ROBLOX_CREATOR_ID"):
 		if key not in os.environ:

@@ -21,6 +21,7 @@ BossDodge.HitText = {
 	Lightning = "You were struck by her lightning", -- proposed
 	Barrage = "You were blasted by her barrage", -- proposed
 	Slam = "The golem crushed you", -- proposed
+	Sweep = "The golem swept you", -- proposed
 }
 BossDodge.DodgeText = "Nice Dodge!"
 BossDodge.StarArt = "rbxassetid://103522228947626" -- assets/ui/dodge_star.png
@@ -55,9 +56,10 @@ local function scan(Poses)
 	return { List = list, Events = events, Cycle = Poses.CycleSeconds }
 end
 
-local schedules = {}
+local schedules, poses = {}, {}
 for _, id in BossCatalog.Order do
-	schedules[id] = scan(require(script.Parent[BossCatalog.Get(id).Poses]))
+	poses[id] = require(script.Parent[BossCatalog.Get(id).Poses])
+	schedules[id] = scan(poses[id])
 end
 
 -- boss: an id, nil for Big Raga.
@@ -98,6 +100,30 @@ function BossDodge.IndexAtOrBefore(since, boss)
 		count += row.At <= inCycle and 1 or 0
 	end
 	return cycles * #list + count
+end
+
+-- The golem slot of the boss's cycle (s after the intro, in its first cycle) and the cycle's length; nil for a boss without one.
+function BossDodge.Slot(boss)
+	local Poses = poses[BossCatalog.Get(boss).Id]
+	if Poses.GolemSlotAt then
+		return Poses.GolemSlotAt, Poses.CycleSeconds
+	end
+	return nil
+end
+
+-- Golem attack k (from 1, per golem) -> its time in s since BossMinionStart and its event name.
+function BossDodge.MinionMoment(k, boss)
+	return poses[BossCatalog.Get(boss).Id].GolemHit(k)
+end
+
+-- The number of the last golem attack at or before `tau` s since BossMinionStart, 0 if none.
+function BossDodge.MinionIndexAtOrBefore(tau, boss)
+	local Poses = poses[BossCatalog.Get(boss).Id]
+	local since = math.round((tau - Poses.GolemFirstHit) * 1000) / 1000
+	if since < 0 then
+		return 0
+	end
+	return math.floor(since / Poses.GolemEvery) + 1
 end
 
 -- Where the spot's centre sits on the bar for this player and moment, 0 to 1.

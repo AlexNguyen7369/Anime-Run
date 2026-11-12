@@ -183,6 +183,9 @@ UiScenarios.Names = {
 	"ui_boss_osu",
 	"ui_boss_mage_rewards",
 	"ui_boss_mage_vfx",
+	-- The Stone Golem's bar and the Bosses cards (UiBossMage; BOSS_EVENT_SPEC "The Elf Mage", "Bosses cards")
+	"ui_boss_golem",
+	"ui_boss_cards",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
@@ -8607,6 +8610,7 @@ end
 -- The Elf Mage, the second boss (UiBossMage; design doc 4.37 "Second boss"). No new local: K.bossMage.
 K.bossMage = require(script.Parent.UiBossMage).Build({
 	check = check,
+	checkList = checkList,
 	find = findPath,
 	visible = effectivelyVisible,
 	rect = realRect,

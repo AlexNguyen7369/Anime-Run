@@ -2,10 +2,15 @@
 -- The Elf Mage's effects (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"). Visual only: nothing here reads
 -- back into damage. Timed from BossMagePoses, which server time alone decides, and built with Client/BossVfx's helpers (BossVfx.Kit)
 -- in the arena's BossEffects folder. Each move has a lead cue before its event: lightning marks its floor spots 1.0 s ahead, the golem
--- gathers motes from 2.0 s of its move, the barrage opens its magic circles 1.2 s ahead. Spots come from a seed of the schedule
+-- gathers motes 2.2 s before each slam, the barrage opens its magic circles 1.2 s ahead. Spots come from a seed of the schedule
 -- start and the cycle, so every client draws the same ones. All sizes, counts and colours are placeholders to judge from a capture.
--- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Lightning, Slam or Barrage plays
--- that event with its lead cue at once.
+-- Lightning and barrage spam the whole arena over the move's 2 s Window (owner 2026-11-11, BOSS_EVENT_SPEC "Strike window"): a
+-- strike every 0.15 s, 14 strikes, 7 to 10 bolts or beams each (3 under REDUCED EFFECTS), a mark leading each bolt. Bolt, beam and
+-- flash parts are pooled and short-lived. The golem's events run on its own move (BossMagePoses.GolemAt while a golem stands),
+-- tracked apart from hers. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes = { { T, Spots = { {x, z} } } } }.
+-- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Lightning, Slam, Sweep or Barrage
+-- plays that event with its lead cue at once.
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -23,7 +28,7 @@ local sequence = Kit.sequence
 local FORCE = "BossVfxForce"
 local NEON = Enum.Material.Neon
 local WHITE = Color3.new(1, 1, 1)
-local VIOLET, PURPLE = Color3.fromRGB(176, 84, 255), Color3.fromRGB(110, 36, 220)
+local VIOLET = Color3.fromRGB(176, 84, 255)
 local ICE, BLUE = Color3.fromRGB(205, 232, 255), Color3.fromRGB(90, 150, 255) -- the barrage's white and blue
 local DUST = Color3.fromRGB(196, 158, 116) -- the colosseum's ochre stone
 
@@ -32,12 +37,15 @@ local function eventTime(move)
 end
 local LIGHTNING_AT, SLAM_AT, BARRAGE_AT = eventTime("lightning"), eventTime("golem"), eventTime("barrage")
 local MARK_LEAD, GATHER_FROM, CIRCLE_LEAD = 1.0, 2.0, 1.2
-local STRIKES, STRIKES_REDUCED = 10, 4 -- bolts; the marks stay all 10 under REDUCED EFFECTS: they are the telegraph
+local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- owner 2026-11-11: 0, 0.15, ... 1.95 s of the 2 s window
+local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3 -- bolts or beams per strike (reduced: proposed)
+local BARRAGE_WINDOW = Poses.Moves.barrage.Window[2] - Poses.Moves.barrage.Window[1]
+local SWEEP_PUFFS, SWEEP_PUFFS_REDUCED = 9, 3
 local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
-local BOLT_KINKS = 4
+local BOLT_KINKS = 3
 local CIRCLES, CIRCLES_REDUCED = 6, 3
 local CIRCLE_SIZES = { 24, 16, 10 } -- studs across: 3 sizes, as the rules ask
-local SPOT_MIN, SPOT_MAX = Arena.InnerRadius + 3, Arena.InnerRadius + Arena.Width - 3 -- over the lanes
+local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
 local SALT = { Lightning = 1, Barrage = 2 }
 local STAFF_TIP = Vector3.new(Poses.Bind.Staff.Tip[1], Poses.Bind.Staff.Tip[2], Poses.Bind.Staff.Tip[3])
 
@@ -46,7 +54,9 @@ local BossMageVfx = {}
 local effects, mage = nil, nil
 local tracked = {} -- part -> function giving its CFrame each frame
 local circles = {} -- the barrage's open circles, its beams' origins
+local pool = {} -- idle pooled parts (Transparency 1) in this arena's folder
 local previousMove, previousTime = nil, nil
+local previousGolem, previousGolemTime = nil, nil
 
 local function reduced()
 	return UiMotion.Reduced()
@@ -61,26 +71,87 @@ local function rngFor(name)
 	return rng
 end
 
-local function spots(name, count)
-	local rng, list = rngFor(name), {}
-	for k = 1, count do
-		local a, r = rng:NextNumber(0, 2 * math.pi), rng:NextNumber(SPOT_MIN, SPOT_MAX)
-		list[k] = Vector3.new(Arena.Center.X + r * math.cos(a), Arena.Y + 0.15, Arena.Center.Z - r * math.sin(a))
+-- The move's strikes: { T, Spots } for each of the 14, T seconds after the window starts. Every strike takes all its draws, so
+-- REDUCED EFFECTS keeps the same spots, only fewer of them. Spots are area-uniform over the room's floor.
+local function plan(name)
+	local rng, few, list = rngFor(name), reduced(), {}
+	for j = 1, STRIKE_COUNT do
+		local n = few and PER_STRIKE_REDUCED or rng:NextInteger(PER_STRIKE_MIN, PER_STRIKE_MAX)
+		local spots = {}
+		for k = 1, PER_STRIKE_MAX do
+			local a, r = rng:NextNumber(0, 2 * math.pi), SPOT_MAX * math.sqrt(rng:NextNumber())
+			if k <= n then
+				spots[k] =
+					Vector3.new(Arena.Center.X + r * math.cos(a), Arena.Y + 0.15, Arena.Center.Z - r * math.sin(a))
+			end
+		end
+		list[j] = { T = STRIKE_EVERY * (j - 1), Spots = spots }
 	end
 	return list, rng
+end
+
+local function logStrikes(name, list)
+	local rows = {}
+	for j, strike in list do
+		local spots = {}
+		for k, at in strike.Spots do
+			spots[k] = { math.floor(at.X * 10 + 0.5) / 10, math.floor(at.Z * 10 + 0.5) / 10 }
+		end
+		rows[j] = { T = strike.T, Spots = spots }
+	end
+	effects:SetAttribute("LastStrikes", HttpService:JSONEncode({ Move = name, Strikes = rows }))
+end
+
+-- A Neon part from the pool (or a new one), back to the pool `seconds` later. Parts the folder lost are dropped.
+local function pooled(name, cframe, size, color, transparency, seconds)
+	local part = table.remove(pool)
+	while part and part.Parent ~= effects do
+		part = table.remove(pool)
+	end
+	if part then
+		part.Name, part.CFrame, part.Size = name, cframe, size
+	else
+		part = Kit.holder(name, cframe, size)
+		part.Material = NEON
+	end
+	part.Color, part.Transparency = color, transparency
+	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	task.delay(seconds + 0.03, function()
+		if part.Parent == effects then
+			part.Name, part.Transparency = "Pooled", 1
+			table.insert(pool, part)
+		end
+	end)
+	return part
+end
+
+-- Plays `play` seconds from now while this arena's effects last, adding its particles to the event's count.
+local function later(seconds, play)
+	local mine = effects
+	task.delay(seconds, function()
+		if mine and effects == mine then
+			mine:SetAttribute("LastParticles", (mine:GetAttribute("LastParticles") or 0) + play())
+		end
+	end)
 end
 
 -- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
 local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds)
 	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	local outer = Kit.holder(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5))
-	outer.Material, outer.Color, outer.Transparency = NEON, sheathColor, 0.4
-	local inner = Kit.holder(name .. "Core", frame, Vector3.new(core, core, length + core))
-	inner.Material, inner.Color, inner.Transparency = NEON, coreColor, 0
-	Kit.tween(outer, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	Kit.tween(inner, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	Kit.expire(outer, seconds + 0.05)
-	Kit.expire(inner, seconds + 0.05)
+	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.4, seconds)
+	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
+end
+
+-- A flat glowing disc where a bolt or beam lands.
+local function flash(at, color, size, seconds)
+	pooled(
+		"StrikeFlash",
+		CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2),
+		Vector3.new(0.2, size, size),
+		color,
+		0.1,
+		seconds
+	)
 end
 
 -- A short flash of light for the room: few lights, so the interior stays cheap at quality 1.
@@ -93,58 +164,18 @@ local function roomLight(position, color, brightness, seconds)
 	Kit.expire(spot, seconds + 0.05)
 end
 
-local function flare(spot, color, size, count)
-	return Kit.burst(
-		Kit.emitter(spot, {
-			Name = "Flash",
-			Texture = Art.Flare,
-			Color = ColorSequence.new(WHITE, color),
-			LightEmission = 1,
-			Size = sequence(0, size * 0.6, 0.3, size, 1, size * 0.8),
-			Transparency = sequence(0, 0, 1, 1),
-			Lifetime = NumberRange.new(0.15, 0.3),
-			Rotation = NumberRange.new(0, 360),
-			Speed = NumberRange.new(0),
-			ZOffset = 2,
-		}),
-		count
-	)
-end
-
-local function sparks(spot, color, speed, count)
-	return Kit.burst(
-		Kit.emitter(spot, {
-			Name = "Sparks",
-			Texture = Art.Spark,
-			Color = ColorSequence.new(WHITE, color),
-			LightEmission = 1,
-			Orientation = Enum.ParticleOrientation.VelocityParallel,
-			EmissionDirection = Enum.NormalId.Top,
-			SpreadAngle = Vector2.new(70, 70),
-			Size = sequence(0, 2.5, 1, 0.3),
-			Lifetime = NumberRange.new(0.25, 0.5),
-			Speed = NumberRange.new(speed * 0.5, speed),
-			Drag = 2,
-			Acceleration = Vector3.new(0, -60, 0),
-		}),
-		count
-	)
-end
-
 -- Lightning --------------------------------------------------------------------------------------------------------------------
 
--- 1.0 s ahead: a purple ring closing in on a white core at every strike spot.
+-- 1.0 s ahead of each bolt: a purple ring closing in on its spot (one part each: there are up to 140).
 local function playMarks()
-	for _, at in spots("Lightning", STRIKES) do
-		local rim = Kit.holder("StrikeMark", CFrame.new(at), Vector3.new(22, 0.2, 22))
-		Kit.decal(rim, Art.Ring, VIOLET, Enum.NormalId.Top)
-		Kit.tween(rim, MARK_LEAD, { Size = Vector3.new(11, 0.2, 11) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-		Kit.expire(rim, MARK_LEAD + 0.15)
-		local core =
-			Kit.holder("StrikeCore", CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2), Vector3.new(0.12, 2, 2))
-		core.Shape, core.Material, core.Color, core.Transparency = Enum.PartType.Cylinder, NEON, WHITE, 0.15
-		Kit.tween(core, MARK_LEAD, { Size = Vector3.new(0.12, 7, 7) }, Enum.EasingStyle.Sine)
-		Kit.expire(core, MARK_LEAD + 0.15)
+	for _, strike in plan("Lightning") do
+		local lead = MARK_LEAD + strike.T
+		for _, at in strike.Spots do
+			local rim = Kit.holder("StrikeMark", CFrame.new(at), Vector3.new(16, 0.2, 16))
+			Kit.decal(rim, Art.Ring, VIOLET, Enum.NormalId.Top)
+			Kit.tween(rim, lead, { Size = Vector3.new(7, 0.2, 7) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			Kit.expire(rim, lead + 0.15)
+		end
 	end
 	return 0
 end
@@ -152,34 +183,37 @@ end
 local function playLightning()
 	-- cue: MageLightning (a crack of thunder)
 	local few = reduced()
-	local list, rng = spots("Lightning", STRIKES)
-	local total = 0
-	for k, at in list do
-		if k <= (few and STRIKES_REDUCED or STRIKES) then
-			local points = { at + Vector3.new(rng:NextNumber(-14, 14), BOLT_TOP, rng:NextNumber(-14, 14)) }
+	local list, rng = plan("Lightning")
+	logStrikes("Lightning", list)
+	for _, strike in list do
+		local bolts = {}
+		for k, at in strike.Spots do
+			local points = { at + Vector3.new(rng:NextNumber(-10, 10), BOLT_TOP, rng:NextNumber(-10, 10)) }
 			for i = 1, BOLT_KINKS - 1 do
 				local p = points[1]:Lerp(at, i / BOLT_KINKS)
-				table.insert(points, p + Vector3.new(rng:NextNumber(-7, 7), 0, rng:NextNumber(-7, 7)))
+				table.insert(points, p + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-6, 6)))
 			end
 			table.insert(points, at)
-			for i = 1, #points - 1 do
-				streak("Bolt", points[i], points[i + 1], 1.4, 4.5, WHITE, VIOLET, 0.35)
+			bolts[k] = points
+		end
+		later(strike.T, function()
+			for _, points in bolts do
+				for i = 1, #points - 1 do
+					streak("Bolt", points[i], points[i + 1], 1.1, 3.5, WHITE, VIOLET, 0.22)
+				end
+				flash(points[#points], VIOLET, 10, 0.3)
 			end
-		end
-		if not few then
-			local spot = Kit.holder("StrikeSpot", CFrame.new(at), Vector3.new(6, 1, 6))
-			Kit.expire(spot, 1)
-			total += flare(spot, VIOLET, 26, 1)
-			total += sparks(spot, PURPLE, 70, 5)
-			Kit.growingRing("StrikeRing", CFrame.new(at), 6, 26, 0.45, VIOLET, 0, Kit.FlatFaces)
-		end
+			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, few and 1 or 2.5, 0.2)
+			if not few then
+				Kit.shakeAt(Arena.Center, 0.12, 20, 0.15)
+			end
+			return 0
+		end)
 	end
-	roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, few and 3 or 8, 0.5)
 	if not few then
-		Kit.regrade({ TintColor = Color3.fromRGB(222, 196, 255), Brightness = 0.06, Contrast = 0.1 }, 0.05, 0.12, 0.55)
+		Kit.regrade({ TintColor = Color3.fromRGB(222, 196, 255), Brightness = 0.06, Contrast = 0.1 }, 0.05, 1.9, 0.55)
 	end
-	Kit.shakeAt(Arena.Center, 0.9, 20, 0.4)
-	return total
+	return 0
 end
 
 -- Golem --------------------------------------------------------------------------------------------------------------------------
@@ -273,9 +307,30 @@ local function playSlam()
 	return total
 end
 
+-- The sweep: the slam's dust rings in a 120 degree arc along the lanes' middle, centred on the golem, swept out one by one.
+local function playSweep()
+	-- cue: GolemSweep (a grinding rush)
+	local few = reduced()
+	local torso = mage:GolemFrame("Torso").Position - Arena.Center
+	local facing = math.atan2(-torso.Z, torso.X) -- as spots(): x = cos, z = -sin
+	local radius = Arena.InnerRadius + Arena.Width / 2
+	local count = few and SWEEP_PUFFS_REDUCED or SWEEP_PUFFS
+	for i = 0, count - 1 do
+		local a = facing + math.rad(-60 + 120 * i / (count - 1))
+		local at =
+			Vector3.new(Arena.Center.X + radius * math.cos(a), Arena.Y + 0.3, Arena.Center.Z - radius * math.sin(a))
+		Kit.expire(Kit.holder("SweepDust", CFrame.new(at), Vector3.new(20, 1, 20)), 0.04 * i + 1.5)
+		Kit.growingRing("SweepDust", CFrame.new(at), 8, 26, 1.0, DUST, 0.04 * i, Kit.FlatFaces)
+	end
+	if not few then
+		Kit.shakeAt(Arena.Center, 1.2, 20, 0.5)
+	end
+	return 0
+end
+
 -- Barrage ------------------------------------------------------------------------------------------------------------------------
 
--- 1.2 s ahead: magic circles of 3 sizes open in a fan around her, facing out, turning, riding her bob.
+-- 1.2 s ahead, held over the window: magic circles of 3 sizes open in a fan around her, facing out, turning, riding her bob.
 local function playCircles()
 	local few = reduced()
 	table.clear(circles)
@@ -296,11 +351,11 @@ local function playCircles()
 		local front = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Front)
 		local back = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Back)
 		Kit.tween(part, 0.35, { Size = Vector3.new(size, size, 0.2) }, Enum.EasingStyle.Back)
-		task.delay(CIRCLE_LEAD + 0.25, function()
+		task.delay(CIRCLE_LEAD + BARRAGE_WINDOW + 0.25, function()
 			Kit.tween(front, 0.3, { Transparency = 1 })
 			Kit.tween(back, 0.3, { Transparency = 1 })
 		end)
-		Kit.expire(part, CIRCLE_LEAD + 0.6)
+		Kit.expire(part, CIRCLE_LEAD + BARRAGE_WINDOW + 0.6)
 		circles[k] = part
 	end
 	return 0
@@ -309,34 +364,37 @@ end
 local function playBarrage()
 	-- cue: MageBarrage (a volley of zaps)
 	local few = reduced()
-	local count = few and CIRCLES_REDUCED or CIRCLES
-	local targets = spots("Barrage", count)
-	local total = 0
-	for k, target in targets do
-		local circle = circles[k]
-		local from = circle and circle.Parent and circle.Position or mage:Point("Staff", STAFF_TIP)
-		streak("BarrageBeam", from, target, 1.6, 5, WHITE, k % 2 == 0 and BLUE or ICE, 0.45)
-		if not few then
-			local spot = Kit.holder("BarrageHit", CFrame.new(target), Vector3.new(6, 1, 6))
-			Kit.expire(spot, 1)
-			total += flare(spot, BLUE, 22, 1)
-			total += sparks(spot, BLUE, 60, 4)
-			Kit.growingRing("BarrageRing", CFrame.new(target), 4, 20, 0.4, ICE, 0, Kit.FlatFaces)
-		end
+	local list = plan("Barrage")
+	logStrikes("Barrage", list)
+	for j, strike in list do
+		later(strike.T, function()
+			for k, target in strike.Spots do
+				local circle = #circles > 0 and circles[(j + k - 2) % #circles + 1]
+				local from = circle and circle.Parent and circle.Position or mage:Point("Staff", STAFF_TIP)
+				streak("BarrageBeam", from, target, 1.2, 3.6, WHITE, k % 2 == 0 and BLUE or ICE, 0.25)
+				flash(target, BLUE, 9, 0.3)
+			end
+			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), BLUE, few and 1 or 2, 0.2)
+			if not few then
+				Kit.shakeAt(Arena.Center, 0.1, 18, 0.15)
+			end
+			return 0
+		end)
 	end
-	roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), BLUE, few and 2 or 5, 0.45)
-	Kit.shakeAt(Arena.Center, 0.9, 18, 0.35)
-	return total
+	return 0
 end
 
 -- Runs ---------------------------------------------------------------------------------------------------------------------------
 
-local EVENTS = { Lightning = playLightning, Slam = playSlam, Barrage = playBarrage }
+local EVENTS = { Lightning = playLightning, Slam = playSlam, Sweep = playSweep, Barrage = playBarrage }
 local LEADS = { Lightning = playMarks, Slam = playGather, Barrage = playCircles }
 local TIMED = {
 	lightning = { { LIGHTNING_AT - MARK_LEAD, playMarks } },
-	golem = { { GATHER_FROM, playGather } },
 	barrage = { { BARRAGE_AT - CIRCLE_LEAD, playCircles } },
+}
+local GOLEM_TIMED = {
+	golem = { { GATHER_FROM, playGather } },
+	golem_slam = { { 0.6, playGather } }, -- the slam track's lead: its own 2.2 s wind-up, as the golem move's
 }
 
 local function playEvent(name)
@@ -346,23 +404,51 @@ local function playEvent(name)
 	end
 end
 
-local function fireBetween(move, from, to)
-	for _, row in TIMED[move] or {} do
+local function fireRows(timed, events, from, to)
+	for _, row in timed or {} do
 		if row[1] > from and row[1] <= to then
 			row[2]()
 		end
 	end
-	for _, event in Poses.Moves[move].Events do
+	for _, event in events do
 		if event.Time > from and event.Time <= to then
 			playEvent(event.Name)
 		end
 	end
 end
 
+-- Her move's cues; the golem move's events are the golem tracker's.
+local function fireHer(move, from, to)
+	if move ~= "golem" then
+		fireRows(TIMED[move], Poses.Moves[move].Events, from, to)
+	end
+end
+
+-- Only moves with golem frames: with no golem standing the golem tracker follows her move.
+local function fireGolem(move, from, to)
+	local row = Poses.Moves[move] or Poses.GolemMoves[move]
+	if row and row.Golem then
+		fireRows(GOLEM_TIMED[move], row.Events, from, to)
+	end
+end
+
+-- Fires what one tracker's move passed since its last frame.
+local function advance(fire, move, t, lastMove, lastTime)
+	if move == lastMove and lastTime and t > lastTime then
+		if t - lastTime < 0.5 then -- a long hitch skips its effects rather than playing them late
+			fire(move, lastTime, t)
+		end
+	elseif move ~= lastMove and lastMove and t < 0.5 then
+		fire(move, -1, t)
+	end
+end
+
 local function clear()
+	table.clear(pool)
 	table.clear(tracked)
 	table.clear(circles)
 	previousMove, previousTime = nil, nil
+	previousGolem, previousGolemTime = nil, nil
 end
 
 -- Call with the arena's BossEffects folder and the Client/BossMage.
@@ -378,8 +464,8 @@ function BossMageVfx.Stop()
 	effects, mage = nil, nil
 end
 
--- since: seconds since the spawn, nil before it. move, localTime: BossMagePoses.Schedule's.
-function BossMageVfx.Step(since, move, localTime)
+-- since: seconds since the spawn, nil before it. move, localTime: her move; golemMove, golemTime: the golem's (as Client/BossMage).
+function BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
 	if not effects then
 		return
 	end
@@ -394,15 +480,11 @@ function BossMageVfx.Step(since, move, localTime)
 		return
 	end
 	if since and since >= Event.RiseSeconds then
-		if move == previousMove and previousTime and localTime > previousTime then
-			if localTime - previousTime < 0.5 then -- a long hitch skips its effects rather than playing them late
-				fireBetween(move, previousTime, localTime)
-			end
-		elseif move ~= previousMove and previousMove and localTime < 0.5 then
-			fireBetween(move, -1, localTime)
-		end
+		advance(fireHer, move, localTime, previousMove, previousTime)
+		advance(fireGolem, golemMove, golemTime, previousGolem, previousGolemTime)
 	end
 	previousMove, previousTime = move, localTime
+	previousGolem, previousGolemTime = golemMove, golemTime
 end
 
 -- Deferred: Client/BossVfx's own listener clears the shared folder first.

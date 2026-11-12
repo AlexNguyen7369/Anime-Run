@@ -268,8 +268,8 @@ AdminService.Commands = {
 		Apply = function(p)
 			local added = 0
 			local seen = {} -- a universal Relic sits on every boss's list
-			for _, list in RelicConfig.Bosses do
-				for _, row in list do
+			for _, boss in RelicConfig.Order do
+				for _, row in RelicConfig.Bosses[boss] do
 					if not seen[row.Id] and RelicService.Grant(p, row.Id) then
 						added += 1
 					end

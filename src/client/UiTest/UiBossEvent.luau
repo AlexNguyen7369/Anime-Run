@@ -19,6 +19,7 @@
 --     inside the track and drawn over the Fill.
 --   Boss bar size (owner 2026-11-05): at desktop width at least 60% of the screen and 56 px tall, Value text 28 px, Title text 36 px.
 --     On every screen it stays on screen and clear of HudChrome/TopRight.
+--   DropList hidden for now (owner 2026-11-11, both bosses): never shown during an event; the layout below waits for its return.
 --   DropList layout (owner 2026-11-05): Heading and rows centre aligned, Rule centred and narrower than the rows, its right edge on
 --     the HP bar's right edge and its top just under the bar's bottom, clear of Leave and the bar.
 --   HUD columns (design doc 4.40, owner 2026-11-10): while BossEvent is true HudChrome/Grid and HudChrome/ShopColumn are hidden;
@@ -41,7 +42,7 @@
 --     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
 --     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
 --     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
---     reads "Big Raga is raging right now" and BossAction "Go": with no Sidekick it fires nothing and BossPrompt shows text with
+--     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
 --   A popup's rows draw only while it shows and only a real press opens it, so they are judged after the clicks.
@@ -73,7 +74,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
-local GachaConfig = require(Shared:WaitForChild("GachaConfig"))
 local Spec = require(script.Parent.UiSpec)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
@@ -111,7 +111,8 @@ local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses"
 local WARNING_TEXT = "Big Raga has emerged, take him down!!!"
 local BOSS_NAME = "Big Raga"
 local BUTTON_TEXT = "Bosses"
-local RAGING_TEXT = "Big Raga is raging right now"
+-- Bosses cards (owner 2026-11-11, draft B; BOSS_EVENT_SPEC "Bosses cards"): the live boss's card, with Go on it.
+local LIVE_CARD = "RacerBossEvent/BossesPanel/Cards/Card_boss_raga"
 local TEAM_WARNING_TEXT = "Select a character first"
 local TEAM_WARNING_SECONDS = 1 -- owner 2026-11-05
 local WARNING_SLACK = 0.3 -- s around it
@@ -146,9 +147,6 @@ local BAR_MIN_HEIGHT = 56 -- px
 local BAR_VALUE_MIN_TEXT = 28 -- px
 local BAR_TITLE_MIN_TEXT = 36 -- px
 local BAR_SIZE_MIN_SCREEN = 1280 -- px of width where those sizes are judged
-local DROP_EDGE_SLACK = 2 -- px: its right edge against the HP bar's, owner 2026-11-05
-local DROP_TOP_MAX_GAP = 16 -- px under the HP bar: "just under", placeholder
-local DROP_ROW_MIN_HEIGHT = 16 -- px at desktop: bigger than the old 15
 local TEXT_GONE = 0.9 -- TextTransparency: the flash's out, "fully disappearing"
 local TEXT_SOLID = 0.1 -- and its in
 local STROKE_SHOWS = 0.5 -- stroke transparency at most, while the text shows
@@ -164,7 +162,6 @@ local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
 local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
 local GRID = "HudChrome/Grid"
 local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
-local OUTLINE_MIN_LUMINANCE = 0.5 -- the Big Raga row's outline: "light", against its black text
 
 local Module = {}
 
@@ -470,7 +467,8 @@ function Module.Build(h)
 		local left, dropEarly = warningStays(maxSeconds)
 		check(res, tag .. "_warning_goes_away", left, nil)
 		check(res, tag .. "_drop_hidden_during_warning", dropEarly, false)
-		check(res, tag .. "_drop_shown_after_warning", waitShown(DROP, true), true)
+		-- Owner 2026-11-11: the drop list is hidden for now, so it stays hidden after the Warning too.
+		check(res, tag .. "_drop_stays_hidden_after_warning", waitShown(DROP, true), false)
 	end
 	-- Owner 2026-11-05: centred on the screen on any window, nothing moved aside for the list.
 	local function checkWarningCentred(res, tag)
@@ -1011,7 +1009,8 @@ function Module.Build(h)
 		local stays, dropEarly = warningStays(math.max(left, WARNING_QUIET + 0.1))
 		check(res, "warning_goes_away_by_itself", stays, nil)
 		check(res, "spawn_drop_hidden_during_warning", dropWithWarning or dropEarly, false)
-		check(res, "spawn_drop_shown_after_warning", waitShown(DROP, true), true)
+		-- Owner 2026-11-11: the drop list is hidden for now, so it stays hidden after the Warning too.
+		check(res, "spawn_drop_stays_hidden_after_warning", waitShown(DROP, true), false)
 		check(res, "bar_stays_after_warning", shown(BAR), true)
 		state(res, "Fight", "keep", hp - 1, hp, true, 100)
 		task.wait(0.4)
@@ -1226,78 +1225,19 @@ function Module.Build(h)
 	local function checkDropList(res)
 		local hp = Cfg.HpPerPlayer
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
-		check(res, "drop_shown_in_fight", waitShown(DROP, true), true)
-		local list = h.find(DROP)
-		if not list then
-			return
-		end
+		-- Owner 2026-11-11: the drop list is hidden for now; the odds stay in the Bosses popup's Details.
+		check(res, "drop_hidden_in_fight", waitShown(DROP, true), false)
 		h.player:SetAttribute(
 			"BossStatus",
 			HttpService:JSONEncode({ { Id = "Shouted", EndsAt = workspace:GetServerTimeNow() + 30 } })
 		)
 		task.wait(0.5) -- the bar's pop has ended: its size is judged below
 
-		local heading, rule = list:FindFirstChild("Heading"), list:FindFirstChild("Rule")
-		check(res, "drop_heading", heading and h.visible(heading) and heading.Text, "Drop:")
-		check(res, "drop_rule_shown", rule ~= nil and h.visible(rule), true)
-
-		local odds = RelicConfig.Odds("big_raga")
-		table.sort(odds, function(a, b)
-			return a.Odds > b.Odds
-		end)
-		check(res, "drop_has_relics", #odds > 0, true)
 		check(res, "drop_side_chance_is_config", ("%.3f"):format(RelicConfig.RagaSidekickChance * 100), "0.001")
-		local rowCount = 0
-		for _, child in list:GetChildren() do
-			rowCount += string.sub(child.Name, 1, 4) == "Row_" and 1 or 0
-		end
-		check(res, "drop_row_count", rowCount, #odds + 1)
-		local parts, missing = {}, false
-		local function add(part)
-			missing = missing or part == nil
-			if part then
-				table.insert(parts, part)
-			end
-		end
-		add(heading)
-		add(rule)
-		for _, row in odds do
-			local name = "Row_" .. row.Id
-			local label = list:FindFirstChild(name)
-			check(res, "drop_text_" .. name, label and label.Text, ("%s %s%%"):format(row.Name, tostring(row.Odds)))
-			check(res, "drop_colour_" .. name, label and label.TextColor3, GachaConfig.RARITY_COLORS[row.Rarity])
-			add(label)
-		end
-		local side = list:FindFirstChild("Row_side_raga")
-		check(res, "drop_text_Row_side_raga", side and side.Text, "Big Raga 0.001%")
-		check(res, "drop_colour_Row_side_raga", side and side.TextColor3, Color3.new(0, 0, 0))
-		add(side)
-		if side then
-			local color, stroke = textStroke(side)
-			local light = luminance(color)
-			h.check(res, "drop_outline_light", light, ">= " .. OUTLINE_MIN_LUMINANCE, light >= OUTLINE_MIN_LUMINANCE)
-			h.check(res, "drop_outline_shows", stroke, "<= " .. STROKE_SHOWS, stroke <= STROKE_SHOWS)
-		end
-
-		-- Non-interactive, whatever the implementer nests.
-		local active = {}
-		for _, d in { list, table.unpack(list:GetDescendants()) } do
-			if d:IsA("GuiObject") and d.Active then
-				table.insert(active, d.Name)
-			end
-		end
-		h.checkList(res, "drop_not_active", active)
-
-		if missing then -- its own check above already failed
-			state(res, "Idle", 0, 0, 0, false)
-			h.player:SetAttribute("BossStatus", nil)
-			return
-		end
 		local size = workspace.CurrentCamera.ViewportSize
 		local tag = isDesktop() and "desktop" or "phone"
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }
 		local barRect = h.rect(h.find(BAR))
-		local others = { BossBar = barRect, LeaveButton = h.rect(h.find(LEAVE)) }
 		-- Design doc 4.40 (owner 2026-11-10): both columns hide in the event; TopRight and Auto / Upgrade stay.
 		for _, column in { "Grid", "ShopColumn" } do
 			check(res, "boss_column_hidden_" .. column, waitShown("HudChrome/" .. column, false), false)
@@ -1305,82 +1245,6 @@ function Module.Build(h)
 		for _, keep in { "TopRight", "AutoSlot", "UpgradeSlot" } do
 			check(res, "boss_hud_kept_" .. keep, waitShown("HudChrome/" .. keep, true), true)
 		end
-		local status = h.find(BAR .. "/Status/Status_Shouted")
-		if status then
-			others.Status = h.rect(status)
-		end
-		local crossed, outOfOrder, outside, clipped = {}, {}, {}, {}
-		for i, a in parts do
-			local ra = h.rect(a)
-			if not within(screen, ra) then
-				table.insert(outside, a.Name)
-			end
-			if a:IsA("TextLabel") and not a.TextFits then
-				table.insert(clipped, a.Name)
-			end
-			for name, r in others do
-				if crossing(ra, r) then
-					table.insert(crossed, a.Name .. " x " .. name)
-				end
-			end
-			for j = i + 1, #parts do
-				local b = parts[j]
-				local rb = h.rect(b)
-				if crossing(ra, rb) then
-					table.insert(crossed, a.Name .. " x " .. b.Name)
-				end
-			end
-			local nextPart = parts[i + 1]
-			if nextPart and h.rect(nextPart).y < ra.y + ra.h - Spec.Tolerance then
-				table.insert(outOfOrder, a.Name .. " before " .. nextPart.Name)
-			end
-		end
-		h.checkList(res, "drop_no_overlap_" .. tag, crossed)
-		h.checkList(res, "drop_in_odds_order_" .. tag, outOfOrder)
-		h.checkList(res, "drop_on_screen_" .. tag, outside)
-		h.checkList(res, "drop_text_fits_" .. tag, clipped)
-		local r = h.rect(list)
-		local hpBar = h.rect(barTrack() or h.find(BAR))
-		local barBottom = hpBar.y + hpBar.h
-		h.check(res, "drop_under_bar_" .. tag, r.y, ">= " .. barBottom, r.y >= barBottom - Spec.Tolerance)
-		h.check(
-			res,
-			"drop_just_under_bar_" .. tag,
-			r.y,
-			"<= " .. barBottom + DROP_TOP_MAX_GAP,
-			r.y <= barBottom + DROP_TOP_MAX_GAP
-		)
-		local middle = hpBar.x + hpBar.w / 2
-		h.check(res, "drop_right_side_" .. tag, r.x, ">= " .. middle, r.x >= middle - Spec.Tolerance)
-		local barRight = hpBar.x + hpBar.w
-		local edgeOff = math.abs(r.x + r.w - barRight)
-		h.check(res, "drop_right_edge_on_bar_" .. tag, edgeOff, "<= " .. DROP_EDGE_SLACK, edgeOff <= DROP_EDGE_SLACK)
-		local centre = r.x + r.w / 2
-
-		-- Owner's reference: a centred column, the rule shorter than the rows.
-		local offCentre, leftAligned, small = {}, {}, {}
-		local widestRow = 0
-		for _, part in parts do
-			local partRect = h.rect(part)
-			if math.abs(partRect.x + partRect.w / 2 - centre) > Spec.Tolerance then
-				table.insert(offCentre, part.Name)
-			end
-			if part:IsA("TextLabel") and part.TextXAlignment ~= Enum.TextXAlignment.Center then
-				table.insert(leftAligned, part.Name)
-			end
-			if string.sub(part.Name, 1, 4) == "Row_" then
-				widestRow = math.max(widestRow, partRect.w)
-				if isDesktop() and partRect.h < DROP_ROW_MIN_HEIGHT then
-					table.insert(small, part.Name)
-				end
-			end
-		end
-		h.checkList(res, "drop_centred_" .. tag, offCentre)
-		h.checkList(res, "drop_centre_aligned_" .. tag, leftAligned)
-		h.checkList(res, "drop_rows_bigger_" .. tag, small)
-		local ruleWidth = h.rect(rule).w
-		h.check(res, "drop_rule_shorter_" .. tag, ruleWidth, "< " .. widestRow, ruleWidth < widestRow)
-
 		h.check(res, "bar_on_screen_" .. tag, barRect, "inside the screen", within(screen, barRect))
 		local topRight = h.find("HudChrome/TopRight")
 		check(res, "bar_clear_of_top_right_" .. tag, topRight ~= nil and crossing(barRect, h.rect(topRight)), false)
@@ -1814,7 +1678,7 @@ function Module.Build(h)
 		-- Judged on rects: the DropList may still be waiting for this fresh spawn's Warning, and its place does not change.
 		local panelCrossed = {}
 		for _, part in { message, countdown, loading } do
-			for name, path in { DropList = DROP, BossBar = BAR } do
+			for name, path in { BossBar = BAR } do -- DropList hidden for now (owner 2026-11-11): nothing to judge
 				if crossing(h.rect(part), h.rect(h.find(path))) then
 					table.insert(panelCrossed, part.Name .. " x " .. name)
 				end
@@ -2085,15 +1949,16 @@ function Module.Build(h)
 		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
 		check(
 			res,
-			"boss_panel_status",
+			"boss_panel_live_card",
 			waitIs(function()
-				return textOf(BOSSES, "Status")
-			end, RAGING_TEXT),
-			RAGING_TEXT
+				local card = h.find(LIVE_CARD)
+				return card and card:GetAttribute("State")
+			end, "Live"),
+			"Live"
 		)
-		check(res, "boss_panel_go", textOf(BOSSES, "BossAction"), "Go")
+		check(res, "boss_panel_go", textOf(LIVE_CARD, "Go"), "Go")
+		check(res, "boss_panel_go_shown", shown(LIVE_CARD .. "/Go"), true)
 		check(res, "boss_panel_no_details_in_event", shown(BOSSES .. "/BossDetails"), false)
-		check(res, "boss_panel_no_heading_in_event", shown(BOSSES .. "/DetailsHeading"), false)
 		check(res, "boss_panel_no_next_in_event", shown(BOSSES .. "/NextEvent"), false)
 		check(res, "boss_panel_button_text", h.find(BUTTON) and h.find(BUTTON).Text, BUTTON_TEXT)
 		checkFit(res, "boss_panel")
@@ -2103,10 +1968,11 @@ function Module.Build(h)
 		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_go_closed(res)
-		local action = h.find(BOSSES .. "/BossAction")
-		check(res, "boss_go_stays_past_close", action ~= nil and h.visible(action), true)
-		check(res, "boss_go_disabled_past_close", action ~= nil and action.Active, false)
-		check(res, "boss_status_past_close", textOf(BOSSES, "Status"), RAGING_TEXT)
+		local go = h.find(LIVE_CARD .. "/Go")
+		check(res, "boss_go_stays_past_close", go ~= nil and h.visible(go), true)
+		check(res, "boss_go_disabled_past_close", go ~= nil and go.Active, false)
+		local card = h.find(LIVE_CARD)
+		check(res, "boss_card_live_past_close", card and card:GetAttribute("State"), "Live")
 		check(res, "boss_prompt_past_close", textOf(BOSSES, "BossPrompt"), "Teleporting closed")
 	end
 	-- The warning has faded by the time an After runs (Waits.ClickSettle): UiSpec's watcher saw it.

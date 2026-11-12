@@ -4,12 +4,14 @@
 -- Server/CarTest/BossEventTests.
 -- Clients read ReplicatedStorage attributes BossEventPhase ("Prep" or "Fight", nil when idle), BossEventStart (server time),
 -- BossEventHp, BossEventMaxHp, BossEventStage, BossEventEndsAt, BossScreamEndsAt (nil outside the scream) and BossScheduleStart
--- (Poses.Schedule's start), BossEventBoss (BossCatalog id, nil when idle), and the player attributes BossEvent (true while in
+-- (Poses.Schedule's start; shifted by the pause when a golem falls), BossEventBoss (BossCatalog id, nil when idle),
+-- BossEventNextBoss (the boss of the next timed event, nil with none scheduled), BossMinionHp, BossMinionMaxHp and BossMinionStart
+-- (the Stone Golem's HP and its start in server time, nil when none stands), and the player attributes BossEvent (true while in
 -- the event), BossTeamDamage (TeamDamage, nil outside the event), BossWaitEndsAt (server time the exhausted team revives, nil
 -- otherwise) and BossStatus (JSON list of { Id, EndsAt in server time, Count }, Vulnerable with no EndsAt, nil when empty; each
 -- player's own, since a dodge spares that player alone). They call the RemoteFunctions Remotes.BossEventTeleport(),
 -- Remotes.BossEventSetTeam(ids), Remotes.BossEventLeave(), Remotes.BossDodge(index, stamp) and
--- Remotes.BossOsu(index, circle, stamp); each returns ok, reason.
+-- Remotes.BossOsu(k, circle, stamp) (k: the standing golem's attack number); each returns ok, reason.
 -- Remotes.BossEventChat carries the server-wide spawn message and each member's move lines to Client/BossEventChat.
 -- Remotes.BossHits carries each hit, batched, to the players in the event: { UserId, SidekickId, Damage, Slot, CharacterId }, for Client/SidekickAttackView.
 -- Remotes.RunEvent carries Kind "BossRewards" (the summary below) to a player back at spawn.
@@ -46,9 +48,11 @@ local DODGE_MAX_AGE = 0.5 -- s: a stamp older than this on arrival is refused
 
 local clock = nil
 -- { Boss (BossCatalog row), StartAt, Source, Phase, Stage, EndsAt, ScreamEndsAt, ScheduleStart, Hp, MaxHp, Phase1MaxHp, Spawned,
--- IntroDone, Members = { [player] = member } }
+-- IntroDone, Minion = { Hp, MaxHp, StartAt, PauseT } while a golem stands, Slots (golem slots started),
+-- Members = { [player] = member } }
 local event = nil
 local nextAt = math.huge
+local nextBoss = nil -- the boss of the event at nextAt
 local lastEnd = nil
 local chatRemote = nil
 local hitsRemote = nil
@@ -79,6 +83,43 @@ local function publish()
 	ReplicatedStorage:SetAttribute("BossScheduleStart", event and event.ScheduleStart or nil)
 	ReplicatedStorage:SetAttribute("BossEventNextAt", nextAt < math.huge and nextAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventBoss", event and event.Boss.Id or nil)
+	ReplicatedStorage:SetAttribute("BossEventNextBoss", nextAt < math.huge and nextBoss or nil)
+	local minion = event and event.Minion
+	ReplicatedStorage:SetAttribute("BossMinionHp", minion and minion.Hp or nil)
+	ReplicatedStorage:SetAttribute("BossMinionMaxHp", minion and minion.MaxHp or nil)
+	ReplicatedStorage:SetAttribute("BossMinionStart", minion and minion.StartAt or nil)
+end
+
+-- Her schedule time at `at`: held at the golem slot while a golem stands.
+local function scheduleT(at)
+	return event.Minion and event.Minion.PauseT or at - event.ScheduleStart
+end
+
+-- At the golem slot of each cycle (design doc 4.37 "Second boss"): the golem stands and her clock stops at the slot.
+local function startMinion(current, at)
+	local slot, cycle = BossDodge.Slot(current.Boss.Id)
+	if not slot or current.Minion then
+		return
+	end
+	local since = at - current.ScheduleStart - Cfg.IntroSeconds
+	local n = since >= slot and math.floor((since - slot) / cycle) + 1 or 0
+	if n > (current.Slots or 0) then
+		current.Slots = n
+		local startAt = current.ScheduleStart + Cfg.IntroSeconds + (n - 1) * cycle + slot
+		local hp = current.Boss.Minion.Hp
+		current.Minion = { Hp = hp, MaxHp = hp, StartAt = startAt, PauseT = startAt - current.ScheduleStart }
+		for _, member in current.Members do
+			member.Minion = { ChargedTo = 0, Spared = {}, Osu = {} }
+		end
+		publish()
+	end
+end
+
+-- The golem fell: her clock resumes at the slot, so every reader of BossScheduleStart picks up where she paused.
+local function endMinion(current, at)
+	current.ScheduleStart += at - current.Minion.StartAt
+	current.Minion = nil
+	publish()
 end
 
 -- The running boss's arena, the sky arena when idle.
@@ -119,12 +160,31 @@ local function stacksAt(status, t, spared, stage, boss)
 	return count, latest
 end
 
-local function statusJson(t, member)
+-- The running stacks of a Minion status at server time `at` (one per golem hit not dodged) and when the latest ends.
+local function crushedCount(member, at)
+	local seconds = Cfg.Stage(event.Stage).StatusSeconds
+	local count, latest = 0, nil
+	for _, hitAt in member.Crushes do
+		if at < hitAt + seconds then
+			count += 1
+			latest = math.max(latest or -math.huge, hitAt + seconds)
+		end
+	end
+	return count, latest
+end
+
+local function statusJson(t, member, at)
 	local rows = {}
 	for _, status in event.Boss.Statuses do
-		local count, ends = stacksAt(status, t, member.Spared, event.Stage, event.Boss.Id)
+		local count, ends
+		if status.Minion then
+			count, ends = crushedCount(member, at)
+		else
+			count, ends = stacksAt(status, t, member.Spared, event.Stage, event.Boss.Id)
+			ends = ends and event.ScheduleStart + ends
+		end
 		if count > 0 then
-			table.insert(rows, { Id = status.Id, EndsAt = event.ScheduleStart + ends, Count = count })
+			table.insert(rows, { Id = status.Id, EndsAt = ends, Count = count })
 		end
 	end
 	if member.Vulnerable then
@@ -134,11 +194,13 @@ local function statusJson(t, member)
 end
 
 BossEventService.Hooks = {
-	-- What the running stacks leave of a hit, `spared` the member's dodged moments, boss nil for Big Raga. Pure.
-	DamageMulti = function(t, spared, stage, boss)
+	-- What the running stacks leave of a hit, `spared` the member's dodged moments, boss nil for Big Raga, `crushes` the running
+	-- stacks of a Minion status (nil: none). Pure.
+	DamageMulti = function(t, spared, stage, boss, crushes)
 		local multi = 1
 		for _, status in BossCatalog.Get(boss).Statuses do
-			multi *= (1 - status.Cut) ^ stacksAt(status, t, spared, stage, boss)
+			local stacks = if status.Minion then crushes or 0 else stacksAt(status, t, spared, stage, boss)
+			multi *= (1 - status.Cut) ^ stacks
 		end
 		return multi
 	end,
@@ -197,9 +259,9 @@ BossEventService.Hooks = {
 			hitsRemote:FireClient(player, entries)
 		end
 	end,
-	-- A defeated stage's chest and its Money or Gems. Returns whether all of it was paid.
-	PayStage = function(player, stage)
-		if not RelicService.GrantChest(player, stage == 1 and "relic_chest_raga" or "relic_chest_adapted") then
+	-- A defeated stage's chest and its Money or Gems, boss nil for Big Raga. Returns whether all of it was paid.
+	PayStage = function(player, stage, boss)
+		if not RelicService.GrantChest(player, BossCatalog.Get(boss).Chests[stage]) then
 			return false
 		elseif stage == 1 then
 			return MoneyService.Award(player, Cfg.Phase1Money) ~= nil
@@ -464,7 +526,7 @@ local function payStage(current, stage, maxHp)
 	for player, member in current.Members do
 		local damage = member.StageDamage[stage]
 		if damage >= need and damage > 0 then
-			local ok, paid = safely(BossEventService.Hooks.PayStage, player, stage)
+			local ok, paid = safely(BossEventService.Hooks.PayStage, player, stage, current.Boss.Id)
 			member.Paid[stage] = ok and paid == true
 		else
 			member.Short = true
@@ -525,12 +587,22 @@ function BossEventService.RecordHit(player, slot)
 	if not spec then
 		return 0 -- design doc 4.36: the Sidekick deals the damage
 	end
-	local multi =
-		BossEventService.Hooks.DamageMulti(now() - event.ScheduleStart, member.Spared, event.Stage, event.Boss.Id)
-	local dealt = math.min(hit * multi, event.Hp)
+	local multi = BossEventService.Hooks.DamageMulti(
+		scheduleT(now()),
+		member.Spared,
+		event.Stage,
+		event.Boss.Id,
+		(crushedCount(member, now()))
+	)
+	local minion = event.Minion
+	local dealt = math.min(hit * multi, minion and minion.Hp or event.Hp)
 	member.Damage += dealt
-	member.StageDamage[event.Stage] += dealt
-	event.Hp -= dealt
+	if minion then
+		minion.Hp -= dealt -- not StageDamage: the reward share is of her HP
+	else
+		member.StageDamage[event.Stage] += dealt
+		event.Hp -= dealt
+	end
 	local entry = {
 		UserId = userIdOf(player),
 		SidekickId = spec.Id,
@@ -541,7 +613,13 @@ function BossEventService.RecordHit(player, slot)
 	for _, other in event.Members do
 		table.insert(other.Hits, entry)
 	end
-	if event.Hp <= 0 and event.Stage < event.Boss.Stages then
+	if minion then
+		if minion.Hp <= 0 then
+			endMinion(event, now())
+		else
+			publish()
+		end
+	elseif event.Hp <= 0 and event.Stage < event.Boss.Stages then
 		startStage2(event)
 	elseif event.Hp <= 0 then
 		BossEventService.End("Defeated")
@@ -551,9 +629,25 @@ function BossEventService.RecordHit(player, slot)
 	return dealt
 end
 
--- Each move since this member's last charge that hit: the move's cost on every character in the line, Vulnerable and the move's
--- chat line. At 0 the run's own next frame takes the slot out of the line, exactly as for a drain to 0. A move during the wait is passed
--- over, never owed; a dodged one is already spared.
+-- One move that hit: its cost on every character in the line, Vulnerable and its chat line. At 0 the run's own next frame takes
+-- the slot out of the line, exactly as for a drain to 0.
+local function charge(player, member, row, name)
+	local run = member.Run
+	local base = row.Cost or (row.StageCost and Cfg.Stage(event.Stage).AttackStaminaCost) or 0
+	if base > 0 and run then
+		local cost = base * (member.Vulnerable and Cfg.VulnerableMulti or 1)
+		for _, slot in lineOf(member, member.Team) do
+			if run.Team[slot] ~= CharacterCatalog.KAMI_ID then -- Kami never tires (owner 2026-11-09)
+				run.Stamina[slot] = math.max(0, run.Stamina[slot] - cost)
+			end
+		end
+	end
+	member.Vulnerable = true
+	safely(BossEventService.Hooks.MoveChat, player, row.Chat or Cfg.MoveChat(name, event.Stage))
+end
+
+-- Each move since this member's last charge that hit. A move during the wait is passed over, never owed; a dodged one is
+-- already spared.
 local function chargeMoves(player, member, t)
 	local boss = event.Boss
 	local from = indexAt(member.ChargedTo, boss.Id)
@@ -565,19 +659,25 @@ local function chargeMoves(player, member, t)
 		end
 		if not member.Spared[index] then
 			local _, name = BossDodge.Moment(index, boss.Id)
-			local row = boss.Moves[name]
-			local base = row.Cost or (row.StageCost and Cfg.Stage(event.Stage).AttackStaminaCost) or 0
-			if base > 0 and run then
-				local cost = base * (member.Vulnerable and Cfg.VulnerableMulti or 1)
-				for _, slot in lineOf(member, member.Team) do
-					if run.Team[slot] ~= CharacterCatalog.KAMI_ID then -- Kami never tires (owner 2026-11-09)
-						run.Stamina[slot] = math.max(0, run.Stamina[slot] - cost)
-					end
-				end
-			end
-			member.Vulnerable = true
-			safely(BossEventService.Hooks.MoveChat, player, row.Chat or Cfg.MoveChat(name, event.Stage))
+			charge(player, member, boss.Moves[name], name)
 		end
+	end
+end
+
+-- Each golem attack since this member's last charge that hit, as chargeMoves, plus a Crushed stack.
+local function chargeMinion(player, member, at)
+	local boss, minion, own = event.Boss, event.Minion, member.Minion
+	local run = member.Run
+	for k = own.ChargedTo + 1, BossDodge.MinionIndexAtOrBefore(at - minion.StartAt, boss.Id) do
+		if run and run.Waiting then
+			own.Spared[k] = true
+		end
+		if not own.Spared[k] then
+			local tau, name = BossDodge.MinionMoment(k, boss.Id)
+			charge(player, member, boss.Minion.Attacks[name], name)
+			table.insert(member.Crushes, minion.StartAt + tau)
+		end
+		own.ChargedTo = k
 	end
 end
 
@@ -660,10 +760,16 @@ function BossEventService.Join(player)
 		NextHits = {}, -- slot -> when it next fires
 		HitsSentAt = -math.huge,
 		JoinedAt = joinedAt,
-		ChargedTo = elapsed - Cfg.PrepSeconds, -- nothing at or before the join is owed
+		ChargedTo = scheduleT(joinedAt), -- nothing at or before the join is owed
 		Spared = {}, -- moment index -> true: dodged, or passed in the wait
 		Pressed = {}, -- moment index -> true: the one press a prompt allows was used
-		Osu = {}, -- moment index -> { [circle] = on time }: the one stamp each rhythm circle allows
+		Crushes = {}, -- server times of the golem attacks that hit this player
+		-- The standing golem's attacks: ChargedTo (k), Spared (k -> true), Osu (k -> { [circle] = on time }: one stamp each).
+		Minion = current.Minion and {
+			ChargedTo = BossDodge.MinionIndexAtOrBefore(joinedAt - current.Minion.StartAt, current.Boss.Id),
+			Spared = {},
+			Osu = {},
+		},
 		Equipped = player:GetAttribute("EquippedCar"),
 	}
 	-- A move before the join never hit this player: no stack, as for the stamina through ChargedTo.
@@ -709,9 +815,9 @@ local function dodgeLane(player, lane)
 	return from[rewardRng:NextInteger(1, #from)]
 end
 
--- A dodged moment: it never hits, and the runner dashes into a neighbouring lane.
-local function spare(player, member, index)
-	member.Spared[index] = true
+-- A dodged moment of `spared` (the member's table for that clock): it never hits, and the runner dashes into a neighbouring lane.
+local function spare(player, member, spared, index)
+	spared[index] = true
 	member.Lane = dodgeLane(player, member.Lane)
 	player:SetAttribute("BossLane", member.Lane)
 	safely(BossEventService.Hooks.SwitchLane, member.Run, member.Lane)
@@ -733,10 +839,10 @@ function BossEventService.Dodge(player, index, stamp)
 	if type(stamp) ~= "number" or stamp ~= stamp or math.abs(stamp) == math.huge then
 		return false, "Invalid press"
 	end
-	local momentAt, name = BossDodge.Moment(index, event.Boss.Id)
-	if event.Boss.Moves[name].Osu then
-		return false, "No bar"
+	if event.Minion then
+		return false, "No bar" -- her clock is paused: a press now would spare a moment after the resume
 	end
+	local momentAt = BossDodge.Moment(index, event.Boss.Id)
 	local at = now()
 	local moment = event.ScheduleStart + Cfg.IntroSeconds + momentAt
 	if at > moment or at < moment - BossDodge.SweepFor(event.Stage) - DODGE_STAMP_SLACK then
@@ -756,15 +862,15 @@ function BossEventService.Dodge(player, index, stamp)
 	then
 		return false, "Missed"
 	end
-	spare(player, member, index)
+	spare(player, member, member.Spared, index)
 	return true
 end
 
--- One rhythm circle of a moment whose move has Osu (the golem's slam). `index`, `circle` and `stamp` come from a client; the beats
--- are the server's, the stamp is trusted as far as the Dodge bar's, and where the click landed is never checked. One stamp per
--- circle, so at most BossOsu.Count writes a moment. A circle off its beat is spent, so the move hits. Returns ok, reason: "Dodged"
--- on the last circle on time.
-function BossEventService.Osu(player, index, circle, stamp)
+-- One rhythm circle of the standing golem's attack k. `k`, `circle` and `stamp` come from a client; the beats are the server's,
+-- the stamp is trusted as far as the Dodge bar's, and where the click landed is never checked. One stamp per circle, so at most
+-- BossOsu.Count writes an attack. A circle off its beat is spent, so the attack hits. Returns ok, reason: "Dodged" on the last
+-- circle on time.
+function BossEventService.Osu(player, k, circle, stamp)
 	local member = event and event.Members[player]
 	if not member then
 		return false, "Not in the event"
@@ -772,7 +878,7 @@ function BossEventService.Osu(player, index, circle, stamp)
 	if not (member.Run and not member.Run.Waiting) then
 		return false, "Not running"
 	end
-	if type(index) ~= "number" or index < 1 or index % 1 ~= 0 or index == math.huge then
+	if type(k) ~= "number" or k < 1 or k % 1 ~= 0 or k == math.huge then
 		return false, "Invalid press"
 	end
 	if type(stamp) ~= "number" or stamp ~= stamp or math.abs(stamp) == math.huge then
@@ -781,30 +887,35 @@ function BossEventService.Osu(player, index, circle, stamp)
 	if type(circle) ~= "number" or circle < 1 or circle > BossOsu.Count or circle % 1 ~= 0 then
 		return false, "Invalid press"
 	end
-	local at = now()
-	local momentAt, name = BossDodge.Moment(index, event.Boss.Id)
-	local moment = event.ScheduleStart + Cfg.IntroSeconds + momentAt
-	if not event.Boss.Moves[name].Osu or at > moment or at < moment - BossOsu.OpenSeconds - DODGE_STAMP_SLACK then
+	local minion = event.Minion
+	if not minion then
 		return false, "No circles"
 	end
-	local stamps = member.Osu[index] or {}
-	member.Osu[index] = stamps
+	local at = now()
+	local tau = BossDodge.MinionMoment(k, event.Boss.Id)
+	local moment = minion.StartAt + tau
+	if at > moment or at < moment - BossOsu.OpenSeconds - DODGE_STAMP_SLACK then
+		return false, "No circles"
+	end
+	local own = member.Minion
+	local stamps = own.Osu[k] or {}
+	own.Osu[k] = stamps
 	if stamps[circle] ~= nil then
 		return false, "Already pressed"
 	end
-	local lead = BossOsu.Circles(userIdOf(player) or 0, event.StartAt, index)[circle].Lead
+	local lead = BossOsu.Circles(userIdOf(player) or 0, minion.StartAt, k)[circle].Lead
 	stamps[circle] = BossOsu.Judge(lead, moment, stamp, DODGE_STAMP_SLACK)
 		and stamp <= at + DODGE_STAMP_SLACK
 		and at - stamp <= DODGE_MAX_AGE
 	if not stamps[circle] then
 		return false, "Missed"
 	end
-	for k = 1, BossOsu.Count do
-		if not stamps[k] then
+	for i = 1, BossOsu.Count do
+		if not stamps[i] then
 			return true
 		end
 	end
-	spare(player, member, index)
+	spare(player, member, own.Spared, k)
 	return true, "Dodged"
 end
 
@@ -890,6 +1001,7 @@ function BossEventService.Reset(at)
 	BossEventService.End("Reset")
 	lastEnd = nil
 	nextAt = (at or now()) + Cfg.IntervalSeconds
+	nextBoss = BossEventService.Hooks.PickBoss()
 	publish()
 end
 
@@ -925,13 +1037,17 @@ local function tick(at)
 		current.ScreamEndsAt = nil
 		publish()
 	end
+	startMinion(current, at)
 	for player, member in table.clone(current.Members) do
 		if event ~= current then -- a hit below defeated the boss
 			return
 		end
-		local t = at - current.ScheduleStart -- for each member: a hit below can start stage 2 and move the schedule
+		local t = scheduleT(at) -- for each member: a hit below can start stage 2 or fell the golem and move the schedule
 		chargeMoves(player, member, t)
-		player:SetAttribute("BossStatus", statusJson(t, member))
+		if current.Minion then
+			chargeMinion(player, member, at)
+		end
+		player:SetAttribute("BossStatus", statusJson(t, member, at))
 		if not player.Parent then
 			BossEventService.Leave(player, "Left")
 		elseif member.Run and member.Run.Waiting then
@@ -978,8 +1094,10 @@ function BossEventService.Advance(at)
 	end
 	if at >= nextAt then
 		nextAt += Cfg.IntervalSeconds * (math.floor((at - nextAt) / Cfg.IntervalSeconds) + 1)
+		local due = nextBoss
+		nextBoss = BossEventService.Hooks.PickBoss() -- the following slot's, published with this one
 		if not event then
-			begin("Timer", at)
+			begin("Timer", at, due)
 		else
 			publish()
 		end
@@ -1037,6 +1155,7 @@ function BossEventService.Init()
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
 	nextAt = now() + Cfg.IntervalSeconds
+	nextBoss = BossEventService.Hooks.PickBoss()
 	publish()
 	task.spawn(function()
 		while true do

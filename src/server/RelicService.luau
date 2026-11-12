@@ -83,8 +83,8 @@ function RelicService.GrantChest(player, id)
 	return RelicService.Grant(player, id)
 end
 
--- Removes a chest and rolls at its own table: draw 1 the Relic, draw 2 the Sidekick, which may overflow the bag. Returns true, the
--- Relic's row, whether the Sidekick came; or false, reason.
+-- Removes a chest and rolls at its own table: draw 1 the Relic, draw 2 the Sidekick (none for a chest without a Sidekick chance),
+-- which may overflow the bag. Returns true, the Relic's row, whether the Sidekick came; or false, reason.
 function RelicService.OpenChest(player, entry, rng)
 	local current = ensure(player)
 	local index = nil
@@ -100,7 +100,9 @@ function RelicService.OpenChest(player, entry, rng)
 	local row = SidekickConfig.Roll(rng, chest.Table)
 	table.remove(current.Relics, index)
 	RelicService.Grant(player, row.Id)
-	local won = rng:NextNumber() <= chest.SidekickChance and SidekickService.GrantDrop(player, "side_raga")
+	local won = chest.SidekickChance > 0
+		and rng:NextNumber() <= chest.SidekickChance
+		and SidekickService.GrantDrop(player, "side_raga")
 	return true, row, won == true
 end
 

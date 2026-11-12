@@ -1,6 +1,8 @@
 --!nonstrict
 -- Relics (design doc 4.38, docs/RELIC_SPEC.md). Stat counts, the priority and RagaSidekickChance are owner values; names, odds
 -- and bonuses are placeholders. Odds is a percent and each boss's list sums to exactly 100; a bonus 0.15 is +15%.
+local BossMageArt = require(script.Parent.BossMageArt)
+
 local RelicConfig = {}
 
 RelicConfig.RagaSidekickChance = 0.00001 -- design doc 4.37: 0.001%, as a fraction
@@ -60,7 +62,52 @@ RelicConfig.Bosses = {
 		},
 		WORLD_CORE,
 	},
+	-- Owner 2026-11-11: names and art approved; odds and bonuses placeholder.
+	boss_mage = {
+		{
+			Id = "relic_helmet",
+			Name = "Dwarf's Helmet",
+			Image = "rbxassetid://125164800672073", -- assets/ui/relic_helmet.png
+			Rarity = "Common",
+			Odds = 55,
+			Bonuses = { AttackSpeed = 0.03 },
+		},
+		{
+			Id = "relic_bracelet",
+			Name = "Hero's Bracelet",
+			Image = "rbxassetid://97483480150926", -- assets/ui/relic_bracelet.png
+			Rarity = "Rare",
+			Odds = 28,
+			Bonuses = { Luck = 0.06 },
+		},
+		{
+			Id = "relic_staff",
+			Name = "Elf Staff",
+			Image = BossMageArt.StaffIcon, -- the Dodge bar's staff art (RELIC_SPEC)
+			Rarity = "Epic",
+			Odds = 12,
+			Bonuses = { AttackSpeed = 0.1, Luck = 0.1 },
+		},
+		{
+			Id = "relic_flask",
+			Name = "Priest's Flask",
+			Image = "rbxassetid://79563216957049", -- assets/ui/relic_flask.png
+			Rarity = "Legendary",
+			Odds = 4,
+			Bonuses = { AttackSpeed = 0.15, Luck = 0.15, Damage = 0.04 },
+		},
+		{
+			Id = "relic_grimoire",
+			Name = "Master's Grimoire",
+			Image = "rbxassetid://87657515215586", -- assets/ui/relic_grimoire.png
+			Rarity = "Mythic",
+			Odds = 0.9,
+			Bonuses = { AttackSpeed = 0.22, Luck = 0.22, Damage = 0.06, Money = 0.06 },
+		},
+		WORLD_CORE,
+	},
 }
+RelicConfig.Order = { "big_raga", "boss_mage" } -- a stable walk of Bosses; World Core sits on each list
 
 local byId = {}
 for _, list in RelicConfig.Bosses do
@@ -109,6 +156,16 @@ RelicConfig.Chests = {
 		Boss = "big_raga",
 		SidekickChance = 0.0001, -- owner 2026-11-06: 0.01%, as a fraction
 		Table = adaptedTable,
+	},
+	relic_chest_mage = {
+		Id = "relic_chest_mage",
+		Name = "Elf Mage's Treasure",
+		Image = "rbxassetid://118852320501133", -- assets/ui/chest_mage.png
+		Chest = true,
+		Bonuses = {},
+		Boss = "boss_mage",
+		SidekickChance = 0, -- proposed: no Sidekick roll while her Sidekick does not exist
+		Table = RelicConfig.Odds("boss_mage"),
 	},
 }
 for id, chest in RelicConfig.Chests do
