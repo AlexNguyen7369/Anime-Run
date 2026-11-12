@@ -596,7 +596,7 @@ function ItemMenu.OpenChest(id, anchor)
 			hideAll()
 			local results = { { Row = RelicConfig.Get(won.Relic) } }
 			if won.Sidekick then
-				table.insert(results, { Id = "side_raga" })
+				table.insert(results, { Id = chest.SidekickId or "side_raga" })
 			end
 			SidekickReveal.Play(results, function() end, chest.Image)
 		end

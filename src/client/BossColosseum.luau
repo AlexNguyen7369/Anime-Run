@@ -212,10 +212,14 @@ function BossColosseum.Build(mine, kit, Arena)
 		mesh.Parent = part
 		return part
 	end
-	local CHEST, GOLD_HI, GOLD2 = look(H.chest, Enum.Material.Wood), look(H.goldHi, Metal), look(H.gold2, Metal)
-	local STEEL, HILT = look(H.steel, Metal), look(H.hilt, Enum.Material.Wood)
-	local GEMS = { look(H.gemR, Enum.Material.Glass), look(H.gemB, Enum.Material.Glass) }
-	local TORCH_IRON, BANNER = look(H.torchIron, Metal), look(H.banner, Enum.Material.Fabric)
+	-- Only the vault palette has these keys; the plain colosseum never builds these props (look(nil) would throw).
+	local function vlook(hex, material)
+		return hex and look(hex, material) or nil
+	end
+	local CHEST, GOLD_HI, GOLD2 = vlook(H.chest, Enum.Material.Wood), vlook(H.goldHi, Metal), vlook(H.gold2, Metal)
+	local STEEL, HILT = vlook(H.steel, Metal), vlook(H.hilt, Enum.Material.Wood)
+	local GEMS = { vlook(H.gemR, Enum.Material.Glass), vlook(H.gemB, Enum.Material.Glass) }
+	local TORCH_IRON, BANNER = vlook(H.torchIron, Metal), vlook(H.banner, Enum.Material.Fabric)
 	-- at: the chest's base centre, local Z its width. The open lid leans back over the gold inside (the body's top face).
 	local function chest(at, withGem)
 		addPart("Chest", Vector3.new(2.2, 1.8, 3.2), at * CFrame.new(0, 0.9, 0), CHEST)
