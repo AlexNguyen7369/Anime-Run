@@ -63,18 +63,6 @@ function RelicService.Grant(player, id)
 	return true, entry
 end
 
--- A defeat's pay (design doc 4.37): 1 Relic, then its own draw for the Big Raga Sidekick. That drop may overflow the bag.
--- Returns true, the Relic's row, whether the Sidekick came; or false, reason.
-function RelicService.GrantDefeat(player, boss, rng)
-	local row = RelicService.Roll(boss, rng)
-	if not row then
-		return false, "Unknown boss"
-	end
-	RelicService.Grant(player, row.Id)
-	local won = rng:NextNumber() <= Config.RagaSidekickChance and SidekickService.GrantDrop(player, "side_raga")
-	return true, row, won == true
-end
-
 -- One sealed chest into the bag. Returns true, its entry; or false, reason.
 function RelicService.GrantChest(player, id)
 	if id == nil or not Config.Chests[id] then
@@ -83,8 +71,8 @@ function RelicService.GrantChest(player, id)
 	return RelicService.Grant(player, id)
 end
 
--- Removes a chest and rolls at its own table: draw 1 the Relic, draw 2 the Sidekick (none for a chest without a Sidekick chance),
--- which may overflow the bag. Returns true, the Relic's row, whether the Sidekick came; or false, reason.
+-- Removes a chest and rolls at its own table: draw 1 the Relic, draw 2 its boss's Sidekick, chest.SidekickId at chest.SidekickChance
+-- (none for a chest without), which may overflow the bag. Returns true, the Relic's row, whether the Sidekick came; or false, reason.
 function RelicService.OpenChest(player, entry, rng)
 	local current = ensure(player)
 	local index = nil
@@ -100,9 +88,10 @@ function RelicService.OpenChest(player, entry, rng)
 	local row = SidekickConfig.Roll(rng, chest.Table)
 	table.remove(current.Relics, index)
 	RelicService.Grant(player, row.Id)
-	local won = chest.SidekickChance > 0
+	local won = chest.SidekickId ~= nil
+		and chest.SidekickChance > 0
 		and rng:NextNumber() <= chest.SidekickChance
-		and SidekickService.GrantDrop(player, "side_raga")
+		and SidekickService.GrantDrop(player, chest.SidekickId)
 	return true, row, won == true
 end
 

@@ -358,6 +358,7 @@ local function render()
 		if prompt then
 			closePrompt() -- no hit: a player in the wait is not hit by this move
 		end
+		dodge.Visible = false -- gone at once, no closing animation, as while the golem stands
 		return
 	end
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
@@ -377,7 +378,8 @@ local function render()
 		elseif since >= prompt.At and not prompt.Pending then
 			local name = prompt.Name
 			closePrompt()
-			showHit(BossDodge.HitText[name])
+			local move = BossCatalog.Current().Moves[name]
+			showHit(move and move.HitText or BossDodge.HitText[name])
 		else
 			slider.Position =
 				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
@@ -392,6 +394,18 @@ local function render()
 			return
 		end
 		local at, name = BossDodge.Moment(index, boss)
+		-- No bar for a moment with no cost: a Cost 0 move (The Golden King's Shield Gates) or a move's "<move>_start" moment,
+		-- which the catalog's Moves lack. Passed over, so the next moment's bar is not held back (its lead is over a sweep).
+		local moves = BossCatalog.Current().Moves
+		for _ = 1, 20 do
+			local move = moves[name]
+			if move and move.Cost ~= 0 then
+				break
+			end
+			doneIndex = index
+			index += 1
+			at, name = BossDodge.Moment(index, boss)
+		end
 		if at - since <= BossDodge.SweepFor(currentStage()) + BAR_ANIM_SECONDS then
 			openPrompt(index, at, name, startAt)
 		end

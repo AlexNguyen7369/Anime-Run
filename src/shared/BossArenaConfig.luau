@@ -94,10 +94,21 @@ colosseum.WallRadius = 164
 -- Owner 2026-11-11: travel speed is capped here so the room does not spin around her; the value is proposed. About 77 deg/s on
 -- lane 1, as the sky arena turns at 800 studs/s. The sky arena has none.
 colosseum.MaxRunSpeed = 100
+colosseum.Dressing = "colosseum" -- the client's dressing of the shell (BossColosseum)
 build(colosseum)
 
--- "boss_mage": the colosseum; anything else: this module, the sky arena.
+-- The Golden King's vault (BOSS_EVENT_SPEC "The Golden King"): the colosseum shell, ring and cap unchanged, dressed as a vault.
+local vault = table.clone(colosseum)
+vault.Dressing = "vault"
+vault.HoverY = 0 -- he stands on the dais (owner 2026-11-11: no hover, no bob)
+vault.BobStuds = 0
+vault.BossTotalHeight = vault.BossHeight
+
+-- "boss_mage": the colosseum; "boss_king": the vault; anything else: this module, the sky arena.
 function BossArenaConfig.For(bossId)
+	if bossId == "boss_king" then
+		return vault
+	end
 	return bossId == "boss_mage" and colosseum or BossArenaConfig
 end
 

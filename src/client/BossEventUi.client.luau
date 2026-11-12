@@ -18,6 +18,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local BossCatalog = require(shared:WaitForChild("BossCatalog"))
+local BossKingArt = require(shared:WaitForChild("BossKingArt"))
 local BossMageArt = require(shared:WaitForChild("BossMageArt"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local GachaConfig = require(shared:WaitForChild("GachaConfig"))
@@ -28,6 +29,7 @@ local CharacterPortraits = require(shared:WaitForChild("CharacterPortraits"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local Monetization = require(shared:WaitForChild("MonetizationConfig"))
 local SidekickArt = require(shared:WaitForChild("SidekickArt"))
+local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
@@ -45,6 +47,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" -- BOSS_EVENT_SPEC
 -- Placeholders.
 local WARNING_SECONDS = 6
+local FORTIFIED_SECONDS = 4 -- proposed: the Fortified notice's time on screen
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
@@ -108,6 +111,8 @@ local STATUS_LOOKS = {
 	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
 	{ Id = "Vulnerable", Glyph = "V", Color = Palette.MoneyDeep }, -- no end time: it goes with its row
 	{ Id = "Crushed", Image = BossMageArt.StatusCrushed, Color = Palette.Danger }, -- the Elf Mage's golem slam
+	-- The Golden King's Shield Gates, on him (BOSS_EVENT_SPEC "The Golden King"): no seconds, it ends at his next move
+	{ Id = "Fortified", Image = BossKingArt.StatusFortified, Color = Palette.Gold },
 }
 
 local function make(class, name, parent, props)
@@ -391,6 +396,16 @@ local warningLabel = label("Text", warning, {
 	TextWrapped = true,
 }, 72)
 local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
+-- The Golden King's Fortified notice (BOSS_EVENT_SPEC "The Golden King"): the Warning's place and red, for FORTIFIED_SECONDS.
+local fortifiedNotice = label("FortifiedNotice", root, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Text = BossCatalog.Current().FortifiedText or "",
+	FontFace = HEAVY,
+	TextColor3 = WARNING_BRIGHT,
+	TextWrapped = true,
+	Visible = false,
+}, 56)
+local fortifiedUntil = 0
 
 local bar =
 	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
@@ -549,10 +564,12 @@ local function chestLines(chestId)
 			Outline = row.Rarity == "Secret" and Palette.White or nil,
 		})
 	end
-	local chance = RelicConfig.Chests[chestId].SidekickChance
-	if chance > 0 then
-		local text = ("Big Raga %g%%"):format(chance * 100)
-		table.insert(lines, { Id = "side_raga", Text = text, Color = Color3.new(0, 0, 0), Outline = Palette.White })
+	local chest = RelicConfig.Chests[chestId]
+	local sidekickId = chest.SidekickId
+	local chance = chest.SidekickChance
+	if chance > 0 and sidekickId then
+		local text = ("%s %g%%"):format(SidekickConfig.Get(sidekickId).Name, chance * 100)
+		table.insert(lines, { Id = sidekickId, Text = text, Color = Color3.new(0, 0, 0), Outline = Palette.White })
 	end
 	return lines
 end
@@ -802,7 +819,12 @@ local spawnBusy = make("TextLabel", "SpawnNote", spawnBox, {
 
 -- Every chest's table (BOSS_EVENT_SPEC "Paid spawn"), one column per chest of every boss, built once from the drop list's lines;
 -- only the pressed boss's columns show. Titles and rows stay directly in BossDetails (UiBossPaid, UiBossPhase2 read them there).
-local DETAIL_ROWS = { relic_chest_raga = "Row_", relic_chest_adapted = "Adapted_", relic_chest_mage = "Mage_" }
+local DETAIL_ROWS = {
+	relic_chest_raga = "Row_",
+	relic_chest_adapted = "Adapted_",
+	relic_chest_mage = "Mage_",
+	relic_chest_king = "King_",
+}
 local bossDetails = make("Frame", "BossDetails", bossesPanel, { BackgroundTransparency = 1, Visible = false })
 local detailsBack = button("Back", bossDetails, "Back", "Idle", {})
 local detailColumns = {} -- { Boss, Card, Heading, Rows = { { Label, Color, Outline } } } per chest
@@ -1114,6 +1136,8 @@ local function placeTop(size, row)
 		math.min(size.X * 0.86, 1100),
 		math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop))
 	)
+	fortifiedNotice.Position = warning.Position
+	fortifiedNotice.Size = warning.Size
 
 	-- Centred: beside the list where it fits between the screen's middle and the list, else under the list.
 	local panelWidth = math.round(EXHAUSTED_WIDTH * scale)
@@ -1364,6 +1388,19 @@ ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
 	ragaPortrait.Image = boss.Portrait or ""
 	inviteHint.Text = teleport.Active and boss.InviteHint or LOCKED_TEXT
 	buildDrops(boss)
+end)
+
+-- The Golden King's notice (BOSS_EVENT_SPEC "The Golden King"): the catalog's FortifiedText in the hit header's red, under the
+-- bar where the Warning sits, to everyone in the event when BossFortified turns true; gone when it turns false. The Fortified
+-- status cell itself follows the player's BossStatus rows, as every status does.
+ReplicatedStorage:GetAttributeChangedSignal("BossFortified"):Connect(function()
+	local text = BossCatalog.Current().FortifiedText
+	if ReplicatedStorage:GetAttribute("BossFortified") == true and text and player:GetAttribute("BossEvent") then
+		fortifiedNotice.Text = text
+		fortifiedUntil = os.clock() + FORTIFIED_SECONDS
+	else
+		fortifiedUntil = 0
+	end
 end)
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
@@ -1734,7 +1771,8 @@ local function render()
 	editTeam.Visible = inEvent and phase == "Prep" and hudClosed and not panelOpen
 	bar.Visible = inFight
 	dropList.Visible = false -- owner 2026-11-11: hidden for now (BOSS_EVENT_SPEC "Drop list"); still built for its return
-	warning.Visible = inFight and warningUntil > 0 and not panelOpen
+	fortifiedNotice.Visible = inFight and os.clock() < fortifiedUntil and not panelOpen
+	warning.Visible = inFight and warningUntil > 0 and not panelOpen and not fortifiedNotice.Visible -- the notice takes its place
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
 	-- From the server's end time, so a late view is as far along. Past it, full at 1 until the server revives the team.

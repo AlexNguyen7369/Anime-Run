@@ -4,6 +4,11 @@
 		"Hash": "465d9cecf1cf5dbb3e89203fae7ba3ca0451aec8e999ada9d69ef4111e2abc01",
 		"Image": "81070324097920"
 	},
+	"chest_king": {
+		"Decal": "121484379699528",
+		"Hash": "ad6f1e838b195ce8cc3cd5503b004050190bd20e3a70067e44beb8b9756dfda3",
+		"Image": "123537148348616"
+	},
 	"chest_mage": {
 		"Decal": "107073029355897",
 		"Hash": "38ddef4289538fcfa1c7e3e2765504294c990d250e47656aee9f4086354c92de",
@@ -14,10 +19,25 @@
 		"Hash": "a3acba09d2321eac102a29f73a7d874ddfecdc61e7d1ad611a3078787c62eb91",
 		"Image": "129792034295199"
 	},
+	"relic_armor": {
+		"Decal": "117163550047662",
+		"Hash": "1aaa3e7aae38ffba44db8befa0fc4198442ccbf4b3a209c0c815b064e04e8974",
+		"Image": "108222955394755"
+	},
 	"relic_bracelet": {
 		"Decal": "136712434515901",
 		"Hash": "43fc86459c5026742a95ddae41aa1a79b92f30bc245fbb88dd8856a122acd56d",
 		"Image": "97483480150926"
+	},
+	"relic_chain": {
+		"Decal": "102902786910234",
+		"Hash": "13c211e4f880c498189efa0d64c442721f8f60e8d7e24a3e53d978d1327eb825",
+		"Image": "133136348725864"
+	},
+	"relic_coin": {
+		"Decal": "94790670059485",
+		"Hash": "b35c259e52956b27013098ba27ac54b1467bccdba1a1c9de0dd8dd6251c20b1a",
+		"Image": "135239262918195"
 	},
 	"relic_eyes": {
 		"Decal": "123310089371389",
@@ -34,6 +54,11 @@
 		"Hash": "e66ef33b78577bc4eea941bc49c67a61c1c2768c2c524e482fd4c72f68e1e1e1",
 		"Image": "79563216957049"
 	},
+	"relic_goblet": {
+		"Decal": "129441804050235",
+		"Hash": "f8ce2fc37bb7169f670691d177aa4f5966bd86e9c6ee4936b3c46d4297bad729",
+		"Image": "127993300718190"
+	},
 	"relic_grimoire": {
 		"Decal": "103855523133277",
 		"Hash": "c542648119fcbd8fd978ec06297d3c7db035367be39276da1efcb9b93f700d4a",
@@ -43,6 +68,11 @@
 		"Decal": "75854944226348",
 		"Hash": "bd45e122010a982142a81e73f7fe09613d1d0ca230c71cd10c2ad1aaba199af6",
 		"Image": "125164800672073"
+	},
+	"relic_key": {
+		"Decal": "91539646625029",
+		"Hash": "4ba1db691acf28ebb88505adc48787f22f9baea072b87c4a9773f36343b4b256",
+		"Image": "117675496916992"
 	},
 	"relic_nail": {
 		"Decal": "105080399498954",

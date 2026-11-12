@@ -1,11 +1,10 @@
 --!nonstrict
--- Relics (design doc 4.38, docs/RELIC_SPEC.md). Stat counts, the priority and RagaSidekickChance are owner values; names, odds
--- and bonuses are placeholders. Odds is a percent and each boss's list sums to exactly 100; a bonus 0.15 is +15%.
+-- Relics (design doc 4.38, docs/RELIC_SPEC.md). Stat counts, the priority and each chest's SidekickChance are owner values;
+-- names, odds and bonuses are placeholders. Odds is a percent and each boss's list sums to exactly 100; a bonus 0.15 is +15%.
 local BossMageArt = require(script.Parent.BossMageArt)
 
 local RelicConfig = {}
 
-RelicConfig.RagaSidekickChance = 0.00001 -- design doc 4.37: 0.001%, as a fraction
 RelicConfig.WheelArt = "rbxassetid://126470652353383" -- assets/ui/raga_wheel.png, also on the Dodge bar (design doc 4.37)
 
 -- The one universal Secret: every boss's list ends with this same row (design doc 4.38).
@@ -106,8 +105,52 @@ RelicConfig.Bosses = {
 		},
 		WORLD_CORE,
 	},
+	-- Owner 2026-11-11: names and the damage / money priority; odds and bonuses placeholder as Big Raga's.
+	boss_king = {
+		{
+			Id = "relic_coin",
+			Name = "Gold Coin",
+			Image = "rbxassetid://135239262918195",
+			Rarity = "Common",
+			Odds = 55,
+			Bonuses = { Damage = 0.03 },
+		},
+		{
+			Id = "relic_goblet",
+			Name = "Royal Goblet",
+			Image = "rbxassetid://127993300718190",
+			Rarity = "Rare",
+			Odds = 28,
+			Bonuses = { Money = 0.06 },
+		},
+		{
+			Id = "relic_chain",
+			Name = "Chain of Heaven",
+			Image = "rbxassetid://133136348725864",
+			Rarity = "Epic",
+			Odds = 12,
+			Bonuses = { Damage = 0.1, Money = 0.1 },
+		},
+		{
+			Id = "relic_armor",
+			Name = "Golden Armor",
+			Image = "rbxassetid://108222955394755",
+			Rarity = "Legendary",
+			Odds = 4,
+			Bonuses = { Damage = 0.15, Money = 0.15, AttackSpeed = 0.04 },
+		},
+		{
+			Id = "relic_key",
+			Name = "Key of Babylon", -- the Dodge bar's key art (RELIC_SPEC)
+			Image = "rbxassetid://117675496916992",
+			Rarity = "Mythic",
+			Odds = 0.9,
+			Bonuses = { Damage = 0.22, Money = 0.22, AttackSpeed = 0.06, Luck = 0.06 },
+		},
+		WORLD_CORE,
+	},
 }
-RelicConfig.Order = { "big_raga", "boss_mage" } -- a stable walk of Bosses; World Core sits on each list
+RelicConfig.Order = { "big_raga", "boss_mage", "boss_king" } -- a stable walk of Bosses; World Core sits on each list
 
 local byId = {}
 for _, list in RelicConfig.Bosses do
@@ -129,7 +172,8 @@ function RelicConfig.Odds(boss)
 	return shown
 end
 
--- Sealed spins saved as rows of the bag (RELIC_SPEC "Chests"), apart from Bosses.
+-- Sealed spins saved as rows of the bag (RELIC_SPEC "Chests"), apart from Bosses. SidekickId / SidekickChance: the chest's own
+-- boss's Sidekick and its separate roll, as a fraction (owner 2026-11-11: 0.001%, Adapted Raga's 0.01%).
 local ADAPTED_ODDS = { Common = 38.5, Rare = 30, Epic = 20, Legendary = 8, Mythic = 3, Secret = 0.5 }
 local adaptedTable = RelicConfig.Odds("big_raga")
 for _, row in adaptedTable do
@@ -144,7 +188,8 @@ RelicConfig.Chests = {
 		Chest = true,
 		Bonuses = {},
 		Boss = "big_raga",
-		SidekickChance = RelicConfig.RagaSidekickChance,
+		SidekickId = "side_raga",
+		SidekickChance = 0.00001,
 		Table = RelicConfig.Odds("big_raga"),
 	},
 	relic_chest_adapted = {
@@ -154,7 +199,8 @@ RelicConfig.Chests = {
 		Chest = true,
 		Bonuses = {},
 		Boss = "big_raga",
-		SidekickChance = 0.0001, -- owner 2026-11-06: 0.01%, as a fraction
+		SidekickId = "side_raga",
+		SidekickChance = 0.0001, -- owner 2026-11-06: 0.01%
 		Table = adaptedTable,
 	},
 	relic_chest_mage = {
@@ -164,8 +210,20 @@ RelicConfig.Chests = {
 		Chest = true,
 		Bonuses = {},
 		Boss = "boss_mage",
-		SidekickChance = 0, -- proposed: no Sidekick roll while her Sidekick does not exist
+		SidekickId = "side_mage",
+		SidekickChance = 0.00001,
 		Table = RelicConfig.Odds("boss_mage"),
+	},
+	relic_chest_king = {
+		Id = "relic_chest_king",
+		Name = "Golden King's Treasure", -- proposed
+		Image = "rbxassetid://123537148348616",
+		Chest = true,
+		Bonuses = {},
+		Boss = "boss_king",
+		SidekickId = "side_king",
+		SidekickChance = 0.00001,
+		Table = RelicConfig.Odds("boss_king"),
 	},
 }
 for id, chest in RelicConfig.Chests do

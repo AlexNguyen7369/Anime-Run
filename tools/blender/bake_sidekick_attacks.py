@@ -1,8 +1,10 @@
-# Sidekick attacks' in-betweens (design doc 4.37, SIDEKICK_SPEC, BOSS_EVENT_SPEC "Boss and attacks"; owner approved the 12 attacks' keys).
+# Sidekick attacks' in-betweens (design doc 4.37, SIDEKICK_SPEC, BOSS_EVENT_SPEC "Boss and attacks"; owner approved the 12 attacks'
+# keys, and side_king's and side_mage's on 2026-11-11 with their bosses' key frames).
 #   python3 tools/blender/bake_sidekick_attacks.py     writes src/late/SidekickAttacks.luau, then self-checks against the limits of
 #                                                      src/server/CarTest/SidekickAttackTests.luau. Run stylua on it after.
-#   Blender -b --factory-startup --python tools/blender/bake_sidekick_attacks.py -- rig <folder holding <id>/<id>.blend>
-#                                                      writes tools/blender/sidekicks/rigs.json: what keys.json does not say.
+#   Blender -b --factory-startup --python tools/blender/bake_sidekick_attacks.py -- rig <folder holding <id>/<id>.blend> [<id> ...]
+#                                                      writes tools/blender/sidekicks/rigs.json: what keys.json does not say
+#                                                      (the named ids only, into the existing file; every id when none is named).
 # Approved keys of keyframes/keys.json go in verbatim at their times; everything between them is generated here.
 import json
 import math
@@ -13,7 +15,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 RIGS = os.path.join(HERE, "sidekicks", "rigs.json")
 LUAU = os.path.join(ROOT, "src", "late", "SidekickAttacks.luau")
-IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox".split()
+IDS = "side_chain side_wyvern side_knight side_pig side_crow side_reindeer side_dogs side_ant side_reaper side_fist side_curse side_fox side_king side_mage".split()
 RATE = 120  # samples a second before thinning
 MAX_GAP = 1 / 15  # s between baked keys at most
 TOLERANCE, ROOT_TOLERANCE = 0.2, 0.002  # degrees and units a thinned key may be off the curve
@@ -27,15 +29,16 @@ HOLD = 0.03  # s of hit stop on a strike
 SETTLE_CARRY, RECOVER_CARRY = 0.12, 0.07  # overshoot past a key, as a share of the segment before
 
 
-def rig(folder):
+def rig(folder, ids=()):
 	import bpy
 
-	out = {}
-	for cid in IDS:
+	out = json.load(open(RIGS)) if ids and os.path.exists(RIGS) else {}
+	for cid in ids or IDS:
 		bpy.ops.wm.open_mainfile(filepath=os.path.join(folder, cid, cid + ".blend"))
 		objs = {o.name: o for o in bpy.data.objects if o.type == "MESH"}
 		parents = {n: (o.parent.name if o.parent and o.parent.name in objs else None) for n, o in objs.items()}
-		root = sorted(n for n, p in parents.items() if p is None)[0]
+		# the fit part: the torso of a downsized boss (its Ea or staff is a root too), else the first root
+		root = "Torso_merged" if "Torso_merged" in parents else sorted(n for n, p in parents.items() if p is None)[0]
 		o = objs[root]
 		assert not any(o.rotation_euler), f"{cid}: a turned root breaks the runtime's fit of pivots to parts"
 		world = [o.matrix_world @ v.co for v in o.data.vertices]
@@ -359,6 +362,6 @@ def main():
 
 if __name__ == "__main__":
 	if "--" in sys.argv and sys.argv[sys.argv.index("--") + 1] == "rig":
-		rig(sys.argv[sys.argv.index("--") + 2])
+		rig(sys.argv[sys.argv.index("--") + 2], sys.argv[sys.argv.index("--") + 3 :])
 	else:
 		main()

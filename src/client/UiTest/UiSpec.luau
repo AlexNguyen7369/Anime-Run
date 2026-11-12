@@ -4538,6 +4538,66 @@ table.insert(UiSpec.ServerSetup, {
 	When = "before the boss_cards_next_mage click (NeedSetup)",
 	What = "As boss_ui_idle, with ReplicatedStorage BossEventNextBoss = boss_mage. 'restore' clears it.",
 })
+-- The Golden King's Bosses popup line (design doc 4.37 "Third boss"; UiBossKing), as the mage's: opens, Details, Back, closes.
+for _, click in
+	{
+		{
+			Id = "boss_king_button",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(3.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_invite_king" },
+			Expect = { Remote = false, After = { "boss_king_panel_judging" } },
+		},
+		{
+			Id = "boss_king_panel_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+		{
+			Id = "boss_cards_next_king",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy", "boss_ui_idle_next_king" },
+			Expect = { Remote = false, After = { "boss_cards_next_king" } },
+		},
+		{
+			Id = "boss_king_details",
+			Path = "BossesPanel/Cards/Card_boss_king/Details",
+			Prepare = bossPopup({}),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_king_details_open" } },
+		},
+		{
+			Id = "boss_king_details_back",
+			Path = "BossesPanel/BossDetails/Back",
+			Prepare = BOSS_PREPARE,
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_details_closed" } },
+		},
+		{
+			Id = "boss_king_cards_closes",
+			Path = "BossButton",
+			Prepare = bossButtonPrepare(0.5),
+			NeedSetup = { "spy", "progression_spy" },
+			Expect = { Remote = false, After = { "boss_panel_closed" } },
+		},
+	}
+do
+	click.Gui = "RacerBossEvent"
+	table.insert(UiSpec.Clicks, click)
+end
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_invite_king",
+	When = "before the boss_king_button click (NeedSetup)",
+	What = "As boss_ui_invite, with ReplicatedStorage attribute BossEventBoss = boss_king. 'restore' clears it.",
+})
+table.insert(UiSpec.ServerSetup, {
+	Id = "boss_ui_idle_next_king",
+	When = "before the boss_cards_next_king click (NeedSetup)",
+	What = "As boss_ui_idle, with ReplicatedStorage BossEventNextBoss = boss_king. 'restore' clears it.",
+})
 
 -- The rewards popup and chests (docs/BOSS_EVENT_SPEC.md "Rewards", docs/RELIC_SPEC.md "Chests").
 UiSpec.Guis.RacerBossRewards = {

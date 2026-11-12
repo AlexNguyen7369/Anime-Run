@@ -7,7 +7,8 @@
 --     Bosses.big_raga: array, least rare first, of { Id, Name, Rarity, Odds, Bonuses = { <stat> = fraction } }. Odds is a percent;
 --     a bonus 0.15 is +15%. Stats: Damage, AttackSpeed, Luck, Money, Speed, Stamina. Ids are lowercase.
 --     Get(id): that same row, nil if unknown. Odds(boss): array of { Id, Name, Rarity, Odds }, {} for an unknown boss.
---     RagaSidekickChance = 0.00001, a fraction (design doc 4.37: 0.001%).
+--     Chests[id].SidekickId and SidekickChance (a fraction; owner 2026-11-11, k7: raga 0.00001, adapted 0.0001, mage 0.00001,
+--     king 0.00001) replace RagaSidekickChance; design doc 4.37: 0.001% / 0.01%.
 --   Server/RelicService (bag and gear as Server/SidekickService):
 --     Roll(boss, rng): the row, nil for an unknown boss. Pure, exactly one rng:NextNumber() and nothing else.
 --     Grant(player, id): true, entry or false, reason. Bag row = { Id, Entry }, Entry a unique string.
@@ -16,9 +17,10 @@
 --     Snapshot(player): { Relics = rows, RelicGear = { [characterId] = entry } }, exactly these 2 fields.
 --     Apply(player, saved): takes the whole save record; junk reads as empty; an unknown id stays, worn or not.
 --     Multi(player, characterId, stat): 1 + the worn Relic's bonus, 1 with none, an unknown id or junk.
---     GrantDefeat(player, boss, rng): true or false, reason. Draw 1 picks the Relic, draw 2 is the Sidekick roll:
---     a draw <= RagaSidekickChance grants side_raga through SidekickService.GrantDrop.
---   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for side_raga only (design doc 4.37: nothing else
+--     GrantDefeat is gone (k7, no production caller): the drop path is GrantChest then OpenChest; draw 1 picks the Relic,
+--     draw 2 is the Sidekick roll: a draw <= the chest's SidekickChance grants its SidekickId through SidekickService.GrantDrop.
+--   Server/SidekickService.GrantDrop(player, id): true, entry, ignoring BagSize, for every SidekickConfig.BossDrops row (design
+--     doc 4.36 Boss Sidekicks: side_raga, side_mage, side_king; design doc 4.37: nothing else
 --     may overflow); any other id is false, reason, with nothing changed.
 --     Start(): makes RemoteFunctions Remotes.RelicEquip, args (characterId, entry or nil), and Remotes.RelicSell, args (entry).
 --     Attributes RelicBag and RelicGear are JSON.
@@ -32,7 +34,7 @@
 --     ChestOdds(id): a copy of its rows, {} if unknown. GrantChest(player, id): true, entry or false, reason. OpenChest(player, entry,
 --     rng): true, relicRow, wonSidekick or false, reason; draw 1 picks the Relic, draw 2 the Sidekick. Remote RelicOpenChest(entry).
 --   BossEventService.Hooks.PayStage default: GrantChest plus Phase1Money through MoneyService.Award in stage 1, Phase2Gems through
---     MoneyService.AddGems in stage 2. GrantDefeat stays for its existing callers.
+--     MoneyService.AddGems in stage 2.
 --   GachaService.MoneyMulti and Luck: each Team character's Multi - 1 is added like the tree bonus (GachaConfig.Multis).
 --   CruiseFor and the run's stamina seconds: multiplied by the wearer's Multi, like the Sidekick's.
 --   Boss hit (owner 2026-11-06): a character's Sidekick Damage x its Multi x the speed scale of its own cruise. TeamDamage: the sum over
@@ -43,8 +45,8 @@
 --   relic bag: no rule gives it a cap, so a defeat's Relic is never refused.
 --   rebirth keeps Relics, like Sidekicks.
 --   Her list (boss-mage-2-code-plan.md A7): Bosses.boss_mage, World Core shared by rawequal, Order = { "big_raga", "boss_mage" },
---     Chests.relic_chest_mage { Boss = "boss_mage", SidekickChance = 0, Table = Odds("boss_mage") }; OpenChest draws once when
---     the chest has no Sidekick chance. BossEventService.Start("Test", "boss_mage") pays it at her defeat.
+--     Chests.relic_chest_mage { Boss = "boss_mage", SidekickId = "side_mage", SidekickChance = 0.00001, Table = Odds("boss_mage") }
+--     and relic_chest_king likewise for side_king (owner 2026-11-11). BossEventService.Start("Test", "boss_mage") pays hers.
 -- NOT covered: icons (in-house art, none yet), the Details sheet showing these odds (the paid spawn's task).
 --
 -- Runs on Folder players and an isolated PlayerData clone, like SidekickTests.
@@ -182,6 +184,13 @@ function Tests.relics()
 			return n
 		end
 
+		-- Big Raga's Phase 1 chest, granted and opened: the defeat drop path since GrantDefeat went (k7).
+		local RAGA_CHEST = "relic_chest_raga"
+		local function defeat(p, rng)
+			local _, entry = S.GrantChest(p, RAGA_CHEST)
+			return S.OpenChest(p, entry, rng)
+		end
+
 		section("config", function()
 			flag("boss_lists_six", #rows == 6, #rows, 6)
 			for i, rarity in RARITIES do
@@ -281,9 +290,11 @@ function Tests.relics()
 			flag("secret_not_named_for_a_boss", string.find(secret.Id, "raga", 1, true) == nil, secret.Id)
 
 			-- Design doc 4.37: 0.001%, shown as the Sidekick row's own percent.
-			flag("raga_chance_owner_value", C.RagaSidekickChance == 0.00001, C.RagaSidekickChance, 0.00001)
+			local ragaChance = C.Chests.relic_chest_raga and C.Chests.relic_chest_raga.SidekickChance
+			flag("raga_chance_owner_value", ragaChance == 0.00001, ragaChance, 0.00001)
+			flag("raga_chance_field_gone", C.RagaSidekickChance == nil, C.RagaSidekickChance) -- k7: per chest now
 			local raga = SidekickConfig.Get("side_raga")
-			flag("raga_row_agrees", raga ~= nil and approx(C.RagaSidekickChance * 100, raga.Odds))
+			flag("raga_row_agrees", raga ~= nil and approx(ragaChance * 100, raga.Odds))
 		end)
 
 		-- The Elf Mage's own 6 (owner 2026-11-11, design doc 4.38, RELIC_SPEC "The Elf Mage's drops"; values proposed as written).
@@ -374,7 +385,7 @@ function Tests.relics()
 					highestOther
 				)
 			end
-			flag("relic_order", H.same(C.Order, { "big_raga", "boss_mage" }))
+			flag("relic_order", H.same(C.Order, { "big_raga", "boss_mage", "boss_king" }))
 		end)
 
 		section("roll", function()
@@ -423,21 +434,22 @@ function Tests.relics()
 			end
 			gacha.Luck, gacha.Roll, GachaConfig.Roll = touch(oldLuck), touch(oldRoll), touch(oldConfigRoll)
 			local same = H.same(sequence(4242), plain)
-			S.GrantDefeat(lucky, BOSS, Random.new(9))
+			defeat(lucky, Random.new(9))
 			gacha.Luck, gacha.Roll, GachaConfig.Roll = oldLuck, oldRoll, oldConfigRoll
 			flag("roll_same_with_luck", same)
 			flag("drop_never_touches_luck_or_gacha_roll", touched == 0, touched, 0)
 		end)
 
 		section("defeat", function()
+			flag("grant_defeat_gone", S.GrantDefeat == nil) -- k7: no production caller
 			local function afterDraws(values)
 				local p = loaded(nil)
 				local rng = scripted(values)
-				local done = S.GrantDefeat(p, BOSS, rng)
+				local done = defeat(p, rng)
 				return p, rng, done
 			end
 			local NEVER = 0.5
-			local chance = C.RagaSidekickChance
+			local chance = C.Chests[RAGA_CHEST].SidekickChance
 			local p, rng, done = afterDraws({ 0, NEVER })
 			flag("defeat_ok", done == true)
 			flag("defeat_one_relic", #bag(p) == 1, #bag(p), 1)
@@ -460,7 +472,7 @@ function Tests.relics()
 			flag("secret_relic_and_raga_together", bag(p)[1].Id == secret.Id and ragas(p) == 1)
 
 			local grantedTo = loaded(nil)
-			S.GrantDefeat(grantedTo, BOSS, scripted({ NEVER, chance }))
+			defeat(grantedTo, scripted({ NEVER, chance }))
 			local ragaRows = Sidekick.Snapshot(grantedTo).Sidekicks
 			flag("raga_entry_usable", #ragaRows == 1 and type(ragaRows[1].Entry) == "string")
 			flag("raga_not_auto_worn", next(Sidekick.Snapshot(grantedTo).CharacterGear) == nil)
@@ -468,7 +480,7 @@ function Tests.relics()
 			-- Nothing changes for a boss that does not exist.
 			local stranger = loaded(nil)
 			local before = H.copy(snap(stranger))
-			flag("defeat_unknown_boss_refused", (S.GrantDefeat(stranger, "no_boss", Random.new(1))) == false)
+			flag("defeat_unknown_boss_refused", (S.GrantChest(stranger, "no_boss")) == false)
 			flag("defeat_unknown_boss_no_change", unchanged(stranger, before) and ragas(stranger) == 0)
 
 			-- The Big Raga drop may overflow the Sidekick bag; nothing else may (owner 2026-11-05, design doc 4.37).
@@ -481,7 +493,7 @@ function Tests.relics()
 			end
 			local count = sidekicks(full)
 			flag("full_bag_setup", count == SidekickConfig.BagSize, count, SidekickConfig.BagSize)
-			S.GrantDefeat(full, BOSS, scripted({ NEVER, chance * 1.0001 }))
+			defeat(full, scripted({ NEVER, chance * 1.0001 }))
 			flag(
 				"raga_overflow_miss_adds_nothing",
 				ragas(full) == 0 and sidekicks(full) == count,
@@ -496,7 +508,7 @@ function Tests.relics()
 					and H.same(Sidekick.Snapshot(full), otherBefore)
 			)
 			local relicsBefore = #bag(full)
-			flag("raga_overflow_defeat_ok", S.GrantDefeat(full, BOSS, scripted({ NEVER, chance })) == true)
+			flag("raga_overflow_defeat_ok", (defeat(full, scripted({ NEVER, chance }))) == true)
 			flag("raga_overflow_relic_given", #bag(full) == relicsBefore + 1, #bag(full), relicsBefore + 1)
 			flag("raga_overflow_adds_raga", ragas(full) == 1, ragas(full), 1)
 			flag("raga_overflow_bag_51", sidekicks(full) == count + 1, sidekicks(full), count + 1)
@@ -701,7 +713,6 @@ function Tests.relics()
 			flag("chest_names", raga.Name == "Raga's Treasure" and adapted.Name == "Adapted Raga's Treasure")
 			flag("chest_raga_chance", raga.SidekickChance == 0.00001, raga.SidekickChance, 0.00001)
 			flag("chest_adapted_chance", adapted.SidekickChance == 0.0001, adapted.SidekickChance, 0.0001)
-			flag("chest_raga_chance_is_the_old_one", raga.SidekickChance == C.RagaSidekickChance)
 			for id, chest in { [RAGA] = raga, [ADAPTED] = adapted } do
 				flag("chest_id_" .. id, chest.Id == id)
 				flag("chest_flag_" .. id, chest.Chest == true)
@@ -837,27 +848,72 @@ function Tests.relics()
 				SidekickConfig.BagSize + 1
 			)
 
-			-- Her chest (owner 2026-11-11, RELIC_SPEC "Chests"): her table, no Sidekick roll (proposed).
-			local MAGE_CHEST = "relic_chest_mage"
-			local mageChest = C.Chests[MAGE_CHEST]
-			flag("chest_mage_exists", mageChest ~= nil)
-			if mageChest then
-				flag("chest_mage_name", mageChest.Name == "Elf Mage's Treasure", mageChest.Name)
-				flag("chest_mage_id", mageChest.Id == MAGE_CHEST)
-				flag("chest_mage_flag", mageChest.Chest == true)
-				flag("chest_mage_boss", mageChest.Boss == "boss_mage", mageChest.Boss)
-				flag("chest_mage_no_sidekick", mageChest.SidekickChance == 0, mageChest.SidekickChance, 0)
-				flag("chest_mage_table", H.same(mageChest.Table, C.Odds("boss_mage")))
-				flag("chest_mage_get", C.Get(MAGE_CHEST) == mageChest)
-				local opener, mageEntry = freshChest(MAGE_CHEST)
-				flag("chest_mage_granted", mageEntry ~= nil)
-				local rng = scripted({ 0 })
-				local done, relicRow, won = S.OpenChest(opener, mageEntry, rng)
-				flag("chest_mage_opens", done == true)
-				local first = mageChest.Table[1]
-				flag("chest_mage_first_draw_relic", relicRow ~= nil and first ~= nil and relicRow.Id == first.Id)
-				flag("chest_mage_never_sidekick", not won and ragas(opener) == 0, ragas(opener), 0)
-				flag("chest_mage_one_draw", rng.Draws == 1, rng.Draws, 1)
+			-- Every boss's chest rolls its own Sidekick (owner 2026-11-11, design doc 4.37, RELIC_SPEC "Chests"): the mage's and
+			-- the king's chests, each with its table and its boss's Sidekick at 0.001%, through Chests[*].SidekickId.
+			local function sidekicksOf(holder, id)
+				local n = 0
+				for _, item in Sidekick.Snapshot(holder).Sidekicks do
+					n += item.Id == id and 1 or 0
+				end
+				return n
+			end
+			flag("chest_raga_sidekick_id", raga.SidekickId == "side_raga", raga.SidekickId)
+			flag("chest_adapted_sidekick_id", adapted.SidekickId == "side_raga", adapted.SidekickId)
+			for _, own in
+				{
+					{ "mage", "relic_chest_mage", "Elf Mage's Treasure", "boss_mage", "side_mage" },
+					{ "king", "relic_chest_king", "Golden King's Treasure", "boss_king", "side_king" },
+				}
+			do
+				local tag, id, name, bossId, sideId = own[1], own[2], own[3], own[4], own[5]
+				local chest = C.Chests[id]
+				flag("chest_" .. tag .. "_exists", chest ~= nil)
+				if chest then
+					flag("chest_" .. tag .. "_name", chest.Name == name, chest.Name)
+					flag("chest_" .. tag .. "_id", chest.Id == id)
+					flag("chest_" .. tag .. "_flag", chest.Chest == true)
+					flag("chest_" .. tag .. "_boss", chest.Boss == bossId, chest.Boss)
+					flag("chest_" .. tag .. "_sidekick_id", chest.SidekickId == sideId, chest.SidekickId, sideId)
+					flag(
+						"chest_" .. tag .. "_sidekick_chance",
+						chest.SidekickChance == 0.00001,
+						chest.SidekickChance,
+						0.00001
+					)
+					local sideRow = SidekickConfig.Get(sideId)
+					flag(
+						"chest_" .. tag .. "_row_agrees",
+						sideRow ~= nil and approx(chest.SidekickChance * 100, sideRow.Odds)
+					)
+					flag("chest_" .. tag .. "_table", H.same(chest.Table, C.Odds(bossId)))
+					flag("chest_" .. tag .. "_get", C.Get(id) == chest)
+					local opener, ownEntry = freshChest(id)
+					flag("chest_" .. tag .. "_granted", ownEntry ~= nil)
+					local rng = scripted({ 0, NEVER })
+					local done, relicRow, won = S.OpenChest(opener, ownEntry, rng)
+					flag("chest_" .. tag .. "_opens", done == true)
+					local first = chest.Table[1]
+					flag(
+						"chest_" .. tag .. "_first_draw_relic",
+						relicRow ~= nil and first ~= nil and relicRow.Id == first.Id
+					)
+					flag("chest_" .. tag .. "_miss_no_sidekick", not won and sidekicksOf(opener, sideId) == 0)
+					flag("chest_" .. tag .. "_two_draws", rng.Draws == 2, rng.Draws, 2)
+					-- Draw 2 at the chance: its own Sidekick, never Raga's; overflows the bag as Raga's does.
+					local lucky, luckyEntry = freshChest(id)
+					local _, _, hit = S.OpenChest(lucky, luckyEntry, scripted({ NEVER, chest.SidekickChance }))
+					flag(
+						"chest_" .. tag .. "_hit_grants_own",
+						hit ~= nil and sidekicksOf(lucky, sideId) == 1,
+						sidekicksOf(lucky, sideId),
+						1
+					)
+					flag("chest_" .. tag .. "_hit_not_raga", ragas(lucky) == 0, ragas(lucky), 0)
+					flag("chest_" .. tag .. "_hit_keeps_relic", #bag(lucky) == 1, #bag(lucky), 1)
+					local above, aboveEntry = freshChest(id)
+					S.OpenChest(above, aboveEntry, scripted({ NEVER, chest.SidekickChance * 1.0001 }))
+					flag("chest_" .. tag .. "_misses_above_threshold", sidekicksOf(above, sideId) == 0)
+				end
 			end
 
 			-- Luck never reaches it (RELIC_SPEC).

@@ -152,6 +152,26 @@
    "Tail9": "Body"
   }
  },
+ "side_king": {
+  "Fit": "Torso_merged",
+  "FitCenter": [
+   0.0,
+   0.0,
+   3.0
+  ],
+  "FitHeight": 4.6,
+  "Parents": {
+   "Ea_Drum1": null,
+   "Ea_Grip": null,
+   "Head_merged": null,
+   "Key": null,
+   "LeftArm_merged": null,
+   "LeftLeg_merged": null,
+   "RightArm_merged": null,
+   "RightLeg_merged": null,
+   "Torso_merged": null
+  }
+ },
  "side_knight": {
   "Fit": "Torso",
   "FitCenter": [
@@ -168,6 +188,26 @@
    "RightLeg": "Torso",
    "Sword": "RightArm",
    "Torso": null
+  }
+ },
+ "side_mage": {
+  "Fit": "Torso_merged",
+  "FitCenter": [
+   0.0,
+   0.0,
+   3.0
+  ],
+  "FitHeight": 3.06,
+  "Parents": {
+   "Head_merged": null,
+   "LeftArm_merged": null,
+   "LeftLeg_merged": null,
+   "RightArm_merged": null,
+   "RightLeg_merged": null,
+   "Staff": null,
+   "TailL": null,
+   "TailR": null,
+   "Torso_merged": null
   }
  },
  "side_pig": {

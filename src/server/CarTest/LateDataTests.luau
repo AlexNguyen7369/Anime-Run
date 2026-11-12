@@ -31,7 +31,7 @@ local Shared = ReplicatedStorage.Shared
 local Tests = {}
 
 local T0 = 3000000 -- the fake server clock's start
-Tests.NAMES = { "BossRagaPoses", "BossMagePoses", "SidekickAttacks" }
+Tests.NAMES = { "BossRagaPoses", "BossMagePoses", "BossKingPoses", "SidekickAttacks" }
 Tests.JOIN_CONTAINERS = { "ReplicatedStorage", "ReplicatedFirst", "StarterPlayer", "StarterGui" }
 local BOSS_POSES = { boss_raga = "BossRagaPoses", boss_mage = "BossMagePoses" }
 local OTHER = { boss_raga = "boss_mage", boss_mage = "boss_raga" }

@@ -1,0 +1,504 @@
+{
+ "id": "side_mage",
+ "movement": "Fly",
+ "units": "XYZ Euler degrees about each part's pivot, relative to its parent; root_offset in model units, added to each root part's rest location",
+ "pivots": {
+  "Head_merged": [
+   0.0,
+   0.0,
+   5.0
+  ],
+  "LeftArm_merged": [
+   1.4,
+   0.0,
+   3.0
+  ],
+  "LeftLeg_merged": [
+   0.5,
+   0.0,
+   1.0
+  ],
+  "RightArm_merged": [
+   -1.4,
+   0.0,
+   3.0
+  ],
+  "RightLeg_merged": [
+   -0.5,
+   0.0,
+   1.0
+  ],
+  "Staff": [
+   -1.5,
+   -0.62,
+   2.05
+  ],
+  "TailL": [
+   0.86,
+   0.36,
+   5.86
+  ],
+  "TailR": [
+   -0.86,
+   0.36,
+   5.86
+  ],
+  "Torso_merged": [
+   0.0,
+   0.0,
+   3.0
+  ]
+ },
+ "rest": {
+  "Head_merged": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftArm_merged": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "LeftLeg_merged": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightArm_merged": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "RightLeg_merged": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Staff": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "TailL": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "TailR": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "Torso_merged": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "moves": {
+  "attack": {
+   "title": "The Elf Mage (side_mage): small lightning bolt from the staff (proposed)",
+   "end": 1.4,
+   "Release": 0.5,
+   "keys": [
+    {
+     "name": "Gather",
+     "t": 0.25,
+     "desc": "Leans in, left hand to the staff, tails tuck",
+     "root_offset": {
+      "Head_merged": [
+       0,
+       0,
+       -0.15
+      ],
+      "LeftArm_merged": [
+       -0.241,
+       -0.447,
+       0.073
+      ],
+      "LeftLeg_merged": [
+       0,
+       0,
+       -0.15
+      ],
+      "RightArm_merged": [
+       0.0,
+       -0.166,
+       -0.133
+      ],
+      "RightLeg_merged": [
+       0,
+       0,
+       -0.15
+      ],
+      "Staff": [
+       0.0,
+       -0.35,
+       0.017
+      ],
+      "TailL": [
+       0,
+       0,
+       -0.15
+      ],
+      "TailR": [
+       0,
+       0,
+       -0.15
+      ],
+      "Torso_merged": [
+       0,
+       0,
+       -0.15
+      ]
+     },
+     "rotations": {
+      "Head_merged": [
+       6,
+       0,
+       0
+      ],
+      "LeftArm_merged": [
+       -34,
+       22,
+       0
+      ],
+      "LeftLeg_merged": [
+       20,
+       0,
+       -2
+      ],
+      "RightArm_merged": [
+       -12,
+       0,
+       0
+      ],
+      "RightLeg_merged": [
+       14,
+       0,
+       2
+      ],
+      "Staff": [
+       -22.0,
+       -0.0,
+       0.0
+      ],
+      "TailL": [
+       -10,
+       -24,
+       0
+      ],
+      "TailR": [
+       -10,
+       24,
+       0
+      ],
+      "Torso_merged": [
+       8,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Release",
+     "t": 0.5,
+     "desc": "Staff thrust forward and tipped: a bolt leaps from the gem",
+     "root_offset": {
+      "Head_merged": [
+       0,
+       0,
+       0.15
+      ],
+      "LeftArm_merged": [
+       -0.244,
+       -0.613,
+       0.555
+      ],
+      "LeftLeg_merged": [
+       0,
+       0,
+       0.15
+      ],
+      "RightArm_merged": [
+       0.0,
+       -0.351,
+       0.231
+      ],
+      "RightLeg_merged": [
+       0,
+       0,
+       0.15
+      ],
+      "Staff": [
+       0.0,
+       -0.704,
+       0.599
+      ],
+      "TailL": [
+       0,
+       0,
+       0.15
+      ],
+      "TailR": [
+       0,
+       0,
+       0.15
+      ],
+      "Torso_merged": [
+       0,
+       0,
+       0.15
+      ]
+     },
+     "rotations": {
+      "Head_merged": [
+       -12,
+       0,
+       0
+      ],
+      "LeftArm_merged": [
+       -50,
+       30,
+       0
+      ],
+      "LeftLeg_merged": [
+       30,
+       0,
+       -2
+      ],
+      "RightArm_merged": [
+       -26,
+       0,
+       0
+      ],
+      "RightLeg_merged": [
+       24,
+       0,
+       2
+      ],
+      "Staff": [
+       -48.0,
+       -0.0,
+       0.0
+      ],
+      "TailL": [
+       -28,
+       -60,
+       0
+      ],
+      "TailR": [
+       -28,
+       60,
+       0
+      ],
+      "Torso_merged": [
+       -8,
+       0,
+       0
+      ]
+     }
+    },
+    {
+     "name": "Crackle",
+     "t": 0.75,
+     "desc": "Holds the thrust, head tilts, tails fling wide",
+     "root_offset": {
+      "Head_merged": [
+       0,
+       0,
+       0.12
+      ],
+      "LeftArm_merged": [
+       -0.372,
+       -0.556,
+       0.576
+      ],
+      "LeftLeg_merged": [
+       0,
+       0,
+       0.12
+      ],
+      "RightArm_merged": [
+       0.0,
+       -0.325,
+       0.189
+      ],
+      "RightLeg_merged": [
+       0,
+       0,
+       0.12
+      ],
+      "Staff": [
+       0.0,
+       -0.658,
+       0.523
+      ],
+      "TailL": [
+       0,
+       0,
+       0.12
+      ],
+      "TailR": [
+       0,
+       0,
+       0.12
+      ],
+      "Torso_merged": [
+       0,
+       0,
+       0.12
+      ]
+     },
+     "rotations": {
+      "Head_merged": [
+       -6,
+       0,
+       12
+      ],
+      "LeftArm_merged": [
+       -44,
+       44,
+       0
+      ],
+      "LeftLeg_merged": [
+       34,
+       0,
+       -4
+      ],
+      "RightArm_merged": [
+       -24,
+       0,
+       0
+      ],
+      "RightLeg_merged": [
+       26,
+       0,
+       4
+      ],
+      "Staff": [
+       -46.0,
+       -0.0,
+       0.0
+      ],
+      "TailL": [
+       -36,
+       -80,
+       6
+      ],
+      "TailR": [
+       -36,
+       80,
+       -6
+      ],
+      "Torso_merged": [
+       -6,
+       0,
+       -8
+      ]
+     }
+    },
+    {
+     "name": "Recovery",
+     "t": 1.1,
+     "desc": "Staff back upright, settling to the hover",
+     "root_offset": {
+      "Head_merged": [
+       0,
+       0,
+       0.05
+      ],
+      "LeftArm_merged": [
+       -0.133,
+       -0.194,
+       0.103
+      ],
+      "LeftLeg_merged": [
+       0,
+       0,
+       0.05
+      ],
+      "RightArm_merged": [
+       0.0,
+       -0.084,
+       0.054
+      ],
+      "RightLeg_merged": [
+       0,
+       0,
+       0.05
+      ],
+      "Staff": [
+       0.0,
+       -0.18,
+       0.124
+      ],
+      "TailL": [
+       0,
+       0,
+       0.05
+      ],
+      "TailR": [
+       0,
+       0,
+       0.05
+      ],
+      "Torso_merged": [
+       0,
+       0,
+       0.05
+      ]
+     },
+     "rotations": {
+      "Head_merged": [
+       0,
+       0,
+       0
+      ],
+      "LeftArm_merged": [
+       -14,
+       10,
+       0
+      ],
+      "LeftLeg_merged": [
+       24,
+       0,
+       -2
+      ],
+      "RightArm_merged": [
+       -6,
+       0,
+       0
+      ],
+      "RightLeg_merged": [
+       18,
+       0,
+       2
+      ],
+      "Staff": [
+       -6.0,
+       -0.0,
+       0.0
+      ],
+      "TailL": [
+       -6,
+       -30,
+       0
+      ],
+      "TailR": [
+       -6,
+       30,
+       0
+      ],
+      "Torso_merged": [
+       2,
+       0,
+       0
+      ]
+     }
+    }
+   ]
+  }
+ }
+}

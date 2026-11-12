@@ -5,6 +5,9 @@ return {
 	boss_golem = {
 		BossModel = 112976086043908,
 	},
+	boss_king = {
+		BossModel = 98757375537994,
+	},
 	boss_mage = {
 		BossModel = 71771432759364,
 	},
@@ -46,10 +49,20 @@ return {
 		Portrait = "rbxassetid://123904858057635",
 		Head = "rbxassetid://137910633630283",
 	},
+	side_king = {
+		Model = 94339477730899,
+		Portrait = "rbxassetid://70951540135357",
+		Head = "rbxassetid://132611070304019",
+	},
 	side_knight = {
 		Model = 125460333842793,
 		Portrait = "rbxassetid://130776132014249",
 		Head = "rbxassetid://98545701958767",
+	},
+	side_mage = {
+		Model = 108346344179735,
+		Portrait = "rbxassetid://134109689590982",
+		Head = "rbxassetid://127803043670112",
 	},
 	side_pig = {
 		Model = 113726774220707,

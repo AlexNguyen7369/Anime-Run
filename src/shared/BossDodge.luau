@@ -29,11 +29,15 @@ BossDodge.DodgeText = "Nice Dodge!"
 BossDodge.StarArt = "rbxassetid://103522228947626" -- assets/ui/dodge_star.png
 
 -- A boss's schedule, read once: Events (event name -> its moments in one cycle), List (every moment of one cycle, in time order:
--- { At, Name }) and Cycle. Read off the shared schedule, so every client's animation and the server agree. Rounded to the 3 places
--- the schedule's times are written in.
+-- { At, Name }), Timeline (every event, the "<move>_start" openers included; the bake's naming, bake_boss_king.py) and Cycle. Read
+-- off the shared schedule, so every client's animation and the server agree. Rounded to the 3 places the schedule's times are
+-- written in.
 local SCAN_STEP = 0.01 -- s: shorter than any row of the schedule
+local function isMoment(name)
+	return not string.find(name, "_start$")
+end
 local function scan(Poses, events)
-	local list = {}
+	local list, timeline = {}, {}
 	for _, move in Poses.Moves do
 		for _, moveEvent in move.Events do
 			events[moveEvent.Name] = {}
@@ -47,15 +51,20 @@ local function scan(Poses, events)
 			for _, moveEvent in Poses.Moves[move].Events do
 				local at = math.round((since - localTime + moveEvent.Time) * 1000) / 1000
 				table.insert(events[moveEvent.Name], at)
-				table.insert(list, { At = at, Name = moveEvent.Name })
+				table.insert(timeline, { At = at, Name = moveEvent.Name })
+				if isMoment(moveEvent.Name) then
+					table.insert(list, { At = at, Name = moveEvent.Name })
+				end
 			end
 		end
 		lastMove, lastLocal = move, localTime
 	end
-	table.sort(list, function(a, b)
+	local byTime = function(a, b)
 		return a.At < b.At
-	end)
-	return { List = list, Events = events, Cycle = Poses.CycleSeconds }
+	end
+	table.sort(list, byTime)
+	table.sort(timeline, byTime)
+	return { List = list, Timeline = timeline, Events = events, Cycle = Poses.CycleSeconds }
 end
 
 BossDodge.Events = {} -- Big Raga's, filled when his schedule is first read
@@ -116,6 +125,27 @@ function BossDodge.IndexAtOrBefore(since, boss)
 		count += row.At <= inCycle and 1 or 0
 	end
 	return cycles * #list + count
+end
+
+-- The name of the last event of any kind (a "<move>_start" opener included) at or before `since`; nil before the first one. A Self
+-- status (Fortified) holds from its moment to the next event, the following move's opener.
+function BossDodge.EventAtOrBefore(since, boss)
+	if since < 0 then
+		return nil
+	end
+	local schedule = scheduleOf(boss)
+	local timeline = schedule.Timeline
+	local inCycle = since - math.floor(since / schedule.Cycle) * schedule.Cycle
+	local name = nil
+	for _, row in timeline do
+		if row.At <= inCycle then
+			name = row.Name
+		end
+	end
+	if name == nil and since >= schedule.Cycle then
+		name = timeline[#timeline].Name -- the previous cycle's last event still holds
+	end
+	return name
 end
 
 -- The golem slot of the boss's cycle (s after the intro, in its first cycle) and the cycle's length; nil for a boss without one.

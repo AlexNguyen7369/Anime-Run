@@ -4,8 +4,11 @@
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
+- boss-king k9: rules audit round 2, then PR into main with a fresh reviewer (doing 2026-11-11)
 
 ## Next
+- boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
+- boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first
 - hud-team t4: Team icon N3 uploaded and wired (2026-11-12); `ui_team`, `ui_hud` to run inside m12
 - boss-mage-2: owner plays `/elfboss` (slow rhythm, golem 1,000 HP per player) and looks at the Team panel against draft A
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
@@ -17,6 +20,10 @@
 - 2026-11-12 PR #8 feature/alex/anime-world merged into main (4f9e2dc): hud-tech, Dojos removed + showpiece C, track power-ups; fresh review APPROVE; full harness waived by the owner
 - 2026-11-11 boss-mage m12 the owner's way: anime-world merged into boss-mage (481a82d), merge audit PASS, full harness waived; boss-mage merged into boss-king for play (556434f)
 - 2026-11-12 boss-mage-2 follow-ups and hud-team (1b6c59a): golem HP per player, slower rhythm, golem every 6 s, per-boss late data with removal after the event (lazy-data merged), Bosses and Team buttons in a second column, Team panel A, world dim on every panel: `late_data` 90, `boss_mage_event` 291, `boss_mage_anim` 288, `ui_boss` 485, `ui_team` 42, `ui_panels` 1162 and the other targeted boss and HUD scenarios fail=0; rules audit PASS round 2
+- 2026-11-11 boss-king Studio verify: boss_king_arena 56, boss_king_anim 133, boss_king_event 101, relics 702, sidekicks 352, sidekick_attacks 619, boss_mage_event 281, boss_mage_anim 286, boss_event 1862, boss_arena 155; UI ui_boss_king 14, _dodge 13, _vfx 35, _rewards 12, ui_boss_fortified 14, ui_boss_cards 63, ui_boss_dodge 13, ui_boss_mage 16, _dodge 10, _rewards 12, ui_boss 468, ui_relics 30, all fail=0; live /boss king seen; audit round 1 FAIL fixed (64ec107)
+- 2026-11-11 boss-king k4-k8: key frames (pre-approved), art uploaded, server, tests, client, bake; merged up to f947eb7 on `feature/alex/boss-king`; stylua / selene / rojo build green; harness not yet run
+- 2026-11-11 boss-king k1 `/new-boss` skill (ebf9016), k2 models boss_king 2,862 tris, side_king 2,534, side_mage 3,148 (4f98427), k3 vault draft script (88b6867); docs and Blender only, no upload, no Studio
+- 2026-11-11 boss-king k0: The Golden King rules, evidence, goal, Sidekick self-drop rule for every boss (72fafa4 on `feature/alex/boss-king`); rules audit PASS, docs only
 - 2026-11-12 boss-mage-2 g0-g6: Elf Mage spam strikes over 2 s, Stone Golem miniboss, 3-circle rhythm, Bosses cards draft B, her Relics and chest, drop list hidden (3c843fa): `boss_mage_event` 281, `boss_mage_anim` 286, `relics` 674, `ui_boss_mage_vfx` 55, `ui_boss_cards` 45, `ui_boss_golem` 16, `ui_boss` 468, `ui_boss_phase2` 91 and the other targeted boss scenarios fail=0; rules audit PASS
 - 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio
 - 2026-11-11 powerups p1 Track power-ups (752cf76): Speed x1.5 for 3 s and Stamina +5 s rings on the path, H2 badge, overfill seconds; `powerups` 22, `stamina` 33, `race` 52, `track_loading` 82 fail=0; rules audit PASS round 2; shots https://claude.ai/artifact/JEqy1rJqA7gCLrfZ4gdy1d

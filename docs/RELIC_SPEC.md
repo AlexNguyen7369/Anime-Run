@@ -27,7 +27,7 @@ The table above is Raga's Treasure, Phase 1's chest. Adapted Raga's Treasure, Ph
 Each table sums to 100%. Luck, potions and pity do not change them. Duplicates stack as copies; one copy on one character.
 
 ## The Elf Mage's drops (owner 2026-11-11: names and art approved from `assets/ui/relic_mage_art_sheet.png`; bonuses and odds **placeholder** as Big Raga's)
-Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_mage`, paid at her defeat; no Sidekick roll.
+Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_mage`, paid at her defeat; it also rolls her Sidekick `side_mage` at 0.001% separately (owner 2026-11-11; replaces "no Sidekick roll").
 
 | Rarity | Odds | Id | Name (proposed) | Bonuses |
 |---|---|---|---|---|
@@ -38,8 +38,21 @@ Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_ma
 | Mythic | 0.9% | `relic_grimoire` | Master's Grimoire | +22% Attack Speed, +22% Luck, +6% Damage, +6% Money |
 | Secret | 0.1% | `relic_world_core` | World Core (universal) | +15% in all 6 stats |
 
+## The Golden King's drops (owner 2026-11-11: names and stat priority from the approved plan; ids, bonuses and odds **placeholder** as Big Raga's; art approved 2026-11-11, ids live)
+Priority: damage and money gain. Chest "Golden King's Treasure" (name **proposed**), id `relic_chest_king`, paid at his defeat; Big Raga's Phase 1 table; it also rolls his Sidekick `side_king` at 0.001% separately. Design doc 4.38 and `docs/char_evidence/boss_king.md`.
+
+| Rarity | Odds | Id | Name (proposed) | Bonuses |
+|---|---|---|---|---|
+| Common | 55% | `relic_coin` | Gold Coin | +3% Damage |
+| Rare | 28% | `relic_goblet` | Royal Goblet | +6% Money |
+| Epic | 12% | `relic_chain` | Chain of Heaven | +10% Damage, +10% Money |
+| Legendary | 4% | `relic_armor` | Golden Armor | +15% Damage, +15% Money, +4% Attack Speed |
+| Mythic | 0.9% | `relic_key` | Key of Babylon (the Dodge bar's key art, like Raga's Wheel) | +22% Damage, +22% Money, +6% Attack Speed, +6% Luck |
+| Secret | 0.1% | `relic_world_core` | World Core (universal) | +15% in all 6 stats |
+| The Golden King Sidekick `side_king` (separate roll) | 0.001% | | | |
+
 ## Chests (owner 2026-11-06)
-Saved as rows of `Relics`, ids `relic_chest_raga`, `relic_chest_adapted` and `relic_chest_mage` (owner 2026-11-11), in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic and the Sidekick chance at its table on the server (`relic_chest_mage` has no Sidekick chance, **proposed**). The Sidekick may overflow the bag, as before.
+Saved as rows of `Relics`, ids `relic_chest_raga`, `relic_chest_adapted`, `relic_chest_mage` (owner 2026-11-11) and `relic_chest_king` (owner 2026-11-11), in `RelicConfig.Chests`, apart from `Bosses`. A chest is a sealed spin: `Remotes.RelicOpenChest(entry)` removes it and rolls 1 Relic at its table and, separately, its own boss's Sidekick at its chance on the server (owner 2026-11-11, every boss: `relic_chest_raga` -> `side_raga` 0.001%, `relic_chest_adapted` -> `side_raga` 0.01%, `relic_chest_mage` -> `side_mage` 0.001%, `relic_chest_king` -> `side_king` 0.001%; replaces "`relic_chest_mage` has no Sidekick chance"). In code `RelicConfig.Chests[*].SidekickId` and `SidekickChance` replace `RagaSidekickChance` (k7). The Sidekick may overflow the bag, as before.
 
 In the Relics tab a chest shows its art and quantity; its menu offers Open and its odds. No equip, sale or Index tile (**proposed**). Opening uses the 1x summon reveal (`Client/SidekickReveal`), with the chest image still (no shake) and the Relic's drawn art as the result.
 

@@ -261,6 +261,24 @@ Deliverables:
 - g6 | In-betweens, bake, uploads | approved keys unchanged; upload scripts' `main()` guards checked first
 Out of scope: Phase 2, her Sidekick, Big Raga's event rules, m12's PR.
 
+## boss-king: The Golden King, third boss, and the /new-boss skill (owner 2026-11-11)
+Status: active
+Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/new-boss-gilgamesh-golden-concurrent-stream.md`)
+Branch: feature/alex/boss-king (from feature/alex/boss-mage)
+Spec: design doc 4.37 Third boss, 4.36 Boss Sidekicks, 4.38, docs/BOSS_EVENT_SPEC.md "The Golden King", docs/RELIC_SPEC.md "The Golden King's drops", docs/SIDEKICK_SPEC.md rows `side_king` and `side_mage`, docs/char_evidence/boss_king.md, side_king.md, side_mage.md
+Deliverables:
+- k0 | Rules, evidence `docs/char_evidence/boss_king.md`, `side_king.md`, `side_mage.md`; `handoff.md`, state file, board, goals | rules audit PASS, owner reads back
+- k1 | Skill `.claude/skills/new-boss/SKILL.md` (+ `references/checklist.md`) | owner reads it; `/new-boss` loads
+- k2 | Models: `boss_king` (`tools/blender/build_boss_king.py`, `avatar_chars/boss_king.json`, `paint/char_boss_king.py`, <= 3,000 tris, R15 block body, hair/face/paint only), Ea + key as separate parts; `side_king`, `side_mage` in `tools/blender/sidekicks/` | 4 renders each, no upload; screenshots of every model and render on one review page; the owner approves before k4 starts. Done 2026-11-11 (owner approved on the page: `boss_king` 2,872 tris, `side_king` 2,422, `side_mage` 3,148)
+- k3 | Vault re-dress: `tools/blender/arena/build_vault.py` renders from the colosseum shell | owner approves the look; screenshots of every model and render on one review page; the owner approves before k4 starts. Done 2026-11-11 (owner approved vault pass 2 on the page)
+- k4 | Key frames, one move at a time, 3-5 keys each, `assets/characters_avatar/boss_king/keyframes/keys.json` + `_slices.png` (`boss_king_keyframes.py` from `boss_mage_keyframes.py`): `idle`, `gates`, `gates_window`, `enuma_charge`, `enuma_beam`, `shields`, `fortified_idle`; Sidekick attacks `side_king`, `side_mage` | owner pre-approved 2026-11-11, slices still rendered
+- k5 | Digital art (`portrait/draw_king_ui.py`): key icon (Dodge bar), boss portrait, 2 Sidekick portraits + heads, `Fortified` status icon, 5 Relic PNGs + chest (`draw_relics.py king`), Bosses card | owner approves the sheet. Done 2026-11-11 (owner approved on the page)
+- k6 | In-betweens, bake `bake_boss_king.py` -> `BossKingPoses.luau`; uploads (`upload_king_art.py` -> `BossKingArt.luau`, ledgers `avatar_assets.json`, `king_art_assets.json`; check every `main()` guard first) | approved keys unchanged; owner's upload word
+- k7 | Server (tests red first by the test-writer): catalog row, `Fortified` boss status, Sidekick drop generalised, `/boss king` | `boss_king_event`, `boss_king_anim`, `relics`, `sidekicks` green
+- k8 | Client: vault dressing, `BossKing`, `BossKingVfx`, fortified notice, cards | `ui_boss_king*`, `ui_boss_cards`, `ui_boss_dodge` green; owner look in Studio
+- k9 | Compatibility: boss scenarios, rules audit, PR with fresh review | reported
+Out of scope: Phase 2 for any boss, Big Raga or Elf Mage rule changes beyond the Sidekick roll, trading, new arenas from scratch, m12's PR for boss-mage (lands first or in parallel on its own branch).
+
 ## hud-team: Team button and Team panel; Bosses button in a second column (owner 2026-11-12)
 Status: active
 Owner-confirmed: 2026-11-12 (screenshot of the placement; drafts https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp: icon 1 in neutral colours, panel A)
