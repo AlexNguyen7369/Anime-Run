@@ -22,7 +22,11 @@ local REPLACES = {
 	PotionsStall = "POTIONSStall",
 	Marketplace = "MarketStall",
 	IndexBoard = "IndexBoard",
-	Spawn = "SpawnMosaic",
+	-- the terrace mesh carries the spawn disc; the steps keep the collision (design doc 4.43)
+	Spawn = "Showpiece",
+	Terrace1 = "Showpiece",
+	Terrace2 = "Showpiece",
+	Terrace3 = "Showpiece",
 }
 
 local IMPORT_TURN = CFrame.Angles(0, math.pi, 0) -- the glTF import turns a mesh 180 degrees, as it does the runner rigs
