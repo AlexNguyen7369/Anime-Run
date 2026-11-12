@@ -2,7 +2,7 @@
 -- The Elf Mage's effects (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"). Visual only: nothing here reads
 -- back into damage. Timed from BossMagePoses, which server time alone decides, and built with Client/BossVfx's helpers (BossVfx.Kit)
 -- in the arena's BossEffects folder. Each move has a lead cue before its event: lightning marks its floor spots 1.0 s ahead, the golem
--- gathers motes 2.2 s before each slam, the barrage opens its magic circles 1.2 s ahead. Spots come from a seed of the schedule
+-- gathers motes 2.2 s before each slam, the barrage opens its magic circles one by one from 0.3 s. Spots come from a seed of the schedule
 -- start and the cycle, so every client draws the same ones. All sizes, counts and colours are placeholders to judge from a capture.
 -- Lightning and barrage spam the whole arena over the move's 2 s Window (owner 2026-11-11, BOSS_EVENT_SPEC "Strike window"): a
 -- strike every 0.15 s, 14 strikes, 7 to 10 bolts or beams each (3 under REDUCED EFFECTS), a mark leading each bolt. Bolt, beam and
@@ -42,7 +42,7 @@ local function eventTime(move)
 	return Poses.Moves[move].Events[1].Time
 end
 local LIGHTNING_AT, SLAM_AT, BARRAGE_AT = eventTime("lightning"), eventTime("golem"), eventTime("barrage")
-local MARK_LEAD, GATHER_FROM, CIRCLE_LEAD = 1.0, 2.0, 1.2
+local MARK_LEAD, GATHER_FROM = 1.0, 2.0
 local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- owner 2026-11-11: 0, 0.15, ... 1.95 s of the 2 s window
 local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3 -- bolts or beams per strike (reduced: proposed)
 local BARRAGE_WINDOW = Poses.Moves.barrage.Window[2] - Poses.Moves.barrage.Window[1]
@@ -50,9 +50,12 @@ local SWEEP_PUFFS, SWEEP_PUFFS_REDUCED = 9, 3
 local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 local BOLT_KINKS = 3
 local CIRCLES, CIRCLES_REDUCED = 6, 3
-local CIRCLE_SMALL, CIRCLE_LARGE = 10, 24 -- studs across, the first and the last circle: small to large (pose-tied)
-local CIRCLE_EVERY = 0.12 -- s between two circles opening (proposed)
-local CIRCLE_AHEAD, CIRCLE_STEP = 8, 6 -- studs from the staff's tip along its pointing to the first circle, and between two (proposed)
+-- Owner 2026-11-12 morning (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): one by one, slower, all open before the beams
+-- at 2.0 s, a bit bigger. The sixth opens at 0.3 + 5 x 0.28 = 1.7 s and is full by 1.7 + CIRCLE_OPEN.
+local CIRCLE_SMALL, CIRCLE_LARGE = 15, 36 -- studs across, the first and the last circle: small to large (1.5 x)
+local CIRCLE_FROM, CIRCLE_EVERY = 0.3, 0.28 -- s of barrage the first circle opens, s between two
+local CIRCLE_OPEN = 0.22 -- s a circle takes to open (Quad, no overshoot), so the last is full before 2.0 s
+local CIRCLE_AHEAD, CIRCLE_STEP = 12, 9 -- studs from the staff's tip along its pointing to the first circle, and between two
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
 local SWEEP_AT = Poses.GolemMoves.golem_sweep.Events[1].Time
 local SWEEP_DUST = { SWEEP_AT - 0.4, SWEEP_AT + 0.4 } -- s of golem_sweep over which the puffs follow the fist (proposed)
@@ -407,7 +410,7 @@ end
 
 -- Barrage ------------------------------------------------------------------------------------------------------------------------
 
--- From 1.2 s ahead, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in front of the staff's
+-- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in front of the staff's
 -- tip along its pointing (grip to tip), facing along it, small to large, turning, riding her bob.
 local function playCircle(k)
 	local few = reduced()
@@ -432,8 +435,8 @@ local function playCircle(k)
 	tracked[part] = frame
 	local front = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Front)
 	local back = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Back)
-	Kit.tween(part, 0.35, { Size = Vector3.new(size, size, 0.2) }, Enum.EasingStyle.Back)
-	local hold = CIRCLE_LEAD - (k - 1) * CIRCLE_EVERY + BARRAGE_WINDOW
+	Kit.tween(part, CIRCLE_OPEN, { Size = Vector3.new(size, size, 0.2) })
+	local hold = BARRAGE_AT - (CIRCLE_FROM + (k - 1) * CIRCLE_EVERY) + BARRAGE_WINDOW
 	task.delay(hold + 0.25, function()
 		Kit.tween(front, 0.3, { Transparency = 1 })
 		Kit.tween(back, 0.3, { Transparency = 1 })
@@ -443,7 +446,7 @@ local function playCircle(k)
 	return 0
 end
 
--- BossVfxForce "Barrage": the circles from now, one after another.
+-- BossVfxForce "Barrage": the circles from now, one after another at the same spacing (its beams start at once).
 local function playCircles()
 	for k = 1, CIRCLES do
 		later((k - 1) * CIRCLE_EVERY, function()
@@ -517,7 +520,7 @@ local LEADS = { Lightning = playMarks, Slam = playGather, Sweep = playSweepDust,
 local CIRCLE_ROWS = {}
 for k = 1, CIRCLES do
 	CIRCLE_ROWS[k] = {
-		BARRAGE_AT - CIRCLE_LEAD + (k - 1) * CIRCLE_EVERY,
+		CIRCLE_FROM + (k - 1) * CIRCLE_EVERY,
 		function()
 			return playCircle(k)
 		end,
