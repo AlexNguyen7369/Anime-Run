@@ -48,11 +48,11 @@ local ROWS = {
 			Barrage = { Cost = 30, Chat = "The Elf Mage fires a barrage! -30% stamina" },
 		},
 		Statuses = { { Id = "Crushed", Minion = true, Cut = 0.20 } }, -- owner 2026-11-11; stacks from golem hits
-		-- The Stone Golem miniboss (owner 2026-11-11), replacing her golem move. Hp and chat lines proposed.
+		-- The Stone Golem miniboss (owner 2026-11-11), replacing her golem move. Chat lines proposed.
 		Minion = {
 			Id = "boss_golem",
 			Name = "Stone Golem",
-			Hp = 1000, -- flat, not per player
+			HpPerPlayer = 1000, -- owner 2026-11-12; x players in the arena when it rises
 			Attacks = { -- event names from BossMagePoses.GolemHit
 				Slam = { Cost = 15, Chat = "The Elf Mage's golem slams! -15% stamina, damage down for 15 s" },
 				Sweep = { Cost = 15, Chat = "The Stone Golem sweeps! -15% stamina, damage down for 15 s" },

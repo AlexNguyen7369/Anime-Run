@@ -106,7 +106,12 @@ local function startMinion(current, at)
 	if n > (current.Slots or 0) then
 		current.Slots = n
 		local startAt = current.ScheduleStart + Cfg.IntroSeconds + (n - 1) * cycle + slot
-		local hp = current.Boss.Minion.Hp
+		-- Fixed at its start: a join or leave while it stands does not change it.
+		local players = 0
+		for _ in current.Members do
+			players += 1
+		end
+		local hp = current.Boss.Minion.HpPerPlayer * math.max(players, 1)
 		current.Minion = { Hp = hp, MaxHp = hp, StartAt = startAt, PauseT = startAt - current.ScheduleStart }
 		for _, member in current.Members do
 			member.Minion = { ChargedTo = 0, Spared = {}, Osu = {} }
