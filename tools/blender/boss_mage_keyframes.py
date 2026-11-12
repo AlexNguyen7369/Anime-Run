@@ -596,8 +596,9 @@ def pose_golem(rig, spec, rng):
 			flat = Vector((c.x - centre.x, c.y - centre.y, 0))
 			if spec.get("break"):
 				# blocks shift apart and sag where they stand: the pose still reads, the magic no longer holds it
-				p = c + flat * 0.25 + Vector((rng.uniform(-2, 2), rng.uniform(-2, 2), -c.z * 0.1 + rng.uniform(-1, 1)))
-				r = Euler([rng.uniform(-0.35, 0.35) for _ in range(3)])
+				bf = 1.0 if spec["break"] is True else float(spec["break"])  # rework: how far apart (1 = the approved key)
+				p = c + (flat * 0.25 + Vector((rng.uniform(-2, 2), rng.uniform(-2, 2), -c.z * 0.1 + rng.uniform(-1, 1)))) * bf
+				r = Euler([rng.uniform(-0.35, 0.35) * bf for _ in range(3)])
 			elif spec.get("scatter"):
 				# blocks rise off the floor and drift in toward where the golem forms, spread and tumbling
 				p = centre + flat * 1.7 + Vector((rng.uniform(-4, 4), rng.uniform(-4, 4), c.z * 0.45 + rng.uniform(4, 12)))
@@ -614,6 +615,31 @@ def pose_golem(rig, spec, rng):
 				lift = rng.choice((0, 0, 0, 0.6, 5.0))  # most blocks down, a few still tumbling
 				o.matrix_world = Matrix.Translation((0, 0, -low + lift)) @ o.matrix_world
 				bpy.context.view_layer.update()
+	if spec.get("assemble") is not None:
+		# rework, the golem's rise (clip 3): 0 = floor slabs cracked loose round its spot, 1 = assembled in its pose. Low blocks come
+		# first, the head last; each flies in on an arc.
+		f = float(spec["assemble"])
+		centre = rig.golem.matrix_world.translation
+		pts = be.world_verts(order)
+		z0, z1 = float(pts[:, 2].min()), float(pts[:, 2].max())
+		s = SIZE / 4
+		targets = {}
+		for o in order:
+			w = o.matrix_world.copy()
+			c = Vector(be.world_verts([o]).mean(axis=0).tolist())
+			flat = Vector((c.x - centre.x, c.y - centre.y, 0))
+			a = rng.uniform(0, math.tau)
+			p = centre + flat * 1.8 + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(6, 14) * s + Vector((0, 0, 1.0 * s))
+			src = Matrix.Translation(p) @ Euler([rng.uniform(-0.5, 0.5), rng.uniform(-0.5, 0.5), rng.uniform(-1, 1)]).to_matrix().to_4x4() @ Matrix.Translation(-c) @ w
+			d = 0.55 * (c.z - z0) / max(z1 - z0, 1e-3)
+			u = min(max((f - d) / (1 - d), 0.0), 1.0)
+			u = u * u * (3 - 2 * u)
+			(l0, q0, k0), (l1, q1, _) = src.decompose(), w.decompose()
+			loc = l0.lerp(l1, u) + Vector((0, 0, math.sin(math.pi * u) * 10 * s))
+			targets[o.name] = Matrix.LocRotScale(loc, q0.slerp(q1, u), k0)
+		for o in order:
+			o.matrix_world = targets[o.name]
+			bpy.context.view_layer.update()
 	if spec.get("drop"):
 		# slam: whole golem lowered so the fists sit on the floor
 		low = min(float(be.world_verts([rig.gparts[f]])[:, 2].min()) for f in ("FistL", "FistR"))
@@ -938,7 +964,7 @@ def run_move(scene, rig, name, move):
 	span = float(np.linalg.norm(union.max(axis=0) - union.min(axis=0)))
 	clip = span * 3 - span * 0.75
 	marker = None
-	if name == "idle":  # render-only: a bar at the low point's feet, so the rise reads
+	if name == "idle" and not REWORK:  # render-only: a bar at the low point's feet, so the rise reads
 		pose_mage(rig, keys[0])
 		low = float(figure_pts(rig, False)[:, 2].min())
 		ends = [yaw @ Vector((x * rig.k, -0.6 * rig.k, 0)) for x in (-3.0, 3.0)]
@@ -952,7 +978,7 @@ def run_move(scene, rig, name, move):
 		rig.golem.location.z = g_z
 		grec = pose_golem(rig, key.get("golem") if has_golem else None, random.Random(i))
 		if REWORK and not move.get("shared_frame"):  # each panel framed on its own pose, as the king's rework (the figure reads bigger)
-			pts = figure_pts(rig, has_golem and key.get("golem") is not None, mage_on=not solo)
+			pts = figure_pts(rig, has_golem and key.get("golem") is not None and not move.get("golem_context"), mage_on=not solo)
 			three = bk.fit(cam, pts, yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))), MAIN[0] / MAIN[1], margin=0.85)
 			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
 			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
@@ -1222,7 +1248,64 @@ def fx_cast(rig, arg, rng, gem):
 	ball(gem, 0.6 * rig.k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
 
 
-JFX = {"point": fx_point, "flash": fx_flash, "cast": fx_cast}
+# barrage (clips 1, 4, 6): circles open in front of the staff, small to large, one after another, each facing the shot. Offsets in model
+# units from the staff's axis (side, up), distance in front of the tip, diameter; opened in this order.
+JCIRCLES = [(0, 0, 1.0, 1.1), (-1.5, 0.8, 1.3, 1.3), (1.6, 0.7, 1.4, 1.4), (-1.0, -1.3, 1.6, 1.6), (1.2, -1.4, 1.7, 1.8), (-2.9, -0.1, 2.0, 2.0), (3.0, 0.0, 2.1, 2.2), (-2.0, 2.3, 2.4, 2.5), (2.2, 2.2, 2.5, 2.7)]
+
+
+def circle_frame(rig):
+	"""The staff tip, the shot direction (the shaft's axis) and the side and up axes across it, world."""
+	staff = rig.parts["Staff"].matrix_world
+	gem = staff @ rig.gem
+	d = (staff.to_3x3() @ Vector((0, 0, 1))).normalized()
+	side = d.cross(Vector((0, 0, 1)))
+	side = side.normalized() if side.length > 1e-3 else Vector((1, 0, 0))
+	return gem, d, side, side.cross(d).normalized()
+
+
+def fx_circles(rig, arg, rng, gem):
+	"""circles:n[:faint|bright|fade]: the first n circles of JCIRCLES open in front of the staff, facing the shot."""
+	n, _, state = arg.partition(":")
+	gem, d, side, up = circle_frame(rig)
+	k = rig.k
+	rot = Vector((0, 0, 1)).rotation_difference(d).to_euler()
+	for i, (x, y, z, dia) in enumerate(JCIRCLES[: int(n)]):
+		if state == "fade" and i % 3 == 2:
+			continue  # already gone
+		p = gem + (d * z + side * x + up * y) * k
+		bpy.ops.mesh.primitive_plane_add(size=dia * k * (1.12 if state == "fade" else 1), location=p, rotation=rot)
+		strength, alpha = {"bright": (1.8, 1.0), "fade": (1.2, 0.3)}.get(state, (1.1, 0.55 if i < int(n) - 1 else 0.35))
+		fx_link(bpy.context.object, glow_mat("Circle", (1.0, 1.0, 1.0), strength, alpha, CIRCLE_PNG))
+		if state == "bright":
+			ball(p + d * 0.05, dia * k * 0.06, glow_mat("CircleCore", WHITE, 12))
+	if state == "bright":
+		lamp(gem + d * 2 * k, (0.6, 0.8, 1.0), 2e4 * (SIZE / 4) ** 2, 6)
+
+
+def fx_beams(rig, arg, rng, gem):
+	"""beams[:set]: every open circle fires along the shot (a little spread), white core, blue glow and a rounded head where it
+	lands; the room-wide beams of the window go to that set's floor spots (arena view only)."""
+	gem, d, side, up = circle_frame(rig)
+	k, s = rig.k, SIZE / 4
+	for x, y, z, dia in JCIRCLES:
+		p = gem + (d * z + side * x + up * y) * k
+		dd = (d + side * rng.uniform(-0.12, 0.12) + up * rng.uniform(-0.15, 0.05)).normalized()
+		t = min(-p.z / dd.z if dd.z < -1e-3 else 1e9, 80 * s)
+		end = p + dd * t
+		w = dia * k * 0.07
+		tube([p, end], w, glow_mat("BeamCore", WHITE, 14))
+		tube([p, end], w * 2.2, glow_mat("BeamGlow", (0.35, 0.62, 1.0), 2.0, 0.45))
+		ball(end, w * 2.6, glow_mat("BeamHead", WHITE, 14))  # the rounded head (clip 4)
+		ball(end, w * 5, glow_mat("HitGlow", ICE, 1.5, 0.3))
+	before = set(FX.objects)
+	for p, ci, _ in win_spots("barrage", int(arg or 0)):
+		x, y, z, dia = JCIRCLES[ci % len(JCIRCLES)]
+		beam(gem + (d * z + side * x + up * y) * k, p, 0.5 * s * 1.6)
+	for o in set(FX.objects) - before:
+		o["wide_only"] = True
+
+
+JFX = {"point": fx_point, "flash": fx_flash, "cast": fx_cast, "circles": fx_circles, "beams": fx_beams}
 
 
 # The rework keys (proposed; owner pre-approval of the rework 2026-11-12, slices still shown). Root offsets in model units from the
@@ -1252,12 +1335,285 @@ JMOVES = {
 	},
 }
 
+S2 = math.sin
+
+
+def wave(ph, lag=0.0, n=1):
+	"""A loop term that is 0 at phase 0 (so key 0 is exactly the base pose) and periodic: sin(n ph - lag) + sin(lag)."""
+	return S2(n * ph - lag) + S2(lag)
+
+
+def hover_loop(base, end, caps, look_z=0.0, staff_rock=1.0):
+	"""10 keys of a hover loop from base (key 0 = base): breath twice a loop, a side sway, the head looking round, the legs
+	paddling in turn, and a wave running down each tail one beat behind the body (lag grows down the chain)."""
+	keys = []
+	for i, cap in enumerate(caps):
+		t = round(end * i / len(caps), 3)
+		ph = math.tau * t / end
+		k = json.loads(json.dumps(base))  # a deep copy (tuples become lists; solve reads either)
+		bx, by, bz = base["torso"]
+		k["torso"] = (bx + 3 * wave(ph, n=2), by + 4 * S2(ph), bz + 6 * S2(ph))
+		hx, hy, hz = base["head"]
+		k["head"] = (hx - 4 * wave(ph, n=2), hy - 3 * S2(ph), hz + look_z * S2(ph))
+		k["root"] = (0.06 * S2(ph), 0.04 * wave(ph, 0.6), 0)
+		for limb, dz in (("RightArm", 0.12 * staff_rock), ("LeftArm", -0.14 * staff_rock)):
+			if isinstance(base[limb], dict) and "aim" in base[limb]:
+				ax, ay, az = base[limb]["aim"]
+				k[limb] = {**base[limb], "aim": (ax + 0.06 * S2(ph), ay, az + dz * S2(ph))}
+		for t_name, sgn in (("TailL", 1), ("TailR", -1)):
+			segs = [list(e) for e in base[t_name]]
+			for j, e in enumerate(segs):
+				lag = 0.9 + 0.6 * j
+				e[0] += (6 - j) * wave(ph, lag, 2) * 0.6 + 3 * wave(ph, lag)
+				e[1] += -sgn * 5 * wave(ph, lag) if j == 0 else -sgn * 2.5 * wave(ph, lag)
+			k[t_name] = [tuple(e) for e in segs]
+		for leg, sgn in (("LeftLeg", 1), ("RightLeg", -1)):
+			hp, kn = base[leg]["hip"], base[leg]["knee"]
+			k[leg] = {"hip": (hp[0] + sgn * 10 * S2(ph), hp[1], hp[2]), "knee": kn + sgn * 14 * wave(ph, 0.5)}
+		k.update({"t": t, "cap": cap})
+		keys.append(k)
+	return keys
+
+
+G0 = {"Torso": (6, 0, 0), "Head": (-18, 0, 0), "ShoulderL": (0, -6, 0), "ShoulderR": (0, 6, 0), "UpperArmL": (-12, 0, 4), "UpperArmR": (-12, 0, -4), "ForearmL": (-10, 0, 0), "ForearmR": (-10, 0, 0)}  # its approved idle key 1
+
+
+def gp(**k):
+	"""A golem pose: G0 with these parts replaced (both sides: XL / XR given as Name=(l, r) via a 2-tuple of tuples)."""
+	d = dict(G0)
+	for n, v in k.items():
+		if isinstance(v[0], tuple):
+			d[n + "L"], d[n + "R"] = v
+		else:
+			d[n] = v
+	return d
+
+
+def golem_loop(end, caps):
+	"""golem_idle: 10 keys of heavy breathing from G0: chest heaves twice, shoulders roll, weight shifts foot to foot, fists sway
+	a beat behind the chest, the head turns to scan the lanes."""
+	keys = []
+	for i, cap in enumerate(caps):
+		t = round(end * i / len(caps), 3)
+		ph = math.tau * t / end
+		b, sw = wave(ph, n=2), S2(ph)
+		lagf = wave(ph, 0.9, 2)
+		pose = {
+			"Hip": (2 * b, 0, 4 * sw),
+			"Torso": (6 + 7 * b, -3 * sw, -5 * sw),
+			"Head": (-18 - 6 * b, 0, 14 * S2(ph - 0.4) + 14 * S2(0.4)),
+			"ShoulderL": (0, -6 - 5 * b, 0),
+			"ShoulderR": (0, 6 + 5 * b, 0),
+			"UpperArmL": (-12 - 8 * lagf, 0, 4 + 3 * sw),
+			"UpperArmR": (-12 - 8 * lagf, 0, -4 + 3 * sw),
+			"ForearmL": (-10 - 8 * lagf, 0, 0),
+			"ForearmR": (-10 - 8 * lagf, 0, 0),
+			"ThighL": (-4 * sw, 0, 0),
+			"ThighR": (4 * sw, 0, 0),
+			"ShinL": (5 * abs(sw) * (sw > 0), 0, 0),
+			"ShinR": (5 * abs(sw) * (sw < 0), 0, 0),
+		}
+		keys.append({"t": t, "cap": cap, "golem": {"ground": True, "pose": {n: tuple(round(v, 2) for v in e) for n, e in pose.items()}}})
+	return keys
+
+
+WATCH0 = {**IDLE0, "torso": (6, 0, -12), "head": (-2, 0, -30), "RightArm": {"aim": (-1.1, -0.75, 2.3)}, "LeftArm": {"aim": (0.7, -1.0, 2.8)}, "TailL": [(-2, -24, 0), (6, -6, 0), (8, -4, 0)], "TailR": mirror([(-6, -28, 0), (4, -8, 0), (8, -6, 0)]), "LeftLeg": {"hip": (18, 0, -4), "knee": 34}, "RightLeg": {"hip": (14, 0, 4), "knee": 30}}
+GOLEM_SEEN = {"ground": True, "pose": dict(G0)}  # drawn for context in watch: its own pose is in golem_idle
+TLB = [(40, -22, 0), (14, -4, 0), (10, -2, 0)]  # tails blown back
+JMOVES.update(
+	{
+		"idle": {
+			"title": "Idle: hover loop (rework, jointed rig)",
+			"end": 3.0,
+			"loop": True,
+			"cols": 5,
+			"note": "Loop 3.0 s; key 1 is idle key 0, the pose every move starts and ends on. The hover bob is not keyed.",
+			"keys": hover_loop(
+				IDLE0,
+				3.0,
+				[
+					"Idle key 0: hovering, staff across the body in both hands, tails loose, legs hang",
+					"Breath in: chest lifts, sway starts to her left, left leg swings back",
+					"Chest up, head turns right to scan the room; tails lag, still swinging in",
+					"Breath out: shoulders drop, staff tips down a little, legs pass each other",
+					"Sway at its left; tails catch up and flick out, the wave running to the tips",
+					"Weight back to the middle, staff level again, left leg forward",
+					"Breath in again: sway starts to her right, head turns left",
+					"Sway at its right, right leg swings back; tails trail, swinging out",
+					"Breath out: chest settles, the staff rocks back up",
+					"Coming home: tails settle last, a beat behind the body (loops to key 1)",
+				],
+				look_z=12,
+			),
+		},
+		"watch": {
+			"title": "Watch: hover while the Stone Golem stands (rework, jointed rig)",
+			"end": 3.0,
+			"loop": True,
+			"cols": 5,
+			"golem_context": True,
+			"view": (-0.1, -1, 0.15),
+			"note": "Framed on her; the golem (on her right) shows behind. Loop 3.0 s while the golem stands (she takes no damage); the golem is drawn for context only, its pose is golem_idle. watch_in (her lead) is generated.",
+			"keys": [
+				dict(k, golem=GOLEM_SEEN)
+				for k in hover_loop(
+					WATCH0,
+					3.0,
+					[
+						"Watch key 0: calm hover, staff held low, eyes on the golem at her right",
+						"Breath in, she leans toward it a little; tails lag",
+						"Head follows the golem's arms, chin up",
+						"Breath out, staff tips down; legs pass each other",
+						"Sway to her left; tails flick out a beat later",
+						"Back to the middle, eyes back on the golem",
+						"Breath in, sway to her right",
+						"Head turns further after it; right leg swings back",
+						"Breath out, staff rocks up",
+						"Settling: tails come home last (loops to key 1)",
+					],
+					look_z=-10,
+					staff_rock=0.6,
+				)
+			],
+		},
+		"barrage": {
+			"title": "Barrage (rework, jointed rig): circles open in front of the staff, a 2 s storm of beams, recover",
+			"end": 5.4,
+			"cols": 5,
+			"strikes": [2.0, 4.0],
+			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. Circles open one by one in front of the staff, small to large, facing the shot.",
+			"keys": [
+				{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands", **IDLE0},
+				{"t": 0.5, "cap": "Anticipation: staff swung back and low past her right hip, body coils right and dips, knees tuck; tails swing the old way", "root": (0, 0.08, -0.25), "body": (0, 0, -14), "torso": (18, -2, -26), "head": (6, 0, 26), "RightArm": {"aim": (-2.15, 0.8, 2.75), "pole": (-0.4, 0.4, -1)}, "staff": {"dir": (-0.25, 0.85, -0.25)}, "LeftArm": {"aim": (1.2, -1.45, 3.1)}, "TailL": [(-16, -30, 6), (-10, -8, 0), (-8, -6, 0)], "TailR": [(-8, 40, -6), (-12, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (-30, 0, -4), "knee": 72}, "RightLeg": {"hip": (-10, 0, 6), "knee": 55}},
+				{"t": 1.0, "cap": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; the first small circle pops at the tip", "fx": ["circles:1"], "root": (0, -0.12, 0.4), "body": (0, 0, 34), "torso": (-8, 6, -4), "head": (-16, 0, -24), **BRACE, "RightArm": {"aim": (-1.3, -1.2, 3.6), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.55)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (14, 0, -6), "knee": 15}, "RightLeg": {"hip": (28, 0, 8), "knee": 34}},
+				{"t": 1.45, "cap": "Settle: staff comes down level; circles open one after another, small to large (4 of 9); tails fling up", "fx": ["circles:4"], "root": (0, -0.05, 0.2), "body": (0, 0, 32), "torso": (6, 4, -6), "head": (-8, 0, -26), **BRACE, "staff": {"dir": (-1, -0.42, 0.06)}, "TailL": [(-20, -44, 6), (-8, -10, 0), (-6, -6, 0)], "TailR": [(-16, 50, -4), (-8, 12, 0), (-4, 6, 0)], "LeftLeg": {"hip": (8, 0, -4), "knee": 34}, "RightLeg": {"hip": (18, 0, 6), "knee": 46}},
+				{"t": 1.85, "cap": "Brace (Dodge bar ends): all 9 circles bright, she leans into the staff, legs split; hair and tails blown back", "fx": ["circles:9:bright"], "root": (0, -0.15, 0.15), "body": (0, 0, 36), "torso": (16, 6, -6), "head": (-6, 0, -26), **BRACE, "TailL": TLB, "TailR": [(46, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
+				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; every circle fires, beams with rounded heads; the kick drives her back", "fx": ["flash", "circles:9:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
+				{"t": 2.6, "arena": "blue", "cap": "Strike 5: she drives the staff left across the room, circles turn with it; weight forward, tails whip to her right", "fx": ["circles:9:bright", "beams:1"], "root": (0.1, -0.12, 0.12), "body": (0, 0, 62), "torso": (18, 2, -10), "head": (-4, 0, -36), **BRACE, "staff": {"dir": (-1, -0.32, -0.04)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
+				{"t": 3.35, "arena": "blue", "cap": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way", "fx": ["circles:9:bright", "beams:3"], "root": (-0.1, 0, -0.05), "body": (0, 0, 10), "torso": (20, -6, 14), "head": (2, 0, -18), **BRACE, "staff": {"dir": (-1, -0.5, -0.18)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
+				{"t": 4.0, "cap": "Release (beams end): she pulls the staff up and back to her chest, circles fade; body floats up, tails fly forward", "fx": ["circles:9:fade"], "root": (0, 0.12, 0.35), "body": (0, 0, 18), "torso": (-12, 4, 4), "head": (-12, 0, -14), "RightArm": {"aim": (-1.2, -1.15, 3.9), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-0.7, -0.3, 0.75)}, "LeftArm": "grip", "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
+				{"t": 5.4, "cap": "Recover = idle key 0: staff back across the body in both hands, settled", **IDLE0},
+			],
+		},
+		"golem": {
+			"title": "Golem: she raises the Stone Golem from the floor, its first slam (rework, jointed rig)",
+			"end": 5.0,
+			"cols": 5,
+			"shared_frame": True,
+			"view": (0.3, -1, 0.22),
+			"note": "Event Slam at 4.20 s (the golem's first hit, HIT, red); the golem's rhythm dodge runs before it. Per clip 3: slabs crack and lift, blocks fly in and close into a body, head last, then a fist slam with dust and shock rings. After this she plays watch (watch_in generated).",
+			"keys": [
+				{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body; no golem yet", **IDLE0},
+				{"t": 0.4, "cap": "Anticipation: staff raised high in her right hand, body turns to her right and leans back, left palm up; tails hang a beat behind", "root": (0, 0, 0.25), "body": (0, 0, -8), "torso": (-14, 0, -14), "head": (-10, 0, -18), "RightArm": {"aim": (-1.4, 0.2, 5.5)}, "staff": {"dir": (-0.1, 0.25, 1)}, "LeftArm": {"aim": (2.4, -0.8, 4.4)}, "TailL": [(12, -16, 0), (6, -4, 0), (4, -2, 0)], "TailR": [(12, 12, 0), (6, 4, 0), (4, 2, 0)], "LeftLeg": {"hip": (10, 0, -4), "knee": 20}, "RightLeg": {"hip": (20, 0, 6), "knee": 36}},
+				{"t": 0.8, "cap": "Strike down, overshoot: staff driven at the floor by the golem's spot, she folds over it; a rune ring flares; tails flung up", "fx": ["rune"], "root": (0, 0, -0.2), "body": (0, 0, -16), "torso": (24, -10, -24), "head": (12, 0, -14), "RightArm": {"aim": (-2.55, -1.0, 2.35)}, "staff": {"dir": (-0.6, -0.3, -1)}, "LeftArm": {"aim": (2.6, 0.9, 4.2), "pole": (0.3, 1, 0.4)}, "TailL": [(-30, -50, 0), (-12, -10, 0), (-8, -6, 0)], "TailR": [(-26, 54, 0), (-12, 10, 0), (-8, 6, 0)], "LeftLeg": {"hip": (32, 0, -4), "knee": 42}, "RightLeg": {"hip": (-12, 0, 6), "knee": 62}},
+				{"t": 1.3, "cap": "Settle: staff held on the rune; the floor slabs crack and lift loose round it", "fx": ["rune", "seams"], "golem": {"assemble": 0.04, "pose": dict(G0)}, "root": (0, 0, -0.05), "body": (0, 0, -16), "torso": (14, -6, -20), "head": (6, 0, -20), "RightArm": {"aim": (-2.4, -1.0, 2.65)}, "staff": {"dir": (-0.5, -0.4, -0.8)}, "LeftArm": {"aim": (2.2, -0.6, 3.0)}, "TailL": [(-10, -36, 4), (-2, -8, 0), (0, -6, 0)], "TailR": [(-8, 40, -4), (-2, 8, 0), (0, 6, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 30}, "RightLeg": {"hip": (6, 0, 4), "knee": 46}},
+				{"t": 1.9, "cap": "Lift: both hands sweep the staff up, she rises with it; the blocks fly in toward the golem's place", "fx": ["rune", "seams"], "golem": {"assemble": 0.45, "pose": dict(G0)}, "root": (0, 0, 0.3), "body": (0, 0, -16), "torso": (-10, -6, -20), "head": (-12, 0, -24), "RightArm": {"aim": (-1.75, -0.65, 4.55)}, "LeftArm": {"aim": (1.55, -0.95, 4.4)}, "staff": "two", "TailL": [(14, -20, 0), (8, -6, 0), (6, -4, 0)], "TailR": [(14, 18, 0), (8, 6, 0), (6, 4, 0)], "LeftLeg": {"hip": (12, 0, -4), "knee": 30}, "RightLeg": {"hip": (24, 0, 6), "knee": 50}},
+				{"t": 2.5, "cap": "Hands high: the body closes round the golem's core, legs and chest set, the head block still in the air", "fx": ["seams"], "golem": {"assemble": 0.8, "pose": dict(G0)}, "root": (0, 0, 0.45), "body": (0, 0, -16), "torso": (-16, -4, -18), "head": (-18, 0, -22), "RightArm": {"aim": (-1.5, -0.35, 5.35)}, "LeftArm": {"aim": (1.3, -0.45, 5.25)}, "staff": "two", "TailL": [(-6, -40, 0), (-4, -8, 0), (-2, -6, 0)], "TailR": [(-6, 40, 0), (-4, 8, 0), (-2, 6, 0)], "LeftLeg": {"hip": (6, 0, -4), "knee": 22}, "RightLeg": {"hip": (16, 0, 6), "knee": 40}},
+				{"t": 3.0, "cap": "The head block lands: the golem stands; she points the staff at it, left fist at her side", "golem": {"assemble": 1.0, "pose": dict(G0)}, "root": (0, 0, 0.15), "body": (0, 0, -12), "torso": (2, -4, -22), "head": (0, 0, -28), "RightArm": {"aim": (-2.9, -0.6, 3.6)}, "staff": {"dir": (-1, 0.1, 0.25)}, "LeftArm": {"aim": (2.2, -0.6, 2.8)}, "TailL": [(4, -22, 0), (4, -6, 0), (4, -4, 0)], "TailR": [(10, 30, 0), (6, 8, 0), (4, 6, 0)], "LeftLeg": {"hip": (20, 0, -4), "knee": 30}, "RightLeg": {"hip": (10, 0, 4), "knee": 40}},
+				{"t": 3.6, "cap": "Command: staff raised at the target, she draws up; the golem's fists lock overhead (its rhythm dodge runs)", "golem": {"pose": gp(Hip=(-8, 0, 0), Torso=(-22, 0, 0), Head=(10, 0, 0), Shoulder=((0, -14, 0), (0, 14, 0)), UpperArm=((-172, 8, 0), (-172, -8, 0)), Forearm=((0, 55, 0), (0, -55, 0)), Thigh=((-10, 0, 0), (-10, 0, 0)), Shin=((10, 0, 0), (10, 0, 0)))}, "root": (0, 0, 0.3), "body": (0, 0, -6), "torso": (-12, -6, -16), "head": (-10, 0, -18), "RightArm": {"aim": (-1.7, -0.4, 5.4)}, "staff": {"dir": (-0.3, -0.2, 1)}, "LeftArm": {"aim": (0.6, -1.05, 3.3), "pole": (1, 0.3, -0.6)}, "TailL": [(10, -18, 0), (6, -6, 0), (4, -4, 0)], "TailR": [(10, 18, 0), (6, 6, 0), (4, 4, 0)], "LeftLeg": {"hip": (14, 0, -4), "knee": 26}, "RightLeg": {"hip": (24, 0, 6), "knee": 44}},
+				{"t": 4.2, "event": "Slam", "arena": "warm", "cap": "HIT: she cuts the staff down and the golem slams both fists; shock rings, cracks, flying chips; the arena flashes; tails flung up", "fx": ["shock", "flash"], "golem": {"pose": gp(Hip=(34, 0, 0), Torso=(56, 0, 0), Head=(-40, 0, 0), Shoulder=((0, -8, 0), (0, 8, 0)), UpperArm=((-141, 14, 0), (-141, -14, 0)), Forearm=((-25, 0, 0), (-25, 0, 0)), Thigh=((-40, 0, 0), (-40, 0, 0)), Shin=((30, 0, 0), (30, 0, 0))), "drop": True}, "root": (0, 0, 0.45), "body": (0, 0, -6), "torso": (18, 4, -10), "head": (-6, 0, -12), "RightArm": {"aim": (-1.9, -1.55, 3.0)}, "staff": {"dir": (-0.3, -1, -0.35)}, "LeftArm": {"aim": (2.6, 0.9, 3.8), "pole": (0.3, 1, 0.4)}, "TailL": [(-30, -60, 0), (-14, -12, 0), (-10, -8, 0)], "TailR": [(-30, 60, 0), (-14, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (40, 0, -12), "knee": 50}, "RightLeg": {"hip": (8, 0, 12), "knee": 30}},
+				{"t": 5.0, "cap": "Recover = idle key 0 for her; the golem pushes up off the floor, dust settling (it goes on to golem_idle)", "fx": ["dust_low"], "golem": {"ground": True, "pose": gp(Hip=(18, 0, 0), Torso=(26, 0, 0), Head=(-22, 0, 0), UpperArm=((-70, 8, 0), (-70, -8, 0)), Forearm=((-40, 0, 0), (-40, 0, 0)), Thigh=((-20, 0, 0), (-20, 0, 0)), Shin=((20, 0, 0), (20, 0, 0)))}, **IDLE0},
+			],
+		},
+		"golem_idle": {
+			"title": "Stone Golem (miniboss): idle loop, heavy breathing (rework)",
+			"solo": "golem",
+			"end": 2.4,
+			"loop": True,
+			"cols": 5,
+			"view": (0.05, -1, 0.2),
+			"front": GOLEM_FRONT,
+			"note": "Loop 2.4 s. A short loop, keyed with the full 10 anyway: the breath, the weight shift and the fists' lag read better with them. Key 1 = its approved idle key 1, the pose its attacks start and end on.",
+			"keys": golem_loop(
+				2.4,
+				[
+					"Idle key 0: breath out, fists low, shoulders slack",
+					"Breath in: chest heaves, weight shifts to its left foot",
+					"Chest up, shoulders high, head turns across the lanes",
+					"Breath out: chest drops, fists swing forward a beat later",
+					"Weight passes the middle, head back to the front",
+					"Breath in again, weight to its right foot",
+					"Chest up, head turns the other way",
+					"Breath out, fists swing forward behind the chest",
+					"Settling, weight back to the middle",
+					"Breath out, fists swing back (loops to key 1)",
+				],
+			),
+		},
+		"golem_slam": {
+			"title": "Stone Golem (miniboss): two-fist slam (rework)",
+			"solo": "golem",
+			"end": 3.6,
+			"cols": 5,
+			"view": (0.75, -0.75, 0.2),
+			"front": GOLEM_FRONT,
+			"note": "Event Slam at 2.80 s (HIT, red); the 3 s rhythm dodge runs before it, the wind-up held through it. Starts and ends on golem_idle key 1.",
+			"keys": [
+				{"t": 0.0, "cap": "Idle key 0", "golem": {"ground": True, "pose": dict(G0)}},
+				{"t": 0.4, "cap": "Anticipation: turns its shoulders to the target, weight back, fists lift", "golem": {"ground": True, "pose": gp(Hip=(-4, 0, -8), Torso=(-6, 0, -10), Head=(-20, 0, 8), UpperArm=((-60, 10, 0), (-60, -10, 0)), Forearm=((-50, 0, 0), (-50, 0, 0)), ThighL=(-8, 0, 0), ShinL=(10, 0, 0))}},
+				{"t": 0.9, "cap": "Arms swing up past the head, chest opens", "golem": {"ground": True, "pose": gp(Hip=(-8, 0, 0), Torso=(-16, 0, 0), Head=(-8, 0, 0), Shoulder=((0, -14, 0), (0, 14, 0)), UpperArm=((-140, 8, 0), (-140, -8, 0)), Forearm=((0, 40, 0), (0, -40, 0)), Thigh=((-10, 0, 0), (-10, 0, 0)), Shin=((10, 0, 0), (10, 0, 0)))}},
+				{"t": 1.5, "cap": "Wind-up: fists locked overhead, back arched (held through the rhythm dodge)", "fx": ["dust"], "golem": {"ground": True, "pose": gp(Hip=(-8, 0, 0), Torso=(-22, 0, 0), Head=(10, 0, 0), Shoulder=((0, -14, 0), (0, 14, 0)), UpperArm=((-172, 8, 0), (-172, -8, 0)), Forearm=((0, 55, 0), (0, -55, 0)), Thigh=((-10, 0, 0), (-10, 0, 0)), Shin=((10, 0, 0), (10, 0, 0)))}},
+				{"t": 2.25, "cap": "Coil deeper: it leans further back and rises on straight legs, the held breath", "fx": ["dust"], "golem": {"ground": True, "pose": gp(Hip=(-14, 0, 0), Torso=(-28, 0, 0), Head=(16, 0, 0), Shoulder=((0, -16, 0), (0, 16, 0)), UpperArm=((-185, 6, 0), (-185, -6, 0)), Forearm=((0, 60, 0), (0, -60, 0)), Thigh=((4, 0, 0), (4, 0, 0)), Shin=((2, 0, 0), (2, 0, 0)))}},
+				{"t": 2.6, "cap": "Fall: the torso throws forward, fists come down fast, knees bend", "golem": {"ground": True, "pose": gp(Hip=(14, 0, 0), Torso=(24, 0, 0), Head=(-10, 0, 0), UpperArm=((-120, 12, 0), (-120, -12, 0)), Forearm=((-10, 20, 0), (-10, -20, 0)), Thigh=((-24, 0, 0), (-24, 0, 0)), Shin=((24, 0, 0), (24, 0, 0)))}},
+				{"t": 2.8, "event": "Slam", "arena": "warm", "cap": "HIT: both fists hit the floor; shock rings, cracks, flying chips; the arena flashes", "fx": ["shock", "flash"], "golem": {"pose": gp(Hip=(34, 0, 0), Torso=(56, 0, 0), Head=(-40, 0, 0), Shoulder=((0, -8, 0), (0, 8, 0)), UpperArm=((-141, 14, 0), (-141, -14, 0)), Forearm=((-25, 0, 0), (-25, 0, 0)), Thigh=((-40, 0, 0), (-40, 0, 0)), Shin=((30, 0, 0), (30, 0, 0))), "drop": True}},
+				{"t": 3.0, "cap": "Overshoot: the body sinks into the impact, head dips, knees deeper", "fx": ["dust_low"], "golem": {"pose": gp(Hip=(40, 0, 0), Torso=(62, 0, 0), Head=(-30, 0, 0), Shoulder=((0, -6, 0), (0, 6, 0)), UpperArm=((-135, 16, 0), (-135, -16, 0)), Forearm=((-30, 0, 0), (-30, 0, 0)), Thigh=((-50, 0, 0), (-50, 0, 0)), Shin=((44, 0, 0), (44, 0, 0))), "drop": True}},
+				{"t": 3.3, "cap": "Pushes off the floor and rises, dust settling", "fx": ["dust_low"], "golem": {"ground": True, "pose": gp(Hip=(18, 0, 0), Torso=(26, 0, 0), Head=(-22, 0, 0), UpperArm=((-70, 8, 0), (-70, -8, 0)), Forearm=((-40, 0, 0), (-40, 0, 0)), Thigh=((-20, 0, 0), (-20, 0, 0)), Shin=((20, 0, 0), (20, 0, 0)))}},
+				{"t": 3.6, "cap": "Recover = idle key 0", "golem": {"ground": True, "pose": dict(G0)}},
+			],
+		},
+		"golem_sweep": {
+			"title": "Stone Golem (miniboss): arm sweep across the lanes (rework)",
+			"solo": "golem",
+			"end": 4.2,
+			"cols": 5,
+			"view": (-0.3, -0.65, 0.75),
+			"front": GOLEM_FRONT,
+			"note": "Event Sweep at 2.60 s (HIT, red); the 3 s rhythm dodge runs before it, the coil held through it. Starts and ends on golem_idle key 1.",
+			"keys": [
+				{"t": 0.0, "cap": "Idle key 0", "golem": {"ground": True, "pose": dict(G0)}},
+				{"t": 0.4, "cap": "Anticipation: turns to its right, right arm starts back", "golem": {"ground": True, "pose": gp(Hip=(4, 0, -6), Torso=(14, 0, -16), Head=(-14, 0, 10), ShoulderR=(0, 6, 0), UpperArmR=(-10, 50, -20), UpperArmL=(-30, 0, 6), ForearmL=(-24, 0, 0), ForearmR=(-10, 0, 0))}},
+				{"t": 1.0, "cap": "Coils: the arm out wide and back, left fist pulled in", "golem": {"ground": True, "pose": gp(Hip=(6, 0, -10), Torso=(14, 0, -26), Head=(-14, 0, 18), ShoulderR=(0, 10, 0), UpperArmR=(0, 72, -34), ForearmR=(-6, 0, 0), UpperArmL=(-40, 0, 8), ForearmL=(-30, 0, 0), ThighL=(-12, 0, 0), ShinL=(10, 0, 0))}},
+				{"t": 1.6, "cap": "Coil held (rhythm dodge): fully wound, weight on the back foot", "fx": ["dust"], "golem": {"ground": True, "pose": gp(Hip=(6, 0, -12), Torso=(14, 0, -32), Head=(-14, 0, 22), ShoulderR=(0, 12, 0), UpperArmR=(0, 82, -42), ForearmR=(0, 0, 0), UpperArmL=(-44, 0, 10), ForearmL=(-34, 0, 0), ThighL=(-16, 0, 0), ShinL=(12, 0, 0), ThighR=(8, 0, 0))}},
+				{"t": 2.2, "cap": "Swing starts: the hips lead, the arm lags behind", "golem": {"ground": True, "pose": gp(Hip=(8, 0, 6), Torso=(16, 0, -14), Head=(-18, 0, 8), ShoulderR=(0, 8, 0), UpperArmR=(0, 86, -24), ForearmR=(0, 0, 0), UpperArmL=(-30, 0, 10), ForearmL=(-24, 0, 0), ThighL=(-6, 0, 0), ThighR=(-6, 0, 0), ShinR=(8, 0, 0))}},
+				{"t": 2.6, "event": "Sweep", "arena": "warm", "cap": "HIT: the arm crosses the lanes, a dust trail behind the fist; the arena flashes", "fx": ["sweep", "flash"], "golem": {"ground": True, "pose": gp(Hip=(10, 0, 4), Torso=(22, 0, 10), Head=(-24, 0, -4), ShoulderR=(0, 4, 0), UpperArmR=(0, 88, 90), ForearmR=(0, 0, 0), UpperArmL=(-10, 0, 10), ForearmL=(-10, 0, 0), ThighL=(6, 0, 0), ThighR=(-14, 0, 0), ShinR=(12, 0, 0))}},
+				{"t": 2.85, "cap": "Follow-through: the arm past its left", "fx": ["dust_low"], "golem": {"ground": True, "pose": gp(Hip=(8, 0, 14), Torso=(16, 0, 36), Head=(-14, 0, -24), UpperArmR=(-20, 70, 110), ForearmR=(0, 0, 0), UpperArmL=(0, -10, 10), ForearmL=(0, 0, 0), ThighL=(10, 0, 0), ThighR=(-18, 0, 0), ShinR=(16, 0, 0))}},
+				{"t": 3.2, "cap": "Overshoot: the weight carries it round, it braces on its right leg", "fx": ["dust_low"], "golem": {"ground": True, "pose": gp(Hip=(10, 0, 18), Torso=(20, 0, 42), Head=(-10, 0, -30), UpperArmR=(-30, 60, 120), ForearmR=(-20, 0, 0), UpperArmL=(-10, -6, 6), ForearmL=(-6, 0, 0), ThighL=(14, 0, 0), ThighR=(-24, 0, 0), ShinR=(22, 0, 0))}},
+				{"t": 3.7, "cap": "Recovers: unwinds, the arm swings back down", "golem": {"ground": True, "pose": gp(Hip=(6, 0, 6), Torso=(12, 0, 12), Head=(-16, 0, -8), UpperArmR=(-20, 20, 30), ForearmR=(-16, 0, 0), UpperArmL=(-16, 0, 4), ForearmL=(-14, 0, 0))}},
+				{"t": 4.2, "cap": "Recover = idle key 0", "golem": {"ground": True, "pose": dict(G0)}},
+			],
+		},
+		"golem_fall": {
+			"title": "Stone Golem (miniboss): falls at 0 HP (rework)",
+			"solo": "golem",
+			"end": 2.0,
+			"cols": 5,
+			"view": (0.8, -0.9, 0.25),
+			"front": GOLEM_FRONT,
+			"note": "2.0 s, at 0 HP; her cycle resumes after it.",
+			"keys": [
+				{"t": 0.0, "cap": "HP 0: the last hit rocks it back, head snaps up, arms flung out", "golem": {"ground": True, "pose": gp(Hip=(-10, 0, 0), Torso=(-16, 0, 0), Head=(-34, 0, 0), UpperArm=((-30, -14, 0), (-30, 14, 0)), Forearm=((-20, 0, 0), (-20, 0, 0)), Thigh=((-6, 0, 0), (-6, 0, 0)), Shin=((6, 0, 0), (6, 0, 0)))}},
+				{"t": 0.2, "cap": "Head drops, arms go limp", "golem": {"ground": True, "pose": gp(Hip=(4, 0, 0), Torso=(10, 0, 0), Head=(20, 0, 0), UpperArm=((-4, -6, 0), (-4, 6, 0)), Forearm=((0, 0, 0), (0, 0, 0)), Thigh=((-14, 0, 0), (-14, 0, 0)), Shin=((18, 0, 0), (18, 0, 0)))}},
+				{"t": 0.4, "cap": "Knees buckle", "golem": {"ground": True, "pose": gp(Hip=(16, 0, 0), Torso=(30, 0, 8), Head=(24, 0, 0), UpperArm=((-4, -6, 0), (-4, 6, 0)), Forearm=((0, 0, 0), (0, 0, 0)), Thigh=((-44, 0, 0), (-34, 0, 0)), Shin=((56, 0, 0), (44, 0, 0)))}},
+				{"t": 0.6, "cap": "Drops to its knees, fists on the floor", "golem": {"ground": True, "pose": gp(Hip=(20, 0, 0), Torso=(34, 0, 10), Head=(28, 0, 6), UpperArm=((4, -10, 0), (4, 10, 0)), Forearm=((0, 0, 0), (0, 0, 0)), Thigh=((-80, 0, 0), (-70, 0, 0)), Shin=((90, 0, 0), (84, 0, 0)))}},
+				{"t": 0.8, "cap": "The magic fails: seams glow, the blocks start to slip", "fx": ["seams"], "golem": {"ground": True, "break": 0.3, "pose": gp(Hip=(22, 0, 0), Torso=(38, 0, 12), Head=(30, 0, 8), UpperArm=((6, -12, 0), (6, 12, 0)), Forearm=((0, 0, 0), (0, 0, 0)), Thigh=((-80, 0, 0), (-70, 0, 0)), Shin=((90, 0, 0), (84, 0, 0)))}},
+				{"t": 1.0, "cap": "Topples forward, blocks pulling apart", "fx": ["seams"], "golem": {"ground": True, "break": 0.6, "pose": gp(Hip=(30, 0, 0), Torso=(50, 0, 14), Head=(34, 0, 10), UpperArm=((10, -14, 0), (10, 14, 0)), Thigh=((-70, 0, 0), (-60, 0, 0)), Shin=((80, 0, 0), (72, 0, 0)))}},
+				{"t": 1.2, "cap": "The blocks split apart (its approved break key)", "fx": ["seams"], "golem": {"ground": True, "break": 1.0, "pose": gp(Hip=(24, 0, 0), Torso=(40, 0, 14), Head=(34, 0, 10), UpperArm=((10, -14, 0), (10, 14, 0)), Thigh=((-60, 0, 0), (-52, 0, 0)), Shin=((74, 0, 0), (66, 0, 0)))}},
+				{"t": 1.45, "cap": "Collapse: the shell falls in on itself, dust rises", "fx": ["dust"], "golem": {"ground": True, "break": 1.8, "pose": gp(Hip=(34, 0, 0), Torso=(60, 0, 20), Head=(40, 0, 14), UpperArm=((14, -20, 0), (14, 20, 0)), Thigh=((-70, 0, 0), (-60, 0, 0)), Shin=((80, 0, 0), (72, 0, 0)))}},
+				{"t": 1.7, "cap": "Blocks tumble to the floor, a few still bouncing", "fx": ["dust"], "golem": {"crumble": True}},
+				{"t": 2.0, "cap": "Rubble heap: the golem is gone, dust settles", "fx": ["dust_low"], "golem": {"crumble": True}},
+			],
+		},
+	}
+)
+
 
 def rework(argv):
 	"""--rework: JMOVES on the jointed rig at 8x (in game); writes keyframes/rework/keys.json and <move>_slices.png. MOVES and
 	keyframes/keys.json stay."""
 	global REWORK, MODEL, OUT, TMP, SIZE
+	global GOLEM_SPOT
 	REWORK, MODEL, SIZE = True, "boss_mage_jointed", 8.0
+	GOLEM_SPOT = (-20.0, 6.0)  # x SIZE / 4 = the in-game GOLEM_ANCHOR (-40, 12) at 8x
 	OUT, TMP = os.path.join(OUT, "rework"), os.path.join(TMP, "rework")
 	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
 	wanted = [a for a in argv if a in JMOVES] or list(JMOVES)
