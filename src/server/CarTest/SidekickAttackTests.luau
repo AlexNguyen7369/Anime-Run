@@ -1,6 +1,6 @@
 --!nonstrict
 -- BRIEF: design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks", docs/SIDEKICK_SPEC.md (task b7d). The owner approved all 12
--- attacks' key frames (assets/characters_avatar/<id>/keyframes/keys.json); approved keys stay unchanged. Client-side visuals only.
+-- attacks' key frames, then side_king's and side_mage's (2026-11-11) (assets/characters_avatar/<id>/keyframes/keys.json); approved keys stay unchanged. Client-side visuals only.
 -- Contract these tests assume beyond the brief (implementer: report a change, do not loosen):
 --   Shared/SidekickAttacks, generated:
 --     Attacks[id] = { Duration, Release = { t, ... }, Keys = { { Time, Parts = { [part] = ... }, ... } }, Approved = { ... } }.
@@ -236,6 +236,69 @@ local APPROVED = {
 		Spots = { { 0.75, "LeftArm", Vector3.new(20, -50, 0), { Body = Vector3.new(0, 0.3, 0.3) } } },
 		Speed = 6,
 		RootSpeed = 0.0433,
+	},
+	-- The boss Sidekicks (owner 2026-11-11, design doc 4.36 Boss Sidekicks): side_king a small Gate volley, side_mage a small bolt.
+	side_king = {
+		Duration = 1.4,
+		Release = { 0.5 },
+		Times = { 0.25, 0.5, 0.75, 1.1 },
+		Parts = {
+			"Ea_Drum1",
+			"Ea_Grip",
+			"Head_merged",
+			"Key",
+			"LeftArm_merged",
+			"LeftLeg_merged",
+			"RightArm_merged",
+			"RightLeg_merged",
+			"Torso_merged",
+		},
+		Roots = {
+			"Ea_Drum1",
+			"Ea_Grip",
+			"Head_merged",
+			"Key",
+			"LeftArm_merged",
+			"LeftLeg_merged",
+			"RightArm_merged",
+			"RightLeg_merged",
+			"Torso_merged",
+		},
+		Spots = {
+			{ 0.5, "LeftArm_merged", Vector3.new(-72, 0, 0), { LeftArm_merged = Vector3.new(0, -0.761, 0.705) } },
+		},
+		Speed = 2.67,
+		RootSpeed = 0.0343,
+	},
+	side_mage = {
+		Duration = 1.4,
+		Release = { 0.5 },
+		Times = { 0.25, 0.5, 0.75, 1.1 },
+		Parts = {
+			"Head_merged",
+			"LeftArm_merged",
+			"LeftLeg_merged",
+			"RightArm_merged",
+			"RightLeg_merged",
+			"Staff",
+			"TailL",
+			"TailR",
+			"Torso_merged",
+		},
+		Roots = {
+			"Head_merged",
+			"LeftArm_merged",
+			"LeftLeg_merged",
+			"RightArm_merged",
+			"RightLeg_merged",
+			"Staff",
+			"TailL",
+			"TailR",
+			"Torso_merged",
+		},
+		Spots = { { 0.5, "Staff", Vector3.new(-48, 0, 0), { Staff = Vector3.new(0, -0.704, 0.599) } } },
+		Speed = 2.4,
+		RootSpeed = 0.0388,
 	},
 	side_fox = {
 		Duration = 1.45,

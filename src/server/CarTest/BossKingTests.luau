@@ -16,13 +16,14 @@
 --     hover (HoverY and BobStuds 0 or nil); For("boss_mage").Dressing is not "vault".
 --   Server/BossEventService: at the shields moment event.Fortified is set (ReplicatedStorage attribute BossFortified true / false
 --     in an event, nil idle; every member's BossStatus gains { Id = "Fortified", Count = 1 }, no EndsAt); it clears at the next
---     cycle's gates_start (2.0 s before the gates moment) and at the event's end. Hooks.DamageMulti multiplies by 0.6 while set.
+--     cycle's gates_start (1.6 s before the gates moment) and at the event's end. Hooks.DamageMulti multiplies by 0.6 while set.
 --     Dodge on a costless move's moment -> false, "No bar"; shields charges nothing and sets no Vulnerable; its move chat is the
 --     raise line.
---   Shared/BossKingPoses (the bake, later; the stub's shape): Moves idle, gates (events gates_start 0, gates 2.0; Window { 2, 4 }),
---     enuma (enuma_start 0, enuma 3.0; Window { 3, 5 }), shields (one event shields at 1.5), lead-ins gates_in, enuma_in,
---     shields_in; cycle idle, gates_in, gates, idle, idle, enuma_in, enuma, idle, idle, shields_in, shields, idle = 33.05 s;
---     Approved, Sample, Schedule, CycleSeconds, RiseAt.
+--   Shared/BossKingPoses (the 2026-11-11 bake): Moves idle, gates (events gates_start 0, gates 1.6 = Volleys; Window { 1.6, 3.6 }),
+--     enuma (enuma_start 0, enuma 3.0 = Beam; Window { 3, 5 }; EaShown { 0, 5.6 }), shields (one event shields at 2.2 =
+--     Fortified), lead-ins gates_in, enuma_in, shields_in of 0.75 s; cycle idle, gates_in, gates, idle, idle, enuma_in, enuma,
+--     idle, idle, shields_in, shields, idle = 38.85 s; Approved[move] rows { Time, Parts, RootOffset } (idle 3, gates 6, enuma 8,
+--     shields 4), Sample, Schedule, CycleSeconds, RiseAt.
 --   Server/AdminService.Commands.boss accepts "king" -> "boss_king".
 -- Proposed values asserted literally (owner may retune): the texts in BOSS_EVENT_SPEC "The Golden King", camera as the mage's.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_king_event,boss_king_arena,boss_king_anim", then CarTestRun = true.
@@ -38,14 +39,15 @@ local UID = 990159000
 local T0 = 1000000 -- the fake server clock's start
 local COST = { gates = 20, enuma = 40 } -- owner 2026-11-11, % of a full bar (stamina is 0..100); shields costs 0
 local FORTIFIED_CUT = 0.4 -- owner 2026-11-11
-local GATES_START_LEAD = 2.0 -- gates_start sits 2.0 s before the gates moment: Fortified ends there
-local CYCLE_SECONDS = 33.05 -- the stub's cycle (proposed)
--- His moves' events { cost event, its time, event count, start event }: gates charged when the volleys start (2.0 s), enuma at
--- the beam's start (3.0 s), shields at 1.5 s (proposed).
+local GATES_START_LEAD = 1.6 -- gates_start sits 1.6 s before the gates moment: Fortified ends there
+local CYCLE_SECONDS = 38.85 -- the 2026-11-11 bake (proposed)
+local LEAD_IN_SECONDS = 0.75 -- <move>_in (proposed)
+-- His moves' events { cost event, its time, event count, start event }: gates charged when the volleys start (1.6 s, the
+-- approved gates_window key), enuma at the beam's start (3.0 s), shields at 2.2 s (its last approved key).
 local MOVE_EVENTS = {
-	gates = { "gates", 2.0, 2, "gates_start" },
+	gates = { "gates", 1.6, 2, "gates_start" },
 	enuma = { "enuma", 3.0, 2, "enuma_start" },
-	shields = { "shields", 1.5, 1 },
+	shields = { "shields", 2.2, 1 },
 }
 local FORTIFIED_NOTICE = "The Golden King has fortified his defenses"
 
@@ -722,7 +724,12 @@ function Tests.make()
 					local move = Poses.Moves[name]
 					flag(name .. "_exists", move ~= nil)
 					flag(name .. "_has_duration", move ~= nil and type(move.Duration) == "number" and move.Duration > 0)
+					if string.find(name, "_in", 1, true) then
+						near(name .. "_duration_0_75", move and move.Duration, LEAD_IN_SECONDS, 0.01)
+					end
 				end
+				local ea = Poses.Moves.enuma and Poses.Moves.enuma.EaShown
+				flag("enuma_ea_shown_0_to_5_6", type(ea) == "table" and ea[1] == 0 and approx(ea[2], 5.6, 0.01))
 				local windows = {}
 				for name in Poses.Moves do
 					if string.find(name, "_window", 1, true) then
@@ -731,7 +738,10 @@ function Tests.make()
 				end
 				eq("window_moves_merged", table.concat(windows, ","), "")
 				local gates = Poses.Moves.gates and Poses.Moves.gates.Window
-				flag("gates_window_2_to_4", type(gates) == "table" and gates[1] == 2 and gates[2] == 4)
+				flag(
+					"gates_window_1_6_to_3_6",
+					type(gates) == "table" and approx(gates[1], 1.6) and approx(gates[2], 3.6)
+				)
 				local enuma = Poses.Moves.enuma and Poses.Moves.enuma.Window
 				flag("enuma_window_3_to_5", type(enuma) == "table" and enuma[1] == 3 and enuma[2] == 5)
 				for name, move in Poses.Moves do
@@ -754,7 +764,7 @@ function Tests.make()
 
 			-- Approved keys (owner gate): Sample at each approved time gives the approved pose. Counts proposed in the spec.
 			section("approved", function()
-				local counts = { idle = 3, gates = 8, enuma = 8, shields = 5 }
+				local counts = { idle = 3, gates = 6, enuma = 8, shields = 4 }
 				for name, want in counts do
 					local worst = 0
 					local keys = Poses.Approved[name] or {}
@@ -771,7 +781,7 @@ function Tests.make()
 				end
 			end)
 
-			-- The cycle: idle, gates_in, gates, idle, idle, enuma_in, enuma, idle, idle, shields_in, shields, idle (33.05 s).
+			-- The cycle: idle, gates_in, gates, idle, idle, enuma_in, enuma, idle, idle, shields_in, shields, idle (38.85 s).
 			section("schedule", function()
 				local START = 5000
 				local idle = true
@@ -800,7 +810,7 @@ function Tests.make()
 				end
 				eq("schedule_order_fixed", table.concat(moves, ","), "gates,enuma,shields,gates,enuma,shields")
 				flag("schedule_lead_ins_before_moves", leadIns)
-				near("cycle_33_05", Poses.CycleSeconds, CYCLE_SECONDS, 0.01)
+				near("cycle_38_85", Poses.CycleSeconds, CYCLE_SECONDS, 0.01)
 				eq("rise_starts_at_0", Poses.RiseAt(0), 0)
 				eq("rise_ends_at_1", Poses.RiseAt(Event.RiseSeconds), 1)
 			end)
