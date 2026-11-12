@@ -116,8 +116,11 @@ local ROWS = {
 		DodgeIcon = BossKingArt.KeyIcon,
 		ModelName = "GoldenKing",
 		TargetPart = "Torso",
-		Camera = { Yaw = 75, Pitch = 14, Zoom = 40 }, -- the mage's; he stands lower than her hover, checked in Studio (k8)
+		-- Owner approved 2026-11-12 (design doc 4.37 "Rework approvals"): his arena's lane camera. Eye: the eye's height over the deck
+		-- (the others keep RunnerView's 6). Fov: the event's locked FOV in his arena only (the others keep BossEventConfig.CameraFov).
+		Camera = { Yaw = 75, Pitch = 13, Zoom = 40, Eye = 19.5, Fov = 60 },
 		WaitCamera = { Out = 28, Up = 40, Down = 22 }, -- the mage's
+		Arena = "BossKingArena", -- his arena's late data (design doc 7 "Join size"): delivered and removed with his poses
 	},
 }
 

@@ -15,8 +15,9 @@
 --   Bosses cards: Card_boss_king as the mage's card; BossDetails column Card_relic_chest_king, Title_relic_chest_king and rows
 --     King_<relicId> (the mage's are Mage_<relicId>). Fixtures boss_ui_invite_king and boss_ui_idle_next_king (UiSpec.ServerSetup).
 --   Rewards popup: Chest_relic_chest_king with RelicConfig.Chests.relic_chest_king.Image; title "The Golden King Defeated!".
---   Arena (Client/BossArenaView + BossColosseum "vault" dressing): workspace.BossArenaPreview holds Model GoldenKing (part Torso)
---     and a Folder or Model named Vault; no ElfMage, Golem or BigRaga while BossEventBoss is boss_king. Primitives <= 1,150.
+--   Arena (Client/BossArenaView): workspace.BossArenaPreview holds Model GoldenKing (part Torso) and his own arena, a Folder or
+--     Model named KingArena (the vault is retired, owner 2026-11-12; see ui_boss_king_arena); no ElfMage, Golem or BigRaga while
+--     BossEventBoss is boss_king.
 --   Effects (Client/BossKingVfx, under BossEffects; BossVfxForce plays Gates, Enuma, Shields):
 --     Gates: 12 to 20 instances named Portal, projectiles or beams named Streak; DEBUG FIELD LastStrikes as the mage's,
 --       {"Move":"Gates","Strikes":[{"T":<s>,"Spots":[[x,z],...]},...]}: 14 volleys at 0, 0.15, ... 1.95 s, 7 to 10 spots each,
@@ -54,7 +55,8 @@ local FORTIFIED_NOTICE = "The Golden King has fortified his defenses"
 local KING_CHEST = "relic_chest_king"
 local SHOW_WAIT = 2
 local BUILD_WAIT = 8
-local PRIMITIVE_MAX = 1150 -- the colosseum's part cap holds for the vault
+-- His own arena's part budget (BOSS_EVENT_SPEC "The Golden King's arena": target about 1,200, proposed; measured and reported).
+local KING_ARENA_PARTS_MAX = 1250
 local PEAK_WATCH = 1.5
 local VOLLEY_COUNT, VOLLEY_EVERY, VOLLEY_TIME_SLACK = 14, 0.15, 0.02
 local PER_VOLLEY_MIN, PER_VOLLEY_MAX, PER_VOLLEY_REDUCED = 7, 10, 3
@@ -424,6 +426,195 @@ function Module.Build(h)
 		setup(res, "restore:boss_ui")
 	end
 
+	-- His own arena in game (design doc 4.37 "The Golden King's own arena", "Rework approvals"; BOSS_EVENT_SPEC "The Golden
+	-- King's arena"; task a8-arena). Contract (implementer: report a change, do not loosen): workspace.BossArenaPreview holds a
+	-- Folder or Model KingArena (his arena, every part of it under it) with the mound under a child named KingMound, and Model
+	-- GoldenKing. Checks: the arena's BaseParts (MeshParts included) reported and <= 1,250; nothing on the lane band above the
+	-- deck; nothing inside the ring over 12 studs but the mound; his feet (the lowest corner of his leg parts) about 12 over the
+	-- mound's top; the camera's FOV 60 for the whole event in his arena (no change during a move), 100 in the mage's and Big
+	-- Raga's; the sunset profile (BiomeEnvironment.Profile(ARENA_ZONE, "boss_king")) applied in his event, the zone's own after.
+	function scenarios.ui_boss_king_arena(res)
+		local Lighting = game:GetService("Lighting")
+		local LANE_SLACK = 0.3 -- studs over the deck a lane line or paving piece may stand
+		local INNER_MAX = 12
+		local camera = workspace.CurrentCamera
+		local function fov()
+			return math.round(camera.FieldOfView * 100) / 100
+		end
+		local function corners(part)
+			local list, half = {}, part.Size / 2
+			for _, sx in { -1, 1 } do
+				for _, sy in { -1, 1 } do
+					for _, sz in { -1, 1 } do
+						table.insert(list, part.CFrame:PointToWorldSpace(half * Vector3.new(sx, sy, sz)))
+					end
+				end
+			end
+			return list
+		end
+		local hp = Cfg.HpPerPlayer
+		local fovBefore = camera.FieldOfView
+		local ok, err = xpcall(function()
+			setup(res, "boss_ui_gear:2")
+			state(res, "Idle", 0)
+			boss(res, KING)
+			state(res, "Prep", 5, hp, hp, true, 100)
+			local Arena = ((optional("BossArenaConfig") or {}).For or function() end)(KING)
+			check(res, "king_arena_config_loads", Arena ~= nil, true)
+			local arena = waitFor(function()
+				local folder = workspace:FindFirstChild("BossArenaPreview")
+				return folder and folder:FindFirstChild("KingArena", true)
+			end, BUILD_WAIT)
+			local king = waitFor(function()
+				local folder = workspace:FindFirstChild("BossArenaPreview")
+				return folder and folder:FindFirstChild("GoldenKing", true)
+			end, BUILD_WAIT)
+			check(res, "king_arena_built", arena ~= nil, true)
+			check(res, "king_model_present", king ~= nil, true)
+			if not (arena and Arena) then
+				return
+			end
+			task.wait(1) -- the build may place its pieces over a few frames
+			local mound = arena:FindFirstChild("KingMound", true)
+			check(res, "king_mound_present", mound ~= nil, true)
+			local parts, onLanes, tallInside, moundTop = 0, {}, {}, -math.huge
+			local inner, outer = Arena.InnerRadius, Arena.InnerRadius + Arena.Width
+			for _, d in arena:GetDescendants() do
+				if d:IsA("BasePart") then
+					parts += 1
+					local rMin, rMax, top = math.huge, 0, -math.huge
+					for _, c in corners(d) do
+						local r = Vector2.new(c.X - Arena.Center.X, c.Z - Arena.Center.Z).Magnitude
+						rMin, rMax, top = math.min(rMin, r), math.max(rMax, r), math.max(top, c.Y)
+					end
+					-- a part's footprint can span the band with every corner outside it: count its centre's reach too
+					local centre = Vector2.new(d.Position.X - Arena.Center.X, d.Position.Z - Arena.Center.Z).Magnitude
+					rMin = math.min(rMin, math.max(0, centre - Vector2.new(d.Size.X, d.Size.Z).Magnitude / 2))
+					local isMound = mound ~= nil and (d == mound or d:IsDescendantOf(mound))
+					if isMound then
+						moundTop = math.max(moundTop, top)
+					end
+					if top > Arena.Y + LANE_SLACK and rMax > inner and rMin < outer then
+						table.insert(onLanes, d.Name)
+					end
+					if not isMound and rMax < inner and top > Arena.Y + INNER_MAX then
+						table.insert(tallInside, d.Name)
+					end
+				end
+			end
+			h.check(
+				res,
+				"king_arena_parts",
+				parts,
+				"<= " .. KING_ARENA_PARTS_MAX,
+				parts > 0 and parts <= KING_ARENA_PARTS_MAX
+			)
+			h.checkList(res, "king_arena_lanes_clear", onLanes)
+			h.checkList(res, "king_arena_inside_ring_under_12", tallInside)
+			-- The camera in Prep (still Prep here; the hover below moves to the fight).
+			check(res, "king_fov_60_in_prep", waitIs(fov, 60), 60)
+			-- His hover, in Fight after the rise (in Prep he is hidden far below) and in the cycle's first idle row (his moves dip
+			-- the root on purpose), sampled over one full 3 s bob: 12 +/- 0.75 with a little float slack.
+			local gatesIndex, gatesAt = firstMoment("gates")
+			local HOVER_FROM, HOVER_FOR = 0.3, 3.2 -- s into the fight
+			check(
+				res,
+				"hover_window_in_idle",
+				gatesIndex ~= nil and gatesAt - 1.6 - 0.75 >= HOVER_FROM + HOVER_FOR, -- before gates_in and its lead
+				true
+			)
+			if king and moundTop > -math.huge then
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + HOVER_FROM, hp, hp, true, 100)
+				task.wait(0.1)
+				local low, high, stop = math.huge, -math.huge, os.clock() + HOVER_FOR - 0.1
+				while os.clock() < stop do
+					local feet = math.huge
+					for _, d in king:GetDescendants() do
+						if d:IsA("BasePart") and string.find(d.Name, "Leg", 1, true) then
+							for _, c in corners(d) do
+								feet = math.min(feet, c.Y)
+							end
+						end
+					end
+					low, high = math.min(low, feet - moundTop), math.max(high, feet - moundTop)
+					task.wait()
+				end
+				local span = ("%.2f to %.2f"):format(low, high)
+				h.check(res, "king_feet_over_mound", span, "min > 0", low > 0)
+				h.check(res, "king_hover_about_12", span, "10.5 to 13.5", low >= 10.5 and high <= 13.5)
+			end
+
+			-- The camera: FOV 60 for the whole event in his arena, through a move.
+			local index, at = firstMoment("enuma")
+			check(res, "king_enuma_moment_found", index ~= nil, true)
+			if index then
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - 3.2, hp, hp, true, 100)
+				local low, high, stop = math.huge, -math.huge, os.clock() + 4.5
+				while os.clock() < stop do
+					low, high = math.min(low, fov()), math.max(high, fov())
+					task.wait(0.03)
+				end
+				h.check(
+					res,
+					"king_fov_60_through_enuma",
+					("%s to %s"):format(low, high),
+					"60 to 60",
+					low == 60 and high == 60
+				)
+			end
+			-- The lighting: his sunset profile in his event.
+			local Env = optional("BiomeEnvironment")
+			check(res, "environment_loads", Env ~= nil, true)
+			local sunset = Env and Env.Profile(Env.ARENA_ZONE, KING)
+			local want = sunset and sunset.Lighting and sunset.Lighting.ClockTime
+			check(res, "sunset_clock_time_set", type(want) == "number", true)
+			if type(want) == "number" then
+				-- The client blends Lighting over time: wait until ClockTime moves under 0.005 in 1 s (at most 20 s).
+				local settled, deadline = false, os.clock() + 20
+				local before = Lighting.ClockTime
+				while not settled and os.clock() < deadline do
+					task.wait(1)
+					settled = math.abs(Lighting.ClockTime - before) < 0.005
+					before = Lighting.ClockTime
+				end
+				check(res, "sunset_blend_settled", settled, true)
+				local got = math.abs(Lighting.ClockTime - want) <= 0.05
+				h.check(res, "sunset_applied_in_event", Lighting.ClockTime, want, got)
+			end
+			-- The other arenas keep the event's FOV of 100.
+			for _, other in { "boss_mage", "none" } do
+				boss(res, other)
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+				check(res, "fov_100_in_" .. (other == "none" and "boss_raga" or other), waitIs(fov, Cfg.CameraFov), 100)
+			end
+			-- Leaving: the zone's own profile returns.
+			boss(res, KING)
+			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
+			waitIs(fov, 60)
+			state(res, "Idle", 0, 0, 0, false)
+			boss(res, nil)
+			local left = waitIs(function()
+				return Env and Env.CurrentZone ~= Env.ARENA_ZONE
+			end, true, 6)
+			check(res, "left_arena_zone", left, true)
+			if Env and type(want) == "number" then
+				local own = Env.Profile(Env.CurrentZone)
+				local back = own and own.Lighting and own.Lighting.ClockTime
+				local settled = waitIs(function()
+					if type(back) == "number" then
+						return math.abs(Lighting.ClockTime - back) <= 0.6 -- weather may mix the zone's clock
+					end
+					return math.abs(Lighting.ClockTime - want) > 0.5
+				end, true, 6)
+				h.check(res, "zone_profile_back_after", Lighting.ClockTime, back or ("not " .. want), settled == true)
+			end
+		end, debug.traceback)
+		h.check(res, "king_arena_checks_completed", ok and "yes" or tostring(err), "yes", ok)
+		camera.FieldOfView = fovBefore
+		state(res, "Idle", 0)
+		setup(res, "restore:boss_ui")
+	end
+
 	function scenarios.ui_boss_king_rewards(res)
 		h.waitGuis()
 		local ok, err = xpcall(function()
@@ -684,27 +875,15 @@ function Module.Build(h)
 			end, BUILD_WAIT)
 			check(res, "king_model_present", king ~= nil and king:IsA("Model"), true)
 			check(res, "king_target_part_present", king ~= nil and king:FindFirstChild("Torso", true) ~= nil, true)
-			check(res, "vault_dressing_present", waitFor(function()
-				return inArena("Vault") ~= nil
+			-- His own arena replaces the vault (design doc 4.37 "The Golden King's own arena", owner 2026-11-12): the vault
+			-- dressing check and its 1,150 primitive cap became king_arena_present here and the part budget in ui_boss_king_arena.
+			check(res, "king_arena_present", waitFor(function()
+				return inArena("KingArena") ~= nil
 			end, BUILD_WAIT) == true, true)
+			check(res, "vault_gone", inArena("Vault"), nil)
 			for _, other in { "ElfMage", "Golem", "BigRaga" } do
 				check(res, other .. "_not_built_for_king", inArena(other), nil)
 			end
-			local primitives = 0
-			local folder = workspace:FindFirstChild("BossArenaPreview")
-			local effects = inArena("BossEffects")
-			for _, d in folder and folder:GetDescendants() or {} do
-				if d:IsA("BasePart") and not d:IsA("MeshPart") and not (effects and d:IsDescendantOf(effects)) then
-					primitives += 1
-				end
-			end
-			h.check(
-				res,
-				"vault_primitives",
-				primitives,
-				"<= " .. PRIMITIVE_MAX,
-				primitives > 0 and primitives <= PRIMITIVE_MAX
-			)
 			if not king then
 				return
 			end

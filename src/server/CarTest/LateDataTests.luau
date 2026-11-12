@@ -31,7 +31,9 @@ local Shared = ReplicatedStorage.Shared
 local Tests = {}
 
 local T0 = 3000000 -- the fake server clock's start
-Tests.NAMES = { "BossRagaPoses", "BossMagePoses", "BossKingPoses", "SidekickAttacks" }
+-- BossKingArena: the Golden King's arena meshes and images (design doc 7 "Join size", owner 2026-11-12; BOSS_EVENT_SPEC
+-- "The Golden King's arena": never loaded at join; task a8-arena).
+Tests.NAMES = { "BossRagaPoses", "BossMagePoses", "BossKingPoses", "BossKingArena", "SidekickAttacks" }
 Tests.JOIN_CONTAINERS = { "ReplicatedStorage", "ReplicatedFirst", "StarterPlayer", "StarterGui" }
 local BOSS_POSES = { boss_raga = "BossRagaPoses", boss_mage = "BossMagePoses" }
 local OTHER = { boss_raga = "boss_mage", boss_mage = "boss_raga" }

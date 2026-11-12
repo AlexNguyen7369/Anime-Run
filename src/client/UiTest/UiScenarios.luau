@@ -189,6 +189,7 @@ UiScenarios.Names = {
 	"ui_boss_king",
 	"ui_boss_king_dodge",
 	"ui_boss_fortified",
+	"ui_boss_king_arena", -- his own arena (task a8-arena)
 	"ui_boss_king_rewards",
 	"ui_boss_king_vfx",
 	-- The arena-wide impact layer and the runners' lighter auras in the event (UiBossImpact; BOSS_EVENT_SPEC "Animation rework")
