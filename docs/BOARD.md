@@ -13,6 +13,9 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-12 hud-team t4 Team icon N3 (0188684) and t5 Team panel draft A (850af85) on feature/alex/boss-mage: team 28/28, ui_team 52/52, ui_panels 1044/1044, ui_backpack_characters 35/37 (pre-existing tab reds); rules audit PASS; page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar
+- 2026-11-12 PR #8 feature/alex/anime-world merged into main (4f9e2dc): hud-tech, Dojos removed + showpiece C, track power-ups; fresh review APPROVE; full harness waived by the owner
+- 2026-11-11 boss-mage m12 the owner's way: anime-world merged into boss-mage (481a82d), merge audit PASS, full harness waived; boss-mage merged into boss-king for play (556434f)
 - 2026-11-12 boss-mage-2 follow-ups and hud-team (1b6c59a): golem HP per player, slower rhythm, golem every 6 s, per-boss late data with removal after the event (lazy-data merged), Bosses and Team buttons in a second column, Team panel A, world dim on every panel: `late_data` 90, `boss_mage_event` 291, `boss_mage_anim` 288, `ui_boss` 485, `ui_team` 42, `ui_panels` 1162 and the other targeted boss and HUD scenarios fail=0; rules audit PASS round 2
 - 2026-11-12 boss-mage-2 g0-g6: Elf Mage spam strikes over 2 s, Stone Golem miniboss, 3-circle rhythm, Bosses cards draft B, her Relics and chest, drop list hidden (3c843fa): `boss_mage_event` 281, `boss_mage_anim` 286, `relics` 674, `ui_boss_mage_vfx` 55, `ui_boss_cards` 45, `ui_boss_golem` 16, `ui_boss` 468, `ui_boss_phase2` 91 and the other targeted boss scenarios fail=0; rules audit PASS
 - 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio

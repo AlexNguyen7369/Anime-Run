@@ -243,7 +243,7 @@ Deliverables:
 - m9 | In-betweens, bake, upload | approved keys unchanged; owner's upload word (unlicensed, section 5)
 - m10 | Server: boss id, random pick, per-move costs, rhythm circle judge | `boss_event` green, tests written red first
 - m11 | Client: colosseum, hovering boss, golem, staff Dodge bar, rhythm circles, VFX | `boss_anim`, `ui_boss_dodge`, `ui_boss_osu` green; owner look in Studio
-- m12 | Compatibility check | boss scenarios and rules audit reported, then a PR with a fresh review
+- m12 | Compatibility check | boss scenarios and rules audit reported, then a PR with a fresh review (2026-11-11: full harness WAIVED by the owner; anime-world merged in 481a82d, merge audit PASS; PR #9 fresh review next)
 Out of scope: Phase 2, her Relics, chest and Sidekick until the owner rules on them, changes to Big Raga's event.
 
 ## boss-mage-2: Elf Mage fixes: 2 s attacks, Stone Golem miniboss, boss cards, her Relics (owner 2026-11-11)
@@ -271,6 +271,7 @@ Deliverables:
 - t2 | Team button and Team panel A, team editor out of Items | `ui_team`, `team` green; owner look (built 2026-11-12, owner look open)
 - t3 | World dim on every panel and popup, lighter | `ui_panels` green (done 2026-11-12)
 - t4 | Team icon in neutral colours, uploaded | owner picks N1 / N2 / N3 and gives the upload word (done 2026-11-12: N3, image 89758623094700; `ui_team`, `ui_hud` not yet rerun)
+- t5 | Team panel matches draft A (owner 2026-11-12): slot numbers, coloured borders, stamina pills, arrows, 8 roster cards per row | `ui_team`, `team`, `ui_panels` green; rules audit PASS (done 2026-11-12: 52/52, 28/28, 1044/1044; picked-slot lighting and the empty-slot "+" proposed, owner page https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar)
 Out of scope: Best team button, saved teams, moving the aura and trail slot rows.
 ## dojo-removal: Dojos removed, Spawn showpiece in their place (owner 2026-11-11, design doc 4.43)
 Status: done 2026-11-11 (r4 merged into feature/alex/anime-world at 2c70abd; owner's look at the Studio shots pending)
