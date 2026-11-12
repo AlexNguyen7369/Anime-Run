@@ -2846,6 +2846,915 @@
      ]
     }
    ]
+  },
+  "shields": {
+   "title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
+   "end": 2.6,
+   "loop": false,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0: arms folded, still",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:0:portal:0"
+     ]
+    },
+    {
+     "t": 0.3,
+     "caption": "Anticipation: left hand unfolds and sinks across his belly, shoulders hunch, torso turns right, knees tuck",
+     "root_offset": [
+      0,
+      0,
+      -0.08
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       12.0,
+       -0.0,
+       -14.0
+      ],
+      "Head": [
+       4.0,
+       -0.0,
+       10.0
+      ],
+      "Key": [
+       6.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -27.133,
+       -45.075,
+       -84.155
+      ],
+      "LeftLowerArm": [
+       -13.811,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -20.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       44.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -14.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       48.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:0:portal:0"
+     ]
+    },
+    {
+     "t": 0.6,
+     "caption": "Call: the open left hand sweeps up and out to his left; the first shield portal opens beside it",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -2.0,
+       -0.0,
+       8.0
+      ],
+      "Head": [
+       -6.0,
+       -0.0,
+       14.0
+      ],
+      "Key": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       57.741,
+       -107.43,
+       -85.986
+      ],
+      "LeftLowerArm": [
+       -34.083,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       -0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       2.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       36.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:0.3:portal:0"
+     ]
+    },
+    {
+     "t": 0.9,
+     "caption": "Hand high: left arm overhead, he leans back; portals open round the back in the hand's path",
+     "root_offset": [
+      0,
+      0,
+      0.06
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -8.0,
+       4.0,
+       4.0
+      ],
+      "Head": [
+       -16.0,
+       -0.0,
+       6.0
+      ],
+      "Key": [
+       -4.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       9.777,
+       39.516,
+       50.034
+      ],
+      "RightLowerArm": [
+       -55.269,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       11.616,
+       -158.199,
+       -36.87
+      ],
+      "LeftLowerArm": [
+       -20.434,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       12.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:0.7:portal:0"
+     ]
+    },
+    {
+     "t": 1.2,
+     "caption": "Overshoot: hand flung up and back, chest arched, head back, right arm drops; all 6 portals open, shields push half out",
+     "root_offset": [
+      0,
+      0,
+      0.12
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -14.0,
+       4.0,
+       2.0
+      ],
+      "Head": [
+       -22.0,
+       0.0,
+       4.0
+      ],
+      "Key": [
+       -8.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       12.756,
+       33.497,
+       21.161
+      ],
+      "RightLowerArm": [
+       -31.191,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       17.062,
+       -178.388,
+       -31.379
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       12.0,
+       -0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       34.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       18.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       50.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:emerge:0",
+      "cmd:L"
+     ]
+    },
+    {
+     "t": 1.5,
+     "caption": "Spread: both arms flung up and wide in a V, palms out, the right lower; the shields come out to a full ring, portals fade",
+     "root_offset": [
+      0,
+      0,
+      0.1
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -4.0,
+       -3.0,
+       -6.0
+      ],
+      "Head": [
+       -10.0,
+       2.0,
+       -8.0
+      ],
+      "Key": [
+       -2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       48.717,
+       123.146,
+       54.162
+      ],
+      "RightLowerArm": [
+       -31.191,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       33.431,
+       -138.297,
+       -44.215
+      ],
+      "LeftLowerArm": [
+       -20.434,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       10.0,
+       -0.0,
+       -8.0
+      ],
+      "LeftLowerLeg": [
+       36.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -4.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:0"
+     ]
+    },
+    {
+     "t": 1.8,
+     "caption": "Gather: arms swing in toward his chest to fold, torso settles, the ring holds",
+     "root_offset": [
+      0,
+      0,
+      0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       4.0,
+       -0.0,
+       -2.0
+      ],
+      "Head": [
+       -4.0,
+       -0.0,
+       -4.0
+      ],
+      "Key": [
+       2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -33.294,
+       37.894,
+       36.69
+      ],
+      "RightLowerArm": [
+       -75.12,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -24.489,
+       -33.243,
+       -43.152
+      ],
+      "LeftLowerArm": [
+       -47.796,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -2.0,
+       -0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -6.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:0"
+     ]
+    },
+    {
+     "t": 2.2,
+     "caption": "Lock (Fortified): arms snap folded, chin up, a smirk; a gold pulse runs round the ring",
+     "root_offset": [
+      0,
+      0,
+      0.04
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -3.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -12.0,
+       -0.0,
+       -6.0
+      ],
+      "Key": [
+       -2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -53.463,
+       15.576,
+       60.967
+      ],
+      "RightLowerArm": [
+       -31.513,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.188,
+       -20.731,
+       -56.441
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -10.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       24.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       2.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "event": "shields",
+     "effects": [
+      "jshields:1:lock:0"
+     ]
+    },
+    {
+     "t": 2.4,
+     "caption": "Settle: the snap rocks him forward, head nods, legs swing through; the ring starts to orbit",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       5.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -2.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       3.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -52.138,
+       16.257,
+       60.389
+      ],
+      "RightLowerArm": [
+       -28.87,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.694,
+       -21.106,
+       -56.097
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -12.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       6.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       36.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:18"
+     ]
+    },
+    {
+     "t": 2.6,
+     "caption": "End = idle key 0, Fortified: arms folded, the shield ring orbiting",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:36"
+     ]
+    }
+   ]
   }
  },
  "rig": "jointed (build_boss_king.py -- jointed): Torso, Head, upper and lower arm and leg per side, Key, Ea; the lower arm carries the hand, the lower leg the foot",

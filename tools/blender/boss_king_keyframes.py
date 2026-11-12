@@ -799,7 +799,7 @@ def fx_jshields(rig, arg):
 		g = min(max((frac * (N_SHIELDS + 1) - i) / 1.2, 0.0), 1.0)
 		if g <= 0:
 			continue
-		th = math.radians(yaw + 25 + 360 * i / N_SHIELDS)  # shield 0 at his left front, where the hand is
+		th = math.radians(yaw + 360 * i / N_SHIELDS)  # shield 0 at his left, where the hand is; then round the back
 		out = Vector((math.cos(th), math.sin(th), 0.08)).normalized()
 		c = Vector((JSHIELD_R * math.cos(th), JSHIELD_R * math.sin(th), SHIELD_Z + (0.35 if i % 2 else -0.25)))
 		if state in ("portal", "emerge") or (state == "ring" and g < 1):
@@ -871,6 +871,29 @@ JMOVES["gates"] = {
 }
 for _k in JMOVES["gates"]["keys"]:
 	_k["view"] = (0.4, -0.9, 0.15)  # more frontal than enuma's: the portal dome reads behind him, not over him
+JMOVES["shields"] = {
+	"title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
+	"end": 2.6,
+	"cols": 5,
+	"look": "dark",
+	"front": (0, -1, 0.3),
+	"note": "No Dodge bar, no cost. Event shields at 2.20 s: Fortified set (40% less damage until his next move). The 6 shield portals (design C, small) open one after another from his raised left hand round the back; the ring locks with a gold pulse as his arms fold. The big view looks through the gap between two shields",
+	"keys": [
+		jkey(0.0, "Idle key 0: arms folded, still", fx=["jshields:0:portal:0"]),
+		jkey(0.3, "Anticipation: left hand unfolds and sinks across his belly, shoulders hunch, torso turns right, knees tuck", fx=["jshields:0:portal:0"], root=(0, 0, -0.08), torso=(12, 0, -14), head=(4, 0, 10), RightArm=FOLD2["RightArm"], LeftArm={"aim": (0.6, -1.1, 2.8), "pole": (1, -0.2, -0.3)}, LeftLeg={"hip": (-20, 0, -4), "knee": 44}, RightLeg={"hip": (-14, 0, 4), "knee": 48}, key=(6, 0, 0)),
+		jkey(0.6, "Call: the open left hand sweeps up and out to his left; the first shield portal opens beside it", fx=["jshields:0.3:portal:0"], root=(0, 0, 0), torso=(-2, 0, 8), head=(-6, 0, 14), RightArm=FOLD2["RightArm"], LeftArm={"aim": (2.6, -1.2, 4.2)}, LeftLeg={"hip": (-6, 0, -5), "knee": 30}, RightLeg={"hip": (2, 0, 5), "knee": 36}, key=(0, 0, 0)),
+		jkey(0.9, "Hand high: left arm overhead, he leans back; portals open round the back in the hand's path", fx=["jshields:0.7:portal:0"], root=(0, 0, 0.06), torso=(-8, 4, 4), head=(-16, 0, 6), RightArm={"aim": (-1.6, -1.1, 2.7), "pole": (-1, 0.3, -0.5)}, LeftArm={"aim": (2.0, -0.4, 5.4)}, LeftLeg={"hip": (6, 0, -4), "knee": 30}, RightLeg={"hip": (12, 0, 5), "knee": 42}, key=(-4, 0, 0)),
+		jkey(1.2, "Overshoot: hand flung up and back, chest arched, head back, right arm drops; all 6 portals open, shields push half out", fx=["jshields:1:emerge:0", "cmd:L"], root=(0, 0, 0.12), torso=(-14, 4, 2), head=(-22, 0, 4), RightArm={"aim": (-2.3, -0.5, 2.4)}, LeftArm={"aim": (1.8, 0.4, 5.5)}, LeftLeg={"hip": (12, 0, -5), "knee": 34}, RightLeg={"hip": (18, 0, 6), "knee": 50}, key=(-8, 0, 0)),
+		jkey(1.5, "Spread: both arms flung up and wide in a V, palms out, the right lower; the shields come out to a full ring, portals fade", fx=["jshields:1:ring:0"], root=(0, 0, 0.1), torso=(-4, -3, -6), head=(-10, 2, -8), RightArm={"aim": (-2.9, -0.5, 4.6)}, LeftArm={"aim": (2.7, -0.3, 5.0)}, LeftLeg={"hip": (10, 0, -8), "knee": 36}, RightLeg={"hip": (-4, 0, 8), "knee": 28}, key=(-2, 0, 0)),
+		jkey(1.8, "Gather: arms swing in toward his chest to fold, torso settles, the ring holds", fx=["jshields:1:ring:0"], root=(0, 0, 0.05), torso=(4, 0, -2), head=(-4, 0, -4), RightArm={"aim": (-0.8, -1.2, 3.6), "pole": (-1, 0.3, -0.8)}, LeftArm={"aim": (1.0, -1.3, 3.0), "pole": (1, 0.3, -0.8)}, LeftLeg={"hip": (-2, 0, -5), "knee": 30}, RightLeg={"hip": (-6, 0, 6), "knee": 34}, key=(2, 0, 0)),
+		jkey(2.2, "Lock (Fortified): arms snap folded, chin up, a smirk; a gold pulse runs round the ring", event="shields", fx=["jshields:1:lock:0"], root=(0, 0, 0.04), torso=(-3, 0, 4), head=(-12, 0, -6), **folded((0.04, 0, 0.06), (-0.04, 0, 0.06)), LeftLeg={"hip": (-10, 0, -4), "knee": 24}, RightLeg={"hip": (2, 0, 5), "knee": 30}, key=(-2, 0, 0)),
+		jkey(2.4, "Settle: the snap rocks him forward, head nods, legs swing through; the ring starts to orbit", fx=["jshields:1:ring:18"], root=(0, 0, 0), torso=(5, 0, 4), head=(-2, 0, -8), **folded((0, -0.03, -0.02), (0, -0.03, -0.02)), LeftLeg={"hip": (-12, 0, -3), "knee": 30}, RightLeg={"hip": (6, 0, 4), "knee": 36}, key=(3, 0, 0)),
+		jkey(2.6, "End = idle key 0, Fortified: arms folded, the shield ring orbiting", fx=["jshields:1:ring:36"]),
+	],
+}
+for _k in JMOVES["shields"]["keys"]:  # the main view looks through the gap between two shields (the ring yaw - 30 degrees), raised
+	_a = math.radians(float(next(f for f in _k["fx"] if f.startswith("jshields")).split(":")[3]) - 30)
+	_k["view"] = (round(math.cos(_a), 3), round(math.sin(_a), 3), 0.4)
 
 
 def two_bone(J, L1, L2, T, pole):
