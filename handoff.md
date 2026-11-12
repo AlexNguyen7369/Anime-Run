@@ -2,6 +2,12 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-12, boss-anim-rework): PR #14 open, fresh review APPROVE, merging
+- PR https://github.com/AlexNguyen7369/Anime-Run/pull/14 (`feature/alex/boss-anim-rework` into main; main c4580fb merged in). Fresh merge review: APPROVE (non-blocking notes: 146 MB of review PNGs; `pulseLights` also pulses rig lights against `EaGlow`; the mage bob may not be exactly 1.5 studs; `BossMagePoses` 804 KB).
+- Owner approved the overnight rework 2026-11-12 morning (design doc 4.37 "Rework approvals, morning"); barrage circles changed (one by one, 0.28 s apart, all open before the beams, 1.5 x); uploads done (jointed king 108644009332766, jointed mage 118361466470255, portal C image 94121256487638); old-mesh fallbacks removed.
+- Final compatibility at 617db88: only `arena_ids_listed` (no arena texture) and the older `save_version` 19 vs 18 in `relics`/`sidekicks` red.
+- Open: arena textures (none drawn yet), owner questions 14 (10 keys for future bosses) and 15 (FOV kick on hits), the older save_version test fix.
+
 ## RESUME HERE (2026-11-12 morning, boss-anim-rework): all rework tasks built and verified on the integration branch; waiting on the owner
 - Branch `feature/alex/boss-anim-rework` (pushed, 5246e1e + bookkeeping), worktree `../AnimeRun-orch/anim-rework`. Not in main; no PR opened. Review page (private): https://claude.ai/artifact/5ZJxJCKo8XGcDMzXdqbJ7Z ("Morning update" section on top).
 - Landed overnight on the owner's chat word ("preapprove all models and updates ... run end to end"): a5a lighter auras and arena-wide shake and flash; a5b portal C, Ea wind ribbons, staff and Ea trails; a8 the Golden King's own arena in game (sunset stadium, 1,188 parts, hover 12 over the mound, FOV 60 in his arena only, vault removed, lighting blend lands on its targets); a2/a3 jointed mage and 10 keys for every mage, golem and king move; a4 mage and golem re-bake (787 KB); a1 king re-bake (302 KB) with old-mesh fallbacks aiming limbs at the jointed hands and feet; a5c pose-tied effects. Each: tests red first, Studio verify, rules audit, merged.
