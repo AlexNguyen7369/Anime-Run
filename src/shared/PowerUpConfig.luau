@@ -1,6 +1,8 @@
 --!nonstrict
 -- Track power-ups (design doc 4.44, docs/POWERUP_SPEC.md). The server rolls each player's own set when a track starts
 -- and applies every pickup (Server/RaceService); Client/PowerUpView only draws them.
+local StaminaConfig = require(script.Parent.StaminaConfig)
+
 local PowerUpConfig = {}
 
 PowerUpConfig.SPEED_MULTI = 1.5 -- owner 2026-11-11; may pass MAX_CRUISE
@@ -11,7 +13,7 @@ PowerUpConfig.EDGE = 0.1 -- proposed: none in the first or last 10% of a track
 PowerUpConfig.MIN_GAP = 300 -- proposed: studs between two power-ups
 
 -- Look (proposed): orange chevrons for Speed, the stamina bar's blue for Stamina.
-PowerUpConfig.COLORS = { Speed = Color3.fromRGB(255, 154, 31), Stamina = Color3.fromRGB(63, 169, 255) }
+PowerUpConfig.COLORS = { Speed = Color3.fromRGB(255, 154, 31), Stamina = StaminaConfig.COLORS.Full }
 
 -- The set for a track from arc distance `from`, `length` studs long: { { Id, Kind, Dist }, ... } in Dist order.
 -- One per equal stretch of the middle 80%, jittered inside its stretch so neighbours stay MIN_GAP apart.

@@ -34,7 +34,10 @@ local function reduced()
 	return player:GetAttribute("ReduceEffects") == true
 end
 
+local pending -- the last PowerUps event whose route folder had not replicated yet
+
 local function clear()
+	pending = nil
 	for _, ring in rings do
 		ring.Model:Destroy()
 	end
@@ -100,8 +103,22 @@ end
 
 local function show(ev)
 	clear()
+	if type(ev.List) ~= "table" then
+		return
+	end
 	local route = RunnerVisual.RouteOf(ev.Route)
-	if not route or type(ev.List) ~= "table" then
+	if not route then
+		-- RunRoutes can replicate after the event on a fresh server: retry until it lands or the next event replaces this one.
+		pending = ev
+		task.spawn(function()
+			while pending == ev do
+				task.wait(0.25)
+				if pending == ev and RunnerVisual.RouteOf(ev.Route) then
+					show(ev)
+					return
+				end
+			end
+		end)
 		return
 	end
 	for _, entry in ev.List do

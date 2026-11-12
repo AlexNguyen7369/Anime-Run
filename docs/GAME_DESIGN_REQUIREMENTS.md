@@ -229,6 +229,9 @@ when all 3 are empty, or when the player loses a track to the NPC.
 ### 4.18 Loading at high speed (owner 2026-11-01)
 - Biome meshes and textures must be loaded before a fast runner reaches them; sky and lighting must switch quickly at
   a biome boundary at any speed. Use the cheapest approach that keeps up at `MAX_CRUISE`. Client display only.
+  A Speed power-up (4.44) may run 1.5 x `MAX_CRUISE` for 3 s: the budget stays at `MAX_CRUISE`, the per-track `RunHold`
+  (4.25) still catches a boosted runner, and a late biome switch during those 3 s is accepted (**proposed**, taken on the
+  owner's standing word 2026-11-11; see OWNER_QUESTIONS).
 - Biome while racing: the server publishes `RunTrack` (the track whose finish pad is still ahead) on the runner rig; the
   client takes the biome from it and switches at once at the finish pad. The nearest centre line (`ZoneAt`) is used only
   while walking. There is no speed look-ahead.
@@ -545,7 +548,7 @@ before any Studio work.
 - Two types for now:
   - **Speed**: x1.5 cruise for 3 seconds. This boost may pass `MAX_CRUISE` (800) for those 3 seconds (owner
     2026-11-11). It is the one timed exception to "the runner holds exact cruise everywhere" (3) and "cruise fixed
-    for the whole run" (TEAM_AND_STAMINA_SPEC). When it ends the runner goes back to its normal cruise.
+    for the whole run" (TEAM_AND_STAMINA_SPEC) and to the loading budget in 4.18 (**proposed**). When it ends the runner goes back to its normal cruise.
   - **Stamina**: +5 seconds of running for the character running at pickup. It may go past a full bar: the seconds
     number on the team row shows the extra, the bar itself stays full (owner 2026-11-11); the extra drains first.
 - Look (owner 2026-11-11, from the drafts https://claude.ai/artifact/AY1UokGYtRPBfzdVHgtWJz): each power-up is a

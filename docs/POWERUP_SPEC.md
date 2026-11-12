@@ -31,9 +31,9 @@ orchestrator defaults the owner may change.
 - Team row: the stamina arc and the runner bar stay capped at full; the seconds number shows
   `Stamina<n> / 100 x RunSeconds<n>`, overfill included.
 - Look (design doc 4.44): a ring standing across the player's lane, about 12 studs across (**proposed**), its centre
-  6 studs over the rail. Speed orange (255, 154, 31) with a "»" inside; Stamina blue (63, 169, 255) with "+5" (plain
+  6 studs over the rail. Speed orange (255, 154, 31) with a "»" inside; Stamina the stamina bar's Full blue (`StaminaConfig.COLORS.Full`, 60, 150, 255) with "+5" (plain
   text symbols, no image asset, **proposed**; a drawn chevron / drop image can replace them). Idle (owner 2026-11-11): the dashed rim pattern turns (one turn per 4 s, **proposed**) and the glow breathes
-  (1.6 s, **proposed**); REDUCED EFFECTS keeps only the turn. Pickup: the ring scales up 1.4x and fades in 0.25 s.
+  (1.6 s, **proposed**); REDUCED EFFECTS keeps only the turn. Pickup: the ring scales up 1.4x and fades in 0.25 s (**proposed**). Rim of 16 pieces, glow light range 14, HUD badge 26 px (**proposed**, display constants).
 - HUD (draft H2): `Client/TeamHud` shows a badge on the running portrait's top-right corner while `PowerSpeedUntil`
   is in the future, its ring draining to that time. The seconds number turns blue while `Stamina<n>` is above 100.
 

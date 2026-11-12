@@ -167,6 +167,7 @@ the way. Stamina numbers unchanged. Owner retunes after a playtest.
   gold glow ring and a bobbing gold marker above it; exhausted slot fades to grey with a shrink; tag-in
   pops; Series / Preset badge above the row ("TEAM SEVEN +40% STAMINA"); hover / tap a portrait opens the info card
   (name, category + its speed / stamina effect, cruise studs/s, stamina s; no rarity). On foot all three show normally; an empty slot is a dim empty circle. Display only.
+  Power-ups (design doc 4.44, POWERUP_SPEC): the seconds number shows `Stamina<n> / 100 x RunSeconds<n>` and turns blue while `Stamina<n>` is above 100 (the arc stays capped); a Speed badge sits on the running portrait while `PowerSpeedUntil` is in the future.
 - Team editor (owner 2026-11-02): Backpack Characters tab: tap a character, then a slot button (SlotPicker, the
   aura / trail slot row) to put it on slot 1-3; a character on another slot swaps; its own slot takes it off; gaps
   close up. The single equip (Index, roll toast, /kami) puts a character on slot 1. Disabled during a run.
