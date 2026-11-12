@@ -21,9 +21,13 @@
 --   Effects (Client/BossKingVfx, under BossEffects; BossVfxForce plays Gates, Enuma, Shields):
 --     Gates: 12 to 20 instances named Portal, projectiles or beams named Streak; DEBUG FIELD LastStrikes as the mage's,
 --       {"Move":"Gates","Strikes":[{"T":<s>,"Spots":[[x,z],...]},...]}: 14 volleys at 0, 0.15, ... 1.95 s, 7 to 10 spots each,
---       3 each under REDUCED EFFECTS.
---     Enuma: an instance named ChargeTint (dropped under REDUCED EFFECTS), then one named EnumaBeam.
---     Shields: an instance named ShieldRing with 5 to 7 descendants named Shield; the shields stay under REDUCED EFFECTS.
+--       the same with effects off.
+--     Enuma: an instance named ChargeTint, then one named EnumaBeam.
+--     Shields: an instance named ShieldRing with 5 to 7 descendants named Shield.
+--   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12;
+--     replaces every reduced count): with ReduceEffects (or Roblox Reduced Motion) no visible BasePart and no enabled
+--     ParticleEmitter, Beam or Trail under BossEffects, no portals, wind, trails, glow, flashes or shield ring; LastStrikes
+--     still logs the full plan.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -59,7 +63,7 @@ local BUILD_WAIT = 8
 local KING_ARENA_PARTS_MAX = 1250
 local PEAK_WATCH = 1.5
 local VOLLEY_COUNT, VOLLEY_EVERY, VOLLEY_TIME_SLACK = 14, 0.15, 0.02
-local PER_VOLLEY_MIN, PER_VOLLEY_MAX, PER_VOLLEY_REDUCED = 7, 10, 3
+local PER_VOLLEY_MIN, PER_VOLLEY_MAX = 7, 10
 local PORTALS_MIN, PORTALS_MAX = 12, 20
 local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SCAN = 40
@@ -840,7 +844,7 @@ function Module.Build(h)
 		--   Wind: BossVfxForce "Charge" makes a BasePart EnumaWind under BossEffects that follows Ea, its local Y along the orbit's
 		--     axis; its Trails (enabled, faded at both ends: Transparency's first and last keypoints >= 0.8) ride Attachment0s
 		--     orbiting that axis: 4 early in the charge, 6 near 2.75 s; the orbit turns once per 0.8 s early and once per 0.35 s near
-		--     2.75 s (+/- 20%). Under REDUCED EFFECTS no enabled wind Trail (the strictest reading of "off or reduced").
+		--     2.75 s (+/- 20%). With effects off no enabled wind Trail (BOSS_EVENT_SPEC "Effects setting").
 		--   Ea's trail: an enabled Trail parented under the GoldenKing's Ea part (or whose Attachment0 is) during enuma's swing (3.0 s
 		--     +/- 0.3, from the schedule), none at rest (the idle), none under REDUCED EFFECTS. LastStrikes stays as checked above.
 		local WHITE_TOLERANCE = 0.01
@@ -1120,29 +1124,36 @@ function Module.Build(h)
 				full[name] = peak(name)
 				h.check(res, "full_" .. string.lower(name) .. "_effects", full[name], "> 0", full[name] > 0)
 			end
-			-- REDUCED EFFECTS (proposed): 3 per volley, the sky tint dropped, the shields stay.
+			-- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner
+			-- 2026-11-12; replaces "fewer", 3 per volley and "the shields stay"): nothing drawn, the full volley plan logged.
 			h.player:SetAttribute("ReduceEffects", true)
-			for _, name in { "Gates", "Enuma" } do
-				local reduced = peak(name)
-				h.check(
-					res,
-					"reduced_" .. string.lower(name) .. "_fewer",
-					reduced,
-					"> 0 and < " .. full[name],
-					reduced > 0 and reduced < full[name]
-				)
+			local function drawnPeak(name)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				task.wait()
+				ReplicatedStorage:SetAttribute("BossVfxForce", name)
+				local most, stop = 0, os.clock() + PEAK_WATCH
+				while os.clock() < stop do
+					local n = 0
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if
+							(d:IsA("BasePart") and d.Transparency < 1 and d.Name ~= "StrikeMark")
+							or ((d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail")) and d.Enabled)
+						then
+							n += 1
+						end
+					end
+					most = math.max(most, n)
+					task.wait(0.05)
+				end
+				return most
 			end
-			checkVolleys("reduced_gates", volleyLog(), PER_VOLLEY_REDUCED, PER_VOLLEY_REDUCED)
+			for _, name in { "Gates", "Enuma", "Shields" } do
+				check(res, "reduced_" .. string.lower(name) .. "_no_effects", drawnPeak(name), 0)
+			end
+			checkVolleys("reduced_gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
 			check(res, "reduced_enuma_no_tint", mostNamed("Enuma", "ChargeTint"), 0)
-			local reducedShields = mostNamed("Shields", "Shield")
-			h.check(
-				res,
-				"reduced_shields_stay",
-				reducedShields,
-				SHIELDS_MIN .. " to " .. SHIELDS_MAX,
-				reducedShields >= SHIELDS_MIN and reducedShields <= SHIELDS_MAX
-			)
-			-- REDUCED EFFECTS: no wind ribbons, no trail on Ea.
+			check(res, "reduced_no_shields", mostNamed("Shields", "Shield"), 0)
+			-- Effects off: no wind ribbons, no trail on Ea.
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Charge")
@@ -1185,7 +1196,7 @@ function Module.Build(h)
 			--     EnumaBeam. Not under REDUCED EFFECTS. LastImpact for Enuma stays one hit.
 			--   Shield (as now): with BossFortified untouched, first seen in the shields move between its call key (0.6 s, rework
 			--     keys) and its lock (2.2 s); ShieldBurst when BossFortified turns false (the next move's start). The shields
-			--     stay under REDUCED EFFECTS (the current rule).
+			--     go with the rest of the effects when they are off (BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12).
 			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
 			local function firstSeen(names, seconds)
 				local seenAt, born = {}, os.clock()

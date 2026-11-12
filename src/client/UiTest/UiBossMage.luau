@@ -25,17 +25,20 @@
 --     The golem's BaseParts are all Transparency 1 outside the golem move.
 --   DEBUG FIELD (BossMageVfx): when Lightning or Barrage plays, BossEffects gets string attribute LastStrikes, JSON
 --     {"Move":"Lightning"|"Barrage","Strikes":[{"T":<s after the window start>,"Spots":[[x,z],...]},...]}: every strike of the
---     move as drawn (REDUCED EFFECTS applied), its bolts' or beams' floor spots in world X, Z. Lightning leaves one StrikeMark
+--     move as planned (the same with effects off), its bolts' or beams' floor spots in world X, Z. Lightning leaves one StrikeMark
 --     part per bolt in BossEffects.
 --   Stronger effects (owner 2026-11-12 after playing; design doc 4.37 "Elf Mage effects stronger", BOSS_EVENT_SPEC "Pose-tied
 --     effect values", proposed), BaseParts under BossEffects; a "spawn" is a part taking the name (pooled parts are renamed):
 --     Lightning, per strike, as many as its LastStrikes spots within a frame: StrikeFlash white (each channel >= 0.85) and
 --     ShockRing purple; per bolt at least one BoltCore white (the core) and one Bolt purple (the glow layer); a ParticleEmitter
---     named Sparks under BossEffects during the strikes. REDUCED EFFECTS: plain bolts (BoltCore) only, no Bolt glow, ShockRing
---     or Sparks.
+--     named Sparks under BossEffects during the strikes.
 --     Barrage, per beam (as many as the strike's spots): BarrageBeamCore white and BarrageBeamEdge near-black (each channel
---     <= 0.2); a ParticleEmitter or BasePart named BarrageSmoke, dark, during the window; no BarrageSmoke under REDUCED EFFECTS.
---     MagicCircle: 10 (3 reduced), see the barrage watch.
+--     <= 0.2); a ParticleEmitter or BasePart named BarrageSmoke, dark, during the window.
+--     MagicCircle: 10, see the barrage watch.
+--   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner
+--     2026-11-12): with ReduceEffects (or Roblox Reduced Motion) no boss visual effect at all under BossEffects (no visible
+--     BasePart, enabled ParticleEmitter, Beam or Trail) except the strike marks (StrikeMark), a telegraph; LastStrikes still
+--     logs the full strike plan (7 to 10 spots a strike).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
@@ -87,9 +90,9 @@ local BUILD_WAIT = 8
 local PRIMITIVE_MAX = 1150 -- plan section 5 (budget about 1,050)
 local PEAK_WATCH = 1.5
 -- Owner 2026-11-11 (BOSS_EVENT_SPEC "Strike window"): a strike every 0.15 s, 14 in the 2 s window, 7 to 10 bolts or beams each,
--- 3 each under REDUCED EFFECTS (proposed), at spots over the centre, all lanes and the walkway.
+-- at spots over the centre, all lanes and the walkway (the same plan with effects off, BOSS_EVENT_SPEC "Effects setting").
 local STRIKE_COUNT, STRIKE_EVERY, STRIKE_TIME_SLACK = 14, 0.15, 0.02
-local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3
+local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
 local SCAN = 40
 
 local Module = {}
@@ -1138,7 +1141,11 @@ function Module.Build(h)
 				local pre = few and "reduced_" or ""
 				local lightningSpots = spotsOf("Lightning")
 				local cores = play("Lightning", "BoltCore")
-				perStrike(pre .. "lightning_white_core", clusters(cores), lightningSpots, isWhite, false)
+				if few then -- effects off: no bolt at all (was plain bolts)
+					check(res, "reduced_lightning_no_bolts", #cores, 0)
+				else
+					perStrike(pre .. "lightning_white_core", clusters(cores), lightningSpots, isWhite, false)
+				end
 				local glow = play("Lightning", "Bolt")
 				local flashes = play("Lightning", "StrikeFlash")
 				local rings = play("Lightning", "ShockRing")
@@ -1166,6 +1173,7 @@ function Module.Build(h)
 				end
 				if few then
 					check(res, "reduced_barrage_no_black_smoke", #smokeParts == 0 and next(smokeEmitters) == nil, true)
+					check(res, "reduced_barrage_no_beams", #beamCores + #edges, 0)
 				else
 					perStrike("barrage_beam_white_core", clusters(beamCores), barrageSpots, isWhite, false)
 					perStrike("barrage_beam_dark_edge", clusters(edges), barrageSpots, isDark, false)
@@ -1185,21 +1193,45 @@ function Module.Build(h)
 				full[name] = peak(name)
 				h.check(res, "full_" .. string.lower(name) .. "_effects", full[name], "> 0", full[name] > 0)
 			end
+			-- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner
+			-- 2026-11-12; replaces "fewer" and 3 per strike): no effect drawn at all, the strike marks stay, and the strike log
+			-- keeps the full plan.
 			h.player:SetAttribute("ReduceEffects", true)
-			for _, name in { "Lightning", "Slam", "Sweep", "Barrage" } do
-				local reduced = peak(name)
-				h.check(
-					res,
-					"reduced_" .. string.lower(name) .. "_fewer",
-					reduced,
-					"> 0 and < " .. full[name],
-					reduced > 0 and reduced < full[name]
-				)
+			local function effectsDrawn(name)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				task.wait()
+				ReplicatedStorage:SetAttribute("BossVfxForce", name)
+				local most, markPeak, stop = 0, 0, os.clock() + PEAK_WATCH
+				while os.clock() < stop do
+					local n, m = 0, 0
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						local mark = d.Name == "StrikeMark" or (d.Parent and d.Parent.Name == "StrikeMark")
+						if mark then
+							m += d.Name == "StrikeMark" and 1 or 0
+						elseif
+							(d:IsA("BasePart") and d.Transparency < 1)
+							or (d:IsA("ParticleEmitter") and d.Enabled)
+							or (d:IsA("Beam") and d.Enabled)
+							or (d:IsA("Trail") and d.Enabled)
+						then
+							n += 1
+						end
+					end
+					most, markPeak = math.max(most, n), math.max(markPeak, m)
+					task.wait(0.05)
+				end
+				return most, markPeak
 			end
-			-- Owner 2026-11-11: 3 per strike under REDUCED EFFECTS (proposed), still 14 strikes.
+			for _, name in { "Lightning", "Slam", "Sweep", "Barrage" } do
+				local drawn, markPeak = effectsDrawn(name)
+				check(res, "reduced_" .. string.lower(name) .. "_no_effects", drawn, 0)
+				if name == "Lightning" then
+					h.check(res, "reduced_lightning_marks_stay", markPeak, "> 0", markPeak > 0)
+				end
+			end
 			for _, name in { "Lightning", "Barrage" } do
 				local tag = "reduced_" .. string.lower(name)
-				checkStrikes(tag, name, strikeLog(name), PER_STRIKE_REDUCED, PER_STRIKE_REDUCED)
+				checkStrikes(tag, name, strikeLog(name), PER_STRIKE_MIN, PER_STRIKE_MAX)
 			end
 			-- A Trail on her staff while it swings in lightning and barrage, none at rest, none under REDUCED EFFECTS
 			-- (BOSS_EVENT_SPEC "Animation rework" "Impact layer"; task a5b-fx). Contract: an enabled Trail parented under the ElfMage's
@@ -1250,9 +1282,9 @@ function Module.Build(h)
 			--     (Bind.Staff.Tip on the live Staff part) at some frame of lightning 1.0 to 2.0 s. Not under REDUCED EFFECTS.
 			--   MagicCircle (the barrage's circles, as now): each, at the frame it is first seen before 2.0 s, within 25 deg of the
 			--     staff's pointing (grip joint to tip) from the tip; first seen one after another with peak sizes not decreasing.
-			--     REDUCED EFFECTS keeps them (3, as now).
+			--     None with effects off (BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12; was 3).
 			--   SweepDust (as now): during the golem's sweep, first seen over time (not all in one frame), each within 10 studs (XZ)
-			--     of the nearer fist (Golem FistL / FistR) when first seen. REDUCED EFFECTS keeps 3 puffs (as now).
+			--     of the nearer fist (Golem FistL / FistR) when first seen. None with effects off (was 3 puffs).
 			--   GolemRiseDust during the golem's rise (golem 0 to 1.4 s after BossMinionStart), GolemFallDust during her golem_fall
 			--     row. Neither under REDUCED EFFECTS.
 			--   LastStrikes stays as checked above.
@@ -1433,40 +1465,44 @@ function Module.Build(h)
 						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
 						minGap = math.min(minGap, list[i].At - list[i - 1].At)
 					end
-					local want = few and 3 or 10 -- owner 2026-11-12 after playing: 10 (was 6), 3 reduced
+					local want = 10 -- owner 2026-11-12 after playing: 10 (was 6)
 					local beforeBeams, lastFull, smallest, largest = 0, -math.huge, math.huge, 0
 					for _, row in list do
 						beforeBeams += row.At < 2.0 and 1 or 0
 						lastFull = math.max(lastFull, row.FullAt)
 						smallest, largest = math.min(smallest, row.Peak), math.max(largest, row.Peak)
 					end
-					check(res, tag .. "barrage_circles_seen", #list > 0, true)
-					h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
-					check(res, tag .. "barrage_circles_one_after_another", ordered, true)
-					-- 0.15 s apart (owner 2026-11-12 after playing; was 0.28 with a 0.2 floor), 0.12 with frame slack
-					h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.12", #list > 1 and minGap >= 0.12)
-					h.check(
-						res,
-						tag .. "barrage_circles_all_open_before_beams",
-						("%d of %d by 2.0 s, last full at %.2f, first beam at %.2f"):format(
-							beforeBeams,
-							want,
-							lastFull,
-							beamAt
-						),
-						("%d, full before the first beam and 2.0 s"):format(want),
-						beforeBeams == want and lastFull <= math.min(beamAt, 2.0)
-					)
+					-- effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): no
+					-- circles (was 3)
 					if few then
-						h.check(res, "reduced_barrage_circles_3", #list, "<= 3", #list <= 3)
+						check(res, "reduced_no_barrage_circles", #list, 0)
 					else
+						check(res, tag .. "barrage_circles_seen", #list > 0, true)
+						h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
+						check(res, tag .. "barrage_circles_one_after_another", ordered, true)
+						-- 0.15 s apart (owner 2026-11-12 after playing; was 0.28 with a 0.2 floor), 0.12 with frame slack
+						h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.12", #list > 1 and minGap >= 0.12)
 						h.check(
 							res,
-							"barrage_circles_bigger",
-							("%.1f to %.1f"):format(smallest, largest),
-							"smallest >= 28, largest >= 65", -- 30 to 70 studs (owner 2026-11-12 after playing; was 15 to 36)
-							#list > 0 and smallest >= 28 and largest >= 65
+							tag .. "barrage_circles_all_open_before_beams",
+							("%d of %d by 2.0 s, last full at %.2f, first beam at %.2f"):format(
+								beforeBeams,
+								want,
+								lastFull,
+								beamAt
+							),
+							("%d, full before the first beam and 2.0 s"):format(want),
+							beforeBeams == want and lastFull <= math.min(beamAt, 2.0)
 						)
+						do
+							h.check(
+								res,
+								"barrage_circles_bigger",
+								("%.1f to %.1f"):format(smallest, largest),
+								"smallest >= 28, largest >= 65", -- 30 to 70 studs (owner 2026-11-12 after playing; was 15 to 36)
+								#list > 0 and smallest >= 28 and largest >= 65
+							)
+						end
 					end
 				end
 				-- The golem: its rise raises dust; its sweep's dust follows the fist; her golem_fall row raises dust.
@@ -1497,9 +1533,13 @@ function Module.Build(h)
 						first, last = math.min(first, row.At), math.max(last, row.At)
 					end
 					check(res, tag .. "golem_fists_present", fists[1] ~= nil and fists[2] ~= nil, true)
-					check(res, tag .. "sweep_dust_seen", count(dust) > 0, true)
-					h.checkList(res, tag .. "sweep_dust_follows_fist", far)
-					h.check(res, tag .. "sweep_dust_over_time", last - first, ">= 0.3", last - first >= 0.3)
+					if few then -- effects off (BOSS_EVENT_SPEC "Effects setting"): no sweep dust (was 3 puffs)
+						check(res, "reduced_no_sweep_dust", count(dust), 0)
+					else
+						check(res, "sweep_dust_seen", count(dust) > 0, true)
+						h.checkList(res, "sweep_dust_follows_fist", far)
+						h.check(res, "sweep_dust_over_time", last - first, ">= 0.3", last - first >= 0.3)
+					end
 					setup(res, "boss_ui_minion:none")
 					local fallStart = timeOf("golem_fall", 0, 0.1, 0)
 					check(res, "schedule_has_golem_fall_row", fallStart ~= nil, true)
