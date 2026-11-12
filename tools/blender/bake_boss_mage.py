@@ -8,7 +8,7 @@
 #         and its part of golem. Keys verbatim at their times; everything between them generated here: quaternion interpolation per
 #         part with asymmetric easing, written as Euler keys (each in-between the Euler nearest the frame before it); springs on the
 #         tails, the staff, the lower arms and the head (her) and the head and forearms (golem); torso and head 1 and 2 frames
-#         behind; Big Raga's RECOIL after each hit; the golem's lowest block kept on the floor between grounded keys (its foot
+#         behind; Big Raga's RECOIL after each hit; the golem's feet kept on the floor between grounded keys (its foot
 #         solve: the root, not the knees). Then self-checked (asserts, the boss_mage_anim continuity check with its hit snap
 #         included). Run stylua after.
 # glb     writes build/avatar_glb/boss_mage_jointed.glb (17 parts) and boss_golem.glb (15 blocks): unposed, no hierarchy, each centred
@@ -484,10 +484,10 @@ def golem_world(gbind, rot, loc, root_z=0.0):
 	return out
 
 
-def golem_span(gbind, verts, rot, loc, root_z=0.0):
-	"""The lowest and highest point of its blocks, golem units."""
+def golem_span(gbind, verts, rot, loc, root_z=0.0, parts=None):
+	"""The lowest and highest point of its blocks (or of parts), golem units."""
 	world = golem_world(gbind, rot, loc, root_z)
-	zs = [(np.array(world[n])[:3, :3] @ verts[n].T).T[:, 2] + np.array(world[n])[2, 3] for n in gbind]
+	zs = [(np.array(world[n])[:3, :3] @ verts[n].T).T[:, 2] + np.array(world[n])[2, 3] for n in (parts or gbind)]
 	return float(min(z.min() for z in zs)), float(max(z.max() for z in zs))
 
 
@@ -508,9 +508,9 @@ class Golem:
 		# renders, a little below these blocks' lowest vertex)
 		self.floor = self.span(gstate(gbind, data["moves"]["golem_idle"]["keys"][0]))[0]
 
-	def span(self, st, root=None):
+	def span(self, st, root=None, parts=None):
 		loc = {p: st["vec"][p + "@"] for p in self.gbind}
-		return golem_span(self.gbind, self.verts, st["rot"], loc, st["vec"]["root"] if root is None else root)
+		return golem_span(self.gbind, self.verts, st["rot"], loc, st["vec"]["root"] if root is None else root, parts)
 
 	def grounded(self, st):
 		"""Whole (every block at its bind offset: not rising, breaking or crumbled), full size, its lowest point on the floor."""
@@ -518,7 +518,7 @@ class Golem:
 		return whole and st["vec"]["scale"] == 1 and abs(self.span(st)[0] - self.floor) < 3e-3
 
 	def bake(self, name, stops, segments, duration, hit=None, lag=None):
-		"""Sampled, springs and recoil added; between two grounded stops the root keeps its lowest block on the floor (pinned back to
+		"""Sampled, springs and recoil added; between two grounded stops the root keeps its feet on the floor (pinned back to
 		the keys' own roots at every stop); written as channel frames, every stop verbatim."""
 		grid, samples = sample(name, stops, segments, duration, GOLEM_FOLLOW, GOLEM_RECOIL, hit, lag)
 		times = [s["t"] for s in stops]
@@ -527,7 +527,8 @@ class Golem:
 		for i, (t, s) in enumerate(zip(grid, samples)):
 			j = int(max(0, min(len(times) - 2, np.searchsorted(times, t, side="right") - 1)))
 			if ground[j] and ground[j + 1]:
-				lift[i] = self.floor - self.span(s)[0]
+				# the feet only: a fist leaving the floor (the springs and recoil shake it) made the root jump 0.07 a frame
+				lift[i] = self.floor - self.span(s, parts=FEET)[0]
 		lift = pinned(grid, lift, times)
 		stop_at = {s["t"]: s for s in stops}
 		frames, prev = [], None
@@ -590,6 +591,7 @@ class Golem:
 		return out
 
 
+FEET = ("ShinL", "ShinR")  # the golem's foot blocks
 GOLEM_RISE = 0.8  # proposed: her strike on the rune; the slabs push up through the floor from here to her 1.3 s key
 GOLEM_SETTLE = 0.6  # proposed: the golem's part of golem past her 5.0 s, from its last key into golem_idle key 0 (GolemAt plays it)
 GOLEM_PLAN = {
