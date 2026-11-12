@@ -27,6 +27,15 @@
 --     {"Move":"Lightning"|"Barrage","Strikes":[{"T":<s after the window start>,"Spots":[[x,z],...]},...]}: every strike of the
 --     move as drawn (REDUCED EFFECTS applied), its bolts' or beams' floor spots in world X, Z. Lightning leaves one StrikeMark
 --     part per bolt in BossEffects.
+--   Stronger effects (owner 2026-11-12 after playing; design doc 4.37 "Elf Mage effects stronger", BOSS_EVENT_SPEC "Pose-tied
+--     effect values", proposed), BaseParts under BossEffects; a "spawn" is a part taking the name (pooled parts are renamed):
+--     Lightning, per strike, as many as its LastStrikes spots within a frame: StrikeFlash white (each channel >= 0.85) and
+--     ShockRing purple; per bolt at least one BoltCore white (the core) and one Bolt purple (the glow layer); a ParticleEmitter
+--     named Sparks under BossEffects during the strikes. REDUCED EFFECTS: plain bolts (BoltCore) only, no Bolt glow, ShockRing
+--     or Sparks.
+--     Barrage, per beam (as many as the strike's spots): BarrageBeamCore white and BarrageBeamEdge near-black (each channel
+--     <= 0.2); a ParticleEmitter or BasePart named BarrageSmoke, dark, during the window; no BarrageSmoke under REDUCED EFFECTS.
+--     MagicCircle: 10 (3 reduced), see the barrage watch.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
@@ -1047,6 +1056,124 @@ function Module.Build(h)
 			check(res, "lightning_mark_per_bolt", marks, bolts)
 			local barrageList = checkStrikes("barrage", "Barrage", strikeLog("Barrage"), PER_STRIKE_MIN, PER_STRIKE_MAX)
 			checkSpread("barrage", barrageList)
+			-- The stronger look (owner 2026-11-12 after playing): per strike, spawns of each layer, grouped into strikes by time.
+			local function spawnsOf(name, seconds)
+				local out, before, extra, born = {}, {}, {}, os.clock()
+				while os.clock() - born < seconds do
+					local now = {}
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if d.Name == name and d:IsA("BasePart") and d.Transparency < 1 then
+							now[d] = true
+							if not before[d] then
+								table.insert(out, { T = os.clock() - born, Color = d.Color })
+							end
+						elseif d.Name == name and d:IsA("ParticleEmitter") then
+							extra[d] = true
+						end
+					end
+					before = now
+					task.wait()
+				end
+				return out, extra
+			end
+			local function clusters(list) -- spawns within 0.06 s of the one before belong to one strike
+				local groups, last = {}, -math.huge
+				for _, row in list do
+					if row.T - last > 0.06 then
+						table.insert(groups, {})
+					end
+					table.insert(groups[#groups], row)
+					last = row.T
+				end
+				return groups
+			end
+			local function isWhite(c)
+				return c.R >= 0.85 and c.G >= 0.85 and c.B >= 0.85
+			end
+			local function isPurple(c)
+				return c.R >= 0.35 and c.B >= 0.6 and c.G <= 0.55 and c.B > c.G
+			end
+			local function isDark(c)
+				return c.R <= 0.2 and c.G <= 0.2 and c.B <= 0.2
+			end
+			local function emitterDark(e)
+				local k = e.Color.Keypoints
+				return isDark(k[1].Value)
+			end
+			-- Plays `move` and watches one layer `name` (one pass per layer: a forced move draws the same seeded strikes each time).
+			local function play(move, name)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				task.wait()
+				ReplicatedStorage:SetAttribute("BossVfxForce", move)
+				return spawnsOf(name, 2.6)
+			end
+			local function spotsOf(move)
+				local log = strikeLog(move)
+				local counts = {}
+				for k, strike in log and log.Strikes or {} do
+					counts[k] = type(strike.Spots) == "table" and #strike.Spots or 0
+				end
+				return counts
+			end
+			-- Each group's spawns (all of `ok` colour) against the strike's spots: exactly (`exact`) or at least.
+			local function perStrike(tag, groups, counts, isColour, exact)
+				local bad = {}
+				if #groups ~= #counts then
+					table.insert(bad, ("%d strikes drawn, %d logged"):format(#groups, #counts))
+				end
+				for k, group in groups do
+					local want = counts[k] or 0
+					local n, wrong = #group, 0
+					for _, row in group do
+						wrong += isColour(row.Color) and 0 or 1
+					end
+					if (exact and n ~= want) or n < want or wrong > 0 then
+						table.insert(bad, ("%d: %d for %d spots, %d off colour"):format(k, n, want, wrong))
+					end
+				end
+				h.checkList(res, tag, bad)
+			end
+			for _, few in { false, true } do
+				h.player:SetAttribute("ReduceEffects", few or nil)
+				local pre = few and "reduced_" or ""
+				local lightningSpots = spotsOf("Lightning")
+				local cores = play("Lightning", "BoltCore")
+				perStrike(pre .. "lightning_white_core", clusters(cores), lightningSpots, isWhite, false)
+				local glow = play("Lightning", "Bolt")
+				local flashes = play("Lightning", "StrikeFlash")
+				local rings = play("Lightning", "ShockRing")
+				local _, sparks = play("Lightning", "Sparks")
+				if few then
+					check(res, "reduced_lightning_no_glow", #glow, 0)
+					check(res, "reduced_lightning_no_shock_ring", #rings, 0)
+					check(res, "reduced_lightning_no_sparks", next(sparks) ~= nil, false)
+				else
+					perStrike("lightning_purple_glow", clusters(glow), lightningSpots, isPurple, false)
+					perStrike("lightning_hit_flash_white", clusters(flashes), lightningSpots, isWhite, true)
+					perStrike("lightning_shock_ring_purple", clusters(rings), lightningSpots, isPurple, true)
+					check(res, "lightning_sparks", next(sparks) ~= nil, true)
+				end
+				local barrageSpots = spotsOf("Barrage")
+				local beamCores = play("Barrage", "BarrageBeamCore")
+				local edges = play("Barrage", "BarrageBeamEdge")
+				local smokeParts, smokeEmitters = play("Barrage", "BarrageSmoke")
+				local smokeDark = #smokeParts > 0 or next(smokeEmitters) ~= nil
+				for _, row in smokeParts do
+					smokeDark = smokeDark and isDark(row.Color)
+				end
+				for e in smokeEmitters do
+					smokeDark = smokeDark and emitterDark(e)
+				end
+				if few then
+					check(res, "reduced_barrage_no_black_smoke", #smokeParts == 0 and next(smokeEmitters) == nil, true)
+				else
+					perStrike("barrage_beam_white_core", clusters(beamCores), barrageSpots, isWhite, false)
+					perStrike("barrage_beam_dark_edge", clusters(edges), barrageSpots, isDark, false)
+					check(res, "barrage_black_smoke", smokeDark, true)
+				end
+			end
+			h.player:SetAttribute("ReduceEffects", nil)
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Sweep")
@@ -1255,12 +1382,17 @@ function Module.Build(h)
 								if d:IsA("BasePart") and d.Name == "MagicCircle" then
 									local row = rows[d]
 									if not row then
+										-- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values": "a wide fan
+										-- of rings in front of the staff and around her"): within 70 deg of the staff's aim seen
+										-- from her (was 25 deg from the tip, for a row of circles along the aim).
 										local grip, tip = staffEnds()
-										local aim, to = (tip - grip).Unit, (d.Position - tip)
+										local her = mage:FindFirstChild("Torso", true)
+										local aim = (tip - grip).Unit
+										local to = d.Position - (her and her.Position or tip)
 										local angle = to.Magnitude > 0
 												and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
 											or 180
-										if angle > 25 then
+										if angle > 70 then
 											table.insert(seenOff, ("%.0f"):format(angle))
 										end
 										row = { At = t, Peak = 0, Sizes = {} }
@@ -1301,7 +1433,7 @@ function Module.Build(h)
 						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
 						minGap = math.min(minGap, list[i].At - list[i - 1].At)
 					end
-					local want = few and 3 or 6
+					local want = few and 3 or 10 -- owner 2026-11-12 after playing: 10 (was 6), 3 reduced
 					local beforeBeams, lastFull, smallest, largest = 0, -math.huge, math.huge, 0
 					for _, row in list do
 						beforeBeams += row.At < 2.0 and 1 or 0
@@ -1311,7 +1443,8 @@ function Module.Build(h)
 					check(res, tag .. "barrage_circles_seen", #list > 0, true)
 					h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
 					check(res, tag .. "barrage_circles_one_after_another", ordered, true)
-					h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.2", #list > 1 and minGap >= 0.2)
+					-- 0.15 s apart (owner 2026-11-12 after playing; was 0.28 with a 0.2 floor), 0.12 with frame slack
+					h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.12", #list > 1 and minGap >= 0.12)
 					h.check(
 						res,
 						tag .. "barrage_circles_all_open_before_beams",
@@ -1331,8 +1464,8 @@ function Module.Build(h)
 							res,
 							"barrage_circles_bigger",
 							("%.1f to %.1f"):format(smallest, largest),
-							"smallest >= 13, largest >= 32",
-							#list > 0 and smallest >= 13 and largest >= 32
+							"smallest >= 28, largest >= 65", -- 30 to 70 studs (owner 2026-11-12 after playing; was 15 to 36)
+							#list > 0 and smallest >= 28 and largest >= 65
 						)
 					end
 				end
