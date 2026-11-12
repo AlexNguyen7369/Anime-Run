@@ -1125,6 +1125,118 @@ function Module.Build(h)
 		setup(res, "restore:boss_ui")
 	end
 
+	-- The jointed Elf Mage in game (design doc 4.37 "Animation rework", BOSS_EVENT_SPEC "Animation rework" Rigs; task a4-mage), as
+	-- ui_boss_king_rig. Contract (implementer: report a change, do not loosen): workspace.BossArenaPreview holds Model ElfMage with
+	-- BaseParts named as BossMagePoses.Bind: Torso, Head, Left/RightUpperArm, Left/RightLowerArm, Left/RightUpperLeg,
+	-- Left/RightLowerLeg, TailL1..3, TailR1..3, Staff, and none of LeftArm, RightArm, LeftLeg, RightLeg, TailL, TailR. The staff's
+	-- axis is its BasePart's longest side. Until the jointed meshes are uploaded the rig falls back to the old meshes on the upper
+	-- segments, so rig_jointed_parts stays red then; the pose checks use only Head and Staff and still run. A sanity check that
+	-- lightning plays on the jointed rig, not exact numbers: at 1.0 s (cast raise, key 3 at 0.95 s) the staff's upper end is above
+	-- her head and the staff upright; at 2.05 s (the first strike, key 6 at 2.0 s "levelled at the arena") the staff is near level.
+	function scenarios.ui_boss_mage_rig(res)
+		local JOINTED = {
+			"Torso",
+			"Head",
+			"LeftUpperArm",
+			"LeftLowerArm",
+			"RightUpperArm",
+			"RightLowerArm",
+			"LeftUpperLeg",
+			"LeftLowerLeg",
+			"RightUpperLeg",
+			"RightLowerLeg",
+			"TailL1",
+			"TailL2",
+			"TailL3",
+			"TailR1",
+			"TailR2",
+			"TailR3",
+			"Staff",
+		}
+		local LIGHTNING_AT = 2.0 -- the Lightning event in lightning's local time (BossDodge's moment)
+		local ok, err = xpcall(function()
+			setup(res, "boss_ui_gear:2")
+			state(res, "Idle", 0)
+			boss(res, MAGE)
+			state(res, "Prep", 5, 4000, 4000, true, 100)
+			local deadline, mage = os.clock() + BUILD_WAIT, nil
+			repeat
+				local folder = workspace:FindFirstChild("BossArenaPreview")
+				mage = folder and folder:FindFirstChild("ElfMage", true)
+				if not mage then
+					task.wait(0.05)
+				end
+			until mage or os.clock() > deadline
+			check(res, "rig_mage_present", mage ~= nil and mage:IsA("Model"), true)
+			if not mage then
+				return
+			end
+			local missing = {}
+			for _, name in JOINTED do
+				local part = mage:FindFirstChild(name, true)
+				if not (part and part:IsA("BasePart")) then
+					table.insert(missing, name)
+				end
+			end
+			h.checkList(res, "rig_jointed_parts", missing)
+			for _, name in { "LeftArm", "RightArm", "LeftLeg", "RightLeg", "TailL", "TailR" } do
+				check(res, "rig_no_unjointed_" .. name, mage:FindFirstChild(name, true), nil)
+			end
+			local index, at = firstMoment("Lightning")
+			check(res, "rig_lightning_moment_found", index ~= nil, true)
+			local staff, head = mage:FindFirstChild("Staff", true), mage:FindFirstChild("Head", true)
+			check(
+				res,
+				"rig_staff_and_head",
+				staff ~= nil and head ~= nil and staff:IsA("BasePart") and head:IsA("BasePart"),
+				true
+			)
+			if not index or not (staff and head and staff:IsA("BasePart") and head:IsA("BasePart")) then
+				return
+			end
+			-- lightning's local time `localTime`, then a few frames to pose: the staff's unit axis, its upper end's height above
+			-- the top of her head's box.
+			local function at_(localTime)
+				state(
+					res,
+					"Fight",
+					Cfg.PrepSeconds + Cfg.IntroSeconds + at - LIGHTNING_AT + localTime,
+					4000,
+					4000,
+					true,
+					100
+				)
+				task.wait(0.1)
+				local size, cf = staff.Size, staff.CFrame
+				local axis, length = cf.RightVector, size.X
+				if size.Y > length then
+					axis, length = cf.UpVector, size.Y
+				end
+				if size.Z > length then
+					axis, length = cf.LookVector, size.Z
+				end
+				local top = staff.Position.Y + math.abs(axis.Y) * length / 2
+				local headTop = -math.huge
+				for _, x in { -0.5, 0.5 } do
+					for _, y in { -0.5, 0.5 } do
+						for _, z in { -0.5, 0.5 } do
+							headTop = math.max(headTop, (head.CFrame * (head.Size * Vector3.new(x, y, z))).Y)
+						end
+					end
+				end
+				return axis, top - headTop
+			end
+			local castAxis, castAbove = at_(1.0)
+			h.check(res, "rig_cast_staff_above_head", castAbove, "> 0", castAbove > 0)
+			h.check(res, "rig_cast_staff_upright", math.abs(castAxis.Y), ">= 0.8", math.abs(castAxis.Y) >= 0.8)
+			local strikeAxis = at_(2.05)
+			h.check(res, "rig_strike_staff_level", math.abs(strikeAxis.Y), "<= 0.5", math.abs(strikeAxis.Y) <= 0.5)
+		end, debug.traceback)
+		h.check(res, "mage_rig_checks_completed", ok and "yes" or tostring(err), "yes", ok)
+		state(res, "Idle", 0)
+		setup(res, "restore:boss_ui")
+	end
+
 	return { Scenarios = scenarios, After = after }
 end
 
