@@ -3256,6 +3256,3484 @@
      "effects": []
     }
    ]
+  },
+  "barrage": {
+   "title": "Barrage (rework, jointed rig): circles open in front of the staff, a 2 s storm of beams, recover",
+   "end": 5.4,
+   "loop": false,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0: hovering, staff across the body in both hands",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": []
+    },
+    {
+     "t": 0.5,
+     "caption": "Anticipation: staff swung back and low past her right hip, body coils right and dips, knees tuck; tails swing the old way",
+     "root_offset": [
+      0,
+      0.08,
+      -0.25
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -14.0
+      ],
+      "Torso": [
+       18.0,
+       -2.0,
+       -26.0
+      ],
+      "Head": [
+       6.0,
+       -0.0,
+       26.0
+      ],
+      "Staff": [
+       -9.416,
+       168.942,
+       -0.014
+      ],
+      "RightUpperArm": [
+       -2.846,
+       -7.693,
+       -148.815
+      ],
+      "RightLowerArm": [
+       -67.079,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -36.482,
+       -24.612,
+       -24.196
+      ],
+      "LeftLowerArm": [
+       -42.141,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -30.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       72.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -10.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       55.0,
+       -0.0,
+       -0.0
+      ],
+      "TailL1": [
+       -16.0,
+       -30.0,
+       6.0
+      ],
+      "TailL2": [
+       -10.0,
+       -8.0,
+       0.0
+      ],
+      "TailL3": [
+       -8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -8.0,
+       40.0,
+       -6.0
+      ],
+      "TailR2": [
+       -12.0,
+       12.0,
+       0.0
+      ],
+      "TailR3": [
+       -10.0,
+       8.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": []
+    },
+    {
+     "t": 1.0,
+     "caption": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; the first small circle pops at the tip",
+     "root_offset": [
+      0,
+      -0.12,
+      0.4
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       34.0
+      ],
+      "Torso": [
+       -8.0,
+       6.0,
+       -4.0
+      ],
+      "Head": [
+       -16.0,
+       -0.0,
+       -24.0
+      ],
+      "Staff": [
+       141.223,
+       76.666,
+       -50.183
+      ],
+      "RightUpperArm": [
+       -21.505,
+       23.833,
+       13.627
+      ],
+      "RightLowerArm": [
+       -92.827,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -57.673,
+       46.669,
+       -46.788
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       14.0,
+       -0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       15.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       28.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       12.0,
+       -14.0,
+       0.0
+      ],
+      "TailL2": [
+       8.0,
+       -4.0,
+       0.0
+      ],
+      "TailL3": [
+       6.0,
+       -2.0,
+       -0.0
+      ],
+      "TailR1": [
+       16.0,
+       10.0,
+       0.0
+      ],
+      "TailR2": [
+       10.0,
+       4.0,
+       -0.0
+      ],
+      "TailR3": [
+       8.0,
+       2.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [
+      "circles:1"
+     ]
+    },
+    {
+     "t": 1.45,
+     "caption": "Settle: staff comes down level; circles open one after another, small to large (4 of 9); tails fling up",
+     "root_offset": [
+      0,
+      -0.05,
+      0.2
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       32.0
+      ],
+      "Torso": [
+       6.0,
+       4.0,
+       -6.0
+      ],
+      "Head": [
+       -8.0,
+       0.0,
+       -26.0
+      ],
+      "Staff": [
+       105.698,
+       47.606,
+       -97.328
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.125,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -57.206,
+       45.945,
+       -46.383
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       8.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       34.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       18.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       46.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -20.0,
+       -44.0,
+       6.0
+      ],
+      "TailL2": [
+       -8.0,
+       -10.0,
+       0.0
+      ],
+      "TailL3": [
+       -6.0,
+       -6.0,
+       -0.0
+      ],
+      "TailR1": [
+       -16.0,
+       50.0,
+       -4.0
+      ],
+      "TailR2": [
+       -8.0,
+       12.0,
+       0.0
+      ],
+      "TailR3": [
+       -4.0,
+       6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "circles:4"
+     ]
+    },
+    {
+     "t": 1.85,
+     "caption": "Brace (Dodge bar ends): all 9 circles bright, she leans into the staff, legs split; hair and tails blown back",
+     "root_offset": [
+      0,
+      -0.15,
+      0.15
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       36.0
+      ],
+      "Torso": [
+       16.0,
+       6.0,
+       -6.0
+      ],
+      "Head": [
+       -6.0,
+       0.0,
+       -26.0
+      ],
+      "Staff": [
+       104.184,
+       41.704,
+       -97.436
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.774,
+       44.619,
+       -45.669
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       26.0,
+       -0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       55.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -34.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       62.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       40.0,
+       -22.0,
+       -0.0
+      ],
+      "TailL2": [
+       14.0,
+       -4.0,
+       -0.0
+      ],
+      "TailL3": [
+       10.0,
+       -2.0,
+       -0.0
+      ],
+      "TailR1": [
+       46.0,
+       30.0,
+       -0.0
+      ],
+      "TailR2": [
+       16.0,
+       6.0,
+       -0.0
+      ],
+      "TailR3": [
+       12.0,
+       4.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "circles:9:bright"
+     ]
+    },
+    {
+     "t": 2.0,
+     "caption": "HIT, strike 1 of 14: the arena flashes white; every circle fires, beams with rounded heads; the kick drives her back",
+     "root_offset": [
+      0,
+      0.28,
+      0.2
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       34.0
+      ],
+      "Torso": [
+       0.0,
+       10.0,
+       -2.0
+      ],
+      "Head": [
+       -14.0,
+       -0.0,
+       -24.0
+      ],
+      "Staff": [
+       100.804,
+       53.861,
+       -104.511
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -61.912,
+       46.328,
+       -46.596
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       36.0,
+       -0.0,
+       -8.0
+      ],
+      "LeftLowerLeg": [
+       72.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -22.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       46.0,
+       0.0,
+       0.0
+      ],
+      "TailL1": [
+       60.0,
+       -18.0,
+       -0.0
+      ],
+      "TailL2": [
+       20.0,
+       -0.0,
+       -0.0
+      ],
+      "TailL3": [
+       16.0,
+       -0.0,
+       0.0
+      ],
+      "TailR1": [
+       66.0,
+       34.0,
+       0.0
+      ],
+      "TailR2": [
+       22.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       16.0,
+       4.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "look": "flash",
+     "event": "Barrage",
+     "effects": [
+      "flash",
+      "circles:9:bright",
+      "beams:0"
+     ]
+    },
+    {
+     "t": 2.6,
+     "caption": "Strike 5: she drives the staff left across the room, circles turn with it; weight forward, tails whip to her right",
+     "root_offset": [
+      0.1,
+      -0.12,
+      0.12
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       62.0
+      ],
+      "Torso": [
+       18.0,
+       2.0,
+       -10.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -36.0
+      ],
+      "Staff": [
+       110.955,
+       62.11,
+       -88.363
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.145,
+       44.101,
+       -45.4
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       18.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -40.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       75.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       30.0,
+       -4.0,
+       10.0
+      ],
+      "TailL2": [
+       14.0,
+       6.0,
+       -0.0
+      ],
+      "TailL3": [
+       12.0,
+       6.0,
+       -0.0
+      ],
+      "TailR1": [
+       52.0,
+       54.0,
+       -10.0
+      ],
+      "TailR2": [
+       24.0,
+       14.0,
+       -0.0
+      ],
+      "TailR3": [
+       18.0,
+       8.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "circles:9:bright",
+      "beams:1"
+     ]
+    },
+    {
+     "t": 3.35,
+     "caption": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way",
+     "root_offset": [
+      -0.1,
+      0,
+      -0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       10.0
+      ],
+      "Torso": [
+       20.0,
+       -6.0,
+       14.0
+      ],
+      "Head": [
+       2.0,
+       0.0,
+       -18.0
+      ],
+      "Staff": [
+       84.31,
+       19.914,
+       -112.027
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -64.059,
+       35.889,
+       -41.692
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       36.0,
+       -0.0,
+       -10.0
+      ],
+      "LeftLowerLeg": [
+       66.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -20.0,
+       -0.0,
+       10.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       56.0,
+       -40.0,
+       -6.0
+      ],
+      "TailL2": [
+       24.0,
+       -10.0,
+       -0.0
+      ],
+      "TailL3": [
+       18.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       28.0,
+       6.0,
+       8.0
+      ],
+      "TailR2": [
+       12.0,
+       -4.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       -6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "circles:9:bright",
+      "beams:3"
+     ]
+    },
+    {
+     "t": 4.0,
+     "caption": "Release (beams end): she pulls the staff up and back, left hand off it, circles fade; body floats up, tails fly forward",
+     "root_offset": [
+      0,
+      0.12,
+      0.35
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       18.0
+      ],
+      "Torso": [
+       -12.0,
+       4.0,
+       4.0
+      ],
+      "Head": [
+       -12.0,
+       -0.0,
+       -14.0
+      ],
+      "Staff": [
+       170.129,
+       72.82,
+       -8.656
+      ],
+      "RightUpperArm": [
+       -34.308,
+       24.558,
+       12.417
+      ],
+      "RightLowerArm": [
+       -96.641,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -25.116,
+       -16.602,
+       -26.565
+      ],
+      "LeftLowerArm": [
+       -82.672,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       4.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       20.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       14.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -28.0,
+       -30.0,
+       -0.0
+      ],
+      "TailL2": [
+       -16.0,
+       -8.0,
+       0.0
+      ],
+      "TailL3": [
+       -12.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -24.0,
+       36.0,
+       -0.0
+      ],
+      "TailR2": [
+       -14.0,
+       10.0,
+       -0.0
+      ],
+      "TailR3": [
+       -10.0,
+       6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [
+      "circles:9:fade"
+     ]
+    },
+    {
+     "t": 5.4,
+     "caption": "Recover = idle key 0: staff back across the body in both hands, settled",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": []
+    }
+   ],
+   "strikes": [
+    2.0,
+    4.0
+   ]
+  },
+  "golem": {
+   "title": "Golem: she raises the Stone Golem from the floor, its first slam (rework, jointed rig)",
+   "end": 5.0,
+   "loop": false,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0: hovering, staff across the body; no golem yet",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [],
+     "golem": null
+    },
+    {
+     "t": 0.4,
+     "caption": "Anticipation: staff raised high in her right hand, body turns to her right and leans back, left palm up; tails hang a beat behind",
+     "root_offset": [
+      0,
+      0,
+      0.25
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -8.0
+      ],
+      "Torso": [
+       -14.0,
+       -0.0,
+       -14.0
+      ],
+      "Head": [
+       -10.0,
+       -0.0,
+       -18.0
+      ],
+      "Staff": [
+       -5.991,
+       164.376,
+       7.094
+      ],
+      "RightUpperArm": [
+       18.357,
+       -173.782,
+       29.358
+      ],
+      "RightLowerArm": [
+       -23.557,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       67.129,
+       -117.735,
+       -60.255
+      ],
+      "LeftLowerArm": [
+       -81.491,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       10.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       20.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       20.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       36.0,
+       0.0,
+       0.0
+      ],
+      "TailL1": [
+       12.0,
+       -16.0,
+       0.0
+      ],
+      "TailL2": [
+       6.0,
+       -4.0,
+       -0.0
+      ],
+      "TailL3": [
+       4.0,
+       -2.0,
+       -0.0
+      ],
+      "TailR1": [
+       12.0,
+       12.0,
+       -0.0
+      ],
+      "TailR2": [
+       6.0,
+       4.0,
+       0.0
+      ],
+      "TailR3": [
+       4.0,
+       2.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [],
+     "golem": null
+    },
+    {
+     "t": 0.8,
+     "caption": "Strike down, overshoot: staff driven at the floor by the golem's spot, she folds over it; a rune ring flares; tails flung up",
+     "root_offset": [
+      0,
+      0,
+      -0.2
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -16.0
+      ],
+      "Torso": [
+       24.0,
+       -10.0,
+       -24.0
+      ],
+      "Head": [
+       12.0,
+       -0.0,
+       -14.0
+      ],
+      "Staff": [
+       7.382,
+       -165.669,
+       26.605
+      ],
+      "RightUpperArm": [
+       -17.312,
+       41.947,
+       17.596
+      ],
+      "RightLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -0.895,
+       -111.233,
+       82.875
+      ],
+      "LeftLowerArm": [
+       -66.443,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       32.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -12.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       62.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -30.0,
+       -50.0,
+       0.0
+      ],
+      "TailL2": [
+       -12.0,
+       -10.0,
+       -0.0
+      ],
+      "TailL3": [
+       -8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -26.0,
+       54.0,
+       0.0
+      ],
+      "TailR2": [
+       -12.0,
+       10.0,
+       0.0
+      ],
+      "TailR3": [
+       -8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "rune"
+     ],
+     "golem": null
+    },
+    {
+     "t": 1.3,
+     "caption": "Settle: staff held on the rune; the floor slabs crack and lift loose round it",
+     "root_offset": [
+      0,
+      0,
+      -0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -16.0
+      ],
+      "Torso": [
+       14.0,
+       -6.0,
+       -20.0
+      ],
+      "Head": [
+       6.0,
+       -0.0,
+       -20.0
+      ],
+      "Staff": [
+       6.52,
+       -172.78,
+       48.832
+      ],
+      "RightUpperArm": [
+       -22.905,
+       44.817,
+       16.154
+      ],
+      "RightLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       40.346,
+       -46.2,
+       -15.403
+      ],
+      "LeftLowerArm": [
+       -93.998,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       18.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       6.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       46.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -10.0,
+       -36.0,
+       4.0
+      ],
+      "TailL2": [
+       -2.0,
+       -8.0,
+       -0.0
+      ],
+      "TailL3": [
+       0.0,
+       -6.0,
+       -0.0
+      ],
+      "TailR1": [
+       -8.0,
+       40.0,
+       -4.0
+      ],
+      "TailR2": [
+       -2.0,
+       8.0,
+       0.0
+      ],
+      "TailR3": [
+       -0.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [
+      "rune",
+      "seams"
+     ],
+     "golem": {
+      "Hip": {
+       "loc": [
+        1.029,
+        2.33,
+        0.219
+       ],
+       "rot": [
+        -4.39,
+        8.47,
+        14.47
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        0.662,
+        -2.366,
+        0.411
+       ],
+       "rot": [
+        21.98,
+        -23.02,
+        -48.72
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        -1.333,
+        -2.152,
+        1.171
+       ],
+       "rot": [
+        5.26,
+        20.13,
+        2.73
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.956,
+        -3.111,
+        0.134
+       ],
+       "rot": [
+        21.73,
+        -17.41,
+        -1.03
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        1.016,
+        0.073,
+        -0.05
+       ],
+       "rot": [
+        -8.34,
+        27.73,
+        23.64
+       ]
+      },
+      "Torso": {
+       "loc": [
+        1.123,
+        -0.699,
+        -1.668
+       ],
+       "rot": [
+        28.62,
+        -16.34,
+        10.79
+       ]
+      },
+      "Head": {
+       "loc": [
+        -6.429,
+        -2.876,
+        3.868
+       ],
+       "rot": [
+        -36.17,
+        8.84,
+        -39.11
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        1.417,
+        -4.84,
+        3.788
+       ],
+       "rot": [
+        -46.63,
+        -32.63,
+        -49.84
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        -3.211,
+        1.209,
+        3.527
+       ],
+       "rot": [
+        20.14,
+        -24.85,
+        78.67
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        1.58,
+        -3.608,
+        -0.929
+       ],
+       "rot": [
+        13.74,
+        6.87,
+        -44.18
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.156,
+        -2.806,
+        0.589
+       ],
+       "rot": [
+        -20.65,
+        -32.21,
+        44.62
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -4.956,
+        -0.58,
+        2.769
+       ],
+       "rot": [
+        -19.18,
+        -10.91,
+        -21.26
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -4.367,
+        -0.543,
+        1.974
+       ],
+       "rot": [
+        17.34,
+        34.21,
+        13.7
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        0.329,
+        -0.241,
+        -0.305
+       ],
+       "rot": [
+        3.22,
+        -30.49,
+        -41.33
+       ]
+      },
+      "FistR": {
+       "loc": [
+        -1.187,
+        1.701,
+        -0.449
+       ],
+       "rot": [
+        -26.92,
+        26.1,
+        64.47
+       ]
+      }
+     },
+     "golem_root_z": 0.0
+    },
+    {
+     "t": 1.9,
+     "caption": "Lift: both hands sweep the staff up, she rises with it; the blocks fly in toward the golem's place",
+     "root_offset": [
+      0,
+      0,
+      0.3
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -16.0
+      ],
+      "Torso": [
+       -10.0,
+       -6.0,
+       -20.0
+      ],
+      "Head": [
+       -12.0,
+       -0.0,
+       -24.0
+      ],
+      "Staff": [
+       -24.938,
+       -114.198,
+       86.069
+      ],
+      "RightUpperArm": [
+       55.258,
+       140.046,
+       43.409
+      ],
+      "RightLowerArm": [
+       -111.762,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       34.906,
+       -128.306,
+       -49.97
+      ],
+      "LeftLowerArm": [
+       -102.873,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       12.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       24.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       50.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       14.0,
+       -20.0,
+       0.0
+      ],
+      "TailL2": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       6.0,
+       -4.0,
+       -0.0
+      ],
+      "TailR1": [
+       14.0,
+       18.0,
+       0.0
+      ],
+      "TailR2": [
+       8.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       6.0,
+       4.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "rune",
+      "seams"
+     ],
+     "golem": {
+      "Hip": {
+       "loc": [
+        0.564,
+        1.11,
+        2.541
+       ],
+       "rot": [
+        -11.49,
+        -10.67,
+        -36.65
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        -0.971,
+        0.058,
+        0.866
+       ],
+       "rot": [
+        29.32,
+        10.79,
+        16.71
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        1.283,
+        0.195,
+        0.07
+       ],
+       "rot": [
+        -2.22,
+        18.94,
+        45.79
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -1.802,
+        -2.19,
+        0.549
+       ],
+       "rot": [
+        -5.05,
+        0.25,
+        13.38
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        2.767,
+        0.83,
+        -0.033
+       ],
+       "rot": [
+        24.13,
+        4.05,
+        2.18
+       ]
+      },
+      "Torso": {
+       "loc": [
+        2.384,
+        -0.334,
+        -3.788
+       ],
+       "rot": [
+        40.08,
+        17.37,
+        6.9
+       ]
+      },
+      "Head": {
+       "loc": [
+        -3.196,
+        -1.724,
+        0.969
+       ],
+       "rot": [
+        -8.95,
+        19.04,
+        31.91
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        -0.89,
+        3.769,
+        -1.277
+       ],
+       "rot": [
+        0.41,
+        35.93,
+        67.05
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        0.014,
+        1.05,
+        2.319
+       ],
+       "rot": [
+        -52.95,
+        -34.09,
+        -13.37
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        0.904,
+        -2.637,
+        -1.672
+       ],
+       "rot": [
+        5.46,
+        35.15,
+        -15.2
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.257,
+        -1.623,
+        -0.761
+       ],
+       "rot": [
+        -2.02,
+        -8.38,
+        26.6
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -7.421,
+        -3.036,
+        1.166
+       ],
+       "rot": [
+        -17.63,
+        -8.79,
+        -0.19
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -0.048,
+        2.829,
+        2.478
+       ],
+       "rot": [
+        -11.08,
+        8.56,
+        84.98
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        -1.302,
+        0.036,
+        0.216
+       ],
+       "rot": [
+        -13.47,
+        14.42,
+        -15.23
+       ]
+      },
+      "FistR": {
+       "loc": [
+        0.362,
+        -2.096,
+        -0.942
+       ],
+       "rot": [
+        -8.6,
+        28.58,
+        -65.2
+       ]
+      }
+     },
+     "golem_root_z": 0.0
+    },
+    {
+     "t": 2.5,
+     "caption": "Hands high: the body closes round the golem's core, legs and chest set, the head block still in the air",
+     "root_offset": [
+      0,
+      0,
+      0.45
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -16.0
+      ],
+      "Torso": [
+       -16.0,
+       -4.0,
+       -18.0
+      ],
+      "Head": [
+       -18.0,
+       0.0,
+       -22.0
+      ],
+      "Staff": [
+       65.961,
+       -115.303,
+       -33.394
+      ],
+      "RightUpperArm": [
+       20.044,
+       173.033,
+       32.765
+      ],
+      "RightLowerArm": [
+       -50.628,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       17.503,
+       -177.405,
+       -31.632
+      ],
+      "LeftLowerArm": [
+       -59.209,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       16.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -6.0,
+       -40.0,
+       -0.0
+      ],
+      "TailL2": [
+       -4.0,
+       -8.0,
+       -0.0
+      ],
+      "TailL3": [
+       -2.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -6.0,
+       40.0,
+       0.0
+      ],
+      "TailR2": [
+       -4.0,
+       8.0,
+       -0.0
+      ],
+      "TailR3": [
+       -2.0,
+       6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "seams"
+     ],
+     "golem": {
+      "Hip": {
+       "loc": [
+        -0.416,
+        0.01,
+        3.403
+       ],
+       "rot": [
+        3.25,
+        3.19,
+        3.56
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        1.247,
+        -0.092,
+        -0.292
+       ],
+       "rot": [
+        -2.46,
+        0.03,
+        -1.27
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        -0.197,
+        -0.099,
+        -1.04
+       ],
+       "rot": [
+        0.39,
+        -6.11,
+        -0.4
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.137,
+        -0.033,
+        -0.369
+       ],
+       "rot": [
+        -4.02,
+        -5.04,
+        -2.64
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        0.012,
+        0.203,
+        -1.027
+       ],
+       "rot": [
+        1.52,
+        -1.22,
+        -3.94
+       ]
+      },
+      "Torso": {
+       "loc": [
+        0.19,
+        -0.118,
+        0.131
+       ],
+       "rot": [
+        -1.53,
+        -5.29,
+        6.94
+       ]
+      },
+      "Head": {
+       "loc": [
+        0.701,
+        -2.167,
+        2.926
+       ],
+       "rot": [
+        -14.67,
+        11.08,
+        -8.43
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        2.188,
+        -1.094,
+        3.168
+       ],
+       "rot": [
+        13.02,
+        -0.32,
+        5.04
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        1.186,
+        0.186,
+        -0.318
+       ],
+       "rot": [
+        -22.63,
+        -10.82,
+        -4.61
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        -0.87,
+        0.116,
+        -2.633
+       ],
+       "rot": [
+        -10.8,
+        12.43,
+        -10.11
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.228,
+        -0.441,
+        -1.362
+       ],
+       "rot": [
+        -4.26,
+        -10.77,
+        10.72
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -1.988,
+        -0.569,
+        3.304
+       ],
+       "rot": [
+        -2.93,
+        3.98,
+        -23.87
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -1.016,
+        0.944,
+        -0.148
+       ],
+       "rot": [
+        -3.49,
+        1.85,
+        6.18
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        0.084,
+        -1.047,
+        -2.898
+       ],
+       "rot": [
+        -15.8,
+        5.84,
+        2.28
+       ]
+      },
+      "FistR": {
+       "loc": [
+        0.436,
+        0.366,
+        -1.01
+       ],
+       "rot": [
+        6.82,
+        -2.34,
+        -1.21
+       ]
+      }
+     },
+     "golem_root_z": 0.0
+    },
+    {
+     "t": 3.0,
+     "caption": "The head block lands: the golem stands; she points the staff at it, left fist at her side",
+     "root_offset": [
+      0,
+      0,
+      0.15
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -12.0
+      ],
+      "Torso": [
+       2.0,
+       -4.0,
+       -22.0
+      ],
+      "Head": [
+       -0.0,
+       0.0,
+       -28.0
+      ],
+      "Staff": [
+       -24.327,
+       -153.676,
+       6.924
+      ],
+      "RightUpperArm": [
+       -24.946,
+       74.619,
+       -38.29
+      ],
+      "RightLowerArm": [
+       -58.526,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       34.555,
+       -40.462,
+       -18.289
+      ],
+      "LeftLowerArm": [
+       -79.911,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       20.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       -0.0,
+       -0.0
+      ],
+      "TailL1": [
+       4.0,
+       -22.0,
+       -0.0
+      ],
+      "TailL2": [
+       4.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       4.0,
+       -4.0,
+       0.0
+      ],
+      "TailR1": [
+       10.0,
+       30.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       8.0,
+       -0.0
+      ],
+      "TailR3": [
+       4.0,
+       6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [],
+     "golem": {
+      "Hip": {
+       "loc": [
+        0.0,
+        0.15,
+        2.7
+       ],
+       "rot": [
+        0.0,
+        -0.0,
+        0.0
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        -0.0
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        0.0,
+        -0.0,
+        0.0
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        -0.0
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        0.0,
+        -0.0,
+        0.0
+       ]
+      },
+      "Torso": {
+       "loc": [
+        -0.0,
+        -0.05,
+        0.4
+       ],
+       "rot": [
+        6.0,
+        -0.0,
+        -0.0
+       ]
+      },
+      "Head": {
+       "loc": [
+        0.0,
+        -1.15,
+        3.52
+       ],
+       "rot": [
+        -18.0,
+        -0.0,
+        0.0
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        -6.0,
+        -0.0
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        0.35,
+        -0.0,
+        -0.92
+       ],
+       "rot": [
+        -12.0,
+        0.0,
+        4.0
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -10.0,
+        0.0,
+        -0.0
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        -0.0,
+        6.0,
+        -0.0
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -0.35,
+        -0.0,
+        -0.92
+       ],
+       "rot": [
+        -12.0,
+        0.0,
+        -4.0
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        -0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -10.0,
+        0.0,
+        -0.0
+       ]
+      },
+      "FistR": {
+       "loc": [
+        -0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        -0.0,
+        -0.0
+       ]
+      }
+     },
+     "golem_root_z": 0.0
+    },
+    {
+     "t": 3.6,
+     "caption": "Command: staff raised at the target, she draws up; the golem's fists lock overhead (its rhythm dodge runs)",
+     "root_offset": [
+      0,
+      0,
+      0.3
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -6.0
+      ],
+      "Torso": [
+       -12.0,
+       -6.0,
+       -16.0
+      ],
+      "Head": [
+       -10.0,
+       -0.0,
+       -18.0
+      ],
+      "Staff": [
+       -2.274,
+       171.372,
+       14.606
+      ],
+      "RightUpperArm": [
+       15.118,
+       166.245,
+       34.574
+      ],
+      "RightLowerArm": [
+       -37.419,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -25.48,
+       -30.964,
+       -53.13
+      ],
+      "LeftLowerArm": [
+       -67.185,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       14.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       26.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       24.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       44.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       10.0,
+       -18.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       -0.0
+      ],
+      "TailL3": [
+       4.0,
+       -4.0,
+       -0.0
+      ],
+      "TailR1": [
+       10.0,
+       18.0,
+       -0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       -0.0
+      ],
+      "TailR3": [
+       4.0,
+       4.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [],
+     "golem": {
+      "Hip": {
+       "loc": [
+        0.0,
+        0.15,
+        2.7
+       ],
+       "rot": [
+        -8.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -10.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        10.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -10.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        10.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Torso": {
+       "loc": [
+        0.0,
+        -0.05,
+        0.4
+       ],
+       "rot": [
+        -22.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Head": {
+       "loc": [
+        0.0,
+        -1.15,
+        3.52
+       ],
+       "rot": [
+        10.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        -14.0,
+        0.0
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -172.0,
+        8.0,
+        0.0
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        0.0,
+        55.0,
+        0.0
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        14.0,
+        0.0
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -172.0,
+        -8.0,
+        0.0
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        -0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        0.0,
+        -55.0,
+        0.0
+       ]
+      },
+      "FistR": {
+       "loc": [
+        -0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      }
+     },
+     "golem_root_z": 0.0
+    },
+    {
+     "t": 4.2,
+     "caption": "HIT: she cuts the staff down and the golem slams both fists; shock rings, cracks, flying chips; the arena flashes; tails flung up",
+     "root_offset": [
+      0,
+      0,
+      0.45
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -6.0
+      ],
+      "Torso": [
+       18.0,
+       4.0,
+       -10.0
+      ],
+      "Head": [
+       -6.0,
+       -0.0,
+       -12.0
+      ],
+      "Staff": [
+       161.002,
+       -19.061,
+       -75.61
+      ],
+      "RightUpperArm": [
+       -49.773,
+       45.32,
+       15.886
+      ],
+      "RightLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       134.979,
+       -55.591,
+       -50.711
+      ],
+      "LeftLowerArm": [
+       -73.093,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       40.0,
+       -0.0,
+       -12.0
+      ],
+      "LeftLowerLeg": [
+       50.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       8.0,
+       -0.0,
+       12.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       -0.0
+      ],
+      "TailL1": [
+       -30.0,
+       -60.0,
+       0.0
+      ],
+      "TailL2": [
+       -14.0,
+       -12.0,
+       0.0
+      ],
+      "TailL3": [
+       -10.0,
+       -8.0,
+       0.0
+      ],
+      "TailR1": [
+       -30.0,
+       60.0,
+       0.0
+      ],
+      "TailR2": [
+       -14.0,
+       12.0,
+       0.0
+      ],
+      "TailR3": [
+       -10.0,
+       8.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "event": "Slam",
+     "effects": [
+      "shock",
+      "flash"
+     ],
+     "golem": {
+      "Hip": {
+       "loc": [
+        0.0,
+        0.15,
+        2.7
+       ],
+       "rot": [
+        34.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -40.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        30.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -40.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        30.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Torso": {
+       "loc": [
+        0.0,
+        -0.05,
+        0.4
+       ],
+       "rot": [
+        56.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Head": {
+       "loc": [
+        0.0,
+        -1.15,
+        3.52
+       ],
+       "rot": [
+        -40.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        -8.0,
+        0.0
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -141.0,
+        14.0,
+        0.0
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -25.0,
+        0.0,
+        0.0
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        8.0,
+        0.0
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -141.0,
+        -14.0,
+        0.0
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        -0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -25.0,
+        0.0,
+        0.0
+       ]
+      },
+      "FistR": {
+       "loc": [
+        -0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      }
+     },
+     "golem_root_z": -0.043
+    },
+    {
+     "t": 5.0,
+     "caption": "Recover = idle key 0 for her; the golem pushes up off the floor, dust settling (it goes on to golem_idle)",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "dust_low"
+     ],
+     "golem": {
+      "Hip": {
+       "loc": [
+        0.0,
+        0.15,
+        2.7
+       ],
+       "rot": [
+        18.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighL": {
+       "loc": [
+        0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -20.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinL": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        20.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ThighR": {
+       "loc": [
+        -0.6,
+        0.0,
+        -0.4
+       ],
+       "rot": [
+        -20.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShinR": {
+       "loc": [
+        0.0,
+        -0.03,
+        -1.06
+       ],
+       "rot": [
+        20.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Torso": {
+       "loc": [
+        0.0,
+        -0.05,
+        0.4
+       ],
+       "rot": [
+        26.0,
+        0.0,
+        0.0
+       ]
+      },
+      "Head": {
+       "loc": [
+        0.0,
+        -1.15,
+        3.52
+       ],
+       "rot": [
+        -22.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderL": {
+       "loc": [
+        1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        -6.0,
+        0.0
+       ]
+      },
+      "UpperArmL": {
+       "loc": [
+        0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -70.0,
+        8.0,
+        0.0
+       ]
+      },
+      "ForearmL": {
+       "loc": [
+        0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -40.0,
+        0.0,
+        0.0
+       ]
+      },
+      "FistL": {
+       "loc": [
+        0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      },
+      "ShoulderR": {
+       "loc": [
+        -1.95,
+        -0.05,
+        3.9
+       ],
+       "rot": [
+        0.0,
+        6.0,
+        0.0
+       ]
+      },
+      "UpperArmR": {
+       "loc": [
+        -0.35,
+        0.0,
+        -0.92
+       ],
+       "rot": [
+        -70.0,
+        -8.0,
+        0.0
+       ]
+      },
+      "ForearmR": {
+       "loc": [
+        -0.02,
+        -0.1,
+        -3.06
+       ],
+       "rot": [
+        -40.0,
+        0.0,
+        0.0
+       ]
+      },
+      "FistR": {
+       "loc": [
+        -0.02,
+        -0.2,
+        -1.34
+       ],
+       "rot": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      }
+     },
+     "golem_root_z": 0.057
+    }
+   ]
   }
  },
  "rig": "jointed (build_boss_mage.py -- jointed): Torso, Head, upper and lower arm and leg per side, 3 segments per twin tail, Staff; the lower arm carries the hand, the lower leg the foot",
