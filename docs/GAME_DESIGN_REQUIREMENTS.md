@@ -7,7 +7,7 @@ rule, and every change is recorded here with its date.
 Created 2026-10-28 by the owner (Alex Nguyen), derived from Idle Vehicle Simulator (IVS). Research notes:
 `docs/RESEARCH.md`.
 
-Owner update 2026-11-12: Sidekick summoning uses the full-screen galaxy model stage and individually styled character auras, with Igriz as the featured Mythic. Existing costs, tier odds, pity, unlocks and server-authoritative outcomes remain unchanged. Presentation details are in SIDEKICK_SPEC.md.
+Owner update 2026-11-12 (later the same day: the galaxy screen as built is the rule where it differs from 4.36's summon page lines; details in SIDEKICK_SPEC "Summon presentation"): Sidekick summoning uses the full-screen galaxy model stage and individually styled character auras, with Igriz as the featured Mythic. Existing costs, tier odds, pity, unlocks and server-authoritative outcomes remain unchanged. Presentation details are in SIDEKICK_SPEC.md.
 
 ## 1. Concept
 
