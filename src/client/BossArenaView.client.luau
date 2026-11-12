@@ -4,6 +4,7 @@
 -- cloud deck; the sky is the arena zone of Client/BiomeEnvironment. Engine primitives only, no uploaded meshes. Built while
 -- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on. While the event's boss
 -- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead.
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -13,16 +14,63 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ArenaConfig = require(Shared:WaitForChild("BossArenaConfig"))
 local Cfg = ArenaConfig -- the standing arena's numbers; Big Raga's sky arena unless the colosseum stands
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local MagePoses = require(Shared:WaitForChild("BossMagePoses"))
-local Poses = require(Shared:WaitForChild("BossRagaPoses"))
+local ATTRIBUTE = "BossArenaPreview"
+local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
+
+-- Design doc 7 "Join size": a boss's meshes and images start loading when its poses arrive (2 minutes ahead) or its event starts,
+-- not at the teleport, and not at the 30-minute announcement.
+local preloaded = {}
+local function preload(id)
+	if id == nil or preloaded[id] then
+		return
+	end
+	preloaded[id] = true
+	local row = BossCatalog.Get(id)
+	task.spawn(function()
+		local models = ReplicatedStorage:WaitForChild("BossModels", 60)
+		local list = { row.Portrait, row.DodgeIcon }
+		for _, name in { row.Id, row.Minion and row.Minion.Id } do
+			local model = models and name and models:WaitForChild(name, 60)
+			if model then
+				table.move(model:GetChildren(), 1, #model:GetChildren(), #list + 1, list)
+			end
+		end
+		pcall(ContentProvider.PreloadAsync, ContentProvider, list)
+	end)
+end
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	preload(ReplicatedStorage:GetAttribute("BossEventBoss"))
+end)
+preload(ReplicatedStorage:GetAttribute("BossEventBoss"))
+local function watchLate(late)
+	if late.Name ~= "LateData" then
+		return
+	end
+	local function arrived(child)
+		for _, id in BossCatalog.Order do
+			if BossCatalog.Get(id).Poses == child.Name then
+				preload(id)
+			end
+		end
+	end
+	late.ChildAdded:Connect(arrived)
+	for _, child in late:GetChildren() do
+		arrived(child)
+	end
+end
+ReplicatedStorage.ChildAdded:Connect(watchLate)
+if ReplicatedStorage:FindFirstChild("LateData") then
+	watchLate(ReplicatedStorage.LateData)
+end
+
+-- Join size (design doc 7): the view waits for an event or a preview; then only that boss's modules and poses load (viewOf).
+while Players.LocalPlayer:GetAttribute("BossEvent") ~= true and ReplicatedStorage:GetAttribute(ATTRIBUTE) ~= true do
+	RunService.Heartbeat:Wait()
+end
+local LateData = require(Shared:WaitForChild("LateData"))
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
-local BossMage = require(script.Parent:WaitForChild("BossMage"))
-local BossMageVfx = require(script.Parent:WaitForChild("BossMageVfx"))
-local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
-local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
-local ATTRIBUTE = "BossArenaPreview"
 local PARTS_PER_FRAME = 60 -- about 1,650 parts, so about 28 frames
 -- Every second ring point: 72 pieces of about 78 studs on each ring. The draft's 144 would be about 1,200 more parts.
 local RING_STEP = 2
@@ -31,7 +79,6 @@ local DECK_THICK = 8
 local DAIS_THICK = 14
 local LINE_WIDTH, LINE_THICK = 1, 0.1
 local GROWTH = Event.ScreamGrowth
-local ROAR_AT = Poses.Moves.shout.Events[1].Time
 local ARCH_COUNT, ARCH_START, SECTOR = 6, math.rad(15), math.rad(60) -- the draft's ARCH_START and SECTOR
 local ARCH_PIECES = 8 -- the draft's 12, for phones
 local BAY_OFFSETS = { math.rad(20), math.rad(40) } -- colonnade bays after each arch
@@ -288,6 +335,25 @@ local function build(mine)
 	addClouds(mine)
 end
 
+-- A boss's client modules, required on its first showing: each reads that boss's poses alone, waiting until they are delivered.
+local views = {}
+local function viewOf(boss)
+	if not views[boss] then
+		local poses = LateData.Get(BossCatalog.Get(boss).Poses)
+		local rig, vfx = "BossRaga", "BossVfx"
+		if boss == "boss_mage" then
+			rig, vfx = "BossMage", "BossMageVfx"
+		end
+		views[boss] = {
+			Poses = poses,
+			Rig = require(script.Parent:WaitForChild(rig)),
+			Vfx = require(script.Parent:WaitForChild(vfx)),
+			RoarAt = poses.Moves.shout and poses.Moves.shout.Events[1].Time,
+		}
+	end
+	return views[boss]
+end
+
 local function refresh()
 	local want = ReplicatedStorage:GetAttribute(ATTRIBUTE) == true
 		or Players.LocalPlayer:GetAttribute("BossEvent") == true
@@ -296,10 +362,8 @@ local function refresh()
 		return
 	end
 	if folder then
-		if mage then
-			BossMageVfx.Stop()
-		else
-			BossVfx.Stop()
+		if mage or raga then
+			views[builtBoss].Vfx.Stop()
 		end
 		folder:Destroy()
 		folder = nil
@@ -314,21 +378,28 @@ local function refresh()
 		folder = mine
 		builtBoss = boss
 		Cfg = ArenaConfig.For(boss)
-		if boss == "boss_mage" then
-			mage = BossMage.new(mine)
+		-- The arena stands at once; the boss joins it when its poses are here (at once when delivered before the teleport).
+		task.spawn(function()
+			local view = viewOf(boss)
+			if folder ~= mine then
+				return -- torn down while the poses were on their way
+			end
+			local rig = view.Rig.new(mine)
 			local effects = Instance.new("Folder")
 			effects.Name = "BossEffects"
 			effects.Parent = mine
-			BossMageVfx.Start(effects, mage)
+			if boss == "boss_mage" then
+				mage = rig
+			else
+				raga = rig
+			end
+			view.Vfx.Start(effects, rig)
+		end)
+		if boss == "boss_mage" then
 			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
 			BossColosseum.Build(mine, kit)
 			return
 		end
-		raga = BossRaga.new(mine)
-		local effects = Instance.new("Folder")
-		effects.Name = "BossEffects"
-		effects.Parent = mine
-		BossVfx.Start(effects, raga)
 		build(mine)
 	end
 end
@@ -366,14 +437,14 @@ local function stepMage()
 	local minionStart = ReplicatedStorage:GetAttribute("BossMinionStart")
 	local move, localTime, golemMove, golemTime
 	if minionStart then
-		move, localTime, golemMove, golemTime = MagePoses.GolemAt(now - minionStart)
+		move, localTime, golemMove, golemTime = views.boss_mage.Poses.GolemAt(now - minionStart)
 	else
 		-- only her golem_fall row has golem frames: the fall plays on her clock after the golem's HP reaches 0
-		move, localTime = MagePoses.Schedule(schedule, now)
+		move, localTime = views.boss_mage.Poses.Schedule(schedule, now)
 		golemMove, golemTime = move, localTime
 	end
 	mage:Step(rise, move, localTime, now, golemMove, golemTime)
-	BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
+	views.boss_mage.Vfx.Step(since, move, localTime, golemMove, golemTime)
 end
 
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
@@ -385,6 +456,7 @@ local function step()
 	if not raga then
 		return
 	end
+	local Poses = views.boss_raga.Poses
 	local now = Workspace:GetServerTimeNow()
 	local since = sinceSpawn(now)
 	local rise = since and (UiMotion.Reduced() and 1 or Poses.RiseAt(since))
@@ -393,10 +465,10 @@ local function step()
 	local move, localTime = Poses.Schedule(schedule, now)
 	local growth, spin, screamLeft = stage2At(now)
 	if screamLeft then
-		move, localTime = "shout", ROAR_AT -- the approved pose, held: no new key frames (BOSS_EVENT_SPEC "Phase 2")
+		move, localTime = "shout", views.boss_raga.RoarAt -- the approved pose, held: no new key frames (BOSS_EVENT_SPEC "Phase 2")
 	end
 	raga:Step(rise, below, move, localTime, now, growth, spin, screamLeft and not UiMotion.Reduced() and 1 or 0)
-	BossVfx.Step(since, move, localTime, screamLeft)
+	views.boss_raga.Vfx.Step(since, move, localTime, screamLeft)
 end
 
 RunService.Heartbeat:Connect(step)

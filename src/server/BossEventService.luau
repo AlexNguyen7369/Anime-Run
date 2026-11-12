@@ -26,6 +26,7 @@ local BossDodge = require(Shared.BossDodge)
 local BossOsu = require(Shared.BossOsu)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local Cfg = require(Shared.BossEventConfig)
+local LateData = require(Shared.LateData)
 local StaminaConfig = require(Shared.StaminaConfig)
 local CarService = require(script.Parent.CarService)
 local DuelService = require(script.Parent.DuelService)
@@ -73,6 +74,10 @@ local function safely(fn, ...)
 end
 
 local function publish()
+	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it; a copy stays.
+	if event then
+		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
+	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
@@ -1107,6 +1112,10 @@ function BossEventService.Advance(at)
 			publish()
 		end
 	end
+	-- Design doc 7 "Join size": the next timed boss's poses go out LateLeadSeconds before its start, not at the announcement.
+	if nextBoss and nextAt - at <= Cfg.LateLeadSeconds then
+		LateData.Deliver(BossCatalog.Get(nextBoss).Poses)
+	end
 end
 
 -- noCooldown: the remote skips the shared cooldown (rhythm circles can come under REMOTE_COOLDOWN apart); its own checks bound it.
@@ -1159,6 +1168,11 @@ function BossEventService.Init()
 	end)
 	PlayerData.OnLeaving(left) -- before the leave save: it must hold the player's own EquippedCar
 	Players.PlayerRemoving:Connect(left)
+	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
+		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
+			LateData.Deliver(BossCatalog.Current().Poses, "SidekickAttacks")
+		end
+	end)
 	nextAt = now() + Cfg.IntervalSeconds
 	nextBoss = BossEventService.Hooks.PickBoss()
 	publish()

@@ -11,8 +11,8 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Assets = require(Shared.CharacterModelAssets)
-local BossMagePoses = require(Shared.BossMagePoses)
-local BossRagaPoses = require(Shared.BossRagaPoses)
+local BossMagePoses = require(Shared.LateData).Get("BossMagePoses")
+local BossRagaPoses = require(Shared.LateData).Get("BossRagaPoses")
 local RunnerFactory = require(Shared.RunnerFactory)
 local SidekickArt = require(Shared.SidekickArt)
 

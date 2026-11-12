@@ -8,7 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig")).For("boss_mage")
-local Poses = require(Shared:WaitForChild("BossMagePoses"))
+-- design doc 7: required only while her event or preview shows, so it waits for her poses alone
+local Poses =
+	require(Shared:WaitForChild("LateData")).Get(require(Shared:WaitForChild("BossCatalog")).Get("boss_mage").Poses)
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
 
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0)) -- Blender to Roblox

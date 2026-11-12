@@ -24,7 +24,7 @@
 --     crushes), Hooks.PayStage(player, stage, boss), Osu(player, k, circle, stamp) -> ok, reason, Dodge while the golem stands ->
 --     false, "No bar", RewardPopup summary field Boss. BossStatus JSON row { Id = "Crushed", EndsAt, Count }. Golem attributes
 --     BossMinionHp, BossMinionMaxHp, BossMinionStart (the slot's schedule time) on ReplicatedStorage while it stands.
---   Shared/BossMagePoses (generated): Moves (idle, lightning, barrage, golem, watch, watch_in, golem_fall, plus lightning_in,
+--   ServerStorage.LateData.BossMagePoses (generated; design doc 7 "Join size"): Moves (idle, lightning, barrage, golem, watch, watch_in, golem_fall, plus lightning_in,
 --     golem_in, barrage_in with no events), GolemMoves (golem_idle, golem_slam, golem_sweep), Approved, Bind, Scale (studs per
 --     unit), Sample(move, t) -> parts, root (studs), Schedule, RiseAt, CycleSeconds, GolemSlotAt, GolemFirstHit, GolemEvery,
 --     GolemHit(k) -> tau, name, GolemAt(tau) -> herMove, herTime, golemMove, golemTime, SampleGolem(move, t) -> scale
@@ -170,7 +170,7 @@ function Tests.make()
 			return r
 		end
 		local realHooks = table.clone(S.Hooks)
-		local Poses = H.module(Shared, "BossMagePoses")
+		local Poses = H.lateData("BossMagePoses") -- design doc 7 "Join size"
 		local SLOT = Poses and Poses.GolemSlotAt -- seconds after the intro: the end of golem_in
 		local CYCLE = Poses and Poses.CycleSeconds
 		flag("golem_slot_exported", type(SLOT) == "number", SLOT)
@@ -1320,7 +1320,7 @@ function Tests.make()
 	local function boss_mage_anim()
 		local r, flag, section, eq, near = reporter("boss_mage_anim")
 		local Event = require(Shared.BossEventConfig)
-		local Poses = H.module(Shared, "BossMagePoses")
+		local Poses = H.lateData("BossMagePoses") -- design doc 7 "Join size"
 		local BossDodge = H.module(Shared, "BossDodge")
 		local Osu = H.module(Shared, "BossOsu")
 		local Catalog = H.module(Shared, "BossCatalog")

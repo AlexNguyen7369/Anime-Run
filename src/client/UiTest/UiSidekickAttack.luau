@@ -654,14 +654,10 @@ function Module.Build(h)
 		local started = os.clock()
 		local view = script.Parent.Parent:FindFirstChild("SidekickAttackView")
 		check(res, "view_present", view ~= nil, true)
-		local loaded, Attacks = pcall(function()
-			return require(Shared:FindFirstChild("SidekickAttacks"))
-		end)
-		check(res, "attacks_module_loads", loaded, true)
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local remote = remotes and remotes:WaitForChild("BossHits", REMOTE_WAIT)
 		check(res, "remote_present", remote ~= nil, true)
-		if not (view and loaded and remote) then
+		if not (view and remote) then
 			return
 		end
 		local models = ReplicatedStorage:WaitForChild("SidekickModels", MODELS_WAIT)
@@ -673,6 +669,16 @@ function Module.Build(h)
 		local ok, err = xpcall(function()
 			h.player:SetAttribute("ReduceEffects", nil) -- full strength is judged with the toggle off, whatever the player had
 			setup(res, "sidekick_follow_start")
+			-- Design doc 7 "Join size": not at join; the sidekick_follow setup publishes it, as a real boss event does.
+			local loaded, Attacks = pcall(function()
+				return require(
+					ReplicatedStorage:WaitForChild("LateData", MODELS_WAIT):WaitForChild("SidekickAttacks", MODELS_WAIT)
+				)
+			end)
+			check(res, "attacks_module_loads", loaded, true)
+			if not loaded then
+				return
+			end
 			check(res, "folder_is_folder", waitUntil(function()
 				return effects()
 			end) and effects().ClassName or "missing", "Folder")
