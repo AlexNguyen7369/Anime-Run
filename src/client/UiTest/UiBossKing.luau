@@ -24,6 +24,19 @@
 --       the same with effects off.
 --     Enuma: an instance named ChargeTint, then one named EnumaBeam.
 --     Shields: an instance named ShieldRing with 5 to 7 descendants named Shield.
+--   Stronger Gates and Enuma (owner 2026-11-12 after playing; design doc 4.37 "Golden King effects stronger", BOSS_EVENT_SPEC
+--     "Golden King effects", proposed), BaseParts under BossEffects; a "spawn" is a part becoming visible under the name
+--     (pooled parts are renamed):
+--     Order: each Portal reaches full size (98% of its peak) before its PortalTip (the nearest tip) shows (Transparency < 0.9);
+--       every shot starts within 6 studs of a Portal whose tip already shows: a weapon's first piece, named Streak with a
+--       non-Neon material, at its own position; a streak, named Streak and Neon, at its start end. On the schedule and forced.
+--     Hits, over the move, at least as many as LastStrikes' spots: StrikeFlash gold and StrikeFlashCore white, ShockRing gold;
+--       ParticleEmitters (or parts) named Sparks and HitDust during the volleys. Streaks: the Neon Streak at least 3 studs
+--       thick (1.5 x 2) with a StreakCore white at least 1.05 (1.5 x 0.7).
+--     Enuma: EnumaBeamCore white inside the beam; EnumaCyclone red or near-black, rolling about the beam (EnumaBeam) at least
+--       10 deg in 0.3 s; EnumaHitBurst (red or white) and EnumaHitSmoke (dark), ParticleEmitter or part, within 30 studs (XZ)
+--       of the beam's line, at most 20 studs over the deck.
+--     None of these with effects off; the volley log stays the full plan.
 --   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner 2026-11-12;
 --     replaces every reduced count): with ReduceEffects (or Roblox Reduced Motion) no visible BasePart and no enabled
 --     ParticleEmitter, Beam or Trail under BossEffects, no portals, wind, trails, glow, flashes or shield ring; LastStrikes
@@ -1359,6 +1372,288 @@ function Module.Build(h)
 				check(res, "shields_shatter_burst", burst, true)
 				ReplicatedStorage:SetAttribute("BossFortified", savedFortified)
 			end
+			-- Stronger Gates and Enuma (owner 2026-11-12 after playing; BOSS_EVENT_SPEC "Golden King effects"); see the header.
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			local NEAR_PORTAL = 6
+			local function isWhiteC(c)
+				return c.R >= 0.85 and c.G >= 0.85 and c.B >= 0.85
+			end
+			local function isGold(c)
+				return c.R >= 0.85 and c.G >= 0.55 and c.B <= 0.7
+			end
+			local function isRedOrDark(c)
+				return (c.R >= 0.6 and c.G <= 0.35 and c.B <= 0.35) or (c.R <= 0.2 and c.G <= 0.2 and c.B <= 0.2)
+			end
+			-- Watches BossEffects for `seconds`: Spawns[name] = { { T, CFrame, Size, Color, Material } } of parts turning visible
+			-- under that name; Emitters[name] = set; Portals[part] = { Peak, Sizes = { {T, size} } }; Tips[part] = { T, Position }.
+			local function watchGates(seconds)
+				local w = { Spawns = {}, Emitters = {}, Portals = {}, Tips = {} }
+				local before, born = {}, os.clock()
+				while os.clock() - born < seconds do
+					local t, now = os.clock() - born, {}
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if d:IsA("BasePart") and d.Transparency < 1 then
+							local key = d.Name
+							now[d] = key
+							if before[d] ~= key then
+								w.Spawns[d.Name] = w.Spawns[d.Name] or {}
+								table.insert(w.Spawns[d.Name], {
+									T = t,
+									CFrame = d.CFrame,
+									Size = d.Size,
+									Color = d.Color,
+									Material = d.Material,
+								})
+							end
+						elseif d:IsA("ParticleEmitter") or d:IsA("Attachment") then
+							w.Emitters[d.Name] = w.Emitters[d.Name] or {}
+							w.Emitters[d.Name][d] = true
+						end
+						if d:IsA("BasePart") and d.Name == "Portal" then
+							local row = w.Portals[d] or { Peak = 0, Sizes = {} }
+							w.Portals[d] = row
+							local size = math.max(d.Size.X, d.Size.Y)
+							row.Peak = math.max(row.Peak, size)
+							row.Position = d.Position
+							table.insert(row.Sizes, { t, size })
+						elseif
+							d:IsA("BasePart")
+							and d.Name == "PortalTip"
+							and d.Transparency < 0.9
+							and not w.Tips[d]
+						then
+							w.Tips[d] = { T = t, Position = d.Position }
+						end
+					end
+					before = now
+					task.wait()
+				end
+				for _, row in w.Portals do
+					row.FullAt = math.huge
+					for _, sample in row.Sizes do
+						if sample[2] >= 0.98 * row.Peak then
+							row.FullAt = math.min(row.FullAt, sample[1])
+						end
+					end
+					row.TipAt = math.huge
+				end
+				-- each tip belongs to the nearest portal
+				for _, tip in w.Tips do
+					local best, bestRow = math.huge, nil
+					for _, row in w.Portals do
+						local d = (row.Position - tip.Position).Magnitude
+						if d < best then
+							best, bestRow = d, row
+						end
+					end
+					if bestRow then
+						bestRow.TipAt = math.min(bestRow.TipAt, tip.T)
+					end
+				end
+				return w
+			end
+			local function spawnsOf(w, name)
+				return w.Spawns[name] or {}
+			end
+			-- Order checks on one watch.
+			local function checkOrder(tag, w)
+				local tipEarly, chest, untipped, portalCount = {}, {}, {}, 0
+				for _, row in w.Portals do
+					portalCount += 1
+					if row.TipAt < row.FullAt - 0.03 then
+						table.insert(tipEarly, ("tip %.2f before full %.2f"):format(row.TipAt, row.FullAt))
+					end
+				end
+				for _, shot in spawnsOf(w, "Streak") do
+					local start = shot.CFrame.Position
+					if shot.Material == Enum.Material.Neon then
+						start -= shot.CFrame.LookVector * shot.Size.Z / 2
+					end
+					local best, bestRow = math.huge, nil
+					for _, row in w.Portals do
+						local d = (row.Position - start).Magnitude
+						if d < best then
+							best, bestRow = d, row
+						end
+					end
+					if best > NEAR_PORTAL or not bestRow then
+						table.insert(chest, ("%.1f studs from a portal at %.2f"):format(best, shot.T))
+					elseif bestRow.TipAt > shot.T + 0.03 then
+						table.insert(untipped, ("shot %.2f, tip %.2f"):format(shot.T, bestRow.TipAt))
+					end
+				end
+				check(res, tag .. "gates_portals_seen", portalCount > 0, true)
+				check(res, tag .. "gates_shots_seen", #spawnsOf(w, "Streak") > 0, true)
+				h.checkList(res, tag .. "gates_portal_before_tip", tipEarly)
+				h.checkList(res, tag .. "gates_tip_before_shot", untipped)
+				h.checkList(res, tag .. "gates_no_shot_from_chest", chest)
+			end
+			local gatesAt = nil
+			for i = 1, SCAN do
+				local t, name = BossDodge.Moment(i, KING)
+				gatesAt = gatesAt or (name == "gates" and t or nil)
+			end
+			check(res, "gates_moment_found", gatesAt ~= nil, true)
+			if gatesAt then -- the real schedule: gates_start is 1.6 s before the gates moment
+				state(res, "Fight", fight + gatesAt - 1.6 - 0.1, 4000, 4000, true, 100)
+				checkOrder("schedule_", watchGates(4.2))
+			end
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			local logHolder = inArena("BossEffects")
+			if logHolder then
+				logHolder:SetAttribute("LastStrikes", nil)
+			end
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
+			local forced = watchGates(4.2)
+			checkOrder("forced_", forced)
+			-- The hits, against the forced volleys' log.
+			local okLog, log = pcall(
+				HttpService.JSONDecode,
+				HttpService,
+				(inArena("BossEffects") or workspace):GetAttribute("LastStrikes") or ""
+			)
+			local spots = 0
+			for _, strike in okLog and type(log) == "table" and log.Strikes or {} do
+				spots += type(strike.Spots) == "table" and #strike.Spots or 0
+			end
+			local function atLeast(tag, name, isColour)
+				local seenList, wrong = spawnsOf(forced, name), 0
+				for _, row in seenList do
+					wrong += isColour(row.Color) and 0 or 1
+				end
+				h.check(
+					res,
+					tag,
+					("%d of %d, %d off colour"):format(#seenList, spots, wrong),
+					">= spots, all coloured",
+					spots > 0 and #seenList >= spots and wrong == 0
+				)
+			end
+			atLeast("gates_hit_gold_flash", "StrikeFlash", isGold)
+			atLeast("gates_hit_gold_flash_core", "StrikeFlashCore", isWhiteC)
+			atLeast("gates_hit_shock_ring", "ShockRing", isGold)
+			local function present(w, name)
+				return next(w.Emitters[name] or {}) ~= nil or #spawnsOf(w, name) > 0
+			end
+			check(res, "gates_hit_sparks", present(forced, "Sparks"), true)
+			check(res, "gates_hit_dust", present(forced, "HitDust"), true)
+			local thin, thinCore, cores = {}, {}, spawnsOf(forced, "StreakCore")
+			for _, row in spawnsOf(forced, "Streak") do
+				if row.Material == Enum.Material.Neon and math.min(row.Size.X, row.Size.Y) < 3 - 0.01 then
+					table.insert(thin, ("%.2f"):format(math.min(row.Size.X, row.Size.Y)))
+				end
+			end
+			for _, row in cores do
+				if math.min(row.Size.X, row.Size.Y) < 1.05 - 0.01 or not isWhiteC(row.Color) then
+					table.insert(thinCore, ("%.2f"):format(math.min(row.Size.X, row.Size.Y)))
+				end
+			end
+			check(res, "gates_streak_cores_seen", #cores > 0, true)
+			h.checkList(res, "gates_streak_thicker", thin)
+			h.checkList(res, "gates_streak_white_core", thinCore)
+			-- Enuma (forced): the white core, the turning cyclone, the burst and smoke where it sweeps.
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Enuma")
+			local beamPart = waitFor(function()
+				return inArena("EnumaBeam")
+			end, 4)
+			task.wait(0.1)
+			local coreOk = false
+			for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+				if d:IsA("BasePart") and d.Name == "EnumaBeamCore" and d.Transparency < 1 and isWhiteC(d.Color) then
+					coreOk = true
+				end
+			end
+			check(res, "enuma_beam_white_core", coreOk, true)
+			local cyclone = inArena("EnumaCyclone")
+			local turned = nil
+			if beamPart and cyclone and cyclone:IsA("BasePart") then
+				local function roll()
+					local rel = beamPart.CFrame:ToObjectSpace(cyclone.CFrame)
+					return math.deg(math.atan2(rel.RightVector.Y, rel.RightVector.X))
+				end
+				local total, last, born = 0, roll(), os.clock()
+				while os.clock() - born < 0.3 do
+					task.wait()
+					local now = roll()
+					total += wrap(now - last)
+					last = now
+				end
+				turned = math.abs(total)
+			end
+			h.check(
+				res,
+				"enuma_beam_cyclone",
+				turned or "no cyclone",
+				">= 10 deg in 0.3 s, red or dark",
+				turned ~= nil and turned >= 10 and isRedOrDark(cyclone.Color)
+			)
+			local burstNear, smokeNear = false, false
+			local stop = os.clock() + 1.6
+			while os.clock() < stop and beamPart and beamPart.Parent do
+				local look, length = beamPart.CFrame.LookVector, beamPart.Size.Z
+				local a = beamPart.Position - look * length / 2
+				local b = beamPart.Position + look * length / 2
+				local function nearLine(p)
+					local ab = Vector2.new(b.X - a.X, b.Z - a.Z)
+					local ap = Vector2.new(p.X - a.X, p.Z - a.Z)
+					local u = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
+					return (ap - ab * u).Magnitude <= 30 and Arena ~= nil and p.Y <= Arena.Y + 20
+				end
+				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+					local name = d.Name
+					if name == "EnumaHitBurst" or name == "EnumaHitSmoke" then
+						local holder = d:IsA("ParticleEmitter") and d.Parent or d
+						local where = holder:IsA("Attachment") and holder.WorldPosition
+							or (holder:IsA("BasePart") and holder.Position)
+						local colour = d:IsA("ParticleEmitter") and d.Color.Keypoints[1].Value
+							or (d:IsA("BasePart") and d.Color)
+						if where and colour and nearLine(where) then
+							if name == "EnumaHitBurst" then
+								burstNear = burstNear or isRedOrDark(colour) or isWhiteC(colour)
+							else
+								smokeNear = smokeNear or (colour.R <= 0.25 and colour.G <= 0.25 and colour.B <= 0.25)
+							end
+						end
+					end
+				end
+				task.wait(0.05)
+			end
+			check(res, "enuma_hit_burst", burstNear, true)
+			check(res, "enuma_hit_smoke", smokeNear, true)
+			-- Effects off: none of them, the volley log the full plan.
+			h.player:SetAttribute("ReduceEffects", true)
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
+			local offGates = watchGates(4.2)
+			local drawnOff = {}
+			for _, name in
+				{ "Portal", "PortalTip", "Streak", "StreakCore", "StrikeFlash", "StrikeFlashCore", "ShockRing" }
+			do
+				if #spawnsOf(offGates, name) > 0 then
+					table.insert(drawnOff, name)
+				end
+			end
+			for _, name in { "Sparks", "HitDust" } do
+				if present(offGates, name) then
+					table.insert(drawnOff, name)
+				end
+			end
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Enuma")
+			local offEnuma = watchGates(5.2)
+			for _, name in { "EnumaBeam", "EnumaBeamCore", "EnumaCyclone", "EnumaHitBurst", "EnumaHitSmoke" } do
+				if present(offEnuma, name) then
+					table.insert(drawnOff, name)
+				end
+			end
+			h.checkList(res, "reduced_no_stronger_gates_or_enuma", drawnOff)
+			checkVolleys("reduced_stronger_gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
+			h.player:SetAttribute("ReduceEffects", nil)
 		end, debug.traceback)
 		h.check(res, "king_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossVfxForce", nil)
