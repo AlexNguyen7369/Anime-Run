@@ -1,8 +1,8 @@
 --!nonstrict
 -- The Elf Mage and her golem (design doc 4.37 "Second boss", docs/BOSS_EVENT_SPEC.md "The Elf Mage"): two Client/BossRaga rigs from
 -- ReplicatedStorage.BossModels (boss_mage, boss_golem), posed every frame from BossMagePoses. She hovers HoverStuds over the arena
--- floor at its centre, facing as Big Raga does; the idle bob is in the pose data's root. Her entrance lowers her from the broken
--- dome. The golem stands at GolemAnchor from her rest feet and shows only while its track's scale is above 0: while a
+-- floor at its centre, facing as Big Raga does; the idle bob (BobStuds over BobSeconds, not keyed) is added here. Her rig has elbows,
+-- knees and 3-segment tails (design doc 4.37 "Animation rework"). Her entrance lowers her from the broken dome. The golem stands at GolemAnchor from her rest feet and shows only while its track's scale is above 0: while a
 -- golem stands (BossMinionStart) and during her golem_fall row.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -24,6 +24,7 @@ function BossMage.new(parent)
 	self.Her = BossRaga.new(parent, {
 		Poses = Poses,
 		Source = "boss_mage",
+		Bind = Poses.Bind,
 		Name = "ElfMage",
 		Scale = Poses.Scale,
 		SizeScale = 1,
@@ -53,8 +54,11 @@ end
 function BossMage:Step(rise, move, localTime, _now, golemMove, golemTime)
 	local her = self.Her
 	if her.Parts and her:Show(rise ~= nil) then
-		local parts, root = Poses.Sample(move, localTime)
-		her:Pose(self.Rest + Vector3.new(0, (1 - rise) * DESCENT, 0), parts, root, 1, 0)
+		local parts, root, locs = Poses.Sample(move, localTime)
+		if move == "idle" then -- every idle row plays whole 3 s loops from 0, so the bob starts and ends at rest
+			root += Vector3.new(0, 0, Arena.BobStuds * (1 - math.cos(2 * math.pi * localTime / Arena.BobSeconds)) / 2)
+		end
+		her:Pose(self.Rest + Vector3.new(0, (1 - rise) * DESCENT, 0), parts, root, 1, 0, locs)
 	end
 	local golem = self.Golem
 	if golem.Parts then

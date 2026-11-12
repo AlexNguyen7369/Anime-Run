@@ -136,6 +136,7 @@ local UNDERGROUND = {
 local zone, profile, audio = nil, Env.Profile(0), {}
 local blendStart = -math.huge
 local dirty = false
+local landed = true -- false from a blend's start until the frame that writes its goals
 
 local function same(a, b)
 	if type(a) == "number" and type(b) == "number" then
@@ -350,6 +351,7 @@ local function startBlend(z, seconds)
 	blendSeconds = seconds
 	preloadSky(z + 1) -- the run goes through the tracks in Number order
 	swapped = false
+	landed = false
 	for _, e in entries do
 		if bind(e) then
 			e.From = e.Current
@@ -373,10 +375,13 @@ RunService.RenderStepped:Connect(function()
 	end
 	local t = (os.clock() - blendStart) / blendSeconds
 	local blending = t < 1
-	if not (blending or dirty) then
+	-- The frame past the blend's end still writes the goals: a short blend (BLEND_MIN) over slow frames would otherwise stop at
+	-- its last lerp, short of the profile.
+	if not (blending or dirty or not landed) then
 		return
 	end
 	dirty = false
+	landed = not blending
 	local k = Env.Ease(t)
 	local peak = blending and math.sin(math.pi * math.clamp(t, 0, 1)) or 0
 	if not swapped and t >= 0.5 then

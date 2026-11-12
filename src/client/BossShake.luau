@@ -1,6 +1,7 @@
 --!nonstrict
--- Camera shake for big effects (roblox-vfx vfx-camera-world): rotation only, and each frame's offset is taken back off before the
--- camera scripts run, so that it never builds up in the view. Touches no camera code. Off while effects are reduced.
+-- Camera shake for big effects (roblox-vfx vfx-camera-world): rotation noise plus an optional positional kick, and each frame's
+-- offset is taken back off before the camera scripts run, so that it never builds up in the view. Touches no camera code (never the
+-- FOV). Off while effects are reduced.
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -12,18 +13,22 @@ local UNDO_PRIORITY, APPLY_PRIORITY = Enum.RenderPriority.Camera.Value - 2, Enum
 
 local BossShake = {}
 
-local kicks = {} -- { Magnitude, Roughness, Fade, Start }
+local kicks = {} -- { Magnitude, Roughness, Fade, Start, Shift }
 local held = {} -- name -> { Magnitude, Roughness }
 local last = CFrame.identity
 local bound = false
 
 local function offset(now)
-	local x, y, z = 0, 0, 0
-	local function add(magnitude, roughness)
+	local x, y, z, px, py = 0, 0, 0, 0, 0
+	local function add(magnitude, roughness, shift)
 		local a = now * roughness
 		x += magnitude * math.noise(a, 11.3)
 		y += magnitude * math.noise(a, 27.1)
 		z += 0.5 * magnitude * math.noise(a, 41.9)
+		if shift then
+			px += shift * math.noise(a, 53.7)
+			py += shift * math.noise(a, 67.3)
+		end
 	end
 	for i = #kicks, 1, -1 do
 		local kick = kicks[i]
@@ -31,13 +36,13 @@ local function offset(now)
 		if left <= 0 then
 			table.remove(kicks, i)
 		else
-			add(kick.Magnitude * left * left, kick.Roughness)
+			add(kick.Magnitude * left * left, kick.Roughness, kick.Shift and kick.Shift * left * left)
 		end
 	end
 	for _, hold in held do
 		add(hold.Magnitude, hold.Roughness)
 	end
-	return CFrame.Angles(math.rad(x), math.rad(y), math.rad(z))
+	return CFrame.new(px, py, 0) * CFrame.Angles(math.rad(x), math.rad(y), math.rad(z))
 end
 
 local function ensureBound()
@@ -66,12 +71,16 @@ local function ensureBound()
 	end)
 end
 
--- A shake that fades out. magnitude is degrees at its start; roughness is how fast it moves.
-function BossShake.Kick(magnitude, roughness, fade)
+-- A shake that fades out. magnitude is degrees at its start; roughness is how fast it moves; shift (optional) studs of
+-- positional kick at its start.
+function BossShake.Kick(magnitude, roughness, fade, shift)
 	if UiMotion.Reduced() or magnitude <= 0 then
 		return
 	end
-	table.insert(kicks, { Magnitude = magnitude, Roughness = roughness, Fade = fade, Start = os.clock() })
+	table.insert(
+		kicks,
+		{ Magnitude = magnitude, Roughness = roughness, Fade = fade, Start = os.clock(), Shift = shift }
+	)
 	ensureBound()
 end
 
