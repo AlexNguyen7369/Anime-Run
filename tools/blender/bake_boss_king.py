@@ -432,7 +432,7 @@ def write_luau(king, bind, moves, scale):
 		"-- Owner-approved keys (2026-11-11) are verbatim at their times with Body (his hip turn) folded into Torso and the legs, as the",
 		"-- client poses them; Time is seconds, Parts XYZ Euler degrees, Root STUDS, Locs model units. gates holds gates_window's keys,",
 		"-- enuma is enuma_charge then enuma_beam. Proposed: the %s s leads (<move>_in), CYCLE and every in-between." % fmt(LEAD),
-		"local Event = require(script.Parent.BossEventConfig)",
+		"local Event = require(game:GetService(\"ReplicatedStorage\").Shared.BossEventConfig)",
 		"",
 		"local SCALE = %s -- studs per model unit: %s x a %s-stud character, %s studs tall" % (fmt(scale, 4), SIZE, fmt(kk.CHAR_H), fmt(SIZE * kk.CHAR_H, 1)),
 		"local ROOT_STUDS = SCALE",
