@@ -226,13 +226,13 @@ Deliverables:
 Out of scope: gameplay and economy numbers, track biomes, Market panel contents.
 
 ## dojo-removal: Dojos removed, Spawn showpiece in their place (owner 2026-11-11, design doc 4.43)
-Status: active
+Status: done 2026-11-11 (r4 merged into feature/alex/anime-world at 2c70abd; owner's look at the Studio shots pending)
 Owner-confirmed: 2026-11-11
-Branch: orch/dojo-removal/r4 (r1 merged into feature/alex/anime-world at a6d7a46)
+Branch: feature/alex/anime-world (r1 merged at a6d7a46, r4 at 2c70abd)
 Spec: design doc 4.43 (and 4.10, 4.19, 4.24, passes list), WORLD_REDESIGN_SPEC 4, 5 and 7, MONETIZATION_SPEC
 Deliverables:
 - r1 | Rules: design doc 4.43 and every spec updated, Dojo Master off the pass list | rules audit PASS (done)
 - r2 | Code and refund: plots, Dojo squad, workshop boost and levels, WORKSHOP panel, `WorkshopService`, YOUR DOJO marker and Dojo Master removed; one-time refund of paid workshop levels, save VERSION 19 | `stylua` / `selene` clean; Studio `world_layout,spawn_area,passes,gacha,team,team_bonus,data,upgrades,environment` and UI `ui_layout,ui_buttons,ui_panels,ui_upgrades,ui_progression_layout,ui_progression_hud,ui_billboards` green (done)
 - r3 | Spawn showpiece drafts A, B and C rendered in Blender and shown to the owner | owner picked C 2026-11-11 (done; the draft script is removed)
-- r4 | Draft C built: `Showpiece` terrace mesh and ring positions in `build_plaza.py`, `SpawnArea` terrace steps and ring, `PlazaAssets` regenerated, `LeaderboardConfig`, `PlazaWayfinding`, `spawn_area` scenario, rules flipped to approved | `stylua` / `selene` clean; Studio `world_layout,spawn_area,environment` and UI `ui_billboards` green; Studio shots from the spawn for the owner
+- r4 | Draft C built: `Showpiece` terrace mesh and ring positions in `build_plaza.py`, `SpawnArea` terrace steps and ring, `PlazaAssets` regenerated, `LeaderboardConfig`, `PlazaWayfinding`, `spawn_area` scenario, rules flipped to approved | `stylua` / `selene` clean; Studio `world_layout,spawn_area,environment` and UI `ui_billboards` green; Studio shots from the spawn for the owner (done 2026-11-11: pass=3 fail=0, ui_billboards pass, audit PASS, shots https://claude.ai/artifact/3Cw9qTVqJwKKpB71S84xDS)
 Out of scope: Max Players (stays 7 for boss lanes, 4.37), gameplay numbers, track biomes.
