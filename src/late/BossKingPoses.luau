@@ -28,21 +28,6 @@ local BIND = {
 	RightUpperLeg = { Parent = nil, Offset = {-0.5,0,2}, Center = {0,0,0}, Size = {7.43,13.81,8.76} },
 	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {15.93,30.54,9.96} },
 }
--- shortcut: the 6-part model uploaded 2026-11-11 (SidekickArt.boss_king.BossModel); delete when boss_king_jointed is uploaded.
--- stylua: ignore
-local BIND6 = {
-	Ea = { Parent = "RightArm", Offset = {0,0,-1.75}, Center = {0,0,3.49}, Size = {21.24,53.11,14.6} },
-	Ea_Drum1 = { Parent = "Ea", Offset = {0,0,0}, Center = {0.0041,0.0188,2.95}, Size = {9.02,18.59,8.82} },
-	Ea_Drum2 = { Parent = "Ea", Offset = {0,0,0}, Center = {-0.0022,-0.0213,5.87}, Size = {8.33,18.32,8.17} },
-	Ea_Drum3 = { Parent = "Ea", Offset = {0,0,0}, Center = {0,0,9.02}, Size = {8.43,21.64,8.43} },
-	Head = { Parent = "Torso", Offset = {0,0,2.5}, Center = {0,0,0.5}, Size = {15.67,21.51,12.79} },
-	Key = { Parent = "Torso", Offset = {1.2,0.1,0.35}, Center = {-0.25,-0.84,-0.7473}, Size = {3.98,9.46,1.06} },
-	LeftArm = { Parent = "Torso", Offset = {1.5,0,1.8}, Center = {-0.1,0,-0.8}, Size = {15.14,22.57,9.94} },
-	LeftLeg = { Parent = nil, Offset = {0.5,0,2}, Center = {0,0,-1}, Size = {7.58,13.39,12.21} },
-	RightArm = { Parent = "Torso", Offset = {-1.5,0,1.8}, Center = {0.1,0,-0.8}, Size = {15.14,22.57,9.94} },
-	RightLeg = { Parent = nil, Offset = {-0.5,0,2}, Center = {0,0,-1}, Size = {7.58,13.38,12.21} },
-	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {15.93,30.54,9.96} },
-}
 -- stylua: ignore
 local MOVES = {
 	enuma = {
@@ -913,7 +898,6 @@ local Poses = {}
 Poses.Moves = MOVES
 Poses.Approved = APPROVED
 Poses.Bind = BIND -- each part: Parent, Offset from its parent's joint, Center of its box from its own joint (units), Size (studs)
-Poses.Bind6 = BIND6 -- the uploaded 6-part model's bind: Client/BossKing's fallback until the jointed model is uploaded
 Poses.Scale = SCALE
 Poses.RootStuds = ROOT_STUDS -- studs per keys.json root_offset unit: Keys' Root is already studs
 Poses.EaTip = Vector3.new(BIND.Ea.Tip[1], BIND.Ea.Tip[2], BIND.Ea.Tip[3]) -- units from the Ea joint, Blender axes: the pillar's tip
