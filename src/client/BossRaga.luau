@@ -9,7 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
-local Poses = require(Shared:WaitForChild("BossRagaPoses"))
+local Poses = require(Shared:WaitForChild("LateData")).Get("BossRagaPoses") -- design doc 7: delivered with the first event
 
 local C = CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
 local C_INVERSE = C:Inverse()

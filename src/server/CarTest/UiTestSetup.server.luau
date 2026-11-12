@@ -1814,6 +1814,11 @@ setupRequest.OnServerInvoke = function(player, request)
 			RUN_VISUAL.clear()
 			return
 		end
+		-- A faked boss state stands in for a real event, so it gets the late data a real one publishes (design doc 7 "Join size").
+		local lateData = Shared:FindFirstChild("LateData")
+		if lateData and (string.match(request, "^boss_ui_") or string.match(request, "^sidekick_follow_")) then
+			require(lateData).Deliver("BossRagaPoses", "BossMagePoses", "SidekickAttacks")
+		end
 		local tutorialStep, tutorialArg = string.match(request, "^sidekick_tutorial:(%a+):(%w+)$")
 		if tutorialStep then
 			setups.sidekick_tutorial_step(player, tutorialStep, tutorialArg)

@@ -83,8 +83,8 @@ local SCAN = 40
 
 local Module = {}
 
-local function optional(name)
-	local source = Shared:FindFirstChild(name)
+local function optional(name, parent)
+	local source = (parent or Shared):FindFirstChild(name)
 	local ok, value = pcall(function()
 		return source and require(source)
 	end)
@@ -795,7 +795,7 @@ function Module.Build(h)
 
 	-- Her arena, the golem and her effects.
 	function scenarios.ui_boss_mage_vfx(res)
-		local Poses = optional("BossMagePoses")
+		local Poses = optional("BossMagePoses", ReplicatedStorage:WaitForChild("LateData", BUILD_WAIT)) -- design doc 7 "Join size"
 		check(res, "mage_poses_loads", Poses ~= nil, true)
 		if not Poses then
 			return

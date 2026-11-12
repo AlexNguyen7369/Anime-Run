@@ -12730,6 +12730,8 @@ Scenarios.boss_mage_arena = require(script.Parent.BossMageTests).make().boss_mag
 Scenarios.boss_mage_anim = require(script.Parent.BossMageTests).make().boss_mage_anim
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
 Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
+-- design doc 7 "Join size": the big client-only modules are not sent at join, the first boss event publishes them
+Scenarios.late_data = require(script.Parent.LateDataTests).late_data
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
 -- design doc 4.25 "Build after join" (owner 2026-11-10): Tracks 6-10 after join, nearest first, hold until built
 Scenarios.track_loading = require(script.Parent.TrackLoadTests).track_loading

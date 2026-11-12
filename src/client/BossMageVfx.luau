@@ -19,7 +19,7 @@ local Arena = require(Shared:WaitForChild("BossArenaConfig")).For("boss_mage")
 local Art = require(Shared:WaitForChild("BossVfxArt"))
 local MageArt = require(Shared:WaitForChild("BossMageArt"))
 local Event = require(Shared:WaitForChild("BossEventConfig"))
-local Poses = require(Shared:WaitForChild("BossMagePoses"))
+local Poses = require(Shared:WaitForChild("LateData")).Get("BossMagePoses") -- design doc 7: delivered with the first event
 local BossVfx = require(script.Parent:WaitForChild("BossVfx"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 
