@@ -1175,7 +1175,7 @@ function Module.Build(h)
 				end
 				return n
 			end
-			local lightningAt, barrageAt = timeOf("lightning", 0.75, 0.85, 0), timeOf("barrage", 0.25, 0.35, 0)
+			local lightningAt, barrageAt = timeOf("lightning", 0.75, 0.85, 0), timeOf("barrage", 0, 0.1, 0)
 			check(res, "pose_schedule_found", lightningAt ~= nil and barrageAt ~= nil and staffPart ~= nil, true)
 			for _, few in { false, true } do
 				h.player:SetAttribute("ReduceEffects", few or nil)
@@ -1201,32 +1201,90 @@ function Module.Build(h)
 					end
 				end
 				if barrageAt and staffPart then
+					-- Owner 2026-11-12 morning (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): the circles open one by one,
+					-- 0.28 s apart from 0.3 s, all fully open before the beams fire at 2.0 s, 15 to 36 studs across. Watched from the
+					-- move's start to 2.4 s; times are the move's local time (BossMagePoses.Schedule at the fixture's second).
 					state(res, "Fight", Cfg.PrepSeconds + barrageAt, 4000, 4000, true, 100)
-					local off = {}
-					local seen = watchNamed("MagicCircle", 1.6, function(d, row)
-						local grip, tip = staffEnds()
-						local aim, to = (tip - grip).Unit, (d.Position - tip)
-						row.Angle = to.Magnitude > 0 and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1))) or 180
-						if row.Angle > 25 then
-							table.insert(off, ("%.0f"):format(row.Angle))
+					local _, startLocal = Poses.Schedule(0, barrageAt)
+					local off, circleRows, beamAt = {}, {}, math.huge
+					local born = os.clock()
+					while os.clock() - born < 2.4 - startLocal do
+						local t = startLocal + os.clock() - born
+						for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+							if d:IsA("BasePart") and d.Name == "MagicCircle" then
+								local row = circleRows[d]
+								if not row then
+									local grip, tip = staffEnds()
+									local aim, to = (tip - grip).Unit, (d.Position - tip)
+									local angle = to.Magnitude > 0
+											and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
+										or 180
+									if angle > 25 then
+										table.insert(off, ("%.0f"):format(angle))
+									end
+									row = { At = t, Peak = 0, Sizes = {} }
+									circleRows[d] = row
+								end
+								local size = math.max(d.Size.X, d.Size.Y)
+								row.Peak = math.max(row.Peak, size)
+								table.insert(row.Sizes, { t, size })
+							elseif d:IsA("BasePart") and d.Name == "BarrageBeam" and d.Transparency < 1 then
+								beamAt = math.min(beamAt, t)
+							end
 						end
-					end)
+						task.wait()
+					end
 					local list = {}
-					for _, row in seen do
+					for _, row in circleRows do
+						row.FullAt = math.huge -- first time at 98% of its peak
+						for _, sample in row.Sizes do
+							if sample[2] >= 0.98 * row.Peak then
+								row.FullAt = math.min(row.FullAt, sample[1])
+							end
+						end
 						table.insert(list, row)
 					end
-					table.sort(list, function(a, b)
-						return a.At < b.At
+					table.sort(list, function(x, y)
+						return x.At < y.At
 					end)
-					local ordered = #list > 1
+					local ordered, minGap = #list > 1, math.huge
 					for i = 2, #list do
 						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
+						minGap = math.min(minGap, list[i].At - list[i - 1].At)
+					end
+					local want = few and 3 or 6
+					local beforeBeams, lastFull, smallest, largest = 0, -math.huge, math.huge, 0
+					for _, row in list do
+						beforeBeams += row.At < 2.0 and 1 or 0
+						lastFull = math.max(lastFull, row.FullAt)
+						smallest, largest = math.min(smallest, row.Peak), math.max(largest, row.Peak)
 					end
 					check(res, tag .. "barrage_circles_seen", #list > 0, true)
 					h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
 					check(res, tag .. "barrage_circles_one_after_another", ordered, true)
+					h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.2", #list > 1 and minGap >= 0.2)
+					h.check(
+						res,
+						tag .. "barrage_circles_all_open_before_beams",
+						("%d of %d by 2.0 s, last full at %.2f, first beam at %.2f"):format(
+							beforeBeams,
+							want,
+							lastFull,
+							beamAt
+						),
+						("%d, full before the first beam and 2.0 s"):format(want),
+						beforeBeams == want and lastFull <= math.min(beamAt, 2.0)
+					)
 					if few then
 						h.check(res, "reduced_barrage_circles_3", #list, "<= 3", #list <= 3)
+					else
+						h.check(
+							res,
+							"barrage_circles_bigger",
+							("%.1f to %.1f"):format(smallest, largest),
+							"smallest >= 13, largest >= 32",
+							#list > 0 and smallest >= 13 and largest >= 32
+						)
 					end
 				end
 				-- The golem: its rise raises dust; its sweep's dust follows the fist; her golem_fall row raises dust.
