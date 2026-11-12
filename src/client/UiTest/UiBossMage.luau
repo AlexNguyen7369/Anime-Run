@@ -21,6 +21,10 @@
 --   Mage arena (Client/BossArenaView): workspace.BossArenaPreview holds Models ElfMage (with part Torso, the TargetPart) and Golem;
 --     no BigRaga while BossEventBoss is boss_mage. Effects live in Folder BossEffects; BossVfxForce plays Lightning, Slam, Barrage.
 --     The golem's BaseParts are all Transparency 1 outside the golem move.
+--   DEBUG FIELD (BossMageVfx): when Lightning or Barrage plays, BossEffects gets string attribute LastStrikes, JSON
+--     {"Move":"Lightning"|"Barrage","Strikes":[{"T":<s after the window start>,"Spots":[[x,z],...]},...]}: every strike of the
+--     move as drawn (REDUCED EFFECTS applied), its bolts' or beams' floor spots in world X, Z. Lightning leaves one StrikeMark
+--     part per bolt in BossEffects.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
@@ -71,6 +75,10 @@ local SHOW_WAIT = 2
 local BUILD_WAIT = 8
 local PRIMITIVE_MAX = 1150 -- plan section 5 (budget about 1,050)
 local PEAK_WATCH = 1.5
+-- Owner 2026-11-11 (BOSS_EVENT_SPEC "Strike window"): a strike every 0.15 s, 14 in the 2 s window, 7 to 10 bolts or beams each,
+-- 3 each under REDUCED EFFECTS (proposed), at spots over the centre, all lanes and the walkway.
+local STRIKE_COUNT, STRIKE_EVERY, STRIKE_TIME_SLACK = 14, 0.15, 0.02
+local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3
 local SCAN = 40
 
 local Module = {}
@@ -776,28 +784,8 @@ function Module.Build(h)
 			boss(res, MAGE)
 			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, Cfg.HpPerPlayer, Cfg.HpPerPlayer, true)
 			waitShown(POPUP, false)
-			-- Her drop list: her 6 Relics, no Big Raga Sidekick line.
-			local list = h.find(ROOT .. "/DropList")
-			local want = {}
-			for _, row in RelicConfig.Odds("boss_mage") do
-				want["Row_" .. row.Id] = true
-			end
-			local rows = waitIs(function()
-				local got, n = {}, 0
-				for _, child in list and list:GetChildren() or {} do
-					if string.sub(child.Name, 1, 4) == "Row_" then
-						n += 1
-						got[child.Name] = true
-					end
-				end
-				local same = n == 6
-				for name in want do
-					same = same and got[name] == true
-				end
-				return same
-			end, true)
-			check(res, "mage_drop_list_six_rows", rows, true)
-			check(res, "mage_drop_list_no_sidekick", list and list:FindFirstChild("Row_side_raga"), nil)
+			-- Owner 2026-11-11: the drop list is hidden for now, for her too; her odds stay in the Bosses popup's Details.
+			check(res, "mage_drop_list_hidden", waitShown(ROOT .. "/DropList", true), false)
 			boss(res, nil)
 		end, debug.traceback)
 		h.check(res, "mage_rewards_checks_completed", ok and "yes" or tostring(err), "yes", ok)
@@ -959,6 +947,88 @@ function Module.Build(h)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Lightning")
 			local early, late = boltCounts()
 			h.check(res, "lightning_strikes_spread", early, "< " .. late, late > 0 and early < late)
+			-- The move's strikes as drawn, from the LastStrikes debug field (nil if it never came).
+			local Arena = (optional("BossArenaConfig") or {}).For
+			Arena = Arena and Arena(MAGE)
+			check(res, "mage_arena_config_loads", Arena ~= nil, true)
+			local function strikeLog(name)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				task.wait()
+				local holder = inArena("BossEffects")
+				if holder then
+					holder:SetAttribute("LastStrikes", nil)
+				end
+				ReplicatedStorage:SetAttribute("BossVfxForce", name)
+				local raw = waitFor(function()
+					local now = inArena("BossEffects")
+					return now and now:GetAttribute("LastStrikes")
+				end, SHOW_WAIT)
+				local decoded, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
+				return decoded and type(log) == "table" and log or nil
+			end
+			-- Owner 2026-11-11: 14 strikes at 0, 0.15, ... 1.95 s; per strike `least`..`most` bolts or beams.
+			local function checkStrikes(tag, name, log, least, most)
+				check(res, tag .. "_strike_log", log ~= nil and log.Move, name)
+				local list = log and log.Strikes or {}
+				check(res, tag .. "_strike_count", #list, STRIKE_COUNT)
+				local offTime, offCount, total = {}, {}, 0
+				for k, strike in list do
+					local want = STRIKE_EVERY * (k - 1)
+					if type(strike.T) ~= "number" or math.abs(strike.T - want) > STRIKE_TIME_SLACK then
+						table.insert(offTime, ("%d at %s, want %.2f"):format(k, tostring(strike.T), want))
+					end
+					local n = type(strike.Spots) == "table" and #strike.Spots or 0
+					total += n
+					if n < least or n > most then
+						table.insert(offCount, ("%d has %d"):format(k, n))
+					end
+				end
+				h.checkList(res, tag .. "_strikes_every_0_15", offTime)
+				h.checkList(res, tag .. "_per_strike_" .. least .. "_to_" .. most, offCount)
+				local lo, hi = STRIKE_COUNT * least, STRIKE_COUNT * most
+				h.check(res, tag .. "_total", total, lo .. " to " .. hi, total >= lo and total <= hi)
+				return list, total
+			end
+			-- Not clustered: spots in the centre, on the lanes and on the walkway, in every quarter, none past the wall.
+			local function checkSpread(tag, list)
+				if not Arena then
+					return
+				end
+				local outer = Arena.InnerRadius + Arena.Width
+				local zones, quarters, outside = {}, {}, {}
+				for _, strike in list do
+					for _, spot in type(strike.Spots) == "table" and strike.Spots or {} do
+						local dx, dz = (spot[1] or 0) - Arena.Center.X, (spot[2] or 0) - Arena.Center.Z
+						local r = math.sqrt(dx * dx + dz * dz)
+						zones[r < Arena.InnerRadius and "centre" or r <= outer and "lanes" or "walkway"] = true
+						quarters[(dx >= 0 and 1 or 0) + (dz >= 0 and 2 or 0)] = true
+						if r > Arena.WallRadius then
+							table.insert(outside, ("%.0f"):format(r))
+						end
+					end
+				end
+				for _, zone in { "centre", "lanes", "walkway" } do
+					check(res, tag .. "_spots_reach_" .. zone, zones[zone] == true, true)
+				end
+				local quarterCount = 0
+				for _ in quarters do
+					quarterCount += 1
+				end
+				check(res, tag .. "_spots_every_quarter", quarterCount, 4)
+				h.checkList(res, tag .. "_spots_inside_wall", outside)
+			end
+			local lightningLog = strikeLog("Lightning")
+			local lightningList, bolts =
+				checkStrikes("lightning", "Lightning", lightningLog, PER_STRIKE_MIN, PER_STRIKE_MAX)
+			checkSpread("lightning", lightningList)
+			-- A mark leads each bolt (owner 2026-11-11).
+			local marks = 0
+			for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+				marks += d.Name == "StrikeMark" and 1 or 0
+			end
+			check(res, "lightning_mark_per_bolt", marks, bolts)
+			local barrageList = checkStrikes("barrage", "Barrage", strikeLog("Barrage"), PER_STRIKE_MIN, PER_STRIKE_MAX)
+			checkSpread("barrage", barrageList)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Sweep")
@@ -980,6 +1050,11 @@ function Module.Build(h)
 					"> 0 and < " .. full[name],
 					reduced > 0 and reduced < full[name]
 				)
+			end
+			-- Owner 2026-11-11: 3 per strike under REDUCED EFFECTS (proposed), still 14 strikes.
+			for _, name in { "Lightning", "Barrage" } do
+				local tag = "reduced_" .. string.lower(name)
+				checkStrikes(tag, name, strikeLog(name), PER_STRIKE_REDUCED, PER_STRIKE_REDUCED)
 			end
 		end, debug.traceback)
 		h.check(res, "mage_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
