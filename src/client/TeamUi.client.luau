@@ -34,7 +34,7 @@ local CATEGORY = Color3.fromRGB(110, 205, 240)
 local STAMINA_BAR = Color3.fromRGB(60, 150, 255)
 local ORDER = { "RUNS FIRST", "TAGS IN 2ND", "TAGS IN LAST" } -- the run order (TEAM_AND_STAMINA_SPEC "Swap")
 -- Design units (placeholders): the slot row's height, the bonus box's width, the toolbar's widths, the roster cells.
-local SLOTS_H, PHONE_SLOTS_H = 210, 104
+local SLOTS_H, PHONE_SLOTS_H = 150, 104 -- 150: room for the desktop roster's two rows of cards (layout A)
 local BONUS_W, PHONE_BONUS_W = 220, 150
 local SORT_W, SEARCH_W = 220, 300
 local CARD_MIN_WIDTH, CARD_HEIGHT = 140, 120
@@ -240,7 +240,7 @@ local function layout()
 	local height = g.px(bottom - rosterY) - 2 * CARD_ART
 	if width > 0 and height > 0 then
 		local columns = math.max(2, math.floor((width + gapPx) / (g.px(CARD_MIN_WIDTH) + gapPx)))
-		local rows = math.max(1, math.floor((height + gapPx) / (g.px(CARD_HEIGHT) + gapPx) + 0.5))
+		local rows = math.max(g.Small and 1 or 2, math.floor((height + gapPx) / (g.px(CARD_HEIGHT) + gapPx) + 0.5))
 		rosterLayout.CellSize = UDim2.fromOffset(
 			math.floor((width - (columns - 1) * gapPx) / columns),
 			math.floor((height + gapPx) / rows) - gapPx
