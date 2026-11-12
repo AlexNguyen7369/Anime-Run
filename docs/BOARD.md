@@ -6,12 +6,14 @@
 - boss-event b5: event server
 
 ## Next
-- boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first
+- hud-team: owner picks the Team icon (N1 / N2 / N3) and gives the upload word; then upload, `HudIcons.Team`, `ui_team`, `ui_hud`
+- boss-mage-2: owner plays `/elfboss` (slow rhythm, golem 1,000 HP per player) and looks at the Team panel against draft A
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-12 boss-mage-2 follow-ups and hud-team (1b6c59a): golem HP per player, slower rhythm, golem every 6 s, per-boss late data with removal after the event (lazy-data merged), Bosses and Team buttons in a second column, Team panel A, world dim on every panel: `late_data` 90, `boss_mage_event` 291, `boss_mage_anim` 288, `ui_boss` 485, `ui_team` 42, `ui_panels` 1162 and the other targeted boss and HUD scenarios fail=0; rules audit PASS round 2
 - 2026-11-12 boss-mage-2 g0-g6: Elf Mage spam strikes over 2 s, Stone Golem miniboss, 3-circle rhythm, Bosses cards draft B, her Relics and chest, drop list hidden (3c843fa): `boss_mage_event` 281, `boss_mage_anim` 286, `relics` 674, `ui_boss_mage_vfx` 55, `ui_boss_cards` 45, `ui_boss_golem` 16, `ui_boss` 468, `ui_boss_phase2` 91 and the other targeted boss scenarios fail=0; rules audit PASS
 - 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio
 - 2026-11-10 hud-tech h1 gold frame tiles, L2 left block, Tile and Boss icons (c722398, 0a2ef57): ui_buttons 14/0, ui_hud 16/0, ui_layout 838/95 (pre-h1 reds), audit PASS; exhaustion eye 160 up, 13 deg (74eb084, boss_event not run)

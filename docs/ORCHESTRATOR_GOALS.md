@@ -260,3 +260,15 @@ Deliverables:
 - g5 | Client: strikes over 2 s, golem HP bar and moves, card screen | `ui_boss_mage*`, `ui_boss_osu`, `ui_boss_paid` green; owner look in Studio
 - g6 | In-betweens, bake, uploads | approved keys unchanged; upload scripts' `main()` guards checked first
 Out of scope: Phase 2, her Sidekick, Big Raga's event rules, m12's PR.
+
+## hud-team: Team button and Team panel; Bosses button in a second column (owner 2026-11-12)
+Status: active
+Owner-confirmed: 2026-11-12 (screenshot of the placement; drafts https://claude.ai/artifact/HxUStQrgaVe1zAWfSmqcsp: icon 1 in neutral colours, panel A)
+Branch: feature/alex/boss-mage
+Spec: design doc 4.40 (Bosses and Team buttons), 4.42 Overlap and dim, docs/TEAM_AND_STAMINA_SPEC.md HUD
+Deliverables:
+- t1 | Bosses button in the second left column | `ui_boss`, `ui_buttons`, `ui_hud` green (done 2026-11-12)
+- t2 | Team button and Team panel A, team editor out of Items | `ui_team`, `team` green; owner look (built 2026-11-12, owner look open)
+- t3 | World dim on every panel and popup, lighter | `ui_panels` green (done 2026-11-12)
+- t4 | Team icon in neutral colours, uploaded | owner picks N1 / N2 / N3 and gives the upload word
+Out of scope: Best team button, saved teams, moving the aura and trail slot rows.

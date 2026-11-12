@@ -159,8 +159,9 @@
 155. 2026-11-11 — Alex Nguyen — Added the admin command `/elfboss`, which starts The Elf Mage's boss event.
 156. 2026-11-11 — Alex Nguyen — Wrote the owner's Elf Mage rule changes into the design doc and specs (2 s strike windows, Stone Golem miniboss with 1,000 HP and a sweep, easier rhythm circles, Bosses cards, her 6 Relics and chest) and drew the card, key-frame and Relic drafts for approval.
 157. 2026-11-12 — Alex Nguyen — Built the approved Elf Mage fixes end to end (lightning and barrage spam of 7-10 bolts every 0.15 s over 2 s, Stone Golem miniboss with its own 1,000 HP bar, slam and sweep, 3-circle rhythm, Bosses cards draft B, her 5 Relics and chest uploaded, drop list hidden), targeted Studio scenarios green and rules audit PASS.
+158. 2026-11-12 — Alex Nguyen — Tuned the Stone Golem (1,000 HP per player, slower 3 s rhythm, attacks every 6 s), made boss data load per boss shortly before its event and unload after it (lazy-data branch merged), moved the Bosses button into a second left column with a new Team button and Team panel A that takes the team editor out of Items, and put a lighter world dim on every panel and popup; targeted Studio scenarios green and rules audit PASS.
 
 ## What's next
-**Have the owner play `/elfboss` and rule on the open Elf Mage questions in `docs/OWNER_QUESTIONS.md`, first the 511 KB pose data that loads at join.**
+**Get the owner's pick of the neutral Team icon (N1, N2 or N3) and the upload word, then upload it, set `HudIcons.Team` and rerun `ui_team` and `ui_hud`.**
 
-**Why this is next:** the goal's last gate is the owner's look in Studio, and the join-size answer decides whether the lazy-data branch must merge before the boss-mage PR into main (m12).
+**Why this is next:** the Team button ships without an icon until then, and the owner's look at the Team panel and the slower golem rhythm is the last gate before the boss-mage full harness and PR (m12).
