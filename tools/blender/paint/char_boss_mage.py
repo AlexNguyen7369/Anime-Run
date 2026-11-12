@@ -37,6 +37,7 @@ HAIR = {"colour": "#D4D2E4", "locks": []}
 PROPS = []
 # the staff is drawn upright at the origin, then moved so its grip (2.2 above the butt) sits in the right hand, a little in front
 STAFF_AT = (-1.5, -0.62, 2.05 - 2.2)
+SMALL = False  # set by the Sidekick build (side_mage): drops detail that falls under 2 px at Sidekick size
 
 
 def rod(k, part, name, pts, r, ramp, n=6, **bk):
@@ -120,7 +121,8 @@ def _ears(k):
 		# long and pointed, out and a little up, wide top to bottom
 		gem(k, "Head", f"Ear{tag}", (s * 0.84, 0.0, 4.74), (s * 1.78, 0.14, 5.22), 0.22, ramp="skin", flat=0.3, twist=0.0, a=0.6, across=(0, 0, 1))
 		# the red drop hangs from the lobe, outside the face-framing lock
-		prism(k, "Head", f"Earring{tag}", [(s * 1.2, 4.7), (s * 1.27, 4.52), (s * 1.2, 4.3), (s * 1.13, 4.52)], -0.05, 0.05, "red", a=0.62, b=0.3)
+		w = 0.09 if SMALL else 0.05
+		prism(k, "Head", f"Earring{tag}", [(s * 1.2, 4.7), (s * 1.27, 4.52), (s * 1.2, 4.3), (s * 1.13, 4.52)], -w, w, "red", a=0.62, b=0.3)
 
 
 def _top(k):
@@ -156,7 +158,8 @@ def _arm(k, side, s):
 	arm, ax = f"{side}UpperArm", s * 1.5
 	k.reshape(arm, f"{side}Arm", [(ax, 0, 3.9, 0.42, 0.42), (ax, 0, 2.05, 0.42, 0.42)], corner=0.1, nc=1)
 	block(k, arm, "Mantle", s * 1.62, 0.04, 4.12, 3.4, 0.6, 0.74, "white", ch=0.08, flare=0.06, corner=0.3, a=0.56, b=0.42)
-	block(k, arm, "MantleHem", s * 1.62, 0.04, 3.52, 3.34, 0.68, 0.84, "gold", ch=0.03, corner=0.3, a=0.56, b=0.4)
+	if not SMALL:
+		block(k, arm, "MantleHem", s * 1.62, 0.04, 3.52, 3.34, 0.68, 0.84, "gold", ch=0.03, corner=0.3, a=0.56, b=0.4)
 	block(k, arm, "Sleeve", ax, 0, 4.03, 2.36, 0.515, 0.515, "white", ch=0.08, flare=0.12, corner=0.18, jit=0.02, mids=(3.1,), a=0.54, b=0.44)
 	block(k, arm, "CuffHem", ax, 0, 2.5, 2.3, 0.655, 0.655, "gold", ch=0.03, corner=0.18, a=0.56, b=0.4)
 	block(k, arm, "Hand", ax, 0, 2.32, 1.78, 0.5, 0.5, "skin", ch=0.06, a=0.6, b=0.32)
@@ -184,11 +187,13 @@ def _staff(k):
 	block(k, p, "StaffButt", 0, 0, 0.42, 0.0, 0.1, 0.1, "gold", ch=0.04, a=0.56, b=0.44)
 	block(k, p, "StaffShaft", 0, 0, 5.3, 0.38, 0.07, 0.07, "shaft", ch=0.02, a=0.5, b=0.4)
 	block(k, p, "StaffWrap", 0, 0, 5.0, 4.58, 0.095, 0.095, "red", ch=0.02, a=0.52, b=0.44)
-	prism(k, p, "StaffRibbon", [(0.04, 4.84), (0.16, 4.8), (0.3, 4.04), (0.2, 3.98), (0.17, 4.12)], -0.025, 0.025, "red", a=0.5, b=0.4)
+	if not SMALL:
+		prism(k, p, "StaffRibbon", [(0.04, 4.84), (0.16, 4.8), (0.3, 4.04), (0.2, 3.98), (0.17, 4.12)], -0.025, 0.025, "red", a=0.5, b=0.4)
 	block(k, p, "StaffCollar", 0, 0, 5.62, 5.24, 0.11, 0.11, "gold", ch=0.04, flare=-0.03, a=0.56, b=0.44)
 	c = (0.0, 0.0, 5.86)
-	# the gem in its gold ring
-	rod(k, p, "StaffRing", [(c[0] + 0.25 * math.cos(2 * math.pi * j / 8), 0, c[2] + 0.25 * math.sin(2 * math.pi * j / 8)) for j in range(9)], 0.065, "gold", n=4, a=0.58, b=0.4)
+	# the gem in its gold ring (dropped at Sidekick size)
+	if not SMALL:
+		rod(k, p, "StaffRing", [(c[0] + 0.25 * math.cos(2 * math.pi * j / 8), 0, c[2] + 0.25 * math.sin(2 * math.pi * j / 8)) for j in range(9)], 0.065, "gold", n=4, a=0.58, b=0.4)
 	rod(k, p, "StaffGem", [(c[0], 0.06, c[2]), (c[0], -0.04, c[2]), (c[0], -0.09, c[2])], [0.2, 0.2, 0.11], "gem", n=8, a=0.56, b=0.5)
 	# the crescent: from under the ring round the viewer's right and over the top, curling in to a blunt end
 	arc = []

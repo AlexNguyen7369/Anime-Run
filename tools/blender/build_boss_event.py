@@ -1096,7 +1096,7 @@ def view_dir(view):
 def build_one(cid):
 	build_avatar.reset()
 	bpy.context.preferences.filepaths.save_version = 0
-	m = BUILDS[cid]()
+	m = (BUILDS.get(cid) or MODELS[cid])()  # BUILDS is copied before load_sidekick_files adds the sidekicks/ files to MODELS
 	root, tris = m.finish()
 	os.makedirs(os.path.join(OUT, cid, "review"), exist_ok=True)
 	os.makedirs(TMP, exist_ok=True)

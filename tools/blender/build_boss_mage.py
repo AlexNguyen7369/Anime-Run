@@ -7,6 +7,7 @@
 # boss_mage.blend and boss_golem/review/slam_pose.png; portraits: boss_mage and boss_golem portrait.png and head.png.
 # She is a painted R15 character (paint/char_boss_mage.py) merged into the 6 runner parts; the staff and the two twin tails stay
 # their own objects, origin at their grip or root, so they animate on their own. Nothing here uploads.
+import importlib
 import math
 import os
 import sys
@@ -55,13 +56,15 @@ def join(name, prefix, pivot):
 	return o
 
 
-def build():
+def build(cid=CID, small=False):
+	"""The mage (or her Sidekick side_mage, small: fine detail dropped) under an empty root named cid."""
 	build_avatar.reset()
 	bpy.context.preferences.filepaths.save_version = 0
+	importlib.import_module("char_" + CID).SMALL = small
 	build_avatar.build(CID, build_avatar.load_data()[CID])
 	loose = {n: join(n, *v) for n, v in LOOSE.items()}
 	merged, _ = avatar_merge.merge(CID, keep=list(loose.values()))
-	root = bpy.data.objects.new(CID, None)
+	root = bpy.data.objects.new(cid, None)
 	bpy.context.scene.collection.objects.link(root)
 	mat = merged["Head"].data.materials[0]
 	objs = {}
