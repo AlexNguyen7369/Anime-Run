@@ -1,0 +1,778 @@
+# The Golden King (boss_king) key poses for owner review: standing idle, Gates of Babylon and its 2 s volley window, Enuma Elish
+# (charge, then beam), Shield Gates and the Fortified idle. Key frames only: no in-betweens, no bake, no upload. Headless:
+#   Blender -b --factory-startup --python tools/blender/boss_king_keyframes.py -- [idle gates gates_window enuma_charge enuma_beam shields fortified_idle] [--arena <blend>] [--size 8]
+# Needs boss_king.blend (build_boss_king.py) and the vault draft (build/arena/vault_draft.blend from tools/blender/arena/build_vault.py;
+# the plain colosseum draft loads too). Writes assets/characters_avatar/boss_king/keyframes/<move>_slices.png, all_moves_overview.png
+# and keys.json. Design doc 4.37 "Third boss" and BOSS_EVENT_SPEC "The Golden King": every time, count and size here is proposed.
+#
+# MOVES is the pose data in boss_mage_keyframes.py's shape (same R15 block body, axes and signs: front -Y, +X his left, Z up).
+#   root   offset of the whole figure, model units. He stands on the centre mound: root[2] stays 0 (no hover, no bob).
+#   body / torso / head   rotation about HIP / WAIST / NECK. LeftLeg/RightLeg: X Y Z Euler degrees about the hip joint.
+#   LeftArm/RightArm   Euler degrees, or {"aim": point}: the hand aimed at a point in rest model space. LeftArm "grip": aimed at
+#          Ea's grip above the right fist (two hands on the pillar). Block arms have no elbow, so "arms folded" is two straight
+#          blocks crossed in front of the chest, the left in front (FOLD).
+#   key    the Key at the belt (a child of the torso): Euler degrees about its ring.
+#   ea     absent: Ea is not drawn (he fights bare-handed until he draws it). Else Euler degrees about the grip relative to the right
+#          arm: (0, 0, 0) upright in the fist, (180, 0, 0) straight on from the arm. spin: the drums' angle about the pillar's axis
+#          (Drum1 and Drum3 turn +spin, Drum2 -spin). keys.json holds every solved rotation, so a bake reads plain numbers.
+#   fx     effect sketches (emissive meshes, never final VFX). arena: a wide view from the lane-4 runner's camera lit "gold" (the
+#          vault as built) or "red" (Enuma Elish's sky tint). event: when the server charges the hit or sets the status.
+import json
+import math
+import os
+import random
+import sys
+
+import bpy
+import numpy as np
+from mathutils import Matrix, Vector
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import boss_keyframes as bk  # noqa: E402  (guarded main: sheet text, pixels and ortho fit)
+import boss_mage_keyframes as mk  # noqa: E402  (guarded main: effect primitives, pose maths, shot)
+import build_boss_event as be  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(HERE))
+OUT = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "keyframes")
+TMP = os.path.join(ROOT, "build", "boss_king_keyframes")
+ARENA = os.path.join(ROOT, "build", "arena", "vault_draft.blend")
+
+SIZE = 8.0  # his height in runner heights (design doc: 8 x a character, proposed)
+CHAR_H = 5.5
+R_IN, LANE_W, R_WALL = 70.0, 8.0, 164.0  # the vault: the colosseum's lanes with the wall at the in-game 164
+TH0 = math.radians(-41)  # the followed runner on lane 4
+FACE = TH0 + math.pi / 2  # he faces that runner, as the vault's stand-in does
+HIP, WAIST, NECK = mk.HIP, mk.WAIST, mk.NECK
+SHOULDER, HAND, LEG = mk.SHOULDER, mk.HAND, mk.LEG
+KEY_PIVOT = (1.2, 0.1, 2.35)  # build_boss_king.LOOSE
+EA_PIVOT = Vector((-1.5, -0.62, 2.05))  # build_boss_king.EA_PIVOT: the grip in the right fist
+EA_PARTS = ("Ea_Grip", "Ea_Drum1", "Ea_Drum2", "Ea_Drum3")
+BODY = ("Torso_merged", "Head_merged", "LeftArm_merged", "RightArm_merged", "LeftLeg_merged", "RightLeg_merged")
+GRIP_UP = 0.8  # the left fist this far above the right one on the grip, model units
+N_PORTALS, N_SHIELDS, VOLLEY = 16, 6, 8  # proposed: 12 to 20 portals, 5 to 7 shields, 7 to 10 weapons a volley
+eul, about, aim_rot, degs = mk.eul, mk.about, mk.aim_rot, mk.degs
+UP = (180, 0, 0)  # Ea straight on from the right arm
+
+# arms folded: straight blocks crossed in front of the chest (no elbow), the right across the chest, the left under it
+FOLD = {"RightArm": {"aim": (1.0, -1.5, 2.7)}, "LeftArm": {"aim": (-1.0, -1.6, 1.8)}}
+
+
+def fold(**k):
+	d = dict(FOLD)
+	d.update(k)
+	return d
+
+
+FIRE = {"root": (0, -0.15, 0), "body": (0, 0, 0), "torso": (14, 0, -6), "head": (6, 0, 6), "RightArm": {"aim": (-1.6, -3.5, 3.4)}, "LeftArm": {"aim": (2.6, 1.2, 2.2)}, "LeftLeg": (-10, 0, -3), "RightLeg": (12, 0, 3), "key": (14, 0, 0)}
+LAST = {"root": (0, -0.1, 0), "torso": (8, 0, 4), "head": (2, 0, -4), "RightArm": {"aim": (-2.2, -3.3, 3.0)}, "LeftArm": {"aim": (2.3, 1.0, 2.2)}, "LeftLeg": (-6, 0, -3), "RightLeg": (8, 0, 3), "key": (8, 0, 0)}
+MOVES = {
+	"idle": {
+		"title": "Idle: standing, arms folded",
+		"end": 4.0,
+		"loop": True,
+		"keys": [
+			fold(t=0.0, cap="Breath out, weight on his right leg", body=(0, 2, 0), torso=(2, 0, 3), head=(2, 0, -4), LeftLeg=(0, -2, 0), RightLeg=(0, -2, 0), key=(0, 0, 0)),
+			fold(t=1.3, cap="Breath in: chest lifts, chin up", body=(0, 0, 0), torso=(-3, 0, 0), head=(-5, 0, 0), RightArm={"aim": (1.0, -1.55, 2.85)}, LeftArm={"aim": (-1.0, -1.65, 1.95)}, key=(2, 0, 0)),
+			fold(t=2.7, cap="Breath out, weight shifts to his left leg", body=(0, -2, 0), torso=(2, 0, -3), head=(2, 0, 4), LeftLeg=(0, 2, 0), RightLeg=(0, 2, 0), key=(0, 0, 0)),
+		],
+	},
+	"gates": {
+		"title": "Gates of Babylon: portals open, then a 2 s volley burst",
+		"end": 4.4,
+		"window": [0.0, 1.6],  # the Dodge bar runs BEFORE the volleys
+		"keys": [
+			{"t": 0.0, "cap": "Dodge window opens: hand lifts, first ripples", "fx": ["portals_faint"], "arena": "gold", "root": (0, 0, 0), "torso": (-4, 0, 6), "head": (-4, 0, -8), "RightArm": {"aim": (-2.0, -1.6, 5.2)}, "LeftArm": fold()["LeftArm"], "LeftLeg": (0, 0, 0), "RightLeg": (0, 0, 0), "key": (0, 0, 0)},
+			{"t": 0.8, "cap": f"{N_PORTALS} gold portals open round him, a weapon tip in each", "fx": ["portals_open"], "arena": "gold", "root": (0, 0, 0), "torso": (-10, 0, 0), "head": (-12, 0, 0), "RightArm": {"aim": (-1.2, -0.8, 6.4)}, "LeftArm": {"aim": (2.3, -0.4, 2.0)}, "LeftLeg": (0, -2, 0), "RightLeg": (0, 2, 0), "key": (-4, 0, 0)},
+			{"t": 1.6, "cap": "Fire: arm thrust at the lanes, volley 1 of 14 (window closes, 20% hit)", "event": "Volleys", "fx": ["portals_open", "streaks:0"], "arena": "gold", **FIRE},
+			{"t": 3.6, "cap": "Volley 14, the last: portals start to close", "fx": ["portals_fade", "streaks:13"], "arena": "gold", **LAST},
+			fold(t=4.2, cap="Recover: arms fold again, portals gone", root=(0, 0, 0), torso=(2, 0, 0), head=(0, 0, 0), LeftLeg=(0, 0, 0), RightLeg=(0, 0, 0), key=(0, 0, 0)),
+		],
+	},
+	"enuma_charge": {
+		"title": "Enuma Elish, charge: Ea drawn and raised, 3 s Dodge window",
+		"end": 5.6,
+		"window": [0.0, 3.0],
+		"keys": [
+			{"t": 0.0, "cap": "Draws Ea from a gold ripple at his right hand", "fx": ["draw"], "root": (0, 0, 0), "torso": (6, 0, 10), "head": (4, 0, -12), "RightArm": {"aim": (-2.6, -1.2, 3.0)}, "LeftArm": {"aim": (2.4, 0.4, 2.2)}, "LeftLeg": (0, 0, 0), "RightLeg": (0, 0, 0), "key": (6, 0, 0), "ea": (0, 0, 0), "spin": 0},
+			{"t": 0.8, "cap": "Both hands on the grip, Ea raised to the sky; drums start to turn", "fx": ["arrows"], "root": (0, 0.1, 0), "torso": (-8, 0, 0), "head": (-18, 0, 0), "RightArm": {"aim": (-0.6, -0.6, 6.6)}, "LeftArm": "grip", "LeftLeg": (-6, 0, -2), "RightLeg": (6, 0, 2), "key": (-6, 0, 0), "ea": UP, "spin": 30},
+			{"t": 1.8, "cap": "Charge: sky turns red, wind spirals up the pillar, drums fast", "fx": ["arrows", "wind", "charge"], "arena": "red", "root": (0, 0.15, 0), "torso": (-14, 0, 0), "head": (-24, 0, 0), "RightArm": {"aim": (-0.4, -0.3, 6.8)}, "LeftArm": "grip", "LeftLeg": (-8, 0, -2), "RightLeg": (8, 0, 2), "key": (-10, 0, 0), "ea": UP, "spin": 150},
+			{"t": 2.7, "cap": "Peak: red-black air gathers at the tip (window ends at 3.00 s)", "fx": ["arrows", "wind", "charge", "gather"], "arena": "red", "root": (0, 0.2, 0), "torso": (-18, 0, 0), "head": (-28, 0, 0), "RightArm": {"aim": (-0.3, 0.1, 6.9)}, "LeftArm": "grip", "LeftLeg": (-10, 0, -2), "RightLeg": (10, 0, 2), "key": (-12, 0, 0), "ea": UP, "spin": 330},
+		],
+	},
+	"enuma_beam": {
+		"title": "Enuma Elish, beam: Ea swung down, a red-black cyclone sweeps the arena for 2 s",
+		"end": 5.6,
+		"extends": "enuma_charge",
+		"keys": [
+			{"t": 3.0, "cap": "Swing: Ea comes down and forward, the beam leaves the tip (40% hit)", "event": "Beam", "fx": ["beam", "arrows"], "arena": "red", "root": (0, -0.3, 0), "body": (0, 0, -108), "torso": (22, 0, 0), "head": (-6, 0, 0), "RightArm": {"aim": (-1.0, -2.6, 5.2)}, "LeftArm": "grip", "LeftLeg": (-14, 0, -4), "RightLeg": (16, 0, 4), "key": (18, 0, 0), "ea": UP, "spin": 420},
+			{"t": 3.6, "cap": "Sweep: the beam crosses the runner's lanes", "fx": ["beam", "arrows"], "arena": "red", "root": (0, -0.3, 0), "body": (0, 0, 0), "torso": (24, 0, 0), "head": (-8, 0, 0), "RightArm": {"aim": (-1.3, -3.2, 4.0)}, "LeftArm": "grip", "LeftLeg": (-14, 0, -4), "RightLeg": (16, 0, 4), "key": (18, 0, 0), "ea": UP, "spin": 600},
+			{"t": 4.4, "cap": "Sweep: the far side of the ring", "fx": ["beam", "arrows"], "arena": "red", "root": (0, -0.3, 0), "body": (0, 0, 144), "torso": (24, 0, 0), "head": (-8, 0, 0), "RightArm": {"aim": (-1.3, -3.2, 4.0)}, "LeftArm": "grip", "LeftLeg": (-14, 0, -4), "RightLeg": (16, 0, 4), "key": (18, 0, 0), "ea": UP, "spin": 840},
+			{"t": 5.3, "cap": "Recover: Ea lowered, drums slow, sky clears", "fx": ["embers"], "root": (0, 0, 0), "body": (0, 0, 0), "torso": (6, 0, 6), "head": (2, 0, -6), "RightArm": {"aim": (-2.4, -1.4, 2.6)}, "LeftArm": {"aim": (2.2, -0.6, 2.2)}, "LeftLeg": (0, 0, 0), "RightLeg": (0, 0, 0), "key": (4, 0, 0), "ea": (0, 0, 0), "spin": 900},
+		],
+	},
+	"shields": {
+		"title": "Shield Gates: portals open and a ring of shields hovers round him (no Dodge bar)",
+		"end": 2.6,
+		"keys": [
+			{"t": 0.0, "cap": f"Hand raised: {N_SHIELDS} small portals open in a ring", "fx": ["shield_portals"], "root": (0, 0, 0), "torso": (-4, 0, -6), "head": (-6, 0, 6), "LeftArm": {"aim": (2.2, -1.2, 5.6)}, "RightArm": fold()["RightArm"], "LeftLeg": (0, 0, 0), "RightLeg": (0, 0, 0), "key": (0, 0, 0)},
+			{"t": 0.7, "cap": "Shields emerge, half out of their portals", "fx": ["shield_portals", "shields:emerge"], "root": (0, 0, 0), "torso": (-8, 0, 0), "head": (-10, 0, 0), "LeftArm": {"aim": (1.2, -1.0, 6.4)}, "RightArm": {"aim": (-2.4, -0.6, 2.0)}, "LeftLeg": (0, -2, 0), "RightLeg": (0, 2, 0), "key": (-4, 0, 0)},
+			{"t": 1.4, "cap": "Shields hover in a ring, portals fade", "fx": ["shield_portals_fade", "shields:0"], "arena": "gold", "root": (0, 0, 0), "torso": (-2, 0, 0), "head": (-2, 0, 0), "LeftArm": {"aim": (2.4, -1.8, 3.4)}, "RightArm": {"aim": (-2.4, -1.8, 3.4)}, "LeftLeg": (0, 0, 0), "RightLeg": (0, 0, 0), "key": (0, 0, 0)},
+			fold(t=2.2, cap="Fortified: arms folded behind the shield ring (status set)", event="Fortified", fx=["shields:20"], arena="gold", root=(0, 0, 0), torso=(0, 0, 0), head=(-4, 0, 0), LeftLeg=(0, 0, 0), RightLeg=(0, 0, 0), key=(0, 0, 0)),
+		],
+	},
+	"fortified_idle": {
+		"title": "Fortified idle: the shield ring orbits while he stands",
+		"end": 4.0,
+		"loop": True,
+		"keys": [
+			fold(t=0.0, cap="Ring at 0 degrees, breath out", fx=["shields:0"], body=(0, 1, 0), torso=(2, 0, 2), head=(0, 0, -3), LeftLeg=(0, -1, 0), RightLeg=(0, -1, 0), key=(0, 0, 0)),
+			fold(t=1.33, cap="Ring a third round, breath in", fx=["shields:120"], body=(0, 0, 0), torso=(-3, 0, 0), head=(-4, 0, 0), RightArm={"aim": (1.0, -1.55, 2.85)}, LeftArm={"aim": (-1.0, -1.65, 1.95)}, key=(2, 0, 0)),
+			fold(t=2.67, cap="Ring two thirds round, breath out", fx=["shields:240"], body=(0, -1, 0), torso=(2, 0, -2), head=(0, 0, 3), LeftLeg=(0, 1, 0), RightLeg=(0, 1, 0), key=(0, 0, 0)),
+		],
+	},
+}
+# The volley window: keys on the gates clock between its Fire key (1.60 s) and its last volley (3.60 s). window panels at 0, 1, 2 s.
+MOVES["gates_window"] = {
+	"title": "Gates of Babylon: the 2 s volley burst from the runner's view (after key 3)",
+	"extends": "gates",
+	"window": "gates",
+	"window_start": 1.6,
+	"end": 4.4,
+	"keys": [
+		{"t": 1.6, "cap": "Window 0.0 s: volley 1 fires, arm thrust at the lanes", "fx": ["portals_open", "streaks:0"], "arena": "gold", **FIRE},
+		{"t": 2.6, "cap": "Window 1.0 s: volley 7, torso sways with the arm", "fx": ["portals_open", "streaks:6"], "arena": "gold", "root": (0.2, -0.15, 0), "torso": (12, -6, 10), "head": (4, 2, -8), "RightArm": {"aim": (-2.6, -3.2, 3.2)}, "LeftArm": {"aim": (2.4, 1.2, 2.0)}, "LeftLeg": (-8, 0, -3), "RightLeg": (10, 0, 3), "key": (12, 0, 0)},
+		{"t": 3.6, "cap": "Window 2.0 s: volley 14, the last; portals start to close", "fx": ["portals_fade", "streaks:13"], "arena": "gold", **LAST},
+	],
+}
+# APPROVED: nothing yet (owner gate, design doc 4.37). When the owner approves moves, list them here as boss_mage_keyframes does.
+PANELS = (0.0, 1.0, 2.0)  # window panel times, seconds into the volley burst
+GOLD, GOLD_HI, RED, DARK = (1.0, 0.72, 0.18), (1.0, 0.92, 0.6), (0.95, 0.08, 0.04), (0.12, 0.0, 0.0)
+
+
+# ---- portals, streaks and shields: layout in his model space ----
+
+
+def portal_set():
+	"""(centre, radius, outward normal) per portal, model units: round his sides and back, 2.5 to 10 units up."""
+	rng = random.Random(7)
+	out = []
+	for i in range(N_PORTALS):
+		th = math.radians(-30 + 240 * i / (N_PORTALS - 1))  # +X is his left, +Y his back: from left-front, round the back, to right-front
+		r = 4.5 + rng.uniform(0, 3.0)
+		c = Vector((r * math.cos(th), r * math.sin(th), 2.5 + rng.uniform(0, 7.5)))
+		n = Vector((math.cos(th) + rng.uniform(-0.2, 0.2), math.sin(th) + rng.uniform(-0.2, 0.2), -0.15)).normalized()
+		out.append((c, rng.uniform(0.7, 1.3), n))
+	return out
+
+
+PORTALS = portal_set()
+
+
+def volley(j):
+	"""Volley j of 14: VOLLEY weapons, each a portal and a direction (yaw jitter, pitch down) in his frame."""
+	rng = random.Random(500 + j)
+	return [(i, rng.uniform(-30, 30), rng.uniform(-14, -3)) for i in rng.sample(range(N_PORTALS), VOLLEY)]
+
+
+SHIELDS = ("round", "kite", "tower", "rect", "round2", "kite2")  # proposed looks: round, kite, tower, Mesopotamian rectangular
+SHIELD_R, SHIELD_Z = 4.2, 3.8  # the ring's radius and height, model units
+
+
+def shield_outline(kind):
+	if kind.startswith("round"):
+		r = 1.1 if kind == "round" else 0.95
+		return [(r * math.cos(a), r * math.sin(a)) for a in np.linspace(0, math.tau, 32, endpoint=False)]
+	if kind.startswith("kite"):
+		return [(-1.0, 0.9), (-0.85, 1.2), (0, 1.35), (0.85, 1.2), (1.0, 0.9), (0.55, -0.5), (0, -1.6), (-0.55, -0.5)]
+	if kind == "tower":
+		return [(-0.7, -1.3), (0.7, -1.3), (0.7, 1.0), (0.5, 1.3), (0, 1.4), (-0.5, 1.3), (-0.7, 1.0)]
+	return [(-0.65, -1.25), (0.65, -1.25), (0.65, 1.25), (-0.65, 1.25)]  # rect: Mesopotamian
+
+
+def flat_mesh(name, pts, mat, scale=1.0):
+	me = bpy.data.meshes.new(name)
+	me.from_pydata([(x * scale, y * scale, 0) for x, y in pts], [], [list(range(len(pts)))])
+	me.materials.append(mat)
+	o = bpy.data.objects.new(name, me)
+	bpy.context.scene.collection.objects.link(o)
+	for c in o.users_collection:
+		c.objects.unlink(o)
+	FX.objects.link(o)
+	return o
+
+
+def frame_at(c, n):
+	"""A matrix whose z is n, y as upright as n allows, at c (world)."""
+	z = Vector(n).normalized()
+	y = Vector((0, 0, 1)) - z * z.z
+	y = y.normalized() if y.length > 1e-3 else Vector((0, 1, 0))
+	x = y.cross(z)
+	m = Matrix((x, y, z)).transposed().to_4x4()
+	m.translation = c
+	return m
+
+
+# ---- the scene ----
+
+
+def load_scene(arena):
+	bpy.ops.wm.open_mainfile(filepath=arena)
+	scene = bpy.context.scene
+	scene.eevee.taa_render_samples = 24
+	rig = mk.Rig()
+	rig.arena = [o for o in scene.objects if o.type == "MESH"]
+	for o in rig.arena:
+		if o.name.startswith(("KingStandIn", "MageStandIn", "MageSpellOrb")):  # the draft's block stand-in: replaced by the model
+			o.hide_render = True
+	mound = [o for o in rig.arena if o.name.startswith("VaultCentreMound")]
+	rig.stand = max((o.matrix_world @ v.co).z for o in mound for v in o.data.vertices if v.co.x**2 + v.co.y**2 < 16) if mound else 0.0
+	rig.lights = [o for o in scene.objects if o.type == "LIGHT"]
+	rig.air = scene.world
+	nt = rig.air.node_tree
+	rig.sky = (tuple(nt.nodes["SkyMix"].inputs["A"].default_value), tuple(nt.nodes["SkyMix"].inputs["B"].default_value), next(n for n in nt.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value)
+	rig.flat = bpy.data.worlds.new("Flat")
+	sun = bpy.data.objects.new("FlatSun", bpy.data.lights.new("FlatSun", "SUN"))
+	sun.data.energy, sun.data.angle = 2.4, math.radians(25)
+	scene.collection.objects.link(sun)
+	rig.sun = sun
+	rig.cam = scene.camera
+	rig.bloom = scene.compositing_node_group.nodes["Bloom"]
+	king = be.append_model("boss_king")
+	rig.king = king
+	rig.parts = {o.name.split(".")[0]: o for o in king.children_recursive}  # the vault's key light is "Key": his Key appends as Key.001
+	rig.rest = {n: o.matrix_basis.copy() for n, o in rig.parts.items()}
+	pts = be.world_verts([rig.parts[n] for n in BODY])
+	rig.model_h = float(pts[:, 2].max() - pts[:, 2].min())
+	rig.k = SIZE * CHAR_H / rig.model_h  # studs per model unit in game
+	king.location, king.rotation_euler, king.scale = (0, 0, rig.stand), (0, 0, FACE), (rig.k,) * 3
+	rig.drums = {}
+	for n in EA_PARTS[1:]:  # each drum's mid height and radius, Ea-local, for the spin arrows
+		co = np.array([v.co for v in rig.parts[n].data.vertices])
+		rig.drums[n] = (float(co[:, 2].mean()), float(np.hypot(co[:, 0], co[:, 1]).max()))
+	rig.tip = float(np.array([v.co for v in rig.parts["Ea_Drum3"].data.vertices])[:, 2].max())
+	bpy.ops.mesh.primitive_plane_add(size=600, location=(0, 0, rig.stand - 0.02))
+	rig.floor = bpy.context.object  # his close views: a plain floor at the mound's top
+	rig.floor.data.materials.append(mk.matte_mat("FlatFloor", (0.5, 0.46, 0.4)))
+	global FX
+	FX = mk.FX = bpy.data.collections.new("FX")
+	scene.collection.children.link(FX)
+	return scene, rig
+
+
+def look(scene, rig, mode):
+	"""flat / dark: a plain backdrop for his close views. gold / red: the vault lit for a wide view."""
+	arena = mode in ("gold", "red")
+	for o in rig.arena:
+		o.hide_render = o.hide_render if o.name.startswith(("KingStandIn", "MageStandIn", "MageSpellOrb")) else not arena
+	rig.floor.hide_render = arena
+	rig.sun.hide_render = arena
+	for o in rig.lights:
+		o.hide_render = not arena
+	if arena:
+		scene.world = rig.air
+		nt = rig.air.node_tree
+		a, b, strength = rig.sky if mode == "gold" else (mk.be_rgb("#7A1212"), mk.be_rgb("#2A0606"), 0.7)
+		nt.nodes["SkyMix"].inputs["A"].default_value = a
+		nt.nodes["SkyMix"].inputs["B"].default_value = b
+		next(n for n in nt.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value = strength
+		scene.view_settings.view_transform = "AgX"
+		scene.view_settings.look = "None" if mode == "gold" else "AgX - Punchy"
+		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 0.8, 0.5 if mode == "gold" else 0.9
+	else:
+		scene.world = rig.flat
+		bg = next(n for n in rig.flat.node_tree.nodes if n.type == "BACKGROUND")
+		bg.inputs["Color"].default_value = (0.78, 0.8, 0.84, 1) if mode == "flat" else (0.09, 0.025, 0.02, 1)
+		bg.inputs["Strength"].default_value = 0.8 if mode == "flat" else 1.0
+		rig.sun.data.energy = 2.4 if mode == "flat" else 1.5
+		rig.sun.data.color = (1, 1, 1) if mode == "flat" else (1.0, 0.8, 0.75)
+		rig.sun.rotation_euler = (math.radians(50), math.radians(10), FACE + math.radians(-25))
+		scene.view_settings.view_transform = "Standard"
+		scene.view_settings.look = "None"
+		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 1.0, 0.35
+
+
+def to_world(rig, p):
+	return rig.king.matrix_world @ Vector(p)
+
+
+def to_world_dir(rig, d):
+	return (rig.king.matrix_world.to_3x3() @ Vector(d)).normalized()
+
+
+# ---- the pose solver ----
+
+
+def solve(key):
+	"""Model-space matrix per part (applied on top of its rest) and the plain local rotations for keys.json."""
+	rot = {"Body": eul(key.get("body", (0, 0, 0))), "Torso": eul(key.get("torso", (0, 0, 0))), "Head": eul(key.get("head", (0, 0, 0))), "Key": eul(key.get("key", (0, 0, 0)))}
+	for n in LEG:
+		rot[n] = eul(key.get(n, (0, 0, 0)))
+	for n in SHOULDER:
+		a = key.get(n, (0, 0, 0))
+		rot[n] = eul((0, 0, 0)) if a == "grip" else (aim_rot(SHOULDER[n], a["aim"]) if isinstance(a, dict) else eul(a))
+	m = {}
+	body = Matrix.Translation(key.get("root", (0, 0, 0))) @ about(HIP, rot["Body"])
+	torso = body @ about(WAIST, rot["Torso"])
+	m["Torso_merged"] = torso
+	m["Head_merged"] = torso @ about(NECK, rot["Head"])
+	m["Key"] = torso @ about(KEY_PIVOT, rot["Key"])
+	for n in LEG:
+		m[n + "_merged"] = body @ about(LEG[n], rot[n])
+	arm = {n: about(SHOULDER[n], rot[n]) for n in SHOULDER}
+	grip, spin = None, key.get("spin", 0)
+	if "ea" in key:
+		local = Matrix.Translation(HAND["RightArm"] - EA_PIVOT) @ about(EA_PIVOT, eul(key["ea"]))  # grip on the fist, turned about it
+		ea = arm["RightArm"] @ local  # torso space
+		if key.get("LeftArm") == "grip":
+			rot["LeftArm"] = aim_rot(SHOULDER["LeftArm"], ea @ (EA_PIVOT + Vector((0, 0, GRIP_UP))))
+			arm["LeftArm"] = about(SHOULDER["LeftArm"], rot["LeftArm"])
+		m["Ea"] = torso @ ea
+		r3 = local.to_3x3()
+		rot["Ea"] = r3.to_4x4()
+		grip = [round(v, 4) for v in local.translation - (EA_PIVOT - r3 @ EA_PIVOT)]
+	for n in SHOULDER:
+		m[n + "_merged"] = torso @ arm[n]
+	record = {n: degs(r) for n, r in rot.items()}
+	for n, sign in zip(EA_PARTS[1:], (1, -1, 1)):
+		record[n] = [0.0, 0.0, round(sign * spin, 3)]
+	return m, record, grip
+
+
+def pose_king(rig, key):
+	m, record, grip = solve(key)
+	for n, o in rig.parts.items():
+		if n in EA_PARTS:
+			o.hide_render = "ea" not in key
+			o.rotation_euler = (0, 0, math.radians(record.get(n, (0, 0, 0))[2]))
+		else:
+			o.matrix_basis = m.get(n, Matrix()) @ rig.rest[n]
+	bpy.context.view_layer.update()
+	return record, grip
+
+
+# ---- effects per key ----
+
+
+def streak_end(p, d):
+	"""Where a straight shot from p along d meets the floor or the wall, studs."""
+	t = -p.z / d.z if d.z < 0 else 1e9
+	a2, b2 = d.x**2 + d.y**2, 2 * (p.x * d.x + p.y * d.y)
+	t = min(t, (-b2 + math.sqrt(b2 * b2 - 4 * a2 * (p.x**2 + p.y**2 - R_WALL**2))) / (2 * a2), 320.0)
+	return p + d * t
+
+
+def portal(rig, c, rad, n, state):
+	"""A gold ripple portal: a soft disc and two rings facing outward, with a weapon tip poking out (open) or no tip (faint, fade)."""
+	cw, nw, r = to_world(rig, c), to_world_dir(rig, n), rad * rig.k
+	rot = frame_at(cw, nw).to_euler()
+	a = {"faint": 0.3, "open": 1.0, "fade": 0.45}[state]
+	rr = r * (0.55 if state == "faint" else (1.15 if state == "fade" else 1.0))
+	mk.disc(cw, rr, mk.glow_mat("PortalFill", GOLD, 1.0, 0.35 * a), rot=rot)
+	mk.ring(cw, rr, 0.07 * rr, mk.glow_mat("PortalRing", GOLD_HI, 3.5 * a, min(1, 0.9 * a + 0.1)), rot=rot)
+	mk.ring(cw, rr * 0.62, 0.04 * rr, mk.glow_mat("PortalRipple", GOLD, 2 * a, min(1, 0.7 * a + 0.1)), rot=rot)
+	if state == "open":
+		tip = cw + nw * (1.1 * r)
+		mk.tube([cw + nw * 0.1 * r, tip], 0.07 * r, mk.glow_mat("TipCore", GOLD_HI, 6))
+		side = nw.orthogonal().normalized() * 0.3 * r
+		mk.tube([cw + nw * 0.3 * r - side, cw + nw * 0.3 * r + side], 0.05 * r, mk.glow_mat("TipGuard", GOLD, 4))  # a cross guard: it is a weapon
+
+
+def streak(rig, i, yaw, pitch, dim=False):
+	c, rad, n = PORTALS[i]
+	p = to_world(rig, c)
+	th = math.atan2(c.y, c.x) + math.radians(yaw)
+	d = Vector((math.cos(th) * math.cos(math.radians(pitch)), math.sin(th) * math.cos(math.radians(pitch)), math.sin(math.radians(pitch))))
+	d = to_world_dir(rig, d)
+	end = streak_end(p, d)
+	w = 0.5 * SIZE / 4
+	if dim:
+		mk.tube([p, end], w * 0.6, mk.glow_mat("StreakFade", GOLD, 0.9, 0.3))
+		mk.ring(end, w * 6, w * 0.6, mk.glow_mat("ClinkFade", GOLD, 0.8, 0.3))
+		return
+	mk.tube([p, end], w, mk.glow_mat("StreakCore", GOLD_HI, 14))
+	mk.tube([p, end], w * 2.2, mk.glow_mat("StreakGlow", GOLD, 2.5, 0.5))
+	mk.tube([p, end], w * 4.5, mk.glow_mat("StreakHalo", GOLD, 0.6, 0.25))["wide_only"] = True
+	mk.ball(end, w * 3, mk.glow_mat("ClinkCore", GOLD_HI, 14))
+	mk.ring(end, w * 6, w * 0.8, mk.glow_mat("ClinkRing", GOLD, 4, 0.8))
+	mk.lamp(end + (p - end).normalized() * 4, GOLD, 2e4, 4)
+
+
+def shield(rig, kind, c, n, size, portal_plane=False):
+	"""One shield facing outward along n at c (model units), its field inset; gold rim, navy or red field."""
+	cw, nw = to_world(rig, c), to_world_dir(rig, n)
+	m = frame_at(cw, nw)
+	k = rig.k * size
+	pts = shield_outline(kind)
+	body = flat_mesh("Shield", pts, mk.matte_mat("ShieldGold", (0.85, 0.62, 0.18)), k)
+	body.modifiers.new("thick", "SOLIDIFY").thickness = 0.12 * k
+	body.matrix_world = m
+	field = flat_mesh("ShieldField", [(x * 0.72, y * 0.72) for x, y in pts], mk.matte_mat("ShieldNavy" if kind in ("round", "tower", "kite2") else "ShieldRed", (0.1, 0.12, 0.32) if kind in ("round", "tower", "kite2") else (0.55, 0.08, 0.08)), k)
+	field.matrix_world = m @ Matrix.Translation((0, 0, 0.02 * k))
+	if kind.startswith("round"):
+		mk.ball(cw + nw * 0.1 * k, 0.18 * k, mk.matte_mat("ShieldGold", (0.85, 0.62, 0.18)))
+	if kind == "rect":  # Mesopotamian: three gold bands across
+		for y in (-0.7, 0, 0.7):
+			mk.tube([m @ Vector((-0.65 * k, y * k, 0.03 * k)), m @ Vector((0.65 * k, y * k, 0.03 * k))], 0.05 * k, mk.glow_mat("Band", GOLD, 1.2))
+
+
+def shield_ring(rig, yaw, state):
+	"""The ring of shields round him: state emerge (in their portals) or a ring angle; portals from shield_portals."""
+	for i, kind in enumerate(SHIELDS):
+		th = math.radians(yaw + 360 * i / N_SHIELDS)
+		n = Vector((math.cos(th), math.sin(th), 0.1)).normalized()
+		c = Vector((SHIELD_R * math.cos(th), SHIELD_R * math.sin(th), SHIELD_Z + (0.4 if i % 2 else -0.3)))
+		if state != "emerge":
+			c += Vector((math.cos(th), math.sin(th), 0)) * 0.9
+		shield(rig, kind, c, n, 0.95 if state == "emerge" else 1.0)
+
+
+def shield_portals(rig, state):
+	for i in range(N_SHIELDS):
+		th = math.radians(360 * i / N_SHIELDS)
+		c = Vector((SHIELD_R * math.cos(th), SHIELD_R * math.sin(th), SHIELD_Z + (0.4 if i % 2 else -0.3)))
+		portal(rig, c, 1.4, Vector((math.cos(th), math.sin(th), 0.1)), state)
+
+
+def arrows(rig, spin):
+	"""Render marks only: a cyan arc with an arrowhead round each drum, its direction the drum's spin (Drum2 the other way)."""
+	ea = rig.parts["Ea"].matrix_world
+	for n, sign in zip(EA_PARTS[1:], (1, -1, 1)):
+		z, r = rig.drums[n]
+		rr = r * 1.7
+		pts = [ea @ Vector((rr * math.cos(sign * a), rr * math.sin(sign * a), z)) for a in np.linspace(0, math.radians(260), 18)]
+		mk.tube(pts, 0.035 * rig.k, mk.glow_mat("Arrow", (0.35, 0.9, 1.0), 6))
+		head = ea.to_3x3() @ (Vector((rr * math.cos(sign * math.radians(275)), rr * math.sin(sign * math.radians(275)), z)) - Vector((rr * math.cos(sign * math.radians(255)), rr * math.sin(sign * math.radians(255)), z)))
+		bpy.ops.mesh.primitive_cone_add(vertices=12, radius1=0.12 * rig.k, depth=0.3 * rig.k, location=pts[-1])
+		cone = mk.fx_link(bpy.context.object, mk.glow_mat("Arrow", (0.35, 0.9, 1.0), 6))
+		cone.rotation_euler = Vector((0, 0, 1)).rotation_difference(head.normalized()).to_euler()
+	if spin:
+		mk.lamp(ea @ Vector((0, 0, rig.drums["Ea_Drum2"][0])), (0.5, 0.9, 1.0), 2e3, 2)
+
+
+def build_fx(rig, names, seed):
+	rng = random.Random(seed)
+	k, s = rig.k, SIZE / 4
+	ea = rig.parts["Ea"].matrix_world
+	for name in names:
+		kind, _, arg = name.partition(":")
+		if kind.startswith("portals"):
+			for c, rad, n in PORTALS:
+				portal(rig, c, rad, n, kind.split("_")[1])
+			if kind == "portals_open":
+				mk.lamp(to_world(rig, (0, 2, 7)), GOLD, 1.2e4 * s * s, 6)
+		elif kind == "streaks":
+			j = int(arg)
+			for i, yaw, pitch in volley(j):
+				streak(rig, i, yaw, pitch)
+			if j > 0:
+				for i, yaw, pitch in volley(j - 1):
+					streak(rig, i, yaw, pitch, dim=True)
+		elif kind == "shield_portals":
+			shield_portals(rig, "open")
+		elif kind == "shield_portals_fade":
+			shield_portals(rig, "fade")
+		elif kind == "shields":
+			shield_ring(rig, 0 if arg == "emerge" else float(arg), "emerge" if arg == "emerge" else "ring")
+		elif kind == "draw":  # Ea comes out of a ripple at the fist: a portal round the grip, its plane across the blade
+			g = ea.translation
+			axis = ea.to_3x3() @ Vector((0, 0, 1))
+			rot = frame_at(g + axis * 0.6 * k, axis).to_euler()
+			mk.disc(g + axis * 0.6 * k, 1.6 * k, mk.glow_mat("PortalFill", GOLD, 1.5, 0.35), rot=rot)
+			mk.ring(g + axis * 0.6 * k, 1.6 * k, 0.1 * k, mk.glow_mat("PortalRing", GOLD_HI, 8, 1.0), rot=rot)
+			mk.ring(g + axis * 0.6 * k, 1.0 * k, 0.06 * k, mk.glow_mat("PortalRipple", GOLD, 4, 0.8), rot=rot)
+			mk.lamp(g + axis * 1.5 * k, GOLD, 3e4 * s * s, 4)
+		elif kind == "arrows":
+			arrows(rig, True)
+		elif kind == "wind":  # pale spirals rising round him and up the pillar
+			top = (ea @ Vector((0, 0, rig.tip))).z - rig.stand
+			for i in range(8):
+				r0, a0 = rng.uniform(4.5, 8.0) * k, rng.uniform(0, math.tau)
+				pts = [Vector((r0 * (1 - 0.5 * t) * math.cos(a0 + t * 5.5), r0 * (1 - 0.5 * t) * math.sin(a0 + t * 5.5), rig.stand + t * top * 1.1)) for t in np.linspace(0, 1, 40)]
+				mk.tube(pts, 0.05 * k, mk.glow_mat("Wind", (1.0, 0.72, 0.68), 1.6, 0.45))
+		elif kind == "charge":
+			tip = ea @ Vector((0, 0, rig.tip))
+			mk.ball(tip, 0.5 * k, mk.glow_mat("TipGlow", RED, 6, 0.6))
+			for d in EA_PARTS[1:]:
+				z, r = rig.drums[d]
+				mk.ring(ea @ Vector((0, 0, z)), r * 1.25 * k, 0.03 * k, mk.glow_mat("DrumGlow", RED, 5, 0.7), rot=ea.to_3x3().normalized().to_euler())
+			mk.lamp(tip, RED, 1.2e5 * s * s, 6)
+		elif kind == "gather":  # red-black air pulled into the tip: dark rings closing on it
+			tip = ea @ Vector((0, 0, rig.tip))
+			axis = ea.to_3x3() @ Vector((0, 0, 1))
+			for i, rr in enumerate((2.2, 3.2, 4.4)):
+				mk.ring(tip + axis * (0.4 + 0.5 * i) * k, rr * k, 0.14 * k, mk.glow_mat("GatherDark" if i % 2 else "GatherRed", DARK if i % 2 else RED, 1.5 if i % 2 else 4, 0.8), rot=frame_at(tip, axis).to_euler())
+			mk.ball(tip, 1.0 * k, mk.glow_mat("GatherCore", (0.3, 0.02, 0.02), 3, 0.5))
+		elif kind == "beam":
+			tip = ea @ Vector((0, 0, rig.tip))
+			d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
+			end = streak_end(tip, d)
+			L = (end - tip).length
+			mk.tube([tip, end], 1.4 * s, mk.glow_mat("BeamDark", (0.3, 0.02, 0.02), 2.5))
+			mk.tube([tip, end], 3.2 * s, mk.glow_mat("BeamRed", RED, 2.2, 0.5))
+			mk.tube([tip, end], 7 * s, mk.glow_mat("BeamHalo", RED, 0.6, 0.2))["wide_only"] = True
+			side = d.orthogonal().normalized()
+			up = d.cross(side)
+			for h in range(3):  # the cyclone: three strands wound round the beam, widening toward the hit
+				ph = h * math.tau / 3
+				pts = [tip + d * (t * L) + (side * math.cos(ph + t * 22) + up * math.sin(ph + t * 22)) * (2 + 9 * t) * s for t in np.linspace(0, 1, 90)]
+				mk.tube(pts, 0.7 * s, mk.glow_mat("CycloneDark" if h == 1 else "CycloneRed", DARK if h == 1 else RED, 1.2 if h == 1 else 3, 0.75))
+			mk.disc(end, 14 * s, mk.glow_mat("BeamHit", RED, 2.5, 0.6), rot=frame_at(end, -d).to_euler())
+			mk.ring(end, 18 * s, 1.2 * s, mk.glow_mat("BeamHitRing", DARK, 2, 0.8), rot=frame_at(end, -d).to_euler())
+			mk.ball(tip, 1.2 * k, mk.glow_mat("TipGlow", RED, 6, 0.6))
+			mk.lamp(tip + d * 20, RED, 3e5 * s * s, 8)
+			mk.lamp(end - d * 6, RED, 2e5 * s * s, 8)
+		elif kind == "embers":
+			tip = ea @ Vector((0, 0, rig.tip))
+			for _ in range(6):
+				dd = Vector([rng.uniform(-1, 1) for _ in range(3)]).normalized()
+				mk.ball(tip + dd * rng.uniform(0.5, 2.0) * k, 0.12 * k, mk.glow_mat("Ember", RED, 4, 0.8))
+
+
+def clear_fx():
+	for o in list(FX.objects):
+		bpy.data.objects.remove(o, do_unlink=True)
+
+
+# ---- the volley window: panels from the runner's camera and from above ----
+
+WIN, MAP = (1000, 562), 418
+
+
+def window_fx(rig, t):
+	j = min(13, int(round(t / 0.15)))
+	build_fx(rig, ["portals_fade" if t >= 2.0 else "portals_open", f"streaks:{j}"], seed=900 + j)
+	return [f"volley {j + 1} of 14 fires: {VOLLEY} weapons", f"{N_PORTALS} portals " + ("start to close" if t >= 2.0 else "stay open"), f"volley {j} fading" if j else "none fading yet"]
+
+
+def window_row(scene, rig, move):
+	look(scene, rig, "gold")
+	cam = rig.cam
+	out = []
+	for t, key in zip(PANELS, move["keys"]):
+		clear_fx()
+		pose_king(rig, key)
+		lines = window_fx(rig, t)
+		player_view(cam)
+		wide = mk.shot(scene, os.path.join(TMP, f"gates_window_{t:.1f}_wide.png"), WIN)
+		cam.data.type, cam.data.ortho_scale = "ORTHO", 2 * R_WALL + 10
+		cam.location, cam.rotation_euler = (0, 0, 400), (0, 0, FACE)  # top view, the runner's side of the room at the bottom
+		cam.data.clip_start, cam.data.clip_end = 400 - 90, 500  # only below 90 studs: no dome
+		top = mk.shot(scene, os.path.join(TMP, f"gates_window_{t:.1f}_top.png"), (MAP, MAP))
+		out.append((t, lines, wide, top))
+	clear_fx()
+	return out
+
+
+# ---- renders and the sheet ----
+
+MAIN, FRONT, WIDE = mk.MAIN, mk.FRONT, mk.WIDE
+SIDE_W, CELL_W, STRIP_H, COLS, HEAD_H = mk.SIDE_W, mk.CELL_W, mk.STRIP_H, mk.COLS, mk.HEAD_H
+
+
+def player_view(cam):
+	"""The colosseum's follow camera on lane 4 (build_colosseum.player_pose): 40 studs behind the runner, turned 75 degrees inward."""
+	run = Vector((math.cos(TH0), math.sin(TH0), 0)) * (R_IN + 3.5 * LANE_W)
+	y = math.radians(75)
+	d = (Vector((-math.sin(TH0), math.cos(TH0), 0)) * math.cos(y) - Vector((math.cos(TH0), math.sin(TH0), 0)) * math.sin(y)).normalized()
+	eye = run - d * 40.0 + Vector((0, 0, CHAR_H + 3))
+	look_at = eye + d * 100 + Vector((0, 0, 100 * math.tan(math.radians(4))))
+	cam.data.type, cam.data.sensor_fit = "PERSP", "VERTICAL"
+	cam.data.clip_start, cam.data.clip_end = 0.3, 3000
+	cam.location = eye
+	cam.rotation_euler = (look_at - eye).to_track_quat("-Z", "Y").to_euler()
+	cam.data.angle_y = math.radians(110)
+
+
+def figure_pts(rig, key):
+	objs = [rig.parts[n] for n in BODY] + [rig.parts["Key"]] + ([rig.parts[n] for n in EA_PARTS] if "ea" in key else [])
+	return be.world_verts(objs)
+
+
+def frame_extra(rig, key):
+	"""Effect anchors that the close views must keep in frame: portals and the shield ring."""
+	fx = key.get("fx", [])
+	pts = []
+	if any(f.startswith("portals") for f in fx):
+		pts += [to_world(rig, c) for c, _, _ in PORTALS]
+	if any(f.startswith("shield") for f in fx):
+		pts += [to_world(rig, (SHIELD_R * 1.4 * math.cos(a), SHIELD_R * 1.4 * math.sin(a), SHIELD_Z + dz)) for a in np.linspace(0, math.tau, 12) for dz in (-1.8, 1.8)]
+	return pts
+
+
+def run_move(scene, rig, name, move):
+	keys = move["keys"]
+	union = []
+	for key in keys:  # pass 1: framing over every key of the move
+		pose_king(rig, key)
+		pts = figure_pts(rig, key)
+		extra = frame_extra(rig, key)
+		if extra:
+			pts = np.vstack([pts] + [np.array([[p.x, p.y, p.z]]) for p in extra])
+		union.append(pts)
+	union = np.vstack(union)
+	cam = rig.cam
+	cam.data.sensor_fit = "AUTO"
+	yaw = Matrix.Rotation(FACE, 3, "Z")
+	three = bk.fit(cam, union, yaw @ Vector(move.get("view", (0.65, -0.75, 0.18))), MAIN[0] / MAIN[1], margin=0.9)
+	front = bk.fit(cam, union, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.9)
+	span = float(np.linalg.norm(union.max(axis=0) - union.min(axis=0)))
+	clip = span * 3 - span * 0.75
+	cells, records = [], []
+	for i, key in enumerate(keys):
+		clear_fx()
+		record, grip = pose_king(rig, key)
+		build_fx(rig, key.get("fx", []), seed=100 + i)
+		look(scene, rig, "dark" if name.startswith("enuma") else "flat")
+		cell = {}
+		wide_only = [o for o in FX.objects if o.get("wide_only")]
+		for o in wide_only:  # halos are for the room-scale view; close up they bury him
+			o.hide_render = True
+		for view, size, tag in ((three, MAIN, "main"), (front, FRONT, "front")):
+			cam.location, cam.rotation_euler, cam.data.ortho_scale = view
+			cam.data.type, cam.data.sensor_fit = "ORTHO", "AUTO"
+			cam.data.clip_start = clip  # only what is round him: room-wide effects in front of him stay out of the close views
+			cell[tag] = mk.shot(scene, os.path.join(TMP, f"{name}_{i}_{tag}.png"), size)
+		for o in wide_only:
+			o.hide_render = False
+		if key.get("arena"):
+			look(scene, rig, key["arena"])
+			player_view(cam)
+			cell["wide"] = mk.shot(scene, os.path.join(TMP, f"{name}_{i}_wide.png"), WIDE)
+			mk.shot(scene, os.path.join(TMP, f"{name}_{i}_wide_big.png"), (1280, 720))  # a full-size copy, for checking
+		cells.append(cell)
+		rec = {"t": key["t"], "caption": key["cap"], "root_offset": list(key.get("root", (0, 0, 0))), "rotations": record, "ea_shown": "ea" in key}
+		if grip:
+			rec["ea_grip_offset"] = grip
+		if "spin" in key:
+			rec["ea_drum_spin"] = key["spin"]
+		for f in ("hold", "event"):
+			if f in key:
+				rec["hold_until" if f == "hold" else f] = key[f]
+		rec["effects"] = key.get("fx", [])
+		ring = [f for f in rec["effects"] if f.startswith("shields:")]
+		if ring:
+			rec["shield_ring"] = ring[0].split(":")[1]
+		records.append(rec)
+	win = window_row(scene, rig, move) if move.get("window") == "gates" else None
+	clear_fx()
+	sheet(name, move, cells, win)
+	return records
+
+
+def sheet(name, move, cells, win=None):
+	keys = move["keys"]
+	rows = math.ceil(len(keys) / COLS)
+	cell_h = MAIN[1] + STRIP_H
+	win_h = 60 + 40 + WIN[1] + 8 + MAP + 16 if win else 0
+	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h, COLS * CELL_W, 4), dtype=np.float32)
+	px[:, :, :3] = bk.BG
+	total = f"{move['end']:.1f} s" + (" loop" if move.get("loop") else "")
+	note = f"Times proposed. Wide views: vault draft from a runner's camera on lane 4, him at {SIZE:g}x a runner ({SIZE * CHAR_H:g} studs) standing on the centre mound"
+	if isinstance(move.get("window"), list):
+		a, b = move["window"]
+		note += f". DODGE WINDOW {a:.2f} - {b:.2f} s, the hit lands at {b:.2f} s (event)"
+	if name == "gates":
+		note += "; the 2.0 s volley burst runs 1.60 - 3.60 s, a volley every 0.15 s (gates_window shows it)"
+	if name == "gates_window":
+		note += ". Times on the gates clock: these keys follow its Fire key (1.60 s); its recover key stays at 4.20 s"
+	if name == "enuma_beam":
+		note += ". Times on the enuma clock: the beam starts at 3.00 s when the 3 s charge window ends; the sweep runs 3.00 - 5.00 s"
+	if name.startswith("enuma"):
+		note += ". Cyan arcs: drum spin direction, render marks only"
+	if name == "idle":
+		note += ". Block arms have no elbow: folded arms are two straight blocks crossed in front of the chest"
+	paste_txt = [(f"{move['title']}  |  The Golden King  |  {total}  |  (proposed) key frames for approval, no in-betweens", 40, 48, 24, bk.INK), (note + ".", 22, 90, 24, bk.DIM)]
+	bk.paste(px, bk.text_px(paste_txt, COLS * CELL_W, HEAD_H, bk.BG), 0, 0)
+	for i, key in enumerate(keys):
+		row, col = divmod(i, COLS)
+		x, y = col * CELL_W, HEAD_H + row * cell_h
+		bk.paste(px, cells[i]["main"], x, y)
+		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, "front")
+		if "wide" in cells[i]:
+			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, "arena view (runner's camera)")
+		head = f"{name}  key {i + 1} of {len(keys)}   {key['t']:.2f} s" + (f"   event {key['event']}" if "event" in key else "")
+		bk.paste(px, bk.text_px([(head, 34, 40, 18, (0.75, 0.05, 0.05) if "event" in key else bk.INK), (key["cap"], 26, 80, 18, bk.DIM)], CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
+		px[y : y + cell_h, x : x + 2] = (0.5, 0.5, 0.52, 1)
+	if win:
+		y0 = HEAD_H + rows * cell_h + 8
+		bk.paste(px, bk.text_px([(f"The 2 s volley burst from {move['window_start']:.2f} s, timing draft (proposed): a volley of {VOLLEY} every 0.15 s from the open portals, straight gold shots across the lanes; the last volley fades", 30, 40, 18, bk.INK)], COLS * CELL_W, 60, bk.BG), 0, y0)
+		pw = COLS * CELL_W // len(win)
+		for k, (t, lines, wide, top) in enumerate(win):
+			x, y = k * pw, y0 + 60
+			bk.paste(px, bk.text_px([(f"window {t:.1f} s   (move {move['window_start'] + t:.2f} s)", 22, 28, 10, bk.INK)], pw, 40, bk.BG), x, y)
+			bk.paste(px, wide, x, y + 40)
+			bk.paste(px, top, x, y + 40 + WIN[1] + 8)
+			txt = [("top view", 18, 26, 12, bk.DIM)] + [(s, 19, 70 + 34 * j, 12, bk.INK) for j, s in enumerate(lines)] + [("runner's side at the bottom", 16, MAP - 20, 12, bk.DIM)]
+			bk.paste(px, bk.text_px(txt, pw - MAP, MAP, bk.BG), x + MAP, y + 40 + WIN[1] + 8)
+			px[y : y + win_h - 60, x : x + 2] = (0.5, 0.5, 0.52, 1)
+	path = os.path.join(OUT, name + "_slices.png")
+	bk.save_px(px, path)
+	print("SHEET", path)
+
+
+def overview():
+	"""Every move's main views at half size, one row per move."""
+	w, h = MAIN[0] // 2, MAIN[1] // 2
+	cols = max(len(m["keys"]) for m in MOVES.values())
+	row_h = h + 50 + 56
+	px = np.ones((90 + row_h * len(MOVES), cols * w, 4), dtype=np.float32)
+	px[:, :, :3] = bk.BG
+	bk.paste(px, bk.text_px([("The Golden King: all moves, (proposed) key frames for approval, no in-betweens; nothing approved yet", 36, 54, 20, bk.INK)], cols * w, 90, bk.BG), 0, 0)
+	for r, (name, move) in enumerate(MOVES.items()):
+		y = 90 + r * row_h
+		bk.paste(px, bk.text_px([(f"{name}: {move['title']}  ({move['end']:.1f} s)", 30, 40, 16, bk.INK)], cols * w, 50, bk.BG), 0, y)
+		for i, key in enumerate(move["keys"]):
+			path = os.path.join(TMP, f"{name}_{i}_main.png")
+			if not os.path.exists(path):
+				continue
+			img = bk.load_px(path)[: h * 2, : w * 2]
+			small = img.reshape(h, 2, w, 2, 4).mean(axis=(1, 3))
+			bk.paste(px, small, i * w, y + 50)
+			bk.paste(px, bk.text_px([(f"{i + 1}  {key['t']:.2f} s  {key['cap']}", 15, 24, 8, bk.DIM)], w, 56, bk.BG), i * w, y + 50 + h)
+	path = os.path.join(OUT, "all_moves_overview.png")
+	bk.save_px(px, path)
+	print("SHEET", path)
+
+
+def main():
+	global SIZE
+	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
+	if "--size" in argv:
+		SIZE = float(argv[argv.index("--size") + 1])
+	wanted = [a for a in argv if a in MOVES] or list(MOVES)
+	for d in (OUT, TMP, bk.TMP):
+		os.makedirs(d, exist_ok=True)
+	scene, rig = load_scene(arena)
+	print(f"SCALE size {SIZE}x: his model height {rig.model_h:.3f} units, {rig.k:.3f} studs per unit; feet on the mound at z {rig.stand:.2f} studs")
+	path = os.path.join(OUT, "keys.json")
+	data = json.load(open(path)) if os.path.exists(path) else {"moves": {}}
+	data.update(
+		{
+			"units": "XYZ Euler degrees about each part's joint, relative to its parent; root_offset in model units (Z = Roblox Y up)",
+			"parents": {"Body": None, "Torso": "Body", "LeftLeg": "Body", "RightLeg": "Body", "Head": "Torso", "LeftArm": "Torso", "RightArm": "Torso", "Key": "Torso", "Ea": "RightArm", "Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
+			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, **SHOULDER, **LEG, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT)},
+			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right arm's space, model units. ea_shown false: Ea is not drawn. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
+			"effects": f"sketch labels per key: portals_* ({N_PORTALS} gold ripple portals), streaks:j (volley j of 14, {VOLLEY} shots, the previous volley fading), shield_portals*, shields:<ring yaw degrees>|emerge ({N_SHIELDS} shields), draw, arrows, wind, charge, gather, beam, embers",
+			"layout": "gates_window holds keys on the gates clock between its Fire key (1.60 s) and its recover key; enuma_beam continues enuma_charge on one clock (the beam starts at 3.00 s). Dodge windows: gates 0.00-1.60 s (before the volleys), enuma 0.00-3.00 s; shields has none",
+			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4), "stand_z_studs": round(rig.stand, 3), "hover": 0},
+			"approved": [],
+		}
+	)
+	for name in wanted:
+		m = MOVES[name]
+		data["moves"][name] = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False), "keys": run_move(scene, rig, name, m)}
+		if isinstance(m.get("window"), list):
+			data["moves"][name]["dodge_window"] = m["window"]
+		if m.get("extends"):
+			data["moves"][name]["extends"] = m["extends"]
+		if m.get("window") == "gates":
+			data["moves"][name].update({"after_key_t": m["window_start"], "window": [m["window_start"], m["window_start"] + 2.0]})
+	with open(path, "w") as f:
+		json.dump(data, f, indent=1)
+	overview()
+
+
+if __name__ == "__main__":
+	main()
