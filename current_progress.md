@@ -159,8 +159,9 @@
 155. 2026-11-11 — Alex Nguyen — Added the admin command `/elfboss`, which starts The Elf Mage's boss event.
 156. 2026-11-11 — Alex Nguyen — Wrote the owner's Elf Mage rule changes into the design doc and specs (2 s strike windows, Stone Golem miniboss with 1,000 HP and a sweep, easier rhythm circles, Bosses cards, her 6 Relics and chest) and drew the card, key-frame and Relic drafts for approval.
 157. 2026-11-12 — Alex Nguyen — Built the approved Elf Mage fixes end to end (lightning and barrage spam of 7-10 bolts every 0.15 s over 2 s, Stone Golem miniboss with its own 1,000 HP bar, slam and sweep, 3-circle rhythm, Bosses cards draft B, her 5 Relics and chest uploaded, drop list hidden), targeted Studio scenarios green and rules audit PASS.
+158. 2026-11-11 — Alex Nguyen — Wrote the rules, evidence and goal for the third boss The Golden King (design doc 4.36-4.38, BOSS_EVENT_SPEC, RELIC_SPEC, SIDEKICK_SPEC, evidence files, goal boss-king k0-k9, owner questions) and the every-boss Sidekick self-drop rule, on `feature/alex/boss-king`; rules audit PASS.
 
 ## What's next
-**Have the owner play `/elfboss` and rule on the open Elf Mage questions in `docs/OWNER_QUESTIONS.md`, first the 511 KB pose data that loads at join.**
+**Build k1 (the `/new-boss` skill), k2 (models `boss_king`, `side_king`, `side_mage`, 4 renders each) and k3 (treasure-vault re-dress renders) in parallel, and put every model and render on one review page for the owner.**
 
-**Why this is next:** the goal's last gate is the owner's look in Studio, and the join-size answer decides whether the lazy-data branch must merge before the boss-mage PR into main (m12).
+**Why this is next:** the owner asked for screenshots of all models and renders before anything continues; k4 key frames, k5 art and the k6 bake all depend on the approved models and vault.

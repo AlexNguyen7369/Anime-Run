@@ -4,16 +4,17 @@
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
-- boss-king k0: rules, evidence, goal (doing 2026-11-11)
+- boss-king k1 skill `/new-boss`, k2 models (`boss_king`, `side_king`, `side_mage`), k3 vault renders, in parallel; review page for the owner (doing 2026-11-11)
 
 ## Next
-- boss-king k1 skill `/new-boss`, then k2 models and k3 vault renders -> review page for the owner's approval
+- boss-king k4 key frames after the owner approves the k2/k3 review page; owner to drop the 10 reference images in `../AnimeRun-orch/art-backup/anime_refs/boss_king/`
 - boss-mage-2: owner plays `/elfboss` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-mage-2), pose data join size first
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-11 boss-king k0: The Golden King rules, evidence, goal, Sidekick self-drop rule for every boss (72fafa4 on `feature/alex/boss-king`); rules audit PASS, docs only
 - 2026-11-12 boss-mage-2 g0-g6: Elf Mage spam strikes over 2 s, Stone Golem miniboss, 3-circle rhythm, Bosses cards draft B, her Relics and chest, drop list hidden (3c843fa): `boss_mage_event` 281, `boss_mage_anim` 286, `relics` 674, `ui_boss_mage_vfx` 55, `ui_boss_cards` 45, `ui_boss_golem` 16, `ui_boss` 468, `ui_boss_phase2` 91 and the other targeted boss scenarios fail=0; rules audit PASS
 - 2026-11-11 boss-mage m0-m11: The Elf Mage second boss built and pushed on `feature/alex/boss-mage`; targeted boss scenarios green in Studio
 - 2026-11-10 hud-tech h1 gold frame tiles, L2 left block, Tile and Boss icons (c722398, 0a2ef57): ui_buttons 14/0, ui_hud 16/0, ui_layout 838/95 (pre-h1 reds), audit PASS; exhaustion eye 160 up, 13 deg (74eb084, boss_event not run)
