@@ -12,6 +12,17 @@
 #   staff  "two": along the line right hand to left hand (both hands on it); else Euler degrees about the grip relative to the
 #          right arm, (180, 0, 0) = straight on from the arm. keys.json holds every solved rotation, so a bake reads plain numbers.
 #   golem  pose: Euler degrees per golem part, replacing its rest value; "scatter"/"crumble": its blocks loose (positions recorded).
+#
+# --rework: the 2026-11-12 animation rework (design doc 4.37 "Animation rework") on the jointed rig (boss_mage_jointed.blend from
+# build_boss_mage.py -- jointed), as boss_king_keyframes.py --rework does. JMOVES is kept apart from MOVES (shipped, owner approved
+# 2026-11-11, baked by bake_boss_mage.py from keyframes/keys.json) and writes keyframes/rework/keys.json and <move>_slices.png.
+# She hovers (bob 1.5 studs over 3 s in game, not keyed; no foot plants). Key fields as MOVES, plus:
+#   LeftArm/RightArm  {"aim": point, "pole": dir}: a two-bone solve in torso space (boss_king_keyframes.two_bone); the hand reaches
+#          the point (clamped to reach) and the elbow bends toward pole. LeftArm "grip": the left fist on the staff GRIP2 up the shaft.
+#   LeftLeg/RightLeg  hip Euler degrees, or {"hip": euler, "knee": degrees}: knee > 0 bends the shin back.
+#   TailL/TailR  three Eulers, root segment first, each relative to the segment above (one Euler: the root segment only).
+#   staff  as MOVES, or {"dir": d}: the shaft's axis in the body's yawed frame, the grip in the right fist.
+#   look   the close views' backdrop for this key ("flash": the white-out, she a dark silhouette).
 import json
 import math
 import os
@@ -34,6 +45,8 @@ ORCH = os.path.dirname(ROOT)
 ARENA = os.path.join(ORCH, "mage-m3", "build", "arena", "colosseum_draft_r70.blend")
 CIRCLE_PNG = os.path.join(ORCH, "mage-m8", "assets", "ui", "boss_mage", "magic_circle.png")
 
+REWORK = False  # main(--rework): the jointed rig and JMOVES
+MODEL = "boss_mage"
 SIZE = 4.0  # her height in runner heights; the owner may pick 6, 8 or 12 (--size): every wide view scales from this one number
 CHAR_H, HOVER, GOLEM_RATIO = 5.5, 8.0, 1.6  # runner studs; her feet above the floor in studs (kept at any size); golem over her height
 R_IN, LANE_W, R_WALL = 70.0, 8.0, 132.0  # colosseum r70 draft
@@ -423,11 +436,13 @@ def load_scene(arena):
 	rig.sun = sun
 	rig.cam = scene.camera
 	rig.bloom = scene.compositing_node_group.nodes["Bloom"]
-	mage = be.append_model("boss_mage")
+	mage = be.append_model("boss_mage") if MODEL == "boss_mage" else append_from(os.path.join(ROOT, "assets", "characters_avatar", "boss_mage", MODEL + ".blend"))
 	golem = be.append_model("boss_golem")
 	rig.mage, rig.golem = mage, golem
 	rig.parts = {o.name: o for o in mage.children}
 	rig.rest = {n: o.matrix_basis.copy() for n, o in rig.parts.items()}
+	if REWORK:
+		TPIV.update({n: rig.rest[n].translation.copy() for n in rig.parts if n.startswith("Tail")})
 	pts = be.world_verts([o for n, o in rig.parts.items() if n != "Staff"])
 	rig.model_h = float(pts[:, 2].max() - pts[:, 2].min())
 	rig.k = SIZE * CHAR_H / rig.model_h  # studs per model unit in game
@@ -492,14 +507,46 @@ def look(scene, rig, mode, floor=False):
 	else:
 		scene.world = rig.flat
 		bg = next(n for n in rig.flat.node_tree.nodes if n.type == "BACKGROUND")
-		bg.inputs["Color"].default_value = {"flat": (0.78, 0.8, 0.84, 1), "dark": (0.035, 0.022, 0.085, 1), "darkblue": (0.02, 0.03, 0.08, 1)}[mode]
-		bg.inputs["Strength"].default_value = 0.8 if mode == "flat" else 1.0
-		rig.sun.data.energy = 2.4 if mode == "flat" else 1.6
+		bg.inputs["Color"].default_value = {"flat": (0.78, 0.8, 0.84, 1), "dark": (0.035, 0.022, 0.085, 1), "darkblue": (0.02, 0.03, 0.08, 1), "flash": (1.0, 0.97, 1.0, 1)}[mode]
+		bg.inputs["Strength"].default_value = {"flat": 0.8, "flash": 3.0}.get(mode, 1.0)
+		rig.sun.data.energy = {"flat": 2.4, "flash": 0.15}.get(mode, 1.6)
 		rig.sun.data.color = (1, 1, 1) if mode == "flat" else ((0.85, 0.75, 1.0) if mode == "dark" else (0.75, 0.85, 1.0))
 		rig.sun.rotation_euler = (math.radians(50), math.radians(10), FACE + math.radians(-25))
 		scene.view_settings.view_transform = "Standard"
 		scene.view_settings.look = "None"
 		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 1.0, 0.8
+		if mode == "flash":  # white to the camera, near black as light: she reads as a dark silhouette against the white-out (clip 2)
+			scene.world = flash_world()
+			rig.bloom.inputs["Strength"].default_value = 0.25
+
+
+def flash_world():
+	w = bpy.data.worlds.get("FlashOut")
+	if w:
+		return w
+	w = bpy.data.worlds.new("FlashOut")
+	w.use_nodes = True
+	nt = w.node_tree
+	bg = next(n for n in nt.nodes if n.type == "BACKGROUND")
+	bg.inputs["Color"].default_value, bg.inputs["Strength"].default_value = (1.0, 0.97, 1.0, 1), 1.0
+	dim = nt.nodes.new("ShaderNodeBackground")
+	dim.inputs["Color"].default_value, dim.inputs["Strength"].default_value = (0.5, 0.4, 0.9, 1), 0.12
+	mix, lp = nt.nodes.new("ShaderNodeMixShader"), nt.nodes.new("ShaderNodeLightPath")
+	out = next(n for n in nt.nodes if n.type == "OUTPUT_WORLD")
+	nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0])
+	nt.links.new(dim.outputs[0], mix.inputs[1])
+	nt.links.new(bg.outputs[0], mix.inputs[2])
+	nt.links.new(mix.outputs[0], out.inputs["Surface"])
+	return w
+
+
+def append_from(path):
+	"""be.append_model for a blend that is not <cid>/<cid>.blend (the jointed build)."""
+	with bpy.data.libraries.load(path) as (src, dst):
+		dst.objects = list(src.objects)
+	for o in dst.objects:
+		bpy.context.scene.collection.objects.link(o)
+	return next(o for o in dst.objects if o.parent is None and o.type == "EMPTY")
 
 
 def be_rgb(h):
@@ -513,7 +560,13 @@ def to_world(rig, p):
 
 
 def pose_mage(rig, key):
-	m, record, grip = solve(key)
+	if REWORK:
+		m, record, grip, short = jsolve(key)
+		far = {k: v for k, v in short.items() if v > 0.05}
+		if far:
+			print("REACH", key["t"], far)
+	else:
+		m, record, grip = solve(key)
 	for n, o in rig.parts.items():
 		o.matrix_basis = m.get(n, Matrix()) @ rig.rest[n]
 	bpy.context.view_layer.update()
@@ -592,6 +645,9 @@ def build_fx(rig, names, seed):
 	s = SIZE / 4
 	g = rig.golem.matrix_world.translation
 	for name in names:
+		if name.split(":")[0] in JFX:
+			JFX[name.split(":")[0]](rig, name.partition(":")[2], rng, gem)
+			continue
 		if name == "charge":
 			ball(gem, 0.45 * k, glow_mat("OrbCore", WHITE, 50))
 			ball(gem, 0.9 * k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
@@ -895,11 +951,18 @@ def run_move(scene, rig, name, move):
 		record, grip = pose_mage(rig, key)
 		rig.golem.location.z = g_z
 		grec = pose_golem(rig, key.get("golem") if has_golem else None, random.Random(i))
+		if REWORK and not move.get("shared_frame"):  # each panel framed on its own pose, as the king's rework (the figure reads bigger)
+			pts = figure_pts(rig, has_golem and key.get("golem") is not None, mage_on=not solo)
+			three = bk.fit(cam, pts, yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))), MAIN[0] / MAIN[1], margin=0.85)
+			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
+			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
+			clip = sp * 3 - sp * 0.75
 		build_fx(rig, key.get("fx", []), seed=100 + i)
-		dark = (move.get("window") or name) in ("lightning", "barrage")
-		look(scene, rig, ("dark" if (move.get("window") or name) == "lightning" else "darkblue") if dark else "flat", floor=has_golem)
+		kind = move.get("window") if isinstance(move.get("window"), str) else name
+		dark = kind in ("lightning", "barrage")
+		look(scene, rig, key.get("look") or (("dark" if kind == "lightning" else "darkblue") if dark else "flat"), floor=has_golem)
 		cell = {}
-		wide_only = [o for o in FX.objects if o.get("wide_only")]
+		wide_only = [o for o in FX.objects if o.get("wide_only") or (key.get("look") == "flash" and o.type == "LIGHT")]  # flash: no effect light on her, a silhouette
 		for o in wide_only:  # halos are for the room-scale view; close up they bury her
 			o.hide_render = True
 		for view, size, tag in ((three, MAIN, "main"), (front, FRONT, "front")):
@@ -919,6 +982,8 @@ def run_move(scene, rig, name, move):
 		rec = {"t": key["t"], "caption": key["cap"]}
 		if not solo:
 			rec.update({"root_offset": list(key.get("root", (0, 0, 0))), "rotations": record, "staff_grip_offset": grip})
+		if "look" in key:
+			rec["look"] = key["look"]
 		for f in ("hold", "event"):
 			if f in key:
 				rec["hold_until" if f == "hold" else f] = key[f]
@@ -928,7 +993,7 @@ def run_move(scene, rig, name, move):
 			if grec:
 				rec["golem_root_z"] = round((rig.golem.location.z - g_z) / rig.kg, 3)
 		records.append(rec)
-	win = window_row(scene, rig, move) if move.get("window") else None
+	win = window_row(scene, rig, move) if isinstance(move.get("window"), str) else None
 	clear_fx()
 	rig.golem.location.z = g_z
 	for o, h in hidden.items():
@@ -941,6 +1006,7 @@ def run_move(scene, rig, name, move):
 
 def sheet(name, move, cells, win=None):
 	keys = move["keys"]
+	COLS = move.get("cols", 3)  # noqa: N806  (the old sheets: 3 a row)
 	rows = math.ceil(len(keys) / COLS)
 	cell_h = MAIN[1] + STRIP_H
 	win_h = 60 + 40 + WIN[1] + 8 + MAP + 16 if win else 0
@@ -952,8 +1018,10 @@ def sheet(name, move, cells, win=None):
 		note += f", golem {GOLEM_RATIO}x her height"
 	if move.get("extends"):
 		note += f". Times on the {move['extends']} clock: these keys follow its approved key 4 (2.00 s); its recover key moves 2.0 s later"
-	if name == "idle":
+	if name == "idle" and not REWORK:
 		note += ". Dark bar: her feet at the low point (render mark only). Rise 1.5 studs at 4x = 0.43 model units"
+	if REWORK:
+		note = f"Times proposed. Jointed rig (elbows, knees, 3-segment tails), {SIZE:g}x a runner; she hovers, the 1.5-stud bob over 3 s plays in game (not keyed). Event keys in red. " + move.get("note", "")
 	paste_txt = [(f"{move['title']}  |  The Elf Mage  |  {total}  |  (proposed) key frames for approval, no in-betweens", 40, 48, 24, bk.INK), (note + ".", 24, 90, 24, bk.DIM)]
 	bk.paste(px, bk.text_px(paste_txt, COLS * CELL_W, HEAD_H, bk.BG), 0, 0)
 	for i, key in enumerate(keys):
@@ -963,8 +1031,14 @@ def sheet(name, move, cells, win=None):
 		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, "front")
 		if "wide" in cells[i]:
 			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, "arena view (runner's camera)")
-		head = f"{i + 1}   {key['t']:.2f} s" + (f" - {key['hold']:.2f} s" if "hold" in key else "") + (f"   event {key['event']}" if "event" in key else "")
-		bk.paste(px, bk.text_px([(head, 34, 40, 18, bk.INK), (key["cap"], 28, 80, 18, bk.DIM)], CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
+		head = (f"{name}  key {i + 1} of {len(keys)}   " if REWORK else f"{i + 1}   ") + f"{key['t']:.2f} s" + (f" - {key['hold']:.2f} s" if "hold" in key else "") + (f"   event {key['event']}" + (" (HIT)" if REWORK else "") if "event" in key else "")
+		cap = key["cap"]
+		if len(cap) > 100:  # two lines: a long caption runs off the cell
+			cut = cap.rfind(" ", 0, len(cap) // 2 + 10)
+			lines = [(cap[:cut], 21, 66, 18, bk.DIM), (cap[cut + 1 :], 21, 90, 18, bk.DIM)]
+		else:
+			lines = [(cap, 28, 80, 18, bk.DIM)]
+		bk.paste(px, bk.text_px([(head, 34, 40 if len(cap) <= 100 else 34, 18, (0.75, 0.05, 0.05) if "event" in key and REWORK else bk.INK)] + lines, CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
 		px[y : y + cell_h, x : x + 2] = (0.5, 0.5, 0.52, 1)
 	if win:
 		y0 = HEAD_H + rows * cell_h + 8
@@ -1009,9 +1083,220 @@ def overview():
 	print("SHEET", path)
 
 
+# ---- the animation rework: the jointed rig (--rework) ----
+
+JPARTS = ("Torso", "Head", "LeftUpperArm", "LeftLowerArm", "RightUpperArm", "RightLowerArm", "LeftUpperLeg", "LeftLowerLeg", "RightUpperLeg", "RightLowerLeg")
+ELBOW = {"LeftArm": Vector((1.5, 0, 3.1)), "RightArm": Vector((-1.5, 0, 3.1))}  # build_boss_king.SEAM: the R15 seams
+KNEE = {"LeftLeg": Vector((0.5, 0, 1.1)), "RightLeg": Vector((-0.5, 0, 1.1))}
+POLE = {"LeftArm": (0.6, 1, -0.3), "RightArm": (-0.6, 1, -0.3)}  # elbows out and back unless a key says otherwise
+SEG = {"RightArm": ("RightUpperArm", "RightLowerArm"), "LeftArm": ("LeftUpperArm", "LeftLowerArm"), "LeftLeg": ("LeftUpperLeg", "LeftLowerLeg"), "RightLeg": ("RightUpperLeg", "RightLowerLeg")}
+TAILS = {"TailL": ("TailL1", "TailL2", "TailL3"), "TailR": ("TailR1", "TailR2", "TailR3")}
+TPIV = {}  # tail segment pivots, model space: read from boss_mage_jointed.blend at load
+GRIP2 = 1.1  # the left fist this far up the shaft from the right one, model units (negative: below it)
+JPARENT = {"Body": None, "Torso": "Body", "Head": "Torso", "Staff": "RightLowerArm"}
+for _limb, (_up, _lo) in SEG.items():
+	JPARENT[_up], JPARENT[_lo] = ("Torso" if _limb.endswith("Arm") else "Body"), _up
+for _t, _segs in TAILS.items():
+	JPARENT[_segs[0]], JPARENT[_segs[1]], JPARENT[_segs[2]] = "Head", _segs[0], _segs[1]
+
+
+def jsolve(key):
+	"""jointed rig: placement per part (model space, applied on top of its rest), the local rotations for keys.json, the staff
+	grip offset in the right forearm's space, and how far each hand stops short of its aim (model units)."""
+	import boss_king_keyframes as kk  # two_bone (imported here: that module imports this one)
+
+	place = {}
+	yaw = Matrix.Rotation(math.radians(key.get("body", (0, 0, 0))[2]), 3, "Z")
+	place["Body"] = Matrix.Translation(key.get("root", (0, 0, 0))) @ about(HIP, eul(key.get("body", (0, 0, 0))))
+	place["Torso"] = place["Body"] @ about(WAIST, eul(key.get("torso", (0, 0, 0))))
+	place["Head"] = place["Torso"] @ about(NECK, eul(key.get("head", (0, 0, 0))))
+	short = {}
+
+	def put(name, parent, pivot, r3):
+		at = place[parent] @ Vector(pivot)
+		place[name] = Matrix.Translation(at) @ r3.to_4x4() @ Matrix.Translation(-Vector(pivot))
+
+	for t, segs in TAILS.items():
+		spec = key.get(t, (0, 0, 0))
+		spec = [spec] if isinstance(spec[0], (int, float)) else spec
+		parent = "Head"
+		for n, e in zip(segs, list(spec) + [(0, 0, 0)] * 3):
+			place[n] = place[parent] @ about(TPIV[n], eul(e))
+			parent = n
+
+	def arm(limb, target=None):
+		up, lo = SEG[limb]
+		spec = key.get(limb, {})
+		tw = place["Torso"]
+		if target is None and isinstance(spec, dict) and "aim" in spec:
+			target = tw @ Vector(spec["aim"])
+		if target is not None:
+			pole = tw.to_3x3() @ Vector(spec.get("pole", POLE[limb]) if isinstance(spec, dict) else POLE[limb])
+			J = tw @ Vector(SHOULDER[limb])
+			r1, r2 = kk.two_bone(J, SHOULDER[limb][2] - ELBOW[limb].z, ELBOW[limb].z - HAND[limb].z, target, pole)
+		else:
+			r1 = tw.to_3x3() @ eul(spec.get("shoulder", (0, 0, 0))).to_3x3()
+			e = spec.get("elbow", 0)
+			r2 = r1 @ eul((-e, 0, 0) if isinstance(e, (int, float)) else e).to_3x3()
+		put(up, "Torso", SHOULDER[limb], r1)
+		put(lo, up, ELBOW[limb], r2)
+		if target is not None:
+			short[limb] = round((place[lo] @ HAND[limb] - target).length, 3)
+
+	def leg(limb):
+		up, lo = SEG[limb]
+		spec = key.get(limb, (0, 0, 0))
+		spec = spec if isinstance(spec, dict) else {"hip": spec}
+		r1 = place["Body"].to_3x3() @ eul(spec.get("hip", (0, 0, 0))).to_3x3()
+		put(up, "Body", LEG[limb], r1)
+		put(lo, up, KNEE[limb], r1 @ eul((spec.get("knee", 0), 0, 0)).to_3x3())
+
+	staff = key.get("staff", ONE)
+	left = key.get("LeftArm")
+	if staff == "two":  # both fists aimed; the shaft runs from the right one through the left one
+		arm("RightArm")
+		arm("LeftArm")
+		low, high = place["RightLowerArm"] @ HAND["RightArm"], place["LeftLowerArm"] @ HAND["LeftArm"]
+		place["Staff"] = Matrix.Translation(low) @ Vector((0, 0, 1)).rotation_difference((high - low).normalized()).to_matrix().to_4x4() @ Matrix.Translation(-GRIP)
+	else:
+		arm("RightArm")
+		if isinstance(staff, dict):
+			r = Vector((0, 0, 1)).rotation_difference(yaw @ Vector(staff["dir"]).normalized()).to_matrix().to_4x4()
+			place["Staff"] = Matrix.Translation(place["RightLowerArm"] @ HAND["RightArm"]) @ r @ Matrix.Translation(-GRIP)
+		else:
+			place["Staff"] = place["RightLowerArm"] @ Matrix.Translation(HAND["RightArm"] - GRIP) @ about(GRIP, eul(staff))
+		if left == "grip" or (isinstance(left, dict) and "grip" in left):
+			s = GRIP2 if left == "grip" else left["grip"]
+			arm("LeftArm", place["Staff"] @ (GRIP + Vector((0, 0, s))))
+		else:
+			arm("LeftArm")
+	local = place["RightLowerArm"].inverted() @ place["Staff"]
+	grip = [round(v, 4) for v in (local @ GRIP) - GRIP]
+	for limb in ("LeftLeg", "RightLeg"):
+		leg(limb)
+	record = {}
+	for n, par in JPARENT.items():
+		if n in place:
+			r = place[n].to_3x3() if par is None else place[par].to_3x3().inverted() @ place[n].to_3x3()
+			record[n] = degs(r.to_4x4())
+	m = {(n if n == "Staff" or n.startswith("Tail") else n + "_merged"): v for n, v in place.items() if n != "Body"}
+	return m, record, grip, short
+
+
+def mirror(tail):
+	"""TailR from TailL's Eulers: the same swing, mirrored across her centre line."""
+	return [(x, -y, -z) for x, y, z in tail]
+
+
+def fx_point(rig, arg, rng, gem):
+	"""Clip 2: a bright point with a cross flare at the staff tip (arg: size, default 1)."""
+	k, g = rig.k, float(arg or 1)
+	yaw = Matrix.Rotation(FACE, 3, "Z")
+	ball(gem, 0.13 * k * g, glow_mat("PointCore", WHITE, 40))
+	ball(gem, 0.32 * k * g, glow_mat("PointGlow", (0.85, 0.7, 1.0), 2, 0.25))
+	for d, ln in ((yaw @ Vector((1, 0, 0)), 1.6), (Vector((0, 0, 1)), 1.6), (yaw @ Vector((1, 0, 1)).normalized(), 0.6), (yaw @ Vector((1, 0, -1)).normalized(), 0.6)):
+		tube([gem - d * ln * k * g, gem + d * ln * k * g], 0.016 * k * g, glow_mat("PointRay", WHITE, 12))
+	lamp(gem, (0.85, 0.7, 1.0), 1e4 * g * (SIZE / 4) ** 2, 2)
+
+
+def fx_flash(rig, arg, rng, gem):
+	"""The arena-wide white flash on the first strike (owner 2026-11-12): a white veil round the whole room in the wide view; the
+	close views use look "flash" (a white-out, she a dark silhouette, clip 2)."""
+	veil = ball(Vector((0, 0, 0)), 900, glow_mat("FlashVeil", (1.0, 0.96, 1.0), 6, 0.6))
+	veil["wide_only"] = True
+
+
+def fx_cast(rig, arg, rng, gem):
+	"""Clip 2: thick white-violet lightning from the staff tip along the levelled shaft into the room, with forks (arg: 'fade')."""
+	staff = rig.parts["Staff"].matrix_world
+	d = (staff.to_3x3() @ Vector((0, 0, 1))).normalized()
+	t = min(-gem.z / d.z if d.z < -1e-3 else 1e9, 150 * SIZE / 8)
+	end = gem + d * t
+	s = SIZE / 4
+	if arg == "fade":
+		tube(jag(gem, end, 10, 2 * s, rng), 0.5 * s, glow_mat("BoltFade", (0.62, 0.08, 1.0), 0.8, 0.3))
+		return
+	bolt(gem, end, 1.1 * s, rng, branches=4, lamp_w=1.5e5)
+	bolt(gem, end + Vector((rng.uniform(-12, 12), rng.uniform(-12, 12), -6)) * s, 0.6 * s, rng, branches=2)
+	ball(gem, 0.5 * rig.k, glow_mat("OrbCore", WHITE, 50))
+	ball(gem, 0.6 * rig.k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
+
+
+JFX = {"point": fx_point, "flash": fx_flash, "cast": fx_cast}
+
+
+# The rework keys (proposed; owner pre-approval of the rework 2026-11-12, slices still shown). Root offsets in model units from the
+# hover height (1 unit = about 7 studs at 8x). Hands and staff are in her torso's and body's frames; tails trail a beat behind.
+TL0 = [(-4, -26, 0), (6, -6, 0), (8, -6, 0)]
+IDLE0 = {"root": (0, 0, 0), "body": (0, 0, 0), "torso": (8, 0, 2), "head": (-4, 0, -4), "RightArm": {"aim": (-0.85, -1.05, 2.6)}, "LeftArm": {"aim": (0.85, -1.1, 3.45)}, "staff": "two", "TailL": TL0, "TailR": mirror(TL0), "LeftLeg": {"hip": (22, 0, -3), "knee": 28}, "RightLeg": {"hip": (10, 0, 3), "knee": 42}}
+BRACE = {"RightArm": {"aim": (-1.35, -1.25, 3.2), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.04)}, "LeftArm": {"grip": -1.45}}
+JMOVES = {
+	"lightning": {
+		"title": "Purple lightning (rework, jointed rig): cast, a 2 s storm of 14 strikes, recover",
+		"end": 5.2,
+		"cols": 5,
+		"strikes": [2.0, 4.0],
+		"note": "Dodge bar before the strikes; cost event Lightning at 2.00 s (HIT, red); strike window 2.00 - 4.00 s, a strike every 0.15 s (14); the lead-in lightning_in is generated. Arena views: colosseum draft from a runner's camera on lane 4.",
+		"keys": [
+			{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands, tails loose, legs hang", **IDLE0},
+			{"t": 0.45, "cap": "Anticipation: staff drawn back and up over her right shoulder, body coils right and dips, knees tuck; tails still swing the old way", "root": (0, 0.05, -0.3), "body": (0, 0, -10), "torso": (16, -4, -22), "head": (8, 0, 22), "RightArm": {"aim": (-2.0, 0.85, 4.35), "pole": (-0.3, 0.2, -1)}, "staff": {"dir": (-0.35, 0.75, 1)}, "LeftArm": {"aim": (1.25, -1.45, 3.3)}, "TailL": [(-20, -34, 8), (-12, -10, 0), (-10, -6, 0)], "TailR": [(-8, 44, -6), (-14, 14, 0), (-12, 8, 0)], "LeftLeg": {"hip": (-32, 0, -4), "knee": 75}, "RightLeg": {"hip": (-12, 0, 6), "knee": 55}},
+			{"t": 0.95, "cap": "Cast raise, overshoot: staff thrust up past the top on a straight arm, chest arched, left arm flung out; bright point and cross flare at the tip", "fx": ["point:1.2"], "root": (0.05, 0.05, 0.5), "body": (0, 0, 6), "torso": (-16, 4, 10), "head": (-24, 0, -6), "RightArm": {"aim": (-1.25, 0.3, 5.6)}, "staff": {"dir": (0.12, 0.38, 1)}, "LeftArm": {"aim": (2.95, -0.55, 3.0)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (12, 0, -6), "knee": 12}, "RightLeg": {"hip": (26, 0, 8), "knee": 32}},
+			{"t": 1.4, "cap": "Settle: staff back upright, she sinks a little, left hand braced out; the charge crackles at the point; tails fling up and out", "fx": ["point", "charge"], "root": (0, 0, 0.3), "body": (0, 0, 2), "torso": (-6, 2, 4), "head": (-14, 0, -2), "RightArm": {"aim": (-1.4, -0.15, 5.35)}, "staff": {"dir": (0.02, 0.05, 1)}, "LeftArm": {"aim": (2.3, -1.15, 2.75)}, "TailL": [(-22, -50, 6), (-10, -12, 0), (-6, -8, 0)], "TailR": [(-18, 56, -4), (-10, 14, 0), (-4, 8, 0)], "LeftLeg": {"hip": (6, 0, -4), "knee": 32}, "RightLeg": {"hip": (18, 0, 6), "knee": 48}},
+			{"t": 1.8, "cap": "Brace (Dodge bar ends): turns side-on, staff levelled at the arena in both hands, leans into it, legs split; hair and tails blown back", "fx": ["point:1.4"], "root": (0, -0.15, 0.15), "body": (0, 0, 48), "torso": (14, 6, -6), "head": (-6, 0, -34), **BRACE, "TailL": [(38, -22, 0), (14, -4, 0), (10, -2, 0)], "TailR": [(44, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
+			{"t": 2.0, "event": "Lightning", "look": "flash", "arena": "violet", "cap": "HIT, strike 1 of 14: the arena flashes white; lightning bursts from the tip, the recoil kicks her back and tips the staff up; tails snap back", "fx": ["flash", "cast", "strike"], "root": (0, 0.25, 0.2), "body": (0, 0, 44), "torso": (2, 10, -2), "head": (-14, 0, -30), **BRACE, "staff": {"dir": (-1, -0.42, 0.2)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (34, 0, -8), "knee": 70}, "RightLeg": {"hip": (-24, 0, 8), "knee": 48}},
+			{"t": 2.6, "arena": "violet", "cap": "Strike 5: she drives back against the recoil, staff tracks left across the room, weight forward; tails whip to her right", "fx": ["cast", "sustain"], "root": (0.1, -0.1, 0.1), "body": (0, 0, 70), "torso": (18, 2, -10), "head": (-4, 0, -40), **BRACE, "staff": {"dir": (-1, -0.32, -0.05)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
+			{"t": 3.35, "arena": "violet", "cap": "Strike 10: hips swing the staff back across to her right, low and level, torso twisted against it; tails whip the other way", "fx": ["cast", "sustain"], "root": (-0.1, 0, -0.05), "body": (0, 0, 22), "torso": (16, -6, 14), "head": (0, 0, -24), **BRACE, "staff": {"dir": (-1, -0.5, -0.12)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
+			{"t": 4.0, "cap": "Release (strikes end): she throws the staff up and away, body uncoils and floats up, legs swing through; last sparks; tails fly forward", "fx": ["cast:fade", "embers"], "root": (0, 0.15, 0.4), "body": (0, 0, 24), "torso": (-14, 4, 6), "head": (-16, 0, -12), "RightArm": {"aim": (-2.0, -0.9, 5.0)}, "staff": {"dir": (-0.55, -0.35, 1)}, "LeftArm": {"aim": (2.6, 0.6, 3.3), "pole": (0.3, 1, 0.3)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
+			{"t": 5.2, "cap": "Recover = idle key 0: staff back across the body in both hands, settled", **IDLE0},
+		],
+	},
+}
+
+
+def rework(argv):
+	"""--rework: JMOVES on the jointed rig at 8x (in game); writes keyframes/rework/keys.json and <move>_slices.png. MOVES and
+	keyframes/keys.json stay."""
+	global REWORK, MODEL, OUT, TMP, SIZE
+	REWORK, MODEL, SIZE = True, "boss_mage_jointed", 8.0
+	OUT, TMP = os.path.join(OUT, "rework"), os.path.join(TMP, "rework")
+	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
+	wanted = [a for a in argv if a in JMOVES] or list(JMOVES)
+	for d in (OUT, TMP, bk.TMP):
+		os.makedirs(d, exist_ok=True)
+	scene, rig = load_scene(arena)
+	print(f"SCALE size {SIZE}x: model height {rig.model_h:.3f} units, {rig.k:.3f} studs per unit")
+	path = os.path.join(OUT, "keys.json")
+	data = json.load(open(path)) if os.path.exists(path) else {"moves": {}}
+	data.update(
+		{
+			"rig": "jointed (build_boss_mage.py -- jointed): Torso, Head, upper and lower arm and leg per side, 3 segments per twin tail, Staff; the lower arm carries the hand, the lower leg the foot",
+			"units": "XYZ Euler degrees about each part's joint, relative to its parent; root_offset in model units from the hover height (Z = Roblox Y up)",
+			"parents": JPARENT,
+			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Staff": list(GRIP), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}, **{n: [round(v, 4) for v in p] for n, p in TPIV.items()}},
+			"staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
+			"effects": "sketch labels per key: point[:size] (bright point and cross flare at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers",
+			"hover": {"studs": HOVER, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed; the bob is played in game, not keyed; no foot plants"},
+			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
+			"approved": [],
+		}
+	)
+	for name in wanted:
+		m = JMOVES[name]
+		data["moves"][name] = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False), "keys": run_move(scene, rig, name, m)}
+		for f in ("strikes", "events"):
+			if f in m:
+				data["moves"][name][f] = m[f]
+	with open(path, "w") as f:
+		json.dump(data, f, indent=1)
+	print("KEYS", path)
+
+
 def main():
 	global SIZE
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+	if "--rework" in argv:
+		rework(argv)
+		return
 	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
 	if "--size" in argv:
 		SIZE = float(argv[argv.index("--size") + 1])

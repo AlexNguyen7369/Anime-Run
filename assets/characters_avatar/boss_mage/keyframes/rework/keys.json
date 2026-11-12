@@ -1,0 +1,1234 @@
+{
+ "moves": {
+  "lightning": {
+   "title": "Purple lightning (rework, jointed rig): cast, a 2 s storm of 14 strikes, recover",
+   "end": 5.2,
+   "loop": false,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0: hovering, staff across the body in both hands, tails loose, legs hang",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": []
+    },
+    {
+     "t": 0.45,
+     "caption": "Anticipation: staff drawn back and up over her right shoulder, body coils right and dips, knees tuck; tails still swing the old way",
+     "root_offset": [
+      0,
+      0.05,
+      -0.3
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -10.0
+      ],
+      "Torso": [
+       16.0,
+       -4.0,
+       -22.0
+      ],
+      "Head": [
+       8.0,
+       0.0,
+       22.0
+      ],
+      "Staff": [
+       -26.074,
+       175.567,
+       1.173
+      ],
+      "RightUpperArm": [
+       -54.207,
+       -7.56,
+       -145.289
+      ],
+      "RightLowerArm": [
+       -102.473,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -33.747,
+       -31.61,
+       -21.854
+      ],
+      "LeftLowerArm": [
+       -55.977,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -32.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       75.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -12.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       55.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -20.0,
+       -34.0,
+       8.0
+      ],
+      "TailL2": [
+       -12.0,
+       -10.0,
+       -0.0
+      ],
+      "TailL3": [
+       -10.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -8.0,
+       44.0,
+       -6.0
+      ],
+      "TailR2": [
+       -14.0,
+       14.0,
+       0.0
+      ],
+      "TailR3": [
+       -12.0,
+       8.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": []
+    },
+    {
+     "t": 0.95,
+     "caption": "Cast raise, overshoot: staff thrust up past the top on a straight arm, chest arched, left arm flung out; bright point and cross flare at the tip",
+     "root_offset": [
+      0.05,
+      0.05,
+      0.5
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       6.0
+      ],
+      "Torso": [
+       -16.0,
+       4.0,
+       10.0
+      ],
+      "Head": [
+       -24.0,
+       0.0,
+       -6.0
+      ],
+      "Staff": [
+       6.017,
+       179.608,
+       44.004
+      ],
+      "RightUpperArm": [
+       5.344,
+       -168.642,
+       28.002
+      ],
+      "RightLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -10.718,
+       -61.51,
+       -2.67
+      ],
+      "LeftLowerArm": [
+       -8.85,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       12.0,
+       -0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       12.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       26.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       32.0,
+       0.0,
+       -0.0
+      ],
+      "TailL1": [
+       12.0,
+       -14.0,
+       0.0
+      ],
+      "TailL2": [
+       8.0,
+       -4.0,
+       -0.0
+      ],
+      "TailL3": [
+       6.0,
+       -2.0,
+       -0.0
+      ],
+      "TailR1": [
+       16.0,
+       10.0,
+       0.0
+      ],
+      "TailR2": [
+       10.0,
+       4.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       2.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [
+      "point:1.2"
+     ]
+    },
+    {
+     "t": 1.4,
+     "caption": "Settle: staff back upright, she sinks a little, left hand braced out; the charge crackles at the point; tails fling up and out",
+     "root_offset": [
+      0,
+      0,
+      0.3
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       2.0
+      ],
+      "Torso": [
+       -6.0,
+       2.0,
+       4.0
+      ],
+      "Head": [
+       -14.0,
+       -0.0,
+       -2.0
+      ],
+      "Staff": [
+       -19.779,
+       162.966,
+       33.328
+      ],
+      "RightUpperArm": [
+       26.837,
+       -179.673,
+       30.88
+      ],
+      "RightLowerArm": [
+       -55.031,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -29.886,
+       -45.809,
+       -15.619
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       32.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       18.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       48.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -22.0,
+       -50.0,
+       6.0
+      ],
+      "TailL2": [
+       -10.0,
+       -12.0,
+       -0.0
+      ],
+      "TailL3": [
+       -6.0,
+       -8.0,
+       0.0
+      ],
+      "TailR1": [
+       -18.0,
+       56.0,
+       -4.0
+      ],
+      "TailR2": [
+       -10.0,
+       14.0,
+       0.0
+      ],
+      "TailR3": [
+       -4.0,
+       8.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "point",
+      "charge"
+     ]
+    },
+    {
+     "t": 1.8,
+     "caption": "Brace (Dodge bar ends): turns side-on, staff levelled at the arena in both hands, leans into it, legs split; hair and tails blown back",
+     "root_offset": [
+      0,
+      -0.15,
+      0.15
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       48.0
+      ],
+      "Torso": [
+       14.0,
+       6.0,
+       -6.0
+      ],
+      "Head": [
+       -6.0,
+       0.0,
+       -34.0
+      ],
+      "Staff": [
+       108.827,
+       55.052,
+       -92.345
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.125,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -56.395,
+       45.313,
+       -46.038
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       26.0,
+       -0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       55.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -34.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       62.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       38.0,
+       -22.0,
+       0.0
+      ],
+      "TailL2": [
+       14.0,
+       -4.0,
+       0.0
+      ],
+      "TailL3": [
+       10.0,
+       -2.0,
+       0.0
+      ],
+      "TailR1": [
+       44.0,
+       30.0,
+       0.0
+      ],
+      "TailR2": [
+       16.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       12.0,
+       4.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "point:1.4"
+     ]
+    },
+    {
+     "t": 2.0,
+     "caption": "HIT, strike 1 of 14: the arena flashes white; lightning bursts from the tip, the recoil kicks her back and tips the staff up; tails snap back",
+     "root_offset": [
+      0,
+      0.25,
+      0.2
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       44.0
+      ],
+      "Torso": [
+       2.0,
+       10.0,
+       -2.0
+      ],
+      "Head": [
+       -14.0,
+       -0.0,
+       -30.0
+      ],
+      "Staff": [
+       103.007,
+       61.477,
+       -97.861
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -58.988,
+       43.359,
+       -45.023
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       34.0,
+       -0.0,
+       -8.0
+      ],
+      "LeftLowerLeg": [
+       70.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -24.0,
+       -0.0,
+       8.0
+      ],
+      "RightLowerLeg": [
+       48.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       60.0,
+       -18.0,
+       -0.0
+      ],
+      "TailL2": [
+       20.0,
+       -0.0,
+       -0.0
+      ],
+      "TailL3": [
+       16.0,
+       -0.0,
+       -0.0
+      ],
+      "TailR1": [
+       66.0,
+       34.0,
+       -0.0
+      ],
+      "TailR2": [
+       22.0,
+       6.0,
+       -0.0
+      ],
+      "TailR3": [
+       16.0,
+       4.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "look": "flash",
+     "event": "Lightning",
+     "effects": [
+      "flash",
+      "cast",
+      "strike"
+     ]
+    },
+    {
+     "t": 2.6,
+     "caption": "Strike 5: she drives back against the recoil, staff tracks left across the room, weight forward; tails whip to her right",
+     "root_offset": [
+      0.1,
+      -0.1,
+      0.1
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       70.0
+      ],
+      "Torso": [
+       18.0,
+       2.0,
+       -10.0
+      ],
+      "Head": [
+       -4.0,
+       -0.0,
+       -40.0
+      ],
+      "Staff": [
+       118.881,
+       69.407,
+       -80.285
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.125,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.45,
+       44.533,
+       -45.624
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       18.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -40.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       75.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       30.0,
+       -4.0,
+       10.0
+      ],
+      "TailL2": [
+       14.0,
+       6.0,
+       -0.0
+      ],
+      "TailL3": [
+       12.0,
+       6.0,
+       0.0
+      ],
+      "TailR1": [
+       52.0,
+       54.0,
+       -10.0
+      ],
+      "TailR2": [
+       24.0,
+       14.0,
+       -0.0
+      ],
+      "TailR3": [
+       18.0,
+       8.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      -0.0
+     ],
+     "effects": [
+      "cast",
+      "sustain"
+     ]
+    },
+    {
+     "t": 3.35,
+     "caption": "Strike 10: hips swing the staff back across to her right, low and level, torso twisted against it; tails whip the other way",
+     "root_offset": [
+      -0.1,
+      0,
+      -0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       22.0
+      ],
+      "Torso": [
+       16.0,
+       -6.0,
+       14.0
+      ],
+      "Head": [
+       -0.0,
+       -0.0,
+       -24.0
+      ],
+      "Staff": [
+       82.604,
+       35.886,
+       -112.365
+      ],
+      "RightUpperArm": [
+       -15.526,
+       21.346,
+       17.577
+      ],
+      "RightLowerArm": [
+       -76.126,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -62.858,
+       34.146,
+       -41.012
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       36.0,
+       -0.0,
+       -10.0
+      ],
+      "LeftLowerLeg": [
+       66.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -20.0,
+       -0.0,
+       10.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       56.0,
+       -40.0,
+       -6.0
+      ],
+      "TailL2": [
+       24.0,
+       -10.0,
+       0.0
+      ],
+      "TailL3": [
+       18.0,
+       -6.0,
+       -0.0
+      ],
+      "TailR1": [
+       28.0,
+       6.0,
+       8.0
+      ],
+      "TailR2": [
+       12.0,
+       -4.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       -6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "cast",
+      "sustain"
+     ]
+    },
+    {
+     "t": 4.0,
+     "caption": "Release (strikes end): she throws the staff up and away, body uncoils and floats up, legs swing through; last sparks; tails fly forward",
+     "root_offset": [
+      0,
+      0.15,
+      0.4
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       24.0
+      ],
+      "Torso": [
+       -14.0,
+       4.0,
+       6.0
+      ],
+      "Head": [
+       -16.0,
+       0.0,
+       -12.0
+      ],
+      "Staff": [
+       -5.405,
+       144.798,
+       72.596
+      ],
+      "RightUpperArm": [
+       19.979,
+       140.763,
+       43.091
+      ],
+      "RightLowerArm": [
+       -51.877,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       106.724,
+       -47.864,
+       -35.218
+      ],
+      "LeftLowerArm": [
+       -81.097,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       4.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       20.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       14.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -28.0,
+       -30.0,
+       0.0
+      ],
+      "TailL2": [
+       -16.0,
+       -8.0,
+       -0.0
+      ],
+      "TailL3": [
+       -12.0,
+       -6.0,
+       -0.0
+      ],
+      "TailR1": [
+       -24.0,
+       36.0,
+       0.0
+      ],
+      "TailR2": [
+       -14.0,
+       10.0,
+       -0.0
+      ],
+      "TailR3": [
+       -10.0,
+       6.0,
+       -0.0
+      ]
+     },
+     "staff_grip_offset": [
+      0.0,
+      0.62,
+      0.0
+     ],
+     "effects": [
+      "cast:fade",
+      "embers"
+     ]
+    },
+    {
+     "t": 5.2,
+     "caption": "Recover = idle key 0: staff back across the body in both hands, settled",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       8.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -4.0
+      ],
+      "Staff": [
+       102.64,
+       51.4,
+       59.752
+      ],
+      "RightUpperArm": [
+       -33.204,
+       -0.647,
+       31.13
+      ],
+      "RightLowerArm": [
+       -20.985,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -22.705,
+       -0.724,
+       -30.778
+      ],
+      "LeftLowerArm": [
+       -83.653,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       22.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       -0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       42.0,
+       -0.0,
+       0.0
+      ],
+      "TailL1": [
+       -4.0,
+       -26.0,
+       -0.0
+      ],
+      "TailL2": [
+       6.0,
+       -6.0,
+       0.0
+      ],
+      "TailL3": [
+       8.0,
+       -6.0,
+       0.0
+      ],
+      "TailR1": [
+       -4.0,
+       26.0,
+       0.0
+      ],
+      "TailR2": [
+       6.0,
+       6.0,
+       0.0
+      ],
+      "TailR3": [
+       8.0,
+       6.0,
+       0.0
+      ]
+     },
+     "staff_grip_offset": [
+      -0.0,
+      0.62,
+      0.0
+     ],
+     "effects": []
+    }
+   ],
+   "strikes": [
+    2.0,
+    4.0
+   ]
+  }
+ },
+ "rig": "jointed (build_boss_mage.py -- jointed): Torso, Head, upper and lower arm and leg per side, 3 segments per twin tail, Staff; the lower arm carries the hand, the lower leg the foot",
+ "units": "XYZ Euler degrees about each part's joint, relative to its parent; root_offset in model units from the hover height (Z = Roblox Y up)",
+ "parents": {
+  "Body": null,
+  "Torso": "Body",
+  "Head": "Torso",
+  "Staff": "RightLowerArm",
+  "RightUpperArm": "Torso",
+  "RightLowerArm": "RightUpperArm",
+  "LeftUpperArm": "Torso",
+  "LeftLowerArm": "LeftUpperArm",
+  "LeftUpperLeg": "Body",
+  "LeftLowerLeg": "LeftUpperLeg",
+  "RightUpperLeg": "Body",
+  "RightLowerLeg": "RightUpperLeg",
+  "TailL1": "Head",
+  "TailL2": "TailL1",
+  "TailL3": "TailL2",
+  "TailR1": "Head",
+  "TailR2": "TailR1",
+  "TailR3": "TailR2"
+ },
+ "pivots": {
+  "Body": [
+   0,
+   0,
+   2.0
+  ],
+  "Torso": [
+   0,
+   0,
+   2.0
+  ],
+  "Head": [
+   0,
+   0,
+   4.5
+  ],
+  "Staff": [
+   -1.5,
+   -0.6200000047683716,
+   2.049999952316284
+  ],
+  "LeftUpperArm": [
+   1.5,
+   0,
+   3.8
+  ],
+  "RightUpperArm": [
+   -1.5,
+   0,
+   3.8
+  ],
+  "LeftLowerArm": [
+   1.5,
+   0.0,
+   3.0999999046325684
+  ],
+  "RightLowerArm": [
+   -1.5,
+   0.0,
+   3.0999999046325684
+  ],
+  "LeftUpperLeg": [
+   0.5,
+   0,
+   2.0
+  ],
+  "RightUpperLeg": [
+   -0.5,
+   0,
+   2.0
+  ],
+  "LeftLowerLeg": [
+   0.5,
+   0.0,
+   1.100000023841858
+  ],
+  "RightLowerLeg": [
+   -0.5,
+   0.0,
+   1.100000023841858
+  ],
+  "TailL1": [
+   0.86,
+   0.36,
+   5.86
+  ],
+  "TailL2": [
+   1.5764,
+   0.5904,
+   4.3264
+  ],
+  "TailL3": [
+   2.2132,
+   0.7952,
+   2.9632
+  ],
+  "TailR1": [
+   -0.86,
+   0.36,
+   5.86
+  ],
+  "TailR2": [
+   -1.5764,
+   0.5904,
+   4.3264
+  ],
+  "TailR3": [
+   -2.2132,
+   0.7952,
+   2.9632
+  ]
+ },
+ "staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
+ "effects": "sketch labels per key: point[:size] (bright point and cross flare at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers",
+ "hover": {
+  "studs": 8.0,
+  "bob_studs": 1.5,
+  "bob_seconds": 3.0,
+  "note": "proposed; the bob is played in game, not keyed; no foot plants"
+ },
+ "scale": {
+  "studs_per_model_unit_at_8x": 7.0308,
+  "model_height_units": 6.2582
+ },
+ "approved": []
+}
