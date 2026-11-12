@@ -6,12 +6,15 @@
 -- Sort and Search. Tap a card, then a slot (SlotPicker): a member put on another slot swaps, its own slot takes it off.
 -- The server decides (Remotes.SetTeam: at least 1 member, locked during a run); every figure is the one the Backpack
 -- (cruise) and the minibar (TeamStamina<n>, TeamBonus) read, the summed stamina a display sum of the slots' figures.
+-- Owner 2026-11-12, after the first build: each slot card has its Number badge, a gold / purple / green Border and tint,
+-- a StaminaBar pill under the portrait, arrows between the cards; eight roster cards a row on desktop.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local CharacterCatalog = require(shared:WaitForChild("CharacterCatalog"))
+local GachaConfig = require(shared:WaitForChild("GachaConfig"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local RaceConfig = require(shared:WaitForChild("RaceConfig"))
 local SeriesCatalog = require(shared:WaitForChild("SeriesCatalog"))
@@ -33,12 +36,58 @@ local GOLD = UiTheme.Palette.Unbanked
 local CATEGORY = Color3.fromRGB(110, 205, 240)
 local STAMINA_BAR = Color3.fromRGB(60, 150, 255)
 local ORDER = { "RUNS FIRST", "TAGS IN 2ND", "TAGS IN LAST" } -- the run order (TEAM_AND_STAMINA_SPEC "Swap")
+-- Slot n's border and tint as drawn (owner 2026-11-12, after the first build): gold, purple, green. Display only.
+local SLOT_COLORS = {
+	GachaConfig.RARITY_COLORS.Legendary,
+	GachaConfig.RARITY_COLORS.Epic,
+	GachaConfig.RARITY_COLORS.Uncommon,
+}
 -- Design units (placeholders): the slot row's height, the bonus box's width, the toolbar's widths, the roster cells.
 local SLOTS_H, PHONE_SLOTS_H = 150, 104 -- 150: room for the desktop roster's two rows of cards (layout A)
-local BONUS_W, PHONE_BONUS_W = 220, 150
+local BONUS_W, PHONE_BONUS_W = 220, 130
 local SORT_W, SEARCH_W = 220, 300
-local CARD_MIN_WIDTH, CARD_HEIGHT = 140, 120
+local CARD_MIN_WIDTH, PHONE_CARD_MIN_WIDTH, CARD_HEIGHT = 120, 100, 120 -- 120: eight across on desktop (draft A)
 local CARD_ART = 3 -- px: the card art reaches 3 px past a cell, so the grid pads it
+-- A slot card's parts in design units (draft A, proposed): number badge and order on the top line, the portrait at the
+-- left, name / category / cruise at its right, the stamina pill under them; the arrows between the cards.
+local SLOT_DESKTOP = {
+	Pad = 10,
+	Top = 8,
+	Num = 28,
+	PortraitX = 6,
+	PortraitY = 40,
+	PortraitW = 120,
+	PortraitH = 72,
+	TextY = { 44, 74, 94 },
+	TextH = { 26, 18, 18 },
+	BarY = 116,
+	BarH = 26,
+	EmptyY = 96,
+	EmptyH = 24,
+	PlusH = 40,
+	ArrowW = 16,
+	ArrowH = 30,
+	ArrowPad = 4,
+}
+local SLOT_PHONE = {
+	Pad = 6,
+	Top = 6,
+	Num = 20,
+	PortraitX = 4,
+	PortraitY = 28,
+	PortraitW = 36,
+	PortraitH = 48,
+	TextY = { 30, 50, 64 },
+	TextH = { 18, 13, 13 },
+	BarY = 80,
+	BarH = 18,
+	EmptyY = 62,
+	EmptyH = 16,
+	PlusH = 24,
+	ArrowW = 8,
+	ArrowH = 20,
+	ArrowPad = 2,
+}
 
 local function make(class, name, parent, props)
 	local object = Instance.new(class)
@@ -121,39 +170,54 @@ local function pickSlot(slot, id, picked)
 	UiFeedback.Play((ok and done) and "Equip" or "Denied", button)
 end
 local slots = SlotPicker.new("Slots", panel, {}, pickSlot)
-local cards = {} -- slot -> its parts
+local cards = {} -- slot -> its parts (shown for a member; Number, Order and Border stay on an empty slot)
+local arrows = {}
 for n, refs in slots.Buttons do
 	refs.Title.Visible, refs.Items.Visible = false, false
 	local b = refs.Button
-	local function part(name, x, y, w, h, props)
-		props.Position, props.Size = UDim2.fromScale(x, y), UDim2.fromScale(w, h)
-		props.ZIndex = 3
-		return caption(name, b, props)
+	b.LayoutOrder = 2 * n - 1 -- the arrows sit between the cards (Slots' UIListLayout)
+	if n > 1 then
+		arrows[n - 1] = caption("Arrow" .. (n - 1), slots.Frame, { LayoutOrder = 2 * n - 2, Text = "▶" })
+	end
+	make("UIStroke", "Border", b, {
+		Color = SLOT_COLORS[n],
+		Thickness = 3,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+	local function part(name, parent, props)
+		props.ZIndex = props.ZIndex or 3
+		return caption(name, parent, props)
 	end
 	local left = Enum.TextXAlignment.Left
+	local number = part("Number", b, { Text = tostring(n) })
+	number.BackgroundTransparency, number.BackgroundColor3 = 0, GOLD
+	make("UICorner", "Round", number, { CornerRadius = UDim.new(1, 0) })
+	local bar = make("Frame", "StaminaBar", b, { BackgroundColor3 = OUTLINE, BorderSizePixel = 0, ZIndex = 3 })
+	make("UICorner", "Round", bar, { CornerRadius = UDim.new(1, 0) })
+	local fill = make("Frame", "Fill", bar, {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = STAMINA_BAR,
+		BorderSizePixel = 0,
+		ZIndex = 3,
+	})
+	make("UICorner", "Round", fill, { CornerRadius = UDim.new(1, 0) })
+	local empty = part("Empty", b, { Text = "Empty slot" })
 	cards[n] = {
-		Order = part("Order", 0.05, 0.04, 0.9, 0.15, { Text = ORDER[n], TextXAlignment = left }),
+		Number = number,
+		Order = part("Order", b, { Text = ORDER[n], TextXAlignment = left }),
 		Portrait = make("ImageLabel", "Portrait", b, {
-			Position = UDim2.fromScale(0.03, 0.2),
-			Size = UDim2.fromScale(0.45, 0.6),
 			BackgroundTransparency = 1,
 			ScaleType = Enum.ScaleType.Fit,
 			ZIndex = 3,
 		}),
-		Name = part("Name", 0.5, 0.22, 0.47, 0.18, { TextXAlignment = left }),
-		Category = part("Category", 0.5, 0.42, 0.47, 0.13, { TextXAlignment = left }),
-		Cruise = part("Cruise", 0.5, 0.57, 0.47, 0.13, { TextXAlignment = left }),
-		Stamina = part(
-			"Stamina",
-			0.05,
-			0.82,
-			0.9,
-			0.14,
-			{ BackgroundTransparency = 0, BackgroundColor3 = STAMINA_BAR }
-		),
-		Empty = part("Empty", 0.05, 0.35, 0.9, 0.3, { Text = "Empty slot" }),
+		Name = part("Name", b, { TextXAlignment = left }),
+		Category = part("Category", b, { TextXAlignment = left }),
+		Cruise = part("Cruise", b, { TextXAlignment = left }),
+		StaminaBar = bar,
+		Stamina = part("Stamina", bar, { Size = UDim2.fromScale(1, 1), ZIndex = 4 }),
+		Empty = empty,
+		Plus = part("Plus", empty, { Text = "+" }),
 	}
-	UiTheme.Corner(cards[n].Stamina, "S")
 end
 
 -- The team bonus box (TeamBonus, as the minibar's badge) and the summed stamina of the slots.
@@ -212,13 +276,42 @@ local function layout()
 	local slotsH, bonusW = g.Small and PHONE_SLOTS_H or SLOTS_H, g.Small and PHONE_BONUS_W or BONUS_W
 	g.Place(slots.Frame, c.X, top, c.W - bonusW - gap, slotsH)
 	slots:Layout(g)
+	local s = g.Small and SLOT_PHONE or SLOT_DESKTOP
+	-- Three cards and two arrows across the row: the picker's buttons give up the arrows' room.
+	slots.Frame.Layout.Padding = UDim.new(0, g.px(s.ArrowPad))
+	local share = math.ceil(g.px(2 * s.ArrowW + 4 * s.ArrowPad) / 3)
+	for _, refs in slots.Buttons do
+		refs.Button.Size = UDim2.new(1 / 3, -share, 1, 0)
+	end
+	for _, arrow in arrows do
+		arrow.Size = g.at(s.ArrowW, s.ArrowH)
+		g.Role(arrow, "Item").TextColor3 = GOLD
+	end
+	-- x, y, right inset (nil: w is a fixed width) and h in units, inside the card.
+	local function put(gui, x, y, right, h, w)
+		gui.Position = g.at(x, y)
+		gui.Size = w and g.at(w, h) or UDim2.new(1, -g.px(x + right), 0, g.px(h))
+	end
+	local textX = s.PortraitX + s.PortraitW + 6
 	for _, parts in cards do
+		put(parts.Number, s.Pad, s.Top, nil, s.Num, s.Num)
+		g.Role(parts.Number, "Body").TextColor3 = OUTLINE
+		put(parts.Order, s.Pad + s.Num + 6, s.Top, s.Pad, s.Num)
 		g.Role(parts.Order, "Body")
+		put(parts.Portrait, s.PortraitX, s.PortraitY, nil, s.PortraitH, s.PortraitW)
+		for i, name in { "Name", "Category", "Cruise" } do
+			put(parts[name], textX, s.TextY[i], s.Pad, s.TextH[i])
+		end
 		g.Role(parts.Name, "Item")
 		g.Role(parts.Category, "Body").TextColor3 = CATEGORY
 		g.Role(parts.Cruise, "Body").TextColor3 = GOLD
+		put(parts.StaminaBar, s.Pad, s.BarY, s.Pad, s.BarH)
 		g.Role(parts.Stamina, "Body")
+		put(parts.Empty, s.Pad, s.EmptyY, s.Pad, s.EmptyH)
 		g.Role(parts.Empty, "Body").TextColor3 = AnimeSkin.Color.Caption
+		parts.Plus.Position, parts.Plus.Size =
+			UDim2.fromOffset(0, -g.px(s.PlusH + 4)), UDim2.new(1, 0, 0, g.px(s.PlusH))
+		g.Role(parts.Plus, "Section").TextColor3 = AnimeSkin.Color.Caption
 	end
 	g.Place(bonus, c.X + c.W - bonusW, top, bonusW, slotsH)
 	g.Role(bonusHeading, "Body")
@@ -239,7 +332,8 @@ local function layout()
 	local width = g.px(c.W) - roster.ScrollBarThickness - 2 * CARD_ART
 	local height = g.px(bottom - rosterY) - 2 * CARD_ART
 	if width > 0 and height > 0 then
-		local columns = math.max(2, math.floor((width + gapPx) / (g.px(CARD_MIN_WIDTH) + gapPx)))
+		local minWidth = g.px(g.Small and PHONE_CARD_MIN_WIDTH or CARD_MIN_WIDTH)
+		local columns = math.max(2, math.floor((width + gapPx) / (minWidth + gapPx)))
 		local rows = math.max(g.Small and 1 or 2, math.floor((height + gapPx) / (g.px(CARD_HEIGHT) + gapPx) + 0.5))
 		rosterLayout.CellSize = UDim2.fromOffset(
 			math.floor((width - (columns - 1) * gapPx) / columns),
@@ -296,10 +390,13 @@ function render()
 	local total = 0
 	for n, parts in cards do
 		local spec = team[n] and team[n] ~= "" and CharacterCatalog.Get(team[n])
+		-- The slot's own tint (draft A), lighter while the picked character is on it (a tap takes it off).
+		local here = chosen ~= nil and team[n] == chosen
+		slots.Buttons[n].Button.BackgroundColor3 = SLOT_COLORS[n]:Lerp(OUTLINE, here and 0.45 or 0.65)
 		for name, part in parts do
 			if name == "Empty" then
 				part.Visible = not spec
-			elseif name ~= "Order" then
+			elseif name ~= "Order" and name ~= "Number" and name ~= "Plus" then
 				part.Visible = spec ~= false and spec ~= nil
 			end
 		end
