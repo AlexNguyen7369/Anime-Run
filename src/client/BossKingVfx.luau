@@ -5,8 +5,12 @@
 -- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons (3 under REDUCED
 -- EFFECTS) as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
 -- enuma_start starts the red charge (a ColorCorrection tint, wind lines drawn into him) until enuma fires the red-black cyclone beam
--- that sweeps the room over the Window. The shields follow the ReplicatedStorage attribute BossFortified, not the schedule: 5 to 7
--- gold shields of different shapes orbit him while it is true and shatter when it turns false (the shields stay under REDUCED EFFECTS).
+-- that turns with his live torso (his baked hip turn) over the Window. The shields open on his call key (SHIELD_CALL s of shields)
+-- or when the ReplicatedStorage attribute BossFortified turns true: 5 to 7 gold shields of different shapes orbit him while it is
+-- true and shatter with a burst when it turns false (the shields stay under REDUCED EFFECTS); a ring the pose opened that the
+-- attribute never held is shattered 1 s into a later move.
+-- Pose-tied (BOSS_EVENT_SPEC "Animation rework", "Pose-tied effects"): the portals open one by one in a cascade, EaGlow lights on
+-- Ea brighten through the charge, and a white EnumaChargeFlash at Ea's tip just before the beam (neither under REDUCED EFFECTS).
 -- Spots and portal places come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
 -- and colours are placeholders to judge from a capture. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Portals, Volley (with its portals),
@@ -73,6 +77,9 @@ local WIND_RAMP_FROM, WIND_RAMP_TO = 0.5, 2.75 -- s into the charge
 local WIND_RIBBONS = 6
 local WIND_CLIMB = 1.2 -- s for a ribbon to climb from his feet to Ea's tip
 local WIND_RADIUS_FEET, WIND_RADIUS_TIP, WIND_WIDTH = 12, 5, 1.6 -- studs
+local SHIELD_CALL = 0.6 -- s of shields: his call key (rework keys), the ring opens
+local EA_GLOW_MAX = 4 -- EaGlow's brightness at the end of the charge, from 0 at its start (proposed)
+local FLASH_LEAD = 0.08 -- s before the beam: the white flash (proposed)
 local EA_SWING = { 2.6, 3.25 } -- s of enuma: Ea's Trail, the 2.75 s swing into the 3.0 s hit and its follow-through (proposed)
 
 local BossKingVfx = {}
@@ -82,6 +89,7 @@ local tracked = {} -- part -> function giving its CFrame each frame
 local portals = {} -- the open portals, the volley's origins
 local portalTips = {} -- portal -> its weapon tip, flashed as it fires
 local ea = nil -- his Ea part, found by name (the rig is built late)
+local eaGlow = nil -- its PointLight EaGlow
 local shields = {} -- the orbiting shields while Fortified
 local shieldRing = nil -- their Folder "ShieldRing" in the effects folder
 local pool = {} -- idle pooled parts (Transparency 1) in this arena's folder
@@ -143,7 +151,7 @@ local function pooled(name, cframe, size, color, transparency, seconds)
 	else
 		part = Kit.holder(name, cframe, size)
 	end
-	part.Material = NEON -- a weapon piece sets its own after
+	part.Material, part.Shape = NEON, Enum.PartType.Block -- a weapon piece sets its own material after
 	part.Color, part.Transparency = color, transparency
 	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	task.delay(seconds + 0.03, function()
@@ -227,22 +235,26 @@ local function playPortals()
 		local out = Vector3.new(math.sin(a), 0, -math.cos(a))
 		local anchor = him() + out * rng:NextNumber(14, 30) + Vector3.new(0, rng:NextNumber(10, Arena.BossHeight), 0)
 		local frame = CFrame.lookAt(anchor, anchor + out)
-		local part = Kit.holder("Portal", frame, Vector3.new(0.6, 0.6, 0.3))
-		-- design C: white, so the drawn gold shows as drawn (owner 2026-11-12)
-		local front = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Front, 1)
-		local back = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Back, 1)
-		local born, turn = os.clock(), few and 0 or PORTAL_TURN * (k % 2 == 0 and 1 or -1)
-		tracked[part] = function()
-			return frame * CFrame.Angles(0, 0, (os.clock() - born) * turn)
-		end
-		local tip = Kit.holder("PortalTip", frame * CFrame.new(0, 0, size * 0.1), Vector3.new(0.6, 0.6, size * 0.6))
-		tip.Material, tip.Color = Enum.Material.Metal, GOLD_HI
-		-- The opening: a bright dot, a small ring, full size (Quad, no overshoot past the drawn size), the weapon tip through.
-		task.delay(PORTAL_CASCADE * math.sqrt((k - 1) / (count - 1)), function()
-			if not part.Parent then
+		local turn = few and 0 or PORTAL_TURN * (k % 2 == 0 and 1 or -1)
+		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
+		-- size), the weapon tip through.
+		local opensAt = PORTAL_CASCADE * math.sqrt((k - 1) / (count - 1))
+		local mine = effects
+		task.delay(opensAt, function()
+			if effects ~= mine or not (mine and mine.Parent) then
 				return
 			end
-			front.Transparency, back.Transparency = 0, 0
+			local left = hold - opensAt
+			local part = Kit.holder("Portal", frame, Vector3.new(0.6, 0.6, 0.3))
+			-- design C: white, so the drawn gold shows as drawn (owner 2026-11-12)
+			local front = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Front)
+			local back = Kit.decal(part, PORTAL_ART, WHITE, Enum.NormalId.Back)
+			local born = os.clock()
+			tracked[part] = function()
+				return frame * CFrame.Angles(0, 0, (os.clock() - born) * turn)
+			end
+			local tip = Kit.holder("PortalTip", frame * CFrame.new(0, 0, size * 0.1), Vector3.new(0.6, 0.6, size * 0.6))
+			tip.Material, tip.Color = Enum.Material.Metal, GOLD_HI
 			Kit.tween(part, 0.12, { Size = Vector3.new(size * 0.3, size * 0.3, 0.3) })
 			task.delay(0.12, function()
 				if part.Parent then
@@ -250,34 +262,34 @@ local function playPortals()
 					Kit.tween(tip, 0.4, { CFrame = frame * CFrame.new(0, 0, -size * 0.3), Transparency = 0 })
 				end
 			end)
-		end)
-		if not few then
-			local shimmer = Kit.emitter(part, {
-				Name = "Shimmer",
-				Texture = Art.Spark,
-				Color = ColorSequence.new(GOLD_HI, GOLD),
-				LightEmission = 1,
-				Shape = Enum.ParticleEmitterShape.Disc,
-				ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
-				Size = sequence(0, 0.4, 0.5, 1.2, 1, 0),
-				Lifetime = NumberRange.new(0.4, 0.7),
-				Speed = NumberRange.new(2, 5),
-				Rate = 6,
-				Enabled = true,
-			})
-			task.delay(hold - 0.3, function()
-				shimmer.Enabled = false
+			if not few then
+				local shimmer = Kit.emitter(part, {
+					Name = "Shimmer",
+					Texture = Art.Spark,
+					Color = ColorSequence.new(GOLD_HI, GOLD),
+					LightEmission = 1,
+					Shape = Enum.ParticleEmitterShape.Disc,
+					ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+					Size = sequence(0, 0.4, 0.5, 1.2, 1, 0),
+					Lifetime = NumberRange.new(0.4, 0.7),
+					Speed = NumberRange.new(2, 5),
+					Rate = 6,
+					Enabled = true,
+				})
+				task.delay(left - 0.3, function()
+					shimmer.Enabled = false
+				end)
+			end
+			task.delay(left - 0.3, function()
+				Kit.tween(front, 0.3, { Transparency = 1 })
+				Kit.tween(back, 0.3, { Transparency = 1 })
+				Kit.tween(tip, 0.3, { Transparency = 1 })
 			end)
-		end
-		task.delay(hold - 0.3, function()
-			Kit.tween(front, 0.3, { Transparency = 1 })
-			Kit.tween(back, 0.3, { Transparency = 1 })
-			Kit.tween(tip, 0.3, { Transparency = 1 })
+			Kit.expire(part, left)
+			Kit.expire(tip, left)
+			table.insert(portals, part)
+			portalTips[part] = tip
 		end)
-		Kit.expire(part, hold)
-		Kit.expire(tip, hold)
-		portals[k] = part
-		portalTips[part] = tip
 	end
 	return few and 0 or math.ceil(count * 6 * hold)
 end
@@ -473,6 +485,17 @@ local function playCharge()
 	task.delay(CHARGE, function()
 		wind.Enabled = false
 	end)
+	if not few then -- the charge ends in a white flash at Ea's tip, just before the beam
+		local mine = effects
+		task.delay(CHARGE - FLASH_LEAD, function()
+			if effects == mine and king then
+				local white = pooled("EnumaChargeFlash", CFrame.new(king:Tip()), Vector3.one * 8, WHITE, 0, 0.3)
+				white.Shape = Enum.PartType.Ball
+				Kit.tween(white, 0.3, { Size = Vector3.one * 34 })
+				roomLight(king:Tip(), WHITE, 5, 0.3)
+			end
+		end)
+	end
 	Kit.expire(part, CHARGE + 0.8)
 	return math.ceil(rate * CHARGE)
 end
@@ -484,12 +507,15 @@ local function playBeam()
 	local few = reduced()
 	local length = Arena.WallRadius * 1.1
 	local born = os.clock()
+	-- Aimed along his torso's facing, flat: the beam turns with his baked hip turn, frame by frame (posed before this Step).
 	local function frame(roll)
 		local origin = king:Tip()
-		local a = (os.clock() - born) / BEAM * 2 * math.pi
+		local look = king.Him and king.Him:Frame("Torso").LookVector or Vector3.new(0, 0, -1)
+		local flat = Vector3.new(look.X, 0, look.Z)
+		flat = flat.Magnitude > 0.05 and flat.Unit or Vector3.new(0, 0, -1)
 		local pitch = -math.atan((origin.Y - Arena.Y) / (Arena.InnerRadius + Arena.Width / 2))
-		local look = CFrame.new(origin) * CFrame.Angles(0, -a, 0) * CFrame.Angles(pitch, 0, 0)
-		return look * CFrame.new(0, 0, -length / 2) * CFrame.Angles(0, 0, roll)
+		local aim = CFrame.lookAt(origin, origin + flat) * CFrame.Angles(pitch, 0, 0)
+		return aim * CFrame.new(0, 0, -length / 2) * CFrame.Angles(0, 0, roll)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(6, 6, length))
 	core.Material, core.Color, core.Transparency = NEON, RED, 0
@@ -655,6 +681,13 @@ local EVENTS = {
 	Enuma = playEnuma,
 }
 local LEADS = { Volley = playPortals, Gates = playPortals }
+
+-- The ring opens once: on his call key or BossFortified, whichever comes first.
+local function openShields()
+	if not (shieldRing and shieldRing.Parent) then
+		effects:SetAttribute("LastParticles", playShields())
+	end
+end
 -- The schedule's event names (BossKingPoses) to the plays; shields come from BossFortified instead.
 local SCHEDULED = { gates_start = "Portals", gates = "Volley", enuma_start = "Charge", enuma = "Beam" }
 
@@ -673,6 +706,26 @@ local function fire(move, from, to)
 			playEvent(SCHEDULED[event.Name])
 		end
 	end
+	if move == "shields" and SHIELD_CALL > from and SHIELD_CALL <= to then
+		openShields()
+	end
+end
+
+-- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and under REDUCED EFFECTS.
+local function stepEaGlow(move, localTime)
+	local on = move == "enuma" and localTime < CHARGE + BEAM and Poses.EaShown(move, localTime) and not reduced()
+	local part = (on or eaGlow) and eaPart()
+	if not part then
+		return
+	end
+	if not (eaGlow and eaGlow.Parent == part) then
+		eaGlow = Instance.new("PointLight")
+		eaGlow.Name = "EaGlow"
+		eaGlow.Color, eaGlow.Range, eaGlow.Shadows = Color3.fromRGB(255, 70, 60), 22, false
+		eaGlow.Parent = part
+	end
+	eaGlow.Enabled = on
+	eaGlow.Brightness = on and EA_GLOW_MAX * math.clamp(localTime / CHARGE, 0, 1) or 0
 end
 
 -- Fires what the move passed since the last frame.
@@ -693,6 +746,9 @@ local function clear()
 	table.clear(portalTips)
 	if ea and ea.Parent then
 		Kit.swingTrail(ea, nil)
+	end
+	if eaGlow then
+		eaGlow.Enabled = false
 	end
 	ea = nil
 	table.clear(shields)
@@ -737,8 +793,13 @@ function BossKingVfx.Step(since, move, localTime)
 	if ReplicatedStorage:GetAttribute(FORCE) ~= nil then
 		return
 	end
+	stepEaGlow(move, localTime)
 	if since and since >= Event.RiseSeconds then
 		advance(move, localTime, previousMove, previousTime)
+	end
+	-- a ring his call opened that BossFortified never held (no server, or a missed true): gone 1 s into a later move
+	if shieldRing and move ~= "shields" and localTime > 1 and ReplicatedStorage:GetAttribute(FORTIFIED) ~= true then
+		shatter()
 	end
 	previousMove, previousTime = move, localTime
 end
@@ -749,7 +810,7 @@ ReplicatedStorage:GetAttributeChangedSignal(FORTIFIED):Connect(function()
 		return
 	end
 	if ReplicatedStorage:GetAttribute(FORTIFIED) == true then
-		playEvent("Shields")
+		openShields()
 	else
 		shatter()
 	end
