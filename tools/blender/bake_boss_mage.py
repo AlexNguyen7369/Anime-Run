@@ -58,7 +58,7 @@ WINDOW_PLAN = (  # proposed: the 2 s sustain window, 2.0 -> 2.5 -> 3.25 -> 4.0
 	{"ease": ease(1.8), "carry": 0.05},
 	{"ease": ease(1.8), "carry": 0.05},
 )
-GOLEM_EVERY = 5  # proposed: s between two golem hits on its own clock (BossMinionStart)
+GOLEM_EVERY = 6  # proposed: s between two golem hits on its own clock (BossMinionStart)
 OSU_OPEN = 2.94  # BossOsu.OpenSeconds: a hit's circles open this long before it
 WATCH_LEAD = 0.75  # proposed: watch_in, idle key 0 -> watch key 0
 EVENTS = {"lightning": "Lightning", "golem": "Slam", "barrage": "Barrage"}
