@@ -38,6 +38,8 @@ local BUILD_WAIT = 8
 local MOVE_WAIT = 8 -- s: the longest lead (Enuma's charge) plus the 2 s window
 local SETTLE = 0.5 -- s after the last expected hit, to catch an extra one
 local KICK_EPS = 1e-3
+local ARENA_BUILD_WAIT = 15 -- s: the whole arena, torches last
+local LIGHTS_STABLE = 1 -- s the arena's Light count must hold before the first move
 
 local Module = {}
 
@@ -221,6 +223,30 @@ function Module.Build(h)
 		},
 	}
 
+	-- True once the arena's own Lights (outside BossEffects) number above 0 and hold still for LIGHTS_STABLE s; false after
+	-- ARENA_BUILD_WAIT.
+	local function arenaBuilt()
+		local deadline = os.clock() + ARENA_BUILD_WAIT
+		local last, since = -1, os.clock()
+		while os.clock() < deadline do
+			local folder = workspace:FindFirstChild("BossArenaPreview")
+			local effects = inArena("BossEffects")
+			local n = 0
+			for _, d in folder and folder:GetDescendants() or {} do
+				if d:IsA("Light") and not (effects and d:IsDescendantOf(effects)) then
+					n += 1
+				end
+			end
+			if n ~= last then
+				last, since = n, os.clock()
+			elseif n > 0 and os.clock() - since >= LIGHTS_STABLE then
+				return true
+			end
+			task.wait(0.05)
+		end
+		return false
+	end
+
 	function scenarios.ui_boss_impact(res)
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
@@ -235,7 +261,11 @@ function Module.Build(h)
 					return inArena(moves.Model)
 				end, BUILD_WAIT)
 				check(res, id .. "_impact_model_present", model ~= nil, true)
-				if model then
+				-- The arena builds over frames and its torches come near the end; a real event's Prep covers that. No build-done
+				-- signal exists for both arenas, so: its Light count above 0 and unchanged for LIGHTS_STABLE s.
+				local built = model ~= nil and arenaBuilt()
+				check(res, id .. "_arena_built", built, true)
+				if model and built then
 					state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 1)
 					if moves.Minion then
 						setup(res, "boss_ui_minion:640,1000")
