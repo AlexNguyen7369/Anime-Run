@@ -30,7 +30,7 @@
 --     GolemHit(k) -> tau, name, GolemAt(tau) -> herMove, herTime, golemMove, golemTime, SampleGolem(move, t) -> scale
 --     (0 = hidden), parts, locs, root; GolemBind (15 blocks).
 -- Proposed values the plan fixes and these tests assert literally (owner may retune): her move chat lines, camera pitch 14,
---   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }, golem HP 1,000 per player, one attack every 5 s,
+--   wall 164, HoverY 8, bob 1.5 studs / 3 s, WaitCamera { Out = 28, Up = 40, Down = 22 }, golem HP 1,000 per player, one attack every 6 s,
 --   cycle 32.55 s, the golem chat lines, circle leads.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_mage_event,boss_mage_arena,boss_mage_anim", then CarTestRun = true.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,7 +47,7 @@ local T0 = 1000000 -- the fake server clock's start
 local COST = { Lightning = 20, Barrage = 30 } -- owner 2026-11-11, % of a full bar (stamina is 0..100)
 local GOLEM_COST = 15 -- owner 2026-11-11: each golem attack
 local GOLEM_HP = 1000 -- owner 2026-11-12: per player in the arena when it rises (one player in most tests)
-local GOLEM_FIRST, GOLEM_EVERY = 4.2, 5 -- approved keys.json golem Slam; proposed: one attack every 5 s
+local GOLEM_FIRST, GOLEM_EVERY = 4.2, 6 -- approved keys.json golem Slam; proposed: one attack every 6 s (5 s until 2026-11-12)
 local CYCLE_SECONDS = 32.55 -- the 2026-11-11 bake (proposed)
 local CRUSHED_CUT = 0.2 -- owner 2026-11-11
 local STATUS_SECONDS = 15 -- proposed: the stage's status time
@@ -1589,7 +1589,7 @@ function Tests.make()
 				flag("golem_fall_starts_shown", (scaleOf("golem_fall", 0) or 0) > 0, scaleOf("golem_fall", 0))
 				eq("golem_fall_ends_at_scale_0", scaleOf("golem_fall", 2.0), 0)
 				eq("golem_first_hit_4_2", Poses.GolemFirstHit, GOLEM_FIRST)
-				eq("golem_every_5", Poses.GolemEvery, GOLEM_EVERY)
+				eq("golem_every_6", Poses.GolemEvery, GOLEM_EVERY)
 				eq("golem_hit_is_function", type(Poses.GolemHit), "function")
 				eq("golem_at_is_function", type(Poses.GolemAt), "function")
 				if type(Poses.GolemHit) ~= "function" or type(Poses.GolemAt) ~= "function" then
@@ -1600,7 +1600,7 @@ function Tests.make()
 					local tau, name = Poses.GolemHit(k)
 					hitsOk = hitsOk and approx(tau, golemTau(k)) and name == golemName(k)
 				end
-				flag("golem_hits_every_5_alternating", hitsOk)
+				flag("golem_hits_every_6_alternating", hitsOk)
 				-- Her rig: the golem move, a lead into watch, then watch on its 3 s loop.
 				local herMove, herTime = Poses.GolemAt(2)
 				eq("golem_at_her_golem_move", herMove, "golem")
@@ -1633,6 +1633,15 @@ function Tests.make()
 				end
 				flag("golem_tracks_on_hits", trackOk)
 				eq("golem_tracks_apart", table.concat(bad, ","), "")
+				-- The next attack's circles open only after the longest attack track's follow-through (time after its hit).
+				local follow = 0
+				for _, track in { "golem_slam", "golem_sweep" } do
+					local row = Poses.GolemMoves and Poses.GolemMoves[track]
+					local eventAt = row and row.Events[1] and row.Events[1].Time or 0
+					follow = math.max(follow, (row and row.Duration or 0) - eventAt)
+				end
+				local gap = (Poses.GolemEvery or 0) - open
+				flag("golem_circles_open_after_follow_through", gap >= follow - 1e-6, gap, follow)
 				local _, _, idleMove = Poses.GolemAt(3)
 				eq("golem_idles_between", idleMove, "golem")
 				_, _, idleMove = Poses.GolemAt(golemTau(2) - 3)
@@ -1741,10 +1750,10 @@ function Tests.make()
 						local tau, name = BossDodge.MinionMoment(k, MAGE)
 						same = same and approx(tau, golemTau(k)) and name == golemName(k)
 					end
-					flag("minion_moments_every_5_alternating", same)
+					flag("minion_moments_every_6_alternating", same)
 				end
 				if type(BossDodge.MinionIndexAtOrBefore) == "function" then
-					for _, case in { { 0, 0 }, { 4.19, 0 }, { 4.2, 1 }, { 9.19, 1 }, { 9.21, 2 }, { 50, 10 } } do
+					for _, case in { { 0, 0 }, { 4.19, 0 }, { 4.2, 1 }, { 10.19, 1 }, { 10.21, 2 }, { 60, 10 } } do
 						eq("minion_index_at_" .. case[1], BossDodge.MinionIndexAtOrBefore(case[1], MAGE), case[2])
 					end
 				end
