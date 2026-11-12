@@ -141,6 +141,7 @@ def main():
 	missing = [cid for cid in named if not any(cid in found for found in rendered)]
 	if missing:
 		raise SystemExit(f"nothing rendered for {missing}")
+	unresolved = []  # a failed resolve (key without legacy-asset:manage) must not stop the other uploads; a rerun retries it
 	for (prefix, title, _, registry, what), found in zip(KINDS, rendered):
 		hash_key, decal_key, image_key = prefix + "Hash", prefix + "Decal", prefix + "Image"
 		counts = {"upload": 0, "resolve": 0, "unchanged": 0}
@@ -161,10 +162,13 @@ def main():
 			if action != "unchanged":
 				try:
 					row[image_key] = resolve(cid, row[decal_key])
+				except RuntimeError as e:
+					unresolved.append(str(e))
 				finally:  # every paid upload lands in the ledger, resolved or not
 					with open(LEDGER, "w") as f:
 						json.dump(ledger, f, indent=1, sort_keys=True)
-				print("RESOLVED", title, cid, row[image_key], flush=True)
+				if row.get(image_key):
+					print("RESOLVED", title, cid, row[image_key], flush=True)
 		# Rendered ids only: a ledger row whose image was deleted drops out.
 		entries = {cid: ledger[cid][image_key] for cid in found if ledger.get(cid, {}).get(image_key) and not sidekick_art.is_sidekick(cid)}
 		if dry:
@@ -174,6 +178,8 @@ def main():
 		print("REGISTRY", title, len(entries), "of", len(found), "rendered ids")
 	if not dry:
 		sidekick_art.write()
+	if unresolved:
+		raise SystemExit("unresolved (Decals kept in the ledger, rerun to retry):\n" + "\n".join(unresolved))
 
 
 if __name__ == "__main__":  # upload_boss_vfx.py reuses upload and resolve
