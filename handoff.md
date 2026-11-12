@@ -2,7 +2,10 @@
 
 History: `current_progress.md`, `git log`.
 
-## RESUME HERE (2026-11-11, orchestrator): goal `boss-king`, The Golden King: VERIFIED in Studio, audit round 2 running, PR next
+## RESUME HERE (2026-11-12, orchestrator): goal `boss-king` DONE, PR #10 merged into main b2ba928
+- The Golden King is on main. Not run in Studio since the boss-mage merge: the owner's `/boss king` and `/elfboss` on main are the check. `feature/alex/boss-king` carries only this bookkeeping on top of main; king worktrees removed. Open: OWNER_QUESTIONS 2026-11-11 boss-king items 1, 3-12, 14, 17-23; review page section 5 (https://claude.ai/artifact/6r7jJr5ykcdaAD574PHVH5); the #9 reviewer debts listed below; LateDataTests per-boss delivery for the king untested; Open Cloud key lacks `legacy-asset:manage`.
+
+## boss-king history (2026-11-11, orchestrator): VERIFIED in Studio, audit round 2 PASS, PR path
 - PR #10 https://github.com/AlexNguyen7369/Anime-Run/pull/10: fresh review 1 CHANGES (2 blocking, fixed a520242: vault-only palette keys crashed the plain colosseum build; chest reveal hardcoded side_raga), fresh review 2 APPROVE. Waiting for #8/#9 to merge into main, then `gh pr edit 10 --base main` and `gh pr merge 10 --merge`, then goal boss-king Status: done. Non-blocking notes kept: BossDodgeUi snap (OWNER_QUESTIONS 23), LateDataTests per-boss delivery for the king untested, move names (Gates of Babylon, Enuma Elish, Key of Babylon, Ea) ship as in-game text per the owner's 4.37 wording.
 - 2026-11-12: owner (relayed): no full harness, merge now. `feature/alex/boss-mage` c50a8b8 merged into `feature/alex/boss-king` (556434f, dbe1e86; poses moved to `src/late/BossKingPoses.luau` on the lazy LateData path; stylua/selene/rojo green; NOT run in Studio after the merge). PR #10 open, base `feature/alex/boss-mage` (stacked on #9; retarget to main when #8 and #9 merge); fresh reviewer running. Owner plays from king-int via Rojo 34873 (the other orchestrator switches it).
 - `feature/alex/boss-king` at 64ec107 (pushed), worktree `../AnimeRun-orch/king-int`; no task worktrees. Main checkout restored to `orch/boss-mage/verify` 530dc1d with its uncommitted handoff.md; Studio free (handed to remove-dojo-spawn-relayout for m12).

@@ -175,8 +175,9 @@
 171. 2026-11-12 — Alex Nguyen — Merged PR #8 feature/alex/anime-world into main (4f9e2dc) after a fresh merge review APPROVE: Tab tilt HUD and wider panels, boss screens, plaza accents, pay at each checkpoint, Sakura gate loading screen, Dojos removed with the one-time refund, Spawn showpiece C, track power-ups.
 172. 2026-11-12 — Alex Nguyen — Merged PR #9 feature/alex/boss-mage into main (722e3f9) after a fresh merge review APPROVE: The Elf Mage and her follow-ups, per-boss late data, Team button and panel, Team icon N3.
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
+174. 2026-11-12 — Alex Nguyen — Merged PR #10 `feature/alex/boss-king` into main (b2ba928) on a fresh merge review APPROVE: The Golden King third boss (vault arena, Gates / Enuma Elish / Shield Gates with Fortified, Relics and chest, `side_king` and `side_mage`, every boss chest rolls its own Sidekick, `/new-boss` skill); goal boss-king closed.
 
 ## What's next
-**Retarget PR #10 (`feature/alex/boss-king`) to main and merge it on the fresh APPROVE, then close goal boss-king and the owner plays `/boss king` on main.**
+**Owner plays `/boss king` and `/elfboss` on main in Studio and rules on the open Golden King questions (`docs/OWNER_QUESTIONS.md` 2026-11-11 boss-king items 1, 3-12, 14, 17-23; review page section 5), then the #9 reviewer's debts (BossEventService.Advance poses drop, BossOsu rate limit, WaitCameraCFrame per boss, RelicTests source names, Elf Mage Defaults line).**
 
-**Why this is next:** #8 and #9 are in main, so #10's diff is The Golden King alone and its fresh review already approved it; merging it is the last gate of the goal.
+**Why this is next:** main now holds all three bosses but the merged build has not run in Studio since the boss-mage merge; the owner's play is the check, and the open items decide the next balance pass.

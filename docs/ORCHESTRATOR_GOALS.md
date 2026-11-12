@@ -262,7 +262,7 @@ Deliverables:
 Out of scope: Phase 2, her Sidekick, Big Raga's event rules, m12's PR.
 
 ## boss-king: The Golden King, third boss, and the /new-boss skill (owner 2026-11-11)
-Status: active
+Status: done 2026-11-12 (PR #10 merged into main b2ba928 after a fresh review APPROVE; k9 reported)
 Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/new-boss-gilgamesh-golden-concurrent-stream.md`)
 Branch: feature/alex/boss-king (from feature/alex/boss-mage)
 Spec: design doc 4.37 Third boss, 4.36 Boss Sidekicks, 4.38, docs/BOSS_EVENT_SPEC.md "The Golden King", docs/RELIC_SPEC.md "The Golden King's drops", docs/SIDEKICK_SPEC.md rows `side_king` and `side_mage`, docs/char_evidence/boss_king.md, side_king.md, side_mage.md
