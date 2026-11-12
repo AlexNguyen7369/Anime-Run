@@ -119,7 +119,7 @@ local KEY_DEGREES = 0.01
 local FRAME = 1 / 60
 local MAX_DEGREES_PER_FRAME = 12 -- BOSS_EVENT_SPEC "Animation rework" Tests, as BossAnimTests for Big Raga
 local MAX_OFFSET_PER_FRAME = 0.05
-local SNAP_WINDOW = 0.05 -- s around an event where a snap is allowed
+local SNAP_WINDOW = 0.05 -- s after an event where the hit snap still runs (with the key segment into it)
 
 -- XYZ Euler degrees as the client poses them (BossRaga:Pose: Z, then Y, then X), in doubles: CFrame is float32.
 local function matrixOf(v)
@@ -910,12 +910,31 @@ function Tests.make()
 			end)
 
 			-- Per-frame continuity, as BossAnimTests has for Big Raga (BOSS_EVENT_SPEC "Animation rework" Tests): at most 12 degrees
-			-- of any part and 0.05 root (keys.json units) per 60 Hz frame, except within 0.05 s of one of the move's events.
+			-- of any part and 0.05 root (keys.json units) per 60 Hz frame, outside the hit snap (the key segment into an event and
+			-- 0.05 s after it).
 			section("continuous", function()
 				for name, move in Poses.Moves do
+					-- The hit snap (BOSS_EVENT_SPEC "Animation rework" Tests, 2026-11-12): the key segment that ends on an event time,
+					-- from the key frame before it, plus SNAP_WINDOW after it. Key frames: the move's Approved times (the baked
+					-- Keys hold every in-between), else its Keys' times.
+					local keyTimes = {}
+					for _, key in move.Keys or {} do
+						table.insert(keyTimes, key.Time)
+					end
+					keyTimes = (move.Approved and #move.Approved > 0) and move.Approved or keyTimes
+					local snaps = {}
+					for _, event in move.Events do
+						local from = nil -- the last key frame before the event; none: the event's own time
+						for _, k in keyTimes do
+							if k < event.Time - 1e-6 and (from == nil or k > from) then
+								from = k
+							end
+						end
+						table.insert(snaps, { from or event.Time, event.Time + SNAP_WINDOW })
+					end
 					local function nearEvent(t)
-						for _, event in move.Events do
-							if math.abs(event.Time - t) <= SNAP_WINDOW then
+						for _, snap in snaps do
+							if t > snap[1] and t <= snap[2] then
 								return true
 							end
 						end
