@@ -565,8 +565,12 @@ function ItemMenu.OpenChest(id, anchor)
 			row.Rarity ~= "Secret" and SidekickView.RarityColor(row.Rarity) or nil, -- Secret's black would not read here
 		}
 	end
-	if chest.SidekickChance > 0 then
-		table.insert(lines, { ("Big Raga %g%%"):format(chest.SidekickChance * 100) })
+	if chest.SidekickChance > 0 then -- its own boss's Sidekick (RELIC_SPEC "Chests": side_raga, side_mage, side_king)
+		local sidekick = SidekickConfig.Get(chest.SidekickId)
+		table.insert(
+			lines,
+			{ ("%s %g%%"):format(sidekick and sidekick.Name or "Big Raga", chest.SidekickChance * 100) }
+		)
 	end
 	for order, line in lines do
 		caption(mg, "Row" .. order, menuOdds, {

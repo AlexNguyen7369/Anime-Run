@@ -358,6 +358,7 @@ local function render()
 		if prompt then
 			closePrompt() -- no hit: a player in the wait is not hit by this move
 		end
+		dodge.Visible = false -- gone at once, no closing animation, as while the golem stands
 		return
 	end
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds

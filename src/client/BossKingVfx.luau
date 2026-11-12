@@ -10,7 +10,7 @@
 -- Spots and portal places come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
 -- and colours are placeholders to judge from a capture. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Portals, Volley (with its portals),
--- Charge, Beam or Shields plays that event at once. Not drawn yet: the drums' spin on Ea (pose data of the bake), the sky's own tint
+-- Charge, Beam or Shields plays that event at once; Gates (portals and volleys) or Enuma (charge, then beam) a whole move. Not drawn yet: the drums' spin on Ea (pose data of the bake), the sky's own tint
 -- (Client/BiomeEnvironment owns Lighting; the ColorCorrection carries the red).
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -55,7 +55,7 @@ local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- as the mage (owner 2026-11-11): 0
 local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3
 local PORTALS_MIN, PORTALS_MAX = 12, 20
 local PORTAL_SIZES = { 14, 10, 7 } -- studs across
-local SHOT_SECONDS = 0.22 -- a projectile's flight
+local SHOT_SECONDS = 0.3 -- a projectile's flight (proposed; 0.22 read as a blur, owner 2026-11-11: weapons must be seen flying)
 local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
 local SHARDS = 5 -- a shattering shield's pieces
@@ -69,6 +69,7 @@ local effects, king = nil, nil
 local tracked = {} -- part -> function giving its CFrame each frame
 local portals = {} -- the open portals, the volley's origins
 local shields = {} -- the orbiting shields while Fortified
+local shieldRing = nil -- their Folder "ShieldRing" in the effects folder
 local pool = {} -- idle pooled parts (Transparency 1) in this arena's folder
 local previousMove, previousTime = nil, nil
 
@@ -127,12 +128,13 @@ local function pooled(name, cframe, size, color, transparency, seconds)
 		part.Name, part.CFrame, part.Size = name, cframe, size
 	else
 		part = Kit.holder(name, cframe, size)
-		part.Material = NEON
 	end
+	part.Material = NEON -- a weapon piece sets its own after
 	part.Color, part.Transparency = color, transparency
 	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 	task.delay(seconds + 0.03, function()
 		if part.Parent == effects then
+			tracked[part] = nil
 			part.Name, part.Transparency = "Pooled", 1
 			local trail = part:FindFirstChildOfClass("Trail")
 			if trail then
@@ -238,14 +240,51 @@ local function playPortals()
 	return few and 0 or math.ceil(count * 6 * hold)
 end
 
--- A pooled gold projectile with a trail, flown from a to b in a straight line.
-local function shoot(from, to)
-	local frame = CFrame.lookAt(from, to)
-	local part = pooled("Weapon", frame, Vector3.new(0.9, 0.9, 7), GOLD_HI, 0, SHOT_SECONDS + 0.2)
+-- The vault's weapons (owner 2026-11-11: the volleys fire weapons as projectiles, not streaks): pooled pieces about a frame whose
+-- -Z is the flight line. { Name, Size, Offset, Color, Material }; the first piece is the blade or shaft, named Streak, with the trail.
+local METAL, PLASTIC = Enum.Material.Metal, Enum.Material.SmoothPlastic
+local STEEL, DARK_GOLD = Color3.fromRGB(226, 222, 206), Color3.fromRGB(150, 104, 30)
+local WEAPONS = {
+	-- His size (44 studs): a sword about 14 studs, a spear 18, so they read from the lanes.
+	{ -- a sword: blade, gold guard, dark grip
+		{ "Streak", Vector3.new(0.8, 2.4, 10), CFrame.new(0, 0, -2.8), STEEL, METAL },
+		{ "Guard", Vector3.new(4, 0.9, 1), CFrame.new(0, 0, 2.9), GOLD, METAL },
+		{ "Grip", Vector3.new(0.9, 0.9, 3.6), CFrame.new(0, 0, 5.2), DARK, PLASTIC },
+	},
+	{ -- a spear: shaft, gold tip
+		{ "Streak", Vector3.new(0.7, 0.7, 16), CFrame.new(0, 0, 0), DARK_GOLD, METAL },
+		{ "Tip", Vector3.new(1, 2, 3.6), CFrame.new(0, 0, -9.6), GOLD_HI, METAL },
+	},
+	{ -- a broad blade: cleaver, dark grip
+		{ "Streak", Vector3.new(0.8, 4.4, 7.6), CFrame.new(0, 0, -2), STEEL, METAL },
+		{ "Guard", Vector3.new(3.2, 0.9, 0.9), CFrame.new(0, 0, 2.2), GOLD, METAL },
+		{ "Grip", Vector3.new(1, 1, 4.4), CFrame.new(0, 0, 4.8), DARK, PLASTIC },
+	},
+}
+local SPIN = 3 -- radians a second about the flight line
+
+-- A pooled weapon (WEAPONS[k], by turns) with a trail on its blade, flown from a to b in a straight line, spinning slightly.
+local function shoot(from, to, k)
+	local pieces = WEAPONS[(k - 1) % #WEAPONS + 1]
+	local born, base = os.clock(), CFrame.lookAt(from, to)
+	local landed = CFrame.lookAt(to, to + base.LookVector)
+	local function flight(offset)
+		return function()
+			local age = os.clock() - born
+			return base:Lerp(landed, math.min(age / SHOT_SECONDS, 1)) * CFrame.Angles(0, 0, age * SPIN) * offset
+		end
+	end
+	local part = nil
+	for _, piece in pieces do
+		local one = pooled(piece[1], base * piece[3], piece[2], piece[4], 0, SHOT_SECONDS + 0.2)
+		one.Material = piece[5]
+		tracked[one] = flight(piece[3])
+		part = part or one
+	end
 	local trail = part:FindFirstChildOfClass("Trail")
 	if not trail then
 		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
-		a0.Position, a1.Position = Vector3.new(0, 0.6, 0), Vector3.new(0, -0.6, 0)
+		a0.Position, a1.Position = Vector3.new(0, 1.2, 0), Vector3.new(0, -1.2, 0)
 		a0.Parent, a1.Parent = part, part
 		trail = Instance.new("Trail")
 		trail.Attachment0, trail.Attachment1 = a0, a1
@@ -256,7 +295,6 @@ local function shoot(from, to)
 		trail.Parent = part
 	end
 	trail.Enabled = true
-	Kit.tween(part, SHOT_SECONDS, { CFrame = CFrame.lookAt(to, to + frame.LookVector) }, Enum.EasingStyle.Linear)
 end
 
 local function playVolley()
@@ -270,10 +308,10 @@ local function playVolley()
 				local portal = #portals > 0 and portals[(j + k - 2) % #portals + 1]
 				local from = portal and portal.Parent and portal.Position or him() + Vector3.new(0, TIP_HEIGHT, 0)
 				if (j + k) % 3 == 0 then
-					streak("GateBeam", from, target, 1.2, 3.6, WHITE, GOLD, 0.25)
+					streak("Streak", from, target, 0.7, 2, WHITE, GOLD, 0.25) -- thinner than the weapons, so they lead
 					flash(target, GOLD, 9, 0.3)
 				else
-					shoot(from, target)
+					shoot(from, target, j + k)
 					task.delay(SHOT_SECONDS, function()
 						if effects then
 							flash(target, GOLD_HI, 7, 0.25)
@@ -296,21 +334,21 @@ end
 -- The charge: the room goes red, wind lines are drawn into Ea's tip through the 3 s, the edges pulse.
 local function playCharge()
 	-- cue: KingCharge (a rising wind)
-	if reduced() then
-		return 0
+	local few = reduced() -- REDUCED EFFECTS: the red tint (grade, light and edge pulse) is dropped, fewer wind lines
+	if not few then
+		Kit.regrade(
+			{ TintColor = Color3.fromRGB(255, 120, 110), Contrast = 0.15, Saturation = 0.2 },
+			0.6,
+			CHARGE + BEAM - 0.6,
+			0.6
+		)
 	end
-	Kit.regrade(
-		{ TintColor = Color3.fromRGB(255, 120, 110), Contrast = 0.15, Saturation = 0.2 },
-		0.6,
-		CHARGE + BEAM - 0.6,
-		0.6
-	)
 	local function tip()
 		return CFrame.new(king:Tip())
 	end
 	local part = Kit.holder("EnumaWind", tip(), Vector3.new(90, 90, 90))
 	tracked[part] = tip
-	local rate = 30
+	local rate = few and 10 or 30
 	local wind = Kit.emitter(part, {
 		Name = "Wind",
 		Texture = Art.Shaft,
@@ -327,15 +365,18 @@ local function playCharge()
 		Rate = rate,
 		Enabled = true,
 	})
-	local light = Instance.new("PointLight")
-	light.Color, light.Brightness, light.Range, light.Shadows = RED, 0, 90, false
-	light.Parent = part
-	Kit.tween(light, CHARGE, { Brightness = 3 })
+	if not few then
+		local light = Instance.new("PointLight") -- the red over the room, with the grade
+		light.Name = "ChargeTint"
+		light.Color, light.Brightness, light.Range, light.Shadows = RED, 0, 90, false
+		light.Parent = part
+		Kit.tween(light, CHARGE, { Brightness = 3 })
+		Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
+	end
 	task.delay(CHARGE, function()
 		wind.Enabled = false
 	end)
 	Kit.expire(part, CHARGE + 0.8)
-	Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
 	return math.ceil(rate * CHARGE)
 end
 
@@ -399,6 +440,18 @@ local function playBeam()
 	return total
 end
 
+-- The whole move at once (BossVfxForce "Enuma"): the charge, then the beam when it would fire.
+local function playEnuma()
+	local count = playCharge()
+	local folder = effects
+	task.delay(CHARGE, function()
+		if effects and effects == folder and king then
+			playBeam()
+		end
+	end)
+	return count
+end
+
 -- Shield Gates ------------------------------------------------------------------------------------------------------------------
 
 local SHIELD_SHAPES = { -- a round, a kite, a tower, a Mesopotamian (wide, bossed) and a small buckler, then round again
@@ -442,6 +495,10 @@ local function shatter()
 		end
 	end
 	table.clear(shields)
+	if shieldRing then
+		shieldRing:Destroy()
+		shieldRing = nil
+	end
 	if effects then
 		Kit.shakeAt(Arena.Center, few and 0 or 0.5, 20, 0.3)
 	end
@@ -454,6 +511,9 @@ local function playShields()
 	local rng = rngFor("Shields")
 	local count = rng:NextInteger(SHIELDS_MIN, SHIELDS_MAX)
 	local born = os.clock()
+	shieldRing = Instance.new("Folder") -- the ring's shields together, shattered together
+	shieldRing.Name = "ShieldRing"
+	shieldRing.Parent = effects
 	for k = 1, count do
 		local look = SHIELD_SHAPES[(k - 1) % #SHIELD_SHAPES + 1]
 		local a0 = (k - 1) / count * 2 * math.pi
@@ -465,6 +525,7 @@ local function playShields()
 			return CFrame.lookAt(at, at + out) * CFrame.Angles(0, math.pi / 2, 0) * CFrame.Angles(look.Roll, 0, 0)
 		end
 		local shield = Kit.holder("Shield", frame(), look.Size)
+		shield.Parent = shieldRing
 		shield.Shape = look.Shape
 		shield.Material = k % 2 == 0 and Enum.Material.Metal or Enum.Material.DiamondPlate
 		shield.Color, shield.Transparency = k % 3 == 0 and GOLD_HI or GOLD, 1
@@ -487,9 +548,16 @@ end
 
 -- Runs ---------------------------------------------------------------------------------------------------------------------------
 
-local EVENTS =
-	{ Portals = playPortals, Volley = playVolley, Charge = playCharge, Beam = playBeam, Shields = playShields }
-local LEADS = { Volley = playPortals }
+local EVENTS = {
+	Portals = playPortals,
+	Volley = playVolley,
+	Charge = playCharge,
+	Beam = playBeam,
+	Shields = playShields,
+	Gates = playVolley, -- BossVfxForce: a whole move
+	Enuma = playEnuma,
+}
+local LEADS = { Volley = playPortals, Gates = playPortals }
 -- The schedule's event names (BossKingPoses) to the plays; shields come from BossFortified instead.
 local SCHEDULED = { gates_start = "Portals", gates = "Volley", enuma_start = "Charge", enuma = "Beam" }
 
@@ -526,6 +594,7 @@ local function clear()
 	table.clear(tracked)
 	table.clear(portals)
 	table.clear(shields)
+	shieldRing = nil
 	previousMove, previousTime = nil, nil
 end
 

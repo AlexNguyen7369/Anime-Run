@@ -46,6 +46,7 @@ local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
 local NOTE_TEXT = "Only characters with Sidekicks can be equipped for bosses" -- BOSS_EVENT_SPEC
 -- Placeholders.
 local WARNING_SECONDS = 6
+local FORTIFIED_SECONDS = 4 -- proposed: the Fortified notice's time on screen
 local FLASH_PERIOD = 0.3 -- s one way: under 2 flashes a second
 local WARNING_BRIGHT = Color3.fromRGB(235, 20, 30)
 local WARNING_MAX_HEIGHT = 0.18 -- of the screen; it also ends above the middle, short of Big Raga's body
@@ -385,6 +386,16 @@ local warningLabel = label("Text", warning, {
 	TextWrapped = true,
 }, 72)
 local warningStroke = UiTheme.Stroke(warningLabel, 3, Color3.new(0, 0, 0))
+-- The Golden King's Fortified notice (BOSS_EVENT_SPEC "The Golden King"): the Warning's place and red, for FORTIFIED_SECONDS.
+local fortifiedNotice = label("FortifiedNotice", root, {
+	AnchorPoint = Vector2.new(0.5, 0),
+	Text = BossCatalog.Current().FortifiedText or "",
+	FontFace = HEAVY,
+	TextColor3 = WARNING_BRIGHT,
+	TextWrapped = true,
+	Visible = false,
+}, 56)
+local fortifiedUntil = 0
 
 local bar =
 	make("Frame", "BossBar", root, { AnchorPoint = Vector2.new(0.5, 0), BackgroundTransparency = 1, Visible = false })
@@ -1065,6 +1076,8 @@ local function placeTop(size, row)
 		math.min(size.X * 0.86, 1100),
 		math.max(36, math.min(size.Y * WARNING_MAX_HEIGHT, warningEnd - warningTop))
 	)
+	fortifiedNotice.Position = warning.Position
+	fortifiedNotice.Size = warning.Size
 
 	-- Centred: beside the list where it fits between the screen's middle and the list, else under the list.
 	local panelWidth = math.round(EXHAUSTED_WIDTH * scale)
@@ -1317,20 +1330,16 @@ ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
 	buildDrops(boss)
 end)
 
--- The Golden King's notice (BOSS_EVENT_SPEC "The Golden King"): the catalog's FortifiedText in the Dodge bar's red hit header
--- (RacerBossDodge.ShowResult, as BossOsuUi uses it) to everyone in the event when BossFortified turns true. The Fortified status
--- cell itself follows the player's BossStatus rows, as every status does.
+-- The Golden King's notice (BOSS_EVENT_SPEC "The Golden King"): the catalog's FortifiedText in the hit header's red, under the
+-- bar where the Warning sits, to everyone in the event when BossFortified turns true; gone when it turns false. The Fortified
+-- status cell itself follows the player's BossStatus rows, as every status does.
 ReplicatedStorage:GetAttributeChangedSignal("BossFortified"):Connect(function()
 	local text = BossCatalog.Current().FortifiedText
-	local dodgeGui = playerGui:FindFirstChild("RacerBossDodge")
-	local show = dodgeGui and dodgeGui:FindFirstChild("ShowResult")
-	if
-		ReplicatedStorage:GetAttribute("BossFortified") == true
-		and text
-		and show
-		and player:GetAttribute("BossEvent")
-	then
-		show:Fire("Hit", text)
+	if ReplicatedStorage:GetAttribute("BossFortified") == true and text and player:GetAttribute("BossEvent") then
+		fortifiedNotice.Text = text
+		fortifiedUntil = os.clock() + FORTIFIED_SECONDS
+	else
+		fortifiedUntil = 0
 	end
 end)
 
@@ -1701,7 +1710,8 @@ local function render()
 	editTeam.Visible = inEvent and phase == "Prep" and hudClosed and not panelOpen
 	bar.Visible = inFight
 	dropList.Visible = false -- owner 2026-11-11: hidden for now (BOSS_EVENT_SPEC "Drop list"); still built for its return
-	warning.Visible = inFight and warningUntil > 0 and not panelOpen
+	fortifiedNotice.Visible = inFight and os.clock() < fortifiedUntil and not panelOpen
+	warning.Visible = inFight and warningUntil > 0 and not panelOpen and not fortifiedNotice.Visible -- the notice takes its place
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
 	-- From the server's end time, so a late view is as far along. Past it, full at 1 until the server revives the team.
