@@ -42,6 +42,9 @@ local JITTER = 30 -- studs, so that hits do not stack
 -- 100-stud dark puff every 1.5 s, 7 studs in front of her 21-stud torso, hid her for most of the fight).
 local AIM = {
 	boss_mage = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false },
+	-- The Golden King is her size (44 studs): with Big Raga's defaults the curse hit's 90-stud dark puff read as a purple cloud
+	-- behind him (Studio verify 2026-11-11).
+	boss_king = { Surface = 7, Jitter = 6, Impact = 0.4, Smoke = false },
 	boss_golem = { Surface = 8, Jitter = 6 }, -- proposed: her Stone Golem, the target while it stands
 }
 local FLAP_OVERRIDE = 12 -- degrees off rest at which an attack's key has taken the wing from the flap
