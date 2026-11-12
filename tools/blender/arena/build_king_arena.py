@@ -34,8 +34,14 @@
 #   Stand treasure   ~36    gold heaps and open chests on the first tier
 #   Inner ruins      6 x ~17       column stump, broken pier, blocks, gold heap, chest, goblet, shield, sword, gems; all under 12 studs
 #   Outer ruins      6 x ~16       broken arch or wall, stump, blocks, gold heap, chest, shield, crown, gems; between the lanes and the podium
-#   Centre mound      ~95   4 stepped tiers of stone blocks, gold heaps, 2 big chests, a big sun shield, crowns, goblets, swords, spears, gems
-#   Total target about 1,200 (proposed); the run prints the real sum. Lights are not parts: the sun, and a soft gold glow on the king.
+#   Centre mound      ~96   a gold hill (3 mesh pieces) over 5 stepped stone tiers whose corners poke out, 10 loose blocks, a gold cap,
+#                           3 big open chests (2 blue, 1 red), 2 sun-burst shields, 2 crowns, 3 goblets, 4 swords and 2 tridents,
+#                           3 banded stumps, 9 gem blocks, sparkles (1 emitter in game). Pass 2 replaced the slab-and-heap mound (124).
+#   Total target about 1,200 (proposed); the run prints the real sum. Lights are not parts: the sun, the king's soft gold glow and 4
+#   warm glints over the hill.
+# The king: the approved jointed model (anim-rework worktree, Ea and the key hidden) under an empty named KingStandIn, scaled to 44
+# studs; a block figure if that file is missing. Lane renders use the old camera row and a proposed one (CAM_OLD, CAM_NEW), plus
+# two proposed-row views a quarter and half a lap on; the run prints his pixel height for both rows, 3 lanes and 3 spots.
 import math
 import os
 import random
@@ -274,6 +280,8 @@ def glow(name, color, strength):
 
 def metallize():
 	bv.metallize()
+	if "kingGold" not in ba._mats:
+		return
 	bsdf = next(n for n in ba._mats["kingGold"].node_tree.nodes if n.type == "BSDF_PRINCIPLED")
 	bsdf.inputs["Metallic"].default_value, bsdf.inputs["Roughness"].default_value = 0.3, 0.5  # flat, as the Roblox plate reads
 	bsdf.inputs["Emission Color"].default_value = ba.rgb("#F2C230")
@@ -776,10 +784,32 @@ def stand_treasure(parent):
 	put(m, parent)
 
 
+HILL = [(8, 25.0), (16, 21.5), (24, 17.0), (32, 12.0), (40, 7.5), (48, 4.0), (56, 1.8), (62, 0.7), (67, 0.15)]  # the gold hill's (r, z)
+
+
+def hz(r):
+	"""The gold hill's height at radius r."""
+	return float(np.interp(r, [0] + [q[0] for q in HILL], [25.0] + [q[1] for q in HILL]))
+
+
+def trident(m, base, yaw, tilt, s=1.0):
+	"""A gold trident stuck in at an angle: shaft, crossbar and three prongs (2 parts in game: shaft, head mesh)."""
+	mt = T(base) @ R(yaw, "Z") @ R(tilt, "Y")
+	at = lambda z: mt @ T((0, 0, z * s))
+	m.obox((0.45 * s, 0.45 * s, 13 * s), at(6.5), "gold")
+	m.obox((0.4 * s, 3.4 * s, 0.5 * s), at(13.2), "gold")
+	for y in (-1.5, 0, 1.5):
+		m.obox((0.35 * s, 0.35 * s, (2.6 if y else 3.2) * s), mt @ T((0, y * s, (14.6 + (0.3 if not y else 0)) * s)), "gold")
+	m.parts -= 3
+
+
 def centre_mound(parent):
-	"""Four stepped tiers of stone blocks (4 jittered blocks each, turned against each other) buried in gold, with treasure."""
+	"""A gold hill: coin slopes from a stone throne down past the blue ring, stone tier corners and loose blocks poking out of the
+	gold, big treasure sized for the lane distance (3 chests, a big sun shield, 2 crowns, 3 goblets, swords and tridents, banded
+	stumps, gem blocks) and sparkles. Everything is one object so the height check exempts only the mound."""
 	m = MU("KingMound", "centre mound")
 	rng = random.Random(31)
+	# Stone: 5 stepped tiers of 4 jittered blocks; the gold below covers all but their corners, the top two stand clear as his throne
 	z = 0.0
 	for k, (half, h) in enumerate(((34, 7.0), (26, 7.0), (19, 7.0), (12, 7.0), (7, 5.0))):
 		rot = R(math.radians(45 * (k % 2) + 8), "Z")
@@ -790,67 +820,147 @@ def centre_mound(parent):
 				m.obox((half * rng.uniform(0.92, 1.04), half * rng.uniform(0.92, 1.04), hh), T(c) @ rot @ R(rng.uniform(-0.05, 0.05), "Z"), ("sand", "sand2", "sandLo", "sand")[(qx + qy + k) % 4])
 		z += h
 	top_stone = z
-	# Gold pouring over the steps
-	for i in range(8):
-		a = i / 8 * math.tau + 0.2
-		heap(m, 12, pol(34, a, 0), squash=0.42, seed=200 + i)
-	for i in range(7):
-		a = i / 7 * math.tau + 0.5
-		heap(m, 8.5, pol(25, a, 7.0), squash=0.45, seed=210 + i)
-	for i in range(5):
-		a = i / 5 * math.tau + 0.9
-		heap(m, 6.5, pol(17, a, 14.0), squash=0.5, seed=220 + i)
-	for i in range(3):
-		a = i / 3 * math.tau + 1.3
-		heap(m, 5.0, pol(10, a, 21.0), squash=0.5, seed=225 + i)
-	heap(m, 6.5, (0, 0, top_stone - 1.0), squash=0.55, seed=230)  # the gold cap he hovers over
-	heap(m, 34, (0, 0, 0), squash=0.42, seed=231, jitter=0.08)  # the gold the lower tiers are buried in
-	blocks(m, (0, 0, 0), 10, (2.5, 5), seed=33, spread=44)
-	# Treasure stuck in it, facing round
-	chest(m, pol(28, 0.6, 7.4), 0.6 + math.pi / 2, 2.8, "chestBlue")
-	chest(m, pol(27, 3.4, 7.4), 3.4 + math.pi / 2, 2.4, "chestRed")
-	chest(m, pol(20, 5.0, 14.4), 5.0 + math.pi / 2, 2.0, "chestBlue")
-	shield(m, pol(38, 2.0, 0.5), 2.0, 0.3, 7.5)
-	shield(m, pol(37, 4.6, 0.5), 4.6, 0.35, 5.5)
-	for a, r, zz, s in ((1.2, 38, 3.5, 1.5), (4.0, 37, 3.5, 1.4), (5.6, 24, 9.2, 1.3)):
-		crown(m, pol(r, a, zz), s)
-	for a, r, zz in ((0.2, 40, 2.8), (2.6, 39, 2.8), (3.9, 25, 9.6), (5.3, 38, 2.8)):
-		goblet(m, pol(r, a, zz), 1.7)
-	for a, r, zz, kind, s in ((0.4, 15, 15.5, "sword", 2.0), (1.9, 14, 15.5, "spear", 1.4), (2.9, 23, 8.6, "sword", 1.8), (3.9, 9, 22.0, "spear", 1.5), (4.9, 25, 8.6, "sword", 1.7), (5.9, 13, 16.0, "sword", 1.9), (1.0, 31, 5.0, "sword", 1.5)):
-		bv.weapon(m, pol(r, a, zz), a + rng.uniform(-0.4, 0.4), rng.uniform(0.12, 0.3), kind, s)
-	for i in range(6):
-		gem_spill(m, pol(rng.uniform(22, 40), i * 1.05 + 0.3, 3.0 if i % 2 else 8.5), 1.3, seed=40 + i)
-	ob = put(m, parent)
-	top = max((ob.matrix_world @ v.co).z for v in ob.data.vertices if v.co.x**2 + v.co.y**2 < 4**2)
-	foot = max(math.hypot(v.co.x, v.co.y) for v in ob.data.vertices if v.co.z < 1.0)
-	return ob, top, foot
+	for k in range(10):  # loose blocks half sunk in the slope
+		a, r = k / 10 * math.tau + rng.uniform(-0.2, 0.2), rng.uniform(22, 50)
+		sz = rng.uniform(5, 8)
+		m.obox((sz * 1.2, sz, sz * 0.8), T(pol(r, a, hz(r) + sz * 0.1)) @ R(rng.uniform(0, math.tau), "Z") @ R(rng.uniform(-0.3, 0.3), "X"), ("sand", "sand2", "sandLo")[k % 3])
+	# The gold hill: jittered rings of coin slope (a MeshPart in game, 3 with its skirt pieces)
+	n = 36
+	rings = []
+	for i, (r, zz) in enumerate(HILL):
+		edge = i == len(HILL) - 1
+		rings.append([pol(r * (1 if edge else 1 + rng.uniform(-0.07, 0.07)), kk / n * math.tau, zz if edge else zz + rng.uniform(-1.0, 1.2)) for kk in range(n)])
+	m.face(rings[0], "goldMound")
+	for ra, rb in zip(rings, rings[1:]):
+		for kk in range(n):
+			m.face([ra[kk], rb[kk], rb[(kk + 1) % n], ra[(kk + 1) % n]], "goldMound")
+	m.parts += 3
+	heap(m, 5.0, (0, 0, top_stone - 0.8), squash=0.55, seed=230)  # the gold cap he hovers over
+	f = TH0  # the lane renders' first spot: the shield leans on that side
+	# Treasure, sized to read from the lanes
+	for a, r, s, body in ((f + 0.45, 30, 3.6, "chestBlue"), (f + 2.5, 28, 3.4, "chestRed"), (f - 2.1, 32, 3.6, "chestBlue")):
+		chest(m, pol(r, a, hz(r) - 1.2), a + math.pi / 2, s, body)
+	shield(m, pol(47, f - 0.12, hz(47) + 5.0), f - 0.12, 0.3, 9.0)
+	shield(m, pol(44, f + 3.4, hz(44) + 3.5), f + 3.4, 0.35, 6.5)
+	for a, r, s in ((f + 1.2, 38, 2.6), (f - 1.0, 22, 2.4)):
+		crown(m, pol(r, a, hz(r) - 0.4), s)
+	for a, r, s in ((f - 0.55, 40, 3.0), (f + 1.9, 18, 2.8), (f + 3.9, 34, 3.0)):
+		goblet(m, pol(r, a, hz(r) - 0.5), s)
+	for a, r, kind in ((f + 0.9, 20, "sword"), (f + 1.6, 30, "trident"), (f + 2.9, 19, "sword"), (f - 1.5, 27, "trident"), (f - 2.6, 18, "sword"), (f + 4.4, 25, "sword")):
+		base = pol(r, a, hz(r) - 1.0)
+		if kind == "sword":
+			bv.weapon(m, base, a + rng.uniform(-0.5, 0.5), rng.uniform(0.2, 0.4), "sword", 2.2)
+		else:
+			trident(m, base, a + rng.uniform(-0.5, 0.5), rng.uniform(0.2, 0.35), 1.7)
+	for a, r in ((f + 0.95, 46), (f - 1.6, 44), (f + 3.0, 47)):
+		stump(m, pol(r, a, hz(r) - 1.5), 3.2, 8.5)
+	for k in range(9):
+		a, r = k / 9 * math.tau + 0.4, rng.uniform(20, 50)
+		gem(m, pol(r, a, hz(r) + 0.8), ("gemR", "gemB", "gemG")[k % 3], 2.8)
+	sp = MU("KingSparkle", "centre mound")  # bright facets on the gold (a sparkle ParticleEmitter on the hill in game)
+	for k in range(50):
+		r = rng.uniform(6, 60)
+		a = rng.uniform(0, math.tau)
+		sp.obox((0.6, 0.6, 0.6), T(pol(r, a, hz(r) + 0.7)) @ R(0.78, "X") @ R(0.6, "Y"), "sparkle")
+	sp.parts = 1
+	m_ob = put(m, parent)
+	sp_ob = put(sp, parent)
+	sp_ob.name = "KingMoundSparkle"
+	for k in range(4):  # warm glints over the hill, no shadows
+		lt = bpy.data.objects.new("GoldGlint", bpy.data.lights.new("GoldGlint", "POINT"))
+		lt.location = pol(40, f + k * math.tau / 4 + 0.3, 26)
+		lt.data.color, lt.data.energy, lt.data.shadow_soft_size, lt.data.use_shadow = (1.0, 0.78, 0.35), 2500, 4, False
+		parent.objects.link(lt)
+	top = max((m_ob.matrix_world @ v.co).z for v in m_ob.data.vertices if v.co.x**2 + v.co.y**2 < 4**2)
+	foot = max(math.hypot(v.co.x, v.co.y) for v in m_ob.data.vertices if v.co.z < 1.0)
+	high = max((m_ob.matrix_world @ v.co).z for v in m_ob.data.vertices if v.co.x**2 + v.co.y**2 > 6**2)
+	assert high < top + HOVER, f"a mound prop at z {high:.1f} reaches his hover height"
+	return m_ob, top, foot
 
 
-def king(parent, z_top):
-	"""Stand-in (never a real name): a gold block figure with a red cape, arms folded, 44 studs, hovering HOVER over the mound."""
-	b = MU("KingStandIn", "boss stand-in")
-	for s in (-1, 1):
-		b.box((0.9, 0.9, 2.4), (s * 0.5, 0, 1.2), "kingGold")
-		b.box((1.0, 1.0, 0.4), (s * 0.5, 0, 2.3), "kingNavy")
-		b.box((0.95, 0.95, 1.0), (s * 0.5, 0, 2.9), "kingGold")  # skirt plates
-	b.box((2.0, 1.0, 2.0), (0, 0, 4.0), "kingGold")
-	b.box((2.2, 1.1, 0.4), (0, 0, 3.2), "kingNavy")
-	for s in (-1, 1):
-		b.box((1.2, 1.2, 0.8), (s * 1.45, 0, 4.85), "kingGold")
-		b.box((0.8, 0.8, 1.2), (s * 1.3, -0.1, 3.5), "kingGold")
-	b.box((2.4, 0.7, 0.7), (0, -0.75, 3.9), "kingGold")
-	b.obox((2.8, 0.25, 5.0), T((0, 0.75, 2.8)) @ R(-0.12, "X"), "kingRed")  # the cape, flaring back
-	b.box((1.2, 1.2, 1.2), (0, 0, 5.6), "kingSkin")
-	b.box((1.3, 1.3, 0.5), (0, 0.05, 6.35), "kingHair")
-	for s in (-1, 0, 1):
-		b.obox((0.4, 0.4, 1.1), T((s * 0.45, 0.1, 6.9)) @ R(s * 0.5, "Y") @ R(-0.35, "X"), "kingHair")
-	b.box((0.5, 0.05, 0.14), (0, -0.62, 5.75), "kingRed")
-	ob = put(b, parent)
-	feet = z_top + HOVER
-	ob.matrix_world = R(TH0 + math.pi / 2, "Z") @ T((0, 0, feet)) @ S(KING_H / 7.45)
-	zs = [(ob.matrix_world @ v.co).z for v in ob.data.vertices]
-	print(f"KING stand-in: feet {min(zs):.1f} to hair top {max(zs):.1f} = {max(zs) - min(zs):.1f} studs, {min(zs) - z_top:.1f} over the mound top {z_top:.1f}")
-	return ob, min(zs), max(zs)
+KING_BLEND = os.path.join(os.path.dirname(ba.ROOT), "anim-rework", "assets", "characters_avatar", "boss_king", "boss_king_jointed.blend")
+
+
+class King:
+	"""The stand-in: the approved jointed model (Ea and the key hidden) under an empty named KingStandIn, scaled to 44 studs and
+	hovering; a gold block figure with a red half-cape if the model file is not there. Turned to face a spot on the ring."""
+
+	def __init__(self, parent, z_top):
+		self.feet = z_top + HOVER
+		self.root = bpy.data.objects.new("KingStandIn", None)
+		parent.objects.link(self.root)
+		self.meshes = self.load(parent) if os.path.exists(KING_BLEND) else self.blocks(parent)
+		self.scale, self.z0 = 1.0, 0.0
+		self.root.matrix_world = Matrix.Identity(4)
+		bpy.context.view_layer.update()
+		zs = [(o.matrix_world @ v.co).z for o in self.meshes for v in o.data.vertices]
+		self.scale, self.z0 = KING_H / (max(zs) - min(zs)), min(zs)  # measured: the file's own transforms are kept
+		self.face(TH0)
+		zs = [(o.matrix_world @ v.co).z for o in self.meshes for v in o.data.vertices]
+		self.head = max(zs)
+		print(f"KING stand-in ({'model' if os.path.exists(KING_BLEND) else 'blocks'}): feet {min(zs):.1f} to hair top {max(zs):.1f} = {max(zs) - min(zs):.1f} studs, {min(zs) - z_top:.1f} over the mound top {z_top:.1f}")
+
+	def load(self, parent):
+		with bpy.data.libraries.load(KING_BLEND, link=False) as (src, dst):
+			dst.objects = list(src.objects)
+		skip = {o for o in dst.objects if o.name.startswith(("Ea", "Key"))}
+		skip |= {o for o in dst.objects if o.parent in skip}
+		meshes = []
+		for o in dst.objects:
+			if o in skip:
+				continue
+			parent.objects.link(o)
+			if o.parent is None:
+				o.parent = self.root
+			if o.type == "MESH":
+				meshes.append(o)
+		for img in bpy.data.images:
+			if img.source == "FILE" and not img.packed_file:
+				try:
+					img.pack()
+				except RuntimeError as e:
+					print("KING image not packed:", img.name, e)
+		for o in meshes:  # his soft gold glow: each material emits a little of its own colour
+			for slot in o.material_slots:
+				mt = slot.material
+				if not mt or not mt.use_nodes or mt.get("_glow"):
+					continue
+				mt["_glow"] = 1
+				bsdf = next((n for n in mt.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+				if not bsdf:
+					continue
+				src_link = next((lk for lk in mt.node_tree.links if lk.to_socket == bsdf.inputs["Base Color"]), None)
+				if src_link:
+					mt.node_tree.links.new(src_link.from_socket, bsdf.inputs["Emission Color"])
+				else:
+					bsdf.inputs["Emission Color"].default_value = bsdf.inputs["Base Color"].default_value
+				bsdf.inputs["Emission Strength"].default_value = 0.1
+		return meshes
+
+	def blocks(self, parent):
+		b = MU("KingStandInBody", "boss stand-in")
+		for s in (-1, 1):
+			b.box((0.9, 0.9, 2.4), (s * 0.5, 0, 1.2), "kingGold")
+			b.box((0.95, 0.95, 1.0), (s * 0.5, 0, 2.9), "kingGold")
+			b.box((1.2, 1.2, 0.8), (s * 1.45, 0, 4.85), "kingGold")
+			b.box((0.8, 0.8, 1.2), (s * 1.3, -0.1, 3.5), "kingGold")
+		b.box((2.0, 1.0, 2.0), (0, 0, 4.0), "kingGold")
+		b.box((2.2, 1.1, 0.4), (0, 0, 3.2), "kingNavy")
+		b.box((2.4, 0.7, 0.7), (0, -0.75, 3.9), "kingGold")
+		b.obox((1.6, 0.25, 4.6), T((0.6, 0.75, 3.0)) @ R(-0.12, "X"), "kingRed")  # red half-cape from one shoulder
+		b.box((1.2, 1.2, 1.2), (0, 0, 5.6), "kingSkin")
+		b.box((1.3, 1.3, 0.5), (0, 0.05, 6.35), "kingHair")
+		for s in (-1, -0.5, 0, 0.5, 1):
+			b.obox((0.4, 0.4, 1.2), T((s * 0.45, 0.1, 6.9)) @ R(s * 0.5, "Y") @ R(-0.4, "X"), "kingHair")
+		b.box((0.5, 0.05, 0.14), (0, -0.62, 5.75), "kingRed")
+		ob = b.build(parent)
+		ob.parent = self.root
+		return [ob]
+
+	def face(self, th):
+		"""Front (-Y as built) toward the ring at angle th."""
+		self.root.matrix_world = R(th + math.pi / 2, "Z") @ T((0, 0, self.feet - self.z0 * self.scale)) @ S(self.scale)
+		bpy.context.view_layer.update()
 
 
 # --- Lights, sky, cameras ---
@@ -887,7 +997,7 @@ def setup(scene, feet, head):
 	for k in range(3):  # the king's soft gold glow (a PointLight in game): from around him, no shadows
 		lt = bpy.data.objects.new("KingGlow", bpy.data.lights.new("KingGlow", "POINT"))
 		lt.location = pol(18, TH0 + k * math.tau / 3, (feet + head) / 2)
-		lt.data.color, lt.data.energy, lt.data.shadow_soft_size, lt.data.use_shadow = (1.0, 0.85, 0.5), 7000, 6, False
+		lt.data.color, lt.data.energy, lt.data.shadow_soft_size, lt.data.use_shadow = (1.0, 0.85, 0.5), 4000, 6, False
 		scene.collection.objects.link(lt)
 	ng = bpy.data.node_groups.new("KingComp", "CompositorNodeTree")
 	ng.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
@@ -926,28 +1036,61 @@ def plan_overlay(parent):
 	return obs
 
 
+CAM_OLD = dict(yaw=75, pitch=4, back=40.0, up=CHAR_H + 3, fov=100)  # the colosseum's row, as in game today
+CAM_NEW = dict(yaw=75, pitch=13, back=40.0, up=CHAR_H + 14, fov=60)  # proposed for this arena: eye up 11, pitch up 9, FOV 100 to 60
+SPOTS = {"": TH0, "quarter": TH0 + math.pi / 2, "half": TH0 + math.pi}  # the runners' spot on the ring: first, a quarter and a half lap on
+
+
+def tangent(a):
+	return Vector((-math.sin(a), math.cos(a), 0))
+
+
+def lane_pose(lane, th, row):
+	"""The follow camera row["back"] behind a runner on lane at angle th, turned row["yaw"] inward, row["up"] over the floor,
+	pitched row["pitch"] up (bc.player_pose's geometry, with the row's numbers)."""
+	run = pol(bc.lane_r(lane), th, 0)
+	y = math.radians(row["yaw"])
+	d = (tangent(th) * math.cos(y) - pol(1, th, 0) * math.sin(y)).normalized()
+	eye = run - d * row["back"] + Vector((0, 0, row["up"]))
+	assert eye.length < R_WALL - 2.5
+	return eye, eye + d * 100 + Vector((0, 0, 100 * math.tan(math.radians(row["pitch"])))), row["fov"]
+
+
 def shots():
-	"""(name, eye, look, fov, ortho scale or 0, label)"""
-	e4, l4, _ = bc.player_pose(4)
-	e1, l1, _ = bc.player_pose(1)
-	e7, l7, _ = bc.player_pose(7)
+	"""(name, eye, look, fov, ortho scale or 0, label, spot angle)"""
+	out = []
+	for k, lane in ((1, 4), (2, 1), (3, 7)):
+		e, l, fv = lane_pose(lane, TH0, CAM_OLD)
+		out.append((f"KingArena_0{k}_lane{lane}", e, l, fv, 0, f"Lane {lane}, old camera row (yaw 75, pitch 4, eye 8.5, FOV 100)", TH0))
+		e, l, fv = lane_pose(lane, TH0, CAM_NEW)
+		out.append((f"KingArena_0{k}b_lane{lane}_cam", e, l, fv, 0, f"Lane {lane}, proposed row (yaw 75, pitch 13, eye 19.5, FOV 60)", TH0))
 	opp = GATE_A + math.pi
-	return [
-		("KingArena_01_lane4", e4, l4, 100, 0, "Lane 4 runner camera (yaw 75, pitch 4, 40 back)"),
-		("KingArena_02_lane1", e1, l1, 100, 0, "Lane 1 runner camera"),
-		("KingArena_03_lane7", e7, l7, 100, 0, "Lane 7 runner camera"),
-		("KingArena_04_establishing", pol(R_STAND + 8, opp - math.radians(22), POD_H + 9), Vector((-12, 60, 46)), 46, 0, "Establishing: from the first tier opposite the gate"),
-		("KingArena_05_plan", Vector((0, 0, 900)), Vector((0, 0.01, 0)), 0, 2 * (R_TOP + 40), "Plan: ring 110-166, wall foot 250, stands top 322"),
-		("KingArena_06_gate", pol(150, GATE_A - math.radians(24), 16), pol(R_WALL - 10, GATE_A + math.radians(1), 44), 62, 0, "The gate and the winged lion statues"),
-		("KingArena_07_mound", pol(106, TH0 - 0.25, 12), Vector((0, 0, 44)), 62, 0, "The centre mound with the king stand-in hovering"),
+	out += [
+		("KingArena_04_establishing", pol(R_STAND + 8, opp - math.radians(22), POD_H + 9), Vector((-12, 60, 46)), 46, 0, "Establishing: from the first tier opposite the gate", TH0),
+		("KingArena_05_plan", Vector((0, 0, 900)), Vector((0, 0.01, 0)), 0, 2 * (R_TOP + 40), "Plan: ring 110-166, wall foot 250, stands top 322", TH0),
+		("KingArena_06_gate", pol(150, GATE_A - math.radians(24), 16), pol(R_WALL - 10, GATE_A + math.radians(1), 44), 62, 0, "The gate and the winged lion statues", TH0),
+		("KingArena_07_mound", pol(106, TH0 - 0.25, 12), Vector((0, 0, 44)), 62, 0, "The centre mound with the king stand-in hovering", TH0),
 	]
+	for k, (key, label) in enumerate((("quarter", "a quarter lap on: against the stands"), ("half", "half a lap on: the sun behind the camera"))):
+		th = SPOTS[key]
+		e, l, fv = lane_pose(4, th, CAM_NEW)
+		out.append((f"KingArena_0{8 + k}_lane4_cam_{key}", e, l, fv, 0, f"Lane 4, proposed row, {label}", th))
+	return out
 
 
-def checks(king_ob, mound_ob, mound_foot):
+def set_spot(king, runner_obs, th):
+	"""Runners to angle th on lane 4, the king turned to face them."""
+	for k, ob in enumerate(runner_obs):
+		a = th + k * 8 / bc.lane_r(4)
+		ob.matrix_world = T(pol(bc.lane_r(4), a, 0)) @ R(a + math.pi, "Z")
+	king.face(th)
+
+
+def checks(mound_ob, mound_foot):
 	"""Nothing on the lanes; inside the ring nothing but the mound and the king above INNER_MAX_H; the mound clear of the ring."""
 	bad = []
 	for ob, _ in bc.PLACED:
-		if ob.name.startswith(("KingFloor", "KingMeander", "KingGround", "Runner", "KingStandIn", "PlanOverlay")):
+		if ob.name.startswith(("KingFloor", "KingMeander", "KingGround", "Runner", "KingStandIn", "PlanOverlay", "KingMoundSparkle")):
 			continue
 		for v in ob.data.vertices:
 			p = ob.matrix_world @ v.co
@@ -978,6 +1121,7 @@ def main():
 	tex_material("masonry", masonry(), 16)
 	tex_material("glazed", glazed(), 8)
 	tex_material("meander", meander(), 1, uv=True)
+	glow("sparkle", "#FFE27A", 10)
 
 	floor()
 	keep = [(k + 0.5) * SEG_A for k in SEG_KEEP]
@@ -996,10 +1140,11 @@ def main():
 	inner_ruins(coll)
 	outer_ruins(coll)
 	mound_ob, top, foot = centre_mound(coll)
-	king_ob, feet, head = king(coll, top)
-	bc.runners(coll)
+	king = King(coll, top)
+	feet, head = king.feet, king.head
+	runner_obs = bc.runners(coll)
 	metallize()
-	checks(king_ob, mound_ob, foot)
+	checks(mound_ob, foot)
 
 	skip = {"runners", "boss stand-in", "overlay"}
 	for k, v in sorted(bc._parts.items()):
@@ -1012,15 +1157,21 @@ def main():
 	overlay = plan_overlay(coll)
 	bpy.context.preferences.filepaths.save_version = 0
 	bpy.ops.wm.save_as_mainfile(filepath=os.path.join(ba.BUILD, "king_arena_draft.blend"))
-	for lane in (1, 4, 7):
-		e, l, back = bc.player_pose(lane)
-		aim(cam, e, l, 100)
-		h, ok, topy = bc.boss_px(cam, [king_ob])
-		print(f"PX lane {lane}: eye r {math.hypot(e.x, e.y):.1f}, camera {back:.1f} back; king {h:.0f}px tall at {RES[0]}x{RES[1]}, top {1 - topy:.0%} from the frame top, clear of the HP bar {ok}")
+	px = {}
+	for row_name, row in (("old", CAM_OLD), ("new", CAM_NEW)):
+		for key, th in SPOTS.items():
+			set_spot(king, runner_obs, th)
+			for lane in (1, 4, 7):
+				e, l, fv = lane_pose(lane, th, row)
+				aim(cam, e, l, fv)
+				h, ok, topy = bc.boss_px(cam, king.meshes)
+				px[(row_name, key, lane)] = h
+				print(f"PX {row_name} row, spot {key or 'first'}, lane {lane}: eye r {math.hypot(e.x, e.y):.1f} z {e.z:.1f}; king {h:.0f}px tall at {RES[0]}x{RES[1]}, top {1 - topy:.0%} from the frame top, whole and clear of the HP bar (top 20%) {ok}")
 	done = []
-	for name, eye, look, fov, ortho, label in shots():
+	for name, eye, look, fov, ortho, label, th in shots():
 		if ARGV and name not in ARGV:
 			continue
+		set_spot(king, runner_obs, th)
 		for o in overlay:
 			o.hide_render = not ortho
 		cam.data.type = "ORTHO" if ortho else "PERSP"
@@ -1030,6 +1181,9 @@ def main():
 			cam.location, cam.rotation_euler = eye, (0, 0, 0)
 		else:
 			aim(cam, eye, look, fov)
+			if "lane" in name:
+				h, _, _ = bc.boss_px(cam, king.meshes)
+				label += f": king {h:.0f} px"
 		scene.render.filepath = os.path.join(ba.OUT, name + ".png")
 		bpy.ops.render.render(write_still=True)
 		print("SHOT", scene.render.filepath)
