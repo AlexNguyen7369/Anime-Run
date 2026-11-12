@@ -17,6 +17,17 @@
 #          (Drum1 and Drum3 turn +spin, Drum2 -spin). keys.json holds every solved rotation, so a bake reads plain numbers.
 #   fx     effect sketches (emissive meshes, never final VFX). arena: a wide view from the lane-4 runner's camera lit "gold" (the
 #          vault as built) or "red" (Enuma Elish's sky tint). event: when the server charges the hit or sets the status.
+#
+# --rework: the 2026-11-12 animation rework (design doc 4.37 "Animation rework") on the jointed rig (boss_king_jointed.blend from
+# build_boss_king.py -- jointed). JMOVES is kept apart from MOVES (shipped, pre-approved, baked by bake_boss_king.py from
+# keyframes/keys.json) and writes keyframes/rework/keys.json and keyframes/rework/<move>_slices.png. He hovers (owner 2026-11-12,
+# replaces "no hover"): his rest feet float HOVER_STUDS above the mound; root[2] moves him up and down from there. Key fields as MOVES, plus:
+#   LeftArm/RightArm  {"aim": point, "pole": dir}: a two-bone solve in torso space; the hand reaches the point (clamped to the arm's
+#          reach) and the elbow bends toward pole (default out and back). Or {"shoulder": euler, "elbow": degrees}: elbow > 0
+#          bends the forearm forward. LeftArm "grip": the left fist on Ea's grip GRIP_UP above the right one.
+#   LeftLeg/RightLeg  hip Euler degrees, or {"hip": euler, "knee": degrees}: knee > 0 bends the shin back.
+#   ea     Euler about the grip relative to the right forearm as in MOVES, {"dir": d}: Ea's axis, turned with the body's yaw, the
+#          grip in the right fist, or {"at": p, "dir": d}: free of the hand (out of or back into its ripple), p in model space.
 import json
 import math
 import os
@@ -43,6 +54,8 @@ CHAR_H = 5.5
 R_IN, LANE_W, R_WALL = 70.0, 8.0, 164.0  # the vault: the colosseum's lanes with the wall at the in-game 164
 TH0 = math.radians(-41)  # the followed runner on lane 4
 FACE = TH0 + math.pi / 2  # he faces that runner, as the vault's stand-in does
+REWORK = False  # main(--rework): the jointed rig and JMOVES
+MODEL = "boss_king"
 HIP, WAIST, NECK = mk.HIP, mk.WAIST, mk.NECK
 SHOULDER, HAND, LEG = mk.SHOULDER, mk.HAND, mk.LEG
 KEY_PIVOT = (1.2, 0.1, 2.35)  # build_boss_king.LOOSE
@@ -239,14 +252,18 @@ def load_scene(arena):
 	rig.sun = sun
 	rig.cam = scene.camera
 	rig.bloom = scene.compositing_node_group.nodes["Bloom"]
-	king = be.append_model("boss_king")
+	with bpy.data.libraries.load(os.path.join(ROOT, "assets", "characters_avatar", "boss_king", MODEL + ".blend")) as (src, dst):
+		dst.objects = list(src.objects)
+	for o in dst.objects:
+		scene.collection.objects.link(o)
+	king = next(o for o in dst.objects if o.parent is None and o.type == "EMPTY")
 	rig.king = king
 	rig.parts = {o.name.split(".")[0]: o for o in king.children_recursive}  # the vault's key light is "Key": his Key appends as Key.001
 	rig.rest = {n: o.matrix_basis.copy() for n, o in rig.parts.items()}
 	pts = be.world_verts([rig.parts[n] for n in BODY])
 	rig.model_h = float(pts[:, 2].max() - pts[:, 2].min())
 	rig.k = SIZE * CHAR_H / rig.model_h  # studs per model unit in game
-	king.location, king.rotation_euler, king.scale = (0, 0, rig.stand), (0, 0, FACE), (rig.k,) * 3
+	king.location, king.rotation_euler, king.scale = (0, 0, rig.stand + (HOVER_STUDS if REWORK else 0)), (0, 0, FACE), (rig.k,) * 3
 	rig.drums = {}
 	for n in EA_PARTS[1:]:  # each drum's mid height and radius, Ea-local, for the spin arrows
 		co = np.array([v.co for v in rig.parts[n].data.vertices])
@@ -341,7 +358,13 @@ def solve(key):
 
 
 def pose_king(rig, key):
-	m, record, grip = solve(key)
+	if REWORK:
+		m, record, grip, short = jsolve(key)
+		far = {k: v for k, v in short.items() if v > 0.05}
+		if far:
+			print("REACH", key["t"], far)
+	else:
+		m, record, grip = solve(key)
 	for n, o in rig.parts.items():
 		if n in EA_PARTS:
 			o.hide_render = "ea" not in key
@@ -523,6 +546,22 @@ def build_fx(rig, names, seed):
 			mk.ball(tip, 1.2 * k, mk.glow_mat("TipGlow", RED, 6, 0.6))
 			mk.lamp(tip + d * 20, RED, 3e5 * s * s, 8)
 			mk.lamp(end - d * 6, RED, 2e5 * s * s, 8)
+		elif kind == "ball":  # a white ball builds at Ea's tip with red rings round it (clip 2 staging, drawn in-house)
+			tip = ea @ Vector((0, 0, rig.tip))
+			r = float(arg) * k
+			mk.ball(tip, r, mk.glow_mat("BallCore", (1, 1, 1), 12))
+			mk.ball(tip, r * 1.6, mk.glow_mat("BallHalo", (1, 0.85, 0.85), 2, 0.3))
+			for i in range(3):
+				mk.ring(tip, r * (1.9 + 0.5 * i), 0.06 * k, mk.glow_mat("BallRing", RED, 6, 0.9), rot=(math.radians(70 + 25 * i), math.radians(35 * i), math.radians(50 * i)))
+			mk.lamp(tip, (1, 0.9, 0.9), 6e4 * s * s * float(arg), 4)
+		elif kind == "flash":  # the one white flash before the beam
+			tip = ea @ Vector((0, 0, rig.tip))
+			mk.ball(tip, 1.1 * k, mk.glow_mat("FlashCore", (1, 1, 1), 25))
+			mk.ball(tip, 2.0 * k, mk.glow_mat("FlashHalo", (1, 1, 1), 3, 0.25))
+			for i in range(4):  # a white star flare across the tip
+				d = Vector((math.cos(i * math.pi / 4), 0, math.sin(i * math.pi / 4)))
+				mk.tube([tip - d * 4 * k, tip + d * 4 * k], 0.06 * k, mk.glow_mat("FlashRay", (1, 1, 1), 15))
+			mk.lamp(tip, (1, 1, 1), 4e4 * s * s, 6)
 		elif kind == "embers":
 			tip = ea @ Vector((0, 0, rig.tip))
 			for _ in range(6):
@@ -533,6 +572,130 @@ def build_fx(rig, names, seed):
 def clear_fx():
 	for o in list(FX.objects):
 		bpy.data.objects.remove(o, do_unlink=True)
+
+
+# ---- the animation rework: the jointed rig ----
+
+JPARTS = ("Torso", "Head", "LeftUpperArm", "LeftLowerArm", "RightUpperArm", "RightLowerArm", "LeftUpperLeg", "LeftLowerLeg", "RightUpperLeg", "RightLowerLeg")
+JBODY = tuple(n + "_merged" for n in JPARTS)
+ELBOW = {"LeftArm": Vector((1.5, 0, 3.1)), "RightArm": Vector((-1.5, 0, 3.1))}  # build_boss_king.SEAM: the R15 seams
+KNEE = {"LeftLeg": Vector((0.5, 0, 1.1)), "RightLeg": Vector((-0.5, 0, 1.1))}
+POLE = {"LeftArm": (0.6, 1, -0.3), "RightArm": (-0.6, 1, -0.3)}
+SEG = {"RightArm": ("RightUpperArm", "RightLowerArm"), "LeftArm": ("LeftUpperArm", "LeftLowerArm"), "LeftLeg": ("LeftUpperLeg", "LeftLowerLeg"), "RightLeg": ("RightUpperLeg", "RightLowerLeg")}
+JPARENT = {"Body": None, "Torso": "Body", "Head": "Torso", "Key": "Torso", "Ea": "RightLowerArm"}
+for _limb, (_up, _lo) in SEG.items():
+	JPARENT[_up], JPARENT[_lo] = ("Torso" if _limb.endswith("Arm") else "Body"), _up
+# The rework keys (proposed, owner gate pending): Enuma Elish re-keyed in the air on the jointed rig. Root offsets in model units
+# (1 unit = about 6.7 studs at 8x) from the hover height; legs hang, tuck and trail as an airborne body's do.
+FOLD2 = {"RightArm": {"aim": (-0.2, -0.9, 3.25), "pole": (-1, 0.3, -0.8)}, "LeftArm": {"aim": (0.45, -1.15, 2.8), "pole": (1, 0.3, -0.8)}}
+IDLE0 = {"root": (0, 0, 0), "body": (0, 0, 0), "torso": (2, 0, 4), "head": (-5, 0, -8), **FOLD2, "LeftLeg": {"hip": (-8, 0, -3), "knee": 22}, "RightLeg": {"hip": (4, 0, 4), "knee": 30}, "key": (0, 0, 0)}
+EA_OUT = {"at": (-2.9, 0.9, 1.0), "dir": (0, 0.15, 1)}  # Ea standing in its gold ripple behind his right side, hilt at his hip
+JMOVES = {
+	"enuma": {
+		"title": "Enuma Elish (rework, jointed rig, hovering): draw, raise, 3 s charge, swing, 2 s beam sweep, recover",
+		"end": 5.6,
+		"window": [0.0, 3.0],
+		"cols": 5,
+		"keys": [
+			{"t": 0.0, "cap": "Idle key 0: arms folded, hovering, legs loose; Ea rises out of a gold ripple behind his right side", "fx": ["draw"], **IDLE0, "ea": EA_OUT, "spin": 0},
+			{"t": 0.45, "cap": "Anticipation: unfolds and curls down, hips turn right, right hand drops to Ea's hilt, knees tuck, eyes up", "fx": ["draw"], "root": (-0.15, 0.1, -0.35), "body": (0, 0, -16), "torso": (20, -10, -20), "head": (-14, 4, 16), "RightArm": {"aim": (-2.3, 0.7, 2.6), "pole": (-0.5, 1, 0)}, "LeftArm": {"aim": (1.3, -1.8, 3.3), "pole": (1, 0.5, -0.5)}, "LeftLeg": {"hip": (-40, 0, -4), "knee": 70}, "RightLeg": {"hip": (-15, 0, 6), "knee": 55}, "key": (8, 0, 0), "ea": {"dir": (-0.2, 0.3, 1)}, "spin": 0},
+			{"t": 0.95, "cap": "Raise, overshoot: Ea flung up on one straight arm past the top, chest arched open, left arm thrown out, legs trail", "fx": ["arrows"], "root": (0.1, 0.1, 0.35), "body": (0, 4, 10), "torso": (-22, 8, 12), "head": (-30, 4, -6), "RightArm": {"aim": (-2.0, 0.8, 5.8)}, "LeftArm": {"aim": (3.3, -0.4, 2.6)}, "LeftLeg": {"hip": (10, 0, -6), "knee": 15}, "RightLeg": {"hip": (22, 0, 8), "knee": 35}, "key": (-8, 0, 0), "ea": {"dir": (-0.25, 0.45, 1)}, "spin": 60},
+			{"t": 1.45, "cap": "Settle, charge holds: Ea back upright, left fist braced low, white ball and red rings at the tip, grooves glow", "fx": ["arrows", "charge", "ball:0.5"], "root": (0, 0, 0.25), "body": (0, 0, 4), "torso": (-10, 4, 6), "head": (-20, 0, -4), "RightArm": {"aim": (-1.8, -0.2, 6.0)}, "LeftArm": {"aim": (2.5, -1.2, 2.3)}, "LeftLeg": {"hip": (-6, 0, -4), "knee": 25}, "RightLeg": {"hip": (12, 0, 6), "knee": 40}, "key": (-4, 0, 0), "ea": {"dir": (-0.1, 0.05, 1)}, "spin": 200},
+			{"t": 2.1, "cap": "Charge, strain: he rises and leans back into the wind, left forearm shields his face, legs blown back, drums faster", "fx": ["arrows", "wind", "charge", "ball:0.9"], "root": (0.25, 0.15, 0.45), "body": (0, -6, 8), "torso": (-16, -6, 8), "head": (-22, -4, -8), "RightArm": {"aim": (-1.7, 0.3, 6.0)}, "LeftArm": {"aim": (0.4, -1.6, 4.4), "pole": (1, 0.3, -1)}, "LeftLeg": {"hip": (14, 0, -8), "knee": 45}, "RightLeg": {"hip": (4, 0, 10), "knee": 20}, "key": (-8, 0, 0), "ea": {"dir": (-0.05, 0.15, 1)}, "spin": 450},
+			{"t": 2.75, "cap": "Wind-up: Ea cocked far back behind his head, left arm points at the arena, back arched, left knee drawn up, at his highest", "fx": ["arrows", "wind", "charge", "ball:1.4", "gather"], "root": (0, 0.35, 0.6), "body": (0, 0, -20), "torso": (-26, 0, -10), "head": (-8, 0, 8), "RightArm": {"aim": (-1.4, 1.2, 5.0), "pole": (-1, 0, -0.3)}, "LeftArm": {"aim": (1.6, -1.8, 4.0)}, "LeftLeg": {"hip": (-75, 0, -6), "knee": 95}, "RightLeg": {"hip": (18, 0, 6), "knee": 60}, "key": (-12, 0, 0), "ea": {"dir": (-0.1, 0.9, 0.45)}, "spin": 720},
+			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.15)}, "spin": 820},
+			{"t": 3.9, "cap": "Beam drive: hips lead the sweep across the lanes, torso lags, both hands on Ea, legs braced back against the recoil", "fx": ["beam", "arrows"], "root": (-0.25, 0, -0.2), "body": (0, 0, -70), "torso": (4, 18, -12), "head": (-4, 8, 58), "RightArm": {"aim": (-0.4, -1.4, 3.0)}, "LeftArm": "grip", "LeftLeg": {"hip": (-10, -16, 0), "knee": 35}, "RightLeg": {"hip": (20, -28, 0), "knee": 45}, "key": (4, 8, 0), "ea": {"dir": (1, -0.35, -0.1)}, "spin": 1000},
+			{"t": 4.85, "cap": "Beam end: the far side of the ring, recoil pushes him upright, Ea lifts, legs swing through", "fx": ["beam", "arrows"], "root": (-0.15, 0, -0.1), "body": (0, 0, 72), "torso": (-6, 4, -22), "head": (-10, 0, 50), "RightArm": {"aim": (-0.3, -1.4, 3.3)}, "LeftArm": "grip", "LeftLeg": {"hip": (6, -6, 0), "knee": 60}, "RightLeg": {"hip": (-20, -12, 0), "knee": 30}, "key": (0, 4, 0), "ea": {"dir": (1, -0.3, 0.12)}, "spin": 1180},
+			{"t": 5.6, "cap": "Recover = idle key 0: arms folded again, Ea sinks back into its ripple, drums slow", "fx": ["draw", "embers"], **IDLE0, "ea": EA_OUT, "spin": 1260},
+		],
+	},
+}
+HOVER_STUDS = 12.0  # proposed (owner 2026-11-12: he hovers as the Elf Mage does; 1.5 stud bob over 3 s is played in game, not keyed)
+
+
+def two_bone(J, L1, L2, T, pole):
+	"""Upper and lower segment rotations (model space) for a limb hanging down -Z at rest, its elbow pointing +Y at rest: the
+	end reaches T (clamped to reach), the elbow bends toward pole."""
+	d = T - J
+	dh = d.normalized()
+	dist = min(max(d.length, abs(L1 - L2) + 1e-3), L1 + L2 - 1e-4)
+	a = math.acos(max(-1.0, min(1.0, (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist))))
+	p = pole - dh * pole.dot(dh)
+	p = p.normalized() if p.length > 1e-6 else dh.orthogonal().normalized()
+	u = dh * math.cos(a) + p * math.sin(a)
+	w = (dh * dist - u * L1).normalized()
+	y = (p - u * p.dot(u)).normalized()  # the rest +Y (elbow side) goes to the pole side
+	z = -u
+	r1 = Matrix((y.cross(z), y, z)).transposed()
+	return r1, u.rotation_difference(w).to_matrix() @ r1
+
+
+def jsolve(key):
+	"""jointed rig: placement per part (model space, applied on top of its rest), the local rotations for keys.json, the Ea
+	grip offset in the right forearm's space, and how far each hand stops short of its aim (model units)."""
+	place = {}
+	yaw = Matrix.Rotation(math.radians(key.get("body", (0, 0, 0))[2]), 3, "Z")
+	place["Body"] = Matrix.Translation(key.get("root", (0, 0, 0))) @ about(HIP, eul(key.get("body", (0, 0, 0))))
+	place["Torso"] = place["Body"] @ about(WAIST, eul(key.get("torso", (0, 0, 0))))
+	place["Head"] = place["Torso"] @ about(NECK, eul(key.get("head", (0, 0, 0))))
+	place["Key"] = place["Torso"] @ about(KEY_PIVOT, eul(key.get("key", (0, 0, 0))))
+	short = {}
+
+	def put(name, parent, pivot, r3):
+		at = place[parent] @ Vector(pivot)
+		place[name] = Matrix.Translation(at) @ r3.to_4x4() @ Matrix.Translation(-Vector(pivot))
+
+	def arm(limb, target=None):
+		up, lo = SEG[limb]
+		spec = key.get(limb, {})
+		tw = place["Torso"]
+		if target is None and isinstance(spec, dict) and "aim" in spec:
+			target = tw @ Vector(spec["aim"])
+		if target is not None:
+			pole = tw.to_3x3() @ Vector(spec.get("pole", POLE[limb]) if isinstance(spec, dict) else POLE[limb])
+			J = tw @ Vector(SHOULDER[limb])
+			r1, r2 = two_bone(J, SHOULDER[limb][2] - ELBOW[limb].z, ELBOW[limb].z - HAND[limb].z, target, pole)
+		else:
+			r1 = tw.to_3x3() @ eul(spec.get("shoulder", (0, 0, 0))).to_3x3()
+			e = spec.get("elbow", 0)
+			r2 = r1 @ eul((-e, 0, 0) if isinstance(e, (int, float)) else e).to_3x3()
+		put(up, "Torso", SHOULDER[limb], r1)
+		put(lo, up, ELBOW[limb], r2)
+		if target is not None:
+			short[limb] = round((place[lo] @ HAND[limb] - target).length, 3)
+
+	def leg(limb):
+		up, lo = SEG[limb]
+		spec = key.get(limb, (0, 0, 0))
+		spec = spec if isinstance(spec, dict) else {"hip": spec}
+		r1 = place["Body"].to_3x3() @ eul(spec.get("hip", (0, 0, 0))).to_3x3()
+		put(up, "Body", LEG[limb], r1)
+		put(lo, up, KNEE[limb], r1 @ eul((spec.get("knee", 0), 0, 0)).to_3x3())
+
+	arm("RightArm")
+	grip = None
+	if "ea" in key:
+		e = key["ea"]
+		if isinstance(e, dict):
+			r = Vector((0, 0, 1)).rotation_difference(yaw @ Vector(e["dir"])).to_matrix().to_4x4()
+			at = Vector(e["at"]) if "at" in e else place["RightLowerArm"] @ HAND["RightArm"]
+			place["Ea"] = Matrix.Translation(at) @ r @ Matrix.Translation(-EA_PIVOT)
+		else:
+			place["Ea"] = place["RightLowerArm"] @ Matrix.Translation(HAND["RightArm"] - EA_PIVOT) @ about(EA_PIVOT, eul(e))
+		local = place["RightLowerArm"].inverted() @ place["Ea"]
+		grip = [round(v, 4) for v in (local @ EA_PIVOT) - EA_PIVOT]
+	arm("LeftArm", place["Ea"] @ (EA_PIVOT + Vector((0, 0, GRIP_UP))) if key.get("LeftArm") == "grip" else None)
+	for limb in ("LeftLeg", "RightLeg"):
+		leg(limb)
+	record = {}
+	for n, par in JPARENT.items():
+		if n in place:
+			r = place[n].to_3x3() if par is None else place[par].to_3x3().inverted() @ place[n].to_3x3()
+			record[n] = degs(r.to_4x4())
+	for n, sign in zip(EA_PARTS[1:], (1, -1, 1)):
+		record[n] = [0.0, 0.0, round(sign * key.get("spin", 0), 3)]
+	m = {(n if n in ("Key", "Ea") else n + "_merged"): v for n, v in place.items() if n != "Body"}
+	return m, record, grip, short
 
 
 # ---- the volley window: panels from the runner's camera and from above ----
@@ -623,6 +786,12 @@ def run_move(scene, rig, name, move):
 	for i, key in enumerate(keys):
 		clear_fx()
 		record, grip = pose_king(rig, key)
+		if REWORK:  # each panel framed on its own pose: the shared frame of a sweeping 9-unit Ea leaves him too small to read
+			pts = figure_pts(rig, key)
+			three = bk.fit(cam, pts, yaw @ Vector(key.get("view", (0.65, -0.75, 0.18))), MAIN[0] / MAIN[1], margin=0.85)
+			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
+			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
+			clip = sp * 3 - sp * 0.75
 		build_fx(rig, key.get("fx", []), seed=100 + i)
 		look(scene, rig, "dark" if name.startswith("enuma") else "flat")
 		cell = {}
@@ -663,10 +832,11 @@ def run_move(scene, rig, name, move):
 
 def sheet(name, move, cells, win=None):
 	keys = move["keys"]
-	rows = math.ceil(len(keys) / COLS)
+	cols = move.get("cols", COLS)
+	rows = math.ceil(len(keys) / cols)
 	cell_h = MAIN[1] + STRIP_H
 	win_h = 60 + 40 + WIN[1] + 8 + MAP + 16 if win else 0
-	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h, COLS * CELL_W, 4), dtype=np.float32)
+	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h, cols * CELL_W, 4), dtype=np.float32)
 	px[:, :, :3] = bk.BG
 	total = f"{move['end']:.1f} s" + (" loop" if move.get("loop") else "")
 	note = f"Times proposed. Wide views: vault draft from a runner's camera on lane 4, him at {SIZE:g}x a runner ({SIZE * CHAR_H:g} studs) standing on the centre mound"
@@ -679,21 +849,30 @@ def sheet(name, move, cells, win=None):
 		note += ". Times on the gates clock: these keys follow its Fire key (1.60 s); its recover key stays at 4.20 s"
 	if name == "enuma_beam":
 		note += ". Times on the enuma clock: the beam starts at 3.00 s when the 3 s charge window ends; the sweep runs 3.00 - 5.00 s"
+	if REWORK:
+		note = f"Times proposed. Jointed rig (elbows, knees). He hovers {HOVER_STUDS:g} studs over the mound (the bob plays in game, not keyed); plain backdrop, no arena view (his arena is being replaced); each panel framed on its own pose (the floor line is the mound top)"
+		note += f". DODGE WINDOW (charge) {move['window'][0]:.2f} - {move['window'][1]:.2f} s; HIT at {move['window'][1]:.2f} s: white flash, beam 3.00 - 5.00 s, recover 5.00 - 5.60 s"
 	if name.startswith("enuma"):
 		note += ". Cyan arcs: drum spin direction, render marks only"
-	if name == "idle":
+	if name == "idle" and not REWORK:
 		note += ". Block arms have no elbow: folded arms are two straight blocks crossed in front of the chest"
 	paste_txt = [(f"{move['title']}  |  The Golden King  |  {total}  |  (proposed) key frames for approval, no in-betweens", 40, 48, 24, bk.INK), (note + ".", 22, 90, 24, bk.DIM)]
-	bk.paste(px, bk.text_px(paste_txt, COLS * CELL_W, HEAD_H, bk.BG), 0, 0)
+	bk.paste(px, bk.text_px(paste_txt, cols * CELL_W, HEAD_H, bk.BG), 0, 0)
 	for i, key in enumerate(keys):
-		row, col = divmod(i, COLS)
+		row, col = divmod(i, cols)
 		x, y = col * CELL_W, HEAD_H + row * cell_h
 		bk.paste(px, cells[i]["main"], x, y)
 		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, "front")
 		if "wide" in cells[i]:
 			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, "arena view (runner's camera)")
 		head = f"{name}  key {i + 1} of {len(keys)}   {key['t']:.2f} s" + (f"   event {key['event']}" if "event" in key else "")
-		bk.paste(px, bk.text_px([(head, 34, 40, 18, (0.75, 0.05, 0.05) if "event" in key else bk.INK), (key["cap"], 26, 80, 18, bk.DIM)], CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
+		cap = key["cap"]
+		if len(cap) > 100:  # two lines: a long caption runs off the cell
+			cut = cap.rfind(" ", 0, len(cap) // 2 + 10)
+			lines = [(cap[:cut], 21, 66, 18, bk.DIM), (cap[cut + 1 :], 21, 90, 18, bk.DIM)]
+		else:
+			lines = [(cap, 26, 80, 18, bk.DIM)]
+		bk.paste(px, bk.text_px([(head, 34, 40 if len(cap) <= 100 else 34, 18, (0.75, 0.05, 0.05) if "event" in key else bk.INK)] + lines, CELL_W, STRIP_H, bk.BG), x, y + MAIN[1])
 		px[y : y + cell_h, x : x + 2] = (0.5, 0.5, 0.52, 1)
 	if win:
 		y0 = HEAD_H + rows * cell_h + 8
@@ -739,6 +918,9 @@ def overview():
 def main():
 	global SIZE
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+	if "--rework" in argv:
+		rework(argv)
+		return
 	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
 	if "--size" in argv:
 		SIZE = float(argv[argv.index("--size") + 1])
@@ -773,6 +955,40 @@ def main():
 	with open(path, "w") as f:
 		json.dump(data, f, indent=1)
 	overview()
+
+
+def rework(argv):
+	"""--rework: JMOVES on the jointed rig; writes keyframes/rework/keys.json and <move>_slices.png. MOVES and keys.json stay."""
+	global REWORK, MODEL, BODY, OUT, TMP
+	REWORK, MODEL, BODY = True, "boss_king_jointed", JBODY
+	OUT, TMP = os.path.join(OUT, "rework"), os.path.join(TMP, "rework")
+	arena = argv[argv.index("--arena") + 1] if "--arena" in argv else ARENA
+	wanted = [a for a in argv if a in JMOVES] or list(JMOVES)
+	for d in (OUT, TMP, bk.TMP):
+		os.makedirs(d, exist_ok=True)
+	scene, rig = load_scene(arena)
+	print(f"SCALE size {SIZE}x: model height {rig.model_h:.3f} units, {rig.k:.3f} studs per unit; rest feet {HOVER_STUDS:g} studs over the mound top {rig.stand:.2f}")
+	path = os.path.join(OUT, "keys.json")
+	data = json.load(open(path)) if os.path.exists(path) else {"moves": {}}
+	data.update(
+		{
+			"rig": "jointed (build_boss_king.py -- jointed): Torso, Head, upper and lower arm and leg per side, Key, Ea; the lower arm carries the hand, the lower leg the foot",
+			"units": "XYZ Euler degrees about each part's joint, relative to its parent; root_offset in model units from the hover height (Z = Roblox Y up)",
+			"parents": JPARENT | {"Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
+			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}},
+			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
+			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam",
+			"hover": {"studs_over_mound": HOVER_STUDS, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed, owner 2026-11-12; the bob is played in game, not keyed"},
+			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
+			"approved": [],
+		}
+	)
+	for name in wanted:
+		m = JMOVES[name]
+		data["moves"][name] = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False), "dodge_window": m["window"], "keys": run_move(scene, rig, name, m)}
+	with open(path, "w") as f:
+		json.dump(data, f, indent=1)
+	print("KEYS", path)
 
 
 if __name__ == "__main__":
