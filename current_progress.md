@@ -160,8 +160,9 @@
 156. 2026-11-11 — Alex Nguyen — Wrote the owner's Elf Mage rule changes into the design doc and specs (2 s strike windows, Stone Golem miniboss with 1,000 HP and a sweep, easier rhythm circles, Bosses cards, her 6 Relics and chest) and drew the card, key-frame and Relic drafts for approval.
 157. 2026-11-12 — Alex Nguyen — Built the approved Elf Mage fixes end to end (lightning and barrage spam of 7-10 bolts every 0.15 s over 2 s, Stone Golem miniboss with its own 1,000 HP bar, slam and sweep, 3-circle rhythm, Bosses cards draft B, her 5 Relics and chest uploaded, drop list hidden), targeted Studio scenarios green and rules audit PASS.
 158. 2026-11-11 — Alex Nguyen — Wrote the rules, evidence and goal for the third boss The Golden King (design doc 4.36-4.38, BOSS_EVENT_SPEC, RELIC_SPEC, SIDEKICK_SPEC, evidence files, goal boss-king k0-k9, owner questions) and the every-boss Sidekick self-drop rule, on `feature/alex/boss-king`; rules audit PASS.
+159. 2026-11-11 — Alex Nguyen — Wrote the `/new-boss` skill, built The Golden King model (`boss_king`, 2,862 tris, Ea and Key separate) with the `side_king` and `side_mage` Sidekicks, and drafted the treasure-vault re-dress of the colosseum (two passes) on `feature/alex/boss-king`; renders published for the owner's approval, nothing uploaded.
 
 ## What's next
-**Build k1 (the `/new-boss` skill), k2 (models `boss_king`, `side_king`, `side_mage`, 4 renders each) and k3 (treasure-vault re-dress renders) in parallel, and put every model and render on one review page for the owner.**
+**Owner approves or changes the models and the vault on the review page (https://claude.ai/artifact/6r7jJr5ykcdaAD574PHVH5); then k4 key frames, 3 to 5 per move, one move at a time.**
 
-**Why this is next:** the owner asked for screenshots of all models and renders before anything continues; k4 key frames, k5 art and the k6 bake all depend on the approved models and vault.
+**Why this is next:** key frames, the digital art (k5) and the bake (k6) all build on the approved models and vault, and the owner asked to approve every model and render before continuation.
