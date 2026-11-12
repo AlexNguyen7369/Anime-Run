@@ -411,6 +411,7 @@
      "ea_drum_spin": 200,
      "effects": [
       "arrows",
+      "wind",
       "charge",
       "ball:0.5"
      ]
