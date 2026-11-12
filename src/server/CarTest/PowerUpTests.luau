@@ -42,7 +42,7 @@ function Tests.powerups()
 		and mods.factory
 		and mods.gacha
 		and mods.data
-		and mods.money
+		and mods.money ~= nil
 	flag("powerups_api_exists", api == true)
 	if not api then
 		return r
