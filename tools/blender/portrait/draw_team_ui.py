@@ -575,13 +575,59 @@ def bust(img, X, Y, ss, cx, hy, hr, bw, bh, top, bottom, floor=342):
 	gloss(img, X, Y, ss, cx - hr * 0.4, hy - hr * 0.5, hr * 0.38, hr * 0.17, -0.6)
 
 
-def icon_trio():
+def icon_trio(side=((120, 235, 120), (30, 150, 70)), side2=((255, 140, 180), (205, 50, 110)), lead=((255, 222, 110), (240, 140, 30)), outline=OUTLINE):
+	global OUTLINE
+	keep, OUTLINE = OUTLINE, outline  # obj() and bust() read the module outline colour
 	img, X, Y, ss = icon_canvas()
 	tab(img, X, Y, ss)
-	bust(img, X, Y, ss, 146, 170, 50, 70, 128, (120, 235, 120), (30, 150, 70))
-	bust(img, X, Y, ss, 366, 170, 50, 70, 128, (255, 140, 180), (205, 50, 110))
-	bust(img, X, Y, ss, 256, 136, 62, 90, 150, (255, 222, 110), (240, 140, 30))
+	bust(img, X, Y, ss, 146, 170, 50, 70, 128, *side)
+	bust(img, X, Y, ss, 366, 170, 50, 70, 128, *side2)
+	bust(img, X, Y, ss, 256, 136, 62, 90, 150, *lead)
+	OUTLINE = keep
 	return img
+
+
+# Neutral colour variants of option 1 (owner 2026-11-11: "more neutral colors"): name, label, side figures, lead, outline.
+NEUTRAL = [
+	("Team_N1", "N1: cream, navy outline", ((236, 226, 204), (196, 180, 150)), ((255, 250, 236), (232, 216, 184)), (22, 30, 70)),
+	("Team_N2", "N2: slate, steel lead", ((132, 148, 172), (82, 98, 124)), ((214, 226, 240), (150, 170, 196)), OUTLINE),
+	("Team_N3", "N3: sand lead, grey pair", ((176, 178, 184), (112, 114, 122)), ((240, 214, 168), (196, 156, 100)), OUTLINE),
+]
+
+
+def neutral_sheet(art, masks, reqs):
+	W, H = 1280, 720
+	D = Draw(W, H, 2, art, masks, reqs)
+	D.rect(0, 0, W, H, (24, 26, 36))
+	D.text(ROUND, 20, "Team icon option 1 Trio, 3 neutral colour variants. Large, then 72 px and 49 px beside the real icons.", 40, 24, anchor="l")
+	refs = (("hud_Index", "Index"), ("hud_Items", "Items"), ("hud_Boss", "Bosses"), ("hud_Rebirth", "Rebirth"))
+	for i, (key, label, *_rest) in enumerate(NEUTRAL):
+		y = 50 + i * 222
+		D.rect(40, y, 1200, 212, PANEL, r=16, stroke=2, stroke_color=GOLD_LOW, grad=(PANEL, PANEL_DEEP))
+		D.text(HEAVY, 26, label, 60, y + 24, color=GOLD_HI, stroke=2.5, anchor="l")
+		D.rect(60, y + 44, 160, 160, (235, 236, 242), r=12)
+		D.image(key, 140, y + 124, 160)
+		for g, (ground, gy) in enumerate((((228, 230, 236), y + 44), ((30, 30, 38), y + 126))):
+			D.rect(240, gy, 980, 78, ground, r=10)
+			for j, (icon, name) in enumerate(((key, label[:2]),) + refs):
+				x = 260 + j * 190
+				D.image(icon, x + 36, gy + 39, 72)
+				D.image(icon, x + 120, gy + 39, 49)
+				if g == 0:
+					D.text(ROUND, 14, name, x + 160, gy + 12, color=WHITE, anchor="r")
+	return None if masks is None else D.finish()
+
+
+def main_neutral():
+	bc.ART = ART
+	art = bc.load_art()
+	reqs = set()
+	for key, _label, side, lead, outline in NEUTRAL:
+		art[key] = base.finish(icon_trio(side, side, lead, outline), 512)
+		base.write_png(os.path.join(ROOT, "assets", "ui", "hud_tabtilt", key + ".png"), base.to_rgba8(art[key]))
+	neutral_sheet(art, None, reqs)
+	sheet = neutral_sheet(art, base.text_masks(sorted(reqs)), reqs)
+	base.write_png(os.path.join(OUT, "icon_neutral.png"), base.to_rgba8(sheet))
 
 
 def icon_banner():
@@ -719,4 +765,4 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+	main_neutral() if sys.argv[1:] == ["neutral"] else main()
