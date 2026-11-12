@@ -1173,6 +1173,181 @@ function Module.Build(h)
 				state(res, "Fight", fight + at - 0.3, 4000, 4000, true, 100)
 				check(res, "ea_trail_in_swing", trailSeen(ea, 0.6), true)
 			end
+			-- Pose-tied effects (BOSS_EVENT_SPEC "Animation rework" bullet "Pose-tied effects"; task a5c). Contract (implementer:
+			-- report a change, do not loosen), under BossEffects unless named otherwise:
+			--   Portal (as now): first seen over time, a growing cascade (not all in one frame).
+			--   EnumaBeam (as now): its yaw (LookVector) keeps one offset from his live Torso's yaw (his baked hip turn) through the
+			--     beam: at 3.5 s and 4.5 s the offsets agree within 15 deg, and frame to frame it turns with the torso (at most 3 deg
+			--     apart a frame; still while the hips hold). From the schedule, BossVfxForce off.
+			--   EaGlow: Light(s) (PointLight or SurfaceLight) under the GoldenKing's Ea or Ea_Drum parts: brighter at 2.5 s of enuma
+			--     than at 0.2 s. None lit under REDUCED EFFECTS.
+			--   EnumaChargeFlash: the charge's white flash (a BasePart, light or effect), first seen within 0.15 s before the
+			--     EnumaBeam. Not under REDUCED EFFECTS. LastImpact for Enuma stays one hit.
+			--   Shield (as now): with BossFortified untouched, first seen in the shields move between its call key (0.6 s, rework
+			--     keys) and its lock (2.2 s); ShieldBurst when BossFortified turns false (the next move's start). The shields
+			--     stay under REDUCED EFFECTS (the current rule).
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			local function firstSeen(names, seconds)
+				local seenAt, born = {}, os.clock()
+				while os.clock() - born < seconds do
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if names[d.Name] and not seenAt[d] then
+							seenAt[d] = os.clock() - born
+						end
+					end
+					task.wait()
+				end
+				return seenAt
+			end
+			local function yaw(look)
+				return math.deg(math.atan2(-look.X, -look.Z))
+			end
+			local function wrap(a)
+				return (a + 180) % 360 - 180
+			end
+			local function eaGlow()
+				local most = 0
+				for _, d in king:GetDescendants() do
+					if d:IsA("Light") and d.Name == "EaGlow" and d.Enabled then
+						local p = d.Parent
+						if p and (p.Name == "Ea" or string.sub(p.Name, 1, 7) == "Ea_Drum") then
+							most = math.max(most, d.Brightness)
+						end
+					end
+				end
+				return most
+			end
+			local fight = Cfg.PrepSeconds + Cfg.IntroSeconds
+			local enumaAt, shieldsAt = nil, nil
+			for i = 1, SCAN do
+				local t, name = BossDodge.Moment(i, KING)
+				enumaAt = enumaAt or (name == "enuma" and t or nil)
+				shieldsAt = shieldsAt or (name == "shields" and t or nil)
+			end
+			local torso = king:FindFirstChild("Torso", true)
+			check(res, "pose_moments_found", enumaAt ~= nil and shieldsAt ~= nil and torso ~= nil, true)
+			-- Gates: the portals open in a cascade.
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
+			local opened, firstPortal, lastPortal = firstSeen({ Portal = true }, 2), math.huge, -math.huge
+			for _, t in opened do
+				firstPortal, lastPortal = math.min(firstPortal, t), math.max(lastPortal, t)
+			end
+			h.check(res, "gates_portals_cascade", lastPortal - firstPortal, ">= 0.3", lastPortal - firstPortal >= 0.3)
+			-- Enuma: the white flash before the beam (the whole move at once), and the impact log unchanged.
+			for _, few in { false, true } do
+				h.player:SetAttribute("ReduceEffects", few or nil)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				task.wait()
+				local holder = inArena("BossEffects")
+				if holder then
+					holder:SetAttribute("LastImpact", nil)
+				end
+				ReplicatedStorage:SetAttribute("BossVfxForce", "Enuma")
+				local flashAt, beamAt = math.huge, math.huge
+				for d, t in firstSeen({ EnumaChargeFlash = true, EnumaBeam = true }, 4) do
+					if d.Name == "EnumaChargeFlash" then
+						flashAt = math.min(flashAt, t)
+					else
+						beamAt = math.min(beamAt, t)
+					end
+				end
+				if few then
+					check(res, "reduced_no_enuma_white_flash", flashAt == math.huge, true)
+				else
+					local lead = beamAt - flashAt
+					h.check(res, "enuma_white_flash_before_beam", lead, "0 to 0.15", lead >= 0 and lead <= 0.15)
+					local raw = inArena("BossEffects") and inArena("BossEffects"):GetAttribute("LastImpact")
+					local okLog, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
+					local hits = okLog and type(log) == "table" and type(log.Hits) == "table" and #log.Hits or 0
+					check(res, "enuma_impact_log_one_hit", okLog and log.Move == "Enuma" and hits == 1, true)
+				end
+			end
+			h.player:SetAttribute("ReduceEffects", nil)
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			if enumaAt and torso then
+				-- Ea's grooves glow while the drums spin (from the schedule).
+				for _, few in { false, true } do
+					h.player:SetAttribute("ReduceEffects", few or nil)
+					state(res, "Fight", fight + enumaAt - 3 + 0.2, 4000, 4000, true, 100)
+					task.wait(0.1)
+					local glowEarly = eaGlow()
+					task.wait(2.2)
+					local glowLate = eaGlow()
+					if few then
+						check(res, "reduced_no_ea_glow", glowLate, 0)
+					else
+						h.check(
+							res,
+							"ea_grooves_glow_while_spinning",
+							("%s then %s"):format(glowEarly, glowLate),
+							"rises",
+							glowLate > glowEarly
+						)
+					end
+				end
+				h.player:SetAttribute("ReduceEffects", nil)
+				-- The beam turns with his hips.
+				state(res, "Fight", fight + enumaAt - 0.1, 4000, 4000, true, 100)
+				local born, rows = os.clock(), {}
+				while os.clock() - born < 2.1 do
+					local beam = inArena("EnumaBeam")
+					if beam and beam:IsA("BasePart") then
+						table.insert(rows, {
+							T = 2.9 + os.clock() - born,
+							Beam = yaw(beam.CFrame.LookVector),
+							Torso = yaw(torso.CFrame.LookVector),
+						})
+					end
+					task.wait()
+				end
+				local function offsetNear(t)
+					local best = nil
+					for _, row in rows do
+						if not best or math.abs(row.T - t) < math.abs(best.T - t) then
+							best = row
+						end
+					end
+					return best and math.abs(best.T - t) < 0.1 and wrap(best.Beam - best.Torso) or nil
+				end
+				local a, b = offsetNear(3.5), offsetNear(4.5)
+				h.check(
+					res,
+					"enuma_beam_follows_hips",
+					a and b and math.abs(wrap(a - b)) or "no beam",
+					"<= 15",
+					a ~= nil and b ~= nil and math.abs(wrap(a - b)) <= 15
+				)
+				local worst = 0
+				for i = 2, #rows do
+					local turn = wrap(rows[i].Beam - rows[i - 1].Beam) - wrap(rows[i].Torso - rows[i - 1].Torso)
+					worst = math.max(worst, math.abs(wrap(turn)))
+				end
+				h.check(res, "enuma_beam_turns_only_with_hips", worst, "<= 3", #rows > 1 and worst <= 3)
+			end
+			if shieldsAt then
+				-- Shields appear with his call gesture, from the pose (BossFortified untouched), and burst when he lowers them.
+				local savedFortified = ReplicatedStorage:GetAttribute("BossFortified")
+				state(res, "Fight", fight + shieldsAt - 2.2 - 0.3, 4000, 4000, true, 100)
+				local first = math.huge
+				for _, t in firstSeen({ Shield = true }, 2.6) do
+					first = math.min(first, t - 0.3)
+				end
+				h.check(
+					res,
+					"shields_appear_with_gesture",
+					first,
+					"0.6 to 2.2 s into shields",
+					first >= 0.6 - 0.05 and first <= 2.2
+				)
+				ReplicatedStorage:SetAttribute("BossFortified", true)
+				task.wait(0.5)
+				ReplicatedStorage:SetAttribute("BossFortified", false)
+				local burst = next(firstSeen({ ShieldBurst = true }, 0.6)) ~= nil
+				check(res, "shields_shatter_burst", burst, true)
+				ReplicatedStorage:SetAttribute("BossFortified", savedFortified)
+			end
 		end, debug.traceback)
 		h.check(res, "king_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossVfxForce", nil)

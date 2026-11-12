@@ -1117,6 +1117,164 @@ function Module.Build(h)
 					end
 				end
 			end
+			-- Pose-tied effects (BOSS_EVENT_SPEC "Animation rework" bullet "Pose-tied effects"; task a5c), from the schedule with
+			-- BossVfxForce off. Contract (implementer: report a change, do not loosen), instances under BossEffects:
+			--   StaffCharge: a BasePart (or Attachment) holding the lightning's charge point, within 3 studs of the staff's tip
+			--     (Bind.Staff.Tip on the live Staff part) at some frame of lightning 1.0 to 2.0 s. Not under REDUCED EFFECTS.
+			--   MagicCircle (the barrage's circles, as now): each, at the frame it is first seen before 2.0 s, within 25 deg of the
+			--     staff's pointing (grip joint to tip) from the tip; first seen one after another with peak sizes not decreasing.
+			--     REDUCED EFFECTS keeps them (3, as now).
+			--   SweepDust (as now): during the golem's sweep, first seen over time (not all in one frame), each within 10 studs (XZ)
+			--     of the nearer fist (Golem FistL / FistR) when first seen. REDUCED EFFECTS keeps 3 puffs (as now).
+			--   GolemRiseDust during the golem's rise (golem 0 to 1.4 s after BossMinionStart), GolemFallDust during her golem_fall
+			--     row. Neither under REDUCED EFFECTS.
+			--   LastStrikes stays as checked above.
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			local AXES =
+				CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
+			local staffPart = mage and mage:FindFirstChild("Staff", true)
+			local staffRow = Poses.Bind.Staff
+			-- the staff's grip joint and tip in the world, from the live part (Client/BossRaga's frames, read back)
+			local function staffEnds()
+				local joint = staffPart.CFrame
+					* AXES
+					* CFrame.new(Vector3.new(staffRow.Center[1], staffRow.Center[2], staffRow.Center[3]) * Poses.Scale)
+						:Inverse()
+				local tip = joint:PointToWorldSpace(
+					Vector3.new(staffRow.Tip[1], staffRow.Tip[2], staffRow.Tip[3]) * Poses.Scale
+				)
+				return joint.Position, tip
+			end
+			-- Every instance called `name` under BossEffects over `seconds`: { [instance] = { At (s from now), Position, Peak } },
+			-- with `onFrame(instance, row)` on the frame it is first seen.
+			local function watchNamed(name, seconds, onFrame)
+				local seen, born = {}, os.clock()
+				while os.clock() - born < seconds do
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if d.Name == name and (d:IsA("BasePart") or d:IsA("Attachment")) then
+							local at = d:IsA("Attachment") and d.WorldPosition or d.Position
+							local row = seen[d]
+							if not row then
+								row = { At = os.clock() - born, Position = at, Peak = 0 }
+								seen[d] = row
+								if onFrame then
+									onFrame(d, row)
+								end
+							end
+							row.Peak = d:IsA("BasePart") and math.max(row.Peak, d.Size.X, d.Size.Y) or row.Peak
+						end
+					end
+					task.wait()
+				end
+				return seen
+			end
+			local function count(seen)
+				local n = 0
+				for _ in seen do
+					n += 1
+				end
+				return n
+			end
+			local lightningAt, barrageAt = timeOf("lightning", 0.75, 0.85, 0), timeOf("barrage", 0.25, 0.35, 0)
+			check(res, "pose_schedule_found", lightningAt ~= nil and barrageAt ~= nil and staffPart ~= nil, true)
+			for _, few in { false, true } do
+				h.player:SetAttribute("ReduceEffects", few or nil)
+				local tag = few and "reduced_" or ""
+				if lightningAt and staffPart then
+					state(res, "Fight", Cfg.PrepSeconds + lightningAt, 4000, 4000, true, 100)
+					local nearest = math.huge
+					local stop = os.clock() + 1.2 -- from 0.8 to 2.0 s
+					while os.clock() < stop do
+						local _, tip = staffEnds()
+						for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+							if d.Name == "StaffCharge" and (d:IsA("BasePart") or d:IsA("Attachment")) then
+								local at = d:IsA("Attachment") and d.WorldPosition or d.Position
+								nearest = math.min(nearest, (at - tip).Magnitude)
+							end
+						end
+						task.wait()
+					end
+					if few then
+						check(res, "reduced_no_lightning_charge", nearest == math.huge, true)
+					else
+						h.check(res, "lightning_charge_at_staff_tip", nearest, "<= 3", nearest <= 3)
+					end
+				end
+				if barrageAt and staffPart then
+					state(res, "Fight", Cfg.PrepSeconds + barrageAt, 4000, 4000, true, 100)
+					local off = {}
+					local seen = watchNamed("MagicCircle", 1.6, function(d, row)
+						local grip, tip = staffEnds()
+						local aim, to = (tip - grip).Unit, (d.Position - tip)
+						row.Angle = to.Magnitude > 0 and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1))) or 180
+						if row.Angle > 25 then
+							table.insert(off, ("%.0f"):format(row.Angle))
+						end
+					end)
+					local list = {}
+					for _, row in seen do
+						table.insert(list, row)
+					end
+					table.sort(list, function(a, b)
+						return a.At < b.At
+					end)
+					local ordered = #list > 1
+					for i = 2, #list do
+						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
+					end
+					check(res, tag .. "barrage_circles_seen", #list > 0, true)
+					h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
+					check(res, tag .. "barrage_circles_one_after_another", ordered, true)
+					if few then
+						h.check(res, "reduced_barrage_circles_3", #list, "<= 3", #list <= 3)
+					end
+				end
+				-- The golem: its rise raises dust; its sweep's dust follows the fist; her golem_fall row raises dust.
+				if golem then
+					setup(res, "boss_ui_minion:640,1000")
+					local rise = watchNamed("GolemRiseDust", 1.4)
+					if few then
+						check(res, "reduced_no_golem_rise_dust", count(rise), 0)
+					else
+						h.check(res, "golem_rise_dust", count(rise), "> 0", count(rise) > 0)
+					end
+					-- the second attack is the sweep: its track starts 7.6 s after the start (hit 10.2 s, 2.6 s into the track)
+					ReplicatedStorage:SetAttribute("BossMinionStart", workspace:GetServerTimeNow() - 7.4)
+					local far = {}
+					local fists = { golem:FindFirstChild("FistL", true), golem:FindFirstChild("FistR", true) }
+					local dust = watchNamed("SweepDust", 4.4, function(_, row)
+						local best = math.huge
+						for _, fist in fists do
+							local d = (fist.Position - row.Position) * Vector3.new(1, 0, 1)
+							best = math.min(best, d.Magnitude)
+						end
+						if best > 10 then
+							table.insert(far, ("%.1f"):format(best))
+						end
+					end)
+					local first, last = math.huge, -math.huge
+					for _, row in dust do
+						first, last = math.min(first, row.At), math.max(last, row.At)
+					end
+					check(res, tag .. "golem_fists_present", fists[1] ~= nil and fists[2] ~= nil, true)
+					check(res, tag .. "sweep_dust_seen", count(dust) > 0, true)
+					h.checkList(res, tag .. "sweep_dust_follows_fist", far)
+					h.check(res, tag .. "sweep_dust_over_time", last - first, ">= 0.3", last - first >= 0.3)
+					setup(res, "boss_ui_minion:none")
+					local fallStart = timeOf("golem_fall", 0, 0.1, 0)
+					check(res, "schedule_has_golem_fall_row", fallStart ~= nil, true)
+					if fallStart then
+						state(res, "Fight", Cfg.PrepSeconds + fallStart, 4000, 4000, true, 100)
+						local fall = watchNamed("GolemFallDust", Poses.Moves.golem_fall.Duration)
+						if few then
+							check(res, "reduced_no_golem_fall_dust", count(fall), 0)
+						else
+							h.check(res, "golem_fall_dust", count(fall), "> 0", count(fall) > 0)
+						end
+					end
+				end
+			end
+			h.player:SetAttribute("ReduceEffects", nil)
 		end, debug.traceback)
 		h.check(res, "mage_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossVfxForce", nil)
