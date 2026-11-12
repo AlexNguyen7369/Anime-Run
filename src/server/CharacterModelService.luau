@@ -132,9 +132,15 @@ local function loadBoss(name, assetId, binds, root)
 	local folder = Instance.new("Folder")
 	folder.Name = name
 	local texture = ""
+	local names = {} -- the upload's part name -> its bind name (a bind row's Mesh, when it stands in for another part)
+	for partName, row in binds do
+		names[row.Mesh or partName] = partName
+	end
 	for _, d in asset:GetDescendants() do
-		local bind = d:IsA("MeshPart") and binds[d.Name]
+		local partName = d:IsA("MeshPart") and names[d.Name]
+		local bind = partName and binds[partName]
 		if bind then
+			d.Name = partName
 			d.Anchored = true
 			d.CanCollide = false
 			d.CanTouch = false
@@ -166,6 +172,12 @@ local function loadBoss(name, assetId, binds, root)
 	folder.Parent = root
 end
 
+-- shortcut: the Elf Mage's jointed model (SidekickArt.boss_mage_jointed.BossModel, from build/avatar_glb/boss_mage_jointed.glb) is
+-- not uploaded yet; until it is, boss_mage is the 6-part model (SidekickArt.boss_mage.BossModel) on BossMagePoses.Bind6, its parts
+-- renamed after the jointed upper segments, and Client/BossMage poses it from the jointed data. Drop the fallback and Bind6 once the
+-- jointed upload is in SidekickArt.
+local MAGE_JOINTED = SidekickArt.boss_mage_jointed
+
 local function startBoss()
 	local root = Instance.new("Folder")
 	root.Name = "BossModels"
@@ -174,12 +186,12 @@ local function startBoss()
 		for name, bind in
 			{
 				boss_raga = BossRagaPoses.Bind,
-				boss_mage = BossMagePoses.Bind,
+				boss_mage = MAGE_JOINTED and BossMagePoses.Bind or BossMagePoses.Bind6,
 				boss_golem = BossMagePoses.GolemBind,
 				boss_king = BossKingPoses.Bind,
 			}
 		do
-			local art = SidekickArt[name]
+			local art = name == "boss_mage" and MAGE_JOINTED or SidekickArt[name]
 			if art and art.BossModel then
 				pcall(loadBoss, name, art.BossModel, bind, root)
 			end
