@@ -179,6 +179,7 @@
 175. 2026-11-12 — Alex Nguyen — Wrote the boss animation rework rules (design doc 4.37, BOSS_EVENT_SPEC, goal boss-anim-rework, owner clip notes in the evidence files): jointed rigs, 10 key frames per move, arena-wide flash and shake, pose-tied effects, lighter runner auras and trails in events.
 176. 2026-11-12 — Alex Nguyen — Recorded the owner's rulings for the Golden King's own arena (open-air sunset stadium, he hovers, vault retired), 10 key frames per move, arena-wide flash and shake and lighter runner auras in events; rules audit FAIL round 1, PASS round 2 after the FOV punch was dropped and superseded rules were marked.
 177. 2026-11-12 — Alex Nguyen — Built the jointed Golden King rig (elbows and knees, 2,992 tris, 15 meshes) and rendered the 10 hovering Enuma Elish key frames for owner approval (b94a8ba); no in-betweens, the shipped 6-part build unchanged.
+178. 2026-11-12 — Alex Nguyen — Recorded the owner's notes on the pilot key frames: larger, designed Gates portals instead of plain yellow circles, and swirling, spinning wind lines on the Ea charge.
 
 ## What's next
 **Owner's approval of the jointed Golden King model and the 10 Enuma Elish key frames (`assets/characters_avatar/boss_king/keyframes/rework/enuma_slices.png`), then the in-betweens and bake of that pilot move.**
