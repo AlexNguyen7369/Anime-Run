@@ -37,7 +37,7 @@ return {
 				Glow_so = {
 					Size = Vector3.new(7.000, 0.300, 7.000),
 					Center = Vector3.new(0.000, 1.950, -0.000),
-					Glow = "#FF9A2E",
+					Glow = "#FF466E",
 				},
 			},
 		},

@@ -111,6 +111,8 @@ GLOW = {
 	"pad": ("#E8A53C", 0.75), "up": ("#46BEFF", 1.2), "zone": ("#DC3C28", 1.0), "sb": ("#3C7BFF", 1.5), "sp": ("#A75BFF", 1.5), "sg": ("#3CD07A", 1.5),
 	"sr": ("#FF4A3A", 1.5), "so": ("#FF9A2E", 1.5), "st": ("#2EC8D0", 1.5),
 }
+# Per-asset glow colour overrides: the exclusive pedestal glows in the Mythic colour (GachaConfig, WORLD_REDESIGN_SPEC 7).
+GLOW_OVERRIDE = {"LegendPedestal": {"so": "#FF466E"}}
 _mats = {}
 
 
@@ -924,7 +926,7 @@ def export_asset(m, key, pal_mat, cells, out):
 		size, c = hi - lo, (hi + lo) / 2
 		parts[part] = {"Size": [max(size.x, 0.05), max(size.z, 0.05), max(size.y, 0.05)], "Center": [c.x, c.z, -c.y], "Tris": sum(len(p) - 2 for p in polys)}
 		if part != "Body":
-			parts[part]["Glow"] = GLOW[part[5:]][0]
+			parts[part]["Glow"] = GLOW_OVERRIDE.get(key, {}).get(part[5:], GLOW[part[5:]][0])
 	bpy.ops.object.select_all(action="DESELECT")
 	for ob in obs:
 		ob.select_set(True)

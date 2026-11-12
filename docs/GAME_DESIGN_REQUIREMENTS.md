@@ -305,7 +305,7 @@ before any Studio work.
   first run ends (its button still works). The gate plays a burst when they first cross it.
 - **Sky loop**: 2-3 client-only runners with trails lap the plaza at high speed. Client display only; these are not players or NPC rivals.
   The 2 Legend pedestals are removed (owner 2026-11-10; the exclusive pedestal takes their place).
-- **Exclusive pedestal** (owner 2026-11-04, 4.35; moved 2026-11-10): one pedestal in the summon wing's gate end, where the 2 Legends stood, advertises Saitamo: its model on
+- **Exclusive pedestal** (owner 2026-11-04, 4.35; moved 2026-11-10; moved again 2026-11-11 to the terrace's middle step, 4.43): one pedestal advertises Saitamo: its model on
   the pedestal, a floating header with its rarity and hero name, and a prompt that opens the 999 Robux pass and shows 350 studs/s. Client-only.
 - **Plaza atmosphere**: falling petals and quiet forest ambience reusing Track 1's reviewed sounds. The sakura's trunk is solid.
 - **Plaza lighting**: the plaza (Zone 0) gets its own golden-hour sky and lighting, client-local like every biome. The
