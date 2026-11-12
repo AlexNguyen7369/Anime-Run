@@ -206,9 +206,7 @@ local function playLightning()
 				flash(points[#points], VIOLET, 10, 0.3)
 			end
 			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, few and 1 or 2.5, 0.2)
-			if not few then
-				Kit.shakeAt(Arena.Center, 0.12, 20, 0.15)
-			end
+			Kit.impact("Lightning", Arena.Center, 0.12, 20, 0.15, strike.T)
 			return 0
 		end)
 	end
@@ -305,7 +303,7 @@ local function playSlam()
 			0.03
 		)
 	end
-	Kit.shakeAt(at, 1.6, 20, 0.5)
+	Kit.impact("Slam", at, 1.6, 20, 0.5)
 	return total
 end
 
@@ -324,9 +322,7 @@ local function playSweep()
 		Kit.expire(Kit.holder("SweepDust", CFrame.new(at), Vector3.new(20, 1, 20)), 0.04 * i + 1.5)
 		Kit.growingRing("SweepDust", CFrame.new(at), 8, 26, 1.0, DUST, 0.04 * i, Kit.FlatFaces)
 	end
-	if not few then
-		Kit.shakeAt(Arena.Center, 1.2, 20, 0.5)
-	end
+	Kit.impact("Sweep", Arena.Center, 1.2, 20, 0.5)
 	return 0
 end
 
@@ -377,9 +373,7 @@ local function playBarrage()
 				flash(target, BLUE, 9, 0.3)
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), BLUE, few and 1 or 2, 0.2)
-			if not few then
-				Kit.shakeAt(Arena.Center, 0.1, 18, 0.15)
-			end
+			Kit.impact("Barrage", Arena.Center, 0.1, 18, 0.15, strike.T)
 			return 0
 		end)
 	end

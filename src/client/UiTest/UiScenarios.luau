@@ -191,6 +191,9 @@ UiScenarios.Names = {
 	"ui_boss_fortified",
 	"ui_boss_king_rewards",
 	"ui_boss_king_vfx",
+	-- The arena-wide impact layer and the runners' lighter auras in the event (UiBossImpact; BOSS_EVENT_SPEC "Animation rework")
+	"ui_boss_impact",
+	"ui_event_auras",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
@@ -288,6 +291,7 @@ end
 UiScenarios.Needs = {
 	ui_reduced_motion = { "auto_roll_on" },
 	ui_run_visual = { "run_visual" },
+	ui_event_auras = { "run_visual" },
 	ui_runner_smooth = { "auto_racing" },
 	ui_camera_follows_runner = { "auto_racing" },
 	ui_toast = { "auto_racing", "auto_roll_on" },
@@ -8761,6 +8765,16 @@ for name, fn in K.bossKing.Scenarios do
 end
 for cond, fn in K.bossKing.After do
 	access.After[cond] = fn
+end
+-- The rework's impact layer and the event's lighter auras (UiBossImpact; BOSS_EVENT_SPEC "Animation rework"). No new local.
+K.bossImpact = require(script.Parent.UiBossImpact).Build({
+	check = check,
+	checkList = checkList,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossImpact.Scenarios do
+	S[name] = fn
 end
 
 K.sidekickFollow = require(script.Parent.UiSidekickFollow).Build({
