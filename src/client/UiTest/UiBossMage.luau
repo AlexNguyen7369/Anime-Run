@@ -1203,37 +1203,86 @@ function Module.Build(h)
 				if barrageAt and staffPart then
 					-- Owner 2026-11-12 morning (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): the circles open one by one,
 					-- 0.28 s apart from 0.3 s, all fully open before the beams fire at 2.0 s, 15 to 36 studs across. Watched from the
-					-- move's start to 2.4 s; times are the move's local time (BossMagePoses.Schedule at the fixture's second).
-					state(res, "Fight", Cfg.PrepSeconds + barrageAt, 4000, 4000, true, 100)
-					local _, startLocal = Poses.Schedule(0, barrageAt)
-					local off, circleRows, beamAt = {}, {}, math.huge
-					local born = os.clock()
-					while os.clock() - born < 2.4 - startLocal do
-						local t = startLocal + os.clock() - born
+					-- move's start to 2.4 s; times are the move's local time (BossMagePoses.Schedule on the client's schedule start).
+					-- Only this barrage's circles (a Studio run counted another's): start from a room with none, read the move's
+					-- local time from the client's own schedule each frame, keep circles first seen inside this occurrence's 0 to
+					-- 2.4 s, and if the schedule leaves it or jumps (another source), watch the next cycle's barrage instead.
+					local function scheduleNow()
+						local start = ReplicatedStorage:GetAttribute("BossScheduleStart")
+							or (ReplicatedStorage:GetAttribute("BossEventStart") or 0) + Cfg.PrepSeconds
+						return Poses.Schedule(start, workspace:GetServerTimeNow())
+					end
+					local function circlesLeft()
 						for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
-							if d:IsA("BasePart") and d.Name == "MagicCircle" then
-								local row = circleRows[d]
-								if not row then
-									local grip, tip = staffEnds()
-									local aim, to = (tip - grip).Unit, (d.Position - tip)
-									local angle = to.Magnitude > 0
-											and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
-										or 180
-									if angle > 25 then
-										table.insert(off, ("%.0f"):format(angle))
-									end
-									row = { At = t, Peak = 0, Sizes = {} }
-									circleRows[d] = row
-								end
-								local size = math.max(d.Size.X, d.Size.Y)
-								row.Peak = math.max(row.Peak, size)
-								table.insert(row.Sizes, { t, size })
-							elseif d:IsA("BasePart") and d.Name == "BarrageBeam" and d.Transparency < 1 then
-								beamAt = math.min(beamAt, t)
+							if d.Name == "MagicCircle" then
+								return true
 							end
 						end
-						task.wait()
+						return false
 					end
+					local clean = true
+					local function observe(at)
+						if idleAt then
+							state(res, "Fight", Cfg.PrepSeconds + idleAt, 4000, 4000, true, 100)
+						end
+						local cleanBy = os.clock() + 6
+						while circlesLeft() and os.clock() < cleanBy do
+							task.wait(0.05)
+						end
+						clean = clean and not circlesLeft()
+						state(res, "Fight", Cfg.PrepSeconds + at, 4000, 4000, true, 100)
+						local seenOff, rows, firstBeam = {}, {}, math.huge
+						local entered = os.clock() + 2
+						local move, t = scheduleNow()
+						while not (move == "barrage" and t < 0.3) and os.clock() < entered do
+							task.wait()
+							move, t = scheduleNow()
+						end
+						if not (move == "barrage" and t < 0.3) then
+							return false
+						end
+						local last = t
+						while true do
+							move, t = scheduleNow()
+							if move ~= "barrage" or t < last - 1e-3 then
+								return t >= 2.4 and move == "barrage", rows, seenOff, firstBeam
+							end
+							if t > 2.4 then
+								return true, rows, seenOff, firstBeam
+							end
+							last = t
+							for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+								if d:IsA("BasePart") and d.Name == "MagicCircle" then
+									local row = rows[d]
+									if not row then
+										local grip, tip = staffEnds()
+										local aim, to = (tip - grip).Unit, (d.Position - tip)
+										local angle = to.Magnitude > 0
+												and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
+											or 180
+										if angle > 25 then
+											table.insert(seenOff, ("%.0f"):format(angle))
+										end
+										row = { At = t, Peak = 0, Sizes = {} }
+										rows[d] = row
+									end
+									local size = math.max(d.Size.X, d.Size.Y)
+									row.Peak = math.max(row.Peak, size)
+									table.insert(row.Sizes, { t, size })
+								elseif d:IsA("BasePart") and d.Name == "BarrageBeam" and d.Transparency < 1 then
+									firstBeam = math.min(firstBeam, t)
+								end
+							end
+							task.wait()
+						end
+					end
+					local watched, circleRows, off, beamAt = observe(barrageAt)
+					if not watched then
+						watched, circleRows, off, beamAt = observe(barrageAt + Poses.CycleSeconds)
+					end
+					check(res, tag .. "barrage_clean_start", clean, true)
+					check(res, tag .. "barrage_window_watched", watched == true, true)
+					circleRows, off, beamAt = circleRows or {}, off or {}, beamAt or math.huge
 					local list = {}
 					for _, row in circleRows do
 						row.FullAt = math.huge -- first time at 98% of its peak
