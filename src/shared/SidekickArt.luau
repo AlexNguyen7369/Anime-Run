@@ -8,8 +8,14 @@ return {
 	boss_king = {
 		BossModel = 98757375537994,
 	},
+	boss_king_jointed = {
+		BossModel = 108644009332766,
+	},
 	boss_mage = {
 		BossModel = 71771432759364,
+	},
+	boss_mage_jointed = {
+		BossModel = 118361466470255,
 	},
 	boss_raga = {
 		BossModel = 130269423973743,
