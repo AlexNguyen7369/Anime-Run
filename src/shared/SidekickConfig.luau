@@ -146,11 +146,34 @@ SidekickConfig.List = {
 	},
 }
 
--- Boss drops only, never summoned (docs/SIDEKICK_SPEC.md). Summon rolls read List alone.
+-- Boss drops only, never summoned (docs/SIDEKICK_SPEC.md; design doc 4.36 "Boss Sidekicks"). Summon rolls read List alone.
+-- Odds is the chest's separate roll, as a percent; the chest's own fraction is RelicConfig.Chests[*].SidekickChance.
 SidekickConfig.BossDrops = {
 	{
 		Id = "side_raga",
 		Name = "Big Raga",
+		Rarity = "Secret",
+		Odds = 0.001,
+		Movement = "Walk",
+		Cruise = 0.1,
+		Stamina = 0.1,
+		Damage = 40,
+		SellGems = 30,
+	},
+	{
+		Id = "side_mage",
+		Name = "The Elf Mage",
+		Rarity = "Secret",
+		Odds = 0.001,
+		Movement = "Fly", -- hovers as her boss does
+		Cruise = 0.1,
+		Stamina = 0.1,
+		Damage = 40,
+		SellGems = 30,
+	},
+	{
+		Id = "side_king",
+		Name = "The Golden King",
 		Rarity = "Secret",
 		Odds = 0.001,
 		Movement = "Walk",

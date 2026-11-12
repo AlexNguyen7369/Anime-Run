@@ -276,9 +276,11 @@ function SidekickService.Grant(player, id)
 	return true, entry
 end
 
--- The Big Raga drop may overflow the bag, for example 51/50 (owner 2026-11-05, design doc 4.37). No other id may.
+-- A boss drop (a SidekickConfig.BossDrops row) may overflow the bag, for example 51/50 (owner 2026-11-05, design doc 4.37). No
+-- other id may.
 function SidekickService.GrantDrop(player, id)
-	if id ~= "side_raga" then
+	local row = Config.Get(id)
+	if not (row and table.find(Config.BossDrops, row)) then
 		return false, "Not a boss drop"
 	end
 	local current = ensure(player)

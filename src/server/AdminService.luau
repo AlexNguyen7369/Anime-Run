@@ -280,7 +280,7 @@ AdminService.Commands = {
 		end,
 	},
 	boss = {
-		Usage = "/boss [raga|mage]",
+		Usage = "/boss [raga|mage|king]",
 		Help = "start a boss event now (a random boss, or the one named), or end the running one",
 		Min = 0,
 		Max = 1,
@@ -289,7 +289,7 @@ AdminService.Commands = {
 			if not args[1] then
 				return true -- the random pick
 			end
-			return ({ raga = "boss_raga", mage = "boss_mage" })[args[1]:lower()]
+			return ({ raga = "boss_raga", mage = "boss_mage", king = "boss_king" })[args[1]:lower()]
 		end,
 		Apply = function(_, id)
 			if BossEventService.State().Phase ~= "Idle" then

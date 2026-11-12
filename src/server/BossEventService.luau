@@ -6,7 +6,8 @@
 -- BossEventHp, BossEventMaxHp, BossEventStage, BossEventEndsAt, BossScreamEndsAt (nil outside the scream) and BossScheduleStart
 -- (Poses.Schedule's start; shifted by the pause when a golem falls), BossEventBoss (BossCatalog id, nil when idle),
 -- BossEventNextBoss (the boss of the next timed event, nil with none scheduled), BossMinionHp, BossMinionMaxHp and BossMinionStart
--- (the Stone Golem's HP and its start in server time, nil when none stands), and the player attributes BossEvent (true while in
+-- (the Stone Golem's HP and its start in server time, nil when none stands), BossFortified (true while a Self status such as The
+-- Golden King's Fortified holds, false otherwise in an event, nil when idle), and the player attributes BossEvent (true while in
 -- the event), BossTeamDamage (TeamDamage, nil outside the event), BossWaitEndsAt (server time the exhausted team revives, nil
 -- otherwise) and BossStatus (JSON list of { Id, EndsAt in server time, Count }, Vulnerable with no EndsAt, nil when empty; each
 -- player's own, since a dodge spares that player alone). They call the RemoteFunctions Remotes.BossEventTeleport(),
@@ -48,8 +49,8 @@ local DODGE_MAX_AGE = 0.5 -- s: a stamp older than this on arrival is refused
 
 local clock = nil
 -- { Boss (BossCatalog row), StartAt, Source, Phase, Stage, EndsAt, ScreamEndsAt, ScheduleStart, Hp, MaxHp, Phase1MaxHp, Spawned,
--- IntroDone, Minion = { Hp, MaxHp, StartAt, PauseT } while a golem stands, Slots (golem slots started),
--- Members = { [player] = member } }
+-- IntroDone, Minion = { Hp, MaxHp, StartAt, PauseT } while a golem stands, Slots (golem slots started), Fortified (a Self status
+-- holds), Members = { [player] = member } }
 local event = nil
 local nextAt = math.huge
 local nextBoss = nil -- the boss of the event at nextAt
@@ -88,6 +89,7 @@ local function publish()
 	ReplicatedStorage:SetAttribute("BossMinionHp", minion and minion.Hp or nil)
 	ReplicatedStorage:SetAttribute("BossMinionMaxHp", minion and minion.MaxHp or nil)
 	ReplicatedStorage:SetAttribute("BossMinionStart", minion and minion.StartAt or nil)
+	ReplicatedStorage:SetAttribute("BossFortified", event and event.Fortified == true)
 end
 
 -- Her schedule time at `at`: held at the golem slot while a golem stands.
@@ -173,12 +175,31 @@ local function crushedCount(member, at)
 	return count, latest
 end
 
+-- A Self status (on the boss, BOSS_EVENT_SPEC "The Golden King": Fortified) holds while the last moment at or before t is its
+-- move's event; the next moment, the following move's start event, ends it. 1 or 0 stacks, read off the schedule. Pure.
+local function selfStacks(status, t, boss)
+	local index = indexAt(t, boss)
+	return index > 0 and select(2, BossDodge.Moment(index, boss)) == status.Event and 1 or 0
+end
+
+-- The Self status holding at t, nil with none.
+local function fortifiedAt(t, boss)
+	for _, status in BossCatalog.Get(boss).Statuses do
+		if status.Self and selfStacks(status, t, boss) > 0 then
+			return status
+		end
+	end
+	return nil
+end
+
 local function statusJson(t, member, at)
 	local rows = {}
 	for _, status in event.Boss.Statuses do
 		local count, ends
 		if status.Minion then
 			count, ends = crushedCount(member, at)
+		elseif status.Self then
+			count = selfStacks(status, t, event.Boss.Id) -- no EndsAt: it ends at his next move
 		else
 			count, ends = stacksAt(status, t, member.Spared, event.Stage, event.Boss.Id)
 			ends = ends and event.ScheduleStart + ends
@@ -195,11 +216,14 @@ end
 
 BossEventService.Hooks = {
 	-- What the running stacks leave of a hit, `spared` the member's dodged moments, boss nil for Big Raga, `crushes` the running
-	-- stacks of a Minion status (nil: none). Pure.
+	-- stacks of a Minion status (nil: none). A Self status (Fortified, x 0.6) cuts every player's hit while it holds. Pure.
 	DamageMulti = function(t, spared, stage, boss, crushes)
 		local multi = 1
 		for _, status in BossCatalog.Get(boss).Statuses do
-			local stacks = if status.Minion then crushes or 0 else stacksAt(status, t, spared, stage, boss)
+			local stacks = if status.Minion
+				then crushes or 0
+				elseif status.Self then selfStacks(status, t, boss)
+				else stacksAt(status, t, spared, stage, boss)
 			multi *= (1 - status.Cut) ^ stacks
 		end
 		return multi
@@ -646,6 +670,13 @@ local function charge(player, member, row, name)
 	safely(BossEventService.Hooks.MoveChat, player, row.Chat or Cfg.MoveChat(name, event.Stage))
 end
 
+-- A moment that never hits: a move with Cost 0 (The Golden King's Shield Gates) or a move's start event, with no Moves row. No bar,
+-- no charge, no Vulnerable.
+local function costless(boss, name)
+	local row = boss.Moves[name]
+	return row == nil or row.Cost == 0
+end
+
 -- Each move since this member's last charge that hit. A move during the wait is passed over, never owed; a dodged one is
 -- already spared.
 local function chargeMoves(player, member, t)
@@ -659,7 +690,9 @@ local function chargeMoves(player, member, t)
 		end
 		if not member.Spared[index] then
 			local _, name = BossDodge.Moment(index, boss.Id)
-			charge(player, member, boss.Moves[name], name)
+			if not costless(boss, name) then
+				charge(player, member, boss.Moves[name], name)
+			end
 		end
 	end
 end
@@ -842,7 +875,10 @@ function BossEventService.Dodge(player, index, stamp)
 	if event.Minion then
 		return false, "No bar" -- her clock is paused: a press now would spare a moment after the resume
 	end
-	local momentAt = BossDodge.Moment(index, event.Boss.Id)
+	local momentAt, name = BossDodge.Moment(index, event.Boss.Id)
+	if costless(event.Boss, name) then
+		return false, "No bar" -- Shield Gates and a move's start: nothing to dodge
+	end
 	local at = now()
 	local moment = event.ScheduleStart + Cfg.IntroSeconds + momentAt
 	if at > moment or at < moment - BossDodge.SweepFor(event.Stage) - DODGE_STAMP_SLACK then
@@ -1038,6 +1074,16 @@ local function tick(at)
 		publish()
 	end
 	startMinion(current, at)
+	local fortifying = fortifiedAt(scheduleT(at), current.Boss.Id)
+	if (fortifying ~= nil) ~= (current.Fortified == true) then -- set at the shields event, cleared at the next move's start event
+		current.Fortified = fortifying ~= nil
+		publish()
+		if fortifying then
+			for player in current.Members do
+				safely(BossEventService.Hooks.MoveChat, player, current.Boss.Moves[fortifying.Event].Chat)
+			end
+		end
+	end
 	for player, member in table.clone(current.Members) do
 		if event ~= current then -- a hit below defeated the boss
 			return
