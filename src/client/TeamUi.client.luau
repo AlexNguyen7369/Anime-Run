@@ -329,7 +329,7 @@ function render()
 			child:Destroy()
 		end
 	end
-	for order, spec in RosterCard.Owned(player, sortMode) do
+	for order, spec in RosterCard.Owned(player, sortMode, true) do
 		local card = RosterCard.new(roster, spec, order, g, spec.Id == chosen)
 		card.Activated:Connect(function()
 			chosen = spec.Id

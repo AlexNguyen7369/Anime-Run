@@ -41,11 +41,18 @@ for i, rarity in GachaConfig.RARITY_ORDER do
 	rarityRank[rarity] = i
 end
 -- The owned characters: by `sortMode` (one of Sorts) highest first, else least rare first, then catalog order.
-function RosterCard.Owned(player, sortMode)
+-- `everyOwned` (the Team panel) also lists owned ids outside the Index (starter picks, the exclusive): SetTeam takes them.
+function RosterCard.Owned(player, sortMode, everyOwned)
 	local data = player:FindFirstChild("GachaData")
 	local list = {}
 	for _, spec in CharacterCatalog.All() do
 		if data and data:FindFirstChild(spec.Id) then
+			table.insert(list, spec)
+		end
+	end
+	for _, entry in everyOwned and data and data:GetChildren() or {} do
+		local spec = CharacterCatalog.Get(entry.Name)
+		if spec and not table.find(list, spec) then
 			table.insert(list, spec)
 		end
 	end
@@ -63,7 +70,10 @@ function RosterCard.Owned(player, sortMode)
 		if ra ~= rb then
 			return ra < rb
 		end
-		return (a.Order or 0) < (b.Order or 0)
+		if (a.Order or 0) ~= (b.Order or 0) then
+			return (a.Order or 0) < (b.Order or 0)
+		end
+		return a.Id < b.Id
 	end)
 	return list
 end
