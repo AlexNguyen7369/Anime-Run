@@ -1,0 +1,416 @@
+{
+ "movement": "Walk",
+ "title": "The Golden King (side_king): small Gate volley (proposed)",
+ "end": 1.4,
+ "keys": [
+  {
+   "name": "Wind-up",
+   "t": 0.25,
+   "desc": "Turns from the hips, left hand lifts palm up, Ea held low",
+   "root": {
+    "LeftArm_merged": [
+     0.0,
+     -0.514,
+     0.187
+    ],
+    "RightArm_merged": [
+     0.0,
+     -0.139,
+     0.012
+    ],
+    "Ea_Grip": [
+     0.0,
+     -0.294,
+     0.134
+    ],
+    "Ea_Drum1": [
+     0.0,
+     -0.294,
+     0.134
+    ]
+   },
+   "parts": {
+    "Torso_merged": [
+     -4,
+     0,
+     -14
+    ],
+    "Head_merged": [
+     0,
+     0,
+     12
+    ],
+    "LeftArm_merged": [
+     -40,
+     0,
+     0
+    ],
+    "RightArm_merged": [
+     -10,
+     0,
+     0
+    ],
+    "Ea_Grip": [
+     -10.0,
+     -0.0,
+     0.0
+    ],
+    "Ea_Drum1": [
+     -10.0,
+     -0.0,
+     0.0
+    ],
+    "LeftLeg_merged": [
+     -6,
+     0,
+     0
+    ],
+    "RightLeg_merged": [
+     6,
+     0,
+     0
+    ],
+    "Key": [
+     4,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "name": "Release",
+   "t": 0.5,
+   "desc": "Three ripple portals open over the raised hand and fire straight gold shots",
+   "root": {
+    "LeftArm_merged": [
+     0.0,
+     -0.761,
+     0.553
+    ],
+    "RightArm_merged": [
+     0.0,
+     -0.274,
+     0.048
+    ],
+    "Ea_Grip": [
+     0.0,
+     -0.561,
+     0.318
+    ],
+    "Ea_Drum1": [
+     0.0,
+     -0.561,
+     0.318
+    ]
+   },
+   "parts": {
+    "Torso_merged": [
+     -6,
+     0,
+     8
+    ],
+    "Head_merged": [
+     -6,
+     0,
+     -8
+    ],
+    "LeftArm_merged": [
+     -72,
+     0,
+     0
+    ],
+    "RightArm_merged": [
+     -20,
+     0,
+     0
+    ],
+    "Ea_Grip": [
+     -20.0,
+     -0.0,
+     0.0
+    ],
+    "Ea_Drum1": [
+     -20.0,
+     -0.0,
+     0.0
+    ],
+    "LeftLeg_merged": [
+     -10,
+     0,
+     0
+    ],
+    "RightLeg_merged": [
+     10,
+     0,
+     0
+    ],
+    "Key": [
+     8,
+     0,
+     0
+    ]
+   },
+   "markers": [
+    {
+     "label": "ripple portals (3)",
+     "shape": "disc",
+     "at": [
+      1.3,
+      -1.7,
+      4.9
+     ],
+     "r": 0.5,
+     "rgb": [
+      1.0,
+      0.78,
+      0.25
+     ]
+    },
+    {
+     "label": "",
+     "shape": "disc",
+     "at": [
+      2.3,
+      -1.3,
+      4.2
+     ],
+     "r": 0.42,
+     "rgb": [
+      1.0,
+      0.78,
+      0.25
+     ]
+    },
+    {
+     "label": "",
+     "shape": "disc",
+     "at": [
+      1.9,
+      -2.1,
+      3.3
+     ],
+     "r": 0.45,
+     "rgb": [
+      1.0,
+      0.78,
+      0.25
+     ]
+    },
+    {
+     "label": "gold streaks (3)",
+     "shape": "rect",
+     "at": [
+      1.3,
+      -4.4,
+      4.7
+     ],
+     "r": 2.0,
+     "sx": 0.05,
+     "rgb": [
+      1.0,
+      0.92,
+      0.6
+     ],
+     "spin": 72
+    },
+    {
+     "label": "",
+     "shape": "rect",
+     "at": [
+      2.3,
+      -4.0,
+      4.0
+     ],
+     "r": 2.0,
+     "sx": 0.05,
+     "rgb": [
+      1.0,
+      0.92,
+      0.6
+     ],
+     "spin": 72
+    },
+    {
+     "label": "",
+     "shape": "rect",
+     "at": [
+      1.9,
+      -4.8,
+      3.1
+     ],
+     "r": 2.0,
+     "sx": 0.05,
+     "rgb": [
+      1.0,
+      0.92,
+      0.6
+     ],
+     "spin": 72
+    },
+    {
+     "label": "clink flash",
+     "shape": "burst",
+     "at": [
+      1.5,
+      -6.6,
+      3.9
+     ],
+     "r": 0.55,
+     "rgb": [
+      1.0,
+      1.0,
+      0.8
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Volley",
+   "t": 0.75,
+   "desc": "Hand sweeps across as the portals keep firing, torso follows",
+   "root": {
+    "LeftArm_merged": [
+     -0.105,
+     -0.742,
+     0.56
+    ],
+    "RightArm_merged": [
+     0.0,
+     -0.194,
+     0.024
+    ],
+    "Ea_Grip": [
+     0.0,
+     -0.405,
+     0.202
+    ],
+    "Ea_Drum1": [
+     0.0,
+     -0.405,
+     0.202
+    ]
+   },
+   "parts": {
+    "Torso_merged": [
+     -2,
+     0,
+     -10
+    ],
+    "Head_merged": [
+     -2,
+     0,
+     10
+    ],
+    "LeftArm_merged": [
+     -68,
+     22,
+     0
+    ],
+    "RightArm_merged": [
+     -14,
+     0,
+     0
+    ],
+    "Ea_Grip": [
+     -14.0,
+     -0.0,
+     0.0
+    ],
+    "Ea_Drum1": [
+     -14.0,
+     -0.0,
+     0.0
+    ],
+    "LeftLeg_merged": [
+     -8,
+     0,
+     0
+    ],
+    "RightLeg_merged": [
+     8,
+     0,
+     0
+    ],
+    "Key": [
+     6,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "name": "Recovery",
+   "t": 1.1,
+   "desc": "Arm drops, portals gone, back toward the folded stance",
+   "root": {
+    "LeftArm_merged": [
+     0.0,
+     -0.3,
+     0.058
+    ],
+    "RightArm_merged": [
+     0.0,
+     -0.084,
+     0.004
+    ],
+    "Ea_Grip": [
+     0.0,
+     -0.18,
+     0.074
+    ],
+    "Ea_Drum1": [
+     0.0,
+     -0.18,
+     0.074
+    ]
+   },
+   "parts": {
+    "Torso_merged": [
+     0,
+     0,
+     0
+    ],
+    "Head_merged": [
+     0,
+     0,
+     0
+    ],
+    "LeftArm_merged": [
+     -22,
+     0,
+     0
+    ],
+    "RightArm_merged": [
+     -6,
+     0,
+     0
+    ],
+    "Ea_Grip": [
+     -6.0,
+     -0.0,
+     0.0
+    ],
+    "Ea_Drum1": [
+     -6.0,
+     -0.0,
+     0.0
+    ],
+    "LeftLeg_merged": [
+     -2,
+     0,
+     0
+    ],
+    "RightLeg_merged": [
+     2,
+     0,
+     0
+    ],
+    "Key": [
+     0,
+     0,
+     0
+    ]
+   }
+  }
+ ]
+}
