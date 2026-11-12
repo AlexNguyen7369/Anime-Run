@@ -20,18 +20,63 @@ local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
 
 -- shortcut: the jointed model (SidekickArt.boss_king_jointed.BossModel, from build/avatar_glb/boss_king_jointed.glb) is not uploaded
 -- yet. Until it is, ReplicatedStorage.BossModels.boss_king is the 6-part model (SidekickArt.boss_king.BossModel, Poses.Bind6;
--- Server/CharacterModelService picks the same) posed from the jointed data: the upper arm and thigh drive the whole old limb, the
--- forearm and shin are ignored, and Ea hangs from the upper arm a straight forearm's length down. Drop with the upload.
+-- Server/CharacterModelService picks the same) posed from the jointed data: each whole old limb keeps its upper segment's twist and
+-- is aimed from its shoulder or hip at where the jointed chain's end lands (the wrist, the sole), and Ea sits on the jointed hand
+-- with its jointed turn. Drop with the upload.
 local JOINTED = SidekickArt.boss_king_jointed ~= nil
-local SIX_PART =
-	{ LeftArm = "LeftUpperArm", RightArm = "RightUpperArm", LeftLeg = "LeftUpperLeg", RightLeg = "RightUpperLeg" }
+
+local function vector(list)
+	return Vector3.new(list[1], list[2], list[3])
+end
+
+-- XYZ Euler degrees as BossRaga:Pose builds them (Z, then Y, then X), and back.
+local function angles(v)
+	return CFrame.Angles(0, 0, math.rad(v.Z)) * CFrame.Angles(0, math.rad(v.Y), 0) * CFrame.Angles(math.rad(v.X), 0, 0)
+end
+
+local function degrees(frame)
+	local _, _, _, r00, _, _, r10, _, _, r20, r21, r22 = frame:GetComponents()
+	return Vector3.new(
+		math.deg(math.atan2(r21, r22)),
+		math.deg(math.asin(math.clamp(-r20, -1, 1))),
+		math.deg(math.atan2(r10, r00))
+	)
+end
+
+-- old limb -> { upper, lower, the chain's end from the lower joint (units): the wrist (Ea's grip) or the sole (the floor at rest) }
+local LIMBS = {}
+if Poses and Poses.Bind then
+	local bind = Poses.Bind
+	for _, side in { "Left", "Right" } do
+		LIMBS[side .. "Arm"] = { side .. "UpperArm", side .. "LowerArm", vector(bind.Ea.Offset) }
+		local sole = bind[side .. "UpperLeg"].Offset[3] + bind[side .. "LowerLeg"].Offset[3]
+		LIMBS[side .. "Leg"] = { side .. "UpperLeg", side .. "LowerLeg", Vector3.new(0, 0, -sole) }
+	end
+end
+
+-- The upper segment's turn swung so the straight limb (rest: lower offset + end, straight down) points at the bent chain's end.
+local function aimed(parts, row)
+	local r1, r2 = angles(parts[row[1]]), angles(parts[row[2]])
+	local bend = vector(Poses.Bind[row[2]].Offset)
+	local reach = r1:VectorToWorldSpace(bend + r2:VectorToWorldSpace(row[3]))
+	local rest = r1:VectorToWorldSpace(bend + row[3])
+	local axis = rest:Cross(reach)
+	local swing = axis.Magnitude > 1e-6 and CFrame.fromAxisAngle(axis.Unit, math.atan2(axis.Magnitude, rest:Dot(reach)))
+		or CFrame.identity
+	return swing * r1, r1, r2
+end
 
 local function sixPart(parts, locs)
-	for old, new in SIX_PART do
-		parts[old], locs[old] = parts[new], locs[new]
+	local ea, eaAt = parts.Ea, locs.Ea
+	for old, row in LIMBS do
+		local limb, r1, r2 = aimed(parts, row)
+		parts[old], locs[old] = degrees(limb), locs[row[1]]
+		if old == "RightArm" then -- Ea on the jointed hand: through the forearm, seen from the aimed arm
+			local turn = limb:Inverse() * r1
+			locs.Ea = turn:VectorToWorldSpace(vector(Poses.Bind.RightLowerArm.Offset) + r2:VectorToWorldSpace(eaAt))
+			parts.Ea = degrees(turn * r2 * angles(ea))
+		end
 	end
-	local elbow = Poses.Bind.RightLowerArm.Offset
-	locs.Ea += Vector3.new(elbow[1], elbow[2], elbow[3])
 	return parts, locs
 end
 
