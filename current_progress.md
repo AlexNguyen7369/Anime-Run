@@ -158,8 +158,9 @@
 154. 2026-11-11 — Alex Nguyen — Capped run speed at 100 studs/s (proposed) in the Elf Mage's colosseum by the owner's ruling, keeping the damage speed scale and shown cruise, with checks in `boss_mage_arena` and `boss_mage_event`.
 155. 2026-11-11 — Alex Nguyen — Added the admin command `/elfboss`, which starts The Elf Mage's boss event.
 156. 2026-11-11 — Alex Nguyen — Wrote the owner's Elf Mage rule changes into the design doc and specs (2 s strike windows, Stone Golem miniboss with 1,000 HP and a sweep, easier rhythm circles, Bosses cards, her 6 Relics and chest) and drew the card, key-frame and Relic drafts for approval.
+157. 2026-11-12 — Alex Nguyen — Built the approved Elf Mage fixes end to end (lightning and barrage spam of 7-10 bolts every 0.15 s over 2 s, Stone Golem miniboss with its own 1,000 HP bar, slam and sweep, 3-circle rhythm, Bosses cards draft B, her 5 Relics and chest uploaded, drop list hidden), targeted Studio scenarios green and rules audit PASS.
 
 ## What's next
-**Get the owner's approval of the Bosses card draft, the new key-frame slices and the Elf Mage Relic art (https://claude.ai/artifact/6ryNwFYrmU1C5EmpWwqT2b), then build the server side (boss-mage-2 g4).**
+**Have the owner play `/elfboss` and rule on the open Elf Mage questions in `docs/OWNER_QUESTIONS.md`, first the 511 KB pose data that loads at join.**
 
-**Why this is next:** the owner asked to approve the drafts and frames before any build, and the server, client and bake (g4-g6) all depend on the approved keys, card layout and Relic list.
+**Why this is next:** the goal's last gate is the owner's look in Studio, and the join-size answer decides whether the lazy-data branch must merge before the boss-mage PR into main (m12).

@@ -247,7 +247,7 @@ Deliverables:
 Out of scope: Phase 2, her Relics, chest and Sidekick until the owner rules on them, changes to Big Raga's event.
 
 ## boss-mage-2: Elf Mage fixes: 2 s attacks, Stone Golem miniboss, boss cards, her Relics (owner 2026-11-11)
-Status: active
+Status: active (g0-g6 built and verified 2026-11-12 with targeted scenarios; waits for the owner's look in Studio; the PR is m12's)
 Owner-confirmed: 2026-11-11 (plan approved: `~/.claude/plans/peaceful-fluttering-mist.md`)
 Branch: feature/alex/boss-mage
 Spec: design doc 4.37 Second boss, 4.38, docs/BOSS_EVENT_SPEC.md "The Elf Mage" and "Bosses cards", docs/RELIC_SPEC.md "The Elf Mage's drops"
