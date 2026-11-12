@@ -8,7 +8,7 @@
 |---|---|
 | Boss model id | `boss_<id>` |
 | Sidekick id | `side_<id>` |
-| Pose data | `src/shared/Boss<Id>Poses.luau` |
+| Pose data | `src/late/Boss<Id>Poses.luau (ServerStorage.LateData, delivered on event publish; design doc 7)` |
 | Art ids | `src/shared/Boss<Id>Art.luau` |
 | UI art script | `tools/blender/portrait/draw_<id>_ui.py` |
 | Art upload script | `tools/blender/portrait/upload_<id>_art.py` |
@@ -34,7 +34,7 @@ Step 6, key frames: `tools/blender/boss_<id>_keyframes.py`, `assets/characters_a
 
 Step 7, art: `tools/blender/portrait/draw_<id>_ui.py` (dodge icon, portrait, head, status icons, Bosses card), `tools/blender/portrait/draw_relics.py` (`<id>` section: 5 Relics + chest), `tools/blender/portrait/draw_boss_cards.py`; outputs under `assets/ui/boss_<id>/`, `assets/ui/chest_<id>.png`, `assets/ui/relic_*.png`; contact sheet.
 
-Step 8, bake and upload: `tools/blender/bake_boss_<id>.py` -> `src/shared/Boss<Id>Poses.luau`; `tools/blender/portrait/upload_<id>_art.py` -> `src/shared/Boss<Id>Art.luau`, ledger `tools/blender/<id>_art_assets.json`; `tools/blender/upload_avatar.py` -> `tools/blender/avatar_assets.json`.
+Step 8, bake and upload: `tools/blender/bake_boss_<id>.py` -> `src/late/Boss<Id>Poses.luau (ServerStorage.LateData, delivered on event publish; design doc 7)`; `tools/blender/portrait/upload_<id>_art.py` -> `src/shared/Boss<Id>Art.luau`, ledger `tools/blender/<id>_art_assets.json`; `tools/blender/upload_avatar.py` -> `tools/blender/avatar_assets.json`.
 
 Step 9, server (tests first, test-writer only):
 - `src/server/CarTest/Boss<Id>Tests.luau` (sections: numbers, camera, poses, approved keys, schedule, dodge timeline, catalog, one per new status), `src/server/CarTest/Scenarios.luau` registrations.

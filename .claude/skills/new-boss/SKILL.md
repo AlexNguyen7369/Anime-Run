@@ -62,7 +62,7 @@ Gate: review page "art sheet"; owner approves the sheet.
 
 ## 8. In-betweens, bake, uploads
 
-Add in-betweens between the approved keys only; `tools/blender/bake_boss_<id>.py` writes `src/shared/Boss<Id>Poses.luau` (report its size against `BossMagePoses`). Check every upload script's `main()` guard, then ask the owner for the upload word for this batch; run `tools/blender/portrait/upload_<id>_art.py` and `upload_avatar.py`; ledgers `tools/blender/avatar_assets.json`, `tools/blender/<id>_art_assets.json`; ids land in `src/shared/Boss<Id>Art.luau`.
+Add in-betweens between the approved keys only; `tools/blender/bake_boss_<id>.py` writes `src/late/Boss<Id>Poses.luau (ServerStorage.LateData, delivered on event publish; design doc 7)` (report its size against `BossMagePoses`). Check every upload script's `main()` guard, then ask the owner for the upload word for this batch; run `tools/blender/portrait/upload_<id>_art.py` and `upload_avatar.py`; ledgers `tools/blender/avatar_assets.json`, `tools/blender/<id>_art_assets.json`; ids land in `src/shared/Boss<Id>Art.luau`.
 Done: approved keys unchanged (diff `keys.json`); every uploaded id in a ledger with its hash.
 
 ## 9. Server, client, verify, PR
