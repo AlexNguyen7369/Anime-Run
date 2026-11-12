@@ -4,7 +4,7 @@
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
-- boss-king k9: Studio verify (queued behind elf-mage and remove-dojo-spawn-relayout), rules audit, PR into main (doing 2026-11-11)
+- boss-king k9: rules audit round 2, then PR into main with a fresh reviewer (doing 2026-11-11)
 
 ## Next
 - boss-king: owner's look at `/boss king` in Studio and rulings on `docs/OWNER_QUESTIONS.md` (2026-11-11 boss-king open items)
@@ -14,6 +14,7 @@
 - Design doc 4.25 track loading: Tracks 1-5 first, the rest by proximity
 
 ## Done
+- 2026-11-11 boss-king Studio verify: boss_king_arena 56, boss_king_anim 133, boss_king_event 101, relics 702, sidekicks 352, sidekick_attacks 619, boss_mage_event 281, boss_mage_anim 286, boss_event 1862, boss_arena 155; UI ui_boss_king 14, _dodge 13, _vfx 35, _rewards 12, ui_boss_fortified 14, ui_boss_cards 63, ui_boss_dodge 13, ui_boss_mage 16, _dodge 10, _rewards 12, ui_boss 468, ui_relics 30, all fail=0; live /boss king seen; audit round 1 FAIL fixed (64ec107)
 - 2026-11-11 boss-king k4-k8: key frames (pre-approved), art uploaded, server, tests, client, bake; merged up to f947eb7 on `feature/alex/boss-king`; stylua / selene / rojo build green; harness not yet run
 - 2026-11-11 boss-king k1 `/new-boss` skill (ebf9016), k2 models boss_king 2,862 tris, side_king 2,534, side_mage 3,148 (4f98427), k3 vault draft script (88b6867); docs and Blender only, no upload, no Studio
 - 2026-11-11 boss-king k0: The Golden King rules, evidence, goal, Sidekick self-drop rule for every boss (72fafa4 on `feature/alex/boss-king`); rules audit PASS, docs only
