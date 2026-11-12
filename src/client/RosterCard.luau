@@ -19,6 +19,7 @@ local GREEN = UiTheme.Palette.Money
 local GOLD = UiTheme.Palette.Unbanked
 local OUTLINE = UiTheme.Outline
 local U = AnimeSkin.Units
+local DOT_CLEAR = 8 + 24 + 6 -- px from the card's right edge: the category dot's inset and size, then a gap
 
 local RosterCard = {}
 RosterCard.Sorts = { "Rarity", "Speed", "Stamina" }
@@ -110,7 +111,8 @@ function RosterCard.new(parent, spec, order, g, picked, note)
 	local badge = g.Role(
 		caption("Badge", b, {
 			Position = g.at(U.Pad, U.Inner),
-			Size = UDim2.new(1, -g.px(2 * U.Pad + 32), 0, g.px(RosterCard.Line)), -- clear of the category dot
+			-- Clear of the category dot (CardFace: 24 px, 8 px in from the top-right, in px at every scale) by 6 px
+			Size = UDim2.new(1, -(g.px(U.Pad) + DOT_CLEAR), 0, g.px(RosterCard.Line)),
 			Text = slot and ("TEAM " .. slot) or note or "",
 			TextXAlignment = Enum.TextXAlignment.Left,
 			ZIndex = 7,
