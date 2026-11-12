@@ -341,6 +341,14 @@ local function render()
 		end
 		result.Visible = false
 	end
+	if ReplicatedStorage:GetAttribute("BossMinionStart") ~= nil then
+		-- Her clock is stopped while the golem stands: no bar, not even one still closing (BossOsuUi owns the golem's attacks).
+		if prompt then
+			closePrompt()
+		end
+		dodge.Visible = false
+		return
+	end
 	local startAt = ReplicatedStorage:GetAttribute("BossEventStart")
 	local active = player:GetAttribute("BossEvent") == true
 		and ReplicatedStorage:GetAttribute("BossEventPhase") == "Fight"
@@ -350,14 +358,6 @@ local function render()
 		if prompt then
 			closePrompt() -- no hit: a player in the wait is not hit by this move
 		end
-		return
-	end
-	if ReplicatedStorage:GetAttribute("BossMinionStart") ~= nil then
-		-- Her clock is stopped while the golem stands: no bar, not even one still closing (BossOsuUi owns the golem's attacks).
-		if prompt then
-			closePrompt()
-		end
-		dodge.Visible = false
 		return
 	end
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
