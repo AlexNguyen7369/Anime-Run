@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Draws the Relic and chest art into assets/ui/ (design doc 4.38, docs/RELIC_SPEC.md "Names and art"): in-house digital art in the
 # look of draw_raga_wheel.py, plus the contact sheet relic_art_sheet.png. Blender's Python has numpy:
-# /Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 tools/blender/portrait/draw_relics.py [raga] [mage]
+# /Applications/Blender.app/Contents/Resources/5.2/python/bin/python3.13 tools/blender/portrait/draw_relics.py [raga] [mage] [king]
 import colorsys
 import os
 import struct
@@ -658,7 +658,7 @@ MAGE_SHEET = (
 RARITY_COLOURS = {"Common": (180, 180, 180), "Rare": (70, 140, 255), "Epic": (170, 80, 230), "Legendary": (255, 170, 40), "Mythic": (255, 70, 110), "Chest": (250, 197, 72)}
 
 
-def draw_mage_sheet():
+def draw_mage_sheet(rows=MAGE_SHEET, out="relic_mage_art_sheet.png"):
 	# relic_art_sheet.png's cells (256 px and 64 px) with a label under each; text through draw_mage_ui's CoreText helper.
 	import draw_mage_ui
 
@@ -667,9 +667,9 @@ def draw_mage_sheet():
 	width, height = gap + columns * (cell_w + gap), gap + 2 * (cell_h + gap)
 	sheet = np.empty((height, width, 3))
 	sheet[:] = (58, 62, 76)
-	requests = [(draw_mage_ui.ROUND, 22, words) for _, name, rarity in MAGE_SHEET for words in (name, rarity)]
+	requests = [(draw_mage_ui.ROUND, 22, words) for _, name, rarity in rows for words in (name, rarity)]
 	masks = draw_mage_ui.text_masks(requests)
-	for index, (file, name, rarity) in enumerate(MAGE_SHEET):
+	for index, (file, name, rarity) in enumerate(rows):
 		left = gap + (index % columns) * (cell_w + gap)
 		top = gap + (index // columns) * (cell_h + gap)
 		image = read_png(file)
@@ -685,7 +685,160 @@ def draw_mage_sheet():
 			view = sheet[y0 : y0 + mask.shape[0], x0 : x0 + mask.shape[1]]
 			view[:] = np.array(colour) * mask[: view.shape[0], : view.shape[1]] + view * (1 - mask[: view.shape[0], : view.shape[1]])
 	alpha = np.full((height, width, 1), 255.0)
-	write_png("relic_mage_art_sheet.png", np.dstack([sheet, alpha]).round().astype(np.uint8))
+	write_png(out, np.dstack([sheet, alpha]).round().astype(np.uint8))
+
+
+# The Golden King's Relics (owner approval drafts, goal boss-king k5, docs/RELIC_SPEC.md "The Golden King's drops"): the
+# vault's treasures. Rarity treatment as the sets above; the Mythic key is the Dodge bar's key_icon with a gold glow.
+DEEP_GOLD = palette((250, 197, 72), (203, 128, 30), (150, 86, 18), (58, 34, 14))
+ARMOR_NAVY = palette((74, 84, 124), (40, 46, 78), (24, 26, 48), (10, 10, 24))
+RUBY = palette((255, 120, 120), (212, 28, 40), (128, 8, 24), (50, 6, 14))
+
+
+def draw_coin():
+	c = Canvas()
+	# A thick coin seen a little from above, a second one behind it: rim, raised edge, and a ring-and-diamond stamp (no face).
+	back = frame(-0.62, -0.5, 0)
+	c.part(ellipse(back, 0.92, 0.84), DEEP_GOLD)
+	c.fill(np.abs(ellipse(back, 0.72, 0.64)) - 0.03, DEEP_GOLD[2], clip=ellipse(back, 0.92, 0.84) + 0.03)
+	coin = frame(0.3, 0.3, 0)
+	face = ellipse(coin, 1.12, 1.02)
+	edge = union(face, ellipse((coin[0], coin[1] - 0.22), 1.12, 1.02), box((coin[0], coin[1] - 0.11), 1.12, 0.11))
+	c.part(np.maximum(edge, -face + 0.001), DEEP_GOLD)
+	c.fill(np.maximum(edge, -face), DEEP_GOLD[2])
+	for ridge_x in np.linspace(-0.95, 0.95, 11):  # reeded edge
+		c.fill(np.maximum(box((coin[0] - ridge_x, coin[1] - 0.12), 0.018, 0.1), -face), DEEP_GOLD[3])
+	c.part(face, GOLD)
+	c.fill(np.abs(ellipse(coin, 0.92, 0.82)) - 0.028, GOLD[2])
+	c.fill(np.abs(ellipse(coin, 0.5, 0.44)) - 0.04, GOLD[2])
+	c.fill(poly(coin, [(0, -0.3), (0.3, 0), (0, 0.3), (-0.3, 0)]), GOLD[2])
+	c.fill(poly(coin, [(0, -0.18), (0.18, 0), (0, 0.18), (-0.18, 0)]), GOLD[0])
+	c.fill(ellipse((coin[0] + 0.55, coin[1] + 0.5), 0.14, 0.07), rgb(255, 250, 225))
+	c.save("relic_coin.png")
+
+
+def draw_goblet():
+	c = Canvas()
+	cup = frame(0, 0, 0)
+	bowl = np.maximum(ellipse((cup[0], cup[1] + 0.55), 0.98, 0.92), -(cup[1] + 0.55))  # the lower half of an oval
+	rim = ellipse((cup[0], cup[1] + 0.55), 0.98, 0.3)
+	stem = box((cup[0], cup[1] - 0.52), 0.11, 0.5)
+	knop = ellipse((cup[0], cup[1] - 0.45), 0.24, 0.12)
+	foot = ellipse((cup[0], cup[1] - 1.25), 0.72, 0.2)
+	whole = union(bowl, rim, stem, knop, foot)
+	c.glow(whole, BLUE[1], 0.2, 0.6)
+	c.part(foot, DEEP_GOLD)
+	c.fill(np.abs(ellipse((cup[0], cup[1] - 1.22), 0.5, 0.16)) - 0.02, DEEP_GOLD[2], clip=foot)
+	c.part(stem, DEEP_GOLD)
+	c.part(knop, DEEP_GOLD)
+	c.part(bowl, DEEP_GOLD)
+	# A navy band with three rubies round the bowl, and the rim's inside.
+	band = np.maximum(box((cup[0], cup[1] + 0.1), 1.2, 0.17), bowl + BEVEL)
+	c.fill(band, ARMOR_NAVY[1])
+	for gem_x in (-0.46, 0.0, 0.46):
+		gem = (cup[0] - gem_x, cup[1] + 0.1)
+		c.part(poly(gem, [(0, -0.14), (0.12, 0), (0, 0.14), (-0.12, 0)]), RUBY, outline=0.03)
+	c.part(rim, DEEP_GOLD)
+	c.fill(ellipse((cup[0], cup[1] + 0.55), 0.82, 0.18), RUBY[1])  # wine
+	c.fill(ellipse((cup[0] - 0.3, cup[1] + 0.5), 0.2, 0.05), RUBY[0])
+	c.save("relic_goblet.png")
+
+
+def draw_chain():
+	c = Canvas()
+	# Gold links along a loose S from the lower left to the upper right, one end a spear point: no face, no writing.
+	t = np.linspace(0, 1, 9)
+	path = np.column_stack([-1.3 + 2.5 * t, 1.1 - 2.2 * t + 0.45 * np.sin(t * np.pi * 2)])
+	links = []
+	for i in range(len(path) - 1):
+		a, b = path[i], path[i + 1]
+		mid, ang = (a + b) / 2, np.degrees(np.arctan2(b[1] - a[1], b[0] - a[0]))
+		local = frame(mid[0], mid[1], ang)
+		if i % 2 == 0:  # a flat link: an oval ring
+			links.append(np.abs(ellipse(local, 0.3, 0.19)) - 0.065)
+		else:  # a link seen edge-on: a slim bar
+			links.append(box(local, 0.26, 0.075, 0.04))
+	tip = frame(path[-1][0], path[-1][1], np.degrees(np.arctan2(path[-1][1] - path[-2][1], path[-1][0] - path[-2][0])))
+	spear = poly(tip, [(0.1, -0.16), (0.62, 0), (0.1, 0.16)])
+	ring_end = ring(frame(path[0][0], path[0][1]), 0.2, 0.07)
+	for i, link in enumerate(links):
+		c.part(link, GOLD if i % 2 == 0 else DEEP_GOLD)
+	c.part(spear, DEEP_GOLD)
+	c.part(ring_end, DEEP_GOLD)
+	c.save("relic_chain.png")
+
+
+def draw_armor():
+	c = Canvas()
+	# Front view of the cuirass: a navy underlayer, the gold breastplate with its Y line and skirt teeth, big round pauldrons.
+	body = frame(0, 0.1, 0)
+	under = box(body, 1.12, 1.18, 0.14)
+	plate = box(body, 0.92, 1.05, 0.12)
+	whole = union(under, circle(frame(-1.1, -0.55), 0.56), circle(frame(1.1, -0.55), 0.56))
+	c.glow(whole, rgb(255, 180, 60), 0.24, 0.8)
+	c.part(under, ARMOR_NAVY)
+	c.part(plate, DEEP_GOLD)
+	# Chest line: a Y from the collar to the belt, and the belt band.
+	for a, b in (((-0.26, -0.9), (0, -0.3)), ((0.26, -0.9), (0, -0.3)), ((0, -0.3), (0, 0.45))):
+		c.fill(bar(body, a, b, 0.03), ARMOR_NAVY[2], clip=plate + 0.03)
+	c.fill(box((body[0], body[1] - 0.5), 0.92, 0.07), DEEP_GOLD[2], clip=plate + 0.02)
+	for tooth_x in (-0.5, 0.5):  # navy triangles cut into the skirt plates
+		c.fill(poly(body, [(tooth_x - 0.2, 0.62), (tooth_x + 0.2, 0.62), (tooth_x, 0.98)]), ARMOR_NAVY[1], clip=plate)
+	# Collar and the pauldrons, each a dome over a lower ring.
+	c.part(box((body[0], body[1] + 1.0), 0.42, 0.12, 0.05), DEEP_GOLD)
+	for side in (-1, 1):
+		shoulder = frame(side * 1.1, -0.55)
+		c.part(np.maximum(ellipse((shoulder[0], shoulder[1] - 0.3), 0.62, 0.36), -(shoulder[1] - 0.3)), DEEP_GOLD)
+		c.part(circle(shoulder, 0.56), GOLD)
+		c.fill(np.abs(circle(shoulder, 0.36)) - 0.025, GOLD[2], clip=circle(shoulder, 0.56) + 0.02)
+	c.save("relic_armor.png")
+
+
+def draw_key_relic():
+	# The Dodge bar's key icon (draw_king_ui.draw_key) on the same 512 px, 3x grid, with the Mythic gold glow under it.
+	import draw_king_ui
+
+	c = Canvas()
+	art, shape = draw_king_ui.draw_key(SIZE, with_sdf=True)
+	c.glow(shape, rgb(255, 200, 80), 0.22, 0.85)
+	alpha = art[..., 3].astype(float)
+	c.premul = art[..., :3].astype(float) * 255 + c.premul * (1 - alpha[..., None])
+	c.alpha = alpha + c.alpha * (1 - alpha)
+	c.save("relic_key.png")
+
+
+def draw_chest_king():
+	# Big Raga's chest build in gold, navy straps, a drum lock with a keyhole and a ruby, as the key's head.
+	c = Canvas()
+	half_w = 1.42
+	body, lid = chest_shapes(half_w, 0.02, 1.12, -0.04)
+	c.part(body, DEEP_GOLD)
+	c.fill(box(frame(0, 1.02), half_w, 0.016), DEEP_GOLD[3], clip=body + 0.03)
+	c.fill(box(frame(0, 0.2), half_w, 0.09), DEEP_GOLD[2], clip=body)
+	c.part(lid, DEEP_GOLD)
+	c.fill(np.abs(ellipse(frame(0, 0.02), half_w - 0.42, 0.62)) - 0.016, DEEP_GOLD[3], clip=lid + 0.03)
+	for side in (-1, 1):
+		c.part(np.maximum(box(frame(side * 0.98, 0.2), 0.14, 1.4), union(body, lid)), ARMOR_NAVY)
+		c.part(poly(P, [(side * (half_w + 0.03), 1.06), (side * (half_w + 0.03), 1.53), (side * (half_w - 0.44), 1.53)]), ARMOR_NAVY)
+		for rivet_y in (-0.5, 0.6, 1.2):
+			c.part(circle(frame(side * 0.98, rivet_y), 0.05), GOLD, outline=0.03)
+	c.part(box(frame(0, 0.02), half_w + 0.1, 0.1), ARMOR_NAVY)
+	lock = frame(0, 0.4)
+	c.part(circle(lock, 0.6), GOLD)
+	c.part(ring(lock, 0.42, 0.04), DEEP_GOLD, outline=0.03)
+	c.fill(union(circle((lock[0], lock[1] + 0.1), 0.12), poly(lock, [(-0.07, -0.1), (0.07, -0.1), (0.1, 0.3), (-0.1, 0.3)])), ARMOR_NAVY[2])
+	c.part(poly((lock[0], lock[1] + 0.7), [(0, -0.14), (0.12, 0), (0, 0.14), (-0.12, 0)]), RUBY, outline=0.03)
+	c.save("chest_king.png")
+
+
+KING_SHEET = (
+	("relic_coin.png", "Gold Coin", "Common"),
+	("relic_goblet.png", "Royal Goblet", "Rare"),
+	("relic_chain.png", "Chain of Heaven", "Epic"),
+	("relic_armor.png", "Golden Armor", "Legendary"),
+	("relic_key.png", "Key of Babylon", "Mythic"),
+	("chest_king.png", "Golden King's Treasure", "Chest"),
+)
 
 
 SHEET_ORDER = (
@@ -730,8 +883,8 @@ def draw_sheet():
 
 
 def main(sets):
-	# Sets to draw: "raga", "mage", or both when none is named. Big Raga's files redraw byte for byte.
-	sets = sets or ("raga", "mage")
+	# Sets to draw: "raga", "mage", "king", or all when none is named. Big Raga's files redraw byte for byte.
+	sets = sets or ("raga", "mage", "king")
 	if "raga" in sets:
 		draw_talisman()
 		draw_nail()
@@ -749,6 +902,14 @@ def main(sets):
 		draw_grimoire()
 		draw_chest_mage()
 		draw_mage_sheet()
+	if "king" in sets:
+		draw_coin()
+		draw_goblet()
+		draw_chain()
+		draw_armor()
+		draw_key_relic()
+		draw_chest_king()
+		draw_mage_sheet(KING_SHEET, "relic_king_art_sheet.png")
 
 
 if __name__ == "__main__":

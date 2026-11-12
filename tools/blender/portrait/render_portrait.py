@@ -84,7 +84,7 @@ for _f in sorted(os.listdir(_views_dir)) if os.path.isdir(_views_dir) else []:
 		with open(os.path.join(_views_dir, _f)) as _h:
 			_row = json.load(_h)
 		for _view in _row.values():  # str.startswith needs tuples; JSON gives lists
-			_view.update({k: tuple(_view[k]) for k in ("show", "frame")})
+			_view.update({k: tuple(_view[k]) for k in ("show", "frame") if k in _view})  # a focus view has no frame
 		SIDEKICK_VIEWS[_f[: -len(".views.json")]] = _row
 
 
