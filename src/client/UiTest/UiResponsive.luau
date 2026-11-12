@@ -1822,26 +1822,18 @@ Model.HudChrome = {
 	StackGap = 6,
 	Money = "RacerHud/Money",
 }
--- Client/BossEventUi placeBossButton (design doc 4.40 "Market pill and Bosses button", owner 2026-11-11): BossButton is
--- HudChrome's Cell x k (k = phone and HudChrome.Phone or 1), written into its Size (its first UIScale is PulseScale),
--- at y = TopbarInset.Max.Y + Gap (its ScreenGui ignores the inset). x is the Grid's x offset when the button's bottom at
--- the biggest pulse (Pulse) stays above the Grid's top (screen middle + its Y offset - GridCells x Cell.Y x k / 2 - gaps),
--- else max(TopbarInset.Min.X, Grid x + Cell.X x k) + Gap: right of Roblox's buttons and of the column. Its Icon is in scale.
-Model.BossButton =
-	{ Path = "RacerBossEvent/BossButton", Grid = "HudChrome/Grid", Gap = 6, Pulse = 1.08, GridCells = 3, GridGap = 8 }
+-- Client/BossEventUi placeBossButton (design doc 4.40 "Market pill and Bosses button"): BossButton is HudChrome's
+-- Cell x k (k = phone and HudChrome.Phone or 1, owner 2026-11-11), written into its Size (its first UIScale is
+-- PulseScale). Owner 2026-11-12 (replaces the 2026-11-11 placement under the top bar / at the left column's x): in the
+-- top bar's row right after Roblox's last button, at (TopbarInset.Min.X + Gap, TopbarInset.Min.Y + Top) on every
+-- screen (its ScreenGui ignores the inset). Gap and Top are proposed. Its Icon is in scale.
+Model.BossButton = { Path = "RacerBossEvent/BossButton", Gap = 6, Top = 6 }
 -- BossButton's Size and Position at a viewport, from the live GuiService.TopbarInset `inset` (a Rect).
 function Model.BossButtonPlace(viewport, inset)
 	local cfg, hud = Model.BossButton, Model.HudChrome
 	local k = viewport.Y <= Model.PHONE_MAX_HEIGHT and hud.Phone or 1
-	local grid = hud.HolderPositions[cfg.Grid][Model.VariantOf(viewport)]
-	local gridH = (cfg.GridCells * hud.Cell.Y + (cfg.GridCells - 1) * cfg.GridGap) * k
-	local gridTop = viewport.Y * grid.Y.Scale + grid.Y.Offset - gridH / 2
-	local y = inset.Max.Y + cfg.Gap
-	local x = grid.X.Offset
-	if y + hud.Cell.Y * k * cfg.Pulse > gridTop then
-		x = math.max(inset.Min.X, grid.X.Offset + hud.Cell.X * k) + cfg.Gap
-	end
-	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k), UDim2.fromOffset(x, y)
+	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k),
+		UDim2.fromOffset(inset.Min.X + cfg.Gap, inset.Min.Y + cfg.Top)
 end
 -- HudChrome's UIScale "Scale" factor of the node at `path` at a viewport, or nil when it is not a HudChrome holder.
 function Model.HudChromeScale(path, viewport)

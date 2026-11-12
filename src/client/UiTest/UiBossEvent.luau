@@ -37,10 +37,10 @@
 --     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
 --     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
 --     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
---     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. It sits just
---     under Roblox's top bar (top within BUTTON_MAX_GAP px under GuiService.TopbarInset.Max.Y). Its left edge, at every pulse
---     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
---     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
+--     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. Owner
+--     2026-11-12: it sits in Roblox's top bar row, right after Roblox's last button, at every viewport: its left edge, at
+--     every pulse scale, 0..BUTTON_MAX_GAP px past GuiService.TopbarInset.Min.X; its top within -BUTTON_ROW_ABOVE..
+--     BUTTON_ROW_BELOW px of TopbarInset.Min.Y. At BUTTON_PULSE it overlaps neither the Grid, the shown roll
 --     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
@@ -156,7 +156,8 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_GAP = 12 -- px under TopbarInset.Max.Y / past Roblox's buttons: "just below", "right of"
+local BUTTON_MAX_GAP = 16 -- px past TopbarInset.Min.X: "right next to" Roblox's last button (owner 2026-11-12)
+local BUTTON_ROW_ABOVE, BUTTON_ROW_BELOW = 2, 12 -- px around TopbarInset.Min.Y: "level with Roblox's buttons"
 local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
 local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
 local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
@@ -617,38 +618,31 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
-		-- Owner 2026-11-11 (design doc 4.40): just under Roblox's top bar; at the left column's x when its bottom at the
-		-- biggest pulse stays above the column's top, else right of Roblox's buttons (and of the column); clear of both
-		-- the column and the roll, and of the Money / Gems readout
+		-- Design doc 4.40: in Roblox's top bar row right after its last button (owner 2026-11-12); clear of the left
+		-- column, the roll and the Money / Gems readout
 		local button = h.find(BUTTON)
 		local rest = button and h.rect(button)
 		local pulse = button and button:FindFirstChild("PulseScale")
 		local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
 		local top = rest and rest.y or 0
-		local restW, restH = rest and rest.w / p or 0, rest and rest.h / p or 0
+		local restW = rest and rest.w / p or 0
 		local grid = h.find(GRID)
 		local gridRect = grid and h.rect(grid)
-		local room = gridRect ~= nil and top + restH * BUTTON_PULSE <= gridRect.y
-		local wantX = gridRect and (room and gridRect.x or math.max(inset.Min.X, gridRect.x + gridRect.w))
+		-- Owner 2026-11-12 (4.40) replaces "left-aligned with the left column": left edge at TopbarInset.Min.X plus the gap
 		h.check(
 			res,
-			"button_left_column_x",
+			"button_after_roblox_buttons",
 			left or "no PulseScale",
-			wantX and (room and tostring(wantX) or ("%.1f..%.1f"):format(wantX, wantX + BUTTON_MAX_GAP))
-				or "no " .. GRID,
-			left ~= nil
-				and wantX ~= nil
-				and (
-					room and math.abs(left - wantX) <= 1
-					or not room and left >= wantX and left <= wantX + BUTTON_MAX_GAP
-				)
+			("%.1f..%.1f"):format(inset.Min.X, inset.Min.X + BUTTON_MAX_GAP),
+			left ~= nil and left >= inset.Min.X and left <= inset.Min.X + BUTTON_MAX_GAP
 		)
+		-- Owner 2026-11-12 (4.40) replaces "just below the top bar": top edge level with Roblox's buttons, in the bar's row
 		h.check(
 			res,
-			"button_under_top_bar",
+			"button_in_top_bar_row",
 			top,
-			("%.1f..%.1f"):format(inset.Max.Y, inset.Max.Y + BUTTON_MAX_GAP),
-			top >= inset.Max.Y - 1 and top <= inset.Max.Y + BUTTON_MAX_GAP
+			("%.1f..%.1f"):format(inset.Min.Y - BUTTON_ROW_ABOVE, inset.Min.Y + BUTTON_ROW_BELOW),
+			rest ~= nil and top >= inset.Min.Y - BUTTON_ROW_ABOVE and top <= inset.Min.Y + BUTTON_ROW_BELOW
 		)
 		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
 		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
