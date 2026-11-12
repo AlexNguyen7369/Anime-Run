@@ -1,9 +1,9 @@
 --!nonstrict
 -- The spawn hub: an anime town plaza (docs/WORLD_REDESIGN_SPEC.md section 4). A stone-paved square with the game's
 -- only SpawnLocation at its centre, a torii StartGate over the StartPad (walking through it starts the run,
--- Server/CarService), and the two wings either side of the spawn-gate path (design doc 4.24 Two wings, WORLD_REDESIGN_SPEC
--- 4): the economy wing (Shop, Potions, Market, Index on one row facing the path), the summon wing (Best Roll, the Sidekick
--- summon altar, the Legends) and the Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
+-- Server/CarService), the spawn terrace with the six service buildings (Shop, Potions, Market, Index, Best Roll, the
+-- Sidekick summon altar) on a ring round it, every front facing the spawn (design doc 4.43, WORLD_REDESIGN_SPEC 4), and the
+-- Checkpoints sensei beside the gate. Players join and respawn here on foot, and Stop sends them back
 -- here. Each stall here is the plain stand-in for its mesh (Server/PlazaDressing): the prompt and collision stay on it,
 -- the Market included.
 -- Everything is placed in the local space of Track 1's flattened Start part (SpawnArea.Base; forward -Z, right +X).
@@ -47,15 +47,19 @@ local ROOF_TILE = Color3.fromRGB(58, 62, 72)
 local PAPER = Color3.fromRGB(246, 236, 210)
 local LANTERN_GLOW = Color3.fromRGB(255, 196, 120)
 
--- Two wings (owner 2026-11-10, WORLD_REDESIGN_SPEC 4; positions proposed): hub-local (x, z) = world + (118, -80), mesh
--- origins from tools/blender/plaza/build_plaza.py. Each wing's fronts face the path.
-local ECON_FACE = Vector2.new(0.6805, 0.7328) -- economy wing fronts (world (0.68, 0.73))
-local SUMMON_FACE = -ECON_FACE -- summon wing fronts (world (-0.68, -0.73))
-local SHOP_POS = Vector2.new(104.286, -130.039) -- world (-13.7, -50.0)
-local POTIONS_POS = Vector2.new(88.165, -115.069) -- world (-29.8, -35.1)
-local MARKET_POS = Vector2.new(72.043, -100.099) -- world (-46.0, -20.1)
-local INDEX_POS = Vector2.new(55.922, -85.13) -- world (-62.1, -5.1)
-local ALTAR_POS = Vector2.new(144.799, -39.382) -- world (26.8, 40.6), the summon wing's middle
+-- Spawn showpiece (owner 2026-11-11, design doc 4.43, WORLD_REDESIGN_SPEC 4): the six service buildings stand on a ring of
+-- radius 84 round the spawn, every front facing it (CENTRE). Hub-local (x, z) = world + (118, -80); mesh origins from
+-- tools/blender/plaza/build_plaza.py (ring_spot).
+local SHOP_POS = Vector2.new(34.058, -83.109) -- world (-83.9, -3.1)
+local POTIONS_POS = Vector2.new(60.842, -141.555) -- world (-57.2, -61.6)
+local MARKET_POS = Vector2.new(121.109, -163.942) -- world (3.1, -83.9)
+local INDEX_POS = Vector2.new(179.555, -137.158) -- world (61.6, -57.2)
+local ALTAR_POS = Vector2.new(175.158, -18.445) -- world (57.2, 61.6)
+-- The terrace under the spawn (4.43): step radii bottom up, each TERRACE_STEP tall; the SpawnLocation and the walk spawn
+-- sit on the top step. Server/PlazaDressing lays the Showpiece mesh (spawn disc, moat, lanterns) over these plain steps.
+SpawnArea.TERRACE = { 26, 20, 14 }
+SpawnArea.TERRACE_STEP = 0.8
+SpawnArea.SPAWN_TOP = SpawnArea.TOP_Y + #SpawnArea.TERRACE * SpawnArea.TERRACE_STEP
 
 -- The Sidekick summon altar (design doc 4.36, docs/SIDEKICK_SPEC.md "Summon altar"): sizes proposed placeholders.
 local ALTAR_TIERS = { 30, 23, 16 } -- octagon widths across the flats, bottom to top (about 32; 30 clears the sky-loop leg)
@@ -117,10 +121,10 @@ function SpawnArea.Bounds(startCFrame)
 	}
 end
 
--- Where an avatar stands on the plaza: its centre, facing the start gate.
+-- Where an avatar stands on the plaza: the terrace top at its centre, facing the start gate.
 function SpawnArea.WalkCFrame(startCFrame)
 	local c, p = SpawnArea.CENTRE, SpawnArea.PAD_CENTRE
-	return facing(startCFrame, c.X, c.Y, p.X, p.Y, SpawnArea.TOP_Y + SpawnArea.WALK_ROOT_HEIGHT)
+	return facing(startCFrame, c.X, c.Y, p.X, p.Y, SpawnArea.SPAWN_TOP + SpawnArea.WALK_ROOT_HEIGHT)
 end
 
 -- An anchored part. Decoration (collide = false) also leaves touch and query alone.
@@ -221,12 +225,12 @@ local function prompt(parent, cframe, name, action, object, distance)
 	return addPrompt(anchor, name, action, object, distance)
 end
 
--- A wooden market stall in the economy wing, facing the path: counter (with the prompt), posts, a tiled roof, a cloth curtain
+-- A wooden market stall on the ring, facing the spawn: counter (with the prompt), posts, a tiled roof, a cloth curtain
 -- with its sign.
 local function stall(parent, startCFrame, name, x, z, cloth, title, promptName, action)
 	local m = Instance.new("Model")
 	m.Name = name
-	local f = facing(startCFrame, x, z, x + ECON_FACE.X, z + ECON_FACE.Y)
+	local f = facing(startCFrame, x, z, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
 	local counter =
 		block(m, "Counter", Vector3.new(10, 3.6, 2), f * CFrame.new(0, 1.8, -2), WOOD, Enum.Material.WoodPlanks)
 	for _, px in { -4.8, 4.8 } do
@@ -291,8 +295,7 @@ end
 local function altar(startCFrame)
 	local m = Instance.new("Model")
 	m.Name = "SidekickAltar"
-	local af =
-		facing(startCFrame, ALTAR_POS.X, ALTAR_POS.Y, ALTAR_POS.X + SUMMON_FACE.X, ALTAR_POS.Y + SUMMON_FACE.Y, 0)
+	local af = facing(startCFrame, ALTAR_POS.X, ALTAR_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y, 0)
 	local h, side = ALTAR_TIER_HEIGHT, math.tan(math.pi / 8)
 	local top = SpawnArea.TOP_Y
 	local topPart
@@ -402,12 +405,25 @@ function SpawnArea.Build(startCFrame)
 	)
 	model.PrimaryPart = floor
 
-	-- The one SpawnLocation, at the plaza centre
+	-- The terrace under the spawn (design doc 4.43): stone steps a runner walks up, the Showpiece mesh laid over them
+	for i, radius in SpawnArea.TERRACE do
+		local step = block(
+			model,
+			"Terrace" .. i,
+			Vector3.new(SpawnArea.TERRACE_STEP, radius * 2, radius * 2),
+			frame * CFrame.new(c.X, top + (i - 0.5) * SpawnArea.TERRACE_STEP, c.Y) * CFrame.Angles(0, 0, math.rad(90)),
+			STONE,
+			Enum.Material.Slate
+		)
+		step.Shape = Enum.PartType.Cylinder
+	end
+
+	-- The one SpawnLocation, on the terrace top at the plaza centre
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Spawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(SPAWN_SIZE, 1, SPAWN_SIZE)
-	spawn.CFrame = frame * CFrame.new(c.X, top + 0.05 - 0.5, c.Y) -- a hair above the floor so the two never z-fight
+	spawn.CFrame = frame * CFrame.new(c.X, SpawnArea.SPAWN_TOP + 0.05 - 0.5, c.Y) -- a hair above the step so the two never z-fight
 	spawn.Neutral = true
 	spawn.Duration = 0 -- no force field
 	spawn.Color = Color3.fromRGB(196, 186, 168)
@@ -441,8 +457,8 @@ function SpawnArea.Build(startCFrame)
 	glow(pad, 18)
 	torii(startCFrame).Parent = model
 
-	-- Economy wing (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
-	-- The Sidekicks stall became the summon altar in the summon wing (design doc 4.36).
+	-- The ring (same panels and remotes as before): each stand-in's origin is its mesh's origin (Shared/PlazaAssets).
+	-- The Sidekicks stall became the summon altar (design doc 4.36).
 	altar(startCFrame).Parent = model
 	stall(
 		model,
@@ -470,7 +486,7 @@ function SpawnArea.Build(startCFrame)
 	-- the closed rear collide; the curtains are cloth and the roof is out of reach.
 	local marketplace = Instance.new("Model")
 	marketplace.Name = "Marketplace"
-	local mf = facing(startCFrame, MARKET_POS.X, MARKET_POS.Y, MARKET_POS.X + ECON_FACE.X, MARKET_POS.Y + ECON_FACE.Y)
+	local mf = facing(startCFrame, MARKET_POS.X, MARKET_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
 	block(marketplace, "Deck", Vector3.new(20, 0.5, 11), mf * CFrame.new(0, 0.25, 0), WOOD, Enum.Material.WoodPlanks)
 	local marketCounter = block(
 		marketplace,
@@ -531,10 +547,10 @@ function SpawnArea.Build(startCFrame)
 	CollectionService:AddTag(marketCounter, "MarketPad") -- after the prompt: Server/MarketService reads it when tagged
 	marketplace.Parent = model
 
-	-- Index board: a wooden frame holding a paper scroll, the economy wing's gate end
+	-- Index board: a wooden frame holding a paper scroll
 	local index = Instance.new("Model")
 	index.Name = "IndexBoard"
-	local xf = facing(startCFrame, INDEX_POS.X, INDEX_POS.Y, INDEX_POS.X + ECON_FACE.X, INDEX_POS.Y + ECON_FACE.Y)
+	local xf = facing(startCFrame, INDEX_POS.X, INDEX_POS.Y, SpawnArea.CENTRE.X, SpawnArea.CENTRE.Y)
 	for _, px in { -10.5, 10.5 } do
 		block(index, "Post", Vector3.new(1, 11, 1), xf * CFrame.new(px, 5.5, 0), DARK_WOOD, Enum.Material.Wood)
 	end

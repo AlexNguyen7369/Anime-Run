@@ -7448,6 +7448,7 @@ end
 -- Track 1's Start space) were retired 2026-10-30: docs/WORLD_REDESIGN_SPEC.md section 3 "Exact coordinates are chosen
 -- by the world build". The plaza is read from the live Workspace.SpawnArea instead.
 local SPAWN_TOP_Y = 1
+local SPAWN_TERRACE_TOP = 3.4 -- TOP_Y + 3 steps of 0.8: the SpawnLocation and the walk spawn (design doc 4.43)
 local SPAWN_PAD_TOP = 1.2 -- TOP_Y + 0.2
 local SPAWN_START_COOLDOWN = 2
 local SPAWN_WALK_ROOT_HEIGHT = 3
@@ -7491,26 +7492,26 @@ local SPAWN_PLAZA = {
 		-- the summon altar replaces SidekickStall and keeps its prompt (design doc 4.36, SIDEKICK_SPEC "Summon altar")
 		{ Name = "SidekickAltar", Prompt = "OpenSidekicks" },
 	},
-	-- Two wings (design doc 4.24, owner 2026-11-10; WORLD_REDESIGN_SPEC section 4). World (x, z) at the floor and
-	-- fronts are proposed: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
+	-- Spawn showpiece (design doc 4.43, owner 2026-11-11, draft C "Terrace, wide court"; WORLD_REDESIGN_SPEC section 4).
+	-- World (x, z) at the floor: judged within POS_TOL studs (footprint centre) and FACE_TOL degrees.
 	POS_TOL = 2.5, -- about 2, plus room for a footprint centre that is not the build origin (a stall roof's overhang)
 	FACE_TOL = 10,
 	SPAWN_XZ = Vector2.new(0, 0),
 	PAD_XZ = Vector2.new(-84, 78),
-	ECONOMY_FACE = Vector2.new(0.68, 0.73),
-	SUMMON_FACE = Vector2.new(-0.68, -0.73),
-	-- spawn end toward the gate (design doc 4.24: Shop, Potions, Market, Index)
-	ECONOMY = {
-		{ Name = "ShopStall", At = Vector2.new(-13.7, -50.0) },
-		{ Name = "PotionsStall", At = Vector2.new(-29.8, -35.1) },
-		{ Name = "Marketplace", At = Vector2.new(-46.0, -20.1) },
-		{ Name = "IndexBoard", At = Vector2.new(-62.1, -5.1) },
+	-- the ring of radius 84 round the spawn, one slot every 45 degrees from the gate's angle (build_plaza.py ring_spot);
+	-- every front faces the spawn (Front = false: the Best Roll pedestal is round)
+	RING = {
+		{ Name = "ShopStall", At = Vector2.new(-83.9, -3.1), Front = true },
+		{ Name = "PotionsStall", At = Vector2.new(-57.2, -61.6), Front = true },
+		{ Name = "Marketplace", At = Vector2.new(3.1, -83.9), Front = true },
+		{ Name = "IndexBoard", At = Vector2.new(61.6, -57.2), Front = true },
+		{ Name = "BestRoll", At = Vector2.new(83.9, 3.1), Front = false },
+		{ Name = "SidekickAltar", At = Vector2.new(57.2, 61.6), Front = true },
 	},
-	BEST_ROLL_XZ = Vector2.new(43.3, 14.3),
-	ALTAR_XZ = Vector2.new(26.8, 40.6),
-	EXCLUSIVE_XZ = Vector2.new(-3.4, 53.7), -- the Saitamo pedestal (owner 2026-11-10; replaces the 2 Legends)
+	EXCLUSIVE_XZ = Vector2.new(11.6, 12.5), -- the Saitamo pedestal, on the terrace's middle step
+	TERRACE = { 26, 20, 14 }, -- step radii bottom up
+	TERRACE_STEP = 0.8, -- studs tall
 	SENSEI_XZ = Vector2.new(-80.0, 57.9),
-	ROW_STRAIGHT = 4, -- studs: spread of the economy row's distances from the path axis (proposed reading of "straight")
 	SENSEI_FACE_MIN = 0.5, -- "facing the path": front within 60 degrees of the direction to the path axis
 }
 
@@ -7696,7 +7697,13 @@ function Scenarios.spawn_area()
 		check(checks, "spawn_location_size", sizeErr, 0.01, sizeErr <= 0.01)
 		-- spawn_location_purple retired 2026-10-30 (spec section 4 look)
 		local _, _, sTop = spawnLocalBounds(base, spawn)
-		check(checks, "spawn_location_top", sTop, SPAWN_TOP_Y, math.abs(sTop - SPAWN_TOP_Y) <= SPAWN_TOP_TOL)
+		check(
+			checks,
+			"spawn_location_top",
+			sTop,
+			SPAWN_TERRACE_TOP,
+			math.abs(sTop - SPAWN_TERRACE_TOP) <= SPAWN_TOP_TOL
+		)
 		-- spec section 4: "One SpawnLocation at the plaza centre"
 		local dMid = hdist(spawn.Position, plazaCentre)
 		check(checks, "spawn_location_in_middle", dMid, SPAWN_MIDDLE, floorOk and dMid <= SPAWN_MIDDLE)
@@ -7809,16 +7816,13 @@ function Scenarios.spawn_area()
 	-- plaza_service_row_straight (one row south to north at x = -72, the sensei at its end) retired 2026-11-10: design
 	-- doc 4.24 "Two wings" replaced Clear plaza's service row and put the sensei beside the gate.
 
-	-- Two wings (design doc 4.24, owner 2026-11-10; WORLD_REDESIGN_SPEC section 4, positions and fronts proposed).
-	-- Facing the gate from the spawn: the economy wing on the right, the summon wing on the left, both facing the path.
+	-- Spawn showpiece (design doc 4.43, owner 2026-11-11, draft C; WORLD_REDESIGN_SPEC section 4): the six service
+	-- buildings on a ring of radius 84 round the spawn, every front facing it; the Saitamo pedestal on the terrace.
 	local W = SPAWN_PLAZA
 	local axis = (W.PAD_XZ - W.SPAWN_XZ).Unit
 	local right = Vector2.new(-axis.Y, axis.X) -- Roblox: looking along (x, z), right is (-z, x)
 	local function side(p) -- > 0: right of the path, facing the gate from the spawn
 		return (p - W.SPAWN_XZ):Dot(right)
-	end
-	local function along(p) -- distance from the spawn toward the gate
-		return (p - W.SPAWN_XZ):Dot(axis)
 	end
 	-- the footprint centre (bounding box), so the reading does not depend on where the pivot sits
 	local function centreOf(model)
@@ -7839,49 +7843,45 @@ function Scenarios.spawn_area()
 	end
 	local function placed(name, at, want)
 		local err = at and (at - want).Magnitude or -1
-		check(checks, "plaza_" .. name .. "_at_two_wings_spot", err, W.POS_TOL, at ~= nil and err <= W.POS_TOL)
+		check(checks, "plaza_" .. name .. "_at_showpiece_spot", err, W.POS_TOL, at ~= nil and err <= W.POS_TOL)
 	end
 	local function faces(name, front, want)
 		local deg = front and degBetween(front, want) or -1
-		check(checks, "plaza_" .. name .. "_faces_path", deg, W.FACE_TOL, front ~= nil and deg <= W.FACE_TOL)
+		check(checks, "plaza_" .. name .. "_faces_spawn", deg, W.FACE_TOL, front ~= nil and deg <= W.FACE_TOL)
 	end
 
-	-- Economy wing: one straight row parallel to the path, Shop, Potions, Market, Index from the spawn end
-	local econSides, rowOrdered, prevAlong = {}, true, -math.huge
-	local minSide, maxSide = math.huge, -math.huge
-	for _, e in W.ECONOMY do
+	-- The ring: each building at its slot, its front toward the spawn
+	for _, e in W.RING do
 		local model = area:FindFirstChild(e.Name)
-		local at = centreOf(model)
-		placed(e.Name, at, e.At)
-		faces(e.Name, frontOf(model), W.ECONOMY_FACE)
-		if at then
-			rowOrdered = rowOrdered and along(at) > prevAlong
-			prevAlong = along(at)
-			minSide, maxSide = math.min(minSide, side(at)), math.max(maxSide, side(at))
-			table.insert(econSides, side(at))
-		else
-			rowOrdered = false
+		placed(e.Name, centreOf(model), e.At)
+		if e.Front then
+			faces(e.Name, frontOf(model), (W.SPAWN_XZ - e.At).Unit)
 		end
 	end
-	check(checks, "plaza_economy_row_order_spawn_to_gate", rowOrdered and 1 or 0, 1, rowOrdered)
-	local rowSpread = #econSides == #W.ECONOMY and maxSide - minSide or -1
-	check(
-		checks,
-		"plaza_economy_row_straight",
-		rowSpread,
-		W.ROW_STRAIGHT,
-		rowSpread >= 0 and rowSpread <= W.ROW_STRAIGHT
-	)
-
-	-- Summon wing: Best Roll on the spawn side, the altar in the middle, the Saitamo exclusive pedestal on the gate side
 	local noStall = area:FindFirstChild("SidekickStall") == nil
 	check(checks, "plaza_no_sidekick_stall", noStall and 1 or 0, 1, noStall)
-	local bestAt = centreOf(area:FindFirstChild("BestRoll"))
-	placed("BestRoll", bestAt, W.BEST_ROLL_XZ)
-	local altarAt = centreOf(area:FindFirstChild("SidekickAltar"))
-	placed("SidekickAltar", altarAt, W.ALTAR_XZ)
-	-- The exclusive pedestal is client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Exclusive; no Legends
-	-- remain (design doc 4.24, owner 2026-11-10)
+
+	-- The terrace: one stone cylinder per step, centred on the spawn, radius and top as the spec, walkable
+	for i, radius in W.TERRACE do
+		local step = area:FindFirstChild("Terrace" .. i)
+		local okStep = step ~= nil and step:IsA("BasePart") and step.Shape == Enum.PartType.Cylinder and step.CanCollide
+		local r = okStep and step.Size.Y / 2 or -1
+		check(checks, "spawn_terrace_" .. i .. "_radius", r, radius, okStep and math.abs(r - radius) <= SPAWN_GEOM_TOL)
+		local stepTop = okStep and step.Position.Y + step.Size.X / 2 or -1
+		local wantTop = SPAWN_TOP_Y + i * W.TERRACE_STEP
+		check(
+			checks,
+			"spawn_terrace_" .. i .. "_top",
+			stepTop,
+			wantTop,
+			okStep and math.abs(stepTop - wantTop) <= SPAWN_TOP_TOL
+		)
+		local dStep = okStep and hdist(step.Position, plazaCentre) or -1
+		check(checks, "spawn_terrace_" .. i .. "_centred", dStep, SPAWN_GEOM_TOL, okStep and dStep <= SPAWN_GEOM_TOL)
+	end
+
+	-- The exclusive pedestal is client display (Client/PlazaSkyLoop) placed from Shared/PlazaAssets Exclusive, on the
+	-- terrace's middle step facing the spawn; no Legends remain (design doc 4.43; 4.24, owner 2026-11-10)
 	local PlazaAssets = sharedModule("PlazaAssets")
 	local CharacterCatalog = sharedModule("CharacterCatalog")
 	local legends = PlazaAssets and PlazaAssets.Legends or {}
@@ -7892,7 +7892,16 @@ function Scenarios.spawn_area()
 	local exclusiveAt = typeof(exclusive.Pos) == "Vector3" and Vector2.new(exclusive.Pos.X, exclusive.Pos.Z) or nil
 	placed("exclusive", exclusiveAt, W.EXCLUSIVE_XZ)
 	local front = typeof(exclusive.Face) == "Vector3" and Vector2.new(exclusive.Face.X, exclusive.Face.Z)
-	faces("exclusive", front and front.Magnitude > 1e-3 and front.Unit or nil, W.SUMMON_FACE)
+	faces("exclusive", front and front.Magnitude > 1e-3 and front.Unit or nil, (W.SPAWN_XZ - W.EXCLUSIVE_XZ).Unit)
+	local exclusiveY = typeof(exclusive.Pos) == "Vector3" and exclusive.Pos.Y or -1
+	local wantExclusiveY = SPAWN_TOP_Y + 2 * W.TERRACE_STEP + 2.6 -- the middle step's top plus the pedestal's height
+	check(
+		checks,
+		"plaza_exclusive_on_terrace",
+		exclusiveY,
+		wantExclusiveY,
+		math.abs(exclusiveY - wantExclusiveY) <= SPAWN_TOP_TOL
+	)
 	-- its pedestal mesh moves with it (WORLD_REDESIGN_SPEC 7: the rig stands on its pedestal)
 	local onPedestal = false
 	for _, p in PlazaAssets and PlazaAssets.Placed or {} do
@@ -7906,20 +7915,6 @@ function Scenarios.spawn_area()
 		end
 	end
 	check(checks, "plaza_exclusive_on_pedestal", onPedestal and 1 or 0, 1, onPedestal)
-	local summonOrdered = bestAt ~= nil
-		and altarAt ~= nil
-		and exclusiveAt ~= nil
-		and along(bestAt) < along(altarAt)
-		and along(altarAt) < along(exclusiveAt)
-	check(checks, "plaza_summon_wing_order_spawn_to_gate", summonOrdered and 1 or 0, 1, summonOrdered)
-
-	-- the wings on opposite sides of the spawn-gate axis: economy on the right, summon on the left
-	local opposite = #econSides == #W.ECONOMY and bestAt ~= nil and altarAt ~= nil and exclusiveAt ~= nil
-	for _, s in econSides do
-		opposite = opposite and s > 0
-	end
-	opposite = opposite and side(bestAt) < 0 and side(altarAt) < 0 and side(exclusiveAt) < 0
-	check(checks, "plaza_wings_opposite_sides_economy_right", opposite and 1 or 0, 1, opposite)
 
 	-- The sensei beside the gate, facing the path (CheckpointConfig.NPC_POS)
 	local npcModel = area:FindFirstChild("CheckpointNpc")
@@ -7985,7 +7980,7 @@ function Scenarios.spawn_area()
 	end
 	local dCentre = hdist(walkCF.Position, plazaCentre)
 	check(checks, "spawn_walk_at_area_centre", dCentre, SPAWN_GEOM_TOL, floorOk and dCentre <= SPAWN_GEOM_TOL)
-	local wantY = SPAWN_TOP_Y + SPAWN_WALK_ROOT_HEIGHT
+	local wantY = SPAWN_TERRACE_TOP + SPAWN_WALK_ROOT_HEIGHT
 	check(checks, "spawn_walk_root_height", walkCF.Position.Y, wantY, math.abs(walkCF.Position.Y - wantY) <= 0.05)
 	local insideHub = onPlaza(walkCF.Position)
 	check(checks, "spawn_walk_inside_area", insideHub and 1 or 0, 1, insideHub)
@@ -8202,7 +8197,7 @@ function Scenarios.spawn_area()
 		-- the walk spawn is on the plaza, so an avatar sent there stands on the plaza
 		local inArea = onPlaza(c.Root.Position)
 		check(checks, pre .. "_inside_area", inArea and 1 or 0, 1, inArea)
-		local h = c.Root.Position.Y - SPAWN_TOP_Y
+		local h = c.Root.Position.Y - SPAWN_TERRACE_TOP
 		check(
 			checks,
 			pre .. "_standing_height",
