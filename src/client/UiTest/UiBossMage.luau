@@ -9,6 +9,8 @@
 --   Client/BossEventUi reads BossCatalog.Current() at use time: Warning text, BossBar/Title, Invite texts, TeamHud/RagaPortrait (the
 --     name is kept) and BossesPanel Status follow BossEventBoss. BossBar/Status/Status_Crushed's Icon shows BossMageArt.StatusCrushed.
 --   Client/BossDodgeUi: DodgeBar/Wheel.Image is BossCatalog.Current().DodgeIcon or RelicConfig.WheelArt; no bar on a Slam moment.
+--   BossesPanel/BossDetails rows Mage_<relicId> per ChestOdds row, plus Mage_side_mage "<SidekickConfig.Get('side_mage').Name> 0.001%"
+--     (BossEventUi chestLines, from RelicConfig.Chests[chest].SidekickId; design doc 4.38, owner 2026-11-11). No Mage_side_raga.
 --   Client/BossOsuUi: ScreenGui RacerBossOsu with Circle1..Circle4 (GuiButtons) directly in it, each with a GuiObject Ring whose
 --     AbsoluteSize closes from 3x to 1x the circle's over ApproachSeconds. Active under the Dodge bar's rule (BossEvent true, Fight,
 --     BossEventStart set, no BossWaitEndsAt): a fixture cannot give the client a run, so "has a run" is not required here.
@@ -415,7 +417,15 @@ function Module.Build(h)
 			sum += tonumber(string.match(textOf(details .. "/Mage_" .. row.Id), "([%d%.]+)%%")) or 0
 		end
 		h.check(res, "details_mage_rows_sum_100", sum, 100, math.abs(sum - 100) < 1e-6)
-		check(res, "details_mage_no_sidekick_row", h.find(details .. "/Mage_side_raga"), nil)
+		-- Design doc 4.38 (owner 2026-11-11): every chest rolls its own Sidekick, shown as its own odds row; never Raga's here.
+		check(res, "details_mage_sidekick_row", h.find(details .. "/Mage_side_mage") ~= nil, true)
+		check(
+			res,
+			"details_mage_sidekick_odds",
+			string.find(textOf(details .. "/Mage_side_mage"), "0.001%", 1, true) ~= nil,
+			true
+		)
+		check(res, "details_mage_no_raga_row", h.find(details .. "/Mage_side_raga"), nil)
 	end
 
 	-- The Stone Golem's bar under hers (BOSS_EVENT_SPEC "The Elf Mage": about 60% of her bar, proposed).
