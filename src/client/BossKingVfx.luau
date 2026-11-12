@@ -2,15 +2,18 @@
 -- The Golden King's effects (design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King"). Visual only: nothing here
 -- reads back into damage. Timed from BossKingPoses' schedule events, which server time alone decides, and built with Client/BossVfx's
 -- helpers (BossVfx.Kit) in the arena's BossEffects folder, after Client/BossMageVfx's spam model. gates_start opens 12 to 20 golden
--- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons (3 under REDUCED
--- EFFECTS) as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
+-- ripple portals around and behind him; gates fires the 2 s volley window: every 0.15 s, 14 times, 7 to 10 weapons
+-- as gold projectiles tweened in straight lines from a portal to spots over the whole room, every third a gold beam instead.
 -- enuma_start starts the red charge (a ColorCorrection tint, wind lines drawn into him) until enuma fires the red-black cyclone beam
 -- that turns with his live torso (his baked hip turn) over the Window. The shields open on his call key (SHIELD_CALL s of shields)
 -- or when the ReplicatedStorage attribute BossFortified turns true: 5 to 7 gold shields of different shapes orbit him while it is
--- true and shatter with a burst when it turns false (the shields stay under REDUCED EFFECTS); a ring the pose opened that the
--- attribute never held is shattered 1 s into a later move.
+-- true and shatter with a burst when it turns false; a ring the pose opened that the attribute never held is shattered 1 s into a
+-- later move.
 -- Pose-tied (BOSS_EVENT_SPEC "Animation rework", "Pose-tied effects"): the portals open one by one in a cascade, EaGlow lights on
--- Ea brighten through the charge, and a white EnumaChargeFlash at Ea's tip just before the beam (neither under REDUCED EFFECTS).
+-- Ea brighten through the charge, and a white EnumaChargeFlash at Ea's tip just before the beam.
+-- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): under ReduceEffects or
+-- Roblox Reduced Motion nothing is drawn (no portals, weapons, wind, glow, flashes, trails or shields); LastStrikes and LastImpact
+-- still log every volley and the beam.
 -- Spots and portal places come from a seed of the schedule start and the cycle, so every client draws the same ones. All sizes, counts
 -- and colours are placeholders to judge from a capture. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Portals, Volley (with its portals),
@@ -57,7 +60,7 @@ local GATES_WINDOW = window("gates", 2)
 local CHARGE = eventTime("enuma", "enuma", 3) - eventTime("enuma", "enuma_start", 0)
 local BEAM = window("enuma", 2)
 local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- as the mage (owner 2026-11-11): 0, 0.15, ... 1.95 s of the 2 s window
-local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3
+local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
 local PORTALS_MIN, PORTALS_MAX = 12, 20
 local PORTAL_SIZES = { 17.5, 12.5, 8.75 } -- studs across: 1.25 x the first 14 / 10 / 7 (owner 2026-11-12, proposed)
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
@@ -109,12 +112,12 @@ local function rngFor(name)
 	return rng
 end
 
--- The volleys: { T, Spots } for each of the 14, T seconds after the window starts. Every volley takes all its draws, so REDUCED
--- EFFECTS keeps the same spots, only fewer of them. Spots are area-uniform over the room's floor.
+-- The volleys: { T, Spots } for each of the 14, T seconds after the window starts, the same with effects on or off. Every volley
+-- takes all its draws. Spots are area-uniform over the room's floor.
 local function plan()
-	local rng, few, list = rngFor("Gates"), reduced(), {}
+	local rng, list = rngFor("Gates"), {}
 	for j = 1, STRIKE_COUNT do
-		local n = few and PER_STRIKE_REDUCED or rng:NextInteger(PER_STRIKE_MIN, PER_STRIKE_MAX)
+		local n = rng:NextInteger(PER_STRIKE_MIN, PER_STRIKE_MAX)
 		local spots = {}
 		for k = 1, PER_STRIKE_MAX do
 			local a, r = rng:NextNumber(0, 2 * math.pi), SPOT_MAX * math.sqrt(rng:NextNumber())
@@ -226,7 +229,10 @@ end
 local function playPortals()
 	table.clear(portals)
 	table.clear(portalTips)
-	local rng, few = rngFor("Portals"), reduced()
+	if reduced() then
+		return 0
+	end
+	local rng = rngFor("Portals")
 	local count = rng:NextInteger(PORTALS_MIN, PORTALS_MAX)
 	local hold = PORTAL_LEAD + GATES_WINDOW + 0.3
 	for k = 1, count do
@@ -235,7 +241,7 @@ local function playPortals()
 		local out = Vector3.new(math.sin(a), 0, -math.cos(a))
 		local anchor = him() + out * rng:NextNumber(14, 30) + Vector3.new(0, rng:NextNumber(10, Arena.BossHeight), 0)
 		local frame = CFrame.lookAt(anchor, anchor + out)
-		local turn = few and 0 or PORTAL_TURN * (k % 2 == 0 and 1 or -1)
+		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
 		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
 		-- size), the weapon tip through.
 		local opensAt = PORTAL_CASCADE * math.sqrt((k - 1) / (count - 1))
@@ -262,24 +268,22 @@ local function playPortals()
 					Kit.tween(tip, 0.4, { CFrame = frame * CFrame.new(0, 0, -size * 0.3), Transparency = 0 })
 				end
 			end)
-			if not few then
-				local shimmer = Kit.emitter(part, {
-					Name = "Shimmer",
-					Texture = Art.Spark,
-					Color = ColorSequence.new(GOLD_HI, GOLD),
-					LightEmission = 1,
-					Shape = Enum.ParticleEmitterShape.Disc,
-					ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
-					Size = sequence(0, 0.4, 0.5, 1.2, 1, 0),
-					Lifetime = NumberRange.new(0.4, 0.7),
-					Speed = NumberRange.new(2, 5),
-					Rate = 6,
-					Enabled = true,
-				})
-				task.delay(left - 0.3, function()
-					shimmer.Enabled = false
-				end)
-			end
+			local shimmer = Kit.emitter(part, {
+				Name = "Shimmer",
+				Texture = Art.Spark,
+				Color = ColorSequence.new(GOLD_HI, GOLD),
+				LightEmission = 1,
+				Shape = Enum.ParticleEmitterShape.Disc,
+				ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+				Size = sequence(0, 0.4, 0.5, 1.2, 1, 0),
+				Lifetime = NumberRange.new(0.4, 0.7),
+				Speed = NumberRange.new(2, 5),
+				Rate = 6,
+				Enabled = true,
+			})
+			task.delay(left - 0.3, function()
+				shimmer.Enabled = false
+			end)
 			task.delay(left - 0.3, function()
 				Kit.tween(front, 0.3, { Transparency = 1 })
 				Kit.tween(back, 0.3, { Transparency = 1 })
@@ -291,7 +295,7 @@ local function playPortals()
 			portalTips[part] = tip
 		end)
 	end
-	return few and 0 or math.ceil(count * 6 * hold)
+	return math.ceil(count * 6 * hold)
 end
 
 -- The vault's weapons (owner 2026-11-11: the volleys fire weapons as projectiles, not streaks): pooled pieces about a frame whose
@@ -353,16 +357,20 @@ end
 
 local function playVolley()
 	-- cue: KingGates (a rush of blades)
-	local few = reduced()
 	local list = plan()
 	logStrikes(list)
+	local off = reduced()
 	for j, strike in list do
 		later(strike.T, function()
+			if off then -- effects off: the volley logged only
+				Kit.impact("Gates", Arena.Center, 0.1, 18, 0.15, strike.T)
+				return 0
+			end
 			for k, target in strike.Spots do
 				local portal = #portals > 0 and portals[(j + k - 2) % #portals + 1]
 				local from = portal and portal.Parent and portal.Position or him() + Vector3.new(0, TIP_HEIGHT, 0)
 				local tip = portal and portalTips[portal]
-				if tip and tip.Parent and not few then -- the firing flash (off under REDUCED EFFECTS)
+				if tip and tip.Parent then -- the firing flash
 					tip.Material = NEON
 					task.delay(0.08, function()
 						tip.Material = Enum.Material.Metal
@@ -380,7 +388,7 @@ local function playVolley()
 					end)
 				end
 			end
-			roomLight(him() + Vector3.new(0, 30, 0), GOLD, few and 1 or 2, 0.2)
+			roomLight(him() + Vector3.new(0, 30, 0), GOLD, 2, 0.2)
 			Kit.impact("Gates", Arena.Center, 0.1, 18, 0.15, strike.T)
 			return 0
 		end)
@@ -393,15 +401,15 @@ end
 -- The charge: the room goes red, wind lines are drawn into Ea's tip through the 3 s, the edges pulse.
 local function playCharge()
 	-- cue: KingCharge (a rising wind)
-	local few = reduced() -- REDUCED EFFECTS: the red tint (grade, light and edge pulse) is dropped, fewer wind lines
-	if not few then
-		Kit.regrade(
-			{ TintColor = Color3.fromRGB(255, 120, 110), Contrast = 0.15, Saturation = 0.2 },
-			0.6,
-			CHARGE + BEAM - 0.6,
-			0.6
-		)
+	if reduced() then
+		return 0
 	end
+	Kit.regrade(
+		{ TintColor = Color3.fromRGB(255, 120, 110), Contrast = 0.15, Saturation = 0.2 },
+		0.6,
+		CHARGE + BEAM - 0.6,
+		0.6
+	)
 	-- At Ea's tip, local Y along Ea (grip to tip; world up with no Ea part): the orbit's axis.
 	local function tip()
 		local at, part = king:Tip(), eaPart()
@@ -412,52 +420,50 @@ local function playCharge()
 	end
 	local part = Kit.holder("EnumaWind", tip(), Vector3.new(90, 90, 90))
 	tracked[part] = tip
-	if not few then -- REDUCED EFFECTS: no ribbons
-		local ribbons, born, last, spin = {}, os.clock(), os.clock(), 0
-		for k = 1, WIND_RIBBONS do
-			local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
-			a0.Parent, a1.Parent = part, part
-			local trail = Instance.new("Trail")
-			trail.Name = "WindRibbon"
-			trail.Attachment0, trail.Attachment1 = a0, a1
-			trail.FaceCamera = true
-			trail.LightEmission, trail.LightInfluence = 1, 0
-			trail.Color = ColorSequence.new(WHITE)
-			trail.Transparency = sequence(0, 1, 0.25, 0.15, 0.75, 0.15, 1, 1) -- faded at both ends
-			trail.WidthScale = sequence(0, 0.3, 0.5, 1, 1, 0.3) -- thin, thick, thin
-			trail.MinLength = 0
-			trail.Enabled = false
-			trail.Parent = part
-			ribbons[k] = { A0 = a0, A1 = a1, Trail = trail, Climb = 0 }
-		end
-		tracked[part] = function()
-			local now = os.clock()
-			local t = now - born
-			local ramp = math.clamp((t - WIND_RAMP_FROM) / (WIND_RAMP_TO - WIND_RAMP_FROM), 0, 1)
-			local turns = 1 / WIND_TURN_EARLY + (1 / WIND_TURN_LATE - 1 / WIND_TURN_EARLY) * ramp -- a second
-			spin += (now - last) * turns * 2 * math.pi
-			last = now
-			local frame = tip()
-			local reach = math.max((frame.Position - him()):Dot(frame.YVector), 10) -- Ea's tip over his feet, along Ea
-			local count = t < 1.5 and 4 or t < 2.25 and 5 or 6
-			for k, row in ribbons do
-				local on = k <= count and t < CHARGE + 0.2
-				local climb = (t / WIND_CLIMB + (k - 1) / WIND_RIBBONS) % 1 -- 0 at his feet, 1 at Ea's tip
-				local a = spin + (k - 1) / WIND_RIBBONS * 2 * math.pi
-				local r = WIND_RADIUS_FEET + (WIND_RADIUS_TIP - WIND_RADIUS_FEET) * climb
-				row.A0.Position = Vector3.new(r * math.cos(a), -reach * (1 - climb), r * math.sin(a))
-				row.A1.Position = row.A0.Position + Vector3.new(0, WIND_WIDTH, 0)
-				if climb < row.Climb or (on and not row.Trail.Enabled) then -- back at his feet, or newly on: no streak across
-					row.Trail:Clear()
-				end
-				row.Climb = climb
-				row.Trail.Enabled = on
-				row.Trail.Lifetime = 1 / turns -- about one turn
-			end
-			return frame
-		end
+	local ribbons, born, last, spin = {}, os.clock(), os.clock(), 0
+	for k = 1, WIND_RIBBONS do
+		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+		a0.Parent, a1.Parent = part, part
+		local trail = Instance.new("Trail")
+		trail.Name = "WindRibbon"
+		trail.Attachment0, trail.Attachment1 = a0, a1
+		trail.FaceCamera = true
+		trail.LightEmission, trail.LightInfluence = 1, 0
+		trail.Color = ColorSequence.new(WHITE)
+		trail.Transparency = sequence(0, 1, 0.25, 0.15, 0.75, 0.15, 1, 1) -- faded at both ends
+		trail.WidthScale = sequence(0, 0.3, 0.5, 1, 1, 0.3) -- thin, thick, thin
+		trail.MinLength = 0
+		trail.Enabled = false
+		trail.Parent = part
+		ribbons[k] = { A0 = a0, A1 = a1, Trail = trail, Climb = 0 }
 	end
-	local rate = few and 10 or 30
+	tracked[part] = function()
+		local now = os.clock()
+		local t = now - born
+		local ramp = math.clamp((t - WIND_RAMP_FROM) / (WIND_RAMP_TO - WIND_RAMP_FROM), 0, 1)
+		local turns = 1 / WIND_TURN_EARLY + (1 / WIND_TURN_LATE - 1 / WIND_TURN_EARLY) * ramp -- a second
+		spin += (now - last) * turns * 2 * math.pi
+		last = now
+		local frame = tip()
+		local reach = math.max((frame.Position - him()):Dot(frame.YVector), 10) -- Ea's tip over his feet, along Ea
+		local count = t < 1.5 and 4 or t < 2.25 and 5 or 6
+		for k, row in ribbons do
+			local on = k <= count and t < CHARGE + 0.2
+			local climb = (t / WIND_CLIMB + (k - 1) / WIND_RIBBONS) % 1 -- 0 at his feet, 1 at Ea's tip
+			local a = spin + (k - 1) / WIND_RIBBONS * 2 * math.pi
+			local r = WIND_RADIUS_FEET + (WIND_RADIUS_TIP - WIND_RADIUS_FEET) * climb
+			row.A0.Position = Vector3.new(r * math.cos(a), -reach * (1 - climb), r * math.sin(a))
+			row.A1.Position = row.A0.Position + Vector3.new(0, WIND_WIDTH, 0)
+			if climb < row.Climb or (on and not row.Trail.Enabled) then -- back at his feet, or newly on: no streak across
+				row.Trail:Clear()
+			end
+			row.Climb = climb
+			row.Trail.Enabled = on
+			row.Trail.Lifetime = 1 / turns -- about one turn
+		end
+		return frame
+	end
+	local rate = 30
 	local wind = Kit.emitter(part, {
 		Name = "Wind",
 		Texture = Art.Shaft,
@@ -474,19 +480,17 @@ local function playCharge()
 		Rate = rate,
 		Enabled = true,
 	})
-	if not few then
-		local light = Instance.new("PointLight") -- the red over the room, with the grade
-		light.Name = "ChargeTint"
-		light.Color, light.Brightness, light.Range, light.Shadows = RED, 0, 90, false
-		light.Parent = part
-		Kit.tween(light, CHARGE, { Brightness = 3 })
-		Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
-	end
+	local light = Instance.new("PointLight") -- the red over the room, with the grade
+	light.Name = "ChargeTint"
+	light.Color, light.Brightness, light.Range, light.Shadows = RED, 0, 90, false
+	light.Parent = part
+	Kit.tween(light, CHARGE, { Brightness = 3 })
+	Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
 	task.delay(CHARGE, function()
 		wind.Enabled = false
 	end)
-	-- The charge ends in a white flash at Ea's tip, just before the beam: its own part each Enuma (not pooled), REDUCED EFFECTS
-	-- read when it fires.
+	-- The charge ends in a white flash at Ea's tip, just before the beam: its own part each Enuma (not pooled), the effects
+	-- setting read when it fires.
 	local mine = effects
 	task.delay(CHARGE - FLASH_LEAD, function()
 		if effects == mine and mine and mine.Parent and king and not reduced() then
@@ -505,7 +509,10 @@ end
 -- smoke streams off it.
 local function playBeam()
 	-- cue: KingEnuma (a tearing roar)
-	local few = reduced()
+	if reduced() then -- effects off: the hit logged only
+		Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM)
+		return 0
+	end
 	local length = Arena.WallRadius * 1.1
 	local born = os.clock()
 	-- Aimed along his torso's facing, flat: the beam turns with his baked hip turn, frame by frame (posed before this Step).
@@ -529,32 +536,30 @@ local function playBeam()
 		return frame((os.clock() - born) * 9) -- the sheath spins: the cyclone
 	end
 	local total = 0
-	if not few then
-		local smoke = Kit.emitter(sheath, {
-			Name = "Smoke",
-			Texture = Art.Dust,
-			Color = ColorSequence.new(DARK, RED),
-			LightInfluence = 0,
-			LightEmission = 0.4,
-			Shape = Enum.ParticleEmitterShape.Box,
-			ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
-			Size = sequence(0, 6, 1, 14),
-			Transparency = sequence(0, 0.3, 1, 1),
-			Lifetime = NumberRange.new(0.6, 1),
-			Speed = NumberRange.new(10, 30),
-			SpreadAngle = Vector2.new(180, 180),
-			Rotation = NumberRange.new(0, 360),
-			RotSpeed = NumberRange.new(-120, 120),
-			Rate = 60,
-			Enabled = true,
-		})
-		task.delay(BEAM, function()
-			smoke.Enabled = false
-		end)
-		total += 60 * BEAM
-	end
+	local smoke = Kit.emitter(sheath, {
+		Name = "Smoke",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(DARK, RED),
+		LightInfluence = 0,
+		LightEmission = 0.4,
+		Shape = Enum.ParticleEmitterShape.Box,
+		ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
+		Size = sequence(0, 6, 1, 14),
+		Transparency = sequence(0, 0.3, 1, 1),
+		Lifetime = NumberRange.new(0.6, 1),
+		Speed = NumberRange.new(10, 30),
+		SpreadAngle = Vector2.new(180, 180),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-120, 120),
+		Rate = 60,
+		Enabled = true,
+	})
+	task.delay(BEAM, function()
+		smoke.Enabled = false
+	end)
+	total += 60 * BEAM
 	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM)
-	roomLight(him() + Vector3.new(0, 30, 0), RED, few and 1.5 or 3, BEAM + 0.3)
+	roomLight(him() + Vector3.new(0, 30, 0), RED, 3, BEAM + 0.3)
 	task.delay(BEAM, function()
 		Kit.tween(core, 0.3, { Transparency = 1 })
 		Kit.tween(sheath, 0.3, { Transparency = 1 })
@@ -587,7 +592,6 @@ local SHIELD_SHAPES = { -- a round, a kite, a tower, a Mesopotamian (wide, bosse
 }
 
 local function shatter()
-	local few = reduced()
 	for _, shield in shields do
 		if shield.Parent then
 			tracked[shield] = nil
@@ -599,23 +603,21 @@ local function shatter()
 				local fling = at * CFrame.new(0, 4 * math.cos(a) - 6, 4 * math.sin(a)) * CFrame.Angles(a, a * 0.5, 0)
 				Kit.tween(piece, 0.6, { CFrame = fling }, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 			end
-			if not few then
-				local spot = Kit.holder("ShieldBurst", at)
-				Kit.expire(spot, 1.2)
-				Kit.burst(
-					Kit.emitter(spot, {
-						Name = "Sparks",
-						Texture = Art.Spark,
-						Color = ColorSequence.new(GOLD_HI, GOLD),
-						LightEmission = 1,
-						Size = sequence(0, 1.2, 1, 0),
-						Lifetime = NumberRange.new(0.3, 0.6),
-						Speed = NumberRange.new(20, 40),
-						SpreadAngle = Vector2.new(180, 180),
-					}),
-					10
-				)
-			end
+			local spot = Kit.holder("ShieldBurst", at)
+			Kit.expire(spot, 1.2)
+			Kit.burst(
+				Kit.emitter(spot, {
+					Name = "Sparks",
+					Texture = Art.Spark,
+					Color = ColorSequence.new(GOLD_HI, GOLD),
+					LightEmission = 1,
+					Size = sequence(0, 1.2, 1, 0),
+					Lifetime = NumberRange.new(0.3, 0.6),
+					Speed = NumberRange.new(20, 40),
+					SpreadAngle = Vector2.new(180, 180),
+				}),
+				10
+			)
 		end
 	end
 	table.clear(shields)
@@ -624,7 +626,7 @@ local function shatter()
 		shieldRing = nil
 	end
 	if effects then
-		Kit.shakeAt(Arena.Center, few and 0 or 0.5, 20, 0.3)
+		Kit.shakeAt(Arena.Center, 0.5, 20, 0.3) -- BossShake keeps still with effects off
 	end
 end
 
@@ -632,6 +634,9 @@ end
 local function playShields()
 	-- cue: KingShields (a ring of clangs)
 	shatter()
+	if reduced() then
+		return 0
+	end
 	local rng = rngFor("Shields")
 	local count = rng:NextInteger(SHIELDS_MIN, SHIELDS_MAX)
 	local born = os.clock()
@@ -712,7 +717,7 @@ local function fire(move, from, to)
 	end
 end
 
--- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and under REDUCED EFFECTS.
+-- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and with effects off.
 local function stepEaGlow(move, localTime)
 	local on = move == "enuma" and localTime < CHARGE + BEAM and Poses.EaShown(move, localTime) and not reduced()
 	local part = (on or eaGlow) and eaPart()
@@ -785,7 +790,7 @@ function BossKingVfx.Step(since, move, localTime)
 			tracked[part] = nil
 		end
 	end
-	-- Ea's Trail in the swing, off otherwise and under REDUCED EFFECTS (BOSS_EVENT_SPEC "Impact layer")
+	-- Ea's Trail in the swing, off otherwise and with effects off (BOSS_EVENT_SPEC "Impact layer")
 	local swing = move == "enuma" and localTime >= EA_SWING[1] and localTime <= EA_SWING[2] and not reduced()
 	local part = (swing or ea) and eaPart()
 	if part then

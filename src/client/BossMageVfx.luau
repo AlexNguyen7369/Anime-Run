@@ -5,15 +5,22 @@
 -- gathers motes 2.2 s before each slam, the barrage opens its magic circles one by one from 0.3 s. Spots come from a seed of the schedule
 -- start and the cycle, so every client draws the same ones. All sizes, counts and colours are placeholders to judge from a capture.
 -- Lightning and barrage spam the whole arena over the move's 2 s Window (owner 2026-11-11, BOSS_EVENT_SPEC "Strike window"): a
--- strike every 0.15 s, 14 strikes, 7 to 10 bolts or beams each (3 under REDUCED EFFECTS), a mark leading each bolt. Bolt, beam and
--- flash parts are pooled and short-lived. The golem's events run on its own move (BossMagePoses.GolemAt while a golem stands),
--- tracked apart from hers. Debug field: BossEffects attribute LastStrikes, JSON { Move, Strikes = { { T, Spots = { {x, z} } } } }.
+-- strike every 0.15 s, 14 strikes, 7 to 10 bolts or beams each, a mark leading each bolt. Bolt, beam and flash parts are pooled
+-- per name and short-lived; the hit particles come from one reused spot. The golem's events run on its own move
+-- (BossMagePoses.GolemAt while a golem stands), tracked apart from hers. Debug field: BossEffects attribute LastStrikes, JSON
+-- { Move, Strikes = { { T, Spots = { {x, z} } } } }.
 -- BossVfxForce (client-local test attribute, as Client/BossVfx): not nil holds off the schedule; Lightning, Slam, Sweep or Barrage
 -- plays that event with its lead cue at once.
 -- Pose-tied (BOSS_EVENT_SPEC "Animation rework", "Pose-tied effects"): the lightning charges as a StaffCharge point at the staff's
--- tip, the barrage's circles open one after another in front of the staff, small to large, facing along it, the sweep's dust
--- puffs follow the golem's lower fist, and the golem's rise and her golem_fall row raise dust (none of the charge or the golem
--- dust under REDUCED EFFECTS). Positions come from the live posed parts (Client/BossMage:Point), the same frame they are drawn.
+-- tip, the barrage's 10 circles open one after another in a wide fan in front of the staff and around her, small to large, facing
+-- along it, the sweep's dust puffs follow the golem's lower fist, and the golem's rise and her golem_fall row raise dust.
+-- Positions come from the live posed parts (Client/BossMage:Point), the same frame they are drawn.
+-- Stronger look (owner 2026-11-12 after playing, design doc 4.37 "Elf Mage effects stronger"): each bolt a white BoltCore inside a
+-- purple Bolt glow with a branch, a white StrikeFlash, a purple ShockRing, Sparks and lit purple smoke at its spot; each barrage beam
+-- a white core, a blue-white glow and a near-black BarrageBeamEdge with a rounded head, a white flash, white sparks and black
+-- BarrageSmoke at its spot.
+-- Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting"): under ReduceEffects or
+-- Roblox Reduced Motion nothing is drawn but the strike marks; LastStrikes and LastImpact still log every strike.
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -35,7 +42,9 @@ local FORCE = "BossVfxForce"
 local NEON = Enum.Material.Neon
 local WHITE = Color3.new(1, 1, 1)
 local VIOLET = Color3.fromRGB(176, 84, 255)
+local LAVENDER = Color3.fromRGB(226, 196, 255) -- the shock ring's bright rim
 local ICE, BLUE = Color3.fromRGB(205, 232, 255), Color3.fromRGB(90, 150, 255) -- the barrage's white and blue
+local INK, SOOT = Color3.fromRGB(16, 12, 24), Color3.fromRGB(72, 68, 80) -- the barrage's black edge and smoke, smoke's grey end
 local DUST = Color3.fromRGB(196, 158, 116) -- the colosseum's ochre stone
 
 local function eventTime(move)
@@ -44,18 +53,40 @@ end
 local LIGHTNING_AT, SLAM_AT, BARRAGE_AT = eventTime("lightning"), eventTime("golem"), eventTime("barrage")
 local MARK_LEAD, GATHER_FROM = 1.0, 2.0
 local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- owner 2026-11-11: 0, 0.15, ... 1.95 s of the 2 s window
-local PER_STRIKE_MIN, PER_STRIKE_MAX, PER_STRIKE_REDUCED = 7, 10, 3 -- bolts or beams per strike (reduced: proposed)
+local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10 -- bolts or beams per strike
 local BARRAGE_WINDOW = Poses.Moves.barrage.Window[2] - Poses.Moves.barrage.Window[1]
-local SWEEP_PUFFS, SWEEP_PUFFS_REDUCED = 9, 3
+local SWEEP_PUFFS = 9
 local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 local BOLT_KINKS = 3
-local CIRCLES, CIRCLES_REDUCED = 6, 3
--- Owner 2026-11-12 morning (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): one by one, slower, all open before the beams
--- at 2.0 s, a bit bigger. The sixth opens at 0.3 + 5 x 0.28 = 1.7 s and is full by 1.7 + CIRCLE_OPEN.
-local CIRCLE_SMALL, CIRCLE_LARGE = 15, 36 -- studs across, the first and the last circle: small to large (1.5 x)
-local CIRCLE_FROM, CIRCLE_EVERY = 0.3, 0.28 -- s of barrage the first circle opens, s between two
-local CIRCLE_OPEN = 0.22 -- s a circle takes to open (Quad, no overshoot), so the last is full before 2.0 s
-local CIRCLE_AHEAD, CIRCLE_STEP = 12, 9 -- studs from the staff's tip along its pointing to the first circle, and between two
+-- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): thick white-violet bolts that hit hard.
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 1.8, 7, 0.24 -- studs across the white core and the purple glow, s they show
+local HIT_FLASH, HIT_FLASH_SECONDS = 22, 0.3 -- studs across a hit's white disc, s
+local RING_FROM, RING_TO, RING_SECONDS = 8, 46, 0.36 -- studs across a hit's purple shock ring as it grows, s (pool reuse after 0.45 s)
+local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
+local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 2.4, 4.4, 6.4, 0.25 -- studs across the barrage beam's layers, s
+local BEAM_HEAD = 7 -- studs across the beam's rounded white head at the hit
+local BEAM_SPARKS, BEAM_SMOKE = 4, 3 -- particles at each barrage spot
+local CIRCLES = 10
+-- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): 10, much bigger, one by one 0.15 s apart
+-- from 0.2 s, all open before the beams at 2.0 s: the tenth opens at 0.2 + 9 x 0.15 = 1.55 s and is full by 1.75 s.
+local CIRCLE_SMALL, CIRCLE_LARGE = 30, 70 -- studs across, the first and the last circle: small to large
+local CIRCLE_FROM, CIRCLE_EVERY = 0.2, 0.15 -- s of barrage the first circle opens, s between two
+local CIRCLE_OPEN = 0.2 -- s a circle takes to open (Quad, no overshoot)
+local CIRCLE_NEAR, CIRCLE_STEP = 22, 2.5 -- studs from her torso to the first circle's centre, and further for each next one
+-- The fan: circle k's { degrees off the staff's aim seen from her torso, degrees around the aim }: one on the aim, three close
+-- about it, six wider (within the 70 degrees of the contract).
+local CIRCLE_FAN = {
+	{ 0, 0 },
+	{ 26, 0 },
+	{ 26, 120 },
+	{ 26, 240 },
+	{ 48, 30 },
+	{ 48, 90 },
+	{ 48, 150 },
+	{ 48, 210 },
+	{ 48, 270 },
+	{ 48, 330 },
+}
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
 local SWEEP_AT = Poses.GolemMoves.golem_sweep.Events[1].Time
 local SWEEP_DUST = { SWEEP_AT - 0.4, SWEEP_AT + 0.4 } -- s of golem_sweep over which the puffs follow the fist (proposed)
@@ -68,13 +99,74 @@ local STAFF_SWING = {
 	lightning = { LIGHTNING_AT - 0.6, LIGHTNING_AT + 0.4 },
 	barrage = { BARRAGE_AT - 0.6, BARRAGE_AT + 0.4 },
 }
+-- The hit particles, one emitter each on one spot moved to every hit (no instance per hit). Placeholders.
+local HIT_LOOKS = {
+	Sparks = { -- lightning: white-violet sparks thrown off the hit
+		Name = "Sparks",
+		Texture = Art.Spark,
+		Color = ColorSequence.new(WHITE, VIOLET),
+		LightEmission = 1,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(80, 80),
+		Size = sequence(0, 2.4, 1, 0),
+		Lifetime = NumberRange.new(0.3, 0.6),
+		Speed = NumberRange.new(50, 110),
+		Drag = 3,
+		Acceleration = Vector3.new(0, -80, 0),
+	},
+	StrikeSmoke = { -- lightning: purple smoke lit from inside, settling grey (clip 3)
+		Name = "StrikeSmoke",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(VIOLET, SOOT),
+		LightEmission = 0.5,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(70, 70),
+		Size = sequence(0, 7, 1, 18),
+		Transparency = sequence(0, 0.35, 1, 1),
+		Lifetime = NumberRange.new(0.6, 1),
+		Speed = NumberRange.new(6, 14),
+		Drag = 1.5,
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-40, 40),
+	},
+	BarrageSparks = { -- barrage: white bursts at the hit
+		Name = "BarrageSparks",
+		Texture = Art.Spark,
+		Color = ColorSequence.new(WHITE, ICE),
+		LightEmission = 1,
+		Orientation = Enum.ParticleOrientation.VelocityParallel,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(80, 80),
+		Size = sequence(0, 2.2, 1, 0),
+		Lifetime = NumberRange.new(0.25, 0.5),
+		Speed = NumberRange.new(40, 90),
+		Drag = 3,
+	},
+	BarrageSmoke = { -- barrage: black smoke at the hit, thinning to grey (owner: add black)
+		Name = "BarrageSmoke",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(INK, SOOT),
+		LightInfluence = 0.3,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(60, 60),
+		Size = sequence(0, 5, 1, 15),
+		Transparency = sequence(0, 0.25, 1, 1),
+		Lifetime = NumberRange.new(0.7, 1.1),
+		Speed = NumberRange.new(6, 16),
+		Drag = 1.5,
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-40, 40),
+	},
+}
 
 local BossMageVfx = {}
 
 local effects, mage = nil, nil
 local tracked = {} -- part -> function giving its CFrame each frame
 local circles = {} -- the barrage's open circles, its beams' origins
-local pool = {} -- idle pooled parts (Transparency 1) in this arena's folder
+local pools = {} -- name -> idle pooled parts of that name's look (Transparency 1) in this arena's folder
+local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local previousMove, previousTime = nil, nil
 local previousGolem, previousGolemTime = nil, nil
 local staff = nil -- her Staff part, found by name (the rig is built late)
@@ -93,12 +185,12 @@ local function rngFor(name)
 	return rng
 end
 
--- The move's strikes: { T, Spots } for each of the 14, T seconds after the window starts. Every strike takes all its draws, so
--- REDUCED EFFECTS keeps the same spots, only fewer of them. Spots are area-uniform over the room's floor.
+-- The move's strikes: { T, Spots } for each of the 14, T seconds after the window starts, the same with effects on or off.
+-- Every strike takes all its draws. Spots are area-uniform over the room's floor.
 local function plan(name)
-	local rng, few, list = rngFor(name), reduced(), {}
+	local rng, list = rngFor(name), {}
 	for j = 1, STRIKE_COUNT do
-		local n = few and PER_STRIKE_REDUCED or rng:NextInteger(PER_STRIKE_MIN, PER_STRIKE_MAX)
+		local n = rng:NextInteger(PER_STRIKE_MIN, PER_STRIKE_MAX)
 		local spots = {}
 		for k = 1, PER_STRIKE_MAX do
 			local a, r = rng:NextNumber(0, 2 * math.pi), SPOT_MAX * math.sqrt(rng:NextNumber())
@@ -124,24 +216,36 @@ local function logStrikes(name, list)
 	effects:SetAttribute("LastStrikes", HttpService:JSONEncode({ Move = name, Strikes = rows }))
 end
 
--- A Neon part from the pool (or a new one), back to the pool `seconds` later. Parts the folder lost are dropped.
-local function pooled(name, cframe, size, color, transparency, seconds)
-	local part = table.remove(pool)
+-- A Neon part of `name` from its pool (or a new one, shaped by `make`), back to the pool `seconds` later; its decals fade with
+-- it. Parts the folder lost are dropped.
+local function pooled(name, cframe, size, color, transparency, seconds, make)
+	local idle = pools[name]
+	local part = idle and table.remove(idle)
 	while part and part.Parent ~= effects do
-		part = table.remove(pool)
+		part = table.remove(idle)
 	end
 	if part then
-		part.Name, part.CFrame, part.Size = name, cframe, size
+		part.CFrame, part.Size = cframe, size
 	else
 		part = Kit.holder(name, cframe, size)
 		part.Material = NEON
+		if make then
+			make(part)
+		end
 	end
-	part.Color, part.Transparency = color, transparency
+	part.Name, part.Color, part.Transparency = name, color, transparency
 	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	for _, d in part:GetChildren() do
+		if d:IsA("Decal") then
+			d.Transparency = 0
+			Kit.tween(d, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		end
+	end
 	task.delay(seconds + 0.03, function()
 		if part.Parent == effects then
 			part.Name, part.Transparency = "Pooled", 1
-			table.insert(pool, part)
+			pools[name] = pools[name] or {}
+			table.insert(pools[name], part)
 		end
 	end)
 	return part
@@ -157,23 +261,56 @@ local function later(seconds, play)
 	end)
 end
 
+-- Effects off: each strike's hit is still logged in LastImpact (Flash "None", Kick 0), nothing is drawn.
+local function logHits(move, list, full, roughness)
+	for _, strike in list do
+		later(strike.T, function()
+			Kit.impact(move, Arena.Center, full, roughness, 0.15, strike.T)
+			return 0
+		end)
+	end
+	return 0
+end
+
 -- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
 local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds)
 	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.4, seconds)
+	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.35, seconds)
 	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
+	return frame, length
 end
 
--- A flat glowing disc where a bolt or beam lands.
-local function flash(at, color, size, seconds)
+local function disc(part)
+	part.Shape = Enum.PartType.Cylinder
+end
+
+-- A flat glowing white disc where a bolt or beam lands.
+local function flash(at, size, seconds)
 	pooled(
 		"StrikeFlash",
 		CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2),
 		Vector3.new(0.2, size, size),
-		color,
-		0.1,
-		seconds
+		WHITE,
+		0,
+		seconds,
+		disc
 	)
+end
+
+-- `count` particles of HIT_LOOKS[name] at `at`, from the one hit spot.
+local function emitAt(name, at, count)
+	if not (hitSpot and hitSpot.Parent == effects) then
+		hitSpot = Kit.holder("HitSpot", CFrame.new(at), Vector3.new(4, 1, 4))
+		table.clear(hitEmitters)
+	end
+	local e = hitEmitters[name]
+	if not e then
+		e = Kit.emitter(hitSpot, HIT_LOOKS[name])
+		hitEmitters[name] = e
+	end
+	hitSpot.CFrame = CFrame.new(at)
+	e:Emit(count)
+	return count
 end
 
 -- A short flash of light for the room: few lights, so the interior stays cheap at quality 1.
@@ -188,7 +325,8 @@ end
 
 -- Lightning --------------------------------------------------------------------------------------------------------------------
 
--- 1.0 s ahead of each bolt: a purple ring closing in on its spot (one part each: there are up to 140).
+-- 1.0 s ahead of each bolt: a purple ring closing in on its spot (one part each: there are up to 140). Shown with effects off too:
+-- the marks are the telegraph.
 local function playMarks()
 	for _, strike in plan("Lightning") do
 		local lead = MARK_LEAD + strike.T
@@ -202,11 +340,29 @@ local function playMarks()
 	return 0
 end
 
+-- The shock ring's look: a purple disc with a bright ring on top (Right: the cylinder's end, turned up).
+local function shockLook(part)
+	disc(part)
+	Kit.decal(part, Art.Ring, LAVENDER, Enum.NormalId.Right)
+end
+
+-- One bolt's hit: a white disc, a purple shock ring racing out, sparks and lit purple smoke.
+local function boltHit(at)
+	flash(at, HIT_FLASH, HIT_FLASH_SECONDS)
+	local frame = CFrame.new(at + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2)
+	local ring =
+		pooled("ShockRing", frame, Vector3.new(0.3, RING_FROM, RING_FROM), VIOLET, 0.3, RING_SECONDS, shockLook)
+	Kit.tween(ring, RING_SECONDS, { Size = Vector3.new(0.3, RING_TO, RING_TO) }, Enum.EasingStyle.Quart)
+	return emitAt("Sparks", at, SPARKS_PER_HIT) + emitAt("StrikeSmoke", at + Vector3.new(0, 2, 0), SMOKE_PER_HIT)
+end
+
 local function playLightning()
 	-- cue: MageLightning (a crack of thunder)
-	local few = reduced()
 	local list, rng = plan("Lightning")
 	logStrikes("Lightning", list)
+	if reduced() then
+		return logHits("Lightning", list, 0.12, 20)
+	end
 	for _, strike in list do
 		local bolts = {}
 		for k, at in strike.Spots do
@@ -216,23 +372,36 @@ local function playLightning()
 				table.insert(points, p + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-6, 6)))
 			end
 			table.insert(points, at)
-			bolts[k] = points
+			-- a branch off the lower kink, forking down and out (clip 3)
+			local fork = points[BOLT_KINKS]
+				+ Vector3.new(rng:NextNumber(-16, 16), -rng:NextNumber(12, 24), rng:NextNumber(-16, 16))
+			bolts[k] = { Points = points, Fork = fork }
 		end
 		later(strike.T, function()
-			for _, points in bolts do
+			local total = 0
+			for _, bolt in bolts do
+				local points = bolt.Points
 				for i = 1, #points - 1 do
-					streak("Bolt", points[i], points[i + 1], 1.1, 3.5, WHITE, VIOLET, 0.22)
+					streak("Bolt", points[i], points[i + 1], BOLT_CORE, BOLT_GLOW, WHITE, VIOLET, BOLT_SECONDS)
 				end
-				flash(points[#points], VIOLET, 10, 0.3)
+				streak(
+					"Bolt",
+					points[BOLT_KINKS],
+					bolt.Fork,
+					BOLT_CORE * 0.6,
+					BOLT_GLOW * 0.6,
+					WHITE,
+					VIOLET,
+					BOLT_SECONDS
+				)
+				total += boltHit(points[#points])
 			end
-			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, few and 1 or 2.5, 0.2)
+			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), VIOLET, 3.5, 0.2)
 			Kit.impact("Lightning", Arena.Center, 0.12, 20, 0.15, strike.T)
-			return 0
+			return total
 		end)
 	end
-	if not few then
-		Kit.regrade({ TintColor = Color3.fromRGB(222, 196, 255), Brightness = 0.06, Contrast = 0.1 }, 0.05, 1.9, 0.55)
-	end
+	Kit.regrade({ TintColor = Color3.fromRGB(226, 204, 255), Brightness = 0.08, Contrast = 0.14 }, 0.05, 1.9, 0.55)
 	return 0
 end
 
@@ -273,61 +442,62 @@ end
 
 local function playSlam()
 	-- cue: GolemSlam (a deep thud)
-	local few = reduced()
 	local fist = mage:GolemFrame("FistR").Position:Lerp(mage:GolemFrame("FistL").Position, 0.5)
 	local at = Vector3.new(fist.X, Arena.Y + 0.3, fist.Z)
+	if reduced() then -- effects off: the hit logged only
+		Kit.impact("Slam", at, 1.6, 20, 0.5)
+		return 0
+	end
 	-- Across the lanes: from the golem's spot to past the ring's far side
 	local reach = 2 * (Arena.InnerRadius + Arena.Width + ((at - Arena.Center) * Vector3.new(1, 0, 1)).Magnitude)
 	Kit.growingRing("SlamRing", CFrame.new(at), 12, reach, 0.9, WHITE, 0, Kit.FlatFaces)
 	local total = 0
-	if not few then
-		Kit.growingRing("SlamDust", CFrame.new(at), 20, reach * 0.55, 1.4, DUST, 0.05, Kit.FlatFaces)
-		local spot = Kit.holder("SlamSpot", CFrame.new(at), Vector3.new(40, 1, 40))
-		Kit.expire(spot, 3)
-		total += Kit.burst(
-			Kit.emitter(spot, {
-				Name = "Dust",
-				Texture = Art.Dust,
-				Color = ColorSequence.new(DUST),
-				LightInfluence = 0.6,
-				Shape = Enum.ParticleEmitterShape.Disc,
-				ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
-				EmissionDirection = Enum.NormalId.Top,
-				SpreadAngle = Vector2.new(75, 75),
-				Size = sequence(0, 8, 0.4, 18, 1, 24),
-				Transparency = sequence(0, 0.2, 0.6, 0.45, 1, 1),
-				Lifetime = NumberRange.new(1, 1.8),
-				Speed = NumberRange.new(40, 90),
-				Drag = 2,
-				Rotation = NumberRange.new(0, 360),
-				RotSpeed = NumberRange.new(-40, 40),
-			}),
-			28
-		)
-		total += Kit.burst(
-			Kit.emitter(spot, {
-				Name = "Debris",
-				Texture = Art.Shard,
-				Color = ColorSequence.new(DUST),
-				LightInfluence = 0.8,
-				EmissionDirection = Enum.NormalId.Top,
-				SpreadAngle = Vector2.new(55, 55),
-				Size = sequence(0, 3, 1, 2),
-				Lifetime = NumberRange.new(0.8, 1.4),
-				Speed = NumberRange.new(50, 110),
-				Acceleration = Vector3.new(0, -160, 0),
-				Rotation = NumberRange.new(0, 360),
-				RotSpeed = NumberRange.new(-300, 300),
-			}),
-			14,
-			0.03
-		)
-	end
+	Kit.growingRing("SlamDust", CFrame.new(at), 20, reach * 0.55, 1.4, DUST, 0.05, Kit.FlatFaces)
+	local spot = Kit.holder("SlamSpot", CFrame.new(at), Vector3.new(40, 1, 40))
+	Kit.expire(spot, 3)
+	total += Kit.burst(
+		Kit.emitter(spot, {
+			Name = "Dust",
+			Texture = Art.Dust,
+			Color = ColorSequence.new(DUST),
+			LightInfluence = 0.6,
+			Shape = Enum.ParticleEmitterShape.Disc,
+			ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+			EmissionDirection = Enum.NormalId.Top,
+			SpreadAngle = Vector2.new(75, 75),
+			Size = sequence(0, 8, 0.4, 18, 1, 24),
+			Transparency = sequence(0, 0.2, 0.6, 0.45, 1, 1),
+			Lifetime = NumberRange.new(1, 1.8),
+			Speed = NumberRange.new(40, 90),
+			Drag = 2,
+			Rotation = NumberRange.new(0, 360),
+			RotSpeed = NumberRange.new(-40, 40),
+		}),
+		28
+	)
+	total += Kit.burst(
+		Kit.emitter(spot, {
+			Name = "Debris",
+			Texture = Art.Shard,
+			Color = ColorSequence.new(DUST),
+			LightInfluence = 0.8,
+			EmissionDirection = Enum.NormalId.Top,
+			SpreadAngle = Vector2.new(55, 55),
+			Size = sequence(0, 3, 1, 2),
+			Lifetime = NumberRange.new(0.8, 1.4),
+			Speed = NumberRange.new(50, 110),
+			Acceleration = Vector3.new(0, -160, 0),
+			Rotation = NumberRange.new(0, 360),
+			RotSpeed = NumberRange.new(-300, 300),
+		}),
+		14,
+		0.03
+	)
 	Kit.impact("Slam", at, 1.6, 20, 0.5)
 	return total
 end
 
--- Dust on the floor under the golem: a ring and a burst (its rise and its fall). Not under REDUCED EFFECTS.
+-- Dust on the floor under the golem: a ring and a burst (its rise and its fall). None with effects off.
 local function groundDust(name)
 	if reduced() then
 		return 0
@@ -367,11 +537,11 @@ local function playFallDust()
 	return groundDust("GolemFallDust")
 end
 
--- The sweep's puff i of SWEEP_PUFFS (REDUCED EFFECTS: the first, middle and last), on the floor under the golem's lower fist now.
+-- The sweep's puff i of SWEEP_PUFFS (none with effects off), on the floor under the golem's lower fist now.
 local FIST_L = Vector3.new(table.unpack(Poses.GolemBind.FistL.Center))
 local FIST_R = Vector3.new(table.unpack(Poses.GolemBind.FistR.Center))
-local function playPuff(i)
-	if reduced() and (i - 1) % ((SWEEP_PUFFS - 1) / (SWEEP_PUFFS_REDUCED - 1)) ~= 0 then
+local function playPuff()
+	if reduced() then
 		return 0
 	end
 	local left, right = mage.Golem:Point("FistL", FIST_L), mage.Golem:Point("FistR", FIST_R)
@@ -387,9 +557,7 @@ local SWEEP_ROWS = {}
 for i = 1, SWEEP_PUFFS do
 	SWEEP_ROWS[i] = {
 		SWEEP_DUST[1] + (SWEEP_DUST[2] - SWEEP_DUST[1]) * (i - 1) / (SWEEP_PUFFS - 1),
-		function()
-			return playPuff(i)
-		end,
+		playPuff,
 	}
 end
 
@@ -410,21 +578,31 @@ end
 
 -- Barrage ------------------------------------------------------------------------------------------------------------------------
 
--- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in front of the staff's
--- tip along its pointing (grip to tip), facing along it, small to large, turning, riding her bob.
+-- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in a wide fan in front
+-- of her along the staff's pointing (grip to tip), facing along it, small to large, turning, with a bright rim and a white pop.
+local function ballLook(part)
+	part.Shape = Enum.PartType.Ball
+end
+
 local function playCircle(k)
-	local few = reduced()
-	local count = few and CIRCLES_REDUCED or CIRCLES
-	if k > count then
+	if k > CIRCLES or reduced() then
 		return 0
 	end
 	if k == 1 then
 		table.clear(circles)
 	end
-	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * (k - 1) / math.max(1, count - 1)
+	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * (k - 1) / (CIRCLES - 1)
 	local grip, tip = mage:Point("Staff", Vector3.zero), mage:Point("Staff", STAFF_TIP)
 	local aim = (tip - grip).Magnitude > 0.01 and (tip - grip).Unit or Vector3.new(0, 0, -1)
-	local offset = tip + aim * (CIRCLE_AHEAD + CIRCLE_STEP * (k - 1)) - mage.Her.Anchor.Position
+	local torso = mage.Her.Model and mage.Her.Model:FindFirstChild("Torso", true)
+	local from = torso and torso.Position or tip
+	local ref = math.abs(aim.Y) < 0.95 and Vector3.yAxis or Vector3.xAxis
+	local right = aim:Cross(ref).Unit
+	local up = right:Cross(aim)
+	local off, around = math.rad(CIRCLE_FAN[k][1]), math.rad(CIRCLE_FAN[k][2])
+	local out = aim * math.cos(off) + (right * math.cos(around) + up * math.sin(around)) * math.sin(off)
+	local center = from + out * (CIRCLE_NEAR + CIRCLE_STEP * (k - 1))
+	local offset = center - mage.Her.Anchor.Position
 	local turn = (k % 2 == 0 and 1 or -1) * math.rad(90)
 	local born = os.clock()
 	local function frame()
@@ -433,13 +611,20 @@ local function playCircle(k)
 	end
 	local part = Kit.holder("MagicCircle", frame(), Vector3.new(1, 1, 0.2))
 	tracked[part] = frame
-	local front = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Front)
-	local back = Kit.decal(part, MageArt.MagicCircle, k % 2 == 0 and BLUE or ICE, Enum.NormalId.Back)
+	local tint = k % 2 == 0 and BLUE or ICE
+	local faces = {}
+	for _, face in Kit.UprightFaces do
+		table.insert(faces, Kit.decal(part, MageArt.MagicCircle, tint, face))
+		table.insert(faces, Kit.decal(part, Art.Ring, WHITE, face, 0.15)) -- the bright rim
+	end
 	Kit.tween(part, CIRCLE_OPEN, { Size = Vector3.new(size, size, 0.2) })
+	local pop = pooled("CirclePop", CFrame.new(center), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
+	Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.4 })
 	local hold = BARRAGE_AT - (CIRCLE_FROM + (k - 1) * CIRCLE_EVERY) + BARRAGE_WINDOW
 	task.delay(hold + 0.25, function()
-		Kit.tween(front, 0.3, { Transparency = 1 })
-		Kit.tween(back, 0.3, { Transparency = 1 })
+		for _, d in faces do
+			Kit.tween(d, 0.3, { Transparency = 1 })
+		end
 	end)
 	Kit.expire(part, hold + 0.6)
 	table.insert(circles, part)
@@ -456,28 +641,55 @@ local function playCircles()
 	return 0
 end
 
+-- The edge's look: dark, not glowing.
+local function edgeLook(part)
+	part.Material = Enum.Material.SmoothPlastic
+end
+
+-- One beam from a circle to its spot: a white-hot core in a blue-white glow inside a near-black edge, a rounded white head, a
+-- white flash, white sparks and black smoke where it hits.
+local function beam(from, target, k)
+	local frame, length =
+		streak("BarrageBeam", from, target, BEAM_CORE, BEAM_GLOW, WHITE, k % 2 == 0 and BLUE or ICE, BEAM_SECONDS)
+	pooled("BarrageBeamEdge", frame, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.7, BEAM_SECONDS, edgeLook)
+	pooled(
+		"BarrageBeamHead",
+		CFrame.new(target + Vector3.new(0, BEAM_HEAD * 0.3, 0)),
+		Vector3.one * BEAM_HEAD,
+		WHITE,
+		0,
+		BEAM_SECONDS,
+		ballLook
+	)
+	flash(target, 16, 0.3)
+	return emitAt("BarrageSparks", target, BEAM_SPARKS)
+		+ emitAt("BarrageSmoke", target + Vector3.new(0, 2, 0), BEAM_SMOKE)
+end
+
 local function playBarrage()
 	-- cue: MageBarrage (a volley of zaps)
-	local few = reduced()
 	local list = plan("Barrage")
 	logStrikes("Barrage", list)
+	if reduced() then
+		return logHits("Barrage", list, 0.1, 18)
+	end
 	for j, strike in list do
 		later(strike.T, function()
+			local total = 0
 			for k, target in strike.Spots do
 				local circle = #circles > 0 and circles[(j + k - 2) % #circles + 1]
 				local from = circle and circle.Parent and circle.Position or mage:Point("Staff", STAFF_TIP)
-				streak("BarrageBeam", from, target, 1.2, 3.6, WHITE, k % 2 == 0 and BLUE or ICE, 0.25)
-				flash(target, BLUE, 9, 0.3)
+				total += beam(from, target, k)
 			end
-			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), BLUE, few and 1 or 2, 0.2)
+			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			Kit.impact("Barrage", Arena.Center, 0.1, 18, 0.15, strike.T)
-			return 0
+			return total
 		end)
 	end
 	return 0
 end
 
--- The staff's trail: on inside STAFF_SWING, off otherwise and under REDUCED EFFECTS.
+-- The staff's trail: on inside STAFF_SWING, off otherwise and with effects off.
 local function stepStaffTrail(move, localTime)
 	local swing = STAFF_SWING[move]
 	local on = swing and localTime >= swing[1] and localTime <= swing[2] and not reduced()
@@ -584,7 +796,9 @@ local function advance(fire, move, t, lastMove, lastTime)
 end
 
 local function clear()
-	table.clear(pool)
+	table.clear(pools)
+	hitSpot = nil
+	table.clear(hitEmitters)
 	table.clear(tracked)
 	table.clear(circles)
 	if staff and staff.Parent then

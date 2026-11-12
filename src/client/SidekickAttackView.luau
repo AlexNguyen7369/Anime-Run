@@ -31,7 +31,6 @@ local NUMBER_SECONDS = 1.1
 local NUMBER_POP = 0.18 -- s of the pop out, placeholder
 local NUMBER_DRIFT = 40 -- studs sideways at most, placeholder
 local BUDGET = 400 -- particles alive at once, with 7 players (brief)
-local REDUCED_BUDGET = 60 -- the same under REDUCED EFFECTS, proposed
 local OTHERS_BUDGET = 0.5 -- of the budget: others' 18 characters stop adding there, so the local 3 still draw
 local OTHERS = 0.3 -- of the counts for someone else's attack
 local OTHERS_SIZE = 0.7
@@ -380,7 +379,7 @@ local EFFECTS = {
 	},
 }
 
--- The shot of REDUCED EFFECTS and of side_raga, in the Sidekick's colour.
+-- The shot of side_raga (no approved attack), in the Sidekick's colour.
 for _, row in EFFECTS do
 	row.Simple = {
 		Effect = "Simple",
@@ -445,8 +444,7 @@ local function particlesOf(layers, mine)
 end
 
 local function hasRoom(layers, mine)
-	local budget = UiMotion.Reduced() and REDUCED_BUDGET or BUDGET
-	return live + particlesOf(layers, mine) <= budget * (mine and 1 or OTHERS_BUDGET)
+	return live + particlesOf(layers, mine) <= BUDGET * (mine and 1 or OTHERS_BUDGET)
 end
 
 -- particles of a shot, particles of its impact, for the budget's books.
@@ -557,11 +555,17 @@ local function damageNumber(impact, hit)
 	end)
 end
 
--- The number of a hit with no follower to draw it from: at the boss, when a shot would have landed.
+-- The number of a hit with no follower to draw it from, or with effects off: at the boss, when a shot would have landed. With
+-- effects off its holder is no Impact (design doc 4.37 "Boss effects have no reduced version"): the number (UI) alone.
 local function numberAlone(hit)
 	local impact =
 		newPart("Impact", CFrame.new(bossPoint(Arena.For(BossCatalog.Current().Id).Center)), Vector3.new(30, 30, 30))
-	tagged(impact, "Impact", hit, 0)
+	if UiMotion.Reduced() then
+		impact.Name = "NumberSpot"
+		task.delay(NUMBER_SECONDS, impact.Destroy, impact)
+	else
+		tagged(impact, "Impact", hit, 0)
+	end
 	impact.Parent = folder
 	damageNumber(impact, hit)
 end
@@ -857,16 +861,14 @@ local function onHits(entries)
 	for _, hit in ordered(entries) do
 		local id = hit.SidekickId
 		local follower = shooter(hit)
-		if not follower or follower.Hidden then
+		if reduced or not follower or follower.Hidden then -- effects off: no attack drawn, the damage number stays
 			task.delay(LEAD + FLIGHT, numberAlone, hit)
 		else
 			local row = EFFECTS[id]
-			local simple = reduced or row.Plain
+			local simple = row.Plain
 			local recipe = simple and row.Simple or row
 			local mine = hit.UserId == player.UserId
-			if not reduced then
-				startPose(follower, id)
-			end
+			startPose(follower, id)
 			local release = Attacks.Attacks[id].Release
 			for i, at in release do
 				if i == 1 or not simple then
