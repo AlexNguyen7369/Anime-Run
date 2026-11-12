@@ -177,8 +177,10 @@
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
 174. 2026-11-12 — Alex Nguyen — Hotfixed main after the owner found loading stuck: src/late/BossKingPoses.luau (and its generator) required BossEventConfig from LateData instead of Shared, which crashed BossDodge, BossEventService, AdminService and Main at boot so no server built the plaza; PR #11 merged after a fresh review APPROVE (Studio boot OK, late_data 96/96, boss_king_anim 133/133).
 175. 2026-11-12 — Alex Nguyen — Wrote the boss animation rework rules (design doc 4.37, BOSS_EVENT_SPEC, goal boss-anim-rework, owner clip notes in the evidence files): jointed rigs, 10 key frames per move, arena-wide flash and shake, pose-tied effects, lighter runner auras and trails in events.
+176. 2026-11-12 — Alex Nguyen — Recorded the owner's rulings for the Golden King's own arena (open-air sunset stadium, he hovers, vault retired), 10 key frames per move, arena-wide flash and shake and lighter runner auras in events; rules audit FAIL round 1, PASS round 2 after the FOV punch was dropped and superseded rules were marked.
+177. 2026-11-12 — Alex Nguyen — Built the jointed Golden King rig (elbows and knees, 2,992 tris, 15 meshes) and rendered the 10 hovering Enuma Elish key frames for owner approval (b94a8ba); no in-betweens, the shipped 6-part build unchanged.
 
 ## What's next
-**Pilot move a1: rebuild `boss_king` with elbows and knees and key the 10 key frames of Enuma Elish, then show the model render and the slice sheet to the owner for approval before any in-between.**
+**Owner's approval of the jointed Golden King model and the 10 Enuma Elish key frames (`assets/characters_avatar/boss_king/keyframes/rework/enuma_slices.png`), then the in-betweens and bake of that pilot move.**
 
-**Why this is next:** the pilot proves the jointed rig, the bake changes, the arena-wide impact layer and the pose-tied effects on one move, and the owner's verdict on it sets the pattern for every other move of both bosses and the golem.
+**Why this is next:** the owner gate (design doc 4.37) forbids any in-between before the keys are approved, and the pilot's verdict sets the pattern for every other move of both bosses and the golem.
