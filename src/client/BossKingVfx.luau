@@ -321,9 +321,7 @@ local function playVolley()
 				end
 			end
 			roomLight(him() + Vector3.new(0, 30, 0), GOLD, few and 1 or 2, 0.2)
-			if not few then
-				Kit.shakeAt(Arena.Center, 0.1, 18, 0.15)
-			end
+			Kit.impact("Gates", Arena.Center, 0.1, 18, 0.15, strike.T)
 			return 0
 		end)
 	end
@@ -429,8 +427,8 @@ local function playBeam()
 			smoke.Enabled = false
 		end)
 		total += 60 * BEAM
-		Kit.shakeAt(Arena.Center, 1.0, 20, BEAM)
 	end
+	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM)
 	roomLight(him() + Vector3.new(0, 30, 0), RED, few and 1.5 or 3, BEAM + 0.3)
 	task.delay(BEAM, function()
 		Kit.tween(core, 0.3, { Transparency = 1 })

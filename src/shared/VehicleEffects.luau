@@ -1173,51 +1173,6 @@ function Effects.Apply(car, player, slot)
 		end
 	end
 end
--- Scales what Apply put on a rig about its body (BOSS_EVENT_SPEC "Arena": more visible in an event), on a client's own rig: the
--- server's stays at normal size. A factor under 1 undoes a boost.
-Effects.EVENT_BOOST = 2.5 -- proposed
-local EVENT_TRAIL_LIFE = 1.5 -- proposed: a longer wake, on top of the wider ribbon
-local function scaledSequence(sequence, factor)
-	local points = {}
-	for _, k in sequence.Keypoints do
-		table.insert(points, NumberSequenceKeypoint.new(k.Time, k.Value * factor, k.Envelope * factor))
-	end
-	return NumberSequence.new(points)
-end
-function Effects.Boost(car, factor)
-	local chassis = car and car.PrimaryPart
-	if not chassis then
-		return
-	end
-	for _, at in chassis:GetChildren() do
-		if at:IsA("Attachment") and at:GetAttribute("MarketEffect") then
-			at.Position *= factor
-			local base = at:GetAttribute("FxBase")
-			if typeof(base) == "CFrame" then
-				at:SetAttribute("FxBase", base.Rotation + base.Position * factor)
-			end
-			if at:GetAttribute("FxRadius") then
-				at:SetAttribute("FxRadius", at:GetAttribute("FxRadius") * factor)
-			end
-			if at:GetAttribute("FxBox") then
-				at:SetAttribute("FxBox", at:GetAttribute("FxBox") * factor)
-			end
-			for _, p in at:GetChildren() do
-				if p:IsA("ParticleEmitter") then
-					p.Size = scaledSequence(p.Size, factor)
-					p.Speed = NumberRange.new(p.Speed.Min * factor, p.Speed.Max * factor)
-					p.Acceleration *= factor
-				end
-			end
-		end
-	end
-	local folder = car:FindFirstChild("MarketEffects")
-	for _, trail in folder and folder:GetChildren() or {} do
-		if trail:IsA("Trail") then
-			trail.Lifetime *= factor > 1 and EVENT_TRAIL_LIFE or 1 / EVENT_TRAIL_LIFE
-		end
-	end
-end
 -- One profile by id, Market item or not (the VFX showcase shows drafts such as ascended_aura this way).
 function Effects.ApplyProfile(car, kind, id)
 	local folder = reset(car)

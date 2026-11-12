@@ -5,6 +5,7 @@
 -- things the engine needs elsewhere, a Lighting grade and a screen-edge gui, end by themselves.
 -- All sizes and counts are placeholders to judge by eye. A particle tops out near 100 studs, so the shapes that must read from 900
 -- studs are parts with a Decal or Neon; particles are the texture around them. Sounds: only the "cue:" hooks below.
+local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -272,6 +273,89 @@ local function shakeAt(position, magnitude, roughness, fade, floor)
 	local camera = Workspace.CurrentCamera
 	local distance = camera and (camera.CFrame.Position - position).Magnitude or 0
 	BossShake.Kick(magnitude * math.clamp(1 - distance / 2400, floor or 0.3, 1), roughness, fade)
+end
+
+-- The arena-wide impact layer of the other bosses (BOSS_EVENT_SPEC "Animation rework", "Impact layer, arena-wide"; proposed).
+local IMPACT_FLOOR = 0.5 -- of the full kick, however far the camera is
+local IMPACT_SHIFT = 0.3 -- studs of positional kick per degree of rotation kick
+local FLASH_FULL, FLASH_LOW = { Brightness = 0.25, Contrast = 0.2 }, { Brightness = 0.06, Contrast = 0 }
+local FLASH_SECONDS = 0.1
+local LIGHT_PULSE, LIGHT_SECONDS = 2.5, 0.25 -- x the light's own brightness at the peak, then back
+local impactLog, pulse, pulseToken = nil, nil, 0
+
+local function flashScreen(full)
+	local effect = pulse
+	if full then
+		effect = Instance.new("ColorCorrectionEffect")
+		effect.Name = "BossImpactFlash"
+		task.delay(FLASH_SECONDS + 0.05, effect.Destroy, effect)
+	elseif not effect then
+		effect = Instance.new("ColorCorrectionEffect")
+		effect.Name = "BossImpactPulse" -- one, reused by a window's strikes
+		pulse = effect
+	end
+	local goal = full and FLASH_FULL or FLASH_LOW
+	effect.Brightness, effect.Contrast = goal.Brightness, goal.Contrast
+	effect.Parent = Lighting
+	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0 })
+	if not full then
+		pulseToken += 1
+		local token = pulseToken
+		task.delay(FLASH_SECONDS + 0.3, function()
+			if pulseToken == token and pulse then
+				pulse:Destroy()
+				pulse = nil
+			end
+		end)
+	end
+end
+
+-- The arena's own lights (its torches), not the effects' flash lights; returns how many pulsed.
+local function pulseLights()
+	local arena = effects and effects.Parent
+	local count = 0
+	for _, d in arena and arena:GetDescendants() or {} do
+		if d:IsA("Light") and not d:IsDescendantOf(effects) then
+			local base = d:GetAttribute("ImpactBase") or d.Brightness -- kept, so overlapping pulses never ratchet it up
+			d:SetAttribute("ImpactBase", base)
+			d.Brightness = base * LIGHT_PULSE
+			tween(d, LIGHT_SECONDS, { Brightness = base })
+			count += 1
+		end
+	end
+	return count
+end
+
+-- One boss hit, for every fighter: a shake of `full` degrees at `spot`, never under IMPACT_FLOOR of it, with a positional kick,
+-- and a flash. t: seconds after the move's first hit (a strike window's planned time); 0 is the first hit, a full flash with the
+-- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact.
+local function impact(move, spot, full, roughness, fade, t)
+	t = t or 0
+	local camera = Workspace.CurrentCamera
+	local distance = camera and (camera.CFrame.Position - spot).Magnitude or 0
+	local loud = not reduced()
+	local kick = loud and full * math.clamp(1 - distance / 2400, IMPACT_FLOOR, 1) or 0
+	local level = not loud and "None" or t == 0 and "Full" or "Low"
+	BossShake.Kick(kick, roughness, fade, kick * IMPACT_SHIFT)
+	if level ~= "None" then
+		flashScreen(level == "Full")
+	end
+	local lights = level == "Full" and pulseLights() or 0
+	if t == 0 or not impactLog or impactLog.Move ~= move then
+		impactLog = { Move = move, Hits = {} }
+	end
+	table.insert(impactLog.Hits, {
+		T = t,
+		Flash = level,
+		Kick = kick,
+		Full = full,
+		Shift = kick * IMPACT_SHIFT,
+		Distance = math.floor(distance + 0.5),
+		Lights = lights,
+	})
+	if effects then
+		effects:SetAttribute("LastImpact", HttpService:JSONEncode(impactLog))
+	end
 end
 
 -- Impact: the blade hits ---------------------------------------------------------------------------------------------------------
@@ -1100,6 +1184,7 @@ BossVfx.Kit = {
 	growingRing = growingRing,
 	pulseEdges = pulseEdges,
 	shakeAt = shakeAt,
+	impact = impact,
 	expire = expire,
 	sequence = sequence,
 	regrade = regrade,
