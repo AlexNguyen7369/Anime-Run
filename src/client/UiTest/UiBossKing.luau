@@ -510,8 +510,8 @@ function Module.Build(h)
 	-- Folder or Model KingArena (his arena, every part of it under it) with the mound under a child named KingMound, and Model
 	-- GoldenKing. Checks: the arena's BaseParts (MeshParts included) reported and <= 1,250; nothing on the lane band above the
 	-- deck; nothing inside the ring over 12 studs but the mound; his feet (the lowest corner of his leg parts) about 12 over the
-	-- mound's top; the camera's FOV 60 for the whole event in his arena (no change during a move), 100 in the mage's and Big
-	-- Raga's; the sunset profile (BiomeEnvironment.Profile(ARENA_ZONE, "boss_king")) applied in his event, the zone's own after.
+	-- mound's top; the camera's FOV 80 (owner 2026-11-12, was 60) for the whole event in his arena (no change during a move), 100
+	-- in the mage's and Big Raga's; the sunset profile (BiomeEnvironment.Profile(ARENA_ZONE, "boss_king")) applied in his event, the zone's own after.
 	function scenarios.ui_boss_king_arena(res)
 		local Lighting = game:GetService("Lighting")
 		local LANE_SLACK = 0.3 -- studs over the deck a lane line or paving piece may stand
@@ -590,8 +590,9 @@ function Module.Build(h)
 			)
 			h.checkList(res, "king_arena_lanes_clear", onLanes)
 			h.checkList(res, "king_arena_inside_ring_under_12", tallInside)
-			-- The camera in Prep (still Prep here; the hover below moves to the fight).
-			check(res, "king_fov_60_in_prep", waitIs(fov, 60), 60)
+			-- The camera in Prep (still Prep here; the hover below moves to the fight). FOV 80: owner change 2026-11-12 after playing
+			-- (design doc 4.37 "Golden King camera"; was 60).
+			check(res, "king_fov_80_in_prep", waitIs(fov, 80), 80)
 			-- His hover (BOSS_EVENT_SPEC "The Golden King's arena": "hovers 12 studs over the mound's top and bobs 1.5 studs over
 			-- 3 s"), in Fight after the rise (in Prep he is hidden far below) and in the cycle's first idle row (his moves dip the
 			-- root on purpose), sampled over one full 3 s bob. king_hover_about_12 reads the rule's point: his rest sole (the
@@ -656,7 +657,7 @@ function Module.Build(h)
 				)
 			end
 
-			-- The camera: FOV 60 for the whole event in his arena, through a move.
+			-- The camera: FOV 80 (owner change 2026-11-12, was 60) for the whole event in his arena, through a move.
 			local index, at = firstMoment("enuma")
 			check(res, "king_enuma_moment_found", index ~= nil, true)
 			if index then
@@ -668,10 +669,10 @@ function Module.Build(h)
 				end
 				h.check(
 					res,
-					"king_fov_60_through_enuma",
+					"king_fov_80_through_enuma",
 					("%s to %s"):format(low, high),
-					"60 to 60",
-					low == 60 and high == 60
+					"80 to 80",
+					low == 80 and high == 80
 				)
 			end
 			-- The lighting: his sunset profile in his event.
@@ -702,7 +703,7 @@ function Module.Build(h)
 			-- Leaving: the zone's own profile returns.
 			boss(res, KING)
 			state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, hp, hp, true, 100)
-			waitIs(fov, 60)
+			waitIs(fov, 80)
 			state(res, "Idle", 0, 0, 0, false)
 			boss(res, nil)
 			local left = waitIs(function()
