@@ -17,6 +17,7 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local BossCatalog = require(shared:WaitForChild("BossCatalog"))
+local BossKingArt = require(shared:WaitForChild("BossKingArt"))
 local BossMageArt = require(shared:WaitForChild("BossMageArt"))
 local Cfg = require(shared:WaitForChild("BossEventConfig"))
 local GachaConfig = require(shared:WaitForChild("GachaConfig"))
@@ -106,6 +107,8 @@ local STATUS_LOOKS = {
 	{ Id = "Adapted", Color = Palette.Gold }, -- the wheel turn that starts it
 	{ Id = "Vulnerable", Glyph = "V", Color = Palette.MoneyDeep }, -- no end time: it goes with its row
 	{ Id = "Crushed", Image = BossMageArt.StatusCrushed, Color = Palette.Danger }, -- the Elf Mage's golem slam
+	-- The Golden King's Shield Gates, on him (BOSS_EVENT_SPEC "The Golden King"): no seconds, it ends at his next move
+	{ Id = "Fortified", Image = BossKingArt.StatusFortified, Color = Palette.Gold },
 }
 
 local function make(class, name, parent, props)
@@ -743,7 +746,12 @@ local spawnBusy = make("TextLabel", "SpawnNote", spawnBox, {
 
 -- Every chest's table (BOSS_EVENT_SPEC "Paid spawn"), one column per chest of every boss, built once from the drop list's lines;
 -- only the pressed boss's columns show. Titles and rows stay directly in BossDetails (UiBossPaid, UiBossPhase2 read them there).
-local DETAIL_ROWS = { relic_chest_raga = "Row_", relic_chest_adapted = "Adapted_", relic_chest_mage = "Mage_" }
+local DETAIL_ROWS = {
+	relic_chest_raga = "Row_",
+	relic_chest_adapted = "Adapted_",
+	relic_chest_mage = "Mage_",
+	relic_chest_king = "King_",
+}
 local bossDetails = make("Frame", "BossDetails", bossesPanel, { BackgroundTransparency = 1, Visible = false })
 local detailsBack = button("Back", bossDetails, "Back", "Idle", {})
 local detailColumns = {} -- { Boss, Card, Heading, Rows = { { Label, Color, Outline } } } per chest
@@ -1304,6 +1312,23 @@ ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
 	ragaPortrait.Image = boss.Portrait or ""
 	inviteHint.Text = teleport.Active and boss.InviteHint or LOCKED_TEXT
 	buildDrops(boss)
+end)
+
+-- The Golden King's notice (BOSS_EVENT_SPEC "The Golden King"): the catalog's FortifiedText in the Dodge bar's red hit header
+-- (RacerBossDodge.ShowResult, as BossOsuUi uses it) to everyone in the event when BossFortified turns true. The Fortified status
+-- cell itself follows the player's BossStatus rows, as every status does.
+ReplicatedStorage:GetAttributeChangedSignal("BossFortified"):Connect(function()
+	local text = BossCatalog.Current().FortifiedText
+	local dodgeGui = playerGui:FindFirstChild("RacerBossDodge")
+	local show = dodgeGui and dodgeGui:FindFirstChild("ShowResult")
+	if
+		ReplicatedStorage:GetAttribute("BossFortified") == true
+		and text
+		and show
+		and player:GetAttribute("BossEvent")
+	then
+		show:Fire("Hit", text)
+	end
 end)
 
 -- Presses -----------------------------------------------------------------------------------------------------------------
