@@ -5,6 +5,9 @@ return {
 	boss_golem = {
 		BossModel = 112976086043908,
 	},
+	boss_king = {
+		BossModel = 98757375537994,
+	},
 	boss_mage = {
 		BossModel = 71771432759364,
 	},
