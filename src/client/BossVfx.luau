@@ -1019,11 +1019,16 @@ end
 
 -- Call with the arena's BossEffects folder and the boss.
 function BossVfx.Start(folder, boss)
-	Poses = LateData.Get(BossCatalog.Get("boss_raga").Poses)
-	impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
 	effects, raga = folder, boss
 	previousMove, previousTime = nil, nil
 	screaming = false
+	if boss == nil then
+		-- Another boss's Vfx (BossMageVfx, BossKingVfx) borrows the Kit's helpers only: Big Raga's poses are not delivered
+		-- in their events (per-boss late data), so waiting for them here would hang that boss's Start forever.
+		return
+	end
+	Poses = LateData.Get(BossCatalog.Get("boss_raga").Poses)
+	impactPoint = BossRaga.RestPoint(Poses.ImpactPoint) * Vector3.new(1, 0, 1) + Vector3.new(0, Arena.Y + 1, 0)
 end
 
 function BossVfx.Stop()
