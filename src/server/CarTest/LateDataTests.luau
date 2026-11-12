@@ -17,6 +17,13 @@
 --     by Advance(t) with SetClock at t, NOT when BossEventNextBoss is set; on Start(source, X) or Start("Paid") picking X; and on
 --     BossArenaPreview turning on, for the previewed boss (ReplicatedStorage BossEventBoss, nil = boss_raga, as BossArenaView reads it).
 --   The cases clear the boss pose copies from ReplicatedStorage.LateData (test side) and put back the ones there before.
+-- Removal (owner 2026-11-12, design doc 7 "Join size", BOSS_EVENT_SPEC "The Elf Mage" Load line): when boss X's event ends (any
+--   reason: End(reason) or the clock's timeout) X's pose copy leaves ReplicatedStorage.LateData, unless X is BossEventNextBoss and
+--   the clock is inside LateLeadSeconds of BossEventNextAt; an arena preview that ends with no event removes the previewed boss's
+--   copy; neither removes another boss's copy delivered for a preview. A later event of X delivers again. Judged on the folder's
+--   children only (the implementer's contract: Shared/LateData.Remove(...names) beside Deliver, server only).
+--   SidekickAttacks is shared by every boss and by summon reveals: its removal is not part of this rule, and no case here
+--   asserts it either way.
 local H = require(script.Parent.AcceptanceSupport)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Server = script.Parent.Parent
@@ -179,7 +186,7 @@ function Tests.late_data()
 				S.End("Reset")
 			end
 
-			-- The arena preview with no event: the previewed boss loads, the other does not.
+			-- The arena preview with no event: the previewed boss loads, the other does not; its end removes the copy.
 			pick(OTHER[id])
 			S.Reset(T0)
 			ReplicatedStorage:SetAttribute("BossArenaPreview", nil)
@@ -191,23 +198,89 @@ function Tests.late_data()
 			flag("preview_" .. id .. "_delivers_own", delivered(name))
 			flag("preview_" .. id .. "_skips_other", not delivered(other))
 			ReplicatedStorage:SetAttribute("BossArenaPreview", nil)
+			task.wait()
+			flag("preview_end_" .. id .. "_removes_own", not delivered(name))
+			ReplicatedStorage:SetAttribute("BossEventBoss", nil)
+			task.wait()
+
+			-- Removal after the event (owner 2026-11-12). The next boss is the other one, far outside its lead.
+			-- An admin end, then a second event of X delivers again and ends on the clock (its timeout or nobody joining).
+			clearPoses()
+			pick(OTHER[id])
+			clockAt = T0
+			S.Reset(T0)
+			S.Start("Admin", id)
+			flag("end_" .. id .. "_had_own", delivered(name))
+			S.End("Admin")
+			flag("end_" .. id .. "_removes_own", not delivered(name))
+			S.Start("Admin", id)
+			flag("again_" .. id .. "_delivers_own", delivered(name))
+			local endsAt = ReplicatedStorage:GetAttribute("BossEventEndsAt")
+			if type(endsAt) == "number" then
+				at(endsAt + 1)
+			end
+			flag("timeout_" .. id .. "_event_over", ReplicatedStorage:GetAttribute("BossEventBoss") == nil)
+			flag("timeout_" .. id .. "_removes_own", not delivered(name))
+			clockAt = T0
+			S.Reset(T0)
+
+			-- X is the next boss and the clock is inside its lead: ending X's (admin) event keeps the copy for the timed one.
+			clearPoses()
+			pick(id)
+			clockAt = T0
+			S.Reset(T0)
+			local nextAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+			if type(nextAt) == "number" then
+				at(nextAt - INSIDE)
+				S.Start("Admin", id)
+				S.End("Admin")
+			end
+			flag("end_" .. id .. "_kept_inside_lead", delivered(name))
+			clockAt = T0
+			S.Reset(T0)
+
+			-- The other boss Y is delivered for an arena preview while X's event runs: X's end leaves Y's copy.
+			clearPoses()
+			pick(OTHER[id])
+			S.Reset(T0)
+			ReplicatedStorage:SetAttribute("BossEventBoss", OTHER[id])
+			ReplicatedStorage:SetAttribute("BossArenaPreview", true)
+			task.wait()
+			local previewed = delivered(other)
+			S.Start("Admin", id)
+			S.End("Admin")
+			flag(
+				"end_" .. id .. "_keeps_other_preview",
+				previewed and delivered(other),
+				previewed and 1 or "not staged"
+			)
+			ReplicatedStorage:SetAttribute("BossArenaPreview", nil)
 			ReplicatedStorage:SetAttribute("BossEventBoss", nil)
 			task.wait()
 		end
 
-		-- Delivery is once and stays: the other boss's lead later leaves the first one's copy.
+		-- The timed cycle (owner 2026-11-12): The Elf Mage's lead delivers her, her timed event runs with Big Raga named next,
+		-- its end removes her copy, and Big Raga's lead then delivers his.
 		clearPoses()
-		for _, id in { "boss_mage", "boss_raga" } do
-			pick(id)
-			clockAt = T0
-			S.Reset(T0)
-			local startAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
-			if type(startAt) == "number" then
-				at(startAt - INSIDE)
-			end
+		pick("boss_mage")
+		clockAt = T0
+		S.Reset(T0)
+		local mageAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+		if type(mageAt) == "number" then
+			at(mageAt - INSIDE)
+			flag("mage_lead_delivers_mage", delivered("BossMagePoses"))
+			pick("boss_raga")
+			at(mageAt)
+			flag("mage_timed_event_started", ReplicatedStorage:GetAttribute("BossEventBoss") == "boss_mage")
+			S.End("Timeout")
 		end
-		flag("delivered_mage_stays", delivered("BossMagePoses"))
+		flag("delivered_mage_removed_after_event", not delivered("BossMagePoses"))
+		local ragaAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+		if type(ragaAt) == "number" then
+			at(ragaAt - INSIDE)
+		end
 		flag("then_raga_delivered", delivered("BossRagaPoses"))
+		flag("then_mage_not_back", not delivered("BossMagePoses"))
 	end)
 	flag("per_boss_cases_ran", cases, cases and 1 or tostring(caseErr))
 

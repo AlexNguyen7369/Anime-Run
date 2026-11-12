@@ -51,7 +51,7 @@ local EXHAUSTED = ROOT .. "/ExhaustedPanel"
 local DODGE_BAR = "RacerBossDodge/DodgeBar"
 local POPUP = "RacerBossRewards/Panel"
 local INVITE = ROOT .. "/Invite"
-local BUTTON = ROOT .. "/BossButton"
+local BUTTON = "RacerSecondColumn/BossButton" -- design doc 4.42: the second column has its own ScreenGui
 local RAGA_CHEST, ADAPTED_CHEST = "relic_chest_raga", "relic_chest_adapted"
 
 local TITLE_STAGE_1, TITLE_STAGE_2 = "Big Raga", "Fully Adapted Raga"

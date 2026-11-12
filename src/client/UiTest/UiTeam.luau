@@ -6,7 +6,7 @@
 -- Team the server answered with and the slots showing it (the client only displays).
 --
 -- Contract (implementer: report a change, do not loosen):
---   RacerBossEvent/TeamButton: a TextButton in BossButton's style: transparent, Text "Team" at the bottom, an ImageLabel Icon
+--   RacerSecondColumn/TeamButton: a TextButton in BossButton's style: transparent, Text "Team" at the bottom, an ImageLabel Icon
 --     at the top with HudIcons.Team.Image (non-empty), HudChrome/Grid/Index's cell, icon and label sizes on screen, and a
 --     TextLabel Key "T" in its top-right quarter, shown while a keyboard is in use. Its left edge equals BossButton's (within
 --     X_TOL px); its centre is within MID_TOL px of the midpoint of the Items and Rebirth cells' centres; it is clear of the
@@ -34,7 +34,7 @@ local Icons = require(script.Parent.Parent:WaitForChild("RollToast"):WaitForChil
 local Spec = require(script.Parent.UiSpec)
 
 local T = Spec.Team
-local BOSS_BUTTON = "RacerBossEvent/BossButton"
+local BOSS_BUTTON = "RacerSecondColumn/BossButton"
 local GRID = "HudChrome/Grid"
 local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
 local OVER_PANEL = "RacerIndex/Panel" -- a standard panel opened over the button (owner 2026-11-12, 4.42)

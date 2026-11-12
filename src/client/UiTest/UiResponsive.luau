@@ -1828,7 +1828,7 @@ Model.HudChrome = {
 -- day's top-bar idea): a second column right of the Grid, Gap px past its right edge (Grid x + Cell.X x k), half a row
 -- down: centred on the gap between Index and Items, (GridGap + Cell.Y) x k / 2 above the Grid's middle (Grid anchor
 -- (0, 0.5)). Gap is proposed. Its ScreenGui ignores the inset; its Icon is in scale.
-Model.BossButton = { Path = "RacerBossEvent/BossButton", Grid = "HudChrome/Grid", Gap = 8, GridGap = 8 }
+Model.BossButton = { Path = "RacerSecondColumn/BossButton", Grid = "HudChrome/Grid", Gap = 8, GridGap = 8 }
 -- BossButton's Size and Position at a viewport (`_inset`, the live GuiService.TopbarInset, unused since 2026-11-12).
 function Model.BossButtonPlace(viewport, _inset)
 	local cfg, hud = Model.BossButton, Model.HudChrome
@@ -1840,8 +1840,8 @@ function Model.BossButtonPlace(viewport, _inset)
 end
 -- Design doc 4.40 (owner 2026-11-12): the Team button sits in the same second column, directly below the Bosses button,
 -- half a row down from Items: centred on the gap between Items and Rebirth, (GridGap + Cell.Y) x k / 2 below the Grid's
--- middle; same cell size and left edge as BossButton. Same ScreenGui (RacerBossEvent, ignores the inset).
-Model.TeamButton = { Path = "RacerBossEvent/TeamButton" }
+-- middle; same cell size and left edge as BossButton. Same ScreenGui (RacerSecondColumn, ignores the inset).
+Model.TeamButton = { Path = "RacerSecondColumn/TeamButton" }
 -- TeamButton's Size and Position at a viewport.
 function Model.TeamButtonPlace(viewport)
 	local cfg, hud = Model.BossButton, Model.HudChrome

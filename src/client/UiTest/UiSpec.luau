@@ -49,7 +49,7 @@ UiSpec.Viewports = {
 -- (Client/RollToast/Ui/RacerMotion, 1.035 on hover, 0.97 while pressed) and Client/UiMotion's MotionScale (Pop, the
 -- PanelSwitch open scale 0.92 -> 1; docs/HUD_LAYOUT_SPEC.md section 10). Geometry is measured with them at 1x, after
 -- the open motion settled (UiSpec.Waits.PanelMotion).
-UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerBossEvent/BossButton
+UiSpec.TransientScales = { HoverScale = true, MotionScale = true, PulseScale = true } -- PulseScale: RacerSecondColumn/BossButton
 -- Labels that are transient feedback, not layout: Client/UiMotion.Float's "+$" float (MotionFloat, gone after 1.15 s).
 -- Owner 2026-11-10: exempt from text_clear_of_buttons and hud_labels_inside_panel. Only MotionFloat.
 UiSpec.TransientLabels = { MotionFloat = true }
@@ -958,7 +958,7 @@ UiSpec.HiddenWhilePanelOpen = {
 -- Design doc 4.40 (owner 2026-11-10, docs/BOSS_EVENT_SPEC.md): while the local player's attribute BossEvent is true,
 -- Client/HudChrome hides both columns (the six tiles under these prefixes); TopRight and Auto / Upgrade stay. Owner
 -- 2026-11-12 (4.40): the Team button of the second column hides with them (UiBossEvent mirrors BossButton's states).
-UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/", "RacerBossEvent/TeamButton" }
+UiSpec.HiddenWhileBossEvent = { "HudChrome/Grid/", "HudChrome/ShopColumn/", "RacerSecondColumn/TeamButton" }
 -- ProgressionUi applies its visibility on a 0.25 s poll: the checks wait up to this long for it.
 UiSpec.HiddenWhilePanelOpenWait = 1
 
@@ -1027,7 +1027,7 @@ UiSpec.FullScreenPanels = { ["RacerUpgrades/Panel"] = true }
 -- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the second left column (Bosses, and
 -- Team once its button has a path), drawn above it (ui_layout no_overlap_* / text_clear_of_buttons_* allow it only
 -- when the panel's ScreenGui has the higher DisplayOrder). The first column and the right column stay checked.
-UiSpec.SecondColumnButtons = { "RacerBossEvent/BossButton", "RacerBossEvent/TeamButton" }
+UiSpec.SecondColumnButtons = { "RacerSecondColumn/BossButton", "RacerSecondColumn/TeamButton" }
 
 -- Overlaps that are allowed: a modal panel may cover a read-out (Money), never a button or the TURBO bar.
 UiSpec.AllowOverlap = {}
@@ -3598,7 +3598,7 @@ UiSpec.Backpack = {
 -- The parts sit directly in Panel; each Slot<n> is a GuiButton holding Order, Portrait (ImageLabel), Name, Category,
 -- Cruise, Stamina, or Empty when no member is on it. The rules of choosing a team are TEAM_AND_STAMINA_SPEC "Team".
 UiSpec.Team = {
-	Button = "RacerBossEvent/TeamButton",
+	Button = "RacerSecondColumn/TeamButton",
 	Panel = "RacerTeam/Panel",
 	Title = "RacerTeam/Panel/Header/Title",
 	Close = "RacerTeam/Panel/Header/Close",
@@ -3644,7 +3644,7 @@ end
 local TEAM_PANEL = UiSpec.Team.Panel
 table.insert(UiSpec.Clicks, {
 	Id = "open_team",
-	Gui = "RacerBossEvent",
+	Gui = "RacerSecondColumn",
 	Path = "TeamButton",
 	Prepare = { Closed = CLOSED, Showcase = false },
 	NeedSetup = { "spy" },
@@ -3652,7 +3652,7 @@ table.insert(UiSpec.Clicks, {
 })
 table.insert(UiSpec.Clicks, {
 	Id = "team_button_closes",
-	Gui = "RacerBossEvent",
+	Gui = "RacerSecondColumn",
 	Path = "TeamButton",
 	Prepare = only(TEAM_PANEL),
 	NeedSetup = { "spy" },
@@ -4321,16 +4321,25 @@ UiSpec.BossEvent = {
 	Pick = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("CharacterCatalog")).Rollable()[1].Id, -- boss_ui_gear wears it
 	WarningWatch = {}, -- what the boss_close_no_pick click's Prepare.Before saw of TeamWarning: it has faded before an After runs
 }
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own ScreenGui
+-- RacerSecondColumn (ResetOnSpawn false, ignores the inset, DisplayOrder below every panel's and above the world dim);
+-- RacerBossEvent keeps one DisplayOrder whether or not a panel is open (UiBossEvent second_column_*, event_gui_order_*).
+UiSpec.Guis.RacerSecondColumn = {
+	Source = "Client/BossEventUi",
+	AlwaysOn = { "BossButton", "TeamButton" },
+	Buttons = {
+		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
+		-- Design doc 4.40 (owner 2026-11-12): the Team button below it opens and closes the Team panel (UiTeam)
+		{ Path = "TeamButton", Does = "toggle_panel", Panel = "RacerTeam/Panel", Label = "Team" },
+	},
+}
 UiSpec.Guis.RacerBossEvent = {
 	Source = "Client/BossEventUi",
-	AlwaysOn = { "LeaveButton", "BossButton", "TeamButton" },
+	AlwaysOn = { "LeaveButton" },
 	NonInteractiveParts = { "Warning", "BossBar", "DropList", "BossDetails" },
 	Buttons = {
 		{ Path = "Invite/TeleportButton", Does = "remote", Remote = "BossEventTeleport" },
 		{ Path = "Invite/DeclineButton", Does = "local" },
-		{ Path = "BossButton", Does = "local", Label = "Bosses" }, -- only toggles BossesPanel, in every state (owner 2026-11-05)
-		-- Design doc 4.40 (owner 2026-11-12): the Team button below it opens and closes the Team panel (UiTeam)
-		{ Path = "TeamButton", Does = "toggle_panel", Panel = "RacerTeam/Panel", Label = "Team" },
 		{ Path = "BossesPanel/BossAction", Does = "remote", Remote = "BossEventTeleport|BossUseCredit|BossBuy" },
 		{ Path = "BossesPanel/Header/CloseButton", Does = "local" },
 		-- Bosses cards (owner 2026-11-11, draft B): Go on the live boss's card, Details on every card, Back over the cards.
@@ -4390,7 +4399,7 @@ local function bossPopup(extra)
 		Showcase = false,
 		RequireShown = true,
 		WaitSeconds = 0.5,
-		PressFirst = { Path = "RacerBossEvent/BossButton", Until = "RacerBossEvent/BossesPanel" },
+		PressFirst = { Path = "RacerSecondColumn/BossButton", Until = "RacerBossEvent/BossesPanel" },
 	}
 	for key, value in extra do
 		prepare[key] = value
@@ -4639,7 +4648,7 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
 	table.insert(UiSpec.Clicks, click)
 end
 -- The Elf Mage's Bosses popup line (design doc 4.37 "Second boss"; UiBossMage). Opens, then closes, so nothing stays open after.
@@ -4691,7 +4700,7 @@ for _, click in
 		},
 	}
 do
-	click.Gui = "RacerBossEvent"
+	click.Gui = click.Path == "BossButton" and "RacerSecondColumn" or "RacerBossEvent" -- 4.42: the second column has its own gui
 	table.insert(UiSpec.Clicks, click)
 end
 table.insert(UiSpec.ServerSetup, {

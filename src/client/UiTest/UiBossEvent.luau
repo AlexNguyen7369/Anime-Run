@@ -5,7 +5,10 @@
 --
 -- Contract these checks assume beyond the brief (implementer: report a change, do not loosen):
 --   Every part is built once and only hidden: Invite, TeamHud, Warning, BossBar, LeaveButton, BossButton, BossesPanel, EditTeamButton
---     sit directly in the ScreenGui.
+--     sit directly in the ScreenGui; BossButton and TeamButton directly in their own ScreenGui RacerSecondColumn (design doc
+--     4.42, owner 2026-11-12: only they go under panels; ResetOnSpawn false, IgnoreGuiInset, DisplayOrder below every
+--     PanelSwitch panel's ScreenGui and above PanelDim). RacerBossEvent's DisplayOrder never changes with a panel open, and
+--     with a panel open the Invite draws above it and its TeleportButton is the topmost click-taker at its centre.
 --   Team HUD (owner 2026-11-05): TeamHud/Header/CloseButton closes it with at least 1 pick, and invokes BossEventPrepRun; with none, red
 --     TeamHud/TeamWarning "Select a character first" fades within 1 s and the HUD stays. EditTeamButton reopens it until the spawn.
 --     TeamHud/AverageStamina reads "Average stamina: <n> s", from BossTeamStamina<n> of the picks. The HUD opens on LastBossTeam's ids.
@@ -94,7 +97,8 @@ local WARNING = ROOT .. "/Warning"
 local BAR = ROOT .. "/BossBar"
 local LEAVE = ROOT .. "/LeaveButton"
 local PANEL = ROOT .. "/ExhaustedPanel"
-local BUTTON = ROOT .. "/BossButton"
+local SECOND_COLUMN = "RacerSecondColumn" -- design doc 4.42 (owner 2026-11-12): Bosses and Team in their own ScreenGui
+local BUTTON = SECOND_COLUMN .. "/BossButton"
 local DROP = ROOT .. "/DropList"
 local BOSSES = ROOT .. "/BossesPanel"
 local EDIT_TEAM = ROOT .. "/EditTeamButton"
@@ -107,7 +111,7 @@ local PARTS = {
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
 	-- Design doc 4.40 (owner 2026-11-12): the Team button below it shows and hides with it (the second column)
-	TeamButton = ROOT .. "/TeamButton",
+	TeamButton = SECOND_COLUMN .. "/TeamButton",
 	DropList = DROP,
 	BossesPanel = BOSSES,
 	EditTeamButton = EDIT_TEAM,
@@ -388,6 +392,7 @@ function Module.Build(h)
 						local other = h.find(guiName .. "/" .. element)
 						if
 							guiName ~= ROOT
+							and guiName ~= SECOND_COLUMN -- in this gui until 2026-11-12 (4.42), never judged against the event parts
 							and guiName ~= "RollToast"
 							and other
 							and other:IsA("GuiObject")
@@ -765,6 +770,93 @@ function Module.Build(h)
 				big ~= nil and (not r or not overlaps(big, r))
 			)
 		end
+	end
+
+	-- Design doc 4.42 (owner 2026-11-12): only Bosses and Team go under panels. They sit in their own ScreenGui, below every
+	-- PanelSwitch panel's and above the world dim; RacerBossEvent (Invite, HP bar, Leave, ...) keeps one DisplayOrder.
+	local function checkGuiOrders(res)
+		local playerGui = h.player:WaitForChild("PlayerGui")
+		local column = playerGui:FindFirstChild(SECOND_COLUMN)
+		local isGui = column ~= nil and column:IsA("ScreenGui")
+		check(res, "second_column_gui_present", isGui, true)
+		check(res, "second_column_reset_on_spawn_false", isGui and column.ResetOnSpawn == false, true)
+		-- UiResponsive BossButtonPlace / TeamButtonPlace place the buttons in a gui that ignores the inset
+		check(res, "second_column_ignores_inset", isGui and column.IgnoreGuiInset == true, true)
+		local wrong = {}
+		for panelPath in Spec.PanelSwitch.Names do
+			local guiName = string.match(panelPath, "^[^/]+")
+			local gui = playerGui:FindFirstChild(guiName)
+			local order = gui and gui:IsA("ScreenGui") and gui.DisplayOrder
+			if not (isGui and order and column.DisplayOrder < order) then
+				table.insert(
+					wrong,
+					("%s %s vs %s"):format(
+						guiName,
+						tostring(order or "missing"),
+						isGui and tostring(column.DisplayOrder) or "no " .. SECOND_COLUMN
+					)
+				)
+			end
+		end
+		h.checkList(res, "second_column_below_panels", wrong)
+		local dim = playerGui:FindFirstChild(Spec.PanelDimmers.Gui)
+		h.check(
+			res,
+			"second_column_above_world_dim",
+			("%s vs dim %s"):format(
+				isGui and tostring(column.DisplayOrder) or "missing",
+				dim and tostring(dim.DisplayOrder) or "missing"
+			),
+			"above the dim",
+			isGui and dim ~= nil and dim:IsA("ScreenGui") and column.DisplayOrder > dim.DisplayOrder
+		)
+		local root = playerGui:FindFirstChild(ROOT)
+		local rest = root and root.DisplayOrder
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		task.wait(0.1)
+		local open = root and root.DisplayOrder
+		restorePanels()
+		task.wait(0.1)
+		local closed = root and root.DisplayOrder
+		h.check(
+			res,
+			"event_gui_order_constant_with_panel_open",
+			("rest %s, panel open %s, closed %s"):format(tostring(rest), tostring(open), tostring(closed)),
+			"unchanged",
+			rest ~= nil and rest == open and open == closed
+		)
+	end
+
+	-- Design doc 4.42 (owner 2026-11-12): the event's Invite stays above an open panel, and its Go takes the click.
+	local function checkInviteAbovePanel(res)
+		gear(res, 2)
+		state(res, "Idle", 0, 0, 0, false)
+		state(res, "Prep", 5, 0, 0, false)
+		local up = waitShown(INVITE, true)
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		task.wait(0.1)
+		local invite, panel, go = h.find(INVITE), h.find(OVER_PANEL), h.find(TELEPORT)
+		if not (up and invite and panel and go and shown(INVITE) and shown(OVER_PANEL)) then
+			h.check(
+				res,
+				"invite_above_open_panel",
+				("invite shown=%s, panel shown=%s"):format(tostring(shown(INVITE)), tostring(shown(OVER_PANEL))),
+				"both shown",
+				false
+			)
+		else
+			local above, why = h.drawsAbove(invite, panel)
+			local hit = h.top(h.centre(h.rect(go)))
+			h.check(
+				res,
+				"invite_above_open_panel",
+				why .. "; top at Go: " .. (hit and hit:GetFullName() or "nothing"),
+				"Invite above the panel, Go the topmost click-taker",
+				above and hit ~= nil and (hit == go or go:IsAncestorOf(hit))
+			)
+		end
+		restorePanels()
+		state(res, "Idle", 0, 0, 0, false)
 	end
 
 	local function checkInvite(res)
@@ -2001,8 +2093,10 @@ function Module.Build(h)
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
 			onlyShown(res, "rest", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
+			checkGuiOrders(res)
 			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
+			checkInviteAbovePanel(res)
 			checkLocked(res)
 			checkTeamHud(res)
 			checkIntroFill(res)
