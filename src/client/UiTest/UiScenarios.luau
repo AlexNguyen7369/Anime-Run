@@ -186,6 +186,12 @@ UiScenarios.Names = {
 	-- The Stone Golem's bar and the Bosses cards (UiBossMage; BOSS_EVENT_SPEC "The Elf Mage", "Bosses cards")
 	"ui_boss_golem",
 	"ui_boss_cards",
+	-- The Golden King (UiBossKing; design doc 4.37 "Third boss", BOSS_EVENT_SPEC "The Golden King")
+	"ui_boss_king",
+	"ui_boss_king_dodge",
+	"ui_boss_fortified",
+	"ui_boss_king_rewards",
+	"ui_boss_king_vfx",
 	-- Sidekick followers (UiSidekickFollow; design doc 4.36, SIDEKICK_SPEC "Display"). It stops a real run, and puts it back
 	"ui_sidekick_follow",
 	-- Sidekick attacks at the boss (UiSidekickAttack; docs/BOSS_EVENT_SPEC.md "Boss and attacks"). Same fixture, fake BossHits batches
@@ -8622,6 +8628,23 @@ for name, fn in K.bossMage.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.bossMage.After do
+	access.After[cond] = fn
+end
+-- The Golden King, the third boss (UiBossKing; design doc 4.37 "Third boss"). No new local: K.bossKing.
+K.bossKing = require(script.Parent.UiBossKing).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.bossKing.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.bossKing.After do
 	access.After[cond] = fn
 end
 

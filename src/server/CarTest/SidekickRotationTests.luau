@@ -123,7 +123,8 @@ function Tests.sidekick_rotation()
 		end
 		flag("listed_odds_sum_100", near(odds, 100), odds, 100)
 		local raga = Cfg.BossDrops[1]
-		flag("raga_stays_a_boss_drop", raga.Id == "side_raga" and #Cfg.BossDrops == 1)
+		-- Owner 2026-11-11 (design doc 4.36 Boss Sidekicks): side_raga, side_mage, side_king.
+		flag("raga_stays_a_boss_drop", raga.Id == "side_raga" and #Cfg.BossDrops == 3)
 		flag("raga_not_listed", table.find(Cfg.List, raga) == nil)
 	end)
 

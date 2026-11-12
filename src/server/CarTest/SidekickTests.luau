@@ -85,7 +85,7 @@ function Tests.sidekicks()
 		end
 		local allRows = table.clone(List)
 		table.move(Cfg.BossDrops, 1, #Cfg.BossDrops, #allRows + 1, allRows)
-		flag("catalog_has_13", #allRows == 13, #allRows, 13)
+		flag("catalog_has_15", #allRows == 15, #allRows, 15) -- 12 listed + 3 boss drops (owner 2026-11-11)
 		for _, row in allRows do
 			local text = string.lower(row.Id .. " " .. row.Name)
 			local clean = require(script.Parent.CatalogTests).realNameIn(string.lower(row.Id)) == nil
@@ -293,9 +293,34 @@ function Tests.sidekicks()
 				and catalogTests.realNameIn("side_raga") == nil
 				and catalogTests.realNameIn(string.lower(raga.Name)) == nil
 		)
+		-- Every boss drops its own (owner 2026-11-11, design doc 4.36 Boss Sidekicks; SIDEKICK_SPEC rows, values proposed).
+		local bossDropIds = {}
+		for _, row in Cfg.BossDrops or {} do
+			bossDropIds[row.Id] = true
+		end
+		flag("boss_drops_three", #(Cfg.BossDrops or {}) == 3, #(Cfg.BossDrops or {}), 3)
+		for _, own in { { "side_mage", "The Elf Mage" }, { "side_king", "The Golden King" } } do
+			local id, name = own[1], own[2]
+			local row = Cfg.Get(id)
+			flag(id .. "_in_get", row ~= nil and row.Id == id)
+			flag(id .. "_name_is_title", row ~= nil and row.Name == name, row and row.Name, name)
+			flag(id .. "_secret", row ~= nil and row.Rarity == "Secret")
+			flag(id .. "_in_boss_drops", bossDropIds[id] == true)
+			flag(id .. "_not_in_list", rowOf[id] == nil)
+			flag(id .. "_odds_0_001", row ~= nil and approx(row.Odds, 0.001), row and row.Odds, 0.001)
+			flag(id .. "_cruise_10", row ~= nil and approx(row.Cruise, 0.10), row and row.Cruise, 0.10)
+			flag(id .. "_stamina_10", row ~= nil and approx(row.Stamina, 0.10), row and row.Stamina, 0.10)
+			flag(id .. "_sells_for_30", row ~= nil and row.SellGems == 30, row and row.SellGems, 30)
+			flag(
+				"no_real_name_" .. id,
+				row ~= nil
+					and catalogTests.realNameIn(id) == nil
+					and catalogTests.realNameIn(string.lower(row.Name)) == nil
+			)
+		end
 		local pool = unlocked()
 		autoSellAll(pool)
-		local pooled, ragaSummons, poolOk = 0, 0, true
+		local pooled, ragaSummons, bossSummons, poolOk = 0, 0, 0, true
 		for _ = 1, 200 do
 			pool:SetAttribute("Gems", Cfg.TenCost)
 			local fine, results = S.Summon(pool, 10)
@@ -303,10 +328,12 @@ function Tests.sidekicks()
 			for _, result in (fine and results or {}) do
 				pooled += 1
 				ragaSummons += result.Id == "side_raga" and 1 or 0
+				bossSummons += bossDropIds[result.Id] and 1 or 0
 			end
 		end
 		flag("raga_pool_summons_ran", poolOk and pooled == 2000, pooled, 2000)
 		flag("raga_never_summoned", ragaSummons == 0, ragaSummons, 0)
+		flag("boss_drops_never_summoned", bossSummons == 0, bossSummons, 0)
 		local holder = unlocked()
 		dressed(holder)
 		local ragaEntry = grant(holder, "side_raga")

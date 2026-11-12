@@ -405,7 +405,7 @@ function Tests.make()
 				for _ = 1, 200 do
 					local id = realHooks.PickBoss()
 					seen[id] = true
-					if id ~= RAGA and id ~= MAGE then
+					if id ~= RAGA and id ~= MAGE and id ~= "boss_king" then -- the third boss (owner 2026-11-11)
 						unknown = id
 					end
 				end
@@ -1779,7 +1779,7 @@ function Tests.make()
 		if Catalog then
 			section("catalog", function()
 				eq("catalog_default_raga", Catalog.Default, RAGA)
-				flag("catalog_order", H.same(Catalog.Order, { RAGA, MAGE }))
+				flag("catalog_order", H.same(Catalog.Order, { RAGA, MAGE, "boss_king" }))
 				local mage, raga = Catalog.Get(MAGE), Catalog.Get(RAGA)
 				flag("catalog_get_nil_is_raga", rawequal(Catalog.Get(nil), raga))
 				flag("catalog_get_unknown_is_raga", rawequal(Catalog.Get("boss_nobody"), raga))

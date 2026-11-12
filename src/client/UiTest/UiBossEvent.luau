@@ -1233,7 +1233,12 @@ function Module.Build(h)
 		)
 		task.wait(0.5) -- the bar's pop has ended: its size is judged below
 
-		check(res, "drop_side_chance_is_config", ("%.3f"):format(RelicConfig.RagaSidekickChance * 100), "0.001")
+		check(
+			res,
+			"drop_side_chance_is_config",
+			("%.3f"):format(RelicConfig.Chests.relic_chest_raga.SidekickChance * 100),
+			"0.001"
+		)
 		local size = workspace.CurrentCamera.ViewportSize
 		local tag = isDesktop() and "desktop" or "phone"
 		local screen = { x = 0, y = 0, w = size.X, h = size.Y }

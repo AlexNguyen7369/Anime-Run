@@ -514,6 +514,16 @@ function setups.boss_ui_idle_next_mage(player)
 	setups.boss_ui_idle(player)
 	ReplicatedStorage:SetAttribute("BossEventNextBoss", "boss_mage")
 end
+-- As boss_ui_invite, for The Golden King (boss_king_button, design doc 4.37 "Third boss").
+function setups.boss_ui_invite_king(player)
+	setups.boss_ui_invite(player)
+	ReplicatedStorage:SetAttribute("BossEventBoss", "boss_king")
+end
+-- As boss_ui_idle, The Golden King announced next (boss_cards_next_king, BOSS_EVENT_SPEC "Bosses cards").
+function setups.boss_ui_idle_next_king(player)
+	setups.boss_ui_idle(player)
+	ReplicatedStorage:SetAttribute("BossEventNextBoss", "boss_king")
+end
 function setups.boss_ui_invite_locked(player)
 	bossUiGear(player, 0)
 	clearBossUi(player)
