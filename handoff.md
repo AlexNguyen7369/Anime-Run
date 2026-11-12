@@ -3,7 +3,7 @@
 History: `current_progress.md`, `git log`.
 
 ## RESUME HERE (2026-11-12, orchestrator): everything in main (dc4acbd), boot crash hotfixed, waiting on the owner's play check
-- main = #8 anime-world (4f9e2dc) + #9 boss-mage (722e3f9) + #10 boss-king (b2ba928) + #11 hotfix (dc4acbd). Each PR had a fresh MERGE REVIEW: APPROVE. The full compatibility harness has NOT run on the merged tree (owner waived it 2026-11-11).
+- main = #8 anime-world (4f9e2dc) + #9 boss-mage (722e3f9) + #10 boss-king (b2ba928) + #11 hotfix (dc4acbd). Each PR had a fresh MERGE REVIEW: APPROVE. The full compatibility harness has NOT run on the merged tree (owner waived it 2026-11-11 Pacific, logged 2026-11-12 UTC in the older entry below).
 - Boot crash found by the owner on b2ba928: `src/late/BossKingPoses.luau` required `script.Parent.BossEventConfig` (LateData has none) and took BossDodge, BossEventService, AdminService and Main down; fixed in #11 (require from Shared, `bake_boss_king.py` too). Studio on the fix: boot OK, `late_data` 96, `boss_king_anim` 133, fail=0. Logged in docs/BUGS.md.
 - The main checkout is on `main` (Rojo 34873 serves it). The stash "orch-m12-harness: main checkout handoff.md" holds a superseded handoff note from another session (boss-king plan + power-ups entries), kept, not needed.
 - Open for the owner: Team panel decisions https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar; Dojo Master pass 2071362782 off sale (manual); SAITAMO header over MYTHIC label (later).
