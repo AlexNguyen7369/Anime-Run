@@ -172,17 +172,6 @@ local function loadBoss(name, assetId, binds, root)
 	folder.Parent = root
 end
 
--- shortcut: the Golden King's jointed model (SidekickArt.boss_king_jointed.BossModel, from build/avatar_glb/boss_king_jointed.glb)
--- is not uploaded yet; until it is, boss_king is the 6-part model (SidekickArt.boss_king.BossModel) on BossKingPoses.Bind6, and
--- Client/BossKing poses it from the jointed data. Drop the fallback and Bind6 once the jointed upload is in SidekickArt.
-local KING_JOINTED = SidekickArt.boss_king_jointed
-
--- shortcut: the Elf Mage's jointed model (SidekickArt.boss_mage_jointed.BossModel, from build/avatar_glb/boss_mage_jointed.glb) is
--- not uploaded yet; until it is, boss_mage is the 6-part model (SidekickArt.boss_mage.BossModel) on BossMagePoses.Bind6, its parts
--- renamed after the jointed upper segments, and Client/BossMage poses it from the jointed data. Drop the fallback and Bind6 once the
--- jointed upload is in SidekickArt.
-local MAGE_JOINTED = SidekickArt.boss_mage_jointed
-
 local function startBoss()
 	local root = Instance.new("Folder")
 	root.Name = "BossModels"
@@ -191,14 +180,13 @@ local function startBoss()
 		for name, bind in
 			{
 				boss_raga = BossRagaPoses.Bind,
-				boss_mage = MAGE_JOINTED and BossMagePoses.Bind or BossMagePoses.Bind6,
+				boss_mage = BossMagePoses.Bind,
 				boss_golem = BossMagePoses.GolemBind,
-				boss_king = KING_JOINTED and BossKingPoses.Bind or BossKingPoses.Bind6,
+				boss_king = BossKingPoses.Bind,
 			}
 		do
-			local art = (name == "boss_king" and KING_JOINTED)
-				or (name == "boss_mage" and MAGE_JOINTED)
-				or SidekickArt[name]
+			-- the bosses' jointed uploads, not the old 6-part ones (still in SidekickArt)
+			local art = SidekickArt[(name == "boss_king" or name == "boss_mage") and name .. "_jointed" or name]
 			if art and art.BossModel then
 				pcall(loadBoss, name, art.BossModel, bind, root)
 			end

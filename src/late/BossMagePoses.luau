@@ -36,20 +36,6 @@ local BIND = {
 	TailR3 = { Parent = "TailR2", Offset = {-0.6368,0.2048,-1.3632}, Center = {-0.2908,0.114,-0.5692}, Size = {7.68,11.17,2.4} },
 	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {19.83,21.51,12.3} },
 }
--- shortcut: the 6-part model uploaded 2026-11-11 (SidekickArt.boss_mage.BossModel), its parts named after the jointed upper
--- segments they stand in for (Mesh: the uploaded name); delete when boss_mage_jointed is uploaded.
--- stylua: ignore
-local BIND6 = {
-	Head = { Parent = "Torso", Offset = {0,0,2.5}, Center = {0,0,0.5}, Size = {25.03,17.58,15.06} },
-	LeftUpperArm = { Mesh = "LeftArm", Parent = "Torso", Offset = {1.5,0,1.8}, Center = {-0.1,0,-0.8}, Size = {12.66,17.16,12.37} },
-	LeftUpperLeg = { Mesh = "LeftLeg", Parent = nil, Offset = {0.5,0,2}, Center = {0,0,-1}, Size = {8.3,14.09,11.25} },
-	RightUpperArm = { Mesh = "RightArm", Parent = "Torso", Offset = {-1.5,0,1.8}, Center = {0.1,0,-0.8}, Size = {12.66,17.16,12.37} },
-	RightUpperLeg = { Mesh = "RightLeg", Parent = nil, Offset = {-0.5,0,2}, Center = {0,0,-1}, Size = {8.3,14.18,11.25} },
-	Staff = { Parent = "RightUpperArm", Offset = {0,0,-1.75}, Center = {0.1423,0,1.0078}, Size = {6.66,45.11,1.69}, Tip = {0.068,-0.005,3.678} },
-	TailL1 = { Mesh = "TailL", Parent = "Head", Offset = {0.86,0.36,1.36}, Center = {0.9307,0.2608,-2.0346}, Size = {17.71,31.29,6.46} },
-	TailR1 = { Mesh = "TailR", Parent = "Head", Offset = {-0.86,0.36,1.36}, Center = {-0.9307,0.2608,-2.0346}, Size = {17.71,31.29,6.46} },
-	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {19.83,21.51,12.3} },
-}
 -- stylua: ignore
 local GOLEM_BIND = {
 	FistL = { Parent = "ForearmL", Offset = {0.02,-0.2,-1.34}, Center = {0.0287,-0.0275,-0.485}, Size = {13.85,9.9,15.06}, Rest = {0,0,0} },
@@ -1732,7 +1718,6 @@ local Poses = {}
 Poses.Moves = MOVES
 Poses.Approved = APPROVED
 Poses.Bind = BIND -- each part: Parent, Offset from its parent's joint, Center of its box from its own joint (units), Size (studs)
-Poses.Bind6 = BIND6 -- the uploaded 6-part model's bind: Client/BossMage's fallback until the jointed model is uploaded
 Poses.Scale = SCALE
 Poses.RootStuds = ROOT_STUDS -- studs per keys.json root_offset unit: Keys' Root is already studs
 
