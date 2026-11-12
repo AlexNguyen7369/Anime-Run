@@ -6,6 +6,8 @@ return {
 	Flare = "rbxassetid://130773046294708",
 	FlatFront = "rbxassetid://92708684136917",
 	FlatSide = "rbxassetid://94913736094229",
+	-- shortcut: empty until assets/ui/boss_king/portal_draft/portal_c.png is uploaded (the king's portals draw Ring meanwhile); filled then
+	PortalC = "",
 	Ring = "rbxassetid://115884628820912",
 	Shaft = "rbxassetid://114383042922209",
 	Shard = "rbxassetid://97421080203443",
