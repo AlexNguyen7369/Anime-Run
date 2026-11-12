@@ -71,8 +71,8 @@ local SCAN = 40 -- moments looked at
 -- djb2 { length, hash } of the real source name (section 5 safeguard): a hash, so the name never sits in the game's files.
 local REAL_NAMES = { { 9, 789293634 } }
 
--- The rework (design doc 4.37 "Rework approvals", owner 2026-11-12): the jointed rig and the 10 approved Enuma Elish keys,
--- copied by hand from assets/characters_avatar/boss_king/keyframes/rework/keys.json.
+-- The rework (design doc 4.37 "Rework approvals", owner 2026-11-12): the jointed rig and the 10 approved keys of enuma, idle,
+-- gates and shields, copied by hand from assets/characters_avatar/boss_king/keyframes/rework/keys.json.
 local LIMB_PARTS = {
 	"LeftUpperArm",
 	"LeftLowerArm",
@@ -87,33 +87,92 @@ local JOINTED_PARTS = table.clone(LIMB_PARTS)
 for _, part in { "Torso", "Head", "Key", "Ea", "Ea_Drum1", "Ea_Drum2", "Ea_Drum3" } do
 	table.insert(JOINTED_PARTS, part)
 end
-local ENUMA_KEY_TIMES = { 0, 0.45, 0.95, 1.45, 2.1, 2.75, 3.0, 3.9, 4.85, 5.6 }
 -- { key number, part, keys.json rotation }: only parts not under Body (Torso and the upper legs only where Body is 0).
-local ENUMA_SPOTS = {
-	{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
-	{ 1, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
-	{ 1, "Head", Vector3.new(-5, 0, -8) },
-	{ 1, "Torso", Vector3.new(2, 0, 4) },
-	{ 1, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
-	{ 4, "RightUpperArm", Vector3.new(0.7, 170.693, 33.38) },
-	{ 4, "LeftUpperArm", Vector3.new(-21.93, -41.35, -17.879) },
-	{ 4, "Ea", Vector3.new(1.234, 178.286, 44.348) },
-	{ 4, "LeftLowerLeg", Vector3.new(25, 0, 0) },
-	{ 4, "Head", Vector3.new(-20, 0, -4) },
-	{ 7, "RightUpperArm", Vector3.new(-61.696, -18.107, 35.789) },
-	{ 7, "RightLowerArm", Vector3.new(-1.25, 0, 0) },
-	{ 7, "LeftUpperArm", Vector3.new(-73.491, 16.134, -35.232) },
-	{ 7, "Ea", Vector3.new(37.914, -149.448, 75.806) },
-	{ 7, "Head", Vector3.new(-6, 10, 62) },
-	{ 7, "Key", Vector3.new(6, 10, 0) },
-	{ 7, "RightLowerLeg", Vector3.new(70, 0, 0) },
-	{ 7, "Ea_Drum1", Vector3.new(0, 0, 820) },
-	{ 7, "Ea_Drum2", Vector3.new(0, 0, -820) },
-	{ 10, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
-	{ 10, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
-	{ 10, "Ea", Vector3.new(66.121, 62.57, -27.705) },
-	{ 10, "RightLowerLeg", Vector3.new(30, 0, 0) },
-	{ 10, "Torso", Vector3.new(2, 0, 4) },
+local REWORK_KEYS = {
+	enuma = {
+		Times = { 0, 0.45, 0.95, 1.45, 2.1, 2.75, 3.0, 3.9, 4.85, 5.6 },
+		Spots = {
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 1, "Torso", Vector3.new(2, 0, 4) },
+			{ 1, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+			{ 4, "RightUpperArm", Vector3.new(0.7, 170.693, 33.38) },
+			{ 4, "LeftUpperArm", Vector3.new(-21.93, -41.35, -17.879) },
+			{ 4, "Ea", Vector3.new(1.234, 178.286, 44.348) },
+			{ 4, "LeftLowerLeg", Vector3.new(25, 0, 0) },
+			{ 4, "Head", Vector3.new(-20, 0, -4) },
+			{ 7, "RightUpperArm", Vector3.new(-61.696, -18.107, 35.789) },
+			{ 7, "RightLowerArm", Vector3.new(-1.25, 0, 0) },
+			{ 7, "LeftUpperArm", Vector3.new(-73.491, 16.134, -35.232) },
+			{ 7, "Ea", Vector3.new(37.914, -149.448, 75.806) },
+			{ 7, "Head", Vector3.new(-6, 10, 62) },
+			{ 7, "Key", Vector3.new(6, 10, 0) },
+			{ 7, "RightLowerLeg", Vector3.new(70, 0, 0) },
+			{ 7, "Ea_Drum1", Vector3.new(0, 0, 820) },
+			{ 7, "Ea_Drum2", Vector3.new(0, 0, -820) },
+			{ 10, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 10, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
+			{ 10, "Ea", Vector3.new(66.121, 62.57, -27.705) },
+			{ 10, "RightLowerLeg", Vector3.new(30, 0, 0) },
+			{ 10, "Torso", Vector3.new(2, 0, 4) },
+		},
+	},
+	-- keys 1 and 10 are the loop's rest pose; key 5 its middle (Body turns there: no Torso or upper legs)
+	idle = {
+		Times = { 0, 0.45, 0.9, 1.35, 1.8, 2.2, 2.65, 3.1, 3.55, 4.0 },
+		Spots = {
+			{ 1, "Torso", Vector3.new(2, 0, 4) },
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "LeftUpperArm", Vector3.new(-53.961, -20.718, -56.454) },
+			{ 1, "LeftLowerLeg", Vector3.new(22, 0, 0) },
+			{ 5, "Head", Vector3.new(-2, -2, 18) },
+			{ 5, "RightUpperArm", Vector3.new(-52.386, 16.173, 60.461) },
+			{ 5, "LeftUpperArm", Vector3.new(-53.435, -21.021, -56.176) },
+			{ 5, "LeftLowerLeg", Vector3.new(32, 0, 0) },
+			{ 10, "Head", Vector3.new(-5, 0, -8) },
+			{ 10, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 10, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+		},
+	},
+	-- key 5 is the gates event (1.6 s, the volleys; Body turns there: no Torso or upper legs)
+	gates = {
+		Times = { 0, 0.4, 0.8, 1.2, 1.6, 1.85, 2.5, 3.1, 3.6, 4.4 },
+		Spots = {
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "RightLowerLeg", Vector3.new(30, 0, 0) },
+			{ 5, "RightUpperArm", Vector3.new(-27.166, 53.14, 10.897) },
+			{ 5, "RightLowerArm", Vector3.new(-51.255, 0, 0) },
+			{ 5, "LeftUpperArm", Vector3.new(23.23, 56.524, -153.104) },
+			{ 5, "LeftLowerArm", Vector3.new(-62.994, 0, 0) },
+			{ 5, "Head", Vector3.new(-12, 0, -4) },
+			{ 5, "Key", Vector3.new(10, 0, 0) },
+			{ 5, "LeftLowerLeg", Vector3.new(40, 0, 0) },
+			{ 10, "Torso", Vector3.new(2, 0, 4) },
+			{ 10, "LeftUpperArm", Vector3.new(-53.961, -20.718, -56.454) },
+			{ 10, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
+		},
+	},
+	-- key 8 is the shields event (2.2 s, Fortified)
+	shields = {
+		Times = { 0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.2, 2.4, 2.6 },
+		Spots = {
+			{ 1, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 1, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 8, "Torso", Vector3.new(-3, 0, 4) },
+			{ 8, "Head", Vector3.new(-12, 0, -6) },
+			{ 8, "RightUpperArm", Vector3.new(-53.463, 15.576, 60.967) },
+			{ 8, "RightLowerArm", Vector3.new(-31.513, 0, 0) },
+			{ 8, "LeftUpperArm", Vector3.new(-56.188, -20.731, -56.441) },
+			{ 8, "LeftUpperLeg", Vector3.new(-10, 0, -4) },
+			{ 8, "LeftLowerLeg", Vector3.new(24, 0, 0) },
+			{ 8, "Key", Vector3.new(-2, 0, 0) },
+			{ 10, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 10, "RightLowerLeg", Vector3.new(30, 0, 0) },
+		},
+	},
 }
 local KEY_DEGREES = 0.01
 local FRAME = 1 / 60
@@ -1025,7 +1084,10 @@ function Tests.make()
 			section("approved", function()
 				-- enuma 10 (was 8): 10 key frames per move, design doc 4.37 "Animation rework" and BOSS_EVENT_SPEC
 				-- "Animation rework" Keys (owner 2026-11-12); the 10 approved under 4.37 "Rework approvals".
-				local counts = { idle = 3, gates = 6, enuma = 10, shields = 4 }
+				-- idle, gates, shields 10 (were 3, 6, 4): the same rule; their rework keys pre-approved 2026-11-12 night.
+				-- fortified_idle (rework/keys.json, a 4.0 s loop) is not baked as its own move yet (bake_boss_king.py: the shield
+				-- ring is BossKingVfx's); add it here with 10 when it is.
+				local counts = { idle = 10, gates = 10, enuma = 10, shields = 10 }
 				for name, want in counts do
 					local worst = 0
 					local keys = Poses.Approved[name] or {}
@@ -1042,25 +1104,28 @@ function Tests.make()
 				end
 			end)
 
-			-- The rework's Enuma Elish (design doc 4.37 "Rework approvals"): the 10 approved keys of rework/keys.json, hand-copied
-			-- so a bake drifting from the approved file is caught. Compared as rotations (Euler wraps do not matter).
-			section("enuma_rework_keys", function()
-				local move = Poses.Moves.enuma
-				local times = move and move.Approved or {}
-				eq("enuma_rework_key_count", #times, #ENUMA_KEY_TIMES)
-				local rows = Poses.Approved.enuma or {}
-				eq("enuma_rework_expected_count", #rows, #ENUMA_KEY_TIMES)
-				for i, t in ENUMA_KEY_TIMES do
-					near("enuma_rework_key_time_" .. i, times[i], t, 1e-6)
-					near("enuma_rework_expected_time_" .. i, rows[i] and rows[i].Time, t, 1e-6)
-				end
-				for _, spot in ENUMA_SPOTS do
-					local t, part, want = ENUMA_KEY_TIMES[spot[1]], spot[2], spot[3]
-					local got = (Poses.Sample("enuma", t))[part]
-					local off = typeof(got) == "Vector3" and rotationApart(got, want) or 1e9
-					flag(("enuma_rework_key_%d_%s"):format(spot[1], part), off <= KEY_DEGREES, off, KEY_DEGREES)
-				end
-			end)
+			-- The rework's keys (design doc 4.37 "Rework approvals"; idle, gates and shields pre-approved by the owner 2026-11-12
+			-- night): each move's 10 keys of rework/keys.json, hand-copied so a bake drifting from the approved file is caught.
+			-- Compared as rotations (Euler wraps do not matter).
+			for name, rework in REWORK_KEYS do
+				section(name .. "_rework_keys", function()
+					local move = Poses.Moves[name]
+					local times = move and move.Approved or {}
+					eq(name .. "_rework_key_count", #times, #rework.Times)
+					local rows = Poses.Approved[name] or {}
+					eq(name .. "_rework_expected_count", #rows, #rework.Times)
+					for i, t in rework.Times do
+						near(name .. "_rework_key_time_" .. i, times[i], t, 1e-6)
+						near(name .. "_rework_expected_time_" .. i, rows[i] and rows[i].Time, t, 1e-6)
+					end
+					for _, spot in rework.Spots do
+						local t, part, want = rework.Times[spot[1]], spot[2], spot[3]
+						local got = (Poses.Sample(name, t))[part]
+						local off = typeof(got) == "Vector3" and rotationApart(got, want) or 1e9
+						flag(("%s_rework_key_%d_%s"):format(name, spot[1], part), off <= KEY_DEGREES, off, KEY_DEGREES)
+					end
+				end)
+			end
 
 			-- The jointed rig (BOSS_EVENT_SPEC "Animation rework" Rigs): elbows and knees, in the bind and in every move's keys.
 			section("jointed_rig", function()
