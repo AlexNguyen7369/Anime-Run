@@ -648,6 +648,7 @@ function Contracts.Build(h)
 			backpack_characters_equipped_green = {},
 			backpack_characters_empty_label = {},
 			backpack_characters_no_team_slots = {},
+			backpack_characters_badge_clear_of_dot = {}, -- owner 2026-11-12 (4.40): the same RosterCard as the Team panel
 		}
 		local grid = h.find(B.Items)
 		if not grid then
@@ -737,6 +738,10 @@ function Contracts.Build(h)
 			end
 			if decimals(got) > B.MaxDecimals then
 				table.insert(p.backpack_characters_multi_no_float_noise, tile.Name .. ": " .. got)
+			end
+			local badgeDot = h.visible(tile) and B.BadgeDotProblem(tile, h.realRect, h.visible)
+			if badgeDot then
+				table.insert(p.backpack_characters_badge_clear_of_dot, badgeDot)
 			end
 			local stroke = tileStroke(tile)
 			local green = stroke ~= nil and B.Green(stroke.Color)

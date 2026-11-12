@@ -734,7 +734,8 @@ function setups.team_states(player)
 	if teamBefore[player] == nil then
 		teamBefore[player] = player:GetAttribute("Team") or ""
 	end
-	local data, squad, ids = player:FindFirstChild("GachaData"), G.ShowcaseIds(player), {}
+	-- No Dojo squad since design doc 4.43 (GachaService.ShowcaseIds removed): nothing is excluded.
+	local data, squad, ids = player:FindFirstChild("GachaData"), {}, {}
 	for _, spec in C.All() do
 		if #ids < 3 and spec.Rollable and data and data:FindFirstChild(spec.Id) and not squad[spec.Id] then
 			table.insert(ids, spec.Id)

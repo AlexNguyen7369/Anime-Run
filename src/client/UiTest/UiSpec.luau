@@ -3368,6 +3368,31 @@ UiSpec.Backpack = {
 	Green = function(c)
 		return c.G > c.R + 0.25 and c.G > c.B + 0.25
 	end,
+	-- A character card (Client/RosterCard, Backpack and Team roster alike; owner 2026-11-12, 4.40): a shown Badge with
+	-- text stays clear of the card's category dot (RacerComponents.CardFace TextLabel "Category"), both inside the card.
+	-- rect(gui) -> { x, y, w, h } on screen. Returns a problem line, or nil.
+	BadgeDotProblem = function(card, rect, visible)
+		local badge, dot = card:FindFirstChild("Badge"), card:FindFirstChild("Category")
+		if not (badge and badge:IsA("TextLabel") and visible(badge) and badge.Text ~= "") then
+			return nil
+		end
+		if not (dot and dot:IsA("GuiObject") and visible(dot)) then
+			return card.Name .. ": Badge shown, no shown category dot Category"
+		end
+		local c, b, d = rect(card), rect(badge), rect(dot)
+		local function show(r)
+			return ("(%.0f,%.0f %.0fx%.0f)"):format(r.x, r.y, r.w, r.h)
+		end
+		local function inside(r)
+			return r.x >= c.x - 1 and r.y >= c.y - 1 and r.x + r.w <= c.x + c.w + 1 and r.y + r.h <= c.y + c.h + 1
+		end
+		if b.x < d.x + d.w and d.x < b.x + b.w and b.y < d.y + d.h and d.y < b.y + b.h then
+			return ("%s: Badge%s x Category%s"):format(card.Name, show(b), show(d))
+		elseif not (inside(b) and inside(d)) then
+			return ("%s: Badge%s or Category%s outside the card%s"):format(card.Name, show(b), show(d), show(c))
+		end
+		return nil
+	end,
 	IndexGallery = "RacerIndex/Panel/Face/GridHost/Gallery",
 }
 
