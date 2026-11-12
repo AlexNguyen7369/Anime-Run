@@ -1391,6 +1391,13 @@ def export_glb(cid):
 			nt = mat.node_tree
 			tex = next(n for n in nt.nodes if n.type == "TEX_IMAGE")
 			nt.links.new(tex.outputs["Color"], next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED").inputs["Base Color"])
+	# One material per mesh: Roblox's import of a two-material glb is untested. boss_king's Ea ribbons (slot 1, Ea_Glow) are
+	# baked red into the painted atlas already, so slot 0 shows them; only the emissive glow of the render is lost.
+	for o in bpy.context.scene.objects:
+		if o.type == "MESH" and len(o.data.materials) > 1:
+			o.data.polygons.foreach_set("material_index", [0] * len(o.data.polygons))
+			while len(o.data.materials) > 1:
+				o.data.materials.pop(index=len(o.data.materials) - 1)
 	path = os.path.join(ROOT, "build", "avatar_glb", cid + ".glb")
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", export_yup=True, export_apply=True, export_animations=False)
