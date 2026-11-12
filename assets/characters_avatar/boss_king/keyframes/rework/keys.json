@@ -1036,6 +1036,893 @@
      ]
     }
    ]
+  },
+  "idle": {
+   "title": "Idle (rework, jointed rig, hovering): arms folded, breathing, looking down on the runners",
+   "end": 4.0,
+   "loop": true,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0: arms folded, chin up, weight hangs on his right leg, left knee loose",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 0.45,
+     "caption": "Breath in starts: chest rises, folded arms lift with it, legs drift forward",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -1.0,
+       -0.0,
+       5.0
+      ],
+      "Head": [
+       -8.0,
+       -0.0,
+       -10.0
+      ],
+      "Key": [
+       2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -48.665,
+       16.262,
+       60.385
+      ],
+      "RightLowerArm": [
+       -39.278,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.852,
+       -21.334,
+       -55.886
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -12.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       26.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       0.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 0.9,
+     "caption": "Breath in, top: chest out, he looks down his nose at the lanes",
+     "root_offset": [
+      0,
+      0,
+      0.04
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -5.0,
+       -0.0,
+       3.0
+      ],
+      "Head": [
+       -12.0,
+       0.0,
+       -4.0
+      ],
+      "Key": [
+       3.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -45.547,
+       15.331,
+       61.174
+      ],
+      "RightLowerArm": [
+       -46.874,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.851,
+       -20.808,
+       -56.371
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -10.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -2.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 1.35,
+     "caption": "Glance: head turns to the runners on his left, shoulders follow a little, hips roll",
+     "root_offset": [
+      0.04,
+      0,
+      0.03
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -3.0,
+       4.0
+      ],
+      "Torso": [
+       -2.0,
+       2.0,
+       8.0
+      ],
+      "Head": [
+       -6.0,
+       -2.0,
+       26.0
+      ],
+      "Key": [
+       1.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -48.649,
+       16.352,
+       60.308
+      ],
+      "RightLowerArm": [
+       -39.859,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.576,
+       -21.244,
+       -55.97
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       20.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -6.0,
+       -0.0,
+       2.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 1.8,
+     "caption": "Breath out: chest drops, weight swings onto his left leg, right knee loosens",
+     "root_offset": [
+      0.05,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -4.0,
+       2.0
+      ],
+      "Torso": [
+       3.0,
+       2.0,
+       2.0
+      ],
+      "Head": [
+       -2.0,
+       -2.0,
+       18.0
+      ],
+      "Key": [
+       -1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -52.386,
+       16.173,
+       60.461
+      ],
+      "RightLowerArm": [
+       -27.928,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.435,
+       -21.021,
+       -56.176
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       2.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       32.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -12.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       22.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 2.2,
+     "caption": "Smug lean: hips sway to his left, head tips, fold tightens",
+     "root_offset": [
+      0.06,
+      0,
+      -0.02
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -5.0,
+       -2.0
+      ],
+      "Torso": [
+       2.0,
+       -2.0,
+       -4.0
+      ],
+      "Head": [
+       -7.0,
+       -5.0,
+       6.0
+      ],
+      "Key": [
+       -0.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -71.162,
+       15.675,
+       60.884
+      ],
+      "RightLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.365,
+       -20.913,
+       -56.275
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       4.0,
+       0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       36.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -14.0,
+       0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       24.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 2.65,
+     "caption": "Second breath in: chest lifts again, legs drift back under him",
+     "root_offset": [
+      0.03,
+      0,
+      0.04
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -2.0,
+       -3.0
+      ],
+      "Torso": [
+       -4.0,
+       0.0,
+       -2.0
+      ],
+      "Head": [
+       -11.0,
+       -2.0,
+       -4.0
+      ],
+      "Key": [
+       2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -46.672,
+       15.714,
+       60.851
+      ],
+      "RightLowerArm": [
+       -44.03,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.443,
+       -21.023,
+       -56.173
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -4.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -8.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       28.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 3.1,
+     "caption": "Glance the other way: over his right shoulder, chin high, hips counter-turn",
+     "root_offset": [
+      -0.02,
+      0,
+      0.02
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       2.0,
+       -5.0
+      ],
+      "Torso": [
+       -3.0,
+       -2.0,
+       -8.0
+      ],
+      "Head": [
+       -9.0,
+       3.0,
+       -28.0
+      ],
+      "Key": [
+       1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -47.294,
+       15.636,
+       60.917
+      ],
+      "RightLowerArm": [
+       -40.847,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.41,
+       -20.858,
+       -56.325
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -10.0,
+       0.0,
+       -2.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       2.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 3.55,
+     "caption": "Breath out, settling: head comes back front, weight returns to his right leg",
+     "root_offset": [
+      -0.02,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       1.0,
+       -2.0
+      ],
+      "Torso": [
+       3.0,
+       -0.0,
+       2.0
+      ],
+      "Head": [
+       -3.0,
+       1.0,
+       -14.0
+      ],
+      "Key": [
+       -1.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -51.211,
+       16.003,
+       60.605
+      ],
+      "RightLowerArm": [
+       -30.33,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.608,
+       -20.921,
+       -56.267
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       24.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       32.0,
+       0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    },
+    {
+     "t": 4.0,
+     "caption": "Loop = idle key 0: arms folded, chin up, weight on his right leg",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": []
+    }
+   ]
   }
  },
  "rig": "jointed (build_boss_king.py -- jointed): Torso, Head, upper and lower arm and leg per side, Key, Ea; the lower arm carries the hand, the lower leg the foot",
@@ -1126,7 +2013,7 @@
   ]
  },
  "ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
- "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam",
+ "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand)",
  "hover": {
   "studs_over_mound": 12.0,
   "bob_studs": 1.5,
