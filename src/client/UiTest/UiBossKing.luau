@@ -529,6 +529,100 @@ function Module.Build(h)
 			local decoded, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
 			return decoded and type(log) == "table" and log or nil
 		end
+		-- Task a5b-fx (BOSS_EVENT_SPEC "Gates portals and Ea's wind", "Impact layer"; design doc 4.37 "Rework approvals"). Contract
+		-- (implementer: report a change, do not loosen):
+		--   Portals: every Decal under each Portal part shows design C, the image id in Shared/BossVfxArt.PortalC (the ledger the
+		--     king's effects read; BossKingArt.PortalC also accepted), Color3 white; a portal's Size (X or Y, the drawn disc) peaks
+		--     at 1.25 x the old 14 / 10 / 7 studs (+/- 2%); it turns slowly about its facing (LookVector).
+		--   Wind: BossVfxForce "Charge" makes a BasePart EnumaWind under BossEffects that follows Ea, its local Y along the orbit's
+		--     axis; its Trails (enabled, faded at both ends: Transparency's first and last keypoints >= 0.8) ride Attachment0s
+		--     orbiting that axis: 4 early in the charge, 6 near 2.75 s; the orbit turns once per 0.8 s early and once per 0.35 s near
+		--     2.75 s (+/- 20%). Under REDUCED EFFECTS no enabled wind Trail (the strictest reading of "off or reduced").
+		--   Ea's trail: an enabled Trail parented under the GoldenKing's Ea part (or whose Attachment0 is) during enuma's swing (3.0 s
+		--     +/- 0.3, from the schedule), none at rest (the idle), none under REDUCED EFFECTS. LastStrikes stays as checked above.
+		local WHITE_TOLERANCE = 0.01
+		local OLD_PORTAL_SIZES = { 14, 10, 7 }
+		local function portalArt()
+			local art = optional("BossVfxArt") or {}
+			return art.PortalC or (optional("BossKingArt") or {}).PortalC
+		end
+		-- Plays Gates and follows every Portal for `seconds`: { [portal] = { Peak, First, Last, Decals = { decal } } }.
+		local function watchPortals(seconds)
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
+			local seen, stop = {}, os.clock() + seconds
+			while os.clock() < stop do
+				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+					if d.Name == "Portal" and d:IsA("BasePart") then
+						local row = seen[d] or { Peak = 0, Decals = {} }
+						seen[d] = row
+						row.Peak = math.max(row.Peak, d.Size.X, d.Size.Y)
+						row.First = row.First or { os.clock(), d.CFrame }
+						row.Last = { os.clock(), d.CFrame }
+						for _, decal in d:GetDescendants() do
+							if decal:IsA("Decal") then
+								row.Decals[decal] = true
+							end
+						end
+					end
+				end
+				task.wait(0.05)
+			end
+			return seen
+		end
+		local function enabledTrails(root)
+			local n = 0
+			for _, d in root and root:GetDescendants() or {} do
+				n += (d:IsA("Trail") and d.Enabled) and 1 or 0
+			end
+			return n
+		end
+		-- An enabled Trail on `part` (parented under it, or riding an attachment under it), seen within `seconds`.
+		local function trailSeen(part, seconds)
+			local stop = os.clock() + seconds
+			repeat
+				for _, d in workspace:GetDescendants() do
+					if d:IsA("Trail") and d.Enabled then
+						local a0 = d.Attachment0
+						if d:IsDescendantOf(part) or (a0 and a0:IsDescendantOf(part)) then
+							return true
+						end
+					end
+				end
+				task.wait(0.05)
+			until os.clock() >= stop
+			return false
+		end
+		-- The wind's orbit: turns a second of the first enabled Trail's Attachment0 about EnumaWind's local Y, from now for `seconds`.
+		local function windTurnRate(seconds)
+			local wind = inArena("EnumaWind")
+			local trail = nil
+			for _, d in wind and wind:GetDescendants() or {} do
+				if d:IsA("Trail") and d.Enabled and d.Attachment0 then
+					trail = trail or d
+				end
+			end
+			if not (wind and wind:IsA("BasePart") and trail) then
+				return nil
+			end
+			local function angle()
+				local p = wind.CFrame:PointToObjectSpace(trail.Attachment0.WorldPosition)
+				return math.atan2(p.Z, p.X)
+			end
+			local total, last, born = 0, angle(), os.clock()
+			while os.clock() - born < seconds do
+				task.wait()
+				local now = angle()
+				total += (now - last + math.pi) % (2 * math.pi) - math.pi
+				last = now
+			end
+			return math.abs(total) / (2 * math.pi) / (os.clock() - born)
+		end
+		local function faded(trail)
+			local keys = trail.Transparency.Keypoints
+			return keys[1].Value >= 0.8 and keys[#keys].Value >= 0.8
+		end
 		-- 14 volleys at 0, 0.15, ... 1.95 s; per volley `least`..`most` projectiles or beams (BOSS_EVENT_SPEC "The Golden King").
 		local function checkVolleys(tag, log, least, most)
 			check(res, tag .. "_volley_log", log ~= nil and log.Move, "Gates")
@@ -629,6 +723,48 @@ function Module.Build(h)
 				portals >= PORTALS_MIN and portals <= PORTALS_MAX
 			)
 			h.check(res, "gates_streaks_drawn", mostNamed("Gates", "Streak"), "> 0", mostNamed("Gates", "Streak") > 0)
+			-- Design C, the sun wheel (owner 2026-11-12): its image, white, 1.25 x the old sizes, turning slowly.
+			local wantArt = portalArt()
+			check(
+				res,
+				"portal_c_art_set",
+				type(wantArt) == "string" and string.find(wantArt, "rbxassetid://", 1, true) == 1,
+				true
+			)
+			local wrongArt, notWhite, offSize, turning, watched = {}, {}, {}, 0, 0
+			for portal, row in watchPortals(2.6) do
+				watched += 1
+				for decal in row.Decals do
+					if decal.Texture ~= wantArt then
+						table.insert(wrongArt, tostring(decal.Texture))
+					end
+					local c = decal.Color3
+					if math.min(c.R, c.G, c.B) < 1 - WHITE_TOLERANCE then
+						table.insert(notWhite, tostring(c))
+					end
+				end
+				if next(row.Decals) == nil then
+					table.insert(wrongArt, portal:GetFullName() .. " has no decal")
+				end
+				local fits = false
+				for _, old in OLD_PORTAL_SIZES do
+					fits = fits or math.abs(row.Peak - 1.25 * old) <= 0.02 * 1.25 * old
+				end
+				if not fits then
+					table.insert(offSize, ("%.2f"):format(row.Peak))
+				end
+				if row.First and row.Last and row.Last[1] - row.First[1] >= 0.5 then
+					local a, b = row.First[2], row.Last[2]
+					local turned = math.deg(math.acos(math.clamp(a.RightVector:Dot(b.RightVector), -1, 1)))
+					local perSecond = turned / (row.Last[1] - row.First[1])
+					turning += (turned > 1 and perSecond < 180) and 1 or 0
+				end
+			end
+			check(res, "portals_watched", watched > 0, true)
+			h.checkList(res, "portals_design_c_art", wrongArt)
+			h.checkList(res, "portals_white", notWhite)
+			h.checkList(res, "portals_1_25_x_size", offSize)
+			h.check(res, "portals_turn_slowly", turning, "> 0", turning > 0)
 			local list = checkVolleys("gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
 			checkSpread("gates", list, Arena)
 			-- Enuma Elish: the red charge tint, then the beam.
@@ -642,6 +778,40 @@ function Module.Build(h)
 			check(res, "enuma_beam_drawn", waitFor(function()
 				return inArena("EnumaBeam") ~= nil
 			end, 6) == true, true)
+			-- The swirling wind (owner 2026-11-12): 4 ribbons, one turn per 0.8 s early; 6, one turn per 0.35 s near 2.75 s.
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Charge")
+			local charged = os.clock()
+			task.wait(0.1)
+			local early = windTurnRate(0.4)
+			local earlyTrails = enabledTrails(inArena("EnumaWind"))
+			h.check(res, "wind_trails_4_early", earlyTrails, 4, earlyTrails == 4)
+			h.check(
+				res,
+				"wind_turn_0_8_s_early",
+				early,
+				"1.25 +/- 20%",
+				type(early) == "number" and math.abs(early - 1 / 0.8) <= 0.2 / 0.8
+			)
+			local fades = true
+			for _, d in (inArena("EnumaWind") or workspace):GetDescendants() do
+				if d:IsA("Trail") and inArena("EnumaWind") and d:IsDescendantOf(inArena("EnumaWind")) then
+					fades = fades and faded(d)
+				end
+			end
+			check(res, "wind_trails_faded_both_ends", earlyTrails > 0 and fades, true)
+			task.wait(math.max(0, 2.55 - (os.clock() - charged)))
+			local late = windTurnRate(0.4)
+			local lateTrails = enabledTrails(inArena("EnumaWind"))
+			h.check(res, "wind_trails_6_late", lateTrails, 6, lateTrails == 6)
+			h.check(
+				res,
+				"wind_turn_0_35_s_late",
+				late,
+				"2.86 +/- 20%",
+				type(late) == "number" and math.abs(late - 1 / 0.35) <= 0.2 / 0.35
+			)
 			-- Shield Gates: a ring of 5 to 7 shields.
 			local shields = mostNamed("Shields", "Shield")
 			check(res, "shields_ring_drawn", waitFor(function()
@@ -681,6 +851,37 @@ function Module.Build(h)
 				SHIELDS_MIN .. " to " .. SHIELDS_MAX,
 				reducedShields >= SHIELDS_MIN and reducedShields <= SHIELDS_MAX
 			)
+			-- REDUCED EFFECTS: no wind ribbons, no trail on Ea.
+			ReplicatedStorage:SetAttribute("BossVfxForce", "")
+			task.wait()
+			ReplicatedStorage:SetAttribute("BossVfxForce", "Charge")
+			local reducedWind, windStop = 0, os.clock() + 3
+			while os.clock() < windStop do
+				reducedWind = math.max(reducedWind, enabledTrails(inArena("EnumaWind")))
+				task.wait(0.1)
+			end
+			check(res, "reduced_no_wind_trails", reducedWind, 0)
+			-- Ea's trail while it swings (BOSS_EVENT_SPEC "Impact layer"), from the schedule: the force off.
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			local ea = king:FindFirstChild("Ea", true)
+			check(res, "king_ea_part_present", ea ~= nil, true)
+			local index, at = nil, nil
+			for i = 1, SCAN do
+				local t, name = BossDodge.Moment(i, KING)
+				if name == "enuma" and not index then
+					index, at = i, t
+				end
+			end
+			if ea and index then
+				local fight = Cfg.PrepSeconds + Cfg.IntroSeconds
+				state(res, "Fight", fight + at - 0.3, 4000, 4000, true, 100)
+				check(res, "reduced_no_ea_trail", trailSeen(ea, 0.6), false)
+				h.player:SetAttribute("ReduceEffects", nil)
+				state(res, "Fight", fight + 1, 4000, 4000, true, 100)
+				check(res, "no_ea_trail_at_rest", trailSeen(ea, 1), false)
+				state(res, "Fight", fight + at - 0.3, 4000, 4000, true, 100)
+				check(res, "ea_trail_in_swing", trailSeen(ea, 0.6), true)
+			end
 		end, debug.traceback)
 		h.check(res, "king_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossVfxForce", nil)

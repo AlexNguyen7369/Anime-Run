@@ -50,6 +50,11 @@ local CIRCLE_SIZES = { 24, 16, 10 } -- studs across: 3 sizes, as the rules ask
 local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
 local SALT = { Lightning = 1, Barrage = 2 }
 local STAFF_TIP = Vector3.new(Poses.Bind.Staff.Tip[1], Poses.Bind.Staff.Tip[2], Poses.Bind.Staff.Tip[3])
+-- The staff's Trail while it swings (BOSS_EVENT_SPEC "Impact layer"): s of her move about its strike event (proposed)
+local STAFF_SWING = {
+	lightning = { LIGHTNING_AT - 0.6, LIGHTNING_AT + 0.4 },
+	barrage = { BARRAGE_AT - 0.6, BARRAGE_AT + 0.4 },
+}
 
 local BossMageVfx = {}
 
@@ -59,6 +64,7 @@ local circles = {} -- the barrage's open circles, its beams' origins
 local pool = {} -- idle pooled parts (Transparency 1) in this arena's folder
 local previousMove, previousTime = nil, nil
 local previousGolem, previousGolemTime = nil, nil
+local staff = nil -- her Staff part, found by name (the rig is built late)
 
 local function reduced()
 	return UiMotion.Reduced()
@@ -380,6 +386,19 @@ local function playBarrage()
 	return 0
 end
 
+-- The staff's trail: on inside STAFF_SWING, off otherwise and under REDUCED EFFECTS.
+local function stepStaffTrail(move, localTime)
+	local swing = STAFF_SWING[move]
+	local on = swing and localTime >= swing[1] and localTime <= swing[2] and not reduced()
+	if on and not (staff and staff.Parent) then
+		local model = mage.Her and mage.Her.Model
+		staff = model and model:FindFirstChild("Staff", true)
+	end
+	if staff and staff.Parent then
+		Kit.swingTrail(staff, on and mage:Point("Staff", STAFF_TIP), ICE, VIOLET)
+	end
+end
+
 -- Runs ---------------------------------------------------------------------------------------------------------------------------
 
 local EVENTS = { Lightning = playLightning, Slam = playSlam, Sweep = playSweep, Barrage = playBarrage }
@@ -443,6 +462,10 @@ local function clear()
 	table.clear(pool)
 	table.clear(tracked)
 	table.clear(circles)
+	if staff and staff.Parent then
+		Kit.swingTrail(staff, nil)
+	end
+	staff = nil
 	previousMove, previousTime = nil, nil
 	previousGolem, previousGolemTime = nil, nil
 end
@@ -472,6 +495,7 @@ function BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
 			tracked[part] = nil
 		end
 	end
+	stepStaffTrail(move, localTime)
 	if ReplicatedStorage:GetAttribute(FORCE) ~= nil then
 		return
 	end

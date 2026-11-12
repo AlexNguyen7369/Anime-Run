@@ -1074,6 +1074,49 @@ function Module.Build(h)
 				local tag = "reduced_" .. string.lower(name)
 				checkStrikes(tag, name, strikeLog(name), PER_STRIKE_REDUCED, PER_STRIKE_REDUCED)
 			end
+			-- A Trail on her staff while it swings in lightning and barrage, none at rest, none under REDUCED EFFECTS
+			-- (BOSS_EVENT_SPEC "Animation rework" "Impact layer"; task a5b-fx). Contract: an enabled Trail parented under the ElfMage's
+			-- Staff part, or whose Attachment0 is, at some time in the move, from the schedule (BossVfxForce off).
+			ReplicatedStorage:SetAttribute("BossVfxForce", nil)
+			local staff = mage and mage:FindFirstChild("Staff", true)
+			check(res, "mage_staff_part_present", staff ~= nil, true)
+			local function staffTrailSeen(seconds)
+				local stop = os.clock() + seconds
+				repeat
+					for _, d in workspace:GetDescendants() do
+						if d:IsA("Trail") and d.Enabled then
+							local a0 = d.Attachment0
+							if d:IsDescendantOf(staff) or (a0 and a0:IsDescendantOf(staff)) then
+								return true
+							end
+						end
+					end
+					task.wait(0.05)
+				until os.clock() >= stop
+				return false
+			end
+			if staff then
+				for _, move in { "lightning", "barrage" } do
+					local startAt = timeOf(move, 0, 0.1, 0)
+					check(res, "schedule_has_" .. move, startAt ~= nil, true)
+					if startAt then
+						state(res, "Fight", Cfg.PrepSeconds + startAt, 4000, 4000, true, 100)
+						check(res, "reduced_no_staff_trail_" .. move, staffTrailSeen(Poses.Moves[move].Duration), false)
+					end
+				end
+				h.player:SetAttribute("ReduceEffects", nil)
+				if idleAt then
+					state(res, "Fight", Cfg.PrepSeconds + idleAt, 4000, 4000, true, 100)
+					check(res, "no_staff_trail_at_rest", staffTrailSeen(1), false)
+				end
+				for _, move in { "lightning", "barrage" } do
+					local startAt = timeOf(move, 0, 0.1, 0)
+					if startAt then
+						state(res, "Fight", Cfg.PrepSeconds + startAt, 4000, 4000, true, 100)
+						check(res, "staff_trail_in_" .. move, staffTrailSeen(Poses.Moves[move].Duration), true)
+					end
+				end
+			end
 		end, debug.traceback)
 		h.check(res, "mage_vfx_checks_completed", ok and "yes" or tostring(err), "yes", ok)
 		ReplicatedStorage:SetAttribute("BossVfxForce", nil)
