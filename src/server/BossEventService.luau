@@ -78,9 +78,6 @@ local function publish()
 	if event then
 		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
 	end
-	if nextAt < math.huge and nextBoss then
-		LateData.Deliver(BossCatalog.Get(nextBoss).Poses) -- announced as the next boss
-	end
 	ReplicatedStorage:SetAttribute("BossEventPhase", event and event.Phase or nil)
 	ReplicatedStorage:SetAttribute("BossEventStart", event and event.StartAt or nil)
 	ReplicatedStorage:SetAttribute("BossEventHp", event and event.Hp or nil)
@@ -1114,6 +1111,10 @@ function BossEventService.Advance(at)
 		else
 			publish()
 		end
+	end
+	-- Design doc 7 "Join size": the next timed boss's poses go out LateLeadSeconds before its start, not at the announcement.
+	if nextBoss and nextAt - at <= Cfg.LateLeadSeconds then
+		LateData.Deliver(BossCatalog.Get(nextBoss).Poses)
 	end
 end
 

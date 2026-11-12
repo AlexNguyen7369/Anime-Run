@@ -6,6 +6,7 @@ local Arena = require(script.Parent.BossArenaConfig)
 local BossEventConfig = {}
 
 BossEventConfig.IntervalSeconds = 1800
+BossEventConfig.LateLeadSeconds = 120 -- proposed: the next boss's late data is sent this long before its timed start (design doc 7)
 BossEventConfig.PrepSeconds = 60
 BossEventConfig.JoinSeconds = 180 -- teleporting closes and HP locks
 BossEventConfig.TotalSeconds = 480

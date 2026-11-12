@@ -17,7 +17,8 @@ local Event = require(Shared:WaitForChild("BossEventConfig"))
 local ATTRIBUTE = "BossArenaPreview"
 local BossCatalog = require(Shared:WaitForChild("BossCatalog"))
 
--- Design doc 7 "Join size": the announced boss's meshes and images start loading at the announcement, not at the teleport.
+-- Design doc 7 "Join size": a boss's meshes and images start loading when its poses arrive (2 minutes ahead) or its event starts,
+-- not at the teleport, and not at the 30-minute announcement.
 local preloaded = {}
 local function preload(id)
 	if id == nil or preloaded[id] then
@@ -37,11 +38,29 @@ local function preload(id)
 		pcall(ContentProvider.PreloadAsync, ContentProvider, list)
 	end)
 end
-for _, name in { "BossEventNextBoss", "BossEventBoss" } do
-	ReplicatedStorage:GetAttributeChangedSignal(name):Connect(function()
-		preload(ReplicatedStorage:GetAttribute(name))
-	end)
-	preload(ReplicatedStorage:GetAttribute(name))
+ReplicatedStorage:GetAttributeChangedSignal("BossEventBoss"):Connect(function()
+	preload(ReplicatedStorage:GetAttribute("BossEventBoss"))
+end)
+preload(ReplicatedStorage:GetAttribute("BossEventBoss"))
+local function watchLate(late)
+	if late.Name ~= "LateData" then
+		return
+	end
+	local function arrived(child)
+		for _, id in BossCatalog.Order do
+			if BossCatalog.Get(id).Poses == child.Name then
+				preload(id)
+			end
+		end
+	end
+	late.ChildAdded:Connect(arrived)
+	for _, child in late:GetChildren() do
+		arrived(child)
+	end
+end
+ReplicatedStorage.ChildAdded:Connect(watchLate)
+if ReplicatedStorage:FindFirstChild("LateData") then
+	watchLate(ReplicatedStorage.LateData)
 end
 
 -- Join size (design doc 7): the view waits for an event or a preview; then only that boss's modules and poses load (viewOf).
