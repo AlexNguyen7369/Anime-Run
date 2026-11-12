@@ -175,8 +175,9 @@
 171. 2026-11-12 — Alex Nguyen — Merged PR #8 feature/alex/anime-world into main (4f9e2dc) after a fresh merge review APPROVE: Tab tilt HUD and wider panels, boss screens, plaza accents, pay at each checkpoint, Sakura gate loading screen, Dojos removed with the one-time refund, Spawn showpiece C, track power-ups.
 172. 2026-11-12 — Alex Nguyen — Merged PR #9 feature/alex/boss-mage into main (722e3f9) after a fresh merge review APPROVE: The Elf Mage and her follow-ups, per-boss late data, Team button and panel, Team icon N3.
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
+174. 2026-11-12 — Alex Nguyen — Hotfixed main after the owner found loading stuck: src/late/BossKingPoses.luau (and its generator) required BossEventConfig from LateData instead of Shared, which crashed BossDodge, BossEventService, AdminService and Main at boot so no server built the plaza; PR #11 merged after a fresh review APPROVE (Studio boot OK, late_data 96/96, boss_king_anim 133/133).
 
 ## What's next
-**Retarget PR #10 (`feature/alex/boss-king`) to main and merge it on the fresh APPROVE, then close goal boss-king and the owner plays `/boss king` on main.**
+**Owner's play check of main (dc4acbd) in Studio: /boss king, /elfboss and a normal run; then the owner's Team panel decisions (https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar) and the open small fixes (Backpack tab reds, SAITAMO / MYTHIC overlap, the #9 reviewer debts) as the next tasks.**
 
-**Why this is next:** #8 and #9 are in main, so #10's diff is The Golden King alone and its fresh review already approved it; merging it is the last gate of the goal.
+**Why this is next:** every goal is merged into main but the merged tree has never had a full harness or a full play-through; the boot crash shows what that gap hides, so the owner's look comes before new feature work.
