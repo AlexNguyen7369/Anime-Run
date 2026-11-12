@@ -28,6 +28,7 @@ local CharacterPortraits = require(shared:WaitForChild("CharacterPortraits"))
 local HudFormat = require(shared:WaitForChild("HudFormat"))
 local Monetization = require(shared:WaitForChild("MonetizationConfig"))
 local SidekickArt = require(shared:WaitForChild("SidekickArt"))
+local SidekickConfig = require(shared:WaitForChild("SidekickConfig"))
 local StaminaConfig = require(shared:WaitForChild("StaminaConfig"))
 local UiTheme = require(shared:WaitForChild("UiTheme"))
 local Palette = UiTheme.Palette
@@ -542,10 +543,12 @@ local function chestLines(chestId)
 			Outline = row.Rarity == "Secret" and Palette.White or nil,
 		})
 	end
-	local chance = RelicConfig.Chests[chestId].SidekickChance
-	if chance > 0 then
-		local text = ("Big Raga %g%%"):format(chance * 100)
-		table.insert(lines, { Id = "side_raga", Text = text, Color = Color3.new(0, 0, 0), Outline = Palette.White })
+	local chest = RelicConfig.Chests[chestId]
+	local sidekickId = chest.SidekickId
+	local chance = chest.SidekickChance
+	if chance > 0 and sidekickId then
+		local text = ("%s %g%%"):format(SidekickConfig.Get(sidekickId).Name, chance * 100)
+		table.insert(lines, { Id = sidekickId, Text = text, Color = Color3.new(0, 0, 0), Outline = Palette.White })
 	end
 	return lines
 end
