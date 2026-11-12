@@ -19,6 +19,7 @@ local BossCfg = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("B
 local RaceConfig = require(shared.RaceConfig)
 local SeriesCatalog = require(shared.SeriesCatalog)
 local StaminaConfig = require(shared.StaminaConfig)
+local PowerUpConfig = require(shared.PowerUpConfig)
 local Components = require(script.Parent:WaitForChild("RollToast"):WaitForChild("Ui"):WaitForChild("RacerComponents"))
 local UiTheme = require(shared.UiTheme)
 local Palette = UiTheme.Palette
@@ -135,6 +136,41 @@ local marker = text(overlay, "Marker", {
 	Visible = false,
 	ZIndex = 8,
 })
+
+-- Speed power-up badge (design doc 4.44, draft H2): on the running portrait's top-right corner while
+-- PowerSpeedUntil is ahead; its ring of dots empties over the boost.
+local BADGE = 26 -- px (proposed)
+local BADGE_DOTS = 16
+local powerBadge = make("Frame", {
+	Name = "PowerBadge",
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	Size = UDim2.fromOffset(BADGE, BADGE),
+	BackgroundColor3 = DIM,
+	Visible = false,
+	ZIndex = 12,
+}, overlay)
+make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, powerBadge)
+make("UIStroke", { Thickness = 1.5, Color = PowerUpConfig.COLORS.Speed }, powerBadge)
+text(powerBadge, "Symbol", {
+	Size = UDim2.fromScale(1, 1),
+	Text = "»",
+	TextSize = 18,
+	TextColor3 = PowerUpConfig.COLORS.Speed,
+	ZIndex = 13,
+})
+local badgeDots = {}
+for i = 1, BADGE_DOTS do
+	local a = math.rad(-90 + (i - 0.5) * 360 / BADGE_DOTS) -- from the top, clockwise
+	badgeDots[i] = make("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, (BADGE / 2 + 3) * math.cos(a), 0.5, (BADGE / 2 + 3) * math.sin(a)),
+		Size = UDim2.fromOffset(4, 4),
+		BackgroundColor3 = PowerUpConfig.COLORS.Speed,
+		BorderSizePixel = 0,
+		ZIndex = 13,
+	}, powerBadge)
+	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, badgeDots[i])
+end
 
 local card = make("Frame", {
 	Name = "InfoCard",
@@ -588,17 +624,35 @@ RunService.RenderStepped:Connect(function(dt)
 			end
 			-- The run's own fixed seconds while running: TeamStamina moves if a potion is used mid-run
 			local total = tonumber(player:GetAttribute("RunSeconds" .. slot)) or teamStat("Stamina", slot)
-			local seconds = total and math.ceil(total * shown) or nil
-			if seconds ~= circle.Seconds then
-				circle.Seconds = seconds
+			-- A Stamina power-up's extra (design doc 4.44): the bar stays full, the number counts it, in blue
+			local raw = running and tonumber(player:GetAttribute("Stamina" .. slot))
+			local over = raw ~= nil and raw > 100 and total ~= nil and total ~= math.huge
+			local seconds = total and math.ceil(total * (over and raw / 100 or shown)) or nil
+			if seconds ~= circle.Seconds or over ~= circle.Over then
+				circle.Seconds, circle.Over = seconds, over
 				circle.Number.Text = seconds == math.huge and "∞" or seconds and tostring(seconds) or "" -- Kami
+				circle.Number.TextColor3 = over and StaminaConfig.COLORS.Full or Color3.new(1, 1, 1)
 			end
 		end
 	end
 	local circle = running and circles[running]
 	if not (circle and circle.State == "active") then
 		marker.Visible = false
+		powerBadge.Visible = false
 		return
+	end
+	local boostLeft = (tonumber(player:GetAttribute("PowerSpeedUntil")) or 0) - workspace:GetServerTimeNow()
+	powerBadge.Visible = boostLeft > 0
+	if boostLeft > 0 then
+		local f, s = circle.Frame, hudScale()
+		powerBadge.Position = UDim2.fromOffset(
+			(f.AbsolutePosition.X + f.AbsoluteSize.X - overlay.AbsolutePosition.X) / s,
+			(f.AbsolutePosition.Y - overlay.AbsolutePosition.Y) / s
+		)
+		local lit = math.ceil(BADGE_DOTS * math.clamp(boostLeft / PowerUpConfig.SPEED_SECONDS, 0, 1))
+		for i, d in badgeDots do
+			d.Visible = i <= lit
+		end
 	end
 	circle.Glow.BackgroundTransparency = 0.6 + (reduced and 0 or 0.2 * math.sin(clock * 2.5))
 	local f = circle.Frame
