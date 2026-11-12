@@ -336,22 +336,39 @@ function Module.Build(h)
 			"clear",
 			r ~= nil and big ~= nil and not overlaps(r, big)
 		)
-		-- Owner 2026-11-12 (4.42): an open panel may overlap the button and draws above it; the panel covers its centre
+		-- Owner 2026-11-12 (4.42): an open panel MAY overlap the button; where it does it draws above it and takes the
+		-- clicks there, where it does not the button stays shown and pressable
 		local restore = h.setPanels({ OVER_PANEL })
 		local panel = h.find(OVER_PANEL)
-		local above, why = false, "no " .. OVER_PANEL
-		if panel and b then
-			above, why = h.drawsAbove(panel, b)
+		if not (panel and b) then
+			h.check(res, "team_button_under_panel", not b and "no " .. T.Button or "no " .. OVER_PANEL, "both", false)
+		else
+			local pr, br2 = h.rect(panel), h.rect(b)
+			local ix1, iy1 = math.max(pr.x, br2.x), math.max(pr.y, br2.y)
+			local ix2, iy2 = math.min(pr.x + pr.w, br2.x + br2.w), math.min(pr.y + pr.h, br2.y + br2.h)
+			if ix2 > ix1 and iy2 > iy1 then
+				local above, why = h.drawsAbove(panel, b)
+				h.check(res, "team_button_under_panel_where_covered", why, "panel above the button", above)
+				local hit = h.topAt((ix1 + ix2) / 2, (iy1 + iy2) / 2)
+				h.check(
+					res,
+					"team_button_blocked_under_panel_where_covered",
+					hit and hit:GetFullName() or "nothing",
+					"not the button",
+					hit == nil or not (hit == b or b:IsAncestorOf(hit))
+				)
+			else
+				h.check(res, "team_button_shown_clear_of_panel_here", shown(b), true, shown(b))
+				local hit = h.topAt(h.centre(br2))
+				h.check(
+					res,
+					"team_button_pressable_clear_of_panel_here",
+					hit and hit:GetFullName() or "nothing",
+					"the button",
+					hit ~= nil and (hit == b or b:IsAncestorOf(hit))
+				)
+			end
 		end
-		h.check(res, "team_button_under_panel", why, "panel above the button", above)
-		local hit = b and h.topAt(h.centre(h.rect(b)))
-		h.check(
-			res,
-			"team_button_blocked_under_panel",
-			hit and hit:GetFullName() or "nothing",
-			"the panel",
-			b ~= nil and panel ~= nil and hit ~= nil and (hit == panel or panel:IsAncestorOf(hit))
-		)
 		restore()
 	end
 

@@ -718,23 +718,40 @@ function Module.Build(h)
 			"clear",
 			big ~= nil and bar ~= nil and not pillHit
 		)
-		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the button and draws above it,
-		-- and the panel itself (not the world dim, which lies under the HUD) covers the button's centre
+		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel MAY overlap the button; where it does it
+		-- draws above it and takes the clicks there, where it does not the button stays shown and pressable
 		local restorePanels = h.setPanels({ OVER_PANEL })
 		local panel = h.find(OVER_PANEL)
-		local above, why = false, "no " .. OVER_PANEL
-		if panel and button then
-			above, why = h.drawsAbove(panel, button)
+		if not (panel and button) then
+			h.check(res, "button_under_panel", not button and "no " .. BUTTON or "no " .. OVER_PANEL, "both", false)
+		else
+			local pr, br = h.rect(panel), h.rect(button)
+			local ix1, iy1 = math.max(pr.x, br.x), math.max(pr.y, br.y)
+			local ix2, iy2 = math.min(pr.x + pr.w, br.x + br.w), math.min(pr.y + pr.h, br.y + br.h)
+			if ix2 > ix1 and iy2 > iy1 then
+				local above, why = h.drawsAbove(panel, button)
+				h.check(res, "button_under_panel_where_covered", why, "panel above the button", above)
+				local hit = h.top((ix1 + ix2) / 2, (iy1 + iy2) / 2)
+				h.check(
+					res,
+					"button_blocked_under_panel_where_covered",
+					hit and hit:GetFullName() or "nothing",
+					"not the button",
+					hit == nil or not (hit == button or button:IsAncestorOf(hit))
+				)
+			else
+				local seen = h.visible(button)
+				h.check(res, "button_shown_clear_of_panel_here", seen, true, seen)
+				local hit = h.top(h.centre(br))
+				h.check(
+					res,
+					"button_pressable_clear_of_panel_here",
+					hit and hit:GetFullName() or "nothing",
+					"the button",
+					hit ~= nil and (hit == button or button:IsAncestorOf(hit))
+				)
+			end
 		end
-		h.check(res, "button_under_panel", why, "panel above the button", above)
-		local hit = button and h.top(h.centre(h.rect(button)))
-		h.check(
-			res,
-			"button_blocked_under_panel",
-			hit and hit:GetFullName() or "nothing",
-			"the panel",
-			button ~= nil and panel ~= nil and hit ~= nil and (hit == panel or panel:IsAncestorOf(hit))
-		)
 		restorePanels()
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
 		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
