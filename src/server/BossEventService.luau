@@ -73,8 +73,24 @@ local function safely(fn, ...)
 	return ok, result
 end
 
+local previewBoss -- the boss whose poses an on arena preview delivered
+
+-- Design doc 7 "Join size": a boss's pose copy leaves ReplicatedStorage after its event or preview, unless its event runs,
+-- its preview is on, or it is the next timed boss inside LateLeadSeconds of its start.
+local function dropPoses(boss)
+	if
+		(event and event.Boss == boss) or (previewBoss == boss and ReplicatedStorage:GetAttribute("BossArenaPreview"))
+	then
+		return
+	end
+	if nextBoss == boss.Id and nextAt - now() <= Cfg.LateLeadSeconds then
+		return
+	end
+	LateData.Remove(boss.Poses)
+end
+
 local function publish()
-	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it; a copy stays.
+	-- Design doc 7 "Join size": only the boss concerned loads, before the phase, so a client never waits for it (dropPoses removes it after).
 	if event then
 		LateData.Deliver(event.Boss.Poses, "SidekickAttacks")
 	end
@@ -989,6 +1005,7 @@ function BossEventService.End(reason)
 	event = nil
 	lastEnd = reason
 	publish()
+	dropPoses(ending.Boss)
 	sendHits(ending.Members, now(), true)
 	for player, member in ending.Members do
 		release(player, member, true)
@@ -1170,7 +1187,12 @@ function BossEventService.Init()
 	Players.PlayerRemoving:Connect(left)
 	ReplicatedStorage:GetAttributeChangedSignal("BossArenaPreview"):Connect(function()
 		if ReplicatedStorage:GetAttribute("BossArenaPreview") then -- the test preview builds the previewed boss's arena with no event
-			LateData.Deliver(BossCatalog.Current().Poses, "SidekickAttacks")
+			previewBoss = BossCatalog.Current()
+			LateData.Deliver(previewBoss.Poses, "SidekickAttacks")
+		elseif previewBoss then
+			local boss = previewBoss
+			previewBoss = nil
+			dropPoses(boss)
 		end
 	end)
 	nextAt = now() + Cfg.IntervalSeconds

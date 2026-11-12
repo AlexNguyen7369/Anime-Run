@@ -201,12 +201,14 @@ local root = make("ScreenGui", "RacerBossEvent", playerGui, {
 	DisplayOrder = 13, -- above the panels and DuelUi (a duel keeps its invite), below the roll view (14)
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 })
--- Design doc 4.42 (owner 2026-11-12): an open panel draws above the second column (Bosses, Team), so while one is open
--- this gui drops under the panels (DisplayOrder 2) and stays above the world dim (0).
-local ORDER, ORDER_UNDER_PANEL = root.DisplayOrder, 1
-PanelSwitch.OnChange(function()
-	root.DisplayOrder = PanelSwitch.AnyOpen() and ORDER_UNDER_PANEL or ORDER
-end)
+-- Design doc 4.42 (owner 2026-11-12): only the second column (Bosses, Team) goes under panels, so it has its own gui,
+-- under every panel's (DisplayOrder 2 and up) and above the world dim (0).
+local secondColumn = make("ScreenGui", "RacerSecondColumn", playerGui, {
+	ResetOnSpawn = false,
+	IgnoreGuiInset = true,
+	DisplayOrder = 1,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+})
 
 -- Invite ------------------------------------------------------------------------------------------------------------------
 local invite, _, inviteCountdown, _, inviteFrame = panel("Invite", BossCatalog.Current().InviteTitle)
@@ -629,7 +631,7 @@ end
 -- Its pulse grows right and down from a fixed corner (PulseScale goes in first); the join pulse thickens its outline.
 local bossButton, bossGlow = columnButton("BossButton", "Bosses", Icons.Boss.Image, "Glow")
 make("UIScale", "PulseScale", bossButton, {})
-bossButton.Parent = root
+bossButton.Parent = secondColumn
 -- Below it, Team (owner 2026-11-12): opens the Team panel (Client/TeamUi), as its key letter T does, as the column's.
 local teamButton, teamOutline = columnButton("TeamButton", "Team", Icons.Team.Image, "Outline")
 local teamLetter = make("TextLabel", "Key", teamButton, {
@@ -648,7 +650,7 @@ local teamLetterOutline = make("UIStroke", "Outline", teamLetter, {
 	Thickness = 2,
 	LineJoinMode = Enum.LineJoinMode.Round,
 })
-teamButton.Parent = root
+teamButton.Parent = secondColumn
 teamButton.Activated:Connect(function()
 	PanelSwitch.Action("Team")
 end)

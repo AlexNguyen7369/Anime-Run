@@ -384,6 +384,9 @@ local function render()
 		end
 	elseif since >= 0 then
 		local boss = ReplicatedStorage:GetAttribute("BossEventBoss") -- nil: Big Raga
+		if not BossDodge.Ready(boss) then
+			return
+		end
 		local index = BossDodge.IndexAtOrBefore(since, boss) + 1
 		if index <= doneIndex then
 			return

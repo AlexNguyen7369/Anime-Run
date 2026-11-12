@@ -75,6 +75,12 @@ local function load(boss)
 	return id
 end
 
+-- Never yields: true once the boss's poses have arrived. Per-frame callers return until then, so no threads wait.
+function BossDodge.Ready(boss)
+	local id = BossCatalog.Get(boss).Id
+	return schedules[id] ~= nil or (LateData.Peek(BossCatalog.Get(id).Poses) ~= nil and load(id) ~= nil)
+end
+
 local function scheduleOf(boss)
 	return schedules[load(boss)]
 end
