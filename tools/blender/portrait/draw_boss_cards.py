@@ -3,7 +3,7 @@
 # assets/ui/boss_cards_draft/: A (two tall cards), B (one big card and a side strip), C (horizontal rows), each live, idle
 # and at a phone's 844 x 390, plus a labelled contact sheet. Reuses draw_mage_ui.py's canvas, text (CoreText through
 # `swift`) and PNG helpers. Portraits and reward art are loaded through CoreGraphics (no Pillow in these Pythons).
-# /Applications/Blender.app/Contents/Resources/*/python/bin/python3* tools/blender/portrait/draw_boss_cards.py
+# /Applications/Blender.app/Contents/Resources/*/python/bin/python3* tools/blender/portrait/draw_boss_cards.py [king]
 import os
 import subprocess
 import sys
@@ -20,7 +20,9 @@ OUT = os.path.join(ROOT, "assets", "ui", "boss_cards_draft")
 ART = {
 	"raga": "assets/characters_avatar/side_raga/portrait.png",  # BossCatalog: Big Raga's Portrait is side_raga's
 	"mage": "assets/characters_avatar/boss_mage/portrait.png",
+	"king": "assets/ui/boss_king/portrait.png",  # k5 draft; assets/characters_avatar/boss_king/portrait.png once approved
 	"chest_raga": "assets/ui/chest_raga.png",
+	"chest_king": "assets/ui/chest_king.png",
 	"chest_adapted": "assets/ui/chest_adapted.png",
 	"gem": "assets/ui/gem.png",
 }
@@ -38,9 +40,13 @@ BOSSES = {
 		"rewards": [("chest_raga", "1x"), ("money", "100K"), ("chest_adapted", "1x"), ("gem", "1K")],
 	},
 	"mage": {"name": "The Elf Mage", "sub": "1 phase", "top": 0.36, "rewards": [("chest_raga", "1x"), ("money", "100K")]},
+	# top None: measured from the portrait; gap: the card's top kept clear of the drawn part, so the name block never crosses his hair
+	"king": {"name": "The Golden King", "sub": "1 phase", "top": None, "gap": 180, "rewards": [("chest_king", "1x"), ("money", "100K")], "line": "The Golden King is judging you right now"},
 }
 # Per draft state: each boss's card state. live: the running boss; next: the idle timer's boss; off: "Not this time".
-STATES = {"live": {"mage": "live", "raga": "off"}, "idle": {"raga": "next", "mage": "off"}}
+STATES = {"live": {"mage": "live", "raga": "off"}, "idle": {"raga": "next", "mage": "off"}, "king": {"king": "live", "raga": "off", "mage": "off"}}
+MAIN = {"live": "mage", "idle": "raga", "king": "king"}  # the big card's boss per state
+FOOT = {"live": "The Elf Mage live", "idle": "no event, Big Raga next", "king": "The Golden King live (k5 draft, draft B with 3 bosses)"}
 TIME_LEFT, TIME_FRAC, NEXT_IN = "5:12 left", 312 / 480, "Next event in 12:34"
 NOT_THIS_TIME = "Not this time*"  # * proposal, footnoted on the screen
 
@@ -241,7 +247,11 @@ def rewards(D, x, y, w, boss, s=72, label=True, per_row=4):
 
 def portrait(D, boss, cx, bottom, avail, max_w, clip):
 	"""The boss's drawn portrait standing on `bottom`, its drawn part at most `avail` tall."""
-	size = min(max_w, avail / (1 - BOSSES[boss]["top"]))
+	top = BOSSES[boss]["top"]
+	if top is None:
+		a = D.art[boss][..., 3]
+		top = float((a.max(axis=1) > 0.1).argmax()) / a.shape[0]
+	size = min(max_w, avail / (1 - top))
 	D.image(boss, cx, bottom - size / 2, size, clip=clip)
 
 
@@ -295,9 +305,11 @@ def draft_a(D, state):
 def card_big(D, x, y, w, h, boss, state):
 	r = 18
 	card_back(D, x, y, w, h, state, r)
-	portrait(D, boss, x + 250, y + h - 6, h - 136, 440, (x, y, w, h, r))
+	portrait(D, boss, x + 250, y + h - 6, h - BOSSES[boss].get("gap", 136), 440, (x, y, w, h, r))
 	D.rect(x + 10, y + 10, w - 20, 48, PANEL_DEEP, r=10, alpha=0.85)
 	pill(D, x + 18, y + 17, state, px=24)
+	if state == "live" and "line" in BOSSES[boss]:  # the boss's ActiveText, in the header plate between the tag and Details
+		D.text(ROUND, 20, BOSSES[boss]["line"], x + 150, y + 34, color=SOFT, anchor="l")
 	name_block(D, x + 20, y + 94, boss, big=44, small=26)
 	D.dim(x, y, w, h, r, dim_amount(state))
 	button(D, x + w - 130, y + 16, 114, 36, "Details", "details", px=22)
@@ -322,14 +334,32 @@ def card_small(D, x, y, w, h, boss, state):
 	button(D, x + w - 124, y + h - 50, 108, 34, "Details", "details", px=22)
 
 
+def card_compact(D, x, y, w, h, boss, state):
+	"""card_small for a strip of two: a smaller portrait, the state pill and Details side by side."""
+	r = 14
+	card_back(D, x, y, w, h, state, r)
+	f = 120
+	portrait(D, boss, x + 10 + f / 2, y + h - 10, h - 20, 999, (x + 10, y + 10, f, h - 20, 12))
+	tx = x + f + 22
+	name_block(D, tx, y + 36, boss, big=24, small=18)
+	D.dim(x, y, w, h, r, dim_amount(state))
+	state_bar(D, tx, y + h - 48, 122, 34, state, px=16)
+	button(D, x + w - 112, y + h - 48, 100, 34, "Details", "details", px=20)
+
+
 def draft_b(D, state):
 	panel(D)
 	st = STATES[state]
-	main = "mage" if state == "live" else "raga"
-	other = "raga" if main == "mage" else "mage"
+	main = MAIN[state]
+	others = [b for b in st if b != main]
 	card_big(D, 36, 80, 720, 512, main, st[main])
-	card_small(D, 776, 80, 388, 210, other, st[other])
-	info_plate(D, 776, 306, 388, 286, state == "live")
+	if len(others) == 1:
+		card_small(D, 776, 80, 388, 210, others[0], st[others[0]])
+		info_plate(D, 776, 306, 388, 286, st[main] == "live")
+	else:  # three bosses: two compact cards in the strip, the info box under them
+		for i, other in enumerate(others):
+			card_compact(D, 776, 80 + i * 160, 388, 150, other, st[other])
+		info_plate(D, 776, 400, 388, 192, st[main] == "live")
 
 
 # Draft C: horizontal cards in a vertical list --------------------------------------------------------------------------------
@@ -384,7 +414,7 @@ def screen(art, masks, reqs, letter, state, phone):
 	DRAFTS[letter](P, state)
 	W, H = (844 * 2, 390 * 2) if phone else (1280, 720)
 	S = Draw(W, H, 1, art, masks, reqs)
-	foot = f"Draft {letter}: {'The Elf Mage live' if state == 'live' else 'no event, Big Raga next'}" + (" (844 x 390 phone, 2x)" if phone else "")
+	foot = f"Draft {letter}: {FOOT[state]}" + (" (844 x 390 phone, 2x)" if phone else "")
 	foot2 = "* \"Not this time\" text is a proposal. Times and counts are sample values."
 	if masks is None:
 		note(S, foot, 0, 0, WHITE, px=18 if phone else 20)
@@ -431,12 +461,22 @@ def render(art, masks, reqs):
 	return shots, contact_sheet(shots, masks, reqs)
 
 
+def render_king(art, masks, reqs):
+	"""`king`: only The Golden King's draft B screens, B_king_live.png and B_king_phone.png (goal boss-king k5)."""
+	return {s: screen(art, masks, reqs, "B", "king", s == "phone") for s in ("live", "phone")}
+
+
 def main():
 	os.makedirs(OUT, exist_ok=True)
 	art = load_art()
 	reqs = set()
-	render(art, None, reqs)  # record pass: every text the drafts ask for
+	king = "king" in sys.argv[1:]
+	(render_king if king else render)(art, None, reqs)  # record pass: every text the drafts ask for
 	masks = base.text_masks(sorted(reqs))
+	if king:
+		for s, img in render_king(art, masks, reqs).items():
+			base.write_png(os.path.join(OUT, f"B_king_{s}.png"), base.to_rgba8(img))
+		return
 	shots, sheet = render(art, masks, reqs)
 	for (L, s), img in shots.items():
 		base.write_png(os.path.join(OUT, f"{L}_{s}.png"), base.to_rgba8(img))
