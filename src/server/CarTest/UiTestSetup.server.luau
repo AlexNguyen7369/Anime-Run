@@ -268,12 +268,13 @@ local sidekickSnapshots = {}
 local sidekickClockMoved = false
 local sidekickRealRoll = nil -- SidekickConfig.Roll, while sidekick_big_reveal has it scripted
 -- Moves the rotation clock by whole seconds (0 puts the real clock back), so ui_sidekicks sees a slot change.
--- Only the server can tell which later slot has another Mythic: the client has the attribute alone.
-local function nextMythicOffset()
+-- Only the server can tell which later slot has another Secret: the client has the attribute alone. The Mythic stays the
+-- featured Igriz (SIDEKICK_SPEC "Summon presentation"), so the Secret is what changes.
+local function nextSecretOffset()
 	local rotation = live("SidekickRotation")
 	local slot = rotation.Slot(os.time())
 	local steps = 1
-	while steps < 200 and rotation.For(slot + steps).Mythic[1] == rotation.For(slot).Mythic[1] do
+	while steps < 200 and rotation.For(slot + steps).Secret == rotation.For(slot).Secret do
 		steps += 1
 	end
 	return steps * rotation.SLOT_SECONDS
@@ -1778,7 +1779,7 @@ setupRequest.OnServerInvoke = function(player, request)
 			return
 		end
 		if request == "sidekick_ui_clock:next" then
-			sidekickUiClock(nextMythicOffset())
+			sidekickUiClock(nextSecretOffset())
 			return
 		elseif request == "sidekick_ui_clock:real" then
 			sidekickUiClock(0)
