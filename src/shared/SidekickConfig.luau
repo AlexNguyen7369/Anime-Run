@@ -2,6 +2,7 @@
 -- Sidekick catalog and summon costs (design doc 4.36, docs/SIDEKICK_SPEC.md). All numbers are placeholders.
 -- Odds is a percent and the list sums to 100, within float rounding. A summon uses the current rotation's odds, Server/SidekickRotation. Cruise and Stamina are fractions of that character's own value.
 local SidekickConfig = {}
+SidekickConfig.FeaturedMythic = "side_knight"
 
 SidekickConfig.SummonCost = 50
 SidekickConfig.TenCost = 500

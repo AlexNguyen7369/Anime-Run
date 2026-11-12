@@ -1,1138 +1,978 @@
 --!nonstrict
--- The Sidekicks summon page (design doc 4.36, docs/SIDEKICK_SPEC.md "Summon page"), opened at the plaza stall. Header: Gem
--- balance, rotation timer, Mythic Pity. Main: the poster (Mythic, Legendaries and Rares in one view, with rates), the cost,
--- Auto-Sell, Summon 1x and 10x. GemColumn: gem bundles (ProductId 0: "Coming soon"; otherwise a press invokes GemPackBuy). Details shows every outcome's odds before
--- any spend (section 6) and the Secrets' silhouettes. Client/SidekickReveal plays results. The gacha look is this page's alone
--- (owner 2026-11-05). The server decides every result.
-local Lighting = game:GetService("Lighting")
-local Players = game:GetService("Players")
+-- Imported summon presentation; Anime Run's existing server remotes decide all outcomes.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
 local shared = ReplicatedStorage:WaitForChild("Shared")
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local Config = require(shared:WaitForChild("SidekickConfig"))
-local HudFormat = require(shared:WaitForChild("HudFormat"))
 local Monetization = require(shared:WaitForChild("MonetizationConfig"))
-local UiTheme = require(shared:WaitForChild("UiTheme"))
-local AnimeSkin = require(script.Parent:WaitForChild("AnimeSkin"))
-local PanelFrame = require(script.Parent:WaitForChild("PanelFrame"))
+local HudFormat = require(shared:WaitForChild("HudFormat"))
+local SidekickArt = require(shared:WaitForChild("SidekickArt"))
 local PanelSwitch = require(script.Parent:WaitForChild("PanelSwitch"))
-local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local SidekickView = require(script.Parent:WaitForChild("SidekickView"))
-local UiFeedback = require(script.Parent:WaitForChild("UiFeedback"))
+local SidekickReveal = require(script.Parent:WaitForChild("SidekickReveal"))
 local UiMotion = require(script.Parent:WaitForChild("UiMotion"))
-local Ui = script.Parent:WaitForChild("RollToast"):WaitForChild("Ui")
-local Icons = require(Ui.HudIcons)
-
-local PALETTE = UiTheme.Palette
-local OUTLINE = UiTheme.Outline
-local BLACK = Color3.new(0, 0, 0)
-local NEAR_BLACK = Color3.fromRGB(10, 10, 18)
-local RAINBOW = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 110)),
-	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 220, 90)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(110, 255, 150)),
-	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(100, 190, 255)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(215, 120, 255)),
-})
-local MODEL_VIEW_DIR = Vector3.new(0.45, 0.15, -1).Unit -- from the model to the camera, as Client/StarterPick
-local MODEL_LIGHT_DIR = Vector3.new(-1, -2, -1)
-local TURN_SPEED = math.rad(30) -- radians per second (placeholder)
-local MODEL_SWAY = math.rad(12) -- how far the view swings either way from the front (placeholder)
-local RAY_SPEED, EDGE_SPEED = 6, 50 -- degrees per second (placeholders)
-local ROTATION_SECONDS = 1800 -- design doc 4.36: only the timer bar's fill reads this; EndsAt comes from the server
--- shortcut: 300 and 100 are shown here until SidekickService and SidekickConfig land them (the boss event session is building pity).
-local PITY_COUNT = Config.PityCount or 300
-local LEGENDARY_PITY_COUNT = Config.LegendaryPityCount or 100
--- Poster: Mythic centred, Legendaries beside it, Rares at the ends, each further back. Side and Back in model heights, Height a
--- share of POSTER_HEIGHT, X and Width the name column in the poster. Rows come Mythic, Legendaries, Rares.
-local POSTER_HEIGHT = 4
-local POSTER_SLOTS = {
-	{ Side = 0, Back = 0, Height = 1, X = 0.385, Width = 0.23, NameSize = 32, RateSize = 20 },
-	{ Side = -0.62, Back = 0.25, Height = 0.76, X = 0.19, Width = 0.195, NameSize = 24, RateSize = 16 },
-	{ Side = 0.62, Back = 0.25, Height = 0.76, X = 0.615, Width = 0.195, NameSize = 24, RateSize = 16 },
-	{ Side = -1.2, Back = 0.5, Height = 0.6, X = 0, Width = 0.19, NameSize = 20, RateSize = 14 },
-	{ Side = 1.2, Back = 0.5, Height = 0.6, X = 0.81, Width = 0.19, NameSize = 20, RateSize = 14 },
+local assets = ReplicatedStorage:WaitForChild("SummonScreenAssets")
+local LegendaryAuraStyle = require(assets:WaitForChild("LegendaryAuraStyle"))
+local featuredRows = {}
+local busy, revealing = false, false
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("RacerSidekicks")
+local canvas = gui:WaitForChild("Canvas")
+local savedStage = assets:WaitForChild("SummoningStage")
+for i = 1, 3 do
+	local unit = savedStage:WaitForChild("Units"):WaitForChild("Unit" .. i)
+	unit:WaitForChild("Root")
+	unit:WaitForChild("ImportedAura"):WaitForChild("RightArm")
+end
+local template = savedStage:Clone()
+template.Parent = nil
+-- The authored stage remains in ReplicatedStorage, outside streaming.
+local stage = nil
+local motion = {}
+local opened = false
+local auto = false
+local elapsed = 0
+local cameraDrift = Vector2.zero
+local lastAuto = 0
+local toastVersion = 0
+local previousCamera = nil
+local lightingState = nil
+local previousSpeed = nil
+local previousJump = nil
+local hiddenHud = {}
+local hiddenWorldLabels = {}
+local hudGuards = {}
+local HUD_NAMES = {
+	RacerSecondColumn = true,
+	RacerTeam = true,
+	HudChrome = true,
+	RacerHud = true,
+	RollExtras = true,
+	RollToast = true,
+	TeamToast = true,
+	RacerProgression = true,
+	NpcIndicator = true,
+	CheckpointUi = true,
+	CheckpointBonusPopup = true,
+	BiomeWelcome = true,
+	DailyBoosts = true,
+	ProximityPrompts = true,
+	EnemyShowdown = true,
 }
-
-local function make(class, name, parent, props)
-	local object = Instance.new(class)
-	object.Name = name
-	for key, value in props do
-		object[key] = value
-	end
-	object.Parent = parent
-	return object
-end
-local function caption(name, parent, props)
-	props.BackgroundTransparency = 1
-	props.Font = UiTheme.Font
-	props.TextColor3 = props.TextColor3 or PALETTE.White
-	props.TextScaled = true
-	local label = make("TextLabel", name, parent, props)
-	make("UIStroke", "Outline", label, { Color = OUTLINE, Thickness = 2, LineJoinMode = Enum.LineJoinMode.Round })
-	make("UITextSizeConstraint", "Max", label, { MaxTextSize = props.TextSize or 20 })
-	return label
-end
--- The Index frame (design doc 4.42) that PanelFrame.Attach gives the panel, below: every size is in its units.
-local g
--- Labels by text role (design doc 4.42); OnLayout sizes them again at the frame's scale. color: a rarity or gold
--- caption. Weak keys: rows come and go.
-local roles = setmetatable({}, { __mode = "k" })
-local function role(label, name, color)
-	roles[label] = { name, color }
-	label.TextWrapped = false
-	g.Role(label, name)
-	if color then
-		label.TextColor3 = color
-	end
-	return label
-end
--- Design doc 4.42: the Index's action button (AnimeSkin tone, default Idle): flat fill, 4 px corners, white Item words
--- on one line, no dark edge. The Stroke stays (disabled) for the Auto-Sell toggles' state colour.
-local function button(name, parent, props, text, tone)
-	props.Text = ""
-	props.AutoButtonColor = false
-	local b = make("TextButton", name, parent, props)
-	AnimeSkin.Button(b, tone or "Idle")
-	make("UIStroke", "Stroke", b, {
-		Color = OUTLINE,
-		Thickness = 3,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-		Enabled = false,
-	})
-	local label = caption("Label", b, {
-		Position = UDim2.fromScale(0.06, 0),
-		Size = UDim2.fromScale(0.88, 1),
-		Text = text,
-	})
-	role(label, "Item")
-	return b
-end
--- Rainbow rarity text is for Mythic and Secret; every other rarity keeps its one colour.
-local function paintRarity(label, rarity)
-	local rainbow = rarity == "Mythic" or rarity == "Secret"
-	label.TextColor3 = rainbow and PALETTE.White or SidekickView.RarityColor(rarity)
-	if rainbow then
-		make("UIGradient", "Rainbow", label, { Color = RAINBOW })
-	end
-end
--- A slanted plate in the tabs row (design doc 4.42) with its Tab label; `fillColor` set: a thin bar of that colour
--- along its foot, inside the plate.
-local function statusBar(name, parent, text, fillColor)
-	local bar = make("Frame", name, parent, { BackgroundTransparency = 1 })
-	AnimeSkin.Plate(bar, AnimeSkin.Tint.Default)
-	local fill = fillColor
-		and make("Frame", "Fill", bar, {
-			BackgroundColor3 = fillColor,
-			BorderSizePixel = 0,
-			ZIndex = 1,
-		})
-	role(
-		caption("Label", bar, {
-			Text = text,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			ZIndex = 2,
-		}),
-		"Tab"
-	)
-	return bar, fill
-end
-
-local root = make("ScreenGui", "RacerSidekicks", gui, {
-	ResetOnSpawn = false,
-	IgnoreGuiInset = true,
-	DisplayOrder = 2,
-	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-})
-local panel = make("Frame", "Panel", root, {
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromOffset(720, 420),
-	Visible = false,
-	Active = true,
-})
-PanelSwitch.Register("Sidekicks", panel)
-local chrome = PanelFrame.Attach(panel, {
-	Theme = "Sidekicks",
-	Title = "Sidekicks",
-	Icon = Icons.Gem.Image, -- HudIcons has no Sidekicks icon: the Gem is the logo
-	MaxWidth = 760,
-})
-g = chrome.Frame
-chrome.Close.Activated:Connect(function()
-	PanelSwitch.Close("Sidekicks")
-end)
-PanelFrame.CloseOnOutsideClick(panel, function()
-	PanelSwitch.Close("Sidekicks")
-end)
-
-local blur = make("BlurEffect", "SidekickSummonBlur", Lighting, { Size = 14, Enabled = false }) -- placeholder size
-
--- The tabs row (design doc 4.42): four 40 tall plates, Gems, the rotation timer and both pity counts. It stays a child
--- of the Header (the UI tests pin Header/StatusBlock); the Index frame collapses the Header to the panel's origin, so
--- the plates are placed in panel units.
-local status = make("Frame", "StatusBlock", chrome.Header, { BackgroundTransparency = 1, Size = UDim2.new() })
-local balance = statusBar("Balance", status, "GEMS")
-make("ImageLabel", "GemIcon", balance, {
-	BackgroundTransparency = 1,
-	Image = Icons.Gem.Image,
-	ScaleType = Enum.ScaleType.Fit,
-	ZIndex = 2,
-})
-local gemsValue = role(
-	caption("GemsValue", balance, {
-		Text = "0",
-		TextXAlignment = Enum.TextXAlignment.Right,
-		ZIndex = 2,
-	}),
-	"Tab"
-)
-make("UIGradient", "Rainbow", gemsValue, { Color = RAINBOW })
-local bars = make("Frame", "Bars", status, { BackgroundTransparency = 1, Size = UDim2.new() })
-local function barValue(name, bar)
-	return role(
-		caption(name, bar, {
-			Text = "",
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 2,
-		}),
-		"Tab"
-	)
-end
-local timerBar, timerFill = statusBar("TimerBar", bars, "ROTATION", Color3.fromRGB(60, 150, 240))
-local rotationTimer = barValue("RotationTimer", timerBar)
-local pityBar, pityFill = statusBar("PityBar", bars, "MYTHIC", SidekickView.RarityColor("Mythic"))
-local pityValue = barValue("Value", pityBar)
-local legendaryBar, legendaryFill =
-	statusBar("LegendaryPityBar", bars, "LEGENDARY", SidekickView.RarityColor("Legendary"))
-local legendaryPityValue = barValue("Value", legendaryBar)
--- Each plate's share of the row and its label's share of the plate, from the longest words at the Tab size, so all
--- four plates scale their text alike. Fill: the bar's share, set by refresh / showTimer.
-local plates = {
-	{ Frame = balance, Row = 0.22, Label = 0.42, Value = gemsValue, Icon = balance.GemIcon },
-	{ Frame = timerBar, Row = 0.26, Label = 0.55, Value = rotationTimer, Fill = timerFill, Share = 1 },
-	{ Frame = pityBar, Row = 0.24, Label = 0.5, Value = pityValue, Fill = pityFill, Share = 0 },
-	{ Frame = legendaryBar, Row = 0.28, Label = 0.58, Value = legendaryPityValue, Fill = legendaryFill, Share = 0 },
-}
-local function placeFill(entry)
-	local w = entry.W or 0
-	g.Place(entry.Fill, 24, 32, math.max(0, (w - 48) * math.clamp(entry.Share, 0, 1)), 4)
-end
-
--- The content area (design doc 4.42): Main on the left 56%, the gem packs on the right, 12 apart.
-local body = make("Frame", "Body", panel, { BackgroundTransparency = 1 })
-
--- More Gems: whole bundle cards, biggest first.
-local gemColumn = make("Frame", "GemColumn", body, { BackgroundTransparency = 1 })
-local gemHeading = role(
-	caption("Heading", gemColumn, {
-		Text = "MORE GEMS",
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	"Section"
-)
--- 4 px padding keeps the cards' art edge (3 px) inside the clip.
-local PACK_PAD = 4
-local packs = make("ScrollingFrame", "Packs", gemColumn, {
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ScrollBarThickness = 6,
-	VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar,
-	CanvasSize = UDim2.new(),
-	AutomaticCanvasSize = Enum.AutomaticSize.Y,
-	ScrollingDirection = Enum.ScrollingDirection.Y,
-})
-local packLayout = make("UIListLayout", "Layout", packs, {
-	SortOrder = Enum.SortOrder.LayoutOrder,
-	HorizontalAlignment = Enum.HorizontalAlignment.Center,
-})
-make("UIPadding", "Padding", packs, {
-	PaddingTop = UDim.new(0, PACK_PAD),
-	PaddingBottom = UDim.new(0, PACK_PAD),
-})
-local smallest = Monetization.GemPacks[1]
-for order, pack in Monetization.GemPacks do
-	local tile = make("Frame", pack.Id, packs, {
-		LayoutOrder = -order,
-		BackgroundColor3 = PALETTE.White,
-	})
-	AnimeSkin.Card(tile, AnimeSkin.Tint.Default)
-	make("ImageLabel", "GemArt", tile, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.72, 0.72),
-		SizeConstraint = Enum.SizeConstraint.RelativeYY,
-		BackgroundTransparency = 1,
-		Image = Icons.Gem.Image,
-		ImageTransparency = 0.45,
-		ScaleType = Enum.ScaleType.Fit,
-	})
-	-- Three lines, 12 in from the card's edges: name and ribbon, the Gems, then "Coming soon" and the price.
-	role(caption("Name", tile, { Text = pack.Name, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2 }), "Item")
-	local gems = role(caption("Gems", tile, { Text = "+" .. HudFormat.Short(pack.Gems), ZIndex = 2 }), "Item")
-	make("UIGradient", "Rainbow", gems, { Color = RAINBOW })
-	role(
-		caption("Soon", tile, { Text = "Coming soon", TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2 }),
-		"Caption"
-	)
-	role(
-		caption("Price", tile, {
-			Text = pack.RobuxPrice .. " R$",
-			TextXAlignment = Enum.TextXAlignment.Right,
-			ZIndex = 2,
-		}),
-		"Body"
-	)
-	-- Rounded down, so a badge never overstates: computed from the listed prices.
-	local bonus = math.floor(((pack.Gems / pack.RobuxPrice) / (smallest.Gems / smallest.RobuxPrice) - 1) * 100)
-	if bonus > 0 then
-		role(
-			caption("Ribbon", tile, {
-				Text = string.format("+%d%% More!", bonus),
-				TextXAlignment = Enum.TextXAlignment.Right,
-				ZIndex = 3,
-			}),
-			"Caption",
-			AnimeSkin.Color.Section
-		)
-	end
-end
--- One pack card's parts, 12 padding, 8 between lines; w, h in units.
-local function placePack(tile, w, h)
-	local inner = w - 24
-	g.Place(tile:FindFirstChild("Name"), 12, 12, inner * 0.55, 34) -- tile.Name is the property
-	if tile:FindFirstChild("Ribbon") then
-		g.Place(tile.Ribbon, 12 + inner * 0.55 + 8, 12, inner * 0.45 - 8, 22)
-	end
-	g.Place(tile.Gems, 12, (h - 34) / 2, inner, 34)
-	g.Place(tile.Soon, 12, h - 12 - 22, inner * 0.5, 22)
-	g.Place(tile.Price, 12 + inner * 0.5, h - 12 - 28, inner * 0.5, 28)
-end
-
--- Main, top down: the poster, 12, the cost line (Caption), 8, the summon row (44), 12 above the content's foot.
-local main = make("Frame", "Main", body, {
-	BackgroundTransparency = 1,
-})
-local banner = make("Frame", "Banner", main, {
-	BackgroundTransparency = 1,
-})
-
--- The actual 3D models (owner 2026-11-05). The poster and the Secrets in Details: one Heartbeat turns them all.
-local views = {} -- ViewportFrame -> { Row or Rows, Focus, Distance }
-local turnAngle = 0
-local edgeTurn = 0 -- the poster edge's rainbow, in degrees
-local turning = nil
-
--- The camera sways around the front, so the model always faces the player, and the light follows it.
-local function aimView(view, spot)
-	local turn = CFrame.Angles(0, math.sin(turnAngle) * MODEL_SWAY, 0)
-	view.CurrentCamera.CFrame = CFrame.lookAt(spot.Focus + turn * MODEL_VIEW_DIR * spot.Distance, spot.Focus)
-	view.LightDirection = turn * MODEL_LIGHT_DIR
-end
-
--- All of a poster's models share one view, standing across the camera's width, so they overlap and share the light.
-local function placePoster(view, spot, models)
-	local across = CFrame.lookAt(MODEL_VIEW_DIR, Vector3.zero).RightVector
-	for index, row in spot.Rows do
-		local source = models:FindFirstChild(row.Id)
-		local slot = POSTER_SLOTS[index]
-		if source and slot then
-			local model = source:Clone()
-			local _, extents = model:GetBoundingBox()
-			local wanted = POSTER_HEIGHT * slot.Height
-			-- A wide flyer is sized by its span, so its wings do not fill the poster.
-			model:ScaleTo(model:GetScale() * wanted / math.max(extents.Y, extents.X * 0.7, 0.01))
-			local box, size = model:GetBoundingBox()
-			local spot3 = across * slot.Side * POSTER_HEIGHT
-				- MODEL_VIEW_DIR * slot.Back * POSTER_HEIGHT
-				+ Vector3.new(0, size.Y / 2, 0)
-			model:PivotTo(model:GetPivot() + spot3 - box.Position)
-			model.Parent = view
+local camera = workspace.CurrentCamera
+local function fit()
+	local view = camera.ViewportSize
+	canvas.ResponsiveScale.Scale = math.min(view.X / 1600, view.Y / 900)
+	local width = view.X / canvas.ResponsiveScale.Scale
+	local height = view.Y / canvas.ResponsiveScale.Scale
+	canvas.Size = UDim2.fromOffset(width, height)
+	for _, obj in canvas:GetChildren() do
+		local pos = obj:GetAttribute("DesignPosition")
+		if obj:IsA("GuiObject") and pos then
+			local x = pos.X
+			local y = pos.Y
+			if obj.Name:match("^Unit") or obj.Name:match("^Rarity") or obj.Name == "Featured" then
+				x += (width - 1600) * 0.5
+			elseif x >= 1060 then
+				x += width - 1600
+			end
+			if y >= 650 then
+				y += height - 900
+			end
+			obj.Position = UDim2.fromOffset(x, y)
 		end
 	end
-	spot.Focus = Vector3.new(0, POSTER_HEIGHT * 0.42, 0)
-	spot.Distance = POSTER_HEIGHT * 2.05
-	aimView(view, spot)
-end
-
-local function turnViews(dt)
-	local reduced = UiMotion.Reduced()
-	if not reduced then
-		edgeTurn = (edgeTurn + dt * EDGE_SPEED) % 360
-		local posterEdge = banner:FindFirstChild("PosterEdge", true)
-		if posterEdge then
-			posterEdge.Rotation = edgeTurn
-		end
-		local rays = banner:FindFirstChild("Rays", true)
-		if rays then
-			rays.Rotation = (rays.Rotation + dt * RAY_SPEED) % 360
-		end
+	local aspect = view.X / math.max(view.Y, 1)
+	local distance = 18 * math.max(1, (16 / 9) / aspect)
+	if opened then
+		camera.CFrame = CFrame.lookAt(Vector3.new(0, 10001, -distance), Vector3.new(0, 10000, 0))
+		camera.Focus = CFrame.new(0, 10000, 0)
 	end
-	if reduced and turnAngle == 0 then
+end
+local function toast(text)
+	toastVersion += 1
+	local version = toastVersion
+	canvas.Toast.Text = text
+	canvas.Toast.Visible = true
+	task.delay(2.8, function()
+		if version == toastVersion and gui.Parent then
+			canvas.Toast.Visible = false
+		end
+	end)
+end
+local function dialog(title, text)
+	canvas.Modal.Panel.Heading.Text = title
+	canvas.Modal.Panel.DetailsScroll.Body.Text = text
+	canvas.Modal.Visible = true
+end
+-- Pose the independent mesh groups together, including blade and emissive armor pieces.
+local function poseFeatured(model, id)
+	local torso = model:FindFirstChild("Torso", true)
+	if not torso then
 		return
 	end
-	turnAngle = reduced and 0 or (turnAngle + dt * TURN_SPEED) % (2 * math.pi)
-	for view, spot in views do
-		if view:FindFirstChildOfClass("Model") then
-			aimView(view, spot)
+	local knight = id == "side_knight"
+	local ant = id == "side_ant"
+	local rotations = knight
+			and {
+				LeftArm = Vector3.new(-18, 0, -28),
+				RightArm = Vector3.new(-32, -5, -28),
+				LeftLeg = Vector3.new(-14, 0, -10),
+				RightLeg = Vector3.new(12, 0, 10),
+			}
+		or ant and {
+			LeftArm = Vector3.new(-58, -12, -32),
+			RightArm = Vector3.new(-20, 10, 28),
+			LeftLeg = Vector3.new(-18, 0, -14),
+			RightLeg = Vector3.new(16, 0, 12),
+		}
+		or {
+			LeftArm = Vector3.new(-28, -8, -36),
+			RightArm = Vector3.new(-42, 8, 32),
+			LeftLeg = Vector3.new(-20, 0, -12),
+			RightLeg = Vector3.new(12, 0, 14),
+		}
+	local changes = {}
+	for name, angles in rotations do
+		local part = model:FindFirstChild(name, true)
+		if part then
+			local pivot = part.Position + Vector3.new(0, part.Size.Y * 0.28, 0)
+			changes[name] = CFrame.new(pivot)
+				* CFrame.Angles(math.rad(angles.X), math.rad(angles.Y), math.rad(angles.Z))
+				* CFrame.new(-pivot)
+		end
+	end
+	local origin = torso.Position
+	local lean = CFrame.new(origin)
+		* CFrame.Angles(math.rad(-5), math.rad(knight and -12 or ant and 12 or -8), math.rad(knight and -5 or 6))
+		* CFrame.new(-origin)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			local delta = CFrame.identity
+			for group, change in changes do
+				if part.Name:sub(1, #group) == group or (part.Name == "Sword" and group == "RightArm") then
+					delta = change
+					break
+				end
+			end
+			part.CFrame = lean * delta * part.CFrame
+		end
+	end
+	model:SetAttribute("SummonPose", knight and "SwordGuard" or ant and "ClawStrike" or "AirborneGuard")
+end
+local function refreshAuraMotion(record)
+	record.parts, record.supports = {}, {}
+	local unit = record.model
+	for _, part in unit:GetDescendants() do
+		if part:IsA("BasePart") and part:GetAttribute("LocalPose") then
+			table.insert(record.parts, { part = part, pose = part:GetAttribute("LocalPose") })
+		end
+		if part:IsA("BasePart") and part:GetAttribute("AuraBody") then
+			table.insert(record.supports, {
+				part = part,
+				body = unit.ImportedAura[part:GetAttribute("AuraBody")],
+				offset = part:GetAttribute("AuraOffset"),
+			})
 		end
 	end
 end
--- No model yet (not loaded, or panel closed): the tile keeps its name and stays empty.
-local function fillViews()
+local function dressStage()
+	if not stage then
+		return
+	end
 	local models = ReplicatedStorage:FindFirstChild("SidekickModels")
-	if not panel.Visible or not models or models:GetAttribute("Ready") ~= true then
-		return
-	end
-	for view, spot in views do
-		if not view:FindFirstChildOfClass("Model") then
-			if spot.Rows then
-				placePoster(view, spot, models)
-			else
-				local source = spot.Row and models:FindFirstChild(spot.Row.Id)
-				if source then
-					local model = source:Clone()
-					model.Parent = view
-					local box, extents = model:GetBoundingBox()
-					spot.Focus = box.Position
-					spot.Distance = 0.72 * extents.Magnitude / 2 / math.sin(math.rad(15))
-					aimView(view, spot)
+	for _, unit in stage.Units:GetChildren() do
+		local index = unit:GetAttribute("Index")
+		local row = featuredRows[index]
+		if row and LegendaryAuraStyle.Apply(unit, row.Id) then
+			for _, record in motion do
+				if record.model == unit then
+					refreshAuraMotion(record)
 				end
 			end
 		end
-	end
-end
-
-local function modelView(parent, props)
-	props.BackgroundTransparency = 1
-	props.Ambient = Color3.fromRGB(235, 235, 240) -- 3D light, not UI
-	props.LightColor = Color3.new(1, 1, 1)
-	props.LightDirection = MODEL_LIGHT_DIR
-	local view = make("ViewportFrame", "Model", parent, props)
-	view.CurrentCamera = make("Camera", "Camera", view, { FieldOfView = 30 })
-	return view
-end
-
-local detailsSheet -- set below: the poster's tap opens it
-local function openDetails() end
-
-local function forgetViews(under)
-	for _, object in under:GetDescendants() do
-		if object:IsA("ViewportFrame") then
-			views[object] = nil
+		for _, d in unit.ImportedAura:GetDescendants() do
+			if d:IsA("BasePart") or d:IsA("Decal") or d:IsA("Texture") then
+				d.Transparency = 1
+			end
 		end
-	end
-end
-
--- The poster is one view; each featured Sidekick still has its own named caption, with its rate (owner 2026-11-05).
-local function buildPoster(featured)
-	local poster = make("Frame", "Poster", banner, {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = PALETTE.White,
-		ClipsDescendants = true,
-	})
-	UiTheme.Corner(poster, "M")
-	local mythicColor = SidekickView.RarityColor(featured[1] and featured[1].Rarity)
-	UiTheme.Gradient(poster, mythicColor:Lerp(BLACK, 0.5), NEAR_BLACK)
-	local edge = make("UIStroke", "Edge", poster, {
-		Thickness = 3,
-		Color = PALETTE.White,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-	})
-	make("UIGradient", "PosterEdge", edge, { Color = RAINBOW })
-	local rays = make("Frame", "Rays", poster, {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.42),
-		Size = UDim2.fromScale(1.5, 1.5),
-		SizeConstraint = Enum.SizeConstraint.RelativeXX,
-		BackgroundTransparency = 1,
-	})
-	for i = 1, 8 do
-		local ray = make("Frame", "Ray" .. i, rays, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(1, 0.05),
-			Rotation = i * 180 / 8,
-			BackgroundColor3 = mythicColor:Lerp(PALETTE.White, 0.35),
-			BackgroundTransparency = 0.72,
-			BorderSizePixel = 0,
-		})
-		make("UIGradient", "Fade", ray, {
-			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.5, 0),
-				NumberSequenceKeypoint.new(1, 1),
-			}),
-		})
-	end
-	local view = modelView(poster, { Size = UDim2.fromScale(1, 1), ZIndex = 2 })
-	views[view] = { Rows = featured }
-	-- The dark foot of the poster keeps the names readable over the models.
-	local foot = make("Frame", "Foot", poster, {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.fromScale(0, 1),
-		Size = UDim2.fromScale(1, 0.5),
-		BackgroundColor3 = BLACK,
-		BorderSizePixel = 0,
-		ZIndex = 3,
-	})
-	make("UIGradient", "Fade", foot, {
-		Rotation = 90,
-		Transparency = NumberSequence.new(1, 0.15),
-	})
-	local names = make("Frame", "Names", poster, {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 4, 1, -4),
-		Size = UDim2.new(1, -8, 0.42, 0),
-		BackgroundTransparency = 1,
-		ZIndex = 4,
-	})
-	for index, row in featured do
-		local slot = POSTER_SLOTS[index]
-		if slot then
-			local cell = make("Frame", row.Id, names, {
-				Position = UDim2.fromScale(slot.X, 0),
-				Size = UDim2.fromScale(slot.Width, 1),
-				BackgroundTransparency = 1,
-				ZIndex = 4,
-			})
-			local name = caption("Name", cell, {
-				AnchorPoint = Vector2.new(0, 1),
-				Position = UDim2.fromScale(0, 0.48),
-				Size = UDim2.fromScale(1, 0.46),
-				Text = row.Name,
-				TextSize = slot.NameSize,
-				ZIndex = 4,
-			})
-			name.Outline.Thickness = 3
-			paintRarity(
-				caption("Rarity", cell, {
-					Position = UDim2.fromScale(0, 0.48),
-					Size = UDim2.fromScale(1, 0.26),
-					Text = row.Rarity,
-					TextSize = slot.RateSize + 2,
-					ZIndex = 4,
-				}),
-				row.Rarity
+		local old = unit:FindFirstChild("ActualSidekick")
+		if old then
+			old:Destroy()
+		end
+		local source = models and row and models:FindFirstChild(row.Id)
+		if source then
+			local model = source:Clone()
+			model.Name = "ActualSidekick"
+			for _, d in model:GetDescendants() do
+				if d:IsA("LuaSourceContainer") then
+					d:Destroy()
+				elseif d:IsA("BasePart") then
+					d.Anchored = true
+					d.CanCollide = false
+					d.CanTouch = false
+					d.CanQuery = false
+				end
+			end
+			poseFeatured(model, row.Id)
+			local _, size = model:GetBoundingBox()
+			local height = index == 2 and 7.5 or 6.3
+			model:ScaleTo(model:GetScale() * height / math.max(size.Y, size.X * 0.7, 0.01))
+			model:PivotTo(
+				CFrame.new(unit.PrimaryPart.Position)
+					* CFrame.Angles(0, math.rad(index == 1 and -12 or index == 3 and 12 or 0), 0)
 			)
-			caption("Rate", cell, {
-				Position = UDim2.fromScale(0, 0.74),
-				Size = UDim2.fromScale(1, 0.24),
-				Text = string.format("%g%%", row.Odds),
-				TextColor3 = PALETTE.Gold,
-				TextSize = slot.RateSize,
-				ZIndex = 4,
-			})
+			local box = model:GetBoundingBox()
+			local target = unit.PrimaryPart.Position + Vector3.new(0, height * 0.52, 0)
+			model:PivotTo(model:GetPivot() + target - box.Position)
+			model.Parent = unit
 		end
 	end
-	local tap = make("TextButton", "Tap", poster, {
-		Size = UDim2.fromScale(1, 1),
-		BackgroundTransparency = 1,
-		Text = "",
-		AutoButtonColor = false,
-		ZIndex = 5,
-	})
-	tap.Activated:Connect(function()
-		openDetails()
-	end)
-	local details = button("Details", poster, { ZIndex = 6 }, "Details") -- placed by the layout, 32 tall
-	details.Activated:Connect(function()
-		openDetails()
-	end)
-	-- Text only, tilted, inside the poster's top-left corner (the layout keeps the turned box inside the poster).
-	local sticker = role(
-		caption("Sticker", banner, {
-			Rotation = -5,
-			Text = "FEATURED!!!",
-			ZIndex = 7,
-		}),
-		"Item"
-	)
-	make("UIGradient", "Gold", sticker, {
-		Rotation = 90,
-		Color = ColorSequence.new(Color3.fromRGB(255, 240, 130), Color3.fromRGB(255, 150, 30)),
-	})
 end
-
--- The server's public rotation. Rares share the poster; Commons and the Secrets are in Details (owner 2026-11-05).
-local function renderBanner(rotation)
-	forgetViews(banner)
-	banner:ClearAllChildren()
-	local featured = {}
-	for _, tier in { "Mythic", "Legendary", "Rare" } do
-		for _, id in rotation.Ids do
-			local row = Config.Get(id)
-			if row and row.Rarity == tier then
-				table.insert(featured, row)
+local function populate()
+	stage = template:Clone()
+	stage.Name = "SummoningStageLocal"
+	stage.Parent = workspace
+	dressStage()
+	local stars = stage:FindFirstChild("BackgroundStars")
+	if stars then
+		for _, emitter in stars:GetDescendants() do
+			if emitter:IsA("ParticleEmitter") then
+				emitter:Emit(math.ceil(emitter.Rate * 2))
 			end
 		end
 	end
-	buildPoster(featured)
-end
-
--- The cost line under the poster, one Caption: the price, its gem, then the hint or the status.
-local costRow = make("Frame", "Cost", main, { BackgroundTransparency = 1 })
-make("ImageLabel", "GemIcon", costRow, {
-	BackgroundTransparency = 1,
-	Image = Icons.Gem.Image,
-	ScaleType = Enum.ScaleType.Fit,
-})
-make(
-	"UIGradient",
-	"Rainbow",
-	role(
-		caption("Value", costRow, {
-			Text = tostring(Config.SummonCost),
-			TextXAlignment = Enum.TextXAlignment.Right,
-		}),
-		"Caption"
-	),
-	{ Color = RAINBOW }
-)
-role(
-	caption("Hint", costRow, {
-		Text = "Spend Gems for new Sidekicks. Tap the banner for Details!",
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	"Caption"
-)
-
--- Status takes the hint's place in the cost line, so it never covers the rates.
-local statusText = role(
-	caption("Status", costRow, {
-		Text = "",
-		TextXAlignment = Enum.TextXAlignment.Left,
-	}),
-	"Caption"
-)
-statusText:GetPropertyChangedSignal("Text"):Connect(function()
-	costRow.Hint.Visible = statusText.Text == ""
-end)
-
--- The summon row: 44 tall, 12 apart; Auto-Sell takes 20% of the width and the two summons 40% each.
-local autoSellButton = button("AutoSell", main, {}, "Auto-Sell")
-local summon1 = button("Summon1", main, {}, string.format("Summon 1x: %d Gems", Config.SummonCost), "Go")
-local summon10 = button("Summon10", main, {}, string.format("Summon 10x: %d Gems", Config.TenCost), "Go")
--- VIP pays less (design doc 4.36); the server publishes what this player pays.
-local function showCosts()
-	local one = player:GetAttribute("SidekickCost1") or Config.SummonCost
-	local ten = player:GetAttribute("SidekickCost10") or Config.TenCost
-	costRow.Value.Text = tostring(one)
-	summon1.Label.Text = string.format("Summon 1x: %d Gems", one)
-	summon10.Label.Text = string.format("Summon 10x: %d Gems", ten)
-end
-player:GetAttributeChangedSignal("SidekickCost1"):Connect(showCosts)
-player:GetAttributeChangedSignal("SidekickCost10"):Connect(showCosts)
-showCosts()
--- Client/SidekickTutorial's spotlight lands here. On the poster, above the names and rates, so it covers no rate.
-local freeSummon = button("FreeSummon", main, {
-	Visible = false,
-	ZIndex = 2,
-}, "FREE SUMMON", "Go")
-
--- A full-body sheet with its Back button: Details and Auto-Sell.
-local function sheet(name, heading)
-	local frame =
-		make("Frame", name, body, { Size = UDim2.fromScale(1, 1), Visible = false, Active = true, ZIndex = 10 })
-	UiTheme.Gradient(frame, Color3.fromRGB(26, 26, 40), NEAR_BLACK)
-	frame.BackgroundColor3 = PALETTE.White
-	UiTheme.Corner(frame, "M")
-	AnimeSkin.Body(frame) -- design doc 4.42: the framed body, outlined heading, art Back
-	AnimeSkin.Title(
-		caption("Heading", frame, {
-			Position = UDim2.fromOffset(10, 4),
-			Size = UDim2.new(1, -96, 0, 34),
-			Text = heading,
-			TextSize = 24,
-			TextXAlignment = Enum.TextXAlignment.Left,
-		}),
-		24
-	)
-	local back = button("Back", frame, {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, 4),
-		Size = UDim2.fromOffset(76, 36),
-	}, "Back")
-	AnimeSkin.Close(back, back.Label)
-	back.Activated:Connect(function()
-		frame.Visible = false
-	end)
-	local list = make("ScrollingFrame", "List", frame, {
-		Position = UDim2.fromOffset(8, 44),
-		Size = UDim2.new(1, -16, 1, -50),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 4,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
-	})
-	make("UIListLayout", "Layout", list, { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder })
-	return frame, list
-end
-
--- Details: section 6's odds, shown and open before any spend.
-local detailsList
-detailsSheet, detailsList = sheet("DetailsSheet", "Details: summon odds")
-local detailsTotal = caption("Total", detailsList, {
-	LayoutOrder = 100,
-	Size = UDim2.new(1, -6, 0, 24),
-	Text = "",
-	TextColor3 = PALETTE.Gold,
-})
-local function detailsLine(name, order, columns)
-	local line = make("Frame", name, detailsList, {
-		LayoutOrder = order,
-		Size = UDim2.new(1, -6, 0, 30),
-		BackgroundColor3 = PALETTE.Row,
-	})
-	UiTheme.Corner(line, "S")
-	AnimeSkin.Plate(line, AnimeSkin.Tint.Default)
-	for _, column in columns do
-		local label = caption(column.Key, line, {
-			Position = UDim2.new(column.X, 6, 0.12, 0),
-			Size = UDim2.new(column.Width, -12, 0.76, 0),
-			Text = column.Text,
-			TextColor3 = column.Color,
-			TextXAlignment = Enum.TextXAlignment.Left,
-		})
-		if column.Rarity then
-			paintRarity(label, column.Rarity)
+	motion = {}
+	for _, unit in stage.Units:GetChildren() do
+		local root = unit.PrimaryPart
+		local record = {
+			model = unit,
+			base = root.CFrame,
+			index = unit:GetAttribute("Index"),
+			parts = {},
+			supports = {},
+		}
+		for _, part in unit:GetDescendants() do
+			if part:IsA("BasePart") and part:GetAttribute("LocalPose") then
+				table.insert(record.parts, { part = part, pose = part:GetAttribute("LocalPose") })
+			end
 		end
-	end
-end
--- Above every row (the Secret's order is 0). Hidden until a pity guarantee is due.
-local guaranteedNote = caption("GuaranteedNote", detailsList, {
-	LayoutOrder = -1,
-	Size = UDim2.new(1, -6, 0, 44),
-	Text = "",
-	TextColor3 = PALETTE.Gold,
-	TextSize = 16,
-	TextWrapped = true,
-	Visible = false,
-})
-local detailsRotation = nil
--- The rarity the next single summon must pay, Mythic first (design doc 4.36), or nil.
-local function dueTier()
-	if (player:GetAttribute("SidekickPity") or 0) >= PITY_COUNT - 1 then
-		return "Mythic"
-	elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= LEGENDARY_PITY_COUNT - 1 then
-		return "Legendary"
-	end
-	return nil
-end
--- The server's percents to 3 decimals by largest remainder, so the rows sum to exactly 100.000. Row name -> percent.
-local function roundedOdds(rotation)
-	local rows, spare = {}, 100000
-	local function add(name, id)
-		local exact = rotation.Odds[id] * 1000 + 1e-6 -- 24.166 * 1000 lands just under 24166
-		local whole = math.floor(exact)
-		spare -= whole
-		table.insert(rows, { Name = name, Whole = whole, Remainder = exact - whole })
-	end
-	for _, id in rotation.Ids do
-		add(id, id)
-	end
-	add("Secret", rotation.SecretId)
-	table.sort(rows, function(a, b)
-		if a.Remainder ~= b.Remainder then
-			return a.Remainder > b.Remainder
+		for _, part in unit:GetDescendants() do
+			if part:IsA("BasePart") and part:GetAttribute("AuraBody") then
+				table.insert(record.supports, {
+					part = part,
+					body = unit.ImportedAura[part:GetAttribute("AuraBody")],
+					offset = part:GetAttribute("AuraOffset"),
+				})
+			end
 		end
-		return a.Name < b.Name
-	end)
-	local rounded = {}
-	for index, row in rows do
-		rounded[row.Name] = (row.Whole + (index <= spare and 1 or 0)) / 1000
+		table.insert(motion, record)
 	end
-	return rounded
 end
--- The server's Odds, or a due tier sharing 100%.
-local function showOdds()
-	local rotation = detailsRotation
-	if not rotation then
+local function freezePlayer(freeze)
+	local character = player.Character
+	local hum = character and character:FindFirstChildOfClass("Humanoid")
+	if not hum then
 		return
 	end
-	local tier = dueTier()
-	local odds = {}
-	if tier then
-		local inTier = 0
-		for _, id in rotation.Ids do
-			inTier += Config.Get(id).Rarity == tier and 1 or 0
-		end
-		for _, id in rotation.Ids do
-			odds[id] = Config.Get(id).Rarity == tier and 100 / inTier or 0
-		end
-		odds.Secret = 0
+	if freeze then
+		previousSpeed = hum.WalkSpeed
+		previousJump = hum.JumpPower
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
 	else
-		odds = roundedOdds(rotation)
-	end
-	local total = 0
-	for name, percent in odds do
-		total += percent
-		detailsList[name].Odds.Text = string.format("%.3f%%", percent)
-	end
-	detailsTotal.Text = string.format("Total: %g%%", total)
-	guaranteedNote.Visible = tier ~= nil
-	if tier then
-		guaranteedNote.Text = string.format(
-			"%s guaranteed on your next summon. These odds are for that one summon: in a 10x it is the first, and the rest roll normally.",
-			tier
-		)
+		if previousSpeed then
+			hum.WalkSpeed = previousSpeed
+		end
+		if previousJump then
+			hum.JumpPower = previousJump
+		end
 	end
 end
-local function renderDetails(rotation)
-	forgetViews(detailsList)
-	for _, child in detailsList:GetChildren() do
-		if child:IsA("Frame") then
+local function open()
+	if opened then
+		return
+	end
+	previousCamera =
+		{ kind = camera.CameraType, cf = camera.CFrame, fov = camera.FieldOfView, subject = camera.CameraSubject }
+	opened = true
+	for _, label in workspace:GetDescendants() do
+		if label:IsA("BillboardGui") then
+			hiddenWorldLabels[label] = label.Enabled
+			label.Enabled = false
+		end
+	end
+	for _, other in player.PlayerGui:GetChildren() do
+		if other:IsA("ScreenGui") and HUD_NAMES[other.Name] then
+			hiddenHud[other] = other.Enabled
+			other.Enabled = false
+			hudGuards[other] = other:GetPropertyChangedSignal("Enabled"):Connect(function()
+				if opened and other.Enabled then
+					other.Enabled = false
+				end
+			end)
+		end
+	end
+	local lighting = game:GetService("Lighting")
+	lightingState = {
+		Brightness = lighting.Brightness,
+		Ambient = lighting.Ambient,
+		OutdoorAmbient = lighting.OutdoorAmbient,
+		ExposureCompensation = lighting.ExposureCompensation,
+		GlobalShadows = lighting.GlobalShadows,
+		effects = {},
+	}
+	lighting:SetAttribute("SummonPreviewActive", true)
+	-- Neutral portrait lighting keeps the actual Sidekick textures readable over the VFX.
+	lighting.Brightness = 1.6
+	lighting.Ambient = Color3.fromRGB(140, 140, 150)
+	lighting.OutdoorAmbient = Color3.fromRGB(140, 140, 150)
+	lighting.ExposureCompensation = -0.15
+	lighting.GlobalShadows = false
+	for _, effect in lighting:GetChildren() do
+		if effect:IsA("PostEffect") then
+			lightingState.effects[effect] = effect.Enabled
+			effect.Enabled = false
+		end
+	end
+	populate()
+	canvas.Visible = true
+	gui.Reopen.Visible = false
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 40
+	freezePlayer(true)
+	fit()
+end
+local function close()
+	if not opened then
+		return
+	end
+	opened = false
+	for label, enabled in hiddenWorldLabels do
+		if label.Parent then
+			label.Enabled = enabled
+		end
+	end
+	table.clear(hiddenWorldLabels)
+	for _, connection in hudGuards do
+		connection:Disconnect()
+	end
+	table.clear(hudGuards)
+	for other, enabled in hiddenHud do
+		if other.Parent then
+			other.Enabled = enabled
+		end
+	end
+	table.clear(hiddenHud)
+	if lightingState then
+		local lighting = game:GetService("Lighting")
+		for key, value in pairs(lightingState) do
+			if key ~= "effects" then
+				lighting[key] = value
+			end
+		end
+		for effect, enabled in pairs(lightingState.effects) do
+			if effect.Parent then
+				effect.Enabled = enabled
+			end
+		end
+	end
+	game:GetService("Lighting"):SetAttribute("SummonPreviewActive", nil)
+	auto = false
+	canvas.Auto.Text = "Auto"
+	canvas.Visible = false
+	canvas.Modal.Visible = false
+	gui.Reopen.Visible = false
+	if stage then
+		stage:Destroy()
+		stage = nil
+	end
+	motion = {}
+	freezePlayer(false)
+	if previousCamera then
+		camera.CameraType = previousCamera.kind
+		camera.CFrame = previousCamera.cf
+		camera.FieldOfView = previousCamera.fov
+		camera.CameraSubject = previousCamera.subject
+	end
+end
+for _, button in gui:GetDescendants() do
+	if button:IsA("TextButton") then
+		local caption = button:FindFirstChild("Caption")
+		if caption then
+			button:GetPropertyChangedSignal("Text"):Connect(function()
+				caption.Text = button.Text:gsub("%s*" .. utf8.char(0x25C6), "")
+			end)
+			button:GetPropertyChangedSignal("TextColor3"):Connect(function()
+				caption.TextColor3 = button.TextColor3
+			end)
+		end
+		if button:GetAttribute("PopButton") then
+			local scale = button.HoverScale
+			local glow = button.HoverGlow.Light
+			local hovering = false
+			local basePosition = UDim2.fromOffset(
+				button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
+				button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
+			)
+			local scaleTween, positionTween, glowTween
+			local function animate(size, lift, light, pressed)
+				if scaleTween then
+					scaleTween:Cancel()
+				end
+				if positionTween then
+					positionTween:Cancel()
+				end
+				if glowTween then
+					glowTween:Cancel()
+				end
+				local info = TweenInfo.new(
+					pressed and 0.08 or 0.16,
+					pressed and Enum.EasingStyle.Quad or Enum.EasingStyle.Back,
+					Enum.EasingDirection.Out
+				)
+				scaleTween = TweenService:Create(scale, info, { Scale = size })
+				positionTween =
+					TweenService:Create(button, info, { Position = basePosition + UDim2.fromOffset(0, lift) })
+				glowTween = TweenService:Create(glow, TweenInfo.new(0.12), { Transparency = light })
+				scaleTween:Play()
+				positionTween:Play()
+				glowTween:Play()
+				button.ZIndex = hovering and 6 or 3
+			end
+			button.MouseEnter:Connect(function()
+				hovering = true
+				basePosition = UDim2.fromOffset(
+					button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
+					button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
+				)
+				animate(1.055, -4, 0.45, false)
+			end)
+			button.MouseLeave:Connect(function()
+				hovering = false
+				animate(1, 0, 1, false)
+			end)
+			button.MouseButton1Down:Connect(function()
+				animate(0.97, 2, 0.65, true)
+			end)
+			button.MouseButton1Up:Connect(function()
+				animate(hovering and 1.055 or 1, hovering and -4 or 0, hovering and 0.45 or 1, false)
+			end)
+			button.SelectionGained:Connect(function()
+				hovering = true
+				basePosition = UDim2.fromOffset(
+					button:GetAttribute("DesignPosition").X + canvas.Size.X.Offset - 1600,
+					button:GetAttribute("DesignPosition").Y + canvas.Size.Y.Offset - 900
+				)
+				animate(1.055, -4, 0.45, false)
+			end)
+			button.SelectionLost:Connect(function()
+				hovering = false
+				animate(1, 0, 1, false)
+			end)
+		else
+			local original = button.BackgroundColor3
+			button.MouseEnter:Connect(function()
+				TweenService
+					:Create(
+						button,
+						TweenInfo.new(0.12),
+						{ BackgroundColor3 = original:Lerp(Color3.new(1, 1, 1), 0.17) }
+					)
+					:Play()
+			end)
+			button.MouseLeave:Connect(function()
+				TweenService:Create(button, TweenInfo.new(0.18), { BackgroundColor3 = original }):Play()
+			end)
+		end
+	end
+end
+
+require(assets.SummonFooter).Bind(canvas)
+require(assets.SummonHover).Bind(gui)
+local potionCards = {}
+for i = 1, 2 do
+	local offer = canvas["Offer" .. i]
+	local record = { card = offer, index = i, hover = false, tweens = {} }
+	table.insert(potionCards, record)
+	local function hover(on)
+		record.hover = on
+		for _, tw in record.tweens do
+			tw:Cancel()
+		end
+		local t = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+		record.tweens = {
+			TweenService:Create(offer.CardScale, t, { Scale = on and 1.07 or 1 }),
+			TweenService:Create(offer.Glow.Light, TweenInfo.new(0.15), { Transparency = on and 0.5 or 1 }),
+			TweenService:Create(offer.PotionIcon, t, { Rotation = on and (i == 1 and -8 or 8) or 0 }),
+		}
+		for _, tw in record.tweens do
+			tw:Play()
+		end
+		offer.ZIndex = on and 6 or 3
+	end
+	offer.MouseEnter:Connect(function()
+		hover(true)
+	end)
+	offer.MouseLeave:Connect(function()
+		hover(false)
+	end)
+	offer.Buy.SelectionGained:Connect(function()
+		hover(true)
+	end)
+	offer.Buy.SelectionLost:Connect(function()
+		hover(false)
+	end)
+end
+-- Bind the imported presentation to existing Anime Run services.
+canvas.Visible = false
+gui.Reopen.Visible = false
+PanelSwitch.Register("Sidekicks", canvas)
+
+local modal = canvas.Modal.Panel
+local modalBody = modal:WaitForChild("Body")
+modal.AnchorPoint = Vector2.new(0.5, 0.5)
+modal.Position = UDim2.fromScale(0.5, 0.5)
+modal.Size = UDim2.fromOffset(620, 620)
+modal.Heading.Size = UDim2.fromOffset(560, 50)
+modal.Dismiss.Position = UDim2.fromOffset(30, 555)
+modal.Dismiss.AnchorPoint = Vector2.zero
+modal.Dismiss.Size = UDim2.fromOffset(560, 43)
+modal.Dismiss.Caption.Size = UDim2.fromScale(1, 1)
+local scroll = Instance.new("ScrollingFrame")
+scroll.Name = "DetailsScroll"
+scroll.BackgroundTransparency = 1
+scroll.BorderSizePixel = 0
+scroll.Position = UDim2.fromOffset(30, 85)
+scroll.Size = UDim2.fromOffset(560, 450)
+scroll.CanvasSize = UDim2.new()
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scroll.ScrollBarThickness = 6
+scroll.ZIndex = modalBody.ZIndex
+scroll.Parent = modal
+modalBody.Parent = scroll
+modalBody.Position = UDim2.new()
+modalBody.Size = UDim2.new(1, -12, 0, 0)
+modalBody.AutomaticSize = Enum.AutomaticSize.Y
+modalBody.TextScaled = false
+modalBody.TextSize = 20
+modalBody.TextXAlignment = Enum.TextXAlignment.Left
+modalBody.TextYAlignment = Enum.TextYAlignment.Top
+modalBody.TextWrapped = true
+local modalRows = Instance.new("Frame")
+modalRows.Name = "Actions"
+modalRows.BackgroundTransparency = 1
+modalRows.Size = UDim2.new(1, -12, 0, 0)
+modalRows.AutomaticSize = Enum.AutomaticSize.Y
+modalRows.ZIndex = modalBody.ZIndex
+modalRows.Parent = scroll
+local rowLayout = Instance.new("UIListLayout")
+rowLayout.Padding = UDim.new(0, 12)
+rowLayout.Parent = modalRows
+
+local baseDialog = dialog
+dialog = function(title, text)
+	for _, child in modalRows:GetChildren() do
+		if child:IsA("GuiObject") then
 			child:Destroy()
 		end
 	end
-	for order, id in rotation.Ids do
-		local row = Config.Get(id)
-		detailsLine(id, order, {
-			{ Key = "Name", Text = row.Name, X = 0, Width = 0.45 },
-			{ Key = "Rarity", Text = row.Rarity, X = 0.45, Width = 0.3, Rarity = row.Rarity },
-			{ Key = "Odds", Text = "", X = 0.75, Width = 0.25, Color = PALETTE.Gold },
-		})
-	end
-	-- This rotation's one Secret: its black shape, the rarity and the rate (owner 2026-11-05).
-	detailsLine("Secret", 0, {
-		{ Key = "Rarity", Text = "Secret", X = 0.45, Width = 0.3, Rarity = "Secret" },
-		{ Key = "Odds", Text = "", X = 0.75, Width = 0.25, Color = PALETTE.Gold },
-	})
-	local line = detailsList.Secret
-	line.Size = UDim2.new(1, -6, 0, 66)
-	-- A plain light field: black would not read on the dark row.
-	local tile = make("Frame", "Shape", line, {
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
-		Size = UDim2.new(0, 58, 1, -8),
-		BackgroundColor3 = PALETTE.SoftText,
-	})
-	UiTheme.Corner(tile, "S")
-	local shape = modelView(tile, { Size = UDim2.fromScale(1, 1), ImageColor3 = BLACK })
-	views[shape] = { Row = Config.Get(rotation.SecretId) }
-	detailsRotation = rotation
-	showOdds()
+	modalRows.Visible = false
+	modalBody.Visible = true
+	scroll.CanvasPosition = Vector2.zero
+	baseDialog(title, text)
 end
-caption("Note", detailsList, {
-	LayoutOrder = 101,
-	Size = UDim2.new(1, -6, 0, 40),
-	Text = string.format(
-		"Luck and potions never change these odds. Pity: summon %d without a Mythic gives the featured Mythic; summon %d without a Legendary gives a featured Legendary.",
-		PITY_COUNT,
-		LEGENDARY_PITY_COUNT
-	),
-	TextColor3 = PALETTE.SoftText,
-	TextSize = 15,
-	TextWrapped = true,
-})
+local function actionRow(text, callback)
+	local button = canvas.AutoSell:Clone()
+	button.Name = "Option"
+	button:SetAttribute("PopButton", false)
+	button:SetAttribute("DesignPosition", nil)
+	button.AnchorPoint = Vector2.zero
+	button.Position = UDim2.new()
+	button.Size = UDim2.new(1, 0, 0, 48)
+	button.Visible = true
+	button.ZIndex = modalRows.ZIndex + 1
+	button.Text = text
+	button.Caption.Text = text
+	button.Caption.Size = UDim2.fromScale(1, 1)
+	button.Parent = modalRows
+	button.Activated:Connect(callback)
+	return button
+end
 
--- Auto-Sell: one toggle per rarity in the catalog.
-local autoSellSheet, autoSellList = sheet("AutoSellSheet", "Auto-Sell")
--- The page hides under an open sheet: its sticker and edges stand outside the sheet's rect.
-local function fitSheets()
-	local open = detailsSheet.Visible or autoSellSheet.Visible
-	main.Visible = not open
-	gemColumn.Visible = not open
+local rotation = {}
+local showChances
+local function refresh()
+	canvas.Balance.Text = HudFormat.Short(player:GetAttribute("Gems") or 0)
+	canvas.Once.Text = "Once   " .. tostring(player:GetAttribute("SidekickCost1") or Config.SummonCost)
+	canvas.Many.Text = "Many   " .. tostring(player:GetAttribute("SidekickCost10") or Config.TenCost)
+	canvas.PityCount1.Text =
+		string.format("%d / %d", player:GetAttribute("SidekickLegendaryPity") or 0, Config.LegendaryPityCount)
+	canvas.PityCount2.Text = string.format("%d / %d", player:GetAttribute("SidekickPity") or 0, Config.PityCount)
+	canvas.PityCard1.Track.Progress.Size = UDim2.fromScale(
+		math.clamp((player:GetAttribute("SidekickLegendaryPity") or 0) / Config.LegendaryPityCount, 0, 1),
+		1
+	)
+	canvas.PityCard2.Track.Progress.Size =
+		UDim2.fromScale(math.clamp((player:GetAttribute("SidekickPity") or 0) / Config.PityCount, 0, 1), 1)
+	local unlocked = (player:GetAttribute("RebirthLevel") or 0) >= Config.UnlockRebirth
+	canvas.Once.Active, canvas.Many.Active = unlocked, unlocked
+	canvas.AutoFuse.Visible = unlocked and player:GetAttribute("SidekickFreeUsed") == false
+	canvas.AutoFuseDepth.Visible = canvas.AutoFuse.Visible
+	canvas.AutoFuse.Text = "Free summon"
+	canvas.AutoFuse.Caption.Text = "Free summon"
+	canvas.Tagline.Text = unlocked and "Featured Sidekicks • view all summon chances before spending"
+		or string.format("Sidekick summoning unlocks at rebirth %d", Config.UnlockRebirth)
+	local seconds =
+		math.max(0, math.floor((rotation.EndsAt or workspace:GetServerTimeNow()) - workspace:GetServerTimeNow()))
+	canvas.Timer.Text = string.format("⌛  %02d:%02d", seconds // 60, seconds % 60)
 end
-detailsSheet:GetPropertyChangedSignal("Visible"):Connect(fitSheets)
-autoSellSheet:GetPropertyChangedSignal("Visible"):Connect(fitSheets)
-caption("Note", autoSellList, {
-	LayoutOrder = 0,
-	Size = UDim2.new(1, -6, 0, 22),
-	Text = "A summon of a rarity that is on sells at once for its Gems. Worn Sidekicks never sell.",
-	TextColor3 = PALETTE.SoftText,
-	TextSize = 16,
-})
-local toggles = {}
-local busy = false
-for order, row in Config.List do
-	if not toggles[row.Rarity] then
-		local line = make("Frame", row.Rarity, autoSellList, {
-			LayoutOrder = order,
-			Size = UDim2.new(1, -6, 0, 44),
-			BackgroundColor3 = PALETTE.Row,
-		})
-		UiTheme.Corner(line, "S")
-		AnimeSkin.Plate(line, AnimeSkin.Tint.Default)
-		caption("Rarity", line, {
-			Position = UDim2.new(0, 10, 0.15, 0),
-			Size = UDim2.new(0.6, -10, 0.7, 0),
-			Text = string.format("%s: sells for %d Gems", row.Rarity, row.SellGems),
-			TextColor3 = SidekickView.RarityColor(row.Rarity),
-			TextXAlignment = Enum.TextXAlignment.Left,
-		})
-		local toggle = button("Toggle", line, {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -6, 0.5, 0),
-			Size = UDim2.fromOffset(84, 36),
-		}, "Off")
-		toggles[row.Rarity] = toggle
-		toggle.Activated:Connect(function()
+local function renderRotation()
+	rotation = SidekickView.Rotation()
+	local mythics, legendaries = {}, {}
+	for _, id in rotation.Ids or {} do
+		local row = Config.Get(id)
+		if row then
+			if row.Rarity == "Mythic" then
+				table.insert(mythics, row)
+			elseif row.Rarity == "Legendary" then
+				table.insert(legendaries, row)
+			end
+		end
+	end
+	featuredRows = { legendaries[1], mythics[1], legendaries[2] }
+	local art = featuredRows[2] and SidekickArt[featuredRows[2].Id]
+	canvas.Banner1.UnitArtwork.Image = art and art.Portrait or ""
+	for i = 1, 3 do
+		local row = featuredRows[i]
+		canvas["Unit" .. i].Text = row and row.Name or "Loading rotation…"
+		canvas["Rarity" .. i].Text = row and row.Rarity or ""
+		canvas["Rarity" .. i].TextColor3 = SidekickView.RarityColor(row and row.Rarity)
+	end
+	dressStage()
+	refresh()
+end
+showChances = function()
+	local tier
+	if (player:GetAttribute("SidekickPity") or 0) >= Config.PityCount - 1 then
+		tier = "Mythic"
+	elseif (player:GetAttribute("SidekickLegendaryPity") or 0) >= Config.LegendaryPityCount - 1 then
+		tier = "Legendary"
+	end
+	local lines = {}
+	local count = 0
+	for _, id in rotation.Ids or {} do
+		if Config.Get(id).Rarity == tier then
+			count += 1
+		end
+	end
+	for _, id in rotation.Ids or {} do
+		local row = Config.Get(id)
+		local odds = tier and (row.Rarity == tier and 100 / math.max(1, count) or 0) or (rotation.Odds or {})[id] or 0
+		table.insert(lines, string.format("%s • %s — %.3f%%", row.Name, row.Rarity, odds))
+	end
+	table.insert(
+		lines,
+		string.format("Secret — %.3f%%", tier and 0 or ((rotation.Odds or {})[rotation.SecretId] or 0))
+	)
+	table.insert(lines, "\nLuck and potions do not change Sidekick odds.")
+	table.insert(
+		lines,
+		string.format("Mythic pity: %d. Legendary pity: %d.", Config.PityCount, Config.LegendaryPityCount)
+	)
+	if tier then
+		table.insert(lines, "\n" .. tier .. " guaranteed on the next summon; later results in a 10x roll normally.")
+	end
+	dialog("SUMMON CHANCES", #lines > 3 and table.concat(lines, "\n") or "Waiting for the server's rotation…")
+end
+
+local function setAuto(on)
+	auto = on
+	canvas.Auto.Text = on and "Stop Auto" or "Auto"
+end
+local function requestSummon(count, free)
+	if busy or revealing or not opened or canvas.Modal.Visible then
+		return
+	end
+	if (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth then
+		setAuto(false)
+		toast(string.format("Unlocks at rebirth %d", Config.UnlockRebirth))
+		return
+	end
+	busy = true
+	lastAuto = os.clock()
+	local ok, done, results = pcall(function()
+		if free then
+			return remotes:WaitForChild("SidekickFreeSummon"):InvokeServer()
+		end
+		return remotes:WaitForChild("SidekickSummon"):InvokeServer(count)
+	end)
+	if not (ok and done == true and type(results) == "table") then
+		busy = false
+		setAuto(false)
+		toast(ok and tostring(results or "Summon unavailable") or "Connection error. Please try again.")
+		return
+	end
+	local continueAuto = auto
+	close()
+	gui.Enabled = false
+	revealing = true
+	SidekickReveal.Play(results, function()
+		revealing, busy = false, false
+		gui.Enabled = true
+		if not PanelSwitch.AnyOpen() then
+			PanelSwitch.Action("Sidekicks")
+			setAuto(continueAuto)
+		end
+		refresh()
+	end)
+	refresh()
+end
+
+local showAutoSell
+showAutoSell = function()
+	dialog("AUTO SELL", "")
+	modalBody.Visible = false
+	modalRows.Visible = true
+	for _, rarity in { "Common", "Rare", "Legendary", "Mythic", "Secret" } do
+		local on = SidekickView.AutoSell(player)[rarity] == true
+		actionRow(rarity .. (on and "  •  ON" or "  •  OFF"), function()
 			if busy then
 				return
 			end
 			busy = true
-			local on = SidekickView.AutoSell(player)[row.Rarity] ~= true
 			local ok, done = pcall(function()
-				return remotes:WaitForChild("SidekickAutoSell"):InvokeServer(row.Rarity, on)
+				return remotes:WaitForChild("SidekickAutoSell"):InvokeServer(rarity, not on)
 			end)
 			busy = false
-			UiFeedback.Play(ok and done == true and "Toggle" or "Denied", toggle)
+			if ok and done == true then
+				task.defer(showAutoSell)
+			else
+				toast("Could not update Auto Sell")
+			end
 		end)
 	end
 end
-
-function openDetails()
-	autoSellSheet.Visible = false
-	detailsSheet.Visible = true
-	UiMotion.Pop(detailsSheet, 0.02)
-end
-
-local function refresh()
-	gemsValue.Text = HudFormat.Short(player:GetAttribute("Gems") or 0)
-	pityValue.Text = string.format("%d/%d", player:GetAttribute("SidekickPity") or 0, PITY_COUNT)
-	legendaryPityValue.Text =
-		string.format("%d/%d", player:GetAttribute("SidekickLegendaryPity") or 0, LEGENDARY_PITY_COUNT)
-	plates[3].Share = (player:GetAttribute("SidekickPity") or 0) / PITY_COUNT
-	plates[4].Share = (player:GetAttribute("SidekickLegendaryPity") or 0) / LEGENDARY_PITY_COUNT
-	placeFill(plates[3])
-	placeFill(plates[4])
-	showOdds()
-	local locked = (player:GetAttribute("RebirthLevel") or 0) < Config.UnlockRebirth
-	for _, summonButton in { summon1, summon10 } do
-		summonButton.Active = not locked
-		summonButton.BackgroundTransparency = locked and 0.5 or 0
-		summonButton.Label.TextTransparency = locked and 0.5 or 0
+local function buyPack(pack)
+	if busy then
+		return
 	end
-	if locked then
-		statusText.Text = string.format("Summons unlock at rebirth %d", Config.UnlockRebirth)
-	elseif string.find(statusText.Text, "unlock", 1, true) then
-		statusText.Text = ""
-	end
-	freeSummon.Visible = not locked and player:GetAttribute("SidekickFreeUsed") == false
-	local on = SidekickView.AutoSell(player)
-	for rarity, toggle in toggles do
-		toggle.Label.Text = on[rarity] == true and "On" or "Off"
-		toggle.Stroke.Color = on[rarity] == true and PALETTE.Money or OUTLINE
-		AnimeSkin.Button(toggle, on[rarity] == true and "Go" or "Idle")
-	end
-end
-
-local function summon(remoteName, count, source)
-	if busy or not source.Active then
+	if pack.ProductId <= 0 then
+		toast("Coming soon")
 		return
 	end
 	busy = true
-	local ok, done, results = pcall(function()
-		return remotes:WaitForChild(remoteName):InvokeServer(count)
+	local ok, done, message = pcall(function()
+		return remotes:WaitForChild("GemPackBuy"):InvokeServer(pack.Id)
 	end)
 	busy = false
-	if ok and done == true then
-		statusText.Text = ""
-		-- The page steps aside so the reveal plays over the world; a click brings it back.
-		root.Enabled = false
-		blur.Enabled = false
-		SidekickReveal.Play(results, function()
-			root.Enabled = true
-			blur.Enabled = panel.Visible
-		end)
-	else
-		statusText.Text = ok and tostring(results or "Try again") or "Connection error"
-		UiFeedback.Play("Denied", source)
+	if not (ok and done == true) then
+		toast(ok and tostring(message or "Purchase unavailable") or "Connection error")
 	end
-	refresh()
 end
-summon1.Activated:Connect(function()
-	summon("SidekickSummon", 1, summon1)
-end)
-summon10.Activated:Connect(function()
-	summon("SidekickSummon", 10, summon10)
-end)
-freeSummon.Activated:Connect(function()
-	summon("SidekickFreeSummon", nil, freeSummon)
-end)
--- A Buy press area only on a pack with a product: until then a tile is the greyed Frame above and nothing can be pressed.
-for _, pack in Monetization.GemPacks do
-	if pack.ProductId > 0 then
-		local tile = packs[pack.Id]
-		tile.Soon.Visible = false
-		local buy = make("TextButton", "Buy", tile, {
-			Size = UDim2.fromScale(1, 1),
-			BackgroundTransparency = 1,
-			Text = "",
-			ZIndex = 4,
-		})
-		buy.Activated:Connect(function()
-			local ok, done, message = pcall(function()
-				return remotes:WaitForChild("GemPackBuy"):InvokeServer(pack.Id)
-			end)
-			if not (ok and done == true) then
-				statusText.Text = ok and tostring(message or "Try again") or "Connection error"
-				UiFeedback.Play("Denied", buy)
+for i = 1, 2 do
+	local offer = canvas["Offer" .. i]
+	local pack = Monetization.GemPacks[i]
+	offer.Title.Text = pack.Name .. " Gems"
+	offer.Luck.Text = "+" .. HudFormat.Short(pack.Gems) .. " Gems"
+	offer.Price.Text = "R$" .. tostring(pack.RobuxPrice)
+	offer.PotionIcon.Image = "rbxassetid://136720019410378"
+	offer.Buy.Activated:Connect(function()
+		buyPack(pack)
+	end)
+end
+canvas.More.Activated:Connect(function()
+	dialog("MORE GEMS", "")
+	modalBody.Visible = false
+	modalRows.Visible = true
+	for _, pack in Monetization.GemPacks do
+		actionRow(
+			string.format("%s  •  %s Gems  •  R$%d", pack.Name, HudFormat.Short(pack.Gems), pack.RobuxPrice),
+			function()
+				buyPack(pack)
 			end
-		end)
+		)
 	end
+end)
+for _, name in { "Pity3", "PityCount3", "PityCard3", "Banner2", "Banner3", "Banner4" } do
+	canvas[name].Visible = false
 end
-UiFeedback.DeniedPress(summon1)
-UiFeedback.DeniedPress(summon10)
-autoSellButton.Activated:Connect(function()
-	detailsSheet.Visible = false
-	autoSellSheet.Visible = true
-	UiMotion.Pop(autoSellSheet, 0.02)
+canvas.Title.Text = "Summon"
+canvas.Subtitle.Text = "Sidekick Banner"
+canvas.Banner1.Text = "Featured"
+canvas.Banner1.Caption.Text = "Featured"
+canvas.Banner1.Activated:Connect(showChances)
+canvas.Close.Activated:Connect(function()
+	PanelSwitch.Close("Sidekicks")
 end)
-
-player.AttributeChanged:Connect(function(attribute)
-	if
-		attribute == "Gems"
-		or attribute == "RebirthLevel"
-		or attribute == "SidekickAutoSell"
-		or attribute == "SidekickFreeUsed"
-		or attribute == "SidekickPity"
-		or attribute == "SidekickLegendaryPity"
-	then
-		refresh()
+canvas.Chances.Activated:Connect(showChances)
+canvas.Info.Activated:Connect(function()
+	dialog(
+		"SIDEKICK SUMMONING",
+		string.format(
+			"The featured rotation changes every 30 minutes.\n\nView Show Chances for every outcome and its odds. Mythic pity is %d; Legendary pity is %d.\n\nSidekicks can be equipped from your Backpack. The server validates every summon and purchase.",
+			Config.PityCount,
+			Config.LegendaryPityCount
+		)
+	)
+end)
+canvas.AutoSell.Activated:Connect(showAutoSell)
+canvas.AutoFuse.Activated:Connect(function()
+	requestSummon(nil, true)
+end)
+canvas.Once.Activated:Connect(function()
+	requestSummon(1, false)
+end)
+canvas.Many.Activated:Connect(function()
+	requestSummon(10, false)
+end)
+canvas.Auto.Activated:Connect(function()
+	setAuto(not auto)
+	if auto then
+		requestSummon(1, false)
 	end
 end)
-panel:GetPropertyChangedSignal("Visible"):Connect(function()
-	blur.Enabled = panel.Visible
-	if turning then
-		turning:Disconnect()
-		turning = nil
-	end
-	if panel.Visible then
-		detailsSheet.Visible = false
-		autoSellSheet.Visible = false
-		statusText.Text = ""
-		refresh()
-		turnAngle = 0
-		fillViews()
-		turning = RunService.Heartbeat:Connect(turnViews)
+modal.Dismiss.Activated:Connect(function()
+	canvas.Modal.Visible = false
+end)
+canvas:GetPropertyChangedSignal("Visible"):Connect(function()
+	if canvas.Visible then
+		renderRotation()
+		open()
 	else
-		for view in views do
-			for _, child in view:GetChildren() do
-				if child:IsA("Model") then
-					child:Destroy()
-				end
-			end
-		end
+		close()
 	end
 end)
--- The client only displays the server's rotation; slot changes redraw in place, leaving the page open.
-local rotationEndsAt = 0
-local function showTimer()
-	local seconds = math.floor(math.max(0, rotationEndsAt - workspace:GetServerTimeNow()))
-	local text = string.format("%d:%02d", seconds // 60, seconds % 60)
-	rotationTimer.Text = text
-	plates[2].Share = seconds / ROTATION_SECONDS
-	placeFill(plates[2])
-	detailsSheet.Heading.Text = "Details: summon odds. Next rotation " .. text
-end
-local function renderRotation()
-	local rotation = SidekickView.Rotation()
-	if not rotation.Ids then
-		return
-	end
-	rotationEndsAt = rotation.EndsAt
-	renderBanner(rotation)
-	renderDetails(rotation)
-	g.Relayout() -- the new poster's sticker and Details button
-	fillViews()
-	showTimer()
-end
 ReplicatedStorage:GetAttributeChangedSignal("SidekickRotation"):Connect(renderRotation)
-renderRotation()
-task.spawn(function()
-	while true do
-		task.wait(1)
-		showTimer()
+player.AttributeChanged:Connect(function(name)
+	if name == "Gems" or name == "RebirthLevel" or name:sub(1, 8) == "Sidekick" then
+		refresh()
 	end
 end)
 task.spawn(function()
 	local models = ReplicatedStorage:WaitForChild("SidekickModels")
-	if models:GetAttribute("Ready") ~= true then
-		models:GetAttributeChangedSignal("Ready"):Wait()
+	models.ChildAdded:Connect(function()
+		if opened then
+			dressStage()
+		end
+	end)
+	if opened then
+		dressStage()
 	end
-	fillViews()
 end)
--- Every rect in the Index frame's units (design doc 4.42): the plates in the tabs row, Body on the content area.
-g.OnLayout(function()
-	local c = g.Content
-	for label, entry in roles do
-		g.Role(label, entry[1])
-		if entry[2] then
-			label.TextColor3 = entry[2]
+task.spawn(function()
+	while gui.Parent do
+		task.wait(1)
+		if opened then
+			refresh()
 		end
-	end
-	-- The tabs row: four plates, 8 apart as the Index's tabs; text 24 clear of each plate's slanted ends.
-	local x, room = c.X, c.W - 3 * 8
-	for _, entry in plates do
-		local w = room * entry.Row
-		entry.W = w
-		g.Place(entry.Frame, x, c.TabsY, w, 40)
-		local left = entry.Icon and 24 + 28 + 8 or 24
-		if entry.Icon then
-			g.Place(entry.Icon, 24, 6, 28, 28)
-		end
-		local inner = w - 24 - left
-		g.Place(entry.Frame.Label, left, 0, inner * entry.Label - 4, 40)
-		g.Place(entry.Value, left + inner * entry.Label + 4, 0, inner * (1 - entry.Label) - 4, 40)
-		if entry.Fill then
-			placeFill(entry)
-		end
-		x += w + 8
-	end
-	g.Place(body, c.X, c.Y, c.W, c.H)
-	-- Main: the left 56%. Top down: the poster, 12, the cost line, 8, the summon row, 12 above the area's foot.
-	local mainW = math.floor(c.W * 0.56)
-	g.Place(main, 0, 0, mainW, c.H)
-	local rowY = c.H - 12 - 44
-	local costY = rowY - 8 - 22
-	local posterH = costY - 12
-	g.Place(banner, 0, 0, mainW, posterH)
-	g.Place(costRow, 0, costY, mainW, 22)
-	g.Place(costRow.Value, 0, 0, 48, 22)
-	g.Place(costRow.GemIcon, 52, 1, 20, 20)
-	g.Place(costRow.Hint, 80, 0, mainW - 80, 22)
-	g.Place(statusText, 80, 0, mainW - 80, 22)
-	local share = (mainW - 24) / 5 -- Auto-Sell 1 share, each summon 2
-	g.Place(autoSellButton, 0, rowY, share, 44)
-	g.Place(summon1, share + 12, rowY, 2 * share, 44)
-	g.Place(summon10, 3 * share + 24, rowY, 2 * share, 44)
-	-- On the poster, 12 above its names (the poster's lower 42%).
-	g.Place(freeSummon, mainW / 4, math.max(12, posterH * 0.58 - 12 - 44), mainW / 2, 44)
-	local poster = banner:FindFirstChild("Poster")
-	local details = poster and poster:FindFirstChild("Details")
-	if details then
-		g.Place(details, mainW - 12 - 100, 12, 100, 32)
-	end
-	local sticker = banner:FindFirstChild("Sticker")
-	if sticker then
-		g.Place(sticker, 16, 22, 190, 40) -- a -5 degree turn lifts a corner about 8: still 12 inside the top
-	end
-	-- The gem column: the right 44%, MORE GEMS then as many whole pack cards as fit, 12 apart.
-	local colX = mainW + 12
-	local colW = c.W - colX
-	g.Place(gemColumn, colX, 0, colW, c.H)
-	g.Place(gemHeading, 0, 0, colW, 40)
-	local listY = 52
-	g.Place(packs, 0, listY, colW, c.H - listY)
-	packLayout.Padding = UDim.new(0, g.px(12))
-	local roomH = c.H - listY - 2 * PACK_PAD / g.k
-	local count = math.max(1, math.floor((roomH + 12) / (136 + 12))) -- 136: three lines and the padding
-	local tall = (roomH - (count - 1) * 12) / count
-	local tileW = colW - 8 / g.k - 2 * PACK_PAD / g.k -- the scrollbar's 6 px and the clip pad, in units
-	for _, tile in packs:GetChildren() do
-		if tile:IsA("Frame") then
-			tile.Size = UDim2.fromOffset(g.px(tileW), g.px(tall))
-			placePack(tile, tileW, tall)
+		if
+			auto
+			and not busy
+			and not revealing
+			and opened
+			and not canvas.Modal.Visible
+			and os.clock() - lastAuto >= 3
+		then
+			requestSummon(1, false)
 		end
 	end
 end)
-refresh()
-UiTheme.Apply(root)
+renderRotation()
+fit()
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+player.CharacterAdded:Connect(function(character)
+	local hum = character:WaitForChild("Humanoid")
+	if opened then
+		previousSpeed = hum.WalkSpeed
+		previousJump = hum.JumpPower
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+	end
+end)
+RunService:BindToRenderStep("SummonDisplay", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	if not opened then
+		return
+	end
+	camera = workspace.CurrentCamera
+	camera.CameraType = Enum.CameraType.Scriptable
+	camera.FieldOfView = 40
+	local aspect = camera.ViewportSize.X / math.max(camera.ViewportSize.Y, 1)
+	local distance = 18 * math.max(1, (16 / 9) / aspect)
+	local mouse = UserInputService:GetMouseLocation()
+	local view = camera.ViewportSize
+	local targetDrift = UserInputService.MouseEnabled
+			and Vector2.new(
+				math.clamp(mouse.X / math.max(view.X, 1) * 2 - 1, -1, 1),
+				math.clamp(mouse.Y / math.max(view.Y, 1) * 2 - 1, -1, 1)
+			)
+		or Vector2.zero
+	cameraDrift = cameraDrift:Lerp(targetDrift, 1 - math.exp(-dt * 5))
+	local offset = Vector3.new(cameraDrift.X * 1.05, -cameraDrift.Y * 0.675, 0)
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 10001, -distance) + offset, Vector3.new(0, 10000, 0) + offset * 0.35)
+		* CFrame.Angles(0, 0, -cameraDrift.X * 0.011)
+
+	camera.Focus = CFrame.new(0, 10000, 0)
+	elapsed += math.min(dt, 0.1)
+	for _, record in potionCards do
+		local offer = record.card
+		offer.Border.Prism.Rotation = (elapsed * 38 + record.index * 90) % 360
+		offer.Gradient.Rotation = 35 + math.sin(elapsed * 0.65 + record.index) * 22
+		offer.Sheen.Sweep.Offset = Vector2.new(((elapsed * 0.25 + record.index * 0.5) % 1) * 2.6 - 1.3, 0)
+	end
+	for _, record in motion do
+		local phase = UiMotion.Reduced() and record.index * 1.5 or elapsed * 0.75 + record.index * 1.5
+		local cf = record.base
+			* CFrame.new(0, math.sin(phase) * 0.09, 0)
+			* CFrame.Angles(0, math.sin(phase * 0.65) * 0.055, math.sin(phase) * 0.014)
+		record.model:SetPrimaryPartCFrame(cf)
+		for _, entry in record.parts do
+			local extra = entry.part.Name:find("Arm") and CFrame.Angles(0, 0, math.sin(phase) * 0.022) or CFrame.new()
+			entry.part.CFrame = cf * entry.pose * extra
+		end
+		if false then -- Display names stay in their authored columns.
+			local point = camera:WorldToViewportPoint(record.model.ImportedAura.Torso.Position)
+			local center = point.X / canvas.ResponsiveScale.Scale
+			for _, label in { canvas.Unit3, canvas.Rarity3 } do
+				label.Position = UDim2.fromOffset(center - label.Size.X.Offset * 0.5, label.Position.Y.Offset)
+			end
+		end
+		for _, entry in record.supports do
+			entry.part.CFrame = entry.body.CFrame * entry.offset
+		end
+	end
+	-- Auto summon is scheduled by the server-backed binding below.
+end)
+gui.Destroying:Connect(function()
+	close()
+	RunService:UnbindFromRenderStep("SummonDisplay")
+	template:Destroy()
+end)
+-- Opened only through Anime Run PanelSwitch.
+
+-- Center the side labels on their actual models, including responsive camera framing.
+RunService.RenderStepped:Connect(function()
+	if not opened or not stage then
+		return
+	end
+	local k = canvas.ResponsiveScale.Scale
+	for _, index in { 1, 3 } do
+		local unit = stage.Units:FindFirstChild("Unit" .. index)
+		local model = unit and unit:FindFirstChild("ActualSidekick")
+		if model then
+			local box = model:GetBoundingBox()
+			local projected = camera:WorldToViewportPoint(box.Position)
+			local x = (projected.X - canvas.AbsolutePosition.X) / k
+			for _, prefix in { "Unit", "Rarity" } do
+				local label = canvas[prefix .. index]
+				label.TextXAlignment = Enum.TextXAlignment.Center
+				label.Position =
+					UDim2.fromOffset(x - label.Size.X.Offset * (0.5 - label.AnchorPoint.X), label.Position.Y.Offset)
+			end
+		end
+	end
+end)

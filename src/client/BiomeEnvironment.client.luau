@@ -169,6 +169,9 @@ local function bind(e)
 	e.Current = e.Server
 	e.From = e.Server
 	inst:GetPropertyChangedSignal(e.Prop):Connect(function()
+		if Lighting:GetAttribute("SummonPreviewActive") then
+			return
+		end
 		if not same(inst[e.Prop], e.Written) then
 			e.Server = inst[e.Prop] -- a server write (weather): keep it and re-apply over it next frame
 			e.Current = e.Server
@@ -355,7 +358,15 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
+Lighting:GetAttributeChangedSignal("SummonPreviewActive"):Connect(function()
+	if not Lighting:GetAttribute("SummonPreviewActive") then
+		dirty = true
+	end
+end)
 RunService.RenderStepped:Connect(function()
+	if Lighting:GetAttribute("SummonPreviewActive") then
+		return
+	end
 	local camera = Workspace.CurrentCamera
 	if camera then
 		box.CFrame = camera.CFrame * CFrame.new(0, 0, -Env.PARTICLE_AHEAD)
