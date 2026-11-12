@@ -6,7 +6,7 @@
 - boss-event b5: event server
 
 ## Next
-- hud-team: owner picks the Team icon (N1 / N2 / N3) and gives the upload word; then upload, `HudIcons.Team`, `ui_team`, `ui_hud`
+- hud-team t4: Team icon N3 uploaded and wired (2026-11-12); `ui_team`, `ui_hud` to run inside m12
 - boss-mage-2: owner plays `/elfboss` (slow rhythm, golem 1,000 HP per player) and looks at the Team panel against draft A
 - boss-mage m12: owner plays `/boss mage` and rules on `docs/OWNER_QUESTIONS.md` (2026-11-11), then full harness and PR into main
 - boss-event: Sidekick portraits await owner's upload word; b6 onward: `docs/ORCHESTRATOR_GOALS.md`
