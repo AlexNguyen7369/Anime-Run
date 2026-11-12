@@ -5,7 +5,7 @@
 -- times; Time is seconds, Parts XYZ Euler degrees, Root STUDS (not model units: the hover bob is 1.5 studs at any size).
 -- Proposed: the 8x Scale's hover 8 studs, the leads (<move>_in, 0.75/0.75/0.45 s), CYCLE, the golem's spot and every in-between.
 -- Body never turns, so it is not a part: Torso and the legs are roots, at Offset + Root.
-local Event = require(script.Parent.BossEventConfig)
+local Event = require(game:GetService("ReplicatedStorage").Shared.BossEventConfig)
 
 local SCALE = 7.0308 -- studs per model unit: 8 x a 5.5-stud character, 44 studs tall
 local ROOT_STUDS = 3.5154

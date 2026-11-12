@@ -1826,6 +1826,8 @@ function Module.Build(h)
 	function scenarios.ui_boss_dodge(res)
 		local hp = Cfg.HpPerPlayer
 		local Dodge = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossDodge"))
+		-- A boss_ui_* setup delivers the pose data Moment reads (design doc 7 "Join size"); without one it waits forever.
+		state(res, "Idle", 0, 0, 0, false)
 		local at, name = Dodge.Moment(1)
 		local lead = Dodge.SweepSeconds * 0.5
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)

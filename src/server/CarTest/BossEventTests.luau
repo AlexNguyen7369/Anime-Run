@@ -1603,7 +1603,7 @@ function Tests.make(deps)
 			-- Owner 2026-11-05 (design doc 4.37, spec "Run rules"). Real runs from RaceService.NewRun; the 1e6 s seam makes the
 			-- run's own drain too small to see, so every change below is the attack's. Times are seconds into the event.
 			serviceSection("attack_stamina", function()
-				local Poses = require(Shared.BossRagaPoses)
+				local Poses = assert(H.lateData("BossRagaPoses"), "no ServerStorage.LateData.BossRagaPoses")
 				local race = require(Server.RaceService)
 				local factory = require(Shared.RunnerFactory)
 				local Arena = require(Shared.BossArenaConfig)
@@ -1960,7 +1960,7 @@ function Tests.make(deps)
 
 			-- Owner 2026-11-05 (spec "Run rules"): Shouted and Adapted, from the shared schedule. Times are seconds since the spawn.
 			serviceSection("boss_status", function()
-				local Poses = require(Shared.BossRagaPoses)
+				local Poses = assert(H.lateData("BossRagaPoses"), "no ServerStorage.LateData.BossRagaPoses")
 				local HttpService = game:GetService("HttpService")
 				eq("status_shout_cut", Cfg.ShoutDamageCut, 0.25)
 				eq("status_adapted_cut", Cfg.AdaptedCut, 0.1)
@@ -2807,7 +2807,7 @@ function Tests.make(deps)
 			-- Owner 2026-11-05. The moves are read off the shared schedule; a line may come anywhere inside its move.
 			serviceSection("move_chat", function()
 				flag("move_chat_default_hook_exists", type(realHooks.MoveChat) == "function")
-				local Poses = require(Shared.BossRagaPoses)
+				local Poses = assert(H.lateData("BossRagaPoses"), "no ServerStorage.LateData.BossRagaPoses")
 				local WORDS = {
 					attack = "Big Raga attacks! -15% stamina",
 					shout = "Big Raga shouts! Damage down for 15 s",
@@ -3267,7 +3267,7 @@ function Tests.make(deps)
 			-- Phase 2 (owner 2026-11-06, design doc 4.37, BOSS_EVENT_SPEC "Phase 2" and "Rewards"). Stage 1 and 2 are Phases 1 and 2.
 			------------------------------------------------------------------------------------------------------------------------
 			serviceSection("stage2_start", function()
-				local Poses = require(Shared.BossRagaPoses)
+				local Poses = assert(H.lateData("BossRagaPoses"), "no ServerStorage.LateData.BossRagaPoses")
 				local BossDodge = require(Shared.BossDodge)
 				local function attr(name)
 					return ReplicatedStorage:GetAttribute(name)
@@ -3481,7 +3481,7 @@ function Tests.make(deps)
 			end)
 
 			serviceSection("status_stacks", function()
-				local Poses = require(Shared.BossRagaPoses)
+				local Poses = assert(H.lateData("BossRagaPoses"), "no ServerStorage.LateData.BossRagaPoses")
 				local BossDodge = require(Shared.BossDodge)
 				local CUT_S, CUT_A = 1 - Cfg.ShoutDamageCut, 1 - Cfg.AdaptedCut
 				local S2 = Cfg.Stage(2).StatusSeconds

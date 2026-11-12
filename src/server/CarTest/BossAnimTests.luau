@@ -3,7 +3,7 @@
 -- (assets/characters_avatar/boss_raga/keyframes/keys.json); approved keys stay unchanged. Moves are client-side visuals; the server reads only Schedule and Events, for attack stamina
 -- (owner 2026-11-05, boss_event attack_stamina).
 -- Contract these tests assume beyond the brief (implementer: report a change, do not loosen):
---   Shared/BossRagaPoses, generated:
+--   ServerStorage.LateData.BossRagaPoses, generated (design doc 7 "Join size": not at join, see LateDataTests):
 --     Moves[name] = { Duration, Keys = { { Time, Parts = { [part] = ... } } }, Events = { { Time, Name } }, Approved = { times } };
 --       idle's Approved is empty.
 --     Approved[move] = { { Time, Parts = { [part] = { x, y, z } }, RootOffset = { x, y, z } } }, generated from keys.json.
@@ -111,7 +111,7 @@ function Tests.boss_anim()
 		flag(name .. "_completed", ok, ok and 1 or tostring(err))
 	end
 
-	local Poses = H.module(Shared, "BossRagaPoses")
+	local Poses = H.lateData("BossRagaPoses") -- design doc 7 "Join size"
 	flag("poses_module_loads", Poses ~= nil)
 	if not Poses then
 		return r

@@ -63,6 +63,7 @@ return {
 		"boss_mage_arena",
 		"boss_mage_anim",
 		"sidekick_attacks",
+		"late_data",
 		"vehicle_effects",
 		"race_progress_map",
 		"showcase",

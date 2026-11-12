@@ -17,6 +17,9 @@
     "ServerStorage": {
       "ImpactSounds": {
         "$path": "assets/sfx/ImpactSounds"
+      },
+      "LateData": {
+        "$path": "src/late"
       }
     },
     "ReplicatedFirst": {
