@@ -257,6 +257,85 @@ function Module.Build(h)
 		setup(res, "restore:boss_ui")
 	end
 
+	-- The jointed Golden King in game (design doc 4.37 "Rework approvals", BOSS_EVENT_SPEC "Animation rework"; task a1-bake).
+	-- Contract (implementer: report a change, do not loosen): workspace.BossArenaPreview holds Model GoldenKing with BaseParts
+	-- named as BossKingPoses.Bind: Torso, Head, Left/RightUpperArm, Left/RightLowerArm, Left/RightUpperLeg, Left/RightLowerLeg,
+	-- Key, Ea, Ea_Drum1..3, and none of LeftArm, RightArm, LeftLeg, RightLeg. Ea's axis is read from Ea_Drum1 to Ea_Drum3 (the
+	-- drums sit along it). A sanity check that enuma plays on the jointed rig, not exact numbers: at 1.7 s (charge, arm up) Ea is
+	-- upright and the lower right arm above the upper; at 3.05 s (the swing, key 7 "levelled at the arena") Ea is near level
+	-- (within 30 deg) and the lower right arm below the upper. His hover is checked in ui_boss_king_arena (task a8-arena).
+	function scenarios.ui_boss_king_rig(res)
+		local JOINTED = {
+			"Torso",
+			"Head",
+			"LeftUpperArm",
+			"LeftLowerArm",
+			"RightUpperArm",
+			"RightLowerArm",
+			"LeftUpperLeg",
+			"LeftLowerLeg",
+			"RightUpperLeg",
+			"RightLowerLeg",
+			"Key",
+			"Ea",
+			"Ea_Drum1",
+			"Ea_Drum2",
+			"Ea_Drum3",
+		}
+		local ok, err = xpcall(function()
+			setup(res, "boss_ui_gear:2")
+			state(res, "Idle", 0)
+			boss(res, KING)
+			state(res, "Prep", 5, 4000, 4000, true, 100)
+			local king = waitFor(function()
+				local folder = workspace:FindFirstChild("BossArenaPreview")
+				return folder and folder:FindFirstChild("GoldenKing", true)
+			end, BUILD_WAIT)
+			check(res, "rig_king_present", king ~= nil and king:IsA("Model"), true)
+			if not king then
+				return
+			end
+			local missing = {}
+			for _, name in JOINTED do
+				local part = king:FindFirstChild(name, true)
+				if not (part and part:IsA("BasePart")) then
+					table.insert(missing, name)
+				end
+			end
+			h.checkList(res, "rig_jointed_parts", missing)
+			for _, name in { "LeftArm", "RightArm", "LeftLeg", "RightLeg" } do
+				check(res, "rig_no_unjointed_" .. name, king:FindFirstChild(name, true), nil)
+			end
+			local index, at = firstMoment("enuma")
+			check(res, "rig_enuma_moment_found", index ~= nil, true)
+			if not index or #missing > 0 then
+				return
+			end
+			local function part(name)
+				return king:FindFirstChild(name, true)
+			end
+			-- enuma's local time `localTime` (the moment is its 3.0 s cost event), then two frames to pose.
+			local function at_(localTime)
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - 3 + localTime, 4000, 4000, true, 100)
+				task.wait(0.1)
+				local ea = part("Ea_Drum3").Position - part("Ea_Drum1").Position
+				return ea.Magnitude > 0 and ea.Unit or Vector3.zero,
+					part("RightLowerArm").Position.Y - part("RightUpperArm").Position.Y
+			end
+			local eaUp, armUp = at_(1.7)
+			h.check(res, "rig_charge_ea_upright", eaUp.Y, ">= 0.8", eaUp.Y >= 0.8)
+			h.check(res, "rig_charge_lower_arm_raised", armUp, "> 0", armUp > 0)
+			local eaSwing, armSwing = at_(3.05)
+			h.check(res, "rig_swing_ea_levelled", math.abs(eaSwing.Y), "<= 0.5", math.abs(eaSwing.Y) <= 0.5)
+			h.check(res, "rig_swing_lower_arm_down", armSwing, "< 0", armSwing < 0)
+			-- His hover over the mound is checked by the arena task (a8-arena): ui_boss_king_arena's king_feet_over_mound and
+			-- king_hover_about_12 (it depends on his arena's mound and HoverY).
+		end, debug.traceback)
+		h.check(res, "king_rig_checks_completed", ok and "yes" or tostring(err), "yes", ok)
+		state(res, "Idle", 0)
+		setup(res, "restore:boss_ui")
+	end
+
 	-- After the real press (UiSpec.Clicks boss_king_button; his event in Prep, the player outside): his card is the live one.
 	function after.boss_king_panel_judging(res)
 		check(res, "king_panel_opens", waitShown(BOSSES, true), true)
@@ -513,8 +592,14 @@ function Module.Build(h)
 			h.checkList(res, "king_arena_inside_ring_under_12", tallInside)
 			-- The camera in Prep (still Prep here; the hover below moves to the fight).
 			check(res, "king_fov_60_in_prep", waitIs(fov, 60), 60)
-			-- His hover, in Fight after the rise (in Prep he is hidden far below) and in the cycle's first idle row (his moves dip
-			-- the root on purpose), sampled over one full 3 s bob: 12 +/- 0.75 with a little float slack.
+			-- His hover (BOSS_EVENT_SPEC "The Golden King's arena": "hovers 12 studs over the mound's top and bobs 1.5 studs over
+			-- 3 s"), in Fight after the rise (in Prep he is hidden far below) and in the cycle's first idle row (his moves dip the
+			-- root on purpose), sampled over one full 3 s bob. king_hover_about_12 reads the rule's point: his rest sole (the
+			-- rig's anchor, where the client puts Arena.Y + HoverY plus the bob), 12 +/- 0.75 over the mound's top (+/- 0.05
+			-- slack). It is worked back from the live Torso: its joint (part CFrame less the bind's Center, through the rig's
+			-- Blender-to-Roblox axes as Client/BossRaga) less the Torso's Offset and the sampled root. The lowest leg-box corner
+			-- is no longer that point: the pre-approved idle keys bend the knees 20 to 36 deg with deep leg boxes, about 2 studs
+			-- under the rest sole, so king_feet_over_mound is the clearance check: that corner stays over 7 studs above the mound.
 			local gatesIndex, gatesAt = firstMoment("gates")
 			local HOVER_FROM, HOVER_FOR = 0.3, 3.2 -- s into the fight
 			check(
@@ -523,10 +608,30 @@ function Module.Build(h)
 				gatesIndex ~= nil and gatesAt - 1.6 - 0.75 >= HOVER_FROM + HOVER_FOR, -- before gates_in and its lead
 				true
 			)
-			if king and moundTop > -math.huge then
+			local posesOk, KingPoses = pcall(function()
+				return require(Shared:WaitForChild("LateData")).Get("BossKingPoses")
+			end)
+			KingPoses = posesOk and type(KingPoses) == "table" and KingPoses or nil
+			check(res, "king_poses_loads", KingPoses ~= nil, true)
+			local torso = king and king:FindFirstChild("Torso", true)
+			if king and torso and KingPoses and moundTop > -math.huge then
+				local AXES =
+					CFrame.fromMatrix(Vector3.zero, Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 1, 0))
+				local row, scale = KingPoses.Bind.Torso, KingPoses.Scale
+				local centre = CFrame.new(Vector3.new(row.Center[1], row.Center[2], row.Center[3]) * scale)
+				local function soleHeight()
+					local joint = (torso.CFrame * AXES * centre:Inverse() * AXES:Inverse()).Position
+					-- the schedule start as Client/BossArenaView reads it: BossScheduleStart, else the spawn
+					local start = ReplicatedStorage:GetAttribute("BossScheduleStart")
+						or (ReplicatedStorage:GetAttribute("BossEventStart") or 0) + Cfg.PrepSeconds
+					local move, localTime = KingPoses.Schedule(start, workspace:GetServerTimeNow())
+					local _, root = KingPoses.Sample(move, localTime)
+					return joint.Y - (row.Offset[3] * scale + root.Z) - moundTop -- Blender z is Roblox Y (AXES)
+				end
 				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + HOVER_FROM, hp, hp, true, 100)
 				task.wait(0.1)
-				local low, high, stop = math.huge, -math.huge, os.clock() + HOVER_FOR - 0.1
+				local low, high, soleLow, soleHigh = math.huge, -math.huge, math.huge, -math.huge
+				local stop = os.clock() + HOVER_FOR - 0.1
 				while os.clock() < stop do
 					local feet = math.huge
 					for _, d in king:GetDescendants() do
@@ -537,11 +642,18 @@ function Module.Build(h)
 						end
 					end
 					low, high = math.min(low, feet - moundTop), math.max(high, feet - moundTop)
+					local sole = soleHeight()
+					soleLow, soleHigh = math.min(soleLow, sole), math.max(soleHigh, sole)
 					task.wait()
 				end
-				local span = ("%.2f to %.2f"):format(low, high)
-				h.check(res, "king_feet_over_mound", span, "min > 0", low > 0)
-				h.check(res, "king_hover_about_12", span, "10.5 to 13.5", low >= 10.5 and high <= 13.5)
+				h.check(res, "king_feet_over_mound", ("%.2f to %.2f"):format(low, high), "min > 7", low > 7)
+				h.check(
+					res,
+					"king_hover_about_12",
+					("%.2f to %.2f"):format(soleLow, soleHigh),
+					"11.2 to 12.8",
+					soleLow >= 11.25 - 0.05 and soleHigh <= 12.75 + 0.05
+				)
 			end
 
 			-- The camera: FOV 60 for the whole event in his arena, through a move.

@@ -23,8 +23,15 @@
 --   ServerStorage.LateData.BossKingPoses (the 2026-11-11 bake; design doc 7 "Join size", see LateDataTests): Moves idle, gates (events gates_start 0, gates 1.6 = Volleys; Window { 1.6, 3.6 }),
 --     enuma (enuma_start 0, enuma 3.0 = Beam; Window { 3, 5 }; EaShown { 0, 5.6 }), shields (one event shields at 2.2 =
 --     Fortified), lead-ins gates_in, enuma_in, shields_in of 0.75 s; cycle idle, gates_in, gates, idle, idle, enuma_in, enuma,
---     idle, idle, shields_in, shields, idle = 38.85 s; Approved[move] rows { Time, Parts, RootOffset } (idle 3, gates 6, enuma 8,
+--     idle, idle, shields_in, shields, idle = 38.85 s; Approved[move] rows { Time, Parts, RootOffset } (idle 3, gates 6, enuma 10,
 --     shields 4), Sample, Schedule, CycleSeconds, RiseAt.
+--   Rework (design doc 4.37 "Rework approvals" and "Animation rework", owner 2026-11-12; task a1-bake): BossKingPoses is baked
+--     for the jointed rig. Bind names Torso, Head, Left/RightUpperArm, Left/RightLowerArm, Left/RightUpperLeg,
+--     Left/RightLowerLeg, Key, Ea, Ea_Drum1..3 and none of LeftArm, RightArm, LeftLeg, RightLeg; every key of every move
+--     carries the 8 limb parts (in Parts, or in the move's Held). enuma's Approved (Moves.enuma.Approved and Approved.enuma)
+--     is the 10 keys of assets/characters_avatar/boss_king/keyframes/rework/keys.json at their times; Sample at a key's time
+--     gives the keys.json rotation of every part not under Body (Body, his hip turn, is still folded into Torso and the
+--     upper legs). RootStuds converts Sample's root (studs) back to keys.json units for the per-frame check.
 --   Server/AdminService.Commands.boss accepts "king" -> "boss_king".
 -- Proposed values asserted literally (owner may retune): the texts in BOSS_EVENT_SPEC "The Golden King", camera as the mage's.
 -- On demand: ReplicatedStorage attributes CarTestOnly = "boss_king_event,boss_king_arena,boss_king_anim", then CarTestRun = true.
@@ -63,6 +70,141 @@ local HIT_TEXT = { gates = "The King's treasures struck you", enuma = "Enuma Eli
 local SCAN = 40 -- moments looked at
 -- djb2 { length, hash } of the real source name (section 5 safeguard): a hash, so the name never sits in the game's files.
 local REAL_NAMES = { { 9, 789293634 } }
+
+-- The rework (design doc 4.37 "Rework approvals", owner 2026-11-12): the jointed rig and the 10 approved keys of enuma, idle,
+-- gates and shields, copied by hand from assets/characters_avatar/boss_king/keyframes/rework/keys.json.
+local LIMB_PARTS = {
+	"LeftUpperArm",
+	"LeftLowerArm",
+	"RightUpperArm",
+	"RightLowerArm",
+	"LeftUpperLeg",
+	"LeftLowerLeg",
+	"RightUpperLeg",
+	"RightLowerLeg",
+}
+local JOINTED_PARTS = table.clone(LIMB_PARTS)
+for _, part in { "Torso", "Head", "Key", "Ea", "Ea_Drum1", "Ea_Drum2", "Ea_Drum3" } do
+	table.insert(JOINTED_PARTS, part)
+end
+-- { key number, part, keys.json rotation }: only parts not under Body (Torso and the upper legs only where Body is 0).
+local REWORK_KEYS = {
+	enuma = {
+		Times = { 0, 0.45, 0.95, 1.45, 2.1, 2.75, 3.0, 3.9, 4.85, 5.6 },
+		Spots = {
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 1, "Torso", Vector3.new(2, 0, 4) },
+			{ 1, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+			{ 4, "RightUpperArm", Vector3.new(0.7, 170.693, 33.38) },
+			{ 4, "LeftUpperArm", Vector3.new(-21.93, -41.35, -17.879) },
+			{ 4, "Ea", Vector3.new(1.234, 178.286, 44.348) },
+			{ 4, "LeftLowerLeg", Vector3.new(25, 0, 0) },
+			{ 4, "Head", Vector3.new(-20, 0, -4) },
+			{ 7, "RightUpperArm", Vector3.new(-61.696, -18.107, 35.789) },
+			{ 7, "RightLowerArm", Vector3.new(-1.25, 0, 0) },
+			{ 7, "LeftUpperArm", Vector3.new(-73.491, 16.134, -35.232) },
+			{ 7, "Ea", Vector3.new(37.914, -149.448, 75.806) },
+			{ 7, "Head", Vector3.new(-6, 10, 62) },
+			{ 7, "Key", Vector3.new(6, 10, 0) },
+			{ 7, "RightLowerLeg", Vector3.new(70, 0, 0) },
+			{ 7, "Ea_Drum1", Vector3.new(0, 0, 820) },
+			{ 7, "Ea_Drum2", Vector3.new(0, 0, -820) },
+			{ 10, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 10, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
+			{ 10, "Ea", Vector3.new(66.121, 62.57, -27.705) },
+			{ 10, "RightLowerLeg", Vector3.new(30, 0, 0) },
+			{ 10, "Torso", Vector3.new(2, 0, 4) },
+		},
+	},
+	-- keys 1 and 10 are the loop's rest pose; key 5 its middle (Body turns there: no Torso or upper legs)
+	idle = {
+		Times = { 0, 0.45, 0.9, 1.35, 1.8, 2.2, 2.65, 3.1, 3.55, 4.0 },
+		Spots = {
+			{ 1, "Torso", Vector3.new(2, 0, 4) },
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "LeftUpperArm", Vector3.new(-53.961, -20.718, -56.454) },
+			{ 1, "LeftLowerLeg", Vector3.new(22, 0, 0) },
+			{ 5, "Head", Vector3.new(-2, -2, 18) },
+			{ 5, "RightUpperArm", Vector3.new(-52.386, 16.173, 60.461) },
+			{ 5, "LeftUpperArm", Vector3.new(-53.435, -21.021, -56.176) },
+			{ 5, "LeftLowerLeg", Vector3.new(32, 0, 0) },
+			{ 10, "Head", Vector3.new(-5, 0, -8) },
+			{ 10, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 10, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+		},
+	},
+	-- key 5 is the gates event (1.6 s, the volleys; Body turns there: no Torso or upper legs)
+	gates = {
+		Times = { 0, 0.4, 0.8, 1.2, 1.6, 1.85, 2.5, 3.1, 3.6, 4.4 },
+		Spots = {
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 1, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 1, "RightLowerLeg", Vector3.new(30, 0, 0) },
+			{ 5, "RightUpperArm", Vector3.new(-27.166, 53.14, 10.897) },
+			{ 5, "RightLowerArm", Vector3.new(-51.255, 0, 0) },
+			{ 5, "LeftUpperArm", Vector3.new(23.23, 56.524, -153.104) },
+			{ 5, "LeftLowerArm", Vector3.new(-62.994, 0, 0) },
+			{ 5, "Head", Vector3.new(-12, 0, -4) },
+			{ 5, "Key", Vector3.new(10, 0, 0) },
+			{ 5, "LeftLowerLeg", Vector3.new(40, 0, 0) },
+			{ 10, "Torso", Vector3.new(2, 0, 4) },
+			{ 10, "LeftUpperArm", Vector3.new(-53.961, -20.718, -56.454) },
+			{ 10, "LeftLowerArm", Vector3.new(-1.25, 0, 0) },
+		},
+	},
+	-- key 8 is the shields event (2.2 s, Fortified)
+	shields = {
+		Times = { 0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.2, 2.4, 2.6 },
+		Spots = {
+			{ 1, "RightLowerArm", Vector3.new(-34.601, 0, 0) },
+			{ 1, "LeftUpperLeg", Vector3.new(-8, 0, -3) },
+			{ 1, "Head", Vector3.new(-5, 0, -8) },
+			{ 8, "Torso", Vector3.new(-3, 0, 4) },
+			{ 8, "Head", Vector3.new(-12, 0, -6) },
+			{ 8, "RightUpperArm", Vector3.new(-53.463, 15.576, 60.967) },
+			{ 8, "RightLowerArm", Vector3.new(-31.513, 0, 0) },
+			{ 8, "LeftUpperArm", Vector3.new(-56.188, -20.731, -56.441) },
+			{ 8, "LeftUpperLeg", Vector3.new(-10, 0, -4) },
+			{ 8, "LeftLowerLeg", Vector3.new(24, 0, 0) },
+			{ 8, "Key", Vector3.new(-2, 0, 0) },
+			{ 10, "RightUpperArm", Vector3.new(-49.185, 15.656, 60.9) },
+			{ 10, "RightLowerLeg", Vector3.new(30, 0, 0) },
+		},
+	},
+}
+local KEY_DEGREES = 0.01
+local FRAME = 1 / 60
+local MAX_DEGREES_PER_FRAME = 12 -- BOSS_EVENT_SPEC "Animation rework" Tests, as BossAnimTests for Big Raga
+local MAX_OFFSET_PER_FRAME = 0.05
+local SNAP_WINDOW = 0.05 -- s after an event where the hit snap still runs (with the key segment into it)
+
+-- XYZ Euler degrees as the client poses them (BossRaga:Pose: Z, then Y, then X), in doubles: CFrame is float32.
+local function matrixOf(v)
+	local x, y, z = math.rad(v.X), math.rad(v.Y), math.rad(v.Z)
+	local cx, sx, cy, sy, cz, sz = math.cos(x), math.sin(x), math.cos(y), math.sin(y), math.cos(z), math.sin(z)
+	return {
+		cz * cy,
+		cz * sy * sx - sz * cx,
+		cz * sy * cx + sz * sx,
+		sz * cy,
+		sz * sy * sx + cz * cx,
+		sz * sy * cx - cz * sx,
+		-sy,
+		cy * sx,
+		cy * cx,
+	}
+end
+
+-- Degrees between two Euler rotations: ||A - B|| = 2 sqrt(2) sin(angle / 2), exact for small angles.
+local function rotationApart(a, b)
+	local ma, mb, sum = matrixOf(a), matrixOf(b), 0
+	for i = 1, 9 do
+		sum += (ma[i] - mb[i]) ^ 2
+	end
+	return math.deg(2 * math.asin(math.min(1, math.sqrt(sum) / (2 * math.sqrt(2)))))
+end
 
 local function approx(a, b, tolerance)
 	return type(a) == "number" and type(b) == "number" and math.abs(a - b) <= (tolerance or 1e-6)
@@ -940,7 +1082,12 @@ function Tests.make()
 
 			-- Approved keys (owner gate): Sample at each approved time gives the approved pose. Counts proposed in the spec.
 			section("approved", function()
-				local counts = { idle = 3, gates = 6, enuma = 8, shields = 4 }
+				-- enuma 10 (was 8): 10 key frames per move, design doc 4.37 "Animation rework" and BOSS_EVENT_SPEC
+				-- "Animation rework" Keys (owner 2026-11-12); the 10 approved under 4.37 "Rework approvals".
+				-- idle, gates, shields 10 (were 3, 6, 4): the same rule; their rework keys pre-approved 2026-11-12 night.
+				-- fortified_idle (rework/keys.json, a 4.0 s loop) is not baked as its own move yet (bake_boss_king.py: the shield
+				-- ring is BossKingVfx's); add it here with 10 when it is.
+				local counts = { idle = 10, gates = 10, enuma = 10, shields = 10 }
 				for name, want in counts do
 					local worst = 0
 					local keys = Poses.Approved[name] or {}
@@ -954,6 +1101,118 @@ function Tests.make()
 					end
 					flag(name .. "_approved_reproduced", worst <= 0.01, worst, 0.01)
 					eq(name .. "_approved_count", #keys, want)
+				end
+			end)
+
+			-- The rework's keys (design doc 4.37 "Rework approvals"; idle, gates and shields pre-approved by the owner 2026-11-12
+			-- night): each move's 10 keys of rework/keys.json, hand-copied so a bake drifting from the approved file is caught.
+			-- Compared as rotations (Euler wraps do not matter).
+			for name, rework in REWORK_KEYS do
+				section(name .. "_rework_keys", function()
+					local move = Poses.Moves[name]
+					local times = move and move.Approved or {}
+					eq(name .. "_rework_key_count", #times, #rework.Times)
+					local rows = Poses.Approved[name] or {}
+					eq(name .. "_rework_expected_count", #rows, #rework.Times)
+					for i, t in rework.Times do
+						near(name .. "_rework_key_time_" .. i, times[i], t, 1e-6)
+						near(name .. "_rework_expected_time_" .. i, rows[i] and rows[i].Time, t, 1e-6)
+					end
+					for _, spot in rework.Spots do
+						local t, part, want = rework.Times[spot[1]], spot[2], spot[3]
+						local got = (Poses.Sample(name, t))[part]
+						local off = typeof(got) == "Vector3" and rotationApart(got, want) or 1e9
+						flag(("%s_rework_key_%d_%s"):format(name, spot[1], part), off <= KEY_DEGREES, off, KEY_DEGREES)
+					end
+				end)
+			end
+
+			-- The jointed rig (BOSS_EVENT_SPEC "Animation rework" Rigs): elbows and knees, in the bind and in every move's keys.
+			section("jointed_rig", function()
+				local bind = Poses.Bind or {}
+				for _, part in JOINTED_PARTS do
+					flag("bind_has_" .. part, bind[part] ~= nil)
+				end
+				for _, part in { "LeftArm", "RightArm", "LeftLeg", "RightLeg" } do
+					eq("bind_no_unjointed_" .. part, bind[part], nil)
+				end
+				for name, move in Poses.Moves do
+					local missing = {}
+					for _, key in move.Keys or {} do
+						for _, part in LIMB_PARTS do
+							if key.Parts[part] == nil and (move.Held or {})[part] == nil then
+								missing[part] = true
+							end
+						end
+					end
+					flag(name .. "_keys_carry_limbs", next(missing) == nil and #(move.Keys or {}) > 0, next(missing))
+				end
+			end)
+
+			-- Per-frame continuity, as BossAnimTests has for Big Raga (BOSS_EVENT_SPEC "Animation rework" Tests): at most 12 degrees
+			-- of any part and 0.05 root (keys.json units) per 60 Hz frame, outside the hit snap (the key segment into an event and
+			-- 0.05 s after it).
+			section("continuous", function()
+				for name, move in Poses.Moves do
+					-- The hit snap (BOSS_EVENT_SPEC "Animation rework" Tests, 2026-11-12): the key segment that ends on an event time,
+					-- from the key frame before it, plus SNAP_WINDOW after it. Key frames: the move's Approved times (the baked
+					-- Keys hold every in-between), else its Keys' times.
+					local keyTimes = {}
+					for _, key in move.Keys or {} do
+						table.insert(keyTimes, key.Time)
+					end
+					keyTimes = (move.Approved and #move.Approved > 0) and move.Approved or keyTimes
+					local snaps = {}
+					for _, event in move.Events do
+						local from = nil -- the last key frame before the event; none: the event's own time
+						for _, k in keyTimes do
+							if k < event.Time - 1e-6 and (from == nil or k > from) then
+								from = k
+							end
+						end
+						table.insert(snaps, { from or event.Time, event.Time + SNAP_WINDOW })
+					end
+					local function nearEvent(t)
+						for _, snap in snaps do
+							if t > snap[1] and t <= snap[2] then
+								return true
+							end
+						end
+						return false
+					end
+					local rootUnit = Poses.RootStuds or 1
+					local worstDegrees, worstOffset, worstAt, worstPart = 0, 0, 0, nil
+					local parts, root = Poses.Sample(name, 0)
+					for k = 1, math.floor(move.Duration / FRAME) do
+						local t = k * FRAME
+						local nextParts, nextRoot = Poses.Sample(name, t)
+						if not nearEvent(t) then
+							for part, v in nextParts do
+								local before = parts[part]
+								local d = typeof(before) == "Vector3" and rotationApart(before, v) or 0
+								if d > worstDegrees then
+									worstDegrees, worstAt, worstPart = d, t, part
+								end
+							end
+							local step = (nextRoot - root) / rootUnit
+							worstOffset = math.max(worstOffset, math.abs(step.X), math.abs(step.Y), math.abs(step.Z))
+						end
+						parts, root = nextParts, nextRoot
+					end
+					r.metrics[name .. "_worst_frame_at"] = worstAt
+					r.metrics[name .. "_worst_frame_part"] = worstPart
+					flag(
+						name .. "_frame_degrees",
+						worstDegrees <= MAX_DEGREES_PER_FRAME,
+						worstDegrees,
+						MAX_DEGREES_PER_FRAME
+					)
+					flag(
+						name .. "_frame_offset",
+						worstOffset <= MAX_OFFSET_PER_FRAME,
+						worstOffset,
+						MAX_OFFSET_PER_FRAME
+					)
 				end
 			end)
 

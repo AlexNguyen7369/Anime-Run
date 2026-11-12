@@ -188,6 +188,7 @@ UiScenarios.Names = {
 	"ui_boss_cards",
 	-- The Golden King (UiBossKing; design doc 4.37 "Third boss", BOSS_EVENT_SPEC "The Golden King")
 	"ui_boss_king",
+	"ui_boss_king_rig", -- the jointed rig playing enuma (task a1-bake)
 	"ui_boss_king_dodge",
 	"ui_boss_fortified",
 	"ui_boss_king_arena", -- his own arena (task a8-arena)
