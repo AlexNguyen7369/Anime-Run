@@ -176,8 +176,9 @@
 172. 2026-11-12 — Alex Nguyen — Merged PR #9 feature/alex/boss-mage into main (722e3f9) after a fresh merge review APPROVE: The Elf Mage and her follow-ups, per-boss late data, Team button and panel, Team icon N3.
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
 174. 2026-11-12 — Alex Nguyen — Hotfixed main after the owner found loading stuck: src/late/BossKingPoses.luau (and its generator) required BossEventConfig from LateData instead of Shared, which crashed BossDodge, BossEventService, AdminService and Main at boot so no server built the plaza; PR #11 merged after a fresh review APPROVE (Studio boot OK, late_data 96/96, boss_king_anim 133/133).
+175. 2026-11-12 — Alex Nguyen — Wrote the boss animation rework rules (design doc 4.37, BOSS_EVENT_SPEC, goal boss-anim-rework, owner clip notes in the evidence files): jointed rigs, 10 key frames per move, arena-wide flash and shake, pose-tied effects, lighter runner auras and trails in events.
 
 ## What's next
-**Owner's play check of main (dc4acbd) in Studio: /boss king, /elfboss and a normal run; then the owner's Team panel decisions (https://claude.ai/artifact/9k3a5yLP9djbZN4WCivdar) and the open small fixes (Backpack tab reds, SAITAMO / MYTHIC overlap, the #9 reviewer debts) as the next tasks.**
+**Pilot move a1: rebuild `boss_king` with elbows and knees and key the 10 key frames of Enuma Elish, then show the model render and the slice sheet to the owner for approval before any in-between.**
 
-**Why this is next:** every goal is merged into main but the merged tree has never had a full harness or a full play-through; the boot crash shows what that gap hides, so the owner's look comes before new feature work.
+**Why this is next:** the pilot proves the jointed rig, the bake changes, the arena-wide impact layer and the pose-tied effects on one move, and the owner's verdict on it sets the pattern for every other move of both bosses and the golem.
