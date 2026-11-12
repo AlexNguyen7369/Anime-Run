@@ -2,10 +2,9 @@
 # BOSS_EVENT_SPEC "The Golden King" and "Animation rework").
 #   Blender -b --factory-startup --python tools/blender/build_boss_king.py -- jointed   (boss_king_jointed.blend, git-ignored)
 #   Blender -b --factory-startup --python tools/blender/bake_boss_king.py -- [poses] [glb]
-# poses   writes src/late/BossKingPoses.luau. enuma: the 10 rework keys of keyframes/rework/keys.json (owner approved 2026-11-12);
-#         idle, gates (+ gates_window) and shields: the old keys of keyframes/keys.json (pre-approved 2026-11-11) mapped onto the
-#         jointed rig with the lower segments straight (upper arm and thigh take the old limb's rotation, forearm and shin 0) until
-#         they are re-keyed. Keys verbatim at their times; everything between them generated here: quaternion interpolation per
+# poses   writes src/late/BossKingPoses.luau from keyframes/rework/keys.json, 10 keys a move: enuma (owner approved 2026-11-12),
+#         idle, gates (its 2 s window inside) and shields (pre-approved 2026-11-12 night). fortified_idle (rework keys too) is not
+#         baked: the server never schedules it (his Fortified status plays idle; the shield ring is BossKingVfx's). Keys verbatim at their times; everything between them generated here: quaternion interpolation per
 #         part with asymmetric easing, written as Euler keys (each in-between the Euler nearest the frame before it); springs on Ea,
 #         the forearms, the head and the Key; torso and head 1 and 2 frames behind; Big Raga's RECOIL after each hit. Then
 #         self-checked (asserts, the boss_king_anim continuity check with its hit snap included). Run stylua after.
@@ -33,7 +32,6 @@ ease, eout, ein = raga.inout, raga.eout, raga.ein
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 KEYDIR = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "keyframes")
-KEYS = os.path.join(KEYDIR, "keys.json")
 REWORK = os.path.join(KEYDIR, "rework", "keys.json")
 BLEND = os.path.join(ROOT, "assets", "characters_avatar", "boss_king", "boss_king_jointed.blend")
 GLB = os.path.join(ROOT, "build", "avatar_glb", "boss_king_jointed.glb")
@@ -61,18 +59,21 @@ CYCLE = (
 	("idle", 0, IDLE_ROW),
 )
 # keys.json event -> the schedule event the server charges or sets at; every Dodge bar move also opens with "<move>_start" at 0
-EVENTS = {"gates": ("Volleys", "gates"), "enuma": ("Beam", "enuma"), "shields": ("Fortified", "shields")}
+EVENTS = {"gates": ("gates", "gates"), "enuma": ("Beam", "enuma"), "shields": ("shields", "shields")}
 WINDOW = {"gates": (1.6, 3.6), "enuma": (3.0, 5.0)}  # fixed: the volleys, the beam sweep; the cost event is the window's start
 HITS = {"gates": 1.6, "enuma": 3.0}  # RECOIL starts here (shields' event is a status, not a hit)
 # One row per segment between stops (keys, then idle key 0 at the move's end when the last key is earlier). Proposed.
 PLAN = {
 	"gates": (
-		{"ease": ease(2.0)},  # the hand lifts, first ripples
-		{"ease": ein(2.2)},  # portals open, then the thrust lands on the Fire key
-		{"ease": ease(1.8), "carry": 0.08},  # the volley burst: torso sways with the arm
-		{"ease": ease(1.8), "carry": 0.05},
-		{"ease": ease(2.0), "carry": 0.06},  # recover
-		{"ease": ease(2.0)},
+		{"ease": ease(2.0)},  # 0 -> 0.4 anticipation: the arms unfold
+		{"ease": ease(2.0)},  # 0.4 -> 0.8 the hand lifts, portals open
+		{"ease": ease(2.2)},  # 0.8 -> 1.2 slow wind-up
+		{"ease": ein(2.4)},  # 1.2 -> 1.6 fast into the volleys (the hit snap)
+		{"ease": eout(1.8), "hold": 0.04},  # 1.6 -> 1.85 hard stop, then the thrust carries through
+		{"ease": ease(1.8), "carry": 0.06},  # 1.85 -> 2.5 the burst: commanding the volleys
+		{"ease": ease(1.8)},  # 2.5 -> 3.1
+		{"ease": ease(2.0)},  # 3.1 -> 3.6 the last volley
+		{"ease": ease(2.2), "carry": 0.05},  # 3.6 -> 4.4 slow recovery into idle key 0
 	),
 	"enuma": (
 		{"ease": ease(1.8)},  # 0 -> 0.45 anticipation: unfolds and curls down
@@ -86,10 +87,15 @@ PLAN = {
 		{"ease": ease(2.2), "carry": 0.05},  # 4.85 -> 5.6 slow recovery into idle key 0
 	),
 	"shields": (
+		{"ease": ease(2.0)},  # 0 -> 0.3 anticipation
 		{"ease": ease(2.0)},
-		{"ease": ease(2.0), "carry": 0.06},
-		{"ease": ease(2.0), "carry": 0.06},
 		{"ease": ease(2.0)},
+		{"ease": ease(2.0), "carry": 0.05},
+		{"ease": ease(2.0)},
+		{"ease": ease(1.5)},  # 1.5 -> 1.8 the left arm's big sweep: a softer ease keeps it under 12 degrees a frame
+		{"ease": ein(2.0)},  # 1.8 -> 2.2 into the Fortified gesture
+		{"ease": eout(1.8), "hold": 0.03},  # 2.2 -> 2.4 held, then settles
+		{"ease": ease(2.0)},  # 2.4 -> 2.6 into idle key 0
 	),
 }
 IDLE_PLAN = {"ease": ease(2.0)}  # between the breathing keys and back to key 0
@@ -115,7 +121,6 @@ KEYED = kk.JPARTS + ("Key", "Ea")  # the drums come from Spin
 FOLDED = ("Torso", "LeftUpperLeg", "RightUpperLeg")  # Body folds into these
 THIGHS = ("LeftUpperLeg", "RightUpperLeg")
 LOCS = THIGHS + ("Ea",)  # joints that move on their parent: the hips round Body's turn, Ea's grip on the forearm
-OLD = {"LeftArm": "LeftUpperArm", "RightArm": "RightUpperArm", "LeftLeg": "LeftUpperLeg", "RightLeg": "RightUpperLeg"}
 MESH = {**{p: p + "_merged" for p in kk.JPARTS}, "Key": "Key", "Ea": "Ea_Grip", **{d: d for d in DRUMS}}
 GRIP0 = tuple(kk.HAND["RightArm"] - kk.EA_PIVOT)  # Ea's grip in the right fist (keys.json's in-hand ea_grip_offset)
 # shortcut: the 6-part model uploaded 2026-11-11 (SidekickArt.boss_king.BossModel) keeps its old bind, copied from BossKingPoses
@@ -132,21 +137,6 @@ BIND6 = """\
 	RightArm = { Parent = "Torso", Offset = {-1.5,0,1.8}, Center = {0.1,0,-0.8}, Size = {15.14,22.57,9.94} },
 	RightLeg = { Parent = nil, Offset = {-0.5,0,2}, Center = {0,0,-1}, Size = {7.58,13.38,12.21} },
 	Torso = { Parent = nil, Offset = {0,0,2}, Center = {0,0,1}, Size = {15.93,30.54,9.96} },"""
-
-
-def merged(data):
-	"""gates_window folded into gates (its keys sit on the gates clock, its 1.6 and 3.6 keys are gates' own). The old enuma moves and
-	fortified_idle are not baked: enuma comes from the rework, the shield ring of fortified_idle is BossKingVfx's."""
-	moves = {n: m for n, m in data["moves"].items() if n in ("idle", "gates", "shields")}
-	w = data["moves"]["gates_window"]
-	keys = {k["t"]: k for k in moves["gates"]["keys"]}
-	for k in w["keys"]:
-		if k["t"] in keys:  # the parent's own key (its event stays)
-			assert keys[k["t"]]["rotations"] == k["rotations"] and keys[k["t"]]["root_offset"] == k["root_offset"], f"gates_window {k['t']}: not its parent's key"
-		else:
-			keys[k["t"]] = k
-	moves["gates"] = dict(moves["gates"], keys=[keys[t] for t in sorted(keys)], end=w["end"])
-	return moves
 
 
 # ---- quaternions ----
@@ -190,18 +180,18 @@ def apart(a, b):
 # ---- a key as plain state ----
 
 
-def state(key, rework):
+def state(key):
 	"""rot: local quaternion per keyed part and Body; euler: the key's own numbers (verbatim); root, grip (Ea's grip offset in the
 	right forearm's space) and spin as the key holds them."""
-	rot = key["rotations"] if rework else {OLD.get(p, p): v for p, v in key["rotations"].items()}
-	euler = {p: [float(v) for v in rot.get(p, (0, 0, 0))] for p in ("Body",) + KEYED}  # an old key's forearms and shins: 0
+	rot = key["rotations"]
+	euler = {p: [float(v) for v in rot.get(p, (0, 0, 0))] for p in ("Body",) + KEYED}  # Ea absent while it is hidden: 0
 	return {
 		"t": float(key["t"]),
 		"euler": euler,
 		"rot": {p: quat(v) for p, v in euler.items()},
 		"root": Vector(key["root_offset"]),
 		"root_offset": tuple(float(v) for v in key["root_offset"]),  # verbatim (Vector is float32)
-		"grip": Vector(key.get("ea_grip_offset", GRIP0)),
+		"grip": Vector(key.get("ea_grip_offset") or GRIP0),
 		"spin": float(key.get("ea_drum_spin", 0)),
 	}
 
@@ -306,9 +296,9 @@ def joints(bind, body, root):
 
 
 class King:
-	def __init__(self, old, rework, bind, pivots):
-		self.old, self.rework, self.bind, self.pivots = old, rework, bind, pivots
-		self.idle0 = state(old["idle"]["keys"][0], False)
+	def __init__(self, rework, bind, pivots):
+		self.moves, self.bind, self.pivots = rework["moves"], bind, pivots
+		self.idle0 = state(self.moves["idle"]["keys"][0])
 		self.verbatim = {"shifted": 0, "rewritten": []}  # key components moved by whole turns, keys written on another Euler branch
 
 	def pose(self, st):
@@ -389,9 +379,8 @@ class King:
 		return frames
 
 	def attack(self, name):
-		rework = name == "enuma"
-		move = self.rework["moves"]["enuma"] if rework else self.old[name]
-		stops = [state(k, rework) for k in move["keys"]]
+		move = self.moves[name]
+		stops = [state(k) for k in move["keys"]]
 		assert stops[0]["t"] == 0
 		if stops[-1]["t"] < move["end"]:  # back to idle key 0; the drums never unwind (Ea is hidden at the move's end)
 			stops.append(dict(self.idle0, t=float(move["end"]), spin=stops[-1]["spin"]))
@@ -413,24 +402,24 @@ class King:
 
 	def idle(self):
 		"""The breathing loop: eased through its 3 keys and back to key 0 at the period's end, so it loops without a pop."""
-		move = self.old["idle"]
+		move = self.moves["idle"]
 		keys, period = move["keys"], move["end"]
-		assert move["loop"] and keys[0]["t"] == 0 and period == IDLE_ROW
-		stops = [state(k, False) for k in keys] + [dict(self.idle0, t=float(period))]
+		assert move["loop"] and keys[0]["t"] == 0 and period == IDLE_ROW and keys[-1]["t"] == period
+		assert keys[-1]["rotations"] == keys[0]["rotations"] and keys[-1]["root_offset"] == keys[0]["root_offset"], "idle: last key not the first"
+		stops = [state(k) for k in keys]
 		knots = [s["t"] for s in stops]
-		frames = self.bake("idle", stops, (IDLE_PLAN,) * len(keys), period, knots, knots)
+		frames = self.bake("idle", stops, (IDLE_PLAN,) * (len(keys) - 1), period, knots, knots)
 		bad = {p: (frames[0][1][p], frames[-1][1][p]) for p in frames[0][1] if max(abs(a - b) for a, b in zip(frames[0][1][p], frames[-1][1][p])) > 1e-3}
 		assert not bad, f"idle: the loop's end is not its first key {bad}"
 		frames[-1] = (float(period),) + frames[0][1:]  # float32 noise in the hip locs aside, the same frame: written once
-		return frames, [k["t"] for k in keys], [], period, knots
+		return frames, knots, [], period, knots
 
 
 # ---- checks ----
 
 
-def check_bind(king, old_raw, rework, bind):
-	"""The joint chain the client builds reproduces the key poses of the approved solvers: jsolve for the rework keys (and its keys.json
-	is still what jsolve makes), solve for the old keys with the forearms and shins straight."""
+def check_bind(king, rework, bind):
+	"""The joint chain the client builds reproduces jsolve's key poses for every rework key (and keys.json is still what jsolve makes)."""
 	for name, move in rework["moves"].items():
 		jkeys = kk.JMOVES[name]["keys"]
 		assert [k["t"] for k in jkeys] == [k["t"] for k in move["keys"]], name
@@ -438,30 +427,20 @@ def check_bind(king, old_raw, rework, bind):
 			m, record, grip, _ = kk.jsolve(jkey)
 			for p, v in record.items():
 				assert apart(v, approved["rotations"][p]) < 1e-3, f"rework keys.json {name} {jkey['t']} {p} is not jsolve's"
-			assert max(abs(a - b) for a, b in zip(grip, approved["ea_grip_offset"])) < 1e-3
-			_, body, root = king.frame(jkey["t"], state(approved, True), None)
+			assert (grip is None) == ("ea_grip_offset" not in approved), f"{name} {jkey['t']}: Ea drawn in one and not the other"
+			assert grip is None or max(abs(a - b) for a, b in zip(grip, approved["ea_grip_offset"])) < 1e-3
+			_, body, root = king.frame(jkey["t"], state(approved), None)
 			world = joints(bind, body, root)
 			for p in PARTS:
 				if p in ("Ea",) + DRUMS:
+					if grip is None:  # Ea hidden: jsolve does not place it
+						continue
 					want = m["Ea"] @ Matrix.Translation(king.pivots["Ea"])
 					if p in DRUMS:
 						want = want @ Matrix.Rotation(math.radians(DRUM_SIGN[p] * jkey.get("spin", 0)), 4, "Z")
 				else:
 					want = m[MESH[p]] @ Matrix.Translation(king.pivots[p])
 				assert max(abs(a - b) for ra, rb in zip(want, world[p]) for a, b in zip(ra, rb)) < 1e-3, f"bind {p} at rework {name} {jkey['t']}"
-	limb = {"LeftUpperArm": "LeftArm", "LeftLowerArm": "LeftArm", "RightUpperArm": "RightArm", "RightLowerArm": "RightArm", "LeftUpperLeg": "LeftLeg", "LeftLowerLeg": "LeftLeg", "RightUpperLeg": "RightLeg", "RightLowerLeg": "RightLeg"}
-	for name, move in old_raw["moves"].items():
-		if name not in ("idle", "gates", "gates_window", "shields"):
-			continue
-		for key, approved in zip(kk.MOVES[name]["keys"], move["keys"]):
-			m, record, _ = kk.solve(key)
-			for p, v in record.items():  # keys.json is still what the approved solver makes
-				assert max(abs(a - b) for a, b in zip(v, approved["rotations"][p])) < 1e-3, f"keys.json {name} {key['t']} {p} is not the solver's"
-			_, body, root = king.frame(key["t"], state(approved, False), None)
-			world = joints(bind, body, root)
-			for p in kk.JPARTS + ("Key",):
-				want = m[limb[p] + "_merged" if p in limb else MESH[p]] @ Matrix.Translation(king.pivots[p])
-				assert max(abs(a - b) for ra, rb in zip(want, world[p]) for a, b in zip(ra, rb)) < 1e-3, f"bind {p} at {name} {key['t']}"
 
 
 def check_continuity(name, frames, events, approved, duration):
@@ -514,12 +493,12 @@ def check_cycle(moves):
 
 def check_verbatim(king, moves):
 	"""Every approved key at its time, on the thinned frames, is its keys.json pose (Body folded in for Torso and the thighs)."""
-	sources = {"enuma": (king.rework["moves"]["enuma"], True), **{n: (king.old[n], False) for n in ("idle", "gates", "shields")}}
-	for name, (move, rework) in sources.items():
+	for name in ("idle", "gates", "enuma", "shields"):
+		move = king.moves[name]
 		frames = {f[0]: f for f in moves[name][0]}
 		assert moves[name][1] == [k["t"] for k in move["keys"]], name
 		for k in move["keys"]:
-			st = state(k, rework)
+			st = state(k)
 			f = frames[float(k["t"])]
 			rot, locs = king.pose(st)
 			for p in KEYED:
@@ -649,13 +628,13 @@ def write_luau(king, bind, moves, scale):
 	fmt, vec = raga.fmt, raga.vec
 	lines = [
 		"--!nonstrict",
-		"-- Generated by tools/blender/bake_boss_king.py from assets/characters_avatar/boss_king/keyframes/rework/keys.json (enuma) and",
-		"-- keyframes/keys.json (idle, gates, shields). Do not edit by hand. The Golden King's moves on his jointed rig (design doc 4.37",
+		"-- Generated by tools/blender/bake_boss_king.py from assets/characters_avatar/boss_king/keyframes/rework/keys.json. Do not",
+		"-- edit by hand. The Golden King's moves on his jointed rig (design doc 4.37",
 		'-- "Third boss" and "Animation rework", docs/BOSS_EVENT_SPEC.md "The Golden King"), client-side visuals; the server reads',
 		"-- Schedule and Events only. Same shape as BossMagePoses, plus Sample's locs, Keys' Spin, EaShown and EaSpin. Approved keys are",
-		"-- at their times (enuma: owner 2026-11-12; the others 2026-11-11, mapped with the forearms and shins straight until re-keyed),",
+		"-- at their times (10 a move: enuma owner approved 2026-11-12, idle, gates and shields pre-approved 2026-11-12 night),",
 		"-- with Body (his hip turn) folded into Torso and the thighs. Time is seconds, Parts XYZ Euler degrees, Root STUDS, Locs model",
-		"-- units. gates holds gates_window's keys. Proposed: every in-between.",
+		"-- units. Proposed: every in-between.",
 		'local Event = require(game:GetService("ReplicatedStorage").Shared.BossEventConfig)',
 		"",
 		"local SCALE = %s -- studs per model unit: %s x a %s-stud character, %s studs tall" % (fmt(scale, 4), SIZE, fmt(kk.CHAR_H), fmt(SIZE * kk.CHAR_H, 1)),
@@ -699,8 +678,8 @@ def write_luau(king, bind, moves, scale):
 			lines.append("\t\t\t{Time=%s,Root=%s,Parts={%s}%s}," % (fmt(f[0], 4), vec([v * scale for v in f[2]], 4), body, extra))
 		lines += ["\t\t},", "\t},"]
 	lines += ["}", "-- stylua: ignore", "local APPROVED = {"]
-	sources = {"idle": king.old["idle"], "gates": king.old["gates"], "enuma": king.rework["moves"]["enuma"], "shields": king.old["shields"]}
-	for name, move in sources.items():
+	for name in ("idle", "gates", "enuma", "shields"):
+		move = king.moves[name]
 		frames = {f[0]: f for f in moves[name][0]}
 		lines.append("\t%s = {" % name)
 		for k in move["keys"]:
@@ -732,21 +711,21 @@ def fold_materials(objs):
 def main():
 	argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
 	wanted = [a for a in argv if a in ("poses", "glb")] or ["poses", "glb"]
-	with open(KEYS) as f:
-		old_raw = json.load(f)
 	with open(REWORK) as f:
 		rework = json.load(f)
-	old = merged(old_raw)
 	scale = SIZE * kk.CHAR_H / rework["scale"]["model_height_units"]
 	assert abs(scale - rework["scale"]["studs_per_model_unit_at_8x"]) < 1e-3
 	assert [k["t"] for k in rework["moves"]["enuma"]["keys"]] == [0, 0.45, 0.95, 1.45, 2.1, 2.75, 3.0, 3.9, 4.85, 5.6]
 	assert rework["moves"]["enuma"]["end"] == 5.6 and all(k["ea_shown"] for k in rework["moves"]["enuma"]["keys"])
+	for name in ("idle", "gates", "shields"):
+		assert not any(k["ea_shown"] for k in rework["moves"][name]["keys"]), name
+	assert rework["moves"]["gates"]["strike_window"] == list(WINDOW["gates"])
 
 	bpy.ops.wm.open_mainfile(filepath=BLEND)
 	bind, objs, pivots = king_bind(rework, scale)
-	king = King(old, rework, bind, pivots)
-	check_bind(king, old_raw, rework, bind)
-	print("BAKE bind: the client chain reproduces jsolve (10 rework keys) and solve (old keys, straight forearms and shins)")
+	king = King(rework, bind, pivots)
+	check_bind(king, rework, bind)
+	print(f"BAKE bind: the client chain reproduces jsolve for every rework key ({', '.join(rework['moves'])})")
 	if "glb" in wanted:
 		fold_materials(objs)
 		for o in list(bpy.data.objects):
@@ -761,8 +740,7 @@ def main():
 		moves = {"idle": king.idle()}
 		for name in PLAN:
 			moves[name] = king.attack(name)
-			first = state(rework["moves"]["enuma"]["keys"][0], True) if name == "enuma" else state(old[name]["keys"][0], False)
-			moves[name + "_in"] = king.lead(name + "_in", king.idle0, first, LEAD)
+			moves[name + "_in"] = king.lead(name + "_in", king.idle0, state(rework["moves"][name]["keys"][0]), LEAD)
 		thin_parts = list(PARTS) + [p + "@" for p in LOCS]
 		for name, (frames, approved, events, duration, keep) in list(moves.items()):
 			thinned = raga.thin(frames, thin_parts, keep)
@@ -778,7 +756,7 @@ def main():
 		assert [e["Name"] for e in moves["gates"][2]] == ["gates_start", "gates"] and moves["gates"][2][1]["Time"] == 1.6
 		assert [e["Name"] for e in moves["enuma"][2]] == ["enuma_start", "enuma"] and moves["enuma"][2][1]["Time"] == 3.0
 		assert [(e["Name"], e["Time"]) for e in moves["shields"][2]] == [("shields", 2.2)]
-		assert [len(moves[n][1]) for n in ("idle", "gates", "enuma", "shields")] == [3, 6, 10, 4]
+		assert [len(moves[n][1]) for n in ("idle", "gates", "enuma", "shields")] == [10, 10, 10, 10]
 		assert [moves[n][3] for n in ("idle", "gates", "enuma", "shields")] == [4.0, 4.4, 5.6, 2.6]
 		print(f"BAKE scale {scale:.4f} studs/unit, cycle {cycle_s:.3f} s")
 		write_luau(king, bind, moves, scale)
