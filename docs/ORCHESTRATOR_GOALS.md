@@ -329,3 +329,12 @@ Deliverables:
 - a8 | Arena in game: `BossArenaConfig` row, client build, sunset profile, hover and bob, camera row; vault code and tests retired | `boss_king_arena`, `boss_arena`, `boss_mage_arena` green; live captures from lanes 1, 4 and 7; part count and frame time reported
 - a6 | Compatibility: boss scenarios, `late_data`, rules audit, PR with fresh review | reported
 Out of scope: Big Raga, any change to move lengths, hit times, costs or cycles, Phase 2, new moves, Sidekick attacks.
+
+## summon-ui: tests and tutorial follow the galaxy summon screen (owner 2026-11-12)
+Status: active
+Owner-confirmed: 2026-11-12 ("update tests, new rewrite should be updated, rewrite tutorial as well")
+Branch: orch/summon-ui/s1 (from main after c4580fb, cb94348)
+Spec: design doc 4.36 (vendor, free summon tutorial), 4.21 (spotlight tutorials), top-of-doc owner update 2026-11-12; docs/SIDEKICK_SPEC.md "Summon presentation"
+Deliverables:
+- s1 | ui_sidekicks and ui_sidekick_tutorial rewritten for the galaxy screen; the rebirth-2 free-summon tutorial rewritten to point at the galaxy screen's elements | both scenarios green in Studio; ui_hud, ui_sidekick_follow, ui_sidekick_attack, sidekicks unchanged
+Out of scope: changing the galaxy screen's look or behaviour, summon costs, odds, pity.

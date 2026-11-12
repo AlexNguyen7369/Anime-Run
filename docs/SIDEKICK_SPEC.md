@@ -6,6 +6,7 @@
 - Every summonable catalog Sidekick has its own collected aura composition and character palette, from Anime auras pack 18515382827. Beroo uses blue lightning, Ryuuk white spectral wisps, and Igriz crimson flame. Other templates vary source presets, accent layers, masks, rates and colors.
 - Larger character framing, names centered on side models, a continuous galaxy backdrop, stronger smooth mouse panning, and softer character lighting. Closing restores camera, movement and lighting and removes the local stage.
 - Native screen and stage/templates are mapped separately in default.project.json, preserving them through Rojo sync.
+- Tutorial and tests follow the galaxy screen (owner 2026-11-12): the rebirth-2 free-summon spotlight tutorial (design doc 4.36, 4.21 style) is rewritten to point at the galaxy screen's own open button, summon button and the result, then at equipping the new Sidekick; its steps, texts and the one free summon stay as the design doc fixes them. The Sidekick UI tests check the galaxy screen's real elements.
 
 Relies on `docs/GAME_DESIGN_REQUIREMENTS.md` 4.35, 4.36, 4.13, 6 and section 5. Numbers here are **placeholders** unless a design doc rule fixes them.
 
