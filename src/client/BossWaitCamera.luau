@@ -86,8 +86,8 @@ function BossWaitCamera.Step(camera, dt)
 		end
 		held.Age += dt
 		camera.CameraType = Enum.CameraType.Scriptable
-		camera.FieldOfView = Cfg.WaitCameraFov
 		local boss = BossCatalog.Current() -- Big Raga's row has no WaitCamera: Cfg's own view
+		camera.FieldOfView = boss.Camera and boss.Camera.Fov or Cfg.WaitCameraFov -- the event's lock: 60 in his arena only
 		local view = scream and Cfg.ScreamCameraCFrame()
 			or Cfg.WaitCameraCFrame(Arena.For(boss.Id).Center, held.RunnerAt, boss.WaitCamera)
 		if UiMotion.Reduced() then

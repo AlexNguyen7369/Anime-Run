@@ -13,8 +13,8 @@
 --   Shared/BossDodge: moments of boss_king named gates, enuma, shields (the cost events of BossKingPoses; the start events
 --     gates_start and enuma_start are not moments); Slot("boss_king") = nil. Hit texts live in the catalog: Moves.gates.HitText and
 --     Moves.enuma.HitText (what BossDodgeUi reads).
---   Shared/BossArenaConfig.For("boss_king"): the colosseum table's numbers, routes and MaxRunSpeed with Dressing = "vault" and no
---     hover (HoverY and BobStuds 0 or nil); For("boss_mage").Dressing is not "vault".
+--   Shared/BossArenaConfig.For("boss_king"): his own arena since 2026-11-12, see boss_king_arena's contract below (the
+--     vault row of 2026-11-11 is retired by the owner, design doc 4.37 "The Golden King's own arena").
 --   Server/BossEventService: at the shields moment event.Fortified is set (ReplicatedStorage attribute BossFortified true / false
 --     in an event, nil idle; every member's BossStatus gains { Id = "Fortified", Count = 1 }, no EndsAt); it clears at the next
 --     cycle's gates_start (1.6 s before the gates moment) and at the event's end. Hooks.DamageMulti multiplies by 0.6 while set.
@@ -718,51 +718,98 @@ function Tests.make()
 		return r
 	end
 
-	-- The colosseum shell re-dressed as a vault (BOSS_EVENT_SPEC "The Golden King", Arena).
+	-- His own arena (owner 2026-11-12, design doc 4.37 "The Golden King's own arena" and "Rework approvals"; BOSS_EVENT_SPEC
+	-- "Animation rework" bullet "The Golden King's arena"; task a8-arena). Replaces the vault checks of 2026-11-11 (the colosseum
+	-- shell's numbers, Dressing "vault", no hover, pitch 14, the colosseum's site): the owner retired the vault on 2026-11-12.
+	-- Contract (implementer: report a change, do not loosen):
+	--   BossArenaConfig.For("boss_king") is his own row (not the colosseum's table, not the sky arena's), built with the ring
+	--     functions: InnerRadius 110, Width 56 (7 lanes of 8), Lanes 7, WallRadius 250, MaxRunSpeed 100, BossHeight 44, MoundTop
+	--     (studs over Y, the mound's top), HoverY (studs over Y, his feet at rest) = MoundTop + 12, BobStuds 1.5, BobSeconds 3.
+	--     No row's Dressing is "vault".
+	--   BossCatalog.Get("boss_king").Camera = { Yaw = 75, Zoom = 40, Pitch = 13, Eye = 19.5 (studs over the deck), Fov = 60 };
+	--     the mage's and Big Raga's Camera.Fov nil or 100 (BossEventConfig.CameraFov).
+	--   Shared/BiomeEnvironment.Profile(ARENA_ZONE, "boss_king") is a sunset profile (ClockTime 16.5 to 19, the sun shown, sun
+	--     rays on), not the old VAULT (ClockTime 0, no sun); the mage's and Big Raga's profiles are other tables.
+	--   Design doc 7 "Join size": the arena's mesh and image ids sit in ServerStorage.LateData.BossKingArena (a table of
+	--     rbxassetid strings, any nesting; LateDataTests.NAMES checks it is absent at join). None of those ids is in a Shared
+	--     module or on an instance in ReplicatedStorage (outside LateData), ReplicatedFirst, StarterPlayer, StarterGui or
+	--     Workspace. BossEventService.Start("Admin", "boss_king") delivers ReplicatedStorage.LateData.BossKingArena; End removes it.
 	local function boss_king_arena()
 		local r, flag, section, eq, near = reporter("boss_king_arena")
 		local Arena = H.module(Shared, "BossArenaConfig")
 		local Catalog = H.module(Shared, "BossCatalog")
+		local Cfg = require(Shared.BossEventConfig)
 		flag("arena_for_exists", Arena ~= nil and type(Arena.For) == "function")
 		if not (Arena and type(Arena.For) == "function") then
 			return r
 		end
 		local K, M = Arena.For(KING), Arena.For(MAGE)
 		flag("king_arena_is_a_table", type(K) == "table" and not rawequal(K, Arena))
+		flag("king_arena_own_row", not rawequal(K, M))
 		if type(K) ~= "table" or rawequal(K, Arena) then
 			return r
 		end
 
 		section("numbers", function()
-			eq("dressing_vault", K.Dressing, "vault")
-			flag("mage_dressing_not_vault", type(M) == "table" and M.Dressing ~= "vault", M and M.Dressing)
-			eq("inner_radius_70", K.InnerRadius, 70)
-			eq("width_56", K.Width, 56)
+			eq("inner_radius_110", K.InnerRadius, 110)
 			eq("lanes_7", K.Lanes, 7)
-			eq("wall_height_70", K.WallHeight, 70)
-			eq("wall_radius_164", K.WallRadius, 164)
-			eq("y_1200", K.Y, 1200)
+			near("lane_width_8", (K.Width or 0) / (K.Lanes or 1), 8, 1e-6)
+			eq("wall_radius_250", K.WallRadius, 250)
 			eq("boss_height_44", K.BossHeight, 44)
-			eq("max_run_speed_100", K.MaxRunSpeed, 100)
-			-- He stands on his mound: no hover, no bob (design doc 4.37 "Third boss").
-			eq("hover_none", K.HoverY or 0, 0)
-			eq("bob_none", K.BobStuds or 0, 0)
+			eq("max_run_speed_100", K.MaxRunSpeed, 100) -- the lane cap is unchanged
+			flag("wall_outside_ring", (K.WallRadius or 0) > K.InnerRadius + (K.Width or 0), K.WallRadius)
+			-- He hovers 12 studs over the mound's top and bobs 1.5 studs over 3 s.
+			flag("mound_top_set", type(K.MoundTop) == "number" and K.MoundTop > 0, K.MoundTop)
+			near("hover_feet_12_over_mound", (K.HoverY or 0) - (K.MoundTop or 0), 12, 0.01)
+			eq("bob_studs_1_5", K.BobStuds, 1.5)
+			eq("bob_seconds_3", K.BobSeconds, 3)
+			flag("center_at_y", typeof(K.Center) == "Vector3" and approx(K.Center.Y, K.Y, 0.01))
+			local reach = typeof(K.Center) == "Vector3"
+				and math.max(math.abs(K.Center.X), math.abs(K.Center.Z)) + K.WallRadius
+			flag("inside_8192", type(reach) == "number" and reach < 8192, reach, 8192)
+			-- The vault is gone.
+			eq("dressing_not_vault", K.Dressing == "vault", false)
+			local vaults = {}
+			for _, id in Catalog and Catalog.Order or { RAGA, MAGE, KING } do
+				local row = Arena.For(id)
+				if type(row) == "table" and row.Dressing == "vault" then
+					table.insert(vaults, id)
+				end
+			end
+			eq("no_vault_row", table.concat(vaults, ","), "")
+			-- The mage's colosseum and Big Raga's sky arena unchanged.
 			flag(
-				"same_site_as_colosseum",
-				typeof(K.Center) == "Vector3" and M and (K.Center - M.Center).Magnitude < 1e-3
+				"mage_arena_kept",
+				type(M) == "table" and M.InnerRadius == 70 and M.WallRadius == 164,
+				M and M.WallRadius
 			)
-			-- Raga's and the mage's untouched.
-			flag("raga_arena_unchanged", rawequal(Arena.For(RAGA), Arena))
+			flag("mage_hover_kept", type(M) == "table" and M.HoverY ~= nil and M.HoverY > 0, M and M.HoverY)
+			flag("raga_arena_unchanged", rawequal(Arena.For(RAGA), Arena) and Arena.InnerRadius == 550)
 			flag("nil_arena_is_raga", rawequal(Arena.For(nil), Arena))
-			flag("mage_arena_kept", type(M) == "table" and M.HoverY ~= nil and M.HoverY > 0, M and M.HoverY)
 		end)
 
 		section("camera", function()
 			local row = Catalog and Catalog.Get(KING)
 			local cam = row and row.Camera or {}
 			eq("camera_yaw_75", cam.Yaw, 75)
-			eq("camera_pitch_14", cam.Pitch, 14)
 			eq("camera_zoom_40", cam.Zoom, 40)
+			-- pitch 13 (was 14, the mage's), eye 19.5, FOV 60: the owner's approved row, design doc 4.37 "Rework approvals".
+			eq("camera_pitch_13", cam.Pitch, 13)
+			near("camera_eye_19_5", cam.Eye, 19.5, 1e-6)
+			eq("camera_fov_60", cam.Fov, 60)
+			for _, id in { MAGE, RAGA } do
+				local other = Catalog and Catalog.Get(id)
+				local fov = other and other.Camera and other.Camera.Fov
+				flag(id .. "_camera_fov_100", fov == nil or fov == Cfg.CameraFov, fov, Cfg.CameraFov)
+			end
+			eq("event_fov_still_100", Cfg.CameraFov, 100)
+			if cam.Yaw and cam.Pitch and cam.Zoom then
+				-- The running eye, outward of lane 7, stays inside the wall with 3 studs to spare (as the mage's).
+				local need = K.LaneRadius(7)
+					+ cam.Zoom * math.cos(math.rad(cam.Pitch)) * math.sin(math.rad(cam.Yaw))
+					+ 3
+				flag("wall_clears_running_eye", K.WallRadius >= need, K.WallRadius, need)
+			end
 			local wait = row and row.WaitCamera
 			flag("wait_camera_set", type(wait) == "table")
 			if type(wait) ~= "table" then
@@ -775,12 +822,140 @@ function Tests.make()
 
 		section("routes", function()
 			for lane = 1, K.Lanes do
+				local tag = "_lane_" .. lane
 				local route = K.LaneRoute(lane)
-				flag("route_cached_lane_" .. lane, rawequal(route, K.LaneRoute(lane)))
-				flag("route_closed_lane_" .. lane, route.Closed == true)
-				near("route_length_as_colosseum_lane_" .. lane, K.LaneLength(lane), M and M.LaneLength(lane), 0.01)
-				near("lane_radius_as_colosseum_lane_" .. lane, K.LaneRadius(lane), M and M.LaneRadius(lane), 1e-6)
+				local wps = route.WorldWaypoints
+				flag("route_cached" .. tag, rawequal(route, K.LaneRoute(lane)))
+				flag("route_closed" .. tag, route.Closed == true)
+				flag("route_repeats_first" .. tag, (wps[#wps] - wps[1]).Magnitude < 1e-3)
+				local radius = K.LaneRadius(lane)
+				flag("lane_inside_ring" .. tag, radius > K.InnerRadius and radius < K.InnerRadius + K.Width, radius)
+				-- No hitch at the wrap: the closing step is as long as the others, and every point is on the lane's circle.
+				local first, last = (wps[2] - wps[1]).Magnitude, (wps[#wps] - wps[#wps - 1]).Magnitude
+				flag("route_no_wrap_hitch" .. tag, math.abs(last - first) <= 0.01 * first, last, first)
+				local onCircle = true
+				for _, p in wps do
+					onCircle = onCircle and approx(((p - K.Center) * Vector3.new(1, 0, 1)).Magnitude, radius, 0.01)
+				end
+				flag("route_on_circle" .. tag, onCircle)
 			end
+			-- About 870 studs a lap on the middle lane (867 at radius 138), +/- 2%.
+			local lap = K.LaneLength(4)
+			r.metrics.lane_4_lap = lap
+			flag("lap_lane_4_about_867", math.abs(lap - 867) <= 0.02 * 867, lap, 867)
+		end)
+
+		section("lighting", function()
+			local Env = H.module(Shared, "BiomeEnvironment")
+			flag("environment_loads", Env ~= nil)
+			if not Env then
+				return
+			end
+			local zone = Env.ARENA_ZONE
+			local his = Env.Profile(zone, KING)
+			local light = his and his.Lighting or {}
+			r.metrics.king_clock_time = light.ClockTime
+			flag(
+				"sunset_clock_time",
+				type(light.ClockTime) == "number" and light.ClockTime >= 16.5 and light.ClockTime <= 19,
+				light.ClockTime,
+				"16.5 to 19"
+			)
+			local sky = his and his.Sky or {}
+			flag(
+				"sunset_sun_shown",
+				sky.CelestialBodiesShown ~= false and (sky.SunAngularSize == nil or sky.SunAngularSize > 0),
+				sky.SunAngularSize
+			)
+			local rays = his and his.SunRays or {}
+			flag("sunset_sun_rays_on", type(rays.Intensity) == "number" and rays.Intensity > 0, rays.Intensity)
+			flag("king_profile_own", his ~= Env.Profile(zone, MAGE) and his ~= Env.Profile(zone, nil))
+		end)
+
+		-- Design doc 7 "Join size": his arena's meshes and images are his per-boss late data, never loaded at join.
+		section("late_data", function()
+			local data = H.lateData("BossKingArena")
+			flag("arena_ids_in_ServerStorage_LateData", data ~= nil)
+			local ids = {}
+			for _, text in stringsIn(data or {}, {}) do
+				for id in string.gmatch(text, "%d%d%d%d%d%d+") do
+					ids[id] = true
+				end
+			end
+			local count = 0
+			for _ in ids do
+				count += 1
+			end
+			r.metrics.arena_ids = count
+			flag("arena_ids_listed", count > 0, count)
+			local function leaks(text, where, out)
+				for id in ids do
+					if type(text) == "string" and string.find(text, id, 1, true) then
+						table.insert(out, where .. ":" .. id)
+					end
+				end
+			end
+			-- Shared modules reach every client at join (the boss, arena, art and environment ones: the others yield or hold no art).
+			local inShared = {}
+			for _, module in Shared:GetChildren() do
+				local name = module.Name
+				local named = string.find(name, "Boss", 1, true)
+					or string.find(name, "King", 1, true)
+					or string.find(name, "Arena", 1, true)
+					or string.find(name, "Biome", 1, true)
+					or string.find(name, "Art", 1, true)
+				if module:IsA("ModuleScript") and named then
+					local loaded = H.module(Shared, module.Name)
+					for _, text in stringsIn(loaded or {}, {}) do
+						leaks(text, module.Name, inShared)
+					end
+				end
+			end
+			eq("arena_ids_not_in_shared", table.concat(inShared, ","), "")
+			local PROPS = { MeshPart = "MeshId", Decal = "Texture", Texture = "Texture", SpecialMesh = "MeshId" }
+			local onInstances = {}
+			local lateFolder = ReplicatedStorage:FindFirstChild("LateData")
+			for _, service in { "ReplicatedStorage", "ReplicatedFirst", "StarterPlayer", "StarterGui", "Workspace" } do
+				for _, d in game:GetService(service):GetDescendants() do
+					if not (lateFolder and d:IsDescendantOf(lateFolder)) then
+						local prop = PROPS[d.ClassName]
+						if prop then
+							leaks(d[prop], d:GetFullName(), onInstances)
+						end
+						if d:IsA("MeshPart") then
+							leaks(d.TextureID, d:GetFullName(), onInstances)
+						elseif d:IsA("ImageLabel") or d:IsA("ImageButton") then
+							leaks(d.Image, d:GetFullName(), onInstances)
+						end
+					end
+				end
+			end
+			eq("arena_ids_not_on_join_instances", table.concat(onInstances, ","), "")
+			-- Delivered for his event, removed after it.
+			local S = H.module(Server, "BossEventService")
+			flag("service_exists", S ~= nil)
+			if not S then
+				return
+			end
+			local function delivered()
+				local folder = ReplicatedStorage:FindFirstChild("LateData")
+				return folder ~= nil and folder:FindFirstChild("BossKingArena") ~= nil
+			end
+			local ok, err = pcall(function()
+				S.SetClock(function()
+					return T0
+				end)
+				S.Reset(T0)
+				S.Start("Admin", KING)
+				flag("arena_ids_delivered_for_event", delivered())
+				S.End("Admin")
+				flag("arena_ids_removed_after_event", not delivered())
+			end)
+			flag("delivery_ran", ok, ok and 1 or tostring(err))
+			pcall(function()
+				S.SetClock(nil)
+				S.Reset(workspace:GetServerTimeNow())
+			end)
 		end)
 
 		return r

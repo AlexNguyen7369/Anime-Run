@@ -612,6 +612,39 @@ local function playSlash()
 	trail.Parent = blade
 end
 
+-- Another boss's weapon trail, the blade's pattern (BOSS_EVENT_SPEC "Impact layer"): a "SwingTrail" ribbon from the part's centre to
+-- `tip` (world), made on first use. tip nil turns it off; turning it on re-places the far end, so a changed rig still fits.
+local function swingTrail(part, tip, color, accent)
+	local trail = part:FindFirstChild("SwingTrail")
+	if not tip then
+		if trail then
+			trail.Enabled = false
+		end
+		return
+	end
+	if not trail then
+		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
+		a0.Name, a1.Name = "SwingTrailBase", "SwingTrailTip"
+		a0.Parent, a1.Parent = part, part
+		trail = Instance.new("Trail")
+		trail.Name = "SwingTrail"
+		trail.Attachment0, trail.Attachment1 = a0, a1
+		trail.Color = ColorSequence.new(color, accent or color)
+		trail.LightEmission = 1
+		trail.LightInfluence = 0
+		trail.Lifetime = 0.3
+		trail.MinLength = 0
+		trail.Transparency = sequence(0, 0.1, 1, 1)
+		trail.Enabled = false
+		trail.Parent = part
+	end
+	if not trail.Enabled then
+		trail.Attachment1.Position = part.CFrame:PointToObjectSpace(tip)
+		trail:Clear()
+		trail.Enabled = true
+	end
+end
+
 -- Roar ------------------------------------------------------------------------------------------------------------------------
 
 local function playRoar()
@@ -1205,6 +1238,7 @@ BossVfx.Kit = {
 	expire = expire,
 	sequence = sequence,
 	regrade = regrade,
+	swingTrail = swingTrail,
 	FlatFaces = FLAT_FACES,
 	UprightFaces = UPRIGHT_FACES,
 }

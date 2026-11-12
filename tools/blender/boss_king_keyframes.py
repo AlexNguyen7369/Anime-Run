@@ -605,6 +605,8 @@ def build_fx(rig, names, seed, t=0.0, view=None):
 				d = Vector((math.cos(i * math.pi / 4), 0, math.sin(i * math.pi / 4)))
 				mk.tube([tip - d * 4 * k, tip + d * 4 * k], 0.06 * k, mk.glow_mat("FlashRay", (1, 1, 1), 15))
 			mk.lamp(tip, (1, 1, 1), 4e4 * s * s, 6)
+		elif kind in ("jportals", "jvolley", "jshields", "cmd"):  # the rework's sketches (design C portals), below JMOVES
+			JFX[kind](rig, arg)
 		elif kind == "embers":
 			tip = ea @ Vector((0, 0, rig.tip))
 			for _ in range(6):
@@ -654,6 +656,270 @@ JMOVES = {
 	},
 }
 HOVER_STUDS = 12.0  # proposed (owner 2026-11-12: he hovers as the Elf Mage does; 1.5 stud bob over 3 s is played in game, not keyed)
+
+
+# ---- the rework's other moves (task a3-king, proposed, owner gate pending): idle, gates, shields, fortified_idle ----
+# Every move starts and ends on IDLE0. Gates portals are design C, the sun wheel (assets/ui/boss_king/portal_draft/portal_c.png):
+# a dark notched rim with dots, a gold band, a glowing face with a three-arm ripple spiral and a white four-point core star,
+# 12 slanted rays (one long). They open in his right arm's sweep, his left side first (spec: a growing cascade).
+
+
+def jportal_set():
+	"""(centre, radius, facing) per portal, model units, in his sweep order (his left, round the back, to his right): a dome behind
+	and above him, 1.25 x the old size, each facing the lanes in front (-Y) and a little down."""
+	rng = random.Random(11)
+	out = []
+	for i in range(N_PORTALS):
+		u = i / (N_PORTALS - 1)
+		th = math.radians(-5 + 190 * u)  # 0 degrees is his left (+X), 90 his back (+Y)
+		high = i % 2  # alternate a low and a high row
+		r = (5.6 if not high else 4.6) + rng.uniform(-0.4, 0.4)
+		c = Vector((r * math.cos(th), r * math.sin(th) + 1.4, (3.4 if not high else 7.6) + 1.6 * math.sin(math.pi * u) + rng.uniform(-0.5, 0.5)))
+		n = (Vector((math.cos(th), math.sin(th), 0)) * 0.3 + Vector((0, -1, -0.2))).normalized()
+		out.append((c, 1.25 * rng.uniform(0.8, 1.2), n))
+	return out
+
+
+JPORTALS = jportal_set()
+JSHIELD_R = 4.6  # the rework's shield ring radius, model units (proposed)
+CREAM, BROWN = (1.0, 0.95, 0.75), (0.2, 0.11, 0.05)
+
+
+def tri_fan(name, pts2, mat, m):
+	o = flat_mesh(name, pts2, mat)
+	o.matrix_world = m
+	return o
+
+
+def portal_c(rig, c, rad, n, grow=1.0, tip=False, turn=0.0, cw=None, nw=None):
+	"""Design C, the sun wheel, at c facing n (model units; or cw/nw already in world). grow < 0.3: the first bright dot only.
+	tip: a weapon blade pushing out of the face toward n."""
+	cw = cw if cw is not None else to_world(rig, c)
+	nw = nw if nw is not None else to_world_dir(rig, n)
+	R = rad * rig.k
+	m = frame_at(cw, nw) @ Matrix.Rotation(turn, 4, "Z")
+	if grow < 0.3:
+		mk.ball(cw, 0.22 * R, mk.glow_mat("PortalDot", CREAM, 12))
+		mk.ball(cw, 0.45 * R, mk.glow_mat("PortalDotHalo", GOLD, 2, 0.35))
+		return
+	r = R * grow
+	rot = m.to_euler()
+	lift = lambda dz: m @ Matrix.Translation((0, 0, dz * r))  # noqa: E731  (layers stacked toward the viewer)
+	mk.disc(cw, 0.86 * r, mk.glow_mat("PortalFaceC", (0.85, 0.42, 0.04), 0.9, 0.95), rot=rot)
+	mk.disc(m @ Vector((0, 0, 0.005 * r)), 0.6 * r, mk.glow_mat("PortalMidC", (1.0, 0.68, 0.15), 1.1, 0.8), rot=rot)
+	mk.disc(m @ Vector((0, 0, 0.01 * r)), 0.3 * r, mk.glow_mat("PortalCoreC", GOLD_HI, 2.0, 0.8), rot=rot)
+	mk.ring(cw, 0.97 * r, 0.075 * r, mk.matte_mat("PortalRimC", BROWN), rot=rot)
+	mk.ring(cw, 0.86 * r, 0.05 * r, mk.glow_mat("PortalBandC", GOLD, 1.0), rot=rot)
+	for j in range(16):  # the notched rim: wedges pointing in, a dot between each pair
+		a, b = math.tau * j / 16, math.tau * (j + 0.5) / 16
+		tri_fan("Notch", [(0.99 * math.cos(a - 0.07), 0.99 * math.sin(a - 0.07)), (0.99 * math.cos(a + 0.07), 0.99 * math.sin(a + 0.07)), (0.88 * math.cos(a), 0.88 * math.sin(a))], mk.matte_mat("PortalRimC", BROWN), lift(0.03) @ Matrix.Scale(r, 4))
+		mk.ball(m @ Vector((0.93 * r * math.cos(b), 0.93 * r * math.sin(b), 0.03 * r)), 0.022 * r, mk.matte_mat("PortalRimC", BROWN))
+	for j in range(12):  # slanted rays outside the rim, one long
+		a = math.tau * j / 12 + 0.2
+		L = 1.6 if j == 0 else 1.25
+		tri_fan("Ray", [(1.02 * math.cos(a), 1.02 * math.sin(a)), (1.02 * math.cos(a + 0.16), 1.02 * math.sin(a + 0.16)), (L * math.cos(a + 0.3), L * math.sin(a + 0.3))], mk.glow_mat("PortalRayC", (1.0, 0.75, 0.3), 0.7), m @ Matrix.Scale(r, 4))
+	for h in range(3):  # the three-arm ripple spiral
+		pts = [m @ Vector((rr * math.cos(h * math.tau / 3 + 5.0 * s), rr * math.sin(h * math.tau / 3 + 5.0 * s), 0.02 * r)) for s, rr in ((s, (0.1 + 0.68 * s) * r) for s in np.linspace(0, 1, 28))]
+		mk.tube(pts, 0.022 * r, mk.glow_mat("PortalSpiralC", CREAM, 2.2))
+	star = [(0.34 * math.cos(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22), 0.34 * math.sin(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22)) for j in range(8)]
+	tri_fan("Star", star, mk.glow_mat("PortalStarC", (1, 1, 1), 5), lift(0.04) @ Matrix.Scale(r, 4))
+	if tip:  # a weapon pushing through: blade, guard
+		mk.tube([cw + nw * 0.05 * r, cw + nw * 0.95 * r], 0.06 * r, mk.glow_mat("TipBlade", (0.95, 0.92, 0.85), 5))
+		side = (m.to_3x3() @ Vector((1, 0, 0))).normalized() * 0.28 * r
+		mk.tube([cw + nw * 0.15 * r - side, cw + nw * 0.15 * r + side], 0.05 * r, mk.glow_mat("TipGuard", GOLD, 4))
+
+
+def fx_jportals(rig, arg):
+	"""jportals:<f>[:tips|:close]: the first f of JPORTALS (sweep order) opening; the cascade grows a dot, a small wheel, full."""
+	frac, _, mode = arg.partition(":")
+	opened = float(frac) * (N_PORTALS + 1.5)
+	for i, (c, rad, n) in enumerate(JPORTALS):
+		g = min(max((opened - i) / 1.5, 0.0), 1.0)
+		if mode == "close":
+			g = float(frac) * (0.6 + 0.4 * ((i * 7) % 5) / 4)  # they shrink unevenly
+			if g < 0.3:
+				continue
+		if g <= 0:
+			continue
+		portal_c(rig, c, rad, n, grow=g, tip=(mode == "tips" and g >= 1), turn=0.4 * i * (1 if i % 2 else -1))
+	if float(frac) > 0.3 and mode != "close":
+		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 0.5e4 * (SIZE / 4) ** 2 * float(frac), 6)
+
+
+def fx_jvolley(rig, arg):
+	"""jvolley:<j>: volley j of 14 from the open portals, straight gold streaks at the lanes with sparkle dust; the volley before
+	fading. Lanes: in front of him (-Y), about 15 units out and 2 below his feet."""
+	k = rig.k
+	for jj, dim in ((int(arg), False), (int(arg) - 1, True)):
+		if jj < 0:
+			continue
+		rng = random.Random(700 + jj)
+		for i in rng.sample(range(N_PORTALS), VOLLEY):
+			c, rad, n = JPORTALS[i]
+			start = c + n * rad * 0.9
+			d = (Vector((rng.uniform(-13, 13), -15, -2.5)) - start).normalized()
+			p, q = to_world(rig, start), to_world(rig, start + d * 26)
+			w = 0.035 * k
+			if dim:
+				mk.tube([p, q], w * 0.6, mk.glow_mat("StreakFade", GOLD, 0.9, 0.3))
+				continue
+			mk.tube([p, q], w, mk.glow_mat("StreakCore", GOLD_HI, 8))
+			mk.tube([p, q], w * 2.4, mk.glow_mat("StreakGlow", GOLD, 1.5, 0.3))
+			for _ in range(5):
+				s = rng.uniform(0.05, 0.6)
+				mk.ball(p.lerp(q, s) + Vector([rng.uniform(-1, 1) for _ in range(3)]) * 0.25 * k, 0.04 * k, mk.glow_mat("Sparkle", CREAM, 10))
+			mk.ball(p, 0.18 * k, mk.glow_mat("MuzzleFlash", (1, 1, 1), 12))
+
+
+def hand_world(rig, limb):
+	lo = SEG[limb][1] + "_merged"
+	return rig.parts[lo].matrix_world @ rig.rest[lo].inverted() @ HAND[limb]
+
+
+def fx_cmd(rig, arg):
+	"""cmd:<L|R>: the command flash at that open hand, the moment the volley (or the shields) answer his gesture."""
+	k = rig.k
+	h = hand_world(rig, "LeftArm" if arg == "L" else "RightArm")
+	mk.ball(h, 0.28 * k, mk.glow_mat("CmdCore", (1, 1, 1), 14))
+	mk.ball(h, 0.6 * k, mk.glow_mat("CmdHalo", GOLD, 2.5, 0.3))
+	for j in range(4):  # a four-point glint, as the portal's core star
+		a = math.tau * j / 4 + 0.4
+		d = Vector((math.cos(a), 0, math.sin(a)))
+		mk.tube([h - d * 1.0 * k, h + d * 1.0 * k], 0.03 * k, mk.glow_mat("CmdRay", CREAM, 10))
+	mk.lamp(h, GOLD, 6e3 * (SIZE / 4) ** 2, 2)
+
+
+def fx_jshields(rig, arg):
+	"""jshields:<f>:<state>:<yaw>: N_SHIELDS small design C portals in a ring at his chest, opened in order from his raised left
+	hand (the first f of them); state portal (portals only), emerge (shields half out), ring (shields out, portals fading), lock
+	(the ring set: a gold pulse runs round it)."""
+	frac, state, yaw = arg.split(":")
+	frac, yaw = float(frac), float(yaw)
+	for i, kind in enumerate(SHIELDS):
+		g = min(max((frac * (N_SHIELDS + 1) - i) / 1.2, 0.0), 1.0)
+		if g <= 0:
+			continue
+		th = math.radians(yaw + 360 * i / N_SHIELDS)  # shield 0 at his left, where the hand is; then round the back
+		out = Vector((math.cos(th), math.sin(th), 0.08)).normalized()
+		c = Vector((JSHIELD_R * math.cos(th), JSHIELD_R * math.sin(th), SHIELD_Z + (0.35 if i % 2 else -0.25)))
+		if state in ("portal", "emerge") or (state == "ring" and g < 1):
+			portal_c(rig, c, 1.05, out, grow=g * (1 if state != "ring" else 0.7), turn=0.5 * i)
+		if state == "emerge" and g >= 1:
+			shield(rig, kind, c + out * 0.35, out, 0.75)
+		elif state in ("ring", "lock"):
+			shield(rig, kind, c + out * 0.5, out, 1.0)
+	if state == "lock":
+		mk.ring(to_world(rig, (0, 0, SHIELD_Z)), (JSHIELD_R + 0.5) * rig.k, 0.05 * rig.k, mk.glow_mat("ShieldPulse", GOLD_HI, 6, 0.9))
+		mk.lamp(to_world(rig, (0, 0, SHIELD_Z + 1)), GOLD, 1e4 * (SIZE / 4) ** 2, 5)
+
+
+JFX = {"jportals": fx_jportals, "jvolley": fx_jvolley, "jshields": fx_jshields, "cmd": fx_cmd}
+
+
+def jkey(t, cap, base=IDLE0, **k):
+	"""A rework key: base (IDLE0) with fields replaced."""
+	d = {"t": t, "cap": cap, **base}
+	d.update(k)
+	return d
+
+
+def folded(dr=(0, 0, 0), dl=(0, 0, 0)):
+	"""FOLD2 with each hand nudged (model units): breath lifts, a tighter or looser fold."""
+	return {"RightArm": {**FOLD2["RightArm"], "aim": tuple(a + b for a, b in zip(FOLD2["RightArm"]["aim"], dr))}, "LeftArm": {**FOLD2["LeftArm"], "aim": tuple(a + b for a, b in zip(FOLD2["LeftArm"]["aim"], dl))}}
+
+
+JMOVES["idle"] = {
+	"title": "Idle (rework, jointed rig, hovering): arms folded, breathing, looking down on the runners",
+	"end": 4.0,
+	"loop": True,
+	"cols": 5,
+	"note": "4.0 s loop: key 10 = key 1 (idle key 0). No Dodge bar, no hit",
+	"keys": [
+		jkey(0.0, "Idle key 0: arms folded, chin up, weight hangs on his right leg, left knee loose"),
+		jkey(0.45, "Breath in starts: chest rises, folded arms lift with it, legs drift forward", torso=(-1, 0, 5), head=(-8, 0, -10), **folded((0, 0, 0.07), (0, 0, 0.07)), LeftLeg={"hip": (-12, 0, -3), "knee": 26}, RightLeg={"hip": (0, 0, 4), "knee": 34}, key=(2, 0, 0)),
+		jkey(0.9, "Breath in, top: chest out, he looks down his nose at the lanes", root=(0, 0, 0.04), torso=(-5, 0, 3), head=(-12, 0, -4), **folded((0, 0.05, 0.12), (0, 0.05, 0.12)), LeftLeg={"hip": (-10, 0, -4), "knee": 22}, RightLeg={"hip": (-2, 0, 5), "knee": 30}, key=(3, 0, 0)),
+		jkey(1.35, "Glance: head turns to the runners on his left, shoulders follow a little, hips roll", root=(0.04, 0, 0.03), body=(0, -3, 4), torso=(-2, 2, 8), head=(-6, -2, 26), **folded((0, 0, 0.08), (0, 0, 0.06)), LeftLeg={"hip": (-6, 0, -6), "knee": 20}, RightLeg={"hip": (-6, 0, 2), "knee": 34}, key=(1, 0, 0)),
+		jkey(1.8, "Breath out: chest drops, weight swings onto his left leg, right knee loosens", root=(0.05, 0, 0), body=(0, -4, 2), torso=(3, 2, 2), head=(-2, -2, 18), **folded((0, -0.03, -0.03), (0, -0.03, -0.03)), LeftLeg={"hip": (2, 0, -4), "knee": 32}, RightLeg={"hip": (-12, 0, 4), "knee": 22}, key=(-1, 0, 0)),
+		jkey(2.2, "Smug lean: hips sway to his left, head tips, fold tightens", root=(0.06, 0, -0.02), body=(0, -5, -2), torso=(2, -2, -4), head=(-7, -5, 6), **folded((0.1, -0.05, 0.02), (-0.08, -0.05, 0.03)), LeftLeg={"hip": (4, 0, -5), "knee": 36}, RightLeg={"hip": (-14, 0, 5), "knee": 24}, key=(0, 0, 0)),
+		jkey(2.65, "Second breath in: chest lifts again, legs drift back under him", root=(0.03, 0, 0.04), body=(0, -2, -3), torso=(-4, 0, -2), head=(-11, -2, -4), **folded((0, 0.03, 0.1), (0, 0.03, 0.1)), LeftLeg={"hip": (-4, 0, -4), "knee": 28}, RightLeg={"hip": (-8, 0, 4), "knee": 28}, key=(2, 0, 0)),
+		jkey(3.1, "Glance the other way: over his right shoulder, chin high, hips counter-turn", root=(-0.02, 0, 0.02), body=(0, 2, -5), torso=(-3, -2, -8), head=(-9, 3, -28), **folded((0, 0.02, 0.06), (0, 0.02, 0.06)), LeftLeg={"hip": (-10, 0, -2), "knee": 22}, RightLeg={"hip": (2, 0, 6), "knee": 34}, key=(1, 0, 0)),
+		jkey(3.55, "Breath out, settling: head comes back front, weight returns to his right leg", root=(-0.02, 0, 0), body=(0, 1, -2), torso=(3, 0, 2), head=(-3, 1, -14), **folded((0, -0.02, -0.02), (0, -0.02, -0.02)), LeftLeg={"hip": (-6, 0, -3), "knee": 24}, RightLeg={"hip": (4, 0, 4), "knee": 32}, key=(-1, 0, 0)),
+		jkey(4.0, "Loop = idle key 0: arms folded, chin up, weight on his right leg"),
+	],
+}
+AKIMBO_L = {"aim": (2.1, -0.4, 2.45), "pole": (1, 0.6, 0)}  # left fist on his hip, elbow out
+JMOVES["gates"] = {
+	"title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens the portals, a command fires the volleys",
+	"end": 4.4,
+	"window": [0.0, 1.6],
+	"strike_window": [1.6, 3.6],
+	"cols": 5,
+	"look": "dark",
+	"note": "DODGE WINDOW 0.00 - 1.60 s (before the volleys); event gates (the 20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, one every 0.15 s (14), keys 5 to 9; recover to idle by 4.40 s. Portals: design C, the sun wheel (sketch), opening in his arm's sweep, his left side first",
+	"keys": [
+		jkey(0.0, "Idle key 0, Dodge bar opens: arms folded, still; one gold dot behind his left shoulder", fx=["jportals:0.04"]),
+		jkey(0.4, "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left", fx=["jportals:0.14"], root=(0, 0, -0.08), body=(0, 0, 8), torso=(10, 0, 18), head=(-4, 0, -16), RightArm={"aim": (-0.35, -1.2, 3.2), "pole": (-1, -0.2, -0.3)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-22, 0, -4), "knee": 46}, RightLeg={"hip": (-8, 0, 5), "knee": 40}, key=(6, 0, 0)),
+		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path", fx=["jportals:0.45"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
+		jkey(1.2, "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)", fx=["jportals:1:tips"], root=(0, 0, 0.1), body=(0, 2, -6), torso=(-8, -6, -12), head=(-14, 4, -2), RightArm={"aim": (-2.4, -0.4, 5.2)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (2, 0, -5), "knee": 24}, RightLeg={"hip": (10, 0, 6), "knee": 38}, key=(-4, 0, 0)),
+		jkey(1.6, "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture", event="gates", fx=["jportals:1:tips", "jvolley:0", "cmd:R"], root=(0, -0.1, -0.05), body=(0, 0, 2), torso=(14, 0, -4), head=(-12, 0, -4), RightArm={"aim": (-1.9, -1.45, 3.3)}, LeftArm={"aim": (2.4, 0.9, 3.0), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (14, 0, -4), "knee": 40}, RightLeg={"hip": (22, 0, 4), "knee": 55}, key=(10, 0, 0)),
+		jkey(1.85, "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2", fx=["jportals:1:tips", "jvolley:1"], root=(0, -0.12, -0.1), body=(0, 0, 4), torso=(19, 0, -2), head=(-15, 0, -6), RightArm={"aim": (-1.7, -1.45, 2.9)}, LeftArm={"aim": (2.3, 1.0, 2.7), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (20, 0, -4), "knee": 50}, RightLeg={"hip": (26, 0, 4), "knee": 62}, key=(12, 0, 0)),
+		jkey(2.5, "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6", fx=["jportals:1:tips", "jvolley:5", "cmd:L"], root=(0.08, -0.04, 0), body=(0, -3, 8), torso=(4, 3, 16), head=(-8, -2, 10), RightArm={"aim": (-0.6, -1.0, 3.4), "pole": (-1, 0, -0.5)}, LeftArm={"aim": (3.0, -0.6, 4.2)}, LeftLeg={"hip": (-10, 0, -6), "knee": 30}, RightLeg={"hip": (10, 0, 6), "knee": 48}, key=(4, 0, 0)),
+		jkey(3.1, "Commanding hold: turns back, right palm out over the lanes, left fist to his hip, chin up; volley 10", fx=["jportals:1:tips", "jvolley:9"], root=(-0.04, 0, 0.05), body=(0, 2, -4), torso=(2, -3, -10), head=(-12, 3, -12), RightArm={"aim": (-2.7, -1.1, 4.1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (6, 0, -4), "knee": 40}, RightLeg={"hip": (-6, 0, 5), "knee": 26}, key=(0, 0, 0)),
+		jkey(3.6, "Volley 14, the last: the hand sinks, portals start to shrink and close", fx=["jportals:0.75:close", "jvolley:13"], root=(-0.02, 0, 0.02), body=(0, 1, -2), torso=(4, -1, -4), head=(-6, 1, -10), RightArm={"aim": (-2.1, -1.0, 2.6), "pole": (-1, 0.3, -0.3)}, LeftArm={"aim": (1.9, -0.6, 2.5), "pole": (1, 0.6, 0)}, LeftLeg={"hip": (-4, 0, -3), "knee": 28}, RightLeg={"hip": (2, 0, 4), "knee": 30}, key=(2, 0, 0)),
+		jkey(4.4, "Recover = idle key 0: arms fold again, portals gone", fx=["jportals:0:close"]),
+	],
+}
+for _k in JMOVES["gates"]["keys"]:
+	_k["view"] = (0.4, -0.9, 0.15)  # more frontal than enuma's: the portal dome reads behind him, not over him
+JMOVES["shields"] = {
+	"title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
+	"end": 2.6,
+	"cols": 5,
+	"look": "dark",
+	"front": (0, -1, 0.3),
+	"note": "No Dodge bar, no cost. Event shields at 2.20 s: Fortified set (40% less damage until his next move). The 6 shield portals (design C, small) open one after another from his raised left hand round the back; the ring locks with a gold pulse as his arms fold. The big view looks through the gap between two shields",
+	"keys": [
+		jkey(0.0, "Idle key 0: arms folded, still", fx=["jshields:0:portal:0"]),
+		jkey(0.3, "Anticipation: left hand unfolds and sinks across his belly, shoulders hunch, torso turns right, knees tuck", fx=["jshields:0:portal:0"], root=(0, 0, -0.08), torso=(12, 0, -14), head=(4, 0, 10), RightArm=FOLD2["RightArm"], LeftArm={"aim": (0.6, -1.1, 2.8), "pole": (1, -0.2, -0.3)}, LeftLeg={"hip": (-20, 0, -4), "knee": 44}, RightLeg={"hip": (-14, 0, 4), "knee": 48}, key=(6, 0, 0)),
+		jkey(0.6, "Call: the open left hand sweeps up and out to his left; the first shield portal opens beside it", fx=["jshields:0.3:portal:0"], root=(0, 0, 0), torso=(-2, 0, 8), head=(-6, 0, 14), RightArm=FOLD2["RightArm"], LeftArm={"aim": (2.6, -1.2, 4.2)}, LeftLeg={"hip": (-6, 0, -5), "knee": 30}, RightLeg={"hip": (2, 0, 5), "knee": 36}, key=(0, 0, 0)),
+		jkey(0.9, "Hand high: left arm overhead, he leans back; portals open round the back in the hand's path", fx=["jshields:0.7:portal:0"], root=(0, 0, 0.06), torso=(-8, 4, 4), head=(-16, 0, 6), RightArm={"aim": (-1.6, -1.1, 2.7), "pole": (-1, 0.3, -0.5)}, LeftArm={"aim": (2.0, -0.4, 5.4)}, LeftLeg={"hip": (6, 0, -4), "knee": 30}, RightLeg={"hip": (12, 0, 5), "knee": 42}, key=(-4, 0, 0)),
+		jkey(1.2, "Overshoot: hand flung up and back, chest arched, head back, right arm drops; all 6 portals open, shields push half out", fx=["jshields:1:emerge:0", "cmd:L"], root=(0, 0, 0.12), torso=(-14, 4, 2), head=(-22, 0, 4), RightArm={"aim": (-2.3, -0.5, 2.4)}, LeftArm={"aim": (1.8, 0.4, 5.5)}, LeftLeg={"hip": (12, 0, -5), "knee": 34}, RightLeg={"hip": (18, 0, 6), "knee": 50}, key=(-8, 0, 0)),
+		jkey(1.5, "Spread: both arms flung up and wide in a V, palms out, the right lower; the shields come out to a full ring, portals fade", fx=["jshields:1:ring:0"], root=(0, 0, 0.1), torso=(-4, -3, -6), head=(-10, 2, -8), RightArm={"aim": (-2.9, -0.5, 4.6)}, LeftArm={"aim": (2.7, -0.3, 5.0)}, LeftLeg={"hip": (10, 0, -8), "knee": 36}, RightLeg={"hip": (-4, 0, 8), "knee": 28}, key=(-2, 0, 0)),
+		jkey(1.8, "Gather: arms swing in toward his chest to fold, torso settles, the ring holds", fx=["jshields:1:ring:0"], root=(0, 0, 0.05), torso=(4, 0, -2), head=(-4, 0, -4), RightArm={"aim": (-0.8, -1.2, 3.6), "pole": (-1, 0.3, -0.8)}, LeftArm={"aim": (1.0, -1.3, 3.0), "pole": (1, 0.3, -0.8)}, LeftLeg={"hip": (-2, 0, -5), "knee": 30}, RightLeg={"hip": (-6, 0, 6), "knee": 34}, key=(2, 0, 0)),
+		jkey(2.2, "Lock (Fortified): arms snap folded, chin up, a smirk; a gold pulse runs round the ring", event="shields", fx=["jshields:1:lock:0"], root=(0, 0, 0.04), torso=(-3, 0, 4), head=(-12, 0, -6), **folded((0.04, 0, 0.06), (-0.04, 0, 0.06)), LeftLeg={"hip": (-10, 0, -4), "knee": 24}, RightLeg={"hip": (2, 0, 5), "knee": 30}, key=(-2, 0, 0)),
+		jkey(2.4, "Settle: the snap rocks him forward, head nods, legs swing through; the ring starts to orbit", fx=["jshields:1:ring:18"], root=(0, 0, 0), torso=(5, 0, 4), head=(-2, 0, -8), **folded((0, -0.03, -0.02), (0, -0.03, -0.02)), LeftLeg={"hip": (-12, 0, -3), "knee": 30}, RightLeg={"hip": (6, 0, 4), "knee": 36}, key=(3, 0, 0)),
+		jkey(2.6, "End = idle key 0, Fortified: arms folded, the shield ring orbiting", fx=["jshields:1:ring:36"]),
+	],
+}
+for _k in JMOVES["shields"]["keys"]:  # the main view looks through the gap between two shields (the ring yaw - 30 degrees), raised
+	_a = math.radians(float(next(f for f in _k["fx"] if f.startswith("jshields")).split(":")[3]) - 30)
+	_k["view"] = (round(math.cos(_a), 3), round(math.sin(_a), 3), 0.4)
+JMOVES["fortified_idle"] = {
+	"title": "Fortified idle (rework, jointed rig, hovering): a guarded, confident hover inside the orbiting shield ring",
+	"end": 4.0,
+	"loop": True,
+	"cols": 5,
+	"look": "dark",
+	"front": (0, -1, 0.3),
+	"note": "4.0 s loop while Fortified holds: key 10 = key 1 (idle key 0); the ring orbits once per loop, 90 degrees a second (proposed; in game the ring follows BossFortified). No Dodge bar, no hit. The big view looks through the shield gap nearest his front-left, so it moves a little key to key",
+	"keys": [
+		jkey(0.0, "Idle key 0 inside the ring: arms folded, chin up"),
+		jkey(0.45, "Breath in: he leans back on the air, chin higher, legs drift forward", torso=(-6, 0, 4), head=(-14, 0, -6), **folded((0, 0.04, 0.1), (0, 0.04, 0.1)), LeftLeg={"hip": (-16, 0, -3), "knee": 30}, RightLeg={"hip": (-6, 0, 4), "knee": 36}, key=(3, 0, 0)),
+		jkey(0.9, "His eyes follow a shield past his left shoulder, hips roll after them", root=(0.03, 0, 0.02), body=(0, -2, 3), torso=(-4, 2, 8), head=(-10, -2, 24), **folded((0, 0, 0.06), (0, 0, 0.06)), LeftLeg={"hip": (-10, 0, -5), "knee": 24}, RightLeg={"hip": (-8, 0, 3), "knee": 34}, key=(1, 0, 0)),
+		jkey(1.35, "Beckon: the right hand unfolds and offers the lanes an open palm (come, then); left arm stays across his chest", root=(0.02, 0, 0), body=(0, 0, -2), torso=(-2, 0, -8), head=(-10, 0, -10), RightArm={"aim": (-1.6, -1.5, 3.6), "pole": (-0.8, 0, -1)}, LeftArm=FOLD2["LeftArm"], LeftLeg={"hip": (-6, 0, -4), "knee": 26}, RightLeg={"hip": (4, 0, 5), "knee": 40}, key=(0, 0, 0)),
+		jkey(1.8, "Beckon flick: forearm curls up toward him, head tilts, a smirk", root=(0, 0, 0.02), body=(0, 1, -3), torso=(-3, -2, -10), head=(-12, 3, -6), RightArm={"aim": (-1.4, -1.2, 4.2), "pole": (-0.8, 0.2, -1)}, LeftArm=FOLD2["LeftArm"], LeftLeg={"hip": (-4, 0, -4), "knee": 30}, RightLeg={"hip": (8, 0, 5), "knee": 44}, key=(-1, 0, 0)),
+		jkey(2.2, "Refold: the arm folds back over the left, weight drifts onto his left leg", root=(0.04, 0, -0.01), body=(0, -4, 0), torso=(2, -2, -2), head=(-8, -4, 6), **folded((0.04, 0, 0.02), (0, 0, 0)), LeftLeg={"hip": (2, 0, -4), "knee": 34}, RightLeg={"hip": (-12, 0, 4), "knee": 24}, key=(-1, 0, 0)),
+		jkey(2.65, "Breath in again, chest out, looking down his nose", root=(0.02, 0, 0.03), body=(0, -2, 0), torso=(-5, 0, -2), head=(-13, 0, -2), **folded((0, 0.03, 0.1), (0, 0.03, 0.1)), LeftLeg={"hip": (-6, 0, -4), "knee": 28}, RightLeg={"hip": (-8, 0, 4), "knee": 28}, key=(2, 0, 0)),
+		jkey(3.1, "Glance down at the runners on his right, hips counter-turn", root=(-0.02, 0, 0.01), body=(0, 2, -3), torso=(2, -2, -6), head=(0, 2, -22), **folded((0, 0, 0.04), (0, 0, 0.04)), LeftLeg={"hip": (-12, 0, -2), "knee": 22}, RightLeg={"hip": (2, 0, 6), "knee": 34}, key=(1, 0, 0)),
+		jkey(3.55, "Settle: head back to the front, weight back on his right leg", root=(-0.01, 0, 0), body=(0, 1, -1), torso=(2, 0, 3), head=(-6, 0, -10), **folded((0, -0.02, -0.02), (0, -0.02, -0.02)), LeftLeg={"hip": (-6, 0, -3), "knee": 24}, RightLeg={"hip": (4, 0, 4), "knee": 32}, key=(-1, 0, 0)),
+		jkey(4.0, "Loop = idle key 0: arms folded, the ring one full turn round"),
+	],
+}
+for _k in JMOVES["fortified_idle"]["keys"]:  # the ring at 90 degrees a second; the main view through the gap nearest 330 degrees
+	_y = 90.0 * _k["t"]
+	_k["fx"] = [f"jshields:1:ring:{_y:g}"]
+	_g = _y + 30 + 60 * round((330 - (_y + 30)) / 60)
+	_k["view"] = (round(math.cos(math.radians(_g)), 3), round(math.sin(math.radians(_g)), 3), 0.35)
 
 
 def two_bone(J, L1, L2, T, pole):
@@ -804,6 +1070,10 @@ def frame_extra(rig, key):
 		pts += [to_world(rig, c) for c, _, _ in PORTALS]
 	if any(f.startswith("shield") for f in fx):
 		pts += [to_world(rig, (SHIELD_R * 1.4 * math.cos(a), SHIELD_R * 1.4 * math.sin(a), SHIELD_Z + dz)) for a in np.linspace(0, math.tau, 12) for dz in (-1.8, 1.8)]
+	if any(f.startswith("jportals") for f in fx):
+		pts += [to_world(rig, c + d) for c, r, _ in JPORTALS for d in (Vector((r, 0, r)), Vector((-r, 0, -r)))]
+	if any(f.startswith("jshields") for f in fx):
+		pts += [to_world(rig, (JSHIELD_R * 1.25 * math.cos(a), JSHIELD_R * 1.25 * math.sin(a), SHIELD_Z + dz)) for a in np.linspace(0, math.tau, 12) for dz in (-1.5, 1.5)]
 	return pts
 
 
@@ -831,12 +1101,15 @@ def run_move(scene, rig, name, move):
 		record, grip = pose_king(rig, key)
 		if REWORK:  # each panel framed on its own pose: the shared frame of a sweeping 9-unit Ea leaves him too small to read
 			pts = figure_pts(rig, key)
+			extra = frame_extra(rig, key)  # portals and shields round him stay in frame (none for enuma's effects)
+			if extra:
+				pts = np.vstack([pts] + [np.array([[p.x, p.y, p.z]]) for p in extra])
 			three = bk.fit(cam, pts, yaw @ Vector(key.get("view", (0.65, -0.75, 0.18))), MAIN[0] / MAIN[1], margin=0.85)
 			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
 			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
 			clip = sp * 3 - sp * 0.75
 		build_fx(rig, key.get("fx", []), seed=100 + i, t=key["t"], view=yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))))
-		look(scene, rig, "dark" if name.startswith("enuma") else "flat")
+		look(scene, rig, move.get("look", "dark" if name.startswith("enuma") else "flat"))
 		cell = {}
 		wide_only = [o for o in FX.objects if o.get("wide_only")]
 		for o in wide_only:  # halos are for the room-scale view; close up they bury him
@@ -894,7 +1167,10 @@ def sheet(name, move, cells, win=None):
 		note += ". Times on the enuma clock: the beam starts at 3.00 s when the 3 s charge window ends; the sweep runs 3.00 - 5.00 s"
 	if REWORK:
 		note = f"Times proposed. Jointed rig (elbows, knees). He hovers {HOVER_STUDS:g} studs over the mound (the bob plays in game, not keyed); plain backdrop, no arena view (his arena is being replaced); each panel framed on its own pose (the floor line is the mound top)"
-		note += f". DODGE WINDOW (charge) {move['window'][0]:.2f} - {move['window'][1]:.2f} s; HIT at {move['window'][1]:.2f} s: white flash, beam 3.00 - 5.00 s, recover 5.00 - 5.60 s"
+		if "note" in move:  # the later rework moves carry their own timing note
+			note += ". " + move["note"]
+		else:
+			note += f". DODGE WINDOW (charge) {move['window'][0]:.2f} - {move['window'][1]:.2f} s; HIT at {move['window'][1]:.2f} s: white flash, beam 3.00 - 5.00 s, recover 5.00 - 5.60 s"
 	if name.startswith("enuma"):
 		note += ". Cyan arcs: drum spin direction, render marks only"
 	if name == "idle" and not REWORK:
@@ -1020,7 +1296,7 @@ def rework(argv):
 			"parents": JPARENT | {"Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}},
 			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
-			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam",
+			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand)",
 			"hover": {"studs_over_mound": HOVER_STUDS, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed, owner 2026-11-12; the bob is played in game, not keyed"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],
@@ -1028,7 +1304,13 @@ def rework(argv):
 	)
 	for name in wanted:
 		m = JMOVES[name]
-		data["moves"][name] = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False), "dodge_window": m["window"], "keys": run_move(scene, rig, name, m)}
+		entry = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False)}
+		if "window" in m:
+			entry["dodge_window"] = m["window"]
+		if "strike_window" in m:
+			entry["strike_window"] = m["strike_window"]
+		entry["keys"] = run_move(scene, rig, name, m)
+		data["moves"][name] = entry
 	with open(path, "w") as f:
 		json.dump(data, f, indent=1)
 	print("KEYS", path)
