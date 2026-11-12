@@ -3,7 +3,8 @@
 -- target. Marble and gold parts from BossArenaConfig, matching tools/blender/arena/build_arena.py's approved draft, over a
 -- cloud deck; the sky is the arena zone of Client/BiomeEnvironment. Engine primitives only, no uploaded meshes. Built while
 -- this player is in an event (player attribute BossEvent), or while the test attribute BossArenaPreview is on. While the event's boss
--- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead.
+-- (ReplicatedStorage attribute BossEventBoss) is boss_mage, the colosseum (Client/BossColosseum) and Client/BossMage stand instead;
+-- boss_king: the colosseum in its vault dressing (BossArenaConfig.For's Dressing) and Client/BossKing, with Client/BossKingVfx.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,6 +17,8 @@ local Event = require(Shared:WaitForChild("BossEventConfig"))
 local MagePoses = require(Shared:WaitForChild("BossMagePoses"))
 local Poses = require(Shared:WaitForChild("BossRagaPoses"))
 local BossColosseum = require(script.Parent:WaitForChild("BossColosseum"))
+local BossKing = require(script.Parent:WaitForChild("BossKing"))
+local BossKingVfx = require(script.Parent:WaitForChild("BossKingVfx"))
 local BossMage = require(script.Parent:WaitForChild("BossMage"))
 local BossMageVfx = require(script.Parent:WaitForChild("BossMageVfx"))
 local BossRaga = require(script.Parent:WaitForChild("BossRaga"))
@@ -60,7 +63,8 @@ local CLOUD, CLOUD2 = look("FFFFFF", Plastic), look("EAF1FA", Plastic)
 local folder = nil -- the built arena, nil when off
 local added = 0
 local raga = nil -- the boss, while the arena stands
-local mage = nil -- or The Elf Mage, while the colosseum stands
+local mage = nil -- or The Elf Mage or The Golden King (a Client/BossMage or BossKing), while the colosseum stands
+local vfx = nil -- the colosseum boss's effects module (BossMageVfx or BossKingVfx)
 local builtBoss = nil -- the boss id the standing arena was built for
 
 -- Call before each stretch of parts: yields every PARTS_PER_FRAME. False once the build was cancelled.
@@ -291,13 +295,14 @@ end
 local function refresh()
 	local want = ReplicatedStorage:GetAttribute(ATTRIBUTE) == true
 		or Players.LocalPlayer:GetAttribute("BossEvent") == true
-	local boss = ReplicatedStorage:GetAttribute("BossEventBoss") == "boss_mage" and "boss_mage" or "boss_raga"
+	local id = ReplicatedStorage:GetAttribute("BossEventBoss")
+	local boss = (id == "boss_mage" or id == "boss_king") and id or "boss_raga"
 	if want == (folder ~= nil) and (not want or boss == builtBoss) then
 		return
 	end
 	if folder then
 		if mage then
-			BossMageVfx.Stop()
+			vfx.Stop()
 		else
 			BossVfx.Stop()
 		end
@@ -305,6 +310,7 @@ local function refresh()
 		folder = nil
 		raga = nil
 		mage = nil
+		vfx = nil
 		builtBoss = nil
 	end
 	if want then
@@ -314,14 +320,16 @@ local function refresh()
 		folder = mine
 		builtBoss = boss
 		Cfg = ArenaConfig.For(boss)
-		if boss == "boss_mage" then
-			mage = BossMage.new(mine)
+		if boss ~= "boss_raga" then
+			local king = boss == "boss_king"
+			mage = (king and BossKing or BossMage).new(mine)
+			vfx = king and BossKingVfx or BossMageVfx
 			local effects = Instance.new("Folder")
 			effects.Name = "BossEffects"
 			effects.Parent = mine
-			BossMageVfx.Start(effects, mage)
+			vfx.Start(effects, mage)
 			local kit = { addPart = addPart, addRing = addRing, ringFrame = ringFrame, pace = pace, look = look }
-			BossColosseum.Build(mine, kit)
+			BossColosseum.Build(mine, kit, Cfg)
 			return
 		end
 		raga = BossRaga.new(mine)
@@ -376,10 +384,30 @@ local function stepMage()
 	BossMageVfx.Step(since, move, localTime, golemMove, golemTime)
 end
 
+-- His entrance (BOSS_EVENT_SPEC "The Golden King", an open question taken as Big Raga's rise): up through the gold heap over
+-- RiseSeconds. One schedule, no golem. Nothing until Shared/BossKingPoses exists.
+local function stepKing()
+	local KingPoses = BossKing.Poses
+	if not KingPoses then
+		return
+	end
+	local now = Workspace:GetServerTimeNow()
+	local since = sinceSpawn(now)
+	local rise = since and (UiMotion.Reduced() and 1 or Poses.RiseAt(since))
+	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or (since and now - since or now)
+	local move, localTime = KingPoses.Schedule(schedule, now)
+	mage:Step(rise, move, localTime)
+	BossKingVfx.Step(since, move, localTime)
+end
+
 -- The spawn rise (BOSS_EVENT_SPEC Flow, 1:00), through the dais from under the track, and every frame of the boss after it.
 local function step()
 	if mage then
-		stepMage()
+		if builtBoss == "boss_king" then
+			stepKing()
+		else
+			stepMage()
+		end
 		return
 	end
 	if not raga then
