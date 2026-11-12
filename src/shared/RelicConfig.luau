@@ -110,7 +110,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_coin",
 			Name = "Gold Coin",
-			Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+			Image = "rbxassetid://135239262918195",
 			Rarity = "Common",
 			Odds = 55,
 			Bonuses = { Damage = 0.03 },
@@ -118,7 +118,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_goblet",
 			Name = "Royal Goblet",
-			Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+			Image = "rbxassetid://127993300718190",
 			Rarity = "Rare",
 			Odds = 28,
 			Bonuses = { Money = 0.06 },
@@ -126,7 +126,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_chain",
 			Name = "Chain of Heaven",
-			Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+			Image = "rbxassetid://133136348725864",
 			Rarity = "Epic",
 			Odds = 12,
 			Bonuses = { Damage = 0.1, Money = 0.1 },
@@ -134,7 +134,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_armor",
 			Name = "Golden Armor",
-			Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+			Image = "rbxassetid://108222955394755",
 			Rarity = "Legendary",
 			Odds = 4,
 			Bonuses = { Damage = 0.15, Money = 0.15, AttackSpeed = 0.04 },
@@ -142,7 +142,7 @@ RelicConfig.Bosses = {
 		{
 			Id = "relic_key",
 			Name = "Key of Babylon", -- the Dodge bar's key art (RELIC_SPEC)
-			Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+			Image = "rbxassetid://117675496916992",
 			Rarity = "Mythic",
 			Odds = 0.9,
 			Bonuses = { Damage = 0.22, Money = 0.22, AttackSpeed = 0.06, Luck = 0.06 },
@@ -217,7 +217,7 @@ RelicConfig.Chests = {
 	relic_chest_king = {
 		Id = "relic_chest_king",
 		Name = "Golden King's Treasure", -- proposed
-		Image = "rbxassetid://0", -- TODO: id from tools/blender/relic_art_assets.json (king set)
+		Image = "rbxassetid://123537148348616",
 		Chest = true,
 		Bonuses = {},
 		Boss = "boss_king",
