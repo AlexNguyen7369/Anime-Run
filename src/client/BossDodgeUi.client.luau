@@ -352,6 +352,14 @@ local function render()
 		end
 		return
 	end
+	if ReplicatedStorage:GetAttribute("BossMinionStart") ~= nil then
+		-- Her clock is stopped while the golem stands: no bar, not even one still closing (BossOsuUi owns the golem's attacks).
+		if prompt then
+			closePrompt()
+		end
+		dodge.Visible = false
+		return
+	end
 	local schedule = ReplicatedStorage:GetAttribute("BossScheduleStart") or startAt + Cfg.PrepSeconds
 	if doneSchedule ~= schedule then
 		doneIndex, doneSchedule = 0, schedule
@@ -374,7 +382,7 @@ local function render()
 			slider.Position =
 				UDim2.fromScale(math.clamp(1 - (prompt.At - since) / BossDodge.SweepFor(currentStage()), 0, 1), 0.5)
 		end
-	elseif since >= 0 and ReplicatedStorage:GetAttribute("BossMinionStart") == nil then -- the golem's attacks are BossOsuUi's
+	elseif since >= 0 then
 		local boss = ReplicatedStorage:GetAttribute("BossEventBoss") -- nil: Big Raga
 		local index = BossDodge.IndexAtOrBefore(since, boss) + 1
 		if index <= doneIndex then
