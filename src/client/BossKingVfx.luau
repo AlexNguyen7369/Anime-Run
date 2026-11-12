@@ -71,6 +71,7 @@ local PORTAL_SIZES = { 17.5, 12.5, 8.75 } -- studs across: 1.25 x the first 14 /
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
 local PORTAL_TURN = 0.3 -- radians a second about its facing, slow (proposed)
 local PORTAL_CASCADE = 0.7 -- s over which they open, a few then many (proposed)
+local LATE_CASCADE = 0.2 -- s: the same cascade for a client that missed gates_start, opened when the volleys start (proposed)
 local SHOT_SECONDS = 0.3 -- a projectile's flight (proposed; 0.22 read as a blur, owner 2026-11-11: weapons must be seen flying)
 local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
@@ -113,6 +114,7 @@ local shields = {} -- the orbiting shields while Fortified
 local shieldRing = nil -- their Folder "ShieldRing" in the effects folder
 local pools = {} -- name -> idle pooled parts of that name (Transparency 1) in this arena's folder
 local ready = {} -- portals whose weapon tip shows, in the order they got ready: the volleys' origins
+local portalsUntil = -math.huge -- os.clock() at which this client's last opened portals are gone
 local waiting = {} -- shots with no ready portal yet, { Target, N }: fired from the first portal that gets ready
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local previousMove, previousTime = nil, nil
@@ -333,7 +335,8 @@ local markReady -- portal: it may fire now (below, with the shots)
 
 -- Golden ripple portals open around and behind him, facing out, held through the lead and the volleys: a ring part with a gold
 -- shimmer and, once it is fully open, a weapon's tip pushing through; only then may it fire.
-local function playPortals()
+local function playPortals(cascade)
+	cascade = cascade or PORTAL_CASCADE
 	table.clear(portals)
 	table.clear(portalTips)
 	table.clear(ready)
@@ -344,6 +347,7 @@ local function playPortals()
 	local rng = rngFor("Portals")
 	local count = rng:NextInteger(PORTALS_MIN, PORTALS_MAX)
 	local hold = PORTAL_LEAD + GATES_WINDOW + 0.3
+	portalsUntil = os.clock() + hold
 	for k = 1, count do
 		local size = PORTAL_SIZES[(k - 1) % #PORTAL_SIZES + 1]
 		local a = math.rad(-150 + 300 * (k - 1) / (count - 1)) + rng:NextNumber(-0.08, 0.08) -- 0 is his front (-Z)
@@ -353,7 +357,7 @@ local function playPortals()
 		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
 		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
 		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
-		local opensAt = PORTAL_CASCADE * math.sqrt((k - 1) / (count - 1))
+		local opensAt = cascade * math.sqrt((k - 1) / (count - 1))
 		local mine = effects
 		task.delay(opensAt, function()
 			if effects ~= mine or not (mine and mine.Parent) then
@@ -527,6 +531,10 @@ local function playVolley()
 	local list = plan()
 	logStrikes(list)
 	local off = reduced()
+	if not off and os.clock() >= portalsUntil then
+		-- this client missed gates_start (a late join or start): the same seeded portals at once, still portal, tip, shot
+		playPortals(LATE_CASCADE)
+	end
 	for j, strike in list do
 		later(strike.T, function()
 			if off then -- effects off: the volley logged only
@@ -955,6 +963,7 @@ local function clear()
 	table.clear(pools)
 	table.clear(ready)
 	table.clear(waiting)
+	portalsUntil = -math.huge
 	hitSpot = nil
 	table.clear(hitEmitters)
 	table.clear(tracked)
