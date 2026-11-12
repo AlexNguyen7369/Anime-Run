@@ -105,7 +105,7 @@ RelicConfig.Bosses = {
 		},
 		WORLD_CORE,
 	},
-	-- Owner 2026-11-11: names and the damage / money priority; odds and bonuses placeholder as Big Raga's. Art waits for the owner.
+	-- Owner 2026-11-11: names and the damage / money priority; odds and bonuses placeholder as Big Raga's.
 	boss_king = {
 		{
 			Id = "relic_coin",
