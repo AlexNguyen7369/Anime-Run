@@ -511,22 +511,40 @@ function Module.Build(h)
 			)
 			h.checkList(res, "king_arena_lanes_clear", onLanes)
 			h.checkList(res, "king_arena_inside_ring_under_12", tallInside)
+			-- The camera in Prep (still Prep here; the hover below moves to the fight).
+			check(res, "king_fov_60_in_prep", waitIs(fov, 60), 60)
+			-- His hover, in Fight after the rise (in Prep he is hidden far below) and in the cycle's first idle row (his moves dip
+			-- the root on purpose), sampled over one full 3 s bob: 12 +/- 0.75 with a little float slack.
+			local gatesIndex, gatesAt = firstMoment("gates")
+			local HOVER_FROM, HOVER_FOR = 0.3, 3.2 -- s into the fight
+			check(
+				res,
+				"hover_window_in_idle",
+				gatesIndex ~= nil and gatesAt - 1.6 - 0.75 >= HOVER_FROM + HOVER_FOR, -- before gates_in and its lead
+				true
+			)
 			if king and moundTop > -math.huge then
-				local feet = math.huge
-				for _, d in king:GetDescendants() do
-					if d:IsA("BasePart") and string.find(d.Name, "Leg", 1, true) then
-						for _, c in corners(d) do
-							feet = math.min(feet, c.Y)
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + HOVER_FROM, hp, hp, true, 100)
+				task.wait(0.1)
+				local low, high, stop = math.huge, -math.huge, os.clock() + HOVER_FOR - 0.1
+				while os.clock() < stop do
+					local feet = math.huge
+					for _, d in king:GetDescendants() do
+						if d:IsA("BasePart") and string.find(d.Name, "Leg", 1, true) then
+							for _, c in corners(d) do
+								feet = math.min(feet, c.Y)
+							end
 						end
 					end
+					low, high = math.min(low, feet - moundTop), math.max(high, feet - moundTop)
+					task.wait()
 				end
-				h.check(res, "king_feet_over_mound", feet - moundTop, "> 0", feet > moundTop)
-				-- 12 over the top, less the bob's 1.5 and a little pose slack
-				h.check(res, "king_hover_about_12", feet - moundTop, ">= 10", feet - moundTop >= 10)
+				local span = ("%.2f to %.2f"):format(low, high)
+				h.check(res, "king_feet_over_mound", span, "min > 0", low > 0)
+				h.check(res, "king_hover_about_12", span, "10.5 to 13.5", low >= 10.5 and high <= 13.5)
 			end
 
 			-- The camera: FOV 60 for the whole event in his arena, through a move.
-			check(res, "king_fov_60_in_prep", waitIs(fov, 60), 60)
 			local index, at = firstMoment("enuma")
 			check(res, "king_enuma_moment_found", index ~= nil, true)
 			if index then
@@ -551,10 +569,17 @@ function Module.Build(h)
 			local want = sunset and sunset.Lighting and sunset.Lighting.ClockTime
 			check(res, "sunset_clock_time_set", type(want) == "number", true)
 			if type(want) == "number" then
-				local got = waitIs(function()
-					return math.abs(Lighting.ClockTime - want) <= 0.05
-				end, true, 6)
-				h.check(res, "sunset_applied_in_event", Lighting.ClockTime, want, got == true)
+				-- The client blends Lighting over time: wait until ClockTime moves under 0.005 in 1 s (at most 20 s).
+				local settled, deadline = false, os.clock() + 20
+				local before = Lighting.ClockTime
+				while not settled and os.clock() < deadline do
+					task.wait(1)
+					settled = math.abs(Lighting.ClockTime - before) < 0.005
+					before = Lighting.ClockTime
+				end
+				check(res, "sunset_blend_settled", settled, true)
+				local got = math.abs(Lighting.ClockTime - want) <= 0.05
+				h.check(res, "sunset_applied_in_event", Lighting.ClockTime, want, got)
 			end
 			-- The other arenas keep the event's FOV of 100.
 			for _, other in { "boss_mage", "none" } do
