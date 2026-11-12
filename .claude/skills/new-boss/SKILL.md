@@ -1,6 +1,6 @@
 ---
 name: new-boss
-description: 'Design and ship a new Anime Run boss end to end: clarifying questions, canon and market research, evidence file, rules first, models, arena, 10 key frames per animation for owner approval, digital art, Relics, Sidekick, bake and uploads, server and client with tests red first, Studio verify, rules audit, PR. Use for /new-boss, "new boss", "add a boss", "third boss", "boss event for <character>".'
+description: 'Design and ship a new Anime Run boss end to end: clarifying questions, canon and market research, evidence file, rules first, models, arena, 10 key frames per boss move for owner approval, digital art, Relics, Sidekick, bake and uploads, server and client with tests red first, Studio verify, rules audit, PR. Use for /new-boss, "new boss", "add a boss", "third boss", "boss event for <character>".'
 argument-hint: "<boss name> [anime]"
 ---
 
