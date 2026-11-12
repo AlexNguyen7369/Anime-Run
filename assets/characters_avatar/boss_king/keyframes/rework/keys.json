@@ -1923,6 +1923,929 @@
      "effects": []
     }
    ]
+  },
+  "gates": {
+   "title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens the portals, a command fires the volleys",
+   "end": 4.4,
+   "loop": false,
+   "dodge_window": [
+    0.0,
+    1.6
+   ],
+   "strike_window": [
+    1.6,
+    3.6
+   ],
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0, Dodge bar opens: arms folded, still; one gold dot behind his left shoulder",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:0.04"
+     ]
+    },
+    {
+     "t": 0.4,
+     "caption": "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left",
+     "root_offset": [
+      0,
+      0,
+      -0.08
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       8.0
+      ],
+      "Torso": [
+       10.0,
+       -0.0,
+       18.0
+      ],
+      "Head": [
+       -4.0,
+       0.0,
+       -16.0
+      ],
+      "Key": [
+       6.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -52.183,
+       55.713,
+       75.75
+      ],
+      "RightLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       47.795,
+       -25.768,
+       -59.036
+      ],
+      "LeftLowerArm": [
+       -59.323,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -22.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       46.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -8.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:0.14"
+     ]
+    },
+    {
+     "t": 0.8,
+     "caption": "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       0.0,
+       -2.0,
+       -4.0
+      ],
+      "Head": [
+       -8.0,
+       0.0,
+       -6.0
+      ],
+      "Key": [
+       2.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -79.249,
+       30.814,
+       6.226
+      ],
+      "RightLowerArm": [
+       -31.003,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       47.795,
+       -25.768,
+       -59.036
+      ],
+      "LeftLowerArm": [
+       -59.323,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:0.45"
+     ]
+    },
+    {
+     "t": 1.2,
+     "caption": "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)",
+     "root_offset": [
+      0,
+      0,
+      0.1
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       2.0,
+       -6.0
+      ],
+      "Torso": [
+       -8.0,
+       -6.0,
+       -12.0
+      ],
+      "Head": [
+       -14.0,
+       4.0,
+       -2.0
+      ],
+      "Key": [
+       -4.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       24.412,
+       146.065,
+       40.931
+      ],
+      "RightLowerArm": [
+       -24.513,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       47.795,
+       -25.768,
+       -59.036
+      ],
+      "LeftLowerArm": [
+       -59.323,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       2.0,
+       0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       24.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       38.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:1:tips"
+     ]
+    },
+    {
+     "t": 1.6,
+     "caption": "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture",
+     "root_offset": [
+      0,
+      -0.1,
+      -0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       2.0
+      ],
+      "Torso": [
+       14.0,
+       -0.0,
+       -4.0
+      ],
+      "Head": [
+       -12.0,
+       -0.0,
+       -4.0
+      ],
+      "Key": [
+       10.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -27.166,
+       53.14,
+       10.897
+      ],
+      "RightLowerArm": [
+       -51.255,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       23.23,
+       56.524,
+       -153.104
+      ],
+      "LeftLowerArm": [
+       -62.994,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       14.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       22.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       55.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "event": "gates",
+     "effects": [
+      "jportals:1:tips",
+      "jvolley:0",
+      "cmd:R"
+     ]
+    },
+    {
+     "t": 1.85,
+     "caption": "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2",
+     "root_offset": [
+      0,
+      -0.12,
+      -0.1
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       4.0
+      ],
+      "Torso": [
+       19.0,
+       -0.0,
+       -2.0
+      ],
+      "Head": [
+       -15.0,
+       -0.0,
+       -6.0
+      ],
+      "Key": [
+       12.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -35.589,
+       37.025,
+       19.776
+      ],
+      "RightLowerArm": [
+       -22.306,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       10.32,
+       48.794,
+       -139.857
+      ],
+      "LeftLowerArm": [
+       -31.191,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       20.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       50.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       26.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       62.0,
+       0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:1:tips",
+      "jvolley:1"
+     ]
+    },
+    {
+     "t": 2.5,
+     "caption": "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6",
+     "root_offset": [
+      0.08,
+      -0.04,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -3.0,
+       8.0
+      ],
+      "Torso": [
+       4.0,
+       3.0,
+       16.0
+      ],
+      "Head": [
+       -8.0,
+       -2.0,
+       10.0
+      ],
+      "Key": [
+       4.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -19.751,
+       45.399,
+       59.534
+      ],
+      "RightLowerArm": [
+       -75.12,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       70.707,
+       -111.274,
+       -72.316
+      ],
+      "LeftLowerArm": [
+       -36.772,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -10.0,
+       -0.0,
+       -6.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       10.0,
+       0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       48.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:1:tips",
+      "jvolley:5",
+      "cmd:L"
+     ]
+    },
+    {
+     "t": 3.1,
+     "caption": "Commanding hold: turns back, right palm out over the lanes, left fist to his hip, chin up; volley 10",
+     "root_offset": [
+      -0.04,
+      0,
+      0.05
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       2.0,
+       -4.0
+      ],
+      "Torso": [
+       2.0,
+       -3.0,
+       -10.0
+      ],
+      "Head": [
+       -12.0,
+       3.0,
+       -12.0
+      ],
+      "Key": [
+       -0.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -107.117,
+       73.787,
+       -86.82
+      ],
+      "RightLowerArm": [
+       -38.683,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       47.795,
+       -25.768,
+       -59.036
+      ],
+      "LeftLowerArm": [
+       -59.323,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       -6.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       26.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:1:tips",
+      "jvolley:9"
+     ]
+    },
+    {
+     "t": 3.6,
+     "caption": "Volley 14, the last: the hand sinks, portals start to shrink and close",
+     "root_offset": [
+      -0.02,
+      0,
+      0.02
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       1.0,
+       -2.0
+      ],
+      "Torso": [
+       4.0,
+       -1.0,
+       -4.0
+      ],
+      "Head": [
+       -6.0,
+       1.0,
+       -10.0
+      ],
+      "Key": [
+       2.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       19.616,
+       44.165,
+       57.095
+      ],
+      "RightLowerArm": [
+       -34.772,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       41.186,
+       -28.99,
+       -59.036
+      ],
+      "LeftLowerArm": [
+       -65.161,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -4.0,
+       0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:0.75:close",
+      "jvolley:13"
+     ]
+    },
+    {
+     "t": 4.4,
+     "caption": "Recover = idle key 0: arms fold again, portals gone",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jportals:0:close"
+     ]
+    }
+   ]
   }
  },
  "rig": "jointed (build_boss_king.py -- jointed): Torso, Head, upper and lower arm and leg per side, Key, Ea; the lower arm carries the hand, the lower leg the foot",

@@ -671,10 +671,10 @@ def jportal_set():
 	out = []
 	for i in range(N_PORTALS):
 		u = i / (N_PORTALS - 1)
-		th = math.radians(-20 + 220 * u)  # 0 degrees is his left (+X), 90 his back (+Y)
+		th = math.radians(-5 + 190 * u)  # 0 degrees is his left (+X), 90 his back (+Y)
 		high = i % 2  # alternate a low and a high row
 		r = (5.6 if not high else 4.6) + rng.uniform(-0.4, 0.4)
-		c = Vector((r * math.cos(th), r * math.sin(th) + 0.8, (3.4 if not high else 7.6) + 1.6 * math.sin(math.pi * u) + rng.uniform(-0.5, 0.5)))
+		c = Vector((r * math.cos(th), r * math.sin(th) + 1.4, (3.4 if not high else 7.6) + 1.6 * math.sin(math.pi * u) + rng.uniform(-0.5, 0.5)))
 		n = (Vector((math.cos(th), math.sin(th), 0)) * 0.3 + Vector((0, -1, -0.2))).normalized()
 		out.append((c, 1.25 * rng.uniform(0.8, 1.2), n))
 	return out
@@ -705,23 +705,24 @@ def portal_c(rig, c, rad, n, grow=1.0, tip=False, turn=0.0, cw=None, nw=None):
 	r = R * grow
 	rot = m.to_euler()
 	lift = lambda dz: m @ Matrix.Translation((0, 0, dz * r))  # noqa: E731  (layers stacked toward the viewer)
-	mk.disc(cw, 0.86 * r, mk.glow_mat("PortalFaceC", (1.0, 0.6, 0.12), 2.2, 0.92), rot=rot)
-	mk.disc(m @ Vector((0, 0, 0.01 * r)), 0.5 * r, mk.glow_mat("PortalCoreC", GOLD_HI, 3.5, 0.7), rot=rot)
+	mk.disc(cw, 0.86 * r, mk.glow_mat("PortalFaceC", (0.85, 0.42, 0.04), 0.9, 0.95), rot=rot)
+	mk.disc(m @ Vector((0, 0, 0.005 * r)), 0.6 * r, mk.glow_mat("PortalMidC", (1.0, 0.68, 0.15), 1.1, 0.8), rot=rot)
+	mk.disc(m @ Vector((0, 0, 0.01 * r)), 0.3 * r, mk.glow_mat("PortalCoreC", GOLD_HI, 2.0, 0.8), rot=rot)
 	mk.ring(cw, 0.97 * r, 0.075 * r, mk.matte_mat("PortalRimC", BROWN), rot=rot)
-	mk.ring(cw, 0.86 * r, 0.05 * r, mk.glow_mat("PortalBandC", GOLD, 2.5), rot=rot)
+	mk.ring(cw, 0.86 * r, 0.05 * r, mk.glow_mat("PortalBandC", GOLD, 1.0), rot=rot)
 	for j in range(16):  # the notched rim: wedges pointing in, a dot between each pair
 		a, b = math.tau * j / 16, math.tau * (j + 0.5) / 16
 		tri_fan("Notch", [(0.99 * math.cos(a - 0.07), 0.99 * math.sin(a - 0.07)), (0.99 * math.cos(a + 0.07), 0.99 * math.sin(a + 0.07)), (0.88 * math.cos(a), 0.88 * math.sin(a))], mk.matte_mat("PortalRimC", BROWN), lift(0.03) @ Matrix.Scale(r, 4))
 		mk.ball(m @ Vector((0.93 * r * math.cos(b), 0.93 * r * math.sin(b), 0.03 * r)), 0.022 * r, mk.matte_mat("PortalRimC", BROWN))
 	for j in range(12):  # slanted rays outside the rim, one long
 		a = math.tau * j / 12 + 0.2
-		L = 1.75 if j == 0 else 1.32
-		tri_fan("Ray", [(1.02 * math.cos(a), 1.02 * math.sin(a)), (1.02 * math.cos(a + 0.16), 1.02 * math.sin(a + 0.16)), (L * math.cos(a + 0.3), L * math.sin(a + 0.3))], mk.glow_mat("PortalRayC", (1.0, 0.82, 0.4), 1.6), m @ Matrix.Scale(r, 4))
+		L = 1.6 if j == 0 else 1.25
+		tri_fan("Ray", [(1.02 * math.cos(a), 1.02 * math.sin(a)), (1.02 * math.cos(a + 0.16), 1.02 * math.sin(a + 0.16)), (L * math.cos(a + 0.3), L * math.sin(a + 0.3))], mk.glow_mat("PortalRayC", (1.0, 0.75, 0.3), 0.7), m @ Matrix.Scale(r, 4))
 	for h in range(3):  # the three-arm ripple spiral
 		pts = [m @ Vector((rr * math.cos(h * math.tau / 3 + 5.0 * s), rr * math.sin(h * math.tau / 3 + 5.0 * s), 0.02 * r)) for s, rr in ((s, (0.1 + 0.68 * s) * r) for s in np.linspace(0, 1, 28))]
-		mk.tube(pts, 0.022 * r, mk.glow_mat("PortalSpiralC", CREAM, 4.5))
+		mk.tube(pts, 0.022 * r, mk.glow_mat("PortalSpiralC", CREAM, 2.2))
 	star = [(0.34 * math.cos(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22), 0.34 * math.sin(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22)) for j in range(8)]
-	tri_fan("Star", star, mk.glow_mat("PortalStarC", (1, 1, 1), 10), lift(0.04) @ Matrix.Scale(r, 4))
+	tri_fan("Star", star, mk.glow_mat("PortalStarC", (1, 1, 1), 5), lift(0.04) @ Matrix.Scale(r, 4))
 	if tip:  # a weapon pushing through: blade, guard
 		mk.tube([cw + nw * 0.05 * r, cw + nw * 0.95 * r], 0.06 * r, mk.glow_mat("TipBlade", (0.95, 0.92, 0.85), 5))
 		side = (m.to_3x3() @ Vector((1, 0, 0))).normalized() * 0.28 * r
@@ -742,7 +743,7 @@ def fx_jportals(rig, arg):
 			continue
 		portal_c(rig, c, rad, n, grow=g, tip=(mode == "tips" and g >= 1), turn=0.4 * i * (1 if i % 2 else -1))
 	if float(frac) > 0.3 and mode != "close":
-		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 1.2e4 * (SIZE / 4) ** 2 * float(frac), 6)
+		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 0.5e4 * (SIZE / 4) ** 2 * float(frac), 6)
 
 
 def fx_jvolley(rig, arg):
@@ -758,12 +759,12 @@ def fx_jvolley(rig, arg):
 			start = c + n * rad * 0.9
 			d = (Vector((rng.uniform(-13, 13), -15, -2.5)) - start).normalized()
 			p, q = to_world(rig, start), to_world(rig, start + d * 26)
-			w = 0.07 * k
+			w = 0.035 * k
 			if dim:
 				mk.tube([p, q], w * 0.6, mk.glow_mat("StreakFade", GOLD, 0.9, 0.3))
 				continue
-			mk.tube([p, q], w, mk.glow_mat("StreakCore", GOLD_HI, 14))
-			mk.tube([p, q], w * 2.4, mk.glow_mat("StreakGlow", GOLD, 2.5, 0.45))
+			mk.tube([p, q], w, mk.glow_mat("StreakCore", GOLD_HI, 8))
+			mk.tube([p, q], w * 2.4, mk.glow_mat("StreakGlow", GOLD, 1.5, 0.3))
 			for _ in range(5):
 				s = rng.uniform(0.05, 0.6)
 				mk.ball(p.lerp(q, s) + Vector([rng.uniform(-1, 1) for _ in range(3)]) * 0.25 * k, 0.04 * k, mk.glow_mat("Sparkle", CREAM, 10))
@@ -846,6 +847,30 @@ JMOVES["idle"] = {
 		jkey(4.0, "Loop = idle key 0: arms folded, chin up, weight on his right leg"),
 	],
 }
+AKIMBO_L = {"aim": (2.1, -0.4, 2.45), "pole": (1, 0.6, 0)}  # left fist on his hip, elbow out
+JMOVES["gates"] = {
+	"title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens the portals, a command fires the volleys",
+	"end": 4.4,
+	"window": [0.0, 1.6],
+	"strike_window": [1.6, 3.6],
+	"cols": 5,
+	"look": "dark",
+	"note": "DODGE WINDOW 0.00 - 1.60 s (before the volleys); event gates (the 20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, one every 0.15 s (14), keys 5 to 9; recover to idle by 4.40 s. Portals: design C, the sun wheel (sketch), opening in his arm's sweep, his left side first",
+	"keys": [
+		jkey(0.0, "Idle key 0, Dodge bar opens: arms folded, still; one gold dot behind his left shoulder", fx=["jportals:0.04"]),
+		jkey(0.4, "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left", fx=["jportals:0.14"], root=(0, 0, -0.08), body=(0, 0, 8), torso=(10, 0, 18), head=(-4, 0, -16), RightArm={"aim": (-0.35, -1.2, 3.2), "pole": (-1, -0.2, -0.3)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-22, 0, -4), "knee": 46}, RightLeg={"hip": (-8, 0, 5), "knee": 40}, key=(6, 0, 0)),
+		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path", fx=["jportals:0.45"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
+		jkey(1.2, "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)", fx=["jportals:1:tips"], root=(0, 0, 0.1), body=(0, 2, -6), torso=(-8, -6, -12), head=(-14, 4, -2), RightArm={"aim": (-2.4, -0.4, 5.2)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (2, 0, -5), "knee": 24}, RightLeg={"hip": (10, 0, 6), "knee": 38}, key=(-4, 0, 0)),
+		jkey(1.6, "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture", event="gates", fx=["jportals:1:tips", "jvolley:0", "cmd:R"], root=(0, -0.1, -0.05), body=(0, 0, 2), torso=(14, 0, -4), head=(-12, 0, -4), RightArm={"aim": (-1.9, -1.45, 3.3)}, LeftArm={"aim": (2.4, 0.9, 3.0), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (14, 0, -4), "knee": 40}, RightLeg={"hip": (22, 0, 4), "knee": 55}, key=(10, 0, 0)),
+		jkey(1.85, "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2", fx=["jportals:1:tips", "jvolley:1"], root=(0, -0.12, -0.1), body=(0, 0, 4), torso=(19, 0, -2), head=(-15, 0, -6), RightArm={"aim": (-1.7, -1.45, 2.9)}, LeftArm={"aim": (2.3, 1.0, 2.7), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (20, 0, -4), "knee": 50}, RightLeg={"hip": (26, 0, 4), "knee": 62}, key=(12, 0, 0)),
+		jkey(2.5, "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6", fx=["jportals:1:tips", "jvolley:5", "cmd:L"], root=(0.08, -0.04, 0), body=(0, -3, 8), torso=(4, 3, 16), head=(-8, -2, 10), RightArm={"aim": (-0.6, -1.0, 3.4), "pole": (-1, 0, -0.5)}, LeftArm={"aim": (3.0, -0.6, 4.2)}, LeftLeg={"hip": (-10, 0, -6), "knee": 30}, RightLeg={"hip": (10, 0, 6), "knee": 48}, key=(4, 0, 0)),
+		jkey(3.1, "Commanding hold: turns back, right palm out over the lanes, left fist to his hip, chin up; volley 10", fx=["jportals:1:tips", "jvolley:9"], root=(-0.04, 0, 0.05), body=(0, 2, -4), torso=(2, -3, -10), head=(-12, 3, -12), RightArm={"aim": (-2.7, -1.1, 4.1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (6, 0, -4), "knee": 40}, RightLeg={"hip": (-6, 0, 5), "knee": 26}, key=(0, 0, 0)),
+		jkey(3.6, "Volley 14, the last: the hand sinks, portals start to shrink and close", fx=["jportals:0.75:close", "jvolley:13"], root=(-0.02, 0, 0.02), body=(0, 1, -2), torso=(4, -1, -4), head=(-6, 1, -10), RightArm={"aim": (-2.1, -1.0, 2.6), "pole": (-1, 0.3, -0.3)}, LeftArm={"aim": (1.9, -0.6, 2.5), "pole": (1, 0.6, 0)}, LeftLeg={"hip": (-4, 0, -3), "knee": 28}, RightLeg={"hip": (2, 0, 4), "knee": 30}, key=(2, 0, 0)),
+		jkey(4.4, "Recover = idle key 0: arms fold again, portals gone", fx=["jportals:0:close"]),
+	],
+}
+for _k in JMOVES["gates"]["keys"]:
+	_k["view"] = (0.4, -0.9, 0.15)  # more frontal than enuma's: the portal dome reads behind him, not over him
 
 
 def two_bone(J, L1, L2, T, pole):
