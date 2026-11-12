@@ -1,10 +1,7 @@
 # Board
 
 ## Doing
-- boss-anim-rework a1: jointed king rig and 10 Enuma Elish key frames, waits for the owner's approval of the model and the slices (doing 2026-11-12)
-- boss-anim-rework a7: the Golden King's own arena, Blender draft, waits for the owner's approval of the look and size (doing 2026-11-12)
-- boss-anim-rework a5a: lighter runner auras and trails in events, arena-wide shake and flash; tests red first (doing 2026-11-12)
-- boss-anim-rework a0: rules audit of the rework and arena rules (doing 2026-11-12)
+- boss-anim-rework: built and verified on feature/alex/boss-anim-rework; waiting on the owner (record the pre-approval, uploads, mage tris, beam sweep), then the PR into main (2026-11-12)
 - u5 / c3 compatibility check: stopped on the owner's word 2026-11-04, not fully verified. UI `[UITEST] END pass=44 fail=0`; server `[CARTEST] END pass=49 fail=1` (`data`, fix 0fa4d06 not run), final server run skipped; audit FAIL, 5 of 6 addressed, not re-audited
 
 - boss-event b5: event server
