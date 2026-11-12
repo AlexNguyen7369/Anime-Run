@@ -12728,6 +12728,10 @@ Scenarios.boss_anim = require(script.Parent.BossAnimTests).boss_anim
 Scenarios.boss_mage_event = require(script.Parent.BossMageTests).make().boss_mage_event
 Scenarios.boss_mage_arena = require(script.Parent.BossMageTests).make().boss_mage_arena
 Scenarios.boss_mage_anim = require(script.Parent.BossMageTests).make().boss_mage_anim
+-- design doc 4.37 "Third boss", docs/BOSS_EVENT_SPEC.md "The Golden King": the third boss (boss-king k7). No new local here.
+Scenarios.boss_king_event = require(script.Parent.BossKingTests).make().boss_king_event
+Scenarios.boss_king_arena = require(script.Parent.BossKingTests).make().boss_king_arena
+Scenarios.boss_king_anim = require(script.Parent.BossKingTests).make().boss_king_anim
 -- design doc 4.37, docs/BOSS_EVENT_SPEC.md "Boss and attacks": Sidekick attack pose data against the approved key frames (b7d)
 Scenarios.sidekick_attacks = require(script.Parent.SidekickAttackTests).sidekick_attacks
 Scenarios.race_progress_map = require(script.Parent.RaceProgressTests).race_progress_map
