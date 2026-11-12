@@ -37,11 +37,15 @@
 --     exactly "Bosses". BackgroundTransparency 1, an ImageLabel Icon showing HudIcons.Boss, the Text at the bottom (design doc
 --     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
 --     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
---     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. It sits just
---     under Roblox's top bar (top within BUTTON_MAX_GAP px under GuiService.TopbarInset.Max.Y). Its left edge, at every pulse
---     scale, is HudChrome/Grid's when its bottom at BUTTON_PULSE stays above the Grid's top, else within BUTTON_MAX_GAP px
---     past max(TopbarInset.Min.X, the Grid's right edge). At BUTTON_PULSE it overlaps neither the Grid, the shown roll
---     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. Owner
+--     2026-11-12: it sits in a second column right of HudChrome/Grid, at every viewport: its left edge, at every pulse
+--     scale, 0..BUTTON_MAX_GAP px past the Grid's right edge; its centre within BUTTON_MID_TOL px of the midpoint of the
+--     Index and Items cells' centres. At BUTTON_PULSE it overlaps neither Index, Items, Rebirth (their shown Key letters
+--     and Badges included), the shown roll (RollToast/Toast), the shown Money / Gems readout, the shown HudChrome/TopRight
+--     pills. Owner 2026-11-12 (4.42): with RacerIndex/Panel open, the panel draws above it (ScreenGui DisplayOrder, or ZIndex
+--     in one ScreenGui) and the topmost click-taker at its centre is the panel (the world dim PanelDim, under the HUD, never
+--     covers it). The Bosses popup turns the world dim on (UiSpec.PanelDimmers, 4.42) and closing it turns it off. The cell below
+--     it (Team, later) is not judged. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
@@ -102,6 +106,8 @@ local PARTS = {
 	LeaveButton = LEAVE,
 	ExhaustedPanel = PANEL,
 	BossButton = BUTTON,
+	-- Design doc 4.40 (owner 2026-11-12): the Team button below it shows and hides with it (the second column)
+	TeamButton = ROOT .. "/TeamButton",
 	DropList = DROP,
 	BossesPanel = BOSSES,
 	EditTeamButton = EDIT_TEAM,
@@ -156,12 +162,27 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_GAP = 12 -- px under TopbarInset.Max.Y / past Roblox's buttons: "just below", "right of"
+local BUTTON_MAX_GAP = 24 -- px past the left column's right edge: "directly right of" it (owner 2026-11-12)
+local BUTTON_MID_TOL = 12 -- px off the Index / Items centres' midpoint: "half a row down" (owner 2026-11-12)
 local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
 local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
 local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
 local GRID = "HudChrome/Grid"
 local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
+local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
+local TOP_RIGHT = "HudChrome/TopRight" -- the Daily, Market and Settings pills
+local OVER_PANEL = "RacerIndex/Panel" -- a standard panel opened over the button (owner 2026-11-12, 4.42)
+-- The world dim under the HUD (Client/HudChrome, UiSpec.PanelDimmers): shown = its ScreenGui Enabled and Dim Visible
+local function dimOn(player)
+	local gui = player:WaitForChild("PlayerGui"):FindFirstChild(Spec.PanelDimmers.Gui)
+	local frame = gui and gui:FindFirstChild("Dim")
+	return gui ~= nil
+		and gui:IsA("ScreenGui")
+		and gui.Enabled
+		and frame ~= nil
+		and frame:IsA("GuiObject")
+		and frame.Visible
+end
 
 local Module = {}
 
@@ -608,7 +629,6 @@ function Module.Build(h)
 		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)
-		local inset = GuiService.TopbarInset
 		local spread, left, bottom = watchPulse(PULSE_SAMPLE)
 		h.check(
 			res,
@@ -617,51 +637,105 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
-		-- Owner 2026-11-11 (design doc 4.40): just under Roblox's top bar; at the left column's x when its bottom at the
-		-- biggest pulse stays above the column's top, else right of Roblox's buttons (and of the column); clear of both
-		-- the column and the roll, and of the Money / Gems readout
+		-- Design doc 4.40 (owner 2026-11-12): a second column right of the left column, half a row down; clear of the
+		-- column's cells and badges, the roll, the Money / Gems readout and the top-right pills
 		local button = h.find(BUTTON)
 		local rest = button and h.rect(button)
 		local pulse = button and button:FindFirstChild("PulseScale")
 		local p = pulse and pulse:IsA("UIScale") and pulse.Scale or 1
 		local top = rest and rest.y or 0
-		local restW, restH = rest and rest.w / p or 0, rest and rest.h / p or 0
+		local restW = rest and rest.w / p or 0
 		local grid = h.find(GRID)
 		local gridRect = grid and h.rect(grid)
-		local room = gridRect ~= nil and top + restH * BUTTON_PULSE <= gridRect.y
-		local wantX = gridRect and (room and gridRect.x or math.max(inset.Min.X, gridRect.x + gridRect.w))
+		local cells = {}
+		for i, name in COLUMN_CELLS do
+			local o = grid and grid:FindFirstChild(name)
+			cells[i] = o and o:IsA("GuiObject") and o or nil
+		end
+		-- Owner 2026-11-12 (4.40) replaces "just below the top bar / left-aligned with the left column / right of
+		-- Roblox's buttons": the left edge sits a small gap past the left column's right edge
+		local gridRight = gridRect and gridRect.x + gridRect.w
 		h.check(
 			res,
-			"button_left_column_x",
+			"button_right_of_left_column",
 			left or "no PulseScale",
-			wantX and (room and tostring(wantX) or ("%.1f..%.1f"):format(wantX, wantX + BUTTON_MAX_GAP))
-				or "no " .. GRID,
-			left ~= nil
-				and wantX ~= nil
-				and (
-					room and math.abs(left - wantX) <= 1
-					or not room and left >= wantX and left <= wantX + BUTTON_MAX_GAP
-				)
+			gridRight and ("%.1f..%.1f"):format(gridRight, gridRight + BUTTON_MAX_GAP) or "no " .. GRID,
+			left ~= nil and gridRight ~= nil and left >= gridRight and left <= gridRight + BUTTON_MAX_GAP
 		)
+		-- Owner 2026-11-12 (4.40): half a row down, centred on the gap between the Index and Items cells
+		local index, items = cells[1] and h.rect(cells[1]), cells[2] and h.rect(cells[2])
+		local wantMid = index and items and (index.y + index.h / 2 + items.y + items.h / 2) / 2
+		local mid = rest and rest.y + rest.h / 2
 		h.check(
 			res,
-			"button_under_top_bar",
-			top,
-			("%.1f..%.1f"):format(inset.Max.Y, inset.Max.Y + BUTTON_MAX_GAP),
-			top >= inset.Max.Y - 1 and top <= inset.Max.Y + BUTTON_MAX_GAP
+			"button_between_index_and_items",
+			mid or "no " .. BUTTON,
+			wantMid and ("%.1f +/- %d"):format(wantMid, BUTTON_MID_TOL) or "no " .. GRID .. " Index / Items",
+			mid ~= nil and wantMid ~= nil and math.abs(mid - wantMid) <= BUTTON_MID_TOL
 		)
 		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
 		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
 		local function overlaps(a, b)
 			return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 		end
+		-- Each left column cell with its shown Key letter and Badge (they stick out of the cell)
+		for i, name in COLUMN_CELLS do
+			local cell, hit = cells[i], nil
+			if big and cell then
+				hit = overlaps(big, h.rect(cell)) and name
+				for _, o in cell:GetDescendants() do
+					if not hit and o:IsA("GuiObject") and o.Visible and overlaps(big, h.rect(o)) then
+						hit = name .. "/" .. o.Name
+					end
+				end
+			end
+			h.check(
+				res,
+				"button_clear_of_" .. name:lower(),
+				not big and "no PulseScale"
+					or not cell and "no " .. GRID .. "/" .. name
+					or hit and hit .. " overlaps"
+					or "clear",
+				"clear",
+				big ~= nil and cell ~= nil and not hit
+			)
+		end
+		-- The shown top-right pills (Daily, Market, Settings)
+		local bar = h.find(TOP_RIGHT)
+		local pillHit = nil
+		for _, o in bar and bar:GetChildren() or {} do
+			if big and not pillHit and o:IsA("GuiButton") and o.Visible and overlaps(big, h.rect(o)) then
+				pillHit = o.Name
+			end
+		end
 		h.check(
 			res,
-			"button_clear_of_left_column",
-			big and gridRect and (overlaps(big, gridRect) and "overlaps" or "clear") or "no PulseScale / " .. GRID,
+			"button_clear_of_top_right_pills",
+			not big and "no PulseScale"
+				or not bar and "no " .. TOP_RIGHT
+				or pillHit and pillHit .. " overlaps"
+				or "clear",
 			"clear",
-			big ~= nil and gridRect ~= nil and not overlaps(big, gridRect)
+			big ~= nil and bar ~= nil and not pillHit
 		)
+		-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap the button and draws above it,
+		-- and the panel itself (not the world dim, which lies under the HUD) covers the button's centre
+		local restorePanels = h.setPanels({ OVER_PANEL })
+		local panel = h.find(OVER_PANEL)
+		local above, why = false, "no " .. OVER_PANEL
+		if panel and button then
+			above, why = h.drawsAbove(panel, button)
+		end
+		h.check(res, "button_under_panel", why, "panel above the button", above)
+		local hit = button and h.top(h.centre(h.rect(button)))
+		h.check(
+			res,
+			"button_blocked_under_panel",
+			hit and hit:GetFullName() or "nothing",
+			"the panel",
+			button ~= nil and panel ~= nil and hit ~= nil and (hit == panel or panel:IsAncestorOf(hit))
+		)
+		restorePanels()
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
 		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
 			local o = h.find(part[2])
@@ -681,7 +755,7 @@ function Module.Build(h)
 		gear(res, 2)
 		local asked = os.clock()
 		state(res, "Prep", 5, 0, 0, false)
-		onlyShown(res, "invite", { Invite = true, BossButton = true })
+		onlyShown(res, "invite", { Invite = true, BossButton = true, TeamButton = true })
 		check(res, "invite_teleport_shown", shown(TELEPORT), true)
 		check(res, "invite_decline_shown", shown(DECLINE), true)
 		local teleport = h.find(TELEPORT)
@@ -1466,7 +1540,7 @@ function Module.Build(h)
 	-- 1:00-3:00: each joiner sees the header too, and a bar already at the right width.
 	local function checkLateJoin(res)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 10, 3000, 4000, false)
-		onlyShown(res, "before_join", { BossButton = true }, { Invite = true })
+		onlyShown(res, "before_join", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", "keep", 3000, 4000, true, 100)
 		check(res, "late_join_warning_shown", waitShown(WARNING, true), true)
 		check(res, "late_join_bar_shown", waitShown(BAR, true), true)
@@ -1496,15 +1570,15 @@ function Module.Build(h)
 
 	local function checkOutsider(res)
 		state(res, "Prep", Cfg.PrepSeconds - 3, 4000, 4000, false)
-		onlyShown(res, "outsider_prep", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_prep", { BossButton = true, TeamButton = true }, { Invite = true })
 		state(res, "Fight", Cfg.PrepSeconds, 4000, 4000, false)
 		task.wait(1)
-		onlyShown(res, "outsider_spawn", { BossButton = true }, { Invite = true })
+		onlyShown(res, "outsider_spawn", { BossButton = true, TeamButton = true }, { Invite = true })
 		-- A leave: everything of the arena goes with the attribute.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
 		check(res, "leaver_bar_shown_first", waitShown(BAR, true), true)
 		state(res, "Fight", "keep", 4000, 4000, false)
-		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true }) -- rejoining after leaving: no rule
+		onlyShown(res, "after_leave", {}, { Invite = true, BossButton = true, TeamButton = true }) -- rejoining after leaving: no rule
 	end
 
 	-- UiMotion: Roblox's Reduced Motion or the REDUCED EFFECTS toggle. The header stays still and stays readable.
@@ -1537,7 +1611,7 @@ function Module.Build(h)
 		h.checkList(res, "reduced_warning_text_alone", warningBareList())
 		-- Still on screen here: the end of the event takes the Warning too.
 		state(res, "Idle", 0, 0, 0, false)
-		onlyShown(res, "event_end", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+		onlyShown(res, "event_end", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
 
 		-- The same order as without reduced motion, here to the Warning's end.
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + 5, 4000, 4000, true, 100)
@@ -1833,6 +1907,15 @@ function Module.Build(h)
 		state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - lead, hp, hp, true, 100)
 		local DODGE = "RacerBossDodge/DodgeBar"
 		check(res, "dodge_bar_shown", waitShown(DODGE, true, 0.4), true)
+		-- Owner 2026-11-12 (4.42): the HP bar and Dodge bar are not panels; with no panel open the world dim is off
+		local dimmed = dimOn(h.player)
+		h.check(
+			res,
+			"dodge_no_panel_dim",
+			("hp bar shown=%s, world dim on=%s"):format(tostring(shown(BAR)), tostring(dimmed)),
+			"world dim off",
+			not dimmed
+		)
 		local bar = h.find(DODGE)
 		if bar then
 			local gui = h.player:WaitForChild("PlayerGui")
@@ -1900,7 +1983,7 @@ function Module.Build(h)
 		local savedReduce = h.player:GetAttribute("ReduceEffects")
 		local ok, err = xpcall(function()
 			state(res, "Idle", 0, 0, 0, false)
-			onlyShown(res, "rest", {}, { BossButton = true }) -- idle: the paid spawn (UiBossPaid)
+			onlyShown(res, "rest", {}, { BossButton = true, TeamButton = true }) -- idle: the paid spawn (UiBossPaid)
 			checkInviteWaitsForTutorial(res)
 			checkInvite(res)
 			checkLocked(res)
@@ -1949,6 +2032,15 @@ function Module.Build(h)
 	-- A press in an event only opens the popup (owner rule): Expect.Remote = false judges that it does not teleport.
 	function after.boss_panel_raging(res)
 		check(res, "boss_panel_opens", waitShown(BOSSES, true), true)
+		-- Design doc 4.42 (owner 2026-11-12): the Bosses popup dims the world like every panel
+		check(
+			res,
+			"boss_panel_dim_shown",
+			waitIs(function()
+				return dimOn(h.player)
+			end, true),
+			true
+		)
 		check(
 			res,
 			"boss_panel_live_card",
@@ -1967,6 +2059,14 @@ function Module.Build(h)
 	end
 	function after.boss_panel_closed(res)
 		check(res, "boss_panel_toggles_closed", waitShown(BOSSES, false), false)
+		check(
+			res,
+			"boss_panel_dim_off_after_close",
+			waitIs(function()
+				return dimOn(h.player)
+			end, false),
+			false
+		)
 		check(res, "boss_panel_keeps_button", shown(BUTTON), true)
 	end
 	function after.boss_go_closed(res)

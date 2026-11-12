@@ -33,4 +33,6 @@ return {
 	AutoPlay = { Image = "rbxassetid://85172904732896" },
 	-- Design doc 4.40 boss popup icon (the purple horned mask). Tab tilt: hud_tabtilt/Boss.png, Decal 101005378032856
 	Boss = { Image = "rbxassetid://137818614263751" },
+	-- Design doc 4.40 Team button, icon 1 "Trio" (hud_tabtilt/Team_N*.png): the orchestrator fills the id after the owner's upload word.
+	Team = { Image = "rbxassetid://0" },
 }

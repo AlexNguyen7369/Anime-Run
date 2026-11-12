@@ -152,6 +152,8 @@ UiScenarios.Names = {
 	-- Backpack Characters tab and runner-rig icons (UiContracts; owner 2026-10-20, Cars -> Characters and car models
 	-- -> runner rigs per docs/WORLD_REDESIGN_SPEC.md section 2, owner 2026-10-29)
 	"ui_backpack_characters",
+	-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12): team selection left the Backpack
+	"ui_team",
 	"ui_starter_pick", -- UiContracts; design doc 4.21: structure only, the test never picks
 	"ui_character_icons",
 	-- Sidekick art, Details odds, Gem icons, Index page (UiSidekicks; design doc 4.36, 4.37)
@@ -1442,6 +1444,8 @@ simRect = function(obj, ctx)
 				end
 			elseif path == UiResponsive.BossButton.Path then
 				size, position = UiResponsive.BossButtonPlace(ctx.vp, GuiService.TopbarInset)
+			elseif path == UiResponsive.TeamButton.Path then
+				size, position = UiResponsive.TeamButtonPlace(ctx.vp)
 			end
 			-- The compact roll's top and height are fitCompact's for the live screen: both follow the simulated one
 			local compactTop = path == "RollToast/Toast" and not liveVp and K.compactTop(base, ctx.vp, ctx)
@@ -3754,12 +3758,67 @@ local function panelCoverProblem(panelPath, readoutPath, region, rectOf)
 	return nil
 end
 
+-- True when `top` draws above `bottom`: a higher ScreenGui DisplayOrder, or in one ScreenGui a descendant of it or a
+-- higher ZIndex (Global) / a higher ZIndex of the two branches under their common ancestor (Sibling). Returns ok, why.
+function K.drawsAbove(top, bottom)
+	local gt, gb = guiOf(top), guiOf(bottom)
+	if not (gt and gb and gt:IsA("ScreenGui") and gb:IsA("ScreenGui")) then
+		return false, "not in ScreenGuis"
+	end
+	if gt ~= gb then
+		return gt.DisplayOrder > gb.DisplayOrder,
+			("%s DisplayOrder %d vs %s %d"):format(gt.Name, gt.DisplayOrder, gb.Name, gb.DisplayOrder)
+	end
+	if bottom:IsAncestorOf(top) then
+		return true, "inside it"
+	end
+	if gt.ZIndexBehavior == Enum.ZIndexBehavior.Global then
+		return top.ZIndex > bottom.ZIndex, ("ZIndex %d vs %d"):format(top.ZIndex, bottom.ZIndex)
+	end
+	if top:IsAncestorOf(bottom) then
+		return false, "contains it"
+	end
+	local a = top
+	while not a.Parent:IsAncestorOf(bottom) do
+		a = a.Parent
+	end
+	local b = bottom
+	while b.Parent ~= a.Parent do
+		b = b.Parent
+	end
+	return a.ZIndex > b.ZIndex, ("%s ZIndex %d vs %s %d"):format(a.Name, a.ZIndex, b.Name, b.ZIndex)
+end
+
+-- Owner 2026-11-12 (design doc 4.42 "Overlap and dim"): an open panel may overlap a second-column HUD button
+-- (UiSpec.SecondColumnButtons) where it draws above it. nil when a, b are not such a pair, else allowed, why-not.
+function K.panelOverSecondColumn(a, b)
+	for _, buttonPath in UiSpec.SecondColumnButtons do
+		local other = (underPath(a, buttonPath) and b) or (underPath(b, buttonPath) and a)
+		for _, panelPath in other and allPanels() or {} do
+			if underPath(other, panelPath) then
+				local panel, button = findPath(panelPath), findPath(buttonPath)
+				if not (panel and button) then
+					return false, "missing panel or button"
+				end
+				local ok, why = K.drawsAbove(panel, button)
+				return ok, not ok and ("panel not above the button: " .. why) or nil
+			end
+		end
+	end
+	return nil
+end
+
 -- a, b: element paths; ra, rb: their (clipped) rects; rectOf: the viewport's rect provider. Returns allowed, why-not.
 local function overlapAllowed(a, b, ra, rb, rectOf)
 	-- While a full-screen overlay panel is open (UiSpec.FullScreenPanels), its ScreenGui may cover other ScreenGuis
 	-- (docs/HUD_LAYOUT_SPEC.md section 6); checked first, so its panel surface is not judged as a band panel's
 	if K.fullScreenCovers(a, b) then
 		return true
+	end
+	-- Owner 2026-11-12 (4.42): an open panel may overlap the Bosses / Team second column, drawn above it
+	local second, secondWhy = K.panelOverSecondColumn(a, b)
+	if second ~= nil then
+		return second, secondWhy
 	end
 	local panelPath, readout = panelReadoutPair(a, b)
 	if panelPath then
@@ -4425,6 +4484,8 @@ function S.ui_layout(res)
 										and not b.obj:IsAncestorOf(l)
 										and intersects(tr, br)
 										and not K.fullScreenCovers(pathOf(l), b.path)
+										-- Owner 2026-11-12 (4.42): panel text may lie over the Bosses / Team column, drawn above it
+										and K.panelOverSecondColumn(pathOf(l), b.path) ~= true
 									then
 										-- A read-out's text under a panel button is fine only where the panel
 										-- verifiably draws over the read-out (UiSpec.PanelCoversReadouts)
@@ -7691,8 +7752,9 @@ function S.ui_panels(res)
 		end
 	end
 
-	-- UiSpec.PanelDimmers (owner 2026-10-20, HUD_LAYOUT_SPEC section 6): ONE world dim ScreenGui below the HUD,
-	-- enabled only while a panel is open; no full-screen dark frame over the HUD; persistent controls stay drawn.
+	-- UiSpec.PanelDimmers (owner 2026-10-20, HUD_LAYOUT_SPEC section 6; design doc 4.42 "Overlap and dim", owner
+	-- 2026-11-12): ONE world dim ScreenGui below the HUD, enabled while any panel or popup is open, at 35% black; no
+	-- full-screen dark frame over the HUD; persistent controls stay drawn and pressable.
 	local cfgDim = UiSpec.PanelDimmers
 	setPanels({})
 	local function waitUntil(cond)
@@ -7722,6 +7784,17 @@ function S.ui_panels(res)
 		dimFrame ~= nil and dimFrame:IsA("Frame")
 	)
 	local isDimGui = dimGui ~= nil and dimGui:IsA("ScreenGui")
+	local function dimShown()
+		return isDimGui and dimGui.Enabled and dimFrame ~= nil and dimFrame:IsA("GuiObject") and dimFrame.Visible
+	end
+	local function dimState()
+		return isDimGui
+				and ("Enabled=%s Dim Visible=%s"):format(
+					tostring(dimGui.Enabled),
+					tostring(dimFrame ~= nil and dimFrame.Visible)
+				)
+			or "no " .. cfgDim.Gui
+	end
 	if isDimGui then
 		local restOff = waitUntil(function()
 			return not dimGui.Enabled
@@ -7754,16 +7827,6 @@ function S.ui_panels(res)
 			("Active=%s Selectable=%s"):format(tostring(dimFrame.Active), tostring(dimFrame.Selectable)),
 			"Active=false Selectable=false",
 			not dimFrame.Active and not dimFrame.Selectable
-		)
-		local t = dimFrame.BackgroundTransparency
-		check(
-			res,
-			"panel_dim_transparency",
-			t,
-			("%.2f..%.2f"):format(cfgDim.Transparency.Min, cfgDim.Transparency.Max),
-			-- BackgroundTransparency is stored as a float32 (0.45 reads back as 0.4499999...): compare to the bounds
-			-- with a float32 rounding tolerance, not a looser range.
-			t >= cfgDim.Transparency.Min - 1e-6 and t <= cfgDim.Transparency.Max + 1e-6
 		)
 		local full = dimFrame.Size.X.Scale >= 1 and dimFrame.Size.Y.Scale >= 1 and dimFrame.Visible
 		check(res, "panel_dim_full_screen", tostring(dimFrame.Size), "{1, 0}, {1, 0}", full)
@@ -7830,14 +7893,23 @@ function S.ui_panels(res)
 		end
 		return found
 	end
-	for _, panelPath in registered do
+	for i, panelPath in registered do
 		setPanels({ panelPath })
 		frames(2)
 		if isDimGui then
-			local on = waitUntil(function()
-				return dimGui.Enabled
-			end)
-			check(res, "panel_dim_enabled_while_" .. panelPath, dimGui.Enabled, true, on)
+			local on = waitUntil(dimShown)
+			check(res, "panel_dim_enabled_while_" .. panelPath, dimState(), "Enabled, Dim shown", on)
+		end
+		-- Design doc 4.42 (owner 2026-11-12): 35% black while a panel is open (proposed; float32 rounding inside the slack)
+		if i == 1 and dimFrame and dimFrame:IsA("GuiObject") then
+			local t = dimFrame.BackgroundTransparency
+			check(
+				res,
+				"panel_dim_transparency",
+				t,
+				("%.2f +- %.2f"):format(cfgDim.Transparency, cfgDim.TransparencySlack),
+				math.abs(t - cfgDim.Transparency) <= cfgDim.TransparencySlack + 1e-6
+			)
 		end
 		checkList(res, "no_dark_veil_over_hud_while_" .. panelPath, darkVeils())
 		-- A full-screen overlay (UiSpec.FullScreenPanels) need not leave the HUD entries drawn or clickable
@@ -7872,6 +7944,30 @@ function S.ui_panels(res)
 					onTop
 				)
 			end
+		end
+	end
+	-- Panel A open, then B: the world dim stays enabled through the switch, never off in between
+	for i, b in registered do
+		local a = registered[(i - 2) % #registered + 1]
+		if a ~= b and isDimGui then
+			setPanels({ a })
+			waitUntil(dimShown)
+			local gaps = 0
+			Switch.Toggle(UiSpec.PanelSwitch.Names[b])
+			local deadline = os.clock() + UiSpec.Waits.PanelMotion + 0.1
+			repeat
+				if not dimShown() then
+					gaps += 1
+				end
+				frames(1)
+			until os.clock() >= deadline
+			check(
+				res,
+				"panel_dim_no_flash_" .. a .. "_to_" .. b,
+				("off samples=%d"):format(gaps),
+				"off samples=0",
+				gaps == 0
+			)
 		end
 	end
 	setPanels({})
@@ -8560,6 +8656,9 @@ K.boss = require(script.Parent.UiBossEvent).Build({
 	setPanels = setPanels,
 	requestSetup = UiScenarios.RequestSetup,
 	player = player,
+	drawsAbove = K.drawsAbove,
+	top = topAt,
+	centre = centre,
 })
 for name, fn in K.boss.Scenarios do
 	S[name] = fn
@@ -8605,6 +8704,27 @@ for name, fn in K.bossPhase2.Scenarios do
 	S[name] = fn
 end
 for cond, fn in K.bossPhase2.After do
+	access.After[cond] = fn
+end
+-- The Team button and Team panel (UiTeam; design doc 4.40, owner 2026-11-12). No new local: K.team.
+K.team = require(script.Parent.UiTeam).Build({
+	check = check,
+	checkList = checkList,
+	find = findPath,
+	visible = effectivelyVisible,
+	rect = realRect,
+	topAt = topAt,
+	centre = centre,
+	drawsAbove = K.drawsAbove,
+	setPanels = setPanels,
+	waitGuis = waitGuis,
+	requestSetup = UiScenarios.RequestSetup,
+	player = player,
+})
+for name, fn in K.team.Scenarios do
+	S[name] = fn
+end
+for cond, fn in K.team.After do
 	access.After[cond] = fn
 end
 -- The Elf Mage, the second boss (UiBossMage; design doc 4.37 "Second boss"). No new local: K.bossMage.
