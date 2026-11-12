@@ -1,14 +1,15 @@
 # Target look for boss_king "The Golden King" (design doc 4.37 Third boss, section 5; docs/char_evidence/boss_king.md): short spiky
 # blonde hair brushed up and back off a bare brow, sharp red eyes under thin pale brows, a thin smirk, square gold drop earrings;
-# full golden plate over a dark navy underlayer: a breastplate, a navy gorget, big round pauldrons, gold vambraces and gauntlets,
-# a belt, split skirt plates with navy wedge marks at their points and a red cloth behind, gold greaves. Ea (three stacked dark
-# cylinders on a gold guard, fine red lines) and the Key (a flat gold key, round barrel head) are built here as Ea* and Key* pieces
-# and kept out of the merge by tools/blender/build_boss_king.py, which animates them on their own. The blocky R15 body is never
+# full golden plate over a dark navy underlayer, every plate faceted and chamfered with pointed edges (owner 2026-11-11): a
+# breastplate, a navy gorget, big layered hexagonal pauldrons, gold vambraces and gauntlets with pointed knuckle plates,
+# a belt, wedge-cut skirt plates with navy triangles at their points and a red cloth behind, gold greaves with wedge toes. Ea (paint/ea_sword.py: a
+# massive pillar of three dark drums on a gold guard) and the Key (a flat gold key, round barrel head) are built as Ea* and Key*
+# pieces and kept out of the merge by tools/blender/build_boss_king.py, which animates them on their own. The blocky R15 body is never
 # slimmed: likeness is hair, face and paint. +X is the viewer's right in the front view. Drawn in-house from the owner's references.
 import math
 
+import ea_sword
 from atlas import shade
-from char_boss_mage import rod
 from jk_common import brow2, eye2, form
 from jk_style3 import Kit, bake, big_head, block, collar, crown, face_base, finish, gem, head_rest, prism, slab, torso_core
 from style2 import Ramps
@@ -31,7 +32,7 @@ R = Ramps(
 )
 HAIR = {"colour": "#E8C250", "locks": []}
 PROPS = []
-# Ea is drawn upright at the origin, then moved so its grip (0.35 above the pommel) sits in the right hand, a little in front
+# Ea is drawn upright at the origin (pommel at z 0), then moved so its grip (0.35 above the pommel) sits in the right hand, a little in front
 EA_AT = (-1.5, -0.62, 2.05 - 0.35)
 KEY_AT = (0.95, -0.74, 2.35)  # the key hangs flat over the left front skirt plate, pivot at the belt
 
@@ -63,9 +64,11 @@ def _top(k):
 	t = "UpperTorso"
 	torso_core(k, hem=2.0)
 	# the breastplate over the navy gorget, a raised centre ridge, the belt with its buckle
-	block(k, t, "Plate", 0, 0, 3.86, 2.6, 1.03, 0.57, "gold", ch=0.09, corner=0.22, jit=0.012, mids=(3.2,), a=0.56, b=0.46, g=0.1)
-	# the navy V and keyhole line down the chest plate
-	prism(k, t, "ChestV", [(-0.36, 3.76), (-0.26, 3.76), (0.0, 3.34), (0.26, 3.76), (0.36, 3.76), (0.0, 3.16)], -0.59, -0.565, "navy", a=0.44, b=0.3)
+	block(k, t, "Plate", 0, 0, 3.86, 2.6, 1.03, 0.57, "gold", ch=0.15, corner=0.04, jit=0.012, mids=(3.2,), a=0.56, b=0.46, g=0.1)
+	# the navy V and keyhole line down the chest plate; a crisp navy triangle at each shoulder corner
+	prism(k, t, "ChestV", [(-0.4, 3.78), (-0.28, 3.78), (0.0, 3.3), (0.28, 3.78), (0.4, 3.78), (0.0, 3.08)], -0.59, -0.565, "navy", a=0.44, b=0.3)
+	for s in (1, -1):
+		prism(k, t, f"ChestCut{s}", [(s * 0.98, 3.74), (s * 0.98, 3.3), (s * 0.62, 3.74)], -0.59, -0.565, "navy", a=0.44, b=0.3)
 	prism(k, t, "ChestLine", [(-0.035, 3.22), (0.035, 3.22), (0.035, 2.72), (-0.035, 2.72)], -0.59, -0.565, "navy", a=0.44, b=0.3)
 	collar(k, "navy", 4.1, 4.24, z0=3.88, rx=0.64, ry=0.6, n=12, a=0.44, b=0.5)
 	block(k, t, "Belt", 0, 0, 2.6, 2.34, 1.07, 0.61, "navy", ch=0.02, corner=0.14, a=0.46, b=0.5)
@@ -77,59 +80,52 @@ def _skirt(k):
 	side; navy wedge marks at the front points; red cloth behind. Sidekick: the side plates go."""
 	t = "UpperTorso"
 	for s in (1, -1):
-		front = [(s * 0.1, 2.36), (s * 1.12, 2.36), (s * 1.14, 1.5), (s * 0.62, 1.2), (s * 0.12, 1.42)]
+		# wedge-cut plates: a notch at the outer edge, a sharp point low at the centre of each plate
+		front = [(s * 0.1, 2.36), (s * 1.12, 2.36), (s * 1.18, 1.72), (s * 1.02, 1.56), (s * 0.62, 1.08), (s * 0.14, 1.5)]
 		prism(k, t, f"Fauld{s}", front, -0.7, -0.6, "gold", a=0.56, b=0.46, g=0.1)
-		prism(k, t, f"Wedge{s}", [(s * 0.36, 1.62), (s * 0.88, 1.62), (s * 0.62, 1.26)], -0.712, -0.698, "navy", a=0.46, b=0.3)
-		back = [(s * 0.1, 2.36), (s * 1.12, 2.36), (s * 1.12, 1.46), (s * 0.6, 1.24), (s * 0.1, 1.44)]
+		prism(k, t, f"Wedge{s}", [(s * 0.3, 1.7), (s * 0.94, 1.7), (s * 0.62, 1.18)], -0.712, -0.698, "navy", a=0.46, b=0.3)
+		back = [(s * 0.1, 2.36), (s * 1.12, 2.36), (s * 1.16, 1.6), (s * 0.6, 1.12), (s * 0.12, 1.5)]
 		prism(k, t, f"Back{s}", back, 0.6, 0.7, "gold", a=0.52, b=0.46, g=0.1)
 		if not SMALL:
-			slab(k, f"Tasset{s}", [(-0.5, 2.36), (0.5, 2.36), (0.5, 1.5), (0.0, 1.34), (-0.5, 1.5)], s * 1.1, s * 1.2, "gold", part=t, a=0.54, b=0.46)
+			slab(k, f"Tasset{s}", [(-0.5, 2.36), (0.5, 2.36), (0.56, 1.6), (0.0, 1.2), (-0.56, 1.6)], s * 1.1, s * 1.2, "gold", part=t, a=0.54, b=0.46)
 	prism(k, t, "Cloth", [(-0.56, 2.34), (0.56, 2.34), (0.8, 0.7), (0.0, 0.84), (-0.8, 0.7)], 0.7, 0.75, "red", a=0.48, b=0.4, g=0.14)
 
 
 def _arm(k, side, s):
-	"""The navy sleeve is the painted block; a round layered pauldron, a gold vambrace and gauntlet over it."""
+	"""The navy sleeve is the painted block; a faceted, layered pauldron with pointed edges (owner 2026-11-11: sharper, more
+	angular armor), a chamfered gold vambrace and gauntlet with a pointed knuckle plate over it."""
 	arm, ax = f"{side}UpperArm", s * 1.5
-	# the pauldron dome caps the shoulder, its rim a little past the arm; a second lip under it reads as the layered plates
-	rows = [(0.22, 0.66, 0.9), (0.58, 0.56, 0.8), (0.82, 0.3, 0.6), (0.88, 0.02, 0.5), (0.8, -0.2, 0.4), (0.62, -0.34, 0.3)]
-	o = k.lathe(arm, "Pauldron", rows, "gold", n=10, at=(ax + s * 0.06, 0.0, 3.96), squash=0.94, outline=0)
+	# a peaked hexagonal cap, then plates that step out and down, each rim a point, the lowest widest
+	at = (ax + s * 0.06, 0.0, 3.96)
+	o = k.lathe(arm, "Pauldron", [(0.04, 0.74, 0.9), (0.6, 0.5, 0.8), (0.72, 0.3, 0.6)], "gold", n=6, at=at, squash=0.94, outline=0)
 	bake(o, "gold", k, a=0.58, b=0.44, g=0.1)
-	if not SMALL:
-		o = k.lathe(arm, "PauldronLip", [(0.62, 0.1, 0.5), (0.76, -0.08, 0.5), (0.68, -0.26, 0.4)], "gold", n=10, at=(ax + s * 0.1, 0.0, 3.6), squash=0.9, outline=0)
-		bake(o, "gold", k, a=0.52, b=0.44)
-	block(k, arm, "Vambrace", ax, 0, 3.0, 2.3, 0.56, 0.56, "gold", ch=0.06, flare=0.03, corner=0.18, jit=0.012, a=0.56, b=0.46, g=0.08)
-	block(k, arm, "Gauntlet", ax, 0, 2.34, 1.9, 0.6, 0.6, "gold", ch=0.08, corner=0.2, a=0.58, b=0.44)
-	block(k, arm, "Knuckle", ax, -0.5, 2.14, 1.96, 0.42, 0.14, "gold", ch=0.03, a=0.64, b=0.4)
+	layers = [(0.58, 0.34, 0.86, 0.1), (0.72, 0.1, 0.96, -0.14)] if SMALL else [(0.58, 0.34, 0.86, 0.12), (0.7, 0.14, 0.94, -0.08), (0.78, -0.04, 0.9, -0.3)]
+	for i, (r0, z0, r1, z1) in enumerate(layers):
+		o = k.lathe(arm, f"PauldronLayer{i}", [(r0, z0, 0.5), (r1, z1 + 0.06, 0.5), (r1 - 0.08, z1, 0.4)], "gold", n=6, at=(at[0] + s * 0.04 * i, 0.0, at[2]), squash=0.92, outline=0)
+		bake(o, "gold", k, a=0.54, b=0.44)
+	block(k, arm, "Vambrace", ax, 0, 3.0, 2.3, 0.56, 0.56, "gold", ch=0.12, flare=0.04, corner=0.04, jit=0.012, a=0.56, b=0.46, g=0.08)
+	block(k, arm, "Gauntlet", ax, 0, 2.34, 1.9, 0.6, 0.6, "gold", ch=0.14, corner=0.04, a=0.58, b=0.44)
+	# a pointed knuckle plate on the back of the hand, a navy triangle cut into the vambrace front
+	prism(k, arm, "Knuckle", [(ax - 0.42, 2.3), (ax + 0.42, 2.3), (ax + 0.42, 2.06), (ax, 1.84), (ax - 0.42, 2.06)], -0.66, -0.5, "gold", a=0.64, b=0.4)
+	prism(k, arm, "ArmCut", [(ax - 0.22, 3.02), (ax + 0.22, 3.02), (ax, 2.66)], -0.6, -0.565, "navy", a=0.44, b=0.3)
 
 
 def _leg(k, side, s):
 	leg, px = f"{side}UpperLeg", s * 0.5
-	# the pointed knee guard over the greave
-	prism(k, leg, "Knee", [(px - 0.54, 1.6), (px + 0.54, 1.6), (px + 0.54, 1.3), (px, 1.06), (px - 0.54, 1.3)], -0.64, -0.5, "gold", a=0.6, b=0.42)
-	block(k, leg, "Greave", px, 0, 1.24, 0.0, 0.56, 0.58, "gold", ch=0.06, corner=0.18, jit=0.012, mids=(0.6,), a=0.54, b=0.46, g=0.1)
-	block(k, leg, "Toe", px, -0.38, 0.4, 0.0, 0.5, 0.42, "gold", ch=0.08, corner=0.24, a=0.56, b=0.46)
+	# the knee guard: a sharp spade over the chamfered greave; the boot ends in a wedge toe
+	prism(k, leg, "Knee", [(px - 0.56, 1.66), (px - 0.3, 1.74), (px + 0.3, 1.74), (px + 0.56, 1.66), (px + 0.56, 1.34), (px, 0.96), (px - 0.56, 1.34)], -0.66, -0.5, "gold", a=0.6, b=0.42)
+	block(k, leg, "Greave", px, 0, 1.24, 0.0, 0.56, 0.58, "gold", ch=0.12, corner=0.04, jit=0.012, mids=(0.6,), a=0.54, b=0.46, g=0.1)
+	slab(k, "Toe", [(-0.3, 0.0), (-0.3, 0.46), (-0.6, 0.4), (-0.92, 0.14), (-0.84, 0.0)], px - 0.46, px + 0.46, "gold", part=leg, a=0.56, b=0.46)
 
 
 def _ea(k):
-	"""Ea upright in the right hand, grip at the hand's centre. Named Ea*: build_boss_king.py joins these into one object.
-	A gold pommel and guard, a navy grip, then three stacked dark cylinders round a gold core, fine red lines on each;
-	the Sidekick gets one cylinder."""
+	"""Ea upright in the right hand, grip at the hand's centre (paint/ea_sword.py draws it; build_boss_king.py joins the
+	EaGrip* and EaDrum* pieces into their own objects). The Sidekick gets one drum."""
 	import bpy
 	from mathutils import Vector
 
-	p = "RightHand"
 	before = set(bpy.data.objects)
-	block(k, p, "EaPommel", 0, 0, 0.1, -0.08, 0.13, 0.13, "gold", ch=0.04, a=0.58, b=0.44)
-	rod(k, p, "EaGrip", [(0, 0, 0.1), (0, 0, 0.72)], 0.085, "navy", n=6, a=0.46, b=0.4)
-	block(k, p, "EaGuard", 0, 0, 0.96, 0.72, 0.3, 0.16, "gold", ch=0.05, flare=-0.08, a=0.6, b=0.44)
-	segs = ((1.0, 1.86, 0.22),) if SMALL else ((1.0, 1.78, 0.22), (1.9, 2.66, 0.2), (2.78, 3.5, 0.18))
-	top = segs[-1][1]
-	rod(k, p, "EaCore", [(0, 0, 0.96), (0, 0, top + 0.34)], [0.08, 0.05], "gold", n=6, a=0.6, b=0.4)
-	for i, (z0, z1, r) in enumerate(segs):
-		rod(k, p, f"EaSeg{i}", [(0, 0, z0), (0, 0, z1)], r, "ea", n=8, a=0.5, b=0.46, g=0.06)
-		if not SMALL:
-			for j, (x0, x1) in enumerate(((-0.09, -0.065), (0.035, 0.06))):
-				prism(k, p, f"EaLine{i}{j}", [(x0, z0 + 0.12), (x1, z0 + 0.12), (x1, z1 - 0.12), (x0, z1 - 0.12)], -r - 0.012, -r + 0.01, "glow", a=0.7, b=0.1)
+	ea_sword.build(k, "RightHand", SMALL)
 	for o in set(bpy.data.objects) - before:
 		for v in o.data.vertices:
 			v.co += Vector(EA_AT)
