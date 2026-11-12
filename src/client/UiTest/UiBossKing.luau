@@ -255,6 +255,129 @@ function Module.Build(h)
 		setup(res, "restore:boss_ui")
 	end
 
+	-- The jointed Golden King in game (design doc 4.37 "Rework approvals", BOSS_EVENT_SPEC "Animation rework"; task a1-bake).
+	-- Contract (implementer: report a change, do not loosen): workspace.BossArenaPreview holds Model GoldenKing with BaseParts
+	-- named as BossKingPoses.Bind: Torso, Head, Left/RightUpperArm, Left/RightLowerArm, Left/RightUpperLeg, Left/RightLowerLeg,
+	-- Key, Ea, Ea_Drum1..3, and none of LeftArm, RightArm, LeftLeg, RightLeg. Ea's axis is read from Ea_Drum1 to Ea_Drum3 (the
+	-- drums sit along it). A sanity check that enuma plays on the jointed rig, not exact numbers: at 1.7 s (charge, arm up) Ea is
+	-- upright and the lower right arm above the upper; at 3.05 s (the swing, key 7 "levelled at the arena") Ea is near level
+	-- (within 30 deg) and the lower right arm below the upper. His feet (the lower legs' lowest corner) stay above the mound's
+	-- top (the highest arena part within 15 studs of the centre): he hovers (4.37 "The Golden King's own arena").
+	function scenarios.ui_boss_king_rig(res)
+		local JOINTED = {
+			"Torso",
+			"Head",
+			"LeftUpperArm",
+			"LeftLowerArm",
+			"RightUpperArm",
+			"RightLowerArm",
+			"LeftUpperLeg",
+			"LeftLowerLeg",
+			"RightUpperLeg",
+			"RightLowerLeg",
+			"Key",
+			"Ea",
+			"Ea_Drum1",
+			"Ea_Drum2",
+			"Ea_Drum3",
+		}
+		local function corners(part)
+			local list, half = {}, part.Size / 2
+			for _, sx in { -1, 1 } do
+				for _, sy in { -1, 1 } do
+					for _, sz in { -1, 1 } do
+						table.insert(list, part.CFrame:PointToWorldSpace(half * Vector3.new(sx, sy, sz)))
+					end
+				end
+			end
+			return list
+		end
+		local function lowest(part)
+			local y = math.huge
+			for _, c in corners(part) do
+				y = math.min(y, c.Y)
+			end
+			return y
+		end
+		local function highest(part)
+			local y = -math.huge
+			for _, c in corners(part) do
+				y = math.max(y, c.Y)
+			end
+			return y
+		end
+		local ok, err = xpcall(function()
+			setup(res, "boss_ui_gear:2")
+			state(res, "Idle", 0)
+			boss(res, KING)
+			state(res, "Prep", 5, 4000, 4000, true, 100)
+			local king = waitFor(function()
+				local folder = workspace:FindFirstChild("BossArenaPreview")
+				return folder and folder:FindFirstChild("GoldenKing", true)
+			end, BUILD_WAIT)
+			check(res, "rig_king_present", king ~= nil and king:IsA("Model"), true)
+			if not king then
+				return
+			end
+			local missing = {}
+			for _, name in JOINTED do
+				local part = king:FindFirstChild(name, true)
+				if not (part and part:IsA("BasePart")) then
+					table.insert(missing, name)
+				end
+			end
+			h.checkList(res, "rig_jointed_parts", missing)
+			for _, name in { "LeftArm", "RightArm", "LeftLeg", "RightLeg" } do
+				check(res, "rig_no_unjointed_" .. name, king:FindFirstChild(name, true), nil)
+			end
+			local index, at = firstMoment("enuma")
+			check(res, "rig_enuma_moment_found", index ~= nil, true)
+			if not index or #missing > 0 then
+				return
+			end
+			local function part(name)
+				return king:FindFirstChild(name, true)
+			end
+			-- enuma's local time `localTime` (the moment is its 3.0 s cost event), then two frames to pose.
+			local function at_(localTime)
+				state(res, "Fight", Cfg.PrepSeconds + Cfg.IntroSeconds + at - 3 + localTime, 4000, 4000, true, 100)
+				task.wait(0.1)
+				local ea = part("Ea_Drum3").Position - part("Ea_Drum1").Position
+				return ea.Magnitude > 0 and ea.Unit or Vector3.zero,
+					part("RightLowerArm").Position.Y - part("RightUpperArm").Position.Y
+			end
+			local eaUp, armUp = at_(1.7)
+			h.check(res, "rig_charge_ea_upright", eaUp.Y, ">= 0.8", eaUp.Y >= 0.8)
+			h.check(res, "rig_charge_lower_arm_raised", armUp, "> 0", armUp > 0)
+			local eaSwing, armSwing = at_(3.05)
+			h.check(res, "rig_swing_ea_levelled", math.abs(eaSwing.Y), "<= 0.5", math.abs(eaSwing.Y) <= 0.5)
+			h.check(res, "rig_swing_lower_arm_down", armSwing, "< 0", armSwing < 0)
+			-- He hovers over the mound.
+			local ArenaFor = (optional("BossArenaConfig") or {}).For
+			local Arena = ArenaFor and ArenaFor(KING)
+			local folder = workspace:FindFirstChild("BossArenaPreview")
+			local effects = folder and folder:FindFirstChild("BossEffects", true)
+			local moundTop = -math.huge
+			for _, d in Arena and folder and folder:GetDescendants() or {} do
+				if
+					d:IsA("BasePart")
+					and not d:IsDescendantOf(king)
+					and not (effects and d:IsDescendantOf(effects))
+					and Vector2.new(d.Position.X - Arena.Center.X, d.Position.Z - Arena.Center.Z).Magnitude <= 15
+					and math.max(d.Size.X, d.Size.Z) <= 80
+				then
+					moundTop = math.max(moundTop, highest(d))
+				end
+			end
+			local feet = math.min(lowest(part("LeftLowerLeg")), lowest(part("RightLowerLeg")))
+			check(res, "rig_mound_found", moundTop > -math.huge, true)
+			h.check(res, "rig_feet_above_mound", feet - moundTop, "> 0", feet > moundTop)
+		end, debug.traceback)
+		h.check(res, "king_rig_checks_completed", ok and "yes" or tostring(err), "yes", ok)
+		state(res, "Idle", 0)
+		setup(res, "restore:boss_ui")
+	end
+
 	-- After the real press (UiSpec.Clicks boss_king_button; his event in Prep, the player outside): his card is the live one.
 	function after.boss_king_panel_judging(res)
 		check(res, "king_panel_opens", waitShown(BOSSES, true), true)
