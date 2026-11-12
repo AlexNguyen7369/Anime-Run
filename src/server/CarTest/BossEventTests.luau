@@ -112,7 +112,7 @@
 --   after the event: EquippedCar goes back to what it was at Join (a run moves it; only Team is ruled).
 --   joined then left, nobody in at 3:00: same as nobody came.
 -- NOT pinned, no rule found, implementer picks and reports: an arena empty after 3:00; a decliner's pad; changing gear mid-event;
---   a Dojo squad character on the event team; rejoining after leaving.
+--   rejoining after leaving.
 -- NOT reachable from here: a server test cannot fire a client remote, so only the existence of Remotes.BossEventLeave and
 --   Remotes.SetAutoRace is checked, not their handlers (SetAutoRace stays ignored in the event, leave runs Leave).
 --

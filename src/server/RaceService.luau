@@ -37,6 +37,7 @@ local GemConfig = require(Shared.GemConfig)
 local CharacterCatalog = require(Shared.CharacterCatalog)
 local StaminaConfig = require(Shared.StaminaConfig)
 local BossEventConfig = require(Shared.BossEventConfig)
+local PowerUpConfig = require(Shared.PowerUpConfig)
 local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local GachaService = require(script.Parent.GachaService)
@@ -172,6 +173,7 @@ end
 --          { Boss = true, Team = { ids } } is a boss event run (design doc 4.37, docs/BOSS_EVENT_SPEC.md): real stamina on the
 --          closed lane route, no NPC, no pads, no checkpoint payout. run.Line: slots still running, all draining at once.
 --          At an empty line: run.Waiting, then the full team refills.
+--          { PowerUps = true } (NPC mode; Attach sets it) rolls each track's power-ups (design doc 4.44): run.PowerUps.
 function RaceService.NewRun(car, raceRoute, player, options)
 	options = options or {}
 	car:SetAttribute("AutoRace", true)
@@ -205,6 +207,9 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		Waiting = false, -- boss run: the exhausted team's wait before its refill
 		Holding = nil, -- the unbuilt track the runner waits on (design doc 4.25), nil when free
 	}
+
+	run.PowerUps = {} -- the current track's set: { { Id, Kind, Dist, Taken } }
+	run.SpeedLeft = 0 -- seconds of the Speed power-up's boost left
 
 	local function rewardTrackWin(trackNumber)
 		local id = BoostConfig.WinReward(trackNumber)
@@ -387,6 +392,10 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		for slot in team do
 			run.Stamina[slot] = 100
 		end
+		run.SpeedLeft = 0
+		if typeof(player) == "Instance" then
+			player:SetAttribute("PowerSpeedUntil", nil)
+		end
 		if boss then
 			run.Line = {}
 			for slot in team do
@@ -415,6 +424,12 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		end
 		race = { Index = i, Number = track.Number, Started = runTime, NpcTime = profile.TotalTime }
 		run.RaceTrack = track.Number
+		if options.PowerUps then
+			local from = arc[math.clamp(track.StartIndex, 1, n)]
+			-- fresh per player and per track start: nobody else sees this set (design doc 4.44)
+			run.PowerUps = PowerUpConfig.Roll(from, arc[math.clamp(track.FinishIndex, 1, n)] - from)
+			runEvent({ Kind = "PowerUps", Track = track.Number, Route = routeId, List = run.PowerUps })
+		end
 		emit({
 			Type = "Start",
 			Track = track.Number,
@@ -543,7 +558,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 	end
 
 	-- Each team slot's cruise is fixed when the run starts (design doc 4.13 / 4.19): swaps read this snapshot, so a
-	-- workshop stat, potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
+	-- potion or item change mid-run never reaches later slots. A loss reset (new run) snapshots again.
 	local fixedCruise = {}
 	function snapshotCruise()
 		table.clear(fixedCruise)
@@ -560,11 +575,13 @@ function RaceService.NewRun(car, raceRoute, player, options)
 		local id = typeof(player) == "Instance" and player:GetAttribute("EquippedCar")
 		-- a character equipped outside the team mid-run (admin /kami) runs at its own cruise
 		local cruise = (id == team[run.Slot] and fixedCruise[run.Slot]) or GachaService.Cruise(player, run.Slot)
-		-- options.MaxSpeed caps the travel only (The Elf Mage's small ring, BOSS_EVENT_SPEC "Run speed cap"); the HUD keeps the cruise
+		-- options.MaxSpeed caps the travel only (The Elf Mage's small ring, BOSS_EVENT_SPEC "Run speed cap"); the HUD keeps the cruise.
+		-- The Speed power-up is applied after the MAX_CRUISE cap: it may pass it (owner 2026-11-11); boss runs roll none.
 		run.TargetSpeed = math.min(cruise, options.MaxSpeed or math.huge)
+			* ((run.SpeedLeft or 0) > 0 and PowerUpConfig.SPEED_MULTI or 1)
 		driver.TargetSpeed = run.TargetSpeed
 		if typeof(player) == "Instance" then
-			player:SetAttribute("Cruise", cruise)
+			player:SetAttribute("Cruise", cruise) -- the character's own cruise; the boost shows on the team row
 		end
 	end
 	setCruise()
@@ -674,6 +691,38 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			dist = closed and moved or math.min(moved, arc[n])
 		end
 		local k = place()
+		if run.SpeedLeft > 0 and not run.Holding then
+			run.SpeedLeft -= railDt
+			if run.SpeedLeft <= 0 then
+				run.SpeedLeft = 0
+				if typeof(player) == "Instance" then
+					player:SetAttribute("PowerSpeedUntil", nil)
+				end
+				setCruise()
+				publish()
+			end
+		end
+		if race and not run.Holding then
+			for _, p in run.PowerUps do
+				if not p.Taken and dist >= p.Dist then
+					p.Taken = true
+					if p.Kind == "Speed" then
+						run.SpeedLeft = PowerUpConfig.SPEED_SECONDS -- a second one resets the timer, no stacking
+						if typeof(player) == "Instance" then
+							-- shortcut: a track-loading hold pauses the boost but not this clock, fine while holds stay rare
+							player:SetAttribute("PowerSpeedUntil", workspace:GetServerTimeNow() + run.SpeedLeft)
+						end
+						setCruise()
+						publish()
+					elseif staminaMode and seconds[run.Slot] then
+						-- no clamp at 100: the extra seconds drain first, the bar stays full (owner 2026-11-11)
+						run.Stamina[run.Slot] += PowerUpConfig.STAMINA_SECONDS * 100 / seconds[run.Slot]
+						publishStamina()
+					end
+					runEvent({ Kind = "PowerUpTaken", Id = p.Id, Type = p.Kind, Track = race.Number })
+				end
+			end
+		end
 		driver.Done = not closed and dist >= arc[n]
 		driver.Index = driver.Done and n or nearestIndex(k)
 		lastIndex = driver.Index
@@ -818,6 +867,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 			car:SetAttribute("RunHold", nil)
 			if staminaMode and typeof(player) == "Instance" then
 				player:SetAttribute("RunSlot", nil) -- walking: the stamina bar hides, effects go back to slot 1
+				player:SetAttribute("PowerSpeedUntil", nil)
 				player:SetAttribute("BossLine", nil)
 				for slot = 1, StaminaConfig.TEAM_SIZE do
 					player:SetAttribute("Stamina" .. slot, nil)
@@ -868,7 +918,7 @@ function RaceService.Attach(player, car)
 		car,
 		route,
 		player,
-		{ Loop = true, Npc = true, StartTrack = RaceService.StartTrackFor(player) }
+		{ Loop = true, Npc = true, PowerUps = true, StartTrack = RaceService.StartTrackFor(player) }
 	)
 end
 

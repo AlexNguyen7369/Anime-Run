@@ -1,6 +1,6 @@
 --!nonstrict
 -- Saved player stats: Money, the car gacha (inventory, equipped car, rolls, stat allocation), the upgrade tree
--- (owned tiles, BestTrack, TurboCount) and the workshop level. There is no Speed stat (owner 2026-11-01, design doc
+-- (owned tiles, BestTrack, TurboCount). There is no Speed stat (owner 2026-11-01, design doc
 -- 4.13): an old save's Speed is kept in the record but never read. The server owns them: leaderstats replicate down to clients, nothing a client sends ever changes a value. Data is
 -- kept in a DataStore; if the store cannot be read (Studio without API access, outage) the player is
 -- flagged DataFailed and their stats are never written, so a failed load can not wipe a save.
@@ -13,7 +13,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RebirthConfig = require(Shared:WaitForChild("RebirthConfig"))
-local Workshop = require(Shared:WaitForChild("Workshop"))
+local PayoutCurve = require(Shared:WaitForChild("PayoutCurve"))
 local MoneyService = require(script.Parent.MoneyService)
 local GachaService = require(script.Parent.GachaService)
 local UpgradeService = require(script.Parent.UpgradeService)
@@ -31,7 +31,7 @@ local RelicService = require(script.Parent.RelicService)
 local PlayerData = {}
 
 local STORE_NAME = "PlayerStats_v2" -- v2: test saves wiped for the Speed stat scale (owner 2026-10-30); v1 kept untouched
-local VERSION = 18 -- 18: BossCredit (docs/BOSS_EVENT_SPEC.md "Paid spawn"); 17: SidekickPity, SidekickLegendaryPity (design doc 4.36); 16: Relics, RelicGear (design doc 4.38); 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
+local VERSION = 19 -- 19: Dojos removed, workshop level prices refunded once (design doc 4.43); 18: BossCredit (docs/BOSS_EVENT_SPEC.md "Paid spawn"); 17: SidekickPity, SidekickLegendaryPity (design doc 4.36); 16: Relics, RelicGear (design doc 4.38); 15: Sidekicks, CharacterGear, SidekickAutoSell, SidekickFreeUsed (design doc 4.36); 14: Gems (design doc 4.35); 13: Team of up to 3 ids (docs/TEAM_AND_STAMINA_SPEC.md); 12: car Copies and the workshop Showcase (GachaService); 11: per-track NPC race personal bests
 -- 8: session lock, MoneyEarned, DuelWins; 9: Receipts, Codes (docs/SAVE_SPEC.md)
 local MAX_MONEY = 1e30 -- owner 2026-10-27: World 2 payouts reach about 1e20
 local AUTOSAVE_SECONDS = 60
@@ -113,6 +113,20 @@ function PlayerData.KeyFor(userId)
 end
 
 -- Integer in [lo, hi]; anything that is not a real number becomes the default.
+-- Design doc 4.43: the Money paid for workshop levels 2..n (the removed Dojos, 4.19 prices) comes back once, with the
+-- VERSION 19 write. Older records never stored a Version the loader read, so a missing one counts as old.
+local function workshopRefund(data)
+	if (tonumber(data.Version) or 0) >= 19 or type(data.WorkshopLevel) ~= "number" then
+		return 0
+	end
+	local refund = 0
+	-- shortcut: 10 and 500 are the removed WorkshopConfig.MAX_LEVEL and first price; they never change again
+	for level = 2, math.clamp(math.floor(data.WorkshopLevel), 1, 10) do
+		refund += PayoutCurve.Cost(500, level - 1)
+	end
+	return refund
+end
+
 local function cleanInt(value, lo, hi, default)
 	if type(value) ~= "number" or value ~= value then
 		return default
@@ -147,7 +161,7 @@ function PlayerData.Load(player, userId)
 	end
 
 	local function apply(data)
-		money.Value = cleanInt(data.Money, 0, MAX_MONEY, 0)
+		money.Value = cleanInt(cleanInt(data.Money, 0, MAX_MONEY, 0) + workshopRefund(data), 0, MAX_MONEY, 0)
 		player:SetAttribute("Gems", cleanInt(data.Gems, 0, MAX_MONEY, 0))
 		player:SetAttribute("BossCredit", cleanInt(data.BossCredit, 0, MAX_DUEL_WINS, 0)) -- version 17 and older: none
 		-- Additive, older saves have none. Ids are judged at each join (BossEventService).
@@ -159,8 +173,6 @@ function PlayerData.Load(player, userId)
 		GachaService.CheckStarter(player) -- a brand new save picks a starter (design doc 4.21)
 		UpgradeService.Apply(player, data) -- version 3 and older: no tiles, BestTrack 0, TurboCount from Rolls % 10
 		MarketService.Apply(player, data)
-		player:SetAttribute("WorkshopLevel", Workshop.CleanLevel(data.WorkshopLevel)) -- missing = the starter workshop
-		player:SetAttribute("WorkshopStat", Workshop.CleanStat(data.WorkshopStat)) -- missing = Money (design doc 4.19)
 		RebirthService.Apply(player, data)
 		BoostService.Apply(player, data)
 		DailyLoginService.Apply(player, data)
@@ -287,7 +299,6 @@ local function save(player, userId, release)
 		RelicGear = relics.RelicGear,
 		Cars = gacha.Cars,
 		Copies = gacha.Copies,
-		Showcase = gacha.Showcase,
 		Team = gacha.Team,
 		Equipped = gacha.Equipped,
 		Rolls = gacha.Rolls,
@@ -297,8 +308,6 @@ local function save(player, userId, release)
 		Upgrades = upgrades.Upgrades,
 		BestTrack = upgrades.BestTrack,
 		TurboCount = upgrades.TurboCount,
-		WorkshopLevel = Workshop.CleanLevel(player:GetAttribute("WorkshopLevel")),
-		WorkshopStat = Workshop.CleanStat(player:GetAttribute("WorkshopStat")),
 		RebirthLevel = RebirthConfig.CleanLevel(player:GetAttribute("RebirthLevel")),
 		Boosts = boosts.Boosts,
 		ActiveBoosts = boosts.ActiveBoosts,

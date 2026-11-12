@@ -25,7 +25,7 @@
 Design doc 4.20 says every animation goes through `Client/UiMotion`. The team row's active glow and marker bob are a RenderStepped loop in `TeamHud.client.luau`, not a UiMotion preset; they do stop under reduced motion, and `CheckpointUi` uses the same pattern. Question: does that gate satisfy 4.20, or must the loop move into UiMotion? Blocks nothing.
 - Track 5: BrokenStorefront has a weak face reading (see T5_Storefront.jpg). SlicedTower top floats above the cut; viaduct deck stays level.
 - 2026-10-31: the Track 8 builder killed and restarted the IVS dashboard (`server.py --port 8765`). Check it runs with your usual flags.
-- Max Players: Edit-mode Players.MaxPlayers still read 60 (`WorkshopConfig` needs 7); check in a live server.
+- Max Players: Edit-mode Players.MaxPlayers still read 60 (`WorkshopConfig` needs 7); check in a live server. Resolved 2026-11-11: the plots are gone; 7 is still needed by the boss lanes (4.37).
 
 ## 2026-11-03 trim: doc and code disagree (left as written, owner to rule)
 - `MAX_CRUISE_TOTAL_MULTI`, `CruiseStatMulti`: design doc 4.5, 4.8, TEAM_AND_STAMINA_SPEC and CHARACTER_GACHA_SPEC cite them; `MAX_CRUISE_TOTAL_MULTI` is not in `src/`, `CruiseStatMulti` only in tests as retired (`Scenarios.luau:2876,2911`).
@@ -117,3 +117,13 @@ Answered by the owner 2026-11-11: "approved, go with draft B" on the review page
 Answered by the owner 2026-11-12: golem HP is 1,000 per player; the rhythm is slower (3 s window, 0.9 s apart, 1.5 s rings, +/- 0.35 s). Still open: pose data join size (recommendation given: lazy per-boss load), the Bosses button edit found in Studio.
 Answered by the owner 2026-11-12: boss data loads per boss on announcement (the lazy-load recommendation); the Bosses button moves up next to Roblox's headphone icon. The Studio-only edit hiding the button while the Sidekicks panel is open was not committed: the new position should clear the panel headers; check after the move.
 Superseded 2026-11-12, same day: the Bosses button is not next to Roblox's headphone icon; it sits in a second left column with the Team button (design doc 4.40). Boss data is sent 2 minutes before a boss's event, not at the announcement, and removed after the event (section 7).
+## 2026-11-11 power-ups: proposed defaults (design doc 4.44, POWERUP_SPEC)
+- Rules-audit question, answered with the recommended option on the owner's standing word ("auto approve by recommended", 2026-11-11), change it if wrong: the Speed boost is also the exception to the 4.18 loading budget (budget stays at `MAX_CRUISE`; `RunHold` still catches a boosted runner because holds are not distance look-ahead; a late biome switch during the 3 s is accepted). Alternative: raise the 4.18 budget to 1.5 x `MAX_CRUISE`.
+- Display constants, proposed: pickup pop 1.4x over 0.25 s, rim 16 pieces, glow light range 14, HUD badge 26 px. Stamina ring colour is the stamina bar's Full blue (60, 150, 255), the same as the HUD's blue number.
+- Known: `SpeedLeft` pauses during a `RunHold` but `PowerSpeedUntil` does not, so the badge can empty while the server boost is still owed after the hold (code `shortcut:` in RaceService).
+- Regular track runs only: none in boss arenas or duels.
+- Rolled per player at each track start, fresh every run (a loss reset rerolls).
+- Spots between 10% and 90% of the track, at least 300 studs apart; type 50/50 Speed / Stamina.
+- A second Speed during a boost resets the timer to 3 s (no stacking); the boost carries across a tag-in.
+- Risk: a Secret at 800 boosted to 1,200 studs/s covers 3,600 studs in 3 s; check the `RunHold` on Tracks 6-10 (4.25) still catches it.
+- Ring size 12 studs, 6 over the rail; turn speed one turn per 4 s and glow breath 1.6 s (owner 2026-11-11 picked turning and glowing, no ground ring).

@@ -32,7 +32,6 @@ local MoneyService = require(script.Parent.MoneyService)
 local PlayerData = require(script.Parent.PlayerData)
 local RaceService = require(script.Parent.RaceService)
 local UpgradeService = require(script.Parent.UpgradeService)
-local WorkshopService = require(script.Parent.WorkshopService)
 local WeatherService = require(script.Parent.WeatherService)
 local MarketService = require(script.Parent.MarketService)
 local RebirthService = require(script.Parent.RebirthService)
@@ -109,8 +108,7 @@ UpgradeService.Start() -- the money upgrade tree: Remotes.BuyUpgrade and the UPG
 GachaService.Start() -- free auto-rolls (after each save loads), the car index and stat points
 MoneyService.Start()
 CarService.Start()
-WorkshopService.Start(track1Start) -- the 7 Dojo plots round the plaza, one per player, workshop stat boost
-require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza and Dojo meshes, in the background (design doc 4.24)
+require(script.Parent.PlazaDressing).Start(spawnArea) -- the plaza meshes, in the background (design doc 4.24)
 do -- cyber accents on top of the plaza (4.24 "Dojo with cyber accents"); a failure only warns
 	local ok, err = pcall(function()
 		require(script.Parent.PlazaAccents).Build()
@@ -119,9 +117,9 @@ do -- cyber accents on top of the plaza (4.24 "Dojo with cyber accents"); a fail
 		warn("[PlazaAccents] skipped: " .. tostring(err))
 	end
 end
--- scenery keeps clear of every road, the plaza and the Dojos
-BiomeDressing.Prune(trackModels, { spawnArea, Workspace:WaitForChild("Workshops") })
--- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, Dojos, checkpoints, WinPads and the VFX floor
+-- scenery keeps clear of every road and the plaza
+BiomeDressing.Prune(trackModels, { spawnArea })
+-- Terrain shape (docs/BIOME_ENVIRONMENT_SPEC.md 3.1): flat at the plaza, checkpoints, WinPads and the VFX floor
 do
 	-- the VFX floor is built on the first `/tp vfxarea` (AdminService), so its ground is cleared as an XZ box
 	local half = Vector2.new(VfxArea.FLOOR_SIZE.X, VfxArea.FLOOR_SIZE.Z) / 2
@@ -135,7 +133,7 @@ do
 			table.insert(clear, TrackBuilder.CheckpointBox(entry.Layout, entry.Origin)) -- not built yet
 		end
 	end
-	TerrainShape.Prepare(entries, clear, { spawnArea, Workspace.Workshops })
+	TerrainShape.Prepare(entries, clear, { spawnArea })
 	for _, entry in entries do
 		ReplicatedStorage:SetAttribute("BiomeZone_" .. entry.Number, TerrainShape.ZonePolyline(entry.Number))
 	end
@@ -149,11 +147,11 @@ end
 
 local plate
 -- Safety baseplate (docs/WORLD_REDESIGN_SPEC.md section 3): tiles of the authored Workspace.Baseplate under the
--- tracks, the plaza and the Dojos plus a margin (a part can be at most 2048 studs wide).
+-- tracks and the plaza plus a margin (a part can be at most 2048 studs wide).
 do
 	local MARGIN, TILE = 64, 2048
 	local lo, hi = Vector2.new(math.huge, math.huge), Vector2.new(-math.huge, -math.huge)
-	for _, root in { folder, spawnArea, Workspace.Workshops } do
+	for _, root in { folder, spawnArea } do
 		for _, d in root:GetDescendants() do
 			if d:IsA("BasePart") then
 				local cf, size = d.CFrame, d.Size
@@ -233,7 +231,7 @@ while #remaining > 0 do
 	buildTrack(entry)
 	local others = table.clone(trackModels)
 	table.insert(trackModels, entry.Model)
-	BiomeDressing.Prune(trackModels, { spawnArea, Workspace.Workshops }, { entry.Model })
+	BiomeDressing.Prune(trackModels, { spawnArea }, { entry.Model })
 	BiomeDressing.Prune({ entry.Model }, nil, others)
 	BiomeDressing.SnapToTerrain(trackModels, { entry.Model })
 	for _, list in { RaceService.GetRoute().Tracks, RaceService.GetRoute().Pads } do

@@ -1112,7 +1112,7 @@ local function progressionSnapshot(player)
 		return
 	end
 	local attributes = {}
-	for _, name in { "WorkshopLevel", "UiTestProgressionFixture" } do
+	for _, name in { "UiTestProgressionFixture" } do
 		attributes[name] = { value = player:GetAttribute(name) }
 	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1251,93 +1251,7 @@ end
 
 -- retired: offline_welcome / offline_zero fixtures, no offline credit or its welcome (design doc 4.19, owner 2026-11-03)
 
--- World fixtures must END with the avatar at the spot, not just teleport once: a Stop (CarService.SetAutoRace false,
--- e.g. from 'restore') keeps pulling a real player's avatar back to the walk spawn for CarService PLACE_HOLD (2 s), and
--- the client owns its character's physics, so it can send back an older position. The avatar is re-placed until its
--- REPLICATED position (the client's, since the client owns it) has stayed at the spot for MOVE_STABLE seconds, and
--- within `maxDistance` of the pad when a prompt must be usable. Otherwise the setup errors (never a silent "done").
-local MOVE_TIMEOUT = 8 -- seconds; well above CarService PLACE_HOLD
-local MOVE_STABLE = 1 -- seconds the avatar must stay put (several client -> server replication steps)
-local MOVE_SLACK = 3 -- studs (horizontal) from the placement spot
-local MOVE_REPLACE = 0.25 -- seconds between re-placements while it is elsewhere
-
-local function moveTo(player, pad, fixture, outside, maxDistance)
-	progressionSnapshot(player)
-	assert(player:GetAttribute("AutoRacing") ~= true, "on-foot player required for world fixtures; stop auto first")
-	assert(player.Character and player.Character:FindFirstChild("HumanoidRootPart"), "character root required")
-	local target = pad.CFrame * CFrame.new(outside and pad.Size.X + 12 or 0, pad.Size.Y / 2 + 3, 0)
-	local function rootOf()
-		return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	end
-	local function place()
-		local root = rootOf()
-		if root then
-			root.AssemblyLinearVelocity = Vector3.zero
-			root.CFrame = target
-		end
-	end
-	local function where()
-		local root = rootOf()
-		if not root then
-			return false, "no character root"
-		end
-		local off = root.Position - target.Position
-		local flat = Vector2.new(off.X, off.Z).Magnitude
-		local toPad = (root.Position - pad.Position).Magnitude
-		local ok = flat <= MOVE_SLACK and (maxDistance == nil or toPad <= maxDistance)
-		return ok,
-			string.format("%.1f studs from the spot, %.1f from the pad (limit %s)", flat, toPad, tostring(maxDistance))
-	end
-	place()
-	player:SetAttribute("UiTestProgressionFixture", fixture)
-	local start = os.clock()
-	local lastPlace, stableSince, why = start, nil, "not checked"
-	while os.clock() - start < MOVE_TIMEOUT do
-		RunService.Heartbeat:Wait()
-		if player.Parent ~= Players then
-			error("player left during " .. fixture)
-		end
-		local ok, detail = where()
-		why = detail
-		local now = os.clock()
-		if ok then
-			stableSince = stableSince or now
-			if now - stableSince >= MOVE_STABLE then
-				return
-			end
-		else
-			stableSince = nil
-			if now - lastPlace >= MOVE_REPLACE then
-				place()
-				lastPlace = now
-			end
-		end
-	end
-	error(fixture .. ": avatar did not stay at the spot within " .. MOVE_TIMEOUT .. " s (" .. why .. ")")
-end
-
-for _, own in { true, false } do
-	local id = own and "workshop_owner_prompt" or "workshop_foreign_prompt"
-	setups[id] = function(player)
-		local plots = assert(workspace:FindFirstChild("Workshops"), "Workshops required")
-		local target = nil
-		for _, plot in plots:GetChildren() do
-			local owner = plot:GetAttribute("Owner")
-			if
-				(own and owner == player.UserId)
-				or (not own and type(owner) == "number" and owner > 0 and owner ~= player.UserId)
-			then
-				target = plot:FindFirstChild("UpgradePad", true)
-				break
-			end
-		end
-		assert(target, own and "owned UpgradePad required" or "second player's workshop required; never fake ownership")
-		-- E only works inside the prompt's MaxActivationDistance: that is the distance verified, not a guess
-		local prompt = target:FindFirstChildWhichIsA("ProximityPrompt", true)
-		assert(prompt, "UpgradePad ProximityPrompt required")
-		moveTo(player, target, id, false, prompt.MaxActivationDistance)
-	end
-end
+-- retired: world fixtures (moveTo, workshop E-prompt spots): Dojos removed, design doc 4.43 (owner 2026-11-11)
 
 -- weather_clear = no weather (""); weather_clear_event = the weather id "clear", running like any other
 for _, event in { "rain", "night", "gold", "aurora", "clear", "clear_event" } do
@@ -1353,12 +1267,6 @@ for _, event in { "rain", "night", "gold", "aurora", "clear", "clear_event" } do
 		ReplicatedStorage:SetAttribute("WeatherEvent", id)
 		ReplicatedStorage:SetAttribute("WeatherEndsAt", id == "" and 0 or workspace:GetServerTimeNow() + 180)
 	end
-end
-
-function setups.workshop_open(player)
-	local remote = ReplicatedStorage.Remotes:FindFirstChild("WorkshopOpen")
-	assert(remote and remote:IsA("RemoteEvent"), "WorkshopOpen RemoteEvent required")
-	remote:FireClient(player, player:GetAttribute("Plot"))
 end
 
 -- Duel UI fixtures (UiSpec.Duel.Fixture / FixtureChecks): fire Remotes.Duel at the test client only, DUEL_GAP
@@ -1533,11 +1441,10 @@ local function progressionSpy()
 	-- Rebirth too: the rebirth_* clicks must never really reset Money (UiSpec rebirth clicks, Intercept)
 	-- UiSpec.RemoteFunctions: the rest must never really buy, equip, use a potion, claim or redeem (market_action_buy and
 	-- the other Intercept clicks). Missing ones are skipped here; the client's Intercept check then reports them.
-	local required = { BuyUpgrade = true, WorkshopUpgrade = true, Rebirth = true }
+	local required = { BuyUpgrade = true, Rebirth = true }
 	for _, name in
 		{
 			"BuyUpgrade",
-			"WorkshopUpgrade",
 			"Rebirth",
 			"MarketPurchase",
 			"MarketEquip",
@@ -1598,73 +1505,6 @@ local function progressionSpy()
 	folder:SetAttribute("ProgressionIntercepted", true)
 end
 
--- Workshop Showcase fixtures (UiSpec.WorkshopShowcase): unsaved, 'restore' puts the snapshot's cars back.
-function setups.showcase_owned(player)
-	assert(snapshots[player], "snapshot required before showcase fixtures")
-	local G = live("GachaService")
-	local CharacterCatalog = require(Shared.CharacterCatalog)
-	-- Copies no longer matter: the copy bonus is retired (design doc 4.19, owner 2026-11-03)
-	for i, spec in CharacterCatalog.Rollable() do
-		if i > 5 then
-			break
-		end
-		G.Grant(player, spec.Id)
-	end
-	player:SetAttribute("Showcase", "") -- GachaService refreshes WorkshopBoost on the Showcase attribute
-end
-
-function setups.showcase_filled(player)
-	setups.showcase_owned(player)
-	local G = live("GachaService")
-	local CharacterCatalog = require(Shared.CharacterCatalog)
-	local Workshop = require(Shared.Workshop)
-	local owned = {}
-	for _, entry in player.GachaData:GetChildren() do
-		local spec = CharacterCatalog.Get(entry.Name)
-		-- Team members can not join the squad (WORLD_REDESIGN_SPEC section 5)
-		local inTeam = table.find(G.TeamList(player), entry.Name) or entry.Name == player:GetAttribute("EquippedCar")
-		if spec and spec.Rollable and not spec.GamepassId and not inTeam then
-			-- copy bonus retired (design doc 4.19): a character's squad weight is its rarity points
-			table.insert(owned, { Id = spec.Id, Bonus = Workshop.Points({ spec }) })
-		end
-	end
-	table.sort(owned, function(a, b)
-		if a.Bonus ~= b.Bonus then
-			return a.Bonus < b.Bonus
-		end
-		return a.Id < b.Id
-	end)
-	local ids = {}
-	for i = 1, math.min(3, #owned) do
-		ids[i] = owned[i].Id
-	end
-	player:SetAttribute("Showcase", table.concat(ids, ","))
-end
-
--- A same-name proxy for Remotes.SetShowcase that logs every call and then runs the REAL GachaService.SetShowcase.
-local function showcaseSpy()
-	local folder = assert(ReplicatedStorage:FindFirstChild("UiTestSpy"), "spy setup required first")
-	local remotes = ReplicatedStorage:WaitForChild("Remotes")
-	local target = remotes:FindFirstChild("SetShowcase")
-	assert(target and target:IsA("RemoteFunction"), "SetShowcase RemoteFunction required")
-	folder:SetAttribute("SetShowcase", "[]")
-	if target:GetAttribute("UiTestSpied") == true then
-		return
-	end
-	target.Name = "UiTestOriginal_SetShowcase"
-	local proxy = Instance.new("RemoteFunction")
-	proxy.Name = "SetShowcase"
-	proxy:SetAttribute("UiTestSpied", true)
-	functionSpies[target] = { name = "SetShowcase", proxy = proxy }
-	proxy.OnServerInvoke = function(player, ...)
-		local log = HttpService:JSONDecode(folder:GetAttribute("SetShowcase") or "[]")
-		table.insert(log, { user = player.UserId, args = { ... } })
-		folder:SetAttribute("SetShowcase", HttpService:JSONEncode(log))
-		return live("GachaService").SetShowcase(player, ...)
-	end
-	proxy.Parent = remotes
-end
-
 local function runSetup(request)
 	local id = string.match(request, "^([^:]+):")
 	local arg = string.match(request, "^[^:]+:(.*):[^:]*$") -- "<id>:<args>:<nonce>"; nil for "<id>:<nonce>"
@@ -1676,10 +1516,6 @@ local function runSetup(request)
 		end
 		if id == "progression_spy" then
 			progressionSpy()
-			return
-		end
-		if id == "showcase_spy" then
-			showcaseSpy()
 			return
 		end
 		local fn = id and setups[id]
