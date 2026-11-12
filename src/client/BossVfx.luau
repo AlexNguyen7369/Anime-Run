@@ -316,10 +316,15 @@ local function pulseLights()
 	local count = 0
 	for _, d in arena and arena:GetDescendants() or {} do
 		if d:IsA("Light") and not d:IsDescendantOf(effects) then
-			local base = d:GetAttribute("ImpactBase") or d.Brightness -- kept, so overlapping pulses never ratchet it up
+			local base = d:GetAttribute("ImpactBase") or d.Brightness -- held only while a pulse runs, so overlaps never ratchet it up
 			d:SetAttribute("ImpactBase", base)
 			d.Brightness = base * LIGHT_PULSE
 			tween(d, LIGHT_SECONDS, { Brightness = base })
+			task.delay(LIGHT_SECONDS, function()
+				if d.Parent and d.Brightness == base then
+					d:SetAttribute("ImpactBase", nil)
+				end
+			end)
 			count += 1
 		end
 	end
@@ -329,6 +334,7 @@ end
 -- One boss hit, for every fighter: a shake of `full` degrees at `spot`, never under IMPACT_FLOOR of it, with a positional kick,
 -- and a flash. t: seconds after the move's first hit (a strike window's planned time); 0 is the first hit, a full flash with the
 -- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact.
+local lastFull = -math.huge
 local function impact(move, spot, full, roughness, fade, t)
 	t = t or 0
 	local camera = Workspace.CurrentCamera
@@ -336,6 +342,12 @@ local function impact(move, spot, full, roughness, fade, t)
 	local loud = not reduced()
 	local kick = loud and full * math.clamp(1 - distance / 2400, IMPACT_FLOOR, 1) or 0
 	local level = not loud and "None" or t == 0 and "Full" or "Low"
+	if level == "Full" and os.clock() - lastFull < 1 / 3 then
+		level = "Low" -- photosensitivity: never more than 3 full flashes a second, whatever plays them
+	end
+	if level == "Full" then
+		lastFull = os.clock()
+	end
 	BossShake.Kick(kick, roughness, fade, kick * IMPACT_SHIFT)
 	if level ~= "None" then
 		flashScreen(level == "Full")
