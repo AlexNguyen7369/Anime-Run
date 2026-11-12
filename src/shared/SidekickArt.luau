@@ -6,7 +6,7 @@ return {
 		BossModel = 112976086043908,
 	},
 	boss_king = {
-		BossModel = 85833264417221,
+		BossModel = 98757375537994,
 	},
 	boss_mage = {
 		BossModel = 71771432759364,

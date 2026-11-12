@@ -161,7 +161,8 @@
   ],
   "FitHeight": 4.6,
   "Parents": {
-   "Ea": null,
+   "Ea_Drum1": null,
+   "Ea_Grip": null,
    "Head_merged": null,
    "Key": null,
    "LeftArm_merged": null,
