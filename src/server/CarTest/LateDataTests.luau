@@ -13,8 +13,9 @@
 -- Per boss (owner 2026-11-12, design doc 7 "Join size", docs/BOSS_EVENT_SPEC.md "The Elf Mage" Load line):
 --   Every BossCatalog row names its late-data module in Poses (boss_raga "BossRagaPoses", boss_mage "BossMagePoses"), held in
 --     ServerStorage.LateData. The server delivers only the pose module of the boss concerned, once, and a delivered one stays:
---     when BossEventNextBoss becomes X (Reset, Advance), on Start(source, X) or Start("Paid") picking X, and on BossArenaPreview
---     turning on, for the previewed boss (ReplicatedStorage BossEventBoss, nil = boss_raga, as BossArenaView reads it).
+--     the next boss X from BossEventConfig.LateLeadSeconds (proposed 120, 30..300) before its timed start (BossEventNextAt), seen
+--     by Advance(t) with SetClock at t, NOT when BossEventNextBoss is set; on Start(source, X) or Start("Paid") picking X; and on
+--     BossArenaPreview turning on, for the previewed boss (ReplicatedStorage BossEventBoss, nil = boss_raga, as BossArenaView reads it).
 --   The cases clear the boss pose copies from ReplicatedStorage.LateData (test side) and put back the ones there before.
 local H = require(script.Parent.AcceptanceSupport)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -117,6 +118,16 @@ function Tests.late_data()
 		)
 	end
 
+	local Cfg = H.module(Shared, "BossEventConfig")
+	local LEAD = Cfg and Cfg.LateLeadSeconds
+	flag("late_lead_seconds_30_to_300", type(LEAD) == "number" and LEAD >= 30 and LEAD <= 300, LEAD, "30 to 300")
+	local INSIDE = (type(LEAD) == "number" and LEAD or 120) - 1 -- seconds before the timed start, inside the lead
+	local clockAt = T0
+	local function at(t) -- the fake clock and the scheduler tick both at t
+		clockAt = t
+		S.Advance(t)
+	end
+
 	local before = {}
 	for _, name in BOSS_POSES do
 		before[name] = delivered(name)
@@ -129,15 +140,30 @@ function Tests.late_data()
 		end
 	end
 	local cases, caseErr = pcall(function()
+		S.SetClock(function()
+			return clockAt
+		end)
 		for id, name in BOSS_POSES do
 			local other = BOSS_POSES[OTHER[id]]
-			-- The server announces X as the next boss: X loads, the other does not.
+			-- Announced as the next boss, more than the lead away: nothing loads yet. Inside the lead: X loads, the other does not.
 			clearPoses()
 			pick(id)
+			clockAt = T0
 			S.Reset(T0)
+			local startAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
 			flag("announce_" .. id .. "_is_next", ReplicatedStorage:GetAttribute("BossEventNextBoss") == id)
-			flag("announce_" .. id .. "_delivers_own", delivered(name))
+			flag("announce_" .. id .. "_not_yet", not delivered(name))
 			flag("announce_" .. id .. "_skips_other", not delivered(other))
+			flag("announce_" .. id .. "_start_known", type(startAt) == "number" and startAt - T0 > INSIDE + 1, startAt)
+			if type(startAt) == "number" then
+				at(startAt - INSIDE - 2) -- still outside the lead
+				flag("before_lead_" .. id .. "_not_yet", not delivered(name))
+				at(startAt - INSIDE)
+				flag("lead_" .. id .. "_no_event_yet", ReplicatedStorage:GetAttribute("BossEventBoss") == nil)
+				flag("lead_" .. id .. "_delivers_own", delivered(name))
+				flag("lead_" .. id .. "_skips_other", not delivered(other))
+			end
+			clockAt = T0
 
 			-- An admin start and a paid spawn (no id: Hooks.PickBoss) of X, the next boss also X: the event's client copy is
 			-- X's alone.
@@ -169,12 +195,17 @@ function Tests.late_data()
 			task.wait()
 		end
 
-		-- Delivery is once and stays: announcing the other boss later leaves the first one's copy.
+		-- Delivery is once and stays: the other boss's lead later leaves the first one's copy.
 		clearPoses()
-		pick("boss_mage")
-		S.Reset(T0)
-		pick("boss_raga")
-		S.Reset(T0)
+		for _, id in { "boss_mage", "boss_raga" } do
+			pick(id)
+			clockAt = T0
+			S.Reset(T0)
+			local startAt = ReplicatedStorage:GetAttribute("BossEventNextAt")
+			if type(startAt) == "number" then
+				at(startAt - INSIDE)
+			end
+		end
 		flag("delivered_mage_stays", delivered("BossMagePoses"))
 		flag("then_raga_delivered", delivered("BossRagaPoses"))
 	end)
