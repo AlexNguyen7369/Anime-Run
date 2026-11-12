@@ -474,7 +474,54 @@ def arrows(rig, spin):
 		mk.lamp(ea @ Vector((0, 0, rig.drums["Ea_Drum2"][0])), (0.5, 0.9, 1.0), 2e3, 2)
 
 
-def build_fx(rig, names, seed):
+def wind_turns(t):
+	"""Turns the swirl has made by t s on the move's clock: 1 turn per 0.8 s up to 1.45 s, speeding to 1 per 0.35 s at 2.75 s (proposed)."""
+	a, b, ra, rb = 1.45, 2.75, 1 / 0.8, 1 / 0.35
+	if t <= a:
+		return t * ra
+	u = min(t, b) - a
+	return a * ra + u * ra + (rb - ra) * u * u / (2 * (b - a)) + max(t - b, 0) * rb
+
+
+def wind(rig, t, view):
+	"""Ea's white wind: helix ribbons round the line from his feet to Ea's tip, turned by wind_turns(t), more, tighter and with more
+	turns as the charge grows. Thicker and brighter toward the tip, faded at both ends. Pieces on the camera's side of the axis are
+	thin and faint so they never hide his pose (view: toward the camera); the first ribbon is pink, so the turn reads key to key."""
+	k = rig.k
+	ea = rig.parts["Ea"].matrix_world
+	g = min(max((t - 1.45) / 1.3, 0), 1)  # 0 early charge, 1 the peak
+	n, turns = 4 + round(2 * g), 1.3 + 1.0 * g
+	r_low, r_high = (4.2 - 0.9 * g) * k, (1.9 - 0.4 * g) * k
+	body = be.world_verts([rig.parts[b] for b in BODY])
+	base = Vector((float(body[:, 0].mean()), float(body[:, 1].mean()), float(body[:, 2].min())))
+	axis = ea @ Vector((0, 0, rig.tip)) - base
+	e1 = axis.orthogonal().normalized()
+	e2 = axis.normalized().cross(e1)
+	toward = (view or Vector((0, -1, 0))).normalized()
+	spin = math.tau * wind_turns(t)
+
+	def ribbon(phase, s0, length, width, pieces, rgb, glow=2.5):
+		ss = np.linspace(s0, s0 + length, pieces * 4 + 1)
+		for j in range(pieces):
+			seg = ss[j * 4 : j * 4 + 5]
+			u = (j + 0.5) / pieces
+			env = math.sin(math.pi * u) ** 0.7
+			s_mid = float(seg[2])
+			pts = [base + axis * s + (e1 * math.cos(phase + math.tau * turns * s) + e2 * math.sin(phase + math.tau * turns * s)) * (r_low + (r_high - r_low) * s) for s in seg]
+			near = (pts[2] - (base + axis * s_mid)).dot(toward) > 0
+			w = width * (0.35 + 0.65 * s_mid) * env * (0.35 if near else 1)
+			alpha = round(min(1, env * (0.45 + 0.55 * s_mid) * (0.5 if near else 1)), 1)
+			if alpha > 0:
+				mk.tube(pts, max(w, 0.008 * k), mk.glow_mat("Wind", rgb, glow, alpha))
+
+	for i in range(n):
+		ribbon(math.tau * i / n + spin, 0.04 + 0.12 * (i % 2), 0.82, (0.09 - 0.025 * g) * k, 14, *(((1.0, 0.3, 0.42), 1.4) if i == 0 else ((1.0, 0.93, 0.92), 2.5)))
+	for j in range(4 + 4 * round(g)):  # short dashes between the ribbons, climbing with time
+		s0 = ((j * 0.37 + wind_turns(t)) % 1.0) * 0.8 + 0.08
+		ribbon(math.tau * (j * 0.61) + spin + math.pi / n, s0, 0.05, 0.035 * k, 1, (1.0, 0.93, 0.92))
+
+
+def build_fx(rig, names, seed, t=0.0, view=None):
 	rng = random.Random(seed)
 	k, s = rig.k, SIZE / 4
 	ea = rig.parts["Ea"].matrix_world
@@ -508,12 +555,8 @@ def build_fx(rig, names, seed):
 			mk.lamp(g + axis * 1.5 * k, GOLD, 3e4 * s * s, 4)
 		elif kind == "arrows":
 			arrows(rig, True)
-		elif kind == "wind":  # pale spirals rising round him and up the pillar
-			top = (ea @ Vector((0, 0, rig.tip))).z - rig.stand
-			for i in range(8):
-				r0, a0 = rng.uniform(4.5, 8.0) * k, rng.uniform(0, math.tau)
-				pts = [Vector((r0 * (1 - 0.5 * t) * math.cos(a0 + t * 5.5), r0 * (1 - 0.5 * t) * math.sin(a0 + t * 5.5), rig.stand + t * top * 1.1)) for t in np.linspace(0, 1, 40)]
-				mk.tube(pts, 0.05 * k, mk.glow_mat("Wind", (1.0, 0.72, 0.68), 1.6, 0.45))
+		elif kind == "wind":
+			wind(rig, t, view)
 		elif kind == "charge":
 			tip = ea @ Vector((0, 0, rig.tip))
 			mk.ball(tip, 0.5 * k, mk.glow_mat("TipGlow", RED, 6, 0.6))
@@ -600,7 +643,7 @@ JMOVES = {
 			{"t": 0.0, "cap": "Idle key 0: arms folded, hovering, legs loose; Ea rises out of a gold ripple behind his right side", "fx": ["draw"], **IDLE0, "ea": EA_OUT, "spin": 0},
 			{"t": 0.45, "cap": "Anticipation: unfolds and curls down, hips turn right, right hand drops to Ea's hilt, knees tuck, eyes up", "fx": ["draw"], "root": (-0.15, 0.1, -0.35), "body": (0, 0, -16), "torso": (20, -10, -20), "head": (-14, 4, 16), "RightArm": {"aim": (-2.3, 0.7, 2.6), "pole": (-0.5, 1, 0)}, "LeftArm": {"aim": (1.3, -1.8, 3.3), "pole": (1, 0.5, -0.5)}, "LeftLeg": {"hip": (-40, 0, -4), "knee": 70}, "RightLeg": {"hip": (-15, 0, 6), "knee": 55}, "key": (8, 0, 0), "ea": {"dir": (-0.2, 0.3, 1)}, "spin": 0},
 			{"t": 0.95, "cap": "Raise, overshoot: Ea flung up on one straight arm past the top, chest arched open, left arm thrown out, legs trail", "fx": ["arrows"], "root": (0.1, 0.1, 0.35), "body": (0, 4, 10), "torso": (-22, 8, 12), "head": (-30, 4, -6), "RightArm": {"aim": (-2.0, 0.8, 5.8)}, "LeftArm": {"aim": (3.3, -0.4, 2.6)}, "LeftLeg": {"hip": (10, 0, -6), "knee": 15}, "RightLeg": {"hip": (22, 0, 8), "knee": 35}, "key": (-8, 0, 0), "ea": {"dir": (-0.25, 0.45, 1)}, "spin": 60},
-			{"t": 1.45, "cap": "Settle, charge holds: Ea back upright, left fist braced low, white ball and red rings at the tip, grooves glow", "fx": ["arrows", "charge", "ball:0.5"], "root": (0, 0, 0.25), "body": (0, 0, 4), "torso": (-10, 4, 6), "head": (-20, 0, -4), "RightArm": {"aim": (-1.8, -0.2, 6.0)}, "LeftArm": {"aim": (2.5, -1.2, 2.3)}, "LeftLeg": {"hip": (-6, 0, -4), "knee": 25}, "RightLeg": {"hip": (12, 0, 6), "knee": 40}, "key": (-4, 0, 0), "ea": {"dir": (-0.1, 0.05, 1)}, "spin": 200},
+			{"t": 1.45, "cap": "Settle, charge holds: Ea back upright, left fist braced low, white ball and red rings at the tip, grooves glow", "fx": ["arrows", "wind", "charge", "ball:0.5"], "root": (0, 0, 0.25), "body": (0, 0, 4), "torso": (-10, 4, 6), "head": (-20, 0, -4), "RightArm": {"aim": (-1.8, -0.2, 6.0)}, "LeftArm": {"aim": (2.5, -1.2, 2.3)}, "LeftLeg": {"hip": (-6, 0, -4), "knee": 25}, "RightLeg": {"hip": (12, 0, 6), "knee": 40}, "key": (-4, 0, 0), "ea": {"dir": (-0.1, 0.05, 1)}, "spin": 200},
 			{"t": 2.1, "cap": "Charge, strain: he rises and leans back into the wind, left forearm shields his face, legs blown back, drums faster", "fx": ["arrows", "wind", "charge", "ball:0.9"], "root": (0.25, 0.15, 0.45), "body": (0, -6, 8), "torso": (-16, -6, 8), "head": (-22, -4, -8), "RightArm": {"aim": (-1.7, 0.3, 6.0)}, "LeftArm": {"aim": (0.4, -1.6, 4.4), "pole": (1, 0.3, -1)}, "LeftLeg": {"hip": (14, 0, -8), "knee": 45}, "RightLeg": {"hip": (4, 0, 10), "knee": 20}, "key": (-8, 0, 0), "ea": {"dir": (-0.05, 0.15, 1)}, "spin": 450},
 			{"t": 2.75, "cap": "Wind-up: Ea cocked far back behind his head, left arm points at the arena, back arched, left knee drawn up, at his highest", "fx": ["arrows", "wind", "charge", "ball:1.4", "gather"], "root": (0, 0.35, 0.6), "body": (0, 0, -20), "torso": (-26, 0, -10), "head": (-8, 0, 8), "RightArm": {"aim": (-1.4, 1.2, 5.0), "pole": (-1, 0, -0.3)}, "LeftArm": {"aim": (1.6, -1.8, 4.0)}, "LeftLeg": {"hip": (-75, 0, -6), "knee": 95}, "RightLeg": {"hip": (18, 0, 6), "knee": 60}, "key": (-12, 0, 0), "ea": {"dir": (-0.1, 0.9, 0.45)}, "spin": 720},
 			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.15)}, "spin": 820},
@@ -792,7 +835,7 @@ def run_move(scene, rig, name, move):
 			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
 			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
 			clip = sp * 3 - sp * 0.75
-		build_fx(rig, key.get("fx", []), seed=100 + i)
+		build_fx(rig, key.get("fx", []), seed=100 + i, t=key["t"], view=yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))))
 		look(scene, rig, "dark" if name.startswith("enuma") else "flat")
 		cell = {}
 		wide_only = [o for o in FX.objects if o.get("wide_only")]
