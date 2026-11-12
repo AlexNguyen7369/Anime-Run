@@ -8610,6 +8610,7 @@ end
 -- The Elf Mage, the second boss (UiBossMage; design doc 4.37 "Second boss"). No new local: K.bossMage.
 K.bossMage = require(script.Parent.UiBossMage).Build({
 	check = check,
+	checkList = checkList,
 	find = findPath,
 	visible = effectivelyVisible,
 	rect = realRect,

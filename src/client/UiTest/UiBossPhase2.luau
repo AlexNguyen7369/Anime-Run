@@ -372,10 +372,8 @@ function Module.Build(h)
 				last = size
 			end
 			-- Owner 2026-11-11: the drop list is hidden for now, so Phase 2's rate spill is not shown.
+			-- Read on to the old cascade's deadline, past BossWaitCamera's 0.5 s return, as before the list was hidden.
 			dropSeen = dropSeen or shown(DROP)
-			if remaining <= 0 then
-				break
-			end
 			task.wait()
 		end
 		checkGrowth(res, "growth", samples)

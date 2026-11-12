@@ -517,13 +517,16 @@ function Tests.make()
 		end
 		-- A fighter in her event, every move of hers before the slot passed in the wait, the golem just up. Her and the golem's
 		-- damage held at 0, so it stands until a test kills it. Returns the player, the run and BossMinionStart.
-		local function golemFresh(p)
+		local function golemFresh(p, ids)
 			p = p or fighter()
 			begin(MAGE)
 			S.Hooks.DamageMulti = function()
 				return 0
 			end
 			S.Join(p)
+			if ids then
+				S.SetTeam(p, ids)
+			end
 			to(FIGHT)
 			local run = log.Runs[p]
 			spareUntil(run, FIGHT + SLOT + 0.05)
@@ -596,7 +599,8 @@ function Tests.make()
 		end)
 
 		golemSection("golem_attacks", function()
-			local p, run, ms = golemFresh()
+			-- A full line of 3 (trio), so every slot pays.
+			local p, run, ms = golemFresh(trio())
 			local stamina = 100
 			for k = 1, 4 do
 				local at, name = ms - T0 + golemTau(k), golemName(k)
