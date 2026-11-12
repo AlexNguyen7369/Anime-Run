@@ -1672,7 +1672,7 @@ local function render()
 	hud.Visible = inEvent and phase == "Prep" and not hudClosed and not panelOpen
 	editTeam.Visible = inEvent and phase == "Prep" and hudClosed and not panelOpen
 	bar.Visible = inFight
-	dropList.Visible = inFight and warningUntil == 0 and not panelOpen
+	dropList.Visible = false -- owner 2026-11-11: hidden for now (BOSS_EVENT_SPEC "Drop list"); still built for its return
 	warning.Visible = inFight and warningUntil > 0 and not panelOpen
 	leave.Visible = inEvent and phase ~= nil and not panelOpen
 
