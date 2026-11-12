@@ -2,6 +2,14 @@
 
 History: `current_progress.md`, `git log`.
 
+## RESUME HERE (2026-11-12, power-up tuning): committed on `feature/alex/powerup-tune` (02dc5b2), not pushed
+- Owner 2026-11-12: Stamina power-up gives 3 s, 2 s past Track 5; Speed is a x1.2 turbo boost for 2 s. Rules written with the date in design doc 4.44 and 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC, OWNER_QUESTIONS (risk line recomputed: a Secret at 800 covers 1,920 studs in 2 s).
+- Code: `PowerUpConfig` `SPEED_MULTI 1.2`, `SPEED_SECONDS 2`, `STAMINA_SECONDS 3`, `STAMINA_SECONDS_LATE 2`, `LATE_FROM_TRACK 6`, `StaminaSeconds(trackNumber)`; `RaceService` uses it by `race.Number`; `PowerUpView` ring label "+3" / "+2" from the set event's `Track`; `PowerUpTests` updated (new `powerups_stamina_seconds_by_track`, Secret check reads `SPEED_MULTI`).
+- Studio: `powerups` 23/23 fail=0 (max_dt 0.044). Rojo 34873 serves the main checkout on this branch (started this session, background). Rojo had synced 3 of the 4 files; `PowerUpTests` was written into Studio by `execute_luau` with the repo's exact content. Studio left in Edit, `CarTestOnly` / `CarTestRun` cleared.
+- Not seen live: the ring label and HUD badge drain at 2 s on a real run; `stamina` / `race` / `track_loading` scenarios not re-run (owner rule: targeted tests only).
+- Next: push the branch, PR into main, fresh review, merge; then the owner plays.
+- The main checkout was detached at 63a3810 (`hotfix/boss-vfx-kit-start`, in main) before this; the branch was cut from there.
+
 ## RESUME HERE (2026-11-11, orchestrator): goal `boss-king`, The Golden King: VERIFIED in Studio, audit round 2 running, PR next
 - PR #10 https://github.com/AlexNguyen7369/Anime-Run/pull/10: fresh review 1 CHANGES (2 blocking, fixed a520242: vault-only palette keys crashed the plain colosseum build; chest reveal hardcoded side_raga), fresh review 2 APPROVE. Waiting for #8/#9 to merge into main, then `gh pr edit 10 --base main` and `gh pr merge 10 --merge`, then goal boss-king Status: done. Non-blocking notes kept: BossDodgeUi snap (OWNER_QUESTIONS 23), LateDataTests per-boss delivery for the king untested, move names (Gates of Babylon, Enuma Elish, Key of Babylon, Ea) ship as in-game text per the owner's 4.37 wording.
 - 2026-11-12: owner (relayed): no full harness, merge now. `feature/alex/boss-mage` c50a8b8 merged into `feature/alex/boss-king` (556434f, dbe1e86; poses moved to `src/late/BossKingPoses.luau` on the lazy LateData path; stylua/selene/rojo green; NOT run in Studio after the merge). PR #10 open, base `feature/alex/boss-mage` (stacked on #9; retarget to main when #8 and #9 merge); fresh reviewer running. Owner plays from king-int via Rojo 34873 (the other orchestrator switches it).

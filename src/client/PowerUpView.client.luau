@@ -21,7 +21,7 @@ local TURN = math.pi * 2 / 4 -- rad/s: one turn per 4 s
 local BREATH = 1.6 -- s per glow breath
 local POP_SECONDS = 0.25
 local POP_SCALE = 1.4
-local SYMBOL = { Speed = "»", Stamina = "+5" } -- plain text symbol, no image asset
+local SYMBOL = { Speed = "»" } -- plain text symbol, no image asset; Stamina shows its seconds for the track
 
 local folder = Instance.new("Folder")
 folder.Name = "PowerUps"
@@ -60,8 +60,9 @@ local function part(model, props)
 end
 
 -- One ring at `feet` (the rail's pose at its distance), facing along the lane.
-local function build(entry, feet)
+local function build(entry, feet, track)
 	local color = PowerUpConfig.COLORS[entry.Kind] or Color3.new(1, 1, 1)
+	local symbol = entry.Kind == "Stamina" and ("+" .. PowerUpConfig.StaminaSeconds(track)) or SYMBOL[entry.Kind] or ""
 	local model = Instance.new("Model")
 	model.Name = "PowerUp" .. entry.Id
 	local base = feet * CFrame.new(0, HEIGHT, 0)
@@ -88,7 +89,7 @@ local function build(entry, feet)
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.fromScale(1, 1)
-	label.Text = SYMBOL[entry.Kind] or ""
+	label.Text = symbol
 	label.TextScaled = true
 	label.Font = Enum.Font.GothamBlack
 	label.TextColor3 = color
@@ -123,7 +124,7 @@ local function show(ev)
 	end
 	for _, entry in ev.List do
 		if type(entry) == "table" and type(entry.Dist) == "number" and not entry.Taken then
-			build(entry, (PathDriver.PoseAt(route.Wps, route.Arc, entry.Dist, nil, route.Closed)))
+			build(entry, (PathDriver.PoseAt(route.Wps, route.Arc, entry.Dist, nil, route.Closed)), ev.Track)
 		end
 	end
 end

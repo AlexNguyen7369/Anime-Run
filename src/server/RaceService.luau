@@ -716,7 +716,7 @@ function RaceService.NewRun(car, raceRoute, player, options)
 						publish()
 					elseif staminaMode and seconds[run.Slot] then
 						-- no clamp at 100: the extra seconds drain first, the bar stays full (owner 2026-11-11)
-						run.Stamina[run.Slot] += PowerUpConfig.STAMINA_SECONDS * 100 / seconds[run.Slot]
+						run.Stamina[run.Slot] += PowerUpConfig.StaminaSeconds(race.Number) * 100 / seconds[run.Slot]
 						publishStamina()
 					end
 					runEvent({ Kind = "PowerUpTaken", Id = p.Id, Type = p.Kind, Track = race.Number })

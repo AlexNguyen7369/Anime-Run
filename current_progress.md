@@ -175,8 +175,9 @@
 171. 2026-11-12 — Alex Nguyen — Merged PR #8 feature/alex/anime-world into main (4f9e2dc) after a fresh merge review APPROVE: Tab tilt HUD and wider panels, boss screens, plaza accents, pay at each checkpoint, Sakura gate loading screen, Dojos removed with the one-time refund, Spawn showpiece C, track power-ups.
 172. 2026-11-12 — Alex Nguyen — Merged PR #9 feature/alex/boss-mage into main (722e3f9) after a fresh merge review APPROVE: The Elf Mage and her follow-ups, per-boss late data, Team button and panel, Team icon N3.
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
+174. 2026-11-12 — Alex Nguyen — Tuned track power-ups down on the owner's word (02dc5b2, branch feature/alex/powerup-tune): Speed x1.2 for 2 s (was x1.5 for 3 s), Stamina +3 s on Tracks 1-5 and +2 s past Track 5 (was +5 s); design doc 4.44 / 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC and the ring label updated; `powerups` 23/23 in Studio.
 
 ## What's next
-**Retarget PR #10 (`feature/alex/boss-king`) to main and merge it on the fresh APPROVE, then close goal boss-king and the owner plays `/boss king` on main.**
+**Push `feature/alex/powerup-tune` and open its PR into main so the owner can play the tuned power-ups.**
 
-**Why this is next:** #8 and #9 are in main, so #10's diff is The Golden King alone and its fresh review already approved it; merging it is the last gate of the goal.
+**Why this is next:** the tuning is committed and green in Studio but only on a local branch; main (and the Rojo build the owner plays) still runs the old x1.5 / +5 s values until it merges.
