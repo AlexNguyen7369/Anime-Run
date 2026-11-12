@@ -1824,16 +1824,19 @@ Model.HudChrome = {
 }
 -- Client/BossEventUi placeBossButton (design doc 4.40 "Market pill and Bosses button"): BossButton is HudChrome's
 -- Cell x k (k = phone and HudChrome.Phone or 1, owner 2026-11-11), written into its Size (its first UIScale is
--- PulseScale). Owner 2026-11-12 (replaces the 2026-11-11 placement under the top bar / at the left column's x): in the
--- top bar's row right after Roblox's last button, at (TopbarInset.Min.X + Gap, TopbarInset.Min.Y + Top) on every
--- screen (its ScreenGui ignores the inset). Gap and Top are proposed. Its Icon is in scale.
-Model.BossButton = { Path = "RacerBossEvent/BossButton", Gap = 6, Top = 6 }
--- BossButton's Size and Position at a viewport, from the live GuiService.TopbarInset `inset` (a Rect).
-function Model.BossButtonPlace(viewport, inset)
+-- PulseScale). Owner 2026-11-12, from a screenshot (replaces the 2026-11-11 placement under the top bar and the same
+-- day's top-bar idea): a second column right of the Grid, Gap px past its right edge (Grid x + Cell.X x k), half a row
+-- down: centred on the gap between Index and Items, (GridGap + Cell.Y) x k / 2 above the Grid's middle (Grid anchor
+-- (0, 0.5)). Gap is proposed. Its ScreenGui ignores the inset; its Icon is in scale.
+Model.BossButton = { Path = "RacerBossEvent/BossButton", Grid = "HudChrome/Grid", Gap = 8, GridGap = 8 }
+-- BossButton's Size and Position at a viewport (`_inset`, the live GuiService.TopbarInset, unused since 2026-11-12).
+function Model.BossButtonPlace(viewport, _inset)
 	local cfg, hud = Model.BossButton, Model.HudChrome
 	local k = viewport.Y <= Model.PHONE_MAX_HEIGHT and hud.Phone or 1
-	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k),
-		UDim2.fromOffset(inset.Min.X + cfg.Gap, inset.Min.Y + cfg.Top)
+	local grid = hud.HolderPositions[cfg.Grid][Model.VariantOf(viewport)]
+	local mid = viewport.Y * grid.Y.Scale + grid.Y.Offset - (cfg.GridGap + hud.Cell.Y) * k / 2
+	local x = grid.X.Offset + hud.Cell.X * k + cfg.Gap
+	return UDim2.fromOffset(hud.Cell.X * k, hud.Cell.Y * k), UDim2.fromOffset(x, mid - hud.Cell.Y * k / 2)
 end
 -- HudChrome's UIScale "Scale" factor of the node at `path` at a viewport, or nil when it is not a HudChrome holder.
 function Model.HudChromeScale(path, viewport)

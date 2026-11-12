@@ -38,10 +38,12 @@
 --     4.40 "Market pill and Bosses button"). Child Glow: a UIStroke or a GuiObject. Child UIScale named PulseScale (UiSpec.TransientScales), whose
 --     Scale changes until teleporting closes, still with reduced motion. Owner 2026-11-11: its size, Icon size and top offset and
 --     its label's font and on-screen TextSize equal HudChrome/Grid/Index's (cell, Icon, Label) at the same viewport. Owner
---     2026-11-12: it sits in Roblox's top bar row, right after Roblox's last button, at every viewport: its left edge, at
---     every pulse scale, 0..BUTTON_MAX_GAP px past GuiService.TopbarInset.Min.X; its top within -BUTTON_ROW_ABOVE..
---     BUTTON_ROW_BELOW px of TopbarInset.Min.Y. At BUTTON_PULSE it overlaps neither the Grid, the shown roll
---     (RollToast/Toast) nor the shown Money / Gems readout. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
+--     2026-11-12: it sits in a second column right of HudChrome/Grid, at every viewport: its left edge, at every pulse
+--     scale, 0..BUTTON_MAX_GAP px past the Grid's right edge; its centre within BUTTON_MID_TOL px of the midpoint of the
+--     Index and Items cells' centres. At BUTTON_PULSE it overlaps neither Index, Items, Rebirth (their shown Key letters
+--     and Badges included), the shown roll (RollToast/Toast), the shown Money / Gems readout, the shown HudChrome/TopRight
+--     pills, nor a panel frame at its standard place (UiResponsive.RacerPanelFit in UiShopMarket.Band). The cell below
+--     it (Team, later) is not judged. A press only toggles BossesPanel, in every state, and never teleports (owner rule). In an event the panel's Status
 --     card Cards/Card_<boss> has State "Live" and its Go (owner 2026-11-11, replaces the Status line and BossAction): with no Sidekick it fires nothing and BossPrompt shows text with
 --     "sidekick"; past the close it fires nothing and BossPrompt shows "Teleporting closed". Before a press, no such text shows.
 --   Idle (docs/BOSS_EVENT_SPEC.md "Paid spawn"): BossesPanel is the paid spawn, judged by UiBossPaid, so idle checks here skip it.
@@ -75,6 +77,8 @@ local Cfg = require(Shared:WaitForChild("BossEventConfig"))
 local Arena = require(Shared:WaitForChild("BossArenaConfig"))
 local RelicConfig = require(Shared:WaitForChild("RelicConfig"))
 local Spec = require(script.Parent.UiSpec)
+local Responsive = require(script.Parent.UiResponsive)
+local ShopMarket = require(script.Parent.UiShopMarket)
 local RunnerVisual = require(script.Parent.Parent:WaitForChild("RunnerVisual"))
 local UiTheme = require(Shared:WaitForChild("UiTheme"))
 local SidekickArt = require(Shared:WaitForChild("SidekickArt"))
@@ -156,13 +160,15 @@ local INVITE_EARLY, INVITE_LATE = 0.5, 1 -- s around InviteSeconds, from the req
 local PULSE_SAMPLE = 2 -- s the button's pulse is watched
 local PULSE_MIN_SPREAD = 0.02 -- of its Scale: "pulses in size"
 local STILL_MAX_SPREAD = 0.001
-local BUTTON_MAX_GAP = 16 -- px past TopbarInset.Min.X: "right next to" Roblox's last button (owner 2026-11-12)
-local BUTTON_ROW_ABOVE, BUTTON_ROW_BELOW = 2, 12 -- px around TopbarInset.Min.Y: "level with Roblox's buttons"
+local BUTTON_MAX_GAP = 24 -- px past the left column's right edge: "directly right of" it (owner 2026-11-12)
+local BUTTON_MID_TOL = 12 -- px off the Index / Items centres' midpoint: "half a row down" (owner 2026-11-12)
 local BUTTON_PULSE = 1.08 -- the join pulse's biggest Scale (BossEventUi PULSE_SCALE): the button must have room for it
 local ROLL = "RollToast/Toast" -- the top-centre roll (compact)
 local MONEY = "RacerHud/Money" -- the Money / Gems readout (Gems sits inside Money)
 local GRID = "HudChrome/Grid"
 local COLUMN_BUTTON = GRID .. "/Index" -- a HUD column button (Client/HudChrome)
+local COLUMN_CELLS = { "Index", "Items", "Rebirth" } -- the left column, top to bottom
+local TOP_RIGHT = "HudChrome/TopRight" -- the Daily, Market and Settings pills
 
 local Module = {}
 
@@ -609,7 +615,6 @@ function Module.Build(h)
 		checkColumnSizes(res, tag, b, bossIcon)
 	end
 	local function checkButtonPlace(res)
-		local inset = GuiService.TopbarInset
 		local spread, left, bottom = watchPulse(PULSE_SAMPLE)
 		h.check(
 			res,
@@ -618,8 +623,8 @@ function Module.Build(h)
 			">= " .. PULSE_MIN_SPREAD,
 			spread ~= nil and spread >= PULSE_MIN_SPREAD
 		)
-		-- Design doc 4.40: in Roblox's top bar row right after its last button (owner 2026-11-12); clear of the left
-		-- column, the roll and the Money / Gems readout
+		-- Design doc 4.40 (owner 2026-11-12): a second column right of the left column, half a row down; clear of the
+		-- column's cells and badges, the roll, the Money / Gems readout, the top-right pills and a standard panel
 		local button = h.find(BUTTON)
 		local rest = button and h.rect(button)
 		local pulse = button and button:FindFirstChild("PulseScale")
@@ -628,33 +633,123 @@ function Module.Build(h)
 		local restW = rest and rest.w / p or 0
 		local grid = h.find(GRID)
 		local gridRect = grid and h.rect(grid)
-		-- Owner 2026-11-12 (4.40) replaces "left-aligned with the left column": left edge at TopbarInset.Min.X plus the gap
+		local cells = {}
+		for i, name in COLUMN_CELLS do
+			local o = grid and grid:FindFirstChild(name)
+			cells[i] = o and o:IsA("GuiObject") and o or nil
+		end
+		-- Owner 2026-11-12 (4.40) replaces "just below the top bar / left-aligned with the left column / right of
+		-- Roblox's buttons": the left edge sits a small gap past the left column's right edge
+		local gridRight = gridRect and gridRect.x + gridRect.w
 		h.check(
 			res,
-			"button_after_roblox_buttons",
+			"button_right_of_left_column",
 			left or "no PulseScale",
-			("%.1f..%.1f"):format(inset.Min.X, inset.Min.X + BUTTON_MAX_GAP),
-			left ~= nil and left >= inset.Min.X and left <= inset.Min.X + BUTTON_MAX_GAP
+			gridRight and ("%.1f..%.1f"):format(gridRight, gridRight + BUTTON_MAX_GAP) or "no " .. GRID,
+			left ~= nil and gridRight ~= nil and left >= gridRight and left <= gridRight + BUTTON_MAX_GAP
 		)
-		-- Owner 2026-11-12 (4.40) replaces "just below the top bar": top edge level with Roblox's buttons, in the bar's row
+		-- Owner 2026-11-12 (4.40): half a row down, centred on the gap between the Index and Items cells
+		local index, items = cells[1] and h.rect(cells[1]), cells[2] and h.rect(cells[2])
+		local wantMid = index and items and (index.y + index.h / 2 + items.y + items.h / 2) / 2
+		local mid = rest and rest.y + rest.h / 2
 		h.check(
 			res,
-			"button_in_top_bar_row",
-			top,
-			("%.1f..%.1f"):format(inset.Min.Y - BUTTON_ROW_ABOVE, inset.Min.Y + BUTTON_ROW_BELOW),
-			rest ~= nil and top >= inset.Min.Y - BUTTON_ROW_ABOVE and top <= inset.Min.Y + BUTTON_ROW_BELOW
+			"button_between_index_and_items",
+			mid or "no " .. BUTTON,
+			wantMid and ("%.1f +/- %d"):format(wantMid, BUTTON_MID_TOL) or "no " .. GRID .. " Index / Items",
+			mid ~= nil and wantMid ~= nil and math.abs(mid - wantMid) <= BUTTON_MID_TOL
 		)
 		-- The button's rect at the biggest pulse (it grows right and down from its top-left corner)
 		local big = left and bottom and { x = left, y = top, w = restW * BUTTON_PULSE, h = bottom - top }
 		local function overlaps(a, b)
 			return a.x < b.x + b.w and b.x < a.x + a.w and a.y < b.y + b.h and b.y < a.y + a.h
 		end
+		-- Each left column cell with its shown Key letter and Badge (they stick out of the cell)
+		for i, name in COLUMN_CELLS do
+			local cell, hit = cells[i], nil
+			if big and cell then
+				hit = overlaps(big, h.rect(cell)) and name
+				for _, o in cell:GetDescendants() do
+					if not hit and o:IsA("GuiObject") and o.Visible and overlaps(big, h.rect(o)) then
+						hit = name .. "/" .. o.Name
+					end
+				end
+			end
+			h.check(
+				res,
+				"button_clear_of_" .. name:lower(),
+				not big and "no PulseScale"
+					or not cell and "no " .. GRID .. "/" .. name
+					or hit and hit .. " overlaps"
+					or "clear",
+				"clear",
+				big ~= nil and cell ~= nil and not hit
+			)
+		end
+		-- The shown top-right pills (Daily, Market, Settings)
+		local bar = h.find(TOP_RIGHT)
+		local pillHit = nil
+		for _, o in bar and bar:GetChildren() or {} do
+			if big and not pillHit and o:IsA("GuiButton") and o.Visible and overlaps(big, h.rect(o)) then
+				pillHit = o.Name
+			end
+		end
 		h.check(
 			res,
-			"button_clear_of_left_column",
-			big and gridRect and (overlaps(big, gridRect) and "overlaps" or "clear") or "no PulseScale / " .. GRID,
+			"button_clear_of_top_right_pills",
+			not big and "no PulseScale"
+				or not bar and "no " .. TOP_RIGHT
+				or pillHit and pillHit .. " overlaps"
+				or "clear",
 			"clear",
-			big ~= nil and gridRect ~= nil and not overlaps(big, gridRect)
+			big ~= nil and bar ~= nil and not pillHit
+		)
+		-- An open panel's frame at its standard place: the 1200 x 620 frame (phone 650 x 420) fitted in today's
+		-- PanelBand from the live HUD rects (UiShopMarket.Band, UiResponsive.RacerPanelFit)
+		local function rectOf(path)
+			local o = h.find(path)
+			return o and o:IsA("GuiObject") and h.rect(o)
+		end
+		local function shownParts(holder)
+			local out = {}
+			for _, o in holder and holder:GetDescendants() or {} do
+				if o:IsA("GuiObject") and o.Visible then
+					table.insert(out, h.rect(o))
+				end
+			end
+			return out
+		end
+		local band = {
+			Race = rectOf(Spec.Band.Race),
+			Turbo = rectOf(Spec.Band.Turbo),
+			Navigation = gridRect,
+			NavigationParts = shownParts(grid),
+			ShopColumn = rectOf(Spec.Band.ShopColumn),
+			ShopColumnParts = shownParts(h.find(Spec.Band.ShopColumn)),
+			Money = rectOf(Spec.Band.Money),
+			MoneyShown = h.find(Spec.Band.Money) ~= nil and h.find(Spec.Band.Money).Visible,
+		}
+		local panel = nil
+		if band.Race and band.Turbo and band.Navigation and band.ShopColumn then
+			local vp = workspace.CurrentCamera.ViewportSize
+			local fit = Responsive.RacerPanelFit(vp, { ShopMarket.Band(vp, band) })
+			local w, ht = fit.Size.X.Offset * fit.Scale, fit.Size.Y.Offset * fit.Scale
+			panel = { x = fit.Position.X.Offset - w / 2, y = fit.Position.Y.Offset - ht / 2, w = w, h = ht }
+		end
+		h.check(
+			res,
+			"button_clear_of_panel",
+			not big and "no PulseScale"
+				or not panel and "no HUD band rects"
+				or overlaps(big, panel) and ("overlaps panel %.0f,%.0f %.0fx%.0f"):format(
+					panel.x,
+					panel.y,
+					panel.w,
+					panel.h
+				)
+				or "clear",
+			"clear",
+			big ~= nil and panel ~= nil and not overlaps(big, panel)
 		)
 		-- Hidden parts take no room: a hidden roll or readout passes, and says so.
 		for _, part in { { "button_clear_of_roll", ROLL }, { "button_clear_of_money", MONEY } } do
