@@ -894,6 +894,32 @@ JMOVES["shields"] = {
 for _k in JMOVES["shields"]["keys"]:  # the main view looks through the gap between two shields (the ring yaw - 30 degrees), raised
 	_a = math.radians(float(next(f for f in _k["fx"] if f.startswith("jshields")).split(":")[3]) - 30)
 	_k["view"] = (round(math.cos(_a), 3), round(math.sin(_a), 3), 0.4)
+JMOVES["fortified_idle"] = {
+	"title": "Fortified idle (rework, jointed rig, hovering): a guarded, confident hover inside the orbiting shield ring",
+	"end": 4.0,
+	"loop": True,
+	"cols": 5,
+	"look": "dark",
+	"front": (0, -1, 0.3),
+	"note": "4.0 s loop while Fortified holds: key 10 = key 1 (idle key 0); the ring orbits once per loop, 90 degrees a second (proposed; in game the ring follows BossFortified). No Dodge bar, no hit. The big view looks through the shield gap nearest his front-left, so it moves a little key to key",
+	"keys": [
+		jkey(0.0, "Idle key 0 inside the ring: arms folded, chin up"),
+		jkey(0.45, "Breath in: he leans back on the air, chin higher, legs drift forward", torso=(-6, 0, 4), head=(-14, 0, -6), **folded((0, 0.04, 0.1), (0, 0.04, 0.1)), LeftLeg={"hip": (-16, 0, -3), "knee": 30}, RightLeg={"hip": (-6, 0, 4), "knee": 36}, key=(3, 0, 0)),
+		jkey(0.9, "His eyes follow a shield past his left shoulder, hips roll after them", root=(0.03, 0, 0.02), body=(0, -2, 3), torso=(-4, 2, 8), head=(-10, -2, 24), **folded((0, 0, 0.06), (0, 0, 0.06)), LeftLeg={"hip": (-10, 0, -5), "knee": 24}, RightLeg={"hip": (-8, 0, 3), "knee": 34}, key=(1, 0, 0)),
+		jkey(1.35, "Beckon: the right hand unfolds and offers the lanes an open palm (come, then); left arm stays across his chest", root=(0.02, 0, 0), body=(0, 0, -2), torso=(-2, 0, -8), head=(-10, 0, -10), RightArm={"aim": (-1.6, -1.5, 3.6), "pole": (-0.8, 0, -1)}, LeftArm=FOLD2["LeftArm"], LeftLeg={"hip": (-6, 0, -4), "knee": 26}, RightLeg={"hip": (4, 0, 5), "knee": 40}, key=(0, 0, 0)),
+		jkey(1.8, "Beckon flick: forearm curls up toward him, head tilts, a smirk", root=(0, 0, 0.02), body=(0, 1, -3), torso=(-3, -2, -10), head=(-12, 3, -6), RightArm={"aim": (-1.4, -1.2, 4.2), "pole": (-0.8, 0.2, -1)}, LeftArm=FOLD2["LeftArm"], LeftLeg={"hip": (-4, 0, -4), "knee": 30}, RightLeg={"hip": (8, 0, 5), "knee": 44}, key=(-1, 0, 0)),
+		jkey(2.2, "Refold: the arm folds back over the left, weight drifts onto his left leg", root=(0.04, 0, -0.01), body=(0, -4, 0), torso=(2, -2, -2), head=(-8, -4, 6), **folded((0.04, 0, 0.02), (0, 0, 0)), LeftLeg={"hip": (2, 0, -4), "knee": 34}, RightLeg={"hip": (-12, 0, 4), "knee": 24}, key=(-1, 0, 0)),
+		jkey(2.65, "Breath in again, chest out, looking down his nose", root=(0.02, 0, 0.03), body=(0, -2, 0), torso=(-5, 0, -2), head=(-13, 0, -2), **folded((0, 0.03, 0.1), (0, 0.03, 0.1)), LeftLeg={"hip": (-6, 0, -4), "knee": 28}, RightLeg={"hip": (-8, 0, 4), "knee": 28}, key=(2, 0, 0)),
+		jkey(3.1, "Glance down at the runners on his right, hips counter-turn", root=(-0.02, 0, 0.01), body=(0, 2, -3), torso=(2, -2, -6), head=(0, 2, -22), **folded((0, 0, 0.04), (0, 0, 0.04)), LeftLeg={"hip": (-12, 0, -2), "knee": 22}, RightLeg={"hip": (2, 0, 6), "knee": 34}, key=(1, 0, 0)),
+		jkey(3.55, "Settle: head back to the front, weight back on his right leg", root=(-0.01, 0, 0), body=(0, 1, -1), torso=(2, 0, 3), head=(-6, 0, -10), **folded((0, -0.02, -0.02), (0, -0.02, -0.02)), LeftLeg={"hip": (-6, 0, -3), "knee": 24}, RightLeg={"hip": (4, 0, 4), "knee": 32}, key=(-1, 0, 0)),
+		jkey(4.0, "Loop = idle key 0: arms folded, the ring one full turn round"),
+	],
+}
+for _k in JMOVES["fortified_idle"]["keys"]:  # the ring at 90 degrees a second; the main view through the gap nearest 330 degrees
+	_y = 90.0 * _k["t"]
+	_k["fx"] = [f"jshields:1:ring:{_y:g}"]
+	_g = _y + 30 + 60 * round((330 - (_y + 30)) / 60)
+	_k["view"] = (round(math.cos(math.radians(_g)), 3), round(math.sin(math.radians(_g)), 3), 0.35)
 
 
 def two_bone(J, L1, L2, T, pole):

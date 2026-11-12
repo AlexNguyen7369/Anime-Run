@@ -3755,6 +3755,913 @@
      ]
     }
    ]
+  },
+  "fortified_idle": {
+   "title": "Fortified idle (rework, jointed rig, hovering): a guarded, confident hover inside the orbiting shield ring",
+   "end": 4.0,
+   "loop": true,
+   "keys": [
+    {
+     "t": 0.0,
+     "caption": "Idle key 0 inside the ring: arms folded, chin up",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:0"
+     ]
+    },
+    {
+     "t": 0.45,
+     "caption": "Breath in: he leans back on the air, chin higher, legs drift forward",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       -6.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -14.0,
+       -0.0,
+       -6.0
+      ],
+      "Key": [
+       3.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -46.046,
+       15.436,
+       61.086
+      ],
+      "RightLowerArm": [
+       -44.992,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperArm": [
+       -56.362,
+       -20.825,
+       -56.356
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -16.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -6.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       36.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:40.5"
+     ]
+    },
+    {
+     "t": 0.9,
+     "caption": "His eyes follow a shield past his left shoulder, hips roll after them",
+     "root_offset": [
+      0.03,
+      0,
+      0.02
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -2.0,
+       3.0
+      ],
+      "Torso": [
+       -4.0,
+       2.0,
+       8.0
+      ],
+      "Head": [
+       -10.0,
+       -2.0,
+       24.0
+      ],
+      "Key": [
+       1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -48.695,
+       16.173,
+       60.461
+      ],
+      "RightLowerArm": [
+       -38.677,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.576,
+       -21.244,
+       -55.97
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -10.0,
+       0.0,
+       -5.0
+      ],
+      "LeftLowerLeg": [
+       24.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -8.0,
+       0.0,
+       3.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:81"
+     ]
+    },
+    {
+     "t": 1.35,
+     "caption": "Beckon: the right hand unfolds and offers the lanes an open palm (come, then); left arm stays across his chest",
+     "root_offset": [
+      0.02,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       -2.0
+      ],
+      "Torso": [
+       -2.0,
+       -0.0,
+       -8.0
+      ],
+      "Head": [
+       -10.0,
+       0.0,
+       -10.0
+      ],
+      "Key": [
+       -0.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -42.915,
+       38.637,
+       2.291
+      ],
+      "RightLowerArm": [
+       -61.23,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       26.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       40.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:121.5"
+     ]
+    },
+    {
+     "t": 1.8,
+     "caption": "Beckon flick: forearm curls up toward him, head tilts, a smirk",
+     "root_offset": [
+      0,
+      0,
+      0.02
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       1.0,
+       -3.0
+      ],
+      "Torso": [
+       -3.0,
+       -2.0,
+       -10.0
+      ],
+      "Head": [
+       -12.0,
+       3.0,
+       -6.0
+      ],
+      "Key": [
+       -1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -58.265,
+       39.473,
+       -11.113
+      ],
+      "RightLowerArm": [
+       -89.318,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -4.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       30.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       8.0,
+       0.0,
+       5.0
+      ],
+      "RightLowerLeg": [
+       44.0,
+       0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:162"
+     ]
+    },
+    {
+     "t": 2.2,
+     "caption": "Refold: the arm folds back over the left, weight drifts onto his left leg",
+     "root_offset": [
+      0.04,
+      0,
+      -0.01
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -4.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -2.0,
+       -2.0
+      ],
+      "Head": [
+       -8.0,
+       -4.0,
+       6.0
+      ],
+      "Key": [
+       -1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -54.084,
+       15.245,
+       61.247
+      ],
+      "RightLowerArm": [
+       -28.325,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       2.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       34.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -12.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       24.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:198"
+     ]
+    },
+    {
+     "t": 2.65,
+     "caption": "Breath in again, chest out, looking down his nose",
+     "root_offset": [
+      0.02,
+      0,
+      0.03
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -2.0,
+       0.0
+      ],
+      "Torso": [
+       -5.0,
+       -0.0,
+       -2.0
+      ],
+      "Head": [
+       -13.0,
+       -0.0,
+       -2.0
+      ],
+      "Key": [
+       2.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -46.672,
+       15.714,
+       60.851
+      ],
+      "RightLowerArm": [
+       -44.03,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -56.443,
+       -21.023,
+       -56.173
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       -0.0,
+       -4.0
+      ],
+      "LeftLowerLeg": [
+       28.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       -8.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       28.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:238.5"
+     ]
+    },
+    {
+     "t": 3.1,
+     "caption": "Glance down at the runners on his right, hips counter-turn",
+     "root_offset": [
+      -0.02,
+      0,
+      0.01
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       2.0,
+       -3.0
+      ],
+      "Torso": [
+       2.0,
+       -2.0,
+       -6.0
+      ],
+      "Head": [
+       -0.0,
+       2.0,
+       -22.0
+      ],
+      "Key": [
+       1.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -48.796,
+       15.997,
+       60.611
+      ],
+      "RightLowerArm": [
+       -37.412,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -55.031,
+       -21.066,
+       -56.134
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -12.0,
+       -0.0,
+       -2.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       2.0,
+       -0.0,
+       6.0
+      ],
+      "RightLowerLeg": [
+       34.0,
+       0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:279"
+     ]
+    },
+    {
+     "t": 3.55,
+     "caption": "Settle: head back to the front, weight back on his right leg",
+     "root_offset": [
+      -0.01,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       1.0,
+       -1.0
+      ],
+      "Torso": [
+       2.0,
+       0.0,
+       3.0
+      ],
+      "Head": [
+       -6.0,
+       -0.0,
+       -10.0
+      ],
+      "Key": [
+       -1.0,
+       -0.0,
+       -0.0
+      ],
+      "RightUpperArm": [
+       -51.211,
+       16.003,
+       60.605
+      ],
+      "RightLowerArm": [
+       -30.33,
+       0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.608,
+       -20.921,
+       -56.267
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       0.0,
+       0.0
+      ],
+      "LeftUpperLeg": [
+       -6.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       24.0,
+       0.0,
+       -0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       32.0,
+       -0.0,
+       -0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:319.5"
+     ]
+    },
+    {
+     "t": 4.0,
+     "caption": "Loop = idle key 0: arms folded, the ring one full turn round",
+     "root_offset": [
+      0,
+      0,
+      0
+     ],
+     "rotations": {
+      "Body": [
+       0.0,
+       -0.0,
+       0.0
+      ],
+      "Torso": [
+       2.0,
+       -0.0,
+       4.0
+      ],
+      "Head": [
+       -5.0,
+       -0.0,
+       -8.0
+      ],
+      "Key": [
+       -0.0,
+       0.0,
+       0.0
+      ],
+      "RightUpperArm": [
+       -49.185,
+       15.656,
+       60.9
+      ],
+      "RightLowerArm": [
+       -34.601,
+       -0.0,
+       0.0
+      ],
+      "LeftUpperArm": [
+       -53.961,
+       -20.718,
+       -56.454
+      ],
+      "LeftLowerArm": [
+       -1.25,
+       -0.0,
+       -0.0
+      ],
+      "LeftUpperLeg": [
+       -8.0,
+       -0.0,
+       -3.0
+      ],
+      "LeftLowerLeg": [
+       22.0,
+       -0.0,
+       0.0
+      ],
+      "RightUpperLeg": [
+       4.0,
+       -0.0,
+       4.0
+      ],
+      "RightLowerLeg": [
+       30.0,
+       -0.0,
+       0.0
+      ],
+      "Ea_Drum1": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum2": [
+       0.0,
+       0.0,
+       0
+      ],
+      "Ea_Drum3": [
+       0.0,
+       0.0,
+       0
+      ]
+     },
+     "ea_shown": false,
+     "effects": [
+      "jshields:1:ring:360"
+     ]
+    }
+   ]
   }
  },
  "rig": "jointed (build_boss_king.py -- jointed): Torso, Head, upper and lower arm and leg per side, Key, Ea; the lower arm carries the hand, the lower leg the foot",
