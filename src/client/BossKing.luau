@@ -42,19 +42,31 @@ end
 function BossKing:Step(rise, move, localTime)
 	local him = self.Him
 	if him and him.Parts and him:Show(rise ~= nil) then
-		local parts, root = Poses.Sample(move, localTime)
+		-- locs: the legs' offsets move round the hip as his body turns (the beam sweep)
+		local parts, root, locs = Poses.Sample(move, localTime)
 		local below = (1 - rise) * (Arena.BossHeight + BossColosseum.VaultMoundTop)
-		him:Pose(self.Rest - Vector3.new(0, below, 0), parts, root, 1, 0)
+		him:Pose(self.Rest - Vector3.new(0, below, 0), parts, root, 1, 0, locs)
+		-- Ea and its drums show only inside a move's EaShown window (enuma): drawn from the vault otherwise. Written every hidden
+		-- frame (4 parts), since Show's toggle makes every part visible again.
+		local eaShown = Poses.EaShown(move, localTime)
+		if not eaShown or eaShown ~= self.EaShown then
+			self.EaShown = eaShown
+			for i, row in him.Order do
+				if row.Name == "Ea" or row.Parent == "Ea" then
+					him.Parts[i].Transparency = eaShown and 0 or 1
+				end
+			end
+		end
 	end
 end
 
--- A joint's world CFrame for the effects. With no rig, or a joint the bind lacks, a frame at his chest over the heap.
-function BossKing:Frame(name)
+-- Ea's tip (Poses.EaTip from the Ea joint) in the world, the beam's origin; with no rig a point at his chest over the heap.
+function BossKing:Tip()
 	local him = self.Him
-	if him and him.Joints[name] then
-		return him:Frame(name)
+	if him and him.Joints.Ea then
+		return him:Point("Ea", Poses.EaTip)
 	end
-	return self.Rest + Vector3.new(0, Arena.BossHeight * 0.7, 0)
+	return self.Rest.Position + Vector3.new(0, Arena.BossHeight * 0.85, 0)
 end
 
 return BossKing

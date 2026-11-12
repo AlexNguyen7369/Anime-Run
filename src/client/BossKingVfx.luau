@@ -61,7 +61,7 @@ local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
 local SHARDS = 5 -- a shattering shield's pieces
 local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
 local SALT = { Portals = 1, Gates = 2, Shields = 3 }
-local TIP_HEIGHT = Arena.BossHeight * 0.85 -- where Ea is held, over his feet, until the bake names the joint
+local TIP_HEIGHT = Arena.BossHeight * 0.85 -- the portals' and shields' height over his feet; the beam starts at Ea's tip
 
 local BossKingVfx = {}
 
@@ -306,7 +306,7 @@ local function playCharge()
 		0.6
 	)
 	local function tip()
-		return king:Frame("Ea")
+		return CFrame.new(king:Tip())
 	end
 	local part = Kit.holder("EnumaWind", tip(), Vector3.new(90, 90, 90))
 	tracked[part] = tip
@@ -347,7 +347,7 @@ local function playBeam()
 	local length = Arena.WallRadius * 1.1
 	local born = os.clock()
 	local function frame(roll)
-		local origin = king:Frame("Ea").Position
+		local origin = king:Tip()
 		local a = (os.clock() - born) / BEAM * 2 * math.pi
 		local pitch = -math.atan((origin.Y - Arena.Y) / (Arena.InnerRadius + Arena.Width / 2))
 		local look = CFrame.new(origin) * CFrame.Angles(0, -a, 0) * CFrame.Angles(pitch, 0, 0)

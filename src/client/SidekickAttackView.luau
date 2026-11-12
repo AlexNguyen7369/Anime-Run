@@ -53,6 +53,7 @@ local DUST, DARK = Color3.fromRGB(216, 196, 164), Color3.fromRGB(34, 28, 40)
 local WIND, PINK = Color3.fromRGB(198, 232, 255), Color3.fromRGB(255, 150, 190)
 local BLUE, VIOLET = Color3.fromRGB(70, 110, 255), Color3.fromRGB(170, 70, 255)
 local PAGE, CURSE = Color3.fromRGB(244, 240, 226), Color3.fromRGB(120, 30, 170)
+local GOLD = Color3.fromRGB(255, 196, 64)
 
 -- Layers ---------------------------------------------------------------------------------------------------------------------------
 
@@ -340,6 +341,39 @@ local EFFECTS = {
 	},
 	-- design doc 4.37: no approved attack, so a simple shot and no pose, for the owner to rule on.
 	side_raga = { Color = RED, Plain = true },
+	-- BOSS_EVENT_SPEC "The Golden King": a small Gate volley (3 gold ripples, 3 gold streaks) and a small lightning bolt. Proposed.
+	side_king = {
+		Effect = "GateVolley",
+		Color = GOLD,
+		Core = 5,
+		Blade = 5,
+		Tilt = 0,
+		Grow = 8,
+		Sprites = { { Art.Ring, GOLD, 14, 300 } },
+		Muzzle = { sparks(HOT, GOLD, 14, 6, 0.3, 90), flying(sparks(HOT, GOLD, 0, 10, 0.3, 100), 30) },
+		Impact = {
+			flare(HOT, GOLD, 3, 90, 0.2),
+			sparks(HOT, GOLD, 30, 30, 0.5, 600),
+		},
+		Rings = { { 60, 360, 0.3, GOLD, 0 }, { 60, 360, 0.3, GOLD, 0.1 }, { 60, 420, 0.35, GOLD, 0.2 } },
+		Streaks = { { 20, 420, 26, GOLD, 0 }, { -35, 420, 26, HOT, 0.1 }, { 70, 460, 26, GOLD, 0.2 } },
+	},
+	side_mage = {
+		Effect = "LightningBolt",
+		Color = VIOLET,
+		Core = 5,
+		Blade = 4,
+		Tilt = -60,
+		Grow = 8,
+		Sprites = { { Art.Flare, WIND, 14, 600 } },
+		Muzzle = { sparks(WIND, VIOLET, 12, 5, 0.3, 90), flying(sparks(WIND, VIOLET, 0, 10, 0.25, 110), 30) },
+		Impact = {
+			flare(WIND, VIOLET, 3, 95, 0.2),
+			sparks(WIND, VIOLET, 28, 30, 0.5, 640),
+		},
+		Rings = { { 70, 480, 0.35, VIOLET, 0 } },
+		Streaks = { { 100, 520, 22, WIND, 0 }, { 80, 420, 14, VIOLET, 0.05 } }, -- the bolt down into the boss
+	},
 }
 
 -- The shot of REDUCED EFFECTS and of side_raga, in the Sidekick's colour.
