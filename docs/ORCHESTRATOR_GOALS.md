@@ -312,3 +312,18 @@ Deliverables:
 - p0 | Rules: 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC lines, OWNER_QUESTIONS entry | rules audit PASS (done, round 2 on 5298709)
 - p1 | Server roll and pickup, client rings, H2 badge, overfill seconds, `powerups` scenario | `powerups`, `stamina`, `race`, `track_loading` green; stylua / selene; live shots (done: 22 / 33 / 52 / 82 checks fail=0; shots https://claude.ai/artifact/JEqy1rJqA7gCLrfZ4gdy1d)
 Out of scope: more power-up types, boss arenas and duels, a drawn chevron / drop image (plain text symbols for now).
+
+## boss-anim-rework: Elf Mage, Stone Golem and Golden King moves re-animated on jointed rigs (owner 2026-11-12)
+Status: active
+Owner-confirmed: 2026-11-12 (plan approved: `~/.claude/plans/would-like-to-research-logical-quail.md`)
+Branch: feature/alex/boss-anim-rework (from main)
+Spec: design doc 4.37 "Animation rework", docs/BOSS_EVENT_SPEC.md "Animation rework", docs/char_evidence/boss_mage.md and boss_king.md "Owner reference clips"
+Deliverables:
+- a0 | Rules: 4.37 bullet, spec section, evidence clip notes, OWNER_QUESTIONS entry, this goal | rules audit PASS
+- a1 | Pilot, the king's `enuma` end to end: jointed `boss_king` model, new keys, bake, impact layer, pose-tied charge and beam | owner approves the model render and the key slices; then a live Studio capture; owner's verdict before a2
+- a2 | Jointed `boss_mage` model (`build_boss_mage.py`), tails in segments | renders approved; tris and part counts reported; owner's upload word
+- a3 | Key frames, one move at a time (`boss_mage_keyframes.py`, `boss_king_keyframes.py`): mage `idle`, `lightning` + window, `barrage` + window, `golem`, `watch`; golem `golem_idle`, `golem_slam`, `golem_sweep`, `golem_fall`; king `idle`, `gates` + window, `shields`, `fortified_idle` | 10 keys per move; owner approves every move's slices
+- a4 | In-betweens and bakes (`bake_boss_mage.py`, `bake_boss_king.py`) | bake asserts green, approved keys unchanged, sizes reported, durations and events unchanged
+- a5 | Impact layer (arena-wide flash and shake in `BossShake`, trails) and pose-tied effects (`BossMageVfx`, `BossKingVfx`); runners' auras and trails toned down in events (`Client/RunnerView`); tests red first | `boss_mage_anim`, `boss_king_anim`, `ui_boss_mage*`, `ui_boss_king*` green; owner look in Studio, REDUCED EFFECTS on and off
+- a6 | Compatibility: boss scenarios, `late_data`, rules audit, PR with fresh review | reported
+Out of scope: Big Raga, any change to move lengths, hit times, costs or cycles, Phase 2, new moves, Sidekick attacks.

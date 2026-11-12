@@ -156,3 +156,14 @@ Answered by the owner 2026-11-11 on the review page (https://claude.ai/artifact/
 - A second Speed during a boost resets the timer to 3 s (no stacking); the boost carries across a tag-in.
 - Risk: a Secret at 800 boosted to 1,200 studs/s covers 3,600 studs in 3 s; check the `RunHold` on Tracks 6-10 (4.25) still catches it.
 - Ring size 12 studs, 6 over the rail; turn speed one turn per 4 s and glow breath 1.6 s (owner 2026-11-11 picked turning and glowing, no ground ring).
+
+## 2026-11-12 boss-anim-rework: open items (design doc 4.37 "Animation rework")
+1. Pilot move: Enuma Elish **proposed** (it shows the rig, the charge, the hit and the beam in one move). Another move first?
+2. Uploads: the jointed `boss_king` and `boss_mage` meshes need the upload word per batch. Drawn impact frames (2 to 3 images per signature hit) are optional and need their own word.
+3. Vault part cap: the king's elbows and knees add 4 parts to a room at 1,135 of about 1,150. Reported after the build; over the cap needs a ruling (raise the cap, or merge vault dressing).
+4. The clips show the king's Enuma Elish shirtless with red markings and his Gates cast with hands in his pockets, in a jacket. The model stays in full golden armor (evidence file, 2026-11-11 choice) unless the owner asks otherwise; only the staging is taken.
+5. The clips show a honeycomb barrier and tentacle attacks. Neither is one of her moves; not built.
+6. Pose data will grow with the extra joints (`BossMagePoses` is 511 KB). Sizes reported at each bake; no cap is written.
+7. PR #13 (hotfix `BossVfx.Start`) is open and not in main; this branch starts from main without it. Merge it first, or this branch merges main again after it lands.
+8. Owner 2026-11-12: 10 key frames per move before in-betweens; the whole arena flashes or shakes on boss hits; runners' auras and trails are decreased during events. Recorded in 4.37 and the spec. Proposed amounts, change any: aura particles 0.25 x, trails 0.35 x opacity, and the 2026-11-06 event boost (2.5 x aura scale, trails 1.5 x longer) removed. If the boost should stay and only brightness drop, say so.
+9. Arena-wide flashes are capped at 3 full flashes per second and are off under REDUCED EFFECTS (photosensitive players). Proposed.

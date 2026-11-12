@@ -145,7 +145,8 @@ MOVES["gates_window"] = {
 		{"t": 3.6, "cap": "Window 2.0 s: volley 14, the last; portals start to close", "fx": ["portals_fade", "streaks:13"], "arena": "gold", **LAST},
 	],
 }
-# APPROVED: nothing yet (owner gate, design doc 4.37). When the owner approves moves, list them here as boss_mage_keyframes does.
+# APPROVED: the keys above were pre-approved by the owner 2026-11-11 (design doc 4.37 Third boss) and baked by bake_boss_king.py.
+# The 2026-11-12 animation rework re-keys every move: new keys go through the full owner gate, listed here as boss_mage_keyframes does.
 PANELS = (0.0, 1.0, 2.0)  # window panel times, seconds into the volley burst
 GOLD, GOLD_HI, RED, DARK = (1.0, 0.72, 0.18), (1.0, 0.92, 0.6), (0.95, 0.08, 0.04), (0.12, 0.0, 0.0)
 
