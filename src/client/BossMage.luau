@@ -19,23 +19,75 @@ local DESCENT = 110 -- proposed: studs above her hover at the entrance's start, 
 
 -- shortcut: the jointed model (SidekickArt.boss_mage_jointed.BossModel, from build/avatar_glb/boss_mage_jointed.glb) is not uploaded
 -- yet. Until it is, ReplicatedStorage.BossModels.boss_mage is the 6-part model on Poses.Bind6, its parts named after the upper
--- segments (Server/CharacterModelService), posed from the jointed data: the upper arm, thigh and first tail segment drive the old
--- limb and tail, the forearms, shins and lower tail segments are not drawn, and the staff hangs from the upper arm a straight
--- forearm's length down, turned by the forearm and its own key. Drop with the upload.
+-- segments (Server/CharacterModelService), posed from the jointed data: each whole old arm, leg and tail keeps its first segment's
+-- twist and is aimed from its joint at where the jointed chain ends (the wrist, the sole, the third tail segment's tip), and the
+-- staff sits on the jointed hand with its jointed turn. Drop with the upload.
 local JOINTED = SidekickArt.boss_mage_jointed ~= nil
 local function vector(list)
 	return Vector3.new(list[1], list[2], list[3])
 end
-local HAND = vector(Poses.Bind.RightLowerArm.Offset) + vector(Poses.Bind.Staff.Offset)
+
+-- XYZ Euler degrees as BossRaga:Pose builds them (Z, then Y, then X), and back.
 local function angles(v)
 	return CFrame.Angles(0, 0, math.rad(v.Z)) * CFrame.Angles(0, math.rad(v.Y), 0) * CFrame.Angles(math.rad(v.X), 0, 0)
 end
 
+local function degrees(frame)
+	local _, _, _, r00, _, _, r10, _, _, r20, r21, r22 = frame:GetComponents()
+	return Vector3.new(
+		math.deg(math.atan2(r21, r22)),
+		math.deg(math.asin(math.clamp(-r20, -1, 1))),
+		math.deg(math.atan2(r10, r00))
+	)
+end
+
+-- old part (named as its first segment) -> { the jointed chain, its end from the last joint (units) }: the wrist (the staff's
+-- grip), the sole (the floor at rest), the tail's tip (twice its last segment's box centre).
+local CHAINS = {}
+if Poses and Poses.Bind then
+	local bind = Poses.Bind
+	for _, side in { "Left", "Right" } do
+		CHAINS[side .. "UpperArm"] = { { side .. "UpperArm", side .. "LowerArm" }, vector(bind.Staff.Offset) }
+		local sole = bind[side .. "UpperLeg"].Offset[3] + bind[side .. "LowerLeg"].Offset[3]
+		CHAINS[side .. "UpperLeg"] = { { side .. "UpperLeg", side .. "LowerLeg" }, Vector3.new(0, 0, -sole) }
+	end
+	for _, side in { "L", "R" } do
+		CHAINS["Tail" .. side .. "1"] = {
+			{ "Tail" .. side .. "1", "Tail" .. side .. "2", "Tail" .. side .. "3" },
+			2 * vector(bind["Tail" .. side .. "3"].Center),
+		}
+	end
+end
+
+-- The first segment's turn swung so the old part's rest line (its chain unbent) points at the posed chain's end.
+local function aimed(parts, chain)
+	local names, reach, rest = chain[1], chain[2], chain[2]
+	for i = #names, 2, -1 do
+		local offset = vector(Poses.Bind[names[i]].Offset)
+		reach = offset + angles(parts[names[i]]):VectorToWorldSpace(reach)
+		rest += offset
+	end
+	local first = angles(parts[names[1]])
+	reach, rest = first:VectorToWorldSpace(reach), first:VectorToWorldSpace(rest)
+	local axis = rest:Cross(reach)
+	local swing = axis.Magnitude > 1e-6 and CFrame.fromAxisAngle(axis.Unit, math.atan2(axis.Magnitude, rest:Dot(reach)))
+		or CFrame.identity
+	return swing * first, first
+end
+
 local function sixPart(parts, locs)
-	locs.Staff = HAND
-	-- Z, then Y, then X (as BossRaga poses), back out of the forearm-and-staff turn: its inverse's XYZ angles, negated
-	local x, y, z = (angles(parts.RightLowerArm) * angles(parts.Staff)):Inverse():ToEulerAnglesXYZ()
-	parts.Staff = Vector3.new(-math.deg(x), -math.deg(y), -math.deg(z))
+	local staff = parts.Staff
+	for old, chain in CHAINS do
+		local limb, first = aimed(parts, chain)
+		parts[old] = degrees(limb)
+		if old == "RightUpperArm" then -- the staff on the jointed hand: through the forearm, seen from the aimed arm
+			local turn, forearm = limb:Inverse() * first, angles(parts.RightLowerArm)
+			locs.Staff = turn:VectorToWorldSpace(
+				vector(Poses.Bind.RightLowerArm.Offset) + forearm:VectorToWorldSpace(vector(Poses.Bind.Staff.Offset))
+			)
+			parts.Staff = degrees(turn * forearm * angles(staff))
+		end
+	end
 	return parts, locs
 end
 
