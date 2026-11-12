@@ -38,7 +38,7 @@ Priority: attack speed and luck. Chest "Elf Mage's Treasure", id `relic_chest_ma
 | Mythic | 0.9% | `relic_grimoire` | Master's Grimoire | +22% Attack Speed, +22% Luck, +6% Damage, +6% Money |
 | Secret | 0.1% | `relic_world_core` | World Core (universal) | +15% in all 6 stats |
 
-## The Golden King's drops (owner 2026-11-11: names and stat priority from the approved plan; ids, bonuses and odds **placeholder** as Big Raga's; art waits for the owner's approval, k5)
+## The Golden King's drops (owner 2026-11-11: names and stat priority from the approved plan; ids, bonuses and odds **placeholder** as Big Raga's; art approved 2026-11-11, ids live)
 Priority: damage and money gain. Chest "Golden King's Treasure" (name **proposed**), id `relic_chest_king`, paid at his defeat; Big Raga's Phase 1 table; it also rolls his Sidekick `side_king` at 0.001% separately. Design doc 4.38 and `docs/char_evidence/boss_king.md`.
 
 | Rarity | Odds | Id | Name (proposed) | Bonuses |

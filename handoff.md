@@ -2,7 +2,7 @@
 
 History: `current_progress.md`, `git log`.
 
-## RESUME HERE (2026-11-11, orchestrator): goal `boss-king`, The Golden King (Gilgamesh): ALL CODE MERGED, Studio verify + audit + PR left
+## RESUME HERE (2026-11-11, orchestrator): goal `boss-king`, The Golden King: ALL CODE MERGED, Studio verify + audit + PR left
 - `feature/alex/boss-king` at f947eb7 (pushed), integration worktree `../AnimeRun-orch/king-int`; no task worktrees open. Owner 2026-11-11 (this session, AskUserQuestion): page approved, "finish end to end", upload allowed, key frames pre-approved, vault pass 2; recorded in design doc 4.37 Third boss (037b85f).
 - Merged: k0 rules 72fafa4; k1 `/new-boss` skill ebf9016; k2 models + Ea rebuild 81b429a (`paint/ea_sword.py`, boss_king 2,872 tris); k3 `build_vault.py` 88b6867; k5 art 8682d52; docs rulings 037b85f; k7 server e71e283 (+ AdminService `/boss king`); uploads (17 assets; Relic ids patched fc53f5d; BossKingArt KeyIcon/StatusFortified/Portrait/Head; SidekickArt boss_king BossModel 98757375537994 from the bake layout, stale 85833264417221 unused); tests 13b0af9 + retune f947eb7; client e3530f6 + 8b2a0e7 (BossKing passes Sample's locs to Pose, EaShown, Tip; SidekickAttackView rows); k6 bake 9c10092 (`bake_boss_king.py`, BossKingPoses 107 KB, schedule gates_start 0 / gates 1.6 window {1.6,3.6}, enuma_start 0 / enuma 3.0 window {3,5} EaShown {0,5.6}, shields 2.2, cycle 38.85 s; SidekickAttacks side_king/side_mage).
 - Review page (everything: models, Ea, vault, key frames, art): https://claude.ai/artifact/6r7jJr5ykcdaAD574PHVH5. Rules audit on the full diff `feature/alex/boss-mage...feature/alex/boss-king` running (agent); result goes in this entry.
