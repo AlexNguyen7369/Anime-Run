@@ -236,3 +236,13 @@ Deliverables:
 - r3 | Spawn showpiece drafts A, B and C rendered in Blender and shown to the owner | owner picked C 2026-11-11 (done; the draft script is removed)
 - r4 | Draft C built: `Showpiece` terrace mesh and ring positions in `build_plaza.py`, `SpawnArea` terrace steps and ring, `PlazaAssets` regenerated, `LeaderboardConfig`, `PlazaWayfinding`, `spawn_area` scenario, rules flipped to approved | `stylua` / `selene` clean; Studio `world_layout,spawn_area,environment` and UI `ui_billboards` green; Studio shots from the spawn for the owner (done 2026-11-11: pass=3 fail=0, ui_billboards pass, audit PASS, shots https://claude.ai/artifact/3Cw9qTVqJwKKpB71S84xDS)
 Out of scope: Max Players (stays 7 for boss lanes, 4.37), gameplay numbers, track biomes.
+
+## powerups: Track power-ups, Speed and Stamina rings on the runner's path (owner 2026-11-11, design doc 4.44)
+Status: done 2026-11-11 (p1 merged into feature/alex/anime-world at 752cf76; owner's look at the live shots pending)
+Owner-confirmed: 2026-11-11 (plan `~/.claude/plans/new-addition-to-core-tidy-sedgewick.md`; picks I4 ring and HUD H2; "pass it on to orch is fine")
+Branch: feature/alex/anime-world
+Spec: design doc 4.44 (notes in 4.3, 4.4, 4.18), docs/POWERUP_SPEC.md
+Deliverables:
+- p0 | Rules: 4.44, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC lines, OWNER_QUESTIONS entry | rules audit PASS (done, round 2 on 5298709)
+- p1 | Server roll and pickup, client rings, H2 badge, overfill seconds, `powerups` scenario | `powerups`, `stamina`, `race`, `track_loading` green; stylua / selene; live shots (done: 22 / 33 / 52 / 82 checks fail=0; shots https://claude.ai/artifact/JEqy1rJqA7gCLrfZ4gdy1d)
+Out of scope: more power-up types, boss arenas and duels, a drawn chevron / drop image (plain text symbols for now).
