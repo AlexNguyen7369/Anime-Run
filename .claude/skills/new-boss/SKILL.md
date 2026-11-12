@@ -52,7 +52,7 @@ Gate: review page "arena"; owner approves the look. Lanes, ring and speed cap st
 
 ## 6. Key frames
 
-For every animation (idle, each move, each move's dodge window, statuses, entrance if new, each Sidekick attack, the dodge dash if new) write 10 labelled key frames in `tools/blender/boss_<id>_keyframes.py` (from `boss_mage_keyframes.py`), export `assets/characters_avatar/boss_<id>/keyframes/keys.json` and `<move>_slices.png` per move. Work one move at a time; put each move's slices on the review page with the hit time marked.
+For every boss animation (idle, each move with its dodge and strike window counted inside its 10, statuses, entrance if new) write 10 labelled key frames (owner 2026-11-12, design doc 4.37); each Sidekick attack and the dodge dash if new get 3 to 5 in `tools/blender/boss_<id>_keyframes.py` (from `boss_mage_keyframes.py`), export `assets/characters_avatar/boss_<id>/keyframes/keys.json` and `<move>_slices.png` per move. Work one move at a time; put each move's slices on the review page with the hit time marked.
 Gate: owner approves every move's keys before any in-between is drawn (design doc 4.37). Changing an approved key means a new gate.
 
 ## 7. Digital art
