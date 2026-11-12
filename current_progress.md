@@ -188,8 +188,9 @@
 184. 2026-11-12 — Alex Nguyen — Landed a4: the Elf Mage and Stone Golem re-baked from the rework keys on her jointed rig (787 KB), golem_slam 3.0 s re-posed with fists planted; Studio green except the jointed-mesh upload check; rules audit NEEDS OWNER (recording the pre-approval, triangle budget).
 185. 2026-11-12 — Alex Nguyen — Landed a1: the Golden King re-baked from the rework keys on his jointed rig (302 KB), old-mesh fallbacks for both bosses aiming the old limbs at the jointed hands and feet; a6 compatibility run of 15 server and 26 UI scenarios with only the expected upload reds and the older save_version reds.
 186. 2026-11-12 — Alex Nguyen — Landed a5c pose-tied effects (staff-tip charge, barrage circles ahead of the staff, golem dust at the fist and on its rise and fall, portal cascade, Enuma beam turning with his hips, Ea glow, white flash before the beam, shields on his gesture); Studio green except the portal-C upload checks, rules audit PASS, and published the overnight update on the review page.
+187. 2026-11-12 — Alex Nguyen — Recorded the owner's morning approval of the overnight rework, made the barrage circles open one by one 0.28 s apart and 1.5 x bigger with all open before the beams, uploaded the jointed king and mage meshes and portal C (3 uploads, moderation Approved), removed the old-mesh fallbacks, and merged main; the final compatibility run had only the expected reds (no arena texture; older save_version 19 vs 18).
 
 ## What's next
-**Owner's morning decisions on the review page (https://claude.ai/artifact/5ZJxJCKo8XGcDMzXdqbJ7Z): record the rework pre-approval in design doc 4.37, give the upload word for the jointed king and mage meshes, portal C and the arena textures, and rule on the mage triangle budget and the Enuma beam's sweep; then remove the fallbacks and open the PR into main with a fresh reviewer.**
+**PR feature/alex/boss-anim-rework into main with a fresh merge reviewer, then merge on APPROVE.**
 
-**Why this is next:** every rework task is built and verified on feature/alex/boss-anim-rework, and the PR into main is blocked only by the owner's recorded approval and the uploads that turn the last 10 checks green.
+**Why this is next:** every rework deliverable is built, approved by the owner and verified in Studio; landing it in main is what puts the new bosses in front of players.
