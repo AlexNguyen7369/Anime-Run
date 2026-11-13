@@ -1097,6 +1097,17 @@ function Tests.make(deps)
 				eq("start_again_after_end", S.Start("Test"), true)
 			end)
 
+			serviceSection("skip_prep", function()
+				eq("skip_idle_refused", S.SkipPrep(), false)
+				begin()
+				to(10)
+				eq("skip_in_prep", S.SkipPrep(), true)
+				eq("skip_enters_fight", phase(), "Fight")
+				eq("skip_elapsed_is_prep", S.State().Elapsed, PREP)
+				eq("skip_moves_end", S.State().EndsAt, T0 + 10 + TOTAL - PREP)
+				eq("skip_twice_refused", S.SkipPrep(), false)
+			end)
+
 			serviceSection("schedule", function()
 				local INTERVAL = Cfg.IntervalSeconds
 				-- Timer marks

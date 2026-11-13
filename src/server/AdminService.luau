@@ -314,6 +314,20 @@ AdminService.Commands = {
 			return ok, ok and "boss event started" or message
 		end,
 	},
+	skiptime = {
+		Usage = "/skiptime",
+		Help = "skip the boss event's 1 minute preparation (owner 2026-11-12, for tests)",
+		Min = 0,
+		Max = 0,
+		NoTarget = true,
+		Check = function()
+			return true
+		end,
+		Apply = function()
+			local ok, message = BossEventService.SkipPrep()
+			return ok, ok and "preparation skipped" or message
+		end,
+	},
 	setrebirth = {
 		Usage = "/setrebirth <level> [player]",
 		Help = "set the rebirth level (Money is not reset)",

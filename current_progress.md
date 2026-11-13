@@ -176,8 +176,9 @@
 172. 2026-11-12 — Alex Nguyen — Merged PR #9 feature/alex/boss-mage into main (722e3f9) after a fresh merge review APPROVE: The Elf Mage and her follow-ups, per-boss late data, Team button and panel, Team icon N3.
 173. 2026-11-12 — Alex Nguyen — Merged the boss-mage delta (Team panel draft A, Team icon N3, fixture fix) into `feature/alex/boss-king` so PR #10 can retarget to main after #8 and #9 landed.
 174. 2026-11-12 — Alex Nguyen — Tuned track power-ups down on the owner's word (02dc5b2, branch feature/alex/powerup-tune): Speed x1.2 for 2 s (was x1.5 for 3 s), Stamina +3 s on Tracks 1-5 and +2 s past Track 5 (was +5 s); design doc 4.44 / 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC and the ring label updated; `powerups` 23/23 in Studio.
+175. 2026-11-12 — Alex Nguyen — Added admin `/skiptime` (2ea7a07, branch feature/alex/powerup-tune): `BossEventService.SkipPrep` moves the event's StartAt, EndsAt and ScheduleStart back by the time left in Prep so the fight starts now; BossEventTests `skip_prep` section; BOSS_EVENT_SPEC admin list; `boss_event` passed in Studio.
 
 ## What's next
-**Push `feature/alex/powerup-tune` and open its PR into main so the owner can play the tuned power-ups.**
+**Push `feature/alex/powerup-tune` (power-up tuning + `/skiptime`) and open its PR into main.**
 
-**Why this is next:** the tuning is committed and green in Studio but only on a local branch; main (and the Rojo build the owner plays) still runs the old x1.5 / +5 s values until it merges.
+**Why this is next:** both changes are committed and green in Studio but only on a local branch; the owner's test flow (`/boss`, then `/skiptime`) and the tuned power-ups reach the played build only once it merges.

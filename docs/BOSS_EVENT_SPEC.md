@@ -178,7 +178,7 @@ The Bosses popup shows one card per boss in `BossCatalog.Order`, each with the b
 - `ArePaidRandomItemsRestricted` players cannot buy and see an error. The free timed event is their earnable path.
 
 ## Saved data
-`VERSION` 14 to 18 add `Gems`, `Sidekicks`, `CharacterGear`, `Relics`, `RelicGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/elfboss` (starts The Elf Mage's event, owner 2026-11-11), `/boss king` (The Golden King, owner 2026-11-11), `/relic`, `/relics` (one of every Relic, owner 2026-11-06).
+`VERSION` 14 to 18 add `Gems`, `Sidekicks`, `CharacterGear`, `Relics`, `RelicGear`, `BossCredit` and the Sidekick tutorial flag, cleaned to defaults. `/wipe` resets them. Admin commands: `/gems`, `/boss`, `/elfboss` (starts The Elf Mage's event, owner 2026-11-11), `/boss king` (The Golden King, owner 2026-11-11), `/relic`, `/relics` (one of every Relic, owner 2026-11-06), `/skiptime` (ends the running event's preparation now by moving its clocks back, so the fight, the join close and the timeout come that much sooner; owner 2026-11-12, for tests).
 
 ## Analytics
 Custom events: invite shown, teleported, defeated or timed out, spawn bought, first summon.
