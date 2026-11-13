@@ -100,8 +100,12 @@ local TORCH_TINT = Color3.fromRGB(190, 150, 255) -- the arena's lights turn viol
 -- lilac, not navy, and not darker on top of the 25% light (Studio 2026-11-12: -0.25 read navy)
 local DIM_GRADE = { Brightness = -0.05, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(230, 210, 255) }
 -- the barrage's grade: no tint, so its white and cyan stay white and cyan (the lilac tint read them lavender, Studio 2026-11-12)
-local BARRAGE_GRADE = { Brightness = -0.25, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
+local BARRAGE_GRADE = { Brightness = -0.05, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
 local TORCH_DIM = 0.25 -- dim and violet, not red
+-- the barrage's room lighter, toward the sheet's warm colosseum (Studio pairs 2026-11-13: the 25% floor and -0.25 grade read
+-- near black): Lighting to BARRAGE_FLOOR (BossStrikeFloor; `barrage_room_dims` allows at most 0.4) and the arena's lights to
+-- BARRAGE_TORCH; her lightning keeps the above
+local BARRAGE_FLOOR, BARRAGE_TORCH = 0.38, 0.6
 local LIFT_SECONDS = 0.3 -- the first strike's white flash lifts the dim for this long
 local HIT_FLASH, HIT_FLASH_SECONDS = 7, 0.2 -- studs across a hit's small white disc at the bolt's foot, s
 local RING_FROM, RING_TO, RING_SECONDS = 4, 18, 0.36 -- studs across a hit's thin violet ring as it grows, s (pool reuse after 0.45 s)
@@ -112,11 +116,12 @@ local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
 -- full length from the circle, out in BEAM_SHOOT s, held, thinned to BEAM_THIN x width and faded over the last BEAM_FADE s of a
 -- BEAM_LIFE s life; the edge at BEAM_EDGE_TRANSPARENCY.
 local BEAM_LIFE, BEAM_SHOOT, BEAM_FADE, BEAM_THIN = 0.3, 0.05, 0.12, 0.3
-local BEAM_EDGE_TRANSPARENCY = 0.6
+local BEAM_EDGE_TRANSPARENCY = 0.85 -- Studio pairs 2026-11-13: 0.6 greyed the white-hot core
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
 local BEAM_GLOW_COLOR = Color3.fromRGB(200, 238, 255) -- the laser's cyan-white glow
 -- black mist along each laser: a speck about every MIST_EVERY studs, at most MIST_MAX, and MIST_SPECKS white-cyan sparkles
-local MIST_EVERY, MIST_MAX, MIST_SPECKS = 18, 14, 3
+local MIST_SHELL = 2 -- studs the mist's box is wider than the edge: its puffs start just outside the beam
+local MIST_EVERY, MIST_MAX, MIST_SPECKS = 6, 30, 8 -- Studio pairs 2026-11-13: 18, 14, 3 left the haze to a few flecks
 -- the smoke mound at each laser's end (owner 2026-11-13, BOSS_EVENT_SPEC "Additions", proposed): puffs, studs over the floor
 local MOUND_PUFFS, MOUND_UP = { 3, 5 }, 1
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
@@ -251,10 +256,14 @@ local MIST_LOOK = {
 	Name = "BarrageMist",
 	Texture = Art.Dust,
 	Shape = Enum.ParticleEmitterShape.Box,
+	-- from the box's skin, behind the core: the haze hugs the beam's outside (Studio pairs 2026-11-13: drawn in the volume it
+	-- blotched the white core black)
+	ShapeStyle = Enum.ParticleEmitterShapeStyle.Surface,
+	ZOffset = -2,
 	Color = ColorSequence.new(INK, SOOT),
 	LightInfluence = 0.2,
-	Size = sequence(0, 1.5, 1, 4),
-	Transparency = sequence(0, 0.3, 1, 1),
+	Size = sequence(0, 2, 1, 4),
+	Transparency = sequence(0, 0.45, 1, 1), -- a see-through speckled haze, not solid blobs
 	Lifetime = NumberRange.new(0.3, 0.5),
 	Speed = NumberRange.new(1, 4),
 	SpreadAngle = Vector2.new(180, 180),
@@ -276,8 +285,9 @@ local MOUND_LOOK = {
 	Name = "BarrageMound",
 	Texture = Art.Dust,
 	Shape = Enum.ParticleEmitterShape.Box,
-	Color = ColorSequence.new(Color3.fromRGB(70, 68, 78), Color3.fromRGB(40, 38, 46)),
-	LightInfluence = 0.4,
+	-- Studio pairs 2026-11-13: (70, 68, 78) lit at 0.4 went black in the dimmed room; the sheet's mounds are mid grey
+	Color = ColorSequence.new(Color3.fromRGB(105, 103, 112), Color3.fromRGB(70, 68, 78)),
+	LightInfluence = 0,
 	EmissionDirection = Enum.NormalId.Top,
 	SpreadAngle = Vector2.new(40, 40),
 	Size = sequence(0, 4, 1, 8),
@@ -532,6 +542,7 @@ local function endDim()
 	end
 	dim.Grade:Destroy()
 	Lighting:SetAttribute("BossStrikeDim", nil)
+	Lighting:SetAttribute("BossStrikeFloor", nil)
 	Lighting:SetAttribute("BossStrikeHaze", nil)
 	for light, base in dim.Lights do
 		if light.Parent then
@@ -575,11 +586,13 @@ local function stepDim()
 	grade.Saturation, grade.TintColor = look.Saturation * f, WHITE:Lerp(look.TintColor, f)
 	Lighting:SetAttribute("BossStrikeDim", f)
 	Lighting:SetAttribute("BossStrikeHaze", dim.Haze and f or nil)
+	Lighting:SetAttribute("BossStrikeFloor", not dim.Haze and BARRAGE_FLOOR or nil)
+	local torch = dim.Haze and TORCH_DIM or BARRAGE_TORCH
 	for light, base in dim.Lights do
 		if light.Parent then
 			light.Color = base.Color:Lerp(TORCH_TINT, f)
 			if light:GetAttribute("ImpactBase") == nil then -- an impact pulse owns its brightness until it ends
-				light.Brightness = base.Brightness * (1 - (1 - TORCH_DIM) * f)
+				light.Brightness = base.Brightness * (1 - (1 - torch) * f)
 			end
 		end
 	end
@@ -1125,7 +1138,7 @@ local function beam(circle, target, k)
 	local mist = pooled(
 		"BarrageBeamMist",
 		CFrame.lookAt((from + to) / 2, to),
-		Vector3.new(BEAM_EDGE, BEAM_EDGE, math.max(length, 0.1)),
+		Vector3.new(BEAM_EDGE + MIST_SHELL, BEAM_EDGE + MIST_SHELL, math.max(length, 0.1)),
 		INK,
 		1,
 		BEAM_LIFE,
@@ -1177,14 +1190,21 @@ local function playBarrage()
 		later(strike.T, function()
 			local total = 0
 			local center = chest()
+			local used = {} -- circles fired this strike: a near one not yet used wins, so one strike draws distinct lasers
 			for k, target in strike.Spots do
 				-- the open circle nearest the spot's direction from her chest: the beam flies outward from it to the spot
 				local toward = (target - center).Magnitude > 0.1 and (target - center).Unit or Vector3.yAxis
 				local best, bestDot = nil, -math.huge
 				for circle, out in circles do
-					if circle.Parent and out:Dot(toward) > bestDot then
-						best, bestDot = circle, out:Dot(toward)
+					-- not a circle under the floor or past the wall: its laser would be a 1-stud stub out of sight
+					local reaches = circle.Parent and (rayEnd(circle.Position, out) - circle.Position).Magnitude > 2
+					local score = out:Dot(toward) - (used[circle] and 0.5 or 0)
+					if reaches and score > bestDot then
+						best, bestDot = circle, score
 					end
+				end
+				if best then
+					used[best] = true
 				end
 				total += beam(best, target, k)
 			end
