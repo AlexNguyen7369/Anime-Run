@@ -87,6 +87,8 @@ local TIP_HEIGHT = Arena.BossHeight * 0.85 -- the portals' and shields' height o
 local WIND_TURN_EARLY, WIND_TURN_LATE = 0.8, 0.35 -- s a turn
 local WIND_RAMP_FROM, WIND_RAMP_TO = 0.5, 2.75 -- s into the charge
 local WIND_RIBBONS = 6
+-- The white helix (sheets' enuma keys 3 to 6): radius, studs a turn, from and to along Ea from its tip, width, s it shows from
+local HELIX = { 9, 16, -44, 8, 1.1, 0.9 } -- proposed
 local WIND_CLIMB = 1.2 -- s for a ribbon to climb from his feet to Ea's tip
 local WIND_RADIUS_FEET, WIND_RADIUS_TIP, WIND_WIDTH = 12, 5, 1.6 -- studs
 local SHIELD_CALL = 0.6 -- s of shields: his call key (rework keys), the ring opens
@@ -763,6 +765,50 @@ local function playCharge()
 	end
 	local part = Kit.holder("EnumaWind", tip(), Vector3.new(90, 90, 90))
 	tracked[part] = tip
+	-- The sheets' white double helix round Ea and him through the charge (keys 3 to 6): Beams, so a held frame keeps it (the
+	-- ribbons' Trails fade when nothing moves). Two strands from his feet to past Ea's tip, half turns curved by their attachments.
+	local helix = {}
+	do
+		local radius, pitch, low, high = HELIX[1], HELIX[2], HELIX[3], HELIX[4]
+		local halves = math.floor((high - low) / (pitch / 2))
+		local lean = pitch / (2 * math.pi * radius)
+		local reach = 4 / 3 * radius * math.sqrt(1 + lean * lean)
+		for strand = 1, 2 do
+			local previous = nil
+			for half = 0, halves do
+				local a = (strand - 1) * math.pi + half * math.pi
+				local radial = Vector3.new(math.cos(a), 0, math.sin(a))
+				local along = Vector3.new(-math.sin(a), lean, math.cos(a)).Unit
+				local point = Instance.new("Attachment")
+				point.CFrame =
+					CFrame.fromMatrix(radial * radius + Vector3.new(0, low + half * pitch / 2, 0), along, radial)
+				point.Parent = part
+				if previous then
+					local beam = Instance.new("Beam")
+					beam.Name = "EnumaHelix"
+					beam.Attachment0, beam.Attachment1 = previous, point
+					beam.CurveSize0, beam.CurveSize1 = reach, reach
+					beam.Width0, beam.Width1 = HELIX[5], HELIX[5]
+					beam.FaceCamera, beam.Segments = true, 10
+					beam.Color = ColorSequence.new(WHITE)
+					beam.LightEmission, beam.LightInfluence = 1, 0
+					beam.Transparency = NumberSequence.new(0.15)
+					beam.Enabled = false
+					beam.Parent = part
+					table.insert(helix, beam)
+				end
+				previous = point
+			end
+		end
+		local mine, run = effects, generation
+		Kit.after(HELIX[6], function()
+			if current(mine, run) then
+				for _, beam in helix do
+					beam.Enabled = true
+				end
+			end
+		end)
+	end
 	local ribbons, born, last, spin = {}, os.clock(), os.clock(), 0
 	for k = 1, WIND_RIBBONS do
 		local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
@@ -839,6 +885,9 @@ local function playCharge()
 		if current(mine, run) and king and not reduced() then
 			local white = Kit.holder("EnumaChargeFlash", CFrame.new(king:Tip()), Vector3.one * 8)
 			white.Shape, white.Material, white.Color, white.Transparency = Enum.PartType.Ball, NEON, WHITE, 0
+			tracked[white] = function() -- rides Ea's tip through the swing (Studio 2026-11-12: it was left behind in the air)
+				return CFrame.new(king:Tip())
+			end
 			Kit.tween(white, 0.3, { Size = Vector3.one * 34, Transparency = 1 })
 			Kit.expire(white, 0.3)
 			roomLight(king:Tip(), WHITE, 5, 0.3)
@@ -1186,6 +1235,7 @@ end
 -- The charge's white ball at Ea's tip (the sheets' enuma keys 4 to 6): from CHARGE_BALL_FROM it grows to the wind-up, one part
 -- and a flare while it shows.
 local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 4, 26 } -- s of enuma; studs across, from to at the hit (proposed)
+local CHARGE_BALL_BEAM = 14 -- studs across through the beam: the beam's white source
 local chargeBall = nil
 local function stepChargeBall(move, localTime)
 	-- held at its full size at Ea's tip through the beam (the sheets' keys 7 to 9)
@@ -1204,7 +1254,7 @@ local function stepChargeBall(move, localTime)
 		Kit.emitter(chargeBall, {
 			Name = "ChargeFlare",
 			Texture = Art.Flare,
-			Color = ColorSequence.new(WHITE, Color3.fromRGB(255, 200, 190)),
+			Color = ColorSequence.new(WHITE),
 			LightEmission = 1,
 			LockedToPart = true,
 			Speed = NumberRange.new(0),
@@ -1215,9 +1265,10 @@ local function stepChargeBall(move, localTime)
 		})
 	end
 	local u = math.clamp((localTime - CHARGE_BALL_FROM) / (CHARGE - CHARGE_BALL_FROM), 0, 1)
-	local size = CHARGE_BALL[1] + (CHARGE_BALL[2] - CHARGE_BALL[1]) * u
+	local size = localTime >= CHARGE and CHARGE_BALL_BEAM or CHARGE_BALL[1] + (CHARGE_BALL[2] - CHARGE_BALL[1]) * u
 	chargeBall.CFrame, chargeBall.Size = CFrame.new(king:Tip()), Vector3.one * size
-	chargeBall.ChargeFlare.Size = NumberSequence.new(size * 2.2)
+	-- the glow round it: smaller through the beam, when Ea points at the lanes (Studio 2026-11-12: it filled the view)
+	chargeBall.ChargeFlare.Size = NumberSequence.new(size * (localTime >= CHARGE and 1.3 or 1.8))
 end
 
 local function stepEaGlow(move, localTime)
