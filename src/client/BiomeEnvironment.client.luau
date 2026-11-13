@@ -234,8 +234,25 @@ local HAZE = {
 local HAZE_AMBIENT = 0.12 -- with the haze, the ambients go this low (her a dark shape against the bolts); else DIM_FLOOR
 -- and take this lilac fill instead of near black (Studio 2026-11-12: scaled down they read navy, the sheet's room is soft violet)
 local HAZE_FILL = { Ambient = Color3.fromRGB(125, 100, 175), OutdoorAmbient = Color3.fromRGB(145, 120, 195) } -- proposed
+-- Lighting attribute BossStrikeDusk, 0 to 1 (the Golden King's Gates and Enuma, his sheets' dusk): the Atmosphere toward a violet
+-- to sand dusk and the ambients toward a warm mauve fill, instead of the arena's blue (proposed).
+local DUSK = {
+	Density = 0.36,
+	Haze = 2.2,
+	Color = Color3.fromRGB(225, 170, 165),
+	Decay = Color3.fromRGB(140, 95, 150),
+}
+local DUSK_FILL = { Ambient = Color3.fromRGB(125, 95, 110), OutdoorAmbient = Color3.fromRGB(160, 120, 135) }
 local function dimmed(e, value)
 	local h = Lighting:GetAttribute("BossStrikeHaze")
+	local dusk = Lighting:GetAttribute("BossStrikeDusk")
+	if e.Group == "Atmosphere" and DUSK[e.Key] ~= nil and type(dusk) == "number" and dusk > 0 then
+		local goal, u = DUSK[e.Key], math.min(dusk, 1)
+		if type(value) == "number" then
+			return value + (math.max(goal, value) - value) * u
+		end
+		return typeof(value) == "Color3" and value:Lerp(goal, u) or value
+	end
 	if e.Group == "Atmosphere" and HAZE[e.Key] ~= nil and type(h) == "number" and h > 0 then
 		local goal, u = HAZE[e.Key], math.min(h, 1)
 		if type(value) == "number" then
@@ -262,7 +279,11 @@ local function dimmed(e, value)
 	end
 	local dark = value:Lerp(Color3.new(), 1 - scale)
 	local fill = HAZE_FILL[e.Key]
-	return fill and type(h) == "number" and h > 0 and dark:Lerp(fill, math.min(h, 1)) or dark
+	if fill and type(h) == "number" and h > 0 then
+		return dark:Lerp(fill, math.min(h, 1))
+	end
+	fill = DUSK_FILL[e.Key]
+	return fill and type(dusk) == "number" and dusk > 0 and dark:Lerp(fill, math.min(dusk, 1)) or dark
 end
 
 local function write(e, value)
@@ -406,7 +427,7 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
-for _, name in { "BossStrikeDim", "BossStrikeHaze", "BossStrikeFloor" } do
+for _, name in { "BossStrikeDim", "BossStrikeHaze", "BossStrikeFloor", "BossStrikeDusk" } do
 	Lighting:GetAttributeChangedSignal(name):Connect(function()
 		dirty = true
 	end)

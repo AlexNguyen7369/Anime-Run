@@ -319,6 +319,9 @@ local function flashScreen(full, white)
 		pulse = effect
 	end
 	local goal = full and (white and FLASH_WHITE or FLASH_FULL) or FLASH_LOW
+	if full and type(white) == "number" then -- a brighter white of the caller's (the Golden King's full white frame)
+		goal = { Brightness = white, Contrast = FLASH_WHITE.Contrast, Saturation = FLASH_WHITE.Saturation }
+	end
 	effect.Brightness, effect.Contrast, effect.Saturation = goal.Brightness, goal.Contrast, goal.Saturation or 0
 	effect.Parent = Lighting
 	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0, Saturation = 0 })

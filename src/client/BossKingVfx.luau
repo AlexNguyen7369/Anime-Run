@@ -69,8 +69,9 @@ local CHARGE = eventTime("enuma", "enuma", 3) - eventTime("enuma", "enuma_start"
 local BEAM = window("enuma", 2)
 local STRIKE_COUNT, STRIKE_EVERY = 14, 0.15 -- as the mage (owner 2026-11-11): 0, 0.15, ... 1.95 s of the 2 s window
 local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
-local PORTALS_MIN, PORTALS_MAX = 12, 20
-local PORTAL_SIZES = { 17.5, 12.5, 8.75 } -- studs across: 1.25 x the first 14 / 10 / 7 (owner 2026-11-12, proposed)
+-- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed): a dense arch of 16 to 22 portals, 18 to 30 studs
+local PORTALS_MIN, PORTALS_MAX = 16, 22
+local PORTAL_SIZES = { 28, 22, 19, 25 } -- studs across, by turns
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
 local PORTAL_TURN = 0.3 -- radians a second about its facing, slow (proposed)
 local PORTAL_CASCADE = 0.7 -- s over which they open, a few then many (proposed)
@@ -99,8 +100,10 @@ local FLASH_LEAD = 0.08 -- s before the beam: the white flash (proposed)
 local PORTAL_GROW, PORTAL_OPEN = 0.12, 0.25 -- s: a dot to a small ring, then to full size
 local TIP_PUSH, TIP_READY = 0.3, 0.1 -- s the tip takes to push through; s into the push the portal may fire (the tip shows)
 local EMERGE, EMERGE_STUDS = 0.1, 2 -- s and studs a weapon slides out of its portal before it flies
+local ENUMA_FLASH = 1.1 -- the 3.0 s flash's brightness: a full white frame (proposed)
+local RAY_LENGTH, RAY_SPEED = 30, 420 -- studs long, studs a second: the streaks fly as short rays (proposed)
 local STREAK_CORE, STREAK_SHEATH = 1.3, 3.6 -- studs across a streak's white core and gold sheath (the sheets' thick streaks)
-local HIT_FLASH, HIT_CORE, HIT_SECONDS = 15, 6, 0.3 -- studs across a hit's gold flash and its white core, s
+local HIT_FLASH, HIT_CORE, HIT_SECONDS = 11, 5, 0.3 -- studs across a hit's gold flash and its white core, s
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
 local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 2.6, 7, 10.5, 15 -- studs across Enuma's white core, red, dark red, cyclone
@@ -114,7 +117,8 @@ local PORTAL_CLOSE = 0.3 -- s the portals take to close after the last volley (3
 local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 -- The arch of portals behind him, facing his front (the sheets' gates keys 3 to 9): degrees from his left to his right over his
 -- head, studs from his chest, studs behind him, the arch's centre over his feet as a fraction of his height (proposed)
-local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 120, { 28, 38 }, { 3, 8 }, 0.5
+-- two rings of the arch, alternate portals on each (inner and outer studs from his chest), so the big ones overlap like the sheet's
+local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 112, { { 30, 34 }, { 44, 50 } }, { 6, 14 }, 0.5
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
 local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
@@ -131,11 +135,11 @@ local GATES_DIM =
 local ENUMA_DIM = { -- red through the charge
 	Floor = 0.3,
 	In = CHARGE * 0.8,
-	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.1, TintColor = Color3.fromRGB(250, 175, 185) },
+	-- warm, not pink (Studio 2026-11-12: a pink tint turned the white sun pink); the red is the lights'
+	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.1, TintColor = Color3.fromRGB(255, 220, 205) },
 	Torch = RED,
 	TorchDim = 0.3,
 }
-local DARK_RED = Color3.fromRGB(140, 12, 20)
 local EA_SWING = { 2.6, 3.25 } -- s of enuma: Ea's Trail, the 2.75 s swing into the 3.0 s hit and its follow-through (proposed)
 
 local BossKingVfx = {}
@@ -259,14 +263,6 @@ local function later(seconds, play)
 	end)
 end
 
--- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
-local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds)
-	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	-- a soft glow round the white core (Studio 2026-11-12: at 0.4 the Neon sheath read as a solid gold bar)
-	pooled(name, frame, Vector3.new(sheath, sheath, length + sheath * 0.5), sheathColor, 0.65, seconds)
-	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
-end
-
 local function disc(part)
 	part.Shape = Enum.PartType.Cylinder
 end
@@ -352,13 +348,13 @@ end
 -- Where a weapon or streak lands: a gold flash with a white core, a gold shock ring racing out, gold sparks and dust.
 local function hit(at)
 	local flat = CFrame.new(at) * CFrame.Angles(0, 0, math.pi / 2)
-	pooled("StrikeFlash", flat, Vector3.new(0.2, HIT_FLASH, HIT_FLASH), GOLD, 0.05, HIT_SECONDS, disc)
+	pooled("StrikeFlash", flat, Vector3.new(0.2, HIT_FLASH, HIT_FLASH), GOLD, 0.5, HIT_SECONDS, disc)
 	pooled(
 		"StrikeFlashCore",
 		flat + Vector3.new(0, 0.1, 0),
 		Vector3.new(0.25, HIT_CORE, HIT_CORE),
 		WHITE,
-		0,
+		0.35,
 		0.22,
 		disc
 	)
@@ -420,6 +416,7 @@ local function endDim()
 	dim.Grade:Destroy()
 	Lighting:SetAttribute("BossStrikeDim", nil)
 	Lighting:SetAttribute("BossStrikeFloor", nil)
+	Lighting:SetAttribute("BossStrikeDusk", nil)
 	for light, base in dim.Lights do
 		if light.Parent then
 			light.Brightness, light.Color = base.Brightness, base.Color
@@ -454,6 +451,7 @@ local function stepDim()
 	grade.Brightness, grade.Contrast = look.Grade.Brightness * f, look.Grade.Contrast * f
 	grade.Saturation, grade.TintColor = look.Grade.Saturation * f, WHITE:Lerp(look.Grade.TintColor, f)
 	Lighting:SetAttribute("BossStrikeDim", f)
+	Lighting:SetAttribute("BossStrikeDusk", f) -- the sheets' dusk sky through his moves (Client/BiomeEnvironment)
 	for light, base in dim.Lights do
 		if light.Parent then
 			light.Color = base.Color:Lerp(look.Torch, f)
@@ -505,7 +503,8 @@ local function playPortals(cascade)
 		local a = math.rad(ARCH_SPAN * (2 * (k - 1) / (count - 1) - 1)) + rng:NextNumber(-0.08, 0.08)
 		local facing = (king.Rest.LookVector * Vector3.new(1, 0, 1)).Unit
 		local right = facing:Cross(Vector3.yAxis)
-		local radius = rng:NextNumber(ARCH_RADIUS[1], ARCH_RADIUS[2])
+		local ring = ARCH_RADIUS[k % 2 + 1]
+		local radius = rng:NextNumber(ring[1], ring[2])
 		local anchor = him()
 			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
 			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
@@ -679,8 +678,44 @@ local function fireShot(portal, target, n)
 	end
 	local from = portal.Position
 	if n % 3 == 0 then
-		streak("Streak", from, target, STREAK_CORE, STREAK_SHEATH, WHITE, GOLD, 0.25) -- thinner than the weapons, so they lead
-		return hit(target) + dustAlong(from, target)
+		-- a short gold ray flying from the portal to its spot (Studio 2026-11-12: a full-length bar read as a laser across the room)
+		local line = target - from
+		local distance = line.Magnitude
+		local dir = distance > 0.01 and line / distance or Vector3.yAxis
+		local length = math.min(RAY_LENGTH, distance)
+		local flight = math.max(0.05, distance / RAY_SPEED)
+		local born = os.clock()
+		local function along()
+			local u = math.min((os.clock() - born) / flight, 1)
+			local back = from + dir * (distance - length) * u
+			return CFrame.lookAt(back + dir * length / 2, back + dir * length)
+		end
+		local start = along()
+		local sheath = pooled(
+			"Streak",
+			start,
+			Vector3.new(STREAK_SHEATH, STREAK_SHEATH, length + STREAK_SHEATH * 0.5),
+			GOLD,
+			0.65,
+			flight + 0.05
+		)
+		local core = pooled(
+			"StreakCore",
+			start,
+			Vector3.new(STREAK_CORE, STREAK_CORE, length + STREAK_CORE),
+			WHITE,
+			0,
+			flight + 0.05
+		)
+		tracked[sheath], tracked[core] = along, along
+		local mine, run = effects, generation
+		Kit.after(flight, function()
+			if current(mine, run) then
+				hit(target)
+				dustAlong(from, target)
+			end
+		end)
+		return SPARKS_PER_HIT + DUST_PER_HIT + DUST_PER_SHOT
 	end
 	shoot(from, target, n)
 	local mine, run = effects, generation
@@ -921,13 +956,13 @@ local function playBeam()
 		return frame(0)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(BEAM_RED, BEAM_RED, length))
-	core.Material, core.Color, core.Transparency = NEON, RED, 0.5 -- Studio 2026-11-12: at 0.1 it hid the white core
+	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 95, 45), 0.5 -- warm red-orange -- Studio 2026-11-12: at 0.1 it hid the white core
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
 	white.Material, white.Color, white.Transparency = NEON, WHITE, 0
 	tracked[white] = straight
 	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
-	outer.Material, outer.Color, outer.Transparency = NEON, DARK_RED, 0.72
+	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.72
 	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
 	outer.Size = Vector3.new(length, BEAM_OUTER, BEAM_OUTER)
 	local toAxis = CFrame.Angles(0, math.pi / 2, 0)
@@ -1057,7 +1092,7 @@ local function playBeam()
 	})
 	total += (60 + 45 * 0.6 + 28 * 1.3) * BEAM
 	-- the white full flash at 3.0 s (the sheet's key 7): the impact's flash white, the red dim lifted under it
-	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM, 0, true)
+	Kit.impact("Enuma", Arena.Center, 1.0, 20, BEAM, 0, ENUMA_FLASH) -- a full white frame (the sheet's key 7)
 	if dim then
 		dim.LiftAt = os.clock()
 	end
@@ -1234,8 +1269,8 @@ end
 -- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and with effects off.
 -- The charge's white ball at Ea's tip (the sheets' enuma keys 4 to 6): from CHARGE_BALL_FROM it grows to the wind-up, one part
 -- and a flare while it shows.
-local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 4, 26 } -- s of enuma; studs across, from to at the hit (proposed)
-local CHARGE_BALL_BEAM = 14 -- studs across through the beam: the beam's white source
+local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 6, 34 } -- s of enuma; studs across, from to at the hit (proposed)
+local CHARGE_BALL_BEAM = 18 -- studs across through the beam: the beam's white source
 local chargeBall = nil
 local function stepChargeBall(move, localTime)
 	-- held at its full size at Ea's tip through the beam (the sheets' keys 7 to 9)
