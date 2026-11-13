@@ -46,6 +46,8 @@ ARENA = os.path.join(ORCH, "mage-m3", "build", "arena", "colosseum_draft_r70.ble
 CIRCLE_PNG = os.path.join(ORCH, "mage-m8", "assets", "ui", "boss_mage", "magic_circle.png")
 
 REWORK = False  # main(--rework): the jointed rig and JMOVES
+NIGHT = False  # rework lightning and barrage sheets: the dimmed night room and the owner's 2026-11-12 strike look (design doc 4.37)
+VIOLET_DEEP = (0.156, 0.045, 0.644)  # sRGB (110, 60, 210) in linear: the bolts' glow (owner 2026-11-12: deep violet, not magenta)
 MODEL = "boss_mage"
 SIZE = 4.0  # her height in runner heights; the owner may pick 6, 8 or 12 (--size): every wide view scales from this one number
 CHAR_H, HOVER, GOLEM_RATIO = 5.5, 8.0, 1.6  # runner studs; her feet above the floor in studs (kept at any size); golem over her height
@@ -377,6 +379,26 @@ def lamp(c, rgb, watts, r=2.0):
 	FX.objects.link(light)
 
 
+def land(p):
+	"""Where a bolt lands (NIGHT): a violet light pool on the floor, a thin bright ring and a violet light."""
+	s = SIZE / 4
+	q = Vector((p.x, p.y, 0.15))
+	disc(q, 7 * s, glow_mat("Pool", VIOLET_DEEP, 2.5, 0.45))
+	ring(q, 10 * s, 0.22 * s, glow_mat("PoolRing", (0.8, 0.7, 1.0), 6, 0.9))
+	lamp(q + Vector((0, 0, 2.5 * s)), (0.35, 0.2, 1.0), 3e4 * s * s, 3)
+
+
+def burst(gem, k):
+	"""A strike leaving the staff tip (NIGHT): a pink-white burst with short rays."""
+	ball(gem, 0.3 * k, glow_mat("BurstCore", WHITE, 60))
+	ball(gem, 0.75 * k, glow_mat("BurstGlow", (1.0, 0.55, 0.85), 2.5, 0.3))
+	for i in range(6):
+		a = i * math.pi / 3 + 0.3
+		d = Vector((math.cos(a), 0.3 * math.sin(2 * a), math.sin(a))).normalized()
+		tube([gem, gem + d * 1.1 * k], 0.025 * k, glow_mat("BurstRay", (1.0, 0.8, 0.95), 20))
+	lamp(gem, (1.0, 0.7, 0.95), 1.5e4 * (SIZE / 4) ** 2, 2)
+
+
 def jag(a, b, n, amp, rng):
 	a, b = Vector(a), Vector(b)
 	d = b - a
@@ -402,6 +424,21 @@ def bolt(a, b, r, rng, branches=2, lamp_w=0.0):
 		off = d.orthogonal().normalized() * rng.uniform(0.6, 1.2) * (Vector(b) - Vector(a)).length * 0.18
 		off.rotate(Euler((0, 0, rng.uniform(0, math.tau))))
 		paths.append(jag(pts[i], pts[i] + d * (Vector(b) - Vector(a)).length * 0.12 + off, 5, (Vector(b) - Vector(a)).length * 0.02, rng))
+	if NIGHT:  # thin white-hot core, small extra forks, a deep violet glow; the bolt lights its landing spot
+		for _ in range(2):
+			i = rng.randrange(2, len(pts) - 3)
+			d = (pts[i + 1] - pts[i]).normalized()
+			off = d.orthogonal().normalized() * (Vector(b) - Vector(a)).length * 0.08
+			off.rotate(Euler((0, 0, rng.uniform(0, math.tau))))
+			paths.append(jag(pts[i], pts[i] + d * (Vector(b) - Vector(a)).length * 0.07 + off, 4, (Vector(b) - Vector(a)).length * 0.012, rng))
+		for k, p in enumerate(paths):
+			w = r * (0.55 if k == 0 else 0.25)
+			tube(p, w, glow_mat("BoltCoreN", WHITE, 40))
+			tube(p, w * 2.4, glow_mat("BoltGlowN", VIOLET_DEEP, 3.0, 0.55))
+			tube(p, w * 6, glow_mat("BoltHaloN", VIOLET_DEEP, 0.9, 0.22))["wide_only"] = True
+		if lamp_w:  # dimmer than before: the bolts light the floor round them, not the whole room
+			lamp(Vector(b) + Vector((0, 0, 3)), (0.35, 0.2, 1.0), lamp_w * 0.35)
+		return
 	for k, p in enumerate(paths):
 		w = r if k == 0 else r * 0.5
 		tube(p, w, glow_mat("BoltCore", WHITE, 30))
@@ -463,6 +500,11 @@ def load_scene(arena):
 	bpy.ops.mesh.primitive_circle_add(vertices=64, radius=55 * s, fill_type="NGON", location=(golem.location.x / 2, golem.location.y / 2, 0))
 	rig.floor = bpy.context.object  # her close views of the golem move: a plain floor disc
 	rig.floor.data.materials.append(matte_mat("FlatFloor", (0.52, 0.47, 0.42)))
+	if REWORK:  # the night room's dark floor for the close views of her strikes
+		bpy.ops.mesh.primitive_plane_add(size=1200, location=(0, 0, 0.0))
+		rig.night_floor = bpy.context.object
+		rig.night_floor.data.materials.append(matte_mat("NightFloor", (0.03, 0.026, 0.06)))
+		rig.night_floor.hide_render = True
 	global FX
 	FX = bpy.data.collections.new("FX")
 	scene.collection.children.link(FX)
@@ -475,6 +517,8 @@ def look(scene, rig, mode, floor=False):
 	for o in rig.arena:
 		o.hide_render = not arena
 	rig.floor.hide_render = arena or not floor
+	if getattr(rig, "night_floor", None):
+		rig.night_floor.hide_render = mode != "night"
 	rig.sun.hide_render = arena
 	for o, d0 in rig.lights.items():
 		o.hide_render = not arena
@@ -501,20 +545,28 @@ def look(scene, rig, mode, floor=False):
 			if mat:
 				bsdf = next(n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
 				bsdf.inputs["Emission Color"].default_value = be_rgb(wc if mode == "warm" else cc)
+		if NIGHT:  # her strikes dim the room hard to a dark blue-violet night (owner 2026-11-12; spec "Elf Mage strike lighting")
+			for o in rig.lights:
+				o.data.energy *= 0.12 if o.name.split(".")[0] in ("Key", "Fill") else 0.1
+			mix.inputs["A"].default_value, mix.inputs["B"].default_value = be_rgb("#0E0830"), be_rgb("#05031A")
+			next(n for n in nt.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value = 0.2
 		scene.view_settings.view_transform = "AgX"
 		scene.view_settings.look = "None" if mode == "warm" else "AgX - Punchy"
 		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 0.8, 0.4 if mode == "warm" else 1.0
 	else:
 		scene.world = rig.flat
 		bg = next(n for n in rig.flat.node_tree.nodes if n.type == "BACKGROUND")
-		bg.inputs["Color"].default_value = {"flat": (0.78, 0.8, 0.84, 1), "dark": (0.035, 0.022, 0.085, 1), "darkblue": (0.02, 0.03, 0.08, 1), "flash": (1.0, 0.97, 1.0, 1)}[mode]
+		bg.inputs["Color"].default_value = {"flat": (0.78, 0.8, 0.84, 1), "dark": (0.035, 0.022, 0.085, 1), "darkblue": (0.02, 0.03, 0.08, 1), "flash": (1.0, 0.97, 1.0, 1), "night": (0.012, 0.009, 0.035, 1)}[mode]
 		bg.inputs["Strength"].default_value = {"flat": 0.8, "flash": 3.0}.get(mode, 1.0)
-		rig.sun.data.energy = {"flat": 2.4, "flash": 0.15}.get(mode, 1.6)
+		rig.sun.data.energy = {"flat": 2.4, "flash": 0.15, "night": 0.9}.get(mode, 1.6)
 		rig.sun.data.color = (1, 1, 1) if mode == "flat" else ((0.85, 0.75, 1.0) if mode == "dark" else (0.75, 0.85, 1.0))
 		rig.sun.rotation_euler = (math.radians(50), math.radians(10), FACE + math.radians(-25))
 		scene.view_settings.view_transform = "Standard"
 		scene.view_settings.look = "None"
 		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 1.0, 0.8
+		if mode == "night":  # a low cool fill: her white robe reads, the effects light the rest
+			rig.sun.data.color = (0.55, 0.6, 1.0)
+			rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 0.9, 0.9
 		if mode == "flash":  # white to the camera, near black as light: she reads as a dark silhouette against the white-out (clip 2)
 			scene.world = flash_world()
 			rig.bloom.inputs["Strength"].default_value = 0.25
@@ -691,8 +743,11 @@ def build_fx(rig, names, seed):
 				bolt(gem, gem + d * rng.uniform(2.0, 3.4) * k, 0.06 * k, rng, branches=1)
 			lamp(gem + Vector((0, 0, 12 * s)), (0.6, 0.45, 1.0), 1.2e5 * s * s, 4)
 		elif name == "strike":
-			ball(gem, 0.5 * k, glow_mat("OrbCore", WHITE, 50))
-			ball(gem, 0.9 * k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
+			if NIGHT:
+				burst(gem, k)
+			else:
+				ball(gem, 0.5 * k, glow_mat("OrbCore", WHITE, 50))
+				ball(gem, 0.9 * k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
 			for _ in range(5):  # crackle around her
 				d = Vector([rng.uniform(-1, 1) for _ in range(3)]).normalized()
 				bolt(gem, gem + d * rng.uniform(1.5, 3.0) * k, 0.06 * k, rng, branches=1)
@@ -702,8 +757,11 @@ def build_fx(rig, names, seed):
 				foot = Vector((r * math.cos(a), r * math.sin(a), 0.2))
 				top = Vector((r * 0.65 * math.cos(a + rng.uniform(-0.2, 0.2)), r * 0.65 * math.sin(a + rng.uniform(-0.2, 0.2)), rng.uniform(95, 140)))
 				bolt(top, foot, rng.uniform(0.7, 1.1), rng, branches=3, lamp_w=6e4)
-				disc(foot, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
-				ring(foot, 9, 0.5, glow_mat("MarkRing", VIOLET, 4, 0.7))
+				if NIGHT:
+					land(foot)
+				else:
+					disc(foot, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
+					ring(foot, 9, 0.5, glow_mat("MarkRing", VIOLET, 4, 0.7))
 		elif name == "embers":
 			for _ in range(5):
 				d = Vector([rng.uniform(-1, 1) for _ in range(3)]).normalized()
@@ -751,7 +809,9 @@ def build_fx(rig, names, seed):
 			lamp(hit + Vector((0, 0, 6)), (1.0, 0.8, 0.55), 1.5e5 * s * s, 6)
 		elif name in ("sustain", "beams_room"):
 			# the 2 s windows' keys: room-wide hits drawn for the arena view only, so the close views keep her readable
-			if name == "sustain":
+			if name == "sustain" and NIGHT:
+				burst(gem, k)
+			elif name == "sustain":
 				ball(gem, 0.5 * k, glow_mat("OrbCore", WHITE, 50))
 				ball(gem, 0.9 * k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
 				for _ in range(5):
@@ -761,7 +821,10 @@ def build_fx(rig, names, seed):
 			for p, ci, h in win_spots("lightning" if name == "sustain" else "barrage", seed):
 				if name == "sustain":
 					bolt(Vector((p.x * 0.8, p.y * 0.8, h)), p, 0.9, rng, branches=2, lamp_w=6e4)
-					disc(p, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
+					if NIGHT:
+						land(p)
+					else:
+						disc(p, 6, glow_mat("Mark", (0.9, 0.8, 1.0), 3, 0.8))
 				else:
 					beam(to_world(rig, CIRCLES[ci][0]), p, 0.5 * s * 1.6)
 			for o in set(FX.objects) - before:
@@ -936,6 +999,8 @@ def shot(scene, path, size):
 
 
 def run_move(scene, rig, name, move):
+	global NIGHT
+	NIGHT = REWORK and name in ("lightning", "barrage")
 	keys = move["keys"]
 	has_golem = any("golem" in kk for kk in keys)
 	solo = move.get("solo") == "golem"  # the golem alone: she is hidden and her parts are not recorded
@@ -977,20 +1042,25 @@ def run_move(scene, rig, name, move):
 		record, grip = pose_mage(rig, key)
 		rig.golem.location.z = g_z
 		grec = pose_golem(rig, key.get("golem") if has_golem else None, random.Random(i))
+		clips = {}
 		if REWORK and not move.get("shared_frame"):  # each panel framed on its own pose, as the king's rework (the figure reads bigger)
 			pts = figure_pts(rig, has_golem and key.get("golem") is not None and not move.get("golem_context"), mage_on=not solo)
+			her = pts
 			n_open = max([int(f.split(":")[1]) for f in key.get("fx", []) if f.startswith("circles:")] or [0])
-			if n_open:  # keep the open circles in frame
-				gem, d, side, up = circle_frame(rig)
-				pts = np.vstack([pts] + [np.array([list(gem + (d * z + side * (x + sx * dia / 2) + up * (y + sy * dia / 2)) * rig.k)]) for x, y, z, dia in JCIRCLES[:n_open] for sx in (-1, 1) for sy in (-1, 1)])
-			three = bk.fit(cam, pts, yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))), MAIN[0] / MAIN[1], margin=0.85)
-			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
+			if n_open:  # the main view shows her and the whole open cluster (centres); the small view is her alone, close
+				pts = np.vstack([pts] + [np.array([list(c)]) for c, _, _ in circle_set(rig)[:n_open]])
+			view = yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18))))
+			three = bk.fit(cam, pts, view, MAIN[0] / MAIN[1], margin=0.8 if n_open else 0.85)
+			front = bk.fit(cam, her, view, FRONT[0] / FRONT[1], margin=0.85) if move.get("front_close") else bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
 			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
 			clip = sp * 3 - sp * 0.75
+			if move.get("front_close"):  # the close view stands nearer: its own near clip
+				sh = float(np.linalg.norm(her.max(axis=0) - her.min(axis=0)))
+				clips["front"] = sh * 3 - sh * 0.75
 		build_fx(rig, key.get("fx", []), seed=100 + i)
 		kind = move.get("window") if isinstance(move.get("window"), str) else name
 		dark = kind in ("lightning", "barrage")
-		look(scene, rig, key.get("look") or (("dark" if kind == "lightning" else "darkblue") if dark else "flat"), floor=has_golem)
+		look(scene, rig, key.get("look") or ("night" if NIGHT else (("dark" if kind == "lightning" else "darkblue") if dark else "flat")), floor=has_golem)
 		cell = {}
 		wide_only = [o for o in FX.objects if o.get("wide_only") or (key.get("look") == "flash" and o.type == "LIGHT")]  # flash: no effect light on her, a silhouette
 		for o in wide_only:  # halos are for the room-scale view; close up they bury her
@@ -998,7 +1068,7 @@ def run_move(scene, rig, name, move):
 		for view, size, tag in ((three, MAIN, "main"), (front, FRONT, "front")):
 			cam.location, cam.rotation_euler, cam.data.ortho_scale = view
 			cam.data.type, cam.data.sensor_fit = "ORTHO", "AUTO"
-			cam.data.clip_start = clip  # only what is round her: room-wide effects in front of her stay out of the close views
+			cam.data.clip_start = clips.get(tag, clip)  # only what is round her: room-wide effects in front of her stay out of the close views
 			cell[tag] = shot(scene, os.path.join(TMP, f"{name}_{i}_{tag}.png"), size)
 		for o in wide_only:
 			o.hide_render = False
@@ -1058,7 +1128,7 @@ def sheet(name, move, cells, win=None):
 		row, col = divmod(i, COLS)
 		x, y = col * CELL_W, HEAD_H + row * cell_h
 		bk.paste(px, cells[i]["main"], x, y)
-		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, "front")
+		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, move.get("front_label", "front"))
 		if "wide" in cells[i]:
 			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, "arena view (runner's camera)")
 		head = (f"{name}  key {i + 1} of {len(keys)}   " if REWORK else f"{i + 1}   ") + f"{key['t']:.2f} s" + (f" - {key['hold']:.2f} s" if "hold" in key else "") + (f"   event {key['event']}" + (" (HIT)" if REWORK else "") if "event" in key else "")
@@ -1222,6 +1292,15 @@ def fx_point(rig, arg, rng, gem):
 	"""Clip 2: a bright point with a cross flare at the staff tip (arg: size, default 1)."""
 	k, g = rig.k, float(arg or 1)
 	yaw = Matrix.Rotation(FACE, 3, "Z")
+	if NIGHT:  # a white starburst: 8 rays, long and short in turn, round a white-hot point
+		ball(gem, 0.14 * k * g, glow_mat("PointCore", WHITE, 60))
+		ball(gem, 0.4 * k * g, glow_mat("PointGlowN", (0.8, 0.75, 1.0), 2, 0.22))
+		for i in range(8):
+			a = i * math.pi / 4 + 0.12
+			d = yaw @ Vector((math.cos(a), 0, math.sin(a)))
+			tube([gem, gem + d * (1.9 if i % 2 == 0 else 0.8) * k * g], 0.02 * k * g, glow_mat("PointRay", WHITE, 14))
+		lamp(gem, (0.85, 0.8, 1.0), 1.5e4 * g * (SIZE / 4) ** 2, 2)
+		return
 	ball(gem, 0.13 * k * g, glow_mat("PointCore", WHITE, 40))
 	ball(gem, 0.32 * k * g, glow_mat("PointGlow", (0.85, 0.7, 1.0), 2, 0.25))
 	for d, ln in ((yaw @ Vector((1, 0, 0)), 1.6), (Vector((0, 0, 1)), 1.6), (yaw @ Vector((1, 0, 1)).normalized(), 0.6), (yaw @ Vector((1, 0, -1)).normalized(), 0.6)):
@@ -1247,14 +1326,16 @@ def fx_cast(rig, arg, rng, gem):
 		tube(jag(gem, end, 10, 2 * s, rng), 0.5 * s, glow_mat("BoltFade", (0.62, 0.08, 1.0), 0.8, 0.3))
 		return
 	bolt(gem, end, 1.1 * s, rng, branches=4, lamp_w=1.5e5)
-	bolt(gem, end + Vector((rng.uniform(-12, 12), rng.uniform(-12, 12), -6)) * s, 0.6 * s, rng, branches=2)
+	end2 = end + Vector((rng.uniform(-12, 12), rng.uniform(-12, 12), -6)) * s
+	bolt(gem, end2, 0.6 * s, rng, branches=2)
+	if NIGHT:  # the strike leaves the tip in a pink-white burst and lights the floor where it lands
+		burst(gem, rig.k)
+		for e in (end, end2):
+			if e.z < 1:
+				land(e)
+		return
 	ball(gem, 0.5 * rig.k, glow_mat("OrbCore", WHITE, 50))
 	ball(gem, 0.6 * rig.k, glow_mat("OrbGlow", VIOLET, 3, 0.35))
-
-
-# barrage (clips 1, 4, 6): circles open in front of the staff, small to large, one after another, each facing the shot. Offsets in model
-# units from the staff's axis (side, up), distance in front of the tip, diameter; opened in this order.
-JCIRCLES = [(0, 0, 1.0, 1.1), (-1.5, 0.8, 1.3, 1.3), (1.6, 0.7, 1.4, 1.4), (-1.0, -1.3, 1.6, 1.6), (1.2, -1.4, 1.7, 1.8), (-2.9, -0.1, 2.0, 2.0), (3.0, 0.0, 2.1, 2.2), (-2.0, 2.3, 2.4, 2.5), (2.2, 2.2, 2.5, 2.7)]
 
 
 def circle_frame(rig):
@@ -1267,46 +1348,62 @@ def circle_frame(rig):
 	return gem, d, side, side.cross(d).normalized()
 
 
-def fx_circles(rig, arg, rng, gem):
-	"""circles:n[:faint|bright|fade]: the first n circles of JCIRCLES open in front of the staff, facing the shot."""
-	n, _, state = arg.partition(":")
+# the owner's later look (2026-11-12, "much more numerous and much bigger", the Blender sheet is the target): 10 soft cyan-white
+# circles, 30 to 70 studs, opening one by one before 2.0 s in a loose cluster 1 to 3 staff lengths in front of the tip, facing the aim.
+# (side, up) in model units across the aim, distance in staff lengths from the tip, diameter in studs; opened in this order.
+CIRCLES10 = [(0, 0, 1.15, 30), (-3.6, 2.4, 1.3, 34), (3.8, 2.0, 1.35, 36), (-2.2, -3.0, 1.5, 40), (2.8, -3.0, 1.55, 44), (-7.0, 0.4, 1.8, 48), (7.2, 0.8, 1.85, 52), (-4.6, 6.0, 2.15, 58), (4.8, 5.8, 2.25, 62), (0.2, 1.0, 2.75, 70)]
+STAFF_L = 5.9  # the staff's length, model units
+BARRAGE_AIM = (Matrix.Rotation(math.radians(36), 3, "Z") @ Vector((-1, -0.42, 0.06))).normalized()  # the brace key's aim, model space
+
+
+def circle_set(rig):
+	"""World (centre, aim, diameter) per circle. The aim is the staff's axis; when the staff points away from the arena (her
+	wind-up) the circles stay on the move's aim (BARRAGE_AIM), so they never sit behind or inside her."""
 	gem, d, side, up = circle_frame(rig)
-	k = rig.k
-	rot = Vector((0, 0, 1)).rotation_difference(d).to_euler()
-	for i, (x, y, z, dia) in enumerate(JCIRCLES[: int(n)]):
-		if state == "fade" and i % 3 == 2:
-			continue  # already gone
-		p = gem + (d * z + side * x + up * y) * k
-		bpy.ops.mesh.primitive_plane_add(size=dia * k * (1.12 if state == "fade" else 1), location=p, rotation=rot)
-		strength, alpha = {"bright": (1.8, 1.0), "fade": (1.2, 0.3)}.get(state, (1.1, 0.55 if i < int(n) - 1 else 0.35))
-		fx_link(bpy.context.object, glow_mat("Circle", (1.0, 1.0, 1.0), strength, alpha, CIRCLE_PNG))
+	aim = (rig.mage.matrix_world.to_3x3().normalized() @ BARRAGE_AIM).normalized()
+	if d.dot(aim) < 0.5:  # measured from her chest, not the tip behind her shoulder
+		d = aim
+		side = d.cross(Vector((0, 0, 1))).normalized()
+		up = side.cross(d).normalized()
+		gem = rig.mage.matrix_world @ Vector((0, 0, 4.0))
+	return [(gem + (d * f * STAFF_L + side * x + up * y) * rig.k, d, st) for x, y, f, st in CIRCLES10]
+
+
+def fx_circles(rig, arg, rng, gem):
+	"""circles:n[:bright|fade]: the first n of the 10 circles, soft cyan-white glow facing the aim."""
+	n, _, state = arg.partition(":")
+	for i, (p, d, studs) in enumerate(circle_set(rig)[: int(n)]):
+		rot = Vector((0, 0, 1)).rotation_difference(d).to_euler()
+		size = studs * (1.08 if state == "fade" else 1)
+		strength, alpha = {"bright": (2.6, 1.0), "fade": (1.2, 0.3)}.get(state, (1.8, 0.8 if i < int(n) - 1 else 0.45))
+		bpy.ops.mesh.primitive_plane_add(size=size, location=p, rotation=rot)
+		fx_link(bpy.context.object, glow_mat("CircleN", (0.7, 0.95, 1.0), strength, alpha, CIRCLE_PNG))
+		disc(p - d * 0.05, studs * 0.5, glow_mat("CircleSoft", (0.55, 0.9, 1.0), 1.2, 0.12 if state != "fade" else 0.05), rot=rot)
 		if state == "bright":
-			ball(p + d * 0.05, dia * k * 0.06, glow_mat("CircleCore", WHITE, 12))
-	if state == "bright":
-		lamp(gem + d * 2 * k, (0.6, 0.8, 1.0), 2e4 * (SIZE / 4) ** 2, 6)
+			ball(p, studs * 0.05, glow_mat("CircleCore", WHITE, 12))
+	if state != "fade" and int(n):
+		lamp(circle_set(rig)[0][0], (0.55, 0.85, 1.0), 4e4 * (SIZE / 4) ** 2, 8)
 
 
 def fx_beams(rig, arg, rng, gem):
-	"""beams[:set]: every open circle fires along the shot (a little spread), white core, blue glow and a rounded head where it
-	lands; the room-wide beams of the window go to that set's floor spots (arena view only)."""
-	gem, d, side, up = circle_frame(rig)
-	k, s = rig.k, SIZE / 4
-	for x, y, z, dia in JCIRCLES:
-		p = gem + (d * z + side * x + up * y) * k
-		dd = (d + side * rng.uniform(-0.12, 0.12) + up * rng.uniform(-0.15, 0.05)).normalized()
-		t = min(-p.z / dd.z if dd.z < -1e-3 else 1e9, 80 * s)
-		end = p + dd * t
-		w = dia * k * 0.07
-		tube([p, end], w, glow_mat("BeamCore", WHITE, 14))
-		tube([p, end], w * 2.2, glow_mat("BeamGlow", (0.35, 0.62, 1.0), 2.0, 0.45))
-		ball(end, w * 2.6, glow_mat("BeamHead", WHITE, 14))  # the rounded head (clip 4)
-		ball(end, w * 5, glow_mat("HitGlow", ICE, 1.5, 0.3))
-	before = set(FX.objects)
-	for p, ci, _ in win_spots("barrage", int(arg or 0)):
-		x, y, z, dia = JCIRCLES[ci % len(JCIRCLES)]
-		beam(gem + (d * z + side * x + up * y) * k, p, 0.5 * s * 1.6)
-	for o in set(FX.objects) - before:
-		o["wide_only"] = True
+	"""beams[:set]: from 2.0 s every circle fires from its centre, fanning out to strike spots on the floor ahead: a thick white-hot
+	core, a cyan rim and a thin dark edge, a white hit with small black smoke."""
+	s = SIZE / 4
+	rr = random.Random(780 + int(arg or 0))
+	for i, (p, d, studs) in enumerate(circle_set(rig)):
+		flat = Vector((d.x, d.y, 0)).normalized()
+		yaw = math.radians(-26 + 52 * i / 9 + rr.uniform(-4, 4))
+		fan = Matrix.Rotation(yaw, 3, "Z") @ flat
+		end = Vector((p.x, p.y, 0)) + fan * rr.uniform(60, 110)
+		end.z = 0.3
+		w = studs * 0.045
+		tube([p, end], w * 1.75, glow_mat("BeamEdge", (0.0, 0.0, 0.0), 0.0, 0.55))
+		tube([p, end], w * 1.45, glow_mat("BeamRim", (0.3, 0.85, 1.0), 3.0, 0.75))
+		tube([p, end], w, glow_mat("BeamCoreN", WHITE, 22))
+		ball(end, w * 2.2, glow_mat("BeamHit", WHITE, 18))
+		for _ in range(3):  # small black smoke at the hit
+			ball(end + Vector((rr.uniform(-1, 1) * w * 2, rr.uniform(-1, 1) * w * 2, rr.uniform(0.5, 2.5) * w)), rr.uniform(1.0, 1.8) * w, matte_mat("Smoke", (0.015, 0.015, 0.02)))
+		lamp(end + Vector((0, 0, 3 * s)), (0.6, 0.9, 1.0), 2.5e4 * s * s, 4)
 
 
 JFX = {"point": fx_point, "flash": fx_flash, "cast": fx_cast, "circles": fx_circles, "beams": fx_beams}
@@ -1323,14 +1420,14 @@ JMOVES = {
 		"end": 5.2,
 		"cols": 5,
 		"strikes": [2.0, 4.0],
-		"note": "Dodge bar before the strikes; cost event Lightning at 2.00 s (HIT, red); strike window 2.00 - 4.00 s, a strike every 0.15 s (14); the lead-in lightning_in is generated. Arena views: colosseum draft from a runner's camera on lane 4.",
+		"note": "Dodge bar before the strikes; cost event Lightning at 2.00 s (HIT, red); strike window 2.00 - 4.00 s, a strike every 0.15 s (14); the lead-in lightning_in is generated. The room dims to a dark blue-violet night; white-hot bolts with a deep violet glow light the floor where they land. Arena views: colosseum draft from a runner's camera on lane 4.",
 		"keys": [
 			{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands, tails loose, legs hang", **IDLE0},
 			{"t": 0.45, "cap": "Anticipation: staff drawn back and up over her right shoulder, body coils right and dips, knees tuck; tails still swing the old way", "root": (0, 0.05, -0.3), "body": (0, 0, -10), "torso": (16, -4, -22), "head": (8, 0, 22), "RightArm": {"aim": (-2.0, 0.85, 4.35), "pole": (-0.3, 0.2, -1)}, "staff": {"dir": (-0.35, 0.75, 1)}, "LeftArm": {"aim": (1.25, -1.45, 3.3)}, "TailL": [(-20, -34, 8), (-12, -10, 0), (-10, -6, 0)], "TailR": [(-8, 44, -6), (-14, 14, 0), (-12, 8, 0)], "LeftLeg": {"hip": (-32, 0, -4), "knee": 75}, "RightLeg": {"hip": (-12, 0, 6), "knee": 55}},
-			{"t": 0.95, "cap": "Cast raise, overshoot: staff thrust up past the top on a straight arm, chest arched, left arm flung out; bright point and cross flare at the tip", "fx": ["point:1.2"], "root": (0.05, 0.05, 0.5), "body": (0, 0, 6), "torso": (-16, 4, 10), "head": (-24, 0, -6), "RightArm": {"aim": (-1.25, 0.3, 5.6)}, "staff": {"dir": (0.12, 0.38, 1)}, "LeftArm": {"aim": (2.95, -0.55, 3.0)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (12, 0, -6), "knee": 12}, "RightLeg": {"hip": (26, 0, 8), "knee": 32}},
+			{"t": 0.95, "cap": "Cast raise, overshoot: staff thrust up past the top on a straight arm, chest arched, left arm flung out; a white starburst at the tip", "fx": ["point:1.2"], "root": (0.05, 0.05, 0.5), "body": (0, 0, 6), "torso": (-16, 4, 10), "head": (-24, 0, -6), "RightArm": {"aim": (-1.25, 0.3, 5.6)}, "staff": {"dir": (0.12, 0.38, 1)}, "LeftArm": {"aim": (2.95, -0.55, 3.0)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (12, 0, -6), "knee": 12}, "RightLeg": {"hip": (26, 0, 8), "knee": 32}},
 			{"t": 1.4, "cap": "Settle: staff back upright, she sinks a little, left hand braced out; the charge crackles at the point; tails fling up and out", "fx": ["point", "charge"], "root": (0, 0, 0.3), "body": (0, 0, 2), "torso": (-6, 2, 4), "head": (-14, 0, -2), "RightArm": {"aim": (-1.4, -0.15, 5.35)}, "staff": {"dir": (0.02, 0.05, 1)}, "LeftArm": {"aim": (2.3, -1.15, 2.75)}, "TailL": [(-22, -50, 6), (-10, -12, 0), (-6, -8, 0)], "TailR": [(-18, 56, -4), (-10, 14, 0), (-4, 8, 0)], "LeftLeg": {"hip": (6, 0, -4), "knee": 32}, "RightLeg": {"hip": (18, 0, 6), "knee": 48}},
 			{"t": 1.8, "cap": "Brace (Dodge bar ends): turns side-on, staff levelled at the arena in both hands, leans into it, legs split; hair and tails blown back", "fx": ["point:1.4"], "root": (0, -0.15, 0.15), "body": (0, 0, 48), "torso": (14, 6, -6), "head": (-6, 0, -34), **BRACE, "TailL": [(38, -22, 0), (14, -4, 0), (10, -2, 0)], "TailR": [(44, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
-			{"t": 2.0, "event": "Lightning", "look": "flash", "arena": "violet", "cap": "HIT, strike 1 of 14: the arena flashes white; lightning bursts from the tip, the recoil kicks her back and tips the staff up; tails snap back", "fx": ["flash", "cast", "strike"], "root": (0, 0.25, 0.2), "body": (0, 0, 44), "torso": (2, 10, -2), "head": (-14, 0, -30), **BRACE, "staff": {"dir": (-1, -0.42, 0.2)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (34, 0, -8), "knee": 70}, "RightLeg": {"hip": (-24, 0, 8), "knee": 48}},
+			{"t": 2.0, "event": "Lightning", "look": "flash", "arena": "violet", "cap": "HIT, strike 1 of 14: the arena flashes white; a pink-white burst at the tip as the bolt leaves it, the recoil kicks her back and tips the staff up; tails snap back", "fx": ["flash", "cast", "strike"], "root": (0, 0.25, 0.2), "body": (0, 0, 44), "torso": (2, 10, -2), "head": (-14, 0, -30), **BRACE, "staff": {"dir": (-1, -0.42, 0.2)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (34, 0, -8), "knee": 70}, "RightLeg": {"hip": (-24, 0, 8), "knee": 48}},
 			{"t": 2.6, "arena": "violet", "cap": "Strike 5: she drives back against the recoil, staff tracks left across the room, weight forward; tails whip to her right", "fx": ["cast", "sustain"], "root": (0.1, -0.1, 0.1), "body": (0, 0, 70), "torso": (18, 2, -10), "head": (-4, 0, -40), **BRACE, "staff": {"dir": (-1, -0.32, -0.05)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
 			{"t": 3.35, "arena": "violet", "cap": "Strike 10: hips swing the staff back across to her right, low and level, torso twisted against it; tails whip the other way", "fx": ["cast", "sustain"], "root": (-0.1, 0, -0.05), "body": (0, 0, 22), "torso": (16, -6, 14), "head": (0, 0, -24), **BRACE, "staff": {"dir": (-1, -0.5, -0.12)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
 			{"t": 4.0, "cap": "Release (strikes end): she throws the staff up and away, body uncoils and floats up, legs swing through; last sparks; tails fly forward", "fx": ["cast:fade", "embers"], "root": (0, 0.15, 0.4), "body": (0, 0, 24), "torso": (-14, 4, 6), "head": (-16, 0, -12), "RightArm": {"aim": (-2.0, -0.9, 5.0)}, "staff": {"dir": (-0.55, -0.35, 1)}, "LeftArm": {"aim": (2.6, 0.6, 3.3), "pole": (0.3, 1, 0.3)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
@@ -1482,20 +1579,22 @@ JMOVES.update(
 		},
 		"barrage": {
 			"title": "Barrage (rework, jointed rig): circles open in front of the staff, a 2 s storm of beams, recover",
+			"front_close": True,
+			"front_label": "her, close (same angle)",
 			"end": 5.4,
 			"cols": 5,
 			"strikes": [2.0, 4.0],
-			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. Circles open one by one in front of the staff, small to large, facing the shot.",
+			"note": "Dodge bar before the beams; cost event Barrage at 2.00 s (HIT, red); beam window 2.00 - 4.00 s, a strike every 0.15 s (14); barrage_in is generated. The room dims to a night; 10 cyan-white circles (30 - 70 studs) open one by one 1 - 3 staff lengths ahead of the tip, facing the aim; white-hot beams with cyan rims, dark edges and black smoke.",
 			"keys": [
 				{"t": 0.0, "cap": "Idle key 0: hovering, staff across the body in both hands", **IDLE0},
-				{"t": 0.5, "cap": "Anticipation: staff swung back and low past her right hip, body coils right and dips, knees tuck; tails swing the old way", "root": (0, 0.08, -0.25), "body": (0, 0, -14), "torso": (18, -2, -26), "head": (6, 0, 26), "RightArm": {"aim": (-2.15, 0.8, 2.75), "pole": (-0.4, 0.4, -1)}, "staff": {"dir": (-0.25, 0.85, -0.25)}, "LeftArm": {"aim": (1.2, -1.45, 3.1)}, "TailL": [(-16, -30, 6), (-10, -8, 0), (-8, -6, 0)], "TailR": [(-8, 40, -6), (-12, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (-30, 0, -4), "knee": 72}, "RightLeg": {"hip": (-10, 0, 6), "knee": 55}},
-				{"t": 1.0, "cap": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; the first small circle pops at the tip", "fx": ["circles:1"], "root": (0, -0.12, 0.4), "body": (0, 0, 34), "torso": (-8, 6, -4), "head": (-16, 0, -24), **BRACE, "RightArm": {"aim": (-1.3, -1.2, 3.6), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.55)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (14, 0, -6), "knee": 15}, "RightLeg": {"hip": (28, 0, 8), "knee": 34}},
-				{"t": 1.45, "cap": "Settle: staff comes down level; circles open one after another, small to large (4 of 9); tails fling up", "fx": ["circles:4"], "root": (0, -0.05, 0.2), "body": (0, 0, 32), "torso": (6, 4, -6), "head": (-8, 0, -26), **BRACE, "staff": {"dir": (-1, -0.42, 0.06)}, "TailL": [(-20, -44, 6), (-8, -10, 0), (-6, -6, 0)], "TailR": [(-16, 50, -4), (-8, 12, 0), (-4, 6, 0)], "LeftLeg": {"hip": (8, 0, -4), "knee": 34}, "RightLeg": {"hip": (18, 0, 6), "knee": 46}},
-				{"t": 1.85, "cap": "Brace (Dodge bar ends): all 9 circles bright, she leans into the staff, legs split; hair and tails blown back", "fx": ["circles:9:bright"], "root": (0, -0.15, 0.15), "body": (0, 0, 36), "torso": (16, 6, -6), "head": (-6, 0, -26), **BRACE, "TailL": TLB, "TailR": [(46, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
-				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; every circle fires, beams with rounded heads; the kick drives her back", "fx": ["flash", "circles:9:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
-				{"t": 2.6, "arena": "blue", "cap": "Strike 5: she drives the staff left across the room, circles turn with it; weight forward, tails whip to her right", "fx": ["circles:9:bright", "beams:1"], "root": (0.1, -0.12, 0.12), "body": (0, 0, 62), "torso": (18, 2, -10), "head": (-4, 0, -36), **BRACE, "staff": {"dir": (-1, -0.32, -0.04)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
-				{"t": 3.35, "arena": "blue", "cap": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way", "fx": ["circles:9:bright", "beams:3"], "root": (-0.1, 0, -0.05), "body": (0, 0, 10), "torso": (20, -6, 14), "head": (2, 0, -18), **BRACE, "staff": {"dir": (-1, -0.5, -0.18)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
-				{"t": 4.0, "cap": "Release (beams end): she pulls the staff up and back, left hand off it, circles fade; body floats up, tails fly forward", "fx": ["circles:9:fade"], "root": (0, 0.12, 0.35), "body": (0, 0, 18), "torso": (-12, 4, 4), "head": (-12, 0, -14), "RightArm": {"aim": (-1.2, -1.15, 3.9), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-0.7, -0.3, 0.75)}, "LeftArm": {"aim": (1.0, -1.2, 3.5)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
+				{"t": 0.5, "cap": "Anticipation: staff swung back and low past her right hip, body coils right and dips; the first 3 circles open ahead, small", "fx": ["circles:3"], "root": (0, 0.08, -0.25), "body": (0, 0, -14), "torso": (18, -2, -26), "head": (6, 0, 26), "RightArm": {"aim": (-2.15, 0.8, 2.75), "pole": (-0.4, 0.4, -1)}, "staff": {"dir": (-0.25, 0.85, -0.25)}, "LeftArm": {"aim": (1.2, -1.45, 3.1)}, "TailL": [(-16, -30, 6), (-10, -8, 0), (-8, -6, 0)], "TailR": [(-8, 40, -6), (-12, 12, 0), (-10, 8, 0)], "LeftLeg": {"hip": (-30, 0, -4), "knee": 72}, "RightLeg": {"hip": (-10, 0, 6), "knee": 55}},
+				{"t": 1.0, "cap": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; 6 of 10 circles open ahead of the tip", "fx": ["circles:6"], "root": (0, -0.12, 0.4), "body": (0, 0, 34), "torso": (-8, 6, -4), "head": (-16, 0, -24), **BRACE, "RightArm": {"aim": (-1.3, -1.2, 3.6), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-1, -0.42, 0.55)}, "TailL": [(12, -14, 0), (8, -4, 0), (6, -2, 0)], "TailR": [(16, 10, 0), (10, 4, 0), (8, 2, 0)], "LeftLeg": {"hip": (14, 0, -6), "knee": 15}, "RightLeg": {"hip": (28, 0, 8), "knee": 34}},
+				{"t": 1.45, "cap": "Settle: staff comes down level; the circles keep opening one after another, small to large (9 of 10); tails fling up", "fx": ["circles:9"], "root": (0, -0.05, 0.2), "body": (0, 0, 32), "torso": (6, 4, -6), "head": (-8, 0, -26), **BRACE, "staff": {"dir": (-1, -0.42, 0.06)}, "TailL": [(-20, -44, 6), (-8, -10, 0), (-6, -6, 0)], "TailR": [(-16, 50, -4), (-8, 12, 0), (-4, 6, 0)], "LeftLeg": {"hip": (8, 0, -4), "knee": 34}, "RightLeg": {"hip": (18, 0, 6), "knee": 46}},
+				{"t": 1.85, "cap": "Brace (Dodge bar ends): all 10 circles open and bright, she leans into the staff, legs split; hair and tails blown back", "fx": ["circles:10:bright"], "root": (0, -0.15, 0.15), "body": (0, 0, 36), "torso": (16, 6, -6), "head": (-6, 0, -26), **BRACE, "TailL": TLB, "TailR": [(46, 30, 0), (16, 6, 0), (12, 4, 0)], "LeftLeg": {"hip": (26, 0, -6), "knee": 55}, "RightLeg": {"hip": (-34, 0, 8), "knee": 62}},
+				{"t": 2.0, "event": "Barrage", "look": "flash", "arena": "blue", "cap": "HIT, strike 1 of 14: the arena flashes white; every circle fires a white-hot beam at the floor ahead; the kick drives her back", "fx": ["flash", "circles:10:bright", "beams:0"], "root": (0, 0.28, 0.2), "body": (0, 0, 34), "torso": (0, 10, -2), "head": (-14, 0, -24), **BRACE, "staff": {"dir": (-1, -0.42, 0.14)}, "TailL": [(60, -18, 0), (20, 0, 0), (16, 0, 0)], "TailR": [(66, 34, 0), (22, 6, 0), (16, 4, 0)], "LeftLeg": {"hip": (36, 0, -8), "knee": 72}, "RightLeg": {"hip": (-22, 0, 8), "knee": 46}},
+				{"t": 2.6, "arena": "blue", "cap": "Strike 5: she drives the staff left across the room, circles turn with it; weight forward, tails whip to her right", "fx": ["circles:10:bright", "beams:1"], "root": (0.1, -0.12, 0.12), "body": (0, 0, 62), "torso": (18, 2, -10), "head": (-4, 0, -36), **BRACE, "staff": {"dir": (-1, -0.32, -0.04)}, "TailL": [(30, -4, 10), (14, 6, 0), (12, 6, 0)], "TailR": [(52, 54, -10), (24, 14, 0), (18, 8, 0)], "LeftLeg": {"hip": (18, 0, -4), "knee": 40}, "RightLeg": {"hip": (-40, 0, 6), "knee": 75}},
+				{"t": 3.35, "arena": "blue", "cap": "Strike 10: hips swing the staff back to her right and lower, the beams rake the near lanes; tails whip the other way", "fx": ["circles:10:bright", "beams:3"], "root": (-0.1, 0, -0.05), "body": (0, 0, 10), "torso": (20, -6, 14), "head": (2, 0, -18), **BRACE, "staff": {"dir": (-1, -0.5, -0.18)}, "TailL": [(56, -40, -6), (24, -10, 0), (18, -6, 0)], "TailR": [(28, 6, 8), (12, -4, 0), (8, -6, 0)], "LeftLeg": {"hip": (36, 0, -10), "knee": 66}, "RightLeg": {"hip": (-20, 0, 10), "knee": 40}},
+				{"t": 4.0, "cap": "Release (beams end): she pulls the staff up and back, left hand off it; the beams are gone, the circles fade", "fx": ["circles:10:fade"], "root": (0, 0.12, 0.35), "body": (0, 0, 18), "torso": (-12, 4, 4), "head": (-12, 0, -14), "RightArm": {"aim": (-1.2, -1.15, 3.9), "pole": (-0.6, 0.6, -1)}, "staff": {"dir": (-0.7, -0.3, 0.75)}, "LeftArm": {"aim": (1.0, -1.2, 3.5)}, "TailL": [(-28, -30, 0), (-16, -8, 0), (-12, -6, 0)], "TailR": [(-24, 36, 0), (-14, 10, 0), (-10, 6, 0)], "LeftLeg": {"hip": (4, 0, -4), "knee": 20}, "RightLeg": {"hip": (14, 0, 6), "knee": 30}},
 				{"t": 5.4, "cap": "Recover = idle key 0: staff back across the body in both hands, settled", **IDLE0},
 			],
 		},
@@ -1634,7 +1733,7 @@ def rework(argv):
 			"parents": JPARENT,
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Staff": list(GRIP), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}, **{n: [round(v, 4) for v in p] for n, p in TPIV.items()}},
 			"staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
-			"effects": "sketch labels per key: point[:size] (bright point and cross flare at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers",
+			"effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 10 cyan-white circles, 30 - 70 studs, 1 - 3 staff lengths ahead of the tip), beams:set (white-hot beams from the circles' centres to the floor ahead, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
 			"hover": {"studs": HOVER, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed; the bob is played in game, not keyed; no foot plants"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],
