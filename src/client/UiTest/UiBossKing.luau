@@ -19,7 +19,7 @@
 --     Model named KingArena (the vault is retired, owner 2026-11-12; see ui_boss_king_arena); no ElfMage, Golem or BigRaga while
 --     BossEventBoss is boss_king.
 --   Effects (Client/BossKingVfx, under BossEffects; BossVfxForce plays Gates, Enuma, Shields):
---     Gates: 12 to 20 instances named Portal, projectiles or beams named Streak; DEBUG FIELD LastStrikes as the mage's,
+--     Gates: 16 to 22 instances named Portal, projectiles or beams named Streak; DEBUG FIELD LastStrikes as the mage's,
 --       {"Move":"Gates","Strikes":[{"T":<s>,"Spots":[[x,z],...]},...]}: 14 volleys at 0, 0.15, ... 1.95 s, 7 to 10 spots each,
 --       the same with effects off.
 --     Enuma: an instance named ChargeTint, then one named EnumaBeam.
@@ -77,7 +77,7 @@ local KING_ARENA_PARTS_MAX = 1250
 local PEAK_WATCH = 1.5
 local VOLLEY_COUNT, VOLLEY_EVERY, VOLLEY_TIME_SLACK = 14, 0.15, 0.02
 local PER_VOLLEY_MIN, PER_VOLLEY_MAX = 7, 10
-local PORTALS_MIN, PORTALS_MAX = 12, 20
+local PORTALS_MIN, PORTALS_MAX = 16, 22 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); was 12 to 20
 local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SCAN = 40
 
@@ -853,7 +853,10 @@ function Module.Build(h)
 		-- (implementer: report a change, do not loosen):
 		--   Portals: every Decal under each Portal part shows design C, the image id in Shared/BossVfxArt.PortalC (the ledger the
 		--     king's effects read; BossKingArt.PortalC also accepted), Color3 white; a portal's Size (X or Y, the drawn disc) peaks
-		--     at 1.25 x the old 14 / 10 / 7 studs (+/- 2%); it turns slowly about its facing (LookVector).
+		--     between 18 and 30 studs, the largest at least 26 (BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); replaces 1.25 x the old 14 /
+		--     10 / 7); it turns slowly about its facing (LookVector). The portals stand in an arch behind him: every centre within
+		--     120 deg (flat) of the direction behind his live Torso, and every portal's facing (either side) within 45 deg of
+		--     his Torso's facing, toward the lanes.
 		--   Wind: BossVfxForce "Charge" makes a BasePart EnumaWind under BossEffects that follows Ea, its local Y along the orbit's
 		--     axis; its Trails (enabled, faded at both ends: Transparency's first and last keypoints >= 0.8) ride Attachment0s
 		--     orbiting that axis: 4 early in the charge, 6 near 2.75 s; the orbit turns once per 0.8 s early and once per 0.35 s near
@@ -861,7 +864,7 @@ function Module.Build(h)
 		--   Ea's trail: an enabled Trail parented under the GoldenKing's Ea part (or whose Attachment0 is) during enuma's swing (3.0 s
 		--     +/- 0.3, from the schedule), none at rest (the idle), none under REDUCED EFFECTS. LastStrikes stays as checked above.
 		local WHITE_TOLERANCE = 0.01
-		local OLD_PORTAL_SIZES = { 14, 10, 7 }
+		local PORTAL_SMALL, PORTAL_LARGE, PORTAL_LARGEST = 18, 30, 26 -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed)
 		local function portalArt()
 			local art = optional("BossVfxArt") or {}
 			return art.PortalC or (optional("BossKingArt") or {}).PortalC
@@ -1025,7 +1028,7 @@ function Module.Build(h)
 			local portals = mostNamed("Gates", "Portal")
 			h.check(
 				res,
-				"gates_portals_12_to_20",
+				"gates_portals_16_to_22", -- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed); was 12 to 20
 				portals,
 				PORTALS_MIN .. " to " .. PORTALS_MAX,
 				portals >= PORTALS_MIN and portals <= PORTALS_MAX
@@ -1039,7 +1042,9 @@ function Module.Build(h)
 				type(wantArt) == "string" and string.find(wantArt, "rbxassetid://", 1, true) == 1,
 				true
 			)
-			local wrongArt, notWhite, offSize, turning, watched = {}, {}, {}, 0, 0
+			local wrongArt, notWhite, offSize, turning, watched, largestPortal = {}, {}, {}, 0, 0, 0
+			local offArch = {}
+			local kingTorso = king:FindFirstChild("Torso", true)
 			for portal, row in watchPortals(2.6) do
 				watched += 1
 				for decal in row.Decals do
@@ -1054,12 +1059,26 @@ function Module.Build(h)
 				if next(row.Decals) == nil then
 					table.insert(wrongArt, portal:GetFullName() .. " has no decal")
 				end
-				local fits = false
-				for _, old in OLD_PORTAL_SIZES do
-					fits = fits or math.abs(row.Peak - 1.25 * old) <= 0.02 * 1.25 * old
-				end
-				if not fits then
+				largestPortal = math.max(largestPortal, row.Peak)
+				if row.Peak < PORTAL_SMALL - 0.01 or row.Peak > PORTAL_LARGE + 0.01 then
 					table.insert(offSize, ("%.2f"):format(row.Peak))
+				end
+				-- the arch behind him, facing the lanes (from the portal's last frame and his Torso now)
+				if kingTorso and row.Last then
+					local facing = kingTorso.CFrame.LookVector * Vector3.new(1, 0, 1)
+					local out = (row.Last[2].Position - kingTorso.Position) * Vector3.new(1, 0, 1)
+					if facing.Magnitude > 1e-3 and out.Magnitude > 1e-3 then
+						facing, out = facing.Unit, out.Unit
+						local fromBehind = math.deg(math.acos(math.clamp(-facing:Dot(out), -1, 1)))
+						local look = row.Last[2].LookVector
+						local toLanes = math.deg(math.acos(math.clamp(math.abs(look:Dot(facing)), 0, 1)))
+						if fromBehind > 120 or toLanes > 45 then
+							table.insert(
+								offArch,
+								("%.0f deg from behind, faces %.0f deg off"):format(fromBehind, toLanes)
+							)
+						end
+					end
 				end
 				if row.First and row.Last and row.Last[1] - row.First[1] >= 0.5 then
 					local a, b = row.First[2], row.Last[2]
@@ -1071,7 +1090,17 @@ function Module.Build(h)
 			check(res, "portals_watched", watched > 0, true)
 			h.checkList(res, "portals_design_c_art", wrongArt)
 			h.checkList(res, "portals_white", notWhite)
-			h.checkList(res, "portals_1_25_x_size", offSize)
+			-- BOSS_EVENT_SPEC "Golden King game matched to his sheets" (2026-11-12, proposed): replaces portals_1_25_x_size
+			h.checkList(res, "portals_sheet_size", offSize)
+			h.check(
+				res,
+				"portals_sheet_size_largest",
+				largestPortal,
+				">= " .. PORTAL_LARGEST,
+				largestPortal >= PORTAL_LARGEST
+			)
+			check(res, "portals_king_torso_found", kingTorso ~= nil, true)
+			h.checkList(res, "portals_arch_behind", offArch)
 			h.check(res, "portals_turn_slowly", turning, "> 0", turning > 0)
 			local list = checkVolleys("gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
 			checkSpread("gates", list, Arena)
