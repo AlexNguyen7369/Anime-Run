@@ -66,11 +66,16 @@ local SWEEP_PUFFS = 9
 local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 -- Owner 2026-11-12, matched to the approved lightning slices (proposed): thin jagged white-cored bolts in a soft deep violet halo,
 -- with small branches, 5 to 8 segments a bolt and 2 to 4 branches.
-local BOLT_SEGMENTS, BOLT_BRANCHES = { 5, 8 }, { 2, 4 }
-local BOLT_JAG = 5 -- studs a bolt's kink strays sideways at most
-local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 0.6, 2.2, 0.24 -- studs across the white core and the violet halo, s they show
-local BRANCH_CORE, BRANCH_LENGTH = 0.35, { 8, 20 } -- a branch's white core, studs across and long
-local GLOW_TRANSPARENCY = 0.55 -- the halo: soft, the core shows through
+-- Owner 2026-11-12 later (design doc 4.37 "Elf Mage target sheets"): a dark purple storm: thick white-violet bolts filling the view,
+-- a few big ones a strike from far above, purple clouds lit from inside, a dark purple haze in the room (proposed).
+local BOLT_SEGMENTS, BOLT_BRANCHES = { 4, 6 }, { 1, 3 }
+local BOLT_JAG = 6 -- studs a bolt's kink strays sideways at most
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 2, 7, 0.24 -- studs across the white core and the violet halo, s they show
+local BRANCH_CORE, BRANCH_LENGTH = 0.8, { 10, 26 } -- a branch's white core, studs across and long
+local GLOW_TRANSPARENCY = 0.5 -- the halo: soft, the core shows through
+local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 2, 170, 7 -- big bolts a strike, from this high, segments
+local STORM_CORE, STORM_GLOW, STORM_JAG = 4, 14, 14 -- their core and halo, studs across; their kinks stray this far
+local CLOUDS_PER_STRIKE, CLOUD_HEIGHT = 2, { 45, 80 } -- purple clouds lit from inside, studs over the floor
 local FLOOR_LIGHT, FLOOR_RANGE, FLOOR_UP = 5, 26, 4 -- a bolt's floor light: brightness, range, studs over its spot
 local TIP_SEGMENTS = 4 -- the bolt from her staff's tip to each strike's first spot
 local STAFF_BURST = { 12, 0.18 } -- studs across and s of the pink-white burst at her staff's tip as each strike leaves it
@@ -87,7 +92,6 @@ local RING_FROM, RING_TO, RING_SECONDS = 4, 18, 0.36 -- studs across a hit's thi
 local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
 local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 3, 5, 6.8, 0.25 -- studs across the barrage beam's layers, s
 local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
-local BEAM_REACH = 420 -- studs a beam reaches at most along the aim (it stops at the floor or the wall first)
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
 local CIRCLES = 10
@@ -96,23 +100,24 @@ local CIRCLES = 10
 local CIRCLE_SMALL, CIRCLE_LARGE = 30, 70 -- studs across, the first and the last circle: small to large
 local CIRCLE_FROM, CIRCLE_EVERY = 0.2, 0.15 -- s of barrage the first circle opens, s between two
 local CIRCLE_OPEN = 0.2 -- s a circle takes to open (Quad, no overshoot)
--- Matched to the approved barrage slices: a loose cluster in front of the staff's tip along its aim, 1 to 3 staff lengths out,
+-- Matched to the approved barrage slices: a loose cluster in front of the staff's tip along its aim, 1 to 1.5 staff lengths out,
 -- facing the shot, turning with the staff, soft cyan-white, brightening to full by key 5 (1.85 s).
 local CIRCLE_TINT = Color3.fromRGB(205, 240, 255)
 local CIRCLE_BRIGHT_AT = 1.85 -- s of barrage
 local CIRCLE_LIGHT = { Color3.fromRGB(170, 230, 255), 2, 40 } -- each circle's light: colour, brightness when full, range
 -- circle k's place in the cluster: { staff lengths past the tip, sideways and up as a fraction of its size }
+-- (owner 2026-11-12, target sheets: pulled in to 1 to 1.5 staff lengths)
 local CIRCLE_CLUSTER = {
 	{ 1.0, 0, 0 },
-	{ 1.2, 0.35, 0.2 },
-	{ 1.4, -0.3, 0.3 },
-	{ 1.6, 0.1, -0.35 },
-	{ 1.8, -0.35, -0.2 },
-	{ 2.0, 0.4, -0.1 },
-	{ 2.2, -0.15, 0.4 },
-	{ 2.5, 0.3, 0.35 },
-	{ 2.75, -0.4, 0.05 },
-	{ 3.0, 0.05, -0.4 },
+	{ 1.05, 0.35, 0.2 },
+	{ 1.1, -0.3, 0.3 },
+	{ 1.15, 0.1, -0.35 },
+	{ 1.2, -0.35, -0.2 },
+	{ 1.25, 0.4, -0.1 },
+	{ 1.3, -0.15, 0.4 },
+	{ 1.35, 0.3, 0.35 },
+	{ 1.42, -0.4, 0.05 },
+	{ 1.5, 0.05, -0.4 },
 }
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
 local CHARGE_RAYS, CHARGE_FLARE = { 8, 30 }, { 6, 18 } -- studs: the starburst's ray length and flare size, from to at the strike
@@ -142,6 +147,19 @@ local HIT_LOOKS = {
 		Speed = NumberRange.new(50, 110),
 		Drag = 3,
 		Acceleration = Vector3.new(0, -80, 0),
+	},
+	StormCloud = { -- lightning: a big purple cloud lit from inside, drifting dark
+		Name = "StormCloud",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(Color3.fromRGB(150, 90, 255), Color3.fromRGB(30, 15, 55)),
+		LightEmission = 0.35,
+		Size = sequence(0, 40, 1, 85),
+		Transparency = sequence(0, 0.4, 0.5, 0.6, 1, 1),
+		Lifetime = NumberRange.new(1.4, 2.2),
+		Speed = NumberRange.new(2, 6),
+		SpreadAngle = Vector2.new(180, 180),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-15, 15),
 	},
 	StrikeSmoke = { -- lightning: purple smoke lit from inside, settling grey (clip 3)
 		Name = "StrikeSmoke",
@@ -383,7 +401,8 @@ end
 -- The room's dim ---------------------------------------------------------------------------------------------------------------
 
 -- Starts the dim, to end `endIn` s from now plus its fade. A running dim keeps going; an event (the window's start) sets its end.
-local function startDim(endIn, event)
+-- haze: her lightning's dark purple haze too (Client/BiomeEnvironment, Lighting attribute BossStrikeHaze).
+local function startDim(endIn, event, haze)
 	if reduced() or not (effects and effects.Parent) then
 		return
 	end
@@ -403,7 +422,7 @@ local function startDim(endIn, event)
 			lights[d] = d:GetAttribute("ImpactBase") or d.Brightness -- a light mid-pulse: its own brightness
 		end
 	end
-	dim = { Born = now, EndAt = now + endIn, Grade = grade, Lights = lights }
+	dim = { Born = now, EndAt = now + endIn, Grade = grade, Lights = lights, Haze = haze }
 end
 
 -- The room exactly as it was: the grade gone, the profile's lighting (Client/BiomeEnvironment), the arena's lights.
@@ -413,6 +432,7 @@ local function endDim()
 	end
 	dim.Grade:Destroy()
 	Lighting:SetAttribute("BossStrikeDim", nil)
+	Lighting:SetAttribute("BossStrikeHaze", nil)
 	for light, base in dim.Lights do
 		if light.Parent then
 			light.Brightness = base
@@ -454,6 +474,7 @@ local function stepDim()
 	grade.Brightness, grade.Contrast = DIM_GRADE.Brightness * f, DIM_GRADE.Contrast * f
 	grade.Saturation, grade.TintColor = DIM_GRADE.Saturation * f, WHITE:Lerp(DIM_GRADE.TintColor, f)
 	Lighting:SetAttribute("BossStrikeDim", f)
+	Lighting:SetAttribute("BossStrikeHaze", dim.Haze and f or nil)
 	for light, base in dim.Lights do
 		if light.Parent and light:GetAttribute("ImpactBase") == nil then -- an impact pulse owns it until it ends
 			light.Brightness = base * (1 - (1 - TORCH_DIM) * f)
@@ -477,7 +498,7 @@ end
 -- the marks are the telegraph. Pale and faint, so they read under the dim without crowding the floor.
 local MARK_COLOR, MARK_TRANSPARENCY = Color3.fromRGB(205, 190, 255), 0.45
 local function playMarks()
-	startDim(Poses.Moves.lightning.Window[2] - (LIGHTNING_AT - MARK_LEAD) + DIM_TAIL)
+	startDim(Poses.Moves.lightning.Window[2] - (LIGHTNING_AT - MARK_LEAD) + DIM_TAIL, false, true)
 	for _, strike in plan("Lightning") do
 		local lead = MARK_LEAD + strike.T
 		for _, at in strike.Spots do
@@ -515,10 +536,10 @@ local function segment(name, a, b, width, color, transparency)
 end
 
 -- A jagged bolt through `points`: a white core in a soft deep violet halo on each segment.
-local function bolt(points)
+local function bolt(points, core, glow)
 	for i = 1, #points - 1 do
-		segment("Bolt", points[i], points[i + 1], BOLT_GLOW, DEEP, GLOW_TRANSPARENCY)
-		segment("BoltCore", points[i], points[i + 1], BOLT_CORE, WHITE, 0)
+		segment("Bolt", points[i], points[i + 1], glow or BOLT_GLOW, DEEP, GLOW_TRANSPARENCY)
+		segment("BoltCore", points[i], points[i + 1], core or BOLT_CORE, WHITE, 0)
 	end
 end
 
@@ -570,7 +591,7 @@ local function playLightning()
 	if reduced() then
 		return logHits("Lightning", list, 0.12, 20)
 	end
-	startDim(Poses.Moves.lightning.Window[2] - LIGHTNING_AT + DIM_TAIL, true)
+	startDim(Poses.Moves.lightning.Window[2] - LIGHTNING_AT + DIM_TAIL, true, true)
 	for j, strike in list do
 		local bolts = {}
 		for k, at in strike.Spots do
@@ -585,8 +606,25 @@ local function playLightning()
 			bolts[k] = { Points = points, Branches = branches }
 		end
 		local tipRng = Random.new(j) -- the staff bolt's kinks: fixed per strike, its ends live
+		local storms = {}
+		for b = 1, STORM_BOLTS do
+			local at = strike.Spots[(b - 1) * 3 % #strike.Spots + 1]
+			local top = at + Vector3.new(rng:NextNumber(-30, 30), STORM_TOP, rng:NextNumber(-30, 30))
+			storms[b] = jagged(rng, top, at, STORM_SEGMENTS, STORM_JAG)
+		end
+		local clouds = {}
+		for c = 1, CLOUDS_PER_STRIKE do
+			local at = strike.Spots[(c * 2 - 1) % #strike.Spots + 1]
+			clouds[c] = at + Vector3.new(0, rng:NextNumber(CLOUD_HEIGHT[1], CLOUD_HEIGHT[2]), 0)
+		end
 		later(strike.T, function()
 			local total = 0
+			for _, points in storms do
+				bolt(points, STORM_CORE, STORM_GLOW)
+			end
+			for _, at in clouds do
+				total += emitAt("StormCloud", at, 1)
+			end
 			for _, row in bolts do
 				bolt(row.Points)
 				for _, branch in row.Branches do
@@ -854,36 +892,11 @@ local function edgeLook(part)
 	part.Material = Enum.Material.SmoothPlastic
 end
 
--- Where a beam from `from` along `dir` ends: the floor or the wall, whichever it meets first, at most BEAM_REACH.
-local function beamEnd(from, dir)
-	local reach = BEAM_REACH
-	if dir.Y < -0.02 then
-		reach = math.min(reach, (Arena.Y + 0.15 - from.Y) / dir.Y)
-	end
-	local flat = Vector2.new(dir.X, dir.Z)
-	local a = flat:Dot(flat)
-	if a > 1e-4 then
-		local rel = Vector2.new(from.X - Arena.Center.X, from.Z - Arena.Center.Z)
-		local b, c = 2 * rel:Dot(flat), rel:Dot(rel) - Arena.WallRadius ^ 2
-		local root = b * b - 4 * a * c
-		if root >= 0 then
-			reach = math.min(reach, (-b + math.sqrt(root)) / (2 * a))
-		end
-	end
-	return from + dir * math.max(reach, 1)
-end
-
--- One beam out of a circle along its facing (the staff's aim), as the slices: a white-hot core in a cyan rim inside a near-black
--- edge, a rounded white head, and where it ends a white flash, white sparks and black smoke. `planned` (the strike's spot) stands
--- in when no circle is open.
-local function beam(circle, planned, k)
-	local from, target
-	if circle then
-		from = circle.Position
-		target = beamEnd(from, circle.CFrame.LookVector)
-	else
-		from, target = mage:Point("Staff", STAFF_TIP), planned
-	end
+-- One beam out of a circle's centre (her staff's tip with no circle open) to its strike's planned spot on the floor, so the
+-- beams fan out from the cluster onto the logged spots (owner 2026-11-12, target sheets): a white-hot core in a cyan rim inside a
+-- near-black edge, a rounded white head, and at the spot a white flash, white sparks and small black smoke.
+local function beam(circle, target, k)
+	local from = circle and circle.Position or mage:Point("Staff", STAFF_TIP)
 	local frame, length =
 		streak("BarrageBeam", from, target, BEAM_CORE, BEAM_GLOW, WHITE, k % 2 == 0 and CYAN or ICE, BEAM_SECONDS)
 	pooled("BarrageBeamEdge", frame, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, BEAM_SECONDS, edgeLook)

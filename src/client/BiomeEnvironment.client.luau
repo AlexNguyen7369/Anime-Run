@@ -223,7 +223,22 @@ end
 -- takes the profile's brightness and ambients down to DIM_FLOOR of themselves; unset, the profile is written exactly.
 local DIM_FLOOR = 0.25 -- proposed
 local DIMMED = { Brightness = true, Ambient = true, OutdoorAmbient = true }
+-- Lighting attribute BossStrikeHaze, 0 to 1 (her lightning's storm, owner 2026-11-12): the Atmosphere toward a dark purple haze.
+local HAZE = {
+	Density = 0.38,
+	Haze = 2.5,
+	Color = Color3.fromRGB(70, 40, 120),
+	Decay = Color3.fromRGB(40, 20, 80),
+} -- proposed
 local function dimmed(e, value)
+	local h = Lighting:GetAttribute("BossStrikeHaze")
+	if e.Group == "Atmosphere" and HAZE[e.Key] ~= nil and type(h) == "number" and h > 0 then
+		local goal, u = HAZE[e.Key], math.min(h, 1)
+		if type(value) == "number" then
+			return value + (math.max(goal, value) - value) * u
+		end
+		return typeof(value) == "Color3" and value:Lerp(goal, u) or value
+	end
 	local f = Lighting:GetAttribute("BossStrikeDim")
 	if e.Group ~= "Lighting" or not DIMMED[e.Key] or type(f) ~= "number" or f <= 0 then
 		return value
@@ -376,9 +391,11 @@ local function startBlend(z, seconds)
 	startLoop()
 end
 
-Lighting:GetAttributeChangedSignal("BossStrikeDim"):Connect(function()
-	dirty = true
-end)
+for _, name in { "BossStrikeDim", "BossStrikeHaze" } do
+	Lighting:GetAttributeChangedSignal(name):Connect(function()
+		dirty = true
+	end)
+end
 Lighting:GetAttributeChangedSignal("SummonPreviewActive"):Connect(function()
 	if not Lighting:GetAttribute("SummonPreviewActive") then
 		dirty = true
