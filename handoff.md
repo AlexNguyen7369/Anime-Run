@@ -2,11 +2,11 @@
 
 History: `current_progress.md`, `git log`.
 
-## RESUME HERE (2026-11-12, /skiptime): committed on `feature/alex/powerup-tune` (2ea7a07), not pushed
+## RESUME HERE (2026-11-13, /skiptime): MERGED into main (PR #17, e7bb37e); `../AnimeRun-orch/play-main` (Rojo 34874) detached at e7bb37e for play
 - Owner 2026-11-12: `/skiptime` skips the boss event's 1 min preparation for faster testing. `BossEventService.SkipPrep()` shifts `StartAt`, `EndsAt`, `ScheduleStart` back by the time left and ticks; join close and timeout come that much sooner too. Admin command in `AdminService`, test section `skip_prep` in `BossEventTests`, BOSS_EVENT_SPEC admin list.
 - Studio: the 3 scripts were patched in place by `execute_luau` (Rojo 34873 was not synced to Studio; Studio's HttpService is allowlist-blocked for localhost). `boss_event` ran once: `[CARTEST] END pass=1 fail=0` (1 = the scenario; the per-check list was truncated in the console). Owner then said no harness, Studio handed to the other session while it was in Play. `CarTestOnly="boss_event"` may still be set on ReplicatedStorage in Edit: clear it before the next harness.
 - Not seen live: `/skiptime` from chat on a real run.
-- Next: push the branch, PR into main (with the power-up tuning below).
+- Next: owner plays `/boss` then `/skiptime` from the play-main build; fix what they report.
 
 ## RESUME HERE (2026-11-12, power-up tuning): committed on `feature/alex/powerup-tune` (02dc5b2), not pushed
 - Owner 2026-11-12: Stamina power-up gives 3 s, 2 s past Track 5; Speed is a x1.2 turbo boost for 2 s. Rules written with the date in design doc 4.44 and 4.18, POWERUP_SPEC, TEAM_AND_STAMINA_SPEC, OWNER_QUESTIONS (risk line recomputed: a Secret at 800 covers 1,920 studs in 2 s).
