@@ -34,7 +34,8 @@
 --     named Sparks under BossEffects during the strikes.
 --     Barrage, per beam (as many as the strike's spots): BarrageBeamCore white and BarrageBeamEdge near-black (each channel
 --     <= 0.2); a ParticleEmitter or BasePart named BarrageSmoke, dark, during the window.
---     MagicCircle: 10, see the barrage watch.
+--     MagicCircle: 16 on a sphere of about 45 studs round her Torso, each facing outward (LookVector within 30 deg of
+--     outward), see the barrage watch; each BarrageBeam (the glow) starts within 6 studs of a circle centre.
 --   Effects off (design doc 4.37 "Boss effects have no reduced version", BOSS_EVENT_SPEC "Effects setting", owner
 --     2026-11-12): with ReduceEffects (or Roblox Reduced Motion) no boss visual effect at all under BossEffects (no visible
 --     BasePart, enabled ParticleEmitter, Beam or Trail) except the strike marks (StrikeMark), a telegraph; LastStrikes still
@@ -1079,17 +1080,6 @@ function Module.Build(h)
 				end
 				return out, extra
 			end
-			local function clusters(list) -- spawns within 0.06 s of the one before belong to one strike
-				local groups, last = {}, -math.huge
-				for _, row in list do
-					if row.T - last > 0.06 then
-						table.insert(groups, {})
-					end
-					table.insert(groups[#groups], row)
-					last = row.T
-				end
-				return groups
-			end
 			local function isWhite(c)
 				return c.R >= 0.85 and c.G >= 0.85 and c.B >= 0.85
 			end
@@ -1103,66 +1093,111 @@ function Module.Build(h)
 				local k = e.Color.Keypoints
 				return isDark(k[1].Value)
 			end
-			-- Plays `move` and watches one layer `name` (one pass per layer: a forced move draws the same seeded strikes each time).
+			-- Plays `move` and watches one layer `name`; returns its spawns, its emitters and that same play's strike plan
+			-- (LastStrikes: { T, Spots }). Times are from the force, as the strikes' T are from the window's start.
 			local function play(move, name)
 				ReplicatedStorage:SetAttribute("BossVfxForce", "")
 				task.wait()
+				local holder = inArena("BossEffects")
+				if holder then
+					holder:SetAttribute("LastStrikes", nil)
+				end
 				ReplicatedStorage:SetAttribute("BossVfxForce", move)
-				return spawnsOf(name, 2.6)
+				local spawns, extra = spawnsOf(name, 2.6)
+				local raw = inArena("BossEffects") and inArena("BossEffects"):GetAttribute("LastStrikes")
+				local okLog, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
+				return spawns, extra, okLog and type(log) == "table" and log.Strikes or {}
 			end
-			local function spotsOf(move)
-				local log = strikeLog(move)
-				local counts = {}
-				for k, strike in log and log.Strikes or {} do
-					counts[k] = type(strike.Spots) == "table" and #strike.Spots or 0
-				end
-				return counts
-			end
-			-- Each group's spawns (all of `ok` colour) against the strike's spots: exactly (`exact`) or at least.
-			local function perStrike(tag, groups, counts, isColour, exact)
-				local bad = {}
-				if #groups ~= #counts then
-					table.insert(bad, ("%d strikes drawn, %d logged"):format(#groups, #counts))
-				end
-				for k, group in groups do
-					local want = counts[k] or 0
-					local n, wrong = #group, 0
-					for _, row in group do
-						wrong += isColour(row.Color) and 0 or 1
+			-- Frame-rate independent (a Studio run at 15 fps split strikes by gaps): each spawn goes to the planned strike
+			-- whose time T is nearest, if it falls in T - 0.05 to T + 0.12 (the bolts and beams draw at T, no flight);
+			-- per planned strike, its spawns (all of `isColour`) against its spots: exactly (`exact`) or at least.
+			local function perStrike(tag, spawns, strikes, isColour, exact)
+				local bad, counts, wrongs, stray = {}, {}, {}, 0
+				for _, row in spawns do
+					local best, bestK = math.huge, nil
+					for k, strike in strikes do
+						local d = row.T - (strike.T or 0)
+						if d >= -0.05 and d <= 0.12 and math.abs(d) < best then
+							best, bestK = math.abs(d), k
+						end
 					end
+					if bestK then
+						counts[bestK] = (counts[bestK] or 0) + 1
+						wrongs[bestK] = (wrongs[bestK] or 0) + (isColour(row.Color) and 0 or 1)
+					else
+						stray += 1
+					end
+				end
+				if #strikes == 0 then
+					table.insert(bad, "no strike plan logged")
+				end
+				for k, strike in strikes do
+					local want = type(strike.Spots) == "table" and #strike.Spots or 0
+					local n, wrong = counts[k] or 0, wrongs[k] or 0
 					if (exact and n ~= want) or n < want or wrong > 0 then
 						table.insert(bad, ("%d: %d for %d spots, %d off colour"):format(k, n, want, wrong))
 					end
 				end
+				if exact and stray > 0 then
+					table.insert(bad, ("%d outside every strike"):format(stray))
+				end
 				h.checkList(res, tag, bad)
+			end
+			-- Nothing visible left under BossEffects but the strike marks (a pass with effects off starts from a clean room).
+			local function effectsLeft()
+				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+					local mark = d.Name == "StrikeMark" or (d.Parent and d.Parent.Name == "StrikeMark")
+					if
+						not mark
+						and (
+							(d:IsA("BasePart") and d.Transparency < 1)
+							or ((d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail")) and d.Enabled)
+						)
+					then
+						return true
+					end
+				end
+				return false
+			end
+			local function cleanStart(tag)
+				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				local by = os.clock() + 6
+				while effectsLeft() and os.clock() < by do
+					task.wait(0.05)
+				end
+				check(res, tag, not effectsLeft(), true)
 			end
 			for _, few in { false, true } do
 				h.player:SetAttribute("ReduceEffects", few or nil)
-				local pre = few and "reduced_" or ""
-				local lightningSpots = spotsOf("Lightning")
-				local cores = play("Lightning", "BoltCore")
+				if few then
+					cleanStart("reduced_look_clean_start")
+				end
+				local cores, _, coreStrikes = play("Lightning", "BoltCore")
 				if few then -- effects off: no bolt at all (was plain bolts)
 					check(res, "reduced_lightning_no_bolts", #cores, 0)
 				else
-					perStrike(pre .. "lightning_white_core", clusters(cores), lightningSpots, isWhite, false)
+					perStrike("lightning_white_core", cores, coreStrikes, isWhite, false)
 				end
-				local glow = play("Lightning", "Bolt")
-				local flashes = play("Lightning", "StrikeFlash")
-				local rings = play("Lightning", "ShockRing")
+				local glow, _, glowStrikes = play("Lightning", "Bolt")
+				local flashes, _, flashStrikes = play("Lightning", "StrikeFlash")
+				local rings, _, ringStrikes = play("Lightning", "ShockRing")
 				local _, sparks = play("Lightning", "Sparks")
 				if few then
 					check(res, "reduced_lightning_no_glow", #glow, 0)
 					check(res, "reduced_lightning_no_shock_ring", #rings, 0)
 					check(res, "reduced_lightning_no_sparks", next(sparks) ~= nil, false)
 				else
-					perStrike("lightning_purple_glow", clusters(glow), lightningSpots, isPurple, false)
-					perStrike("lightning_hit_flash_white", clusters(flashes), lightningSpots, isWhite, true)
-					perStrike("lightning_shock_ring_purple", clusters(rings), lightningSpots, isPurple, true)
+					perStrike("lightning_purple_glow", glow, glowStrikes, isPurple, false)
+					-- deep violet, not magenta (BOSS_EVENT_SPEC "Elf Mage strike lighting": about (110, 60, 210))
+					perStrike("lightning_glow_deep_violet", glow, glowStrikes, function(c)
+						return c.B >= 0.6 and c.R >= 0.3 and c.R <= 0.55 and c.G <= 0.35
+					end, false)
+					perStrike("lightning_hit_flash_white", flashes, flashStrikes, isWhite, true)
+					perStrike("lightning_shock_ring_purple", rings, ringStrikes, isPurple, true)
 					check(res, "lightning_sparks", next(sparks) ~= nil, true)
 				end
-				local barrageSpots = spotsOf("Barrage")
-				local beamCores = play("Barrage", "BarrageBeamCore")
-				local edges = play("Barrage", "BarrageBeamEdge")
+				local beamCores, _, coreBarrage = play("Barrage", "BarrageBeamCore")
+				local edges, _, edgeBarrage = play("Barrage", "BarrageBeamEdge")
 				local smokeParts, smokeEmitters = play("Barrage", "BarrageSmoke")
 				local smokeDark = #smokeParts > 0 or next(smokeEmitters) ~= nil
 				for _, row in smokeParts do
@@ -1175,11 +1210,127 @@ function Module.Build(h)
 					check(res, "reduced_barrage_no_black_smoke", #smokeParts == 0 and next(smokeEmitters) == nil, true)
 					check(res, "reduced_barrage_no_beams", #beamCores + #edges, 0)
 				else
-					perStrike("barrage_beam_white_core", clusters(beamCores), barrageSpots, isWhite, false)
-					perStrike("barrage_beam_dark_edge", clusters(edges), barrageSpots, isDark, false)
+					perStrike("barrage_beam_white_core", beamCores, coreBarrage, isWhite, false)
+					perStrike("barrage_beam_dark_edge", edges, edgeBarrage, isDark, false)
 					check(res, "barrage_black_smoke", smokeDark, true)
 				end
 			end
+			h.player:SetAttribute("ReduceEffects", nil)
+			-- The room dims for her strikes (owner 2026-11-12, design doc 4.37 "Elf Mage lighting for the strikes", BOSS_EVENT_SPEC
+			-- "Elf Mage strike lighting", proposed). Contract: during the window either Lighting.Brightness is at most 40% of its
+			-- value just before the move, or a ColorCorrectionEffect named BossStrikeDim (in Lighting or the camera) has Brightness
+			-- at most -0.15; 1.2 s after the window (2.0 s from the force, plus its 0.5 s tail) Brightness is back within 0.15 and
+			-- BossStrikeDim gone or above -0.02. Each lightning spot gets a violet PointLight (B >= 0.6, G <= 0.5, enabled,
+			-- Brightness > 0) within 6 studs (XZ) and 12 studs of the floor, in T - 0.05 to T + 0.3 of its strike. With effects off
+			-- the room is not dimmed (Brightness within 0.15, no BossStrikeDim under -0.02) and no such light.
+			local Lighting = game:GetService("Lighting")
+			local function dimEffect()
+				local most = 0
+				for _, root in { Lighting, workspace.CurrentCamera } do
+					for _, d in root and root:GetChildren() or {} do
+						if d:IsA("ColorCorrectionEffect") and d.Name == "BossStrikeDim" and d.Enabled then
+							most = math.min(most, d.Brightness)
+						end
+					end
+				end
+				return most
+			end
+			local function roomWatch(move)
+				cleanStart("room_" .. string.lower(move) .. "_clean_start")
+				task.wait(1) -- the room settles back to its profile
+				local base = Lighting.Brightness
+				local holder = inArena("BossEffects")
+				if holder then
+					holder:SetAttribute("LastStrikes", nil)
+				end
+				ReplicatedStorage:SetAttribute("BossVfxForce", move)
+				local born = os.clock()
+				local w = { Base = base, Low = math.huge, Dim = 0, Lights = {} }
+				while os.clock() - born < 2.0 do
+					local t = os.clock() - born
+					if t >= 0.3 then
+						w.Low = math.min(w.Low, Lighting.Brightness)
+						w.Dim = math.min(w.Dim, dimEffect())
+					end
+					for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+						if d:IsA("PointLight") and d.Enabled and d.Brightness > 0 then
+							local c, p = d.Color, d.Parent
+							local at = p
+								and (p:IsA("Attachment") and p.WorldPosition or (p:IsA("BasePart") and p.Position))
+							if at and c.B >= 0.6 and c.G <= 0.5 then
+								table.insert(w.Lights, { T = t, Position = at })
+							end
+						end
+					end
+					task.wait()
+				end
+				local raw = inArena("BossEffects") and inArena("BossEffects"):GetAttribute("LastStrikes")
+				local okLog, log = pcall(HttpService.JSONDecode, HttpService, raw or "")
+				w.Strikes = okLog and type(log) == "table" and log.Strikes or {}
+				task.wait(math.max(0, 2.0 + 0.5 + 1.2 - (os.clock() - born)))
+				w.After, w.AfterDim = Lighting.Brightness, dimEffect()
+				return w
+			end
+			local function dimmed(w)
+				return w.Low <= 0.4 * w.Base or w.Dim <= -0.15
+			end
+			for _, move in { "Lightning", "Barrage" } do
+				local w = roomWatch(move)
+				local tag = string.lower(move)
+				h.check(
+					res,
+					tag .. "_room_dims",
+					("brightness %.2f of %.2f, dim %.2f"):format(w.Low, w.Base, w.Dim),
+					"<= 40% or dim <= -0.15",
+					dimmed(w)
+				)
+				h.check(
+					res,
+					tag .. "_room_light_restored",
+					("%.2f of %.2f, dim %.2f"):format(w.After, w.Base, w.AfterDim),
+					"within 0.15, dim gone",
+					math.abs(w.After - w.Base) <= 0.15 and w.AfterDim > -0.02
+				)
+				if move == "Lightning" then
+					local missing = {}
+					for k, strike in w.Strikes do
+						for _, spot in type(strike.Spots) == "table" and strike.Spots or {} do
+							local found = false
+							for _, light in w.Lights do
+								local dx, dz = light.Position.X - spot[1], light.Position.Z - spot[2]
+								local dt = light.T - (strike.T or 0)
+								found = found
+									or (
+										dt >= -0.05
+										and dt <= 0.3
+										and math.sqrt(dx * dx + dz * dz) <= 6
+										and Arena ~= nil
+										and light.Position.Y <= Arena.Y + 12
+									)
+							end
+							if not found then
+								table.insert(missing, ("%d at %.0f,%.0f"):format(k, spot[1], spot[2]))
+							end
+						end
+					end
+					check(res, "lightning_floor_light_strikes", #w.Strikes > 0, true)
+					h.checkList(res, "lightning_floor_light", missing)
+				end
+			end
+			h.player:SetAttribute("ReduceEffects", true)
+			local offRoom = roomWatch("Lightning")
+			h.check(
+				res,
+				"reduced_room_not_dimmed",
+				("brightness %.2f of %.2f, dim %.2f, %d lights"):format(
+					offRoom.Low,
+					offRoom.Base,
+					offRoom.Dim,
+					#offRoom.Lights
+				),
+				"within 0.15, no dim, no floor light",
+				offRoom.Low >= offRoom.Base - 0.15 and offRoom.Dim > -0.02 and #offRoom.Lights == 0
+			)
 			h.player:SetAttribute("ReduceEffects", nil)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
@@ -1198,7 +1349,7 @@ function Module.Build(h)
 			-- keeps the full plan.
 			h.player:SetAttribute("ReduceEffects", true)
 			local function effectsDrawn(name)
-				ReplicatedStorage:SetAttribute("BossVfxForce", "")
+				cleanStart("reduced_" .. string.lower(name) .. "_clean_start") -- the full pass's effects gone first
 				task.wait()
 				ReplicatedStorage:SetAttribute("BossVfxForce", name)
 				local most, markPeak, stop = 0, 0, os.clock() + PEAK_WATCH
@@ -1390,7 +1541,8 @@ function Module.Build(h)
 						end
 						clean = clean and not circlesLeft()
 						state(res, "Fight", Cfg.PrepSeconds + at, 4000, 4000, true, 100)
-						local seenOff, rows, firstBeam = {}, {}, math.huge
+						local beamFar, rows, firstBeam = {}, {}, math.huge
+						local beamBefore = {}
 						local entered = os.clock() + 2
 						local move, t = scheduleNow()
 						while not (move == "barrage" and t < 0.3) and os.clock() < entered do
@@ -1404,49 +1556,68 @@ function Module.Build(h)
 						while true do
 							move, t = scheduleNow()
 							if move ~= "barrage" or t < last - 1e-3 then
-								return t >= 2.4 and move == "barrage", rows, seenOff, firstBeam
+								return t >= 2.4 and move == "barrage", rows, beamFar, firstBeam
 							end
 							if t > 2.4 then
-								return true, rows, seenOff, firstBeam
+								return true, rows, beamFar, firstBeam
 							end
 							last = t
+							-- Owner 2026-11-12 (BOSS_EVENT_SPEC "Pose-tied effect values": a sphere all around her, replaces
+							-- the fan in front of the staff): each circle's place and facing seen from her torso, kept
+							-- from its last frame in the window (it is fully open by then).
+							local her = mage:FindFirstChild("Torso", true)
+							local beamNow = {}
 							for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
 								if d:IsA("BasePart") and d.Name == "MagicCircle" then
 									local row = rows[d]
 									if not row then
-										-- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values": "a wide fan
-										-- of rings in front of the staff and around her"): within 70 deg of the staff's aim seen
-										-- from her (was 25 deg from the tip, for a row of circles along the aim).
-										local grip, tip = staffEnds()
-										local her = mage:FindFirstChild("Torso", true)
-										local aim = (tip - grip).Unit
-										local to = d.Position - (her and her.Position or tip)
-										local angle = to.Magnitude > 0
-												and math.deg(math.acos(math.clamp(aim:Dot(to.Unit), -1, 1)))
-											or 180
-										if angle > 70 then
-											table.insert(seenOff, ("%.0f"):format(angle))
-										end
 										row = { At = t, Peak = 0, Sizes = {} }
 										rows[d] = row
 									end
 									local size = math.max(d.Size.X, d.Size.Y)
 									row.Peak = math.max(row.Peak, size)
 									table.insert(row.Sizes, { t, size })
+									if her then
+										local out = d.Position - her.Position
+										row.Distance = out.Magnitude
+										row.Facing = out.Magnitude > 0
+												and math.deg(
+													math.acos(
+														math.clamp(math.abs(d.CFrame.LookVector:Dot(out.Unit)), 0, 1)
+													)
+												)
+											or 180
+										row.Front = her.CFrame.LookVector:Dot(out) > 0
+										row.Above = out.Y > 0
+									end
 								elseif d:IsA("BasePart") and d.Name == "BarrageBeam" and d.Transparency < 1 then
 									firstBeam = math.min(firstBeam, t)
+									beamNow[d] = true
+									if not beamBefore[d] then -- a beam drawn: its start end against the circles now
+										local start = d.Position - d.CFrame.LookVector * d.Size.Z / 2
+										local best = math.huge
+										for circle in rows do
+											if circle.Parent then
+												best = math.min(best, (circle.Position - start).Magnitude)
+											end
+										end
+										if best > 6 then
+											table.insert(beamFar, ("%.1f"):format(best))
+										end
+									end
 								end
 							end
+							beamBefore = beamNow
 							task.wait()
 						end
 					end
-					local watched, circleRows, off, beamAt = observe(barrageAt)
+					local watched, circleRows, beamFar, beamAt = observe(barrageAt)
 					if not watched then
-						watched, circleRows, off, beamAt = observe(barrageAt + Poses.CycleSeconds)
+						watched, circleRows, beamFar, beamAt = observe(barrageAt + Poses.CycleSeconds)
 					end
 					check(res, tag .. "barrage_clean_start", clean, true)
 					check(res, tag .. "barrage_window_watched", watched == true, true)
-					circleRows, off, beamAt = circleRows or {}, off or {}, beamAt or math.huge
+					circleRows, beamFar, beamAt = circleRows or {}, beamFar or {}, beamAt or math.huge
 					local list = {}
 					for _, row in circleRows do
 						row.FullAt = math.huge -- first time at 98% of its peak
@@ -1460,12 +1631,33 @@ function Module.Build(h)
 					table.sort(list, function(x, y)
 						return x.At < y.At
 					end)
+					-- times increasing only: sizes vary across the sphere now (owner 2026-11-12, BOSS_EVENT_SPEC "Pose-tied
+					-- effect values"; was also sizes not decreasing, small to large)
 					local ordered, minGap = #list > 1, math.huge
 					for i = 2, #list do
-						ordered = ordered and list[i].At > list[i - 1].At and list[i].Peak >= list[i - 1].Peak - 0.01
+						ordered = ordered and list[i].At > list[i - 1].At
 						minGap = math.min(minGap, list[i].At - list[i - 1].At)
 					end
-					local want = 10 -- owner 2026-11-12 after playing: 10 (was 6)
+					local want = 16 -- owner 2026-11-12: a sphere of 16 (was 10)
+					local offSphere, sides = {}, {}
+					for _, row in list do
+						if not row.Distance or row.Distance < 35 or row.Distance > 55 or row.Facing > 30 then
+							table.insert(
+								offSphere,
+								("%.1f studs, facing %.0f deg"):format(row.Distance or -1, row.Facing or 180)
+							)
+						end
+						if row.Distance then
+							sides[row.Front and "front" or "back"] = true
+							sides[row.Above and "above" or "below"] = true
+						end
+					end
+					local missingSides = {}
+					for _, side in { "front", "back", "above", "below" } do
+						if not sides[side] then
+							table.insert(missingSides, side)
+						end
+					end
 					local beforeBeams, lastFull, smallest, largest = 0, -math.huge, math.huge, 0
 					for _, row in list do
 						beforeBeams += row.At < 2.0 and 1 or 0
@@ -1478,10 +1670,14 @@ function Module.Build(h)
 						check(res, "reduced_no_barrage_circles", #list, 0)
 					else
 						check(res, tag .. "barrage_circles_seen", #list > 0, true)
-						h.checkList(res, tag .. "barrage_circles_in_front_of_staff", off)
+						-- on a sphere of about 45 studs round her chest, facing outward (owner 2026-11-12; replaces
+						-- barrage_circles_in_front_of_staff)
+						h.checkList(res, tag .. "barrage_circles_on_sphere", offSphere)
+						h.checkList(res, tag .. "barrage_circles_spread", missingSides)
 						check(res, tag .. "barrage_circles_one_after_another", ordered, true)
-						-- 0.15 s apart (owner 2026-11-12 after playing; was 0.28 with a 0.2 floor), 0.12 with frame slack
-						h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.12", #list > 1 and minGap >= 0.12)
+						-- 0.08 s apart (owner 2026-11-12, the sphere; was 0.15 with a 0.12 floor), 0.05 with frame slack
+						h.check(res, tag .. "barrage_circles_spaced", minGap, ">= 0.05", #list > 1 and minGap >= 0.05)
+						h.checkList(res, tag .. "barrage_beam_from_circle", beamFar)
 						h.check(
 							res,
 							tag .. "barrage_circles_all_open_before_beams",
@@ -1499,8 +1695,8 @@ function Module.Build(h)
 								res,
 								"barrage_circles_bigger",
 								("%.1f to %.1f"):format(smallest, largest),
-								"smallest >= 28, largest >= 65", -- 30 to 70 studs (owner 2026-11-12 after playing; was 15 to 36)
-								#list > 0 and smallest >= 28 and largest >= 65
+								"smallest >= 22, largest >= 36", -- 24 to 40 studs (owner 2026-11-12, the sphere; was 30 to 70)
+								#list > 0 and smallest >= 22 and largest >= 36
 							)
 						end
 					end

@@ -62,10 +62,25 @@ local function reduced()
 	return UiMotion.Reduced()
 end
 
+-- Held effects (the capture's freeze, BossVfx.ScrubStep): tweens paused, particles stopped, delayed steps waiting.
+local held = false
+local playing = setmetatable({}, { __mode = "k" }) -- tweens started through the Kit
+local paused = {}
+
 -- Helpers ----------------------------------------------------------------------------------------------------------------------
 
+-- task.delay that waits out a hold, so a held frame stays as it is (Kit.after for the other bosses' effects).
+local function after(seconds, fn, ...)
+	task.delay(seconds, function(...)
+		while held do
+			task.wait()
+		end
+		fn(...)
+	end, ...)
+end
+
 local function expire(instance, seconds)
-	task.delay(seconds, function()
+	after(seconds, function()
 		instance:Destroy()
 		tracked[instance] = nil
 	end)
@@ -108,7 +123,7 @@ end
 
 -- Burst after a beat: a just-parented emitter can drop an Emit.
 local function burst(e, count, delay)
-	task.delay(0.03 + (delay or 0), function()
+	after(0.03 + (delay or 0), function()
 		if e.Parent then
 			e:Emit(count)
 		end
@@ -119,7 +134,12 @@ end
 local function tween(instance, seconds, goal, style, direction)
 	local info = TweenInfo.new(seconds, style or Enum.EasingStyle.Quad, direction or Enum.EasingDirection.Out)
 	local t = TweenService:Create(instance, info, goal)
-	t:Play()
+	if held then -- made while held: it plays on the release
+		table.insert(paused, t)
+	else
+		t:Play()
+		playing[t] = true
+	end
 	return t
 end
 
@@ -135,7 +155,7 @@ end
 
 -- A flat ring seen from both sides, growing and fading. faces: the two faces the plane looks out of.
 local function growingRing(name, cframe, from, to, seconds, color, delay, faces, thin)
-	task.delay(delay or 0, function()
+	after(delay or 0, function()
 		if not effects or not effects.Parent then
 			return
 		end
@@ -168,12 +188,12 @@ local function regrade(goal, inSeconds, hold, outSeconds)
 	effect.Parent = Lighting
 	grade = effect
 	tween(effect, inSeconds, goal)
-	task.delay(inSeconds + hold, function()
+	after(inSeconds + hold, function()
 		if grade == effect then
 			tween(effect, outSeconds, { Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1) })
 		end
 	end)
-	task.delay(inSeconds + hold + outSeconds, function()
+	after(inSeconds + hold + outSeconds, function()
 		effect:Destroy()
 		if grade == effect then
 			grade = nil
@@ -281,29 +301,31 @@ end
 local IMPACT_FLOOR = 0.5 -- of the full kick, however far the camera is
 local IMPACT_SHIFT = 0.3 -- studs of positional kick per degree of rotation kick
 local FLASH_FULL, FLASH_LOW = { Brightness = 0.25, Contrast = 0.2 }, { Brightness = 0.06, Contrast = 0 }
+-- A white full flash (the Elf Mage's first strike, as her approved slices' key 6), proposed
+local FLASH_WHITE = { Brightness = 0.6, Contrast = 0.05, Saturation = -0.6 }
 local FLASH_SECONDS = 0.1
 local LIGHT_PULSE, LIGHT_SECONDS = 2.5, 0.25 -- x the light's own brightness at the peak, then back
 local impactLog, pulse, pulseToken = nil, nil, 0
 
-local function flashScreen(full)
+local function flashScreen(full, white)
 	local effect = pulse
 	if full then
 		effect = Instance.new("ColorCorrectionEffect")
 		effect.Name = "BossImpactFlash"
-		task.delay(FLASH_SECONDS + 0.05, effect.Destroy, effect)
+		after(FLASH_SECONDS + 0.05, effect.Destroy, effect)
 	elseif not effect then
 		effect = Instance.new("ColorCorrectionEffect")
 		effect.Name = "BossImpactPulse" -- one, reused by a window's strikes
 		pulse = effect
 	end
-	local goal = full and FLASH_FULL or FLASH_LOW
-	effect.Brightness, effect.Contrast = goal.Brightness, goal.Contrast
+	local goal = full and (white and FLASH_WHITE or FLASH_FULL) or FLASH_LOW
+	effect.Brightness, effect.Contrast, effect.Saturation = goal.Brightness, goal.Contrast, goal.Saturation or 0
 	effect.Parent = Lighting
-	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0 })
+	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0, Saturation = 0 })
 	if not full then
 		pulseToken += 1
 		local token = pulseToken
-		task.delay(FLASH_SECONDS + 0.3, function()
+		after(FLASH_SECONDS + 0.3, function()
 			if pulseToken == token and pulse then
 				pulse:Destroy()
 				pulse = nil
@@ -335,9 +357,10 @@ end
 
 -- One boss hit, for every fighter: a shake of `full` degrees at `spot`, never under IMPACT_FLOOR of it, with a positional kick,
 -- and a flash. t: seconds after the move's first hit (a strike window's planned time); 0 is the first hit, a full flash with the
--- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact.
+-- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact. white: the full
+-- flash is white (the cap of 3 a second still holds).
 local lastFull = -math.huge
-local function impact(move, spot, full, roughness, fade, t)
+local function impact(move, spot, full, roughness, fade, t, white)
 	t = t or 0
 	local camera = Workspace.CurrentCamera
 	local distance = camera and (camera.CFrame.Position - spot).Magnitude or 0
@@ -352,7 +375,7 @@ local function impact(move, spot, full, roughness, fade, t)
 	end
 	BossShake.Kick(kick, roughness, fade, kick * IMPACT_SHIFT)
 	if level ~= "None" then
-		flashScreen(level == "Full")
+		flashScreen(level == "Full", white)
 	end
 	local lights = level == "Full" and pulseLights() or 0
 	if t == 0 or not impactLog or impactLog.Move ~= move then
@@ -1218,7 +1241,94 @@ end
 
 -- The helpers, for another boss's effects (Client/BossMageVfx): they write to the folder of the last BossVfx.Start, which that
 -- module starts with no Raga, so none of Raga's own effects play into it.
+-- Holds (on) or releases the effects as drawn: the Kit's tweens pause, the folder's particles stop where they are, delayed steps
+-- (Kit.after) wait. The other bosses' modules skip their own per-frame steps while Kit.held().
+local function hold(on)
+	if on == held then
+		return
+	end
+	held = on
+	if on then
+		for t in playing do
+			if t.PlaybackState == Enum.PlaybackState.Playing then
+				t:Pause()
+				table.insert(paused, t)
+			end
+		end
+		table.clear(playing)
+	else
+		for _, t in paused do
+			t:Play()
+			playing[t] = true
+		end
+		table.clear(paused)
+	end
+	for _, d in effects and effects:GetDescendants() or {} do
+		if d:IsA("ParticleEmitter") then
+			d.TimeScale = on and 0 or 1
+		end
+	end
+end
+
+-- Capture for Blender-vs-game pairs (design doc 4.37 "The approved Blender key-frame renders are the final look"), Studio only:
+-- the local player's attribute BossVfxScrub "<move>@<seconds>" (e.g. "lightning@2.3"), set by a Studio test, plays that move of the
+-- shown boss from 0 with its seeded plan (Client/BossArenaView poses the boss and steps its effects on this clock instead of the
+-- schedule's) and holds everything as it is at <seconds> until the attribute is cleared; then the effects reset to the schedule.
+-- Off outside Studio, and nothing happens while the attribute is unset. A boss's Vfx module needs only: Kit.after for its delays,
+-- a `later` that a Start drops, and no per-frame work while Kit.held().
+local SCRUB = "BossVfxScrub"
+local scrub = nil -- { Move, At, Born, Reached }
+local scrubListeners = {}
+
+-- The scrub's move and its time (to its hold), or nil with no scrub.
+function BossVfx.ScrubTime()
+	if not scrub then
+		return nil
+	end
+	local t = os.clock() - scrub.Born
+	if t >= scrub.At then
+		scrub.Reached = true
+		return scrub.Move, scrub.At
+	end
+	return scrub.Move, t
+end
+
+-- After the boss's Vfx.Step: holds the effects once the frame at the scrub's time is drawn, a beat past it so the delayed draws
+-- due at that time (a strike exactly at a key) are in the frame.
+local SCRUB_GRACE = 0.05
+function BossVfx.ScrubStep()
+	if scrub and scrub.Reached and os.clock() - scrub.Born >= scrub.At + SCRUB_GRACE then
+		hold(true)
+	end
+end
+
+-- fn(on): the scrub started (or changed) or ended; Client/BossArenaView restarts the boss's effects on it.
+function BossVfx.OnScrub(fn)
+	table.insert(scrubListeners, fn)
+end
+
+if RunService:IsStudio() then
+	local player = Players.LocalPlayer
+	player:GetAttributeChangedSignal(SCRUB):Connect(function()
+		local value = player:GetAttribute(SCRUB)
+		local move, at = nil, nil
+		if type(value) == "string" then
+			move, at = string.match(value, "^%s*([%a_]+)%s*@%s*([%d%.]+)%s*$")
+		end
+		hold(false)
+		scrub = move and tonumber(at) and { Move = string.lower(move), At = tonumber(at), Born = os.clock() } or nil
+		for _, fn in scrubListeners do
+			fn(scrub ~= nil)
+		end
+	end)
+end
+
 BossVfx.Kit = {
+	after = after,
+	hold = hold,
+	held = function()
+		return held
+	end,
 	holder = holder,
 	emitter = emitter,
 	burst = burst,
