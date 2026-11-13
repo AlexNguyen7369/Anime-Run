@@ -129,7 +129,7 @@ local GATES_DIM =
 local ENUMA_DIM = { -- red through the charge
 	Floor = 0.3,
 	In = CHARGE * 0.8,
-	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.25, TintColor = Color3.fromRGB(255, 115, 105) },
+	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.1, TintColor = Color3.fromRGB(250, 175, 185) },
 	Torch = RED,
 	TorchDim = 0.3,
 }
@@ -827,7 +827,7 @@ local function playCharge()
 	light.Name = "ChargeTint"
 	light.Color, light.Brightness, light.Range, light.Shadows = RED, 0, 90, false
 	light.Parent = part
-	Kit.tween(light, CHARGE, { Brightness = 3 })
+	Kit.tween(light, CHARGE, { Brightness = 1.2 }) -- Studio 2026-11-12: at 3 he read flat red, the sheets keep him gold
 	Kit.pulseEdges(RED, 0.45, CHARGE / 3, 3)
 	Kit.after(CHARGE, function()
 		wind.Enabled = false
@@ -1182,6 +1182,42 @@ local function fire(move, from, to)
 end
 
 -- Ea's grooves glow while the drums spin up through the charge and hold through the beam; off otherwise and with effects off.
+-- The charge's white ball at Ea's tip (the sheets' enuma keys 4 to 6): from CHARGE_BALL_FROM it grows to the wind-up, one part
+-- and a flare while it shows.
+local CHARGE_BALL_FROM, CHARGE_BALL = 1.2, { 3, 15 } -- s of enuma; studs across, from to at the hit (proposed)
+local chargeBall = nil
+local function stepChargeBall(move, localTime)
+	local on = move == "enuma" and localTime >= CHARGE_BALL_FROM and localTime < CHARGE and not reduced()
+	if not on then
+		if chargeBall then
+			chargeBall:Destroy()
+			chargeBall = nil
+		end
+		return
+	end
+	if not (chargeBall and chargeBall.Parent == effects) then
+		chargeBall = Kit.holder("EnumaChargeBall", CFrame.new(king:Tip()), Vector3.one)
+		chargeBall.Shape, chargeBall.Material, chargeBall.Color, chargeBall.Transparency =
+			Enum.PartType.Ball, NEON, WHITE, 0
+		Kit.emitter(chargeBall, {
+			Name = "ChargeFlare",
+			Texture = Art.Flare,
+			Color = ColorSequence.new(WHITE, Color3.fromRGB(255, 200, 190)),
+			LightEmission = 1,
+			LockedToPart = true,
+			Speed = NumberRange.new(0),
+			Lifetime = NumberRange.new(0.1, 0.14),
+			Rotation = NumberRange.new(0, 360),
+			Rate = 30,
+			Enabled = true,
+		})
+	end
+	local u = math.clamp((localTime - CHARGE_BALL_FROM) / (CHARGE - CHARGE_BALL_FROM), 0, 1)
+	local size = CHARGE_BALL[1] + (CHARGE_BALL[2] - CHARGE_BALL[1]) * u
+	chargeBall.CFrame, chargeBall.Size = CFrame.new(king:Tip()), Vector3.one * size
+	chargeBall.ChargeFlare.Size = NumberSequence.new(size * 2.2)
+end
+
 local function stepEaGlow(move, localTime)
 	local on = move == "enuma" and localTime < CHARGE + BEAM and Poses.EaShown(move, localTime) and not reduced()
 	local part = (on or eaGlow) and eaPart()
@@ -1228,6 +1264,10 @@ local function clear()
 	if eaGlow then
 		eaGlow.Enabled = false
 	end
+	if chargeBall then
+		chargeBall:Destroy()
+		chargeBall = nil
+	end
 	ea = nil
 	table.clear(shields)
 	shieldRing = nil
@@ -1273,6 +1313,7 @@ function BossKingVfx.Step(since, move, localTime)
 		return
 	end
 	stepEaGlow(move, localTime)
+	stepChargeBall(move, localTime)
 	if since and since >= Event.RiseSeconds then
 		advance(move, localTime, previousMove, previousTime)
 	end
