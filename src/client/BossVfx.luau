@@ -302,7 +302,7 @@ local IMPACT_FLOOR = 0.5 -- of the full kick, however far the camera is
 local IMPACT_SHIFT = 0.3 -- studs of positional kick per degree of rotation kick
 local FLASH_FULL, FLASH_LOW = { Brightness = 0.25, Contrast = 0.2 }, { Brightness = 0.06, Contrast = 0 }
 -- A white full flash (the Elf Mage's first strike, as her approved slices' key 6), proposed
-local FLASH_WHITE = { Brightness = 0.6, Contrast = 0.05, Saturation = -0.6 }
+local FLASH_WHITE = { Brightness = 0.45, Contrast = 0.05, Saturation = -0.6 } -- she stays a grey shape in it
 local FLASH_SECONDS = 0.1
 local LIGHT_PULSE, LIGHT_SECONDS = 2.5, 0.25 -- x the light's own brightness at the peak, then back
 local impactLog, pulse, pulseToken = nil, nil, 0

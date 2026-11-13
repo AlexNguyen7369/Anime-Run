@@ -91,7 +91,7 @@ local PINK_WHITE = Color3.fromRGB(255, 222, 255)
 -- BossStrikeDim (Lighting); Lighting's brightness and ambients go to 25% through Client/BiomeEnvironment (Lighting attribute
 -- BossStrikeDim, 0 to 1); the arena's own lights to TORCH_DIM. The tint is low in saturation so her white robe stays white-ish.
 local DIM_IN, DIM_OUT, DIM_TAIL = 0.25, 0.6, 0.5
-local STORM_IN = 0.9 -- s: her lightning's dim and haze from the move's start, full by about 0.9 s (the sheet's keys 2 and 3)
+local STORM_IN = 0.5 -- s: her lightning's dim and haze from the move's start, full by about 0.9 s (the sheet's keys 2 and 3)
 local TORCH_TINT = Color3.fromRGB(190, 150, 255) -- the arena's lights turn violet as they dim
 -- lilac, not navy, and not darker on top of the 25% light (Studio 2026-11-12: -0.25 read navy)
 local DIM_GRADE = { Brightness = -0.05, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(230, 210, 255) }
@@ -643,6 +643,7 @@ local function playLightning()
 		return logHits("Lightning", list, 0.12, 20)
 	end
 	startDim(Poses.Moves.lightning.Window[2] - LIGHTNING_AT + DIM_TAIL, true, true)
+	local windowEnd = os.clock() + LIGHTNING_WINDOW -- the strikes draw a frame or two late: their lives end by this clock
 	for j, strike in list do
 		local bolts = {}
 		for k, at in strike.Spots do
@@ -677,7 +678,7 @@ local function playLightning()
 		later(strike.T, function()
 			local total = 0
 			-- all of it fades by the window's end (the sheet's key 9: the strikes are over at 4.0 s); at least 0.1 s, so it shows
-			strikeLife = math.max(0.06, math.min(BOLT_SECONDS, LIGHTNING_WINDOW - strike.T))
+			strikeLife = math.clamp(windowEnd - os.clock() - 0.05, 0.04, BOLT_SECONDS)
 			local feet = Vector3.new(mage.Her.Anchor.Position.X, Arena.Y + 0.15, mage.Her.Anchor.Position.Z)
 			local camera = Workspace.CurrentCamera
 			local away = camera and (feet - camera.CFrame.Position) * Vector3.new(1, 0, 1) or Vector3.new(0, 0, -1)
@@ -994,7 +995,7 @@ local function beam(circle, target, k, life)
 	local distance = line.Magnitude
 	local dir = distance > 0.01 and line / distance or Vector3.yAxis
 	local length = math.min(RAY_LENGTH, distance)
-	local flight = math.max(0.05, math.min(distance / RAY_SPEED, life))
+	local flight = math.max(0.04, math.min(distance / RAY_SPEED, life))
 	local born = os.clock()
 	-- the ray's frame: its back end leaves the circle and its head reaches the spot at `flight`
 	local function along()
@@ -1011,12 +1012,12 @@ local function beam(circle, target, k, life)
 		Vector3.new(BEAM_GLOW, BEAM_GLOW, length + BEAM_GLOW * 0.5),
 		k % 2 == 0 and CYAN or RAY_CYAN,
 		0.45,
-		flight + 0.04
+		flight
 	)
 	local core =
-		pooled("BarrageBeamCore", start, Vector3.new(BEAM_CORE, BEAM_CORE, length + BEAM_CORE), WHITE, 0, flight + 0.04)
+		pooled("BarrageBeamCore", start, Vector3.new(BEAM_CORE, BEAM_CORE, length + BEAM_CORE), WHITE, 0, flight)
 	local edge =
-		pooled("BarrageBeamEdge", start, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, flight + 0.04, edgeLook)
+		pooled("BarrageBeamEdge", start, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, flight, edgeLook)
 	for _, part in { glow, core, edge } do
 		tracked[part] = along()
 	end
@@ -1041,6 +1042,7 @@ local function playBarrage()
 		return logHits("Barrage", list, 0.1, 18)
 	end
 	startDim(Poses.Moves.barrage.Window[2] - BARRAGE_AT + DIM_TAIL, true)
+	local windowEnd = os.clock() + BARRAGE_WINDOW -- as the lightning's: the rays land and go by this clock
 	for _, strike in list do
 		later(strike.T, function()
 			local total = 0
@@ -1055,7 +1057,7 @@ local function playBarrage()
 					end
 				end
 				-- the rays land by the window's end (nothing fires past 4.0 s, the sheet's key 9)
-				total += beam(best, target, k, math.max(0.06, BARRAGE_WINDOW - strike.T))
+				total += beam(best, target, k, math.max(0.04, windowEnd - os.clock() - 0.06))
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
