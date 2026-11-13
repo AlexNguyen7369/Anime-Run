@@ -870,15 +870,15 @@ function Module.Build(h)
 			local art = optional("BossVfxArt") or {}
 			return art.PortalC or (optional("BossKingArt") or {}).PortalC
 		end
-		-- Plays Gates and follows every Portal for `seconds`: { [portal] = { Peak, First, Last, Decals = { decal } } }.
-		local function watchPortals(seconds)
+		-- Plays Gates and follows every Portal (or parts named `name`) for `seconds`: { [portal] = { Peak, First, Last, Decals = { decal } } }.
+		local function watchPortals(seconds, name)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Gates")
 			local seen, stop = {}, os.clock() + seconds
 			while os.clock() < stop do
 				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
-					if d.Name == "Portal" and d:IsA("BasePart") then
+					if d.Name == (name or "Portal") and d:IsA("BasePart") then
 						local row = seen[d] or { Peak = 0, Decals = {} }
 						seen[d] = row
 						row.Peak = math.max(row.Peak, d.Size.X, d.Size.Y)
@@ -1103,6 +1103,42 @@ function Module.Build(h)
 			check(res, "portals_king_torso_found", kingTorso ~= nil, true)
 			h.checkList(res, "portals_arch_behind", offArch)
 			h.check(res, "portals_turn_slowly", turning, "> 0", turning > 0)
+			-- Gates ring (owner 2026-11-13, design doc 4.37 / BOSS_EVENT_SPEC "Boss effects after playing", proposed): besides the
+			-- arch (`Portal`, checked above), 18 to 24 `PortalRing` parts evenly all round him, 40 to 60 studs (flat) from his
+			-- Torso, facing outward (flat LookVector within 30 deg of the way out), pitched down 0 to 35 deg, no PointLight.
+			local rings = mostNamed("Gates", "PortalRing")
+			h.check(res, "gates_ring_portals_18_to_24", rings, "18 to 24", rings >= 18 and rings <= 24)
+			local offRing, lit, quadrants, ringWatched = {}, {}, {}, 0
+			for portal, row in watchPortals(3, "PortalRing") do
+				ringWatched += 1
+				for _, d in portal:GetDescendants() do
+					if d:IsA("PointLight") and d.Enabled then
+						table.insert(lit, portal:GetFullName())
+					end
+				end
+				if kingTorso and row.Last then
+					local cf = row.Last[2]
+					local out = (cf.Position - kingTorso.Position) * Vector3.new(1, 0, 1)
+					local flatLook = cf.LookVector * Vector3.new(1, 0, 1)
+					local dist = out.Magnitude
+					local down = math.deg(math.asin(math.clamp(-cf.LookVector.Y, -1, 1)))
+					local dot = (dist > 1e-3 and flatLook.Magnitude > 1e-3) and flatLook.Unit:Dot(out.Unit) or -1
+					if dist < 40 or dist > 60 or dot < math.cos(math.rad(30)) or down < 0 or down > 35 then
+						table.insert(offRing, ("%.0f studs, out dot %.2f, down %.0f deg"):format(dist, dot, down))
+					end
+					if dist > 1e-3 then
+						quadrants[(out.X >= 0 and 1 or 0) + (out.Z >= 0 and 2 or 0)] = true
+					end
+				end
+			end
+			local quadrantCount = 0
+			for _ in quadrants do
+				quadrantCount += 1
+			end
+			check(res, "gates_ring_portals_watched", ringWatched > 0, true)
+			h.checkList(res, "gates_ring_portals_outward", offRing)
+			h.check(res, "gates_ring_portals_all_quadrants", quadrantCount, "4", quadrantCount == 4)
+			h.checkList(res, "gates_ring_portals_no_light", lit)
 			local list = checkVolleys("gates", volleyLog(), PER_VOLLEY_MIN, PER_VOLLEY_MAX)
 			checkSpread("gates", list, Arena)
 			-- Enuma Elish: the red charge tint, then the beam.
@@ -1348,10 +1384,19 @@ function Module.Build(h)
 				while os.clock() - born < 2.1 do
 					local beam = inArena("EnumaBeam")
 					if beam and beam:IsA("BasePart") then
+						-- where the beam's axis meets the deck (the part is centred mid-beam along its LookVector)
+						local look = beam.CFrame.LookVector
+						local origin = beam.Position - look * beam.Size.Z / 2
+						local land = math.huge
+						if Arena and look.Y < -1e-3 then
+							local hit = origin + look * ((Arena.Y - origin.Y) / look.Y)
+							land = Vector2.new(hit.X - Arena.Center.X, hit.Z - Arena.Center.Z).Magnitude
+						end
 						table.insert(rows, {
 							T = 2.9 + os.clock() - born,
-							Beam = yaw(beam.CFrame.LookVector),
+							Beam = yaw(look),
 							Torso = yaw(torso.CFrame.LookVector),
+							Land = land,
 						})
 					end
 					task.wait()
@@ -1379,6 +1424,28 @@ function Module.Build(h)
 					worst = math.max(worst, math.abs(wrap(turn)))
 				end
 				h.check(res, "enuma_beam_turns_only_with_hips", worst, "<= 3", #rows > 1 and worst <= 3)
+				-- Enuma 360 (owner 2026-11-13, design doc 4.37 / BOSS_EVENT_SPEC "Boss effects after playing", proposed): over the
+				-- window (3.0 to 5.0 s) the beam's yaw goes about 370 deg one way, and it lands on the deck within the wall all round.
+				local swept, forward, backward, offDeck, prev = 0, 0, 0, {}, nil
+				for _, row in rows do
+					if row.T >= 3.0 and row.T <= 5.0 then
+						if prev then
+							local step = wrap(row.Beam - prev.Beam)
+							swept += step
+							forward += math.max(step, 0)
+							backward += math.max(-step, 0)
+						end
+						prev = row
+						if row.T >= 3.05 and row.T <= 4.95 and not (Arena and row.Land <= Arena.WallRadius) then
+							table.insert(offDeck, ("%.2f s: %.0f studs"):format(row.T, row.Land))
+						end
+					end
+				end
+				h.check(res, "enuma_beam_sweeps_360", math.abs(swept), ">= 350", math.abs(swept) >= 350)
+				local against = swept >= 0 and backward or forward
+				h.check(res, "enuma_beam_one_way", against, "<= 10", prev ~= nil and against <= 10)
+				check(res, "enuma_beam_lands_rows", prev ~= nil and Arena ~= nil, true)
+				h.checkList(res, "enuma_beam_lands_on_lanes", offDeck)
 			end
 			if shieldsAt then
 				-- Shields appear with his call gesture, from the pose (BossFortified untouched), and burst when he lowers them.
