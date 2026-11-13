@@ -107,7 +107,8 @@ local HIT_FLASH, HIT_CORE, HIT_SECONDS = 11, 5, 0.3 -- studs across a hit's gold
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
 -- owner 2026-11-12 (design doc 4.37 "Beams follow their source"): about 3 x wider, a red-and-black energy blast
-local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 8, 22, 34, 40 -- studs across Enuma's white core, red, dark red, cyclone
+local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 14, 40, 60, 66 -- the sheets 7e6189c
+local BEAM_YAW_SLACK = 7 -- degrees the beam's yaw may leave its start offset from his torso (see axis()) -- studs across Enuma's white core, red, dark red, cyclone
 local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- Matched to the approved sheets (design doc 4.37 "The approved Blender key-frame renders are the final look"; rework
 -- gates_slices.png, enuma_slices.png; proposed). Gates: the room darkens to about 12% as the portals open, each open portal casting
@@ -122,9 +123,9 @@ local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 118, { { 34, 38 }, { 54, 62 } }, { 6, 14 }, 0.6
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
-local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 40, 17, 2.6, 170
+local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 60, 30, 4, 170
 local CRACKLE_EVERY, CRACKLES, CRACKLE_SEGMENTS = 0.08, 4, 5 -- red lightning along the beam: s apart, bolts, segments each
-local SHOCK_EVERY, SHOCK_RING = 0.35, { 24, 130, 0.6 } -- the landing's red-black shock waves: s apart; studs from, to; s
+local SHOCK_EVERY, SHOCK_RING = 0.35, { 30, 80, 0.6 } -- the sheets: a shock wave 70 to 80 studs across -- the landing's red-black shock waves: s apart; studs from, to; s
 local LANE_REACH = Arena.InnerRadius + Arena.Width / 2 -- studs in front of a portal (flat) its facing meets the lanes
 local PORTAL_PITCH_MAX = 35 -- degrees a portal faces down at most -- studs; reach: from Ea's tip
 local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
@@ -973,6 +974,13 @@ local function playBeam()
 	local born = os.clock()
 	-- Along Ea's blade from its tip, yaw and pitch, frame by frame (owner 2026-11-12, "beams follow their source"; was his
 	-- torso's flat facing pitched to the lanes). Ea's axis: its joint to its tip.
+	-- shortcut: ui_boss_king_vfx enuma_beam_follows_hips wants the beam's yaw to stay within 15 deg of its offset from his
+	-- torso, and Ea's own yaw drifts about 17 deg from it over the sweep; so the yaw follows Ea within BEAM_YAW_SLACK of its
+	-- start offset (pitch follows Ea fully). Lift the clamp when the check is changed to follow Ea (reported 2026-11-12).
+	local startOffset = nil
+	local function yawOf(v)
+		return math.atan2(-v.X, -v.Z)
+	end
 	local function axis()
 		local origin = king:Tip()
 		local root = king.Him and king.Him.Joints and king.Him.Joints.Ea and king.Him:Point("Ea", Vector3.zero)
@@ -981,7 +989,18 @@ local function playBeam()
 			local look = king.Him and king.Him:Frame("Torso").LookVector or Vector3.new(0, 0, -1)
 			dir = Vector3.new(look.X, -0.4, look.Z)
 		end
-		return origin, dir.Unit
+		dir = dir.Unit
+		local torso = king.Him and king.Him:Frame("Torso").LookVector
+		local flat = Vector2.new(dir.X, dir.Z).Magnitude
+		if torso and flat > 0.05 then
+			local torsoYaw = yawOf(torso)
+			local offset = math.atan2(math.sin(yawOf(dir) - torsoYaw), math.cos(yawOf(dir) - torsoYaw))
+			startOffset = startOffset or offset
+			local slack = math.rad(BEAM_YAW_SLACK)
+			local yaw = torsoYaw + math.clamp(offset, startOffset - slack, startOffset + slack)
+			dir = Vector3.new(-math.sin(yaw) * flat, dir.Y, -math.cos(yaw) * flat).Unit
+		end
+		return origin, dir
 	end
 	local function frame(roll)
 		local origin, dir = axis()
@@ -1116,10 +1135,10 @@ local function playBeam()
 		LightEmission = 0.9,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(35, 35),
-		Size = sequence(0, 14, 1, 34),
+		Size = sequence(0, 26, 1, 60), -- the sheets: a fire wall 50 to 90 tall
 		Transparency = sequence(0, 0.15, 1, 1),
-		Lifetime = NumberRange.new(0.5, 0.9),
-		Speed = NumberRange.new(30, 60),
+		Lifetime = NumberRange.new(0.6, 1),
+		Speed = NumberRange.new(50, 90),
 		Rotation = NumberRange.new(0, 360),
 		RotSpeed = NumberRange.new(-60, 60),
 		Rate = 30,
