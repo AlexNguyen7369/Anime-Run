@@ -99,7 +99,27 @@ function BossKing:Step(rise, move, localTime)
 		local below = (1 - rise) * (Arena.BossHeight + Arena.HoverY)
 		local bob = Arena.BobStuds / 2 * math.sin(Workspace:GetServerTimeNow() * 2 * math.pi / Arena.BobSeconds)
 		local turn = move == "enuma" and sweepYaw(parts, localTime) or 0
-		him:Pose((self.Rest - Vector3.new(0, below - bob, 0)) * CFrame.Angles(0, turn, 0), parts, root, 1, 0, locs)
+		local at = self.Rest - Vector3.new(0, below - bob, 0)
+		him:Pose(at * CFrame.Angles(0, turn, 0), parts, root, 1, 0, locs)
+		if move == "enuma" and localTime > WINDOW[1] and localTime < SWEEP_HOME and him.Joints.Ea then
+			-- The beam runs along Ea's blade (design doc 4.37), and Ea's baked yaw drifts about 45 deg against the turn over the
+			-- Window, so the sweep is driven by Ea's yaw, not the torso's: Ea's world yaw goes SWEEP_DEGREES one way from where
+			-- it is at the Window's start, then the extra eases home as before. Joints are rig-local, so turn only adds yaw.
+			local v = (C * him.Joints.Ea):VectorToWorldSpace(Poses.EaTip)
+			local ea = math.atan2(-v.X, -v.Z)
+			if localTime <= WINDOW[2] then
+				self.EaFrom = self.EaFrom or ea + turn
+				local u = smoothstep((localTime - WINDOW[1]) / (WINDOW[2] - WINDOW[1]))
+				local want = self.EaFrom + sweepSign * math.rad(SWEEP_DEGREES) * u
+				turn += wrap(want - (ea + turn))
+				self.EaTurn = turn
+			else
+				turn = wrap(self.EaTurn or turn) * (1 - smoothstep((localTime - WINDOW[2]) / (SWEEP_HOME - WINDOW[2])))
+			end
+			him:Pose(at * CFrame.Angles(0, turn, 0), parts, root, 1, 0, locs)
+		elseif move ~= "enuma" or localTime <= WINDOW[1] then
+			self.EaFrom, self.EaTurn = nil, nil
+		end
 		-- Ea and its drums show only inside a move's EaShown window (enuma): drawn from the vault otherwise. Written every hidden
 		-- frame (4 parts), since Show's toggle makes every part visible again.
 		local eaShown = Poses.EaShown(move, localTime)

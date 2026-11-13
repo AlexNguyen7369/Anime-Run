@@ -74,7 +74,7 @@ local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10
 -- pre-approved"; the approved sheet's tools/blender/boss_king_keyframes.py DOME_*): fixed tiers on a dome round his chest,
 -- { elevation degrees, portals, studs across }, evenly spaced, alternate tiers offset half a step, none over 60 deg (open top).
 local DOME_TIERS = { { 8, 16, 28 }, { 22, 14, 22 }, { 38, 12, 18 }, { 55, 8, 14 } }
-local DOME_RADIUS = 58 -- studs from his Torso (the sheet's 8.7 units at 8x)
+local DOME_RADIUS = 85 -- studs from his Torso (owner 2026-11-13: "bigger dome, no overlap", then picked 85 after seeing 110)
 local PORTAL_LIGHT_EVERY = 4 -- every 4th portal casts a gold light (12 of 50)
 local PORTAL_ART = Art.PortalC ~= nil and Art.PortalC ~= "" and Art.PortalC or Art.Ring -- design C once uploaded
 local PORTAL_TURN = 0.3 -- radians a second about its facing, slow (proposed)
@@ -85,7 +85,7 @@ local SHIELDS_MIN, SHIELDS_MAX = 5, 7
 local SHIELD_RADIUS, SHIELD_TURN = 17, 0.7 -- studs from him, radians a second
 local SHARDS = 5 -- a shattering shield's pieces
 local SPOT_MAX = Arena.WallRadius - 4 -- the whole room: centre, lanes and walkway
-local SALT = { Gates = 2, Shields = 3 }
+local SALT = { Gates = 2, Shields = 3, Fire = 5 }
 local TIP_HEIGHT = Arena.BossHeight * 0.85 -- the portals' and shields' height over his feet; the beam starts at Ea's tip
 -- The swirling wind (owner 2026-11-12, assets/ui/boss_king/wind_draft/ea_wind_strip.png): ribbons orbit Ea's axis, one turn per 0.8 s
 -- early, speeding up with the drums to one per 0.35 s by 2.75 s; 4 ribbons, 5 from 1.5 s, 6 from 2.25 s. Sizes proposed.
@@ -142,7 +142,8 @@ local GATES_DIM =
 local ENUMA_DIM = { -- red and dark through the charge and the beam (owner 2026-11-12: the room flooded red and dark)
 	Floor = 0.2,
 	In = CHARGE * 0.8,
-	Grade = { Brightness = -0.15, Contrast = 0.2, Saturation = 0.2, TintColor = Color3.fromRGB(255, 165, 150) },
+	-- warm, not pink (Studio 2026-11-13: a (255, 165, 150) tint turned the yellow-white core salmon; the sheet's core stays hot)
+	Grade = { Brightness = -0.2, Contrast = 0.2, Saturation = 0.2, TintColor = Color3.fromRGB(255, 205, 170) },
 	Torch = RED,
 	TorchDim = 0.3,
 }
@@ -162,6 +163,7 @@ local pools = {} -- name -> idle pooled parts of that name (Transparency 1) in t
 local ready = {} -- portals whose weapon tip shows, in the order they got ready: the volleys' origins
 local portalsUntil = -math.huge -- os.clock() at which this client's last opened portals are gone
 local waiting = {} -- shots with no ready portal yet, { Target, N }: fired from the first portal that gets ready
+local fireRng = nil -- picks each shot's ready portal at random (owner 2026-11-13), seeded once per Gates play
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local dustLine = nil -- the one part the streak dust comes from, stretched along each shot
 local dim = nil -- the room's dim while it runs: { Born, EndAt, Grade, Look, Lights = { light -> its look } }
@@ -778,14 +780,19 @@ local function fireShot(portal, target, n)
 	return SPARKS_PER_HIT + DUST_PER_HIT + DUST_PER_SHOT
 end
 
--- A ready portal of the open ones, by turns (i), or nil while none holds a weapon yet.
-local function readyPortal(i)
+-- A random ready portal of the open ones (owner 2026-11-13: no set order once they are open), or nil while none holds a
+-- weapon yet. Seeded (rngFor("Fire")), so every client picks the same; the strike spots keep their own generator.
+local function readyPortal()
 	for idx = #ready, 1, -1 do
 		if not ready[idx].Parent then
 			table.remove(ready, idx)
 		end
 	end
-	return #ready > 0 and ready[(i - 1) % #ready + 1] or nil
+	if #ready == 0 then
+		return nil
+	end
+	fireRng = fireRng or rngFor("Fire")
+	return ready[fireRng:NextInteger(1, #ready)]
 end
 
 -- A portal's weapon shows: it may fire, and the shots that waited for one fire from it now.
@@ -803,6 +810,7 @@ local function playVolley()
 	-- cue: KingGates (a rush of blades)
 	local list = plan()
 	logStrikes(list)
+	fireRng = rngFor("Fire")
 	local off = reduced()
 	if not off and os.clock() >= portalsUntil then
 		-- this client missed gates_start (a late join or start): the same seeded portals at once, still portal, tip, shot
@@ -816,7 +824,7 @@ local function playVolley()
 			end
 			local total = 0
 			for k, target in strike.Spots do
-				local portal = readyPortal(j + k - 1)
+				local portal = readyPortal()
 				if portal then
 					total += fireShot(portal, target, j + k)
 				else
@@ -1013,7 +1021,7 @@ local function playBeam()
 		return frame(0)
 	end
 	local core = Kit.holder("EnumaBeam", frame(0), Vector3.new(BEAM_RED, BEAM_RED, length))
-	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 95, 45), 0.5 -- warm red-orange -- Studio 2026-11-12: at 0.1 it hid the white core
+	core.Material, core.Color, core.Transparency = NEON, Color3.fromRGB(255, 110, 40), 0.8 -- warm red-orange -- Studio 2026-11-13: at 0.5 it buried the hot core
 	tracked[core] = straight
 	local white = Kit.holder("EnumaBeamCore", frame(0), Vector3.new(BEAM_CORE, BEAM_CORE, length))
 	white.Material, white.Color, white.Transparency = NEON, BEAM_HOT, 0
@@ -1042,13 +1050,14 @@ local function playBeam()
 		Name = "EnumaFire",
 		Texture = Art.Dust,
 		Color = ColorSequence.new(Color3.fromRGB(255, 150, 40), Color3.fromRGB(255, 220, 90)),
-		LightEmission = 0.8,
+		LightEmission = 1,
+		LightInfluence = 0,
 		Shape = Enum.ParticleEmitterShape.Box,
 		ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume,
 		EmissionDirection = Enum.NormalId.Front,
 		SpreadAngle = Vector2.new(10, 10),
-		Size = sequence(0, 12, 1, 30),
-		Transparency = sequence(0, 0.2, 1, 1),
+		Size = sequence(0, 18, 1, 40),
+		Transparency = sequence(0, 0.05, 1, 1),
 		Lifetime = NumberRange.new(0.3, 0.6),
 		Speed = NumberRange.new(80, 140),
 		Rotation = NumberRange.new(0, 360),
@@ -1057,7 +1066,7 @@ local function playBeam()
 		Enabled = true,
 	})
 	local outer = Kit.holder("EnumaBeamOuter", frame(0), Vector3.new(BEAM_OUTER, BEAM_OUTER, length))
-	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.72
+	outer.Material, outer.Color, outer.Transparency = NEON, Color3.fromRGB(190, 45, 25), 0.88 -- Studio 2026-11-13: a red edge glow, not a tube
 	outer.Shape = Enum.PartType.Cylinder -- a round layer: the Cylinder's axis is X, turned to the beam's Z below
 	outer.Size = Vector3.new(length, BEAM_OUTER, BEAM_OUTER)
 	local toAxis = CFrame.Angles(0, math.pi / 2, 0)
@@ -1067,7 +1076,7 @@ local function playBeam()
 	-- The cyclone: a faint dark sheath rolling about the beam, carrying the four red and black strands (helices of Beams on its
 	-- attachments, built once, so they turn with it at no cost a frame).
 	local sheath = Kit.holder("EnumaCyclone", frame(0), Vector3.new(BEAM_CYCLONE, BEAM_CYCLONE, length))
-	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.85
+	sheath.Material, sheath.Color, sheath.Transparency = Enum.Material.SmoothPlastic, DARK, 0.97 -- the dark strands carry the black
 	tracked[sheath] = function()
 		return frame((os.clock() - born) * CYCLONE_TURN) -- the sheath rolls: the cyclone
 	end
@@ -1096,8 +1105,9 @@ local function playBeam()
 				beam.CurveSize0, beam.CurveSize1 = reach, reach
 				beam.Width0, beam.Width1 = STRAND_WIDTH * 1.4, STRAND_WIDTH * 1.4
 				beam.FaceCamera, beam.Segments = true, 8
-				-- the light strands pale red-white, so they read on the red beam (Studio 2026-11-12: red on red was lost)
-				beam.Color = ColorSequence.new(red and Color3.fromRGB(255, 200, 195) or DARK)
+				-- red and black arcs round the hot core, as the approved sheet (Studio 2026-11-13: with the red layers thinned, red
+				-- reads again; the pale red-white of 2026-11-12 read as a pink striped tube)
+				beam.Color = ColorSequence.new(red and Color3.fromRGB(235, 35, 30) or DARK)
 				beam.LightEmission, beam.LightInfluence = red and 1 or 0, 0
 				beam.Transparency = NumberSequence.new(half > halves - 4 and 0.5 or 0) -- the far end thins out
 				beam.Parent = sheath
@@ -1189,11 +1199,13 @@ local function playBeam()
 	local rubble = Kit.emitter(spot, {
 		Name = "EnumaRubble",
 		Texture = Art.Dust,
-		Color = ColorSequence.new(Color3.fromRGB(80, 64, 52), Color3.fromRGB(58, 54, 50)),
-		LightInfluence = 0.5,
+		-- lit chunks, so the rubble reads in the red dim (Studio 2026-11-13: brown rubble was lost)
+		Color = ColorSequence.new(Color3.fromRGB(255, 180, 110), Color3.fromRGB(120, 90, 80)),
+		LightEmission = 0.5,
+		LightInfluence = 0,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(40, 40),
-		Size = sequence(0, 3, 1, 2),
+		Size = sequence(0, 4, 1, 2.5),
 		Lifetime = NumberRange.new(0.8, 1.2),
 		Speed = NumberRange.new(30, 60),
 		Acceleration = Vector3.new(0, -120, 0),
