@@ -1104,10 +1104,10 @@ function Module.Build(h)
 			h.checkList(res, "portals_arch_behind", offArch)
 			h.check(res, "portals_turn_slowly", turning, "> 0", turning > 0)
 			-- Gates ring (owner 2026-11-13, design doc 4.37 / BOSS_EVENT_SPEC "Boss effects after playing", proposed): besides the
-			-- arch (`Portal`, checked above), 18 to 24 `PortalRing` parts evenly all round him, 40 to 60 studs (flat) from his
+			-- arch (`Portal`, checked above), 26 to 32 `PortalRing` parts (owner 2026-11-13: as dense as the arch; was 18 to 24) evenly all round him, 40 to 60 studs (flat) from his
 			-- Torso, facing outward (flat LookVector within 30 deg of the way out), pitched down 0 to 35 deg, no PointLight.
 			local rings = mostNamed("Gates", "PortalRing")
-			h.check(res, "gates_ring_portals_18_to_24", rings, "18 to 24", rings >= 18 and rings <= 24)
+			h.check(res, "gates_ring_portals_26_to_32", rings, "26 to 32", rings >= 26 and rings <= 32)
 			local offRing, lit, quadrants, ringWatched = {}, {}, {}, 0
 			for portal, row in watchPortals(3, "PortalRing") do
 				ringWatched += 1
@@ -1502,11 +1502,12 @@ function Module.Build(h)
 									Material = d.Material,
 								})
 							end
-						elseif d:IsA("ParticleEmitter") or d:IsA("Attachment") then
+						elseif d:IsA("ParticleEmitter") or d:IsA("Attachment") or d:IsA("Beam") then
 							w.Emitters[d.Name] = w.Emitters[d.Name] or {}
 							w.Emitters[d.Name][d] = true
 						end
-						if d:IsA("BasePart") and d.Name == "Portal" then
+						-- ring portals fire volleys too: a shot must come from an arch or ring portal with its tip shown
+						if d:IsA("BasePart") and (d.Name == "Portal" or d.Name == "PortalRing") then
 							local row = w.Portals[d] or { Peak = 0, Sizes = {} }
 							w.Portals[d] = row
 							local size = math.max(d.Size.X, d.Size.Y)
@@ -1688,8 +1689,59 @@ function Module.Build(h)
 				turned ~= nil and turned >= 10 and isRedOrDark(cyclone.Color)
 			)
 			local burstNear, smokeNear = false, false
+			-- Enuma energy beam (owner 2026-11-13, BOSS_EVENT_SPEC "Boss effects after playing" Additions, proposed), sampled
+			-- in the same watch while the beam shows: widest cross-section per layer, fire, rim lines, deck rubble.
+			local widest = { EnumaBeamCore = 0, EnumaBeam = 0, EnumaBeamOuter = 0, EnumaCyclone = 0 }
+			local hotCore, fireOk, fireSeen, rims, rubbleOk, rubbleSeen = nil, false, false, {}, false, false
+			local preBeam = {}
+			for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+				preBeam[d] = true
+			end
+			local function isOrange(c)
+				return c.R >= 0.9 and c.G >= 0.35 and c.G <= 0.75 and c.B <= 0.35
+			end
+			local function holderY(d)
+				local holder = d.Parent
+				return holder
+						and (holder:IsA("Attachment") and holder.WorldPosition.Y or (holder:IsA("BasePart") and holder.Position.Y))
+					or nil
+			end
 			local stop = os.clock() + 1.6
 			while os.clock() < stop and beamPart and beamPart.Parent do
+				for _, d in (inArena("BossEffects") or workspace):GetDescendants() do
+					local name = d.Name
+					if d:IsA("BasePart") and widest[name] and d.Transparency < 1 then
+						-- a Cylinder's axis is X (diameter Y/Z); a block beam runs along Z (cross-section X/Y)
+						local across = d.Shape == Enum.PartType.Cylinder and math.min(d.Size.Y, d.Size.Z)
+							or math.min(d.Size.X, d.Size.Y)
+						widest[name] = math.max(widest[name], across)
+						if name == "EnumaBeamCore" then
+							-- yellow-white hot: R >= 0.95, G >= 0.85, B 0.5 to 0.9 (not pure white, not orange)
+							local c = d.Color
+							hotCore = hotCore or c
+							if c.R >= 0.95 and c.G >= 0.85 and c.B >= 0.5 and c.B <= 0.9 then
+								hotCore = c
+							end
+						end
+					elseif
+						d:IsA("ParticleEmitter")
+						and (name == "EnumaFire" or (d.Parent and d.Parent.Name == "EnumaFire"))
+					then
+						fireSeen = true
+						fireOk = fireOk or (d.Enabled and d.Rate > 0 and isOrange(d.Color.Keypoints[1].Value))
+					elseif d:IsA("Beam") and name == "EnumaRim" then
+						local c = d.Color.Keypoints[1].Value
+						if d.Enabled and d.Width0 <= 3 and c.R >= 0.85 and c.G <= 0.3 and c.B <= 0.3 then
+							rims[d] = true
+						end
+					elseif d:IsA("ParticleEmitter") and name == "EnumaRubble" then
+						rubbleSeen = true
+						-- emitting: enabled with a rate, or a new emitter spawned during the sweep (an Emit burst)
+						local emitting = (d.Enabled and d.Rate > 0) or not preBeam[d]
+						local y = holderY(d)
+						rubbleOk = rubbleOk or (emitting and y ~= nil and Arena ~= nil and math.abs(y - Arena.Y) <= 8)
+					end
+				end
 				local look, length = beamPart.CFrame.LookVector, beamPart.Size.Z
 				local a = beamPart.Position - look * length / 2
 				local b = beamPart.Position + look * length / 2
@@ -1720,6 +1772,40 @@ function Module.Build(h)
 			end
 			check(res, "enuma_hit_burst", burstNear, true)
 			check(res, "enuma_hit_smoke", smokeNear, true)
+			-- every layer 1.5 x wider: core 21, red 60, outer 90, cyclone 99 studs (0.5 stud slack)
+			local narrow = {}
+			for name, want in { EnumaBeamCore = 21, EnumaBeam = 60, EnumaBeamOuter = 90, EnumaCyclone = 99 } do
+				if widest[name] < want - 0.5 then
+					table.insert(narrow, ("%s %.1f < %d"):format(name, widest[name], want))
+				end
+			end
+			h.checkList(res, "enuma_beam_widths_1_5x", narrow)
+			h.check(
+				res,
+				"enuma_beam_core_hot",
+				hotCore and ("%.2f %.2f %.2f"):format(hotCore.R, hotCore.G, hotCore.B) or "no core",
+				"R >= 0.95, G >= 0.85, B 0.5 to 0.9",
+				hotCore ~= nil and hotCore.R >= 0.95 and hotCore.G >= 0.85 and hotCore.B >= 0.5 and hotCore.B <= 0.9
+			)
+			h.check(
+				res,
+				"enuma_beam_fire_billows",
+				fireSeen and (fireOk and "orange, emitting" or "off or not orange") or "no EnumaFire",
+				"enabled, Rate > 0, orange",
+				fireOk
+			)
+			local rimCount = 0
+			for _ in rims do
+				rimCount += 1
+			end
+			h.check(res, "enuma_beam_rim_lines", rimCount, ">= 2 thin red", rimCount >= 2)
+			h.check(
+				res,
+				"enuma_ground_rubble",
+				rubbleSeen and (rubbleOk and "at the deck" or "off or away from the deck") or "no EnumaRubble",
+				"emitting within 8 studs of the deck",
+				rubbleOk
+			)
 			-- Effects off: none of them, the volley log the full plan.
 			h.player:SetAttribute("ReduceEffects", true)
 			ReplicatedStorage:SetAttribute("BossVfxForce", "")
@@ -1728,7 +1814,16 @@ function Module.Build(h)
 			local offGates = watchGates(4.2)
 			local drawnOff = {}
 			for _, name in
-				{ "Portal", "PortalTip", "Streak", "StreakCore", "StrikeFlash", "StrikeFlashCore", "ShockRing" }
+				{
+					"Portal",
+					"PortalRing",
+					"PortalTip",
+					"Streak",
+					"StreakCore",
+					"StrikeFlash",
+					"StrikeFlashCore",
+					"ShockRing",
+				}
 			do
 				if #spawnsOf(offGates, name) > 0 then
 					table.insert(drawnOff, name)
@@ -1743,7 +1838,18 @@ function Module.Build(h)
 			task.wait()
 			ReplicatedStorage:SetAttribute("BossVfxForce", "Enuma")
 			local offEnuma = watchGates(5.2)
-			for _, name in { "EnumaBeam", "EnumaBeamCore", "EnumaCyclone", "EnumaHitBurst", "EnumaHitSmoke" } do
+			for _, name in
+				{
+					"EnumaBeam",
+					"EnumaBeamCore",
+					"EnumaCyclone",
+					"EnumaHitBurst",
+					"EnumaHitSmoke",
+					"EnumaFire",
+					"EnumaRim",
+					"EnumaRubble",
+				}
+			do
 				if present(offEnuma, name) then
 					table.insert(drawnOff, name)
 				end
