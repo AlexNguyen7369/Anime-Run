@@ -106,7 +106,8 @@ local STREAK_CORE, STREAK_SHEATH = 1.3, 3.6 -- studs across a streak's white cor
 local HIT_FLASH, HIT_CORE, HIT_SECONDS = 11, 5, 0.3 -- studs across a hit's gold flash and its white core, s
 local RING_FROM, RING_TO, RING_SECONDS = 6, 34, 0.36 -- studs across a hit's gold shock ring as it grows, s
 local SPARKS_PER_HIT, DUST_PER_HIT = 6, 2
-local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 2.6, 7, 10.5, 15 -- studs across Enuma's white core, red, dark red, cyclone
+-- owner 2026-11-12 (design doc 4.37 "Beams follow their source"): about 3 x wider, a red-and-black energy blast
+local BEAM_CORE, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 8, 22, 34, 40 -- studs across Enuma's white core, red, dark red, cyclone
 local CYCLONE_TURN = 9 -- radians a second the cyclone rolls about the beam
 -- Matched to the approved sheets (design doc 4.37 "The approved Blender key-frame renders are the final look"; rework
 -- gates_slices.png, enuma_slices.png; proposed). Gates: the room darkens to about 12% as the portals open, each open portal casting
@@ -121,7 +122,11 @@ local PORTAL_LIGHT, PORTAL_LIGHT_RANGE = 0.3, 18
 local ARCH_SPAN, ARCH_RADIUS, ARCH_BACK, ARCH_HEIGHT = 118, { { 34, 38 }, { 54, 62 } }, { 6, 14 }, 0.6
 local TIP_WIDTH = 1.2 -- studs across a portal's glowing blade
 local DUST_PER_SHOT = 8 -- gold sparkle dust along each shot's path
-local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 4, 18, 6, 1.3, 170 -- studs; reach: from Ea's tip
+local STRANDS, STRAND_PITCH, STRAND_RADIUS, STRAND_WIDTH, STRAND_REACH = 6, 40, 17, 2.6, 170
+local CRACKLE_EVERY, CRACKLES, CRACKLE_SEGMENTS = 0.08, 4, 5 -- red lightning along the beam: s apart, bolts, segments each
+local SHOCK_EVERY, SHOCK_RING = 0.35, { 24, 130, 0.6 } -- the landing's red-black shock waves: s apart; studs from, to; s
+local LANE_REACH = Arena.InnerRadius + Arena.Width / 2 -- studs in front of a portal (flat) its facing meets the lanes
+local PORTAL_PITCH_MAX = 35 -- degrees a portal faces down at most -- studs; reach: from Ea's tip
 local HIT_GLOW = 30 -- studs across the red glow under Enuma's hit
 local DIM_OUT, LIFT_SECONDS = 0.6, 0.3 -- s the dim takes to lift; the white flash lifts it this long
 local GATES_DIM =
@@ -133,11 +138,10 @@ local GATES_DIM =
 		Torch = GOLD,
 		TorchDim = 0.35,
 	}
-local ENUMA_DIM = { -- red through the charge
-	Floor = 0.3,
+local ENUMA_DIM = { -- red and dark through the charge and the beam (owner 2026-11-12: the room flooded red and dark)
+	Floor = 0.2,
 	In = CHARGE * 0.8,
-	-- warm, not pink (Studio 2026-11-12: a pink tint turned the white sun pink); the red is the lights'
-	Grade = { Brightness = -0.1, Contrast = 0.15, Saturation = 0.1, TintColor = Color3.fromRGB(255, 220, 205) },
+	Grade = { Brightness = -0.15, Contrast = 0.2, Saturation = 0.2, TintColor = Color3.fromRGB(255, 165, 150) },
 	Torch = RED,
 	TorchDim = 0.3,
 }
@@ -510,7 +514,10 @@ local function playPortals(cascade)
 			+ Vector3.new(0, Arena.BossHeight * ARCH_HEIGHT, 0)
 			+ (right * math.sin(a) + Vector3.yAxis * math.cos(a)) * radius
 			- facing * rng:NextNumber(ARCH_BACK[1], ARCH_BACK[2])
-		local frame = CFrame.lookAt(anchor, anchor + facing)
+		-- facing the lanes in front of it, pitched down, so its weapons fly out along its facing onto the lanes (owner 2026-11-12:
+		-- "beams follow their source")
+		local down = math.min(math.atan2(anchor.Y - Arena.Y, LANE_REACH), math.rad(PORTAL_PITCH_MAX))
+		local frame = CFrame.lookAt(anchor, anchor + facing) * CFrame.Angles(-down, 0, 0)
 		local turn = PORTAL_TURN * (k % 2 == 0 and 1 or -1)
 		-- The opening, built when it comes in the cascade: a bright dot, a small ring, full size (Quad, no overshoot past the drawn
 		-- size), then the weapon tip through (owner 2026-11-12: portal, then weapon, then shot).
@@ -668,6 +675,25 @@ local function shoot(from, to, k)
 	trail.Enabled = true
 end
 
+-- Where a shot from `from` along `dir` ends: the floor or the wall, whichever it meets first.
+local function shotEnd(from, dir)
+	local reach = Arena.WallRadius * 2
+	if dir.Y < -0.02 then
+		reach = math.min(reach, (Arena.Y + 0.15 - from.Y) / dir.Y)
+	end
+	local flat = Vector2.new(dir.X, dir.Z)
+	local a = flat:Dot(flat)
+	if a > 1e-4 then
+		local rel = Vector2.new(from.X - Arena.Center.X, from.Z - Arena.Center.Z)
+		local b, c = 2 * rel:Dot(flat), rel:Dot(rel) - Arena.WallRadius ^ 2
+		local root = b * b - 4 * a * c
+		if root >= 0 then
+			reach = math.min(reach, (-b + math.sqrt(root)) / (2 * a))
+		end
+	end
+	return from + dir * math.max(reach, 1)
+end
+
 -- One shot n from a ready portal to target: its tip flashes, then a weapon (or, every third, a streak) and the hit where it lands.
 local function fireShot(portal, target, n)
 	local tip = portalTips[portal]
@@ -678,6 +704,8 @@ local function fireShot(portal, target, n)
 		end)
 	end
 	local from = portal.Position
+	-- beams follow their source (owner 2026-11-12): straight out along the portal's facing; the logged spot only picks the portal
+	target = shotEnd(from, portal.CFrame.LookVector)
 	if n % 3 == 0 then
 		-- a short gold ray flying from the portal to its spot (Studio 2026-11-12: a full-length bar read as a laser across the room)
 		local line = target - from
@@ -943,15 +971,21 @@ local function playBeam()
 	end
 	local length = Arena.WallRadius * 1.1
 	local born = os.clock()
-	-- Aimed along his torso's facing, flat: the beam turns with his baked hip turn, frame by frame (posed before this Step).
-	local function frame(roll)
+	-- Along Ea's blade from its tip, yaw and pitch, frame by frame (owner 2026-11-12, "beams follow their source"; was his
+	-- torso's flat facing pitched to the lanes). Ea's axis: its joint to its tip.
+	local function axis()
 		local origin = king:Tip()
-		local look = king.Him and king.Him:Frame("Torso").LookVector or Vector3.new(0, 0, -1)
-		local flat = Vector3.new(look.X, 0, look.Z)
-		flat = flat.Magnitude > 0.05 and flat.Unit or Vector3.new(0, 0, -1)
-		local pitch = -math.atan((origin.Y - Arena.Y) / (Arena.InnerRadius + Arena.Width / 2))
-		local aim = CFrame.lookAt(origin, origin + flat) * CFrame.Angles(pitch, 0, 0)
-		return aim * CFrame.new(0, 0, -length / 2) * CFrame.Angles(0, 0, roll)
+		local root = king.Him and king.Him.Joints and king.Him.Joints.Ea and king.Him:Point("Ea", Vector3.zero)
+		local dir = root and origin - root
+		if not (dir and dir.Magnitude > 0.5) then
+			local look = king.Him and king.Him:Frame("Torso").LookVector or Vector3.new(0, 0, -1)
+			dir = Vector3.new(look.X, -0.4, look.Z)
+		end
+		return origin, dir.Unit
+	end
+	local function frame(roll)
+		local origin, dir = axis()
+		return CFrame.lookAt(origin, origin + dir) * CFrame.new(0, 0, -length / 2) * CFrame.Angles(0, 0, roll)
 	end
 	local function straight()
 		return frame(0)
@@ -1013,12 +1047,14 @@ local function playBeam()
 		end
 	end
 	-- Where the beam meets the deck (the lanes' middle, along its aim): the burst and the smoke ride it through the sweep.
+	-- where the beam meets the deck along Ea's axis (or, pointing level or up, under its far end)
 	local function ground()
-		local origin = king:Tip()
-		local look = straight().LookVector
-		local flat = Vector3.new(look.X, 0, look.Z)
-		flat = flat.Magnitude > 0.05 and flat.Unit or Vector3.new(0, 0, -1)
-		local at = origin + flat * (Arena.InnerRadius + Arena.Width / 2)
+		local origin, dir = axis()
+		local far = length
+		if dir.Y < -0.02 then
+			far = math.min(far, (Arena.Y + 1 - origin.Y) / dir.Y)
+		end
+		local at = origin + dir * far
 		return CFrame.new(at.X, Arena.Y + 1, at.Z)
 	end
 	local spot = Kit.holder("EnumaHit", ground(), Vector3.new(16, 1, 16))
@@ -1072,6 +1108,74 @@ local function playBeam()
 		Rate = 28,
 		Enabled = true,
 	})
+	-- red and yellow fire where it lands (the owner's Ea clip: a wall of fire)
+	local fireEmitter = Kit.emitter(spot, {
+		Name = "EnumaHitFire",
+		Texture = Art.Dust,
+		Color = ColorSequence.new(Color3.fromRGB(255, 220, 120), Color3.fromRGB(230, 40, 20)),
+		LightEmission = 0.9,
+		EmissionDirection = Enum.NormalId.Top,
+		SpreadAngle = Vector2.new(35, 35),
+		Size = sequence(0, 14, 1, 34),
+		Transparency = sequence(0, 0.15, 1, 1),
+		Lifetime = NumberRange.new(0.5, 0.9),
+		Speed = NumberRange.new(30, 60),
+		Rotation = NumberRange.new(0, 360),
+		RotSpeed = NumberRange.new(-60, 60),
+		Rate = 30,
+		Enabled = true,
+	})
+	-- red-black shock waves racing out from the landing, and red lightning crackling along the beam
+	local mine, run = effects, generation
+	local function crackle()
+		local origin, dir = axis()
+		local ref = math.abs(dir.Y) < 0.95 and Vector3.yAxis or Vector3.xAxis
+		local right = dir:Cross(ref).Unit
+		local up = right:Cross(dir)
+		for _ = 1, CRACKLES do
+			local along = math.random() * length * 0.8
+			local a = math.random() * 2 * math.pi
+			local from = origin + dir * along + (right * math.cos(a) + up * math.sin(a)) * BEAM_OUTER * 0.5
+			local previous = from
+			for i = 1, CRACKLE_SEGMENTS do
+				local nextAt = from + dir * (i * 7) + (right * (math.random() - 0.5) + up * (math.random() - 0.5)) * 9
+				local span = (nextAt - previous).Magnitude
+				pooled(
+					"EnumaCrackle",
+					CFrame.lookAt((previous + nextAt) / 2, nextAt),
+					Vector3.new(0.6, 0.6, span + 0.6),
+					i % 2 == 0 and WHITE or Color3.fromRGB(255, 40, 30),
+					0,
+					CRACKLE_EVERY
+				)
+				previous = nextAt
+			end
+		end
+	end
+	local function loop(every, play)
+		local function step()
+			if current(mine, run) and os.clock() - born < BEAM then
+				play()
+				Kit.after(every, step)
+			end
+		end
+		step()
+	end
+	loop(CRACKLE_EVERY, crackle)
+	loop(SHOCK_EVERY, function()
+		local at = ground()
+		Kit.growingRing("EnumaShock", at, SHOCK_RING[1], SHOCK_RING[2], SHOCK_RING[3], RED, 0, Kit.FlatFaces)
+		Kit.growingRing(
+			"EnumaShock",
+			at,
+			SHOCK_RING[1] * 0.7,
+			SHOCK_RING[2] * 0.8,
+			SHOCK_RING[3],
+			DARK,
+			0.08,
+			Kit.FlatFaces
+		)
+	end)
 	local total = 0
 	local smoke = Kit.emitter(sheath, {
 		Name = "Smoke",
@@ -1100,7 +1204,7 @@ local function playBeam()
 	startDim(ENUMA_DIM, BEAM, 0.25) -- a client that missed the charge: the red room for the beam
 	roomLight(him() + Vector3.new(0, 30, 0), RED, 2.5, BEAM + 0.3) -- Studio 2026-11-12: at 6 he read flat red
 	Kit.after(BEAM, function()
-		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled = false, false, false
+		smoke.Enabled, burstEmitter.Enabled, smokeEmitter.Enabled, fireEmitter.Enabled = false, false, false, false
 		for _, beam in strands do
 			beam.Enabled = false
 		end
