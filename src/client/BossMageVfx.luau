@@ -50,7 +50,7 @@ local LAVENDER = Color3.fromRGB(226, 196, 255) -- the shock ring's bright rim
 -- Owner 2026-11-12 (references lightning_dim_ref_1/2; BOSS_EVENT_SPEC "Elf Mage strike lighting", proposed): deep violet, not magenta
 local DEEP = Color3.fromRGB(110, 60, 210) -- the bolts' glow
 local FLOOR_GLOW = Color3.fromRGB(130, 70, 255) -- the light each bolt throws on the floor
-local ICE, BLUE = Color3.fromRGB(205, 232, 255), Color3.fromRGB(90, 150, 255) -- the barrage's white and blue
+local ICE = Color3.fromRGB(205, 232, 255) -- the barrage's white
 local INK, SOOT = Color3.fromRGB(16, 12, 24), Color3.fromRGB(72, 68, 80) -- the barrage's black edge and smoke, smoke's grey end
 local DUST = Color3.fromRGB(196, 158, 116) -- the colosseum's ochre stone
 
@@ -64,45 +64,58 @@ local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10 -- bolts or beams per strike
 local BARRAGE_WINDOW = Poses.Moves.barrage.Window[2] - Poses.Moves.barrage.Window[1]
 local SWEEP_PUFFS = 9
 local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
-local BOLT_KINKS = 3
--- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): thick white-violet bolts that hit hard.
-local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 1.8, 7, 0.24 -- studs across the white core and the purple glow, s they show
-local GLOW_TRANSPARENCY = 0.2 -- the deep violet glow, low transparency
+-- Owner 2026-11-12, matched to the approved lightning slices (proposed): thin jagged white-cored bolts in a soft deep violet halo,
+-- with small branches, 5 to 8 segments a bolt and 2 to 4 branches.
+local BOLT_SEGMENTS, BOLT_BRANCHES = { 5, 8 }, { 2, 4 }
+local BOLT_JAG = 5 -- studs a bolt's kink strays sideways at most
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 0.6, 2.2, 0.24 -- studs across the white core and the violet halo, s they show
+local BRANCH_CORE, BRANCH_LENGTH = 0.35, { 8, 20 } -- a branch's white core, studs across and long
+local GLOW_TRANSPARENCY = 0.55 -- the halo: soft, the core shows through
 local FLOOR_LIGHT, FLOOR_RANGE, FLOOR_UP = 5, 26, 4 -- a bolt's floor light: brightness, range, studs over its spot
+local TIP_SEGMENTS = 4 -- the bolt from her staff's tip to each strike's first spot
+local STAFF_BURST = { 12, 0.18 } -- studs across and s of the pink-white burst at her staff's tip as each strike leaves it
+local PINK_WHITE = Color3.fromRGB(255, 222, 255)
 -- The room dims for her strikes: from her lead-in to DIM_TAIL after the window, in over DIM_IN, back over DIM_OUT. The grade is
 -- BossStrikeDim (Lighting); Lighting's brightness and ambients go to 25% through Client/BiomeEnvironment (Lighting attribute
--- BossStrikeDim, 0 to 1); the arena's own lights to TORCH_DIM.
+-- BossStrikeDim, 0 to 1); the arena's own lights to TORCH_DIM. The tint is low in saturation so her white robe stays white-ish.
 local DIM_IN, DIM_OUT, DIM_TAIL = 0.25, 0.6, 0.5
-local DIM_GRADE = { Brightness = -0.25, Contrast = 0.08, Saturation = 0.15, TintColor = Color3.fromRGB(150, 140, 255) }
-local TORCH_DIM = 0.2
-local HIT_FLASH, HIT_FLASH_SECONDS = 22, 0.3 -- studs across a hit's white disc, s
-local RING_FROM, RING_TO, RING_SECONDS = 8, 46, 0.36 -- studs across a hit's purple shock ring as it grows, s (pool reuse after 0.45 s)
+local DIM_GRADE = { Brightness = -0.25, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(205, 200, 235) }
+local TORCH_DIM = 0.35 -- dim, not dark red
+local LIFT_SECONDS = 0.3 -- the first strike's white flash lifts the dim for this long
+local HIT_FLASH, HIT_FLASH_SECONDS = 7, 0.2 -- studs across a hit's small white disc at the bolt's foot, s
+local RING_FROM, RING_TO, RING_SECONDS = 4, 18, 0.36 -- studs across a hit's thin violet ring as it grows, s (pool reuse after 0.45 s)
 local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
-local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 2.4, 4.4, 6.4, 0.25 -- studs across the barrage beam's layers, s
-local BEAM_HEAD = 7 -- studs across the beam's rounded white head at the hit
-local BEAM_SPARKS, BEAM_SMOKE = 4, 3 -- particles at each barrage spot
+local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 3, 5, 6.8, 0.25 -- studs across the barrage beam's layers, s
+local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
+local BEAM_REACH = 420 -- studs a beam reaches at most along the aim (it stops at the floor or the wall first)
+local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
+local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
 local CIRCLES = 10
 -- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): 10, much bigger, one by one 0.15 s apart
 -- from 0.2 s, all open before the beams at 2.0 s: the tenth opens at 0.2 + 9 x 0.15 = 1.55 s and is full by 1.75 s.
 local CIRCLE_SMALL, CIRCLE_LARGE = 30, 70 -- studs across, the first and the last circle: small to large
 local CIRCLE_FROM, CIRCLE_EVERY = 0.2, 0.15 -- s of barrage the first circle opens, s between two
 local CIRCLE_OPEN = 0.2 -- s a circle takes to open (Quad, no overshoot)
-local CIRCLE_NEAR, CIRCLE_STEP = 22, 2.5 -- studs from her torso to the first circle's centre, and further for each next one
--- The fan: circle k's { degrees off the staff's aim seen from her torso, degrees around the aim }: one on the aim, three close
--- about it, six wider (within the 70 degrees of the contract).
-local CIRCLE_FAN = {
-	{ 0, 0 },
-	{ 26, 0 },
-	{ 26, 120 },
-	{ 26, 240 },
-	{ 48, 30 },
-	{ 48, 90 },
-	{ 48, 150 },
-	{ 48, 210 },
-	{ 48, 270 },
-	{ 48, 330 },
+-- Matched to the approved barrage slices: a loose cluster in front of the staff's tip along its aim, 1 to 3 staff lengths out,
+-- facing the shot, turning with the staff, soft cyan-white, brightening to full by key 5 (1.85 s).
+local CIRCLE_TINT = Color3.fromRGB(205, 240, 255)
+local CIRCLE_BRIGHT_AT = 1.85 -- s of barrage
+local CIRCLE_LIGHT = { Color3.fromRGB(170, 230, 255), 2, 40 } -- each circle's light: colour, brightness when full, range
+-- circle k's place in the cluster: { staff lengths past the tip, sideways and up as a fraction of its size }
+local CIRCLE_CLUSTER = {
+	{ 1.0, 0, 0 },
+	{ 1.2, 0.35, 0.2 },
+	{ 1.4, -0.3, 0.3 },
+	{ 1.6, 0.1, -0.35 },
+	{ 1.8, -0.35, -0.2 },
+	{ 2.0, 0.4, -0.1 },
+	{ 2.2, -0.15, 0.4 },
+	{ 2.5, 0.3, 0.35 },
+	{ 2.75, -0.4, 0.05 },
+	{ 3.0, 0.05, -0.4 },
 }
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
+local CHARGE_RAYS, CHARGE_FLARE = { 8, 30 }, { 6, 18 } -- studs: the starburst's ray length and flare size, from to at the strike
 local SWEEP_AT = Poses.GolemMoves.golem_sweep.Events[1].Time
 local SWEEP_DUST = { SWEEP_AT - 0.4, SWEEP_AT + 0.4 } -- s of golem_sweep over which the puffs follow the fist (proposed)
 local RISE_DUST_AT, FALL_DUST_AT = 0.75, 0.55 -- s of golem (its scale starts growing) and of golem_fall (it sinks) (proposed)
@@ -165,7 +178,7 @@ local HIT_LOOKS = {
 		LightInfluence = 0.3,
 		EmissionDirection = Enum.NormalId.Top,
 		SpreadAngle = Vector2.new(60, 60),
-		Size = sequence(0, 5, 1, 15),
+		Size = sequence(0, 3, 1, 8), -- small (pairs 2026-11-12)
 		Transparency = sequence(0, 0.25, 1, 1),
 		Lifetime = NumberRange.new(0.7, 1.1),
 		Speed = NumberRange.new(6, 16),
@@ -189,6 +202,7 @@ local previousMove, previousTime = nil, nil
 local previousGolem, previousGolemTime = nil, nil
 local staff = nil -- her Staff part, found by name (the rig is built late)
 local charge, chargeLight = nil, nil -- the lightning's StaffCharge while it shows
+local chargeRays, chargeFlare = {}, nil -- its starburst: two rays facing the camera and a flare
 
 local function reduced()
 	return UiMotion.Reduced()
@@ -305,6 +319,10 @@ local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds,
 	return frame, length
 end
 
+local function ballLook(part)
+	part.Shape = Enum.PartType.Ball
+end
+
 local function disc(part)
 	part.Shape = Enum.PartType.Cylinder
 end
@@ -408,6 +426,13 @@ local function endDim()
 	dim = nil
 end
 
+-- The first strike's white flash: the dim lifts for LIFT_SECONDS and settles back.
+local function liftDim()
+	if dim then
+		dim.LiftAt = os.clock()
+	end
+end
+
 local function stepDim()
 	if not dim then
 		return
@@ -422,6 +447,9 @@ local function stepDim()
 		return
 	end
 	f = f * f * (3 - 2 * f)
+	if dim.LiftAt then
+		f *= math.clamp((os.clock() - dim.LiftAt) / LIFT_SECONDS, 0, 1)
+	end
 	local grade = dim.Grade
 	grade.Brightness, grade.Contrast = DIM_GRADE.Brightness * f, DIM_GRADE.Contrast * f
 	grade.Saturation, grade.TintColor = DIM_GRADE.Saturation * f, WHITE:Lerp(DIM_GRADE.TintColor, f)
@@ -445,15 +473,16 @@ end
 
 -- Lightning --------------------------------------------------------------------------------------------------------------------
 
--- 1.0 s ahead of each bolt: a purple ring closing in on its spot (one part each: there are up to 140). Shown with effects off too:
--- the marks are the telegraph.
+-- 1.0 s ahead of each bolt: a pale ring closing in on its spot (one part each: there are up to 140). Shown with effects off too:
+-- the marks are the telegraph. Pale and faint, so they read under the dim without crowding the floor.
+local MARK_COLOR, MARK_TRANSPARENCY = Color3.fromRGB(205, 190, 255), 0.45
 local function playMarks()
 	startDim(Poses.Moves.lightning.Window[2] - (LIGHTNING_AT - MARK_LEAD) + DIM_TAIL)
 	for _, strike in plan("Lightning") do
 		local lead = MARK_LEAD + strike.T
 		for _, at in strike.Spots do
 			local rim = Kit.holder("StrikeMark", CFrame.new(at), Vector3.new(16, 0.2, 16))
-			Kit.decal(rim, Art.Ring, VIOLET, Enum.NormalId.Top)
+			Kit.decal(rim, Art.Ring, MARK_COLOR, Enum.NormalId.Top, MARK_TRANSPARENCY)
 			Kit.tween(rim, lead, { Size = Vector3.new(7, 0.2, 7) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 			Kit.expire(rim, lead + 0.15)
 		end
@@ -461,21 +490,77 @@ local function playMarks()
 	return 0
 end
 
--- The shock ring's look: a purple disc with a bright ring on top (Right: the cylinder's end, turned up).
+-- The shock ring's look: a thin ring on the floor (the decal); its part is a near-clear violet carrier, so no disc shows.
 local function shockLook(part)
-	disc(part)
-	Kit.decal(part, Art.Ring, LAVENDER, Enum.NormalId.Right)
+	part.Material = Enum.Material.SmoothPlastic
+	Kit.decal(part, Art.Ring, LAVENDER, Enum.NormalId.Top)
 end
 
--- One bolt's hit: a white disc, a purple shock ring racing out, sparks, lit purple smoke and a violet light on the floor.
+-- A round segment from a to b (a cylinder along the line): the bolts' cores and halos.
+local function rod(part)
+	part.Shape = Enum.PartType.Cylinder
+end
+local ALONG = CFrame.Angles(0, math.pi / 2, 0) -- a cylinder's axis (X) along a lookAt frame's Z
+local function segment(name, a, b, width, color, transparency)
+	local length = (b - a).Magnitude
+	pooled(
+		name,
+		CFrame.lookAt((a + b) / 2, b) * ALONG,
+		Vector3.new(length + width * 0.5, width, width),
+		color,
+		transparency,
+		BOLT_SECONDS,
+		rod
+	)
+end
+
+-- A jagged bolt through `points`: a white core in a soft deep violet halo on each segment.
+local function bolt(points)
+	for i = 1, #points - 1 do
+		segment("Bolt", points[i], points[i + 1], BOLT_GLOW, DEEP, GLOW_TRANSPARENCY)
+		segment("BoltCore", points[i], points[i + 1], BOLT_CORE, WHITE, 0)
+	end
+end
+
+-- From `from` to `to` in `count` segments, each kink strayed sideways by a draw of `rng` (up to `jag` studs, less near the ends).
+local function jagged(rng, from, to, count, jag)
+	local points = { from }
+	for i = 1, count - 1 do
+		local u = i / count
+		local stray = jag * math.sin(math.pi * u)
+		table.insert(
+			points,
+			from:Lerp(to, u) + Vector3.new(rng:NextNumber(-stray, stray), 0, rng:NextNumber(-stray, stray))
+		)
+	end
+	table.insert(points, to)
+	return points
+end
+
+-- One bolt's hit: a small white disc at its foot, a thin violet ring racing out, sparks, lit purple smoke and a violet light on the
+-- floor.
 local function boltHit(at)
 	flash(at, HIT_FLASH, HIT_FLASH_SECONDS)
-	floorLight(at, HIT_FLASH_SECONDS)
-	local frame = CFrame.new(at + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.pi / 2)
-	local ring =
-		pooled("ShockRing", frame, Vector3.new(0.3, RING_FROM, RING_FROM), VIOLET, 0.3, RING_SECONDS, shockLook)
-	Kit.tween(ring, RING_SECONDS, { Size = Vector3.new(0.3, RING_TO, RING_TO) }, Enum.EasingStyle.Quart)
+	floorLight(at, 0.3)
+	local ring = pooled(
+		"ShockRing",
+		CFrame.new(at + Vector3.new(0, 0.25, 0)),
+		Vector3.new(RING_FROM, 0.2, RING_FROM),
+		VIOLET,
+		0.92,
+		RING_SECONDS,
+		shockLook
+	)
+	Kit.tween(ring, RING_SECONDS, { Size = Vector3.new(RING_TO, 0.2, RING_TO) }, Enum.EasingStyle.Quart)
 	return emitAt("Sparks", at, SPARKS_PER_HIT) + emitAt("StrikeSmoke", at + Vector3.new(0, 2, 0), SMOKE_PER_HIT)
+end
+
+-- A strike leaving her staff: a pink-white burst at its tip and sparks (the slices show each strike from the staff).
+local function staffBurst(tip)
+	local burst =
+		pooled("StaffBurst", CFrame.new(tip), Vector3.one * STAFF_BURST[1], PINK_WHITE, 0, STAFF_BURST[2], ballLook)
+	Kit.tween(burst, STAFF_BURST[2], { Size = Vector3.one * STAFF_BURST[1] * 0.4 })
+	return emitAt("Sparks", tip, SPARKS_PER_HIT)
 end
 
 local function playLightning()
@@ -486,65 +571,37 @@ local function playLightning()
 		return logHits("Lightning", list, 0.12, 20)
 	end
 	startDim(Poses.Moves.lightning.Window[2] - LIGHTNING_AT + DIM_TAIL, true)
-	for _, strike in list do
+	for j, strike in list do
 		local bolts = {}
 		for k, at in strike.Spots do
-			local points = { at + Vector3.new(rng:NextNumber(-10, 10), BOLT_TOP, rng:NextNumber(-10, 10)) }
-			for i = 1, BOLT_KINKS - 1 do
-				local p = points[1]:Lerp(at, i / BOLT_KINKS)
-				table.insert(points, p + Vector3.new(rng:NextNumber(-6, 6), 0, rng:NextNumber(-6, 6)))
+			local top = at + Vector3.new(rng:NextNumber(-10, 10), BOLT_TOP, rng:NextNumber(-10, 10))
+			local points = jagged(rng, top, at, rng:NextInteger(BOLT_SEGMENTS[1], BOLT_SEGMENTS[2]), BOLT_JAG)
+			local branches = {}
+			for _ = 1, rng:NextInteger(BOLT_BRANCHES[1], BOLT_BRANCHES[2]) do
+				local from = points[rng:NextInteger(2, #points - 1)]
+				local out = Vector3.new(rng:NextNumber(-1, 1), -rng:NextNumber(0.6, 1.4), rng:NextNumber(-1, 1)).Unit
+				table.insert(branches, { from, from + out * rng:NextNumber(BRANCH_LENGTH[1], BRANCH_LENGTH[2]) })
 			end
-			table.insert(points, at)
-			-- a branch off the lower kink, forking down and out (clip 3), and a thinner one off the upper kink
-			local fork = points[BOLT_KINKS]
-				+ Vector3.new(rng:NextNumber(-16, 16), -rng:NextNumber(12, 24), rng:NextNumber(-16, 16))
-			local twig = points[2]
-				+ Vector3.new(rng:NextNumber(-18, 18), -rng:NextNumber(10, 20), rng:NextNumber(-18, 18))
-			bolts[k] = { Points = points, Fork = fork, Twig = twig }
+			bolts[k] = { Points = points, Branches = branches }
 		end
+		local tipRng = Random.new(j) -- the staff bolt's kinks: fixed per strike, its ends live
 		later(strike.T, function()
 			local total = 0
-			for _, bolt in bolts do
-				local points = bolt.Points
-				for i = 1, #points - 1 do
-					streak(
-						"Bolt",
-						points[i],
-						points[i + 1],
-						BOLT_CORE,
-						BOLT_GLOW,
-						WHITE,
-						DEEP,
-						BOLT_SECONDS,
-						GLOW_TRANSPARENCY
-					)
+			for _, row in bolts do
+				bolt(row.Points)
+				for _, branch in row.Branches do
+					segment("BoltCore", branch[1], branch[2], BRANCH_CORE, WHITE, 0)
 				end
-				streak(
-					"Bolt",
-					points[BOLT_KINKS],
-					bolt.Fork,
-					BOLT_CORE * 0.6,
-					BOLT_GLOW * 0.6,
-					WHITE,
-					DEEP,
-					BOLT_SECONDS,
-					GLOW_TRANSPARENCY
-				)
-				streak(
-					"Bolt",
-					points[2],
-					bolt.Twig,
-					BOLT_CORE * 0.4,
-					BOLT_GLOW * 0.4,
-					WHITE,
-					DEEP,
-					BOLT_SECONDS,
-					GLOW_TRANSPARENCY
-				)
-				total += boltHit(points[#points])
+				total += boltHit(row.Points[#row.Points])
 			end
+			local tip = mage:Point("Staff", STAFF_TIP)
+			bolt(jagged(tipRng, tip, strike.Spots[1], TIP_SEGMENTS, BOLT_JAG))
+			total += staffBurst(tip)
 			roomLight(Vector3.new(Arena.Center.X, Arena.Y + 50, Arena.Center.Z), DEEP, 3.5, 0.2)
-			Kit.impact("Lightning", Arena.Center, 0.12, 20, 0.15, strike.T)
+			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
+				liftDim()
+			end
+			Kit.impact("Lightning", Arena.Center, 0.12, 20, 0.15, strike.T, true)
 			return total
 		end)
 	end
@@ -724,10 +781,21 @@ end
 
 -- Barrage ------------------------------------------------------------------------------------------------------------------------
 
--- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in a wide fan in front
--- of her along the staff's pointing (grip to tip), facing along it, small to large, turning, with a bright rim and a white pop.
-local function ballLook(part)
-	part.Shape = Enum.PartType.Ball
+-- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in a loose cluster in front
+-- of the staff's tip along its pointing (grip to tip), 1 to 3 staff lengths out, facing along it and turning with the staff, small to
+-- large, soft cyan-white with a bright rim and its own light, brightening to full by CIRCLE_BRIGHT_AT; a white pop as it opens.
+local function circleFrame(k, size, born)
+	local place, turn = CIRCLE_CLUSTER[k], (k % 2 == 0 and 1 or -1) * math.rad(90)
+	return function()
+		local grip, tip = mage:Point("Staff", Vector3.zero), mage:Point("Staff", STAFF_TIP)
+		local reach = (tip - grip).Magnitude
+		local aim = reach > 0.01 and (tip - grip) / reach or Vector3.new(0, 0, -1)
+		local ref = math.abs(aim.Y) < 0.95 and Vector3.yAxis or Vector3.xAxis
+		local right = aim:Cross(ref).Unit
+		local up = right:Cross(aim)
+		local center = tip + aim * math.max(reach, 12) * place[1] + (right * place[2] + up * place[3]) * size
+		return CFrame.lookAt(center, center + aim) * CFrame.Angles(0, 0, turn * (os.clock() - born))
+	end
 end
 
 local function playCircle(k)
@@ -739,39 +807,32 @@ local function playCircle(k)
 		startDim(Poses.Moves.barrage.Window[2] - CIRCLE_FROM + DIM_TAIL)
 	end
 	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * (k - 1) / (CIRCLES - 1)
-	local grip, tip = mage:Point("Staff", Vector3.zero), mage:Point("Staff", STAFF_TIP)
-	local aim = (tip - grip).Magnitude > 0.01 and (tip - grip).Unit or Vector3.new(0, 0, -1)
-	local torso = mage.Her.Model and mage.Her.Model:FindFirstChild("Torso", true)
-	local from = torso and torso.Position or tip
-	local ref = math.abs(aim.Y) < 0.95 and Vector3.yAxis or Vector3.xAxis
-	local right = aim:Cross(ref).Unit
-	local up = right:Cross(aim)
-	local off, around = math.rad(CIRCLE_FAN[k][1]), math.rad(CIRCLE_FAN[k][2])
-	local out = aim * math.cos(off) + (right * math.cos(around) + up * math.sin(around)) * math.sin(off)
-	local center = from + out * (CIRCLE_NEAR + CIRCLE_STEP * (k - 1))
-	local offset = center - mage.Her.Anchor.Position
-	local turn = (k % 2 == 0 and 1 or -1) * math.rad(90)
-	local born = os.clock()
-	local function frame()
-		local anchor = mage.Her.Anchor.Position + offset
-		return CFrame.lookAt(anchor, anchor + aim) * CFrame.Angles(0, 0, turn * (os.clock() - born))
-	end
+	local frame = circleFrame(k, size, os.clock())
 	local part = Kit.holder("MagicCircle", frame(), Vector3.new(1, 1, 0.2))
 	tracked[part] = frame
-	local tint = k % 2 == 0 and BLUE or ICE
+	local opensAt = CIRCLE_FROM + (k - 1) * CIRCLE_EVERY
+	local brighten = math.max(0.15, CIRCLE_BRIGHT_AT - opensAt)
 	local faces = {}
 	for _, face in Kit.UprightFaces do
-		table.insert(faces, Kit.decal(part, MageArt.MagicCircle, tint, face))
-		table.insert(faces, Kit.decal(part, Art.Ring, WHITE, face, 0.15)) -- the bright rim
+		table.insert(faces, Kit.decal(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6))
+		table.insert(faces, Kit.decal(part, Art.Ring, WHITE, face, 0.6)) -- the bright rim
 	end
+	for _, d in faces do
+		Kit.tween(d, brighten, { Transparency = 0 })
+	end
+	local light = Instance.new("PointLight")
+	light.Color, light.Brightness, light.Range, light.Shadows = CIRCLE_LIGHT[1], 0, CIRCLE_LIGHT[3], false
+	light.Parent = part
+	Kit.tween(light, brighten, { Brightness = CIRCLE_LIGHT[2] })
 	Kit.tween(part, CIRCLE_OPEN, { Size = Vector3.new(size, size, 0.2) })
-	local pop = pooled("CirclePop", CFrame.new(center), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
-	Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.4 })
-	local hold = BARRAGE_AT - (CIRCLE_FROM + (k - 1) * CIRCLE_EVERY) + BARRAGE_WINDOW
+	local pop = pooled("CirclePop", frame(), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
+	Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.3 })
+	local hold = BARRAGE_AT - opensAt + BARRAGE_WINDOW
 	Kit.after(hold + 0.25, function()
 		for _, d in faces do
 			Kit.tween(d, 0.3, { Transparency = 1 })
 		end
+		Kit.tween(light, 0.3, { Brightness = 0 })
 	end)
 	Kit.expire(part, hold + 0.6)
 	table.insert(circles, part)
@@ -793,24 +854,43 @@ local function edgeLook(part)
 	part.Material = Enum.Material.SmoothPlastic
 end
 
--- One beam from a circle to its spot: a white-hot core in a blue-white glow inside a near-black edge, a rounded white head, a
--- white flash, white sparks and black smoke where it hits.
-local function beam(from, target, k)
+-- Where a beam from `from` along `dir` ends: the floor or the wall, whichever it meets first, at most BEAM_REACH.
+local function beamEnd(from, dir)
+	local reach = BEAM_REACH
+	if dir.Y < -0.02 then
+		reach = math.min(reach, (Arena.Y + 0.15 - from.Y) / dir.Y)
+	end
+	local flat = Vector2.new(dir.X, dir.Z)
+	local a = flat:Dot(flat)
+	if a > 1e-4 then
+		local rel = Vector2.new(from.X - Arena.Center.X, from.Z - Arena.Center.Z)
+		local b, c = 2 * rel:Dot(flat), rel:Dot(rel) - Arena.WallRadius ^ 2
+		local root = b * b - 4 * a * c
+		if root >= 0 then
+			reach = math.min(reach, (-b + math.sqrt(root)) / (2 * a))
+		end
+	end
+	return from + dir * math.max(reach, 1)
+end
+
+-- One beam out of a circle along its facing (the staff's aim), as the slices: a white-hot core in a cyan rim inside a near-black
+-- edge, a rounded white head, and where it ends a white flash, white sparks and black smoke. `planned` (the strike's spot) stands
+-- in when no circle is open.
+local function beam(circle, planned, k)
+	local from, target
+	if circle then
+		from = circle.Position
+		target = beamEnd(from, circle.CFrame.LookVector)
+	else
+		from, target = mage:Point("Staff", STAFF_TIP), planned
+	end
 	local frame, length =
-		streak("BarrageBeam", from, target, BEAM_CORE, BEAM_GLOW, WHITE, k % 2 == 0 and BLUE or ICE, BEAM_SECONDS)
-	pooled("BarrageBeamEdge", frame, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.7, BEAM_SECONDS, edgeLook)
-	pooled(
-		"BarrageBeamHead",
-		CFrame.new(target + Vector3.new(0, BEAM_HEAD * 0.3, 0)),
-		Vector3.one * BEAM_HEAD,
-		WHITE,
-		0,
-		BEAM_SECONDS,
-		ballLook
-	)
-	flash(target, 16, 0.3)
+		streak("BarrageBeam", from, target, BEAM_CORE, BEAM_GLOW, WHITE, k % 2 == 0 and CYAN or ICE, BEAM_SECONDS)
+	pooled("BarrageBeamEdge", frame, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, BEAM_SECONDS, edgeLook)
+	pooled("BarrageBeamHead", CFrame.new(target), Vector3.one * BEAM_HEAD, WHITE, 0, BEAM_SECONDS, ballLook)
+	flash(target, 10, 0.25)
 	return emitAt("BarrageSparks", target, BEAM_SPARKS)
-		+ emitAt("BarrageSmoke", target + Vector3.new(0, 2, 0), BEAM_SMOKE)
+		+ emitAt("BarrageSmoke", target + Vector3.new(0, 1, 0), BEAM_SMOKE)
 end
 
 local function playBarrage()
@@ -826,11 +906,13 @@ local function playBarrage()
 			local total = 0
 			for k, target in strike.Spots do
 				local circle = #circles > 0 and circles[(j + k - 2) % #circles + 1]
-				local from = circle and circle.Parent and circle.Position or mage:Point("Staff", STAFF_TIP)
-				total += beam(from, target, k)
+				total += beam(circle and circle.Parent and circle, target, k)
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
-			Kit.impact("Barrage", Arena.Center, 0.1, 18, 0.15, strike.T)
+			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
+				liftDim()
+			end
+			Kit.impact("Barrage", Arena.Center, 0.1, 18, 0.15, strike.T, true)
 			return total
 		end)
 	end
@@ -856,7 +938,7 @@ local function stepStaffCharge(move, localTime)
 	if not on then
 		if charge then
 			charge:Destroy()
-			charge, chargeLight = nil, nil
+			charge, chargeLight, chargeFlare = nil, nil, nil
 		end
 		return
 	end
@@ -866,11 +948,38 @@ local function stepStaffCharge(move, localTime)
 		chargeLight = Instance.new("PointLight")
 		chargeLight.Color, chargeLight.Range, chargeLight.Shadows = VIOLET, 24, false
 		chargeLight.Parent = charge
+		for k = 1, 2 do
+			local ray = Kit.holder("StaffChargeRay", CFrame.new(), Vector3.one)
+			ray.Material, ray.Color, ray.Transparency = NEON, WHITE, 0
+			ray.Parent = charge
+			chargeRays[k] = ray
+		end
+		chargeFlare = Kit.emitter(charge, {
+			Name = "ChargeFlare",
+			Texture = Art.Flare,
+			Color = ColorSequence.new(WHITE, PINK_WHITE),
+			LightEmission = 1,
+			LockedToPart = true,
+			Speed = NumberRange.new(0),
+			Lifetime = NumberRange.new(0.08, 0.12),
+			Rotation = NumberRange.new(0, 360),
+			Rate = 40,
+			Enabled = true,
+		})
 	end
+	-- the slices' keys 3 and 4: a large white starburst at the tip, growing to the strike
 	local u = (localTime - CHARGE_FROM) / (LIGHTNING_AT - CHARGE_FROM)
-	charge.CFrame = CFrame.new(mage:Point("Staff", STAFF_TIP))
+	local tip = mage:Point("Staff", STAFF_TIP)
+	charge.CFrame = CFrame.new(tip)
 	charge.Size = Vector3.one * (1.5 + 3.5 * u)
 	chargeLight.Brightness = 1 + 3 * u
+	local camera = Workspace.CurrentCamera
+	local facing = camera and CFrame.lookAt(tip, camera.CFrame.Position) or CFrame.new(tip)
+	local reach = CHARGE_RAYS[1] + (CHARGE_RAYS[2] - CHARGE_RAYS[1]) * u
+	chargeRays[1].CFrame, chargeRays[1].Size = facing, Vector3.new(reach, 0.25, 0.1)
+	chargeRays[2].CFrame, chargeRays[2].Size =
+		facing * CFrame.Angles(0, 0, math.pi / 2), Vector3.new(reach * 0.8, 0.25, 0.1)
+	chargeFlare.Size = NumberSequence.new(CHARGE_FLARE[1] + (CHARGE_FLARE[2] - CHARGE_FLARE[1]) * u)
 end
 
 -- Runs ---------------------------------------------------------------------------------------------------------------------------

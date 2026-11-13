@@ -301,11 +301,13 @@ end
 local IMPACT_FLOOR = 0.5 -- of the full kick, however far the camera is
 local IMPACT_SHIFT = 0.3 -- studs of positional kick per degree of rotation kick
 local FLASH_FULL, FLASH_LOW = { Brightness = 0.25, Contrast = 0.2 }, { Brightness = 0.06, Contrast = 0 }
+-- A white full flash (the Elf Mage's first strike, as her approved slices' key 6), proposed
+local FLASH_WHITE = { Brightness = 0.6, Contrast = 0.05, Saturation = -0.6 }
 local FLASH_SECONDS = 0.1
 local LIGHT_PULSE, LIGHT_SECONDS = 2.5, 0.25 -- x the light's own brightness at the peak, then back
 local impactLog, pulse, pulseToken = nil, nil, 0
 
-local function flashScreen(full)
+local function flashScreen(full, white)
 	local effect = pulse
 	if full then
 		effect = Instance.new("ColorCorrectionEffect")
@@ -316,10 +318,10 @@ local function flashScreen(full)
 		effect.Name = "BossImpactPulse" -- one, reused by a window's strikes
 		pulse = effect
 	end
-	local goal = full and FLASH_FULL or FLASH_LOW
-	effect.Brightness, effect.Contrast = goal.Brightness, goal.Contrast
+	local goal = full and (white and FLASH_WHITE or FLASH_FULL) or FLASH_LOW
+	effect.Brightness, effect.Contrast, effect.Saturation = goal.Brightness, goal.Contrast, goal.Saturation or 0
 	effect.Parent = Lighting
-	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0 })
+	tween(effect, FLASH_SECONDS, { Brightness = 0, Contrast = 0, Saturation = 0 })
 	if not full then
 		pulseToken += 1
 		local token = pulseToken
@@ -355,9 +357,10 @@ end
 
 -- One boss hit, for every fighter: a shake of `full` degrees at `spot`, never under IMPACT_FLOOR of it, with a positional kick,
 -- and a flash. t: seconds after the move's first hit (a strike window's planned time); 0 is the first hit, a full flash with the
--- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact.
+-- arena's lights, and starts the move's log, later ones a low pulse. Logged in BossEffects attribute LastImpact. white: the full
+-- flash is white (the cap of 3 a second still holds).
 local lastFull = -math.huge
-local function impact(move, spot, full, roughness, fade, t)
+local function impact(move, spot, full, roughness, fade, t, white)
 	t = t or 0
 	local camera = Workspace.CurrentCamera
 	local distance = camera and (camera.CFrame.Position - spot).Magnitude or 0
@@ -372,7 +375,7 @@ local function impact(move, spot, full, roughness, fade, t)
 	end
 	BossShake.Kick(kick, roughness, fade, kick * IMPACT_SHIFT)
 	if level ~= "None" then
-		flashScreen(level == "Full")
+		flashScreen(level == "Full", white)
 	end
 	local lights = level == "Full" and pulseLights() or 0
 	if t == 0 or not impactLog or impactLog.Move ~= move then
