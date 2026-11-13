@@ -3268,7 +3268,7 @@
    ]
   },
   "barrage": {
-   "title": "Barrage (rework, jointed rig): circles open in front of the staff, a 2 s storm of beams, recover",
+   "title": "Barrage (rework, jointed rig): circles open on a sphere round her, a 2 s storm of beams, recover",
    "end": 5.4,
    "loop": false,
    "keys": [
@@ -3381,7 +3381,7 @@
     },
     {
      "t": 0.5,
-     "caption": "Anticipation: staff swung back and low past her right hip, body coils right and dips; the first 3 circles open ahead, small",
+     "caption": "Anticipation: staff swung back and low past her right hip, body coils right and dips; the first 3 circles open round her",
      "root_offset": [
       0,
       0.08,
@@ -3490,7 +3490,7 @@
     },
     {
      "t": 1.0,
-     "caption": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; 6 of 10 circles open ahead of the tip",
+     "caption": "Swing through, overshoot: staff whipped forward past level in both hands, chest arched; 9 of 16 circles open on a sphere round her",
      "root_offset": [
       0,
       -0.12,
@@ -3594,12 +3594,12 @@
       -0.0
      ],
      "effects": [
-      "circles:6"
+      "circles:9"
      ]
     },
     {
      "t": 1.45,
-     "caption": "Settle: staff comes down level; the circles keep opening one after another, small to large (9 of 10); tails fling up",
+     "caption": "Settle: staff comes down level; the circles keep popping in one by one (15 of 16); tails fling up",
      "root_offset": [
       0,
       -0.05,
@@ -3703,12 +3703,12 @@
       0.0
      ],
      "effects": [
-      "circles:9"
+      "circles:15"
      ]
     },
     {
      "t": 1.85,
-     "caption": "Brace (Dodge bar ends): all 10 circles open and bright, she leans into the staff, legs split; hair and tails blown back",
+     "caption": "Brace (Dodge bar ends): all 16 circles open and bright round her, she leans into the staff, legs split; hair and tails blown back",
      "root_offset": [
       0,
       -0.15,
@@ -3812,12 +3812,12 @@
       0.0
      ],
      "effects": [
-      "circles:10:bright"
+      "circles:16:bright"
      ]
     },
     {
      "t": 2.0,
-     "caption": "HIT, strike 1 of 14: the arena flashes white; every circle fires a white-hot beam at the floor ahead; the kick drives her back",
+     "caption": "HIT, strike 1 of 14: the arena flashes white; white-hot beams fly outward from the circles to the floor all round the room; the kick drives her back",
      "root_offset": [
       0,
       0.28,
@@ -3924,13 +3924,13 @@
      "event": "Barrage",
      "effects": [
       "flash",
-      "circles:10:bright",
+      "circles:16:bright",
       "beams:0"
      ]
     },
     {
      "t": 2.6,
-     "caption": "Strike 5: she drives the staff left across the room, circles turn with it; weight forward, tails whip to her right",
+     "caption": "Strike 5: she drives the staff left across the room, beams rake the far lanes; weight forward, tails whip to her right",
      "root_offset": [
       0.1,
       -0.12,
@@ -4034,7 +4034,7 @@
       0.0
      ],
      "effects": [
-      "circles:10:bright",
+      "circles:16:bright",
       "beams:1"
      ]
     },
@@ -4144,7 +4144,7 @@
       0.0
      ],
      "effects": [
-      "circles:10:bright",
+      "circles:16:bright",
       "beams:3"
      ]
     },
@@ -4254,7 +4254,7 @@
       -0.0
      ],
      "effects": [
-      "circles:10:fade"
+      "circles:16:fade"
      ]
     },
     {
@@ -14445,7 +14445,7 @@
   ]
  },
  "staff": "Staff turns about its grip (its origin); staff_grip_offset moves the grip in the right lower arm's space, model units",
- "effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 10 cyan-white circles, 30 - 70 studs, 1 - 3 staff lengths ahead of the tip), beams:set (white-hot beams from the circles' centres to the floor ahead, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
+ "effects": "sketch labels per key: point[:size] (white starburst at the staff tip), charge, flash (the arena-wide white flash; look flash = the close views' white-out), cast[:fade] (lightning from the tip along the shaft, a pink-white burst at the tip, violet light pools where it lands), strike (bolts all over the room), sustain (the window's strikes, arena view only), embers, circles:n[:bright|fade] (the first n of 16 cyan-white circles, 24 - 40 studs, on a 45-stud sphere round her chest, facing outward), beams:set (white-hot beams from the nearest circle outward to the floor all round the room, cyan rim, dark edge, black smoke). Lightning and barrage sheets: the room dimmed to a dark blue-violet night (owner 2026-11-12)",
  "hover": {
   "studs": 8.0,
   "bob_studs": 1.5,
