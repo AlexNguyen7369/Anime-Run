@@ -231,6 +231,8 @@ local HAZE = {
 	Decay = Color3.fromRGB(105, 75, 165),
 } -- proposed (5634ce6 sheet: a mid purple haze, not black)
 local HAZE_AMBIENT = 0.12 -- with the haze, the ambients go this low (her a dark shape against the bolts); else DIM_FLOOR
+-- and take this lilac fill instead of near black (Studio 2026-11-12: scaled down they read navy, the sheet's room is soft violet)
+local HAZE_FILL = { Ambient = Color3.fromRGB(78, 58, 118), OutdoorAmbient = Color3.fromRGB(96, 74, 140) } -- proposed
 local function dimmed(e, value)
 	local h = Lighting:GetAttribute("BossStrikeHaze")
 	if e.Group == "Atmosphere" and HAZE[e.Key] ~= nil and type(h) == "number" and h > 0 then
@@ -252,7 +254,12 @@ local function dimmed(e, value)
 	if type(value) == "number" then
 		return value * scale
 	end
-	return typeof(value) == "Color3" and value:Lerp(Color3.new(), 1 - scale) or value
+	if typeof(value) ~= "Color3" then
+		return value
+	end
+	local dark = value:Lerp(Color3.new(), 1 - scale)
+	local fill = HAZE_FILL[e.Key]
+	return fill and type(h) == "number" and h > 0 and dark:Lerp(fill, math.min(h, 1)) or dark
 end
 
 local function write(e, value)

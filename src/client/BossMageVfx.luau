@@ -70,18 +70,19 @@ local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 -- a few big ones a strike from far above, purple clouds lit from inside, a dark purple haze in the room (proposed).
 -- 5634ce6 sheet: strikes about twice as wide in a violet glow, 4 huge bolts by her at each strike, purple clouds lit from inside
 -- behind and beside her (never between her and a runner's camera).
-local BOLT_SEGMENTS, BOLT_BRANCHES = { 4, 5 }, { 1, 3 }
-local BOLT_JAG = 6 -- studs a bolt's kink strays sideways at most
-local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 2, 5, 0.24 -- studs across the white core and the violet halo, s they show
+-- Studio pairs 2026-11-12: Neon reads wider than its size under the bloom, so the spot bolts are thin, jagged lines.
+local BOLT_SEGMENTS, BOLT_BRANCHES = { 6, 8 }, { 1, 3 }
+local BOLT_JAG = 9 -- studs a bolt's kink strays sideways at most
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 0.9, 2.6, 0.24 -- studs across the white core and the violet halo, s they show
 local BRANCH_CORE, BRANCH_LENGTH = 0.8, { 10, 26 } -- a branch's white core, studs across and long
-local GLOW_TRANSPARENCY = 0.65 -- the halo: soft, the core shows through, she stays readable
-local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 4, 170, 6 -- huge bolts by her a strike, from this high, segments
-local STORM_CORE, STORM_GLOW, STORM_JAG = 3.5, 10, 16 -- their core and halo, studs across; their kinks stray this far
+local GLOW_TRANSPARENCY = 0.7 -- the halo: soft, the core shows through, she stays readable
+local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 4, 170, 9 -- huge bolts by her a strike, from this high, segments
+local STORM_CORE, STORM_GLOW, STORM_JAG = 2.4, 7, 20 -- their core and halo, studs across; their kinks stray this far
 -- where they land: studs from her feet, and degrees off straight behind her as a runner's camera sees her (either side)
 local STORM_RANGE, STORM_TURN = { 28, 70 }, { 15, 140 }
 local STORM_RING = { 6, 30, 0.35 } -- the thin white ring at a huge bolt's foot: studs across from, to; s
 local CLOUDS_PER_STRIKE, CLOUD_HEIGHT = 2, { 25, 75 } -- purple clouds lit from inside, studs over the floor
-local CLOUD_RANGE, CLOUD_TURN = { 50, 110 }, { 0, 100 } -- as STORM_RANGE / STORM_TURN: behind and beside her
+local CLOUD_RANGE, CLOUD_TURN = { 60, 120 }, { 0, 55 } -- as STORM_RANGE / STORM_TURN: behind and beside her
 local FLOOR_LIGHT, FLOOR_RANGE, FLOOR_UP = 5, 26, 4 -- a bolt's floor light: brightness, range, studs over its spot
 local TIP_SEGMENTS = 4 -- the bolt from her staff's tip to each strike's first spot
 local STAFF_BURST = { 16, 0.25 } -- studs across and s of the pink-white burst at her staff's tip as each strike leaves it
@@ -93,13 +94,17 @@ local DIM_IN, DIM_OUT, DIM_TAIL = 0.25, 0.6, 0.5
 local STORM_IN = 0.9 -- s: her lightning's dim and haze from the move's start, full by about 0.9 s (the sheet's keys 2 and 3)
 local TORCH_TINT = Color3.fromRGB(190, 150, 255) -- the arena's lights turn violet as they dim
 local DIM_GRADE = { Brightness = -0.25, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(215, 190, 250) } -- lilac, not navy
+-- the barrage's grade: no tint, so its white and cyan stay white and cyan (the lilac tint read them lavender, Studio 2026-11-12)
+local BARRAGE_GRADE = { Brightness = -0.25, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
 local TORCH_DIM = 0.25 -- dim and violet, not red
 local LIFT_SECONDS = 0.3 -- the first strike's white flash lifts the dim for this long
 local HIT_FLASH, HIT_FLASH_SECONDS = 7, 0.2 -- studs across a hit's small white disc at the bolt's foot, s
 local RING_FROM, RING_TO, RING_SECONDS = 4, 18, 0.36 -- studs across a hit's thin violet ring as it grows, s (pool reuse after 0.45 s)
 local SPARKS_PER_HIT, SMOKE_PER_HIT = 6, 2 -- particles at each lightning spot
-local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 3, 5, 6.8, 0.25 -- studs across the barrage beam's layers, s
+local BEAM_CORE, BEAM_GLOW, BEAM_EDGE = 3, 5, 6.8 -- studs across the barrage beam's layers
 local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
+-- Studio pairs 2026-11-12: short white-hot rays flying from the circles (not bars across the room), as the sheet's
+local RAY_LENGTH, RAY_SPEED = 34, 520 -- studs long, studs a second
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
 -- Zoltraak circles around her (owner 2026-11-12, design doc 4.37; BOSS_EVENT_SPEC "Pose-tied effect values", proposed; replaces the
@@ -156,6 +161,17 @@ local HIT_LOOKS = {
 		Speed = NumberRange.new(50, 110),
 		Drag = 3,
 		Acceleration = Vector3.new(0, -80, 0),
+	},
+	TipFlare = { -- lightning: the soft pink-white glow at her staff's tip as a strike leaves it
+		Name = "TipFlare",
+		Texture = Art.Flare,
+		Color = ColorSequence.new(WHITE, PINK_WHITE),
+		LightEmission = 1,
+		Size = sequence(0, 18, 1, 8),
+		Transparency = sequence(0, 0, 1, 1),
+		Lifetime = NumberRange.new(0.22, 0.28),
+		Speed = NumberRange.new(0),
+		Rotation = NumberRange.new(0, 360),
 	},
 	StormCloud = { -- lightning: a big purple cloud lit from inside, drifting dark
 		Name = "StormCloud",
@@ -295,14 +311,18 @@ local function pooled(name, cframe, size, color, transparency, seconds, make)
 	end
 	part.Name, part.Color, part.Transparency = name, color, transparency
 	Kit.tween(part, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	for _, d in part:GetChildren() do
+	for _, d in part:GetDescendants() do
 		if d:IsA("Decal") then
 			d.Transparency = 0
 			Kit.tween(d, seconds, { Transparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		elseif d:IsA("ImageLabel") then
+			d.ImageTransparency = 0
+			Kit.tween(d, seconds, { ImageTransparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 		end
 	end
 	Kit.after(seconds + 0.03, function()
 		if part.Parent == effects then
+			tracked[part] = nil
 			part.Name, part.Transparency = "Pooled", 1
 			pools[name] = pools[name] or {}
 			table.insert(pools[name], part)
@@ -332,23 +352,22 @@ local function logHits(move, list, full, roughness)
 	return 0
 end
 
--- A glowing stick from a to b: a Neon core inside a wider, softer Neon sheath, both fading out.
-local function streak(name, a, b, core, sheath, coreColor, sheathColor, seconds, sheathTransparency)
-	local frame, length = CFrame.lookAt((a + b) / 2, b), (b - a).Magnitude
-	pooled(
-		name,
-		frame,
-		Vector3.new(sheath, sheath, length + sheath * 0.5),
-		sheathColor,
-		sheathTransparency or 0.35,
-		seconds
-	)
-	pooled(name .. "Core", frame, Vector3.new(core, core, length + core), coreColor, 0, seconds)
-	return frame, length
-end
-
 local function ballLook(part)
 	part.Shape = Enum.PartType.Ball
+end
+
+-- An unlit image on a face (a SurfaceGui with LightInfluence 0): a decal is lit by the room and goes dark under the dim, so the
+-- rings and circles that must read white or cyan-white in the dark draw this way (Studio 2026-11-12: the decals read navy).
+local function glowImage(part, image, color, face, transparency, brightness)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face, gui.LightInfluence, gui.Brightness = face, 0, brightness or 2
+	gui.SizingMode, gui.CanvasSize = Enum.SurfaceGuiSizingMode.FixedSize, Vector2.new(256, 256)
+	local label = Instance.new("ImageLabel")
+	label.Size, label.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+	label.Image, label.ImageColor3, label.ImageTransparency = image, color, transparency or 0
+	label.Parent = gui
+	gui.Parent = part
+	return label
 end
 
 local function disc(part)
@@ -481,9 +500,9 @@ local function stepDim()
 	if dim.LiftAt then
 		f *= math.clamp((os.clock() - dim.LiftAt) / LIFT_SECONDS, 0, 1)
 	end
-	local grade = dim.Grade
-	grade.Brightness, grade.Contrast = DIM_GRADE.Brightness * f, DIM_GRADE.Contrast * f
-	grade.Saturation, grade.TintColor = DIM_GRADE.Saturation * f, WHITE:Lerp(DIM_GRADE.TintColor, f)
+	local grade, look = dim.Grade, dim.Haze and DIM_GRADE or BARRAGE_GRADE
+	grade.Brightness, grade.Contrast = look.Brightness * f, look.Contrast * f
+	grade.Saturation, grade.TintColor = look.Saturation * f, WHITE:Lerp(look.TintColor, f)
 	Lighting:SetAttribute("BossStrikeDim", f)
 	Lighting:SetAttribute("BossStrikeHaze", dim.Haze and f or nil)
 	for light, base in dim.Lights do
@@ -534,13 +553,13 @@ end
 -- The shock ring's look: a thin ring on the floor (the decal); its part is a near-clear violet carrier, so no disc shows.
 local function shockLook(part)
 	part.Material = Enum.Material.SmoothPlastic
-	Kit.decal(part, Art.Ring, WHITE, Enum.NormalId.Top) -- white rings on the floor, as the sheet
+	glowImage(part, Art.Ring, WHITE, Enum.NormalId.Top) -- white rings on the floor, as the sheet
 end
 
 -- A huge bolt's foot: a thin white ring decal on a near-clear carrier, as the sheet's.
 local function stormRingLook(part)
 	part.Material = Enum.Material.SmoothPlastic
-	Kit.decal(part, Art.Ring, WHITE, Enum.NormalId.Top)
+	glowImage(part, Art.Ring, WHITE, Enum.NormalId.Top, 0, 3)
 end
 
 -- A round segment from a to b (a cylinder along the line): the bolts' cores and halos.
@@ -607,10 +626,10 @@ end
 
 -- A strike leaving her staff: a pink-white burst at its tip and sparks (the slices show each strike from the staff).
 local function staffBurst(tip)
-	local burst =
-		pooled("StaffBurst", CFrame.new(tip), Vector3.one * STAFF_BURST[1], PINK_WHITE, 0, STAFF_BURST[2], ballLook)
-	Kit.tween(burst, STAFF_BURST[2], { Size = Vector3.one * STAFF_BURST[1] * 0.4 })
-	return emitAt("Sparks", tip, SPARKS_PER_HIT)
+	-- a soft pink-white glow (a flare particle: a solid ball read as a white disc, Studio 2026-11-12) round a small hot core
+	local burst = pooled("StaffBurst", CFrame.new(tip), Vector3.one * 3, WHITE, 0.2, STAFF_BURST[2], ballLook)
+	Kit.tween(burst, STAFF_BURST[2], { Size = Vector3.one })
+	return emitAt("TipFlare", tip, 2) + emitAt("Sparks", tip, SPARKS_PER_HIT)
 end
 
 local function playLightning()
@@ -655,7 +674,7 @@ local function playLightning()
 		later(strike.T, function()
 			local total = 0
 			-- all of it fades by the window's end (the sheet's key 9: the strikes are over at 4.0 s); at least 0.1 s, so it shows
-			strikeLife = math.max(0.1, math.min(BOLT_SECONDS, LIGHTNING_WINDOW - strike.T))
+			strikeLife = math.max(0.06, math.min(BOLT_SECONDS, LIGHTNING_WINDOW - strike.T))
 			local feet = Vector3.new(mage.Her.Anchor.Position.X, Arena.Y + 0.15, mage.Her.Anchor.Position.Z)
 			local camera = Workspace.CurrentCamera
 			local away = camera and (feet - camera.CFrame.Position) * Vector3.new(1, 0, 1) or Vector3.new(0, 0, -1)
@@ -915,15 +934,16 @@ local function playCircle(k)
 	local near = toCamera.Magnitude > 1 and out:Dot(toCamera.Unit) > CIRCLE_FACING_CAMERA
 	local opensAt = CIRCLE_FROM + (k - 1) * CIRCLE_EVERY
 	local brighten = math.max(0.15, CIRCLE_BRIGHT_AT - opensAt)
+	-- unlit images (glowImage): decals went navy under the dim
 	local faces = {}
 	for _, face in Kit.UprightFaces do
 		if not near then
-			table.insert(faces, Kit.decal(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6))
+			table.insert(faces, glowImage(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6, 1.6))
 		end
-		table.insert(faces, Kit.decal(part, Art.Ring, WHITE, face, 0.6)) -- the bright rim
+		table.insert(faces, glowImage(part, Art.Ring, WHITE, face, 0.6, 2.5)) -- the thin bright rim
 	end
 	for _, d in faces do
-		Kit.tween(d, brighten, { Transparency = near and 0.35 or 0 })
+		Kit.tween(d, brighten, { ImageTransparency = near and 0.3 or 0 })
 	end
 	local light = nil
 	if slot % 2 == 0 and not near then
@@ -933,14 +953,10 @@ local function playCircle(k)
 		Kit.tween(light, brighten, { Brightness = CIRCLE_LIGHT[2] })
 	end
 	Kit.tween(part, CIRCLE_OPEN, { Size = Vector3.new(size, size, 0.2) })
-	if not near then
-		local pop = pooled("CirclePop", frame(), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
-		Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.3 })
-	end
 	local hold = BARRAGE_AT - opensAt + BARRAGE_WINDOW
 	Kit.after(hold + 0.25, function()
 		for _, d in faces do
-			Kit.tween(d, 0.3, { Transparency = 1 })
+			Kit.tween(d, 0.3, { ImageTransparency = 1 })
 		end
 		if light then
 			Kit.tween(light, 0.3, { Brightness = 0 })
@@ -969,15 +985,49 @@ end
 -- One beam out of a circle's centre (her staff's tip with no circle open) to its strike's planned spot on the floor, so the
 -- beams fan out from the cluster onto the logged spots (owner 2026-11-12, target sheets): a white-hot core in a cyan rim inside a
 -- near-black edge, a rounded white head, and at the spot a white flash, white sparks and small black smoke.
-local function beam(circle, target, k)
+local function beam(circle, target, k, life)
 	local from = circle and circle.Position or mage:Point("Staff", STAFF_TIP)
-	local frame, length =
-		streak("BarrageBeam", from, target, BEAM_CORE, BEAM_GLOW, WHITE, k % 2 == 0 and CYAN or ICE, BEAM_SECONDS)
-	pooled("BarrageBeamEdge", frame, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, BEAM_SECONDS, edgeLook)
-	pooled("BarrageBeamHead", CFrame.new(target), Vector3.one * BEAM_HEAD, WHITE, 0, BEAM_SECONDS, ballLook)
-	flash(target, 10, 0.25)
-	return emitAt("BarrageSparks", target, BEAM_SPARKS)
-		+ emitAt("BarrageSmoke", target + Vector3.new(0, 1, 0), BEAM_SMOKE)
+	local line = target - from
+	local distance = line.Magnitude
+	local dir = distance > 0.01 and line / distance or Vector3.yAxis
+	local length = math.min(RAY_LENGTH, distance)
+	local flight = math.max(0.05, math.min(distance / RAY_SPEED, life))
+	local born = os.clock()
+	-- the ray's frame: its back end leaves the circle and its head reaches the spot at `flight`
+	local function along()
+		return function()
+			local u = math.min((os.clock() - born) / flight, 1)
+			local back = from + dir * (distance - length) * u
+			return CFrame.lookAt(back + dir * length / 2, back + dir * length)
+		end
+	end
+	local start = along()()
+	local glow = pooled(
+		"BarrageBeam",
+		start,
+		Vector3.new(BEAM_GLOW, BEAM_GLOW, length + BEAM_GLOW * 0.5),
+		k % 2 == 0 and CYAN or ICE,
+		0.35,
+		flight + 0.04
+	)
+	local core =
+		pooled("BarrageBeamCore", start, Vector3.new(BEAM_CORE, BEAM_CORE, length + BEAM_CORE), WHITE, 0, flight + 0.04)
+	local edge =
+		pooled("BarrageBeamEdge", start, Vector3.new(BEAM_EDGE, BEAM_EDGE, length), INK, 0.75, flight + 0.04, edgeLook)
+	for _, part in { glow, core, edge } do
+		tracked[part] = along()
+	end
+	local mine = effects
+	Kit.after(flight, function()
+		if effects ~= mine then
+			return
+		end
+		pooled("BarrageBeamHead", CFrame.new(target), Vector3.one * BEAM_HEAD, WHITE, 0, 0.15, ballLook)
+		flash(target, 10, 0.25)
+		emitAt("BarrageSparks", target, BEAM_SPARKS)
+		emitAt("BarrageSmoke", target + Vector3.new(0, 1, 0), BEAM_SMOKE)
+	end)
+	return BEAM_SPARKS + BEAM_SMOKE
 end
 
 local function playBarrage()
@@ -1001,7 +1051,8 @@ local function playBarrage()
 						best, bestDot = circle, out:Dot(toward)
 					end
 				end
-				total += beam(best, target, k)
+				-- the rays land by the window's end (nothing fires past 4.0 s, the sheet's key 9)
+				total += beam(best, target, k, math.max(0.06, BARRAGE_WINDOW - strike.T))
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
