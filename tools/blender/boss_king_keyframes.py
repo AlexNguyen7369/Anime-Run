@@ -570,6 +570,8 @@ def build_fx(rig, names, seed, t=0.0, view=None):
 			for i, rr in enumerate((2.2, 3.2, 4.4)):
 				mk.ring(tip + axis * (0.4 + 0.5 * i) * k, rr * k, 0.14 * k, mk.glow_mat("GatherDark" if i % 2 else "GatherRed", DARK if i % 2 else RED, 1.5 if i % 2 else 4, 0.8), rot=frame_at(tip, axis).to_euler())
 			mk.ball(tip, 1.0 * k, mk.glow_mat("GatherCore", (0.3, 0.02, 0.02), 3, 0.5))
+		elif kind == "beam" and REWORK:  # the owner's later look (2026-11-12): white core, red-black layers, turning cyclone, burst
+			jbeam(rig, t)
 		elif kind == "beam":
 			tip = ea @ Vector((0, 0, rig.tip))
 			d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
@@ -723,10 +725,13 @@ def portal_c(rig, c, rad, n, grow=1.0, tip=False, turn=0.0, cw=None, nw=None):
 		mk.tube(pts, 0.022 * r, mk.glow_mat("PortalSpiralC", CREAM, 2.2))
 	star = [(0.34 * math.cos(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22), 0.34 * math.sin(math.tau * j / 8) * (1 if j % 2 == 0 else 0.22)) for j in range(8)]
 	tri_fan("Star", star, mk.glow_mat("PortalStarC", (1, 1, 1), 5), lift(0.04) @ Matrix.Scale(r, 4))
-	if tip:  # a weapon pushing through: blade, guard
-		mk.tube([cw + nw * 0.05 * r, cw + nw * 0.95 * r], 0.06 * r, mk.glow_mat("TipBlade", (0.95, 0.92, 0.85), 5))
-		side = (m.to_3x3() @ Vector((1, 0, 0))).normalized() * 0.28 * r
-		mk.tube([cw + nw * 0.15 * r - side, cw + nw * 0.15 * r + side], 0.05 * r, mk.glow_mat("TipGuard", GOLD, 4))
+	if tip:  # a weapon pushing through, tip first (tip: how far out, 0 to 1): blade, then the guard once it is out
+		L = float(tip)
+		mk.tube([cw + nw * 0.02 * r, cw + nw * (0.1 + 1.0 * L) * r], 0.07 * r, mk.glow_mat("TipBlade", (0.95, 0.92, 0.85), 5))
+		mk.ball(cw + nw * (0.1 + 1.0 * L) * r, 0.1 * r, mk.glow_mat("TipGlint", (1, 1, 1), 12))
+		if L >= 1:
+			side = (m.to_3x3() @ Vector((1, 0, 0))).normalized() * 0.3 * r
+			mk.tube([cw + nw * 0.12 * r - side, cw + nw * 0.12 * r + side], 0.06 * r, mk.glow_mat("TipGuard", GOLD, 4))
 
 
 def fx_jportals(rig, arg):
@@ -735,15 +740,18 @@ def fx_jportals(rig, arg):
 	opened = float(frac) * (N_PORTALS + 1.5)
 	for i, (c, rad, n) in enumerate(JPORTALS):
 		g = min(max((opened - i) / 1.5, 0.0), 1.0)
+		tip = min(max((opened - i - 2.0) / 1.5, 0.0), 1.0) if mode == "tips" else 0.0  # the blade only once the portal is full
 		if mode == "close":
 			g = float(frac) * (0.6 + 0.4 * ((i * 7) % 5) / 4)  # they shrink unevenly
 			if g < 0.3:
 				continue
 		if g <= 0:
 			continue
-		portal_c(rig, c, rad, n, grow=g, tip=(mode == "tips" and g >= 1), turn=0.4 * i * (1 if i % 2 else -1))
+		portal_c(rig, c, rad, n, grow=g, tip=tip if g >= 1 else 0.0, turn=0.4 * i * (1 if i % 2 else -1))
+		if REWORK and g >= 1:  # each open portal lights the darkening room round it
+			mk.lamp(to_world(rig, c + n * rad * 0.6), GOLD, 1.5e3 * (SIZE / 4) ** 2, 2)
 	if float(frac) > 0.3 and mode != "close":
-		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 0.5e4 * (SIZE / 4) ** 2 * float(frac), 6)
+		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 0.5e4 * (SIZE / 4) ** 2 * min(float(frac), 1.0), 6)
 
 
 def fx_jvolley(rig, arg):
@@ -754,21 +762,28 @@ def fx_jvolley(rig, arg):
 		if jj < 0:
 			continue
 		rng = random.Random(700 + jj)
+		floor = -HOVER_STUDS / k  # the mound top, model units below his rest feet
 		for i in rng.sample(range(N_PORTALS), VOLLEY):
 			c, rad, n = JPORTALS[i]
-			start = c + n * rad * 0.9
-			d = (Vector((rng.uniform(-13, 13), -15, -2.5)) - start).normalized()
-			p, q = to_world(rig, start), to_world(rig, start + d * 26)
-			w = 0.035 * k
+			start = c + n * rad * 1.1  # from the weapon's tip: a shot only leaves a portal holding a weapon
+			end = Vector((rng.uniform(-14, 14), -rng.uniform(16.5, 25), floor))  # on the lanes, 110 to 166 studs out (proposed ring)
+			p, q = to_world(rig, start), to_world(rig, end)
+			w = 0.055 * k  # 1.5 x thicker (spec "Golden King effects")
 			if dim:
-				mk.tube([p, q], w * 0.6, mk.glow_mat("StreakFade", GOLD, 0.9, 0.3))
+				mk.tube([p, q], w * 0.6, mk.glow_mat("StreakFade", GOLD, 0.9, 0.3))["wide_only"] = True
 				continue
-			mk.tube([p, q], w, mk.glow_mat("StreakCore", GOLD_HI, 8))
-			mk.tube([p, q], w * 2.4, mk.glow_mat("StreakGlow", GOLD, 1.5, 0.3))
-			for _ in range(5):
-				s = rng.uniform(0.05, 0.6)
-				mk.ball(p.lerp(q, s) + Vector([rng.uniform(-1, 1) for _ in range(3)]) * 0.25 * k, 0.04 * k, mk.glow_mat("Sparkle", CREAM, 10))
-			mk.ball(p, 0.18 * k, mk.glow_mat("MuzzleFlash", (1, 1, 1), 12))
+			# Close views show each shot leaving its blade (a stub); the full streak to the lanes is drawn for the hit view only,
+			# so the volley never buries his pose.
+			stub = p + (q - p).normalized() * 3.5 * k
+			for a, b, tag in ((p, q, "wide_only"), (p, stub, "close_only")):
+				mk.tube([a, b], w * 0.45, mk.glow_mat("StreakWhite", (1, 1, 1), 14))[tag] = True
+				mk.tube([a, b], w, mk.glow_mat("StreakCore", GOLD_HI, 7, 0.9))[tag] = True
+				mk.tube([a, b], w * 2.6, mk.glow_mat("StreakGlow", GOLD, 1.5, 0.3))[tag] = True
+			for _ in range(7):  # sparkle dust along the shot
+				u = rng.uniform(0.05, 0.95)
+				mk.ball(p.lerp(q, u) + Vector([rng.uniform(-1, 1) for _ in range(3)]) * 0.3 * k, 0.045 * k, mk.glow_mat("Sparkle", CREAM, 10))["wide_only"] = u > 0.15
+			mk.ball(p, 0.16 * k, mk.glow_mat("MuzzleFlash", (1, 1, 1), 12))
+			gold_hit(rig, q, rng)
 
 
 def hand_world(rig, limb):
@@ -811,6 +826,135 @@ def fx_jshields(rig, arg):
 	if state == "lock":
 		mk.ring(to_world(rig, (0, 0, SHIELD_Z)), (JSHIELD_R + 0.5) * rig.k, 0.05 * rig.k, mk.glow_mat("ShieldPulse", GOLD_HI, 6, 0.9))
 		mk.lamp(to_world(rig, (0, 0, SHIELD_Z + 1)), GOLD, 1e4 * (SIZE / 4) ** 2, 5)
+
+
+JHITS = []  # world points the key's hits land on: the hit view frames them
+
+
+def gold_hit(rig, q, rng):
+	"""A weapon hit on the lanes: a gold flash with a white core, a flat gold shock ring, sparks thrown up, dust."""
+	k = rig.k
+	JHITS.append(q.copy())
+	mk.ball(q, 0.35 * k, mk.glow_mat("HitCore", (1, 1, 1), 16))
+	mk.ball(q, 0.9 * k, mk.glow_mat("HitFlash", GOLD, 4, 0.55))
+	mk.ring(q + Vector((0, 0, 0.05 * k)), 1.5 * k, 0.07 * k, mk.glow_mat("HitRing", GOLD_HI, 6, 0.9))
+	for _ in range(6):  # sparks: short streaks thrown up and out
+		d = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(0.6, 1.4))).normalized()
+		mk.tube([q + d * 0.3 * k, q + d * rng.uniform(1.0, 1.8) * k], 0.025 * k, mk.glow_mat("HitSpark", GOLD_HI, 10))
+	for _ in range(4):  # dust: low brown puffs
+		mk.ball(q + Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), 0.2)) * 0.8 * k, rng.uniform(0.35, 0.6) * k, mk.glow_mat("HitDust", (0.45, 0.32, 0.2), 0.15, 0.55))
+	mk.lamp(q + Vector((0, 0, 1.5 * k)), GOLD, 2e3 * (SIZE / 4) ** 2, 2)
+
+
+def jbeam(rig, t):
+	"""Enuma Elish's beam (owner 2026-11-12): a white core inside dark-red and red layers, a red-black cyclone turning round it,
+	out to the far lane edge (166 studs, proposed ring) where a big red-white burst throws dark smoke."""
+	k, s = rig.k, SIZE / 4
+	ea = rig.parts["Ea"].matrix_world
+	tip = ea @ Vector((0, 0, rig.tip))
+	d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
+	centre = rig.king.matrix_world.translation
+	a2, b2 = d.x**2 + d.y**2, 2 * ((tip.x - centre.x) * d.x + (tip.y - centre.y) * d.y)
+	c2 = (tip.x - centre.x) ** 2 + (tip.y - centre.y) ** 2 - 166.0**2
+	L = (-b2 + math.sqrt(b2 * b2 - 4 * a2 * c2)) / (2 * a2)
+	if d.z < 0:
+		L = min(L, (tip.z - rig.stand) / -d.z)
+	end = tip + d * L
+	JHITS.append(end.copy())
+	mk.tube([tip, end], 0.9 * s, mk.glow_mat("BeamWhite", (1, 0.95, 0.92), 18))
+	mk.tube([tip, end], 2.0 * s, mk.glow_mat("BeamRedHot", RED, 5, 0.75))
+	mk.tube([tip, end], 3.4 * s, mk.glow_mat("BeamDark", (0.25, 0.01, 0.01), 1.5, 0.55))
+	mk.tube([tip, end], 7 * s, mk.glow_mat("BeamHalo", RED, 0.6, 0.18))["wide_only"] = True
+	side = d.orthogonal().normalized()
+	up = d.cross(side)
+	for h in range(4):  # the cyclone: four strands turning round the beam (phase by t), red and black, widening to the hit
+		ph = h * math.tau / 4 + t * 9
+		pts = [tip + d * (u * L) + (side * math.cos(ph + u * 26) + up * math.sin(ph + u * 26)) * (2.2 + 8 * u) * s for u in np.linspace(0, 1, 120)]
+		mk.tube(pts, 0.6 * s, mk.glow_mat("CycloneDark" if h % 2 else "CycloneRed", DARK if h % 2 else RED, 1.0 if h % 2 else 3.5, 0.8))
+	mk.ball(tip, 1.3 * k, mk.glow_mat("TipGlow", (1, 0.6, 0.55), 8, 0.7))
+	rng = random.Random(int(t * 100))
+	burst = []  # the burst is far out: drawn for the hit view only (the ortho close views would stack it on the beam)
+	burst.append(mk.ball(end, 2.2 * k, mk.glow_mat("BurstWhite", (1, 0.96, 0.92), 14)))
+	burst.append(mk.ball(end, 4.5 * k, mk.glow_mat("BurstRed", RED, 4, 0.5)))
+	burst.append(mk.ring(end, 6.0 * k, 0.2 * k, mk.glow_mat("BurstRing", (1, 0.4, 0.3), 6, 0.85), rot=frame_at(end, Vector((0, 0, 1))).to_euler()))
+	for _ in range(10):  # red-white spikes out of the burst
+		v = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1), rng.uniform(-0.2, 1))).normalized()
+		burst.append(mk.tube([end + v * 2 * k, end + v * rng.uniform(7, 11) * k], 0.18 * k, mk.glow_mat("BurstSpike", (1, 0.75, 0.6), 9)))
+	for j in range(10):  # dark smoke rolling up round it
+		a = math.tau * j / 10 + rng.uniform(-0.3, 0.3)
+		v = Vector((math.cos(a), math.sin(a), rng.uniform(0.3, 1.4)))
+		burst.append(mk.ball(end + v * rng.uniform(4.5, 7) * k, rng.uniform(1.0, 1.8) * k, mk.glow_mat("Smoke", (0.03, 0.008, 0.008), 1.0, 0.85)))
+	for o in burst:
+		o["wide_only"] = True
+	mk.lamp(tip + d * 20, RED, 6e5 * s * s, 8)
+	mk.lamp(end + Vector((0, 0, 4 * k)), (1, 0.5, 0.4), 6e5 * s * s, 10)
+
+
+SUNSET = ((0.0, "#FF9C5A"), (0.22, "#F27C76"), (0.45, "#BE5E98"), (0.7, "#8A4C9C"), (1.0, "#34306E"))  # the arena sky (build_king_arena)
+REDSKY = ((0.0, "#E0301C"), (0.35, "#8A1410"), (1.0, "#1A0303"))  # Enuma Elish's red tint
+
+
+def sunset_world():
+	"""The close views' backdrop: the arena's sunset gradient up the frame (window space, so the ortho views get it too), mixed
+	toward Enuma Elish's red; Background strength is the room's brightness."""
+	w = bpy.data.worlds.get("JSunset")
+	if w:
+		return w
+	w = bpy.data.worlds.new("JSunset")
+	w.use_nodes = True
+	nt = w.node_tree
+	bg = next(n for n in nt.nodes if n.type == "BACKGROUND")
+	tc, sep = nt.nodes.new("ShaderNodeTexCoord"), nt.nodes.new("ShaderNodeSeparateXYZ")
+	nt.links.new(tc.outputs["Window"], sep.inputs[0])
+	mix = nt.nodes.new("ShaderNodeMix")
+	mix.name, mix.data_type = "RedMix", "RGBA"
+	for slot, stops in ((6, SUNSET), (7, REDSKY)):
+		r = nt.nodes.new("ShaderNodeValToRGB")
+		els = r.color_ramp.elements
+		els[0].position, els[0].color = stops[0][0], mk.be_rgb(stops[0][1])
+		els[1].position, els[1].color = stops[-1][0], mk.be_rgb(stops[-1][1])
+		for pos, h in stops[1:-1]:
+			els.new(pos).color = mk.be_rgb(h)
+		nt.links.new(sep.outputs["Y"], r.inputs["Fac"])
+		nt.links.new(r.outputs["Color"], mix.inputs[slot])
+	nt.links.new(mix.outputs[2], bg.inputs["Color"])
+	return w
+
+
+def jlook(scene, rig, sky):
+	"""sky (dim, red): the sunset room at brightness dim (1 full, 0.2 the dimmed room under the portals) tinted red by red; or
+	"white": the full white flash (the camera sees white, he is lit dimly: a dark shape against it)."""
+	look(scene, rig, "flat")
+	floor = next(n for n in rig.floor.active_material.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+	if sky == "white":
+		w = bpy.data.worlds.get("JFlash") or bpy.data.worlds.new("JFlash")
+		w.use_nodes = True
+		nt = w.node_tree
+		if not any(n.type == "LIGHT_PATH" for n in nt.nodes):
+			bg = next(n for n in nt.nodes if n.type == "BACKGROUND")
+			bg.inputs["Color"].default_value, bg.inputs["Strength"].default_value = (1, 0.97, 0.95, 1), 1.0
+			low = nt.nodes.new("ShaderNodeBackground")
+			low.inputs["Color"].default_value, low.inputs["Strength"].default_value = (1, 0.8, 0.8, 1), 0.06
+			mix, lp = nt.nodes.new("ShaderNodeMixShader"), nt.nodes.new("ShaderNodeLightPath")
+			nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs[0])
+			nt.links.new(low.outputs[0], mix.inputs[1])
+			nt.links.new(bg.outputs[0], mix.inputs[2])
+			nt.links.new(mix.outputs[0], next(n for n in nt.nodes if n.type == "OUTPUT_WORLD").inputs["Surface"])
+		scene.world = w
+		rig.floor.hide_render = True
+		rig.sun.data.energy, rig.sun.data.color = 0.08, (1, 0.9, 0.9)
+		rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 1.0, 0.25
+		return
+	dim, red = sky
+	w = sunset_world()
+	scene.world = w
+	w.node_tree.nodes["RedMix"].inputs[0].default_value = red
+	next(n for n in w.node_tree.nodes if n.type == "BACKGROUND").inputs["Strength"].default_value = 0.04 + 0.96 * dim
+	sand, scorch = Vector((0.55, 0.38, 0.22)), Vector((0.32, 0.06, 0.04))
+	floor.inputs["Base Color"].default_value = (*(sand.lerp(scorch, red) * (0.25 + 0.75 * dim)), 1)
+	rig.sun.data.energy = 0.5 + 2.0 * dim
+	rig.sun.data.color = Vector((1.0, 0.8, 0.62)).lerp(Vector((1.0, 0.45, 0.4)), red)
+	rig.bloom.inputs["Threshold"].default_value, rig.bloom.inputs["Strength"].default_value = 0.9, 0.6
 
 
 JFX = {"jportals": fx_jportals, "jvolley": fx_jvolley, "jshields": fx_jshields, "cmd": fx_cmd}
@@ -859,18 +1003,27 @@ JMOVES["gates"] = {
 	"keys": [
 		jkey(0.0, "Idle key 0, Dodge bar opens: arms folded, still; one gold dot behind his left shoulder", fx=["jportals:0.04"]),
 		jkey(0.4, "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left", fx=["jportals:0.14"], root=(0, 0, -0.08), body=(0, 0, 8), torso=(10, 0, 18), head=(-4, 0, -16), RightArm={"aim": (-0.35, -1.2, 3.2), "pole": (-1, -0.2, -0.3)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-22, 0, -4), "knee": 46}, RightLeg={"hip": (-8, 0, 5), "knee": 40}, key=(6, 0, 0)),
-		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path", fx=["jportals:0.45"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
+		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path, the first ones full and pushing a blade out", fx=["jportals:0.45:tips"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
 		jkey(1.2, "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)", fx=["jportals:1:tips"], root=(0, 0, 0.1), body=(0, 2, -6), torso=(-8, -6, -12), head=(-14, 4, -2), RightArm={"aim": (-2.4, -0.4, 5.2)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (2, 0, -5), "knee": 24}, RightLeg={"hip": (10, 0, 6), "knee": 38}, key=(-4, 0, 0)),
-		jkey(1.6, "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture", event="gates", fx=["jportals:1:tips", "jvolley:0", "cmd:R"], root=(0, -0.1, -0.05), body=(0, 0, 2), torso=(14, 0, -4), head=(-12, 0, -4), RightArm={"aim": (-1.9, -1.45, 3.3)}, LeftArm={"aim": (2.4, 0.9, 3.0), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (14, 0, -4), "knee": 40}, RightLeg={"hip": (22, 0, 4), "knee": 55}, key=(10, 0, 0)),
-		jkey(1.85, "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2", fx=["jportals:1:tips", "jvolley:1"], root=(0, -0.12, -0.1), body=(0, 0, 4), torso=(19, 0, -2), head=(-15, 0, -6), RightArm={"aim": (-1.7, -1.45, 2.9)}, LeftArm={"aim": (2.3, 1.0, 2.7), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (20, 0, -4), "knee": 50}, RightLeg={"hip": (26, 0, 4), "knee": 62}, key=(12, 0, 0)),
-		jkey(2.5, "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6", fx=["jportals:1:tips", "jvolley:5", "cmd:L"], root=(0.08, -0.04, 0), body=(0, -3, 8), torso=(4, 3, 16), head=(-8, -2, 10), RightArm={"aim": (-0.6, -1.0, 3.4), "pole": (-1, 0, -0.5)}, LeftArm={"aim": (3.0, -0.6, 4.2)}, LeftLeg={"hip": (-10, 0, -6), "knee": 30}, RightLeg={"hip": (10, 0, 6), "knee": 48}, key=(4, 0, 0)),
-		jkey(3.1, "Commanding hold: turns back, right palm out over the lanes, left fist to his hip, chin up; volley 10", fx=["jportals:1:tips", "jvolley:9"], root=(-0.04, 0, 0.05), body=(0, 2, -4), torso=(2, -3, -10), head=(-12, 3, -12), RightArm={"aim": (-2.7, -1.1, 4.1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (6, 0, -4), "knee": 40}, RightLeg={"hip": (-6, 0, 5), "knee": 26}, key=(0, 0, 0)),
-		jkey(3.6, "Volley 14, the last: the hand sinks, portals start to shrink and close", fx=["jportals:0.75:close", "jvolley:13"], root=(-0.02, 0, 0.02), body=(0, 1, -2), torso=(4, -1, -4), head=(-6, 1, -10), RightArm={"aim": (-2.1, -1.0, 2.6), "pole": (-1, 0.3, -0.3)}, LeftArm={"aim": (1.9, -0.6, 2.5), "pole": (1, 0.6, 0)}, LeftLeg={"hip": (-4, 0, -3), "knee": 28}, RightLeg={"hip": (2, 0, 4), "knee": 30}, key=(2, 0, 0)),
+		jkey(1.6, "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture", event="gates", fx=["jportals:1.3:tips", "jvolley:0", "cmd:R"], root=(0, -0.1, -0.05), body=(0, 0, 2), torso=(14, 0, -4), head=(-12, 0, -4), RightArm={"aim": (-1.9, -1.45, 3.3)}, LeftArm={"aim": (2.4, 0.9, 3.0), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (14, 0, -4), "knee": 40}, RightLeg={"hip": (22, 0, 4), "knee": 55}, key=(10, 0, 0)),
+		jkey(1.85, "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2", fx=["jportals:1.3:tips", "jvolley:1"], root=(0, -0.12, -0.1), body=(0, 0, 4), torso=(19, 0, -2), head=(-15, 0, -6), RightArm={"aim": (-1.7, -1.45, 2.9)}, LeftArm={"aim": (2.3, 1.0, 2.7), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (20, 0, -4), "knee": 50}, RightLeg={"hip": (26, 0, 4), "knee": 62}, key=(12, 0, 0)),
+		jkey(2.5, "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6", fx=["jportals:1.3:tips", "jvolley:5", "cmd:L"], root=(0.08, -0.04, 0), body=(0, -3, 8), torso=(4, 3, 16), head=(-8, -2, 10), RightArm={"aim": (-0.6, -1.0, 3.4), "pole": (-1, 0, -0.5)}, LeftArm={"aim": (3.0, -0.6, 4.2)}, LeftLeg={"hip": (-10, 0, -6), "knee": 30}, RightLeg={"hip": (10, 0, 6), "knee": 48}, key=(4, 0, 0)),
+		jkey(3.1, "Commanding hold: turns back, right palm out over the lanes, left fist to his hip, chin up; volley 10", fx=["jportals:1.3:tips", "jvolley:9"], root=(-0.04, 0, 0.05), body=(0, 2, -4), torso=(2, -3, -10), head=(-12, 3, -12), RightArm={"aim": (-2.7, -1.1, 4.1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (6, 0, -4), "knee": 40}, RightLeg={"hip": (-6, 0, 5), "knee": 26}, key=(0, 0, 0)),
+		jkey(3.6, "Volley 14, the last, from portals still holding weapons: the hand sinks; the portals close after it", fx=["jportals:1.3:tips", "jvolley:13"], root=(-0.02, 0, 0.02), body=(0, 1, -2), torso=(4, -1, -4), head=(-6, 1, -10), RightArm={"aim": (-2.1, -1.0, 2.6), "pole": (-1, 0.3, -0.3)}, LeftArm={"aim": (1.9, -0.6, 2.5), "pole": (1, 0.6, 0)}, LeftLeg={"hip": (-4, 0, -3), "knee": 28}, RightLeg={"hip": (2, 0, 4), "knee": 30}, key=(2, 0, 0)),
 		jkey(4.4, "Recover = idle key 0: arms fold again, portals gone", fx=["jportals:0:close"]),
 	],
 }
 for _k in JMOVES["gates"]["keys"]:
 	_k["view"] = (0.4, -0.9, 0.15)  # more frontal than enuma's: the portal dome reads behind him, not over him
+# The owner's later look (2026-11-12, design doc 4.37 "Golden King effects stronger"; the sheets are the target the game matches):
+# the sunset room darkens as the portals open (dim, red per key); each portal is full before its blade shows, shots only from
+# portals holding one; thick gold streaks with white cores and sparkle dust; each hit a gold flash, shock ring, sparks and dust.
+JMOVES["gates"]["sky"] = [(1.0, 0), (0.8, 0), (0.45, 0), (0.2, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.18, 0), (0.7, 0)]
+JMOVES["gates"]["hitcam"] = (1, -0.2, 0.6)
+JMOVES["gates"]["note"] = "DODGE 0.00 - 1.60 s; event gates (20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, 14, one per 0.15 s (keys 5 - 9); idle by 4.40 s. The sunset room darkens as design C portals open in his sweep; a blade only in a full portal, shots only from blades (close views: the shot leaving; third view: the hits on the lanes)"
+JMOVES["enuma"]["sky"] = [(1.0, 0), (0.9, 0.15), (0.75, 0.35), (0.6, 0.6), (0.45, 0.85), (0.35, 1.0), "white", (0.3, 1.0), (0.35, 0.95), (0.8, 0.3)]
+JMOVES["enuma"]["hitcam"] = (0.2, -0.5, 1.0)
+JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; beam: white core in red and dark-red layers, a turning red-black cyclone (third view: the burst and smoke where it hits)"
 JMOVES["shields"] = {
 	"title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
 	"end": 2.6,
@@ -1070,6 +1223,10 @@ def frame_extra(rig, key):
 		pts += [to_world(rig, c) for c, _, _ in PORTALS]
 	if any(f.startswith("shield") for f in fx):
 		pts += [to_world(rig, (SHIELD_R * 1.4 * math.cos(a), SHIELD_R * 1.4 * math.sin(a), SHIELD_Z + dz)) for a in np.linspace(0, math.tau, 12) for dz in (-1.8, 1.8)]
+	if REWORK and "beam" in fx:  # the first stretch of the beam stays in the close views
+		ea = rig.parts["Ea"].matrix_world
+		tip, d = ea @ Vector((0, 0, rig.tip)), (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
+		pts += [tip + d * u * rig.k for u in (2.5, 5.0)]
 	if any(f.startswith("jportals") for f in fx):
 		pts += [to_world(rig, c + d) for c, r, _ in JPORTALS for d in (Vector((r, 0, r)), Vector((-r, 0, -r)))]
 	if any(f.startswith("jshields") for f in fx):
@@ -1108,8 +1265,12 @@ def run_move(scene, rig, name, move):
 			front = bk.fit(cam, pts, yaw @ Vector(move.get("front", (0, -1, 0.1))), FRONT[0] / FRONT[1], margin=0.85)
 			sp = float(np.linalg.norm(pts.max(axis=0) - pts.min(axis=0)))
 			clip = sp * 3 - sp * 0.75
+		JHITS.clear()
 		build_fx(rig, key.get("fx", []), seed=100 + i, t=key["t"], view=yaw @ Vector(key.get("view", move.get("view", (0.65, -0.75, 0.18)))))
-		look(scene, rig, move.get("look", "dark" if name.startswith("enuma") else "flat"))
+		if REWORK and "sky" in move:  # the owner's later look: the sunset room, dimmed or tinted per key
+			jlook(scene, rig, move["sky"][i])
+		else:
+			look(scene, rig, move.get("look", "dark" if name.startswith("enuma") else "flat"))
 		cell = {}
 		wide_only = [o for o in FX.objects if o.get("wide_only")]
 		for o in wide_only:  # halos are for the room-scale view; close up they bury him
@@ -1121,6 +1282,20 @@ def run_move(scene, rig, name, move):
 			cell[tag] = mk.shot(scene, os.path.join(TMP, f"{name}_{i}_{tag}.png"), size)
 		for o in wide_only:
 			o.hide_render = False
+		if REWORK and JHITS and "hitcam" in move:  # where the hits land: from above and to his side, him and the lanes in one frame
+			hc = sum(JHITS, Vector()) / len(JHITS)
+			me = to_world(rig, (0, 0, 4))
+			at = me.lerp(hc, 0.55)
+			eye = at + to_world_dir(rig, move["hitcam"]) * max((hc - me).length * 1.8, 60)
+			for o in FX.objects:
+				if o.get("close_only"):
+					o.hide_render = True
+			cam.data.type, cam.data.sensor_fit, cam.data.angle = "PERSP", "AUTO", math.radians(50)
+			cam.data.clip_start, cam.data.clip_end = 0.3, 4000
+			cam.location, cam.rotation_euler = eye, (at - eye).to_track_quat("-Z", "Y").to_euler()
+			cell["wide"] = mk.shot(scene, os.path.join(TMP, f"{name}_{i}_hits.png"), WIDE)
+			mk.shot(scene, os.path.join(TMP, f"{name}_{i}_hits_big.png"), (1280, 720))  # a full-size copy, for checking
+			cell["wide_label"] = "hits on the lanes (side view)"
 		if key.get("arena"):
 			look(scene, rig, key["arena"])
 			player_view(cam)
@@ -1183,7 +1358,7 @@ def sheet(name, move, cells, win=None):
 		bk.paste(px, cells[i]["main"], x, y)
 		bk.small_view(px, cells[i]["front"], x + MAIN[0], y, "front")
 		if "wide" in cells[i]:
-			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, "arena view (runner's camera)")
+			bk.small_view(px, cells[i]["wide"], x + MAIN[0], y + 32 + FRONT[1] + 12, cells[i].get("wide_label", "arena view (runner's camera)"))
 		head = f"{name}  key {i + 1} of {len(keys)}   {key['t']:.2f} s" + (f"   event {key['event']}" if "event" in key else "")
 		cap = key["cap"]
 		if len(cap) > 100:  # two lines: a long caption runs off the cell
@@ -1296,7 +1471,7 @@ def rework(argv):
 			"parents": JPARENT | {"Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}},
 			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
-			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand)",
+			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots land on the lanes with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework is a white core in red-black layers with a turning cyclone and a red-white burst with dark smoke where it hits",
 			"hover": {"studs_over_mound": HOVER_STUDS, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed, owner 2026-11-12; the bob is played in game, not keyed"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],

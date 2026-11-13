@@ -2119,7 +2119,7 @@
     },
     {
      "t": 0.8,
-     "caption": "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path",
+     "caption": "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path, the first ones full and pushing a blade out",
      "root_offset": [
       0,
       0,
@@ -2204,7 +2204,7 @@
      },
      "ea_shown": false,
      "effects": [
-      "jportals:0.45"
+      "jportals:0.45:tips"
      ]
     },
     {
@@ -2385,7 +2385,7 @@
      "ea_shown": false,
      "event": "gates",
      "effects": [
-      "jportals:1:tips",
+      "jportals:1.3:tips",
       "jvolley:0",
       "cmd:R"
      ]
@@ -2477,7 +2477,7 @@
      },
      "ea_shown": false,
      "effects": [
-      "jportals:1:tips",
+      "jportals:1.3:tips",
       "jvolley:1"
      ]
     },
@@ -2568,7 +2568,7 @@
      },
      "ea_shown": false,
      "effects": [
-      "jportals:1:tips",
+      "jportals:1.3:tips",
       "jvolley:5",
       "cmd:L"
      ]
@@ -2660,13 +2660,13 @@
      },
      "ea_shown": false,
      "effects": [
-      "jportals:1:tips",
+      "jportals:1.3:tips",
       "jvolley:9"
      ]
     },
     {
      "t": 3.6,
-     "caption": "Volley 14, the last: the hand sinks, portals start to shrink and close",
+     "caption": "Volley 14, the last, from portals still holding weapons: the hand sinks; the portals close after it",
      "root_offset": [
       -0.02,
       0,
@@ -2751,7 +2751,7 @@
      },
      "ea_shown": false,
      "effects": [
-      "jportals:0.75:close",
+      "jportals:1.3:tips",
       "jvolley:13"
      ]
     },
@@ -4752,7 +4752,7 @@
   ]
  },
  "ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
- "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand)",
+ "effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots land on the lanes with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework is a white core in red-black layers with a turning cyclone and a red-white burst with dark smoke where it hits",
  "hover": {
   "studs_over_mound": 12.0,
   "bob_studs": 1.5,
