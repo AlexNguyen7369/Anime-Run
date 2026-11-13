@@ -417,6 +417,7 @@ def check_bind(king, rework, bind):
 			assert grip is None or max(abs(a - b) for a, b in zip(grip, approved["ea_grip_offset"])) < 1e-3
 			_, body, root = king.frame(jkey["t"], state(approved), None)
 			world = joints(bind, body, root)
+			unsweep = Matrix.Rotation(math.radians(-jkey.get("sweep", 0)), 4, "Z")  # jsolve turns the rig by sweep; the game adds it
 			for p in PARTS:
 				if p in ("Ea",) + DRUMS:
 					if grip is None:  # Ea hidden: jsolve does not place it
@@ -426,6 +427,7 @@ def check_bind(king, rework, bind):
 						want = want @ Matrix.Rotation(math.radians(DRUM_SIGN[p] * jkey.get("spin", 0)), 4, "Z")
 				else:
 					want = m[MESH[p]] @ Matrix.Translation(king.pivots[p])
+				want = unsweep @ want
 				assert max(abs(a - b) for ra, rb in zip(want, world[p]) for a, b in zip(ra, rb)) < 1e-3, f"bind {p} at rework {name} {jkey['t']}"
 
 
