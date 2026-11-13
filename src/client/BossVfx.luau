@@ -302,7 +302,7 @@ local IMPACT_FLOOR = 0.5 -- of the full kick, however far the camera is
 local IMPACT_SHIFT = 0.3 -- studs of positional kick per degree of rotation kick
 local FLASH_FULL, FLASH_LOW = { Brightness = 0.25, Contrast = 0.2 }, { Brightness = 0.06, Contrast = 0 }
 -- A white full flash (the Elf Mage's first strike, as her approved slices' key 6), proposed
-local FLASH_WHITE = { Brightness = 0.6, Contrast = 0.05, Saturation = -0.6 }
+local FLASH_WHITE = { Brightness = 0.45, Contrast = 0.05, Saturation = -0.6 } -- she stays a grey shape in it
 local FLASH_SECONDS = 0.1
 local LIGHT_PULSE, LIGHT_SECONDS = 2.5, 0.25 -- x the light's own brightness at the peak, then back
 local impactLog, pulse, pulseToken = nil, nil, 0
@@ -1293,12 +1293,14 @@ function BossVfx.ScrubTime()
 	return scrub.Move, t
 end
 
--- After the boss's Vfx.Step: holds the effects once the frame at the scrub's time is drawn, a beat past it so the delayed draws
--- due at that time (a strike exactly at a key) are in the frame.
-local SCRUB_GRACE = 0.05
+-- After the boss's Vfx.Step: holds the effects one frame after the frame at the scrub's time, so the delayed draws due at that
+-- time (a strike exactly at a key) are in the frame and little else moves on.
 function BossVfx.ScrubStep()
-	if scrub and scrub.Reached and os.clock() - scrub.Born >= scrub.At + SCRUB_GRACE then
-		hold(true)
+	if scrub and scrub.Reached then
+		scrub.Frames = (scrub.Frames or 0) + 1
+		if scrub.Frames >= 2 then
+			hold(true)
+		end
 	end
 end
 
