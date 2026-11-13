@@ -63,7 +63,7 @@ local PER_STRIKE_MIN, PER_STRIKE_MAX = 7, 10 -- bolts or beams per strike
 local BARRAGE_WINDOW = Poses.Moves.barrage.Window[2] - Poses.Moves.barrage.Window[1]
 local LIGHTNING_WINDOW = Poses.Moves.lightning.Window[2] - Poses.Moves.lightning.Window[1]
 local SWEEP_PUFFS = 9
-local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
+local BOLT_TOP = 75 -- studs over the floor: the spot bolts fall from here (the huge ones from STORM_TOP)
 -- Owner 2026-11-12, matched to the approved lightning slices (proposed): thin jagged white-cored bolts in a soft deep violet halo,
 -- with small branches, 5 to 8 segments a bolt and 2 to 4 branches.
 -- Owner 2026-11-12 later (design doc 4.37 "Elf Mage target sheets"): a dark purple storm: thick white-violet bolts filling the view,
@@ -73,11 +73,11 @@ local BOLT_TOP = 95 -- studs over the floor: the bolts fall from the dome
 -- Studio pairs 2026-11-12: Neon reads wider than its size under the bloom, so the spot bolts are thin, jagged lines.
 local BOLT_SEGMENTS, BOLT_BRANCHES = { 6, 8 }, { 1, 3 }
 local BOLT_JAG = 9 -- studs a bolt's kink strays sideways at most
-local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 0.9, 2.6, 0.24 -- studs across the white core and the violet halo, s they show
+local BOLT_CORE, BOLT_GLOW, BOLT_SECONDS = 0.7, 2.0, 0.24 -- studs across the white core and the violet halo, s they show
 local BRANCH_CORE, BRANCH_LENGTH = 0.8, { 10, 26 } -- a branch's white core, studs across and long
 local GLOW_TRANSPARENCY = 0.7 -- the halo: soft, the core shows through, she stays readable
 local STORM_BOLTS, STORM_TOP, STORM_SEGMENTS = 4, 170, 9 -- huge bolts by her a strike, from this high, segments
-local STORM_CORE, STORM_GLOW, STORM_JAG = 2.4, 7, 20 -- their core and halo, studs across; their kinks stray this far
+local STORM_CORE, STORM_GLOW, STORM_JAG = 3, 9, 20 -- their core and halo, studs across; their kinks stray this far
 -- where they land: studs from her feet, and degrees off straight behind her as a runner's camera sees her (either side)
 local STORM_RANGE, STORM_TURN = { 28, 70 }, { 15, 140 }
 local STORM_RING = { 6, 30, 0.35 } -- the thin white ring at a huge bolt's foot: studs across from, to; s
@@ -93,7 +93,8 @@ local PINK_WHITE = Color3.fromRGB(255, 222, 255)
 local DIM_IN, DIM_OUT, DIM_TAIL = 0.25, 0.6, 0.5
 local STORM_IN = 0.9 -- s: her lightning's dim and haze from the move's start, full by about 0.9 s (the sheet's keys 2 and 3)
 local TORCH_TINT = Color3.fromRGB(190, 150, 255) -- the arena's lights turn violet as they dim
-local DIM_GRADE = { Brightness = -0.25, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(215, 190, 250) } -- lilac, not navy
+-- lilac, not navy, and not darker on top of the 25% light (Studio 2026-11-12: -0.25 read navy)
+local DIM_GRADE = { Brightness = -0.05, Contrast = 0.08, Saturation = 0.05, TintColor = Color3.fromRGB(230, 210, 255) }
 -- the barrage's grade: no tint, so its white and cyan stay white and cyan (the lilac tint read them lavender, Studio 2026-11-12)
 local BARRAGE_GRADE = { Brightness = -0.25, Contrast = 0.1, Saturation = 0, TintColor = Color3.fromRGB(240, 244, 255) }
 local TORCH_DIM = 0.25 -- dim and violet, not red
@@ -105,6 +106,7 @@ local BEAM_CORE, BEAM_GLOW, BEAM_EDGE = 3, 5, 6.8 -- studs across the barrage be
 local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
 -- Studio pairs 2026-11-12: short white-hot rays flying from the circles (not bars across the room), as the sheet's
 local RAY_LENGTH, RAY_SPEED = 34, 520 -- studs long, studs a second
+local RAY_CYAN = Color3.fromRGB(110, 210, 255) -- the rays' cyan glow
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
 -- Zoltraak circles around her (owner 2026-11-12, design doc 4.37; BOSS_EVENT_SPEC "Pose-tied effect values", proposed; replaces the
@@ -940,10 +942,10 @@ local function playCircle(k)
 		if not near then
 			table.insert(faces, glowImage(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6, 1.6))
 		end
-		table.insert(faces, glowImage(part, Art.Ring, WHITE, face, 0.6, 2.5)) -- the thin bright rim
+		table.insert(faces, glowImage(part, Art.Ring, WHITE, face, 0.6, near and 1.2 or 2.5)) -- the thin bright rim
 	end
 	for _, d in faces do
-		Kit.tween(d, brighten, { ImageTransparency = near and 0.3 or 0 })
+		Kit.tween(d, brighten, { ImageTransparency = near and 0.55 or 0 })
 	end
 	local light = nil
 	if slot % 2 == 0 and not near then
@@ -1006,8 +1008,8 @@ local function beam(circle, target, k, life)
 		"BarrageBeam",
 		start,
 		Vector3.new(BEAM_GLOW, BEAM_GLOW, length + BEAM_GLOW * 0.5),
-		k % 2 == 0 and CYAN or ICE,
-		0.35,
+		k % 2 == 0 and CYAN or RAY_CYAN,
+		0.45,
 		flight + 0.04
 	)
 	local core =
