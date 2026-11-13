@@ -104,8 +104,9 @@ local REWORK_KEYS = {
 			{ 4, "Head", Vector3.new(-20, 0, -4) },
 			{ 7, "RightUpperArm", Vector3.new(-61.696, -18.107, 35.789) },
 			{ 7, "RightLowerArm", Vector3.new(-1.25, 0, 0) },
-			{ 7, "LeftUpperArm", Vector3.new(-73.491, 16.134, -35.232) },
-			{ 7, "Ea", Vector3.new(37.914, -149.448, 75.806) },
+			-- Ea pitch re-keyed in keys 7-9, design doc 4.37 "Boss effects after playing", owner 2026-11-13
+			{ 7, "LeftUpperArm", Vector3.new(-66.663, 11.4, -33.937) },
+			{ 7, "Ea", Vector3.new(-152.138, -16.186, -94.126) },
 			{ 7, "Head", Vector3.new(-6, 10, 62) },
 			{ 7, "Key", Vector3.new(6, 10, 0) },
 			{ 7, "RightLowerLeg", Vector3.new(70, 0, 0) },
