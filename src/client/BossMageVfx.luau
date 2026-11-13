@@ -102,34 +102,34 @@ local BEAM_CORE, BEAM_GLOW, BEAM_EDGE, BEAM_SECONDS = 3, 5, 6.8, 0.25 -- studs a
 local BEAM_HEAD = 5 -- studs across the beam's rounded white head at the hit
 local CYAN = Color3.fromRGB(150, 225, 255) -- the beams' rims
 local BEAM_SPARKS, BEAM_SMOKE = 4, 2 -- particles at each barrage hit
-local CIRCLES = 10
--- Owner 2026-11-12 after playing (BOSS_EVENT_SPEC "Pose-tied effect values", proposed): 10, much bigger, one by one 0.15 s apart
--- from 0.2 s, all open before the beams at 2.0 s: the tenth opens at 0.2 + 9 x 0.15 = 1.55 s and is full by 1.75 s.
-local CIRCLE_SMALL, CIRCLE_LARGE = 30, 70 -- studs across, the first and the last circle: small to large
-local CIRCLE_FROM, CIRCLE_EVERY = 0.2, 0.15 -- s of barrage the first circle opens, s between two
+-- Zoltraak circles around her (owner 2026-11-12, design doc 4.37; BOSS_EVENT_SPEC "Pose-tied effect values", proposed; replaces the
+-- cluster in front of the staff): 16 circles, 24 to 40 studs, on a sphere of about 45 studs round her chest (a Fibonacci sphere),
+-- each facing outward, opening one by one 0.08 s apart from 0.3 s in a scattered order (the last full by about 1.7 s), soft
+-- cyan-white with bright rims, brightening to full by 1.85 s. A circle between her and this client's camera shows its rim only.
+local CIRCLES = 16
+local CIRCLE_SMALL, CIRCLE_LARGE = 24, 40 -- studs across
+local CIRCLE_RADIUS = 45 -- studs from her chest
+local CIRCLE_FROM, CIRCLE_EVERY = 0.3, 0.08 -- s of barrage the first circle opens, s between two
 local CIRCLE_OPEN = 0.2 -- s a circle takes to open (Quad, no overshoot)
--- Matched to the approved barrage slices: a loose cluster in front of the staff's tip along its aim, 1 to 1.5 staff lengths out,
--- facing the shot, turning with the staff, soft cyan-white, brightening to full by key 5 (1.85 s).
 local CIRCLE_TINT = Color3.fromRGB(205, 240, 255)
 local CIRCLE_BRIGHT_AT = 1.85 -- s of barrage
-local CIRCLE_LIGHT = { Color3.fromRGB(170, 230, 255), 2, 40 } -- each circle's light: colour, brightness when full, range
--- circle k's place in the cluster: { staff lengths past the tip, sideways and up as a fraction of its size }
--- (owner 2026-11-12, target sheets: pulled in to 1 to 1.5 staff lengths)
-local CIRCLE_CLUSTER = {
-	{ 1.0, 0, 0 },
-	{ 1.05, 0.35, 0.2 },
-	{ 1.1, -0.3, 0.3 },
-	{ 1.15, 0.1, -0.35 },
-	{ 1.2, -0.35, -0.2 },
-	{ 1.25, 0.4, -0.1 },
-	{ 1.3, -0.15, 0.4 },
-	{ 1.35, 0.3, 0.35 },
-	{ 1.42, -0.4, 0.05 },
-	{ 1.5, 0.05, -0.4 },
-}
+local CIRCLE_LIGHT = { Color3.fromRGB(170, 230, 255), 2, 40 } -- a light on every other circle: colour, brightness when full, range
+local CIRCLE_FACING_CAMERA = math.cos(math.rad(40)) -- within this of the camera's side of her: rim only
+-- The sphere's 16 directions (Fibonacci), and the scattered order they open in (5 is prime to 16: every slot once)
+local SPHERE = {}
+for i = 0, CIRCLES - 1 do
+	local y = 1 - 2 * (i + 0.5) / CIRCLES
+	local r, a = math.sqrt(1 - y * y), i * math.pi * (3 - math.sqrt(5))
+	SPHERE[i + 1] = Vector3.new(r * math.cos(a), y, r * math.sin(a))
+end
+local function slotOf(k)
+	return (k - 1) * 5 % CIRCLES + 1
+end
 local CHARGE_FROM = 0.6 -- s of lightning: the staff tip's charge from here to the strike (proposed)
 local CHARGE_RAYS, CHARGE_FLARE = { 14, 50 }, { 12, 34 }
-local CRACKLE_FROM, CRACKLE_EVERY, CRACKLES = 0.4, 0.08, 3 -- of the charge: crackles at the tip from here, s apart, a time -- studs: the starburst's ray length and flare size, from to at the strike
+-- studs: the starburst's ray length and flare size, from to at the strike; of the charge: crackles at the tip from here, s apart,
+-- how many a time
+local CRACKLE_FROM, CRACKLE_EVERY, CRACKLES = 0.4, 0.08, 3
 local SWEEP_AT = Poses.GolemMoves.golem_sweep.Events[1].Time
 local SWEEP_DUST = { SWEEP_AT - 0.4, SWEEP_AT + 0.4 } -- s of golem_sweep over which the puffs follow the fist (proposed)
 local RISE_DUST_AT, FALL_DUST_AT = 0.75, 0.55 -- s of golem (its scale starts growing) and of golem_fall (it sinks) (proposed)
@@ -219,7 +219,7 @@ local BossMageVfx = {}
 
 local effects, mage = nil, nil
 local tracked = {} -- part -> function giving its CFrame each frame
-local circles = {} -- the barrage's open circles, its beams' origins
+local circles = {} -- the barrage's open circles (part -> its outward direction), its beams' origins
 local pools = {} -- name -> idle pooled parts of that name's look (Transparency 1) in this arena's folder
 local hitSpot, hitEmitters = nil, {} -- the one spot the hit particles come from, its emitters by name
 local lightPool = {} -- idle floor lights (holder parts with a disabled PointLight)
@@ -883,23 +883,14 @@ end
 
 -- Barrage ------------------------------------------------------------------------------------------------------------------------
 
--- From CIRCLE_FROM, held over the window: circle k of the barrage opens CIRCLE_EVERY after the one before, in a loose cluster in front
--- of the staff's tip along its pointing (grip to tip), 1 to 3 staff lengths out, facing along it and turning with the staff, small to
--- large, soft cyan-white with a bright rim and its own light, brightening to full by CIRCLE_BRIGHT_AT; a white pop as it opens.
-local function circleFrame(k, size, born)
-	local place, turn = CIRCLE_CLUSTER[k], (k % 2 == 0 and 1 or -1) * math.rad(90)
-	return function()
-		local grip, tip = mage:Point("Staff", Vector3.zero), mage:Point("Staff", STAFF_TIP)
-		local reach = (tip - grip).Magnitude
-		local aim = reach > 0.01 and (tip - grip) / reach or Vector3.new(0, 0, -1)
-		local ref = math.abs(aim.Y) < 0.95 and Vector3.yAxis or Vector3.xAxis
-		local right = aim:Cross(ref).Unit
-		local up = right:Cross(aim)
-		local center = tip + aim * math.max(reach, 12) * place[1] + (right * place[2] + up * place[3]) * size
-		return CFrame.lookAt(center, center + aim) * CFrame.Angles(0, 0, turn * (os.clock() - born))
-	end
+-- Her chest now: the sphere's centre.
+local function chest()
+	local torso = mage.Her.Model and mage.Her.Model:FindFirstChild("Torso", true)
+	return torso and torso.Position or mage.Her.Anchor.Position
 end
 
+-- From CIRCLE_FROM, held over the window: circle k (in opening order) opens CIRCLE_EVERY after the one before at its slot on the
+-- sphere round her chest, facing outward, riding her, turning about its facing; a white pop as it opens.
 local function playCircle(k)
 	if k > CIRCLES or reduced() then
 		return 0
@@ -908,36 +899,55 @@ local function playCircle(k)
 		table.clear(circles)
 		startDim(Poses.Moves.barrage.Window[2] - CIRCLE_FROM + DIM_TAIL)
 	end
-	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * (k - 1) / (CIRCLES - 1)
-	local frame = circleFrame(k, size, os.clock())
+	local slot = slotOf(k)
+	local out = SPHERE[slot]
+	local size = CIRCLE_SMALL + (CIRCLE_LARGE - CIRCLE_SMALL) * ((slot * 7) % CIRCLES) / (CIRCLES - 1)
+	local turn, born = (k % 2 == 0 and 1 or -1) * math.rad(90), os.clock()
+	local function frame()
+		local center = chest() + out * CIRCLE_RADIUS
+		return CFrame.lookAt(center, center + out) * CFrame.Angles(0, 0, turn * (os.clock() - born))
+	end
 	local part = Kit.holder("MagicCircle", frame(), Vector3.new(1, 1, 0.2))
 	tracked[part] = frame
+	-- between her and this client's camera: the rim only, so she stays readable (the sheet's fainter near circles)
+	local camera = Workspace.CurrentCamera
+	local toCamera = camera and (camera.CFrame.Position - chest()) or Vector3.zero
+	local near = toCamera.Magnitude > 1 and out:Dot(toCamera.Unit) > CIRCLE_FACING_CAMERA
 	local opensAt = CIRCLE_FROM + (k - 1) * CIRCLE_EVERY
 	local brighten = math.max(0.15, CIRCLE_BRIGHT_AT - opensAt)
 	local faces = {}
 	for _, face in Kit.UprightFaces do
-		table.insert(faces, Kit.decal(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6))
+		if not near then
+			table.insert(faces, Kit.decal(part, MageArt.MagicCircle, CIRCLE_TINT, face, 0.6))
+		end
 		table.insert(faces, Kit.decal(part, Art.Ring, WHITE, face, 0.6)) -- the bright rim
 	end
 	for _, d in faces do
-		Kit.tween(d, brighten, { Transparency = 0 })
+		Kit.tween(d, brighten, { Transparency = near and 0.35 or 0 })
 	end
-	local light = Instance.new("PointLight")
-	light.Color, light.Brightness, light.Range, light.Shadows = CIRCLE_LIGHT[1], 0, CIRCLE_LIGHT[3], false
-	light.Parent = part
-	Kit.tween(light, brighten, { Brightness = CIRCLE_LIGHT[2] })
+	local light = nil
+	if slot % 2 == 0 and not near then
+		light = Instance.new("PointLight")
+		light.Color, light.Brightness, light.Range, light.Shadows = CIRCLE_LIGHT[1], 0, CIRCLE_LIGHT[3], false
+		light.Parent = part
+		Kit.tween(light, brighten, { Brightness = CIRCLE_LIGHT[2] })
+	end
 	Kit.tween(part, CIRCLE_OPEN, { Size = Vector3.new(size, size, 0.2) })
-	local pop = pooled("CirclePop", frame(), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
-	Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.3 })
+	if not near then
+		local pop = pooled("CirclePop", frame(), Vector3.one * 4, WHITE, 0, 0.25, ballLook) -- the white burst as it opens
+		Kit.tween(pop, 0.25, { Size = Vector3.one * size * 0.3 })
+	end
 	local hold = BARRAGE_AT - opensAt + BARRAGE_WINDOW
 	Kit.after(hold + 0.25, function()
 		for _, d in faces do
 			Kit.tween(d, 0.3, { Transparency = 1 })
 		end
-		Kit.tween(light, 0.3, { Brightness = 0 })
+		if light then
+			Kit.tween(light, 0.3, { Brightness = 0 })
+		end
 	end)
 	Kit.expire(part, hold + 0.6)
-	table.insert(circles, part)
+	circles[part] = out
 	return 0
 end
 
@@ -978,12 +988,20 @@ local function playBarrage()
 		return logHits("Barrage", list, 0.1, 18)
 	end
 	startDim(Poses.Moves.barrage.Window[2] - BARRAGE_AT + DIM_TAIL, true)
-	for j, strike in list do
+	for _, strike in list do
 		later(strike.T, function()
 			local total = 0
+			local center = chest()
 			for k, target in strike.Spots do
-				local circle = #circles > 0 and circles[(j + k - 2) % #circles + 1]
-				total += beam(circle and circle.Parent and circle, target, k)
+				-- the open circle nearest the spot's direction from her chest: the beam flies outward from it to the spot
+				local toward = (target - center).Magnitude > 0.1 and (target - center).Unit or Vector3.yAxis
+				local best, bestDot = nil, -math.huge
+				for circle, out in circles do
+					if circle.Parent and out:Dot(toward) > bestDot then
+						best, bestDot = circle, out:Dot(toward)
+					end
+				end
+				total += beam(best, target, k)
 			end
 			roomLight(mage.Her.Anchor.Position + Vector3.new(0, 30, 0), ICE, 3, 0.2)
 			if strike.T == 0 then -- the first strike flashes the whole room white (the slices' key 6)
