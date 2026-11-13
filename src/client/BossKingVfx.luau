@@ -88,7 +88,7 @@ local WIND_TURN_EARLY, WIND_TURN_LATE = 0.8, 0.35 -- s a turn
 local WIND_RAMP_FROM, WIND_RAMP_TO = 0.5, 2.75 -- s into the charge
 local WIND_RIBBONS = 6
 -- The white helix (sheets' enuma keys 3 to 6): radius, studs a turn, from and to along Ea from its tip, width, s it shows from
-local HELIX = { 9, 16, -44, 8, 1.1, 0.9 } -- proposed
+local HELIX = { 11, 18, -85, 8, 1.1, 0.9 } -- proposed (Studio 2026-11-12: reaches down round him, as the sheets)
 local WIND_CLIMB = 1.2 -- s for a ribbon to climb from his feet to Ea's tip
 local WIND_RADIUS_FEET, WIND_RADIUS_TIP, WIND_WIDTH = 12, 5, 1.6 -- studs
 local SHIELD_CALL = 0.6 -- s of shields: his call key (rework keys), the ring opens
