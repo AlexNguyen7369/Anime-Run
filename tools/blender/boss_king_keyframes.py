@@ -650,9 +650,9 @@ JMOVES = {
 			{"t": 1.45, "cap": "Settle, charge holds: Ea back upright, left fist braced low, white ball and red rings at the tip, grooves glow", "fx": ["arrows", "wind", "charge", "ball:0.5"], "root": (0, 0, 0.25), "body": (0, 0, 4), "torso": (-10, 4, 6), "head": (-20, 0, -4), "RightArm": {"aim": (-1.8, -0.2, 6.0)}, "LeftArm": {"aim": (2.5, -1.2, 2.3)}, "LeftLeg": {"hip": (-6, 0, -4), "knee": 25}, "RightLeg": {"hip": (12, 0, 6), "knee": 40}, "key": (-4, 0, 0), "ea": {"dir": (-0.1, 0.05, 1)}, "spin": 200},
 			{"t": 2.1, "cap": "Charge, strain: he rises and leans back into the wind, left forearm shields his face, legs blown back, drums faster", "fx": ["arrows", "wind", "charge", "ball:0.9"], "root": (0.25, 0.15, 0.45), "body": (0, -6, 8), "torso": (-16, -6, 8), "head": (-22, -4, -8), "RightArm": {"aim": (-1.7, 0.3, 6.0)}, "LeftArm": {"aim": (0.4, -1.6, 4.4), "pole": (1, 0.3, -1)}, "LeftLeg": {"hip": (14, 0, -8), "knee": 45}, "RightLeg": {"hip": (4, 0, 10), "knee": 20}, "key": (-8, 0, 0), "ea": {"dir": (-0.05, 0.15, 1)}, "spin": 450},
 			{"t": 2.75, "cap": "Wind-up: Ea cocked far back behind his head, left arm points at the arena, back arched, left knee drawn up, at his highest", "fx": ["arrows", "wind", "charge", "ball:1.4", "gather"], "root": (0, 0.35, 0.6), "body": (0, 0, -20), "torso": (-26, 0, -10), "head": (-8, 0, 8), "RightArm": {"aim": (-1.4, 1.2, 5.0), "pole": (-1, 0, -0.3)}, "LeftArm": {"aim": (1.6, -1.8, 4.0)}, "LeftLeg": {"hip": (-75, 0, -6), "knee": 95}, "RightLeg": {"hip": (18, 0, 6), "knee": 60}, "key": (-12, 0, 0), "ea": {"dir": (-0.1, 0.9, 0.45)}, "spin": 720},
-			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.15)}, "spin": 820},
-			{"t": 3.9, "cap": "Beam drive: hips lead the sweep across the lanes, torso lags, both hands on Ea, legs braced back against the recoil", "fx": ["beam", "arrows"], "root": (-0.25, 0, -0.2), "body": (0, 0, -70), "torso": (4, 18, -12), "head": (-4, 8, 58), "RightArm": {"aim": (-0.4, -1.4, 3.0)}, "LeftArm": "grip", "LeftLeg": {"hip": (-10, -16, 0), "knee": 35}, "RightLeg": {"hip": (20, -28, 0), "knee": 45}, "key": (4, 8, 0), "ea": {"dir": (1, -0.35, -0.1)}, "spin": 1000},
-			{"t": 4.85, "cap": "Beam end: the far side of the ring, recoil pushes him upright, Ea lifts, legs swing through", "fx": ["beam", "arrows"], "root": (-0.15, 0, -0.1), "body": (0, 0, 72), "torso": (-6, 4, -22), "head": (-10, 0, 50), "RightArm": {"aim": (-0.3, -1.4, 3.3)}, "LeftArm": "grip", "LeftLeg": {"hip": (6, -6, 0), "knee": 60}, "RightLeg": {"hip": (-20, -12, 0), "knee": 30}, "key": (0, 4, 0), "ea": {"dir": (1, -0.3, 0.12)}, "spin": 1180},
+			{"t": 3.0, "view": (0.25, 1, 0.2), "cap": "Contact (hit): swung down side-on, both hands on Ea levelled at the arena, torso thrown into it, legs kicked back; white flash, beam", "event": "Beam", "fx": ["flash", "beam", "arrows"], "root": (-0.3, 0, -0.3), "body": (0, 0, -180), "torso": (8, 26, 10), "head": (-6, 10, 62), "RightArm": {"aim": (-0.2, -1.3, 2.9)}, "LeftArm": "grip", "LeftLeg": {"hip": (-24, -10, 0), "knee": 50}, "RightLeg": {"hip": (14, -22, 0), "knee": 70}, "key": (6, 10, 0), "ea": {"dir": (1, -0.35, -0.2)}, "spin": 820},
+			{"t": 3.9, "cap": "Beam drive: his whole body sweeps round over the lanes, hips lead, torso lags, both hands on Ea, legs braced against the recoil", "fx": ["beam", "arrows"], "root": (-0.25, 0, -0.2), "body": (0, 0, -70), "torso": (4, 18, -12), "head": (-4, 8, 58), "RightArm": {"aim": (-0.4, -1.4, 3.0)}, "LeftArm": "grip", "LeftLeg": {"hip": (-10, -16, 0), "knee": 35}, "RightLeg": {"hip": (20, -28, 0), "knee": 45}, "key": (4, 8, 0), "ea": {"dir": (1, -0.35, -0.2)}, "spin": 1000},
+			{"t": 4.85, "cap": "Beam end: the sweep closes its circle, recoil pushes him upright, Ea held down on the lanes, legs swing through", "fx": ["beam", "arrows"], "root": (-0.15, 0, -0.1), "body": (0, 0, 72), "torso": (-6, 4, -22), "head": (-10, 0, 50), "RightArm": {"aim": (-0.3, -1.4, 3.3)}, "LeftArm": "grip", "LeftLeg": {"hip": (6, -6, 0), "knee": 60}, "RightLeg": {"hip": (-20, -12, 0), "knee": 30}, "key": (0, 4, 0), "ea": {"dir": (1, -0.3, -0.22)}, "spin": 1180},
 			{"t": 5.6, "cap": "Recover = idle key 0: arms folded again, Ea sinks back into its ripple, drums slow", "fx": ["draw", "embers"], **IDLE0, "ea": EA_OUT, "spin": 1260},
 		],
 	},
@@ -666,26 +666,37 @@ HOVER_STUDS = 12.0  # proposed (owner 2026-11-12: he hovers as the Elf Mage does
 # 12 slanted rays (one long). They open in his right arm's sweep, his left side first (spec: a growing cascade).
 
 
+# The Gates dome (owner 2026-11-13 later, design doc 4.37 "Boss effects after playing"; every value proposed): fixed tiers on a
+# dome round his chest, evenly spaced, alternate tiers offset half a step, none over DOME_TOP (open sky over him), larger low.
+DOME_C, DOME_R = Vector((0, 0, 3.6)), 8.7  # his chest; 8.7 units = 58 studs at 8x
+DOME_TIERS = ((8, 16, 28), (22, 14, 22), (38, 12, 18), (55, 8, 14))  # (elevation degrees, portals, studs across)
+DOME_TOP = 60  # degrees: no portal above this
+LANE_MID = 138.0  # studs from his centre: each portal faces this ring on the deck (lanes 110 to 166)
+JVOLLEY = 16  # weapons a volley from the dome (proposed; the old arch fired VOLLEY)
+
+
 def jportal_set():
-	"""(centre, radius, facing) per portal, model units, in his sweep order (his left, round the back, to his right): a dome behind
-	and above him, 1.25 x the old size, each facing the lanes in front (-Y) and a little down."""
-	rng = random.Random(11)
+	"""(centre, radius, facing) per portal, model units: the ordered dome, each portal facing outward from him and tilted down to
+	the lanes straight out from it, so its weapon and shot fly along that facing (design doc 4.37 "Beams follow their source").
+	Sorted in his sweep order for the cascade: his left (+X) first, round the back (+Y), to his front."""
+	k = SIZE * CHAR_H / 6.63
+	floor = -HOVER_STUDS / k  # the deck: his rest feet minus the hover
 	out = []
-	for i in range(N_PORTALS):
-		u = i / (N_PORTALS - 1)
-		th = math.radians(-5 + 190 * u)  # 0 degrees is his left (+X), 90 his back (+Y)
-		high = i % 2  # alternate a low and a high row
-		r = (5.6 if not high else 4.6) + rng.uniform(-0.4, 0.4)
-		c = Vector((r * math.cos(th), r * math.sin(th) + 1.4, (3.4 if not high else 7.6) + 1.6 * math.sin(math.pi * u) + rng.uniform(-0.5, 0.5)))
-		size = 1.25 * rng.uniform(0.8, 1.2)
-		# Each portal faces a spot on the lanes (110 to 166 studs out, proposed ring), fanned with its place round him: its weapon
-		# and shot fly straight out along that facing (design doc 4.37 "Beams follow their source").
-		lane = Vector((1.6 * c.x + rng.uniform(-3, 3), -rng.uniform(17.5, 24), -HOVER_STUDS / (SIZE * CHAR_H / 6.63)))
-		out.append((c, size, (lane - c).normalized()))
+	for t, (el, n, across) in enumerate(DOME_TIERS):
+		assert el <= DOME_TOP
+		e = math.radians(el)
+		for i in range(n):
+			az = math.tau * (i + 0.5 * (t % 2)) / n
+			h = Vector((math.cos(az), math.sin(az), 0))
+			c = DOME_C + h * DOME_R * math.cos(e) + Vector((0, 0, DOME_R * math.sin(e)))
+			lane = h * (LANE_MID / k) + Vector((0, 0, floor))
+			out.append((c, across / 2 / k, (lane - c).normalized()))
+	out.sort(key=lambda p: (math.atan2(p[0].y, p[0].x) % math.tau, p[0].z))
 	return out
 
 
 JPORTALS = jportal_set()
+assert len(JPORTALS) == sum(n for _, n, _ in DOME_TIERS) and all(p[2].z < 0 for p in JPORTALS)  # every portal tilts down to the lanes
 JSHIELD_R = 4.6  # the rework's shield ring radius, model units (proposed)
 CREAM, BROWN = (1.0, 0.95, 0.75), (0.2, 0.11, 0.05)
 
@@ -740,7 +751,7 @@ def portal_c(rig, c, rad, n, grow=1.0, tip=False, turn=0.0, cw=None, nw=None):
 def fx_jportals(rig, arg):
 	"""jportals:<f>[:tips|:close]: the first f of JPORTALS (sweep order) opening; the cascade grows a dot, a small wheel, full."""
 	frac, _, mode = arg.partition(":")
-	opened = float(frac) * (N_PORTALS + 1.5)
+	opened = float(frac) * (len(JPORTALS) + 1.5)
 	for i, (c, rad, n) in enumerate(JPORTALS):
 		g = min(max((opened - i) / 1.5, 0.0), 1.0)
 		tip = min(max((opened - i - 2.0) / 1.5, 0.0), 1.0) if mode == "tips" else 0.0  # the blade only once the portal is full
@@ -752,7 +763,7 @@ def fx_jportals(rig, arg):
 			continue
 		portal_c(rig, c, rad, n, grow=g, tip=tip if g >= 1 else 0.0, turn=0.4 * i * (1 if i % 2 else -1))
 		if REWORK and g >= 1:  # each open portal lights the darkening room round it
-			mk.lamp(to_world(rig, c + n * rad * 0.6), GOLD, 1.5e3 * (SIZE / 4) ** 2, 2)
+			mk.lamp(to_world(rig, c + n * rad * 0.6), GOLD, 1.5e3 * (SIZE / 4) ** 2 * N_PORTALS / len(JPORTALS) * 1.5, 2)
 	if float(frac) > 0.3 and mode != "close":
 		mk.lamp(to_world(rig, (0, 3, 7)), GOLD, 0.5e4 * (SIZE / 4) ** 2 * min(float(frac), 1.0), 6)
 
@@ -766,7 +777,7 @@ def fx_jvolley(rig, arg):
 			continue
 		rng = random.Random(700 + jj)
 		floor = -HOVER_STUDS / k  # the mound top, model units below his rest feet
-		for i in rng.sample(range(N_PORTALS), VOLLEY):
+		for i in rng.sample(range(len(JPORTALS)), JVOLLEY):
 			c, rad, n = JPORTALS[i]
 			start = c + n * rad * 1.1  # from the weapon's tip: a shot only leaves a portal holding a weapon
 			end = c + n * ((c.z - floor) / -n.z)  # straight out along the portal's facing to the floor (owner 2026-11-12)
@@ -850,33 +861,29 @@ def gold_hit(rig, q, rng):
 
 
 def beam_line(rig):
-	"""Enuma Elish's beam line: Ea's tip, its blade axis, and where the line leaves the far lane edge (166 studs from him,
-	proposed ring) or meets the floor."""
+	"""Enuma Elish's beam line: Ea's tip, its blade axis, and where that axis meets the deck (owner 2026-11-13 later: exactly along
+	the blade, no clamp, no tilt; where it lands follows the pose), or 320 studs out if it points up."""
 	ea = rig.parts["Ea"].matrix_world
 	tip = ea @ Vector((0, 0, rig.tip))
 	d = (ea.to_3x3() @ Vector((0, 0, 1))).normalized()
-	centre = rig.king.matrix_world.translation
-	a2, b2 = d.x**2 + d.y**2, 2 * ((tip.x - centre.x) * d.x + (tip.y - centre.y) * d.y)
-	c2 = (tip.x - centre.x) ** 2 + (tip.y - centre.y) ** 2 - 166.0**2
-	L = (-b2 + math.sqrt(b2 * b2 - 4 * a2 * c2)) / (2 * a2)
-	if d.z < 0:
-		L = min(L, (tip.z - rig.stand) / -d.z)
+	L = (tip.z - rig.stand) / -d.z if d.z < 0 else 320.0
 	return tip, d, tip + d * L
 
 
+BEAM_VIEW = None  # world direction toward the camera for the rim lines; None: side-on to the beam, raised (the sheet's beam view)
+# Beam layers, radii in studs (owner 2026-11-13: every layer 1.5 x; proposed): hot core 21, red 60, outer 90, cyclone 99 across
+BEAM_CORE, BEAM_HOT, BEAM_RED, BEAM_OUTER, BEAM_CYCLONE = 10.5, 18.0, 30.0, 45.0, 49.5
+
+
 def jbeam(rig, t):
-	"""Enuma Elish's beam (owner 2026-11-12, "Beams follow their source", "more wide and bigger, causing a bigger impact", clip 2):
-	straight along Ea's blade axis from the tip, a red-and-black energy blast about 60 studs across (white core 14, deep crimson
-	40, black-red outer 60, a dark-red volume round it), black energy strands and red lightning wrapping it, a red-black cyclone
-	turning round it; where it lands, a red-black shock wave over the floor, a burst of red fire and black smoke."""
+	"""Enuma Elish's beam (owner 2026-11-12 "Beams follow their source", 2026-11-13 energy look with hard black and red): straight
+	along Ea's blade axis from the tip; a yellow-white hot core that fills it, orange fire billows streaming inside, a translucent
+	red layer with two thin bright red rim lines, a black-red outer layer, black strands and red lightning, a red-black cyclone
+	turning round it; where it lands, a red-white burst, a red-black shock wave over the floor, fire, black smoke and rubble."""
 	k = rig.k
 	tip, d, end = beam_line(rig)
 	L = (end - tip).length
 	JHITS.append(end.copy())
-	mk.tube([tip, end], 7.0, mk.glow_mat("BeamWhite", (1, 0.9, 0.75), 2.5))  # radii in studs
-	mk.tube([tip, end], 20.0, mk.glow_mat("BeamCrimson", (0.55, 0.0, 0.01), 1.0, 0.95))
-	mk.tube([tip, end], 30.0, mk.glow_mat("BeamDark", (0.12, 0.0, 0.0), 1.0, 0.7))
-	mk.tube([tip, end], 40.0, mk.glow_mat("BeamVolume", (0.25, 0.0, 0.0), 0.6, 0.3))
 	side = d.orthogonal().normalized()
 	up = d.cross(side)
 	rng = random.Random(int(t * 100))
@@ -884,42 +891,57 @@ def jbeam(rig, t):
 	def around(u, ang, rad):
 		return tip + d * (u * L) + (side * math.cos(ang) + up * math.sin(ang)) * rad
 
+	mk.tube([tip, end], BEAM_CORE, mk.glow_mat("BeamHotCore", (1, 0.95, 0.62), 5.0))
+	mk.tube([tip, end], BEAM_HOT, mk.glow_mat("BeamHot", (1, 0.7, 0.2), 3.0, 0.6))
+	for j in range(int(L / 3) + 6):  # orange fire billows streaming out from the tip inside the beam
+		u = rng.uniform(0.02, 1.0)
+		ang, rad = rng.uniform(0, math.tau), rng.uniform(6, 20)
+		mk.ball(around(u, ang, rad), rng.uniform(4, 8), mk.glow_mat("BeamBillow" if j % 3 else "BeamBillowY", (1, 0.42, 0.05) if j % 3 else (1, 0.78, 0.3), 3.0, 0.7))
+	mk.tube([tip, end], BEAM_RED, mk.glow_mat("BeamRed", (0.95, 0.06, 0.02), 3.0, 0.5))
+	mk.tube([tip, end], BEAM_OUTER, mk.glow_mat("BeamOuter", (0.3, 0.0, 0.0), 1.2, 0.45))
+	view = BEAM_VIEW or (Vector((-d.y, d.x, 0)).normalized() + Vector((0, 0, 0.3)))
+	edge = d.cross(Vector(view)).normalized()
+	for sgn in (1, -1):  # two thin bright red rim lines along its edges, as the camera sees them
+		for rad, w in ((BEAM_RED, 0.9), (BEAM_OUTER - 1.5, 1.3)):
+			mk.tube([tip + edge * sgn * rad, end + edge * sgn * rad], w, mk.glow_mat("BeamRim", (1, 0.1, 0.06), 9))
 	for h in range(4):  # the cyclone: four strands turning round the blast, crimson and black
 		ph = h * math.tau / 4 + t * 9
-		pts = [around(u, ph + u * 18, 33 + 8 * u) for u in np.linspace(0, 1, 160)]
-		mk.tube(pts, 1.6, mk.glow_mat("CycloneDark" if h % 2 else "CycloneCrimson", (0.02, 0, 0) if h % 2 else (0.7, 0.02, 0.02), 1.0, 0.85))
-	for j in range(10):  # black energy strands: jagged lines wrapping the outer layer
+		pts = [around(u, ph + u * 9, BEAM_CYCLONE + 6 * u) for u in np.linspace(0, 1, 160)]
+		mk.tube(pts, 2.2, mk.glow_mat("CycloneDark" if h % 2 else "CycloneCrimson", (0.02, 0, 0) if h % 2 else (0.75, 0.02, 0.02), 1.2, 0.95))
+	for j in range(6):  # black energy strands: jagged lines wrapping the outer layer
 		ang, u = rng.uniform(0, math.tau), rng.uniform(0, 0.1)
 		pts = []
 		while u < 1:
-			pts.append(around(u, ang, rng.uniform(24, 32)))
-			u += rng.uniform(0.015, 0.04)
+			pts.append(around(u, ang, rng.uniform(36, 46)))
+			u += rng.uniform(0.02, 0.06)
 			ang += rng.uniform(-0.7, 0.7)
-		mk.tube(pts, 1.3, mk.glow_mat("CrackleBlack", (0.01, 0.0, 0.0), 1.0, 0.95))
-	for j in range(9):  # red lightning wrapping it
-		ang, u0 = rng.uniform(0, math.tau), rng.uniform(0, 0.85)
-		pts = [around(u0 + 0.01 * q, ang + rng.uniform(-0.6, 0.6), rng.uniform(16, 30)) for q in range(14)]
-		mk.tube(pts, 0.8, mk.glow_mat("RedBolt", (1, 0.12, 0.08), 4))
-	mk.ball(tip, 2.4 * k, mk.glow_mat("TipGlow", (1, 0.7, 0.5), 2.5, 0.85))
+		mk.tube(pts, 1.5, mk.glow_mat("CrackleBlack", (0.01, 0.0, 0.0), 1.0, 0.97))
+	for j in range(6):  # red lightning wrapping it
+		ang, u0 = rng.uniform(0, math.tau), rng.uniform(0, 0.8)
+		pts = [around(u0 + 0.015 * q, ang + rng.uniform(-0.6, 0.6), rng.uniform(26, 46)) for q in range(14)]
+		mk.tube(pts, 1.2, mk.glow_mat("RedBolt", (1, 0.12, 0.08), 6))
+	mk.ball(tip, 1.2 * k, mk.glow_mat("TipGlow", (1, 0.85, 0.55), 3.0, 0.85))
 	ground = Vector((end.x, end.y, rig.stand + 0.5))
-	# The impact is sized to the beam's reach (it meets the floor 70 to 170 studs out), so it never swallows him.
-	f = min(L, 170.0) / 170.0
-	mk.ball(end, 20 * f + 6, mk.glow_mat("BurstCore", (1, 0.85, 0.55), 2.5))
-	mk.ball(end, 34 * f + 8, mk.glow_mat("BurstFire", (0.85, 0.1, 0.0), 1.2, 0.6))
 	away = Vector((d.x, d.y, 0)).normalized()  # the burst leans away from him, the way the blast travels
-	for rr, w, mat in ((60, 4.0, mk.glow_mat("ShockCrimson", (0.8, 0.02, 0.0), 2, 0.95)), (72, 6.0, mk.glow_mat("ShockDark", (0.02, 0.0, 0.0), 1.0, 0.9)), (44, 2.5, mk.glow_mat("ShockHot", (1, 0.5, 0.2), 3, 0.9))):
-		mk.ring(ground + away * rr * f * 0.35, rr * f + 10, w, mat)  # the shock wave over the floor
-	for j in range(16):  # a wall of red and yellow fire tongues
-		a = math.tau * j / 16 + rng.uniform(-0.15, 0.15)
-		base = ground + away * 12 * f + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(8, 34) * f
-		top = base + Vector((rng.uniform(-6, 6), rng.uniform(-6, 6), rng.uniform(45, 90) * f + 10))
-		mid = base.lerp(top, 0.5) + Vector((rng.uniform(-5, 5), rng.uniform(-5, 5), 0))
-		mk.tube([base, mid, top], rng.uniform(4, 8), mk.glow_mat("FireCrimson" if j % 3 else "FireYellow", (0.9, 0.08, 0.0) if j % 3 else (1, 0.7, 0.15), 1.6, 0.85))
-	for j in range(12):  # black smoke rolling up round it
-		a = math.tau * j / 12 + rng.uniform(-0.3, 0.3)
-		v = away * 20 * f + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(30, 55) * f + Vector((0, 0, rng.uniform(25, 95) * f))
-		mk.ball(ground + v, rng.uniform(9, 15) * f + 3, mk.glow_mat("Smoke", (0.015, 0.003, 0.003), 1.0, 0.8))
-	mk.lamp(tip + d * 30, (1, 0.1, 0.05), 2e6, 20)
+	mk.ball(end, 14, mk.glow_mat("BurstCore", (1, 0.8, 0.65), 6))  # red-white: a white-hot heart in a red fireball
+	mk.ball(end + away * 8, 24, mk.glow_mat("BurstFire", (0.95, 0.08, 0.02), 2.0, 0.45))
+	for rr, w, mat in ((70, 5.0, mk.glow_mat("ShockCrimson", (0.9, 0.03, 0.0), 3, 0.95)), (88, 8.0, mk.glow_mat("ShockDark", (0.02, 0.0, 0.0), 1.0, 0.92)), (52, 3.0, mk.glow_mat("ShockHot", (1, 0.85, 0.7), 5, 0.9))):
+		mk.ring(ground + away * rr * 0.35, rr, w, mat)  # the shock wave over the floor
+	for j in range(12):  # low red and orange fire tongues at the lane end, beyond the hit
+		a = math.tau * j / 12 + rng.uniform(-0.15, 0.15)
+		base = ground + away * 30 + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(8, 30)
+		top = base + Vector((rng.uniform(-5, 5), rng.uniform(-5, 5), rng.uniform(14, 34)))
+		mk.tube([base, base.lerp(top, 0.5) + Vector((rng.uniform(-4, 4), rng.uniform(-4, 4), 0)), top], rng.uniform(2.5, 4.5), mk.glow_mat("FireCrimson" if j % 3 else "FireOrange", (0.95, 0.06, 0.0) if j % 3 else (1, 0.45, 0.05), 2.0, 0.85))
+	for j in range(6):  # a little black smoke low beyond the hit, never over the beam
+		a = math.tau * j / 6 + rng.uniform(-0.3, 0.3)
+		v = away * 60 + Vector((math.cos(a), math.sin(a), 0)) * rng.uniform(10, 28) + Vector((0, 0, rng.uniform(4, 22)))
+		mk.ball(ground + v, rng.uniform(5, 9), mk.glow_mat("Smoke", (0.015, 0.003, 0.003), 1.0, 0.85))
+	rubble = mk.matte_mat("Rubble", (0.16, 0.1, 0.08))
+	for j in range(26):  # rubble chunks thrown up and out of the deck
+		a = rng.uniform(0, math.tau)
+		r, hgt = rng.uniform(15, 60), rng.uniform(3, 45)
+		mk.ball(ground + away * 10 + Vector((math.cos(a) * r, math.sin(a) * r, hgt)), rng.uniform(1.5, 4.5), rubble)
+	mk.lamp(tip + d * 30, (1, 0.5, 0.2), 2e6, 20)
 	mk.lamp(end + Vector((0, 0, 60)), (1, 0.3, 0.1), 3e6, 30)
 
 
@@ -1026,18 +1048,18 @@ JMOVES["idle"] = {
 }
 AKIMBO_L = {"aim": (2.1, -0.4, 2.45), "pole": (1, 0.6, 0)}  # left fist on his hip, elbow out
 JMOVES["gates"] = {
-	"title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens the portals, a command fires the volleys",
+	"title": "Gates of Babylon (rework, jointed rig, hovering): a sweep of his right arm opens an ordered dome of portals round him, a command fires the volleys",
 	"end": 4.4,
 	"window": [0.0, 1.6],
 	"strike_window": [1.6, 3.6],
 	"cols": 5,
 	"look": "dark",
-	"note": "DODGE WINDOW 0.00 - 1.60 s (before the volleys); event gates (the 20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, one every 0.15 s (14), keys 5 to 9; recover to idle by 4.40 s. Portals: design C, the sun wheel (sketch), opening in his arm's sweep, his left side first",
+	"note": "DODGE WINDOW 0.00 - 1.60 s (before the volleys); event gates (the 20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, one every 0.15 s (14), keys 5 to 9; recover to idle by 4.40 s. Portals: design C, the sun wheel (sketch), opening in his arm's sweep, his left side first, on an ordered dome round him",
 	"keys": [
 		jkey(0.0, "Idle key 0, Dodge bar opens: arms folded, still; one gold dot behind his left shoulder", fx=["jportals:0.04"]),
-		jkey(0.4, "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals open on his left", fx=["jportals:0.14"], root=(0, 0, -0.08), body=(0, 0, 8), torso=(10, 0, 18), head=(-4, 0, -16), RightArm={"aim": (-0.35, -1.2, 3.2), "pole": (-1, -0.2, -0.3)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-22, 0, -4), "knee": 46}, RightLeg={"hip": (-8, 0, 5), "knee": 40}, key=(6, 0, 0)),
-		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; portals cascade behind him in its path, the first ones full and pushing a blade out", fx=["jportals:0.45:tips"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
-		jkey(1.2, "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; all 16 portals open, weapon tips push through (held still)", fx=["jportals:1:tips"], root=(0, 0, 0.1), body=(0, 2, -6), torso=(-8, -6, -12), head=(-14, 4, -2), RightArm={"aim": (-2.4, -0.4, 5.2)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (2, 0, -5), "knee": 24}, RightLeg={"hip": (10, 0, 6), "knee": 38}, key=(-4, 0, 0)),
+		jkey(0.4, "Coil: right hand unfolds and drops across to his left hip, torso twists left, eyes stay on the lanes; first portals of the dome open on his left", fx=["jportals:0.14"], root=(0, 0, -0.08), body=(0, 0, 8), torso=(10, 0, 18), head=(-4, 0, -16), RightArm={"aim": (-0.35, -1.2, 3.2), "pole": (-1, -0.2, -0.3)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-22, 0, -4), "knee": 46}, RightLeg={"hip": (-8, 0, 5), "knee": 40}, key=(6, 0, 0)),
+		jkey(0.8, "Sweep: the open hand swings up across his chest toward his right, torso unwinds; the dome's portals cascade round him in its path, the first ones full and pushing a blade out", fx=["jportals:0.45:tips"], root=(0, 0, 0), body=(0, 0, 0), torso=(0, -2, -4), head=(-8, 0, -6), RightArm={"aim": (-1.2, -1.65, 4.0), "pole": (-0.6, 0, -1)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (-8, 0, -4), "knee": 28}, RightLeg={"hip": (4, 0, 5), "knee": 34}, key=(2, 0, 0)),
+		jkey(1.2, "Raised hand, sweep's end: arm up and out to his right, chest open, chin high; " + f"all {len(JPORTALS)} dome portals open, weapon tips push through (held still)", fx=["jportals:1:tips"], root=(0, 0, 0.1), body=(0, 2, -6), torso=(-8, -6, -12), head=(-14, 4, -2), RightArm={"aim": (-2.4, -0.4, 5.2)}, LeftArm=AKIMBO_L, LeftLeg={"hip": (2, 0, -5), "knee": 24}, RightLeg={"hip": (10, 0, 6), "knee": 38}, key=(-4, 0, 0)),
 		jkey(1.6, "Command (hit): arm snaps down to point at the lanes, torso thrown forward, legs kick back; volley 1 of 14 leaves on the gesture", event="gates", fx=["jportals:1.3:tips", "jvolley:0", "cmd:R"], root=(0, -0.1, -0.05), body=(0, 0, 2), torso=(14, 0, -4), head=(-12, 0, -4), RightArm={"aim": (-1.9, -1.45, 3.3)}, LeftArm={"aim": (2.4, 0.9, 3.0), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (14, 0, -4), "knee": 40}, RightLeg={"hip": (22, 0, 4), "knee": 55}, key=(10, 0, 0)),
 		jkey(1.85, "Overshoot: the point carries past and down, head dips, legs swing further back; volley 2", fx=["jportals:1.3:tips", "jvolley:1"], root=(0, -0.12, -0.1), body=(0, 0, 4), torso=(19, 0, -2), head=(-15, 0, -6), RightArm={"aim": (-1.7, -1.45, 2.9)}, LeftArm={"aim": (2.3, 1.0, 2.7), "pole": (1, -0.3, -0.5)}, LeftLeg={"hip": (20, 0, -4), "knee": 50}, RightLeg={"hip": (26, 0, 4), "knee": 62}, key=(12, 0, 0)),
 		jkey(2.5, "Second gesture: weight swings to his left, left arm flung wide with an open palm, right fist drawn to his chest; volley 6", fx=["jportals:1.3:tips", "jvolley:5", "cmd:L"], root=(0.08, -0.04, 0), body=(0, -3, 8), torso=(4, 3, 16), head=(-8, -2, 10), RightArm={"aim": (-0.6, -1.0, 3.4), "pole": (-1, 0, -0.5)}, LeftArm={"aim": (3.0, -0.6, 4.2)}, LeftLeg={"hip": (-10, 0, -6), "knee": 30}, RightLeg={"hip": (10, 0, 6), "knee": 48}, key=(4, 0, 0)),
@@ -1047,16 +1069,40 @@ JMOVES["gates"] = {
 	],
 }
 for _k in JMOVES["gates"]["keys"]:
-	_k["view"] = (0.4, -0.9, 0.15)  # more frontal than enuma's: the portal dome reads behind him, not over him
+	_k["view"] = (0.4, -0.9, 0.75)  # raised (2026-11-13 dome): the tiers read as rings round him, the front tier below his chest
+JMOVES["gates"]["front"] = (0, -1, 0.5)
 # The owner's later look (2026-11-12, design doc 4.37 "Golden King effects stronger"; the sheets are the target the game matches):
 # the sunset room darkens as the portals open (dim, red per key); each portal is full before its blade shows, shots only from
 # portals holding one; thick gold streaks with white cores and sparkle dust; each hit a gold flash, shock ring, sparks and dust.
 JMOVES["gates"]["sky"] = [(1.0, 0), (0.8, 0), (0.45, 0), (0.2, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.12, 0), (0.18, 0), (0.7, 0)]
 JMOVES["gates"]["hitcam"] = (1, -0.2, 0.6)
-JMOVES["gates"]["note"] = "DODGE 0.00 - 1.60 s; event gates (20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, 14, one per 0.15 s (keys 5 - 9); idle by 4.40 s. The sunset room darkens as design C portals open in his sweep; a blade only in a full portal, shots only from blades (close views: the shot leaving; third view: the hits on the lanes)"
+JMOVES["gates"]["note"] = "DODGE 0.00 - 1.60 s; event gates (20% cost) at 1.60 s; VOLLEYS 1.60 - 3.60 s, 14, one per 0.15 s (keys 5 - 9); idle by 4.40 s. The sunset room darkens as design C portals open in his sweep on an ordered dome round him (owner 2026-11-13 later: tiers at " + ", ".join(f"{e} deg x {n} ({a} studs)" for e, n, a in DOME_TIERS) + f" from his chest, dome radius {DOME_R * SIZE * CHAR_H / 6.63:.0f} studs, open sky above {DOME_TOP} deg; each faces out and down to the lanes {LANE_MID:g} studs out; {JVOLLEY} weapons a volley); a blade only in a full portal, shots only from blades along its facing (close views: the shot leaving; third view: the hits all round the lanes)"
 JMOVES["enuma"]["sky"] = [(1.0, 0), (0.9, 0.15), (0.75, 0.35), (0.6, 0.6), (0.45, 0.85), (0.35, 1.0), "white", (0.06, 1.0, 0.08), (0.06, 1.0, 0.08), (0.6, 0.4)]  # the beam floods the room dark red; low bloom keeps it crimson
 JMOVES["enuma"]["hitcam"] = (0.2, -0.5, 1.0)
-JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; beam along Ea's blade axis, 60 studs wide, crimson and black blast; beam keys seen side-on with the landing in frame"
+JMOVES["enuma"]["note"] = "DODGE (charge) 0.00 - 3.00 s; HIT 3.00 s: one white full flash, then the beam 3.00 - 5.00 s; recover 5.00 - 5.60 s. The sunset room tints red through the charge; the beam runs exactly along Ea's blade axis from its tip (no clamp, no tilt), 90 studs wide: a yellow-white hot core 21, orange fire billows, red 60 with thin bright red rim lines, a red-black cyclone 99 and black strands kept strong; red-white burst, black smoke and rubble where it lands. 360 sweep (owner 2026-11-13): his whole rig turns about his centre on top of the keys so the beam's yaw goes 370 degrees one way, eased, 3.00 - 5.00 s (sweep in each beam key's caption; the row below shows 0, 90, 180, 270, 360 from above); Ea pitched down so the beam lands on the lanes all round. Beam keys seen side-on with the landing in frame"
+SWEEP_DEG, SWEEP_T = 370.0, (3.0, 5.0)  # proposed (spec "Enuma 360"): the beam's yaw goes this far one way over the beam window
+
+
+def ease(u):
+	u = min(max(u, 0.0), 1.0)
+	return u * u * (3 - 2 * u)
+
+
+def beam_yaw(key):
+	"""The beam's yaw in his model space without the sweep, degrees: his hips' yaw plus Ea's dir (dir is turned with the hips)."""
+	x, y, _ = key["ea"]["dir"]
+	return key.get("body", (0, 0, 0))[2] + math.degrees(math.atan2(y, x))
+
+
+def sweep_for(key, t, first):
+	"""The rig turn that puts the beam SWEEP_DEG * ease(u) round from the first beam key at time t."""
+	return round(beam_yaw(first) + SWEEP_DEG * ease((t - SWEEP_T[0]) / (SWEEP_T[1] - SWEEP_T[0])) - beam_yaw(key), 1)
+
+
+_beam = [k for k in JMOVES["enuma"]["keys"] if "beam" in k.get("fx", [])]
+for _k in _beam:
+	_k["sweep"] = sweep_for(_k, _k["t"], _beam[0])
+	_k["cap"] += f" (sweep +{_k['sweep']:g} deg: beam {beam_yaw(_k) + _k['sweep'] - beam_yaw(_beam[0]):.0f} deg round)"
 JMOVES["shields"] = {
 	"title": "Shield Gates (rework, jointed rig, hovering): his left hand calls a ring of shields out of small portals, a fold locks it",
 	"end": 2.6,
@@ -1129,8 +1175,9 @@ def jsolve(key):
 	"""jointed rig: placement per part (model space, applied on top of its rest), the local rotations for keys.json, the Ea
 	grip offset in the right forearm's space, and how far each hand stops short of its aim (model units)."""
 	place = {}
-	yaw = Matrix.Rotation(math.radians(key.get("body", (0, 0, 0))[2]), 3, "Z")
-	place["Body"] = Matrix.Translation(key.get("root", (0, 0, 0))) @ about(HIP, eul(key.get("body", (0, 0, 0))))
+	sweep = Matrix.Rotation(math.radians(key.get("sweep", 0)), 4, "Z")  # Enuma's 360: the whole rig turned about his centre on top
+	yaw = sweep.to_3x3() @ Matrix.Rotation(math.radians(key.get("body", (0, 0, 0))[2]), 3, "Z")
+	place["Body"] = sweep @ Matrix.Translation(key.get("root", (0, 0, 0))) @ about(HIP, eul(key.get("body", (0, 0, 0))))
 	place["Torso"] = place["Body"] @ about(WAIST, eul(key.get("torso", (0, 0, 0))))
 	place["Head"] = place["Torso"] @ about(NECK, eul(key.get("head", (0, 0, 0))))
 	place["Key"] = place["Torso"] @ about(KEY_PIVOT, eul(key.get("key", (0, 0, 0))))
@@ -1173,7 +1220,7 @@ def jsolve(key):
 		e = key["ea"]
 		if isinstance(e, dict):
 			r = Vector((0, 0, 1)).rotation_difference(yaw @ Vector(e["dir"])).to_matrix().to_4x4()
-			at = Vector(e["at"]) if "at" in e else place["RightLowerArm"] @ HAND["RightArm"]
+			at = sweep @ Vector(e["at"]) if "at" in e else place["RightLowerArm"] @ HAND["RightArm"]
 			place["Ea"] = Matrix.Translation(at) @ r @ Matrix.Translation(-EA_PIVOT)
 		else:
 			place["Ea"] = place["RightLowerArm"] @ Matrix.Translation(HAND["RightArm"] - EA_PIVOT) @ about(EA_PIVOT, eul(e))
@@ -1185,7 +1232,8 @@ def jsolve(key):
 	record = {}
 	for n, par in JPARENT.items():
 		if n in place:
-			r = place[n].to_3x3() if par is None else place[par].to_3x3().inverted() @ place[n].to_3x3()
+			# Body is recorded without the sweep: keys.json holds the pose; sweep_deg is the turn the game adds on top about his centre
+			r = (sweep.inverted() @ place[n]).to_3x3() if par is None else place[par].to_3x3().inverted() @ place[n].to_3x3()
 			record[n] = degs(r.to_4x4())
 	for n, sign in zip(EA_PARTS[1:], (1, -1, 1)):
 		record[n] = [0.0, 0.0, round(sign * key.get("spin", 0), 3)]
@@ -1221,6 +1269,121 @@ def window_row(scene, rig, move):
 		out.append((t, lines, wide, top))
 	clear_fx()
 	return out
+
+
+# ---- Enuma's 360 sweep: in-between poses, the row from above and the hero frames ----
+
+
+def lerp_val(a, b, u):
+	if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+		return a + (b - a) * u
+	if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)):
+		return tuple(lerp_val(x, y, u) for x, y in zip(a, b))
+	if isinstance(a, dict) and isinstance(b, dict):
+		return {f: lerp_val(v, b[f], u) if f in b else v for f, v in a.items()}
+	return a
+
+
+def key_at(keys, t):
+	"""A straight in-between of the two keys round t (a review aid only: the game blends its own in-betweens)."""
+	a, b = next((a, b) for a, b in zip(keys, keys[1:]) if a["t"] <= t <= b["t"])
+	u = (t - a["t"]) / (b["t"] - a["t"])
+	return {**{f: lerp_val(v, b.get(f, v), u) for f, v in a.items()}, "t": t}
+
+
+def sweep_time(deg):
+	"""When the beam has gone deg round (inverse of the eased sweep)."""
+	lo, hi = 0.0, 1.0
+	for _ in range(40):
+		mid = (lo + hi) / 2
+		lo, hi = (mid, hi) if SWEEP_DEG * ease(mid) < deg else (lo, mid)
+	return SWEEP_T[0] + lo * (SWEEP_T[1] - SWEEP_T[0])
+
+
+def sweep_key(deg):
+	keys = JMOVES["enuma"]["keys"]
+	beam = [k for k in keys if "beam" in k.get("fx", [])]
+	t = min(max(sweep_time(deg), beam[0]["t"]), beam[-1]["t"])
+	key = key_at(keys, t)
+	key["sweep"] = sweep_for(key, t, beam[0])
+	key["fx"] = ["beam"]
+	return key
+
+
+def lane_marks(rig):
+	"""The lanes' inner and outer edges on the deck (110 and 166 studs from his centre, proposed ring): review marks only."""
+	c = rig.king.matrix_world.translation
+	for r in (110.0, 166.0):
+		mk.ring(Vector((c.x, c.y, rig.stand + 0.3)), r, 0.9, mk.glow_mat("LaneMark", CREAM, 3))
+
+
+def sweep_row(scene, rig, move):
+	"""Five panels from high above: the beam at 0, 90, 180, 270 and 360 degrees of its sweep, landing on the lanes all round."""
+	global BEAM_VIEW
+	cam = rig.cam
+	c = rig.king.matrix_world.translation
+	ground = Vector((c.x, c.y, rig.stand))
+	eye = ground + to_world_dir(rig, (0, -0.75, 1)) * 470
+	out = []
+	pw = move.get("cols", COLS) * CELL_W // 5
+	for deg in (0, 90, 180, 270, 360):
+		clear_fx()
+		key = sweep_key(deg)
+		pose_king(rig, key)
+		BEAM_VIEW = (eye - ground).normalized()
+		JHITS.clear()
+		build_fx(rig, ["beam"], seed=300 + deg, t=key["t"])
+		lane_marks(rig)
+		jlook(scene, rig, (0.06, 1.0, 0.08))
+		cam.data.type, cam.data.sensor_fit, cam.data.angle = "PERSP", "AUTO", math.radians(58)
+		cam.data.clip_start, cam.data.clip_end = 0.3, 4000
+		cam.location, cam.rotation_euler = eye, (ground - eye).to_track_quat("-Z", "Y").to_euler()
+		img = mk.shot(scene, os.path.join(TMP, f"enuma_sweep_{deg}.png"), (pw, int(pw * 0.62)))
+		out.append((f"beam {deg} deg round   t {key['t']:.2f} s   sweep +{key['sweep']:g} deg on the in-between pose", img))
+	BEAM_VIEW = None
+	clear_fx()
+	title = f"The 360 sweep from above (owner 2026-11-13): his whole rig turns about his centre so the beam's yaw goes {SWEEP_DEG:g} degrees one way, eased, {SWEEP_T[0]:.2f} - {SWEEP_T[1]:.2f} s; cream rings: the lanes' edges (110 and 166 studs). Poses between keys are straight in-betweens, a review aid"
+	return title, out
+
+
+def heroes(scene, rig, folder):
+	"""One large frame per move from a runner's lane: the dome mid-volley, the beam mid-sweep landing on the lanes."""
+	global BEAM_VIEW
+	cam = rig.cam
+	c = rig.king.matrix_world.translation
+	ground = Vector((c.x, c.y, rig.stand))
+	g = JMOVES["gates"]
+	i = 6  # 2.50 s, volley 6
+	clear_fx()
+	pose_king(rig, g["keys"][i])
+	JHITS.clear()
+	build_fx(rig, g["keys"][i]["fx"], seed=106, t=g["keys"][i]["t"])
+	for o in FX.objects:
+		if o.get("close_only"):
+			o.hide_render = True
+	jlook(scene, rig, g["sky"][i])
+	eye = ground + to_world_dir(rig, (0.3, -1, 0)) * 150 + Vector((0, 0, 9))
+	cam.data.type, cam.data.sensor_fit, cam.data.angle = "PERSP", "AUTO", math.radians(95)
+	cam.data.clip_start, cam.data.clip_end = 0.3, 4000
+	cam.location, cam.rotation_euler = eye, (to_world(rig, (0, 0, 6.5)) - eye).to_track_quat("-Z", "Y").to_euler()
+	mk.shot(scene, os.path.join(folder, "gates_hero.png"), (1920, 1080))
+	clear_fx()
+	key = sweep_key(150)
+	pose_king(rig, key)
+	tip, d, end = beam_line(rig)
+	a = math.atan2(end.y - c.y, end.x - c.x) - math.radians(75)
+	eye = ground + Vector((math.cos(a), math.sin(a), 0)) * 150 + Vector((0, 0, 14))
+	at = tip.lerp(end, 0.4) + Vector((0, 0, 10))
+	BEAM_VIEW = (eye - at).normalized()
+	JHITS.clear()
+	build_fx(rig, ["beam", "arrows"], seed=150, t=key["t"])
+	lane_marks(rig)
+	jlook(scene, rig, (0.06, 1.0, 0.08))
+	cam.location, cam.rotation_euler = eye, (at - eye).to_track_quat("-Z", "Y").to_euler()
+	cam.data.angle = math.radians(90)
+	mk.shot(scene, os.path.join(folder, "enuma_hero.png"), (1920, 1080))
+	BEAM_VIEW = None
+	clear_fx()
 
 
 # ---- renders and the sheet ----
@@ -1259,8 +1422,7 @@ def frame_extra(rig, key):
 	if REWORK and "beam" in fx:  # the whole beam and its landing (fire wall, shock wave) stay in the close views
 		tip, d, end = beam_line(rig)
 		g = Vector((end.x, end.y, rig.stand))
-		f = min((end - tip).length, 170.0) / 170.0
-		pts += [tip, end, g + Vector((0, 0, 110 * f + 10))] + [g + Vector((math.cos(a), math.sin(a), 0)) * (72 * f + 16) for a in np.linspace(0, math.tau, 8, endpoint=False)]
+		pts += [tip, end, g + Vector((0, 0, 60))] + [g + Vector((math.cos(a), math.sin(a), 0)) * 60 for a in np.linspace(0, math.tau, 8, endpoint=False)]
 	if any(f.startswith("jportals") for f in fx):
 		pts += [to_world(rig, c + d) for c, r, _ in JPORTALS for d in (Vector((r, 0, r)), Vector((-r, 0, -r)))]
 	if any(f.startswith("jshields") for f in fx):
@@ -1325,7 +1487,8 @@ def run_move(scene, rig, name, move):
 			hc = sum(JHITS, Vector()) / len(JHITS)
 			me = to_world(rig, (0, 0, 4))
 			at = me.lerp(hc, 0.55)
-			eye = at + to_world_dir(rig, move["hitcam"]) * max((hc - me).length * 1.8, 60)
+			far = max((h - me).length for h in JHITS)  # hits all round him (the dome) need the whole ring in frame
+			eye = at + to_world_dir(rig, move["hitcam"]) * max(far * (1.8 if (hc - me).length > 0.5 * far else 2.4), 60)
 			for o in FX.objects:
 				if o.get("close_only"):
 					o.hide_render = True
@@ -1346,6 +1509,8 @@ def run_move(scene, rig, name, move):
 			rec["ea_grip_offset"] = grip
 		if "spin" in key:
 			rec["ea_drum_spin"] = key["spin"]
+		if "sweep" in key:
+			rec["sweep_deg"] = key["sweep"]
 		for f in ("hold", "event"):
 			if f in key:
 				rec["hold_until" if f == "hold" else f] = key[f]
@@ -1355,18 +1520,20 @@ def run_move(scene, rig, name, move):
 			rec["shield_ring"] = ring[0].split(":")[1]
 		records.append(rec)
 	win = window_row(scene, rig, move) if move.get("window") == "gates" else None
+	row = sweep_row(scene, rig, move) if REWORK and name == "enuma" else None
 	clear_fx()
-	sheet(name, move, cells, win)
+	sheet(name, move, cells, win, row)
 	return records
 
 
-def sheet(name, move, cells, win=None):
+def sheet(name, move, cells, win=None, strip=None):
 	keys = move["keys"]
 	cols = move.get("cols", COLS)
 	rows = math.ceil(len(keys) / cols)
 	cell_h = MAIN[1] + STRIP_H
 	win_h = 60 + 40 + WIN[1] + 8 + MAP + 16 if win else 0
-	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h, cols * CELL_W, 4), dtype=np.float32)
+	row_h = 60 + 40 + strip[1][0][1].shape[0] + 16 if strip else 0
+	px = np.ones((HEAD_H + rows * cell_h + 8 + win_h + row_h, cols * CELL_W, 4), dtype=np.float32)
 	px[:, :, :3] = bk.BG
 	total = f"{move['end']:.1f} s" + (" loop" if move.get("loop") else "")
 	note = f"Times proposed. Wide views: vault draft from a runner's camera on lane 4, him at {SIZE:g}x a runner ({SIZE * CHAR_H:g} studs) standing on the centre mound"
@@ -1419,6 +1586,15 @@ def sheet(name, move, cells, win=None):
 			txt = [("top view", 18, 26, 12, bk.DIM)] + [(s, 19, 70 + 34 * j, 12, bk.INK) for j, s in enumerate(lines)] + [("runner's side at the bottom", 16, MAP - 20, 12, bk.DIM)]
 			bk.paste(px, bk.text_px(txt, pw - MAP, MAP, bk.BG), x + MAP, y + 40 + WIN[1] + 8)
 			px[y : y + win_h - 60, x : x + 2] = (0.5, 0.5, 0.52, 1)
+	if strip:  # a strip of panels under the keys (Enuma's 360 sweep from above)
+		y0 = HEAD_H + rows * cell_h + 8 + win_h
+		bk.paste(px, bk.text_px([(strip[0], 30, 40, 18, bk.INK)], cols * CELL_W, 60, bk.BG), 0, y0)
+		pw = cols * CELL_W // len(strip[1])
+		for j, (label, img) in enumerate(strip[1]):
+			x = j * pw
+			bk.paste(px, bk.text_px([(label, 22, 28, 10, bk.INK)], pw, 40, bk.BG), x, y0 + 60)
+			bk.paste(px, img, x, y0 + 100)
+			px[y0 + 60 : y0 + row_h, x : x + 2] = (0.5, 0.5, 0.52, 1)
 	path = os.path.join(OUT, name + "_slices.png")
 	bk.save_px(px, path)
 	print("SHEET", path)
@@ -1510,12 +1686,15 @@ def rework(argv):
 			"parents": JPARENT | {"Ea_Drum1": "Ea", "Ea_Drum2": "Ea", "Ea_Drum3": "Ea"},
 			"pivots": {"Body": HIP, "Torso": WAIST, "Head": NECK, "Key": KEY_PIVOT, "Ea": list(EA_PIVOT), **{SEG[n][0]: SHOULDER[n] for n in SHOULDER}, **{SEG[n][1]: list(ELBOW[n]) for n in ELBOW}, **{SEG[n][0]: LEG[n] for n in LEG}, **{SEG[n][1]: list(KNEE[n]) for n in KNEE}},
 			"ea": "Ea turns about its grip (the empty); ea_grip_offset moves the grip in the right lower arm's space, model units. ea_drum_spin: degrees about Ea's z; Ea_Drum1 and Ea_Drum3 turn +spin, Ea_Drum2 -spin (also in rotations)",
-			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots fly straight out along their portal's facing (each portal faces the lanes) and land with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework runs along Ea's blade axis, about 60 studs wide (white core 14, crimson 40, black-red outer 60, a dark-red volume, black strands, red lightning, a turning cyclone) to a red-black shock wave, red fire and black smoke where it lands",
+			"effects": "sketch labels per key: draw (gold ripple at Ea's grip), arrows (drum spin marks), charge (groove glow), ball:<size> (white ball and red rings at Ea's tip), wind, gather, flash (one white flash at the tip), beam (from Ea's tip along its axis), embers; the red arena tint runs with the charge and beam. Later moves: jportals:<f>[:tips|:close] (design C sun-wheel portals, the first f of them in his arm's sweep order), jvolley:<j> (volley j of 14 from them), jshields:<f>:<state>:<yaw> (shield portals and shields, state portal|emerge|ring|lock), cmd:<L|R> (the command flash at that hand). 2026-11-12 later look: jportals blades only in full portals (portal, then weapon, then shot); jvolley shots fly straight out along their portal's facing (each portal faces the lanes) and land with a gold hit (flash, white core, shock ring, sparks, dust); beam in the rework runs along Ea's blade axis, about 60 studs wide (white core 14, crimson 40, black-red outer 60, a dark-red volume, black strands, red lightning, a turning cyclone) to a red-black shock wave, red fire and black smoke where it lands. 2026-11-13 later (owner): jportals stand in an ordered dome round him (fixed tiers, open top, each facing out and down to the lanes, see the gates note); the beam runs exactly along Ea's blade axis to where it meets the deck (no clamp), 1.5 x wider with a yellow-white hot core, orange fire billows, thin bright red rim lines, the red-black cyclone and black strands kept strong, a red-white burst with black smoke and rubble; sweep_deg: the whole rig's turn about his centre on top of the key (Enuma's 360 sweep)",
 			"hover": {"studs_over_mound": HOVER_STUDS, "bob_studs": 1.5, "bob_seconds": 3.0, "note": "proposed, owner 2026-11-12; the bob is played in game, not keyed"},
 			"scale": {"studs_per_model_unit_at_8x": round(8 * CHAR_H / rig.model_h, 4), "model_height_units": round(rig.model_h, 4)},
 			"approved": [],
 		}
 	)
+	if "--hero" in argv:  # only the hero frames, nothing else written
+		heroes(scene, rig, argv[argv.index("--hero") + 1])
+		return
 	for name in wanted:
 		m = JMOVES[name]
 		entry = {"title": m["title"], "end": m["end"], "loop": m.get("loop", False)}
